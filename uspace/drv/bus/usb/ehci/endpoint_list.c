@@ -183,4 +183,3 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 /**
  * @}
  */
-

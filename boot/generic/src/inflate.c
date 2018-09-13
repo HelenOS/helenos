@@ -94,7 +94,6 @@
 			return ELIMIT; \
 	} while (false)
 
-
 /** Inflate algorithm state
  *
  */

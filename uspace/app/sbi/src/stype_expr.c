@@ -129,7 +129,6 @@ static void stype_assign(stype_t *stype, stree_assign_t *assign,
 static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem);
 static void stype_box(stype_t *stype, stree_box_t *box, tdata_item_t **rtitem);
 
-
 /** Type expression
  *
  * The type is stored in @a expr->titem. If the express contains a type error,
@@ -1390,7 +1389,6 @@ static void stype_access_tebase(stype_t *stype, stree_access_t *access,
 
 	*rtitem = mtitem;
 }
-
 
 /** Type a call operation.
  *

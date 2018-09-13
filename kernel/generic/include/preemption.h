@@ -58,7 +58,6 @@
 		THE->preemption -= PREEMPTION_INC; \
 	} while (0)
 
-
 #endif
 
 /** @}

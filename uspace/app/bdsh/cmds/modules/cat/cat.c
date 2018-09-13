@@ -335,7 +335,6 @@ int cmd_cat(char **argv)
 	/* This enables printing of the first number. */
 	last_char_was_newline = true;
 
-
 	argc = cli_count_args(argv);
 
 	c = 0;
@@ -418,4 +417,3 @@ int cmd_cat(char **argv)
 	else
 		return CMD_SUCCESS;
 }
-

@@ -177,7 +177,6 @@ NO_TRACE size_t frame_total_free_get(void)
 	return total;
 }
 
-
 /** Find a zone with a given frames.
  *
  * Assume interrupts are disabled and zones lock is

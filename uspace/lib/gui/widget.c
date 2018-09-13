@@ -90,4 +90,3 @@ void widget_deinit(widget_t *widget)
 
 /** @}
  */
-

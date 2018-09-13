@@ -187,7 +187,6 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-
 static void syntax_print(void)
 {
 	printf("syntax: testread <filename>\n");

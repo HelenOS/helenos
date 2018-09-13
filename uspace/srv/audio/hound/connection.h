@@ -116,7 +116,6 @@ static inline const char *connection_sink_name(connection_t *connection)
 	return connection->source ? "unnamed sink" : "no sink";
 }
 
-
 #endif
 /**
  * @}

@@ -166,4 +166,3 @@ void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 
 /** @}
  */
-

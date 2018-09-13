@@ -364,7 +364,6 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			    position++)
 				putwchar(current[position]);
 
-
 			/*
 			 * Find the beginning of the word
 			 * and copy it to tmp

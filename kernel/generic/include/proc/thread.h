@@ -51,7 +51,6 @@
 #include <abi/sysinfo.h>
 #include <arch.h>
 
-
 #define THREAD              THE->thread
 
 #define THREAD_NAME_BUFLEN  20

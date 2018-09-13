@@ -109,7 +109,6 @@ static void key_handle(kbd_event_t *ev)
 	}
 }
 
-
 static void print_syntax(void)
 {
 	printf("syntax:\n");

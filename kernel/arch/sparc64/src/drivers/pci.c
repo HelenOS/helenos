@@ -114,7 +114,6 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 	return pci;
 }
 
-
 /** Initialize the Psycho PCI controller.
  *
  * @param node		OpenFirmware device tree node of the Psycho.

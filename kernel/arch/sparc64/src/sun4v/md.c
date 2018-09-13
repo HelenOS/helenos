@@ -54,7 +54,6 @@
 #define PROP_STR	0x73	/**< Node property with a string value */
 #define PROP_DATA	0x64	/**< Node property with a block of data */
 
-
 /** machine description header */
 typedef struct {
 	uint32_t transport_version;	/**< Transport version number */
@@ -103,7 +102,6 @@ typedef unsigned int element_idx_t;
 /** buffer to which the machine description will be saved */
 static uint8_t mach_desc[MD_MAX_SIZE]
     __attribute__((aligned(16)));
-
 
 /** returns pointer to the element at the given index */
 static md_element_t *get_element(element_idx_t idx)

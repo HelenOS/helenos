@@ -36,10 +36,8 @@
 #include <str.h>
 #include "logger.h"
 
-
 static FIBRIL_MUTEX_INITIALIZE(log_list_guard);
 static LIST_INITIALIZE(log_list);
-
 
 static logger_log_t *find_log_by_name_and_parent_no_list_lock(const char *name, logger_log_t *parent)
 {
@@ -283,7 +281,6 @@ void log_release(logger_log_t *log)
 
 	free(log);
 }
-
 
 void write_to_log(logger_log_t *log, log_level_t level, const char *message)
 {

@@ -147,7 +147,6 @@ static kobject_ops_t phone_kobject_ops = {
 	.destroy = phone_destroy
 };
 
-
 /** Allocate new phone in the specified task.
  *
  * @param[in]  task     Task for which to allocate a new phone.

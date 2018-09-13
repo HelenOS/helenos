@@ -46,4 +46,3 @@ typedef struct e820memmap {
 
 #endif
 #endif
-

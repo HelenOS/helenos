@@ -63,7 +63,6 @@
 #include <arch/sun4v/cpu.h>
 #endif
 
-
 #endif
 
 #endif

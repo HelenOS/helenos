@@ -79,7 +79,6 @@ typedef errno_t (*tinput_compl_init_fn)(wchar_t *text, size_t pos, size_t *cstar
  */
 typedef errno_t (*tinput_compl_get_next_fn)(void *state, char **compl);
 
-
 /** Finish enumeration of text completions.
  *
  * The function must deallocate any state information allocated by the init

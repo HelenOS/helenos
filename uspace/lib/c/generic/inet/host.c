@@ -75,7 +75,6 @@ errno_t inet_host_parse(const char *str, inet_host_t **rhost,
 		goto have_host;
 	}
 
-
 	/* Try <hostname> */
 	rc = inet_hostname_parse(str, &name, &aend);
 	if (rc == EOK) {

@@ -182,7 +182,6 @@ static int32_t ski_con_getchar(void)
 	return (int32_t) ch;
 }
 
-
 /** Display character on ski debug console
  *
  * Use SSC (Simulator System Call) to

@@ -91,7 +91,6 @@ extern category_t *category_find_by_name(categ_dir_t *, const char *);
 extern errno_t category_get_services(category_t *, service_id_t *, size_t,
     size_t *);
 
-
 #endif
 
 /** @}

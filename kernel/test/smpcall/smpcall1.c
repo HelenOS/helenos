@@ -47,7 +47,6 @@
 #define ITERATIONS 1000
 #define EACH_CPU_INC_PER_ITER 2
 
-
 static void inc(void *p)
 {
 	assert(interrupts_disabled());
@@ -59,7 +58,6 @@ static void inc(void *p)
 	 */
 	++*pcall_cnt;
 }
-
 
 static void test_thread(void *p)
 {

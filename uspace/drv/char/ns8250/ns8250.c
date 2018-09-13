@@ -196,7 +196,6 @@ static ns8250_t *srv_ns8250(chardev_srv_t *srv)
 	return (ns8250_t *)srv->srvs->sarg;
 }
 
-
 /** Find out if there is some incoming data available on the serial port.
  *
  * @param port		The base address of the serial port device's ports.

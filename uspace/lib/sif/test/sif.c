@@ -601,5 +601,4 @@ PCUT_TEST(sif_persist)
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 }
 
-
 PCUT_EXPORT(sif);

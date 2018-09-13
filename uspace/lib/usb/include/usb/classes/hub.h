@@ -148,7 +148,6 @@ typedef struct {
 	 */
 	uint8_t characteristics;
 
-
 	/** Unused part of characteristics field */
 	uint8_t characteristics_reserved;
 

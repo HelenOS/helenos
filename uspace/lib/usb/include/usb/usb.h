@@ -70,7 +70,6 @@ static inline bool usb_speed_is_valid(const usb_speed_t s)
 
 const char *usb_str_speed(usb_speed_t);
 
-
 /** USB request type target. */
 typedef enum {
 	USB_REQUEST_TYPE_STANDARD = 0,

@@ -110,6 +110,5 @@ void pl050_wire(pl050_instance_t *instance, indev_t *kbrdin)
 
 }
 
-
 /** @}
  */

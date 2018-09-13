@@ -228,7 +228,6 @@ mfs_count_free_zones(struct mfs_instance *inst, uint32_t *zones);
 extern errno_t
 mfs_count_free_inodes(struct mfs_instance *inst, uint32_t *inodes);
 
-
 /* mfs_utils.c */
 extern uint16_t
 conv16(bool native, uint16_t n);
@@ -244,4 +243,3 @@ conv64(bool native, uint64_t n);
 /**
  * @}
  */
-

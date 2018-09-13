@@ -55,7 +55,6 @@ typedef struct usbmast_dev {
 	usb_pipe_t *bulk_out_pipe;
 } usbmast_dev_t;
 
-
 /** Mass storage function.
  *
  * Serves as soft state for function/LUN.

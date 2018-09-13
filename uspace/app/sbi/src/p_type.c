@@ -255,7 +255,6 @@ static stree_texpr_t *parse_tparen(parse_t *parse)
 	return texpr;
 }
 
-
 /** Parse primitive type expression.
  *
  * @param parse		Parser object.

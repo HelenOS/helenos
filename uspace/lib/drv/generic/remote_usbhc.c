@@ -43,7 +43,6 @@
 #include "usbhc_iface.h"
 #include "ddf/driver.h"
 
-
 typedef enum {
 	IPC_M_USB_DEFAULT_ADDRESS_RESERVATION,
 	IPC_M_USB_DEVICE_ENUMERATE,
@@ -269,7 +268,6 @@ void remote_usbhc_default_address_reservation(ddf_fun_t *fun, void *iface,
 	const errno_t ret = usbhc_iface->default_address_reservation(fun, reserve);
 	async_answer_0(call, ret);
 }
-
 
 static void remote_usbhc_device_enumerate(ddf_fun_t *fun, void *iface,
     ipc_call_t *call)

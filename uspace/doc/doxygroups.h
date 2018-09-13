@@ -1,4 +1,3 @@
-
 /* Definitions of modules and its relations for generating Doxygen documentation */
 
 /**
@@ -26,7 +25,6 @@
  * @defgroup srvs HelenOS services
  * @ingroup uspace
  */
-
 
 /*
  * SPECIAL COMPOSITIONS

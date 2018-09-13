@@ -242,7 +242,6 @@ static errno_t sata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-
 int main(int argc, char **argv)
 {
 	errno_t rc;

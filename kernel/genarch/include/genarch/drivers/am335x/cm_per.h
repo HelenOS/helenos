@@ -85,4 +85,3 @@ static void am335x_clock_module_enable(am335x_cm_per_regs_t *cm,
 /**
  * @}
  */
-

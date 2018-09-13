@@ -210,7 +210,6 @@ exfat_directory_find_continue(exfat_directory_t *di, exfat_dentry_clsf_t type,
 	return exfat_directory_find(di, type, d);
 }
 
-
 errno_t exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size,
     exfat_file_dentry_t *df, exfat_stream_dentry_t *ds)
 {
@@ -555,7 +554,6 @@ errno_t exfat_directory_lookup_free(exfat_directory_t *di, size_t count)
 	} while (exfat_directory_expand(di) == EOK);
 	return ENOSPC;
 }
-
 
 /**
  * @}

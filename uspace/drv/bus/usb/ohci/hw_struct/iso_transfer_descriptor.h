@@ -75,5 +75,3 @@ typedef struct itd {
 /**
  * @}
  */
-
-

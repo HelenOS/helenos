@@ -122,7 +122,6 @@ static void udebug_receive_set_evmask(call_t *call)
 	ipc_answer(&TASK->kb.box, call);
 }
 
-
 /** Process a GO call.
  *
  * Resumes execution of the specified thread.
@@ -302,7 +301,6 @@ static void udebug_receive_areas_read(call_t *call)
 	ipc_answer(&TASK->kb.box, call);
 }
 
-
 /** Process an ARGS_READ call.
  *
  * Reads the argument of a current syscall event (SYSCALL_B or SYSCALL_E).
@@ -386,7 +384,6 @@ static void udebug_receive_regs_read(call_t *call)
 
 	ipc_answer(&TASK->kb.box, call);
 }
-
 
 /** Process an MEM_READ call.
  *

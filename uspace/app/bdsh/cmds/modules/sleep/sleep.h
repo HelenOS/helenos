@@ -3,6 +3,4 @@
 
 /* Prototypes for the sleep command, excluding entry points */
 
-
 #endif /* SLEEP_H */
-

@@ -53,7 +53,6 @@ typedef struct nic_addr_db {
 	size_t addr_len;
 } nic_addr_db_t;
 
-
 extern errno_t nic_addr_db_init(nic_addr_db_t *db, size_t addr_len);
 extern void nic_addr_db_clear(nic_addr_db_t *db);
 extern void nic_addr_db_destroy(nic_addr_db_t *db);

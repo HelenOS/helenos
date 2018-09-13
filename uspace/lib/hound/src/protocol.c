@@ -66,7 +66,6 @@ enum ipc_methods {
 	IPC_M_HOUND_STREAM_DRAIN,
 };
 
-
 /** PCM format conversion helper structure */
 typedef union {
 	struct {
@@ -76,7 +75,6 @@ typedef union {
 	} __attribute__((packed)) f;
 	sysarg_t arg;
 } format_convert_t;
-
 
 /*
  * CLIENT
@@ -711,7 +709,6 @@ static void hound_server_write_data(void *stream)
 
 	async_answer_0(&call, ret);
 }
-
 
 /*
  * SERVER SIDE

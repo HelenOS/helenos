@@ -115,7 +115,6 @@ errno_t dma_buffer_alloc_policy(dma_buffer_t *db, size_t size, dma_policy_t poli
 	return EOK;
 }
 
-
 /**
  * Allocate a DMA buffer using the default policy.
  *
@@ -127,7 +126,6 @@ errno_t dma_buffer_alloc(dma_buffer_t *db, size_t size)
 {
 	return dma_buffer_alloc_policy(db, size, DMA_POLICY_DEFAULT);
 }
-
 
 /**
  * Free a DMA buffer.

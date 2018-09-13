@@ -124,7 +124,6 @@ static inline errno_t audio_pipe_push_data(audio_pipe_t *pipe,
 	return ENOMEM;
 }
 
-
 #endif
 
 /**

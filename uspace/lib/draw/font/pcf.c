@@ -136,7 +136,6 @@ static inline int32_t int32_t_pcf2host(int32_t val, uint32_t format)
 	return (int32_t) uint32_t_pcf2host((uint32_t) val, format);
 }
 
-
 static int16_t compressed2int(uint8_t compressed)
 {
 	int16_t ret = compressed;

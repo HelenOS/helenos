@@ -42,4 +42,3 @@ extern remote_iface_t remote_clock_dev_iface;
 /**
  * @}
  */
-

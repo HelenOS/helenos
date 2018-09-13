@@ -6,4 +6,3 @@ extern int cmd_ls(char **);
 extern void help_cmd_ls(unsigned int);
 
 #endif /* LS_ENTRY_H */
-

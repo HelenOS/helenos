@@ -37,7 +37,6 @@
 #include <typedefs.h>
 #include <str.h>
 
-
 /** Primary meaning of scancodes. */
 wchar_t sc_primary_map[] = {
 	U_NULL, /* 0x00 */

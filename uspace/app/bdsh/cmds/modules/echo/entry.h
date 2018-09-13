@@ -6,4 +6,3 @@ extern int cmd_echo(char **);
 extern void help_cmd_echo(unsigned int);
 
 #endif /* ECHO_ENTRY_H */
-

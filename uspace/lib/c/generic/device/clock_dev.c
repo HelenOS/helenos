@@ -102,4 +102,3 @@ clock_dev_time_set(async_sess_t *sess, struct tm *t)
 
 /** @}
  */
-

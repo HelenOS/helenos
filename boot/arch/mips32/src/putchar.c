@@ -63,4 +63,3 @@ void putwchar(const wchar_t ch)
 	else
 		_putchar('?');
 }
-

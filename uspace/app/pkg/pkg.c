@@ -99,7 +99,6 @@ static errno_t cmd_runl(const char *path, ...)
 	return retval == 0 ? EOK : EPARTY;
 }
 
-
 static errno_t pkg_install(int argc, char *argv[])
 {
 	char *pkg_name;
@@ -160,7 +159,6 @@ static errno_t pkg_install(int argc, char *argv[])
 		printf("Error deleting package archive.\n");
 		return rc;
 	}
-
 
 	rc = cmd_runl("/app/untar", "/app/untar", fnunpack, NULL);
 	if (rc != EOK) {

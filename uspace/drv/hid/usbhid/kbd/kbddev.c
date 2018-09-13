@@ -74,7 +74,6 @@
 static void default_connection_handler(ddf_fun_t *, ipc_call_t *);
 static ddf_dev_ops_t kbdops = { .default_handler = default_connection_handler };
 
-
 static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
 
 static const uint8_t ERROR_ROLLOVER = 1;
@@ -87,7 +86,6 @@ static const unsigned int DEFAULT_DELAY_BEFORE_FIRST_REPEAT = 500 * 1000;
 
 /** Delay between two repeats of a pressed key when auto-repeating. */
 static const unsigned int DEFAULT_REPEAT_DELAY = 50 * 1000;
-
 
 /** Keyboard polling endpoint description for boot protocol class. */
 const usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
@@ -586,13 +584,11 @@ static errno_t kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 	usbhid_req_set_idle(usb_device_get_default_pipe(hid_dev->usb_dev),
 	    usb_device_get_iface_number(hid_dev->usb_dev), IDLE_RATE);
 
-
 	kbd_dev->initialized = USB_KBD_STATUS_INITIALIZED;
 	usb_log_debug("HID/KBD device structure initialized.");
 
 	return EOK;
 }
-
 
 /* API functions                                                              */
 

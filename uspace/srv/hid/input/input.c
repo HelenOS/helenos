@@ -609,7 +609,6 @@ fail:
 	return -1;
 }
 
-
 /** Add legacy drivers/devices. */
 static void kbd_add_legacy_devs(void)
 {

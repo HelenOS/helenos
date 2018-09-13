@@ -85,7 +85,6 @@ static void frame_common_arch_init(bool low)
 	}
 }
 
-
 void frame_low_arch_init(void)
 {
 	if (config.cpu_active > 1)

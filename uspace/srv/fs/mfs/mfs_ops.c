@@ -38,7 +38,6 @@
 #include <str.h>
 #include "mfs.h"
 
-
 static bool check_magic_number(uint16_t magic, bool *native,
     mfs_version_t *version, bool *longfilenames);
 static errno_t mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
@@ -276,7 +275,6 @@ out_error:
 		free(sbi);
 	return rc;
 }
-
 
 static errno_t mfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
@@ -1274,4 +1272,3 @@ vfs_out_ops_t mfs_ops = {
 /**
  * @}
  */
-

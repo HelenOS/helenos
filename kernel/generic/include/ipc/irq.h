@@ -46,7 +46,6 @@
 #include <typedefs.h>
 #include <adt/list.h>
 
-
 extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
 extern void ipc_irq_top_half_handler(irq_t *);
 

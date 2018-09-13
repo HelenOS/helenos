@@ -168,7 +168,6 @@ void virtio_free_desc(virtio_dev_t *vdev, uint16_t num, uint16_t *head,
 	fibril_mutex_unlock(&q->lock);
 }
 
-
 void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,
     uint16_t descno)
 {

@@ -4,4 +4,3 @@
 /* Prototypes for the cmp command, excluding entry points */
 
 #endif /* CMP_H */
-

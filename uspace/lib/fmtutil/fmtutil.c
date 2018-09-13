@@ -234,4 +234,3 @@ errno_t wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 
 	return EOK;
 }
-

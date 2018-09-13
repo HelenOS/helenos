@@ -384,7 +384,6 @@ errno_t nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask)
 	return EOK;
 }
 
-
 /**
  * Check if the frame passes through the receive control.
  *
@@ -522,7 +521,6 @@ static uint64_t multicast_hash(const uint8_t addr[6])
 	uint64_t one64 = 1;
 	return one64 << (crc >> 26);
 }
-
 
 /**
  * Computes hash for the address list based on standard multicast address

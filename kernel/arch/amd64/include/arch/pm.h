@@ -43,7 +43,6 @@
 #define IDT_ITEMS  64
 #define GDT_ITEMS  8
 
-
 #define NULL_DES     0
 /* Warning: Do not reorder the following items, unless you look into syscall.c! */
 #define KTEXT_DES    1

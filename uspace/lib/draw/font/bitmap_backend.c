@@ -106,8 +106,6 @@ static errno_t bb_get_glyph_metrics(void *backend_data, glyph_id_t glyph_id,
 		    (data->scale_ratio * gm.height + 0.5);
 	}
 
-
-
 	data->glyph_cache[glyph_id].metrics = gm;
 	data->glyph_cache[glyph_id].metrics_loaded = true;
 	*glyph_metrics = gm;

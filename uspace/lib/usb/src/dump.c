@@ -353,7 +353,6 @@ static void usb_dump_descriptor_generic(FILE *output,
 	/* TODO */
 }
 
-
 /**
  * @}
  */

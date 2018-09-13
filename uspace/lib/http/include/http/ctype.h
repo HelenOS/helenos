@@ -87,7 +87,6 @@ static inline bool is_token(char c)
 	return !is_separator(c) && !is_ctl(c);
 }
 
-
 #endif
 
 /** @}

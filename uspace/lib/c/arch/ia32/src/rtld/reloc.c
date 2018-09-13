@@ -50,7 +50,6 @@ void module_process_pre_arch(module_t *m)
 	/* Unused */
 }
 
-
 /**
  * Process (fixup) all relocations in a relocation table.
  */

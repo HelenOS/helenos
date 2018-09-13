@@ -47,7 +47,6 @@
 #include <str_error.h>
 #include "logger.h"
 
-
 static logger_log_t *handle_create_log(sysarg_t parent)
 {
 	void *name;

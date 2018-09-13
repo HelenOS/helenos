@@ -38,7 +38,6 @@
 
 #include <stdint.h>
 
-
 /** Decribes CP15 "fault status register" (FSR).
  *
  * "VMSAv6 added a fifth fault status bit (bit[10]) to both the IFSR and DFSR.
@@ -70,7 +69,6 @@ typedef union {
 	uint32_t raw;
 } fault_status_t;
 
-
 /** Simplified description of instruction code.
  *
  * @note Used for recognizing memory access instructions.
@@ -86,7 +84,6 @@ typedef struct {
 	unsigned type : 3;
 	unsigned condition : 4;
 } ATTRIBUTE_PACKED instruction_t;
-
 
 /** Help union used for casting pc register (uint_32_t) value into
  *  #instruction_t pointer.

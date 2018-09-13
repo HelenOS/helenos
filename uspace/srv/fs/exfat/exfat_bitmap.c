@@ -46,7 +46,6 @@
 #include <fibril_synch.h>
 #include <mem.h>
 
-
 errno_t exfat_bitmap_is_free(exfat_bs_t *bs, service_id_t service_id,
     exfat_cluster_t clst)
 {
@@ -215,7 +214,6 @@ errno_t exfat_bitmap_alloc_clusters(exfat_bs_t *bs, service_id_t service_id,
 	return ENOSPC;
 }
 
-
 errno_t exfat_bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
     exfat_cluster_t count)
 {
@@ -238,7 +236,6 @@ errno_t exfat_bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
 	}
 }
 
-
 errno_t exfat_bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
     exfat_cluster_t count)
 {
@@ -248,7 +245,6 @@ errno_t exfat_bitmap_free_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
 
 	return exfat_bitmap_clear_clusters(bs, nodep->idx->service_id, lastc + 1, count);
 }
-
 
 errno_t exfat_bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
 {
@@ -265,8 +261,6 @@ errno_t exfat_bitmap_replicate_clusters(exfat_bs_t *bs, exfat_node_t *nodep)
 
 	return exfat_set_cluster(bs, service_id, lastc, EXFAT_CLST_EOF);
 }
-
-
 
 /**
  * @}

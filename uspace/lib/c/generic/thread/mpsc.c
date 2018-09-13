@@ -180,4 +180,3 @@ void mpsc_close(mpsc_t *q)
 {
 	_mpsc_push(q, q->close_node);
 }
-

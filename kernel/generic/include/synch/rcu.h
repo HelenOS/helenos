@@ -39,7 +39,6 @@
 #include <synch/rcu_types.h>
 #include <barrier.h>
 
-
 /** Use to assign a pointer to newly initialized data to a rcu reader
  * accessible pointer.
  *
@@ -91,14 +90,10 @@
  */
 #define rcu_access(ptr) ACCESS_ONCE(ptr)
 
-
-
-
 #include <debug.h>
 #include <preemption.h>
 #include <cpu.h>
 #include <proc/thread.h>
-
 
 extern bool rcu_read_locked(void);
 extern void rcu_synchronize(void);
@@ -120,7 +115,6 @@ extern void rcu_before_thread_runs(void);
 extern uint64_t rcu_completed_gps(void);
 extern void _rcu_call(bool expedite, rcu_item_t *rcu_item, rcu_func_t func);
 extern void _rcu_synchronize(bool expedite);
-
 
 #ifdef RCU_PREEMPT_A
 
@@ -157,7 +151,6 @@ static inline void rcu_read_unlock(void)
 /* Fwd decl. required by the inlined implementation. Not part of public API. */
 extern rcu_gp_t _rcu_cur_gp;
 extern void _rcu_signal_read_unlock(void);
-
 
 /** Unconditionally records a quiescent state for the local cpu. */
 static inline void _rcu_record_qs(void)

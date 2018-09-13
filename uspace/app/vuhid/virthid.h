@@ -119,7 +119,6 @@ void wait_for_interfaces_death(usbvirt_device_t *);
 void interface_life_live(vuhid_interface_t *);
 errno_t interface_live_on_data_in(vuhid_interface_t *, void *, size_t, size_t *);
 
-
 #endif
 /**
  * @}

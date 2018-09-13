@@ -194,7 +194,6 @@ void disabled_fp_register(unsigned int n, istate_t *istate)
 #endif
 }
 
-
 #define BREAK_IMM_SYSCALL	0x40000U
 
 /** Handle syscall. */

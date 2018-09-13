@@ -37,7 +37,6 @@
 #include "filter.h"
 #include <io/pixel.h>
 
-
 static long _round(double val)
 {
 	return val > 0 ? (long) (val + 0.5) : (long) (val - 0.5);
@@ -58,7 +57,6 @@ static long _ceil(double val)
 		return lval + 1;
 	return lval;
 }
-
 
 static inline pixel_t blend_pixels(size_t count, float *weights,
     pixel_t *pixels)

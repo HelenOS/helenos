@@ -116,7 +116,6 @@ errno_t rtl8139_timer_act_init(rtl8139_timer_act_t *ta, uint32_t timer_freq,
 	return EOK;
 }
 
-
 /** Make one step timer step
  *
  *  @param ta            Timer structure
@@ -148,4 +147,3 @@ int rtl8139_timer_act_step(rtl8139_timer_act_t *ta, uint32_t *new_reg)
 
 	return expired;
 }
-

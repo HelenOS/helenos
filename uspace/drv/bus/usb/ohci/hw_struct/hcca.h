@@ -93,4 +93,3 @@ static inline void hcca_set_int_ep(hcca_t *hcca, unsigned index, uintptr_t pa)
 /**
  * @}
  */
-

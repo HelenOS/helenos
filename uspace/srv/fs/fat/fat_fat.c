@@ -412,7 +412,6 @@ fat_get_cluster_fat32(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	return rc;
 }
 
-
 /** Get cluster from the first FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.

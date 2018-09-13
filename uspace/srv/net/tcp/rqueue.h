@@ -43,7 +43,6 @@ extern void tcp_rqueue_fibril_start(void);
 extern void tcp_rqueue_fini(void);
 extern void tcp_rqueue_insert_seg(inet_ep2_t *, tcp_segment_t *);
 
-
 #endif
 
 /** @}

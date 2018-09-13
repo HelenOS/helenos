@@ -377,7 +377,6 @@ int hc_fun_offline(ddf_fun_t *fun)
 	return bus_device_offline(dev);
 }
 
-
 /**
  * @}
  */

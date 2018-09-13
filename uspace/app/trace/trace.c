@@ -141,7 +141,6 @@ static errno_t program_run_fibril(void *arg)
 	return 0;
 }
 
-
 static errno_t connect_task(task_id_t task_id)
 {
 	async_sess_t *ksess = async_connect_kbox(task_id);
@@ -271,7 +270,6 @@ void val_print(sysarg_t val, val_type_t v_type)
 		break;
 	}
 }
-
 
 static void print_sc_retval(sysarg_t retval, val_type_t val_type)
 {

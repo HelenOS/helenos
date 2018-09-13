@@ -149,8 +149,6 @@ extern errno_t xhci_cmd_async_fini(xhci_hc_t *, xhci_cmd_t *);
 
 #endif
 
-
-
 /**
  * @}
  */

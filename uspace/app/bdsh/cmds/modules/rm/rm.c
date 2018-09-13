@@ -339,4 +339,3 @@ int cmd_rm(char **argv)
 	else
 		return CMD_SUCCESS;
 }
-

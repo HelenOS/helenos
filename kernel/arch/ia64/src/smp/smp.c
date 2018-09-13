@@ -53,4 +53,3 @@ void kmp(void *arg __attribute__((unused)))
 
 /** @}
  */
-

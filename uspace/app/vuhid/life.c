@@ -37,7 +37,6 @@
 #include <usb/debug.h>
 #include "virthid.h"
 
-
 void interface_life_live(vuhid_interface_t *iface)
 {
 	vuhid_interface_life_t *data = iface->interface_data;
@@ -52,8 +51,6 @@ void interface_life_live(vuhid_interface_t *iface)
 	}
 	usb_log_debug("%s", data->msg_die);
 }
-
-
 
 errno_t interface_live_on_data_in(vuhid_interface_t *iface,
     void *buffer, size_t buffer_size, size_t *act_buffer_size)

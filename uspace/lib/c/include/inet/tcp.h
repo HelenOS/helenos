@@ -117,7 +117,6 @@ extern errno_t tcp_conn_reset(tcp_conn_t *);
 extern errno_t tcp_conn_recv(tcp_conn_t *, void *, size_t, size_t *);
 extern errno_t tcp_conn_recv_wait(tcp_conn_t *, void *, size_t, size_t *);
 
-
 #endif
 
 /** @}

@@ -96,7 +96,6 @@ typedef struct {
 	uintptr_t sdramcr;
 } icp_hw_map_t;
 
-
 extern void icp_init(void);
 extern void icp_output_init(void);
 extern void icp_input_init(void);

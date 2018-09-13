@@ -55,8 +55,6 @@ typedef struct work_item {
 #endif
 } work_t;
 
-
-
 extern void workq_global_init(void);
 extern void workq_global_worker_init(void);
 extern void workq_global_stop(void);
@@ -72,7 +70,6 @@ extern bool workq_enqueue(struct work_queue *, work_t *, work_func_t);
 
 extern void workq_print_info(struct work_queue *);
 extern void workq_global_print_info(void);
-
 
 extern void workq_after_thread_ran(void);
 extern void workq_before_thread_is_ready(struct thread *);

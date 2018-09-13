@@ -65,7 +65,6 @@ void machine_init(void)
 	(machine_ops->machine_init)();
 }
 
-
 /** Halts CPU. */
 void machine_cpu_halt(void)
 {

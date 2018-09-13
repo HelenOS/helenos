@@ -303,7 +303,6 @@ const remote_iface_t remote_usbhid_iface = {
 	.methods = remote_usbhid_iface_ops
 };
 
-
 void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
     ipc_call_t *call)
 {

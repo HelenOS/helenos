@@ -36,4 +36,3 @@ double __math_base_sin_64(double);
 double __math_base_cos_64(double);
 
 #endif
-

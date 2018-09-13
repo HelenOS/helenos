@@ -64,7 +64,6 @@
 
 #define TASK                 THE->task
 
-
 struct thread;
 struct cap;
 

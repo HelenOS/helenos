@@ -163,7 +163,6 @@ typedef struct exfat_node {
 	exfat_cluster_t	currc_cached_value;
 } exfat_node_t;
 
-
 extern vfs_out_ops_t exfat_ops;
 extern libfs_ops_t exfat_libfs_ops;
 
@@ -183,7 +182,6 @@ extern errno_t exfat_node_expand(service_id_t, exfat_node_t *, exfat_cluster_t);
 extern errno_t exfat_node_put(fs_node_t *);
 extern errno_t exfat_bitmap_get(fs_node_t **, service_id_t);
 extern errno_t exfat_uctable_get(fs_node_t **, service_id_t);
-
 
 #endif
 

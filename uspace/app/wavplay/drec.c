@@ -46,7 +46,6 @@
 #include "wave.h"
 #include "drec.h"
 
-
 #define BUFFER_PARTS   16
 
 /** Recording format */

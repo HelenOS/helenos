@@ -40,7 +40,6 @@
 #include <assert.h>
 #include <errno.h>
 
-
 /*
  * Hash table helper functions
  */
@@ -212,7 +211,6 @@ nic_wol_virtue_t *nic_wol_virtues_remove(nic_wol_virtues_t *wvs, nic_wv_id_t id)
 	virtue->next = NULL;
 	return virtue;
 }
-
 
 /**
  * Searches the filters table for a filter with specified ID

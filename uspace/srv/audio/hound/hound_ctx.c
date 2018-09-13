@@ -149,7 +149,6 @@ bool hound_ctx_is_record(hound_ctx_t *ctx)
 	return ctx->source == NULL;
 }
 
-
 /*
  * STREAMS
  */

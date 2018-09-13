@@ -61,7 +61,6 @@ typedef struct {
 	hash_table_t method_oper;
 } proto_t;
 
-
 extern void proto_init(void);
 extern void proto_cleanup(void);
 

@@ -42,7 +42,6 @@ typedef struct {
 	bitmap_t *iomap;
 } task_arch_t;
 
-
 #define task_create_arch(t) { (t)->arch.iomap = NULL; }
 #define task_destroy_arch(t)
 

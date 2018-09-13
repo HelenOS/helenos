@@ -39,4 +39,3 @@ void smc_coherence(void *a, size_t l)
 	sync_i();
 	srlz_i();
 }
-

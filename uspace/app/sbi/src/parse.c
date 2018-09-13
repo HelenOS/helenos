@@ -971,7 +971,6 @@ static void parse_prop_get(parse_t *parse, stree_prop_t *prop)
 	prop->getter = getter;
 }
 
-
 /** Parse member property setter.
  *
  * @param parse		Parser object.
@@ -1029,7 +1028,6 @@ static void parse_prop_set(parse_t *parse, stree_prop_t *prop)
 			parse_note_error(parse);
 		}
 	}
-
 
 	/* Create setter procedure */
 	setter = stree_proc_new();

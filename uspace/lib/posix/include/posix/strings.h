@@ -63,7 +63,6 @@ extern void bzero(void *mem, size_t n);
 extern char *index(const char *s, int c);
 extern char *rindex(const char *s, int c);
 
-
 #endif  // POSIX_STRINGS_H_
 
 /** @}

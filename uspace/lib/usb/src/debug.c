@@ -93,7 +93,6 @@ const char *usb_debug_str_buffer(const uint8_t *buffer, size_t size,
 	return buffer_dump[1 - buffer_dump_index];
 }
 
-
 /**
  * @}
  */

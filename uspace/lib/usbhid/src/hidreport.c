@@ -160,8 +160,6 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 	return EOK;
 }
 
-
-
 errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
     usb_hid_report_t *report, uint8_t **report_desc, size_t *report_size)
 {

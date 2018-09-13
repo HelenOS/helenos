@@ -53,7 +53,6 @@ static struct option const long_options[] = {
 	{ 0, 0, 0, 0 }
 };
 
-
 /* Displays help for mount in various levels */
 void help_cmd_mount(unsigned int level)
 {
@@ -192,4 +191,3 @@ int cmd_mount(char **argv)
 
 	return CMD_SUCCESS;
 }
-

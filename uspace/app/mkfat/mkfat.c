@@ -521,7 +521,6 @@ static errno_t fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 	bs->headcnt = host2uint16_t_le(6);
 	bs->hidden_sec = host2uint32_t_le(0);
 
-
 	if (cfg->fat_type == FAT32) {
 		bs->sec_per_fat = 0;
 		bs->fat32.sectors_per_fat = host2uint32_t_le(cfg->fat_sectors);

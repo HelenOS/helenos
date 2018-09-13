@@ -63,7 +63,6 @@ static FIBRIL_MUTEX_INITIALIZE(dcl_lock);
 /** Device connection list head. */
 static LIST_INITIALIZE(dcl);
 
-
 typedef struct {
 	fibril_mutex_t lock;
 	size_t lblock_size;       /**< Logical block size. */
@@ -260,7 +259,6 @@ static bool cache_key_equal(void *key, const ht_link_t *item)
 	return b->lba == *lba;
 }
 
-
 static hash_table_ops_t cache_ops = {
 	.hash = cache_hash,
 	.key_hash = cache_key_hash,
@@ -408,7 +406,6 @@ errno_t block_get(block_t **block, service_id_t service_id, aoff64_t ba, int fla
 		/* This request cannot be satisfied */
 		return EIO;
 	}
-
 
 retry:
 	rc = EOK;

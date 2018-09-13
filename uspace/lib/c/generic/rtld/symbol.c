@@ -182,7 +182,6 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
 	return sym; /* Symbol found */
 }
 
-
 /** Find the definition of a symbol.
  *
  * By definition in System V ABI, if module origin has the flag DT_SYMBOLIC,

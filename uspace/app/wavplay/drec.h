@@ -40,4 +40,3 @@ int drecord(const char *device, const char *file);
 /**
  * @}
  */
-

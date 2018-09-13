@@ -235,7 +235,6 @@ bool elf_is_shareable(as_area_t *area)
 	return true;
 }
 
-
 /** Service a page fault in the ELF backend address space area.
  *
  * The address space area and page tables must be already locked.

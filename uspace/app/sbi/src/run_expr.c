@@ -1355,7 +1355,6 @@ void run_equal(run_t *run, rdata_value_t *v1, rdata_value_t *v2, bool_t *res)
 	}
 }
 
-
 /** Evaluate @c new operation.
  *
  * Evaluates operation per the @c new operator that creates a new

@@ -359,7 +359,6 @@ void xhci_setup_slot_context(xhci_device_t *dev, xhci_slot_ctx_t *ctx)
 	XHCI_SLOT_CTX_ENTRIES_SET(*ctx, 31);
 }
 
-
 /**
  * @}
  */

@@ -72,7 +72,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
 	if (!locfs_init()) {
 		printf("%s: failed to initialize locfs\n", NAME);
 		return -1;
@@ -103,4 +102,3 @@ int main(int argc, char *argv[])
 /**
  * @}
  */
-

@@ -497,7 +497,6 @@ static errno_t nic_set_rx_unicast(int i, char *str)
 		return EOK;
 	}
 
-
 	printf("Invalid pameter - should be one of: block, default, promisc\n");
 	return EINVAL;
 }

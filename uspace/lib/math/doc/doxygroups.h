@@ -38,7 +38,6 @@
  * @ingroup libmath
  */
 
-
 /**
  * @addtogroup libmathppc32 ppc32
  * @ingroup libmath
@@ -53,4 +52,3 @@
  * @addtogroup libmathsparc64 sparc64
  * @ingroup libmath
  */
-

@@ -3,6 +3,4 @@
 
 /* Prototypes for the printf command, excluding entry points */
 
-
 #endif /* PRINTF_H */
-

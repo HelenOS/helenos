@@ -53,7 +53,6 @@
 #define END_COLLECTION() \
 	ITEM_CREATE0(ITEM_MAIN, TAG_END_COLLECTION)
 
-
 #define USAGE_MINIMUM1(value) \
 	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE_MINIMUM, value)
 
@@ -77,7 +76,6 @@
 
 #define OUTPUT(modifiers) \
 	ITEM_CREATE1(ITEM_MAIN, TAG_OUTPUT, modifiers)
-
 
 #endif
 /**

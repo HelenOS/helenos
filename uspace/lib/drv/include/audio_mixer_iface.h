@@ -48,7 +48,6 @@ errno_t audio_mixer_get_item_info(async_exch_t *, unsigned,
 errno_t audio_mixer_get_item_level(async_exch_t *, unsigned, unsigned *);
 errno_t audio_mixer_set_item_level(async_exch_t *, unsigned, unsigned);
 
-
 /** Audio mixer communication interface. */
 typedef struct {
 	errno_t (*get_info)(ddf_fun_t *, const char **, unsigned *);

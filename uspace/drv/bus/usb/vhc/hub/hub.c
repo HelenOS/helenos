@@ -43,7 +43,6 @@
 
 #include "hub.h"
 
-
 /** Produce a byte from bit values.
  */
 #define MAKE_BYTE(b0, b1, b2, b3, b4, b5, b6, b7) \
@@ -387,7 +386,6 @@ uint8_t hub_get_status_change_bitmap(hub_t *hub)
 	return change_map;
 }
 
-
 /*
  *
  * STATIC (HELPER) FUNCTIONS
@@ -514,8 +512,6 @@ static void set_port_state_delayed(hub_t *hub, size_t port_index,
 	}
 	fibril_add_ready(fibril);
 }
-
-
 
 /**
  * @}

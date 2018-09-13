@@ -165,7 +165,6 @@ errno_t trackmod_module_load(char *fname, trackmod_module_t **rmodule)
 	return rc;
 }
 
-
 /** Return current pattern.
  *
  * @param modplay Module playback

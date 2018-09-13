@@ -40,7 +40,6 @@
 #include <usb/debug.h>
 #include <assert.h>
 
-
 /**
  * Compares two usages if they are same or not or one of the usages is not
  * set.
@@ -61,7 +60,6 @@
  */
 #define USB_HID_SAME_USAGE_PAGE(page1, page2)	\
 	((page1 == page2) || (page1 == 0) || (page2 == 0))
-
 
 /**
  * Appends one item (couple of usage_path and usage) into the usage path
@@ -92,7 +90,6 @@ errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path,
 	return EOK;
 }
 
-
 /**
  * Removes last item from the usage path structure
  * @param usage_path
@@ -113,7 +110,6 @@ void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path)
 	}
 }
 
-
 /**
  * Nulls last item of the usage path structure.
  *
@@ -131,7 +127,6 @@ void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path)
 		memset(item, 0, sizeof(usb_hid_report_usage_path_t));
 	}
 }
-
 
 /**
  * Modifies last item of usage path structure by given usage page or usage
@@ -349,7 +344,6 @@ usb_hid_report_path_t *usb_hid_report_path(void)
 	}
 }
 
-
 /**
  * Releases given usage path structure.
  *
@@ -367,7 +361,6 @@ void usb_hid_report_path_free(usb_hid_report_path_t *path)
 	assert_link_not_used(&path->cpath_link);
 	free(path);
 }
-
 
 /**
  * Clone content of given usage path to the new one
@@ -411,7 +404,6 @@ usb_hid_report_path_t *usb_hid_report_path_clone(
 
 	return new_usage_path;
 }
-
 
 /**
  * Sets report id in usage path structure

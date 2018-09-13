@@ -142,7 +142,6 @@ typedef struct ext4_superblock {
 	uint32_t padding[105];              /* Padding to the end of the block */
 } __attribute__((packed)) ext4_superblock_t;
 
-
 #define EXT4_GOOD_OLD_REV 0
 #define EXT4_DYNAMIC_REV 1
 
@@ -234,7 +233,6 @@ typedef struct ext4_filesystem {
 	aoff64_t inode_block_limits[4];
 	aoff64_t inode_blocks_per_level[4];
 } ext4_filesystem_t;
-
 
 #define EXT4_BLOCK_GROUP_INODE_UNINIT   0x0001  /* Inode table/bitmap not in use */
 #define EXT4_BLOCK_GROUP_BLOCK_UNINIT   0x0002  /* Block bitmap not in use */
@@ -387,7 +385,6 @@ typedef struct ext4_inode_ref {
 	uint32_t index;         /* Index number of this inode */
 	bool dirty;
 } ext4_inode_ref_t;
-
 
 #define EXT4_DIRECTORY_FILENAME_LEN  255
 

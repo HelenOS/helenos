@@ -67,7 +67,6 @@ PCUT_TEST_AFTER
 	tcp_conns_fini();
 }
 
-
 /** Test  */
 PCUT_TEST(init_fini)
 {

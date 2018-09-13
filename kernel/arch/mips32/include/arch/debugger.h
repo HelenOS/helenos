@@ -56,7 +56,6 @@
 /** Call a predefined function */
 #define BKPOINT_FUNCCALL  (1 << 3)
 
-
 typedef struct  {
 	uintptr_t address;         /**< Breakpoint address */
 	sysarg_t instruction;      /**< Original instruction */

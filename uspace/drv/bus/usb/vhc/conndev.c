@@ -134,7 +134,6 @@ void on_client_close(ddf_fun_t *fun)
 	}
 }
 
-
 /**
  * @}
  */

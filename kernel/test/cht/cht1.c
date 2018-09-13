@@ -74,7 +74,6 @@ static void val_rm_callback(cht_link_t *item)
 	free(v);
 }
 
-
 static cht_ops_t val_ops = {
 	.hash = val_hash,
 	.key_hash = val_key_hash,
@@ -92,7 +91,6 @@ static void set_val(val_t *v, size_t h, size_t uid)
 }
 
 /*-------------------------------------------------------------------*/
-
 
 static const char *do_sanity_test(cht_t *h)
 {
@@ -440,7 +438,6 @@ static void op_stresser(void *arg)
 		}
 	}
 
-
 	/* Remove anything we may have inserted. */
 	for (size_t i = 0; i < work->elem_cnt; ++i) {
 		void *key = (void *) work->elem[i].key;
@@ -557,7 +554,6 @@ static bool do_stress(void)
 }
 
 /*-------------------------------------------------------------------*/
-
 
 const char *test_cht1(void)
 {

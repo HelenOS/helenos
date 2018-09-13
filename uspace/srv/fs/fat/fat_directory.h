@@ -50,7 +50,6 @@ typedef struct {
 	bool last;
 } fat_directory_t;
 
-
 extern errno_t fat_directory_open(fat_node_t *, fat_directory_t *);
 extern errno_t fat_directory_close(fat_directory_t *);
 

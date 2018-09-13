@@ -46,4 +46,3 @@ extern uintptr_t context_get_fp(context_t *ctx);
 extern uintptr_t context_get_pc(context_t *ctx);
 
 #endif
-

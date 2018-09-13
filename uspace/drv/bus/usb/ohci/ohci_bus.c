@@ -113,7 +113,6 @@ static void ohci_endpoint_destroy(endpoint_t *ep)
 	free(instance);
 }
 
-
 static int ohci_register_ep(endpoint_t *ep)
 {
 	bus_t *bus_base = endpoint_get_bus(ep);
@@ -188,7 +187,6 @@ static const bus_ops_t ohci_bus_ops = {
 	.batch_destroy = ohci_destroy_batch,
 	.batch_schedule = ohci_hc_schedule,
 };
-
 
 int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
 {

@@ -39,7 +39,6 @@
 #include "trace.h"
 #include "proto.h"
 
-
 /* Maps service number to protocol */
 static hash_table_t srv_proto;
 
@@ -82,7 +81,6 @@ static hash_table_ops_t srv_proto_ops = {
 	.remove_callback = NULL
 };
 
-
 static size_t method_oper_key_hash(void *key)
 {
 	return *(int *)key;
@@ -107,7 +105,6 @@ static hash_table_ops_t method_oper_ops = {
 	.equal = NULL,
 	.remove_callback = NULL
 };
-
 
 void proto_init(void)
 {

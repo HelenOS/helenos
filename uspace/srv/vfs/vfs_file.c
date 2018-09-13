@@ -211,7 +211,6 @@ static errno_t _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, boo
 				return ENOMEM;
 			}
 
-
 			memset(vfs_data->files[i], 0, sizeof(vfs_file_t));
 
 			fibril_mutex_initialize(&vfs_data->files[i]->_lock);

@@ -209,4 +209,3 @@ const char *test_print6(void)
 		return 0;
 	}
 }
-

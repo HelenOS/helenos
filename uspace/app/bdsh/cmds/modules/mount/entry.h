@@ -6,4 +6,3 @@ extern int cmd_mount(char **);
 extern void help_cmd_mount(unsigned int);
 
 #endif /* MOUNT_ENTRY_H */
-

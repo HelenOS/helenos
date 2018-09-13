@@ -40,7 +40,6 @@
 #include <ddi.h>
 #include <str.h>
 
-
 typedef struct {
 	link_t link;
 	volatile void *base;
@@ -88,7 +87,6 @@ static pio_regions_t *get_regions(void)
 	};
 	return &regions;
 }
-
 
 void pio_trace_log(const volatile void *r, uint64_t val, bool write)
 {

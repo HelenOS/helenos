@@ -40,7 +40,6 @@
 extern int label_type_format(label_type_t, char **);
 extern int label_pkind_format(label_pkind_t, char **);
 
-
 #endif
 
 /** @}

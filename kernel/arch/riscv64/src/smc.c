@@ -33,4 +33,3 @@ void smc_coherence(void *a, size_t l)
 	// TODO
 	compiler_barrier();
 }
-

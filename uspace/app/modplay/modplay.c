@@ -92,7 +92,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-
 	format.channels = 1;
 	format.sampling_rate = 44100;
 #ifdef __LE__
@@ -150,7 +149,6 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
 
 /** @}
  */

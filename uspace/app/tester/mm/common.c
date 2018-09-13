@@ -177,7 +177,6 @@ static void *checked_malloc(size_t size)
 	return data;
 }
 
-
 /** Allocate block
  *
  * Allocate a block of memory of @size bytes and add record about it into

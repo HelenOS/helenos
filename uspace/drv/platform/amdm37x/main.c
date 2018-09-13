@@ -66,7 +66,6 @@ typedef struct {
 #define VIDEO_ENC_BASE_ADDRESS   0x48050C00
 #define VIDEO_ENC_SIZE   256
 
-
 static hw_resource_t ohci_res[] = {
 	{
 		.type = MEM_RANGE,
@@ -149,7 +148,6 @@ static const amdm37x_fun_t amdm37x_funcs[] = {
 		.hw_resources = { .resources = disp_res, .count = ARRAY_SIZE(disp_res) }
 	},
 };
-
 
 static hw_resource_list_t *amdm37x_get_resources(ddf_fun_t *fnode);
 static errno_t amdm37x_enable_interrupt(ddf_fun_t *fun, int);

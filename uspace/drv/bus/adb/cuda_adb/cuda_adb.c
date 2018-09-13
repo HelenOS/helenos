@@ -99,7 +99,6 @@ static irq_cmd_t cuda_cmds[] = {
 	}
 };
 
-
 static irq_code_t cuda_irq_code = {
 	sizeof(cuda_ranges) / sizeof(irq_pio_range_t),
 	cuda_ranges,

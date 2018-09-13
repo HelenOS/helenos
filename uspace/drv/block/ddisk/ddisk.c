@@ -526,7 +526,6 @@ error:
 	return rc;
 }
 
-
 static errno_t ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
 {
 	errno_t rc;

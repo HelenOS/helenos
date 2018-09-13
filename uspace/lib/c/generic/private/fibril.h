@@ -130,5 +130,4 @@ extern void fibril_rmutex_lock(fibril_rmutex_t *);
 extern bool fibril_rmutex_trylock(fibril_rmutex_t *);
 extern void fibril_rmutex_unlock(fibril_rmutex_t *);
 
-
 #endif

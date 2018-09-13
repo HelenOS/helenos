@@ -52,7 +52,6 @@ extern errno_t inet_sroute_send_dgram(inet_sroute_t *, inet_addr_t *,
     inet_dgram_t *, uint8_t, uint8_t, int);
 extern errno_t inet_sroute_get_id_list(sysarg_t **, size_t *);
 
-
 #endif
 
 /** @}

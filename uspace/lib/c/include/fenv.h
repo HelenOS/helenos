@@ -39,4 +39,3 @@
 #define fegetround() FE_TONEAREST
 
 #endif
-

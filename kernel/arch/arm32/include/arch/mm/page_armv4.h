@@ -112,7 +112,6 @@ typedef union {
 /** User mode: read/write, privileged mode: read/write. */
 #define PTE_AP_USER_RW_KERNEL_RW	3
 
-
 /* pte_level0_t and pte_level1_t descriptor_type flags */
 
 /** pte_level0_t and pte_level1_t "not present" flag (used in descriptor_type). */
@@ -195,7 +194,6 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 	}
 }
 
-
 /** Sets flags of level 1 page table entry.
  *
  * We use same access rights for the whole page. When page
@@ -246,7 +244,6 @@ NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
 	p->descriptor_type = PTE_DESCRIPTOR_COARSE_TABLE;
 }
 
-
 NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 {
 	pte_level1_t *p = &pt[i].l1;
@@ -254,9 +251,7 @@ NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
 }
 
-
 extern void page_arch_init(void);
-
 
 #endif /* __ASSEMBLER__ */
 

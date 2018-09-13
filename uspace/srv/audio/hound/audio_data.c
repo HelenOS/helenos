@@ -160,7 +160,6 @@ static inline size_t audio_data_link_remain_size(audio_data_link_t *alink)
 	return alink->adata->size - alink->position;
 }
 
-
 /**
  * Data link remaining frames getter.
  * @param alink audio data link
@@ -247,7 +246,6 @@ audio_data_t *audio_pipe_pop(audio_pipe_t *pipe)
 	fibril_mutex_unlock(&pipe->guard);
 	return adata;
 }
-
 
 /**
  * Use data store in a pipe and mix it into the provided buffer.

@@ -48,6 +48,5 @@ bool assert_eq_fn_##type(type exp, type act, const char *act_desc) \
 
 #include "util_functions.def"
 
-
 /** @}
  */

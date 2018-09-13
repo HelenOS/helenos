@@ -60,7 +60,6 @@ as_operations_t as_ht_operations = {
 	.page_table_locked = ht_locked,
 };
 
-
 /** Page hash table create.
  *
  * The page hash table will be created only once

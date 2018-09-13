@@ -216,7 +216,6 @@ errno_t audio_pcm_get_info_str(audio_pcm_sess_t *sess, char **name)
 	return ret;
 }
 
-
 /**
  * Query value of specified capability.
  *

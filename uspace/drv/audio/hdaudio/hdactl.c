@@ -179,7 +179,6 @@ static errno_t hda_corb_init(hda_t *hda)
 	hda_reg8_write(&hda->regs->corbsize, corbsz);
 	hda->ctl->corb_entries = hda_rb_entries(selsz);
 
-
 	/*
 	 * CORB must be aligned to 128 bytes. If 64OK is not set,
 	 * it must be within the 32-bit address space.

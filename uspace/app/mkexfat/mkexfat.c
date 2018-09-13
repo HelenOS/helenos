@@ -87,7 +87,6 @@
 /** Index of the first free cluster on the device */
 #define FIRST_FREE_CLUSTER   2
 
-
 typedef struct exfat_cfg {
 	aoff64_t volume_start;
 	aoff64_t volume_count;
@@ -877,7 +876,6 @@ int main (int argc, char **argv)
 		return 1;
 	}
 
-
 	if (cfg.sector_size > 4096) {
 		printf(NAME ": Error, sector size can't be greater"
 		    " than 4096 bytes.\n");
@@ -1005,4 +1003,3 @@ int main (int argc, char **argv)
 /**
  * @}
  */
-

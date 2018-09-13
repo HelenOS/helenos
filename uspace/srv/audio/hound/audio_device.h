@@ -87,4 +87,3 @@ errno_t audio_device_available_buffer(audio_device_t *dev, void **base, size_t *
 /**
  * @}
  */
-

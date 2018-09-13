@@ -267,7 +267,6 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	memcpy(ranges, i8042_ranges, sizeof(i8042_ranges));
 	ranges[0].base = RNGABS(*regs);
 
-
 	ar = RNGABSPTR(*regs);
 	memcpy(cmds, i8042_cmds, sizeof(i8042_cmds));
 	cmds[0].addr = (void *) &ar->status;

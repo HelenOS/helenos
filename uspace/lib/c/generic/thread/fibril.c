@@ -282,7 +282,6 @@ static fibril_t *_ready_list_pop(const struct timespec *expires, bool locked)
 	 * for each entry of the call buffer.
 	 */
 
-
 	if (!locked)
 		futex_lock(&fibril_futex);
 	fibril_t *f = list_pop(&ready_list, fibril_t, link);
@@ -329,7 +328,6 @@ static fibril_t *_ready_list_pop(const struct timespec *expires, bool locked)
 		futex_lock(&fibril_futex);
 
 	futex_lock(&ipc_lists_futex);
-
 
 	_ipc_waiter_t *w = list_pop(&ipc_waiter_list, _ipc_waiter_t, link);
 	if (w) {

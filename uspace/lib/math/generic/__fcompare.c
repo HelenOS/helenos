@@ -79,4 +79,3 @@ int __fcompare(size_t sz1, size_t sz2, ...)
 			return 0;
 	}
 }
-

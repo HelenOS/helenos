@@ -180,6 +180,5 @@ errno_t uuid_format(uuid_t *uuid, char **rstr)
 	return ENOTSUP;
 }
 
-
 /** @}
  */

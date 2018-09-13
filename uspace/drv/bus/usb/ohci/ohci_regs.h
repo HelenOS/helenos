@@ -211,7 +211,6 @@ do { \
 #define I_OC   (1 << 30)  /* Ownership change */
 #define I_MI   (1 << 31)  /* Master interrupt (any/all) */
 
-
 /*
  * ohci_regs_t.hcca
  */

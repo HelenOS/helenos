@@ -36,7 +36,6 @@
 #include <errno.h>
 #include "../internal/common.h"
 
-
 int pthread_mutex_init(pthread_mutex_t *restrict mutex,
     const pthread_mutexattr_t *restrict attr)
 {
@@ -92,8 +91,6 @@ int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 	not_implemented();
 	return ENOTSUP;
 }
-
-
 
 /** @}
  */

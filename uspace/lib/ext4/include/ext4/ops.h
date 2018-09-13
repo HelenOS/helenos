@@ -45,7 +45,6 @@ extern errno_t ext4_global_fini(void);
 extern errno_t ext4_node_get_core(fs_node_t **, ext4_instance_t *, fs_index_t);
 extern errno_t ext4_node_put(fs_node_t *);
 
-
 #endif
 
 /**

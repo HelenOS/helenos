@@ -59,7 +59,6 @@ static struct option const long_options[] = {
 	{ 0, 0, 0, 0 }
 };
 
-
 void help_cmd_mkdir(unsigned int level)
 {
 	if (level == HELP_SHORT) {
@@ -223,4 +222,3 @@ int cmd_mkdir(char **argv)
 	else
 		return CMD_SUCCESS;
 }
-

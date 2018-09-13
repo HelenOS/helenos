@@ -645,7 +645,6 @@ static void bigint_shift_mul_dig(bigint_t *a, bigint_word_t b, size_t shift,
 	bigint_refine_len(dest);
 }
 
-
 /** Allocate bigint of the given length.
  *
  * @param bigint	Bigint whose digit array should be allocated.

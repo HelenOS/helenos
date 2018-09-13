@@ -44,7 +44,6 @@
 
 #include <usb/hid/request.h>
 
-
 /**
  * Send Set Report request to the HID device.
  *
@@ -96,7 +95,6 @@ errno_t usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	return EOK;
 }
 
-
 /**
  * Send Set Protocol request to the HID device.
  *
@@ -143,7 +141,6 @@ errno_t usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 
 	return EOK;
 }
-
 
 /**
  * Send Set Idle request to the HID device.
@@ -193,7 +190,6 @@ errno_t usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duratio
 
 	return EOK;
 }
-
 
 /**
  * Send Get Report request to the HID device.
@@ -249,7 +245,6 @@ errno_t usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
 
 	return EOK;
 }
-
 
 /**
  * Send Get Protocol request to the HID device.
@@ -308,7 +303,6 @@ errno_t usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 
 	return EOK;
 }
-
 
 /**
  * Send Get Idle request to the HID device.
@@ -372,8 +366,6 @@ errno_t usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no,
 
 	return EOK;
 }
-
-
 
 /**
  * @}

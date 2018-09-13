@@ -162,7 +162,6 @@ static driver_t generic_driver = {
 	.driver_ops = &generic_driver_ops
 };
 
-
 /** Main routine of USB device driver.
  *
  * Under normal conditions, this function never returns.

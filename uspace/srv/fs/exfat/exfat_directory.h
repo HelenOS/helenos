@@ -52,7 +52,6 @@ typedef struct {
 	exfat_cluster_t firstc;
 } exfat_directory_t;
 
-
 extern void exfat_directory_init(exfat_directory_t *);
 extern errno_t exfat_directory_open(exfat_node_t *, exfat_directory_t *);
 extern errno_t exfat_directory_open_parent(exfat_directory_t *, service_id_t,
@@ -76,11 +75,9 @@ extern errno_t exfat_directory_sync_file(exfat_directory_t *, exfat_file_dentry_
 extern errno_t exfat_directory_write_file(exfat_directory_t *, const char *);
 extern errno_t exfat_directory_erase_file(exfat_directory_t *, aoff64_t);
 
-
 extern errno_t exfat_directory_expand(exfat_directory_t *);
 extern errno_t exfat_directory_lookup_free(exfat_directory_t *, size_t);
 extern errno_t exfat_directory_print(exfat_directory_t *);
-
 
 #endif
 

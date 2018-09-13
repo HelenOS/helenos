@@ -47,4 +47,3 @@ typedef struct fpu_context {
 
 #endif
 #endif
-

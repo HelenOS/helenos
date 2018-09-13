@@ -43,4 +43,3 @@ extern errno_t disable_legacy(hc_device_t *);
 /**
  * @}
  */
-

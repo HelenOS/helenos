@@ -303,7 +303,6 @@ ra_span_alloc(ra_span_t *span, size_t size, size_t align, uintptr_t *base)
 			succ->flags |= RA_SEGMENT_FREE;
 		}
 
-
 		/* Put unneeded parts back. */
 		if (pred) {
 			size_t pred_order;

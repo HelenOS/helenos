@@ -78,9 +78,7 @@ void usb_dump_standard_descriptor(FILE *, const char *, const char *,
 
 const char *usb_debug_str_buffer(const uint8_t *, size_t, size_t);
 
-
 #endif
 /**
  * @}
  */
-

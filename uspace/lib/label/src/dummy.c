@@ -118,7 +118,6 @@ static errno_t dummy_open(label_bd_t *bd, label_t **rlabel)
 	list_append(&part->lparts, &label->parts);
 	list_append(&part->lpri, &label->pri_parts);
 
-
 	*rlabel = label;
 	return EOK;
 error:

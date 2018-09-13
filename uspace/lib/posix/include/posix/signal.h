@@ -51,7 +51,6 @@ extern void __posix_ignore_signal_handler(int signo);
 #undef SIG_IGN
 #define SIG_IGN ((void (*)(int)) __posix_ignore_signal_handler)
 
-
 typedef struct {
 	int si_signo;
 	int si_code;
@@ -74,7 +73,6 @@ struct sigaction {
 	int sa_flags;
 	void (*sa_sigaction)(int, siginfo_t *, void *);
 };
-
 
 /* Values of sigevent::sigev_notify */
 #undef SIGEV_NONE
@@ -245,7 +243,6 @@ extern int thread_sigmask(int how, const sigset_t *__restrict__ set,
     sigset_t *__restrict__ oset);
 extern int sigprocmask(int how, const sigset_t *__restrict__ set,
     sigset_t *__restrict__ oset);
-
 
 #endif /* POSIX_SIGNAL_H_ */
 

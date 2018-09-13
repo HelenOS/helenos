@@ -1170,7 +1170,6 @@ static void loc_category_get_svcs(ipc_call_t *icall)
 	async_answer_1(icall, retval, act_size);
 }
 
-
 static void loc_null_create(ipc_call_t *icall)
 {
 	fibril_mutex_lock(&null_services_mutex);
@@ -1312,7 +1311,6 @@ static void loc_service_add_to_cat(ipc_call_t *icall)
 	loc_category_change_event();
 	async_answer_0(icall, retval);
 }
-
 
 /** Initialize location service.
  *

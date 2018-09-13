@@ -45,7 +45,6 @@
 /** Keep duplicit entries */
 #define HW_RES_KEEP_DUPLICIT   0x2
 
-
 #define RNGABS(rng)	(rng).address.absolute
 #define RNGREL(rng)	(rng).address.relative
 #define RNGSZ(rng)	(rng).size

@@ -79,7 +79,6 @@ static inline const char *dsp_state_to_str(dsp_state_t state)
 	return "UNKNOWN";
 }
 
-
 static inline void dsp_change_state(sb_dsp_t *dsp, dsp_state_t state)
 {
 	assert(dsp);

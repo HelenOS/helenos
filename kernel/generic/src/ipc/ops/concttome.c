@@ -101,7 +101,6 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	return EOK;
 }
 
-
 sysipc_ops_t ipc_m_connect_to_me_ops = {
 	.request_preprocess = null_request_preprocess,
 	.request_forget = null_request_forget,

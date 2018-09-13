@@ -215,7 +215,6 @@ static void descriptor_walk_callback(const uint8_t *raw_descriptor,
 	    context->last_iface->interface_number, report_size);
 }
 
-
 void dump_hidreport_raw(usb_device_t *usb_dev)
 {
 	descriptor_walk_context_t context = {

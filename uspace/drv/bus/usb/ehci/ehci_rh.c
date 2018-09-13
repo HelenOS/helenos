@@ -391,7 +391,6 @@ static errno_t delayed_job(errno_t (*func)(void *), ehci_rh_t *rh, unsigned port
 	return EOK;
 }
 
-
 /** Port clear feature request handler.
  * @param device Virtual hub device
  * @param setup_packet USB setup stage data.

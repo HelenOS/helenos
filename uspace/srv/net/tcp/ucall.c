@@ -140,7 +140,6 @@ tcp_error_t tcp_uc_send(tcp_conn_t *conn, void *data, size_t size,
 		tcp_conn_sync(conn);
 	}
 
-
 	if (conn->snd_buf_fin) {
 		tcp_conn_unlock(conn);
 		return TCP_ECLOSING;

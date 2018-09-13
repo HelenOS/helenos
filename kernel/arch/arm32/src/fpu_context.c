@@ -47,7 +47,6 @@
 #define FPSID_VARIANT(r)   (((r) >> 4) 0xf)
 #define FPSID_REVISION(r)   (((r) >> 0) 0xf)
 
-
 enum {
 	FPU_VFPv1 = 0x00,
 	FPU_VFPv2_COMMONv1 = 0x01,
@@ -165,7 +164,6 @@ static void fpu_enable_coprocessor_access(void)
 	CPACR_write(cpacr);
 #endif
 }
-
 
 void fpu_init(void)
 {

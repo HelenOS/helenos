@@ -8,5 +8,3 @@ extern void help_cmd_exit(unsigned int);
 extern int cmd_exit(char *[], cliuser_t *);
 
 #endif
-
-

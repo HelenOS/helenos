@@ -30,7 +30,6 @@
 #ifndef BITHENGE_OS_H_
 #define BITHENGE_OS_H_
 
-
 #ifdef __HELENOS__
 #include <stdint.h>
 typedef int64_t bithenge_int_t;

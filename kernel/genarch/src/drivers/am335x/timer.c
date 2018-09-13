@@ -179,4 +179,3 @@ am335x_timer_start(am335x_timer_t *timer)
 /**
  * @}
  */
-

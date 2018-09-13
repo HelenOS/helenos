@@ -528,7 +528,6 @@ static errno_t ext4_filesystem_check_features(ext4_filesystem_t *fs,
 	return EOK;
 }
 
-
 /** Convert block address to relative index in block group.
  *
  * @param sb         Superblock pointer
@@ -549,7 +548,6 @@ uint32_t ext4_filesystem_blockaddr2_index_in_group(ext4_superblock_t *sb,
 	else
 		return (block_addr - 1) % blocks_per_group;
 }
-
 
 /** Convert relative block address in group to absolute address.
  *

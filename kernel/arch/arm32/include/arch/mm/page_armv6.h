@@ -40,7 +40,6 @@
 #error "Do not include arch specific page.h directly use generic page.h instead"
 #endif
 
-
 /* Macros for querying the last-level PTE entries. */
 #define PTE_VALID_ARCH(pte) \
 	(((pte_t *) (pte))->l0.should_be_zero_0 != 0 || PTE_PRESENT_ARCH(pte))
@@ -111,7 +110,6 @@ typedef union {
 /** Allow writes */
 #define PTE_AP1_RO   1
 
-
 /* pte_level0_t and pte_level1_t descriptor_type flags */
 
 /** pte_level0_t and pte_level1_t "not present" flag (used in descriptor_type). */
@@ -125,7 +123,6 @@ typedef union {
 
 /** pte_level1_t small page table flag with NX (used in descriptor type). */
 #define PTE_DESCRIPTOR_SMALL_PAGE_NX	3
-
 
 /**
  * For an ARMv7 implementation that does not include the Large Physical Address Extension,
@@ -230,7 +227,6 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 	pt_coherence(p);
 }
 
-
 /** Sets flags of level 1 page table entry.
  *
  * We use same access rights for the whole page. When page
@@ -317,7 +313,6 @@ NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 	p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
 	pt_coherence(p);
 }
-
 
 extern void page_arch_init(void);
 

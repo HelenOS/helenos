@@ -59,7 +59,6 @@ static char rbuf[BUFFER_SIZE];
 static size_t rbuf_out;
 static size_t rbuf_in;
 
-
 /** Receive one character (with buffering) */
 static errno_t recv_char(tcp_conn_t *conn, char *c)
 {
@@ -497,7 +496,6 @@ static errno_t rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
 		rfb->damage_rect.width = rfb->width;
 		rfb->damage_rect.height = rfb->height;
 	}
-
 
 	/* We send only single raw rectangle right now */
 	size_t buf_size = sizeof(rfb_framebuffer_update_t) +

@@ -64,7 +64,6 @@ void joinable_fibril_join(joinable_fibril_t *);
 void joinable_fibril_destroy(joinable_fibril_t *);
 errno_t joinable_fibril_recreate(joinable_fibril_t *);
 
-
 #endif
 /**
  * @}

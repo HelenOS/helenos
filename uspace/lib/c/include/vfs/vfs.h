@@ -55,7 +55,6 @@ typedef enum {
 	KIND_DIRECTORY,
 } vfs_file_kind_t;
 
-
 typedef struct {
 	fs_handle_t fs_handle;
 	service_id_t service_id;

@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /** @addtogroup sync
  * @{
  */
@@ -246,7 +245,6 @@ typedef struct rcu_data {
 	size_t stat_smp_call_cnt;
 } rcu_data_t;
 
-
 static rcu_data_t rcu;
 
 static void start_reclaimers(void);
@@ -292,8 +290,6 @@ static bool wait_for_preempt_reader(void);
 static void note_preempted_reader(void);
 static void rm_preempted_reader(void);
 static void upd_max_cbs_in_slice(size_t arriving_cbs_cnt);
-
-
 
 /** Initializes global RCU structures. */
 void rcu_init(void)
@@ -393,7 +389,6 @@ void rcu_thread_init(thread_t *thread)
 
 	link_initialize(&thread->rcu.preempt_link);
 }
-
 
 /** Cleans up global RCU resources and stops dispatching callbacks.
  *
@@ -715,7 +710,6 @@ static bool all_cbs_empty(void)
 	return cur_cbs_empty() && next_cbs_empty() && arriving_cbs_empty();
 }
 
-
 /** Reclaimer thread dispatches locally queued callbacks once a GP ends. */
 static void reclaimer(void *arg)
 {
@@ -917,7 +911,6 @@ static bool advance_cbs(void)
 
 	return expedite;
 }
-
 
 #ifdef RCU_PREEMPT_A
 
@@ -1290,7 +1283,6 @@ static void req_detection(size_t req_cnt)
 	}
 }
 
-
 /** The detector thread detects and notifies reclaimers of grace period ends. */
 static void detector(void *arg)
 {
@@ -1336,7 +1328,6 @@ static bool wait_for_detect_req(void)
 
 	return !interrupted;
 }
-
 
 static void end_cur_gp(void)
 {
@@ -1607,7 +1598,6 @@ void rcu_thread_exiting(void)
 		    " section.\n", THREAD->tid, THREAD->name);
 	}
 }
-
 
 #endif /* RCU_PREEMPT_PODZIMEK */
 

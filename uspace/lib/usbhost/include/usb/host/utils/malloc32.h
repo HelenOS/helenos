@@ -116,7 +116,6 @@ static inline void return_page(void *page)
 	free32(page);
 }
 
-
 #endif
 /**
  * @}

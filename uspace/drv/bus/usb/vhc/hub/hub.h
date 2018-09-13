@@ -113,7 +113,6 @@ uint16_t hub_get_port_status_change(hub_t *, size_t);
 uint32_t hub_get_port_status(hub_t *, size_t);
 uint8_t hub_get_status_change_bitmap(hub_t *);
 
-
 #endif
 /**
  * @}

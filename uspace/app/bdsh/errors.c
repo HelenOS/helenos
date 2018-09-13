@@ -42,7 +42,6 @@ extern volatile unsigned int cli_quit;
 
 /* Error printing, translation and handling functions */
 
-
 /** Look up errno in cl_errors and return the corresponding string.
  *
  * Return NULL if not found
@@ -85,8 +84,3 @@ void cli_error(int err, const char *fmt, ...)
 	return;
 
 }
-
-
-
-
-

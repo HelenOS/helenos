@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <stdio.h>
 #include <device/clock_dev.h>
 #include <errno.h>
@@ -336,4 +335,3 @@ usage(void)
 	printf("       -t   Change the current time\n");
 	printf("       -h   Display this information\n");
 }
-

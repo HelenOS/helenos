@@ -17,7 +17,6 @@
  *     @ingroup net
  */
 
-
 /**    @addtogroup slip slip
  *     @brief SLIP service
  *     @ingroup net
@@ -52,4 +51,3 @@
  *     @brief DNS resolution service
  *     @ingroup net
  */
-

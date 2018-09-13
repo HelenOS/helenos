@@ -98,4 +98,3 @@ const char *str_error(errno_t e)
 
 	return "Unknown error code";
 }
-

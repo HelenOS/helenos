@@ -48,7 +48,6 @@
 #include <macros.h>
 #include <wchar.h>
 
-
 /** show prefixes 0x or 0 */
 #define __PRINTF_FLAG_PREFIX       0x00000001
 
@@ -78,7 +77,6 @@
 
 /** don't print trailing zeros in the fractional part */
 #define __PRINTF_FLAG_NOFRACZEROS  0x00000200
-
 
 /**
  * Buffer big enough for 64-bit number printed in base 2, sign, prefix and 0
@@ -124,8 +122,6 @@ static const char *digits_small = "0123456789abcdef";
 static const char *digits_big = "0123456789ABCDEF";
 static const char invalch = U_SPECIAL;
 
-
-
 /** Unformatted double number string representation. */
 typedef struct {
 	/** Buffer with len digits, no sign or leading zeros. */
@@ -137,8 +133,6 @@ typedef struct {
 	/** True if negative. */
 	bool neg;
 } double_str_t;
-
-
 
 /** Returns the sign character or 0 if no sign should be printed. */
 static int get_sign_char(bool negative, uint32_t flags)
@@ -165,7 +159,6 @@ static int print_padding(char ch, int count, printf_spec_t *ps)
 
 	return count;
 }
-
 
 /** Print one or more characters without adding newline.
  *
@@ -633,7 +626,6 @@ static int print_special(ieee_double_t val, int width, uint32_t flags,
 
 	counter += ret;
 
-
 	/* Trailing padding. */
 	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
 		if ((ret = print_padding(' ', padding_len, ps)) < 0)
@@ -696,7 +688,6 @@ static void fp_round_up(char *buf, int *len, int *dec_exp)
 		}
 	}
 }
-
 
 /** Format and print the double string repressentation according
  *  to the %f specifier.
@@ -825,7 +816,6 @@ static int print_double_str_fixed(double_str_t *val_str, int precision, int widt
 	return counter;
 }
 
-
 /** Convert, format and print a double according to the %f specifier.
  *
  * @param g     Double to print.
@@ -933,7 +923,6 @@ static int print_exponent(int exp_val, uint32_t flags, printf_spec_t *ps)
 	return counter;
 }
 
-
 /** Format and print the double string repressentation according
  *  to the %e specifier.
  */
@@ -1038,7 +1027,6 @@ static int print_double_str_scient(double_str_t *val_str, int precision,
 	return counter;
 }
 
-
 /** Convert, format and print a double according to the %e specifier.
  *
  * Note that if g is large, the output may be huge (3e100 prints
@@ -1111,7 +1099,6 @@ static int print_double_scientific(double g, int precision, int width,
 
 	return print_double_str_scient(&val_str, precision, width, flags, ps);
 }
-
 
 /** Convert, format and print a double according to the %g specifier.
  *
@@ -1192,7 +1179,6 @@ static int print_double_generic(double g, int precision, int width,
 		}
 	}
 }
-
 
 /** Convert, format and print a double according to the specifier.
  *

@@ -804,7 +804,6 @@ error:
 	return rc;
 }
 
-
 /** Export SIF attribute to file.
  *
  * @param attr SIF attribute

@@ -217,7 +217,6 @@ void ia64_post_smp_init(void)
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, LEGACYIO_USER_BASE);
 }
 
-
 /** Enter userspace and never return. */
 void userspace(uspace_arg_t *kernel_uarg)
 {

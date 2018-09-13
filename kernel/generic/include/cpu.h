@@ -46,7 +46,6 @@
 
 #define CPU                  THE->cpu
 
-
 /** CPU structure.
  *
  * There is one structure like this for every processor.

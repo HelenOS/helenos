@@ -48,4 +48,3 @@ static const char *cl_errors[] = {
 static const char *err2str(int);
 
 #endif
-

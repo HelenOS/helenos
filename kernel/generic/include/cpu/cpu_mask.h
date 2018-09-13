@@ -63,7 +63,6 @@ typedef struct cpu_mask {
 	unsigned int mask[1];
 } cpu_mask_t;
 
-
 extern size_t cpu_mask_size(void);
 extern void cpu_mask_active(cpu_mask_t *);
 extern void cpu_mask_all(cpu_mask_t *);

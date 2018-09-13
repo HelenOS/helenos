@@ -81,7 +81,6 @@ avltree_node_t *avltree_search(avltree_t *t, avltree_key_t key)
 	return NULL;
 }
 
-
 /** Find the node with the smallest key in an AVL tree.
  *
  * @param t AVL tree.
@@ -659,7 +658,6 @@ void avltree_delete(avltree_t *t, avltree_node_t *node)
 	}
 }
 
-
 /** Delete a node with the smallest key from the AVL tree.
  *
  * @param t AVL tree structure.
@@ -729,4 +727,3 @@ void avltree_walk(avltree_t *t, avltree_walker_t walker, void *arg)
 
 /** @}
  */
-

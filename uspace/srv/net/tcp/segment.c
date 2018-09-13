@@ -158,7 +158,6 @@ tcp_segment_t *tcp_segment_make_data(tcp_control_t ctrl, void *data,
 	return seg;
 }
 
-
 /** Trim segment from left and right by the specified amount.
  *
  * Trim any text or control to remove the specified amount of sequence

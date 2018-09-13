@@ -226,7 +226,6 @@ int main(int argc, char *argv[])
 		return 5;
 	}
 
-
 	if (!img_setup(lsface)) {
 		printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
 		return 6;

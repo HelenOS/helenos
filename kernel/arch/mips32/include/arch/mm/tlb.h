@@ -139,7 +139,6 @@ NO_TRACE static inline void tlbp(void)
 	asm volatile ("tlbp\n\t");
 }
 
-
 /** Read Indexed TLB Entry
  *
  * Read Indexed TLB Entry.

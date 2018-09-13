@@ -59,7 +59,6 @@ typedef struct {
 
 typedef struct hound_ctx_stream hound_ctx_stream_t;
 
-
 hound_ctx_t *hound_record_ctx_get(const char *name);
 hound_ctx_t *hound_playback_ctx_get(const char *name);
 void hound_ctx_destroy(hound_ctx_t *context);

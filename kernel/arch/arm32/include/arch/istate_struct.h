@@ -55,4 +55,3 @@ typedef struct istate {
 } istate_t;
 
 #endif
-

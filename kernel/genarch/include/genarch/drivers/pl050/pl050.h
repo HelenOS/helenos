@@ -44,7 +44,6 @@
 #include <console/chardev.h>
 #include <typedefs.h>
 
-
 /*
  * pl050 register offsets from the base address
  */
@@ -96,7 +95,6 @@ typedef struct {
 
 extern pl050_instance_t *pl050_init(pl050_t *, inr_t);
 extern void pl050_wire(pl050_instance_t *, indev_t *);
-
 
 #endif
 

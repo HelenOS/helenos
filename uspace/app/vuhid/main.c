@@ -131,7 +131,6 @@ static vuhid_data_t vuhid_data = {
 	// mutex and CV must be initialized elsewhere
 };
 
-
 /** Keyboard device.
  * Rest of the items will be initialized later.
  */
@@ -141,7 +140,6 @@ static usbvirt_device_t hid_dev = {
 	.name = "HID",
 	.device_data = &vuhid_data
 };
-
 
 static struct option long_options[] = {
 	{ "help", optional_argument, NULL, 'h' },
@@ -205,7 +203,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
 	log_init("vuhid");
 
 	fibril_mutex_initialize(&vuhid_data.iface_count_mutex);
@@ -248,7 +245,6 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
 
 /** @}
  */

@@ -112,9 +112,7 @@ typedef struct {
 	errno_t (*config_space_write_32)(ddf_fun_t *, uint32_t address, uint32_t data);
 } pci_dev_iface_t;
 
-
 #endif
 /**
  * @}
  */
-

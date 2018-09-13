@@ -145,7 +145,6 @@ int main(int argc, char *argv[])
 	if ((argc == 2 && command == NULL))
 		service = argv[1];
 
-
 	service_id_t mixer_sid;
 	errno_t rc = loc_service_get_id(service, &mixer_sid, 0);
 	if (rc != EOK) {

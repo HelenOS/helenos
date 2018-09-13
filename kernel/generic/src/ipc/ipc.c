@@ -526,7 +526,6 @@ errno_t ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
 	return ipc_call(newphone, call);
 }
 
-
 /** Wait for a phone call.
  *
  * @param box   Answerbox expecting the call.
@@ -887,7 +886,6 @@ void ipc_init(void)
 	answerbox_cache = slab_cache_create("answerbox_t", sizeof(answerbox_t),
 	    0, NULL, NULL, 0);
 }
-
 
 static void ipc_print_call_list(list_t *list)
 {

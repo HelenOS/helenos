@@ -35,7 +35,6 @@
 #ifndef KERN_VERIFY_H_
 #define KERN_VERIFY_H_
 
-
 #ifdef CONFIG_VERIFY_VCC
 
 #define READS(ptr)     __specification(reads(ptr))
@@ -64,7 +63,6 @@
 #define REQUIRES_ARRAY_MUTABLE(ptr, nmemb)
 
 #endif /* CONFIG_VERIFY_VCC */
-
 
 #endif
 

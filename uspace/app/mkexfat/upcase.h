@@ -2960,5 +2960,3 @@ static uint8_t const upcase_table[] = {
 /**
  * @}
  */
-
-

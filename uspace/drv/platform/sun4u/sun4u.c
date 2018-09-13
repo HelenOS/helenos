@@ -69,7 +69,6 @@
 #define PBM_OBIO_BASE		UINT64_C(0)
 #define PBM_OBIO_SIZE		UINT64_C(0x1898)
 
-
 typedef struct sun4u_fun {
 	hw_resource_list_t hw_resources;
 	pio_window_t pio_window;

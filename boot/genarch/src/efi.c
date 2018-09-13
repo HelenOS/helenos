@@ -41,4 +41,3 @@ void *efi_vendor_table_find(efi_system_table_t *st, efi_guid_t guid)
 
 	return NULL;
 }
-

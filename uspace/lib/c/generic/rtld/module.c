@@ -203,7 +203,6 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	str_cpy(name_buf, NAME_BUF_SIZE, "/lib/");
 	str_cpy(name_buf + 5, NAME_BUF_SIZE - 5, name);
 
-
 	DPRINTF("filename:'%s'\n", name_buf);
 
 	rc = elf_load_file_name(name_buf, ELDF_RW, &info);

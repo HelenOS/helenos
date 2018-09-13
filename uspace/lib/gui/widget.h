@@ -142,4 +142,3 @@ extern void widget_deinit(widget_t *);
 
 /** @}
  */
-

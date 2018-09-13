@@ -379,4 +379,3 @@ static void (*const batch_setup[])(ehci_transfer_batch_t *) =
 /**
  * @}
  */
-

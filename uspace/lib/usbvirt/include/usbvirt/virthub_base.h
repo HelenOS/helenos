@@ -73,7 +73,6 @@ errno_t virthub_base_get_null_status(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size);
 
-
 #endif
 
 /**

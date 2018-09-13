@@ -113,7 +113,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-
 	async_sess_t *sess = loc_service_connect(svc_id, INTERFACE_DDF,
 	    IPC_FLAG_BLOCKING);
 	if (sess == NULL) {
@@ -163,4 +162,3 @@ int main(int argc, char **argv)
 	async_hangup(sess);
 	return 0;
 }
-

@@ -336,7 +336,6 @@ typedef struct io_redirection_reg {
 
 } __attribute__((packed)) io_redirection_reg_t;
 
-
 /** IO APIC Identification Register. */
 typedef union {
 	uint32_t value;

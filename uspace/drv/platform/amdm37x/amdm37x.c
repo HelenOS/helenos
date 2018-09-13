@@ -50,7 +50,6 @@ log_message(const volatile void *place, uint64_t val, volatile void *base, size_
 	    (place - base) + data, place, val);
 }
 
-
 errno_t amdm37x_init(amdm37x_t *device, bool trace)
 {
 	assert(device);
@@ -115,7 +114,6 @@ errno_t amdm37x_init(amdm37x_t *device, bool trace)
 	return EOK;
 }
 
-
 /** Set DPLLs 1,2,3,4,5 to ON (locked) and autoidle.
  * @param device Register map.
  *
@@ -136,7 +134,6 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	    GLOBAL_REG_PRM_CLKSRC_CTRL_SYSCLKDIV_GET(clk_reg);
 	ddf_msg(LVL_NOTE, "Base frequency: %d.%dMhz",
 	    base_freq / 1000, base_freq % 1000);
-
 
 	/*
 	 * DPLL1 provides MPU(CPU) clock.

@@ -244,7 +244,6 @@ static errno_t malta_dev_add(ddf_dev_t *dev)
 	pio_write_32(
 	    &gt[GT_PCI_CMD / sizeof(ioport32_t)], host2uint32_t_le(val));
 
-
 	/* Register functions. */
 	if (!malta_add_functions(dev)) {
 		ddf_msg(LVL_ERROR, "Failed to add functions for the Malta platform.");

@@ -194,7 +194,6 @@ static errno_t usb_device_retrieve_descriptors(usb_device_t *usb_dev)
 	    &usb_dev->descriptors.full_config,
 	    &usb_dev->descriptors.full_config_size);
 
-
 	return rc;
 }
 

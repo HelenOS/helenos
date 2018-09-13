@@ -646,7 +646,6 @@ static cmd_info_t *basic_commands[] = {
 	NULL
 };
 
-
 /** Initialize command info structure.
  *
  * @param cmd Command info structure.

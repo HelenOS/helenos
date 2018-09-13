@@ -35,7 +35,6 @@
 #include <mem.h>
 #include <synch/workqueue.h>
 
-
 typedef struct test_work {
 	work_t work_item;
 	int master;
@@ -45,10 +44,8 @@ typedef struct test_work {
 
 static atomic_t call_cnt[WAVES];
 
-
 /* Fwd decl - implement in your actual test file.. */
 static int core_workq_enqueue(work_t *work_item, work_func_t func);
-
 
 static bool new_wave(test_work_t *work)
 {
@@ -61,7 +58,6 @@ static bool new_wave(test_work_t *work)
 		return false;
 	}
 }
-
 
 static int is_pow2(int num)
 {
@@ -169,7 +165,6 @@ static const char *run_workq_core(bool end_prematurely)
 	TPRINTF("waves: %d, count_down: %d, total expected calls: %zu\n",
 	    WAVES, COUNT, exp_call_cnt * WAVES);
 
-
 	core_workq_enqueue(&work->work_item, reproduce);
 
 	size_t sleep_cnt = 0;
@@ -198,7 +193,6 @@ static const char *run_workq_core(bool end_prematurely)
 			    atomic_load(&call_cnt[i]), i, exp_call_cnt);
 		}
 	}
-
 
 	if (success)
 		return NULL;

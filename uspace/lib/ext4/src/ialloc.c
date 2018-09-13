@@ -43,7 +43,6 @@
 #include "ext4/ialloc.h"
 #include "ext4/superblock.h"
 
-
 /** Convert i-node number to relative index in block group.
  *
  * @param sb    Superblock
@@ -88,7 +87,6 @@ static uint32_t ext4_ialloc_get_bgid_of_inode(ext4_superblock_t *sb,
 	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
 	return (inode - 1) / inodes_per_group;
 }
-
 
 /** Free i-node number and modify filesystem data structers.
  *

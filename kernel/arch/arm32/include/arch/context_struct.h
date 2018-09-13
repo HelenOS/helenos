@@ -54,4 +54,3 @@ typedef struct context {
 } context_t;
 
 #endif
-

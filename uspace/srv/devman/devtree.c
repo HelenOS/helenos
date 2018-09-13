@@ -92,7 +92,6 @@ static bool loc_functions_key_equal(void *key, const ht_link_t *item)
 	return fun->service_id == service_id;
 }
 
-
 static hash_table_ops_t devman_devices_ops = {
 	.hash = devman_devices_hash,
 	.key_hash = handle_key_hash,
@@ -250,7 +249,6 @@ void remove_dev_node(dev_tree_t *tree, dev_node_t *dev)
 
 	dev->state = DEVICE_REMOVED;
 }
-
 
 /** Insert new function into device tree.
  *

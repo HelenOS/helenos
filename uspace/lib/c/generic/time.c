@@ -379,7 +379,6 @@ static int normalize_tm_time(struct tm *tm, time_t time)
 	return normalize_tm_ts(tm, &ts);
 }
 
-
 /** Which day the week-based year starts on.
  *
  * Relative to the first calendar day. E.g. if the year starts

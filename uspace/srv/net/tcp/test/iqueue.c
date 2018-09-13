@@ -175,5 +175,4 @@ PCUT_TEST(two_segments)
 	tcp_conn_delete(conn);
 }
 
-
 PCUT_EXPORT(iqueue);

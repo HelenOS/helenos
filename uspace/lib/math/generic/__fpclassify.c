@@ -55,4 +55,3 @@ int __fpclassify(size_t sz, ...)
 	va_end(ap);
 	return result;
 }
-

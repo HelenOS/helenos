@@ -3,6 +3,4 @@
 
 /* Prototypes for the unmount command, excluding entry points */
 
-
 #endif /* UNMOUNT_H */
-

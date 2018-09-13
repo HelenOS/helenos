@@ -38,8 +38,6 @@
 #include <stdint.h>
 #include <adt/list.h>
 
-
-
 /**
  * Maximum amount of specified usages for one report item
  */
@@ -68,8 +66,6 @@
 #define USB_HID_INT32_TO_UINT32(x, size)	\
 	(((x) < 0 ) ? ((1 << (size)) + (x)) : (x))
 
-
-
 /**
  * Enum of report types
  */
@@ -85,8 +81,6 @@ typedef enum {
 	 */
 	USB_HID_REPORT_TYPE_FEATURE = 3
 } usb_hid_report_type_t;
-
-
 
 /**
  * Description of all reports described in one report descriptor.
@@ -112,7 +106,6 @@ typedef struct {
 
 } usb_hid_report_t;
 
-
 /**
  * Description of one concrete report
  */
@@ -135,7 +128,6 @@ typedef struct {
 	/** Link to usb_hid_report_t.reports list. */
 	link_t reports_link;
 } usb_hid_report_description_t;
-
 
 /**
  * Description of one field/item in report
@@ -201,8 +193,6 @@ typedef struct {
 	/** Link to usb_hid_report_description_t.report_items list */
 	link_t ritems_link;
 } usb_hid_report_field_t;
-
-
 
 /**
  * State table for report descriptor parsing
@@ -314,8 +304,6 @@ static const usb_hid_modifiers_t
 	USB_HID_MOD_RALT,
 	USB_HID_MOD_RGUI
 };
-
-
 
 #endif
 /**

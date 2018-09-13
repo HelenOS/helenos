@@ -78,7 +78,6 @@ static usec_t timeleft = 0;
 
 console_ctrl_t *console;
 
-
 /*
  * putstr() is for unpadded strings (either as in termcap(5) or
  * simply literal strings);

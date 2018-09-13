@@ -125,7 +125,6 @@ errno_t usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 		.arg = NULL
 	};
 
-
 	const void *iface_ptr =
 	    usb_dp_get_nested_descriptor(&dp_parser, &dp_data, dp_data.data);
 

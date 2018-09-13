@@ -3,6 +3,4 @@
 
 /* Prototypes for the mkfile command, excluding entry points */
 
-
 #endif /* MKFILE_H */
-

@@ -74,4 +74,3 @@ int cmd_unmount(char **argv)
 
 	return CMD_SUCCESS;
 }
-

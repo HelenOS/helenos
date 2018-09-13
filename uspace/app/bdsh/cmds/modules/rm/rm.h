@@ -4,4 +4,3 @@
 /* Prototypes for the rm command, excluding entry points */
 
 #endif /* RM_H */
-

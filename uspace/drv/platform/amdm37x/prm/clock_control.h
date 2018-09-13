@@ -80,7 +80,6 @@ static inline unsigned sys_clk_freq_kHz(unsigned reg_val)
 	return 0;
 }
 
-
 #endif
 /**
  * @}

@@ -41,7 +41,6 @@ typedef struct {
 	const char *fragment;
 } const_uri_t;
 
-
 static const_uri_t expected_uri;
 static uri_t *parsed_uri;
 
@@ -67,7 +66,6 @@ static uri_t *parsed_uri;
 		CHECK(query); \
 		CHECK(fragment); \
 	} while (0)
-
 
 PCUT_INIT;
 
@@ -139,6 +137,5 @@ PCUT_TEST(with_fragment)
 
 	PARSE_AND_CHECK("http://localhost/alpha#fragment-name");
 }
-
 
 PCUT_EXPORT(uri_parse);

@@ -121,4 +121,3 @@ static inline bool refcount_down(atomic_refcount_t *rc)
 }
 
 #endif
-

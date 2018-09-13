@@ -6,4 +6,3 @@ extern int cmd_mv(char **);
 extern void help_cmd_mv(unsigned int);
 
 #endif /* MV_ENTRY_H */
-

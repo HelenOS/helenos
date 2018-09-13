@@ -54,7 +54,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
 /** Initialize the polling data structure, its internals and configuration
  *  with default values.
  *
@@ -82,7 +81,6 @@ int usb_polling_init(usb_polling_t *polling)
 	return EOK;
 }
 
-
 /** Destroy the polling data structure.
  *  This function does nothing but a safety check whether the polling
  *  was joined successfully.
@@ -95,7 +93,6 @@ void usb_polling_fini(usb_polling_t *polling)
 	assert(polling);
 	assert(!polling->running);
 }
-
 
 /** Polling fibril.
  *
@@ -217,7 +214,6 @@ static errno_t polling_fibril(void *arg)
 	fibril_condvar_broadcast(&polling->cv);
 	return EOK;
 }
-
 
 /** Start automatic device polling over interrupt in pipe.
  *

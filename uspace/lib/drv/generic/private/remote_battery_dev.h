@@ -42,4 +42,3 @@ extern remote_iface_t remote_battery_dev_iface;
 /**
  * @}
  */
-

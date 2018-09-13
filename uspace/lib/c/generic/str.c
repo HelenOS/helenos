@@ -1015,7 +1015,6 @@ size_t utf16_wsize(const uint16_t *ustr)
 	return wsize;
 }
 
-
 /** Convert wide string to new string.
  *
  * Convert wide string @a src to string. Space for the new string is allocated
@@ -1063,7 +1062,6 @@ char *wstr_to_astr(const wchar_t *src)
 	str[dest_size] = '\0';
 	return str;
 }
-
 
 /** Convert string to wide string.
  *
@@ -1292,7 +1290,6 @@ bool wstr_remove(wchar_t *str, size_t pos)
 
 	return true;
 }
-
 
 /** Duplicate string.
  *

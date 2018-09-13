@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <barrier.h>
 
 #define COHERENCE_INVAL_MIN  4
@@ -59,4 +58,3 @@ void smc_coherence(void *addr, size_t len)
 	asm volatile ("sync" ::: "memory");
 	asm volatile ("isync" ::: "memory");
 }
-

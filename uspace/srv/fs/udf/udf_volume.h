@@ -117,7 +117,6 @@ typedef struct udf_primary_volume_descriptor {
 	uint8_t reserved[22];
 } __attribute__((packed)) udf_primary_volume_descriptor_t;
 
-
 /* Partition Descriptor (ECMA 167 3/10.5) */
 typedef struct udf_partition_descriptor {
 	udf_descriptor_tag_t tag;

@@ -252,7 +252,6 @@ errno_t usb_device_create_match_ids_from_device_descriptor(
 	return EOK;
 }
 
-
 /** Create match ids describing attached device.
  *
  * @warning The list of match ids @p matches may change even when

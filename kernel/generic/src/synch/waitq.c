@@ -61,7 +61,6 @@
 static void waitq_sleep_timed_out(void *);
 static void waitq_complete_wakeup(waitq_t *);
 
-
 /** Initialize wait queue
  *
  * Initialize wait queue.
@@ -487,7 +486,6 @@ static void waitq_complete_wakeup(waitq_t *wq)
 	irq_spinlock_lock(&wq->lock, false);
 	irq_spinlock_unlock(&wq->lock, false);
 }
-
 
 /** Internal SMP- and IRQ-unsafe version of waitq_wakeup()
  *

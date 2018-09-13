@@ -79,7 +79,6 @@ mem_backend_t phys_backend = {
 	.destroy_shared_data = phys_destroy_shared_data
 };
 
-
 bool phys_create(as_area_t *area)
 {
 	return true;
@@ -97,7 +96,6 @@ void phys_share(as_area_t *area)
 	assert(mutex_locked(&area->as->lock));
 	assert(mutex_locked(&area->lock));
 }
-
 
 void phys_destroy(as_area_t *area)
 {
@@ -117,7 +115,6 @@ bool phys_is_shareable(as_area_t *area)
 {
 	return true;
 }
-
 
 /** Service a page fault in the address space area backed by physical memory.
  *

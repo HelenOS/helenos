@@ -114,7 +114,6 @@ struct mfs_superblock {
 	uint32_t	s_nzones2;
 } __attribute__((packed));
 
-
 /* MFS V3 superblock data on disk */
 struct mfs3_superblock {
 	/* Total number of inodes on the device */
@@ -187,10 +186,8 @@ struct mfs3_dentry {
 	char d_name[0];
 };
 
-
 #endif
 
 /**
  * @}
  */
-

@@ -6,4 +6,3 @@ extern int cmd_cat(char **);
 extern void help_cmd_cat(unsigned int);
 
 #endif /* CAT_ENTRY_H */
-

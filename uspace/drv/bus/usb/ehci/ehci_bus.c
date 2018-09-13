@@ -107,7 +107,6 @@ static void ehci_endpoint_destroy(endpoint_t *ep)
 	free(instance);
 }
 
-
 static int ehci_register_ep(endpoint_t *ep)
 {
 	bus_t *bus_base = endpoint_get_bus(ep);

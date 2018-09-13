@@ -527,7 +527,6 @@ PCUT_TEST(mbr_logical_part)
 	test_bd_destroy(bd);
 }
 
-
 PCUT_TEST(gpt_part)
 {
 	label_t *label;

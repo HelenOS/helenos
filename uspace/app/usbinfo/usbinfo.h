@@ -46,7 +46,6 @@ typedef struct {
 	bool active;
 } usbinfo_action_t;
 
-
 #define NAME "usbinfo"
 
 extern void dump_buffer(const char *, size_t, const uint8_t *, size_t);

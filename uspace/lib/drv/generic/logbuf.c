@@ -110,7 +110,6 @@ static size_t count_dump_length(size_t item_size, size_t items)
 	return dump_itself + group_spaces + normal_spaces;
 }
 
-
 /** Dumps data buffer to a string in hexadecimal format.
  *
  * Setting @p items_to_print to zero would dump the whole buffer together

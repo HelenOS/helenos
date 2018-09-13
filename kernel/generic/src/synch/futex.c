@@ -93,7 +93,6 @@ typedef struct futex_ptr {
 	uintptr_t uaddr;
 } futex_ptr_t;
 
-
 static void destroy_task_cache(work_t *work);
 
 static void futex_initialize(futex_t *futex, uintptr_t paddr);
@@ -115,7 +114,6 @@ static size_t task_fut_ht_hash(const cht_link_t *link);
 static size_t task_fut_ht_key_hash(void *key);
 static bool task_fut_ht_equal(const cht_link_t *item1, const cht_link_t *item2);
 static bool task_fut_ht_key_equal(void *key, const cht_link_t *item);
-
 
 /** Mutex protecting the global futex hash table.
  *
@@ -225,7 +223,6 @@ void futex_task_cleanup(void)
 	spinlock_unlock(&futexes->list_lock);
 }
 
-
 /** Initialize the kernel futex structure.
  *
  * @param futex	Kernel futex structure.
@@ -284,7 +281,6 @@ static futex_t *get_futex(uintptr_t uaddr)
 	return get_and_cache_futex(paddr, uaddr);
 }
 
-
 /** Finds the physical address of the futex variable. */
 static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *paddr)
 {
@@ -330,7 +326,6 @@ static futex_t *find_cached_futex(uintptr_t uaddr)
 
 	return futex;
 }
-
 
 /**
  * Returns a kernel futex for the physical address @a phys_addr and caches
@@ -446,7 +441,6 @@ sys_errno_t sys_futex_wakeup(uintptr_t uaddr)
 		return (sys_errno_t) ENOENT;
 	}
 }
-
 
 /** Return the hash of the key stored in the item */
 size_t futex_ht_hash(const ht_link_t *item)

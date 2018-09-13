@@ -35,8 +35,6 @@
 #define SET_BUFFER(str) snprintf(buffer, BUFFER_SIZE, "%s", str)
 #define EQ(expected, value) PCUT_ASSERT_STR_EQUALS(expected, value)
 
-
-
 PCUT_INIT;
 
 PCUT_TEST_SUITE(str);
@@ -47,7 +45,6 @@ PCUT_TEST_BEFORE
 {
 	memset(buffer, 0, BUFFER_SIZE);
 }
-
 
 PCUT_TEST(rtrim)
 {

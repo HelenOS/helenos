@@ -84,7 +84,6 @@ typedef struct {
 	    size_t size, size_t *act_size);
 } usbhid_iface_t;
 
-
 #endif
 /**
  * @}

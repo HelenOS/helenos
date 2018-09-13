@@ -95,7 +95,6 @@ static void remove_device(usb_port_t *port_base)
 	usb_device_bus_exchange_end(exch);
 }
 
-
 static usb_speed_t get_port_speed(usb_hub_port_t *port, uint32_t status)
 {
 	assert(port);
@@ -335,7 +334,6 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port)
 		    "Status: %#08" PRIx32, status);
 	}
 }
-
 
 /**
  * @}

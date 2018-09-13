@@ -1,4 +1,3 @@
-
 /* Definitions of modules and its relations for generating Doxygen documentation */
 
 /** @defgroup kernel kernel
@@ -92,11 +91,9 @@
  *     @endcond
  */
 
-
 /** @defgroup sync Synchronization
  * @ingroup kernel
  */
-
 
 /** @defgroup mm Memory management
  * @ingroup kernel
@@ -399,7 +396,6 @@
  *     @endcond
  */
 
-
 /** @defgroup others Miscellanea
  * @ingroup kernel
  */
@@ -476,4 +472,3 @@
  *     @ingroup others
  *     @endcond
  */
-

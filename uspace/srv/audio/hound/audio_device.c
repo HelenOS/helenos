@@ -44,7 +44,6 @@
 #include <str_error.h>
 #include <as.h>
 
-
 #include "audio_device.h"
 #include "log.h"
 

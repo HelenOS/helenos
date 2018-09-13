@@ -60,7 +60,6 @@ static inline void arch_pio_write_64(ioport64_t *port, uint64_t v)
 	memory_barrier();
 }
 
-
 static inline uint8_t arch_pio_read_8(const ioport8_t *port)
 {
 	uint8_t rv;

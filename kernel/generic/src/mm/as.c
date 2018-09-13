@@ -227,7 +227,6 @@ retry:
 	spinlock_unlock(&asidlock);
 	interrupts_restore(ipl);
 
-
 	/*
 	 * Destroy address space areas of the address space.
 	 * The B+tree must be walked carefully because it is
@@ -562,7 +561,6 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 		free(sh_info);
 	}
 }
-
 
 /** Create address space area of common attributes.
  *

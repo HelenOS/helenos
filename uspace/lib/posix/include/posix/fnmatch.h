@@ -57,7 +57,6 @@
 
 extern int fnmatch(const char *pattern, const char *string, int flags);
 
-
 #endif /* POSIX_FNMATCH_H_ */
 
 /** @}

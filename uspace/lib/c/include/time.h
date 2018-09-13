@@ -39,7 +39,6 @@
 extern "C" {
 #endif
 
-
 /* ISO/IEC 9899:2011 7.27.1 (2) */
 
 #include <_bits/NULL.h>
@@ -47,7 +46,6 @@ extern "C" {
 #define CLOCKS_PER_SEC	((clock_t) 1000000)
 
 #define TIME_UTC	1
-
 
 /* ISO/IEC 9899:2011 7.27.1 (3) */
 
@@ -108,7 +106,6 @@ extern struct tm *localtime(const time_t *);
 /* ISO/IEC 9899:2011 7.27.3.5 (1) */
 extern size_t strftime(char *__restrict__, size_t, const char *__restrict__,
     const struct tm *__restrict__);
-
 
 #ifdef _HELENOS_SOURCE
 

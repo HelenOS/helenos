@@ -49,8 +49,6 @@ extern void tcp_segment_text_copy(tcp_segment_t *, void *, size_t);
 extern size_t tcp_segment_text_size(tcp_segment_t *);
 extern void tcp_segment_dump(tcp_segment_t *);
 
-
-
 #endif
 
 /** @}

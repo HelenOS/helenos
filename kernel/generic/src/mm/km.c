@@ -294,4 +294,3 @@ void km_temporary_page_put(uintptr_t page)
 
 /** @}
  */
-

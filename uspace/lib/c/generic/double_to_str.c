@@ -51,7 +51,6 @@ static const int significand_width = 64;
 static const int alpha = -59;
 static const int gamma = -32;
 
-
 /** Returns true if the most-significant bit of num.significand is set. */
 static bool is_normalized(fp_num_t num)
 {
@@ -79,7 +78,6 @@ static fp_num_t normalize(fp_num_t num)
 
 	return num;
 }
-
 
 /** Returns x * y with an error of less than 0.5 ulp. */
 static fp_num_t multiply(fp_num_t x, fp_num_t y)
@@ -129,7 +127,6 @@ static fp_num_t multiply(fp_num_t x, fp_num_t y)
 	return ret;
 }
 
-
 /** Returns a - b. Both must have the same exponent. */
 static fp_num_t subtract(fp_num_t a, fp_num_t b)
 {
@@ -143,7 +140,6 @@ static fp_num_t subtract(fp_num_t a, fp_num_t b)
 
 	return result;
 }
-
 
 /** Returns the interval [low, high] of numbers that convert to binary val. */
 static void get_normalized_bounds(ieee_double_t val, fp_num_t *high,
@@ -248,7 +244,6 @@ static void calc_scaled_bounds(ieee_double_t val, fp_num_t *scaled_upper_bound,
 	*scaled_upper_bound = upper_scaled;
 }
 
-
 /** Rounds the last digit of buf so that it is closest to the converted number.*/
 static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
     uint64_t digit_val_diff, char *buf, int len)
@@ -297,7 +292,6 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
 		    (rest + digit_val_diff < w_dist || rest - w_dist < w_dist - rest);
 	}
 }
-
 
 /** Generates the shortest accurate decimal string representation.
  *
@@ -476,7 +470,6 @@ static int zero_to_str(char *buf, size_t buf_size, int *dec_exponent)
 		return -1;
 	}
 }
-
 
 /** Converts a non-special double into its shortest accurate string
  *  representation.
@@ -698,7 +691,6 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 	}
 }
 
-
 /** Converts a non-special double into its string representation.
  *
  * Conceptually, the truncated double value is: buf * 10^dec_exponent
@@ -791,4 +783,3 @@ int double_to_fixed_str(ieee_double_t ieee_val, int signif_d_cnt,
 	assert(len <= MAX_DOUBLE_STR_LEN);
 	return len;
 }
-

@@ -36,7 +36,6 @@
  * USB Keyboard multimedia keys subdriver.
  */
 
-
 #include "multimedia.h"
 #include "../usbhid.h"
 #include "keymap.h"
@@ -55,7 +54,6 @@
 
 #define NAME  "multimedia-keys"
 
-
 /**
  * Logitech UltraX device type.
  */
@@ -69,8 +67,6 @@ typedef struct usb_multimedia_t {
 	/** IPC session to the console device (for sending key events). */
 	async_sess_t *console_sess;
 } usb_multimedia_t;
-
-
 
 /** Default handler for IPC methods not handled by DDF.
  *

@@ -3,6 +3,4 @@
 
 /* Prototypes for the cp command, excluding entry points */
 
-
 #endif /* CP_H */
-

@@ -37,7 +37,6 @@
 
 #include <genarch/ofw/ofw_tree.h>
 
-
 /** Finds the parent node of all the CPU nodes (nodes named "cpu" or "cmp").
  *
  *  Depending on the machine type (and possibly the OFW version), CPUs can be
@@ -56,4 +55,3 @@ static inline ofw_tree_node_t *cpus_parent(void)
 
 /** @}
  */
-

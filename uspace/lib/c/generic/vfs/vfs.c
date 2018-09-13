@@ -396,7 +396,6 @@ errno_t vfs_fsprobe(const char *fs_name, service_id_t serv,
 	return rc;
 }
 
-
 /** Return a list of currently available file system types
  *
  * @param fstypes Points to structure where list of filesystem types is
@@ -744,7 +743,6 @@ errno_t vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
 
 	return (errno_t) rc;
 }
-
 
 /** Open a file handle for I/O
  *

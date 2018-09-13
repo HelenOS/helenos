@@ -340,7 +340,6 @@ static ddf_dev_ops_t usb_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &usbhc_iface,
 };
 
-
 /* DDF HELPERS */
 
 #define ADD_MATCHID_OR_RETURN(list, sc, str, ...) \

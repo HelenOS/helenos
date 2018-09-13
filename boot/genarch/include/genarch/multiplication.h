@@ -40,5 +40,3 @@ extern long long __muldi3(long long, long long);
 
 /** @}
  */
-
-

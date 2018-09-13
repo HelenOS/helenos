@@ -66,7 +66,6 @@ typedef struct tsb_descr {
 	uint64_t reserved;
 } __attribute__((packed)) tsb_descr_t;
 
-
 /* Forward declarations. */
 struct as;
 struct pte;

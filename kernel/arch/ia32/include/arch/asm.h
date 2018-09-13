@@ -348,7 +348,6 @@ NO_TRACE static inline uint64_t read_msr(uint32_t msr)
 
 #endif /* PROCESSOR_i486 */
 
-
 /** Return base address of current stack
  *
  * Return the base address of the current stack.

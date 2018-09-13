@@ -85,7 +85,6 @@ static void loc_cb_conn(ipc_call_t *icall, void *arg)
 	}
 }
 
-
 static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
     async_sess_t **dst)
 {
@@ -545,7 +544,6 @@ errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
 
 	return retval;
 }
-
 
 loc_object_type_t loc_id_probe(service_id_t handle)
 {

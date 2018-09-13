@@ -96,7 +96,6 @@ struct usb_hid_subdriver {
 	void *data;
 };
 
-
 /**
  * Structure for holding general HID device data.
  */

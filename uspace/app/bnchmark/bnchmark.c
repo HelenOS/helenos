@@ -197,7 +197,6 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-
 static void syntax_print(void)
 {
 	fprintf(stderr, "syntax: " NAME " <iterations> <test type> <log-str> <path>\n");

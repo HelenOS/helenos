@@ -355,7 +355,6 @@ static const irq_cmd_t irq_commands[] = {
 	}
 };
 
-
 /**
  * Generates code to accept interrupts. The xHCI is designed primarily for
  * MSI/MSI-X, but we use PCI Interrupt Pin. In this mode, all the Interrupters

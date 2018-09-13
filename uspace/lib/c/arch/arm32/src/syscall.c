@@ -35,7 +35,6 @@
 
 #include <libc.h>
 
-
 /** Syscall routine.
  *
  *  Stores p1-p4, id to r0-r4 registers and calls <code>swi</code>

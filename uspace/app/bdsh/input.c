@@ -189,7 +189,6 @@ errno_t process_input(cliuser_t *usr)
 		new_iostate.stdin = from;
 	}
 
-
 	if (redir_to) {
 		to = fopen(redir_to, "w");
 		if (to == NULL) {

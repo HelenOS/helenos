@@ -65,7 +65,6 @@ static const char *vendor_str[] = {
 	"GenuineIntel"
 };
 
-
 /** Setup flags on processor so that we can use the FPU
  *
  * cr0.osfxsr = 1 -> we do support fxstor/fxrestor

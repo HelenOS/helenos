@@ -870,7 +870,6 @@ static errno_t fdsk_delete_part(fdisk_dev_t *dev)
 		goto error;
 	}
 
-
 	nchoice_destroy(choice);
 	choice = NULL;
 
@@ -1327,7 +1326,6 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
 
 /** @}
  */

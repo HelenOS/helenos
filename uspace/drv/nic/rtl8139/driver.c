@@ -111,7 +111,6 @@ inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
 /** Total size of the receiver buffer to allocate */
 #define RxBUF_TOT_LENGTH RTL8139_RXBUF_LENGTH(RXBUF_SIZE_FLAGS)
 
-
 /** Default interrupt mask */
 #define RTL_DEFAULT_INTERRUPTS UINT16_C(0xFFFF)
 
@@ -122,7 +121,6 @@ inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
  */
 #define REG_GET_VAL(value, reg_part)\
 		(((value) >> reg_part##_SHIFT) & reg_part##_MASK)
-
 
 /** Set interrupts on controller
  *
@@ -429,7 +427,6 @@ err_size:
 	return;
 }
 
-
 /** Reset the controller
  *
  *  @param io_base  The address of the i/o port mapping start
@@ -620,7 +617,6 @@ rx_err:
 	return frames;
 }
 
-
 irq_pio_range_t rtl8139_irq_pio_ranges[] = {
 	{
 		.base = 0,
@@ -745,7 +741,6 @@ static void rtl8139_receive_frames(nic_t *nic_data)
 		nic_received_frame_list(nic_data, frames);
 }
 
-
 /** Deal with poll interrupt
  *
  *  @param nic_data  Nic driver data
@@ -766,7 +761,6 @@ static int rtl8139_poll_interrupt(nic_t *nic_data)
 	ddf_msg(LVL_DEBUG, "rtl8139 timer: %" PRIu32 "\treceive: %d", timer_val, receive);
 	return receive;
 }
-
 
 /** Poll device according to isr status
  *
@@ -962,13 +956,11 @@ static errno_t rtl8139_on_stopped(nic_t *nic_data)
 	return EOK;
 }
 
-
 static errno_t rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
     const nic_address_t *, size_t);
 static errno_t rtl8139_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count);
 static errno_t rtl8139_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode);
-
 
 /** Create driver data structure
  *
@@ -1002,7 +994,6 @@ static rtl8139_t *rtl8139_create_dev_data(ddf_dev_t *dev)
 	nic_set_wol_virtue_change_handlers(nic_data,
 	    rtl8139_wol_virtue_add, rtl8139_wol_virtue_rem);
 	nic_set_poll_handlers(nic_data, rtl8139_poll_mode_change, rtl8139_poll);
-
 
 	fibril_mutex_initialize(&rtl8139->rx_lock);
 	fibril_mutex_initialize(&rtl8139->tx_lock);
@@ -1096,7 +1087,6 @@ static errno_t rtl8139_get_resource_info(ddf_dev_t *dev)
 
 	return ret;
 }
-
 
 /** Allocate buffers using DMA framework
  *
@@ -1977,7 +1967,6 @@ static errno_t rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
 	return EOK;
 }
 
-
 /** Turn Wakeup On Lan method on
  *
  *  @param nic_data  The NIC to update
@@ -2055,7 +2044,6 @@ static void rtl8139_wol_virtue_rem(nic_t *nic_data,
 	if (rtl8139->pm.active == 0)
 		rtl8139_hw_pmen_set(rtl8139, 0);
 }
-
 
 /** Set polling mode
  *
@@ -2141,7 +2129,6 @@ static void rtl8139_poll(nic_t *nic_data)
 
 	rtl8139_interrupt_impl(nic_data, isr);
 }
-
 
 /** Main function of RTL8139 driver
  *

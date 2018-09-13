@@ -43,7 +43,6 @@ typedef struct run_block_ar {
 	intmap_t vars; /* of rdata_var_t */
 } run_block_ar_t;
 
-
 /** Procedure activation record
  *
  * A procedure can be a member function, a named property or an indexed

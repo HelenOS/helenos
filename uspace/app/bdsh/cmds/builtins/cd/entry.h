@@ -8,5 +8,3 @@ extern void help_cmd_cd(unsigned int);
 extern int cmd_cd(char **, cliuser_t *);
 
 #endif
-
-

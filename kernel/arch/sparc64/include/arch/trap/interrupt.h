@@ -70,7 +70,6 @@ extern void interrupt(unsigned int n, istate_t *istate);
 
 #endif /* !def __ASSEMBLER__ */
 
-
 #if defined (SUN4U)
 #include <arch/trap/sun4u/interrupt.h>
 #elif defined (SUN4V)

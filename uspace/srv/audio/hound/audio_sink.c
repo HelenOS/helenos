@@ -43,7 +43,6 @@
 #include "connection.h"
 #include "log.h"
 
-
 /**
  * Initialize audio sink structure.
  * @param sink The structure to initialize.
@@ -148,7 +147,6 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void *dest, size_t size)
 		}
 	}
 }
-
 
 /**
  * @}

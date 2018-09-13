@@ -154,7 +154,6 @@ async_sess_t *service_connect_blocking(service_t service, iface_t iface,
 	return csess;
 }
 
-
 errno_t ns_ping(void)
 {
 	async_sess_t *sess = ns_session_get();

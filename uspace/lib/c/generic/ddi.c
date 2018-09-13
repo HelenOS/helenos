@@ -48,7 +48,6 @@
 #include <libarch/config.h>
 #include "private/libc.h"
 
-
 /** Map a piece of physical memory to task.
  *
  * Caller of this function must have the PERM_MEM_MANAGER permission.

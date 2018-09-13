@@ -54,7 +54,6 @@ extern int __posix_wtermsig(int status);
 extern pid_t wait(int *stat_ptr);
 extern pid_t waitpid(pid_t pid, int *stat_ptr, int options);
 
-
 #endif /* POSIX_SYS_WAIT_H_ */
 
 /** @}

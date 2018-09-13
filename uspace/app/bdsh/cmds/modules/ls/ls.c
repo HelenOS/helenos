@@ -427,4 +427,3 @@ int cmd_ls(char **argv)
 	else
 		return CMD_SUCCESS;
 }
-

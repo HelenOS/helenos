@@ -102,7 +102,6 @@ void tlb_invalidate_asid(asid_t asid)
 	tlb_invalidate_all();
 }
 
-
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 {
 	region_register_t rr;
@@ -408,7 +407,6 @@ void dtr_purge(uintptr_t page, size_t width)
 	);
 }
 
-
 /** Copy content of PTE into data translation cache.
  *
  * @param t PTE.
@@ -600,7 +598,6 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 			as = AS_KERNEL;
 		}
 	}
-
 
 	pte_t t;
 	bool found = page_mapping_find(as, va, true, &t);

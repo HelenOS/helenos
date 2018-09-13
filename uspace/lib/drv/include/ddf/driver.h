@@ -41,7 +41,6 @@
 #include <ipc/dev_iface.h>
 #include "../dev_iface.h"
 
-
 /*
  * Device
  */

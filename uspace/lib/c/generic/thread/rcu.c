@@ -80,7 +80,6 @@
 
 #include "../private/fibril.h"
 
-
 /** RCU sleeps for RCU_SLEEP_MS before polling an active RCU reader again. */
 #define RCU_SLEEP_MS        10
 
@@ -89,7 +88,6 @@
 #define RCU_GROUP_BIT_MASK  (size_t)(RCU_NESTING_INC - 1)
 #define RCU_GROUP_A         (size_t)(0 | RCU_NESTING_INC)
 #define RCU_GROUP_B         (size_t)(1 | RCU_NESTING_INC)
-
 
 /** Fibril local RCU data. */
 typedef struct fibril_rcu_data {
@@ -117,7 +115,6 @@ typedef struct blocked_fibril {
 	bool is_ready;
 } blocked_fibril_t;
 
-
 /** Fibril local RCU data. */
 static fibril_local fibril_rcu_data_t fibril_rcu = {
 	.nesting_cnt = 0,
@@ -141,7 +138,6 @@ static rcu_data_t rcu = {
 	},
 };
 
-
 static void wait_for_readers(size_t reader_group);
 static void force_mb_in_all_threads(void);
 static bool is_preexisting_reader(const fibril_rcu_data_t *fib, size_t group);
@@ -153,7 +149,6 @@ static void sync_sleep(void);
 static bool is_in_group(size_t nesting_cnt, size_t group);
 static bool is_in_reader_section(size_t nesting_cnt);
 static size_t get_other_group(size_t group);
-
 
 /** Registers a fibril so it may start using RCU read sections.
  *
@@ -408,7 +403,6 @@ static void sync_sleep(void)
 	fibril_rmutex_lock(&rcu.sync_lock.mutex);
 }
 
-
 static bool is_preexisting_reader(const fibril_rcu_data_t *fib, size_t group)
 {
 	size_t nesting_cnt = ACCESS_ONCE(fib->nesting_cnt);
@@ -433,8 +427,6 @@ static bool is_in_group(size_t nesting_cnt, size_t group)
 {
 	return (nesting_cnt & RCU_GROUP_BIT_MASK) == (group & RCU_GROUP_BIT_MASK);
 }
-
-
 
 /** @}
  */

@@ -276,7 +276,6 @@ static void grid_rearrange(widget_t *widget, sysarg_t hpos, sysarg_t vpos,
 						    wwidth, wheight);
 					}
 
-
 				}
 
 				cur_hpos += widths[c].val;

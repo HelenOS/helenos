@@ -230,4 +230,3 @@ static inline const char *pcm_sample_format_str(pcm_sample_format_t format)
 /**
  * @}
  */
-

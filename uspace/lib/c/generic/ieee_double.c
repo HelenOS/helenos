@@ -112,4 +112,3 @@ ieee_double_t extract_ieee_double(double val)
 
 	return ret;
 }
-

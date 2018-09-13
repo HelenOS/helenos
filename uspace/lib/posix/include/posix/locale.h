@@ -113,7 +113,6 @@ extern locale_t newlocale(int category_mask, const char *locale,
     locale_t base);
 extern locale_t uselocale(locale_t newloc);
 
-
 #endif /* POSIX_LOCALE_H_ */
 
 /** @}

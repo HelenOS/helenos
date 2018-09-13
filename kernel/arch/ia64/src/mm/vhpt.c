@@ -52,7 +52,6 @@ uintptr_t vhpt_set_up(void)
 	return (uintptr_t) vhpt_base;
 }
 
-
 void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 {
 	region_register_t rr_save, rr;

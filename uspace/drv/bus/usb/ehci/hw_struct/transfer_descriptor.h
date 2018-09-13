@@ -111,4 +111,3 @@ void td_init(td_t *td, uintptr_t next_phys, uintptr_t buf, usb_direction_t dir,
 /**
  * @}
  */
-

@@ -83,7 +83,6 @@ static errno_t req_on_status_change_pipe(usbvirt_device_t *dev,
 		return ENAK;
 	}
 
-
 	uint8_t change_map = hub_get_status_change_bitmap(hub);
 
 	uint8_t *b = (uint8_t *) buffer;
@@ -339,13 +338,10 @@ static errno_t req_set_port_feature(usbvirt_device_t *dev,
 	return rc;
 }
 
-
-
 /** Recipient: other. */
 #define REC_OTHER USB_REQUEST_RECIPIENT_OTHER
 /** Recipient: device. */
 #define REC_DEVICE USB_REQUEST_RECIPIENT_DEVICE
-
 
 /** Hub operations on control endpoint zero. */
 static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
@@ -408,7 +404,6 @@ static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 		.callback = NULL
 	}
 };
-
 
 /** Hub operations. */
 usbvirt_device_ops_t hub_ops = {

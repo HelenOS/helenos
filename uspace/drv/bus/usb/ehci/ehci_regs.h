@@ -74,7 +74,6 @@ typedef struct ehci_cap_regs {
 
 } ehci_caps_regs_t;
 
-
 /** EHCI memory mapped operational registers structure */
 typedef struct ehci_regs {
 	ioport32_t usbcmd;
@@ -169,4 +168,3 @@ typedef struct ehci_regs {
 /**
  * @}
  */
-

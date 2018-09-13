@@ -42,7 +42,6 @@
 #include <usb/hid/hidtypes.h>
 #include <usb/hid/hiddescriptor.h>
 
-
 /*
  * Input report parser functions
  */
@@ -63,10 +62,8 @@ size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id,
 size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
     usb_hid_report_type_t type);
 
-
 errno_t usb_hid_report_output_translate(usb_hid_report_t *report,
     uint8_t report_id, uint8_t *buffer, size_t size);
-
 
 /*
  * Report descriptor structure observing functions

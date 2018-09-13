@@ -163,4 +163,3 @@ int open(const char *pathname, int posix_flags, ...)
 
 /** @}
  */
-

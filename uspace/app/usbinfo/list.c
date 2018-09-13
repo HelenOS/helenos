@@ -157,6 +157,5 @@ void list(void)
 	free(svcs);
 }
 
-
 /** @}
  */

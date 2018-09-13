@@ -102,7 +102,6 @@ errno_t wav_parse_header(const void *hdata, const void **data, size_t *data_size
 		return EINVAL;
 	}
 
-
 	//TODO data and data_size are incorrect in extended wav formats
 	//pcm params are OK
 	if (data)

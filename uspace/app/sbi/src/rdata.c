@@ -735,7 +735,6 @@ static void rdata_var_copy_to(rdata_var_t *src, rdata_var_t *dest)
 	}
 }
 
-
 /** Copy boolean.
  *
  * @param src		Source boolean

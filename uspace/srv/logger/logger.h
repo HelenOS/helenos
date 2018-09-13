@@ -96,7 +96,6 @@ void unregister_logs(logger_registered_logs_t *);
 log_level_t get_default_logging_level(void);
 errno_t set_default_logging_level(log_level_t);
 
-
 void logger_connection_handler_control(ipc_call_t *);
 void logger_connection_handler_writer(ipc_call_t *);
 

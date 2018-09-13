@@ -376,7 +376,6 @@ void ehci_hc_interrupt(bus_t *bus_base, uint32_t status)
 		}
 		fibril_mutex_unlock(&hc->guard);
 
-
 	}
 
 	if (status & USB_STS_HOST_ERROR_FLAG) {
@@ -433,7 +432,6 @@ int hc_start(hc_device_t *hcd)
 	EHCI_WR(instance->registers->periodiclistbase, phys_base);
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_PERIODIC_SCHEDULE_FLAG);
 	usb_log_debug("HC(%p): Enabled periodic list.", instance);
-
 
 	/* Enable Async schedule */
 	phys_base = addr_to_phys((void *)instance->async_list.list_head);

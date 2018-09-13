@@ -43,7 +43,6 @@
 #include "mem_access.h"
 #include "transfer_descriptor.h"
 
-
 errno_t td_error(const td_t *td)
 {
 	assert(td);

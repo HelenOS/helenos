@@ -81,7 +81,6 @@ errno_t categ_dir_get_categories(categ_dir_t *cdir, category_id_t *id_buf,
 	return EOK;
 }
 
-
 /** Initialize category structure. */
 static void category_init(category_t *cat, const char *name)
 {

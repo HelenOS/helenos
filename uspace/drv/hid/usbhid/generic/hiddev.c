@@ -58,7 +58,6 @@ const usb_endpoint_description_t usb_hid_generic_poll_endpoint_description = {
 const char *HID_GENERIC_FUN_NAME = "hid";
 const char *HID_GENERIC_CATEGORY = "hid";
 
-
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun);
 static errno_t usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
     size_t size, size_t *act_size, int *event_nr, unsigned int flags);

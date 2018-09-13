@@ -54,7 +54,6 @@ struct trb_segment {
 
 static_assert(sizeof(trb_segment_t) == PAGE_SIZE);
 
-
 /**
  * Get the first TRB of a segment.
  */

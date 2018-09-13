@@ -41,7 +41,6 @@
 
 #include "bus.h"
 
-
 static const bus_ops_t xhci_bus_ops = {
 	.interrupt = hc_interrupt,
 	.status = hc_status,

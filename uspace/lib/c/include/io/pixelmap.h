@@ -145,7 +145,6 @@ static inline pixel_t pixelmap_get_extended_pixel(pixelmap_t *pixmap,
 	return pixel;
 }
 
-
 #endif
 
 /** @}

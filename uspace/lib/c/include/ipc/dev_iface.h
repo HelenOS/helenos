@@ -95,5 +95,4 @@ typedef enum {
 #define DEV_IPC_GET_ARG3(call) IPC_GET_ARG4((call))
 #define DEV_IPC_GET_ARG4(call) IPC_GET_ARG5((call))
 
-
 #endif

@@ -87,4 +87,3 @@ uint16_t crc16_ibm(uint16_t crc, uint8_t *buf, size_t len)
 
 	return crc;
 }
-

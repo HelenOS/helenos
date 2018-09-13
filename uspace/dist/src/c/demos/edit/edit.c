@@ -185,7 +185,6 @@ static int coord_cmp(coord_t const *a, coord_t const *b);
 
 static void status_display(char const *str);
 
-
 int main(int argc, char *argv[])
 {
 	cons_event_t ev;

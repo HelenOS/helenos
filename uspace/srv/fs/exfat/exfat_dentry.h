@@ -57,7 +57,6 @@
 #define EXFAT_ATTR_SUBDIR	0x10
 #define EXFAT_ATTR_ARCHIVE	0x20
 
-
 /* All dentry structs should have 31 byte size */
 typedef struct {
 	uint8_t 	size;
@@ -121,7 +120,6 @@ typedef struct {
 	uint16_t 	name[EXFAT_NAME_PART_LEN];
 } __attribute__((packed)) exfat_name_dentry_t;
 
-
 typedef struct {
 	uint8_t type;
 	union {
@@ -134,7 +132,6 @@ typedef struct {
 		exfat_name_dentry_t 	name;
 	};
 } __attribute__((packed)) exfat_dentry_t;
-
 
 typedef enum {
 	EXFAT_DENTRY_SKIP,
@@ -149,7 +146,6 @@ typedef enum {
 	EXFAT_DENTRY_NAME
 } exfat_dentry_clsf_t;
 
-
 extern exfat_dentry_clsf_t exfat_classify_dentry(const exfat_dentry_t *);
 
 extern uint16_t exfat_name_hash(const uint16_t *, const uint16_t *, size_t);
@@ -163,7 +159,6 @@ extern bool exfat_valid_char(wchar_t);
 extern bool exfat_valid_name(const char *);
 
 extern size_t exfat_utf16_length(const uint16_t *);
-
 
 #endif
 

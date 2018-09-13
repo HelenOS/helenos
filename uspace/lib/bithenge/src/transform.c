@@ -43,8 +43,6 @@
 #include <bithenge/transform.h>
 #include "common.h"
 
-
-
 /***************** transform                                 *****************/
 
 /** Initialize a new transform.
@@ -180,8 +178,6 @@ errno_t bithenge_transform_prefix_apply(bithenge_transform_t *self,
 		*out_size = size;
 	return rc;
 }
-
-
 
 /***************** scope                                     *****************/
 
@@ -432,8 +428,6 @@ errno_t bithenge_scope_get_param(bithenge_scope_t *scope, int i,
 	}
 }
 
-
-
 /***************** barrier_transform                         *****************/
 
 typedef struct {
@@ -566,8 +560,6 @@ error:
 	return rc;
 }
 
-
-
 /***************** ascii                                     *****************/
 
 static errno_t ascii_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
@@ -611,8 +603,6 @@ bithenge_transform_t bithenge_ascii_transform = {
 	&ascii_ops, 1, 0
 };
 
-
-
 /***************** bit                                       *****************/
 
 static errno_t bit_prefix_apply(bithenge_transform_t *self,
@@ -640,8 +630,6 @@ static const bithenge_transform_ops_t bit_ops = {
 bithenge_transform_t bithenge_bit_transform = {
 	&bit_ops, 1, 0
 };
-
-
 
 /***************** bits_be, bits_le                          *****************/
 
@@ -774,8 +762,6 @@ bithenge_transform_t bithenge_bits_le_transform = {
 	&bits_xe_ops, 1, 0
 };
 
-
-
 /***************** invalid                                   *****************/
 
 static errno_t invalid_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
@@ -793,8 +779,6 @@ static const bithenge_transform_ops_t invalid_ops = {
 bithenge_transform_t bithenge_invalid_transform = {
 	&invalid_ops, 1, 0
 };
-
-
 
 /***************** known_length                              *****************/
 
@@ -949,8 +933,6 @@ MAKE_UINT_TRANSFORM(uint64le, uint64_t, uint64_t_le2host, prefix_length_8);
 MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint64_t_be2host, prefix_length_8);
 /** @endcond */
 
-
-
 /***************** uint_be, uint_le                          *****************/
 
 static errno_t uint_xe_prefix_apply(bithenge_transform_t *self,
@@ -1020,8 +1002,6 @@ bithenge_transform_t bithenge_uint_be_transform = {
 bithenge_transform_t bithenge_uint_le_transform = {
 	&uint_xe_ops, 1, 1
 };
-
-
 
 /***************** zero_terminated                           *****************/
 

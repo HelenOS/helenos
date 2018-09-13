@@ -144,7 +144,6 @@ typedef enum {
  */
 #define L_MP			8
 
-
 /**
  * When used with L_CREATE, L_EXCLUSIVE will cause the lookup to fail if the
  * object already exists. L_EXCLUSIVE is implied when L_DIRECTORY is used.

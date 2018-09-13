@@ -56,7 +56,6 @@
 #define INTEL_CPUID_ECX  UINT32_C(0x6c65746e)
 #define INTEL_CPUID_EDX  UINT32_C(0x49656e69)
 
-
 enum vendor {
 	VendorUnknown = 0,
 	VendorAMD,

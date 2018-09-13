@@ -6,4 +6,3 @@ extern int cmd_rm(char **);
 extern void help_cmd_rm(unsigned int);
 
 #endif /* RM_ENTRY_H */
-

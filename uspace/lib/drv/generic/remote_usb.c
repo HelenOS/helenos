@@ -43,7 +43,6 @@
 #include "usb_iface.h"
 #include "ddf/driver.h"
 
-
 usb_dev_session_t *usb_dev_connect(devman_handle_t handle)
 {
 	return devman_device_connect(handle, IPC_FLAG_BLOCKING);

@@ -79,7 +79,6 @@ errno_t process_control_transfer(usbvirt_device_t *dev,
 	return EFORWARD;
 }
 
-
 /**
  * @}
  */

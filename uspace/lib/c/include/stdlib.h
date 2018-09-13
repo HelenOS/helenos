@@ -69,7 +69,6 @@ typedef struct {
 	long long rem;
 } lldiv_t;
 
-
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 

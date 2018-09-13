@@ -77,7 +77,6 @@ typedef struct {
 #define UFCON_RX_FIFO_TLEVEL_1B		0x00
 #define UFCON_FIFO_ENABLE		0x01
 
-
 /** S3C24xx UART instance */
 typedef struct {
 	s3c24xx_uart_io_t *io;

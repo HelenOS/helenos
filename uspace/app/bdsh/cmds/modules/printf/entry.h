@@ -6,4 +6,3 @@ extern int cmd_printf(char **);
 extern void help_cmd_printf(unsigned int);
 
 #endif /* PRINTF_ENTRY_H */
-

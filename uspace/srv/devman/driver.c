@@ -350,7 +350,6 @@ driver_t *driver_find(driver_list_t *drv_list, devman_handle_t handle)
 	return res;
 }
 
-
 /** Find device driver by name.
  *
  * @param drv_list	The list of device drivers.

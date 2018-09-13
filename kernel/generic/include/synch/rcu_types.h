@@ -42,7 +42,6 @@
 #error You must select an RCU algorithm.
 #endif
 
-
 /* Fwd decl. */
 struct thread;
 struct rcu_item;
@@ -57,7 +56,6 @@ typedef struct rcu_item {
 	rcu_func_t func;
 	struct rcu_item *next;
 } rcu_item_t;
-
 
 /** RCU related per-cpu data. */
 typedef struct rcu_cpu_data {
@@ -139,7 +137,6 @@ typedef struct rcu_cpu_data {
 	size_t last_arriving_cnt;
 } rcu_cpu_data_t;
 
-
 /** RCU related per-thread data. */
 typedef struct rcu_thread_data {
 	/**
@@ -163,7 +160,6 @@ typedef struct rcu_thread_data {
 	/** Preempted threads link. Access with rcu.prempt_lock.*/
 	link_t preempt_link;
 } rcu_thread_data_t;
-
 
 #endif
 

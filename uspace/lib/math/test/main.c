@@ -34,4 +34,3 @@ PCUT_INIT;
 PCUT_IMPORT(rounding);
 
 PCUT_MAIN();
-

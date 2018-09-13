@@ -331,7 +331,6 @@ static void _queue_signal(int signo, siginfo_t *siginfo)
 	list_append(&(item->link), &_signal_queue);
 }
 
-
 /**
  * Executes an action associated with the given signal.
  *

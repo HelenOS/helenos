@@ -103,7 +103,6 @@ void logger_connection_handler_control(ipc_call_t *icall)
 	logger_log("control: client terminated.\n");
 }
 
-
 /**
  * @}
  */

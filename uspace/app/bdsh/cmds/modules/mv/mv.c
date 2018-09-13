@@ -69,4 +69,3 @@ int cmd_mv(char **argv)
 
 	return CMD_SUCCESS;
 }
-

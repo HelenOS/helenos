@@ -58,4 +58,3 @@ const struct rtl8139_hwver_map rtl8139_versions[RTL8139_VER_COUNT + 1] = {
 	/* End value */
 	{ 0, RTL8139_VER_COUNT }
 };
-

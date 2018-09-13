@@ -63,4 +63,3 @@ int cmd_echo(char **argv)
 	return CMD_SUCCESS;
 
 }
-

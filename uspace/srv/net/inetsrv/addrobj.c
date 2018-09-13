@@ -166,7 +166,6 @@ static inet_addrobj_t *inet_addrobj_find_by_name_locked(const char *name, inet_l
 	return NULL;
 }
 
-
 /** Find address object on a link, with a specific name.
  *
  * @param name	Address object name

@@ -45,6 +45,5 @@ vuhid_interface_t *available_hid_interfaces[] = {
 	NULL
 };
 
-
 /** @}
  */

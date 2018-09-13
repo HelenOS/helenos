@@ -44,8 +44,6 @@ typedef uint8_t report_descriptor_data_t[];
 #define ITEM_GLOBAL 1
 #define ITEM_LOCAL 2
 
-
-
 /* Item tags. */
 
 /* Main item tags. */
@@ -67,7 +65,6 @@ typedef uint8_t report_descriptor_data_t[];
 #define TAG_USAGE_MINIMUM 1
 #define TAG_USAGE_MAXIMUM 2
 
-
 /* Bits for Input, Output and Feature items. */
 #define _IOF(value, shift) ((value) << (shift))
 #define IOF_DATA _IOF(0, 0)
@@ -81,7 +78,6 @@ typedef uint8_t report_descriptor_data_t[];
 /* Collection types. */
 #define COLLECTION_PHYSICAL 0x00
 #define COLLECTION_APPLICATION 0x01
-
 
 /** Creates item prefix.
  * @param size Item size.
@@ -105,7 +101,6 @@ typedef uint8_t report_descriptor_data_t[];
  */
 #define ITEM_CREATE1(type, tag, data) \
 	BUILD_ITEM_PREFIX(1, type, tag), data
-
 
 #endif
 /**

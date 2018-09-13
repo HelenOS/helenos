@@ -59,7 +59,6 @@ static void default_connection_handler(ddf_fun_t *, ipc_call_t *);
 
 static ddf_dev_ops_t ops = { .default_handler = default_connection_handler };
 
-
 const usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
@@ -74,7 +73,6 @@ const char *HID_MOUSE_CATEGORY = "mouse";
 
 /** Default idle rate for mouses. */
 static const uint8_t IDLE_RATE = 0;
-
 
 static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
 	0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
@@ -104,8 +102,6 @@ static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
 	0xc0,                          //   END_COLLECTION
 	0xc0                           // END_COLLECTION
 };
-
-
 
 /** Default handler for IPC methods not handled by DDF.
  *
@@ -210,7 +206,6 @@ static void usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		// Even if we move the mouse absolutely, we need to resolve wheel
 		shift_x = shift_y = 0;
 	}
-
 
 	if (shift_x || shift_y || shift_z) {
 		async_exch_t *exch =

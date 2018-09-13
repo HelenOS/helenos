@@ -258,7 +258,6 @@ vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, service_id_t service_id)
 	return rd.refcnt;
 }
 
-
 /** Perform a remote node open operation.
  *
  * @return EOK on success or an error code from errno.h.
@@ -279,7 +278,6 @@ errno_t vfs_open_node_remote(vfs_node_t *node)
 
 	return rc;
 }
-
 
 static size_t nodes_key_hash(void *key)
 {

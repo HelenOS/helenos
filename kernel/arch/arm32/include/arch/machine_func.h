@@ -67,10 +67,8 @@ extern void machine_ops_init(void);
 /** Maps HW devices to the kernel address space using #hw_map. */
 extern void machine_init(void);
 
-
 /** Starts timer. */
 extern void machine_timer_irq_start(void);
-
 
 /** Halts CPU. */
 extern void machine_cpu_halt(void);
@@ -88,7 +86,6 @@ extern void machine_get_memory_extents(uintptr_t *start, size_t *size);
  * @param istate Saved processor state.
  */
 extern void machine_irq_exception(unsigned int exc_no, istate_t *istate);
-
 
 /*
  * Machine specific frame initialization

@@ -76,7 +76,6 @@
 #define AMDM37x_GPT11_SIZE  4096
 #define AMDM37x_GPT11_IRQ  47
 
-
 /** GPT register map AMDM37x TRM p. 2740 */
 typedef struct {
 	/** IP revision */

@@ -160,7 +160,6 @@ typedef struct {
 	unsigned a : 1;			/**< Accessed bit. */
 } pte_t;
 
-
 NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];

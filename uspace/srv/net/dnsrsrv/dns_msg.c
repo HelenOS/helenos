@@ -615,7 +615,6 @@ errno_t dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	qd_count = uint16_t_be2host(hdr->qd_count);
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "qd_count=%zu", qd_count);
 
-
 	for (i = 0; i < qd_count; i++) {
 		rc = dns_question_decode(&msg->pdu, doff, &question, &field_eoff);
 		if (rc != EOK) {

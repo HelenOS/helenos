@@ -541,7 +541,6 @@ static void tcp_conn_sa_listen(tcp_conn_t *conn, tcp_segment_t *seg)
 	conn->rcv_nxt = seg->seq + 1;
 	conn->irs = seg->seq;
 
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "rcv_nxt=%u", conn->rcv_nxt);
 
 	if (seg->len > 1)

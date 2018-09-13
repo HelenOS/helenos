@@ -50,8 +50,6 @@
 
 #include <rcu.h>
 
-
-
 #define USECS_PER_SEC (1000 * 1000)
 #define USECS_PER_MS  1000
 
@@ -71,13 +69,10 @@ typedef struct test_desc {
 	const char *desc;
 } test_desc_t;
 
-
 typedef struct test_info {
 	size_t thread_cnt;
 	test_desc_t *desc;
 } test_info_t;
-
-
 
 static bool run_all_tests(struct test_info *);
 static bool run_sanity_tests(struct test_info *);
@@ -88,7 +83,6 @@ static bool basic_sanity_check(struct test_info *);
 static bool dont_wait_for_new_reader(struct test_info *);
 static bool wait_for_exiting_reader(struct test_info *);
 static bool seq_test(struct test_info *);
-
 
 static test_desc_t test_desc[] = {
 	{
@@ -165,7 +159,6 @@ static size_t next_rand(size_t seed)
 {
 	return (seed * 1103515245 + 12345) & ((1U << 31) - 1);
 }
-
 
 typedef errno_t (*fibril_func_t)(void *);
 
@@ -306,7 +299,6 @@ typedef struct one_reader_info {
 	size_t failed;
 } one_reader_info_t;
 
-
 static errno_t sleeping_reader(one_reader_info_t *arg)
 {
 	rcu_register_fibril();
@@ -387,7 +379,6 @@ typedef struct two_reader_info {
 	bool synched;
 	size_t failed;
 } two_reader_info_t;
-
 
 static errno_t preexisting_reader(two_reader_info_t *arg)
 {
@@ -549,7 +540,6 @@ typedef struct exit_reader_info {
 	bool synched;
 } exit_reader_info_t;
 
-
 static errno_t exiting_locked_reader(exit_reader_info_t *arg)
 {
 	rcu_register_fibril();
@@ -578,7 +568,6 @@ static errno_t exiting_locked_reader(exit_reader_info_t *arg)
 	rcu_deregister_fibril();
 	return 0;
 }
-
 
 static bool wait_for_exiting_reader(test_info_t *test_info)
 {
@@ -613,7 +602,6 @@ static bool wait_for_exiting_reader(test_info_t *test_info)
 
 #undef WAIT_STEP_US
 
-
 /*--------------------------------------------------------------------*/
 
 typedef struct {
@@ -632,7 +620,6 @@ typedef struct {
 	atomic_size_t seed;
 	int failed;
 } seq_test_info_t;
-
 
 static void signal_seq_fibril_done(seq_test_info_t *arg, size_t *cnt)
 {
@@ -809,7 +796,6 @@ static void list_tests(void)
 	}
 }
 
-
 static void print_usage(void)
 {
 	printf("Usage: rcutest [test_name|test_number] {number_of_threads}\n");
@@ -819,7 +805,6 @@ static void print_usage(void)
 	printf("\trcutest *\n");
 	printf("\trcutest sanity-tests\n");
 }
-
 
 static bool parse_cmd_line(int argc, char **argv, test_info_t *info)
 {
@@ -880,7 +865,6 @@ int main(int argc, char **argv)
 		return 2;
 	}
 }
-
 
 /**
  * @}

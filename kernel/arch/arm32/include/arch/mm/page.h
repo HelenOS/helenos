@@ -130,7 +130,6 @@
 #define SET_FRAME_PRESENT_ARCH(ptl3, i) \
 	set_pt_level1_present((pte_t *) (ptl3), (size_t) (i))
 
-
 #define pt_coherence(page) pt_coherence_m(page, 1)
 
 #if defined(PROCESSOR_ARCH_armv6) | defined(PROCESSOR_ARCH_armv7_a)

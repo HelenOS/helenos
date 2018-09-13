@@ -357,6 +357,5 @@ errno_t vbd_suggest_ptype(vbd_t *vbd, service_id_t disk, label_pcnt_t pcnt,
 	return EOK;
 }
 
-
 /** @}
  */

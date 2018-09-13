@@ -808,7 +808,6 @@ static stree_csi_t *run_exc_payload_get_csi(run_t *run)
 	return payload_o->class_sym->u.csi;
 }
 
-
 /** Check for unhandled exception.
  *
  * Checks whether there is an active exception. If so, it prints an
@@ -1170,7 +1169,6 @@ void run_proc_ar_destroy(run_t *run, run_proc_ar_t *proc_ar)
 	proc_ar->retval = NULL;
 	run_proc_ar_delete(proc_ar);
 }
-
 
 /** Fill arguments in a procedure AR.
  *

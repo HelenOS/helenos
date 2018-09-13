@@ -158,7 +158,6 @@ static int text(drawctx_t *drawctx, font_t *font, source_t *source,
 	return ret;
 }
 
-
 static errno_t draw(void)
 {
 	source_t background = rgb(255, 255, 255);

@@ -130,7 +130,6 @@ extern int chmod(const char *path, mode_t mode);
 extern mode_t umask(mode_t mask);
 extern int mkdir(const char *path, mode_t mode);
 
-
 #endif /* POSIX_SYS_STAT_H */
 
 /** @}

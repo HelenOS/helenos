@@ -188,6 +188,5 @@ errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lo
 	return rc;
 }
 
-
 /** @}
  */

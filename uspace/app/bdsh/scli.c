@@ -90,7 +90,6 @@ iostate_t *get_iostate(void)
 	return iostate;
 }
 
-
 void set_iostate(iostate_t *ios)
 {
 	iostate = ios;

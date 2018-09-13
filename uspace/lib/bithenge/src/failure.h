@@ -70,4 +70,3 @@ errno_t bithenge_failure_fstat(int, vfs_stat_t *);
  */
 
 /** @endcond */
-

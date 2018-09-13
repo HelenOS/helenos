@@ -1687,7 +1687,6 @@ static stree_expr_t *stype_convert_tfun_tdeleg(stype_t *stype,
 	return expr;
 }
 
-
 /** Convert expression of variable type to variable type.
  *
  * @param stype		Static typing object
@@ -1974,7 +1973,6 @@ errno_t stype_targs_check_equal(stype_t *stype, tdata_item_t *a_ti,
 
 	return EOK;
 }
-
 
 /** Determine if two type signatures are equal.
  *

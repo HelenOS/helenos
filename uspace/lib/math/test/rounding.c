@@ -58,7 +58,6 @@ static inline uint64_t dint(double x)
 #define FLOAT_CASES 200
 #define DOUBLE_CASES 0
 
-
 static float float_arguments[FLOAT_CASES] = {
 	HUGE_VALF,
 	-HUGE_VALF,
@@ -1197,4 +1196,3 @@ PCUT_TEST(nearbyint)
 }
 
 PCUT_EXPORT(rounding);
-

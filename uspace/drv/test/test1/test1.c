@@ -306,4 +306,3 @@ int main(int argc, char *argv[])
 	ddf_log_init(NAME);
 	return ddf_driver_main(&test1_driver);
 }
-

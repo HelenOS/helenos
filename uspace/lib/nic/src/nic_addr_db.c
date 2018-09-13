@@ -44,7 +44,6 @@
 #include <macros.h>
 #include <stdint.h>
 
-
 /**
  * Helper structure for keeping the address in the hash set.
  */
@@ -53,7 +52,6 @@ typedef struct nic_addr_entry {
 	uint8_t len;
 	uint8_t addr[1];
 } nic_addr_entry_t;
-
 
 /*
  * Hash table helper functions
@@ -154,7 +152,6 @@ void nic_addr_db_destroy(nic_addr_db_t *db)
 	assert(db);
 	hash_table_destroy(&db->set);
 }
-
 
 /**
  * Insert an address to the db

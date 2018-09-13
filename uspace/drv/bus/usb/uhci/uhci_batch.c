@@ -217,7 +217,6 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	usb_direction_t dir = uhci_batch->base.dir;
 	assert(dir == USB_DIRECTION_OUT || dir == USB_DIRECTION_IN);
 
-
 	const usb_packet_id pid = direction_pids[dir];
 	const bool low_speed =
 	    uhci_batch->base.ep->device->speed == USB_SPEED_LOW;

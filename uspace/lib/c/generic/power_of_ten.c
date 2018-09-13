@@ -142,7 +142,6 @@ static struct {
 	{ 0x840d57e2899d945fULL, 1186, 376 }
 };
 
-
 /**
  * Returns the smallest precomputed power of 10 such that
  *  binary_exp <= power_of_10.bin_exp
@@ -184,4 +183,3 @@ void get_power_of_ten(int binary_exp, fp_num_t *power_of_10, int *decimal_exp)
 
 	assert(false);
 }
-

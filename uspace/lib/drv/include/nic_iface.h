@@ -39,7 +39,6 @@
 #include <nic/nic.h>
 #include <ipc/common.h>
 
-
 typedef enum {
 	NIC_EV_ADDR_CHANGED = IPC_FIRST_USER_METHOD,
 	NIC_EV_RECEIVED,

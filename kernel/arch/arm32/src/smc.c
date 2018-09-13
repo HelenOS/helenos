@@ -66,4 +66,3 @@ void smc_coherence(void *a, size_t l)
 	/* Wait for Inst refetch */
 	isb();
 }
-

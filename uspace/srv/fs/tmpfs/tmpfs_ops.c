@@ -667,4 +667,3 @@ vfs_out_ops_t tmpfs_ops = {
 /**
  * @}
  */
-

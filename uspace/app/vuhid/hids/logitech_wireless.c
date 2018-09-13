@@ -68,7 +68,6 @@ static vuhid_interface_life_t iface1_life = {
 	.msg_die = "Mouse of Logitech Unifying Receiver disconnected."
 };
 
-
 vuhid_interface_t vuhid_interface_logitech_wireless_1 = {
 	.id = "lw1",
 	.name = "Logitech Unifying Receiver, interface 1 (mouse)",

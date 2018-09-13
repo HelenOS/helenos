@@ -54,7 +54,6 @@
 #define CONFIG_BFB_HEIGHT 768
 #endif
 
-
 static errno_t change_mode(visualizer_t *vis, vslmode_t mode);
 static errno_t handle_damage(visualizer_t *vs,
     sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
@@ -93,8 +92,6 @@ static const struct {
 	[VISUAL_ARGB_8_8_8_8] = { .bpp = 4, .func = pixel2argb_8888 },
 	[VISUAL_RGBA_8_8_8_8] = { .bpp = 4, .func = pixel2rgba_8888 },
 };
-
-
 
 static void mode_init(vslmode_list_element_t *mode,
     unsigned width, unsigned height, visual_t visual)
@@ -232,7 +229,6 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	uint32_t config = (AMDM37X_DISPC_CONFIG_LOADMODE_DATAEVERYFRAME <<
 	    AMDM37X_DISPC_CONFIG_LOADMODE_SHIFT);
 	regs->config = config;
-
 
 	/* Set framebuffer base address */
 	regs->gfx.ba[0] = pa;

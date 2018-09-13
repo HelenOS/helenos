@@ -238,6 +238,5 @@ static errno_t s3c24xx_uart_write(chardev_srv_t *srv, const void *data, size_t s
 	return EOK;
 }
 
-
 /** @}
  */

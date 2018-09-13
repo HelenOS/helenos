@@ -28,7 +28,6 @@
 
 /** @file Run-time data representation. */
 
-
 #ifndef RDATA_T_H_
 #define RDATA_T_H_
 

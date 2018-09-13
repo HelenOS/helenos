@@ -88,4 +88,3 @@ const char *scsi_get_sense_key_str(unsigned sense_key)
 
 	return scsi_sense_key_str[sense_key];
 }
-

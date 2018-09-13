@@ -37,7 +37,6 @@
 #include <errno.h>
 #include "../internal/common.h"
 
-
 void *pthread_getspecific(pthread_key_t key)
 {
 	not_implemented();

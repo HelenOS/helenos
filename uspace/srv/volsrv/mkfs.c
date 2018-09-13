@@ -100,7 +100,6 @@ static errno_t cmd_runl(const char *path, ...)
 	return retval == 0 ? EOK : EPARTY;
 }
 
-
 errno_t volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype, const char *label)
 {
 	const char *cmd;

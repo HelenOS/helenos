@@ -51,7 +51,6 @@
 #define WORKQ_MAGIC      0xf00c1333U
 #define WORK_ITEM_MAGIC  0xfeec1777U
 
-
 struct work_queue {
 	/*
 	 * Protects everything except activate_worker.
@@ -95,7 +94,6 @@ struct work_queue {
 #endif
 };
 
-
 /** Min number of idle workers to keep. */
 static size_t min_worker_cnt;
 /** Max total number of workers - be it blocked, idle, or active. */
@@ -110,7 +108,6 @@ static struct work_queue g_work_queue;
 
 static int booting = true;
 
-
 typedef struct {
 	IRQ_SPINLOCK_DECLARE(lock);
 	condvar_t req_cv;
@@ -120,11 +117,8 @@ typedef struct {
 
 static nonblock_adder_t nonblock_adder;
 
-
-
 /** Typedef a worker thread signaling operation prototype. */
 typedef void (*signal_op_t)(struct work_queue *workq);
-
 
 /* Fwd decl. */
 static void workq_preinit(struct work_queue *workq, const char *name);
@@ -790,7 +784,6 @@ static void cv_wait(struct work_queue *workq)
 	--workq->idle_worker_cnt;
 }
 
-
 /** Invoked from thread_ready() right before the thread is woken up. */
 void workq_before_thread_is_ready(thread_t *thread)
 {
@@ -887,7 +880,6 @@ void workq_global_print_info(void)
 	workq_print_info(&g_work_queue);
 }
 
-
 static bool dequeue_add_req(nonblock_adder_t *info, struct work_queue **pworkq)
 {
 	bool stop = false;
@@ -924,7 +916,6 @@ static void thr_nonblock_add_worker(void *arg)
 		add_worker(workq);
 	}
 }
-
 
 static void nonblock_init(void)
 {

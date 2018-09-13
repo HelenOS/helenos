@@ -68,7 +68,6 @@ typedef enum {
 	USB_HID_PROTOCOL_MOUSE = 2
 } usb_hid_iface_protocol_t;
 
-
 #endif
 /**
  * @}

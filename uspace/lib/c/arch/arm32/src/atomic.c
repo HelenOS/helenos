@@ -180,4 +180,3 @@ unsigned __sync_val_compare_and_swap_4(volatile void *ptr, unsigned old_val, uns
 	    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 	return old_val;
 }
-

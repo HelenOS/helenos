@@ -66,8 +66,6 @@ static void expression_indestructible(bithenge_expression_t *self)
 	assert(false);
 }
 
-
-
 /***************** binary_expression                         *****************/
 
 typedef struct {
@@ -282,8 +280,6 @@ error:
 	return rc;
 }
 
-
-
 /***************** in_node_expression                        *****************/
 
 static errno_t in_node_evaluate(bithenge_expression_t *self,
@@ -319,8 +315,6 @@ errno_t bithenge_in_node_expression(bithenge_expression_t **out)
 	return EOK;
 }
 
-
-
 /***************** current_node_expression                   *****************/
 
 static errno_t current_node_evaluate(bithenge_expression_t *self,
@@ -351,8 +345,6 @@ errno_t bithenge_current_node_expression(bithenge_expression_t **out)
 	*out = &current_node_expression;
 	return EOK;
 }
-
-
 
 /***************** param_expression                          *****************/
 
@@ -414,8 +406,6 @@ errno_t bithenge_param_expression(bithenge_expression_t **out, int index)
 	*out = param_as_expression(self);
 	return EOK;
 }
-
-
 
 /***************** const_expression                          *****************/
 
@@ -486,8 +476,6 @@ error:
 	bithenge_node_dec_ref(node);
 	return rc;
 }
-
-
 
 /***************** scope_member_expression                   *****************/
 
@@ -569,8 +557,6 @@ error:
 	free(self);
 	return rc;
 }
-
-
 
 /***************** subblob_expression                        *****************/
 
@@ -856,8 +842,6 @@ error:
 	return rc;
 }
 
-
-
 /***************** expression_transform           *****************/
 
 /* Also used by inputless_transform. */
@@ -936,8 +920,6 @@ error:
 	return rc;
 }
 
-
-
 /***************** inputless_transform            *****************/
 
 static errno_t inputless_transform_prefix_length(bithenge_transform_t *base,
@@ -993,8 +975,6 @@ error:
 	bithenge_expression_dec_ref(expr);
 	return rc;
 }
-
-
 
 /***************** concat_blob                    *****************/
 

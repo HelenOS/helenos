@@ -92,7 +92,6 @@ typedef struct {
 
 static int instances = 0;
 
-
 /** Add function to the virtual device.
  *
  * @param vdev		The virtual device
@@ -170,7 +169,6 @@ static errno_t virt_fun_remove(virt_fun_t *rvfun)
 	return EOK;
 }
 
-
 static errno_t virt_dev_add(ddf_dev_t *dev)
 {
 	virt_t *virt;
@@ -246,4 +244,3 @@ int main(int argc, char *argv[])
 /**
  * @}
  */
-

@@ -158,4 +158,3 @@ typedef struct am335x_timer_regs {
 /**
  * @}
  */
-

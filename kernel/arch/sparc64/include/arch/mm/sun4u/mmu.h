@@ -59,7 +59,6 @@
 #define VA_IMMU_NUCLEUS_EXTENSION	0x58	/**< IMMU TSB nucleus extension register */
 #endif
 
-
 /* D-MMU ASIs. */
 #define ASI_DMMU			0x58
 #define ASI_DMMU_TSB_8KB_PTR_REG	0x59

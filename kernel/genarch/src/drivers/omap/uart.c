@@ -186,4 +186,3 @@ void omap_uart_input_wire(omap_uart_t *uart, indev_t *indev)
 /**
  * @}
  */
-

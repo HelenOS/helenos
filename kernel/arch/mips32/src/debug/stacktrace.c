@@ -241,7 +241,6 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 	return true;
 }
 
-
 bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
 	return !((ctx->fp == 0) || ((ctx->fp % 8) != 0) ||

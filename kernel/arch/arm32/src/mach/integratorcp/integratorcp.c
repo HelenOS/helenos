@@ -53,7 +53,6 @@
 #include <ddi/ddi.h>
 #include <log.h>
 
-
 #define SDRAM_SIZE \
 	sdram[(*(uint32_t *) (ICP_CMCR + ICP_SDRAMCR_OFFSET) & ICP_SDRAM_MASK) >> 2]
 
@@ -120,7 +119,6 @@ static inline void icp_irqc_mask(uint32_t irq)
 {
 	*((uint32_t *) icp.hw_map.irqc_mask) = (1 << irq);
 }
-
 
 /** Unmasks interrupt.
  *

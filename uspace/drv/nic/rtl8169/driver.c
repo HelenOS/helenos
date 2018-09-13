@@ -386,7 +386,6 @@ static errno_t rtl8169_dev_add(ddf_dev_t *dev)
 	ddf_msg(LVL_NOTE, "RTL8169_dev_add %s (handle = %zu)",
 	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
 
-
 	/* Init structures */
 	rc = rtl8169_dev_initialize(dev);
 	if (rc != EOK)
@@ -832,7 +831,6 @@ static errno_t rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
 	nic_query_multicast(nic_data, &mcast_mode, 0, NULL, NULL);
 
 	ddf_msg(LVL_DEBUG, "Unicast RX filter mode: %d", mode);
-
 
 	switch (mode) {
 	case NIC_UNICAST_BLOCKED:

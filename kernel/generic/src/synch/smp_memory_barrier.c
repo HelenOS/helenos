@@ -39,7 +39,6 @@
 #include <smp/smp_call.h>
 #include <config.h>
 
-
 static void issue_mem_bar(void *arg)
 {
 	/* smp_call already issues memory barriers on return from this function */

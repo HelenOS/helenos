@@ -95,7 +95,6 @@ static bool frame_available(pfn_t frame)
 	return true;
 }
 
-
 /** Check whether frame is safe to write
  *
  * Returns true if given frame is safe for read/write test.
@@ -167,7 +166,6 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame, bool low)
 		phys_regions_count++;
 	}
 }
-
 
 /** Create memory zones
  *

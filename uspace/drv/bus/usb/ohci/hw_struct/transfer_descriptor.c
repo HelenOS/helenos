@@ -98,4 +98,3 @@ void td_set_next(td_t *instance, const td_t *next)
 /**
  * @}
  */
-

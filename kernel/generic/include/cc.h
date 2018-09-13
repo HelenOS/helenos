@@ -46,7 +46,6 @@
 #define ATTRIBUTE_USED
 #endif
 
-
 #endif
 
 /** @}

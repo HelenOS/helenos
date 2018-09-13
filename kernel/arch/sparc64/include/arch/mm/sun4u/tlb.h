@@ -187,7 +187,6 @@ union tlb_tag_read_reg {
 typedef union tlb_tag_read_reg tlb_tag_read_reg_t;
 typedef union tlb_tag_read_reg tlb_tag_access_reg_t;
 
-
 /** TLB Demap Operation Address. */
 union tlb_demap_addr {
 	uint64_t value;
@@ -411,7 +410,6 @@ NO_TRACE static inline uint64_t dtlb_tag_read_read(size_t entry)
 
 #elif defined (US3)
 
-
 /** Read IMMU TLB Data Access Register.
  *
  * @param tlb		TLB number (one of TLB_ISMALL or TLB_IBIG)
@@ -519,7 +517,6 @@ NO_TRACE static inline uint64_t dtlb_tag_read_read(int tlb, size_t entry)
 
 #endif
 
-
 /** Write IMMU TLB Tag Access Register.
  *
  * @param v		Value to be written.
@@ -557,7 +554,6 @@ NO_TRACE static inline uint64_t dtlb_tag_access_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_DMMU_TAG_ACCESS);
 }
-
 
 /** Write IMMU TLB Data in Register.
  *

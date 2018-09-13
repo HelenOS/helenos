@@ -1449,7 +1449,6 @@ uint32_t ext4_superblock_get_group_backup_blocks(ext4_superblock_t *sb,
 	return r;
 }
 
-
 /** Create superblock for new file system.
  *
  * @param dev_bsize Device block size

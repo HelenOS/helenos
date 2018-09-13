@@ -54,7 +54,6 @@ void help_cmd_printf(unsigned int level)
 		    cmdname);
 	}
 
-
 	return;
 }
 
@@ -104,7 +103,6 @@ static int process_ctl(wchar_t ch)
 	}
 	return CMD_SUCCESS;
 }
-
 
 /** Prints formatted data.
  *

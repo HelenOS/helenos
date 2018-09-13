@@ -50,7 +50,6 @@ static inline void __tcb_set(tcb_t *tcb)
 	__tcb_raw_set((uint8_t *)tcb + ARCH_TP_OFFSET);
 }
 
-
 static inline tcb_t *__tcb_get(void)
 {
 	return (tcb_t *)((uint8_t *)__tcb_raw_get() - ARCH_TP_OFFSET);

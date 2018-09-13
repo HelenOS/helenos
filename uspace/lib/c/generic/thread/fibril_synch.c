@@ -126,7 +126,6 @@ static void print_deadlock(fibril_owner_info_t *oi)
 	}
 }
 
-
 static void check_fibril_for_deadlock(fibril_owner_info_t *oi, fibril_t *fib)
 {
 	futex_assert_is_locked(&fibril_synch_futex);

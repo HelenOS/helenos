@@ -105,7 +105,6 @@ struct avltree {
 	avltree_key_t base;
 };
 
-
 /** Create empty AVL tree.
  *
  * @param t AVL tree.

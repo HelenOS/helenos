@@ -63,7 +63,6 @@ typedef struct {
 	ioport32_t c3;
 } bcm2835_timer_t;
 
-
 static inline void bcm2835_timer_start(bcm2835_timer_t *timer)
 {
 	assert(timer);

@@ -552,4 +552,3 @@ int cmd_cp(char **argv)
 	else
 		return CMD_FAILURE;
 }
-

@@ -85,7 +85,6 @@ const char *usb_str_class(usb_class_t cls)
 	}
 }
 
-
 /**
  * @}
  */

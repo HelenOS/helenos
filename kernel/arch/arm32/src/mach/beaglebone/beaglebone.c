@@ -233,4 +233,3 @@ const char *bbone_get_platform_name(void)
 /**
  * @}
  */
-

@@ -97,7 +97,6 @@ typedef struct transfer_descriptor {
 	 */
 } __attribute__((packed, aligned(16))) td_t;
 
-
 void td_init(td_t *instance, int error_count, size_t size, bool toggle,
     bool iso, bool low_speed, usb_target_t target, usb_packet_id pid,
     const void *buffer, const td_t *next);

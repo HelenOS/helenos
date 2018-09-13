@@ -47,7 +47,6 @@
 #include "virthub.h"
 #include "hub.h"
 
-
 /** Standard device descriptor. */
 usb_standard_device_descriptor_t std_device_descriptor = {
 	.length = sizeof(usb_standard_device_descriptor_t),

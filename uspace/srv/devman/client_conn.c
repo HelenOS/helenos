@@ -577,7 +577,6 @@ static void devman_driver_get_devices(ipc_call_t *icall)
 	async_answer_1(icall, retval, act_size);
 }
 
-
 /** Find driver by name. */
 static void devman_driver_get_handle(ipc_call_t *icall)
 {

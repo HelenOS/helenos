@@ -75,7 +75,6 @@ int pthread_cond_wait(pthread_cond_t *restrict condvar,
 	return ENOTSUP;
 }
 
-
 int pthread_condattr_init(pthread_condattr_t *attr)
 {
 	not_implemented();
@@ -87,7 +86,6 @@ int pthread_condattr_destroy(pthread_condattr_t *attr)
 	not_implemented();
 	return ENOTSUP;
 }
-
 
 /** @}
  */

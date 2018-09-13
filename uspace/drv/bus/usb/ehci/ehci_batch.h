@@ -80,4 +80,3 @@ static inline ehci_transfer_batch_t *ehci_transfer_batch_get(
 /**
  * @}
  */
-

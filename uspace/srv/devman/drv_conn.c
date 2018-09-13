@@ -413,7 +413,6 @@ static void devman_drv_fun_online(ipc_call_t *icall, driver_t *drv)
 	async_answer_0(icall, EOK);
 }
 
-
 /** Offline function by driver request.
  *
  */

@@ -41,8 +41,6 @@
 #include <bithenge/tree.h>
 #include "common.h"
 
-
-
 /***************** compose_transform                         *****************/
 
 typedef struct {
@@ -148,8 +146,6 @@ error:
 	free(self);
 	return rc;
 }
-
-
 
 /***************** if_transform                              *****************/
 
@@ -262,8 +258,6 @@ error:
 	bithenge_transform_dec_ref(false_xform);
 	return rc;
 }
-
-
 
 /***************** partial_transform                         *****************/
 

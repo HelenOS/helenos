@@ -48,7 +48,6 @@
 
 #define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
-
 /** Sets data to the context.
  *
  *  @param c     Context (#context_t).

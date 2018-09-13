@@ -6,4 +6,3 @@ extern int cmd_unmount(char **);
 extern void help_cmd_unmount(unsigned int);
 
 #endif /* UNMOUNT_ENTRY_H */
-

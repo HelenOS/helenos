@@ -334,7 +334,6 @@ enum rtl8139_rcr {
 	RCR_ACCEPT_MASK = (1 << 6) - 1
 };
 
-
 /** CSCR register bits */
 enum rtl8139_cscr {
 	CS_Testfun       = (1 << 15),

@@ -71,7 +71,6 @@ static hash_table_t pending_calls;
 proto_t *proto_system;		/**< Protocol describing system IPC methods. */
 proto_t	*proto_unknown;		/**< Protocol with no known methods. */
 
-
 static size_t pending_call_key_hash(void *key)
 {
 	cap_call_handle_t *chandle = (cap_call_handle_t *) key;
@@ -99,7 +98,6 @@ static hash_table_ops_t pending_call_ops = {
 	.equal = NULL,
 	.remove_callback = NULL
 };
-
 
 void ipcp_connection_set(cap_phone_handle_t phone, int server, proto_t *proto)
 {
@@ -200,7 +198,6 @@ void ipcp_call_out(cap_phone_handle_t phandle, ipc_call_t *call,
 		    "%" PRIun ", %" PRIun ")\n",
 		    args[1], args[2], args[3], args[4], args[5]);
 	}
-
 
 	if ((display_mask & DM_USER) != 0) {
 

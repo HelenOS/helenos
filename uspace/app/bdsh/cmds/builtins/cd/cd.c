@@ -80,7 +80,6 @@ void help_cmd_cd(unsigned int level)
 	return;
 }
 
-
 /* This is a very rudamentary 'cd' command. It is not 'link smart' (yet) */
 
 int cmd_cd(char **argv, cliuser_t *usr)

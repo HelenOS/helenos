@@ -290,8 +290,6 @@ errno_t bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
 	return bithenge_new_blob_from_buffer(out, buffer, len, true);
 }
 
-
-
 typedef struct {
 	bithenge_blob_t base;
 	bithenge_blob_t *source;

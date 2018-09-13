@@ -110,4 +110,3 @@ uintptr_t elf_get_bias(const void *base)
 
 /** @}
  */
-

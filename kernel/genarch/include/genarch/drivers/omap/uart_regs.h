@@ -158,7 +158,6 @@ typedef struct {
 #define OMAP_UART_LCR_BREAK_EN_FLAG   (1 << 6)
 #define OMAP_UART_LCR_DIV_EN_FLAG   (1 << 7)
 
-
 	union {
 		/** Modem control register */
 		ioport32_t mcr;

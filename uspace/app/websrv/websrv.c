@@ -132,7 +132,6 @@ static const char *msg_not_implemented =
     "</body>\r\n"
     "</html>\r\n";
 
-
 static errno_t recv_create(tcp_conn_t *conn, recv_t **rrecv)
 {
 	recv_t *recv;

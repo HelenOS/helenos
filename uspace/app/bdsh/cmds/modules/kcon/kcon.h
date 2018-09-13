@@ -3,6 +3,4 @@
 
 /* Prototypes for the kcon command, excluding entry points */
 
-
 #endif /* KCON_H */
-

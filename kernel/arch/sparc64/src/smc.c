@@ -48,7 +48,6 @@ void smc_coherence(void *a, size_t l)
 
 #elif defined (US3)
 
-
 void smc_coherence(void *a, size_t l)
 {
 	asm volatile ("membar #StoreStore\n" ::: "memory");
@@ -57,4 +56,3 @@ void smc_coherence(void *a, size_t l)
 }
 
 #endif  /* defined(US3) */
-

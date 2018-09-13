@@ -113,7 +113,5 @@ errno_t req_set_report(usbvirt_device_t *device,
 	return rc;
 }
 
-
-
 /** @}
  */

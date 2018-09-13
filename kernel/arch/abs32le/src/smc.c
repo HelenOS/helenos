@@ -32,4 +32,3 @@ void smc_coherence(void *a, size_t l)
 {
 	compiler_barrier();
 }
-

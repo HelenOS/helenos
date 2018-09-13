@@ -78,4 +78,3 @@ static void am335x_clock_source_select(am335x_cm_dpll_regs_t *cm,
 /**
  * @}
  */
-

@@ -1050,7 +1050,6 @@ errno_t ext4_extent_append_block(ext4_inode_ref_t *inode_ref, uint32_t *iblock,
 		}
 	}
 
-
 append_extent:
 	/* Append new extent to the tree */
 	phys_block = 0;

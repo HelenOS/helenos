@@ -144,7 +144,6 @@ errno_t recv_cut_str(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buf
 	return EOK;
 }
 
-
 /** Receive one character (with buffering) */
 errno_t recv_char(receive_buffer_t *rb, char *c, bool consume)
 {

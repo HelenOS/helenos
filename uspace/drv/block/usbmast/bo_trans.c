@@ -44,7 +44,6 @@
 #include "cmdw.h"
 #include "usbmast.h"
 
-
 #define MASTLOG(format, ...) \
 	usb_log_debug2("USB cl08: " format, ##__VA_ARGS__)
 

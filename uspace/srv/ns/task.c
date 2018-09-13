@@ -43,7 +43,6 @@
 #include "task.h"
 #include "ns.h"
 
-
 /** Task hash table item. */
 typedef struct {
 	ht_link_t link;
@@ -53,7 +52,6 @@ typedef struct {
 	bool have_rval;  /**< Task returned a value. */
 	int retval;      /**< The return value. */
 } hashed_task_t;
-
 
 static size_t task_key_hash(void *key)
 {

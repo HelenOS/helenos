@@ -449,8 +449,6 @@ static bithenge_transform_t *parse_transform(state_t *state);
 static bithenge_transform_t *parse_struct(state_t *state);
 static bithenge_expression_t *parse_expression(state_t *state);
 
-
-
 /***************** Expressions                               *****************/
 
 /** @cond internal */
@@ -764,8 +762,6 @@ static bithenge_expression_t *parse_expression(state_t *state)
 {
 	return parse_expression_precedence(state, PRECEDENCE_NONE);
 }
-
-
 
 /* state->token must be TOKEN_IDENTIFIER when this is called. */
 static bithenge_transform_t *parse_invocation(state_t *state)

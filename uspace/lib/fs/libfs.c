@@ -798,7 +798,6 @@ error:
 	async_answer_0(req, EINVAL);
 }
 
-
 /** Open VFS triplet.
  *
  * @param ops libfs operations structure with function pointers to

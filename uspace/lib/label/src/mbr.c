@@ -432,7 +432,6 @@ static bool mbr_can_modify_part(label_t *label)
 	return list_count(&label->parts) > 0;
 }
 
-
 static errno_t mbr_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
@@ -878,7 +877,6 @@ static errno_t mbr_check_free_log_range(label_t *label, uint64_t hdr_blocks,
 
 	return EOK;
 }
-
 
 static void mbr_unused_pte(mbr_pte_t *pte)
 {

@@ -45,4 +45,3 @@ extern struct arm_machine_ops bbxm_machine_ops;
 
 /** @}
  */
-

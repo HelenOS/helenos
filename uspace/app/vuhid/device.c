@@ -91,7 +91,6 @@ static errno_t interface_life_fibril(void *arg)
 	return EOK;
 }
 
-
 static vuhid_interface_t *find_interface_by_id(vuhid_interface_t **ifaces,
     const char *id)
 {

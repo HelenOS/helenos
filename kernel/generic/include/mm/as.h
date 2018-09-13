@@ -51,7 +51,6 @@
 
 #define AS                   THE->as
 
-
 /**
  * Defined to be true if user address space and kernel address space shadow each
  * other.

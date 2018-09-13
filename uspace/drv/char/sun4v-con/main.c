@@ -86,7 +86,6 @@ error:
 	return rc;
 }
 
-
 static errno_t sun4v_con_dev_add(ddf_dev_t *dev)
 {
 	sun4v_con_t *sun4v_con;

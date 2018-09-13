@@ -45,7 +45,6 @@
  */
 #define ALIGN_DOWN(s, a)  ((s) & ~((a) - 1))
 
-
 /** Align to the nearest higher address.
  *
  * @param s Address or size to be aligned.

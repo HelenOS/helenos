@@ -59,7 +59,6 @@
 /* The table is resized when the average load per bucket exceeds this number. */
 #define HT_MAX_LOAD     2
 
-
 static size_t round_up_size(size_t);
 static bool alloc_table(size_t, list_t **);
 static void clear_items(hash_table_t *);
@@ -72,7 +71,6 @@ static void nop_remove_callback(ht_link_t *item)
 {
 	/* no-op */
 }
-
 
 /** Create chained hash table.
  *
@@ -203,7 +201,6 @@ void hash_table_insert(hash_table_t *h, ht_link_t *item)
 	++h->item_cnt;
 	grow_if_needed(h);
 }
-
 
 /** Insert item into a hash table if not already present.
  *
@@ -411,7 +408,6 @@ static bool alloc_table(size_t bucket_cnt, list_t **pbuckets)
 	return true;
 }
 
-
 /** Shrinks the table if the table is only sparely populated. */
 static inline void shrink_if_needed(hash_table_t *h)
 {
@@ -470,7 +466,6 @@ static void resize(hash_table_t *h, size_t new_bucket_cnt)
 	h->bucket_cnt = new_bucket_cnt;
 	h->full_item_cnt = h->max_load * h->bucket_cnt;
 }
-
 
 /** @}
  */

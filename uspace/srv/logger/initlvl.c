@@ -56,7 +56,6 @@ static void parse_single_level_setting(char *setting)
 		return;
 	}
 
-
 	log_level_t level;
 	errno_t rc = log_level_from_str(value, &level);
 	if (rc != EOK)

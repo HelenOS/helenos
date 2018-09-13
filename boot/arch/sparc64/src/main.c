@@ -107,7 +107,6 @@ static void arch_detect(void)
 		arch = ARCH_SUN4V;
 }
 
-
 /** Detect the subarchitecture (US, US3) of sun4u
  *
  * Set the global variables "subarch" and "mid_mask" to

@@ -420,7 +420,6 @@ FILE *fdopen(int fd, const char *mode)
 	return stream;
 }
 
-
 static int _fclose_nofree(FILE *stream)
 {
 	errno_t rc = 0;
@@ -650,7 +649,6 @@ size_t fread(void *dest, size_t size, size_t nmemb, FILE *stream)
 
 	return (total_read / size);
 }
-
 
 /** Write to a stream.
  *

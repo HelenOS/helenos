@@ -171,6 +171,5 @@ void perror(const char *s)
 		fprintf(stderr, "%s\n", str_error(errno));
 }
 
-
 /** @}
  */

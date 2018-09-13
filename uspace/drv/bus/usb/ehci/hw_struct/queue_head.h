@@ -161,7 +161,6 @@ typedef struct queue_head {
 #define QH_BUFFER_POINTER_FTAG_MASK   0x1f
 #define QH_BUFFER_POINTER_FTAG_SHIFT  0
 
-
 static inline void qh_append_qh(qh_t *qh, const qh_t *next)
 {
 	assert(qh);

@@ -107,7 +107,6 @@ static errno_t create_interfaces(const uint8_t *config_descriptor,
 			continue;
 		}
 
-
 		usb_log_info("Creating child for interface %d (%s).",
 		    interface->interface_number,
 		    usb_str_class(interface->interface_class));

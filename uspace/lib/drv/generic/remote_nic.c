@@ -1802,7 +1802,6 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 	errno_t rc = nic_iface->multicast_get_mode(dev, &mode, max_count, address_list,
 	    &address_count);
 
-
 	if ((rc != EOK) || (max_count == 0) || (address_count == 0)) {
 		free(address_list);
 		async_answer_2(call, rc, mode, address_count);

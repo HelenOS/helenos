@@ -174,7 +174,6 @@ void ipi_broadcast_arch(int ipi)
 	}
 }
 
-
 /*
  * Deliver an IPI to the specified processors (except the current one).
  *

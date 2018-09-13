@@ -51,7 +51,6 @@
 #include <stdlib.h>
 #include <str.h>
 
-
 /**
  * The fat_alloc_lock mutex protects all copies of the File Allocation Table
  * during allocation of clusters. The lock does not have to be held durring
@@ -217,7 +216,6 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 
 	return rc;
 }
-
 
 /** Get cluster from the FAT.
  *
@@ -531,7 +529,6 @@ exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
 
 	return EOK;
 }
-
 
 /** Perform basic sanity checks on the file system.
  *

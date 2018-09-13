@@ -65,4 +65,3 @@ void __c_start(void *pcb)
 
 	__libc_main(pcb);
 }
-

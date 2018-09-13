@@ -811,7 +811,6 @@ errno_t fat_has_children(bool *has_children, fs_node_t *fn)
 	return EOK;
 }
 
-
 fs_index_t fat_index_get(fs_node_t *fn)
 {
 	return FAT_NODE(fn)->idx->index;

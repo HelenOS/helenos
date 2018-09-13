@@ -45,4 +45,3 @@ extern struct arm_machine_ops bbone_machine_ops;
 
 /** @}
  */
-

@@ -112,7 +112,6 @@ static size_t order_list_get_npatterns(protracker_order_list_t *olist)
 	return 1 + max_pat;
 }
 
-
 /** Decode pattern cell.
  *
  * @param pattern Pattern

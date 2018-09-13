@@ -1,4 +1,3 @@
-
 /* Definitions of modules and its relations for generating Doxygen documentation */
 
 /** @defgroup abi abi
@@ -8,4 +7,3 @@
 /** @addtogroup bits _bits
  * @ingroup abi
  */
-

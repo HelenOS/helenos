@@ -31,7 +31,6 @@
 #include <print.h>
 #include <synch/workqueue.h>
 
-
 #define WAVES 10
 #define COUNT_POW 12
 #define COUNT ((1 << COUNT_POW) - 1)
@@ -44,7 +43,6 @@
  */
 #include "workq-test-core.h"
 
-
 /*-------------------------------------------------------------------*/
 
 static work_t basic_work;
@@ -55,7 +53,6 @@ static void basic_test_work(work_t *work_item)
 	basic_done = 1;
 	TPRINTF("basic_test_work()");
 }
-
 
 static void basic_test(void)
 {
@@ -73,7 +70,6 @@ static void basic_test(void)
 
 /*-------------------------------------------------------------------*/
 
-
 struct work_queue *workq = NULL;
 
 static int core_workq_enqueue(work_t *work_item, work_func_t func)
@@ -81,7 +77,6 @@ static int core_workq_enqueue(work_t *work_item, work_func_t func)
 	return workq_enqueue(workq, work_item, func);
 }
 /*-------------------------------------------------------------------*/
-
 
 static const char *test_custom_workq_impl(bool stop, const char *qname)
 {
@@ -107,7 +102,6 @@ static const char *test_custom_workq(void)
 	return test_custom_workq_impl(false, "test-workq");
 }
 
-
 static const char *test_custom_workq_stop(void)
 {
 	TPRINTF("Stress testing a custom queue. Stops prematurely. "
@@ -116,7 +110,6 @@ static const char *test_custom_workq_stop(void)
 	/* Errors are expected. */
 	return NULL;
 }
-
 
 const char *test_workqueue_all(void)
 {

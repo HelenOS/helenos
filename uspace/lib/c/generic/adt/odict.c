@@ -265,7 +265,6 @@ void odict_insert(odlink_t *odlink, odict_t *odict, odlink_t *hint)
 		}
 	}
 
-
 	odlink->color = odc_red;
 
 	while (true) {

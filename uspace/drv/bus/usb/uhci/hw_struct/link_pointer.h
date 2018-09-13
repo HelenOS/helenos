@@ -63,4 +63,3 @@ typedef uint32_t link_pointer_t;
 /**
  * @}
  */
-

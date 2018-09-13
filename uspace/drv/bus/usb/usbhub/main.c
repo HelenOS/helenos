@@ -43,7 +43,6 @@
 
 #include "usbhub.h"
 
-
 /** USB hub driver operations. */
 static const usb_driver_ops_t usb_hub_driver_ops = {
 	.device_add = usb_hub_device_add,

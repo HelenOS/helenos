@@ -449,7 +449,6 @@ static void tdata_item_subst_fun_sig(tdata_fun_sig_t *torig, tdata_tvv_t *tvv,
 	*res = tnew;
 }
 
-
 /** Print type item.
  *
  * @param titem	Type item

@@ -383,7 +383,6 @@ static errno_t usbmast_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-
 /** USB mass storage driver ops. */
 static const usb_driver_ops_t usbmast_driver_ops = {
 	.device_add = usbmast_device_add,

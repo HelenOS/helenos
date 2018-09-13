@@ -505,7 +505,6 @@ stree_symbol_t *ctor_to_symbol(stree_ctor_t *ctor)
 	return ctor->symbol;
 }
 
-
 /** Convert symbol to function (base to derived).
  *
  * @param symbol	Symbol
@@ -608,7 +607,6 @@ stree_symbol_t *csimbr_to_symbol(stree_csimbr_t *csimbr)
 
 	return symbol;
 }
-
 
 /** Convert property to symbol (derived to base).
  *

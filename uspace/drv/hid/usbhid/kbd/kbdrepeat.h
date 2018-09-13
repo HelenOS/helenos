@@ -41,7 +41,6 @@
 
 struct usb_kbd_t;
 
-
 /**
  * Structure for keeping information needed for auto-repeat of keys.
  */
@@ -55,8 +54,6 @@ typedef struct {
 	/** Delay between repeats in microseconds. */
 	unsigned int delay_between;
 } usb_kbd_repeat_t;
-
-
 
 errno_t usb_kbd_repeat_fibril(void *arg);
 

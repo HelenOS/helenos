@@ -68,7 +68,6 @@ extern errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lo
 extern errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv,
     irq_spinlock_t *irq_lock, uint32_t usec, int flags);
 
-
 #endif
 
 /** @}

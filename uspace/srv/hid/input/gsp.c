@@ -91,7 +91,6 @@ static hash_table_ops_t trans_ops = {
 	.remove_callback = NULL
 };
 
-
 static gsp_trans_t *trans_lookup(gsp_t *p, int state, int input);
 static void trans_insert(gsp_t *p, gsp_trans_t *t);
 static gsp_trans_t *trans_new(void);
@@ -282,7 +281,6 @@ static gsp_trans_t *trans_new(void)
 
 	return t;
 }
-
 
 /**
  * @}

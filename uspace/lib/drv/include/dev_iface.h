@@ -65,7 +65,6 @@ typedef struct {
 extern const remote_iface_t *get_remote_iface(int);
 extern remote_iface_func_ptr_t get_remote_method(const remote_iface_t *, sysarg_t);
 
-
 extern bool is_valid_iface_idx(int);
 
 #endif

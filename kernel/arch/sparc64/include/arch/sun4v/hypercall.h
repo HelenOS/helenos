@@ -72,7 +72,6 @@
 #define CONS_GETCHAR		0x60
 #define CONS_PUTCHAR		0x61
 
-
 /* return codes */
 #define HV_EOK			0	/**< Successful return */
 #define HV_ENOCPU		1	/**< Invalid CPU id */
@@ -92,7 +91,6 @@
 #define HV_ETOOMANY		15	/**< Too many items specified / limit reached */
 #define HV_ECHANNEL		16	/**< Invalid LDC channel */
 #define HV_EBUSY		17	/**< Operation failed as resource is otherwise busy */
-
 
 /**
  * Performs a hyperfast hypervisor API call from the assembly language code.
@@ -114,7 +112,6 @@
  */
 #define __HYPERCALL_HYPERFAST(sw_trap_number) \
 	ta (sw_trap_number);
-
 
 #ifndef __ASSEMBLER__
 

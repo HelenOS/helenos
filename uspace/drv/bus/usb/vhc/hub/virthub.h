@@ -50,7 +50,6 @@
 /** Configuration value for hub configuration. */
 #define HUB_CONFIGURATION_ID 1
 
-
 /** Hub descriptor.
  */
 typedef struct {

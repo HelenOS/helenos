@@ -43,7 +43,6 @@
 #include <bitops.h>
 #include <macros.h>
 
-
 /*
  * Data translation private functions
  */
@@ -53,8 +52,6 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data);
 
 uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item,
     int32_t value);
-
-
 
 static int usb_pow(int a, int b)
 {
@@ -70,7 +67,6 @@ static int usb_pow(int a, int b)
 		break;
 	}
 }
-
 
 /** Returns size of report of specified report id and type in items
  *
@@ -119,7 +115,6 @@ size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
 		return ((report_des->bit_length + 7) / 8);
 	}
 }
-
 
 /** Parse and act upon a HID report.
  *
@@ -191,7 +186,6 @@ errno_t usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data
 	return EOK;
 }
 
-
 /**
  * Translate data from the report as specified in report descriptor item
  *
@@ -258,7 +252,6 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 	    item->physical_minimum);
 }
 
-
 /* OUTPUT API */
 
 /**
@@ -298,7 +291,6 @@ uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size,
 		return ret;
 	}
 }
-
 
 /** Frees output report buffer
  *
@@ -409,7 +401,6 @@ errno_t usb_hid_report_output_translate(usb_hid_report_t *report,
 	return EOK;
 }
 
-
 /**
  * Translate given data for putting them into the outoput report
  * @param item Report item structure
@@ -454,7 +445,6 @@ uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item,
 	return (int32_t) 0 + ret;
 }
 
-
 /**
  * Clones given state table
  *
@@ -474,7 +464,6 @@ usb_hid_report_item_t *usb_hid_report_item_clone(
 
 	return new_report_item;
 }
-
 
 /**
  * Function for sequence walking through the report. Returns next field in the
@@ -530,7 +519,6 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 	return NULL;
 }
 
-
 /**
  * Returns next report_id of report of specified type. If zero is given than
  * first report_id of specified type is returned (0 is not legal value for
@@ -577,7 +565,6 @@ uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report, uint8_t report_id,
 
 	return 0;
 }
-
 
 /**
  * Reset all local items in given state table

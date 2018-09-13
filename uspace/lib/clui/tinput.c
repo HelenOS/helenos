@@ -660,7 +660,6 @@ static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 	fflush(stdout);
 }
 
-
 static void tinput_text_complete(tinput_t *ti)
 {
 	void *state;

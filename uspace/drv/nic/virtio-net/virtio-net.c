@@ -357,7 +357,6 @@ static void virtio_net_send(nic_t *nic, void *data, size_t size)
 	virtio_virtq_produce_available(vdev, TX_QUEUE_1, descno);
 }
 
-
 static errno_t virtio_net_on_multicast_mode_change(nic_t *nic,
     nic_multicast_mode_t new_mode, const nic_address_t *address_list,
     size_t address_count)

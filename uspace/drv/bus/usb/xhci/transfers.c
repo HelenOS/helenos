@@ -491,7 +491,6 @@ errno_t xhci_transfer_schedule(usb_transfer_batch_t *batch)
 		}
 	}
 
-
 	errno_t err;
 	fibril_mutex_lock(&xhci_ep->guard);
 

@@ -292,7 +292,6 @@ static errno_t test2_dev_gone(ddf_dev_t *dev)
 	return EOK;
 }
 
-
 static errno_t test2_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "test2_fun_online()");
@@ -311,5 +310,3 @@ int main(int argc, char *argv[])
 	ddf_log_init(NAME);
 	return ddf_driver_main(&test2_driver);
 }
-
-

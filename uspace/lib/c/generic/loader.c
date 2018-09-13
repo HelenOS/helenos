@@ -206,7 +206,6 @@ errno_t loader_set_program_path(loader_t *ldr, const char *path)
 	return rc;
 }
 
-
 /** Set command-line arguments for the program.
  *
  * Sets the vector of command-line arguments to be passed to the loaded

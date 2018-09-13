@@ -171,7 +171,6 @@ static void dump_descriptor_tree_brief_hub(const char *prefix,
 	    (int) descriptor->port_count);
 }
 
-
 static void dump_descriptor_tree_callback(
     const uint8_t *descriptor, size_t depth, void *arg)
 {
@@ -296,7 +295,6 @@ static void find_string_indexes_callback(
 	    str_interface);
 }
 
-
 void dump_strings(usb_device_t *usb_dev)
 {
 	/* Find used indexes. Devices with more than 64 strings are very rare.*/
@@ -364,7 +362,6 @@ void dump_strings(usb_device_t *usb_dev)
 		}
 	}
 }
-
 
 void dump_status(usb_device_t *usb_dev)
 {

@@ -59,7 +59,6 @@ static unsigned dcache_ways(unsigned level);
 static unsigned dcache_sets(unsigned level);
 static unsigned dcache_linesize_log(unsigned level);
 
-
 /** Implementers (vendor) names */
 static const char *implementer(unsigned id)
 {
@@ -98,7 +97,6 @@ static const char *architecture_string(cpu_arch_t *arch)
 	else
 		return arch_data[0];
 }
-
 
 /** Retrieves processor identification from CP15 register 0.
  *
@@ -315,7 +313,6 @@ void dcache_flush_invalidate(void)
 		dcache_clean_manual(i, true, ways, sets, way_shift, set_shift);
 	}
 }
-
 
 void cpu_dcache_flush(void)
 {

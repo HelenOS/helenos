@@ -41,7 +41,6 @@
 #include <arch/mm/sun4v/mmu.h>
 #endif
 
-
 #endif
 
 /** @}

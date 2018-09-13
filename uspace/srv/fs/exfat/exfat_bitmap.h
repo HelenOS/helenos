@@ -59,7 +59,6 @@ extern errno_t exfat_bitmap_set_clusters(struct exfat_bs *, service_id_t,
 extern errno_t exfat_bitmap_clear_clusters(struct exfat_bs *, service_id_t,
     exfat_cluster_t, exfat_cluster_t);
 
-
 #endif
 
 /**

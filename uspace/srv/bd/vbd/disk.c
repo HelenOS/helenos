@@ -227,7 +227,6 @@ static errno_t vbds_disks_check_new(void)
 	return EOK;
 }
 
-
 static errno_t vbds_disk_by_svcid(service_id_t sid, vbds_disk_t **rdisk)
 {
 	list_foreach(vbds_disks, ldisks, vbds_disk_t, disk) {

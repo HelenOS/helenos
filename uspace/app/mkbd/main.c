@@ -243,7 +243,6 @@ int main(int argc, char *argv[])
 
 	printf("Device path: %s\n", path);
 
-
 	usb_hid_report_t *report = NULL;
 	rc = initialize_report_parser(dev_sess, &report);
 	if (rc != EOK) {

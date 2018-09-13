@@ -135,4 +135,3 @@ int cmd_batch(char **argv, cliuser_t *usr)
 
 	return CMD_SUCCESS;
 }
-

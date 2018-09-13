@@ -9,4 +9,3 @@ extern int cmd_batch(char **, cliuser_t *);
 extern void help_cmd_batch(unsigned int);
 
 #endif /* BATCH_ENTRY_H */
-

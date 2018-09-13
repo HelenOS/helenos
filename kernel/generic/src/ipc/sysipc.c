@@ -117,7 +117,6 @@ static inline bool method_is_immutable(sysarg_t imethod)
 	}
 }
 
-
 /*
  * Functions that preprocess answer before sending it to the recepient.
  */
@@ -244,7 +243,6 @@ static void process_answer(call_t *call)
 
 	SYSIPC_OP(answer_process, call);
 }
-
 
 /** Do basic kernel processing of received call request.
  *

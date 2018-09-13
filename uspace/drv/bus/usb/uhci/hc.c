@@ -103,7 +103,6 @@ static errno_t hc_init_transfer_lists(hc_t *instance);
 
 static errno_t hc_debug_checker(void *arg);
 
-
 /** Generate IRQ code.
  * @param[out] code IRQ code structure.
  * @param[in] hw_res Device's resources.
@@ -478,7 +477,6 @@ errno_t hc_init_mem_structures(hc_t *instance)
 	}
 	list_initialize(&instance->pending_endpoints);
 	usb_log_debug("Initialized transfer lists.");
-
 
 	/* Set all frames to point to the first queue head */
 	const uint32_t queue = LINK_POINTER_QH(

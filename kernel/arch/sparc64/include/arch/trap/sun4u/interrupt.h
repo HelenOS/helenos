@@ -40,7 +40,6 @@
 #include <arch/trap/trap_table.h>
 #include <arch/stack.h>
 
-
 /* Interrupt ASI registers. */
 #define ASI_INTR_W			0x77
 #define ASI_INTR_DISPATCH_STATUS	0x48

@@ -638,7 +638,6 @@ void __posix_fnmatch_test()
 {
 	int fail = 0;
 
-
 	static_assert(FNM_PATHNAME == FNM_FILE_NAME);
 	match("", "", 0);
 	match("*", "hello", 0);

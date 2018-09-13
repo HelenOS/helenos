@@ -71,13 +71,11 @@ void machine_init(void)
 	(machine_ops->machine_init)();
 }
 
-
 /** Starts timer. */
 void machine_timer_irq_start(void)
 {
 	(machine_ops->machine_timer_irq_start)();
 }
-
 
 /** Halts CPU. */
 void machine_cpu_halt(void)
@@ -104,7 +102,6 @@ void machine_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	(machine_ops->machine_irq_exception)(exc_no, istate);
 }
-
 
 /*
  * Machine specific frame initialization

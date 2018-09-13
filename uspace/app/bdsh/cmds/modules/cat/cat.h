@@ -4,4 +4,3 @@
 /* Prototypes for the cat command, excluding entry points */
 
 #endif /* CAT_H */
-

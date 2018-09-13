@@ -45,7 +45,6 @@
 #include <stdint.h>
 #include <fibril_synch.h>
 
-
 /** USB automated polling. */
 typedef struct usb_polling {
 	/** Mandatory parameters - user is expected to configure these. */
@@ -75,7 +74,6 @@ typedef struct usb_polling {
 	 */
 	bool (*on_data)(usb_device_t *dev, uint8_t *data, size_t data_size,
 	    void *arg);
-
 
 	/**
 	 * Optional parameters - user can customize them, but they are
@@ -125,7 +123,6 @@ typedef struct usb_polling {
 	 * @return Whether to continue in polling.
 	 */
 	bool (*on_error)(usb_device_t *dev, errno_t err_code, void *arg);
-
 
 	/**
 	 * Internal parameters - user is not expected to set them. Messing with

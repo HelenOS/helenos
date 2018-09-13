@@ -1080,7 +1080,6 @@ PCUT_TEST(float_intpart_exp)
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
 
-
 /** Float with integer part and positive exponent */
 PCUT_TEST(float_intpart_posexp)
 {

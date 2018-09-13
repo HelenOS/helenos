@@ -70,7 +70,6 @@ typedef struct ucontext {
 	mcontext_t uc_mcontext;
 } ucontext_t;
 
-
 #endif
 
 /** @}

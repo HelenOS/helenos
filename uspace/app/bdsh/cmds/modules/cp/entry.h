@@ -6,4 +6,3 @@ extern int cmd_cp(char **);
 extern void help_cmd_cp(unsigned int);
 
 #endif /* CP_ENTRY_H */
-

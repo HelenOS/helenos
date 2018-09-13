@@ -111,7 +111,6 @@ char *alias_for_module(const char *command)
 	return (char *)NULL;
 }
 
-
 /** Invokes the 'help' entry function for the module at position (int) module
  *
  * which wants an unsigned int to determine brief or extended display.

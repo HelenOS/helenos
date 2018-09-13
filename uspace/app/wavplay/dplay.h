@@ -40,4 +40,3 @@ int dplay(const char *device, const char *file);
 /**
  * @}
  */
-

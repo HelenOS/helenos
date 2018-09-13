@@ -63,7 +63,6 @@ arch_ops_t arm32_ops = {
 
 arch_ops_t *arch_ops = &arm32_ops;
 
-
 /** Performs arm32-specific initialization before main_bsp() is called. */
 void arm32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
@@ -117,12 +116,10 @@ void arm32_post_smp_init(void)
 	    str_size(platform));
 }
 
-
 /** Performs arm32 specific tasks needed before the new task is run. */
 void before_task_runs_arch(void)
 {
 }
-
 
 /** Performs arm32 specific tasks needed before the new thread is scheduled.
  *

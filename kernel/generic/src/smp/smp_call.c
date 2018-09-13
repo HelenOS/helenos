@@ -48,7 +48,6 @@ static void call_start(smp_call_t *call_info, smp_call_func_t func, void *arg);
 static void call_done(smp_call_t *call_info);
 static void call_wait(smp_call_t *call_info);
 
-
 /** Init smp_call() on the local cpu. */
 void smp_call_init(void)
 {
@@ -272,7 +271,6 @@ static void call_wait(smp_call_t *call_info)
 		memory_barrier();
 	} while (atomic_load(&call_info->pending));
 }
-
 
 /** @}
  */

@@ -54,7 +54,6 @@
  * into a single file.
  */
 
-
 #ifndef USB_HIDUT_KBD_KEY
 /** Declare keyboard key.
  * @param name Key name (identifier).
@@ -163,9 +162,6 @@ __NONPRINT(LEFT_ARROW, 0x50);
 __NONPRINT(DOWN_ARROW, 0x51);
 __NONPRINT(UP_ARROW, 0x52);
 
-
-
-
 /* USB_HIDUT_KBD_KEY(, 0x, '', '', 0, 0) */
 
 #undef __NONPRINT
@@ -173,4 +169,3 @@ __NONPRINT(UP_ARROW, 0x52);
 /**
  * @}
  */
-

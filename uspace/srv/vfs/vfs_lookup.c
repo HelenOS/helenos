@@ -350,7 +350,6 @@ errno_t vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 
 	assert(path[0] == '/');
 
-
 	if (lflag & (L_CREATE | L_UNLINK)) {
 
 		/*

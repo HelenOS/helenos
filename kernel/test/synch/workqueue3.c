@@ -31,7 +31,6 @@
 #include <print.h>
 #include <synch/workqueue.h>
 
-
 #define WAVES 10
 #define COUNT_POW 12
 #define COUNT ((1 << COUNT_POW) - 1)
@@ -44,13 +43,10 @@
  */
 #include "workq-test-core.h"
 
-
 static int core_workq_enqueue(work_t *work_item, work_func_t func)
 {
 	return workq_global_enqueue(work_item, func);
 }
-
-
 
 static const char *do_test(bool exit_early)
 {

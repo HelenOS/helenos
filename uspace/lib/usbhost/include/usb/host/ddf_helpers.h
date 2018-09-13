@@ -44,7 +44,6 @@
 #include <usb/host/hcd.h>
 #include <usb/descriptor.h>
 
-
 extern errno_t hcd_ddf_setup_hc(ddf_dev_t *, size_t);
 extern void hcd_ddf_clean_hc(hc_device_t *);
 

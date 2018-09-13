@@ -75,7 +75,6 @@ NO_TRACE static inline sysarg_t istate_get_fp(istate_t *istate)
 	return istate->sp;
 }
 
-
 #endif
 
 /** @}

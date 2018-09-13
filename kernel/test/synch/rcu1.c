@@ -39,7 +39,6 @@
 
 #include <synch/rcu.h>
 
-
 #define MAX_THREADS 32
 
 static int one_idx = 0;
@@ -133,7 +132,6 @@ static void run_one(void (*func)(void *), void *arg)
 	++one_idx;
 }
 
-
 static void join_one(void)
 {
 	assert(0 < one_idx && one_idx <= MAX_THREADS);
@@ -148,7 +146,6 @@ static void join_one(void)
 }
 
 /*-------------------------------------------------------------------*/
-
 
 static void nop_reader(void *arg)
 {
@@ -194,8 +191,6 @@ static bool do_nop_readers(void)
 
 /*-------------------------------------------------------------------*/
 
-
-
 static void long_reader(void *arg)
 {
 	const size_t iter_cnt = 100 * 1000 * 1000;
@@ -235,7 +230,6 @@ static bool do_long_readers(void)
 }
 
 /*-------------------------------------------------------------------*/
-
 
 static atomic_t nop_callbacks_cnt = 0;
 /* Must be even. */
@@ -363,7 +357,6 @@ typedef struct {
 	size_t start_time;
 } seq_item_t;
 
-
 static errno_t seq_test_result = EOK;
 
 static atomic_t cur_time = 1;
@@ -459,7 +452,6 @@ static bool do_seq_check(void)
 
 	get_seq(0, total_cnt, get_thread_cnt(), read_cnt);
 
-
 	for (size_t i = 0; i < get_thread_cnt(); ++i) {
 		item[i].update_cnt = total_cnt - read_cnt[i];
 		item[i].read_cnt = read_cnt[i];
@@ -495,7 +487,6 @@ static bool do_seq_check(void)
 }
 
 /*-------------------------------------------------------------------*/
-
 
 static void reader_unlocked(rcu_item_t *item)
 {
@@ -555,7 +546,6 @@ typedef struct preempt_struct {
 	errno_t result;
 } preempt_t;
 
-
 static void preempted_unlocked(rcu_item_t *item)
 {
 	preempt_t *p = member_to_inst(item, preempt_t, e.rcu);
@@ -606,7 +596,6 @@ static void preempted_reader_inside_cur(void *arg)
 
 	TPRINTF("}reader_inside_cur\n");
 }
-
 
 static void preempted_reader_cur(void *arg)
 {
@@ -681,7 +670,6 @@ static void preempted_reader_next2(void *arg)
 	rcu_read_unlock();
 	TPRINTF("}reader_next2\n");
 }
-
 
 static bool do_one_reader_preempt(void (*f)(void *), const char *err)
 {
@@ -771,7 +759,6 @@ static void synch_reader(void *arg)
 	rcu_read_unlock();
 }
 
-
 static bool do_synch(void)
 {
 	TPRINTF("\nSynchronize with long reader\n");
@@ -799,7 +786,6 @@ static bool do_synch(void)
 
 	rcu_synchronize();
 	join_one();
-
 
 	if (synch->reader_done) {
 		free(synch);
@@ -855,7 +841,6 @@ typedef struct {
 	size_t iters;
 	bool master;
 } stress_t;
-
 
 static void stress_reader(void *arg)
 {
@@ -1005,7 +990,6 @@ struct test_func {
 	bool (*func)(void);
 	const char *desc;
 };
-
 
 const char *test_rcu1(void)
 {

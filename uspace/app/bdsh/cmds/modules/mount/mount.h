@@ -3,6 +3,4 @@
 
 /* Prototypes for the mount command, excluding entry points */
 
-
 #endif /* MOUNT_H */
-

@@ -38,7 +38,6 @@
 #include <print.h>
 #include <fpu_context.h>
 
-
 void fpu_disable(void)
 {
 }

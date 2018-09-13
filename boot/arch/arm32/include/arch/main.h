@@ -39,7 +39,6 @@
 
 /** Address where characters to be printed are expected. */
 
-
 /** BeagleBoard-xM UART register address
  *
  * This is UART3 of AM/DM37x CPU
@@ -70,7 +69,6 @@
 /* Bits in UTXH register */
 #define S3C24XX_UTXH_TX_EMPTY	0x00000004
 
-
 /** IntegratorCP serial console output register */
 #define ICP_SCONS_ADDR		0x16000000
 
@@ -91,8 +89,6 @@
 #define BCM2835_UART0_CR_UARTEN	(1 << 0)
 #define BCM2835_UART0_CR_TXE	(1 << 8)
 #define BCM2835_UART0_CR_RXE	(1 << 9)
-
-
 
 extern void bootstrap(void);
 

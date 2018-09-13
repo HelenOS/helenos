@@ -282,7 +282,6 @@ static errno_t exfat_node_get_new_by_pos(exfat_node_t **nodepp,
 	return EOK;
 }
 
-
 /** Internal version of exfat_node_get().
  *
  * @param idxp		Locked index structure.
@@ -486,7 +485,6 @@ static errno_t exfat_node_shrink(service_id_t service_id, exfat_node_t *nodep,
 	return EOK;
 }
 
-
 /*
  * EXFAT libfs operations.
  */
@@ -505,7 +503,6 @@ errno_t exfat_uctable_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return exfat_node_get(rfn, service_id, EXFAT_UCTABLE_IDX);
 }
-
 
 errno_t exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
@@ -884,7 +881,6 @@ exit:
 	return rc;
 }
 
-
 fs_index_t exfat_index_get(fs_node_t *fn)
 {
 	return EXFAT_NODE(fn)->idx->index;
@@ -1231,7 +1227,6 @@ static void exfat_fs_close(service_id_t service_id, fs_node_t *rfn)
 	(void) block_cache_fini(service_id);
 	block_fini(service_id);
 }
-
 
 /*
  * VFS_OUT operations.

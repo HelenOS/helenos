@@ -151,7 +151,6 @@ static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)
 	return &fun->pio_window;
 }
 
-
 static errno_t config_space_write_32(ddf_fun_t *fun, uint32_t address,
     uint32_t data)
 {
@@ -725,7 +724,6 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 		goto fail;
 	}
 	got_res = true;
-
 
 	assert(hw_resources.count >= 1);
 

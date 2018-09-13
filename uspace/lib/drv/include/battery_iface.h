@@ -52,4 +52,3 @@ extern errno_t battery_status_get(async_sess_t *, battery_status_t *);
 extern errno_t battery_charge_level_get(async_sess_t *, int *);
 
 #endif
-

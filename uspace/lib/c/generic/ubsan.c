@@ -227,4 +227,3 @@ void __ubsan_handle_builtin_unreachable(struct unreachable_data *data)
 	print_loc(__func__, &data->loc);
 	ubsan_panic();
 }
-

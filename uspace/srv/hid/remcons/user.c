@@ -150,7 +150,6 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 
 	fibril_mutex_unlock(&tmp->guard);
 
-
 	fibril_mutex_unlock(&users_guard);
 
 	return user;
@@ -360,7 +359,6 @@ static errno_t telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data,
 			}
 		}
 	}
-
 
 	errno_t rc = tcp_conn_send(user->conn, converted, converted_size);
 	free(converted);

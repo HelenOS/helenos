@@ -72,7 +72,6 @@ typedef struct {
 #define SMUX_XM			6
 #define SMUX_XP			7
 
-
 /* Fields in ADCTSC register */
 #define ADCTSC_DSUD_UP		0x0100
 #define ADCTSC_YM_ENABLE	0x0080

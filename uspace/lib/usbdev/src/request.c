@@ -800,7 +800,6 @@ errno_t usb_request_get_string(usb_pipe_t *pipe,
 	}
 	string_chars[string_char_count] = 0;
 
-
 	/* Convert to normal string. */
 	char *str = wstr_to_astr(string_chars);
 	if (str == NULL) {

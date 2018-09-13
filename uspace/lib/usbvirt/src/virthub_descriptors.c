@@ -55,7 +55,6 @@ const usb_standard_device_descriptor_t virthub_device_descriptor = {
 	.configuration_count = 1
 };
 
-
 /** Standard interface descriptor. */
 const usb_standard_interface_descriptor_t virthub_interface_descriptor = {
 	.length = sizeof(usb_standard_interface_descriptor_t),
@@ -98,7 +97,6 @@ const usbvirt_device_configuration_extras_t virthub_interface_descriptor_ex = {
 	.data = (uint8_t *) &virthub_interface_descriptor,
 	.length = sizeof(virthub_interface_descriptor),
 };
-
 
 /**
  * @}

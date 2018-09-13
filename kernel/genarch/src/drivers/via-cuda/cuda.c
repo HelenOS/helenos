@@ -365,6 +365,5 @@ static void cuda_send_start(cuda_instance_t *instance)
 	instance->xstate = cx_send_start;
 }
 
-
 /** @}
  */

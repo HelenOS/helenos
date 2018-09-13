@@ -46,7 +46,6 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid);
 static errno_t
 mfs_count_free_bits(struct mfs_instance *inst, bmap_id_t bid, uint32_t *free);
 
-
 /**Allocate a new inode.
  *
  * @param inst		Pointer to the filesystem instance.
@@ -407,4 +406,3 @@ found:
 /**
  * @}
  */
-

@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /** @addtogroup genericadt
  * @{
  */
@@ -286,7 +285,6 @@
  *     http://www.azulsystems.com/events/javaone_2008/2008_CodingNonBlock.pdf
  */
 
-
 #include <adt/cht.h>
 #include <adt/hash.h>
 #include <assert.h>
@@ -395,14 +393,12 @@ typedef struct wnd {
 	cht_link_t *last;
 } wnd_t;
 
-
 /* Sentinel node used by all buckets. Stores the greatest possible hash value.*/
 static const cht_link_t sentinel = {
 	/* NULL and N_NORMAL */
 	.link = 0 | N_NORMAL,
 	.hash = -1
 };
-
 
 static size_t size_to_order(size_t bucket_cnt, size_t min_order);
 static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid,
@@ -1682,7 +1678,6 @@ static void upd_resizing_head(cht_t *h, size_t hash, marked_ptr_t **phead,
 	}
 }
 
-
 #if 0
 static void move_head(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head)
 {
@@ -2708,7 +2703,6 @@ static inline void cas_order_barrier(void)
 	/* Make sure CAS to different memory locations are ordered. */
 	write_barrier();
 }
-
 
 /** @}
  */

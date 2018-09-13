@@ -41,7 +41,6 @@
 #include <assert.h>
 #include <stdlib.h>
 
-
 /*
  * Constants defining current parsing mode for correct parsing of the set of
  * local tags (usage) enclosed in delimter tags.
@@ -61,8 +60,6 @@
  */
 #define INSIDE_DELIMITER_SET	2
 
-
-
 /** The new report item flag. Used to determine when the item is completly
  * configured and should be added to the report structure
  */
@@ -78,7 +75,6 @@
 #define USB_HID_INVALID                 -98
 /** Unknown tag was founded in report descriptor data*/
 #define USB_HID_UNKNOWN_TAG		-99
-
 
 /**
  * Checks if given collection path is already present in report structure and
@@ -124,7 +120,6 @@ usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report,
 	}
 }
 
-
 /**
  * Initialize the report descriptor parser structure
  *
@@ -146,8 +141,6 @@ errno_t usb_hid_report_init(usb_hid_report_t *report)
 	report->use_report_ids = 0;
 	return EOK;
 }
-
-
 
 /**
  *
@@ -327,7 +320,6 @@ usb_hid_report_description_t *usb_hid_report_find_description(
 
 	return NULL;
 }
-
 
 /** Parse HID report descriptor.
  *
@@ -509,13 +501,10 @@ errno_t usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 			i += 3 + USB_HID_ITEM_SIZE(data[i + 1]);
 		}
 
-
 	}
 
 	return EOK;
 }
-
-
 
 /**
  * Parse one tag of the report descriptor
@@ -758,7 +747,6 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data,
 			    USB_HID_EXTENDED_USAGE_PAGE(
 			    usb_hid_report_tag_data_uint32(data, item_size));
 
-
 			report_item->usage_minimum =
 			    USB_HID_EXTENDED_USAGE(
 			    usb_hid_report_tag_data_uint32(data, item_size));
@@ -867,7 +855,6 @@ uint32_t usb_hid_report_tag_data_uint32(const uint8_t *data, size_t size)
 	return result;
 }
 
-
 /**
  * Prints content of given list of report items.
  *
@@ -908,7 +895,6 @@ void usb_hid_descriptor_print_list(list_t *list)
 	}
 }
 
-
 /**
  * Prints content of given report descriptor in human readable format.
  *
@@ -934,8 +920,6 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 		usb_hid_descriptor_print_list(&report_des->report_items);
 	}
 }
-
-
 
 /** Frees the HID report descriptor parser structure
  *
@@ -984,7 +968,6 @@ void usb_hid_report_deinit(usb_hid_report_t *report)
 
 	return;
 }
-
 
 /**
  * @}

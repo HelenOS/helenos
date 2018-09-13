@@ -91,10 +91,8 @@ extern void am335x_timer_reset(am335x_timer_t *timer);
 extern void am335x_timer_start(am335x_timer_t *timer);
 extern void am335x_timer_stop(am335x_timer_t *timer);
 
-
 #endif
 
 /**
  * @}
  */
-

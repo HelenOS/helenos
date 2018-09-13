@@ -41,7 +41,6 @@
 #include <arch/mm/sun4v/km.h>
 #endif
 
-
 #endif
 
 /** @}

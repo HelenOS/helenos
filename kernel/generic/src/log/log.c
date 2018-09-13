@@ -248,7 +248,6 @@ int log_vprintf(const char *fmt, va_list args)
 		NULL
 	};
 
-
 	ret = printf_core(fmt, &ps, args);
 
 	return ret;
@@ -384,7 +383,6 @@ sys_errno_t sys_klog(sysarg_t operation, void *buf, size_t size,
 		return (sys_errno_t) ENOTSUP;
 	}
 }
-
 
 /** @}
  */

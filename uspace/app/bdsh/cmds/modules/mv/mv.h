@@ -3,6 +3,4 @@
 
 /* Prototypes for the mv command, excluding entry points */
 
-
 #endif /* MV_H */
-

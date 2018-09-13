@@ -190,7 +190,6 @@ void xhci_endpoint_destroy(endpoint_t *ep)
 	free(xhci_ep);
 }
 
-
 /**
  * Register an andpoint to the xHC.
  *

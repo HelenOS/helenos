@@ -70,7 +70,6 @@ typedef enum {
 	USB_HIDUT_USAGE_CONSUMER_CONSUMER_CONTROL = 1
 } usb_hidut_usage_consumer_t;
 
-
 #endif
 /**
  * @}

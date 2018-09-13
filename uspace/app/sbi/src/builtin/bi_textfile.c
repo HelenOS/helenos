@@ -218,7 +218,6 @@ static void bi_textfile_close(run_t *run)
 	proc_ar->retval = NULL;
 }
 
-
 /** Read one line from a text file.
  *
  * @param run	Runner object

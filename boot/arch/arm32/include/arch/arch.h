@@ -67,7 +67,6 @@
 #define PA2KA(addr)  ((addr) + PA_OFFSET)
 #endif
 
-
 #endif
 
 /** @}

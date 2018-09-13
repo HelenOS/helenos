@@ -129,7 +129,6 @@ typedef struct {
 #define cht_get_inst(item, type, member) \
 	member_to_inst((item), type, member)
 
-
 #define cht_read_lock()     rcu_read_lock()
 #define cht_read_unlock()   rcu_read_unlock()
 

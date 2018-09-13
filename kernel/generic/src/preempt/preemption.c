@@ -37,6 +37,5 @@
 
 #include <preemption.h>
 
-
 /** @}
  */

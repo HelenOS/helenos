@@ -162,7 +162,6 @@ typedef struct {
 	bool supports_trle;
 } rfb_t;
 
-
 extern errno_t rfb_init(rfb_t *, uint16_t, uint16_t, const char *);
 extern errno_t rfb_set_size(rfb_t *, uint16_t, uint16_t);
 extern errno_t rfb_listen(rfb_t *, uint16_t);

@@ -313,7 +313,6 @@ errno_t nic_unicast_set_mode_impl(ddf_fun_t *fun,
 	return rc;
 }
 
-
 /**
  * Default implementation of multicast_get_mode method.
  *

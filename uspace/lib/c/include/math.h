@@ -132,7 +132,6 @@ int __fcompare(size_t, size_t, ...);
 
 #endif  /* defined(__GNUC__) || defined(__clang__) */
 
-
 #define MATH_ERRNO      1
 #define MATH_ERREXCEPT  2
 
@@ -323,4 +322,3 @@ long double fmal(long double, long double, long double);
 #endif
 
 #endif /* _MATH_H */
-

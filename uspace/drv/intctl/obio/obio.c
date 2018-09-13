@@ -165,7 +165,6 @@ errno_t obio_gone(obio_t *obio)
 	return ENOTSUP;
 }
 
-
 /**
  * @}
  */

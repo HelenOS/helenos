@@ -52,7 +52,6 @@ int	optopt = '?';		/* character checked for validity */
 int	optreset;		/* reset getopt */
 char	*optarg;		/* argument associated with option */
 
-
 #define IGNORE_FIRST	(*options == '-' || *options == '+')
 #define PRINT_ERROR	((opterr) && ((*options != ':') \
 				      || (IGNORE_FIRST && options[1] != ':')))
@@ -94,7 +93,6 @@ static const char ambig[] = "ambiguous option -- %.*s\n";
 static const char noarg[] = "option doesn't take an argument -- %.*s\n";
 static const char illoptchar[] = "unknown option -- %c\n";
 static const char illoptstring[] = "unknown option -- %s\n";
-
 
 /*
  * Compute the greatest common divisor of a and b.
@@ -460,4 +458,3 @@ int getopt_long(int nargc, char *const *nargv, const char *options,
 	return retval;
 #undef IDENTICAL_INTERPRETATION
 }
-

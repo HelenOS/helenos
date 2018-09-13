@@ -300,6 +300,5 @@ static void transport_link_state(udp_assoc_t *assoc, udp_link_state_t ls)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Link state change");
 }
 
-
 /** @}
  */

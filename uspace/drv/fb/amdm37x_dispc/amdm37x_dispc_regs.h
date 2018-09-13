@@ -235,7 +235,6 @@ typedef struct {
 #define AMDM37X_DISPC_GFX_ATTRIBUTES_GFXSELFREFRESH_FLAG  (1 << 15)
 #define AMDM37X_DISPC_GFX_ATTRIBUTES_PREMULTIALPHA_FLAG  (1 << 28)
 
-
 		ioport32_t fifo_threshold;
 		const ioport32_t fifo_size_status;
 		ioport32_t row_inc;
@@ -279,7 +278,6 @@ typedef struct {
 	ioport32_t vid_preload[2];
 
 } amdm37x_dispc_regs_t;
-
 
 #endif
 /**

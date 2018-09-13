@@ -213,7 +213,6 @@ static errno_t contacts_load(sif_node_t *nentries, contacts_t *contacts)
 	return EOK;
 }
 
-
 /** Interaction to create new contact.
  *
  * @param contacts Contacts

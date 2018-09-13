@@ -38,7 +38,6 @@
 #include <arch/asm.h>   /* get_stack_base() */
 #include <config.h>
 
-
 /*
  * THE is not an abbreviation, but the English definite article written in
  * capital letters. It means the current pointer to something, e.g. thread,
