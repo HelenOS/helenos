@@ -33,7 +33,7 @@
 /** @file Character classification.
  */
 
-#include "posix/ctype.h"
+#include <ctype.h>
 
 /**
  * Checks whether character is ASCII. (obsolete)

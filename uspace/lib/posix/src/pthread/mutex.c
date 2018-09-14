@@ -32,7 +32,7 @@
 /** @file Pthread: mutexes.
  */
 
-#include "posix/pthread.h"
+#include <pthread.h>
 #include <errno.h>
 #include "../internal/common.h"
 

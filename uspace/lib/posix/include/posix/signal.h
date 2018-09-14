@@ -35,8 +35,8 @@
 #ifndef POSIX_SIGNAL_H_
 #define POSIX_SIGNAL_H_
 
-#include "sys/types.h"
-#include <posix/ucontext.h>
+#include <sys/types.h>
+#include <ucontext.h>
 
 extern void __posix_default_signal_handler(int signo);
 extern void __posix_hold_signal_handler(int signo);

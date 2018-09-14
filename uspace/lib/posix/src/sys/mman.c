@@ -33,10 +33,10 @@
  */
 
 #include "../internal/common.h"
-#include <posix/sys/mman.h>
-#include <posix/sys/types.h>
-#include <libc/as.h>
-#include <posix/unistd.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <as.h>
+#include <unistd.h>
 
 void *mmap(void *start, size_t length, int prot, int flags, int fd,
     off_t offset)

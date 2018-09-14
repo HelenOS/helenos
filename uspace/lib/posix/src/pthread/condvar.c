@@ -32,8 +32,8 @@
 /** @file Pthread: condition variables.
  */
 
-#include "posix/pthread.h"
-#include "errno.h"
+#include <pthread.h>
+#include <errno.h>
 #include "../internal/common.h"
 
 int pthread_cond_init(pthread_cond_t *restrict condvar,

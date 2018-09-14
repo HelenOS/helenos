@@ -33,7 +33,7 @@
 #ifndef POSIX_DLFCN_H_
 #define POSIX_DLFCN_H_
 
-#include "libc/dlfcn.h"
+#include <libc/dlfcn.h>
 
 #define RTLD_LAZY 1
 #define RTLD_NOW 2

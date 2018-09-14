@@ -33,12 +33,12 @@
  */
 
 #include "internal/common.h"
-#include "posix/locale.h"
+#include <locale.h>
 
 #include <errno.h>
 
-#include "posix/limits.h"
-#include "posix/string.h"
+#include <limits.h>
+#include <string.h>
 
 /*
  * Just a very basic dummy implementation.

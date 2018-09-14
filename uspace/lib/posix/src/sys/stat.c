@@ -34,11 +34,11 @@
  */
 
 #include "../internal/common.h"
-#include "posix/sys/stat.h"
-#include "libc/vfs/vfs.h"
+#include <sys/stat.h>
+#include <vfs/vfs.h>
 
 #include <errno.h>
-#include "libc/mem.h"
+#include <mem.h>
 
 /**
  * Convert HelenOS stat struct into POSIX stat struct (if possible).

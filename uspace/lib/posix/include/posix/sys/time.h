@@ -33,7 +33,7 @@
 #ifndef POSIX_SYS_TIME_H_
 #define POSIX_SYS_TIME_H_
 
-#include "libc/time.h"
+#include <time.h>
 
 struct timeval {
 	time_t tv_sec;        /* seconds */

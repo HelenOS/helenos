@@ -32,9 +32,9 @@
 /** @file Password handling.
  */
 
-#include "libc/stdbool.h"
-#include "posix/pwd.h"
-#include "posix/string.h"
+#include <stdbool.h>
+#include <pwd.h>
+#include <string.h>
 #include <errno.h>
 #include <assert.h>
 

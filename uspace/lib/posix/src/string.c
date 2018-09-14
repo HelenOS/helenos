@@ -35,18 +35,17 @@
  */
 
 #include "internal/common.h"
-#include "posix/string.h"
+#include <string.h>
 
 #include <assert.h>
 
 #include <errno.h>
 
-#include "posix/limits.h"
-#include "posix/stdlib.h"
-#include "posix/signal.h"
-
-#include "libc/str.h"
-#include "libc/str_error.h"
+#include <limits.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <str.h>
+#include <str_error.h>
 
 /**
  * Copy a string.

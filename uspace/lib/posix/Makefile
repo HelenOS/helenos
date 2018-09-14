@@ -30,9 +30,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libposix
 
-EXTRA_CFLAGS = -Iinclude/
-
-INCLUDE_LIBC = ./include/libc
+EXTRA_CFLAGS = -Iinclude/posix
 
 EXPORT_FILES = \
 	../math/libmath.a \
@@ -76,7 +74,9 @@ TEST_SOURCES = \
 EXTRA_TEST_CFLAGS = -Wno-deprecated-declarations
 
 EXPORT_CPPFLAGS = \
-	-isystem $$(HELENOS_EXPORT_ROOT)/include \
+	-isystem $$(HELENOS_EXPORT_ROOT)/include/posix \
+	-isystem $$(HELENOS_EXPORT_ROOT)/include/libc \
+	-idirafter $$(HELENOS_EXPORT_ROOT)/include \
 	$(COMMON_CPPFLAGS)
 
 EXPORT_LDFLAGS = \
@@ -91,10 +91,6 @@ EXPORT_CFLAGS = \
 	$(COMMON_CFLAGS)
 
 include $(USPACE_PREFIX)/Makefile.common
-
-$(INCLUDE_LIBC): $(shell find ../c/include -name '*.h')
-	cp -r -L --remove-destination -T ../c/include $@
-	find ../c/include -type f -and -not -name '*.h' -delete
 
 export: $(EXPORT_DIR)/config.mk $(EXPORT_DIR)/config.rc
 
@@ -121,23 +117,10 @@ export-libs: $(EXPORT_FILES) export-includes
 export-includes: $(INCLUDE_LIBC) $(shell find ./include ../c/arch/$(UARCH)/include $(ROOT_PATH)/abi/include -name '*.h')
 	mkdir -p $(EXPORT_DIR)/include
 	rm -rf $(EXPORT_DIR)/include.new
-	cp -r -L -T ./include/posix $(EXPORT_DIR)/include.new
-	cp -r -L -T ./include/libc $(EXPORT_DIR)/include.new/libc
-	cp -r -L ../c/arch/$(UARCH)/include/* $(EXPORT_DIR)/include.new/libc
+	cp -r -L -T ./include $(EXPORT_DIR)/include.new
+	cp -r -L ../c/arch/$(UARCH)/include/libarch $(EXPORT_DIR)/include.new/libc
 	cp -r -L $(ROOT_PATH)/abi/include/* $(EXPORT_DIR)/include.new
 	mkdir -p $(EXPORT_DIR)/include.new/libclui
 	cp -L ../clui/tinput.h $(EXPORT_DIR)/include.new/libclui
-
-	find "$(EXPORT_DIR)/include.new/libc" "$(EXPORT_DIR)/include.new/libclui" -name '*.h' -exec sed \
-		-e 's:#include <:#include <libc/:' \
-		-e 's:#include <libc/abi/:#include <abi/:' \
-		-e 's:#include <libc/_bits/:#include <_bits/:' \
-		-e 's:#include <libc/libc/:#include <libc/:' \
-		-i {} \;
-	find "$(EXPORT_DIR)/include.new" -name '*.h' -exec sed \
-		-e 's:#include "posix/:#include ":' \
-		-e 's:#include <posix/:#include <:' \
-		-i {} \;
-
 	rm -rf $(EXPORT_DIR)/include
 	mv $(EXPORT_DIR)/include.new $(EXPORT_DIR)/include

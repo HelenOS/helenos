@@ -32,16 +32,16 @@
 /** @file Signal handling.
  */
 
-#include "posix/signal.h"
+#include <signal.h>
 #include "internal/common.h"
-#include "posix/limits.h"
-#include "posix/stdlib.h"
-#include "posix/string.h"
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <errno.h>
 
-#include "libc/fibril_synch.h"
-#include "libc/task.h"
+#include <fibril_synch.h>
+#include <task.h>
 
 /*
  * This file implements a fairly dumb and incomplete "simulation" of

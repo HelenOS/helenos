@@ -32,9 +32,9 @@
 /** @file Pthread: thread management.
  */
 
-#include "posix/pthread.h"
-#include "errno.h"
-#include "posix/stdlib.h"
+#include <pthread.h>
+#include <errno.h>
+#include <stdlib.h>
 #include <fibril.h>
 #include "../internal/common.h"
 

@@ -36,11 +36,9 @@
 #ifndef POSIX_TIME_H_
 #define POSIX_TIME_H_
 
-#include "sys/types.h"
-
-#include <_bits/NULL.h>
-
-#include "libc/time.h"
+#include <stddef.h>
+#include <sys/types.h>
+#include <libc/time.h>
 
 #ifndef __locale_t_defined
 #define __locale_t_defined

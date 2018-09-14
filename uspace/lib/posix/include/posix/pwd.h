@@ -35,7 +35,7 @@
 #ifndef POSIX_PWD_H_
 #define POSIX_PWD_H_
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 struct passwd {
 	char *pw_name;

@@ -34,21 +34,21 @@
  */
 
 #include "internal/common.h"
-#include "posix/stdlib.h"
+#include <stdlib.h>
 
 #include <errno.h>
 #include <tmpfile.h>
 
-#include "posix/fcntl.h"
-#include "posix/limits.h"
-#include "posix/string.h"
-#include "posix/sys/stat.h"
-#include "posix/unistd.h"
+#include <fcntl.h>
+#include <limits.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#include "libc/qsort.h"
-#include "libc/str.h"
-#include "libc/vfs/vfs.h"
-#include "libc/stats.h"
+#include <qsort.h>
+#include <str.h>
+#include <vfs/vfs.h>
+#include <stats.h>
 
 /**
  *

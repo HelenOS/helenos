@@ -28,7 +28,7 @@
 
 #include <pcut/pcut.h>
 #include <str.h>
-#include "posix/stdio.h"
+#include <stdio.h>
 
 PCUT_INIT;
 

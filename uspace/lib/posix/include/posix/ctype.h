@@ -36,7 +36,7 @@
 #ifndef POSIX_CTYPE_H_
 #define POSIX_CTYPE_H_
 
-#include "libc/ctype.h"
+#include <libc/ctype.h>
 
 /* Obsolete Functions and Macros */
 extern int isascii(int c);

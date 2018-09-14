@@ -34,8 +34,8 @@
 #ifndef POSIX_GETOPT_H
 #define POSIX_GETOPT_H
 
-#include "unistd.h"
-#include "libc/getopt.h"
+#include <unistd.h>
+#include <libc/getopt.h>
 
 #endif
 /**

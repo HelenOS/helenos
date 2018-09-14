@@ -28,9 +28,9 @@
 
 #include <stdio.h>
 #include <pcut/pcut.h>
-#include "posix/fcntl.h"
-#include "posix/stdlib.h"
-#include "posix/unistd.h"
+#include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 PCUT_INIT;
 

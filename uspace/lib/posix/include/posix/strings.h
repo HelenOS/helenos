@@ -36,7 +36,7 @@
 #ifndef POSIX_STRINGS_H_
 #define POSIX_STRINGS_H_
 
-#include "libc/types/common.h"
+#include <types/common.h>
 
 /* Search Functions */
 #ifndef POSIX_STRING_H_

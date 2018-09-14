@@ -35,25 +35,24 @@
  */
 
 #include "internal/common.h"
-#include "posix/stdio.h"
+#include <stdio.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <tmpfile.h>
 
-#include "posix/fcntl.h"
-#include "posix/stdlib.h"
-#include "posix/string.h"
-#include "posix/sys/stat.h"
-#include "posix/sys/types.h"
-#include "posix/unistd.h"
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "libc/stdio.h"
-#include "libc/io/printf_core.h"
-#include "libc/str.h"
-#include "libc/malloc.h"
-#include "libc/adt/list.h"
+#include <io/printf_core.h>
+#include <str.h>
+#include <malloc.h>
+#include <adt/list.h>
 
 /**
  * Generate a pathname for the controlling terminal.

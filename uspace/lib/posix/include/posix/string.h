@@ -43,16 +43,15 @@
  * size_t   strxfrm_l(char *__restrict__, const char *__restrict__, size_t, locale_t);
  */
 
-#include <_bits/NULL.h>
-#include <_bits/size_t.h>
+#include <stddef.h>
 
-#include "libc/mem.h"
+#include <libc/mem.h>
 #ifdef _HELENOS_SOURCE
 #undef _HELENOS_SOURCE
-#include "libc/string.h"
+#include <libc/string.h>
 #define _HELENOS_SOURCE
 #else
-#include "libc/string.h"
+#include <libc/string.h>
 #endif
 
 /* Copying and Concatenation */

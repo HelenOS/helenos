@@ -36,8 +36,8 @@
 #ifndef POSIX_SYS_TYPES_H_
 #define POSIX_SYS_TYPES_H_
 
-#include "libc/offset.h"
-#include "libc/types/common.h"
+#include <offset.h>
+#include <types/common.h>
 
 typedef unsigned int ino_t;
 typedef unsigned int nlink_t;

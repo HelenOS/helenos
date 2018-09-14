@@ -32,8 +32,8 @@
 /** @file Pthread: keys and thread-specific storage.
  */
 
-#include "posix/stdlib.h"
-#include "posix/pthread.h"
+#include <stdlib.h>
+#include <pthread.h>
 #include <errno.h>
 #include "../internal/common.h"
 

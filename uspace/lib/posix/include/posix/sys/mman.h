@@ -35,7 +35,7 @@
 #ifndef POSIX_SYS_MMAN_H_
 #define POSIX_SYS_MMAN_H_
 
-#include "types.h"
+#include <sys/types.h>
 #include <abi/mm/as.h>
 
 #define MAP_FAILED ((void *) -1)

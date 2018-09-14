@@ -32,7 +32,7 @@
 #ifndef POSIX_PTHREAD_H_
 #define POSIX_PTHREAD_H_
 
-#include "time.h"
+#include <time.h>
 
 typedef void *pthread_t;
 

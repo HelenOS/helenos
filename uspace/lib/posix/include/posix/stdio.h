@@ -36,13 +36,13 @@
 #ifndef POSIX_STDIO_H_
 #define POSIX_STDIO_H_
 
-#include "libc/stdio.h"
+#include <libc/stdio.h>
 
-#include "stddef.h"
-#include "libc/io/verify.h"
-#include "sys/types.h"
-#include "stdarg.h"
-#include "limits.h"
+#include <stddef.h>
+#include <io/verify.h>
+#include <sys/types.h>
+#include <stdarg.h>
+#include <limits.h>
 
 extern FILE *fdopen(int, const char *);
 extern int fileno(FILE *);

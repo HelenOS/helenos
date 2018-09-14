@@ -34,19 +34,19 @@
  */
 
 #include "internal/common.h"
-#include "posix/unistd.h"
+#include <unistd.h>
 
 #include <errno.h>
 
-#include "posix/dirent.h"
-#include "posix/string.h"
-#include "posix/sys/types.h"
-#include "posix/fcntl.h"
+#include <dirent.h>
+#include <string.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
-#include "libc/task.h"
-#include "libc/stats.h"
-#include "libc/malloc.h"
-#include "libc/vfs/vfs.h"
+#include <task.h>
+#include <stats.h>
+#include <malloc.h>
+#include <vfs/vfs.h>
 
 #include <libarch/config.h>
 

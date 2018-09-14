@@ -35,7 +35,7 @@
 #ifndef POSIX_LOCALE_H_
 #define POSIX_LOCALE_H_
 
-#include <_bits/NULL.h>
+#include <stddef.h>
 
 #ifndef __locale_t_defined
 #define __locale_t_defined

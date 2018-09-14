@@ -34,13 +34,13 @@
  */
 
 #include "internal/common.h"
-#include "posix/strings.h"
+#include <strings.h>
 
-#include "posix/string.h"
-#include "posix/ctype.h"
+#include <string.h>
+#include <ctype.h>
 
-#include "libc/mem.h"
-#include "libc/str.h"
+#include <mem.h>
+#include <str.h>
 
 /**
  * Find first set bit (beginning with the least significant bit).

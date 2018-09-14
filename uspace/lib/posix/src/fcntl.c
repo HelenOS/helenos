@@ -33,10 +33,8 @@
  */
 
 #include "internal/common.h"
-#include "posix/fcntl.h"
-
-#include "libc/vfs/vfs.h"
-
+#include <fcntl.h>
+#include <vfs/vfs.h>
 #include <errno.h>
 
 /**

@@ -377,10 +377,6 @@ uspace/lib/c/test-libc
 uspace/lib/label/test-liblabel
 uspace/lib/math/test-libmath
 uspace/lib/pcut/test-libpcut-*
-uspace/lib/posix/gcc.specs
-uspace/lib/posix/include/libc
-uspace/lib/posix/link.ld
-uspace/lib/posix/redefs-hide-libc-symbols.list
 uspace/lib/posix/test-libposix
 uspace/lib/sif/test-libsif
 uspace/lib/uri/test-liburi

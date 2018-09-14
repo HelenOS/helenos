@@ -34,22 +34,21 @@
  */
 
 #include "internal/common.h"
-#include "posix/sys/types.h"
-#include "posix/sys/time.h"
-#include "posix/time.h"
+#include <sys/types.h>
+#include <sys/time.h>
+#include <time.h>
 
-#include "posix/ctype.h"
+#include <ctype.h>
 
 #include <errno.h>
 
-#include "posix/signal.h"
+#include <signal.h>
 #include <assert.h>
 
-#include "libc/async.h"
-#include "libc/malloc.h"
-#include "libc/task.h"
-#include "libc/stddef.h"
-#include "libc/time.h"
+#include <async.h>
+#include <malloc.h>
+#include <task.h>
+#include <stddef.h>
 
 // TODO: test everything in this file
 

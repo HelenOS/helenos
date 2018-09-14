@@ -36,10 +36,10 @@
 #ifndef POSIX_STDLIB_H_
 #define POSIX_STDLIB_H_
 
-#include "libc/stdlib.h"
-#include "sys/types.h"
+#include <libc/stdlib.h>
+#include <sys/types.h>
 
-#include <_bits/NULL.h>
+#include <stddef.h>
 
 /* Environment Access */
 extern int putenv(char *string);

@@ -35,7 +35,7 @@
 #ifndef POSIX_SYS_WAIT_H_
 #define POSIX_SYS_WAIT_H_
 
-#include "types.h"
+#include <sys/types.h>
 
 #undef WIFEXITED
 #undef WEXITSTATUS

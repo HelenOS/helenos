@@ -42,14 +42,14 @@
  * will be fairly straightforward.
  */
 
-#include "libc/stdbool.h"
-#include "posix/ctype.h"
-#include "posix/string.h"
-#include "posix/stdlib.h"
+#include <stdbool.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #include "internal/common.h"
-#include "posix/fnmatch.h"
+#include <fnmatch.h>
 
 /* Returned by _match... functions. */
 #define INVALID_PATTERN -1

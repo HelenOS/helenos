@@ -36,8 +36,8 @@
 #ifndef POSIX_SYS_STAT_H_
 #define POSIX_SYS_STAT_H_
 
-#include "types.h"
-#include "../time.h"
+#include <sys/types.h>
+#include <time.h>
 
 /* values are the same as on Linux */
 

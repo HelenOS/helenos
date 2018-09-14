@@ -31,7 +31,7 @@
  */
 
 #include "internal/common.h"
-#include "posix/dlfcn.h"
+#include <dlfcn.h>
 
 int dlclose(void *handle)
 {

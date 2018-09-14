@@ -34,15 +34,15 @@
  */
 
 #include "../internal/common.h"
-#include "posix/sys/wait.h"
+#include <sys/wait.h>
 
-#include "libc/task.h"
+#include <task.h>
 #include <assert.h>
 
 #include <errno.h>
 
-#include "posix/limits.h"
-#include "posix/signal.h"
+#include <limits.h>
+#include <signal.h>
 
 int __posix_wifexited(int status)
 {
