@@ -490,7 +490,7 @@ void fpu_init(void)
 	    "or %0 = %0,%1 ;;\n"
 	    "mov ar.fpsr = %0 ;;\n"
 	    : "+r" (a)
-	    : "r" (FPSR_TRAPS_ALL)
+	    : "r" (FPSR_TRAPS_ALL | FPSR_SF1_CTRL)
 	);
 
 	asm volatile (

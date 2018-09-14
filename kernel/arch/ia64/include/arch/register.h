@@ -78,6 +78,16 @@
 #define FPSR_TRAPS_ALL (FPSR_TRAPS_VD | FPSR_TRAPS_DD | FPSR_TRAPS_ZD | \
     FPSR_TRAPS_OD | FPSR_TRAPS_UD | FPSR_TRAPS_ID)
 
+#define FPSR_SF1_SHIFT 19
+
+#define FPSR_CTRL_WRE           (1 << 1)
+#define FPSR_CTRL_PC_EXTENDED   (3 << 2)
+#define FPSR_CTRL_RC_NEAREST    (0 << 4)
+#define FPSR_CTRL_TD            (1 << 6)
+
+#define FPSR_SF1_CTRL ((FPSR_CTRL_WRE | FPSR_CTRL_PC_EXTENDED | \
+    FPSR_CTRL_RC_NEAREST | FPSR_CTRL_TD) << FPSR_SF1_SHIFT)
+
 /** Application registers. */
 #define AR_KR0       0
 #define AR_KR1       1
