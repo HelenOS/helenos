@@ -39,7 +39,7 @@ AFLAGS = --fatal-warnings
 LDFLAGS = -Wl,--fatal-warnings,--warn-common
 
 COMMON_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-ffreestanding -nostdlib \
 	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common \
 	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 
