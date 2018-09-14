@@ -98,12 +98,12 @@ LIB_PREFIX = $(USPACE_PREFIX)/lib
 
 LIBC_PREFIX = $(LIB_PREFIX)/c
 LIBC_INCLUDES_FLAGS = \
-	-I$(LIBC_PREFIX)/include \
-	-I$(LIBC_PREFIX)/arch/$(UARCH)/include \
-	-I$(ROOT_PATH)/abi/include
+	-isystem $(LIBC_PREFIX)/include \
+	-isystem $(LIBC_PREFIX)/arch/$(UARCH)/include \
+	-isystem $(ROOT_PATH)/abi/include
 
 LIBCPP_PREFIX = $(LIB_PREFIX)/cpp
-LIBCPP_INCLUDES_FLAGS = -I$(LIBCPP_PREFIX)/include
+LIBCPP_INCLUDES_FLAGS = -isystem $(LIBCPP_PREFIX)/include
 
 LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
@@ -183,7 +183,9 @@ DEFAULT_CFLAGS = \
 	-Wno-nonnull-compare \
 	-Wmissing-prototypes \
 	-Wwrite-strings \
-	-Werror-implicit-function-declaration
+	-Werror-implicit-function-declaration \
+	-Wsystem-headers \
+	-Wunknown-pragmas
 
 # XXX: -fno-builtin-strftime is for a seemingly spurious format warning.
 
