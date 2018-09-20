@@ -376,7 +376,7 @@ static errno_t fdsk_select_fstype(vol_fstype_t *fstype)
 {
 	nchoice_t *choice = NULL;
 	void *sel;
-	char *sfstype;
+	char *sfstype = NULL;
 	int i;
 	errno_t rc;
 
