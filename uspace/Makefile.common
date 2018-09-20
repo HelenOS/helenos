@@ -180,7 +180,6 @@ DEFAULT_CFLAGS = \
 	-Wall \
 	-Wextra \
 	-Wno-unused-parameter \
-	-Wno-nonnull-compare \
 	-Wmissing-prototypes \
 	-Wwrite-strings \
 	-Werror-implicit-function-declaration \
@@ -199,11 +198,13 @@ endif
 
 ifeq ($(COMPILER),clang)
 	DEFAULT_CFLAGS += \
+		-Wno-missing-braces \
 		-Wno-missing-field-initializers \
 		-Wno-typedef-redefinition \
 		-Wno-unused-command-line-argument
 else
 	DEFAULT_CFLAGS += \
+		-Wno-nonnull-compare \
 		-Wno-clobbered
 endif
 

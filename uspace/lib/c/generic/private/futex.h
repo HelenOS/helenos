@@ -40,11 +40,13 @@
 #include <errno.h>
 #include <libc.h>
 #include <time.h>
+#include <fibril.h>
 
 typedef struct futex {
 	volatile atomic_int val;
 #ifdef CONFIG_DEBUG_FUTEX
-	void *owner;
+	// FIXME: Should be _Atomic(fibril_t *)
+	fibril_t *owner;
 #endif
 } futex_t;
 

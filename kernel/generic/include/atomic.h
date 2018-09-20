@@ -67,7 +67,9 @@ typedef atomic_size_t atomic_t;
 	((void) atomic_fetch_add(val, 1))
 
 #define local_atomic_exchange(var_addr, new_val) \
-	atomic_exchange_explicit(var_addr, new_val, memory_order_relaxed)
+	atomic_exchange_explicit( \
+	    (_Atomic typeof(*(var_addr)) *) (var_addr), \
+	    (new_val), memory_order_relaxed)
 
 #endif
 

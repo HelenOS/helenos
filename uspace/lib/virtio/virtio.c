@@ -126,7 +126,7 @@ void virtio_create_desc_free_list(virtio_dev_t *vdev, uint16_t num,
 {
 	for (unsigned i = 0; i < size; i++) {
 		virtio_virtq_desc_set(vdev, num, i, 0, 0,
-		    VIRTQ_DESC_F_NEXT, (i + 1 == size) ? -1U : i + 1);
+		    VIRTQ_DESC_F_NEXT, (i + 1 == size) ? 0xffffu : i + 1);
 	}
 	*head = 0;
 }

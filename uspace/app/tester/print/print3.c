@@ -33,7 +33,9 @@
 
 #define BUFFER_SIZE  32
 
+#ifndef __clang__
 #pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
 
 const char *test_print3(void)
 {

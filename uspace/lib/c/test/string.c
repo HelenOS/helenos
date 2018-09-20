@@ -32,8 +32,10 @@
 #define _HELENOS_SOURCE
 #include <pcut/pcut.h>
 
+#ifndef __clang__
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 
 PCUT_INIT;
 
