@@ -217,7 +217,7 @@ int strncmp(const char *s1, const char *s2, size_t n)
  *         If the value returned is @a n or more, the contents of the buffer
  *         pointed to by @a s1 are undefined.
  */
-int strxfrm(char *s1, const char *s2, size_t n)
+size_t strxfrm(char *s1, const char *s2, size_t n)
 {
 	size_t i;
 	size_t len;

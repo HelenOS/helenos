@@ -50,7 +50,7 @@ extern char *strncat(char *, const char *, size_t);
 extern int strcmp(const char *, const char *);
 extern int strcoll(const char *, const char *);
 extern int strncmp(const char *, const char *, size_t);
-extern int strxfrm(char *, const char *, size_t);
+extern size_t strxfrm(char *, const char *, size_t);
 extern char *strchr(const char *, int);
 extern size_t strcspn(const char *, const char *);
 extern char *strpbrk(const char *, const char *);
