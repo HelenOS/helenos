@@ -46,6 +46,21 @@
 #define LSR_DATA_READY  0x01
 #define LSR_TH_READY    0x20
 
+#define RETRY_CNT	100000
+
+#define NOTHING \
+	do { \
+	} while(0)
+
+#define WHILE_CNT_AND_COND_DO(cnt, expr, statement) \
+	do { \
+		for (volatile unsigned i = 0; i < (cnt); i++) \
+			if ((expr)) \
+				statement; \
+			else \
+				break; \
+	} while (0)
+
 static uint8_t ns16550_reg_read(ns16550_instance_t *inst, ns16550_reg_t reg)
 {
 	return pio_read_8(&inst->ns16550[reg << inst->reg_shift]);
@@ -77,17 +92,20 @@ static void ns16550_irq_handler(irq_t *irq)
 	}
 }
 
-/**< Clear input buffer. */
+/** Clear input buffer. */
 static void ns16550_clear_buffer(ns16550_instance_t *instance)
 {
-	while (ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_DATA_READY)
-		(void) ns16550_reg_read(instance, NS16550_REG_RBR);
+	WHILE_CNT_AND_COND_DO(RETRY_CNT,
+	    ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_DATA_READY,
+	    (void) ns16550_reg_read(instance, NS16550_REG_RBR));
 }
 
 static void ns16550_sendb(ns16550_instance_t *instance, uint8_t byte)
 {
-	while (!(ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_TH_READY))
-		;
+	WHILE_CNT_AND_COND_DO(RETRY_CNT,
+	    !(ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_TH_READY),
+	    NOTHING);
+
 	ns16550_reg_write(instance, NS16550_REG_THR, byte);
 }
 
