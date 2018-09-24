@@ -45,8 +45,7 @@
 typedef struct futex {
 	volatile atomic_int val;
 #ifdef CONFIG_DEBUG_FUTEX
-	// FIXME: Should be _Atomic(fibril_t *)
-	fibril_t *owner;
+	_Atomic(fibril_t *) owner;
 #endif
 } futex_t;
 
