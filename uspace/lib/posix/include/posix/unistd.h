@@ -79,14 +79,30 @@ extern gid_t getgid(void);
 extern int close(int fildes);
 extern ssize_t read(int fildes, void *buf, size_t nbyte);
 extern ssize_t write(int fildes, const void *buf, size_t nbyte);
-extern off_t lseek(int fildes,
-    off_t offset, int whence);
 extern int fsync(int fildes);
 extern int ftruncate(int fildes, off_t length);
 extern int rmdir(const char *path);
 extern int unlink(const char *path);
 extern int dup(int fildes);
 extern int dup2(int fildes, int fildes2);
+
+#ifdef _LARGEFILE64_SOURCE
+extern off64_t lseek64(int fildes, off64_t offset, int whence);
+#endif
+
+#if _FILE_OFFSET_BITS == 64
+static inline off_t lseek(int fildes, off_t offset, int whence)
+{
+	/* Declarations visible in this function body only. */
+	typedef int64_t off64_t;
+	extern off64_t lseek64(int fildes, off64_t offset, int whence);
+
+	/* With _FILE_OFFSET_BITS == 64, lseek is actually lseek64. */
+	return lseek64(fildes, offset, whence);
+}
+#else
+extern off_t lseek(int fildes, off_t offset, int whence);
+#endif
 
 /* Standard Streams */
 #undef STDIN_FILENO

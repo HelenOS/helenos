@@ -33,6 +33,9 @@
 /** @file Miscellaneous standard definitions.
  */
 
+#define _LARGEFILE64_SOURCE
+#undef _FILE_OFFSET_BITS
+
 #include "internal/common.h"
 #include <unistd.h>
 
@@ -233,6 +236,60 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	return nwr;
 }
 
+static off64_t _lseek(int fildes, off64_t offset, off64_t max_pos, int whence)
+{
+	vfs_stat_t st;
+	off64_t new_pos;
+
+	switch (whence) {
+	case SEEK_SET:
+		new_pos = offset;
+		break;
+	case SEEK_CUR:
+		if (__builtin_add_overflow(posix_pos[fildes], offset, &new_pos)) {
+			errno = EOVERFLOW;
+			return -1;
+		}
+		break;
+	case SEEK_END:
+		if (failed(vfs_stat(fildes, &st)))
+			return -1;
+
+		if (__builtin_add_overflow(st.size, offset, &new_pos)) {
+			errno = EOVERFLOW;
+			return -1;
+		}
+		break;
+	default:
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (new_pos < 0) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (new_pos > max_pos) {
+		/* The resulting file offset is too large for the interface. */
+		errno = EOVERFLOW;
+		return -1;
+	}
+
+	posix_pos[fildes] = new_pos;
+	return new_pos;
+}
+
+static off64_t _lseek64(int fildes, off64_t offset, int whence)
+{
+	return _lseek(fildes, offset, INT64_MAX, whence);
+}
+
+off64_t lseek64(int fildes, off64_t offset, int whence)
+{
+	return _lseek64(fildes, offset, whence);
+}
+
 /**
  * Reposition read/write file offset
  *
@@ -244,27 +301,11 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
  */
 off_t lseek(int fildes, off_t offset, int whence)
 {
-	vfs_stat_t st;
-
-	switch (whence) {
-	case SEEK_SET:
-		posix_pos[fildes] = offset;
-		break;
-	case SEEK_CUR:
-		posix_pos[fildes] += offset;
-		break;
-	case SEEK_END:
-		if (failed(vfs_stat(fildes, &st)))
-			return -1;
-		posix_pos[fildes] = st.size + offset;
-		break;
-	}
-	if (posix_pos[fildes] > INT64_MAX) {
-		/* The native width is too large for the POSIX interface. */
-		errno = ERANGE;
-		return -1;
-	}
-	return posix_pos[fildes];
+#if LONG_MAX == INT64_MAX
+	return _lseek64(fildes, offset, whence);
+#else
+	return _lseek(fildes, offset, LONG_MAX, whence);
+#endif
 }
 
 /**
