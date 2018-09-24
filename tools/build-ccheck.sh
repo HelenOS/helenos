@@ -27,11 +27,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-SYCEK_GIT="https://github.com/jxsvoboda/sycek sycek"
+SYCEK_GIT="https://github.com/jxsvoboda/sycek"
 SYCEK_REV="42fe0d77819f0ec05f17e40ea54c7b62073c8e97"
 
 if [ ! -d sycek ]; then
-	git clone https://github.com/jxsvoboda/sycek sycek
+	git clone "$SYCEK_GIT" sycek
 fi
 
 cd sycek
