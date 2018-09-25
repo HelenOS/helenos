@@ -60,8 +60,25 @@ extern ssize_t getdelim(char **__restrict__ lineptr, size_t *__restrict__ n,
 extern ssize_t getline(char **__restrict__ lineptr, size_t *__restrict__ n,
     FILE *__restrict__ stream);
 
+#ifdef _LARGEFILE64_SOURCE
+extern int fseeko64(FILE *stream, off64_t offset, int whence);
+extern off64_t ftello64(FILE *stream);
+#endif
+
+#if _FILE_OFFSET_BITS == 64 && LONG_MAX == INT_MAX
+#ifdef __GNUC__
+extern int fseeko(FILE *stream, off_t offset, int whence) __asm__("fseeko64");
+extern off_t ftello(FILE *stream) __asm__("ftello64");
+#else
+extern int fseeko64(FILE *stream, off_t offset, int whence);
+extern off_t ftello64(FILE *stream);
+#define fseeko fseeko64
+#define ftello ftello64
+#endif
+#else
 extern int fseeko(FILE *stream, off_t offset, int whence);
 extern off_t ftello(FILE *stream);
+#endif
 
 /* Formatted Output */
 extern int dprintf(int fildes, const char *__restrict__ format, ...)

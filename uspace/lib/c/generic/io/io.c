@@ -910,8 +910,10 @@ long ftell(FILE *stream)
 	off64_t off = ftell64(stream);
 
 	/* The native position is too large for the C99-ish interface. */
-	if (off > LONG_MAX)
-		return EOF;
+	if (off > LONG_MAX) {
+		errno = EOVERFLOW;
+		return -1;
+	}
 
 	return off;
 }

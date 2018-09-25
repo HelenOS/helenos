@@ -301,10 +301,10 @@ off64_t lseek64(int fildes, off64_t offset, int whence)
  */
 off_t lseek(int fildes, off_t offset, int whence)
 {
-#if LONG_MAX == INT64_MAX
-	return _lseek64(fildes, offset, whence);
-#else
+#if LONG_MAX == INT_MAX
 	return _lseek(fildes, offset, LONG_MAX, whence);
+#else
+	return _lseek64(fildes, offset, whence);
 #endif
 }
 
@@ -330,6 +330,11 @@ int fsync(int fildes)
  * @return Zero on success, -1 otherwise.
  */
 int ftruncate(int fildes, off_t length)
+{
+	return ftruncate64(fildes, length);
+}
+
+int ftruncate64(int fildes, off64_t length)
 {
 	if (failed(vfs_resize(fildes, (aoff64_t) length)))
 		return -1;

@@ -34,6 +34,9 @@
 /** @file Standard buffered input/output.
  */
 
+#define _LARGEFILE64_SOURCE
+#undef _FILE_OFFSET_BITS
+
 #include "internal/common.h"
 #include <stdio.h>
 
@@ -180,7 +183,7 @@ ssize_t getline(char **restrict lineptr, size_t *restrict n,
  */
 int fseeko(FILE *stream, off_t offset, int whence)
 {
-	return fseek64(stream, offset, whence);
+	return fseek(stream, offset, whence);
 }
 
 /**
@@ -190,6 +193,16 @@ int fseeko(FILE *stream, off_t offset, int whence)
  * @return Current offset or -1 if not possible.
  */
 off_t ftello(FILE *stream)
+{
+	return ftell(stream);
+}
+
+int fseeko64(FILE *stream, off64_t offset, int whence)
+{
+	return fseek64(stream, offset, whence);
+}
+
+off64_t ftello64(FILE *stream)
 {
 	return ftell64(stream);
 }
