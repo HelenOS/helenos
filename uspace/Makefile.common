@@ -221,7 +221,7 @@ COMMON_CFLAGS = \
 
 # Flags that are always used for HelenOS code, but not for third-party.
 HELENOS_CFLAGS = \
-	-std=gnu99 \
+	-std=gnu11 \
 	$(INCLUDES_FLAGS) \
 	-imacros $(CONFIG_HEADER) \
 	-D_HELENOS_SOURCE \
