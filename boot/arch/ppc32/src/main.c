@@ -29,6 +29,7 @@
 #include <arch/main.h>
 #include <arch/arch.h>
 #include <arch/asm.h>
+#include <arch/types.h>
 #include <genarch/ofw.h>
 #include <genarch/ofw_tree.h>
 #include <halt.h>

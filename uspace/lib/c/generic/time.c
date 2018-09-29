@@ -43,6 +43,7 @@
 #include <as.h>
 #include <ddi.h>
 #include <libc.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <ctype.h>

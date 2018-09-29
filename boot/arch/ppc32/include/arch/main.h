@@ -32,6 +32,7 @@
 #include <stddef.h>
 #include <balloc.h>
 #include <genarch/ofw_tree.h>
+#include <arch/types.h>
 
 typedef struct {
 	memmap_t memmap;

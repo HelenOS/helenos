@@ -65,8 +65,8 @@ void help_cmd_sleep(unsigned int level)
 static errno_t decimal_to_useconds(const char *nptr, usec_t *result)
 {
 	errno_t ret;
-	sec_t whole_seconds;
-	usec_t frac_seconds;
+	int64_t whole_seconds;
+	int64_t frac_seconds;
 	const char *endptr;
 
 	/* Check for whole seconds */

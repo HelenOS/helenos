@@ -29,6 +29,7 @@
 #include <arch/main.h>
 #include <arch/arch.h>
 #include <arch/asm.h>
+#include <arch/types.h>
 #include <halt.h>
 #include <printf.h>
 #include <memstr.h>

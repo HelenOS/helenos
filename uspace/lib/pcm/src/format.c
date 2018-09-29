@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <macros.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "format.h"
 

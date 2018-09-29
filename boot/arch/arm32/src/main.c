@@ -34,6 +34,7 @@
  */
 
 #include <arch/main.h>
+#include <arch/types.h>
 #include <arch/asm.h>
 #include <arch/mm.h>
 #include <halt.h>

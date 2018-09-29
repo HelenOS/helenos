@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <str.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <async.h>

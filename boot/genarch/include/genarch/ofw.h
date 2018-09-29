@@ -32,6 +32,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <_bits/native.h>
 
 #define MEMMAP_MAX_RECORDS  32
 #define MAX_OFW_ARGS        12

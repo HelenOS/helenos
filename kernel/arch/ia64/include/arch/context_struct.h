@@ -77,6 +77,7 @@
 #ifndef __ASSEMBLER__
 
 #include <typedefs.h>
+#include <_bits/int128_t.h>
 
 // Only save registers that must be preserved across function calls.
 typedef struct context {

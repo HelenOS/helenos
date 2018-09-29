@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jiri Svoboda
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/*
+ * Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
+ */
+
+/** @addtogroup bits
  * @{
  */
 /** @file
+ * Define nonstandard 128-bit types if they are supported by the compiler.
+ * GCC only provides this on some architectures. We use it on IA-64.
  */
 
-#ifndef LIBC_LIMITS_H_
-#define LIBC_LIMITS_H_
+#ifndef _BITS_INT128_T_H_
+#define _BITS_INT128_T_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <_bits/limits.h>
-
-#ifdef __cplusplus
-}
+#ifdef __SIZEOF_INT128__
+typedef __int128 int128_t;
+typedef unsigned __int128 uint128_t;
 #endif
 
 #endif

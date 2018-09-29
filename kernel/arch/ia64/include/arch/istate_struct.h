@@ -86,6 +86,7 @@
 #ifndef __ASSEMBLER__
 
 #include <stdint.h>
+#include <_bits/int128_t.h>
 
 #ifdef KERNEL
 #include <typedefs.h>

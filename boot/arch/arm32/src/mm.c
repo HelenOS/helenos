@@ -37,6 +37,7 @@
 #include <arch/asm.h>
 #include <arch/mm.h>
 #include <arch/cp15.h>
+#include <arch/types.h>
 
 #ifdef PROCESSOR_ARCH_armv7_a
 static unsigned log2(unsigned val)

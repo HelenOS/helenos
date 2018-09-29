@@ -164,6 +164,8 @@
 
 #ifndef __ASSEMBLER__
 
+#include <stdint.h>
+
 /** Processor Status Register. */
 typedef union {
 	uint64_t value;

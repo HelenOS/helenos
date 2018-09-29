@@ -35,10 +35,11 @@
 #ifndef POSIX_LIMITS_H_
 #define POSIX_LIMITS_H_
 
-#include <libc/limits.h>
+#include_next <limits.h>
 
-#undef PATH_MAX
+#ifndef PATH_MAX
 #define PATH_MAX 256
+#endif
 
 #endif /* POSIX_LIMITS_H_ */
 
