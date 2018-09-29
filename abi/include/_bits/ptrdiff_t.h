@@ -40,9 +40,8 @@
 #ifndef _BITS_PTRDIFF_T_H_
 #define _BITS_PTRDIFF_T_H_
 
-#include <_bits/macros.h>
-
-typedef __PTRDIFF_TYPE__ ptrdiff_t;
+#define __need_ptrdiff_t
+#include <stddef.h>
 
 #endif
 

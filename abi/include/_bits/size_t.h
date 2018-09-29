@@ -40,9 +40,8 @@
 #ifndef _BITS_SIZE_T_H_
 #define _BITS_SIZE_T_H_
 
-#include <_bits/macros.h>
-
-typedef __SIZE_TYPE__ size_t;
+#define __need_size_t
+#include <stddef.h>
 
 #endif
 

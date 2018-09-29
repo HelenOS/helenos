@@ -40,12 +40,12 @@
 #ifndef _BITS_SSIZE_T_H_
 #define _BITS_SSIZE_T_H_
 
-#include <_bits/macros.h>
+#include <stdint.h>
 
-typedef __PTRDIFF_TYPE__ ssize_t;
+typedef intptr_t ssize_t;
 
-#define SSIZE_MIN  __PTRDIFF_MIN__
-#define SSIZE_MAX  __PTRDIFF_MAX__
+#define SSIZE_MIN  INTPTR_MIN
+#define SSIZE_MAX  INTPTR_MAX
 
 #endif
 

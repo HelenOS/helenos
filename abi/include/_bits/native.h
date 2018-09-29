@@ -45,19 +45,16 @@
 #ifndef _BITS_NATIVE_H_
 #define _BITS_NATIVE_H_
 
-#include <_bits/macros.h>
+#include <inttypes.h>
 
-#define ATOMIC_COUNT_MIN  __UINTPTR_MIN__
-#define ATOMIC_COUNT_MAX  __UINTPTR_MAX__
+typedef uintptr_t pfn_t;
+typedef uintptr_t ipl_t;
+typedef uintptr_t sysarg_t;
+typedef intptr_t  native_t;
 
-typedef __UINTPTR_TYPE__ pfn_t;
-typedef __UINTPTR_TYPE__ ipl_t;
-typedef __UINTPTR_TYPE__ sysarg_t;
-typedef __INTPTR_TYPE__  native_t;
-
-#define PRIdn  __PRIdPTR__  /**< Format for native_t. */
-#define PRIun  __PRIuPTR__  /**< Format for sysarg_t. */
-#define PRIxn  __PRIxPTR__  /**< Format for hexadecimal sysarg_t. */
+#define PRIdn  PRIdPTR  /**< Format for native_t. */
+#define PRIun  PRIuPTR  /**< Format for sysarg_t. */
+#define PRIxn  PRIxPTR  /**< Format for hexadecimal sysarg_t. */
 
 #endif
 

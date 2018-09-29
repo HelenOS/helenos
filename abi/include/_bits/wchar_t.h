@@ -40,11 +40,8 @@
 #ifndef _BITS_WCHAR_T_H_
 #define _BITS_WCHAR_T_H_
 
-#include <_bits/macros.h>
-
-#ifndef __cplusplus
-typedef __WCHAR_TYPE__ wchar_t;
-#endif
+#define __need_wchar_t
+#include <stddef.h>
 
 #endif
 

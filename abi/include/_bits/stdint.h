@@ -179,8 +179,7 @@ typedef __UINTMAX_TYPE__ uintmax_t;
 #define WINT_MIN  __WINT_MIN__
 #define WINT_MAX  __WINT_MAX__
 
-#include <_bits/WCHAR_MIN.h>
-#include <_bits/WCHAR_MAX.h>
+#include <_bits/wchar_limits.h>
 
 /* Use nonstandard 128-bit types if they are supported by the compiler. */
 

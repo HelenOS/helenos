@@ -40,9 +40,21 @@
 #ifndef _BITS_WCHAR_MIN_H_
 #define _BITS_WCHAR_MIN_H_
 
-#include <_bits/macros.h>
+/* wchar_t should always be signed int in HelenOS. */
 
-#define WCHAR_MIN  __WCHAR_MIN__
+#include <_bits/wchar_t.h>
+
+#ifndef __cplusplus
+_Static_assert(((wchar_t)-1) < 0, "wchar_t is not int");
+_Static_assert(sizeof(wchar_t) == 4, "wchar_t is not int");
+#endif
+
+#ifndef WCHAR_MAX
+#define WCHAR_MAX  0x7fffffff
+#endif
+#ifndef WCHAR_MIN
+#define WCHAR_MIN  (-WCHAR_MIN - 1)
+#endif
 
 #endif
 

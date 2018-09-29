@@ -40,9 +40,9 @@
 #ifndef _BITS_WEOF_H_
 #define _BITS_WEOF_H_
 
-#include <_bits/macros.h>
+/* wint_t is always int */
 
-#define WEOF  __WINT_EOF__
+#define WEOF  (-1)
 
 #endif
 

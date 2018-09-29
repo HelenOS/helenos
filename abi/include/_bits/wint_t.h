@@ -40,9 +40,8 @@
 #ifndef _BITS_WINT_T_H_
 #define _BITS_WINT_T_H_
 
-#include <_bits/macros.h>
-
-typedef __WINT_TYPE__ wint_t;
+#define __need_wint_t
+#include <stddef.h>
 
 #endif
 
