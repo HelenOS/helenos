@@ -362,7 +362,7 @@ void xhci_dump_slot_ctx(const struct xhci_slot_ctx *ctx)
 void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *ctx)
 {
 #define EP_DUMP_DW(name)	usb_log_debug("\t" #name ":\t0x%x", XHCI_EP_##name(*ctx))
-#define EP_DUMP_QW(name)	usb_log_debug("\t" #name ":\t0x%llx", XHCI_EP_##name(*ctx))
+#define EP_DUMP_QW(name)	usb_log_debug("\t" #name ":\t0x%" PRIx64, XHCI_EP_##name(*ctx))
 	EP_DUMP_DW(STATE);
 	EP_DUMP_DW(MULT);
 	EP_DUMP_DW(MAX_P_STREAMS);

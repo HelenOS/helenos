@@ -330,7 +330,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 			goto out;
 
 		case WINDOW_INSIDE:
-			usb_log_debug("[isoch] feeding buffer %zu at 0x%llx",
+			usb_log_debug("[isoch] feeding buffer %zu at 0x%" PRIx64,
 			    it - isoch->transfers, it->mfindex);
 			it->error = schedule_isochronous_trb(ep, it);
 			if (it->error) {
@@ -348,8 +348,8 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 			 * Missed the opportunity to schedule. Just mark this transfer as
 			 * skipped.
 			 */
-			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%llx by "
-			    "%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
+			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%" PRIx64 " by "
+			    "%" PRIu64 " uframes", it - isoch->transfers, it->mfindex, wd.offset);
 			it->state = ISOCH_COMPLETE;
 			it->error = EOK;
 			it->size = 0;
@@ -421,8 +421,8 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 			    isoch_feed_in_timer, ep);
 			goto out;
 		case WINDOW_TOO_LATE:
-			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%llx by"
-			    "%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
+			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%" PRIx64 " by"
+			    "%" PRIu64 " uframes", it - isoch->transfers, it->mfindex, wd.offset);
 			/* Missed the opportunity to schedule. Schedule ASAP. */
 			it->mfindex += wd.offset;
 			// Align to ESIT start boundary
@@ -434,7 +434,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 			isoch->enqueue = (isoch->enqueue + 1) % isoch->buffer_count;
 			isoch->last_mf = it->mfindex;
 
-			usb_log_debug("[isoch] feeding buffer %zu at 0x%llx",
+			usb_log_debug("[isoch] feeding buffer %zu at 0x%" PRIx64,
 			    it - isoch->transfers, it->mfindex);
 
 			it->error = schedule_isochronous_trb(ep, it);
@@ -519,7 +519,7 @@ errno_t isoch_schedule_out(xhci_transfer_t *transfer)
 	/* Calculate when to schedule next transfer */
 	calc_next_mfindex(ep, it);
 	isoch->last_mf = it->mfindex;
-	usb_log_debug("[isoch] buffer %zu will be on schedule at 0x%llx",
+	usb_log_debug("[isoch] buffer %zu will be on schedule at 0x%" PRIx64,
 	    it - isoch->transfers, it->mfindex);
 
 	/* Prepare the transfer. */

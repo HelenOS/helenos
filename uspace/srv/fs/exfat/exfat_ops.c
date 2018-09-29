@@ -1238,8 +1238,8 @@ static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
 	printf("exFAT file system mounted\n");
 	printf("Version: %d.%d\n", bs->version.major, bs->version.minor);
 	printf("Volume serial: %d\n", uint32_t_le2host(bs->volume_serial));
-	printf("Volume first sector: %lld\n", VOL_FS(bs));
-	printf("Volume sectors: %lld\n", VOL_CNT(bs));
+	printf("Volume first sector: %" PRId64 "\n", VOL_FS(bs));
+	printf("Volume sectors: %" PRId64 "\n", VOL_CNT(bs));
 	printf("FAT first sector: %d\n", FAT_FS(bs));
 	printf("FAT sectors: %d\n", FAT_CNT(bs));
 	printf("Data first sector: %d\n", DATA_FS(bs));
