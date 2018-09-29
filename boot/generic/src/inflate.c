@@ -66,6 +66,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <errno.h>
 #include <memstr.h>
 #include <inflate.h>

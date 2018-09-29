@@ -29,6 +29,7 @@
 #include <print.h>
 #include <stddef.h>
 #include <test.h>
+#include <typedefs.h>
 
 const char *test_print4(void)
 {

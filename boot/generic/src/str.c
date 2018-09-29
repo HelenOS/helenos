@@ -100,6 +100,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <str.h>
 
 /** Check the condition if wchar_t is signed */

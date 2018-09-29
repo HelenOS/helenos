@@ -30,6 +30,7 @@
 #define BOOT_BALLOC_H_
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct {
 	uintptr_t base;

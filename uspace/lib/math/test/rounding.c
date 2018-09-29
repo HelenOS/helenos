@@ -29,6 +29,7 @@
 #include <pcut/pcut.h>
 #include <math.h>
 #include <inttypes.h>
+#include <float.h>
 
 PCUT_INIT;
 
@@ -277,7 +278,7 @@ static float float_identity[FLOAT_CASES] = {
 	-__builtin_nanf("0xdeadbe"),
 
 	0.0,
-	FLT_DENORM_MIN,    /* smallest denormal > 0 */
+	FLT_TRUE_MIN,    /* smallest denormal > 0 */
 	FLT_MIN,         /* smallest normal > 0 */
 	0.5 - (FLT_EPSILON / 4.),
 	0.5,
@@ -377,7 +378,7 @@ static float float_identity[FLOAT_CASES] = {
 	/* Same as above but negative */
 
 	-0.0,
-	-FLT_DENORM_MIN,    /* smallest denormal > 0 */
+	-FLT_TRUE_MIN,    /* smallest denormal > 0 */
 	-FLT_MIN,         /* smallest normal > 0 */
 	-(0.5 - (FLT_EPSILON / 4.)),
 	-0.5,

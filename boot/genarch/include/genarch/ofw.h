@@ -29,8 +29,9 @@
 #ifndef BOOT_OFW_H_
 #define BOOT_OFW_H_
 
-#include <stddef.h>
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define MEMMAP_MAX_RECORDS  32
 #define MAX_OFW_ARGS        12

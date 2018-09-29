@@ -80,6 +80,7 @@
 #include <mm/slab.h>
 #include <adt/list.h>
 
+#include <limits.h>
 #include <stdint.h>
 
 #define CAPS_START	(CAP_NIL + 1)

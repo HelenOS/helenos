@@ -35,6 +35,7 @@ namespace std::hel
 {
     extern "C" {
         #include <stdlib.h>
+        #include <_bits/ssize_t.h>
     }
 }
 

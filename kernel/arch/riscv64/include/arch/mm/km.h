@@ -37,6 +37,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define KM_RISCV64_IDENTITY_START      UINT64_C(0xffff800000000000)
 #define KM_RISCV64_IDENTITY_SIZE       UINT64_C(0x0000400000000000)
