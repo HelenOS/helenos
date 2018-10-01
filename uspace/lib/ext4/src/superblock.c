@@ -1247,7 +1247,7 @@ errno_t ext4_superblock_check_sanity(ext4_superblock_t *sb)
  */
 uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *sb)
 {
-	uint64_t blocks_count = ext4_superblock_get_blocks_count(sb);
+	uint64_t blocks_count = ext4_superblock_get_blocks_count(sb) - 1;
 	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
 
 	uint32_t block_groups_count = blocks_count / blocks_per_group;
@@ -1273,7 +1273,7 @@ uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *sb, uint32_t bgi
 	uint32_t blocks_per_group =
 	    ext4_superblock_get_blocks_per_group(sb);
 	uint64_t total_blocks =
-	    ext4_superblock_get_blocks_count(sb);
+	    ext4_superblock_get_blocks_count(sb) - 1;
 
 	if (bgid < block_group_count - 1)
 		return blocks_per_group;
@@ -1532,7 +1532,8 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 
 	ext4_superblock_set_magic(sb, EXT4_SUPERBLOCK_MAGIC);
 	ext4_superblock_set_inodes_count(sb, inodes_count);
-	ext4_superblock_set_blocks_count(sb, blocks_count);
+	/* This seems to include the boot block, despite the ext2fs docs */
+	ext4_superblock_set_blocks_count(sb, fs_blocks);
 	ext4_superblock_set_reserved_blocks_count(sb, res_blocks);
 	ext4_superblock_set_free_blocks_count(sb, free_blocks);
 	ext4_superblock_set_free_inodes_count(sb, inodes_count);
@@ -1582,6 +1583,7 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 
 	/* Compute free blocks */
 	free_blocks = blocks_count;
+	++free_blocks; // XXX Why?
 	for (idx = 0; idx < ngroups; idx++) {
 		free_blocks -= ext4_superblock_get_group_backup_blocks(sb, idx);
 		/* One for block bitmap, one for inode bitamp */
