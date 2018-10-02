@@ -907,7 +907,15 @@ libfs_ops_t ext4_libfs_ops = {
  */
 static errno_t ext4_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
-	return ext4_filesystem_probe(service_id);
+	ext4_fs_probe_info_t pinfo;
+	errno_t rc;
+
+	rc = ext4_filesystem_probe(service_id, &pinfo);
+	if (rc != EOK)
+		return rc;
+
+	memcpy(info->label, pinfo.vol_name, sizeof(pinfo.vol_name));
+	return EOK;
 }
 
 /** Mount operation.

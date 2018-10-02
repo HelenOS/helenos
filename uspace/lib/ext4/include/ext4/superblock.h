@@ -117,7 +117,8 @@ extern void ext4_superblock_set_features_read_only(ext4_superblock_t *,
 
 extern void ext4_superblock_get_uuid(ext4_superblock_t *, uuid_t *);
 extern void ext4_superblock_set_uuid(ext4_superblock_t *, uuid_t *);
-extern const char *ext4_superblock_get_volume_name(ext4_superblock_t *);
+extern errno_t ext4_superblock_get_volume_name(ext4_superblock_t *, char *,
+    size_t);
 extern void ext4_superblock_set_volume_name(ext4_superblock_t *, const char *);
 extern const char *ext4_superblock_get_last_mounted(ext4_superblock_t *);
 extern void ext4_superblock_set_last_mounted(ext4_superblock_t *, const char *);

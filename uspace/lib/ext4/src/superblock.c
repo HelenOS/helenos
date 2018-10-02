@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <str.h>
 #include <time.h>
 #include "ext4/cfg.h"
 #include "ext4/superblock.h"
@@ -882,9 +883,28 @@ void ext4_superblock_set_uuid(ext4_superblock_t *sb, uuid_t *uuid)
  * @return Name of the volume
  *
  */
-const char *ext4_superblock_get_volume_name(ext4_superblock_t *sb)
+errno_t ext4_superblock_get_volume_name(ext4_superblock_t *sb, char *buf,
+    size_t bufsz)
 {
-	return sb->volume_name;
+	size_t i;
+	size_t wi;
+	wchar_t ch;
+	errno_t rc;
+
+	i = 0;
+	wi = 0;
+	while (sb->volume_name[i] != '\0' && i < sizeof(sb->volume_name)) {
+		/* ISO 8859-1 codes map to identical Unicode code points */
+		ch = (wchar_t)(uint8_t)sb->volume_name[i];
+		rc = chr_encode(ch, buf, &wi, bufsz - 1);
+		if (rc != EOK)
+			return rc;
+
+		i++;
+	}
+
+	buf[wi] = '\0';
+	return EOK;
 }
 
 /** Set name of the filesystem volume.

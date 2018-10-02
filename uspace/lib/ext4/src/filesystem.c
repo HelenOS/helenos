@@ -373,11 +373,13 @@ error:
 /** Probe filesystem.
  *
  * @param service_id Block device to probe
+ * @param info Place to store probe information
  *
  * @return EOK or an error code.
  *
  */
-errno_t ext4_filesystem_probe(service_id_t service_id)
+errno_t ext4_filesystem_probe(service_id_t service_id,
+    ext4_fs_probe_info_t *info)
 {
 	ext4_filesystem_t *fs = NULL;
 	errno_t rc;
@@ -390,6 +392,13 @@ errno_t ext4_filesystem_probe(service_id_t service_id)
 	rc = ext4_filesystem_init(fs, service_id, CACHE_MODE_WT);
 	if (rc != EOK) {
 		free(fs);
+		return rc;
+	}
+
+	rc = ext4_superblock_get_volume_name(fs->superblock, info->vol_name,
+	    sizeof(info->vol_name));
+	if (rc != EOK) {
+		ext4_filesystem_fini(fs);
 		return rc;
 	}
 
