@@ -47,6 +47,7 @@
 #include "ext4/balloc.h"
 #include "ext4/bitmap.h"
 #include "ext4/block_group.h"
+#include "ext4/cfg.h"
 #include "ext4/directory.h"
 #include "ext4/extent.h"
 #include "ext4/filesystem.h"
@@ -247,9 +248,10 @@ error:
 
 /** Create new filesystem.
  *
+ * @param ver Filesystem version
  * @param service_id Block device where to create new filesystem
  */
-errno_t ext4_filesystem_create(service_id_t service_id)
+errno_t ext4_filesystem_create(ext4_cfg_ver_t ver, service_id_t service_id)
 {
 	errno_t rc;
 	ext4_superblock_t *superblock = NULL;
@@ -279,7 +281,7 @@ errno_t ext4_filesystem_create(service_id_t service_id)
 		goto err;
 
 	/* Create superblock */
-	rc = ext4_superblock_create(dev_bsize, dev_nblocks, &superblock);
+	rc = ext4_superblock_create(dev_bsize, dev_nblocks, ver, &superblock);
 	if (rc != EOK)
 		goto err;
 

@@ -368,7 +368,10 @@ void ext4_directory_write_entry(ext4_superblock_t *sb,
 	memcpy(entry->name, name, name_len);
 
 	/* Set type of entry */
-	if (ext4_inode_is_type(sb, child->inode, EXT4_INODE_MODE_DIRECTORY))
+	if (!ext4_superblock_has_feature_incompatible(sb, EXT4_FEATURE_INCOMPAT_FILETYPE))
+		ext4_directory_entry_ll_set_inode_type(sb, entry,
+		    EXT4_DIRECTORY_FILETYPE_UNKNOWN);
+	else if (ext4_inode_is_type(sb, child->inode, EXT4_INODE_MODE_DIRECTORY))
 		ext4_directory_entry_ll_set_inode_type(sb, entry,
 		    EXT4_DIRECTORY_FILETYPE_DIR);
 	else

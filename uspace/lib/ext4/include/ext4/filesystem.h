@@ -36,11 +36,12 @@
 #define LIBEXT4_FILESYSTEM_H_
 
 #include <block.h>
+#include "ext4/cfg.h"
 #include "ext4/fstypes.h"
 #include "ext4/types.h"
 
 extern errno_t ext4_filesystem_probe(service_id_t);
-extern errno_t ext4_filesystem_create(service_id_t);
+extern errno_t ext4_filesystem_create(ext4_cfg_ver_t, service_id_t);
 extern errno_t ext4_filesystem_open(ext4_instance_t *, service_id_t,
     enum cache_mode, aoff64_t *, ext4_filesystem_t **);
 extern errno_t ext4_filesystem_close(ext4_filesystem_t *);

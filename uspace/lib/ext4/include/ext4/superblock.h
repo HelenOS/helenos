@@ -38,6 +38,7 @@
 #include <block.h>
 #include <stdint.h>
 #include <uuid.h>
+#include "ext4/cfg.h"
 #include "ext4/types.h"
 
 extern uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *);
@@ -163,7 +164,8 @@ extern uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *,
     uint32_t);
 extern uint32_t ext4_superblock_get_inodes_in_group(ext4_superblock_t *,
     uint32_t);
-extern errno_t ext4_superblock_create(size_t, uint64_t, ext4_superblock_t **);
+extern errno_t ext4_superblock_create(size_t, uint64_t, ext4_cfg_ver_t,
+    ext4_superblock_t **);
 extern uint32_t ext4_superblock_get_group_backup_blocks(ext4_superblock_t *,
     uint32_t);
 
