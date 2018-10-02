@@ -7,3 +7,8 @@
 /** @addtogroup bits _bits
  * @ingroup abi
  */
+
+/**
+ * @defgroup abi_generic Generic shared definitions
+ * @ingroup abi
+ */

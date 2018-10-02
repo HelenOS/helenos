@@ -31,7 +31,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-/** @addtogroup generic
+/** @addtogroup libc
  * @{
  */
 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericipc
+/** @addtogroup kernel_generic_ipc
  * @{
  */
 /** @file

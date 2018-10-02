@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericdebug
+/** @addtogroup kernel_generic_debug
  * @{
  */
 /** @file

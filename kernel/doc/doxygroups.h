@@ -4,7 +4,7 @@
  * @brief HelenOS kernel
  */
 
-/** @defgroup genericadt Data types
+/** @defgroup kernel_generic_adt Data types
  * @ingroup kernel
  */
 
@@ -12,7 +12,7 @@
  * @ingroup others
  */
 
-/** @defgroup genericconsole Kernel console
+/** @defgroup kernel_generic_console Kernel console
  * @ingroup others
  */
 
@@ -24,7 +24,7 @@
  * @ingroup kernel
  */
 
-/**    @defgroup genericproc generic
+/**    @defgroup kernel_generic_proc generic
  *     @ingroup proc
  */
 
@@ -100,7 +100,7 @@
  */
 
 /**
- *     @defgroup genericmm generic
+ *     @defgroup kernel_generic_mm generic
  *     @ingroup mm
  */
 
@@ -172,13 +172,13 @@
  *     @endcond
  */
 
-/** @defgroup genericipc IPC
+/** @defgroup kernel_generic_ipc IPC
  * @ingroup kernel
  */
 
-/** @defgroup generickio KIO
+/** @defgroup kernel_generic_kio KIO
  * @brief Kernel character input/output facility
- * @ingroup genericconsole
+ * @ingroup kernel_generic_console
  */
 
 /** @defgroup ddi Device Driver Interface
@@ -186,7 +186,7 @@
  */
 
 /**
- *     @defgroup genericddi generic
+ *     @defgroup kernel_generic_ddi generic
  *     @ingroup ddi
  */
 
@@ -258,7 +258,7 @@
  */
 
 /**
- *     @defgroup genericdebug generic
+ *     @defgroup kernel_generic_debug generic
  *     @ingroup debug
  */
 
@@ -329,7 +329,7 @@
  * @ingroup kernel
  */
 /**
- *     @defgroup genericinterrupt generic
+ *     @defgroup kernel_generic_interrupt generic
  *     @ingroup interrupt
  */
 
@@ -401,7 +401,7 @@
  */
 
 /**
- *     @defgroup generic generic
+ *     @defgroup kernel_generic generic
  *     @ingroup others
  */
 
