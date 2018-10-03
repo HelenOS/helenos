@@ -105,7 +105,7 @@
  */
 
 /**
- *     @defgroup genarchmm genarch
+ *     @defgroup kernel_genarch_mm genarch
  *     @ingroup mm
  */
 
@@ -406,7 +406,7 @@
  */
 
 /**
- *     @defgroup genarch genarch
+ *     @defgroup kernel_genarch genarch
  *     @ingroup others
  */
 

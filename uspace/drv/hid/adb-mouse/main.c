@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup uspace_drv_adb_mouse
  * @{
  */
-/** @file ADB keyboard driver
+/** @file ADB mouse driver
  */
 
 #include <ddf/driver.h>

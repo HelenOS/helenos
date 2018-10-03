@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup s3c24xx_ts
+/** @addtogroup uspace_srv_s3c24xx_ts
  * @{
  */
 /**

@@ -9,6 +9,11 @@
  */
 
 /**
- * @defgroup abi_generic Generic shared definitions
+ * @defgroup abi_generic generic
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_genarch genarch
  * @ingroup abi
  */

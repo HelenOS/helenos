@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch
+/** @addtogroup uspace_drv_apic
  * @{
  */
 /** @file APIC driver

@@ -26,7 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file Sun4v console driver
+/**
+ * @addtogroup uspace_drv_sun4v_con
+ * @file Sun4v console driver
+ * @{
  */
 
 #include <ddf/driver.h>
