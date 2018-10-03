@@ -59,7 +59,7 @@ typedef enum {
 } vol_fstype_t;
 
 #define VOL_FSTYPE_LIMIT (fs_ext4 + 1)
-#define VOL_FSTYPE_DEFAULT fs_minix
+#define VOL_FSTYPE_DEFAULT fs_ext4
 
 /** Volume service */
 typedef struct vol {
