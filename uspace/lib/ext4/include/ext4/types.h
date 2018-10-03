@@ -234,11 +234,13 @@ typedef struct ext4_filesystem {
 	aoff64_t inode_blocks_per_level[4];
 } ext4_filesystem_t;
 
+/** Size of buffer for volume name. To hold 16 latin-1 chars encoded as UTF-8
+ * and a null terminator we need 2 * 16 + 1 bytes
+ */
+#define EXT4_VOL_NAME_BYTES 33
+
 typedef struct {
-	/** Volume name, to hold 16 latin-1 chars in UTF-8 and null terminator
-	 * we need 2 * 16 + 1 bytes
-	 */
-	char vol_name[33];
+	char vol_name[EXT4_VOL_NAME_BYTES];
 } ext4_fs_probe_info_t;
 
 #define EXT4_BLOCK_GROUP_INODE_UNINIT   0x0001  /* Inode table/bitmap not in use */

@@ -911,10 +911,30 @@ errno_t ext4_superblock_get_volume_name(ext4_superblock_t *sb, char *buf,
  *
  * @param sb   Superblock
  * @param name New name of the volume
+ * @return EOK on success or error code
  */
-void ext4_superblock_set_volume_name(ext4_superblock_t *sb, const char *name)
+errno_t ext4_superblock_set_volume_name(ext4_superblock_t *sb, const char *name)
 {
-	memcpy(sb->volume_name, name, sizeof(sb->volume_name));
+	size_t off;
+	wchar_t ch;
+	size_t wi;
+
+	off = 0;
+	wi = 0;
+	while (wi < sizeof(sb->volume_name)) {
+		ch = str_decode(name, &off, STR_NO_LIMIT);
+		if (ch == 0)
+			break;
+		if (ch > 255)
+			return EINVAL;
+
+		sb->volume_name[wi++] = ch;
+	}
+
+	while (wi < sizeof(sb->volume_name))
+		sb->volume_name[wi++] = '\0';
+
+	return EOK;
 }
 
 /** Get name of the directory, where this filesystem was mounted at last.
@@ -1474,12 +1494,12 @@ uint32_t ext4_superblock_get_group_backup_blocks(ext4_superblock_t *sb,
  *
  * @param dev_bsize Device block size
  * @param dev_bcnt Device number of blocks
- * @param ver Filesystem version
+ * @param cfg Configuration of new file system
  * @param rsb Place to store pointer to newly allocated superblock
  * @return EOK on success or error code
  */
 errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
-    ext4_cfg_ver_t ver, ext4_superblock_t **rsb)
+    ext4_cfg_t *cfg, ext4_superblock_t **rsb)
 {
 	ext4_superblock_t *sb;
 	uuid_t uuid;
@@ -1578,14 +1598,14 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 	ext4_superblock_set_last_check_time(sb, cur_ts);
 	ext4_superblock_set_check_interval(sb, 0);
 	ext4_superblock_set_creator_os(sb, EXT4_SUPERBLOCK_OS_LINUX);
-	if (ver >= extver_ext2)
+	if (cfg->version >= extver_ext2)
 		ext4_superblock_set_rev_level(sb, EXT4_DYNAMIC_REV);
 	else
 		ext4_superblock_set_rev_level(sb, EXT4_GOOD_OLD_REV);
 	ext4_superblock_set_def_resuid(sb, 0);
 	ext4_superblock_set_def_resgid(sb, 0);
 
-	if (ver >= extver_ext2) {
+	if (cfg->version >= extver_ext2) {
 		/* Dynamic rev */
 		ext4_superblock_set_first_inode(sb, EXT4_REV0_FIRST_INO);
 		ext4_superblock_set_inode_size(sb, EXT4_REV0_INODE_SIZE);
@@ -1595,8 +1615,11 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 		ext4_superblock_set_features_read_only(sb, 0);
 
 		ext4_superblock_set_uuid(sb, &uuid);
-		/* 16-byte Latin-1 string padded with null characters */
-		ext4_superblock_set_volume_name(sb, "HelenOS-Ext4\0\0\0\0");
+
+		rc = ext4_superblock_set_volume_name(sb, cfg->volume_name);
+		if (rc != EOK)
+			goto error;
+
 		/* 64-byte Latin-1 string padded with null characters */
 		ext4_superblock_set_last_mounted(sb,
 		    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"

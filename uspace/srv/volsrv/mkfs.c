@@ -147,11 +147,11 @@ void volsrv_part_get_lsupp(vol_fstype_t fstype, vol_label_supp_t *vlsupp)
 
 	switch (fstype) {
 	case fs_exfat:
+	case fs_ext4:
 	case fs_fat:
 		vlsupp->supported = true;
 		break;
 	case fs_minix:
-	case fs_ext4:
 	case fs_cdfs:
 		break;
 	}

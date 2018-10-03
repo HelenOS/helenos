@@ -119,7 +119,7 @@ extern void ext4_superblock_get_uuid(ext4_superblock_t *, uuid_t *);
 extern void ext4_superblock_set_uuid(ext4_superblock_t *, uuid_t *);
 extern errno_t ext4_superblock_get_volume_name(ext4_superblock_t *, char *,
     size_t);
-extern void ext4_superblock_set_volume_name(ext4_superblock_t *, const char *);
+extern errno_t ext4_superblock_set_volume_name(ext4_superblock_t *, const char *);
 extern const char *ext4_superblock_get_last_mounted(ext4_superblock_t *);
 extern void ext4_superblock_set_last_mounted(ext4_superblock_t *, const char *);
 
@@ -165,7 +165,7 @@ extern uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *,
     uint32_t);
 extern uint32_t ext4_superblock_get_inodes_in_group(ext4_superblock_t *,
     uint32_t);
-extern errno_t ext4_superblock_create(size_t, uint64_t, ext4_cfg_ver_t,
+extern errno_t ext4_superblock_create(size_t, uint64_t, ext4_cfg_t *,
     ext4_superblock_t **);
 extern uint32_t ext4_superblock_get_group_backup_blocks(ext4_superblock_t *,
     uint32_t);

@@ -51,12 +51,12 @@ int main(int argc, char **argv)
 	errno_t rc;
 	char *dev_path;
 	service_id_t service_id;
-	ext4_cfg_ver_t ver;
+	ext4_cfg_t cfg;
 	char *endptr;
 	aoff64_t nblocks;
-	char *label;
+	const char *label = "";
 
-	ver = ext4_def_fs_version;
+	cfg.version = ext4_def_fs_version;
 
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 				return 1;
 			}
 
-			rc = ext4_version_parse(*argv, &ver);
+			rc = ext4_version_parse(*argv, &cfg.version);
 			if (rc != EOK) {
 				printf(NAME ": Error, invalid argument.\n");
 				syntax_print();
@@ -145,10 +145,10 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	(void) label;
+	cfg.volume_name = label;
 	(void) nblocks;
 
-	rc = ext4_filesystem_create(ver, service_id);
+	rc = ext4_filesystem_create(&cfg, service_id);
 	if (rc != EOK) {
 		printf(NAME ": Error initializing file system.\n");
 		return 3;

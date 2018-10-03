@@ -248,10 +248,10 @@ error:
 
 /** Create new filesystem.
  *
- * @param ver Filesystem version
- * @param service_id Block device where to create new filesystem
+ * @param cfg Configuration of new file system
+ * @param service_id Block device where to create new file system
  */
-errno_t ext4_filesystem_create(ext4_cfg_ver_t ver, service_id_t service_id)
+errno_t ext4_filesystem_create(ext4_cfg_t *cfg, service_id_t service_id)
 {
 	errno_t rc;
 	ext4_superblock_t *superblock = NULL;
@@ -281,7 +281,7 @@ errno_t ext4_filesystem_create(ext4_cfg_ver_t ver, service_id_t service_id)
 		goto err;
 
 	/* Create superblock */
-	rc = ext4_superblock_create(dev_bsize, dev_nblocks, ver, &superblock);
+	rc = ext4_superblock_create(dev_bsize, dev_nblocks, cfg, &superblock);
 	if (rc != EOK)
 		goto err;
 

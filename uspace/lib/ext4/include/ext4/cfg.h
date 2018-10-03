@@ -33,6 +33,8 @@
 #ifndef LIBEXT4_CFG_H_
 #define LIBEXT4_CFG_H_
 
+#include "types.h"
+
 /** Versions available to choose from when creating a new file system. */
 typedef enum {
 	/** Ext2 original */
@@ -43,6 +45,14 @@ typedef enum {
 
 /** Default file system version */
 #define ext4_def_fs_version extver_ext2
+
+/** Configuration of a new ext4 file system */
+typedef struct {
+	/** File system version */
+	ext4_cfg_ver_t version;
+	/** Volume name encoded as UTF-8 string */
+	const char *volume_name;
+} ext4_cfg_t;
 
 #endif
 
