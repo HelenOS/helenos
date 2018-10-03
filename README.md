@@ -9,11 +9,12 @@ via message passing. A failure or crash of one component does not
 directly harm others. HelenOS is therefore flexible, modular,
 extensible, fault tolerant and easy to understand.
 
-HelenOS does not aim to be a clone of any existing operating system
-and trades compatibility with legacy APIs for cleaner design.
-Most of HelenOS components have been made to order specifically for
-HelenOS so that its essential parts can stay free of adaptation layers,
-glue code, franken-components and the maintenance burden incurred by them.
+HelenOS aims to be compatible with the C11 and C++14 standards, but does not
+aspire to be a clone of any existing operating system and trades compatibility
+with legacy APIs for cleaner design. Most of HelenOS components have been made
+to order specifically for HelenOS so that its essential parts can stay free of
+adaptation layers, glue code, franken-components and the maintenance burden
+incurred by them.
 
 * [Website](http://helenos.org)
 * [Wiki](http://helenos.org/wiki)
