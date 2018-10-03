@@ -195,6 +195,10 @@ errno_t vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
  * After a partition is created (e.g. as a result of deleting a label
  * the dummy partition is created), it can take some (unknown) time
  * until it is discovered.
+ *
+ * @param vol Volume service
+ * @param sid Service ID of the partition
+ * @return EOK on success or an error code
  */
 errno_t vol_part_add(vol_t *vol, service_id_t sid)
 {
@@ -211,7 +215,13 @@ errno_t vol_part_add(vol_t *vol, service_id_t sid)
 	return EOK;
 }
 
-/** Get partition information. */
+/** Get partition information.
+ *
+ * @param vol Volume service
+ * @param sid Service ID of the partition
+ * @param vinfo Place to sore partition information
+ * @return EOK on success or an error code
+ */
 errno_t vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 {
 	async_exch_t *exch;
@@ -235,7 +245,12 @@ errno_t vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 	return EOK;
 }
 
-/** Unmount partition (and possibly eject the media). */
+/** Unmount partition (and possibly eject the media).
+ *
+ * @param vol Volume service
+ * @param sid Service ID of the partition
+ * @return EOK on success or an error code
+ */
 errno_t vol_part_eject(vol_t *vol, service_id_t sid)
 {
 	async_exch_t *exch;
@@ -253,6 +268,10 @@ errno_t vol_part_eject(vol_t *vol, service_id_t sid)
 
 /** Erase partition (to the extent where we will consider it not containing
  * a file system.
+ *
+ * @param vol Volume service
+ * @param sid Service ID of the partition
+ * @return EOK on success or an error code
  */
 errno_t vol_part_empty(vol_t *vol, service_id_t sid)
 {
@@ -269,7 +288,36 @@ errno_t vol_part_empty(vol_t *vol, service_id_t sid)
 	return EOK;
 }
 
-/** Get volume label support. */
+/** Insert volume.
+ *
+ * This will re-mount the volume if it has been ejected previously.
+ *
+ * @param vol Volume service
+ * @param sid Service ID of the partition
+ * @return EOK on success or an error code
+ */
+errno_t vol_part_insert(vol_t *vol, service_id_t sid)
+{
+	async_exch_t *exch;
+	errno_t retval;
+
+	exch = async_exchange_begin(vol->sess);
+	retval = async_req_1_0(exch, VOL_PART_INSERT, sid);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
+
+/** Get volume label support.
+ *
+ * @param vol Volume service
+ * @param fstype File system type
+ * @param vlsupp Place to store volume label support information
+ * @return EOK on success or an error code
+ */
 errno_t vol_part_get_lsupp(vol_t *vol, vol_fstype_t fstype,
     vol_label_supp_t *vlsupp)
 {

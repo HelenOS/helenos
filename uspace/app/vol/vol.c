@@ -43,10 +43,9 @@
 
 #define NAME "vol"
 
-static char *volspec;
-
 typedef enum {
 	vcmd_eject,
+	vcmd_insert,
 	vcmd_help,
 	vcmd_list,
 } vol_cmd_t;
@@ -135,6 +134,36 @@ out:
 	return rc;
 }
 
+static errno_t vol_cmd_insert(const char *volspec)
+{
+	vol_t *vol = NULL;
+	service_id_t svc_id;
+	errno_t rc;
+
+	rc = loc_service_get_id(volspec, &svc_id, 0);
+	if (rc != EOK) {
+		printf("Error looking up service '%s'.\n", volspec);
+		goto out;
+	}
+
+	rc = vol_create(&vol);
+	if (rc != EOK) {
+		printf("Error contacting volume service.\n");
+		goto out;
+	}
+
+	rc = vol_part_insert(vol, svc_id);
+	if (rc != EOK) {
+		printf("Error inserting volume.\n");
+		goto out;
+	}
+
+	rc = EOK;
+out:
+	vol_destroy(vol);
+	return rc;
+}
+
 static errno_t vol_cmd_list(void)
 {
 	vol_t *vol = NULL;
@@ -214,12 +243,14 @@ static void print_syntax(void)
 	printf("Syntax:\n");
 	printf("  %s                List volumes\n", NAME);
 	printf("  %s -h             Print help\n", NAME);
-	printf("  %s eject <volume> Eject volume\n", NAME);
+	printf("  %s eject <mp>     Eject volume mounted in a directory\n", NAME);
+	printf("  %s insert <svc>   Insert volume based on service identifier\n", NAME);
 }
 
 int main(int argc, char *argv[])
 {
 	char *cmd;
+	char *volspec;
 	vol_cmd_t vcmd;
 	int i;
 	errno_t rc = EINVAL;
@@ -239,6 +270,13 @@ int main(int argc, char *argv[])
 				goto syntax_error;
 			}
 			volspec = argv[i++];
+		} else if (str_cmp(cmd, "insert") == 0) {
+			vcmd = vcmd_insert;
+			if (argc <= i) {
+				printf("Parameter missing.\n");
+				goto syntax_error;
+			}
+			volspec = argv[i++];
 		} else {
 			printf("Invalid sub-command '%s'.\n", cmd);
 			goto syntax_error;
@@ -253,6 +291,9 @@ int main(int argc, char *argv[])
 	switch (vcmd) {
 	case vcmd_eject:
 		rc = vol_cmd_eject(volspec);
+		break;
+	case vcmd_insert:
+		rc = vol_cmd_insert(volspec);
 		break;
 	case vcmd_help:
 		print_syntax();

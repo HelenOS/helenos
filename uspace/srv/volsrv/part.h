@@ -54,6 +54,7 @@ extern errno_t vol_part_find_by_id_ref(vol_parts_t *, service_id_t,
 extern void vol_part_del_ref(vol_part_t *);
 extern errno_t vol_part_eject_part(vol_part_t *);
 extern errno_t vol_part_empty_part(vol_part_t *);
+extern errno_t vol_part_insert_part(vol_part_t *);
 extern errno_t vol_part_mkfs_part(vol_part_t *, vol_fstype_t, const char *,
     const char *);
 extern errno_t vol_part_set_mountp_part(vol_part_t *, const char *);

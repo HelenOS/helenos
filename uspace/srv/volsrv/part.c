@@ -601,6 +601,40 @@ errno_t vol_part_empty_part(vol_part_t *part)
 	return EOK;
 }
 
+/** Insert volume.
+ *
+ * Re-mount the volume in the partition, if applicable.
+ *
+ * @param part Partition
+ */
+errno_t vol_part_insert_part(vol_part_t *part)
+{
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_insert_part()");
+
+	fibril_mutex_lock(&part->parts->lock);
+
+	if (part->cur_mp != NULL) {
+		fibril_mutex_unlock(&part->parts->lock);
+		return EOK;
+	}
+
+	rc = vol_part_probe(part);
+	if (rc != EOK)
+		goto error;
+
+	rc = vol_part_mount(part);
+	if (rc != EOK)
+		goto error;
+
+	fibril_mutex_unlock(&part->parts->lock);
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Set mount point.
  *
  * Verify and set a mount point. If the value of the mount point is

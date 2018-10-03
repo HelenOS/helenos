@@ -49,6 +49,7 @@ extern errno_t vol_part_add(vol_t *, service_id_t);
 extern errno_t vol_part_info(vol_t *, service_id_t, vol_part_info_t *);
 extern errno_t vol_part_eject(vol_t *, service_id_t);
 extern errno_t vol_part_empty(vol_t *, service_id_t);
+extern errno_t vol_part_insert(vol_t *, service_id_t);
 extern errno_t vol_part_get_lsupp(vol_t *, vol_fstype_t, vol_label_supp_t *);
 extern errno_t vol_part_mkfs(vol_t *, service_id_t, vol_fstype_t, const char *,
     const char *);
