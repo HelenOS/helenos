@@ -43,4 +43,4 @@ grub_mod_dir="$orig_dir/../../boot/grub.pc/i386-pc"
 "$grub_tools_dir"/grub-mkimage --directory "$grub_mod_dir" \
     --prefix "$grub_mod_dir" --output "$grub_mod_dir/core.img" \
     --format 'i386-pc' --compression 'auto' --config "$orig_dir/load.cfg" \
-    "minix3" "part_msdos" "biosdisk" "search_fs_uuid"
+    "ext2" "part_msdos" "biosdisk" "search_fs_uuid"

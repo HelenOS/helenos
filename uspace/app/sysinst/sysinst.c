@@ -61,6 +61,8 @@
  */
 #define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.0\\ata-c1\\d0"
 //#define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.2\\uhci_rh\\usb01_a1\\mass-storage0\\l0"
+/** Volume label for the new file system */
+#define INST_VOL_LABEL "HelenOS"
 
 #define MOUNT_POINT "/inst"
 
@@ -134,8 +136,9 @@ static errno_t sysinst_label_dev(const char *dev, service_id_t *psvc_id)
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = cap;
 	pspec.pkind = lpk_primary;
-	pspec.fstype = fs_minix; /* Cannot be changed without modifying core.img */
+	pspec.fstype = fs_ext4; /* Cannot be changed without modifying core.img */
 	pspec.mountp = MOUNT_POINT;
+	pspec.label = INST_VOL_LABEL;
 
 	rc = fdisk_part_create(fdev, &pspec, &part);
 	if (rc != EOK) {

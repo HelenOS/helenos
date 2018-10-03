@@ -44,7 +44,7 @@ function grub_build()
 	target="$1"
 	platform="$2"
 
-	./configure --prefix="$builddir/$target-$platform" --target="$target" --with-platform="$platform" || exit 1
+	./configure --prefix="$builddir/$target-$platform" --target="$target" --with-platform="$platform" --disable-werror || exit 1
 	make clean || exit 1
 	make install || exit 1
 }
