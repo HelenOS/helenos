@@ -220,6 +220,7 @@ static void niagara_init(void)
 	sysinfo_set_item_val("niagara.inbuf.datasize", NULL,
 	    INPUT_BUFFER_SIZE);
 
+	ddi_parea_init(&outbuf_parea);
 	outbuf_parea.pbase = (uintptr_t) (KA2PA(&output_buffer));
 	outbuf_parea.frames = 1;
 	outbuf_parea.unpriv = false;

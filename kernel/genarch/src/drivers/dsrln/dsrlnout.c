@@ -83,7 +83,7 @@ outdev_t *dsrlnout_init(ioport8_t *base)
 	dsrlndev->data = instance;
 
 	instance->base = base;
-	link_initialize(&instance->parea.link);
+	ddi_parea_init(&instance->parea);
 	instance->parea.pbase = KA2PA(base);
 	instance->parea.frames = 1;
 	instance->parea.unpriv = false;

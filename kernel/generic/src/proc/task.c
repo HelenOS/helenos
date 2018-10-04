@@ -47,7 +47,6 @@
 #include <synch/waitq.h>
 #include <arch.h>
 #include <barrier.h>
-#include <adt/btree.h>
 #include <adt/list.h>
 #include <adt/odict.h>
 #include <cap/cap.h>

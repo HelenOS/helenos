@@ -58,6 +58,7 @@ void init_rd(void *data, size_t size)
 	uintptr_t base = (uintptr_t) data;
 	assert((base % FRAME_SIZE) == 0);
 
+	ddi_parea_init(&rd_parea);
 	rd_parea.pbase = base;
 	rd_parea.frames = SIZE2FRAMES(size);
 	rd_parea.unpriv = false;

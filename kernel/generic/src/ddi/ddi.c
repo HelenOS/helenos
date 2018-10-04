@@ -48,26 +48,43 @@
 #include <mm/page.h>
 #include <synch/mutex.h>
 #include <syscall/copy.h>
-#include <adt/btree.h>
+#include <adt/odict.h>
 #include <arch.h>
 #include <align.h>
 #include <errno.h>
+#include <mem.h>
 #include <trace.h>
 #include <bitops.h>
 
-/** This lock protects the parea_btree. */
-static mutex_t parea_lock;
+/** This lock protects the @c pareas ordered dictionary. */
+static mutex_t pareas_lock;
 
-/** B+tree with enabled physical memory areas. */
-static btree_t parea_btree;
+/** Ordered dictionary of enabled physical memory areas by base address. */
+static odict_t pareas;
+
+static void *pareas_getkey(odlink_t *);
+static int pareas_cmp(void *, void *);
 
 /** Initialize DDI.
  *
  */
 void ddi_init(void)
 {
-	btree_create(&parea_btree);
-	mutex_initialize(&parea_lock, MUTEX_PASSIVE);
+	odict_initialize(&pareas, pareas_getkey, pareas_cmp);
+	mutex_initialize(&pareas_lock, MUTEX_PASSIVE);
+}
+
+/** Initialize physical area structure.
+ *
+ * This should always be called first on the parea structure before
+ * filling in fields and calling ddi_parea_register.
+ *
+ * @param parea Pointer to physical area structure.
+ *
+ */
+void ddi_parea_init(parea_t *parea)
+{
+	memset(parea, 0, sizeof(parea_t));
 }
 
 /** Enable piece of physical memory for mapping by physmem_map().
@@ -77,14 +94,14 @@ void ddi_init(void)
  */
 void ddi_parea_register(parea_t *parea)
 {
-	mutex_lock(&parea_lock);
+	mutex_lock(&pareas_lock);
 
 	/*
 	 * We don't check for overlaps here as the kernel is pretty sane.
 	 */
-	btree_insert(&parea_btree, (btree_key_t) parea->pbase, parea, NULL);
+	odict_insert(&parea->lpareas, &pareas, NULL);
 
-	mutex_unlock(&parea_lock);
+	mutex_unlock(&pareas_lock);
 }
 
 /** Map piece of physical memory into virtual address space of current task.
@@ -128,14 +145,14 @@ NO_TRACE static errno_t physmem_map(uintptr_t phys, size_t pages,
 	 * for mapping by any parea structure.
 	 */
 
-	mutex_lock(&parea_lock);
-	btree_node_t *nodep;
-	parea_t *parea = (parea_t *) btree_search(&parea_btree,
-	    (btree_key_t) phys, &nodep);
+	mutex_lock(&pareas_lock);
+	odlink_t *odlink = odict_find_eq(&pareas, &phys, NULL);
+	parea_t *parea = odlink != NULL ?
+	    odict_get_instance(odlink, parea_t, lpareas) : NULL;
 
 	if ((parea != NULL) && (parea->frames >= pages)) {
 		if ((!priv) && (!parea->unpriv)) {
-			mutex_unlock(&parea_lock);
+			mutex_unlock(&pareas_lock);
 			return EPERM;
 		}
 
@@ -143,7 +160,7 @@ NO_TRACE static errno_t physmem_map(uintptr_t phys, size_t pages,
 	}
 
 	parea = NULL;
-	mutex_unlock(&parea_lock);
+	mutex_unlock(&pareas_lock);
 
 	/*
 	 * Check if the memory region is part of physical
@@ -192,7 +209,7 @@ map:
 		 */
 
 		if (parea != NULL)
-			mutex_unlock(&parea_lock);
+			mutex_unlock(&pareas_lock);
 
 		return ENOMEM;
 	}
@@ -203,7 +220,7 @@ map:
 
 	if (parea != NULL) {
 		parea->mapped = true;
-		mutex_unlock(&parea_lock);
+		mutex_unlock(&pareas_lock);
 	}
 
 	return EOK;
@@ -254,6 +271,36 @@ sys_errno_t sys_physmem_unmap(uintptr_t virt)
 	return physmem_unmap(virt);
 }
 
+/** Get key function for the @c pareas ordered dictionary.
+ *
+ * @param odlink Link
+ * @return Pointer to base address cast as 'void *'
+ */
+static void *pareas_getkey(odlink_t *odlink)
+{
+	parea_t *parea = odict_get_instance(odlink, parea_t, lpareas);
+	return (void *) &parea->pbase;
+}
+
+/** Key comparison function for the @c pareas ordered dictionary.
+ *
+ * @param a Pointer to parea A base
+ * @param b Pointer to parea B base
+ * @return -1, 0, 1 iff base of A is less than, equal to, greater than B
+ */
+static int pareas_cmp(void *a, void *b)
+{
+	uintptr_t pa = *(uintptr_t *)a;
+	uintptr_t pb = *(uintptr_t *)b;
+
+	if (pa < pb)
+		return -1;
+	else if (pa == pb)
+		return 0;
+	else
+		return +1;
+}
+
 /** Enable range of I/O space for task.
  *
  * @param id     Task ID of the destination task.
@@ -287,7 +334,7 @@ NO_TRACE static errno_t iospace_enable(task_id_t id, uintptr_t ioaddr, size_t si
 		return ENOENT;
 	}
 
-	/* Lock the task and release the lock protecting tasks_btree. */
+	/* Lock the task and release the lock protecting tasks dictionary. */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	errno_t rc = ddi_iospace_enable_arch(task, ioaddr, size);
 	irq_spinlock_unlock(&task->lock, true);
@@ -328,7 +375,7 @@ NO_TRACE static errno_t iospace_disable(task_id_t id, uintptr_t ioaddr, size_t s
 		return ENOENT;
 	}
 
-	/* Lock the task and release the lock protecting tasks_btree. */
+	/* Lock the task and release the lock protecting tasks dictionary. */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	errno_t rc = ddi_iospace_disable_arch(task, ioaddr, size);
 	irq_spinlock_unlock(&task->lock, true);

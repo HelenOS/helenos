@@ -38,12 +38,12 @@
 #include <typedefs.h>
 #include <abi/ddi/arg.h>
 #include <proc/task.h>
-#include <adt/list.h>
+#include <adt/odict.h>
 
 /** Structure representing contiguous physical memory area. */
 typedef struct {
-	/** Linked list link */
-	link_t link;
+	/** Link to @c pareas ordered dictionary */
+	odlink_t lpareas;
 
 	/** Physical base of the area. */
 	uintptr_t pbase;
@@ -56,6 +56,7 @@ typedef struct {
 } parea_t;
 
 extern void ddi_init(void);
+extern void ddi_parea_init(parea_t *);
 extern void ddi_parea_register(parea_t *);
 
 extern sys_errno_t sys_physmem_map(uintptr_t, size_t, unsigned int, void *,

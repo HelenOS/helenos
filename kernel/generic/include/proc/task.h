@@ -43,7 +43,6 @@
 #include <synch/mutex.h>
 #include <synch/futex.h>
 #include <synch/workqueue.h>
-#include <adt/btree.h>
 #include <adt/cht.h>
 #include <adt/list.h>
 #include <adt/odict.h>

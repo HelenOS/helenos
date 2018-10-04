@@ -615,7 +615,7 @@ outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 		return NULL;
 	}
 
-	link_initialize(&instance->parea.link);
+	ddi_parea_init(&instance->parea);
 	instance->parea.pbase = addr;
 	instance->parea.frames = SIZE2FRAMES(EGA_VRAM_SIZE);
 	instance->parea.unpriv = false;

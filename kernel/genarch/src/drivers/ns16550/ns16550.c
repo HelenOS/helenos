@@ -174,6 +174,7 @@ ns16550_instance_t *ns16550_init(ioport8_t *dev, unsigned reg_shift, inr_t inr,
 		instance->irq.cir = cir;
 		instance->irq.cir_arg = cir_arg;
 
+		ddi_parea_init(&instance->parea);
 		instance->parea.pbase = (uintptr_t) dev;
 		instance->parea.frames = 1;
 		instance->parea.unpriv = false;

@@ -646,7 +646,7 @@ outdev_t *fb_init(fb_properties_t *props)
 	memsetw(instance->backbuf, instance->cols * instance->rows, 0);
 	glyphs_render(instance);
 
-	link_initialize(&instance->parea.link);
+	ddi_parea_init(&instance->parea);
 	instance->parea.pbase = props->addr;
 	instance->parea.frames = SIZE2FRAMES(fbsize);
 	instance->parea.unpriv = false;

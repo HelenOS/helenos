@@ -134,7 +134,7 @@ outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)
 	pio_write_32(&uart->io->ucon,
 	    pio_read_32(&uart->io->ucon) & ~UCON_RX_INT_LEVEL);
 
-	link_initialize(&uart->parea.link);
+	ddi_parea_init(&uart->parea);
 	uart->parea.pbase = paddr;
 	uart->parea.frames = 1;
 	uart->parea.unpriv = false;

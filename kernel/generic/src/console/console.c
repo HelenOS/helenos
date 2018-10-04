@@ -192,6 +192,7 @@ void kio_init(void)
 
 	assert((uintptr_t) faddr % FRAME_SIZE == 0);
 
+	ddi_parea_init(&kio_parea);
 	kio_parea.pbase = (uintptr_t) faddr;
 	kio_parea.frames = SIZE2FRAMES(sizeof(kio));
 	kio_parea.unpriv = false;

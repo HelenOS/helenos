@@ -90,6 +90,7 @@ void clock_counter_init(void)
 	uptime->seconds2 = 0;
 	uptime->useconds = 0;
 
+	ddi_parea_init(&clock_parea);
 	clock_parea.pbase = faddr;
 	clock_parea.frames = 1;
 	clock_parea.unpriv = true;
