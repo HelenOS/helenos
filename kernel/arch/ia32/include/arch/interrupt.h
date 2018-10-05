@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32interrupt
+/** @addtogroup kernel_ia32_interrupt
  * @{
  */
 /** @file

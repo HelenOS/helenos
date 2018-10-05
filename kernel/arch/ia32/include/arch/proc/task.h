@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32proc
+/** @addtogroup kernel_ia32_proc
  * @{
  */
 /** @file

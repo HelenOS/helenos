@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32mm
+/** @addtogroup kernel_ia32_mm
  * @{
  */
 /** @file
- * @ingroup ia32mm, amd64mm
+ * @ingroup kernel_ia32_mm, kernel_amd64_mm
  */
 
 /*

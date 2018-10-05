@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64proc
+/** @addtogroup kernel_ia64_proc
  * @{
  */
 /** @file

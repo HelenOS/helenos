@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64interrupt
+/** @addtogroup kernel_sparc64_interrupt
  * @{
  */
 #ifndef KERN_sparc64_sun4v_REGWIN_H_

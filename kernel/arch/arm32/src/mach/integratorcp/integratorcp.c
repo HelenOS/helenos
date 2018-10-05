@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32integratorcp
+/** @addtogroup kernel_arm32_integratorcp
  * @{
  */
 /** @file

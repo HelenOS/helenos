@@ -30,63 +30,63 @@
 
 /**
  *     @cond abs32le
- *     @defgroup abs32leproc abs32le
+ *     @defgroup kernel_abs32le_proc abs32le
  *     @ingroup proc
  *     @endcond
  */
 
 /**
  *     @cond amd64
- *     @defgroup amd64proc amd64
+ *     @defgroup kernel_amd64_proc amd64
  *     @ingroup proc
  *     @endcond
  */
 
 /**
  *     @cond arm32
- *     @defgroup arm32proc arm32
+ *     @defgroup kernel_arm32_proc arm32
  *     @ingroup proc
  *     @endcond
  */
 
 /**
  *     @cond ia32
- *     @defgroup ia32proc ia32
+ *     @defgroup kernel_ia32_proc ia32
  *     @ingroup proc
  *     @endcond
  */
 
 /**
  *     @cond ia64
- *     @defgroup ia64proc ia64
+ *     @defgroup kernel_ia64_proc ia64
  *     @ingroup proc
  *     @endcond
  */
 
 /**
  *     @cond mips32
- *     @defgroup mips32proc mips32
+ *     @defgroup kernel_mips32_proc mips32
  *     @ingroup proc
  *     @endcond
  */
 
 /**
  *     @cond ppc32
- *     @defgroup ppc32proc ppc32
+ *     @defgroup kernel_ppc32_proc ppc32
  *     @ingroup proc
  *     @endcond
  */
 
 /**
  *     @cond riscv64
- *     @defgroup riscv64proc riscv64
+ *     @defgroup kernel_riscv64_proc riscv64
  *     @ingroup proc
  *     @endcond
  */
 
 /**
  *     @cond sparc64
- *     @defgroup sparc64proc sparc64
+ *     @defgroup kernel_sparc64_proc sparc64
  *     @ingroup proc
  *     @endcond
  */
@@ -111,63 +111,63 @@
 
 /**
  *     @cond abs32le
- *     @defgroup abs32lemm abs32le
+ *     @defgroup kernel_abs32le_mm abs32le
  *     @ingroup mm
  *     @endcond
  */
 
 /**
  *     @cond amd64
- *     @defgroup amd64mm amd64
+ *     @defgroup kernel_amd64_mm amd64
  *     @ingroup mm
  *     @endcond
  */
 
 /**
  *     @cond arm32
- *     @defgroup arm32mm arm32
+ *     @defgroup kernel_arm32_mm arm32
  *     @ingroup mm
  *     @endcond
  */
 
 /**
  *     @cond ia32
- *     @defgroup ia32mm ia32
+ *     @defgroup kernel_ia32_mm ia32
  *     @ingroup mm
  *     @endcond
  */
 
 /**
  *     @cond ia64
- *     @defgroup ia64mm ia64
+ *     @defgroup kernel_ia64_mm ia64
  *     @ingroup mm
  *     @endcond
  */
 
 /**
  *     @cond mips32
- *     @defgroup mips32mm mips32
+ *     @defgroup kernel_mips32_mm mips32
  *     @ingroup mm
  *     @endcond
  */
 
 /**
  *     @cond ppc32
- *     @defgroup ppc32mm ppc32
+ *     @defgroup kernel_ppc32_mm ppc32
  *     @ingroup mm
  *     @endcond
  */
 
 /**
  *     @cond riscv64
- *     @defgroup riscv64mm riscv64
+ *     @defgroup kernel_riscv64_mm riscv64
  *     @ingroup mm
  *     @endcond
  */
 
 /**
  *     @cond sparc64
- *     @defgroup sparc64mm sparc64
+ *     @defgroup kernel_sparc64_mm sparc64
  *     @ingroup mm
  *     @endcond
  */
@@ -192,63 +192,63 @@
 
 /**
  *     @cond abs32le
- *     @defgroup abs32leddi abs32le
+ *     @defgroup kernel_abs32le_ddi abs32le
  *     @ingroup ddi
  *     @endcond
  */
 
 /**
  *     @cond amd64
- *     @defgroup amd64ddi amd64
+ *     @defgroup kernel_amd64_ddi amd64
  *     @ingroup ddi
  *     @endcond
  */
 
 /**
  *     @cond arm32
- *     @defgroup arm32ddi arm32
+ *     @defgroup kernel_arm32_ddi arm32
  *     @ingroup ddi
  *     @endcond
  */
 
 /**
  *     @cond ia32
- *     @defgroup ia32ddi ia32
+ *     @defgroup kernel_ia32_ddi ia32
  *     @ingroup ddi
  *     @endcond
  */
 
 /**
  *     @cond ia64
- *     @defgroup ia64ddi ia64
+ *     @defgroup kernel_ia64_ddi ia64
  *     @ingroup ddi
  *     @endcond
  */
 
 /**
  *     @cond mips32
- *     @defgroup mips32ddi mips32
+ *     @defgroup kernel_mips32_ddi mips32
  *     @ingroup ddi
  *     @endcond
  */
 
 /**
  *     @cond ppc32
- *     @defgroup ppc32ddi ppc32
+ *     @defgroup kernel_ppc32_ddi ppc32
  *     @ingroup ddi
  *     @endcond
  */
 
 /**
  *     @cond riscv64
- *     @defgroup riscv64ddi riscv64
+ *     @defgroup kernel_riscv64_ddi riscv64
  *     @ingroup ddi
  *     @endcond
  */
 
 /**
  *     @cond sparc64
- *     @defgroup sparc64ddi sparc64
+ *     @defgroup kernel_sparc64_ddi sparc64
  *     @ingroup ddi
  *     @endcond
  */
@@ -264,63 +264,63 @@
 
 /**
  *     @cond abs32le
- *     @defgroup abs32ledebug abs32le
+ *     @defgroup kernel_abs32le_debug abs32le
  *     @ingroup debug
  *     @endcond
  */
 
 /**
  *     @cond amd64
- *     @defgroup amd64debug ia32/amd64
+ *     @defgroup kernel_amd64_debug ia32/amd64
  *     @ingroup debug
  *     @endcond
  */
 
 /**
  *     @cond arm32
- *     @defgroup arm32debug arm32
+ *     @defgroup kernel_arm32_debug arm32
  *     @ingroup debug
  *     @endcond
  */
 
 /**
  *     @cond ia32
- *     @defgroup amd64debug ia32/amd64
+ *     @defgroup kernel_amd64_debug ia32/amd64
  *     @ingroup debug
  *     @endcond
  */
 
 /**
  *     @cond ia64
- *     @defgroup ia64debug ia64
+ *     @defgroup kernel_ia64_debug ia64
  *     @ingroup debug
  *     @endcond
  */
 
 /**
  *     @cond mips32
- *     @defgroup mips32debug mips32
+ *     @defgroup kernel_mips32_debug mips32
  *     @ingroup debug
  *     @endcond
  */
 
 /**
  *     @cond ppc32
- *     @defgroup ppc32debug ppc32
+ *     @defgroup kernel_ppc32_debug ppc32
  *     @ingroup debug
  *     @endcond
  */
 
 /**
  *     @cond riscv64
- *     @defgroup riscv64debug riscv64
+ *     @defgroup kernel_riscv64_debug riscv64
  *     @ingroup debug
  *     @endcond
  */
 
 /**
  *     @cond sparc64
- *     @defgroup sparc64debug sparc64
+ *     @defgroup kernel_sparc64_debug sparc64
  *     @ingroup debug
  *     @endcond
  */
@@ -335,63 +335,63 @@
 
 /**
  *     @cond abs32le
- *     @defgroup abs32leinterrupt abs32le
+ *     @defgroup kernel_abs32le_interrupt abs32le
  *     @ingroup interrupt
  *     @endcond
  */
 
 /**
  *     @cond amd64
- *     @defgroup amd64interrupt amd64
+ *     @defgroup kernel_amd64_interrupt amd64
  *     @ingroup interrupt
  *     @endcond
  */
 
 /**
  *     @cond arm32
- *     @defgroup arm32interrupt arm32
+ *     @defgroup kernel_arm32_interrupt arm32
  *     @ingroup interrupt
  *     @endcond
  */
 
 /**
  *     @cond ia32
- *     @defgroup ia32interrupt ia32
+ *     @defgroup kernel_ia32_interrupt ia32
  *     @ingroup interrupt
  *     @endcond
  */
 
 /**
  *     @cond ia64
- *     @defgroup ia64interrupt ia64
+ *     @defgroup kernel_ia64_interrupt ia64
  *     @ingroup interrupt
  *     @endcond
  */
 
 /**
  *     @cond mips32
- *     @defgroup mips32interrupt mips32
+ *     @defgroup kernel_mips32_interrupt mips32
  *     @ingroup interrupt
  *     @endcond
  */
 
 /**
  *     @cond ppc32
- *     @defgroup ppc32interrupt ppc32
+ *     @defgroup kernel_ppc32_interrupt ppc32
  *     @ingroup interrupt
  *     @endcond
  */
 
 /**
  *     @cond riscv64
- *     @defgroup riscv64interrupt riscv64
+ *     @defgroup kernel_riscv64_interrupt riscv64
  *     @ingroup interrupt
  *     @endcond
  */
 
 /**
  *     @cond sparc64
- *     @defgroup sparc64interrupt sparc64
+ *     @defgroup kernel_sparc64_interrupt sparc64
  *     @ingroup interrupt
  *     @endcond
  */
@@ -412,63 +412,63 @@
 
 /**
  *     @cond abs32le
- *     @defgroup abs32le abs32le
+ *     @defgroup kernel_abs32le abs32le
  *     @ingroup others
  *     @endcond
  */
 
 /**
  *     @cond amd64
- *     @defgroup amd64 amd64
+ *     @defgroup kernel_amd64 amd64
  *     @ingroup others
  *     @endcond
  */
 
 /**
  *     @cond arm32
- *     @defgroup arm32 arm32
+ *     @defgroup kernel_arm32 arm32
  *     @ingroup others
  *     @endcond
  */
 
 /**
  *     @cond ia32
- *     @defgroup ia32 ia32
+ *     @defgroup kernel_ia32 ia32
  *     @ingroup others
  *     @endcond
  */
 
 /**
  *     @cond ia64
- *     @defgroup ia64 ia64
+ *     @defgroup kernel_ia64 ia64
  *     @ingroup others
  *     @endcond
  */
 
 /**
  *     @cond mips32
- *     @defgroup mips32 mips32
+ *     @defgroup kernel_mips32 mips32
  *     @ingroup others
  *     @endcond
  */
 
 /**
  *     @cond ppc32
- *     @defgroup ppc32 ppc32
+ *     @defgroup kernel_ppc32 ppc32
  *     @ingroup others
  *     @endcond
  */
 
 /**
  *     @cond riscv64
- *     @defgroup riscv64 riscv64
+ *     @defgroup kernel_riscv64 riscv64
  *     @ingroup others
  *     @endcond
  */
 
 /**
  *     @cond sparc64
- *     @defgroup sparc64 sparc64
+ *     @defgroup kernel_sparc64 sparc64
  *     @ingroup others
  *     @endcond
  */

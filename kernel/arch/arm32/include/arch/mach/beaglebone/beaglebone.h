@@ -25,9 +25,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup arm32beaglebone beaglebone
+/** @addtogroup kernel_arm32_beaglebone beaglebone
  *  @brief BeagleBone platform.
- *  @ingroup arm32
+ *  @ingroup kernel_arm32
  * @{
  */
 /** @file

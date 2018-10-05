@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32interrupt
+/** @addtogroup kernel_mips32_interrupt
  * @{
  */
 /** @file

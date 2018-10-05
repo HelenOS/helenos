@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32raspberrypi
+/** @addtogroup kernel_arm32_raspberrypi
  * @{
  */
 /** @file

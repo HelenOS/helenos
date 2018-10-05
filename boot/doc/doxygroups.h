@@ -7,6 +7,6 @@
  *     @ingroup boot
  */
 
-/**    @addtogroup arm32boot arm32
+/**    @addtogroup boot_arm32 arm32
  *     @ingroup boot
  */

@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32gta02 GTA02
+/** @addtogroup kernel_arm32_gta02 GTA02
  *  @brief Openmoko GTA02 platform.
- *  @ingroup arm32
+ *  @ingroup kernel_arm32
  * @{
  */
 /** @file

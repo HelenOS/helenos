@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32proc
+/** @addtogroup kernel_mips32_proc
  * @{
  */
 /** @file

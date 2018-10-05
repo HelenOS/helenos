@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32integratorcp
+/** @addtogroup kernel_arm32_integratorcp
  *  @brief Integratorcp machine specific parts.
- *  @ingroup arm32
+ *  @ingroup kernel_arm32
  * @{
  */
 /** @file

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup riscv64proc
+/** @addtogroup kernel_riscv64_proc
  * @{
  */
 /** @file

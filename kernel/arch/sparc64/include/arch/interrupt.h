@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64interrupt sparc64
+/** @addtogroup kernel_sparc64_interrupt sparc64
  * @ingroup interrupt
  * @{
  */

@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32interrupt
+/** @addtogroup kernel_arm32_interrupt
  * @{
  */
 

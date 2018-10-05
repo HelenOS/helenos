@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32proc
+/** @addtogroup kernel_arm32_proc
  * @{
  */
 /** @file
