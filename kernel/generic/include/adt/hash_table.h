@@ -28,14 +28,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup kernel_generic
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_HASH_TABLE_H_
-#define LIBC_HASH_TABLE_H_
+#ifndef KERNEL_HASH_TABLE_H_
+#define KERNEL_HASH_TABLE_H_
 
 #include <adt/list.h>
 #include <stdbool.h>

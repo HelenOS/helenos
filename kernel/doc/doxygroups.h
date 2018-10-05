@@ -8,15 +8,11 @@
  * @ingroup kernel
  */
 
-/** @defgroup main Kernel initialization
- * @ingroup others
- */
-
 /** @defgroup kernel_generic_console Kernel console
  * @ingroup others
  */
 
-/** @defgroup time Time management
+/** @defgroup kernel_time Time management
  * @ingroup kernel
  */
 
@@ -91,7 +87,7 @@
  *     @endcond
  */
 
-/** @defgroup sync Synchronization
+/** @defgroup kernel_sync Synchronization
  * @ingroup kernel
  */
 
