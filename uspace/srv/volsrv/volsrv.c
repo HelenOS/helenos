@@ -52,7 +52,7 @@
 
 #define NAME  "volsrv"
 
-const char *vol_cfg_file = "/data/cfg/volsrv.sif";
+const char *vol_cfg_file = "/cfg/volsrv.sif";
 
 static void vol_client_conn(ipc_call_t *, void *);
 

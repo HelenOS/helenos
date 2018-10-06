@@ -309,7 +309,7 @@ class Filesystem:
 		sb.features_incompatible = 2 # filetype
 		sb.features_read_only = 0
 		sb.uuid = self.uuid.bytes_le
-		sb.volume_name = 'HelenOS rdimage\0'
+		sb.volume_name = 'HelenOS-rd\0\0\0\0\0\0'
 		self.outf.write(bytes(sb.pack()))
 
 	def write_all_metadata(self):

@@ -38,8 +38,8 @@ endif
 
 build_dist: clean_dist
 	mkdir -p "$(DIST_PATH)/app/"
-	mkdir -p "$(DIST_PATH)/cfg/net/"
-	mkdir -p "$(DIST_PATH)/data/cfg/"
+	mkdir -p "$(DIST_PATH)/cfg/"
+	mkdir -p "$(DIST_PATH)/data/"
 	mkdir -p "$(DIST_PATH)/lib/"
 	mkdir -p "$(DIST_PATH)/loc/"
 	mkdir -p "$(DIST_PATH)/log/"
@@ -47,6 +47,7 @@ build_dist: clean_dist
 	mkdir -p "$(DIST_PATH)/test/"
 	mkdir -p "$(DIST_PATH)/tmp/"
 	mkdir -p "$(DIST_PATH)/vol/"
+	mkdir -p "$(DIST_PATH)/w/"
 	for file in $(RD_SRVS) ; do \
 		cp "$$file" "$(DIST_PATH)/srv/" ; \
 	done
@@ -134,6 +135,8 @@ endif
 clean_dist:
 	rm -f $(INITRD).img $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE) $(COMPS).o $(COMPS)_desc.o $(COMPS).zip $(LINK)
 	find $(USPACE_PATH)/dist -mindepth 1 -maxdepth 1 -type f -exec rm \{\} \;
+	rm -f $(USPACE_PATH)/dist/app/*
+	rm -f $(USPACE_PATH)/dist/cfg/*
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -rf $(USPACE_PATH)/dist/drv/*
 	rm -rf $(USPACE_PATH)/dist/lib/*
@@ -141,3 +144,4 @@ clean_dist:
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/test/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*
+	rm -f $(USPACE_PATH)/dist/w/*

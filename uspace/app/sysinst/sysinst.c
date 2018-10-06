@@ -50,6 +50,8 @@
 
 #include "futil.h"
 #include "grub.h"
+#include "rdimg.h"
+#include "volume.h"
 
 /** Device to install to
  *
@@ -63,6 +65,8 @@
 //#define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.2\\uhci_rh\\usb01_a1\\mass-storage0\\l0"
 /** Volume label for the new file system */
 #define INST_VOL_LABEL "HelenOS"
+/** Mount point of system partition when running installed system */
+#define INST_VOL_MP "/w"
 
 #define MOUNT_POINT "/inst"
 
@@ -172,6 +176,90 @@ static errno_t sysinst_copy_boot_files(void)
 
 	printf("sysinst_copy_boot_files(): OK\n");
 	return EOK;
+}
+
+/** Set up configuration in the initial RAM disk.
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_customize_initrd(void)
+{
+	errno_t rc;
+	rd_img_t *rd = NULL;
+	char *rdpath = NULL;
+	char *path = NULL;
+	vol_volumes_t *volumes = NULL;
+	vol_volume_t *volume = NULL;
+	int rv;
+
+	rc = rd_img_open(MOUNT_POINT "/boot/initrd.img", &rdpath, &rd);
+	if (rc != EOK) {
+		printf("Error opening initial RAM disk image.\n");
+		goto error;
+	}
+
+	rv = asprintf(&path, "%s%s", rdpath, "/cfg/volsrv.sif");
+	if (rv < 0) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	printf("Configuring volume server.\n");
+	rc = vol_volumes_create(path, &volumes);
+	if (rc != EOK) {
+		printf("Error creating volume server configuration.\n");
+		rc = EIO;
+		goto error;
+	}
+
+	printf("Configuring volume server: look up volume\n");
+	rc = vol_volume_lookup_ref(volumes, INST_VOL_LABEL, &volume);
+	if (rc != EOK) {
+		printf("Error creating volume server configuration.\n");
+		rc = EIO;
+		goto error;
+	}
+
+	printf("Configuring volume server: set mount point\n");
+	rc = vol_volume_set_mountp(volume, INST_VOL_MP);
+	if (rc != EOK) {
+		printf("Error creating system partition configuration.\n");
+		rc = EIO;
+		goto error;
+	}
+
+	printf("Configuring volume server: delete reference\n");
+	vol_volume_del_ref(volume);
+	volume = NULL;
+	printf("Configuring volume server: destroy volumes object\n");
+	vol_volumes_destroy(volumes);
+	volumes = NULL;
+
+	rc = rd_img_close(rd);
+	if (rc != EOK) {
+		printf("Error closing initial RAM disk image.\n");
+		rc = EIO;
+		goto error;
+	}
+
+	free(rdpath);
+	rdpath = NULL;
+	free(path);
+	path = NULL;
+
+	return EOK;
+error:
+	if (volume != NULL)
+		vol_volume_del_ref(volume);
+	if (volumes != NULL)
+		vol_volumes_destroy(volumes);
+	if (rd != NULL)
+		(void) rd_img_close(rd);
+	if (path != NULL)
+		free(path);
+	if (rdpath != NULL)
+		free(rdpath);
+	return rc;
 }
 
 /** Write unaligned 64-bit little-endian number.
@@ -328,6 +416,11 @@ static errno_t sysinst_install(const char *dev)
 
 	printf("FS created and mounted. Copying boot files.\n");
 	rc = sysinst_copy_boot_files();
+	if (rc != EOK)
+		return rc;
+
+	printf("Boot files done. Configuring the system.\n");
+	rc = sysinst_customize_initrd();
 	if (rc != EOK)
 		return rc;
 

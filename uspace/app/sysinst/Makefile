@@ -27,12 +27,14 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = block fdisk
+LIBS = block fdisk sif
 
 BINARY = sysinst
 
 SOURCES = \
 	futil.c \
-	sysinst.c
+	rdimg.c \
+	sysinst.c \
+	volume.c
 
 include $(USPACE_PREFIX)/Makefile.common

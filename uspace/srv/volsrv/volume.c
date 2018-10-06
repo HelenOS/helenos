@@ -204,6 +204,7 @@ void vol_volumes_destroy(vol_volumes_t *volumes)
 		link = list_first(&volumes->volumes);
 	}
 
+	(void) sif_close(volumes->repo);
 	free(volumes);
 }
 
