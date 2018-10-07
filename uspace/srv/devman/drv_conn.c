@@ -356,8 +356,9 @@ static void devman_add_function_to_cat(ipc_call_t *call)
 	}
 
 	rc = loc_category_get_id(cat_name, &cat_id, IPC_FLAG_BLOCKING);
+	if (rc == EOK)
+		rc = loc_service_add_to_cat(fun->service_id, cat_id);
 	if (rc == EOK) {
-		loc_service_add_to_cat(fun->service_id, cat_id);
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Function `%s' added to category `%s'.",
 		    fun->pathname, cat_name);
 	} else {
