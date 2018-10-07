@@ -402,7 +402,13 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		odlink = odict_next(odlink, &as->as_areas);
 	}
 
-	/* Next area, if any, is the first with base > than our base address */
+	/*
+	 * Next area, if any, is the first with base > than our base address.
+	 * If there was no area with <= base, we need to look at the first area.
+	 */
+	if (odlink == NULL)
+		odlink = odict_first(&as->as_areas);
+
 	if (odlink != NULL) {
 		as_area_t *area = odict_get_instance(odlink, as_area_t,
 		    las_areas);
@@ -486,7 +492,7 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 	while (area != NULL) {
 		mutex_lock(&area->lock);
 
-		addr = ALIGN_UP(area->base + P2SZ(area->pages), PAGE_SIZE);
+		addr = area->base + P2SZ(area->pages);
 
 		if (guarded || area->flags & AS_AREA_GUARD) {
 			/*
