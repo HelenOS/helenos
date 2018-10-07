@@ -130,7 +130,7 @@ static errno_t perm_revoke(task_id_t taskid, perm_t perms)
 	 * a task can revoke permissions from itself even if it
 	 * doesn't have PERM_PERM.
 	 */
-	irq_spinlock_unlock(&TASK->lock, false);
+	irq_spinlock_lock(&TASK->lock, false);
 
 	if ((!(TASK->perms & PERM_PERM)) || (task != TASK)) {
 		irq_spinlock_unlock(&TASK->lock, false);

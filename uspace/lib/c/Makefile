@@ -195,6 +195,7 @@ TEST_SOURCES = \
 	test/io/table.c \
 	test/stdio/scanf.c \
 	test/odict.c \
+	test/perm.c \
 	test/qsort.c \
 	test/sprintf.c \
 	test/stdio.c \

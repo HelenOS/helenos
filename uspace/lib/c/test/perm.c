@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
+#include <task.h>
 #include <pcut/pcut.h>
+#include <perm.h>
 
 PCUT_INIT;
 
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+PCUT_TEST_SUITE(perm);
 
-PCUT_MAIN();
+PCUT_TEST(revoke)
+{
+	errno_t rc = perm_revoke(task_get_id(), 0xf); // XXX Need PERM_xxx
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+PCUT_EXPORT(perm);
