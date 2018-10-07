@@ -1397,6 +1397,13 @@ static void loc_connection_supplier(ipc_call_t *icall, void *arg)
 	/* Accept connection */
 	async_answer_0(icall, EOK);
 
+	/*
+	 * Each connection begins by a LOC_SERVER_REGISTER, which precludes us
+	 * from using parallel exchanges.
+	 */
+	static_assert((INTERFACE_LOC_SUPPLIER & IFACE_EXCHANGE_MASK) ==
+	    IFACE_EXCHANGE_SERIALIZE);
+
 	loc_server_t *server = loc_server_register();
 	if (server == NULL)
 		return;
