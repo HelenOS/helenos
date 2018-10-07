@@ -441,6 +441,7 @@ errno_t xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Failed binding function 'kbd'.");
 		goto error;
 	}
+	bound = true;
 
 	rc = ddf_fun_add_to_category(kbd->kbd_fun, "keyboard");
 	if (rc != EOK) {
