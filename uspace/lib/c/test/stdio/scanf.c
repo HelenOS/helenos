@@ -605,7 +605,7 @@ PCUT_TEST(chars_malloc)
 	char *cp;
 
 	cp = NULL;
-	rc = sscanf("abc", "%3mc", &cp);
+	rc = sscanf("abc", "%m3c", &cp);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_NOT_NULL(cp);
 	PCUT_ASSERT_TRUE(cp[0] == 'a');
