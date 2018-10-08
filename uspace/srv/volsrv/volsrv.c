@@ -418,6 +418,93 @@ static void vol_part_set_mountp_srv(vol_parts_t *parts,
 	async_answer_0(icall, EOK);
 }
 
+static void vol_get_volumes_srv(vol_parts_t *parts, ipc_call_t *icall)
+{
+	ipc_call_t call;
+	size_t size;
+	size_t act_size;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_get_volumes_srv()");
+
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	volume_id_t *id_buf = (volume_id_t *) malloc(size);
+	if (id_buf == NULL) {
+		async_answer_0(&call, ENOMEM);
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	rc = vol_get_ids(parts->volumes, id_buf, size, &act_size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	errno_t retval = async_data_read_finalize(&call, id_buf, size);
+	free(id_buf);
+
+	async_answer_1(icall, retval, act_size);
+}
+
+static void vol_info_srv(vol_parts_t *parts, ipc_call_t *icall)
+{
+	volume_id_t vid;
+	vol_volume_t *volume;
+	vol_info_t vinfo;
+	errno_t rc;
+
+	vid.id = IPC_GET_ARG1(*icall);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_info_srv(%zu)", vid.id);
+
+	rc = vol_volume_find_by_id_ref(parts->volumes, vid, &volume);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_info_srv: volume %zu not found",
+		    vid.id);
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_info_srv: vol_volume_get_info");
+	rc = vol_volume_get_info(volume, &vinfo);
+	if (rc != EOK) {
+		async_answer_0(icall, EIO);
+		goto error;
+	}
+
+	ipc_call_t call;
+	size_t size;
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		goto error;
+	}
+
+	if (size != sizeof(vol_info_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		goto error;
+	}
+
+	rc = async_data_read_finalize(&call, &vinfo,
+	    min(size, sizeof(vinfo)));
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		goto error;
+	}
+
+	async_answer_0(icall, EOK);
+error:
+	vol_volume_del_ref(volume);
+}
+
 static void vol_client_conn(ipc_call_t *icall, void *arg)
 {
 	vol_parts_t *parts = (vol_parts_t *) arg;
@@ -465,6 +552,12 @@ static void vol_client_conn(ipc_call_t *icall, void *arg)
 			break;
 		case VOL_PART_SET_MOUNTP:
 			vol_part_set_mountp_srv(parts, &call);
+			break;
+		case VOL_GET_VOLUMES:
+			vol_get_volumes_srv(parts, &call);
+			break;
+		case VOL_INFO:
+			vol_info_srv(parts, &call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

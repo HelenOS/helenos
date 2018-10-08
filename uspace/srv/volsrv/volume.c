@@ -124,6 +124,7 @@ errno_t vol_volumes_create(const char *cfg_path,
 
 	fibril_mutex_initialize(&volumes->lock);
 	list_initialize(&volumes->volumes);
+	volumes->next_id = 1;
 
 	/* Try opening existing repository */
 	rc = sif_open(cfg_path, &repo);
@@ -221,6 +222,8 @@ static void vol_volume_add_locked(vol_volumes_t *volumes,
 
 	volume->volumes = volumes;
 	list_append(&volume->lvolumes, &volumes->volumes);
+	volume->id.id = volumes->next_id;
+	++volumes->next_id;
 }
 
 /** Look up volume structure with locked volumes lock.
@@ -288,6 +291,58 @@ errno_t vol_volume_lookup_ref(vol_volumes_t *volumes, const char *label,
 
 	fibril_mutex_lock(&volumes->lock);
 	rc = vol_volume_lookup_ref_locked(volumes, label, rvolume);
+	fibril_mutex_unlock(&volumes->lock);
+
+	return rc;
+}
+
+/** Find volume structure by ID with locked volumes lock.
+ * *
+ * @param volumes List of volumes
+ * @param vid Volume ID
+ * @param rvolume Place to store pointer to volume structure (existing or new)
+ *
+ * @return EOK on success, ENOENT if not found
+ */
+static errno_t vol_volume_find_by_id_ref_locked(vol_volumes_t *volumes,
+    volume_id_t vid, vol_volume_t **rvolume)
+{
+	assert(fibril_mutex_is_locked(&volumes->lock));
+
+	list_foreach(volumes->volumes, lvolumes, vol_volume_t, volume) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG2,
+		    "vol_volume_find_by_id_ref_locked(%zu==%zu)?",
+		    volume->id.id, vid.id);
+		if (volume->id.id == vid.id) {
+			log_msg(LOG_DEFAULT, LVL_DEBUG2,
+			    "vol_volume_find_by_id_ref_locked: found");
+			/* Add reference */
+			refcount_up(&volume->refcnt);
+			*rvolume = volume;
+			return EOK;
+		}
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG2,
+	    "vol_volume_find_by_id_ref_locked: not found");
+	return ENOENT;
+}
+
+/** Find volume by ID.
+ *
+ * @param volumes Volumes
+ * @param vid Volume ID
+ * @param rvolume Place to store pointer to volume, with reference count
+ *                increased.
+ * @return EOK on success or an error code
+ */
+errno_t vol_volume_find_by_id_ref(vol_volumes_t *volumes, volume_id_t vid,
+    vol_volume_t **rvolume)
+{
+	errno_t rc;
+
+	fibril_mutex_lock(&volumes->lock);
+	rc = vol_volume_find_by_id_ref_locked(volumes, vid, rvolume);
 	fibril_mutex_unlock(&volumes->lock);
 
 	return rc;
@@ -415,6 +470,52 @@ error:
 	return rc;
 }
 
+/** Get list of volume IDs.
+ *
+ * Get the list of IDs of all persistent volumes (volume configuration
+ * entries).
+ *
+ * @param volumes Volumes
+ * @param id_buf Buffer to hold the IDs
+ * @param buf_size Buffer size in bytes
+ * @param act_size Place to store actual number bytes needed
+ * @return EOK on success or an error code
+ */
+errno_t vol_get_ids(vol_volumes_t *volumes, volume_id_t *id_buf,
+    size_t buf_size, size_t *act_size)
+{
+	size_t act_cnt;
+	size_t buf_cnt;
+
+	fibril_mutex_lock(&volumes->lock);
+
+	buf_cnt = buf_size / sizeof(volume_id_t);
+
+	act_cnt = 0;
+	list_foreach(volumes->volumes, lvolumes, vol_volume_t, volume) {
+		if (vol_volume_is_persist(volume))
+			++act_cnt;
+	}
+	*act_size = act_cnt * sizeof(volume_id_t);
+
+	if (buf_size % sizeof(volume_id_t) != 0) {
+		fibril_mutex_unlock(&volumes->lock);
+		return EINVAL;
+	}
+
+	size_t pos = 0;
+	list_foreach(volumes->volumes, lvolumes, vol_volume_t, volume) {
+		if (vol_volume_is_persist(volume)) {
+			if (pos < buf_cnt)
+				id_buf[pos].id = volume->id.id;
+			pos++;
+		}
+	}
+
+	fibril_mutex_unlock(&volumes->lock);
+	return EOK;
+}
+
 /** Load volumes from SIF repository.
  *
  * @param nvolumes Volumes node
@@ -471,6 +572,20 @@ error:
 	if (volume != NULL)
 		vol_volume_delete(volume);
 	return rc;
+}
+
+/** Get volume information.
+ *
+ * @param volume Volume
+ * @param vinfo Volume information structure to safe info to
+ * @return EOK on success or an error code
+ */
+errno_t vol_volume_get_info(vol_volume_t *volume, vol_info_t *vinfo)
+{
+	vinfo->id = volume->id;
+	str_cpy(vinfo->label, sizeof(vinfo->label), volume->label);
+	str_cpy(vinfo->path, sizeof(vinfo->path), volume->mountp);
+	return EOK;
 }
 
 /** @}

@@ -48,6 +48,8 @@ typedef struct vol_volume {
 	struct vol_volumes *volumes;
 	/** Link to vol_volumes */
 	link_t lvolumes;
+	/** ID used by clients to refer to the volume */
+	volume_id_t id;
 	/** Reference count */
 	atomic_refcount_t refcnt;
 	/** Volume label */
@@ -68,6 +70,8 @@ typedef struct vol_volumes {
 	sif_sess_t *repo;
 	/** Volumes SIF node */
 	sif_node_t *nvolumes;
+	/** Next ID */
+	sysarg_t next_id;
 } vol_volumes_t;
 
 #endif

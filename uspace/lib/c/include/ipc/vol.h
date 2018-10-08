@@ -47,7 +47,9 @@ typedef enum {
 	VOL_PART_INSERT,
 	VOL_PART_LSUPP,
 	VOL_PART_MKFS,
-	VOL_PART_SET_MOUNTP
+	VOL_PART_SET_MOUNTP,
+	VOL_GET_VOLUMES,
+	VOL_INFO
 } vol_request_t;
 
 #endif

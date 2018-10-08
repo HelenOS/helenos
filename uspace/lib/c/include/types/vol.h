@@ -40,6 +40,10 @@
 #include <ipc/vol.h>
 #include <stdbool.h>
 
+typedef struct {
+	sysarg_t id;
+} volume_id_t;
+
 typedef enum {
 	/** Partition is empty */
 	vpc_empty,
@@ -80,6 +84,16 @@ typedef struct {
 	/** Current mount point is automatic */
 	bool cur_mp_auto;
 } vol_part_info_t;
+
+/** Volume configuration information */
+typedef struct {
+	/** Volume identifier */
+	volume_id_t id;
+	/** Volume label */
+	char label[VOL_LABEL_MAXLEN + 1];
+	/** Mount path */
+	char path[MAX_PATH_LEN + 1]; /* XXX too big */
+} vol_info_t;
 
 /** Volume label support */
 typedef struct {

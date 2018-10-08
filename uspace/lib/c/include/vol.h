@@ -54,7 +54,8 @@ extern errno_t vol_part_get_lsupp(vol_t *, vol_fstype_t, vol_label_supp_t *);
 extern errno_t vol_part_mkfs(vol_t *, service_id_t, vol_fstype_t, const char *,
     const char *);
 extern errno_t vol_part_set_mountp(vol_t *, service_id_t, const char *);
-
+extern errno_t vol_get_volumes(vol_t *, volume_id_t **, size_t *);
+extern errno_t vol_info(vol_t *, volume_id_t, vol_info_t *);
 extern errno_t vol_fstype_format(vol_fstype_t, char **);
 extern errno_t vol_pcnt_fs_format(vol_part_cnt_t, vol_fstype_t, char **);
 extern errno_t vol_mountp_validate(const char *);

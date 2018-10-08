@@ -46,6 +46,7 @@
 #include <str_error.h>
 #include <config.h>
 #include <io/logctl.h>
+#include <vol.h>
 #include "untar.h"
 #include "init.h"
 
@@ -69,6 +70,11 @@
 
 #define srv_start(path, ...) \
 	srv_startl(path, path, ##__VA_ARGS__, NULL)
+
+static const char *sys_dirs[] = {
+	"/w/cfg",
+	"/w/data"
+};
 
 /** Print banner */
 static void info_print(void)
@@ -319,6 +325,80 @@ static bool mount_tmpfs(void)
 	    TMPFS_FS_TYPE, NULL, rc);
 }
 
+/** Init system volume.
+ *
+ * See if system volume is configured. If so, try to wait for it to become
+ * available. If not, create basic directories for live image omde.
+ */
+static errno_t init_sysvol(void)
+{
+	vol_t *vol = NULL;
+	vol_info_t vinfo;
+	volume_id_t *volume_ids = NULL;
+	size_t nvols;
+	size_t i;
+	errno_t rc;
+	bool found_cfg;
+	const char **cp;
+
+	rc = vol_create(&vol);
+	if (rc != EOK) {
+		printf("Error contacting volume service.\n");
+		goto error;
+	}
+
+	rc = vol_get_volumes(vol, &volume_ids, &nvols);
+	if (rc != EOK) {
+		printf("Error getting list of volumes.\n");
+		goto error;
+	}
+
+	/* XXX This could be handled more efficiently by volsrv itself */
+	found_cfg = false;
+	for (i = 0; i < nvols; i++) {
+		rc = vol_info(vol, volume_ids[i], &vinfo);
+		if (rc != EOK) {
+			printf("Error getting volume information.\n");
+			rc = EIO;
+			goto error;
+		}
+
+		if (str_cmp(vinfo.path, "/w") == 0) {
+			found_cfg = true;
+			break;
+		}
+	}
+
+	vol_destroy(vol);
+	free(volume_ids);
+
+	if (!found_cfg) {
+		/* Prepare directory structure for live image mode */
+		printf("%s: Creating live image directory structure.\n", NAME);
+		cp = sys_dirs;
+		while (*cp != NULL) {
+			rc = vfs_link_path(*cp, KIND_DIRECTORY, NULL);
+			if (rc != EOK) {
+				printf("%s: Error creating directory '%s'.\n",
+				    NAME, *cp);
+				return rc;
+			}
+
+			++cp;
+		}
+	} else {
+		printf("%s: System volume is configured.\n", NAME);
+	}
+
+	return EOK;
+error:
+	vol_destroy(vol);
+	if (volume_ids != NULL)
+		free(volume_ids);
+
+	return rc;
+}
+
 int main(int argc, char *argv[])
 {
 	errno_t rc;
@@ -373,6 +453,8 @@ int main(int argc, char *argv[])
 	srv_start("/srv/input", HID_INPUT);
 	srv_start("/srv/output", HID_OUTPUT);
 	srv_start("/srv/hound");
+
+	init_sysvol();
 
 	if (!config_key_exists("console")) {
 		rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);

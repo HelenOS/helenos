@@ -48,6 +48,7 @@ typedef enum {
 	vcmd_insert,
 	vcmd_help,
 	vcmd_list,
+	vcmd_cfglist,
 } vol_cmd_t;
 
 /** Find volume by current mount point. */
@@ -238,10 +239,67 @@ out:
 	return rc;
 }
 
+/** List volume configuration entries.
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t vol_cmd_cfglist(void)
+{
+	vol_t *vol = NULL;
+	vol_info_t vinfo;
+	volume_id_t *volume_ids = NULL;
+	size_t nvols;
+	size_t i;
+	table_t *table = NULL;
+	errno_t rc;
+
+	rc = vol_create(&vol);
+	if (rc != EOK) {
+		printf("Error contacting volume service.\n");
+		goto out;
+	}
+
+	rc = vol_get_volumes(vol, &volume_ids, &nvols);
+	if (rc != EOK) {
+		printf("Error getting list of volumes.\n");
+		goto out;
+	}
+
+	rc = table_create(&table);
+	if (rc != EOK) {
+		printf("Out of memory.\n");
+		goto out;
+	}
+
+	table_header_row(table);
+	table_printf(table, "Volume Name\t" "Path\n");
+
+	for (i = 0; i < nvols; i++) {
+		rc = vol_info(vol, volume_ids[i], &vinfo);
+		if (rc != EOK) {
+			printf("Error getting volume information.\n");
+			return EIO;
+		}
+
+		table_printf(table, "%s\t" "%s\n", vinfo.label, vinfo.path);
+	}
+
+	rc = table_print_out(table, stdout);
+	if (rc != EOK)
+		printf("Error printing table.\n");
+out:
+	table_destroy(table);
+	vol_destroy(vol);
+	free(volume_ids);
+
+	return rc;
+}
+
 static void print_syntax(void)
 {
 	printf("Syntax:\n");
-	printf("  %s                List volumes\n", NAME);
+	printf("  %s                List present volumes\n", NAME);
+	printf("  %s -c             List volume configuration entries\n", NAME);
 	printf("  %s -h             Print help\n", NAME);
 	printf("  %s eject <mp>     Eject volume mounted in a directory\n", NAME);
 	printf("  %s insert <svc>   Insert volume based on service identifier\n", NAME);
@@ -263,6 +321,8 @@ int main(int argc, char *argv[])
 		i = 2;
 		if (str_cmp(cmd, "-h") == 0) {
 			vcmd = vcmd_help;
+		} else if (str_cmp(cmd, "-c") == 0) {
+			vcmd = vcmd_cfglist;
 		} else if (str_cmp(cmd, "eject") == 0) {
 			vcmd = vcmd_eject;
 			if (argc <= i) {
@@ -301,6 +361,9 @@ int main(int argc, char *argv[])
 		break;
 	case vcmd_list:
 		rc = vol_cmd_list();
+		break;
+	case vcmd_cfglist:
+		rc = vol_cmd_cfglist();
 		break;
 	}
 

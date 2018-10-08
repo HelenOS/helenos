@@ -78,6 +78,11 @@
 #define BOOT_FILES_SRC CD_MOUNT_POINT
 #define BOOT_BLOCK_IDX 0 /* MBR */
 
+static const char *sys_dirs[] = {
+	"/cfg",
+	"/data"
+};
+
 /** Label the destination device.
  *
  * @param dev Disk device to label
@@ -159,6 +164,46 @@ static errno_t sysinst_label_dev(const char *dev, service_id_t *psvc_id)
 	printf("sysinst_label_dev(): OK\n");
 	*psvc_id = pinfo.svc_id;
 	return EOK;
+}
+
+/** Set up system volume structure.
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_setup_sysvol(void)
+{
+	errno_t rc;
+	char *path = NULL;
+	const char **cp;
+	int rv;
+
+	cp = sys_dirs;
+	while (*cp != NULL) {
+		rv = asprintf(&path, "%s%s", MOUNT_POINT, *cp);
+		if (rv < 0) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		rc = vfs_link_path(path, KIND_DIRECTORY, NULL);
+		if (rc != EOK) {
+			printf("Error creating directory '%s'.\n", path);
+			goto error;
+		}
+
+		free(path);
+		path = NULL;
+		++cp;
+	}
+
+	free(path);
+	path = NULL;
+
+	return EOK;
+error:
+	if (path != NULL)
+		free(path);
+	return rc;
 }
 
 /** Copy boot files.
@@ -414,7 +459,12 @@ static errno_t sysinst_install(const char *dev)
 	if (rc != EOK)
 		return rc;
 
-	printf("FS created and mounted. Copying boot files.\n");
+	printf("FS created and mounted. Creating system directory structure.\n");
+	rc = sysinst_setup_sysvol();
+	if (rc != EOK)
+		return rc;
+
+	printf("Directories created. Copying boot files.\n");
 	rc = sysinst_copy_boot_files();
 	if (rc != EOK)
 		return rc;

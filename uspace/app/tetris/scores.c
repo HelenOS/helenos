@@ -211,7 +211,7 @@ errno_t loadscores(void)
 	size_t cnt;
 	int rc;
 
-	f = fopen("/data/tetris.sco", "rb");
+	f = fopen("/w/data/tetris.sco", "rb");
 	if (f == NULL)
 		return ENOENT;
 
@@ -230,7 +230,7 @@ void savescores(void)
 	size_t cnt;
 	int rc;
 
-	f = fopen("/data/tetris.sco", "wb");
+	f = fopen("/w/data/tetris.sco", "wb");
 	if (f == NULL) {
 		printf("Error creating table\n");
 		return;

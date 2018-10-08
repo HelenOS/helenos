@@ -527,5 +527,49 @@ errno_t vol_mountp_validate(const char *mountp)
 	return EINVAL;
 }
 
+/** Get list of volumes as array of volume IDs.
+ *
+ * @param vol Volume service
+ * @param data Place to store pointer to array
+ * @param count Place to store length of array (number of entries)
+ *
+ * @return EOK on success or an error code
+ */
+errno_t vol_get_volumes(vol_t *vol, volume_id_t **data, size_t *count)
+{
+	return vol_get_ids_internal(vol, VOL_GET_VOLUMES, 0,
+	    (sysarg_t **) data, count);
+}
+
+/** Get volume configuration information.
+ *
+ * @param vol Volume service
+ * @param vid Volume ID
+ * @param vinfo Place to sore volume configuration information
+ * @return EOK on success or an error code
+ */
+errno_t vol_info(vol_t *vol, volume_id_t vid, vol_info_t *vinfo)
+{
+	async_exch_t *exch;
+	errno_t retval;
+	ipc_call_t answer;
+
+	exch = async_exchange_begin(vol->sess);
+	aid_t req = async_send_1(exch, VOL_INFO, vid.id, &answer);
+
+	errno_t rc = async_data_read_start(exch, vinfo, sizeof(vol_info_t));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return EIO;
+	}
+
+	async_wait_for(req, &retval);
+	if (retval != EOK)
+		return EIO;
+
+	return EOK;
+}
+
 /** @}
  */
