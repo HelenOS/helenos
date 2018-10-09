@@ -46,6 +46,7 @@ function extract_field
 
 case ".$1" in
 (.--cc) extract_field "CC" "$MAKEFILE_COMMON";;
+(.--ld) extract_field "LD" "$MAKEFILE_COMMON";;
 (.--uarch) extract_field "UARCH" "$MAKEFILE_CONFIG";;
 (.--endian)
 	UARCH=`extract_field "UARCH" "$MAKEFILE_CONFIG"`

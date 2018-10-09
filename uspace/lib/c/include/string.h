@@ -35,7 +35,7 @@
 #ifndef LIBC_STRING_H_
 #define LIBC_STRING_H_
 
-#ifdef _HELENOS_SOURCE
+#if defined(_HELENOS_SOURCE) && !defined(_REALLY_WANT_STRING_H)
 #error Please use str.h and mem.h instead
 #endif
 
