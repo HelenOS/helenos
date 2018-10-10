@@ -3,6 +3,7 @@ ENTRY(start)
 SECTIONS {
 	. = 0x08000000;
 	.text : {
+		loader_start = .;
 		*(BOOTSTRAP);
 		*(REALMODE);
 		*(.text);
@@ -17,7 +18,10 @@ SECTIONS {
 		*(.scommon);
 		*(.bss);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
-		*(.components);
+		loader_end = .;
+		payload_start = .;
+		*(.payload);
+		payload_end = .;
 	}
 
 	/DISCARD/ : {

@@ -31,6 +31,6 @@
 
 #include <stddef.h>
 
-extern int inflate(void *, size_t, void *, size_t);
+extern int inflate(const void *, size_t, void *, size_t);
 
 #endif

@@ -48,14 +48,9 @@
 #include <errno.h>
 #include <inflate.h>
 #include <arch/cp15.h>
-#include "../../components.h"
+#include <payload.h>
 
-#define TOP2ADDR(top)  (((void *) PA2KA(BOOT_OFFSET)) + (top))
-
-extern void *bdata_start;
-extern void *bdata_end;
-
-static inline void clean_dcache_poc(void *address, size_t size)
+static void clean_dcache_poc(void *address, size_t size)
 {
 	const uintptr_t addr = (uintptr_t) address;
 
@@ -90,7 +85,7 @@ void bootstrap(void)
 	mmu_start();
 	version_print();
 
-	printf("Boot data: %p -> %p\n", &bdata_start, &bdata_end);
+	printf("Boot loader: %p -> %p\n", loader_start, loader_end);
 	printf("\nMemory statistics\n");
 	printf(" %p|%p: bootstrap stack\n", &boot_stack, &boot_stack);
 	printf(" %p|%p: bootstrap page table\n", &boot_pt, &boot_pt);
@@ -98,57 +93,12 @@ void bootstrap(void)
 	printf(" %p|%p: kernel entry point\n",
 	    (void *) PA2KA(BOOT_OFFSET), (void *) BOOT_OFFSET);
 
-	for (size_t i = 0; i < COMPONENTS; i++) {
-		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].addr,
-		    components[i].addr, components[i].name, components[i].inflated,
-		    components[i].size);
-	}
+	// FIXME: Use the correct value.
+	uint8_t *kernel_dest = (uint8_t *) BOOT_OFFSET;
+	uint8_t *ram_end = kernel_dest + (1 << 24);
 
-	void *dest[COMPONENTS];
-	size_t top = 0;
-	size_t cnt = 0;
-	bootinfo.cnt = 0;
-	for (size_t i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
-		top = ALIGN_UP(top, PAGE_SIZE);
-
-		if (i > 0) {
-			bootinfo.tasks[bootinfo.cnt].addr = TOP2ADDR(top);
-			bootinfo.tasks[bootinfo.cnt].size = components[i].inflated;
-
-			str_cpy(bootinfo.tasks[bootinfo.cnt].name,
-			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-
-			bootinfo.cnt++;
-		}
-
-		dest[i] = TOP2ADDR(top);
-		top += components[i].inflated;
-		cnt++;
-	}
-
-	printf("\nInflating components ... ");
-
-	for (size_t i = cnt; i > 0; i--) {
-		void *tail = components[i - 1].addr + components[i - 1].size;
-		if (tail >= dest[i - 1]) {
-			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
-			    components[i].name, tail, dest[i - 1]);
-			halt();
-		}
-
-		printf("%s ", components[i - 1].name);
-
-		int err = inflate(components[i - 1].addr, components[i - 1].size,
-		    dest[i - 1], components[i - 1].inflated);
-		if (err != EOK) {
-			printf("\n%s: Inflating error %d\n", components[i - 1].name, err);
-			halt();
-		}
-		/* Make sure data are in the memory, ICache will need them */
-		clean_dcache_poc(dest[i - 1], components[i - 1].inflated);
-	}
-
-	printf(".\n");
+	extract_payload(&bootinfo.taskmap, kernel_dest, ram_end,
+	    PA2KA(kernel_dest), clean_dcache_poc);
 
 	/* Flush PT too. We need this if we disable caches later */
 	clean_dcache_poc(boot_pt, PTL0_ENTRIES * PTL0_ENTRY_SIZE);

@@ -42,8 +42,7 @@
 #include <align.h>
 #include <str.h>
 #include <errno.h>
-#include <inflate.h>
-#include "../../components.h"
+#include <payload.h>
 
 #define DEFAULT_MEMORY_BASE		0x4000000ULL
 #define DEFAULT_MEMORY_SIZE		(256 * 1024 * 1024)
@@ -149,74 +148,38 @@ void bootstrap(void)
 {
 	version_print();
 
+	printf("Boot loader: %p -> %p\n", loader_start, loader_end);
 	printf(" %p|%p: boot info structure\n", &bootinfo, &bootinfo);
 	printf(" %p|%p: kernel entry point\n",
 	    (void *) KERNEL_ADDRESS, (void *) KERNEL_ADDRESS);
 	printf(" %p|%p: loader entry point\n",
 	    (void *) LOADER_ADDRESS, (void *) LOADER_ADDRESS);
 
-	size_t i;
-	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
-		    components[i].addr, components[i].name,
-		    components[i].inflated, components[i].size);
-
-	void *dest[COMPONENTS];
-	size_t top = KERNEL_ADDRESS;
-	size_t cnt = 0;
-	bootinfo.taskmap.cnt = 0;
-	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
-		top = ALIGN_UP(top, PAGE_SIZE);
-
-		if (i > 0) {
-			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].addr =
-			    (void *) top;
-			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].size =
-			    components[i].inflated;
-
-			str_cpy(bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].name,
-			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-
-			bootinfo.taskmap.cnt++;
-		}
-
-		dest[i] = (void *) top;
-		top += components[i].inflated;
-		cnt++;
-	}
-
-	printf("\nInflating components ... ");
-
-	/*
-	 * We will use the next available address for a copy of each component to
-	 * make sure that inflate() works with disjunctive memory regions.
-	 */
-	top = ALIGN_UP(top, PAGE_SIZE);
-
-	for (i = cnt; i > 0; i--) {
-		printf("%s ", components[i - 1].name);
-
-		/*
-		 * Copy the component to a location which is guaranteed not to
-		 * overlap with the destination for inflate().
-		 */
-		memmove((void *) top, components[i - 1].addr, components[i - 1].size);
-
-		int err = inflate((void *) top, components[i - 1].size,
-		    dest[i - 1], components[i - 1].inflated);
-
-		if (err != EOK) {
-			printf("\n%s: Inflating error %d, halting.\n",
-			    components[i - 1].name, err);
-			halt();
-		}
-	}
-
-	printf(".\n");
-
 	read_efi_memmap();
 	read_sal_configuration();
 	read_pal_configuration();
+
+	uint8_t *kernel_start = (uint8_t *) KERNEL_ADDRESS;
+	uint8_t *ram_end = NULL;
+
+	/* Find the end of the memory area occupied by the kernel. */
+	for (unsigned i = 0; i < bootinfo.memmap_items; i++) {
+		memmap_item_t m = bootinfo.memmap[i];
+		if (m.type == MEMMAP_FREE_MEM &&
+		    m.base <= (uintptr_t) kernel_start &&
+		    m.base + m.size > (uintptr_t) kernel_start) {
+			ram_end = (uint8_t *) (m.base + m.size);
+		}
+	}
+
+	if (ram_end == NULL) {
+		printf("Memory map doesn't contain usable area at kernel's address.\n");
+		halt();
+	}
+
+	// FIXME: Correct kernel's logical address.
+	extract_payload(&bootinfo.taskmap, kernel_start, ram_end,
+	    (uintptr_t) kernel_start, NULL);
 
 	printf("Booting the kernel ...\n");
 	jump_to_kernel(&bootinfo);

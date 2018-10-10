@@ -53,6 +53,10 @@ typedef struct {
 typedef struct {
 	size_t cnt;
 	task_t tasks[TASKMAP_MAX_RECORDS];
+} taskmap_t;
+
+typedef struct {
+	taskmap_t taskmap;
 } bootinfo_t;
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2018 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_ia64_TYPES_H_
-#define BOOT_ia64_TYPES_H_
+#ifndef BOOT_PAYLOAD_H_
+#define BOOT_PAYLOAD_H_
 
-#include <_bits/all.h>
+#include <arch/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#define TASKMAP_MAX_RECORDS		32
-#define BOOTINFO_TASK_NAME_BUFLEN	32
-#define MEMMAP_ITEMS			128
+extern uint8_t payload_start[];
+extern uint8_t payload_end[];
 
-typedef struct {
-	void *addr;
-	size_t size;
-	char name[BOOTINFO_TASK_NAME_BUFLEN];
-} task_t;
+extern uint8_t loader_start[];
+extern uint8_t loader_end[];
 
-typedef struct {
-	size_t cnt;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
-
-typedef struct {
-	unsigned int type;
-	unsigned long base;
-	unsigned long size;
-} memmap_item_t;
-
-typedef struct {
-	taskmap_t taskmap;
-
-	memmap_item_t memmap[MEMMAP_ITEMS];
-	unsigned int memmap_items;
-
-	sysarg_t *sapic;
-	unsigned long sys_freq;
-	unsigned long freq_scale;
-	unsigned int wakeup_intno;
-} bootinfo_t;
-
-/** This is a minimal ELILO-compatible boot parameter structure. */
-typedef struct {
-	uint64_t cmd_line;
-	uint64_t efi_system_table;
-	uint64_t efi_memmap;
-	uint64_t efi_memmap_sz;
-	uint64_t efi_memdesc_sz;
-} boot_param_t;
+size_t payload_uncompressed_size(void);
+void extract_payload(taskmap_t *, uint8_t *, uint8_t *, uintptr_t,
+    void (*)(void *, size_t));
 
 #endif

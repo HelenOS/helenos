@@ -55,12 +55,16 @@ typedef struct {
 } utask_t;
 
 typedef struct {
+	size_t cnt;
+	utask_t tasks[TASKMAP_MAX_RECORDS];
+} taskmap_t;
+
+typedef struct {
 #if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
 	uint32_t sdram_size;
 #endif
 	uint32_t cpumap;
-	size_t cnt;
-	utask_t tasks[TASKMAP_MAX_RECORDS];
+	taskmap_t taskmap;
 } bootinfo_t;
 
 extern void mips32_pre_main(void *entry, bootinfo_t *bootinfo);

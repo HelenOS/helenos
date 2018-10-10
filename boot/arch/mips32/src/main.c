@@ -38,10 +38,7 @@
 #include <align.h>
 #include <str.h>
 #include <errno.h>
-#include <inflate.h>
-#include "../../components.h"
-
-#define TOP2ADDR(top)  (((void *) PA2KA(BOOT_OFFSET)) + (top))
+#include <payload.h>
 
 static bootinfo_t *bootinfo = (bootinfo_t *) PA2KA(BOOTINFO_OFFSET);
 static uint32_t *cpumap = (uint32_t *) PA2KA(CPUMAP_OFFSET);
@@ -62,67 +59,20 @@ void bootstrap(void)
 	printf(" %p|%p: bootloader entry point\n",
 	    (void *) PA2KA(LOADER_OFFSET), (void *) LOADER_OFFSET);
 
-	size_t i;
-	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
-		    (uintptr_t) components[i].addr >= PA2KSEG(0) ?
-		    (void *) KSEG2PA(components[i].addr) :
-		    (void *) KA2PA(components[i].addr),
-		    components[i].name, components[i].inflated,
-		    components[i].size);
+	uint8_t *kernel_start = (uint8_t *) PA2KA(BOOT_OFFSET);
+	// FIXME: Use the correct value.
+	uint8_t *ram_end = kernel_start + (1 << 24);
 
-	void *dest[COMPONENTS];
-	size_t top = 0;
-	size_t cnt = 0;
-	bootinfo->cnt = 0;
-	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
-		top = ALIGN_UP(top, PAGE_SIZE);
+	// TODO: Make sure that the I-cache, D-cache and memory are coherent.
+	//       (i.e. provide the clear_cache callback)
 
-		if (i > 0) {
-			bootinfo->tasks[bootinfo->cnt].addr = TOP2ADDR(top);
-			bootinfo->tasks[bootinfo->cnt].size = components[i].inflated;
-
-			str_cpy(bootinfo->tasks[bootinfo->cnt].name,
-			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-
-			bootinfo->cnt++;
-		}
-
-		dest[i] = TOP2ADDR(top);
-		top += components[i].inflated;
-		cnt++;
-	}
-
-	printf("\nInflating components ... ");
-
-	for (i = cnt; i > 0; i--) {
-#ifdef MACHINE_msim
-		void *tail = dest[i - 1] + components[i].inflated;
-		if (tail >= ((void *) PA2KA(LOADER_OFFSET))) {
-			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
-			    components[i].name, tail, (void *) PA2KA(LOADER_OFFSET));
-			halt();
-		}
-#endif
-
-		printf("%s ", components[i - 1].name);
-
-		int err = inflate(components[i - 1].addr, components[i - 1].size,
-		    dest[i - 1], components[i - 1].inflated);
-
-		if (err != EOK) {
-			printf("\n%s: Inflating error %d, halting.\n",
-			    components[i - 1].name, err);
-			halt();
-		}
-	}
-
-	printf(".\n");
+	extract_payload(&bootinfo->taskmap, kernel_start, ram_end,
+	    (uintptr_t) kernel_start, NULL);
 
 	printf("Copying CPU map ... \n");
 
 	bootinfo->cpumap = 0;
-	for (i = 0; i < CPUMAP_MAX_RECORDS; i++) {
+	for (int i = 0; i < CPUMAP_MAX_RECORDS; i++) {
 		if (cpumap[i] != 0)
 			bootinfo->cpumap |= (1 << i);
 	}

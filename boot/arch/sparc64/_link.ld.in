@@ -3,6 +3,7 @@ ENTRY(start)
 SECTIONS {
 	. = 0x4000;
 	.boot : {
+		loader_start = .;
 		*(BOOTSTRAP);
 		*(.text);
 
@@ -14,7 +15,10 @@ SECTIONS {
 		*(.sbss);
 		*(.bss);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
-		*(.components);
+		loader_end = .;
+		payload_start = .;
+		*(.payload);
+		payload_end = .;
 	}
 
 	/DISCARD/ : {

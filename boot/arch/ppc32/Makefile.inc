@@ -60,8 +60,7 @@ SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/ofw.c \
-	$(COMPS).s \
-	$(COMPS)_desc.c \
+	$(COMPS).o \
 	genarch/src/ofw.c \
 	genarch/src/ofw_tree.c \
 	genarch/src/division.c \
@@ -73,6 +72,7 @@ SOURCES = \
 	generic/src/printf.c \
 	generic/src/str.c \
 	generic/src/version.c \
-	generic/src/inflate.c
-
-PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE)
+	generic/src/inflate.c \
+	generic/src/gzip.c \
+	generic/src/tar.c \
+	generic/src/payload.c

@@ -40,8 +40,7 @@
 #include <align.h>
 #include <str.h>
 #include <errno.h>
-#include <inflate.h>
-#include "../../components.h"
+#include <payload.h>
 
 #define BALLOC_MAX_SIZE  131072
 
@@ -73,37 +72,10 @@ void bootstrap(void)
 	printf(" %p|%p: loader entry point\n",
 	    (void *) LOADER_ADDRESS, loader_address_pa);
 
-	size_t i;
-	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
-		    ofw_translate(components[i].addr), components[i].name,
-		    components[i].inflated, components[i].size);
+	size_t uncompressed_size = payload_uncompressed_size();
+	printf("Payload uncompressed size: %d bytes\n", uncompressed_size);
 
-	size_t dest[COMPONENTS];
-	size_t top = 0;
-	size_t cnt = 0;
-	bootinfo.taskmap.cnt = 0;
-	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
-		top = ALIGN_UP(top, PAGE_SIZE);
-
-		if (i > 0) {
-			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].addr =
-			    (void *) PA2KA(top);
-			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].size =
-			    components[i].inflated;
-
-			str_cpy(bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].name,
-			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-
-			bootinfo.taskmap.cnt++;
-		}
-
-		dest[i] = top;
-		top += components[i].inflated;
-		cnt++;
-	}
-
-	if (top >= (size_t) loader_address_pa) {
+	if (uncompressed_size >= (size_t) loader_address_pa) {
 		printf("Inflated components overlap loader area.\n");
 		printf("The boot image is too large. Halting.\n");
 		halt();
@@ -117,11 +89,11 @@ void bootstrap(void)
 
 	void *inflate_base;
 	void *inflate_base_pa;
-	ofw_alloc("inflate area", &inflate_base, &inflate_base_pa, top,
-	    loader_address_pa);
+	ofw_alloc("inflate area", &inflate_base, &inflate_base_pa,
+	    uncompressed_size, loader_address_pa);
 	printf(" %p|%p: inflate area\n", inflate_base, inflate_base_pa);
 
-	uintptr_t balloc_start = ALIGN_UP(top, PAGE_SIZE);
+	uintptr_t balloc_start = ALIGN_UP(uncompressed_size, PAGE_SIZE);
 	size_t pages = (balloc_start + ALIGN_UP(BALLOC_MAX_SIZE, PAGE_SIZE)) >>
 	    PAGE_WIDTH;
 	void *transtable;
@@ -134,22 +106,9 @@ void bootstrap(void)
 	check_overlap("inflate area", inflate_base_pa, pages);
 	check_overlap("translate table", transtable_pa, pages);
 
-	printf("\nInflating components ... ");
-
-	for (i = cnt; i > 0; i--) {
-		printf("%s ", components[i - 1].name);
-
-		int err = inflate(components[i - 1].addr, components[i - 1].size,
-		    inflate_base + dest[i - 1], components[i - 1].inflated);
-
-		if (err != EOK) {
-			printf("\n%s: Inflating error %d, halting.\n",
-			    components[i - 1].name, err);
-			halt();
-		}
-	}
-
-	printf(".\n");
+	/* Inflate components. */
+	extract_payload(&bootinfo.taskmap, inflate_base,
+	    inflate_base + uncompressed_size, PA2KA(0), NULL);
 
 	printf("Setting up boot allocator ...\n");
 	balloc_init(&bootinfo.ballocs, balloc_base, PA2KA(balloc_start),
@@ -162,7 +121,7 @@ void bootstrap(void)
 	bootinfo.ofw_root = ofw_tree_build();
 
 	printf("Setting up translate table ...\n");
-	for (i = 0; i < pages; i++) {
+	for (size_t i = 0; i < pages; i++) {
 		uintptr_t off = i << PAGE_WIDTH;
 		void *phys;
 

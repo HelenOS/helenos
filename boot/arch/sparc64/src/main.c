@@ -41,8 +41,7 @@
 #include <align.h>
 #include <str.h>
 #include <errno.h>
-#include <inflate.h>
-#include "../../components.h"
+#include <payload.h>
 
 /* The lowest ID (read from the VER register) of some US3 CPU model */
 #define FIRST_US3_CPU  0x14
@@ -216,73 +215,32 @@ void bootstrap(void)
 	printf(" %p|%p: loader entry point\n",
 	    (void *) LOADER_ADDRESS, (void *) loader_address_pa);
 
-	size_t i;
-	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
-		    ofw_translate(components[i].addr), components[i].name,
-		    components[i].inflated, components[i].size);
+	/*
+	 * At this point, we claim and map the physical memory that we
+	 * are going to use. We should be safe in case of the virtual
+	 * address space because the OpenFirmware, according to its
+	 * SPARC binding, should restrict its use of virtual memory to
+	 * addresses from [0xffd00000; 0xffefffff] and [0xfe000000;
+	 * 0xfeffffff].
+	 */
 
-	void *dest[COMPONENTS];
-	size_t top = KERNEL_ADDRESS;
-	size_t cnt = 0;
-	bootinfo.taskmap.cnt = 0;
-	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
-		top = ALIGN_UP(top, PAGE_SIZE);
+	size_t sz = ALIGN_UP(payload_uncompressed_size(), PAGE_SIZE);
+	ofw_claim_phys((void *) (bootinfo.physmem_start + KERNEL_ADDRESS), sz);
+	ofw_map((void *) (bootinfo.physmem_start + KERNEL_ADDRESS),
+	    (void *) KERNEL_ADDRESS, sz, -1);
 
-		if (i > 0) {
-			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].addr =
-			    (void *) top;
-			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].size =
-			    components[i].inflated;
+	/* Extract components. */
 
-			str_cpy(bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].name,
-			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-
-			bootinfo.taskmap.cnt++;
-		}
-
-		dest[i] = (void *) top;
-		top += components[i].inflated;
-		cnt++;
-	}
-
-	printf("\nInflating components ... ");
-
-	for (i = cnt; i > 0; i--) {
-		printf("%s ", components[i - 1].name);
-
-		/*
-		 * At this point, we claim and map the physical memory that we
-		 * are going to use. We should be safe in case of the virtual
-		 * address space because the OpenFirmware, according to its
-		 * SPARC binding, should restrict its use of virtual memory to
-		 * addresses from [0xffd00000; 0xffefffff] and [0xfe000000;
-		 * 0xfeffffff].
-		 */
-		ofw_claim_phys(bootinfo.physmem_start + dest[i - 1],
-		    ALIGN_UP(components[i - 1].inflated, PAGE_SIZE));
-
-		ofw_map(bootinfo.physmem_start + dest[i - 1], dest[i - 1],
-		    ALIGN_UP(components[i - 1].inflated, PAGE_SIZE), -1);
-
-		int err = inflate(components[i - 1].addr, components[i - 1].size,
-		    dest[i - 1], components[i - 1].inflated);
-
-		if (err != EOK) {
-			printf("\n%s: Inflating error %d, halting.\n",
-			    components[i - 1].name, err);
-			halt();
-		}
-	}
-
-	printf(".\n");
+	// TODO: Cache-coherence callback?
+	extract_payload(&bootinfo.taskmap, (void *) KERNEL_ADDRESS,
+	    (void *) KERNEL_ADDRESS + sz, KERNEL_ADDRESS, NULL);
 
 	/*
 	 * Claim and map the physical memory for the boot allocator.
 	 * Initialize the boot allocator.
 	 */
 	printf("Setting up boot allocator ...\n");
-	void *balloc_base = (void *) ALIGN_UP(top, PAGE_SIZE);
+	void *balloc_base = (void *) KERNEL_ADDRESS + sz;
 	ofw_claim_phys(bootinfo.physmem_start + balloc_base, BALLOC_MAX_SIZE);
 	ofw_map(bootinfo.physmem_start + balloc_base, balloc_base,
 	    BALLOC_MAX_SIZE, -1);

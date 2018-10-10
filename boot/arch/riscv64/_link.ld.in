@@ -6,6 +6,7 @@ SECTIONS {
 	. = PHYSMEM_START;
 
 	.text : {
+		loader_start = .;
 		*(BOOTSTRAP);
 		*(.text);
 	}
@@ -34,7 +35,10 @@ SECTIONS {
 		*(.scommon);
 		*(.bss);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
-		*(.components);
+		loader_end = .;
+		payload_start = .;
+		*(.payload);
+		payload_end = .;
 	}
 
 	/DISCARD/ : {

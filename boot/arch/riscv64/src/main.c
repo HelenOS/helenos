@@ -40,8 +40,7 @@
 #include <align.h>
 #include <str.h>
 #include <halt.h>
-#include <inflate.h>
-#include "../../components.h"
+#include <payload.h>
 
 static bootinfo_t bootinfo;
 
@@ -68,74 +67,25 @@ void bootstrap(void)
 	    bootinfo.memmap.total >> 20, (void *) bootinfo.physmem_start);
 	printf(" %p: boot info structure\n", &bootinfo);
 
-	uintptr_t top = BOOT_OFFSET;
+	uint8_t *load_addr = (uint8_t *) BOOT_OFFSET;
+	uintptr_t kernel_addr = PA2KA(load_addr);
 
-	for (size_t i = 0; i < COMPONENTS; i++) {
-		printf(" %p: %s image (%zu/%zu bytes)\n", components[i].addr,
-		    components[i].name, components[i].inflated,
-		    components[i].size);
+	printf(" %p: inflate area\n", load_addr);
+	printf(" %p: kernel entry point\n", (void *) kernel_addr);
 
-		uintptr_t tail = (uintptr_t) components[i].addr +
-		    components[i].size;
-		if (tail > top) {
-			printf("\n%s: Image too large to fit (%p >= %p), halting.\n",
-			    components[i].name, (void *) tail, (void *) top);
-			halt();
+	/* Find the end of the memory zone containing the load address. */
+	uint8_t *end = NULL;
+	for (size_t i = 0; i < bootinfo.memmap.cnt; i++) {
+		memzone_t z = bootinfo.memmap.zones[i];
+
+		if (z.start <= (void *) load_addr &&
+		    z.start + z.size > (void *) load_addr) {
+			end = z.start + z.size;
 		}
 	}
 
-	printf(" %p: inflate area\n", (void *) top);
-
-	void *kernel_entry = NULL;
-	void *dest[COMPONENTS];
-	size_t cnt = 0;
-	bootinfo.taskmap.cnt = 0;
-
-	for (size_t i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
-		top = ALIGN_UP(top, PAGE_SIZE);
-
-		if (i > 0) {
-			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].addr =
-			    (void *) PA2KA(top);
-			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].size =
-			    components[i].inflated;
-
-			str_cpy(bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].name,
-			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-
-			bootinfo.taskmap.cnt++;
-		} else
-			kernel_entry = (void *) PA2KA(top);
-
-		dest[i] = (void *) top;
-		top += components[i].inflated;
-		cnt++;
-	}
-
-	printf(" %p: kernel entry point\n", kernel_entry);
-
-	if (top >= bootinfo.physmem_start + bootinfo.memmap.total) {
-		printf("Not enough physical memory available.\n");
-		printf("The boot image is too large. Halting.\n");
-		halt();
-	}
-
-	printf("\nInflating components ... ");
-
-	for (size_t i = cnt; i > 0; i--) {
-		printf("%s ", components[i - 1].name);
-
-		int err = inflate(components[i - 1].addr, components[i - 1].size,
-		    dest[i - 1], components[i - 1].inflated);
-
-		if (err != EOK) {
-			printf("\n%s: Inflating error %d, halting.\n",
-			    components[i - 1].name, err);
-			halt();
-		}
-	}
-
-	printf(".\n");
+	// TODO: Cache-coherence callback?
+	extract_payload(&bootinfo.taskmap, load_addr, end, kernel_addr, NULL);
 
 	printf("Booting the kernel...\n");
 	jump_to_kernel(PA2KA(&bootinfo));

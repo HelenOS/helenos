@@ -103,7 +103,7 @@ typedef struct {
 	size_t destlen;   /**< Output buffer size */
 	size_t destcnt;   /**< Position in the output buffer */
 
-	uint8_t *src;     /**< Input buffer */
+	const uint8_t *src;     /**< Input buffer */
 	size_t srclen;    /**< Input buffer size */
 	size_t srccnt;    /**< Position in the input buffer */
 
@@ -318,7 +318,7 @@ static int inflate_stored(inflate_state_t *state)
 static int huffman_decode(inflate_state_t *state, huffman_t *huffman,
     uint16_t *symbol)
 {
-	/* Decoded bits */
+	/* Decode bits */
 	uint16_t code = 0;
 
 	/* First code of the given length */
@@ -330,7 +330,9 @@ static int huffman_decode(inflate_state_t *state, huffman_t *huffman,
 	 */
 	size_t index = 0;
 
-	size_t len;  /* Current number of bits in the code */
+	/* Current number of bits in the code */
+	size_t len;
+
 	for (len = 1; len <= MAX_HUFFMAN_BIT; len++) {
 		/* Get next bit */
 		code |= get_bits(state, 1);
@@ -624,7 +626,7 @@ static int inflate_dynamic(inflate_state_t *state)
  * @return ENOMEM on output buffer overrun.
  *
  */
-int inflate(void *src, size_t srclen, void *dest, size_t destlen)
+int inflate(const void *src, size_t srclen, void *dest, size_t destlen)
 {
 	/* Initialize the state */
 	inflate_state_t state;
@@ -633,7 +635,7 @@ int inflate(void *src, size_t srclen, void *dest, size_t destlen)
 	state.destlen = destlen;
 	state.destcnt = 0;
 
-	state.src = (uint8_t *) src;
+	state.src = (const uint8_t *) src;
 	state.srclen = srclen;
 	state.srccnt = 0;
 

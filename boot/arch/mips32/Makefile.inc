@@ -75,8 +75,7 @@ SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \
 	arch/$(BARCH)/src/putchar.c \
-	$(COMPS).s \
-	$(COMPS)_desc.c \
+	$(COMPS).o \
 	genarch/src/division.c \
 	genarch/src/multiplication.c \
 	generic/src/memstr.c \
@@ -85,6 +84,7 @@ SOURCES = \
 	generic/src/printf.c \
 	generic/src/str.c \
 	generic/src/version.c \
-	generic/src/inflate.c
-
-PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE)
+	generic/src/inflate.c \
+	generic/src/gzip.c \
+	generic/src/tar.c \
+	generic/src/payload.c

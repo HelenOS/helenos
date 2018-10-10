@@ -146,12 +146,6 @@ FUNCTION_BEGIN(halt)
 FUNCTION_END(halt)
 
 FUNCTION_BEGIN(jump_to_kernel)
-	/*
-	 * TODO:
-	 *
-	 * Make sure that the I-cache, D-cache and memory are mutually
-	 * coherent before passing control to the copied code.
-	 */
 	j $a0
 	nop
 FUNCTION_END(jump_to_kernel)

@@ -87,14 +87,14 @@ size_t sdram_size = 0;
 /** Performs mips32-specific initialization before main_bsp() is called. */
 void mips32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
-	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		init.tasks[i].paddr = KA2PA(bootinfo->tasks[i].addr);
-		init.tasks[i].size = bootinfo->tasks[i].size;
+		init.tasks[i].paddr = KA2PA(bootinfo->taskmap.tasks[i].addr);
+		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
-		    bootinfo->tasks[i].name);
+		    bootinfo->taskmap.tasks[i].name);
 	}
 
 	for (i = 0; i < CPUMAP_MAX_RECORDS; i++) {

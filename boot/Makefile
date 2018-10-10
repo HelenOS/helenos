@@ -133,7 +133,7 @@ endif
 	find . -name '*.d' -follow -exec rm \{\} \;
 
 clean_dist:
-	rm -f $(INITRD).img $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE) $(COMPS).o $(COMPS)_desc.o $(COMPS).zip $(LINK)
+	rm -f $(INITRD).img $(COMPS).o $(COMPS).tar $(LINK)
 	find $(USPACE_PATH)/dist -mindepth 1 -maxdepth 1 -type f -exec rm \{\} \;
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/*

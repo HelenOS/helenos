@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2018 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,71 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_ia64_TYPES_H_
-#define BOOT_ia64_TYPES_H_
+#include <align.h>
+#include <tar.h>
 
-#include <_bits/all.h>
+static int _digit_val(char c)
+{
+	if (c >= '0' && c <= '9') {
+		return c - '0';
+	}
+	if (c >= 'a' && c <= 'z') {
+		return c - 'a' + 10;
+	}
+	if (c >= 'A' && c <= 'Z') {
+		return c - 'A' + 10;
+	}
 
-#define TASKMAP_MAX_RECORDS		32
-#define BOOTINFO_TASK_NAME_BUFLEN	32
-#define MEMMAP_ITEMS			128
+	// TODO: error message
+	return 0;
+}
 
-typedef struct {
-	void *addr;
-	size_t size;
-	char name[BOOTINFO_TASK_NAME_BUFLEN];
-} task_t;
+static int64_t _parse_size(const char *s, size_t len, int base)
+{
+	int64_t val = 0;
 
-typedef struct {
-	size_t cnt;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
+	for (size_t i = 0; i < len; i++) {
+		if (*s == 0)
+			return val;
 
-typedef struct {
-	unsigned int type;
-	unsigned long base;
-	unsigned long size;
-} memmap_item_t;
+		if (*s == ' ') {
+			s++;
+			continue;
+		}
 
-typedef struct {
-	taskmap_t taskmap;
+		if ((INT64_MAX - 64) / base <= val) {
+			// TODO: error message
+			return INT64_MAX;
+		}
 
-	memmap_item_t memmap[MEMMAP_ITEMS];
-	unsigned int memmap_items;
+		val *= base;
+		val += _digit_val(*s);
+		s++;
+	}
 
-	sysarg_t *sapic;
-	unsigned long sys_freq;
-	unsigned long freq_scale;
-	unsigned int wakeup_intno;
-} bootinfo_t;
+	return val;
+}
 
-/** This is a minimal ELILO-compatible boot parameter structure. */
-typedef struct {
-	uint64_t cmd_line;
-	uint64_t efi_system_table;
-	uint64_t efi_memmap;
-	uint64_t efi_memmap_sz;
-	uint64_t efi_memdesc_sz;
-} boot_param_t;
+bool tar_info(const uint8_t *start, const uint8_t *end,
+    const char **name, size_t *length)
+{
+	if (end - start < TAR_BLOCK_SIZE) {
+		// TODO: error message
+		return false;
+	}
 
-#endif
+	const tar_header_raw_t *h = (const tar_header_raw_t *) start;
+	if (h->filename[0] == '\0')
+		return false;
+
+	ptrdiff_t len = _parse_size(h->size, sizeof(h->size), 8);
+
+	if (end - start < TAR_BLOCK_SIZE + len) {
+		// TODO: error message
+		return false;
+	}
+
+	*name = h->filename;
+	*length = len;
+	return true;
+}

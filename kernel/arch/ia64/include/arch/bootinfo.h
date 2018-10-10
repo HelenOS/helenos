@@ -35,19 +35,19 @@
 
 #define MEMMAP_FREE_MEM 0
 
-/** Size of buffer for storing task name in binit_task_t. */
+/** Size of buffer for storing task name in utask_t. */
 #define BOOTINFO_TASK_NAME_BUFLEN 32
 
 typedef struct {
 	void *addr;
 	size_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
-} binit_task_t;
+} utask_t;
 
 typedef struct {
 	size_t cnt;
-	binit_task_t tasks[TASKMAP_MAX_RECORDS];
-} binit_t;
+	utask_t tasks[TASKMAP_MAX_RECORDS];
+} taskmap_t;
 
 typedef struct {
 	unsigned int type;
@@ -56,7 +56,7 @@ typedef struct {
 } memmap_item_t;
 
 typedef struct {
-	binit_t taskmap;
+	taskmap_t taskmap;
 
 	memmap_item_t memmap[MEMMAP_ITEMS];
 	unsigned int memmap_items;

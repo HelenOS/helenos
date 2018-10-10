@@ -259,7 +259,6 @@ COMPONENTS = \
 	$(INIT_TASKS) \
 	$(INITRD).img
 
-COMPONENTS_DEFLATE := $(addsuffix .deflate,$(notdir $(COMPONENTS)))
 
 LINK = arch/$(BARCH)/_link.ld
 COMP = component

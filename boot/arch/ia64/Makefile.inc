@@ -47,8 +47,7 @@ SOURCES = \
 	arch/$(BARCH)/src/pal.c \
 	arch/$(BARCH)/src/pal_asm.S \
 	arch/$(BARCH)/src/putchar.c \
-	$(COMPS).s \
-	$(COMPS)_desc.c \
+	$(COMPS).o \
 	genarch/src/efi.c \
 	genarch/src/division.c \
 	generic/src/balloc.c \
@@ -58,7 +57,10 @@ SOURCES = \
 	generic/src/printf.c \
 	generic/src/str.c \
 	generic/src/version.c \
-	generic/src/inflate.c
+	generic/src/inflate.c \
+	generic/src/tar.c \
+	generic/src/gzip.c \
+	generic/src/payload.c
 
 ifeq ($(MACHINE),ski)
 SOURCES += \
@@ -96,5 +98,3 @@ RD_DRVS_ESSENTIAL += \
 	char/ski-con \
 	platform/ski
 endif
-
-PRE_DEPEND = $(COMPS).s $(COMPS).h $(COMPS)_desc.c $(COMPONENTS_DEFLATE)

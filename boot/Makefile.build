@@ -97,20 +97,17 @@ $(LINK): | depend
 
 depend: $(PRE_DEPEND)
 
-$(COMPS).s: $(COMPS).zip
-	unzip -p $< $@ > $@
+%.gz: %
+	gzip -n -k -f $<
 
-$(COMPS).h: $(COMPS).zip
-	unzip -p $< $@ > $@
+$(COMPS).tar: $(addsuffix .gz, $(COMPONENTS))
+	tar --mtime='2032-01-01 00:00:00' --group=0 --owner=0 --no-acls --no-selinux --no-xattrs --format=ustar --transform 's/.*\///g' -cvf $@ $^
 
-$(COMPS)_desc.c: $(COMPS).zip
-	unzip -p $< $@ > $@
-
-$(COMPONENTS_DEFLATE): $(COMPS).zip
-	unzip -p $< $@ > $@
-
-$(COMPS).zip: $(COMPONENTS)
-	$(MKARRAY) --deflate $(COMPS) $(COMP) "$(AS_PROLOG)" ".section .components, \"a\"" $^
+$(COMPS).o: $(COMPS).tar
+	# Create empty object file.
+	$(CC) -x c -c -o $@.new $(DEFS) $(CFLAGS) - </dev/null
+	# Add .payload section to it.
+	$(OBJCOPY) --add-section '.payload'=$< $@.new $@
 
 include Makefile.initrd
 

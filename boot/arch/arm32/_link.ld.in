@@ -5,12 +5,12 @@ ENTRY(start)
 SECTIONS {
 	. = BOOT_BASE;
 	.text : {
+		loader_start = .;
 		*(BOOTSTRAP);
 		*(.text);
 	}
 	. = BOOT_BASE + 0x8000;
 	.data : {
-		bdata_start = .;
 		*(BOOTPT);      /* bootstrap page table */
 		*(BOOTSTACK);   /* bootstrap stack */
 		*(.data);       /* initialized data */
@@ -22,9 +22,11 @@ SECTIONS {
 		*(.scommon);
 		*(.bss);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
-		*(.components);
+		loader_end = .;
+		payload_start = .;
+		*(.payload);
+		payload_end = .;
 	}
-	bdata_end = .;
 
 	/DISCARD/ : {
 		*(.gnu.*);

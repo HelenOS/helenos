@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_ia64_TYPES_H_
-#define BOOT_ia64_TYPES_H_
+/** @addtogroup libuntar
+ * @{
+ */
+/** @file
+ */
 
-#include <_bits/all.h>
+#ifndef TAR_H_
+#define TAR_H_
 
-#define TASKMAP_MAX_RECORDS		32
-#define BOOTINFO_TASK_NAME_BUFLEN	32
-#define MEMMAP_ITEMS			128
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define TAR_BLOCK_SIZE 512
+
+typedef struct tar_header_raw {
+	char filename[100];
+	char permissions[8];
+	char owner[8];
+	char group[8];
+	char size[12];
+	char modification_time[12];
+	char checksum[8];
+	char type;
+	char name[100];
+	char ustar_magic[6];
+	char ustar_version[2];
+	char ustar_owner_name[32];
+	char ustar_group_name[32];
+	char ustar_device_major[8];
+	char ustar_device_minor[8];
+	char ustar_prefix[155];
+	char ignored[12];
+} tar_header_raw_t;
+
+_Static_assert(sizeof(tar_header_raw_t) == TAR_BLOCK_SIZE, "Wrong size for tar header.");
+
+enum {
+	TAR_TYPE_NORMAL = '0',
+	TAR_TYPE_DIRECTORY = '5',
+};
 
 typedef struct {
-	void *addr;
-	size_t size;
-	char name[BOOTINFO_TASK_NAME_BUFLEN];
-} task_t;
+	const uint8_t *ptr;
+	size_t length;
+	size_t next;
+} tar_t;
 
-typedef struct {
-	size_t cnt;
-	task_t tasks[TASKMAP_MAX_RECORDS];
-} taskmap_t;
-
-typedef struct {
-	unsigned int type;
-	unsigned long base;
-	unsigned long size;
-} memmap_item_t;
-
-typedef struct {
-	taskmap_t taskmap;
-
-	memmap_item_t memmap[MEMMAP_ITEMS];
-	unsigned int memmap_items;
-
-	sysarg_t *sapic;
-	unsigned long sys_freq;
-	unsigned long freq_scale;
-	unsigned int wakeup_intno;
-} bootinfo_t;
-
-/** This is a minimal ELILO-compatible boot parameter structure. */
-typedef struct {
-	uint64_t cmd_line;
-	uint64_t efi_system_table;
-	uint64_t efi_memmap;
-	uint64_t efi_memmap_sz;
-	uint64_t efi_memdesc_sz;
-} boot_param_t;
+bool tar_info(const uint8_t *, const uint8_t *, const char **, size_t *);
 
 #endif
+
+/** @}
+ */
