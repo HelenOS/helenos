@@ -188,12 +188,10 @@ errno_t loader_set_program(loader_t *ldr, const char *name, int file)
  */
 errno_t loader_set_program_path(loader_t *ldr, const char *path)
 {
-	const char *name = str_rchr(path, '/');
-	if (name == NULL) {
-		name = path;
-	} else {
-		name++;
-	}
+	size_t abslen;
+	char *abspath = vfs_absolutize(path, &abslen);
+	if (!abspath)
+		return ENOMEM;
 
 	int fd;
 	errno_t rc = vfs_lookup(path, 0, &fd);
@@ -201,7 +199,7 @@ errno_t loader_set_program_path(loader_t *ldr, const char *path)
 		return rc;
 	}
 
-	rc = loader_set_program(ldr, name, fd);
+	rc = loader_set_program(ldr, path, fd);
 	vfs_put(fd);
 	return rc;
 }

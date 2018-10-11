@@ -404,56 +404,22 @@ static errno_t td_read_uintptr(void *arg, uintptr_t addr, uintptr_t *value)
 /** Attempt to find the right executable file and load the symbol table. */
 static void autoload_syms(void)
 {
-	char *file_name;
-	errno_t rc;
-	int ret;
-
 	assert(app_name != NULL);
 	assert(app_symtab == NULL);
 
-	ret = asprintf(&file_name, "/app/%s", app_name);
-	if (ret < 0) {
-		printf("Memory allocation failure.\n");
-		exit(1);
-	}
-
-	rc = symtab_load(file_name, &app_symtab);
-	if (rc == EOK) {
-		printf("Loaded symbol table from %s\n", file_name);
-		free(file_name);
+	if (app_name[0] != '/') {
+		printf("Task name is not path. Can't autoload symbol table.\n");
 		return;
 	}
 
-	free(file_name);
-
-	ret = asprintf(&file_name, "/srv/%s", app_name);
-	if (ret < 0) {
-		printf("Memory allocation failure.\n");
-		exit(1);
-	}
-
-	rc = symtab_load(file_name, &app_symtab);
-	if (rc == EOK) {
-		printf("Loaded symbol table from %s\n", file_name);
-		free(file_name);
+	errno_t rc = symtab_load(app_name, &app_symtab);
+	if (rc != EOK) {
+		printf("Failed autoloading symbol table: %s\n",
+		    str_error_name(rc));
 		return;
 	}
 
-	ret = asprintf(&file_name, "/drv/%s/%s", app_name, app_name);
-	if (ret < 0) {
-		printf("Memory allocation failure.\n");
-		exit(1);
-	}
-
-	rc = symtab_load(file_name, &app_symtab);
-	if (rc == EOK) {
-		printf("Loaded symbol table from %s\n", file_name);
-		free(file_name);
-		return;
-	}
-
-	free(file_name);
-	printf("Failed autoloading symbol table.\n");
+	printf("Loaded symbol table from %s\n", app_name);
 }
 
 static char *get_app_task_name(void)

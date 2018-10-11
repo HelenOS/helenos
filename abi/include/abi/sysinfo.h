@@ -45,7 +45,7 @@
 #define LOAD_STEPS  3
 
 /** Maximum name sizes */
-#define TASK_NAME_BUFLEN  20
+#define TASK_NAME_BUFLEN  64
 #define EXC_NAME_BUFLEN   20
 
 /** Item value type
