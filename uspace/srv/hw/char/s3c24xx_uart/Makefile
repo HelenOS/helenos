@@ -29,8 +29,7 @@
 
 USPACE_PREFIX = ../../../..
 
-# Need to use short name because of FAT 8+3 limit
-BINARY = s3c24ser
+BINARY = s3c24xx_uart
 
 SOURCES = \
 	s3c24xx_uart.c

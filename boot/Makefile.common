@@ -88,41 +88,41 @@ ifeq ($(RDFMT),ext4fs)
 endif
 
 RD_SRVS_ESSENTIAL = \
-	$(USPACE_PATH)/srv/hid/input/input \
-	$(USPACE_PATH)/srv/hid/output/output \
-	$(USPACE_PATH)/srv/hid/console/console \
-	$(USPACE_PATH)/srv/devman/devman \
-	$(USPACE_PATH)/srv/fs/locfs/locfs \
-	$(USPACE_PATH)/srv/hid/compositor/compositor \
-	$(USPACE_PATH)/srv/klog/klog
+	hid/input \
+	hid/output \
+	hid/console \
+	devman \
+	fs/locfs \
+	hid/compositor \
+	klog
 
 RD_SRVS_NON_ESSENTIAL = \
-	$(USPACE_PATH)/srv/bd/file_bd/file_bd \
-	$(USPACE_PATH)/srv/bd/sata_bd/sata_bd \
-	$(USPACE_PATH)/srv/bd/vbd/vbd \
-	$(USPACE_PATH)/srv/clipboard/clipboard \
-	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
-	$(USPACE_PATH)/srv/fs/fat/fat \
-	$(USPACE_PATH)/srv/fs/mfs/mfs \
-	$(USPACE_PATH)/srv/fs/cdfs/cdfs \
-	$(USPACE_PATH)/srv/fs/exfat/exfat \
-	$(USPACE_PATH)/srv/fs/udf/udf \
-	$(USPACE_PATH)/srv/fs/ext4fs/ext4fs \
-	$(USPACE_PATH)/srv/hid/remcons/remcons \
-	$(USPACE_PATH)/srv/hid/isdv4_tablet/isdv4_tablet \
-	$(USPACE_PATH)/srv/hid/rfb/rfb \
-	$(USPACE_PATH)/srv/net/dhcp/dhcp \
-	$(USPACE_PATH)/srv/net/dnsrsrv/dnsrsrv \
-	$(USPACE_PATH)/srv/net/ethip/ethip \
-	$(USPACE_PATH)/srv/net/inetsrv/inetsrv \
-	$(USPACE_PATH)/srv/net/loopip/loopip \
-	$(USPACE_PATH)/srv/net/nconfsrv/nconfsrv \
-	$(USPACE_PATH)/srv/net/slip/slip \
-	$(USPACE_PATH)/srv/net/tcp/tcp \
-	$(USPACE_PATH)/srv/net/udp/udp \
-	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/test/chardev-test/chardev-test \
-	$(USPACE_PATH)/srv/volsrv/volsrv
+	bd/file_bd \
+	bd/sata_bd \
+	bd/vbd \
+	clipboard \
+	fs/tmpfs \
+	fs/fat \
+	fs/mfs \
+	fs/cdfs \
+	fs/exfat \
+	fs/udf \
+	fs/ext4fs \
+	hid/remcons \
+	hid/isdv4_tablet \
+	hid/rfb \
+	net/dhcp \
+	net/dnsrsrv \
+	net/ethip \
+	net/inetsrv \
+	net/loopip \
+	net/nconfsrv \
+	net/slip \
+	net/tcp \
+	net/udp \
+	taskmon \
+	test/chardev-test \
+	volsrv
 
 RD_DRVS_ESSENTIAL = \
 	root/root \

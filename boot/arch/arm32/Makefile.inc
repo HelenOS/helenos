@@ -60,8 +60,8 @@ EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
 
 ifeq ($(MACHINE), gta02)
 	RD_SRVS_ESSENTIAL += \
-		$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24xx_ts \
-		$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
+		hid/s3c24xx_ts \
+		hw/char/s3c24xx_uart
 endif
 
 ifeq ($(MACHINE), $(filter $(MACHINE),beagleboardxm beaglebone))

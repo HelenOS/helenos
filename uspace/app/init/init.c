@@ -59,10 +59,10 @@
 #define TMPFS_FS_TYPE      "tmpfs"
 #define TMPFS_MOUNT_POINT  "/tmp"
 
-#define SRV_CONSOLE  "/srv/console"
+#define SRV_CONSOLE  "/srv/hid/console"
 #define APP_GETTERM  "/app/getterm"
 
-#define SRV_COMPOSITOR  "/srv/compositor"
+#define SRV_COMPOSITOR  "/srv/hid/compositor"
 
 #define HID_INPUT              "hid/input"
 #define HID_OUTPUT             "hid/output"
@@ -412,16 +412,16 @@ int main(int argc, char *argv[])
 
 	/* Make sure file systems are running. */
 	if (str_cmp(STRING(RDFMT), "tmpfs") != 0)
-		srv_start("/srv/tmpfs");
+		srv_start("/srv/fs/tmpfs");
 	if (str_cmp(STRING(RDFMT), "exfat") != 0)
-		srv_start("/srv/exfat");
+		srv_start("/srv/fs/exfat");
 	if (str_cmp(STRING(RDFMT), "fat") != 0)
-		srv_start("/srv/fat");
-	srv_start("/srv/cdfs");
-	srv_start("/srv/mfs");
+		srv_start("/srv/fs/fat");
+	srv_start("/srv/fs/cdfs");
+	srv_start("/srv/fs/mfs");
 
 	srv_start("/srv/klog");
-	srv_start("/srv/locfs");
+	srv_start("/srv/fs/locfs");
 	srv_start("/srv/taskmon");
 
 	if (!mount_locfs()) {
@@ -432,27 +432,27 @@ int main(int argc, char *argv[])
 	mount_tmpfs();
 
 	srv_start("/srv/devman");
-	srv_start("/srv/s3c24xx_uart");
-	srv_start("/srv/s3c24xx_ts");
+	srv_start("/srv/hid/s3c24xx_uart");
+	srv_start("/srv/hid/s3c24xx_ts");
 
-	srv_start("/srv/vbd");
+	srv_start("/srv/bd/vbd");
 	srv_start("/srv/volsrv");
 
-	srv_start("/srv/loopip");
-	srv_start("/srv/ethip");
-	srv_start("/srv/inetsrv");
-	srv_start("/srv/tcp");
-	srv_start("/srv/udp");
-	srv_start("/srv/dnsrsrv");
-	srv_start("/srv/dhcp");
-	srv_start("/srv/nconfsrv");
+	srv_start("/srv/net/loopip");
+	srv_start("/srv/net/ethip");
+	srv_start("/srv/net/inetsrv");
+	srv_start("/srv/net/tcp");
+	srv_start("/srv/net/udp");
+	srv_start("/srv/net/dnsrsrv");
+	srv_start("/srv/net/dhcp");
+	srv_start("/srv/net/nconfsrv");
 
 	srv_start("/srv/clipboard");
-	srv_start("/srv/remcons");
+	srv_start("/srv/hid/remcons");
 
-	srv_start("/srv/input", HID_INPUT);
-	srv_start("/srv/output", HID_OUTPUT);
-	srv_start("/srv/hound");
+	srv_start("/srv/hid/input", HID_INPUT);
+	srv_start("/srv/hid/output", HID_OUTPUT);
+	srv_start("/srv/audio/hound");
 
 	init_sysvol();
 

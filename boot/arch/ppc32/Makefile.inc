@@ -39,7 +39,7 @@ ENDIANESS = BE
 EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
 
 RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/bus/cuda_adb/cuda_adb
+	hw/bus/cuda_adb
 
 RD_DRVS_ESSENTIAL += \
 	platform/mac \

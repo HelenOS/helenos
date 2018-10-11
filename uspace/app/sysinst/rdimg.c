@@ -42,7 +42,7 @@
 
 #include "rdimg.h"
 
-#define FILE_BD "/srv/file_bd"
+#define FILE_BD "/srv/bd/file_bd"
 #define RD_SVC "bd/iird"
 #define RD_LABEL "HelenOS-rd"
 

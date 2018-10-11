@@ -43,17 +43,22 @@ build_dist: clean_dist
 	mkdir -p "$(DIST_PATH)/lib/"
 	mkdir -p "$(DIST_PATH)/loc/"
 	mkdir -p "$(DIST_PATH)/log/"
-	mkdir -p "$(DIST_PATH)/srv/"
 	mkdir -p "$(DIST_PATH)/test/"
 	mkdir -p "$(DIST_PATH)/tmp/"
 	mkdir -p "$(DIST_PATH)/vol/"
 	mkdir -p "$(DIST_PATH)/w/"
-	for file in $(RD_SRVS) ; do \
-		cp "$$file" "$(DIST_PATH)/srv/" ; \
+
+	for srv in $(RD_SRVS) ; do \
+		srv_dir="`dirname "$$srv"`" ; \
+		srv_name="`basename "$$srv"`" ; \
+		mkdir -p "$(DIST_PATH)/srv/$$srv_dir" ; \
+		cp "$(USPACE_PATH)/srv/$$srv/$$srv_name" "$(DIST_PATH)/srv/$$srv" ; \
 	done
+
 	for file in $(RD_LIBS) ; do \
 		cp "$$file" "$(DIST_PATH)/lib/" ; \
 	done
+
 ifeq ($(CONFIG_DEVEL_FILES), y)
 	mkdir -p "$(DIST_PATH)/inc/c/"
 	cp -r -L "$(USPACE_PATH)/lib/c/include/." "$(DIST_PATH)/inc/c/"

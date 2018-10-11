@@ -27,8 +27,8 @@
 #
 
 RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/audio/hound/hound \
-	$(USPACE_PATH)/srv/devman/devman
+	audio/hound \
+	devman
 
 RD_DRVS_ESSENTIAL += \
 	intctl/apic \
