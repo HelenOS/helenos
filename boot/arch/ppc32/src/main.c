@@ -72,10 +72,10 @@ void bootstrap(void)
 	printf(" %p|%p: loader entry point\n",
 	    (void *) LOADER_ADDRESS, loader_address_pa);
 
-	size_t uncompressed_size = payload_uncompressed_size();
-	printf("Payload uncompressed size: %d bytes\n", uncompressed_size);
+	size_t unpacked_size = payload_unpacked_size();
+	printf("Payload uncompressed size: %d bytes\n", unpacked_size);
 
-	if (uncompressed_size >= (size_t) loader_address_pa) {
+	if (unpacked_size >= (size_t) loader_address_pa) {
 		printf("Inflated components overlap loader area.\n");
 		printf("The boot image is too large. Halting.\n");
 		halt();
@@ -90,10 +90,10 @@ void bootstrap(void)
 	void *inflate_base;
 	void *inflate_base_pa;
 	ofw_alloc("inflate area", &inflate_base, &inflate_base_pa,
-	    uncompressed_size, loader_address_pa);
+	    unpacked_size, loader_address_pa);
 	printf(" %p|%p: inflate area\n", inflate_base, inflate_base_pa);
 
-	uintptr_t balloc_start = ALIGN_UP(uncompressed_size, PAGE_SIZE);
+	uintptr_t balloc_start = ALIGN_UP(unpacked_size, PAGE_SIZE);
 	size_t pages = (balloc_start + ALIGN_UP(BALLOC_MAX_SIZE, PAGE_SIZE)) >>
 	    PAGE_WIDTH;
 	void *transtable;
@@ -108,7 +108,7 @@ void bootstrap(void)
 
 	/* Inflate components. */
 	extract_payload(&bootinfo.taskmap, inflate_base,
-	    inflate_base + uncompressed_size, PA2KA(0), NULL);
+	    inflate_base + unpacked_size, PA2KA(0), NULL);
 
 	printf("Setting up boot allocator ...\n");
 	balloc_init(&bootinfo.ballocs, balloc_base, PA2KA(balloc_start),

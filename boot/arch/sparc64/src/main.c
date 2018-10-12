@@ -224,7 +224,7 @@ void bootstrap(void)
 	 * 0xfeffffff].
 	 */
 
-	size_t sz = ALIGN_UP(payload_uncompressed_size(), PAGE_SIZE);
+	size_t sz = ALIGN_UP(payload_unpacked_size(), PAGE_SIZE);
 	ofw_claim_phys((void *) (bootinfo.physmem_start + KERNEL_ADDRESS), sz);
 	ofw_map((void *) (bootinfo.physmem_start + KERNEL_ADDRESS),
 	    (void *) KERNEL_ADDRESS, sz, -1);

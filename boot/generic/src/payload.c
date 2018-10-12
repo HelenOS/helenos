@@ -40,9 +40,9 @@
 #include <str.h>
 #include <halt.h>
 
-static void basename(char *s)
+static const char *ext(const char *s)
 {
-	char *last = s;
+	const char *last = s;
 
 	while (*s) {
 		if (*s == '.')
@@ -52,7 +52,21 @@ static void basename(char *s)
 	}
 
 	if (*last == '.')
-		*last = '\0';
+		return last;
+
+	return NULL;
+}
+
+static void basename(char *s)
+{
+	char *e = (char *) ext(s);
+	if (str_cmp(e, ".gz") == 0)
+		*e = '\0';
+}
+
+static bool isgzip(const char *s)
+{
+	return str_cmp(ext(s), ".gz") == 0;
 }
 
 static bool overlaps(uint8_t *start1, uint8_t *end1,
@@ -67,22 +81,24 @@ static bool extract_component(uint8_t **cstart, uint8_t *cend,
 {
 	const char *name;
 	const uint8_t *data;
-	size_t compressed_size;
-	size_t uncompressed_size;
+	size_t packed_size;
+	size_t unpacked_size;
 
-	if (!tar_info(*cstart, cend, &name, &compressed_size))
+	if (!tar_info(*cstart, cend, &name, &packed_size))
 		return false;
 
 	data = *cstart + TAR_BLOCK_SIZE;
-	*cstart += TAR_BLOCK_SIZE + ALIGN_UP(compressed_size, TAR_BLOCK_SIZE);
+	*cstart += TAR_BLOCK_SIZE + ALIGN_UP(packed_size, TAR_BLOCK_SIZE);
 
-	uncompressed_size = gzip_size(data, compressed_size);
+	bool gz = isgzip(name);
+
+	unpacked_size = gz ? gzip_size(data, packed_size) : packed_size;
 
 	/* Components must be page-aligned. */
 	uint8_t *new_ustart = (uint8_t *) ALIGN_UP((uintptr_t) ustart, PAGE_SIZE);
 	actual_ustart += new_ustart - ustart;
 	ustart = new_ustart;
-	uint8_t *comp_end = ustart + uncompressed_size;
+	uint8_t *comp_end = ustart + unpacked_size;
 
 	/* Check limits and overlap. */
 	if (overlaps(ustart, comp_end, loader_start, loader_end)) {
@@ -91,7 +107,7 @@ static bool extract_component(uint8_t **cstart, uint8_t *cend,
 		uint8_t *new_ustart = (uint8_t *) ALIGN_UP((uintptr_t) loader_end, PAGE_SIZE);
 		actual_ustart += new_ustart - ustart;
 		ustart = new_ustart;
-		comp_end = ustart + uncompressed_size;
+		comp_end = ustart + unpacked_size;
 	}
 
 	if (comp_end > uend) {
@@ -101,41 +117,49 @@ static bool extract_component(uint8_t **cstart, uint8_t *cend,
 	}
 
 	printf(" %p|%p: %s image (%zu/%zu bytes)\n", (void *) actual_ustart,
-	    ustart, name, uncompressed_size, compressed_size);
+	    ustart, name, unpacked_size, packed_size);
 
 	if (task) {
 		task->addr = (void *) actual_ustart;
-		task->size = uncompressed_size;
+		task->size = unpacked_size;
 		str_cpy(task->name, BOOTINFO_TASK_NAME_BUFLEN, name);
 		/* Remove .gz extension */
-		basename(task->name);
+		if (gz)
+			basename(task->name);
 	}
 
-	int rc = gzip_expand(data, compressed_size, ustart, uncompressed_size);
-	if (rc != EOK) {
-		printf("\n%s: Inflating error %d\n", name, rc);
-		halt();
+	if (gz) {
+		int rc = gzip_expand(data, packed_size, ustart, unpacked_size);
+		if (rc != EOK) {
+			printf("\n%s: Inflating error %d\n", name, rc);
+			halt();
+		}
+	} else {
+		memcpy(ustart, data, unpacked_size);
 	}
 
 	if (clear_cache)
-		clear_cache(ustart, uncompressed_size);
+		clear_cache(ustart, unpacked_size);
+
 	return true;
 }
 
-/* @return Bytes needed for uncompressed payload. */
-size_t payload_uncompressed_size(void)
+/* @return Bytes needed for unpacked payload. */
+size_t payload_unpacked_size(void)
 {
 	size_t sz = 0;
 	uint8_t *start = payload_start;
 	const char *name;
-	size_t compressed_size;
+	size_t packed_size;
 
-	while (tar_info(start, payload_end, &name, &compressed_size)) {
+	while (tar_info(start, payload_end, &name, &packed_size)) {
 		sz = ALIGN_UP(sz, PAGE_SIZE);
-		sz += gzip_size(start + TAR_BLOCK_SIZE, compressed_size);
+		if (isgzip(name))
+			sz += gzip_size(start + TAR_BLOCK_SIZE, packed_size);
+		else
+			sz += packed_size;
 
-		start += TAR_BLOCK_SIZE +
-		    ALIGN_UP(compressed_size, TAR_BLOCK_SIZE);
+		start += TAR_BLOCK_SIZE + ALIGN_UP(packed_size, TAR_BLOCK_SIZE);
 	}
 
 	return sz;
@@ -185,7 +209,7 @@ void extract_payload(taskmap_t *tmap, uint8_t *kernel_dest, uint8_t *mem_end,
 	if (overlaps(kernel_dest, mem_end, payload_start, payload_end)) {
 		/*
 		 * First, move the payload to the very end of available memory,
-		 * to make space for the decompressed data.
+		 * to make space for the unpacked data.
 		 */
 		real_payload_start = (uint8_t *) ALIGN_DOWN((uintptr_t)(mem_end - payload_size), PAGE_SIZE);
 		real_payload_end = real_payload_start + payload_size;

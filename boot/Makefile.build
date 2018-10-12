@@ -68,6 +68,10 @@ endif
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 DEPENDS := $(addsuffix .d,$(basename $(SOURCES)))
 
+ifeq ($(CONFIG_COMPRESSED_INIT),y)
+	COMPONENTS := $(addsuffix .gz, $(COMPONENTS))
+endif
+
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BOOT_OUTPUT)
 
 clean:
@@ -100,7 +104,7 @@ depend: $(PRE_DEPEND)
 %.gz: %
 	gzip -n -k -f $<
 
-$(COMPS).tar: $(addsuffix .gz, $(COMPONENTS))
+$(COMPS).tar: $(COMPONENTS)
 	tar --mtime='2032-01-01 00:00:00' --group=0 --owner=0 --no-acls --no-selinux --no-xattrs --format=ustar --transform 's/.*\///g' -cvf $@ $^
 
 $(COMPS).o: $(COMPS).tar
