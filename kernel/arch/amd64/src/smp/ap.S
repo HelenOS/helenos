@@ -71,7 +71,7 @@ jump_to_kernel:
 	movw $GDT_SELECTOR(UDATA_DES), %ax
 	movw %ax, %gs
 
-	# Enable 64-bit page transaltion entries (CR4.PAE = 1).
+	# Enable 64-bit page translation entries (CR4.PAE = 1).
 	# Paging is not enabled until after long mode is enabled
 
 	movl %cr4, %eax
