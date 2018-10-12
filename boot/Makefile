@@ -66,8 +66,11 @@ ifeq ($(CONFIG_DEVEL_FILES), y)
 	cp -r -L "$(USPACE_PATH)/lib/c/arch/$(UARCH)/include/." "$(DIST_PATH)/inc/c/"
 	cat "$(USPACE_PATH)/lib/c/arch/$(UARCH)/_link.ld" | sed 's/^STARTUP(.*)$$//g' > "$(DIST_PATH)/inc/_link.ld"
 endif
-	for file in $(RD_APPS) ; do \
-		cp "$$file" "$(DIST_PATH)/app/" ; \
+	for app in $(RD_APPS) ; do \
+		app_dir="`dirname "$$app"`" ; \
+		app_name="`basename "$$app"`" ; \
+		mkdir -p "$(DIST_PATH)/app/$$app_dir" ; \
+		cp "$(USPACE_PATH)/app/$$app/$$app_name" "$(DIST_PATH)/app/$$app" ; \
 	done
 	for file in $(RD_DATA) ; do \
 		cp "$$file" "$(DIST_PATH)/" ; \

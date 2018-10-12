@@ -160,78 +160,71 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 		$(USPACE_PATH)/lib/dltest/libdltest.so.0
 endif
 
-RD_APPS_ESSENTIAL = \
-	$(USPACE_PATH)/app/bdsh/bdsh \
-	$(USPACE_PATH)/app/getterm/getterm \
-	$(USPACE_PATH)/app/kio/kio \
-	$(USPACE_PATH)/app/vlaunch/vlaunch \
-	$(USPACE_PATH)/app/vterm/vterm
+RD_APPS_ESSENTIAL = bdsh getterm kio vlaunch vterm
 
 RD_APPS_NON_ESSENTIAL = \
-	$(USPACE_PATH)/app/barber/barber \
-	$(USPACE_PATH)/app/bithenge/bithenge \
-	$(USPACE_PATH)/app/blkdump/blkdump \
-	$(USPACE_PATH)/app/bnchmark/bnchmark \
-	$(USPACE_PATH)/app/contacts/contacts \
-	$(USPACE_PATH)/app/corecfg/corecfg \
-	$(USPACE_PATH)/app/cpptest/cpptest \
-	$(USPACE_PATH)/app/devctl/devctl \
-	$(USPACE_PATH)/app/dnscfg/dnscfg \
-	$(USPACE_PATH)/app/dnsres/dnsres \
-	$(USPACE_PATH)/app/download/download \
-	$(USPACE_PATH)/app/edit/edit \
-	$(USPACE_PATH)/app/fdisk/fdisk \
-	$(USPACE_PATH)/app/gunzip/gunzip \
-	$(USPACE_PATH)/app/inet/inet \
-	$(USPACE_PATH)/app/kill/kill \
-	$(USPACE_PATH)/app/killall/killall \
-	$(USPACE_PATH)/app/loc/loc \
-	$(USPACE_PATH)/app/mixerctl/mixerctl \
-	$(USPACE_PATH)/app/modplay/modplay \
-	$(USPACE_PATH)/app/logset/logset \
-	$(USPACE_PATH)/app/mkfat/mkfat \
-	$(USPACE_PATH)/app/mkexfat/mkexfat \
-	$(USPACE_PATH)/app/mkext4/mkext4 \
-	$(USPACE_PATH)/app/mkmfs/mkmfs \
-	$(USPACE_PATH)/app/nic/nic \
-	$(USPACE_PATH)/app/rcutest/rcutest \
-	$(USPACE_PATH)/app/rcubench/rcubench \
-	$(USPACE_PATH)/app/sbi/sbi \
-	$(USPACE_PATH)/app/sportdmp/sportdmp \
-	$(USPACE_PATH)/app/redir/redir \
-	$(USPACE_PATH)/app/taskdump/taskdump \
-	$(USPACE_PATH)/app/tester/tester \
-	$(USPACE_PATH)/app/testread/testread \
-	$(USPACE_PATH)/app/testwrit/testwrit \
-	$(USPACE_PATH)/app/tetris/tetris \
-	$(USPACE_PATH)/app/tmon/tmon \
-	$(USPACE_PATH)/app/trace/trace \
-	$(USPACE_PATH)/app/netecho/netecho \
-	$(USPACE_PATH)/app/nterm/nterm \
-	$(USPACE_PATH)/app/ping/ping \
-	$(USPACE_PATH)/app/pkg/pkg \
-	$(USPACE_PATH)/app/stats/stats \
-	$(USPACE_PATH)/app/sysinfo/sysinfo \
-	$(USPACE_PATH)/app/sysinst/sysinst \
-	$(USPACE_PATH)/app/top/top \
-	$(USPACE_PATH)/app/untar/untar \
-	$(USPACE_PATH)/app/usbinfo/usbinfo \
-	$(USPACE_PATH)/app/vol/vol \
-	$(USPACE_PATH)/app/vuhid/vuh \
-	$(USPACE_PATH)/app/mkbd/mkbd \
-	$(USPACE_PATH)/app/websrv/websrv \
-	$(USPACE_PATH)/app/date/date \
-	$(USPACE_PATH)/app/vcalc/vcalc \
-	$(USPACE_PATH)/app/vdemo/vdemo \
-	$(USPACE_PATH)/app/viewer/viewer \
-	$(USPACE_PATH)/app/df/df \
-	$(USPACE_PATH)/app/fontviewer/fontviewer \
-	$(USPACE_PATH)/app/wifi_supplicant/wifi_supplicant
+	barber \
+	bithenge \
+	blkdump \
+	bnchmark \
+	contacts \
+	corecfg \
+	cpptest \
+	devctl \
+	dnscfg \
+	dnsres \
+	download \
+	edit \
+	fdisk \
+	gunzip \
+	inet \
+	kill \
+	killall \
+	loc \
+	mixerctl \
+	modplay \
+	logset \
+	mkfat \
+	mkexfat \
+	mkext4 \
+	mkmfs \
+	nic \
+	rcutest \
+	rcubench \
+	sbi \
+	sportdmp \
+	redir \
+	taskdump \
+	tester \
+	testread \
+	testwrit \
+	tetris \
+	tmon \
+	trace \
+	netecho \
+	nterm \
+	ping \
+	pkg \
+	stats \
+	sysinfo \
+	sysinst \
+	top \
+	untar \
+	usbinfo \
+	vol \
+	vuhid \
+	mkbd \
+	websrv \
+	date \
+	vcalc \
+	vdemo \
+	viewer \
+	df \
+	fontviewer \
+	wifi_supplicant
 
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
-	RD_APPS_NON_ESSENTIAL += \
-		$(USPACE_PATH)/app/dltest/dltest \
-		$(USPACE_PATH)/app/dltests/dltests
+	RD_APPS_NON_ESSENTIAL += dltest dltests
 endif
 
 RD_TESTS = \

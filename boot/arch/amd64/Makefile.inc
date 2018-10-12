@@ -62,9 +62,9 @@ RD_DRV_CFG += \
 	bus/isa
 
 RD_APPS_ESSENTIAL += \
-	$(USPACE_PATH)/app/edit/edit \
-	$(USPACE_PATH)/app/mixerctl/mixerctl \
-	$(USPACE_PATH)/app/wavplay/wavplay
+	edit \
+	mixerctl \
+	wavplay
 
 RD_DATA_NON_ESSENTIAL += \
 	$(USPACE_PATH)/app/wavplay/demo.wav

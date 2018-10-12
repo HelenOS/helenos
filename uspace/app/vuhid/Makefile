@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 # acronym for virtual USB human input device
 # (it is really annoying to write long names)
-BINARY = vuh
+BINARY = vuhid
 
 LIBS = usb usbdev usbhid usbvirt drv
 
