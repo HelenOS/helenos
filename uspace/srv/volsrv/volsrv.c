@@ -287,7 +287,6 @@ error:
 		free(path);
 }
 
-
 static void vol_part_empty_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
