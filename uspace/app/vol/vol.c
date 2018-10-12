@@ -46,6 +46,7 @@
 typedef enum {
 	vcmd_eject,
 	vcmd_insert,
+	vcmd_insert_by_path,
 	vcmd_help,
 	vcmd_list,
 	vcmd_cfglist,
@@ -154,6 +155,29 @@ static errno_t vol_cmd_insert(const char *volspec)
 	}
 
 	rc = vol_part_insert(vol, svc_id);
+	if (rc != EOK) {
+		printf("Error inserting volume.\n");
+		goto out;
+	}
+
+	rc = EOK;
+out:
+	vol_destroy(vol);
+	return rc;
+}
+
+static errno_t vol_cmd_insert_by_path(const char *volspec)
+{
+	vol_t *vol = NULL;
+	errno_t rc;
+
+	rc = vol_create(&vol);
+	if (rc != EOK) {
+		printf("Error contacting volume service.\n");
+		goto out;
+	}
+
+	rc = vol_part_insert_by_path(vol, volspec);
 	if (rc != EOK) {
 		printf("Error inserting volume.\n");
 		goto out;
@@ -303,6 +327,7 @@ static void print_syntax(void)
 	printf("  %s -h             Print help\n", NAME);
 	printf("  %s eject <mp>     Eject volume mounted in a directory\n", NAME);
 	printf("  %s insert <svc>   Insert volume based on service identifier\n", NAME);
+	printf("  %s insert -p <mp> Insert volume based on filesystem path\n", NAME);
 }
 
 int main(int argc, char *argv[])
@@ -331,7 +356,13 @@ int main(int argc, char *argv[])
 			}
 			volspec = argv[i++];
 		} else if (str_cmp(cmd, "insert") == 0) {
-			vcmd = vcmd_insert;
+			if (str_cmp(argv[i], "-p") == 0) {
+				vcmd = vcmd_insert_by_path;
+				++i;
+			} else {
+				vcmd = vcmd_insert;
+			}
+
 			if (argc <= i) {
 				printf("Parameter missing.\n");
 				goto syntax_error;
@@ -354,6 +385,9 @@ int main(int argc, char *argv[])
 		break;
 	case vcmd_insert:
 		rc = vol_cmd_insert(volspec);
+		break;
+	case vcmd_insert_by_path:
+		rc = vol_cmd_insert_by_path(volspec);
 		break;
 	case vcmd_help:
 		print_syntax();

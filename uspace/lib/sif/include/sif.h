@@ -34,8 +34,8 @@
  * @brief
  */
 
-#ifndef SIF_H_
-#define SIF_H_
+#ifndef LIBSIF_SIF_H_
+#define LIBSIF_SIF_H_
 
 #include <errno.h>
 

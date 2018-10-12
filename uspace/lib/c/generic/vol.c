@@ -311,6 +311,38 @@ errno_t vol_part_insert(vol_t *vol, service_id_t sid)
 	return EOK;
 }
 
+/** Insert volume by path.
+ *
+ * @param vol Volume service
+ * @param path Filesystem path
+ *
+ * @return EOK on success or an error code
+ */
+errno_t vol_part_insert_by_path(vol_t *vol, const char *path)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	errno_t retval;
+
+	exch = async_exchange_begin(vol->sess);
+	aid_t req = async_send_0(exch, VOL_PART_INSERT_BY_PATH, &answer);
+
+	retval = async_data_write_start(exch, path, str_size(path));
+	if (retval != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return retval;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, &retval);
+
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
+
 /** Get volume label support.
  *
  * @param vol Volume service

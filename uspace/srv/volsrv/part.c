@@ -296,17 +296,22 @@ static const char *vol_part_def_mountp(vol_part_t *part)
 	return vol_part_allow_mount_by_def(part) ? "Auto" : "None";
 }
 
-/** Mount partition.
+/** Determine actual mount path to be used for a partition.
  *
  * @param part Partition
+ * @param rpath Place to store pointer to newly allocated string or @c NULL
+ *              if volume should not be mounted
+ * @param rauto Place to store boolean flag whether mount point is automatic
+ *
+ * @return EOK on success, ENOMEM if out of memory
  */
-static errno_t vol_part_mount(vol_part_t *part)
+static errno_t vol_part_determine_mount_path(vol_part_t *part, char **rpath,
+    bool *rauto)
 {
 	const char *cfg_mp;
 	char *mp;
-	int err;
 	bool mp_auto;
-	errno_t rc;
+	int err;
 
 	/* Get configured mount point */
 	if (str_size(part->volume->mountp) > 0) {
@@ -323,7 +328,8 @@ static errno_t vol_part_mount(vol_part_t *part)
 
 		if (str_size(part->label) < 1) {
 			/* Don't mount nameless volumes */
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting nameless volume.");
+			*rpath = NULL;
+			*rauto = false;
 			return EOK;
 		}
 
@@ -334,6 +340,43 @@ static errno_t vol_part_mount(vol_part_t *part)
 			return ENOMEM;
 		}
 
+		mp_auto = true;
+	} else if (str_cmp(cfg_mp, "None") == 0 || str_cmp(cfg_mp, "none") == 0) {
+		mp = NULL;
+		mp_auto = false;
+	} else {
+		mp = str_dup(cfg_mp);
+		mp_auto = false;
+	}
+
+	*rpath = mp;
+	*rauto = mp_auto;
+	return EOK;
+}
+
+/** Mount partition.
+ *
+ * @param part Partition
+ */
+static errno_t vol_part_mount(vol_part_t *part)
+{
+	char *mp;
+	bool mp_auto;
+	errno_t rc;
+
+	rc = vol_part_determine_mount_path(part, &mp, &mp_auto);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error determining mount point.\n");
+		return rc;
+	}
+
+	if (mp == NULL) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting volume.");
+		return EOK;
+	}
+
+	if (mp_auto) {
+		/* Create directory for automatic mount point */
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Create mount point '%s'", mp);
 		rc = vfs_link_path(mp, KIND_DIRECTORY, NULL);
 		if (rc != EOK) {
@@ -342,14 +385,6 @@ static errno_t vol_part_mount(vol_part_t *part)
 			free(mp);
 			return EIO;
 		}
-
-		mp_auto = true;
-	} else if (str_cmp(cfg_mp, "None") == 0 || str_cmp(cfg_mp, "none") == 0) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting volume.");
-		return EOK;
-	} else {
-		mp = str_dup(cfg_mp);
-		mp_auto = false;
 	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Call vfs_mount_path mp='%s' fstype='%s' svc_name='%s'",
@@ -542,6 +577,46 @@ errno_t vol_part_find_by_id_ref(vol_parts_t *parts, service_id_t sid,
 	fibril_mutex_unlock(&parts->lock);
 
 	return rc;
+}
+
+/** Find partition by filesystem path.
+ *
+ * @param parts Partitions
+ * @param path Filesystem path
+ * @param rpart Place to store pointer to partition
+ * @return EOK on success, ENOENT if not found, ENOMEM if out of memory
+ */
+errno_t vol_part_find_by_path_ref(vol_parts_t *parts, const char *path,
+    vol_part_t **rpart)
+{
+	errno_t rc;
+	char *mpath;
+	bool mauto;
+
+	fibril_mutex_lock(&parts->lock);
+
+	list_foreach(parts->parts, lparts, vol_part_t, part) {
+		rc = vol_part_determine_mount_path(part, &mpath, &mauto);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&parts->lock);
+			return ENOMEM;
+		}
+
+		if (mpath != NULL && str_cmp(mpath, path) == 0) {
+			/* Add reference */
+			refcount_up(&part->refcnt);
+			fibril_mutex_unlock(&parts->lock);
+			free(mpath);
+			*rpart = part;
+			return EOK;
+		}
+
+		if (mpath != NULL)
+			free(mpath);
+	}
+
+	fibril_mutex_unlock(&parts->lock);
+	return ENOENT;
 }
 
 void vol_part_del_ref(vol_part_t *part)

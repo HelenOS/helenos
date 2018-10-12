@@ -249,6 +249,45 @@ error:
 	vol_part_del_ref(part);
 }
 
+static void vol_part_insert_by_path_srv(vol_parts_t *parts, ipc_call_t *icall)
+{
+	vol_part_t *part;
+	char *path = NULL;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_insert_by_path_srv()");
+
+	rc = async_data_write_accept((void **)&path, true, 0, VOL_MOUNTP_MAXLEN,
+	    0, NULL);
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		goto error;
+	}
+
+	rc = vol_part_find_by_path_ref(parts, path, &part);
+	if (rc != EOK) {
+		async_answer_0(icall, ENOENT);
+		goto error;
+	}
+
+	rc = vol_part_insert_part(part);
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		vol_part_del_ref(part);
+		goto error;
+	}
+
+	free(path);
+	vol_part_del_ref(part);
+	async_answer_0(icall, EOK);
+
+	return;
+error:
+	if (path != NULL)
+		free(path);
+}
+
+
 static void vol_part_empty_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
@@ -543,6 +582,9 @@ static void vol_client_conn(ipc_call_t *icall, void *arg)
 			break;
 		case VOL_PART_INSERT:
 			vol_part_insert_srv(parts, &call);
+			break;
+		case VOL_PART_INSERT_BY_PATH:
+			vol_part_insert_by_path_srv(parts, &call);
 			break;
 		case VOL_PART_LSUPP:
 			vol_part_get_lsupp_srv(parts, &call);

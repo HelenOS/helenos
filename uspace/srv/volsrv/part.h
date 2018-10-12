@@ -51,6 +51,8 @@ extern errno_t vol_part_get_ids(vol_parts_t *, service_id_t *, size_t,
     size_t *);
 extern errno_t vol_part_find_by_id_ref(vol_parts_t *, service_id_t,
     vol_part_t **);
+extern errno_t vol_part_find_by_path_ref(vol_parts_t *, const char *,
+    vol_part_t **);
 extern void vol_part_del_ref(vol_part_t *);
 extern errno_t vol_part_eject_part(vol_part_t *);
 extern errno_t vol_part_empty_part(vol_part_t *);
