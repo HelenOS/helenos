@@ -197,6 +197,7 @@ RD_APPS_NON_ESSENTIAL = \
 	taskdump \
 	tester \
 	testread \
+	testrunner \
 	testwrit \
 	tetris \
 	tmon \

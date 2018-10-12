@@ -73,6 +73,7 @@ DIRS = \
 	app/taskdump \
 	app/tester \
 	app/testread \
+	app/testrunner \
 	app/testwrit \
 	app/tetris \
 	app/tmon \

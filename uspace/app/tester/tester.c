@@ -92,7 +92,7 @@ static bool run_test(test_t *test)
 	return false;
 }
 
-static void run_safe_tests(void)
+static int run_safe_tests(void)
 {
 	test_t *test;
 	unsigned int i = 0;
@@ -130,6 +130,8 @@ static void run_safe_tests(void)
 	printf("\nCompleted, %u tests run, %u passed.\n", i + n, i);
 	if (failed_names)
 		printf("Failed tests: %s\n", failed_names);
+
+	return n;
 }
 
 static void list_tests(void)
@@ -170,8 +172,7 @@ int main(int argc, char *argv[])
 	test_argv = argv + 2;
 
 	if (str_cmp(argv[1], "*") == 0) {
-		run_safe_tests();
-		return 0;
+		return run_safe_tests();
 	}
 
 	test_t *test;
