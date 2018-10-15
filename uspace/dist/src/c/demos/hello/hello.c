@@ -1,3 +1,4 @@
+typedef int errno_t;
 extern errno_t putchar(char);
 
 #define TERMINATOR '!'
