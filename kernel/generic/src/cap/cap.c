@@ -63,6 +63,9 @@
  * kobject_add_ref() or as a result of unpublishing a capability and
  * disassociating it from its kobject_t using cap_unpublish().
  *
+ * A holder of an explicit reference to a kernel object may revoke access to it
+ * from all capabilities that point to it by calling cap_revoke().
+ *
  * As kernel objects are reference-counted, they get automatically destroyed
  * when their last reference is dropped in kobject_put(). The idea is that
  * whenever a kernel object is inserted into some sort of a container (e.g. a
@@ -207,6 +210,7 @@ static void cap_initialize(cap_t *cap, task_t *task, cap_handle_t handle)
 	cap->state = CAP_STATE_FREE;
 	cap->task = task;
 	cap->handle = handle;
+	link_initialize(&cap->kobj_link);
 	link_initialize(&cap->type_link);
 }
 
@@ -280,14 +284,25 @@ errno_t cap_alloc(task_t *task, cap_handle_t *handle)
 void
 cap_publish(task_t *task, cap_handle_t handle, kobject_t *kobj)
 {
+	mutex_lock(&kobj->caps_list_lock);
 	mutex_lock(&task->cap_info->lock);
 	cap_t *cap = cap_get(task, handle, CAP_STATE_ALLOCATED);
 	assert(cap);
 	cap->state = CAP_STATE_PUBLISHED;
 	/* Hand over kobj's reference to cap */
 	cap->kobject = kobj;
+	list_append(&cap->kobj_link, &kobj->caps_list);
 	list_append(&cap->type_link, &task->cap_info->type_list[kobj->type]);
 	mutex_unlock(&task->cap_info->lock);
+	mutex_unlock(&kobj->caps_list_lock);
+}
+
+static void cap_unpublish_unsafe(cap_t *cap)
+{
+	cap->kobject = NULL;
+	list_remove(&cap->kobj_link);
+	list_remove(&cap->type_link);
+	cap->state = CAP_STATE_ALLOCATED;
 }
 
 /** Unpublish published capability
@@ -301,25 +316,59 @@ cap_publish(task_t *task, cap_handle_t handle, kobject_t *kobj)
  * @param handle  Capability handle.
  * @param type    Kernel object type of the object associated with the
  *                capability.
+ *
+ * @return Pointer and explicit reference to the kobject that was associated
+ *         with the capability.
  */
 kobject_t *cap_unpublish(task_t *task, cap_handle_t handle, kobject_type_t type)
 {
 	kobject_t *kobj = NULL;
 
+restart:
 	mutex_lock(&task->cap_info->lock);
 	cap_t *cap = cap_get(task, handle, CAP_STATE_PUBLISHED);
 	if (cap) {
 		if (cap->kobject->type == type) {
 			/* Hand over cap's reference to kobj */
 			kobj = cap->kobject;
-			cap->kobject = NULL;
-			list_remove(&cap->type_link);
-			cap->state = CAP_STATE_ALLOCATED;
+			if (!mutex_trylock(&kobj->caps_list_lock)) {
+				mutex_unlock(&task->cap_info->lock);
+				kobj = NULL;
+				goto restart;
+			}
+			cap_unpublish_unsafe(cap);
+			mutex_unlock(&kobj->caps_list_lock);
 		}
 	}
 	mutex_unlock(&task->cap_info->lock);
 
 	return kobj;
+}
+
+/** Revoke access to kobject from all existing capabilities
+ *
+ * All published capabilities associated with the kobject are unpublished (i.e.
+ * their new state is set to CAP_STATE_ALLOCATED) and no longer point to the
+ * kobject. Kobject's reference count is decreased accordingly.
+ *
+ * Note that the caller is supposed to hold an explicit reference to the kobject
+ * so that the kobject is guaranteed to exist when this function returns.
+ *
+ * @param kobj  Pointer and explicit reference to the kobject capabilities of
+ *              which are about to be unpublished.
+ */
+void cap_revoke(kobject_t *kobj)
+{
+	mutex_lock(&kobj->caps_list_lock);
+	list_foreach_safe(kobj->caps_list, cur, hlp) {
+		cap_t *cap = list_get_instance(cur, cap_t, kobj_link);
+		mutex_lock(&cap->task->cap_info->lock);
+		cap_unpublish_unsafe(cap);
+		/* Drop the reference for the unpublished capability */
+		kobject_put(kobj);
+		mutex_unlock(&cap->task->cap_info->lock);
+	}
+	mutex_unlock(&kobj->caps_list_lock);
 }
 
 /** Free allocated capability
@@ -354,6 +403,10 @@ void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw,
     kobject_ops_t *ops)
 {
 	atomic_store(&kobj->refcnt, 1);
+
+	mutex_initialize(&kobj->caps_list_lock, MUTEX_PASSIVE);
+	list_initialize(&kobj->caps_list);
+
 	kobj->type = type;
 	kobj->raw = raw;
 	kobj->ops = ops;

@@ -68,11 +68,17 @@ typedef struct kobject_ops {
 } kobject_ops_t;
 
 /*
- * Everything in kobject_t except for the atomic reference count is imutable.
+ * Everything in kobject_t except for the atomic reference count, the capability
+ * list and its lock is imutable.
  */
 typedef struct kobject {
 	kobject_type_t type;
 	atomic_t refcnt;
+
+	/** Mutex protecting caps_list */
+	mutex_t caps_list_lock;
+	/** List of published capabilities associated with the kobject */
+	list_t caps_list;
 
 	kobject_ops_t *ops;
 
@@ -92,6 +98,9 @@ typedef struct cap {
 
 	struct task *task;
 	cap_handle_t handle;
+
+	/** Link to the kobject's list of capabilities. */
+	link_t kobj_link;
 
 	/* Link to the task's capabilities of the same kobject type. */
 	link_t type_link;
@@ -121,6 +130,7 @@ extern bool caps_apply_to_kobject_type(struct task *, kobject_type_t,
 extern errno_t cap_alloc(struct task *, cap_handle_t *);
 extern void cap_publish(struct task *, cap_handle_t, kobject_t *);
 extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
+extern void cap_revoke(kobject_t *);
 extern void cap_free(struct task *, cap_handle_t);
 
 extern void kobject_initialize(kobject_t *, kobject_type_t, void *,
