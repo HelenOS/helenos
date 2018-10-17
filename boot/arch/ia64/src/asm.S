@@ -37,10 +37,9 @@ FUNCTION_BEGIN(halt)
 FUNCTION_END(halt)
 
 FUNCTION_BEGIN(jump_to_kernel)
-	alloc loc0 = ar.pfs, 1, 1, 0, 0
+	alloc loc0 = ar.pfs, 2, 1, 0, 0
 	mov r2 = in0 ;;			# Pass bootinfo address
-	movl r8 = KERNEL_ADDRESS;;
-	mov b1 = r8 ;;
+	mov b1 = in1 ;;                 # Entry point address
 	br.call.sptk.many b0 = b1;;
 FUNCTION_END(jump_to_kernel)
 

@@ -182,5 +182,5 @@ void bootstrap(void)
 	    (uintptr_t) kernel_start, NULL);
 
 	printf("Booting the kernel ...\n");
-	jump_to_kernel(&bootinfo);
+	jump_to_kernel(&bootinfo, kernel_start);
 }

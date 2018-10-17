@@ -30,6 +30,6 @@
 #ifndef BOOT_ia64_ASM_H_
 #define BOOT_ia64_ASM_H_
 
-extern void jump_to_kernel(void *) __attribute__((noreturn));
+extern void jump_to_kernel(void *, void *) __attribute__((noreturn));
 
 #endif
