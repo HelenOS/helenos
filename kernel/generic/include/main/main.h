@@ -37,9 +37,11 @@
 
 #include <typedefs.h>
 
-extern size_t hardcoded_kdata_size;
-extern size_t hardcoded_ktext_size;
-extern uintptr_t hardcoded_load_address;
+/* Address of the start of the kernel image. */
+extern uint8_t kernel_load_address[];
+/* Address of the end of kernel. */
+extern uint8_t kdata_end[];
+
 extern uintptr_t stack_safe;
 
 extern void main_bsp(void);

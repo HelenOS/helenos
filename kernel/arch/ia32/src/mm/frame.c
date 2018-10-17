@@ -47,9 +47,6 @@
 
 #define PHYSMEM_LIMIT32  UINT64_C(0x100000000)
 
-size_t hardcoded_unmapped_ktext_size = 0;
-size_t hardcoded_unmapped_kdata_size = 0;
-
 static void init_e820_memory(pfn_t minconf, bool low)
 {
 	unsigned int i;
@@ -154,9 +151,11 @@ void frame_low_arch_init(void)
 		minconf = 1;
 
 #ifdef CONFIG_SMP
+		size_t unmapped_size =
+		    (uintptr_t) unmapped_kdata_end - BOOT_OFFSET;
+
 		minconf = max(minconf,
-		    ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
-		    hardcoded_unmapped_kdata_size));
+		    ADDR2PFN(AP_BOOT_OFFSET + unmapped_size));
 #endif
 
 		init_e820_memory(minconf, true);
@@ -167,8 +166,7 @@ void frame_low_arch_init(void)
 #ifdef CONFIG_SMP
 		/* Reserve AP real mode bootstrap memory */
 		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH,
-		    (hardcoded_unmapped_ktext_size +
-		    hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
+		    unmapped_size >> FRAME_WIDTH);
 #endif
 	}
 }

@@ -41,12 +41,7 @@
 
 #ifndef __ASSEMBLER__
 
-#ifdef CONFIG_SMP
-
-/* This is only a symbol so the type is dummy. Obtain the value using &. */
-extern int _hardcoded_unmapped_size;
-
-#endif /* CONFIG_SMP */
+extern uint8_t unmapped_kdata_end[];
 
 #endif /* __ASSEMBLER__ */
 

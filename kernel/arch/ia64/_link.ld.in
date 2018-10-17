@@ -12,6 +12,8 @@
 ENTRY(kernel_image_start)
 
 SECTIONS {
+	kernel_load_address = LOAD_ADDRESS_V;
+
 	.image LOAD_ADDRESS_V: AT (LOAD_ADDRESS_P) {
 		ktext_start = .;
 		*(K_TEXT_START);
@@ -23,12 +25,6 @@ SECTIONS {
 		*(.rodata .rodata.*)
 		*(.opd)
 		*(.data .data.*)
-		hardcoded_load_address = .;
-		QUAD(LOAD_ADDRESS_V);
-		hardcoded_ktext_size = .;
-		QUAD(ktext_end - ktext_start);
-		hardcoded_kdata_size = .;
-		QUAD(kdata_end - kdata_start);
 		__gp = .;
 		*(.got .got.*)
 		*(.sdata)

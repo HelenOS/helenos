@@ -13,6 +13,8 @@ ENTRY(kernel_image_start)
 #include <arch/mm/page.h>
 
 SECTIONS {
+	kernel_load_address = PA2KA(BOOT_OFFSET);
+
 	.image (PA2KA(BOOT_OFFSET)) : AT (0) {
 		ktext_start = .;
 		*(K_TEXT_START);
@@ -22,12 +24,6 @@ SECTIONS {
 		kdata_start = .;
 		*(.data);                       /* initialized data */
 		*(.rodata*);
-		hardcoded_load_address = .;
-		QUAD(PA2KA(BOOT_OFFSET));
-		hardcoded_ktext_size = .;
-		QUAD(ktext_end - ktext_start);
-		hardcoded_kdata_size = .;
-		QUAD(kdata_end - kdata_start);
 		*(.sdata);
 		*(.reginfo);
 		*(.sbss);

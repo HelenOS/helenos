@@ -12,6 +12,8 @@
 #include <arch/mm/page.h>
 
 SECTIONS {
+	kernel_load_address = PA2KA(BOOT_OFFSET);
+
 	.unmapped BOOT_OFFSET: AT (0) {
 		unmapped_ktext_start = .;
 		*(K_TEXT_START);
@@ -31,16 +33,6 @@ SECTIONS {
 		kdata_start = .;
 		*(.data);              /* initialized data */
 		*(.rodata .rodata.*);  /* string literals */
-		hardcoded_load_address = .;
-		QUAD(PA2KA(BOOT_OFFSET));
-		hardcoded_ktext_size = .;
-		QUAD(ktext_end - ktext_start + (unmapped_ktext_end - unmapped_ktext_start));
-		hardcoded_kdata_size = .;
-		QUAD(kdata_end - kdata_start + (unmapped_kdata_end - unmapped_kdata_start));
-		hardcoded_unmapped_ktext_size = .;
-		QUAD(unmapped_ktext_end - unmapped_ktext_start);
-		hardcoded_unmapped_kdata_size = .;
-		QUAD(unmapped_kdata_end - unmapped_kdata_start);
 		*(COMMON);      /* global variables */
 
 		. = ALIGN(8);
@@ -70,7 +62,6 @@ SECTIONS {
 	}
 
 #ifdef CONFIG_SMP
-	_hardcoded_unmapped_size = (unmapped_ktext_end - unmapped_ktext_start) + (unmapped_kdata_end - unmapped_kdata_start);
 	ap_boot = unmapped_ap_boot - BOOT_OFFSET + AP_BOOT_OFFSET;
 	ap_gdtr = unmapped_ap_gdtr - BOOT_OFFSET + AP_BOOT_OFFSET;
 	protected_ap_gdtr = PA2KA(ap_gdtr);

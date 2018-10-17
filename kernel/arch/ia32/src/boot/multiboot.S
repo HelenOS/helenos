@@ -284,19 +284,8 @@ FUNCTION_END(map_kernel_non_pse)
 
 /** Calculate unmapped address of the end of the kernel. */
 calc_kernel_end:
-	movl $KA2PA(hardcoded_load_address), %edi
-	movl (%edi), %esi
-	leal KA2PA(0)(%esi), %esi
-
-	movl $KA2PA(hardcoded_ktext_size), %edi
-	addl (%edi), %esi
-	leal KA2PA(0)(%esi), %esi
-
-	movl $KA2PA(hardcoded_kdata_size), %edi
-	addl (%edi), %esi
-	leal KA2PA(0)(%esi), %esi
-	movl %esi, kernel_end
-
+	movl $KA2PA(kdata_end), %edi
+	movl %edi, kernel_end
 	ret
 
 /** Find free 2M (+4k for alignment) region where to store page tables */

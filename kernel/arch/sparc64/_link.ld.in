@@ -12,6 +12,8 @@ ENTRY(kernel_image_start)
 
 SECTIONS {
 	.image VMA: AT (LMA) {
+		kernel_load_address = .;
+
 		ktext_start = .;
 		*(K_TEXT_START)
 		*(.text .text.*);
@@ -25,12 +27,6 @@ SECTIONS {
 		*(.sdata2);
 		*(.sbss);
 		. = ALIGN(8);
-		hardcoded_ktext_size = .;
-		QUAD(ktext_end - ktext_start);
-		hardcoded_kdata_size = .;
-		QUAD(kdata_end - kdata_start);
-		hardcoded_load_address = .;
-		QUAD(VMA);
 		*(.bss);                    /* uninitialized static variables */
 		*(COMMON);                  /* global variables */
 

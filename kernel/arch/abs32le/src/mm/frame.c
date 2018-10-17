@@ -41,9 +41,6 @@
 
 #include <print.h>
 
-size_t hardcoded_unmapped_ktext_size = 0;
-size_t hardcoded_unmapped_kdata_size = 0;
-
 void physmem_print(void)
 {
 }

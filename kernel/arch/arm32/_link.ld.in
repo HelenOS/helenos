@@ -23,6 +23,7 @@ ENTRY(kernel_image_start)
 
 SECTIONS {
 	. = KERNEL_LOAD_ADDRESS;
+	kernel_load_address = .;
 	.text : {
 		ktext_start = .;
 		*(.text);
@@ -31,12 +32,6 @@ SECTIONS {
 	.data : {
 		kdata_start = .;
 		*(.data);                       /* initialized data */
-		hardcoded_ktext_size = .;
-		LONG(ktext_end - ktext_start);
-		hardcoded_kdata_size = .;
-		LONG(kdata_end - kdata_start);
-		hardcoded_load_address = .;
-		LONG(KERNEL_LOAD_ADDRESS);
 		*(.bss);                        /* uninitialized static variables */
 		*(COMMON);                      /* global variables */
 

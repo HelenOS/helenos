@@ -167,9 +167,10 @@ NO_TRACE void main_bsp(void)
 	config.cpu_count = 1;
 	config.cpu_active = 1;
 
-	config.base = hardcoded_load_address;
-	config.kernel_size = ALIGN_UP(hardcoded_ktext_size +
-	    hardcoded_kdata_size, PAGE_SIZE);
+	config.base = (uintptr_t) kernel_load_address;
+
+	config.kernel_size =
+	    ALIGN_UP((uintptr_t) kdata_end - config.base, PAGE_SIZE);
 	config.stack_size = STACK_SIZE;
 
 	/* Initialy the stack is placed just after the kernel */
