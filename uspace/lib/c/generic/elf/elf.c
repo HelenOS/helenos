@@ -70,7 +70,7 @@ static bool elf_is_valid(const elf_header_t *header)
 }
 
 /**
- * Given the base of an ELF image in memory (i.e. pointer to the the file
+ * Given the base of an ELF image in memory (i.e. pointer to the file
  * header at the beginning of the text segment), returns pointer to the
  * first segment header with the given p_type.
  */
