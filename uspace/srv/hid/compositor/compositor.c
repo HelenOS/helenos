@@ -1700,7 +1700,7 @@ static errno_t comp_mouse_button(input_t *input, int bnum, int bpress)
 	desktop_rect_t dmg_rect1, dmg_rect2, dmg_rect3, dmg_rect4;
 #endif
 
-	if (bpress) {
+	if (bpress && !pointer->pressed) {
 		pointer->btn_pos = pointer->pos;
 		pointer->btn_num = bnum;
 		pointer->pressed = true;
