@@ -26,18 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_ppc32
+/** @addtogroup abi_ia64
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ppc32_ELF_H_
-#define KERN_ppc32_ELF_H_
+#ifndef ABI_ia64_ELF_H_
+#define ABI_ia64_ELF_H_
 
-#define ELF_MACHINE        EM_PPC
-#define ELF_DATA_ENCODING  ELFDATA2MSB
-#define ELF_CLASS          ELFCLASS32
+#define ELF_MACHINE        EM_IA_64
+#define ELF_DATA_ENCODING  ELFDATA2LSB
+#define ELF_CLASS          ELFCLASS64
 
 #endif
 

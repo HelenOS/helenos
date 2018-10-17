@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_amd64
+/** @addtogroup abi_amd64
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_amd64_ELF_H_
-#define KERN_amd64_ELF_H_
+#ifndef ABI_amd64_ELF_H_
+#define ABI_amd64_ELF_H_
 
 #define ELF_MACHINE        EM_X86_64
 #define ELF_DATA_ENCODING  ELFDATA2LSB

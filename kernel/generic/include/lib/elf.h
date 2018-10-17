@@ -36,7 +36,6 @@
 #define KERN_ELF_H_
 
 #include <abi/elf.h>
-#include <arch/elf.h>
 
 #endif
 

@@ -84,7 +84,7 @@ clean: autogen_clean
 ## Common compiler flags
 #
 
-INCLUDES = generic/include genarch/include arch/$(KARCH)/include ../abi/include
+INCLUDES = generic/include genarch/include arch/$(KARCH)/include ../abi/arch/$(KARCH)/include ../abi/include
 INCLUDES_FLAGS = $(addprefix -I,$(INCLUDES))
 
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__

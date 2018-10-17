@@ -100,6 +100,7 @@ LIBC_PREFIX = $(LIB_PREFIX)/c
 LIBC_INCLUDES_FLAGS = \
 	-isystem $(LIBC_PREFIX)/include \
 	-isystem $(LIBC_PREFIX)/arch/$(UARCH)/include \
+	-isystem $(ROOT_PATH)/abi/arch/$(KARCH)/include \
 	-isystem $(ROOT_PATH)/abi/include
 
 LIBCPP_PREFIX = $(LIB_PREFIX)/cpp
@@ -414,4 +415,3 @@ endif
 	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 -include $(DEPENDS)
-

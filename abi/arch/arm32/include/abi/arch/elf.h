@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_arm32
+/** @addtogroup abi_arm32
  * @{
  */
 /** @file
  *  @brief ARM ELF constants.
  */
 
-#ifndef KERN_arm32_ELF_H_
-#define KERN_arm32_ELF_H_
+#ifndef ABI_arm32_ELF_H_
+#define ABI_arm32_ELF_H_
 
 #define ELF_MACHINE  EM_ARM
 

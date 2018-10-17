@@ -36,6 +36,7 @@
 #define ABI_ELF_H_
 
 #include <stdint.h>
+#include <abi/arch/elf.h>
 
 /**
  * Current ELF version

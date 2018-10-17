@@ -26,18 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_sparc64
+/** @addtogroup abi_ppc32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_sparc64_ELF_H_
-#define KERN_sparc64_ELF_H_
+#ifndef ABI_ppc32_ELF_H_
+#define ABI_ppc32_ELF_H_
 
-#define ELF_MACHINE        EM_SPARCV9
+#define ELF_MACHINE        EM_PPC
 #define ELF_DATA_ENCODING  ELFDATA2MSB
-#define ELF_CLASS          ELFCLASS64
+#define ELF_CLASS          ELFCLASS32
 
 #endif
 

@@ -30,7 +30,7 @@
 
 include Makefile.common
 
-INCLUDES = -Igeneric/include -Iarch/$(KARCH)/include -Igenarch/include -I$(ROOT_PATH)/abi/include
+INCLUDES = -Igeneric/include -Iarch/$(KARCH)/include -Igenarch/include -I$(ROOT_PATH)/abi/arch/$(KARCH)/include -I$(ROOT_PATH)/abi/include
 OPTIMIZATION = 3
 
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
@@ -114,4 +114,3 @@ $(COMPS).o: $(COMPS).tar
 	$(OBJCOPY) --add-section '.payload'=$< $@.new $@
 
 include Makefile.initrd
-

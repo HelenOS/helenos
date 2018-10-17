@@ -35,7 +35,7 @@
 #ifndef KERN_ELF_LOAD_H_
 #define KERN_ELF_LOAD_H_
 
-#include <arch/elf.h>
+#include <abi/elf.h>
 
 /**
  * ELF error return codes

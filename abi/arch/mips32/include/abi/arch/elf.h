@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2006 Sergey Bondari
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_abs32le
+/** @addtogroup abi_mips32
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_ELF_H_
-#define KERN_abs32le_ELF_H_
+#ifndef ABI_mips32_ELF_H_
+#define ABI_mips32_ELF_H_
 
-#define ELF_MACHINE        EM_NO
+#define ELF_MACHINE  EM_MIPS
+
+#ifdef __BE__
+#define ELF_DATA_ENCODING  ELFDATA2MSB
+#else
 #define ELF_DATA_ENCODING  ELFDATA2LSB
-#define ELF_CLASS          ELFCLASS32
+#endif
+
+#define ELF_CLASS  ELFCLASS32
 
 #endif
 

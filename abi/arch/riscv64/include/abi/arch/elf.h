@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Sergey Bondari
+ * Copyright (c) 2016 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_ia64
+/** @addtogroup abi_riscv64
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ia64_ELF_H_
-#define KERN_ia64_ELF_H_
+#ifndef ABI_riscv64_ELF_H_
+#define ABI_riscv64_ELF_H_
 
-#define ELF_MACHINE        EM_IA_64
+#define ELF_MACHINE        EM_RISCV
 #define ELF_DATA_ENCODING  ELFDATA2LSB
 #define ELF_CLASS          ELFCLASS64
 
