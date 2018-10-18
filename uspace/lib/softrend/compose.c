@@ -52,21 +52,18 @@ pixel_t compose_dst(pixel_t fg, pixel_t bg)
 
 pixel_t compose_over(pixel_t fg, pixel_t bg)
 {
-	uint16_t mf;
-	uint16_t mb;
-
 	uint8_t res_a;
 	uint8_t res_r;
 	uint8_t res_g;
 	uint8_t res_b;
+	uint32_t res_a_inv;
 
-	res_a = (ALPHA(fg) * 255 + (255 - ALPHA(fg)) * ALPHA(bg)) / 255;
-	mf = ALPHA(fg);
-	mb = (255 * 255 - ALPHA(fg) * ALPHA(bg)) / 255;
+	res_a_inv = ALPHA(bg) * (255 - ALPHA(fg));
+	res_a = ALPHA(fg) + (res_a_inv / 255);
 
-	res_r = (mf * RED(fg) + mb * RED(bg)) / 255;
-	res_g = (mf * GREEN(fg) + mb * GREEN(bg)) / 255;
-	res_b = (mf * BLUE(fg) + mb * BLUE(bg)) / 255;
+	res_r = (RED(fg) * ALPHA(fg) / 255) + (RED(bg) * res_a_inv) / (255 * 255);
+	res_g = (GREEN(fg) * ALPHA(fg) / 255) + (GREEN(bg) * res_a_inv) / (255 * 255);
+	res_b = (BLUE(fg) * ALPHA(fg) / 255) + (BLUE(bg) * res_a_inv) / (255 * 255);
 
 	return PIXEL(res_a, res_r, res_g, res_b);
 }
