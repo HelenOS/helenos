@@ -20,13 +20,7 @@ SECTIONS {
 	kernel_load_address = PA2KA(0);
 
 	.unmapped 0: AT (0) {
-		unmapped_ktext_start = .;
 		*(K_UNMAPPED_TEXT_START);
-		unmapped_ktext_end = .;
-
-		unmapped_kdata_start = .;
-		*(K_UNMAPPED_DATA_START);
-		unmapped_kdata_start = .;
 	}
 
 	.mapped PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) {

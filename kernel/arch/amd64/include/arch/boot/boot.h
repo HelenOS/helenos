@@ -41,7 +41,7 @@
 
 #ifndef __ASSEMBLER__
 
-extern uint8_t unmapped_kdata_end[];
+extern uint8_t unmapped_end[];
 
 #endif /* __ASSEMBLER__ */
 

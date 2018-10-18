@@ -93,7 +93,7 @@ void amd64_pre_main(uint32_t signature, void *info)
 	multiboot2_info_parse(signature, (multiboot2_info_t *) info);
 
 #ifdef CONFIG_SMP
-	size_t unmapped_size = (uintptr_t) unmapped_kdata_end - BOOT_OFFSET;
+	size_t unmapped_size = (uintptr_t) unmapped_end - BOOT_OFFSET;
 	/* Copy AP bootstrap routines below 1 MB. */
 	memcpy((void *) AP_BOOT_OFFSET, (void *) BOOT_OFFSET, unmapped_size);
 #endif

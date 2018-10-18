@@ -152,7 +152,7 @@ void frame_low_arch_init(void)
 
 #ifdef CONFIG_SMP
 		size_t unmapped_size =
-		    (uintptr_t) unmapped_kdata_end - BOOT_OFFSET;
+		    (uintptr_t) unmapped_end - BOOT_OFFSET;
 
 		minconf = max(minconf,
 		    ADDR2PFN(AP_BOOT_OFFSET + unmapped_size));

@@ -69,7 +69,7 @@ multiboot_header:
 	.long MULTIBOOT_HEADER_FLAGS
 	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)  /* checksum */
 	.long multiboot_header
-	.long unmapped_ktext_start
+	.long unmapped_start
 	.long 0
 	.long 0
 	.long multiboot_image_start

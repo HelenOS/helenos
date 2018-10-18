@@ -43,7 +43,7 @@
 
 #ifdef CONFIG_SMP
 
-extern uint8_t unmapped_kdata_end[];
+extern uint8_t unmapped_end[];
 
 #endif /* CONFIG_SMP */
 

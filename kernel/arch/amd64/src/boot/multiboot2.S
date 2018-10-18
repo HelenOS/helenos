@@ -68,7 +68,7 @@ multiboot2_header_start:
 		.word MULTIBOOT2_FLAGS_REQUIRED
 		.long tag_address_end - tag_address_start
 		.long multiboot2_header_start
-		.long unmapped_ktext_start
+		.long unmapped_start
 		.long 0
 		.long 0
 	tag_address_end:
