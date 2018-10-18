@@ -134,5 +134,6 @@ void bootstrap(void)
 	}
 
 	printf("Booting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, transtable_pa, pages, real_mode_pa);
+	jump_to_kernel(bootinfo_pa, transtable_pa, pages, real_mode_pa,
+	    PA2KA(BOOT_OFFSET));
 }
