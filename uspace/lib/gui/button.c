@@ -60,6 +60,7 @@ static void paint_internal(widget_t *widget)
 	drawctx_t drawctx;
 	drawctx_init(&drawctx, surface);
 
+	drawctx_set_compose(&drawctx, compose_over);
 	drawctx_set_source(&drawctx, &btn->background);
 	drawctx_transfer(&drawctx, widget->hpos, widget->vpos,
 	    widget->width, widget->height);
