@@ -33,7 +33,7 @@
 .section K_TEXT_START, "ax"
 
 SYMBOL(kernel_image_start)
-	# load temporal kernel stack
+	# load temporary kernel stack
 
 	lis sp, kernel_stack@ha
 	addi sp, sp, kernel_stack@l
