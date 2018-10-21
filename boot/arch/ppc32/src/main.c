@@ -96,6 +96,16 @@ void bootstrap(void)
 	uintptr_t balloc_start = ALIGN_UP(unpacked_size, PAGE_SIZE);
 	size_t pages = (balloc_start + ALIGN_UP(BALLOC_MAX_SIZE, PAGE_SIZE)) >>
 	    PAGE_WIDTH;
+
+	printf(" Boot allocations area: %p - %p\n", (void *) balloc_start,
+	    (void *) (pages << PAGE_WIDTH));
+
+	if ((pages << PAGE_WIDTH) >= (uintptr_t) loader_address_pa) {
+		printf("Boot allocations overlap loader area.\n");
+		printf("The boot image is too large. Halting.\n");
+		halt();
+	}
+
 	void *transtable;
 	void *transtable_pa;
 	ofw_alloc("translate table", &transtable, &transtable_pa,

@@ -171,33 +171,27 @@ NO_TRACE void main_bsp(void)
 
 	config.kernel_size =
 	    ALIGN_UP((uintptr_t) kdata_end - config.base, PAGE_SIZE);
-	config.stack_size = STACK_SIZE;
 
-	/* Initialy the stack is placed just after the kernel */
+	/* Place the stack after the kernel, init and ballocs. */
 	config.stack_base = config.base + config.kernel_size;
+	config.stack_size = STACK_SIZE;
 
 	/* Avoid placing stack on top of init */
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		if (overlaps(KA2PA(config.stack_base), config.stack_size,
-		    init.tasks[i].paddr, init.tasks[i].size)) {
-			/*
-			 * The init task overlaps with the memory behind the
-			 * kernel image so it must be in low memory and we can
-			 * use PA2KA on the init task's physical address.
-			 */
-			config.stack_base = ALIGN_UP(
-			    PA2KA(init.tasks[i].paddr) + init.tasks[i].size,
-			    config.stack_size);
-		}
+		uintptr_t p = init.tasks[i].paddr + init.tasks[i].size;
+		uintptr_t bottom = PA2KA(ALIGN_UP(p, PAGE_SIZE));
+
+		if (config.stack_base < bottom)
+			config.stack_base = bottom;
 	}
 
 	/* Avoid placing stack on top of boot allocations. */
 	if (ballocs.size) {
-		if (PA_OVERLAPS(config.stack_base, config.stack_size,
-		    ballocs.base, ballocs.size))
-			config.stack_base = ALIGN_UP(ballocs.base +
-			    ballocs.size, PAGE_SIZE);
+		uintptr_t bottom =
+		    ALIGN_UP(ballocs.base + ballocs.size, PAGE_SIZE);
+		if (config.stack_base < bottom)
+			config.stack_base = bottom;
 	}
 
 	if (config.stack_base < stack_safe)

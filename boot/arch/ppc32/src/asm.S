@@ -402,19 +402,19 @@ SYMBOL(real_mode)
 	#
 	# pc = kernel's entry point (r7)
 	# r3 = bootinfo (physical address)
-	# sprg0 = BOOT_OFFSET
 	# sprg3 = physical memory size
 	# sp = 0 (enforces the usage of sprg0 as exception stack)
 
 	mtspr srr0, r7
 
-	lis r31, BOOT_OFFSET@ha
-	addi r31, r31, BOOT_OFFSET@l
+	# Clear sprg0. Kernel will set it.
+	li r31, 0
 	mtsprg0 r31
 
 	# bootinfo starts with a 64 bit integer containing
 	# the physical memory size, get the lower 4 bytes
 
+	// FIXME: unchecked magic offset
 	lwz r31, 4(r3)
 	mtsprg3 r31
 
