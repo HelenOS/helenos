@@ -43,6 +43,7 @@
 #include <str.h>
 #include <errno.h>
 #include <payload.h>
+#include <kernel.h>
 
 #define DEFAULT_MEMORY_BASE		0x4000000ULL
 #define DEFAULT_MEMORY_SIZE		(256 * 1024 * 1024)
@@ -181,6 +182,12 @@ void bootstrap(void)
 	extract_payload(&bootinfo.taskmap, kernel_start, ram_end,
 	    (uintptr_t) kernel_start, NULL);
 
-	printf("Booting the kernel ...\n");
-	jump_to_kernel(&bootinfo, kernel_start);
+	uintptr_t entry = check_kernel(kernel_start);
+
+	// FIXME: kernel's entry point is linked at a different address than
+	//        where it is run from.
+	entry = entry - KERNEL_VADDRESS + KERNEL_ADDRESS;
+
+	printf("Booting the kernel at %p...\n", (void *) entry);
+	jump_to_kernel(&bootinfo, (void *) entry);
 }

@@ -19,7 +19,8 @@ OUTPUT_ARCH("powerpc:common")
 SECTIONS {
 	kernel_load_address = PA2KA(0);
 
-	.unmapped 0: AT (0) {
+	.unmapped (SIZEOF_HEADERS): AT (SIZEOF_HEADERS) {
+		. = ALIGN(0x100);
 		*(K_UNMAPPED_TEXT_START);
 	}
 
@@ -44,5 +45,9 @@ SECTIONS {
 		*(symtab.*);    /* Symbol table, must be LAST symbol!*/
 
 		kdata_end = .;
+	}
+
+	/DISCARD/ : {
+		*(*);
 	}
 }

@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf64-little
-BFD_ARCH = ia64-elf64
 
 COMMON_CFLAGS += -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 
@@ -64,12 +62,10 @@ ARCH_SOURCES = \
 
 ifeq ($(MACHINE),ski)
 	ARCH_SOURCES += arch/$(KARCH)/src/drivers/ski.c
-	BFD = binary
 endif
 
 ifeq ($(MACHINE),i460GX)
 	DEFS += -DI460GX
-	BFD = binary
 endif
 
 ARCH_AUTOCHECK_HEADERS = \

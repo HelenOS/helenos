@@ -49,6 +49,7 @@
 #include <inflate.h>
 #include <arch/cp15.h>
 #include <payload.h>
+#include <kernel.h>
 
 static void clean_dcache_poc(void *address, size_t size)
 {
@@ -103,8 +104,10 @@ void bootstrap(void)
 	/* Flush PT too. We need this if we disable caches later */
 	clean_dcache_poc(boot_pt, PTL0_ENTRIES * PTL0_ENTRY_SIZE);
 
+	uintptr_t entry = check_kernel((void *) PA2KA(BOOT_OFFSET));
+
 	printf("Booting the kernel...\n");
-	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), &bootinfo);
+	jump_to_kernel((void *) entry, &bootinfo);
 }
 
 /** @}

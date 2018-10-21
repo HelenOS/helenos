@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_ARCH = mips
-BFD = binary
 COMMON_CFLAGS += -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
 AS_PROLOG = .module softfloat;
 
@@ -37,17 +35,14 @@ BITS = 32
 #
 
 ifeq ($(MACHINE),msim)
-	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
 	COMMON_CFLAGS += -march=r4000
 endif
 ifeq ($(MACHINE),bmalta)
-	BFD_NAME = elf32-tradbigmips
 	ENDIANESS = BE
 	COMMON_CFLAGS += -D__BE__ -march=4kc
 endif
 ifeq ($(MACHINE),lmalta)
-	BFD_NAME = elf32-tradlittlemips
 	ENDIANESS = LE
 	COMMON_CFLAGS += -march=4kc
 endif

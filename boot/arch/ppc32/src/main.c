@@ -41,6 +41,7 @@
 #include <str.h>
 #include <errno.h>
 #include <payload.h>
+#include <kernel.h>
 
 #define BALLOC_MAX_SIZE  131072
 
@@ -67,8 +68,6 @@ void bootstrap(void)
 	printf("\nMemory statistics (total %llu MB)\n", bootinfo.memmap.total >> 20);
 	printf(" %p|%p: real mode trampoline\n", &real_mode, real_mode_pa);
 	printf(" %p|%p: boot info structure\n", &bootinfo, bootinfo_pa);
-	printf(" %p|%p: kernel entry point\n",
-	    (void *) PA2KA(BOOT_OFFSET), (void *) BOOT_OFFSET);
 	printf(" %p|%p: loader entry point\n",
 	    (void *) LOADER_ADDRESS, loader_address_pa);
 
@@ -143,7 +142,8 @@ void bootstrap(void)
 		((void **) transtable)[i] = phys;
 	}
 
+	uintptr_t entry = check_kernel_translated(inflate_base, 0);
+
 	printf("Booting the kernel...\n");
-	jump_to_kernel(bootinfo_pa, transtable_pa, pages, real_mode_pa,
-	    PA2KA(BOOT_OFFSET));
+	jump_to_kernel(bootinfo_pa, transtable_pa, pages, real_mode_pa, entry);
 }

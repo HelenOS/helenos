@@ -125,118 +125,122 @@
 	stw r12, ISTATE_OFFSET_SP_FRAME(sp)
 .endm
 
-.org 0x100
+// XXX: K_UNMAPPED_TEXT_START section starts at 0x100,
+// so all the following .org directives are relative to that.
+#define ABSOLUTE(x) ((x) - 0x100)
+
+.org ABSOLUTE(0x100)
 SYMBOL(exc_system_reset)
 	CONTEXT_STORE
 
 	li r3, 0
 	b jump_to_kernel
 
-.org 0x200
+.org ABSOLUTE(0x200)
 SYMBOL(exc_machine_check)
 	CONTEXT_STORE
 
 	li r3, 1
 	b jump_to_kernel
 
-.org 0x300
+.org ABSOLUTE(0x300)
 SYMBOL(exc_data_storage)
 	CONTEXT_STORE
 
 	li r3, 2
 	b jump_to_kernel
 
-.org 0x400
+.org ABSOLUTE(0x400)
 SYMBOL(exc_instruction_storage)
 	CONTEXT_STORE
 
 	li r3, 3
 	b jump_to_kernel
 
-.org 0x500
+.org ABSOLUTE(0x500)
 SYMBOL(exc_external)
 	CONTEXT_STORE
 
 	li r3, 4
 	b jump_to_kernel
 
-.org 0x600
+.org ABSOLUTE(0x600)
 SYMBOL(exc_alignment)
 	CONTEXT_STORE
 
 	li r3, 5
 	b jump_to_kernel
 
-.org 0x700
+.org ABSOLUTE(0x700)
 SYMBOL(exc_program)
 	CONTEXT_STORE
 
 	li r3, 6
 	b jump_to_kernel
 
-.org 0x800
+.org ABSOLUTE(0x800)
 SYMBOL(exc_fp_unavailable)
 	CONTEXT_STORE
 
 	li r3, 7
 	b jump_to_kernel
 
-.org 0x900
+.org ABSOLUTE(0x900)
 SYMBOL(exc_decrementer)
 	CONTEXT_STORE
 
 	li r3, 8
 	b jump_to_kernel
 
-.org 0xa00
+.org ABSOLUTE(0xa00)
 SYMBOL(exc_reserved0)
 	CONTEXT_STORE
 
 	li r3, 9
 	b jump_to_kernel
 
-.org 0xb00
+.org ABSOLUTE(0xb00)
 SYMBOL(exc_reserved1)
 	CONTEXT_STORE
 
 	li r3, 10
 	b jump_to_kernel
 
-.org 0xc00
+.org ABSOLUTE(0xc00)
 SYMBOL(exc_syscall)
 	CONTEXT_STORE
 
 	b jump_to_kernel_syscall
 
-.org 0xd00
+.org ABSOLUTE(0xd00)
 SYMBOL(exc_trace)
 	CONTEXT_STORE
 
 	li r3, 12
 	b jump_to_kernel
 
-.org 0x1000
+.org ABSOLUTE(0x1000)
 SYMBOL(exc_itlb_miss)
 	CONTEXT_STORE
 
 	li r3, 13
 	b jump_to_kernel
 
-.org 0x1100
+.org ABSOLUTE(0x1100)
 SYMBOL(exc_dtlb_miss_load)
 	CONTEXT_STORE
 
 	li r3, 14
 	b jump_to_kernel
 
-.org 0x1200
+.org ABSOLUTE(0x1200)
 SYMBOL(exc_dtlb_miss_store)
 	CONTEXT_STORE
 
 	li r3, 15
 	b jump_to_kernel
 
-.org 0x4000
+.org ABSOLUTE(0x4000)
 jump_to_kernel:
 	mfsrr1 r5
 	andi. r5, r5, MSR_PR
@@ -288,3 +292,7 @@ jump_to_kernel_syscall:
 
 	addis sp, sp, 0x8000
 	rfi
+
+/* Rest is for stack. */
+
+.org ABSOLUTE(0x8000)

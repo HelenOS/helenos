@@ -75,4 +75,5 @@ SOURCES = \
 	generic/src/inflate.c \
 	generic/src/gzip.c \
 	generic/src/tar.c \
+	generic/src/kernel.c \
 	generic/src/payload.c

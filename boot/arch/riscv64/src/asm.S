@@ -124,7 +124,8 @@ FUNCTION_BEGIN(jump_to_kernel)
 
 	csrw mstatus, t0
 
-	li ra, PA2KA(BOOT_OFFSET)
+	/* Entry point address is in a1. */
+	mv ra, a1
 	csrw mepc, ra
 
 	mret

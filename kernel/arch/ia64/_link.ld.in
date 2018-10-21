@@ -14,7 +14,8 @@ ENTRY(kernel_image_start)
 SECTIONS {
 	kernel_load_address = LOAD_ADDRESS_V;
 
-	.image LOAD_ADDRESS_V: AT (LOAD_ADDRESS_P) {
+	.image (LOAD_ADDRESS_V + SIZEOF_HEADERS): AT (LOAD_ADDRESS_P + SIZEOF_HEADERS) {
+		. = ALIGN(16);
 		ktext_start = .;
 		*(K_TEXT_START);
 		*(.text .text.*)

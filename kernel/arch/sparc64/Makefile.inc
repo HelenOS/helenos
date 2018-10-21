@@ -26,9 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf64-sparc
-BFD_ARCH = sparc
-BFD = binary
 
 COMMON_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow -mno-fpu
 

@@ -11,9 +11,9 @@
 ENTRY(kernel_image_start)
 
 SECTIONS {
-	.image VMA: AT (LMA) {
-		kernel_load_address = .;
+	kernel_load_address = VMA;
 
+	.image (VMA + SIZEOF_HEADERS): AT (LMA + SIZEOF_HEADERS) {
 		ktext_start = .;
 		*(K_TEXT_START)
 		*(.text .text.*);

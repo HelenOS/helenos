@@ -29,7 +29,6 @@
 BFD_NAME = elf64-littleriscv
 BFD_OUTPUT = $(BFD_NAME)
 BFD_ARCH = riscv
-BFD = binary
 
 BITS = 64
 ENDIANESS = LE
@@ -50,4 +49,5 @@ SOURCES = \
 	generic/src/inflate.c \
 	generic/src/gzip.c \
 	generic/src/tar.c \
+	generic/src/kernel.c \
 	generic/src/payload.c

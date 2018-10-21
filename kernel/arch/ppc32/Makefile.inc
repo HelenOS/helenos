@@ -26,9 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc:common
-BFD = binary
 
 COMMON_CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32

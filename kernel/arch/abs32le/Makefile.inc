@@ -26,7 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD = binary
 
 ifeq ($(COMPILER),gcc_cross)
 	ifeq ($(CROSS_TARGET),arm32)

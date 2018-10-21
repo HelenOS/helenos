@@ -41,6 +41,7 @@
 #include <str.h>
 #include <halt.h>
 #include <payload.h>
+#include <kernel.h>
 
 static bootinfo_t bootinfo;
 
@@ -87,6 +88,8 @@ void bootstrap(void)
 	// TODO: Cache-coherence callback?
 	extract_payload(&bootinfo.taskmap, load_addr, end, kernel_addr, NULL);
 
+	uintptr_t entry = check_kernel(load_addr);
+
 	printf("Booting the kernel...\n");
-	jump_to_kernel(PA2KA(&bootinfo));
+	jump_to_kernel(PA2KA(&bootinfo), entry);
 }

@@ -48,8 +48,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 #
 
 AUTOCHECK = $(realpath $(ROOT_PATH)/tools/autocheck.awk)
-RAW = kernel.raw
-BIN = kernel.bin
+KERNEL = kernel.elf
 MAP = kernel.map
 JOB = kernel.job
 MAP_PREV = $(MAP).prev
@@ -74,10 +73,10 @@ endif
 .PHONY: all clean autogen_clean depend
 .DELETE_ON_ERROR:
 
-all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BIN) $(DISASM)
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(KERNEL) $(DISASM)
 
 clean: autogen_clean
-	rm -f $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* arch/*/_link.ld arch/*/include/arch/common.h
+	rm -f $(KERNEL) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* arch/*/_link.ld arch/*/include/arch/common.h
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm '{}' \;
 	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.d' -follow -exec rm '{}' \;
 
@@ -369,17 +368,14 @@ else
 	SYMTAB_OBJECTS :=
 endif
 
-$(BIN): $(RAW)
-	$(OBJCOPY) -O $(BFD) $< $@
-
-$(DISASM): $(RAW)
+$(DISASM): $(KERNEL)
 ifeq ($(CONFIG_LINE_DEBUG),y)
 	$(OBJDUMP) -d -S $< > $@
 else
 	$(OBJDUMP) -d $< > $@
 endif
 
-$(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
+$(KERNEL): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
 	$(CC) $(DEFS) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 
 $(LINK): $(LINK).in

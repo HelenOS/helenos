@@ -84,7 +84,7 @@ endif
 	echo "menuentry 'HelenOS $(RELEASE)' --class helenos --class os {" >> $(BOOT_CONFIG)
 	for module in $(MODULES) ; do \
 		echo "	echo 'Loading $$module'" >> $(BOOT_CONFIG) ; \
-		if [ "$$module" = "kernel.bin" ] ; then \
+		if [ "$$module" = "kernel.elf" ] ; then \
 			echo "	$(MULTIBOOT_CMD) /boot/$$module" >> $(BOOT_CONFIG) ; \
 		else \
 			echo "	$(MODULE_CMD) /boot/$$module /boot/$$module" >> $(BOOT_CONFIG) ; \

@@ -15,7 +15,7 @@ ENTRY(kernel_image_start)
 SECTIONS {
 	kernel_load_address = PA2KA(BOOT_OFFSET);
 
-	.image (PA2KA(BOOT_OFFSET)) : AT (0) {
+	.image (PA2KA(BOOT_OFFSET) + SIZEOF_HEADERS) : AT (SIZEOF_HEADERS) {
 		ktext_start = .;
 		*(K_TEXT_START);
 		*(.text);

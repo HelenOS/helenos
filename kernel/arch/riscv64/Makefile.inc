@@ -26,9 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf64-littleriscv
-BFD_ARCH = riscv
-BFD = binary
 
 COMMON_CFLAGS += -mcmodel=medany
 

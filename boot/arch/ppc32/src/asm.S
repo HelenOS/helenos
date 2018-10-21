@@ -151,9 +151,6 @@ FUNCTION_BEGIN(jump_to_kernel)
 	rfi
 FUNCTION_END(jump_to_kernel)
 
-.section REALMODE, "ax"
-
-.align PAGE_WIDTH
 SYMBOL(real_mode)
 
 	# arguments:

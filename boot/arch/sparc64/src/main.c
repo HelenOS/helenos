@@ -42,6 +42,7 @@
 #include <str.h>
 #include <errno.h>
 #include <payload.h>
+#include <kernel.h>
 
 /* The lowest ID (read from the VER register) of some US3 CPU model */
 #define FIRST_US3_CPU  0x14
@@ -256,7 +257,9 @@ void bootstrap(void)
 	if (arch == ARCH_SUN4U)
 		sun4u_smp();
 
+	uintptr_t entry = check_kernel((void *) KERNEL_ADDRESS);
+
 	printf("Booting the kernel ...\n");
-	jump_to_kernel(bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo, subarch,
-	    (void *) KERNEL_ADDRESS);
+	jump_to_kernel(bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo,
+	    subarch, (void *) entry);
 }

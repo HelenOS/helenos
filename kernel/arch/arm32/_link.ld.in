@@ -24,6 +24,7 @@ ENTRY(kernel_image_start)
 SECTIONS {
 	. = KERNEL_LOAD_ADDRESS;
 	kernel_load_address = .;
+	. = . + SIZEOF_HEADERS;
 	.text : {
 		ktext_start = .;
 		*(.text);

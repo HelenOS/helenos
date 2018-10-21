@@ -35,6 +35,6 @@
 extern char htif_page[];
 extern char pt_page[];
 
-extern _Noreturn void jump_to_kernel(uintptr_t);
+extern _Noreturn void jump_to_kernel(uintptr_t, uintptr_t);
 
 #endif

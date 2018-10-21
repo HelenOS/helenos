@@ -39,6 +39,7 @@
 #include <str.h>
 #include <errno.h>
 #include <payload.h>
+#include <kernel.h>
 
 static bootinfo_t *bootinfo = (bootinfo_t *) PA2KA(BOOTINFO_OFFSET);
 static uint32_t *cpumap = (uint32_t *) PA2KA(CPUMAP_OFFSET);
@@ -77,6 +78,8 @@ void bootstrap(void)
 			bootinfo->cpumap |= (1 << i);
 	}
 
-	printf("Booting the kernel ... \n");
-	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), bootinfo);
+	uintptr_t entry = check_kernel(kernel_start);
+
+	printf("Booting the kernel...\n");
+	jump_to_kernel((void *) entry, bootinfo);
 }
