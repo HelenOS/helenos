@@ -46,9 +46,9 @@ ifeq ($(GRUB_ARCH),efi)
 	MODULE_CMD = module2
 endif
 
-all: $(BOOT_OUTPUT)
+all: $(POST_OUTPUT)
 
-$(BOOT_OUTPUT): build_dist
+$(POST_OUTPUT): build_dist
 ifeq ($(GRUB_ARCH),pc)
 	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS-CD" -eltorito-boot $(ELTORITO) -no-emul-boot -boot-load-size 64 -boot-info-table -o $@ $(DISTROOT)/
 endif

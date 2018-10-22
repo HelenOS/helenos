@@ -69,5 +69,6 @@ RD_APPS_ESSENTIAL += \
 RD_DATA_NON_ESSENTIAL += \
 	$(USPACE_PATH)/app/wavplay/demo.wav
 
-BOOT_OUTPUT = $(ROOT_PATH)/image.iso
-BUILD = Makefile.grub
+POST_OUTPUT = $(ROOT_PATH)/image.iso
+BUILD = Makefile.empty
+POSTBUILD = Makefile.grub
