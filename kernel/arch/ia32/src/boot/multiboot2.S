@@ -57,27 +57,6 @@ multiboot2_header_start:
 #endif
 	tag_info_req_end:
 
-	/* Address tag */
-	.align 8
-	tag_address_start:
-		.word MULTIBOOT2_TAG_ADDRESS
-		.word MULTIBOOT2_FLAGS_REQUIRED
-		.long tag_address_end - tag_address_start
-		.long multiboot2_header_start
-		.long unmapped_start
-		.long 0
-		.long 0
-	tag_address_end:
-
-	/* Entry address tag */
-	.align 8
-	tag_entry_address_start:
-		.word MULTIBOOT2_TAG_ENTRY_ADDRESS
-		.word MULTIBOOT2_FLAGS_REQUIRED
-		.long tag_entry_address_end - tag_entry_address_start
-		.long multiboot_image_start
-	tag_entry_address_end:
-
 	/* Flags tag */
 	.align 8
 	tag_flags_start:

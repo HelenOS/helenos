@@ -79,11 +79,11 @@ multiboot_header:
 	.long MULTIBOOT_HEADER_FLAGS_NOFB
 	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS_NOFB)  /* checksum */
 #endif
-	.long multiboot_header
-	.long unmapped_start
 	.long 0
 	.long 0
-	.long multiboot_image_start
+	.long 0
+	.long 0
+	.long 0
 #ifdef CONFIG_FB
 	.long 0
 	.long CONFIG_BFB_WIDTH

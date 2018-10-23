@@ -11,6 +11,8 @@
 #include <arch/boot/boot.h>
 #include <arch/mm/page.h>
 
+ENTRY(multiboot_image_start)
+
 SECTIONS {
 	kernel_load_address = PA2KA(BOOT_OFFSET);
 
