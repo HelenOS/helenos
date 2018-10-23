@@ -91,12 +91,6 @@ void ia32_pre_main(uint32_t signature, void *info)
 	/* Parse multiboot information obtained from the bootloader. */
 	multiboot_info_parse(signature, (multiboot_info_t *) info);
 	multiboot2_info_parse(signature, (multiboot2_info_t *) info);
-
-#ifdef CONFIG_SMP
-	size_t unmapped_size = (uintptr_t) unmapped_end - BOOT_OFFSET;
-	/* Copy AP bootstrap routines below 1 MB. */
-	memcpy((void *) AP_BOOT_OFFSET, (void *) BOOT_OFFSET, unmapped_size);
-#endif
 }
 
 void ia32_pre_mm_init(void)

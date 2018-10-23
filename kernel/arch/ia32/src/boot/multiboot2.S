@@ -32,9 +32,7 @@
 #include <arch/cpuid.h>
 #include <genarch/multiboot/multiboot2.h>
 
-.section K_TEXT_START, "ax"
-
-.code32
+.section .multiboot, "a"
 
 .align 8
 multiboot2_header_start:

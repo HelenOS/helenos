@@ -39,7 +39,7 @@
 #include <arch/cpu.h>
 #include <arch/context_struct.h>
 
-.section K_TEXT_START, "ax"
+.section K_AP_TEXT_START, "ax"
 
 #ifdef CONFIG_SMP
 
@@ -53,7 +53,7 @@ KDATA=16
  */
 
 .align 4096
-SYMBOL(unmapped_ap_boot)
+SYMBOL(ap_boot)
 .code16
 	cli
 	xorw %ax, %ax
@@ -66,7 +66,7 @@ SYMBOL(unmapped_ap_boot)
 	movl %cr0, %eax
 	orl $CR0_PE, %eax
 	movl %eax, %cr0
-	jmpl $KTEXT, $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
+	jmpl $KTEXT, $jump_to_kernel
 
 jump_to_kernel:
 .code32
@@ -95,11 +95,11 @@ jump_to_kernel:
 #endif /* CONFIG_SMP */
 
 
-.section K_DATA_START, "aw", @progbits
+.section K_AP_DATA_START, "aw", @progbits
 
 #ifdef CONFIG_SMP
 
-SYMBOL(unmapped_ap_gdtr)
+SYMBOL(ap_gdtr)
 	.word 0
 	.long 0
 

@@ -45,23 +45,7 @@
 
 #define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
 
-.section K_TEXT_START, "ax"
-
-.code32
-
-.macro pm_status msg
-#if defined(CONFIG_EGA) && !defined(CONFIG_FB)
-	pushl %esi
-	movl \msg, %esi
-	call pm_early_puts
-	popl %esi
-#endif
-.endm
-
-.macro pm2_status msg
-	pushl \msg
-	call early_puts
-.endm
+.section .multiboot, "a"
 
 .align 4
 multiboot_header:
@@ -84,6 +68,24 @@ multiboot_header:
 	.long CONFIG_BFB_HEIGHT
 	.long CONFIG_BFB_BPP
 #endif
+
+.section K_TEXT_START, "ax"
+
+.code32
+
+.macro pm_status msg
+#if defined(CONFIG_EGA) && !defined(CONFIG_FB)
+	pushl %esi
+	movl \msg, %esi
+	call pm_early_puts
+	popl %esi
+#endif
+.endm
+
+.macro pm2_status msg
+	pushl \msg
+	call early_puts
+.endm
 
 SYMBOL(multiboot_image_start)
 	cli

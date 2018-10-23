@@ -43,7 +43,8 @@
 
 #ifdef CONFIG_SMP
 
-extern uint8_t unmapped_end[];
+extern uint8_t ap_bootstrap_start[];
+extern uint8_t ap_bootstrap_end[];
 
 #endif /* CONFIG_SMP */
 

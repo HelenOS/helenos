@@ -151,11 +151,9 @@ void frame_low_arch_init(void)
 		minconf = 1;
 
 #ifdef CONFIG_SMP
-		size_t unmapped_size =
-		    (uintptr_t) unmapped_end - BOOT_OFFSET;
-
-		minconf = max(minconf,
-		    ADDR2PFN(AP_BOOT_OFFSET + unmapped_size));
+		// FIXME: What is the purpose of minconf? Can we remove it?
+		uintptr_t ap_end = ALIGN_UP((uintptr_t) ap_bootstrap_end, FRAME_SIZE);
+		minconf = max(minconf, ADDR2PFN(ap_end));
 #endif
 
 		init_e820_memory(minconf, true);
@@ -164,9 +162,13 @@ void frame_low_arch_init(void)
 		frame_mark_unavailable(0, 1);
 
 #ifdef CONFIG_SMP
+		// TODO: should go away implicitly with section table
+
 		/* Reserve AP real mode bootstrap memory */
+		size_t ap_size =
+		    ALIGN_UP(ap_bootstrap_end - ap_bootstrap_start, FRAME_SIZE);
 		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH,
-		    unmapped_size >> FRAME_WIDTH);
+		    ap_size >> FRAME_WIDTH);
 #endif
 	}
 }

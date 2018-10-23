@@ -13,17 +13,34 @@
 
 ENTRY(multiboot_image_start)
 
+PHDRS {
+	ap_boot PT_LOAD ;
+	unmapped PT_LOAD ;
+	mapped PT_LOAD ;
+}
+
 SECTIONS {
 	kernel_load_address = PA2KA(BOOT_OFFSET);
 
-	.unmapped (BOOT_OFFSET + SIZEOF_HEADERS): AT (BOOT_OFFSET + SIZEOF_HEADERS) {
+	.ap_bootstrap (AP_BOOT_OFFSET): AT (AP_BOOT_OFFSET) {
+		ap_bootstrap_start = .;
+
+		/* Must be first. */
+		*(.multiboot);
+
+		*(K_AP_TEXT_START);
+		*(K_AP_DATA_START);
+		ap_bootstrap_end = .;
+	} :ap_boot
+
+	.unmapped (BOOT_OFFSET): AT (BOOT_OFFSET) {
 		unmapped_start = .;
 		*(K_TEXT_START);
 		*(K_DATA_START);
 		unmapped_end = .;
-	}
+	} :unmapped
 
-	.mapped (PA2KA(BOOT_OFFSET) + SIZEOF_HEADERS + SIZEOF(.unmapped)): AT (BOOT_OFFSET + SIZEOF_HEADERS + SIZEOF(.unmapped)) {
+	.mapped (PA2KA(BOOT_OFFSET) + SIZEOF(.unmapped)): AT (BOOT_OFFSET + SIZEOF(.unmapped)) {
 		ktext_start = .;
 		*(.text .text.*);
 		ktext_end = .;
@@ -40,7 +57,7 @@ SECTIONS {
 		symbol_table = .;
 		*(symtab.*);            /* Symbol table, must be LAST symbol! */
 		kdata_end = .;
-	}
+	} :mapped
 
 #ifdef CONFIG_LINE_DEBUG
 	.comment 0 : { *(.comment); }
@@ -60,11 +77,7 @@ SECTIONS {
 	}
 
 #ifdef CONFIG_SMP
-
-	ap_boot = unmapped_ap_boot - BOOT_OFFSET + AP_BOOT_OFFSET;
-	ap_gdtr = unmapped_ap_gdtr - BOOT_OFFSET + AP_BOOT_OFFSET;
 	protected_ap_gdtr = PA2KA(ap_gdtr);
-
 #endif /* CONFIG_SMP */
 
 }

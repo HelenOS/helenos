@@ -40,7 +40,7 @@
 #include <arch/cpuid.h>
 #include <arch/context_struct.h>
 
-.section K_TEXT_START, "ax"
+.section K_AP_TEXT_START, "ax"
 
 #ifdef CONFIG_SMP
 
@@ -49,7 +49,8 @@
 # IPI requirements.
 
 .align 4096
-SYMBOL(unmapped_ap_boot)
+
+SYMBOL(ap_boot)
 .code16
 	cli
 	xorw %ax, %ax
@@ -60,7 +61,7 @@ SYMBOL(unmapped_ap_boot)
 	movl %cr0, %eax
 	orl $CR0_PE, %eax
 	movl %eax, %cr0     # switch to protected mode
-	jmpl $GDT_SELECTOR(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
+	jmpl $GDT_SELECTOR(KTEXT32_DES), $jump_to_kernel
 
 jump_to_kernel:
 .code32
@@ -93,7 +94,7 @@ jump_to_kernel:
 	movl %eax, %cr0
 
 	# At this point we are in compatibility mode
-	jmpl $GDT_SELECTOR(KTEXT_DES), $start64 - BOOT_OFFSET + AP_BOOT_OFFSET
+	jmpl $GDT_SELECTOR(KTEXT_DES), $start64
 
 .code64
 start64:
@@ -108,11 +109,11 @@ start64:
 
 #endif /* CONFIG_SMP */
 
-.section K_DATA_START, "aw", @progbits
+.section K_AP_DATA_START, "aw", @progbits
 
 #ifdef CONFIG_SMP
 
-SYMBOL(unmapped_ap_gdtr)
+SYMBOL(ap_gdtr)
 	.word 0
 	.long 0
 
