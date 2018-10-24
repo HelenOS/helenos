@@ -219,154 +219,59 @@ FUNCTION_BEGIN(map_kernel_non_pse)
 	andl $~CR4_PAE, %ecx  /* PAE off */
 	movl %ecx, %cr4
 
-	call calc_kernel_end
-	call find_mem_for_pt
+	/* Allocate space for page tables */
+	// TODO: we shouldn't need to put this allocation in ballocs,
+	//       since it's static.
+	movl $KA2PA(ballocs), %edi
+	movl $page_tables, 0(%edi)
+	movl $(2 * 1024 * 1024), 4(%edi)
 
-	mov kernel_end, %esi
-	mov free_area, %ecx
+	/* Fill page tables */
+	xorl %ecx, %ecx
+	xorl %ebx, %ebx
+	mov $page_tables, %esi
 
-	cmpl %esi, %ecx
-	jbe use_kernel_end
+	floop_pt:
+		movl $(PTE_RW | PTE_P), %eax
+		orl %ebx, %eax
+		movl %eax, (%esi, %ecx, 4)
+		addl $PAGE_SIZE, %ebx
 
-		mov %ecx, %esi
+		incl %ecx
+		cmpl $(512 * 1024), %ecx
 
-		/* Align address down to 4k */
-		andl $(~(PAGE_SIZE - 1)), %esi
+		jl floop_pt
 
-	use_kernel_end:
+	/* Fill page directory */
+	movl $(page_directory + 0), %esi
+	movl $(page_directory + 2048), %edi
+	xorl %ecx, %ecx
+	movl $page_tables, %ebx
 
-		/* Align address to 4k */
-		addl $(PAGE_SIZE - 1), %esi
-		andl $(~(PAGE_SIZE - 1)), %esi
+	floop:
+		movl $(PDE_RW | PDE_P), %eax
+		orl %ebx, %eax
 
-		/* Allocate space for page tables */
-		movl %esi, pt_loc
-		movl $KA2PA(ballocs), %edi
+		/* Mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
+		movl %eax, (%esi, %ecx, 4)
 
-		movl %esi, (%edi)
-		addl $4, %edi
-		movl $(2 * 1024 * 1024), (%edi)
+		/* Mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
+		movl %eax, (%edi, %ecx, 4)
+		addl $PAGE_SIZE, %ebx
 
-		/* Fill page tables */
-		xorl %ecx, %ecx
-		xorl %ebx, %ebx
+		incl %ecx
+		cmpl $512, %ecx
 
-		floop_pt:
-			movl $(PTE_RW | PTE_P), %eax
-			orl %ebx, %eax
-			movl %eax, (%esi, %ecx, 4)
-			addl $PAGE_SIZE, %ebx
+		jl floop
 
-			incl %ecx
-			cmpl $(512 * 1024), %ecx
+	movl %esi, %cr3
 
-			jl floop_pt
+	movl %cr0, %ebx
+	orl $CR0_PG, %ebx  /* paging on */
+	movl %ebx, %cr0
 
-		/* Fill page directory */
-		movl $(page_directory + 0), %esi
-		movl $(page_directory + 2048), %edi
-		xorl %ecx, %ecx
-		movl pt_loc, %ebx
-
-		floop:
-			movl $(PDE_RW | PDE_P), %eax
-			orl %ebx, %eax
-
-			/* Mapping 0x00000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
-			movl %eax, (%esi, %ecx, 4)
-
-			/* Mapping 0x80000000 + %ecx * 4M => 0x00000000 + %ecx * 4M */
-			movl %eax, (%edi, %ecx, 4)
-			addl $PAGE_SIZE, %ebx
-
-			incl %ecx
-			cmpl $512, %ecx
-
-			jl floop
-
-		movl %esi, %cr3
-
-		movl %cr0, %ebx
-		orl $CR0_PG, %ebx  /* paging on */
-		movl %ebx, %cr0
-
-		ret
-FUNCTION_END(map_kernel_non_pse)
-
-/** Calculate unmapped address of the end of the kernel. */
-calc_kernel_end:
-	movl $KA2PA(kdata_end), %edi
-	movl %edi, kernel_end
 	ret
-
-// TODO: remove this cruft
-
-/** Find free 2M (+4k for alignment) region where to store page tables */
-find_mem_for_pt:
-	/* Check if multiboot info is present */
-	cmpl $MULTIBOOT_LOADER_MAGIC, multiboot_eax
-	je check_multiboot_map
-
-		ret
-
-	check_multiboot_map:
-
-		/* Copy address of the multiboot info to ebx */
-		movl multiboot_ebx, %ebx
-
-		/* Check if memory map flag is present */
-		movl (%ebx), %edx
-		andl $MULTIBOOT_INFO_FLAGS_MMAP, %edx
-		jnz use_multiboot_map
-
-			ret
-
-	use_multiboot_map:
-
-		/* Copy address of the memory map to edx */
-		movl MULTIBOOT_INFO_OFFSET_MMAP_ADDR(%ebx), %edx
-		movl %edx, %ecx
-
-		addl MULTIBOOT_INFO_OFFSET_MMAP_LENGTH(%ebx), %ecx
-
-		/* Find a free region at least 2M in size */
-		check_memmap_loop:
-
-			/* Is this a free region? */
-			cmpl $MEMMAP_MEMORY_AVAILABLE, MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_TYPE(%edx)
-			jnz next_region
-
-			/* Check size */
-			cmpl $0, MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_SIZE + 4(%edx)
-			jnz next_region
-			cmpl $(2 * 1024 * 1024 + PAGE_SIZE), MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_SIZE(%edx)
-			jbe next_region
-
-			cmpl $0, MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_BASE_ADDRESS + 4(%edx)
-			jz found_region
-
-		next_region:
-
-			cmp %ecx, %edx
-			jbe next_region_do
-
-				ret
-
-		next_region_do:
-
-			addl MULTIBOOT_MEMMAP_OFFSET_SIZE(%edx), %edx
-			addl $MULTIBOOT_MEMMAP_SIZE_SIZE, %edx
-			jmp check_memmap_loop
-
-		found_region:
-
-			/* Use end of the found region */
-			mov MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_BASE_ADDRESS(%edx), %ecx
-			add MULTIBOOT_MEMMAP_OFFSET_MM_INFO + E820MEMMAP_OFFSET_SIZE(%edx), %ecx
-			sub $(2 * 1024 * 1024), %ecx
-			mov %ecx, free_area
-
-			ret
+FUNCTION_END(map_kernel_non_pse)
 
 /** Print string to EGA display (in light green).
  *
@@ -599,6 +504,10 @@ early_puts:
 .section K_BSS_START, "aw", @nobits
 
 .align 4096
+page_tables:
+	.space 2*1024*1024;
+
+.align 4096
 page_directory:
 	.space 4096, 0
 
@@ -610,13 +519,6 @@ SYMBOL(multiboot_eax)
 	.long 0
 
 SYMBOL(multiboot_ebx)
-	.long 0
-
-pt_loc:
-	.long 0
-kernel_end:
-	.long 0
-free_area:
 	.long 0
 
 .section K_DATA_START, "aw", @progbits
