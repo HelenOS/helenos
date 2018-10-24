@@ -596,7 +596,7 @@ early_puts:
 
 	ret
 
-.section K_DATA_START, "aw", @progbits
+.section K_BSS_START, "aw", @nobits
 
 .align 4096
 page_directory:
@@ -605,10 +605,6 @@ page_directory:
 SYMBOL(bootstrap_idtr)
 	.word 0
 	.long 0
-
-SYMBOL(bootstrap_gdtr)
-	.word GDT_SELECTOR(GDT_ITEMS)
-	.long KA2PA(gdt)
 
 SYMBOL(multiboot_eax)
 	.long 0
@@ -622,6 +618,12 @@ kernel_end:
 	.long 0
 free_area:
 	.long 0
+
+.section K_DATA_START, "aw", @progbits
+
+SYMBOL(bootstrap_gdtr)
+	.word GDT_SELECTOR(GDT_ITEMS)
+	.long KA2PA(gdt)
 
 status_prot:
 	.asciz "[prot] "

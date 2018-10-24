@@ -22,29 +22,39 @@ PHDRS {
 SECTIONS {
 	kernel_load_address = PA2KA(BOOT_OFFSET);
 
-	.ap_bootstrap (AP_BOOT_OFFSET): AT (AP_BOOT_OFFSET) {
-		ap_bootstrap_start = .;
+	. = AP_BOOT_OFFSET + SIZEOF_HEADERS;
 
-		/* Must be first. */
-		*(.multiboot);
+	/* Must be first. */
+	.multiboot : { *(.multiboot); } :ap_boot
 
+	ap_bootstrap_start = .;
+
+	.ap_bootstrap : {
 		*(K_AP_TEXT_START);
 		*(K_AP_DATA_START);
-		ap_bootstrap_end = .;
 	} :ap_boot
 
-	.unmapped (BOOT_OFFSET): AT (BOOT_OFFSET) {
-		unmapped_start = .;
+	ap_bootstrap_end = .;
+
+	. = BOOT_OFFSET + (ap_bootstrap_end & (PAGE_SIZE-1));
+	unmapped_start = .;
+
+	.unmapped : {
 		*(K_TEXT_START);
 		*(K_DATA_START);
-		unmapped_end = .;
 	} :unmapped
+
+	unmapped_file_end = .;
 
 	.unmapped_bss : {
 		*(.bootstack);
+		*(K_BSS_START);
 	} :unmapped
 
-	.mapped (PA2KA(BOOT_OFFSET) + SIZEOF(.unmapped) + SIZEOF(.unmapped_bss)): AT (BOOT_OFFSET + SIZEOF(.unmapped) + SIZEOF(.unmapped_bss)) {
+	unmapped_end = .;
+	mapped_load_start = ALIGN(PAGE_SIZE) + (unmapped_file_end & (PAGE_SIZE-1));
+
+	.mapped (PA2KA(mapped_load_start)): AT (mapped_load_start) {
 		ktext_start = .;
 		*(.text .text.*);
 		ktext_end = .;
