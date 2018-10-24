@@ -42,6 +42,7 @@
 #include <mm/page.h>
 #include <mm/km.h>
 #include <log.h>
+#include <mem.h>
 
 #define RSDP_SIGNATURE      "RSD PTR "
 #define RSDP_REVISION_OFFS  15
@@ -169,34 +170,38 @@ static void configure_via_xsdt(void)
 	}
 }
 
+static uint8_t *search_rsdp(uint8_t *base, size_t len)
+{
+	for (size_t i = 0; i < len; i += 16) {
+		if (memcmp(&base[i], RSDP_SIGNATURE, sizeof(RSDP_SIGNATURE)) == 0 &&
+		    rsdp_check(&base[i]))
+			return &base[i];
+	}
+
+	return NULL;
+}
+
 void acpi_init(void)
 {
-	uint8_t *addr[2] = { NULL, (uint8_t *) PA2KA(0xe0000) };
-	unsigned int i;
-	unsigned int j;
-	unsigned int length[2] = { 1024, 128 * 1024 };
-	uint64_t *sig = (uint64_t *) RSDP_SIGNATURE;
-
 	/*
 	 * Find Root System Description Pointer
 	 * 1. search first 1K of EBDA
 	 * 2. search 128K starting at 0xe0000
 	 */
 
-	addr[0] = (uint8_t *) PA2KA(ebda);
-	for (i = (ebda ? 0 : 1); i < 2; i++) {
-		for (j = 0; j < length[i]; j += 16) {
-			if ((*((uint64_t *) &addr[i][j]) == *sig) &&
-			    (rsdp_check(&addr[i][j]))) {
-				acpi_rsdp = (struct acpi_rsdp *) &addr[i][j];
-				goto rsdp_found;
-			}
-		}
-	}
+	uint8_t *rsdp = NULL;
 
-	return;
+	if (ebda)
+		rsdp = search_rsdp((uint8_t *) PA2KA(ebda), 1024);
 
-rsdp_found:
+	if (!rsdp)
+		rsdp = search_rsdp((uint8_t *) PA2KA(0xe0000), 128 * 1024);
+
+	if (!rsdp)
+		return;
+
+	acpi_rsdp = (struct acpi_rsdp *) rsdp;
+
 	LOG("%p: ACPI Root System Description Pointer", acpi_rsdp);
 
 	uintptr_t acpi_rsdt_p = (uintptr_t) acpi_rsdp->rsdt_address;

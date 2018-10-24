@@ -33,6 +33,13 @@ struct type_mismatch_data {
 	unsigned char type_check_kind;
 };
 
+struct type_mismatch_data_v1 {
+	struct source_location loc;
+	struct type_descriptor *type;
+	unsigned char log_alignment;
+	unsigned char type_check_kind;
+};
+
 struct overflow_data {
 	struct source_location loc;
 	struct type_descriptor *type;
@@ -73,12 +80,17 @@ struct nonnull_return_data {
 	struct source_location attr_loc;
 };
 
+struct pointer_overflow_data {
+	struct source_location loc;
+};
+
 /*
  * When compiling with -fsanitize=undefined the compiler expects functions
  * with the following signatures. The functions are never called directly,
  * only when undefined behavior is detected in instrumented code.
  */
 void __ubsan_handle_type_mismatch(struct type_mismatch_data *data, unsigned long ptr);
+void __ubsan_handle_type_mismatch_v1(struct type_mismatch_data_v1 *data, unsigned long ptr);
 void __ubsan_handle_add_overflow(struct overflow_data *data, unsigned long lhs, unsigned long rhs);
 void __ubsan_handle_sub_overflow(struct overflow_data *data, unsigned long lhs, unsigned long rhs);
 void __ubsan_handle_mul_overflow(struct overflow_data *data, unsigned long lhs, unsigned long rhs);
@@ -96,6 +108,10 @@ void __ubsan_handle_nonnull_arg(struct nonnull_arg_data *data, size_t arg_no);
 void __ubsan_handle_nonnull_arg(struct nonnull_arg_data *data);
 #endif
 void __ubsan_handle_nonnull_return(struct nonnull_return_data *data);
+void __ubsan_handle_nonnull_return_v1(struct nonnull_return_data *data,
+    struct source_location *loc);
+void __ubsan_handle_pointer_overflow(struct pointer_overflow_data *data,
+    unsigned long base, unsigned long result);
 
 static void print_loc(const char *func, struct source_location *loc)
 {
@@ -213,6 +229,27 @@ void __ubsan_handle_nonnull_arg(struct nonnull_arg_data *data)
 #endif
 
 void __ubsan_handle_nonnull_return(struct nonnull_return_data *data)
+{
+	print_loc(__func__, &data->loc);
+	ubsan_panic();
+}
+
+void __ubsan_handle_nonnull_return_v1(struct nonnull_return_data *data,
+    struct source_location *loc)
+{
+	print_loc(__func__, &data->loc);
+	ubsan_panic();
+}
+
+void __ubsan_handle_pointer_overflow(struct pointer_overflow_data *data,
+    unsigned long base, unsigned long result)
+{
+	print_loc(__func__, &data->loc);
+	ubsan_panic();
+}
+
+void __ubsan_handle_type_mismatch_v1(struct type_mismatch_data_v1 *data,
+    unsigned long ptr)
 {
 	print_loc(__func__, &data->loc);
 	ubsan_panic();
