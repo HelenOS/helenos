@@ -40,7 +40,11 @@ SECTIONS {
 		unmapped_end = .;
 	} :unmapped
 
-	.mapped (PA2KA(BOOT_OFFSET) + SIZEOF(.unmapped)): AT (BOOT_OFFSET + SIZEOF(.unmapped)) {
+	.unmapped_bss : {
+		*(.bootstack);
+	} :unmapped
+
+	.mapped (PA2KA(BOOT_OFFSET) + SIZEOF(.unmapped) + SIZEOF(.unmapped_bss)): AT (BOOT_OFFSET + SIZEOF(.unmapped) + SIZEOF(.unmapped_bss)) {
 		ktext_start = .;
 		*(.text .text.*);
 		ktext_end = .;

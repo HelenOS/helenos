@@ -43,8 +43,6 @@
 //       Currently we only enable EGA statically, which forces us to rebuild
 //       the image to get very early debug output.
 
-#define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
-
 .section .multiboot, "a"
 
 .align 4
@@ -92,7 +90,7 @@ SYMBOL(multiboot_image_start)
 	cld
 
 	/* Initialize stack pointer */
-	movl $START_STACK, %esp
+	movl $bootstack_top, %esp
 
 	/*
 	 * Initialize Global Descriptor Table and
@@ -146,6 +144,7 @@ SYMBOL(multiboot_image_start)
 		call map_kernel_non_pse
 
 	stack_init:
+	movl $PA2KA(bootstack_top), %esp
 
 	/* Create the first stack frame */
 	pushl $0
@@ -299,6 +298,8 @@ calc_kernel_end:
 	movl $KA2PA(kdata_end), %edi
 	movl %edi, kernel_end
 	ret
+
+// TODO: remove this cruft
 
 /** Find free 2M (+4k for alignment) region where to store page tables */
 find_mem_for_pt:

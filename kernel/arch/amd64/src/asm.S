@@ -33,6 +33,13 @@
 #include <arch/kseg_struct.h>
 #include <arch/cpu.h>
 #include <arch/smp/apic.h>
+#include <arch/boot/boot.h>
+
+.section .bootstack, "a", @nobits
+.align 16
+SYMBOL(bootstack_bottom)
+.skip BOOT_STACK_SIZE
+SYMBOL(bootstack_top)
 
 .text
 

@@ -43,8 +43,6 @@
 //       Currently we only enable EGA statically, which forces us to rebuild
 //       the image to get very early debug output.
 
-#define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
-
 .section .multiboot, "a"
 
 .align 4
@@ -98,7 +96,7 @@ SYMBOL(multiboot_image_start)
 	cld
 
 	/* Initialize stack pointer */
-	movl $START_STACK, %esp
+	movl $bootstack_top, %esp
 
 	/*
 	 * Initialize Global Descriptor Table and
@@ -435,7 +433,7 @@ start64:
 	 * Long mode.
 	 */
 
-	movq $(PA2KA(START_STACK)), %rsp
+	movq $(PA2KA(bootstack_top)), %rsp
 
 	/* Create the first stack frame */
 	pushq $0
