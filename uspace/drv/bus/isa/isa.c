@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -696,6 +696,26 @@ static void isa_functions_add(isa_bus_t *isa)
 	free(conf);
 }
 
+static errno_t isa_read_pci_cfg(isa_bus_t *isa, async_sess_t *sess)
+{
+	errno_t rc;
+
+	rc = pci_config_space_read_16(sess, PCI_VENDOR_ID, &isa->pci_vendor_id);
+	if (rc != EOK)
+		return rc;
+	rc = pci_config_space_read_16(sess, PCI_DEVICE_ID, &isa->pci_device_id);
+	if (rc != EOK)
+		return rc;
+	rc = pci_config_space_read_8(sess, PCI_BASE_CLASS, &isa->pci_class);
+	if (rc != EOK)
+		return rc;
+	rc = pci_config_space_read_8(sess, PCI_SUB_CLASS, &isa->pci_subclass);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 static errno_t isa_dev_add(ddf_dev_t *dev)
 {
 	async_sess_t *sess;
@@ -719,18 +739,14 @@ static errno_t isa_dev_add(ddf_dev_t *dev)
 		return ENOENT;
 	}
 
-	rc = pci_config_space_read_16(sess, PCI_VENDOR_ID, &isa->pci_vendor_id);
-	if (rc != EOK)
-		return rc;
-	rc = pci_config_space_read_16(sess, PCI_DEVICE_ID, &isa->pci_device_id);
-	if (rc != EOK)
-		return rc;
-	rc = pci_config_space_read_8(sess, PCI_BASE_CLASS, &isa->pci_class);
-	if (rc != EOK)
-		return rc;
-	rc = pci_config_space_read_8(sess, PCI_SUB_CLASS, &isa->pci_subclass);
-	if (rc != EOK)
-		return rc;
+	rc = isa_read_pci_cfg(isa, sess);
+	if (rc != EOK) {
+		ddf_msg(LVL_NOTE, "Cannot read PCI config. Assuming ISA classic.");
+		isa->pci_vendor_id = 0;
+		isa->pci_device_id = 0;
+		isa->pci_class = BASE_CLASS_BRIDGE;
+		isa->pci_subclass = SUB_CLASS_BRIDGE_ISA;
+	}
 
 	rc = pio_window_get(sess, &isa->pio_win);
 	if (rc != EOK) {

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -42,7 +43,11 @@
 #include "dev.h"
 #include "devman.h"
 #include "driver.h"
+#include "fun.h"
 #include "match.h"
+#include "main.h"
+
+static errno_t driver_reassign_fibril(void *);
 
 /**
  * Initialize the list of device driver's.
@@ -193,14 +198,18 @@ int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 	return drv_cnt;
 }
 
-/** Lookup the best matching driver for the specified device in the list of
- * drivers.
+/** Lookup the next best matching driver for a device.
  *
  * A match between a device and a driver is found if one of the driver's match
  * ids match one of the device's match ids. The score of the match is the
  * product of the driver's and device's score associated with the matching id.
  * The best matching driver for a device is the driver with the highest score
  * of the match between the device and the driver.
+ *
+ * If a driver is already assigned to the device (node->drv != NULL),
+ * we look for the next best driver. That is either the next driver with the
+ * same score in the list of drivers, or a driver with the next best score
+ * (greater than zero).
  *
  * @param drivers_list	The list of drivers, where we look for the driver
  *			suitable for handling the device.
@@ -212,19 +221,49 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 {
 	driver_t *best_drv = NULL;
 	int best_score = 0, score = 0;
+	int cur_score;
+	link_t *link;
+	driver_t *drv;
 
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
 
+	if (node->drv != NULL) {
+		cur_score = get_match_score(node->drv, node);
+
+		link = list_next(&drv->drivers, &drivers_list->drivers);
+
+		/*
+		 * Find next driver with score equal to the current.
+		 */
+		while (link != NULL) {
+			drv = list_get_instance(link, driver_t, drivers);
+			score = get_match_score(drv, node);
+			if (score == cur_score) {
+				/* Found it */
+				fibril_mutex_unlock(&drivers_list->drivers_mutex);
+				return drv;
+			}
+
+			link = list_next(link, &drivers_list->drivers);
+		}
+
+		/* There is no driver with the same score */
+	} else {
+		cur_score = INT_MAX;
+	}
+
+	/*
+	 * Find driver with the next best score
+	 */
 	list_foreach(drivers_list->drivers, drivers, driver_t, drv) {
 		score = get_match_score(drv, node);
-		if (score > best_score) {
+		if (score > best_score && score < cur_score) {
 			best_score = score;
 			best_drv = drv;
 		}
 	}
 
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
-
 	return best_drv;
 }
 
@@ -243,6 +282,8 @@ void attach_driver(dev_tree_t *tree, dev_node_t *dev, driver_t *drv)
 	fibril_rwlock_write_lock(&tree->rwlock);
 
 	dev->drv = drv;
+	dev->passed_to_driver = false;
+	dev->state = DEVICE_NOT_INITIALIZED;
 	list_append(&dev->driver_devices, &drv->devices);
 
 	fibril_rwlock_write_unlock(&tree->rwlock);
@@ -415,6 +456,19 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 
 		add_device(driver, dev, tree);
 
+		/* Device probe failed, need to try next best driver */
+		if (dev->state == DEVICE_NOT_PRESENT) {
+			fibril_mutex_lock(&driver->driver_mutex);
+			list_remove(&dev->driver_devices);
+			fibril_mutex_unlock(&driver->driver_mutex);
+			fid_t fid = fibril_create(driver_reassign_fibril, dev);
+			if (fid == 0) {
+				log_msg(LOG_DEFAULT, LVL_ERROR,
+				    "Error creating fibril to assign driver.");
+			}
+			fibril_add_ready(fid);
+		}
+
 		dev_del_ref(dev);
 
 		/*
@@ -518,14 +572,17 @@ void delete_driver(driver_t *drv)
 bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
     dev_tree_t *tree)
 {
+	driver_t *drv;
+
 	assert(dev != NULL);
 	assert(drivers_list != NULL);
 	assert(tree != NULL);
 
 	/*
-	 * Find the driver which is the most suitable for handling this device.
+	 * Find the next best driver for this device.
 	 */
-	driver_t *drv = find_best_match_driver(drivers_list, dev);
+again:
+	drv = find_best_match_driver(drivers_list, dev);
 	if (drv == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "No driver found for device `%s'.",
 		    dev->pfun->pathname);
@@ -544,8 +601,13 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	fibril_mutex_unlock(&drv->driver_mutex);
 
 	/* Notify the driver about the new device. */
-	if (is_running)
+	if (is_running) {
 		add_device(drv, dev, tree);
+
+		/* If the device probe failed, need to try next available driver */
+		if (dev->state == DEVICE_NOT_PRESENT)
+			goto again;
+	}
 
 	fibril_mutex_lock(&drv->driver_mutex);
 	fibril_mutex_unlock(&drv->driver_mutex);
@@ -777,6 +839,20 @@ errno_t driver_get_devices(driver_t *driver, devman_handle_t *hdl_buf,
 	}
 
 	fibril_mutex_unlock(&driver->driver_mutex);
+	return EOK;
+}
+
+/** Try to find next available driver in a separate fibril.
+ *
+ * @param arg Device node (dev_node_t)
+ */
+static errno_t driver_reassign_fibril(void *arg)
+{
+	dev_node_t *dev_node = (dev_node_t *) arg;
+	assign_driver(dev_node, &drivers_list, &device_tree);
+
+	/* Delete one reference we got from the caller. */
+	dev_del_ref(dev_node);
 	return EOK;
 }
 

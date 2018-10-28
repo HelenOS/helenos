@@ -1,3 +1,6 @@
+# Classic ISA
+10 isa
+
 # ISA bridge
 10 pci/class=06&subclass=01
 

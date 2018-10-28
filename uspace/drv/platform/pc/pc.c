@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -92,7 +93,7 @@ static hw_resource_t pci_conf_regs[] = {
 	}
 };
 
-static pc_fun_t pci_data = {
+static pc_fun_t sys_data = {
 	.hw_resources = {
 		sizeof(pci_conf_regs) / sizeof(pci_conf_regs[0]),
 		pci_conf_regs
@@ -150,51 +151,61 @@ static pio_window_ops_t fun_pio_window_ops = {
 /* Initialized in pc_init() function. */
 static ddf_dev_ops_t pc_fun_ops;
 
-static bool
-pc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
-    pc_fun_t *fun_proto)
+static errno_t pc_add_sysbus(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
-
 	ddf_fun_t *fnode = NULL;
 	errno_t rc;
 
+	ddf_msg(LVL_DEBUG, "Adding system bus.");
+
 	/* Create new device. */
-	fnode = ddf_fun_create(dev, fun_inner, name);
-	if (fnode == NULL)
-		goto failure;
+	fnode = ddf_fun_create(dev, fun_inner, "sys");
+	if (fnode == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
 
 	pc_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(pc_fun_t));
-	*fun = *fun_proto;
+	*fun = sys_data;
 
-	/* Add match ID */
-	rc = ddf_fun_add_match_id(fnode, str_match_id, 100);
+	/* Add match IDs */
+	rc = ddf_fun_add_match_id(fnode, "intel_pci", 100);
 	if (rc != EOK)
-		goto failure;
+		goto error;
+
+	rc = ddf_fun_add_match_id(fnode, "isa", 10);
+	if (rc != EOK)
+		goto error;
 
 	/* Set provided operations to the device. */
 	ddf_fun_set_ops(fnode, &pc_fun_ops);
 
 	/* Register function. */
-	if (ddf_fun_bind(fnode) != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
-		goto failure;
+	rc = ddf_fun_bind(fnode);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding system bus function.");
+		goto error;
 	}
 
-	return true;
+	return EOK;
 
-failure:
+error:
 	if (fnode != NULL)
 		ddf_fun_destroy(fnode);
 
-	ddf_msg(LVL_ERROR, "Failed adding function '%s'.", name);
-
-	return false;
+	ddf_msg(LVL_ERROR, "Failed adding system bus.");
+	return rc;
 }
 
-static bool pc_add_functions(ddf_dev_t *dev)
+static errno_t pc_add_functions(ddf_dev_t *dev)
 {
-	return pc_add_fun(dev, "pci0", "intel_pci", &pci_data);
+	errno_t rc;
+
+	rc = pc_add_sysbus(dev);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 /** Get the root device.
@@ -205,12 +216,16 @@ static bool pc_add_functions(ddf_dev_t *dev)
  */
 static errno_t pc_dev_add(ddf_dev_t *dev)
 {
+	errno_t rc;
+
 	ddf_msg(LVL_DEBUG, "pc_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));
 
 	/* Register functions. */
-	if (!pc_add_functions(dev)) {
+	rc = pc_add_functions(dev);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to add functions for PC platform.");
+		return rc;
 	}
 
 	return EOK;
