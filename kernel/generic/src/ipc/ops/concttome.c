@@ -41,23 +41,28 @@
 
 static int request_process(call_t *call, answerbox_t *box)
 {
-	cap_phone_handle_t phone_handle;
-	kobject_t *phone_obj;
-	errno_t rc = phone_alloc(TASK, false, &phone_handle, &phone_obj);
-	call->priv = (sysarg_t) phone_obj;
-	IPC_SET_ARG5(call->data,
-	    (rc == EOK) ? CAP_HANDLE_RAW(phone_handle) : CAP_NIL);
+	cap_phone_handle_t phandle = CAP_NIL;
+	kobject_t *pobj = NULL;
+	errno_t rc = phone_alloc(TASK, false, &phandle, &pobj);
+	if (rc == EOK) {
+		/*
+		 * Set the sender-assigned label to the new phone.
+		 */
+		pobj->phone->label = IPC_GET_ARG5(call->data);
+	}
+	call->priv = (sysarg_t) pobj;
+	IPC_SET_ARG5(call->data, CAP_HANDLE_RAW(phandle));
 	return 0;
 }
 
 static errno_t answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
-	cap_phone_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
-	kobject_t *phone_obj = (kobject_t *) answer->priv;
+	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(*olddata);
+	kobject_t *pobj = (kobject_t *) answer->priv;
 
-	if (CAP_HANDLE_VALID(phone_handle)) {
-		kobject_put(phone_obj);
-		cap_free(TASK, phone_handle);
+	if (CAP_HANDLE_VALID(phandle)) {
+		kobject_put(pobj);
+		cap_free(TASK, phandle);
 	}
 
 	return EOK;
@@ -65,13 +70,13 @@ static errno_t answer_cleanup(call_t *answer, ipc_data_t *olddata)
 
 static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	cap_phone_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
-	kobject_t *phone_obj = (kobject_t *) answer->priv;
+	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(*olddata);
+	kobject_t *pobj = (kobject_t *) answer->priv;
 
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/* The connection was not accepted */
 		answer_cleanup(answer, olddata);
-	} else if (CAP_HANDLE_VALID(phone_handle)) {
+	} else if (CAP_HANDLE_VALID(phandle)) {
 		/*
 		 * The connection was accepted
 		 */
@@ -80,15 +85,12 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		 * We need to create another reference as the one we have now
 		 * will be consumed by ipc_phone_connect().
 		 */
-		kobject_add_ref(phone_obj);
+		kobject_add_ref(pobj);
 
-		if (ipc_phone_connect(phone_obj->phone,
+		if (ipc_phone_connect(pobj->phone,
 		    &answer->sender->answerbox)) {
 			/* Pass the reference to the capability */
-			cap_publish(TASK, phone_handle, phone_obj);
-			/* Set 'phone hash' as ARG5 of response */
-			IPC_SET_ARG5(answer->data,
-			    (sysarg_t) phone_obj->phone);
+			cap_publish(TASK, phandle, pobj);
 		} else {
 			/* The answerbox is shutting down. */
 			IPC_SET_RETVAL(answer->data, ENOENT);

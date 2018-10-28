@@ -35,6 +35,9 @@
 #ifndef ABI_IPC_IPC_H_
 #define ABI_IPC_IPC_H_
 
+#include <abi/proc/task.h>
+#include <abi/cap.h>
+
 /** Length of data being transferred with IPC call
  *
  * The uspace may not be able to utilize the full length
@@ -106,6 +109,23 @@
 
 /** User-defined IPC methods */
 #define IPC_FIRST_USER_METHOD  1024
+
+typedef struct {
+	sysarg_t args[IPC_CALL_LEN];
+	/**
+	 * Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME,
+	 * or the task which answered the call.
+	 */
+	task_id_t task_id;
+	/** Flags */
+	unsigned flags;
+	/** User-defined label associated with requests */
+	sysarg_t request_label;
+	/** User-defined label associated with answers */
+	sysarg_t answer_label;
+	/** Capability handle */
+	cap_call_handle_t cap_handle;
+} ipc_data_t;
 
 #endif
 

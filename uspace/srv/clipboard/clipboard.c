@@ -154,7 +154,7 @@ static void clip_content(ipc_call_t *req)
 static void clip_connection(ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 
 	while (true) {
 		ipc_call_t call;

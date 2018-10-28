@@ -55,7 +55,7 @@
 
 static void vfs_pager(ipc_call_t *icall, void *arg)
 {
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 
 	while (true) {
 		ipc_call_t call;
@@ -82,7 +82,7 @@ static void notification_handler(ipc_call_t *call, void *arg)
 	if (IPC_GET_ARG1(*call) == VFS_PASS_HANDLE)
 		vfs_op_pass_handle(
 		    (task_id_t) MERGE_LOUP32(IPC_GET_ARG4(*call),
-		    IPC_GET_ARG5(*call)), call->in_task_id,
+		    IPC_GET_ARG5(*call)), call->task_id,
 		    (int) IPC_GET_ARG2(*call));
 }
 

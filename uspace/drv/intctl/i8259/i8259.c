@@ -100,7 +100,7 @@ static void i8259_connection(ipc_call_t *icall, void *arg)
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 
 	i8259 = (i8259_t *) ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *) arg));
 

@@ -201,7 +201,7 @@ void __async_client_init(void)
  */
 void async_reply_received(ipc_call_t *data)
 {
-	amsg_t *msg = data->label;
+	amsg_t *msg = (amsg_t *) data->answer_label;
 	if (!msg)
 		return;
 

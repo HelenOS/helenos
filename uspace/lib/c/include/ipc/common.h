@@ -35,21 +35,12 @@
 #ifndef LIBC_IPC_COMMON_H_
 #define LIBC_IPC_COMMON_H_
 
-#include <abi/ipc/ipc.h>
-#include <abi/proc/task.h>
-#include <abi/cap.h>
 #include <types/common.h>
+#include <abi/ipc/ipc.h>
 
 #define IPC_FLAG_BLOCKING  0x01
 
-typedef struct {
-	sysarg_t args[IPC_CALL_LEN];
-	task_id_t in_task_id;
-	sysarg_t in_phone_hash;
-	unsigned int flags;
-	void *label;
-	cap_call_handle_t cap_handle;
-} ipc_call_t;
+typedef ipc_data_t ipc_call_t;
 
 #endif
 

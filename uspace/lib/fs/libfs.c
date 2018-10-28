@@ -282,7 +282,7 @@ static void vfs_connection(ipc_call_t *icall, void *arg)
 		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
 		 * created by IPC_M_CONNECT_TO_ME.
 		 */
-		async_answer_0(icall, EOK);
+		async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 	}
 
 	while (true) {

@@ -331,6 +331,8 @@ extern errno_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *, sysarg_t *);
 
+extern sysarg_t async_get_label(void);
+
 extern async_sess_t *async_connect_me_to(async_exch_t *, iface_t, sysarg_t,
     sysarg_t);
 extern async_sess_t *async_connect_me_to_blocking(async_exch_t *, iface_t,

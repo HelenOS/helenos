@@ -70,6 +70,7 @@ enum {
 	 *            arg2 .. <custom>
 	 *            arg3 .. <custom>
 	 *            arg4 .. <unused>
+	 *            arg5 .. sender-assigned label
 	 *  - kernel: arg5 .. new recipient's connection phone capability
 	 *
 	 * recipient:
@@ -77,7 +78,7 @@ enum {
 	 *            arg2 .. <unused>
 	 *            arg3 .. <unused>
 	 *            arg4 .. <unused>
-	 *  - kernel: arg5 .. new recipient's connection phone hash
+	 *            arg5 .. <unused>
 	 *
 	 */
 	IPC_M_CONNECT_TO_ME,
@@ -94,13 +95,14 @@ enum {
 	 *            arg2 .. <custom>
 	 *            arg3 .. <custom>
 	 *            arg4 .. flags (e.g. IPC_FLAG_BLOCKING)
-	 *  - kernel: arg5 .. new sender's connection phone hash
+	 *            arg5 .. unused
 	 *
 	 * Recipient:
 	 *  - uspace: arg1 .. <unused>
 	 *            arg2 .. <unused>
 	 *            arg3 .. <unused>
 	 *            arg4 .. <unused>
+	 *            arg5 .. recipient-assigned label
 	 *  - kernel: arg5 .. new sender's connection phone capability
 	 *
 	 */

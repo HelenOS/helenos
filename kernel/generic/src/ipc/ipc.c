@@ -204,6 +204,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
 	atomic_store(&phone->active_calls, 0);
+	phone->label = 0;
 	phone->kobject = NULL;
 }
 
@@ -370,7 +371,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
 		spinlock_unlock(&caller->active_calls_lock);
 	}
 
-	call->data.phone = phone;
+	call->data.request_label = phone->label;
 	call->data.task_id = caller->taskid;
 }
 
@@ -519,7 +520,7 @@ errno_t ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
 	irq_spinlock_unlock(&oldbox->lock, true);
 
 	if (mode & IPC_FF_ROUTE_FROM_ME) {
-		call->data.phone = newphone;
+		call->data.request_label = newphone->label;
 		call->data.task_id = TASK->taskid;
 	}
 
@@ -669,6 +670,7 @@ restart_phones:
 
 		list_remove(&phone->link);
 		phone->state = IPC_PHONE_SLAMMED;
+		phone->label = 0;
 
 		if (notify_box) {
 			task_hold(phone->caller);

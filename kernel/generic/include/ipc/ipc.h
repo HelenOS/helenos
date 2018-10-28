@@ -68,6 +68,8 @@ typedef struct phone {
 	struct answerbox *callee;
 	ipc_phone_state_t state;
 	atomic_t active_calls;
+	/** User-defined label */
+	sysarg_t label;
 	kobject_t *kobject;
 } phone_t;
 
@@ -100,23 +102,6 @@ typedef struct answerbox {
 	/** Notifications from IRQ handlers. */
 	list_t irq_notifs;
 } answerbox_t;
-
-typedef struct {
-	sysarg_t args[IPC_CALL_LEN];
-	/**
-	 * Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME,
-	 * or the task which answered the call.
-	 */
-	task_id_t task_id;
-	/** Phone which made or last masqueraded this call. */
-	phone_t *phone;
-	/** Flags */
-	unsigned flags;
-	/** User-defined label */
-	sysarg_t label;
-	/** Capability handle */
-	cap_call_handle_t cap_handle;
-} ipc_data_t;
 
 typedef struct call {
 	kobject_t *kobject;

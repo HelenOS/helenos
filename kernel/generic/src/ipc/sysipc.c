@@ -201,6 +201,7 @@ errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			/* Drop callee->connected_phones reference */
 			kobject_put(phone->kobject);
 			phone->state = IPC_PHONE_SLAMMED;
+			phone->label = 0;
 			irq_spinlock_unlock(&phone->callee->lock, true);
 		}
 		mutex_unlock(&phone->lock);
@@ -385,7 +386,7 @@ sys_errno_t sys_ipc_call_async_fast(cap_phone_handle_t handle, sysarg_t imethod,
 	IPC_SET_ARG5(call->data, 0);
 
 	/* Set the user-defined label */
-	call->data.label = label;
+	call->data.answer_label = label;
 
 	errno_t res = request_preprocess(call, kobj->phone);
 
@@ -429,7 +430,7 @@ sys_errno_t sys_ipc_call_async_slow(cap_phone_handle_t handle, ipc_data_t *data,
 	}
 
 	/* Set the user-defined label */
-	call->data.label = label;
+	call->data.answer_label = label;
 
 	errno_t res = request_preprocess(call, kobj->phone);
 
@@ -503,9 +504,13 @@ static sys_errno_t sys_ipc_forward_common(cap_call_handle_t chandle,
 	 */
 	if (!method_is_immutable(IPC_GET_IMETHOD(call->data))) {
 		if (method_is_system(IPC_GET_IMETHOD(call->data))) {
-			if (IPC_GET_IMETHOD(call->data) == IPC_M_CONNECT_TO_ME)
-				phone_dealloc((cap_phone_handle_t)
-				    IPC_GET_ARG5(call->data));
+			if (IPC_GET_IMETHOD(call->data) ==
+			    IPC_M_CONNECT_TO_ME) {
+				kobject_put((kobject_t *) call->priv);
+				call->priv = 0;
+				cap_free(TASK,
+				    (cap_handle_t) IPC_GET_ARG5(call->data));
+			}
 
 			IPC_SET_ARG1(call->data, imethod);
 			IPC_SET_ARG2(call->data, arg1);
@@ -770,8 +775,8 @@ restart:
 
 	call->data.flags = call->flags;
 	if (call->flags & IPC_CALL_NOTIF) {
-		/* Set in_phone_hash to the interrupt counter */
-		call->data.phone = (void *) call->priv;
+		/* Set the request_label to the interrupt counter */
+		call->data.request_label = (sysarg_t) call->priv;
 
 		call->data.cap_handle = CAP_NIL;
 

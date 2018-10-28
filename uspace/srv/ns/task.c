@@ -90,30 +90,30 @@ static hash_table_t task_hash_table;
 
 typedef struct {
 	ht_link_t link;
-	sysarg_t in_phone_hash;  /**< Incoming phone hash. */
-	task_id_t id;            /**< Task ID. */
+	sysarg_t label;  /**< Incoming phone label. */
+	task_id_t id;    /**< Task ID. */
 } p2i_entry_t;
 
-/* phone-to-id hash table operations */
+/* label-to-id hash table operations */
 
 static size_t p2i_key_hash(void *key)
 {
-	sysarg_t in_phone_hash = *(sysarg_t *)key;
-	return in_phone_hash;
+	sysarg_t label = *(sysarg_t *)key;
+	return label;
 }
 
 static size_t p2i_hash(const ht_link_t *item)
 {
 	p2i_entry_t *entry = hash_table_get_inst(item, p2i_entry_t, link);
-	return entry->in_phone_hash;
+	return entry->label;
 }
 
 static bool p2i_key_equal(void *key, const ht_link_t *item)
 {
-	sysarg_t in_phone_hash = *(sysarg_t *)key;
+	sysarg_t label = *(sysarg_t *)key;
 	p2i_entry_t *entry = hash_table_get_inst(item, p2i_entry_t, link);
 
-	return (in_phone_hash == entry->in_phone_hash);
+	return (label == entry->label);
 }
 
 /** Perform actions after removal of item from the hash table.
@@ -136,7 +136,7 @@ static hash_table_ops_t p2i_ops = {
 	.remove_callback = p2i_remove
 };
 
-/** Map phone hash to task ID */
+/** Map phone label to task ID */
 static hash_table_t phone_to_id;
 
 /** Pending task wait structure. */
@@ -226,7 +226,7 @@ errno_t ns_task_id_intro(ipc_call_t *call)
 {
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 
-	ht_link_t *link = hash_table_find(&phone_to_id, &call->in_phone_hash);
+	ht_link_t *link = hash_table_find(&phone_to_id, &call->request_label);
 	if (link != NULL)
 		return EEXIST;
 
@@ -244,7 +244,8 @@ errno_t ns_task_id_intro(ipc_call_t *call)
 	 * Insert into the phone-to-id map.
 	 */
 
-	entry->in_phone_hash = call->in_phone_hash;
+	assert(call->request_label);
+	entry->label = call->request_label;
 	entry->id = id;
 	hash_table_insert(&phone_to_id, &entry->link);
 
@@ -261,9 +262,10 @@ errno_t ns_task_id_intro(ipc_call_t *call)
 	return EOK;
 }
 
-static errno_t get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
+static errno_t get_id_by_phone(sysarg_t label, task_id_t *id)
 {
-	ht_link_t *link = hash_table_find(&phone_to_id, &phone_hash);
+	assert(label);
+	ht_link_t *link = hash_table_find(&phone_to_id, &label);
 	if (link == NULL)
 		return ENOENT;
 
@@ -275,7 +277,7 @@ static errno_t get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
 
 errno_t ns_task_retval(ipc_call_t *call)
 {
-	task_id_t id = call->in_task_id;
+	task_id_t id = call->task_id;
 
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?
@@ -296,12 +298,12 @@ errno_t ns_task_retval(ipc_call_t *call)
 errno_t ns_task_disconnect(ipc_call_t *call)
 {
 	task_id_t id;
-	errno_t rc = get_id_by_phone(call->in_phone_hash, &id);
+	errno_t rc = get_id_by_phone(call->request_label, &id);
 	if (rc != EOK)
 		return rc;
 
 	/* Delete from phone-to-id map. */
-	hash_table_remove(&phone_to_id, &call->in_phone_hash);
+	hash_table_remove(&phone_to_id, &call->request_label);
 
 	/* Mark task as finished. */
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);

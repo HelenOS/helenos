@@ -143,9 +143,6 @@ typedef struct {
 	/** Incoming client task ID. */
 	task_id_t in_task_id;
 
-	/** Incoming phone hash. */
-	sysarg_t in_phone_hash;
-
 	/** Link to the client tracking structure. */
 	client_t *client;
 
@@ -233,9 +230,6 @@ static long notification_freelist_used = 0;
 
 static sysarg_t notification_avail = 0;
 
-static FIBRIL_RMUTEX_INITIALIZE(conn_mutex);
-static hash_table_t conn_hash_table;
-
 static size_t client_key_hash(void *key)
 {
 	task_id_t in_task_id = *(task_id_t *) key;
@@ -260,60 +254,6 @@ static hash_table_ops_t client_hash_table_ops = {
 	.hash = client_hash,
 	.key_hash = client_key_hash,
 	.key_equal = client_key_equal,
-	.equal = NULL,
-	.remove_callback = NULL
-};
-
-typedef struct {
-	task_id_t task_id;
-	sysarg_t phone_hash;
-} conn_key_t;
-
-/** Compute hash into the connection hash table
- *
- * The hash is based on the source task ID and the source phone hash. The task
- * ID is included in the hash because a phone hash alone might not be unique
- * while we still track connections for killed tasks due to kernel's recycling
- * of phone structures.
- *
- * @param key Pointer to the connection key structure.
- *
- * @return Index into the connection hash table.
- *
- */
-static size_t conn_key_hash(void *key)
-{
-	conn_key_t *ck = (conn_key_t *) key;
-
-	size_t hash = 0;
-	hash = hash_combine(hash, LOWER32(ck->task_id));
-	hash = hash_combine(hash, UPPER32(ck->task_id));
-	hash = hash_combine(hash, ck->phone_hash);
-	return hash;
-}
-
-static size_t conn_hash(const ht_link_t *item)
-{
-	connection_t *conn = hash_table_get_inst(item, connection_t, link);
-	return conn_key_hash(&(conn_key_t){
-		.task_id = conn->in_task_id,
-		.phone_hash = conn->in_phone_hash
-	});
-}
-
-static bool conn_key_equal(void *key, const ht_link_t *item)
-{
-	conn_key_t *ck = (conn_key_t *) key;
-	connection_t *conn = hash_table_get_inst(item, connection_t, link);
-	return ((ck->task_id == conn->in_task_id) &&
-	    (ck->phone_hash == conn->in_phone_hash));
-}
-
-/** Operations for the connection hash table. */
-static hash_table_ops_t conn_hash_table_ops = {
-	.hash = conn_hash,
-	.key_hash = conn_key_hash,
-	.key_equal = conn_key_equal,
 	.equal = NULL,
 	.remove_callback = NULL
 };
@@ -385,6 +325,8 @@ static errno_t connection_fibril(void *arg)
 	 */
 	fibril_connection = (connection_t *) arg;
 
+	mpsc_t *c = fibril_connection->msg_channel;
+
 	/*
 	 * Add our reference for the current connection in the client task
 	 * tracking structure. If this is the first reference, create and
@@ -394,7 +336,7 @@ static errno_t connection_fibril(void *arg)
 	client_t *client = async_client_get(fibril_connection->in_task_id, true);
 	if (!client) {
 		ipc_answer_0(fibril_connection->call.cap_handle, ENOMEM);
-		return 0;
+		goto out;
 	}
 
 	fibril_connection->client = client;
@@ -410,23 +352,10 @@ static errno_t connection_fibril(void *arg)
 	 */
 	async_client_put(client);
 
-	fibril_rmutex_lock(&conn_mutex);
-
-	/*
-	 * Remove myself from the connection hash table.
-	 */
-	hash_table_remove(&conn_hash_table, &(conn_key_t){
-		.task_id = fibril_connection->in_task_id,
-		.phone_hash = fibril_connection->in_phone_hash
-	});
-
 	/*
 	 * Close the channel, if it isn't closed already.
 	 */
-	mpsc_t *c = fibril_connection->msg_channel;
 	mpsc_close(c);
-
-	fibril_rmutex_unlock(&conn_mutex);
 
 	/*
 	 * Answer all remaining messages with EHANGUP.
@@ -438,9 +367,16 @@ static errno_t connection_fibril(void *arg)
 	/*
 	 * Clean up memory.
 	 */
+out:
 	mpsc_destroy(c);
 	free(fibril_connection);
 	return EOK;
+}
+
+/** Return label usable during replies to IPC_M_CONNECT_ME_TO. */
+sysarg_t async_get_label(void)
+{
+   return (sysarg_t) fibril_connection;
 }
 
 /** Create a new fibril for a new connection.
@@ -449,34 +385,30 @@ static errno_t connection_fibril(void *arg)
  * into the hash table, so that later we can easily do routing of messages to
  * particular fibrils.
  *
- * @param in_task_id     Identification of the incoming connection.
- * @param in_phone_hash  Identification of the incoming connection.
- * @param call           Call data of the opening call. If call is NULL,
- *                       the connection was opened by accepting the
- *                       IPC_M_CONNECT_TO_ME call and this function is
- *                       called directly by the server.
- * @param handler        Connection handler.
- * @param data           Client argument to pass to the connection handler.
+ * @param conn        Pointer to the connection structure. Will be used as the
+ *                    label of the connected phone and request_label of incoming
+ *                    calls routed through that phone.
+ * @param in_task_id  Identification of the incoming connection.
+ * @param call        Call data of the opening call. If call is NULL, the
+ *                    connection was opened by accepting the
+ *                    IPC_M_CONNECT_TO_ME call and this function is called
+ *                    directly by the server.
+ * @param handler     Connection handler.
+ * @param data        Client argument to pass to the connection handler.
  *
  * @return  New fibril id or NULL on failure.
  *
  */
-static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
+static fid_t async_new_connection(connection_t *conn, task_id_t in_task_id,
     ipc_call_t *call, async_port_handler_t handler, void *data)
 {
-	connection_t *conn = malloc(sizeof(*conn));
-	if (!conn) {
-		if (call)
-			ipc_answer_0(call->cap_handle, ENOMEM);
-
-		return (fid_t) NULL;
-	}
-
 	conn->in_task_id = in_task_id;
-	conn->in_phone_hash = in_phone_hash;
 	conn->msg_channel = mpsc_create(sizeof(ipc_call_t));
 	conn->handler = handler;
 	conn->data = data;
+
+	if (!conn->msg_channel)
+		goto error;
 
 	if (call)
 		conn->call = *call;
@@ -486,25 +418,22 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 	/* We will activate the fibril ASAP */
 	conn->fid = fibril_create(connection_fibril, conn);
 
-	if (conn->fid == 0) {
-		mpsc_destroy(conn->msg_channel);
-		free(conn);
-
-		if (call)
-			ipc_answer_0(call->cap_handle, ENOMEM);
-
-		return (fid_t) NULL;
-	}
-
-	/* Add connection to the connection hash table */
-
-	fibril_rmutex_lock(&conn_mutex);
-	hash_table_insert(&conn_hash_table, &conn->link);
-	fibril_rmutex_unlock(&conn_mutex);
+	if (conn->fid == 0)
+		goto error;
 
 	fibril_start(conn->fid);
 
 	return conn->fid;
+
+error:
+	if (conn->msg_channel)
+		mpsc_destroy(conn->msg_channel);
+	free(conn);
+
+	if (call)
+		ipc_answer_0(call->cap_handle, ENOMEM);
+
+	return (fid_t) NULL;
 }
 
 /** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
@@ -531,22 +460,29 @@ errno_t async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t a
 	if (exch == NULL)
 		return ENOENT;
 
+	connection_t *conn = calloc(1, sizeof(*conn));
+	if (!conn)
+		return ENOMEM;
+
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, iface, arg1, arg2,
-	    &answer);
+	aid_t req = async_send_5(exch, IPC_M_CONNECT_TO_ME, iface, arg1, arg2,
+	    0, (sysarg_t) conn, &answer);
 
 	errno_t rc;
 	async_wait_for(req, &rc);
-	if (rc != EOK)
+	if (rc != EOK) {
+		free(conn);
 		return rc;
+	}
 
 	rc = async_create_port_internal(iface, handler, data, port_id);
-	if (rc != EOK)
+	if (rc != EOK) {
+		free(conn);
 		return rc;
+	}
 
-	sysarg_t phone_hash = IPC_GET_ARG5(answer);
-	fid_t fid = async_new_connection(answer.in_task_id, phone_hash,
-	    NULL, handler, data);
+	fid_t fid = async_new_connection(conn, answer.task_id, NULL, handler,
+	    data);
 	if (fid == (fid_t) NULL)
 		return ENOMEM;
 
@@ -600,18 +536,12 @@ static errno_t route_call(ipc_call_t *call)
 {
 	assert(call);
 
-	fibril_rmutex_lock(&conn_mutex);
+	connection_t *conn = (connection_t *) call->request_label;
 
-	ht_link_t *link = hash_table_find(&conn_hash_table, &(conn_key_t){
-		.task_id = call->in_task_id,
-		.phone_hash = call->in_phone_hash
-	});
-	if (!link) {
-		fibril_rmutex_unlock(&conn_mutex);
+	if (!conn)
 		return ENOENT;
-	}
 
-	connection_t *conn = hash_table_get_inst(link, connection_t, link);
+	assert(conn->msg_channel);
 
 	errno_t rc = mpsc_send(conn->msg_channel, call);
 
@@ -624,7 +554,6 @@ static errno_t route_call(ipc_call_t *call)
 		//        handling of CPU exceptions.
 	}
 
-	fibril_rmutex_unlock(&conn_mutex);
 	return rc;
 }
 
@@ -1008,20 +937,24 @@ static void handle_call(ipc_call_t *call)
 
 	/* New connection */
 	if (IPC_GET_IMETHOD(*call) == IPC_M_CONNECT_ME_TO) {
+		connection_t *conn = calloc(1, sizeof(*conn));
+		if (!conn) {
+			ipc_answer_0(call->cap_handle, ENOMEM);
+			return;
+		}
+
 		iface_t iface = (iface_t) IPC_GET_ARG1(*call);
-		sysarg_t in_phone_hash = IPC_GET_ARG5(*call);
 
 		// TODO: Currently ignores all ports but the first one.
 		void *data;
 		async_port_handler_t handler =
 		    async_get_port_handler(iface, 0, &data);
 
-		async_new_connection(call->in_task_id, in_phone_hash, call,
-		    handler, data);
+		async_new_connection(conn, call->task_id, call, handler, data);
 		return;
 	}
 
-	/* Try to route the call through the connection hash table */
+	/* Route the call according to its request label */
 	errno_t rc = route_call(call);
 	if (rc == EOK)
 		return;
@@ -1080,9 +1013,6 @@ fid_t async_create_manager(void)
 void __async_server_init(void)
 {
 	if (!hash_table_create(&client_hash_table, 0, 0, &client_hash_table_ops))
-		abort();
-
-	if (!hash_table_create(&conn_hash_table, 0, 0, &conn_hash_table_ops))
 		abort();
 
 	if (!hash_table_create(&notification_hash_table, 0, 0,
@@ -1170,16 +1100,11 @@ errno_t async_connect_to_me(async_exch_t *exch, iface_t iface, sysarg_t arg2,
 	if (exch == NULL)
 		return ENOENT;
 
-	ipc_call_t answer;
-	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, iface, arg2, arg3,
-	    &answer);
+	sysarg_t label = 0;
+	errno_t rc = async_req_5_0(exch, IPC_M_CONNECT_TO_ME, iface, arg2, arg3,
+	    0, label);
 
-	errno_t rc;
-	async_wait_for(req, &rc);
-	if (rc != EOK)
-		return (errno_t) rc;
-
-	return EOK;
+	return rc;
 }
 
 /** Wrapper for receiving the IPC_M_SHARE_IN calls using the async framework.

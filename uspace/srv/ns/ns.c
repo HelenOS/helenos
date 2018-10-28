@@ -69,7 +69,7 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 
 	while (true) {
 		ns_pending_conn_process();
