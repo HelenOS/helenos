@@ -622,6 +622,7 @@ static errno_t route_call(ipc_call_t *call)
 		//        hungup message here and just close the channel without
 		//        passing it out. Unfortunatelly, somehow that breaks
 		//        handling of CPU exceptions.
+		async_answer_0(call, EOK);
 	}
 
 	fibril_rmutex_unlock(&conn_mutex);
