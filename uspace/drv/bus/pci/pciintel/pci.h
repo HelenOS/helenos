@@ -89,7 +89,7 @@ extern void pci_fun_init(pci_fun_t *, int, int, int);
 extern void pci_fun_delete(pci_fun_t *);
 extern char *pci_fun_create_name(pci_fun_t *);
 
-extern void pci_bus_scan(pci_bus_t *, int);
+extern errno_t pci_bus_scan(pci_bus_t *, int);
 
 extern bool pci_alloc_resource_list(pci_fun_t *);
 extern void pci_clean_resource_list(pci_fun_t *);

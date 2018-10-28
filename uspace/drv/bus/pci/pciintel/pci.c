@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -595,8 +595,11 @@ void pci_read_interrupt(pci_fun_t *fun)
  *
  * @param bus		Host-to-PCI bridge
  * @param bus_num	Bus number
+ *
+ * @return EOK on success, ENOENT if no PCI devices found, ENOMEM if out of
+ *         memory, EIO on other I/O error
  */
-void pci_bus_scan(pci_bus_t *bus, int bus_num)
+errno_t pci_bus_scan(pci_bus_t *bus, int bus_num)
 {
 	pci_fun_t *fun;
 	errno_t rc;
@@ -605,6 +608,9 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 	int dnum, fnum;
 	bool multi;
 	uint8_t header_type;
+	bool device_found;
+
+	device_found = false;
 
 	for (dnum = 0; dnum < 32; dnum++) {
 		multi = true;
@@ -624,6 +630,8 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 					continue;
 			}
 
+			device_found = true;
+
 			header_type = pci_conf_read_8(fun, PCI_HEADER_TYPE);
 			if (fnum == 0) {
 				/* Is the device multifunction? */
@@ -636,7 +644,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			if (fun_name == NULL) {
 				ddf_msg(LVL_ERROR, "Out of memory.");
 				pci_fun_delete(fun);
-				return;
+				return ENOMEM;
 			}
 
 			rc = ddf_fun_set_name(fun->fnode, fun_name);
@@ -644,7 +652,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			if (rc != EOK) {
 				ddf_msg(LVL_ERROR, "Failed setting function name.");
 				pci_fun_delete(fun);
-				return;
+				return EIO;
 			}
 
 			pci_alloc_resource_list(fun);
@@ -661,12 +669,6 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 
 			pci_fun_create_match_ids(fun);
 
-			if (ddf_fun_bind(fun->fnode) != EOK) {
-				pci_clean_resource_list(fun);
-				pci_fun_delete(fun);
-				continue;
-			}
-
 			if (header_type == PCI_HEADER_TYPE_BRIDGE ||
 			    header_type == PCI_HEADER_TYPE_CARDBUS) {
 				child_bus = pci_conf_read_8(fun,
@@ -674,11 +676,28 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 				ddf_msg(LVL_DEBUG, "Device is pci-to-pci "
 				    "bridge, secondary bus number = %d.",
 				    bus_num);
-				if (child_bus > bus_num)
-					pci_bus_scan(bus, child_bus);
+				if (child_bus > bus_num) {
+					rc = pci_bus_scan(bus, child_bus);
+					if (rc != EOK) {
+						pci_fun_delete(fun);
+						return rc;
+					}
+				}
+			}
+
+			if (ddf_fun_bind(fun->fnode) != EOK) {
+				pci_clean_resource_list(fun);
+				pci_fun_delete(fun);
+				continue;
 			}
 		}
 	}
+
+	/* Fail bus scan if no devices are found. */
+	if (!device_found)
+		return ENOENT;
+
+	return EOK;
 }
 
 static errno_t pci_dev_add(ddf_dev_t *dnode)
@@ -782,15 +801,19 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 		goto fail;
 	}
 
+	/* Enumerate functions. */
+	ddf_msg(LVL_DEBUG, "Enumerating the bus");
+	rc = pci_bus_scan(bus, 0);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Bus enumeration failed.");
+		goto fail;
+	}
+
 	rc = ddf_fun_bind(ctl);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding control function.");
 		goto fail;
 	}
-
-	/* Enumerate functions. */
-	ddf_msg(LVL_DEBUG, "Scanning the bus");
-	pci_bus_scan(bus, 0);
 
 	hw_res_clean_resource_list(&hw_resources);
 
