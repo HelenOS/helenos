@@ -45,56 +45,60 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 	 * Create the new phone and capability, but don't publish them yet.
 	 * That will be done once the phone is connected.
 	 */
-	cap_phone_handle_t phone_handle;
-	kobject_t *phone_obj;
-	errno_t rc = phone_alloc(TASK, false, &phone_handle, &phone_obj);
+	cap_phone_handle_t phandle;
+	kobject_t *pobj;
+	errno_t rc = phone_alloc(TASK, false, &phandle, &pobj);
 	if (rc != EOK) {
-		call->priv = -1;
+		call->priv = 0;
 		return rc;
 	}
 
-	/* Hand over phone_obj's reference to ARG5 */
-	IPC_SET_ARG5(call->data, (sysarg_t) phone_obj->phone);
+	/* Move pobj's reference to call->priv */
+	call->priv = (sysarg_t) pobj;
+	pobj = NULL;
 
 	/* Remember the handle */
-	call->priv = CAP_HANDLE_RAW(phone_handle);
+	IPC_SET_ARG5(call->data, (sysarg_t) phandle);
 
 	return EOK;
 }
 
 static errno_t request_forget(call_t *call)
 {
-	cap_phone_handle_t phone_handle = (cap_handle_t) call->priv;
+	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(call->data);
 
-	if (CAP_HANDLE_RAW(phone_handle) < 0)
+	if (CAP_HANDLE_RAW(phandle) < 0)
 		return EOK;
 
-	/* Hand over reference from ARG5 to phone->kobject */
-	phone_t *phone = (phone_t *) IPC_GET_ARG5(call->data);
-	/* Drop phone->kobject's reference */
-	kobject_put(phone->kobject);
-	cap_free(TASK, phone_handle);
+	/* Move reference from call->priv to pobj */
+	kobject_t *pobj = (kobject_t *) call->priv;
+	call->priv = 0;
+	/* Drop pobj's reference */
+	kobject_put(pobj);
+	cap_free(TASK, phandle);
 
 	return EOK;
 }
 
 static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	/* Hand over reference from ARG5 to phone */
-	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
+	/* Get an extra reference for phone */
+	kobject_t *pobj = (kobject_t *) answer->priv;
+	kobject_add_ref(pobj);
 
-	/*
-	 * Get an extra reference and pass it in the answer data.
-	 */
-	kobject_add_ref(phone->kobject);
-	IPC_SET_ARG5(answer->data, (sysarg_t) phone);
+	/* Set the recipient-assigned label */
+	pobj->phone->label = IPC_GET_ARG5(answer->data);
+
+	/* Restore phone handle in answer's ARG5 */
+	IPC_SET_ARG5(answer->data, IPC_GET_ARG5(*olddata));
 
 	/* If the user accepted the call, connect */
 	if (IPC_GET_RETVAL(answer->data) == EOK) {
-		/* Hand over reference from phone to the answerbox */
-		(void) ipc_phone_connect(phone, &TASK->answerbox);
+		/* Hand over reference from pobj to the answerbox */
+		(void) ipc_phone_connect(pobj->phone, &TASK->answerbox);
 	} else {
-		kobject_put(phone->kobject);
+		/* Drop the extra reference */
+		kobject_put(pobj);
 	}
 
 	return EOK;
@@ -102,17 +106,19 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 static errno_t answer_process(call_t *answer)
 {
-	cap_phone_handle_t phone_handle = (cap_handle_t) answer->priv;
-	phone_t *phone = (phone_t *) IPC_GET_ARG5(answer->data);
+	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(answer->data);
+	/* Move the reference from answer->priv to pobj */
+	kobject_t *pobj = (kobject_t *) answer->priv;
+	answer->priv = 0;
 
 	if (IPC_GET_RETVAL(answer->data)) {
-		if (CAP_HANDLE_RAW(phone_handle) >= 0) {
+		if (CAP_HANDLE_RAW(phandle) >= 0) {
 			/*
 			 * Cleanup the unpublished capability and drop
 			 * phone->kobject's reference.
 			 */
-			kobject_put(phone->kobject);
-			cap_free(TASK, phone_handle);
+			kobject_put(pobj);
+			cap_free(TASK, phandle);
 		}
 	} else {
 		/*
@@ -120,9 +126,7 @@ static errno_t answer_process(call_t *answer)
 		 * is important for ipc_cleanup() where we want to have a
 		 * capability for each phone that wasn't hung up by the user.
 		 */
-		cap_publish(TASK, phone_handle, phone->kobject);
-
-		IPC_SET_ARG5(answer->data, CAP_HANDLE_RAW(phone_handle));
+		cap_publish(TASK, phandle, pobj);
 	}
 
 	return EOK;

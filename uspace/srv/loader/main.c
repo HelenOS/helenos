@@ -365,7 +365,7 @@ static void ldr_connection(ipc_call_t *icall, void *arg)
 	connected = true;
 
 	/* Accept the connection */
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 
 	/* Ignore parameters, the connection is already open */
 	(void) icall;

@@ -268,7 +268,7 @@ static void device_event_callback(ipc_call_t *icall, void *arg)
 	errno_t ret;
 
 	/* Answer initial request */
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 	audio_device_t *dev = arg;
 	assert(dev);
 	while (true) {

@@ -93,7 +93,7 @@ static void record_initialize(record_t *rec, audio_pcm_sess_t *sess)
  */
 static void device_event_callback(ipc_call_t *icall, void *arg)
 {
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 	record_t *rec = arg;
 	const size_t buffer_part = rec->buffer.size / BUFFER_PARTS;
 	bool record = true;

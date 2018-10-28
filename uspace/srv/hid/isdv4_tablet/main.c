@@ -64,7 +64,7 @@ static errno_t read_fibril(void *unused)
 
 static void mouse_connection(ipc_call_t *icall, void *arg)
 {
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 
 	async_sess_t *sess =
 	    async_callback_receive(EXCHANGE_SERIALIZE);

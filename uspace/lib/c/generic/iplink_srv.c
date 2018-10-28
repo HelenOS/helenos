@@ -237,7 +237,7 @@ errno_t iplink_conn(ipc_call_t *icall, void *arg)
 	fibril_mutex_unlock(&srv->lock);
 
 	/* Accept the connection */
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL)

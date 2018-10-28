@@ -389,7 +389,7 @@ static void inet_default_conn(ipc_call_t *icall, void *arg)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_default_conn()");
 
 	/* Accept the connection */
-	async_answer_0(icall, EOK);
+	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
 
 	inet_client_init(&client);
 
