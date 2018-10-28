@@ -172,7 +172,7 @@ static void input_cb_conn(ipc_call_t *icall, void *arg)
 		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
-			/* TODO: Handle hangup */
+			async_answer_0(&call, EOK);
 			return;
 		}
 

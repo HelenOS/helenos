@@ -289,8 +289,10 @@ static void vfs_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call))
+		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(&call, EOK);
 			return;
+		}
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_OUT_FSPROBE:

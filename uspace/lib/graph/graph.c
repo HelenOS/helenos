@@ -516,7 +516,7 @@ void graph_visualizer_connection(visualizer_t *vs, ipc_call_t *icall, void *arg)
 		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
-			async_answer_0(&call, EINVAL);
+			async_answer_0(&call, EOK);
 			break;
 		}
 
@@ -576,7 +576,7 @@ void graph_renderer_connection(renderer_t *rnd, ipc_call_t *icall, void *arg)
 		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
-			async_answer_0(&call, EINVAL);
+			async_answer_0(&call, EOK);
 			break;
 		}
 

@@ -141,7 +141,7 @@ static void adb_kbd_events(ipc_call_t *icall, void *arg)
 		errno_t retval = EOK;
 
 		if (!IPC_GET_IMETHOD(call)) {
-			/* TODO: Handle hangup */
+			async_answer_0(&call, EOK);
 			return;
 		}
 

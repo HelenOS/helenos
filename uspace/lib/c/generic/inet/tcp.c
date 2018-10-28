@@ -824,6 +824,7 @@ static void tcp_cb_conn(ipc_call_t *icall, void *arg)
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* Hangup*/
+			async_answer_0(&call, EOK);
 			goto out;
 		}
 

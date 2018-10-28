@@ -80,8 +80,10 @@ static void mouse_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call))
+		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(&call, EOK);
 			break;
+		}
 
 		async_answer_0(&call, ENOTSUP);
 	}

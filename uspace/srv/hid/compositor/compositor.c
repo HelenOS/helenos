@@ -1026,6 +1026,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 			async_get_call(&call);
 
 			if (!IPC_GET_IMETHOD(call)) {
+				async_answer_0(&call, EOK);
 				comp_window_close(win, &call);
 				window_destroy(win);
 				return;

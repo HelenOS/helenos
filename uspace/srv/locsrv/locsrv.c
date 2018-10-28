@@ -1412,8 +1412,10 @@ static void loc_connection_supplier(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call))
+		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(&call, EOK);
 			break;
+		}
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOC_SERVER_UNREGISTER:
@@ -1466,8 +1468,10 @@ static void loc_connection_consumer(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call))
+		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(&call, EOK);
 			break;
+		}
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOC_SERVICE_GET_ID:

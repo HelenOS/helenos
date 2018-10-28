@@ -160,6 +160,7 @@ static void kbdev_callback_conn(ipc_call_t *icall, void *arg)
 		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(&call, EOK);
 			kbdev_destroy(kbdev);
 			return;
 		}

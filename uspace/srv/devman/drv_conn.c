@@ -599,8 +599,10 @@ void devman_connection_driver(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call))
+		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(&call, EOK);
 			break;
+		}
 
 		if (IPC_GET_IMETHOD(call) != DEVMAN_DRIVER_REGISTER) {
 			fibril_mutex_lock(&client->mutex);

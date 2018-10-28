@@ -108,8 +108,10 @@ void logger_connection_handler_writer(ipc_call_t *icall)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call))
+		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(&call, EOK);
 			break;
+		}
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOGGER_WRITER_CREATE_LOG:
