@@ -376,7 +376,7 @@ out:
 /** Return label usable during replies to IPC_M_CONNECT_ME_TO. */
 sysarg_t async_get_label(void)
 {
-   return (sysarg_t) fibril_connection;
+	return (sysarg_t) fibril_connection;
 }
 
 /** Create a new fibril for a new connection.
