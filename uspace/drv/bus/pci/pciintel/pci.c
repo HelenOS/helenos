@@ -678,7 +678,7 @@ errno_t pci_bus_scan(pci_bus_t *bus, int bus_num)
 				    bus_num);
 				if (child_bus > bus_num) {
 					rc = pci_bus_scan(bus, child_bus);
-					if (rc != EOK) {
+					if (rc != EOK && rc != ENOENT) {
 						pci_fun_delete(fun);
 						return rc;
 					}
