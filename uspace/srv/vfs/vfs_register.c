@@ -110,9 +110,6 @@ static bool vfs_info_sane(vfs_info_t *info)
  */
 void vfs_register(ipc_call_t *req)
 {
-	dprintf("Processing VFS_REGISTER request received from %zx.\n",
-	    req->in_phone_hash);
-
 	vfs_info_t *vfs_info;
 	errno_t rc = async_data_write_accept((void **) &vfs_info, false,
 	    sizeof(vfs_info_t), sizeof(vfs_info_t), 0, NULL);
