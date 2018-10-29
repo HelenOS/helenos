@@ -48,7 +48,7 @@
  * - ARG3: payload modified by a 'top-half' handler (scratch[3])
  * - ARG4: payload modified by a 'top-half' handler (scratch[4])
  * - ARG5: payload modified by a 'top-half' handler (scratch[5])
- * - in_phone_hash: interrupt counter (may be needed to assure correct order
+ * - request_label: interrupt counter (may be needed to assure correct order
  *                  in multithreaded drivers)
  */
 
