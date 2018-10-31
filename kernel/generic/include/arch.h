@@ -39,9 +39,8 @@
 #include <config.h>
 
 /*
- * The context pointer. The current_t structure holds pointers to various parts
- * of the current execution context, like running task, thread, address space,
- * etc.
+ * The current_t structure holds pointers to various parts of the current
+ * execution state, like running task, thread, address space, etc.
  */
 #define CURRENT  ((current_t * )(get_stack_base()))
 
