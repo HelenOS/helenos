@@ -741,7 +741,7 @@ void inet_cfg_conn(ipc_call_t *icall, void *arg)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_cfg_conn()");
 
 	/* Accept the connection */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	while (true) {
 		ipc_call_t call;

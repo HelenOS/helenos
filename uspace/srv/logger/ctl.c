@@ -67,7 +67,7 @@ void logger_connection_handler_control(ipc_call_t *icall)
 	errno_t rc;
 	int fd;
 
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 	logger_log("control: new client.\n");
 
 	while (true) {

@@ -1395,7 +1395,7 @@ static bool loc_init(void)
 static void loc_connection_supplier(ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	/*
 	 * Each connection begins by a LOC_SERVER_REGISTER, which precludes us
@@ -1462,7 +1462,7 @@ static void loc_connection_supplier(ipc_call_t *icall, void *arg)
 static void loc_connection_consumer(ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	while (true) {
 		ipc_call_t call;

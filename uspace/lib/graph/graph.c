@@ -500,7 +500,7 @@ void graph_visualizer_connection(visualizer_t *vs, ipc_call_t *icall, void *arg)
 	}
 
 	/* Accept the connection. */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	/* Establish callback session. */
 	ipc_call_t call;
@@ -568,7 +568,7 @@ void graph_renderer_connection(renderer_t *rnd, ipc_call_t *icall, void *arg)
 	// TODO
 
 	/* Accept the connection. */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	/* Enter command loop. */
 	while (true) {

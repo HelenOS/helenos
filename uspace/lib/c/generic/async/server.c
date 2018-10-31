@@ -1022,6 +1022,12 @@ void __async_server_init(void)
 	async_create_manager();
 }
 
+errno_t async_accept_0(ipc_call_t *call)
+{
+	return ipc_answer_5(call->cap_handle, EOK, 0, 0, 0, 0,
+	    async_get_label());
+}
+
 errno_t async_answer_0(ipc_call_t *call, errno_t retval)
 {
 	return ipc_answer_0(call->cap_handle, retval);

@@ -666,7 +666,7 @@ static void udp_client_conn(ipc_call_t *icall, void *arg)
 	unsigned long n;
 
 	/* Accept the connection */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn()");
 

@@ -493,7 +493,7 @@ static void udp_cb_conn(ipc_call_t *icall, void *arg)
 {
 	udp_t *udp = (udp_t *)arg;
 
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	while (true) {
 		ipc_call_t call;

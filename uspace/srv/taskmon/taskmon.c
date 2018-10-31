@@ -107,7 +107,7 @@ static void corecfg_set_enable_srv(ipc_call_t *icall)
 static void corecfg_client_conn(ipc_call_t *icall, void *arg)
 {
 	/* Accept the connection */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	while (true) {
 		ipc_call_t call;

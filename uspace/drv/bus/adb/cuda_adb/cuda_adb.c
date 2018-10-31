@@ -203,7 +203,7 @@ static void cuda_dev_connection(ipc_call_t *icall, void *arg)
 	sysarg_t method;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	while (true) {
 		async_get_call(&call);
