@@ -40,13 +40,13 @@
 #include <barrier.h>
 
 #define PREEMPTION_INC         (1 << 0)
-#define PREEMPTION_DISABLED    (PREEMPTION_INC <= THE->preemption)
+#define PREEMPTION_DISABLED    (PREEMPTION_INC <= CURRENT->preemption)
 #define PREEMPTION_ENABLED     (!PREEMPTION_DISABLED)
 
 /** Increment preemption disabled counter. */
 #define preemption_disable() \
 	do { \
-		THE->preemption += PREEMPTION_INC; \
+		CURRENT->preemption += PREEMPTION_INC; \
 		compiler_barrier(); \
 	} while (0)
 
@@ -55,7 +55,7 @@
 	do { \
 		assert(PREEMPTION_DISABLED); \
 		compiler_barrier(); \
-		THE->preemption -= PREEMPTION_INC; \
+		CURRENT->preemption -= PREEMPTION_INC; \
 	} while (0)
 
 #endif

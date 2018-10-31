@@ -44,7 +44,7 @@
 #include <adt/list.h>
 #include <arch.h>
 
-#define CPU                  THE->cpu
+#define CPU                  CURRENT->cpu
 
 /** CPU structure.
  *

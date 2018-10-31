@@ -32,10 +32,10 @@
 
 /**
  * @file
- * @brief THE structure functions.
+ * @brief CURRENT structure functions.
  *
- * This file contains functions to manage the THE structure.
- * The THE structure exists at the base address of every kernel
+ * This file contains functions to manage the CURRENT structure.
+ * The CURRENT structure exists at the base address of every kernel
  * stack and carries information about current settings
  * (e.g. current CPU, current thread, task and address space
  * and current preemption counter).
@@ -44,14 +44,14 @@
 #include <arch.h>
 #include <assert.h>
 
-/** Initialize THE structure
+/** Initialize CURRENT structure
  *
- * Initialize THE structure passed as argument.
+ * Initialize CURRENT structure passed as argument.
  *
- * @param the THE structure to be initialized.
+ * @param the CURRENT structure to be initialized.
  *
  */
-void the_initialize(the_t *the)
+void current_initialize(current_t *the)
 {
 	the->preemption = 0;
 	the->cpu = NULL;
@@ -64,15 +64,15 @@ void the_initialize(the_t *the)
 #endif
 }
 
-/** Copy THE structure
+/** Copy CURRENT structure
  *
- * Copy the source THE structure to the destination THE structure.
+ * Copy the source CURRENT structure to the destination CURRENT structure.
  *
- * @param src The source THE structure.
- * @param dst The destination THE structure.
+ * @param src The source CURRENT structure.
+ * @param dst The destination CURRENT structure.
  *
  */
-NO_TRACE void the_copy(the_t *src, the_t *dst)
+NO_TRACE void current_copy(current_t *src, current_t *dst)
 {
 	assert(src->magic == MAGIC);
 	*dst = *src;

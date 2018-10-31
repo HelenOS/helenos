@@ -93,17 +93,17 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 
 	printf("\n");
 
-	printf("THE=%p: ", THE);
-	if (THE != NULL) {
+	printf("CURRENT=%p: ", CURRENT);
+	if (CURRENT != NULL) {
 		printf("pe=%" PRIuPTR " thread=%p task=%p cpu=%p as=%p"
-		    " magic=%#" PRIx32 "\n", THE->preemption,
-		    THE->thread, THE->task, THE->cpu, THE->as, THE->magic);
+		    " magic=%#" PRIx32 "\n", CURRENT->preemption,
+		    CURRENT->thread, CURRENT->task, CURRENT->cpu, CURRENT->as, CURRENT->magic);
 
-		if (THE->thread != NULL)
-			printf("thread=\"%s\"\n", THE->thread->name);
+		if (CURRENT->thread != NULL)
+			printf("thread=\"%s\"\n", CURRENT->thread->name);
 
-		if (THE->task != NULL)
-			printf("task=\"%s\"\n", THE->task->name);
+		if (CURRENT->task != NULL)
+			printf("task=\"%s\"\n", CURRENT->task->name);
 	} else
 		printf("invalid\n");
 

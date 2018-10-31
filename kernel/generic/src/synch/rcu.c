@@ -1025,7 +1025,7 @@ static void sample_local_cpu(void *arg)
 	assert(interrupts_disabled());
 	cpu_mask_t *reader_cpus = (cpu_mask_t *)arg;
 
-	bool locked = RCU_CNT_INC <= THE->rcu_nesting;
+	bool locked = RCU_CNT_INC <= CURRENT->rcu_nesting;
 	/* smp_call machinery makes the most current _rcu_cur_gp visible. */
 	bool passed_qs = (CPU->rcu.last_seen_gp == _rcu_cur_gp);
 
@@ -1053,7 +1053,7 @@ void rcu_after_thread_ran(void)
 	 * In order not to worry about NMI seeing rcu_nesting change work
 	 * with a local copy.
 	 */
-	size_t nesting_cnt = local_atomic_exchange(&THE->rcu_nesting, 0);
+	size_t nesting_cnt = local_atomic_exchange(&CURRENT->rcu_nesting, 0);
 
 	/*
 	 * Ensures NMIs see .rcu_nesting without the WAS_PREEMPTED mark and
@@ -1112,7 +1112,7 @@ void rcu_before_thread_runs(void)
 	assert(!rcu_read_locked());
 
 	/* Load the thread's saved nesting count from before it was preempted. */
-	THE->rcu_nesting = THREAD->rcu.nesting_cnt;
+	CURRENT->rcu_nesting = THREAD->rcu.nesting_cnt;
 }
 
 /** Called from scheduler() when exiting the current thread.
@@ -1122,7 +1122,7 @@ void rcu_before_thread_runs(void)
  */
 void rcu_thread_exiting(void)
 {
-	assert(THE->rcu_nesting == 0);
+	assert(CURRENT->rcu_nesting == 0);
 
 	/*
 	 * The thread forgot to exit its reader critical section.
@@ -1144,15 +1144,15 @@ void rcu_thread_exiting(void)
 /** Returns true if in an rcu reader section. */
 bool rcu_read_locked(void)
 {
-	return RCU_CNT_INC <= THE->rcu_nesting;
+	return RCU_CNT_INC <= CURRENT->rcu_nesting;
 }
 
 /** Invoked when a preempted reader finally exits its reader section. */
 void _rcu_preempted_unlock(void)
 {
-	assert(0 == THE->rcu_nesting || RCU_WAS_PREEMPTED == THE->rcu_nesting);
+	assert(0 == CURRENT->rcu_nesting || RCU_WAS_PREEMPTED == CURRENT->rcu_nesting);
 
-	size_t prev = local_atomic_exchange(&THE->rcu_nesting, 0);
+	size_t prev = local_atomic_exchange(&CURRENT->rcu_nesting, 0);
 	if (prev == RCU_WAS_PREEMPTED) {
 		/*
 		 * NMI handlers are never preempted but may call rm_preempted_reader()

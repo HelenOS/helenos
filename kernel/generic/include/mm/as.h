@@ -49,7 +49,7 @@
 #include <arch.h>
 #include <lib/refcount.h>
 
-#define AS                   THE->as
+#define AS                   CURRENT->as
 
 /**
  * Defined to be true if user address space and kernel address space shadow each

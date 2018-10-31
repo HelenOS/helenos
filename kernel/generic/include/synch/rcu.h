@@ -131,7 +131,7 @@ void _rcu_preempted_unlock(void);
  */
 static inline void rcu_read_lock(void)
 {
-	THE->rcu_nesting += RCU_CNT_INC;
+	CURRENT->rcu_nesting += RCU_CNT_INC;
 	compiler_barrier();
 }
 
@@ -139,9 +139,9 @@ static inline void rcu_read_lock(void)
 static inline void rcu_read_unlock(void)
 {
 	compiler_barrier();
-	THE->rcu_nesting -= RCU_CNT_INC;
+	CURRENT->rcu_nesting -= RCU_CNT_INC;
 
-	if (RCU_WAS_PREEMPTED == THE->rcu_nesting) {
+	if (RCU_WAS_PREEMPTED == CURRENT->rcu_nesting) {
 		_rcu_preempted_unlock();
 	}
 }
