@@ -46,7 +46,7 @@
 #include <ipc/irq.h>
 #include <arch.h>
 #include <panic.h>
-#include <print.h>
+#include <stdio.h>
 #include <putchar.h>
 #include <atomic.h>
 #include <syscall/copy.h>

@@ -62,7 +62,7 @@
 #include <arch/faddr.h>
 #include <atomic.h>
 #include <mem.h>
-#include <print.h>
+#include <stdio.h>
 #include <mm/slab.h>
 #include <main/uinit.h>
 #include <syscall/copy.h>

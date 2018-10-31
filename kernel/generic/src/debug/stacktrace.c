@@ -36,7 +36,7 @@
 #include <stdbool.h>
 #include <interrupt.h>
 #include <symtab.h>
-#include <print.h>
+#include <stdio.h>
 
 #define STACK_FRAMES_MAX  20
 

@@ -47,7 +47,6 @@
 #include <arch.h>
 #include <panic.h>
 #include <str.h>
-#include <print.h>
 
 #define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
 

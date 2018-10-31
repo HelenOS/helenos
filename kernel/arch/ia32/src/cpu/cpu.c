@@ -38,7 +38,7 @@
 
 #include <arch.h>
 #include <stdint.h>
-#include <print.h>
+#include <stdio.h>
 #include <fpu_context.h>
 
 #include <arch/smp/apic.h>

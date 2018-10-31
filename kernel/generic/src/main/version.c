@@ -33,7 +33,7 @@
  */
 
 #include <main/version.h>
-#include <print.h>
+#include <stdio.h>
 #include <macros.h>
 
 static const char *project = "SPARTAN kernel";

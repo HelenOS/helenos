@@ -43,7 +43,7 @@
 #include <arch/drivers/msim.h>
 #endif
 #include <arch/arch.h>
-#include <print.h>
+#include <stdio.h>
 
 #define ZERO_PAGE_MASK    TLB_PAGE_MASK_256K
 #define ZERO_FRAMES       2048

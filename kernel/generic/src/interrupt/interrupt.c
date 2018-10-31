@@ -48,7 +48,7 @@
 #include <time/delay.h>
 #include <macros.h>
 #include <panic.h>
-#include <print.h>
+#include <stdio.h>
 #include <stdarg.h>
 #include <symtab.h>
 #include <proc/thread.h>

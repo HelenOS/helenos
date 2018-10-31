@@ -54,7 +54,7 @@
 #include <arch.h>
 #include <proc/task.h>
 #include <mem.h>
-#include <print.h>
+#include <stdio.h>
 #include <console/console.h>
 #include <proc/thread.h>
 #include <arch/interrupt.h>

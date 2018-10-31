@@ -35,7 +35,7 @@
 #include <arch/cpu.h>
 #include <cpu.h>
 #include <arch.h>
-#include <print.h>
+#include <stdio.h>
 #include <fpu_context.h>
 
 void fpu_disable(void)

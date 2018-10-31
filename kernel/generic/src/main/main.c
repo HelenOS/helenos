@@ -49,7 +49,7 @@
 #include <arch/asm.h>
 #include <debug.h>
 #include <context.h>
-#include <print.h>
+#include <stdio.h>
 #include <panic.h>
 #include <assert.h>
 #include <config.h>

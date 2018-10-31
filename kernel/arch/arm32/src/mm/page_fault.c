@@ -40,7 +40,6 @@
 #include <genarch/mm/page_pt.h>
 #include <arch.h>
 #include <interrupt.h>
-#include <print.h>
 
 /**
  * FSR encoding ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition.

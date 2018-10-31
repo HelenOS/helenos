@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
 #include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -34,7 +33,6 @@
 #include <arch/mm/page.h>
 #include <typedefs.h>
 #include <atomic.h>
-#include <debug.h>
 #include <proc/thread.h>
 #include <mem.h>
 #include <arch.h>

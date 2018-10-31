@@ -36,7 +36,7 @@
 #include <barrier.h>
 #include <console/kconsole.h>
 #include <console/cmd.h>
-#include <print.h>
+#include <stdio.h>
 #include <log.h>
 #include <panic.h>
 #include <arch.h>

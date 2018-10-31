@@ -34,7 +34,6 @@
 
 #include <arch/interrupt.h>
 #include <assert.h>
-#include <print.h>
 #include <log.h>
 #include <panic.h>
 #include <arch/drivers/i8259.h>

@@ -42,7 +42,6 @@
 #include <arch/drivers/pic.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/pht.h>
-#include <print.h>
 #include <log.h>
 
 static uint32_t decrementer_value;

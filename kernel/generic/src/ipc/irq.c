@@ -63,7 +63,6 @@
 #include <ipc/irq.h>
 #include <syscall/copy.h>
 #include <console/console.h>
-#include <print.h>
 #include <macros.h>
 #include <cap/cap.h>
 

@@ -36,7 +36,6 @@
 
 #include <debug.h>
 #include <genarch/drivers/ega/ega.h>
-#include <putchar.h>
 #include <mm/km.h>
 #include <mm/as.h>
 #include <mm/slab.h>

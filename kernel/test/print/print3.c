@@ -27,7 +27,6 @@
  */
 
 #include <macros.h>
-#include <print.h>
 #include <stddef.h>
 #include <test.h>
 

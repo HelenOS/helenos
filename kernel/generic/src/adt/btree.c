@@ -51,7 +51,7 @@
 #include <assert.h>
 #include <mm/slab.h>
 #include <panic.h>
-#include <print.h>
+#include <stdio.h>
 #include <trace.h>
 
 static slab_cache_t *btree_node_cache;

@@ -29,9 +29,7 @@
 #include <test.h>
 #include <arch.h>
 #include <atomic.h>
-#include <print.h>
 #include <proc/thread.h>
-
 #include <synch/waitq.h>
 #include <synch/semaphore.h>
 

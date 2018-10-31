@@ -43,7 +43,7 @@
 #include <assert.h>
 #include <interrupt.h>
 #include <arch.h>
-#include <print.h>
+#include <stdio.h>
 #include <typedefs.h>
 #include <config.h>
 #include <arch/trap/trap.h>

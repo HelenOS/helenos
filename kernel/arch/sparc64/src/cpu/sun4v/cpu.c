@@ -37,7 +37,7 @@
 #include <arch.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/drivers/tick.h>
-#include <print.h>
+#include <stdio.h>
 #include <arch/sun4v/md.h>
 #include <arch/sun4v/hypercall.h>
 #include <arch/trap/sun4v/interrupt.h>

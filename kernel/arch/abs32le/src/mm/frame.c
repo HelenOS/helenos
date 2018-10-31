@@ -38,8 +38,7 @@
 #include <debug.h>
 #include <align.h>
 #include <macros.h>
-
-#include <print.h>
+#include <stdio.h>
 
 void physmem_print(void)
 {

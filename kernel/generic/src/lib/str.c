@@ -102,7 +102,6 @@
  */
 
 #include <str.h>
-#include <print.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>

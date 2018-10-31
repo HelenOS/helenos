@@ -36,7 +36,7 @@
 #include <cpu.h>
 #include <arch.h>
 #include <arch/cp0.h>
-#include <print.h>
+#include <stdio.h>
 
 struct data_t {
 	const char *vendor;

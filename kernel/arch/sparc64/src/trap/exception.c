@@ -40,7 +40,7 @@
 #include <arch/asm.h>
 #include <arch/register.h>
 #include <debug.h>
-#include <print.h>
+#include <stdio.h>
 #include <symtab.h>
 
 void istate_decode(istate_t *istate)

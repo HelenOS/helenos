@@ -40,7 +40,7 @@
 #include <arch/mm/page_fault.h>
 #include <arch/cp15.h>
 #include <barrier.h>
-#include <print.h>
+#include <stdio.h>
 #include <syscall/syscall.h>
 #include <stacktrace.h>
 

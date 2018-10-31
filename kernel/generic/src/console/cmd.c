@@ -44,7 +44,7 @@
 #include <console/cmd.h>
 #include <console/console.h>
 #include <console/kconsole.h>
-#include <print.h>
+#include <stdio.h>
 #include <log.h>
 #include <panic.h>
 #include <typedefs.h>

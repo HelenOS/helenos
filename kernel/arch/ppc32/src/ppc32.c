@@ -56,7 +56,6 @@
 #include <align.h>
 #include <macros.h>
 #include <str.h>
-#include <print.h>
 
 #define IRQ_COUNT  64
 #define IRQ_CUDA   10

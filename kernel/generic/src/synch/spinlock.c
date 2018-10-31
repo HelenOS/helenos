@@ -40,7 +40,7 @@
 #include <barrier.h>
 #include <arch.h>
 #include <preemption.h>
-#include <print.h>
+#include <stdio.h>
 #include <debug.h>
 #include <symtab.h>
 #include <stacktrace.h>

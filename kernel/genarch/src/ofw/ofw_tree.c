@@ -41,7 +41,7 @@
 #include <mem.h>
 #include <str.h>
 #include <panic.h>
-#include <print.h>
+#include <stdio.h>
 
 #define PATH_MAX_LEN  256
 #define NAME_BUF_LEN  50

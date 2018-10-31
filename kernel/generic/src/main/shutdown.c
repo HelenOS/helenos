@@ -38,7 +38,6 @@
 #include <arch.h>
 #include <proc/task.h>
 #include <halt.h>
-#include <print.h>
 #include <log.h>
 
 void reboot(void)

@@ -26,15 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
-#include <debug.h>
-
 #include <test.h>
-#include <atomic.h>
-#include <proc/thread.h>
-#include <time/delay.h>
-
-#include <arch.h>
 
 const char *test_mips1(void)
 {

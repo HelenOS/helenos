@@ -45,7 +45,6 @@
 #include <arch/asm.h>
 #include <barrier.h>
 #include <arch/drivers/tick.h>
-#include <print.h>
 #include <arch.h>
 #include <mm/tlb.h>
 #include <config.h>

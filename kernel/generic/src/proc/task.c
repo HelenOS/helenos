@@ -53,7 +53,7 @@
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
 #include <ipc/event.h>
-#include <print.h>
+#include <stdio.h>
 #include <errno.h>
 #include <halt.h>
 #include <str.h>

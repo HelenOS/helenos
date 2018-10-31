@@ -36,6 +36,7 @@
 #define KERN_TEST_H_
 
 #include <stdbool.h>
+#include <stdio.h>
 
 extern bool test_quiet;
 

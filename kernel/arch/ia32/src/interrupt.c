@@ -35,7 +35,7 @@
 #include <arch/interrupt.h>
 #include <assert.h>
 #include <syscall/syscall.h>
-#include <print.h>
+#include <stdio.h>
 #include <debug.h>
 #include <panic.h>
 #include <arch/drivers/i8259.h>

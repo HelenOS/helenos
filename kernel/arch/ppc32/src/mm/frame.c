@@ -37,7 +37,7 @@
 #include <mm/frame.h>
 #include <align.h>
 #include <macros.h>
-#include <print.h>
+#include <stdio.h>
 
 memmap_t memmap;
 

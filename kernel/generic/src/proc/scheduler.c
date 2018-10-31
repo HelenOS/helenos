@@ -63,7 +63,7 @@
 #include <adt/list.h>
 #include <panic.h>
 #include <cpu.h>
-#include <print.h>
+#include <stdio.h>
 #include <log.h>
 #include <stacktrace.h>
 

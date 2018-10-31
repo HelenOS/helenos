@@ -41,7 +41,7 @@
 #include <panic.h>
 #include <arch.h>
 #include <synch/mutex.h>
-#include <print.h>
+#include <stdio.h>
 #include <log.h>
 #include <assert.h>
 #include <align.h>

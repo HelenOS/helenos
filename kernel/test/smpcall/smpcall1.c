@@ -26,9 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
-#include <debug.h>
-
 #include <assert.h>
 #include <test.h>
 #include <smp/smp_call.h>

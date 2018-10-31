@@ -41,7 +41,6 @@
 #include <proc/program.h>
 #include <mm/as.h>
 #include <mm/page.h>
-#include <print.h>
 #include <arch.h>
 #include <debug.h>
 #include <interrupt.h>

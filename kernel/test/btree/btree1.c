@@ -27,9 +27,7 @@
  */
 
 #include <test.h>
-#include <print.h>
 #include <adt/btree.h>
-#include <debug.h>
 
 static void *data = (void *) 0xdeadbeef;
 

@@ -44,7 +44,6 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <errno.h>
-#include <print.h>
 #include <stdbool.h>
 #include <str.h>
 #include <syscall/copy.h>

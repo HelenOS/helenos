@@ -28,7 +28,6 @@
 
 #include <assert.h>
 #include <test.h>
-#include <print.h>
 #include <adt/cht.h>
 #include <synch/rcu.h>
 

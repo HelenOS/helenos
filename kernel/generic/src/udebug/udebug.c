@@ -42,7 +42,6 @@
 #include <synch/waitq.h>
 #include <udebug/udebug.h>
 #include <errno.h>
-#include <print.h>
 #include <arch.h>
 #include <proc/task.h>
 #include <proc/thread.h>

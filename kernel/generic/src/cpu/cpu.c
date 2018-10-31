@@ -46,7 +46,7 @@
 #include <panic.h>
 #include <mem.h>
 #include <adt/list.h>
-#include <print.h>
+#include <stdio.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/cycle.h>
 #include <synch/rcu.h>

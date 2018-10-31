@@ -37,7 +37,7 @@
 #include <arch.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <arch/drivers/tick.h>
-#include <print.h>
+#include <stdio.h>
 #include <arch/cpu_node.h>
 
 /**

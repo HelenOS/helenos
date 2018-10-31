@@ -109,7 +109,7 @@
 #include <align.h>
 #include <mm/frame.h>
 #include <config.h>
-#include <print.h>
+#include <stdio.h>
 #include <arch.h>
 #include <panic.h>
 #include <bitops.h>

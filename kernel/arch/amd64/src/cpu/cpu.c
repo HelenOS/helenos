@@ -38,7 +38,7 @@
 #include <arch/pm.h>
 
 #include <arch.h>
-#include <print.h>
+#include <stdio.h>
 #include <fpu_context.h>
 
 /*

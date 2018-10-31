@@ -28,7 +28,6 @@
 
 #include <test.h>
 #include <arch.h>
-#include <print.h>
 #include <synch/workqueue.h>
 
 #define WAVES 10

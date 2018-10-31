@@ -50,7 +50,6 @@
 #include <syscall/copy.h>
 #include <security/perm.h>
 #include <console/console.h>
-#include <print.h>
 #include <macros.h>
 #include <cap/cap.h>
 

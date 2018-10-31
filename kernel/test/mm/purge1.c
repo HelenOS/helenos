@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
 #include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -34,7 +33,6 @@
 #include <arch/mm/page.h>
 #include <arch/mm/tlb.h>
 #include <typedefs.h>
-#include <debug.h>
 
 extern void tlb_invalidate_all(void);
 extern void tlb_invalidate_pages(asid_t asid, uintptr_t va, size_t cnt);

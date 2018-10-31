@@ -38,7 +38,7 @@
 #include <arch/cp15.h>
 #include <cpu.h>
 #include <arch.h>
-#include <print.h>
+#include <stdio.h>
 
 #ifdef CONFIG_FPU
 #include <arch/fpu_context.h>

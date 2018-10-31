@@ -33,7 +33,7 @@
  */
 
 #include <panic.h>
-#include <print.h>
+#include <stdio.h>
 #include <stacktrace.h>
 #include <halt.h>
 #include <typedefs.h>

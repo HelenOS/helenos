@@ -40,7 +40,6 @@
 #include <arch.h>
 #include <assert.h>
 #include <proc/thread.h>
-#include <print.h>
 #include <interrupt.h>
 #include <halt.h>
 #include <ddi/irq.h>

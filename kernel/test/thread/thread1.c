@@ -27,9 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
-#include <debug.h>
-
 #include <test.h>
 #include <atomic.h>
 #include <proc/thread.h>

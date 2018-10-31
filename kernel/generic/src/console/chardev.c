@@ -37,7 +37,7 @@
 #include <console/chardev.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
-#include <print.h>
+#include <stdio.h>
 #include <halt.h>
 #include <cpu.h>
 

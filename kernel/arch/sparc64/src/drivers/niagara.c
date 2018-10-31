@@ -46,7 +46,6 @@
 #include <arch/sun4v/hypercall.h>
 #include <sysinfo/sysinfo.h>
 #include <ipc/irq.h>
-#include <print.h>
 #include <proc/thread.h>
 #include <console/console.h>
 #include <genarch/srln/srln.h>

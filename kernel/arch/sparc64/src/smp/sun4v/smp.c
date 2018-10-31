@@ -47,7 +47,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <synch/waitq.h>
-#include <print.h>
+#include <stdio.h>
 #include <arch/sun4v/hypercall.h>
 #include <arch/sun4v/md.h>
 #include <arch/sun4v/ipi.h>

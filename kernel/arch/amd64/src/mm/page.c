@@ -41,7 +41,6 @@
 #include <arch/asm.h>
 #include <config.h>
 #include <interrupt.h>
-#include <print.h>
 #include <panic.h>
 #include <align.h>
 #include <macros.h>

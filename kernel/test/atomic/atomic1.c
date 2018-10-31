@@ -27,9 +27,7 @@
  */
 
 #include <test.h>
-#include <print.h>
 #include <atomic.h>
-#include <debug.h>
 
 const char *test_atomic1(void)
 {

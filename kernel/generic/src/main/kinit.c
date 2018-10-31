@@ -58,7 +58,7 @@
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/km.h>
-#include <print.h>
+#include <stdio.h>
 #include <log.h>
 #include <mem.h>
 #include <console/console.h>

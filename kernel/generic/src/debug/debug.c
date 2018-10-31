@@ -40,7 +40,7 @@
 #include <debug.h>
 #include <symtab.h>
 #include <errno.h>
-#include <print.h>
+#include <stdio.h>
 
 void __cyg_profile_func_enter(void *fn, void *call_site)
 {

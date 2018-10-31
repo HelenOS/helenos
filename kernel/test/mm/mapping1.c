@@ -26,14 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <print.h>
 #include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <arch/mm/page.h>
 #include <mm/km.h>
 #include <typedefs.h>
-#include <debug.h>
 #include <arch.h>
 
 #define TEST_MAGIC  UINT32_C(0x01234567)

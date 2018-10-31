@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <sysinfo/sysinfo.h>
 #include <mm/slab.h>
-#include <print.h>
+#include <stdio.h>
 #include <syscall/copy.h>
 #include <synch/mutex.h>
 #include <arch/asm.h>

@@ -45,7 +45,6 @@
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <debug.h>
-#include <print.h>
 #include <interrupt.h>
 
 void page_arch_init(void)

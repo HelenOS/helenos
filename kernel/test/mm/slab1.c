@@ -28,7 +28,6 @@
 
 #include <test.h>
 #include <mm/slab.h>
-#include <print.h>
 #include <proc/thread.h>
 #include <arch.h>
 #include <mem.h>

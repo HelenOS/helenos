@@ -65,7 +65,6 @@
 #include <syscall/copy.h>
 #include <typedefs.h>
 #include <arch/debugger.h>
-#include <print.h>
 
 #define R0	0U
 #define SP	29U

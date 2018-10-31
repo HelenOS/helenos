@@ -52,7 +52,7 @@
 #include <synch/condvar.h>
 #include <arch/asm.h>
 #include <arch.h>
-#include <print.h>
+#include <stdio.h>
 #include <log.h>
 #include <align.h>
 #include <mm/slab.h>

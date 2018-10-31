@@ -40,7 +40,6 @@
 #include <abi/fb/visuals.h>
 #include <console/console.h>
 #include <ddi/irq.h>
-#include <print.h>
 #include <config.h>
 #include <interrupt.h>
 #include <arch/regutils.h>

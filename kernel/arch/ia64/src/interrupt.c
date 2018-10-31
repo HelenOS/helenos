@@ -38,7 +38,7 @@
 #include <interrupt.h>
 #include <ddi/irq.h>
 #include <panic.h>
-#include <print.h>
+#include <stdio.h>
 #include <console/console.h>
 #include <typedefs.h>
 #include <arch/asm.h>
@@ -46,7 +46,6 @@
 #include <arch/register.h>
 #include <arch.h>
 #include <syscall/syscall.h>
-#include <print.h>
 #include <proc/scheduler.h>
 #include <ipc/sysipc.h>
 #include <ipc/irq.h>
@@ -55,7 +54,6 @@
 #include <mm/tlb.h>
 #include <arch/mm/tlb.h>
 #include <symtab.h>
-#include <putchar.h>
 
 #define VECTORS_64_BUNDLE        20
 #define VECTORS_16_BUNDLE        48

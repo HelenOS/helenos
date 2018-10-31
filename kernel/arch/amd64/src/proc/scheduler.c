@@ -38,7 +38,6 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <arch/asm.h>
-#include <print.h>
 #include <arch/pm.h>
 #include <arch/ddi/ddi.h>
 #include <arch/kseg_struct.h>

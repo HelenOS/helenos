@@ -67,7 +67,7 @@
 #include <arch/asm.h>
 #include <panic.h>
 #include <assert.h>
-#include <print.h>
+#include <stdio.h>
 #include <mem.h>
 #include <macros.h>
 #include <bitops.h>

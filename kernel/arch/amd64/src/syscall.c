@@ -39,8 +39,6 @@
 #include <arch/pm.h>
 #include <arch/asm.h>
 
-#include <print.h>
-
 extern void syscall_entry(void);
 
 /** Enable & setup support for SYSCALL/SYSRET */

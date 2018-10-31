@@ -35,7 +35,6 @@
 
 #include <fpu_context.h>
 #include <arch/register.h>
-#include <print.h>
 
 void fpu_context_save(fpu_context_t *fctx)
 {

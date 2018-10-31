@@ -44,7 +44,7 @@
 #include <console/chardev.h>
 #include <console/cmd.h>
 #include <console/prompt.h>
-#include <print.h>
+#include <stdio.h>
 #include <panic.h>
 #include <typedefs.h>
 #include <adt/list.h>
