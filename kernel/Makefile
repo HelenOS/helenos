@@ -166,6 +166,7 @@ GENERIC_SOURCES = \
 	generic/src/adt/cht.c \
 	generic/src/adt/hash_table.c \
 	generic/src/adt/list.c \
+	generic/src/adt/odict.c \
 	generic/src/console/chardev.c \
 	generic/src/console/console.c \
 	generic/src/console/prompt.c \
