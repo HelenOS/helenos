@@ -62,8 +62,6 @@ void vreg_init(void)
 
 	frame = frame_alloc(1, FRAME_ATOMIC | FRAME_HIGHMEM, 0);
 	if (!frame)
-		frame = frame_alloc(1, FRAME_ATOMIC | FRAME_LOWMEM, 0);
-	if (!frame)
 		panic("Cannot allocate VREG frame.");
 
 	page = (uint32_t *) km_map(frame, PAGE_SIZE, PAGE_SIZE,

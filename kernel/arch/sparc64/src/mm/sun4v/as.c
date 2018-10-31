@@ -65,7 +65,8 @@ void as_arch_init(void)
 errno_t as_constructor_arch(as_t *as, unsigned int flags)
 {
 #ifdef CONFIG_TSB
-	uintptr_t tsb_base = frame_alloc(TSB_FRAMES, flags, TSB_SIZE - 1);
+	uintptr_t tsb_base = frame_alloc(TSB_FRAMES, FRAME_LOWMEM | flags,
+	    TSB_SIZE - 1);
 	if (!tsb_base)
 		return ENOMEM;
 

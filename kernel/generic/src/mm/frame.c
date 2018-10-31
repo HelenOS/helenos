@@ -814,6 +814,20 @@ void *frame_get_parent(pfn_t pfn, size_t hint)
 	return res;
 }
 
+static size_t try_find_zone(size_t count, bool lowmem,
+    pfn_t frame_constraint, size_t hint)
+{
+	if (!lowmem) {
+		size_t znum = find_free_zone(count,
+		    ZONE_HIGHMEM | ZONE_AVAILABLE, frame_constraint, hint);
+		if (znum != (size_t) -1)
+			return znum;
+	}
+
+	return find_free_zone(count, ZONE_LOWMEM | ZONE_AVAILABLE,
+	    frame_constraint, hint);
+}
+
 /** Allocate frames of physical memory.
  *
  * @param count      Number of continuous frames to allocate.
@@ -842,11 +856,13 @@ uintptr_t frame_alloc_generic(size_t count, frame_flags_t flags,
 loop:
 	irq_spinlock_lock(&zones.lock, true);
 
+	// TODO: Print diagnostic if neither is explicitly specified.
+	bool lowmem = (flags & FRAME_LOWMEM) || !(flags & FRAME_HIGHMEM);
+
 	/*
 	 * First, find suitable frame zone.
 	 */
-	size_t znum = find_free_zone(count, FRAME_TO_ZONE_FLAGS(flags),
-	    frame_constraint, hint);
+	size_t znum = try_find_zone(count, lowmem, frame_constraint, hint);
 
 	/*
 	 * If no memory, reclaim some slab memory,
@@ -858,7 +874,7 @@ loop:
 		irq_spinlock_lock(&zones.lock, true);
 
 		if (freed > 0)
-			znum = find_free_zone(count, FRAME_TO_ZONE_FLAGS(flags),
+			znum = try_find_zone(count, lowmem,
 			    frame_constraint, hint);
 
 		if (znum == (size_t) -1) {
@@ -867,7 +883,7 @@ loop:
 			irq_spinlock_lock(&zones.lock, true);
 
 			if (freed > 0)
-				znum = find_free_zone(count, FRAME_TO_ZONE_FLAGS(flags),
+				znum = try_find_zone(count, lowmem,
 				    frame_constraint, hint);
 		}
 	}

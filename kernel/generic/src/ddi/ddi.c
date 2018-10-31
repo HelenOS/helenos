@@ -384,6 +384,7 @@ NO_TRACE static errno_t dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	if (frames == 0)
 		return EINVAL;
 
+	// FIXME: probably need to ensure that the memory is suitable for DMA
 	*phys = frame_alloc(frames, FRAME_ATOMIC, constraint);
 	if (*phys == 0)
 		return ENOMEM;

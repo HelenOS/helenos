@@ -120,7 +120,7 @@ uintptr_t km_page_alloc(size_t size, size_t align)
 	if (ra_alloc(km_ni_arena, size, align, &base))
 		return base;
 	else
-		return (uintptr_t) NULL;
+		panic("Kernel ran out of virtual address space.");
 }
 
 void km_page_free(uintptr_t page, size_t size)
@@ -255,20 +255,11 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 	uintptr_t page;
 	uintptr_t frame;
 
-	frame = frame_alloc(1, FRAME_HIGHMEM | FRAME_ATOMIC | flags, 0);
-	if (frame) {
+	frame = frame_alloc(1, FRAME_HIGHMEM | flags, 0);
+	if (frame >= config.identity_size) {
 		page = km_map(frame, PAGE_SIZE, PAGE_SIZE,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
-		if (!page) {
-			frame_free(frame, 1);
-			goto lowmem;
-		}
 	} else {
-	lowmem:
-		frame = frame_alloc(1, FRAME_LOWMEM | flags, 0);
-		if (!frame)
-			return (uintptr_t) NULL;
-
 		page = PA2KA(frame);
 	}
 

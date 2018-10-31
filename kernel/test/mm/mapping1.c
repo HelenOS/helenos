@@ -40,7 +40,7 @@
 
 const char *test_mapping1(void)
 {
-	uintptr_t frame = frame_alloc(1, FRAME_NONE, 0);
+	uintptr_t frame = frame_alloc(1, FRAME_HIGHMEM, 0);
 
 	uintptr_t page0 = km_map(frame, FRAME_SIZE, FRAME_SIZE,
 	    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);

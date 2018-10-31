@@ -80,7 +80,7 @@ static sysarg_t secfrag = 0;
  */
 void clock_counter_init(void)
 {
-	uintptr_t faddr = frame_alloc(1, FRAME_ATOMIC, 0);
+	uintptr_t faddr = frame_alloc(1, FRAME_LOWMEM | FRAME_ATOMIC, 0);
 	if (faddr == 0)
 		panic("Cannot allocate page for clock.");
 

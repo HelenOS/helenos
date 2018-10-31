@@ -187,7 +187,7 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
 	size_t zone = 0;
 
 	uintptr_t data_phys =
-	    frame_alloc_generic(cache->frames, flags, 0, &zone);
+	    frame_alloc_generic(cache->frames, FRAME_LOWMEM | flags, 0, &zone);
 	if (!data_phys)
 		return NULL;
 

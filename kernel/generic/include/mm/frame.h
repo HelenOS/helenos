@@ -58,8 +58,15 @@ typedef uint8_t frame_flags_t;
 #define FRAME_NO_RESERVE  0x04
 /** Allocate a frame which can be identity-mapped. */
 #define FRAME_LOWMEM      0x08
-/** Allocate a frame which cannot be identity-mapped. */
+/**
+ * Allocate a frame outside the identity-mapped region if possible.
+ * Fall back to low memory if that fails.
+ */
 #define FRAME_HIGHMEM     0x10
+
+// NOTE: If neither FRAME_LOWMEM nor FRAME_HIGHMEM is set, FRAME_LOWMEM is
+//       assumed as a safe default, and a runtime warning may be issued.
+//       If both are set, FRAME_LOWMEM takes priority.
 
 typedef uint8_t zone_flags_t;
 
@@ -77,12 +84,6 @@ typedef uint8_t zone_flags_t;
 
 /** Mask of zone bits that must be matched exactly. */
 #define ZONE_EF_MASK  0x07
-
-#define FRAME_TO_ZONE_FLAGS(ff) \
-	((((ff) & FRAME_LOWMEM) ? ZONE_LOWMEM : \
-	    (((ff) & FRAME_HIGHMEM) ? ZONE_HIGHMEM : \
-	    ZONE_LOWMEM /* | ZONE_HIGHMEM */)) | \
-	    ZONE_AVAILABLE)
 
 #define ZONE_FLAGS_MATCH(zf, f) \
 	(((((zf) & ZONE_EF_MASK)) == ((f) & ZONE_EF_MASK)) && \
