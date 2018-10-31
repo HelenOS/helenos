@@ -338,7 +338,7 @@ static void driver_stop(ipc_call_t *icall)
 static void driver_connection_devman(ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	while (true) {
 		ipc_call_t call;
@@ -418,11 +418,13 @@ static void driver_connection_gen(ipc_call_t *icall, bool drv)
 	if (fun->ops != NULL && fun->ops->open != NULL)
 		ret = (*fun->ops->open)(fun);
 
-	async_answer_5(icall, ret, 0, 0, 0, 0, async_get_label());
 	if (ret != EOK) {
+		async_answer_0(icall, ret);
 		fun_del_ref(fun);
 		return;
 	}
+
+	async_accept_0(icall);
 
 	while (true) {
 		ipc_call_t call;

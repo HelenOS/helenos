@@ -587,7 +587,7 @@ void devman_connection_driver(ipc_call_t *icall, void *arg)
 	driver_t *driver = NULL;
 
 	/* Accept the connection. */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	client = async_get_client_data();
 	if (client == NULL) {

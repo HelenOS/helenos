@@ -917,7 +917,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 
 	/* Allocate resources for new window and register it to the location service. */
 	if (service_id == winreg_id) {
-		async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+		async_accept_0(icall);
 
 		async_get_call(&call);
 		if (IPC_GET_IMETHOD(call) == WINDOW_REGISTER) {
@@ -995,7 +995,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 	fibril_mutex_unlock(&window_list_mtx);
 
 	if (win) {
-		async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+		async_accept_0(icall);
 	} else {
 		async_answer_0(icall, EINVAL);
 		return;

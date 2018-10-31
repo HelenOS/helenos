@@ -371,7 +371,7 @@ static int lin_map_range(int v, int i0, int i1, int o0, int o1)
 /** Handle mouse client connection. */
 static void s3c24xx_ts_connection(ipc_call_t *icall, void *arg)
 {
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	while (true) {
 		ipc_call_t call;

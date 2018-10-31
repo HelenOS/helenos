@@ -332,7 +332,7 @@ errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 	errno_t rc;
 
 	/* Accept the connection */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	srv = con_srv_create(srvs);
 	if (srv == NULL)

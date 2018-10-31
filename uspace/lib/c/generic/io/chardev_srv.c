@@ -135,7 +135,7 @@ errno_t chardev_conn(ipc_call_t *icall, chardev_srvs_t *srvs)
 	errno_t rc;
 
 	/* Accept the connection */
-	async_answer_5(icall, EOK, 0, 0, 0, 0, async_get_label());
+	async_accept_0(icall);
 
 	srv = chardev_srv_create(srvs);
 	if (srv == NULL)
