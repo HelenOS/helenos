@@ -63,7 +63,7 @@ static errno_t ping_pong_measure(uint64_t niter, uint64_t *rduration)
 
 static void ping_pong_report(uint64_t niter, uint64_t duration)
 {
-	TPRINTF("Completed %" PRIu64 " round trips in %" PRIu64" us",
+	TPRINTF("Completed %" PRIu64 " round trips in %" PRIu64 " us",
 	    niter, duration);
 
 	if (duration > 0) {
@@ -123,7 +123,7 @@ const char *test_ping_pong(void)
 	double d;
 	for (i = 0; i < NUM_SAMPLES; i++) {
 		d = (double)niter / ((double)dsmp[i] / 1000000.0l) - avg;
-		qd += d*d;
+		qd += d * d;
 	}
 
 	double stddev = qd; // XXX sqrt
