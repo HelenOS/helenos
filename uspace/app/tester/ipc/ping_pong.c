@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -34,39 +35,101 @@
 #include <errno.h>
 #include "../tester.h"
 
-#define DURATION_SECS      10
-#define COUNT_GRANULARITY  100
+#define MIN_DURATION_SECS  10
+#define NUM_SAMPLES 10
+
+static errno_t ping_pong_measure(uint64_t niter, uint64_t *rduration)
+{
+	struct timespec start;
+	uint64_t count;
+
+	getuptime(&start);
+
+	for (count = 0; count < niter; count++) {
+		errno_t retval = ns_ping();
+
+		if (retval != EOK) {
+			TPRINTF("Error sending ping message.\n");
+			return EIO;
+		}
+	}
+
+	struct timespec now;
+	getuptime(&now);
+
+	*rduration = ts_sub_diff(&now, &start) / 1000;
+	return EOK;
+}
+
+static void ping_pong_report(uint64_t niter, uint64_t duration)
+{
+	TPRINTF("Completed %" PRIu64 " round trips in %" PRIu64" us",
+	    niter, duration);
+
+	if (duration > 0) {
+		TPRINTF(", %" PRIu64 " rt/s.\n", niter * 1000 * 1000 / duration);
+	} else {
+		TPRINTF(".\n");
+	}
+}
 
 const char *test_ping_pong(void)
 {
-	TPRINTF("Pinging ns server for %d seconds...", DURATION_SECS);
+	errno_t rc;
+	uint64_t duration;
+	uint64_t dsmp[NUM_SAMPLES];
+
+	TPRINTF("Benchmark ns server ping time\n");
+	TPRINTF("Warm up and determine work size...\n");
 
 	struct timespec start;
 	getuptime(&start);
 
-	uint64_t count = 0;
-	while (true) {
-		struct timespec now;
-		getuptime(&now);
+	uint64_t niter = 1;
 
-		if (NSEC2SEC(ts_sub_diff(&now, &start)) >= DURATION_SECS)
+	while (true) {
+		rc = ping_pong_measure(niter, &duration);
+		if (rc != EOK)
+			return "Failed.";
+
+		ping_pong_report(niter, duration);
+
+		if (duration >= MIN_DURATION_SECS * 1000000)
 			break;
 
-		size_t i;
-		for (i = 0; i < COUNT_GRANULARITY; i++) {
-			errno_t retval = ns_ping();
-
-			if (retval != EOK) {
-				TPRINTF("\n");
-				return "Failed to send ping message";
-			}
-		}
-
-		count += COUNT_GRANULARITY;
+		niter *= 2;
 	}
 
-	TPRINTF("OK\nCompleted %" PRIu64 " round trips in %u seconds, %" PRIu64 " rt/s.\n",
-	    count, DURATION_SECS, count / DURATION_SECS);
+	TPRINTF("Measure %d samples...\n", NUM_SAMPLES);
+
+	int i;
+
+	for (i = 0; i < NUM_SAMPLES; i++) {
+		rc = ping_pong_measure(niter, &dsmp[i]);
+		if (rc != EOK)
+			return "Failed.";
+
+		ping_pong_report(niter, dsmp[i]);
+	}
+
+	double sum = 0.0;
+
+	for (i = 0; i < NUM_SAMPLES; i++)
+		sum += (double)niter / ((double)dsmp[i] / 1000000.0l);
+
+	double avg = sum / NUM_SAMPLES;
+
+	double qd = 0.0;
+	double d;
+	for (i = 0; i < NUM_SAMPLES; i++) {
+		d = (double)niter / ((double)dsmp[i] / 1000000.0l) - avg;
+		qd += d*d;
+	}
+
+	double stddev = qd; // XXX sqrt
+
+	TPRINTF("Average: %.0f rt/s Std.dev^2: %.0f rt/s Samples: %d\n",
+	    avg, stddev, NUM_SAMPLES);
 
 	return NULL;
 }
