@@ -39,12 +39,10 @@
 #include <config.h>
 
 /*
- * THE is not an abbreviation, but the English definite article written in
- * capital letters. It means the current pointer to something, e.g. thread,
- * processor or address space. Kind reader of this comment shall appreciate
- * the wit of constructs like THE->thread and similar.
+ * The current_t structure holds pointers to various parts of the current
+ * execution state, like running task, thread, address space, etc.
  */
-#define THE  ((the_t * )(get_stack_base()))
+#define CURRENT  ((current_t * )(get_stack_base()))
 
 #define MAGIC                UINT32_C(0xfacefeed)
 
@@ -52,7 +50,7 @@
 
 #define DEFAULT_CONTAINER  0
 #define CONTAINER \
-	((THE->task) ? (THE->task->container) : (DEFAULT_CONTAINER))
+	((CURRENT->task) ? (CURRENT->task->container) : (DEFAULT_CONTAINER))
 
 /* Fwd decl. to avoid include hell. */
 struct thread;
@@ -75,7 +73,7 @@ typedef struct {
 	struct cpu *cpu;       /**< Executing cpu. */
 	struct as *as;         /**< Current address space. */
 	uint32_t magic;        /**< Magic value */
-} the_t;
+} current_t;
 
 typedef struct {
 	void (*pre_mm_init)(void);
@@ -95,8 +93,8 @@ extern arch_ops_t *arch_ops;
 
 #define ARCH_OP(op)	ARCH_STRUCT_OP(arch_ops, op)
 
-extern void the_initialize(the_t *);
-extern void the_copy(the_t *, the_t *);
+extern void current_initialize(current_t *);
+extern void current_copy(current_t *, current_t *);
 
 extern void calibrate_delay_loop(void);
 

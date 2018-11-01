@@ -212,7 +212,7 @@ NO_TRACE void main_bsp(void)
 void main_bsp_separated_stack(void)
 {
 	/* Keep this the first thing. */
-	the_initialize(THE);
+	current_initialize(CURRENT);
 
 	version_print();
 
@@ -341,9 +341,9 @@ void main_ap(void)
 	config.cpu_active++;
 
 	/*
-	 * The THE structure is well defined because ctx.sp is used as stack.
+	 * The CURRENT structure is well defined because ctx.sp is used as stack.
 	 */
-	the_initialize(THE);
+	current_initialize(CURRENT);
 
 	ARCH_OP(pre_mm_init);
 	frame_init();
@@ -355,7 +355,7 @@ void main_ap(void)
 	calibrate_delay_loop();
 	ARCH_OP(post_cpu_init);
 
-	the_copy(THE, (the_t *) CPU->stack);
+	current_copy(CURRENT, (current_t *) CPU->stack);
 
 	/*
 	 * If we woke kmp up before we left the kernel stack, we could

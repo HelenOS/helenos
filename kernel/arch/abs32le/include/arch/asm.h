@@ -191,7 +191,7 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	/*
 	 * On real hardware this returns the address of the bottom
-	 * of the current CPU stack. The the_t structure is stored
+	 * of the current CPU stack. The current_t structure is stored
 	 * on the bottom of stack and this is used to identify the
 	 * current CPU, current task, current thread and current
 	 * address space.

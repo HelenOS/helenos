@@ -62,7 +62,7 @@
 #include <arch.h>
 #include <cap/cap.h>
 
-#define TASK                 THE->task
+#define TASK                 CURRENT->task
 
 struct thread;
 struct cap;
