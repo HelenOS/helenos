@@ -307,6 +307,12 @@ static int ldr_load(ipc_call_t *req)
 	pcb.tcb = tls_make(prog_info.finfo.base);
 #endif
 
+	if (!pcb.tcb) {
+		DPRINTF("Failed to make TLS for '%s'.\n", progname);
+		async_answer_0(req, ENOMEM);
+		return 1;
+	}
+
 	elf_set_pcb(&prog_info, &pcb);
 
 	DPRINTF("PCB set.\n");
