@@ -106,7 +106,6 @@ void task_init(void)
 void task_done(void)
 {
 	size_t tasks_left;
-	odlink_t *odlink;
 	task_t *task;
 
 	if (ipc_box_0) {
@@ -127,10 +126,8 @@ void task_done(void)
 		irq_spinlock_lock(&tasks_lock, true);
 		tasks_left = 0;
 
-		odlink = odict_first(&tasks);
-		while (odlink != NULL) {
-			task = odict_get_instance(odlink, task_t, ltasks);
-
+		task = task_first();
+		while (task != NULL) {
 			if (task != TASK) {
 				tasks_left++;
 #ifdef CONFIG_DEBUG
@@ -139,7 +136,7 @@ void task_done(void)
 				task_kill_internal(task);
 			}
 
-			odlink = odict_next(odlink, &tasks);
+			task = task_next(task);
 		}
 
 		irq_spinlock_unlock(&tasks_lock, true);
@@ -451,6 +448,55 @@ task_t *task_find_by_id(task_id_t id)
 	return NULL;
 }
 
+/** Get count of tasks.
+ *
+ * @return Number of tasks in the system
+ */
+size_t task_count(void)
+{
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&tasks_lock));
+
+	return odict_count(&tasks);
+}
+
+/** Get first task (task with lowest ID).
+ *
+ * @return Pointer to first task or @c NULL if there are none.
+ */
+task_t *task_first(void)
+{
+	odlink_t *odlink;
+
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&tasks_lock));
+
+	odlink = odict_first(&tasks);
+	if (odlink == NULL)
+		return NULL;
+
+	return odict_get_instance(odlink, task_t, ltasks);
+}
+
+/** Get next task (with higher task ID).
+ *
+ * @param cur Current task
+ * @return Pointer to next task or @c NULL if there are no more tasks.
+ */
+task_t *task_next(task_t *cur)
+{
+	odlink_t *odlink;
+
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&tasks_lock));
+
+	odlink = odict_next(&cur->ltasks, &tasks);
+	if (odlink == NULL)
+		return NULL;
+
+	return odict_get_instance(odlink, task_t, ltasks);
+}
+
 /** Get accounting data of given task.
  *
  * Note that task lock of 'task' must be already held and interrupts must be
@@ -657,14 +703,12 @@ void task_print_list(bool additional)
 		    " [as              ]\n");
 #endif
 
-	odlink_t *odlink;
 	task_t *task;
 
-	odlink = odict_first(&tasks);
-	while (odlink != NULL) {
-		task = odict_get_instance(odlink, task_t, ltasks);
+	task = task_first();
+	while (task != NULL) {
 		task_print(task, additional);
-		odlink = odict_next(odlink, &tasks);
+		task = task_next(task);
 	}
 
 	irq_spinlock_unlock(&tasks_lock, true);

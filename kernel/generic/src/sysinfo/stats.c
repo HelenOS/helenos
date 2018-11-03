@@ -245,7 +245,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 	irq_spinlock_lock(&tasks_lock, true);
 
 	/* Count the tasks */
-	size_t count = odict_count(&tasks);
+	size_t count = task_count();
 
 	if (count == 0) {
 		/* No tasks found (strange) */
@@ -270,10 +270,8 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 
 	/* Gather the statistics for each task */
 	size_t i = 0;
-	odlink_t *odlink = odict_first(&tasks);
-	while (odlink != NULL) {
-		task_t *task = odict_get_instance(odlink, task_t, ltasks);
-
+	task_t *task = task_first();
+	while (task != NULL) {
 		/* Interrupts are already disabled */
 		irq_spinlock_lock(&(task->lock), false);
 
@@ -282,7 +280,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 		i++;
 
 		irq_spinlock_unlock(&(task->lock), false);
-		odlink = odict_next(odlink, &tasks);
+		task = task_next(task);
 	}
 
 	irq_spinlock_unlock(&tasks_lock, true);
@@ -335,7 +333,7 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 	irq_spinlock_lock(&threads_lock, true);
 
 	/* Count the threads */
-	size_t count = odict_count(&threads);
+	size_t count = thread_count();
 
 	if (count == 0) {
 		/* No threads found (strange) */
@@ -361,11 +359,8 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 	/* Walk tha thread tree again to gather the statistics */
 	size_t i = 0;
 
-	odlink_t *odlink = odict_first(&threads);
-	while (odlink != NULL) {
-		thread_t *thread = odict_get_instance(odlink, thread_t,
-		    lthreads);
-
+	thread_t *thread = thread_first();
+	while (thread != NULL) {
 		/* Interrupts are already disabled */
 		irq_spinlock_lock(&thread->lock, false);
 
@@ -375,7 +370,7 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 
 		irq_spinlock_unlock(&thread->lock, false);
 
-		odlink = odict_next(odlink, &threads);
+		thread = thread_next(thread);
 	}
 
 	irq_spinlock_unlock(&threads_lock, true);

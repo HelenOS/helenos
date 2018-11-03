@@ -42,7 +42,7 @@
 #define THREAD_RUNS  1
 #define THREADS      8
 
-static atomic_t thread_count;
+static atomic_t thread_cnt;
 static atomic_t thread_fail;
 
 static void falloc(void *arg)
@@ -55,7 +55,7 @@ static void falloc(void *arg)
 		TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 		    "Unable to allocate frames\n", THREAD->tid, CPU->id);
 		atomic_inc(&thread_fail);
-		atomic_dec(&thread_count);
+		atomic_dec(&thread_cnt);
 		return;
 	}
 
@@ -109,12 +109,12 @@ cleanup:
 
 	TPRINTF("Thread #%" PRIu64 " (cpu%u): Exiting\n",
 	    THREAD->tid, CPU->id);
-	atomic_dec(&thread_count);
+	atomic_dec(&thread_cnt);
 }
 
 const char *test_falloc2(void)
 {
-	atomic_store(&thread_count, THREADS);
+	atomic_store(&thread_cnt, THREADS);
 	atomic_store(&thread_fail, 0);
 
 	for (unsigned int i = 0; i < THREADS; i++) {
@@ -127,9 +127,9 @@ const char *test_falloc2(void)
 		thread_ready(thrd);
 	}
 
-	while (atomic_load(&thread_count) > 0) {
+	while (atomic_load(&thread_cnt) > 0) {
 		TPRINTF("Threads left: %zu\n",
-		    atomic_load(&thread_count));
+		    atomic_load(&thread_cnt));
 		thread_sleep(1);
 	}
 

@@ -771,7 +771,6 @@ static void thread_print(thread_t *thread, bool additional)
  */
 void thread_print_list(bool additional)
 {
-	odlink_t *odlink;
 	thread_t *thread;
 
 	/* Messing with thread structures, avoid deadlock */
@@ -795,11 +794,10 @@ void thread_print_list(bool additional)
 		    " [task            ] [ctn]\n");
 #endif
 
-	odlink = odict_first(&threads);
-	while (odlink != NULL) {
-		thread = odict_get_instance(odlink, thread_t, lthreads);
+	thread = thread_first();
+	while (thread != NULL) {
 		thread_print(thread, additional);
-		odlink = odict_next(odlink, &threads);
+		thread = thread_next(thread);
 	}
 
 	irq_spinlock_unlock(&threads_lock, true);
@@ -859,22 +857,69 @@ void thread_update_accounting(bool user)
  */
 thread_t *thread_find_by_id(thread_id_t thread_id)
 {
-	odlink_t *odlink;
 	thread_t *thread;
 
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&threads_lock));
 
-	odlink = odict_first(&threads);
-	while (odlink != NULL) {
-		thread = odict_get_instance(odlink, thread_t, lthreads);
+	thread = thread_first();
+	while (thread != NULL) {
 		if (thread->tid == thread_id)
 			return thread;
 
-		odlink = odict_next(odlink, &threads);
+		thread = thread_next(thread);
 	}
 
 	return NULL;
+}
+
+/** Get count of threads.
+ *
+ * @return Number of threads in the system
+ */
+size_t thread_count(void)
+{
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&threads_lock));
+
+	return odict_count(&threads);
+}
+
+/** Get first thread.
+ *
+ * @return Pointer to first thread or @c NULL if there are none.
+ */
+thread_t *thread_first(void)
+{
+	odlink_t *odlink;
+
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&threads_lock));
+
+	odlink = odict_first(&threads);
+	if (odlink == NULL)
+		return NULL;
+
+	return odict_get_instance(odlink, thread_t, lthreads);
+}
+
+/** Get next thread.
+ *
+ * @param cur Current thread
+ * @return Pointer to next thread or @c NULL if there are no more threads.
+ */
+thread_t *thread_next(thread_t *cur)
+{
+	odlink_t *odlink;
+
+	assert(interrupts_disabled());
+	assert(irq_spinlock_locked(&threads_lock));
+
+	odlink = odict_next(&cur->lthreads, &threads);
+	if (odlink == NULL)
+		return NULL;
+
+	return odict_get_instance(odlink, thread_t, lthreads);
 }
 
 #ifdef CONFIG_UDEBUG

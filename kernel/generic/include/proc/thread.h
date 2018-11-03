@@ -260,6 +260,9 @@ extern void thread_detach(thread_t *);
 extern void thread_print_list(bool);
 extern void thread_destroy(thread_t *, bool);
 extern thread_t *thread_find_by_id(thread_id_t);
+extern size_t thread_count(void);
+extern thread_t *thread_first(void);
+extern thread_t *thread_next(thread_t *);
 extern void thread_update_accounting(bool);
 extern bool thread_exists(thread_t *);
 
