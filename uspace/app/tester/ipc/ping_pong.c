@@ -126,7 +126,7 @@ const char *test_ping_pong(void)
 		qd += d * d;
 	}
 
-	double stddev = qd; // XXX sqrt
+	double stddev = qd / (NUM_SAMPLES - 1); // XXX sqrt
 
 	TPRINTF("Average: %.0f rt/s Std.dev^2: %.0f rt/s Samples: %d\n",
 	    avg, stddev, NUM_SAMPLES);
