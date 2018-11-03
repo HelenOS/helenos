@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2010 Stanislav Kozina
  * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -122,24 +123,6 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
 	return ((void *) stats_cpus);
 }
 
-/** Count number of nodes in an AVL tree
- *
- * AVL tree walker for counting nodes.
- *
- * @param node AVL tree node (unused).
- * @param arg  Pointer to the counter (size_t).
- *
- * @param Always true (continue the walk).
- *
- */
-static bool avl_count_walker(avltree_node_t *node, void *arg)
-{
-	size_t *count = (size_t *) arg;
-	(*count)++;
-
-	return true;
-}
-
 /** Get the size of a virtual address space
  *
  * @param as Address space.
@@ -244,34 +227,6 @@ static void produce_stats_task(task_t *task, stats_task_t *stats_task)
 	stats_task->ipc_info = task->ipc_info;
 }
 
-/** Gather statistics of all tasks
- *
- * AVL task tree walker for gathering task statistics. Interrupts should
- * be already disabled while walking the tree.
- *
- * @param node AVL task tree node.
- * @param arg  Pointer to the iterator into the array of stats_task_t.
- *
- * @param Always true (continue the walk).
- *
- */
-static bool task_serialize_walker(avltree_node_t *node, void *arg)
-{
-	stats_task_t **iterator = (stats_task_t **) arg;
-	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
-
-	/* Interrupts are already disabled */
-	irq_spinlock_lock(&(task->lock), false);
-
-	/* Record the statistics and increment the iterator */
-	produce_stats_task(task, *iterator);
-	(*iterator)++;
-
-	irq_spinlock_unlock(&(task->lock), false);
-
-	return true;
-}
-
 /** Get task statistics
  *
  * @param item    Sysinfo item (unused).
@@ -289,9 +244,8 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 	/* Messing with task structures, avoid deadlock */
 	irq_spinlock_lock(&tasks_lock, true);
 
-	/* First walk the task tree to count the tasks */
-	size_t count = 0;
-	avltree_walk(&tasks_tree, avl_count_walker, (void *) &count);
+	/* Count the tasks */
+	size_t count = odict_count(&tasks);
 
 	if (count == 0) {
 		/* No tasks found (strange) */
@@ -314,9 +268,22 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 		return NULL;
 	}
 
-	/* Walk tha task tree again to gather the statistics */
-	stats_task_t *iterator = stats_tasks;
-	avltree_walk(&tasks_tree, task_serialize_walker, (void *) &iterator);
+	/* Gather the statistics for each task */
+	size_t i = 0;
+	odlink_t *odlink = odict_first(&tasks);
+	while (odlink != NULL) {
+		task_t *task = odict_get_instance(odlink, task_t, ltasks);
+
+		/* Interrupts are already disabled */
+		irq_spinlock_lock(&(task->lock), false);
+
+		/* Record the statistics and increment the index */
+		produce_stats_task(task, &stats_tasks[i]);
+		i++;
+
+		irq_spinlock_unlock(&(task->lock), false);
+		odlink = odict_next(odlink, &tasks);
+	}
 
 	irq_spinlock_unlock(&tasks_lock, true);
 
@@ -350,34 +317,6 @@ static void produce_stats_thread(thread_t *thread, stats_thread_t *stats_thread)
 		stats_thread->on_cpu = false;
 }
 
-/** Gather statistics of all threads
- *
- * AVL three tree walker for gathering thread statistics. Interrupts should
- * be already disabled while walking the tree.
- *
- * @param node AVL thread tree node.
- * @param arg  Pointer to the iterator into the array of thread statistics.
- *
- * @param Always true (continue the walk).
- *
- */
-static bool thread_serialize_walker(avltree_node_t *node, void *arg)
-{
-	stats_thread_t **iterator = (stats_thread_t **) arg;
-	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
-
-	/* Interrupts are already disabled */
-	irq_spinlock_lock(&thread->lock, false);
-
-	/* Record the statistics and increment the iterator */
-	produce_stats_thread(thread, *iterator);
-	(*iterator)++;
-
-	irq_spinlock_unlock(&thread->lock, false);
-
-	return true;
-}
-
 /** Get thread statistics
  *
  * @param item    Sysinfo item (unused).
@@ -395,9 +334,8 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 	/* Messing with threads structures, avoid deadlock */
 	irq_spinlock_lock(&threads_lock, true);
 
-	/* First walk the thread tree to count the threads */
-	size_t count = 0;
-	avltree_walk(&threads_tree, avl_count_walker, (void *) &count);
+	/* Count the threads */
+	size_t count = odict_count(&threads);
 
 	if (count == 0) {
 		/* No threads found (strange) */
@@ -421,8 +359,24 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 	}
 
 	/* Walk tha thread tree again to gather the statistics */
-	stats_thread_t *iterator = stats_threads;
-	avltree_walk(&threads_tree, thread_serialize_walker, (void *) &iterator);
+	size_t i = 0;
+
+	odlink_t *odlink = odict_first(&threads);
+	while (odlink != NULL) {
+		thread_t *thread = odict_get_instance(odlink, thread_t,
+		    lthreads);
+
+		/* Interrupts are already disabled */
+		irq_spinlock_lock(&thread->lock, false);
+
+		/* Record the statistics and increment the index */
+		produce_stats_thread(thread, &stats_threads[i]);
+		i++;
+
+		irq_spinlock_unlock(&thread->lock, false);
+
+		odlink = odict_next(odlink, &threads);
+	}
 
 	irq_spinlock_unlock(&threads_lock, true);
 

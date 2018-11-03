@@ -160,7 +160,6 @@ INSTRUMENTATION = -finstrument-functions
 #
 
 GENERIC_SOURCES = \
-	generic/src/adt/avl.c \
 	generic/src/adt/bitmap.c \
 	generic/src/adt/btree.c \
 	generic/src/adt/cht.c \
@@ -285,7 +284,6 @@ ifeq ($(CONFIG_TEST),y)
 		test/atomic/atomic1.c \
 		test/btree/btree1.c \
 		test/cht/cht1.c \
-		test/avltree/avltree1.c \
 		test/fault/fault1.c \
 		test/mm/falloc1.c \
 		test/mm/falloc2.c \

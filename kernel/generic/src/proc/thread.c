@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,8 +52,8 @@
 #include <cpu.h>
 #include <str.h>
 #include <context.h>
-#include <adt/avl.h>
 #include <adt/list.h>
+#include <adt/odict.h>
 #include <time/clock.h>
 #include <time/timeout.h>
 #include <time/delay.h>
@@ -79,25 +80,21 @@ const char *thread_states[] = {
 	"Lingering"
 };
 
-typedef struct {
-	thread_id_t thread_id;
-	thread_t *thread;
-} thread_iterator_t;
-
-/** Lock protecting the threads_tree AVL tree.
+/** Lock protecting the @c threads ordered dictionary .
  *
  * For locking rules, see declaration thereof.
- *
  */
 IRQ_SPINLOCK_INITIALIZE(threads_lock);
 
-/** AVL tree of all threads.
+/** Ordered dictionary of all threads by their address (i.e. pointer to
+ * the thread_t structure).
  *
- * When a thread is found in the threads_tree AVL tree, it is guaranteed to
- * exist as long as the threads_lock is held.
+ * When a thread is found in the @c threads ordered dictionary, it is
+ * guaranteed to exist as long as the @c threads_lock is held.
  *
+ * Members are of type thread_t.
  */
-avltree_t threads_tree;
+odict_t threads;
 
 IRQ_SPINLOCK_STATIC_INITIALIZE(tidlock);
 static thread_id_t last_tid = 0;
@@ -107,6 +104,9 @@ static slab_cache_t *thread_cache;
 #ifdef CONFIG_FPU
 slab_cache_t *fpu_context_cache;
 #endif
+
+static void *threads_getkey(odlink_t *);
+static int threads_cmp(void *, void *);
 
 /** Thread wrapper.
  *
@@ -251,7 +251,7 @@ void thread_init(void)
 	    sizeof(fpu_context_t), FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
 
-	avltree_create(&threads_tree);
+	odict_initialize(&threads, threads_getkey, threads_cmp);
 }
 
 /** Wire thread to the given CPU
@@ -403,8 +403,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->fpu_context_exists = false;
 	thread->fpu_context_engaged = false;
 
-	avltree_node_initialize(&thread->threads_tree_node);
-	thread->threads_tree_node.key = (uintptr_t) thread;
+	odlink_initialize(&thread->lthreads);
 
 #ifdef CONFIG_UDEBUG
 	/* Initialize debugging stuff */
@@ -446,7 +445,7 @@ void thread_destroy(thread_t *thread, bool irq_res)
 
 	irq_spinlock_pass(&thread->lock, &threads_lock);
 
-	avltree_delete(&threads_tree, &thread->threads_tree_node);
+	odict_remove(&thread->lthreads);
 
 	irq_spinlock_pass(&threads_lock, &thread->task->lock);
 
@@ -491,9 +490,9 @@ void thread_attach(thread_t *thread, task_t *task)
 	irq_spinlock_pass(&task->lock, &threads_lock);
 
 	/*
-	 * Register this thread in the system-wide list.
+	 * Register this thread in the system-wide dictionary.
 	 */
-	avltree_insert(&threads_tree, &thread->threads_tree_node);
+	odict_insert(&thread->lthreads, &threads, NULL);
 	irq_spinlock_unlock(&threads_lock, true);
 }
 
@@ -709,11 +708,8 @@ void thread_usleep(uint32_t usec)
 	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING, NULL);
 }
 
-static bool thread_walker(avltree_node_t *node, void *arg)
+static void thread_print(thread_t *thread, bool additional)
 {
-	bool *additional = (bool *) arg;
-	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
-
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
 	order_suffix(thread->ucycles, &ucycles, &usuffix);
@@ -726,7 +722,7 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 		name = thread->name;
 
 #ifdef __32_BITS__
-	if (*additional)
+	if (additional)
 		printf("%-8" PRIu64 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
 		    thread->tid, thread->thread_code, thread->kstack,
 		    ucycles, usuffix, kcycles, ksuffix);
@@ -737,7 +733,7 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 #endif
 
 #ifdef __64_BITS__
-	if (*additional)
+	if (additional)
 		printf("%-8" PRIu64 " %18p %18p\n"
 		    "         %9" PRIu64 "%c %9" PRIu64 "%c ",
 		    thread->tid, thread->thread_code, thread->kstack,
@@ -748,7 +744,7 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 		    thread->task, thread->task->container);
 #endif
 
-	if (*additional) {
+	if (additional) {
 		if (thread->cpu)
 			printf("%-5u", thread->cpu->id);
 		else
@@ -766,8 +762,6 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 
 		printf("\n");
 	}
-
-	return true;
 }
 
 /** Print list of threads debug info
@@ -777,6 +771,9 @@ static bool thread_walker(avltree_node_t *node, void *arg)
  */
 void thread_print_list(bool additional)
 {
+	odlink_t *odlink;
+	thread_t *thread;
+
 	/* Messing with thread structures, avoid deadlock */
 	irq_spinlock_lock(&threads_lock, true);
 
@@ -798,7 +795,12 @@ void thread_print_list(bool additional)
 		    " [task            ] [ctn]\n");
 #endif
 
-	avltree_walk(&threads_tree, thread_walker, &additional);
+	odlink = odict_first(&threads);
+	while (odlink != NULL) {
+		thread = odict_get_instance(odlink, thread_t, lthreads);
+		thread_print(thread, additional);
+		odlink = odict_next(odlink, &threads);
+	}
 
 	irq_spinlock_unlock(&threads_lock, true);
 }
@@ -818,10 +820,8 @@ bool thread_exists(thread_t *thread)
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&threads_lock));
 
-	avltree_node_t *node =
-	    avltree_search(&threads_tree, (avltree_key_t) ((uintptr_t) thread));
-
-	return node != NULL;
+	odlink_t *odlink = odict_find_eq(&threads, thread, NULL);
+	return odlink != NULL;
 }
 
 /** Update accounting of current thread.
@@ -847,20 +847,6 @@ void thread_update_accounting(bool user)
 	THREAD->last_cycle = time;
 }
 
-static bool thread_search_walker(avltree_node_t *node, void *arg)
-{
-	thread_t *thread =
-	    (thread_t *) avltree_get_instance(node, thread_t, threads_tree_node);
-	thread_iterator_t *iterator = (thread_iterator_t *) arg;
-
-	if (thread->tid == iterator->thread_id) {
-		iterator->thread = thread;
-		return false;
-	}
-
-	return true;
-}
-
 /** Find thread structure corresponding to thread ID.
  *
  * The threads_lock must be already held by the caller of this function and
@@ -873,17 +859,22 @@ static bool thread_search_walker(avltree_node_t *node, void *arg)
  */
 thread_t *thread_find_by_id(thread_id_t thread_id)
 {
+	odlink_t *odlink;
+	thread_t *thread;
+
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&threads_lock));
 
-	thread_iterator_t iterator;
+	odlink = odict_first(&threads);
+	while (odlink != NULL) {
+		thread = odict_get_instance(odlink, thread_t, lthreads);
+		if (thread->tid == thread_id)
+			return thread;
 
-	iterator.thread_id = thread_id;
-	iterator.thread = NULL;
+		odlink = odict_next(odlink, &threads);
+	}
 
-	avltree_walk(&threads_tree, thread_search_walker, (void *) &iterator);
-
-	return iterator.thread;
+	return NULL;
 }
 
 #ifdef CONFIG_UDEBUG
@@ -932,6 +923,33 @@ void thread_stack_trace(thread_id_t thread_id)
 }
 
 #endif /* CONFIG_UDEBUG */
+
+/** Get key function for the @c threads ordered dictionary.
+ *
+ * @param odlink Link
+ * @return Pointer to thread structure cast as 'void *'
+ */
+static void *threads_getkey(odlink_t *odlink)
+{
+	thread_t *thread = odict_get_instance(odlink, thread_t, lthreads);
+	return (void *) thread;
+}
+
+/** Key comparison function for the @c threads ordered dictionary.
+ *
+ * @param a Pointer to thread A
+ * @param b Pointer to thread B
+ * @return -1, 0, 1 iff pointer to A is less than, equal to, greater than B
+ */
+static int threads_cmp(void *a, void *b)
+{
+	if (a > b)
+		return -1;
+	else if (a == b)
+		return 0;
+	else
+		return +1;
+}
 
 /** Process syscall to create new thread.
  *

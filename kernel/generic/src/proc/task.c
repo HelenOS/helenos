@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,9 +47,9 @@
 #include <synch/waitq.h>
 #include <arch.h>
 #include <barrier.h>
-#include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>
+#include <adt/odict.h>
 #include <cap/cap.h>
 #include <ipc/ipc.h>
 #include <ipc/ipcrsc.h>
@@ -60,13 +61,13 @@
 #include <syscall/copy.h>
 #include <macros.h>
 
-/** Spinlock protecting the tasks_tree AVL tree. */
+/** Spinlock protecting the @c tasks ordered dictionary. */
 IRQ_SPINLOCK_INITIALIZE(tasks_lock);
 
-/** AVL tree of active tasks.
+/** Ordered dictionary of active tasks.
  *
- * The task is guaranteed to exist after it was found in the tasks_tree as
- * long as:
+ * The task is guaranteed to exist after it was found in the @c tasks
+ * dictionary as long as:
  *
  * @li the tasks_lock is held,
  * @li the task's lock is held when task's lock is acquired before releasing
@@ -74,7 +75,7 @@ IRQ_SPINLOCK_INITIALIZE(tasks_lock);
  * @li the task's refcount is greater than 0
  *
  */
-avltree_t tasks_tree;
+odict_t tasks;
 
 static task_id_t task_counter = 0;
 
@@ -83,7 +84,10 @@ static slab_cache_t *task_cache;
 /* Forward declarations. */
 static void task_kill_internal(task_t *);
 static errno_t tsk_constructor(void *, unsigned int);
-static size_t tsk_destructor(void *obj);
+static size_t tsk_destructor(void *);
+
+static void *tasks_getkey(odlink_t *);
+static int tasks_cmp(void *, void *);
 
 /** Initialize kernel tasks support.
  *
@@ -91,34 +95,9 @@ static size_t tsk_destructor(void *obj);
 void task_init(void)
 {
 	TASK = NULL;
-	avltree_create(&tasks_tree);
+	odict_initialize(&tasks, tasks_getkey, tasks_cmp);
 	task_cache = slab_cache_create("task_t", sizeof(task_t), 0,
 	    tsk_constructor, tsk_destructor, 0);
-}
-
-/** Task finish walker.
- *
- * The idea behind this walker is to kill and count all tasks different from
- * TASK.
- *
- */
-static bool task_done_walker(avltree_node_t *node, void *arg)
-{
-	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
-	size_t *cnt = (size_t *) arg;
-
-	if (task != TASK) {
-		(*cnt)++;
-
-#ifdef CONFIG_DEBUG
-		printf("[%" PRIu64 "] ", task->taskid);
-#endif
-
-		task_kill_internal(task);
-	}
-
-	/* Continue the walk */
-	return true;
 }
 
 /** Kill all tasks except the current task.
@@ -127,6 +106,8 @@ static bool task_done_walker(avltree_node_t *node, void *arg)
 void task_done(void)
 {
 	size_t tasks_left;
+	odlink_t *odlink;
+	task_t *task;
 
 	if (ipc_box_0) {
 		task_t *task_0 = ipc_box_0->task;
@@ -143,10 +124,24 @@ void task_done(void)
 #ifdef CONFIG_DEBUG
 		printf("Killing tasks... ");
 #endif
-
 		irq_spinlock_lock(&tasks_lock, true);
 		tasks_left = 0;
-		avltree_walk(&tasks_tree, task_done_walker, &tasks_left);
+
+		odlink = odict_first(&tasks);
+		while (odlink != NULL) {
+			task = odict_get_instance(odlink, task_t, ltasks);
+
+			if (task != TASK) {
+				tasks_left++;
+#ifdef CONFIG_DEBUG
+				printf("[%" PRIu64 "] ", task->taskid);
+#endif
+				task_kill_internal(task);
+			}
+
+			odlink = odict_next(odlink, &tasks);
+		}
+
 		irq_spinlock_unlock(&tasks_lock, true);
 
 		thread_sleep(1);
@@ -268,9 +263,8 @@ task_t *task_create(as_t *as, const char *name)
 	irq_spinlock_lock(&tasks_lock, true);
 
 	task->taskid = ++task_counter;
-	avltree_node_initialize(&task->tasks_tree_node);
-	task->tasks_tree_node.key = task->taskid;
-	avltree_insert(&tasks_tree, &task->tasks_tree_node);
+	odlink_initialize(&task->ltasks);
+	odict_insert(&task->ltasks, &tasks, NULL);
 
 	irq_spinlock_unlock(&tasks_lock, true);
 
@@ -288,7 +282,7 @@ void task_destroy(task_t *task)
 	 * Remove the task from the task B+tree.
 	 */
 	irq_spinlock_lock(&tasks_lock, true);
-	avltree_delete(&tasks_tree, &task->tasks_tree_node);
+	odict_remove(&task->ltasks);
 	irq_spinlock_unlock(&tasks_lock, true);
 
 	/*
@@ -450,11 +444,9 @@ task_t *task_find_by_id(task_id_t id)
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&tasks_lock));
 
-	avltree_node_t *node =
-	    avltree_search(&tasks_tree, (avltree_key_t) id);
-
-	if (node)
-		return avltree_get_instance(node, task_t, tasks_tree_node);
+	odlink_t *odlink = odict_find_eq(&tasks, &id, NULL);
+	if (odlink != NULL)
+		return odict_get_instance(odlink, task_t, ltasks);
 
 	return NULL;
 }
@@ -603,10 +595,8 @@ sys_errno_t sys_task_exit(sysarg_t notify)
 	return EOK;
 }
 
-static bool task_print_walker(avltree_node_t *node, void *arg)
+static void task_print(task_t *task, bool additional)
 {
-	bool *additional = (bool *) arg;
-	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
 	irq_spinlock_lock(&task->lock, false);
 
 	uint64_t ucycles;
@@ -617,7 +607,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	order_suffix(kcycles, &kcycles, &ksuffix);
 
 #ifdef __32_BITS__
-	if (*additional)
+	if (additional)
 		printf("%-8" PRIu64 " %9zu", task->taskid,
 		    atomic_load(&task->refcount));
 	else
@@ -628,7 +618,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #endif
 
 #ifdef __64_BITS__
-	if (*additional)
+	if (additional)
 		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c "
 		    "%9zu\n", task->taskid, ucycles, usuffix, kcycles,
 		    ksuffix, atomic_load(&task->refcount));
@@ -638,7 +628,6 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #endif
 
 	irq_spinlock_unlock(&task->lock, false);
-	return true;
 }
 
 /** Print task list
@@ -668,9 +657,47 @@ void task_print_list(bool additional)
 		    " [as              ]\n");
 #endif
 
-	avltree_walk(&tasks_tree, task_print_walker, &additional);
+	odlink_t *odlink;
+	task_t *task;
+
+	odlink = odict_first(&tasks);
+	while (odlink != NULL) {
+		task = odict_get_instance(odlink, task_t, ltasks);
+		task_print(task, additional);
+		odlink = odict_next(odlink, &tasks);
+	}
 
 	irq_spinlock_unlock(&tasks_lock, true);
+}
+
+/** Get key function for the @c tasks ordered dictionary.
+ *
+ * @param odlink Link
+ * @return Pointer to task ID cast as 'void *'
+ */
+static void *tasks_getkey(odlink_t *odlink)
+{
+	task_t *task = odict_get_instance(odlink, task_t, ltasks);
+	return (void *) &task->taskid;
+}
+
+/** Key comparison function for the @c tasks ordered dictionary.
+ *
+ * @param a Pointer to thread A ID
+ * @param b Pointer to thread B ID
+ * @return -1, 0, 1 iff ID A is less than, equal to, greater than B
+ */
+static int tasks_cmp(void *a, void *b)
+{
+	task_id_t ida = *(task_id_t *)a;
+	task_id_t idb = *(task_id_t *)b;
+
+	if (ida < idb)
+		return -1;
+	else if (ida == idb)
+		return 0;
+	else
+		return +1;
 }
 
 /** @}

@@ -1,6 +1,0 @@
-{
-	"avltree1",
-	"Test AVL tree operations",
-	&test_avltree1,
-	true
-},
