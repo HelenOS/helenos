@@ -1024,43 +1024,62 @@ void __async_server_init(void)
 
 errno_t async_accept_0(ipc_call_t *call)
 {
-	return ipc_answer_5(call->cap_handle, EOK, 0, 0, 0, 0,
-	    async_get_label());
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+	return ipc_answer_5(chandle, EOK, 0, 0, 0, 0, async_get_label());
 }
 
 errno_t async_answer_0(ipc_call_t *call, errno_t retval)
 {
-	return ipc_answer_0(call->cap_handle, retval);
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+	return ipc_answer_0(chandle, retval);
 }
 
 errno_t async_answer_1(ipc_call_t *call, errno_t retval, sysarg_t arg1)
 {
-	return ipc_answer_1(call->cap_handle, retval, arg1);
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+	return ipc_answer_1(chandle, retval, arg1);
 }
 
 errno_t async_answer_2(ipc_call_t *call, errno_t retval, sysarg_t arg1,
     sysarg_t arg2)
 {
-	return ipc_answer_2(call->cap_handle, retval, arg1, arg2);
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+	return ipc_answer_2(chandle, retval, arg1, arg2);
 }
 
 errno_t async_answer_3(ipc_call_t *call, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3)
 {
-	return ipc_answer_3(call->cap_handle, retval, arg1, arg2, arg3);
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+	return ipc_answer_3(chandle, retval, arg1, arg2, arg3);
 }
 
 errno_t async_answer_4(ipc_call_t *call, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
-	return ipc_answer_4(call->cap_handle, retval, arg1, arg2, arg3, arg4);
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+	return ipc_answer_4(chandle, retval, arg1, arg2, arg3, arg4);
 }
 
 errno_t async_answer_5(ipc_call_t *call, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
-	return ipc_answer_5(call->cap_handle, retval, arg1, arg2, arg3, arg4,
-	    arg5);
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+	return ipc_answer_5(chandle, retval, arg1, arg2, arg3, arg4, arg5);
 }
 
 errno_t async_forward_fast(ipc_call_t *call, async_exch_t *exch,
@@ -1068,11 +1087,15 @@ errno_t async_forward_fast(ipc_call_t *call, async_exch_t *exch,
 {
 	assert(call);
 
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+
 	if (exch == NULL)
 		return ENOENT;
 
-	return ipc_forward_fast(call->cap_handle, exch->phone, imethod, arg1,
-	    arg2, mode);
+	return ipc_forward_fast(chandle, exch->phone, imethod, arg1, arg2,
+	    mode);
 }
 
 errno_t async_forward_slow(ipc_call_t *call, async_exch_t *exch,
@@ -1081,11 +1104,15 @@ errno_t async_forward_slow(ipc_call_t *call, async_exch_t *exch,
 {
 	assert(call);
 
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+
 	if (exch == NULL)
 		return ENOENT;
 
-	return ipc_forward_slow(call->cap_handle, exch->phone, imethod, arg1,
-	    arg2, arg3, arg4, arg5, mode);
+	return ipc_forward_slow(chandle, exch->phone, imethod, arg1, arg2, arg3,
+	    arg4, arg5, mode);
 }
 
 /** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
@@ -1158,7 +1185,11 @@ errno_t async_share_in_finalize(ipc_call_t *call, void *src, unsigned int flags)
 {
 	assert(call);
 
-	return ipc_answer_2(call->cap_handle, EOK, (sysarg_t) src, (sysarg_t) flags);
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+
+	return ipc_answer_2(chandle, EOK, (sysarg_t) src, (sysarg_t) flags);
 }
 
 /** Wrapper for receiving the IPC_M_SHARE_OUT calls using the async framework.
@@ -1210,7 +1241,11 @@ errno_t async_share_out_finalize(ipc_call_t *call, void **dst)
 {
 	assert(call);
 
-	return ipc_answer_2(call->cap_handle, EOK, (sysarg_t) __progsymbols.end,
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+
+	return ipc_answer_2(chandle, EOK, (sysarg_t) __progsymbols.end,
 	    (sysarg_t) dst);
 }
 
@@ -1261,8 +1296,11 @@ errno_t async_data_read_finalize(ipc_call_t *call, const void *src, size_t size)
 {
 	assert(call);
 
-	return ipc_answer_2(call->cap_handle, EOK, (sysarg_t) src,
-	    (sysarg_t) size);
+	cap_call_handle_t chandle = call->cap_handle;
+	assert(chandle != CAP_NIL);
+	call->cap_handle = CAP_NIL;
+
+	return ipc_answer_2(chandle, EOK, (sysarg_t) src, (sysarg_t) size);
 }
 
 /** Wrapper for forwarding any read request
