@@ -200,6 +200,7 @@ static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_call_t *icall)
 	if (rc != EOK) {
 		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
+		return;
 	}
 
 	async_answer_0(icall, rc);
