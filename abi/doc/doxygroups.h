@@ -14,6 +14,51 @@
  */
 
 /**
+ * @defgroup abi_abs32le abs32le
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_amd64 amd64
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_arm32 arm32
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_ia32 ia32
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_ia64 ia64
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_mips32 mips32
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_ppc32 ppc32
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_riscv5 riscv5
+ * @ingroup abi
+ */
+
+/**
+ * @defgroup abi_sparc64 sparc64
+ * @ingroup abi
+ */
+
+/**
  * @defgroup abi_genarch genarch
  * @ingroup abi
  */
