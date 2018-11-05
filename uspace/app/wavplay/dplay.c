@@ -95,7 +95,6 @@ static void playback_initialize(playback_t *pb, audio_pcm_sess_t *sess)
  */
 static void device_event_callback(ipc_call_t *icall, void *arg)
 {
-	async_accept_0(icall);
 	playback_t *pb = arg;
 	const size_t fragment_size = pb->buffer.size / DEFAULT_FRAGMENTS;
 
