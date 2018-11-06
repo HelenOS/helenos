@@ -92,8 +92,3 @@ For additional information about running HelenOS, see
 [UsersGuide/RunningInQEMU](http://www.helenos.org/wiki/UsersGuide/RunningInQEMU) or
 [UsersGuide/RunningInVirtualBox](http://www.helenos.org/wiki/UsersGuide/RunningInVirtualBox) or
 see the files in tools/conf.
-
-## License
-
-HelenOS is open source, free software. Its source code is available under
-the BSD license. Some third-party components are licensed under GPL.
