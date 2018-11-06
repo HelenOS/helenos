@@ -112,6 +112,7 @@ void __ubsan_handle_nonnull_return_v1(struct nonnull_return_data *data,
     struct source_location *loc);
 void __ubsan_handle_pointer_overflow(struct pointer_overflow_data *data,
     unsigned long base, unsigned long result);
+void __ubsan_handle_builtin_unreachable(struct unreachable_data *data);
 
 static void print_loc(const char *func, struct source_location *loc)
 {
@@ -250,6 +251,12 @@ void __ubsan_handle_pointer_overflow(struct pointer_overflow_data *data,
 
 void __ubsan_handle_type_mismatch_v1(struct type_mismatch_data_v1 *data,
     unsigned long ptr)
+{
+	print_loc(__func__, &data->loc);
+	ubsan_panic();
+}
+
+void __ubsan_handle_builtin_unreachable(struct unreachable_data *data)
 {
 	print_loc(__func__, &data->loc);
 	ubsan_panic();
