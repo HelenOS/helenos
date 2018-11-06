@@ -1464,11 +1464,11 @@ int as_page_fault(uintptr_t address, pf_access_t access, istate_t *istate)
 	return AS_PF_OK;
 
 page_fault:
-	if (THREAD->in_copy_from_uspace) {
+	if (THREAD && THREAD->in_copy_from_uspace) {
 		THREAD->in_copy_from_uspace = false;
 		istate_set_retaddr(istate,
 		    (uintptr_t) &memcpy_from_uspace_failover_address);
-	} else if (THREAD->in_copy_to_uspace) {
+	} else if (THREAD && THREAD->in_copy_to_uspace) {
 		THREAD->in_copy_to_uspace = false;
 		istate_set_retaddr(istate,
 		    (uintptr_t) &memcpy_to_uspace_failover_address);
