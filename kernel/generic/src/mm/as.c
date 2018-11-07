@@ -140,12 +140,6 @@ void as_init(void)
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
 	if (!AS_KERNEL)
 		panic("Cannot create kernel address space.");
-
-	/*
-	 * Make sure the kernel address space
-	 * reference count never drops to zero.
-	 */
-	as_hold(AS_KERNEL);
 }
 
 /** Create address space.

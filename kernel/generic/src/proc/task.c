@@ -253,11 +253,6 @@ task_t *task_create(as_t *as, const char *name)
 
 	futex_task_init(task);
 
-	/*
-	 * Get a reference to the address space.
-	 */
-	as_hold(task->as);
-
 	irq_spinlock_lock(&tasks_lock, true);
 
 	task->taskid = ++task_counter;
