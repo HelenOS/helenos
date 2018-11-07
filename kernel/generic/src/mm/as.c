@@ -330,7 +330,7 @@ NO_TRACE static bool area_is_conflicting(uintptr_t addr,
 	assert((addr % PAGE_SIZE) == 0);
 
 	size_t gsize = P2SZ(count);
-    	size_t agsize = P2SZ(area->pages);
+	size_t agsize = P2SZ(area->pages);
 
 	/*
 	 * A guarded area has one guard page before, one page after.
