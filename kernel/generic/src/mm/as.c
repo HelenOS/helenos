@@ -323,23 +323,30 @@ as_area_t *as_area_next(as_area_t *cur)
  * @param area    Area against which we are testing.
  *
  * @return True if the two areas conflict, false otherwise.
- *
  */
 NO_TRACE static bool area_is_conflicting(uintptr_t addr,
     size_t count, bool guarded, as_area_t *area)
 {
 	assert((addr % PAGE_SIZE) == 0);
 
-	/* Add guard page size unless area is at the end of VA domain */
 	size_t gsize = P2SZ(count);
-	if (guarded && !overflows(addr, P2SZ(count)))
-		gsize += PAGE_SIZE;
+    	size_t agsize = P2SZ(area->pages);
 
-	/* Add guard page size unless area is at the end of VA domain */
-	size_t agsize = P2SZ(area->pages);
-	if ((area->flags & AS_AREA_GUARD) != 0 &&
-	    !overflows(area->base, P2SZ(area->pages)))
-		agsize += PAGE_SIZE;
+	/*
+	 * A guarded area has one guard page before, one page after.
+	 * What we do here is: if either area is guarded, we add
+	 * PAGE_SIZE to the size of both areas. That guarantees
+	 * they will be spaced at least one page apart.
+	 */
+	if (guarded || (area->flags & AS_AREA_GUARD) != 0) {
+		/* Add guard page size unless area is at the end of VA domain */
+		if (!overflows(addr, P2SZ(count)))
+			gsize += PAGE_SIZE;
+
+		/* Add guard page size unless area is at the end of VA domain */
+		if (!overflows(area->base, P2SZ(area->pages)))
+			agsize += PAGE_SIZE;
+	}
 
 	return overlaps(addr, gsize, area->base, agsize);
 
