@@ -66,7 +66,6 @@ DIRS = \
 	app/netecho \
 	app/nterm \
 	app/redir \
-	app/rcutest \
 	app/sbi \
 	app/sportdmp \
 	app/stats \
