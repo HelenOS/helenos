@@ -78,7 +78,6 @@ GENERIC_SOURCES = \
 	generic/l18n/langs.c \
 	generic/pcb.c \
 	generic/smc.c \
-	generic/smp_memory_barrier.c \
 	generic/task.c \
 	generic/imath.c \
 	generic/inet/addr.c \
