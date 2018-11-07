@@ -162,7 +162,6 @@ INSTRUMENTATION = -finstrument-functions
 GENERIC_SOURCES = \
 	generic/src/adt/bitmap.c \
 	generic/src/adt/btree.c \
-	generic/src/adt/cht.c \
 	generic/src/adt/hash_table.c \
 	generic/src/adt/list.c \
 	generic/src/adt/odict.c \
@@ -228,8 +227,6 @@ GENERIC_SOURCES = \
 	generic/src/synch/smc.c \
 	generic/src/synch/waitq.c \
 	generic/src/synch/futex.c \
-	generic/src/synch/workqueue.c \
-	generic/src/synch/rcu.c \
 	generic/src/smp/ipi.c \
 	generic/src/smp/smp.c \
 	generic/src/smp/smp_call.c \
@@ -282,7 +279,6 @@ ifeq ($(CONFIG_TEST),y)
 		test/test.c \
 		test/atomic/atomic1.c \
 		test/btree/btree1.c \
-		test/cht/cht1.c \
 		test/fault/fault1.c \
 		test/mm/falloc1.c \
 		test/mm/falloc2.c \
@@ -291,9 +287,6 @@ ifeq ($(CONFIG_TEST),y)
 		test/mm/slab2.c \
 		test/synch/semaphore1.c \
 		test/synch/semaphore2.c \
-		test/synch/workqueue2.c \
-		test/synch/workqueue3.c \
-		test/synch/rcu1.c \
 		test/print/print1.c \
 		test/print/print2.c \
 		test/print/print3.c \

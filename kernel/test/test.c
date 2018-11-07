@@ -41,7 +41,6 @@ bool test_quiet;
 test_t tests[] = {
 #include <atomic/atomic1.def>
 #include <btree/btree1.def>
-#include <cht/cht1.def>
 #include <debug/mips1.def>
 #include <fault/fault1.def>
 #include <mm/falloc1.def>
@@ -51,9 +50,6 @@ test_t tests[] = {
 #include <mm/slab2.def>
 #include <synch/semaphore1.def>
 #include <synch/semaphore2.def>
-#include <synch/rcu1.def>
-#include <synch/workqueue2.def>
-#include <synch/workqueue3.def>
 #include <print/print1.def>
 #include <print/print2.def>
 #include <print/print3.def>

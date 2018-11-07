@@ -77,7 +77,6 @@
 #include <mm/reserve.h>
 #include <synch/waitq.h>
 #include <synch/futex.h>
-#include <synch/workqueue.h>
 #include <smp/smp_call.h>
 #include <arch/arch.h>
 #include <arch.h>
@@ -274,7 +273,6 @@ void main_bsp_separated_stack(void)
 	ARCH_OP(post_cpu_init);
 
 	smp_call_init();
-	workq_global_init();
 	clock_counter_init();
 	timeout_init();
 	scheduler_init();

@@ -1,6 +1,0 @@
-{
-	"workqueue3quit",
-	"Global work queue test, exits early",
-	&test_workqueue3quit,
-	true
-},

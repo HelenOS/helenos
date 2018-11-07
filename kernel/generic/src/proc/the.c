@@ -59,9 +59,6 @@ void current_initialize(current_t *the)
 	the->task = NULL;
 	the->as = NULL;
 	the->magic = MAGIC;
-#ifdef RCU_PREEMPT_A
-	the->rcu_nesting = 0;
-#endif
 }
 
 /** Copy CURRENT structure

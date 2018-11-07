@@ -47,8 +47,6 @@
 #include <arch.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
-#include <synch/workqueue.h>
-#include <synch/rcu.h>
 #include <cpu.h>
 #include <str.h>
 #include <context.h>
@@ -68,6 +66,7 @@
 #include <main/uinit.h>
 #include <syscall/copy.h>
 #include <errno.h>
+#include <debug.h>
 
 /** Thread states */
 const char *thread_states[] = {
@@ -271,7 +270,6 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
 static void before_thread_is_ready(thread_t *thread)
 {
 	assert(irq_spinlock_locked(&thread->lock));
-	workq_before_thread_is_ready(thread);
 }
 
 /** Make thread ready
@@ -398,8 +396,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 
 	thread->task = task;
 
-	thread->workq = NULL;
-
 	thread->fpu_context_exists = false;
 	thread->fpu_context_engaged = false;
 
@@ -413,8 +409,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 
 	/* Might depend on previous initialization */
 	thread_create_arch(thread);
-
-	rcu_thread_init(thread);
 
 	if ((flags & THREAD_FLAG_NOATTACH) != THREAD_FLAG_NOATTACH)
 		thread_attach(thread, task);

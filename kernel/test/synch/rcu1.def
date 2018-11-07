@@ -1,6 +1,0 @@
-{
-	"rcu1",
-	"Basic RCU test",
-	&test_rcu1,
-	true
-},

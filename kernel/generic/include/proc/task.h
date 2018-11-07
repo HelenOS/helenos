@@ -42,8 +42,6 @@
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/futex.h>
-#include <synch/workqueue.h>
-#include <adt/cht.h>
 #include <adt/list.h>
 #include <adt/odict.h>
 #include <security/perm.h>

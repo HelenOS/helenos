@@ -37,7 +37,6 @@
 
 #include <mm/tlb.h>
 #include <synch/spinlock.h>
-#include <synch/rcu_types.h>
 #include <proc/scheduler.h>
 #include <arch/cpu.h>
 #include <arch/context.h>
@@ -102,9 +101,6 @@ typedef struct cpu {
 	 */
 	SPINLOCK_DECLARE(smp_calls_lock);
 	list_t smp_pending_calls;
-
-	/** RCU per-cpu data. Uses own locking. */
-	rcu_cpu_data_t rcu;
 
 	/**
 	 * Stack used by scheduler when there is no running thread.
