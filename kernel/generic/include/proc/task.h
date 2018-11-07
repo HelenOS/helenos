@@ -129,15 +129,10 @@ typedef struct task {
 	/** Architecture specific task data. */
 	task_arch_t arch;
 
-	struct futex_cache {
-		/** CHT mapping virtual addresses of futex variables to futex objects.*/
-		cht_t ht;
-		/** Serializes access to futex_list.*/
-		SPINLOCK_DECLARE(list_lock);
-		/** List of all futexes accesses by this task. */
-		list_t list;
-		work_t destroy_work;
-	} *futexes;
+	/** Serializes access to futex_list.*/
+	SPINLOCK_DECLARE(futex_list_lock);
+	/** List of all futexes accesses by this task. */
+	list_t futex_list;
 
 	/** Accumulated accounting. */
 	uint64_t ucycles;
