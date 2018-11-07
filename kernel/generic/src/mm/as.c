@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -110,6 +111,9 @@ LIST_INITIALIZE(inactive_as_with_asid_list);
 /** Kernel address space. */
 as_t *AS_KERNEL = NULL;
 
+static void *as_areas_getkey(odlink_t *);
+static int as_areas_cmp(void *, void *);
+
 NO_TRACE static errno_t as_constructor(void *obj, unsigned int flags)
 {
 	as_t *as = (as_t *) obj;
@@ -155,7 +159,7 @@ as_t *as_create(unsigned int flags)
 	as_t *as = (as_t *) slab_alloc(as_cache, 0);
 	(void) as_create_arch(as, 0);
 
-	btree_create(&as->as_area_btree);
+	odict_initialize(&as->as_areas, as_areas_getkey, as_areas_cmp);
 
 	if (flags & FLAG_AS_KERNEL)
 		as->asid = ASID_KERNEL;
@@ -229,22 +233,20 @@ retry:
 
 	/*
 	 * Destroy address space areas of the address space.
-	 * The B+tree must be walked carefully because it is
-	 * also being destroyed.
+	 * Need to start from the beginning each time since we are destroying
+	 * the areas.
 	 */
-	bool cond = true;
-	while (cond) {
-		assert(!list_empty(&as->as_area_btree.leaf_list));
-
-		btree_node_t *node =
-		    list_get_instance(list_first(&as->as_area_btree.leaf_list),
-		    btree_node_t, leaf_link);
-
-		if ((cond = node->keys))
-			as_area_destroy(as, node->key[0]);
+	as_area_t *area = as_area_first(as);
+	while (area != NULL) {
+		/*
+		 * XXX We already have as_area_t, but as_area_destroy will
+		 * have to search for it. This could be made faster.
+		 */
+		as_area_destroy(as, area->base);
+		area = as_area_first(as);
 	}
 
-	btree_destroy(&as->as_area_btree);
+	odict_finalize(&as->as_areas);
 
 #ifdef AS_PAGE_TABLE
 	page_table_destroy(as->genarch.page_table);
@@ -282,13 +284,82 @@ NO_TRACE void as_release(as_t *as)
 		as_destroy(as);
 }
 
+/** Return first address space area.
+ *
+ * @param as Address space
+ * @return First area in @a as (i.e. area with the lowest base address)
+ *         or @c NULL if there is none
+ */
+as_area_t *as_area_first(as_t *as)
+{
+	odlink_t *odlink = odict_first(&as->as_areas);
+	if (odlink == NULL)
+		return NULL;
+
+	return odict_get_instance(odlink, as_area_t, las_areas);
+}
+
+/** Return next address space area.
+ *
+ * @param cur Current area
+ * @return Next area in the same address space or @c NULL if @a cur is the
+ *         last area.
+ */
+as_area_t *as_area_next(as_area_t *cur)
+{
+	odlink_t *odlink = odict_next(&cur->las_areas, &cur->as->as_areas);
+	if (odlink == NULL)
+		return NULL;
+
+	return odict_get_instance(odlink, as_area_t, las_areas);
+}
+
+/** Determine if area with specified parameters would conflict with
+ * a specific existing address space area.
+ *
+ * @param addr    Starting virtual address of the area being tested.
+ * @param count   Number of pages in the area being tested.
+ * @param guarded True if the area being tested is protected by guard pages.
+ * @param area    Area against which we are testing.
+ *
+ * @return True if the two areas conflict, false otherwise.
+ */
+NO_TRACE static bool area_is_conflicting(uintptr_t addr,
+    size_t count, bool guarded, as_area_t *area)
+{
+	assert((addr % PAGE_SIZE) == 0);
+
+	size_t gsize = P2SZ(count);
+	size_t agsize = P2SZ(area->pages);
+
+	/*
+	 * A guarded area has one guard page before, one page after.
+	 * What we do here is: if either area is guarded, we add
+	 * PAGE_SIZE to the size of both areas. That guarantees
+	 * they will be spaced at least one page apart.
+	 */
+	if (guarded || (area->flags & AS_AREA_GUARD) != 0) {
+		/* Add guard page size unless area is at the end of VA domain */
+		if (!overflows(addr, P2SZ(count)))
+			gsize += PAGE_SIZE;
+
+		/* Add guard page size unless area is at the end of VA domain */
+		if (!overflows(area->base, P2SZ(area->pages)))
+			agsize += PAGE_SIZE;
+	}
+
+	return overlaps(addr, gsize, area->base, agsize);
+
+}
+
 /** Check area conflicts with other areas.
  *
  * @param as      Address space.
  * @param addr    Starting virtual address of the area being tested.
  * @param count   Number of pages in the area being tested.
  * @param guarded True if the area being tested is protected by guard pages.
- * @param avoid   Do not touch this area.
+ * @param avoid   Do not touch this area. I.e. this area is not considered
+ *                as presenting a conflict.
  *
  * @return True if there is no conflict, false otherwise.
  *
@@ -313,114 +384,51 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 		return false;
 
 	/*
-	 * The leaf node is found in O(log n), where n is proportional to
-	 * the number of address space areas belonging to as.
-	 * The check for conflicts is then attempted on the rightmost
-	 * record in the left neighbour, the leftmost record in the right
-	 * neighbour and all records in the leaf node itself.
+	 * To determine if we overlap with another area, we just need
+	 * to look at overlap with the last area with base address <=
+	 * to ours and on the first area with base address > than ours.
+	 *
+	 * First find last area with <= base address.
 	 */
-	btree_node_t *leaf;
-	as_area_t *area =
-	    (as_area_t *) btree_search(&as->as_area_btree, addr, &leaf);
-	if (area) {
-		if (area != avoid)
-			return false;
-	}
-
-	/* First, check the two border cases. */
-	btree_node_t *node =
-	    btree_leaf_node_left_neighbour(&as->as_area_btree, leaf);
-	if (node) {
-		area = (as_area_t *) node->value[node->keys - 1];
+	odlink_t *odlink = odict_find_leq(&as->as_areas, &addr, NULL);
+	if (odlink != NULL) {
+		as_area_t *area = odict_get_instance(odlink, as_area_t,
+		    las_areas);
 
 		if (area != avoid) {
 			mutex_lock(&area->lock);
-
-			/*
-			 * If at least one of the two areas are protected
-			 * by the AS_AREA_GUARD flag then we must be sure
-			 * that they are separated by at least one unmapped
-			 * page.
-			 */
-			int const gp = (guarded ||
-			    (area->flags & AS_AREA_GUARD)) ? 1 : 0;
-
-			/*
-			 * The area comes from the left neighbour node, which
-			 * means that there already are some areas in the leaf
-			 * node, which in turn means that adding gp is safe and
-			 * will not cause an integer overflow.
-			 */
-			if (overlaps(addr, P2SZ(count), area->base,
-			    P2SZ(area->pages + gp))) {
+			if (area_is_conflicting(addr, count, guarded, area)) {
 				mutex_unlock(&area->lock);
 				return false;
 			}
 
 			mutex_unlock(&area->lock);
 		}
+
+		/* Next area */
+		odlink = odict_next(odlink, &as->as_areas);
 	}
 
-	node = btree_leaf_node_right_neighbour(&as->as_area_btree, leaf);
-	if (node) {
-		area = (as_area_t *) node->value[0];
+	/*
+	 * Next area, if any, is the first with base > than our base address.
+	 * If there was no area with <= base, we need to look at the first area.
+	 */
+	if (odlink == NULL)
+		odlink = odict_first(&as->as_areas);
+
+	if (odlink != NULL) {
+		as_area_t *area = odict_get_instance(odlink, as_area_t,
+		    las_areas);
 
 		if (area != avoid) {
-			int gp;
-
 			mutex_lock(&area->lock);
-
-			gp = (guarded || (area->flags & AS_AREA_GUARD)) ? 1 : 0;
-			if (gp && overflows(addr, P2SZ(count))) {
-				/*
-				 * Guard page not needed if the supposed area
-				 * is adjacent to the end of the address space.
-				 * We already know that the following test is
-				 * going to fail...
-				 */
-				gp--;
-			}
-
-			if (overlaps(addr, P2SZ(count + gp), area->base,
-			    P2SZ(area->pages))) {
+			if (area_is_conflicting(addr, count, guarded, area)) {
 				mutex_unlock(&area->lock);
 				return false;
 			}
 
 			mutex_unlock(&area->lock);
 		}
-	}
-
-	/* Second, check the leaf node. */
-	btree_key_t i;
-	for (i = 0; i < leaf->keys; i++) {
-		area = (as_area_t *) leaf->value[i];
-		int agp;
-		int gp;
-
-		if (area == avoid)
-			continue;
-
-		mutex_lock(&area->lock);
-
-		gp = (guarded || (area->flags & AS_AREA_GUARD)) ? 1 : 0;
-		agp = gp;
-
-		/*
-		 * Sanitize the two possible unsigned integer overflows.
-		 */
-		if (gp && overflows(addr, P2SZ(count)))
-			gp--;
-		if (agp && overflows(area->base, P2SZ(area->pages)))
-			agp--;
-
-		if (overlaps(addr, P2SZ(count + gp), area->base,
-		    P2SZ(area->pages + agp))) {
-			mutex_unlock(&area->lock);
-			return false;
-		}
-
-		mutex_unlock(&area->lock);
 	}
 
 	/*
@@ -487,33 +495,30 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 	}
 
 	/* Eventually check the addresses behind each area */
-	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t, node) {
+	as_area_t *area = as_area_first(as);
+	while (area != NULL) {
+		mutex_lock(&area->lock);
 
-		for (btree_key_t i = 0; i < node->keys; i++) {
-			as_area_t *area = (as_area_t *) node->value[i];
+		addr = area->base + P2SZ(area->pages);
 
-			mutex_lock(&area->lock);
-
-			addr =
-			    ALIGN_UP(area->base + P2SZ(area->pages), PAGE_SIZE);
-
-			if (guarded || area->flags & AS_AREA_GUARD) {
-				/*
-				 * We must leave an unmapped page
-				 * between the two areas.
-				 */
-				addr += P2SZ(1);
-			}
-
-			bool avail =
-			    ((addr >= bound) && (addr >= area->base) &&
-			    (check_area_conflicts(as, addr, pages, guarded, area)));
-
-			mutex_unlock(&area->lock);
-
-			if (avail)
-				return addr;
+		if (guarded || area->flags & AS_AREA_GUARD) {
+			/*
+			 * We must leave an unmapped page
+			 * between the two areas.
+			 */
+			addr += P2SZ(1);
 		}
+
+		bool avail =
+		    ((addr >= bound) && (addr >= area->base) &&
+		    (check_area_conflicts(as, addr, pages, guarded, area)));
+
+		mutex_unlock(&area->lock);
+
+		if (avail)
+			return addr;
+
+		area = as_area_next(area);
 	}
 
 	/* No suitable address space area found */
@@ -628,6 +633,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	mutex_initialize(&area->lock, MUTEX_PASSIVE);
 
 	area->as = as;
+	odlink_initialize(&area->las_areas);
 	area->flags = flags;
 	area->attributes = attrs;
 	area->pages = pages;
@@ -685,8 +691,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	}
 
 	btree_create(&area->used_space);
-	btree_insert(&as->as_area_btree, *base, (void *) area,
-	    NULL);
+	odict_insert(&area->las_areas, &as->as_areas, NULL);
 
 	mutex_unlock(&as->lock);
 
@@ -706,53 +711,19 @@ NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
 	assert(mutex_locked(&as->lock));
 
-	btree_node_t *leaf;
-	as_area_t *area = (as_area_t *) btree_search(&as->as_area_btree, va,
-	    &leaf);
-	if (area) {
-		/* va is the base address of an address space area */
-		mutex_lock(&area->lock);
+	odlink_t *odlink = odict_find_leq(&as->as_areas, &va, NULL);
+	if (odlink == NULL)
+		return NULL;
+
+	as_area_t *area = odict_get_instance(odlink, as_area_t, las_areas);
+	mutex_lock(&area->lock);
+
+	assert(area->base <= va);
+
+	if (va <= area->base + (P2SZ(area->pages) - 1))
 		return area;
-	}
 
-	/*
-	 * Search the leaf node and the rightmost record of its left neighbour
-	 * to find out whether this is a miss or va belongs to an address
-	 * space area found there.
-	 */
-
-	/* First, search the leaf node itself. */
-	btree_key_t i;
-
-	for (i = 0; i < leaf->keys; i++) {
-		area = (as_area_t *) leaf->value[i];
-
-		mutex_lock(&area->lock);
-
-		if ((area->base <= va) &&
-		    (va <= area->base + (P2SZ(area->pages) - 1)))
-			return area;
-
-		mutex_unlock(&area->lock);
-	}
-
-	/*
-	 * Second, locate the left neighbour and test its last record.
-	 * Because of its position in the B+tree, it must have base < va.
-	 */
-	btree_node_t *lnode = btree_leaf_node_left_neighbour(&as->as_area_btree,
-	    leaf);
-	if (lnode) {
-		area = (as_area_t *) lnode->value[lnode->keys - 1];
-
-		mutex_lock(&area->lock);
-
-		if (va <= area->base + (P2SZ(area->pages) - 1))
-			return area;
-
-		mutex_unlock(&area->lock);
-	}
-
+	mutex_unlock(&area->lock);
 	return NULL;
 }
 
@@ -990,8 +961,6 @@ errno_t as_area_destroy(as_t *as, uintptr_t address)
 	if (area->backend && area->backend->destroy)
 		area->backend->destroy(area);
 
-	uintptr_t base = area->base;
-
 	page_table_lock(as, false);
 
 	/*
@@ -1058,7 +1027,7 @@ errno_t as_area_destroy(as_t *as, uintptr_t address)
 	/*
 	 * Remove the empty area from address space.
 	 */
-	btree_remove(&as->as_area_btree, base, NULL);
+	odict_remove(&area->las_areas);
 
 	free(area);
 
@@ -1613,6 +1582,36 @@ NO_TRACE unsigned int as_area_get_flags(as_area_t *area)
 	assert(mutex_locked(&area->lock));
 
 	return area_flags_to_page_flags(area->flags);
+}
+
+/** Get key function for the @c as_t.as_areas ordered dictionary.
+ *
+ * @param odlink Link
+ * @return Pointer to task ID cast as 'void *'
+ */
+static void *as_areas_getkey(odlink_t *odlink)
+{
+	as_area_t *area = odict_get_instance(odlink, as_area_t, las_areas);
+	return (void *) &area->base;
+}
+
+/** Key comparison function for the @c as_t.as_areas ordered dictionary.
+ *
+ * @param a Pointer to area A base
+ * @param b Pointer to area B base
+ * @return -1, 0, 1 iff base of A is lower than, equal to, higher than B
+ */
+static int as_areas_cmp(void *a, void *b)
+{
+	uintptr_t base_a = *(uintptr_t *)a;
+	uintptr_t base_b = *(uintptr_t *)b;
+
+	if (base_a < base_b)
+		return -1;
+	else if (base_a == base_b)
+		return 0;
+	else
+		return +1;
 }
 
 /** Create page table.
@@ -2247,39 +2246,28 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 {
 	mutex_lock(&as->lock);
 
-	/* First pass, count number of areas. */
-
-	size_t area_cnt = 0;
-
-	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
-	    node) {
-		area_cnt += node->keys;
-	}
+	/* Count number of areas. */
+	size_t area_cnt = odict_count(&as->as_areas);
 
 	size_t isize = area_cnt * sizeof(as_area_info_t);
 	as_area_info_t *info = nfmalloc(isize);
 
-	/* Second pass, record data. */
+	/* Record area data. */
 
 	size_t area_idx = 0;
 
-	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
-	    node) {
-		btree_key_t i;
+	as_area_t *area = as_area_first(as);
+	while (area != NULL) {
+		assert(area_idx < area_cnt);
+		mutex_lock(&area->lock);
 
-		for (i = 0; i < node->keys; i++) {
-			as_area_t *area = node->value[i];
+		info[area_idx].start_addr = area->base;
+		info[area_idx].size = P2SZ(area->pages);
+		info[area_idx].flags = area->flags;
+		++area_idx;
 
-			assert(area_idx < area_cnt);
-			mutex_lock(&area->lock);
-
-			info[area_idx].start_addr = area->base;
-			info[area_idx].size = P2SZ(area->pages);
-			info[area_idx].flags = area->flags;
-			++area_idx;
-
-			mutex_unlock(&area->lock);
-		}
+		mutex_unlock(&area->lock);
+		area = as_area_next(area);
 	}
 
 	mutex_unlock(&as->lock);
@@ -2298,20 +2286,16 @@ void as_print(as_t *as)
 	mutex_lock(&as->lock);
 
 	/* Print out info about address space areas */
-	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
-	    node) {
-		btree_key_t i;
+	as_area_t *area = as_area_first(as);
+	while (area != NULL) {
+		mutex_lock(&area->lock);
+		printf("as_area: %p, base=%p, pages=%zu"
+		    " (%p - %p)\n", area, (void *) area->base,
+		    area->pages, (void *) area->base,
+		    (void *) (area->base + P2SZ(area->pages)));
+		mutex_unlock(&area->lock);
 
-		for (i = 0; i < node->keys; i++) {
-			as_area_t *area = node->value[i];
-
-			mutex_lock(&area->lock);
-			printf("as_area: %p, base=%p, pages=%zu"
-			    " (%p - %p)\n", area, (void *) area->base,
-			    area->pages, (void *) area->base,
-			    (void *) (area->base + P2SZ(area->pages)));
-			mutex_unlock(&area->lock);
-		}
+		area = as_area_next(area);
 	}
 
 	mutex_unlock(&as->lock);

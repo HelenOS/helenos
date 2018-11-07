@@ -45,6 +45,7 @@
 #include <synch/mutex.h>
 #include <adt/list.h>
 #include <adt/btree.h>
+#include <adt/odict.h>
 #include <lib/elf.h>
 #include <arch.h>
 #include <lib/refcount.h>
@@ -114,8 +115,11 @@ typedef struct as {
 
 	mutex_t lock;
 
-	/** B+tree of address space areas. */
-	btree_t as_area_btree;
+	/** Address space areas in this address space by base address.
+	 *
+	 * Members are of type as_area_t.
+	 */
+	odict_t as_areas;
 
 	/** Non-generic content. */
 	as_genarch_t genarch;
@@ -203,6 +207,9 @@ typedef struct {
 	/** Containing address space. */
 	as_t *as;
 
+	/** Link to @c as->as_areas */
+	odlink_t las_areas;
+
 	/** Memory flags. */
 	unsigned int flags;
 
@@ -272,6 +279,8 @@ extern errno_t as_area_resize(as_t *, uintptr_t, size_t, unsigned int);
 extern errno_t as_area_share(as_t *, uintptr_t, size_t, as_t *, unsigned int,
     uintptr_t *, uintptr_t);
 extern errno_t as_area_change_flags(as_t *, unsigned int, uintptr_t);
+extern as_area_t *as_area_first(as_t *);
+extern as_area_t *as_area_next(as_area_t *);
 
 extern unsigned int as_area_get_flags(as_area_t *);
 extern bool as_area_check_access(as_area_t *, pf_access_t);

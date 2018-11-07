@@ -44,6 +44,7 @@
 	((type *)( (void *)(odlink) - ((void *) &((type *) NULL)->member)))
 
 extern void odict_initialize(odict_t *, odgetkey_t, odcmp_t);
+extern void odict_finalize(odict_t *);
 extern void odlink_initialize(odlink_t *);
 extern void odict_insert(odlink_t *, odict_t *, odlink_t *);
 extern void odict_remove(odlink_t *);

@@ -63,7 +63,9 @@
 /** Spinlock protecting the @c tasks ordered dictionary. */
 IRQ_SPINLOCK_INITIALIZE(tasks_lock);
 
-/** Ordered dictionary of active tasks.
+/** Ordered dictionary of active tasks by task ID.
+ *
+ * Members are task_t structures.
  *
  * The task is guaranteed to exist after it was found in the @c tasks
  * dictionary as long as:

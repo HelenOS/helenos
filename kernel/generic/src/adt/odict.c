@@ -205,6 +205,15 @@ void odict_initialize(odict_t *odict, odgetkey_t getkey, odcmp_t cmp)
 	odict->cmp = cmp;
 }
 
+/** Finalize ordered dictionary.
+ *
+ * @param odict Ordered dictionary (must be empty)
+ */
+void odict_finalize(odict_t *odict)
+{
+	assert(odict->root == NULL);
+}
+
 /** Initialize ordered dictionary link.
  *
  * @param odlink Ordered dictionary link

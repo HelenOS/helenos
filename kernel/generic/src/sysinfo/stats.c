@@ -144,19 +144,15 @@ static size_t get_task_virtmem(as_t *as)
 
 	size_t pages = 0;
 
-	/* Walk the B+ tree and count pages */
-	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t,
-	    node) {
-		unsigned int i;
-		for (i = 0; i < node->keys; i++) {
-			as_area_t *area = node->value[i];
+	/* Walk areas in the address space and count pages */
+	as_area_t *area = as_area_first(as);
+	while (area != NULL) {
+		if (mutex_trylock(&area->lock) != EOK)
+			continue;
 
-			if (mutex_trylock(&area->lock) != EOK)
-				continue;
-
-			pages += area->pages;
-			mutex_unlock(&area->lock);
-		}
+		pages += area->pages;
+		mutex_unlock(&area->lock);
+		area = as_area_next(area);
 	}
 
 	mutex_unlock(&as->lock);
@@ -185,18 +181,15 @@ static size_t get_task_resmem(as_t *as)
 
 	size_t pages = 0;
 
-	/* Walk the B+ tree and count pages */
-	list_foreach(as->as_area_btree.leaf_list, leaf_link, btree_node_t, node) {
-		unsigned int i;
-		for (i = 0; i < node->keys; i++) {
-			as_area_t *area = node->value[i];
+	/* Walk areas in the address space and count pages */
+	as_area_t *area = as_area_first(as);
+	while (area != NULL) {
+		if (mutex_trylock(&area->lock) != EOK)
+			continue;
 
-			if (mutex_trylock(&area->lock) != EOK)
-				continue;
-
-			pages += area->resident;
-			mutex_unlock(&area->lock);
-		}
+		pages += area->resident;
+		mutex_unlock(&area->lock);
+		area = as_area_next(area);
 	}
 
 	mutex_unlock(&as->lock);
