@@ -229,7 +229,6 @@ GENERIC_SOURCES = \
 	generic/src/synch/futex.c \
 	generic/src/smp/ipi.c \
 	generic/src/smp/smp.c \
-	generic/src/smp/smp_call.c \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
 	generic/src/ipc/sysipc_ops.c \
@@ -292,8 +291,7 @@ ifeq ($(CONFIG_TEST),y)
 		test/print/print3.c \
 		test/print/print4.c \
 		test/print/print5.c \
-		test/thread/thread1.c \
-		test/smpcall/smpcall1.c
+		test/thread/thread1.c
 
 	ifeq ($(KARCH),mips32)
 		GENERIC_SOURCES += test/debug/mips1.c

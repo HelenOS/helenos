@@ -84,7 +84,6 @@ ifeq ($(CONFIG_SMP),y)
 		arch/$(KARCH)/src/smp/apic.c \
 		arch/$(KARCH)/src/smp/ipi.c \
 		arch/$(KARCH)/src/smp/mps.c \
-		arch/$(KARCH)/src/smp/smp_call.c \
 		arch/$(KARCH)/src/smp/smp.c
 endif
 

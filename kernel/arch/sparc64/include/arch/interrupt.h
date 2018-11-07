@@ -46,7 +46,6 @@
 
 enum {
 	IPI_TLB_SHOOTDOWN = VECTOR_TLB_SHOOTDOWN_IPI,
-	IPI_SMP_CALL
 };
 
 extern void exc_arch_init(void);

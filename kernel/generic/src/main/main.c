@@ -77,7 +77,6 @@
 #include <mm/reserve.h>
 #include <synch/waitq.h>
 #include <synch/futex.h>
-#include <smp/smp_call.h>
 #include <arch/arch.h>
 #include <arch.h>
 #include <arch/faddr.h>
@@ -272,7 +271,6 @@ void main_bsp_separated_stack(void)
 	calibrate_delay_loop();
 	ARCH_OP(post_cpu_init);
 
-	smp_call_init();
 	clock_counter_init();
 	timeout_init();
 	scheduler_init();
@@ -378,8 +376,6 @@ void main_ap(void)
  */
 void main_ap_separated_stack(void)
 {
-	smp_call_init();
-
 	/*
 	 * Configure timeouts for this cpu.
 	 */

@@ -84,7 +84,6 @@
 #define VECTOR_SYSCALL            IVT_FREEBASE
 #define VECTOR_TLB_SHOOTDOWN_IPI  (IVT_FREEBASE + 1)
 #define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
-#define VECTOR_SMP_CALL_IPI       (IVT_FREEBASE + 3)
 
 extern void (*disable_irqs_function)(uint16_t);
 extern void (*enable_irqs_function)(uint16_t);

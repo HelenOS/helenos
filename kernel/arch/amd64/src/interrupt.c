@@ -52,7 +52,6 @@
 #include <ddi/irq.h>
 #include <symtab.h>
 #include <stacktrace.h>
-#include <smp/smp_call.h>
 
 /*
  * Interrupt and exception dispatching.
@@ -160,12 +159,6 @@ static void tlb_shootdown_ipi(unsigned int n, istate_t *istate)
 	trap_virtual_eoi();
 	tlb_shootdown_ipi_recv();
 }
-
-static void arch_smp_call_ipi_recv(unsigned int n, istate_t *istate)
-{
-	trap_virtual_eoi();
-	smp_call_ipi_recv();
-}
 #endif
 
 /** Handler of IRQ exceptions.
@@ -228,8 +221,6 @@ void interrupt_init(void)
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,
 	    (iroutine_t) tlb_shootdown_ipi);
-	exc_register(VECTOR_SMP_CALL_IPI, "smp_call", true,
-	    (iroutine_t) arch_smp_call_ipi_recv);
 #endif
 }
 
