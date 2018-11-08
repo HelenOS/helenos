@@ -125,7 +125,7 @@
 	stw r12, ISTATE_OFFSET_SP_FRAME(sp)
 .endm
 
-// XXX: K_UNMAPPED_TEXT_START section starts at 0x100,
+// NOTE: K_UNMAPPED_TEXT_START section starts at 0x100,
 // so all the following .org directives are relative to that.
 #define ABSOLUTE(x) ((x) - 0x100)
 

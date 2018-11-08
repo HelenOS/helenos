@@ -31,7 +31,7 @@
 
 #include <typedefs.h>
 
-// XXX: This struct must match assembly code in src/context.S
+// NOTE: This struct must match assembly code in src/context.S
 
 /*
  * Thread context containing registers that must be preserved across

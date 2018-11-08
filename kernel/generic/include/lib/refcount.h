@@ -63,9 +63,9 @@ static inline void refcount_init(atomic_refcount_t *rc)
  */
 static inline void refcount_up(atomic_refcount_t *rc)
 {
-	// XXX: We can use relaxed operation because acquiring a reference
-	//      implies no ordering relationships. A reference-counted object
-	//      still needs to be synchronized independently of the refcount.
+	// NOTE: We can use relaxed operation because acquiring a reference
+	//       implies no ordering relationships. A reference-counted object
+	//       still needs to be synchronized independently of the refcount.
 
 	int old = atomic_fetch_add_explicit(&rc->__cnt, 1,
 	    memory_order_relaxed);
@@ -95,16 +95,16 @@ static inline bool refcount_unique(atomic_refcount_t *rc)
  */
 static inline bool refcount_down(atomic_refcount_t *rc)
 {
-	// XXX: The decrementers don't need to synchronize with each other,
-	//      but they do need to synchronize with the one doing deallocation.
+	// NOTE: The decrementers don't need to synchronize with each other,
+	//       but they do need to synchronize with the one doing deallocation.
 	int old = atomic_fetch_sub_explicit(&rc->__cnt, 1,
 	    memory_order_release);
 
 	assert(old >= 0);
 
 	if (old == 0) {
-		// XXX: We are holding the last reference, so we must now
-		//      synchronize with all the other decrementers.
+		// NOTE: We are holding the last reference, so we must now
+		//       synchronize with all the other decrementers.
 
 		int val = atomic_load_explicit(&rc->__cnt,
 		    memory_order_acquire);

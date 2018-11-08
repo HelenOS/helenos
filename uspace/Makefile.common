@@ -274,7 +274,7 @@ CXXFLAGS = $(COMMON_CPPFLAGS) $(COMMON_CXXFLAGS) $(HELENOS_CXXFLAGS) $(DEFAULT_C
 
 ifeq ($(PRECHECK),y)
 	JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
-	# XXX: Do not change the order of arguments.
+	# NOTE: You must not change the order of arguments.
 	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
 	CXX_JOB = $(JOBFILE) $(JOB) $(CXX) $< -o $@
 else

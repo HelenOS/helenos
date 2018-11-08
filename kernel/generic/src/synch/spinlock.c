@@ -160,10 +160,10 @@ bool spinlock_trylock(spinlock_t *lock)
  */
 bool spinlock_locked(spinlock_t *lock)
 {
-	// XXX: Atomic flag doesn't support simple atomic read (by design),
-	//      so instead we test_and_set and then clear if necessary.
-	//      This function is only used inside assert, so we don't need
-	//      any preemption_disable/enable here.
+	// NOTE: Atomic flag doesn't support simple atomic read (by design),
+	//       so instead we test_and_set and then clear if necessary.
+	//       This function is only used inside assert, so we don't need
+	//       any preemption_disable/enable here.
 
 	bool ret = atomic_flag_test_and_set_explicit(&lock->flag, memory_order_relaxed);
 	if (!ret)

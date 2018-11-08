@@ -64,7 +64,7 @@ SIZEOK_MAP = generic/src/debug/sizeok_map.o
 
 ifeq ($(PRECHECK),y)
 	JOBFILE = $(ROOT_PATH)/tools/jobfile.py
-	# XXX: Do not change the order of arguments.
+	# NOTE: You must not change the order of arguments.
 	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
 else
 	CC_JOB = $(CC) $< -o $@

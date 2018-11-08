@@ -31,7 +31,7 @@ SECTIONS {
 		*(.rodata .rodata.*);   /* string literals */
 		*(COMMON);              /* global variables */
 
-		/* XXX: bss can't be omitted from the ELF image. */
+		/* bss can't be omitted from the ELF image. */
 		*(.bss);                /* uninitialized static variables */
 
 		. = ALIGN(8);

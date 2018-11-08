@@ -31,7 +31,7 @@
 
 #include <stdint.h>
 
-// XXX: Must match assembly code in src/exc_handler.S
+// NOTE: Must match assembly code in src/exc_handler.S
 
 typedef struct istate {
 	uint32_t dummy;
