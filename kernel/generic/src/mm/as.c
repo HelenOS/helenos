@@ -150,7 +150,10 @@ void as_init(void)
  */
 as_t *as_create(unsigned int flags)
 {
-	as_t *as = (as_t *) slab_alloc(as_cache, 0);
+	as_t *as = (as_t *) slab_alloc(as_cache, FRAME_ATOMIC);
+	if (!as)
+		return NULL;
+
 	(void) as_create_arch(as, 0);
 
 	odict_initialize(&as->as_areas, as_areas_getkey, as_areas_cmp);

@@ -666,7 +666,10 @@ slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,
     errno_t (*constructor)(void *obj, unsigned int kmflag),
     size_t (*destructor)(void *obj), unsigned int flags)
 {
-	slab_cache_t *cache = slab_alloc(&slab_cache_cache, 0);
+	slab_cache_t *cache = slab_alloc(&slab_cache_cache, FRAME_ATOMIC);
+	if (!cache)
+		panic("Not enough memory to allocate slab cache %s.", name);
+
 	_slab_cache_create(cache, name, size, align, constructor, destructor,
 	    flags);
 
@@ -729,6 +732,9 @@ NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
  */
 NO_TRACE static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
 {
+	if (!obj)
+		return;
+
 	ipl_t ipl = interrupts_disable();
 
 	if ((cache->flags & SLAB_CACHE_NOMAGAZINE) ||

@@ -212,7 +212,10 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
  */
 errno_t ipc_call_sync(phone_t *phone, call_t *request)
 {
-	answerbox_t *mybox = slab_alloc(answerbox_cache, 0);
+	answerbox_t *mybox = slab_alloc(answerbox_cache, FRAME_ATOMIC);
+	if (!mybox)
+		return ENOMEM;
+
 	ipc_answerbox_init(mybox, TASK);
 
 	/* We will receive data in a special box. */

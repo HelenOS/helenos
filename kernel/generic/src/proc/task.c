@@ -198,10 +198,9 @@ size_t tsk_destructor(void *obj)
  */
 task_t *task_create(as_t *as, const char *name)
 {
-	task_t *task = (task_t *) slab_alloc(task_cache, 0);
-	if (task == NULL) {
+	task_t *task = (task_t *) slab_alloc(task_cache, FRAME_ATOMIC);
+	if (!task)
 		return NULL;
-	}
 
 	task_create_arch(task);
 

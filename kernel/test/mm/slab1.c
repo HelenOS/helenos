@@ -49,8 +49,9 @@ static void testit(int size, int count)
 	TPRINTF("Allocating %d items...", count);
 
 	for (i = 0; i < count; i++) {
-		data[i] = slab_alloc(cache, 0);
-		memsetb(data[i], size, 0);
+		data[i] = slab_alloc(cache, FRAME_ATOMIC);
+		if (data[i])
+			memsetb(data[i], size, 0);
 	}
 
 	TPRINTF("done.\n");
@@ -65,8 +66,9 @@ static void testit(int size, int count)
 	TPRINTF("Allocating %d items...", count);
 
 	for (i = 0; i < count; i++) {
-		data[i] = slab_alloc(cache, 0);
-		memsetb(data[i], size, 0);
+		data[i] = slab_alloc(cache, FRAME_ATOMIC);
+		if (data[i])
+			memsetb(data[i], size, 0);
 	}
 
 	TPRINTF("done.\n");
@@ -81,8 +83,9 @@ static void testit(int size, int count)
 	TPRINTF("Allocating %d items...", count / 2);
 
 	for (i = count / 2; i < count; i++) {
-		data[i] = slab_alloc(cache, 0);
-		memsetb(data[i], size, 0);
+		data[i] = slab_alloc(cache, FRAME_ATOMIC);
+		if (data[i])
+			memsetb(data[i], size, 0);
 	}
 
 	TPRINTF("done.\n");
@@ -130,11 +133,11 @@ static void slabtest(void *data)
 
 	for (j = 0; j < 10; j++) {
 		for (i = 0; i < THR_MEM_COUNT; i++)
-			thr_data[offs][i] = slab_alloc(thr_cache, 0);
+			thr_data[offs][i] = slab_alloc(thr_cache, FRAME_ATOMIC);
 		for (i = 0; i < THR_MEM_COUNT / 2; i++)
 			slab_free(thr_cache, thr_data[offs][i]);
 		for (i = 0; i < THR_MEM_COUNT / 2; i++)
-			thr_data[offs][i] = slab_alloc(thr_cache, 0);
+			thr_data[offs][i] = slab_alloc(thr_cache, FRAME_ATOMIC);
 		for (i = 0; i < THR_MEM_COUNT; i++)
 			slab_free(thr_cache, thr_data[offs][i]);
 	}

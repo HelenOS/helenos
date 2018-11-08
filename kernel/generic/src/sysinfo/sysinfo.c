@@ -203,7 +203,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 			i++;
 
 		*psubtree =
-		    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, 0);
+		    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, FRAME_ATOMIC);
 		if (!*psubtree)
 			return NULL;
 
@@ -279,7 +279,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 				i++;
 
 			sysinfo_item_t *item =
-			    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, 0);
+			    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, FRAME_ATOMIC);
 			if (!item)
 				return NULL;
 
