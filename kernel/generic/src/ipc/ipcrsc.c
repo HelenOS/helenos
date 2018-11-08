@@ -80,7 +80,7 @@ errno_t phone_alloc(task_t *task, bool publish, cap_phone_handle_t *phandle,
 			slab_free(phone_cache, phone);
 			return ENOMEM;
 		}
-		call_t *hcall = ipc_call_alloc(FRAME_ATOMIC);
+		call_t *hcall = ipc_call_alloc();
 		if (!hcall) {
 			cap_free(TASK, handle);
 			slab_free(phone_cache, phone);

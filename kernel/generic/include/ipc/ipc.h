@@ -173,7 +173,7 @@ extern answerbox_t *ipc_box_0;
 
 extern void ipc_init(void);
 
-extern call_t *ipc_call_alloc(unsigned int);
+extern call_t *ipc_call_alloc(void);
 
 extern errno_t ipc_call_sync(phone_t *, call_t *);
 extern errno_t ipc_call(phone_t *, call_t *);

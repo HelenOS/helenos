@@ -276,7 +276,7 @@ ipc_req_internal(cap_phone_handle_t handle, ipc_data_t *data, sysarg_t priv)
 	if (!kobj->phone)
 		return ENOENT;
 
-	call_t *call = ipc_call_alloc(FRAME_ATOMIC);
+	call_t *call = ipc_call_alloc();
 	if (!call) {
 		kobject_put(kobj);
 		return ENOMEM;
@@ -378,7 +378,7 @@ sys_errno_t sys_ipc_call_async_fast(cap_phone_handle_t handle, sysarg_t imethod,
 		return ELIMIT;
 	}
 
-	call_t *call = ipc_call_alloc(FRAME_ATOMIC);
+	call_t *call = ipc_call_alloc();
 	if (!call) {
 		kobject_put(kobj);
 		return ENOMEM;
@@ -430,7 +430,7 @@ sys_errno_t sys_ipc_call_async_slow(cap_phone_handle_t handle, ipc_data_t *data,
 		return ELIMIT;
 	}
 
-	call_t *call = ipc_call_alloc(FRAME_ATOMIC);
+	call_t *call = ipc_call_alloc();
 	if (!call) {
 		kobject_put(kobj);
 		return ENOMEM;

@@ -107,26 +107,18 @@ static kobject_ops_t call_kobject_ops = {
  * The call is initialized, so that the reply will be directed to
  * TASK->answerbox.
  *
- * @param flags Parameters for slab_alloc (e.g FRAME_ATOMIC).
- *
- * @return If flags permit it, return NULL, or initialized kernel
- *         call structure with one reference.
+ * @return Initialized kernel call structure with one reference, or NULL.
  *
  */
-call_t *ipc_call_alloc(unsigned int flags)
+call_t *ipc_call_alloc(void)
 {
 	// TODO: Allocate call and kobject in single allocation
 
-	call_t *call = slab_alloc(call_cache, flags);
+	call_t *call = slab_alloc(call_cache, FRAME_ATOMIC);
 	if (!call)
 		return NULL;
 
-	kobject_t *kobj;
-	if (flags & FRAME_ATOMIC)
-		kobj = (kobject_t *) malloc(sizeof(kobject_t));
-	else
-		kobj = (kobject_t *) nfmalloc(sizeof(kobject_t));
-
+	kobject_t *kobj = (kobject_t *) malloc(sizeof(kobject_t));
 	if (!kobj) {
 		slab_free(call_cache, call);
 		return NULL;
