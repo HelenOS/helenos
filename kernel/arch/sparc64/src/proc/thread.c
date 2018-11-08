@@ -61,14 +61,16 @@ void thr_destructor_arch(thread_t *t)
 	}
 }
 
-void thread_create_arch(thread_t *t)
+errno_t thread_create_arch(thread_t *t, thread_flags_t flags)
 {
-	if ((t->uspace) && (!t->arch.uspace_window_buffer)) {
+	if ((flags & THREAD_FLAG_USPACE) && (!t->arch.uspace_window_buffer)) {
 		/*
 		 * The thread needs userspace window buffer and the object
 		 * returned from the slab allocator doesn't have any.
 		 */
-		t->arch.uspace_window_buffer = slab_alloc(uwb_cache, 0);
+		t->arch.uspace_window_buffer = slab_alloc(uwb_cache, FRAME_ATOMIC);
+		if (!t->arch.uspace_window_buffer)
+			return ENOMEM;
 	} else {
 		uintptr_t uw_buf = (uintptr_t) t->arch.uspace_window_buffer;
 
@@ -79,6 +81,7 @@ void thread_create_arch(thread_t *t)
 		t->arch.uspace_window_buffer = (uint8_t *) ALIGN_DOWN(uw_buf,
 		    UWB_ALIGNMENT);
 	}
+	return EOK;
 }
 
 /** @}

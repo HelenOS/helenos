@@ -38,8 +38,9 @@
  *
  * @param t Thread to be initialized.
  */
-void thread_create_arch(thread_t *t)
+errno_t thread_create_arch(thread_t *t, thread_flags_t flags)
 {
+	return EOK;
 }
 
 /** @}

@@ -224,7 +224,7 @@ extern void thread_interrupt(thread_t *);
 extern bool thread_interrupted(thread_t *);
 
 #ifndef thread_create_arch
-extern void thread_create_arch(thread_t *);
+extern errno_t thread_create_arch(thread_t *, thread_flags_t);
 #endif
 
 #ifndef thr_constructor_arch

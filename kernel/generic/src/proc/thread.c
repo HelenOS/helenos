@@ -345,6 +345,11 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	if (!thread)
 		return NULL;
 
+	if (thread_create_arch(thread, flags) != EOK) {
+		slab_free(thread_cache, thread);
+		return NULL;
+	}
+
 	/* Not needed, but good for debugging */
 	memsetb(thread->kstack, STACK_SIZE, 0);
 
@@ -406,9 +411,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->btrace = false;
 	udebug_thread_initialize(&thread->udebug);
 #endif
-
-	/* Might depend on previous initialization */
-	thread_create_arch(thread);
 
 	if ((flags & THREAD_FLAG_NOATTACH) != THREAD_FLAG_NOATTACH)
 		thread_attach(thread, task);
