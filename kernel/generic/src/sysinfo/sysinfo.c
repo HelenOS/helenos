@@ -684,8 +684,10 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 	if (size > SYSINFO_MAX_PATH)
 		return ret;
 
-	char *path = (char *) nfmalloc(size + 1);
-	assert(path);
+	// TODO: Change this so that allocation is not needed.
+	char *path = malloc(size + 1);
+	if (!path)
+		return ret;
 
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
 	    (path[size] == 0)) {
@@ -793,8 +795,10 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
 	if (size > SYSINFO_MAX_PATH)
 		return ret;
 
-	char *path = (char *) nfmalloc(size + 1);
-	assert(path);
+	// TODO: Change this so that allocation is not needed.
+	char *path = malloc(size + 1);
+	if (!path)
+		return ret;
 
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
 	    (path[size] == 0)) {

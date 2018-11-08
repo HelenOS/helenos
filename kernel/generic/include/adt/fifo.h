@@ -114,7 +114,7 @@
  * @param name FIFO name.
  */
 #define fifo_create(name) \
-	name.fifo = nfmalloc(sizeof(*name.fifo) * name.items)
+	name.fifo = malloc(sizeof(*name.fifo) * name.items)
 
 #endif
 

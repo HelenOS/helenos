@@ -634,8 +634,9 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 char *str_dup(const char *src)
 {
 	size_t size = str_size(src) + 1;
-	char *dest = nfmalloc(size);
-	assert(dest);
+	char *dest = malloc(size);
+	if (!dest)
+		return NULL;
 
 	str_cpy(dest, size, src);
 	return dest;
@@ -667,8 +668,9 @@ char *str_ndup(const char *src, size_t n)
 	if (size > n)
 		size = n;
 
-	char *dest = nfmalloc(size + 1);
-	assert(dest);
+	char *dest = malloc(size + 1);
+	if (!dest)
+		return NULL;
 
 	str_ncpy(dest, size + 1, src, size);
 	return dest;

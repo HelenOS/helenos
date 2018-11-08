@@ -385,7 +385,9 @@ static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
  */
 static void ofw_tree_node_sysinfo(ofw_tree_node_t *node, const char *path)
 {
-	char *cur_path = (char *) nfmalloc(PATH_MAX_LEN);
+	char *cur_path = malloc(PATH_MAX_LEN);
+	if (!cur_path)
+		panic("Not enough memory to process OFW tree.");
 
 	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
 		if ((cur->parent) && (path))

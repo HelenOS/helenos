@@ -64,6 +64,12 @@ void asid_fifo_init(void)
 
 #if (!FIFO_STATIC)
 	fifo_create(free_asids);
+	if (!free_asids.fifo)
+		panic("Not enough memory to allocate ASID FIFO");
+	// TODO: There really is no reason not to statically allocate it
+	//       except to keep binary size low. Once kernel is a regular ELF
+	//       binary supporting .bss section (wip as of the late 2018),
+	//       the dynamic option should be removed.
 #endif
 
 	for (i = 0; i < ASIDS_ALLOCABLE; i++) {
