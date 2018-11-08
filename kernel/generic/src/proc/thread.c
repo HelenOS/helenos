@@ -164,13 +164,9 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 	thr_constructor_arch(thread);
 
 #ifdef CONFIG_FPU
-#ifdef CONFIG_FPU_LAZY
-	thread->saved_fpu_context = NULL;
-#else /* CONFIG_FPU_LAZY */
 	thread->saved_fpu_context = slab_alloc(fpu_context_cache, kmflags);
 	if (!thread->saved_fpu_context)
 		return ENOMEM;
-#endif /* CONFIG_FPU_LAZY */
 #endif /* CONFIG_FPU */
 
 	/*
@@ -199,8 +195,8 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 	    frame_alloc(STACK_FRAMES, kmflags, STACK_SIZE - 1);
 	if (!stack_phys) {
 #ifdef CONFIG_FPU
-		if (thread->saved_fpu_context)
-			slab_free(fpu_context_cache, thread->saved_fpu_context);
+		assert(thread->saved_fpu_context);
+		slab_free(fpu_context_cache, thread->saved_fpu_context);
 #endif
 		return ENOMEM;
 	}
@@ -225,8 +221,8 @@ static size_t thr_destructor(void *obj)
 	frame_free(KA2PA(thread->kstack), STACK_FRAMES);
 
 #ifdef CONFIG_FPU
-	if (thread->saved_fpu_context)
-		slab_free(fpu_context_cache, thread->saved_fpu_context);
+	assert(thread->saved_fpu_context);
+	slab_free(fpu_context_cache, thread->saved_fpu_context);
 #endif
 
 	return STACK_FRAMES;  /* number of frames freed */
