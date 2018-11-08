@@ -324,7 +324,7 @@ extern sys_errno_t sys_as_area_change_flags(uintptr_t, unsigned int);
 extern sys_errno_t sys_as_area_destroy(uintptr_t);
 
 /* Introspection functions. */
-extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);
+extern as_area_info_t *as_get_area_info(as_t *, size_t *);
 extern void as_print(as_t *);
 
 #endif

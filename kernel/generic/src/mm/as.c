@@ -2236,7 +2236,7 @@ sys_errno_t sys_as_area_destroy(uintptr_t address)
  * @param osize Place to save size of returned buffer.
  *
  */
-void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
+as_area_info_t *as_get_area_info(as_t *as, size_t *osize)
 {
 	mutex_lock(&as->lock);
 
@@ -2244,7 +2244,11 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	size_t area_cnt = odict_count(&as->as_areas);
 
 	size_t isize = area_cnt * sizeof(as_area_info_t);
-	as_area_info_t *info = nfmalloc(isize);
+	as_area_info_t *info = malloc(isize);
+	if (!info) {
+		mutex_unlock(&as->lock);
+		return NULL;
+	}
 
 	/* Record area data. */
 
@@ -2266,8 +2270,8 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 
 	mutex_unlock(&as->lock);
 
-	*obuf = info;
 	*osize = isize;
+	return info;
 }
 
 /** Print out information about address space.
