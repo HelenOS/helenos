@@ -115,6 +115,8 @@ static kobject_ops_t call_kobject_ops = {
  */
 call_t *ipc_call_alloc(unsigned int flags)
 {
+	// TODO: Allocate call and kobject in single allocation
+
 	call_t *call = slab_alloc(call_cache, flags);
 	if (!call)
 		return NULL;
@@ -482,7 +484,10 @@ errno_t ipc_phone_hangup(phone_t *phone)
 		/* Drop the answerbox reference */
 		kobject_put(phone->kobject);
 
-		call_t *call = ipc_call_alloc(0);
+		call_t *call = phone->hangup_call;
+		phone->hangup_call = NULL;
+		assert(call);
+
 		IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
 		call->request_method = IPC_M_PHONE_HUNGUP;
 		call->flags |= IPC_CALL_DISCARD_ANSWER;
@@ -684,7 +689,10 @@ restart_phones:
 			 * forgotten upon sending, so the "caller" may cease
 			 * to exist as soon as we release it.
 			 */
-			call_t *call = ipc_call_alloc(0);
+			call_t *call = phone->hangup_call;
+			phone->hangup_call = NULL;
+			assert(call);
+
 			IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
 			call->request_method = IPC_M_PHONE_HUNGUP;
 			call->flags |= IPC_CALL_DISCARD_ANSWER;
