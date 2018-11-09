@@ -44,8 +44,7 @@
  * the futex (having a futex variable at a physical address not
  * encountered before). Futex object's lifetime is governed by
  * a reference count that represents the number of all the different
- * user space virtual addresses from all tasks that map to the
- * physical address of the futex variable. A futex object is freed
+ * tasks that reference the futex variable. A futex object is freed
  * when the last task having accessed the futex exits.
  *
  * Each task keeps track of the futex objects it accessed in a list
@@ -74,12 +73,10 @@
 
 /** Task specific pointer to a global kernel futex object. */
 typedef struct futex_ptr {
-	/** List of all futex pointers used by the task. */
-	link_t all_link;
+	/** Link for the list of all futex pointers used by a task. */
+	link_t task_link;
 	/** Kernel futex object. */
 	futex_t *futex;
-	/** User space virtual address of the futex variable in the task. */
-	uintptr_t uaddr;
 } futex_ptr_t;
 
 static void futex_initialize(futex_t *futex, uintptr_t paddr);
@@ -135,15 +132,11 @@ void futex_task_cleanup(void)
 	spinlock_lock(&TASK->futex_list_lock);
 
 	list_foreach_safe(TASK->futex_list, cur_link, next_link) {
-		futex_ptr_t *fut_ptr = member_to_inst(cur_link, futex_ptr_t, all_link);
+		futex_ptr_t *futex_ptr = member_to_inst(cur_link, futex_ptr_t,
+		    task_link);
 
-		/*
-		 * The function is free to free the futex.  Moreover
-		 * release_ref() only frees the futex if this is the last task
-		 * referencing the futex. Therefore, only threads of this task
-		 * may have referenced the futex if it is to be freed.
-		 */
-		futex_release_ref_locked(fut_ptr->futex);
+		futex_release_ref_locked(futex_ptr->futex);
+		free(futex_ptr);
 	}
 
 	spinlock_unlock(&TASK->futex_list_lock);
@@ -165,7 +158,7 @@ static void futex_initialize(futex_t *futex, uintptr_t paddr)
 static void futex_add_ref(futex_t *futex)
 {
 	assert(spinlock_locked(&futex_ht_lock));
-	assert(0 < futex->refcount);
+	assert(futex->refcount > 0);
 	++futex->refcount;
 }
 
@@ -173,13 +166,12 @@ static void futex_add_ref(futex_t *futex)
 static void futex_release_ref(futex_t *futex)
 {
 	assert(spinlock_locked(&futex_ht_lock));
-	assert(0 < futex->refcount);
+	assert(futex->refcount > 0);
 
 	--futex->refcount;
 
-	if (0 == futex->refcount) {
+	if (futex->refcount == 0)
 		hash_table_remove(&futex_ht, &futex->paddr);
-	}
 }
 
 /** Decrements the counter of tasks referencing the futex. May free the futex.*/
@@ -202,10 +194,17 @@ static futex_t *get_futex(uintptr_t uaddr)
 	if (!futex)
 		return NULL;
 
+	futex_ptr_t *futex_ptr = malloc(sizeof(futex_ptr_t));
+	if (!futex_ptr) {
+		free(futex);
+		return NULL;
+	}
+
 	/*
 	 * Find the futex object in the global futex table (or insert it
 	 * if it is not present).
 	 */
+	spinlock_lock(&TASK->futex_list_lock);
 	spinlock_lock(&futex_ht_lock);
 
 	ht_link_t *fut_link = hash_table_find(&futex_ht, &paddr);
@@ -213,13 +212,39 @@ static futex_t *get_futex(uintptr_t uaddr)
 	if (fut_link) {
 		free(futex);
 		futex = member_to_inst(fut_link, futex_t, ht_link);
-		futex_add_ref(futex);
+
+		/*
+		 * See if the futex is already known to the TASK
+		 */
+		bool found = false;
+		list_foreach(TASK->futex_list, task_link, futex_ptr_t, fp) {
+			if (fp->futex->paddr == paddr) {
+				found = true;
+				break;
+			}
+		}
+		/*
+		 * If not, put it on the TASK->futex_list and bump its reference
+		 * count
+		 */
+		if (!found) {
+			list_append(&futex_ptr->task_link, &TASK->futex_list);
+			futex_add_ref(futex);
+		} else
+			free(futex_ptr);
 	} else {
 		futex_initialize(futex, paddr);
 		hash_table_insert(&futex_ht, &futex->ht_link);
+
+		/*
+		 * This is a new futex, so it is not on the TASK->futex_list yet
+		 */
+		futex_ptr->futex = futex;
+		list_append(&futex_ptr->task_link, &TASK->futex_list);
 	}
 
 	spinlock_unlock(&futex_ht_lock);
+	spinlock_unlock(&TASK->futex_list_lock);
 
 	return futex;
 }
@@ -249,6 +274,7 @@ static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *paddr)
 }
 
 /** Sleep in futex wait queue with a timeout.
+ *
  *  If the sleep times out or is interrupted, the next wakeup is ignored.
  *  The userspace portion of the call must handle this condition.
  *
