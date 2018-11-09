@@ -284,11 +284,6 @@ void task_destroy(task_t *task)
 	task_destroy_arch(task);
 
 	/*
-	 * Free up dynamically allocated state.
-	 */
-	futex_task_deinit(task);
-
-	/*
 	 * Drop our reference to the address space.
 	 */
 	as_release(task->as);

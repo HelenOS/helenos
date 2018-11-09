@@ -34,7 +34,6 @@
 
 #include <smp/ipi.h>
 #include <arch/barrier.h>
-#include <arch/smp/sun4u/ipi.h>
 #include <assert.h>
 #include <cpu.h>
 #include <arch.h>
@@ -42,7 +41,6 @@
 #include <arch/asm.h>
 #include <config.h>
 #include <mm/tlb.h>
-#include <smp/smp_call.h>
 #include <arch/interrupt.h>
 #include <arch/trap/interrupt.h>
 #include <barrier.h>
@@ -171,27 +169,6 @@ void ipi_broadcast_arch(int ipi)
 			continue;		/* skip the current CPU */
 
 		cross_call(cpus[i].arch.mid, func);
-	}
-}
-
-/*
- * Deliver an IPI to the specified processors (except the current one).
- *
- * Interrupts must be disabled.
- *
- * @param cpu_id Destination cpu id (index into cpus array). Must not
- *               be the current cpu.
- * @param ipi    IPI number.
- */
-void ipi_unicast_arch(unsigned int cpu_id, int ipi)
-{
-	assert(&cpus[cpu_id] != CPU);
-
-	if (ipi == IPI_SMP_CALL) {
-		cross_call(cpus[cpu_id].arch.mid, smp_call_ipi_recv);
-	} else {
-		panic("Unknown IPI (%d).\n", ipi);
-		return;
 	}
 }
 

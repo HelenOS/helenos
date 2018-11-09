@@ -162,7 +162,6 @@ INSTRUMENTATION = -finstrument-functions
 GENERIC_SOURCES = \
 	generic/src/adt/bitmap.c \
 	generic/src/adt/btree.c \
-	generic/src/adt/cht.c \
 	generic/src/adt/hash_table.c \
 	generic/src/adt/list.c \
 	generic/src/adt/odict.c \
@@ -226,14 +225,10 @@ GENERIC_SOURCES = \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/smc.c \
-	generic/src/synch/smp_memory_barrier.c \
 	generic/src/synch/waitq.c \
 	generic/src/synch/futex.c \
-	generic/src/synch/workqueue.c \
-	generic/src/synch/rcu.c \
 	generic/src/smp/ipi.c \
 	generic/src/smp/smp.c \
-	generic/src/smp/smp_call.c \
 	generic/src/ipc/ipc.c \
 	generic/src/ipc/sysipc.c \
 	generic/src/ipc/sysipc_ops.c \
@@ -283,7 +278,6 @@ ifeq ($(CONFIG_TEST),y)
 		test/test.c \
 		test/atomic/atomic1.c \
 		test/btree/btree1.c \
-		test/cht/cht1.c \
 		test/fault/fault1.c \
 		test/mm/falloc1.c \
 		test/mm/falloc2.c \
@@ -292,16 +286,12 @@ ifeq ($(CONFIG_TEST),y)
 		test/mm/slab2.c \
 		test/synch/semaphore1.c \
 		test/synch/semaphore2.c \
-		test/synch/workqueue2.c \
-		test/synch/workqueue3.c \
-		test/synch/rcu1.c \
 		test/print/print1.c \
 		test/print/print2.c \
 		test/print/print3.c \
 		test/print/print4.c \
 		test/print/print5.c \
-		test/thread/thread1.c \
-		test/smpcall/smpcall1.c
+		test/thread/thread1.c
 
 	ifeq ($(KARCH),mips32)
 		GENERIC_SOURCES += test/debug/mips1.c

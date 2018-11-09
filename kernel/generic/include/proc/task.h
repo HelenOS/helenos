@@ -42,8 +42,6 @@
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <synch/futex.h>
-#include <synch/workqueue.h>
-#include <adt/cht.h>
 #include <adt/list.h>
 #include <adt/odict.h>
 #include <security/perm.h>
@@ -129,15 +127,10 @@ typedef struct task {
 	/** Architecture specific task data. */
 	task_arch_t arch;
 
-	struct futex_cache {
-		/** CHT mapping virtual addresses of futex variables to futex objects.*/
-		cht_t ht;
-		/** Serializes access to futex_list.*/
-		SPINLOCK_DECLARE(list_lock);
-		/** List of all futexes accesses by this task. */
-		list_t list;
-		work_t destroy_work;
-	} *futexes;
+	/** Serializes access to futex_list.*/
+	SPINLOCK_DECLARE(futex_list_lock);
+	/** List of all futexes accesses by this task. */
+	list_t futex_list;
 
 	/** Accumulated accounting. */
 	uint64_t ucycles;

@@ -47,7 +47,6 @@
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
 #include <synch/smc.h>
-#include <synch/smp_memory_barrier.h>
 #include <ddi/ddi.h>
 #include <ipc/event.h>
 #include <security/perm.h>
@@ -139,7 +138,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_FUTEX_SLEEP] = (syshandler_t) sys_futex_sleep,
 	[SYS_FUTEX_WAKEUP] = (syshandler_t) sys_futex_wakeup,
 	[SYS_SMC_COHERENCE] = (syshandler_t) sys_smc_coherence,
-	[SYS_SMP_MEMORY_BARRIER] = (syshandler_t) sys_smp_memory_barrier,
 
 	/* Address space related syscalls. */
 	[SYS_AS_AREA_CREATE] = (syshandler_t) sys_as_area_create,

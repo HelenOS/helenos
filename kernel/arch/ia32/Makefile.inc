@@ -75,7 +75,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/smp/apic.c \
 	arch/$(KARCH)/src/smp/mps.c \
 	arch/$(KARCH)/src/smp/smp.c \
-	arch/$(KARCH)/src/smp/smp_call.c \
 	arch/$(KARCH)/src/atomic.S \
 	arch/$(KARCH)/src/smp/ipi.c \
 	arch/$(KARCH)/src/ia32.c \

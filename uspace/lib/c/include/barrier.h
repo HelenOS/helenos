@@ -37,8 +37,6 @@
 
 #include <stdatomic.h>
 
-extern void smp_memory_barrier(void);
-
 static inline void compiler_barrier(void)
 {
 	atomic_signal_fence(memory_order_seq_cst);
