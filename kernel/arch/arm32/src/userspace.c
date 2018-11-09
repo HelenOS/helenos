@@ -113,9 +113,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    :: [ustate] "r" (&ustate), [user_mode] "r" (user_mode)
 	);
 
-	/* unreachable */
-	while (true)
-		;
+	unreachable();
 }
 
 /** @}

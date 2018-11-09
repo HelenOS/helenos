@@ -52,6 +52,10 @@
 #define panic_memtrap(istate, access, addr, fmt, ...) \
 	panic_common(PANIC_MEMTRAP, istate, access, addr, fmt, ##__VA_ARGS__)
 
+#define unreachable() \
+	panic_assert("%s() at %s:%u:\nUnreachable line reached.", \
+	    __func__, __FILE__, __LINE__);
+
 typedef enum {
 	PANIC_OTHER,
 	PANIC_ASSERT,

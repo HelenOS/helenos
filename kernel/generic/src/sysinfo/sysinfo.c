@@ -293,9 +293,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 		cur = cur->next;
 	}
 
-	/* Unreachable */
-	assert(false);
-	return NULL;
+	unreachable();
 }
 
 /** Set sysinfo item with a constant numeric value

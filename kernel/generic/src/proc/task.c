@@ -627,9 +627,7 @@ void task_kill_self(bool notify)
 sys_errno_t sys_task_exit(sysarg_t notify)
 {
 	task_kill_self(notify);
-
-	/* Unreachable */
-	return EOK;
+	unreachable();
 }
 
 static void task_print(task_t *task, bool additional)

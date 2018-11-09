@@ -296,9 +296,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    kernel_uarg->uspace_stack_size - SP_DELTA,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 
-	/* Unreachable */
-	while (true)
-		;
+	unreachable();
 }
 
 /** Construct function pointer

@@ -78,9 +78,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	      [vreg_des] "r" (GDT_SELECTOR(VREG_DES))
 	    : "eax");
 
-	/* Unreachable */
-	while (true)
-		;
+	unreachable();
 }
 
 /** @}

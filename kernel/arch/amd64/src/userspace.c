@@ -74,9 +74,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    : "rax"
 	);
 
-	/* Unreachable */
-	while (true)
-		;
+	unreachable();
 }
 
 /** @}
