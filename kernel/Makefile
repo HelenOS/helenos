@@ -183,11 +183,11 @@ GENERIC_SOURCES = \
 	generic/src/main/uinit.c \
 	generic/src/main/version.c \
 	generic/src/main/shutdown.c \
+	generic/src/proc/current.c \
 	generic/src/proc/program.c \
 	generic/src/proc/scheduler.c \
 	generic/src/proc/thread.c \
 	generic/src/proc/task.c \
-	generic/src/proc/the.c \
 	generic/src/syscall/syscall.c \
 	generic/src/syscall/copy.c \
 	generic/src/mm/km.c \
