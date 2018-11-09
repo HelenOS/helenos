@@ -145,9 +145,6 @@ extern void *realloc(void *, size_t)
     __attribute__((warn_unused_result));
 extern void free(void *);
 
-extern void *nfmalloc(size_t)
-    __attribute__((malloc, returns_nonnull));
-
 #endif
 
 /** @}

@@ -528,7 +528,7 @@ void ipc_irq_top_half_handler(irq_t *irq)
 	assert(irq_spinlock_locked(&irq->lock));
 
 	if (irq->notif_cfg.answerbox) {
-		call_t *call = ipc_call_alloc(FRAME_ATOMIC);
+		call_t *call = ipc_call_alloc();
 		if (!call)
 			return;
 
@@ -564,7 +564,7 @@ void ipc_irq_send_msg(irq_t *irq, sysarg_t a1, sysarg_t a2, sysarg_t a3,
 	irq_spinlock_lock(&irq->lock, true);
 
 	if (irq->notif_cfg.answerbox) {
-		call_t *call = ipc_call_alloc(FRAME_ATOMIC);
+		call_t *call = ipc_call_alloc();
 		if (!call) {
 			irq_spinlock_unlock(&irq->lock, true);
 			return;

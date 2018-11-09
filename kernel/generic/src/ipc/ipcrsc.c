@@ -45,6 +45,8 @@
 static void phone_destroy(void *arg)
 {
 	phone_t *phone = (phone_t *) arg;
+	if (phone->hangup_call)
+		kobject_put(phone->hangup_call->kobject);
 	slab_free(phone_cache, phone);
 }
 
@@ -78,9 +80,17 @@ errno_t phone_alloc(task_t *task, bool publish, cap_phone_handle_t *phandle,
 			slab_free(phone_cache, phone);
 			return ENOMEM;
 		}
+		call_t *hcall = ipc_call_alloc();
+		if (!hcall) {
+			cap_free(TASK, handle);
+			slab_free(phone_cache, phone);
+			free(kobj);
+			return ENOMEM;
+		}
 
 		ipc_phone_init(phone, task);
 		phone->state = IPC_PHONE_CONNECTING;
+		phone->hangup_call = hcall;
 
 		kobject_initialize(kobj, KOBJECT_TYPE_PHONE, phone,
 		    &phone_kobject_ops);

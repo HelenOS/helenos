@@ -265,7 +265,7 @@ static void udebug_receive_areas_read(call_t *call)
 	sysarg_t to_copy;
 	size_t data_size;
 	size_t buf_size;
-	void *data;
+	as_area_info_t *data;
 
 	uspace_addr = IPC_GET_ARG2(call->data);	/* Destination address */
 	buf_size = IPC_GET_ARG3(call->data);	/* Dest. buffer size */
@@ -273,7 +273,12 @@ static void udebug_receive_areas_read(call_t *call)
 	/*
 	 * Read area list.
 	 */
-	as_get_area_info(AS, (as_area_info_t **) &data, &data_size);
+	data = as_get_area_info(AS, &data_size);
+	if (!data) {
+		IPC_SET_RETVAL(call->data, ENOMEM);
+		ipc_answer(&TASK->kb.box, call);
+		return;
+	}
 
 	/* Copy MAX(buf_size, data_size) bytes */
 
@@ -296,7 +301,7 @@ static void udebug_receive_areas_read(call_t *call)
 	IPC_SET_ARG2(call->data, to_copy);
 
 	IPC_SET_ARG3(call->data, data_size);
-	call->buffer = data;
+	call->buffer = (uint8_t *) data;
 
 	ipc_answer(&TASK->kb.box, call);
 }

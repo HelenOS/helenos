@@ -146,7 +146,7 @@ static errno_t event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2
 
 	if (event->answerbox != NULL) {
 		if (!event->masked) {
-			call_t *call = ipc_call_alloc(FRAME_ATOMIC);
+			call_t *call = ipc_call_alloc();
 
 			if (call) {
 				call->flags |= IPC_CALL_NOTIF;

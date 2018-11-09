@@ -218,10 +218,16 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 	void *pos = NULL;
 	const char *hint;
 	const char *help;
-	char *output = nfmalloc(MAX_CMDLINE);
 	size_t hints_to_show = MAX_TAB_HINTS - 1;
 	size_t total_hints_shown = 0;
 	bool continue_showing_hints = true;
+
+	char *output = malloc(MAX_CMDLINE);
+	if (!output) {
+		// TODO: fix the function so that it does not need allocation
+		printf("Can't complete command, out of memory.\n");
+		return 0;
+	}
 
 	output[0] = 0;
 
@@ -324,14 +330,14 @@ NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
 	return NULL;
 }
 
-NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
+NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
+    char *tmp)
 {
 	printf("%s> ", prompt);
 
 	size_t position = 0;
 	wchar_t *current = history[history_pos];
 	current[0] = 0;
-	char *tmp = nfmalloc(STR_BOUNDS(MAX_CMDLINE));
 
 	while (true) {
 		wchar_t ch = indev_pop_character(indev);
@@ -533,7 +539,6 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 		history_pos = history_pos % KCONSOLE_HISTORY;
 	}
 
-	free(tmp);
 	return current;
 }
 
@@ -808,9 +813,18 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 	else
 		printf("Type \"exit\" to leave the console.\n");
 
-	char *cmdline = nfmalloc(STR_BOUNDS(MAX_CMDLINE));
+	char *buffer = malloc(STR_BOUNDS(MAX_CMDLINE));
+	char *cmdline = malloc(STR_BOUNDS(MAX_CMDLINE));
+	if (!buffer || !cmdline) {
+		// TODO: fix the function so that it does not need allocations
+		printf("Can't start console, out of memory.\n");
+		free(buffer);
+		free(cmdline);
+		return;
+	}
+
 	while (true) {
-		wchar_t *tmp = clever_readline((char *) prompt, stdin);
+		wchar_t *tmp = clever_readline((char *) prompt, stdin, buffer);
 		size_t len = wstr_length(tmp);
 		if (!len)
 			continue;
@@ -826,6 +840,7 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 
 		(void) cmd_info->func(cmd_info->argv);
 	}
+	free(buffer);
 	free(cmdline);
 }
 

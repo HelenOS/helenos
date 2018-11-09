@@ -119,12 +119,11 @@ void kinit(void *arg)
 		 */
 		thread = thread_create(kmp, NULL, TASK,
 		    THREAD_FLAG_UNCOUNTED, "kmp");
-		if (thread != NULL) {
-			thread_wire(thread, &cpus[0]);
-			thread_ready(thread);
-		} else
+		if (!thread)
 			panic("Unable to create kmp thread.");
 
+		thread_wire(thread, &cpus[0]);
+		thread_ready(thread);
 		thread_join(thread);
 		thread_detach(thread);
 

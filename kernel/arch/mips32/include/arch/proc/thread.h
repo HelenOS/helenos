@@ -40,7 +40,7 @@ typedef struct {
 
 #define thr_constructor_arch(t)
 #define thr_destructor_arch(t)
-#define thread_create_arch(t)
+#define thread_create_arch(t, flags) (EOK)
 
 #endif
 

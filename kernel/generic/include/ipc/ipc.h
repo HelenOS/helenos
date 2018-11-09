@@ -46,6 +46,7 @@
 
 struct answerbox;
 struct task;
+struct call;
 
 typedef enum {
 	/** Phone is free and can be allocated */
@@ -66,6 +67,8 @@ typedef struct phone {
 	link_t link;
 	struct task *caller;
 	struct answerbox *callee;
+	/* A call prepared for hangup ahead of time, so that it cannot fail. */
+	struct call *hangup_call;
 	ipc_phone_state_t state;
 	atomic_t active_calls;
 	/** User-defined label */
@@ -170,10 +173,7 @@ extern answerbox_t *ipc_box_0;
 
 extern void ipc_init(void);
 
-extern call_t *ipc_call_alloc(unsigned int);
-extern void ipc_call_free(call_t *);
-extern void ipc_call_hold(call_t *);
-extern void ipc_call_release(call_t *);
+extern call_t *ipc_call_alloc(void);
 
 extern errno_t ipc_call_sync(phone_t *, call_t *);
 extern errno_t ipc_call(phone_t *, call_t *);

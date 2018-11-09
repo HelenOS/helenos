@@ -266,6 +266,7 @@ static int process_request(answerbox_t *box, call_t *call)
  *
  * @return EOK on success.
  * @return ENOENT if there is no such phone handle.
+ * @return ENOMEM if not enough memory to make the call
  *
  */
 errno_t
@@ -275,7 +276,12 @@ ipc_req_internal(cap_phone_handle_t handle, ipc_data_t *data, sysarg_t priv)
 	if (!kobj->phone)
 		return ENOENT;
 
-	call_t *call = ipc_call_alloc(0);
+	call_t *call = ipc_call_alloc();
+	if (!call) {
+		kobject_put(kobj);
+		return ENOMEM;
+	}
+
 	call->priv = priv;
 	memcpy(call->data.args, data->args, sizeof(data->args));
 
@@ -372,7 +378,12 @@ sys_errno_t sys_ipc_call_async_fast(cap_phone_handle_t handle, sysarg_t imethod,
 		return ELIMIT;
 	}
 
-	call_t *call = ipc_call_alloc(0);
+	call_t *call = ipc_call_alloc();
+	if (!call) {
+		kobject_put(kobj);
+		return ENOMEM;
+	}
+
 	IPC_SET_IMETHOD(call->data, imethod);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
@@ -419,7 +430,12 @@ sys_errno_t sys_ipc_call_async_slow(cap_phone_handle_t handle, ipc_data_t *data,
 		return ELIMIT;
 	}
 
-	call_t *call = ipc_call_alloc(0);
+	call_t *call = ipc_call_alloc();
+	if (!call) {
+		kobject_put(kobj);
+		return ENOMEM;
+	}
+
 	errno_t rc = copy_from_uspace(&call->data.args, &data->args,
 	    sizeof(call->data.args));
 	if (rc != EOK) {

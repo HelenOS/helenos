@@ -666,7 +666,10 @@ slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,
     errno_t (*constructor)(void *obj, unsigned int kmflag),
     size_t (*destructor)(void *obj), unsigned int flags)
 {
-	slab_cache_t *cache = slab_alloc(&slab_cache_cache, 0);
+	slab_cache_t *cache = slab_alloc(&slab_cache_cache, FRAME_ATOMIC);
+	if (!cache)
+		panic("Not enough memory to allocate slab cache %s.", name);
+
 	_slab_cache_create(cache, name, size, align, constructor, destructor,
 	    flags);
 
@@ -729,6 +732,9 @@ NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
  */
 NO_TRACE static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
 {
+	if (!obj)
+		return;
+
 	ipl_t ipl = interrupts_disable();
 
 	if ((cache->flags & SLAB_CACHE_NOMAGAZINE) ||
@@ -953,7 +959,7 @@ void slab_enable_cpucache(void)
 	irq_spinlock_unlock(&slab_cache_lock, false);
 }
 
-static void *_malloc(size_t size, unsigned int flags)
+void *malloc(size_t size)
 {
 	assert(_slab_initialized);
 	assert(size <= (1 << SLAB_MAX_MALLOC_W));
@@ -963,23 +969,10 @@ static void *_malloc(size_t size, unsigned int flags)
 
 	uint8_t idx = fnzb(size - 1) - SLAB_MIN_MALLOC_W + 1;
 
-	return slab_alloc(malloc_caches[idx], flags);
+	return slab_alloc(malloc_caches[idx], FRAME_ATOMIC);
 }
 
-void *malloc(size_t size)
-{
-	return _malloc(size, FRAME_ATOMIC);
-}
-
-/** Non-failing malloc.
- *  Never returns NULL, but may block forever if no memory is available.
- */
-void *nfmalloc(size_t size)
-{
-	return _malloc(size, 0);
-}
-
-static void *_realloc(void *ptr, size_t size, unsigned int flags)
+void *realloc(void *ptr, size_t size)
 {
 	assert(_slab_initialized);
 	assert(size <= (1 << SLAB_MAX_MALLOC_W));
@@ -991,7 +984,7 @@ static void *_realloc(void *ptr, size_t size, unsigned int flags)
 			size = (1 << SLAB_MIN_MALLOC_W);
 		uint8_t idx = fnzb(size - 1) - SLAB_MIN_MALLOC_W + 1;
 
-		new_ptr = slab_alloc(malloc_caches[idx], flags);
+		new_ptr = slab_alloc(malloc_caches[idx], FRAME_ATOMIC);
 	} else
 		new_ptr = NULL;
 
@@ -1004,11 +997,6 @@ static void *_realloc(void *ptr, size_t size, unsigned int flags)
 		free(ptr);
 
 	return new_ptr;
-}
-
-void *realloc(void *ptr, size_t size)
-{
-	return _realloc(ptr, size, FRAME_ATOMIC);
 }
 
 void free(void *ptr)

@@ -203,18 +203,27 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 			i++;
 
 		*psubtree =
-		    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, 0);
-		assert(*psubtree);
+		    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, FRAME_ATOMIC);
+		if (!*psubtree)
+			return NULL;
 
 		/* Fill in item name up to the delimiter */
 		(*psubtree)->name = str_ndup(name, i);
-		assert((*psubtree)->name);
+		if (!(*psubtree)->name) {
+			slab_free(sysinfo_item_cache, *psubtree);
+			return NULL;
+		}
 
 		/* Create subtree items */
 		if (name[i] == '.') {
 			(*psubtree)->subtree_type = SYSINFO_SUBTREE_TABLE;
-			return sysinfo_create_path(name + i + 1,
+			sysinfo_item_t *item = sysinfo_create_path(name + i + 1,
 			    &((*psubtree)->subtree.table));
+			if (!item) {
+				free((*psubtree)->name);
+				slab_free(sysinfo_item_cache, *psubtree);
+			}
+			return item;
 		}
 
 		/* No subtree needs to be created */
@@ -270,20 +279,30 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 				i++;
 
 			sysinfo_item_t *item =
-			    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, 0);
-			assert(item);
+			    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, FRAME_ATOMIC);
+			if (!item)
+				return NULL;
 
 			cur->next = item;
 
 			/* Fill in item name up to the delimiter */
 			item->name = str_ndup(name, i);
-			assert(item->name);
+			if (!item->name) {
+				slab_free(sysinfo_item_cache, item);
+				return NULL;
+			}
 
 			/* Create subtree items */
 			if (name[i] == '.') {
 				item->subtree_type = SYSINFO_SUBTREE_TABLE;
-				return sysinfo_create_path(name + i + 1,
-				    &(item->subtree.table));
+				sysinfo_item_t *sub = sysinfo_create_path(
+				    name + i + 1, &(item->subtree.table));
+				if (!sub) {
+					free(item->name);
+					slab_free(sysinfo_item_cache, item);
+					return NULL;
+				}
+				return sub;
 			}
 
 			/* No subtree needs to be created */
@@ -317,6 +336,8 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
 	if (item != NULL) {
 		item->val_type = SYSINFO_VAL_VAL;
 		item->val.val = val;
+	} else {
+		printf("Could not set sysinfo item %s.\n", name);
 	}
 
 	mutex_unlock(&sysinfo_lock);
@@ -349,6 +370,8 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
 		item->val_type = SYSINFO_VAL_DATA;
 		item->val.data.data = data;
 		item->val.data.size = size;
+	} else {
+		printf("Could not set sysinfo item %s.\n", name);
 	}
 
 	mutex_unlock(&sysinfo_lock);
@@ -377,6 +400,8 @@ void sysinfo_set_item_gen_val(const char *name, sysinfo_item_t **root,
 		item->val_type = SYSINFO_VAL_FUNCTION_VAL;
 		item->val.gen_val.fn = fn;
 		item->val.gen_val.data = data;
+	} else {
+		printf("Could not set sysinfo item %s.\n", name);
 	}
 
 	mutex_unlock(&sysinfo_lock);
@@ -410,6 +435,8 @@ void sysinfo_set_item_gen_data(const char *name, sysinfo_item_t **root,
 		item->val_type = SYSINFO_VAL_FUNCTION_DATA;
 		item->val.gen_data.fn = fn;
 		item->val.gen_data.data = data;
+	} else {
+		printf("Could not set sysinfo item %s.\n", name);
 	}
 
 	mutex_unlock(&sysinfo_lock);
@@ -433,6 +460,8 @@ void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL)
 		item->val_type = SYSINFO_VAL_UNDEFINED;
+	else
+		printf("Could not set sysinfo item %s.\n", name);
 
 	mutex_unlock(&sysinfo_lock);
 }
@@ -465,6 +494,8 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 		item->subtree_type = SYSINFO_SUBTREE_FUNCTION;
 		item->subtree.generator.fn = fn;
 		item->subtree.generator.data = data;
+	} else {
+		printf("Could not set sysinfo item %s.\n", name);
 	}
 
 	mutex_unlock(&sysinfo_lock);
@@ -653,8 +684,10 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 	if (size > SYSINFO_MAX_PATH)
 		return ret;
 
-	char *path = (char *) nfmalloc(size + 1);
-	assert(path);
+	// TODO: Change this so that allocation is not needed.
+	char *path = malloc(size + 1);
+	if (!path)
+		return ret;
 
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
 	    (path[size] == 0)) {
@@ -762,8 +795,10 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
 	if (size > SYSINFO_MAX_PATH)
 		return ret;
 
-	char *path = (char *) nfmalloc(size + 1);
-	assert(path);
+	// TODO: Change this so that allocation is not needed.
+	char *path = malloc(size + 1);
+	if (!path)
+		return ret;
 
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
 	    (path[size] == 0)) {

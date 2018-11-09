@@ -133,7 +133,6 @@ static void after_thread_ran(void)
 #ifdef CONFIG_FPU_LAZY
 void scheduler_fpu_lazy_request(void)
 {
-restart:
 	fpu_enable();
 	irq_spinlock_lock(&CPU->lock, false);
 
@@ -152,17 +151,6 @@ restart:
 	if (THREAD->fpu_context_exists) {
 		fpu_context_restore(THREAD->saved_fpu_context);
 	} else {
-		/* Allocate FPU context */
-		if (!THREAD->saved_fpu_context) {
-			/* Might sleep */
-			irq_spinlock_unlock(&THREAD->lock, false);
-			irq_spinlock_unlock(&CPU->lock, false);
-			THREAD->saved_fpu_context =
-			    (fpu_context_t *) slab_alloc(fpu_context_cache, 0);
-
-			/* We may have switched CPUs during slab_alloc */
-			goto restart;
-		}
 		fpu_init();
 		THREAD->fpu_context_exists = true;
 	}
