@@ -55,6 +55,11 @@ void fibril_rmutex_initialize(fibril_rmutex_t *m)
 	futex_initialize(&m->futex, 1);
 }
 
+void fibril_rmutex_destroy(fibril_rmutex_t *m)
+{
+	futex_destroy(&m->futex);
+}
+
 /**
  * Lock restricted mutex.
  * When a restricted mutex is locked, the fibril may not sleep or create new

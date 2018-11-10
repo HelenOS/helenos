@@ -122,6 +122,22 @@ sys_errno_t sys_waitq_create(cap_waitq_handle_t *whandle)
 	return (sys_errno_t) EOK;
 }
 
+/** Destroy a waitq
+ *
+ * @param whandle  Waitq capability handle of the waitq to be destroyed.
+ *
+ * @return         Error code.
+ */
+sys_errno_t sys_waitq_destroy(cap_waitq_handle_t whandle)
+{
+	kobject_t *kobj = cap_unpublish(TASK, whandle, KOBJECT_TYPE_WAITQ);
+	if (!kobj)
+		return (sys_errno_t) ENOENT;
+	kobject_put(kobj);
+	cap_free(TASK, whandle);
+	return EOK;
+}
+
 /** Sleep in the waitq
  *
  * @param whandle  Waitq capability handle of the waitq in which to sleep.

@@ -138,6 +138,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_WAITQ_CREATE] = (syshandler_t) sys_waitq_create,
 	[SYS_WAITQ_SLEEP] = (syshandler_t) sys_waitq_sleep,
 	[SYS_WAITQ_WAKEUP] = (syshandler_t) sys_waitq_wakeup,
+	[SYS_WAITQ_DESTROY] = (syshandler_t) sys_waitq_destroy,
 	[SYS_SMC_COHERENCE] = (syshandler_t) sys_smc_coherence,
 
 	/* Address space related syscalls. */

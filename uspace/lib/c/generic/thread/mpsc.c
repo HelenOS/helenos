@@ -96,7 +96,7 @@ void mpsc_destroy(mpsc_t *q)
 		n = next;
 	}
 
-	// TODO: fibril_rmutex_destroy()
+	fibril_rmutex_destroy(&q->t_lock);
 
 	free(q);
 }

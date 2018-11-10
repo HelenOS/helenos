@@ -126,6 +126,7 @@ typedef struct {
 	fibril_rmutex_t name = FIBRIL_RMUTEX_INITIALIZER(name)
 
 extern void fibril_rmutex_initialize(fibril_rmutex_t *);
+extern void fibril_rmutex_destroy(fibril_rmutex_t *);
 extern void fibril_rmutex_lock(fibril_rmutex_t *);
 extern bool fibril_rmutex_trylock(fibril_rmutex_t *);
 extern void fibril_rmutex_unlock(fibril_rmutex_t *);

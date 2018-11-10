@@ -55,6 +55,13 @@ typedef struct futex {
 
 extern void futex_initialize(futex_t *futex, int value);
 
+static inline errno_t futex_destroy(futex_t *futex)
+{
+	if (futex->whandle)
+		return __SYSCALL1(SYS_WAITQ_DESTROY, (sysarg_t) futex->whandle);
+	return EOK;
+}
+
 #ifdef CONFIG_DEBUG_FUTEX
 
 #define FUTEX_INITIALIZE(val) { (val), 0, CAP_NIL, NULL }
