@@ -41,9 +41,13 @@
 #include <libc.h>
 #include <time.h>
 #include <fibril.h>
+#include <abi/cap.h>
 
 typedef struct futex {
 	volatile atomic_int val;
+	volatile atomic_int alloc_lock;
+	cap_waitq_handle_t whandle;
+
 #ifdef CONFIG_DEBUG_FUTEX
 	_Atomic(fibril_t *) owner;
 #endif
@@ -53,7 +57,7 @@ extern void futex_initialize(futex_t *futex, int value);
 
 #ifdef CONFIG_DEBUG_FUTEX
 
-#define FUTEX_INITIALIZE(val) { (val) , NULL }
+#define FUTEX_INITIALIZE(val) { (val), 0, CAP_NIL, NULL }
 #define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 void __futex_assert_is_locked(futex_t *, const char *);
@@ -73,7 +77,7 @@ void __futex_give_to(futex_t *, void *, const char *);
 
 #else
 
-#define FUTEX_INITIALIZE(val) { (val) }
+#define FUTEX_INITIALIZE(val) { (val), 0, CAP_NIL }
 #define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 #define futex_lock(fut)     (void) futex_down((fut))
@@ -131,7 +135,26 @@ static inline errno_t futex_down_composable(futex_t *futex,
 		assert(timeout > 0);
 	}
 
-	return __SYSCALL2(SYS_FUTEX_SLEEP, (sysarg_t) futex, (sysarg_t) timeout);
+	if (futex->whandle == CAP_NIL) {
+		while (atomic_exchange_explicit(&futex->alloc_lock, 1,
+		    memory_order_acquire) == 1)
+			;
+		if (futex->whandle == CAP_NIL) {
+			errno_t rc = __SYSCALL1(SYS_WAITQ_CREATE,
+			    (sysarg_t) &futex->whandle);
+			if (rc != EOK) {
+				atomic_store_explicit(&futex->alloc_lock, 0,
+				    memory_order_release);
+				return rc;
+			}
+		}
+
+		atomic_store_explicit(&futex->alloc_lock, 0,
+		    memory_order_release);
+	}
+
+	return __SYSCALL2(SYS_WAITQ_SLEEP, (sysarg_t) futex->whandle,
+	    (sysarg_t) timeout);
 }
 
 /** Up the futex.
@@ -146,7 +169,7 @@ static inline errno_t futex_down_composable(futex_t *futex,
 static inline errno_t futex_up(futex_t *futex)
 {
 	if (atomic_fetch_add_explicit(&futex->val, 1, memory_order_release) < 0)
-		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) futex);
+		return __SYSCALL1(SYS_WAITQ_WAKEUP, (sysarg_t) futex->whandle);
 
 	return EOK;
 }
