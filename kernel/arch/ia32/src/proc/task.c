@@ -35,7 +35,7 @@
 #include <proc/task.h>
 #include <stddef.h>
 #include <adt/bitmap.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 
 /** Perform ia32 specific task initialization.
  *

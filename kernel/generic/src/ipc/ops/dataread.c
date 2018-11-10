@@ -35,7 +35,7 @@
 #include <assert.h>
 #include <ipc/sysipc_ops.h>
 #include <ipc/ipc.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <abi/errno.h>
 #include <syscall/copy.h>
 #include <config.h>

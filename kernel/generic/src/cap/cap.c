@@ -85,6 +85,7 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #define CAPS_START	(CAP_NIL + 1)
 #define CAPS_SIZE	(INT_MAX - CAPS_START)

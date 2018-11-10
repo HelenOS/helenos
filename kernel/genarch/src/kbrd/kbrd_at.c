@@ -46,6 +46,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <macros.h>
+#include <stdlib.h>
 
 #define PRESSED_SHIFT     (1 << 0)
 #define PRESSED_CAPSLOCK  (1 << 1)

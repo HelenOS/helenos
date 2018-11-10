@@ -43,7 +43,7 @@
 #include <panic.h>
 #include <config.h>
 #include <log.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <gsort.h>
 
 struct acpi_madt *acpi_madt = NULL;

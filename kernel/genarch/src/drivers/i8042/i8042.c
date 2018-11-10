@@ -42,7 +42,7 @@
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <arch/asm.h>
 #include <console/chardev.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <time/delay.h>
 
 #define i8042_SET_COMMAND  0x60

@@ -50,7 +50,7 @@
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/km.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <mm/as.h>
 #include <log.h>
 #include <mem.h>

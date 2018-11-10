@@ -57,7 +57,7 @@
 #include <symtab.h>
 #include <errno.h>
 #include <putchar.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 
 /** Simple kernel console.
  *

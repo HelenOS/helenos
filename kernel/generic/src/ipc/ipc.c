@@ -60,6 +60,7 @@
 #include <arch/interrupt.h>
 #include <ipc/irq.h>
 #include <cap/cap.h>
+#include <stdlib.h>
 
 static void ipc_forget_call(call_t *);
 

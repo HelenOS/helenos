@@ -42,7 +42,7 @@
 #include <console/chardev.h>
 #include <console/console.h>
 #include <arch/asm.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <mm/page.h>
 #include <mm/km.h>
 #include <sysinfo/sysinfo.h>

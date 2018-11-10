@@ -42,6 +42,7 @@
 #include <arch/asm.h>
 #include <errno.h>
 #include <macros.h>
+#include <stdlib.h>
 
 /** Maximal sysinfo path length */
 #define SYSINFO_MAX_PATH  2048

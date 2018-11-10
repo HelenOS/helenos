@@ -52,7 +52,7 @@
 #include <log.h>
 #include <console/console.h>
 #include <abi/log.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 
 #define LOG_PAGES    8
 #define LOG_LENGTH   (LOG_PAGES * PAGE_SIZE)

@@ -38,7 +38,7 @@
 #include <console/chardev.h>
 #include <ddi/irq.h>
 #include <arch/asm.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <synch/spinlock.h>
 #include <mem.h>
 

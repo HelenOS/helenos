@@ -39,7 +39,7 @@
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mem.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 
 /*
  * There is no segmentation in long mode so we set up flat mode. In this

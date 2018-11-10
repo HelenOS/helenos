@@ -52,6 +52,7 @@
 #include <abi/fb/visuals.h>
 #include <ddi/ddi.h>
 #include <log.h>
+#include <stdlib.h>
 
 #define SDRAM_SIZE \
 	sdram[(*(uint32_t *) (ICP_CMCR + ICP_SDRAMCR_OFFSET) & ICP_SDRAM_MASK) >> 2]

@@ -51,6 +51,7 @@
 #include <errno.h>
 #include <cpu.h>
 #include <arch.h>
+#include <stdlib.h>
 
 /** Bits of fixed-point precision for load */
 #define LOAD_FIXED_SHIFT  11

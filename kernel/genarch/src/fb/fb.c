@@ -41,7 +41,7 @@
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <mm/km.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <align.h>
 #include <panic.h>
 #include <mem.h>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Jakub Jermar
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_amd64
+/** @addtogroup kernel_generic_mm
  * @{
  */
 /** @file
  */
 
-#include <arch/kseg.h>
-#include <arch/asm.h>
-#include <panic.h>
-#include <arch/kseg_struct.h>
-#include <stdlib.h>
+#ifndef KERN_STDLIB_H_
+#define KERN_STDLIB_H_
 
-/**
- * Allocate and initialize a per-CPU structure to be accessible via the
- * GS_KERNEL segment register.
- */
-void kseg_init(void)
-{
-	kseg_t *kseg;
+#include <stddef.h>
 
-	kseg = (kseg_t *) malloc(sizeof(kseg_t));
-	if (!kseg)
-		panic("Cannot allocate kseg.");
+extern void *malloc(size_t)
+    __attribute__((malloc));
+extern void *realloc(void *, size_t)
+    __attribute__((warn_unused_result));
+extern void free(void *);
 
-	kseg->ustack_rsp = 0;
-	kseg->kstack_rsp = 0;
-	kseg->fsbase = read_msr(AMD_MSR_FS);
-
-	write_msr(AMD_MSR_GS_KERNEL, (uintptr_t) kseg);
-}
+#endif
 
 /** @}
  */

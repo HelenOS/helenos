@@ -37,7 +37,7 @@
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <console/chardev.h>
 #include <arch/asm.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <str.h>

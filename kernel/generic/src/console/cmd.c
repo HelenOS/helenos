@@ -70,6 +70,7 @@
 #include <sysinfo/sysinfo.h>
 #include <symtab.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #ifdef CONFIG_TEST
 #include <test.h>

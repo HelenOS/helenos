@@ -51,6 +51,7 @@
 #include <udebug/udebug.h>
 #include <udebug/udebug_ops.h>
 #include <mem.h>
+#include <stdlib.h>
 
 /** Prepare a thread for a debugging operation.
  *

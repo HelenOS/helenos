@@ -29,10 +29,10 @@
 #include <test.h>
 #include <mm/page.h>
 #include <mm/frame.h>
-#include <mm/slab.h>
 #include <arch/mm/page.h>
 #include <typedefs.h>
 #include <align.h>
+#include <stdlib.h>
 
 #define MAX_FRAMES  1024
 #define MAX_ORDER   8

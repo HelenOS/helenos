@@ -54,6 +54,7 @@
 #include <align.h>
 #include <macros.h>
 #include <synch/spinlock.h>
+#include <stdlib.h>
 
 static slab_cache_t *ra_segment_cache;
 

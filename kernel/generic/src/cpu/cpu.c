@@ -38,7 +38,7 @@
 #include <cpu.h>
 #include <arch.h>
 #include <arch/cpu.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <mm/page.h>
 #include <mm/frame.h>
 #include <typedefs.h>

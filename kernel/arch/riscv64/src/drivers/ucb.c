@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <console/chardev.h>
 #include <str.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 
 #define HTIF_DEVICE_CONSOLE  1
 

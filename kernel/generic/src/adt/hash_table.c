@@ -50,7 +50,7 @@
 
 #include <adt/hash_table.h>
 #include <adt/list.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <str.h>
 

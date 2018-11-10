@@ -37,7 +37,7 @@
 #include <proc/task.h>
 #include <typedefs.h>
 #include <adt/bitmap.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <arch/pm.h>
 #include <errno.h>
 #include <arch/cpu.h>

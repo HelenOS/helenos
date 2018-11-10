@@ -41,6 +41,7 @@
 #include <abi/errno.h>
 #include <cap/cap.h>
 #include <mm/slab.h>
+#include <stdlib.h>
 
 static void phone_destroy(void *arg)
 {

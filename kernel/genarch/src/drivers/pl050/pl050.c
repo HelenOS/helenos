@@ -39,7 +39,7 @@
 #include <genarch/drivers/pl050/pl050.h>
 #include <arch/asm.h>
 #include <console/chardev.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 
 #define PL050_KEY_RELEASE 0xF0
 #define PL050_ESC_KEY	0xE0

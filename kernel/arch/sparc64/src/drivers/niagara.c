@@ -40,7 +40,7 @@
 #include <ddi/ddi.h>
 #include <arch/asm.h>
 #include <arch.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <arch/drivers/niagara_buf.h>
 #include <arch/drivers/kbd.h>
 #include <arch/sun4v/hypercall.h>

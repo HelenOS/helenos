@@ -41,7 +41,7 @@
 
 #include <gsort.h>
 #include <mem.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 
 /** Immediate buffer size.
  *

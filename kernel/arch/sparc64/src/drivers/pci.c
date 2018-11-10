@@ -39,7 +39,7 @@
 #include <genarch/ofw/upa.h>
 #include <arch/trap/interrupt.h>
 #include <mm/km.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <typedefs.h>
 #include <assert.h>
 #include <log.h>

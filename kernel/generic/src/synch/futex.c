@@ -58,7 +58,7 @@
 #include <synch/spinlock.h>
 #include <mm/frame.h>
 #include <mm/page.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <genarch/mm/page_pt.h>

@@ -65,6 +65,7 @@
 #include <console/console.h>
 #include <macros.h>
 #include <cap/cap.h>
+#include <stdlib.h>
 
 static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
 {

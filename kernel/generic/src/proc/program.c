@@ -40,7 +40,7 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <mm/as.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <arch.h>
 #include <adt/list.h>
 #include <ipc/ipc.h>

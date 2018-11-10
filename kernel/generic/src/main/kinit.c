@@ -71,6 +71,7 @@
 #include <sysinfo/stats.h>
 #include <sysinfo/sysinfo.h>
 #include <align.h>
+#include <stdlib.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>

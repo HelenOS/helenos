@@ -38,7 +38,7 @@
 #include <genarch/drivers/ega/ega.h>
 #include <mm/km.h>
 #include <mm/as.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <mem.h>

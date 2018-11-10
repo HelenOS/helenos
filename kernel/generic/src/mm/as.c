@@ -80,6 +80,7 @@
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 #include <interrupt.h>
+#include <stdlib.h>
 
 /**
  * Each architecture decides what functions will be used to carry out

@@ -57,6 +57,7 @@
 #include <arch.h>
 #include <macros.h>
 #include <str.h>
+#include <stdlib.h>
 
 #define IGNORE_CODE  0x7f
 #define KEY_RELEASE  0x80

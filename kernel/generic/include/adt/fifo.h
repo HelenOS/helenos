@@ -45,7 +45,7 @@
 #ifndef KERN_FIFO_H_
 #define KERN_FIFO_H_
 
-#include <mm/slab.h>
+#include <stdlib.h>
 
 /** Create and initialize static FIFO.
  *

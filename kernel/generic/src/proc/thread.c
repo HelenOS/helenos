@@ -62,7 +62,7 @@
 #include <atomic.h>
 #include <mem.h>
 #include <stdio.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <main/uinit.h>
 #include <syscall/copy.h>
 #include <errno.h>

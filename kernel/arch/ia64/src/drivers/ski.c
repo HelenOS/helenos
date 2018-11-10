@@ -44,6 +44,7 @@
 #include <arch/drivers/kbd.h>
 #include <str.h>
 #include <arch.h>
+#include <stdlib.h>
 
 enum {
 	/** Interval between polling in microseconds */

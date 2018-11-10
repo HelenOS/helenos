@@ -36,7 +36,7 @@
 #include <ddi/ddi.h>
 #include <proc/task.h>
 #include <typedefs.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <errno.h>
 
 #define IO_MEMMAP_PAGES	16384

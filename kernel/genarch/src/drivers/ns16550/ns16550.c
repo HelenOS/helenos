@@ -40,7 +40,7 @@
 #include <ddi/irq.h>
 #include <arch/asm.h>
 #include <console/chardev.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <str.h>
 
 #define LSR_DATA_READY  0x01

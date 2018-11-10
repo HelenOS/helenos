@@ -41,6 +41,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <str.h>
+#include <stdlib.h>
 
 static indev_operations_t srln_raw_ops = {
 	.poll = NULL,

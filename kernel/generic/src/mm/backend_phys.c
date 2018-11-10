@@ -41,7 +41,7 @@
 #include <mm/as.h>
 #include <mm/page.h>
 #include <mm/frame.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <macros.h>
 #include <arch.h>
 #include <align.h>

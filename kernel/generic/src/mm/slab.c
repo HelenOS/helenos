@@ -115,6 +115,7 @@
 #include <bitops.h>
 #include <macros.h>
 #include <cpu.h>
+#include <stdlib.h>
 
 IRQ_SPINLOCK_STATIC_INITIALIZE(slab_cache_lock);
 static LIST_INITIALIZE(slab_cache_list);

@@ -37,7 +37,7 @@
 #include <assert.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <console/chardev.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <arch/asm.h>
 
 static irq_ownership_t dsrlnin_claim(irq_t *irq)

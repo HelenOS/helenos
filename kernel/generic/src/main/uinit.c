@@ -44,7 +44,7 @@
 #include <typedefs.h>
 #include <proc/thread.h>
 #include <userspace.h>
-#include <mm/slab.h>
+#include <stdlib.h>
 #include <arch.h>
 #include <udebug/udebug.h>
 
