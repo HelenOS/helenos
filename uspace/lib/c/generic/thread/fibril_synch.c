@@ -50,9 +50,9 @@
 #include "../private/fibril.h"
 #include "../private/futex.h"
 
-void fibril_rmutex_initialize(fibril_rmutex_t *m)
+errno_t fibril_rmutex_initialize(fibril_rmutex_t *m)
 {
-	futex_initialize(&m->futex, 1);
+	return futex_initialize(&m->futex, 1);
 }
 
 void fibril_rmutex_destroy(fibril_rmutex_t *m)
@@ -89,7 +89,13 @@ void fibril_rmutex_unlock(fibril_rmutex_t *m)
 
 static fibril_local bool deadlocked = false;
 
-static futex_t fibril_synch_futex = FUTEX_INITIALIZER;
+static futex_t fibril_synch_futex;
+
+void __fibril_synch_init(void)
+{
+	if (futex_initialize(&fibril_synch_futex, 1) != EOK)
+		abort();
+}
 
 typedef struct {
 	link_t link;

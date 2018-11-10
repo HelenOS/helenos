@@ -39,10 +39,12 @@
 #include <stdlib.h>
 #include <tls.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <task.h>
 #include <loader/pcb.h>
 #include <vfs/vfs.h>
 #include <vfs/inbox.h>
+#include <io/kio.h>
 #include "private/libc.h"
 #include "private/async.h"
 #include "private/malloc.h"
@@ -60,6 +62,8 @@ static fibril_t main_fibril;
 
 void __libc_main(void *pcb_ptr)
 {
+	__kio_init();
+
 	assert(!__tcb_is_set());
 
 	__pcb = (pcb_t *) pcb_ptr;
@@ -80,6 +84,7 @@ void __libc_main(void *pcb_ptr)
 	assert(main_fibril.tcb);
 
 	__fibrils_init();
+	__fibril_synch_init();
 
 	/* Initialize the fibril. */
 	main_fibril.tcb->fibril_data = &main_fibril;

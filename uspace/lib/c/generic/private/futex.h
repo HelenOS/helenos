@@ -45,7 +45,6 @@
 
 typedef struct futex {
 	volatile atomic_int val;
-	volatile atomic_int lock;
 	volatile cap_waitq_handle_t whandle;
 
 #ifdef CONFIG_DEBUG_FUTEX
@@ -53,7 +52,7 @@ typedef struct futex {
 #endif
 } futex_t;
 
-extern void futex_initialize(futex_t *futex, int value);
+extern errno_t futex_initialize(futex_t *futex, int value);
 
 static inline errno_t futex_destroy(futex_t *futex)
 {
@@ -63,9 +62,6 @@ static inline errno_t futex_destroy(futex_t *futex)
 }
 
 #ifdef CONFIG_DEBUG_FUTEX
-
-#define FUTEX_INITIALIZE(val) { (val), 0, CAP_NIL, NULL }
-#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 void __futex_assert_is_locked(futex_t *, const char *);
 void __futex_assert_is_not_locked(futex_t *, const char *);
@@ -84,9 +80,6 @@ void __futex_give_to(futex_t *, void *, const char *);
 
 #else
 
-#define FUTEX_INITIALIZE(val) { (val), 0, CAP_NIL }
-#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
-
 #define futex_lock(fut)     (void) futex_down((fut))
 #define futex_trylock(fut)  futex_trydown((fut))
 #define futex_unlock(fut)   (void) futex_up((fut))
@@ -97,25 +90,9 @@ void __futex_give_to(futex_t *, void *, const char *);
 
 #endif
 
-static errno_t allocate_waitq(futex_t *futex)
+static inline errno_t futex_allocate_waitq(futex_t *futex)
 {
-	int expected = 0;
-	while (!atomic_compare_exchange_weak_explicit(&futex->lock, &expected,
-	    1, memory_order_acquire, memory_order_relaxed))
-		expected = 0;
-
-	if (futex->whandle == CAP_NIL) {
-		errno_t rc = __SYSCALL1(SYS_WAITQ_CREATE,
-		    (sysarg_t) &futex->whandle);
-		if (rc != EOK) {
-			atomic_store_explicit(&futex->lock, 0,
-			    memory_order_release);
-			return rc;
-		}
-	}
-
-	atomic_store_explicit(&futex->lock, 0, memory_order_release);
-	return EOK;
+	return __SYSCALL1(SYS_WAITQ_CREATE, (sysarg_t) &futex->whandle);
 }
 
 /** Down the futex with timeout, composably.
@@ -139,13 +116,7 @@ static inline errno_t futex_down_composable(futex_t *futex,
 {
 	// TODO: Add tests for this.
 
-	// Preallocate the waitq handle so that we don't need to risk a failure
-	// during wakeup
-	if (futex->whandle == CAP_NIL) {
-		errno_t rc = allocate_waitq(futex);
-		if (rc != EOK)
-			return rc;
-	}
+	assert(futex->whandle != CAP_NIL);
 
 	if (atomic_fetch_sub_explicit(&futex->val, 1, memory_order_acquire) > 0)
 		return EOK;

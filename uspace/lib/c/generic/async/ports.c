@@ -99,7 +99,7 @@ static async_port_handler_t fallback_port_handler =
 static void *fallback_port_data = NULL;
 
 /** Futex guarding the interface hash table. */
-static FIBRIL_RMUTEX_INITIALIZE(interface_mutex);
+static fibril_rmutex_t interface_mutex;
 static hash_table_t interface_hash_table;
 
 static size_t interface_key_hash(void *key)
@@ -291,6 +291,9 @@ async_port_handler_t async_get_port_handler(iface_t iface, port_id_t port_id,
  */
 void __async_ports_init(void)
 {
+	if (fibril_rmutex_initialize(&interface_mutex) != EOK)
+		abort();
+
 	if (!hash_table_create(&interface_hash_table, 0, 0,
 	    &interface_hash_table_ops))
 		abort();

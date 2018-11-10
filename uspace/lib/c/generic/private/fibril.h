@@ -119,13 +119,7 @@ typedef struct {
 	futex_t futex;
 } fibril_rmutex_t;
 
-#define FIBRIL_RMUTEX_INITIALIZER(name) \
-	{ .futex = FUTEX_INITIALIZE(1) }
-
-#define FIBRIL_RMUTEX_INITIALIZE(name) \
-	fibril_rmutex_t name = FIBRIL_RMUTEX_INITIALIZER(name)
-
-extern void fibril_rmutex_initialize(fibril_rmutex_t *);
+extern errno_t fibril_rmutex_initialize(fibril_rmutex_t *);
 extern void fibril_rmutex_destroy(fibril_rmutex_t *);
 extern void fibril_rmutex_lock(fibril_rmutex_t *);
 extern bool fibril_rmutex_trylock(fibril_rmutex_t *);
