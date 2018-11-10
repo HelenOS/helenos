@@ -52,7 +52,7 @@
 void futex_initialize(futex_t *futex, int val)
 {
 	atomic_store_explicit(&futex->val, val, memory_order_relaxed);
-	atomic_store_explicit(&futex->alloc_lock, 0, memory_order_relaxed);
+	atomic_store_explicit(&futex->lock, 0, memory_order_relaxed);
 	futex->whandle = CAP_NIL;
 }
 
