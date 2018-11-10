@@ -47,6 +47,7 @@
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
 #include <synch/smc.h>
+#include <synch/syswaitq.h>
 #include <ddi/ddi.h>
 #include <ipc/event.h>
 #include <security/perm.h>
@@ -135,6 +136,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_PROGRAM_SPAWN_LOADER] = (syshandler_t) sys_program_spawn_loader,
 
 	/* Synchronization related syscalls. */
+	[SYS_WAITQ_CREATE] = (syshandler_t) sys_waitq_create,
+	[SYS_WAITQ_SLEEP] = (syshandler_t) sys_waitq_sleep,
+	[SYS_WAITQ_WAKEUP] = (syshandler_t) sys_waitq_wakeup,
 	[SYS_FUTEX_SLEEP] = (syshandler_t) sys_futex_sleep,
 	[SYS_FUTEX_WAKEUP] = (syshandler_t) sys_futex_wakeup,
 	[SYS_SMC_COHERENCE] = (syshandler_t) sys_smc_coherence,

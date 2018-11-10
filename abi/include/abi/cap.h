@@ -51,6 +51,9 @@ typedef struct {
 typedef struct {
 } *cap_irq_handle_t;
 
+typedef struct {
+} *cap_waitq_handle_t;
+
 #endif
 
 /** @}
