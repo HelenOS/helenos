@@ -194,7 +194,7 @@ errno_t odict_validate(odict_t *odict)
 /** Initialize ordered dictionary.
  *
  * @param odict Ordered dictionary
- * @param getkey Funcition to get key
+ * @param getkey Function to get key
  * @param cmp Function to compare entries
  */
 void odict_initialize(odict_t *odict, odgetkey_t getkey, odcmp_t cmp)
