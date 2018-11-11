@@ -43,7 +43,7 @@ extern void sys_waitq_init(void);
 extern void sys_waitq_task_cleanup(void);
 
 extern sys_errno_t sys_waitq_create(cap_waitq_handle_t *);
-extern sys_errno_t sys_waitq_sleep(cap_waitq_handle_t, uintptr_t);
+extern sys_errno_t sys_waitq_sleep(cap_waitq_handle_t, uint32_t, unsigned int);
 extern sys_errno_t sys_waitq_wakeup(cap_waitq_handle_t);
 extern sys_errno_t sys_waitq_destroy(cap_waitq_handle_t);
 

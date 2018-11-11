@@ -142,10 +142,13 @@ sys_errno_t sys_waitq_destroy(cap_waitq_handle_t whandle)
  *
  * @param whandle  Waitq capability handle of the waitq in which to sleep.
  * @param timeout  Timeout in microseconds.
+ * @param flags    Flags from SYNCH_FLAGS_* family. SYNCH_FLAGS_INTERRUPTIBLE is
+ *                 always implied.
  *
  * @return         Error code.
  */
-sys_errno_t sys_waitq_sleep(cap_waitq_handle_t whandle, uintptr_t timeout)
+sys_errno_t sys_waitq_sleep(cap_waitq_handle_t whandle, uint32_t timeout,
+    unsigned int flags)
 {
 	kobject_t *kobj = kobject_get(TASK, whandle, KOBJECT_TYPE_WAITQ);
 	if (!kobj)
@@ -156,7 +159,7 @@ sys_errno_t sys_waitq_sleep(cap_waitq_handle_t whandle, uintptr_t timeout)
 #endif
 
 	errno_t rc = waitq_sleep_timeout(kobj->waitq, timeout,
-	    SYNCH_FLAGS_INTERRUPTIBLE | SYNCH_FLAGS_FUTEX, NULL);
+	    SYNCH_FLAGS_INTERRUPTIBLE | flags, NULL);
 
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();

@@ -42,6 +42,7 @@
 #include <time.h>
 #include <fibril.h>
 #include <abi/cap.h>
+#include <abi/synch.h>
 
 typedef struct futex {
 	volatile atomic_int val;
@@ -146,8 +147,8 @@ static inline errno_t futex_down_composable(futex_t *futex,
 		assert(timeout > 0);
 	}
 
-	return __SYSCALL2(SYS_WAITQ_SLEEP, (sysarg_t) futex->whandle,
-	    (sysarg_t) timeout);
+	return __SYSCALL3(SYS_WAITQ_SLEEP, (sysarg_t) futex->whandle,
+	    (sysarg_t) timeout, (sysarg_t) SYNCH_FLAGS_FUTEX);
 }
 
 /** Up the futex.
