@@ -44,6 +44,7 @@
 #include <syscall/copy.h>
 
 #include <stdint.h>
+#include <stdlib.h>
 
 static slab_cache_t *waitq_cache;
 
