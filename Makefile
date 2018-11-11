@@ -61,7 +61,7 @@ uspace: common
 	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
 
 test-xcw: uspace export-cross
-	export PATH=$$PATH:/data/helenos/master/tools/xcw/bin && $(MAKE) -r -C tools/xcw/demo
+	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo
 
 export-posix: common
 ifndef EXPORT_DIR
