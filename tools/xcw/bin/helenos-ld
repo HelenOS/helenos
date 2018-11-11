@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2015 Jiri Svoboda
+# Copyright (c) 2018 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,11 +34,15 @@
 XCW="$(dirname "$0")"
 SRC_ROOT="$XCW/../../.."
 UARCH="$("$XCW"/helenos-bld-config --uarch)"
+CFLAGS="$("$XCW"/helenos-bld-config --cflags)"
+LDFLAGS="$("$XCW"/helenos-bld-config --ldflags)"
 CC="$("$XCW"/helenos-bld-config --cc)"
 
 echo helenos-ld "$@"
 "$CC" \
+    $CFLAGS \
     "$@" \
     "$SRC_ROOT"/uspace/lib/c/crt0.o \
     "$SRC_ROOT"/uspace/lib/c/crt1.o \
-    "$SRC_ROOT"/uspace/lib/c/libc.a
+    "$SRC_ROOT"/uspace/lib/c/libc.a \
+    -lgcc

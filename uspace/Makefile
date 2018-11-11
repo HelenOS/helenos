@@ -277,6 +277,7 @@ clean: $(CLEANS)
 	find lib app drv srv -name '*.o' -follow -exec rm \{\} \;
 	find lib app drv srv -name '*.lo' -follow -exec rm \{\} \;
 	find lib app drv srv -name '*.d' -follow -exec rm \{\} \;
+	rm -fr export
 
 $(CLEANS):
 	-$(MAKE) -r -C $(basename $@) fasterclean

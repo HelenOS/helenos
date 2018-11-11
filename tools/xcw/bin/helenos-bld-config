@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2015 Jiri Svoboda
+# Copyright (c) 2018 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@
 SRC_ROOT="$(dirname "$0")/../../.."
 MAKEFILE_COMMON="$SRC_ROOT"/Makefile.common
 MAKEFILE_CONFIG="$SRC_ROOT"/Makefile.config
+CONFIG_MK="$SRC_ROOT"/uspace/export/config.mk
 
 # Extract simple 'name = value' variable definition from Makefile
 function extract_field
@@ -41,7 +42,8 @@ function extract_field
 	field_name="$1"
 	file_name="$2"
 
-	sed -n "s/^$field_name = \\(.*\\)$/\\1/p" "$file_name"
+	sed -n "s/^$field_name \\{0,1\\}= \\{0,1\\}\\(.*\\)$/\\1/p" "$file_name" | \
+	    sed "s/^\"//" | sed "s/\"$//"
 }
 
 case ".$1" in
@@ -53,6 +55,8 @@ case ".$1" in
 	ENDIAN=`extract_field "ENDIANESS" "$SRC_ROOT/uspace/lib/c/arch/$UARCH/Makefile.common"`
 	echo "__${ENDIAN}__"
 	;;
+*.--cflags) extract_field "HELENOS_CFLAGS" "$CONFIG_MK";;
+*.--ldflags) extract_field "HELENOS_LDFLAGS" "$CONFIG_MK";;
 (*)
 	echo "Unknown option $1" >&2
 	echo "Usage: helenos-pkg-config {--cc|--ld|--uarch|--endian}" >&2

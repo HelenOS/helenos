@@ -49,7 +49,7 @@ ERRNO_INPUT = abi/include/abi/errno.in
 
 .PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace export-posix space
 
-all: kernel uspace
+all: kernel uspace export-cross test-xcw
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
 
 common: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER)
@@ -60,12 +60,18 @@ kernel: common
 uspace: common
 	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
 
+test-xcw: uspace export-cross
+	export PATH=$$PATH:/data/helenos/master/tools/xcw/bin && $(MAKE) -r -C tools/xcw/demo
+
 export-posix: common
 ifndef EXPORT_DIR
 	@echo ERROR: Variable EXPORT_DIR is not defined. && false
 else
 	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath $(EXPORT_DIR))
 endif
+
+export-cross: common
+	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath uspace/export)
 
 precheck: clean
 	$(MAKE) -r all PRECHECK=y
@@ -154,6 +160,7 @@ clean:
 	$(MAKE) -r -C uspace clean
 	$(MAKE) -r -C boot clean
 	$(MAKE) -r -C doxygen clean
+	$(MAKE) -r -C tools/xcw/demo clean
 
 $(ERRNO_HEADER): $(ERRNO_INPUT)
 	echo '/* Generated file. Edit errno.in instead. */' > $@.new
