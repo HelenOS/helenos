@@ -47,6 +47,8 @@ extern uintptr_t stack_safe;
 extern void main_bsp(void);
 extern void main_ap(void);
 
+extern void malloc_init(void);
+
 #endif
 
 /** @}

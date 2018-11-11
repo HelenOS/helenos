@@ -35,6 +35,7 @@
 #ifndef KERN_BITOPS_H_
 #define KERN_BITOPS_H_
 
+#include <stdint.h>
 #include <trace.h>
 
 #ifdef __32_BITS__

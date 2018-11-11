@@ -93,11 +93,11 @@ COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common \
 	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 
-GCC_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
+GCC_CFLAGS = -std=gnu11 -Wall -Wextra -Wno-unused-parameter \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
 	-Wwrite-strings -pipe -Wno-cast-function-type
 
-CLANG_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
+CLANG_CFLAGS = -std=gnu11 -Wall -Wextra -Wno-unused-parameter \
 	-Wno-missing-field-initializers -Wno-unused-command-line-argument \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
 	-Wwrite-strings -pipe -fno-stack-protector -fno-PIC
@@ -196,6 +196,7 @@ GENERIC_SOURCES = \
 	generic/src/mm/page.c \
 	generic/src/mm/tlb.c \
 	generic/src/mm/as.c \
+	generic/src/mm/malloc.c \
 	generic/src/mm/backend_anon.c \
 	generic/src/mm/backend_elf.c \
 	generic/src/mm/backend_phys.c \
