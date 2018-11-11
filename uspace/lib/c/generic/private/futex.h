@@ -56,8 +56,12 @@ extern errno_t futex_initialize(futex_t *futex, int value);
 
 static inline errno_t futex_destroy(futex_t *futex)
 {
-	if (futex->whandle)
-		return __SYSCALL1(SYS_WAITQ_DESTROY, (sysarg_t) futex->whandle);
+	if (futex->whandle) {
+		errno_t rc;
+		rc = __SYSCALL1(SYS_WAITQ_DESTROY, (sysarg_t) futex->whandle);
+		futex->whandle = CAP_NIL;
+		return rc;
+	}
 	return EOK;
 }
 
