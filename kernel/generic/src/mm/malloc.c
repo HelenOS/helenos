@@ -81,7 +81,7 @@ void malloc_init(void)
 	}
 }
 
-static void _check_sizes(size_t *size, size_t *alignment)
+static void _check_sizes(size_t *alignment, size_t *size)
 {
 	assert(size);
 	assert(alignment);
@@ -120,9 +120,9 @@ static slab_cache_t *cache_for_size(size_t size)
 
 static void *mem_alloc(size_t, size_t) __attribute__((malloc));
 
-static void *mem_alloc(size_t size, size_t alignment)
+static void *mem_alloc(size_t alignment, size_t size)
 {
-	_check_sizes(&size, &alignment);
+	_check_sizes(&alignment, &size);
 
 	if (size > (1 << SLAB_MAX_MALLOC_W)) {
 		// TODO: Allocate big objects directly from coarse allocator.
@@ -140,12 +140,12 @@ static void *mem_alloc(size_t size, size_t alignment)
  * @param size       Size used to call mem_alloc().
  * @param alignment  Alignment used to call mem_alloc().
  */
-static void mem_free(void *ptr, size_t size, size_t alignment)
+static void mem_free(void *ptr, size_t alignment, size_t size)
 {
 	if (!ptr)
 		return;
 
-	_check_sizes(&size, &alignment);
+	_check_sizes(&alignment, &size);
 
 	if (size > (1 << SLAB_MAX_MALLOC_W)) {
 		// TODO: Allocate big objects directly from coarse allocator.
@@ -159,7 +159,7 @@ static const size_t _offset = ALIGN_UP(sizeof(size_t), alignof(max_align_t));
 
 void *malloc(size_t size)
 {
-	void *obj = mem_alloc(size + _offset, alignof(max_align_t)) + _offset;
+	void *obj = mem_alloc(alignof(max_align_t), size + _offset) + _offset;
 
 	/* Remember the allocation size just before the object. */
 	((size_t *) obj)[-1] = size;
@@ -175,7 +175,7 @@ void free(void *obj)
 	 * slab_free() will detect it and panic.
 	 */
 	size_t size = ((size_t *) obj)[-1];
-	mem_free(obj - _offset, size + _offset, alignof(max_align_t));
+	mem_free(obj - _offset, alignof(max_align_t), size + _offset);
 }
 
 void *realloc(void *old_obj, size_t new_size)
