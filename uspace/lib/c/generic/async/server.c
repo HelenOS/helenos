@@ -1027,6 +1027,12 @@ void __async_server_init(void)
 	async_create_manager();
 }
 
+void __async_server_fini(void)
+{
+	fibril_rmutex_destroy(&client_mutex);
+	fibril_rmutex_destroy(&notification_mutex);
+}
+
 errno_t async_accept_0(ipc_call_t *call)
 {
 	cap_call_handle_t chandle = call->cap_handle;

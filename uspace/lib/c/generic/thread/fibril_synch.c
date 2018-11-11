@@ -97,6 +97,11 @@ void __fibril_synch_init(void)
 		abort();
 }
 
+void __fibril_synch_fini(void)
+{
+	futex_destroy(&fibril_synch_futex);
+}
+
 typedef struct {
 	link_t link;
 	fibril_event_t event;

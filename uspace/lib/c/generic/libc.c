@@ -152,6 +152,20 @@ void __libc_main(void *pcb_ptr)
 	exit(retval);
 }
 
+void __libc_fini(void)
+{
+	__async_client_fini();
+	__async_server_fini();
+	__async_ports_fini();
+
+	__fibril_synch_fini();
+	__fibrils_fini();
+
+	__malloc_fini();
+
+	__kio_fini();
+}
+
 void __libc_exit(int status)
 {
 	/*

@@ -490,6 +490,11 @@ void __malloc_init(void)
 		abort();
 }
 
+void __malloc_fini(void)
+{
+	fibril_rmutex_destroy(&malloc_mutex);
+}
+
 /** Split heap block and mark it as used.
  *
  * Should be called only inside the critical section.

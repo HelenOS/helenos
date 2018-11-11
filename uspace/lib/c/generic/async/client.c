@@ -190,6 +190,11 @@ void __async_client_init(void)
 	session_ns.exchanges = 0;
 }
 
+void __async_client_fini(void)
+{
+	fibril_rmutex_destroy(&message_mutex);
+}
+
 /** Reply received callback.
  *
  * This function is called whenever a reply for an asynchronous message sent out

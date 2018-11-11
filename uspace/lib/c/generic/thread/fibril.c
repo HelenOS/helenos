@@ -881,6 +881,12 @@ void __fibrils_init(void)
 	}
 }
 
+void __fibrils_fini(void)
+{
+	futex_destroy(&fibril_futex);
+	futex_destroy(&ipc_lists_futex);
+}
+
 void fibril_usleep(usec_t timeout)
 {
 	struct timespec expires;

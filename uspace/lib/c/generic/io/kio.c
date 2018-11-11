@@ -61,6 +61,11 @@ void __kio_init(void)
 		abort();
 }
 
+void __kio_fini(void)
+{
+	futex_destroy(&kio_buffer.futex);
+}
+
 errno_t kio_write(const void *buf, size_t size, size_t *nwritten)
 {
 	/* Using down/up instead of lock/unlock so we can print very early. */

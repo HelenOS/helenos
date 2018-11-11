@@ -298,3 +298,8 @@ void __async_ports_init(void)
 	    &interface_hash_table_ops))
 		abort();
 }
+
+void __async_ports_fini(void)
+{
+	fibril_rmutex_destroy(&interface_mutex);
+}
