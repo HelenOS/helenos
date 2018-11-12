@@ -26,47 +26,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Get build configration information
+# Test run in emulator
 # HelenOS Cross Compiler Wrapper (XCW)
 # Facilitate cross-compiling external software to HelenOS
 #
 
-SRC_ROOT="$(dirname "$0")/../../.."
-MAKEFILE_COMMON="$SRC_ROOT"/Makefile.common
-MAKEFILE_CONFIG="$SRC_ROOT"/Makefile.config
-CONFIG_MK="$SRC_ROOT"/uspace/export/config.mk
+XCW="$(dirname "$0")"
+SRC_ROOT="$XCW/../../.."
 
-# Extract simple 'name = value' variable definition from Makefile
-function extract_field
-{
-	field_name="$1"
-	file_name="$2"
-
-	sed -n "s/^$field_name \\{0,1\\}= \\{0,1\\}\\(.*\\)$/\\1/p" "$file_name" | \
-	    sed "s/^\"//" | sed "s/\"$//"
-}
-
-case ".$1" in
-(.--cc) extract_field "CC" "$MAKEFILE_COMMON";;
-(.--ld) extract_field "LD" "$MAKEFILE_COMMON";;
-(.--uarch) extract_field "UARCH" "$MAKEFILE_CONFIG";;
-(.--endian)
-	UARCH=`extract_field "UARCH" "$MAKEFILE_CONFIG"`
-	ENDIAN=`extract_field "ENDIANESS" "$SRC_ROOT/uspace/lib/c/arch/$UARCH/Makefile.common"`
-	echo "__${ENDIAN}__"
-	;;
-*.--cflags) extract_field "HELENOS_CFLAGS" "$CONFIG_MK";;
-*.--ldflags) extract_field "HELENOS_LDFLAGS" "$CONFIG_MK";;
-*.--install-dir) echo "$(realpath "$SRC_ROOT/uspace/overlay")";;
-(*)
-	echo "Unknown option $1" >&2
-	echo "Usage: helenos-bld-config <option>" >&2
-	echo "        --cc" >&2
-	echo "        --ld" >&2
-	echo "        --uarch" >&2
-	echo "        --endian" >&2
-	echo "        --cflags" >&2
-	echo "        --ldflags" >&2
-	echo "        --install-dir" >&2
-	exit 1;;
-esac
+cd "$SRC_ROOT"
+make
+tools/ew.py
