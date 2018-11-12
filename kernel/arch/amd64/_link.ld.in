@@ -14,7 +14,7 @@
 SECTIONS {
 	kernel_load_address = PA2KA(BOOT_OFFSET);
 
-	.unmapped BOOT_OFFSET: AT (0) {
+	.unmapped (BOOT_OFFSET + SIZEOF_HEADERS): AT (BOOT_OFFSET + SIZEOF_HEADERS) {
 		unmapped_start = .;
 		*(K_TEXT_START);
 		*(K_DATA_START);
@@ -22,7 +22,7 @@ SECTIONS {
 		unmapped_end = .;
 	}
 
-	.mapped (PA2KA(BOOT_OFFSET)+SIZEOF(.unmapped)) : AT (SIZEOF(.unmapped)) {
+	.mapped (PA2KA(BOOT_OFFSET) + SIZEOF_HEADERS + SIZEOF(.unmapped)) : AT (BOOT_OFFSET + SIZEOF_HEADERS + SIZEOF(.unmapped)) {
 		ktext_start = .;
 		*(.text .text.*);
 		ktext_end = .;
