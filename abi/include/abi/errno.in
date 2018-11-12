@@ -46,7 +46,6 @@ __errno_entry(HTTP_EPARSE            ,  52, "HTTP: Parse error")
 
 __errno_entry(EXT4_ERR_BAD_DX_DIR    ,  60, "EXT4: Filesystem corrupted")
 
-
 /*
  * POSIX error codes + whatever nonstandard names crop up in third-party
  * software. These are not used in HelenOS code, but are defined here in
