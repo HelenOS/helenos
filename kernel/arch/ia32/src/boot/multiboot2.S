@@ -32,8 +32,6 @@
 #include <arch/cpuid.h>
 #include <genarch/multiboot/multiboot2.h>
 
-#define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
-
 .section K_TEXT_START, "ax"
 
 .code32
@@ -77,7 +75,7 @@ multiboot2_header_start:
 		.word MULTIBOOT2_TAG_ENTRY_ADDRESS
 		.word MULTIBOOT2_FLAGS_REQUIRED
 		.long tag_entry_address_end - tag_entry_address_start
-		.long multiboot2_image_start
+		.long multiboot_image_start
 	tag_entry_address_end:
 
 	/* Flags tag */
@@ -119,75 +117,3 @@ multiboot2_header_start:
 		.long tag_terminator_end - tag_terminator_start
 	tag_terminator_end:
 multiboot2_header_end:
-
-SYMBOL(multiboot2_image_start)
-	cli
-	cld
-
-	/* Initialize stack pointer */
-	movl $START_STACK, %esp
-
-	/*
-	 * Initialize Global Descriptor Table and
-	 * Interrupt Descriptor Table registers
-	 */
-	lgdtl bootstrap_gdtr
-	lidtl bootstrap_idtr
-
-	/* Kernel data + stack */
-	movw $GDT_SELECTOR(KDATA_DES), %cx
-	movw %cx, %es
-	movw %cx, %fs
-	movw %cx, %gs
-	movw %cx, %ds
-	movw %cx, %ss
-
-	jmpl $GDT_SELECTOR(KTEXT_DES), $multiboot2_meeting_point
-	multiboot2_meeting_point:
-
-	/* Save multiboot arguments */
-	movl %eax, multiboot_eax
-	movl %ebx, multiboot_ebx
-
-#ifndef PROCESSOR_i486
-
-	movl $(INTEL_CPUID_LEVEL), %eax
-	cpuid
-	cmp $0x0, %eax  /* any function > 0? */
-	jbe pse_unsupported
-
-	movl $(INTEL_CPUID_STANDARD), %eax
-	cpuid
-	bt $(INTEL_PSE), %edx
-	jnc pse_unsupported
-
-		/* Map kernel and turn paging on */
-		call map_kernel_pse
-		jmp stack_init
-
-#endif /* PROCESSOR_i486 */
-
-	pse_unsupported:
-
-		/* Map kernel and turn paging on */
-		call map_kernel_non_pse
-
-	stack_init:
-
-	/* Create the first stack frame */
-	pushl $0
-	movl %esp, %ebp
-
-	/* Call ia32_pre_main(multiboot_eax, multiboot_ebx) */
-	pushl multiboot_ebx
-	pushl multiboot_eax
-	call ia32_pre_main
-
-	/* Call main_bsp() */
-	call main_bsp
-
-	/* Not reached */
-	cli
-	hlt0:
-		hlt
-		jmp hlt0

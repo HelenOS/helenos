@@ -39,6 +39,10 @@
 
 // TODO: most of this file can be rewritten in C
 
+// TODO: FB state should be checked dynamically from provided multiboot info.
+//       Currently we only enable EGA statically, which forces us to rebuild
+//       the image to get very early debug output.
+
 #define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
 
 .section K_TEXT_START, "ax"
