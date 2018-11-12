@@ -47,6 +47,7 @@
 #include <arch.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
+#include <synch/syswaitq.h>
 #include <cpu.h>
 #include <str.h>
 #include <context.h>
@@ -518,7 +519,7 @@ void thread_exit(void)
 			 *
 			 */
 			ipc_cleanup();
-			futex_task_cleanup();
+			sys_waitq_task_cleanup();
 			LOG("Cleanup of task %" PRIu64 " completed.", TASK->taskid);
 		}
 	}

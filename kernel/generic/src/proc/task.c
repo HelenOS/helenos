@@ -42,7 +42,6 @@
 #include <mm/as.h>
 #include <mm/slab.h>
 #include <atomic.h>
-#include <synch/futex.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <arch.h>
@@ -249,8 +248,6 @@ task_t *task_create(as_t *as, const char *name)
 		    KOBJECT_TYPE_PHONE);
 		(void) ipc_phone_connect(phone_obj->phone, ipc_box_0);
 	}
-
-	futex_task_init(task);
 
 	irq_spinlock_lock(&tasks_lock, true);
 

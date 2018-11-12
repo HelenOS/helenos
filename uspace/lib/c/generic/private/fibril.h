@@ -78,6 +78,7 @@ extern void fibril_teardown(fibril_t *f);
 extern fibril_t *fibril_self(void);
 
 extern void __fibrils_init(void);
+extern void __fibrils_fini(void);
 
 extern void fibril_wait_for(fibril_event_t *);
 extern errno_t fibril_wait_timeout(fibril_event_t *, const struct timespec *);
@@ -119,13 +120,8 @@ typedef struct {
 	futex_t futex;
 } fibril_rmutex_t;
 
-#define FIBRIL_RMUTEX_INITIALIZER(name) \
-	{ .futex = FUTEX_INITIALIZE(1) }
-
-#define FIBRIL_RMUTEX_INITIALIZE(name) \
-	fibril_rmutex_t name = FIBRIL_RMUTEX_INITIALIZER(name)
-
-extern void fibril_rmutex_initialize(fibril_rmutex_t *);
+extern errno_t fibril_rmutex_initialize(fibril_rmutex_t *);
+extern void fibril_rmutex_destroy(fibril_rmutex_t *);
 extern void fibril_rmutex_lock(fibril_rmutex_t *);
 extern bool fibril_rmutex_trylock(fibril_rmutex_t *);
 extern void fibril_rmutex_unlock(fibril_rmutex_t *);

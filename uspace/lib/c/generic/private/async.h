@@ -94,8 +94,11 @@ struct async_exch {
 };
 
 extern void __async_server_init(void);
+extern void __async_server_fini(void);
 extern void __async_client_init(void);
+extern void __async_client_fini(void);
 extern void __async_ports_init(void);
+extern void __async_ports_fini(void);
 
 extern errno_t async_create_port_internal(iface_t, async_port_handler_t,
     void *, port_id_t *);

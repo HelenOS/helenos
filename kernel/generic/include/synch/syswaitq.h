@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2018 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,31 +32,20 @@
 /** @file
  */
 
-#ifndef KERN_FUTEX_H_
-#define KERN_FUTEX_H_
+#ifndef KERN_SYS_WAITQ_H_
+#define KERN_SYS_WAITQ_H_
 
 #include <typedefs.h>
-#include <synch/waitq.h>
-#include <adt/hash_table.h>
+#include <abi/cap.h>
 
-/** Kernel-side futex structure. */
-typedef struct {
-	/** Physical address of the status variable. */
-	uintptr_t paddr;
-	/** Wait queue for threads waiting for futex availability. */
-	waitq_t wq;
-	/** Futex hash table link. */
-	ht_link_t ht_link;
-	/** Number of tasks that reference this futex. */
-	size_t refcount;
-} futex_t;
+extern void sys_waitq_init(void);
 
-extern void futex_init(void);
-extern sys_errno_t sys_futex_sleep(uintptr_t, uintptr_t);
-extern sys_errno_t sys_futex_wakeup(uintptr_t);
+extern void sys_waitq_task_cleanup(void);
 
-extern void futex_task_cleanup(void);
-extern void futex_task_init(struct task *);
+extern sys_errno_t sys_waitq_create(cap_waitq_handle_t *);
+extern sys_errno_t sys_waitq_sleep(cap_waitq_handle_t, uint32_t, unsigned int);
+extern sys_errno_t sys_waitq_wakeup(cap_waitq_handle_t);
+extern sys_errno_t sys_waitq_destroy(cap_waitq_handle_t);
 
 #endif
 

@@ -86,7 +86,7 @@ typedef enum {
 static bool multithreaded = false;
 
 /* This futex serializes access to global data. */
-static futex_t fibril_futex = FUTEX_INITIALIZER;
+static futex_t fibril_futex;
 static futex_t ready_semaphore;
 static long ready_st_count;
 
@@ -94,7 +94,7 @@ static LIST_INITIALIZE(ready_list);
 static LIST_INITIALIZE(fibril_list);
 static LIST_INITIALIZE(timeout_list);
 
-static futex_t ipc_lists_futex = FUTEX_INITIALIZER;
+static futex_t ipc_lists_futex;
 static LIST_INITIALIZE(ipc_waiter_list);
 static LIST_INITIALIZE(ipc_buffer_list);
 static LIST_INITIALIZE(ipc_buffer_free_list);
@@ -795,7 +795,8 @@ int fibril_test_spawn_runners(int n)
 
 	if (!multithreaded) {
 		_ready_debug_check();
-		futex_initialize(&ready_semaphore, ready_st_count);
+		if (futex_initialize(&ready_semaphore, ready_st_count) != EOK)
+			abort();
 		multithreaded = true;
 	}
 
@@ -860,6 +861,11 @@ _Noreturn void fibril_exit(long retval)
 
 void __fibrils_init(void)
 {
+	if (futex_initialize(&fibril_futex, 1) != EOK)
+		abort();
+	if (futex_initialize(&ipc_lists_futex, 1) != EOK)
+		abort();
+
 	/*
 	 * We allow a fixed, small amount of parallelism for IPC reads, but
 	 * since IPC is currently serialized in kernel, there's not much
@@ -873,6 +879,12 @@ void __fibrils_init(void)
 		list_append(&buffers[i].link, &ipc_buffer_free_list);
 		_ready_up();
 	}
+}
+
+void __fibrils_fini(void)
+{
+	futex_destroy(&fibril_futex);
+	futex_destroy(&ipc_lists_futex);
 }
 
 void fibril_usleep(usec_t timeout)

@@ -37,6 +37,7 @@
 #include <libc.h>
 #include <str.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <abi/kio.h>
 #include <io/kio.h>
@@ -52,7 +53,18 @@ static struct {
 	futex_t futex;
 	char data[KIO_BUFFER_SIZE];
 	size_t used;
-} kio_buffer = { .futex = FUTEX_INITIALIZER, };
+} kio_buffer;
+
+void __kio_init(void)
+{
+	if (futex_initialize(&kio_buffer.futex, 1) != EOK)
+		abort();
+}
+
+void __kio_fini(void)
+{
+	futex_destroy(&kio_buffer.futex);
+}
 
 errno_t kio_write(const void *buf, size_t size, size_t *nwritten)
 {

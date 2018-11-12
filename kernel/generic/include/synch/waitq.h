@@ -48,7 +48,7 @@ typedef enum {
 /** Wait queue structure.
  *
  */
-typedef struct {
+typedef struct waitq {
 	/** Lock protecting wait queue structure.
 	 *
 	 * Must be acquired before T.lock for each T of type thread_t.

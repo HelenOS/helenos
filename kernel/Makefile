@@ -226,7 +226,7 @@ GENERIC_SOURCES = \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/smc.c \
 	generic/src/synch/waitq.c \
-	generic/src/synch/futex.c \
+	generic/src/synch/syswaitq.c \
 	generic/src/smp/ipi.c \
 	generic/src/smp/smp.c \
 	generic/src/ipc/ipc.c \

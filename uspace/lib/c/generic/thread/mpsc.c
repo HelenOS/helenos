@@ -79,8 +79,14 @@ mpsc_t *mpsc_create(size_t elem_size)
 		return NULL;
 	}
 
+	if (fibril_rmutex_initialize(&q->t_lock) != EOK) {
+		free(q);
+		free(n);
+		free(c);
+		return NULL;
+	}
+
 	q->elem_size = elem_size;
-	fibril_rmutex_initialize(&q->t_lock);
 	q->head = q->tail = n;
 	q->close_node = c;
 	return q;
@@ -96,7 +102,7 @@ void mpsc_destroy(mpsc_t *q)
 		n = next;
 	}
 
-	// TODO: fibril_rmutex_destroy()
+	fibril_rmutex_destroy(&q->t_lock);
 
 	free(q);
 }

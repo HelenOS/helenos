@@ -41,20 +41,32 @@
 #include <libc.h>
 #include <time.h>
 #include <fibril.h>
+#include <abi/cap.h>
+#include <abi/synch.h>
 
 typedef struct futex {
 	volatile atomic_int val;
+	volatile cap_waitq_handle_t whandle;
+
 #ifdef CONFIG_DEBUG_FUTEX
 	_Atomic(fibril_t *) owner;
 #endif
 } futex_t;
 
-extern void futex_initialize(futex_t *futex, int value);
+extern errno_t futex_initialize(futex_t *futex, int value);
+
+static inline errno_t futex_destroy(futex_t *futex)
+{
+	if (futex->whandle) {
+		errno_t rc;
+		rc = __SYSCALL1(SYS_WAITQ_DESTROY, (sysarg_t) futex->whandle);
+		futex->whandle = CAP_NIL;
+		return rc;
+	}
+	return EOK;
+}
 
 #ifdef CONFIG_DEBUG_FUTEX
-
-#define FUTEX_INITIALIZE(val) { (val) , NULL }
-#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 void __futex_assert_is_locked(futex_t *, const char *);
 void __futex_assert_is_not_locked(futex_t *, const char *);
@@ -73,9 +85,6 @@ void __futex_give_to(futex_t *, void *, const char *);
 
 #else
 
-#define FUTEX_INITIALIZE(val) { (val) }
-#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
-
 #define futex_lock(fut)     (void) futex_down((fut))
 #define futex_trylock(fut)  futex_trydown((fut))
 #define futex_unlock(fut)   (void) futex_up((fut))
@@ -85,6 +94,11 @@ void __futex_give_to(futex_t *, void *, const char *);
 #define futex_assert_is_not_locked(fut) ((void)0)
 
 #endif
+
+static inline errno_t futex_allocate_waitq(futex_t *futex)
+{
+	return __SYSCALL1(SYS_WAITQ_CREATE, (sysarg_t) &futex->whandle);
+}
 
 /** Down the futex with timeout, composably.
  *
@@ -106,6 +120,8 @@ static inline errno_t futex_down_composable(futex_t *futex,
     const struct timespec *expires)
 {
 	// TODO: Add tests for this.
+
+	assert(futex->whandle != CAP_NIL);
 
 	if (atomic_fetch_sub_explicit(&futex->val, 1, memory_order_acquire) > 0)
 		return EOK;
@@ -131,7 +147,8 @@ static inline errno_t futex_down_composable(futex_t *futex,
 		assert(timeout > 0);
 	}
 
-	return __SYSCALL2(SYS_FUTEX_SLEEP, (sysarg_t) futex, (sysarg_t) timeout);
+	return __SYSCALL3(SYS_WAITQ_SLEEP, (sysarg_t) futex->whandle,
+	    (sysarg_t) timeout, (sysarg_t) SYNCH_FLAGS_FUTEX);
 }
 
 /** Up the futex.
@@ -146,7 +163,7 @@ static inline errno_t futex_down_composable(futex_t *futex,
 static inline errno_t futex_up(futex_t *futex)
 {
 	if (atomic_fetch_add_explicit(&futex->val, 1, memory_order_release) < 0)
-		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) futex);
+		return __SYSCALL1(SYS_WAITQ_WAKEUP, (sysarg_t) futex->whandle);
 
 	return EOK;
 }

@@ -194,7 +194,7 @@ static heap_area_t *last_heap_area = NULL;
 static heap_block_head_t *next_fit = NULL;
 
 /** Futex for thread-safe heap manipulation */
-static FIBRIL_RMUTEX_INITIALIZE(malloc_mutex);
+static fibril_rmutex_t malloc_mutex;
 
 #define malloc_assert(expr) safe_assert(expr)
 
@@ -483,8 +483,16 @@ static void heap_shrink(heap_area_t *area)
  */
 void __malloc_init(void)
 {
+	if (fibril_rmutex_initialize(&malloc_mutex) != EOK)
+		abort();
+
 	if (!area_create(PAGE_SIZE))
 		abort();
+}
+
+void __malloc_fini(void)
+{
+	fibril_rmutex_destroy(&malloc_mutex);
 }
 
 /** Split heap block and mark it as used.

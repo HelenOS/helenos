@@ -215,11 +215,11 @@ void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 	async_client_data_destroy = dtor;
 }
 
-static FIBRIL_RMUTEX_INITIALIZE(client_mutex);
+static fibril_rmutex_t client_mutex;
 static hash_table_t client_hash_table;
 
 // TODO: lockfree notification_queue?
-static FIBRIL_RMUTEX_INITIALIZE(notification_mutex);
+static fibril_rmutex_t notification_mutex;
 static hash_table_t notification_hash_table;
 static LIST_INITIALIZE(notification_queue);
 static FIBRIL_SEMAPHORE_INITIALIZE(notification_semaphore, 0);
@@ -1012,6 +1012,11 @@ fid_t async_create_manager(void)
  */
 void __async_server_init(void)
 {
+	if (fibril_rmutex_initialize(&client_mutex) != EOK)
+		abort();
+	if (fibril_rmutex_initialize(&notification_mutex) != EOK)
+		abort();
+
 	if (!hash_table_create(&client_hash_table, 0, 0, &client_hash_table_ops))
 		abort();
 
@@ -1020,6 +1025,12 @@ void __async_server_init(void)
 		abort();
 
 	async_create_manager();
+}
+
+void __async_server_fini(void)
+{
+	fibril_rmutex_destroy(&client_mutex);
+	fibril_rmutex_destroy(&notification_mutex);
 }
 
 errno_t async_accept_0(ipc_call_t *call)

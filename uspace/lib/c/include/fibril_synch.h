@@ -163,6 +163,9 @@ typedef struct {
 #define FIBRIL_SEMAPHORE_INITIALIZE(name, cnt) \
 	fibril_semaphore_t name = FIBRIL_SEMAPHORE_INITIALIZER(name, cnt)
 
+extern void __fibril_synch_init(void);
+extern void __fibril_synch_fini(void);
+
 extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);
 extern bool fibril_mutex_trylock(fibril_mutex_t *);

@@ -76,7 +76,7 @@
 #include <mm/slab.h>
 #include <mm/reserve.h>
 #include <synch/waitq.h>
-#include <synch/futex.h>
+#include <synch/syswaitq.h>
 #include <arch/arch.h>
 #include <arch.h>
 #include <arch/faddr.h>
@@ -277,7 +277,7 @@ void main_bsp_separated_stack(void)
 	caps_init();
 	task_init();
 	thread_init();
-	futex_init();
+	sys_waitq_init();
 
 	sysinfo_set_item_data("boot_args", NULL, bargs, str_size(bargs) + 1);
 

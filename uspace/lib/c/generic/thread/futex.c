@@ -48,10 +48,13 @@
  * @param futex Futex.
  * @param val   Initialization value.
  *
+ * @return      Error code.
  */
-void futex_initialize(futex_t *futex, int val)
+errno_t futex_initialize(futex_t *futex, int val)
 {
 	atomic_store_explicit(&futex->val, val, memory_order_relaxed);
+	futex->whandle = CAP_NIL;
+	return futex_allocate_waitq(futex);
 }
 
 #ifdef CONFIG_DEBUG_FUTEX

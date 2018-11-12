@@ -121,7 +121,7 @@
 #include "../private/libc.h"
 #include "../private/fibril.h"
 
-static FIBRIL_RMUTEX_INITIALIZE(message_mutex);
+static fibril_rmutex_t message_mutex;
 
 /** Naming service session */
 async_sess_t session_ns;
@@ -172,6 +172,9 @@ static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
  */
 void __async_client_init(void)
 {
+	if (fibril_rmutex_initialize(&message_mutex) != EOK)
+		abort();
+
 	session_ns.iface = 0;
 	session_ns.mgmt = EXCHANGE_ATOMIC;
 	session_ns.phone = PHONE_NS;
@@ -185,6 +188,11 @@ void __async_client_init(void)
 	list_initialize(&session_ns.exch_list);
 	fibril_mutex_initialize(&session_ns.mutex);
 	session_ns.exchanges = 0;
+}
+
+void __async_client_fini(void)
+{
+	fibril_rmutex_destroy(&message_mutex);
 }
 
 /** Reply received callback.
