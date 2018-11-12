@@ -49,11 +49,6 @@
 
 .code32
 
-.macro pm_error msg
-	movl \msg, %esi
-	jmp pm_error_halt
-.endm
-
 .macro pm_status msg
 #if defined(CONFIG_EGA) && !defined(CONFIG_FB)
 	pushl %esi
@@ -369,107 +364,6 @@ find_mem_for_pt:
 			mov %ecx, free_area
 
 			ret
-
-/** Print string to EGA display (in light red) and halt.
- *
- * Should be executed from 32 bit protected mode with paging
- * turned off. Stack is not required. This routine is used even
- * if CONFIG_EGA is not enabled. Since we are going to halt the
- * CPU anyway, it is always better to at least try to print
- * some hints.
- *
- * @param %esi NULL-terminated string to print.
- *
- */
-pm_error_halt:
-	movl $0xb8000, %edi  /* base of EGA text mode memory */
-	xorl %eax, %eax
-
-	/* Read bits 8 - 15 of the cursor address */
-	movw $0x3d4, %dx
-	movb $0xe, %al
-	outb %al, %dx
-
-	movw $0x3d5, %dx
-	inb %dx, %al
-	shl $8, %ax
-
-	/* Read bits 0 - 7 of the cursor address */
-	movw $0x3d4, %dx
-	movb $0xf, %al
-	outb %al, %dx
-
-	movw $0x3d5, %dx
-	inb %dx, %al
-
-	/* Sanity check for the cursor on screen */
-	cmp $2000, %ax
-	jb err_cursor_ok
-
-		movw $1998, %ax
-
-	err_cursor_ok:
-
-	movw %ax, %bx
-	shl $1, %eax
-	addl %eax, %edi
-
-	err_ploop:
-		lodsb
-
-		cmp $0, %al
-		je err_ploop_end
-
-		movb $0x0c, %ah  /* black background, light red foreground */
-		stosw
-
-		/* Sanity check for the cursor on the last line */
-		inc %bx
-		cmp $2000, %bx
-		jb err_ploop
-
-		/* Scroll the screen (24 rows) */
-		movl %esi, %edx
-		movl $0xb80a0, %esi
-		movl $0xb8000, %edi
-		movl $960, %ecx
-		rep movsl
-
-		/* Clear the 24th row */
-		xorl %eax, %eax
-		movl $40, %ecx
-		rep stosl
-
-		/* Go to row 24 */
-		movl %edx, %esi
-		movl $0xb8f00, %edi
-		movw $1920, %bx
-
-		jmp err_ploop
-	err_ploop_end:
-
-	/* Write bits 8 - 15 of the cursor address */
-	movw $0x3d4, %dx
-	movb $0xe, %al
-	outb %al, %dx
-
-	movw $0x3d5, %dx
-	movb %bh, %al
-	outb %al, %dx
-
-	/* Write bits 0 - 7 of the cursor address */
-	movw $0x3d4, %dx
-	movb $0xf, %al
-	outb %al, %dx
-
-	movw $0x3d5, %dx
-	movb %bl, %al
-	outb %al, %dx
-
-	cli
-	hlt1:
-		hlt
-		jmp hlt1
 
 /** Print string to EGA display (in light green).
  *
