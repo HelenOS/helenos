@@ -34,6 +34,7 @@
 
 #include <typedefs.h>
 #include <genarch/multiboot/multiboot.h>
+#include <genarch/fb/bfb.h>
 #include <config.h>
 #include <stddef.h>
 #include <str.h>
@@ -167,6 +168,31 @@ void multiboot_info_parse(uint32_t signature, const multiboot_info_t *info)
 	if ((info->flags & MULTIBOOT_INFO_FLAGS_MMAP) != 0)
 		multiboot_memmap(info->mmap_length,
 		    (multiboot_memmap_t *) MULTIBOOT_PTR(info->mmap_addr));
+
+#ifdef CONFIG_FB
+
+	/* Initialize framebuffer. */
+	if ((info->flags & MULTIBOOT_INFO_FLAGS_FB) != 0) {
+		if (info->framebuffer_type != 1) {
+			/* Can't use this framebuffer. */
+			// FIXME: framebuffer_type == 2 is EGA mode, we should be able to use that.
+			return;
+		}
+
+		bfb_addr = info->framebuffer_addr;
+		bfb_width = info->framebuffer_width;
+		bfb_height = info->framebuffer_height;
+		bfb_bpp = info->framebuffer_bpp;
+		bfb_scanline = info->framebuffer_pitch;
+		bfb_red_pos = info->framebuffer_red_field_position;
+		bfb_red_size = info->framebuffer_red_mask_size;
+		bfb_green_pos = info->framebuffer_green_field_position;
+		bfb_green_size = info->framebuffer_green_mask_size;
+		bfb_blue_pos = info->framebuffer_blue_field_position;
+		bfb_blue_size = info->framebuffer_blue_mask_size;
+	}
+
+#endif
 }
 
 /** @}

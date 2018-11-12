@@ -1,1 +1,0 @@
-../../../ia32/src/boot/vesa_prot.inc
