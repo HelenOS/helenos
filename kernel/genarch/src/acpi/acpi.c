@@ -170,14 +170,11 @@ static void configure_via_xsdt(void)
 	}
 }
 
-typedef uint64_t _a64_t __attribute__((may_alias));
-
 static uint8_t *search_rsdp(uint8_t *base, size_t len)
 {
-	uint64_t signature = *(_a64_t *) RSDP_SIGNATURE;
-
 	for (size_t i = 0; i < len; i += 16) {
-		if (*((_a64_t *) &base[i]) == signature && rsdp_check(&base[i]))
+		if (__builtin_memcmp(&base[i], RSDP_SIGNATURE, 8) &&
+		    rsdp_check(&base[i]))
 			return &base[i];
 	}
 
