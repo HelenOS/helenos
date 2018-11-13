@@ -81,15 +81,22 @@ void malloc_init(void)
 	}
 }
 
+static inline bool _is_pow2(size_t x)
+{
+	return (x & (x - 1)) == 0;
+}
+
 static void _check_sizes(size_t *alignment, size_t *size)
 {
 	assert(size);
 	assert(alignment);
 
-	assert(*size > 0);
+	/* Force size to be nonzero. */
+	if (*size == 0)
+		*size = 1;
 
 	/* Alignment must be a power of 2. */
-	assert(__builtin_popcountl(*alignment) <= 1);
+	assert(_is_pow2(*alignment));
 	assert(*alignment <= PAGE_SIZE);
 
 	if (*alignment < alignof(max_align_t))
@@ -131,6 +138,30 @@ static void *mem_alloc(size_t alignment, size_t size)
 
 	/* We assume that slab objects are aligned naturally */
 	return slab_alloc(cache_for_size(size), FRAME_ATOMIC);
+}
+
+static void *mem_realloc(void *old_ptr, size_t alignment, size_t old_size,
+    size_t new_size)
+{
+	assert(old_ptr);
+	_check_sizes(&alignment, &old_size);
+	_check_sizes(&alignment, &new_size);
+
+	// TODO: handle big objects
+	assert(new_size <= (1 << SLAB_MAX_MALLOC_W));
+
+	slab_cache_t *old_cache = cache_for_size(old_size);
+	slab_cache_t *new_cache = cache_for_size(new_size);
+	if (old_cache == new_cache)
+		return old_ptr;
+
+	void *new_ptr = slab_alloc(new_cache, FRAME_ATOMIC);
+	if (!new_ptr)
+		return NULL;
+
+	memcpy(new_ptr, old_ptr, min(old_size, new_size));
+	slab_free(old_cache, old_ptr);
+	return new_ptr;
 }
 
 /**
@@ -185,15 +216,11 @@ void *realloc(void *old_obj, size_t new_size)
 
 	size_t old_size = ((size_t *) old_obj)[-1];
 
-	if (cache_for_size(old_size + _offset) ==
-	    cache_for_size(new_size + _offset))
-		return old_obj;
-
-	void *new_obj = malloc(new_size);
+	void *new_obj = mem_realloc(old_obj - _offset, alignof(max_align_t),
+	    old_size + _offset, new_size + _offset) + _offset;
 	if (!new_obj)
 		return NULL;
 
-	memcpy(new_obj, old_obj, min(old_size, new_size));
-	free(old_obj);
+	((size_t *) new_obj)[-1] = new_size;
 	return new_obj;
 }
