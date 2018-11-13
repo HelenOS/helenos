@@ -30,11 +30,11 @@
 
 BINUTILS_GDB_GIT="https://github.com/HelenOS/binutils-gdb.git"
 
-BINUTILS_BRANCH="binutils-2_30-helenos"
-BINUTILS_VERSION="2.30"
+BINUTILS_BRANCH="binutils-2_31_1-helenos"
+BINUTILS_VERSION="2.31.1"
 
-GDB_BRANCH="gdb-8_1-helenos"
-GDB_VERSION="8.1"
+GDB_BRANCH="gdb-8_2-helenos"
+GDB_VERSION="8.2"
 
 GCC_GIT="https://github.com/HelenOS/gcc.git"
 GCC_BRANCH="8_2_0-helenos"
