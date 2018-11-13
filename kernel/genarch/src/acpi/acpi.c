@@ -173,7 +173,7 @@ static void configure_via_xsdt(void)
 static uint8_t *search_rsdp(uint8_t *base, size_t len)
 {
 	for (size_t i = 0; i < len; i += 16) {
-		if (__builtin_memcmp(&base[i], RSDP_SIGNATURE, 8) &&
+		if (!__builtin_memcmp(&base[i], RSDP_SIGNATURE, 8) &&
 		    rsdp_check(&base[i]))
 			return &base[i];
 	}
