@@ -223,20 +223,20 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 	int best_score = 0, score = 0;
 	int cur_score;
 	link_t *link;
-	driver_t *drv;
 
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
 
 	if (node->drv != NULL) {
 		cur_score = get_match_score(node->drv, node);
 
-		link = list_next(&drv->drivers, &drivers_list->drivers);
+		link = list_next(&node->drv->drivers, &drivers_list->drivers);
 
 		/*
 		 * Find next driver with score equal to the current.
 		 */
 		while (link != NULL) {
-			drv = list_get_instance(link, driver_t, drivers);
+			driver_t *drv = list_get_instance(link, driver_t,
+			    drivers);
 			score = get_match_score(drv, node);
 			if (score == cur_score) {
 				/* Found it */
