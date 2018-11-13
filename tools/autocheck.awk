@@ -37,18 +37,16 @@ BEGIN {
 }
 
 /}.*;/ {
-	pattern = "}( __attribute__\\(.*\\))? (" struct_name "_t)?;"
-	if ($0 !~ pattern) {
-		print("Bad struct ending: " $0) > "/dev/stderr"
-		exit 1
+	pattern = "}( __attribute__\\(.*\\))? " struct_name "_t;"
+	if ($0 ~ pattern) {
+		macro_name = toupper(struct_name) "_SIZE"
+		print "_Static_assert(" macro_name " == sizeof(struct " struct_name "), \"\");"
+		struct_name = ""
 	}
-	macro_name = toupper(struct_name) "_SIZE"
-	print "_Static_assert(" macro_name " == sizeof(struct " struct_name "), \"\");"
-	struct_name = ""
 }
 
 /;$/ {
-	if (struct_name != "") {
+	if (struct_name != "" && $0 !~ "}") {
 		# Remove array subscript, if any.
 		sub("(\\[.*\\])?;", "", $0)
 		member = $NF

@@ -37,19 +37,20 @@
 #include <arch/cpuid.h>
 #include <arch/cpu.h>
 
+// TODO: most of this file can be rewritten in C
+
+// TODO: FB state should be checked dynamically from provided multiboot info.
+//       Currently we only enable EGA statically, which forces us to rebuild
+//       the image to get very early debug output.
+
 #define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
 
 .section K_TEXT_START, "ax"
 
 .code32
 
-.macro pm_error msg
-	movl \msg, %esi
-	jmp pm_error_halt
-.endm
-
 .macro pm_status msg
-#ifdef CONFIG_EGA
+#if defined(CONFIG_EGA) && !defined(CONFIG_FB)
 	pushl %esi
 	movl \msg, %esi
 	call pm_early_puts
@@ -65,13 +66,24 @@
 .align 4
 multiboot_header:
 	.long MULTIBOOT_HEADER_MAGIC
+#ifdef CONFIG_FB
 	.long MULTIBOOT_HEADER_FLAGS
 	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)  /* checksum */
+#else
+	.long MULTIBOOT_HEADER_FLAGS_NOFB
+	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS_NOFB)  /* checksum */
+#endif
 	.long multiboot_header
 	.long unmapped_start
 	.long 0
 	.long 0
 	.long multiboot_image_start
+#ifdef CONFIG_FB
+	.long 0
+	.long CONFIG_BFB_WIDTH
+	.long CONFIG_BFB_HEIGHT
+	.long CONFIG_BFB_BPP
+#endif
 
 SYMBOL(multiboot_image_start)
 	cli
@@ -103,8 +115,6 @@ SYMBOL(multiboot_image_start)
 	movl %ebx, multiboot_ebx
 
 	pm_status $status_prot
-
-#include "vesa_prot.inc"
 
 #ifndef PROCESSOR_i486
 
@@ -355,107 +365,6 @@ find_mem_for_pt:
 
 			ret
 
-/** Print string to EGA display (in light red) and halt.
- *
- * Should be executed from 32 bit protected mode with paging
- * turned off. Stack is not required. This routine is used even
- * if CONFIG_EGA is not enabled. Since we are going to halt the
- * CPU anyway, it is always better to at least try to print
- * some hints.
- *
- * @param %esi NULL-terminated string to print.
- *
- */
-pm_error_halt:
-	movl $0xb8000, %edi  /* base of EGA text mode memory */
-	xorl %eax, %eax
-
-	/* Read bits 8 - 15 of the cursor address */
-	movw $0x3d4, %dx
-	movb $0xe, %al
-	outb %al, %dx
-
-	movw $0x3d5, %dx
-	inb %dx, %al
-	shl $8, %ax
-
-	/* Read bits 0 - 7 of the cursor address */
-	movw $0x3d4, %dx
-	movb $0xf, %al
-	outb %al, %dx
-
-	movw $0x3d5, %dx
-	inb %dx, %al
-
-	/* Sanity check for the cursor on screen */
-	cmp $2000, %ax
-	jb err_cursor_ok
-
-		movw $1998, %ax
-
-	err_cursor_ok:
-
-	movw %ax, %bx
-	shl $1, %eax
-	addl %eax, %edi
-
-	err_ploop:
-		lodsb
-
-		cmp $0, %al
-		je err_ploop_end
-
-		movb $0x0c, %ah  /* black background, light red foreground */
-		stosw
-
-		/* Sanity check for the cursor on the last line */
-		inc %bx
-		cmp $2000, %bx
-		jb err_ploop
-
-		/* Scroll the screen (24 rows) */
-		movl %esi, %edx
-		movl $0xb80a0, %esi
-		movl $0xb8000, %edi
-		movl $960, %ecx
-		rep movsl
-
-		/* Clear the 24th row */
-		xorl %eax, %eax
-		movl $40, %ecx
-		rep stosl
-
-		/* Go to row 24 */
-		movl %edx, %esi
-		movl $0xb8f00, %edi
-		movw $1920, %bx
-
-		jmp err_ploop
-	err_ploop_end:
-
-	/* Write bits 8 - 15 of the cursor address */
-	movw $0x3d4, %dx
-	movb $0xe, %al
-	outb %al, %dx
-
-	movw $0x3d5, %dx
-	movb %bh, %al
-	outb %al, %dx
-
-	/* Write bits 0 - 7 of the cursor address */
-	movw $0x3d4, %dx
-	movb $0xf, %al
-	outb %al, %dx
-
-	movw $0x3d5, %dx
-	movb %bl, %al
-	outb %al, %dx
-
-	cli
-	hlt1:
-		hlt
-		jmp hlt1
-
 /** Print string to EGA display (in light green).
  *
  * Should be called from 32 bit protected mode with paging
@@ -684,8 +593,6 @@ early_puts:
 
 	ret
 
-#include "vesa_real.inc"
-
 .section K_DATA_START, "aw", @progbits
 
 .align 4096
@@ -719,12 +626,8 @@ status_pse:
 	.asciz "[pse] "
 status_non_pse:
 	.asciz "[non_pse] "
-status_vesa_copy:
-	.asciz "[vesa_copy] "
 status_multiboot_cmdline:
 	.asciz "[multiboot_cmdline] "
-status_vesa_real:
-	.asciz "[vesa_real] "
 status_prot2:
 	.asciz "[prot2] "
 status_prot3:
