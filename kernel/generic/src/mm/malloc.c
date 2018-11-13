@@ -35,6 +35,7 @@
 #include <mm/slab.h>
 #include <mem.h>
 #include <main/main.h> // malloc_init()
+#include <macros.h>
 
 /** Minimum size to be allocated by malloc */
 #define SLAB_MIN_MALLOC_W  4
@@ -81,11 +82,6 @@ void malloc_init(void)
 	}
 }
 
-static inline bool _is_pow2(size_t x)
-{
-	return (x & (x - 1)) == 0;
-}
-
 static void _check_sizes(size_t *alignment, size_t *size)
 {
 	assert(size);
@@ -96,7 +92,7 @@ static void _check_sizes(size_t *alignment, size_t *size)
 		*size = 1;
 
 	/* Alignment must be a power of 2. */
-	assert(_is_pow2(*alignment));
+	assert(ispwr2(*alignment));
 	assert(*alignment <= PAGE_SIZE);
 
 	if (*alignment < alignof(max_align_t))
