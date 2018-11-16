@@ -65,6 +65,7 @@ DIRS = \
 	app/modplay \
 	app/netecho \
 	app/nterm \
+	app/perf \
 	app/redir \
 	app/sbi \
 	app/sportdmp \
