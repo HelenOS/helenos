@@ -33,7 +33,7 @@
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
-#include "../tester.h"
+#include "../perf.h"
 
 #define MIN_DURATION_SECS  10
 #define NUM_SAMPLES 10
@@ -49,7 +49,7 @@ static errno_t ping_pong_measure(uint64_t niter, uint64_t *rduration)
 		errno_t retval = ns_ping();
 
 		if (retval != EOK) {
-			TPRINTF("Error sending ping message.\n");
+			printf("Error sending ping message.\n");
 			return EIO;
 		}
 	}
@@ -63,24 +63,24 @@ static errno_t ping_pong_measure(uint64_t niter, uint64_t *rduration)
 
 static void ping_pong_report(uint64_t niter, uint64_t duration)
 {
-	TPRINTF("Completed %" PRIu64 " round trips in %" PRIu64 " us",
+	printf("Completed %" PRIu64 " round trips in %" PRIu64 " us",
 	    niter, duration);
 
 	if (duration > 0) {
-		TPRINTF(", %" PRIu64 " rt/s.\n", niter * 1000 * 1000 / duration);
+		printf(", %" PRIu64 " rt/s.\n", niter * 1000 * 1000 / duration);
 	} else {
-		TPRINTF(".\n");
+		printf(".\n");
 	}
 }
 
-const char *test_ping_pong(void)
+const char *bench_ping_pong(void)
 {
 	errno_t rc;
 	uint64_t duration;
 	uint64_t dsmp[NUM_SAMPLES];
 
-	TPRINTF("Benchmark ns server ping time\n");
-	TPRINTF("Warm up and determine work size...\n");
+	printf("Benchmark ns server ping time\n");
+	printf("Warm up and determine work size...\n");
 
 	struct timespec start;
 	getuptime(&start);
@@ -100,7 +100,7 @@ const char *test_ping_pong(void)
 		niter *= 2;
 	}
 
-	TPRINTF("Measure %d samples...\n", NUM_SAMPLES);
+	printf("Measure %d samples...\n", NUM_SAMPLES);
 
 	int i;
 
@@ -128,7 +128,7 @@ const char *test_ping_pong(void)
 
 	double stddev = qd / (NUM_SAMPLES - 1); // XXX sqrt
 
-	TPRINTF("Average: %.0f rt/s Std.dev^2: %.0f rt/s Samples: %d\n",
+	printf("Average: %.0f rt/s Std.dev^2: %.0f rt/s Samples: %d\n",
 	    avg, stddev, NUM_SAMPLES);
 
 	return NULL;

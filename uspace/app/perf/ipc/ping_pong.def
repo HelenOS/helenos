@@ -1,6 +1,5 @@
 {
 	"ping_pong",
 	"IPC ping-pong benchmark",
-	&test_ping_pong,
-	true
+	&bench_ping_pong
 },

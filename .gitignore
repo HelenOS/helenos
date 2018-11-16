@@ -128,6 +128,7 @@ uspace/app/nettest2/nettest2
 uspace/app/nettest3/nettest3
 uspace/app/nic/nic
 uspace/app/nterm/nterm
+uspace/app/perf/perf
 uspace/app/ping/ping
 uspace/app/ping6/ping6
 uspace/app/pkg/pkg

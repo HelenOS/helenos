@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2018 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,41 +28,12 @@
 
 USPACE_PREFIX = ../..
 
-LIBS = block drv math
+LIBS = math
 
-BINARY = tester
+BINARY = perf
 
 SOURCES = \
-	tester.c \
-	util.c \
-	thread/thread1.c \
-	thread/setjmp1.c \
-	print/print1.c \
-	print/print2.c \
-	print/print3.c \
-	print/print4.c \
-	print/print5.c \
-	print/print6.c \
-	console/console1.c \
-	stdio/stdio1.c \
-	stdio/stdio2.c \
-	stdio/logger1.c \
-	stdio/logger2.c \
-	fault/fault1.c \
-	fault/fault2.c \
-	fault/fault3.c \
-	float/float1.c \
-	float/float2.c \
-	vfs/vfs1.c \
-	ipc/starve.c \
-	loop/loop1.c \
-	mm/common.c \
-	mm/malloc1.c \
-	mm/malloc2.c \
-	mm/malloc3.c \
-	mm/mapping1.c \
-	mm/pager1.c \
-	hw/serial/serial1.c \
-	chardev/chardev1.c
+	perf.c \
+	ipc/ping_pong.c
 
 include $(USPACE_PREFIX)/Makefile.common
