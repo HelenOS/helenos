@@ -245,6 +245,7 @@ void main_bsp_separated_stack(void)
 	km_identity_init();
 	frame_init();
 	slab_cache_init();
+	malloc_init();
 	ra_init();
 	sysinfo_init();
 	btree_init();

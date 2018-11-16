@@ -137,31 +137,6 @@ static slab_cache_t slab_mag_cache;
  */
 static slab_cache_t *slab_extern_cache;
 
-/** Caches for malloc */
-static slab_cache_t *malloc_caches[SLAB_MAX_MALLOC_W - SLAB_MIN_MALLOC_W + 1];
-
-static const char *malloc_names[] =  {
-	"malloc-16",
-	"malloc-32",
-	"malloc-64",
-	"malloc-128",
-	"malloc-256",
-	"malloc-512",
-	"malloc-1K",
-	"malloc-2K",
-	"malloc-4K",
-	"malloc-8K",
-	"malloc-16K",
-	"malloc-32K",
-	"malloc-64K",
-	"malloc-128K",
-	"malloc-256K",
-	"malloc-512K",
-	"malloc-1M",
-	"malloc-2M",
-	"malloc-4M"
-};
-
 /** Slab descriptor */
 typedef struct {
 	slab_cache_t *cache;  /**< Pointer to parent cache. */
@@ -774,9 +749,8 @@ void slab_cache_destroy(slab_cache_t *cache)
 	    (!list_empty(&cache->partial_slabs)))
 		panic("Destroying cache that is not empty.");
 
-	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE)) {
-		slab_t *mag_slab = obj2slab(cache->mag_cache);
-		_slab_free(mag_slab->cache, cache->mag_cache, mag_slab);
+	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE) && cache->mag_cache) {
+		slab_free(&slab_mag_cache, cache->mag_cache);
 	}
 
 	slab_free(&slab_cache_cache, cache);
@@ -913,17 +887,6 @@ void slab_cache_init(void)
 	slab_extern_cache = slab_cache_create("slab_t", sizeof(slab_t), 0,
 	    NULL, NULL, SLAB_CACHE_SLINSIDE | SLAB_CACHE_MAGDEFERRED);
 
-	/* Initialize structures for malloc */
-	size_t i;
-	size_t size;
-
-	for (i = 0, size = (1 << SLAB_MIN_MALLOC_W);
-	    i < (SLAB_MAX_MALLOC_W - SLAB_MIN_MALLOC_W + 1);
-	    i++, size <<= 1) {
-		malloc_caches[i] = slab_cache_create(malloc_names[i], size, 0,
-		    NULL, NULL, SLAB_CACHE_MAGDEFERRED);
-	}
-
 #ifdef CONFIG_DEBUG
 	_slab_initialized = 1;
 #endif
@@ -958,55 +921,6 @@ void slab_enable_cpucache(void)
 	}
 
 	irq_spinlock_unlock(&slab_cache_lock, false);
-}
-
-void *malloc(size_t size)
-{
-	assert(_slab_initialized);
-	assert(size <= (1 << SLAB_MAX_MALLOC_W));
-
-	if (size < (1 << SLAB_MIN_MALLOC_W))
-		size = (1 << SLAB_MIN_MALLOC_W);
-
-	uint8_t idx = fnzb(size - 1) - SLAB_MIN_MALLOC_W + 1;
-
-	return slab_alloc(malloc_caches[idx], FRAME_ATOMIC);
-}
-
-void *realloc(void *ptr, size_t size)
-{
-	assert(_slab_initialized);
-	assert(size <= (1 << SLAB_MAX_MALLOC_W));
-
-	void *new_ptr;
-
-	if (size > 0) {
-		if (size < (1 << SLAB_MIN_MALLOC_W))
-			size = (1 << SLAB_MIN_MALLOC_W);
-		uint8_t idx = fnzb(size - 1) - SLAB_MIN_MALLOC_W + 1;
-
-		new_ptr = slab_alloc(malloc_caches[idx], FRAME_ATOMIC);
-	} else
-		new_ptr = NULL;
-
-	if ((new_ptr != NULL) && (ptr != NULL)) {
-		slab_t *slab = obj2slab(ptr);
-		memcpy(new_ptr, ptr, min(size, slab->cache->size));
-	}
-
-	if (ptr != NULL)
-		free(ptr);
-
-	return new_ptr;
-}
-
-void free(void *ptr)
-{
-	if (!ptr)
-		return;
-
-	slab_t *slab = obj2slab(ptr);
-	_slab_free(slab->cache, ptr, slab);
 }
 
 /** @}
