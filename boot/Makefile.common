@@ -122,6 +122,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	net/udp \
 	taskmon \
 	test/chardev-test \
+	test/ipc-test \
 	volsrv
 
 RD_DRVS_ESSENTIAL = \

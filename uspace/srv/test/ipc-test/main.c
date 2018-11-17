@@ -26,31 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
- * @{
- */
-/** @file
- */
+#include <async.h>
+#include <errno.h>
+#include <str_error.h>
+#include <ipc/ipc_test.h>
+#include <ipc/services.h>
+#include <loc.h>
+#include <mem.h>
+#include <stdio.h>
+#include <task.h>
 
-#ifndef PERF_H_
-#define PERF_H_
+#define NAME  "ipc-test"
 
-#include <stdbool.h>
+static service_id_t svc_id;
 
-typedef const char *(*benchmark_entry_t)(void);
+static void ipc_test_connection(ipc_call_t *icall, void *arg)
+{
+	/* Accept connection */
+	async_accept_0(icall);
 
-typedef struct {
-	const char *name;
-	const char *desc;
-	benchmark_entry_t entry;
-} benchmark_t;
+	while (true) {
+		ipc_call_t call;
+		async_get_call(&call);
 
-extern const char *bench_ns_ping(void);
-extern const char *bench_ping_pong(void);
+		if (!IPC_GET_IMETHOD(call)) {
+			async_answer_0(&call, EOK);
+			break;
+		}
 
-extern benchmark_t benchmarks[];
+		switch (IPC_GET_IMETHOD(call)) {
+		case IPC_TEST_PING:
+			async_answer_0(&call, EOK);
+			break;
+		default:
+			async_answer_0(&call, ENOTSUP);
+			break;
+		}
+	}
+}
 
-#endif
+int main(int argc, char *argv[])
+{
+	errno_t rc;
 
-/** @}
- */
+	printf("%s: IPC test service\n", NAME);
+	async_set_fallback_port_handler(ipc_test_connection, NULL);
+
+	rc = loc_server_register(NAME);
+	if (rc != EOK) {
+		printf("%s: Failed registering server. (%s)\n", NAME,
+		    str_error(rc));
+		return rc;
+	}
+
+	rc = loc_service_register(SERVICE_NAME_IPC_TEST, &svc_id);
+	if (rc != EOK) {
+		printf("%s: Failed registering service. (%s)\n", NAME,
+		    str_error(rc));
+		return rc;
+	}
+
+	printf("%s: Accepting connections\n", NAME);
+	task_retval(0);
+	async_manager();
+
+	/* Not reached */
+	return 0;
+}

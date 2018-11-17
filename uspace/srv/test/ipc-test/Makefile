@@ -26,15 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-
-LIBS = math
-
-BINARY = perf
+USPACE_PREFIX = ../../..
+BINARY = ipc-test
 
 SOURCES = \
-	perf.c \
-	ipc/ns_ping.c \
-	ipc/ping_pong.c
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

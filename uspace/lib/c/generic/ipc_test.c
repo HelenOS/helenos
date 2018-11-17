@@ -26,31 +26,89 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup libc
  * @{
  */
-/** @file
+/** @file IPC test service API
  */
 
-#ifndef PERF_H_
-#define PERF_H_
+#include <abi/ipc/interfaces.h>
+#include <errno.h>
+#include <ipc/services.h>
+#include <ipc/ipc_test.h>
+#include <loc.h>
+#include <stdlib.h>
+#include <ipc_test.h>
 
-#include <stdbool.h>
+/** Create IPC test service session.
+ *
+ * @param rvol Place to store pointer to volume service session.
+ * @return     EOK on success, ENOMEM if out of memory, EIO if service
+ *             cannot be contacted.
+ */
+errno_t ipc_test_create(ipc_test_t **rtest)
+{
+	ipc_test_t *test;
+	service_id_t test_svcid;
+	errno_t rc;
 
-typedef const char *(*benchmark_entry_t)(void);
+	test = calloc(1, sizeof(ipc_test_t));
+	if (test == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
 
-typedef struct {
-	const char *name;
-	const char *desc;
-	benchmark_entry_t entry;
-} benchmark_t;
+	rc = loc_service_get_id(SERVICE_NAME_IPC_TEST, &test_svcid, 0);
+	if (rc != EOK) {
+		rc = ENOENT;
+		goto error;
+	}
 
-extern const char *bench_ns_ping(void);
-extern const char *bench_ping_pong(void);
+	test->sess = loc_service_connect(test_svcid, INTERFACE_IPC_TEST, 0);
+	if (test->sess == NULL) {
+		rc = EIO;
+		goto error;
+	}
 
-extern benchmark_t benchmarks[];
+	*rtest = test;
+	return EOK;
+error:
+	free(test);
+	return rc;
+}
 
-#endif
+/** Destroy IPC test service session.
+ *
+ * @param test IPC test service session
+ */
+void ipc_test_destroy(ipc_test_t *test)
+{
+	if (test == NULL)
+		return;
+
+	async_hangup(test->sess);
+	free(test);
+}
+
+/** Simple ping.
+ *
+ * @param test IPC test service
+ * @return EOK on success or an error code
+ */
+errno_t ipc_test_ping(ipc_test_t *test)
+{
+	async_exch_t *exch;
+	errno_t retval;
+
+	exch = async_exchange_begin(test->sess);
+	retval = async_req_0_0(exch, IPC_TEST_PING);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
 
 /** @}
  */

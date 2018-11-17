@@ -56,6 +56,7 @@ typedef enum {
 #define SERVICE_NAME_DHCP     "net/dhcp"
 #define SERVICE_NAME_DNSR     "net/dnsr"
 #define SERVICE_NAME_INET     "net/inet"
+#define SERVICE_NAME_IPC_TEST "ipc-test"
 #define SERVICE_NAME_NETCONF  "net/netconf"
 #define SERVICE_NAME_UDP      "net/udp"
 #define SERVICE_NAME_TCP      "net/tcp"

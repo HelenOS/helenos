@@ -180,7 +180,9 @@ typedef enum {
 	INTERFACE_VOL =
 	    FOURCC_COMPACT('v', 'o', 'l', ' ') | IFACE_EXCHANGE_SERIALIZE,
 	INTERFACE_VBD =
-	    FOURCC_COMPACT('v', 'b', 'd', ' ') | IFACE_EXCHANGE_SERIALIZE
+	    FOURCC_COMPACT('v', 'b', 'd', ' ') | IFACE_EXCHANGE_SERIALIZE,
+	INTERFACE_IPC_TEST =
+	    FOURCC_COMPACT('i', 'p', 'c', 't') | IFACE_EXCHANGE_SERIALIZE
 } iface_t;
 
 #endif

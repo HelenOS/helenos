@@ -26,29 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup libcipc
  * @{
  */
 /** @file
  */
 
-#ifndef PERF_H_
-#define PERF_H_
+#ifndef LIBC_IPC_IPC_TEST_H_
+#define LIBC_IPC_IPC_TEST_H_
 
-#include <stdbool.h>
+#include <ipc/common.h>
 
-typedef const char *(*benchmark_entry_t)(void);
-
-typedef struct {
-	const char *name;
-	const char *desc;
-	benchmark_entry_t entry;
-} benchmark_t;
-
-extern const char *bench_ns_ping(void);
-extern const char *bench_ping_pong(void);
-
-extern benchmark_t benchmarks[];
+typedef enum {
+	IPC_TEST_PING = IPC_FIRST_USER_METHOD
+} ipc_test_request_t;
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <ipc_test.h>
+#include <ns.h>
 #include <async.h>
 #include <errno.h>
 #include "../perf.h"
@@ -38,8 +38,7 @@
 #define MIN_DURATION_SECS  10
 #define NUM_SAMPLES 10
 
-static errno_t ping_pong_measure(ipc_test_t *test, uint64_t niter,
-    uint64_t *rduration)
+static errno_t ping_pong_measure(uint64_t niter, uint64_t *rduration)
 {
 	struct timespec start;
 	uint64_t count;
@@ -47,7 +46,7 @@ static errno_t ping_pong_measure(ipc_test_t *test, uint64_t niter,
 	getuptime(&start);
 
 	for (count = 0; count < niter; count++) {
-		errno_t retval = ipc_test_ping(test);
+		errno_t retval = ns_ping();
 
 		if (retval != EOK) {
 			printf("Error sending ping message.\n");
@@ -74,19 +73,13 @@ static void ping_pong_report(uint64_t niter, uint64_t duration)
 	}
 }
 
-const char *bench_ping_pong(void)
+const char *bench_ns_ping(void)
 {
 	errno_t rc;
 	uint64_t duration;
 	uint64_t dsmp[NUM_SAMPLES];
-	ipc_test_t *test;
-	const char *msg;
 
-	printf("Benchmark IPC test server ping time\n");
-	rc = ipc_test_create(&test);
-	if (rc != EOK)
-		return "Failed contacting IPC test server.";
-
+	printf("Benchmark ns server ping time\n");
 	printf("Warm up and determine work size...\n");
 
 	struct timespec start;
@@ -95,11 +88,9 @@ const char *bench_ping_pong(void)
 	uint64_t niter = 1;
 
 	while (true) {
-		rc = ping_pong_measure(test, niter, &duration);
-		if (rc != EOK) {
-			msg = "Failed.";
-			goto error;
-		}
+		rc = ping_pong_measure(niter, &duration);
+		if (rc != EOK)
+			return "Failed.";
 
 		ping_pong_report(niter, duration);
 
@@ -114,11 +105,9 @@ const char *bench_ping_pong(void)
 	int i;
 
 	for (i = 0; i < NUM_SAMPLES; i++) {
-		rc = ping_pong_measure(test, niter, &dsmp[i]);
-		if (rc != EOK) {
-			msg = "Failed.";
-			goto error;
-		}
+		rc = ping_pong_measure(niter, &dsmp[i]);
+		if (rc != EOK)
+			return "Failed.";
 
 		ping_pong_report(niter, dsmp[i]);
 	}
@@ -142,9 +131,5 @@ const char *bench_ping_pong(void)
 	printf("Average: %.0f rt/s Std.dev^2: %.0f rt/s Samples: %d\n",
 	    avg, stddev, NUM_SAMPLES);
 
-	ipc_test_destroy(test);
 	return NULL;
-error:
-	ipc_test_destroy(test);
-	return msg;
 }

@@ -41,6 +41,7 @@
 
 benchmark_t benchmarks[] = {
 #include "ipc/ping_pong.def"
+#include "ipc/ns_ping.def"
 	{ NULL, NULL, NULL }
 };
 

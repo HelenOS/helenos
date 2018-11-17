@@ -26,29 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef PERF_H_
-#define PERF_H_
+#ifndef LIBC_IPC_TEST_H_
+#define LIBC_IPC_TEST_H_
 
-#include <stdbool.h>
-
-typedef const char *(*benchmark_entry_t)(void);
+#include <async.h>
+#include <errno.h>
 
 typedef struct {
-	const char *name;
-	const char *desc;
-	benchmark_entry_t entry;
-} benchmark_t;
+	async_sess_t *sess;
+} ipc_test_t;
 
-extern const char *bench_ns_ping(void);
-extern const char *bench_ping_pong(void);
-
-extern benchmark_t benchmarks[];
+extern errno_t ipc_test_create(ipc_test_t **);
+extern void ipc_test_destroy(ipc_test_t *);
+extern errno_t ipc_test_ping(ipc_test_t *);
 
 #endif
 

@@ -69,6 +69,7 @@ GENERIC_SOURCES = \
 	generic/errno.c \
 	generic/gsort.c \
 	generic/inttypes.c \
+	generic/ipc_test.c \
 	generic/loc.c \
 	generic/mem.c \
 	generic/str.c \
