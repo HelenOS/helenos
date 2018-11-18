@@ -35,6 +35,8 @@ BINARY = perf
 SOURCES = \
 	perf.c \
 	ipc/ns_ping.c \
-	ipc/ping_pong.c
+	ipc/ping_pong.c \
+	malloc/malloc1.c \
+	malloc/malloc2.c
 
 include $(USPACE_PREFIX)/Makefile.common

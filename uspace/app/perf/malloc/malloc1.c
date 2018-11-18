@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,29 +30,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <ipc_test.h>
-#include <async.h>
 #include <errno.h>
 #include "../perf.h"
 
 #define MIN_DURATION_SECS  10
 #define NUM_SAMPLES 10
 
-static errno_t ping_pong_measure(ipc_test_t *test, uint64_t niter,
-    uint64_t *rduration)
+static errno_t malloc1_measure(uint64_t niter, uint64_t *rduration)
 {
 	struct timespec start;
 	uint64_t count;
+	void *p;
 
 	getuptime(&start);
 
 	for (count = 0; count < niter; count++) {
-		errno_t retval = ipc_test_ping(test);
-
-		if (retval != EOK) {
-			printf("Error sending ping message.\n");
-			return EIO;
-		}
+		p = malloc(1);
+		if (p == NULL)
+			return ENOMEM;
+		free(p);
 	}
 
 	struct timespec now;
@@ -62,29 +58,24 @@ static errno_t ping_pong_measure(ipc_test_t *test, uint64_t niter,
 	return EOK;
 }
 
-static void ping_pong_report(uint64_t niter, uint64_t duration)
+static void malloc1_report(uint64_t niter, uint64_t duration)
 {
-	printf("Completed %" PRIu64 " round trips in %" PRIu64 " us",
+	printf("Completed %" PRIu64 " allocations and deallocations in %" PRIu64 " us",
 	    niter, duration);
 
 	if (duration > 0) {
-		printf(", %" PRIu64 " rt/s.\n", niter * 1000 * 1000 / duration);
+		printf(", %" PRIu64 " cycles/s.\n", niter * 1000 * 1000 / duration);
 	} else {
 		printf(".\n");
 	}
 }
 
-const char *bench_ping_pong(void)
+const char *bench_malloc1(void)
 {
 	errno_t rc;
 	uint64_t duration;
 	uint64_t dsmp[NUM_SAMPLES];
-	ipc_test_t *test;
 	const char *msg;
-
-	rc = ipc_test_create(&test);
-	if (rc != EOK)
-		return "Failed contacting IPC test server.";
 
 	printf("Warm up and determine work size...\n");
 
@@ -94,13 +85,13 @@ const char *bench_ping_pong(void)
 	uint64_t niter = 1;
 
 	while (true) {
-		rc = ping_pong_measure(test, niter, &duration);
+		rc = malloc1_measure(niter, &duration);
 		if (rc != EOK) {
 			msg = "Failed.";
 			goto error;
 		}
 
-		ping_pong_report(niter, duration);
+		malloc1_report(niter, duration);
 
 		if (duration >= MIN_DURATION_SECS * 1000000)
 			break;
@@ -113,13 +104,13 @@ const char *bench_ping_pong(void)
 	int i;
 
 	for (i = 0; i < NUM_SAMPLES; i++) {
-		rc = ping_pong_measure(test, niter, &dsmp[i]);
+		rc = malloc1_measure(niter, &dsmp[i]);
 		if (rc != EOK) {
 			msg = "Failed.";
 			goto error;
 		}
 
-		ping_pong_report(niter, dsmp[i]);
+		malloc1_report(niter, dsmp[i]);
 	}
 
 	double sum = 0.0;
@@ -138,12 +129,10 @@ const char *bench_ping_pong(void)
 
 	double stddev = qd / (NUM_SAMPLES - 1); // XXX sqrt
 
-	printf("Average: %.0f rt/s Std.dev^2: %.0f rt/s Samples: %d\n",
+	printf("Average: %.0f cycles/s Std.dev^2: %.0f cycles/s Samples: %d\n",
 	    avg, stddev, NUM_SAMPLES);
 
-	ipc_test_destroy(test);
 	return NULL;
 error:
-	ipc_test_destroy(test);
 	return msg;
 }

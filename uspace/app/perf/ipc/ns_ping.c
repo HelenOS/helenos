@@ -79,7 +79,6 @@ const char *bench_ns_ping(void)
 	uint64_t duration;
 	uint64_t dsmp[NUM_SAMPLES];
 
-	printf("Benchmark ns server ping time\n");
 	printf("Warm up and determine work size...\n");
 
 	struct timespec start;

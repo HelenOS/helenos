@@ -40,8 +40,10 @@
 #include "perf.h"
 
 benchmark_t benchmarks[] = {
-#include "ipc/ping_pong.def"
 #include "ipc/ns_ping.def"
+#include "ipc/ping_pong.def"
+#include "malloc/malloc1.def"
+#include "malloc/malloc2.def"
 	{ NULL, NULL, NULL }
 };
 

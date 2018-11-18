@@ -45,6 +45,8 @@ typedef struct {
 	benchmark_entry_t entry;
 } benchmark_t;
 
+extern const char *bench_malloc1(void);
+extern const char *bench_malloc2(void);
 extern const char *bench_ns_ping(void);
 extern const char *bench_ping_pong(void);
 
