@@ -37,8 +37,6 @@
 #include <arch/cpuid.h>
 #include <arch/cpu.h>
 
-// TODO: most of this file can be rewritten in C
-
 #define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
 
 .section K_TEXT_START, "ax"
@@ -51,7 +49,7 @@
 .endm
 
 .macro pm_status msg
-#if defined(CONFIG_EGA) && !defined(CONFIG_FB)
+#ifdef CONFIG_EGA
 	pushl %esi
 	movl \msg, %esi
 	call pm_early_puts
@@ -68,24 +66,13 @@
 .align 4
 multiboot_header:
 	.long MULTIBOOT_HEADER_MAGIC
-#ifdef CONFIG_FB
 	.long MULTIBOOT_HEADER_FLAGS
 	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)  /* checksum */
-#else
-	.long MULTIBOOT_HEADER_FLAGS_NOFB
-	.long -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS_NOFB)  /* checksum */
-#endif
 	.long multiboot_header
 	.long unmapped_start
 	.long 0
 	.long 0
 	.long multiboot_image_start
-#ifdef CONFIG_FB
-	.long 0
-	.long CONFIG_BFB_WIDTH
-	.long CONFIG_BFB_HEIGHT
-	.long CONFIG_BFB_BPP
-#endif
 
 SYMBOL(multiboot_image_start)
 	cli
@@ -169,6 +156,8 @@ SYMBOL(multiboot_image_start)
 		pm_error $err_sse2
 
 	sse2_supported:
+
+#include "vesa_prot.inc"
 
 	pm2_status $status_prot2
 
@@ -579,6 +568,8 @@ early_puts:
 
 	ret
 
+#include "vesa_real.inc"
+
 .section K_INI_PTLS, "aw", @progbits
 
 /** Generate initial page table contents.
@@ -716,8 +707,12 @@ err_sse2:
 
 status_prot:
 	.asciz "[prot] "
+status_vesa_copy:
+	.asciz "[vesa_copy] "
 status_multiboot_cmdline:
 	.asciz "[multiboot_cmdline] "
+status_vesa_real:
+	.asciz "[vesa_real] "
 status_prot2:
 	.asciz "[prot2] "
 status_long:
