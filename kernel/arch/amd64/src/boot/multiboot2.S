@@ -34,6 +34,8 @@
 #include <arch/cpu.h>
 #include <genarch/multiboot/multiboot2.h>
 
+#define START_STACK  (BOOT_OFFSET - BOOT_STACK_SIZE)
+
 .section K_TEXT_START, "ax"
 
 .code32
@@ -77,7 +79,7 @@ multiboot2_header_start:
 		.word MULTIBOOT2_TAG_ENTRY_ADDRESS
 		.word MULTIBOOT2_FLAGS_REQUIRED
 		.long tag_entry_address_end - tag_entry_address_start
-		.long multiboot_image_start
+		.long multiboot2_image_start
 	tag_entry_address_end:
 
 	/* Flags tag */
@@ -119,3 +121,156 @@ multiboot2_header_start:
 		.long tag_terminator_end - tag_terminator_start
 	tag_terminator_end:
 multiboot2_header_end:
+
+SYMBOL(multiboot2_image_start)
+	cli
+	cld
+
+	/* Initialize stack pointer */
+	movl $START_STACK, %esp
+
+	/*
+	 * Initialize Global Descriptor Table and
+	 * Interrupt Descriptor Table registers
+	 */
+	lgdtl bootstrap_gdtr
+	lidtl bootstrap_idtr
+
+	/* Kernel data + stack */
+	movw $GDT_SELECTOR(KDATA_DES), %cx
+	movw %cx, %es
+	movw %cx, %ds
+	movw %cx, %ss
+
+	/*
+	 * Simics seems to remove hidden part of GS on entering user mode
+	 * when _visible_ part of GS does not point to user-mode segment.
+	 */
+	movw $GDT_SELECTOR(UDATA_DES), %cx
+	movw %cx, %fs
+	movw %cx, %gs
+
+	jmpl $GDT_SELECTOR(KTEXT32_DES), $multiboot2_meeting_point
+	multiboot2_meeting_point:
+
+	/*
+	 * Protected 32-bit. We want to reuse the code-seg descriptor,
+	 * the Default operand size must not be 1 when entering long mode.
+	 */
+
+	/* Save multiboot arguments */
+	movl %eax, multiboot_eax
+	movl %ebx, multiboot_ebx
+
+	movl $(INTEL_CPUID_EXTENDED), %eax
+	cpuid
+	cmp $(INTEL_CPUID_EXTENDED), %eax
+	ja extended_cpuid_supported
+
+		jmp pm_error_halt
+
+	extended_cpuid_supported:
+
+	movl $(AMD_CPUID_EXTENDED), %eax
+	cpuid
+	bt $(AMD_EXT_LONG_MODE), %edx
+	jc long_mode_supported
+
+		jmp pm_error_halt
+
+	long_mode_supported:
+
+	bt $(AMD_EXT_NOEXECUTE), %edx
+	jc noexecute_supported
+
+		jmp pm_error_halt
+
+	noexecute_supported:
+
+	movl $(INTEL_CPUID_STANDARD), %eax
+	cpuid
+	bt $(INTEL_FXSAVE), %edx
+	jc fx_supported
+
+		jmp pm_error_halt
+
+	fx_supported:
+
+	bt $(INTEL_SSE2), %edx
+	jc sse2_supported
+
+		jmp pm_error_halt
+
+	sse2_supported:
+
+	/*
+	 * Enable 64-bit page translation entries - CR4.PAE = 1.
+	 * Paging is not enabled until after long mode is enabled.
+	 */
+
+	movl %cr4, %eax
+	orl $CR4_PAE, %eax
+	movl %eax, %cr4
+
+	/* Set up paging tables */
+	leal ptl_0, %eax
+	movl %eax, %cr3
+
+	/* Enable long mode */
+	movl $AMD_MSR_EFER, %ecx
+	rdmsr                     /* read EFER */
+	orl $AMD_LME, %eax        /* set LME = 1 */
+	wrmsr
+
+	/* Enable paging to activate long mode (set CR0.PG = 1) */
+	movl %cr0, %eax
+	orl $CR0_PG, %eax
+	movl %eax, %cr0
+
+	/* At this point we are in compatibility mode */
+	jmpl $GDT_SELECTOR(KTEXT_DES), $start64
+
+pm_error_halt:
+	cli
+	hlt1:
+		hlt
+		jmp hlt1
+
+.code64
+
+start64:
+
+	/*
+	 * Long mode.
+	 */
+
+	movq $(PA2KA(START_STACK)), %rsp
+
+	/* Create the first stack frame */
+	pushq $0
+	movq %rsp, %rbp
+
+	/* Call amd64_pre_main(multiboot_eax, multiboot_ebx) */
+	movl multiboot_eax, %edi
+	movl multiboot_ebx, %esi
+
+#ifdef MEMORY_MODEL_large
+	movabsq $amd64_pre_main, %rax
+	callq *%rax
+#else
+	callq amd64_pre_main
+#endif
+
+	/* Call main_bsp() */
+#ifdef MEMORY_MODEL_large
+	movabsq $main_bsp, %rax
+	callq *%rax
+#else
+	callq main_bsp
+#endif
+
+	/* Not reached */
+	cli
+	hlt0:
+		hlt
+		jmp hlt0
