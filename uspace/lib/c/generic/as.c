@@ -107,6 +107,21 @@ errno_t as_area_change_flags(void *address, unsigned int flags)
 	    (sysarg_t) flags);
 }
 
+/** Get address-space area information.
+ *
+ * @param address Virtual address pointing into the address space area being
+ *                modified.
+ * @param info    Pointer to information structure to fill in.
+ *
+ * @return zero on success or a code from @ref errno.h on failure.
+ *
+ */
+errno_t as_area_get_info(void *address, as_area_info_t *info)
+{
+	return (errno_t) __SYSCALL2(SYS_AS_AREA_GET_INFO, (sysarg_t) address,
+	    (sysarg_t) info);
+}
+
 /** Find mapping to physical address.
  *
  * @param      virt Virtual address to find mapping for.

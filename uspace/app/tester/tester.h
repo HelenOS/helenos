@@ -98,6 +98,7 @@ extern const char *test_float1(void);
 extern const char *test_float2(void);
 extern const char *test_vfs1(void);
 extern const char *test_ping_pong(void);
+extern const char *test_sharein(void);
 extern const char *test_starve_ipc(void);
 extern const char *test_loop1(void);
 extern const char *test_malloc1(void);

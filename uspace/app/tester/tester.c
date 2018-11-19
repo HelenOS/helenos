@@ -65,6 +65,7 @@ test_t tests[] = {
 #include "float/float1.def"
 #include "float/float2.def"
 #include "vfs/vfs1.def"
+#include "ipc/sharein.def"
 #include "ipc/starve.def"
 #include "loop/loop1.def"
 #include "mm/malloc1.def"

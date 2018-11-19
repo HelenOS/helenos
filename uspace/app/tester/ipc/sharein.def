@@ -1,0 +1,6 @@
+{
+	"sharein",
+	"IPC share in test",
+	&test_sharein,
+	true
+},

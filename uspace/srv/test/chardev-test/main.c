@@ -26,6 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup chardev-test
+ * @{
+ */
+/**
+ * @file
+ * @brief Character device interface test service
+ */
+
 #include <async.h>
 #include <errno.h>
 #include <str_error.h>
@@ -258,3 +266,7 @@ static errno_t partialx_read(chardev_srv_t *srv, void *buf, size_t size,
 	*nread = 1;
 	return EIO;
 }
+
+/**
+ * @}
+ */

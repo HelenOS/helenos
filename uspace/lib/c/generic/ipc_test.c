@@ -33,6 +33,7 @@
  */
 
 #include <abi/ipc/interfaces.h>
+#include <as.h>
 #include <errno.h>
 #include <ipc/services.h>
 #include <ipc/ipc_test.h>
@@ -107,6 +108,115 @@ errno_t ipc_test_ping(ipc_test_t *test)
 	if (retval != EOK)
 		return retval;
 
+	return EOK;
+}
+
+/** Get size of shared read-only memory area.
+ *
+ * @param test IPC test service
+ * @param rsize Place to store size of the shared area
+ * @return EOK on success or an error code
+ */
+errno_t ipc_test_get_ro_area_size(ipc_test_t *test, size_t *rsize)
+{
+	async_exch_t *exch;
+	errno_t retval;
+	sysarg_t size;
+
+	exch = async_exchange_begin(test->sess);
+	retval = async_req_0_1(exch, IPC_TEST_GET_RO_AREA_SIZE, &size);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return retval;
+
+	*rsize = size;
+	return EOK;
+}
+
+/** Get size of shared read-write memory area.
+ *
+ * @param test IPC test service
+ * @param rsize Place to store size of the shared area
+ * @return EOK on success or an error code
+ */
+errno_t ipc_test_get_rw_area_size(ipc_test_t *test, size_t *rsize)
+{
+	async_exch_t *exch;
+	errno_t retval;
+	sysarg_t size;
+
+	exch = async_exchange_begin(test->sess);
+	retval = async_req_0_1(exch, IPC_TEST_GET_RW_AREA_SIZE, &size);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return retval;
+
+	*rsize = size;
+	return EOK;
+}
+
+/** Test share-in of read-only area.
+ *
+ * @param test IPC test service
+ * @param size Size of the shared area
+ * @param rptr Place to store pointer to the shared-in area
+ * @return EOK on success or an error code
+ */
+errno_t ipc_test_share_in_ro(ipc_test_t *test, size_t size, const void **rptr)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	aid_t req;
+	void *dst;
+	errno_t rc;
+
+	exch = async_exchange_begin(test->sess);
+	req = async_send_0(exch, IPC_TEST_SHARE_IN_RO, &answer);
+
+	dst = NULL;
+	rc = async_share_in_start_0_0(exch, size, &dst);
+	if (rc != EOK || dst == AS_MAP_FAILED) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return ENOMEM;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, NULL);
+	*rptr = dst;
+	return EOK;
+}
+
+/** Test share-in of read-write area.
+ *
+ * @param test IPC test service
+ * @param size Size of the shared area
+ * @param rptr Place to store pointer to the shared-in area
+ * @return EOK on success or an error code
+ */
+errno_t ipc_test_share_in_rw(ipc_test_t *test, size_t size, void **rptr)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	aid_t req;
+	void *dst;
+	errno_t rc;
+
+	exch = async_exchange_begin(test->sess);
+	req = async_send_0(exch, IPC_TEST_SHARE_IN_RW, &answer);
+
+	rc = async_share_in_start_0_0(exch, size, &dst);
+	if (rc != EOK || dst == AS_MAP_FAILED) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return ENOMEM;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, NULL);
+	*rptr = dst;
 	return EOK;
 }
 

@@ -145,6 +145,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_AS_AREA_CREATE] = (syshandler_t) sys_as_area_create,
 	[SYS_AS_AREA_RESIZE] = (syshandler_t) sys_as_area_resize,
 	[SYS_AS_AREA_CHANGE_FLAGS] = (syshandler_t) sys_as_area_change_flags,
+	[SYS_AS_AREA_GET_INFO] = (syshandler_t) sys_as_area_get_info,
 	[SYS_AS_AREA_DESTROY] = (syshandler_t) sys_as_area_destroy,
 
 	/* Page mapping related syscalls. */
