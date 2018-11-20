@@ -372,14 +372,11 @@ static errno_t compl_get_next(void *state, char **compl)
 
 				free(ent_path);
 
-				/* If completing command, do not match directories. */
-				if (!ent_stat.is_directory || !cs->is_command) {
-					asprintf(compl, "%s%c", dent->d_name,
-					    ent_stat.is_directory ? '/' : ' ');
-					cs->last_compl = *compl;
-					if (*compl == NULL)
-						return ENOMEM;
-				}
+				asprintf(compl, "%s%c", dent->d_name,
+				    ent_stat.is_directory ? '/' : ' ');
+				cs->last_compl = *compl;
+				if (*compl == NULL)
+					return ENOMEM;
 			}
 		}
 	}
