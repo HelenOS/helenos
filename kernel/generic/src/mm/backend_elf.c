@@ -95,6 +95,21 @@ static size_t elf_nonanon_pages_get(as_area_t *area)
 	return last - first;
 }
 
+/** Get page number in the task where the ELF page originates from.
+ *
+ * The ELF page can be shared to a different address than it originated from,
+ * but we need the originating address since that corresponds to the ELF's
+ * virtual addesses.
+ *
+ * @param area Area in which the page resides
+ * @param page Virtual address of the page in @a area
+ * @return Virtual address of the page in the origin address space
+ */
+static uintptr_t elf_orig_page(as_area_t *area, uintptr_t page)
+{
+	return page - area->base + area->backend_data.elf_base;
+}
+
 bool elf_create(as_area_t *area)
 {
 	size_t nonanon_pages = elf_nonanon_pages_get(area);
@@ -151,9 +166,8 @@ void elf_share(as_area_t *area)
 		node = list_get_instance(list_first(&area->used_space.leaf_list),
 		    btree_node_t, leaf_link);
 	} else {
-		(void) btree_search(&area->sh_info->pagemap, start_anon, &leaf);
-		node = btree_leaf_node_left_neighbour(&area->sh_info->pagemap,
-		    leaf);
+		(void) btree_search(&area->used_space, start_anon, &leaf);
+		node = btree_leaf_node_left_neighbour(&area->used_space, leaf);
 		if (!node)
 			node = leaf;
 	}
@@ -257,6 +271,7 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	uintptr_t frame;
 	uintptr_t kpage;
 	uintptr_t start_anon;
+	uintptr_t elfpage;
 	size_t i;
 	bool dirty = false;
 
@@ -264,16 +279,19 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	assert(mutex_locked(&area->lock));
 	assert(IS_ALIGNED(upage, PAGE_SIZE));
 
+	elfpage = elf_orig_page(area, upage);
+
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
-	if (upage < ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE))
+	if (elfpage < ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE))
 		return AS_PF_FAULT;
 
-	if (upage >= entry->p_vaddr + entry->p_memsz)
+	if (elfpage >= entry->p_vaddr + entry->p_memsz)
 		return AS_PF_FAULT;
 
-	i = (upage - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >> PAGE_WIDTH;
+	i = (elfpage - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >>
+	    PAGE_WIDTH;
 	base = (uintptr_t)
 	    (((void *) elf) + ALIGN_DOWN(entry->p_offset, PAGE_SIZE));
 
@@ -319,12 +337,12 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	 * The area is either not shared or the pagemap does not contain the
 	 * mapping.
 	 */
-	if (upage >= entry->p_vaddr && upage + PAGE_SIZE <= start_anon) {
+	if (elfpage >= entry->p_vaddr && elfpage + PAGE_SIZE <= start_anon) {
 		/*
 		 * Initialized portion of the segment. The memory is backed
 		 * directly by the content of the ELF image. Pages are
 		 * only copied if the segment is writable so that there
-		 * can be more instantions of the same memory ELF image
+		 * can be more instances of the same memory ELF image
 		 * used at a time. Note that this could be later done
 		 * as COW.
 		 */
@@ -350,7 +368,7 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 
 			frame = PTE_GET_FRAME(&pte);
 		}
-	} else if (upage >= start_anon) {
+	} else if (elfpage >= start_anon) {
 		/*
 		 * This is the uninitialized portion of the segment.
 		 * It is not physically present in the ELF image.
@@ -423,16 +441,19 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 {
 	elf_segment_header_t *entry = area->backend_data.segment;
 	uintptr_t start_anon;
+	uintptr_t elfpage;
 
 	assert(page_table_locked(area->as));
 	assert(mutex_locked(&area->lock));
 
-	assert(page >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE));
-	assert(page < entry->p_vaddr + entry->p_memsz);
+	elfpage = elf_orig_page(area, page);
+
+	assert(elfpage >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE));
+	assert(elfpage < entry->p_vaddr + entry->p_memsz);
 
 	start_anon = entry->p_vaddr + entry->p_filesz;
 
-	if (page >= entry->p_vaddr && page + PAGE_SIZE <= start_anon) {
+	if (elfpage >= entry->p_vaddr && elfpage + PAGE_SIZE <= start_anon) {
 		if (entry->p_flags & PF_W) {
 			/*
 			 * Free the frame with the copy of writable segment

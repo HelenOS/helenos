@@ -178,6 +178,7 @@ typedef union mem_backend_data {
 
 	/** elf_backend members */
 	struct {
+		uintptr_t elf_base;
 		elf_header_t *elf;
 		elf_segment_header_t *segment;
 	};

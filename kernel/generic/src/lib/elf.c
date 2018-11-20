@@ -141,8 +141,6 @@ const char *elf_error(unsigned int rc)
 int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 {
 	mem_backend_data_t backend_data;
-	backend_data.elf = elf;
-	backend_data.segment = entry;
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
@@ -170,6 +168,10 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	 */
 	uintptr_t base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	size_t mem_sz = entry->p_memsz + (entry->p_vaddr - base);
+
+	backend_data.elf_base = base;
+	backend_data.elf = elf;
+	backend_data.segment = entry;
 
 	as_area_t *area = as_area_create(as, flags, mem_sz,
 	    AS_AREA_ATTR_NONE, &elf_backend, &backend_data, &base, 0);
