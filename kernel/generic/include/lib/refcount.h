@@ -72,6 +72,7 @@ static inline void refcount_up(atomic_refcount_t *rc)
 
 	/* old < 0 indicates that the function is used incorrectly. */
 	assert(old >= 0);
+	(void) old;
 }
 
 static inline bool refcount_unique(atomic_refcount_t *rc)

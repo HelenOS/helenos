@@ -375,6 +375,7 @@ NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
 	int avail = bitmap_allocate_range(&zone->bitmap, count, zone->base,
 	    FRAME_LOWPRIO, constraint, &index);
 
+	(void) avail;
 	assert(avail);
 	assert(index != (size_t) -1);
 

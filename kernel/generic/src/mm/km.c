@@ -112,6 +112,7 @@ void km_non_identity_span_add(uintptr_t base, size_t size)
 
 	span_added = ra_span_add(km_ni_arena, base, size);
 	assert(span_added);
+	(void) span_added;
 }
 
 uintptr_t km_page_alloc(size_t size, size_t align)

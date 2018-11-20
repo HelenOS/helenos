@@ -199,6 +199,7 @@ void elf_share(as_area_t *area)
 				found = page_mapping_find(area->as,
 				    base + P2SZ(j), false, &pte);
 
+				(void) found;
 				assert(found);
 				assert(PTE_VALID(&pte));
 				assert(PTE_PRESENT(&pte));
@@ -343,6 +344,7 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 			found = page_mapping_find(AS_KERNEL,
 			    base + i * FRAME_SIZE, true, &pte);
 
+			(void) found;
 			assert(found);
 			assert(PTE_PRESENT(&pte));
 

@@ -138,6 +138,7 @@ void anon_share(as_area_t *area)
 				found = page_mapping_find(area->as,
 				    base + P2SZ(j), false, &pte);
 
+				(void)found;
 				assert(found);
 				assert(PTE_VALID(&pte));
 				assert(PTE_PRESENT(&pte));

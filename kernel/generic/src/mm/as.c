@@ -870,6 +870,7 @@ errno_t as_area_resize(as_t *as, uintptr_t address, size_t size, unsigned int fl
 					bool found = page_mapping_find(as,
 					    ptr + P2SZ(i), false, &pte);
 
+					(void) found;
 					assert(found);
 					assert(PTE_VALID(&pte));
 					assert(PTE_PRESENT(&pte));
@@ -983,6 +984,7 @@ errno_t as_area_destroy(as_t *as, uintptr_t address)
 				bool found = page_mapping_find(as,
 				    ptr + P2SZ(size), false, &pte);
 
+				(void) found;
 				assert(found);
 				assert(PTE_VALID(&pte));
 				assert(PTE_PRESENT(&pte));
@@ -1301,6 +1303,7 @@ errno_t as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 				bool found = page_mapping_find(as,
 				    ptr + P2SZ(size), false, &pte);
 
+				(void) found;
 				assert(found);
 				assert(PTE_VALID(&pte));
 				assert(PTE_PRESENT(&pte));
