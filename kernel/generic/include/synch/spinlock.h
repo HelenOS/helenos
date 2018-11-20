@@ -98,8 +98,27 @@ typedef struct spinlock {
 #define ASSERT_SPINLOCK(expr, lock) \
 	assert(expr)
 
-#define spinlock_lock(lock)    atomic_lock_arch(&(lock)->val)
-#define spinlock_unlock(lock)  spinlock_unlock_nondebug((lock))
+/** Acquire spinlock
+ *
+ * @param lock  Pointer to spinlock_t structure.
+ */
+NO_TRACE static inline void spinlock_lock(spinlock_t *lock)
+{
+	preemption_disable();
+	while (atomic_flag_test_and_set_explicit(&lock->flag,
+	    memory_order_acquire))
+		;
+}
+
+/** Release spinlock
+ *
+ * @param lock  Pointer to spinlock_t structure.
+ */
+NO_TRACE static inline void spinlock_unlock(spinlock_t *lock)
+{
+	atomic_flag_clear_explicit(&lock->flag, memory_order_release);
+	preemption_enable();
+}
 
 #endif /* CONFIG_DEBUG_SPINLOCK */
 
@@ -114,19 +133,6 @@ extern bool spinlock_trylock(spinlock_t *);
 extern void spinlock_lock_debug(spinlock_t *);
 extern void spinlock_unlock_debug(spinlock_t *);
 extern bool spinlock_locked(spinlock_t *);
-
-/** Unlock spinlock
- *
- * Unlock spinlock for non-debug kernels.
- *
- * @param sl Pointer to spinlock_t structure.
- *
- */
-NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
-{
-	atomic_flag_clear_explicit(&lock->flag, memory_order_release);
-	preemption_enable();
-}
 
 #ifdef CONFIG_DEBUG_SPINLOCK
 
