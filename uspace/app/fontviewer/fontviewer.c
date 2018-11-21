@@ -238,6 +238,7 @@ static errno_t draw(void)
 	}
 
 	font_release(font);
+	font_release(info_font);
 	return EOK;
 }
 
