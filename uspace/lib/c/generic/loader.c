@@ -199,7 +199,7 @@ errno_t loader_set_program_path(loader_t *ldr, const char *path)
 		return rc;
 	}
 
-	rc = loader_set_program(ldr, path, fd);
+	rc = loader_set_program(ldr, abspath, fd);
 	vfs_put(fd);
 	return rc;
 }
