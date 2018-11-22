@@ -283,8 +283,10 @@ static void devman_add_function(ipc_call_t *call)
 	}
 
 	fun_node_t *fun = create_fun_node();
-	/* One reference for creation, one for us */
-	fun_add_ref(fun);
+	/*
+	 * Hold a temporary reference while we work with fun. The reference from
+	 * create_fun_node() moves to the device tree.
+	 */
 	fun_add_ref(fun);
 	fun->ftype = ftype;
 
@@ -299,7 +301,7 @@ static void devman_add_function(ipc_call_t *call)
 		dev_del_ref(pdev);
 		fun_busy_unlock(fun);
 		fun_del_ref(fun);
-		delete_fun_node(fun);
+		fun_del_ref(fun);	/* fun is destroyed */
 		async_answer_0(call, ENOMEM);
 		return;
 	}

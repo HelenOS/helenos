@@ -143,8 +143,11 @@ bool create_root_nodes(dev_tree_t *tree)
 		return false;
 	}
 
-	fun_add_ref(fun);
-	insert_fun_node(tree, fun, str_dup(""), NULL);
+	if (!insert_fun_node(tree, fun, str_dup(""), NULL)) {
+		fun_del_ref(fun);	/* fun is destroyed */
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		return false;
+	}
 
 	match_id_t *id = create_match_id();
 	id->id = str_dup("root");
