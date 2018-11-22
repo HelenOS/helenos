@@ -730,9 +730,8 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 	if (fun == NULL)
 		return NULL;
 
-	/* Add one reference that will be dropped by ddf_fun_destroy() */
 	fun->dev = dev;
-	fun_add_ref(fun);
+	dev_add_ref(fun->dev);
 
 	fun->bound = false;
 	fun->ftype = ftype;
@@ -740,7 +739,7 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 	if (name != NULL) {
 		fun->name = str_dup(name);
 		if (fun->name == NULL) {
-			delete_function(fun);
+			fun_del_ref(fun);	/* fun is destroyed */
 			return NULL;
 		}
 	}
