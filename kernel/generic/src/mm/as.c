@@ -186,7 +186,7 @@ as_t *as_create(unsigned int flags)
  * @param as Address space to be destroyed.
  *
  */
-void as_destroy(as_t *as)
+static void as_destroy(as_t *as)
 {
 	DEADLOCK_PROBE_INIT(p_asidlock);
 

@@ -267,7 +267,6 @@ extern list_t inactive_as_with_asid_list;
 extern void as_init(void);
 
 extern as_t *as_create(unsigned int);
-extern void as_destroy(as_t *);
 extern void as_hold(as_t *);
 extern void as_release(as_t *);
 extern void as_switch(as_t *, as_t *);

@@ -149,7 +149,7 @@ errno_t program_create_from_image(void *image_addr, char *name, program_t *prg)
 
 	prg->loader_status = elf_load((elf_header_t *) image_addr, as);
 	if (prg->loader_status != EE_OK) {
-		as_destroy(as);
+		as_release(as);
 		prg->task = NULL;
 		prg->main_thread = NULL;
 		return ENOTSUP;
@@ -175,7 +175,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 
 	void *loader = program_loader;
 	if (!loader) {
-		as_destroy(as);
+		as_release(as);
 		log(LF_OTHER, LVL_ERROR,
 		    "Cannot spawn loader as none was registered");
 		return ENOENT;
@@ -183,7 +183,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 
 	prg->loader_status = elf_load((elf_header_t *) program_loader, as);
 	if (prg->loader_status != EE_OK) {
-		as_destroy(as);
+		as_release(as);
 		log(LF_OTHER, LVL_ERROR, "Cannot spawn loader (%s)",
 		    elf_error(prg->loader_status));
 		return ENOENT;
