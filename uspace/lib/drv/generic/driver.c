@@ -144,8 +144,6 @@ static void driver_dev_add(ipc_call_t *icall)
 		return;
 	}
 
-	/* Add one reference that will be dropped by driver_dev_remove() */
-	dev_add_ref(dev);
 	dev->handle = dev_handle;
 	dev->name = dev_name;
 
