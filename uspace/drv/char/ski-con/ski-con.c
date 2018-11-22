@@ -268,9 +268,10 @@ static errno_t ski_con_write(chardev_srv_t *srv, const void *data, size_t size,
 	size_t i;
 	uint8_t *dp = (uint8_t *) data;
 
-	for (i = 0; i < size; i++) {
-		if (!ski_con_disabled())
+	if (!ski_con_disabled()) {
+		for (i = 0; i < size; i++) {
 			ski_con_putchar(con, dp[i]);
+		}
 	}
 
 	*nwr = size;
