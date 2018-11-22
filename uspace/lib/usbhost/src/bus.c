@@ -369,7 +369,7 @@ static size_t bus_endpoint_index(usb_endpoint_t ep, usb_direction_t dir)
  */
 int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, endpoint_t **out_ep)
 {
-	int err;
+	int err = EINVAL;
 	assert(device);
 
 	bus_t *bus = device->bus;
@@ -390,9 +390,6 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	}
 
 	assert((ep->required_transfer_buffer_policy & ~ep->transfer_buffer_policy) == 0);
-
-	/* Bus reference */
-	endpoint_add_ref(ep);
 
 	const size_t idx = bus_endpoint_index(ep->endpoint, ep->direction);
 	if (idx >= ARRAY_SIZE(device->endpoints)) {
@@ -424,10 +421,8 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 			device->endpoints[idx] = ep;
 	}
 	fibril_mutex_unlock(&device->guard);
-	if (err) {
-		endpoint_del_ref(ep);
-		return err;
-	}
+	if (err)
+		goto drop;
 
 	if (out_ep) {
 		/* Exporting reference */
@@ -437,9 +432,8 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 
 	return EOK;
 drop:
-	/* Bus reference */
 	endpoint_del_ref(ep);
-	return EINVAL;
+	return err;
 }
 
 /**
