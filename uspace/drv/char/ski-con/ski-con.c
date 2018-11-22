@@ -30,9 +30,11 @@
 /** @file Ski console driver.
  */
 
+#include <as.h>
 #include <async.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <ddi.h>
 #include <errno.h>
 #include <fibril.h>
 #include <io/chardev.h>
@@ -68,6 +70,8 @@ errno_t ski_con_add(ski_con_t *con)
 	fid_t fid;
 	ddf_fun_t *fun = NULL;
 	bool bound = false;
+	uintptr_t faddr;
+	void *addr = AS_AREA_ANY;
 	errno_t rc;
 
 	circ_buf_init(&con->cbuf, con->buf, ski_con_buf_size, 1);
@@ -86,6 +90,20 @@ errno_t ski_con_add(ski_con_t *con)
 	chardev_srvs_init(&con->cds);
 	con->cds.ops = &ski_con_chardev_ops;
 	con->cds.sarg = con;
+
+	rc = sysinfo_get_value("ski.paddr", &faddr);
+	if (rc != EOK)
+		faddr = 0; /* No kernel driver to arbitrate with */
+
+	if (faddr != 0) {
+		addr = AS_AREA_ANY;
+		rc = physmem_map(faddr, 1, AS_AREA_READ | AS_AREA_CACHEABLE,
+		    &addr);
+		if (rc != EOK) {
+			ddf_msg(LVL_ERROR, "Cannot map kernel driver arbitration area.");
+			goto error;
+		}
+	}
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -107,6 +125,8 @@ errno_t ski_con_add(ski_con_t *con)
 	fibril_add_ready(fid);
 	return EOK;
 error:
+	if (addr != AS_AREA_ANY)
+		as_area_destroy(addr);
 	if (bound)
 		ddf_fun_unbind(fun);
 	if (fun != NULL)

@@ -55,6 +55,8 @@ typedef struct {
 	uint8_t buf[ski_con_buf_size];
 	fibril_mutex_t buf_lock;
 	fibril_condvar_t buf_cv;
+	/** Memory area mapped to arbitrate with the kernel driver */
+	void *mem_area;
 } ski_con_t;
 
 extern errno_t ski_con_add(ski_con_t *);

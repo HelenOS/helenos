@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <console/console.h>
 #include <console/chardev.h>
+#include <ddi/ddi.h>
 #include <sysinfo/sysinfo.h>
 #include <stdint.h>
 #include <proc/thread.h>
@@ -68,6 +69,7 @@ static outdev_operations_t skidev_ops = {
 };
 
 static ski_instance_t *instance = NULL;
+static parea_t ski_parea;
 
 /** Ask debug console if a key was pressed.
  *
@@ -104,6 +106,9 @@ static void poll_keyboard(ski_instance_t *instance)
 {
 	int count = POLL_LIMIT;
 
+	if (ski_parea.mapped)
+		return;
+
 	while (count > 0) {
 		wchar_t ch = ski_getchar();
 
@@ -121,12 +126,7 @@ static void kskipoll(void *arg)
 	ski_instance_t *instance = (ski_instance_t *) arg;
 
 	while (true) {
-		// TODO FIXME:
-		// This currently breaks the kernel console
-		// before we get the override from uspace.
-		if (console_override)
-			poll_keyboard(instance);
-
+		poll_keyboard(instance);
 		thread_usleep(POLL_INTERVAL);
 	}
 }
@@ -139,6 +139,8 @@ static void kskipoll(void *arg)
  */
 static void ski_init(void)
 {
+	uintptr_t faddr;
+
 	if (instance)
 		return;
 
@@ -149,6 +151,19 @@ static void ski_init(void)
 	    : "i" (SKI_INIT_CONSOLE)
 	    : "r15", "r8"
 	);
+
+	faddr = frame_alloc(1, FRAME_LOWMEM | FRAME_ATOMIC, 0);
+	if (faddr == 0)
+		panic("Cannot allocate page for ski console.");
+
+	ddi_parea_init(&ski_parea);
+	ski_parea.pbase = faddr;
+	ski_parea.frames = 1;
+	ski_parea.unpriv = false;
+	ski_parea.mapped = false;
+	ddi_parea_register(&ski_parea);
+
+	sysinfo_set_item_val("ski.paddr", NULL, (sysarg_t) faddr);
 
 	instance = malloc(sizeof(ski_instance_t));
 
@@ -189,18 +204,16 @@ static void ski_do_putchar(char ch)
  */
 static void ski_putwchar(outdev_t *dev, wchar_t ch)
 {
-	// TODO FIXME:
-	// This currently breaks the kernel console
-	// before we get the override from uspace.
-	if (console_override) {
-		if (ascii_check(ch)) {
-			if (ch == '\n')
-				ski_do_putchar('\r');
+	if (ski_parea.mapped)
+		return;
 
-			ski_do_putchar(ch);
-		} else {
-			ski_do_putchar('?');
-		}
+	if (ascii_check(ch)) {
+		if (ch == '\n')
+			ski_do_putchar('\r');
+
+		ski_do_putchar(ch);
+	} else {
+		ski_do_putchar('?');
 	}
 }
 
