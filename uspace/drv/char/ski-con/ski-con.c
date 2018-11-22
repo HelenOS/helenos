@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005 Jakub Jermar
- * Copyright (c) 2017 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <sysinfo.h>
 
 #include "ski-con.h"
 
@@ -126,6 +127,28 @@ errno_t ski_con_gone(ski_con_t *con)
 	return ENOTSUP;
 }
 
+/** Detect if SKI console is in use by the kernel.
+ *
+ * This is needed since the kernel has no way of fencing off the user-space
+ * driver.
+ *
+ * @return @c true if in use by the kernel.
+ */
+static bool ski_con_disabled(void)
+{
+	sysarg_t kconsole;
+
+	/*
+	 * XXX Ideally we should get information from our kernel counterpart
+	 * driver. But there needs to be a mechanism for the kernel console
+	 * to inform the kernel driver.
+	 */
+	if (sysinfo_get_value("kconsole", &kconsole) != EOK)
+		return false;
+
+	return kconsole != false;
+}
+
 /** Poll Ski for keypresses. */
 static errno_t ski_con_fibril(void *arg)
 {
@@ -134,7 +157,7 @@ static errno_t ski_con_fibril(void *arg)
 	errno_t rc;
 
 	while (true) {
-		while (true) {
+		while (!ski_con_disabled()) {
 			c = ski_con_getchar();
 			if (c == 0)
 				break;
@@ -245,8 +268,10 @@ static errno_t ski_con_write(chardev_srv_t *srv, const void *data, size_t size,
 	size_t i;
 	uint8_t *dp = (uint8_t *) data;
 
-	for (i = 0; i < size; i++)
-		ski_con_putchar(con, dp[i]);
+	for (i = 0; i < size; i++) {
+		if (!ski_con_disabled())
+			ski_con_putchar(con, dp[i]);
+	}
 
 	*nwr = size;
 	return EOK;

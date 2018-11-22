@@ -208,6 +208,7 @@ void kio_init(void)
 
 void grab_console(void)
 {
+	sysinfo_set_item_val("kconsole", NULL, true);
 	event_notify_1(EVENT_KCONSOLE, false, true);
 	bool prev = console_override;
 
@@ -225,6 +226,7 @@ void grab_console(void)
 
 void release_console(void)
 {
+	sysinfo_set_item_val("kconsole", NULL, false);
 	console_override = false;
 	event_notify_1(EVENT_KCONSOLE, false, false);
 }
