@@ -169,25 +169,25 @@ static errno_t draw(void)
 	source_t descender_fg = rgb(85, 212, 0);
 	source_t leading_bg = rgb(170, 238, 255);
 	source_t leading_fg = rgb(0, 170, 212);
+	font_t *info_font = NULL;
+	font_t *font = NULL;
 
-	font_t *font;
 	errno_t rc = create_font(&font, points);
 	if (rc != EOK) {
 		printf("Failed creating font\n");
-		return rc;
+		goto out_err;
 	}
 
-	font_t *info_font;
 	rc = embedded_font_create(&info_font, 16);
 	if (rc != EOK) {
 		printf("Failed creating info font\n");
-		return rc;
+		goto out_err;
 	}
 
 	font_metrics_t font_metrics;
 	rc = font_get_metrics(font, &font_metrics);
 	if (rc != EOK)
-		return rc;
+		goto out_err;
 
 	surface_coord_t top = 50;
 	metric_t ascender_top = top;
@@ -237,8 +237,12 @@ static errno_t draw(void)
 
 	}
 
-	font_release(font);
-	return EOK;
+out_err:
+	if (font)
+		font_release(font);
+	if (info_font)
+		font_release(info_font);
+	return rc;
 }
 
 int main(int argc, char *argv[])

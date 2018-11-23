@@ -211,6 +211,7 @@ static void bb_release(void *backend_data)
 	free(data->glyph_cache);
 
 	data->decoder->release(data->decoder_data);
+	free(data);
 }
 
 font_backend_t bitmap_backend = {
