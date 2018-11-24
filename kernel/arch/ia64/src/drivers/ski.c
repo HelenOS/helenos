@@ -106,7 +106,7 @@ static void poll_keyboard(ski_instance_t *instance)
 {
 	int count = POLL_LIMIT;
 
-	if (ski_parea.mapped)
+	if (ski_parea.mapped && !console_override)
 		return;
 
 	while (count > 0) {
@@ -204,7 +204,7 @@ static void ski_do_putchar(char ch)
  */
 static void ski_putwchar(outdev_t *dev, wchar_t ch)
 {
-	if (ski_parea.mapped)
+	if (ski_parea.mapped && !console_override)
 		return;
 
 	if (ascii_check(ch)) {
