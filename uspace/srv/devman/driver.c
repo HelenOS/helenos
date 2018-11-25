@@ -461,10 +461,13 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 			fibril_mutex_lock(&driver->driver_mutex);
 			list_remove(&dev->driver_devices);
 			fibril_mutex_unlock(&driver->driver_mutex);
+			/* Give an extra reference to driver_reassign_fibril */
+			dev_add_ref(dev);
 			fid_t fid = fibril_create(driver_reassign_fibril, dev);
 			if (fid == 0) {
 				log_msg(LOG_DEFAULT, LVL_ERROR,
 				    "Error creating fibril to assign driver.");
+				dev_del_ref(dev);
 			}
 			fibril_add_ready(fid);
 		}
