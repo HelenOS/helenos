@@ -316,7 +316,6 @@ errno_t fun_online(fun_node_t *fun)
 		}
 
 		insert_dev_node(&device_tree, dev, fun);
-		dev_add_ref(dev);
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_add_function(fun=\"%s\")", fun->pathname);
