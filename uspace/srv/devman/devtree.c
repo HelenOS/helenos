@@ -161,7 +161,6 @@ bool create_root_nodes(dev_tree_t *tree)
 		return false;
 	}
 
-	dev_add_ref(dev);
 	insert_dev_node(tree, dev, fun);
 
 	fibril_rwlock_write_unlock(&tree->rwlock);
