@@ -32,9 +32,12 @@
 #
 
 SRC_ROOT="$(dirname "$0")/../../.."
-MAKEFILE_COMMON="$SRC_ROOT"/Makefile.common
-MAKEFILE_CONFIG="$SRC_ROOT"/Makefile.config
-CONFIG_MK="$SRC_ROOT"/uspace/export/config.mk
+if [ -z "$EXPORT_DIR" ]; then
+	EXPORT_DIR="$SRC_ROOT/uspace/export"
+fi
+MAKEFILE_COMMON="$EXPORT_DIR"/Makefile.common
+MAKEFILE_CONFIG="$EXPORT_DIR"/Makefile.config
+CONFIG_MK="$EXPORT_DIR"/config.mk
 
 # Extract simple 'name = value' variable definition from Makefile
 function extract_field

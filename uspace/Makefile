@@ -272,7 +272,7 @@ all: $(BUILDS) $(BUILDS_TESTS)
 $(BUILDS_TESTS): $(BASE_BUILDS) $(BUILDS)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
-export: lib/posix.build lib/math.build lib/clui.build
+export: $(BUILDS)
 	$(MAKE) -r -C lib/posix export EXPORT_DIR=$(EXPORT_DIR)
 
 clean: $(CLEANS)

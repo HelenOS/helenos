@@ -35,6 +35,11 @@ EXTRA_CFLAGS = -Iinclude/posix
 EXPORT_FILES = \
 	../math/libmath.a \
 	../clui/libclui.a \
+	../gui/libgui.a \
+	../draw/libdraw.a \
+	../softrend/libsoftrend.a \
+	../hound/libhound.a \
+	../pcm/libpcm.a \
 	$(LIBC_PREFIX)/libc.a \
 	$(LIBC_PREFIX)/crt0.o \
 	$(LIBC_PREFIX)/crt1.o \
@@ -92,7 +97,8 @@ EXPORT_CFLAGS = \
 
 include $(USPACE_PREFIX)/Makefile.common
 
-export: $(EXPORT_DIR)/config.mk $(EXPORT_DIR)/config.rc
+export: $(EXPORT_DIR)/config.mk $(EXPORT_DIR)/config.rc \
+    $(EXPORT_DIR)/Makefile.common $(EXPORT_DIR)/Makefile.config
 
 $(EXPORT_DIR)/config.mk: export-libs export-includes
 	echo '# Generated file, do not modify.' >> $@.new
@@ -110,6 +116,12 @@ $(EXPORT_DIR)/config.mk: export-libs export-includes
 $(EXPORT_DIR)/config.rc: $(EXPORT_DIR)/config.mk
 	sed 's:$$(HELENOS_EXPORT_ROOT):$$HELENOS_EXPORT_ROOT:g' < $< >$@
 
+$(EXPORT_DIR)/Makefile.common: ../../../Makefile.common
+	cp $< $@
+
+$(EXPORT_DIR)/Makefile.config: ../../../Makefile.config
+	cp $< $@
+
 export-libs: $(EXPORT_FILES) export-includes
 	mkdir -p $(EXPORT_DIR)/lib
 	cp -L $(EXPORT_FILES) $(EXPORT_DIR)/lib
@@ -123,4 +135,14 @@ export-includes: $(INCLUDE_LIBC) $(shell find ./include ../c/arch/$(UARCH)/inclu
 	mkdir -p $(EXPORT_DIR)/include.new/libclui
 	cp -L ../clui/tinput.h $(EXPORT_DIR)/include.new/libclui
 	rm -rf $(EXPORT_DIR)/include
+	mkdir -p $(EXPORT_DIR)/include.new/libdraw
+	cp -r -L -t $(EXPORT_DIR)/include.new/libdraw ../draw/*.h
+	mkdir -p $(EXPORT_DIR)/include.new/libdraw/codec
+	cp -r -L -t $(EXPORT_DIR)/include.new/libdraw/codec ../draw/codec/*.h
+	mkdir -p $(EXPORT_DIR)/include.new/libgui
+	cp -L -t $(EXPORT_DIR)/include.new/libgui ../gui/*.h
+	mkdir -p $(EXPORT_DIR)/include.new/libhound
+	cp -r -L -t $(EXPORT_DIR)/include.new/libhound ../hound/include/*
+	mkdir -p $(EXPORT_DIR)/include.new/libpcm
+	cp -r -L -t $(EXPORT_DIR)/include.new/libpcm ../pcm/include/*
 	mv $(EXPORT_DIR)/include.new $(EXPORT_DIR)/include

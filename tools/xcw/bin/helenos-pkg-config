@@ -34,23 +34,26 @@
 XCW="$(dirname "$0")"
 SRC_ROOT="$XCW/../../.."
 UARCH="$("$XCW"/helenos-bld-config --uarch)"
+if [ -z "$EXPORT_DIR" ]; then
+	EXPORT_DIR="$SRC_ROOT/uspace/export"
+fi
+INCLUDE_DIR="$EXPORT_DIR/include"
+LIB_DIR="$EXPORT_DIR/lib"
 
-libmath_cflags="-I$SRC_ROOT/uspace/lib/math/include\
-    -I$SRC_ROOT/uspace/lib/math/arch/$UARCH/include"
-libmath_libs="$SRC_ROOT/uspace/lib/math/libmath.a"
+libmath_cflags="-I$INCLUDE_DIR/libmath"
+libmath_libs="$LIB_DIR/libmath.a"
 
-libgui_cflags="-I$SRC_ROOT/uspace/lib/gui"
-libgui_libs="$SRC_ROOT/uspace/lib/gui/libgui.a"
+libgui_cflags="-I$INCLUDE_DIR/libgui"
+libgui_libs="$LIB_DIR/libgui.a"
 
-libdraw_cflags="-I$SRC_ROOT/uspace/lib/draw"
-libdraw_libs="$SRC_ROOT/uspace/lib/draw/libdraw.a \
-    $SRC_ROOT/uspace/lib/softrend/libsoftrend.a"
+libdraw_cflags="-I$INCLUDE_DIR/libdraw"
+libdraw_libs="$LIB_DIR/libdraw.a $LIB_DIR/libsoftrend.a"
 
-libhound_cflags="-I$SRC_ROOT/uspace/lib/hound/include"
-libhound_libs="$SRC_ROOT/uspace/lib/hound/libhound.a"
+libhound_cflags="-I$INCLUDE_DIR/libhound"
+libhound_libs="$LIB_DIR/libhound.a"
 
-libpcm_cflags="-I$SRC_ROOT/uspace/lib/pcm/include"
-libpcm_libs="$SRC_ROOT/uspace/lib/pcm/libpcm.a"
+libpcm_cflags="-I$INCLUDE_DIR/libpcm"
+libpcm_libs="$LIB_DIR/libpcm.a"
 
 action=none
 pkg=

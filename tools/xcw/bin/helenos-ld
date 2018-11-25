@@ -33,6 +33,9 @@
 
 XCW="$(dirname "$0")"
 SRC_ROOT="$XCW/../../.."
+if [ -z "$EXPORT_DIR" ]; then
+	EXPORT_DIR="$SRC_ROOT/uspace/export"
+fi
 UARCH="$("$XCW"/helenos-bld-config --uarch)"
 CFLAGS="$("$XCW"/helenos-bld-config --cflags)"
 LDFLAGS="$("$XCW"/helenos-bld-config --ldflags)"
@@ -42,7 +45,7 @@ echo helenos-ld "$@"
 "$CC" \
     $CFLAGS \
     "$@" \
-    "$SRC_ROOT"/uspace/lib/c/crt0.o \
-    "$SRC_ROOT"/uspace/lib/c/crt1.o \
-    "$SRC_ROOT"/uspace/lib/c/libc.a \
+    "$EXPORT_DIR"/lib/crt0.o \
+    "$EXPORT_DIR"/lib/crt1.o \
+    "$EXPORT_DIR"/lib/libc.a \
     -lgcc
