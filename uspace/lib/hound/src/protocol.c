@@ -614,7 +614,14 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 			async_answer_0(&call, EINVAL);
 			break;
 		default:
-			async_answer_0(&call, ENOTSUP);
+			/*
+			 * In case we called async_get_call() after we had
+			 * already received IPC_M_PHONE_HUNGUP deeper in the
+			 * protocol handling, the capability handle will be
+			 * invalid, so act carefully here.
+			 */
+			if (call.cap_handle != CAP_NIL)
+				async_answer_0(&call, ENOTSUP);
 			return;
 		}
 	}
