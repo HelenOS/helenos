@@ -658,7 +658,7 @@ not_satisfied:
 #ifdef KCPULB_VERBOSE
 				log(LF_OTHER, LVL_DEBUG,
 				    "kcpulb%u: TID %" PRIu64 " -> cpu%u, "
-				    "nrdy=%ld, avg=%ld", CPU->id, t->tid,
+				    "nrdy=%ld, avg=%ld", CPU->id, thread->tid,
 				    CPU->id, atomic_load(&CPU->nrdy),
 				    atomic_load(&nrdy) / config.cpu_active);
 #endif
