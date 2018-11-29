@@ -30,7 +30,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libposix
 
-EXTRA_CFLAGS = -Iinclude/posix
+EXTRA_CFLAGS = -Iinclude/posix -D_XOPEN_SOURCE
 
 EXPORT_FILES = \
 	../math/libmath.a \

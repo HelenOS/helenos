@@ -35,7 +35,8 @@
 #ifndef LIBC_STRING_H_
 #define LIBC_STRING_H_
 
-#if defined(_HELENOS_SOURCE) && !defined(_REALLY_WANT_STRING_H)
+#if defined(_HELENOS_SOURCE) && !defined(_REALLY_WANT_STRING_H) && \
+    !defined(_LIBC_SOURCE)
 #error Please use str.h and mem.h instead
 #endif
 
@@ -61,6 +62,12 @@ extern char *strtok(char *, const char *);
 extern char *__strtok_r(char *, const char *, char **);
 extern char *strerror(int);
 extern size_t strlen(const char *);
+
+#if defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_LIBC_SOURCE)
+extern size_t strnlen(const char *, size_t);
+extern char *strdup(const char *);
+extern char *strndup(const char *, size_t);
+#endif
 
 #endif
 
