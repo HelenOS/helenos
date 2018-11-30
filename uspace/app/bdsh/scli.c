@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2018 Matthieu Riolo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

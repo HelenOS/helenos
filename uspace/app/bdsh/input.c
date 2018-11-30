@@ -2,6 +2,7 @@
  * Copyright (c) 2008 Tim Post
  * Copyright (c) 2011 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2018 Matthieu Riolo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
