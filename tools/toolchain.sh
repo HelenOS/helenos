@@ -94,6 +94,63 @@ show_usage() {
 	exit 3
 }
 
+test_version() {
+	echo "Cross-compiler toolchain build script"
+	echo
+	echo "Start testing the version of the installed software" 
+	echo
+
+	PLATFORMS=("amd64" "arm32" "ia32" "ia64" "mips32" "mips32eb" "ppc32" "riscv64" "sparc64")
+	
+	if [ -z "${CROSS_PREFIX}" ] ; then
+		CROSS_PREFIX="/usr/local/cross"
+	fi
+
+	for i in "${PLATFORMS[@]}"
+	do
+		PLATFORM="$i"
+		set_target_from_platform "$PLATFORM"
+		PREFIX="${CROSS_PREFIX}/bin/${HELENOS_TARGET}"
+
+		echo "== $PLATFORM =="
+		test_app_version "Binutils" "ld" "GNU\ ld\ \(GNU\ Binutils\)\ ((\.|[0-9])+)" "$BINUTILS_VERSION"
+		test_app_version "GCC" "gcc" "gcc\ version\ ((\.|[0-9])+)" "$GCC_VERSION"
+		test_app_version "GDB" "gdb" "GNU\ gdb\ \(GDB\)\s+((\.|[0-9])+)" "$GDB_VERSION"
+	done
+
+	exit
+}
+
+test_app_version() {
+	PKGNAME="$1"
+	APPNAME="$2"
+	REGEX="$3"
+	INS_VERSION="$4"
+
+
+	APP="${PREFIX}-${APPNAME}"
+	if [ ! -e $APP ]; then
+		echo "- $PKGNAME is missing"
+	else
+		{
+			OUT=$(${APP} -v 2>&1)
+		} &> /dev/null
+
+		if [[ "$OUT" =~ $REGEX ]]; then
+	        VERSION="${BASH_REMATCH[1]}"
+	        if [ "$INS_VERSION" = "$VERSION" ]; then
+	        	echo "+ $PKGNAME is uptodate ($INS_VERSION)"
+	        else
+	        	echo "- $PKGNAME ($VERSION) is outdated ($INS_VERSION)"
+	        fi
+	    else
+	        echo "- $PKGNAME Unexpected output"
+	    fi
+	fi
+}
+
+
+
 change_title() {
 	echo -en "\e]0;$1\a"
 }
@@ -426,6 +483,9 @@ if [ "$#" -lt "1" ] ; then
 fi
 
 case "$1" in
+	"--test-version")
+		test_version
+		;;
 	amd64|arm32|ia32|ia64|mips32|mips32eb|ppc32|riscv64|sparc64)
 		prepare
 		build_target "$1"
