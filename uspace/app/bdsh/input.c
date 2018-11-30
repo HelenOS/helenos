@@ -44,6 +44,7 @@
 #include <stdbool.h>
 #include <tinput.h>
 #include <adt/odict.h>
+#include <adt/list.h>
 
 #include "config.h"
 #include "compl.h"
@@ -63,12 +64,28 @@ static tinput_t *tinput;
 static int run_command(char **, cliuser_t *, iostate_t *);
 static void print_pipe_usage(void);
 
+typedef struct {
+	link_t alias_hup_link;
+	alias_t *alias;
+} alias_hup_t;
+
+static bool find_alias_hup(alias_t *alias, list_t *alias_hups)
+{
+	list_foreach(*alias_hups, alias_hup_link, alias_hup_t, link) {
+		if (alias == link->alias) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /*
  * Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
  * the handler
  */
-errno_t process_input(cliuser_t *usr)
+static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups)
 {
 	token_t *tokens_buf = calloc(WORD_MAX, sizeof(token_t));
 	if (tokens_buf == NULL)
@@ -176,32 +193,38 @@ errno_t process_input(cliuser_t *usr)
 	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)cmd[0], NULL);
 	if (alias_link != NULL) {
 		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
-		char *oldLine = usr->line;
+		//check if the alias already has been resolved once
+		if (!find_alias_hup(data, alias_hups)) {
+			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(hup));
+			hup->alias = data;
+			list_append(&hup->alias_hup_link, alias_hups);
 
-		const size_t input_length = str_size(usr->line) - str_size(cmd[0]) + str_size(data->value) + 1;
-		usr->line = (char *)malloc(input_length * sizeof(char));
-		usr->line[0] = '\0';
+			char *oldLine = usr->line;
+			const size_t input_length = str_size(usr->line) - str_size(cmd[0]) + str_size(data->value) + 1;
+			usr->line = (char *)malloc(input_length * sizeof(char));
+			usr->line[0] = '\0';
 
-		unsigned int cmd_replace_index = cmd_token_start;
-		for (i = 0; i < tokens_length; i++) {
-			if (i == cmd_replace_index) {
-				//if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol
-				if (tokens[i].type == TOKTYPE_SPACE) {
-					cmd_replace_index++;
+			unsigned int cmd_replace_index = cmd_token_start;
+			for (i = 0; i < tokens_length; i++) {
+				if (i == cmd_replace_index) {
+					//if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol
+					if (tokens[i].type == TOKTYPE_SPACE) {
+						cmd_replace_index++;
+						str_append(usr->line, input_length, tokens[i].text);
+						continue;
+					}
+
+					str_append(usr->line, input_length, data->value);
+				} else {
 					str_append(usr->line, input_length, tokens[i].text);
-					continue;
 				}
-
-				str_append(usr->line, input_length, data->value);
-			} else {
-				str_append(usr->line, input_length, tokens[i].text);
 			}
-		}
 
-		//reprocess input after string replace
-		rc = process_input(usr);
-		usr->line = oldLine;
-		goto finit;
+			//reprocess input after string replace
+			rc = process_input_nohup(usr, alias_hups);
+			usr->line = oldLine;
+			goto finit;
+		}
 	}
 
 	iostate_t new_iostate = {
@@ -254,6 +277,21 @@ finit:
 	}
 	tok_fini(&tok);
 	free(tokens_buf);
+
+	return rc;
+}
+
+errno_t process_input(cliuser_t *usr)
+{
+	list_t alias_hups;
+	list_initialize(&alias_hups);
+
+	errno_t rc = process_input_nohup(usr, &alias_hups);
+
+	list_foreach_safe(alias_hups, cur_link, next_link) {
+		alias_hup_t *cur_item = list_get_instance(cur_link, alias_hup_t, alias_hup_link);
+		free(cur_item);
+	}
 
 	return rc;
 }
