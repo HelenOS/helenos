@@ -170,6 +170,24 @@ errno_t process_input(cliuser_t *usr)
 		goto finit;
 	}
 
+
+
+	/* test if the passed cmd is an alias 
+	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)&v, NULL);
+	e = odict_get_instance(alias_link, test_entry_t, alias_dict);
+	if() {
+		char* oldLine = usr->line;
+
+
+		//reprocess input after string replace
+		rc = process_input(usr);
+		usr->line = oldLine;
+		goto finit;
+	}
+	
+	*/
+
+
 	iostate_t new_iostate = {
 		.stdin = stdin,
 		.stdout = stdout,
@@ -218,6 +236,7 @@ finit:
 		free(usr->line);
 		usr->line = (char *) NULL;
 	}
+
 	tok_fini(&tok);
 	free(tokens_buf);
 

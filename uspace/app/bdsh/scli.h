@@ -59,7 +59,6 @@ extern void set_iostate(iostate_t *);
 
 extern odict_t alias_dict;
 
-extern void* alias_key(odlink_t *odlink);
 
 typedef struct {
 	odlink_t odict;

@@ -20,22 +20,8 @@
 
 
 static const char *cmdname = "alias";
-static const char* alias_format = "%s/%s";
+static const char* alias_format = "%s='%s'\n";
 
-
-/*
-#include <types/adt/odict.h>
-extern void odict_initialize(odict_t *, odgetkey_t, odcmp_t);
-extern void odict_finalize(odict_t *);
-extern void odlink_initialize(odlink_t *);
-extern void odict_insert(odlink_t *, odict_t *, odlink_t *);
-extern void odict_remove(odlink_t *);
-
-extern odlink_t *odict_first(odict_t *);
-extern odlink_t *odict_next(odlink_t *, odict_t *);
-extern odlink_t *odict_find_eq(odict_t *, void *, odlink_t *);
-extern errno_t odict_validate(odict_t *);
-*/
 
 
 static void list_aliases()
@@ -50,6 +36,7 @@ static void list_aliases()
 	}
 }
 
+
 static int print_alias(const char* name)
 {
 	odlink_t *alias_link = odict_find_eq(&alias_dict, (void*)name, NULL);
@@ -61,13 +48,35 @@ static int print_alias(const char* name)
 
 
 
-	printf("No alias with the name '%s' exists", name);
+	printf("%s: No alias with the name '%s' exists\n", cmdname, name);
 	return CMD_FAILURE;
 }
 
+
 static void set_alias(const char* name, const char* value)
 {
-	
+	odlink_t *alias_link = odict_find_eq(&alias_dict, (void*)name, NULL);
+
+	if (alias_link != NULL) {
+		//update existing value
+		alias_t* data = odict_get_instance(alias_link, alias_t, odict);
+		free(data->value);
+		data->value = str_dup(value);
+
+		printf("%s: update value ", cmdname);
+	}else {
+		//add new value
+		alias_t* data = (alias_t*)calloc(1, sizeof(alias_t));
+		data->name = str_dup(name);
+		data->value = str_dup(value);
+
+		odict_insert(&data->odict, &alias_dict, NULL);
+
+
+		printf("%s: insert value ", cmdname);
+	}
+
+	printf(alias_format, name, value);
 }
 
 
@@ -77,8 +86,7 @@ static void set_alias(const char* name, const char* value)
 /* Dispays help for alias in various levels */
 void help_cmd_alias(unsigned int level)
 {
-	printf("This is the %s help for '%s'.\n",
-		level ? EXT_HELP : SHORT_HELP, cmdname);
+	printf("Set a new alias with \"alias hex='cat --hex'\". Display an alias with \"alias hex\". List all alias by passing no argument.\n");
 	return;
 }
 
@@ -86,25 +94,34 @@ void help_cmd_alias(unsigned int level)
 int cmd_alias(char **argv)
 {
 	
-	if (argv[0] == NULL) {
+	if (argv[1] == NULL) {
 		list_aliases();
 		return CMD_SUCCESS;
-	}else if (argv[1] == NULL && strpos(argv[0], "=") == -1) {
-		return print_alias(argv[0]);
+	}else if (argv[2] == NULL && str_chr(argv[1], '=') == NULL) {
+		return print_alias(argv[1]);
 	}
-
-
+	
+	//concat all it together
 	char* str = (char*)malloc(INPUT_MAX * sizeof(char));
 	str[0] = '\0';
 
 	size_t i;
-	for(i = 0; argv[i] != NULL; i++) {
-		str = strcat(str, argv[i]);
+	for (i = 1; argv[i] != NULL; i++) {
+		str_append(str, INPUT_MAX - 1, argv[i]);
 	}
 
-	
-	
-	set_alias(name, value);
+	//split input
+	char* pos = str_chr(str, '=');
+	if(pos == NULL) {
+		printf("%s: bad formatted input\n", cmdname);
+		return CMD_FAILURE;
+	}
+
+
+	str[pos - str] = '\0';
+	set_alias(str, pos + 1);
+
+	free(str);
 	return CMD_SUCCESS;
 }
 
