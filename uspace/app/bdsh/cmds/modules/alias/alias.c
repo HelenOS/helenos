@@ -37,19 +37,19 @@ static void list_aliases()
 }
 
 
-static int print_alias(const char* name)
+static bool print_alias(const char* name)
 {
 	odlink_t *alias_link = odict_find_eq(&alias_dict, (void*)name, NULL);
 	if (alias_link != NULL) {
 		alias_t* data = odict_get_instance(alias_link, alias_t, odict);
 		printf(alias_format, data->name, data->value);
-		return CMD_SUCCESS;
+		return true;
 	}
 
 
 
 	printf("%s: No alias with the name '%s' exists\n", cmdname, name);
-	return CMD_FAILURE;
+	return false;
 }
 
 
@@ -97,31 +97,22 @@ int cmd_alias(char **argv)
 	if (argv[1] == NULL) {
 		list_aliases();
 		return CMD_SUCCESS;
-	}else if (argv[2] == NULL && str_chr(argv[1], '=') == NULL) {
-		return print_alias(argv[1]);
 	}
-	
-	//concat all it together
-	char* str = (char*)malloc(INPUT_MAX * sizeof(char));
-	str[0] = '\0';
+
 
 	size_t i;
 	for (i = 1; argv[i] != NULL; i++) {
-		str_append(str, INPUT_MAX - 1, argv[i]);
+		char* pos;
+		if ((pos = str_chr(argv[i], '=')) != NULL) {
+			argv[i][pos - argv[i]] = '\0';
+			set_alias(argv[i], pos + 1);
+		}else {
+			if(!print_alias(argv[i])) {
+				return CMD_FAILURE;
+			}
+		}
 	}
-
-	//split input
-	char* pos = str_chr(str, '=');
-	if(pos == NULL) {
-		printf("%s: bad formatted input\n", cmdname);
-		return CMD_FAILURE;
-	}
-
-
-	str[pos - str] = '\0';
-	set_alias(str, pos + 1);
-
-	free(str);
+	
 	return CMD_SUCCESS;
 }
 
