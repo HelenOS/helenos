@@ -33,6 +33,7 @@ EXTRA_CFLAGS = -I. -Icmds/ -Icmds/builtins -Icmds/modules
 BINARY = bdsh
 
 SOURCES = \
+	cmds/modules/alias/alias.c \
 	cmds/modules/help/help.c \
 	cmds/modules/mkdir/mkdir.c \
 	cmds/modules/mkfile/mkfile.c \

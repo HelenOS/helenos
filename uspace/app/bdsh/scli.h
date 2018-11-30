@@ -33,6 +33,9 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <types/adt/odict.h>
+
+
 
 typedef struct {
 	const char *name;
@@ -52,5 +55,17 @@ extern const char *progname;
 
 extern iostate_t *get_iostate(void);
 extern void set_iostate(iostate_t *);
+
+
+extern odict_t alias_dict;
+
+extern void* alias_key(odlink_t *odlink);
+
+typedef struct {
+	odlink_t odict;
+	char* name;
+	char* value;
+} alias_t;
+
 
 #endif
