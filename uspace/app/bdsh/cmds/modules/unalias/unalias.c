@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 #include <adt/odict.h>
 
 #include "config.h"
@@ -21,34 +22,60 @@
 
 static const char *cmdname = "unalias";
 
+
+
+static void free_alias(odlink_t *alias_link)
+{
+	alias_t *data = odict_get_instance(alias_link, alias_t, odict);
+	odict_remove(alias_link);
+
+	free(data->name);
+	free(data->value);
+	free(data);
+}
+
+
 /* Dispays help for unalias in various levels */
 void help_cmd_unalias(unsigned int level)
 {
-	printf("This is the %s help for '%s'.\n",
-		level ? EXT_HELP : SHORT_HELP, cmdname);
+	printf("`%s' removes an alias or all aliases with -a\n", cmdname);
 	return;
 }
+
 
 /* Main entry point for unalias, accepts an array of arguments */
 int cmd_unalias(char **argv)
 {
 
+	if(argv[1] == NULL) {
+		help_cmd_unalias(HELP_LONG);
+		return CMD_SUCCESS;
+	}
+
 	size_t i;
+	odlink_t *alias_link;
 
-	for(i = 1; argv[i] != NULL; i++) {
-		odlink_t *alias_link = odict_find_eq(&alias_dict, (void*)argv[i], NULL);
+	for (i = 1; argv[i] != NULL; i++) {
+		if (str_cmp(argv[i], "-a") == 0) {
+			alias_link = odict_first(&alias_dict);
+			while (alias_link != NULL) {
+				odlink_t *old_alias_link = alias_link;
+				alias_link = odict_next(old_alias_link, &alias_dict);
+				free_alias(old_alias_link);
+			}
 
-		if(alias_link == NULL) {
+			return CMD_SUCCESS;
+		}
+
+
+		alias_link = odict_find_eq(&alias_dict, (void*)argv[i], NULL);
+
+		if (alias_link == NULL) {
 			printf("%s: No alias '%s' found\n", cmdname, argv[i]);
 			return CMD_FAILURE;
 		}
 
-		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
-		odict_remove(alias_link);
-
-		free(data->name);
-		free(data->value);
-		free(data);
+		free_alias(alias_link);
 	}
 
 	
