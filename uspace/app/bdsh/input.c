@@ -186,16 +186,16 @@ errno_t process_input(cliuser_t *usr)
 
 		unsigned int cmd_replace_index = cmd_token_start;
 		for (i = 0; i < tokens_length; i++) {
-			if(i == cmd_replace_index) {
+			if (i == cmd_replace_index) {
 				//if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol
-				if(tokens[i].type == TOKTYPE_SPACE) {
+				if (tokens[i].type == TOKTYPE_SPACE) {
 					cmd_replace_index++;
 					str_append(usr->line, input_length, tokens[i].text);
 					continue;
 				}
 
 				str_append(usr->line, input_length, data->value);
-			}else {
+			} else {
 				str_append(usr->line, input_length, tokens[i].text);
 			}
 		}
