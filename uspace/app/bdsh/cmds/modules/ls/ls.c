@@ -354,9 +354,11 @@ void help_cmd_ls(unsigned int level)
 		    "Usage:  %s [options] [path]\n"
 		    "If not path is given, the current working directory is used.\n"
 		    "Options:\n"
-		    "  -h, --help       A short option summary\n"
-		    "  -u, --unsort     Do not sort directory entries\n"
-		    "  -r, --recursive  List subdirectories recursively\n",
+		    "  -h, --help            A short option summary\n"
+		    "  -u, --unsort          Do not sort directory entries\n"
+		    "  -r, --recursive       List subdirectories recursively\n"
+		    "  -w, --well-formatted  File sizes will be formatted\n"
+		    "  -1, --single-column   Only the names will be returned\n",
 		    cmdname);
 	}
 
