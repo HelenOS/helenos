@@ -182,7 +182,7 @@ errno_t process_input(cliuser_t *usr)
 		
 
 		const size_t input_length = str_size(usr->line) - str_size(cmd[0]) + str_size(data->value) + 1;
-		usr->line = (char*)malloc(INPUT_MAX * sizeof(char));
+		usr->line = (char*)malloc(input_length * sizeof(char));
 		usr->line[0] = '\0';
 
 		unsigned int cmd_replace_index = cmd_token_start;
