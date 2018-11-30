@@ -13,6 +13,8 @@ typedef struct {
 	unsigned int recursive;
 	unsigned int sort;
 
+	bool single_column;
+	bool well_formatted;
 } ls_job_t;
 
 /** Structure to represent a directory entry.

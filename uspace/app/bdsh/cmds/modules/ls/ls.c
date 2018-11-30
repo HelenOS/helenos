@@ -41,6 +41,7 @@
 #include <getopt.h>
 #include <vfs/vfs.h>
 #include <str.h>
+#include <cap.h>
 
 #include "ls.h"
 #include "errors.h"
@@ -57,6 +58,8 @@ static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "unsort", no_argument, 0, 'u' },
 	{ "recursive", no_argument, 0, 'r' },
+	{ "well-formatted", no_argument, 0, 'w' },
+	{ "single-column", no_argument, 0, '1' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -72,6 +75,9 @@ static unsigned int ls_start(ls_job_t *ls)
 {
 	ls->recursive = 0;
 	ls->sort = 1;
+
+	ls->well_formatted = false;
+	ls->single_column = false;
 
 	return 1;
 }
@@ -89,9 +95,25 @@ static unsigned int ls_start(ls_job_t *ls)
  */
 static void ls_print(struct dir_elem_t *de)
 {
-	if (de->s.is_file)
+	if (!ls.single_column && de->s.is_file) {
+		if (ls.well_formatted) {
+			cap_spec_t cap;
+
+			cap_from_blocks(1, de->s.size, &cap);
+			cap_simplify(&cap);
+
+			char *rptr;
+			if (cap_format(&cap, &rptr) == EOK) {
+				printf("%-40s\t%s\n", de->name, rptr);
+				free(rptr);
+				//if there is a failure with cap_format we simply print out an unformatted size
+				return;
+			}
+
+		}
+
 		printf("%-40s\t%llu\n", de->name, (long long) de->s.size);
-	else if (de->s.is_directory)
+	} else if (!ls.single_column && de->s.is_directory)
 		printf("%-40s\t<dir>\n", de->name);
 	else
 		printf("%-40s\n", de->name);
@@ -363,7 +385,7 @@ int cmd_ls(char **argv)
 	opt_ind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hur", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "hurw1", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_ls(HELP_LONG);
@@ -373,6 +395,12 @@ int cmd_ls(char **argv)
 			break;
 		case 'r':
 			ls.recursive = 1;
+			break;
+		case 'w':
+			ls.well_formatted = true;
+			break;
+		case '1':
+			ls.single_column = true;
 			break;
 		}
 	}
