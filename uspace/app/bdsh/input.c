@@ -42,6 +42,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <tinput.h>
+#include <adt/odict.h>
 
 #include "config.h"
 #include "compl.h"
@@ -172,20 +173,38 @@ errno_t process_input(cliuser_t *usr)
 
 
 
-	/* test if the passed cmd is an alias 
-	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)&v, NULL);
-	e = odict_get_instance(alias_link, test_entry_t, alias_dict);
-	if() {
+	/* test if the passed cmd is an alias */
+	odlink_t* alias_link = odict_find_eq(&alias_dict, (void*)cmd[0], NULL);
+	if (alias_link != NULL) {
+		alias_t* data = odict_get_instance(alias_link, alias_t, odict);
 		char* oldLine = usr->line;
+		
 
+		const size_t input_length = str_size(usr->line) - str_size(cmd[0]) + str_size(data->value) + 1;
+		usr->line = (char*)malloc(INPUT_MAX * sizeof(char));
+		usr->line[0] = '\0';
+
+		unsigned int cmd_replace_index = cmd_token_start;
+		for (i = 0; i < tokens_length; i++) {
+			if(i == cmd_replace_index) {
+				//if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol
+				if(tokens[i].type == TOKTYPE_SPACE) {
+					cmd_replace_index++;
+					str_append(usr->line, input_length, tokens[i].text);
+					continue;
+				}
+
+				str_append(usr->line, input_length, data->value);
+			}else {
+				str_append(usr->line, input_length, tokens[i].text);
+			}
+		}
 
 		//reprocess input after string replace
 		rc = process_input(usr);
 		usr->line = oldLine;
 		goto finit;
 	}
-	
-	*/
 
 
 	iostate_t new_iostate = {
