@@ -256,7 +256,6 @@ finit:
 		free(usr->line);
 		usr->line = (char *) NULL;
 	}
-
 	tok_fini(&tok);
 	free(tokens_buf);
 

@@ -36,8 +36,6 @@
 #include <stdio.h>
 #include <types/adt/odict.h>
 
-
-
 typedef struct {
 	const char *name;
 	char *line;

@@ -32,7 +32,6 @@
 #include <stddef.h>
 #include <str.h>
 #include <adt/odict.h>
-
 #include "config.h"
 #include "scli.h"
 #include "input.h"

@@ -49,9 +49,7 @@ static void list_aliases()
 	odlink_t *alias_link = odict_first(&alias_dict);
 	while (alias_link != NULL) {
 		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
-
 		printf(alias_format, data->name, data->value);
-
 		alias_link = odict_next(alias_link, &alias_dict);
 	}
 }
