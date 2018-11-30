@@ -84,7 +84,7 @@ int cmd_unalias(char **argv)
 		alias_link = odict_find_eq(&alias_dict, (void *)argv[i], NULL);
 
 		if (alias_link == NULL) {
-			printf("%s: No alias '%s' found\n", cmdname, argv[i]);
+			cli_error(CL_ENOENT, "%s: No alias '%s' found\n", cmdname, argv[i]);
 			return CMD_FAILURE;
 		}
 

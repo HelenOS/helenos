@@ -59,8 +59,8 @@ static bool print_alias(const char *name)
 		printf(alias_format, data->name, data->value);
 		return true;
 	}
-
-	printf("%s: No alias with the name '%s' exists\n", cmdname, name);
+	
+	cli_error(CL_ENOENT, "%s: No alias with the name '%s' exists\n", cmdname, name);
 	return false;
 }
 
