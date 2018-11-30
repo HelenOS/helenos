@@ -62,21 +62,14 @@ static void set_alias(const char* name, const char* value)
 		alias_t* data = odict_get_instance(alias_link, alias_t, odict);
 		free(data->value);
 		data->value = str_dup(value);
-
-		printf("%s: update value ", cmdname);
-	}else {
+	} else {
 		//add new value
 		alias_t* data = (alias_t*)calloc(1, sizeof(alias_t));
 		data->name = str_dup(name);
 		data->value = str_dup(value);
 
 		odict_insert(&data->odict, &alias_dict, NULL);
-
-
-		printf("%s: insert value ", cmdname);
 	}
-
-	printf(alias_format, name, value);
 }
 
 
@@ -86,7 +79,7 @@ static void set_alias(const char* name, const char* value)
 /* Dispays help for alias in various levels */
 void help_cmd_alias(unsigned int level)
 {
-	printf("Set a new alias with \"alias hex='cat --hex'\". Display an alias with \"alias hex\". List all alias by passing no argument.\n");
+	printf("`%s' sets an alias, displays an alias or lists all aliases\n", cmdname);
 	return;
 }
 
@@ -102,15 +95,19 @@ int cmd_alias(char **argv)
 
 	size_t i;
 	for (i = 1; argv[i] != NULL; i++) {
-		char* pos;
-		if ((pos = str_chr(argv[i], '=')) != NULL) {
-			argv[i][pos - argv[i]] = '\0';
-			set_alias(argv[i], pos + 1);
-		}else {
-			if(!print_alias(argv[i])) {
+		char* name = str_dup(argv[i]);
+		char* value;
+		if ((value = str_chr(name, '=')) != NULL) {
+			name[value - name] = '\0';
+			set_alias(name, value + 1);
+		} else {
+			if(!print_alias(name)) {
+				free(name);
 				return CMD_FAILURE;
 			}
 		}
+
+		free(name);
 	}
 	
 	return CMD_SUCCESS;
