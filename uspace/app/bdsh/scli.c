@@ -44,7 +44,6 @@ static cliuser_t usr;
 static iostate_t *iostate;
 static iostate_t stdiostate;
 
-
 odict_t alias_dict;
 
 /*
@@ -60,14 +59,14 @@ volatile unsigned int cli_verbocity = 1;
  */
 const char *progname = PACKAGE_NAME;
 
-static int alias_cmp(void* a, void* b)
+static int alias_cmp(void *a, void *b)
 {
-	return str_cmp((char*)a, (char*)b);
+	return str_cmp((char *)a, (char *)b);
 }
 
-static void* alias_key(odlink_t *odlink)
+static void *alias_key(odlink_t *odlink)
 {
-	return (void*)odict_get_instance(odlink, alias_t, odict)->name;
+	return (void *)odict_get_instance(odlink, alias_t, odict)->name;
 }
 
 /* These are not exposed, even to builtins */
@@ -121,7 +120,6 @@ int main(int argc, char *argv[])
 	stdiostate.stdout = stdout;
 	stdiostate.stderr = stderr;
 	iostate = &stdiostate;
-
 
 	odict_initialize(&alias_dict, alias_key, alias_cmp);
 

@@ -38,11 +38,8 @@
 
 #include <adt/odict.h>
 
-
 static const char *cmdname = "alias";
-static const char* alias_format = "%s='%s'\n";
-
-
+static const char *alias_format = "%s='%s'\n";
 
 static void list_aliases()
 {
@@ -54,45 +51,37 @@ static void list_aliases()
 	}
 }
 
-
-static bool print_alias(const char* name)
+static bool print_alias(const char *name)
 {
-	odlink_t *alias_link = odict_find_eq(&alias_dict, (void*)name, NULL);
+	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)name, NULL);
 	if (alias_link != NULL) {
-		alias_t* data = odict_get_instance(alias_link, alias_t, odict);
+		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
 		printf(alias_format, data->name, data->value);
 		return true;
 	}
-
-
 
 	printf("%s: No alias with the name '%s' exists\n", cmdname, name);
 	return false;
 }
 
-
-static void set_alias(const char* name, const char* value)
+static void set_alias(const char *name, const char *value)
 {
-	odlink_t *alias_link = odict_find_eq(&alias_dict, (void*)name, NULL);
+	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)name, NULL);
 
 	if (alias_link != NULL) {
 		//update existing value
-		alias_t* data = odict_get_instance(alias_link, alias_t, odict);
+		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
 		free(data->value);
 		data->value = str_dup(value);
 	} else {
 		//add new value
-		alias_t* data = (alias_t*)calloc(1, sizeof(alias_t));
+		alias_t *data = (alias_t *)calloc(1, sizeof(alias_t));
 		data->name = str_dup(name);
 		data->value = str_dup(value);
 
 		odict_insert(&data->odict, &alias_dict, NULL);
 	}
 }
-
-
-
-
 
 /* Dispays help for alias in various levels */
 void help_cmd_alias(unsigned int level)
@@ -110,16 +99,15 @@ int cmd_alias(char **argv)
 		return CMD_SUCCESS;
 	}
 
-
 	size_t i;
 	for (i = 1; argv[i] != NULL; i++) {
-		char* name = str_dup(argv[i]);
-		char* value;
+		char *name = str_dup(argv[i]);
+		char *value;
 		if ((value = str_chr(name, '=')) != NULL) {
 			name[value - name] = '\0';
 			set_alias(name, value + 1);
 		} else {
-			if(!print_alias(name)) {
+			if (!print_alias(name)) {
 				free(name);
 				return CMD_FAILURE;
 			}
@@ -130,4 +118,3 @@ int cmd_alias(char **argv)
 	
 	return CMD_SUCCESS;
 }
-

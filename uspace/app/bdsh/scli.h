@@ -55,15 +55,12 @@ extern const char *progname;
 extern iostate_t *get_iostate(void);
 extern void set_iostate(iostate_t *);
 
-
 extern odict_t alias_dict;
-
 
 typedef struct {
 	odlink_t odict;
-	char* name;
-	char* value;
+	char *name;
+	char *value;
 } alias_t;
-
 
 #endif

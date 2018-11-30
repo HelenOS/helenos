@@ -6,4 +6,3 @@ extern int cmd_alias(char **);
 extern void help_cmd_alias(unsigned int);
 
 #endif /* ALIAS_ENTRY_H */
-

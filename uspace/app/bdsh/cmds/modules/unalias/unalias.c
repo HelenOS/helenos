@@ -38,11 +38,7 @@
 #include "unalias.h"
 #include "cmds.h"
 
-
-
 static const char *cmdname = "unalias";
-
-
 
 static void free_alias(odlink_t *alias_link)
 {
@@ -54,7 +50,6 @@ static void free_alias(odlink_t *alias_link)
 	free(data);
 }
 
-
 /* Dispays help for unalias in various levels */
 void help_cmd_unalias(unsigned int level)
 {
@@ -62,12 +57,11 @@ void help_cmd_unalias(unsigned int level)
 	return;
 }
 
-
 /* Main entry point for unalias, accepts an array of arguments */
 int cmd_unalias(char **argv)
 {
 
-	if(argv[1] == NULL) {
+	if (argv[1] == NULL) {
 		help_cmd_unalias(HELP_LONG);
 		return CMD_SUCCESS;
 	}
@@ -87,8 +81,7 @@ int cmd_unalias(char **argv)
 			return CMD_SUCCESS;
 		}
 
-
-		alias_link = odict_find_eq(&alias_dict, (void*)argv[i], NULL);
+		alias_link = odict_find_eq(&alias_dict, (void *)argv[i], NULL);
 
 		if (alias_link == NULL) {
 			printf("%s: No alias '%s' found\n", cmdname, argv[i]);
@@ -97,9 +90,6 @@ int cmd_unalias(char **argv)
 
 		free_alias(alias_link);
 	}
-
-	
 	
 	return CMD_SUCCESS;
 }
-

@@ -6,4 +6,3 @@ extern int cmd_unalias(char **);
 extern void help_cmd_unalias(unsigned int);
 
 #endif /* UNALIAS_ENTRY_H */
-

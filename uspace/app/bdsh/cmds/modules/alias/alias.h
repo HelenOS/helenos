@@ -3,6 +3,4 @@
 
 /* Prototypes for the alias command, excluding entry points */
 
-
 #endif /* ALIAS_H */
-
