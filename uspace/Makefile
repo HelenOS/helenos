@@ -273,6 +273,7 @@ $(BUILDS_TESTS): $(BASE_BUILDS) $(BUILDS)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 export: $(BUILDS)
+	mkdir -p $(EXPORT_DIR)
 	$(MAKE) -r -C lib/posix export EXPORT_DIR=$(EXPORT_DIR)
 
 clean: $(CLEANS)
