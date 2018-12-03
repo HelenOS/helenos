@@ -218,9 +218,9 @@ void elf_share(as_area_t *area)
 				assert(PTE_VALID(&pte));
 				assert(PTE_PRESENT(&pte));
 
-				btree_insert(&area->sh_info->pagemap,
+				as_pagemap_insert(&area->sh_info->pagemap,
 				    (base + P2SZ(j)) - area->base,
-				    (void *) PTE_GET_FRAME(&pte), NULL);
+				    PTE_GET_FRAME(&pte));
 				page_table_unlock(area->as, false);
 
 				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
@@ -266,7 +266,6 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 {
 	elf_header_t *elf = area->backend_data.elf;
 	elf_segment_header_t *entry = area->backend_data.segment;
-	btree_node_t *leaf;
 	uintptr_t base;
 	uintptr_t frame;
 	uintptr_t kpage;
@@ -300,29 +299,13 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 
 	mutex_lock(&area->sh_info->lock);
 	if (area->sh_info->shared) {
-		bool found = false;
-
 		/*
 		 * The address space area is shared.
 		 */
 
-		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
-		    upage - area->base, &leaf);
-		if (!frame) {
-			unsigned int i;
-
-			/*
-			 * Workaround for valid NULL address.
-			 */
-
-			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] == upage - area->base) {
-					found = true;
-					break;
-				}
-			}
-		}
-		if (frame || found) {
+		errno_t rc = as_pagemap_find(&area->sh_info->pagemap,
+		    upage - area->base, &frame);
+		if (rc == EOK) {
 			frame_reference_add(ADDR2PFN(frame));
 			page_mapping_insert(AS, upage, frame,
 			    as_area_get_flags(area));
@@ -414,8 +397,8 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 
 	if (dirty && area->sh_info->shared) {
 		frame_reference_add(ADDR2PFN(frame));
-		btree_insert(&area->sh_info->pagemap, upage - area->base,
-		    (void *) frame, leaf);
+		as_pagemap_insert(&area->sh_info->pagemap, upage - area->base,
+		    frame);
 	}
 
 	mutex_unlock(&area->sh_info->lock);

@@ -88,10 +88,11 @@
  */
 as_operations_t *as_operations = NULL;
 
-/** Slab for as_t objects.
- *
- */
+/** Cache for as_t objects */
 static slab_cache_t *as_cache;
+
+/** Cache for as_page_mapping_t objects */
+static slab_cache_t *as_page_mapping_cache;
 
 /** ASID subsystem lock.
  *
@@ -137,6 +138,9 @@ void as_init(void)
 
 	as_cache = slab_cache_create("as_t", sizeof(as_t), 0,
 	    as_constructor, as_destructor, SLAB_CACHE_MAGDEFERRED);
+
+	as_page_mapping_cache = slab_cache_create("as_page_mapping_t",
+	    sizeof(as_page_mapping_t), 0, NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 
 	AS_KERNEL = as_create(FLAG_AS_KERNEL);
 	if (!AS_KERNEL)
@@ -523,6 +527,146 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 	return (uintptr_t) -1;
 }
 
+/** Get key function for pagemap ordered dictionary.
+ *
+ * The key is the virtual address of the page (as_page_mapping_t.vaddr)
+ *
+ * @param odlink Link to as_pagemap_t.map ordered dictionary
+ * @return Pointer to virtual address cast as @c void *
+ */
+static void *as_pagemap_getkey(odlink_t *odlink)
+{
+	as_page_mapping_t *mapping;
+
+	mapping = odict_get_instance(odlink, as_page_mapping_t, lpagemap);
+	return (void *) &mapping->vaddr;
+}
+
+/** Comparison function for pagemap ordered dictionary.
+ *
+ * @param a Pointer to virtual address cast as @c void *
+ * @param b Pointer to virtual address cast as @c void *
+ * @return <0, =0, >0 if virtual address a is less than, equal to, or
+ *         greater-than b, respectively.
+ */
+static int as_pagemap_cmp(void *a, void *b)
+{
+	uintptr_t va = *(uintptr_t *)a;
+	uintptr_t vb = *(uintptr_t *)b;
+
+	return va - vb;
+}
+
+/** Initialize pagemap.
+ *
+ * @param pagemap Pagemap
+ */
+NO_TRACE void as_pagemap_initialize(as_pagemap_t *pagemap)
+{
+	odict_initialize(&pagemap->map, as_pagemap_getkey, as_pagemap_cmp);
+}
+
+/** Finalize pagemap.
+ *
+ * Destroy any entries in the pagemap.
+ *
+ * @param pagemap Pagemap
+ */
+NO_TRACE void as_pagemap_finalize(as_pagemap_t *pagemap)
+{
+	as_page_mapping_t *mapping = as_pagemap_first(pagemap);
+	while (mapping != NULL) {
+		as_pagemap_remove(mapping);
+		mapping = as_pagemap_first(pagemap);
+	}
+	odict_finalize(&pagemap->map);
+}
+
+/** Get first page mapping.
+ *
+ * @param pagemap Pagemap
+ * @return First mapping or @c NULL if there is none
+ */
+NO_TRACE as_page_mapping_t *as_pagemap_first(as_pagemap_t *pagemap)
+{
+	odlink_t *odlink;
+
+	odlink = odict_first(&pagemap->map);
+	if (odlink == NULL)
+		return NULL;
+
+	return odict_get_instance(odlink, as_page_mapping_t, lpagemap);
+}
+
+/** Get next page mapping.
+ *
+ * @param cur Current mapping
+ * @return Next mapping or @c NULL if @a cur is the last one
+ */
+NO_TRACE as_page_mapping_t *as_pagemap_next(as_page_mapping_t *cur)
+{
+	odlink_t *odlink;
+
+	odlink = odict_next(&cur->lpagemap, &cur->pagemap->map);
+	if (odlink == NULL)
+		return NULL;
+
+	return odict_get_instance(odlink, as_page_mapping_t, lpagemap);
+}
+
+/** Find frame by virtual address.
+ *
+ * @param pagemap Pagemap
+ * @param vaddr Virtual address of page
+ * @param rframe Place to store physical frame address
+ * @return EOK on succcess or ENOENT if no mapping found
+ */
+NO_TRACE errno_t as_pagemap_find(as_pagemap_t *pagemap, uintptr_t vaddr,
+    uintptr_t *rframe)
+{
+	odlink_t *odlink;
+	as_page_mapping_t *mapping;
+
+	odlink = odict_find_eq(&pagemap->map, &vaddr, NULL);
+	if (odlink == NULL)
+		return ENOENT;
+
+	mapping = odict_get_instance(odlink, as_page_mapping_t, lpagemap);
+	*rframe = mapping->frame;
+	return EOK;
+}
+
+/** Insert new page mapping.
+ *
+ * This function can block to allocate kernel memory.
+ *
+ * @param pagemap Pagemap
+ * @param vaddr Virtual page address
+ * @param frame Physical frame address
+ */
+NO_TRACE void as_pagemap_insert(as_pagemap_t *pagemap, uintptr_t vaddr,
+    uintptr_t frame)
+{
+	as_page_mapping_t *mapping;
+
+	mapping = slab_alloc(as_page_mapping_cache, 0);
+	mapping->pagemap = pagemap;
+	odlink_initialize(&mapping->lpagemap);
+	mapping->vaddr = vaddr;
+	mapping->frame = frame;
+	odict_insert(&mapping->lpagemap, &pagemap->map, NULL);
+}
+
+/** Remove page mapping.
+ *
+ * @param mapping Mapping
+ */
+NO_TRACE void as_pagemap_remove(as_page_mapping_t *mapping)
+{
+	odict_remove(&mapping->lpagemap);
+	slab_free(as_page_mapping_cache, mapping);
+}
+
 /** Remove reference to address space area share info.
  *
  * If the reference count drops to 0, the sh_info is deallocated.
@@ -544,12 +688,10 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 		 * Now walk carefully the pagemap B+tree and free/remove
 		 * reference from all frames found there.
 		 */
-		list_foreach(sh_info->pagemap.leaf_list, leaf_link,
-		    btree_node_t, node) {
-			btree_key_t i;
-
-			for (i = 0; i < node->keys; i++)
-				frame_free((uintptr_t) node->value[i], 1);
+		as_page_mapping_t *mapping = as_pagemap_first(&sh_info->pagemap);
+		while (mapping != NULL) {
+			frame_free(mapping->frame, 1);
+			mapping = as_pagemap_next(mapping);
 		}
 
 	}
@@ -560,7 +702,7 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 			sh_info->backend->destroy_shared_data(
 			    sh_info->backend_shared_data);
 		}
-		btree_destroy(&sh_info->pagemap);
+		as_pagemap_finalize(&sh_info->pagemap);
 		free(sh_info);
 	}
 }
@@ -664,7 +806,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 		si->shared = false;
 		si->backend_shared_data = NULL;
 		si->backend = backend;
-		btree_create(&si->pagemap);
+		as_pagemap_initialize(&si->pagemap);
 
 		area->sh_info = si;
 
