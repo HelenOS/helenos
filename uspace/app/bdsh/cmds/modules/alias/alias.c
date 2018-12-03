@@ -69,12 +69,12 @@ static void set_alias(const char *name, const char *value)
 	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)name, NULL);
 
 	if (alias_link != NULL) {
-		//update existing value
+		/* update existing value */
 		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
 		free(data->value);
 		data->value = str_dup(value);
 	} else {
-		//add new value
+		/* add new value */
 		alias_t *data = (alias_t *)calloc(1, sizeof(alias_t));
 		data->name = str_dup(name);
 		data->value = str_dup(value);

@@ -193,7 +193,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups)
 	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)cmd[0], NULL);
 	if (alias_link != NULL) {
 		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
-		//check if the alias already has been resolved once
+		/* check if the alias already has been resolved once */
 		if (!find_alias_hup(data, alias_hups)) {
 			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(hup));
 			hup->alias = data;
@@ -207,7 +207,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups)
 			unsigned int cmd_replace_index = cmd_token_start;
 			for (i = 0; i < tokens_length; i++) {
 				if (i == cmd_replace_index) {
-					//if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol
+					/* if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol */
 					if (tokens[i].type == TOKTYPE_SPACE) {
 						cmd_replace_index++;
 						str_append(usr->line, input_length, tokens[i].text);
@@ -220,7 +220,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups)
 				}
 			}
 
-			//reprocess input after string replace
+			/* reprocess input after string replace */
 			rc = process_input_nohup(usr, alias_hups);
 			usr->line = oldLine;
 			goto finit;
