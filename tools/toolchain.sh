@@ -60,6 +60,7 @@ show_usage() {
 	echo
 	echo "Syntax:"
 	echo " $0 [--no-install] [--non-helenos-target] <platform>"
+	echo " $0 --test-version [<platform>]"
 	echo
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
@@ -99,8 +100,13 @@ test_version() {
 	echo
 	echo "Start testing the version of the installed software" 
 	echo
-
-	PLATFORMS=("amd64" "arm32" "ia32" "ia64" "mips32" "mips32eb" "ppc32" "riscv64" "sparc64")
+	
+	if [ -z "$1" ] || [ "$1" == "all" ] ; then
+		PLATFORMS=("amd64" "arm32" "ia32" "ia64" "mips32" "mips32eb" "ppc32" "riscv64" "sparc64")
+	else
+		PLATFORMS=("$1")
+	fi
+	
 	
 	if [ -z "${CROSS_PREFIX}" ] ; then
 		CROSS_PREFIX="/usr/local/cross"
@@ -464,6 +470,10 @@ build_target() {
 
 while [ "$#" -gt 1 ] ; do
 	case "$1" in
+		--test-version)
+			test_version "$2"
+			exit
+			;;
 		--no-install)
 			REAL_INSTALL=false
 			shift
@@ -483,7 +493,7 @@ if [ "$#" -lt "1" ] ; then
 fi
 
 case "$1" in
-	"--test-version")
+	--test-version)
 		test_version
 		;;
 	amd64|arm32|ia32|ia64|mips32|mips32eb|ppc32|riscv64|sparc64)
