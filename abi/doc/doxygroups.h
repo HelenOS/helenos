@@ -49,7 +49,7 @@
  */
 
 /**
- * @defgroup abi_riscv5 riscv5
+ * @defgroup abi_riscv64 riscv64
  * @ingroup abi
  */
 
