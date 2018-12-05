@@ -146,7 +146,7 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 
 	uintptr_t frame = IPC_GET_ARG1(data);
 	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, upage, 1))
+	if (!used_space_insert(&area->used_space, upage, 1))
 		panic("Cannot insert used space.");
 
 	return AS_PF_OK;

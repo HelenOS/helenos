@@ -47,7 +47,6 @@
 #include <mm/km.h>
 #include <synch/mutex.h>
 #include <adt/list.h>
-#include <adt/btree.h>
 #include <errno.h>
 #include <typedefs.h>
 #include <align.h>
@@ -121,38 +120,34 @@ void anon_share(as_area_t *area)
 	 * Copy used portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
-	    node) {
-		unsigned int i;
+	used_space_ival_t *ival = used_space_first(&area->used_space);
+	while (ival != NULL) {
+		uintptr_t base = ival->page;
+		size_t count = ival->count;
+		unsigned int j;
 
-		for (i = 0; i < node->keys; i++) {
-			uintptr_t base = node->key[i];
-			size_t count = (size_t) node->value[i];
-			unsigned int j;
+		for (j = 0; j < count; j++) {
+			pte_t pte;
+			bool found;
 
-			for (j = 0; j < count; j++) {
-				pte_t pte;
-				bool found;
+			page_table_lock(area->as, false);
+			found = page_mapping_find(area->as, base + P2SZ(j),
+			    false, &pte);
 
-				page_table_lock(area->as, false);
-				found = page_mapping_find(area->as,
-				    base + P2SZ(j), false, &pte);
+			(void)found;
+			assert(found);
+			assert(PTE_VALID(&pte));
+			assert(PTE_PRESENT(&pte));
 
-				(void)found;
-				assert(found);
-				assert(PTE_VALID(&pte));
-				assert(PTE_PRESENT(&pte));
+			as_pagemap_insert(&area->sh_info->pagemap,
+			    (base + P2SZ(j)) - area->base, PTE_GET_FRAME(&pte));
+			page_table_unlock(area->as, false);
 
-				as_pagemap_insert(&area->sh_info->pagemap,
-				    (base + P2SZ(j)) - area->base,
-				    PTE_GET_FRAME(&pte));
-				page_table_unlock(area->as, false);
-
-				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
-				frame_reference_add(pfn);
-			}
-
+			pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
+			frame_reference_add(pfn);
 		}
+
+		ival = used_space_next(ival);
 	}
 	mutex_unlock(&area->sh_info->lock);
 }
@@ -263,7 +258,7 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	 * being inserted into page tables.
 	 */
 	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, upage, 1))
+	if (!used_space_insert(&area->used_space, upage, 1))
 		panic("Cannot insert used space.");
 
 	return AS_PF_OK;
