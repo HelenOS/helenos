@@ -188,7 +188,7 @@ static size_t get_task_resmem(as_t *as)
 		if (mutex_trylock(&area->lock) != EOK)
 			continue;
 
-		pages += area->resident;
+		pages += area->used_space.pages;
 		mutex_unlock(&area->lock);
 		area = as_area_next(area);
 	}
