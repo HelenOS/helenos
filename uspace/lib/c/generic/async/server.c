@@ -870,6 +870,8 @@ bool async_get_call_timeout(ipc_call_t *call, usec_t usecs)
 		 */
 
 		memset(call, 0, sizeof(ipc_call_t));
+		IPC_SET_IMETHOD(*call, IPC_M_PHONE_HUNGUP);
+		call->cap_handle = CAP_NIL;
 	}
 
 	return true;
