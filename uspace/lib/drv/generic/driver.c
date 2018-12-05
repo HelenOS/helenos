@@ -525,6 +525,8 @@ static ddf_dev_t *create_device(void)
 	if (dev == NULL)
 		return NULL;
 
+	refcount_init(&dev->refcnt);
+
 	return dev;
 }
 
@@ -540,6 +542,7 @@ static ddf_fun_t *create_function(void)
 	if (fun == NULL)
 		return NULL;
 
+	refcount_init(&fun->refcnt);
 	init_match_ids(&fun->match_ids);
 	link_initialize(&fun->link);
 
