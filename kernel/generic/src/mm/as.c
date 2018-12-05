@@ -554,7 +554,12 @@ static int as_pagemap_cmp(void *a, void *b)
 	uintptr_t va = *(uintptr_t *)a;
 	uintptr_t vb = *(uintptr_t *)b;
 
-	return va - vb;
+	if (va < vb)
+		return -1;
+	else if (va == vb)
+		return 0;
+	else
+		return +1;
 }
 
 /** Initialize pagemap.
