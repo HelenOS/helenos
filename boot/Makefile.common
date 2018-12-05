@@ -191,8 +191,6 @@ RD_APPS_NON_ESSENTIAL = \
 	mkmfs \
 	nic \
 	perf \
-	rcutest \
-	rcubench \
 	sbi \
 	sportdmp \
 	redir \

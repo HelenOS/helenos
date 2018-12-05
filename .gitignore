@@ -132,8 +132,6 @@ uspace/app/perf/perf
 uspace/app/ping/ping
 uspace/app/ping6/ping6
 uspace/app/pkg/pkg
-uspace/app/rcubench/rcubench
-uspace/app/rcutest/rcutest
 uspace/app/redir/redir
 uspace/app/sbi/sbi
 uspace/app/sportdmp/sportdmp
@@ -210,8 +208,6 @@ uspace/dist/app/nterm
 uspace/dist/app/ping
 uspace/dist/app/ping6
 uspace/dist/app/pkg
-uspace/dist/app/rcubench
-uspace/dist/app/rcutest
 uspace/dist/app/redir
 uspace/dist/app/sbi
 uspace/dist/app/sportdmp
