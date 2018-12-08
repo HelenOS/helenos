@@ -123,10 +123,19 @@ int main(int argc, char **argv)
 			++argv;
 		}
 
+		if (str_cmp(*argv, "--help") == 0) {
+			syntax_print();
+			return 0;
+		}
+
 		if (str_cmp(*argv, "-") == 0) {
 			--argc;
 			++argv;
 			break;
+		} else {
+			printf(NAME ": Invalid argument: %s\n", *argv);
+			syntax_print();
+			return 1;
 		}
 	}
 
