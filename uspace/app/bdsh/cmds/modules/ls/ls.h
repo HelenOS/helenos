@@ -8,15 +8,6 @@
 #define LS_FILE  1
 #define LS_DIR   2
 
-typedef struct {
-	/* Options set at runtime. */
-	unsigned int recursive;
-	unsigned int sort;
-
-	bool single_column;
-	bool well_formatted;
-} ls_job_t;
-
 /** Structure to represent a directory entry.
  *
  * Useful to keep together important information
@@ -26,5 +17,16 @@ struct dir_elem_t {
 	char *name;
 	vfs_stat_t s;
 };
+
+typedef struct {
+	/* Options set at runtime. */
+	unsigned int recursive;
+	unsigned int sort;
+
+	bool single_column;
+	bool well_formatted;
+
+	void (*printer)(struct dir_elem_t *);
+} ls_job_t;
 
 #endif
