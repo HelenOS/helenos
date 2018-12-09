@@ -82,7 +82,6 @@
 #include <arch/faddr.h>
 #include <ipc/ipc.h>
 #include <macros.h>
-#include <adt/btree.h>
 #include <smp/smp.h>
 #include <ddi/ddi.h>
 #include <main/main.h>
@@ -248,7 +247,6 @@ void main_bsp_separated_stack(void)
 	malloc_init();
 	ra_init();
 	sysinfo_init();
-	btree_init();
 	as_init();
 	page_init();
 	tlb_init();
