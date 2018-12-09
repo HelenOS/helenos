@@ -1,6 +1,0 @@
-{
-	"btree1",
-	"Test B-tree operations",
-	&test_btree1,
-	true
-},
