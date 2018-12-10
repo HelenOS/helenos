@@ -1389,19 +1389,9 @@ errno_t as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	}
 	mutex_unlock(&area->sh_info->lock);
 
-	/*
-	 * Compute total number of used pages
-	 */
-	size_t used_pages = 0;
-
-	used_space_ival_t *ival = used_space_first(&area->used_space);
-	while (ival != NULL) {
-		used_pages += ival->count;
-		ival = used_space_next(ival);
-	}
-
 	/* An array for storing frame numbers */
-	uintptr_t *old_frame = malloc(used_pages * sizeof(uintptr_t));
+	uintptr_t *old_frame = malloc(area->used_space.pages *
+	    sizeof(uintptr_t));
 	if (!old_frame) {
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
@@ -1422,7 +1412,7 @@ errno_t as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	 */
 	size_t frame_idx = 0;
 
-	ival = used_space_first(&area->used_space);
+	used_space_ival_t *ival = used_space_first(&area->used_space);
 	while (ival != NULL) {
 		uintptr_t ptr = ival->page;
 		size_t size;
