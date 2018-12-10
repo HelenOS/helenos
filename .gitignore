@@ -109,6 +109,7 @@ uspace/app/gunzip/gunzip
 uspace/app/inet/inet
 uspace/app/init/init
 uspace/app/init/init.gz
+uspace/app/lprint/lprint
 uspace/app/kill/kill
 uspace/app/killall/killall
 uspace/app/kio/kio
@@ -309,6 +310,7 @@ uspace/drv/bus/usb/xhci/xhci
 uspace/drv/char/i8042/i8042
 uspace/drv/char/msim-con/msim-con
 uspace/drv/char/ns8250/ns8250
+uspace/drv/char/pc-lpt/pc-lpt
 uspace/drv/char/pl050/pl050
 uspace/drv/char/ps2mouse/ps2mouse
 uspace/drv/char/ski-con/ski-con

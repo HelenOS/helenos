@@ -182,6 +182,7 @@ RD_APPS_NON_ESSENTIAL = \
 	kill \
 	killall \
 	loc \
+	lprint \
 	mixerctl \
 	modplay \
 	logset \
