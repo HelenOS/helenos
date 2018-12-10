@@ -802,12 +802,14 @@ errno_t ieee80211_init(ieee80211_dev_t *ieee80211_dev,
 	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
 	if (rc != EOK) {
 		ddf_fun_unbind(fun);
+		ddf_fun_destroy(fun);
 		return rc;
 	}
 
 	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_IEEE80211);
 	if (rc != EOK) {
 		ddf_fun_unbind(fun);
+		ddf_fun_destroy(fun);
 		return rc;
 	}
 

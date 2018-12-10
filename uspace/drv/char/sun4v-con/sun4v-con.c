@@ -73,6 +73,7 @@ errno_t sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 {
 	ddf_fun_t *fun = NULL;
 	errno_t rc;
+	bool bound = false;
 
 	con->res = *res;
 	con->input_buffer = (niagara_input_buffer_t *) AS_AREA_ANY;
@@ -112,7 +113,14 @@ errno_t sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "console");
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "console");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error adding function 'a' to category "
+		    "'console'.");
+		goto error;
+	}
 
 	return EOK;
 error:
@@ -121,6 +129,9 @@ error:
 
 	if (con->output_buffer != (niagara_output_buffer_t *) AS_AREA_ANY)
 		physmem_unmap((void *) con->output_buffer);
+
+	if (bound)
+		ddf_fun_unbind(fun);
 
 	if (fun != NULL)
 		ddf_fun_destroy(fun);

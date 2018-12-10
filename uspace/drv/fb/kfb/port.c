@@ -347,7 +347,14 @@ errno_t port_init(ddf_dev_t *dev)
 	}
 
 	vs->reg_svc_handle = ddf_fun_get_handle(fun_vs);
-	ddf_fun_add_to_category(fun_vs, "visualizer");
+	rc = ddf_fun_add_to_category(fun_vs, "visualizer");
+	if (rc != EOK) {
+		list_remove(&pixel_mode.link);
+		ddf_fun_unbind(fun_vs);
+		ddf_fun_destroy(fun_vs);
+		as_area_destroy(kfb.addr);
+		return rc;
+	}
 
 	return EOK;
 }

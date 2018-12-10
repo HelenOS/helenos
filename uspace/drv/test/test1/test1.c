@@ -175,7 +175,14 @@ static errno_t test1_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun_a, "virtual");
+	rc = ddf_fun_add_to_category(fun_a, "virtual");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function 'a' to category "
+		    "'virtual'.");
+		ddf_fun_unbind(fun_a);
+		ddf_fun_destroy(fun_a);
+		goto error;
+	}
 
 	if (str_cmp(dev_name, "test1") == 0) {
 		(void) register_fun_verbose(dev,

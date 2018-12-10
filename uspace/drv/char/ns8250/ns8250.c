@@ -828,6 +828,7 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 	ddf_fun_t *fun = NULL;
 	bool need_cleanup = false;
 	bool need_unreg_intr_handler = false;
+	bool bound = false;
 	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "ns8250_dev_add %s (handle = %d)",
@@ -908,15 +909,22 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 		goto fail;
 	}
 
+	bound = true;
 	ns->fun = fun;
 
-	ddf_fun_add_to_category(fun, "serial");
+	rc = ddf_fun_add_to_category(fun, "serial");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error adding function to category 'serial'.");
+		goto fail;
+	}
 
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized.",
 	    ddf_dev_get_name(dev));
 
 	return EOK;
 fail:
+	if (bound)
+		ddf_fun_unbind(fun);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 	if (need_unreg_intr_handler)

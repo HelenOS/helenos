@@ -59,13 +59,13 @@ static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)
 	/* Visualizer part */
 	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "viz");
 	if (!fun) {
-		ddf_log_error("Failed to create visualizer function\n");
+		ddf_log_error("Failed to create visualizer function.");
 		return ENOMEM;
 	}
 
 	visualizer_t *vis = ddf_fun_data_alloc(fun, sizeof(visualizer_t));
 	if (!vis) {
-		ddf_log_error("Failed to allocate visualizer structure\n");
+		ddf_log_error("Failed to allocate visualizer structure.");
 		ddf_fun_destroy(fun);
 		return ENOMEM;
 	}
@@ -78,29 +78,38 @@ static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)
 	amdm37x_dispc_t *dispc =
 	    ddf_dev_data_alloc(dev, sizeof(amdm37x_dispc_t));
 	if (!dispc) {
-		ddf_log_error("Failed to allocate dispc structure\n");
+		ddf_log_error("Failed to allocate dispc structure.");
 		ddf_fun_destroy(fun);
 		return ENOMEM;
 	}
 
-	errno_t ret = amdm37x_dispc_init(dispc, vis);
-	if (ret != EOK) {
-		ddf_log_error("Failed to init dispc: %s\n", str_error(ret));
+	errno_t rc = amdm37x_dispc_init(dispc, vis);
+	if (rc != EOK) {
+		ddf_log_error("Failed to init dispc: %s.", str_error(rc));
 		ddf_fun_destroy(fun);
-		return ret;
+		return rc;
 	}
 
 	/* Bind function */
-	ret = ddf_fun_bind(fun);
-	if (ret != EOK) {
-		ddf_log_error("Failed to bind function: %s\n", str_error(ret));
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		ddf_log_error("Failed to bind function: %s.", str_error(rc));
 		amdm37x_dispc_fini(dispc);
 		ddf_fun_destroy(fun);
-		return ret;
+		return rc;
 	}
-	ddf_fun_add_to_category(fun, "visualizer");
 
-	ddf_log_note("Added device `%s'\n", ddf_dev_get_name(dev));
+	rc = ddf_fun_add_to_category(fun, "visualizer");
+	if (rc != EOK) {
+		ddf_log_error("Failed to add function: %s to visualizer "
+		    "category.", str_error(rc));
+		amdm37x_dispc_fini(dispc);
+		ddf_fun_unbind(fun);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	ddf_log_note("Added device `%s'", ddf_dev_get_name(dev));
 	return EOK;
 }
 

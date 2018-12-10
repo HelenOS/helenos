@@ -141,6 +141,7 @@ errno_t i8259_add(i8259_t *i8259, i8259_res_t *res)
 	ioport8_t *regs1;
 	ddf_fun_t *fun_a = NULL;
 	errno_t rc;
+	bool bound = false;
 
 	if ((sysinfo_get_value("i8259", &have_i8259) != EOK) || (!have_i8259)) {
 		printf("%s: No i8259 found\n", NAME);
@@ -173,12 +174,16 @@ errno_t i8259_add(i8259_t *i8259, i8259_res_t *res)
 		goto error;
 	}
 
+	bound = true;
+
 	rc = ddf_fun_add_to_category(fun_a, "irc");
 	if (rc != EOK)
 		goto error;
 
 	return EOK;
 error:
+	if (bound)
+		ddf_fun_unbind(fun_a);
 	if (fun_a != NULL)
 		ddf_fun_destroy(fun_a);
 	return rc;

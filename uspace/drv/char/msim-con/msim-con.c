@@ -84,6 +84,7 @@ errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 	ddf_fun_t *fun = NULL;
 	irq_cmd_t *msim_cmds = NULL;
 	errno_t rc;
+	bool bound = false;
 
 	circ_buf_init(&con->cbuf, con->buf, msim_con_buf_size, 1);
 	fibril_mutex_initialize(&con->buf_lock);
@@ -142,12 +143,21 @@ errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "console");
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "console");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error adding function 'a' to category "
+		    "'console'.");
+		goto error;
+	}
 
 	return EOK;
 error:
 	if (CAP_HANDLE_VALID(con->irq_handle))
 		async_irq_unsubscribe(con->irq_handle);
+	if (bound)
+		ddf_fun_unbind(fun);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 	free(msim_cmds);

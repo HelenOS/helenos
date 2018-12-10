@@ -111,9 +111,14 @@ errno_t ski_con_add(ski_con_t *con)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "console");
-
 	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "console");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error adding function 'a' to category "
+		    "'console'.");
+		goto error;
+	}
 
 	fid = fibril_create(ski_con_fibril, con);
 	if (fid == 0) {

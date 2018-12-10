@@ -150,6 +150,7 @@ irq_cmd_t hdaudio_irq_commands_sdesc[] = {
 static errno_t hda_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_pcm = NULL;
+	bool bound = false;
 	hda_t *hda = NULL;
 	hw_res_list_parsed_t res;
 	irq_code_t irq_code;
@@ -298,11 +299,19 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun_pcm, "audio-pcm");
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun_pcm, "audio-pcm");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function to audio-pcm category.");
+		goto error;
+	}
 
 	hw_res_list_parsed_clean(&res);
 	return EOK;
 error:
+	if (bound)
+		ddf_fun_unbind(fun_pcm);
 	if (fun_pcm != NULL)
 		ddf_fun_destroy(fun_pcm);
 	if (hda != NULL) {
