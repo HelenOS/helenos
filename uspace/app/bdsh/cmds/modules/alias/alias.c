@@ -86,8 +86,17 @@ static void set_alias(const char *name, const char *value)
 /* Dispays help for alias in various levels */
 void help_cmd_alias(unsigned int level)
 {
-	printf("`%s' sets an alias, displays an alias or lists all aliases\n", cmdname);
-	return;
+	if (level == HELP_SHORT) {
+		printf("`%s' sets an alias, displays an alias or lists all aliases\n", cmdname);
+	} else {
+		help_cmd_alias(HELP_SHORT);
+		printf("Usage: `%s' [newalias[='existingCMD --flags] ...]'\n\n"
+		    "If no parameters are given it will display all existing aliases.\n"
+		    "If a parameter without an assignment is given, the value of the given alias will be returned.\n"
+		    "If a parameter with an assignment is given, the alias will be created or updated for the given value. "
+		    "It is possible to create an alias to a different alias. A circularity will prevent an alias to be resolved.\n",
+		    cmdname);
+	}
 }
 
 /* Main entry point for alias, accepts an array of arguments */

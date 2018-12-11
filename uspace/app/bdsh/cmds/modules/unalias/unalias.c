@@ -53,8 +53,16 @@ static void free_alias(odlink_t *alias_link)
 /* Dispays help for unalias in various levels */
 void help_cmd_unalias(unsigned int level)
 {
-	printf("`%s' removes an alias or all aliases with -a\n", cmdname);
-	return;
+	if (level == HELP_SHORT) {
+		printf("`%s' removes an alias or all aliases with -a\n", cmdname);
+	} else {
+		help_cmd_unalias(HELP_SHORT);
+		printf("Usage: `%s' [-a] name [name ...]'\n\n"
+		    "If no parameters are given it will display this help message.\n"
+		    "If the flag -a is given, all existing aliases will be removed.\n"
+		    "If one or multiple parameters are given, then those aliases will be removed.\n",
+		    cmdname);
+	}
 }
 
 /* Main entry point for unalias, accepts an array of arguments */
