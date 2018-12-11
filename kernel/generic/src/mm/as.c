@@ -702,10 +702,6 @@ NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 	if (--sh_info->refcount == 0) {
 		dealloc = true;
 
-		/*
-		 * Now walk carefully the pagemap B+tree and free/remove
-		 * reference from all frames found there.
-		 */
 		as_page_mapping_t *mapping = as_pagemap_first(&sh_info->pagemap);
 		while (mapping != NULL) {
 			frame_free(mapping->frame, 1);

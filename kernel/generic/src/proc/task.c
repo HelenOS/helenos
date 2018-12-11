@@ -268,7 +268,7 @@ task_t *task_create(as_t *as, const char *name)
 void task_destroy(task_t *task)
 {
 	/*
-	 * Remove the task from the task B+tree.
+	 * Remove the task from the task odict.
 	 */
 	irq_spinlock_lock(&tasks_lock, true);
 	odict_remove(&task->ltasks);
