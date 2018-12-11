@@ -223,6 +223,7 @@ static window_t *window_create(void)
 		return NULL;
 
 	link_initialize(&win->link);
+	/* One initial reference will be for being in the window list */
 	refcount_init(&win->ref_cnt);
 	prodcons_initialize(&win->queue);
 	transform_identity(&win->transform);
@@ -240,7 +241,10 @@ static window_t *window_create(void)
 
 static void window_destroy(window_t *win)
 {
-	if (!win || !refcount_down(&win->ref_cnt))
+	if (win == NULL)
+		return;
+
+	if (!refcount_down(&win->ref_cnt))
 		return;
 
 	while (!list_empty(&win->queue.list)) {
@@ -890,6 +894,9 @@ static void comp_window_close(window_t *win, ipc_call_t *icall)
 		comp_coord_bounding_rect(
 		    0, 0, width, height, win->transform, &x, &y, &width, &height);
 	}
+
+	/* Down refcount for removing from the window list */
+	window_destroy(win);
 
 	comp_damage(x, y, width, height);
 	async_answer_0(icall, EOK);
