@@ -195,7 +195,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups)
 		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
 		/* check if the alias already has been resolved once */
 		if (!find_alias_hup(data, alias_hups)) {
-			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(hup));
+			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(alias_hup_t));
 			hup->alias = data;
 			list_append(&hup->alias_hup_link, alias_hups);
 
