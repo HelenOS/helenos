@@ -158,6 +158,7 @@ int main(int argc, char **argv)
 	}
 
 	cfg.volume_name = label;
+	cfg.bsize = 4096;
 	(void) nblocks;
 
 	rc = ext4_filesystem_create(&cfg, service_id);

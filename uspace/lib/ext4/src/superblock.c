@@ -1314,12 +1314,14 @@ uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *sb, uint32_t bgi
 	uint32_t blocks_per_group =
 	    ext4_superblock_get_blocks_per_group(sb);
 	uint64_t total_blocks =
-	    ext4_superblock_get_blocks_count(sb) - 1;
+	    ext4_superblock_get_blocks_count(sb);
+	uint32_t first_block=
+	    ext4_superblock_get_first_data_block(sb);
 
 	if (bgid < block_group_count - 1)
 		return blocks_per_group;
 	else
-		return (total_blocks - ((block_group_count - 1) * blocks_per_group));
+		return (total_blocks - ((block_group_count - 1) * blocks_per_group)) - first_block;
 }
 
 /** Compute number of i-nodes in specified block group.
@@ -1464,14 +1466,6 @@ uint32_t ext4_superblock_get_group_backup_blocks(ext4_superblock_t *sb,
 		 * for them
 		 */
 
-		if (idx == 0 && block_size == 1024) {
-			/*
-			 * Special case for first group were the boot block
-			 * resides
-			 */
-			r++;
-		}
-
 		/* This accounts for the superblock */
 		r++;
 
@@ -1504,7 +1498,7 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 	ext4_superblock_t *sb;
 	uuid_t uuid;
 	uint32_t cur_ts;
-	uint64_t first_block;
+	uint64_t first_block = 0;
 	uint64_t fs_blocks;
 	uint32_t blocks_count;
 	uint32_t free_blocks;
@@ -1517,6 +1511,7 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 	uint32_t ngroups;
 	uint32_t idx;
 	size_t fs_bsize;
+	size_t fs_bsize_log;
 	errno_t rc;
 	struct timespec ts;
 
@@ -1532,8 +1527,24 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 	getrealtime(&ts); // XXX ISO C does not say what the epoch is
 	cur_ts = ts.tv_sec;
 
-	fs_bsize = 1024;
-	first_block = 1; /* 1 for 1k block size, 0 otherwise */
+	fs_bsize = cfg->bsize;
+	switch (fs_bsize) {
+		case 1024:
+			first_block = 1;
+			fs_bsize_log = 0;
+			blocks_group = 8192;
+			break;
+		case 2048:
+			fs_bsize_log = 1;
+			blocks_group = 8192 * 2;
+			break;
+		case 4096:
+			fs_bsize_log = 2;
+			blocks_group = 8192 * 4;
+			break;
+		default:
+			return ENOTSUP;
+	}
 
 	if (fs_bsize % dev_bsize == 0) {
 		/* Small device blocks */
@@ -1542,9 +1553,6 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 		/* Large device blocks */
 		fs_blocks = dev_bcnt * (dev_bsize / fs_bsize);
 	}
-
-	/* FS blocks per group */
-	blocks_group = 8 * fs_bsize;
 
 	/* Inodes per group */
 	inodes_block = fs_bsize / EXT4_REV0_INODE_SIZE;
@@ -1580,10 +1588,9 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 	ext4_superblock_set_free_blocks_count(sb, free_blocks);
 	ext4_superblock_set_free_inodes_count(sb, inodes_count);
 	ext4_superblock_set_first_data_block(sb, first_block);
-	/* Block size will be 1024 bytes */
-	ext4_superblock_set_log_block_size(sb, 0);
+	ext4_superblock_set_log_block_size(sb, fs_bsize_log);
 	/* Fragment size should be equal to block size */
-	ext4_superblock_set_log_frag_size(sb, 0);
+	ext4_superblock_set_log_frag_size(sb, fs_bsize_log);
 	ext4_superblock_set_blocks_per_group(sb, blocks_group);
 	/* Should be the same as blocks per group. */
 	ext4_superblock_set_frags_per_group(sb, blocks_group);
@@ -1633,7 +1640,6 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 
 	/* Compute free blocks */
 	free_blocks = blocks_count;
-	++free_blocks; // XXX Why?
 	for (idx = 0; idx < ngroups; idx++) {
 		free_blocks -= ext4_superblock_get_group_backup_blocks(sb, idx);
 		/* One for block bitmap, one for inode bitamp */
