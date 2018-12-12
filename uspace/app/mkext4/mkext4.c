@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 	--argc;
 	++argv;
 
-	while (*argv[0] == '-') {
+	while (*argv && *argv[0] == '-') {
 		if (str_cmp(*argv, "--size") == 0) {
 			--argc;
 			++argv;
@@ -86,6 +86,7 @@ int main(int argc, char **argv)
 
 			--argc;
 			++argv;
+			continue;
 		}
 
 		if (str_cmp(*argv, "--type") == 0) {
@@ -106,6 +107,7 @@ int main(int argc, char **argv)
 
 			--argc;
 			++argv;
+			continue;
 		}
 
 		if (str_cmp(*argv, "--label") == 0) {
@@ -121,12 +123,22 @@ int main(int argc, char **argv)
 
 			--argc;
 			++argv;
+			continue;
+		}
+
+		if (str_cmp(*argv, "--help") == 0) {
+			syntax_print();
+			return 0;
 		}
 
 		if (str_cmp(*argv, "-") == 0) {
 			--argc;
 			++argv;
 			break;
+		} else {
+			printf(NAME ": Invalid argument: %s\n", *argv);
+			syntax_print();
+			return 1;
 		}
 	}
 
