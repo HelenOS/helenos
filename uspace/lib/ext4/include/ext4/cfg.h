@@ -52,6 +52,8 @@ typedef struct {
 	ext4_cfg_ver_t version;
 	/** Volume name encoded as UTF-8 string */
 	const char *volume_name;
+	/** Filesystem block size */
+	size_t bsize;
 } ext4_cfg_t;
 
 #endif
