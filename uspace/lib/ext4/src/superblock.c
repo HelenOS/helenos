@@ -1315,7 +1315,7 @@ uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *sb, uint32_t bgi
 	    ext4_superblock_get_blocks_per_group(sb);
 	uint64_t total_blocks =
 	    ext4_superblock_get_blocks_count(sb);
-	uint32_t first_block=
+	uint32_t first_block =
 	    ext4_superblock_get_first_data_block(sb);
 
 	if (bgid < block_group_count - 1)
@@ -1540,21 +1540,21 @@ errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
 
 	fs_bsize = cfg->bsize;
 	switch (fs_bsize) {
-		case 1024:
-			first_block = 1;
-			fs_bsize_log = 0;
-			blocks_group = 8192;
-			break;
-		case 2048:
-			fs_bsize_log = 1;
-			blocks_group = 8192 * 2;
-			break;
-		case 4096:
-			fs_bsize_log = 2;
-			blocks_group = 8192 * 4;
-			break;
-		default:
-			return ENOTSUP;
+	case 1024:
+		first_block = 1;
+		fs_bsize_log = 0;
+		blocks_group = 8192;
+		break;
+	case 2048:
+		fs_bsize_log = 1;
+		blocks_group = 8192 * 2;
+		break;
+	case 4096:
+		fs_bsize_log = 2;
+		blocks_group = 8192 * 4;
+		break;
+	default:
+		return ENOTSUP;
 	}
 
 	if (fs_bsize % dev_bsize == 0) {
