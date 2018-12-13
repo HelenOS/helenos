@@ -215,8 +215,8 @@ retry:
 		 * because the previous block groups have zero free
 		 * blocks.
 		 */
-		if (((free_inodes >= avg_free_inodes) || (bgid == bg_count - 1)
-		    || pick_first_free) && (free_blocks > 0)) {
+		if (((free_inodes >= avg_free_inodes) ||
+		    (bgid == bg_count - 1) || pick_first_free) && (free_blocks > 0)) {
 			/* Load block with bitmap */
 			uint32_t bitmap_block_addr = ext4_block_group_get_inode_bitmap(
 			    bg_ref->block_group, sb);
