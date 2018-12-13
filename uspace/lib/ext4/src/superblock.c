@@ -1395,6 +1395,17 @@ void ext4_superblock_set_reserved_gdt_blocks(ext4_superblock_t *sb,
 	sb->reserved_gdt_blocks = host2uint32_t_le(n);
 }
 
+/** Get the size of the flex groups
+ *
+ * @param sb	Pointer to the superblock
+ *
+ * @return	Size of the flex groups
+ */
+uint32_t ext4_superblock_get_flex_group_size(ext4_superblock_t *sb)
+{
+	return 2 << sb->log_groups_per_flex;
+}
+
 /* Check if n is a power of p */
 static bool is_power_of(uint32_t n, unsigned p)
 {
