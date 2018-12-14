@@ -61,7 +61,7 @@
  * and modifying tools/grub/load.cfg, supplying the device to boot from
  * in Grub notation).
  */
-#define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.0\\ata-c1\\d0"
+#define DEFAULT_DEV "devices/\\hw\\sys\\00:01.0\\ata-c1\\d0"
 //#define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.2\\uhci_rh\\usb01_a1\\mass-storage0\\l0"
 /** Volume label for the new file system */
 #define INST_VOL_LABEL "HelenOS"
