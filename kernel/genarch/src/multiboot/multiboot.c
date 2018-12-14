@@ -54,10 +54,10 @@ void multiboot_extract_command(char *buf, size_t size, const char *cmd_line)
 
 	/*
 	 * Find last occurence of '/' before 'end'. If found, place start at
-	 * next character. Otherwise, place start at beginning of buffer.
+	 * next character. Otherwise, place start at beginning of command line.
 	 */
 	const char *cp = end;
-	const char *start = buf;
+	const char *start = cmd_line;
 
 	while (cp != start) {
 		if (*cp == '/') {
