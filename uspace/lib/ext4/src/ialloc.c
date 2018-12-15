@@ -175,12 +175,18 @@ errno_t ext4_ialloc_free_inode(ext4_filesystem_t *fs, uint32_t index, bool is_di
  */
 errno_t ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_dir)
 {
+	int pick_first_free = 0;
 	ext4_superblock_t *sb = fs->superblock;
+	uint32_t bgid;
+	uint32_t sb_free_inodes;
+	uint32_t avg_free_inodes;
+	uint32_t const bg_count = ext4_superblock_get_block_group_count(sb);
 
-	uint32_t bgid = 0;
-	uint32_t bg_count = ext4_superblock_get_block_group_count(sb);
-	uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(sb);
-	uint32_t avg_free_inodes = sb_free_inodes / bg_count;
+retry:
+
+	bgid = 0;
+	sb_free_inodes = ext4_superblock_get_free_inodes_count(sb);
+	avg_free_inodes = sb_free_inodes / bg_count;
 
 	/* Try to find free i-node in all block groups */
 	while (bgid < bg_count) {
@@ -209,8 +215,8 @@ errno_t ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_
 		 * because the previous block groups have zero free
 		 * blocks.
 		 */
-		if (((free_inodes >= avg_free_inodes) || (bgid == bg_count - 1)) &&
-		    (free_blocks > 0)) {
+		if (((free_inodes >= avg_free_inodes) ||
+		    (bgid == bg_count - 1) || pick_first_free) && (free_blocks > 0)) {
 			/* Load block with bitmap */
 			uint32_t bitmap_block_addr = ext4_block_group_get_inode_bitmap(
 			    bg_ref->block_group, sb);
@@ -304,6 +310,12 @@ errno_t ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_
 			return rc;
 
 		++bgid;
+	}
+
+	/* Try again with less strict conditions */
+	if (pick_first_free == 0) {
+		pick_first_free = 1;
+		goto retry;
 	}
 
 	return ENOSPC;

@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 	char *endptr;
 	aoff64_t nblocks;
 	const char *label = "";
+	unsigned int bsize = 1024;
 
 	cfg.version = ext4_def_fs_version;
 
@@ -78,6 +79,27 @@ int main(int argc, char **argv)
 			}
 
 			nblocks = strtol(*argv, &endptr, 10);
+			if (*endptr != '\0') {
+				printf(NAME ": Error, invalid argument.\n");
+				syntax_print();
+				return 1;
+			}
+
+			--argc;
+			++argv;
+			continue;
+		}
+
+		if (str_cmp(*argv, "--bsize") == 0) {
+			--argc;
+			++argv;
+			if (*argv == NULL) {
+				printf(NAME ": Error, argument missing.\n");
+				syntax_print();
+				return 1;
+			}
+
+			bsize = strtol(*argv, &endptr, 10);
 			if (*endptr != '\0') {
 				printf(NAME ": Error, invalid argument.\n");
 				syntax_print();
@@ -158,6 +180,7 @@ int main(int argc, char **argv)
 	}
 
 	cfg.volume_name = label;
+	cfg.bsize = bsize;
 	(void) nblocks;
 
 	rc = ext4_filesystem_create(&cfg, service_id);
@@ -177,7 +200,8 @@ static void syntax_print(void)
 	printf("options:\n"
 	    "\t--size <sectors> Filesystem size, overrides device size\n"
 	    "\t--label <label>  Volume label\n"
-	    "\t--type <fstype>  Filesystem type (ext2, ext2old)\n");
+	    "\t--type <fstype>  Filesystem type (ext2, ext2old)\n"
+	    "\t--bsize <bytes>  Filesystem block size in bytes (default = 1024)\n");
 }
 
 static errno_t ext4_version_parse(const char *str, ext4_cfg_ver_t *ver)

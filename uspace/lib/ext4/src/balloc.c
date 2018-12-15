@@ -260,34 +260,30 @@ uint32_t ext4_balloc_get_first_data_block_in_group(ext4_superblock_t *sb,
 		 * If we are not using FLEX_BG, the first data block
 		 * is always after the inode table.
 		 */
+		return itable + itable_sz;
+	}
+
+	uint32_t flex_group_size = ext4_superblock_get_flex_group_size(sb);
+	if ((bg_ref->index % flex_group_size) == 0) {
+		/* This is the base group */
+		uint32_t i;
+
 		r = itable + itable_sz;
-		return ext4_filesystem_blockaddr2_index_in_group(sb, r);
+
+		uint32_t total_groups = ext4_superblock_get_block_group_count(sb);
+		for (i = bg_ref->index + 1;
+		    i < min(total_groups, bg_ref->index + flex_group_size); ++i) {
+			r += ext4_filesystem_bg_get_itable_size(sb, i);
+		}
+
+		return r;
 	}
 
-	uint64_t bbmap = ext4_block_group_get_block_bitmap(bg_ref->block_group,
-	    sb);
-	uint64_t ibmap = ext4_block_group_get_inode_bitmap(bg_ref->block_group,
-	    sb);
+	uint64_t base_addr = ext4_filesystem_index_in_group2blockaddr(sb, 0,
+	    bg_ref->index);
+	uint32_t reserved = ext4_filesystem_bg_get_backup_blocks(bg_ref);
 
-	r = ext4_filesystem_index_in_group2blockaddr(sb, 0, bg_ref->index);
-	r += ext4_filesystem_bg_get_backup_blocks(bg_ref);
-
-	if (ext4_filesystem_blockaddr2group(sb, bbmap) != bg_ref->index)
-		bbmap = -1; /* Invalid */
-
-	if (ext4_filesystem_blockaddr2group(sb, ibmap) != bg_ref->index)
-		ibmap = -1;
-
-	while (true) {
-		if (r == bbmap || r == ibmap)
-			r++;
-		else if (r >= itable && r < (itable + itable_sz))
-			r = itable + itable_sz;
-		else
-			break;
-	}
-
-	return r;
+	return base_addr + reserved;
 }
 
 /** Compute 'goal' for allocation algorithm.
