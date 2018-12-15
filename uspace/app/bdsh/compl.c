@@ -34,7 +34,9 @@
 #include <stdlib.h>
 #include <vfs/vfs.h>
 #include <str.h>
+#include <adt/odict.h>
 
+#include "scli.h"
 #include "cmds/cmds.h"
 #include "compl.h"
 #include "exec.h"
@@ -61,6 +63,9 @@ typedef struct {
 	char *prefix;
 	/** Length of string prefix (number of characters) */
 	size_t prefix_len;
+
+	/* Pointer to the current alias */
+	odlink_t *alias_link;
 
 	/** Pointer inside list of modules */
 	module_t *module;
@@ -226,6 +231,7 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 
 	} else if (cs->is_command) {
 		/* Command without path */
+		cs->alias_link = odict_first(&alias_dict);
 		cs->module = modules;
 		cs->builtin = builtins;
 		cs->prefix = prefix;
@@ -304,14 +310,32 @@ static errno_t compl_get_next(void *state, char **compl)
 		cs->last_compl = NULL;
 	}
 
-	/* Modules */
-	if (cs->module != NULL) {
-		while (*compl == NULL && cs->module->name != NULL) {
-			if (compl_match_prefix(cs, cs->module->name)) {
-				asprintf(compl, "%s ", cs->module->name);
+	/* Alias */
+	if (cs->alias_link != NULL) {
+		while (*compl == NULL && cs->alias_link != NULL) {
+			alias_t *data = odict_get_instance(cs->alias_link, alias_t, odict);
+			if (compl_match_prefix(cs, data->name)) {
+				asprintf(compl, "%s ", data->name);
 				cs->last_compl = *compl;
 				if (*compl == NULL)
 					return ENOMEM;
+			}
+			cs->alias_link = odict_next(cs->alias_link, &alias_dict);
+		}
+	}
+
+	/* Modules */
+	if (cs->module != NULL) {
+		while (*compl == NULL && cs->module->name != NULL) {
+			/* prevents multiple listing of an overriden cmd */
+			if (compl_match_prefix(cs, cs->module->name)) {
+				odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)cs->module->name, NULL);
+				if (alias_link == NULL) {
+					asprintf(compl, "%s ", cs->module->name);
+					cs->last_compl = *compl;
+					if (*compl == NULL)
+						return ENOMEM;
+				}
 			}
 			cs->module++;
 		}
@@ -321,10 +345,14 @@ static errno_t compl_get_next(void *state, char **compl)
 	if (cs->builtin != NULL) {
 		while (*compl == NULL && cs->builtin->name != NULL) {
 			if (compl_match_prefix(cs, cs->builtin->name)) {
-				asprintf(compl, "%s ", cs->builtin->name);
-				cs->last_compl = *compl;
-				if (*compl == NULL)
-					return ENOMEM;
+				/* prevents multiple listing of an overriden cmd */
+				odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)cs->module->name, NULL);
+				if (alias_link == NULL) {
+					asprintf(compl, "%s ", cs->builtin->name);
+					cs->last_compl = *compl;
+					if (*compl == NULL)
+						return ENOMEM;
+				}
 			}
 			cs->builtin++;
 		}
@@ -372,6 +400,14 @@ static errno_t compl_get_next(void *state, char **compl)
 
 				free(ent_path);
 
+				/* prevents multiple listing of an overriden cmd */
+				if (cs->is_command && !ent_stat.is_directory) {
+					odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)dent->d_name, NULL);
+					if (alias_link != NULL) {
+						continue;
+					}
+				}
+				
 				asprintf(compl, "%s%c", dent->d_name,
 				    ent_stat.is_directory ? '/' : ' ');
 				cs->last_compl = *compl;
