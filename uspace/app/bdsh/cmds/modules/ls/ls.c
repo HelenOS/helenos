@@ -65,8 +65,8 @@ static struct option const long_options[] = {
 
 /* Prototypes for the ls command, excluding entry points. */
 static unsigned int ls_start(ls_job_t *);
-static void ls_print(struct dir_elem_t *);
-static void ls_print_single_column(struct dir_elem_t *);
+static bool ls_print(struct dir_elem_t *);
+static bool ls_print_single_column(struct dir_elem_t *);
 static int ls_cmp_type_name(const void *, const void *);
 static int ls_cmp_name(const void *, const void *);
 static signed int ls_scan_dir(const char *, DIR *, struct dir_elem_t **);
@@ -95,12 +95,14 @@ static unsigned int ls_start(ls_job_t *ls)
  *
  * @param de		Directory element.
  */
-static void ls_print(struct dir_elem_t *de)
+static bool ls_print(struct dir_elem_t *de)
 {
 	int width = 13;
 
 	if (de->s.is_file) {
-		if (!ls.exact_size) {
+		if (ls.exact_size) {
+			printf("%-40s\t%*llu\n", de->name, width, (long long) de->s.size);
+		} else {
 			cap_spec_t cap;
 
 			cap_from_blocks(de->s.size, 1, &cap);
@@ -113,27 +115,26 @@ static void ls_print(struct dir_elem_t *de)
 				free(rptr);
 
 				printf("%-40s\t%*s %2s\n", de->name, width - 3, bytes, suffix);
-				
-				//if there is a failure with cap_format we simply print out an unformatted size
-				return;
-			}
-
+			} else
+				return false;
 		}
-
-		printf("%-40s\t%*llu\n", de->name, width, (long long) de->s.size);
 	} else if (de->s.is_directory)
 		printf("%-40s\t%*s\n", de->name, width, "<dir>");
 	else
 		printf("%-40s\n", de->name);
+
+	return true;
 }
 
-static void ls_print_single_column(struct dir_elem_t *de)
+static bool ls_print_single_column(struct dir_elem_t *de)
 {
 	if (de->s.is_file) {
 		printf("%s\n", de->name);
 	} else {
 		printf("%s/\n", de->name);
 	}
+
+	return true;
 }
 
 /** Compare 2 directory elements.
@@ -250,8 +251,12 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		qsort(&tosort[0], nbdirs, sizeof(struct dir_elem_t), compar);
 	}
 
-	for (i = 0; i < nbdirs; i++)
-		ls.printer(&tosort[i]);
+	for (i = 0; i < nbdirs; i++) {
+		if (!ls.printer(&tosort[i])) {
+			cli_error(CL_ENOMEM, "%s: Out of memory", cmdname);
+			goto out;
+		}
+	}
 
 	/* Populate the directory list. */
 	if (ls.recursive) {
@@ -464,7 +469,10 @@ int cmd_ls(char **argv)
 	scope = ls_scope(de.name, &de);
 	switch (scope) {
 	case LS_FILE:
-		ls.printer(&de);
+		if (!ls.printer(&de)) {
+			cli_error(CL_ENOMEM, "%s: Out of memory", cmdname);
+			return CMD_FAILURE;
+		}
 		break;
 	case LS_DIR:
 		dirp = opendir(de.name);

@@ -26,7 +26,7 @@ typedef struct {
 	bool single_column;
 	bool exact_size;
 
-	void (*printer)(struct dir_elem_t *);
+	bool (*printer)(struct dir_elem_t *);
 } ls_job_t;
 
 #endif
