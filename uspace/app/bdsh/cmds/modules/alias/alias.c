@@ -83,6 +83,26 @@ static void set_alias(const char *name, const char *value)
 	}
 }
 
+static bool valide_name(const char *name)
+{
+	while (*name != '\0') {
+		if (*name == '/')
+			return false;
+		if (*name == ' ')
+			return false;
+		if (*name == '\"')
+			return false;
+		if (*name == '\'')
+			return false;
+		if (*name == '|')
+			return false;
+
+		name++;
+	}
+
+	return true;
+}
+
 /* Dispays help for alias in various levels */
 void help_cmd_alias(unsigned int level)
 {
@@ -114,6 +134,12 @@ int cmd_alias(char **argv)
 		char *value;
 		if ((value = str_chr(name, '=')) != NULL) {
 			name[value - name] = '\0';
+			if (!valide_name(name)) {
+				cli_error(CL_EFAIL, "%s: invalid alias name given\n", cmdname);
+				free(name);
+				return CMD_FAILURE;
+			}
+			
 			set_alias(name, value + 1);
 		} else {
 			if (!print_alias(name)) {
