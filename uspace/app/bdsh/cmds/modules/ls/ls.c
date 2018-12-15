@@ -78,7 +78,7 @@ static unsigned int ls_start(ls_job_t *ls)
 	ls->recursive = 0;
 	ls->sort = 1;
 
-	ls->well_formatted = true;
+	ls->exact_size = false;
 	ls->single_column = false;
 	ls->printer = ls_print;
 	return 1;
@@ -100,7 +100,7 @@ static void ls_print(struct dir_elem_t *de)
 	int width = 13;
 
 	if (de->s.is_file) {
-		if (ls.well_formatted) {
+		if (!ls.exact_size) {
 			cap_spec_t cap;
 
 			cap_from_blocks(1, de->s.size, &cap);
@@ -433,7 +433,7 @@ int cmd_ls(char **argv)
 			ls.recursive = 1;
 			break;
 		case 'e':
-			ls.well_formatted = false;
+			ls.exact_size = true;
 			break;
 		case '1':
 			ls.single_column = true;

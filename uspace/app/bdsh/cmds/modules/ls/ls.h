@@ -24,7 +24,7 @@ typedef struct {
 	unsigned int sort;
 
 	bool single_column;
-	bool well_formatted;
+	bool exact_size;
 
 	void (*printer)(struct dir_elem_t *);
 } ls_job_t;
