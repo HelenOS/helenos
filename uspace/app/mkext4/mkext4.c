@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	char *endptr;
 	aoff64_t nblocks;
 	const char *label = "";
-	unsigned int bsize = 1024;
+	unsigned int bsize = 4096;
 
 	cfg.version = ext4_def_fs_version;
 
@@ -201,7 +201,7 @@ static void syntax_print(void)
 	    "\t--size <sectors> Filesystem size, overrides device size\n"
 	    "\t--label <label>  Volume label\n"
 	    "\t--type <fstype>  Filesystem type (ext2, ext2old)\n"
-	    "\t--bsize <bytes>  Filesystem block size in bytes (default = 1024)\n");
+	    "\t--bsize <bytes>  Filesystem block size in bytes (default = 4096)\n");
 }
 
 static errno_t ext4_version_parse(const char *str, ext4_cfg_ver_t *ver)
