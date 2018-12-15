@@ -103,7 +103,7 @@ static void ls_print(struct dir_elem_t *de)
 		if (!ls.exact_size) {
 			cap_spec_t cap;
 
-			cap_from_blocks(1, de->s.size, &cap);
+			cap_from_blocks(de->s.size, 1, &cap);
 			cap_simplify(&cap);
 
 			char *rptr;
