@@ -38,6 +38,7 @@
 #include <io/console.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 #include <str_error.h>
 #include <trackmod.h>
 
@@ -66,6 +67,13 @@ static void modplay_event(cons_event_t *event)
 	}
 }
 
+static void print_syntax(void)
+{
+	printf("syntax: modplay [<options>] <filename.mod>\n");
+	printf("options:\n");
+	printf("\t-t <target>\tOutput to specified audio target.\n");
+}
+
 int main(int argc, char *argv[])
 {
 	trackmod_module_t *mod;
@@ -77,18 +85,43 @@ int main(int argc, char *argv[])
 	pcm_format_t format;
 	void *buffer;
 	size_t buffer_size;
+	const char *target = HOUND_DEFAULT_TARGET;
 	errno_t rc;
 
-	if (argc != 2) {
-		printf("syntax: modplay <filename.mod>\n");
+	++argv;
+	--argc;
+
+	while (argc > 0 && (*argv)[0] == '-') {
+		if (str_cmp(*argv, "-t") == 0) {
+			++argv;
+			--argc;
+
+			if (argc < 1) {
+				printf("Option '-t' requires an argument.\n");
+				print_syntax();
+				return 1;
+			}
+
+			target = *argv++;
+			--argc;
+			continue;
+		}
+
+		printf("Invalid option '%s'\n", *argv);
+		print_syntax();
+		return 1;
+	}
+
+	if (argc != 1) {
+		print_syntax();
 		return 1;
 	}
 
 	con = console_init(stdin, stdout);
 
-	rc = trackmod_module_load(argv[1], &mod);
+	rc = trackmod_module_load(argv[0], &mod);
 	if (rc != EOK) {
-		printf("Error loading %s.\n", argv[1]);
+		printf("Error loading %s.\n", argv[0]);
 		return 1;
 	}
 
@@ -113,9 +146,20 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = hound_context_connect_target(hound, HOUND_DEFAULT_TARGET);
+	rc = hound_context_connect_target(hound, target);
 	if (rc != EOK) {
-		printf("Error connecting default audio target: %s.\n", str_error(rc));
+		printf("Error connecting audio target '%s': %s.\n",
+		    target, str_error(rc));
+
+		char **names = NULL;
+		size_t count = 0;
+		rc = hound_context_get_available_targets(hound, &names, &count);
+		if (rc == EOK) {
+			printf("Available targets:\n");
+			for (size_t i = 0; i < count; i++)
+				printf(" - %s\n", names[i]);
+		}
+
 		return 1;
 	}
 
