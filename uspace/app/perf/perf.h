@@ -36,19 +36,26 @@
 #define PERF_H_
 
 #include <stdbool.h>
+#include <perf.h>
 
-typedef const char *(*benchmark_entry_t)(void);
+typedef bool (*benchmark_entry_t)(stopwatch_t *, uint64_t,
+    char *, size_t);
+typedef bool (*benchmark_helper_t)(char *, size_t);
 
 typedef struct {
 	const char *name;
 	const char *desc;
 	benchmark_entry_t entry;
+	benchmark_helper_t setup;
+	benchmark_helper_t teardown;
 } benchmark_t;
 
-extern const char *bench_malloc1(void);
-extern const char *bench_malloc2(void);
-extern const char *bench_ns_ping(void);
-extern const char *bench_ping_pong(void);
+extern bool bench_malloc1(stopwatch_t *, uint64_t, char *, size_t);
+extern bool bench_malloc2(stopwatch_t *, uint64_t, char *, size_t);
+extern bool bench_ns_ping(stopwatch_t *, uint64_t, char *, size_t);
+extern bool bench_ping_pong(stopwatch_t *, uint64_t, char *, size_t);
+extern bool bench_ping_pong_setup(char *, size_t);
+extern bool bench_ping_pong_teardown(char *, size_t);
 
 extern benchmark_t benchmarks[];
 

@@ -26,121 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <errno.h>
+#include <stdio.h>
 #include "../perf.h"
 
-#define MIN_DURATION_SECS  10
-#define NUM_SAMPLES 10
-
-static errno_t malloc2_measure(uint64_t niter, uint64_t *rduration)
+bool bench_malloc2(stopwatch_t *stopwatch, uint64_t niter,
+    char *error, size_t error_size)
 {
-	struct timespec start;
-	uint64_t count;
-	void **p;
+	stopwatch_start(stopwatch);
 
-	getuptime(&start);
-
-	p = malloc(niter * sizeof(void *));
-	if (p == NULL)
-		return ENOMEM;
-
-	for (count = 0; count < niter; count++) {
-		p[count] = malloc(1);
-		if (p[count] == NULL)
-			return ENOMEM;
+	void **p = malloc(niter * sizeof(void *));
+	if (p == NULL) {
+		snprintf(error, error_size,
+		    "failed to allocate backend array (%" PRIu64 "B)",
+		    niter * sizeof(void *));
+		return false;
 	}
 
-	for (count = 0; count < niter; count++)
+	for (uint64_t count = 0; count < niter; count++) {
+		p[count] = malloc(1);
+		if (p[count] == NULL) {
+			snprintf(error, error_size,
+			    "failed to allocate 1B in run %" PRIu64 " (out of %" PRIu64 ")",
+			    count, niter);
+			for (uint64_t j = 0; j < count; j++) {
+				free(p[j]);
+			}
+			free(p);
+			return false;
+		}
+	}
+
+	for (uint64_t count = 0; count < niter; count++)
 		free(p[count]);
 
 	free(p);
 
-	struct timespec now;
-	getuptime(&now);
+	stopwatch_stop(stopwatch);
 
-	*rduration = ts_sub_diff(&now, &start) / 1000;
-	return EOK;
-}
-
-static void malloc2_report(uint64_t niter, uint64_t duration)
-{
-	printf("Completed %" PRIu64 " allocations and deallocations in %" PRIu64 " us",
-	    niter, duration);
-
-	if (duration > 0) {
-		printf(", %" PRIu64 " cycles/s.\n", niter * 1000 * 1000 / duration);
-	} else {
-		printf(".\n");
-	}
-}
-
-const char *bench_malloc2(void)
-{
-	errno_t rc;
-	uint64_t duration;
-	uint64_t dsmp[NUM_SAMPLES];
-	const char *msg;
-
-	printf("Warm up and determine work size...\n");
-
-	struct timespec start;
-	getuptime(&start);
-
-	uint64_t niter = 1;
-
-	while (true) {
-		rc = malloc2_measure(niter, &duration);
-		if (rc != EOK) {
-			msg = "Failed.";
-			goto error;
-		}
-
-		malloc2_report(niter, duration);
-
-		if (duration >= MIN_DURATION_SECS * 1000000)
-			break;
-
-		niter *= 2;
-	}
-
-	printf("Measure %d samples...\n", NUM_SAMPLES);
-
-	int i;
-
-	for (i = 0; i < NUM_SAMPLES; i++) {
-		rc = malloc2_measure(niter, &dsmp[i]);
-		if (rc != EOK) {
-			msg = "Failed.";
-			goto error;
-		}
-
-		malloc2_report(niter, dsmp[i]);
-	}
-
-	double sum = 0.0;
-
-	for (i = 0; i < NUM_SAMPLES; i++)
-		sum += (double)niter / ((double)dsmp[i] / 1000000.0l);
-
-	double avg = sum / NUM_SAMPLES;
-
-	double qd = 0.0;
-	double d;
-	for (i = 0; i < NUM_SAMPLES; i++) {
-		d = (double)niter / ((double)dsmp[i] / 1000000.0l) - avg;
-		qd += d * d;
-	}
-
-	double stddev = qd / (NUM_SAMPLES - 1); // XXX sqrt
-
-	printf("Average: %.0f cycles/s Std.dev^2: %.0f cycles/s Samples: %d\n",
-	    avg, stddev, NUM_SAMPLES);
-
-	return NULL;
-error:
-	return msg;
+	return true;
 }

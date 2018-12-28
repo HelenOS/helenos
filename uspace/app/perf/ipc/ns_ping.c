@@ -26,109 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include "../perf.h"
 
-#define MIN_DURATION_SECS  10
-#define NUM_SAMPLES 10
-
-static errno_t ping_pong_measure(uint64_t niter, uint64_t *rduration)
+bool bench_ns_ping(stopwatch_t *stopwatch, uint64_t niter,
+    char *error, size_t error_size)
 {
-	struct timespec start;
-	uint64_t count;
+	stopwatch_start(stopwatch);
 
-	getuptime(&start);
+	for (uint64_t count = 0; count < niter; count++) {
+		errno_t rc = ns_ping();
 
-	for (count = 0; count < niter; count++) {
-		errno_t retval = ns_ping();
-
-		if (retval != EOK) {
-			printf("Error sending ping message.\n");
-			return EIO;
+		if (rc != EOK) {
+			snprintf(error, error_size,
+			    "failed sending ping message: %s (%d)",
+			    str_error(rc), rc);
+			return false;
 		}
 	}
 
-	struct timespec now;
-	getuptime(&now);
+	stopwatch_stop(stopwatch);
 
-	*rduration = ts_sub_diff(&now, &start) / 1000;
-	return EOK;
-}
-
-static void ping_pong_report(uint64_t niter, uint64_t duration)
-{
-	printf("Completed %" PRIu64 " round trips in %" PRIu64 " us",
-	    niter, duration);
-
-	if (duration > 0) {
-		printf(", %" PRIu64 " rt/s.\n", niter * 1000 * 1000 / duration);
-	} else {
-		printf(".\n");
-	}
-}
-
-const char *bench_ns_ping(void)
-{
-	errno_t rc;
-	uint64_t duration;
-	uint64_t dsmp[NUM_SAMPLES];
-
-	printf("Warm up and determine work size...\n");
-
-	struct timespec start;
-	getuptime(&start);
-
-	uint64_t niter = 1;
-
-	while (true) {
-		rc = ping_pong_measure(niter, &duration);
-		if (rc != EOK)
-			return "Failed.";
-
-		ping_pong_report(niter, duration);
-
-		if (duration >= MIN_DURATION_SECS * 1000000)
-			break;
-
-		niter *= 2;
-	}
-
-	printf("Measure %d samples...\n", NUM_SAMPLES);
-
-	int i;
-
-	for (i = 0; i < NUM_SAMPLES; i++) {
-		rc = ping_pong_measure(niter, &dsmp[i]);
-		if (rc != EOK)
-			return "Failed.";
-
-		ping_pong_report(niter, dsmp[i]);
-	}
-
-	double sum = 0.0;
-
-	for (i = 0; i < NUM_SAMPLES; i++)
-		sum += (double)niter / ((double)dsmp[i] / 1000000.0l);
-
-	double avg = sum / NUM_SAMPLES;
-
-	double qd = 0.0;
-	double d;
-	for (i = 0; i < NUM_SAMPLES; i++) {
-		d = (double)niter / ((double)dsmp[i] / 1000000.0l) - avg;
-		qd += d * d;
-	}
-
-	double stddev = qd / (NUM_SAMPLES - 1); // XXX sqrt
-
-	printf("Average: %.0f rt/s Std.dev^2: %.0f rt/s Samples: %d\n",
-	    avg, stddev, NUM_SAMPLES);
-
-	return NULL;
+	return true;
 }

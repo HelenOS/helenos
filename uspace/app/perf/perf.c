@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2018 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,28 +38,141 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <str.h>
+#include <time.h>
+#include <errno.h>
+#include <perf.h>
 #include "perf.h"
+
+#define MIN_DURATION_SECS 10
+#define NUM_SAMPLES 10
+#define MAX_ERROR_STR_LENGTH 1024
 
 benchmark_t benchmarks[] = {
 #include "ipc/ns_ping.def"
 #include "ipc/ping_pong.def"
 #include "malloc/malloc1.def"
 #include "malloc/malloc2.def"
-	{ NULL, NULL, NULL }
+	{ NULL, NULL, NULL, NULL, NULL }
 };
+
+static void short_report(stopwatch_t *stopwatch, int run_index,
+    benchmark_t *bench, size_t workload_size)
+{
+	usec_t duration_usec = NSEC2USEC(stopwatch_get_nanos(stopwatch));
+
+	printf("Completed %zu operations in %llu us",
+	    workload_size, duration_usec);
+	if (duration_usec > 0) {
+		double cycles = workload_size * 1000 * 1000 / duration_usec;
+		printf(", %.0f cycles/s.\n", cycles);
+	} else {
+		printf(".\n");
+	}
+}
+
+static void summary_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
+    benchmark_t *bench, size_t workload_size)
+{
+	double sum = 0.0;
+	double sum_square = 0.0;
+
+	for (size_t i = 0; i < stopwatch_count; i++) {
+		double nanos = stopwatch_get_nanos(&stopwatch[i]);
+		double thruput = (double) workload_size / (nanos / 1000000000.0l);
+		sum += thruput;
+		sum_square += thruput * thruput;
+	}
+
+	double avg = sum / stopwatch_count;
+
+	double sd_numer = sum_square + stopwatch_count * avg * avg - 2 * sum * avg;
+	double sd_square = sd_numer / ((double) stopwatch_count - 1);
+
+	printf("Average: %.0f cycles/s Std.dev^2: %.0f cycles/s Samples: %zu\n",
+	    avg, sd_square, stopwatch_count);
+}
 
 static bool run_benchmark(benchmark_t *bench)
 {
-	/* Execute the benchmarl */
-	const char *ret = bench->entry();
+	printf("Warm up and determine workload size...\n");
 
-	if (ret == NULL) {
-		printf("\nBenchmark completed\n");
-		return true;
+	char *error_msg = malloc(MAX_ERROR_STR_LENGTH + 1);
+	if (error_msg == NULL) {
+		printf("Out of memory!\n");
+		return false;
+	}
+	str_cpy(error_msg, MAX_ERROR_STR_LENGTH, "");
+
+	bool ret = true;
+
+	if (bench->setup != NULL) {
+		ret = bench->setup(error_msg, MAX_ERROR_STR_LENGTH);
+		if (!ret) {
+			goto leave_error;
+		}
 	}
 
-	printf("\n%s\n", ret);
-	return false;
+	size_t workload_size = 1;
+
+	while (true) {
+		stopwatch_t stopwatch = STOPWATCH_INITIALIZE_STATIC;
+
+		bool ok = bench->entry(&stopwatch, workload_size,
+		    error_msg, MAX_ERROR_STR_LENGTH);
+		if (!ok) {
+			goto leave_error;
+		}
+		short_report(&stopwatch, -1, bench, workload_size);
+
+		nsec_t duration = stopwatch_get_nanos(&stopwatch);
+		if (duration > SEC2NSEC(MIN_DURATION_SECS)) {
+			break;
+		}
+		workload_size *= 2;
+	}
+
+	printf("Workload size set to %zu, measuring %d samples.\n", workload_size, NUM_SAMPLES);
+
+	stopwatch_t *stopwatch = calloc(NUM_SAMPLES, sizeof(stopwatch_t));
+	if (stopwatch == NULL) {
+		snprintf(error_msg, MAX_ERROR_STR_LENGTH, "failed allocating memory");
+		goto leave_error;
+	}
+	for (int i = 0; i < NUM_SAMPLES; i++) {
+		stopwatch_init(&stopwatch[i]);
+
+		bool ok = bench->entry(&stopwatch[i], workload_size,
+		    error_msg, MAX_ERROR_STR_LENGTH);
+		if (!ok) {
+			free(stopwatch);
+			goto leave_error;
+		}
+		short_report(&stopwatch[i], i, bench, workload_size);
+	}
+
+	summary_stats(stopwatch, NUM_SAMPLES, bench, workload_size);
+	printf("\nBenchmark completed\n");
+
+	free(stopwatch);
+
+	goto leave;
+
+leave_error:
+	printf("Error: %s\n", error_msg);
+	ret = false;
+
+leave:
+	if (bench->teardown != NULL) {
+		bool ok = bench->teardown(error_msg, MAX_ERROR_STR_LENGTH);
+		if (!ok) {
+			printf("Error: %s\n", error_msg);
+			ret = false;
+		}
+	}
+
+	free(error_msg);
+
+	return ret;
 }
 
 static int run_benchmarks(void)
