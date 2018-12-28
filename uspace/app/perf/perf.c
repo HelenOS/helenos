@@ -42,18 +42,11 @@
 #include <errno.h>
 #include <perf.h>
 #include "perf.h"
+#include "benchlist.h"
 
 #define MIN_DURATION_SECS 10
 #define NUM_SAMPLES 10
 #define MAX_ERROR_STR_LENGTH 1024
-
-benchmark_t benchmarks[] = {
-#include "ipc/ns_ping.def"
-#include "ipc/ping_pong.def"
-#include "malloc/malloc1.def"
-#include "malloc/malloc2.def"
-	{ NULL, NULL, NULL, NULL, NULL }
-};
 
 static void short_report(stopwatch_t *stopwatch, int run_index,
     benchmark_t *bench, size_t workload_size)
@@ -178,7 +171,6 @@ leave:
 
 static int run_benchmarks(void)
 {
-	benchmark_t *bench;
 	unsigned int i = 0;
 	unsigned int n = 0;
 
@@ -186,18 +178,18 @@ static int run_benchmarks(void)
 
 	printf("\n*** Running all benchmarks ***\n\n");
 
-	for (bench = benchmarks; bench->name != NULL; bench++) {
-		printf("%s (%s)\n", bench->name, bench->desc);
-		if (run_benchmark(bench)) {
+	for (size_t it = 0; it < benchmark_count; it++) {
+		printf("%s (%s)\n", benchmarks[it]->name, benchmarks[it]->desc);
+		if (run_benchmark(benchmarks[it])) {
 			i++;
 			continue;
 		}
 
 		if (!failed_names) {
-			failed_names = str_dup(bench->name);
+			failed_names = str_dup(benchmarks[it]->name);
 		} else {
 			char *f = NULL;
-			asprintf(&f, "%s, %s", failed_names, bench->name);
+			asprintf(&f, "%s, %s", failed_names, benchmarks[it]->name);
 			if (!f) {
 				printf("Out of memory.\n");
 				abort();
@@ -218,10 +210,10 @@ static int run_benchmarks(void)
 static void list_benchmarks(void)
 {
 	size_t len = 0;
-	benchmark_t *bench;
-	for (bench = benchmarks; bench->name != NULL; bench++) {
-		if (str_length(bench->name) > len)
-			len = str_length(bench->name);
+	for (size_t i = 0; i < benchmark_count; i++) {
+		size_t len_now = str_length(benchmarks[i]->name);
+		if (len_now > len)
+			len = len_now;
 	}
 
 	unsigned int _len = (unsigned int) len;
@@ -230,8 +222,8 @@ static void list_benchmarks(void)
 		return;
 	}
 
-	for (bench = benchmarks; bench->name != NULL; bench++)
-		printf("%-*s %s\n", _len, bench->name, bench->desc);
+	for (size_t i = 0; i < benchmark_count; i++)
+		printf("%-*s %s\n", _len, benchmarks[i]->name, benchmarks[i]->desc);
 
 	printf("%-*s Run all benchmarks\n", _len, "*");
 }
@@ -249,10 +241,9 @@ int main(int argc, char *argv[])
 		return run_benchmarks();
 	}
 
-	benchmark_t *bench;
-	for (bench = benchmarks; bench->name != NULL; bench++) {
-		if (str_cmp(argv[1], bench->name) == 0) {
-			return (run_benchmark(bench) ? 0 : -1);
+	for (size_t i = 0; i < benchmark_count; i++) {
+		if (str_cmp(argv[1], benchmarks[i]->name) == 0) {
+			return (run_benchmark(benchmarks[i]) ? 0 : -1);
 		}
 	}
 

@@ -50,15 +50,6 @@ typedef struct {
 	benchmark_helper_t teardown;
 } benchmark_t;
 
-extern bool bench_malloc1(stopwatch_t *, uint64_t, char *, size_t);
-extern bool bench_malloc2(stopwatch_t *, uint64_t, char *, size_t);
-extern bool bench_ns_ping(stopwatch_t *, uint64_t, char *, size_t);
-extern bool bench_ping_pong(stopwatch_t *, uint64_t, char *, size_t);
-extern bool bench_ping_pong_setup(char *, size_t);
-extern bool bench_ping_pong_teardown(char *, size_t);
-
-extern benchmark_t benchmarks[];
-
 #endif
 
 /** @}

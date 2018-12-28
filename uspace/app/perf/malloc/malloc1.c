@@ -29,9 +29,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../benchlist.h"
 #include "../perf.h"
 
-bool bench_malloc1(stopwatch_t *stopwatch, uint64_t size,
+static bool runner(stopwatch_t *stopwatch, uint64_t size,
     char *error, size_t error_size)
 {
 	stopwatch_start(stopwatch);
@@ -49,3 +50,11 @@ bool bench_malloc1(stopwatch_t *stopwatch, uint64_t size,
 
 	return true;
 }
+
+benchmark_t bench_malloc1 = {
+	.name = "malloc1",
+	.desc = "User-space memory allocator benchmark, repeatedly allocate one block",
+	.entry = &runner,
+	.setup = NULL,
+	.teardown = NULL
+};

@@ -31,9 +31,10 @@
 #include <async.h>
 #include <errno.h>
 #include <str_error.h>
+#include "../benchlist.h"
 #include "../perf.h"
 
-bool bench_ns_ping(stopwatch_t *stopwatch, uint64_t niter,
+static bool runner(stopwatch_t *stopwatch, uint64_t niter,
     char *error, size_t error_size)
 {
 	stopwatch_start(stopwatch);
@@ -53,3 +54,11 @@ bool bench_ns_ping(stopwatch_t *stopwatch, uint64_t niter,
 
 	return true;
 }
+
+benchmark_t bench_ns_ping = {
+	.name = "ns_ping",
+	.desc = "Name service IPC ping-pong benchmark",
+	.entry = &runner,
+	.setup = NULL,
+	.teardown = NULL
+};

@@ -31,11 +31,12 @@
 #include <async.h>
 #include <errno.h>
 #include <str_error.h>
+#include "../benchlist.h"
 #include "../perf.h"
 
 static ipc_test_t *test = NULL;
 
-bool bench_ping_pong_setup(char *error, size_t error_size)
+static bool setup(char *error, size_t error_size)
 {
 	errno_t rc = ipc_test_create(&test);
 	if (rc != EOK) {
@@ -48,13 +49,13 @@ bool bench_ping_pong_setup(char *error, size_t error_size)
 	return true;
 }
 
-bool bench_ping_pong_teardown(char *error, size_t error_size)
+static bool teardown(char *error, size_t error_size)
 {
 	ipc_test_destroy(test);
 	return true;
 }
 
-bool bench_ping_pong(stopwatch_t *stopwatch, uint64_t niter,
+static bool runner(stopwatch_t *stopwatch, uint64_t niter,
     char *error, size_t error_size)
 {
 	stopwatch_start(stopwatch);
@@ -74,3 +75,11 @@ bool bench_ping_pong(stopwatch_t *stopwatch, uint64_t niter,
 
 	return true;
 }
+
+benchmark_t bench_ping_pong = {
+	.name = "ping_pong",
+	.desc = "IPC ping-pong benchmark",
+	.entry = &runner,
+	.setup = &setup,
+	.teardown = &teardown
+};

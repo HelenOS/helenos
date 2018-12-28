@@ -33,6 +33,7 @@ LIBS = math
 BINARY = perf
 
 SOURCES = \
+	benchlist.c \
 	perf.c \
 	ipc/ns_ping.c \
 	ipc/ping_pong.c \
