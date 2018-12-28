@@ -198,7 +198,7 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		ls_print(&tosort[i]);
 
 	/* Populate the directory list. */
-	if (ls.recursive) {
+	if (ls.recursive && nbdirs > 0) {
 		tmp = (struct dir_elem_t *) realloc(*dir_list_ptr,
 		    nbdirs * sizeof(struct dir_elem_t));
 		if (!tmp) {
