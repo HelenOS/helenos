@@ -63,8 +63,9 @@ static void short_report(stopwatch_t *stopwatch, int run_index,
 	printf("Completed %zu operations in %llu us",
 	    workload_size, duration_usec);
 	if (duration_usec > 0) {
-		double cycles = workload_size * 1000 * 1000 / duration_usec;
-		printf(", %.0f cycles/s.\n", cycles);
+		double nanos = stopwatch_get_nanos(stopwatch);
+		double thruput = (double) workload_size / (nanos / 1000000000.0l);
+		printf(", %.0f cycles/s.\n", thruput);
 	} else {
 		printf(".\n");
 	}
