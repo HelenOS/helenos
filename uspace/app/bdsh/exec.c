@@ -46,9 +46,6 @@
 #include "exec.h"
 #include "errors.h"
 
-/* FIXME: Just have find_command() return an allocated string */
-static char *found;
-
 static char *find_command(char *);
 static int try_access(const char *);
 
@@ -75,13 +72,12 @@ static char *find_command(char *cmd)
 {
 	size_t i;
 
-	found = (char *)malloc(PATH_MAX);
-
 	/* The user has specified a full or relative path, just give it back. */
 	if (-1 != try_access(cmd)) {
-		return (char *) cmd;
+		return str_dup(cmd);
 	}
 
+	char *found = (char *)malloc(PATH_MAX);
 	/* We now have n places to look for the command */
 	for (i = 0; search_dir[i] != NULL; i++) {
 		memset(found, 0, PATH_MAX);
@@ -90,9 +86,10 @@ static char *find_command(char *cmd)
 			return (char *) found;
 		}
 	}
+	free(found);
 
 	/* We didn't find it, just give it back as-is. */
-	return (char *) cmd;
+	return str_dup(cmd);
 }
 
 unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
@@ -106,8 +103,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	int file_handles[3] = { -1, -1, -1 };
 	FILE *files[3];
 
-	tmp = str_dup(find_command(cmd));
-	free(found);
+	tmp = find_command(cmd);
 
 	files[0] = io->stdin;
 	files[1] = io->stdout;
