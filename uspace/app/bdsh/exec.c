@@ -65,16 +65,18 @@ static int try_access(const char *f)
 }
 
 /** Returns the full path of "cmd" if cmd is found
- *
- * else just hand back cmd as it was presented
+ * or null if the cmd cannot be found
  */
 static char *find_command(char *cmd)
 {
 	size_t i;
 
 	/* The user has specified a full or relative path, just give it back. */
-	if (-1 != try_access(cmd)) {
-		return str_dup(cmd);
+	size_t len = str_length(cmd);
+	if ((len > 1 && cmd[0] == '/') || (len > 2 && cmd[0] == '.' && cmd[1] == '/')) {
+		if (-1 != try_access(cmd)) {
+			return str_dup(cmd);
+		}
 	}
 
 	char *found = (char *)malloc(PATH_MAX);
@@ -88,8 +90,8 @@ static char *find_command(char *cmd)
 	}
 	free(found);
 
-	/* We didn't find it, just give it back as-is. */
-	return str_dup(cmd);
+	/* We didn't find it, return NULL */
+	return NULL;
 }
 
 unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
@@ -104,6 +106,10 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	FILE *files[3];
 
 	tmp = find_command(cmd);
+	if (tmp == NULL) {
+		cli_error(CL_EEXEC, "%s: Command not found '%s'", progname, cmd);
+		return 1;
+	}
 
 	files[0] = io->stdin;
 	files[1] = io->stdout;
