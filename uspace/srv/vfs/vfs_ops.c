@@ -891,6 +891,7 @@ errno_t vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	vfs_file_t *file;
 	rc = vfs_fd_alloc(&file, false, out_fd);
 	if (rc != EOK) {
+		fibril_rwlock_read_unlock(&namespace_rwlock);
 		vfs_node_put(node);
 		vfs_file_put(parent);
 		return rc;
