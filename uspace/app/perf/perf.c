@@ -179,8 +179,8 @@ leave:
 
 static int run_benchmarks(void)
 {
-	unsigned int i = 0;
-	unsigned int n = 0;
+	unsigned int count_ok = 0;
+	unsigned int count_fail = 0;
 
 	char *failed_names = NULL;
 
@@ -189,7 +189,7 @@ static int run_benchmarks(void)
 	for (size_t it = 0; it < benchmark_count; it++) {
 		printf("%s (%s)\n", benchmarks[it]->name, benchmarks[it]->desc);
 		if (run_benchmark(benchmarks[it])) {
-			i++;
+			count_ok++;
 			continue;
 		}
 
@@ -205,14 +205,15 @@ static int run_benchmarks(void)
 			free(failed_names);
 			failed_names = f;
 		}
-		n++;
+		count_fail++;
 	}
 
-	printf("\nCompleted, %u benchmarks run, %u succeeded.\n", i + n, i);
+	printf("\nCompleted, %u benchmarks run, %u succeeded.\n",
+	    count_ok + count_fail, count_ok);
 	if (failed_names)
 		printf("Failed benchmarks: %s\n", failed_names);
 
-	return n;
+	return count_fail;
 }
 
 static void list_benchmarks(void)
