@@ -47,7 +47,7 @@
 static inline bool can_cast_size_t_to_int(size_t val)
 {
 	unsigned int as_uint = (unsigned int) val;
-	return ! ((as_uint != val) || (((int) as_uint) < 0));
+	return !((as_uint != val) || (((int) as_uint) < 0));
 }
 
 #endif
