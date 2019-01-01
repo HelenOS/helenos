@@ -106,9 +106,18 @@ static bool run_benchmark(benchmark_t *bench)
 		}
 	}
 
-	size_t workload_size = 1;
+	/*
+	 * Find workload size that is big enough to last few seconds.
+	 * We also check that uint64_t is big enough.
+	 */
+	uint64_t workload_size = 0;
+	for (size_t bits = 0; bits <= 64; bits++) {
+		if (bits == 64) {
+			str_cpy(error_msg, MAX_ERROR_STR_LENGTH, "Workload too small even for 1 << 63");
+			goto leave_error;
+		}
+		workload_size = ((uint64_t) 1) << bits;
 
-	while (true) {
 		stopwatch_t stopwatch = STOPWATCH_INITIALIZE_STATIC;
 
 		bool ok = bench->entry(&stopwatch, workload_size,
@@ -122,10 +131,9 @@ static bool run_benchmark(benchmark_t *bench)
 		if (duration > SEC2NSEC(MIN_DURATION_SECS)) {
 			break;
 		}
-		workload_size *= 2;
 	}
 
-	printf("Workload size set to %zu, measuring %d samples.\n", workload_size, NUM_SAMPLES);
+	printf("Workload size set to %" PRIu64 ", measuring %d samples.\n", workload_size, NUM_SAMPLES);
 
 	stopwatch_t *stopwatch = calloc(NUM_SAMPLES, sizeof(stopwatch_t));
 	if (stopwatch == NULL) {
