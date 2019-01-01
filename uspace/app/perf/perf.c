@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -41,6 +42,7 @@
 #include <time.h>
 #include <errno.h>
 #include <perf.h>
+#include <types/casting.h>
 #include "perf.h"
 #include "benchlist.h"
 
@@ -225,16 +227,12 @@ static void list_benchmarks(void)
 			len = len_now;
 	}
 
-	unsigned int _len = (unsigned int) len;
-	if ((_len != len) || (((int) _len) < 0)) {
-		printf("Command length overflow\n");
-		return;
-	}
+	assert(can_cast_size_t_to_int(len) && "benchmark name length overflow");
 
 	for (size_t i = 0; i < benchmark_count; i++)
-		printf("%-*s %s\n", _len, benchmarks[i]->name, benchmarks[i]->desc);
+		printf("%-*s %s\n", (int) len, benchmarks[i]->name, benchmarks[i]->desc);
 
-	printf("%-*s Run all benchmarks\n", _len, "*");
+	printf("%-*s Run all benchmarks\n", (int) len, "*");
 }
 
 int main(int argc, char *argv[])
