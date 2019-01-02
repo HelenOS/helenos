@@ -35,6 +35,7 @@
  */
 
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -60,32 +61,82 @@ static void short_report(stopwatch_t *stopwatch, int run_index,
 	if (duration_usec > 0) {
 		double nanos = stopwatch_get_nanos(stopwatch);
 		double thruput = (double) workload_size / (nanos / 1000000000.0l);
-		printf(", %.0f cycles/s.\n", thruput);
+		printf(", %.0f ops/s.\n", thruput);
 	} else {
 		printf(".\n");
 	}
 }
 
-static void summary_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
-    benchmark_t *bench, uint64_t workload_size)
+/*
+ * This is a temporary solution until we have proper sqrt() implementation
+ * in libmath.
+ *
+ * The algorithm uses Babylonian method [1].
+ *
+ * [1] https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method
+ */
+static double estimate_square_root(double value, double precision)
 {
-	double sum = 0.0;
-	double sum_square = 0.0;
+	double estimate = 1.;
+	double prev_estimate = estimate + 10 * precision;
+
+	while (fabs(estimate - prev_estimate) > precision) {
+		prev_estimate = estimate;
+		estimate = (prev_estimate + value / prev_estimate) / 2.;
+	}
+
+	return estimate;
+}
+
+/*
+ * Compute available statistics from given stopwatches.
+ *
+ * We compute normal mean for average duration of the workload and geometric
+ * mean for average thruput. Note that geometric mean is necessary to compute
+ * average throughput correctly - consider the following example:
+ *  - we run always 60 operations,
+ *  - first run executes in 30 s (i.e. 2 ops/s)
+ *  - and second one in 10 s (6 ops/s).
+ * Then, naively, average throughput would be (2+6)/2 = 4 [ops/s]. However, we
+ * actually executed 60 + 60 ops in 30 + 10 seconds. So the actual average
+ * throughput is 3 ops/s (which is exactly what geometric mean means).
+ *
+ */
+static void compute_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
+    uint64_t workload_size, double precision, double *out_duration_avg,
+    double *out_duration_sigma, double *out_thruput_avg)
+{
+	double inv_thruput_sum = 0.0;
+	double nanos_sum = 0.0;
+	double nanos_sum2 = 0.0;
 
 	for (size_t i = 0; i < stopwatch_count; i++) {
 		double nanos = stopwatch_get_nanos(&stopwatch[i]);
-		double thruput = (double) workload_size / (nanos / 1000000000.0l);
-		sum += thruput;
-		sum_square += thruput * thruput;
+		double thruput = (double) workload_size / nanos;
+
+		inv_thruput_sum += 1.0 / thruput;
+		nanos_sum += nanos;
+		nanos_sum2 += nanos * nanos;
 	}
+	*out_duration_avg = nanos_sum / stopwatch_count;
+	double sigma2 = (nanos_sum2 - nanos_sum * (*out_duration_avg)) /
+	    ((double) stopwatch_count - 1);
+	// FIXME: implement sqrt properly
+	*out_duration_sigma = estimate_square_root(sigma2, precision);
+	*out_thruput_avg = 1.0 / (inv_thruput_sum / stopwatch_count);
+}
 
-	double avg = sum / stopwatch_count;
+static void summary_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
+    benchmark_t *bench, uint64_t workload_size)
+{
+	double duration_avg, duration_sigma, thruput_avg;
+	compute_stats(stopwatch, stopwatch_count, workload_size, 0.001,
+	    &duration_avg, &duration_sigma, &thruput_avg);
 
-	double sd_numer = sum_square + stopwatch_count * avg * avg - 2 * sum * avg;
-	double sd_square = sd_numer / ((double) stopwatch_count - 1);
-
-	printf("Average: %.0f cycles/s Std.dev^2: %.0f cycles/s Samples: %zu\n",
-	    avg, sd_square, stopwatch_count);
+	printf("Average: %" PRIu64 " ops in %.0f us (sd %.0f us); "
+	    "%.0f ops/s; Samples: %zu\n",
+	    workload_size, duration_avg / 1000.0, duration_sigma / 1000.0,
+	    thruput_avg * 1000000000.0, stopwatch_count);
 }
 
 static bool run_benchmark(benchmark_t *bench)
