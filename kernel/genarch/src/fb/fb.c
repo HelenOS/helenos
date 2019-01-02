@@ -75,6 +75,8 @@
 	((((instance)->start_row + (row)) % (instance)->rows) * \
 	    (instance)->cols + (col))
 
+#define BB_NEXT_COL(pos) (++(pos))
+
 #define GLYPH_POS(instance, glyph, y) \
 	((glyph) * (instance)->glyphbytes + (y) * (instance)->glyphscanline)
 
@@ -269,23 +271,28 @@ static void screen_scroll(fb_instance_t *instance)
 			for (unsigned int yd = 0; yd < FONT_SCANLINES; yd++) {
 				unsigned int x;
 				unsigned int col;
+				size_t bb_pos = BB_POS(instance, 0, row);
+				size_t bb_pos1 = BB_POS(instance, 0, row + 1);
 
 				for (col = 0, x = 0; col < instance->cols;
 				    col++, x += FONT_WIDTH) {
 					uint16_t glyph;
 
 					if (row < instance->rows - 1) {
-						if (instance->backbuf[BB_POS(instance, col, row)] ==
-						    instance->backbuf[BB_POS(instance, col, row + 1)])
-							continue;
+						if (instance->backbuf[bb_pos] ==
+						    instance->backbuf[bb_pos1])
+							goto skip;
 
-						glyph = instance->backbuf[BB_POS(instance, col, row + 1)];
+						glyph = instance->backbuf[bb_pos1];
 					} else
 						glyph = 0;
 
 					memcpy(&instance->addr[FB_POS(instance, x, y + yd)],
 					    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
 					    instance->glyphscanline);
+				skip:
+					BB_NEXT_COL(bb_pos);
+					BB_NEXT_COL(bb_pos1);
 				}
 			}
 		}
@@ -372,14 +379,16 @@ static void fb_redraw_internal(fb_instance_t *instance)
 		for (unsigned int yd = 0; yd < FONT_SCANLINES; yd++) {
 			unsigned int x;
 			unsigned int col;
+			size_t bb_pos = BB_POS(instance, 0, row);
 
 			for (col = 0, x = 0; col < instance->cols;
 			    col++, x += FONT_WIDTH) {
 				uint16_t glyph =
-				    instance->backbuf[BB_POS(instance, col, row)];
+				    instance->backbuf[bb_pos];
 				void *dst = &instance->addr[FB_POS(instance, x, y + yd)];
 				void *src = &instance->glyphs[GLYPH_POS(instance, glyph, yd)];
 				memcpy(dst, src, instance->glyphscanline);
+				BB_NEXT_COL(bb_pos);
 			}
 		}
 	}
