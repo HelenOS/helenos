@@ -51,11 +51,11 @@
 #define MAX_ERROR_STR_LENGTH 1024
 
 static void short_report(stopwatch_t *stopwatch, int run_index,
-    benchmark_t *bench, size_t workload_size)
+    benchmark_t *bench, uint64_t workload_size)
 {
 	usec_t duration_usec = NSEC2USEC(stopwatch_get_nanos(stopwatch));
 
-	printf("Completed %zu operations in %llu us",
+	printf("Completed %" PRIu64 " operations in %llu us",
 	    workload_size, duration_usec);
 	if (duration_usec > 0) {
 		double nanos = stopwatch_get_nanos(stopwatch);
@@ -67,7 +67,7 @@ static void short_report(stopwatch_t *stopwatch, int run_index,
 }
 
 static void summary_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
-    benchmark_t *bench, size_t workload_size)
+    benchmark_t *bench, uint64_t workload_size)
 {
 	double sum = 0.0;
 	double sum_square = 0.0;
