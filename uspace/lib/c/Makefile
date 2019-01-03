@@ -164,6 +164,7 @@ GENERIC_SOURCES = \
 	generic/stats.c \
 	generic/assert.c \
 	generic/bsearch.c \
+	generic/pci.c \
 	generic/pio_trace.c \
 	generic/qsort.c \
 	generic/ubsan.c \

@@ -55,6 +55,7 @@ typedef enum {
 	seek_forward = 1
 } seek_dir_t;
 
+static void tinput_update_origin(tinput_t *);
 static void tinput_init(tinput_t *);
 static void tinput_insert_string(tinput_t *, const char *);
 static void tinput_sel_get_bounds(tinput_t *, size_t *, size_t *);
@@ -70,8 +71,12 @@ static void tinput_post_seek(tinput_t *, bool);
 
 static void tinput_console_set_lpos(tinput_t *ti, unsigned lpos)
 {
-	console_set_pos(ti->console, LIN_TO_COL(ti, lpos),
-	    LIN_TO_ROW(ti, lpos));
+	unsigned col = LIN_TO_COL(ti, lpos);
+	unsigned row = LIN_TO_ROW(ti, lpos);
+
+	assert(col < ti->con_cols);
+	assert(row < ti->con_rows);
+	console_set_pos(ti->console, col, row);
 }
 
 /** Create a new text input field. */
@@ -162,6 +167,7 @@ static char *tinput_get_str(tinput_t *ti)
 
 static void tinput_position_caret(tinput_t *ti)
 {
+	tinput_update_origin(ti);
 	tinput_console_set_lpos(ti, ti->text_coord + ti->pos);
 }
 
@@ -231,7 +237,6 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 	ti->sel_start = ti->pos;
 
 	tinput_display_tail(ti, ti->pos - 1, 0);
-	tinput_update_origin(ti);
 	tinput_position_caret(ti);
 }
 
@@ -275,7 +280,6 @@ static void tinput_insert_string(tinput_t *ti, const char *str)
 	ti->sel_start = ti->pos;
 
 	tinput_display_tail(ti, ti->pos - ilen, 0);
-	tinput_update_origin(ti);
 	tinput_position_caret(ti);
 }
 
