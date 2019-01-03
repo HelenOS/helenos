@@ -815,7 +815,7 @@ static void ahci_wb_fpdma_cmd(sata_dev_t *sata, uintptr_t phys,
 /** Write one sector into the SATA device, use FPDMA.
  *
  * @param sata     SATA device structure.
- * @param phys     Physical addres of buffer with sector data.
+ * @param phys     Physical address of buffer with sector data.
  * @param blocknum Block number to write.
  *
  * @return EOK if succeed, error code otherwise

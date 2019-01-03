@@ -219,7 +219,7 @@ errno_t vol_part_add(vol_t *vol, service_id_t sid)
  *
  * @param vol Volume service
  * @param sid Service ID of the partition
- * @param vinfo Place to sore partition information
+ * @param vinfo Place to store partition information
  * @return EOK on success or an error code
  */
 errno_t vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
@@ -577,7 +577,7 @@ errno_t vol_get_volumes(vol_t *vol, volume_id_t **data, size_t *count)
  *
  * @param vol Volume service
  * @param vid Volume ID
- * @param vinfo Place to sore volume configuration information
+ * @param vinfo Place to store volume configuration information
  * @return EOK on success or an error code
  */
 errno_t vol_info(vol_t *vol, volume_id_t vid, vol_info_t *vinfo)

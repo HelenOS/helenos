@@ -193,7 +193,7 @@ as_t *as_create(unsigned int flags)
 	return as;
 }
 
-/** Destroy adress space.
+/** Destroy address space.
  *
  * When there are no tasks referencing this address space (i.e. its refcount is
  * zero), the address space can be destroyed.
@@ -1346,7 +1346,7 @@ NO_TRACE static unsigned int area_flags_to_page_flags(unsigned int aflags)
 	return flags;
 }
 
-/** Change adress space area flags.
+/** Change address space area flags.
  *
  * The idea is to have the same data, but with a different access mode.
  * This is needed e.g. for writing code into memory and then executing it.
@@ -2149,7 +2149,7 @@ sys_errno_t sys_as_area_destroy(uintptr_t address)
 	return (sys_errno_t) as_area_destroy(AS, address);
 }
 
-/** Get list of adress space areas.
+/** Get list of address space areas.
  *
  * @param as    Address space.
  * @param obuf  Place to save pointer to returned buffer.

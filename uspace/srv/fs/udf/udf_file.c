@@ -113,7 +113,7 @@ errno_t udf_read_allocation_sequence(udf_node_t *node, uint8_t *af,
 		for (size_t i = 0; i < node->instance->partition_cnt; i++) {
 			if ((node->index >= node->instance->partitions[i].start) &&
 			    (node->index < node->instance->partitions[i].start +
-			    node->instance->partitions[i].lenght)) {
+			    node->instance->partitions[i].length)) {
 				if (node->instance->partitions[i].start >= min_start) {
 					min_start = node->instance->partitions[i].start;
 					pd_num = i;
@@ -257,11 +257,11 @@ errno_t udf_read_icb(udf_node_t *node)
 			udf_file_entry_descriptor_t *file =
 			    (udf_file_entry_descriptor_t *) block->data;
 			uint16_t icb_flag = FLE16(file->icbtag.flags) & UDF_ICBFLAG_MASK;
-			node->data_size = FLE64(file->info_lenght);
+			node->data_size = FLE64(file->info_length);
 			node->type = (file->icbtag.file_type == UDF_ICBTYPE_DIR) ? NODE_DIR : NODE_FILE;
 
 			rc = udf_read_allocation_sequence(node, (uint8_t *) file, icb_flag,
-			    FLE32(file->ea_lenght) + UDF_FE_OFFSET, FLE32(file->ad_lenght));
+			    FLE32(file->ea_length) + UDF_FE_OFFSET, FLE32(file->ad_length));
 			block_put(block);
 			return rc;
 
@@ -271,11 +271,11 @@ errno_t udf_read_icb(udf_node_t *node)
 			udf_extended_file_entry_descriptor_t *efile =
 			    (udf_extended_file_entry_descriptor_t *) block->data;
 			icb_flag = FLE16(efile->icbtag.flags) & UDF_ICBFLAG_MASK;
-			node->data_size = FLE64(efile->info_lenght);
+			node->data_size = FLE64(efile->info_length);
 			node->type = (efile->icbtag.file_type == UDF_ICBTYPE_DIR) ? NODE_DIR : NODE_FILE;
 
 			rc = udf_read_allocation_sequence(node, (uint8_t *) efile, icb_flag,
-			    FLE32(efile->ea_lenght) + UDF_EFE_OFFSET, FLE32(efile->ad_lenght));
+			    FLE32(efile->ea_length) + UDF_EFE_OFFSET, FLE32(efile->ad_length));
 			block_put(block);
 			return rc;
 
@@ -337,16 +337,16 @@ static errno_t udf_get_fid_in_data(udf_file_identifier_descriptor_t **fid,
 		    (node->data + fid_sum);
 
 		/* According to ECMA 167 4/14.4.9 */
-		size_t padding = 4 * (((*fid)->lenght_file_id +
-		    FLE16((*fid)->lenght_iu) + 38 + 3) / 4) -
-		    ((*fid)->lenght_file_id + FLE16((*fid)->lenght_iu) + 38);
-		size_t size_fid = (*fid)->lenght_file_id +
-		    FLE16((*fid)->lenght_iu) + padding + 38;
+		size_t padding = 4 * (((*fid)->length_file_id +
+		    FLE16((*fid)->length_iu) + 38 + 3) / 4) -
+		    ((*fid)->length_file_id + FLE16((*fid)->length_iu) + 38);
+		size_t size_fid = (*fid)->length_file_id +
+		    FLE16((*fid)->length_iu) + padding + 38;
 
 		fid_sum += size_fid;
 
 		/* aAcording to ECMA 167 4/8.6 */
-		if (((*fid)->lenght_file_id != 0) &&
+		if (((*fid)->length_file_id != 0) &&
 		    (((*fid)->file_characteristics & 4) == 0)) {
 			n++;
 
@@ -515,18 +515,18 @@ errno_t udf_get_fid_in_sector(udf_file_identifier_descriptor_t **fid,
 			*fid = (udf_file_identifier_descriptor_t *) fid_data;
 
 			/* According to ECMA 167 4/14.4.9 */
-			size_t padding = 4 * (((*fid)->lenght_file_id +
-			    FLE16((*fid)->lenght_iu) + 38 + 3) / 4) -
-			    ((*fid)->lenght_file_id + FLE16((*fid)->lenght_iu) + 38);
-			size_t size_fid = (*fid)->lenght_file_id +
-			    FLE16((*fid)->lenght_iu) + padding + 38;
+			size_t padding = 4 * (((*fid)->length_file_id +
+			    FLE16((*fid)->length_iu) + 38 + 3) / 4) -
+			    ((*fid)->length_file_id + FLE16((*fid)->length_iu) + 38);
+			size_t size_fid = (*fid)->length_file_id +
+			    FLE16((*fid)->length_iu) + padding + 38;
 			if (buf_flag)
 				fid_sum += size_fid - *len;
 			else
 				fid_sum += size_fid;
 
 			/* According to ECMA 167 4/8.6 */
-			if (((*fid)->lenght_file_id != 0) &&
+			if (((*fid)->length_file_id != 0) &&
 			    (((*fid)->file_characteristics & 4) == 0)) {
 				(*n)++;
 				if (*n == pos + 1) {

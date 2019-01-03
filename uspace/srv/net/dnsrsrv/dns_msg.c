@@ -51,7 +51,7 @@ static uint16_t dns_uint16_t_decode(uint8_t *, size_t);
 
 /** Extend dynamically allocated string with suffix.
  *
- * @a *dstr points to a dynamically alocated buffer containing a string.
+ * @a *dstr points to a dynamically allocated buffer containing a string.
  * Reallocate this buffer so that concatenation of @a *dstr and @a suff can
  * fit in and append @a suff.
  */

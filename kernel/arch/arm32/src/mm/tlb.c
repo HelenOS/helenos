@@ -75,7 +75,7 @@ void tlb_invalidate_asid(asid_t asid)
 
 /** Invalidate single entry in TLB
  *
- * @param page Virtual adress of the page
+ * @param page Virtual address of the page
  */
 static inline void invalidate_page(uintptr_t page)
 {

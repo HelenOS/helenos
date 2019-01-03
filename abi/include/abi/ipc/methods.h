@@ -151,7 +151,7 @@ enum {
 	 * on answer, the recipient must set:
 	 *
 	 * - ARG1 - dst as_area lower bound
-	 * - ARG2 - dst as_area base adress pointer
+	 * - ARG2 - dst as_area base address pointer
 	 *          (filled automatically by the kernel)
 	 */
 	IPC_M_SHARE_OUT,

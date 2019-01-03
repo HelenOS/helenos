@@ -125,7 +125,7 @@ errno_t as_area_get_info(void *address, as_area_info_t *info)
 /** Find mapping to physical address.
  *
  * @param      virt Virtual address to find mapping for.
- * @param[out] phys Physical adress.
+ * @param[out] phys Physical address.
  *
  * @return EOK on no error.
  * @retval ENOENT if no mapping was found.

@@ -197,7 +197,7 @@ void log_unlock(logger_log_t *log)
 	fibril_mutex_unlock(&log->guard);
 }
 
-/** Decreases reference counter on the log and destory the log if
+/** Decreases reference counter on the log and destroy the log if
  * necessary.
  *
  * Precondition: log is locked.

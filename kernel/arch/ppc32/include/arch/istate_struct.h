@@ -85,7 +85,7 @@
 typedef struct istate {
 	/* imitation of frame pointer linkage */
 	uint32_t sp_frame;
-	/* imitation of return adress linkage */
+	/* imitation of return address linkage */
 	uint32_t lr_frame;
 	uint32_t r0;
 	uint32_t r2;
