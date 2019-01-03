@@ -35,6 +35,7 @@
  */
 
 #include <assert.h>
+#include <getopt.h>
 #include <math.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -42,10 +43,12 @@
 #include <str.h>
 #include <time.h>
 #include <errno.h>
+#include <str_error.h>
 #include <perf.h>
 #include <types/casting.h>
-#include "perf.h"
 #include "benchlist.h"
+#include "csv.h"
+#include "perf.h"
 
 #define MIN_DURATION_SECS 10
 #define NUM_SAMPLES 10
@@ -54,6 +57,8 @@
 static void short_report(stopwatch_t *stopwatch, int run_index,
     benchmark_t *bench, uint64_t workload_size)
 {
+	csv_report_add_entry(stopwatch, run_index, bench, workload_size);
+
 	usec_t duration_usec = NSEC2USEC(stopwatch_get_nanos(stopwatch));
 
 	printf("Completed %" PRIu64 " operations in %llu us",
@@ -281,32 +286,87 @@ static void list_benchmarks(void)
 	assert(can_cast_size_t_to_int(len) && "benchmark name length overflow");
 
 	for (size_t i = 0; i < benchmark_count; i++)
-		printf("%-*s %s\n", (int) len, benchmarks[i]->name, benchmarks[i]->desc);
+		printf("  %-*s %s\n", (int) len, benchmarks[i]->name, benchmarks[i]->desc);
 
-	printf("%-*s Run all benchmarks\n", (int) len, "*");
+	printf("  %-*s Run all benchmarks\n", (int) len, "*");
+}
+
+static void print_usage(const char *progname)
+{
+	printf("Usage: %s [options] <benchmark>\n", progname);
+	printf("-h, --help                 "
+	    "Print this help and exit\n");
+	printf("-o, --output filename.csv  "
+	    "Store machine-readable data in filename.csv\n");
+	printf("<benchmark> is one of the following:\n");
+	list_benchmarks();
 }
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		printf("Usage:\n\n");
-		printf("%s <benchmark>\n\n", argv[0]);
-		list_benchmarks();
-		return 0;
-	}
+	const char *short_options = "ho:";
+	struct option long_options[] = {
+		{ "help", optional_argument, NULL, 'h' },
+		{ "output", required_argument, NULL, 'o' },
+		{ 0, 0, NULL, 0 }
+	};
 
-	if (str_cmp(argv[1], "*") == 0) {
-		return run_benchmarks();
-	}
+	char *csv_output_filename = NULL;
 
-	for (size_t i = 0; i < benchmark_count; i++) {
-		if (str_cmp(argv[1], benchmarks[i]->name) == 0) {
-			return (run_benchmark(benchmarks[i]) ? 0 : -1);
+	int opt = 0;
+	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) > 0) {
+		switch (opt) {
+		case 'h':
+			print_usage(*argv);
+			return 0;
+		case 'o':
+			csv_output_filename = optarg;
+			break;
+		case -1:
+		default:
+			break;
 		}
 	}
 
-	printf("Unknown benchmark \"%s\"\n", argv[1]);
-	return -2;
+	if (optind + 1 != argc) {
+		print_usage(*argv);
+		fprintf(stderr, "Error: specify one benchmark to run or * for all.\n");
+		return -3;
+	}
+
+	const char *benchmark = argv[optind];
+
+	if (csv_output_filename != NULL) {
+		errno_t rc = csv_report_open(csv_output_filename);
+		if (rc != EOK) {
+			fprintf(stderr, "Failed to open CSV report '%s': %s\n",
+			    csv_output_filename, str_error(rc));
+			return -4;
+		}
+	}
+
+	int exit_code = 0;
+
+	if (str_cmp(benchmark, "*") == 0) {
+		exit_code = run_benchmarks();
+	} else {
+		bool benchmark_exists = false;
+		for (size_t i = 0; i < benchmark_count; i++) {
+			if (str_cmp(benchmark, benchmarks[i]->name) == 0) {
+				benchmark_exists = true;
+				exit_code = run_benchmark(benchmarks[i]) ? 0 : -1;
+				break;
+			}
+		}
+		if (!benchmark_exists) {
+			printf("Unknown benchmark \"%s\"\n", benchmark);
+			exit_code = -2;
+		}
+	}
+
+	csv_report_close();
+
+	return exit_code;
 }
 
 /** @}
