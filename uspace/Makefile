@@ -66,6 +66,7 @@ DIRS = \
 	app/modplay \
 	app/netecho \
 	app/nterm \
+	app/pci \
 	app/perf \
 	app/redir \
 	app/sbi \

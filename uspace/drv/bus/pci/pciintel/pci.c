@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2019 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,7 +57,9 @@
 #include <ddi.h>
 #include <pci_dev_iface.h>
 
+#include "ctl.h"
 #include "pci.h"
+#include "pci_regs.h"
 
 #define NAME "pciintel"
 
@@ -72,12 +74,10 @@ static pci_fun_t *pci_fun(ddf_fun_t *fnode)
 }
 
 /** Obtain PCI bus soft-state from DDF device node */
-#if 0
-static pci_bus_t *pci_bus(ddf_dev_t *dnode)
+pci_bus_t *pci_bus(ddf_dev_t *dnode)
 {
 	return ddf_dev_data_get(dnode);
 }
-#endif
 
 /** Obtain PCI bus soft-state from function soft-state */
 static pci_bus_t *pci_bus_from_fun(pci_fun_t *fun)
@@ -449,6 +449,38 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 	/* TODO add subsys ids, but those exist only in header type 0 */
 }
 
+/** Get first PCI function.
+ *
+ * @param bus PCI bus
+ * @return First PCI function on @a bus or @c NULL if there is none
+ */
+pci_fun_t *pci_fun_first(pci_bus_t *bus)
+{
+	link_t *link;
+
+	link = list_first(&bus->funs);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, pci_fun_t, lfuns);
+}
+
+/** Get next PCI function.
+ *
+ * @param cur Current function
+ * @return Next PCI function on the same bus or @c NULL if there is none
+ */
+pci_fun_t *pci_fun_next(pci_fun_t *cur)
+{
+	link_t *link;
+
+	link = list_next(&cur->lfuns, &cur->busptr->funs);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, pci_fun_t, lfuns);
+}
+
 void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
     bool io)
 {
@@ -690,6 +722,8 @@ errno_t pci_bus_scan(pci_bus_t *bus, int bus_num)
 				pci_fun_delete(fun);
 				continue;
 			}
+
+			list_append(&fun->lfuns, &bus->funs);
 		}
 	}
 
@@ -717,6 +751,8 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 		rc = ENOMEM;
 		goto fail;
 	}
+
+	list_initialize(&bus->funs);
 	fibril_mutex_initialize(&bus->conf_mutex);
 
 	bus->dnode = dnode;
@@ -801,6 +837,8 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 		goto fail;
 	}
 
+	ddf_fun_set_conn_handler(ctl, pci_ctl_connection);
+
 	/* Enumerate functions. */
 	ddf_msg(LVL_DEBUG, "Enumerating the bus");
 	rc = pci_bus_scan(bus, 0);
@@ -812,6 +850,13 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 	rc = ddf_fun_bind(ctl);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding control function.");
+		goto fail;
+	}
+
+	rc = ddf_fun_add_to_category(ctl, "pci");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding control function to category "
+		    "'pci'.");
 		goto fail;
 	}
 

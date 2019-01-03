@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Lenka Trochtova
+# Copyright (c) 2019 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
-LIBS = drv
-BINARY = pciintel
+USPACE_PREFIX = ../..
+LIBS = ext4 fs block crypto
+BINARY = pci
 
 SOURCES = \
-	ctl.c \
 	pci.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -36,8 +36,10 @@
 #ifndef PCI_H_
 #define PCI_H_
 
+#include <adt/list.h>
+#include <ddi.h>
 #include <ddf/driver.h>
-#include "pci_regs.h"
+#include <fibril_synch.h>
 
 #define PCI_MAX_HW_RES 10
 
@@ -49,11 +51,15 @@ typedef struct pciintel_bus {
 	ioport32_t *conf_space;
 	pio_window_t pio_win;
 	fibril_mutex_t conf_mutex;
+	/** List of functions (of pci_fun_t) */
+	list_t funs;
 } pci_bus_t;
 
 typedef struct pci_fun_data {
 	pci_bus_t *busptr;
 	ddf_fun_t *fnode;
+	/** Link to @c busptr->funs */
+	link_t lfuns;
 
 	int bus;
 	int dev;
@@ -70,7 +76,11 @@ typedef struct pci_fun_data {
 	pio_window_t pio_window;
 } pci_fun_t;
 
+extern pci_bus_t *pci_bus(ddf_dev_t *);
+
 extern void pci_fun_create_match_ids(pci_fun_t *);
+extern pci_fun_t *pci_fun_first(pci_bus_t *);
+extern pci_fun_t *pci_fun_next(pci_fun_t *);
 
 extern uint8_t pci_conf_read_8(pci_fun_t *, int);
 extern uint16_t pci_conf_read_16(pci_fun_t *, int);
