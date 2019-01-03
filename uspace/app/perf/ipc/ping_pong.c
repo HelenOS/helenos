@@ -41,7 +41,7 @@ static bool setup(char *error, size_t error_size)
 	errno_t rc = ipc_test_create(&test);
 	if (rc != EOK) {
 		snprintf(error, error_size,
-		    "failed contacting IPC test server: %s (%d)",
+		    "failed contacting IPC test server (have you run /srv/test/ipc-test?): %s (%d)",
 		    str_error(rc), rc);
 		return false;
 	}
