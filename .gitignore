@@ -89,7 +89,6 @@ uspace/app/bdsh/bdsh
 uspace/app/bdsh/test-bdsh
 uspace/app/bithenge/bithenge
 uspace/app/blkdump/blkdump
-uspace/app/bnchmark/bnchmark
 uspace/app/contacts/contacts
 uspace/app/corecfg/corecfg
 uspace/app/cpptest/cpptest
@@ -172,7 +171,6 @@ uspace/dist/app/barber
 uspace/dist/app/bdsh
 uspace/dist/app/bithenge
 uspace/dist/app/blkdump
-uspace/dist/app/bnchmark
 uspace/dist/app/corecfg
 uspace/dist/app/cpptest
 uspace/dist/app/date

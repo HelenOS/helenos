@@ -37,7 +37,6 @@ DIRS = \
 	app/bdsh \
 	app/bithenge \
 	app/blkdump \
-	app/bnchmark \
 	app/contacts \
 	app/corecfg \
 	app/cpptest \
