@@ -44,7 +44,8 @@
 
 static void pc_lpt_connection(ipc_call_t *, void *);
 
-static errno_t pc_lpt_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t pc_lpt_read(chardev_srv_t *, void *, size_t, size_t *,
+    chardev_flags_t);
 static errno_t pc_lpt_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t pc_lpt_chardev_ops = {
@@ -223,7 +224,7 @@ static void pc_lpt_putchar(pc_lpt_t *lpt, uint8_t ch)
 
 /** Read from pc-lpt device */
 static errno_t pc_lpt_read(chardev_srv_t *srv, void *buf, size_t size,
-    size_t *nread)
+    size_t *nread, chardev_flags_t flags)
 {
 	pc_lpt_t *lpt = (pc_lpt_t *) srv->srvs->sarg;
 	(void) lpt;

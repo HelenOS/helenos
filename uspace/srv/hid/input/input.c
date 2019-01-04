@@ -538,7 +538,8 @@ static errno_t serial_consumer(void *arg)
 		uint8_t data;
 		size_t nread;
 
-		chardev_read(sdev->chardev, &data, sizeof(data), &nread);
+		chardev_read(sdev->chardev, &data, sizeof(data), &nread,
+		    chardev_f_none);
 		/* XXX Handle error */
 		kbd_push_data(sdev->kdev, data);
 	}

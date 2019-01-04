@@ -137,7 +137,8 @@ static errno_t kbd_port_fibril(void *arg)
 	uint8_t b;
 
 	while (true) {
-		rc = chardev_read(chardev, &b, sizeof(b), &nread);
+		rc = chardev_read(chardev, &b, sizeof(b), &nread,
+		    chardev_f_none);
 		if (rc != EOK || nread != sizeof(b)) {
 			printf("%s: Error reading data", NAME);
 			continue;

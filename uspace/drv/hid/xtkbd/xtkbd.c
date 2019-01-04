@@ -215,7 +215,7 @@ static errno_t polling(void *arg)
 		size_t map_size = sizeof(scanmap_simple) / sizeof(unsigned int);
 
 		uint8_t code = 0;
-		rc = chardev_read(kbd->chardev, &code, 1, &nread);
+		rc = chardev_read(kbd->chardev, &code, 1, &nread, chardev_f_none);
 		if (rc != EOK)
 			return EIO;
 
@@ -228,21 +228,24 @@ static errno_t polling(void *arg)
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(unsigned int);
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			rc = chardev_read(kbd->chardev, &code, 1, &nread,
+			    chardev_f_none);
 			if (rc != EOK)
 				return EIO;
 
 			/* Handle really special keys */
 
 			if (code == 0x2a) {  /* Print Screen */
-				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				rc = chardev_read(kbd->chardev, &code, 1, &nread,
+				    chardev_f_none);
 				if (rc != EOK)
 					return EIO;
 
 				if (code != 0xe0)
 					continue;
 
-				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				rc = chardev_read(kbd->chardev, &code, 1, &nread,
+				    chardev_f_none);
 				if (rc != EOK)
 					return EIO;
 
@@ -253,14 +256,16 @@ static errno_t polling(void *arg)
 			}
 
 			if (code == 0x46) {  /* Break */
-				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				rc = chardev_read(kbd->chardev, &code, 1, &nread,
+				    chardev_f_none);
 				if (rc != EOK)
 					return EIO;
 
 				if (code != 0xe0)
 					continue;
 
-				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				rc = chardev_read(kbd->chardev, &code, 1, &nread,
+				    chardev_f_none);
 				if (rc != EOK)
 					return EIO;
 
@@ -273,35 +278,40 @@ static errno_t polling(void *arg)
 
 		/* Extended special set */
 		if (code == KBD_SCANCODE_SET_EXTENDED_SPECIAL) {
-			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			rc = chardev_read(kbd->chardev, &code, 1, &nread,
+			    chardev_f_none);
 			if (rc != EOK)
 				return EIO;
 
 			if (code != 0x1d)
 				continue;
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			rc = chardev_read(kbd->chardev, &code, 1, &nread,
+			    chardev_f_none);
 			if (rc != EOK)
 				return EIO;
 
 			if (code != 0x45)
 				continue;
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			rc = chardev_read(kbd->chardev, &code, 1, &nread,
+			    chardev_f_none);
 			if (rc != EOK)
 				return EIO;
 
 			if (code != 0xe1)
 				continue;
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			rc = chardev_read(kbd->chardev, &code, 1, &nread,
+			    chardev_f_none);
 			if (rc != EOK)
 				return EIO;
 
 			if (code != 0x9d)
 				continue;
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			rc = chardev_read(kbd->chardev, &code, 1, &nread,
+			    chardev_f_none);
 			if (rc != EOK)
 				return EIO;
 

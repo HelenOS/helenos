@@ -76,7 +76,8 @@ do { \
 	uint8_t value = (value_); \
 	uint8_t data = 0; \
 	size_t nread; \
-	const errno_t rc = chardev_read((mouse)->chardev, &data, 1, &nread); \
+	const errno_t rc = chardev_read((mouse)->chardev, &data, 1, &nread, \
+	    chardev_f_none); \
 	if (rc != EOK) { \
 		ddf_msg(LVL_ERROR, "Failed reading byte: %s", str_error_name(rc));\
 		return rc; \
@@ -183,7 +184,7 @@ errno_t ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	}
 
 	size_t nread;
-	rc = chardev_read(mouse->chardev, &report, 1, &nread);
+	rc = chardev_read(mouse->chardev, &report, 1, &nread, chardev_f_none);
 	if (rc != EOK || report != PS2_MOUSE_ACK) {
 		ddf_msg(LVL_ERROR, "Failed to confirm data reporting: %hhx.",
 		    report);
@@ -231,7 +232,7 @@ static errno_t ps2_mouse_read_packet(ps2_mouse_t *mouse, void *pbuf, size_t psiz
 	pos = 0;
 	while (pos < psize) {
 		rc = chardev_read(mouse->chardev, pbuf + pos, psize - pos,
-		    &nread);
+		    &nread, chardev_f_none);
 		if (rc != EOK) {
 			ddf_msg(LVL_WARN, "Error reading packet.");
 			return rc;

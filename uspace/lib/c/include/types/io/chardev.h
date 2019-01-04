@@ -34,6 +34,8 @@
 
 /** Chardev read/write operation flags */
 typedef enum {
+	/** No flags */
+	chardev_f_none = 0,
 	/** Do not block even if no bytes can be transferred */
 	chardev_f_nonblock = 0x1
 } chardev_flags_t;
