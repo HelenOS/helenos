@@ -37,6 +37,8 @@ SOURCES = \
 	csv.c \
 	params.c \
 	perf.c \
+	fs/dirread.c \
+	fs/fileread.c \
 	ipc/ns_ping.c \
 	ipc/ping_pong.c \
 	malloc/malloc1.c \

@@ -38,6 +38,8 @@
 #include "benchlist.h"
 
 benchmark_t *benchmarks[] = {
+	&bench_dir_read,
+	&bench_file_read,
 	&bench_malloc1,
 	&bench_malloc2,
 	&bench_ns_ping,

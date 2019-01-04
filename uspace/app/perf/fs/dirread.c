@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
@@ -30,25 +30,54 @@
 /** @addtogroup perf
  * @{
  */
-/** @file
+
+#include <dirent.h>
+#include <str_error.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "../benchlist.h"
+#include "../perf.h"
+#include "../params.h"
+
+/*
+ * Note that while this benchmark tries to measure speed of direct
+ * read, it rather measures speed of FS cache as it is highly probable
+ * that the corresponding blocks would be cached after first run.
  */
+static bool runner(stopwatch_t *stopwatch, uint64_t size,
+    char *error, size_t error_size)
+{
+	const char *path = bench_param_get("dirname", "/");
 
-#ifndef BENCHLIST_H_
-#define BENCHLIST_H_
+	stopwatch_start(stopwatch);
+	for (uint64_t i = 0; i < size; i++) {
+		DIR *dir = opendir(path);
+		if (dir == NULL) {
+			snprintf(error, error_size, "failed to open %s for reading: %s",
+			    path, str_error(errno));
+			return false;
+		}
 
-#include "perf.h"
+		struct dirent *dp;
+		while ((dp = readdir(dir))) {
+			/* Do nothing */
+		}
 
-extern benchmark_t bench_dir_read;
-extern benchmark_t bench_file_read;
-extern benchmark_t bench_malloc1;
-extern benchmark_t bench_malloc2;
-extern benchmark_t bench_ns_ping;
-extern benchmark_t bench_ping_pong;
+		closedir(dir);
+	}
+	stopwatch_stop(stopwatch);
 
-extern benchmark_t *benchmarks[];
-extern size_t benchmark_count;
+	return true;
+}
 
-#endif
+benchmark_t bench_dir_read = {
+	.name = "dir_read",
+	.desc = "Read contents of a directory (use 'dirname' param to alter the default).",
+	.entry = &runner,
+	.setup = NULL,
+	.teardown = NULL
+};
 
-/** @}
+/**
+ * @}
  */
