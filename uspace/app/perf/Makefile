@@ -35,6 +35,7 @@ BINARY = perf
 SOURCES = \
 	benchlist.c \
 	csv.c \
+	params.c \
 	perf.c \
 	ipc/ns_ping.c \
 	ipc/ping_pong.c \

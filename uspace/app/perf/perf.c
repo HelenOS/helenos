@@ -48,6 +48,7 @@
 #include <types/casting.h>
 #include "benchlist.h"
 #include "csv.h"
+#include "params.h"
 #include "perf.h"
 
 #define MIN_DURATION_SECS 10
@@ -298,15 +299,32 @@ static void print_usage(const char *progname)
 	    "Print this help and exit\n");
 	printf("-o, --output filename.csv  "
 	    "Store machine-readable data in filename.csv\n");
+	printf("-p, --param KEY=VALUE      "
+	    "Additional parameters for the benchmark\n");
 	printf("<benchmark> is one of the following:\n");
 	list_benchmarks();
 }
 
+static void handle_param_arg(char *arg)
+{
+	char *value = NULL;
+	char *key = str_tok(arg, "=", &value);
+	bench_param_set(key, value);
+}
+
 int main(int argc, char *argv[])
 {
-	const char *short_options = "ho:";
+	errno_t rc = bench_param_init();
+	if (rc != EOK) {
+		fprintf(stderr, "Failed to initialize internal params structure: %s\n",
+		    str_error(rc));
+		return -5;
+	}
+
+	const char *short_options = "ho:p:";
 	struct option long_options[] = {
 		{ "help", optional_argument, NULL, 'h' },
+		{ "param", required_argument, NULL, 'p' },
 		{ "output", required_argument, NULL, 'o' },
 		{ 0, 0, NULL, 0 }
 	};
@@ -321,6 +339,9 @@ int main(int argc, char *argv[])
 			return 0;
 		case 'o':
 			csv_output_filename = optarg;
+			break;
+		case 'p':
+			handle_param_arg(optarg);
 			break;
 		case -1:
 		default:
@@ -365,6 +386,7 @@ int main(int argc, char *argv[])
 	}
 
 	csv_report_close();
+	bench_param_cleanup();
 
 	return exit_code;
 }
