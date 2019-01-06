@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2009 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <ipc_test.h>
+#include <async.h>
+#include <errno.h>
+#include <str_error.h>
+#include "../benchlist.h"
+#include "../hbench.h"
 
-#ifndef PERF_H_
-#define PERF_H_
+static ipc_test_t *test = NULL;
 
-#include <stdbool.h>
-#include <perf.h>
+static bool setup(char *error, size_t error_size)
+{
+	errno_t rc = ipc_test_create(&test);
+	if (rc != EOK) {
+		snprintf(error, error_size,
+		    "failed contacting IPC test server (have you run /srv/test/ipc-test?): %s (%d)",
+		    str_error(rc), rc);
+		return false;
+	}
 
-typedef bool (*benchmark_entry_t)(stopwatch_t *, uint64_t,
-    char *, size_t);
-typedef bool (*benchmark_helper_t)(char *, size_t);
+	return true;
+}
 
-typedef struct {
-	const char *name;
-	const char *desc;
-	benchmark_entry_t entry;
-	benchmark_helper_t setup;
-	benchmark_helper_t teardown;
-} benchmark_t;
+static bool teardown(char *error, size_t error_size)
+{
+	ipc_test_destroy(test);
+	return true;
+}
 
-#endif
+static bool runner(stopwatch_t *stopwatch, uint64_t niter,
+    char *error, size_t error_size)
+{
+	stopwatch_start(stopwatch);
 
-/** @}
- */
+	for (uint64_t count = 0; count < niter; count++) {
+		errno_t rc = ipc_test_ping(test);
+
+		if (rc != EOK) {
+			snprintf(error, error_size,
+			    "failed sending ping message: %s (%d)",
+			    str_error(rc), rc);
+			return false;
+		}
+	}
+
+	stopwatch_stop(stopwatch);
+
+	return true;
+}
+
+benchmark_t bench_ping_pong = {
+	.name = "ping_pong",
+	.desc = "IPC ping-pong benchmark",
+	.entry = &runner,
+	.setup = &setup,
+	.teardown = &teardown
+};

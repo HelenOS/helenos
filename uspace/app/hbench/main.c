@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup hbench
  * @{
  */
 /**
@@ -48,8 +48,8 @@
 #include <types/casting.h>
 #include "benchlist.h"
 #include "csv.h"
+#include "hbench.h"
 #include "params.h"
-#include "perf.h"
 
 #define MIN_DURATION_SECS 10
 #define NUM_SAMPLES 10

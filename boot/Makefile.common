@@ -177,6 +177,7 @@ RD_APPS_NON_ESSENTIAL = \
 	edit \
 	fdisk \
 	gunzip \
+	hbench \
 	inet \
 	kill \
 	killall \
@@ -190,7 +191,6 @@ RD_APPS_NON_ESSENTIAL = \
 	mkext4 \
 	mkmfs \
 	nic \
-	perf \
 	sbi \
 	sportdmp \
 	redir \

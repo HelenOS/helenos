@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,33 +27,12 @@
  */
 
 #include <stdio.h>
-#include <ipc_test.h>
+#include <ns.h>
 #include <async.h>
 #include <errno.h>
 #include <str_error.h>
 #include "../benchlist.h"
-#include "../perf.h"
-
-static ipc_test_t *test = NULL;
-
-static bool setup(char *error, size_t error_size)
-{
-	errno_t rc = ipc_test_create(&test);
-	if (rc != EOK) {
-		snprintf(error, error_size,
-		    "failed contacting IPC test server (have you run /srv/test/ipc-test?): %s (%d)",
-		    str_error(rc), rc);
-		return false;
-	}
-
-	return true;
-}
-
-static bool teardown(char *error, size_t error_size)
-{
-	ipc_test_destroy(test);
-	return true;
-}
+#include "../hbench.h"
 
 static bool runner(stopwatch_t *stopwatch, uint64_t niter,
     char *error, size_t error_size)
@@ -61,7 +40,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t niter,
 	stopwatch_start(stopwatch);
 
 	for (uint64_t count = 0; count < niter; count++) {
-		errno_t rc = ipc_test_ping(test);
+		errno_t rc = ns_ping();
 
 		if (rc != EOK) {
 			snprintf(error, error_size,
@@ -76,10 +55,10 @@ static bool runner(stopwatch_t *stopwatch, uint64_t niter,
 	return true;
 }
 
-benchmark_t bench_ping_pong = {
-	.name = "ping_pong",
-	.desc = "IPC ping-pong benchmark",
+benchmark_t bench_ns_ping = {
+	.name = "ns_ping",
+	.desc = "Name service IPC ping-pong benchmark",
 	.entry = &runner,
-	.setup = &setup,
-	.teardown = &teardown
+	.setup = NULL,
+	.teardown = NULL
 };

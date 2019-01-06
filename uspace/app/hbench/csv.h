@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
- * Copyright (c) 2018 Vojtech Horky
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,26 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup hbench
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#include <stdlib.h>
-#include "benchlist.h"
+#ifndef CSV_H_
+#define CSV_H_
 
-benchmark_t *benchmarks[] = {
-	&bench_dir_read,
-	&bench_file_read,
-	&bench_malloc1,
-	&bench_malloc2,
-	&bench_ns_ping,
-	&bench_ping_pong
-};
+#include <errno.h>
+#include <stdio.h>
+#include <perf.h>
+#include "hbench.h"
 
-size_t benchmark_count = sizeof(benchmarks) / sizeof(benchmarks[0]);
+extern errno_t csv_report_open(const char *);
+extern void csv_report_add_entry(stopwatch_t *, int, benchmark_t *, uint64_t);
+extern void csv_report_close(void);
+
+#endif
 
 /** @}
  */

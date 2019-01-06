@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,68 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup hbench
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#include <stdlib.h>
-#include "csv.h"
+#ifndef HBENCH_H_
+#define HBENCH_H_
 
-static FILE *csv_output = NULL;
+#include <stdbool.h>
+#include <perf.h>
 
-/** Open CSV benchmark report.
- *
- * @param filename Filename where to store the CSV.
- * @return Whether it was possible to open the file.
- */
-errno_t csv_report_open(const char *filename)
-{
-	csv_output = fopen(filename, "w");
-	if (csv_output == NULL) {
-		return errno;
-	}
+typedef bool (*benchmark_entry_t)(stopwatch_t *, uint64_t,
+    char *, size_t);
+typedef bool (*benchmark_helper_t)(char *, size_t);
 
-	fprintf(csv_output, "benchmark,run,size,duration_nanos\n");
+typedef struct {
+	const char *name;
+	const char *desc;
+	benchmark_entry_t entry;
+	benchmark_helper_t setup;
+	benchmark_helper_t teardown;
+} benchmark_t;
 
-	return EOK;
-}
-
-/** Add one entry to the report.
- *
- * When csv_report_open() was not called or failed, the function does
- * nothing.
- *
- * @param stopwatch Performance data of the entry.
- * @param run_index Run index, use negative values for warm-up.
- * @param bench Benchmark information.
- * @param workload_size Workload size.
- */
-void csv_report_add_entry(stopwatch_t *stopwatch, int run_index,
-    benchmark_t *bench, uint64_t workload_size)
-{
-	if (csv_output == NULL) {
-		return;
-	}
-
-	fprintf(csv_output, "%s,%d,%" PRIu64 ",%lld\n",
-	    bench->name, run_index, workload_size,
-	    (long long) stopwatch_get_nanos(stopwatch));
-}
-
-/** Close CSV report.
- *
- * When csv_report_open() was not called or failed, the function does
- * nothing.
- */
-void csv_report_close(void)
-{
-	if (csv_output != NULL) {
-		fclose(csv_output);
-	}
-}
+#endif
 
 /** @}
  */

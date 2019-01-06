@@ -30,13 +30,13 @@ USPACE_PREFIX = ../..
 
 LIBS = math
 
-BINARY = perf
+BINARY = hbench
 
 SOURCES = \
 	benchlist.c \
 	csv.c \
+	main.c \
 	params.c \
-	perf.c \
 	fs/dirread.c \
 	fs/fileread.c \
 	ipc/ns_ping.c \

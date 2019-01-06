@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2019 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2018 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +27,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup hbench
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef PARAMS_H_
-#define PARAMS_H_
+#include <stdlib.h>
+#include "benchlist.h"
 
-extern errno_t bench_param_init(void);
-extern errno_t bench_param_set(const char *, const char *);
-extern const char *bench_param_get(const char *, const char *);
-extern void bench_param_cleanup(void);
+benchmark_t *benchmarks[] = {
+	&bench_dir_read,
+	&bench_file_read,
+	&bench_malloc1,
+	&bench_malloc2,
+	&bench_ns_ping,
+	&bench_ping_pong
+};
 
-#endif
+size_t benchmark_count = sizeof(benchmarks) / sizeof(benchmarks[0]);
 
 /** @}
  */

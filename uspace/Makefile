@@ -49,6 +49,7 @@ DIRS = \
 	app/fontviewer \
 	app/getterm \
 	app/gunzip \
+	app/hbench \
 	app/init \
 	app/inet \
 	app/kill \
@@ -66,7 +67,6 @@ DIRS = \
 	app/netecho \
 	app/nterm \
 	app/pci \
-	app/perf \
 	app/redir \
 	app/sbi \
 	app/sportdmp \

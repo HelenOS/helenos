@@ -26,38 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <math.h>
 #include <stdio.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
-#include <str_error.h>
+#include <stdlib.h>
 #include "../benchlist.h"
-#include "../perf.h"
+#include "../hbench.h"
 
-static bool runner(stopwatch_t *stopwatch, uint64_t niter,
+static bool runner(stopwatch_t *stopwatch, uint64_t size,
     char *error, size_t error_size)
 {
 	stopwatch_start(stopwatch);
-
-	for (uint64_t count = 0; count < niter; count++) {
-		errno_t rc = ns_ping();
-
-		if (rc != EOK) {
+	for (uint64_t i = 0; i < size; i++) {
+		void *p = malloc(1);
+		if (p == NULL) {
 			snprintf(error, error_size,
-			    "failed sending ping message: %s (%d)",
-			    str_error(rc), rc);
+			    "failed to allocate 1B in run %" PRIu64 " (out of %" PRIu64 ")",
+			    i, size);
 			return false;
 		}
+		free(p);
 	}
-
 	stopwatch_stop(stopwatch);
 
 	return true;
 }
 
-benchmark_t bench_ns_ping = {
-	.name = "ns_ping",
-	.desc = "Name service IPC ping-pong benchmark",
+benchmark_t bench_malloc1 = {
+	.name = "malloc1",
+	.desc = "User-space memory allocator benchmark, repeatedly allocate one block",
 	.entry = &runner,
 	.setup = NULL,
 	.teardown = NULL

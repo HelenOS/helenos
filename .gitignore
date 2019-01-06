@@ -105,6 +105,7 @@ uspace/app/fdisk/fdisk
 uspace/app/fontviewer/fontviewer
 uspace/app/getterm/getterm
 uspace/app/gunzip/gunzip
+uspace/app/hbench/hbench
 uspace/app/inet/inet
 uspace/app/init/init
 uspace/app/init/init.gz
@@ -129,7 +130,6 @@ uspace/app/nettest3/nettest3
 uspace/app/nic/nic
 uspace/app/nterm/nterm
 uspace/app/pci/pci
-uspace/app/perf/perf
 uspace/app/ping/ping
 uspace/app/ping6/ping6
 uspace/app/pkg/pkg

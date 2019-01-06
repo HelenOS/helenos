@@ -26,23 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup hbench
  * @{
  */
 /** @file
  */
 
-#ifndef CSV_H_
-#define CSV_H_
+#ifndef PARAMS_H_
+#define PARAMS_H_
 
-#include <errno.h>
-#include <stdio.h>
-#include <perf.h>
-#include "perf.h"
-
-extern errno_t csv_report_open(const char *);
-extern void csv_report_add_entry(stopwatch_t *, int, benchmark_t *, uint64_t);
-extern void csv_report_close(void);
+extern errno_t bench_param_init(void);
+extern errno_t bench_param_set(const char *, const char *);
+extern const char *bench_param_get(const char *, const char *);
+extern void bench_param_cleanup(void);
 
 #endif
 

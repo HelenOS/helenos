@@ -1,5 +1,5 @@
-/** @addtogroup perf perf
- * @brief User space performance measuring tool
+/** @addtogroup hbench hbench
+ * @brief HelenOS user space benchmarks
  * @ingroup apps
  *
  * @details

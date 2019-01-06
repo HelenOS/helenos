@@ -27,78 +27,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup perf
+/** @addtogroup hbench
  * @{
  */
 
+#include <dirent.h>
 #include <str_error.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "../benchlist.h"
-#include "../perf.h"
+#include "../hbench.h"
 #include "../params.h"
 
-#define BUFFER_SIZE 4096
-
 /*
- * Note that while this benchmark tries to measure speed of file reading,
- * it rather measures speed of FS cache as it is highly probable that the
- * corresponding blocks would be cached after first run.
+ * Note that while this benchmark tries to measure speed of direct
+ * read, it rather measures speed of FS cache as it is highly probable
+ * that the corresponding blocks would be cached after first run.
  */
 static bool runner(stopwatch_t *stopwatch, uint64_t size,
     char *error, size_t error_size)
 {
-	const char *path = bench_param_get("filename", "/data/web/helenos.png");
-
-	char *buf = malloc(BUFFER_SIZE);
-	if (buf == NULL) {
-		snprintf(error, error_size, "failed to allocate %dB buffer", BUFFER_SIZE);
-		return false;
-	}
-
-	bool ret = true;
-
-	FILE *file = fopen(path, "r");
-	if (file == NULL) {
-		snprintf(error, error_size, "failed to open %s for reading: %s",
-		    path, str_error(errno));
-		ret = false;
-		goto leave_free_buf;
-	}
+	const char *path = bench_param_get("dirname", "/");
 
 	stopwatch_start(stopwatch);
 	for (uint64_t i = 0; i < size; i++) {
-		int rc = fseek(file, 0, SEEK_SET);
-		if (rc != 0) {
-			snprintf(error, error_size, "failed to rewind %s: %s",
+		DIR *dir = opendir(path);
+		if (dir == NULL) {
+			snprintf(error, error_size, "failed to open %s for reading: %s",
 			    path, str_error(errno));
-			ret = false;
-			goto leave_close;
+			return false;
 		}
-		while (!feof(file)) {
-			fread(buf, 1, BUFFER_SIZE, file);
-			if (ferror(file)) {
-				snprintf(error, error_size, "failed to read from %s: %s",
-				    path, str_error(errno));
-				ret = false;
-				goto leave_close;
-			}
+
+		struct dirent *dp;
+		while ((dp = readdir(dir))) {
+			/* Do nothing */
 		}
+
+		closedir(dir);
 	}
 	stopwatch_stop(stopwatch);
 
-leave_close:
-	fclose(file);
-
-leave_free_buf:
-	free(buf);
-
-	return ret;
+	return true;
 }
 
-benchmark_t bench_file_read = {
-	.name = "file_read",
-	.desc = "Sequentially read contents of a file (use 'filename' param to alter the default).",
+benchmark_t bench_dir_read = {
+	.name = "dir_read",
+	.desc = "Read contents of a directory (use 'dirname' param to alter the default).",
 	.entry = &runner,
 	.setup = NULL,
 	.teardown = NULL

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <math.h>
-#include <stdio.h>
+/** @addtogroup hbench
+ * @{
+ */
+/**
+ * @file
+ */
+
 #include <stdlib.h>
-#include "../benchlist.h"
-#include "../perf.h"
+#include "csv.h"
 
-static bool runner(stopwatch_t *stopwatch, uint64_t size,
-    char *error, size_t error_size)
+static FILE *csv_output = NULL;
+
+/** Open CSV benchmark report.
+ *
+ * @param filename Filename where to store the CSV.
+ * @return Whether it was possible to open the file.
+ */
+errno_t csv_report_open(const char *filename)
 {
-	stopwatch_start(stopwatch);
-	for (uint64_t i = 0; i < size; i++) {
-		void *p = malloc(1);
-		if (p == NULL) {
-			snprintf(error, error_size,
-			    "failed to allocate 1B in run %" PRIu64 " (out of %" PRIu64 ")",
-			    i, size);
-			return false;
-		}
-		free(p);
+	csv_output = fopen(filename, "w");
+	if (csv_output == NULL) {
+		return errno;
 	}
-	stopwatch_stop(stopwatch);
 
-	return true;
+	fprintf(csv_output, "benchmark,run,size,duration_nanos\n");
+
+	return EOK;
 }
 
-benchmark_t bench_malloc1 = {
-	.name = "malloc1",
-	.desc = "User-space memory allocator benchmark, repeatedly allocate one block",
-	.entry = &runner,
-	.setup = NULL,
-	.teardown = NULL
-};
+/** Add one entry to the report.
+ *
+ * When csv_report_open() was not called or failed, the function does
+ * nothing.
+ *
+ * @param stopwatch Performance data of the entry.
+ * @param run_index Run index, use negative values for warm-up.
+ * @param bench Benchmark information.
+ * @param workload_size Workload size.
+ */
+void csv_report_add_entry(stopwatch_t *stopwatch, int run_index,
+    benchmark_t *bench, uint64_t workload_size)
+{
+	if (csv_output == NULL) {
+		return;
+	}
+
+	fprintf(csv_output, "%s,%d,%" PRIu64 ",%lld\n",
+	    bench->name, run_index, workload_size,
+	    (long long) stopwatch_get_nanos(stopwatch));
+}
+
+/** Close CSV report.
+ *
+ * When csv_report_open() was not called or failed, the function does
+ * nothing.
+ */
+void csv_report_close(void)
+{
+	if (csv_output != NULL) {
+		fclose(csv_output);
+	}
+}
+
+/** @}
+ */

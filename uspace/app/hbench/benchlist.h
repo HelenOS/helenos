@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,52 +27,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "../benchlist.h"
-#include "../perf.h"
+/** @addtogroup hbench
+ * @{
+ */
+/** @file
+ */
 
-static bool runner(stopwatch_t *stopwatch, uint64_t niter,
-    char *error, size_t error_size)
-{
-	stopwatch_start(stopwatch);
+#ifndef BENCHLIST_H_
+#define BENCHLIST_H_
 
-	void **p = malloc(niter * sizeof(void *));
-	if (p == NULL) {
-		snprintf(error, error_size,
-		    "failed to allocate backend array (%" PRIu64 "B)",
-		    niter * sizeof(void *));
-		return false;
-	}
+#include "hbench.h"
 
-	for (uint64_t count = 0; count < niter; count++) {
-		p[count] = malloc(1);
-		if (p[count] == NULL) {
-			snprintf(error, error_size,
-			    "failed to allocate 1B in run %" PRIu64 " (out of %" PRIu64 ")",
-			    count, niter);
-			for (uint64_t j = 0; j < count; j++) {
-				free(p[j]);
-			}
-			free(p);
-			return false;
-		}
-	}
+extern benchmark_t bench_dir_read;
+extern benchmark_t bench_file_read;
+extern benchmark_t bench_malloc1;
+extern benchmark_t bench_malloc2;
+extern benchmark_t bench_ns_ping;
+extern benchmark_t bench_ping_pong;
 
-	for (uint64_t count = 0; count < niter; count++)
-		free(p[count]);
+extern benchmark_t *benchmarks[];
+extern size_t benchmark_count;
 
-	free(p);
+#endif
 
-	stopwatch_stop(stopwatch);
-
-	return true;
-}
-
-benchmark_t bench_malloc2 = {
-	.name = "malloc2",
-	.desc = "User-space memory allocator benchmark, allocate many small blocks",
-	.entry = &runner,
-	.setup = NULL,
-	.teardown = NULL
-};
+/** @}
+ */
