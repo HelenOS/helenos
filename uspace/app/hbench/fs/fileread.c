@@ -94,7 +94,7 @@ leave_free_buf:
 	return ret;
 }
 
-benchmark_t bench_file_read = {
+benchmark_t benchmark_file_read = {
 	.name = "file_read",
 	.desc = "Sequentially read contents of a file (use 'filename' param to alter the default).",
 	.entry = &runner,

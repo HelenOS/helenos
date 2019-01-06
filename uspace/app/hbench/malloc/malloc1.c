@@ -54,7 +54,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t size,
 	return true;
 }
 
-benchmark_t bench_malloc1 = {
+benchmark_t benchmark_malloc1 = {
 	.name = "malloc1",
 	.desc = "User-space memory allocator benchmark, repeatedly allocate one block",
 	.entry = &runner,

@@ -79,7 +79,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t niter,
 	return true;
 }
 
-benchmark_t bench_ping_pong = {
+benchmark_t benchmark_ping_pong = {
 	.name = "ping_pong",
 	.desc = "IPC ping-pong benchmark",
 	.entry = &runner,

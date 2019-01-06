@@ -65,12 +65,12 @@ extern const char *bench_param_get(const char *, const char *);
 extern void bench_param_cleanup(void);
 
 /* Put your benchmark descriptors here (and also to benchlist.c). */
-extern benchmark_t bench_dir_read;
-extern benchmark_t bench_file_read;
-extern benchmark_t bench_malloc1;
-extern benchmark_t bench_malloc2;
-extern benchmark_t bench_ns_ping;
-extern benchmark_t bench_ping_pong;
+extern benchmark_t benchmark_dir_read;
+extern benchmark_t benchmark_file_read;
+extern benchmark_t benchmark_malloc1;
+extern benchmark_t benchmark_malloc2;
+extern benchmark_t benchmark_ns_ping;
+extern benchmark_t benchmark_ping_pong;
 
 #endif
 

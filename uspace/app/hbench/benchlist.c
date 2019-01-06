@@ -38,12 +38,12 @@
 #include "hbench.h"
 
 benchmark_t *benchmarks[] = {
-	&bench_dir_read,
-	&bench_file_read,
-	&bench_malloc1,
-	&bench_malloc2,
-	&bench_ns_ping,
-	&bench_ping_pong
+	&benchmark_dir_read,
+	&benchmark_file_read,
+	&benchmark_malloc1,
+	&benchmark_malloc2,
+	&benchmark_ns_ping,
+	&benchmark_ping_pong
 };
 
 size_t benchmark_count = sizeof(benchmarks) / sizeof(benchmarks[0]);

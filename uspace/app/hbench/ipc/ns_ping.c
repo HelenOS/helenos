@@ -58,7 +58,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t niter,
 	return true;
 }
 
-benchmark_t bench_ns_ping = {
+benchmark_t benchmark_ns_ping = {
 	.name = "ns_ping",
 	.desc = "Name service IPC ping-pong benchmark",
 	.entry = &runner,

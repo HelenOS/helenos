@@ -68,7 +68,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t size,
 	return true;
 }
 
-benchmark_t bench_dir_read = {
+benchmark_t benchmark_dir_read = {
 	.name = "dir_read",
 	.desc = "Read contents of a directory (use 'dirname' param to alter the default).",
 	.entry = &runner,
