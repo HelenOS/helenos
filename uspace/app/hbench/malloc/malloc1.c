@@ -29,7 +29,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../benchlist.h"
 #include "../hbench.h"
 
 static bool runner(stopwatch_t *stopwatch, uint64_t size,

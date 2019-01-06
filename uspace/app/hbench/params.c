@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <str.h>
-#include "params.h"
+#include "hbench.h"
 
 typedef struct {
 	ht_link_t link;

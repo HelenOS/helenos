@@ -35,9 +35,7 @@
 #include <str_error.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../benchlist.h"
 #include "../hbench.h"
-#include "../params.h"
 
 /*
  * Note that while this benchmark tries to measure speed of direct

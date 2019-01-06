@@ -35,7 +35,7 @@
  */
 
 #include <stdlib.h>
-#include "benchlist.h"
+#include "hbench.h"
 
 benchmark_t *benchmarks[] = {
 	&bench_dir_read,

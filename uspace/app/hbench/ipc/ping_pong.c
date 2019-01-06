@@ -31,7 +31,6 @@
 #include <async.h>
 #include <errno.h>
 #include <str_error.h>
-#include "../benchlist.h"
 #include "../hbench.h"
 
 static ipc_test_t *test = NULL;

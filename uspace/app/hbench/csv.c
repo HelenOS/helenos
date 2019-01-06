@@ -34,7 +34,8 @@
  */
 
 #include <stdlib.h>
-#include "csv.h"
+#include <stdio.h>
+#include "hbench.h"
 
 static FILE *csv_output = NULL;
 

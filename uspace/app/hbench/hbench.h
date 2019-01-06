@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 #ifndef HBENCH_H_
 #define HBENCH_H_
 
+#include <errno.h>
 #include <stdbool.h>
 #include <perf.h>
 
@@ -49,6 +51,26 @@ typedef struct {
 	benchmark_helper_t setup;
 	benchmark_helper_t teardown;
 } benchmark_t;
+
+extern benchmark_t *benchmarks[];
+extern size_t benchmark_count;
+
+extern errno_t csv_report_open(const char *);
+extern void csv_report_add_entry(stopwatch_t *, int, benchmark_t *, uint64_t);
+extern void csv_report_close(void);
+
+extern errno_t bench_param_init(void);
+extern errno_t bench_param_set(const char *, const char *);
+extern const char *bench_param_get(const char *, const char *);
+extern void bench_param_cleanup(void);
+
+/* Put your benchmark descriptors here (and also to benchlist.c). */
+extern benchmark_t bench_dir_read;
+extern benchmark_t bench_file_read;
+extern benchmark_t bench_malloc1;
+extern benchmark_t bench_malloc2;
+extern benchmark_t bench_ns_ping;
+extern benchmark_t bench_ping_pong;
 
 #endif
 

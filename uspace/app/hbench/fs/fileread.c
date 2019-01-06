@@ -34,9 +34,7 @@
 #include <str_error.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../benchlist.h"
 #include "../hbench.h"
-#include "../params.h"
 
 #define BUFFER_SIZE 4096
 

@@ -28,7 +28,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "../benchlist.h"
 #include "../hbench.h"
 
 static bool runner(stopwatch_t *stopwatch, uint64_t niter,
