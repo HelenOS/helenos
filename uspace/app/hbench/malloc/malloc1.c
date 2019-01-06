@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup hbench
+ * @{
+ */
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,3 +61,6 @@ benchmark_t bench_malloc1 = {
 	.setup = NULL,
 	.teardown = NULL
 };
+
+/** @}
+ */

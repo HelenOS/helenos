@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup hbench
+ * @{
+ */
+
 #include <stdio.h>
 #include <ns.h>
 #include <async.h>
@@ -61,3 +65,6 @@ benchmark_t bench_ns_ping = {
 	.setup = NULL,
 	.teardown = NULL
 };
+
+/** @}
+ */

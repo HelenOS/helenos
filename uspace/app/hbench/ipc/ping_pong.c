@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup hbench
+ * @{
+ */
+
 #include <stdio.h>
 #include <ipc_test.h>
 #include <async.h>
@@ -82,3 +86,6 @@ benchmark_t bench_ping_pong = {
 	.setup = &setup,
 	.teardown = &teardown
 };
+
+/** @}
+ */
