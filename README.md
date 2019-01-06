@@ -1,5 +1,7 @@
 # HelenOS
 
+![screenshot](http://www.helenos.org/chrome/site/screenshot.png "Screenshot")
+
 HelenOS is a portable microkernel-based multiserver operating
 system designed and implemented from scratch. It decomposes key
 operating system functionality such as file systems, networking,
