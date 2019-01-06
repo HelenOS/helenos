@@ -392,6 +392,8 @@ static void ofw_tree_node_sysinfo(ofw_tree_node_t *node, const char *path)
 	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
 		if ((cur->parent) && (path))
 			snprintf(cur_path, PATH_MAX_LEN, "%s.%s", path, cur->da_name);
+		else if (!str_size(cur->da_name))
+			snprintf(cur_path, PATH_MAX_LEN, "firmware.ofw");
 		else
 			snprintf(cur_path, PATH_MAX_LEN, "firmware.%s", cur->da_name);
 
