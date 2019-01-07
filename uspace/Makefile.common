@@ -299,6 +299,10 @@ DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename
 LIBTAGS := $(foreach lib,$(LIBS), $(USPACE_PREFIX)/lib/$(lib)/tag)
 LIBARGS := $(addprefix -L$(USPACE_PREFIX)/lib/, $(LIBS)) $(addprefix -l, $(LIBS))
 
+ifneq ($(LIBRARY),libc)
+	LIBTAGS := $(LIBC_PREFIX)/tag $(LIBTAGS)
+endif
+
 .PHONY: all all-test clean fasterclean depend
 
 all: tag $(OUTPUTS)
@@ -368,7 +372,7 @@ tag: $(SLIBRARY)
 $(LIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 
-$(SLIBRARY): $(LIBRARY).la
+$(SLIBRARY): $(LIBRARY).la $(LIBTAGS)
 	$(CC) $(CFLAGS) $(LIB_LDFLAGS) $(EXTRA_LDFLAGS) -Wl,-Map,$@.map -o $@ -Wl,--whole-archive $(LIBRARY).la -Wl,--no-whole-archive $(LIBARGS) $(BASE_LIBS)
 
 $(LSONAME):
