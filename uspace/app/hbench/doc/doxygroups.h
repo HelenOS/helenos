@@ -18,8 +18,9 @@
  * Fill-in the name of the benchmark, its description and a reference to the
  * benchmark function to the benchmark_t.
  *
- * The benchmarking function has to accept for arguments:
- *  @li stopwatch_t: store the measured data there
+ * The benchmarking function has to accept four arguments:
+ *  @li benchmeter_t: call benchmeter_start and benchmeter_stop around the
+ *      actual benchmarking code
  *  @li uint64_t: size of the workload - typically number of inner loops in
  *      your benchmark (used to self-calibrate benchmark size)
  *  @li char * and size_t giving you access to buffer for storing error message
@@ -27,14 +28,14 @@
  *
  * Typically, the structure of the function is following:
  * @code{c}
- * static bool runner(stopwatch_t *stopwatch, uint64_t size,
+ * static bool runner(benchmeter_t *meter, uint64_t size,
  *     char *error, size_t error_size)
  * {
- * 	stopwatch_start(stopwatch);
+ * 	benchmeter_start(meter);
  * 	for (uint64_t i = 0; i < size; i++) {
  * 		// measured action
  * 	}
- * 	stopwatch_stop(stopwatch);
+ * 	benchmeter_stop(meter);
  *
  * 	return true;
  * }

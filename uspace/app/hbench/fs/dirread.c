@@ -42,12 +42,12 @@
  * read, it rather measures speed of FS cache as it is highly probable
  * that the corresponding blocks would be cached after first run.
  */
-static bool runner(stopwatch_t *stopwatch, uint64_t size,
+static bool runner(benchmeter_t *meter, uint64_t size,
     char *error, size_t error_size)
 {
 	const char *path = bench_param_get("dirname", "/");
 
-	stopwatch_start(stopwatch);
+	benchmeter_start(meter);
 	for (uint64_t i = 0; i < size; i++) {
 		DIR *dir = opendir(path);
 		if (dir == NULL) {
@@ -63,7 +63,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t size,
 
 		closedir(dir);
 	}
-	stopwatch_stop(stopwatch);
+	benchmeter_stop(meter);
 
 	return true;
 }

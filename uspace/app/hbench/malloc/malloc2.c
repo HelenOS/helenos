@@ -34,10 +34,10 @@
 #include <stdio.h>
 #include "../hbench.h"
 
-static bool runner(stopwatch_t *stopwatch, uint64_t niter,
+static bool runner(benchmeter_t *meter, uint64_t niter,
     char *error, size_t error_size)
 {
-	stopwatch_start(stopwatch);
+	benchmeter_start(meter);
 
 	void **p = malloc(niter * sizeof(void *));
 	if (p == NULL) {
@@ -66,7 +66,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t niter,
 
 	free(p);
 
-	stopwatch_stop(stopwatch);
+	benchmeter_stop(meter);
 
 	return true;
 }

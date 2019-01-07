@@ -52,17 +52,17 @@
 #define NUM_SAMPLES 10
 #define MAX_ERROR_STR_LENGTH 1024
 
-static void short_report(stopwatch_t *stopwatch, int run_index,
+static void short_report(benchmeter_t *meter, int run_index,
     benchmark_t *bench, uint64_t workload_size)
 {
-	csv_report_add_entry(stopwatch, run_index, bench, workload_size);
+	csv_report_add_entry(meter, run_index, bench, workload_size);
 
-	usec_t duration_usec = NSEC2USEC(stopwatch_get_nanos(stopwatch));
+	usec_t duration_usec = NSEC2USEC(stopwatch_get_nanos(&meter->stopwatch));
 
 	printf("Completed %" PRIu64 " operations in %llu us",
 	    workload_size, duration_usec);
 	if (duration_usec > 0) {
-		double nanos = stopwatch_get_nanos(stopwatch);
+		double nanos = stopwatch_get_nanos(&meter->stopwatch);
 		double thruput = (double) workload_size / (nanos / 1000000000.0l);
 		printf(", %.0f ops/s.\n", thruput);
 	} else {
@@ -105,7 +105,7 @@ static double estimate_square_root(double value, double precision)
  * throughput is 3 ops/s (which is exactly what geometric mean means).
  *
  */
-static void compute_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
+static void compute_stats(benchmeter_t *meter, size_t stopwatch_count,
     uint64_t workload_size, double precision, double *out_duration_avg,
     double *out_duration_sigma, double *out_thruput_avg)
 {
@@ -114,7 +114,7 @@ static void compute_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
 	double nanos_sum2 = 0.0;
 
 	for (size_t i = 0; i < stopwatch_count; i++) {
-		double nanos = stopwatch_get_nanos(&stopwatch[i]);
+		double nanos = stopwatch_get_nanos(&meter[i].stopwatch);
 		double thruput = (double) workload_size / nanos;
 
 		inv_thruput_sum += 1.0 / thruput;
@@ -129,17 +129,17 @@ static void compute_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
 	*out_thruput_avg = 1.0 / (inv_thruput_sum / stopwatch_count);
 }
 
-static void summary_stats(stopwatch_t *stopwatch, size_t stopwatch_count,
+static void summary_stats(benchmeter_t *meter, size_t meter_count,
     benchmark_t *bench, uint64_t workload_size)
 {
 	double duration_avg, duration_sigma, thruput_avg;
-	compute_stats(stopwatch, stopwatch_count, workload_size, 0.001,
+	compute_stats(meter, meter_count, workload_size, 0.001,
 	    &duration_avg, &duration_sigma, &thruput_avg);
 
 	printf("Average: %" PRIu64 " ops in %.0f us (sd %.0f us); "
 	    "%.0f ops/s; Samples: %zu\n",
 	    workload_size, duration_avg / 1000.0, duration_sigma / 1000.0,
-	    thruput_avg * 1000000000.0, stopwatch_count);
+	    thruput_avg * 1000000000.0, meter_count);
 }
 
 static bool run_benchmark(benchmark_t *bench)
@@ -174,16 +174,17 @@ static bool run_benchmark(benchmark_t *bench)
 		}
 		workload_size = ((uint64_t) 1) << bits;
 
-		stopwatch_t stopwatch = STOPWATCH_INITIALIZE_STATIC;
+		benchmeter_t meter;
+		benchmeter_init(&meter);
 
-		bool ok = bench->entry(&stopwatch, workload_size,
+		bool ok = bench->entry(&meter, workload_size,
 		    error_msg, MAX_ERROR_STR_LENGTH);
 		if (!ok) {
 			goto leave_error;
 		}
-		short_report(&stopwatch, -1, bench, workload_size);
+		short_report(&meter, -1, bench, workload_size);
 
-		nsec_t duration = stopwatch_get_nanos(&stopwatch);
+		nsec_t duration = stopwatch_get_nanos(&meter.stopwatch);
 		if (duration > SEC2NSEC(MIN_DURATION_SECS)) {
 			break;
 		}
@@ -191,27 +192,27 @@ static bool run_benchmark(benchmark_t *bench)
 
 	printf("Workload size set to %" PRIu64 ", measuring %d samples.\n", workload_size, NUM_SAMPLES);
 
-	stopwatch_t *stopwatch = calloc(NUM_SAMPLES, sizeof(stopwatch_t));
-	if (stopwatch == NULL) {
+	benchmeter_t *meter = calloc(NUM_SAMPLES, sizeof(benchmeter_t));
+	if (meter == NULL) {
 		snprintf(error_msg, MAX_ERROR_STR_LENGTH, "failed allocating memory");
 		goto leave_error;
 	}
 	for (int i = 0; i < NUM_SAMPLES; i++) {
-		stopwatch_init(&stopwatch[i]);
+		benchmeter_init(&meter[i]);
 
-		bool ok = bench->entry(&stopwatch[i], workload_size,
+		bool ok = bench->entry(&meter[i], workload_size,
 		    error_msg, MAX_ERROR_STR_LENGTH);
 		if (!ok) {
-			free(stopwatch);
+			free(meter);
 			goto leave_error;
 		}
-		short_report(&stopwatch[i], i, bench, workload_size);
+		short_report(&meter[i], i, bench, workload_size);
 	}
 
-	summary_stats(stopwatch, NUM_SAMPLES, bench, workload_size);
+	summary_stats(meter, NUM_SAMPLES, bench, workload_size);
 	printf("\nBenchmark completed\n");
 
-	free(stopwatch);
+	free(meter);
 
 	goto leave;
 

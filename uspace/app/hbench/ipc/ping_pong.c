@@ -58,10 +58,10 @@ static bool teardown(char *error, size_t error_size)
 	return true;
 }
 
-static bool runner(stopwatch_t *stopwatch, uint64_t niter,
+static bool runner(benchmeter_t *meter, uint64_t niter,
     char *error, size_t error_size)
 {
-	stopwatch_start(stopwatch);
+	benchmeter_start(meter);
 
 	for (uint64_t count = 0; count < niter; count++) {
 		errno_t rc = ipc_test_ping(test);
@@ -74,7 +74,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t niter,
 		}
 	}
 
-	stopwatch_stop(stopwatch);
+	benchmeter_stop(meter);
 
 	return true;
 }

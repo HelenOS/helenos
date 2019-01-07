@@ -40,7 +40,31 @@
 #include <stdbool.h>
 #include <perf.h>
 
-typedef bool (*benchmark_entry_t)(stopwatch_t *, uint64_t,
+/*
+ * So far, a simple wrapper around system stopwatch.
+ * Eventually, we could collection of hardware counters etc. without
+ * modifying signatures of any existing benchmark.
+ */
+typedef struct {
+	stopwatch_t stopwatch;
+} benchmeter_t;
+
+static inline void benchmeter_init(benchmeter_t *meter)
+{
+	stopwatch_init(&meter->stopwatch);
+}
+
+static inline void benchmeter_start(benchmeter_t *meter)
+{
+	stopwatch_start(&meter->stopwatch);
+}
+
+static inline void benchmeter_stop(benchmeter_t *meter)
+{
+	stopwatch_stop(&meter->stopwatch);
+}
+
+typedef bool (*benchmark_entry_t)(benchmeter_t *, uint64_t,
     char *, size_t);
 typedef bool (*benchmark_helper_t)(char *, size_t);
 
@@ -56,7 +80,7 @@ extern benchmark_t *benchmarks[];
 extern size_t benchmark_count;
 
 extern errno_t csv_report_open(const char *);
-extern void csv_report_add_entry(stopwatch_t *, int, benchmark_t *, uint64_t);
+extern void csv_report_add_entry(benchmeter_t *, int, benchmark_t *, uint64_t);
 extern void csv_report_close(void);
 
 extern errno_t bench_param_init(void);

@@ -43,7 +43,7 @@
  * it rather measures speed of FS cache as it is highly probable that the
  * corresponding blocks would be cached after first run.
  */
-static bool runner(stopwatch_t *stopwatch, uint64_t size,
+static bool runner(benchmeter_t *meter, uint64_t size,
     char *error, size_t error_size)
 {
 	const char *path = bench_param_get("filename", "/data/web/helenos.png");
@@ -64,7 +64,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t size,
 		goto leave_free_buf;
 	}
 
-	stopwatch_start(stopwatch);
+	benchmeter_start(meter);
 	for (uint64_t i = 0; i < size; i++) {
 		int rc = fseek(file, 0, SEEK_SET);
 		if (rc != 0) {
@@ -83,7 +83,7 @@ static bool runner(stopwatch_t *stopwatch, uint64_t size,
 			}
 		}
 	}
-	stopwatch_stop(stopwatch);
+	benchmeter_stop(meter);
 
 leave_close:
 	fclose(file);
