@@ -419,8 +419,11 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	seg_addr = entry->p_vaddr + bias;
 	seg_ptr = (void *) seg_addr;
 
-	DPRINTF("Load segment at addr %p, size 0x%zx\n", (void *) seg_addr,
-	    entry->p_memsz);
+	DPRINTF("Load segment at addr %p, size 0x%zx, flags %c%c%c\n", (void *) seg_addr,
+	    entry->p_memsz,
+	    (entry->p_flags & PF_R) ? 'r' : '-',
+	    (entry->p_flags & PF_W) ? 'w' : '-',
+	    (entry->p_flags & PF_X) ? 'x' : '-');
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
@@ -483,7 +486,9 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	if ((elf->flags & ELDF_RW) != 0)
 		return EE_OK;
 
-	rc = as_area_change_flags(seg_ptr, flags);
+	DPRINTF("as_area_change_flags(%p, %x)\n",
+	    (uint8_t *) base + bias, flags);
+	rc = as_area_change_flags((uint8_t *) base + bias, flags);
 	if (rc != EOK) {
 		DPRINTF("Failed to set memory area flags.\n");
 		return EE_MEMORY;
