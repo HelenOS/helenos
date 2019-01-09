@@ -93,8 +93,12 @@ RD_SRVS_ESSENTIAL = \
 	hid/console \
 	devman \
 	fs/locfs \
-	hid/compositor \
 	klog
+
+ifeq ($(CONFIG_FB), y)
+	RD_SRVS_ESSENTIAL += \
+		hid/compositor
+endif
 
 RD_SRVS_NON_ESSENTIAL = \
 	bd/file_bd \
@@ -161,7 +165,16 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 		$(USPACE_PATH)/lib/dltest/libdltest.so.0
 endif
 
-RD_APPS_ESSENTIAL = bdsh getterm kio vlaunch vterm
+RD_APPS_ESSENTIAL = \
+	bdsh \
+	getterm \
+	kio
+
+ifeq ($(CONFIG_FB), y)
+	RD_APPS_ESSENTIAL += \
+		vlaunch \
+		vterm
+endif
 
 RD_APPS_NON_ESSENTIAL = \
 	barber \
