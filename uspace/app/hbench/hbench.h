@@ -90,6 +90,7 @@ extern void bench_param_cleanup(void);
 
 /* Put your benchmark descriptors here (and also to benchlist.c). */
 extern benchmark_t benchmark_dir_read;
+extern benchmark_t benchmark_fibril_mutex;
 extern benchmark_t benchmark_file_read;
 extern benchmark_t benchmark_malloc1;
 extern benchmark_t benchmark_malloc2;

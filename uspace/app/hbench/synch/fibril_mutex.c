@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
- * Copyright (c) 2018 Vojtech Horky
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,24 +29,74 @@
 /** @addtogroup hbench
  * @{
  */
-/**
- * @file
+
+#include <fibril_synch.h>
+#include <stdatomic.h>
+#include "../hbench.h"
+
+/*
+ * Simple benchmark for fibril mutexes. There are two fibrils that compete
+ * over the same mutex as that is the simplest scenario.
  */
 
-#include <stdlib.h>
-#include "hbench.h"
+typedef struct {
+	fibril_mutex_t mutex;
+	uint64_t counter;
+	atomic_bool done;
+} shared_t;
 
-benchmark_t *benchmarks[] = {
-	&benchmark_dir_read,
-	&benchmark_fibril_mutex,
-	&benchmark_file_read,
-	&benchmark_malloc1,
-	&benchmark_malloc2,
-	&benchmark_ns_ping,
-	&benchmark_ping_pong
+static errno_t competitor(void *arg)
+{
+	shared_t *shared = arg;
+	fibril_detach(fibril_get_id());
+
+	while (true) {
+		fibril_mutex_lock(&shared->mutex);
+		uint64_t local = shared->counter;
+		fibril_mutex_unlock(&shared->mutex);
+		if (local == 0) {
+			break;
+		}
+	}
+
+	atomic_store(&shared->done, true);
+
+	return EOK;
+}
+
+static bool runner(benchmeter_t *meter, uint64_t size,
+    char *error, size_t error_size)
+{
+	shared_t shared;
+	fibril_mutex_initialize(&shared.mutex);
+	shared.counter = size;
+	atomic_store(&shared.done, false);
+
+	fid_t other = fibril_create(competitor, &shared);
+	fibril_add_ready(other);
+
+	benchmeter_start(meter);
+	for (uint64_t i = 0; i < size; i++) {
+		fibril_mutex_lock(&shared.mutex);
+		shared.counter--;
+		fibril_mutex_unlock(&shared.mutex);
+	}
+	benchmeter_stop(meter);
+
+	while (!atomic_load(&shared.done)) {
+		fibril_yield();
+	}
+
+	return true;
+}
+
+benchmark_t benchmark_fibril_mutex = {
+	.name = "fibril_mutex",
+	.desc = "Speed of mutex lock/unlock operations",
+	.entry = &runner,
+	.setup = NULL,
+	.teardown = NULL
 };
-
-size_t benchmark_count = sizeof(benchmarks) / sizeof(benchmarks[0]);
 
 /** @}
  */

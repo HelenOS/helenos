@@ -42,6 +42,7 @@ SOURCES = \
 	ipc/ns_ping.c \
 	ipc/ping_pong.c \
 	malloc/malloc1.c \
-	malloc/malloc2.c
+	malloc/malloc2.c \
+	synch/fibril_mutex.c
 
 include $(USPACE_PREFIX)/Makefile.common
