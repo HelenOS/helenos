@@ -44,7 +44,7 @@
 
 typedef struct {
 	const char *dev;
-	
+
 	service_id_t sid;
 	aoff64_t offset;
 } tar_state_t;

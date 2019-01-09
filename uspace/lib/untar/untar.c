@@ -153,7 +153,7 @@ int untar(tar_file_t *tar)
 		tar_report(tar, "Failed to open: %s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	while (true) {
 		tar_header_raw_t header_raw;
 		size_t header_ok = tar_read(tar, &header_raw, sizeof(header_raw));
