@@ -152,7 +152,7 @@ typedef struct ohci_regs {
 /*
  * ohci_regs_t.control
  */
- 
+
 /* Control-bulk service ratio */
 #define C_CBSR_1_1  (0x0)
 #define C_CBSR_1_2  (0x1)
