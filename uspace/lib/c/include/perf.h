@@ -73,6 +73,8 @@ static inline void stopwatch_set_nanos(stopwatch_t *stopwatch, nsec_t nanos)
 
 /** Start the stopwatch.
  *
+ * Note that repeated starts/stops do NOT aggregate the elapsed time.
+ *
  * @param stopwatch Stopwatch to start.
  */
 static inline void stopwatch_start(stopwatch_t *stopwatch)
@@ -81,6 +83,8 @@ static inline void stopwatch_start(stopwatch_t *stopwatch)
 }
 
 /** Stop the stopwatch.
+ *
+ * Note that repeated starts/stops do NOT aggregate the elapsed time.
  *
  * @param stopwatch Stopwatch to stop.
  */
