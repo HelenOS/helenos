@@ -29,7 +29,6 @@
 #ifndef LIBCPP_CSTDIO
 #define LIBCPP_CSTDIO
 
-#include <__bits/common.hpp>
 
 namespace std::hel
 {

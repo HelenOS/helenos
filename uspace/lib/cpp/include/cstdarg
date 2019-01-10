@@ -29,7 +29,6 @@
 #ifndef LIBCPP_CSTDARG
 #define LIBCPP_CSTDARG
 
-#include <__bits/common.hpp>
 
 namespace std::hel
 {

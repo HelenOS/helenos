@@ -29,7 +29,6 @@
 #ifndef LIBCPP_CERRNO
 #define LIBCPP_CERRNO
 
-#include <__bits/common.hpp>
 
 namespace std::hel
 {

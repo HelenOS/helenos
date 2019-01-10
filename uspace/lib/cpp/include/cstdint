@@ -29,7 +29,6 @@
 #ifndef LIBCPP_CSTDINT
 #define LIBCPP_CSTDINT
 
-#include <__bits/common.hpp>
 
 namespace std::hel
 {

@@ -29,7 +29,6 @@
 #ifndef LIBCPP_BITS_THREAD
 #define LIBCPP_BITS_THREAD
 
-#include <__bits/common.hpp>
 #include <__bits/thread/threading.hpp>
 #include <chrono>
 #include <ostream>
