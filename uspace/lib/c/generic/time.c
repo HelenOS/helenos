@@ -78,7 +78,7 @@ static async_sess_t *clock_conn = NULL;
  */
 clock_t clock(void)
 {
-	static_assert(CLOCKS_PER_SEC == 1000000);
+	static_assert(CLOCKS_PER_SEC == 1000000, "");
 
 	size_t count;
 	stats_cpu_t *cpu_stats = stats_get_cpus(&count);

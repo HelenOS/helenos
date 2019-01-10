@@ -1408,7 +1408,7 @@ static void loc_connection_supplier(ipc_call_t *icall, void *arg)
 	 * from using parallel exchanges.
 	 */
 	static_assert((INTERFACE_LOC_SUPPLIER & IFACE_EXCHANGE_MASK) ==
-	    IFACE_EXCHANGE_SERIALIZE);
+	    IFACE_EXCHANGE_SERIALIZE, "");
 
 	loc_server_t *server = loc_server_register();
 	if (server == NULL)

@@ -52,7 +52,7 @@ struct trb_segment {
 	uintptr_t phys;
 } __attribute__((aligned(PAGE_SIZE)));
 
-static_assert(sizeof(trb_segment_t) == PAGE_SIZE);
+static_assert(sizeof(trb_segment_t) == PAGE_SIZE, "");
 
 /**
  * Get the first TRB of a segment.
