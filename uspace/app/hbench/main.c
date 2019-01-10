@@ -70,7 +70,13 @@ static void short_report(benchmeter_t *meter, int run_index,
 	}
 }
 
-/*
+/** Estimate square root value.
+ *
+ * @param value The value to compute square root of.
+ * @param precision Required precision (e.g. 0.00001).
+ *
+ * @details
+ *
  * This is a temporary solution until we have proper sqrt() implementation
  * in libmath.
  *
@@ -91,8 +97,7 @@ static double estimate_square_root(double value, double precision)
 	return estimate;
 }
 
-/*
- * Compute available statistics from given stopwatches.
+/** Compute available statistics from given stopwatches.
  *
  * We compute normal mean for average duration of the workload and geometric
  * mean for average thruput. Note that geometric mean is necessary to compute

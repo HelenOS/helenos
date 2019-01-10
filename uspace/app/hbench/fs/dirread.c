@@ -37,7 +37,8 @@
 #include <stdlib.h>
 #include "../hbench.h"
 
-/*
+/** Execute directory listing benchmark.
+ *
  * Note that while this benchmark tries to measure speed of direct
  * read, it rather measures speed of FS cache as it is highly probable
  * that the corresponding blocks would be cached after first run.

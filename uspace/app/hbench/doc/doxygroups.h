@@ -1,5 +1,5 @@
 /** @addtogroup hbench hbench
- * @brief HelenOS user space benchmarks
+ * @brief User space benchmarks
  * @ingroup apps
  *
  * @details

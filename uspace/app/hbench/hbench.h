@@ -40,8 +40,8 @@
 #include <stdbool.h>
 #include <perf.h>
 
-/*
- * So far, a simple wrapper around system stopwatch.
+/** Simple wrapper around system stopwatch.
+ *
  * Eventually, we could collection of hardware counters etc. without
  * modifying signatures of any existing benchmark.
  */

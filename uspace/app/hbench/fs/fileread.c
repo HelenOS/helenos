@@ -38,7 +38,8 @@
 
 #define BUFFER_SIZE 4096
 
-/*
+/** Execute file reading benchmark.
+ *
  * Note that while this benchmark tries to measure speed of file reading,
  * it rather measures speed of FS cache as it is highly probable that the
  * corresponding blocks would be cached after first run.
