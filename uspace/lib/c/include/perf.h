@@ -63,7 +63,7 @@ static inline void stopwatch_init(stopwatch_t *stopwatch)
  * @param stopwatch Stopwatch to use.
  * @param nanos Elapsed time in nanoseconds to set.
  */
-static inline void stopwatch_set_elapsed(stopwatch_t *stopwatch, nsec_t nanos)
+static inline void stopwatch_set_nanos(stopwatch_t *stopwatch, nsec_t nanos)
 {
 	stopwatch->start.tv_sec = 0;
 	stopwatch->start.tv_nsec = 0;

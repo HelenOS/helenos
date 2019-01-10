@@ -65,7 +65,7 @@ PCUT_TEST(stopwatch_smokes)
 PCUT_TEST(stopwatch_emulation_works_small)
 {
 	stopwatch_t sw = STOPWATCH_INITIALIZE_STATIC;
-	stopwatch_set_elapsed(&sw, 42);
+	stopwatch_set_nanos(&sw, 42);
 	PCUT_ASSERT_INT_EQUALS(42, (int) stopwatch_get_nanos(&sw));
 }
 
@@ -73,7 +73,7 @@ PCUT_TEST(stopwatch_emulation_works_small)
 PCUT_TEST(stopwatch_emulation_works_big)
 {
 	stopwatch_t sw = STOPWATCH_INITIALIZE_STATIC;
-	stopwatch_set_elapsed(&sw, 4200000000021);
+	stopwatch_set_nanos(&sw, 4200000000021);
 	PCUT_ASSERT_EQUALS(4200000000021, (long long) stopwatch_get_nanos(&sw));
 }
 
