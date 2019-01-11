@@ -46,6 +46,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include <fibril.h>
 #include <task.h>
 #include <stats.h>
 #include <malloc.h>

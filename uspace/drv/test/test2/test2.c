@@ -30,9 +30,9 @@
  */
 
 #include <assert.h>
-#include <async.h>
 #include <stdio.h>
 #include <errno.h>
+#include <fibril.h>
 #include <str.h>
 #include <str_error.h>
 #include <ddf/driver.h>

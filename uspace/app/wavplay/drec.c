@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fibril.h>
 #include <str_error.h>
 #include <audio_pcm_iface.h>
 #include <pcm/format.h>

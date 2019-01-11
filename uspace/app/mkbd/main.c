@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <fibril.h>
 #include <str_error.h>
 #include <stdbool.h>
 #include <getopt.h>

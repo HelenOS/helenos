@@ -40,7 +40,6 @@
 #define LIBC_ASYNC_H_
 
 #include <ipc/common.h>
-#include <fibril.h>
 #include <time.h>
 #include <stdbool.h>
 #include <abi/proc/task.h>
@@ -472,7 +471,6 @@ extern void *async_as_area_create(void *, size_t, unsigned int, async_sess_t *,
     sysarg_t, sysarg_t, sysarg_t);
 
 errno_t async_spawn_notification_handler(void);
-fid_t async_create_manager(void);
 
 #endif
 

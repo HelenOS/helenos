@@ -45,7 +45,7 @@
 #include <signal.h>
 #include <assert.h>
 
-#include <async.h>
+#include <fibril.h>
 #include <malloc.h>
 #include <task.h>
 #include <stddef.h>

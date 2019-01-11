@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <async.h>
 #include <errno.h>
+#include <fibril.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>

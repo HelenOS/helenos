@@ -1002,7 +1002,7 @@ static errno_t async_manager_fibril(void *arg)
 }
 
 /** Add one manager to manager list. */
-fid_t async_create_manager(void)
+static fid_t async_create_manager(void)
 {
 	fid_t fid = fibril_create_generic(async_manager_fibril, NULL, PAGE_SIZE);
 	fibril_start(fid);
