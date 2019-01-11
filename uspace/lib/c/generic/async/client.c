@@ -248,7 +248,7 @@ void async_reply_received(ipc_call_t *data)
  * @return Hash of the sent message or 0 on error.
  *
  */
-aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+static aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
 {
 	if (exch == NULL)
@@ -288,7 +288,7 @@ aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
  * @return Hash of the sent message or 0 on error.
  *
  */
-aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+static aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
     ipc_call_t *dataptr)
 {
@@ -309,6 +309,43 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	}
 
 	return (aid_t) msg;
+}
+
+aid_t async_send_0(async_exch_t *exch, sysarg_t imethod, ipc_call_t *dataptr)
+{
+	return async_send_fast(exch, imethod, 0, 0, 0, 0, dataptr);
+}
+
+aid_t async_send_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    ipc_call_t *dataptr)
+{
+	return async_send_fast(exch, imethod, arg1, 0, 0, 0, dataptr);
+}
+
+aid_t async_send_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    sysarg_t arg2, ipc_call_t *dataptr)
+{
+	return async_send_fast(exch, imethod, arg1, arg2, 0, 0, dataptr);
+}
+
+aid_t async_send_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, ipc_call_t *dataptr)
+{
+	return async_send_fast(exch, imethod, arg1, arg2, arg3, 0, dataptr);
+}
+
+aid_t async_send_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
+{
+	return async_send_fast(exch, imethod, arg1, arg2, arg3, arg4, dataptr);
+}
+
+aid_t async_send_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
+    ipc_call_t *dataptr)
+{
+	return async_send_slow(exch, imethod, arg1, arg2, arg3, arg4, arg5,
+	    dataptr);
 }
 
 /** Wait for a message sent by the async framework.
@@ -433,9 +470,9 @@ void async_forget(aid_t amsgid)
  * @return Return code of the reply or an error code.
  *
  */
-errno_t async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2,
-    sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
+static errno_t async_req_fast(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
+    sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -485,9 +522,9 @@ errno_t async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
  * @return Return code of the reply or an error code.
  *
  */
-errno_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1,
-    sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
+static errno_t async_req_slow(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
+    sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -515,6 +552,186 @@ errno_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 		*r5 = IPC_GET_ARG5(result);
 
 	return rc;
+}
+
+errno_t async_req_0_0(async_exch_t *exch, sysarg_t imethod)
+{
+	return async_req_fast(exch, imethod, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_0_1(async_exch_t *exch, sysarg_t imethod, sysarg_t *r1)
+{
+	return async_req_fast(exch, imethod, 0, 0, 0, 0, r1, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_0_2(async_exch_t *exch, sysarg_t imethod, sysarg_t *r1, sysarg_t *r2)
+{
+	return async_req_fast(exch, imethod, 0, 0, 0, 0, r1, r2, NULL, NULL, NULL);
+}
+
+errno_t async_req_0_3(async_exch_t *exch, sysarg_t imethod, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3)
+{
+	return async_req_fast(exch, imethod, 0, 0, 0, 0, r1, r2, r3, NULL, NULL);
+}
+
+errno_t async_req_0_4(async_exch_t *exch, sysarg_t imethod, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4)
+{
+	return async_req_fast(exch, imethod, 0, 0, 0, 0, r1, r2, r3, r4, NULL);
+}
+
+errno_t async_req_0_5(async_exch_t *exch, sysarg_t imethod, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
+{
+	return async_req_fast(exch, imethod, 0, 0, 0, 0, r1, r2, r3, r4, r5);
+}
+
+errno_t async_req_1_0(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1)
+{
+	return async_req_fast(exch, imethod, arg1, 0, 0, 0, NULL, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_1_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t *r1)
+{
+	return async_req_fast(exch, imethod, arg1, 0, 0, 0, r1, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_1_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t *r1, sysarg_t *r2)
+{
+	return async_req_fast(exch, imethod, arg1, 0, 0, 0, r1, r2, NULL, NULL, NULL);
+}
+
+errno_t async_req_1_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3)
+{
+	return async_req_fast(exch, imethod, arg1, 0, 0, 0, r1, r2, r3, NULL, NULL);
+}
+
+errno_t async_req_1_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4)
+{
+	return async_req_fast(exch, imethod, arg1, 0, 0, 0, r1, r2, r3, r4, NULL);
+}
+
+errno_t async_req_1_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
+{
+	return async_req_fast(exch, imethod, arg1, 0, 0, 0, r1, r2, r3, r4, r5);
+}
+
+errno_t async_req_2_0(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, 0, 0, NULL, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_2_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t *r1)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, 0, 0, r1, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_2_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t *r1, sysarg_t *r2)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, 0, 0, r1, r2, NULL, NULL, NULL);
+}
+
+errno_t async_req_2_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, 0, 0, r1, r2, r3, NULL, NULL);
+}
+
+errno_t async_req_2_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, 0, 0, r1, r2, r3, r4, NULL);
+}
+
+errno_t async_req_2_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, 0, 0, r1, r2, r3, r4, r5);
+}
+
+errno_t async_req_3_0(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, 0, NULL, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_3_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t *r1)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, 0, r1, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_3_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t *r1, sysarg_t *r2)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, 0, r1, r2, NULL, NULL, NULL);
+}
+
+errno_t async_req_3_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, 0, r1, r2, r3, NULL, NULL);
+}
+
+errno_t async_req_3_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, 0, r1, r2, r3, r4, NULL);
+}
+
+errno_t async_req_3_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, 0, r1, r2, r3, r4, r5);
+}
+
+errno_t async_req_4_0(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, arg4, NULL, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_4_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, arg4, r1, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_4_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, arg4, r1, r2, NULL, NULL, NULL);
+}
+
+errno_t async_req_4_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, arg4, r1, r2, r3, NULL, NULL);
+}
+
+errno_t async_req_4_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, arg4, r1, r2, r3, r4, NULL);
+}
+
+errno_t async_req_4_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
+{
+	return async_req_fast(exch, imethod, arg1, arg2, arg3, arg4, r1, r2, r3, r4, r5);
+}
+
+errno_t async_req_5_0(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
+{
+	return async_req_slow(exch, imethod, arg1, arg2, arg3, arg4, arg5, NULL, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_5_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1)
+{
+	return async_req_slow(exch, imethod, arg1, arg2, arg3, arg4, arg5, r1, NULL, NULL, NULL, NULL);
+}
+
+errno_t async_req_5_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1, sysarg_t *r2)
+{
+	return async_req_slow(exch, imethod, arg1, arg2, arg3, arg4, arg5, r1, r2, NULL, NULL, NULL);
+}
+
+errno_t async_req_5_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3)
+{
+	return async_req_slow(exch, imethod, arg1, arg2, arg3, arg4, arg5, r1, r2, r3, NULL, NULL);
+}
+
+errno_t async_req_5_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4)
+{
+	return async_req_slow(exch, imethod, arg1, arg2, arg3, arg4, arg5, r1, r2, r3, r4, NULL);
+}
+
+errno_t async_req_5_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1, sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
+{
+	return async_req_slow(exch, imethod, arg1, arg2, arg3, arg4, arg5, r1, r2, r3, r4, r5);
 }
 
 void async_msg_0(async_exch_t *exch, sysarg_t imethod)
@@ -925,8 +1142,8 @@ void async_exchange_end(async_exch_t *exch)
  * @return Zero on success or an error code from errno.h.
  *
  */
-errno_t async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
-    unsigned int *flags, void **dst)
+static errno_t async_share_in_start(async_exch_t *exch, size_t size,
+    sysarg_t arg, unsigned int *flags, void **dst)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -942,6 +1159,29 @@ errno_t async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
 
 	*dst = (void *) _dst;
 	return res;
+}
+
+errno_t async_share_in_start_0_0(async_exch_t *exch, size_t size, void **dst)
+{
+	return async_share_in_start(exch, size, 0, NULL, dst);
+}
+
+errno_t async_share_in_start_0_1(async_exch_t *exch, size_t size,
+    unsigned int *flags, void **dst)
+{
+	return async_share_in_start(exch, size, 0, flags, dst);
+}
+
+errno_t async_share_in_start_1_0(async_exch_t *exch, size_t size, sysarg_t arg,
+    void **dst)
+{
+	return async_share_in_start(exch, size, arg, NULL, dst);
+}
+
+errno_t async_share_in_start_1_1(async_exch_t *exch, size_t size, sysarg_t arg,
+    unsigned int *flags, void **dst)
+{
+	return async_share_in_start(exch, size, arg, flags, dst);
 }
 
 /** Wrapper for IPC_M_SHARE_OUT calls using the async framework.

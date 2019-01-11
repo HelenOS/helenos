@@ -636,7 +636,7 @@ errno_t vfs_op_stat(int fd)
 	vfs_node_t *node = file->node;
 
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-	errno_t rc = async_data_read_forward_fast(exch, VFS_OUT_STAT,
+	errno_t rc = async_data_read_forward_4_1(exch, VFS_OUT_STAT,
 	    node->service_id, node->index, true, 0, NULL);
 	vfs_exchange_release(exch);
 
@@ -653,7 +653,7 @@ errno_t vfs_op_statfs(int fd)
 	vfs_node_t *node = file->node;
 
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-	errno_t rc = async_data_read_forward_fast(exch, VFS_OUT_STATFS,
+	errno_t rc = async_data_read_forward_4_1(exch, VFS_OUT_STATFS,
 	    node->service_id, node->index, false, 0, NULL);
 	vfs_exchange_release(exch);
 
