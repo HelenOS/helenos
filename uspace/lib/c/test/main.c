@@ -45,5 +45,6 @@ PCUT_IMPORT(stdlib);
 PCUT_IMPORT(str);
 PCUT_IMPORT(string);
 PCUT_IMPORT(table);
+PCUT_IMPORT(cap);
 
 PCUT_MAIN();
