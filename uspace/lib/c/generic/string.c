@@ -564,7 +564,7 @@ char *strndup(const char *s, size_t n)
 		return NULL;
 	}
 
-	strcpy(dup, s);
+	strncpy(dup, s, sz);
 	return dup;
 }
 
