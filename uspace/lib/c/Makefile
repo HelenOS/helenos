@@ -202,7 +202,8 @@ TEST_SOURCES = \
 	test/stdlib.c \
 	test/str.c \
 	test/string.c \
-	test/cap.c
+	test/cap.c \
+	test/gsort.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
