@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@
 #include <__bits/functional/function.hpp>
 #include <__bits/functional/invoke.hpp>
 #include <__bits/functional/reference_wrapper.hpp>
+#include <cassert>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -132,6 +133,7 @@ namespace std
                 template<class R, bool B, class F, class... BindArgs>
                 constexpr decltype(auto) operator[](const bind_t<R, B, F, BindArgs...> b)
                 {
+                    __unimplemented();
                     return b; // TODO: bind subexpressions
                 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
 
 #include <__bits/adt/list_node.hpp>
 #include <__bits/insert_iterator.hpp>
+#include <cassert>
 #include <cstdlib>
 #include <iterator>
 #include <memory>
@@ -579,11 +580,13 @@ namespace std
             void resize(size_type sz)
             {
                 // TODO: implement
+                __unimplemented();
             }
 
             void resize(size_type sz, const value_type& val)
             {
                 // TODO: implement
+                __unimplemented();
             }
 
             reference front()
@@ -1041,6 +1044,7 @@ namespace std
             void merge(list& other)
             {
                 // TODO: implement
+                __unimplemented();
             }
 
             void merge(list&& other)
@@ -1052,6 +1056,7 @@ namespace std
             void merge(list& other, Compare comp)
             {
                 // TODO: implement
+                __unimplemented();
             }
 
             template<class Compare>
@@ -1063,17 +1068,20 @@ namespace std
             void reverse() noexcept
             {
                 // TODO: implement
+                __unimplemented();
             }
 
             void sort()
             {
                 // TODO: implement
+                __unimplemented();
             }
 
             template<class Compare>
             void sort(Compare comp)
             {
                 // TODO: implement
+                __unimplemented();
             }
 
         private:

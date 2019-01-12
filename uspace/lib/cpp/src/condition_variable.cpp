@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cassert>
 #include <condition_variable>
 
 namespace std
@@ -87,5 +88,6 @@ namespace std
     void notify_all_at_thread_exit(condition_variable&, unique_lock<mutex>&)
     {
         // TODO: implement
+        __unimplemented();
     }
 }

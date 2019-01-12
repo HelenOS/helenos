@@ -32,6 +32,8 @@
 #include <exception>
 #include <mutex>
 
+void* __dso_handle = nullptr;
+
 namespace __cxxabiv1
 {
     namespace aux

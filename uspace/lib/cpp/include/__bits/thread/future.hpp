@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_THREAD_FUTURE
 #define LIBCPP_BITS_THREAD_FUTURE
 
+#include <cassert>
 #include <memory>
 #include <system_error>
 #include <type_traits>
@@ -170,6 +171,7 @@ namespace std
     async(F&& f, Args&&... args)
     {
         // TODO: implement
+        __unimplemented();
     }
 
     template<class F, class... Args>
@@ -177,6 +179,7 @@ namespace std
     async(launch, F&& f, Args&&... args)
     {
         // TODO: implement
+        __unimplemented();
     }
 }
 
