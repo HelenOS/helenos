@@ -32,10 +32,9 @@
 
 /**
  * @file
- * @brief Sorting functions.
+ * @brief Gnome Sort.
  *
- * This files contains functions implementing several sorting
- * algorithms (e.g. quick sort and gnome sort).
+ * This file contains an implementation of gnome sort
  *
  */
 
