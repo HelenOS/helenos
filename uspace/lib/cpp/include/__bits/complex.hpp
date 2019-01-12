@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_COMPLEX
 #define LIBCPP_BITS_COMPLEX
 
+#include <cassert>
 #include <iosfwd>
 #include <sstream>
 
@@ -723,6 +724,8 @@ namespace std
                                             const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
+        return is;
     }
 
     template<class T, class Char, class Traits>
@@ -765,6 +768,7 @@ namespace std
     T arg(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -778,6 +782,7 @@ namespace std
     complex<T> conj(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -785,6 +790,7 @@ namespace std
     complex<T> proj(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -792,6 +798,7 @@ namespace std
     complex<T> polar(const T&, const T& = T{})
     {
         // TODO: implement
+        __unimplemented();
         return complex<T>{};
     }
 
@@ -803,6 +810,7 @@ namespace std
     complex<T> acos(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -810,6 +818,7 @@ namespace std
     complex<T> asin(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -817,6 +826,7 @@ namespace std
     complex<T> atan(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -824,6 +834,7 @@ namespace std
     complex<T> acosh(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -831,6 +842,7 @@ namespace std
     complex<T> asinh(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -838,6 +850,7 @@ namespace std
     complex<T> atanh(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -845,6 +858,7 @@ namespace std
     complex<T> cos(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -852,6 +866,7 @@ namespace std
     complex<T> cosh(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -859,6 +874,7 @@ namespace std
     complex<T> exp(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -866,6 +882,7 @@ namespace std
     complex<T> log(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -873,6 +890,7 @@ namespace std
     complex<T> log10(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -880,6 +898,7 @@ namespace std
     complex<T> pow(const complex<T>& base, const T& exp)
     {
         // TODO: implement
+        __unimplemented();
         return base;
     }
 
@@ -887,6 +906,7 @@ namespace std
     complex<T> pow(const complex<T>& base, const complex<T>& exp)
     {
         // TODO: implement
+        __unimplemented();
         return base;
     }
 
@@ -894,6 +914,7 @@ namespace std
     complex<T> pow(const T& base, const complex<T>& exp)
     {
         // TODO: implement
+        __unimplemented();
         return complex<T>{base};
     }
 
@@ -901,6 +922,7 @@ namespace std
     complex<T> sin(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -908,6 +930,7 @@ namespace std
     complex<T> sinh(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -915,6 +938,7 @@ namespace std
     complex<T> sqrt(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -922,6 +946,7 @@ namespace std
     complex<T> tan(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 
@@ -929,6 +954,7 @@ namespace std
     complex<T> tanh(const complex<T>& c)
     {
         // TODO: implement
+        __unimplemented();
         return c;
     }
 

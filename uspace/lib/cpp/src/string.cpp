@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cassert>
 #include <string>
 
 namespace std
@@ -33,6 +34,7 @@ namespace std
     int stoi(const string& str, size_t* idx, int base)
     {
         // TODO: implement using stol once we have numeric limits
+        __unimplemented();
         return 0;
     }
 
@@ -71,30 +73,35 @@ namespace std
     long long stoll(const string& str, size_t* idx, int base)
     {
         // TODO: implement using stol once we have numeric limits
+        __unimplemented();
         return 0;
     }
 
     unsigned long long stoull(const string& str, size_t* idx, int base)
     {
         // TODO: implement using stoul once we have numeric limits
+        __unimplemented();
         return 0;
     }
 
     float stof(const string& str, size_t* idx)
     {
         // TODO: implement
+        __unimplemented();
         return 0.f;
     }
 
     double stod(const string& str, size_t* idx)
     {
         // TODO: implement
+        __unimplemented();
         return 0.0;
     }
 
     long double stold(const string& str, size_t* idx)
     {
         // TODO: implement
+        __unimplemented();
         return 0.0l;
     }
 
@@ -205,102 +212,119 @@ namespace std
     int stoi(const wstring& str, size_t* idx, int base)
     {
         // TODO: implement
+        __unimplemented();
         return 0;
     }
 
     long stol(const wstring& str, size_t* idx, int base)
     {
         // TODO: implement
+        __unimplemented();
         return 0;
     }
 
     unsigned long stoul(const wstring& str, size_t* idx, int base)
     {
         // TODO: implement
+        __unimplemented();
         return 0;
     }
 
     long long stoll(const wstring& str, size_t* idx, int base)
     {
         // TODO: implement
+        __unimplemented();
         return 0;
     }
 
     unsigned long long stoull(const wstring& str, size_t* idx, int base)
     {
         // TODO: implement
+        __unimplemented();
         return 0;
     }
 
     float stof(const wstring& str, size_t* idx)
     {
         // TODO: implement
+        __unimplemented();
         return 0.f;
     }
 
     double stod(const wstring& str, size_t* idx)
     {
         // TODO: implement
+        __unimplemented();
         return 0.0;
     }
 
     long double stold(const wstring& str, size_t* idx)
     {
         // TODO: implement
+        __unimplemented();
         return 0.0l;
     }
 
     wstring to_wstring(int val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 
     wstring to_wstring(unsigned val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 
     wstring to_wstring(long val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 
     wstring to_wstring(unsigned long val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 
     wstring to_wstring(long long val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 
     wstring to_wstring(unsigned long long val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 
     wstring to_wstring(float val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 
     wstring to_wstring(double val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 
     wstring to_wstring(long double val)
     {
         // TODO: implement
+        __unimplemented();
         return wstring{};
     }
 

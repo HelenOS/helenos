@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cassert>
 #include <cstdlib>
 #include <exception>
 #include <thread>
@@ -119,6 +120,7 @@ namespace std
     unsigned thread::hardware_concurrency() noexcept
     {
         // TODO:
+        __unimplemented();
         return 0;
     }
 
