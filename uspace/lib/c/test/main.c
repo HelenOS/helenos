@@ -47,5 +47,6 @@ PCUT_IMPORT(string);
 PCUT_IMPORT(table);
 PCUT_IMPORT(cap);
 PCUT_IMPORT(gsort);
+PCUT_IMPORT(ieee_double);
 
 PCUT_MAIN();
