@@ -49,7 +49,7 @@
  * @param buf_p[out]   Output array holding physical addresses of the allocated
  *                     buffers.
  *
- * The buffers can be deallocated by virtio_net_teardown_bufs().
+ * The buffers can be deallocated by virtio_teardown_dma_bufs().
  *
  * @return  EOK on success or error code.
  */
@@ -82,7 +82,7 @@ errno_t virtio_setup_dma_bufs(unsigned int buffers, size_t size,
 /** Deallocate DMA buffers
  *
  * @param buf[in]  Array holding the virtual addresses of the DMA buffers
- *                 previously allocated by virtio_net_setup_bufs().
+ *                 previously allocated by virtio_setup_dma_bufs().
  */
 extern void virtio_teardown_dma_bufs(void *buf[])
 {
