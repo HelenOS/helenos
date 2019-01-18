@@ -311,6 +311,23 @@ extern errno_t async_share_out_start(async_exch_t *, void *, unsigned int);
 extern bool async_share_out_receive(ipc_call_t *, size_t *, unsigned int *);
 extern errno_t async_share_out_finalize(ipc_call_t *, void **);
 
+extern errno_t async_data_read_forward_0_0(async_exch_t *, sysarg_t);
+extern errno_t async_data_read_forward_1_0(async_exch_t *, sysarg_t, sysarg_t);
+extern errno_t async_data_read_forward_2_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t);
+extern errno_t async_data_read_forward_3_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern errno_t async_data_read_forward_4_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+
+extern errno_t async_data_read_forward_0_1(async_exch_t *, sysarg_t,
+    ipc_call_t *);
+extern errno_t async_data_read_forward_1_1(async_exch_t *, sysarg_t, sysarg_t,
+    ipc_call_t *);
+extern errno_t async_data_read_forward_2_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, ipc_call_t *);
+extern errno_t async_data_read_forward_3_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, ipc_call_t *);
 extern errno_t async_data_read_forward_4_1(async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
@@ -319,6 +336,23 @@ extern errno_t async_data_read_start(async_exch_t *, void *, size_t);
 extern bool async_data_read_receive(ipc_call_t *, size_t *);
 extern errno_t async_data_read_finalize(ipc_call_t *, const void *, size_t);
 
+extern errno_t async_data_write_forward_0_0(async_exch_t *, sysarg_t);
+extern errno_t async_data_write_forward_1_0(async_exch_t *, sysarg_t, sysarg_t);
+extern errno_t async_data_write_forward_2_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t);
+extern errno_t async_data_write_forward_3_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern errno_t async_data_write_forward_4_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+
+extern errno_t async_data_write_forward_0_1(async_exch_t *, sysarg_t,
+    ipc_call_t *);
+extern errno_t async_data_write_forward_1_1(async_exch_t *, sysarg_t, sysarg_t,
+    ipc_call_t *);
+extern errno_t async_data_write_forward_2_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, ipc_call_t *);
+extern errno_t async_data_write_forward_3_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, ipc_call_t *);
 extern errno_t async_data_write_forward_4_1(async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 

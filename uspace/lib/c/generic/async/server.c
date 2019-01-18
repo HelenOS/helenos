@@ -1399,6 +1399,66 @@ static errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod
 	return (errno_t) rc;
 }
 
+errno_t async_data_read_forward_0_0(async_exch_t *exch, sysarg_t imethod)
+{
+	return async_data_read_forward_fast(exch, imethod, 0, 0, 0, 0, NULL);
+}
+
+errno_t async_data_read_forward_1_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, 0, 0, 0, NULL);
+}
+
+errno_t async_data_read_forward_2_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, 0,
+	    0, NULL);
+}
+
+errno_t async_data_read_forward_3_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    0, NULL);
+}
+
+errno_t async_data_read_forward_4_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    arg4, NULL);
+}
+
+errno_t async_data_read_forward_0_1(async_exch_t *exch, sysarg_t imethod,
+    ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, 0, 0, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_read_forward_1_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, 0, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_read_forward_2_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_read_forward_3_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    0, dataptr);
+}
+
 errno_t async_data_read_forward_4_1(async_exch_t *exch, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
     ipc_call_t *dataptr)
@@ -1582,6 +1642,68 @@ static errno_t async_data_write_forward_fast(async_exch_t *exch,
 	async_wait_for(msg, &rc);
 
 	return (errno_t) rc;
+}
+
+errno_t async_data_write_forward_0_0(async_exch_t *exch, sysarg_t imethod)
+{
+	return async_data_write_forward_fast(exch, imethod, 0, 0, 0,
+	    0, NULL);
+}
+
+errno_t async_data_write_forward_1_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, 0, 0,
+	    0, NULL);
+}
+
+errno_t async_data_write_forward_2_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, 0,
+	    0, NULL);
+}
+
+errno_t async_data_write_forward_3_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    0, NULL);
+}
+
+errno_t async_data_write_forward_4_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    arg4, NULL);
+}
+
+errno_t async_data_write_forward_0_1(async_exch_t *exch, sysarg_t imethod,
+    ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, 0, 0, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_write_forward_1_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, 0, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_write_forward_2_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_write_forward_3_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    0, dataptr);
 }
 
 errno_t async_data_write_forward_4_1(async_exch_t *exch, sysarg_t imethod,
