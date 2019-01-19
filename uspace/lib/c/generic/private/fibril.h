@@ -34,6 +34,7 @@
 #include <tls.h>
 #include <abi/proc/uarg.h>
 #include <fibril.h>
+#include <ipc/common.h>
 
 #include "./futex.h"
 

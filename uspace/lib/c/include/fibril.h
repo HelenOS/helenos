@@ -38,7 +38,6 @@
 #include <types/common.h>
 #include <time.h>
 #include <_bits/__noreturn.h>
-#include <ipc/common.h>
 
 typedef struct fibril fibril_t;
 
