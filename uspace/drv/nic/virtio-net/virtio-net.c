@@ -341,7 +341,7 @@ static void virtio_net_send(nic_t *nic, void *data, size_t size)
 	}
 	assert(descno < TX_BUFFERS);
 
-	/* Setup the packed header */
+	/* Setup the packet header */
 	virtio_net_hdr_t *hdr = (virtio_net_hdr_t *) virtio_net->tx_buf[descno];
 	memset(hdr, 0, sizeof(virtio_net_hdr_t));
 	hdr->gso_type = VIRTIO_NET_HDR_GSO_NONE;
