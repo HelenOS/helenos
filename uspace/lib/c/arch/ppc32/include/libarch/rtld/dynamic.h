@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2019 Jiri Svoboda
- * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,56 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc32
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#include <tls.h>
-#include <stddef.h>
-
-#ifdef CONFIG_RTLD
-#include <rtld/rtld.h>
-#endif
-
-tcb_t *tls_alloc_arch(size_t size, size_t align)
-{
-	return tls_alloc_variant_1(size, align);
-}
-
-void tls_free_arch(tcb_t *tcb, size_t size, size_t align)
-{
-	tls_free_variant_1(tcb, size, align);
-}
-
-/*
- * Rtld TLS support
- */
+#ifndef LIBC_ppc32_RTLD_DYNAMIC_H_
+#define LIBC_ppc32_RTLD_DYNAMIC_H_
 
 typedef struct {
-	unsigned long int ti_module;
-	unsigned long int ti_offset;
-} tls_index;
+	/* Empty. */
+} dyn_info_arch_t;
 
-int __tls_debug = 0;
-
-void *__tls_get_addr(tls_index *ti);
-
-void *__tls_get_addr(tls_index *ti)
-{
-	uint8_t *tls;
-
-#ifdef CONFIG_RTLD
-	if (runtime_env != NULL) {
-		return rtld_tls_get_addr(runtime_env, __tcb_get(),
-		    ti->ti_module, ti->ti_offset) + 0x8000;
-	}
 #endif
-	/* Get address of static TLS block */
-	tls = tls_get();
-	return tls + ti->ti_offset + 0x8000;
-}
 
 /** @}
  */
