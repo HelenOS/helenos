@@ -89,12 +89,15 @@ void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 
 	elf_symbol_t *sym_def;
 	module_t *dest;
+	uint32_t *plt;
 
 	DPRINTF("parse relocation table\n");
 
 	sym_table = m->dyn.sym_tab;
 	rt_entries = rt_size / sizeof(elf_rela_t);
 	str_tab = m->dyn.str_tab;
+
+	plt = (uint32_t *)m->dyn.plt_got;
 
 	DPRINTF("rel table address: 0x%zx, entries: %zd\n", (uintptr_t)rt, rt_entries);
 
@@ -217,7 +220,11 @@ void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 			 * Fill PLT entry with jump to symbol address.
 			 * r_ptr points to the PLT entry, sym_addr contains
 			 * address of the symbol.
+			 *
+			 * XXX This only works for the first 32768 entries.
+			 * If there are more, the layout is more complex.
 			 */
+			assert((uint32_t *)r_ptr - plt < 32768 * 8);
 			fill_plt_entry_generic((uint32_t *)r_ptr, sym_addr);
 			smc_coherence(r_ptr, 32);
 
