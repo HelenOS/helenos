@@ -151,6 +151,7 @@ DIRS = \
 	drv/block/ata_bd \
 	drv/block/ddisk \
 	drv/block/usbmast \
+	drv/block/virtio-blk \
 	drv/bus/adb/cuda_adb \
 	drv/bus/isa \
 	drv/bus/pci/pciintel \

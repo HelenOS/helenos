@@ -62,7 +62,8 @@ errno_t virtio_setup_dma_bufs(unsigned int buffers, size_t size,
 	void *virt = AS_AREA_ANY;
 	uintptr_t phys;
 	errno_t rc = dmamem_map_anonymous(buffers * size, 0,
-	    write ? AS_AREA_WRITE : AS_AREA_READ, 0, &phys, &virt);
+	    write ? AS_AREA_WRITE | AS_AREA_READ : AS_AREA_READ, 0, &phys,
+	    &virt);
 	if (rc != EOK)
 		return rc;
 
