@@ -725,7 +725,7 @@ static void loc_forward(ipc_call_t *call, void *arg)
 	}
 
 	async_exch_t *exch = async_exchange_begin(svc->server->sess);
-	async_forward_fast(call, exch, iface, svc->id, 0, IPC_FF_NONE);
+	async_forward_1(call, exch, iface, svc->id, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	fibril_mutex_unlock(&services_list_mutex);

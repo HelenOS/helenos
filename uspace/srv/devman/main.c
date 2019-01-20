@@ -135,7 +135,7 @@ static void devman_connection_device(ipc_call_t *icall, void *arg)
 	}
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall, exch, INTERFACE_DDF_CLIENT, handle, 0, IPC_FF_NONE);
+	async_forward_1(icall, exch, INTERFACE_DDF_CLIENT, handle, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 cleanup:
@@ -214,7 +214,7 @@ static void devman_connection_parent(ipc_call_t *icall, void *arg)
 	}
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall, exch, INTERFACE_DDF_DRIVER, fun_handle, 0, IPC_FF_NONE);
+	async_forward_1(icall, exch, INTERFACE_DDF_DRIVER, fun_handle, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 cleanup:
@@ -249,7 +249,7 @@ static void devman_forward(ipc_call_t *icall, void *arg)
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall, exch, iface, handle, 0, IPC_FF_NONE);
+	async_forward_1(icall, exch, iface, handle, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG,

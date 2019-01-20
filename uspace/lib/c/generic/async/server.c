@@ -877,6 +877,11 @@ bool async_get_call_timeout(ipc_call_t *call, usec_t usecs)
 	return true;
 }
 
+bool async_get_call(ipc_call_t *call)
+{
+	return async_get_call_timeout(call, 0);
+}
+
 void *async_get_client_data(void)
 {
 	assert(fibril_connection);
@@ -1095,7 +1100,7 @@ errno_t async_answer_5(ipc_call_t *call, errno_t retval, sysarg_t arg1,
 	return ipc_answer_5(chandle, retval, arg1, arg2, arg3, arg4, arg5);
 }
 
-errno_t async_forward_fast(ipc_call_t *call, async_exch_t *exch,
+static errno_t async_forward_fast(ipc_call_t *call, async_exch_t *exch,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
 {
 	assert(call);
@@ -1111,7 +1116,7 @@ errno_t async_forward_fast(ipc_call_t *call, async_exch_t *exch,
 	    mode);
 }
 
-errno_t async_forward_slow(ipc_call_t *call, async_exch_t *exch,
+static errno_t async_forward_slow(ipc_call_t *call, async_exch_t *exch,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode)
 {
@@ -1126,6 +1131,47 @@ errno_t async_forward_slow(ipc_call_t *call, async_exch_t *exch,
 
 	return ipc_forward_slow(chandle, exch->phone, imethod, arg1, arg2, arg3,
 	    arg4, arg5, mode);
+}
+
+errno_t async_forward_0(ipc_call_t *call, async_exch_t *exch, sysarg_t imethod,
+    unsigned int mode)
+{
+	return async_forward_fast(call, exch, imethod, 0, 0, mode);
+}
+
+errno_t async_forward_1(ipc_call_t *call, async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, unsigned int mode)
+{
+	return async_forward_fast(call, exch, imethod, arg1, 0, mode);
+}
+
+errno_t async_forward_2(ipc_call_t *call, async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, unsigned int mode)
+{
+	return async_forward_fast(call, exch, imethod, arg1, arg2, mode);
+}
+
+errno_t async_forward_3(ipc_call_t *call, async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, unsigned int mode)
+{
+	return async_forward_slow(call, exch, imethod, arg1, arg2, arg3, 0, 0,
+	    mode);
+}
+
+errno_t async_forward_4(ipc_call_t *call, async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
+    unsigned int mode)
+{
+	return async_forward_slow(call, exch, imethod, arg1, arg2, arg3, arg4,
+	    0, mode);
+}
+
+errno_t async_forward_5(ipc_call_t *call, async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
+    unsigned int mode)
+{
+	return async_forward_slow(call, exch, imethod, arg1, arg2, arg3, arg4,
+	    arg5, mode);
 }
 
 /** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
@@ -1319,7 +1365,7 @@ errno_t async_data_read_finalize(ipc_call_t *call, const void *src, size_t size)
 /** Wrapper for forwarding any read request
  *
  */
-errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
+static errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
     ipc_call_t *dataptr)
 {
@@ -1332,7 +1378,7 @@ errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		return EINVAL;
 	}
 
-	aid_t msg = async_send_fast(exch, imethod, arg1, arg2, arg3, arg4,
+	aid_t msg = async_send_4(exch, imethod, arg1, arg2, arg3, arg4,
 	    dataptr);
 	if (msg == 0) {
 		async_answer_0(&call, EINVAL);
@@ -1351,6 +1397,74 @@ errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	async_wait_for(msg, &rc);
 
 	return (errno_t) rc;
+}
+
+errno_t async_data_read_forward_0_0(async_exch_t *exch, sysarg_t imethod)
+{
+	return async_data_read_forward_fast(exch, imethod, 0, 0, 0, 0, NULL);
+}
+
+errno_t async_data_read_forward_1_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, 0, 0, 0, NULL);
+}
+
+errno_t async_data_read_forward_2_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, 0,
+	    0, NULL);
+}
+
+errno_t async_data_read_forward_3_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    0, NULL);
+}
+
+errno_t async_data_read_forward_4_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    arg4, NULL);
+}
+
+errno_t async_data_read_forward_0_1(async_exch_t *exch, sysarg_t imethod,
+    ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, 0, 0, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_read_forward_1_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, 0, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_read_forward_2_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_read_forward_3_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    0, dataptr);
+}
+
+errno_t async_data_read_forward_4_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
+    ipc_call_t *dataptr)
+{
+	return async_data_read_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    arg4, dataptr);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
@@ -1496,9 +1610,9 @@ void async_data_write_void(errno_t retval)
 /** Wrapper for forwarding any data that is about to be received
  *
  */
-errno_t async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
-    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
-    ipc_call_t *dataptr)
+static errno_t async_data_write_forward_fast(async_exch_t *exch,
+    sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
+    sysarg_t arg4, ipc_call_t *dataptr)
 {
 	if (exch == NULL)
 		return ENOENT;
@@ -1509,7 +1623,7 @@ errno_t async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		return EINVAL;
 	}
 
-	aid_t msg = async_send_fast(exch, imethod, arg1, arg2, arg3, arg4,
+	aid_t msg = async_send_4(exch, imethod, arg1, arg2, arg3, arg4,
 	    dataptr);
 	if (msg == 0) {
 		async_answer_0(&call, EINVAL);
@@ -1528,6 +1642,76 @@ errno_t async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	async_wait_for(msg, &rc);
 
 	return (errno_t) rc;
+}
+
+errno_t async_data_write_forward_0_0(async_exch_t *exch, sysarg_t imethod)
+{
+	return async_data_write_forward_fast(exch, imethod, 0, 0, 0,
+	    0, NULL);
+}
+
+errno_t async_data_write_forward_1_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, 0, 0,
+	    0, NULL);
+}
+
+errno_t async_data_write_forward_2_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, 0,
+	    0, NULL);
+}
+
+errno_t async_data_write_forward_3_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    0, NULL);
+}
+
+errno_t async_data_write_forward_4_0(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    arg4, NULL);
+}
+
+errno_t async_data_write_forward_0_1(async_exch_t *exch, sysarg_t imethod,
+    ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, 0, 0, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_write_forward_1_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, 0, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_write_forward_2_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, 0,
+	    0, dataptr);
+}
+
+errno_t async_data_write_forward_3_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    0, dataptr);
+}
+
+errno_t async_data_write_forward_4_1(async_exch_t *exch, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
+    ipc_call_t *dataptr)
+{
+	return async_data_write_forward_fast(exch, imethod, arg1, arg2, arg3,
+	    arg4, dataptr);
 }
 
 /** Wrapper for receiving the IPC_M_CONNECT_TO_ME calls.
