@@ -38,9 +38,7 @@
 
 #include <adt/hash_table.h>
 #include <errno.h>
-#include <stdarg.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <perf.h>
 
 /** Single run information.
@@ -78,13 +76,8 @@ typedef struct {
 	benchmark_helper_t teardown;
 } benchmark_t;
 
-static inline void bench_run_init(bench_run_t *run, char *error_buffer,
-    size_t error_buffer_size)
-{
-	stopwatch_init(&run->stopwatch);
-	run->error_buffer = error_buffer;
-	run->error_buffer_size = error_buffer_size;
-}
+extern void bench_run_init(bench_run_t *, char *, size_t);
+extern bool bench_run_fail(bench_run_t *, const char *, ...);
 
 static inline void bench_run_start(bench_run_t *run)
 {
@@ -94,16 +87,6 @@ static inline void bench_run_start(bench_run_t *run)
 static inline void bench_run_stop(bench_run_t *run)
 {
 	stopwatch_stop(&run->stopwatch);
-}
-
-static inline bool bench_run_fail(bench_run_t *run, const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(run->error_buffer, run->error_buffer_size, fmt, args);
-	va_end(args);
-
-	return false;
 }
 
 extern benchmark_t *benchmarks[];

@@ -37,6 +37,7 @@ SOURCES = \
 	csv.c \
 	env.c \
 	main.c \
+	utils.c \
 	fs/dirread.c \
 	fs/fileread.c \
 	ipc/ns_ping.c \
