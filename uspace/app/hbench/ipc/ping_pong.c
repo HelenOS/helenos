@@ -39,7 +39,7 @@
 
 static ipc_test_t *test = NULL;
 
-static bool setup(bench_run_t *run)
+static bool setup(bench_env_t *env, bench_run_t *run)
 {
 	errno_t rc = ipc_test_create(&test);
 	if (rc != EOK) {
@@ -51,13 +51,13 @@ static bool setup(bench_run_t *run)
 	return true;
 }
 
-static bool teardown(bench_run_t *run)
+static bool teardown(bench_env_t *env, bench_run_t *run)
 {
 	ipc_test_destroy(test);
 	return true;
 }
 
-static bool runner(bench_run_t *run, uint64_t niter)
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t niter)
 {
 	bench_run_start(run);
 

@@ -64,7 +64,7 @@ static errno_t competitor(void *arg)
 	return EOK;
 }
 
-static bool runner(bench_run_t *run, uint64_t size)
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t size)
 {
 	shared_t shared;
 	fibril_mutex_initialize(&shared.mutex);

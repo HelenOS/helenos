@@ -44,9 +44,9 @@
  * it rather measures speed of FS cache as it is highly probable that the
  * corresponding blocks would be cached after first run.
  */
-static bool runner(bench_run_t *run, uint64_t size)
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t size)
 {
-	const char *path = bench_param_get("filename", "/data/web/helenos.png");
+	const char *path = bench_env_param_get(env, "filename", "/data/web/helenos.png");
 
 	char *buf = malloc(BUFFER_SIZE);
 	if (buf == NULL) {

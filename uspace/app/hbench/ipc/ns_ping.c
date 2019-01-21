@@ -37,7 +37,7 @@
 #include <str_error.h>
 #include "../hbench.h"
 
-static bool runner(bench_run_t *run, uint64_t niter)
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t niter)
 {
 	bench_run_start(run);
 

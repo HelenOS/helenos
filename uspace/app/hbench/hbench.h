@@ -36,6 +36,7 @@
 #ifndef HBENCH_H_
 #define HBENCH_H_
 
+#include <adt/hash_table.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -57,6 +58,25 @@ typedef struct {
 	char *error_buffer;
 	size_t error_buffer_size;
 } bench_run_t;
+
+/** Benchmark environment configuration.
+ *
+ * Use proper access functions when modifying data inside this structure.
+ */
+typedef struct {
+	hash_table_t parameters;
+} bench_env_t;
+
+typedef bool (*benchmark_entry_t)(bench_env_t *, bench_run_t *, uint64_t);
+typedef bool (*benchmark_helper_t)(bench_env_t *, bench_run_t *);
+
+typedef struct {
+	const char *name;
+	const char *desc;
+	benchmark_entry_t entry;
+	benchmark_helper_t setup;
+	benchmark_helper_t teardown;
+} benchmark_t;
 
 static inline void bench_run_init(bench_run_t *run, char *error_buffer,
     size_t error_buffer_size)
@@ -86,17 +106,6 @@ static inline bool bench_run_fail(bench_run_t *run, const char *fmt, ...)
 	return false;
 }
 
-typedef bool (*benchmark_entry_t)(bench_run_t *, uint64_t);
-typedef bool (*benchmark_helper_t)(bench_run_t *);
-
-typedef struct {
-	const char *name;
-	const char *desc;
-	benchmark_entry_t entry;
-	benchmark_helper_t setup;
-	benchmark_helper_t teardown;
-} benchmark_t;
-
 extern benchmark_t *benchmarks[];
 extern size_t benchmark_count;
 
@@ -104,10 +113,10 @@ extern errno_t csv_report_open(const char *);
 extern void csv_report_add_entry(bench_run_t *, int, benchmark_t *, uint64_t);
 extern void csv_report_close(void);
 
-extern errno_t bench_param_init(void);
-extern errno_t bench_param_set(const char *, const char *);
-extern const char *bench_param_get(const char *, const char *);
-extern void bench_param_cleanup(void);
+extern errno_t bench_env_init(bench_env_t *);
+extern errno_t bench_env_param_set(bench_env_t *, const char *, const char *);
+extern const char *bench_env_param_get(bench_env_t *, const char *, const char *);
+extern void bench_env_cleanup(bench_env_t *);
 
 /* Put your benchmark descriptors here (and also to benchlist.c). */
 extern benchmark_t benchmark_dir_read;

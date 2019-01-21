@@ -18,7 +18,8 @@
  * Fill-in the name of the benchmark, its description and a reference to the
  * benchmark function to the benchmark_t.
  *
- * The benchmarking function has to accept two arguments:
+ * The benchmarking function has to accept trhee arguments:
+ *  @li bench_env_t: benchmark environment configuration
  *  @li bench_run_t: call bench_run_start and bench_run_stop around the
  *      actual benchmarking code
  *  @li uint64_t: size of the workload - typically number of inner loops in
@@ -26,7 +27,7 @@
  *
  * Typically, the structure of the function is following:
  * @code{c}
- * static bool runner(bench_run_t *run, uint64_t size)
+ * static bool runnerconst bench_env_t const *envbench_run_t *run, uint64_t size)
  * {
  * 	bench_run_start(run);
  * 	for (uint64_t i = 0; i < size; i++) {

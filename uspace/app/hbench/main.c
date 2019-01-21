@@ -147,7 +147,7 @@ static void summary_stats(bench_run_t *runs, size_t run_count,
 	    thruput_avg * 1000000000.0, run_count);
 }
 
-static bool run_benchmark(benchmark_t *bench)
+static bool run_benchmark(bench_env_t *env, benchmark_t *bench)
 {
 	printf("Warm up and determine workload size...\n");
 
@@ -168,7 +168,7 @@ static bool run_benchmark(benchmark_t *bench)
 	bool ret = true;
 
 	if (bench->setup != NULL) {
-		ret = bench->setup(&helper_run);
+		ret = bench->setup(env, &helper_run);
 		if (!ret) {
 			goto leave_error;
 		}
@@ -189,7 +189,7 @@ static bool run_benchmark(benchmark_t *bench)
 		bench_run_t run;
 		bench_run_init(&run, error_msg, MAX_ERROR_STR_LENGTH);
 
-		bool ok = bench->entry(&run, workload_size);
+		bool ok = bench->entry(env, &run, workload_size);
 		if (!ok) {
 			goto leave_error;
 		}
@@ -211,7 +211,7 @@ static bool run_benchmark(benchmark_t *bench)
 	for (int i = 0; i < NUM_SAMPLES; i++) {
 		bench_run_init(&runs[i], error_msg, MAX_ERROR_STR_LENGTH);
 
-		bool ok = bench->entry(&runs[i], workload_size);
+		bool ok = bench->entry(env, &runs[i], workload_size);
 		if (!ok) {
 			free(runs);
 			goto leave_error;
@@ -232,7 +232,7 @@ leave_error:
 
 leave:
 	if (bench->teardown != NULL) {
-		bool ok = bench->teardown(&helper_run);
+		bool ok = bench->teardown(env, &helper_run);
 		if (!ok) {
 			printf("Error: %s\n", error_msg);
 			ret = false;
@@ -244,7 +244,7 @@ leave:
 	return ret;
 }
 
-static int run_benchmarks(void)
+static int run_benchmarks(bench_env_t *env)
 {
 	unsigned int count_ok = 0;
 	unsigned int count_fail = 0;
@@ -255,7 +255,7 @@ static int run_benchmarks(void)
 
 	for (size_t it = 0; it < benchmark_count; it++) {
 		printf("%s (%s)\n", benchmarks[it]->name, benchmarks[it]->desc);
-		if (run_benchmark(benchmarks[it])) {
+		if (run_benchmark(env, benchmarks[it])) {
 			count_ok++;
 			continue;
 		}
@@ -313,16 +313,17 @@ static void print_usage(const char *progname)
 	list_benchmarks();
 }
 
-static void handle_param_arg(char *arg)
+static void handle_param_arg(bench_env_t *env, char *arg)
 {
 	char *value = NULL;
 	char *key = str_tok(arg, "=", &value);
-	bench_param_set(key, value);
+	bench_env_param_set(env, key, value);
 }
 
 int main(int argc, char *argv[])
 {
-	errno_t rc = bench_param_init();
+	bench_env_t bench_env;
+	errno_t rc = bench_env_init(&bench_env);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed to initialize internal params structure: %s\n",
 		    str_error(rc));
@@ -349,7 +350,7 @@ int main(int argc, char *argv[])
 			csv_output_filename = optarg;
 			break;
 		case 'p':
-			handle_param_arg(optarg);
+			handle_param_arg(&bench_env, optarg);
 			break;
 		case -1:
 		default:
@@ -377,13 +378,13 @@ int main(int argc, char *argv[])
 	int exit_code = 0;
 
 	if (str_cmp(benchmark, "*") == 0) {
-		exit_code = run_benchmarks();
+		exit_code = run_benchmarks(&bench_env);
 	} else {
 		bool benchmark_exists = false;
 		for (size_t i = 0; i < benchmark_count; i++) {
 			if (str_cmp(benchmark, benchmarks[i]->name) == 0) {
 				benchmark_exists = true;
-				exit_code = run_benchmark(benchmarks[i]) ? 0 : -1;
+				exit_code = run_benchmark(&bench_env, benchmarks[i]) ? 0 : -1;
 				break;
 			}
 		}
@@ -394,7 +395,7 @@ int main(int argc, char *argv[])
 	}
 
 	csv_report_close();
-	bench_param_cleanup();
+	bench_env_cleanup(&bench_env);
 
 	return exit_code;
 }

@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include "../hbench.h"
 
-static bool runner(bench_run_t *run, uint64_t size)
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t size)
 {
 	bench_run_start(run);
 	for (uint64_t i = 0; i < size; i++) {

@@ -43,9 +43,9 @@
  * read, it rather measures speed of FS cache as it is highly probable
  * that the corresponding blocks would be cached after first run.
  */
-static bool runner(bench_run_t *run, uint64_t size)
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t size)
 {
-	const char *path = bench_param_get("dirname", "/");
+	const char *path = bench_env_param_get(env, "dirname", "/");
 
 	bench_run_start(run);
 	for (uint64_t i = 0; i < size; i++) {

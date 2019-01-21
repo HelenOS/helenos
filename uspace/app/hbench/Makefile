@@ -35,8 +35,8 @@ BINARY = hbench
 SOURCES = \
 	benchlist.c \
 	csv.c \
+	env.c \
 	main.c \
-	params.c \
 	fs/dirread.c \
 	fs/fileread.c \
 	ipc/ns_ping.c \

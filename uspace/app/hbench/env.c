@@ -33,7 +33,6 @@
  * @file
  */
 
-#include <adt/hash_table.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <str.h>
@@ -89,12 +88,9 @@ static hash_table_ops_t param_hash_table_ops = {
 	.remove_callback = param_remove
 };
 
-/** Table of extra parameters (of param_t). */
-static hash_table_t param_hash_table;
-
-extern errno_t bench_param_init(void)
+extern errno_t bench_env_init(bench_env_t *env)
 {
-	bool ok = hash_table_create(&param_hash_table, 0, 0, &param_hash_table_ops);
+	bool ok = hash_table_create(&env->parameters, 0, 0, &param_hash_table_ops);
 	if (!ok) {
 		return ENOMEM;
 	}
@@ -102,12 +98,12 @@ extern errno_t bench_param_init(void)
 	return EOK;
 }
 
-extern void bench_param_cleanup(void)
+extern void bench_env_cleanup(bench_env_t *env)
 {
-	hash_table_destroy(&param_hash_table);
+	hash_table_destroy(&env->parameters);
 }
 
-errno_t bench_param_set(const char *key, const char *value)
+errno_t bench_env_param_set(bench_env_t *env, const char *key, const char *value)
 {
 	param_t *param = malloc(sizeof(param_t));
 	if (param == NULL) {
@@ -125,14 +121,14 @@ errno_t bench_param_set(const char *key, const char *value)
 		return ENOMEM;
 	}
 
-	hash_table_insert(&param_hash_table, &param->link);
+	hash_table_insert(&env->parameters, &param->link);
 
 	return EOK;
 }
 
-const char *bench_param_get(const char *key, const char *default_value)
+const char *bench_env_param_get(bench_env_t *env, const char *key, const char *default_value)
 {
-	ht_link_t *item = hash_table_find(&param_hash_table, (char *) key);
+	ht_link_t *item = hash_table_find(&env->parameters, (char *) key);
 
 	if (item == NULL) {
 		return default_value;
