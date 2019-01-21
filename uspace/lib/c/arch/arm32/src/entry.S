@@ -56,5 +56,5 @@ SYMBOL(_start)
 
 .data
 
-SYMBOL(ras_page)
-	.long 0
+# SYMBOL(ras_page)
+#	.long 0

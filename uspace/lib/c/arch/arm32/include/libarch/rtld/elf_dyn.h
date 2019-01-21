@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Pavel Jancik
- * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,52 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_arm32_TLS_H_
-#define LIBC_arm32_TLS_H_
+#ifndef LIBC_arm32_RTLD_ELF_DYN_H_
+#define LIBC_arm32_RTLD_ELF_DYN_H_
 
-#include <stdint.h>
-
-#define CONFIG_TLS_VARIANT_1
-
-/** Offsets for accessing thread-local variables are shifted 8 bytes higher. */
-#define ARCH_TP_OFFSET  (sizeof(tcb_t) - 8)
-
-/** TCB (Thread Control Block) struct.
- *
- *  TLS starts just after this struct.
+/*
+ * arm32 dynamic relocation types
  */
-typedef struct {
-	void **dtv;
-	void *pad;
-	/** Fibril data. */
-	void *fibril_data;
-} tcb_t;
 
-static inline void *__tcb_raw_get(void)
-{
-	uint8_t *ret;
-	asm volatile ("mov %0, r9" : "=r" (ret));
-	return ret;
-}
-
-static inline void __tcb_raw_set(void *tls)
-{
-	asm volatile ("mov r9, %0" :: "r" (tls));
-}
-
-/** Returns TLS address stored.
- *
- *  Implemented in assembly.
- *
- *  @return		TLS address stored in r9 register
- */
-extern uintptr_t __aeabi_read_tp(void);
+#define R_ARM_ABS32         2
+#define R_ARM_TLS_DTPMOD32 17
+#define R_ARM_TLS_DTPOFF32 18
+#define R_ARM_TLS_TPOFF32  19
+#define R_ARM_COPY         20
+#define R_ARM_GLOB_DAT     21
+#define R_ARM_JUMP_SLOT    22
+#define R_ARM_RELATIVE     23
 
 #endif
 
