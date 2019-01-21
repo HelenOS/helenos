@@ -92,6 +92,14 @@ typedef struct {
 extern void bench_run_init(bench_run_t *, char *, size_t);
 extern bool bench_run_fail(bench_run_t *, const char *, ...);
 
+/*
+ * We keep the following two functions inline to ensure that we start
+ * measurement as close to the surrounding code as possible. Note that
+ * this inlining is done at least on the level of individual wrappers
+ * (this one and the one provided by stopwatch_t) to pass the control
+ * as fast as possible to the actual timer used.
+ */
+
 static inline void bench_run_start(bench_run_t *run)
 {
 	stopwatch_start(&run->stopwatch);
