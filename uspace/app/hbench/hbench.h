@@ -65,7 +65,20 @@ typedef struct {
 	hash_table_t parameters;
 } bench_env_t;
 
+/** Actual benchmark runner.
+ *
+ * The first argument describes the environment, second is used to store
+ * information about the run (performance data or error message) and
+ * third describes workload size (number of iterations).
+ */
 typedef bool (*benchmark_entry_t)(bench_env_t *, bench_run_t *, uint64_t);
+
+/** Setup and teardown callback type.
+ *
+ * Unlike in benchmark_entry_t, we do not need to pass in number of
+ * iterations to execute (note that we use bench_run_t only to simplify
+ * creation of error messages).
+ */
 typedef bool (*benchmark_helper_t)(bench_env_t *, bench_run_t *);
 
 typedef struct {
@@ -89,9 +102,6 @@ static inline void bench_run_stop(bench_run_t *run)
 	stopwatch_stop(&run->stopwatch);
 }
 
-extern benchmark_t *benchmarks[];
-extern size_t benchmark_count;
-
 extern errno_t csv_report_open(const char *);
 extern void csv_report_add_entry(bench_run_t *, int, benchmark_t *, uint64_t);
 extern void csv_report_close(void);
@@ -100,6 +110,9 @@ extern errno_t bench_env_init(bench_env_t *);
 extern errno_t bench_env_param_set(bench_env_t *, const char *, const char *);
 extern const char *bench_env_param_get(bench_env_t *, const char *, const char *);
 extern void bench_env_cleanup(bench_env_t *);
+
+extern benchmark_t *benchmarks[];
+extern size_t benchmark_count;
 
 /* Put your benchmark descriptors here (and also to benchlist.c). */
 extern benchmark_t benchmark_dir_read;
