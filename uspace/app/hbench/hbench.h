@@ -53,8 +53,8 @@
  */
 typedef struct {
 	stopwatch_t stopwatch;
-	char *error_buffer;
-	size_t error_buffer_size;
+	char *error_message;
+	size_t error_message_buffer_size;
 } bench_run_t;
 
 /** Benchmark environment configuration.

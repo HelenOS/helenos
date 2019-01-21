@@ -46,8 +46,8 @@
 void bench_run_init(bench_run_t *run, char *error_buffer, size_t error_buffer_size)
 {
 	stopwatch_init(&run->stopwatch);
-	run->error_buffer = error_buffer;
-	run->error_buffer_size = error_buffer_size;
+	run->error_message = error_buffer;
+	run->error_message_buffer_size = error_buffer_size;
 }
 
 /** Format error message on benchmark failure.
@@ -69,7 +69,7 @@ bool bench_run_fail(bench_run_t *run, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	vsnprintf(run->error_buffer, run->error_buffer_size, fmt, args);
+	vsnprintf(run->error_message, run->error_message_buffer_size, fmt, args);
 	va_end(args);
 
 	return false;
