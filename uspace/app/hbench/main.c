@@ -48,8 +48,6 @@
 #include <types/casting.h>
 #include "hbench.h"
 
-#define MIN_DURATION_SECS 10
-#define NUM_SAMPLES 10
 #define MAX_ERROR_STR_LENGTH 1024
 
 static void short_report(bench_run_t *info, int run_index,
@@ -130,7 +128,11 @@ static void compute_stats(bench_run_t *runs, size_t run_count,
 	double sigma2 = (nanos_sum2 - nanos_sum * (*out_duration_avg)) /
 	    ((double) run_count - 1);
 	// FIXME: implement sqrt properly
-	*out_duration_sigma = estimate_square_root(sigma2, precision);
+	if (run_count > 1) {
+		*out_duration_sigma = estimate_square_root(sigma2, precision);
+	} else {
+		*out_duration_sigma = NAN;
+	}
 	*out_thruput_avg = 1.0 / (inv_thruput_sum / run_count);
 }
 
@@ -196,19 +198,20 @@ static bool run_benchmark(bench_env_t *env, benchmark_t *bench)
 		short_report(&run, -1, bench, workload_size);
 
 		nsec_t duration = stopwatch_get_nanos(&run.stopwatch);
-		if (duration > SEC2NSEC(MIN_DURATION_SECS)) {
+		if (duration > env->minimal_run_duration_nanos) {
 			break;
 		}
 	}
 
-	printf("Workload size set to %" PRIu64 ", measuring %d samples.\n", workload_size, NUM_SAMPLES);
+	printf("Workload size set to %" PRIu64 ", measuring %zu samples.\n",
+	    workload_size, env->run_count);
 
-	bench_run_t *runs = calloc(NUM_SAMPLES, sizeof(bench_run_t));
+	bench_run_t *runs = calloc(env->run_count, sizeof(bench_run_t));
 	if (runs == NULL) {
 		snprintf(error_msg, MAX_ERROR_STR_LENGTH, "failed allocating memory");
 		goto leave_error;
 	}
-	for (int i = 0; i < NUM_SAMPLES; i++) {
+	for (size_t i = 0; i < env->run_count; i++) {
 		bench_run_init(&runs[i], error_msg, MAX_ERROR_STR_LENGTH);
 
 		bool ok = bench->entry(env, &runs[i], workload_size);
@@ -219,7 +222,7 @@ static bool run_benchmark(bench_env_t *env, benchmark_t *bench)
 		short_report(&runs[i], i, bench, workload_size);
 	}
 
-	summary_stats(runs, NUM_SAMPLES, bench, workload_size);
+	summary_stats(runs, env->run_count, bench, workload_size);
 	printf("\nBenchmark completed\n");
 
 	free(runs);
@@ -305,6 +308,10 @@ static void print_usage(const char *progname)
 	printf("Usage: %s [options] <benchmark>\n", progname);
 	printf("-h, --help                 "
 	    "Print this help and exit\n");
+	printf("-d, --duration MILLIS      "
+	    "Set minimal run duration (milliseconds)\n");
+	printf("-n, --count N              "
+	    "Set number of measured runs\n");
 	printf("-o, --output filename.csv  "
 	    "Store machine-readable data in filename.csv\n");
 	printf("-p, --param KEY=VALUE      "
@@ -330,11 +337,13 @@ int main(int argc, char *argv[])
 		return -5;
 	}
 
-	const char *short_options = "ho:p:";
+	const char *short_options = "ho:p:n:d:";
 	struct option long_options[] = {
+		{ "duration", required_argument, NULL, 'd' },
 		{ "help", optional_argument, NULL, 'h' },
-		{ "param", required_argument, NULL, 'p' },
+		{ "count", required_argument, NULL, 'n' },
 		{ "output", required_argument, NULL, 'o' },
+		{ "param", required_argument, NULL, 'p' },
 		{ 0, 0, NULL, 0 }
 	};
 
@@ -343,9 +352,25 @@ int main(int argc, char *argv[])
 	int opt = 0;
 	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) > 0) {
 		switch (opt) {
+		case 'd':
+			errno = EOK;
+			bench_env.minimal_run_duration_nanos = MSEC2NSEC(atoll(optarg));
+			if ((errno != EOK) || (bench_env.minimal_run_duration_nanos <= 0)) {
+				fprintf(stderr, "Invalid -d argument.\n");
+				return -3;
+			}
+			break;
 		case 'h':
 			print_usage(*argv);
 			return 0;
+		case 'n':
+			errno = EOK;
+			bench_env.run_count = (nsec_t) atoll(optarg);
+			if ((errno != EOK) || (bench_env.run_count <= 0)) {
+				fprintf(stderr, "Invalid -n argument.\n");
+				return -3;
+			}
+			break;
 		case 'o':
 			csv_output_filename = optarg;
 			break;

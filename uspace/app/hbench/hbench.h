@@ -41,6 +41,9 @@
 #include <stdbool.h>
 #include <perf.h>
 
+#define DEFAULT_RUN_COUNT 10
+#define DEFAULT_MIN_RUN_DURATION_SEC 10
+
 /** Single run information.
  *
  * Used to store both performance information (now, only wall-clock
@@ -59,10 +62,15 @@ typedef struct {
 
 /** Benchmark environment configuration.
  *
- * Use proper access functions when modifying data inside this structure.
+ * Benchmarking code (runners) should use access functions to read
+ * data from this structure (now only bench_env_param_get).
+ *
+ * Harness can access it directly.
  */
 typedef struct {
 	hash_table_t parameters;
+	size_t run_count;
+	nsec_t minimal_run_duration_nanos;
 } bench_env_t;
 
 /** Actual benchmark runner.

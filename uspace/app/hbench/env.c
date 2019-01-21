@@ -95,6 +95,9 @@ extern errno_t bench_env_init(bench_env_t *env)
 		return ENOMEM;
 	}
 
+	env->run_count = DEFAULT_RUN_COUNT;
+	env->minimal_run_duration_nanos = MSEC2NSEC(DEFAULT_MIN_RUN_DURATION_SEC);
+
 	return EOK;
 }
 
