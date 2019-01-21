@@ -34,30 +34,26 @@
 #include <stdio.h>
 #include "../hbench.h"
 
-static bool runner(benchmeter_t *meter, uint64_t niter,
-    char *error, size_t error_size)
+static bool runner(bench_run_t *run, uint64_t niter)
 {
-	benchmeter_start(meter);
+	bench_run_start(run);
 
 	void **p = malloc(niter * sizeof(void *));
 	if (p == NULL) {
-		snprintf(error, error_size,
-		    "failed to allocate backend array (%" PRIu64 "B)",
+		return bench_run_fail(run, "failed to allocate backend array (%" PRIu64 "B)",
 		    niter * sizeof(void *));
-		return false;
 	}
 
 	for (uint64_t count = 0; count < niter; count++) {
 		p[count] = malloc(1);
 		if (p[count] == NULL) {
-			snprintf(error, error_size,
-			    "failed to allocate 1B in run %" PRIu64 " (out of %" PRIu64 ")",
-			    count, niter);
 			for (uint64_t j = 0; j < count; j++) {
 				free(p[j]);
 			}
 			free(p);
-			return false;
+			return bench_run_fail(run,
+			    "failed to allocate 1B in run %" PRIu64 " (out of %" PRIu64 ")",
+			    count, niter);
 		}
 	}
 
@@ -66,7 +62,7 @@ static bool runner(benchmeter_t *meter, uint64_t niter,
 
 	free(p);
 
-	benchmeter_stop(meter);
+	bench_run_stop(run);
 
 	return true;
 }

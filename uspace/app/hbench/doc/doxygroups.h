@@ -18,24 +18,24 @@
  * Fill-in the name of the benchmark, its description and a reference to the
  * benchmark function to the benchmark_t.
  *
- * The benchmarking function has to accept four arguments:
- *  @li benchmeter_t: call benchmeter_start and benchmeter_stop around the
+ * The benchmarking function has to accept two arguments:
+ *  @li bench_run_t: call bench_run_start and bench_run_stop around the
  *      actual benchmarking code
  *  @li uint64_t: size of the workload - typically number of inner loops in
  *      your benchmark (used to self-calibrate benchmark size)
- *  @li char * and size_t giving you access to buffer for storing error message
- *  if the benchmark fails (return false from the function itself then)
  *
  * Typically, the structure of the function is following:
  * @code{c}
- * static bool runner(benchmeter_t *meter, uint64_t size,
- *     char *error, size_t error_size)
+ * static bool runner(bench_run_t *run, uint64_t size)
  * {
- * 	benchmeter_start(meter);
+ * 	bench_run_start(run);
  * 	for (uint64_t i = 0; i < size; i++) {
  * 		// measured action
+ * 		if (something_fails) {
+ * 		    return bench_run_fail(run, "oops: %s (%d)", str_error(rc), rc);
+ * 		}
  * 	}
- * 	benchmeter_stop(meter);
+ * 	bench_run_stop(run);
  *
  * 	return true;
  * }

@@ -64,8 +64,7 @@ static errno_t competitor(void *arg)
 	return EOK;
 }
 
-static bool runner(benchmeter_t *meter, uint64_t size,
-    char *error, size_t error_size)
+static bool runner(bench_run_t *run, uint64_t size)
 {
 	shared_t shared;
 	fibril_mutex_initialize(&shared.mutex);
@@ -75,13 +74,13 @@ static bool runner(benchmeter_t *meter, uint64_t size,
 	fid_t other = fibril_create(competitor, &shared);
 	fibril_add_ready(other);
 
-	benchmeter_start(meter);
+	bench_run_start(run);
 	for (uint64_t i = 0; i < size; i++) {
 		fibril_mutex_lock(&shared.mutex);
 		shared.counter--;
 		fibril_mutex_unlock(&shared.mutex);
 	}
-	benchmeter_stop(meter);
+	bench_run_stop(run);
 
 	while (!atomic_load(&shared.done)) {
 		fibril_yield();

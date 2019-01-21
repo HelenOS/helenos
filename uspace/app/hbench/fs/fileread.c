@@ -44,32 +44,30 @@
  * it rather measures speed of FS cache as it is highly probable that the
  * corresponding blocks would be cached after first run.
  */
-static bool runner(benchmeter_t *meter, uint64_t size,
-    char *error, size_t error_size)
+static bool runner(bench_run_t *run, uint64_t size)
 {
 	const char *path = bench_param_get("filename", "/data/web/helenos.png");
 
 	char *buf = malloc(BUFFER_SIZE);
 	if (buf == NULL) {
-		snprintf(error, error_size, "failed to allocate %dB buffer", BUFFER_SIZE);
-		return false;
+		return bench_run_fail(run, "failed to allocate %dB buffer", BUFFER_SIZE);
 	}
 
 	bool ret = true;
 
 	FILE *file = fopen(path, "r");
 	if (file == NULL) {
-		snprintf(error, error_size, "failed to open %s for reading: %s",
+		bench_run_fail(run, "failed to open %s for reading: %s",
 		    path, str_error(errno));
 		ret = false;
 		goto leave_free_buf;
 	}
 
-	benchmeter_start(meter);
+	bench_run_start(run);
 	for (uint64_t i = 0; i < size; i++) {
 		int rc = fseek(file, 0, SEEK_SET);
 		if (rc != 0) {
-			snprintf(error, error_size, "failed to rewind %s: %s",
+			bench_run_fail(run, "failed to rewind %s: %s",
 			    path, str_error(errno));
 			ret = false;
 			goto leave_close;
@@ -77,14 +75,14 @@ static bool runner(benchmeter_t *meter, uint64_t size,
 		while (!feof(file)) {
 			fread(buf, 1, BUFFER_SIZE, file);
 			if (ferror(file)) {
-				snprintf(error, error_size, "failed to read from %s: %s",
+				bench_run_fail(run, "failed to read from %s: %s",
 				    path, str_error(errno));
 				ret = false;
 				goto leave_close;
 			}
 		}
 	}
-	benchmeter_stop(meter);
+	bench_run_stop(run);
 
 leave_close:
 	fclose(file);

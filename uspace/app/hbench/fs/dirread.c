@@ -43,18 +43,16 @@
  * read, it rather measures speed of FS cache as it is highly probable
  * that the corresponding blocks would be cached after first run.
  */
-static bool runner(benchmeter_t *meter, uint64_t size,
-    char *error, size_t error_size)
+static bool runner(bench_run_t *run, uint64_t size)
 {
 	const char *path = bench_param_get("dirname", "/");
 
-	benchmeter_start(meter);
+	bench_run_start(run);
 	for (uint64_t i = 0; i < size; i++) {
 		DIR *dir = opendir(path);
 		if (dir == NULL) {
-			snprintf(error, error_size, "failed to open %s for reading: %s",
+			return bench_run_fail(run, "failed to open %s for reading: %s",
 			    path, str_error(errno));
-			return false;
 		}
 
 		struct dirent *dp;
@@ -64,7 +62,7 @@ static bool runner(benchmeter_t *meter, uint64_t size,
 
 		closedir(dir);
 	}
-	benchmeter_stop(meter);
+	bench_run_stop(run);
 
 	return true;
 }

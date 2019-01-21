@@ -37,23 +37,20 @@
 #include <str_error.h>
 #include "../hbench.h"
 
-static bool runner(benchmeter_t *meter, uint64_t niter,
-    char *error, size_t error_size)
+static bool runner(bench_run_t *run, uint64_t niter)
 {
-	benchmeter_start(meter);
+	bench_run_start(run);
 
 	for (uint64_t count = 0; count < niter; count++) {
 		errno_t rc = ns_ping();
 
 		if (rc != EOK) {
-			snprintf(error, error_size,
-			    "failed sending ping message: %s (%d)",
+			return bench_run_fail(run, "failed sending ping message: %s (%d)",
 			    str_error(rc), rc);
-			return false;
 		}
 	}
 
-	benchmeter_stop(meter);
+	bench_run_stop(run);
 
 	return true;
 }

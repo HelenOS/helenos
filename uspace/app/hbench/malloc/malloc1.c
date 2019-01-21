@@ -35,21 +35,19 @@
 #include <stdlib.h>
 #include "../hbench.h"
 
-static bool runner(benchmeter_t *meter, uint64_t size,
-    char *error, size_t error_size)
+static bool runner(bench_run_t *run, uint64_t size)
 {
-	benchmeter_start(meter);
+	bench_run_start(run);
 	for (uint64_t i = 0; i < size; i++) {
 		void *p = malloc(1);
 		if (p == NULL) {
-			snprintf(error, error_size,
+			return bench_run_fail(run,
 			    "failed to allocate 1B in run %" PRIu64 " (out of %" PRIu64 ")",
 			    i, size);
-			return false;
 		}
 		free(p);
 	}
-	benchmeter_stop(meter);
+	bench_run_stop(run);
 
 	return true;
 }

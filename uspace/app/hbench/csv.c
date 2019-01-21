@@ -61,12 +61,12 @@ errno_t csv_report_open(const char *filename)
  * When csv_report_open() was not called or failed, the function does
  * nothing.
  *
- * @param stopwatch Performance data of the entry.
+ * @param run Performance data of the entry.
  * @param run_index Run index, use negative values for warm-up.
  * @param bench Benchmark information.
  * @param workload_size Workload size.
  */
-void csv_report_add_entry(benchmeter_t *meter, int run_index,
+void csv_report_add_entry(bench_run_t *run, int run_index,
     benchmark_t *bench, uint64_t workload_size)
 {
 	if (csv_output == NULL) {
@@ -75,7 +75,7 @@ void csv_report_add_entry(benchmeter_t *meter, int run_index,
 
 	fprintf(csv_output, "%s,%d,%" PRIu64 ",%lld\n",
 	    bench->name, run_index, workload_size,
-	    (long long) stopwatch_get_nanos(&meter->stopwatch));
+	    (long long) stopwatch_get_nanos(&run->stopwatch));
 }
 
 /** Close CSV report.

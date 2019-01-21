@@ -39,42 +39,38 @@
 
 static ipc_test_t *test = NULL;
 
-static bool setup(char *error, size_t error_size)
+static bool setup(bench_run_t *run)
 {
 	errno_t rc = ipc_test_create(&test);
 	if (rc != EOK) {
-		snprintf(error, error_size,
+		return bench_run_fail(run,
 		    "failed contacting IPC test server (have you run /srv/test/ipc-test?): %s (%d)",
 		    str_error(rc), rc);
-		return false;
 	}
 
 	return true;
 }
 
-static bool teardown(char *error, size_t error_size)
+static bool teardown(bench_run_t *run)
 {
 	ipc_test_destroy(test);
 	return true;
 }
 
-static bool runner(benchmeter_t *meter, uint64_t niter,
-    char *error, size_t error_size)
+static bool runner(bench_run_t *run, uint64_t niter)
 {
-	benchmeter_start(meter);
+	bench_run_start(run);
 
 	for (uint64_t count = 0; count < niter; count++) {
 		errno_t rc = ipc_test_ping(test);
 
 		if (rc != EOK) {
-			snprintf(error, error_size,
-			    "failed sending ping message: %s (%d)",
+			return bench_run_fail(run, "failed sending ping message: %s (%d)",
 			    str_error(rc), rc);
-			return false;
 		}
 	}
 
-	benchmeter_stop(meter);
+	bench_run_stop(run);
 
 	return true;
 }

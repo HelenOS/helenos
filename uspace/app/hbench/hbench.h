@@ -37,36 +37,57 @@
 #define HBENCH_H_
 
 #include <errno.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <perf.h>
 
-/** Simple wrapper around system stopwatch.
+/** Single run information.
+ *
+ * Used to store both performance information (now, only wall-clock
+ * time) as well as information about error.
+ *
+ * Use proper access functions when modifying data inside this structure.
  *
  * Eventually, we could collection of hardware counters etc. without
  * modifying signatures of any existing benchmark.
  */
 typedef struct {
 	stopwatch_t stopwatch;
-} benchmeter_t;
+	char *error_buffer;
+	size_t error_buffer_size;
+} bench_run_t;
 
-static inline void benchmeter_init(benchmeter_t *meter)
+static inline void bench_run_init(bench_run_t *run, char *error_buffer,
+    size_t error_buffer_size)
 {
-	stopwatch_init(&meter->stopwatch);
+	stopwatch_init(&run->stopwatch);
+	run->error_buffer = error_buffer;
+	run->error_buffer_size = error_buffer_size;
 }
 
-static inline void benchmeter_start(benchmeter_t *meter)
+static inline void bench_run_start(bench_run_t *run)
 {
-	stopwatch_start(&meter->stopwatch);
+	stopwatch_start(&run->stopwatch);
 }
 
-static inline void benchmeter_stop(benchmeter_t *meter)
+static inline void bench_run_stop(bench_run_t *run)
 {
-	stopwatch_stop(&meter->stopwatch);
+	stopwatch_stop(&run->stopwatch);
 }
 
-typedef bool (*benchmark_entry_t)(benchmeter_t *, uint64_t,
-    char *, size_t);
-typedef bool (*benchmark_helper_t)(char *, size_t);
+static inline bool bench_run_fail(bench_run_t *run, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(run->error_buffer, run->error_buffer_size, fmt, args);
+	va_end(args);
+
+	return false;
+}
+
+typedef bool (*benchmark_entry_t)(bench_run_t *, uint64_t);
+typedef bool (*benchmark_helper_t)(bench_run_t *);
 
 typedef struct {
 	const char *name;
@@ -80,7 +101,7 @@ extern benchmark_t *benchmarks[];
 extern size_t benchmark_count;
 
 extern errno_t csv_report_open(const char *);
-extern void csv_report_add_entry(benchmeter_t *, int, benchmark_t *, uint64_t);
+extern void csv_report_add_entry(bench_run_t *, int, benchmark_t *, uint64_t);
 extern void csv_report_close(void);
 
 extern errno_t bench_param_init(void);
