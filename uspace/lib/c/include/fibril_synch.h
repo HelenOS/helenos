@@ -53,12 +53,7 @@ typedef struct {
 			.owned_by = NULL \
 		}, \
 		.counter = 1, \
-		.waiters = { \
-			.head = { \
-				.prev = &(name).waiters.head, \
-				.next = &(name).waiters.head, \
-			} \
-		} \
+		.waiters = LIST_INITIALIZER((name).waiters), \
 	}
 
 #define FIBRIL_MUTEX_INITIALIZE(name) \
@@ -78,12 +73,7 @@ typedef struct {
 		}, \
 		.readers = 0, \
 		.writers = 0, \
-		.waiters = { \
-			.head = { \
-				.prev = &(name).waiters.head, \
-				.next = &(name).waiters.head, \
-			} \
-		} \
+		.waiters = LIST_INITIALIZER((name).waiters), \
 	}
 
 #define FIBRIL_RWLOCK_INITIALIZE(name) \
@@ -95,12 +85,7 @@ typedef struct {
 
 #define FIBRIL_CONDVAR_INITIALIZER(name) \
 	{ \
-		.waiters = { \
-			.head = { \
-				.next = &(name).waiters.head, \
-				.prev = &(name).waiters.head, \
-			} \
-		} \
+		.waiters = LIST_INITIALIZER((name).waiters), \
 	}
 
 #define FIBRIL_CONDVAR_INITIALIZE(name) \
@@ -152,12 +137,7 @@ typedef struct {
 #define FIBRIL_SEMAPHORE_INITIALIZER(name, cnt) \
 	{ \
 		.count = (cnt), \
-		.waiters = { \
-			.head = { \
-				.next = &(name).waiters.head, \
-				.prev = &(name).waiters.head, \
-			} \
-		} \
+		.waiters = LIST_INITIALIZER((name).waiters), \
 	}
 
 #define FIBRIL_SEMAPHORE_INITIALIZE(name, cnt) \
