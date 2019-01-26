@@ -91,7 +91,12 @@ ieee_double_t extract_ieee_double(double val)
 		/* Denormal or zero. */
 		if (ret.is_denormal) {
 			ret.pos_val.significand = raw_significand;
-			ret.pos_val.exponent = 1 - exponent_bias;
+			if (raw_significand == 0) {
+				ret.pos_val.exponent = -exponent_bias;
+			} else {
+				ret.pos_val.exponent = 1 - exponent_bias;
+			}
+
 			ret.is_accuracy_step = false;
 		} else {
 			ret.pos_val.significand = raw_significand + hidden_bit;
