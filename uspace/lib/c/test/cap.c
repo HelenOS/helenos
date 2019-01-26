@@ -116,7 +116,7 @@ PCUT_TEST(cap_format)
 PCUT_TEST(cap_format_rounding)
 {
 	int input_size = 8;
-	size_t input[] = {
+	uint64_t input[] = {
 		555,
 		5555,
 		55555,
