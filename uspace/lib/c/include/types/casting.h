@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <pcut/pcut.h>
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
-PCUT_INIT;
+#ifndef LIBC_TYPES_CASTING_H_
+#define LIBC_TYPES_CASTING_H_
 
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+#include <stdbool.h>
+#include <stddef.h>
 
-PCUT_MAIN();
+/**
+ * Checks that the size_t value can be casted to int without loss of data.
+ *
+ * @param val Value to test.
+ * @return Whether it is safe to typecast value to int.
+ */
+static inline bool can_cast_size_t_to_int(size_t val)
+{
+	unsigned int as_uint = (unsigned int) val;
+	return !((as_uint != val) || (((int) as_uint) < 0));
+}
+
+#endif
+
+/** @}
+ */

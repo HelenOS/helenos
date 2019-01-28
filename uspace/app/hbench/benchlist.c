@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2018 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +27,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <pcut/pcut.h>
+/** @addtogroup hbench
+ * @{
+ */
+/**
+ * @file
+ */
 
-PCUT_INIT;
+#include <stdlib.h>
+#include "hbench.h"
 
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+benchmark_t *benchmarks[] = {
+	&benchmark_dir_read,
+	&benchmark_fibril_mutex,
+	&benchmark_file_read,
+	&benchmark_malloc1,
+	&benchmark_malloc2,
+	&benchmark_ns_ping,
+	&benchmark_ping_pong
+};
 
-PCUT_MAIN();
+size_t benchmark_count = sizeof(benchmarks) / sizeof(benchmarks[0]);
+
+/** @}
+ */

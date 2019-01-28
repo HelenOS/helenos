@@ -1,5 +1,0 @@
-{
-	"malloc1",
-	"User-space memory allocator benchmark, repeatedly allocate one block",
-	&bench_malloc1
-},

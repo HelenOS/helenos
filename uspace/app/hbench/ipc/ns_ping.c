@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup hbench
+ * @{
+ */
+
 #include <stdio.h>
-#include <pcut/pcut.h>
+#include <ns.h>
+#include <async.h>
+#include <errno.h>
+#include <str_error.h>
+#include "../hbench.h"
 
-PCUT_INIT;
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t niter)
+{
+	bench_run_start(run);
 
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+	for (uint64_t count = 0; count < niter; count++) {
+		errno_t rc = ns_ping();
 
-PCUT_MAIN();
+		if (rc != EOK) {
+			return bench_run_fail(run, "failed sending ping message: %s (%d)",
+			    str_error(rc), rc);
+		}
+	}
+
+	bench_run_stop(run);
+
+	return true;
+}
+
+benchmark_t benchmark_ns_ping = {
+	.name = "ns_ping",
+	.desc = "Name service IPC ping-pong benchmark",
+	.entry = &runner,
+	.setup = NULL,
+	.teardown = NULL
+};
+
+/** @}
+ */

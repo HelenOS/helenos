@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,69 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup hbench
+ * @{
+ */
+/**
+ * @file
+ */
+
+#include <stdlib.h>
 #include <stdio.h>
-#include <pcut/pcut.h>
+#include "hbench.h"
 
-PCUT_INIT;
+static FILE *csv_output = NULL;
 
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+/** Open CSV benchmark report.
+ *
+ * @param filename Filename where to store the CSV.
+ * @return Whether it was possible to open the file.
+ */
+errno_t csv_report_open(const char *filename)
+{
+	csv_output = fopen(filename, "w");
+	if (csv_output == NULL) {
+		return errno;
+	}
 
-PCUT_MAIN();
+	fprintf(csv_output, "benchmark,run,size,duration_nanos\n");
+
+	return EOK;
+}
+
+/** Add one entry to the report.
+ *
+ * When csv_report_open() was not called or failed, the function does
+ * nothing.
+ *
+ * @param run Performance data of the entry.
+ * @param run_index Run index, use negative values for warm-up.
+ * @param bench Benchmark information.
+ * @param workload_size Workload size.
+ */
+void csv_report_add_entry(bench_run_t *run, int run_index,
+    benchmark_t *bench, uint64_t workload_size)
+{
+	if (csv_output == NULL) {
+		return;
+	}
+
+	fprintf(csv_output, "%s,%d,%" PRIu64 ",%lld\n",
+	    bench->name, run_index, workload_size,
+	    (long long) stopwatch_get_nanos(&run->stopwatch));
+}
+
+/** Close CSV report.
+ *
+ * When csv_report_open() was not called or failed, the function does
+ * nothing.
+ */
+void csv_report_close(void)
+{
+	if (csv_output != NULL) {
+		fclose(csv_output);
+	}
+}
+
+/** @}
+ */

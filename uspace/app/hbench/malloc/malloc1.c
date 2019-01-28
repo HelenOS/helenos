@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup hbench
+ * @{
+ */
+
+#include <math.h>
 #include <stdio.h>
-#include <pcut/pcut.h>
+#include <stdlib.h>
+#include "../hbench.h"
 
-PCUT_INIT;
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t size)
+{
+	bench_run_start(run);
+	for (uint64_t i = 0; i < size; i++) {
+		void *p = malloc(1);
+		if (p == NULL) {
+			return bench_run_fail(run,
+			    "failed to allocate 1B in run %" PRIu64 " (out of %" PRIu64 ")",
+			    i, size);
+		}
+		free(p);
+	}
+	bench_run_stop(run);
 
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+	return true;
+}
 
-PCUT_MAIN();
+benchmark_t benchmark_malloc1 = {
+	.name = "malloc1",
+	.desc = "User-space memory allocator benchmark, repeatedly allocate one block",
+	.entry = &runner,
+	.setup = NULL,
+	.teardown = NULL
+};
+
+/** @}
+ */

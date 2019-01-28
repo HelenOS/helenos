@@ -188,6 +188,7 @@ SOURCES = \
 
 TEST_SOURCES = \
 	test/adt/circ_buf.c \
+	test/casting.c \
 	test/fibril/timer.c \
 	test/main.c \
 	test/mem.c \
@@ -195,6 +196,7 @@ TEST_SOURCES = \
 	test/io/table.c \
 	test/stdio/scanf.c \
 	test/odict.c \
+	test/perf.c \
 	test/perm.c \
 	test/qsort.c \
 	test/sprintf.c \

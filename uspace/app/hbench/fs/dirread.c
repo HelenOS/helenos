@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +27,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup hbench
+ * @{
+ */
+
+#include <dirent.h>
+#include <str_error.h>
 #include <stdio.h>
-#include <pcut/pcut.h>
+#include <stdlib.h>
+#include "../hbench.h"
 
-PCUT_INIT;
+/** Execute directory listing benchmark.
+ *
+ * Note that while this benchmark tries to measure speed of direct
+ * read, it rather measures speed of FS cache as it is highly probable
+ * that the corresponding blocks would be cached after first run.
+ */
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t size)
+{
+	const char *path = bench_env_param_get(env, "dirname", "/");
 
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+	bench_run_start(run);
+	for (uint64_t i = 0; i < size; i++) {
+		DIR *dir = opendir(path);
+		if (dir == NULL) {
+			return bench_run_fail(run, "failed to open %s for reading: %s",
+			    path, str_error(errno));
+		}
 
-PCUT_MAIN();
+		struct dirent *dp;
+		while ((dp = readdir(dir))) {
+			/* Do nothing */
+		}
+
+		closedir(dir);
+	}
+	bench_run_stop(run);
+
+	return true;
+}
+
+benchmark_t benchmark_dir_read = {
+	.name = "dir_read",
+	.desc = "Read contents of a directory (use 'dirname' param to alter the default).",
+	.entry = &runner,
+	.setup = NULL,
+	.teardown = NULL
+};
+
+/**
+ * @}
+ */

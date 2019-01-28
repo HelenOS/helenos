@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <pcut/pcut.h>
+#include <limits.h>
+#include <types/casting.h>
 
 PCUT_INIT;
 
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+PCUT_TEST_SUITE(casting);
 
-PCUT_MAIN();
+/*
+ * Following tests checks functionality of can_cast_size_t_to_int.
+ */
+
+PCUT_TEST(size_t_to_int_with_small)
+{
+	PCUT_ASSERT_TRUE(can_cast_size_t_to_int(0));
+	PCUT_ASSERT_TRUE(can_cast_size_t_to_int(128));
+}
+
+PCUT_TEST(size_t_to_int_with_biggest_int)
+{
+	PCUT_ASSERT_TRUE(can_cast_size_t_to_int(INT_MAX));
+}
+
+PCUT_TEST(size_t_to_int_with_biggest_size_t)
+{
+	PCUT_ASSERT_FALSE(can_cast_size_t_to_int(SIZE_MAX));
+}
+
+PCUT_EXPORT(casting);
