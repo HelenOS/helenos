@@ -43,14 +43,14 @@
 #include <trace.h>
 
 /** Doubly linked list link. */
-typedef struct link {
-	struct link *prev;  /**< Pointer to the previous item in the list. */
-	struct link *next;  /**< Pointer to the next item in the list. */
+typedef struct __adt_link {
+	struct __adt_link *__adt_link_prev;  /**< Pointer to the previous item in the list. */
+	struct __adt_link *__adt_link_next;  /**< Pointer to the next item in the list. */
 } link_t;
 
 /** Doubly linked list. */
-typedef struct list {
-	link_t head;  /**< List head. Does not have any data. */
+typedef struct {
+	link_t __adt_list_head;  /**< List head. Does not have any data. */
 } list_t;
 
 extern bool list_member(const link_t *, const list_t *);
@@ -82,26 +82,29 @@ extern unsigned long list_count(const list_t *);
  */
 #define LIST_INITIALIZER(name) \
 	{ \
-		.head = { \
-			.prev = &(name).head, \
-			.next = &(name).head \
+		.__adt_list_head = { \
+			.__adt_link_prev = &(name).__adt_list_head, \
+			.__adt_link_next = &(name).__adt_list_head \
 		} \
 	}
 
 #define list_get_instance(link, type, member) \
 	((type *) (((void *)(link)) - list_link_to_void(&(((type *) NULL)->member))))
 
-#define list_foreach(list, member, itype, iterator) \
+#define list_foreach_internal(list, member, itype, iterator, next, link) \
 	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
-		for (link_t *_link = (list).head.next; \
-		    iterator = list_get_instance(_link, itype, member), \
-		    _link != &(list).head; _link = _link->next)
+		for (link_t *link = (list).__adt_list_head.next; \
+		    iterator = list_get_instance(link, itype, member), \
+		    link != &(list).__adt_list_head; link = link->next)
+
+#define __ADT_LIST_CONCAT(a, b) __ADT_LIST_CONCAT1(a, b)
+#define __ADT_LIST_CONCAT1(a, b) a##b
+
+#define list_foreach(list, member, itype, iterator) \
+	list_foreach_internal(list, member, itype, iterator, __adt_link_next, __ADT_LIST_CONCAT(__tmp_link_, __COUNTER__))
 
 #define list_foreach_rev(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
-		for (link_t *_link = (list).head.prev; \
-		    iterator = list_get_instance(_link, itype, member), \
-		    _link != &(list).head; _link = _link->prev)
+	list_foreach_internal(list, member, itype, iterator, __adt_link_prev, __ADT_LIST_CONCAT(__tmp_link_, __COUNTER__))
 
 /** Unlike list_foreach(), allows removing items while traversing a list.
  *
@@ -129,10 +132,10 @@ extern unsigned long list_count(const list_t *);
  * @param next_iter Iterator to the next element of the list.
  */
 #define list_foreach_safe(list, iterator, next_iter) \
-	for (link_t *iterator = (list).head.next, \
-	    *next_iter = iterator->next; \
-	    iterator != &(list).head; \
-	    iterator = next_iter, next_iter = iterator->next)
+	for (link_t *iterator = (list).__adt_list_head.__adt_link_next, \
+	    *next_iter = iterator->__adt_link_next; \
+	    iterator != &(list).__adt_list_head; \
+	    iterator = next_iter, next_iter = iterator->__adt_link_next)
 
 #define assert_link_not_used(link) \
 	assert(!link_used(link))
@@ -140,7 +143,7 @@ extern unsigned long list_count(const list_t *);
 /** Returns true if the link is definitely part of a list. False if not sure. */
 static inline bool link_in_use(const link_t *link)
 {
-	return link->prev != NULL && link->next != NULL;
+	return link->__adt_link_prev != NULL && link->__adt_link_next != NULL;
 }
 
 /** Initialize doubly-linked circular list link
@@ -152,8 +155,9 @@ static inline bool link_in_use(const link_t *link)
  */
 NO_TRACE static inline void link_initialize(link_t *link)
 {
-	link->prev = NULL;
-	link->next = NULL;
+	assert(link);
+	link->__adt_link_prev = NULL;
+	link->__adt_link_next = NULL;
 }
 
 /** Initialize doubly-linked circular list
@@ -165,8 +169,9 @@ NO_TRACE static inline void link_initialize(link_t *link)
  */
 NO_TRACE static inline void list_initialize(list_t *list)
 {
-	list->head.prev = &list->head;
-	list->head.next = &list->head;
+	assert(list);
+	list->__adt_list_head.__adt_link_prev = &list->__adt_list_head;
+	list->__adt_list_head.__adt_link_next = &list->__adt_list_head;
 }
 
 /** Insert item before another item in doubly-linked circular list.
@@ -174,10 +179,12 @@ NO_TRACE static inline void list_initialize(list_t *list)
  */
 static inline void list_insert_before(link_t *lnew, link_t *lold)
 {
-	lnew->next = lold;
-	lnew->prev = lold->prev;
-	lold->prev->next = lnew;
-	lold->prev = lnew;
+	assert(lnew);
+	assert(lold);
+	lnew->__adt_link_next = lold;
+	lnew->__adt_link_prev = lold->__adt_link_prev;
+	lold->__adt_link_prev->__adt_link_next = lnew;
+	lold->__adt_link_prev = lnew;
 }
 
 /** Insert item after another item in doubly-linked circular list.
@@ -185,10 +192,12 @@ static inline void list_insert_before(link_t *lnew, link_t *lold)
  */
 static inline void list_insert_after(link_t *lnew, link_t *lold)
 {
-	lnew->prev = lold;
-	lnew->next = lold->next;
-	lold->next->prev = lnew;
-	lold->next = lnew;
+	assert(lnew);
+	assert(lold);
+	lnew->__adt_link_prev = lold;
+	lnew->__adt_link_next = lold->__adt_link_next;
+	lold->__adt_link_next->__adt_link_prev = lnew;
+	lold->__adt_link_next = lnew;
 }
 
 /** Add item to the beginning of doubly-linked circular list
@@ -201,7 +210,7 @@ static inline void list_insert_after(link_t *lnew, link_t *lold)
  */
 NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
 {
-	list_insert_after(link, &list->head);
+	list_insert_after(link, &list->__adt_list_head);
 }
 
 /** Add item to the end of doubly-linked circular list
@@ -214,7 +223,7 @@ NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
  */
 NO_TRACE static inline void list_append(link_t *link, list_t *list)
 {
-	list_insert_before(link, &list->head);
+	list_insert_before(link, &list->__adt_list_head);
 }
 
 /** Remove item from doubly-linked circular list
@@ -227,9 +236,9 @@ NO_TRACE static inline void list_append(link_t *link, list_t *list)
  */
 NO_TRACE static inline void list_remove(link_t *link)
 {
-	if ((link->prev != NULL) && (link->next != NULL)) {
-		link->next->prev = link->prev;
-		link->prev->next = link->next;
+	if ((link->__adt_link_prev != NULL) && (link->__adt_link_next != NULL)) {
+		link->__adt_link_next->__adt_link_prev = link->__adt_link_prev;
+		link->__adt_link_prev->__adt_link_next = link->__adt_link_next;
 	}
 
 	link_initialize(link);
@@ -244,7 +253,7 @@ NO_TRACE static inline void list_remove(link_t *link)
  */
 NO_TRACE static inline bool list_empty(const list_t *list)
 {
-	return (list->head.next == &list->head);
+	return (list->__adt_list_head.__adt_link_next == &list->__adt_list_head);
 }
 
 /** Get first item in list.
@@ -257,7 +266,7 @@ NO_TRACE static inline bool list_empty(const list_t *list)
  */
 static inline link_t *list_first(const list_t *list)
 {
-	return ((list->head.next == &list->head) ? NULL : list->head.next);
+	return ((list->__adt_list_head.__adt_link_next == &list->__adt_list_head) ? NULL : list->__adt_list_head.__adt_link_next);
 }
 
 /** Get last item in list.
@@ -270,7 +279,7 @@ static inline link_t *list_first(const list_t *list)
  */
 static inline link_t *list_last(const list_t *list)
 {
-	return (list->head.prev == &list->head) ? NULL : list->head.prev;
+	return (list->__adt_list_head.__adt_link_prev == &list->__adt_list_head) ? NULL : list->__adt_list_head.__adt_link_prev;
 }
 
 /** Get next item in list.
@@ -282,7 +291,7 @@ static inline link_t *list_last(const list_t *list)
  */
 static inline link_t *list_next(const link_t *link, const list_t *list)
 {
-	return (link->next == &list->head) ? NULL : link->next;
+	return (link->__adt_link_next == &list->__adt_list_head) ? NULL : link->__adt_link_next;
 }
 
 /** Get previous item in list.
@@ -294,7 +303,7 @@ static inline link_t *list_next(const link_t *link, const list_t *list)
  */
 static inline link_t *list_prev(const link_t *link, const list_t *list)
 {
-	return (link->prev == &list->head) ? NULL : link->prev;
+	return (link->__adt_link_prev == &list->__adt_list_head) ? NULL : link->__adt_link_prev;
 }
 
 /** Split or concatenate headless doubly-linked circular list
@@ -312,13 +321,13 @@ static inline link_t *list_prev(const link_t *link, const list_t *list)
  */
 NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
-	part1->prev->next = part2;
-	part2->prev->next = part1;
+	part1->__adt_link_prev->__adt_link_next = part2;
+	part2->__adt_link_prev->__adt_link_next = part1;
 
-	link_t *hlp = part1->prev;
+	link_t *hlp = part1->__adt_link_prev;
 
-	part1->prev = part2->prev;
-	part2->prev = hlp;
+	part1->__adt_link_prev = part2->__adt_link_prev;
+	part2->__adt_link_prev = hlp;
 }
 
 /** Split headless doubly-linked circular list
@@ -363,7 +372,7 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
  */
 NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
 {
-	list_splice(list2, list1->head.prev);
+	list_splice(list2, list1->__adt_list_head.__adt_link_prev);
 }
 
 /** Get n-th item in a list.
@@ -407,10 +416,10 @@ static inline const void *list_link_to_void(const link_t *link)
  */
 static inline bool link_used(link_t *link)
 {
-	if (link->prev == NULL && link->next == NULL)
+	if (link->__adt_link_prev == NULL && link->__adt_link_next == NULL)
 		return false;
 
-	assert(link->prev != NULL && link->next != NULL);
+	assert(link->__adt_link_prev != NULL && link->__adt_link_next != NULL);
 	return true;
 }
 

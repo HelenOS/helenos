@@ -106,7 +106,7 @@ errno_t fibrils_dump(symtab_t *symtab, async_sess_t *sess)
 		if (rc != EOK)
 			return EIO;
 
-		addr = (uintptr_t) link.next;
+		addr = (uintptr_t) link.__adt_link_next;
 		if (addr == fibril_list_addr)
 			break;
 

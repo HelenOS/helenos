@@ -54,18 +54,18 @@
  */
 bool list_member(const link_t *link, const list_t *list)
 {
-	bool found = false;
-	link_t *hlp = list->head.next;
+	if (list_empty(list))
+		return false;
 
-	while (hlp != &list->head) {
-		if (hlp == link) {
-			found = true;
-			break;
-		}
-		hlp = hlp->next;
+	link_t *hlp = list->__adt_list_head.__adt_link_next;
+
+	while (hlp != &list->__adt_list_head) {
+		if (hlp == link)
+			return true;
+		hlp = hlp->__adt_link_next;
 	}
 
-	return found;
+	return false;
 }
 
 /** Moves items of one list into another after the specified item.
@@ -82,12 +82,12 @@ void list_splice(list_t *list, link_t *pos)
 		return;
 
 	/* Attach list to destination. */
-	list->head.next->prev = pos;
-	list->head.prev->next = pos->next;
+	list->__adt_list_head.__adt_link_next->__adt_link_prev = pos;
+	list->__adt_list_head.__adt_link_prev->__adt_link_next = pos->__adt_link_next;
 
 	/* Link destination list to the added list. */
-	pos->next->prev = list->head.prev;
-	pos->next = list->head.next;
+	pos->__adt_link_next->__adt_link_prev = list->__adt_list_head.__adt_link_prev;
+	pos->__adt_link_next = list->__adt_list_head.__adt_link_next;
 
 	list_initialize(list);
 }
