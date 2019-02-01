@@ -108,12 +108,10 @@ static void before_test_start(pcut_item_t *test) {
 }
 
 /** Mutex guard for forced_termination_cv. */
-static fibril_mutex_t forced_termination_mutex
-	= FIBRIL_MUTEX_INITIALIZER(forced_termination_mutex);
+static FIBRIL_MUTEX_INITIALIZE(forced_termination_mutex);
 
 /** Condition-variable for checking whether test timed-out. */
-static fibril_condvar_t forced_termination_cv
-	= FIBRIL_CONDVAR_INITIALIZER(forced_termination_cv);
+static FIBRIL_CONDVAR_INITIALIZE(forced_termination_cv);
 
 /** Spawned task id. */
 static task_id_t test_task_id;
