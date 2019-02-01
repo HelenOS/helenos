@@ -164,7 +164,7 @@ static void check_for_deadlock(fibril_owner_info_t *oi)
 void fibril_mutex_initialize(fibril_mutex_t *fm)
 {
 	fm->oi.owned_by = NULL;
-	fm->counter = 1;
+	fm->counter = 0;
 	list_initialize(&fm->waiters);
 }
 
@@ -174,7 +174,10 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 
 	futex_lock(&fibril_synch_futex);
 
-	if (fm->counter-- > 0) {
+	fm->counter++;
+
+	if (fm->counter == 1) {
+		/* I am the only one here. */
 		fm->oi.owned_by = f;
 		futex_unlock(&fibril_synch_futex);
 		return;
@@ -195,8 +198,8 @@ bool fibril_mutex_trylock(fibril_mutex_t *fm)
 	bool locked = false;
 
 	futex_lock(&fibril_synch_futex);
-	if (fm->counter > 0) {
-		fm->counter--;
+	if (fm->counter == 0) {
+		fm->counter++;
 		fm->oi.owned_by = (fibril_t *) fibril_get_id();
 		locked = true;
 	}
@@ -208,8 +211,11 @@ bool fibril_mutex_trylock(fibril_mutex_t *fm)
 static void _fibril_mutex_unlock_unsafe(fibril_mutex_t *fm)
 {
 	assert(fm->oi.owned_by == (fibril_t *) fibril_get_id());
+	assert(fm->counter > 0);
 
-	if (fm->counter++ < 0) {
+	fm->counter--;
+
+	if (fm->counter > 0) {
 		awaiter_t *wdp = list_pop(&fm->waiters, awaiter_t, link);
 		assert(wdp);
 

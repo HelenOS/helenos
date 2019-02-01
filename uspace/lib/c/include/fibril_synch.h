@@ -43,7 +43,7 @@
 
 typedef struct {
 	fibril_owner_info_t oi;  /**< Keep this the first thing. */
-	int counter;
+	int counter;  /**< # of fibrils currently waiting for or running in the critical section. */
 	list_t waiters;
 } fibril_mutex_t;
 
@@ -52,7 +52,7 @@ typedef struct {
 		.oi = { \
 			.owned_by = NULL \
 		}, \
-		.counter = 1, \
+		.counter = 0, \
 		.waiters = LIST_INITIALIZER((name).waiters), \
 	}
 
