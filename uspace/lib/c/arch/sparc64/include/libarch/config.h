@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_sparc64_CONFIG_H_
-#define LIBC_sparc64_CONFIG_H_
+#ifndef _LIBC_sparc64_CONFIG_H_
+#define _LIBC_sparc64_CONFIG_H_
 
 #if defined (SUN4U)
 #define PAGE_WIDTH	14

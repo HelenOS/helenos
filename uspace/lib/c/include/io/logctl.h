@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBC_IO_LOGCTL_H_
-#define LIBC_IO_LOGCTL_H_
+#ifndef _LIBC_IO_LOGCTL_H_
+#define _LIBC_IO_LOGCTL_H_
 
 #include <io/log.h>
 

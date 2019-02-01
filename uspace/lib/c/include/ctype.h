@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_CTYPE_H_
-#define LIBC_CTYPE_H_
+#ifndef _LIBC_CTYPE_H_
+#define _LIBC_CTYPE_H_
 
 int islower(int);
 int isupper(int);

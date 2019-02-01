@@ -32,8 +32,8 @@
 /** @file Circular buffer
  */
 
-#ifndef LIBC_CIRC_BUF_H_
-#define LIBC_CIRC_BUF_H_
+#ifndef _LIBC_CIRC_BUF_H_
+#define _LIBC_CIRC_BUF_H_
 
 #include <errno.h>
 #include <stddef.h>

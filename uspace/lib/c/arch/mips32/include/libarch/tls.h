@@ -35,8 +35,8 @@
 
 /* TLS for MIPS is described in http://www.linux-mips.org/wiki/NPTL */
 
-#ifndef LIBC_mips32_TLS_H_
-#define LIBC_mips32_TLS_H_
+#ifndef _LIBC_mips32_TLS_H_
+#define _LIBC_mips32_TLS_H_
 
 /*
  * FIXME: Note that the use of variant I contradicts the observations made in

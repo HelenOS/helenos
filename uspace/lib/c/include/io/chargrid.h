@@ -33,8 +33,8 @@
  * @file
  */
 
-#ifndef LIBC_IO_CHARGRID_H_
-#define LIBC_IO_CHARGRID_H_
+#ifndef _LIBC_IO_CHARGRID_H_
+#define _LIBC_IO_CHARGRID_H_
 
 #include <io/charfield.h>
 #include <types/common.h>

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ELF_LINUX_H_
-#define LIBC_ELF_LINUX_H_
+#ifndef _LIBC_ELF_LINUX_H_
+#define _LIBC_ELF_LINUX_H_
 
 #include <elf/elf.h>
 #include <libarch/elf_linux.h>

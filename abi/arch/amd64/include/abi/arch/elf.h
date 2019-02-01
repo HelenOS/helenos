@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_amd64_ELF_H_
-#define ABI_amd64_ELF_H_
+#ifndef _ABI_amd64_ELF_H_
+#define _ABI_amd64_ELF_H_
 
 #define ELF_MACHINE        EM_X86_64
 #define ELF_DATA_ENCODING  ELFDATA2LSB

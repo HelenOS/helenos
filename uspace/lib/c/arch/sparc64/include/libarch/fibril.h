@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_sparc64_FIBRIL_H_
-#define LIBC_sparc64_FIBRIL_H_
+#ifndef _LIBC_sparc64_FIBRIL_H_
+#define _LIBC_sparc64_FIBRIL_H_
 
 #include <libarch/stack.h>
 #include <libarch/fibril_context.h>

@@ -34,8 +34,8 @@
  * @file
  */
 
-#ifndef LIBC_IO_PIXELMAP_H_
-#define LIBC_IO_PIXELMAP_H_
+#ifndef _LIBC_IO_PIXELMAP_H_
+#define _LIBC_IO_PIXELMAP_H_
 
 #include <types/common.h>
 #include <stdbool.h>

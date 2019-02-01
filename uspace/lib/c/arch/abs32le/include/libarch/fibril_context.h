@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_abs32le_FIBRIL_CONTEXT_H_
-#define LIBC_abs32le_FIBRIL_CONTEXT_H_
+#ifndef _LIBC_abs32le_FIBRIL_CONTEXT_H_
+#define _LIBC_abs32le_FIBRIL_CONTEXT_H_
 
 #include <stdint.h>
 

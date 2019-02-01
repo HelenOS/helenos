@@ -33,8 +33,8 @@
  * @file
  */
 
-#ifndef LIBC_IO_PIXEL_H_
-#define LIBC_IO_PIXEL_H_
+#ifndef _LIBC_IO_PIXEL_H_
+#define _LIBC_IO_PIXEL_H_
 
 #include <stdint.h>
 

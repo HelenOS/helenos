@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TRACE_H_
-#define LIBC_TRACE_H_
+#ifndef _LIBC_TRACE_H_
+#define _LIBC_TRACE_H_
 
 #define _NO_TRACE  __attribute__((no_instrument_function))
 

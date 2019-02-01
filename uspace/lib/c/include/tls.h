@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TLS_H_
-#define LIBC_TLS_H_
+#ifndef _LIBC_TLS_H_
+#define _LIBC_TLS_H_
 
 #include <libarch/tls.h>
 #include <stdbool.h>

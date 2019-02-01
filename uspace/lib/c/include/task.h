@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TASK_H_
-#define LIBC_TASK_H_
+#ifndef _LIBC_TASK_H_
+#define _LIBC_TASK_H_
 
 #include <stdint.h>
 #include <stdarg.h>

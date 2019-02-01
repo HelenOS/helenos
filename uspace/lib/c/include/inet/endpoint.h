@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_INET_ENDPOINT_H_
-#define LIBC_INET_ENDPOINT_H_
+#ifndef _LIBC_INET_ENDPOINT_H_
+#define _LIBC_INET_ENDPOINT_H_
 
 #include <stdint.h>
 #include <inet/addr.h>

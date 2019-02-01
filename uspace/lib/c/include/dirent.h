@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_DIRENT_H_
-#define LIBC_DIRENT_H_
+#ifndef _LIBC_DIRENT_H_
+#define _LIBC_DIRENT_H_
 
 #define NAME_MAX  256
 

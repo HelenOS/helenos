@@ -34,8 +34,8 @@
 /** @file
  */
 
-#ifndef LIBC_HASH_TABLE_H_
-#define LIBC_HASH_TABLE_H_
+#ifndef _LIBC_HASH_TABLE_H_
+#define _LIBC_HASH_TABLE_H_
 
 #include <adt/list.h>
 #include <stdbool.h>

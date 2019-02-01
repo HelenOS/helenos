@@ -35,8 +35,8 @@
  * @brief	sparc64 TLS functions.
  */
 
-#ifndef LIBC_sparc64_TLS_H_
-#define LIBC_sparc64_TLS_H_
+#ifndef _LIBC_sparc64_TLS_H_
+#define _LIBC_sparc64_TLS_H_
 
 #define CONFIG_TLS_VARIANT_2
 

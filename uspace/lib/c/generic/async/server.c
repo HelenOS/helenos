@@ -95,11 +95,11 @@
  *
  */
 
-#define LIBC_ASYNC_C_
+#define _LIBC_ASYNC_C_
 #include <ipc/ipc.h>
 #include <async.h>
 #include "../private/async.h"
-#undef LIBC_ASYNC_C_
+#undef _LIBC_ASYNC_C_
 
 #include <ipc/irq.h>
 #include <ipc/event.h>

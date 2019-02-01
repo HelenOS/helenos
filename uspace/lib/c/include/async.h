@@ -32,12 +32,12 @@
 /** @file
  */
 
-#if ((defined(LIBC_IPC_H_)) && (!defined(LIBC_ASYNC_C_)))
+#if ((defined(_LIBC_IPC_H_)) && (!defined(_LIBC_ASYNC_C_)))
 #error Do not intermix low-level IPC interface and async framework
 #endif
 
-#ifndef LIBC_ASYNC_H_
-#define LIBC_ASYNC_H_
+#ifndef _LIBC_ASYNC_H_
+#define _LIBC_ASYNC_H_
 
 #include <ipc/common.h>
 #include <time.h>

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_IPC_EVENT_H_
-#define ABI_IPC_EVENT_H_
+#ifndef _ABI_IPC_EVENT_H_
+#define _ABI_IPC_EVENT_H_
 
 /** Global events */
 typedef enum event_type {

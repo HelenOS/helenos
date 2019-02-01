@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_CHECKSUM_H_
-#define LIBC_CHECKSUM_H_
+#ifndef _LIBC_CHECKSUM_H_
+#define _LIBC_CHECKSUM_H_
 
 #include <stddef.h>
 #include <stdint.h>

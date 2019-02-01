@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_IPC_METHODS_H_
-#define ABI_IPC_METHODS_H_
+#ifndef _ABI_IPC_METHODS_H_
+#define _ABI_IPC_METHODS_H_
 
 #include <abi/cap.h>
 

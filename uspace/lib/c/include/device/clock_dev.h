@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_DEVICE_CLOCK_DEV_H_
-#define LIBC_DEVICE_CLOCK_DEV_H_
+#ifndef _LIBC_DEVICE_CLOCK_DEV_H_
+#define _LIBC_DEVICE_CLOCK_DEV_H_
 
 #include <async.h>
 #include <time.h>

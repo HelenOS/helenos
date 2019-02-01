@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_FIBRIL_H_
-#define LIBC_FIBRIL_H_
+#ifndef _LIBC_FIBRIL_H_
+#define _LIBC_FIBRIL_H_
 
 #include <types/common.h>
 #include <time.h>

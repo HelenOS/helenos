@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_SYNCH_H_
-#define ABI_SYNCH_H_
+#ifndef _ABI_SYNCH_H_
+#define _ABI_SYNCH_H_
 
 /** Request with no timeout. */
 #define SYNCH_NO_TIMEOUT  0

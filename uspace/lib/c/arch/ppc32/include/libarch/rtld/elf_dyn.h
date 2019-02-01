@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ppc32_RTLD_ELF_DYN_H_
-#define LIBC_ppc32_RTLD_ELF_DYN_H_
+#ifndef _LIBC_ppc32_RTLD_ELF_DYN_H_
+#define _LIBC_ppc32_RTLD_ELF_DYN_H_
 
 /*
  * ppc32 dynamic relocation types

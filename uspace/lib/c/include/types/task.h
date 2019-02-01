@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TYPES_TASK_H_
-#define LIBC_TYPES_TASK_H_
+#ifndef _LIBC_TYPES_TASK_H_
+#define _LIBC_TYPES_TASK_H_
 
 typedef enum {
 	TASK_EXIT_NORMAL,

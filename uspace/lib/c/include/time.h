@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TIME_H_
-#define LIBC_TIME_H_
+#ifndef _LIBC_TIME_H_
+#define _LIBC_TIME_H_
 
 #ifdef __cplusplus
 extern "C" {

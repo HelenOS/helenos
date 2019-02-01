@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TYPES_INETCFG_H_
-#define LIBC_TYPES_INETCFG_H_
+#ifndef _LIBC_TYPES_INETCFG_H_
+#define _LIBC_TYPES_INETCFG_H_
 
 #include <inet/inet.h>
 #include <stddef.h>

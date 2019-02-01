@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_arm32_RTLD_ELF_DYN_H_
-#define LIBC_arm32_RTLD_ELF_DYN_H_
+#ifndef _LIBC_arm32_RTLD_ELF_DYN_H_
+#define _LIBC_arm32_RTLD_ELF_DYN_H_
 
 /*
  * arm32 dynamic relocation types

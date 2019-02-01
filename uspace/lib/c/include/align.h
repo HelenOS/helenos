@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ALIGN_H_
-#define LIBC_ALIGN_H_
+#ifndef _LIBC_ALIGN_H_
+#define _LIBC_ALIGN_H_
 
 /** Align to the nearest lower address which is a power of two.
  *

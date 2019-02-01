@@ -34,8 +34,8 @@
 /** @file
  */
 
-#ifndef LIBC_STR_H_
-#define LIBC_STR_H_
+#ifndef _LIBC_STR_H_
+#define _LIBC_STR_H_
 
 #ifdef __cplusplus
 extern "C" {

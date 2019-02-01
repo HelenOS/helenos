@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_CON_SRV_H_
-#define LIBC_CON_SRV_H_
+#ifndef _LIBC_CON_SRV_H_
+#define _LIBC_CON_SRV_H_
 
 #include <adt/list.h>
 #include <async.h>

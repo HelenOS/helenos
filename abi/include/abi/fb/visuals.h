@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef ABI_VISUALS_H_
-#define ABI_VISUALS_H_
+#ifndef _ABI_VISUALS_H_
+#define _ABI_VISUALS_H_
 
 typedef enum {
 	VISUAL_UNKNOWN = 0,

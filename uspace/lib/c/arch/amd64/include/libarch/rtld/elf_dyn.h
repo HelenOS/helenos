@@ -32,8 +32,8 @@
 /** @file amd64 dynamic relocation types
  */
 
-#ifndef LIBC_amd64_RTLD_ELF_DYN_H_
-#define LIBC_amd64_RTLD_ELF_DYN_H_
+#ifndef _LIBC_amd64_RTLD_ELF_DYN_H_
+#define _LIBC_amd64_RTLD_ELF_DYN_H_
 
 #define R_X86_64_64		1
 #define R_X86_64_PC32		2

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_SORT_H_
-#define LIBC_SORT_H_
+#ifndef _LIBC_SORT_H_
+#define _LIBC_SORT_H_
 
 #include <stddef.h>
 #include <stdbool.h>

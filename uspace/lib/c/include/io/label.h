@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_LABEL_H_
-#define LIBC_IO_LABEL_H_
+#ifndef _LIBC_IO_LABEL_H_
+#define _LIBC_IO_LABEL_H_
 
 #include <types/label.h>
 

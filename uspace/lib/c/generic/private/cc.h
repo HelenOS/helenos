@@ -33,8 +33,8 @@
  * Macros related to used compiler (such as GCC-specific attributes).
  */
 
-#ifndef LIBC_CC_H_
-#define LIBC_CC_H_
+#ifndef _LIBC_CC_H_
+#define _LIBC_CC_H_
 
 #ifndef __clang__
 #define ATTRIBUTE_OPTIMIZE(opt) \

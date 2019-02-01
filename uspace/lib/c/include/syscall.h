@@ -36,8 +36,8 @@
  *        according to the number of arguments.
  */
 
-#ifndef LIBC_SYSCALL_H_
-#define LIBC_SYSCALL_H_
+#ifndef _LIBC_SYSCALL_H_
+#define _LIBC_SYSCALL_H_
 
 #ifndef LIBARCH_SYSCALL_GENERIC
 #error You cannot include this file directly

@@ -30,8 +30,8 @@
  * @ingroup libcmips32
  */
 
-#ifndef LIBC_mips32_DDI_H_
-#define LIBC_mips32_DDI_H_
+#ifndef _LIBC_mips32_DDI_H_
+#define _LIBC_mips32_DDI_H_
 
 #include <ddi.h>
 

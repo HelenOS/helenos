@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_CAP_H_
-#define ABI_CAP_H_
+#ifndef _ABI_CAP_H_
+#define _ABI_CAP_H_
 
 #define CAP_NIL  0
 

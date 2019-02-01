@@ -29,8 +29,8 @@
  * @{
  */
 
-#ifndef LIBC_TYPES_IO_CHARDEV_H_
-#define LIBC_TYPES_IO_CHARDEV_H_
+#ifndef _LIBC_TYPES_IO_CHARDEV_H_
+#define _LIBC_TYPES_IO_CHARDEV_H_
 
 /** Chardev read/write operation flags */
 typedef enum {

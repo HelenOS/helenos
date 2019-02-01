@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_INET_DNSR_H_
-#define LIBC_INET_DNSR_H_
+#ifndef _LIBC_INET_DNSR_H_
+#define _LIBC_INET_DNSR_H_
 
 #include <inet/inet.h>
 #include <inet/addr.h>

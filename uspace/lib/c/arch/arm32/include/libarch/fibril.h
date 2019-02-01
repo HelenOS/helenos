@@ -33,8 +33,8 @@
  *  @brief Fibrils related declarations.
  */
 
-#ifndef LIBC_arm32_FIBRIL_H_
-#define LIBC_arm32_FIBRIL_H_
+#ifndef _LIBC_arm32_FIBRIL_H_
+#define _LIBC_arm32_FIBRIL_H_
 
 #include <types/common.h>
 #include <align.h>

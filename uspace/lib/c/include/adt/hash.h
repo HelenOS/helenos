@@ -31,8 +31,8 @@
  */
 /** @file
  */
-#ifndef LIBC_ADT_HASH_H_
-#define LIBC_ADT_HASH_H_
+#ifndef _LIBC_ADT_HASH_H_
+#define _LIBC_ADT_HASH_H_
 
 #include <stdint.h>
 #include <types/common.h>

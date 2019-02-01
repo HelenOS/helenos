@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_ia32_ELF_H_
-#define ABI_ia32_ELF_H_
+#ifndef _ABI_ia32_ELF_H_
+#define _ABI_ia32_ELF_H_
 
 #define ELF_MACHINE        EM_386
 #define ELF_DATA_ENCODING  ELFDATA2LSB

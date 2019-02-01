@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_KLOG_H_
-#define ABI_KLOG_H_
+#ifndef _ABI_KLOG_H_
+#define _ABI_KLOG_H_
 
 typedef enum {
 	KLOG_WRITE,

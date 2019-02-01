@@ -33,8 +33,8 @@
  * @brief Character device interface.
  */
 
-#ifndef LIBC_IPC_CHARDEV_H_
-#define LIBC_IPC_CHARDEV_H_
+#ifndef _LIBC_IPC_CHARDEV_H_
+#define _LIBC_IPC_CHARDEV_H_
 
 #include <ipc/common.h>
 

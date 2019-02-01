@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef LIBC_LIST_H_
-#define LIBC_LIST_H_
+#ifndef _LIBC_LIST_H_
+#define _LIBC_LIST_H_
 
 #include <assert.h>
 #include <stdbool.h>

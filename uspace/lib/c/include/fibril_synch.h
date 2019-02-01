@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_FIBRIL_SYNCH_H_
-#define LIBC_FIBRIL_SYNCH_H_
+#ifndef _LIBC_FIBRIL_SYNCH_H_
+#define _LIBC_FIBRIL_SYNCH_H_
 
 #include <fibril.h>
 #include <adt/list.h>

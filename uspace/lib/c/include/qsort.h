@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_QSORT_H_
-#define LIBC_QSORT_H_
+#ifndef _LIBC_QSORT_H_
+#define _LIBC_QSORT_H_
 
 #include <stddef.h>
 

@@ -33,8 +33,8 @@
  *  @brief ARM ELF constants.
  */
 
-#ifndef ABI_arm32_ELF_H_
-#define ABI_arm32_ELF_H_
+#ifndef _ABI_arm32_ELF_H_
+#define _ABI_arm32_ELF_H_
 
 #define ELF_MACHINE  EM_ARM
 

@@ -32,8 +32,8 @@
 /** @file sparc64 dynamic relocation types
  */
 
-#ifndef LIBC_sparc64_RTLD_ELF_DYN_H_
-#define LIBC_sparc64_RTLD_ELF_DYN_H_
+#ifndef _LIBC_sparc64_RTLD_ELF_DYN_H_
+#define _LIBC_sparc64_RTLD_ELF_DYN_H_
 
 #define R_SPARC_COPY		19
 #define R_SPARC_GLOB_DAT	20

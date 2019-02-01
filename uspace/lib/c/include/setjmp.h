@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBC_SETJMP_H_
-#define LIBC_SETJMP_H_
+#ifndef _LIBC_SETJMP_H_
+#define _LIBC_SETJMP_H_
 
 #ifdef __cplusplus
 extern "C" {

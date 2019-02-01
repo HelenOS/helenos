@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_SMC_H_
-#define LIBC_SMC_H_
+#ifndef _LIBC_SMC_H_
+#define _LIBC_SMC_H_
 
 #include <errno.h>
 #include <stddef.h>

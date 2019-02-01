@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_BYTEORDER_H_
-#define LIBC_BYTEORDER_H_
+#ifndef _LIBC_BYTEORDER_H_
+#define _LIBC_BYTEORDER_H_
 
 #include <stdint.h>
 

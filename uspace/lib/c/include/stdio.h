@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef LIBC_STDIO_H_
-#define LIBC_STDIO_H_
+#ifndef _LIBC_STDIO_H_
+#define _LIBC_STDIO_H_
 
 #ifdef __cplusplus
 extern "C" {

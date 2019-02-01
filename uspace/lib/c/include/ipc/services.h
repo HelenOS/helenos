@@ -34,8 +34,8 @@
  * @brief List of all known services and their codes.
  */
 
-#ifndef LIBC_SERVICES_H_
-#define LIBC_SERVICES_H_
+#ifndef _LIBC_SERVICES_H_
+#define _LIBC_SERVICES_H_
 
 #include <abi/fourcc.h>
 

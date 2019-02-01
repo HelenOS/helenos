@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_CONTEXT_H_
-#define LIBC_CONTEXT_H_
+#ifndef _LIBC_CONTEXT_H_
+#define _LIBC_CONTEXT_H_
 
 #include <_bits/size_t.h>
 #include <libarch/fibril_context.h>

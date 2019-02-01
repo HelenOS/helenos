@@ -34,8 +34,8 @@
 /** @file
  */
 
-#ifndef ABI_LOG_H_
-#define ABI_LOG_H_
+#ifndef _ABI_LOG_H_
+#define _ABI_LOG_H_
 
 /** Log message level. */
 typedef enum {

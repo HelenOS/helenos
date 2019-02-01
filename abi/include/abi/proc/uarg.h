@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_PROC_UARG_H_
-#define ABI_PROC_UARG_H_
+#ifndef _ABI_PROC_UARG_H_
+#define _ABI_PROC_UARG_H_
 
 #include <stddef.h>
 

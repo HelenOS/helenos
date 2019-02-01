@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_arm32_RTLD_MODULE_H_
-#define LIBC_arm32_RTLD_MODULE_H_
+#ifndef _LIBC_arm32_RTLD_MODULE_H_
+#define _LIBC_arm32_RTLD_MODULE_H_
 
 #include <elf/elf_mod.h>
 

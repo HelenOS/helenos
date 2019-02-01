@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_DDI_ARG_H_
-#define ABI_DDI_ARG_H_
+#ifndef _ABI_DDI_ARG_H_
+#define _ABI_DDI_ARG_H_
 
 #include <stdint.h>
 

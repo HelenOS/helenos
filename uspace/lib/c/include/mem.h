@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef LIBC_MEM_H_
-#define LIBC_MEM_H_
+#ifndef _LIBC_MEM_H_
+#define _LIBC_MEM_H_
 
 #include <stddef.h>
 

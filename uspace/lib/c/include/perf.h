@@ -33,8 +33,8 @@
  * System performance measurement utilities.
  */
 
-#ifndef LIBC_PERF_H_
-#define LIBC_PERF_H_
+#ifndef _LIBC_PERF_H_
+#define _LIBC_PERF_H_
 
 #include <time.h>
 
