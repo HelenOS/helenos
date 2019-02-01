@@ -61,9 +61,6 @@
 #include "udf_file.h"
 #include "udf_osta.h"
 
-/** Mutex protecting the list of cached free nodes. */
-static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
-
 /** List of cached free nodes. */
 static LIST_INITIALIZE(ffn_list);
 
