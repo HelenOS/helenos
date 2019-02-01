@@ -150,7 +150,7 @@ static inline bool link_in_use(const link_t *link)
  * @param link Pointer to link_t structure to be initialized.
  *
  */
-NO_TRACE static inline void link_initialize(link_t *link)
+_NO_TRACE static inline void link_initialize(link_t *link)
 {
 	link->prev = NULL;
 	link->next = NULL;
@@ -163,7 +163,7 @@ NO_TRACE static inline void link_initialize(link_t *link)
  * @param list Pointer to list_t structure.
  *
  */
-NO_TRACE static inline void list_initialize(list_t *list)
+_NO_TRACE static inline void list_initialize(list_t *list)
 {
 	list->head.prev = &list->head;
 	list->head.next = &list->head;
@@ -199,7 +199,7 @@ static inline void list_insert_after(link_t *lnew, link_t *lold)
  * @param list Pointer to list_t structure.
  *
  */
-NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
+_NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
 {
 	list_insert_after(link, &list->head);
 }
@@ -212,7 +212,7 @@ NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
  * @param list Pointer to list_t structure.
  *
  */
-NO_TRACE static inline void list_append(link_t *link, list_t *list)
+_NO_TRACE static inline void list_append(link_t *link, list_t *list)
 {
 	list_insert_before(link, &list->head);
 }
@@ -225,7 +225,7 @@ NO_TRACE static inline void list_append(link_t *link, list_t *list)
  *             it is contained in.
  *
  */
-NO_TRACE static inline void list_remove(link_t *link)
+_NO_TRACE static inline void list_remove(link_t *link)
 {
 	if ((link->prev != NULL) && (link->next != NULL)) {
 		link->next->prev = link->prev;
@@ -242,7 +242,7 @@ NO_TRACE static inline void list_remove(link_t *link)
  * @param list Pointer to lins_t structure.
  *
  */
-NO_TRACE static inline bool list_empty(const list_t *list)
+_NO_TRACE static inline bool list_empty(const list_t *list)
 {
 	return (list->head.next == &list->head);
 }
@@ -310,7 +310,7 @@ static inline link_t *list_prev(const link_t *link, const list_t *list)
  *              (half of the headless) list.
  *
  */
-NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
+_NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
 	part1->prev->next = part2;
 	part2->prev->next = part1;
@@ -331,7 +331,7 @@ NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t 
  *              the second half of the headless list.
  *
  */
-NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
+_NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }
@@ -346,7 +346,7 @@ NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
  *              the second headless list.
  *
  */
-NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
+_NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }
@@ -361,7 +361,7 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
  * @param list2 	Second list and empty output.
  *
  */
-NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
+_NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
 {
 	list_splice(list2, list1->head.prev);
 }

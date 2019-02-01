@@ -126,7 +126,7 @@ static used_space_ival_t *used_space_last(used_space_t *);
 static void used_space_remove_ival(used_space_ival_t *);
 static void used_space_shorten_ival(used_space_ival_t *, size_t);
 
-NO_TRACE static errno_t as_constructor(void *obj, unsigned int flags)
+_NO_TRACE static errno_t as_constructor(void *obj, unsigned int flags)
 {
 	as_t *as = (as_t *) obj;
 
@@ -136,7 +136,7 @@ NO_TRACE static errno_t as_constructor(void *obj, unsigned int flags)
 	return as_constructor_arch(as, flags);
 }
 
-NO_TRACE static size_t as_destructor(void *obj)
+_NO_TRACE static size_t as_destructor(void *obj)
 {
 	return as_destructor_arch((as_t *) obj);
 }
@@ -280,7 +280,7 @@ retry:
  * @param as Address space to be held.
  *
  */
-NO_TRACE void as_hold(as_t *as)
+_NO_TRACE void as_hold(as_t *as)
 {
 	refcount_up(&as->refcount);
 }
@@ -293,7 +293,7 @@ NO_TRACE void as_hold(as_t *as)
  * @param as Address space to be released.
  *
  */
-NO_TRACE void as_release(as_t *as)
+_NO_TRACE void as_release(as_t *as)
 {
 	if (refcount_down(&as->refcount))
 		as_destroy(as);
@@ -339,7 +339,7 @@ as_area_t *as_area_next(as_area_t *cur)
  *
  * @return True if the two areas conflict, false otherwise.
  */
-NO_TRACE static bool area_is_conflicting(uintptr_t addr,
+_NO_TRACE static bool area_is_conflicting(uintptr_t addr,
     size_t count, bool guarded, as_area_t *area)
 {
 	assert((addr % PAGE_SIZE) == 0);
@@ -379,7 +379,7 @@ NO_TRACE static bool area_is_conflicting(uintptr_t addr,
  * @return True if there is no conflict, false otherwise.
  *
  */
-NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
+_NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
     size_t count, bool guarded, as_area_t *avoid)
 {
 	assert((addr % PAGE_SIZE) == 0);
@@ -473,7 +473,7 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
  * @return -1 if no suitable address space area was found.
  *
  */
-NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
+_NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
     size_t size, bool guarded)
 {
 	assert(mutex_locked(&as->lock));
@@ -579,7 +579,7 @@ static int as_pagemap_cmp(void *a, void *b)
  *
  * @param pagemap Pagemap
  */
-NO_TRACE void as_pagemap_initialize(as_pagemap_t *pagemap)
+_NO_TRACE void as_pagemap_initialize(as_pagemap_t *pagemap)
 {
 	odict_initialize(&pagemap->map, as_pagemap_getkey, as_pagemap_cmp);
 }
@@ -590,7 +590,7 @@ NO_TRACE void as_pagemap_initialize(as_pagemap_t *pagemap)
  *
  * @param pagemap Pagemap
  */
-NO_TRACE void as_pagemap_finalize(as_pagemap_t *pagemap)
+_NO_TRACE void as_pagemap_finalize(as_pagemap_t *pagemap)
 {
 	as_page_mapping_t *mapping = as_pagemap_first(pagemap);
 	while (mapping != NULL) {
@@ -605,7 +605,7 @@ NO_TRACE void as_pagemap_finalize(as_pagemap_t *pagemap)
  * @param pagemap Pagemap
  * @return First mapping or @c NULL if there is none
  */
-NO_TRACE as_page_mapping_t *as_pagemap_first(as_pagemap_t *pagemap)
+_NO_TRACE as_page_mapping_t *as_pagemap_first(as_pagemap_t *pagemap)
 {
 	odlink_t *odlink;
 
@@ -621,7 +621,7 @@ NO_TRACE as_page_mapping_t *as_pagemap_first(as_pagemap_t *pagemap)
  * @param cur Current mapping
  * @return Next mapping or @c NULL if @a cur is the last one
  */
-NO_TRACE as_page_mapping_t *as_pagemap_next(as_page_mapping_t *cur)
+_NO_TRACE as_page_mapping_t *as_pagemap_next(as_page_mapping_t *cur)
 {
 	odlink_t *odlink;
 
@@ -639,7 +639,7 @@ NO_TRACE as_page_mapping_t *as_pagemap_next(as_page_mapping_t *cur)
  * @param rframe Place to store physical frame address
  * @return EOK on succcess or ENOENT if no mapping found
  */
-NO_TRACE errno_t as_pagemap_find(as_pagemap_t *pagemap, uintptr_t vaddr,
+_NO_TRACE errno_t as_pagemap_find(as_pagemap_t *pagemap, uintptr_t vaddr,
     uintptr_t *rframe)
 {
 	odlink_t *odlink;
@@ -662,7 +662,7 @@ NO_TRACE errno_t as_pagemap_find(as_pagemap_t *pagemap, uintptr_t vaddr,
  * @param vaddr Virtual page address
  * @param frame Physical frame address
  */
-NO_TRACE void as_pagemap_insert(as_pagemap_t *pagemap, uintptr_t vaddr,
+_NO_TRACE void as_pagemap_insert(as_pagemap_t *pagemap, uintptr_t vaddr,
     uintptr_t frame)
 {
 	as_page_mapping_t *mapping;
@@ -679,7 +679,7 @@ NO_TRACE void as_pagemap_insert(as_pagemap_t *pagemap, uintptr_t vaddr,
  *
  * @param mapping Mapping
  */
-NO_TRACE void as_pagemap_remove(as_page_mapping_t *mapping)
+_NO_TRACE void as_pagemap_remove(as_page_mapping_t *mapping)
 {
 	odict_remove(&mapping->lpagemap);
 	slab_free(as_page_mapping_cache, mapping);
@@ -692,7 +692,7 @@ NO_TRACE void as_pagemap_remove(as_page_mapping_t *mapping)
  * @param sh_info Pointer to address space area share info.
  *
  */
-NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
+_NO_TRACE static void sh_info_remove_reference(share_info_t *sh_info)
 {
 	bool dealloc = false;
 
@@ -860,7 +860,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
  *         NULL on failure.
  *
  */
-NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
+_NO_TRACE static as_area_t *find_area_and_lock(as_t *as, uintptr_t va)
 {
 	assert(mutex_locked(&as->lock));
 
@@ -1304,7 +1304,7 @@ errno_t as_area_share(as_t *src_as, uintptr_t src_base, size_t acc_size,
  *         otherwise.
  *
  */
-NO_TRACE bool as_area_check_access(as_area_t *area, pf_access_t access)
+_NO_TRACE bool as_area_check_access(as_area_t *area, pf_access_t access)
 {
 	assert(mutex_locked(&area->lock));
 
@@ -1327,7 +1327,7 @@ NO_TRACE bool as_area_check_access(as_area_t *area, pf_access_t access)
  * @return Flags to be passed to page_mapping_insert().
  *
  */
-NO_TRACE static unsigned int area_flags_to_page_flags(unsigned int aflags)
+_NO_TRACE static unsigned int area_flags_to_page_flags(unsigned int aflags)
 {
 	unsigned int flags = PAGE_USER | PAGE_PRESENT;
 
@@ -1697,7 +1697,7 @@ retry:
  * @return Flags to be used in page_mapping_insert().
  *
  */
-NO_TRACE unsigned int as_area_get_flags(as_area_t *area)
+_NO_TRACE unsigned int as_area_get_flags(as_area_t *area)
 {
 	assert(mutex_locked(&area->lock));
 
@@ -1745,7 +1745,7 @@ static int as_areas_cmp(void *a, void *b)
  * @return First entry of the page table.
  *
  */
-NO_TRACE pte_t *page_table_create(unsigned int flags)
+_NO_TRACE pte_t *page_table_create(unsigned int flags)
 {
 	assert(as_operations);
 	assert(as_operations->page_table_create);
@@ -1760,7 +1760,7 @@ NO_TRACE pte_t *page_table_create(unsigned int flags)
  * @param page_table Physical address of PTL0.
  *
  */
-NO_TRACE void page_table_destroy(pte_t *page_table)
+_NO_TRACE void page_table_destroy(pte_t *page_table)
 {
 	assert(as_operations);
 	assert(as_operations->page_table_destroy);
@@ -1781,7 +1781,7 @@ NO_TRACE void page_table_destroy(pte_t *page_table)
  * @param lock If false, do not attempt to lock as->lock.
  *
  */
-NO_TRACE void page_table_lock(as_t *as, bool lock)
+_NO_TRACE void page_table_lock(as_t *as, bool lock)
 {
 	assert(as_operations);
 	assert(as_operations->page_table_lock);
@@ -1795,7 +1795,7 @@ NO_TRACE void page_table_lock(as_t *as, bool lock)
  * @param unlock If false, do not attempt to unlock as->lock.
  *
  */
-NO_TRACE void page_table_unlock(as_t *as, bool unlock)
+_NO_TRACE void page_table_unlock(as_t *as, bool unlock)
 {
 	assert(as_operations);
 	assert(as_operations->page_table_unlock);
@@ -1810,7 +1810,7 @@ NO_TRACE void page_table_unlock(as_t *as, bool unlock)
  * @return True if the page tables belonging to the address soace
  *         are locked, otherwise false.
  */
-NO_TRACE bool page_table_locked(as_t *as)
+_NO_TRACE bool page_table_locked(as_t *as)
 {
 	assert(as_operations);
 	assert(as_operations->page_table_locked);

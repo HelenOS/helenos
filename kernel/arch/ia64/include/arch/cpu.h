@@ -63,7 +63,7 @@ typedef struct {
  * @return Value of CPUID[n] register.
  *
  */
-NO_TRACE static inline uint64_t cpuid_read(int n)
+_NO_TRACE static inline uint64_t cpuid_read(int n)
 {
 	uint64_t v;
 
@@ -76,19 +76,19 @@ NO_TRACE static inline uint64_t cpuid_read(int n)
 	return v;
 }
 
-NO_TRACE static inline int ia64_get_cpu_id(void)
+_NO_TRACE static inline int ia64_get_cpu_id(void)
 {
 	uint64_t cr64 = cr64_read();
 	return ((CR64_ID_MASK) &cr64) >> CR64_ID_SHIFT;
 }
 
-NO_TRACE static inline int ia64_get_cpu_eid(void)
+_NO_TRACE static inline int ia64_get_cpu_eid(void)
 {
 	uint64_t cr64 = cr64_read();
 	return ((CR64_EID_MASK) &cr64) >> CR64_EID_SHIFT;
 }
 
-NO_TRACE static inline void ipi_send_ipi(int id, int eid, int intno)
+_NO_TRACE static inline void ipi_send_ipi(int id, int eid, int intno)
 {
 	(bootinfo->sapic)[2 * (id * 256 + eid)] = intno;
 	srlz_d();

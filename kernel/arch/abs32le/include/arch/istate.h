@@ -61,7 +61,7 @@ typedef struct istate {
 	uint32_t stack[];
 } istate_t;
 
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+_NO_TRACE static inline int istate_from_uspace(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/*
@@ -72,7 +72,7 @@ NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 	return !(istate->ip & UINT32_C(0x80000000));
 }
 
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+_NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
     uintptr_t retaddr)
     WRITES(&istate->ip)
 {
@@ -81,7 +81,7 @@ NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
 	istate->ip = retaddr;
 }
 
-NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+_NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/* On real hardware this returns the instruction pointer. */
@@ -89,7 +89,7 @@ NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
 	return istate->ip;
 }
 
-NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+_NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
 	/* On real hardware this returns the frame pointer. */

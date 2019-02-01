@@ -45,7 +45,7 @@
 #include <stdint.h>
 #include <trace.h>
 
-NO_TRACE static inline uint32_t physmem_top(void)
+_NO_TRACE static inline uint32_t physmem_top(void)
 {
 	uint32_t physmem;
 

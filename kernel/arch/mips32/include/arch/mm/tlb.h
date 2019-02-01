@@ -134,7 +134,7 @@ typedef union {
  *
  * Probe TLB for Matching Entry.
  */
-NO_TRACE static inline void tlbp(void)
+_NO_TRACE static inline void tlbp(void)
 {
 	asm volatile ("tlbp\n\t");
 }
@@ -143,7 +143,7 @@ NO_TRACE static inline void tlbp(void)
  *
  * Read Indexed TLB Entry.
  */
-NO_TRACE static inline void tlbr(void)
+_NO_TRACE static inline void tlbr(void)
 {
 	asm volatile ("tlbr\n\t");
 }
@@ -152,7 +152,7 @@ NO_TRACE static inline void tlbr(void)
  *
  * Write Indexed TLB Entry.
  */
-NO_TRACE static inline void tlbwi(void)
+_NO_TRACE static inline void tlbwi(void)
 {
 	asm volatile ("tlbwi\n\t");
 }
@@ -161,7 +161,7 @@ NO_TRACE static inline void tlbwi(void)
  *
  * Write Random TLB Entry.
  */
-NO_TRACE static inline void tlbwr(void)
+_NO_TRACE static inline void tlbwr(void)
 {
 	asm volatile ("tlbwr\n\t");
 }

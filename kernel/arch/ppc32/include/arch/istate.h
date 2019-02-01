@@ -49,7 +49,7 @@
 
 #endif /* KERNEL */
 
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+_NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
     uintptr_t retaddr)
 {
 	istate->pc = retaddr;
@@ -60,17 +60,17 @@ NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
  * The contexts of MSR register was stored in SRR1.
  *
  */
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+_NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
 	return (istate->srr1 & MSR_PR) != 0;
 }
 
-NO_TRACE static inline sysarg_t istate_get_pc(istate_t *istate)
+_NO_TRACE static inline sysarg_t istate_get_pc(istate_t *istate)
 {
 	return istate->pc;
 }
 
-NO_TRACE static inline sysarg_t istate_get_fp(istate_t *istate)
+_NO_TRACE static inline sysarg_t istate_get_fp(istate_t *istate)
 {
 	return istate->sp;
 }

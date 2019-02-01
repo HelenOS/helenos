@@ -38,7 +38,7 @@
 #include <trace.h>
 
 /** Flush Instruction pipeline. */
-NO_TRACE static inline void flush_pipeline(void)
+_NO_TRACE static inline void flush_pipeline(void)
 {
 	unsigned long pc;
 
@@ -61,7 +61,7 @@ NO_TRACE static inline void flush_pipeline(void)
 }
 
 /** Memory Barrier instruction. */
-NO_TRACE static inline void membar(void)
+_NO_TRACE static inline void membar(void)
 {
 	asm volatile (
 	    "membar #Sync\n"

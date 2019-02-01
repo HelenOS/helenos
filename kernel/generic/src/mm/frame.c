@@ -78,7 +78,7 @@ static size_t mem_avail_gen = 0;  /**< Generation counter. */
  * @param frame Frame structure to be initialized.
  *
  */
-NO_TRACE static void frame_initialize(frame_t *frame)
+_NO_TRACE static void frame_initialize(frame_t *frame)
 {
 	frame->refcount = 0;
 	frame->parent = NULL;
@@ -99,7 +99,7 @@ NO_TRACE static void frame_initialize(frame_t *frame)
  * @return Zone number on success, -1 on error.
  *
  */
-NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
+_NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
     zone_flags_t flags)
 {
 	if (zones.count + 1 == ZONES_MAX) {
@@ -155,7 +155,7 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
  * @return Total number of available frames.
  *
  */
-NO_TRACE static size_t frame_total_free_get_internal(void)
+_NO_TRACE static size_t frame_total_free_get_internal(void)
 {
 	size_t total = 0;
 	size_t i;
@@ -166,7 +166,7 @@ NO_TRACE static size_t frame_total_free_get_internal(void)
 	return total;
 }
 
-NO_TRACE size_t frame_total_free_get(void)
+_NO_TRACE size_t frame_total_free_get(void)
 {
 	size_t total;
 
@@ -189,7 +189,7 @@ NO_TRACE size_t frame_total_free_get(void)
  * @return Zone index or -1 if not found.
  *
  */
-NO_TRACE size_t find_zone(pfn_t frame, size_t count, size_t hint)
+_NO_TRACE size_t find_zone(pfn_t frame, size_t count, size_t hint)
 {
 	if (hint >= zones.count)
 		hint = 0;
@@ -210,7 +210,7 @@ NO_TRACE size_t find_zone(pfn_t frame, size_t count, size_t hint)
 }
 
 /** @return True if zone can allocate specified number of frames */
-NO_TRACE static bool zone_can_alloc(zone_t *zone, size_t count,
+_NO_TRACE static bool zone_can_alloc(zone_t *zone, size_t count,
     pfn_t constraint)
 {
 	/*
@@ -238,7 +238,7 @@ NO_TRACE static bool zone_can_alloc(zone_t *zone, size_t count,
  * @return -1 if no zone can satisfy the request.
  *
  */
-NO_TRACE static size_t find_free_zone_all(size_t count, zone_flags_t flags,
+_NO_TRACE static size_t find_free_zone_all(size_t count, zone_flags_t flags,
     pfn_t constraint, size_t hint)
 {
 	for (size_t pos = 0; pos < zones.count; pos++) {
@@ -264,7 +264,7 @@ NO_TRACE static size_t find_free_zone_all(size_t count, zone_flags_t flags,
  * @return True if the range contains only priority memory.
  *
  */
-NO_TRACE static bool is_high_priority(pfn_t base, size_t count)
+_NO_TRACE static bool is_high_priority(pfn_t base, size_t count)
 {
 	return (base + count <= FRAME_LOWPRIO);
 }
@@ -284,7 +284,7 @@ NO_TRACE static bool is_high_priority(pfn_t base, size_t count)
  * @return -1 if no low-priority zone can satisfy the request.
  *
  */
-NO_TRACE static size_t find_free_zone_lowprio(size_t count, zone_flags_t flags,
+_NO_TRACE static size_t find_free_zone_lowprio(size_t count, zone_flags_t flags,
     pfn_t constraint, size_t hint)
 {
 	for (size_t pos = 0; pos < zones.count; pos++) {
@@ -321,7 +321,7 @@ NO_TRACE static size_t find_free_zone_lowprio(size_t count, zone_flags_t flags,
  * @return -1 if no zone can satisfy the request.
  *
  */
-NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
+_NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
     pfn_t constraint, size_t hint)
 {
 	if (hint >= zones.count)
@@ -345,7 +345,7 @@ NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
 /******************/
 
 /** Return frame from zone. */
-NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t index)
+_NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t index)
 {
 	assert(index < zone->count);
 
@@ -365,7 +365,7 @@ NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t index)
  * @return Frame index in zone.
  *
  */
-NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
+_NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
     pfn_t constraint)
 {
 	assert(zone->flags & ZONE_AVAILABLE);
@@ -404,7 +404,7 @@ NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
  * @return Number of freed frames.
  *
  */
-NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
+_NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 {
 	assert(zone->flags & ZONE_AVAILABLE);
 
@@ -426,7 +426,7 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 }
 
 /** Mark frame in zone unavailable to allocation. */
-NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
+_NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
 {
 	assert(zone->flags & ZONE_AVAILABLE);
 
@@ -452,7 +452,7 @@ NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
  * @param confdata Merged zone configuration data.
  *
  */
-NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
+_NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
     void *confdata)
 {
 	assert(zones.info[z1].flags & ZONE_AVAILABLE);
@@ -506,7 +506,7 @@ NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
  * @param count Old zone frame count.
  *
  */
-NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
+_NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 {
 	assert(zones.info[znum].flags & ZONE_AVAILABLE);
 
@@ -622,7 +622,7 @@ void zone_merge_all(void)
  * @return Initialized zone.
  *
  */
-NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
+_NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
     zone_flags_t flags, void *confdata)
 {
 	zone->base = start;
@@ -1036,7 +1036,7 @@ void frame_free_noreserve(uintptr_t frame, size_t count)
  * @param pfn Frame number of the frame to be freed.
  *
  */
-NO_TRACE void frame_reference_add(pfn_t pfn)
+_NO_TRACE void frame_reference_add(pfn_t pfn)
 {
 	irq_spinlock_lock(&zones.lock, true);
 
@@ -1055,7 +1055,7 @@ NO_TRACE void frame_reference_add(pfn_t pfn)
 /** Mark given range unavailable in frame zones.
  *
  */
-NO_TRACE void frame_mark_unavailable(pfn_t start, size_t count)
+_NO_TRACE void frame_mark_unavailable(pfn_t start, size_t count)
 {
 	irq_spinlock_lock(&zones.lock, true);
 

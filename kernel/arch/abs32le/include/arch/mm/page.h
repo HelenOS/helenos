@@ -146,7 +146,7 @@ typedef struct {
 	unsigned int frame_address : 20;
 } __attribute__((packed)) pte_t;
 
-NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+_NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
@@ -160,7 +160,7 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	    ((unsigned int) p->global << PAGE_GLOBAL_SHIFT));
 }
 
-NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+_NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
     WRITES(ARRAY_RANGE(pt, PTL0_ENTRIES_ARCH))
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
@@ -179,7 +179,7 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 	p->soft_valid = true;
 }
 
-NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
+_NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
     WRITES(ARRAY_RANGE(pt, PTL0_ENTRIES_ARCH))
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {

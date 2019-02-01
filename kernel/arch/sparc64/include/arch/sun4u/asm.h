@@ -42,7 +42,7 @@
  * @return Value of VER register.
  *
  */
-NO_TRACE static inline uint64_t ver_read(void)
+_NO_TRACE static inline uint64_t ver_read(void)
 {
 	uint64_t v;
 
