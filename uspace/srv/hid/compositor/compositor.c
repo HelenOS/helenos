@@ -426,17 +426,14 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 			drawctx_set_source(&context, &source);
 
 			/* For each window. */
-			for (link_t *link = window_list.head.prev;
-			    link != &window_list.head; link = link->prev) {
-
+			list_foreach_rev(window_list, link, window_t, win) {
 				/*
 				 * Determine what part of the window intersects with the
 				 * updated area of the current viewport.
 				 */
-				window_t *win = list_get_instance(link, window_t, link);
-				if (!win->surface) {
+				if (!win->surface)
 					continue;
-				}
+
 				sysarg_t x_dmg_win, y_dmg_win, w_dmg_win, h_dmg_win;
 				surface_get_resolution(win->surface, &w_dmg_win, &h_dmg_win);
 				comp_coord_bounding_rect(0, 0, w_dmg_win, h_dmg_win, win->transform,

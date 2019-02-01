@@ -249,11 +249,10 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		/*
 		 * Path is prefix of the report_path
 		 */
-		report_link = report_path->items.head.next;
-		path_link = path->items.head.next;
+		report_link = list_first(&report_path->items);
+		path_link = list_first(&path->items);
 
-		while ((report_link != &report_path->items.head) &&
-		    (path_link != &path->items.head)) {
+		while (report_link != NULL && path_link != NULL) {
 
 			report_item = list_get_instance(report_link,
 			    usb_hid_report_usage_path_t, rpath_items_link);
@@ -267,15 +266,14 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 			    path_item->usage))) {
 				return 1;
 			} else {
-				report_link = report_link->next;
-				path_link = path_link->next;
+				report_link = list_next(report_link, &report_path->items);
+				path_link = list_next(path_link, &path->items);
 			}
 		}
 
 		if ((((flags & USB_HID_PATH_COMPARE_BEGIN) != 0) &&
-		    (path_link == &path->items.head)) ||
-		    ((report_link == &report_path->items.head) &&
-		    (path_link == &path->items.head))) {
+		    (path_link == NULL)) ||
+		    (report_link == NULL && path_link == NULL)) {
 			return 0;
 		} else {
 			return 1;
@@ -286,15 +284,14 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		/*
 		 * Path is suffix of report_path
 		 */
-		report_link = report_path->items.head.prev;
-		path_link = path->items.head.prev;
+		report_link = list_last(&report_path->items);
+		path_link = list_last(&path->items);
 
 		if (list_empty(&path->items)) {
 			return 0;
 		}
 
-		while ((report_link != &report_path->items.head) &&
-		    (path_link != &path->items.head)) {
+		while (report_link != NULL && path_link != NULL) {
 			report_item = list_get_instance(report_link,
 			    usb_hid_report_usage_path_t, rpath_items_link);
 
@@ -307,12 +304,12 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 			    path_item->usage))) {
 				return 1;
 			} else {
-				report_link = report_link->prev;
-				path_link = path_link->prev;
+				report_link = list_prev(report_link, &report_path->items);
+				path_link = list_prev(path_link, &path->items);
 			}
 		}
 
-		if (path_link == &path->items.head) {
+		if (path_link == NULL) {
 			return 0;
 		} else {
 			return 1;

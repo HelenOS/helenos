@@ -70,7 +70,10 @@ typedef struct {
 	size_t size;
 } nic_frame_t;
 
-typedef list_t nic_frame_list_t;
+typedef union {
+	list_t list;
+	link_t link;
+} nic_frame_list_t;
 
 /**
  * Handler for writing frame data to the NIC device.

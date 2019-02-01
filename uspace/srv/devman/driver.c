@@ -434,14 +434,14 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	 * Go through devices list as long as there is some device
 	 * that has not been passed to the driver.
 	 */
-	link = driver->devices.head.next;
-	while (link != &driver->devices.head) {
+	link = list_first(&driver->devices);
+	while (link != NULL) {
 		dev = list_get_instance(link, dev_node_t, driver_devices);
 		fibril_rwlock_write_lock(&tree->rwlock);
 
 		if (dev->passed_to_driver) {
 			fibril_rwlock_write_unlock(&tree->rwlock);
-			link = link->next;
+			link = list_next(link, &driver->devices);
 			continue;
 		}
 
@@ -483,7 +483,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		/*
 		 * Restart the cycle to go through all devices again.
 		 */
-		link = driver->devices.head.next;
+		link = list_first(&driver->devices);
 	}
 
 	/*

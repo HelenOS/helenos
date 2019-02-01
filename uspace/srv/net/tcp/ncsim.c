@@ -107,9 +107,7 @@ void tcp_ncsim_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 
 		sqe->delay -= old_qe->delay;
 
-		link = link->next;
-		if (link == &sim_queue.head)
-			link = NULL;
+		link = list_next(link, &sim_queue);
 	}
 
 	if (link != NULL)

@@ -88,36 +88,23 @@
 usb_hid_report_path_t *usb_hid_report_path_try_insert(usb_hid_report_t *report,
     usb_hid_report_path_t *cmp_path)
 {
-	link_t *path_it = report->collection_paths.head.next;
-	usb_hid_report_path_t *path = NULL;
-
-	if ((report == NULL) || (cmp_path == NULL)) {
+	if (report == NULL || cmp_path == NULL)
 		return NULL;
-	}
 
-	while (path_it != &report->collection_paths.head) {
-		path = list_get_instance(path_it, usb_hid_report_path_t,
-		    cpath_link);
-
+	list_foreach(report->collection_paths, cpath_link, usb_hid_report_path_t, path) {
 		if (usb_hid_report_compare_usage_path(path, cmp_path,
-		    USB_HID_PATH_COMPARE_STRICT) == 0) {
-			break;
-		}
-		path_it = path_it->next;
+		    USB_HID_PATH_COMPARE_STRICT) == 0)
+			return path;
 	}
-	if (path_it == &report->collection_paths.head) {
-		path = usb_hid_report_path_clone(cmp_path);
-		if (path == NULL) {
-			return NULL;
-		}
-		list_append(&path->cpath_link, &report->collection_paths);
-		report->collection_paths_count++;
 
-		return path;
-	} else {
-		return list_get_instance(path_it, usb_hid_report_path_t,
-		    cpath_link);
-	}
+	usb_hid_report_path_t *path = usb_hid_report_path_clone(cmp_path);
+	if (path == NULL)
+		return NULL;
+
+	list_append(&path->cpath_link, &report->collection_paths);
+	report->collection_paths_count++;
+
+	return path;
 }
 
 /**
@@ -473,9 +460,13 @@ errno_t usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 				report_item = list_get_instance(item_link,
 				    usb_hid_report_item_t, link);
 
+				link_t *tmp_link = list_prev(
+				    &report_item->usage_path->cpath_link,
+				    &report->collection_paths);
+				assert(tmp_link);
+
 				usb_hid_report_usage_path_t *tmp_usage_path;
-				tmp_usage_path = list_get_instance(
-				    report_item->usage_path->cpath_link.prev,
+				tmp_usage_path = list_get_instance(tmp_link,
 				    usb_hid_report_usage_path_t, rpath_items_link);
 
 				usb_hid_report_set_last_item(usage_path,
@@ -485,7 +476,7 @@ errno_t usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 				    USB_HID_TAG_CLASS_LOCAL, tmp_usage_path->usage);
 
 				usb_hid_report_path_free(report_item->usage_path);
-				list_remove (item_link);
+				list_remove(item_link);
 
 				break;
 

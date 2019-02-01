@@ -600,17 +600,14 @@ static void _insert_timeout(_timeout_t *timeout)
 	futex_assert_is_locked(&fibril_futex);
 	assert(timeout);
 
-	link_t *tmp = timeout_list.head.next;
-	while (tmp != &timeout_list.head) {
-		_timeout_t *cur = list_get_instance(tmp, _timeout_t, link);
-
-		if (ts_gteq(&cur->expires, &timeout->expires))
-			break;
-
-		tmp = tmp->next;
+	list_foreach(timeout_list, link, _timeout_t, cur) {
+		if (ts_gteq(&cur->expires, &timeout->expires)) {
+			list_insert_before(&timeout->link, &cur->link);
+			return;
+		}
 	}
 
-	list_insert_before(&timeout->link, tmp);
+	list_append(&timeout->link, &timeout_list);
 }
 
 /**

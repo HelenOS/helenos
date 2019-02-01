@@ -155,14 +155,15 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 
 	const char *qpos = NULL;
 	ed_t *prev_ed;
+	link_t *prev_link = list_prev(&ep->eplist_link, &instance->endpoint_list);
 	/* Remove from the hardware queue */
-	if (list_first(&instance->endpoint_list) == &ep->eplist_link) {
+	if (!prev_link) {
 		/* I'm the first one here */
 		prev_ed = instance->list_head;
 		qpos = "FIRST";
 	} else {
 		ohci_endpoint_t *prev =
-		    list_get_instance(ep->eplist_link.prev, ohci_endpoint_t, eplist_link);
+		    list_get_instance(prev_link, ohci_endpoint_t, eplist_link);
 		prev_ed = prev->ed;
 		qpos = "NOT FIRST";
 	}

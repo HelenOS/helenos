@@ -232,11 +232,11 @@ void transfer_list_remove_batch(
 	/* Assume I'm the first */
 	const char *qpos = "FIRST";
 	qh_t *prev_qh = instance->queue_head;
+	link_t *prev = list_prev(&uhci_batch->link, &instance->batch_list);
 	/* Remove from the hardware queue */
-	if (list_first(&instance->batch_list) != &uhci_batch->link) {
+	if (prev) {
 		/* There is a batch in front of me */
-		prev_qh =
-		    uhci_transfer_batch_from_link(uhci_batch->link.prev)->qh;
+		prev_qh = uhci_transfer_batch_from_link(prev)->qh;
 		qpos = "NOT FIRST";
 	}
 	assert((prev_qh->next & LINK_POINTER_ADDRESS_MASK) ==

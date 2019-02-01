@@ -272,14 +272,14 @@ hash_table_find_next(const hash_table_t *h, ht_link_t *first, ht_link_t *item)
 	assert(h && h->bucket);
 
 	size_t idx = h->op->hash(item) % h->bucket_cnt;
+	list_t *list = &h->bucket[idx];
 
 	/* Traverse the circular list until we reach the starting item again. */
-	for (link_t *cur = item->link.next; cur != &first->link;
-	    cur = cur->next) {
-		assert(cur);
+	for (link_t *cur = list_next(&item->link, list); cur != &first->link;
+	    cur = list_next(cur, list)) {
 
-		if (cur == &h->bucket[idx].head)
-			continue;
+		if (!cur)
+			cur = list_first(list);
 
 		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
 		/*

@@ -283,22 +283,22 @@ static void exfat_index_free(service_id_t service_id, fs_index_t index)
 		 */
 		link_t *lnk;
 		freed_t *n;
-		for (lnk = u->freed_list.head.next; lnk != &u->freed_list.head;
-		    lnk = lnk->next) {
+		for (lnk = list_first(&u->freed_list); lnk != NULL;
+		    lnk = list_next(lnk, &u->freed_list)) {
 			freed_t *f = list_get_instance(lnk, freed_t, link);
 			if (f->first == index + 1) {
 				f->first--;
-				if (lnk->prev != &u->freed_list.head)
-					try_coalesce_intervals(lnk->prev, lnk,
-					    lnk);
+				link_t *prev = list_prev(lnk, &u->freed_list);
+				if (prev)
+					try_coalesce_intervals(prev, lnk, lnk);
 				fibril_mutex_unlock(&unused_lock);
 				return;
 			}
 			if (f->last == index - 1) {
 				f->last++;
-				if (lnk->next != &u->freed_list.head)
-					try_coalesce_intervals(lnk, lnk->next,
-					    lnk);
+				link_t *next = list_next(lnk, &u->freed_list);
+				if (next)
+					try_coalesce_intervals(lnk, next, lnk);
 				fibril_mutex_unlock(&unused_lock);
 				return;
 			}

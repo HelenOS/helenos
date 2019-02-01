@@ -492,12 +492,12 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 	}
 
 	if (field == NULL) {
-		field_it = report_des->report_items.head.next;
+		field_it = list_first(&report_des->report_items);
 	} else {
-		field_it = field->ritems_link.next;
+		field_it = list_next(&field->ritems_link, &report_des->report_items);
 	}
 
-	while (field_it != &report_des->report_items.head) {
+	while (field_it != NULL) {
 		field = list_get_instance(field_it, usb_hid_report_field_t,
 		    ritems_link);
 
@@ -513,7 +513,7 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 			}
 			usb_hid_report_remove_last_item(field->collection_path);
 		}
-		field_it = field_it->next;
+		field_it = list_next(field_it, &report_des->report_items);
 	}
 
 	return NULL;
@@ -546,13 +546,14 @@ uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report, uint8_t report_id,
 		if (report_des == NULL) {
 			return 0;
 		} else {
-			report_it = report_des->reports_link.next;
+			report_it = list_next(&report_des->reports_link,
+			    &report->reports);
 		}
 	} else {
-		report_it = report->reports.head.next;
+		report_it = list_first(&report->reports);
 	}
 
-	while (report_it != &report->reports.head) {
+	while (report_it != NULL) {
 		report_des = list_get_instance(report_it,
 		    usb_hid_report_description_t, reports_link);
 
@@ -560,7 +561,7 @@ uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report, uint8_t report_id,
 			return report_des->report_id;
 		}
 
-		report_it = report_it->next;
+		report_it = list_next(report_it, &report->reports);
 	}
 
 	return 0;

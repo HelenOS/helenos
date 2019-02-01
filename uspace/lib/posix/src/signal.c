@@ -382,23 +382,16 @@ static int _raise_sigaction(int signo, siginfo_t *siginfo)
  */
 static void _dequeue_unblocked_signals(void)
 {
-	link_t *iterator = _signal_queue.head.next;
-	link_t *next;
-
-	while (iterator != &(_signal_queue).head) {
-		next = iterator->next;
-
+	list_foreach_safe(_signal_queue, cur_link, next_link) {
 		signal_queue_item *item =
-		    list_get_instance(iterator, signal_queue_item, link);
+		    list_get_instance(cur_link, signal_queue_item, link);
 
 		if (!sigismember(&_signal_mask, item->signo) &&
 		    _signal_actions[item->signo].sa_handler != SIG_HOLD) {
-			list_remove(&(item->link));
-			_raise_sigaction(item->signo, &(item->siginfo));
+			list_remove(cur_link);
+			_raise_sigaction(item->signo, &item->siginfo);
 			free(item);
 		}
-
-		iterator = next;
 	}
 }
 

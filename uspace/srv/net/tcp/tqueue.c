@@ -244,16 +244,10 @@ void tcp_tqueue_new_data(tcp_conn_t *conn)
  */
 void tcp_tqueue_ack_received(tcp_conn_t *conn)
 {
-	link_t *cur, *next;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_tqueue_ack_received(%p)", conn->name,
 	    conn);
 
-	cur = conn->retransmit.list.head.next;
-
-	while (cur != &conn->retransmit.list.head) {
-		next = cur->next;
-
+	list_foreach_safe(conn->retransmit.list, cur, next) {
 		tcp_tqueue_entry_t *tqe = list_get_instance(cur,
 		    tcp_tqueue_entry_t, link);
 
@@ -276,8 +270,6 @@ void tcp_tqueue_ack_received(tcp_conn_t *conn)
 			/* Reset retransmission timer */
 			tcp_tqueue_timer_set(conn);
 		}
-
-		cur = next;
 	}
 
 	/* Clear retransmission timer if the queue is empty. */

@@ -328,11 +328,10 @@ nic_frame_list_t *nic_alloc_frame_list(void)
 	fibril_mutex_lock(&nic_globals.lock);
 
 	if (nic_globals.frame_list_cache_size > 0) {
-		frames =
-		    list_get_instance(list_first(&nic_globals.frame_list_cache),
-		    nic_frame_list_t, head);
-		list_remove(&frames->head);
-		list_initialize(frames);
+		frames = list_pop(&nic_globals.frame_list_cache,
+		    nic_frame_list_t, link);
+		assert(frames);
+		list_initialize(&frames->list);
 		nic_globals.frame_list_cache_size--;
 		fibril_mutex_unlock(&nic_globals.lock);
 	} else {
@@ -340,7 +339,7 @@ nic_frame_list_t *nic_alloc_frame_list(void)
 
 		frames = malloc(sizeof (nic_frame_list_t));
 		if (frames != NULL)
-			list_initialize(frames);
+			list_initialize(&frames->list);
 	}
 
 	return frames;
@@ -355,7 +354,7 @@ static void nic_driver_release_frame_list(nic_frame_list_t *frames)
 		fibril_mutex_unlock(&nic_globals.lock);
 		free(frames);
 	} else {
-		list_prepend(&frames->head, &nic_globals.frame_list_cache);
+		list_prepend(&frames->link, &nic_globals.frame_list_cache);
 		nic_globals.frame_list_cache_size++;
 		fibril_mutex_unlock(&nic_globals.lock);
 	}
@@ -371,7 +370,7 @@ void nic_frame_list_append(nic_frame_list_t *frames,
     nic_frame_t *frame)
 {
 	assert(frame != NULL && frames != NULL);
-	list_append(&frame->link, frames);
+	list_append(&frame->link, &frames->list);
 }
 
 /** Get the polling mode information from the device
@@ -575,11 +574,8 @@ void nic_received_frame_list(nic_t *nic_data, nic_frame_list_t *frames)
 {
 	if (frames == NULL)
 		return;
-	while (!list_empty(frames)) {
-		nic_frame_t *frame =
-		    list_get_instance(list_first(frames), nic_frame_t, link);
-
-		list_remove(&frame->link);
+	while (!list_empty(&frames->list)) {
+		nic_frame_t *frame = list_pop(&frames->list, nic_frame_t, link);
 		nic_received_frame(nic_data, frame);
 	}
 	nic_driver_release_frame_list(frames);

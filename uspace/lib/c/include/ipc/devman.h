@@ -107,18 +107,14 @@ static inline void delete_match_id(match_id_t *id)
 
 static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 {
-	match_id_t *mid = NULL;
-	link_t *link = ids->ids.head.next;
-
-	while (link != &ids->ids.head) {
-		mid = list_get_instance(link, match_id_t, link);
+	list_foreach(ids->ids, link, match_id_t, mid) {
 		if (mid->score < id->score) {
-			break;
+			list_insert_before(&id->link, &mid->link);
+			return;
 		}
-		link = link->next;
 	}
 
-	list_insert_before(&id->link, link);
+	list_append(&id->link, &ids->ids);
 }
 
 static inline void init_match_ids(match_id_list_t *id_list)
