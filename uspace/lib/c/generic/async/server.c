@@ -655,8 +655,8 @@ static void queue_notification(ipc_call_t *call)
 		notification_freelist_total++;
 	}
 
-	ht_link_t *link = hash_table_find(&notification_hash_table,
-	    &ipc_get_imethod(call));
+	sysarg_t imethod = ipc_get_imethod(call);
+	ht_link_t *link = hash_table_find(&notification_hash_table, &imethod);
 	if (!link) {
 		/* Invalid notification. */
 		// TODO: Make sure this can't happen and turn it into assert.
