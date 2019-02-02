@@ -72,22 +72,22 @@
 #define DATA_XFER_LIMIT  (64 * 1024)
 
 /* Macros for manipulating calling data */
-#define IPC_SET_RETVAL(data, retval)  ((data)->args[0] = (sysarg_t) (retval))
-#define IPC_SET_IMETHOD(data, val)    ((data)->args[0] = (val))
-#define IPC_SET_ARG1(data, val)       ((data)->args[1] = (val))
-#define IPC_SET_ARG2(data, val)       ((data)->args[2] = (val))
-#define IPC_SET_ARG3(data, val)       ((data)->args[3] = (val))
-#define IPC_SET_ARG4(data, val)       ((data)->args[4] = (val))
-#define IPC_SET_ARG5(data, val)       ((data)->args[5] = (val))
+#define ipc_set_retval(data, retval)  ((data)->args[0] = (sysarg_t) (retval))
+#define ipc_set_imethod(data, val)    ((data)->args[0] = (val))
+#define ipc_set_arg1(data, val)       ((data)->args[1] = (val))
+#define ipc_set_arg2(data, val)       ((data)->args[2] = (val))
+#define ipc_set_arg3(data, val)       ((data)->args[3] = (val))
+#define ipc_set_arg4(data, val)       ((data)->args[4] = (val))
+#define ipc_set_arg5(data, val)       ((data)->args[5] = (val))
 
-#define IPC_GET_IMETHOD(data)  ((data)->args[0])
-#define IPC_GET_RETVAL(data)   ((errno_t) (data)->args[0])
+#define ipc_get_imethod(data)  ((data)->args[0])
+#define ipc_get_retval(data)   ((errno_t) (data)->args[0])
 
-#define IPC_GET_ARG1(data)  ((data)->args[1])
-#define IPC_GET_ARG2(data)  ((data)->args[2])
-#define IPC_GET_ARG3(data)  ((data)->args[3])
-#define IPC_GET_ARG4(data)  ((data)->args[4])
-#define IPC_GET_ARG5(data)  ((data)->args[5])
+#define ipc_get_arg1(data)  ((data)->args[1])
+#define ipc_get_arg2(data)  ((data)->args[2])
+#define ipc_get_arg3(data)  ((data)->args[3])
+#define ipc_get_arg4(data)  ((data)->args[4])
+#define ipc_get_arg5(data)  ((data)->args[5])
 
 /* Forwarding flags. */
 #define IPC_FF_NONE  0

@@ -193,7 +193,7 @@ void ipcp_call_out(cap_phone_handle_t phandle, ipc_call_t *call,
 	if ((display_mask & DM_IPC) != 0) {
 		printf("Call handle: %p, phone: %p, proto: %s, method: ",
 		    chandle, phandle, (proto ? proto->name : "n/a"));
-		ipc_m_print(proto, IPC_GET_IMETHOD(call));
+		ipc_m_print(proto, ipc_get_imethod(call));
 		printf(" args: (%" PRIun ", %" PRIun ", %" PRIun ", "
 		    "%" PRIun ", %" PRIun ")\n",
 		    args[1], args[2], args[3], args[4], args[5]);
@@ -202,7 +202,7 @@ void ipcp_call_out(cap_phone_handle_t phandle, ipc_call_t *call,
 	if ((display_mask & DM_USER) != 0) {
 
 		if (proto != NULL) {
-			oper = proto_get_oper(proto, IPC_GET_IMETHOD(call));
+			oper = proto_get_oper(proto, ipc_get_imethod(call));
 		} else {
 			oper = NULL;
 		}
@@ -261,17 +261,17 @@ static void parse_answer(cap_call_handle_t call_handle, pending_call_t *pcall,
 	int i;
 
 	phone = pcall->phone_handle;
-	method = IPC_GET_IMETHOD(&pcall->question);
-	retval = IPC_GET_RETVAL(answer);
+	method = ipc_get_imethod(&pcall->question);
+	retval = ipc_get_retval(answer);
 
 	resp = answer->args;
 
 	if ((display_mask & DM_IPC) != 0) {
 		printf("Response to %p: retval=%s, args = (%" PRIun ", "
 		    "%" PRIun ", %" PRIun ", %" PRIun ", %" PRIun ")\n",
-		    call_handle, str_error_name(retval), IPC_GET_ARG1(answer),
-		    IPC_GET_ARG2(answer), IPC_GET_ARG3(answer),
-		    IPC_GET_ARG4(answer), IPC_GET_ARG5(answer));
+		    call_handle, str_error_name(retval), ipc_get_arg1(answer),
+		    ipc_get_arg2(answer), ipc_get_arg3(answer),
+		    ipc_get_arg4(answer), ipc_get_arg5(answer));
 	}
 
 	if ((display_mask & DM_USER) != 0) {
@@ -304,12 +304,12 @@ static void parse_answer(cap_call_handle_t call_handle, pending_call_t *pcall,
 	if ((phone == PHONE_NS) && (method == IPC_M_CONNECT_ME_TO) &&
 	    (retval == 0)) {
 		/* Connected to a service (through NS) */
-		service = IPC_GET_ARG2(&pcall->question);
+		service = ipc_get_arg2(&pcall->question);
 		proto = proto_get_by_srv(service);
 		if (proto == NULL)
 			proto = proto_unknown;
 
-		cphone = (cap_phone_handle_t) IPC_GET_ARG5(answer);
+		cphone = (cap_phone_handle_t) ipc_get_arg5(answer);
 		if ((display_mask & DM_SYSTEM) != 0) {
 			printf("Registering connection (phone %p, protocol: %s)\n", cphone,
 			    proto->name);

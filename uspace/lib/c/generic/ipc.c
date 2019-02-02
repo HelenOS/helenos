@@ -97,12 +97,12 @@ errno_t ipc_call_async_slow(cap_phone_handle_t phandle, sysarg_t imethod,
 {
 	ipc_call_t data;
 
-	IPC_SET_IMETHOD(&data, imethod);
-	IPC_SET_ARG1(&data, arg1);
-	IPC_SET_ARG2(&data, arg2);
-	IPC_SET_ARG3(&data, arg3);
-	IPC_SET_ARG4(&data, arg4);
-	IPC_SET_ARG5(&data, arg5);
+	ipc_set_imethod(&data, imethod);
+	ipc_set_arg1(&data, arg1);
+	ipc_set_arg2(&data, arg2);
+	ipc_set_arg3(&data, arg3);
+	ipc_set_arg4(&data, arg4);
+	ipc_set_arg5(&data, arg5);
 
 	return __SYSCALL3(SYS_IPC_CALL_ASYNC_SLOW,
 	    cap_handle_raw(phandle), (sysarg_t) &data,
@@ -151,12 +151,12 @@ errno_t ipc_answer_slow(cap_call_handle_t chandle, errno_t retval,
 {
 	ipc_call_t data;
 
-	IPC_SET_RETVAL(&data, retval);
-	IPC_SET_ARG1(&data, arg1);
-	IPC_SET_ARG2(&data, arg2);
-	IPC_SET_ARG3(&data, arg3);
-	IPC_SET_ARG4(&data, arg4);
-	IPC_SET_ARG5(&data, arg5);
+	ipc_set_retval(&data, retval);
+	ipc_set_arg1(&data, arg1);
+	ipc_set_arg2(&data, arg2);
+	ipc_set_arg3(&data, arg3);
+	ipc_set_arg4(&data, arg4);
+	ipc_set_arg5(&data, arg5);
 
 	return (errno_t) __SYSCALL2(SYS_IPC_ANSWER_SLOW,
 	    cap_handle_raw(chandle), (sysarg_t) &data);
@@ -219,12 +219,12 @@ errno_t ipc_forward_slow(cap_call_handle_t chandle, cap_phone_handle_t phandle,
 {
 	ipc_call_t data;
 
-	IPC_SET_IMETHOD(&data, imethod);
-	IPC_SET_ARG1(&data, arg1);
-	IPC_SET_ARG2(&data, arg2);
-	IPC_SET_ARG3(&data, arg3);
-	IPC_SET_ARG4(&data, arg4);
-	IPC_SET_ARG5(&data, arg5);
+	ipc_set_imethod(&data, imethod);
+	ipc_set_arg1(&data, arg1);
+	ipc_set_arg2(&data, arg2);
+	ipc_set_arg3(&data, arg3);
+	ipc_set_arg4(&data, arg4);
+	ipc_set_arg5(&data, arg5);
 
 	return (errno_t) __SYSCALL4(SYS_IPC_FORWARD_SLOW,
 	    cap_handle_raw(chandle), cap_handle_raw(phandle), (sysarg_t) &data,

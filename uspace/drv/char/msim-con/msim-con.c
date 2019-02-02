@@ -70,7 +70,7 @@ static void msim_irq_handler(ipc_call_t *call, void *arg)
 
 	fibril_mutex_lock(&con->buf_lock);
 
-	c = IPC_GET_ARG2(call);
+	c = ipc_get_arg2(call);
 	rc = circ_buf_push(&con->cbuf, &c);
 	if (rc != EOK)
 		ddf_msg(LVL_ERROR, "Buffer overrun");
