@@ -52,6 +52,7 @@ GENERIC_SOURCES = \
 	generic/config.c \
 	generic/context.c \
 	generic/corecfg.c \
+	generic/ctype.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
