@@ -63,9 +63,7 @@ struct timespec {
 
 struct tm {
 	int tm_sec;
-#ifdef _HELENOS_SOURCE
-	int tm_nsec;
-#endif
+	int tm_nsec;  /**< Nonstandard extension, nanoseconds since last second. */
 	int tm_min;
 	int tm_hour;
 	int tm_mday;
