@@ -147,7 +147,7 @@ static errno_t vfs_file_close_remote(vfs_file_t *file)
 	errno_t rc;
 	async_wait_for(msg, &rc);
 
-	return IPC_GET_RETVAL(answer);
+	return IPC_GET_RETVAL(&answer);
 }
 
 /** Increment reference count of VFS file structure.

@@ -140,7 +140,7 @@ void udebug_stoppable_begin(void)
 		TASK->udebug.dt_state = UDEBUG_TS_ACTIVE;
 		TASK->udebug.begin_call = NULL;
 
-		IPC_SET_RETVAL(db_call->data, 0);
+		IPC_SET_RETVAL(&db_call->data, 0);
 		ipc_answer(&TASK->answerbox, db_call);
 	} else if (TASK->udebug.dt_state == UDEBUG_TS_ACTIVE) {
 		/*
@@ -159,8 +159,8 @@ void udebug_stoppable_begin(void)
 			THREAD->udebug.go_call = NULL;
 			assert(go_call);
 
-			IPC_SET_RETVAL(go_call->data, 0);
-			IPC_SET_ARG1(go_call->data, UDEBUG_EVENT_STOP);
+			IPC_SET_RETVAL(&go_call->data, 0);
+			IPC_SET_ARG1(&go_call->data, UDEBUG_EVENT_STOP);
 
 			THREAD->udebug.cur_event = UDEBUG_EVENT_STOP;
 			ipc_answer(&TASK->answerbox, go_call);
@@ -242,10 +242,10 @@ void udebug_syscall_event(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 	call_t *call = THREAD->udebug.go_call;
 	THREAD->udebug.go_call = NULL;
 
-	IPC_SET_RETVAL(call->data, 0);
-	IPC_SET_ARG1(call->data, etype);
-	IPC_SET_ARG2(call->data, id);
-	IPC_SET_ARG3(call->data, rc);
+	IPC_SET_RETVAL(&call->data, 0);
+	IPC_SET_ARG1(&call->data, etype);
+	IPC_SET_ARG2(&call->data, id);
+	IPC_SET_ARG3(&call->data, rc);
 
 	THREAD->udebug.syscall_args[0] = a1;
 	THREAD->udebug.syscall_args[1] = a2;
@@ -313,9 +313,9 @@ void udebug_thread_b_event_attach(struct thread *thread, struct task *task)
 	call_t *call = THREAD->udebug.go_call;
 
 	THREAD->udebug.go_call = NULL;
-	IPC_SET_RETVAL(call->data, 0);
-	IPC_SET_ARG1(call->data, UDEBUG_EVENT_THREAD_B);
-	IPC_SET_ARG2(call->data, (sysarg_t) thread);
+	IPC_SET_RETVAL(&call->data, 0);
+	IPC_SET_ARG1(&call->data, UDEBUG_EVENT_THREAD_B);
+	IPC_SET_ARG2(&call->data, (sysarg_t) thread);
 
 	/*
 	 * Make sure udebug.go is false when going to sleep
@@ -364,8 +364,8 @@ void udebug_thread_e_event(void)
 	call_t *call = THREAD->udebug.go_call;
 
 	THREAD->udebug.go_call = NULL;
-	IPC_SET_RETVAL(call->data, 0);
-	IPC_SET_ARG1(call->data, UDEBUG_EVENT_THREAD_E);
+	IPC_SET_RETVAL(&call->data, 0);
+	IPC_SET_ARG1(&call->data, UDEBUG_EVENT_THREAD_E);
 
 	/* Prevent any further debug activity in thread. */
 	THREAD->udebug.active = false;
@@ -427,8 +427,8 @@ errno_t udebug_task_cleanup(struct task *task)
 				/* Answer GO call */
 				LOG("Answer GO call with EVENT_FINISHED.");
 
-				IPC_SET_RETVAL(thread->udebug.go_call->data, 0);
-				IPC_SET_ARG1(thread->udebug.go_call->data,
+				IPC_SET_RETVAL(&thread->udebug.go_call->data, 0);
+				IPC_SET_ARG1(&thread->udebug.go_call->data,
 				    UDEBUG_EVENT_FINISHED);
 
 				ipc_answer(&task->answerbox, thread->udebug.go_call);

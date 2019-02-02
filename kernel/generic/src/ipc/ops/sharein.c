@@ -42,17 +42,17 @@
 
 static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	if (!IPC_GET_RETVAL(answer->data)) {
+	if (!IPC_GET_RETVAL(&answer->data)) {
 		irq_spinlock_lock(&answer->sender->lock, true);
 		as_t *as = answer->sender->as;
 		irq_spinlock_unlock(&answer->sender->lock, true);
 
 		uintptr_t dst_base = (uintptr_t) -1;
-		errno_t rc = as_area_share(AS, IPC_GET_ARG1(answer->data),
-		    IPC_GET_ARG1(*olddata), as, IPC_GET_ARG2(answer->data),
-		    &dst_base, IPC_GET_ARG2(*olddata));
-		IPC_SET_ARG5(answer->data, dst_base);
-		IPC_SET_RETVAL(answer->data, rc);
+		errno_t rc = as_area_share(AS, IPC_GET_ARG1(&answer->data),
+		    IPC_GET_ARG1(olddata), as, IPC_GET_ARG2(&answer->data),
+		    &dst_base, IPC_GET_ARG2(olddata));
+		IPC_SET_ARG5(&answer->data, dst_base);
+		IPC_SET_RETVAL(&answer->data, rc);
 	}
 
 	return EOK;

@@ -386,7 +386,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
 void ipc_backsend_err(phone_t *phone, call_t *call, errno_t err)
 {
 	_ipc_call_actions_internal(phone, call, false);
-	IPC_SET_RETVAL(call->data, err);
+	IPC_SET_RETVAL(&call->data, err);
 	_ipc_answer_free_call(call, false);
 }
 
@@ -484,7 +484,7 @@ errno_t ipc_phone_hangup(phone_t *phone)
 		phone->hangup_call = NULL;
 		assert(call);
 
-		IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
+		IPC_SET_IMETHOD(&call->data, IPC_M_PHONE_HUNGUP);
 		call->request_method = IPC_M_PHONE_HUNGUP;
 		call->flags |= IPC_CALL_DISCARD_ANSWER;
 		_ipc_call(phone, box, call, false);
@@ -633,7 +633,7 @@ void ipc_cleanup_call_list(answerbox_t *box, list_t *lst)
 			SYSIPC_OP(request_process, call, box);
 
 		ipc_data_t old = call->data;
-		IPC_SET_RETVAL(call->data, EHANGUP);
+		IPC_SET_RETVAL(&call->data, EHANGUP);
 		answer_preprocess(call, &old);
 		_ipc_answer_free_call(call, true);
 
@@ -689,7 +689,7 @@ restart_phones:
 			phone->hangup_call = NULL;
 			assert(call);
 
-			IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
+			IPC_SET_IMETHOD(&call->data, IPC_M_PHONE_HUNGUP);
 			call->request_method = IPC_M_PHONE_HUNGUP;
 			call->flags |= IPC_CALL_DISCARD_ANSWER;
 			_ipc_call(phone, box, call, true);
@@ -908,9 +908,9 @@ static void ipc_print_call_list(list_t *list)
 
 		printf("%-8" PRIun " %-6" PRIun " %-6" PRIun " %-6" PRIun
 		    " %-6" PRIun " %-6" PRIun " %-7x",
-		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
-		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
-		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
+		    IPC_GET_IMETHOD(&call->data), IPC_GET_ARG1(&call->data),
+		    IPC_GET_ARG2(&call->data), IPC_GET_ARG3(&call->data),
+		    IPC_GET_ARG4(&call->data), IPC_GET_ARG5(&call->data),
 		    call->flags);
 
 		if (call->forget) {

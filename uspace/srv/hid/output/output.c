@@ -186,7 +186,7 @@ static void srv_frontbuf_create(ipc_call_t *icall)
 
 static void srv_frontbuf_destroy(ipc_call_t *icall)
 {
-	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(*icall), icall);
+	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(icall), icall);
 	if (frontbuf == NULL)
 		return;
 
@@ -199,7 +199,7 @@ static void srv_frontbuf_destroy(ipc_call_t *icall)
 
 static void srv_cursor_update(ipc_call_t *icall)
 {
-	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(*icall), icall);
+	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(icall), icall);
 	if (frontbuf == NULL)
 		return;
 
@@ -234,7 +234,7 @@ static void srv_set_style(ipc_call_t *icall)
 	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_STYLE;
 		dev->attrs.val.style =
-		    (console_style_t) IPC_GET_ARG1(*icall);
+		    (console_style_t) IPC_GET_ARG1(icall);
 	}
 
 	async_answer_0(icall, EOK);
@@ -245,11 +245,11 @@ static void srv_set_color(ipc_call_t *icall)
 	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_INDEX;
 		dev->attrs.val.index.bgcolor =
-		    (console_color_t) IPC_GET_ARG1(*icall);
+		    (console_color_t) IPC_GET_ARG1(icall);
 		dev->attrs.val.index.fgcolor =
-		    (console_color_t) IPC_GET_ARG2(*icall);
+		    (console_color_t) IPC_GET_ARG2(icall);
 		dev->attrs.val.index.attr =
-		    (console_color_attr_t) IPC_GET_ARG3(*icall);
+		    (console_color_attr_t) IPC_GET_ARG3(icall);
 	}
 
 	async_answer_0(icall, EOK);
@@ -259,8 +259,8 @@ static void srv_set_rgb_color(ipc_call_t *icall)
 {
 	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_RGB;
-		dev->attrs.val.rgb.bgcolor = IPC_GET_ARG1(*icall);
-		dev->attrs.val.rgb.fgcolor = IPC_GET_ARG2(*icall);
+		dev->attrs.val.rgb.bgcolor = IPC_GET_ARG1(icall);
+		dev->attrs.val.rgb.fgcolor = IPC_GET_ARG2(icall);
 	}
 
 	async_answer_0(icall, EOK);
@@ -307,7 +307,7 @@ static bool srv_update_scroll(outdev_t *dev, chargrid_t *buf)
 
 static void srv_update(ipc_call_t *icall)
 {
-	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(*icall), icall);
+	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(icall), icall);
 	if (frontbuf == NULL)
 		return;
 
@@ -356,7 +356,7 @@ static void srv_update(ipc_call_t *icall)
 
 static void srv_damage(ipc_call_t *icall)
 {
-	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(*icall), icall);
+	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(icall), icall);
 	if (frontbuf == NULL)
 		return;
 
@@ -368,11 +368,11 @@ static void srv_damage(ipc_call_t *icall)
 		if (srv_update_scroll(dev, buf))
 			continue;
 
-		sysarg_t col = IPC_GET_ARG2(*icall);
-		sysarg_t row = IPC_GET_ARG3(*icall);
+		sysarg_t col = IPC_GET_ARG2(icall);
+		sysarg_t row = IPC_GET_ARG3(icall);
 
-		sysarg_t cols = IPC_GET_ARG4(*icall);
-		sysarg_t rows = IPC_GET_ARG5(*icall);
+		sysarg_t cols = IPC_GET_ARG4(icall);
+		sysarg_t rows = IPC_GET_ARG5(icall);
 
 		for (sysarg_t y = 0; y < rows; y++) {
 			for (sysarg_t x = 0; x < cols; x++) {
@@ -403,12 +403,12 @@ static void client_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!IPC_GET_IMETHOD(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (IPC_GET_IMETHOD(&call)) {
 		case OUTPUT_YIELD:
 			srv_yield(&call);
 			break;

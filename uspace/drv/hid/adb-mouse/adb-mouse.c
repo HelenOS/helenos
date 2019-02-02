@@ -98,14 +98,14 @@ static void adb_mouse_events(ipc_call_t *icall, void *arg)
 
 		errno_t retval = EOK;
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!IPC_GET_IMETHOD(&call)) {
 			/* TODO: Handle hangup */
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (IPC_GET_IMETHOD(&call)) {
 		case ADB_REG_NOTIF:
-			adb_mouse_data(mouse, IPC_GET_ARG1(call));
+			adb_mouse_data(mouse, IPC_GET_ARG1(&call));
 			break;
 		default:
 			retval = ENOENT;
@@ -214,7 +214,7 @@ static void adb_mouse_conn(ipc_call_t *icall, void *arg)
 
 	while (true) {
 		async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
+		method = IPC_GET_IMETHOD(&call);
 
 		if (!method) {
 			/* The other side has hung up. */

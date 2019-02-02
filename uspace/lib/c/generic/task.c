@@ -373,8 +373,8 @@ errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 	async_wait_for(wait->aid, &rc);
 
 	if (rc == EOK) {
-		*texit = IPC_GET_ARG1(wait->result);
-		*retval = IPC_GET_ARG2(wait->result);
+		*texit = IPC_GET_ARG1(&wait->result);
+		*retval = IPC_GET_ARG2(&wait->result);
 	}
 
 	return rc;

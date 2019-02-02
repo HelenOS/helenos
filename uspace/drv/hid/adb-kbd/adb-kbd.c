@@ -140,14 +140,14 @@ static void adb_kbd_events(ipc_call_t *icall, void *arg)
 
 		errno_t retval = EOK;
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!IPC_GET_IMETHOD(&call)) {
 			async_answer_0(&call, EOK);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (IPC_GET_IMETHOD(&call)) {
 		case ADB_REG_NOTIF:
-			adb_kbd_reg0_data(kbd, IPC_GET_ARG1(call));
+			adb_kbd_reg0_data(kbd, IPC_GET_ARG1(&call));
 			break;
 		default:
 			retval = ENOENT;
@@ -204,7 +204,7 @@ static void adb_kbd_conn(ipc_call_t *icall, void *arg)
 
 	while (true) {
 		async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
+		method = IPC_GET_IMETHOD(&call);
 
 		if (!method) {
 			/* The other side has hung up. */

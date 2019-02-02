@@ -60,8 +60,8 @@ static void fault_event(ipc_call_t *call, void *arg)
 	task_id_t taskid;
 	uintptr_t thread;
 
-	taskid = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-	thread = IPC_GET_ARG3(*call);
+	taskid = MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+	thread = IPC_GET_ARG3(call);
 
 	if (asprintf(&s_taskid, "%" PRIu64, taskid) < 0) {
 		printf("Memory allocation failed.\n");
@@ -100,7 +100,7 @@ static void corecfg_get_enable_srv(ipc_call_t *icall)
 
 static void corecfg_set_enable_srv(ipc_call_t *icall)
 {
-	write_core_files = IPC_GET_ARG1(*icall);
+	write_core_files = IPC_GET_ARG1(icall);
 	async_answer_0(icall, EOK);
 }
 
@@ -112,7 +112,7 @@ static void corecfg_client_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = IPC_GET_IMETHOD(&call);
 
 		if (!method) {
 			/* The other side has hung up */

@@ -43,9 +43,9 @@
 
 void vfs_page_in(ipc_call_t *req)
 {
-	aoff64_t offset = IPC_GET_ARG1(*req);
-	size_t page_size = IPC_GET_ARG2(*req);
-	int fd = IPC_GET_ARG3(*req);
+	aoff64_t offset = IPC_GET_ARG1(req);
+	size_t page_size = IPC_GET_ARG2(req);
+	int fd = IPC_GET_ARG3(req);
 	void *page;
 	errno_t rc;
 
