@@ -1259,7 +1259,7 @@ errno_t async_state_change_start(async_exch_t *exch, sysarg_t arg1, sysarg_t arg
     sysarg_t arg3, async_exch_t *other_exch)
 {
 	return async_req_5_0(exch, IPC_M_STATE_CHANGE_AUTHORIZE,
-	    arg1, arg2, arg3, 0, CAP_HANDLE_RAW(other_exch->phone));
+	    arg1, arg2, arg3, 0, cap_handle_raw(other_exch->phone));
 }
 
 /** Lock and get session remote state

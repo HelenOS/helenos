@@ -1734,7 +1734,7 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(call);
 
 	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) ||
-	    !CAP_HANDLE_VALID((phandle))) {
+	    !cap_handle_valid((phandle))) {
 		async_answer_0(&call, EINVAL);
 		return NULL;
 	}
@@ -1778,7 +1778,7 @@ async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(*call);
 
 	if ((IPC_GET_IMETHOD(*call) != IPC_M_CONNECT_TO_ME) ||
-	    !CAP_HANDLE_VALID((phandle)))
+	    !cap_handle_valid((phandle)))
 		return NULL;
 
 	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
@@ -1812,7 +1812,7 @@ errno_t async_state_change_finalize(ipc_call_t *call, async_exch_t *other_exch)
 {
 	assert(call);
 
-	return async_answer_1(call, EOK, CAP_HANDLE_RAW(other_exch->phone));
+	return async_answer_1(call, EOK, cap_handle_raw(other_exch->phone));
 }
 
 __noreturn void async_manager(void)

@@ -157,7 +157,7 @@ errno_t hound_service_unregister_context(hound_sess_t *sess,
 	assert(sess);
 	async_exch_t *exch = async_exchange_begin(sess);
 	const errno_t ret = async_req_1_0(exch, IPC_M_HOUND_CONTEXT_UNREGISTER,
-	    CAP_HANDLE_RAW(id));
+	    cap_handle_raw(id));
 	async_exchange_end(exch);
 	return ret;
 }
@@ -314,7 +314,7 @@ errno_t hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
 		}
 	};
 
-	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, CAP_HANDLE_RAW(id),
+	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, cap_handle_raw(id),
 	    flags, c.arg, bsize);
 }
 
@@ -430,7 +430,7 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 			if (ret != EOK) {
 				async_answer_0(&call, ret);
 			} else {
-				async_answer_1(&call, EOK, CAP_HANDLE_RAW(context));
+				async_answer_1(&call, EOK, cap_handle_raw(context));
 			}
 			break;
 		case IPC_M_HOUND_CONTEXT_UNREGISTER:

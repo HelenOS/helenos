@@ -67,7 +67,7 @@ static errno_t request_forget(call_t *call)
 {
 	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(call->data);
 
-	if (CAP_HANDLE_RAW(phandle) < 0)
+	if (cap_handle_raw(phandle) < 0)
 		return EOK;
 
 	/* Move reference from call->priv to pobj */
@@ -112,7 +112,7 @@ static errno_t answer_process(call_t *answer)
 	answer->priv = 0;
 
 	if (IPC_GET_RETVAL(answer->data)) {
-		if (CAP_HANDLE_RAW(phandle) >= 0) {
+		if (cap_handle_raw(phandle) >= 0) {
 			/*
 			 * Cleanup the unpublished capability and drop
 			 * phone->kobject's reference.

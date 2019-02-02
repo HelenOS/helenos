@@ -155,7 +155,7 @@ errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 
 	return EOK;
 error:
-	if (CAP_HANDLE_VALID(con->irq_handle))
+	if (cap_handle_valid(con->irq_handle))
 		async_irq_unsubscribe(con->irq_handle);
 	if (bound)
 		ddf_fun_unbind(fun);

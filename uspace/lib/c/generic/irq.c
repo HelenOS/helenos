@@ -82,7 +82,7 @@ errno_t ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode,
 errno_t ipc_irq_unsubscribe(cap_irq_handle_t cap)
 {
 	return (errno_t) __SYSCALL1(SYS_IPC_IRQ_UNSUBSCRIBE,
-	    CAP_HANDLE_RAW(cap));
+	    cap_handle_raw(cap));
 }
 
 /** @}

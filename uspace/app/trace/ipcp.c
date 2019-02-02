@@ -74,13 +74,13 @@ proto_t	*proto_unknown;		/**< Protocol with no known methods. */
 static size_t pending_call_key_hash(void *key)
 {
 	cap_call_handle_t *chandle = (cap_call_handle_t *) key;
-	return CAP_HANDLE_RAW(*chandle);
+	return cap_handle_raw(*chandle);
 }
 
 static size_t pending_call_hash(const ht_link_t *item)
 {
 	pending_call_t *hs = hash_table_get_inst(item, pending_call_t, link);
-	return CAP_HANDLE_RAW(hs->call_handle);
+	return cap_handle_raw(hs->call_handle);
 }
 
 static bool pending_call_key_equal(void *key, const ht_link_t *item)
@@ -103,18 +103,18 @@ void ipcp_connection_set(cap_phone_handle_t phone, int server, proto_t *proto)
 {
 	// XXX: there is no longer a limit on the number of phones as phones are
 	// now handled using capabilities
-	if (CAP_HANDLE_RAW(phone) < 0 || CAP_HANDLE_RAW(phone) >= MAX_PHONE)
+	if (cap_handle_raw(phone) < 0 || cap_handle_raw(phone) >= MAX_PHONE)
 		return;
-	connections[CAP_HANDLE_RAW(phone)].server = server;
-	connections[CAP_HANDLE_RAW(phone)].proto = proto;
-	have_conn[CAP_HANDLE_RAW(phone)] = 1;
+	connections[cap_handle_raw(phone)].server = server;
+	connections[cap_handle_raw(phone)].proto = proto;
+	have_conn[cap_handle_raw(phone)] = 1;
 }
 
 void ipcp_connection_clear(cap_phone_handle_t phone)
 {
-	have_conn[CAP_HANDLE_RAW(phone)] = 0;
-	connections[CAP_HANDLE_RAW(phone)].server = 0;
-	connections[CAP_HANDLE_RAW(phone)].proto = NULL;
+	have_conn[cap_handle_raw(phone)] = 0;
+	connections[cap_handle_raw(phone)].server = 0;
+	connections[cap_handle_raw(phone)].proto = NULL;
 }
 
 static void ipc_m_print(proto_t *proto, sysarg_t method)
@@ -183,8 +183,8 @@ void ipcp_call_out(cap_phone_handle_t phandle, ipc_call_t *call,
 	sysarg_t *args;
 	int i;
 
-	if (have_conn[CAP_HANDLE_RAW(phandle)])
-		proto = connections[CAP_HANDLE_RAW(phandle)].proto;
+	if (have_conn[cap_handle_raw(phandle)])
+		proto = connections[cap_handle_raw(phandle)].proto;
 	else
 		proto = NULL;
 

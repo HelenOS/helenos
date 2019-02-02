@@ -51,7 +51,7 @@ static int request_process(call_t *call, answerbox_t *box)
 		pobj->phone->label = IPC_GET_ARG5(call->data);
 	}
 	call->priv = (sysarg_t) pobj;
-	IPC_SET_ARG5(call->data, CAP_HANDLE_RAW(phandle));
+	IPC_SET_ARG5(call->data, cap_handle_raw(phandle));
 	return 0;
 }
 
@@ -60,7 +60,7 @@ static errno_t answer_cleanup(call_t *answer, ipc_data_t *olddata)
 	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(*olddata);
 	kobject_t *pobj = (kobject_t *) answer->priv;
 
-	if (CAP_HANDLE_VALID(phandle)) {
+	if (cap_handle_valid(phandle)) {
 		kobject_put(pobj);
 		cap_free(TASK, phandle);
 	}
@@ -76,7 +76,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/* The connection was not accepted */
 		answer_cleanup(answer, olddata);
-	} else if (CAP_HANDLE_VALID(phandle)) {
+	} else if (cap_handle_valid(phandle)) {
 		/*
 		 * The connection was accepted
 		 */

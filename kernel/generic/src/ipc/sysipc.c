@@ -840,7 +840,7 @@ restart:
 	return EOK;
 
 error:
-	if (CAP_HANDLE_VALID(handle))
+	if (cap_handle_valid(handle))
 		cap_free(TASK, handle);
 
 	/*
