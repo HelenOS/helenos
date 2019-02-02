@@ -52,13 +52,13 @@ typedef struct {
 	size_t (*hash)(const ht_link_t *item);
 
 	/** Returns the hash of the key. */
-	size_t (*key_hash)(void *key);
+	size_t (*key_hash)(const void *key);
 
 	/** True if the items are equal (have the same lookup keys). */
 	bool (*equal)(const ht_link_t *item1, const ht_link_t *item2);
 
 	/** Returns true if the key is equal to the item's lookup key. */
-	bool (*key_equal)(void *key, const ht_link_t *item);
+	bool (*key_equal)(const void *key, const ht_link_t *item);
 
 	/** Hash table item removal callback.
 	 *
@@ -93,10 +93,10 @@ extern size_t hash_table_size(hash_table_t *);
 extern void hash_table_clear(hash_table_t *);
 extern void hash_table_insert(hash_table_t *, ht_link_t *);
 extern bool hash_table_insert_unique(hash_table_t *, ht_link_t *);
-extern ht_link_t *hash_table_find(const hash_table_t *, void *);
+extern ht_link_t *hash_table_find(const hash_table_t *, const void *);
 extern ht_link_t *hash_table_find_next(const hash_table_t *, ht_link_t *,
     ht_link_t *);
-extern size_t hash_table_remove(hash_table_t *, void *);
+extern size_t hash_table_remove(hash_table_t *, const void *);
 extern void hash_table_remove_item(hash_table_t *, ht_link_t *);
 extern void hash_table_apply(hash_table_t *, bool (*)(ht_link_t *, void *),
     void *);

@@ -71,9 +71,9 @@ static hash_table_t pending_calls;
 proto_t *proto_system;		/**< Protocol describing system IPC methods. */
 proto_t	*proto_unknown;		/**< Protocol with no known methods. */
 
-static size_t pending_call_key_hash(void *key)
+static size_t pending_call_key_hash(const void *key)
 {
-	cap_call_handle_t *chandle = (cap_call_handle_t *) key;
+	const cap_call_handle_t *chandle = key;
 	return cap_handle_raw(*chandle);
 }
 
@@ -83,9 +83,9 @@ static size_t pending_call_hash(const ht_link_t *item)
 	return cap_handle_raw(hs->call_handle);
 }
 
-static bool pending_call_key_equal(void *key, const ht_link_t *item)
+static bool pending_call_key_equal(const void *key, const ht_link_t *item)
 {
-	cap_call_handle_t *chandle = (cap_call_handle_t *) key;
+	const cap_call_handle_t *chandle = key;
 	pending_call_t *hs = hash_table_get_inst(item, pending_call_t, link);
 
 	return *chandle == hs->call_handle;

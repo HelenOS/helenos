@@ -62,15 +62,15 @@ static size_t udf_idx_hash(const ht_link_t *item)
 	return hash_combine(node->instance->service_id, node->index);
 }
 
-static size_t udf_idx_key_hash(void *k)
+static size_t udf_idx_key_hash(const void *k)
 {
-	udf_ht_key_t *key = (udf_ht_key_t *) k;
+	const udf_ht_key_t *key = k;
 	return hash_combine(key->service_id, key->index);
 }
 
-static bool udf_idx_key_equal(void *k, const ht_link_t *item)
+static bool udf_idx_key_equal(const void *k, const ht_link_t *item)
 {
-	udf_ht_key_t *key = (udf_ht_key_t *) k;
+	const udf_ht_key_t *key = k;
 	udf_node_t *node = hash_table_get_inst(item, udf_node_t, link);
 
 	return (key->service_id == node->instance->service_id) &&

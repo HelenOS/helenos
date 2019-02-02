@@ -51,16 +51,16 @@ static size_t param_hash(const ht_link_t *item)
 	return str_size(param->key);
 }
 
-static size_t param_key_hash(void *key)
+static size_t param_key_hash(const void *key)
 {
-	char *key_str = key;
+	const char *key_str = key;
 	return str_size(key_str);
 }
 
-static bool param_key_equal(void *key, const ht_link_t *item)
+static bool param_key_equal(const void *key, const ht_link_t *item)
 {
 	param_t *param = hash_table_get_inst(item, param_t, link);
-	char *key_str = key;
+	const char *key_str = key;
 
 	return str_cmp(param->key, key_str) == 0;
 }
