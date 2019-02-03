@@ -35,11 +35,11 @@
  * On real hardware this stores the registers which
  * need to be preserved across function calls.
  */
-typedef struct context {
+typedef struct __context {
 	uintptr_t sp;
 	uintptr_t fp;
 	uintptr_t pc;
 	uintptr_t tls;
-} context_t;
+} __context_t;
 
 #endif

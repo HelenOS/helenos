@@ -40,7 +40,7 @@ extern "C" {
 #include <libarch/fibril_context.h>
 #include <_bits/__noreturn.h>
 
-typedef context_t jmp_buf[1];
+typedef __context_t jmp_buf[1];
 
 extern int __setjmp(jmp_buf) __attribute__((returns_twice));
 extern __noreturn void __longjmp(jmp_buf, int);

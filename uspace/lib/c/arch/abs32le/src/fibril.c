@@ -32,12 +32,12 @@
 #include <setjmp.h>
 #include <stdbool.h>
 
-int __setjmp(context_t *ctx)
+int __setjmp(__context_t *ctx)
 {
 	return 0;
 }
 
-void __longjmp(context_t *ctx, int val)
+void __longjmp(__context_t *ctx, int val)
 {
 	while (true)
 		;

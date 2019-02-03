@@ -41,16 +41,16 @@ FUNCTION_BEGIN(__setjmp)
 	movl 4(%esp), %edx  # address of the context variable to save context to
 
 	# save registers to the context structure
-	movl %esp, CONTEXT_OFFSET_SP(%edx)	# %esp -> ctx->sp
-	movl %eax, CONTEXT_OFFSET_PC(%edx)	# %eip -> ctx->pc
-	movl %ebx, CONTEXT_OFFSET_EBX(%edx)	# %ebx -> ctx->ebx
-	movl %esi, CONTEXT_OFFSET_ESI(%edx)	# %esi -> ctx->esi
-	movl %edi, CONTEXT_OFFSET_EDI(%edx)	# %edi -> ctx->edi
-	movl %ebp, CONTEXT_OFFSET_EBP(%edx)	# %ebp -> ctx->ebp
+	movl %esp, __CONTEXT_OFFSET_SP(%edx)	# %esp -> ctx->sp
+	movl %eax, __CONTEXT_OFFSET_PC(%edx)	# %eip -> ctx->pc
+	movl %ebx, __CONTEXT_OFFSET_EBX(%edx)	# %ebx -> ctx->ebx
+	movl %esi, __CONTEXT_OFFSET_ESI(%edx)	# %esi -> ctx->esi
+	movl %edi, __CONTEXT_OFFSET_EDI(%edx)	# %edi -> ctx->edi
+	movl %ebp, __CONTEXT_OFFSET_EBP(%edx)	# %ebp -> ctx->ebp
 
 	# save TLS
 	movl %gs:0, %eax
-	movl %eax, CONTEXT_OFFSET_TLS(%edx)	# tls -> ctx->tls
+	movl %eax, __CONTEXT_OFFSET_TLS(%edx)	# tls -> ctx->tls
 
 	xorl %eax, %eax		# __setjmp returns 0
 	ret
@@ -66,17 +66,17 @@ FUNCTION_BEGIN(__longjmp)
 	movl 8(%esp), %ecx  # return value
 
 	# restore registers from the context structure
-	movl CONTEXT_OFFSET_SP(%eax),%esp	# ctx->sp -> %esp
-	movl CONTEXT_OFFSET_PC(%eax),%edx	# ctx->pc -> \pc
-	movl CONTEXT_OFFSET_EBX(%eax),%ebx	# ctx->ebx -> %ebx
-	movl CONTEXT_OFFSET_ESI(%eax),%esi	# ctx->esi -> %esi
-	movl CONTEXT_OFFSET_EDI(%eax),%edi	# ctx->edi -> %edi
-	movl CONTEXT_OFFSET_EBP(%eax),%ebp	# ctx->ebp -> %ebp
+	movl __CONTEXT_OFFSET_SP(%eax),%esp	# ctx->sp -> %esp
+	movl __CONTEXT_OFFSET_PC(%eax),%edx	# ctx->pc -> \pc
+	movl __CONTEXT_OFFSET_EBX(%eax),%ebx	# ctx->ebx -> %ebx
+	movl __CONTEXT_OFFSET_ESI(%eax),%esi	# ctx->esi -> %esi
+	movl __CONTEXT_OFFSET_EDI(%eax),%edi	# ctx->edi -> %edi
+	movl __CONTEXT_OFFSET_EBP(%eax),%ebp	# ctx->ebp -> %ebp
 
 	movl %edx, 0(%esp)  # ctx->pc -> saver's return %eip
 
 	# set thread local storage
-	movl CONTEXT_OFFSET_TLS(%eax), %edx	# Set arg1 to TLS addr
+	movl __CONTEXT_OFFSET_TLS(%eax), %edx	# Set arg1 to TLS addr
 	movl %edx, %gs:0
 
 	movl %ecx, %eax

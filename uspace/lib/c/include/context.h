@@ -32,6 +32,8 @@
 #include <_bits/size_t.h>
 #include <libarch/fibril_context.h>
 
+typedef __context_t context_t;
+
 /* Context initialization data. */
 typedef struct {
 	void (*fn)(void);

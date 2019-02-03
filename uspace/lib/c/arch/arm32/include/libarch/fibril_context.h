@@ -40,7 +40,7 @@
 
 // XXX: This struct must match the assembly code in src/fibril.S
 
-typedef struct context {
+typedef struct __context {
 	uintptr_t sp;
 	uintptr_t pc;
 	uint32_t r4;
@@ -53,6 +53,6 @@ typedef struct context {
 	uint32_t r10;
 	/* r11 */
 	uint32_t fp;
-} context_t;
+} __context_t;
 
 #endif
