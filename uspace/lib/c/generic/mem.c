@@ -37,8 +37,10 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "private/cc.h"
 
 /** Fill memory block with a constant value. */
+ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns")
 void *memset(void *dest, int b, size_t n)
 {
 	char *pb;
@@ -113,6 +115,7 @@ static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 }
 
 /** Copy memory block. */
+ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns")
 void *memcpy(void *dst, const void *src, size_t n)
 {
 	size_t i;
