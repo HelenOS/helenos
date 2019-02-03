@@ -31,7 +31,7 @@
 
 .text
 
-FUNCTION_BEGIN(__setjmp)
+FUNCTION_BEGIN(__context_save)
 	alloc loc0 = ar.pfs, 1, 49, 0, 0
 	mov loc1 = ar.unat ;;
 	mov loc3 = ar.rsc
@@ -177,11 +177,11 @@ FUNCTION_BEGIN(__setjmp)
 
 	mov ar.unat = loc1
 
-	mov r8 = 0 	/* __setjmp returns 0 */
+	mov r8 = 0 	/* __context_save returns 0 */
 	br.ret.sptk.many b0
-FUNCTION_END(__setjmp)
+FUNCTION_END(__context_save)
 
-FUNCTION_BEGIN(__longjmp)
+FUNCTION_BEGIN(__context_restore)
 	alloc loc0 = ar.pfs, 2, 50, 0, 0 ;;
 
 	add loc9 = __CONTEXT_OFFSET_AR_PFS, in0
@@ -334,6 +334,6 @@ FUNCTION_BEGIN(__longjmp)
 
 	mov ar.unat = loc1
 
-	mov r8 = in1			/* __longjmp returns second argument */
+	mov r8 = in1			/* __context_restore returns second argument */
 	br.ret.sptk.many b0
-FUNCTION_END(__longjmp)
+FUNCTION_END(__context_restore)

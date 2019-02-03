@@ -36,7 +36,7 @@
 # Save CPU context to context_t variable
 # pointed by the 1st argument. Returns 0 in RAX.
 #
-FUNCTION_BEGIN(__setjmp)
+FUNCTION_BEGIN(__context_save)
 	movq (%rsp), %rdx     # the caller's return %eip
 
 	# in %rdi is passed 1st argument
@@ -53,16 +53,16 @@ FUNCTION_BEGIN(__setjmp)
 	movq %fs:0, %rax
 	movq %rax, __CONTEXT_OFFSET_TLS(%rdi)
 
-	xorq %rax, %rax                      # __setjmp returns 0
+	xorq %rax, %rax                      # __context_save returns 0
 	ret
-FUNCTION_END(__setjmp)
+FUNCTION_END(__context_save)
 
 ## Restore current CPU context
 #
 # Restore CPU context from context_t variable
 # pointed by the 1st argument. Returns second argument in RAX.
 #
-FUNCTION_BEGIN(__longjmp)
+FUNCTION_BEGIN(__context_restore)
 	movq __CONTEXT_OFFSET_R15(%rdi), %r15
 	movq __CONTEXT_OFFSET_R14(%rdi), %r14
 	movq __CONTEXT_OFFSET_R13(%rdi), %r13
@@ -79,7 +79,7 @@ FUNCTION_BEGIN(__longjmp)
 	movq __CONTEXT_OFFSET_TLS(%rdi), %rdi
 	movq %rdi, %fs:0
 
-	movq %rsi, %rax                      # __longjmp returns second argument
+	movq %rsi, %rax                      # __context_restore returns second argument
 	ret
-FUNCTION_END(__longjmp)
+FUNCTION_END(__context_restore)
 

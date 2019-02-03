@@ -31,7 +31,7 @@
 
 .text
 
-FUNCTION_BEGIN(__setjmp)
+FUNCTION_BEGIN(__context_save)
 	#
 	# We rely on the kernel to flush our active register windows to memory
 	# should a thread switch occur.
@@ -56,10 +56,10 @@ FUNCTION_BEGIN(__setjmp)
 	stx %l7, [%o0 + __CONTEXT_OFFSET_L7]
 	stx %g7, [%o0 + __CONTEXT_OFFSET_TP]
 	retl
-	mov 0, %o0		! __setjmp returns 0
-FUNCTION_END(__setjmp)
+	mov 0, %o0		! __context_save returns 0
+FUNCTION_END(__context_save)
 
-FUNCTION_BEGIN(__longjmp)
+FUNCTION_BEGIN(__context_restore)
 	#
 	# Flush all active windows.
 	# This is essential, because CONTEXT_RESTORE_ARCH_CORE overwrites %sp of
@@ -88,5 +88,5 @@ FUNCTION_BEGIN(__longjmp)
 	ldx [%o0 + __CONTEXT_OFFSET_L7], %l7
 	ldx [%o0 + __CONTEXT_OFFSET_TP], %g7
 	retl
-	mov %o1, %o0	! __longjmp returns second argument
-FUNCTION_END(__longjmp)
+	mov %o1, %o0	! __context_restore returns second argument
+FUNCTION_END(__context_restore)

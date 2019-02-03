@@ -42,13 +42,13 @@
  */
 void context_swap(context_t *self, context_t *other)
 {
-	if (!__setjmp(self))
-		__longjmp(other, 1);
+	if (!__context_save(self))
+		__context_restore(other, 1);
 }
 
 void context_create(context_t *context, const context_create_t *arg)
 {
-	__setjmp(context);
+	__context_save(context);
 	context_set(context, FADDR(arg->fn), arg->stack_base,
 	    arg->stack_size, arg->tls);
 }

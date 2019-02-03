@@ -34,7 +34,7 @@
 #include <abi/asmtool.h>
 #include <libarch/fibril_context.h>
 
-FUNCTION_BEGIN(__setjmp)
+FUNCTION_BEGIN(__context_save)
 	sw $s0, __CONTEXT_OFFSET_S0($a0)
 	sw $s1, __CONTEXT_OFFSET_S1($a0)
 	sw $s2, __CONTEXT_OFFSET_S2($a0)
@@ -86,12 +86,12 @@ FUNCTION_BEGIN(__setjmp)
 	sw $ra, __CONTEXT_OFFSET_PC($a0)
 	sw $sp, __CONTEXT_OFFSET_SP($a0)
 
-	# __setjmp returns 0
+	# __context_save returns 0
 	j $ra
 	li $v0, 0
-FUNCTION_END(__setjmp)
+FUNCTION_END(__context_save)
 
-FUNCTION_BEGIN(__longjmp)
+FUNCTION_BEGIN(__context_restore)
 	lw $s0, __CONTEXT_OFFSET_S0($a0)
 	lw $s1, __CONTEXT_OFFSET_S1($a0)
 	lw $s2, __CONTEXT_OFFSET_S2($a0)
@@ -146,7 +146,7 @@ FUNCTION_BEGIN(__longjmp)
 	# but one instruction should not bother us
 	move $t9, $ra
 
-	# __longjmp returns second argument
+	# __context_restore returns second argument
 	j $ra
 	move $v0, $a1
-FUNCTION_END(__longjmp)
+FUNCTION_END(__context_restore)

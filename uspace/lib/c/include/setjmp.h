@@ -42,10 +42,10 @@ extern "C" {
 
 typedef __context_t jmp_buf[1];
 
-extern int __setjmp(jmp_buf) __attribute__((returns_twice));
-extern __noreturn void __longjmp(jmp_buf, int);
+extern int __context_save(__context_t *) __attribute__((returns_twice));
+extern __noreturn void __context_restore(__context_t *, int);
 
-#define setjmp __setjmp
+#define setjmp __context_save
 extern __noreturn void longjmp(jmp_buf, int);
 
 #ifdef __cplusplus

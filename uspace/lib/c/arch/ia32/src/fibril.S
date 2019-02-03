@@ -36,7 +36,7 @@
 # Save CPU context to the context_t variable
 # pointed by the 1st argument. Returns 0 in EAX.
 #
-FUNCTION_BEGIN(__setjmp)
+FUNCTION_BEGIN(__context_save)
 	movl 0(%esp), %eax  # the caller's return %eip
 	movl 4(%esp), %edx  # address of the context variable to save context to
 
@@ -52,16 +52,16 @@ FUNCTION_BEGIN(__setjmp)
 	movl %gs:0, %eax
 	movl %eax, __CONTEXT_OFFSET_TLS(%edx)	# tls -> ctx->tls
 
-	xorl %eax, %eax		# __setjmp returns 0
+	xorl %eax, %eax		# __context_save returns 0
 	ret
-FUNCTION_END(__setjmp)
+FUNCTION_END(__context_save)
 
 ## Restore saved CPU context
 #
 # Restore CPU context from context_t variable
 # pointed by the 1st argument. Returns second argument in EAX.
 #
-FUNCTION_BEGIN(__longjmp)
+FUNCTION_BEGIN(__context_restore)
 	movl 4(%esp), %eax  # address of the context variable to restore context from
 	movl 8(%esp), %ecx  # return value
 
@@ -81,5 +81,5 @@ FUNCTION_BEGIN(__longjmp)
 
 	movl %ecx, %eax
 	ret
-FUNCTION_END(__longjmp)
+FUNCTION_END(__context_restore)
 
