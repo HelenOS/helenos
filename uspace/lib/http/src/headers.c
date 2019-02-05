@@ -84,12 +84,8 @@ void http_header_destroy(http_header_t *header)
 ssize_t http_header_encode(http_header_t *header, char *buf, size_t buf_size)
 {
 	/* TODO properly split long header values */
-	if (buf == NULL) {
-		return printf_size(HTTP_HEADER_LINE, header->name, header->value);
-	} else {
-		return snprintf(buf, buf_size,
-		    HTTP_HEADER_LINE, header->name, header->value);
-	}
+	return snprintf(buf, buf_size,
+	    HTTP_HEADER_LINE, header->name, header->value);
 }
 
 errno_t http_header_receive_name(receive_buffer_t *rb,

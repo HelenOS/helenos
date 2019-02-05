@@ -85,15 +85,15 @@ int vasprintf(char **strp, const char *fmt, va_list args)
 {
 	va_list args2;
 	va_copy(args2, args);
-	int ret = vprintf_size(fmt, args2);
+	int ret = vsnprintf(NULL, 0, fmt, args2);
 	va_end(args2);
 
 	if (ret > 0) {
-		*strp = malloc(STR_BOUNDS(ret) + 1);
+		*strp = malloc(ret + 1);
 		if (*strp == NULL)
 			return -1;
 
-		vsnprintf(*strp, STR_BOUNDS(ret) + 1, fmt, args);
+		vsnprintf(*strp, ret + 1, fmt, args);
 	}
 
 	return ret;
