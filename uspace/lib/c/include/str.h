@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2005 Martin Decky
  * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
@@ -41,12 +42,14 @@ extern "C" {
 #endif
 
 #include <errno.h>
-#include <mem.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
-#define U_SPECIAL  '?'
+#include <mem.h>
+
+/* Common Unicode characters */
+#define U_SPECIAL      '?'
 
 /** No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
@@ -62,7 +65,7 @@ extern "C" {
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern wchar_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
-extern errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
+extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
@@ -115,8 +118,8 @@ extern void str_ltrim(char *str, wchar_t ch);
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
 
-extern char *str_dup(const char *);
-extern char *str_ndup(const char *, size_t max_size);
+extern char *str_dup(const char *src);
+extern char *str_ndup(const char *src, size_t n);
 
 extern char *str_tok(char *, const char *, char **);
 

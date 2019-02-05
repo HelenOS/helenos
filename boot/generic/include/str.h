@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,27 +34,28 @@
 #ifndef BOOT_STR_H_
 #define BOOT_STR_H_
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 
-/**< Common Unicode characters */
-#define U_SPECIAL  '?'
+/* Common Unicode characters */
+#define U_SPECIAL      '?'
 
-/**< No size limit constant */
+/** No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
 
-extern wchar_t str_decode(const char *, size_t *, size_t);
-extern int chr_encode(wchar_t, char *, size_t *, size_t);
+extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
+extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
 
-extern size_t str_size(const char *);
-extern size_t str_lsize(const char *, size_t);
-extern size_t str_length(const char *);
+extern size_t str_size(const char *str);
+extern size_t str_lsize(const char *str, size_t max_len);
+extern size_t str_length(const char *str);
 
-extern bool ascii_check(wchar_t);
-extern bool chr_check(wchar_t);
+extern bool ascii_check(wchar_t ch);
+extern bool chr_check(wchar_t ch);
 
-extern int str_cmp(const char *, const char *);
-extern void str_cpy(char *, size_t, const char *);
+extern int str_cmp(const char *s1, const char *s2);
+extern void str_cpy(char *dest, size_t size, const char *src);
 
 #endif
 

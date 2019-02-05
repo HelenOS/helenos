@@ -1,5 +1,9 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,14 +106,16 @@
  */
 
 #include <str.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
-#include <errno.h>
-#include <align.h>
+
 #include <assert.h>
-#include <macros.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
+
+#include <align.h>
+#include <macros.h>
 
 /** Check the condition if wchar_t is signed */
 #ifdef __WCHAR_UNSIGNED__
@@ -615,67 +621,6 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 	dest[dest_off] = '\0';
 }
 
-/** Duplicate string.
- *
- * Allocate a new string and copy characters from the source
- * string into it. The duplicate string is allocated via sleeping
- * malloc(), thus this function can sleep in no memory conditions.
- *
- * The allocation cannot fail and the return value is always
- * a valid pointer. The duplicate string is always a well-formed
- * null-terminated UTF-8 string, but it can differ from the source
- * string on the byte level.
- *
- * @param src Source string.
- *
- * @return Duplicate string.
- *
- */
-char *str_dup(const char *src)
-{
-	size_t size = str_size(src) + 1;
-	char *dest = malloc(size);
-	if (!dest)
-		return NULL;
-
-	str_cpy(dest, size, src);
-	return dest;
-}
-
-/** Duplicate string with size limit.
- *
- * Allocate a new string and copy up to @max_size bytes from the source
- * string into it. The duplicate string is allocated via sleeping
- * malloc(), thus this function can sleep in no memory conditions.
- * No more than @max_size + 1 bytes is allocated, but if the size
- * occupied by the source string is smaller than @max_size + 1,
- * less is allocated.
- *
- * The allocation cannot fail and the return value is always
- * a valid pointer. The duplicate string is always a well-formed
- * null-terminated UTF-8 string, but it can differ from the source
- * string on the byte level.
- *
- * @param src Source string.
- * @param n   Maximum number of bytes to duplicate.
- *
- * @return Duplicate string.
- *
- */
-char *str_ndup(const char *src, size_t n)
-{
-	size_t size = str_size(src);
-	if (size > n)
-		size = n;
-
-	char *dest = malloc(size + 1);
-	if (!dest)
-		return NULL;
-
-	str_ncpy(dest, size + 1, src, size);
-	return dest;
-}
-
 /** Convert wide string to string.
  *
  * Convert wide string @a src to string. The output is written to the buffer
@@ -712,7 +657,6 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
  * @param ch  Character to look for.
  *
  * @return Pointer to character in @a str or NULL if not found.
- *
  */
 char *str_chr(const char *str, wchar_t ch)
 {
@@ -783,6 +727,67 @@ bool wstr_remove(wchar_t *str, size_t pos)
 		str[i - 1] = str[i];
 
 	return true;
+}
+
+/** Duplicate string.
+ *
+ * Allocate a new string and copy characters from the source
+ * string into it. The duplicate string is allocated via sleeping
+ * malloc(), thus this function can sleep in no memory conditions.
+ *
+ * The allocation cannot fail and the return value is always
+ * a valid pointer. The duplicate string is always a well-formed
+ * null-terminated UTF-8 string, but it can differ from the source
+ * string on the byte level.
+ *
+ * @param src Source string.
+ *
+ * @return Duplicate string.
+ *
+ */
+char *str_dup(const char *src)
+{
+	size_t size = str_size(src) + 1;
+	char *dest = malloc(size);
+	if (!dest)
+		return NULL;
+
+	str_cpy(dest, size, src);
+	return dest;
+}
+
+/** Duplicate string with size limit.
+ *
+ * Allocate a new string and copy up to @max_size bytes from the source
+ * string into it. The duplicate string is allocated via sleeping
+ * malloc(), thus this function can sleep in no memory conditions.
+ * No more than @max_size + 1 bytes is allocated, but if the size
+ * occupied by the source string is smaller than @max_size + 1,
+ * less is allocated.
+ *
+ * The allocation cannot fail and the return value is always
+ * a valid pointer. The duplicate string is always a well-formed
+ * null-terminated UTF-8 string, but it can differ from the source
+ * string on the byte level.
+ *
+ * @param src Source string.
+ * @param n   Maximum number of bytes to duplicate.
+ *
+ * @return Duplicate string.
+ *
+ */
+char *str_ndup(const char *src, size_t n)
+{
+	size_t size = str_size(src);
+	if (size > n)
+		size = n;
+
+	char *dest = malloc(size + 1);
+	if (!dest)
+		return NULL;
+
+	str_ncpy(dest, size + 1, src, size);
+	return dest;
 }
 
 /** Convert string to uint64_t (internal variant).

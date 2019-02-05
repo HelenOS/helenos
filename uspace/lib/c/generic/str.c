@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2005 Martin Decky
  * Copyright (c) 2008 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
@@ -32,19 +33,90 @@
 /** @addtogroup libc
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief String functions.
+ *
+ * Strings and characters use the Universal Character Set (UCS). The standard
+ * strings, called just strings are encoded in UTF-8. Wide strings (encoded
+ * in UTF-32) are supported to a limited degree. A single character is
+ * represented as wchar_t.@n
+ *
+ * Overview of the terminology:@n
+ *
+ *  Term                  Meaning
+ *  --------------------  ----------------------------------------------------
+ *  byte                  8 bits stored in uint8_t (unsigned 8 bit integer)
+ *
+ *  character             UTF-32 encoded Unicode character, stored in wchar_t
+ *                        (signed 32 bit integer), code points 0 .. 1114111
+ *                        are valid
+ *
+ *  ASCII character       7 bit encoded ASCII character, stored in char
+ *                        (usually signed 8 bit integer), code points 0 .. 127
+ *                        are valid
+ *
+ *  string                UTF-8 encoded NULL-terminated Unicode string, char *
+ *
+ *  wide string           UTF-32 encoded NULL-terminated Unicode string,
+ *                        wchar_t *
+ *
+ *  [wide] string size    number of BYTES in a [wide] string (excluding
+ *                        the NULL-terminator), size_t
+ *
+ *  [wide] string length  number of CHARACTERS in a [wide] string (excluding
+ *                        the NULL-terminator), size_t
+ *
+ *  [wide] string width   number of display cells on a monospace display taken
+ *                        by a [wide] string, size_t
+ *
+ *
+ * Overview of string metrics:@n
+ *
+ *  Metric  Abbrev.  Type     Meaning
+ *  ------  ------   ------   -------------------------------------------------
+ *  size    n        size_t   number of BYTES in a string (excluding the
+ *                            NULL-terminator)
+ *
+ *  length  l        size_t   number of CHARACTERS in a string (excluding the
+ *                            null terminator)
+ *
+ *  width  w         size_t   number of display cells on a monospace display
+ *                            taken by a string
+ *
+ *
+ * Function naming prefixes:@n
+ *
+ *  chr_    operate on characters
+ *  ascii_  operate on ASCII characters
+ *  str_    operate on strings
+ *  wstr_   operate on wide strings
+ *
+ *  [w]str_[n|l|w]  operate on a prefix limited by size, length
+ *                  or width
+ *
+ *
+ * A specific character inside a [wide] string can be referred to by:@n
+ *
+ *  pointer (char *, wchar_t *)
+ *  byte offset (size_t)
+ *  character index (size_t)
+ *
  */
 
 #include <str.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+
 #include <align.h>
 #include <mem.h>
-#include <limits.h>
 
 /** Check the condition if wchar_t is signed */
 #ifdef __WCHAR_UNSIGNED__
@@ -746,6 +818,7 @@ void str_cpy(char *dest, size_t size, const char *src)
 {
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
+	assert(src != NULL);
 
 	size_t src_off = 0;
 	size_t dest_off = 0;
@@ -1310,9 +1383,9 @@ bool wstr_remove(wchar_t *str, size_t pos)
 char *str_dup(const char *src)
 {
 	size_t size = str_size(src) + 1;
-	char *dest = (char *) malloc(size);
-	if (dest == NULL)
-		return (char *) NULL;
+	char *dest = malloc(size);
+	if (!dest)
+		return NULL;
 
 	str_cpy(dest, size, src);
 	return dest;
@@ -1344,9 +1417,9 @@ char *str_ndup(const char *src, size_t n)
 	if (size > n)
 		size = n;
 
-	char *dest = (char *) malloc(size + 1);
-	if (dest == NULL)
-		return (char *) NULL;
+	char *dest = malloc(size + 1);
+	if (!dest)
+		return NULL;
 
 	str_ncpy(dest, size + 1, src, size);
 	return dest;
