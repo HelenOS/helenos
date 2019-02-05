@@ -318,17 +318,29 @@ errno_t virtio_device_setup_start(virtio_dev_t *vdev, uint32_t features)
 	pio_write_le32(&cfg->device_feature_select, VIRTIO_FEATURES_0_31);
 	uint32_t device_features = pio_read_le32(&cfg->device_feature);
 
-	ddf_msg(LVL_NOTE, "offered features %x", device_features);
+	uint32_t reserved_features = VIRTIO_F_VERSION_1;
+	pio_write_le32(&cfg->device_feature_select, VIRTIO_FEATURES_32_63);
+	uint32_t device_reserved_features = pio_read_le32(&cfg->device_feature);
+
+	ddf_msg(LVL_NOTE, "offered features %x, reserved features %x",
+	    device_features, device_reserved_features);
 
 	if (features != (features & device_features))
 		return ENOTSUP;
 	features &= device_features;
 
+	if (reserved_features != (reserved_features & device_reserved_features))
+		return ENOTSUP;
+	reserved_features &= device_reserved_features;
+
 	/* 4. Write the accepted feature flags */
 	pio_write_le32(&cfg->driver_feature_select, VIRTIO_FEATURES_0_31);
 	pio_write_le32(&cfg->driver_feature, features);
+	pio_write_le32(&cfg->driver_feature_select, VIRTIO_FEATURES_32_63);
+	pio_write_le32(&cfg->driver_feature, reserved_features);
 
-	ddf_msg(LVL_NOTE, "accepted features %x", features);
+	ddf_msg(LVL_NOTE, "accepted features %x, reserved features %x",
+	    features, reserved_features);
 
 	/* 5. Set FEATURES_OK */
 	status |= VIRTIO_DEV_STATUS_FEATURES_OK;
