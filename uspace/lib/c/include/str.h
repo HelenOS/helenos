@@ -54,7 +54,7 @@ extern "C" {
 /** No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
 
-/** Maximum size of a string containing @c length characters */
+/** Maximum size of a string containing @c length code points */
 #define STR_BOUNDS(length)  ((length) << 2)
 
 /**

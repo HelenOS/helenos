@@ -40,7 +40,7 @@
  *
  * Strings and characters use the Universal Character Set (UCS). The standard
  * strings, called just strings are encoded in UTF-8. Wide strings (encoded
- * in UTF-32) are supported to a limited degree. A single character is
+ * in UTF-32) are supported to a limited degree. A single code point is
  * represented as wchar_t.@n
  *
  * Overview of the terminology:@n
@@ -49,7 +49,7 @@
  *  --------------------  ----------------------------------------------------
  *  byte                  8 bits stored in uint8_t (unsigned 8 bit integer)
  *
- *  character             UTF-32 encoded Unicode character, stored in wchar_t
+ *  character             UTF-32 encoded Unicode code point, stored in wchar_t
  *                        (signed 32 bit integer), code points 0 .. 1114111
  *                        are valid
  *
@@ -65,7 +65,7 @@
  *  [wide] string size    number of BYTES in a [wide] string (excluding
  *                        the NULL-terminator), size_t
  *
- *  [wide] string length  number of CHARACTERS in a [wide] string (excluding
+ *  [wide] string length  number of CODE POINTS in a [wide] string (excluding
  *                        the NULL-terminator), size_t
  *
  *  [wide] string width   number of display cells on a monospace display taken
@@ -79,7 +79,7 @@
  *  size    n        size_t   number of BYTES in a string (excluding the
  *                            NULL-terminator)
  *
- *  length  l        size_t   number of CHARACTERS in a string (excluding the
+ *  length  l        size_t   number of CODE POINTS in a string (excluding the
  *                            null terminator)
  *
  *  width  w         size_t   number of display cells on a monospace display
@@ -88,7 +88,7 @@
  *
  * Function naming prefixes:@n
  *
- *  chr_    operate on characters
+ *  chr_    operate on code points
  *  ascii_  operate on ASCII characters
  *  str_    operate on strings
  *  wstr_   operate on wide strings
@@ -101,7 +101,7 @@
  *
  *  pointer (char *, wchar_t *)
  *  byte offset (size_t)
- *  character index (size_t)
+ *  code point index (size_t)
  *
  */
 
@@ -136,18 +136,18 @@
 /** Number of data bits in a UTF-8 continuation byte */
 #define CONT_BITS  6
 
-/** Decode a single character from a string.
+/** Decode a single code point from an UTF-8 encoded string.
  *
- * Decode a single character from a string of size @a size. Decoding starts
+ * Decode a single code point from a string of size @a size. Decoding starts
  * at @a offset and this offset is moved to the beginning of the next
- * character. In case of decoding error, offset generally advances at least
+ * code point. In case of decoding error, offset generally advances at least
  * by one. However, offset is never moved beyond size.
  *
  * @param str    String (not necessarily NULL-terminated).
  * @param offset Byte offset in string where to start decoding.
  * @param size   Size of the string (in bytes).
  *
- * @return Value of decoded character, U_SPECIAL on decoding error or
+ * @return Value of decoded code point, U_SPECIAL on decoding error or
  *         NULL if attempt to decode beyond @a size.
  *
  */
@@ -206,19 +206,19 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 	return ch;
 }
 
-/** Encode a single character to string representation.
+/** Encode a single code point to a UTF-8 string representation.
  *
- * Encode a single character to string representation (i.e. UTF-8) and store
+ * Encode a single code point to a UTF-8 string representation and store
  * it into a buffer at @a offset. Encoding starts at @a offset and this offset
- * is moved to the position where the next character can be written to.
+ * is moved to the position where the next code point can be written to.
  *
- * @param ch     Input character.
+ * @param ch     Input code point.
  * @param str    Output buffer.
  * @param offset Byte offset where to start writing.
  * @param size   Size of the output buffer (in bytes).
  *
- * @return EOK if the character was encoded successfully, EOVERFLOW if there
- *         was not enough space in the output buffer or EINVAL if the character
+ * @return EOK if the code point was encoded successfully, EOVERFLOW if there
+ *         was not enough space in the output buffer or EINVAL if the code point
  *         code was invalid.
  */
 errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
@@ -312,17 +312,17 @@ size_t wstr_bytes(const wchar_t *str)
 	return (wstr_code_points(str) * sizeof(wchar_t));
 }
 
-/** Get size of string with length limit.
+/** Get size of string with code point count limit.
  *
  * Get the number of bytes which are used by up to @a max_len first
- * characters in the string @a str. If @a max_len is greater than
- * the length of @a str, the entire string is measured (excluding the
- * NULL-terminator).
+ * code points in the string @a str. If @a max_len is greater than
+ * the number of code points in @a str, the entire string is measured
+ * (excluding the NULL-terminator).
  *
  * @param str     String to consider.
- * @param max_len Maximum number of characters to measure.
+ * @param max_len Maximum number of code points to measure.
  *
- * @return Number of bytes used by the characters.
+ * @return Number of bytes used by the code points.
  *
  */
 size_t str_lbytes(const char *str, size_t max_len)
@@ -343,14 +343,14 @@ size_t str_lbytes(const char *str, size_t max_len)
 /** Get size of wide string with length limit.
  *
  * Get the number of bytes which are used by up to @a max_len first
- * wide characters in the wide string @a str. If @a max_len is greater than
+ * code points in the wide string @a str. If @a max_len is greater than
  * the length of @a str, the entire wide string is measured (excluding the
  * NULL-terminator).
  *
  * @param str     Wide string to consider.
- * @param max_len Maximum number of wide characters to measure.
+ * @param max_len Maximum number of code points to measure.
  *
- * @return Number of bytes used by the wide characters.
+ * @return Number of bytes used by the code points.
  *
  */
 size_t wstr_lbytes(const wchar_t *str, size_t max_len)
@@ -358,11 +358,11 @@ size_t wstr_lbytes(const wchar_t *str, size_t max_len)
 	return (wstr_ncode_points(str, max_len * sizeof(wchar_t)) * sizeof(wchar_t));
 }
 
-/** Get number of characters in a string.
+/** Get number of unicode code points in a UTF-8 encoded string.
  *
- * @param str NULL-terminated string.
+ * @param str NULL-terminated UTF-8 string.
  *
- * @return Number of characters in string.
+ * @return Number of code points in the string.
  *
  */
 size_t str_code_points(const char *str)
@@ -376,11 +376,11 @@ size_t str_code_points(const char *str)
 	return len;
 }
 
-/** Get number of characters in a wide string.
+/** Get number of code points in a wide string.
  *
  * @param str NULL-terminated wide string.
  *
- * @return Number of characters in @a str.
+ * @return Number of code points in @a str.
  *
  */
 size_t wstr_code_points(const wchar_t *wstr)
@@ -393,12 +393,12 @@ size_t wstr_code_points(const wchar_t *wstr)
 	return len;
 }
 
-/** Get number of characters in a string with size limit.
+/** Get number of code points in a string with size limit.
  *
  * @param str  NULL-terminated string.
  * @param size Maximum number of bytes to consider.
  *
- * @return Number of characters in string.
+ * @return Number of code points in string.
  *
  */
 size_t str_ncode_points(const char *str, size_t size)
@@ -412,12 +412,12 @@ size_t str_ncode_points(const char *str, size_t size)
 	return len;
 }
 
-/** Get number of characters in a string with size limit.
+/** Get number of code points in a string with size limit.
  *
  * @param str  NULL-terminated string.
  * @param size Maximum number of bytes to consider.
  *
- * @return Number of characters in string.
+ * @return Number of code points in string.
  *
  */
 size_t wstr_ncode_points(const wchar_t *str, size_t size)
@@ -434,9 +434,9 @@ size_t wstr_ncode_points(const wchar_t *str, size_t size)
 	return len;
 }
 
-/** Check whether character is plain ASCII.
+/** Check whether code point is plain ASCII.
  *
- * @return True if character is plain ASCII.
+ * @return True if code point is plain ASCII.
  *
  */
 bool ascii_check(wchar_t ch)
@@ -447,9 +447,9 @@ bool ascii_check(wchar_t ch)
 	return false;
 }
 
-/** Check whether character is valid
+/** Check whether code point is valid
  *
- * @return True if character is a valid Unicode code point.
+ * @return True if code point is a valid Unicode code point.
  *
  */
 bool chr_check(wchar_t ch)
@@ -464,12 +464,12 @@ bool chr_check(wchar_t ch)
  *
  * Do a char-by-char comparison of two NULL-terminated strings.
  * The strings are considered equal iff their length is equal
- * and both strings consist of the same sequence of characters.
+ * and both strings consist of the same sequence of code points.
  *
- * A string S1 is less than another string S2 if it has a character with
- * lower value at the first character position where the strings differ.
+ * A string S1 is less than another string S2 if it has a code point with
+ * lower value at the first code point position where the strings differ.
  * If the strings differ in length, the shorter one is treated as if
- * padded by characters with a value of zero.
+ * padded by code points with a value of zero.
  *
  * @param s1 First string to compare.
  * @param s2 Second string to compare.
@@ -508,18 +508,18 @@ int str_cmp(const char *s1, const char *s2)
  * Do a char-by-char comparison of two NULL-terminated strings.
  * The strings are considered equal iff
  * min(str_code_points(s1), max_len) == min(str_code_points(s2), max_len)
- * and both strings consist of the same sequence of characters,
- * up to max_len characters.
+ * and both strings consist of the same sequence of code points,
+ * up to max_len code points.
  *
- * A string S1 is less than another string S2 if it has a character with
- * lower value at the first character position where the strings differ.
+ * A string S1 is less than another string S2 if it has a code point with
+ * lower value at the first code point position where the strings differ.
  * If the strings differ in length, the shorter one is treated as if
- * padded by characters with a value of zero. Only the first max_len
- * characters are considered.
+ * padded by code points with a value of zero. Only the first max_len
+ * code points are considered.
  *
  * @param s1      First string to compare.
  * @param s2      Second string to compare.
- * @param max_len Maximum number of characters to consider.
+ * @param max_len Maximum number of code points to consider.
  *
  * @return 0 if the strings are equal, -1 if the first is less than the second,
  *         1 if the second is less than the first.
@@ -563,7 +563,7 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
  * Copy source string @a src to destination buffer @a dest.
  * No more than @a size bytes are written. If the size of the output buffer
  * is at least one byte, the output string will always be well-formed, i.e.
- * null-terminated and containing only complete characters.
+ * null-terminated and containing only complete code points.
  *
  * @param dest  Destination buffer.
  * @param count Size of the destination buffer (must be > 0).
@@ -593,7 +593,7 @@ void str_cpy(char *dest, size_t size, const char *src)
  * Copy prefix of string @a src of max. size @a size to destination buffer
  * @a dest. No more than @a size bytes are written. The output string will
  * always be well-formed, i.e. null-terminated and containing only complete
- * characters.
+ * code points.
  *
  * No more than @a n bytes are read from the input string, so it does not
  * have to be null-terminated.
@@ -651,12 +651,12 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 	dest[dest_off] = '\0';
 }
 
-/** Find first occurence of character in string.
+/** Find first occurence of code point in string.
  *
  * @param str String to search.
- * @param ch  Character to look for.
+ * @param ch  code point to look for.
  *
- * @return Pointer to character in @a str or NULL if not found.
+ * @return Pointer to code point in @a str or NULL if not found.
  */
 char *str_chr(const char *str, wchar_t ch)
 {
@@ -673,15 +673,15 @@ char *str_chr(const char *str, wchar_t ch)
 	return NULL;
 }
 
-/** Insert a wide character into a wide string.
+/** Insert a code point into a wide string.
  *
- * Insert a wide character into a wide string at position
- * @a pos. The characters after the position are shifted.
+ * Insert a code point into a wide string at position
+ * @a pos. The code points after the position are shifted.
  *
  * @param str     String to insert to.
- * @param ch      Character to insert to.
- * @param pos     Character index where to insert.
- * @param max_pos Characters in the buffer.
+ * @param ch      Code point to insert.
+ * @param pos     Code point index where to insert.
+ * @param max_pos Number of code points that fit in the buffer.
  *
  * @return True if the insertion was sucessful, false if the position
  *         is out of bounds.
@@ -703,13 +703,13 @@ bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos)
 	return true;
 }
 
-/** Remove a wide character from a wide string.
+/** Remove a code point from a wide string.
  *
- * Remove a wide character from a wide string at position
- * @a pos. The characters after the position are shifted.
+ * Remove a code point from a wide string at position
+ * @a pos. The code points after the position are shifted.
  *
  * @param str String to remove from.
- * @param pos Character index to remove.
+ * @param pos Code point index to remove.
  *
  * @return True if the removal was sucessful, false if the position
  *         is out of bounds.
@@ -731,18 +731,16 @@ bool wstr_remove(wchar_t *str, size_t pos)
 
 /** Duplicate string.
  *
- * Allocate a new string and copy characters from the source
- * string into it. The duplicate string is allocated via sleeping
- * malloc(), thus this function can sleep in no memory conditions.
+ * Allocate a new string and copy the contents of the source string into it.
+ * The duplicate string is allocated as if by malloc().
  *
- * The allocation cannot fail and the return value is always
- * a valid pointer. The duplicate string is always a well-formed
+ * If successful, the duplicate string is always a well-formed
  * null-terminated UTF-8 string, but it can differ from the source
  * string on the byte level.
  *
  * @param src Source string.
  *
- * @return Duplicate string.
+ * @return Duplicate string, or NULL if allocation failed.
  *
  */
 char *str_dup(const char *src)
@@ -759,14 +757,12 @@ char *str_dup(const char *src)
 /** Duplicate string with size limit.
  *
  * Allocate a new string and copy up to @max_size bytes from the source
- * string into it. The duplicate string is allocated via sleeping
- * malloc(), thus this function can sleep in no memory conditions.
+ * string into it. The duplicate string is allocated as if by malloc().
  * No more than @max_size + 1 bytes is allocated, but if the size
  * occupied by the source string is smaller than @max_size + 1,
  * less is allocated.
  *
- * The allocation cannot fail and the return value is always
- * a valid pointer. The duplicate string is always a well-formed
+ * If successful, the duplicate string is always a well-formed
  * null-terminated UTF-8 string, but it can differ from the source
  * string on the byte level.
  *
