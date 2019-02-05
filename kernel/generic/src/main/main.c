@@ -278,7 +278,7 @@ void main_bsp_separated_stack(void)
 	thread_init();
 	sys_waitq_init();
 
-	sysinfo_set_item_data("boot_args", NULL, bargs, str_size(bargs) + 1);
+	sysinfo_set_item_data("boot_args", NULL, bargs, str_bytes(bargs) + 1);
 
 	if (init.cnt > 0) {
 		size_t i;

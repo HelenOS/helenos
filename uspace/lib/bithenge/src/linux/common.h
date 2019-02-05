@@ -66,7 +66,7 @@ static inline bool string_iterator_done(const string_iterator_t *i)
 	return !**i;
 }
 
-static inline size_t str_length(const char *string)
+static inline size_t str_code_points(const char *string)
 {
 	return strlen(string);
 }

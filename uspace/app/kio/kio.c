@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		kio_command(str, str_size(str));
+		kio_command(str, str_bytes(str));
 		free(str);
 	}
 

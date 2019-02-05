@@ -374,7 +374,7 @@ errno_t tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	tmpfs_dentry_initialize(dentryp);
 
 	/* Populate and link the new dentry. */
-	size_t size = str_size(nm);
+	size_t size = str_bytes(nm);
 	dentryp->name = malloc(size + 1);
 	if (!dentryp->name) {
 		free(dentryp);
@@ -515,7 +515,7 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
 
 		(void) async_data_read_finalize(&call, dentryp->name,
-		    str_size(dentryp->name) + 1);
+		    str_bytes(dentryp->name) + 1);
 		bytes = 1;
 	}
 

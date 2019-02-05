@@ -134,7 +134,7 @@ int cmd_printf(char **argv)
 	}
 
 	fmt = argv[1];
-	fmt_sz = str_size(fmt);
+	fmt_sz = str_bytes(fmt);
 	pos = 0;
 	carg = 2;
 

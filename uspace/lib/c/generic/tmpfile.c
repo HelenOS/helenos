@@ -61,7 +61,7 @@ int __tmpfile_templ(char *templ, bool create)
 	int file;
 	errno_t rc;
 
-	tsize = str_size(templ);
+	tsize = str_bytes(templ);
 	if (tsize < 6)
 		return -1;
 

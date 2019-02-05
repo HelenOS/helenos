@@ -69,7 +69,7 @@ async_sess_t *ahci_get_sess(devman_handle_t funh, char **name)
 	if (rc != EOK)
 		return NULL;
 
-	size_t devn_size = str_size(devn);
+	size_t devn_size = str_bytes(devn);
 
 	if ((devn_size > 5) && (str_lcmp(devn, "ahci_", 5) == 0)) {
 		async_sess_t *sess = devman_device_connect(funh, IPC_FLAG_BLOCKING);

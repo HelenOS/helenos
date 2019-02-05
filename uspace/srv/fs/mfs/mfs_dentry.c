@@ -163,7 +163,7 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
 	struct mfs_dentry_info d_info;
 	errno_t r;
 
-	const size_t name_len = str_size(d_name);
+	const size_t name_len = str_bytes(d_name);
 
 	if (name_len > sbi->max_name_len)
 		return ENAMETOOLONG;
@@ -175,7 +175,7 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
 		if (r != EOK)
 			return r;
 
-		const size_t d_name_len = str_size(d_info.d_name);
+		const size_t d_name_len = str_bytes(d_info.d_name);
 
 		if (name_len == d_name_len &&
 		    memcmp(d_info.d_name, d_name, name_len) == 0) {
@@ -206,7 +206,7 @@ mfs_insert_dentry(struct mfs_node *mnode, const char *d_name,
 	struct mfs_dentry_info d_info;
 	bool empty_dentry_found = false;
 
-	const size_t name_len = str_size(d_name);
+	const size_t name_len = str_bytes(d_name);
 
 	if (name_len > sbi->max_name_len)
 		return ENAMETOOLONG;

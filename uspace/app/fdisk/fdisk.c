@@ -616,7 +616,7 @@ static errno_t fdsk_add_part_choices(fdisk_dev_t *dev,
 				goto error;
 			}
 
-			if (str_size(pinfo.label) > 0)
+			if (str_bytes(pinfo.label) > 0)
 				label = pinfo.label;
 			else
 				label = "(No name)";
@@ -1009,7 +1009,7 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		if (str_size(pinfo.label) > 0)
+		if (str_bytes(pinfo.label) > 0)
 			label = pinfo.label;
 		else
 			label = "(No name)";

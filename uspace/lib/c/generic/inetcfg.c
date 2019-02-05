@@ -148,7 +148,7 @@ errno_t inetcfg_addr_create_static(const char *name, inet_naddr_t *naddr,
 		return rc;
 	}
 
-	rc = async_data_write_start(exch, name, str_size(name));
+	rc = async_data_write_start(exch, name, str_bytes(name));
 
 	async_exchange_end(exch);
 
@@ -233,7 +233,7 @@ errno_t inetcfg_addr_get_id(const char *name, sysarg_t link_id, sysarg_t *addr_i
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_ADDR_GET_ID, link_id, &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_bytes(name));
 
 	async_exchange_end(exch);
 
@@ -346,7 +346,7 @@ errno_t inetcfg_sroute_create(const char *name, inet_naddr_t *dest,
 		return rc;
 	}
 
-	rc = async_data_write_start(exch, name, str_size(name));
+	rc = async_data_write_start(exch, name, str_bytes(name));
 
 	async_exchange_end(exch);
 
@@ -443,7 +443,7 @@ errno_t inetcfg_sroute_get_id(const char *name, sysarg_t *sroute_id)
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, INETCFG_SROUTE_GET_ID, &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_bytes(name));
 
 	async_exchange_end(exch);
 

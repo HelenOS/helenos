@@ -133,7 +133,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_call_t *icall)
 		return;
 	}
 
-	size_t act_size = str_size(hinfo->cname);
+	size_t act_size = str_bytes(hinfo->cname);
 	if (act_size > size) {
 		async_answer_0(&call, EINVAL);
 		async_answer_0(icall, EINVAL);

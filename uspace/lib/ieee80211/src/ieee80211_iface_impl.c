@@ -203,7 +203,7 @@ errno_t ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, char *password)
 
 	ieee80211_scan_result_list_foreach(ieee80211_dev->ap_list, result) {
 		if (!str_lcmp(ssid_start, result->scan_result.ssid,
-		    str_size(ssid_start))) {
+		    str_bytes(ssid_start))) {
 			rc = ieee80211_connect_proc(ieee80211_dev, result,
 			    password);
 			break;

@@ -150,7 +150,7 @@ errno_t wav_parse_header(const void *hdata, const void **data, size_t *data_size
 void wav_init_header(wave_header_t *header, pcm_format_t format, size_t size)
 {
 	assert(header);
-#define COPY_STR(dst, src)   memcpy(dst, src, str_size(src))
+#define COPY_STR(dst, src)   memcpy(dst, src, str_bytes(src))
 
 	COPY_STR(&header->chunk_id, CHUNK_ID);
 	COPY_STR(&header->format, FORMAT_STR);

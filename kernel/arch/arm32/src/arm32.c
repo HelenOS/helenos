@@ -112,7 +112,7 @@ void arm32_post_smp_init(void)
 	const char *platform = machine_get_platform_name();
 
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
-	    str_size(platform));
+	    str_bytes(platform));
 }
 
 /** Performs arm32 specific tasks needed before the new task is run. */

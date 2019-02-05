@@ -151,7 +151,7 @@ static errno_t ncs_link_add(service_id_t sid)
 		goto error;
 	}
 
-	if (str_lcmp(nlink->svc_name, "net/eth", str_length("net/eth")) == 0) {
+	if (str_lcmp(nlink->svc_name, "net/eth", str_code_points("net/eth")) == 0) {
 		rc = dhcp_link_add(sid);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed configuring DHCP on "

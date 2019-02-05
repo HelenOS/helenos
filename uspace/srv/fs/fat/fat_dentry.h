@@ -144,7 +144,7 @@ extern void fat_dentry_vollabel_get(const fat_dentry_t *, char *);
 extern fat_dentry_clsf_t fat_classify_dentry(const fat_dentry_t *);
 extern uint8_t fat_dentry_chksum(uint8_t *);
 
-extern size_t fat_lfn_str_nlength(const unaligned_uint16_t *, size_t);
+extern size_t fat_lfn_str_ncode_points(const unaligned_uint16_t *, size_t);
 extern size_t fat_lfn_size(const fat_dentry_t *);
 extern size_t fat_lfn_get_entry(const fat_dentry_t *, uint16_t *, size_t *);
 extern size_t fat_lfn_set_entry(const uint16_t *, size_t *, size_t,

@@ -137,7 +137,7 @@ errno_t ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *passwo
 	    IEEE80211_CONNECT, NULL);
 
 	errno_t rc = async_data_write_start(exch, ssid_start,
-	    str_size(ssid_start) + 1);
+	    str_bytes(ssid_start) + 1);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_wait_for(aid, &rc_orig);
@@ -152,7 +152,7 @@ errno_t ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *passwo
 	if (password == NULL)
 		password = (char *) "";
 
-	rc = async_data_write_start(exch, password, str_size(password) + 1);
+	rc = async_data_write_start(exch, password, str_bytes(password) + 1);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_wait_for(aid, &rc_orig);

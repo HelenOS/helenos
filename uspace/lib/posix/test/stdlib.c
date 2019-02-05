@@ -53,7 +53,7 @@ PCUT_TEST(mktemp)
 	p = mktemp(buf);
 	PCUT_ASSERT_TRUE(p == buf);
 	PCUT_ASSERT_TRUE(str_lcmp(p, MKSTEMP_TEMPL,
-	    str_length(MKSTEMP_TEMPL) - 6) == 0);
+	    str_code_points(MKSTEMP_TEMPL) - 6) == 0);
 
 	file = open(p, O_CREAT | O_EXCL | O_RDWR, 0600);
 	PCUT_ASSERT_TRUE(file >= 0);
@@ -75,12 +75,12 @@ PCUT_TEST(mktemp_twice)
 	p = mktemp(buf1);
 	PCUT_ASSERT_TRUE(p == buf1);
 	PCUT_ASSERT_TRUE(str_lcmp(p, MKSTEMP_TEMPL,
-	    str_length(MKSTEMP_TEMPL) - 6) == 0);
+	    str_code_points(MKSTEMP_TEMPL) - 6) == 0);
 
 	p = mktemp(buf2);
 	PCUT_ASSERT_TRUE(p == buf2);
 	PCUT_ASSERT_TRUE(str_lcmp(p, MKSTEMP_TEMPL,
-	    str_length(MKSTEMP_TEMPL) - 6) == 0);
+	    str_code_points(MKSTEMP_TEMPL) - 6) == 0);
 
 	PCUT_ASSERT_TRUE(str_cmp(buf1, buf2) != 0);
 }

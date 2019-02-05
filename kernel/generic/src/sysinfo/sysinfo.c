@@ -529,11 +529,11 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 
 		if (spaces == 0) {
 			printf("%s", cur->name);
-			length = str_length(cur->name);
+			length = str_code_points(cur->name);
 		} else {
 			sysinfo_indent(spaces);
 			printf(".%s", cur->name);
-			length = str_length(cur->name) + 1;
+			length = str_code_points(cur->name) + 1;
 		}
 
 		sysarg_t val;
@@ -746,7 +746,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 		 */
 		size_t size = 0;
 		for (sysinfo_item_t *cur = subtree; cur; cur = cur->next)
-			size += str_size(cur->name) + 1;
+			size += str_bytes(cur->name) + 1;
 
 		if (dry_run) {
 			ret.tag = SYSINFO_VAL_DATA;
@@ -761,7 +761,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 			size_t pos = 0;
 			for (sysinfo_item_t *cur = subtree; cur; cur = cur->next) {
 				str_cpy(names + pos, size - pos, cur->name);
-				pos += str_size(cur->name) + 1;
+				pos += str_bytes(cur->name) + 1;
 			}
 
 			/* Correct return value */

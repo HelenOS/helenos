@@ -284,8 +284,8 @@ errno_t cap_parse(const char *str, cap_spec_t *cap)
 	} else {
 		for (i = 0; i < CU_LIMIT; i++) {
 			if (str_lcasecmp(eptr, cu_str[i],
-			    str_length(cu_str[i])) == 0) {
-				p = eptr + str_size(cu_str[i]);
+			    str_code_points(cu_str[i])) == 0) {
+				p = eptr + str_bytes(cu_str[i]);
 				while (*p == ' ')
 					++p;
 				if (*p == '\0')

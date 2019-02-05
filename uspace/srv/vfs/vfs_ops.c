@@ -151,7 +151,7 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 	aid_t msg = async_send_1(exch, VFS_OUT_MOUNTED, (sysarg_t) service_id,
 	    &answer);
 	/* Send the mount options */
-	errno_t rc = async_data_write_start(exch, options, str_size(options));
+	errno_t rc = async_data_write_start(exch, options, str_bytes(options));
 	if (rc != EOK) {
 		async_forget(msg);
 		vfs_exchange_release(exch);

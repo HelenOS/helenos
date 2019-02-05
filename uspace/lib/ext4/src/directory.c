@@ -416,7 +416,7 @@ errno_t ext4_directory_add_entry(ext4_inode_ref_t *parent, const char *name,
 	uint32_t inode_size = ext4_inode_get_size(fs->superblock, parent->inode);
 	uint32_t total_blocks = inode_size / block_size;
 
-	uint32_t name_len = str_size(name);
+	uint32_t name_len = str_bytes(name);
 
 	/* Find block, where is space for new entry and try to add */
 	bool success = false;
@@ -484,7 +484,7 @@ errno_t ext4_directory_add_entry(ext4_inode_ref_t *parent, const char *name,
 errno_t ext4_directory_find_entry(ext4_directory_search_result_t *result,
     ext4_inode_ref_t *parent, const char *name)
 {
-	uint32_t name_len = str_size(name);
+	uint32_t name_len = str_bytes(name);
 
 	ext4_superblock_t *sb = parent->fs->superblock;
 

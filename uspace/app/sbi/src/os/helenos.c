@@ -59,8 +59,8 @@ char *os_str_acat(const char *a, const char *b)
 	int a_size, b_size;
 	char *str;
 
-	a_size = str_size(a);
-	b_size = str_size(b);
+	a_size = str_bytes(a);
+	b_size = str_bytes(b);
 
 	str = malloc(a_size + b_size + 1);
 	if (str == NULL) {
@@ -95,7 +95,7 @@ char *os_str_aslice(const char *str, size_t start, size_t length)
 	size_t size;
 	wchar_t c;
 
-	assert(start + length <= str_length(str));
+	assert(start + length <= str_code_points(str));
 
 	offset = 0;
 	for (i = 0; i < start; ++i) {
@@ -105,7 +105,7 @@ char *os_str_aslice(const char *str, size_t start, size_t length)
 		(void) c;
 	}
 
-	size = str_lsize(str, length);
+	size = str_lbytes(str, length);
 	slice = str_ndup(str + offset, size);
 
 	return slice;
@@ -127,9 +127,9 @@ int os_str_cmp(const char *a, const char *b)
  * @param str	String
  * @return	Number of characters in @a str.
  */
-size_t os_str_length(const char *str)
+size_t os_str_code_points(const char *str)
 {
-	return str_length(str);
+	return str_code_points(str);
 }
 
 /** Duplicate string.

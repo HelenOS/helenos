@@ -132,7 +132,7 @@ errno_t volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype, const char *labe
 	if (rc != EOK)
 		return rc;
 
-	if (str_size(label) > 0)
+	if (str_bytes(label) > 0)
 		rc = cmd_runl(cmd, cmd, "--label", label, svc_name, NULL);
 	else
 		rc = cmd_runl(cmd, cmd, svc_name, NULL);

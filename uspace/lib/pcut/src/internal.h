@@ -165,7 +165,7 @@ int pcut_str_start_equals(const char *a, const char *b, int len);
  * @param s String in question.
  * @return Size of @p s in bytes.
  */
-int pcut_str_size(const char *s);
+int pcut_str_bytes(const char *s);
 
 /** Convert string to integer.
  *

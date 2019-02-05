@@ -128,11 +128,11 @@ static void print_keys(const char *path, size_t spaces)
 	size_t pos = 0;
 	while (pos < size) {
 		/* Process each key with sanity checks */
-		size_t cur_size = str_nsize(keys + pos, size - pos);
+		size_t cur_size = str_nbytes(keys + pos, size - pos);
 		if (keys[pos + cur_size] != 0)
 			break;
 
-		size_t path_size = str_size(path) + cur_size + 2;
+		size_t path_size = str_bytes(path) + cur_size + 2;
 		char *cur_path = (char *) malloc(path_size);
 		if (cur_path == NULL)
 			break;
@@ -142,12 +142,12 @@ static void print_keys(const char *path, size_t spaces)
 		if (path[0] != 0) {
 			print_spaces(spaces);
 			printf(".%s\n", keys + pos);
-			length = str_length(keys + pos) + 1;
+			length = str_code_points(keys + pos) + 1;
 
 			snprintf(cur_path, path_size, "%s.%s", path, keys + pos);
 		} else {
 			printf("%s\n", keys + pos);
-			length = str_length(keys + pos);
+			length = str_code_points(keys + pos);
 
 			snprintf(cur_path, path_size, "%s", keys + pos);
 		}

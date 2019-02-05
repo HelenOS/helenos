@@ -154,7 +154,7 @@ void mips32_post_smp_init(void)
 	/* Set platform name. */
 	sysinfo_set_item_data("platform", NULL,
 	    (void *) machine_get_platform_name(),
-	    str_size(machine_get_platform_name()));
+	    str_bytes(machine_get_platform_name()));
 
 	machine_input_init();
 }

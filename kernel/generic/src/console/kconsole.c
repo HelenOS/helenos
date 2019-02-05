@@ -166,7 +166,7 @@ NO_TRACE static void print_cc(wchar_t ch, size_t count)
 const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 {
 	link_t **startpos = (link_t **) ctx;
-	size_t namelen = str_length(name);
+	size_t namelen = str_code_points(name);
 
 	spinlock_lock(&cmd_lock);
 
@@ -177,7 +177,7 @@ const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 		cmd_info_t *hlp = list_get_instance(*startpos, cmd_info_t, link);
 
 		const char *curname = hlp->name;
-		if (str_length(curname) < namelen)
+		if (str_code_points(curname) < namelen)
 			continue;
 
 		if (str_lcmp(curname, name, namelen) == 0) {
@@ -186,7 +186,7 @@ const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 				*h = hlp->description;
 
 			spinlock_unlock(&cmd_lock);
-			return (curname + str_lsize(curname, namelen));
+			return (curname + str_lbytes(curname, namelen));
 		}
 	}
 
@@ -232,7 +232,7 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 	output[0] = 0;
 
 	while ((hint = hints_enum(name, NULL, &pos))) {
-		if ((found == 0) || (str_length(hint) > str_length(output)))
+		if ((found == 0) || (str_code_points(hint) > str_code_points(output)))
 			str_cpy(output, MAX_CMDLINE, hint);
 
 		found++;
@@ -248,7 +248,7 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 		    console_prompt_display_all_hints(indev, found);
 	}
 
-	if ((found > 1) && (str_length(output) != 0)) {
+	if ((found > 1) && (str_code_points(output) != 0)) {
 		printf("\n");
 		pos = NULL;
 		while ((hint = hints_enum(name, &help, &pos))) {
@@ -357,7 +357,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 				position--;
 				putwchar('\b');
 				printf("%ls ", current + position);
-				print_cc('\b', wstr_length(current) - position + 1);
+				print_cc('\b', wstr_code_points(current) - position + 1);
 				continue;
 			}
 		}
@@ -439,18 +439,18 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 				/* No unique hint, list was printed */
 				printf("%s> ", prompt);
 				printf("%ls", current);
-				position += str_length(tmp);
-				print_cc('\b', wstr_length(current) - position);
+				position += str_code_points(tmp);
+				print_cc('\b', wstr_code_points(current) - position);
 				continue;
 			}
 
 			/* We have a hint */
 
 			printf("%ls", current + position);
-			position += str_length(tmp);
-			print_cc('\b', wstr_length(current) - position);
+			position += str_code_points(tmp);
+			print_cc('\b', wstr_code_points(current) - position);
 
-			if (position == wstr_length(current)) {
+			if (position == wstr_code_points(current)) {
 				/* Insert a space after the last completed argument */
 				if (wstr_linsert(current, ' ', position, MAX_CMDLINE)) {
 					printf("%ls", current + position);
@@ -471,7 +471,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 
 		if (ch == U_RIGHT_ARROW) {
 			/* Right */
-			if (position < wstr_length(current)) {
+			if (position < wstr_code_points(current)) {
 				putwchar(current[position]);
 				position++;
 			}
@@ -481,8 +481,8 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 		if ((ch == U_UP_ARROW) || (ch == U_DOWN_ARROW)) {
 			/* Up, down */
 			print_cc('\b', position);
-			print_cc(' ', wstr_length(current));
-			print_cc('\b', wstr_length(current));
+			print_cc(' ', wstr_code_points(current));
+			print_cc('\b', wstr_code_points(current));
 
 			if (ch == U_UP_ARROW) {
 				/* Up */
@@ -497,7 +497,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 			}
 			current = history[history_pos];
 			printf("%ls", current);
-			position = wstr_length(current);
+			position = wstr_code_points(current);
 			continue;
 		}
 
@@ -511,18 +511,18 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 		if (ch == U_END_ARROW) {
 			/* End */
 			printf("%ls", current + position);
-			position = wstr_length(current);
+			position = wstr_code_points(current);
 			continue;
 		}
 
 		if (ch == U_DELETE) {
 			/* Delete */
-			if (position == wstr_length(current))
+			if (position == wstr_code_points(current))
 				continue;
 
 			if (wstr_remove(current, position)) {
 				printf("%ls ", current + position);
-				print_cc('\b', wstr_length(current) - position + 1);
+				print_cc('\b', wstr_code_points(current) - position + 1);
 			}
 			continue;
 		}
@@ -530,11 +530,11 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 		if (wstr_linsert(current, ch, position, MAX_CMDLINE)) {
 			printf("%ls", current + position);
 			position++;
-			print_cc('\b', wstr_length(current) - position);
+			print_cc('\b', wstr_code_points(current) - position);
 		}
 	}
 
-	if (wstr_length(current) > 0) {
+	if (wstr_code_points(current) > 0) {
 		history_pos++;
 		history_pos = history_pos % KCONSOLE_HISTORY;
 	}
@@ -689,8 +689,8 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 		spinlock_lock(&hlp->lock);
 
 		if (str_lcmp(hlp->name, cmdline + start,
-		    max(str_length(hlp->name),
-		    str_nlength(cmdline + start, (size_t) (end - start)))) == 0) {
+		    max(str_code_points(hlp->name),
+		    str_ncode_points(cmdline + start, (size_t) (end - start)))) == 0) {
 			cmd = hlp;
 			break;
 		}
@@ -825,7 +825,7 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 
 	while (true) {
 		wchar_t *tmp = clever_readline((char *) prompt, stdin, buffer);
-		size_t len = wstr_length(tmp);
+		size_t len = wstr_code_points(tmp);
 		if (!len)
 			continue;
 

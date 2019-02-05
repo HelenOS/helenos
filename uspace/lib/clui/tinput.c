@@ -202,7 +202,7 @@ static errno_t tinput_display(tinput_t *ti)
 		return EIO;
 
 	ti->prompt_coord = row0 * ti->con_cols + col0;
-	ti->text_coord = ti->prompt_coord + str_length(ti->prompt);
+	ti->text_coord = ti->prompt_coord + str_code_points(ti->prompt);
 
 	tinput_display_prompt(ti);
 	tinput_display_tail(ti, 0, 0);
@@ -242,7 +242,7 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 
 static void tinput_insert_string(tinput_t *ti, const char *str)
 {
-	size_t ilen = min(str_length(str), INPUT_MAX_SIZE - ti->nc);
+	size_t ilen = min(str_code_points(str), INPUT_MAX_SIZE - ti->nc);
 	if (ilen == 0)
 		return;
 
@@ -466,7 +466,7 @@ static void tinput_history_insert(tinput_t *ti, char *str)
 static void tinput_set_str(tinput_t *ti, const char *str)
 {
 	str_to_wstr(ti->buffer, INPUT_MAX_SIZE, str);
-	ti->nc = wstr_length(ti->buffer);
+	ti->nc = wstr_code_points(ti->buffer);
 	ti->pos = ti->nc;
 	ti->sel_start = ti->pos;
 }
@@ -578,7 +578,7 @@ static void tinput_history_seek(tinput_t *ti, int offs)
 	ti->history[ti->hpos] = tinput_get_str(ti);
 	ti->hpos += offs;
 
-	int pad = (int) ti->nc - str_length(ti->history[ti->hpos]);
+	int pad = (int) ti->nc - str_code_points(ti->history[ti->hpos]);
 	if (pad < 0)
 		pad = 0;
 
@@ -726,19 +726,19 @@ static void tinput_text_complete(tinput_t *ti)
 		 */
 		size_t cplen;
 
-		cplen = str_length(compl[0]);
+		cplen = str_code_points(compl[0]);
 		for (i = 1; i < cnum; i++)
 			cplen = min(cplen, common_pref_len(compl[0], compl[i]));
 
 		/* Compute how many bytes we should skip. */
-		size_t istart = str_lsize(compl[0], ti->pos - cstart);
+		size_t istart = str_lbytes(compl[0], ti->pos - cstart);
 
 		if (cplen > istart) {
 			/* Insert common prefix. */
 
 			/* Copy remainder of common prefix. */
 			char *cpref = str_ndup(compl[0] + istart,
-			    str_lsize(compl[0], cplen - istart));
+			    str_lbytes(compl[0], cplen - istart));
 
 			/* Insert it. */
 			tinput_insert_string(ti, cpref);
@@ -758,7 +758,7 @@ static void tinput_text_complete(tinput_t *ti)
 		 */
 
 		/* Compute how many bytes of completion string we should skip. */
-		size_t istart = str_lsize(compl[0], ti->pos - cstart);
+		size_t istart = str_lbytes(compl[0], ti->pos - cstart);
 
 		/* Insert remainder of completion string at current position. */
 		tinput_insert_string(ti, compl[0] + istart);

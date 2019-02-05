@@ -54,8 +54,8 @@ int pcut_str_start_equals(const char *a, const char *b, int len) {
 	return str_lcmp(a, b, len) == 0;
 }
 
-int pcut_str_size(const char *s) {
-	return str_size(s);
+int pcut_str_bytes(const char *s) {
+	return str_bytes(s);
 }
 
 int pcut_str_to_int(const char *s) {

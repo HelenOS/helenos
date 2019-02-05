@@ -773,7 +773,7 @@ int putchar(int c)
 
 int fputs(const char *str, FILE *stream)
 {
-	(void) fwrite(str, str_size(str), 1, stream);
+	(void) fwrite(str, str_bytes(str), 1, stream);
 	if (ferror(stream))
 		return EOF;
 	return 0;

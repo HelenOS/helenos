@@ -320,7 +320,7 @@ void scr_update(void)
  */
 void scr_msg(char *s, bool set)
 {
-	int l = str_size(s);
+	int l = str_bytes(s);
 
 	moveto(Rows - 2, ((Cols - l) >> 1) - 1);
 

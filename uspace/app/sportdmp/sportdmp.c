@@ -53,9 +53,9 @@ int main(int argc, char **argv)
 	errno_t rc;
 
 	if (argc > arg && str_test_prefix(argv[arg], "--baud=")) {
-		size_t arg_offset = str_lsize(argv[arg], 7);
+		size_t arg_offset = str_lbytes(argv[arg], 7);
 		char *arg_str = argv[arg] + arg_offset;
-		if (str_length(arg_str) == 0) {
+		if (str_code_points(arg_str) == 0) {
 			fprintf(stderr, "--baud requires an argument\n");
 			syntax_print();
 			return 1;

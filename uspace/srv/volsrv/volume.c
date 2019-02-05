@@ -246,7 +246,7 @@ static errno_t vol_volume_lookup_ref_locked(vol_volumes_t *volumes,
 
 	list_foreach(volumes->volumes, lvolumes, vol_volume_t, volume) {
 		if (str_cmp(volume->label, label) == 0 &&
-		    str_size(label) > 0) {
+		    str_bytes(label) > 0) {
 			/* Add reference */
 			refcount_up(&volume->refcnt);
 			*rvolume = volume;
@@ -355,7 +355,7 @@ errno_t vol_volume_find_by_id_ref(vol_volumes_t *volumes, volume_id_t vid,
  */
 static bool vol_volume_is_persist(vol_volume_t *volume)
 {
-	return str_size(volume->mountp) > 0;
+	return str_bytes(volume->mountp) > 0;
 }
 
 /** Delete reference to volume.

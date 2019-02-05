@@ -50,7 +50,7 @@ void multiboot_extract_command(char *buf, size_t size, const char *cmd_line)
 	/* Find the first space. */
 	const char *end = str_chr(cmd_line, ' ');
 	if (end == NULL)
-		end = cmd_line + str_size(cmd_line);
+		end = cmd_line + str_bytes(cmd_line);
 
 	/*
 	 * Find last occurence of '/' before 'end'. If found, place start at
@@ -87,7 +87,7 @@ void multiboot_extract_argument(char *buf, size_t size, const char *cmd_line)
 		return;
 	}
 
-	const char *end = cmd_line + str_size(cmd_line);
+	const char *end = cmd_line + str_bytes(cmd_line);
 
 	/* Skip the space(s). */
 	while (start != end) {

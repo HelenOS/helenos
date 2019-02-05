@@ -197,7 +197,7 @@ const char *test_serial1(void)
 
 	TPRINTF("Trying to write EOT banner to the serial device\n");
 
-	size_t eot_size = str_size(EOT);
+	size_t eot_size = str_bytes(EOT);
 	rc = chardev_write(chardev, (void *) EOT, eot_size, &nwritten);
 
 	(void) serial_set_comm_props(serial, old_baud, old_par, old_word_size,

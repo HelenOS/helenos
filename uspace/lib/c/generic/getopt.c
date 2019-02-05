@@ -365,15 +365,15 @@ int getopt_long(int nargc, char *const *nargv, const char *options,
 			current_argv_len = has_equal - current_argv;
 			has_equal++;
 		} else
-			current_argv_len = str_size(current_argv);
+			current_argv_len = str_bytes(current_argv);
 
 		for (i = 0; long_options[i].name; i++) {
 			/* find matching long option */
 			if (str_lcmp(current_argv, long_options[i].name,
-			    str_nlength(current_argv, current_argv_len)))
+			    str_ncode_points(current_argv, current_argv_len)))
 				continue;
 
-			if (str_size(long_options[i].name) ==
+			if (str_bytes(long_options[i].name) ==
 			    (unsigned)current_argv_len) {
 				/* exact match */
 				match = i;

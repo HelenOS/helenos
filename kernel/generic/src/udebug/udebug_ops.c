@@ -431,7 +431,7 @@ errno_t udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
  */
 errno_t udebug_name_read(char **data, size_t *data_size)
 {
-	size_t name_size = str_size(TASK->name) + 1;
+	size_t name_size = str_bytes(TASK->name) + 1;
 
 	*data = malloc(name_size);
 	if (!*data)

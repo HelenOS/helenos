@@ -170,9 +170,9 @@ bool set_fun_path(dev_tree_t *tree, fun_node_t *fun, fun_node_t *parent)
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	assert(fun->name != NULL);
 
-	size_t pathsize = (str_size(fun->name) + 1);
+	size_t pathsize = (str_bytes(fun->name) + 1);
 	if (parent != NULL)
-		pathsize += str_size(parent->pathname) + 1;
+		pathsize += str_bytes(parent->pathname) + 1;
 
 	fun->pathname = (char *) malloc(pathsize);
 	if (fun->pathname == NULL) {

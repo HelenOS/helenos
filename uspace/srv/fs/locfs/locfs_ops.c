@@ -499,7 +499,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		}
 
 		if (pos < count) {
-			async_data_read_finalize(&call, desc[pos].name, str_size(desc[pos].name) + 1);
+			async_data_read_finalize(&call, desc[pos].name, str_bytes(desc[pos].name) + 1);
 			free(desc);
 			*rbytes = 1;
 			return EOK;
@@ -514,7 +514,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			count = loc_get_services(namespace, &desc);
 
 			if (pos < count) {
-				async_data_read_finalize(&call, desc[pos].name, str_size(desc[pos].name) + 1);
+				async_data_read_finalize(&call, desc[pos].name, str_bytes(desc[pos].name) + 1);
 				free(desc);
 				*rbytes = 1;
 				return EOK;
@@ -542,7 +542,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		size_t count = loc_get_services(index, &desc);
 
 		if (pos < count) {
-			async_data_read_finalize(&call, desc[pos].name, str_size(desc[pos].name) + 1);
+			async_data_read_finalize(&call, desc[pos].name, str_bytes(desc[pos].name) + 1);
 			free(desc);
 			*rbytes = 1;
 			return EOK;

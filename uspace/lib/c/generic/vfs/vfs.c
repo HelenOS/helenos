@@ -180,7 +180,7 @@ char *vfs_absolutize(const char *path, size_t *retlen)
 	char *ncwd_path_nc;
 
 	fibril_mutex_lock(&cwd_mutex);
-	size_t size = str_size(path);
+	size_t size = str_bytes(path);
 	if (*path != '/') {
 		if (cwd_path == NULL) {
 			fibril_mutex_unlock(&cwd_mutex);
@@ -381,7 +381,7 @@ errno_t vfs_fsprobe(const char *fs_name, service_id_t serv,
 	aid_t req = async_send_1(exch, VFS_IN_FSPROBE, serv, &answer);
 
 	rc = async_data_write_start(exch, (void *) fs_name,
-	    str_size(fs_name));
+	    str_bytes(fs_name));
 
 	async_wait_for(req, &rc);
 
@@ -629,10 +629,10 @@ errno_t vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *op
 	aid_t req = async_send_4(exch, VFS_IN_MOUNT, mp, serv, flags, instance,
 	    &answer);
 
-	rc1 = async_data_write_start(exch, (void *) opts, str_size(opts));
+	rc1 = async_data_write_start(exch, (void *) opts, str_bytes(opts));
 	if (rc1 == EOK) {
 		rc1 = async_data_write_start(exch, (void *) fs_name,
-		    str_size(fs_name));
+		    str_bytes(fs_name));
 	}
 
 	vfs_exchange_end(exch);
@@ -1179,7 +1179,7 @@ errno_t vfs_unlink(int parent, const char *child, int expect)
 	async_exch_t *exch = vfs_exchange_begin();
 
 	req = async_send_2(exch, VFS_IN_UNLINK, parent, expect, NULL);
-	rc = async_data_write_start(exch, child, str_size(child));
+	rc = async_data_write_start(exch, child, str_bytes(child));
 
 	vfs_exchange_end(exch);
 
@@ -1270,7 +1270,7 @@ errno_t vfs_walk(int parent, const char *path, int flags, int *handle)
 
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, VFS_IN_WALK, parent, flags, &answer);
-	errno_t rc = async_data_write_start(exch, path, str_size(path));
+	errno_t rc = async_data_write_start(exch, path, str_bytes(path));
 	vfs_exchange_end(exch);
 
 	errno_t rc_orig;

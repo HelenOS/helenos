@@ -226,7 +226,7 @@ static bool uri_is_valid(char *uri)
 
 static errno_t send_response(tcp_conn_t *conn, const char *msg)
 {
-	size_t response_size = str_size(msg);
+	size_t response_size = str_bytes(msg);
 
 	if (verbose)
 		fprintf(stderr, "Sending response\n");
@@ -321,7 +321,7 @@ static errno_t req_process(tcp_conn_t *conn, recv_t *recv)
 	char *uri = reqline + 4;
 	char *end_uri = str_chr(uri, ' ');
 	if (end_uri == NULL) {
-		end_uri = reqline + str_size(reqline) - 2;
+		end_uri = reqline + str_bytes(reqline) - 2;
 		assert(*end_uri == '\r');
 	}
 

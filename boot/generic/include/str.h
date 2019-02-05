@@ -47,9 +47,9 @@
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
 
-extern size_t str_size(const char *str);
-extern size_t str_lsize(const char *str, size_t max_len);
-extern size_t str_length(const char *str);
+extern size_t str_bytes(const char *str);
+extern size_t str_lbytes(const char *str, size_t max_len);
+extern size_t str_code_points(const char *str);
 
 extern bool ascii_check(wchar_t ch);
 extern bool chr_check(wchar_t ch);

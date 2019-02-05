@@ -48,13 +48,13 @@ typedef struct {
 static size_t param_hash(const ht_link_t *item)
 {
 	param_t *param = hash_table_get_inst(item, param_t, link);
-	return str_size(param->key);
+	return str_bytes(param->key);
 }
 
 static size_t param_key_hash(void *key)
 {
 	char *key_str = key;
-	return str_size(key_str);
+	return str_bytes(key_str);
 }
 
 static bool param_key_equal(void *key, const ht_link_t *item)

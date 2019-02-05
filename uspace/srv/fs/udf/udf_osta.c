@@ -289,7 +289,7 @@ void udf_to_unix_name(char *result, size_t result_len, char *id, size_t len,
 	} else {
 		/* Assume 8 bit char length byte Latin-1 */
 		str_ncpy(result, result_len, (char *) (id + 1),
-		    str_size((char *) (id + 1)));
+		    str_bytes((char *) (id + 1)));
 	}
 
 	free(raw_name);

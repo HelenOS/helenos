@@ -169,7 +169,7 @@ void ia32_post_smp_init(void)
 	static const char *platform = "pc";
 
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
-	    str_size(platform));
+	    str_bytes(platform));
 
 #ifdef CONFIG_PC_KBD
 	/*

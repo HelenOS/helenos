@@ -69,7 +69,7 @@ void pcut_failed_assertion_fmt(const char *filename, int line, const char *fmt, 
 	message_buffer_index = (message_buffer_index + 1) % MESSAGE_BUFFER_COUNT;
 
 	pcut_snprintf(current_buffer, MAX_MESSAGE_LENGTH, "%s:%d: ", filename, line);
-	offset = pcut_str_size(current_buffer);
+	offset = pcut_str_bytes(current_buffer);
 
 	if (offset + 1 < MAX_MESSAGE_LENGTH) {
 		va_start(args, fmt);

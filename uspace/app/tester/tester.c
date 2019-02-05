@@ -141,8 +141,8 @@ static void list_tests(void)
 	size_t len = 0;
 	test_t *test;
 	for (test = tests; test->name != NULL; test++) {
-		if (str_length(test->name) > len)
-			len = str_length(test->name);
+		if (str_code_points(test->name) > len)
+			len = str_code_points(test->name);
 	}
 
 	assert(can_cast_size_t_to_int(len) && "test name length overflow");

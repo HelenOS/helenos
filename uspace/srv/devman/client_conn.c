@@ -139,7 +139,7 @@ static void devman_fun_get_match_id(ipc_call_t *icall)
 
 	match_id_t *mid = list_get_instance(link, match_id_t, link);
 
-	size_t sent_length = str_size(mid->id);
+	size_t sent_length = str_bytes(mid->id);
 	if (sent_length > data_len) {
 		sent_length = data_len;
 	}
@@ -201,7 +201,7 @@ static void devman_fun_get_name(ipc_call_t *icall)
 		return;
 	}
 
-	size_t sent_length = str_size(fun->name);
+	size_t sent_length = str_bytes(fun->name);
 	if (sent_length > data_len) {
 		sent_length = data_len;
 	}
@@ -265,7 +265,7 @@ static void devman_fun_get_driver_name(ipc_call_t *icall)
 		return;
 	}
 
-	size_t sent_length = str_size(fun->child->drv->name);
+	size_t sent_length = str_bytes(fun->child->drv->name);
 	if (sent_length > data_len) {
 		sent_length = data_len;
 	}
@@ -319,7 +319,7 @@ static void devman_fun_get_path(ipc_call_t *icall)
 		return;
 	}
 
-	size_t sent_length = str_size(fun->pathname);
+	size_t sent_length = str_bytes(fun->pathname);
 	if (sent_length > data_len) {
 		sent_length = data_len;
 	}
@@ -638,7 +638,7 @@ static void devman_driver_get_match_id(ipc_call_t *icall)
 
 	match_id_t *mid = list_get_instance(link, match_id_t, link);
 
-	size_t sent_length = str_size(mid->id);
+	size_t sent_length = str_bytes(mid->id);
 	if (sent_length > data_len) {
 		sent_length = data_len;
 	}
@@ -678,7 +678,7 @@ static void devman_driver_get_name(ipc_call_t *icall)
 
 	fibril_mutex_lock(&drv->driver_mutex);
 
-	size_t sent_length = str_size(drv->name);
+	size_t sent_length = str_bytes(drv->name);
 	if (sent_length > data_len) {
 		sent_length = data_len;
 	}

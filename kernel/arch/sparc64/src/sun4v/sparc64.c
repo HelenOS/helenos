@@ -124,7 +124,7 @@ void sun4v_post_smp_init(void)
 	static const char *platform = "sun4v";
 
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
-	    str_size(platform));
+	    str_bytes(platform));
 
 	niagarain_init();
 }

@@ -1427,7 +1427,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc != EOK)
 			goto err;
 		(void) async_data_read_finalize(&call, name,
-		    str_size(name) + 1);
+		    str_bytes(name) + 1);
 		bytes = (pos - spos) + 1;
 	}
 

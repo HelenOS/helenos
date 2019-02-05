@@ -109,7 +109,7 @@ errno_t logctl_set_log_level(const char *logname, log_level_t new_level)
 
 	aid_t reg_msg = async_send_1(exchange, LOGGER_CONTROL_SET_LOG_LEVEL,
 	    new_level, NULL);
-	rc = async_data_write_start(exchange, logname, str_size(logname));
+	rc = async_data_write_start(exchange, logname, str_bytes(logname));
 	errno_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 

@@ -59,7 +59,7 @@ static inline int hex_digit(char digit)
 
 static errno_t blob_from_hex(bithenge_node_t **out, const char *hex)
 {
-	size_t size = str_length(hex);
+	size_t size = str_code_points(hex);
 	if (size % 2)
 		return EINVAL;
 	size /= 2;

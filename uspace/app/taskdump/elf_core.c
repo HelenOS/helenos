@@ -176,7 +176,7 @@ errno_t elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int
 	p_hdr[0].p_vaddr = 0;
 	p_hdr[0].p_paddr = 0;
 	p_hdr[0].p_filesz = sizeof(elf_note_t) +
-	    ALIGN_UP((str_size("CORE") + 1), word_size) +
+	    ALIGN_UP((str_bytes("CORE") + 1), word_size) +
 	    ALIGN_UP(sizeof(elf_prstatus_t), word_size);
 	p_hdr[0].p_memsz = 0;
 	p_hdr[0].p_flags = 0;
@@ -229,7 +229,7 @@ errno_t elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int
 	/*
 	 * Write note header
 	 */
-	note.namesz = str_size("CORE") + 1;
+	note.namesz = str_bytes("CORE") + 1;
 	note.descsz = sizeof(elf_prstatus_t);
 	note.type = NT_PRSTATUS;
 

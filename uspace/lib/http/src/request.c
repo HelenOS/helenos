@@ -99,7 +99,7 @@ errno_t http_request_format(http_request_t *req, char **out_buf,
 			return EINVAL;
 		size += header_size;
 	}
-	size += str_length(HTTP_REQUEST_LINE);
+	size += str_code_points(HTTP_REQUEST_LINE);
 
 	char *buf = malloc(size);
 	if (buf == NULL)
@@ -125,7 +125,7 @@ errno_t http_request_format(http_request_t *req, char **out_buf,
 		pos_size -= written;
 	}
 
-	size_t rlsize = str_size(HTTP_REQUEST_LINE);
+	size_t rlsize = str_bytes(HTTP_REQUEST_LINE);
 	memcpy(pos, HTTP_REQUEST_LINE, rlsize);
 	pos_size -= rlsize;
 	assert(pos_size == 0);

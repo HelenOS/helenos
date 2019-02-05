@@ -130,7 +130,7 @@ errno_t hound_service_register_context(hound_sess_t *sess,
 	errno_t ret = mid ? EOK : EPARTY;
 
 	if (ret == EOK)
-		ret = async_data_write_start(exch, name, str_size(name));
+		ret = async_data_write_start(exch, name, str_bytes(name));
 	else
 		async_forget(mid);
 
@@ -193,7 +193,7 @@ errno_t hound_service_get_list(hound_sess_t *sess, char ***ids, size_t *count,
 	errno_t ret = EOK;
 	if (mid && connection)
 		ret = async_data_write_start(exch, connection,
-		    str_size(connection));
+		    str_bytes(connection));
 
 	if (ret == EOK)
 		async_wait_for(mid, &ret);
@@ -260,9 +260,9 @@ errno_t hound_service_connect_source_sink(hound_sess_t *sess, const char *source
 	aid_t id = async_send_0(exch, IPC_M_HOUND_CONNECT, &call);
 	errno_t ret = id ? EOK : EPARTY;
 	if (ret == EOK)
-		ret = async_data_write_start(exch, source, str_size(source));
+		ret = async_data_write_start(exch, source, str_bytes(source));
 	if (ret == EOK)
-		ret = async_data_write_start(exch, sink, str_size(sink));
+		ret = async_data_write_start(exch, sink, str_bytes(sink));
 	async_wait_for(id, &ret);
 	async_exchange_end(exch);
 	return ret;
@@ -286,9 +286,9 @@ errno_t hound_service_disconnect_source_sink(hound_sess_t *sess, const char *sou
 	aid_t id = async_send_0(exch, IPC_M_HOUND_DISCONNECT, &call);
 	errno_t ret = id ? EOK : EPARTY;
 	if (ret == EOK)
-		ret = async_data_write_start(exch, source, str_size(source));
+		ret = async_data_write_start(exch, source, str_bytes(source));
 	if (ret == EOK)
-		ret = async_data_write_start(exch, sink, str_size(sink));
+		ret = async_data_write_start(exch, sink, str_bytes(sink));
 	async_wait_for(id, &ret);
 	async_exchange_end(exch);
 	return ENOTSUP;
@@ -485,7 +485,7 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 
 			/* Prepare sizes table */
 			for (unsigned i = 0; i < count; ++i)
-				sizes[i] = str_size(list[i]);
+				sizes[i] = str_bytes(list[i]);
 
 			/* Send sizes table */
 			ipc_call_t id;
@@ -497,7 +497,7 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 
 			/* Proceed to send names */
 			for (unsigned i = 0; i < count; ++i) {
-				size_t size = str_size(list[i]);
+				size_t size = str_bytes(list[i]);
 				ipc_call_t id;
 				if (ret == EOK &&
 				    async_data_read_receive(&id, NULL)) {

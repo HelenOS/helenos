@@ -857,7 +857,7 @@ errno_t ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, char *ssid)
 	nic_address_t nic_address;
 	nic_query_address(nic, &nic_address);
 
-	size_t ssid_data_size = (ssid != NULL) ? str_size(ssid) : 0;
+	size_t ssid_data_size = (ssid != NULL) ? str_bytes(ssid) : 0;
 	size_t channel_data_size = 1;
 
 	uint8_t channel =
@@ -979,7 +979,7 @@ errno_t ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
 
 	ieee80211_scan_result_t *auth_data = &auth_link->scan_result;
 
-	size_t ssid_data_size = str_size(auth_data->ssid);
+	size_t ssid_data_size = str_bytes(auth_data->ssid);
 
 	size_t payload_size =
 	    sizeof(ieee80211_ie_header_t) * 3 +
@@ -1042,7 +1042,7 @@ errno_t ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
 	 */
 	memset(ieee80211_dev->bssid_info.password, 0, IEEE80211_MAX_PASSW_LEN);
 	memcpy(ieee80211_dev->bssid_info.password, password,
-	    str_size(password));
+	    str_bytes(password));
 
 	free(buffer);
 
@@ -1537,9 +1537,9 @@ static errno_t ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 		/* Compute PMK. */
 		uint8_t pmk[PBKDF2_KEY_LENGTH];
 		pbkdf2((uint8_t *) ieee80211_dev->bssid_info.password,
-		    str_size(ieee80211_dev->bssid_info.password),
+		    str_bytes(ieee80211_dev->bssid_info.password),
 		    (uint8_t *) auth_data->ssid,
-		    str_size(auth_data->ssid), pmk);
+		    str_bytes(auth_data->ssid), pmk);
 
 		uint8_t *anonce = key_frame->key_nonce;
 

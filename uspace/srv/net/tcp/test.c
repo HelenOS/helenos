@@ -113,7 +113,7 @@ static errno_t test_cli(void *arg)
 
 	fibril_usleep(1000 * 1000 * 10);
 	printf("C: User send...\n");
-	tcp_uc_send(conn, (void *)msg, str_size(msg), 0);
+	tcp_uc_send(conn, (void *)msg, str_bytes(msg), 0);
 
 	fibril_usleep(1000 * 1000 * 20/**20*2*/);
 	printf("C: User close...\n");

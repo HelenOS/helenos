@@ -55,7 +55,7 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 		return NULL;
 	}
 
-	search->pattern_length = wstr_length(p);
+	search->pattern_length = wstr_code_points(p);
 
 	if (reverse) {
 		/* Reverse the pattern */

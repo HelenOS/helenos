@@ -44,7 +44,7 @@ static FIBRIL_MUTEX_INITIALIZE(printf_mutex);
 static int vprintf_str_write(const char *str, size_t size, void *stream)
 {
 	size_t wr = fwrite(str, 1, size, (FILE *) stream);
-	return str_nlength(str, wr);
+	return str_ncode_points(str, wr);
 }
 
 static int vprintf_wstr_write(const wchar_t *str, size_t size, void *stream)

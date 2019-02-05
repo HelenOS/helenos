@@ -99,7 +99,7 @@ static errno_t expect(receive_buffer_t *rb, const char *expect)
 	errno_t rc = recv_discard_str(rb, expect, &ndisc);
 	if (rc != EOK)
 		return rc;
-	if (ndisc < str_length(expect))
+	if (ndisc < str_code_points(expect))
 		return HTTP_EPARSE;
 	return EOK;
 }

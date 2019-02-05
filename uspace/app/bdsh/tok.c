@@ -64,7 +64,7 @@ errno_t tok_init(tokenizer_t *tok, char *input, token_t *out_tokens,
 	tok->outtok_size = max_tokens;
 
 	/* Prepare a buffer where all the token strings will be stored */
-	size_t len = str_size(input) + max_tokens + 1;
+	size_t len = str_bytes(input) + max_tokens + 1;
 	char *tmp = malloc(len);
 
 	if (tmp == NULL) {

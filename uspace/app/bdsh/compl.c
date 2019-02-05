@@ -159,7 +159,7 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 	 * Extract the prefix being completed
 	 * XXX: handle strings, etc.
 	 */
-	pref_size = str_lsize(stext, pos - *cstart);
+	pref_size = str_lbytes(stext, pos - *cstart);
 	prefix = malloc(pref_size + 1);
 	if (prefix == NULL) {
 		retval = ENOMEM;
@@ -236,7 +236,7 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 		cs->path = &dirlist_arg[0];
 	}
 
-	cs->prefix_len = str_length(cs->prefix);
+	cs->prefix_len = str_code_points(cs->prefix);
 
 	tok_fini(&tok);
 

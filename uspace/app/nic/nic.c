@@ -451,7 +451,7 @@ static errno_t nic_set_addr(int i, char *str)
 		return EINVAL;
 	}
 
-	if (str_size(str) != 17) {
+	if (str_bytes(str) != 17) {
 		printf("Invalid MAC address specified");
 		return EINVAL;
 	}

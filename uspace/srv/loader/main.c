@@ -185,7 +185,7 @@ static void ldr_set_args(ipc_call_t *req)
 		int count = 0;
 
 		while (cur < buf + buf_size) {
-			size_t arg_size = str_size(cur);
+			size_t arg_size = str_bytes(cur);
 			cur += arg_size + 1;
 			count++;
 		}
@@ -208,7 +208,7 @@ static void ldr_set_args(ipc_call_t *req)
 		while (cur < buf + buf_size) {
 			_argv[count] = cur;
 
-			size_t arg_size = str_size(cur);
+			size_t arg_size = str_bytes(cur);
 			cur += arg_size + 1;
 			count++;
 		}

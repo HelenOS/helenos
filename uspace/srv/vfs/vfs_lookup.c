@@ -166,7 +166,7 @@ errno_t vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 			goto out;
 		}
 
-		memcpy(component, slash + 1, str_size(slash));
+		memcpy(component, slash + 1, str_bytes(slash));
 		*slash = 0;
 
 		rc = vfs_lookup_internal(base, path, L_DIRECTORY, &res);
@@ -181,7 +181,7 @@ errno_t vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 			goto out;
 		}
 
-		memcpy(component, path + 1, str_size(path));
+		memcpy(component, path + 1, str_bytes(path));
 		triplet = (vfs_triplet_t *) base;
 	}
 
@@ -195,7 +195,7 @@ errno_t vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 	aid_t req = async_send_3(exch, VFS_OUT_LINK, triplet->service_id,
 	    triplet->index, child->index, NULL);
 
-	rc = async_data_write_start(exch, component, str_size(component) + 1);
+	rc = async_data_write_start(exch, component, str_bytes(component) + 1);
 	errno_t orig_rc;
 	async_wait_for(req, &orig_rc);
 	vfs_exchange_release(exch);

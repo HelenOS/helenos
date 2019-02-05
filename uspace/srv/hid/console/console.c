@@ -372,7 +372,7 @@ static errno_t cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 			if ((event->type == KEY_PRESS) && (event->c != 0)) {
 				wchar_t tmp[2] = { event->c, 0 };
 				wstr_to_str(cons->char_remains, UTF8_CHAR_BUFFER_SIZE, tmp);
-				cons->char_remains_len = str_size(cons->char_remains);
+				cons->char_remains_len = str_bytes(cons->char_remains);
 			}
 
 			free(event);

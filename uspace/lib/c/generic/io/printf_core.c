@@ -203,9 +203,9 @@ static int printf_wputnchars(const wchar_t *buf, size_t size,
 static int printf_putstr(const char *str, printf_spec_t *ps)
 {
 	if (str == NULL)
-		return printf_putnchars(nullstr, str_size(nullstr), ps);
+		return printf_putnchars(nullstr, str_bytes(nullstr), ps);
 
-	return ps->str_write((void *) str, str_size(str), ps->data);
+	return ps->str_write((void *) str, str_bytes(str), ps->data);
 }
 
 /** Print one ASCII character.
@@ -331,7 +331,7 @@ static int print_str(char *str, int width, unsigned int precision,
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
 
-	size_t strw = str_length(str);
+	size_t strw = str_code_points(str);
 
 	/* Precision unspecified - print everything. */
 	if ((precision == 0) || (precision > strw))
@@ -349,7 +349,7 @@ static int print_str(char *str, int width, unsigned int precision,
 
 	/* Part of @a str fitting into the alloted space. */
 	int retval;
-	size_t size = str_lsize(str, precision);
+	size_t size = str_lbytes(str, precision);
 	if ((retval = printf_putnchars(str, size, ps)) < 0)
 		return -counter;
 
@@ -380,7 +380,7 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
 
-	size_t strw = wstr_length(str);
+	size_t strw = wstr_code_points(str);
 
 	/* Precision not specified - print everything. */
 	if ((precision == 0) || (precision > strw))
@@ -398,7 +398,7 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 
 	/* Part of @a wstr fitting into the alloted space. */
 	int retval;
-	size_t size = wstr_lsize(str, precision);
+	size_t size = wstr_lbytes(str, precision);
 	if ((retval = printf_wputnchars(str, size, ps)) < 0)
 		return -counter;
 

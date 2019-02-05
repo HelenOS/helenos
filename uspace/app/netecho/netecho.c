@@ -138,7 +138,7 @@ static void netecho_send_messages(char **msgs)
 	errno_t rc;
 
 	while (*msgs != NULL) {
-		rc = comm_send(*msgs, str_size(*msgs));
+		rc = comm_send(*msgs, str_bytes(*msgs));
 		if (rc != EOK) {
 			printf("[Failed sending data]\n");
 		}

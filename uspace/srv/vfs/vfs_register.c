@@ -355,7 +355,7 @@ errno_t vfs_get_fstypes(vfs_fstypes_t *fstypes)
 	size = 0;
 	count = 0;
 	list_foreach(fs_list, fs_link, fs_info_t, fs) {
-		size += str_size(fs->vfs_info.name) + 1;
+		size += str_bytes(fs->vfs_info.name) + 1;
 		count++;
 	}
 
@@ -381,7 +381,7 @@ errno_t vfs_get_fstypes(vfs_fstypes_t *fstypes)
 	size = 0;
 	count = 0;
 	list_foreach(fs_list, fs_link, fs_info_t, fs) {
-		l = str_size(fs->vfs_info.name) + 1;
+		l = str_bytes(fs->vfs_info.name) + 1;
 		memcpy(fstypes->buf + size, fs->vfs_info.name, l);
 		fstypes->fstypes[count] = &fstypes->buf[size];
 		size += l;

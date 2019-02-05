@@ -173,13 +173,13 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		}
 
 		/* fill the name field */
-		tosort[nbdirs].name = (char *) malloc(str_size(dp->d_name) + 1);
+		tosort[nbdirs].name = (char *) malloc(str_bytes(dp->d_name) + 1);
 		if (!tosort[nbdirs].name) {
 			cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
 			goto out;
 		}
 
-		str_cpy(tosort[nbdirs].name, str_size(dp->d_name) + 1, dp->d_name);
+		str_cpy(tosort[nbdirs].name, str_bytes(dp->d_name) + 1, dp->d_name);
 		len = snprintf(buff, PATH_MAX - 1, "%s/%s", d, tosort[nbdirs].name);
 		buff[len] = '\0';
 
@@ -263,13 +263,13 @@ static unsigned int ls_recursive(const char *path, DIR *dirp)
 	for (i = 0; i < nbdirs; ++i) {
 		memset(subdir_path, 0, PATH_MAX);
 
-		if (str_size(subdir_path) + str_size(path) + 1 <= PATH_MAX)
+		if (str_bytes(subdir_path) + str_bytes(path) + 1 <= PATH_MAX)
 			str_append(subdir_path, PATH_MAX, path);
-		if (path[str_size(path) - 1] != '/' &&
-		    str_size(subdir_path) + str_size(trailing_slash) + 1 <= PATH_MAX)
+		if (path[str_bytes(path) - 1] != '/' &&
+		    str_bytes(subdir_path) + str_bytes(trailing_slash) + 1 <= PATH_MAX)
 			str_append(subdir_path, PATH_MAX, trailing_slash);
-		if (str_size(subdir_path) +
-		    str_size(dir_list[i].name) + 1 <= PATH_MAX)
+		if (str_bytes(subdir_path) +
+		    str_bytes(dir_list[i].name) + 1 <= PATH_MAX)
 			str_append(subdir_path, PATH_MAX, dir_list[i].name);
 
 		scope = ls_scope(subdir_path, &dir_list[i]);

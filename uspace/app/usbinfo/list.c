@@ -97,7 +97,7 @@ static void print_usb_bus(service_id_t svc)
 
 	/* Get handle of parent device */
 	devman_handle_t fh;
-	path[str_size(path) - str_size(name) - 1] = '\0';
+	path[str_bytes(path) - str_bytes(name) - 1] = '\0';
 	rc = devman_fun_get_handle(path, &fh, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving parent handle of HC with"

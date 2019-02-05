@@ -285,7 +285,7 @@ errno_t bithenge_scope_error(bithenge_scope_t *scope, const char *format, ...)
 		} else {
 			const char *end = str_chr(format, '%');
 			if (!end)
-				end = format + str_length(format);
+				end = format + str_code_points(format);
 			size_t size = min((size_t)(end - format),
 			    space_left - 1);
 			memcpy(out, format, size);

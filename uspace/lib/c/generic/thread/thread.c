@@ -121,7 +121,7 @@ errno_t thread_create(void (*function)(void *), void *arg, const char *name,
 	uarg->uspace_uarg = uarg;
 
 	errno_t rc = (errno_t) __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,
-	    (sysarg_t) name, (sysarg_t) str_size(name), (sysarg_t) tid);
+	    (sysarg_t) name, (sysarg_t) str_bytes(name), (sysarg_t) tid);
 
 	if (rc != EOK) {
 		/*

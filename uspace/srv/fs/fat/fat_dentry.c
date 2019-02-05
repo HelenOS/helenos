@@ -69,7 +69,7 @@ int fat_dentry_namecmp(char *name, const char *component)
 		 * There is no '.' in the name, so we know that there is enough
 		 * space for appending an extra '.' to name.
 		 */
-		size = str_size(name);
+		size = str_bytes(name);
 		name[size] = '.';
 		name[size + 1] = '\0';
 		rc = str_casecmp(name, component);
@@ -268,7 +268,7 @@ uint8_t fat_dentry_chksum(uint8_t *name)
  * @return Number of bytes in string (without 0 and ff).
  *
  */
-size_t fat_lfn_str_nlength(const unaligned_uint16_t *str, size_t size)
+size_t fat_lfn_str_ncode_points(const unaligned_uint16_t *str, size_t size)
 {
 	size_t offset = 0;
 
@@ -291,9 +291,9 @@ size_t fat_lfn_size(const fat_dentry_t *d)
 {
 	size_t size = 0;
 
-	size += fat_lfn_str_nlength(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE);
-	size += fat_lfn_str_nlength(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE);
-	size += fat_lfn_str_nlength(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE);
+	size += fat_lfn_str_ncode_points(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE);
+	size += fat_lfn_str_ncode_points(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE);
+	size += fat_lfn_str_ncode_points(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE);
 
 	return size;
 }

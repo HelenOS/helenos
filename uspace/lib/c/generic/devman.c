@@ -181,7 +181,7 @@ errno_t devman_driver_register(const char *name)
 
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, DEVMAN_DRIVER_REGISTER, 0, 0, &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_bytes(name));
 
 	devman_exchange_end(exch);
 
@@ -221,7 +221,7 @@ errno_t devman_add_function(const char *name, fun_type_t ftype,
 	ipc_call_t answer;
 	aid_t req = async_send_3(exch, DEVMAN_ADD_FUNCTION, (sysarg_t) ftype,
 	    devh, match_count, &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_bytes(name));
 	if (retval != EOK) {
 		devman_exchange_end(exch);
 		async_forget(req);
@@ -233,7 +233,7 @@ errno_t devman_add_function(const char *name, fun_type_t ftype,
 		aid_t req2 = async_send_1(exch, DEVMAN_ADD_MATCH_ID,
 		    match_id->score, &answer2);
 		retval = async_data_write_start(exch, match_id->id,
-		    str_size(match_id->id));
+		    str_bytes(match_id->id));
 		if (retval != EOK) {
 			devman_exchange_end(exch);
 			async_forget(req2);
@@ -272,7 +272,7 @@ errno_t devman_add_device_to_category(devman_handle_t devman_handle,
 	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CATEGORY,
 	    devman_handle, &answer);
 	errno_t retval = async_data_write_start(exch, cat_name,
-	    str_size(cat_name));
+	    str_bytes(cat_name));
 
 	devman_exchange_end(exch);
 
@@ -374,7 +374,7 @@ errno_t devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
 	aid_t req = async_send_2(exch, DEVMAN_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
 	errno_t retval = async_data_write_start(exch, pathname,
-	    str_size(pathname));
+	    str_bytes(pathname));
 
 	devman_exchange_end(exch);
 
@@ -643,7 +643,7 @@ errno_t devman_driver_get_handle(const char *drvname, devman_handle_t *handle)
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, DEVMAN_DRIVER_GET_HANDLE, &answer);
 	errno_t retval = async_data_write_start(exch, drvname,
-	    str_size(drvname));
+	    str_bytes(drvname));
 
 	devman_exchange_end(exch);
 

@@ -270,7 +270,7 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 				putwchar('\b');
 
 				count--;
-				offset = str_lsize(buf, count);
+				offset = str_lbytes(buf, count);
 				buf[offset] = 0;
 			}
 		}

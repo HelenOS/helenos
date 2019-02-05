@@ -88,7 +88,7 @@ static errno_t logger_message(async_sess_t *session, log_t log, log_level_t leve
 
 	aid_t reg_msg = async_send_2(exchange, LOGGER_WRITER_MESSAGE,
 	    log, level, NULL);
-	errno_t rc = async_data_write_start(exchange, message, str_size(message));
+	errno_t rc = async_data_write_start(exchange, message, str_bytes(message));
 	errno_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
@@ -143,7 +143,7 @@ errno_t log_level_from_str(const char *name, log_level_t *level_out)
 	/* Maybe user specified number directly. */
 	char *end_ptr;
 	int level_int = strtol(name, &end_ptr, 0);
-	if ((end_ptr == name) || (str_length(end_ptr) != 0))
+	if ((end_ptr == name) || (str_code_points(end_ptr) != 0))
 		return EINVAL;
 	if (level_int < 0)
 		return ERANGE;
@@ -198,7 +198,7 @@ log_t log_create(const char *name, log_t parent)
 	ipc_call_t answer;
 	aid_t reg_msg = async_send_1(exchange, LOGGER_WRITER_CREATE_LOG,
 	    parent, &answer);
-	errno_t rc = async_data_write_start(exchange, name, str_size(name));
+	errno_t rc = async_data_write_start(exchange, name, str_bytes(name));
 	errno_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 

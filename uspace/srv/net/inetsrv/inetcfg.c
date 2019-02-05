@@ -353,7 +353,7 @@ static void inetcfg_addr_get_srv(ipc_call_t *icall)
 	}
 
 	rc = async_data_read_finalize(&call, ainfo.name,
-	    min(size, str_size(ainfo.name)));
+	    min(size, str_bytes(ainfo.name)));
 	free(ainfo.name);
 
 	if (rc != EOK) {
@@ -542,7 +542,7 @@ static void inetcfg_link_get_srv(ipc_call_t *call)
 	}
 
 	errno_t retval = async_data_read_finalize(&name, linfo.name,
-	    min(name_max_size, str_size(linfo.name)));
+	    min(name_max_size, str_bytes(linfo.name)));
 	if (retval != EOK) {
 		free(linfo.name);
 		async_answer_0(&laddr, retval);
@@ -709,7 +709,7 @@ static void inetcfg_sroute_get_srv(ipc_call_t *icall)
 	}
 
 	rc = async_data_read_finalize(&call, srinfo.name,
-	    min(size, str_size(srinfo.name)));
+	    min(size, str_bytes(srinfo.name)));
 	free(srinfo.name);
 
 	async_answer_0(icall, rc);

@@ -74,7 +74,7 @@ errno_t task_set_name(const char *name)
 {
 	assert(name);
 
-	return (errno_t) __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
+	return (errno_t) __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_bytes(name));
 }
 
 /** Kill a task.

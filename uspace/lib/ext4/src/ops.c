@@ -538,7 +538,7 @@ errno_t ext4_destroy_node(fs_node_t *fn)
 errno_t ext4_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	/* Check maximum name length */
-	if (str_size(name) > EXT4_DIRECTORY_FILENAME_LEN)
+	if (str_bytes(name) > EXT4_DIRECTORY_FILENAME_LEN)
 		return ENAMETOOLONG;
 
 	ext4_node_t *parent = EXT4_NODE(pfn);

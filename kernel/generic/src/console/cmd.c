@@ -667,8 +667,8 @@ int cmd_help(cmd_arg_t *argv)
 	size_t len = 0;
 	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
-		if (str_length(hlp->name) > len)
-			len = str_length(hlp->name);
+		if (str_code_points(hlp->name) > len)
+			len = str_code_points(hlp->name);
 		spinlock_unlock(&hlp->lock);
 	}
 
@@ -918,7 +918,7 @@ int cmd_desc(cmd_arg_t *argv)
 	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
 
-		if (str_lcmp(hlp->name, (const char *) argv->buffer, str_length(hlp->name)) == 0) {
+		if (str_lcmp(hlp->name, (const char *) argv->buffer, str_code_points(hlp->name)) == 0) {
 			printf("%s - %s\n", hlp->name, hlp->description);
 			if (hlp->help)
 				hlp->help();
@@ -1485,8 +1485,8 @@ static void list_tests(void)
 	test_t *test;
 
 	for (test = tests; test->name != NULL; test++) {
-		if (str_length(test->name) > len)
-			len = str_length(test->name);
+		if (str_code_points(test->name) > len)
+			len = str_code_points(test->name);
 	}
 
 	unsigned int _len = (unsigned int) len;

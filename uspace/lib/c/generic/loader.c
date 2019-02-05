@@ -56,7 +56,7 @@
 errno_t loader_spawn(const char *name)
 {
 	return (errno_t) __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
-	    (sysarg_t) name, str_size(name));
+	    (sysarg_t) name, str_bytes(name));
 }
 
 loader_t *loader_connect(void)
@@ -124,7 +124,7 @@ errno_t loader_set_cwd(loader_t *ldr)
 	if (vfs_cwd_get(cwd, MAX_PATH_LEN + 1) != EOK)
 		str_cpy(cwd, MAX_PATH_LEN + 1, "/");
 
-	size_t len = str_length(cwd);
+	size_t len = str_code_points(cwd);
 
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
 
@@ -160,7 +160,7 @@ errno_t loader_set_program(loader_t *ldr, const char *name, int file)
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_PROGRAM, &answer);
 
-	errno_t rc = async_data_write_start(exch, name, str_size(name) + 1);
+	errno_t rc = async_data_write_start(exch, name, str_bytes(name) + 1);
 	if (rc == EOK) {
 		async_exch_t *vfs_exch = vfs_exchange_begin();
 		rc = vfs_pass_handle(vfs_exch, file, exch);
@@ -225,7 +225,7 @@ errno_t loader_set_args(loader_t *ldr, const char *const argv[])
 	const char *const *ap = argv;
 	size_t buffer_size = 0;
 	while (*ap != NULL) {
-		buffer_size += str_size(*ap) + 1;
+		buffer_size += str_bytes(*ap) + 1;
 		ap++;
 	}
 
@@ -239,7 +239,7 @@ errno_t loader_set_args(loader_t *ldr, const char *const argv[])
 
 	while (*ap != NULL) {
 		str_cpy(dp, buffer_size - (dp - arg_buf), *ap);
-		dp += str_size(*ap) + 1;
+		dp += str_bytes(*ap) + 1;
 		ap++;
 	}
 
@@ -279,7 +279,7 @@ errno_t loader_add_inbox(loader_t *ldr, const char *name, int file)
 
 	aid_t req = async_send_0(exch, LOADER_ADD_INBOX, NULL);
 
-	errno_t rc = async_data_write_start(exch, name, str_size(name) + 1);
+	errno_t rc = async_data_write_start(exch, name, str_bytes(name) + 1);
 	if (rc == EOK) {
 		rc = vfs_pass_handle(vfs_exch, file, exch);
 	}

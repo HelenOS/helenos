@@ -327,7 +327,7 @@ errno_t vol_part_insert_by_path(vol_t *vol, const char *path)
 	exch = async_exchange_begin(vol->sess);
 	aid_t req = async_send_0(exch, VOL_PART_INSERT_BY_PATH, &answer);
 
-	retval = async_data_write_start(exch, path, str_size(path));
+	retval = async_data_write_start(exch, path, str_bytes(path));
 	if (retval != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -394,14 +394,14 @@ errno_t vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
 	exch = async_exchange_begin(vol->sess);
 	aid_t req = async_send_2(exch, VOL_PART_MKFS, sid, fstype, &answer);
 
-	retval = async_data_write_start(exch, label, str_size(label));
+	retval = async_data_write_start(exch, label, str_bytes(label));
 	if (retval != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return retval;
 	}
 
-	retval = async_data_write_start(exch, mountp, str_size(mountp));
+	retval = async_data_write_start(exch, mountp, str_bytes(mountp));
 	if (retval != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -436,7 +436,7 @@ errno_t vol_part_set_mountp(vol_t *vol, service_id_t sid,
 	aid_t req = async_send_1(exch, VOL_PART_SET_MOUNTP, sid,
 	    &answer);
 
-	retval = async_data_write_start(exch, mountp, str_size(mountp));
+	retval = async_data_write_start(exch, mountp, str_bytes(mountp));
 	if (retval != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);

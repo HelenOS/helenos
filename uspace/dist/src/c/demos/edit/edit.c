@@ -636,14 +636,14 @@ static char *prompt(char const *prompt, char const *init_value)
 
 	asprintf(&str, "%s: %s", prompt, init_value);
 	status_display(str);
-	console_set_pos(con, 1 + str_length(str), scr_rows - 1);
+	console_set_pos(con, 1 + str_code_points(str), scr_rows - 1);
 	free(str);
 
 	console_set_style(con, STYLE_INVERTED);
 
-	max_len = min(INFNAME_MAX_LEN, scr_columns - 4 - str_length(prompt));
+	max_len = min(INFNAME_MAX_LEN, scr_columns - 4 - str_code_points(prompt));
 	str_to_wstr(buffer, max_len + 1, init_value);
-	nc = wstr_length(buffer);
+	nc = wstr_code_points(buffer);
 	done = false;
 
 	while (!done) {
@@ -746,7 +746,7 @@ static errno_t file_save_range(char const *fname, spt_t const *spos,
 
 	do {
 		sheet_copy_out(doc.sh, &sp, epos, buf, BUF_SIZE, &bep);
-		bytes = str_size(buf);
+		bytes = str_bytes(buf);
 
 		n_written = fwrite(buf, 1, bytes, f);
 		if (n_written != bytes) {
@@ -782,7 +782,7 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 	while (true) {
 		sheet_copy_out(doc.sh, &sp, epos, &buf[bpos], buf_size - bpos,
 		    &bep);
-		bytes = str_size(&buf[bpos]);
+		bytes = str_bytes(&buf[bpos]);
 		bpos += bytes;
 		sp = bep;
 
@@ -892,7 +892,7 @@ static void pane_row_range_display(int r0, int r1)
 		}
 
 		console_set_pos(con, 0, i);
-		size = str_size(row_buf);
+		size = str_bytes(row_buf);
 		pos = 0;
 		s_column = pane.sh_column;
 		while (pos < size) {
@@ -1011,7 +1011,7 @@ static void pane_status_display(void)
 
 		/* Compute position where we overwrite with '..\0' */
 		if (fnw >= nextra + 2) {
-			p = fname + str_lsize(fname, fnw - nextra - 2);
+			p = fname + str_lbytes(fname, fnw - nextra - 2);
 		} else {
 			p = fname;
 		}
@@ -1608,7 +1608,7 @@ static bool pt_is_word_beginning(spt_t *pt)
 static wchar_t get_first_wchar(const char *str)
 {
 	size_t offset = 0;
-	return str_decode(str, &offset, str_size(str));
+	return str_decode(str, &offset, str_bytes(str));
 }
 
 static bool pt_is_delimiter(spt_t *pt)

@@ -278,7 +278,7 @@ errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
  * @return Number of bytes used by the string
  *
  */
-size_t str_size(const char *str)
+size_t str_bytes(const char *str)
 {
 	size_t size = 0;
 
@@ -301,7 +301,7 @@ size_t str_size(const char *str)
  * @return Number of bytes used by the characters.
  *
  */
-size_t str_lsize(const char *str, size_t max_len)
+size_t str_lbytes(const char *str, size_t max_len)
 {
 	size_t len = 0;
 	size_t offset = 0;
@@ -323,7 +323,7 @@ size_t str_lsize(const char *str, size_t max_len)
  * @return Number of characters in string.
  *
  */
-size_t str_length(const char *str)
+size_t str_code_points(const char *str)
 {
 	size_t len = 0;
 	size_t offset = 0;

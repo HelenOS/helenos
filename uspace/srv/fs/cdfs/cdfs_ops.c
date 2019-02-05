@@ -482,12 +482,12 @@ static char *cdfs_decode_str(void *data, size_t dsize, cdfs_enc_t enc)
 			    ((unaligned_uint16_t *)data)[i]);
 		}
 
-		size_t dstr_size = dsize / sizeof(uint16_t) * 4 + 1;
-		str = malloc(dstr_size);
+		size_t dstr_bytes = dsize / sizeof(uint16_t) * 4 + 1;
+		str = malloc(dstr_bytes);
 		if (str == NULL)
 			return NULL;
 
-		rc = utf16_to_str(str, dstr_size, buf);
+		rc = utf16_to_str(str, dstr_bytes, buf);
 		free(buf);
 
 		if (rc != EOK)
@@ -557,7 +557,7 @@ static char *cdfs_decode_vol_ident(void *data, size_t dsize, cdfs_enc_t enc)
 		return NULL;
 
 	/* Trim trailing spaces */
-	i = str_size(ident);
+	i = str_bytes(ident);
 	while (i > 0 && ident[i - 1] == ' ')
 		--i;
 	ident[i] = '\0';
@@ -1316,7 +1316,7 @@ static errno_t cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 
 		*rbytes = 1;
 		async_data_read_finalize(&call, dentry->name,
-		    str_size(dentry->name) + 1);
+		    str_bytes(dentry->name) + 1);
 	}
 
 	return EOK;

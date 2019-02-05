@@ -77,7 +77,7 @@ void pcut_print_fail_message(const char *msg) {
 	if (msg == NULL) {
 		return;
 	}
-	if (pcut_str_size(msg) == 0) {
+	if (pcut_str_bytes(msg) == 0) {
 		return;
 	}
 
@@ -129,7 +129,7 @@ static void parse_command_output(const char *full_output, size_t full_output_siz
 		}
 
 		/* Determine the length of the text after the zeros. */
-		message_length = pcut_str_size(full_output);
+		message_length = pcut_str_bytes(full_output);
 
 		if (cont_zeros_count < 2) {
 			/* Okay, standard I/O. */

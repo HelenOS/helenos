@@ -85,7 +85,7 @@ static void bi_string_length(run_t *run)
 	self_value_var = builtin_get_self_mbr_var(run, "Value");
 	assert(self_value_var->vc == vc_string);
 	str = self_value_var->u.string_v->value;
-	str_l = os_str_length(str);
+	str_l = os_str_code_points(str);
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Get length of string '%s'.\n", str);
@@ -130,7 +130,7 @@ static void bi_string_slice(run_t *run)
 	self_value_var = builtin_get_self_mbr_var(run, "Value");
 	assert(self_value_var->vc == vc_string);
 	str = self_value_var->u.string_v->value;
-	str_l = os_str_length(str);
+	str_l = os_str_code_points(str);
 
 	/* Get argument @a start. */
 	start_var = run_local_vars_lookup(run, strtab_get_sid("start"));

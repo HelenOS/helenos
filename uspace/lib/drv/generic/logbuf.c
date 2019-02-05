@@ -104,8 +104,8 @@ static size_t count_dump_length(size_t item_size, size_t items)
 	size_t normal_space_count = items - 1 - group_space_count;
 
 	size_t dump_itself = item_size * 2 * items;
-	size_t group_spaces = str_size(SPACE_GROUP) * group_space_count;
-	size_t normal_spaces = str_size(SPACE_NORMAL) * normal_space_count;
+	size_t group_spaces = str_bytes(SPACE_GROUP) * group_space_count;
+	size_t normal_spaces = str_bytes(SPACE_NORMAL) * normal_space_count;
 
 	return dump_itself + group_spaces + normal_spaces;
 }
@@ -192,7 +192,7 @@ void ddf_dump_buffer(char *dump, size_t dump_size,
 	}
 
 	if (print_remainder && (index < items)) {
-		size_t s = str_size(dump);
+		size_t s = str_bytes(dump);
 		snprintf(dump + s, dump_size - s, REMAINDER_STR_FMT,
 		    items - index);
 	}

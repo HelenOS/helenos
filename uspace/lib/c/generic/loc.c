@@ -245,7 +245,7 @@ errno_t loc_server_register(const char *name)
 
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVER_REGISTER, 0, 0, &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_bytes(name));
 
 	if (retval != EOK) {
 		async_forget(req);
@@ -278,7 +278,7 @@ errno_t loc_service_register(const char *fqsn, service_id_t *sid)
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOC_SERVICE_REGISTER, &answer);
-	errno_t retval = async_data_write_start(exch, fqsn, str_size(fqsn));
+	errno_t retval = async_data_write_start(exch, fqsn, str_bytes(fqsn));
 
 	if (retval != EOK) {
 		async_forget(req);
@@ -339,7 +339,7 @@ errno_t loc_service_get_id(const char *fqdn, service_id_t *handle,
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVICE_GET_ID, flags, 0,
 	    &answer);
-	errno_t retval = async_data_write_start(exch, fqdn, str_size(fqdn));
+	errno_t retval = async_data_write_start(exch, fqdn, str_bytes(fqdn));
 
 	loc_exchange_end(exch);
 
@@ -472,7 +472,7 @@ errno_t loc_namespace_get_id(const char *name, service_id_t *handle,
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_NAMESPACE_GET_ID, flags, 0,
 	    &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_bytes(name));
 
 	loc_exchange_end(exch);
 
@@ -521,7 +521,7 @@ errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOC_CATEGORY_GET_ID,
 	    &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_bytes(name));
 
 	loc_exchange_end(exch);
 

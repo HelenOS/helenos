@@ -155,7 +155,7 @@ void ia64_post_smp_init(void)
 	platform = "pc";
 #endif
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
-	    str_size(platform));
+	    str_bytes(platform));
 
 #ifdef MACHINE_ski
 	ski_instance_t *ski_instance = skiin_init();

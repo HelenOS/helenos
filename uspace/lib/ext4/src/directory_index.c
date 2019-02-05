@@ -1065,7 +1065,7 @@ errno_t ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
 		return rc;
 
 	/* Initialize hinfo structure (mainly compute hash) */
-	uint32_t name_len = str_size(name);
+	uint32_t name_len = str_bytes(name);
 	ext4_hash_info_t hinfo;
 	rc = ext4_directory_hinfo_init(&hinfo, root_block, fs->superblock,
 	    name_len, name);

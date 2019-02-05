@@ -288,7 +288,7 @@ static errno_t trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 	xm_instr_ext_t instrx;
 	xm_smp_t smp;
 	size_t samples;
-	size_t instr_size;
+	size_t instr_bytes;
 	size_t smp_size;
 	size_t smp_hdr_size = 0;  /* GCC false alarm on uninitialized */
 	ssize_t nread;
@@ -313,7 +313,7 @@ static errno_t trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 		}
 
 		samples = uint16_t_le2host(instr.samples);
-		instr_size = (size_t)uint32_t_le2host(instr.size);
+		instr_bytes = (size_t)uint32_t_le2host(instr.size);
 
 		if (samples > 0) {
 			ret = fread(&instrx, 1, sizeof(xm_instr_ext_t), f);
@@ -338,7 +338,7 @@ static errno_t trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 			}
 		}
 
-		if (fseek(f, pos + instr_size, SEEK_SET) < 0) {
+		if (fseek(f, pos + instr_bytes, SEEK_SET) < 0) {
 			rc = EIO;
 			goto error;
 		}

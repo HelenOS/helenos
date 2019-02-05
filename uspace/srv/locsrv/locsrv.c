@@ -590,7 +590,7 @@ static void loc_category_get_name(ipc_call_t *icall)
 		return;
 	}
 
-	act_size = str_size(cat->name);
+	act_size = str_bytes(cat->name);
 	if (act_size > size) {
 		fibril_mutex_unlock(&cdir.mutex);
 		async_answer_0(&call, EOVERFLOW);
@@ -637,7 +637,7 @@ static void loc_service_get_name(ipc_call_t *icall)
 		return;
 	}
 
-	act_size = str_size(fqn);
+	act_size = str_bytes(fqn);
 	if (act_size > size) {
 		free(fqn);
 		fibril_mutex_unlock(&services_list_mutex);
@@ -685,7 +685,7 @@ static void loc_service_get_server_name(ipc_call_t *icall)
 		return;
 	}
 
-	act_size = str_size(svc->server->name);
+	act_size = str_bytes(svc->server->name);
 	if (act_size > size) {
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(&call, EOVERFLOW);

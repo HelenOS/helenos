@@ -654,7 +654,7 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 
 	/* Server init */
 	fibril_mutex_lock(&rfb->lock);
-	size_t name_length = str_length(rfb->name);
+	size_t name_length = str_code_points(rfb->name);
 	size_t msg_length = sizeof(rfb_server_init_t) + name_length;
 	rfb_server_init_t *server_init = malloc(msg_length);
 	if (server_init == NULL) {

@@ -74,7 +74,7 @@ errno_t dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 	aid_t req = async_send_1(exch, DNSR_NAME2HOST, (sysarg_t) ver,
 	    &answer);
 
-	errno_t rc = async_data_write_start(exch, name, str_size(name));
+	errno_t rc = async_data_write_start(exch, name, str_bytes(name));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);

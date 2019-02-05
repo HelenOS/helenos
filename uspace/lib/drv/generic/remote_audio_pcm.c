@@ -645,7 +645,7 @@ void remote_audio_pcm_get_info_str(ddf_fun_t *fun, void *iface,
 
 	const char *name = NULL;
 	const errno_t ret = pcm_iface->get_info_str(fun, &name);
-	const size_t name_size = name ? str_size(name) + 1 : 0;
+	const size_t name_size = name ? str_bytes(name) + 1 : 0;
 	async_answer_1(call, ret, name_size);
 
 	/* Send the string. */

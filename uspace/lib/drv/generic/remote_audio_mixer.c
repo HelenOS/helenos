@@ -233,7 +233,7 @@ void remote_audio_mixer_get_info(ddf_fun_t *fun, void *iface, ipc_call_t *icall)
 	const char *name = NULL;
 	unsigned items = 0;
 	const errno_t ret = mixer_iface->get_info(fun, &name, &items);
-	const size_t name_size = name ? str_size(name) + 1 : 0;
+	const size_t name_size = name ? str_bytes(name) + 1 : 0;
 	async_answer_2(icall, ret, name_size, items);
 
 	/* Send the name. */
@@ -268,7 +268,7 @@ void remote_audio_mixer_get_item_info(ddf_fun_t *fun, void *iface,
 	const char *name = NULL;
 	unsigned values = 0;
 	const errno_t ret = mixer_iface->get_item_info(fun, item, &name, &values);
-	const size_t name_size = name ? str_size(name) + 1 : 0;
+	const size_t name_size = name ? str_bytes(name) + 1 : 0;
 	async_answer_2(icall, ret, name_size, values);
 
 	/* Send the name. */

@@ -192,12 +192,12 @@ errno_t ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
 	uint8_t result[HASH_SHA1 * iters];
 	uint8_t temp[HASH_SHA1];
 
-	size_t data_size = PRF_CRYPT_DATA_LENGTH + str_size(a) + 2;
+	size_t data_size = PRF_CRYPT_DATA_LENGTH + str_bytes(a) + 2;
 	uint8_t work_arr[data_size];
 	memset(work_arr, 0, data_size);
 
-	memcpy(work_arr, a, str_size(a));
-	memcpy(work_arr + str_size(a) + 1, data, PRF_CRYPT_DATA_LENGTH);
+	memcpy(work_arr, a, str_bytes(a));
+	memcpy(work_arr + str_bytes(a) + 1, data, PRF_CRYPT_DATA_LENGTH);
 
 	for (uint8_t i = 0; i < iters; i++) {
 		memcpy(work_arr + data_size - 1, &i, 1);

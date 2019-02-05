@@ -129,9 +129,9 @@ static void print_params(const usbdiag_test_params_t *params)
 	free(str_min_duration);
 
 	if (params->transfer_size) {
-		char *str_size = tmon_format_size(params->transfer_size, "%.3f %s");
-		printf("Transfer size: %s\n", str_size);
-		free(str_size);
+		char *str_bytes = tmon_format_size(params->transfer_size, "%.3f %s");
+		printf("Transfer size: %s\n", str_bytes);
+		free(str_bytes);
 	} else {
 		printf("Transfer size: (max. transfer size)\n");
 	}

@@ -119,7 +119,7 @@ const char *symtab_fmt_name_lookup(uintptr_t addr)
  */
 static const char *symtab_search_one(const char *name, size_t *startpos)
 {
-	size_t namelen = str_length(name);
+	size_t namelen = str_code_points(name);
 
 	size_t pos;
 	for (pos = *startpos; symbol_table[pos].address_le; pos++) {
@@ -130,12 +130,12 @@ static const char *symtab_search_one(const char *name, size_t *startpos)
 		if (colon == NULL)
 			continue;
 
-		if (str_length(curname) < namelen)
+		if (str_code_points(curname) < namelen)
 			continue;
 
 		if (str_lcmp(name, curname, namelen) == 0) {
 			*startpos = pos;
-			return (curname + str_lsize(curname, namelen));
+			return (curname + str_lbytes(curname, namelen));
 		}
 	}
 
@@ -163,7 +163,7 @@ errno_t symtab_addr_lookup(const char *name, uintptr_t *addr)
 	const char *hint;
 
 	while ((hint = symtab_search_one(name, &pos))) {
-		if (str_length(hint) == 0) {
+		if (str_code_points(hint) == 0) {
 			*addr = uint64_t_le2host(symbol_table[pos].address_le);
 			found++;
 		}
@@ -205,7 +205,7 @@ const char *symtab_hints_enum(const char *input, const char **help,
     void **ctx)
 {
 #ifdef CONFIG_SYMTAB
-	size_t len = str_length(input);
+	size_t len = str_code_points(input);
 	struct symtab_entry **entry = (struct symtab_entry **)ctx;
 
 	if (*entry == NULL)
@@ -219,14 +219,14 @@ const char *symtab_hints_enum(const char *input, const char **help,
 		if (colon == NULL)
 			continue;
 
-		if (str_length(curname) < len)
+		if (str_code_points(curname) < len)
 			continue;
 
 		if (str_lcmp(input, curname, len) == 0) {
 			(*entry)++;
 			if (help)
 				*help = NULL;
-			return (curname + str_lsize(curname, len));
+			return (curname + str_lbytes(curname, len));
 		}
 	}
 

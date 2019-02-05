@@ -424,7 +424,7 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 				};
 
 				wstr_to_str(term->char_remains, UTF8_CHAR_BUFFER_SIZE, tmp);
-				term->char_remains_len = str_size(term->char_remains);
+				term->char_remains_len = str_bytes(term->char_remains);
 			}
 
 			free(event);

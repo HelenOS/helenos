@@ -86,7 +86,7 @@ namespace std
 
         static size_t length(const char_type* s)
         {
-            return hel::str_size(s);
+            return hel::str_bytes(s);
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)
@@ -372,7 +372,7 @@ namespace std
 
         static size_t length(const char_type* s)
         {
-            return hel::wstr_size(s);
+            return hel::wstr_bytes(s);
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)

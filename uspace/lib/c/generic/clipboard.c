@@ -99,7 +99,7 @@ static void clip_exchange_end(async_exch_t *exch)
  */
 errno_t clipboard_put_str(const char *str)
 {
-	size_t size = str_size(str);
+	size_t size = str_bytes(str);
 
 	if (size == 0) {
 		async_exch_t *exch = clip_exchange_begin();

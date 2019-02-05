@@ -195,7 +195,7 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	if ((flags & mlf_local) != 0)
 		m->local = true;
 
-	if (str_size(name) > NAME_BUF_SIZE - 2) {
+	if (str_bytes(name) > NAME_BUF_SIZE - 2) {
 		printf("soname too long. increase NAME_BUF_SIZE\n");
 		exit(1);
 	}

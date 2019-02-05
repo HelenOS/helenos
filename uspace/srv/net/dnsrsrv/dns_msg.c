@@ -68,8 +68,8 @@ static errno_t dns_dstr_ext(char **dstr, const char *suff)
 		return EOK;
 	}
 
-	s1 = str_size(*dstr);
-	s2 = str_size(suff);
+	s1 = str_bytes(*dstr);
+	s2 = str_bytes(suff);
 	nsize = s1 + s2 + 1;
 
 	nstr = realloc(*dstr, nsize);

@@ -501,7 +501,7 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			    (char *) fid->implementation_use + FLE16(fid->length_iu),
 			    fid->length_file_id, &node->instance->charset);
 
-			async_data_read_finalize(&call, name, str_size(name) + 1);
+			async_data_read_finalize(&call, name, str_bytes(name) + 1);
 			*rbytes = 1;
 			free(name);
 			udf_node_put(rfn);

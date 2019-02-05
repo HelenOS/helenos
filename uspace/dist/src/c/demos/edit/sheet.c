@@ -106,7 +106,7 @@ errno_t sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 	size_t sz;
 	char *newp;
 
-	sz = str_size(str);
+	sz = str_bytes(str);
 	if (sh->text_size + sz > sh->dbuf_size) {
 		/* Enlarge data buffer. */
 		newp = realloc(sh->data, sh->dbuf_size * 2);

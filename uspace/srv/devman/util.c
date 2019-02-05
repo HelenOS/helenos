@@ -38,8 +38,8 @@
 char *get_abs_path(const char *base_path, const char *name, const char *ext)
 {
 	char *res;
-	int base_len = str_size(base_path);
-	int size = base_len + 2 * str_size(name) + str_size(ext) + 3;
+	int base_len = str_bytes(base_path);
+	int size = base_len + 2 * str_bytes(name) + str_bytes(ext) + 3;
 
 	res = malloc(size);
 

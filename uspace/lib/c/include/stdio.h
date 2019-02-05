@@ -203,8 +203,8 @@ enum _buffer_state {
 	_bs_read
 };
 
-extern int vprintf_length(const char *, va_list);
-extern int printf_length(const char *, ...)
+extern int vprintf_code_points(const char *, va_list);
+extern int printf_code_points(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern FILE *fdopen(int, const char *);
 extern int fileno(FILE *);

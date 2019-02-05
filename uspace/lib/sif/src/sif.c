@@ -701,14 +701,14 @@ static errno_t sif_export_string(const char *str, FILE *f)
 static errno_t sif_import_string(FILE *f, char **rstr)
 {
 	char *str;
-	size_t str_size;
+	size_t str_bytes;
 	size_t sidx;
 	int c;
 	errno_t rc;
 
-	str_size = 1;
+	str_bytes = 1;
 	sidx = 0;
-	str = malloc(str_size + 1);
+	str = malloc(str_bytes + 1);
 	if (str == NULL)
 		return ENOMEM;
 
@@ -736,9 +736,9 @@ static errno_t sif_import_string(FILE *f, char **rstr)
 			}
 		}
 
-		if (sidx >= str_size) {
-			str_size *= 2;
-			str = realloc(str, str_size + 1);
+		if (sidx >= str_bytes) {
+			str_bytes *= 2;
+			str = realloc(str, str_bytes + 1);
 			if (str == NULL) {
 				rc = ENOMEM;
 				goto error;

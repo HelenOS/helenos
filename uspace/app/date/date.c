@@ -202,7 +202,7 @@ read_date_from_arg(char *wdate, struct tm *t)
 	errno_t rc;
 	uint32_t tmp;
 
-	if (str_size(wdate) != 10) /* str_size("DD/MM/YYYY") == 10 */
+	if (str_bytes(wdate) != 10) /* str_bytes("DD/MM/YYYY") == 10 */
 		return EINVAL;
 
 	if (wdate[2] != '/' ||
@@ -235,12 +235,12 @@ static errno_t
 read_time_from_arg(char *wtime, struct tm *t)
 {
 	errno_t rc;
-	size_t len = str_size(wtime);
+	size_t len = str_bytes(wtime);
 	bool sec_present = len == 8;
 	uint32_t tmp;
 
-	/* str_size("HH:MM") == 5 */
-	/* str_size("HH:MM:SS") == 8 */
+	/* str_bytes("HH:MM") == 5 */
+	/* str_bytes("HH:MM:SS") == 8 */
 	if (len != 8 && len != 5)
 		return EINVAL;
 

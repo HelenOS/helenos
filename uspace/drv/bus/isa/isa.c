@@ -588,7 +588,7 @@ static void fun_parse_match_id(isa_fun_t *fun, const char *val)
 static bool prop_parse(isa_fun_t *fun, const char *line, const char *prop,
     void (*read_fn)(isa_fun_t *, const char *))
 {
-	size_t proplen = str_size(prop);
+	size_t proplen = str_bytes(prop);
 
 	if (str_lcmp(line, prop, proplen) == 0) {
 		line += proplen;

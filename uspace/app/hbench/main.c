@@ -290,7 +290,7 @@ static void list_benchmarks(void)
 {
 	size_t len = 0;
 	for (size_t i = 0; i < benchmark_count; i++) {
-		size_t len_now = str_length(benchmarks[i]->name);
+		size_t len_now = str_code_points(benchmarks[i]->name);
 		if (len_now > len)
 			len = len_now;
 	}

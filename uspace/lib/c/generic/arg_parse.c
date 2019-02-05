@@ -39,8 +39,8 @@ int arg_parse_short_long(const char *arg, const char *ashort, const char *along)
 	if (str_cmp(arg, ashort) == 0)
 		return 0;
 
-	if (str_lcmp(arg, along, str_length(along)) == 0)
-		return str_length(along);
+	if (str_lcmp(arg, along, str_code_points(along)) == 0)
+		return str_code_points(along);
 
 	return -1;
 }

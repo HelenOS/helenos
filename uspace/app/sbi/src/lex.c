@@ -596,7 +596,7 @@ static void lex_char(lex_t *lex)
 
 	lex_char_string_core(lex, cs_chr);
 
-	len = os_str_length(strlit_buf);
+	len = os_str_code_points(strlit_buf);
 	if (len != 1) {
 		printf("Character literal should contain one character, "
 		    "but contains %u characters instead.\n", (unsigned) len);

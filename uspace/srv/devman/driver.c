@@ -132,7 +132,7 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 		goto cleanup;
 
 	/* Allocate and fill driver's name. */
-	name_size = str_size(name) + 1;
+	name_size = str_bytes(name) + 1;
 	drv->name = malloc(name_size);
 	if (drv->name == NULL)
 		goto cleanup;
@@ -653,7 +653,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 
 	/* Send the device name to the driver. */
 	errno_t rc = async_data_write_start(exch, dev->pfun->name,
-	    str_size(dev->pfun->name) + 1);
+	    str_bytes(dev->pfun->name) + 1);
 
 	async_exchange_end(exch);
 

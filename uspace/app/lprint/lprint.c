@@ -99,7 +99,7 @@ static errno_t lprint_msg(chardev_t *chardev, int argc, char *argv[])
 		--argc;
 		++argv;
 
-		rc = chardev_write(chardev, msg, str_size(msg), &nbytes);
+		rc = chardev_write(chardev, msg, str_bytes(msg), &nbytes);
 		if (rc != EOK) {
 			printf(NAME ": Failed sending data.\n");
 			return EIO;
@@ -107,7 +107,7 @@ static errno_t lprint_msg(chardev_t *chardev, int argc, char *argv[])
 
 		sep = argc > 0 ? " " : "\n";
 
-		rc = chardev_write(chardev, sep, str_size(sep), &nbytes);
+		rc = chardev_write(chardev, sep, str_bytes(sep), &nbytes);
 		if (rc != EOK) {
 			printf(NAME ": Failed sending data.\n");
 			return EIO;

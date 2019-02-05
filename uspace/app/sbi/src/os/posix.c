@@ -123,7 +123,7 @@ errno_t os_str_cmp(const char *a, const char *b)
  * @param str	String
  * @return	Number of characters in @a str.
  */
-size_t os_str_length(const char *str)
+size_t os_str_code_points(const char *str)
 {
 	return strlen(str);
 }

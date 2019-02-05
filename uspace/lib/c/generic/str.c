@@ -331,7 +331,7 @@ errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
  * @return Number of bytes used by the string
  *
  */
-size_t str_size(const char *str)
+size_t str_bytes(const char *str)
 {
 	size_t size = 0;
 
@@ -351,9 +351,9 @@ size_t str_size(const char *str)
  * @return Number of bytes used by the wide string
  *
  */
-size_t wstr_size(const wchar_t *str)
+size_t wstr_bytes(const wchar_t *str)
 {
-	return (wstr_length(str) * sizeof(wchar_t));
+	return (wstr_code_points(str) * sizeof(wchar_t));
 }
 
 /** Get size of string with length limit.
@@ -369,7 +369,7 @@ size_t wstr_size(const wchar_t *str)
  * @return Number of bytes used by the characters.
  *
  */
-size_t str_lsize(const char *str, size_t max_len)
+size_t str_lbytes(const char *str, size_t max_len)
 {
 	size_t len = 0;
 	size_t offset = 0;
@@ -395,7 +395,7 @@ size_t str_lsize(const char *str, size_t max_len)
  * @return Number of bytes used by the string
  *
  */
-size_t str_nsize(const char *str, size_t max_size)
+size_t str_nbytes(const char *str, size_t max_size)
 {
 	size_t size = 0;
 
@@ -416,9 +416,9 @@ size_t str_nsize(const char *str, size_t max_size)
  * @return Number of bytes used by the wide string
  *
  */
-size_t wstr_nsize(const wchar_t *str, size_t max_size)
+size_t wstr_nbytes(const wchar_t *str, size_t max_size)
 {
-	return (wstr_nlength(str, max_size) * sizeof(wchar_t));
+	return (wstr_ncode_points(str, max_size) * sizeof(wchar_t));
 }
 
 /** Get size of wide string with length limit.
@@ -434,9 +434,9 @@ size_t wstr_nsize(const wchar_t *str, size_t max_size)
  * @return Number of bytes used by the wide characters.
  *
  */
-size_t wstr_lsize(const wchar_t *str, size_t max_len)
+size_t wstr_lbytes(const wchar_t *str, size_t max_len)
 {
-	return (wstr_nlength(str, max_len * sizeof(wchar_t)) * sizeof(wchar_t));
+	return (wstr_ncode_points(str, max_len * sizeof(wchar_t)) * sizeof(wchar_t));
 }
 
 /** Get number of characters in a string.
@@ -446,7 +446,7 @@ size_t wstr_lsize(const wchar_t *str, size_t max_len)
  * @return Number of characters in string.
  *
  */
-size_t str_length(const char *str)
+size_t str_code_points(const char *str)
 {
 	size_t len = 0;
 	size_t offset = 0;
@@ -464,7 +464,7 @@ size_t str_length(const char *str)
  * @return Number of characters in @a str.
  *
  */
-size_t wstr_length(const wchar_t *wstr)
+size_t wstr_code_points(const wchar_t *wstr)
 {
 	size_t len = 0;
 
@@ -482,7 +482,7 @@ size_t wstr_length(const wchar_t *wstr)
  * @return Number of characters in string.
  *
  */
-size_t str_nlength(const char *str, size_t size)
+size_t str_ncode_points(const char *str, size_t size)
 {
 	size_t len = 0;
 	size_t offset = 0;
@@ -501,7 +501,7 @@ size_t str_nlength(const char *str, size_t size)
  * @return Number of characters in string.
  *
  */
-size_t wstr_nlength(const wchar_t *str, size_t size)
+size_t wstr_ncode_points(const wchar_t *str, size_t size)
 {
 	size_t len = 0;
 	size_t limit = ALIGN_DOWN(size, sizeof(wchar_t));
@@ -615,7 +615,7 @@ int str_cmp(const char *s1, const char *s2)
  *
  * Do a char-by-char comparison of two NULL-terminated strings.
  * The strings are considered equal iff
- * min(str_length(s1), max_len) == min(str_length(s2), max_len)
+ * min(str_code_points(s1), max_len) == min(str_code_points(s2), max_len)
  * and both strings consist of the same sequence of characters,
  * up to max_len characters.
  *
@@ -715,7 +715,7 @@ int str_casecmp(const char *s1, const char *s2)
  *
  * Do a char-by-char comparison of two NULL-terminated strings.
  * The strings are considered equal iff
- * min(str_length(s1), max_len) == min(str_length(s2), max_len)
+ * min(str_code_points(s1), max_len) == min(str_code_points(s2), max_len)
  * and both strings consist of the same sequence of characters,
  * up to max_len characters.
  *
@@ -878,13 +878,13 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
  */
 void str_append(char *dest, size_t size, const char *src)
 {
-	size_t dstr_size;
+	size_t dstr_bytes;
 
-	dstr_size = str_size(dest);
-	if (dstr_size >= size)
+	dstr_bytes = str_bytes(dest);
+	if (dstr_bytes >= size)
 		return;
 
-	str_cpy(dest + dstr_size, size - dstr_size, src);
+	str_cpy(dest + dstr_bytes, size - dstr_bytes, src);
 }
 
 /** Convert space-padded ASCII to string.
@@ -1177,7 +1177,7 @@ void str_to_wstr(wchar_t *dest, size_t dlen, const char *src)
  */
 wchar_t *str_to_awstr(const char *str)
 {
-	size_t len = str_length(str);
+	size_t len = str_code_points(str);
 
 	wchar_t *wstr = calloc(len + 1, sizeof(wchar_t));
 	if (wstr == NULL)
@@ -1220,11 +1220,11 @@ char *str_str(const char *hs, const char *n)
 {
 	size_t off = 0;
 
-	if (str_lcmp(hs, n, str_length(n)) == 0)
+	if (str_lcmp(hs, n, str_code_points(n)) == 0)
 		return (char *)hs;
 
 	while (str_decode(hs, &off, STR_NO_LIMIT) != 0) {
-		if (str_lcmp(hs + off, n, str_length(n)) == 0)
+		if (str_lcmp(hs + off, n, str_code_points(n)) == 0)
 			return (char *)(hs + off);
 	}
 
@@ -1269,7 +1269,7 @@ void str_ltrim(char *str, wchar_t ch)
 	wchar_t acc;
 	size_t off = 0;
 	size_t pos = 0;
-	size_t str_sz = str_size(str);
+	size_t str_sz = str_bytes(str);
 
 	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
 		if (acc != ch)
@@ -1324,7 +1324,7 @@ char *str_rchr(const char *str, wchar_t ch)
  */
 bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos)
 {
-	size_t len = wstr_length(str);
+	size_t len = wstr_code_points(str);
 
 	if ((pos > len) || (pos + 1 > max_pos))
 		return false;
@@ -1352,7 +1352,7 @@ bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos)
  */
 bool wstr_remove(wchar_t *str, size_t pos)
 {
-	size_t len = wstr_length(str);
+	size_t len = wstr_code_points(str);
 
 	if (pos >= len)
 		return false;
@@ -1382,7 +1382,7 @@ bool wstr_remove(wchar_t *str, size_t pos)
  */
 char *str_dup(const char *src)
 {
-	size_t size = str_size(src) + 1;
+	size_t size = str_bytes(src) + 1;
 	char *dest = malloc(size);
 	if (!dest)
 		return NULL;
@@ -1413,7 +1413,7 @@ char *str_dup(const char *src)
  */
 char *str_ndup(const char *src, size_t n)
 {
-	size_t size = str_size(src);
+	size_t size = str_bytes(src);
 	if (size > n)
 		size = n;
 
@@ -1444,7 +1444,7 @@ char *str_tok(char *s, const char *delim, char **next)
 	if (!s)
 		return NULL;
 
-	size_t len = str_size(s);
+	size_t len = str_bytes(s);
 	size_t cur;
 	size_t tmp;
 	wchar_t ch;

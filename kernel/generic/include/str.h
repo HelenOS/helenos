@@ -71,17 +71,17 @@
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
 
-extern size_t str_size(const char *str);
-extern size_t wstr_size(const wchar_t *str);
+extern size_t str_bytes(const char *str);
+extern size_t wstr_bytes(const wchar_t *str);
 
-extern size_t str_lsize(const char *str, size_t max_len);
-extern size_t wstr_lsize(const wchar_t *str, size_t max_len);
+extern size_t str_lbytes(const char *str, size_t max_len);
+extern size_t wstr_lbytes(const wchar_t *str, size_t max_len);
 
-extern size_t str_length(const char *str);
-extern size_t wstr_length(const wchar_t *wstr);
+extern size_t str_code_points(const char *str);
+extern size_t wstr_code_points(const wchar_t *wstr);
 
-extern size_t str_nlength(const char *str, size_t size);
-extern size_t wstr_nlength(const wchar_t *str, size_t size);
+extern size_t str_ncode_points(const char *str, size_t size);
+extern size_t wstr_ncode_points(const wchar_t *str, size_t size);
 
 extern bool ascii_check(wchar_t ch);
 extern bool chr_check(wchar_t ch);

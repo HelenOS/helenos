@@ -357,7 +357,7 @@ errno_t fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de,
 	memset(ext, FAT_PAD, FAT_EXT_LEN);
 	memset(number, FAT_PAD, FAT_NAME_LEN);
 
-	size_t name_len = str_size(lname);
+	size_t name_len = str_bytes(lname);
 	char *pdot = str_rchr(lname, '.');
 	ext[FAT_EXT_LEN] = '\0';
 	if (pdot) {
@@ -376,19 +376,19 @@ errno_t fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de,
 		/* Fill de->name with FAT_PAD */
 		memset(de->name, FAT_PAD, FAT_NAME_LEN + FAT_EXT_LEN);
 		/* Copy ext */
-		memcpy(de->ext, ext, str_size(ext));
+		memcpy(de->ext, ext, str_bytes(ext));
 		/* Copy name */
-		memcpy(de->name, name, str_size(name));
+		memcpy(de->name, name, str_bytes(name));
 
 		/* Copy number */
 		size_t offset;
-		if (str_size(name) + str_size(number) + 1 > FAT_NAME_LEN)
-			offset = FAT_NAME_LEN - str_size(number) - 1;
+		if (str_bytes(name) + str_bytes(number) + 1 > FAT_NAME_LEN)
+			offset = FAT_NAME_LEN - str_bytes(number) - 1;
 		else
-			offset = str_size(name);
+			offset = str_bytes(name);
 		de->name[offset] = '~';
 		offset++;
-		memcpy(de->name + offset, number, str_size(number));
+		memcpy(de->name + offset, number, str_bytes(number));
 
 		if (!fat_directory_is_sfn_exist(di, de))
 			return EOK;

@@ -187,7 +187,7 @@ static errno_t do_copy(const char *src, const char *dest,
 	dentry_type_t src_type = get_type(src);
 	dentry_type_t dest_type = get_type(dest);
 
-	const size_t src_len = str_size(src);
+	const size_t src_len = str_bytes(src);
 
 	if (src_type == TYPE_FILE) {
 		char *src_fname;
@@ -213,7 +213,7 @@ static errno_t do_copy(const char *src, const char *dest,
 			merge_paths(dest_path, PATH_MAX, src_fname);
 			dest_type = get_type(dest_path);
 		} else if (dest_type == TYPE_NONE) {
-			if (dest_path[str_size(dest_path) - 1] == '/') {
+			if (dest_path[str_bytes(dest_path) - 1] == '/') {
 				/* e.g. cp /textdemo /data/dirnotexists/ */
 
 				printf("The dest directory %s does not exists",

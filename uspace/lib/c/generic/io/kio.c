@@ -136,7 +136,7 @@ static int kio_vprintf_str_write(const char *str, size_t size, void *data)
 
 	wr = 0;
 	(void) kio_write(str, size, &wr);
-	return str_nlength(str, wr);
+	return str_ncode_points(str, wr);
 }
 
 static int kio_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)

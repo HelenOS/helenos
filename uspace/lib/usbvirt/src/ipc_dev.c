@@ -53,7 +53,7 @@ static void ipc_get_name(usbvirt_device_t *dev, ipc_call_t *icall)
 		async_answer_0(icall, ENOENT);
 	}
 
-	size_t size = str_size(dev->name);
+	size_t size = str_bytes(dev->name);
 
 	ipc_call_t call;
 	size_t accepted_size;

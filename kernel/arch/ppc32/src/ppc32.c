@@ -280,7 +280,7 @@ void ppc32_post_smp_init(void)
 	static const char *platform = "mac";
 
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
-	    str_size(platform));
+	    str_bytes(platform));
 
 	ofw_tree_walk_by_device_type("mac-io", macio_register, NULL);
 }

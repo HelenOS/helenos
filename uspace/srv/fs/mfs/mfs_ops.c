@@ -494,7 +494,7 @@ mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		return ENOTDIR;
 
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
-	const size_t comp_size = str_size(component);
+	const size_t comp_size = str_bytes(component);
 
 	unsigned i;
 	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
@@ -507,7 +507,7 @@ mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			continue;
 		}
 
-		const size_t dentry_name_size = str_size(d_info.d_name);
+		const size_t dentry_name_size = str_bytes(d_info.d_name);
 
 		if (comp_size == dentry_name_size &&
 		    memcmp(component, d_info.d_name, dentry_name_size) == 0) {
@@ -702,7 +702,7 @@ mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_sb_info *sbi = parent->instance->sbi;
 	bool destroy_dentry = false;
 
-	if (str_size(name) > sbi->max_name_len)
+	if (str_bytes(name) > sbi->max_name_len)
 		return ENAMETOOLONG;
 
 	errno_t r = mfs_insert_dentry(parent, name, child->ino_i->index);
@@ -872,7 +872,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return rc;
 	found:
 		async_data_read_finalize(&call, d_info.d_name,
-		    str_size(d_info.d_name) + 1);
+		    str_bytes(d_info.d_name) + 1);
 		bytes = ((pos - spos) + 1);
 	} else {
 		struct mfs_sb_info *sbi = mnode->instance->sbi;

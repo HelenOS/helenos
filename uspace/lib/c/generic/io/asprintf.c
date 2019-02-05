@@ -42,15 +42,15 @@
 
 static int asprintf_str_write(const char *str, size_t count, void *unused)
 {
-	return str_nlength(str, count);
+	return str_ncode_points(str, count);
 }
 
 static int asprintf_wstr_write(const wchar_t *str, size_t count, void *unused)
 {
-	return wstr_nlength(str, count);
+	return wstr_ncode_points(str, count);
 }
 
-int vprintf_length(const char *fmt, va_list args)
+int vprintf_code_points(const char *fmt, va_list args)
 {
 	printf_spec_t ps = {
 		asprintf_str_write,
@@ -61,11 +61,11 @@ int vprintf_length(const char *fmt, va_list args)
 	return printf_core(fmt, &ps, args);
 }
 
-int printf_length(const char *fmt, ...)
+int printf_code_points(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	int ret = vprintf_length(fmt, args);
+	int ret = vprintf_code_points(fmt, args);
 	va_end(args);
 
 	return ret;

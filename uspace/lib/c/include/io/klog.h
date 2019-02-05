@@ -50,7 +50,7 @@ extern errno_t klog_read(void *, size_t, size_t *);
 	char *_s; \
 	errno_t _rc = ENOMEM; \
 	if (asprintf(&_s, fmt, ##__VA_ARGS__) >= 0) { \
-		_rc = klog_write((lvl), _s, str_size(_s)); \
+		_rc = klog_write((lvl), _s, str_bytes(_s)); \
 		free(_s); \
 	}; \
 	(_rc != EOK); \

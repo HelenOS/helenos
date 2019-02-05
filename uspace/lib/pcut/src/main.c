@@ -61,7 +61,7 @@ static pcut_main_extra_t empty_main_extra[] = {
  * @return Whether @p arg is @p opt followed by a number.
  */
 int pcut_is_arg_with_number(const char *arg, const char *opt, int *value) {
-	int opt_len = pcut_str_size(opt);
+	int opt_len = pcut_str_bytes(opt);
 	if (! pcut_str_start_equals(arg, opt, opt_len)) {
 		return 0;
 	}

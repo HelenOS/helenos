@@ -237,7 +237,7 @@ static int _dprintf_str_write(const char *str, size_t size, void *fd)
 	size_t wr;
 	if (failed(vfs_write(fildes, &posix_pos[fildes], str, size, &wr)))
 		return -1;
-	return str_nlength(str, wr);
+	return str_ncode_points(str, wr);
 }
 
 /**

@@ -126,7 +126,7 @@ void sun4u_post_smp_init(void)
 	static const char *platform = "sun4u";
 
 	sysinfo_set_item_data("platform", NULL, (void *) platform,
-	    str_size(platform));
+	    str_bytes(platform));
 
 	standalone_sparc64_console_init();
 }

@@ -51,7 +51,7 @@
 static errno_t sysinfo_get_keys_size(const char *path, size_t *size)
 {
 	return (errno_t) __SYSCALL3(SYS_SYSINFO_GET_KEYS_SIZE, (sysarg_t) path,
-	    (sysarg_t) str_size(path), (sysarg_t) size);
+	    (sysarg_t) str_bytes(path), (sysarg_t) size);
 }
 
 /** Get sysinfo keys
@@ -92,7 +92,7 @@ char *sysinfo_get_keys(const char *path, size_t *size)
 	/* Get the data */
 	size_t sz;
 	ret = (errno_t) __SYSCALL5(SYS_SYSINFO_GET_KEYS, (sysarg_t) path,
-	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
+	    (sysarg_t) str_bytes(path), (sysarg_t) data, (sysarg_t) *size,
 	    (sysarg_t) &sz);
 	if (ret == EOK) {
 		*size = sz;
@@ -114,7 +114,7 @@ char *sysinfo_get_keys(const char *path, size_t *size)
 sysinfo_item_val_type_t sysinfo_get_val_type(const char *path)
 {
 	return (sysinfo_item_val_type_t) __SYSCALL2(SYS_SYSINFO_GET_VAL_TYPE,
-	    (sysarg_t) path, (sysarg_t) str_size(path));
+	    (sysarg_t) path, (sysarg_t) str_bytes(path));
 }
 
 /** Get sysinfo numerical value
@@ -129,7 +129,7 @@ sysinfo_item_val_type_t sysinfo_get_val_type(const char *path)
 errno_t sysinfo_get_value(const char *path, sysarg_t *value)
 {
 	return (errno_t) __SYSCALL3(SYS_SYSINFO_GET_VALUE, (sysarg_t) path,
-	    (sysarg_t) str_size(path), (sysarg_t) value);
+	    (sysarg_t) str_bytes(path), (sysarg_t) value);
 }
 
 /** Get sysinfo binary data size
@@ -144,7 +144,7 @@ errno_t sysinfo_get_value(const char *path, sysarg_t *value)
 static errno_t sysinfo_get_data_size(const char *path, size_t *size)
 {
 	return (errno_t) __SYSCALL3(SYS_SYSINFO_GET_DATA_SIZE, (sysarg_t) path,
-	    (sysarg_t) str_size(path), (sysarg_t) size);
+	    (sysarg_t) str_bytes(path), (sysarg_t) size);
 }
 
 /** Get sysinfo binary data
@@ -186,7 +186,7 @@ void *sysinfo_get_data(const char *path, size_t *size)
 	/* Get the data */
 	size_t sz;
 	ret = (errno_t) __SYSCALL5(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
-	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
+	    (sysarg_t) str_bytes(path), (sysarg_t) data, (sysarg_t) *size,
 	    (sysarg_t) &sz);
 	if (ret == EOK) {
 		*size = sz;
@@ -222,7 +222,7 @@ void *sysinfo_get_property(const char *path, const char *name, size_t *size)
 	size_t pos = 0;
 	while (pos < total_size) {
 		/* Process each property with sanity checks */
-		size_t cur_size = str_nsize(data + pos, total_size - pos);
+		size_t cur_size = str_nbytes(data + pos, total_size - pos);
 		if (((char *) data)[pos + cur_size] != 0)
 			break;
 

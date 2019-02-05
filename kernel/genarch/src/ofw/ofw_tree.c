@@ -249,9 +249,9 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 	ofw_tree_node_t *node = ofw_root;
 	size_t j;
 
-	for (size_t i = 1; (i < str_size(path)) && (node); i = j + 1) {
+	for (size_t i = 1; (i < str_bytes(path)) && (node); i = j + 1) {
 		j = i;
-		while (j < str_size(path) && path[j] != '/')
+		while (j < str_bytes(path) && path[j] != '/')
 			j++;
 
 		/* Skip extra slashes */
@@ -341,7 +341,7 @@ static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
 	/* Compute serialized data size */
 	*size = 0;
 	for (size_t i = 0; i < node->properties; i++)
-		*size += str_size(node->property[i].name) + 1 +
+		*size += str_bytes(node->property[i].name) + 1 +
 		    sizeof(node->property[i].size) + node->property[i].size;
 
 	if (dry_run)
@@ -358,7 +358,7 @@ static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
 	for (size_t i = 0; i < node->properties; i++) {
 		/* Property name */
 		str_cpy(dump + pos, *size - pos, node->property[i].name);
-		pos += str_size(node->property[i].name) + 1;
+		pos += str_bytes(node->property[i].name) + 1;
 
 		/* Value size */
 		memcpy(dump + pos, &node->property[i].size,
@@ -392,7 +392,7 @@ static void ofw_tree_node_sysinfo(ofw_tree_node_t *node, const char *path)
 	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
 		if ((cur->parent) && (path))
 			snprintf(cur_path, PATH_MAX_LEN, "%s.%s", path, cur->da_name);
-		else if (!str_size(cur->da_name))
+		else if (!str_bytes(cur->da_name))
 			snprintf(cur_path, PATH_MAX_LEN, "firmware.ofw");
 		else
 			snprintf(cur_path, PATH_MAX_LEN, "firmware.%s", cur->da_name);

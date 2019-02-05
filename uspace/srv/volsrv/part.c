@@ -314,7 +314,7 @@ static errno_t vol_part_determine_mount_path(vol_part_t *part, char **rpath,
 	int err;
 
 	/* Get configured mount point */
-	if (str_size(part->volume->mountp) > 0) {
+	if (str_bytes(part->volume->mountp) > 0) {
 		cfg_mp = part->volume->mountp;
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Configured mount point '%s'",
 		    cfg_mp);
@@ -326,7 +326,7 @@ static errno_t vol_part_determine_mount_path(vol_part_t *part, char **rpath,
 
 	if (str_cmp(cfg_mp, "Auto") == 0 || str_cmp(cfg_mp, "auto") == 0) {
 
-		if (str_size(part->label) < 1) {
+		if (str_bytes(part->label) < 1) {
 			/* Don't mount nameless volumes */
 			*rpath = NULL;
 			*rauto = false;

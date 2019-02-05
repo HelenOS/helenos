@@ -90,7 +90,7 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
     align_mode_t mode)
 {
 	size_t i;
-	size_t len = wstr_length(wstr);
+	size_t len = wstr_code_points(wstr);
 	if (mode == ALIGN_LEFT || (mode == ALIGN_JUSTIFY && last)) {
 		for (i = 0; i < width; i++) {
 			if (i < len)
