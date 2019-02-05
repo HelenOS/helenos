@@ -50,7 +50,7 @@ static int asprintf_wstr_write(const wchar_t *str, size_t count, void *unused)
 	return wstr_nlength(str, count);
 }
 
-int vprintf_size(const char *fmt, va_list args)
+int vprintf_length(const char *fmt, va_list args)
 {
 	printf_spec_t ps = {
 		asprintf_str_write,
@@ -61,11 +61,11 @@ int vprintf_size(const char *fmt, va_list args)
 	return printf_core(fmt, &ps, args);
 }
 
-int printf_size(const char *fmt, ...)
+int printf_length(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	int ret = vprintf_size(fmt, args);
+	int ret = vprintf_length(fmt, args);
 	va_end(args);
 
 	return ret;
