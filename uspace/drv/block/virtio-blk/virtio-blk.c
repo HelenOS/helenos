@@ -278,7 +278,6 @@ static errno_t virtio_blk_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	return virtio_blk_bd_rw_blocks(bd, ba, cnt, buf, size, true);
 }
 
-
 static errno_t virtio_blk_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
