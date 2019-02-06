@@ -210,6 +210,7 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	if (num_queues != VIRTIO_NET_NUM_QUEUES) {
 		ddf_msg(LVL_NOTE, "Unsupported number of virtqueues: %u",
 		    num_queues);
+		rc = ELIMIT;
 		goto fail;
 	}
 
@@ -403,7 +404,7 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "port0");
 	if (fun == NULL) {
 		rc = ENOMEM;
-		goto error;
+		goto uninitialize;
 	}
 	nic_t *nic = ddf_dev_data_get(dev);
 	nic_set_ddf_fun(nic, fun);
@@ -417,7 +418,7 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding device function");
-		goto uninitialize;
+		goto destroy;
 	}
 
 	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
@@ -433,9 +434,10 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 
 unbind:
 	ddf_fun_unbind(fun);
+destroy:
+	ddf_fun_destroy(fun);
 uninitialize:
 	virtio_net_uninitialize(dev);
-error:
 	return rc;
 }
 
