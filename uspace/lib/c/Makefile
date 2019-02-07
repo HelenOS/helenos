@@ -205,7 +205,8 @@ TEST_SOURCES = \
 	test/cap.c \
 	test/gsort.c \
 	test/ieee_double.c \
-	test/double_to_str.c
+	test/double_to_str.c \
+	test/getopt.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
