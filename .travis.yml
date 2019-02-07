@@ -34,7 +34,7 @@
 #
 
 language: c
-dist: trusty
+dist: xenial
 sudo: required
 env:
   global:
