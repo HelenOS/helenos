@@ -64,8 +64,8 @@ errno_t uuid_generate(uuid_t *uuid)
 	}
 
 	/* Version 4 UUID from random or pseudo-random numbers */
-	uuid->b[8] = (uuid->b[8] & ~0xc0) | 0x40;
-	uuid->b[6] = (uuid->b[6] & 0xf0) | 0x40;
+	uuid->b[6] = (uuid->b[6] & 0x4F) | 0x40;
+	uuid->b[8] = (uuid->b[8] & 0xBF) | 0xB0;
 
 	return EOK;
 error:
@@ -184,7 +184,7 @@ errno_t uuid_format(uuid_t *uuid, char **rstr, bool uppercase)
 		return ENOMEM;
 	
 	const char *format = "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x";
-	if(uppercase)
+	if (uppercase)
 		format = "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X";
 
 	int ret = snprintf(str, size, format, uuid->b[0], uuid->b[1], uuid->b[2], uuid->b[3], uuid->b[4], uuid->b[5], uuid->b[6], uuid->b[7], uuid->b[8], uuid->b[9], uuid->b[10], uuid->b[11], uuid->b[12], uuid->b[13], uuid->b[14], uuid->b[15]);
