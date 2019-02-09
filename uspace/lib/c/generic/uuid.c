@@ -138,7 +138,7 @@ errno_t uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
 		return EINVAL;
 
 	rc = str_uint64_t(str + 24, &eptr, 16, false, &node);
-	if (rc != EOK || eptr != str + 36 || *eptr != '\0')
+	if (rc != EOK || eptr != str + 36)
 		return EINVAL;
 
 	uuid->b[0] = time_low >> 24;
