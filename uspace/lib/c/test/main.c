@@ -50,5 +50,6 @@ PCUT_IMPORT(gsort);
 PCUT_IMPORT(ieee_double);
 PCUT_IMPORT(double_to_str);
 PCUT_IMPORT(getopt);
+PCUT_IMPORT(uuid);
 
 PCUT_MAIN();
