@@ -66,8 +66,8 @@ errno_t uuid_generate(uuid_t *uuid)
 	/* Version 4 UUID from random or pseudo-random numbers */
 	uuid->b[6] = (uuid->b[6] & 0x4F) | 0x40;
 	uuid->b[8] = (uuid->b[8] & 0xBF) | 0xB0;
-
-	return EOK;
+	
+	rc = EOK;
 error:
 	rndgen_destroy(rndgen);
 	return rc;
