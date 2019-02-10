@@ -67,7 +67,6 @@ errno_t uuid_generate(uuid_t *uuid)
 	uuid->b[6] = (uuid->b[6] & 0x0f) | 0x40;
 	uuid->b[8] = (uuid->b[8] & 0x3f) | 0x80;
 
-	return EOK;
 error:
 	rndgen_destroy(rndgen);
 	return rc;
