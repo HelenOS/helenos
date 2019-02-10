@@ -39,6 +39,12 @@
 #include <errno.h>
 #include <assert.h>
 
+struct __dirstream {
+	int fd;
+	struct dirent res;
+	aoff64_t pos;
+};
+
 /** Open directory.
  *
  * @param dirname Directory pathname
