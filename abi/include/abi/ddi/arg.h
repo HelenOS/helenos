@@ -37,7 +37,9 @@
 
 #include <stdint.h>
 
-#define DMAMEM_FLAGS_ANONYMOUS  0x01
+enum {
+	DMAMEM_FLAGS_ANONYMOUS = 0x01,
+};
 
 /** Structure encapsulating arguments for SYS_PHYSMEM_MAP syscall. */
 typedef struct {

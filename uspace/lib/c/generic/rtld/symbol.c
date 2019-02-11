@@ -261,7 +261,7 @@ elf_symbol_t *symbol_def_find(const char *name, module_t *origin,
  */
 void *symbol_get_addr(elf_symbol_t *sym, module_t *m, tcb_t *tcb)
 {
-	if (ELF_ST_TYPE(sym->st_info) == STT_TLS) {
+	if (elf_st_type(sym->st_info) == STT_TLS) {
 		if (tcb == NULL)
 			return NULL;
 		return rtld_tls_get_addr(m->rtld, tcb, m->id, sym->st_value);

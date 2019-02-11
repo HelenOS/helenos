@@ -38,7 +38,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define CAP_NIL  0
+enum {
+	CAP_NIL = 0,
+};
 
 typedef void *cap_handle_t;
 

@@ -40,59 +40,70 @@
 #include <abi/cap.h>
 #include <_bits/errno.h>
 
-/** Length of data being transferred with IPC call
- *
- * The uspace may not be able to utilize the full length
- *
- */
-#define IPC_CALL_LEN  6
+/* Miscellaneous constants */
+enum {
+	/** Length of data being transferred with IPC call
+	 *
+	 * The uspace may not be able to utilize the full length
+	 *
+	 */
+	IPC_CALL_LEN = 6,
 
-/** Maximum active async calls per phone */
-#define IPC_MAX_ASYNC_CALLS  64
+	/** Maximum active async calls per phone */
+	IPC_MAX_ASYNC_CALLS = 64,
+
+	/**
+	 * Maximum buffer size allowed for IPC_M_DATA_WRITE and
+	 * IPC_M_DATA_READ requests.
+	 */
+	DATA_XFER_LIMIT = 64 * 1024,
+};
 
 /* Flags for calls */
+enum {
+	/** This is answer to a call */
+	IPC_CALL_ANSWERED       = 1 << 0,
 
-/** This is answer to a call */
-#define IPC_CALL_ANSWERED        (1 << 0)
+	/** Answer will not be passed to userspace, will be discarded */
+	IPC_CALL_DISCARD_ANSWER = 1 << 1,
 
-/** Answer will not be passed to userspace, will be discarded */
-#define IPC_CALL_DISCARD_ANSWER  (1 << 1)
+	/** Call was forwarded */
+	IPC_CALL_FORWARDED      = 1 << 2,
 
-/** Call was forwarded */
-#define IPC_CALL_FORWARDED       (1 << 2)
+	/** Interrupt notification */
+	IPC_CALL_NOTIF          = 1 << 3,
 
-/** Interrupt notification */
-#define IPC_CALL_NOTIF           (1 << 3)
-
-/** The call was automatically answered by the kernel due to error */
-#define IPC_CALL_AUTO_REPLY      (1 << 4)
-
-/**
- * Maximum buffer size allowed for IPC_M_DATA_WRITE and
- * IPC_M_DATA_READ requests.
- */
-#define DATA_XFER_LIMIT  (64 * 1024)
+	/** The call was automatically answered by the kernel due to error */
+	IPC_CALL_AUTO_REPLY     = 1 << 4,
+};
 
 /* Forwarding flags. */
-#define IPC_FF_NONE  0
+enum {
+	IPC_FF_NONE = 0,
 
-/**
- * The call will be routed as though it was initially sent via the phone used to
- * forward it. This feature is intended to support the situation in which the
- * forwarded call needs to be handled by the same connection fibril as any other
- * calls that were initially sent by the forwarder to the same destination. This
- * flag has no imapct on routing replies.
- */
-#define IPC_FF_ROUTE_FROM_ME  (1 << 0)
+	/**
+	 * The call will be routed as though it was initially sent via the phone
+	 * used to forward it. This feature is intended to support the situation
+	 * in which the forwarded call needs to be handled by the same
+	 * connection fibril as any other calls that were initially sent by
+	 * the forwarder to the same destination.
+	 * This flag has no imapct on routing replies.
+	 */
+	IPC_FF_ROUTE_FROM_ME = 1 << 0,
+};
 
 /* Data transfer flags. */
-#define IPC_XF_NONE  0
+enum {
+	IPC_XF_NONE = 0,
 
-/** Restrict the transfer size if necessary. */
-#define IPC_XF_RESTRICT  (1 << 0)
+	/** Restrict the transfer size if necessary. */
+	IPC_XF_RESTRICT = 1 << 0,
+};
 
 /** User-defined IPC methods */
-#define IPC_FIRST_USER_METHOD  1024
+enum {
+	IPC_FIRST_USER_METHOD = 1024,
+};
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
