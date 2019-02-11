@@ -38,12 +38,14 @@
 #include <abi/cap.h>
 
 /* Well known phone descriptors */
-#define PHONE_NS  ((cap_phone_handle_t) (CAP_NIL + 1))
+static cap_phone_handle_t const PHONE_NS = (cap_phone_handle_t) (CAP_NIL + 1);
 
 /** Kernel IPC interfaces
  *
  */
-#define IPC_IF_KERNEL  0
+enum {
+	IPC_IF_KERNEL = 0,
+};
 
 /** System-specific IPC methods
  *
@@ -51,7 +53,6 @@
  * have the implicit kernel interface zero (0).
  *
  */
-
 enum {
 	/** This message is sent to answerbox when the phone is hung up
 	 *
@@ -216,7 +217,9 @@ enum {
 };
 
 /** Last system IPC method */
-#define IPC_M_LAST_SYSTEM  511
+enum {
+	IPC_M_LAST_SYSTEM = 511,
+};
 
 #endif
 

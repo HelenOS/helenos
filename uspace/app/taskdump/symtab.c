@@ -214,7 +214,7 @@ errno_t symtab_name_to_addr(symtab_t *st, const char *name, uintptr_t *addr)
 		if (st->sym[i].st_name == 0)
 			continue;
 
-		stype = ELF_ST_TYPE(st->sym[i].st_info);
+		stype = elf_st_type(st->sym[i].st_info);
 		if (stype != STT_OBJECT && stype != STT_FUNC)
 			continue;
 
@@ -256,7 +256,7 @@ errno_t symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
 		if (st->sym[i].st_name == 0)
 			continue;
 
-		stype = ELF_ST_TYPE(st->sym[i].st_info);
+		stype = elf_st_type(st->sym[i].st_info);
 		if (stype != STT_OBJECT && stype != STT_FUNC &&
 		    stype != STT_NOTYPE) {
 			continue;
