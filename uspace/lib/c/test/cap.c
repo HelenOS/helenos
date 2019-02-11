@@ -96,7 +96,7 @@ PCUT_TEST(cap_format)
 			cap_simplify(&cap);
 
 			rc = cap_format(&cap, &str);
-			
+
 			PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 			PCUT_ASSERT_STR_EQUALS(out[x + (block_size * i)], str);
 			free(str);
@@ -105,7 +105,7 @@ PCUT_TEST(cap_format)
 			cap_simplify(&cap);
 
 			rc = cap_format(&cap, &str);
-			
+
 			PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 			PCUT_ASSERT_STR_EQUALS(out[x + (block_size * i)], str);
 			free(str);
@@ -148,7 +148,7 @@ PCUT_TEST(cap_format_rounding)
 		cap_simplify(&cap);
 
 		rc = cap_format(&cap, &str);
-		
+
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 		PCUT_ASSERT_STR_EQUALS(out[i], str);
 		free(str);
@@ -157,7 +157,7 @@ PCUT_TEST(cap_format_rounding)
 		cap_simplify(&cap);
 
 		rc = cap_format(&cap, &str);
-		
+
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 		PCUT_ASSERT_STR_EQUALS(out[i], str);
 		free(str);
@@ -219,7 +219,7 @@ PCUT_TEST(cap_to_blocks)
 		5555,
 		7777,
 	};
-	
+
 	int input_dp[] = {
 		0,
 		0,

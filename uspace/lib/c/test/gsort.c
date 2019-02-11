@@ -67,7 +67,7 @@ PCUT_TEST(gsort_asc_complex)
 {
 	int size = 10;
 	int data[size];
-	
+
 	for (int i = 0; i < size; i++) {
 		data[i] = (i * 13) % 9;
 	}
@@ -79,7 +79,7 @@ PCUT_TEST(gsort_asc_complex)
 
 	bool ret = gsort(data, size, sizeof(int), cmp_func, NULL);
 	PCUT_ASSERT_TRUE(ret);
-	
+
 	int prev = data[0];
 	for (int i = 1; i < size; i++) {
 		PCUT_ASSERT_TRUE(prev <= data[i]);
@@ -96,10 +96,10 @@ PCUT_TEST(gsort_desc)
 	for (int i = 0; i < size; i++) {
 		data[i] = size - i;
 	}
-	
+
 	bool ret = gsort(&data, size, sizeof(int), cmp_func, NULL);
 	PCUT_ASSERT_TRUE(ret);
-	
+
 	for (int i = 0; i < size; i++) {
 		PCUT_ASSERT_INT_EQUALS(i + 1, data[i]);
 	}

@@ -52,7 +52,7 @@ static bool uuid_valid(uuid_t uuid)
 	if (!(uuid.b[6] & 0x40)) {
 		return false;
 	}
-	
+
 	int f = (uuid.b[8] & 0x80) || (uuid.b[8] & 0x90);
 	f = f || (uuid.b[8] & 0xA0) || (uuid.b[8] & 0xB0);
 	if (!f) {
@@ -96,9 +96,9 @@ PCUT_TEST(uuid_parse_in_text)
 	errno_t ret;
 	const char *endptr;
 	const char *uuid_in_text = "7b1abd05-456f-4661-ab62-917685069343hello world!";
-	
+
 	ret = uuid_parse(uuid_in_text, &uuid, &endptr);
-	
+
 	PCUT_ASSERT_ERRNO_VAL(EOK, ret);
 	PCUT_ASSERT_TRUE(uuid_valid(uuid));
 	PCUT_ASSERT_STR_EQUALS("hello world!", endptr);

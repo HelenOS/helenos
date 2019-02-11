@@ -133,7 +133,7 @@ PCUT_TEST(extract_ieee_double_neg_zero)
 	PCUT_ASSERT_FALSE(d.is_special);
 	PCUT_ASSERT_FALSE(d.is_nan);
 	PCUT_ASSERT_FALSE(d.is_infinity);
-	
+
 	PCUT_ASSERT_TRUE(d.is_negative);
 	PCUT_ASSERT_TRUE(d.is_denormal);
 	PCUT_ASSERT_FALSE(d.is_accuracy_step);

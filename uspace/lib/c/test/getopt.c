@@ -51,12 +51,12 @@ PCUT_TEST(getopt_param_flag)
 	opterr = 0;
 
 	ret = getopt(argc, (char *const *)argv, options);
-	
+
 	PCUT_ASSERT_INT_EQUALS('f', ret);
 	PCUT_ASSERT_INT_EQUALS(2, optind);
 
 	ret = getopt(argc, (char *const *)argv, options);
-	
+
 	PCUT_ASSERT_INT_EQUALS('p', ret);
 	PCUT_ASSERT_INT_EQUALS(4, optind);
 	PCUT_ASSERT_STR_EQUALS("param", optarg);
@@ -141,7 +141,7 @@ PCUT_TEST(getopt_missing_param1)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('?', ret);
@@ -165,7 +165,7 @@ PCUT_TEST(getopt_missing_param2)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS(':', ret);
@@ -189,7 +189,7 @@ PCUT_TEST(getopt_illegal_option)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('?', ret);
@@ -226,13 +226,13 @@ PCUT_TEST(getopt_flag_with_param)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	/* getopt() would print a error message but thx to opterror=0 it doesnt */
 	PCUT_ASSERT_INT_EQUALS('f', ret);
 	PCUT_ASSERT_INT_EQUALS(2, optind);
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('d', ret);
@@ -256,7 +256,7 @@ PCUT_TEST(getopt_case_sensitive)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('F', ret);
@@ -266,7 +266,7 @@ PCUT_TEST(getopt_case_sensitive)
 
 	PCUT_ASSERT_INT_EQUALS('f', ret);
 	PCUT_ASSERT_INT_EQUALS(3, optind);
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 	PCUT_ASSERT_INT_EQUALS(-1, ret);
 }
@@ -284,7 +284,7 @@ PCUT_TEST(getopt_flag_whitespace)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('p', ret);
@@ -294,7 +294,7 @@ PCUT_TEST(getopt_flag_whitespace)
 
 	PCUT_ASSERT_INT_EQUALS('f', ret);
 	PCUT_ASSERT_INT_EQUALS(1, optind);
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 	PCUT_ASSERT_INT_EQUALS(-1, ret);
 }
@@ -312,13 +312,13 @@ PCUT_TEST(getopt_param_whitespace)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('p', ret);
 	PCUT_ASSERT_INT_EQUALS(2, optind);
 	PCUT_ASSERT_STR_EQUALS(" param", optarg);
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 	PCUT_ASSERT_INT_EQUALS(-1, ret);
 }
@@ -338,7 +338,7 @@ PCUT_TEST(getopt_optional_param)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('f', ret);
@@ -370,7 +370,7 @@ PCUT_TEST(getopt_special_option)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('f', ret);
@@ -395,7 +395,7 @@ PCUT_TEST(getopt_gnu_plus)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('f', ret);
@@ -420,7 +420,7 @@ PCUT_TEST(getopt_gnu_minus)
 	int ret;
 	optreset = 1;
 	opterr = 0;
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 
 	PCUT_ASSERT_INT_EQUALS('f', ret);
@@ -436,7 +436,7 @@ PCUT_TEST(getopt_gnu_minus)
 
 	PCUT_ASSERT_INT_EQUALS('p', ret);
 	PCUT_ASSERT_INT_EQUALS(4, optind);
-	
+
 	ret = getopt(argc, (char *const *)argv, options);
 	PCUT_ASSERT_INT_EQUALS(-1, ret);
 }
