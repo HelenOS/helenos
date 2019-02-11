@@ -582,7 +582,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		    index, LOWER32(pos), UPPER32(pos), &answer);
 
 		/* Forward the IPC_M_DATA_READ request to the driver */
-		async_forward_fast(&call, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_0(&call, exch, 0, IPC_FF_ROUTE_FROM_ME);
 
 		async_exchange_end(exch);
 
@@ -646,7 +646,7 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		    index, LOWER32(pos), UPPER32(pos), &answer);
 
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
-		async_forward_fast(&call, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_0(&call, exch, 0, IPC_FF_ROUTE_FROM_ME);
 
 		async_exchange_end(exch);
 

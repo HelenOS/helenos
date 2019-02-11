@@ -44,7 +44,7 @@ ieee_double_t extract_ieee_double(double val)
 	const uint64_t hidden_bit = (1ULL << 52);
 	const int exponent_bias = 1075;
 
-	static_assert(sizeof(val) == sizeof(uint64_t));
+	static_assert(sizeof(val) == sizeof(uint64_t), "");
 
 	union {
 		uint64_t num;

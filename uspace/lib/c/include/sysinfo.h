@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_SYSINFO_H_
-#define LIBC_SYSINFO_H_
+#ifndef _LIBC_SYSINFO_H_
+#define _LIBC_SYSINFO_H_
 
 #include <types/common.h>
 #include <stddef.h>

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_UNALIGNED_H_
-#define LIBC_UNALIGNED_H_
+#ifndef _LIBC_UNALIGNED_H_
+#define _LIBC_UNALIGNED_H_
 
 #include <stdint.h>
 

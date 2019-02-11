@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_abs32le_TLS_H_
-#define LIBC_abs32le_TLS_H_
+#ifndef _LIBC_abs32le_TLS_H_
+#define _LIBC_abs32le_TLS_H_
 
 #define CONFIG_TLS_VARIANT_2
 

@@ -502,7 +502,7 @@ int double_to_short_str(ieee_double_t ieee_val, char *buf, size_t buf_size,
     int *dec_exponent)
 {
 	/* The whole computation assumes 64bit significand. */
-	static_assert(sizeof(ieee_val.pos_val.significand) == sizeof(uint64_t));
+	static_assert(sizeof(ieee_val.pos_val.significand) == sizeof(uint64_t), "");
 
 	if (ieee_val.is_special) {
 		return -1;
@@ -753,7 +753,7 @@ int double_to_fixed_str(ieee_double_t ieee_val, int signif_d_cnt,
     int frac_d_cnt, char *buf, size_t buf_size, int *dec_exponent)
 {
 	/* The whole computation assumes 64bit significand. */
-	static_assert(sizeof(ieee_val.pos_val.significand) == sizeof(uint64_t));
+	static_assert(sizeof(ieee_val.pos_val.significand) == sizeof(uint64_t), "");
 
 	if (ieee_val.is_special) {
 		return -1;

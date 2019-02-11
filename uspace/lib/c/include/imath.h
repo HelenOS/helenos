@@ -33,8 +33,8 @@
  * @brief Integer math functions
  */
 
-#ifndef LIBC_IMATH_H_
-#define LIBC_IMATH_H_
+#ifndef _LIBC_IMATH_H_
+#define _LIBC_IMATH_H_
 
 #include <stdint.h>
 

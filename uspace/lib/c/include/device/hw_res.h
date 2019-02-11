@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_DEVICE_HW_RES_H_
-#define LIBC_DEVICE_HW_RES_H_
+#ifndef _LIBC_DEVICE_HW_RES_H_
+#define _LIBC_DEVICE_HW_RES_H_
 
 #include <ipc/dev_iface.h>
 #include <async.h>

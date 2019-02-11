@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ppc32_TLS_H_
-#define LIBC_ppc32_TLS_H_
+#ifndef _LIBC_ppc32_TLS_H_
+#define _LIBC_ppc32_TLS_H_
 
 #define CONFIG_TLS_VARIANT_1
 
@@ -42,6 +42,8 @@
 #define ARCH_TP_OFFSET (0x7000 + sizeof(tcb_t))
 
 typedef struct {
+	void **dtv;
+	void *pad;
 	void *fibril_data;
 } tcb_t;
 

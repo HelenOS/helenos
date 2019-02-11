@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 
@@ -174,54 +175,64 @@ namespace __cxxabiv1
     extern "C" void* __cxa_allocate_exception(std::size_t thrown_size)
     {
         // TODO: implement
+        __unimplemented();
         return nullptr;
     }
 
     extern "C" void __cxa_free_exception(void* thrown_exception)
     {
         // TODO: implement
+        __unimplemented();
     }
 
     extern "C" void __cxa_throw(void* thrown_exception, std::type_info* tinfo, void (*dest)(void*))
     {
         // TODO: implement
+        __unimplemented();
     }
 
     extern "C" void* __cxa_get_exception_ptr(void*  exception_object)
     {
         // TODO: implement
+        __unimplemented();
         return nullptr;
     }
 
     extern "C" void* __cxa_begin_catch(void* exception_object)
     {
         // TODO: implement
+        __unimplemented();
         return nullptr;
     }
 
     extern "C" void __cxa_end_catch()
     {
         // TODO: implement
+        __unimplemented();
     }
 
     extern "C" void __cxa_rethrow()
     {
         // TODO: implement
+        __unimplemented();
     }
 
     extern "C" void __cxa_bad_cast()
     {
         // TODO: implement
+        __unimplemented();
     }
 
     extern "C" void __cxa_bad_typeid()
     {
         // TODO: implement
+        __unimplemented();
     }
 
     extern "C" void __cxa_throw_bad_array_new_length()
     {
         // TODO: implement
+        __unimplemented();
     }
 
     extern "C" _Unwind_Reason_Code __gxx_personality_v0(
@@ -230,6 +241,7 @@ namespace __cxxabiv1
     )
     {
         // TODO: implement
+        __unimplemented();
         return _URC_NO_REASON;
     }
 }

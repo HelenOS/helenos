@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_INET_IPLINK_H_
-#define LIBC_INET_IPLINK_H_
+#ifndef _LIBC_INET_IPLINK_H_
+#define _LIBC_INET_IPLINK_H_
 
 #include <async.h>
 #include <inet/addr.h>

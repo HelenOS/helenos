@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TYPES_VOL_H_
-#define LIBC_TYPES_VOL_H_
+#ifndef _LIBC_TYPES_VOL_H_
+#define _LIBC_TYPES_VOL_H_
 
 #include <async.h>
 #include <ipc/vfs.h>

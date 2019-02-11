@@ -242,7 +242,7 @@ typedef union tlb_sfsr_reg tlb_sfsr_reg_t;
 /**
  * Determine the number of entries in the DMMU's small TLB.
  */
-NO_TRACE static inline uint16_t tlb_dsmall_size(void)
+_NO_TRACE static inline uint16_t tlb_dsmall_size(void)
 {
 	return 16;
 }
@@ -250,7 +250,7 @@ NO_TRACE static inline uint16_t tlb_dsmall_size(void)
 /**
  * Determine the number of entries in each DMMU's big TLB.
  */
-NO_TRACE static inline uint16_t tlb_dbig_size(void)
+_NO_TRACE static inline uint16_t tlb_dbig_size(void)
 {
 	return 512;
 }
@@ -258,7 +258,7 @@ NO_TRACE static inline uint16_t tlb_dbig_size(void)
 /**
  * Determine the number of entries in the IMMU's small TLB.
  */
-NO_TRACE static inline uint16_t tlb_ismall_size(void)
+_NO_TRACE static inline uint16_t tlb_ismall_size(void)
 {
 	return 16;
 }
@@ -266,7 +266,7 @@ NO_TRACE static inline uint16_t tlb_ismall_size(void)
 /**
  * Determine the number of entries in the IMMU's big TLB.
  */
-NO_TRACE static inline uint16_t tlb_ibig_size(void)
+_NO_TRACE static inline uint16_t tlb_ibig_size(void)
 {
 	if (((ver_reg_t) ver_read()).impl == IMPL_ULTRASPARCIV_PLUS)
 		return 512;
@@ -280,7 +280,7 @@ NO_TRACE static inline uint16_t tlb_ibig_size(void)
  *
  * @return		Current value of Primary Context Register.
  */
-NO_TRACE static inline uint64_t mmu_primary_context_read(void)
+_NO_TRACE static inline uint64_t mmu_primary_context_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_PRIMARY_CONTEXT_REG);
 }
@@ -289,7 +289,7 @@ NO_TRACE static inline uint64_t mmu_primary_context_read(void)
  *
  * @param v		New value of Primary Context Register.
  */
-NO_TRACE static inline void mmu_primary_context_write(uint64_t v)
+_NO_TRACE static inline void mmu_primary_context_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_PRIMARY_CONTEXT_REG, v);
 	flush_pipeline();
@@ -299,7 +299,7 @@ NO_TRACE static inline void mmu_primary_context_write(uint64_t v)
  *
  * @return		Current value of Secondary Context Register.
  */
-NO_TRACE static inline uint64_t mmu_secondary_context_read(void)
+_NO_TRACE static inline uint64_t mmu_secondary_context_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_SECONDARY_CONTEXT_REG);
 }
@@ -308,7 +308,7 @@ NO_TRACE static inline uint64_t mmu_secondary_context_read(void)
  *
  * @param v		New value of Primary Context Register.
  */
-NO_TRACE static inline void mmu_secondary_context_write(uint64_t v)
+_NO_TRACE static inline void mmu_secondary_context_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_SECONDARY_CONTEXT_REG, v);
 	flush_pipeline();
@@ -323,7 +323,7 @@ NO_TRACE static inline void mmu_secondary_context_write(uint64_t v)
  * @return		Current value of specified IMMU TLB Data Access
  * 			Register.
  */
-NO_TRACE static inline uint64_t itlb_data_access_read(size_t entry)
+_NO_TRACE static inline uint64_t itlb_data_access_read(size_t entry)
 {
 	itlb_data_access_addr_t reg;
 
@@ -337,7 +337,7 @@ NO_TRACE static inline uint64_t itlb_data_access_read(size_t entry)
  * @param entry		TLB Entry index.
  * @param value		Value to be written.
  */
-NO_TRACE static inline void itlb_data_access_write(size_t entry, uint64_t value)
+_NO_TRACE static inline void itlb_data_access_write(size_t entry, uint64_t value)
 {
 	itlb_data_access_addr_t reg;
 
@@ -354,7 +354,7 @@ NO_TRACE static inline void itlb_data_access_write(size_t entry, uint64_t value)
  * @return		Current value of specified DMMU TLB Data Access
  * 			Register.
  */
-NO_TRACE static inline uint64_t dtlb_data_access_read(size_t entry)
+_NO_TRACE static inline uint64_t dtlb_data_access_read(size_t entry)
 {
 	dtlb_data_access_addr_t reg;
 
@@ -368,7 +368,7 @@ NO_TRACE static inline uint64_t dtlb_data_access_read(size_t entry)
  * @param entry		TLB Entry index.
  * @param value		Value to be written.
  */
-NO_TRACE static inline void dtlb_data_access_write(size_t entry, uint64_t value)
+_NO_TRACE static inline void dtlb_data_access_write(size_t entry, uint64_t value)
 {
 	dtlb_data_access_addr_t reg;
 
@@ -384,7 +384,7 @@ NO_TRACE static inline void dtlb_data_access_write(size_t entry, uint64_t value)
  *
  * @return		Current value of specified IMMU TLB Tag Read Register.
  */
-NO_TRACE static inline uint64_t itlb_tag_read_read(size_t entry)
+_NO_TRACE static inline uint64_t itlb_tag_read_read(size_t entry)
 {
 	itlb_tag_read_addr_t tag;
 
@@ -399,7 +399,7 @@ NO_TRACE static inline uint64_t itlb_tag_read_read(size_t entry)
  *
  * @return		Current value of specified DMMU TLB Tag Read Register.
  */
-NO_TRACE static inline uint64_t dtlb_tag_read_read(size_t entry)
+_NO_TRACE static inline uint64_t dtlb_tag_read_read(size_t entry)
 {
 	dtlb_tag_read_addr_t tag;
 
@@ -418,7 +418,7 @@ NO_TRACE static inline uint64_t dtlb_tag_read_read(size_t entry)
  * @return		Current value of specified IMMU TLB Data Access
  * 			Register.
  */
-NO_TRACE static inline uint64_t itlb_data_access_read(int tlb, size_t entry)
+_NO_TRACE static inline uint64_t itlb_data_access_read(int tlb, size_t entry)
 {
 	itlb_data_access_addr_t reg;
 
@@ -433,7 +433,7 @@ NO_TRACE static inline uint64_t itlb_data_access_read(int tlb, size_t entry)
  * @param entry		TLB Entry index.
  * @param value		Value to be written.
  */
-NO_TRACE static inline void itlb_data_access_write(int tlb, size_t entry,
+_NO_TRACE static inline void itlb_data_access_write(int tlb, size_t entry,
     uint64_t value)
 {
 	itlb_data_access_addr_t reg;
@@ -453,7 +453,7 @@ NO_TRACE static inline void itlb_data_access_write(int tlb, size_t entry,
  * @return		Current value of specified DMMU TLB Data Access
  * 			Register.
  */
-NO_TRACE static inline uint64_t dtlb_data_access_read(int tlb, size_t entry)
+_NO_TRACE static inline uint64_t dtlb_data_access_read(int tlb, size_t entry)
 {
 	dtlb_data_access_addr_t reg;
 
@@ -469,7 +469,7 @@ NO_TRACE static inline uint64_t dtlb_data_access_read(int tlb, size_t entry)
  * @param entry		TLB Entry index.
  * @param value		Value to be written.
  */
-NO_TRACE static inline void dtlb_data_access_write(int tlb, size_t entry,
+_NO_TRACE static inline void dtlb_data_access_write(int tlb, size_t entry,
     uint64_t value)
 {
 	dtlb_data_access_addr_t reg;
@@ -488,7 +488,7 @@ NO_TRACE static inline void dtlb_data_access_write(int tlb, size_t entry,
  *
  * @return		Current value of specified IMMU TLB Tag Read Register.
  */
-NO_TRACE static inline uint64_t itlb_tag_read_read(int tlb, size_t entry)
+_NO_TRACE static inline uint64_t itlb_tag_read_read(int tlb, size_t entry)
 {
 	itlb_tag_read_addr_t tag;
 
@@ -505,7 +505,7 @@ NO_TRACE static inline uint64_t itlb_tag_read_read(int tlb, size_t entry)
  *
  * @return		Current value of specified DMMU TLB Tag Read Register.
  */
-NO_TRACE static inline uint64_t dtlb_tag_read_read(int tlb, size_t entry)
+_NO_TRACE static inline uint64_t dtlb_tag_read_read(int tlb, size_t entry)
 {
 	dtlb_tag_read_addr_t tag;
 
@@ -521,7 +521,7 @@ NO_TRACE static inline uint64_t dtlb_tag_read_read(int tlb, size_t entry)
  *
  * @param v		Value to be written.
  */
-NO_TRACE static inline void itlb_tag_access_write(uint64_t v)
+_NO_TRACE static inline void itlb_tag_access_write(uint64_t v)
 {
 	asi_u64_write(ASI_IMMU, VA_IMMU_TAG_ACCESS, v);
 	flush_pipeline();
@@ -531,7 +531,7 @@ NO_TRACE static inline void itlb_tag_access_write(uint64_t v)
  *
  * @return		Current value of IMMU TLB Tag Access Register.
  */
-NO_TRACE static inline uint64_t itlb_tag_access_read(void)
+_NO_TRACE static inline uint64_t itlb_tag_access_read(void)
 {
 	return asi_u64_read(ASI_IMMU, VA_IMMU_TAG_ACCESS);
 }
@@ -540,7 +540,7 @@ NO_TRACE static inline uint64_t itlb_tag_access_read(void)
  *
  * @param v		Value to be written.
  */
-NO_TRACE static inline void dtlb_tag_access_write(uint64_t v)
+_NO_TRACE static inline void dtlb_tag_access_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_DMMU_TAG_ACCESS, v);
 	membar();
@@ -550,7 +550,7 @@ NO_TRACE static inline void dtlb_tag_access_write(uint64_t v)
  *
  * @return 		Current value of DMMU TLB Tag Access Register.
  */
-NO_TRACE static inline uint64_t dtlb_tag_access_read(void)
+_NO_TRACE static inline uint64_t dtlb_tag_access_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_DMMU_TAG_ACCESS);
 }
@@ -559,7 +559,7 @@ NO_TRACE static inline uint64_t dtlb_tag_access_read(void)
  *
  * @param v		Value to be written.
  */
-NO_TRACE static inline void itlb_data_in_write(uint64_t v)
+_NO_TRACE static inline void itlb_data_in_write(uint64_t v)
 {
 	asi_u64_write(ASI_ITLB_DATA_IN_REG, 0, v);
 	flush_pipeline();
@@ -569,7 +569,7 @@ NO_TRACE static inline void itlb_data_in_write(uint64_t v)
  *
  * @param v		Value to be written.
  */
-NO_TRACE static inline void dtlb_data_in_write(uint64_t v)
+_NO_TRACE static inline void dtlb_data_in_write(uint64_t v)
 {
 	asi_u64_write(ASI_DTLB_DATA_IN_REG, 0, v);
 	membar();
@@ -579,7 +579,7 @@ NO_TRACE static inline void dtlb_data_in_write(uint64_t v)
  *
  * @return		Current content of I-SFSR register.
  */
-NO_TRACE static inline uint64_t itlb_sfsr_read(void)
+_NO_TRACE static inline uint64_t itlb_sfsr_read(void)
 {
 	return asi_u64_read(ASI_IMMU, VA_IMMU_SFSR);
 }
@@ -588,7 +588,7 @@ NO_TRACE static inline uint64_t itlb_sfsr_read(void)
  *
  * @param v		New value of I-SFSR register.
  */
-NO_TRACE static inline void itlb_sfsr_write(uint64_t v)
+_NO_TRACE static inline void itlb_sfsr_write(uint64_t v)
 {
 	asi_u64_write(ASI_IMMU, VA_IMMU_SFSR, v);
 	flush_pipeline();
@@ -598,7 +598,7 @@ NO_TRACE static inline void itlb_sfsr_write(uint64_t v)
  *
  * @return		Current content of D-SFSR register.
  */
-NO_TRACE static inline uint64_t dtlb_sfsr_read(void)
+_NO_TRACE static inline uint64_t dtlb_sfsr_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_DMMU_SFSR);
 }
@@ -607,7 +607,7 @@ NO_TRACE static inline uint64_t dtlb_sfsr_read(void)
  *
  * @param v		New value of D-SFSR register.
  */
-NO_TRACE static inline void dtlb_sfsr_write(uint64_t v)
+_NO_TRACE static inline void dtlb_sfsr_write(uint64_t v)
 {
 	asi_u64_write(ASI_DMMU, VA_DMMU_SFSR, v);
 	membar();
@@ -617,7 +617,7 @@ NO_TRACE static inline void dtlb_sfsr_write(uint64_t v)
  *
  * @return		Current content of D-SFAR register.
  */
-NO_TRACE static inline uint64_t dtlb_sfar_read(void)
+_NO_TRACE static inline uint64_t dtlb_sfar_read(void)
 {
 	return asi_u64_read(ASI_DMMU, VA_DMMU_SFAR);
 }
@@ -630,7 +630,7 @@ NO_TRACE static inline uint64_t dtlb_sfar_read(void)
  * 			demap.
  * @param page		Address which is on the page to be demapped.
  */
-NO_TRACE static inline void itlb_demap(int type, int context_encoding, uintptr_t page)
+_NO_TRACE static inline void itlb_demap(int type, int context_encoding, uintptr_t page)
 {
 	tlb_demap_addr_t da;
 	page_address_t pg;
@@ -656,7 +656,7 @@ NO_TRACE static inline void itlb_demap(int type, int context_encoding, uintptr_t
  * 			demap.
  * @param page		Address which is on the page to be demapped.
  */
-NO_TRACE static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
+_NO_TRACE static inline void dtlb_demap(int type, int context_encoding, uintptr_t page)
 {
 	tlb_demap_addr_t da;
 	page_address_t pg;

@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <fibril.h>
 #include <ipc/irc.h>
 #include <ipc/services.h>
 #include <irc.h>

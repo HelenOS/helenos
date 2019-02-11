@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_LOC_H_
-#define LIBC_LOC_H_
+#ifndef _LIBC_LOC_H_
+#define _LIBC_LOC_H_
 
 #include <ipc/loc.h>
 #include <async.h>

@@ -26,14 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_PRIVATE_FIBRIL_H_
-#define LIBC_PRIVATE_FIBRIL_H_
+#ifndef _LIBC_PRIVATE_FIBRIL_H_
+#define _LIBC_PRIVATE_FIBRIL_H_
 
 #include <adt/list.h>
 #include <context.h>
 #include <tls.h>
 #include <abi/proc/uarg.h>
 #include <fibril.h>
+#include <ipc/common.h>
 
 #include "./futex.h"
 

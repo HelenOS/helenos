@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_sparc64_SYSCALL_H_
-#define LIBC_sparc64_SYSCALL_H_
+#ifndef _LIBC_sparc64_SYSCALL_H_
+#define _LIBC_sparc64_SYSCALL_H_
 
 #include <stdint.h>
 #include <abi/syscall.h>

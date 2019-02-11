@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_DEVICE_HW_RES_PARSED_H_
-#define LIBC_DEVICE_HW_RES_PARSED_H_
+#ifndef _LIBC_DEVICE_HW_RES_PARSED_H_
+#define _LIBC_DEVICE_HW_RES_PARSED_H_
 
 #include <device/hw_res.h>
 #include <device/pio_window.h>

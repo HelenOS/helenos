@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_STRING_H_
-#define LIBC_STRING_H_
+#ifndef _LIBC_STRING_H_
+#define _LIBC_STRING_H_
 
 #if defined(_HELENOS_SOURCE) && !defined(_REALLY_WANT_STRING_H) && \
     !defined(_LIBC_SOURCE)

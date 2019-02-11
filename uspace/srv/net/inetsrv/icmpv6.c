@@ -123,7 +123,7 @@ static errno_t icmpv6_recv_echo_reply(inet_dgram_t *dgram)
 	icmpv6_message_t *reply = (icmpv6_message_t *) dgram->data;
 
 	sdu.seq_no = uint16_t_be2host(reply->un.echo.seq_no);
-	sdu.data = reply + sizeof(icmpv6_message_t);
+	sdu.data = dgram->data + sizeof(icmpv6_message_t);
 	sdu.size = dgram->size - sizeof(icmpv6_message_t);
 
 	uint16_t ident = uint16_t_be2host(reply->un.echo.ident);

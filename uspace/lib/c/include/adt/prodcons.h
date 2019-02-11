@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PRODCONS_H_
-#define LIBC_PRODCONS_H_
+#ifndef _LIBC_PRODCONS_H_
+#define _LIBC_PRODCONS_H_
 
 #include <adt/list.h>
 #include <fibril_synch.h>

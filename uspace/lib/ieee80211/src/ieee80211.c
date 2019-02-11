@@ -478,7 +478,7 @@ void ieee80211_set_ready(ieee80211_dev_t *ieee80211_dev, bool ready)
 	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
 }
 
-extern bool ieee80211_query_using_key(ieee80211_dev_t *ieee80211_dev)
+bool ieee80211_query_using_key(ieee80211_dev_t *ieee80211_dev)
 {
 	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	bool using_key = ieee80211_dev->using_hw_key;

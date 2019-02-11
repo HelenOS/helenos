@@ -33,8 +33,8 @@
  * Language and locale ids.
  */
 
-#ifndef LIBC_L18N_LANGS_H_
-#define LIBC_L18N_LANGS_H_
+#ifndef _LIBC_L18N_LANGS_H_
+#define _LIBC_L18N_LANGS_H_
 
 /** Windows locale IDs.
  * Codes taken from

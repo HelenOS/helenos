@@ -90,6 +90,32 @@ static bool test_dlfcn_dl_get_constant(void)
 	return true;
 }
 
+/** Test calling function that calls a function that returns a constant */
+static bool test_dlfcn_dl_get_constant_via_call(void)
+{
+	int (*p_dl_get_constant)(void);
+	int val;
+
+	printf("Call dlsym/dl_get_constant_via_call...\n");
+
+	p_dl_get_constant = dlsym(handle, "dl_get_constant_via_call");
+	if (p_dl_get_constant == NULL) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	val = p_dl_get_constant();
+
+	printf("Got %d, expected %d... ", val, dl_constant);
+	if (val != dl_constant) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
 /** Test calling a function that returns contents of a private initialized
  * variable.
  */
@@ -563,6 +589,25 @@ static bool test_lnk_dl_get_constant(void)
 	return true;
 }
 
+/** Test directly calling function that calls a function that returns a constant */
+static bool test_lnk_dl_get_constant_via_call(void)
+{
+	int val;
+
+	printf("Call linked dl_get_constant_via_call...\n");
+
+	val = dl_get_constant_via_call();
+
+	printf("Got %d, expected %d... ", val, dl_constant);
+	if (val != dl_constant) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
 /** Test dircetly calling a function that returns contents of a private
  * initialized variable.
  */
@@ -852,6 +897,9 @@ static int test_dlfcn(void)
 	if (!test_dlfcn_dl_get_constant())
 		return 1;
 
+	if (!test_dlfcn_dl_get_constant_via_call())
+		return 1;
+
 	if (!test_dlfcn_dl_get_private_var())
 		return 1;
 
@@ -904,6 +952,9 @@ static int test_dlfcn(void)
 static int test_lnk(void)
 {
 	if (!test_lnk_dl_get_constant())
+		return 1;
+
+	if (!test_lnk_dl_get_constant_via_call())
 		return 1;
 
 	if (!test_lnk_dl_get_private_var())

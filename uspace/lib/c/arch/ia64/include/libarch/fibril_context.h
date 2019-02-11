@@ -26,51 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_ARCH_FIBRIL_CONTEXT_H_
-#define LIBC_ARCH_FIBRIL_CONTEXT_H_
+#ifndef _LIBC_ARCH_FIBRIL_CONTEXT_H_
+#define _LIBC_ARCH_FIBRIL_CONTEXT_H_
 
-#define CONTEXT_OFFSET_AR_PFS          0x000
-#define CONTEXT_OFFSET_AR_UNAT_CALLER  0x008
-#define CONTEXT_OFFSET_AR_UNAT_CALLEE  0x010
-#define CONTEXT_OFFSET_AR_RSC          0x018
-#define CONTEXT_OFFSET_BSP             0x020
-#define CONTEXT_OFFSET_AR_RNAT         0x028
-#define CONTEXT_OFFSET_AR_LC           0x030
-#define CONTEXT_OFFSET_R1              0x038
-#define CONTEXT_OFFSET_R4              0x040
-#define CONTEXT_OFFSET_R5              0x048
-#define CONTEXT_OFFSET_R6              0x050
-#define CONTEXT_OFFSET_R7              0x058
-#define CONTEXT_OFFSET_SP              0x060
-#define CONTEXT_OFFSET_TP              0x068
-#define CONTEXT_OFFSET_PC              0x070
-#define CONTEXT_OFFSET_B1              0x078
-#define CONTEXT_OFFSET_B2              0x080
-#define CONTEXT_OFFSET_B3              0x088
-#define CONTEXT_OFFSET_B4              0x090
-#define CONTEXT_OFFSET_B5              0x098
-#define CONTEXT_OFFSET_PR              0x0a0
-#define CONTEXT_OFFSET_F2              0x0b0
-#define CONTEXT_OFFSET_F3              0x0c0
-#define CONTEXT_OFFSET_F4              0x0d0
-#define CONTEXT_OFFSET_F5              0x0e0
-#define CONTEXT_OFFSET_F16             0x0f0
-#define CONTEXT_OFFSET_F17             0x100
-#define CONTEXT_OFFSET_F18             0x110
-#define CONTEXT_OFFSET_F19             0x120
-#define CONTEXT_OFFSET_F20             0x130
-#define CONTEXT_OFFSET_F21             0x140
-#define CONTEXT_OFFSET_F22             0x150
-#define CONTEXT_OFFSET_F23             0x160
-#define CONTEXT_OFFSET_F24             0x170
-#define CONTEXT_OFFSET_F25             0x180
-#define CONTEXT_OFFSET_F26             0x190
-#define CONTEXT_OFFSET_F27             0x1a0
-#define CONTEXT_OFFSET_F28             0x1b0
-#define CONTEXT_OFFSET_F29             0x1c0
-#define CONTEXT_OFFSET_F30             0x1d0
-#define CONTEXT_OFFSET_F31             0x1e0
-#define CONTEXT_SIZE                   0x1f0
+#define __CONTEXT_OFFSET_AR_PFS          0x000
+#define __CONTEXT_OFFSET_AR_UNAT_CALLER  0x008
+#define __CONTEXT_OFFSET_AR_UNAT_CALLEE  0x010
+#define __CONTEXT_OFFSET_AR_RSC          0x018
+#define __CONTEXT_OFFSET_BSP             0x020
+#define __CONTEXT_OFFSET_AR_RNAT         0x028
+#define __CONTEXT_OFFSET_AR_LC           0x030
+#define __CONTEXT_OFFSET_R1              0x038
+#define __CONTEXT_OFFSET_R4              0x040
+#define __CONTEXT_OFFSET_R5              0x048
+#define __CONTEXT_OFFSET_R6              0x050
+#define __CONTEXT_OFFSET_R7              0x058
+#define __CONTEXT_OFFSET_SP              0x060
+#define __CONTEXT_OFFSET_TP              0x068
+#define __CONTEXT_OFFSET_PC              0x070
+#define __CONTEXT_OFFSET_B1              0x078
+#define __CONTEXT_OFFSET_B2              0x080
+#define __CONTEXT_OFFSET_B3              0x088
+#define __CONTEXT_OFFSET_B4              0x090
+#define __CONTEXT_OFFSET_B5              0x098
+#define __CONTEXT_OFFSET_PR              0x0a0
+#define __CONTEXT_OFFSET_F2              0x0b0
+#define __CONTEXT_OFFSET_F3              0x0c0
+#define __CONTEXT_OFFSET_F4              0x0d0
+#define __CONTEXT_OFFSET_F5              0x0e0
+#define __CONTEXT_OFFSET_F16             0x0f0
+#define __CONTEXT_OFFSET_F17             0x100
+#define __CONTEXT_OFFSET_F18             0x110
+#define __CONTEXT_OFFSET_F19             0x120
+#define __CONTEXT_OFFSET_F20             0x130
+#define __CONTEXT_OFFSET_F21             0x140
+#define __CONTEXT_OFFSET_F22             0x150
+#define __CONTEXT_OFFSET_F23             0x160
+#define __CONTEXT_OFFSET_F24             0x170
+#define __CONTEXT_OFFSET_F25             0x180
+#define __CONTEXT_OFFSET_F26             0x190
+#define __CONTEXT_OFFSET_F27             0x1a0
+#define __CONTEXT_OFFSET_F28             0x1b0
+#define __CONTEXT_OFFSET_F29             0x1c0
+#define __CONTEXT_OFFSET_F30             0x1d0
+#define __CONTEXT_OFFSET_F31             0x1e0
+#define __CONTEXT_SIZE                   0x1f0
 
 #ifndef __ASSEMBLER__
 
@@ -78,7 +78,7 @@
 #include <_bits/int128_t.h>
 
 // Only save registers that must be preserved across function calls.
-typedef struct context {
+typedef struct __context {
 	// Application registers.
 	uint64_t ar_pfs;
 	uint64_t ar_unat_caller;
@@ -131,7 +131,7 @@ typedef struct context {
 	uint128_t f29;
 	uint128_t f30;
 	uint128_t f31;
-} context_t;
+} __context_t;
 
 #endif  /* __ASSEMBLER__ */
 #endif

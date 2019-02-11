@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_CLIPBOARD_H_
-#define LIBC_CLIPBOARD_H_
+#ifndef _LIBC_CLIPBOARD_H_
+#define _LIBC_CLIPBOARD_H_
 
 extern errno_t clipboard_put_str(const char *);
 extern errno_t clipboard_get_str(char **);

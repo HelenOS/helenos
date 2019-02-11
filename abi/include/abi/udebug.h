@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_UDEBUG_H_
-#define ABI_UDEBUG_H_
+#ifndef _ABI_UDEBUG_H_
+#define _ABI_UDEBUG_H_
 
 #define UDEBUG_EVMASK(event)  (1 << ((event) - 1))
 

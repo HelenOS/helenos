@@ -32,15 +32,14 @@
 /** @file
  */
 
-#if ((defined(LIBC_IPC_H_)) && (!defined(LIBC_ASYNC_C_)))
+#if ((defined(_LIBC_IPC_H_)) && (!defined(_LIBC_ASYNC_C_)))
 #error Do not intermix low-level IPC interface and async framework
 #endif
 
-#ifndef LIBC_ASYNC_H_
-#define LIBC_ASYNC_H_
+#ifndef _LIBC_ASYNC_H_
+#define _LIBC_ASYNC_H_
 
 #include <ipc/common.h>
-#include <fibril.h>
 #include <time.h>
 #include <stdbool.h>
 #include <abi/proc/task.h>
@@ -108,34 +107,18 @@ typedef struct async_exch async_exch_t;
 
 extern __noreturn void async_manager(void);
 
-#define async_get_call(data) \
-	async_get_call_timeout(data, 0)
-
+extern bool async_get_call(ipc_call_t *);
 extern bool async_get_call_timeout(ipc_call_t *, usec_t);
 
-/*
- * User-friendly wrappers for async_send_fast() and async_send_slow(). The
- * macros are in the form async_send_m(), where m denotes the number of payload
- * arguments. Each macros chooses between the fast and the slow version based
- * on m.
- */
-
-#define async_send_0(exch, method, dataptr) \
-	async_send_fast(exch, method, 0, 0, 0, 0, dataptr)
-#define async_send_1(exch, method, arg1, dataptr) \
-	async_send_fast(exch, method, arg1, 0, 0, 0, dataptr)
-#define async_send_2(exch, method, arg1, arg2, dataptr) \
-	async_send_fast(exch, method, arg1, arg2, 0, 0, dataptr)
-#define async_send_3(exch, method, arg1, arg2, arg3, dataptr) \
-	async_send_fast(exch, method, arg1, arg2, arg3, 0, dataptr)
-#define async_send_4(exch, method, arg1, arg2, arg3, arg4, dataptr) \
-	async_send_fast(exch, method, arg1, arg2, arg3, arg4, dataptr)
-#define async_send_5(exch, method, arg1, arg2, arg3, arg4, arg5, dataptr) \
-	async_send_slow(exch, method, arg1, arg2, arg3, arg4, arg5, dataptr)
-
-extern aid_t async_send_fast(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+extern aid_t async_send_0(async_exch_t *, sysarg_t, ipc_call_t *);
+extern aid_t async_send_1(async_exch_t *, sysarg_t, sysarg_t, ipc_call_t *);
+extern aid_t async_send_2(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    ipc_call_t *);
+extern aid_t async_send_3(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, ipc_call_t *);
+extern aid_t async_send_4(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, ipc_call_t *);
-extern aid_t async_send_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+extern aid_t async_send_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
 extern void async_wait_for(aid_t, errno_t *);
@@ -198,136 +181,92 @@ extern errno_t async_answer_5(ipc_call_t *, errno_t, sysarg_t, sysarg_t,
  * Wrappers for forwarding routines.
  */
 
-extern errno_t async_forward_fast(ipc_call_t *, async_exch_t *, sysarg_t,
+extern errno_t async_forward_0(ipc_call_t *, async_exch_t *, sysarg_t,
+    unsigned int);
+extern errno_t async_forward_1(ipc_call_t *, async_exch_t *, sysarg_t,
+    sysarg_t, unsigned int);
+extern errno_t async_forward_2(ipc_call_t *, async_exch_t *, sysarg_t,
     sysarg_t, sysarg_t, unsigned int);
-extern errno_t async_forward_slow(ipc_call_t *, async_exch_t *, sysarg_t,
+extern errno_t async_forward_3(ipc_call_t *, async_exch_t *, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, unsigned int);
+extern errno_t async_forward_4(ipc_call_t *, async_exch_t *, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t, unsigned int);
+extern errno_t async_forward_5(ipc_call_t *, async_exch_t *, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
 /*
- * User-friendly wrappers for async_req_fast() and async_req_slow(). The macros
- * are in the form async_req_m_n(), where m is the number of payload arguments
- * and n is the number of return arguments. The macros decide between the fast
- * and slow verion based on m.
+ * User-friendly wrappers for async_req_*_*().
+ * The functions are in the form async_req_m_n(), where m is the number of
+ * payload arguments and n is the number of return arguments.
  */
 
-#define async_req_0_0(exch, method) \
-	async_req_fast(exch, method, 0, 0, 0, 0, NULL, NULL, NULL, NULL, NULL)
-#define async_req_0_1(exch, method, r1) \
-	async_req_fast(exch, method, 0, 0, 0, 0, r1, NULL, NULL, NULL, NULL)
-#define async_req_0_2(exch, method, r1, r2) \
-	async_req_fast(exch, method, 0, 0, 0, 0, r1, r2, NULL, NULL, NULL)
-#define async_req_0_3(exch, method, r1, r2, r3) \
-	async_req_fast(exch, method, 0, 0, 0, 0, r1, r2, r3, NULL, NULL)
-#define async_req_0_4(exch, method, r1, r2, r3, r4) \
-	async_req_fast(exch, method, 0, 0, 0, 0, r1, r2, r3, r4, NULL)
-#define async_req_0_5(exch, method, r1, r2, r3, r4, r5) \
-	async_req_fast(exch, method, 0, 0, 0, 0, r1, r2, r3, r4, r5)
-
-#define async_req_1_0(exch, method, arg1) \
-	async_req_fast(exch, method, arg1, 0, 0, 0, NULL, NULL, NULL, NULL, \
-	    NULL)
-#define async_req_1_1(exch, method, arg1, rc1) \
-	async_req_fast(exch, method, arg1, 0, 0, 0, rc1, NULL, NULL, NULL, \
-	    NULL)
-#define async_req_1_2(exch, method, arg1, rc1, rc2) \
-	async_req_fast(exch, method, arg1, 0, 0, 0, rc1, rc2, NULL, NULL, \
-	    NULL)
-#define async_req_1_3(exch, method, arg1, rc1, rc2, rc3) \
-	async_req_fast(exch, method, arg1, 0, 0, 0, rc1, rc2, rc3, NULL, \
-	    NULL)
-#define async_req_1_4(exch, method, arg1, rc1, rc2, rc3, rc4) \
-	async_req_fast(exch, method, arg1, 0, 0, 0, rc1, rc2, rc3, rc4, \
-	    NULL)
-#define async_req_1_5(exch, method, arg1, rc1, rc2, rc3, rc4, rc5) \
-	async_req_fast(exch, method, arg1, 0, 0, 0, rc1, rc2, rc3, rc4, \
-	    rc5)
-
-#define async_req_2_0(exch, method, arg1, arg2) \
-	async_req_fast(exch, method, arg1, arg2, 0, 0, NULL, NULL, NULL, \
-	    NULL, NULL)
-#define async_req_2_1(exch, method, arg1, arg2, rc1) \
-	async_req_fast(exch, method, arg1, arg2, 0, 0, rc1, NULL, NULL, \
-	    NULL, NULL)
-#define async_req_2_2(exch, method, arg1, arg2, rc1, rc2) \
-	async_req_fast(exch, method, arg1, arg2, 0, 0, rc1, rc2, NULL, NULL, \
-	    NULL)
-#define async_req_2_3(exch, method, arg1, arg2, rc1, rc2, rc3) \
-	async_req_fast(exch, method, arg1, arg2, 0, 0, rc1, rc2, rc3, NULL, \
-	    NULL)
-#define async_req_2_4(exch, method, arg1, arg2, rc1, rc2, rc3, rc4) \
-	async_req_fast(exch, method, arg1, arg2, 0, 0, rc1, rc2, rc3, rc4, \
-	    NULL)
-#define async_req_2_5(exch, method, arg1, arg2, rc1, rc2, rc3, rc4, rc5) \
-	async_req_fast(exch, method, arg1, arg2, 0, 0, rc1, rc2, rc3, rc4, \
-	    rc5)
-
-#define async_req_3_0(exch, method, arg1, arg2, arg3) \
-	async_req_fast(exch, method, arg1, arg2, arg3, 0, NULL, NULL, NULL, \
-	    NULL, NULL)
-#define async_req_3_1(exch, method, arg1, arg2, arg3, rc1) \
-	async_req_fast(exch, method, arg1, arg2, arg3, 0, rc1, NULL, NULL, \
-	    NULL, NULL)
-#define async_req_3_2(exch, method, arg1, arg2, arg3, rc1, rc2) \
-	async_req_fast(exch, method, arg1, arg2, arg3, 0, rc1, rc2, NULL, \
-	    NULL, NULL)
-#define async_req_3_3(exch, method, arg1, arg2, arg3, rc1, rc2, rc3) \
-	async_req_fast(exch, method, arg1, arg2, arg3, 0, rc1, rc2, rc3, \
-	    NULL, NULL)
-#define async_req_3_4(exch, method, arg1, arg2, arg3, rc1, rc2, rc3, rc4) \
-	async_req_fast(exch, method, arg1, arg2, arg3, 0, rc1, rc2, rc3, \
-	    rc4, NULL)
-#define async_req_3_5(exch, method, arg1, arg2, arg3, rc1, rc2, rc3, rc4, \
-    rc5) \
-	async_req_fast(exch, method, arg1, arg2, arg3, 0, rc1, rc2, rc3, \
-	    rc4, rc5)
-
-#define async_req_4_0(exch, method, arg1, arg2, arg3, arg4) \
-	async_req_fast(exch, method, arg1, arg2, arg3, arg4, NULL, NULL, \
-	    NULL, NULL, NULL)
-#define async_req_4_1(exch, method, arg1, arg2, arg3, arg4, rc1) \
-	async_req_fast(exch, method, arg1, arg2, arg3, arg4, rc1, NULL, \
-	    NULL, NULL, NULL)
-#define async_req_4_2(exch, method, arg1, arg2, arg3, arg4, rc1, rc2) \
-	async_req_fast(exch, method, arg1, arg2, arg3, arg4, rc1, rc2, NULL, \
-	    NULL, NULL)
-#define async_req_4_3(exch, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3) \
-	async_req_fast(exch, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3, \
-	    NULL, NULL)
-#define async_req_4_4(exch, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3, \
-    rc4) \
-	async_req_fast(exch, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3, \
-	    rc4, NULL)
-#define async_req_4_5(exch, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3, \
-    rc4, rc5) \
-	async_req_fast(exch, method, arg1, arg2, arg3, arg4, rc1, rc2, rc3, \
-	    rc4, rc5)
-
-#define async_req_5_0(exch, method, arg1, arg2, arg3, arg4, arg5) \
-	async_req_slow(exch, method, arg1, arg2, arg3, arg4, arg5, NULL, \
-	    NULL, NULL, NULL, NULL)
-#define async_req_5_1(exch, method, arg1, arg2, arg3, arg4, arg5, rc1) \
-	async_req_slow(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, \
-	    NULL, NULL, NULL, NULL)
-#define async_req_5_2(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2) \
-	async_req_slow(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
-	    NULL, NULL, NULL)
-#define async_req_5_3(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
-    rc3) \
-	async_req_slow(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
-	    rc3, NULL, NULL)
-#define async_req_5_4(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
-    rc3, rc4) \
-	async_req_slow(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
-	    rc3, rc4, NULL)
-#define async_req_5_5(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
-    rc3, rc4, rc5) \
-	async_req_slow(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
-	    rc3, rc4, rc5)
-
-extern errno_t async_req_fast(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+extern errno_t async_req_0_0(async_exch_t *, sysarg_t);
+extern errno_t async_req_0_1(async_exch_t *, sysarg_t, sysarg_t *);
+extern errno_t async_req_0_2(async_exch_t *, sysarg_t, sysarg_t *, sysarg_t *);
+extern errno_t async_req_0_3(async_exch_t *, sysarg_t, sysarg_t *, sysarg_t *,
+    sysarg_t *);
+extern errno_t async_req_0_4(async_exch_t *, sysarg_t, sysarg_t *, sysarg_t *,
+    sysarg_t *, sysarg_t *);
+extern errno_t async_req_0_5(async_exch_t *, sysarg_t, sysarg_t *, sysarg_t *,
+    sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_1_0(async_exch_t *, sysarg_t, sysarg_t);
+extern errno_t async_req_1_1(async_exch_t *, sysarg_t, sysarg_t, sysarg_t *);
+extern errno_t async_req_1_2(async_exch_t *, sysarg_t, sysarg_t, sysarg_t *,
+    sysarg_t *);
+extern errno_t async_req_1_3(async_exch_t *, sysarg_t, sysarg_t, sysarg_t *,
+    sysarg_t *, sysarg_t *);
+extern errno_t async_req_1_4(async_exch_t *, sysarg_t, sysarg_t, sysarg_t *,
+    sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_1_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t *,
+    sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_2_0(async_exch_t *, sysarg_t, sysarg_t, sysarg_t);
+extern errno_t async_req_2_1(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t *);
+extern errno_t async_req_2_2(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t *, sysarg_t *);
+extern errno_t async_req_2_3(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_2_4(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_2_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_3_0(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
+extern errno_t async_req_3_1(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t *);
+extern errno_t async_req_3_2(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t *, sysarg_t *);
+extern errno_t async_req_3_3(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_3_4(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_3_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_4_0(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern errno_t async_req_4_1(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t *);
+extern errno_t async_req_4_2(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t *, sysarg_t *);
+extern errno_t async_req_4_3(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_4_4(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_4_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *);
-extern errno_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+extern errno_t async_req_5_0(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+extern errno_t async_req_5_1(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t *);
+extern errno_t async_req_5_2(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *);
+extern errno_t async_req_5_3(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *);
+extern errno_t async_req_5_4(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *,
+    sysarg_t *);
+extern errno_t async_req_5_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *, sysarg_t *);
 
@@ -357,17 +296,14 @@ extern void async_sess_args_set(async_sess_t *, iface_t, sysarg_t, sysarg_t);
  * User-friendly wrappers for async_share_in_start().
  */
 
-#define async_share_in_start_0_0(exch, size, dst) \
-	async_share_in_start(exch, size, 0, NULL, dst)
-#define async_share_in_start_0_1(exch, size, flags, dst) \
-	async_share_in_start(exch, size, 0, flags, dst)
-#define async_share_in_start_1_0(exch, size, arg, dst) \
-	async_share_in_start(exch, size, arg, NULL, dst)
-#define async_share_in_start_1_1(exch, size, arg, flags, dst) \
-	async_share_in_start(exch, size, arg, flags, dst)
-
-extern errno_t async_share_in_start(async_exch_t *, size_t, sysarg_t,
+extern errno_t async_share_in_start_0_0(async_exch_t *, size_t, void **);
+extern errno_t async_share_in_start_0_1(async_exch_t *, size_t,
     unsigned int *, void **);
+extern errno_t async_share_in_start_1_0(async_exch_t *, size_t, sysarg_t,
+    void **);
+extern errno_t async_share_in_start_1_1(async_exch_t *, size_t, sysarg_t,
+    unsigned int *, void **);
+
 extern bool async_share_in_receive(ipc_call_t *, size_t *);
 extern errno_t async_share_in_finalize(ipc_call_t *, void *, unsigned int);
 
@@ -375,74 +311,50 @@ extern errno_t async_share_out_start(async_exch_t *, void *, unsigned int);
 extern bool async_share_out_receive(ipc_call_t *, size_t *, unsigned int *);
 extern errno_t async_share_out_finalize(ipc_call_t *, void **);
 
-/*
- * User-friendly wrappers for async_data_read_forward_fast().
- */
+extern errno_t async_data_read_forward_0_0(async_exch_t *, sysarg_t);
+extern errno_t async_data_read_forward_1_0(async_exch_t *, sysarg_t, sysarg_t);
+extern errno_t async_data_read_forward_2_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t);
+extern errno_t async_data_read_forward_3_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern errno_t async_data_read_forward_4_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
 
-#define async_data_read_forward_0_0(exch, method, answer) \
-	async_data_read_forward_fast(exch, method, 0, 0, 0, 0, NULL)
-#define async_data_read_forward_0_1(exch, method, answer) \
-	async_data_read_forward_fast(exch, method, 0, 0, 0, 0, answer)
-#define async_data_read_forward_1_0(exch, method, arg1, answer) \
-	async_data_read_forward_fast(exch, method, arg1, 0, 0, 0, NULL)
-#define async_data_read_forward_1_1(exch, method, arg1, answer) \
-	async_data_read_forward_fast(exch, method, arg1, 0, 0, 0, answer)
-#define async_data_read_forward_2_0(exch, method, arg1, arg2, answer) \
-	async_data_read_forward_fast(exch, method, arg1, arg2, 0, 0, NULL)
-#define async_data_read_forward_2_1(exch, method, arg1, arg2, answer) \
-	async_data_read_forward_fast(exch, method, arg1, arg2, 0, 0, answer)
-#define async_data_read_forward_3_0(exch, method, arg1, arg2, arg3, answer) \
-	async_data_read_forward_fast(exch, method, arg1, arg2, arg3, 0, NULL)
-#define async_data_read_forward_3_1(exch, method, arg1, arg2, arg3, answer) \
-	async_data_read_forward_fast(exch, method, arg1, arg2, arg3, 0, \
-	    answer)
-#define async_data_read_forward_4_0(exch, method, arg1, arg2, arg3, arg4, \
-    answer) \
-	async_data_read_forward_fast(exch, method, arg1, arg2, arg3, arg4, \
-	    NULL)
-#define async_data_read_forward_4_1(exch, method, arg1, arg2, arg3, arg4, \
-    answer) \
-	async_data_read_forward_fast(exch, method, arg1, arg2, arg3, arg4, \
-	    answer)
+extern errno_t async_data_read_forward_0_1(async_exch_t *, sysarg_t,
+    ipc_call_t *);
+extern errno_t async_data_read_forward_1_1(async_exch_t *, sysarg_t, sysarg_t,
+    ipc_call_t *);
+extern errno_t async_data_read_forward_2_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, ipc_call_t *);
+extern errno_t async_data_read_forward_3_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, ipc_call_t *);
+extern errno_t async_data_read_forward_4_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
 extern aid_t async_data_read(async_exch_t *, void *, size_t, ipc_call_t *);
 extern errno_t async_data_read_start(async_exch_t *, void *, size_t);
 extern bool async_data_read_receive(ipc_call_t *, size_t *);
 extern errno_t async_data_read_finalize(ipc_call_t *, const void *, size_t);
 
-extern errno_t async_data_read_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
+extern errno_t async_data_write_forward_0_0(async_exch_t *, sysarg_t);
+extern errno_t async_data_write_forward_1_0(async_exch_t *, sysarg_t, sysarg_t);
+extern errno_t async_data_write_forward_2_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t);
+extern errno_t async_data_write_forward_3_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern errno_t async_data_write_forward_4_0(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+
+extern errno_t async_data_write_forward_0_1(async_exch_t *, sysarg_t,
+    ipc_call_t *);
+extern errno_t async_data_write_forward_1_1(async_exch_t *, sysarg_t, sysarg_t,
+    ipc_call_t *);
+extern errno_t async_data_write_forward_2_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, ipc_call_t *);
+extern errno_t async_data_write_forward_3_1(async_exch_t *, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, ipc_call_t *);
+extern errno_t async_data_write_forward_4_1(async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
-
-/*
- * User-friendly wrappers for async_data_write_forward_fast().
- */
-
-#define async_data_write_forward_0_0(exch, method, answer) \
-	async_data_write_forward_fast(exch, method, 0, 0, 0, 0, NULL)
-#define async_data_write_forward_0_1(exch, method, answer) \
-	async_data_write_forward_fast(exch, method, 0, 0, 0, 0, answer)
-#define async_data_write_forward_1_0(exch, method, arg1, answer) \
-	async_data_write_forward_fast(exch, method, arg1, 0, 0, 0, NULL)
-#define async_data_write_forward_1_1(exch, method, arg1, answer) \
-	async_data_write_forward_fast(exch, method, arg1, 0, 0, 0, answer)
-#define async_data_write_forward_2_0(exch, method, arg1, arg2, answer) \
-	async_data_write_forward_fast(exch, method, arg1, arg2, 0, 0, NULL)
-#define async_data_write_forward_2_1(exch, method, arg1, arg2, answer) \
-	async_data_write_forward_fast(exch, method, arg1, arg2, 0, 0, answer)
-#define async_data_write_forward_3_0(exch, method, arg1, arg2, arg3, answer) \
-	async_data_write_forward_fast(exch, method, arg1, arg2, arg3, 0, \
-	    NULL)
-#define async_data_write_forward_3_1(exch, method, arg1, arg2, arg3, answer) \
-	async_data_write_forward_fast(exch, method, arg1, arg2, arg3, 0, \
-	    answer)
-#define async_data_write_forward_4_0(exch, method, arg1, arg2, arg3, arg4, \
-    answer) \
-	async_data_write_forward_fast(exch, method, arg1, arg2, arg3, arg4, \
-	    NULL)
-#define async_data_write_forward_4_1(exch, method, arg1, arg2, arg3, arg4, \
-    answer) \
-	async_data_write_forward_fast(exch, method, arg1, arg2, arg3, arg4, \
-	    answer)
 
 extern errno_t async_data_write_start(async_exch_t *, const void *, size_t);
 extern bool async_data_write_receive(ipc_call_t *, size_t *);
@@ -451,9 +363,6 @@ extern errno_t async_data_write_finalize(ipc_call_t *, void *, size_t);
 extern errno_t async_data_write_accept(void **, const bool, const size_t,
     const size_t, const size_t, size_t *);
 extern void async_data_write_void(errno_t);
-
-extern errno_t async_data_write_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
 extern async_sess_t *async_callback_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive_start(exch_mgmt_t, ipc_call_t *);
@@ -472,7 +381,6 @@ extern void *async_as_area_create(void *, size_t, unsigned int, async_sess_t *,
     sysarg_t, sysarg_t, sysarg_t);
 
 errno_t async_spawn_notification_handler(void);
-fid_t async_create_manager(void);
 
 #endif
 

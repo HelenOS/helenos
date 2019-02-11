@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_DDI_H_
-#define LIBC_DDI_H_
+#ifndef _LIBC_DDI_H_
+#define _LIBC_DDI_H_
 
 #include <stdbool.h>
 #include <stddef.h>

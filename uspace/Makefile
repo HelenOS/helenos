@@ -37,7 +37,6 @@ DIRS = \
 	app/bdsh \
 	app/bithenge \
 	app/blkdump \
-	app/bnchmark \
 	app/contacts \
 	app/corecfg \
 	app/cpptest \
@@ -50,6 +49,7 @@ DIRS = \
 	app/fontviewer \
 	app/getterm \
 	app/gunzip \
+	app/hbench \
 	app/init \
 	app/inet \
 	app/kill \
@@ -67,7 +67,6 @@ DIRS = \
 	app/netecho \
 	app/nterm \
 	app/pci \
-	app/perf \
 	app/redir \
 	app/sbi \
 	app/sportdmp \
@@ -152,6 +151,7 @@ DIRS = \
 	drv/block/ata_bd \
 	drv/block/ddisk \
 	drv/block/usbmast \
+	drv/block/virtio-blk \
 	drv/bus/adb/cuda_adb \
 	drv/bus/isa \
 	drv/bus/pci/pciintel \

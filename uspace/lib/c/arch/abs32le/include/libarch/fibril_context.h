@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_abs32le_FIBRIL_CONTEXT_H_
-#define LIBC_abs32le_FIBRIL_CONTEXT_H_
+#ifndef _LIBC_abs32le_FIBRIL_CONTEXT_H_
+#define _LIBC_abs32le_FIBRIL_CONTEXT_H_
 
 #include <stdint.h>
 
@@ -35,11 +35,11 @@
  * On real hardware this stores the registers which
  * need to be preserved across function calls.
  */
-typedef struct context {
+typedef struct __context {
 	uintptr_t sp;
 	uintptr_t fp;
 	uintptr_t pc;
 	uintptr_t tls;
-} context_t;
+} __context_t;
 
 #endif

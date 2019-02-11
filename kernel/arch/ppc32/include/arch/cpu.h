@@ -43,7 +43,7 @@ typedef struct {
 	uint16_t revision;
 } __attribute__((packed)) cpu_arch_t;
 
-NO_TRACE static inline void cpu_version(cpu_arch_t *info)
+_NO_TRACE static inline void cpu_version(cpu_arch_t *info)
 {
 	asm volatile (
 	    "mfpvr %[cpu_info]\n"

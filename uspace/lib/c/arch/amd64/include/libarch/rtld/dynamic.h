@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_amd64_RTLD_DYNAMIC_H_
-#define LIBC_amd64_RTLD_DYNAMIC_H_
+#ifndef _LIBC_amd64_RTLD_DYNAMIC_H_
+#define _LIBC_amd64_RTLD_DYNAMIC_H_
 
 typedef struct {
 	/* Empty. */

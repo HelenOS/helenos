@@ -32,7 +32,7 @@ else
 	FLOATS=soft
 endif
 
-COMMON_CFLAGS += -mcpu=powerpc -m$(FLOATS)-float -m32
+COMMON_CFLAGS += -mcpu=powerpc -m$(FLOATS)-float -m32 -Wl,-z,max-page-size=0x1000
 AFLAGS += -a32
 LDFLAGS += -Wl,--gc-sections
 

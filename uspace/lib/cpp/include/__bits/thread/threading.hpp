@@ -32,7 +32,6 @@
 namespace std::hel
 {
     extern "C" {
-        #include <async.h>
         #include <fibril.h>
         #include <fibril_synch.h>
     }

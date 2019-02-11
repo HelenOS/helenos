@@ -33,8 +33,8 @@
  * @file
  */
 
-#ifndef LIBC_amd64_SYSCALL_H_
-#define LIBC_amd64_SYSCALL_H_
+#ifndef _LIBC_amd64_SYSCALL_H_
+#define _LIBC_amd64_SYSCALL_H_
 
 #define LIBARCH_SYSCALL_GENERIC
 

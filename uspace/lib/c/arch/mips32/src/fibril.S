@@ -34,119 +34,119 @@
 #include <abi/asmtool.h>
 #include <libarch/fibril_context.h>
 
-FUNCTION_BEGIN(__setjmp)
-	sw $s0, CONTEXT_OFFSET_S0($a0)
-	sw $s1, CONTEXT_OFFSET_S1($a0)
-	sw $s2, CONTEXT_OFFSET_S2($a0)
-	sw $s3, CONTEXT_OFFSET_S3($a0)
-	sw $s4, CONTEXT_OFFSET_S4($a0)
-	sw $s5, CONTEXT_OFFSET_S5($a0)
-	sw $s6, CONTEXT_OFFSET_S6($a0)
-	sw $s7, CONTEXT_OFFSET_S7($a0)
-	sw $s8, CONTEXT_OFFSET_S8($a0)
-	sw $gp, CONTEXT_OFFSET_GP($a0)
+FUNCTION_BEGIN(__context_save)
+	sw $s0, __CONTEXT_OFFSET_S0($a0)
+	sw $s1, __CONTEXT_OFFSET_S1($a0)
+	sw $s2, __CONTEXT_OFFSET_S2($a0)
+	sw $s3, __CONTEXT_OFFSET_S3($a0)
+	sw $s4, __CONTEXT_OFFSET_S4($a0)
+	sw $s5, __CONTEXT_OFFSET_S5($a0)
+	sw $s6, __CONTEXT_OFFSET_S6($a0)
+	sw $s7, __CONTEXT_OFFSET_S7($a0)
+	sw $s8, __CONTEXT_OFFSET_S8($a0)
+	sw $gp, __CONTEXT_OFFSET_GP($a0)
 
-	sw $k1, CONTEXT_OFFSET_TLS($a0)
+	sw $k1, __CONTEXT_OFFSET_TLS($a0)
 
 #ifdef CONFIG_FPU
 	mfc1 $t0, $20
-	sw $t0, CONTEXT_OFFSET_F20($a0)
+	sw $t0, __CONTEXT_OFFSET_F20($a0)
 
 	mfc1 $t0, $21
-	sw $t0, CONTEXT_OFFSET_F21($a0)
+	sw $t0, __CONTEXT_OFFSET_F21($a0)
 
 	mfc1 $t0, $22
-	sw $t0, CONTEXT_OFFSET_F22($a0)
+	sw $t0, __CONTEXT_OFFSET_F22($a0)
 
 	mfc1 $t0, $23
-	sw $t0, CONTEXT_OFFSET_F23($a0)
+	sw $t0, __CONTEXT_OFFSET_F23($a0)
 
 	mfc1 $t0, $24
-	sw $t0, CONTEXT_OFFSET_F24($a0)
+	sw $t0, __CONTEXT_OFFSET_F24($a0)
 
 	mfc1 $t0, $25
-	sw $t0, CONTEXT_OFFSET_F25($a0)
+	sw $t0, __CONTEXT_OFFSET_F25($a0)
 
 	mfc1 $t0, $26
-	sw $t0, CONTEXT_OFFSET_F26($a0)
+	sw $t0, __CONTEXT_OFFSET_F26($a0)
 
 	mfc1 $t0, $27
-	sw $t0, CONTEXT_OFFSET_F27($a0)
+	sw $t0, __CONTEXT_OFFSET_F27($a0)
 
 	mfc1 $t0, $28
-	sw $t0, CONTEXT_OFFSET_F28($a0)
+	sw $t0, __CONTEXT_OFFSET_F28($a0)
 
 	mfc1 $t0, $29
-	sw $t0, CONTEXT_OFFSET_F29($a0)
+	sw $t0, __CONTEXT_OFFSET_F29($a0)
 
 	mfc1 $t0, $30
-	sw $t0, CONTEXT_OFFSET_F30($a0)
+	sw $t0, __CONTEXT_OFFSET_F30($a0)
 #endif /* CONFIG_FPU */
 
-	sw $ra, CONTEXT_OFFSET_PC($a0)
-	sw $sp, CONTEXT_OFFSET_SP($a0)
+	sw $ra, __CONTEXT_OFFSET_PC($a0)
+	sw $sp, __CONTEXT_OFFSET_SP($a0)
 
-	# __setjmp returns 0
+	# __context_save returns 0
 	j $ra
 	li $v0, 0
-FUNCTION_END(__setjmp)
+FUNCTION_END(__context_save)
 
-FUNCTION_BEGIN(__longjmp)
-	lw $s0, CONTEXT_OFFSET_S0($a0)
-	lw $s1, CONTEXT_OFFSET_S1($a0)
-	lw $s2, CONTEXT_OFFSET_S2($a0)
-	lw $s3, CONTEXT_OFFSET_S3($a0)
-	lw $s4, CONTEXT_OFFSET_S4($a0)
-	lw $s5, CONTEXT_OFFSET_S5($a0)
-	lw $s6, CONTEXT_OFFSET_S6($a0)
-	lw $s7, CONTEXT_OFFSET_S7($a0)
-	lw $s8, CONTEXT_OFFSET_S8($a0)
-	lw $gp, CONTEXT_OFFSET_GP($a0)
-	lw $k1, CONTEXT_OFFSET_TLS($a0)
+FUNCTION_BEGIN(__context_restore)
+	lw $s0, __CONTEXT_OFFSET_S0($a0)
+	lw $s1, __CONTEXT_OFFSET_S1($a0)
+	lw $s2, __CONTEXT_OFFSET_S2($a0)
+	lw $s3, __CONTEXT_OFFSET_S3($a0)
+	lw $s4, __CONTEXT_OFFSET_S4($a0)
+	lw $s5, __CONTEXT_OFFSET_S5($a0)
+	lw $s6, __CONTEXT_OFFSET_S6($a0)
+	lw $s7, __CONTEXT_OFFSET_S7($a0)
+	lw $s8, __CONTEXT_OFFSET_S8($a0)
+	lw $gp, __CONTEXT_OFFSET_GP($a0)
+	lw $k1, __CONTEXT_OFFSET_TLS($a0)
 
 #ifdef CONFIG_FPU
-	lw $t0, CONTEXT_OFFSET_F20($a0)
+	lw $t0, __CONTEXT_OFFSET_F20($a0)
 	mtc1 $t0, $20
 
-	lw $t0, CONTEXT_OFFSET_F21($a0)
+	lw $t0, __CONTEXT_OFFSET_F21($a0)
 	mtc1 $t0, $21
 
-	lw $t0, CONTEXT_OFFSET_F22($a0)
+	lw $t0, __CONTEXT_OFFSET_F22($a0)
 	mtc1 $t0, $22
 
-	lw $t0, CONTEXT_OFFSET_F23($a0)
+	lw $t0, __CONTEXT_OFFSET_F23($a0)
 	mtc1 $t0, $23
 
-	lw $t0, CONTEXT_OFFSET_F24($a0)
+	lw $t0, __CONTEXT_OFFSET_F24($a0)
 	mtc1 $t0, $24
 
-	lw $t0, CONTEXT_OFFSET_F25($a0)
+	lw $t0, __CONTEXT_OFFSET_F25($a0)
 	mtc1 $t0, $25
 
-	lw $t0, CONTEXT_OFFSET_F26($a0)
+	lw $t0, __CONTEXT_OFFSET_F26($a0)
 	mtc1 $t0, $26
 
-	lw $t0, CONTEXT_OFFSET_F27($a0)
+	lw $t0, __CONTEXT_OFFSET_F27($a0)
 	mtc1 $t0, $27
 
-	lw $t0, CONTEXT_OFFSET_F28($a0)
+	lw $t0, __CONTEXT_OFFSET_F28($a0)
 	mtc1 $t0, $28
 
-	lw $t0, CONTEXT_OFFSET_F29($a0)
+	lw $t0, __CONTEXT_OFFSET_F29($a0)
 	mtc1 $t0, $29
 
-	lw $t0, CONTEXT_OFFSET_F30($a0)
+	lw $t0, __CONTEXT_OFFSET_F30($a0)
 	mtc1 $t0, $30
 #endif /* CONFIG_FPU */
 
-	lw $ra, CONTEXT_OFFSET_PC($a0)
-	lw $sp, CONTEXT_OFFSET_SP($a0)
+	lw $ra, __CONTEXT_OFFSET_PC($a0)
+	lw $sp, __CONTEXT_OFFSET_SP($a0)
 
 	# Just for the jump into first function,
 	# but one instruction should not bother us
 	move $t9, $ra
 
-	# __longjmp returns second argument
+	# __context_restore returns second argument
 	j $ra
 	move $v0, $a1
-FUNCTION_END(__longjmp)
+FUNCTION_END(__context_restore)

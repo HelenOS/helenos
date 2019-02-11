@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_INET_ADDR_H_
-#define LIBC_INET_ADDR_H_
+#ifndef _LIBC_INET_ADDR_H_
+#define _LIBC_INET_ADDR_H_
 
 #include <errno.h>
 #include <stdint.h>

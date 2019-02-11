@@ -31,7 +31,7 @@
 
 .text
 
-FUNCTION_BEGIN(__setjmp)
+FUNCTION_BEGIN(__context_save)
 	alloc loc0 = ar.pfs, 1, 49, 0, 0
 	mov loc1 = ar.unat ;;
 	mov loc3 = ar.rsc
@@ -57,52 +57,52 @@ FUNCTION_BEGIN(__setjmp)
 
 	mov loc6 = ar.lc
 
-	add loc8 = CONTEXT_OFFSET_AR_PFS, in0
-	add loc9 = CONTEXT_OFFSET_AR_UNAT_CALLER, in0
-	add loc10 = CONTEXT_OFFSET_AR_UNAT_CALLEE, in0
-	add loc11 = CONTEXT_OFFSET_AR_RSC, in0
-	add loc12 = CONTEXT_OFFSET_BSP, in0
-	add loc13 = CONTEXT_OFFSET_AR_RNAT, in0
-	add loc14 = CONTEXT_OFFSET_AR_LC, in0
+	add loc8 = __CONTEXT_OFFSET_AR_PFS, in0
+	add loc9 = __CONTEXT_OFFSET_AR_UNAT_CALLER, in0
+	add loc10 = __CONTEXT_OFFSET_AR_UNAT_CALLEE, in0
+	add loc11 = __CONTEXT_OFFSET_AR_RSC, in0
+	add loc12 = __CONTEXT_OFFSET_BSP, in0
+	add loc13 = __CONTEXT_OFFSET_AR_RNAT, in0
+	add loc14 = __CONTEXT_OFFSET_AR_LC, in0
 
-	add loc15 = CONTEXT_OFFSET_R1, in0
-	add loc16 = CONTEXT_OFFSET_R4, in0
-	add loc17 = CONTEXT_OFFSET_R5, in0
-	add loc18 = CONTEXT_OFFSET_R6, in0
-	add loc19 = CONTEXT_OFFSET_R7, in0
-	add loc20 = CONTEXT_OFFSET_SP, in0
-	add loc21 = CONTEXT_OFFSET_TP, in0
+	add loc15 = __CONTEXT_OFFSET_R1, in0
+	add loc16 = __CONTEXT_OFFSET_R4, in0
+	add loc17 = __CONTEXT_OFFSET_R5, in0
+	add loc18 = __CONTEXT_OFFSET_R6, in0
+	add loc19 = __CONTEXT_OFFSET_R7, in0
+	add loc20 = __CONTEXT_OFFSET_SP, in0
+	add loc21 = __CONTEXT_OFFSET_TP, in0
 
-	add loc22 = CONTEXT_OFFSET_PC, in0
-	add loc23 = CONTEXT_OFFSET_B1, in0
-	add loc24 = CONTEXT_OFFSET_B2, in0
-	add loc25 = CONTEXT_OFFSET_B3, in0
-	add loc26 = CONTEXT_OFFSET_B4, in0
-	add loc27 = CONTEXT_OFFSET_B5, in0
+	add loc22 = __CONTEXT_OFFSET_PC, in0
+	add loc23 = __CONTEXT_OFFSET_B1, in0
+	add loc24 = __CONTEXT_OFFSET_B2, in0
+	add loc25 = __CONTEXT_OFFSET_B3, in0
+	add loc26 = __CONTEXT_OFFSET_B4, in0
+	add loc27 = __CONTEXT_OFFSET_B5, in0
 
-	add loc28 = CONTEXT_OFFSET_PR, in0
+	add loc28 = __CONTEXT_OFFSET_PR, in0
 
-	add loc29 = CONTEXT_OFFSET_F2, in0
-	add loc30 = CONTEXT_OFFSET_F3, in0
-	add loc31 = CONTEXT_OFFSET_F4, in0
-	add loc32 = CONTEXT_OFFSET_F5, in0
+	add loc29 = __CONTEXT_OFFSET_F2, in0
+	add loc30 = __CONTEXT_OFFSET_F3, in0
+	add loc31 = __CONTEXT_OFFSET_F4, in0
+	add loc32 = __CONTEXT_OFFSET_F5, in0
 
-	add loc33 = CONTEXT_OFFSET_F16, in0
-	add loc34 = CONTEXT_OFFSET_F17, in0
-	add loc35 = CONTEXT_OFFSET_F18, in0
-	add loc36 = CONTEXT_OFFSET_F19, in0
-	add loc37 = CONTEXT_OFFSET_F20, in0
-	add loc38 = CONTEXT_OFFSET_F21, in0
-	add loc39 = CONTEXT_OFFSET_F22, in0
-	add loc40 = CONTEXT_OFFSET_F23, in0
-	add loc41 = CONTEXT_OFFSET_F24, in0
-	add loc42 = CONTEXT_OFFSET_F25, in0
-	add loc43 = CONTEXT_OFFSET_F26, in0
-	add loc44 = CONTEXT_OFFSET_F27, in0
-	add loc45 = CONTEXT_OFFSET_F28, in0
-	add loc46 = CONTEXT_OFFSET_F29, in0
-	add loc47 = CONTEXT_OFFSET_F30, in0
-	add loc48 = CONTEXT_OFFSET_F31, in0 ;;
+	add loc33 = __CONTEXT_OFFSET_F16, in0
+	add loc34 = __CONTEXT_OFFSET_F17, in0
+	add loc35 = __CONTEXT_OFFSET_F18, in0
+	add loc36 = __CONTEXT_OFFSET_F19, in0
+	add loc37 = __CONTEXT_OFFSET_F20, in0
+	add loc38 = __CONTEXT_OFFSET_F21, in0
+	add loc39 = __CONTEXT_OFFSET_F22, in0
+	add loc40 = __CONTEXT_OFFSET_F23, in0
+	add loc41 = __CONTEXT_OFFSET_F24, in0
+	add loc42 = __CONTEXT_OFFSET_F25, in0
+	add loc43 = __CONTEXT_OFFSET_F26, in0
+	add loc44 = __CONTEXT_OFFSET_F27, in0
+	add loc45 = __CONTEXT_OFFSET_F28, in0
+	add loc46 = __CONTEXT_OFFSET_F29, in0
+	add loc47 = __CONTEXT_OFFSET_F30, in0
+	add loc48 = __CONTEXT_OFFSET_F31, in0 ;;
 
 	/*
 	 * Save general registers including NaT bits
@@ -177,59 +177,59 @@ FUNCTION_BEGIN(__setjmp)
 
 	mov ar.unat = loc1
 
-	mov r8 = 0 	/* __setjmp returns 0 */
+	mov r8 = 0 	/* __context_save returns 0 */
 	br.ret.sptk.many b0
-FUNCTION_END(__setjmp)
+FUNCTION_END(__context_save)
 
-FUNCTION_BEGIN(__longjmp)
+FUNCTION_BEGIN(__context_restore)
 	alloc loc0 = ar.pfs, 2, 50, 0, 0 ;;
 
-	add loc9 = CONTEXT_OFFSET_AR_PFS, in0
-	add loc10 = CONTEXT_OFFSET_AR_UNAT_CALLER, in0
-	add loc11 = CONTEXT_OFFSET_AR_UNAT_CALLEE, in0
-	add loc12 = CONTEXT_OFFSET_AR_RSC, in0
-	add loc13 = CONTEXT_OFFSET_BSP, in0
-	add loc14 = CONTEXT_OFFSET_AR_RNAT, in0
-	add loc15 = CONTEXT_OFFSET_AR_LC, in0
+	add loc9 = __CONTEXT_OFFSET_AR_PFS, in0
+	add loc10 = __CONTEXT_OFFSET_AR_UNAT_CALLER, in0
+	add loc11 = __CONTEXT_OFFSET_AR_UNAT_CALLEE, in0
+	add loc12 = __CONTEXT_OFFSET_AR_RSC, in0
+	add loc13 = __CONTEXT_OFFSET_BSP, in0
+	add loc14 = __CONTEXT_OFFSET_AR_RNAT, in0
+	add loc15 = __CONTEXT_OFFSET_AR_LC, in0
 
-	add loc16 = CONTEXT_OFFSET_R1, in0
-	add loc17 = CONTEXT_OFFSET_R4, in0
-	add loc18 = CONTEXT_OFFSET_R5, in0
-	add loc19 = CONTEXT_OFFSET_R6, in0
-	add loc20 = CONTEXT_OFFSET_R7, in0
-	add loc21 = CONTEXT_OFFSET_SP, in0
-	add loc22 = CONTEXT_OFFSET_TP, in0
+	add loc16 = __CONTEXT_OFFSET_R1, in0
+	add loc17 = __CONTEXT_OFFSET_R4, in0
+	add loc18 = __CONTEXT_OFFSET_R5, in0
+	add loc19 = __CONTEXT_OFFSET_R6, in0
+	add loc20 = __CONTEXT_OFFSET_R7, in0
+	add loc21 = __CONTEXT_OFFSET_SP, in0
+	add loc22 = __CONTEXT_OFFSET_TP, in0
 
-	add loc23 = CONTEXT_OFFSET_PC, in0
-	add loc24 = CONTEXT_OFFSET_B1, in0
-	add loc25 = CONTEXT_OFFSET_B2, in0
-	add loc26 = CONTEXT_OFFSET_B3, in0
-	add loc27 = CONTEXT_OFFSET_B4, in0
-	add loc28 = CONTEXT_OFFSET_B5, in0
+	add loc23 = __CONTEXT_OFFSET_PC, in0
+	add loc24 = __CONTEXT_OFFSET_B1, in0
+	add loc25 = __CONTEXT_OFFSET_B2, in0
+	add loc26 = __CONTEXT_OFFSET_B3, in0
+	add loc27 = __CONTEXT_OFFSET_B4, in0
+	add loc28 = __CONTEXT_OFFSET_B5, in0
 
-	add loc29 = CONTEXT_OFFSET_PR, in0
+	add loc29 = __CONTEXT_OFFSET_PR, in0
 
-	add loc30 = CONTEXT_OFFSET_F2, in0
-	add loc31 = CONTEXT_OFFSET_F3, in0
-	add loc32 = CONTEXT_OFFSET_F4, in0
-	add loc33 = CONTEXT_OFFSET_F5, in0
+	add loc30 = __CONTEXT_OFFSET_F2, in0
+	add loc31 = __CONTEXT_OFFSET_F3, in0
+	add loc32 = __CONTEXT_OFFSET_F4, in0
+	add loc33 = __CONTEXT_OFFSET_F5, in0
 
-	add loc34 = CONTEXT_OFFSET_F16, in0
-	add loc35 = CONTEXT_OFFSET_F17, in0
-	add loc36 = CONTEXT_OFFSET_F18, in0
-	add loc37 = CONTEXT_OFFSET_F19, in0
-	add loc38 = CONTEXT_OFFSET_F20, in0
-	add loc39 = CONTEXT_OFFSET_F21, in0
-	add loc40 = CONTEXT_OFFSET_F22, in0
-	add loc41 = CONTEXT_OFFSET_F23, in0
-	add loc42 = CONTEXT_OFFSET_F24, in0
-	add loc43 = CONTEXT_OFFSET_F25, in0
-	add loc44 = CONTEXT_OFFSET_F26, in0
-	add loc45 = CONTEXT_OFFSET_F27, in0
-	add loc46 = CONTEXT_OFFSET_F28, in0
-	add loc47 = CONTEXT_OFFSET_F29, in0
-	add loc48 = CONTEXT_OFFSET_F30, in0
-	add loc49 = CONTEXT_OFFSET_F31, in0 ;;
+	add loc34 = __CONTEXT_OFFSET_F16, in0
+	add loc35 = __CONTEXT_OFFSET_F17, in0
+	add loc36 = __CONTEXT_OFFSET_F18, in0
+	add loc37 = __CONTEXT_OFFSET_F19, in0
+	add loc38 = __CONTEXT_OFFSET_F20, in0
+	add loc39 = __CONTEXT_OFFSET_F21, in0
+	add loc40 = __CONTEXT_OFFSET_F22, in0
+	add loc41 = __CONTEXT_OFFSET_F23, in0
+	add loc42 = __CONTEXT_OFFSET_F24, in0
+	add loc43 = __CONTEXT_OFFSET_F25, in0
+	add loc44 = __CONTEXT_OFFSET_F26, in0
+	add loc45 = __CONTEXT_OFFSET_F27, in0
+	add loc46 = __CONTEXT_OFFSET_F28, in0
+	add loc47 = __CONTEXT_OFFSET_F29, in0
+	add loc48 = __CONTEXT_OFFSET_F30, in0
+	add loc49 = __CONTEXT_OFFSET_F31, in0 ;;
 
 	ld8 loc0 = [loc9]	/* load ar.pfs */
 	ld8 loc1 = [loc10]	/* load ar.unat (caller) */
@@ -334,6 +334,6 @@ FUNCTION_BEGIN(__longjmp)
 
 	mov ar.unat = loc1
 
-	mov r8 = in1			/* __longjmp returns second argument */
+	mov r8 = in1			/* __context_restore returns second argument */
 	br.ret.sptk.many b0
-FUNCTION_END(__longjmp)
+FUNCTION_END(__context_restore)

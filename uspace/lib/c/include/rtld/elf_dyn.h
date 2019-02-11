@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_RTLD_ELF_DYN_H_
-#define LIBC_RTLD_ELF_DYN_H_
+#ifndef _LIBC_RTLD_ELF_DYN_H_
+#define _LIBC_RTLD_ELF_DYN_H_
 
 #include <elf/elf.h>
 #include <libarch/rtld/elf_dyn.h>

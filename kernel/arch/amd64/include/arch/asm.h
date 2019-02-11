@@ -49,7 +49,7 @@
  * The stack must start on page boundary.
  *
  */
-NO_TRACE static inline uintptr_t get_stack_base(void)
+_NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
 
@@ -62,14 +62,14 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	return v;
 }
 
-NO_TRACE static inline void cpu_sleep(void)
+_NO_TRACE static inline void cpu_sleep(void)
 {
 	asm volatile (
 	    "hlt\n"
 	);
 }
 
-NO_TRACE static inline void __attribute__((noreturn)) cpu_halt(void)
+_NO_TRACE static inline void __attribute__((noreturn)) cpu_halt(void)
 {
 	while (true) {
 		asm volatile (
@@ -86,7 +86,7 @@ NO_TRACE static inline void __attribute__((noreturn)) cpu_halt(void)
  * @return Value read
  *
  */
-NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
+_NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	if (port < (ioport8_t *) IO_SPACE_BOUNDARY) {
 		uint8_t val;
@@ -110,7 +110,7 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
  * @return Value read
  *
  */
-NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
+_NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	if (port < (ioport16_t *) IO_SPACE_BOUNDARY) {
 		uint16_t val;
@@ -134,7 +134,7 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
  * @return Value read
  *
  */
-NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
+_NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	if (port < (ioport32_t *) IO_SPACE_BOUNDARY) {
 		uint32_t val;
@@ -158,7 +158,7 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
  * @param val Value to write
  *
  */
-NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
+_NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
 	if (port < (ioport8_t *) IO_SPACE_BOUNDARY) {
 		asm volatile (
@@ -177,7 +177,7 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
  * @param val Value to write
  *
  */
-NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
+_NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
 	if (port < (ioport16_t *) IO_SPACE_BOUNDARY) {
 		asm volatile (
@@ -196,7 +196,7 @@ NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
  * @param val Value to write
  *
  */
-NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
+_NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
 	if (port < (ioport32_t *) IO_SPACE_BOUNDARY) {
 		asm volatile (
@@ -207,7 +207,7 @@ NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 		*port = val;
 }
 
-NO_TRACE static inline uint64_t read_rflags(void)
+_NO_TRACE static inline uint64_t read_rflags(void)
 {
 	uint64_t rflags;
 
@@ -220,7 +220,7 @@ NO_TRACE static inline uint64_t read_rflags(void)
 	return rflags;
 }
 
-NO_TRACE static inline void write_rflags(uint64_t rflags)
+_NO_TRACE static inline void write_rflags(uint64_t rflags)
 {
 	asm volatile (
 	    "pushq %[v]\n"
@@ -236,7 +236,7 @@ NO_TRACE static inline void write_rflags(uint64_t rflags)
  * @return Current interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_read(void)
+_NO_TRACE static inline ipl_t interrupts_read(void)
 {
 	return (ipl_t) read_rflags();
 }
@@ -248,7 +248,7 @@ NO_TRACE static inline ipl_t interrupts_read(void)
  * @return Old interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_enable(void)
+_NO_TRACE static inline ipl_t interrupts_enable(void)
 {
 	ipl_t ipl = interrupts_read();
 
@@ -264,7 +264,7 @@ NO_TRACE static inline ipl_t interrupts_enable(void)
  * @return Old interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_disable(void)
+_NO_TRACE static inline ipl_t interrupts_disable(void)
 {
 	ipl_t ipl = interrupts_read();
 
@@ -280,7 +280,7 @@ NO_TRACE static inline ipl_t interrupts_disable(void)
  * @param ipl Saved interrupt priority level.
  *
  */
-NO_TRACE static inline void interrupts_restore(ipl_t ipl)
+_NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 {
 	write_rflags((uint64_t) ipl);
 }
@@ -290,13 +290,13 @@ NO_TRACE static inline void interrupts_restore(ipl_t ipl)
  * @return True if interrupts are disabled.
  *
  */
-NO_TRACE static inline bool interrupts_disabled(void)
+_NO_TRACE static inline bool interrupts_disabled(void)
 {
 	return ((read_rflags() & RFLAGS_IF) == 0);
 }
 
 /** Write to MSR */
-NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
+_NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 {
 	asm volatile (
 	    "wrmsr\n"
@@ -306,7 +306,7 @@ NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 	);
 }
 
-NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
+_NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
 {
 	uint32_t ax, dx;
 
@@ -324,7 +324,7 @@ NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
  * @param addr Address on a page whose TLB entry is to be invalidated.
  *
  */
-NO_TRACE static inline void invlpg(uintptr_t addr)
+_NO_TRACE static inline void invlpg(uintptr_t addr)
 {
 	asm volatile (
 	    "invlpg %[addr]\n"
@@ -337,7 +337,7 @@ NO_TRACE static inline void invlpg(uintptr_t addr)
  * @param gdtr_reg Address of memory from where to load GDTR.
  *
  */
-NO_TRACE static inline void gdtr_load(ptr_16_64_t *gdtr_reg)
+_NO_TRACE static inline void gdtr_load(ptr_16_64_t *gdtr_reg)
 {
 	asm volatile (
 	    "lgdtq %[gdtr_reg]\n"
@@ -350,7 +350,7 @@ NO_TRACE static inline void gdtr_load(ptr_16_64_t *gdtr_reg)
  * @param gdtr_reg Address of memory to where to load GDTR.
  *
  */
-NO_TRACE static inline void gdtr_store(ptr_16_64_t *gdtr_reg)
+_NO_TRACE static inline void gdtr_store(ptr_16_64_t *gdtr_reg)
 {
 	asm volatile (
 	    "sgdtq %[gdtr_reg]\n"
@@ -363,7 +363,7 @@ NO_TRACE static inline void gdtr_store(ptr_16_64_t *gdtr_reg)
  * @param idtr_reg Address of memory from where to load IDTR.
  *
  */
-NO_TRACE static inline void idtr_load(ptr_16_64_t *idtr_reg)
+_NO_TRACE static inline void idtr_load(ptr_16_64_t *idtr_reg)
 {
 	asm volatile (
 	    "lidtq %[idtr_reg]\n"
@@ -375,7 +375,7 @@ NO_TRACE static inline void idtr_load(ptr_16_64_t *idtr_reg)
  * @param sel Selector specifying descriptor of TSS segment.
  *
  */
-NO_TRACE static inline void tr_load(uint16_t sel)
+_NO_TRACE static inline void tr_load(uint16_t sel)
 {
 	asm volatile (
 	    "ltr %[sel]"
@@ -383,7 +383,7 @@ NO_TRACE static inline void tr_load(uint16_t sel)
 	);
 }
 
-#define GEN_READ_REG(reg) NO_TRACE static inline sysarg_t read_ ##reg (void) \
+#define GEN_READ_REG(reg) _NO_TRACE static inline sysarg_t read_ ##reg (void) \
 	{ \
 		sysarg_t res; \
 		asm volatile ( \
@@ -393,7 +393,7 @@ NO_TRACE static inline void tr_load(uint16_t sel)
 		return res; \
 	}
 
-#define GEN_WRITE_REG(reg) NO_TRACE static inline void write_ ##reg (sysarg_t regn) \
+#define GEN_WRITE_REG(reg) _NO_TRACE static inline void write_ ##reg (sysarg_t regn) \
 	{ \
 		asm volatile ( \
 			"movq %[regn], %%" #reg \

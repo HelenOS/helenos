@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_IO_FSTREAM
 #define LIBCPP_BITS_IO_FSTREAM
 
+#include <cassert>
 #include <cstdio>
 #include <ios>
 #include <iosfwd>
@@ -266,6 +267,7 @@ namespace std
             setbuf(char_type* s, streamsize n) override
             {
                 // TODO: implement
+                __unimplemented();
                 return nullptr;
             }
 
@@ -273,6 +275,7 @@ namespace std
                              ios_base::openmode mode = ios_base::in | ios_base::out) override
             {
                 // TODO: implement
+                __unimplemented();
                 return pos_type{};
             }
 
@@ -280,6 +283,7 @@ namespace std
                              ios_base::openmode mode = ios_base::in | ios_base::out) override
             {
                 // TODO: implement
+                __unimplemented();
                 return pos_type{};
             }
 

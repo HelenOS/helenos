@@ -89,7 +89,6 @@ uspace/app/bdsh/bdsh
 uspace/app/bdsh/test-bdsh
 uspace/app/bithenge/bithenge
 uspace/app/blkdump/blkdump
-uspace/app/bnchmark/bnchmark
 uspace/app/contacts/contacts
 uspace/app/corecfg/corecfg
 uspace/app/cpptest/cpptest
@@ -106,6 +105,7 @@ uspace/app/fdisk/fdisk
 uspace/app/fontviewer/fontviewer
 uspace/app/getterm/getterm
 uspace/app/gunzip/gunzip
+uspace/app/hbench/hbench
 uspace/app/inet/inet
 uspace/app/init/init
 uspace/app/init/init.gz
@@ -130,7 +130,6 @@ uspace/app/nettest3/nettest3
 uspace/app/nic/nic
 uspace/app/nterm/nterm
 uspace/app/pci/pci
-uspace/app/perf/perf
 uspace/app/ping/ping
 uspace/app/ping6/ping6
 uspace/app/pkg/pkg
@@ -172,7 +171,6 @@ uspace/dist/app/barber
 uspace/dist/app/bdsh
 uspace/dist/app/bithenge
 uspace/dist/app/blkdump
-uspace/dist/app/bnchmark
 uspace/dist/app/corecfg
 uspace/dist/app/cpptest
 uspace/dist/app/date

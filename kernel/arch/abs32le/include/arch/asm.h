@@ -39,11 +39,11 @@
 #include <config.h>
 #include <trace.h>
 
-NO_TRACE static inline void asm_delay_loop(uint32_t usec)
+_NO_TRACE static inline void asm_delay_loop(uint32_t usec)
 {
 }
 
-NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
+_NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 {
 	/*
 	 * On real hardware this should stop processing further
@@ -56,7 +56,7 @@ NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 		;
 }
 
-NO_TRACE static inline void cpu_sleep(void)
+_NO_TRACE static inline void cpu_sleep(void)
 {
 	/*
 	 * On real hardware this should put the CPU into low-power
@@ -66,7 +66,7 @@ NO_TRACE static inline void cpu_sleep(void)
 	 */
 }
 
-NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
+_NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
 }
 
@@ -78,7 +78,7 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
  * @param val Value to write
  *
  */
-NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
+_NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
 }
 
@@ -90,7 +90,7 @@ NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
  * @param val Value to write
  *
  */
-NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
+_NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
 }
 
@@ -102,7 +102,7 @@ NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
  * @return Value read
  *
  */
-NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
+_NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	return 0;
 }
@@ -115,7 +115,7 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
  * @return Value read
  *
  */
-NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
+_NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	return 0;
 }
@@ -128,12 +128,12 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
  * @return Value read
  *
  */
-NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
+_NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	return 0;
 }
 
-NO_TRACE static inline ipl_t interrupts_enable(void)
+_NO_TRACE static inline ipl_t interrupts_enable(void)
 {
 	/*
 	 * On real hardware this unconditionally enables preemption
@@ -145,7 +145,7 @@ NO_TRACE static inline ipl_t interrupts_enable(void)
 	return 0;
 }
 
-NO_TRACE static inline ipl_t interrupts_disable(void)
+_NO_TRACE static inline ipl_t interrupts_disable(void)
 {
 	/*
 	 * On real hardware this disables preemption by the usual
@@ -159,7 +159,7 @@ NO_TRACE static inline ipl_t interrupts_disable(void)
 	return 0;
 }
 
-NO_TRACE static inline void interrupts_restore(ipl_t ipl)
+_NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 {
 	/*
 	 * On real hardware this either enables or disables preemption
@@ -167,7 +167,7 @@ NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 	 */
 }
 
-NO_TRACE static inline ipl_t interrupts_read(void)
+_NO_TRACE static inline ipl_t interrupts_read(void)
 {
 	/*
 	 * On real hardware the return value stores the current interrupt
@@ -177,7 +177,7 @@ NO_TRACE static inline ipl_t interrupts_read(void)
 	return 0;
 }
 
-NO_TRACE static inline bool interrupts_disabled(void)
+_NO_TRACE static inline bool interrupts_disabled(void)
 {
 	/*
 	 * On real hardware the return value is true iff interrupts are
@@ -187,7 +187,7 @@ NO_TRACE static inline bool interrupts_disabled(void)
 	return false;
 }
 
-NO_TRACE static inline uintptr_t get_stack_base(void)
+_NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	/*
 	 * On real hardware this returns the address of the bottom

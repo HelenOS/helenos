@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PRIVATE_SSTREAM_H_
-#define LIBC_PRIVATE_SSTREAM_H_
+#ifndef _LIBC_PRIVATE_SSTREAM_H_
+#define _LIBC_PRIVATE_SSTREAM_H_
 
 #include <stdio.h>
 

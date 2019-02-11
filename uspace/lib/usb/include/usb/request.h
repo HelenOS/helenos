@@ -116,7 +116,7 @@ typedef union {
 	uint64_t raw;
 } __attribute__((packed)) usb_device_request_setup_packet_t;
 
-static_assert(sizeof(usb_device_request_setup_packet_t) == USB_SETUP_PACKET_SIZE);
+static_assert(sizeof(usb_device_request_setup_packet_t) == USB_SETUP_PACKET_SIZE, "");
 
 #define GET_DEVICE_DESC(size) \
 { \

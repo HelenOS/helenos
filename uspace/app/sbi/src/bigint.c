@@ -378,7 +378,7 @@ void bigint_get_as_string(bigint_t *bigint, char **dptr)
 #ifdef DEBUG_BIGINT_TRACE
 	printf("Convert bigint to string.\n");
 #endif
-	static_assert(BIGINT_BASE >= 10);
+	static_assert(BIGINT_BASE >= 10, "");
 
 	/* Compute number of characters. */
 	nchars = 0;

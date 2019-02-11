@@ -132,7 +132,7 @@ static errno_t icmp_recv_echo_reply(inet_dgram_t *dgram)
 	sdu.src = dgram->src;
 	sdu.dest = dgram->dest;
 	sdu.seq_no = uint16_t_be2host(reply->seq_no);
-	sdu.data = reply + sizeof(icmp_echo_t);
+	sdu.data = dgram->data + sizeof(icmp_echo_t);
 	sdu.size = dgram->size - sizeof(icmp_echo_t);
 
 	uint16_t ident = uint16_t_be2host(reply->ident);

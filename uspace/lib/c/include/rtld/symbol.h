@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_RTLD_SYMBOL_H_
-#define LIBC_RTLD_SYMBOL_H_
+#ifndef _LIBC_RTLD_SYMBOL_H_
+#define _LIBC_RTLD_SYMBOL_H_
 
 #include <elf/elf.h>
 #include <rtld/rtld.h>

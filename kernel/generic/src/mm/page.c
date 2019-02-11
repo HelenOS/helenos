@@ -94,7 +94,7 @@ void page_init(void)
  * @param flags Flags to be used for mapping.
  *
  */
-NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
+_NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
 	assert(page_table_locked(as));
@@ -119,7 +119,7 @@ NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
  * @param page Virtual address of the page to be demapped.
  *
  */
-NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
+_NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 {
 	assert(page_table_locked(as));
 
@@ -143,7 +143,7 @@ NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
  * @return True if a valid PTE is returned, false otherwise. Note that
  *         the PTE is not guaranteed to be present.
  */
-NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
+_NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
     pte_t *pte)
 {
 	assert(nolock || page_table_locked(as));
@@ -164,7 +164,7 @@ NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
  * @param nolock   True if the page tables need not be locked.
  * @param pte      New PTE.
  */
-NO_TRACE void page_mapping_update(as_t *as, uintptr_t page, bool nolock,
+_NO_TRACE void page_mapping_update(as_t *as, uintptr_t page, bool nolock,
     pte_t *pte)
 {
 	assert(nolock || page_table_locked(as));

@@ -212,7 +212,7 @@ EOF
 		"${CMDTYPE}" "${CMDTYPE}"
 	printf " to include your new command.\n"
 	[ -n "$CMDALIAS" ] &&  {
-		printf "\nYou should also modify %ss/%s_aliases.h and " \
+		printf "\nYou should also modify %ss/%s_aliases.c and " \
 			"${CMDTYPE}" "${CMDTYPE}"
 		printf "add %s as an alias for %s\n" \
 			"${CMDALIAS}" "${CMDNAME}"

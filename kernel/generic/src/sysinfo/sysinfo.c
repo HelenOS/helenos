@@ -61,7 +61,7 @@ static mutex_t sysinfo_lock;
 /** Sysinfo item constructor
  *
  */
-NO_TRACE static errno_t sysinfo_item_constructor(void *obj, unsigned int kmflag)
+_NO_TRACE static errno_t sysinfo_item_constructor(void *obj, unsigned int kmflag)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
 
@@ -81,7 +81,7 @@ NO_TRACE static errno_t sysinfo_item_constructor(void *obj, unsigned int kmflag)
  * to the disposal of item->name
  *
  */
-NO_TRACE static size_t sysinfo_item_destructor(void *obj)
+_NO_TRACE static size_t sysinfo_item_destructor(void *obj)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
 
@@ -123,7 +123,7 @@ void sysinfo_init(void)
  *         was found (N.B. ret).
  *
  */
-NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
+_NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
     sysinfo_item_t *subtree, sysinfo_return_t **ret, bool dry_run)
 {
 	assert(subtree != NULL);
@@ -189,7 +189,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
  *         create a new item.
  *
  */
-NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
+_NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
     sysinfo_item_t **psubtree)
 {
 	assert(psubtree != NULL);
@@ -507,7 +507,7 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
  * @param depth Number of spaces to print.
  *
  */
-NO_TRACE static void sysinfo_indent(size_t spaces)
+_NO_TRACE static void sysinfo_indent(size_t spaces)
 {
 	for (size_t i = 0; i < spaces; i++)
 		printf(" ");
@@ -521,7 +521,7 @@ NO_TRACE static void sysinfo_indent(size_t spaces)
  * @param spaces Current indentation level.
  *
  */
-NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
+_NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 {
 	/* Walk all siblings */
 	for (sysinfo_item_t *cur = root; cur; cur = cur->next) {
@@ -621,7 +621,7 @@ void sysinfo_dump(sysinfo_item_t *root)
  * @return Item value (constant or generated).
  *
  */
-NO_TRACE static sysinfo_return_t sysinfo_get_item(const char *name,
+_NO_TRACE static sysinfo_return_t sysinfo_get_item(const char *name,
     sysinfo_item_t **root, bool dry_run)
 {
 	if (root == NULL)
@@ -676,7 +676,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item(const char *name,
  *                binary data, just calculate the size.
  *
  */
-NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
+_NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
     bool dry_run)
 {
 	sysinfo_return_t ret;
@@ -719,7 +719,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
  * @return Item value (constant or generated).
  *
  */
-NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
+_NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
     sysinfo_item_t **root, bool dry_run)
 {
 	if (root == NULL)
@@ -785,7 +785,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
  *                binary data, just calculate the size.
  *
  */
-NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
+_NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
     bool dry_run)
 {
 	sysinfo_return_t ret;

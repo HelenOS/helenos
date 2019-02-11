@@ -187,7 +187,7 @@ typedef struct {
 	bool initialized;
 } dma_controller_t;
 
-static fibril_mutex_t guard = FIBRIL_MUTEX_INITIALIZER(guard);
+static FIBRIL_MUTEX_INITIALIZE(guard);
 
 /** Standard i8237 DMA controller.
  *

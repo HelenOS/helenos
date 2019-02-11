@@ -35,8 +35,8 @@
  * @brief
  */
 
-#ifndef LIBC_VFS_INBOX_H_
-#define LIBC_VFS_INBOX_H_
+#ifndef _LIBC_VFS_INBOX_H_
+#define _LIBC_VFS_INBOX_H_
 
 enum {
 	INBOX_MAX_ENTRIES = 256,

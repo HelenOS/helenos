@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_LIMITS_H_
-#define LIBC_LIMITS_H_
+#ifndef _LIBC_LIMITS_H_
+#define _LIBC_LIMITS_H_
 
 #ifdef __GNUC__
 /*

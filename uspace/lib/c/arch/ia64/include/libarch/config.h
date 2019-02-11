@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ia64_CONFIG_H_
-#define LIBC_ia64_CONFIG_H_
+#ifndef _LIBC_ia64_CONFIG_H_
+#define _LIBC_ia64_CONFIG_H_
 
 #define PAGE_WIDTH	14
 #define PAGE_SIZE	(1 << PAGE_WIDTH)

@@ -46,7 +46,7 @@
  * @return Count of CPU cycles.
  *
  */
-NO_TRACE static inline uint64_t get_cycle(void)
+_NO_TRACE static inline uint64_t get_cycle(void)
 {
 #ifdef PROCESSOR_ARCH_armv7_a
 	if ((ID_PFR1_read() & ID_PFR1_GEN_TIMER_EXT_MASK) ==

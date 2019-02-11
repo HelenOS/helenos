@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_GCDLCM_H_
-#define LIBC_GCDLCM_H_
+#ifndef _LIBC_GCDLCM_H_
+#define _LIBC_GCDLCM_H_
 
 #include <stddef.h>
 #include <stdint.h>

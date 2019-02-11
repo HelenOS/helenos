@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_mips32_FADDR_H_
-#define LIBC_mips32_FADDR_H_
+#ifndef _LIBC_mips32_FADDR_H_
+#define _LIBC_mips32_FADDR_H_
 
 #include <types/common.h>
 

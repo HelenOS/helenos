@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_STACKARG_H_
-#define LIBC_STACKARG_H_
+#ifndef _LIBC_STACKARG_H_
+#define _LIBC_STACKARG_H_
 
 #endif
 

@@ -37,7 +37,7 @@
 
 #include <trace.h>
 
-NO_TRACE static inline uint64_t get_cycle(void)
+_NO_TRACE static inline uint64_t get_cycle(void)
 {
 	uint64_t cycle;
 

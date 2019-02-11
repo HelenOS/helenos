@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_UUID_H_
-#define LIBC_UUID_H_
+#ifndef _LIBC_UUID_H_
+#define _LIBC_UUID_H_
 
 #include <stdint.h>
 #include <types/uuid.h>

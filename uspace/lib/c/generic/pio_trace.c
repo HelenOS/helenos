@@ -80,9 +80,7 @@ typedef struct {
 static pio_regions_t *get_regions(void)
 {
 	static pio_regions_t regions = {
-		.list = {
-			.head = { &regions.list.head, &regions.list.head },
-		},
+		.list = LIST_INITIALIZER(regions.list),
 		.guard = FIBRIL_RWLOCK_INITIALIZER(regions.guard),
 	};
 	return &regions;

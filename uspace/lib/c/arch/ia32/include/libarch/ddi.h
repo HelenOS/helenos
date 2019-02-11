@@ -30,8 +30,8 @@
  * @ingroup libcia32, libcamd64
  */
 
-#ifndef LIBC_ia32_DDI_H_
-#define LIBC_ia32_DDI_H_
+#ifndef _LIBC_ia32_DDI_H_
+#define _LIBC_ia32_DDI_H_
 
 #include <ddi.h>
 

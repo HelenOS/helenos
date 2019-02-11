@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,12 +37,12 @@
 #ifndef KERN_STR_H_
 #define KERN_STR_H_
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <errno.h>
 
-/**< Common Unicode characters */
+/* Common Unicode characters */
 #define U_SPECIAL      '?'
 
 #define U_LEFT_ARROW   0x2190
@@ -60,11 +62,11 @@
 
 #define U_CURSOR       0x2588
 
-/**< No size limit constant */
+/** No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
 
-/**< Maximum size of a string containing cnt characters */
-#define STR_BOUNDS(cnt)  ((cnt) << 2)
+/** Maximum size of a string containing @c length characters */
+#define STR_BOUNDS(length)  ((length) << 2)
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
@@ -91,15 +93,16 @@ extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
 
-extern char *str_dup(const char *src);
-extern char *str_ndup(const char *src, size_t n);
-
 extern char *str_chr(const char *str, wchar_t ch);
 
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
 
-extern errno_t str_uint64_t(const char *, char **, unsigned int, bool, uint64_t *);
+extern char *str_dup(const char *src);
+extern char *str_ndup(const char *src, size_t n);
+
+extern errno_t str_uint64_t(const char *, char **, unsigned int, bool,
+    uint64_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);
 extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);

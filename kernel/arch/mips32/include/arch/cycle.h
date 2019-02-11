@@ -39,7 +39,7 @@
 #include <arch/interrupt.h>
 #include <trace.h>
 
-NO_TRACE static inline uint64_t get_cycle(void)
+_NO_TRACE static inline uint64_t get_cycle(void)
 {
 	return ((uint64_t) count_hi << 32) + ((uint64_t) cp0_count_read());
 }

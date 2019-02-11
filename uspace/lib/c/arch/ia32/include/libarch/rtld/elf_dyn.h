@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ia32_RTLD_ELF_DYN_H_
-#define LIBC_ia32_RTLD_ELF_DYN_H_
+#ifndef _LIBC_ia32_RTLD_ELF_DYN_H_
+#define _LIBC_ia32_RTLD_ELF_DYN_H_
 
 /*
  * ia32 dynamic relocation types

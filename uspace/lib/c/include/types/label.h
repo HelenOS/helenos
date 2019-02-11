@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TYPES_LABEL_H_
-#define LIBC_TYPES_LABEL_H_
+#ifndef _LIBC_TYPES_LABEL_H_
+#define _LIBC_TYPES_LABEL_H_
 
 #include <types/uuid.h>
 

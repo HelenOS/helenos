@@ -51,7 +51,7 @@
  * @return 0 (if the number is zero) or [log_2(arg)].
  *
  */
-NO_TRACE static inline uint8_t fnzb32(uint32_t arg)
+_NO_TRACE static inline uint8_t fnzb32(uint32_t arg)
 {
 	uint8_t n = 0;
 
@@ -86,7 +86,7 @@ NO_TRACE static inline uint8_t fnzb32(uint32_t arg)
  * @return 0 (if the number is zero) or [log_2(arg)].
  *
  */
-NO_TRACE static inline uint8_t fnzb64(uint64_t arg)
+_NO_TRACE static inline uint8_t fnzb64(uint64_t arg)
 {
 	uint8_t n = 0;
 

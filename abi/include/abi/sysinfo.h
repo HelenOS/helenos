@@ -33,8 +33,8 @@
  * Data structures passed between kernel sysinfo and user space.
  */
 
-#ifndef ABI_SYSINFO_H_
-#define ABI_SYSINFO_H_
+#ifndef _ABI_SYSINFO_H_
+#define _ABI_SYSINFO_H_
 
 #include <stdbool.h>
 #include <abi/proc/task.h>

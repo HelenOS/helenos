@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_IO_OSTREAM
 #define LIBCPP_BITS_IO_OSTREAM
 
+#include <cassert>
 #include <ios>
 #include <iosfwd>
 #include <locale>
@@ -457,18 +458,21 @@ namespace std
             pos_type tellp()
             {
                 // TODO: implement
+                __unimplemented();
                 return pos_type{};
             }
 
             basic_ostream<Char, Traits>& seekp(pos_type pos)
             {
                 // TODO: implement
+                __unimplemented();
                 return *this;
             }
 
             basic_ostream<Char, Traits>& seekp(off_type off, ios_base::seekdir dir)
             {
                 // TODO: implement
+                __unimplemented();
                 return *this;
             }
 

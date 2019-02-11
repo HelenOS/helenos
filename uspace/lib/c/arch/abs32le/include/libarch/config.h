@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_abs32le_CONFIG_H_
-#define LIBC_abs32le_CONFIG_H_
+#ifndef _LIBC_abs32le_CONFIG_H_
+#define _LIBC_abs32le_CONFIG_H_
 
 #define PAGE_WIDTH  12
 #define PAGE_SIZE   (1 << PAGE_WIDTH)

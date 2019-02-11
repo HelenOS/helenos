@@ -34,8 +34,8 @@
  * @brief List of all known interfaces and their codes.
  */
 
-#ifndef ABI_IPC_INTERFACES_H_
-#define ABI_IPC_INTERFACES_H_
+#ifndef _ABI_IPC_INTERFACES_H_
+#define _ABI_IPC_INTERFACES_H_
 
 #include <abi/fourcc.h>
 

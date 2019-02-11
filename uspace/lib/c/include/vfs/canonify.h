@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_VFS_CANONIFY_H_
-#define LIBC_VFS_CANONIFY_H_
+#ifndef _LIBC_VFS_CANONIFY_H_
+#define _LIBC_VFS_CANONIFY_H_
 
 #include <stddef.h>
 

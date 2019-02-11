@@ -29,7 +29,6 @@
 #ifndef LIBCPP_BITS_THREAD_MUTEX
 #define LIBCPP_BITS_THREAD_MUTEX
 
-#include <__bits/common.hpp>
 #include <__bits/thread/threading.hpp>
 #include <functional>
 #include <thread>

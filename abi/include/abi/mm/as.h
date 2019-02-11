@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_AS_H_
-#define ABI_AS_H_
+#ifndef _ABI_AS_H_
+#define _ABI_AS_H_
 
 #include <abi/cap.h>
 

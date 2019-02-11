@@ -134,7 +134,14 @@ def qemu_bd_options():
 
 	hdisk_mk()
 
-	return ' -drive file=hdisk.img,index=0,media=disk,format=raw'
+	hdd_options = ''
+	if 'hdd' in overrides.keys():
+		if 'ata' in overrides['hdd'].keys():
+			hdd_options += ''
+		elif 'virtio-blk' in overrides['hdd'].keys():
+			hdd_options += ',if=virtio'
+
+	return ' -drive file=hdisk.img,index=0,media=disk,format=raw' + hdd_options
 
 def qemu_nic_ne2k_options():
 	return ' -device ne2k_isa,irq=5,netdev=n1'
@@ -335,7 +342,7 @@ emulators = {
 
 def usage():
 	print("%s - emulator wrapper for running HelenOS\n" % os.path.basename(sys.argv[0]))
-	print("%s [-d] [-h] [-net e1k|rtl8139|ne2k|virtio-net] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb] [-noxhci] [-notablet]\n" %
+	print("%s [-d] [-h] [-net e1k|rtl8139|ne2k|virtio-net] [-hdd ata|virtio-blk] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb] [-noxhci] [-notablet]\n" %
 	    os.path.basename(sys.argv[0]))
 	print("-d\tDry run: do not run the emulation, just print the command line.")
 	print("-h\tPrint the usage information and exit.")
@@ -356,6 +363,7 @@ def fail(platform, machine):
 
 def run():
 	expect_nic = False
+	expect_hdd = False
 	expect_qemu = False
 
 	for i in range(1, len(sys.argv)):
@@ -377,6 +385,19 @@ def run():
 				exit()
 			continue
 
+		if expect_hdd:
+			expect_hdd = False
+			if not 'hdd' in overrides.keys():
+				overrides['hdd'] = {}
+			if sys.argv[i] == 'ata':
+				overrides['hdd']['ata'] = True
+			elif sys.argv[i] == 'virtio-blk':
+				overrides['hdd']['virtio-blk'] = True
+			else:
+				usage()
+				exit()
+			continue
+
 		if expect_qemu:
 			expect_qemu = False
 			overrides['qemu_path'] = sys.argv[i]
@@ -388,6 +409,8 @@ def run():
 			overrides['dryrun'] = True
 		elif sys.argv[i] == '-net' and i < len(sys.argv) - 1:
 			expect_nic = True
+		elif sys.argv[i] == '-hdd' and i < len(sys.argv) - 1:
+			expect_hdd = True
 		elif sys.argv[i] == '-nohdd':
 			overrides['nohdd'] = True
 		elif sys.argv[i] == '-nokvm':

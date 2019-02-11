@@ -41,7 +41,7 @@
 #include <arch/mm/asid.h>
 #include <trace.h>
 
-NO_TRACE static inline ipl_t interrupts_enable(void)
+_NO_TRACE static inline ipl_t interrupts_enable(void)
 {
 	ipl_t ipl;
 
@@ -53,7 +53,7 @@ NO_TRACE static inline ipl_t interrupts_enable(void)
 	return ipl;
 }
 
-NO_TRACE static inline ipl_t interrupts_disable(void)
+_NO_TRACE static inline ipl_t interrupts_disable(void)
 {
 	ipl_t ipl;
 
@@ -65,7 +65,7 @@ NO_TRACE static inline ipl_t interrupts_disable(void)
 	return ipl;
 }
 
-NO_TRACE static inline void interrupts_restore(ipl_t ipl)
+_NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 {
 	if ((ipl & SSTATUS_SIE_MASK) == SSTATUS_SIE_MASK)
 		interrupts_enable();
@@ -73,7 +73,7 @@ NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 		interrupts_disable();
 }
 
-NO_TRACE static inline ipl_t interrupts_read(void)
+_NO_TRACE static inline ipl_t interrupts_read(void)
 {
 	ipl_t ipl;
 
@@ -85,12 +85,12 @@ NO_TRACE static inline ipl_t interrupts_read(void)
 	return ipl;
 }
 
-NO_TRACE static inline bool interrupts_disabled(void)
+_NO_TRACE static inline bool interrupts_disabled(void)
 {
 	return ((interrupts_read() & SSTATUS_SIE_MASK) == 0);
 }
 
-NO_TRACE static inline uintptr_t get_stack_base(void)
+_NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t base;
 
@@ -103,36 +103,36 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	return base;
 }
 
-NO_TRACE static inline void cpu_sleep(void)
+_NO_TRACE static inline void cpu_sleep(void)
 {
 }
 
-NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
-{
-	*port = v;
-}
-
-NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
+_NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;
 }
 
-NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
+_NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
 	*port = v;
 }
 
-NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
+_NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
+{
+	*port = v;
+}
+
+_NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	return *port;
 }
 
-NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
+_NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	return *port;
 }
 
-NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
+_NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	return *port;
 }

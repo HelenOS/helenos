@@ -37,6 +37,7 @@
 #ifndef LIBUSBHOST_HOST_HCD_H
 #define LIBUSBHOST_HOST_HCD_H
 
+#include <fibril.h>
 #include <ddf/driver.h>
 #include <usb/request.h>
 

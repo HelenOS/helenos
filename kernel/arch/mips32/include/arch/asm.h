@@ -39,7 +39,7 @@
 #include <config.h>
 #include <trace.h>
 
-NO_TRACE static inline void cpu_sleep(void)
+_NO_TRACE static inline void cpu_sleep(void)
 {
 	asm volatile ("wait");
 }
@@ -51,7 +51,7 @@ NO_TRACE static inline void cpu_sleep(void)
  * The stack must start on page boundary.
  *
  */
-NO_TRACE static inline uintptr_t get_stack_base(void)
+_NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t base;
 
@@ -64,32 +64,32 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	return base;
 }
 
-NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
+_NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;
 }
 
-NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
+_NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
 	*port = v;
 }
 
-NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
+_NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
 {
 	*port = v;
 }
 
-NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
+_NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	return *port;
 }
 
-NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
+_NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	return *port;
 }
 
-NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
+_NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	return *port;
 }

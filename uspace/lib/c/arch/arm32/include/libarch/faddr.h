@@ -33,8 +33,8 @@
  *  @brief Function address conversion.
  */
 
-#ifndef LIBC_arm32_FADDR_H_
-#define LIBC_arm32_FADDR_H_
+#ifndef _LIBC_arm32_FADDR_H_
+#define _LIBC_arm32_FADDR_H_
 
 #include <types/common.h>
 

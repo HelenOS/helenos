@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_CONFIG_H_
-#define LIBC_CONFIG_H_
+#ifndef _LIBC_CONFIG_H_
+#define _LIBC_CONFIG_H_
 
 #include <stdbool.h>
 

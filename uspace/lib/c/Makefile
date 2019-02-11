@@ -52,6 +52,7 @@ GENERIC_SOURCES = \
 	generic/config.c \
 	generic/context.c \
 	generic/corecfg.c \
+	generic/ctype.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
@@ -189,12 +190,14 @@ SOURCES = \
 TEST_SOURCES = \
 	test/adt/circ_buf.c \
 	test/adt/odict.c \
+	test/casting.c \
 	test/fibril/timer.c \
 	test/main.c \
 	test/mem.c \
 	test/inttypes.c \
 	test/io/table.c \
 	test/stdio/scanf.c \
+	test/perf.c \
 	test/perm.c \
 	test/qsort.c \
 	test/sprintf.c \

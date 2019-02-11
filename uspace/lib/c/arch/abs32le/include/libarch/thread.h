@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_abs32le_THREAD_H_
-#define LIBC_abs32le_THREAD_H_
+#ifndef _LIBC_abs32le_THREAD_H_
+#define _LIBC_abs32le_THREAD_H_
 
 #endif
 
