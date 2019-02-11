@@ -80,10 +80,15 @@ errno_t ipow10_u64(unsigned exp, uint64_t *res)
  * the binary digits of the result r in time O(log r).
  *
  * @param v Value to compute logarithm from
+ * @param res Place to store result
+ * @return EOK on success
  * @return Logarithm value
  */
-unsigned ilog10_u64(uint64_t v)
+errno_t ilog10_u64(uint64_t v, unsigned *res)
 {
+	if (v == 0)
+		return ERANGE;
+
 	unsigned b;
 	unsigned e;
 	uint64_t p10p2[6];
@@ -116,7 +121,8 @@ unsigned ilog10_u64(uint64_t v)
 		--b;
 	}
 
-	return r;
+	*res = r;
+	return EOK;
 }
 
 /** @}

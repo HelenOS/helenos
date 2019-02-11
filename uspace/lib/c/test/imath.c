@@ -77,20 +77,25 @@ PCUT_TEST(ipow10_u64_too_large)
 
 PCUT_TEST(ilog10_u64_zero)
 {
-	unsigned ret = ilog10_u64(0);
-	PCUT_ASSERT_INT_EQUALS(0, ret);
+	unsigned res;
+	errno_t ret = ilog10_u64(0, &res);
+	PCUT_ASSERT_ERRNO_VAL(ERANGE, ret);
 }
 
 PCUT_TEST(ilog10_u64_one)
 {
-	unsigned ret = ilog10_u64(1);
-	PCUT_ASSERT_INT_EQUALS(0, ret);
+	unsigned res;
+	errno_t ret = ilog10_u64(1, &res);
+	PCUT_ASSERT_ERRNO_VAL(EOK, ret);
+	PCUT_ASSERT_INT_EQUALS(0, res);
 }
 
 PCUT_TEST(ilog10_u64_max)
 {
-	unsigned ret = ilog10_u64(MAX_NUM);
-	PCUT_ASSERT_INT_EQUALS(MAX_EXP, ret);
+	unsigned res;
+	errno_t ret = ilog10_u64(MAX_NUM, &res);
+	PCUT_ASSERT_ERRNO_VAL(EOK, ret);
+	PCUT_ASSERT_INT_EQUALS(MAX_EXP, res);
 }
 
 PCUT_EXPORT(imath);

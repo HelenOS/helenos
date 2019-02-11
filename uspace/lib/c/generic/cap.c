@@ -159,7 +159,9 @@ void cap_simplify(cap_spec_t *cap)
 	}
 
 	/* Round the number so that we have at most @c scap_max_sdig significant digits */
-	sdig = 1 + ilog10_u64(cap->m); /* number of significant digits */
+	rc = ilog10_u64(cap->m, &sdig); /* number of significant digits */
+	sdig += 1;
+	assert(rc == EOK);
 	if (sdig > scap_max_sdig) {
 		/* Number of digits to remove */
 		rdig = sdig - scap_max_sdig;

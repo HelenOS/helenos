@@ -39,7 +39,7 @@
 #include <stdint.h>
 
 extern errno_t ipow10_u64(unsigned, uint64_t *);
-extern unsigned ilog10_u64(uint64_t);
+extern errno_t ilog10_u64(uint64_t, unsigned *);
 
 #endif
 
