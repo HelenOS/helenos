@@ -36,4 +36,6 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/eabi.S \
 	arch/$(UARCH)/src/stacktrace.c \
-	arch/$(UARCH)/src/stacktrace_asm.S
+	arch/$(UARCH)/src/stacktrace_asm.S \
+	arch/$(UARCH)/src/rtld/dynamic.c \
+	arch/$(UARCH)/src/rtld/reloc.c

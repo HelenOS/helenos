@@ -33,6 +33,7 @@
  */
 
 #include <errno.h>
+#include <fibril.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>

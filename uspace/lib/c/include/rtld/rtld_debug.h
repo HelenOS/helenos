@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_RTLD_RTLD_DEBUG_H_
-#define LIBC_RTLD_RTLD_DEBUG_H_
+#ifndef _LIBC_RTLD_RTLD_DEBUG_H_
+#define _LIBC_RTLD_RTLD_DEBUG_H_
 
 #include <stdio.h>
 

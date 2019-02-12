@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fibril.h>
 #include <str_error.h>
 #include <audio_pcm_iface.h>
 #include <pcm/format.h>
@@ -87,8 +88,8 @@ static void record_initialize(record_t *rec, audio_pcm_sess_t *sess)
  *
  * Writes recorded data.
  *
- * @param icall Poitner to IPC call structure.
- * @param arg   Argument. Poitner to recording helper structure.
+ * @param icall Pointer to IPC call structure.
+ * @param arg   Argument. Pointer to recording helper structure.
  *
  */
 static void device_event_callback(ipc_call_t *icall, void *arg)

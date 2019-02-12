@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_BSEARCH_H_
-#define LIBC_BSEARCH_H_
+#ifndef _LIBC_BSEARCH_H_
+#define _LIBC_BSEARCH_H_
 
 #include <stddef.h>
 

@@ -35,8 +35,8 @@
  * NIC interface definitions.
  */
 
-#ifndef LIBC_NIC_H_
-#define LIBC_NIC_H_
+#ifndef _LIBC_NIC_H_
+#define _LIBC_NIC_H_
 
 #include <nic/eth_phys.h>
 #include <stdbool.h>

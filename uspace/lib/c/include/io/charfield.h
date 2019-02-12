@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_CHARFIELD_H_
-#define LIBC_IO_CHARFIELD_H_
+#ifndef _LIBC_IO_CHARFIELD_H_
+#define _LIBC_IO_CHARFIELD_H_
 
 #include <stdbool.h>
 #include <wchar.h>

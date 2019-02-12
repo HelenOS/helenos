@@ -146,6 +146,7 @@ extern void ext4_superblock_set_backup_groups_sparse2(ext4_superblock_t *sb,
 extern uint32_t ext4_superblock_get_reserved_gdt_blocks(ext4_superblock_t *sb);
 extern void ext4_superblock_set_reserved_gdt_blocks(ext4_superblock_t *sb,
     uint32_t n);
+extern uint32_t ext4_superblock_get_flex_group_size(ext4_superblock_t *sb);
 
 /* More complex superblock functions */
 extern bool ext4_superblock_has_flag(ext4_superblock_t *, uint32_t);

@@ -238,7 +238,7 @@ void loc_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-/** Register new driver with loc. */
+/** Register new server with loc. */
 errno_t loc_server_register(const char *name)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);

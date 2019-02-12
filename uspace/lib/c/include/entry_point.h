@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ENTRY_POINT_H_
-#define LIBC_ENTRY_POINT_H_
+#ifndef _LIBC_ENTRY_POINT_H_
+#define _LIBC_ENTRY_POINT_H_
 
 /* Defined in arch/ARCH/src/entryjmp.[c|s] */
 void entry_point_jmp(void *, void *) __attribute__((noreturn));

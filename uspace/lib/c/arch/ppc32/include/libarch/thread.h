@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ppc32_THREAD_H_
-#define LIBC_ppc32_THREAD_H_
+#ifndef _LIBC_ppc32_THREAD_H_
+#define _LIBC_ppc32_THREAD_H_
 
 #endif
 

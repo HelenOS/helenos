@@ -89,7 +89,6 @@ uspace/app/bdsh/bdsh
 uspace/app/bdsh/test-bdsh
 uspace/app/bithenge/bithenge
 uspace/app/blkdump/blkdump
-uspace/app/bnchmark/bnchmark
 uspace/app/contacts/contacts
 uspace/app/corecfg/corecfg
 uspace/app/cpptest/cpptest
@@ -106,9 +105,11 @@ uspace/app/fdisk/fdisk
 uspace/app/fontviewer/fontviewer
 uspace/app/getterm/getterm
 uspace/app/gunzip/gunzip
+uspace/app/hbench/hbench
 uspace/app/inet/inet
 uspace/app/init/init
 uspace/app/init/init.gz
+uspace/app/lprint/lprint
 uspace/app/kill/kill
 uspace/app/killall/killall
 uspace/app/kio/kio
@@ -128,12 +129,10 @@ uspace/app/nettest2/nettest2
 uspace/app/nettest3/nettest3
 uspace/app/nic/nic
 uspace/app/nterm/nterm
-uspace/app/perf/perf
+uspace/app/pci/pci
 uspace/app/ping/ping
 uspace/app/ping6/ping6
 uspace/app/pkg/pkg
-uspace/app/rcubench/rcubench
-uspace/app/rcutest/rcutest
 uspace/app/redir/redir
 uspace/app/sbi/sbi
 uspace/app/sportdmp/sportdmp
@@ -172,7 +171,6 @@ uspace/dist/app/barber
 uspace/dist/app/bdsh
 uspace/dist/app/bithenge
 uspace/dist/app/blkdump
-uspace/dist/app/bnchmark
 uspace/dist/app/corecfg
 uspace/dist/app/cpptest
 uspace/dist/app/date
@@ -210,8 +208,6 @@ uspace/dist/app/nterm
 uspace/dist/app/ping
 uspace/dist/app/ping6
 uspace/dist/app/pkg
-uspace/dist/app/rcubench
-uspace/dist/app/rcutest
 uspace/dist/app/redir
 uspace/dist/app/sbi
 uspace/dist/app/sportdmp
@@ -313,6 +309,7 @@ uspace/drv/bus/usb/xhci/xhci
 uspace/drv/char/i8042/i8042
 uspace/drv/char/msim-con/msim-con
 uspace/drv/char/ns8250/ns8250
+uspace/drv/char/pc-lpt/pc-lpt
 uspace/drv/char/pl050/pl050
 uspace/drv/char/ps2mouse/ps2mouse
 uspace/drv/char/ski-con/ski-con

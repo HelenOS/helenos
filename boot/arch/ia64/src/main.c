@@ -93,9 +93,22 @@ static void read_efi_memmap(void)
 		    (items < MEMMAP_ITEMS);
 		    cur += md_size) {
 			efi_v1_memdesc_t *md = (efi_v1_memdesc_t *) cur;
+			memmap_item_t *o = NULL;
+
+			if (items)
+				o = &memmap[items - 1];
 
 			switch ((efi_memory_type_t) md->type) {
+			case EFI_LOADER_CODE:
+			case EFI_LOADER_DATA:
+			case EFI_BOOT_SERVICES_CODE:
+			case EFI_BOOT_SERVICES_DATA:
 			case EFI_CONVENTIONAL_MEMORY:
+				if (o && o->type == MEMMAP_FREE_MEM &&
+				    o->base + o->size == md->phys_start) {
+					o->size += md->pages * EFI_PAGE_SIZE;
+					continue;
+				}
 				memmap[items].type = MEMMAP_FREE_MEM;
 				break;
 			case EFI_MEMORY_MAPPED_IO:

@@ -51,4 +51,7 @@ endif
 
 ifeq ($(PROCESSOR),sun4v)
 	DEFS += -DSUN4V
+	COMMON_CFLAGS += -Wl,-z,max-page-size=0x2000
+else
+	COMMON_CFLAGS += -Wl,-z,max-page-size=0x4000
 endif

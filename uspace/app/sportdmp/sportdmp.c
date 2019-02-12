@@ -145,7 +145,8 @@ int main(int argc, char **argv)
 	}
 
 	while (true) {
-		rc = chardev_read(chardev, buf, BUF_SIZE, &nread);
+		rc = chardev_read(chardev, buf, BUF_SIZE, &nread,
+		    chardev_f_none);
 		for (size_t i = 0; i < nread; i++) {
 			printf("%02hhx ", buf[i]);
 		}

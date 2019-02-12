@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_ELF_H_
-#define ABI_ELF_H_
+#ifndef _ABI_ELF_H_
+#define _ABI_ELF_H_
 
 #include <stdint.h>
 #include <abi/arch/elf.h>

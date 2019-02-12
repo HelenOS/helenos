@@ -318,6 +318,7 @@ static errno_t ddisk_fun_create(ddisk_t *ddisk)
 {
 	errno_t rc;
 	ddf_fun_t *fun = NULL;
+	bool bound = false;
 
 	fun = ddf_fun_create(ddisk->dev, fun_exposed, DDISK_FUN_NAME);
 	if (fun == NULL) {
@@ -336,11 +337,20 @@ static errno_t ddisk_fun_create(ddisk_t *ddisk)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "disk");
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "disk");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function %s to category "
+		    "'disk': %s.\n", DDISK_FUN_NAME, str_error(rc));
+		goto error;
+	}
 	ddisk->fun = fun;
 
 	return EOK;
 error:
+	if (bound)
+		ddf_fun_unbind(fun);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 

@@ -48,7 +48,7 @@
  * @param sz2 Size of the second interval.
  *
  */
-NO_TRACE static inline int overlaps(uint64_t s1, uint64_t sz1, uint64_t s2,
+_NO_TRACE static inline int overlaps(uint64_t s1, uint64_t sz1, uint64_t s2,
     uint64_t sz2)
 {
 	uint64_t e1 = s1 + sz1 - 1;
@@ -77,7 +77,7 @@ NO_TRACE static inline int overlaps(uint64_t s1, uint64_t sz1, uint64_t s2,
  * @param sz2 Size of the second interval.
  *
  */
-NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
+_NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
     uint64_t sz2)
 {
 	uint64_t e1;

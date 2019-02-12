@@ -37,9 +37,11 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "private/cc.h"
 
 /** Fill memory block with a constant value. */
-void *memset(void *dest, int b, size_t n)
+ATTRIBUTE_OPTIMIZE_NO_TLDP
+    void *memset(void *dest, int b, size_t n)
 {
 	char *pb;
 	unsigned long *pw;
@@ -113,7 +115,8 @@ static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 }
 
 /** Copy memory block. */
-void *memcpy(void *dst, const void *src, size_t n)
+ATTRIBUTE_OPTIMIZE_NO_TLDP
+    void *memcpy(void *dst, const void *src, size_t n)
 {
 	size_t i;
 	size_t mod, fill;

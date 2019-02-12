@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 	char *endptr;
 	aoff64_t nblocks;
 	const char *label = "";
+	unsigned int bsize = 4096;
 
 	cfg.version = ext4_def_fs_version;
 
@@ -67,7 +68,7 @@ int main(int argc, char **argv)
 	--argc;
 	++argv;
 
-	while (*argv[0] == '-') {
+	while (*argv && *argv[0] == '-') {
 		if (str_cmp(*argv, "--size") == 0) {
 			--argc;
 			++argv;
@@ -86,6 +87,28 @@ int main(int argc, char **argv)
 
 			--argc;
 			++argv;
+			continue;
+		}
+
+		if (str_cmp(*argv, "--bsize") == 0) {
+			--argc;
+			++argv;
+			if (*argv == NULL) {
+				printf(NAME ": Error, argument missing.\n");
+				syntax_print();
+				return 1;
+			}
+
+			bsize = strtol(*argv, &endptr, 10);
+			if (*endptr != '\0') {
+				printf(NAME ": Error, invalid argument.\n");
+				syntax_print();
+				return 1;
+			}
+
+			--argc;
+			++argv;
+			continue;
 		}
 
 		if (str_cmp(*argv, "--type") == 0) {
@@ -106,6 +129,7 @@ int main(int argc, char **argv)
 
 			--argc;
 			++argv;
+			continue;
 		}
 
 		if (str_cmp(*argv, "--label") == 0) {
@@ -121,12 +145,22 @@ int main(int argc, char **argv)
 
 			--argc;
 			++argv;
+			continue;
+		}
+
+		if (str_cmp(*argv, "--help") == 0) {
+			syntax_print();
+			return 0;
 		}
 
 		if (str_cmp(*argv, "-") == 0) {
 			--argc;
 			++argv;
 			break;
+		} else {
+			printf(NAME ": Invalid argument: %s\n", *argv);
+			syntax_print();
+			return 1;
 		}
 	}
 
@@ -146,6 +180,7 @@ int main(int argc, char **argv)
 	}
 
 	cfg.volume_name = label;
+	cfg.bsize = bsize;
 	(void) nblocks;
 
 	rc = ext4_filesystem_create(&cfg, service_id);
@@ -165,7 +200,8 @@ static void syntax_print(void)
 	printf("options:\n"
 	    "\t--size <sectors> Filesystem size, overrides device size\n"
 	    "\t--label <label>  Volume label\n"
-	    "\t--type <fstype>  Filesystem type (ext2, ext2old)\n");
+	    "\t--type <fstype>  Filesystem type (ext2, ext2old)\n"
+	    "\t--bsize <bytes>  Filesystem block size in bytes (default = 4096)\n");
 }
 
 static errno_t ext4_version_parse(const char *str, ext4_cfg_ver_t *ver)

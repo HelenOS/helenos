@@ -95,7 +95,7 @@ uhci_transfer_batch_t *uhci_transfer_batch_create(endpoint_t *ep)
  */
 int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 {
-	static_assert((sizeof(td_t) % 16) == 0);
+	static_assert((sizeof(td_t) % 16) == 0, "");
 
 	usb_transfer_batch_t *usb_batch = &uhci_batch->base;
 

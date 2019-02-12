@@ -152,8 +152,8 @@ bool elf_resize(as_area_t *area, size_t new_pages)
 void elf_share(as_area_t *area)
 {
 	elf_segment_header_t *entry = area->backend_data.segment;
-	link_t *cur;
-	btree_node_t *leaf, *node;
+	used_space_ival_t *start;
+	used_space_ival_t *cur;
 	uintptr_t start_anon = entry->p_vaddr + entry->p_filesz;
 
 	assert(mutex_locked(&area->as->lock));
@@ -163,72 +163,65 @@ void elf_share(as_area_t *area)
 	 * Find the node in which to start linear search.
 	 */
 	if (area->flags & AS_AREA_WRITE) {
-		node = list_get_instance(list_first(&area->used_space.leaf_list),
-		    btree_node_t, leaf_link);
+		start = used_space_first(&area->used_space);
 	} else {
-		(void) btree_search(&area->used_space, start_anon, &leaf);
-		node = btree_leaf_node_left_neighbour(&area->used_space, leaf);
-		if (!node)
-			node = leaf;
+		/* Find first interval containing addresses >= start_anon */
+		start = used_space_find_gteq(&area->used_space, start_anon);
 	}
 
 	/*
 	 * Copy used anonymous portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	for (cur = &node->leaf_link; cur != &area->used_space.leaf_list.head;
-	    cur = cur->next) {
+	cur = start;
+	while (cur != NULL) {
+		uintptr_t base = cur->page;
+		size_t count = cur->count;
 		unsigned int i;
 
-		node = list_get_instance(cur, btree_node_t, leaf_link);
+		/*
+		 * Skip read-only areas of used space that are backed
+		 * by the ELF image.
+		 */
+		if (!(area->flags & AS_AREA_WRITE))
+			if (base >= entry->p_vaddr &&
+			    base + P2SZ(count) <= start_anon)
+				continue;
 
-		for (i = 0; i < node->keys; i++) {
-			uintptr_t base = node->key[i];
-			size_t count = (size_t) node->value[i];
-			unsigned int j;
+		for (i = 0; i < count; i++) {
+			pte_t pte;
+			bool found;
 
 			/*
-			 * Skip read-only areas of used space that are backed
-			 * by the ELF image.
+			 * Skip read-only pages that are backed by the
+			 * ELF image.
 			 */
 			if (!(area->flags & AS_AREA_WRITE))
 				if (base >= entry->p_vaddr &&
-				    base + P2SZ(count) <= start_anon)
+				    base + P2SZ(i + 1) <= start_anon)
 					continue;
 
-			for (j = 0; j < count; j++) {
-				pte_t pte;
-				bool found;
+			page_table_lock(area->as, false);
+			found = page_mapping_find(area->as,
+			    base + P2SZ(i), false, &pte);
 
-				/*
-				 * Skip read-only pages that are backed by the
-				 * ELF image.
-				 */
-				if (!(area->flags & AS_AREA_WRITE))
-					if (base >= entry->p_vaddr &&
-					    base + P2SZ(j + 1) <= start_anon)
-						continue;
+			(void) found;
+			assert(found);
+			assert(PTE_VALID(&pte));
+			assert(PTE_PRESENT(&pte));
 
-				page_table_lock(area->as, false);
-				found = page_mapping_find(area->as,
-				    base + P2SZ(j), false, &pte);
+			as_pagemap_insert(&area->sh_info->pagemap,
+			    (base + P2SZ(i)) - area->base,
+			    PTE_GET_FRAME(&pte));
+			page_table_unlock(area->as, false);
 
-				(void) found;
-				assert(found);
-				assert(PTE_VALID(&pte));
-				assert(PTE_PRESENT(&pte));
-
-				btree_insert(&area->sh_info->pagemap,
-				    (base + P2SZ(j)) - area->base,
-				    (void *) PTE_GET_FRAME(&pte), NULL);
-				page_table_unlock(area->as, false);
-
-				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
-				frame_reference_add(pfn);
-			}
-
+			pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
+			frame_reference_add(pfn);
 		}
+
+		cur = used_space_next(cur);
 	}
+
 	mutex_unlock(&area->sh_info->lock);
 }
 
@@ -266,7 +259,6 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 {
 	elf_header_t *elf = area->backend_data.elf;
 	elf_segment_header_t *entry = area->backend_data.segment;
-	btree_node_t *leaf;
 	uintptr_t base;
 	uintptr_t frame;
 	uintptr_t kpage;
@@ -300,33 +292,17 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 
 	mutex_lock(&area->sh_info->lock);
 	if (area->sh_info->shared) {
-		bool found = false;
-
 		/*
 		 * The address space area is shared.
 		 */
 
-		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
-		    upage - area->base, &leaf);
-		if (!frame) {
-			unsigned int i;
-
-			/*
-			 * Workaround for valid NULL address.
-			 */
-
-			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] == upage - area->base) {
-					found = true;
-					break;
-				}
-			}
-		}
-		if (frame || found) {
+		errno_t rc = as_pagemap_find(&area->sh_info->pagemap,
+		    upage - area->base, &frame);
+		if (rc == EOK) {
 			frame_reference_add(ADDR2PFN(frame));
 			page_mapping_insert(AS, upage, frame,
 			    as_area_get_flags(area));
-			if (!used_space_insert(area, upage, 1))
+			if (!used_space_insert(&area->used_space, upage, 1))
 				panic("Cannot insert used space.");
 			mutex_unlock(&area->sh_info->lock);
 			return AS_PF_OK;
@@ -414,14 +390,14 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 
 	if (dirty && area->sh_info->shared) {
 		frame_reference_add(ADDR2PFN(frame));
-		btree_insert(&area->sh_info->pagemap, upage - area->base,
-		    (void *) frame, leaf);
+		as_pagemap_insert(&area->sh_info->pagemap, upage - area->base,
+		    frame);
 	}
 
 	mutex_unlock(&area->sh_info->lock);
 
 	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, upage, 1))
+	if (!used_space_insert(&area->used_space, upage, 1))
 		panic("Cannot insert used space.");
 
 	return AS_PF_OK;

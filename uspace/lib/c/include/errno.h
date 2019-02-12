@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ERRNO_H_
-#define LIBC_ERRNO_H_
+#ifndef _LIBC_ERRNO_H_
+#define _LIBC_ERRNO_H_
 
 #include <_bits/errno.h>
 #include <abi/errno.h>

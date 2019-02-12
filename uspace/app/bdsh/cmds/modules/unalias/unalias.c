@@ -98,6 +98,6 @@ int cmd_unalias(char **argv)
 
 		free_alias(alias_link);
 	}
-	
+
 	return CMD_SUCCESS;
 }

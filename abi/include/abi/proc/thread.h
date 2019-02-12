@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_PROC_THREAD_H_
-#define ABI_PROC_THREAD_H_
+#ifndef _ABI_PROC_THREAD_H_
+#define _ABI_PROC_THREAD_H_
 
 #include <stdint.h>
 

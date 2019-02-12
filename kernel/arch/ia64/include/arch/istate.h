@@ -49,26 +49,26 @@
 
 #endif /* KERNEL */
 
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+_NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
     uintptr_t retaddr)
 {
 	istate->cr_iip = retaddr;
 	istate->cr_ipsr.ri = 0;    /* return to instruction slot #0 */
 }
 
-NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+_NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
 {
 	return istate->cr_iip;
 }
 
-NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+_NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
 {
 	/* FIXME */
 
 	return 0;
 }
 
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+_NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
 	return (istate->cr_iip) < 0xe000000000000000ULL;
 }

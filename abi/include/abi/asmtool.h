@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_ASMTOOL_H_
-#define ABI_ASMTOOL_H_
+#ifndef _ABI_ASMTOOL_H_
+#define _ABI_ASMTOOL_H_
 
 #define SYMBOL(sym) \
 	.global sym; \
@@ -54,6 +54,12 @@
 	SYMBOL_BEGIN(func)
 #define FUNCTION_END(func) \
 	SYMBOL_END(func)
+
+#ifdef __PIC__
+#define FUNCTION_REF(func) func@PLT
+#else
+#define FUNCTION_REF(func) func
+#endif
 
 #endif
 

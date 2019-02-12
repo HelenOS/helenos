@@ -36,8 +36,8 @@
  * so we define a unified API for this.
  */
 
-#ifndef LIBC_REFCOUNT_H_
-#define LIBC_REFCOUNT_H_
+#ifndef _LIBC_REFCOUNT_H_
+#define _LIBC_REFCOUNT_H_
 
 #include <assert.h>
 #include <stdatomic.h>

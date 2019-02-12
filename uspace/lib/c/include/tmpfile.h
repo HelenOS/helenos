@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_TMPFILE_H_
-#define LIBC_TMPFILE_H_
+#ifndef _LIBC_TMPFILE_H_
+#define _LIBC_TMPFILE_H_
 
 #include <stdbool.h>
 

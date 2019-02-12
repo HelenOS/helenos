@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_FUTEX_H_
-#define LIBC_FUTEX_H_
+#ifndef _LIBC_FUTEX_H_
+#define _LIBC_FUTEX_H_
 
 #include <assert.h>
 #include <stdatomic.h>

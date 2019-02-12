@@ -54,7 +54,8 @@ static errno_t ski_con_fibril(void *arg);
 static int32_t ski_con_getchar(void);
 static void ski_con_connection(ipc_call_t *, void *);
 
-static errno_t ski_con_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t ski_con_read(chardev_srv_t *, void *, size_t, size_t *,
+    chardev_flags_t);
 static errno_t ski_con_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t ski_con_chardev_ops = {
@@ -111,9 +112,14 @@ errno_t ski_con_add(ski_con_t *con)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "console");
-
 	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "console");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error adding function 'a' to category "
+		    "'console'.");
+		goto error;
+	}
 
 	fid = fibril_create(ski_con_fibril, con);
 	if (fid == 0) {
@@ -254,7 +260,7 @@ static void ski_con_putchar(ski_con_t *con, char ch)
 
 /** Read from Ski console device */
 static errno_t ski_con_read(chardev_srv_t *srv, void *buf, size_t size,
-    size_t *nread)
+    size_t *nread, chardev_flags_t flags)
 {
 	ski_con_t *con = (ski_con_t *) srv->srvs->sarg;
 	size_t p;
@@ -263,7 +269,8 @@ static errno_t ski_con_read(chardev_srv_t *srv, void *buf, size_t size,
 
 	fibril_mutex_lock(&con->buf_lock);
 
-	while (circ_buf_nused(&con->cbuf) == 0)
+	while ((flags & chardev_f_nonblock) == 0 &&
+	    circ_buf_nused(&con->cbuf) == 0)
 		fibril_condvar_wait(&con->buf_cv, &con->buf_lock);
 
 	p = 0;

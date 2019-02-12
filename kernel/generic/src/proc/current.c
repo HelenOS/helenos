@@ -69,7 +69,7 @@ void current_initialize(current_t *the)
  * @param dst The destination CURRENT structure.
  *
  */
-NO_TRACE void current_copy(current_t *src, current_t *dst)
+_NO_TRACE void current_copy(current_t *src, current_t *dst)
 {
 	assert(src->magic == MAGIC);
 	*dst = *src;

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IPC_WINDOW_H_
-#define LIBC_IPC_WINDOW_H_
+#ifndef _LIBC_IPC_WINDOW_H_
+#define _LIBC_IPC_WINDOW_H_
 
 #include <ipc/vfs.h>
 

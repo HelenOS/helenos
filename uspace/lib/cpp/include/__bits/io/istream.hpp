@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_IO_ISTREAM
 #define LIBCPP_BITS_IO_ISTREAM
 
+#include <cassert>
 #include <ios>
 #include <iosfwd>
 #include <limits>
@@ -338,21 +339,29 @@ namespace std
             basic_istream<Char, Traits>& operator>>(float& x)
             {
                 // TODO: implement
+                __unimplemented();
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(double& x)
             {
                 // TODO: implement
+                __unimplemented();
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(long double& x)
             {
                 // TODO: implement
+                __unimplemented();
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(void*& p)
             {
                 // TODO: implement
+                __unimplemented();
+                return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(basic_streambuf<Char, Traits>* sb)

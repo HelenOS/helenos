@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_sparc64_ELF_H_
-#define ABI_sparc64_ELF_H_
+#ifndef _ABI_sparc64_ELF_H_
+#define _ABI_sparc64_ELF_H_
 
 #define ELF_MACHINE        EM_SPARCV9
 #define ELF_DATA_ENCODING  ELFDATA2MSB

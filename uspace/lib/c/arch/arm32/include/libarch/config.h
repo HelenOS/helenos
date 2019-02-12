@@ -33,8 +33,8 @@
  *  @brief Configuration constants.
  */
 
-#ifndef LIBC_arm32_CONFIG_H_
-#define LIBC_arm32_CONFIG_H_
+#ifndef _LIBC_arm32_CONFIG_H_
+#define _LIBC_arm32_CONFIG_H_
 
 #define PAGE_WIDTH	12
 #define PAGE_SIZE	(1 << PAGE_WIDTH)

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_IPC_IPC_H_
-#define ABI_IPC_IPC_H_
+#ifndef _ABI_IPC_IPC_H_
+#define _ABI_IPC_IPC_H_
 
 #include <abi/proc/task.h>
 #include <abi/cap.h>

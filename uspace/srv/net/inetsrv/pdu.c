@@ -223,7 +223,7 @@ errno_t inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
 	if (hdr_size >= mtu)
 		return EINVAL;
 
-	static_assert(sizeof(ip6_header_t) % 8 == 0);
+	static_assert(sizeof(ip6_header_t) % 8 == 0, "");
 	assert(hdr_size % 8 == 0);
 	assert(offs % FRAG_OFFS_UNIT == 0);
 	assert(offs / FRAG_OFFS_UNIT < fragoff_limit);

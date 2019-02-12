@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ppc32_REGNAME_H_
-#define LIBC_ppc32_REGNAME_H_
+#ifndef _LIBC_ppc32_REGNAME_H_
+#define _LIBC_ppc32_REGNAME_H_
 
 /* Condition Register Bit Fields */
 #define	cr0	0

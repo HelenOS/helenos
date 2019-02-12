@@ -161,7 +161,6 @@ INSTRUMENTATION = -finstrument-functions
 
 GENERIC_SOURCES = \
 	generic/src/adt/bitmap.c \
-	generic/src/adt/btree.c \
 	generic/src/adt/hash_table.c \
 	generic/src/adt/list.c \
 	generic/src/adt/odict.c \
@@ -278,7 +277,6 @@ ifeq ($(CONFIG_TEST),y)
 	GENERIC_SOURCES += \
 		test/test.c \
 		test/atomic/atomic1.c \
-		test/btree/btree1.c \
 		test/fault/fault1.c \
 		test/mm/falloc1.c \
 		test/mm/falloc2.c \
@@ -313,7 +311,6 @@ endif
 
 ifeq ($(CONFIG_TRACE),y)
 	INSTRUMENTED_SOURCES = \
-		generic/src/adt/btree.c \
 		generic/src/cpu/cpu.c \
 		generic/src/ddi/ddi.c \
 		generic/src/interrupt/interrupt.c \

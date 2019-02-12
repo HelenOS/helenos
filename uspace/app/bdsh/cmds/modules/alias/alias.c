@@ -59,7 +59,7 @@ static bool print_alias(const char *name)
 		printf(alias_format, data->name, data->value);
 		return true;
 	}
-	
+
 	cli_error(CL_ENOENT, "%s: No alias with the name '%s' exists\n", cmdname, name);
 	return false;
 }
@@ -122,7 +122,7 @@ void help_cmd_alias(unsigned int level)
 /* Main entry point for alias, accepts an array of arguments */
 int cmd_alias(char **argv)
 {
-	
+
 	if (argv[1] == NULL) {
 		list_aliases();
 		return CMD_SUCCESS;
@@ -139,7 +139,7 @@ int cmd_alias(char **argv)
 				free(name);
 				return CMD_FAILURE;
 			}
-			
+
 			set_alias(name, value + 1);
 		} else {
 			if (!print_alias(name)) {
@@ -150,6 +150,6 @@ int cmd_alias(char **argv)
 
 		free(name);
 	}
-	
+
 	return CMD_SUCCESS;
 }

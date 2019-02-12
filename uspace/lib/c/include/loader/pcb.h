@@ -33,8 +33,8 @@
  * @brief Program Control Block interface.
  */
 
-#ifndef LIBC_PCB_H_
-#define LIBC_PCB_H_
+#ifndef _LIBC_PCB_H_
+#define _LIBC_PCB_H_
 
 #include <tls.h>
 

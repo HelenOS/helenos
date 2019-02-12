@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_mips32_ELF_H_
-#define ABI_mips32_ELF_H_
+#ifndef _ABI_mips32_ELF_H_
+#define _ABI_mips32_ELF_H_
 
 #define ELF_MACHINE  EM_MIPS
 

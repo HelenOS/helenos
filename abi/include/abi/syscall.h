@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_SYSCALL_H_
-#define ABI_SYSCALL_H_
+#ifndef _ABI_SYSCALL_H_
+#define _ABI_SYSCALL_H_
 
 typedef enum {
 	SYS_KIO = 0,

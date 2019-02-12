@@ -45,7 +45,8 @@ static void sun4v_con_connection(ipc_call_t *, void *);
 
 #define POLL_INTERVAL  10000
 
-static errno_t sun4v_con_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t sun4v_con_read(chardev_srv_t *, void *, size_t, size_t *,
+    chardev_flags_t);
 static errno_t sun4v_con_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t sun4v_con_chardev_ops = {
@@ -73,6 +74,7 @@ errno_t sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 {
 	ddf_fun_t *fun = NULL;
 	errno_t rc;
+	bool bound = false;
 
 	con->res = *res;
 	con->input_buffer = (niagara_input_buffer_t *) AS_AREA_ANY;
@@ -112,7 +114,14 @@ errno_t sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "console");
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "console");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error adding function 'a' to category "
+		    "'console'.");
+		goto error;
+	}
 
 	return EOK;
 error:
@@ -121,6 +130,9 @@ error:
 
 	if (con->output_buffer != (niagara_output_buffer_t *) AS_AREA_ANY)
 		physmem_unmap((void *) con->output_buffer);
+
+	if (bound)
+		ddf_fun_unbind(fun);
 
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
@@ -142,14 +154,15 @@ errno_t sun4v_con_gone(sun4v_con_t *con)
 
 /** Read from Sun4v console device */
 static errno_t sun4v_con_read(chardev_srv_t *srv, void *buf, size_t size,
-    size_t *nread)
+    size_t *nread, chardev_flags_t flags)
 {
 	sun4v_con_t *con = (sun4v_con_t *) srv->srvs->sarg;
 	size_t p;
 	uint8_t *bp = (uint8_t *) buf;
 	char c;
 
-	while (con->input_buffer->read_ptr == con->input_buffer->write_ptr)
+	while ((flags & chardev_f_nonblock) == 0 &&
+	    con->input_buffer->read_ptr == con->input_buffer->write_ptr)
 		fibril_usleep(POLL_INTERVAL);
 
 	p = 0;

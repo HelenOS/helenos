@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+#ifndef _LIBC_IPC_DEV_IFACE_H_
+#define _LIBC_IPC_DEV_IFACE_H_
 
 #include <stdlib.h>
 #include <types/common.h>

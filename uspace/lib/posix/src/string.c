@@ -134,40 +134,6 @@ void *memccpy(void *restrict dest, const void *restrict src, int c, size_t n)
 }
 
 /**
- * Duplicate a string.
- *
- * @param s String to be duplicated.
- * @return Newly allocated copy of the string.
- */
-char *strdup(const char *s)
-{
-	return strndup(s, SIZE_MAX);
-}
-
-/**
- * Duplicate a specific number of bytes from a string.
- *
- * @param s String to be duplicated.
- * @param n Maximum length of the resulting string..
- * @return Newly allocated string copy of length at most n.
- */
-char *strndup(const char *s, size_t n)
-{
-	assert(s != NULL);
-
-	size_t len = strnlen(s, n);
-	char *dup = malloc(len + 1);
-	if (dup == NULL) {
-		return NULL;
-	}
-
-	memcpy(dup, s, len);
-	dup[len] = '\0';
-
-	return dup;
-}
-
-/**
  * Scan string for a first occurence of a character.
  *
  * @param s String in which to look for the character.
@@ -224,27 +190,6 @@ int strerror_r(int errnum, char *buf, size_t bufsz)
 	}
 
 	return EOK;
-}
-
-/**
- * Get limited length of the string.
- *
- * @param s String which length shall be determined.
- * @param n Maximum number of bytes that can be examined to determine length.
- * @return The lower of either string length or n limit.
- */
-size_t strnlen(const char *s, size_t n)
-{
-	assert(s != NULL);
-
-	for (size_t sz = 0; sz < n; ++sz) {
-
-		if (s[sz] == '\0') {
-			return sz;
-		}
-	}
-
-	return n;
 }
 
 /**

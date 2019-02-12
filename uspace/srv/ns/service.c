@@ -153,8 +153,7 @@ errno_t ns_service_init(void)
 static void ns_forward(async_sess_t *sess, ipc_call_t *call, iface_t iface)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	async_forward_fast(call, exch, iface, IPC_GET_ARG3(*call), 0,
-	    IPC_FF_NONE);
+	async_forward_1(call, exch, iface, IPC_GET_ARG3(*call), IPC_FF_NONE);
 	async_exchange_end(exch);
 }
 

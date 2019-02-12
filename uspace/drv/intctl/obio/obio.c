@@ -117,6 +117,7 @@ errno_t obio_add(obio_t *obio, obio_res_t *res)
 {
 	ddf_fun_t *fun_a = NULL;
 	errno_t rc;
+	bool bound = false;
 
 	rc = pio_enable((void *)res->base, OBIO_SIZE, (void **) &obio->regs);
 	if (rc != EOK) {
@@ -148,6 +149,8 @@ errno_t obio_add(obio_t *obio, obio_res_t *res)
 
 	return EOK;
 error:
+	if (bound)
+		ddf_fun_unbind(fun_a);
 	if (fun_a != NULL)
 		ddf_fun_destroy(fun_a);
 	return rc;

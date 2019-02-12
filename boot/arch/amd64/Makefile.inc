@@ -45,6 +45,7 @@ RD_DRVS_ESSENTIAL += \
 RD_DRVS_NON_ESSENTIAL += \
 	audio/hdaudio \
 	char/ns8250 \
+	char/pc-lpt \
 	time/cmos-rtc \
 	bus/usb/ehci\
 	bus/usb/ohci \

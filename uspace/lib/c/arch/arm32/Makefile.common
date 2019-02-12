@@ -28,7 +28,7 @@
 #
 
 COMMON_CFLAGS += -ffixed-r9 -mtp=soft -fno-omit-frame-pointer -mapcs-frame \
-	-mcpu=$(subst _,-,$(PROCESSOR))
+	-mcpu=$(subst _,-,$(PROCESSOR)) -Wl,-z,max-page-size=0x1000
 
 LDFLAGS += -Wl,--gc-sections
 

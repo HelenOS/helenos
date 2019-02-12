@@ -60,7 +60,7 @@ typedef struct hcca {
 	PADD32(30);
 } hcca_t;
 
-static_assert(sizeof(hcca_t) == 256);
+static_assert(sizeof(hcca_t) == 256, "");
 
 /** Allocate properly aligned structure.
  *

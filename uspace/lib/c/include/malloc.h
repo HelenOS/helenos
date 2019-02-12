@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_MALLOC_H_
-#define LIBC_MALLOC_H_
+#ifndef _LIBC_MALLOC_H_
+#define _LIBC_MALLOC_H_
 
 #include <stddef.h>
 

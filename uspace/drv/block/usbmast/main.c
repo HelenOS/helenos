@@ -222,6 +222,7 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	char *fun_name = NULL;
 	ddf_fun_t *fun = NULL;
 	usbmast_fun_t *mfun = NULL;
+	bool bound = false;
 
 	if (asprintf(&fun_name, "l%u", lun) < 0) {
 		usb_log_error("Out of memory.");
@@ -298,7 +299,14 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "disk");
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "disk");
+	if (rc != EOK) {
+		usb_log_error("Failed to add function %s to category 'disk': %s.",
+		    fun_name, str_error(rc));
+		goto error;
+	}
 
 	free(fun_name);
 	mdev->luns[lun] = fun;
@@ -307,6 +315,8 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 
 	/* Error cleanup */
 error:
+	if (bound)
+		ddf_fun_unbind(fun);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 	if (fun_name != NULL)

@@ -37,7 +37,6 @@ DIRS = \
 	app/bdsh \
 	app/bithenge \
 	app/blkdump \
-	app/bnchmark \
 	app/contacts \
 	app/corecfg \
 	app/cpptest \
@@ -50,6 +49,7 @@ DIRS = \
 	app/fontviewer \
 	app/getterm \
 	app/gunzip \
+	app/hbench \
 	app/init \
 	app/inet \
 	app/kill \
@@ -57,6 +57,7 @@ DIRS = \
 	app/kio \
 	app/loc \
 	app/logset \
+	app/lprint \
 	app/mixerctl \
 	app/mkfat \
 	app/mkexfat \
@@ -65,7 +66,7 @@ DIRS = \
 	app/modplay \
 	app/netecho \
 	app/nterm \
-	app/perf \
+	app/pci \
 	app/redir \
 	app/sbi \
 	app/sportdmp \
@@ -150,6 +151,7 @@ DIRS = \
 	drv/block/ata_bd \
 	drv/block/ddisk \
 	drv/block/usbmast \
+	drv/block/virtio-blk \
 	drv/bus/adb/cuda_adb \
 	drv/bus/isa \
 	drv/bus/pci/pciintel \
@@ -165,6 +167,7 @@ DIRS = \
 	drv/char/i8042 \
 	drv/char/msim-con \
 	drv/char/ns8250 \
+	drv/char/pc-lpt \
 	drv/char/pl050 \
 	drv/char/ski-con \
 	drv/char/sun4v-con \
@@ -273,6 +276,7 @@ $(BUILDS_TESTS): $(BASE_BUILDS) $(BUILDS)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
 
 export: $(BUILDS)
+	mkdir -p $(EXPORT_DIR)
 	$(MAKE) -r -C lib/posix export EXPORT_DIR=$(EXPORT_DIR)
 
 clean: $(CLEANS)

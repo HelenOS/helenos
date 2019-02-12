@@ -90,7 +90,7 @@ extern void context_restore_arch(context_t *ctx) __attribute__((noreturn));
  * @param ctx Context structure.
  *
  */
-NO_TRACE static inline void context_restore(context_t *ctx)
+_NO_TRACE static inline void context_restore(context_t *ctx)
 {
 	context_restore_arch(ctx);
 }

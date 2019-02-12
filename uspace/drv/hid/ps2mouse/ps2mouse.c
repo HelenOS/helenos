@@ -48,6 +48,7 @@
 #define PS2_MOUSE_GET_DEVICE_ID   0xf2
 #define PS2_MOUSE_SET_SAMPLE_RATE   0xf3
 #define PS2_MOUSE_ENABLE_DATA_REPORT   0xf4
+#define PS2_MOUSE_DISABLE_DATA_REPORT   0xf5
 #define PS2_MOUSE_ACK   0xfa
 
 #define PS2_BUFSIZE 3
@@ -76,7 +77,8 @@ do { \
 	uint8_t value = (value_); \
 	uint8_t data = 0; \
 	size_t nread; \
-	const errno_t rc = chardev_read((mouse)->chardev, &data, 1, &nread); \
+	const errno_t rc = chardev_read((mouse)->chardev, &data, 1, &nread, \
+	    chardev_f_none); \
 	if (rc != EOK) { \
 		ddf_msg(LVL_ERROR, "Failed reading byte: %s", str_error_name(rc));\
 		return rc; \
@@ -163,6 +165,28 @@ errno_t ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 		goto error;
 	}
 
+	/* Disable mouse data reporting. */
+	uint8_t report = PS2_MOUSE_ENABLE_DATA_REPORT;
+	size_t nwr;
+	rc = chardev_write(mouse->chardev, &report, 1, &nwr);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to enable data reporting.");
+		rc = EIO;
+		goto error;
+	}
+
+	/* Drain input buffer */
+	size_t nread;
+	uint8_t b;
+	do {
+		rc = chardev_read(mouse->chardev, &b, 1, &nread, chardev_f_nonblock);
+		if (rc != EOK) {
+			ddf_msg(LVL_ERROR, "Failed to drain input buffer.\n");
+			rc = EIO;
+			goto error;
+		}
+	} while (nread > 0);
+
 	/* Probe IntelliMouse extensions. */
 	errno_t (*polling_f)(void *) = polling_ps2;
 	if (probe_intellimouse(mouse, false) == EOK) {
@@ -173,8 +197,7 @@ errno_t ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	}
 
 	/* Enable mouse data reporting. */
-	uint8_t report = PS2_MOUSE_ENABLE_DATA_REPORT;
-	size_t nwr;
+	report = PS2_MOUSE_ENABLE_DATA_REPORT;
 	rc = chardev_write(mouse->chardev, &report, 1, &nwr);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to enable data reporting.");
@@ -182,8 +205,7 @@ errno_t ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 		goto error;
 	}
 
-	size_t nread;
-	rc = chardev_read(mouse->chardev, &report, 1, &nread);
+	rc = chardev_read(mouse->chardev, &report, 1, &nread, chardev_f_none);
 	if (rc != EOK || report != PS2_MOUSE_ACK) {
 		ddf_msg(LVL_ERROR, "Failed to confirm data reporting: %hhx.",
 		    report);
@@ -231,7 +253,7 @@ static errno_t ps2_mouse_read_packet(ps2_mouse_t *mouse, void *pbuf, size_t psiz
 	pos = 0;
 	while (pos < psize) {
 		rc = chardev_read(mouse->chardev, pbuf + pos, psize - pos,
-		    &nread);
+		    &nread, chardev_f_none);
 		if (rc != EOK) {
 			ddf_msg(LVL_WARN, "Error reading packet.");
 			return rc;

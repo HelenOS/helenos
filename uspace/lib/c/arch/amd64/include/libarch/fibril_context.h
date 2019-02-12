@@ -26,25 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_ARCH_FIBRIL_CONTEXT_H_
-#define LIBC_ARCH_FIBRIL_CONTEXT_H_
+#ifndef _LIBC_ARCH_FIBRIL_CONTEXT_H_
+#define _LIBC_ARCH_FIBRIL_CONTEXT_H_
 
-#define CONTEXT_OFFSET_SP   0x00
-#define CONTEXT_OFFSET_PC   0x08
-#define CONTEXT_OFFSET_RBX  0x10
-#define CONTEXT_OFFSET_RBP  0x18
-#define CONTEXT_OFFSET_R12  0x20
-#define CONTEXT_OFFSET_R13  0x28
-#define CONTEXT_OFFSET_R14  0x30
-#define CONTEXT_OFFSET_R15  0x38
-#define CONTEXT_OFFSET_TLS  0x40
-#define CONTEXT_SIZE        0x48
+#define __CONTEXT_OFFSET_SP   0x00
+#define __CONTEXT_OFFSET_PC   0x08
+#define __CONTEXT_OFFSET_RBX  0x10
+#define __CONTEXT_OFFSET_RBP  0x18
+#define __CONTEXT_OFFSET_R12  0x20
+#define __CONTEXT_OFFSET_R13  0x28
+#define __CONTEXT_OFFSET_R14  0x30
+#define __CONTEXT_OFFSET_R15  0x38
+#define __CONTEXT_OFFSET_TLS  0x40
+#define __CONTEXT_SIZE        0x48
 
 #ifndef __ASSEMBLER__
 
 #include <stdint.h>
 
-typedef struct context {
+typedef struct __context {
 	/*
 	 * We include only registers that must be preserved
 	 * during function call.
@@ -58,7 +58,7 @@ typedef struct context {
 	uint64_t r14;
 	uint64_t r15;
 	uint64_t tls;
-} context_t;
+} __context_t;
 
 #endif
 #endif

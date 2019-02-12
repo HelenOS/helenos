@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_VERIFY_H_
-#define LIBC_IO_VERIFY_H_
+#ifndef _LIBC_IO_VERIFY_H_
+#define _LIBC_IO_VERIFY_H_
 
 #ifdef __clang__
 #define _HELENOS_PRINTF_ATTRIBUTE(start, end) \

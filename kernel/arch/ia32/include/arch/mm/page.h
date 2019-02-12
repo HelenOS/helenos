@@ -179,7 +179,7 @@ typedef struct {
 	unsigned frame_address : 20;
 } __attribute__((packed)) pte_t;
 
-NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+_NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 
@@ -192,7 +192,7 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	    p->global << PAGE_GLOBAL_SHIFT);
 }
 
-NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+_NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 
@@ -209,7 +209,7 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 	p->soft_valid = true;
 }
 
-NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
+_NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 

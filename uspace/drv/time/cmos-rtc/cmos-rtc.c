@@ -587,6 +587,7 @@ rtc_dev_add(ddf_dev_t *dev)
 	ddf_fun_t *fun = NULL;
 	errno_t rc;
 	bool need_cleanup = false;
+	bool bound = false;
 
 	ddf_msg(LVL_DEBUG, "rtc_dev_add %s (handle = %d)",
 	    ddf_dev_get_name(dev), (int) ddf_dev_get_handle(dev));
@@ -623,9 +624,14 @@ rtc_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
+	bound = true;
 	rtc->fun = fun;
 
-	ddf_fun_add_to_category(fun, "clock");
+	rc = ddf_fun_add_to_category(fun, "clock");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding service to clock category.");
+		goto error;
+	}
 
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized",
 	    ddf_dev_get_name(dev));
@@ -633,6 +639,8 @@ rtc_dev_add(ddf_dev_t *dev)
 	return rc;
 
 error:
+	if (bound)
+		ddf_fun_unbind(fun);
 	if (fun)
 		ddf_fun_destroy(fun);
 	if (need_cleanup)
@@ -753,8 +761,10 @@ rtc_fun_online(ddf_fun_t *fun)
 	ddf_msg(LVL_DEBUG, "rtc_fun_online()");
 
 	rc = ddf_fun_online(fun);
-	if (rc == EOK)
-		ddf_fun_add_to_category(fun, "clock");
+	if (rc == EOK) {
+		// XXX This should be probably handled by the framework
+		rc = ddf_fun_add_to_category(fun, "clock");
+	}
 
 	return rc;
 }

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_abs32le_ELF_H_
-#define ABI_abs32le_ELF_H_
+#ifndef _ABI_abs32le_ELF_H_
+#define _ABI_abs32le_ELF_H_
 
 #define ELF_MACHINE        EM_NO
 #define ELF_DATA_ENCODING  ELFDATA2LSB

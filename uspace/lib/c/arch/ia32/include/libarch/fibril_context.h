@@ -26,24 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_ARCH_FIBRIL_CONTEXT_H_
-#define LIBC_ARCH_FIBRIL_CONTEXT_H_
+#ifndef _LIBC_ARCH_FIBRIL_CONTEXT_H_
+#define _LIBC_ARCH_FIBRIL_CONTEXT_H_
 
-#define CONTEXT_OFFSET_SP   0x00
-#define CONTEXT_OFFSET_PC   0x04
-#define CONTEXT_OFFSET_EBX  0x08
-#define CONTEXT_OFFSET_ESI  0x0c
-#define CONTEXT_OFFSET_EDI  0x10
-#define CONTEXT_OFFSET_EBP  0x14
-#define CONTEXT_OFFSET_TLS  0x18
-#define CONTEXT_SIZE        0x1c
+#define __CONTEXT_OFFSET_SP   0x00
+#define __CONTEXT_OFFSET_PC   0x04
+#define __CONTEXT_OFFSET_EBX  0x08
+#define __CONTEXT_OFFSET_ESI  0x0c
+#define __CONTEXT_OFFSET_EDI  0x10
+#define __CONTEXT_OFFSET_EBP  0x14
+#define __CONTEXT_OFFSET_TLS  0x18
+#define __CONTEXT_SIZE        0x1c
 
 #ifndef __ASSEMBLER__
 
 #include <stdint.h>
 
 /* We include only registers that must be preserved during function call. */
-typedef struct context {
+typedef struct __context {
 	uint32_t sp;
 	uint32_t pc;
 	uint32_t ebx;
@@ -51,7 +51,7 @@ typedef struct context {
 	uint32_t edi;
 	uint32_t ebp;
 	uint32_t tls;
-} context_t;
+} __context_t;
 
 #endif
 #endif

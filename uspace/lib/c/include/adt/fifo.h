@@ -42,8 +42,8 @@
  * and use'.
  */
 
-#ifndef LIBC_FIFO_H_
-#define LIBC_FIFO_H_
+#ifndef _LIBC_FIFO_H_
+#define _LIBC_FIFO_H_
 
 #include <stdlib.h>
 

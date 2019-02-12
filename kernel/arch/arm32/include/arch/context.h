@@ -39,6 +39,7 @@
 #include <align.h>
 #include <arch/stack.h>
 #include <arch/context_struct.h>
+#include <arch/regutils.h>
 
 /* Put one item onto the stack to support get_stack_base() and align it up. */
 #define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
@@ -48,6 +49,7 @@
 		(c)->pc = (uintptr_t) (_pc); \
 		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
 		(c)->fp = 0; \
+		(c)->cpu_mode = SUPERVISOR_MODE; \
 	} while (0)
 
 #ifndef __ASSEMBLER__

@@ -81,7 +81,7 @@ typedef struct {
 	list_t laddr; /* of amap_laddr_t */
 	/** Local links */
 	list_t llink; /* of amap_llink_t */
-	/** Nothing specified (listen on all local adresses) */
+	/** Nothing specified (listen on all local addresses) */
 	portrng_t *unspec;
 } amap_t;
 

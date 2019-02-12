@@ -161,9 +161,9 @@ SYMBOL(kernel_image_start)
 	 */
 
 	! map kernel in context 1
-	set kernel_image_start, %o0				! virt. address
+	set kernel_load_address, %o0				! virt. address
 	set 1, %o1						! context
-	TTE_DATA(kernel_image_start, %l5, %g2, %g3, %o2)	! TTE data
+	TTE_DATA(kernel_load_address, %l5, %g2, %g3, %o2)	! TTE data
 	set MMU_FLAG_DTLB | MMU_FLAG_ITLB, %o3			! MMU flags
 	__HYPERCALL_HYPERFAST(MMU_MAP_ADDR)
 
@@ -180,9 +180,9 @@ SYMBOL(kernel_image_start)
 	__HYPERCALL_FAST(MMU_DEMAP_CTX)
 
 	! install permanent mapping for kernel in context 0
-	set kernel_image_start, %o0				! virtual address
+	set kernel_load_address, %o0				! virtual address
 	set 0, %o1						! context
-	TTE_DATA(kernel_image_start, %l5, %g2, %g3, %o2)	! TTE data
+	TTE_DATA(kernel_load_address, %l5, %g2, %g3, %o2)	! TTE data
 	set MMU_FLAG_DTLB | MMU_FLAG_ITLB, %o3			! MMU flags
 	__HYPERCALL_FAST(MMU_MAP_PERM_ADDR)
 

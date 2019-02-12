@@ -44,6 +44,7 @@
 #include <byteorder.h>
 #include <ddi.h>
 #include <errno.h>
+#include <fibril.h>
 
 #define host2xhci(size, val) host2uint##size##_t_le((val))
 #define xhci2host(size, val) uint##size##_t_le2host((val))

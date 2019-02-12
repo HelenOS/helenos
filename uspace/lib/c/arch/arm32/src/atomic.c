@@ -34,7 +34,7 @@
 
 #include <stdbool.h>
 
-extern volatile unsigned *ras_page;
+volatile unsigned *ras_page;
 
 bool __atomic_compare_exchange_4(volatile unsigned *mem, unsigned *expected, unsigned desired, bool weak, int success, int failure)
 {

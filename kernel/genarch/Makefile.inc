@@ -116,7 +116,9 @@ endif
 
 ifeq ($(CONFIG_BCM2835_MAILBOX),y)
 GENARCH_SOURCES += \
-	genarch/src/drivers/bcm2835/mbox.c
+	genarch/src/drivers/bcm2835/irc.c \
+	genarch/src/drivers/bcm2835/mbox.c \
+	genarch/src/drivers/bcm2835/timer.c
 endif
 
 ifeq ($(CONFIG_VIA_CUDA),y)

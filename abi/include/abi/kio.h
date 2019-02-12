@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_KIO_H_
-#define ABI_KIO_H_
+#ifndef _ABI_KIO_H_
+#define _ABI_KIO_H_
 
 enum {
 	KIO_UNKNOW,

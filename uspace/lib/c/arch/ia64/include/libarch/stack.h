@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ia64_STACK_H_
-#define LIBC_ia64_STACK_H_
+#ifndef _LIBC_ia64_STACK_H_
+#define _LIBC_ia64_STACK_H_
 
 #define STACK_ITEM_SIZE			8
 #define STACK_ALIGNMENT			16

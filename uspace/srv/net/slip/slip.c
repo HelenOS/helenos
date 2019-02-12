@@ -211,7 +211,7 @@ static uint8_t read_buffered(chardev_t *chardev)
 		size_t nread;
 
 		rc = chardev_read(chardev, slip_recv_buf,
-		    sizeof(slip_recv_buf), &nread);
+		    sizeof(slip_recv_buf), &nread, chardev_f_none);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
 			    "char_dev_read() -> %s", str_error_name(rc));

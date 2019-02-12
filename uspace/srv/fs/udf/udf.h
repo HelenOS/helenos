@@ -69,7 +69,7 @@ typedef struct udf_partition {
 	uint16_t number;
 	uint32_t access_type;
 	uint32_t start;
-	uint32_t lenght;
+	uint32_t length;
 } udf_partition_t;
 
 typedef struct udf_lvolume {
@@ -90,7 +90,7 @@ typedef struct {
 	size_t partition_cnt;
 	udf_unallocated_space_descriptor_t *uasd;
 	uint64_t uaspace_start;
-	uint64_t uaspace_lenght;
+	uint64_t uaspace_length;
 	uint8_t space_type;
 } udf_instance_t;
 

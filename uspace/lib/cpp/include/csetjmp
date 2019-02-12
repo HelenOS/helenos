@@ -29,7 +29,6 @@
 #ifndef LIBCPP_CSETJMP
 #define LIBCPP_CSETJMP
 
-#include <__bits/common.hpp>
 
 /**
  * TODO: Currently the <setjmp.h> header uses

@@ -90,10 +90,13 @@ void chardev_close(chardev_t *chardev)
  * @param buf Destination buffer
  * @param size Maximum number of bytes to read
  * @param nread Place to store actual number of bytes read
+ * @param flags @c chardev_f_nonblock to return immediately even if no
+ *              bytes are available
  *
  * @return EOK on success or non-zero error code
  */
-errno_t chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
+errno_t chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread,
+    chardev_flags_t flags)
 {
 	async_exch_t *exch = async_exchange_begin(chardev->sess);
 
@@ -103,7 +106,7 @@ errno_t chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 	}
 
 	ipc_call_t answer;
-	aid_t req = async_send_0(exch, CHARDEV_READ, &answer);
+	aid_t req = async_send_1(exch, CHARDEV_READ, flags, &answer);
 	errno_t rc = async_data_read_start(exch, buf, size);
 	async_exchange_end(exch);
 

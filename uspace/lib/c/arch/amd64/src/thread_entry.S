@@ -45,5 +45,5 @@ SYMBOL_BEGIN(__thread_entry)
 	# RAX contains address of uarg
 	#
 	movq %rax, %rdi
-	call __thread_main
+	call FUNCTION_REF(__thread_main)
 SYMBOL_END(__thread_entry)

@@ -262,6 +262,9 @@ void chargrid_clear(chargrid_t *scrbuf)
  */
 void chargrid_set_cursor(chargrid_t *scrbuf, sysarg_t col, sysarg_t row)
 {
+	if (col >= scrbuf->cols || row >= scrbuf->rows)
+		return;
+
 	scrbuf->col = col;
 	scrbuf->row = row;
 }

@@ -42,7 +42,8 @@
 
 static void msim_con_connection(ipc_call_t *, void *);
 
-static errno_t msim_con_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t msim_con_read(chardev_srv_t *, void *, size_t, size_t *,
+    chardev_flags_t);
 static errno_t msim_con_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t msim_con_chardev_ops = {
@@ -84,6 +85,7 @@ errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 	ddf_fun_t *fun = NULL;
 	irq_cmd_t *msim_cmds = NULL;
 	errno_t rc;
+	bool bound = false;
 
 	circ_buf_init(&con->cbuf, con->buf, msim_con_buf_size, 1);
 	fibril_mutex_initialize(&con->buf_lock);
@@ -142,12 +144,21 @@ errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "console");
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "console");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error adding function 'a' to category "
+		    "'console'.");
+		goto error;
+	}
 
 	return EOK;
 error:
 	if (CAP_HANDLE_VALID(con->irq_handle))
 		async_irq_unsubscribe(con->irq_handle);
+	if (bound)
+		ddf_fun_unbind(fun);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 	free(msim_cmds);
@@ -174,7 +185,7 @@ static void msim_con_putchar(msim_con_t *con, uint8_t ch)
 
 /** Read from msim console device */
 static errno_t msim_con_read(chardev_srv_t *srv, void *buf, size_t size,
-    size_t *nread)
+    size_t *nread, chardev_flags_t flags)
 {
 	msim_con_t *con = (msim_con_t *) srv->srvs->sarg;
 	size_t p;
@@ -183,7 +194,8 @@ static errno_t msim_con_read(chardev_srv_t *srv, void *buf, size_t size,
 
 	fibril_mutex_lock(&con->buf_lock);
 
-	while (circ_buf_nused(&con->cbuf) == 0)
+	while ((flags & chardev_f_nonblock) == 0 &&
+	    circ_buf_nused(&con->cbuf) == 0)
 		fibril_condvar_wait(&con->buf_cv, &con->buf_lock);
 
 	p = 0;

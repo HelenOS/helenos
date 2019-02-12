@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,31 +29,17 @@
 #ifndef LIBCPP_CASSERT
 #define LIBCPP_CASSERT
 
-#include <__bits/common.hpp>
 
-namespace std::hel
-{
-    extern "C" {
-        #include <assert.h>
-    }
+extern "C" {
+    #include <assert.h>
 }
 
-namespace std
-{
-    // Note: The only thing imported is assert
-    //       and that is a macro.
-}
+// TODO: For some reason, this function isn't visible (maybe the
+//       noreturn attribute?), adding a redeclaration here for the
+//       time being.
 
-/**
- * We need to fix the assert macro because it uses
- * a non-standard function that we have in the
- * std::hel namespace.
- */
-#undef assert
-#define assert(expr) \
-	do { \
-		if (!(expr)) \
-			std::hel::assert_abort(#expr, __FILE__, __LINE__); \
-	} while (0)
+extern void __helenos_assert_abort(const char *, const char *, unsigned int);
+
+#define __unimplemented() assert(!"Not implemented!")
 
 #endif

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_RTLD_H_
-#define LIBC_RTLD_H_
+#ifndef _LIBC_RTLD_H_
+#define _LIBC_RTLD_H_
 
 #include <adt/list.h>
 #include <elf/elf_mod.h>

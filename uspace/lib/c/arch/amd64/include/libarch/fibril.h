@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_amd64_FIBRIL_H_
-#define LIBC_amd64_FIBRIL_H_
+#ifndef _LIBC_amd64_FIBRIL_H_
+#define _LIBC_amd64_FIBRIL_H_
 
 #include <libarch/fibril_context.h>
 

@@ -420,6 +420,7 @@ errno_t ext4_filesystem_probe(service_id_t service_id,
 errno_t ext4_filesystem_open(ext4_instance_t *inst, service_id_t service_id,
     enum cache_mode cmode, aoff64_t *size, ext4_filesystem_t **rfs)
 {
+	int fs_inited = 0;
 	ext4_filesystem_t *fs = NULL;
 	fs_node_t *root_node = NULL;
 	errno_t rc;
@@ -436,6 +437,8 @@ errno_t ext4_filesystem_open(ext4_instance_t *inst, service_id_t service_id,
 	rc = ext4_filesystem_init(fs, service_id, cmode);
 	if (rc != EOK)
 		goto error;
+
+	fs_inited = 1;
 
 	/* Read root node */
 	rc = ext4_node_get_core(&root_node, inst, EXT4_INODE_ROOT_INDEX);
@@ -462,11 +465,9 @@ error:
 	if (root_node != NULL)
 		ext4_node_put(root_node);
 
-	if (fs != NULL) {
+	if (fs_inited)
 		ext4_filesystem_fini(fs);
-		free(fs);
-	}
-
+	free(fs);
 	return rc;
 }
 
@@ -713,8 +714,6 @@ static errno_t ext4_filesystem_init_block_groups(ext4_filesystem_t *fs)
 		    bg_ref->index);
 		/* One for block bitmap one for inode bitmap */
 		free_blocks = free_blocks - reserved - 2 - inode_table_blocks;
-		if (bg_index == 0)
-			++free_blocks; /* XXX Why? */
 
 		ext4_block_group_set_free_blocks_count(bg_ref->block_group,
 		    sb, free_blocks);

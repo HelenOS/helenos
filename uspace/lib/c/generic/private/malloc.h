@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PRIVATE_MALLOC_H_
-#define LIBC_PRIVATE_MALLOC_H_
+#ifndef _LIBC_PRIVATE_MALLOC_H_
+#define _LIBC_PRIVATE_MALLOC_H_
 
 extern void __malloc_init(void);
 extern void __malloc_fini(void);

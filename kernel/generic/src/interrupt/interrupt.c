@@ -98,7 +98,7 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
  * CPU is interrupts_disable()'d.
  *
  */
-NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
+_NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 {
 #if (IVT_ITEMS > 0)
 	assert(n < IVT_ITEMS);
@@ -158,13 +158,13 @@ NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 /** Default 'null' exception handler
  *
  */
-NO_TRACE static void exc_undef(unsigned int n, istate_t *istate)
+_NO_TRACE static void exc_undef(unsigned int n, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Unhandled exception %u.", n);
 	panic_badtrap(istate, n, "Unhandled exception %u.", n);
 }
 
-static NO_TRACE void
+static _NO_TRACE void
 fault_from_uspace_core(istate_t *istate, const char *fmt, va_list args)
 {
 	printf("Task %s (%" PRIu64 ") killed due to an exception at "
@@ -184,7 +184,7 @@ fault_from_uspace_core(istate_t *istate, const char *fmt, va_list args)
 /** Terminate thread and task after the exception came from userspace.
  *
  */
-NO_TRACE void fault_from_uspace(istate_t *istate, const char *fmt, ...)
+_NO_TRACE void fault_from_uspace(istate_t *istate, const char *fmt, ...)
 {
 	va_list args;
 
@@ -196,7 +196,7 @@ NO_TRACE void fault_from_uspace(istate_t *istate, const char *fmt, ...)
 /** Terminate thread and task if exception came from userspace.
  *
  */
-NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
+_NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 {
 	if (!istate_from_uspace(istate))
 		return;
@@ -232,7 +232,7 @@ static char flag_buf[MAX_CMDLINE + 1];
 /** Print all exceptions
  *
  */
-NO_TRACE static int cmd_exc_print(cmd_arg_t *argv)
+_NO_TRACE static int cmd_exc_print(cmd_arg_t *argv)
 {
 	bool excs_all;
 

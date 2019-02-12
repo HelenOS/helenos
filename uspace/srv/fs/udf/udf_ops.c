@@ -61,9 +61,6 @@
 #include "udf_file.h"
 #include "udf_osta.h"
 
-/** Mutex protecting the list of cached free nodes. */
-static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);
-
 /** List of cached free nodes. */
 static LIST_INITIALIZE(ffn_list);
 
@@ -127,8 +124,8 @@ static errno_t udf_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		udf_long_ad_t long_ad = fid->icb;
 
 		udf_to_unix_name(name, MAX_FILE_NAME_LEN,
-		    (char *) fid->implementation_use + FLE16(fid->lenght_iu),
-		    fid->lenght_file_id, &UDF_NODE(pfn)->instance->charset);
+		    (char *) fid->implementation_use + FLE16(fid->length_iu),
+		    fid->length_file_id, &UDF_NODE(pfn)->instance->charset);
 
 		if (str_casecmp(name, component) == 0) {
 			errno_t rc = udf_node_get(rfn, udf_service_get(pfn),
@@ -501,8 +498,8 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			// FIXME: Check for NULL return value
 
 			udf_to_unix_name(name, MAX_FILE_NAME_LEN,
-			    (char *) fid->implementation_use + FLE16(fid->lenght_iu),
-			    fid->lenght_file_id, &node->instance->charset);
+			    (char *) fid->implementation_use + FLE16(fid->length_iu),
+			    fid->length_file_id, &node->instance->charset);
 
 			async_data_read_finalize(&call, name, str_size(name) + 1);
 			*rbytes = 1;

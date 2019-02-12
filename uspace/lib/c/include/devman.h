@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef LIBC_DEVMAN_H_
-#define LIBC_DEVMAN_H_
+#ifndef _LIBC_DEVMAN_H_
+#define _LIBC_DEVMAN_H_
 
 #include <ipc/devman.h>
 #include <ipc/loc.h>

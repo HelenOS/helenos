@@ -58,8 +58,6 @@
 extern char *stpcpy(char *__restrict__ dest, const char *__restrict__ src);
 extern char *stpncpy(char *__restrict__ dest, const char *__restrict__ src, size_t n);
 extern void *memccpy(void *__restrict__ dest, const void *__restrict__ src, int c, size_t n);
-extern char *strdup(const char *s);
-extern char *strndup(const char *s, size_t n);
 
 /* Search Functions */
 extern char *gnu_strchrnul(const char *s, int c);
@@ -69,9 +67,6 @@ extern char *strtok_r(char *, const char *, char **);
 
 /* Error Messages */
 extern int strerror_r(int errnum, char *buf, size_t bufsz);
-
-/* String Length */
-extern size_t strnlen(const char *s, size_t n);
 
 /* Signal Messages */
 extern char *strsignal(int signum);

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ELF_H_
-#define LIBC_ELF_H_
+#ifndef _LIBC_ELF_H_
+#define _LIBC_ELF_H_
 
 #include <stdint.h>
 #include <types/common.h>

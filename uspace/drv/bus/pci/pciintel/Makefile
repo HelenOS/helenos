@@ -31,6 +31,7 @@ LIBS = drv
 BINARY = pciintel
 
 SOURCES = \
+	ctl.c \
 	pci.c
 
 include $(USPACE_PREFIX)/Makefile.common

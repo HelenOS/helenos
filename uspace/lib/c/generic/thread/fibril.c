@@ -549,8 +549,7 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 	if (fibril == NULL)
 		return 0;
 
-	fibril->stack_size = (stksz == FIBRIL_DFLT_STK_SIZE) ?
-	    stack_size_get() : stksz;
+	fibril->stack_size = stksz;
 	fibril->stack = as_area_create(AS_AREA_ANY, fibril->stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
@@ -571,6 +570,11 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 
 	context_create(&fibril->ctx, &sctx);
 	return (fid_t) fibril;
+}
+
+fid_t fibril_create(errno_t (*func)(void *), void *arg)
+{
+	return fibril_create_generic(func, arg, stack_size_get());
 }
 
 /** Delete a fibril that has never run.

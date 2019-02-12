@@ -66,7 +66,8 @@
 #define i8042_KBD_TRANSLATE  0x40  /* Use this to switch to XT scancodes */
 
 static void i8042_char_conn(ipc_call_t *, void *);
-static errno_t i8042_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t i8042_read(chardev_srv_t *, void *, size_t, size_t *,
+    chardev_flags_t);
 static errno_t i8042_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t i8042_chardev_ops = {
@@ -384,7 +385,7 @@ static errno_t i8042_write(chardev_srv_t *srv, const void *data, size_t size,
  *
  */
 static errno_t i8042_read(chardev_srv_t *srv, void *dest, size_t size,
-    size_t *nread)
+    size_t *nread, chardev_flags_t flags)
 {
 	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
 	size_t p;
@@ -393,7 +394,8 @@ static errno_t i8042_read(chardev_srv_t *srv, void *dest, size_t size,
 
 	fibril_mutex_lock(&port->buf_lock);
 
-	while (circ_buf_nused(&port->cbuf) == 0)
+	while ((flags & chardev_f_nonblock) == 0 &&
+	    circ_buf_nused(&port->cbuf) == 0)
 		fibril_condvar_wait(&port->buf_cv, &port->buf_lock);
 
 	p = 0;

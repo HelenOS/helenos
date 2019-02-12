@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef LIBC_IPC_DNSR_H_
-#define LIBC_IPC_DNSR_H_
+#ifndef _LIBC_IPC_DNSR_H_
+#define _LIBC_IPC_DNSR_H_
 
 #include <ipc/common.h>
 

@@ -32,14 +32,15 @@
 /** @file
  */
 
-#ifndef LIBC_IO_CHARDEV_SRV_H_
-#define LIBC_IO_CHARDEV_SRV_H_
+#ifndef _LIBC_IO_CHARDEV_SRV_H_
+#define _LIBC_IO_CHARDEV_SRV_H_
 
 #include <adt/list.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <types/io/chardev.h>
 
 typedef struct chardev_ops chardev_ops_t;
 
@@ -58,7 +59,8 @@ typedef struct {
 struct chardev_ops {
 	errno_t (*open)(chardev_srvs_t *, chardev_srv_t *);
 	errno_t (*close)(chardev_srv_t *);
-	errno_t (*read)(chardev_srv_t *, void *, size_t, size_t *);
+	errno_t (*read)(chardev_srv_t *, void *, size_t, size_t *,
+	    chardev_flags_t);
 	errno_t (*write)(chardev_srv_t *, const void *, size_t, size_t *);
 	void (*def_handler)(chardev_srv_t *, ipc_call_t *);
 };

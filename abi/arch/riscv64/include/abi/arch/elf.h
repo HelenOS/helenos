@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_riscv64_ELF_H_
-#define ABI_riscv64_ELF_H_
+#ifndef _ABI_riscv64_ELF_H_
+#define _ABI_riscv64_ELF_H_
 
 #define ELF_MACHINE        EM_RISCV
 #define ELF_DATA_ENCODING  ELFDATA2LSB

@@ -33,7 +33,7 @@ ROOT_PATH = $(USPACE_PREFIX)/..
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 EXTRA_OUTPUT = $(START_FILES)
-EXTRA_CFLAGS += -fno-builtin
+EXTRA_CFLAGS += -fno-builtin -D_LIBC_SOURCE
 LIBRARY = libc
 SOVERSION = 0.0
 
@@ -52,6 +52,7 @@ GENERIC_SOURCES = \
 	generic/config.c \
 	generic/context.c \
 	generic/corecfg.c \
+	generic/ctype.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
@@ -164,6 +165,7 @@ GENERIC_SOURCES = \
 	generic/stats.c \
 	generic/assert.c \
 	generic/bsearch.c \
+	generic/pci.c \
 	generic/pio_trace.c \
 	generic/qsort.c \
 	generic/ubsan.c \
@@ -187,6 +189,7 @@ SOURCES = \
 
 TEST_SOURCES = \
 	test/adt/circ_buf.c \
+	test/casting.c \
 	test/fibril/timer.c \
 	test/main.c \
 	test/mem.c \
@@ -194,6 +197,7 @@ TEST_SOURCES = \
 	test/io/table.c \
 	test/stdio/scanf.c \
 	test/odict.c \
+	test/perf.c \
 	test/perm.c \
 	test/qsort.c \
 	test/sprintf.c \

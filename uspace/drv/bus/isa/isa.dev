@@ -17,6 +17,16 @@ com2:
 	irq 3
 	io_range 2f8 8
 
+lpt1:
+	match 100 isa/lpt
+	io_range 378 8
+	irq 7
+
+lpt2:
+	match 100 isa/lpt
+	io_range 278 8
+	irq 5
+
 i8042:
 	match 100 isa/i8042
 	irq 1

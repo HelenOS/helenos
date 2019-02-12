@@ -29,7 +29,6 @@
 #ifndef LIBCPP_CCTYPE
 #define LIBCPP_CCTYPE
 
-#include <__bits/common.hpp>
 
 namespace std::hel
 {

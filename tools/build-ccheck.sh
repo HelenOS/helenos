@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2018 Jiri Svoboda
+# Copyright (c) 2019 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 #
 
 SYCEK_GIT="https://github.com/jxsvoboda/sycek"
-SYCEK_REV="42fe0d77819f0ec05f17e40ea54c7b62073c8e97"
+SYCEK_REV="eaa42806e3894fb41ba6bd79fab96e1ae8720f29"
 
 if [ ! -d sycek ]; then
 	git clone "$SYCEK_GIT" sycek

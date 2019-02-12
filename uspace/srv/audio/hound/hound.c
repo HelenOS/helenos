@@ -145,6 +145,7 @@ static void hound_remove_sink_internal(hound_t *hound, audio_sink_t *sink)
  */
 static void hound_remove_source_internal(hound_t *hound, audio_source_t *source)
 {
+	assert(fibril_mutex_is_locked(&hound->list_guard));
 	log_verbose("Removing source '%s'.", source->name);
 	if (!list_empty(&source->connections))
 		log_warning("Removing source '%s' while still connected.", source->name);

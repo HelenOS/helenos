@@ -98,9 +98,9 @@ typedef struct udf_file_identifier_descriptor {
 	udf_descriptor_tag_t tag;
 	uint16_t file_version_number;
 	uint8_t file_characteristics;
-	uint8_t lenght_file_id;
+	uint8_t length_file_id;
 	udf_long_ad_t icb;
-	uint16_t lenght_iu;
+	uint16_t length_iu;
 	uint8_t implementation_use[0];
 	udf_dstring file_id[0];
 } __attribute__((packed)) udf_file_identifier_descriptor_t;
@@ -127,8 +127,8 @@ typedef struct udf_file_entry_descriptor {
 	uint16_t file_link_count;
 	uint8_t record_format;
 	uint8_t record_display_attributes;
-	uint32_t record_lenght;
-	uint64_t info_lenght;
+	uint32_t record_length;
+	uint64_t info_length;
 	uint64_t lblocks_recorded;
 	udf_timestamp_t access_data_and_time;
 	udf_timestamp_t mod_data_and_time;
@@ -137,8 +137,8 @@ typedef struct udf_file_entry_descriptor {
 	udf_long_ad_t extended_attribute_icb;
 	udf_regid_t implementation_id;
 	uint64_t unique_id;
-	uint32_t ea_lenght;
-	uint32_t ad_lenght;
+	uint32_t ea_length;
+	uint32_t ad_length;
 	uint8_t extended_attributes [0];
 	uint8_t allocation_descriptors[0];
 } __attribute__((packed)) udf_file_entry_descriptor_t;
@@ -153,8 +153,8 @@ typedef struct udf_extended_file_entry_descriptor {
 	uint16_t file_link_count;
 	uint8_t record_format;
 	uint8_t record_display_attributes;
-	uint32_t record_lenght;
-	uint64_t info_lenght;
+	uint32_t record_length;
+	uint64_t info_length;
 	uint64_t object_size;
 	uint64_t lblocks_recorded;
 	udf_timestamp_t access_data_and_time;
@@ -165,8 +165,8 @@ typedef struct udf_extended_file_entry_descriptor {
 	udf_long_ad_t extended_attribute_icb;
 	udf_regid_t implementation_id;
 	uint64_t unique_id;
-	uint32_t ea_lenght;
-	uint32_t ad_lenght;
+	uint32_t ea_length;
+	uint32_t ad_length;
 	uint8_t extended_attributes [0];
 	uint8_t allocation_descriptors[0];
 } __attribute__((packed)) udf_extended_file_entry_descriptor_t;
@@ -181,7 +181,7 @@ typedef struct terminal_entry_descriptor {
 typedef struct udf_unallocated_space_entry_descriptor {
 	udf_descriptor_tag_t tag;
 	udf_icbtag_t icbtag;
-	uint32_t ad_lenght;
+	uint32_t ad_length;
 	uint8_t allocation_descriptors[0];
 } __attribute__((packed)) udf_unallocated_space_entry_descriptor_t;
 

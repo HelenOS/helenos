@@ -30,9 +30,9 @@
  */
 
 #include <assert.h>
-#include <async.h>
 #include <stdio.h>
 #include <errno.h>
+#include <fibril.h>
 #include <str.h>
 #include <str_error.h>
 #include <ddf/driver.h>
@@ -139,11 +139,20 @@ static errno_t plug_unplug(void *arg)
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
+		ddf_fun_destroy(fun_a);
 		ddf_msg(LVL_ERROR, "Failed binding function 'a'.");
 		return rc;
 	}
 
-	ddf_fun_add_to_category(fun_a, "virtual");
+	rc = ddf_fun_add_to_category(fun_a, "virtual");
+	if (rc != EOK) {
+		ddf_fun_unbind(fun_a);
+		ddf_fun_destroy(fun_a);
+		ddf_msg(LVL_ERROR, "Failed adding function 'a' to category "
+		    "'virtual'.");
+		return rc;
+	}
+
 	test2->fun_a = fun_a;
 
 	fibril_usleep(10000000);

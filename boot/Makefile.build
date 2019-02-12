@@ -102,7 +102,7 @@ $(LINK): | depend
 depend: $(PRE_DEPEND)
 
 %.gz: %
-	gzip -n -k -f $<
+	gzip -n -k -9 -f $<
 
 $(COMPS).tar: $(COMPONENTS)
 	tar --mtime='2032-01-01 00:00:00' --group=0 --owner=0 --no-acls --no-selinux --no-xattrs --format=ustar --transform 's/.*\///g' -cvf $@ $^

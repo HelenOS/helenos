@@ -725,7 +725,7 @@ static void loc_forward(ipc_call_t *call, void *arg)
 	}
 
 	async_exch_t *exch = async_exchange_begin(svc->server->sess);
-	async_forward_fast(call, exch, iface, svc->id, 0, IPC_FF_NONE);
+	async_forward_1(call, exch, iface, svc->id, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	fibril_mutex_unlock(&services_list_mutex);
@@ -1386,6 +1386,12 @@ static bool loc_init(void)
 	cat = category_new("audio-pcm");
 	categ_dir_add_cat(&cdir, cat);
 
+	cat = category_new("printer-port");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("pci");
+	categ_dir_add_cat(&cdir, cat);
+
 	return true;
 }
 
@@ -1402,7 +1408,7 @@ static void loc_connection_supplier(ipc_call_t *icall, void *arg)
 	 * from using parallel exchanges.
 	 */
 	static_assert((INTERFACE_LOC_SUPPLIER & IFACE_EXCHANGE_MASK) ==
-	    IFACE_EXCHANGE_SERIALIZE);
+	    IFACE_EXCHANGE_SERIALIZE, "");
 
 	loc_server_t *server = loc_server_register();
 	if (server == NULL)

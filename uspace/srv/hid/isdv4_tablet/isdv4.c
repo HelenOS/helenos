@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <async.h>
 #include <errno.h>
+#include <fibril.h>
 #include <io/chardev.h>
 #include <mem.h>
 #include <stdbool.h>
@@ -292,7 +292,7 @@ static errno_t read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 		errno_t rc;
 
 		rc = chardev_read(state->chardev, state->buf + state->buf_end,
-		    state->buf_size - state->buf_end, &nread);
+		    state->buf_size - state->buf_end, &nread, chardev_f_none);
 		if (rc != EOK && nread == 0)
 			return EIO;
 		state->buf_end += nread;

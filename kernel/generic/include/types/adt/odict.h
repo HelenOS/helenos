@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TYPES_ODICT_H_
-#define LIBC_TYPES_ODICT_H_
+#ifndef _LIBC_TYPES_ODICT_H_
+#define _LIBC_TYPES_ODICT_H_
 
 #include <adt/list.h>
 

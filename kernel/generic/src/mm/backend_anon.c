@@ -47,7 +47,6 @@
 #include <mm/km.h>
 #include <synch/mutex.h>
 #include <adt/list.h>
-#include <adt/btree.h>
 #include <errno.h>
 #include <typedefs.h>
 #include <align.h>
@@ -121,38 +120,34 @@ void anon_share(as_area_t *area)
 	 * Copy used portions of the area to sh_info's page map.
 	 */
 	mutex_lock(&area->sh_info->lock);
-	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
-	    node) {
-		unsigned int i;
+	used_space_ival_t *ival = used_space_first(&area->used_space);
+	while (ival != NULL) {
+		uintptr_t base = ival->page;
+		size_t count = ival->count;
+		unsigned int j;
 
-		for (i = 0; i < node->keys; i++) {
-			uintptr_t base = node->key[i];
-			size_t count = (size_t) node->value[i];
-			unsigned int j;
+		for (j = 0; j < count; j++) {
+			pte_t pte;
+			bool found;
 
-			for (j = 0; j < count; j++) {
-				pte_t pte;
-				bool found;
+			page_table_lock(area->as, false);
+			found = page_mapping_find(area->as, base + P2SZ(j),
+			    false, &pte);
 
-				page_table_lock(area->as, false);
-				found = page_mapping_find(area->as,
-				    base + P2SZ(j), false, &pte);
+			(void)found;
+			assert(found);
+			assert(PTE_VALID(&pte));
+			assert(PTE_PRESENT(&pte));
 
-				(void)found;
-				assert(found);
-				assert(PTE_VALID(&pte));
-				assert(PTE_PRESENT(&pte));
+			as_pagemap_insert(&area->sh_info->pagemap,
+			    (base + P2SZ(j)) - area->base, PTE_GET_FRAME(&pte));
+			page_table_unlock(area->as, false);
 
-				btree_insert(&area->sh_info->pagemap,
-				    (base + P2SZ(j)) - area->base,
-				    (void *) PTE_GET_FRAME(&pte), NULL);
-				page_table_unlock(area->as, false);
-
-				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
-				frame_reference_add(pfn);
-			}
-
+			pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
+			frame_reference_add(pfn);
 		}
+
+		ival = used_space_next(ival);
 	}
 	mutex_unlock(&area->sh_info->lock);
 }
@@ -200,8 +195,6 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 
 	mutex_lock(&area->sh_info->lock);
 	if (area->sh_info->shared) {
-		btree_node_t *leaf;
-
 		/*
 		 * The area is shared, chances are that the mapping can be found
 		 * in the pagemap of the address space area share info
@@ -209,35 +202,21 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		 * In the case that the pagemap does not contain the respective
 		 * mapping, a new frame is allocated and the mapping is created.
 		 */
-		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
-		    upage - area->base, &leaf);
-		if (!frame) {
-			bool allocate = true;
-			unsigned int i;
+		errno_t rc = as_pagemap_find(&area->sh_info->pagemap,
+		    upage - area->base, &frame);
+		if (rc != EOK) {
+			/* Need to allocate the frame */
+			kpage = km_temporary_page_get(&frame,
+			    FRAME_NO_RESERVE);
+			memsetb((void *) kpage, PAGE_SIZE, 0);
+			km_temporary_page_put(kpage);
 
 			/*
-			 * Zero can be returned as a valid frame address.
-			 * Just a small workaround.
+			 * Insert the address of the newly allocated
+			 * frame to the pagemap.
 			 */
-			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] == upage - area->base) {
-					allocate = false;
-					break;
-				}
-			}
-			if (allocate) {
-				kpage = km_temporary_page_get(&frame,
-				    FRAME_NO_RESERVE);
-				memsetb((void *) kpage, PAGE_SIZE, 0);
-				km_temporary_page_put(kpage);
-
-				/*
-				 * Insert the address of the newly allocated
-				 * frame to the pagemap.
-				 */
-				btree_insert(&area->sh_info->pagemap,
-				    upage - area->base, (void *) frame, leaf);
-			}
+			as_pagemap_insert(&area->sh_info->pagemap,
+			    upage - area->base, frame);
 		}
 		frame_reference_add(ADDR2PFN(frame));
 	} else {
@@ -279,7 +258,7 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	 * being inserted into page tables.
 	 */
 	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, upage, 1))
+	if (!used_space_insert(&area->used_space, upage, 1))
 		panic("Cannot insert used space.");
 
 	return AS_PF_OK;

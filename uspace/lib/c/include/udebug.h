@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_UDEBUG_H_
-#define LIBC_UDEBUG_H_
+#ifndef _LIBC_UDEBUG_H_
+#define _LIBC_UDEBUG_H_
 
 #include <abi/udebug.h>
 #include <stddef.h>

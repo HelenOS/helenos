@@ -141,11 +141,11 @@ audio_pcm_sess_t *audio_pcm_open_default(void)
  */
 audio_pcm_sess_t *audio_pcm_open(const char *name)
 {
-	devman_handle_t device_handle = 0;
-	const errno_t ret = devman_fun_get_handle(name, &device_handle, 0);
+	service_id_t sid;
+	const errno_t ret = loc_service_get_id(name, &sid, 0);
 	if (ret != EOK)
 		return NULL;
-	return devman_device_connect(device_handle, IPC_FLAG_BLOCKING);
+	return loc_service_connect(sid, INTERFACE_DDF, 0);
 }
 
 /**

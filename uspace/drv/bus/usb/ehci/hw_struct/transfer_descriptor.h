@@ -87,7 +87,7 @@ typedef struct td {
 /* Only the first page pointer */
 #define TD_BUFFER_POINTER_OFFSET_MASK    0xfff
 
-static_assert(sizeof(td_t) % 32 == 0);
+static_assert(sizeof(td_t) % 32 == 0, "");
 
 static inline bool td_active(const td_t *td)
 {

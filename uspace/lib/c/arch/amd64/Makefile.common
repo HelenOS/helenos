@@ -27,7 +27,7 @@
 #
 
 # TODO: We need to implement DWARF unwinding and get rid of this flag.
-COMMON_CFLAGS += -fno-omit-frame-pointer
+COMMON_CFLAGS += -fno-omit-frame-pointer -Wl,-z,max-page-size=0x1000
 
 # XXX: This architecture requires unoptimized TLS pointer access,
 #      as with the GCC option `-mno-tls-direct-seg-refs`.

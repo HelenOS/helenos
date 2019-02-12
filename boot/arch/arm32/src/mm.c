@@ -98,7 +98,6 @@ static void disable_paging(void)
 /** Check if caching can be enabled for a given memory section.
  *
  * Memory areas used for I/O are excluded from caching.
- * At the moment caching is enabled only on GTA02.
  *
  * @param section	The section number.
  *
@@ -170,16 +169,38 @@ static void init_ptl0_section(pte_level0_section_t *pte,
 static void init_boot_pt(void)
 {
 	/*
-	 * Create 1:1 virtual-physical mapping.
-	 * Physical memory on BBxM a BBone starts at 2GB
-	 * boundary, icp has a memory mirror at 2GB.
-	 * (ARM Integrator Core Module User guide ch. 6.3,  p. 6-7)
-	 * gta02 somehow works (probably due to limited address size),
-	 * s3c2442b manual ch. 5, p.5-1:
-	 * "Address space: 128Mbytes per bank (total 1GB/8 banks)"
+	 * Our goal is to create page tables that serve two purposes:
+	 *
+	 * 1. Allow the loader to run in identity-mapped virtual memory and use
+	 *    I/O devices (e.g. an UART for logging).
+	 * 2. Allow the kernel to start running in virtual memory from addresses
+	 *    above 2G.
+	 *
+	 * The matters are slightly complicated by the different locations of
+	 * physical memory and I/O devices on the various boards that we
+	 * support. We see two cases (but other are still possible):
+	 *
+	 * a) Both RAM and I/O is in memory below 2G
+	 *    For instance, this is the case of GTA02, Integrator/CP
+	 *    and RaspberryPi
+	 * b) RAM starts at 2G and I/O devices are below 2G
+	 *    For example, this is the case of BeagleBone and BeagleBoard XM
+	 *
+	 * This leads to two possible setups of boot page tables:
+	 *
+	 * A) To arrange for a), split the virtual address space into two
+	 *    halves, both identity-mapping the first 2G of physical address
+	 *    space.
+	 * B) To accommodate b), create one larger virtual address space
+	 *    identity-mapping the entire physical address space.
 	 */
-	for (pfn_t page = 0; page < PTL0_ENTRIES; ++page)
-		init_ptl0_section(&boot_pt[page], page);
+
+	for (pfn_t page = 0; page < PTL0_ENTRIES; page++) {
+		pfn_t frame = page;
+		if (BOOT_BASE < 0x80000000UL && page >= PTL0_ENTRIES / 2)
+			frame -= PTL0_ENTRIES / 2;
+		init_ptl0_section(&boot_pt[page], frame);
+	}
 
 	/*
 	 * Tell MMU page might be cached. Keeps this setting in sync

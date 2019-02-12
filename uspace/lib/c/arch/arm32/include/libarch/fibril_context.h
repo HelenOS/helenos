@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_ARCH_FIBRIL_CONTEXT_H_
-#define LIBC_ARCH_FIBRIL_CONTEXT_H_
+#ifndef _LIBC_ARCH_FIBRIL_CONTEXT_H_
+#define _LIBC_ARCH_FIBRIL_CONTEXT_H_
 
 #include <stdint.h>
 
@@ -40,7 +40,7 @@
 
 // XXX: This struct must match the assembly code in src/fibril.S
 
-typedef struct context {
+typedef struct __context {
 	uintptr_t sp;
 	uintptr_t pc;
 	uint32_t r4;
@@ -53,6 +53,6 @@ typedef struct context {
 	uint32_t r10;
 	/* r11 */
 	uint32_t fp;
-} context_t;
+} __context_t;
 
 #endif

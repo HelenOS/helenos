@@ -1,5 +1,0 @@
-{
-	"ping_pong",
-	"IPC ping-pong benchmark",
-	&bench_ping_pong
-},

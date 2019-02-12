@@ -46,4 +46,4 @@ SYMBOL(_start)
 
 	# %rdi was deliberately chosen as the first argument is also in %rdi
 	# Pass PCB pointer to __c_start (no operation)
-	call __c_start
+	call FUNCTION_REF(__c_start)

@@ -32,13 +32,11 @@
 /** @file
  */
 
-/* Prevent an error from being generated */
-#undef _HELENOS_SOURCE
-#include <string.h>
-#define _HELENOS_SOURCE
-
+#include <errno.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <str_error.h>
+#include <string.h>
 
 /** Copy string.
  *
@@ -501,6 +499,73 @@ size_t strlen(const char *s)
 	}
 
 	return n;
+}
+
+/** Return number of characters in string with length limit.
+ *
+ * @param s String
+ * @param maxlen Maximum number of characters to read
+ * @return Number of characters preceding the null character, at most @a maxlen.
+ */
+size_t strnlen(const char *s, size_t maxlen)
+{
+	size_t n;
+
+	n = 0;
+	while (n < maxlen && *s != '\0') {
+		++s;
+		++n;
+	}
+
+	return n;
+}
+
+/** Allocate a new duplicate of string.
+ *
+ * @param s String to duplicate
+ * @return New string or @c NULL on failure (in which case @c errno is set
+ *         to ENOMEM).
+ */
+char *strdup(const char *s)
+{
+	size_t sz;
+	char *dup;
+
+	sz = strlen(s);
+	dup = malloc(sz + 1);
+	if (dup == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	strcpy(dup, s);
+	return dup;
+}
+
+/** Allocate a new duplicate of string with length limit.
+ *
+ * Creates a new duplicate of @a s. If @a s is longer than @a n characters,
+ * only @a n characters are copied and a null character is appended.
+ *
+ * @param s String to duplicate
+ * @param n Maximum number of characters to copy
+ * @return New string or @c NULL on failure (in which case @c errno is set
+ *         to ENOMEM).
+ */
+char *strndup(const char *s, size_t n)
+{
+	size_t sz;
+	char *dup;
+
+	sz = strnlen(s, n);
+	dup = malloc(sz + 1);
+	if (dup == NULL) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	strcpy(dup, s);
+	return dup;
 }
 
 /** @}

@@ -106,7 +106,7 @@ typedef struct rtl8139_data {
 	uintptr_t tx_buff_phys;
 	void *tx_buff_virt;
 
-	/** Virtual adresses of the Tx buffers */
+	/** Virtual addresses of the Tx buffers */
 	void *tx_buff[TX_BUFF_COUNT];
 
 	/** The nubmer of the next buffer to use, index = tx_next % TX_BUFF_COUNT */

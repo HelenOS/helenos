@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_CONS_EVENT_H_
-#define LIBC_IO_CONS_EVENT_H_
+#ifndef _LIBC_IO_CONS_EVENT_H_
+#define _LIBC_IO_CONS_EVENT_H_
 
 #include <adt/list.h>
 #include <io/kbd_event.h>

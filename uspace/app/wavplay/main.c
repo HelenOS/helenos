@@ -118,7 +118,7 @@ static errno_t hplay_ctx(hound_context_t *ctx, const char *filename)
  * @param filename File to play.
  * @return Error code
  */
-static errno_t hplay(const char *filename)
+static errno_t hplay(const char *filename, const char *target)
 {
 	printf("Hound playback: %s\n", filename);
 	FILE *source = fopen(filename, "rb");
@@ -157,10 +157,20 @@ static errno_t hplay(const char *filename)
 		return ENOMEM;
 	}
 
-	ret = hound_context_connect_target(hound, HOUND_DEFAULT_TARGET);
+	ret = hound_context_connect_target(hound, target);
 	if (ret != EOK) {
-		printf("Failed to connect to default target: %s\n",
+		printf("Failed to connect to target '%s': %s\n", target,
 		    str_error(ret));
+
+		char **names = NULL;
+		size_t count = 0;
+		ret = hound_context_get_available_targets(hound, &names, &count);
+		if (ret == EOK) {
+			printf("Available targets:\n");
+			for (size_t i = 0; i < count; i++)
+				printf(" - %s\n", names[i]);
+		}
+
 		hound_context_destroy(hound);
 		fclose(source);
 		return ret;
@@ -214,6 +224,7 @@ static const struct option opts[] = {
 	{ "device", required_argument, 0, 'd' },
 	{ "parallel", no_argument, 0, 'p' },
 	{ "record", no_argument, 0, 'r' },
+	{ "target", required_argument, 0, 't' },
 	{ "help", no_argument, 0, 'h' },
 	{ 0, 0, 0, 0 }
 };
@@ -229,8 +240,9 @@ static void print_help(const char *name)
 	printf("\t -h, --help\t Print this help.\n");
 	printf("\t -r, --record\t Start recording instead of playback. "
 	    "(Not implemented)\n");
-	printf("\t -d, --device\t Use specified device instead of the sound "
-	    "service. Use location path or a special device `default'\n");
+	printf("\t -d, --device\t Direct output to specified device instead of "
+	    "the sound service. Use location path or a special device `default'\n");
+	printf("\t -t, --target\t Output to the specified audio target.\n");
 	printf("\t -p, --parallel\t Play given files in parallel instead of "
 	    "sequentially (does not work with -d).\n");
 }
@@ -238,6 +250,7 @@ static void print_help(const char *name)
 int main(int argc, char *argv[])
 {
 	const char *device = "default";
+	const char *target = HOUND_DEFAULT_TARGET;
 	int idx = 0;
 	bool direct = false, record = false, parallel = false;
 	optind = 0;
@@ -245,7 +258,7 @@ int main(int argc, char *argv[])
 
 	/* Parse command line options */
 	while (ret != -1) {
-		ret = getopt_long(argc, argv, "d:prh", opts, &idx);
+		ret = getopt_long(argc, argv, "d:prt:h", opts, &idx);
 		switch (ret) {
 		case 'd':
 			direct = true;
@@ -256,6 +269,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'p':
 			parallel = true;
+			break;
+		case 't':
+			target = optarg;
 			break;
 		case 'h':
 			print_help(*argv);
@@ -333,7 +349,7 @@ int main(int argc, char *argv[])
 				atomic_fetch_add(&playcount, 1);
 				fibril_add_ready(fid);
 			} else {
-				hplay(file);
+				hplay(file, target);
 			}
 		}
 	}

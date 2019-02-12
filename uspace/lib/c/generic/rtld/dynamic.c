@@ -63,8 +63,8 @@ void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 	while (dp->d_tag != DT_NULL) {
 		d_ptr = (void *)((uint8_t *)dp->d_un.d_ptr + bias);
 		d_val = dp->d_un.d_val;
-		DPRINTF("tag=%u ptr=0x%x val=%u\n", (unsigned)dp->d_tag,
-		    (unsigned)d_ptr, (unsigned)d_val);
+		DPRINTF("tag=%u ptr=0x%zx val=%zu\n", (unsigned)dp->d_tag,
+		    (uintptr_t)d_ptr, (uintptr_t)d_val);
 
 		switch (dp->d_tag) {
 

@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef LIBC_STACKTRACE_H_
-#define LIBC_STACKTRACE_H_
+#ifndef _LIBC_STACKTRACE_H_
+#define _LIBC_STACKTRACE_H_
 
 #include <errno.h>
 #include <stdint.h>

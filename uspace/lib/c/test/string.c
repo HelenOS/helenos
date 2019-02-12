@@ -721,4 +721,114 @@ PCUT_TEST(strlen_nonempty)
 	PCUT_ASSERT_INT_EQUALS(3, strlen("abc"));
 }
 
+/** strlen function with empty string and non-zero limit */
+PCUT_TEST(strnlen_empty_short)
+{
+	PCUT_ASSERT_INT_EQUALS(0, strnlen("", 1));
+}
+
+/** strlen function with empty string and zero limit */
+PCUT_TEST(strnlen_empty_eq)
+{
+	PCUT_ASSERT_INT_EQUALS(0, strnlen("", 0));
+}
+
+/** strlen function with non empty string below limit */
+PCUT_TEST(strnlen_nonempty_short)
+{
+	PCUT_ASSERT_INT_EQUALS(3, strnlen("abc", 5));
+}
+
+/** strlen function with non empty string just below limit */
+PCUT_TEST(strnlen_nonempty_just_short)
+{
+	PCUT_ASSERT_INT_EQUALS(3, strnlen("abc", 4));
+}
+
+/** strlen function with non empty string of length equal to limit */
+PCUT_TEST(strnlen_nonempty_eq)
+{
+	PCUT_ASSERT_INT_EQUALS(3, strnlen("abc", 3));
+}
+
+/** strlen function with non empty string of length above limit */
+PCUT_TEST(strnlen_nonempty_long)
+{
+	PCUT_ASSERT_INT_EQUALS(2, strnlen("abc", 2));
+}
+
+/** strdup function with empty string */
+PCUT_TEST(strdup_empty)
+{
+	char *d = strdup("");
+	PCUT_ASSERT_NOT_NULL(d);
+	PCUT_ASSERT_TRUE(d[0] == '\0');
+	free(d);
+}
+
+/** strdup function with non-empty string */
+PCUT_TEST(strdup_nonempty)
+{
+	char *d = strdup("abc");
+	PCUT_ASSERT_NOT_NULL(d);
+	PCUT_ASSERT_TRUE(d[0] == 'a');
+	PCUT_ASSERT_TRUE(d[1] == 'b');
+	PCUT_ASSERT_TRUE(d[2] == 'c');
+	PCUT_ASSERT_TRUE(d[3] == '\0');
+	free(d);
+}
+
+/** strndup function with empty string and non-zero limit */
+PCUT_TEST(strndup_empty_short)
+{
+	char *d = strndup("", 1);
+	PCUT_ASSERT_NOT_NULL(d);
+	PCUT_ASSERT_TRUE(d[0] == '\0');
+	free(d);
+}
+
+/** strndup function with empty string and zero limit */
+PCUT_TEST(strndup_empty_eq)
+{
+	char *d = strndup("", 0);
+	PCUT_ASSERT_NOT_NULL(d);
+	PCUT_ASSERT_TRUE(d[0] == '\0');
+	free(d);
+}
+
+/** strndup function with non-empty string of length below limit */
+PCUT_TEST(strndup_nonempty_short)
+{
+	char *d = strndup("abc", 5);
+	PCUT_ASSERT_NOT_NULL(d);
+	PCUT_ASSERT_TRUE(d[0] == 'a');
+	PCUT_ASSERT_TRUE(d[1] == 'b');
+	PCUT_ASSERT_TRUE(d[2] == 'c');
+	PCUT_ASSERT_TRUE(d[3] == '\0');
+	free(d);
+}
+
+/** strndup function with non-empty string of length equal to limit */
+PCUT_TEST(strndup_nonempty_eq)
+{
+	char *d = strndup("abc", 3);
+	PCUT_ASSERT_NOT_NULL(d);
+	PCUT_ASSERT_TRUE(d[0] == 'a');
+	PCUT_ASSERT_TRUE(d[1] == 'b');
+	PCUT_ASSERT_TRUE(d[2] == 'c');
+	PCUT_ASSERT_TRUE(d[3] == '\0');
+	free(d);
+}
+
+/** strndup function with non-empty string of length above limit */
+PCUT_TEST(strndup_nonempty_long)
+{
+	char *d = strndup("abc", 2);
+	PCUT_ASSERT_NOT_NULL(d);
+	PCUT_ASSERT_TRUE(d[0] == 'a');
+	PCUT_ASSERT_TRUE(d[1] == 'b');
+	PCUT_ASSERT_TRUE(d[2] == '\0');
+	free(d);
+}
+
 PCUT_EXPORT(string);

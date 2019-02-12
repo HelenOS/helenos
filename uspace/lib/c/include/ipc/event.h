@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IPC_EVENT_H_
-#define LIBC_IPC_EVENT_H_
+#ifndef _LIBC_IPC_EVENT_H_
+#define _LIBC_IPC_EVENT_H_
 
 #include <abi/ipc/event.h>
 #include <types/common.h>

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_OUTPUT_H_
-#define LIBC_IO_OUTPUT_H_
+#ifndef _LIBC_IO_OUTPUT_H_
+#define _LIBC_IO_OUTPUT_H_
 
 #include <ipc/output.h>
 #include <io/chargrid.h>

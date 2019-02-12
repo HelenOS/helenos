@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_amd64_TLS_H_
-#define LIBC_amd64_TLS_H_
+#ifndef _LIBC_amd64_TLS_H_
+#define _LIBC_amd64_TLS_H_
 
 #define CONFIG_TLS_VARIANT_2
 
@@ -44,6 +44,8 @@
 typedef struct {
 	void *self;
 	void *fibril_data;
+	void **dtv;
+	void *pad;
 } tcb_t;
 
 static inline void __tcb_raw_set(void *tls)

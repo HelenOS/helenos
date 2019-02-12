@@ -227,6 +227,31 @@ static int seq_defs[] = {
 	0,	KC_DOWN,	0x1b, 0x5b, 0x42, GSP_END,
 	0,	KC_RIGHT,	0x1b, 0x5b, 0x43, GSP_END,
 
+	KM_CTRL, 	KC_Q,		0x11, GSP_END,
+	KM_CTRL, 	KC_W,		0x17, GSP_END,
+	KM_CTRL, 	KC_E,		0x05, GSP_END,
+	KM_CTRL, 	KC_R,		0x12, GSP_END,
+	KM_CTRL,	KC_T,		0x14, GSP_END,
+	KM_CTRL,	KC_Y,		0x19, GSP_END,
+	KM_CTRL,	KC_U,		0x15, GSP_END,
+	KM_CTRL,	KC_O,		0x0f, GSP_END,
+	KM_CTRL,	KC_P,		0x10, GSP_END,
+
+	KM_CTRL,	KC_A,		0x01, GSP_END,
+	KM_CTRL,	KC_S,		0x13, GSP_END,
+	KM_CTRL,	KC_D,		0x04, GSP_END,
+	KM_CTRL,	KC_F,		0x06, GSP_END,
+	KM_CTRL,	KC_G,		0x07, GSP_END,
+	KM_CTRL,	KC_K,		0x0b, GSP_END,
+	KM_CTRL,	KC_L,		0x0c, GSP_END,
+
+	KM_CTRL,	KC_Z,		0x1a, GSP_END,
+	KM_CTRL,	KC_X,		0x18, GSP_END,
+	KM_CTRL,	KC_C,		0x03, GSP_END,
+	KM_CTRL,	KC_V,		0x16, GSP_END,
+	KM_CTRL,	KC_B,		0x02, GSP_END,
+	KM_CTRL,	KC_N,		0x0e, GSP_END,
+
 	/*
 	 * Sequences specific to Gnome terminal
 	 */

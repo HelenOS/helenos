@@ -161,6 +161,7 @@ errno_t ata_fun_create(disk_t *disk)
 	char *fun_name = NULL;
 	ddf_fun_t *fun = NULL;
 	ata_fun_t *afun = NULL;
+	bool bound = false;
 
 	fun_name = ata_fun_name(disk);
 	if (fun_name == NULL) {
@@ -201,12 +202,21 @@ errno_t ata_fun_create(disk_t *disk)
 		goto error;
 	}
 
-	ddf_fun_add_to_category(fun, "disk");
+	bound = true;
+
+	rc = ddf_fun_add_to_category(fun, "disk");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function %s to "
+		    "category 'disk': %s", fun_name, str_error(rc));
+		goto error;
+	}
 
 	free(fun_name);
 	disk->afun = afun;
 	return EOK;
 error:
+	if (bound)
+		ddf_fun_unbind(fun);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 	if (fun_name != NULL)

@@ -385,11 +385,11 @@ static errno_t udf_read_virtual_partition(udf_instance_t *instance, uint32_t pos
 
 		udf_file_entry_descriptor_t *fed =
 		    (udf_file_entry_descriptor_t *) block->data;
-		uint32_t start_alloc = FLE32(fed->ea_lenght) + UDF_FE_OFFSET;
+		uint32_t start_alloc = FLE32(fed->ea_length) + UDF_FE_OFFSET;
 		udf_short_ad_t *short_d =
 		    (udf_short_ad_t *) ((uint8_t *) fed + start_alloc);
 		instance->partitions[id].start = FLE32(short_d->position);
-		instance->partitions[id].lenght = FLE32(short_d->length);
+		instance->partitions[id].length = FLE32(short_d->length);
 		break;
 
 	case UDF_EFILE_ENTRY:
@@ -397,10 +397,10 @@ static errno_t udf_read_virtual_partition(udf_instance_t *instance, uint32_t pos
 
 		udf_extended_file_entry_descriptor_t *efed =
 		    (udf_extended_file_entry_descriptor_t *) block->data;
-		start_alloc = FLE32(efed->ea_lenght) + UDF_EFE_OFFSET;
+		start_alloc = FLE32(efed->ea_length) + UDF_EFE_OFFSET;
 		short_d = (udf_short_ad_t *) ((uint8_t *) efed + start_alloc);
 		instance->partitions[id].start = FLE32(short_d->position);
-		instance->partitions[id].lenght = FLE32(short_d->length);
+		instance->partitions[id].length = FLE32(short_d->length);
 		break;
 	}
 
@@ -502,7 +502,7 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 				 */
 				instance->partitions[j].access_type =
 				    FLE32(pd[pd_num].access_type);
-				instance->partitions[j].lenght =
+				instance->partitions[j].length =
 				    FLE32(pd[pd_num].length);
 				instance->partitions[j].number =
 				    FLE16(pm1->partition_number);
@@ -517,7 +517,7 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 				    "found and filled", i, pm1->partition_map_type);
 
 				instance->volumes[i].partition_cnt++;
-				idx += pm1->partition_map_lenght;
+				idx += pm1->partition_map_length;
 				continue;
 			}
 
@@ -585,7 +585,7 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume[%" PRIun "]: partition [type %u] "
 			    "found and skipped", i, pm->partition_map_type);
 
-			idx += pm->partition_map_lenght;
+			idx += pm->partition_map_length;
 		}
 	}
 
@@ -709,7 +709,7 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 				instance->uaspace_start =
 				    FLE32(vol->partition.starting_location) +
 				    FLE32(phd->unallocated_space_table.position);
-				instance->uaspace_lenght =
+				instance->uaspace_length =
 				    FLE32(phd->unallocated_space_table.length);
 			}
 
@@ -723,7 +723,7 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 				instance->uaspace_start =
 				    FLE32(vol->partition.starting_location) +
 				    FLE32(phd->unallocated_space_bitmap.position);
-				instance->uaspace_lenght =
+				instance->uaspace_length =
 				    FLE32(phd->unallocated_space_bitmap.length);
 			}
 
@@ -772,7 +772,7 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 			    FLE32(vol->unallocated.allocation_descriptors_num) *
 			    sizeof(udf_extent_t)), sizeof(udf_common_descriptor_t));
 			instance->uaspace_start = pos;
-			instance->uaspace_lenght = sct;
+			instance->uaspace_length = sct;
 			instance->uasd = (udf_unallocated_space_descriptor_t *)
 			    malloc(sct * instance->sector_size);
 			if (instance->uasd == NULL) {

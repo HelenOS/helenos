@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_OFFSET_H_
-#define LIBC_OFFSET_H_
+#ifndef _LIBC_OFFSET_H_
+#define _LIBC_OFFSET_H_
 
 #include <stdint.h>
 

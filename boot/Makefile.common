@@ -93,8 +93,12 @@ RD_SRVS_ESSENTIAL = \
 	hid/console \
 	devman \
 	fs/locfs \
-	hid/compositor \
 	klog
+
+ifeq ($(CONFIG_FB), y)
+	RD_SRVS_ESSENTIAL += \
+		hid/compositor
+endif
 
 RD_SRVS_NON_ESSENTIAL = \
 	bd/file_bd \
@@ -140,7 +144,8 @@ RD_DRVS_NON_ESSENTIAL = \
 	nic/rtl8169 \
 	nic/ar9271 \
 	nic/virtio-net \
-	block/ahci
+	block/ahci \
+	block/virtio-blk
 
 RD_DRV_CFG =
 
@@ -161,13 +166,21 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 		$(USPACE_PATH)/lib/dltest/libdltest.so.0
 endif
 
-RD_APPS_ESSENTIAL = bdsh getterm kio vlaunch vterm
+RD_APPS_ESSENTIAL = \
+	bdsh \
+	getterm \
+	kio
+
+ifeq ($(CONFIG_FB), y)
+	RD_APPS_ESSENTIAL += \
+		vlaunch \
+		vterm
+endif
 
 RD_APPS_NON_ESSENTIAL = \
 	barber \
 	bithenge \
 	blkdump \
-	bnchmark \
 	contacts \
 	corecfg \
 	cpptest \
@@ -178,10 +191,12 @@ RD_APPS_NON_ESSENTIAL = \
 	edit \
 	fdisk \
 	gunzip \
+	hbench \
 	inet \
 	kill \
 	killall \
 	loc \
+	lprint \
 	mixerctl \
 	modplay \
 	logset \
@@ -190,9 +205,6 @@ RD_APPS_NON_ESSENTIAL = \
 	mkext4 \
 	mkmfs \
 	nic \
-	perf \
-	rcutest \
-	rcubench \
 	sbi \
 	sportdmp \
 	redir \
@@ -206,6 +218,7 @@ RD_APPS_NON_ESSENTIAL = \
 	trace \
 	netecho \
 	nterm \
+	pci \
 	ping \
 	pkg \
 	stats \

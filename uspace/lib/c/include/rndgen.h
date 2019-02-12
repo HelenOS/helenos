@@ -32,8 +32,8 @@
 /** @file Random number generator
  */
 
-#ifndef LIBC_RNDGEN_H_
-#define LIBC_RNDGEN_H_
+#ifndef _LIBC_RNDGEN_H_
+#define _LIBC_RNDGEN_H_
 
 #include <errno.h>
 #include <stdint.h>

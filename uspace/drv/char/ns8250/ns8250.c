@@ -245,10 +245,13 @@ static void ns8250_write_8(ns8250_regs_t *regs, uint8_t c)
  * @param buf		The output buffer for read data.
  * @param count		The number of bytes to be read.
  * @param nread		Place to store number of bytes actually read
+ * @param flags		@c chardev_f_nonblock not to block waiting for data
+ *			even if no data is available
  *
  * @return		EOK on success or non-zero error code
  */
-static errno_t ns8250_read(chardev_srv_t *srv, void *buf, size_t count, size_t *nread)
+static errno_t ns8250_read(chardev_srv_t *srv, void *buf, size_t count, size_t *nread,
+    chardev_flags_t flags)
 {
 	ns8250_t *ns = srv_ns8250(srv);
 	char *bp = (char *) buf;
@@ -260,7 +263,8 @@ static errno_t ns8250_read(chardev_srv_t *srv, void *buf, size_t count, size_t *
 	}
 
 	fibril_mutex_lock(&ns->mutex);
-	while (buf_is_empty(&ns->input_buffer))
+	while ((flags & chardev_f_none) == 0 &&
+	    buf_is_empty(&ns->input_buffer))
 		fibril_condvar_wait(&ns->input_buffer_available, &ns->mutex);
 	while (!buf_is_empty(&ns->input_buffer) && pos < count) {
 		bp[pos] = (char)buf_pop_front(&ns->input_buffer);
@@ -828,6 +832,7 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 	ddf_fun_t *fun = NULL;
 	bool need_cleanup = false;
 	bool need_unreg_intr_handler = false;
+	bool bound = false;
 	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "ns8250_dev_add %s (handle = %d)",
@@ -908,15 +913,22 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 		goto fail;
 	}
 
+	bound = true;
 	ns->fun = fun;
 
-	ddf_fun_add_to_category(fun, "serial");
+	rc = ddf_fun_add_to_category(fun, "serial");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error adding function to category 'serial'.");
+		goto fail;
+	}
 
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized.",
 	    ddf_dev_get_name(dev));
 
 	return EOK;
 fail:
+	if (bound)
+		ddf_fun_unbind(fun);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 	if (need_unreg_intr_handler)

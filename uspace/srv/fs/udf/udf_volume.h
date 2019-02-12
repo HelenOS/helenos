@@ -48,7 +48,7 @@
 #define UDF_TAG_TD    0x0008  /* Terminating Descriptor */
 #define UDF_TAG_LVID  0x0009  /* Logical Volume Integrity Descriptor */
 
-/* Start adress of Anchor Volume Descriptor */
+/* Start address of Anchor Volume Descriptor */
 #define UDF_AVDP_SECTOR  256
 
 /* Volume Recognition Sequence params */
@@ -164,12 +164,12 @@ typedef struct udf_volume_descriptor {
 
 typedef struct udf_general_type {
 	uint8_t partition_map_type;
-	uint8_t partition_map_lenght;
+	uint8_t partition_map_length;
 } __attribute__((packed)) udf_general_type_t;
 
 typedef struct udf_type1_partition_map {
 	uint8_t partition_map_type;
-	uint8_t partition_map_lenght;
+	uint8_t partition_map_length;
 	uint16_t volume_sequence_number;
 	uint16_t partition_number;
 } __attribute__((packed)) udf_type1_partition_map_t;

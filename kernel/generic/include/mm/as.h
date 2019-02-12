@@ -44,7 +44,6 @@
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
 #include <adt/list.h>
-#include <adt/btree.h>
 #include <adt/odict.h>
 #include <lib/elf.h>
 #include <arch.h>
@@ -136,6 +135,50 @@ typedef struct {
 	bool (*page_table_locked)(as_t *);
 } as_operations_t;
 
+/** Single anonymous page mapping. */
+typedef struct {
+	/** Containing pagemap structure */
+	struct as_pagemap *pagemap;
+	/** Link to @c shinfo->pagemap ordered dictionary */
+	odlink_t lpagemap;
+	/** Virtual address */
+	uintptr_t vaddr;
+	/** Physical frame address */
+	uintptr_t frame;
+} as_page_mapping_t;
+
+/** Map of anonymous pages in a shared area. */
+typedef struct as_pagemap {
+	/**
+	 * Dictionary ordered by virtual address. Members are of type
+	 * as_page_mapping_t
+	 */
+	odict_t map;
+} as_pagemap_t;
+
+/** Used space interval */
+typedef struct {
+	/** Containing used_space structure */
+	struct used_space *used_space;
+	/** Link to @c used_space->ivals */
+	odlink_t lused_space;
+	/** First page address */
+	uintptr_t page;
+	/** Count of pages */
+	size_t count;
+} used_space_ival_t;
+
+/** Map of used space in an address space area */
+typedef struct used_space {
+	/**
+	 * Dictionary of intervals by start address.
+	 * Members are of type @c used_space_ival_t.
+	 */
+	odict_t ivals;
+	/** Total number of used pages. */
+	size_t pages;
+} used_space_t;
+
 /**
  * This structure contains information associated with the shared address space
  * area.
@@ -149,10 +192,8 @@ typedef struct {
 	/** True if the area has been ever shared. */
 	bool shared;
 
-	/**
-	 * B+tree containing complete map of anonymous pages of the shared area.
-	 */
-	btree_t pagemap;
+	/** Complete map of anonymous pages of the shared area. */
+	as_pagemap_t pagemap;
 
 	/** Address space area backend. */
 	struct mem_backend *backend;
@@ -220,14 +261,11 @@ typedef struct {
 	/** Number of pages in the area. */
 	size_t pages;
 
-	/** Number of resident pages in the area. */
-	size_t resident;
-
 	/** Base address of this area. */
 	uintptr_t base;
 
 	/** Map of used space. */
-	btree_t used_space;
+	used_space_t used_space;
 
 	/**
 	 * If the address space area is shared. this is
@@ -282,11 +320,21 @@ extern errno_t as_area_change_flags(as_t *, unsigned int, uintptr_t);
 extern as_area_t *as_area_first(as_t *);
 extern as_area_t *as_area_next(as_area_t *);
 
+extern void as_pagemap_initialize(as_pagemap_t *);
+extern void as_pagemap_finalize(as_pagemap_t *);
+extern as_page_mapping_t *as_pagemap_first(as_pagemap_t *);
+extern as_page_mapping_t *as_pagemap_next(as_page_mapping_t *);
+extern errno_t as_pagemap_find(as_pagemap_t *, uintptr_t, uintptr_t *);
+extern void as_pagemap_insert(as_pagemap_t *, uintptr_t, uintptr_t);
+extern void as_pagemap_remove(as_page_mapping_t *);
+
 extern unsigned int as_area_get_flags(as_area_t *);
 extern bool as_area_check_access(as_area_t *, pf_access_t);
 extern size_t as_area_get_size(uintptr_t);
-extern bool used_space_insert(as_area_t *, uintptr_t, size_t);
-extern bool used_space_remove(as_area_t *, uintptr_t, size_t);
+extern used_space_ival_t *used_space_first(used_space_t *);
+extern used_space_ival_t *used_space_next(used_space_ival_t *);
+extern used_space_ival_t *used_space_find_gteq(used_space_t *, uintptr_t);
+extern bool used_space_insert(used_space_t *, uintptr_t, size_t);
 
 /* Interface to be implemented by architectures. */
 

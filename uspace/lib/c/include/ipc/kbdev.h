@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IPC_KBDEV_H_
-#define LIBC_IPC_KBDEV_H_
+#ifndef _LIBC_IPC_KBDEV_H_
+#define _LIBC_IPC_KBDEV_H_
 
 #include <ipc/common.h>
 #include <ipc/dev_iface.h>

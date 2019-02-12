@@ -33,8 +33,8 @@
 /** @file
  */
 
-#ifndef LIBC_arm32_TLS_H_
-#define LIBC_arm32_TLS_H_
+#ifndef _LIBC_arm32_TLS_H_
+#define _LIBC_arm32_TLS_H_
 
 #include <stdint.h>
 
@@ -48,6 +48,8 @@
  *  TLS starts just after this struct.
  */
 typedef struct {
+	void **dtv;
+	void *pad;
 	/** Fibril data. */
 	void *fibril_data;
 } tcb_t;

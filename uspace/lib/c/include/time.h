@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TIME_H_
-#define LIBC_TIME_H_
+#ifndef _LIBC_TIME_H_
+#define _LIBC_TIME_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,9 +63,7 @@ struct timespec {
 
 struct tm {
 	int tm_sec;
-#ifdef _HELENOS_SOURCE
-	int tm_nsec;
-#endif
+	int tm_nsec;  /**< Nonstandard extension, nanoseconds since last second. */
 	int tm_min;
 	int tm_hour;
 	int tm_mday;

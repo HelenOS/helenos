@@ -29,8 +29,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <fibril.h>
 #include <io/log.h>
-#include <async.h>
 #include "../tester.h"
 
 const char *test_logger2(void)

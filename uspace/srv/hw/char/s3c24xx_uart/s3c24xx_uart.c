@@ -68,7 +68,8 @@ static void s3c24xx_uart_irq_handler(ipc_call_t *, void *);
 static int s3c24xx_uart_init(s3c24xx_uart_t *);
 static void s3c24xx_uart_sendb(s3c24xx_uart_t *, uint8_t);
 
-static errno_t s3c24xx_uart_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t s3c24xx_uart_read(chardev_srv_t *, void *, size_t, size_t *,
+    chardev_flags_t);
 static errno_t s3c24xx_uart_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t s3c24xx_uart_chardev_ops = {
@@ -198,7 +199,7 @@ static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte)
 }
 
 static errno_t s3c24xx_uart_read(chardev_srv_t *srv, void *buf, size_t size,
-    size_t *nread)
+    size_t *nread, chardev_flags_t flags)
 {
 	s3c24xx_uart_t *uart = (s3c24xx_uart_t *) srv->srvs->sarg;
 	size_t p;
@@ -207,7 +208,8 @@ static errno_t s3c24xx_uart_read(chardev_srv_t *srv, void *buf, size_t size,
 
 	fibril_mutex_lock(&uart->buf_lock);
 
-	while (circ_buf_nused(&uart->cbuf) == 0)
+	while ((flags & chardev_f_nonblock) == 0 &&
+	    circ_buf_nused(&uart->cbuf) == 0)
 		fibril_condvar_wait(&uart->buf_cv, &uart->buf_lock);
 
 	p = 0;

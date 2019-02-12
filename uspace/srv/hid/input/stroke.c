@@ -47,6 +47,7 @@
 /** Correspondence between modifers and the modifier keycodes. */
 static unsigned int mods_keys[][2] = {
 	{ KM_LSHIFT, KC_LSHIFT },
+	{ KM_LCTRL, KC_LCTRL },
 	{ 0, 0 }
 };
 

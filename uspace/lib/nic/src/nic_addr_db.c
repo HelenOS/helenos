@@ -162,7 +162,7 @@ void nic_addr_db_destroy(nic_addr_db_t *db)
  *
  * @return EOK		If the address was inserted
  * @return ENOMEM	If there was not enough memory
- * @return EEXIST	If this adress already is in the db
+ * @return EEXIST	If this address already is in the db
  */
 errno_t nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
 {

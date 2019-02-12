@@ -61,6 +61,16 @@ int dl_get_constant(void)
 	return dl_constant;
 }
 
+/** Return constant value by calling another function.
+ *
+ * This can be used to test dynamically linked call (via PLT) even in case
+ * binaries are statically linked.
+ */
+int dl_get_constant_via_call(void)
+{
+	return dl_get_constant();
+}
+
 /** Return value of private initialized variable */
 int dl_get_private_var(void)
 {
