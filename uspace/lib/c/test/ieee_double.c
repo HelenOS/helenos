@@ -29,19 +29,6 @@
 #include <pcut/pcut.h>
 #include <ieee_double.h>
 
-/*
- * This is a test for double precision 64-bit
- * floating numbers which are specified
- * according to IE754
- *
- * A very useful JS calculator for IEEE 754 numbers
- * for 64bits
- * weitz.de/ieee/
- *
- * for 32 bits
- * www.h-schmidt.net/FloatConverter/IEEE754.html
- */
-
 union {
 	uint64_t integer;
 	double floating;
