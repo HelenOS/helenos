@@ -109,7 +109,6 @@ PCUT_TEST(extract_ieee_double_pos_zero)
 	PCUT_ASSERT_FALSE(d.is_accuracy_step);
 
 	PCUT_ASSERT_INT_EQUALS(0, d.pos_val.significand);
-	PCUT_ASSERT_INT_EQUALS(-EXP_BIAS_UNDERFLOWED, d.pos_val.exponent);
 }
 
 PCUT_TEST(extract_ieee_double_neg_zero)
@@ -126,7 +125,6 @@ PCUT_TEST(extract_ieee_double_neg_zero)
 	PCUT_ASSERT_FALSE(d.is_accuracy_step);
 
 	PCUT_ASSERT_INT_EQUALS(0, d.pos_val.significand);
-	PCUT_ASSERT_INT_EQUALS(-EXP_BIAS_UNDERFLOWED, d.pos_val.exponent);
 }
 
 PCUT_TEST(extract_ieee_double_normal_pos_one)
