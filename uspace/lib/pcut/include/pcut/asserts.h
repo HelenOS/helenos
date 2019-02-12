@@ -185,10 +185,10 @@ void pcut_str_error(int error, char *buffer, int size);
  */
 #define PCUT_ASSERT_INT_EQUALS(expected, actual) \
 	do {\
-		long pcut_expected_eval = (expected); \
-		long pcut_actual_eval = (actual); \
+		long long pcut_expected_eval = (expected); \
+		long long pcut_actual_eval = (actual); \
 		if (pcut_expected_eval != pcut_actual_eval) { \
-			PCUT_ASSERTION_FAILED("Expected <%ld> but got <%ld> (%s != %s)", \
+			PCUT_ASSERTION_FAILED("Expected <%lld> but got <%lld> (%s != %s)", \
 				pcut_expected_eval, pcut_actual_eval, \
 				#expected, #actual); \
 		} \
