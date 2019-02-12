@@ -31,9 +31,15 @@
 
 PCUT_INIT;
 
+PCUT_IMPORT(cap);
 PCUT_IMPORT(casting);
 PCUT_IMPORT(circ_buf);
+PCUT_IMPORT(double_to_str);
 PCUT_IMPORT(fibril_timer);
+PCUT_IMPORT(getopt);
+PCUT_IMPORT(gsort);
+PCUT_IMPORT(ieee_double);
+PCUT_IMPORT(imath);
 PCUT_IMPORT(inttypes);
 PCUT_IMPORT(mem);
 PCUT_IMPORT(odict);
@@ -47,12 +53,6 @@ PCUT_IMPORT(stdlib);
 PCUT_IMPORT(str);
 PCUT_IMPORT(string);
 PCUT_IMPORT(table);
-PCUT_IMPORT(cap);
-PCUT_IMPORT(gsort);
-PCUT_IMPORT(ieee_double);
-PCUT_IMPORT(double_to_str);
-PCUT_IMPORT(getopt);
 PCUT_IMPORT(uuid);
-PCUT_IMPORT(imath);
 
 PCUT_MAIN();
