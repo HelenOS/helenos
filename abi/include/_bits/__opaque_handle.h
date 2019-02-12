@@ -38,7 +38,7 @@
 #ifndef _BITS_OPAQUE_HANDLE_H_
 #define _BITS_OPAQUE_HANDLE_H_
 
-#define opaque_handle(__name) typedef struct __opaque_##__name *__name
+#define __opaque_handle(__name) typedef struct __opaque_##__name *__name
 
 #endif
 

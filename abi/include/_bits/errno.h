@@ -41,9 +41,9 @@
 #define _BITS_ERRNO_H_
 
 #ifdef __OPAQUE_ERRNO__
-#include <_bits/opaque_handle.h>
+#include <_bits/__opaque_handle.h>
 
-opaque_handle(errno_t);
+__opaque_handle(errno_t);
 typedef errno_t sys_errno_t;
 #define __errno_t(val) ((errno_t) val)
 
