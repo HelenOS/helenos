@@ -36,26 +36,13 @@
  */
 /** @file
  * Definition of constant NULL.
- *
- * This definition is designed to work in both C and C++, and use
- * the special constant `nullptr` in C++11 and above.
- * Including this file is preferrable to defining the constant separately.
  */
 
 #ifndef _BITS_NULL_H_
 #define _BITS_NULL_H_
 
-#ifndef NULL
-
-#if __cplusplus >= 201103L
-#define NULL  nullptr
-#elif defined(__cplusplus)
-#define NULL  0L
-#else
-#define NULL  ((void *) 0)
-#endif
-
-#endif
+#define __need_NULL
+#include <stddef.h>
 
 #endif
 
