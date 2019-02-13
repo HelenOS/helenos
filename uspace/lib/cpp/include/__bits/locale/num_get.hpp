@@ -300,18 +300,20 @@ namespace std
                 auto size = fill_buffer_integral_(in, end, base);
                 if (size > 0)
                 {
-                    int ret{};
-                    if constexpr (is_signed<BaseType>::value)
-                        ret = std::hel::str_int64_t(base.buffer_, nullptr, num_base, false, &res);
-                    else
-                        ret = std::hel::str_uint64_t(base.buffer_, nullptr, num_base, false, &res);
+                    int olderrno{errno};
+                    errno = EOK;
 
-                    if (ret != EOK)
-                    {
+                    if constexpr (is_signed<BaseType>::value)
+                        res = ::strtoll(base.buffer_, nullptr, num_base);
+                    else
+                        res = ::strtoull(base.buffer_, nullptr, num_base);
+
+                    if (errno != EOK)
                         err |= ios_base::failbit;
-                        v = 0;
-                    }
-                    else if (res > static_cast<BaseType>(numeric_limits<T>::max()))
+
+                    errno = olderrno;
+
+                    if (res > static_cast<BaseType>(numeric_limits<T>::max()))
                     {
                         err |= ios_base::failbit;
                         v = numeric_limits<T>::max();

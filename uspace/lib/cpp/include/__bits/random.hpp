@@ -1029,12 +1029,12 @@ namespace std
              *       - feel free to change it if you know
              *       something better.
              */
-            hel::srand(hel::time(nullptr));
+            ::srand(::time(nullptr));
         }
 
         result_type operator()()
         {
-            return hel::rand();
+            return ::rand();
         }
 
         double entropy() const noexcept

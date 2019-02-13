@@ -83,11 +83,29 @@ _Static_assert(((char)-1) < 0, "char should be signed");
 #undef MB_LEN_MAX
 #define MB_LEN_MAX 4
 
+#define __NAME_MAX  256
+
+#ifdef _HELENOS_SOURCE
 #define UCHAR_MIN   0
 #define USHRT_MIN   0
 #define UINT_MIN    (0u)
 #define ULONG_MIN   (0ul)
 #define ULLONG_MIN  (0ull)
+#define SSIZE_MIN   INTPTR_MIN
+#define UINT8_MIN   0
+#define UINT16_MIN  0
+#define UINT32_MIN  0
+#define UINT64_MIN  0
+#endif
+
+#if defined(_HELENOS_SOURCE) || defined(_POSIX_SOURCE) || \
+    defined(_POSIX_C_SOURCE) || defined(_XOPEN_SOURCE) || \
+    defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+
+#define SSIZE_MAX  INTPTR_MAX
+#define NAME_MAX   __NAME_MAX
+
+#endif
 
 /* GCC's <limits.h> doesn't define these for C++11, even though it should. */
 #if __cplusplus >= 201103L

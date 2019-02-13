@@ -41,7 +41,7 @@ namespace std
     long stol(const string& str, size_t* idx, int base)
     {
         char* end;
-        long result = hel::strtol(str.c_str(), &end, base);
+        long result = ::strtol(str.c_str(), &end, base);
 
         if (end != str.c_str())
         {
@@ -57,7 +57,7 @@ namespace std
     unsigned long stoul(const string& str, size_t* idx, int base)
     {
         char* end;
-        unsigned long result = hel::strtoul(str.c_str(), &end, base);
+        unsigned long result = ::strtoul(str.c_str(), &end, base);
 
         if (end != str.c_str())
         {
@@ -105,15 +105,10 @@ namespace std
         return 0.0l;
     }
 
-    namespace hel
-    {
-        extern "C" int asprintf(char**, const char*, ...);
-    }
-
     string to_string(int val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%d", val);
+        ::asprintf(&tmp, "%d", val);
 
         std::string res{tmp};
         free(tmp);
@@ -124,7 +119,7 @@ namespace std
     string to_string(unsigned val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%u", val);
+        ::asprintf(&tmp, "%u", val);
 
         std::string res{tmp};
         free(tmp);
@@ -135,7 +130,7 @@ namespace std
     string to_string(long val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%ld", val);
+        ::asprintf(&tmp, "%ld", val);
 
         std::string res{tmp};
         free(tmp);
@@ -146,7 +141,7 @@ namespace std
     string to_string(unsigned long val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%lu", val);
+        ::asprintf(&tmp, "%lu", val);
 
         std::string res{tmp};
         free(tmp);
@@ -157,7 +152,7 @@ namespace std
     string to_string(long long val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%lld", val);
+        ::asprintf(&tmp, "%lld", val);
 
         std::string res{tmp};
         free(tmp);
@@ -168,7 +163,7 @@ namespace std
     string to_string(unsigned long long val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%llu", val);
+        ::asprintf(&tmp, "%llu", val);
 
         std::string res{tmp};
         free(tmp);
@@ -179,7 +174,7 @@ namespace std
     string to_string(float val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%f", val);
+        ::asprintf(&tmp, "%f", val);
 
         std::string res{tmp};
         free(tmp);
@@ -190,7 +185,7 @@ namespace std
     string to_string(double val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%f", val);
+        ::asprintf(&tmp, "%f", val);
 
         std::string res{tmp};
         free(tmp);
@@ -201,7 +196,7 @@ namespace std
     string to_string(long double val)
     {
         char* tmp;
-        hel::asprintf(&tmp, "%Lf", val);
+        ::asprintf(&tmp, "%Lf", val);
 
         std::string res{tmp};
         free(tmp);

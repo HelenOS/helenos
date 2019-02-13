@@ -41,11 +41,11 @@
 #define _BITS_SSIZE_T_H_
 
 #include <stdint.h>
+#include <_bits/decls.h>
 
+__C_DECLS_BEGIN;
 typedef intptr_t ssize_t;
-
-#define SSIZE_MIN  INTPTR_MIN
-#define SSIZE_MAX  INTPTR_MAX
+__C_DECLS_END;
 
 #endif
 

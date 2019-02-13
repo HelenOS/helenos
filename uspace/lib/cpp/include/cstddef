@@ -29,27 +29,14 @@
 #ifndef LIBCPP_CSTDDEF
 #define LIBCPP_CSTDDEF
 
-
-namespace std::hel
-{
-    extern "C" {
-        #include <stddef.h>
-    }
-}
-
+#include <stddef.h>
 
 namespace std
 {
-    using nullptr_t = decltype(nullptr);
-
-    using std::hel::size_t;
-    using std::hel::ptrdiff_t;
-    /* using std::hel::max_align_t; */
+    using ::nullptr_t;
+    using ::size_t;
+    using ::ptrdiff_t;
+    using ::max_align_t;
 }
-
-using std::nullptr_t;
-using std::hel::size_t;
-using std::hel::ptrdiff_t;
-/* using std::hel::max_align_t; */
 
 #endif

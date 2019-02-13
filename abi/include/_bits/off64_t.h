@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2019 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup bits
  * @{
  */
-/** @file Memory management declarations.
+/** @file
  */
 
-#ifndef POSIX_SYS_MMAN_H_
-#define POSIX_SYS_MMAN_H_
+#ifndef _BITS_OFF64_T_H_
+#define _BITS_OFF64_T_H_
 
-#include <sys/types.h>
+#include <stdint.h>
 #include <_bits/decls.h>
 
-#define MAP_FAILED  ((void *) -1)
-
-#define MAP_SHARED     (1 << 0)
-#define MAP_PRIVATE    (1 << 1)
-#define MAP_FIXED      (1 << 2)
-#define MAP_ANONYMOUS  (1 << 3)
-#define MAP_ANON       MAP_ANONYMOUS
-
-#define PROT_NONE   0
-#define PROT_READ   1
-#define PROT_WRITE  2
-#define PROT_EXEC   4
-
 __C_DECLS_BEGIN;
-
-extern void *mmap(void *start, size_t length, int prot, int flags, int fd,
-    off_t offset);
-extern int munmap(void *start, size_t length);
-
+typedef int64_t off64_t;
 __C_DECLS_END;
 
-#endif /* POSIX_SYS_MMAN_H_ */
+#endif
 
 /** @}
  */

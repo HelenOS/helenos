@@ -36,19 +36,8 @@
 #define POSIX_LOCALE_H_
 
 #include <stddef.h>
+#include <_bits/decls.h>
 
-#ifndef __locale_t_defined
-#define __locale_t_defined
-typedef struct __posix_locale *locale_t;
-#endif
-
-#undef LC_ALL
-#undef LC_COLLATE
-#undef LC_CTYPE
-#undef LC_MESSAGES
-#undef LC_MONETARY
-#undef LC_NUMERIC
-#undef LC_TIME
 #define LC_ALL 0
 #define LC_COLLATE 1
 #define LC_CTYPE 2
@@ -57,13 +46,6 @@ typedef struct __posix_locale *locale_t;
 #define LC_NUMERIC 5
 #define LC_TIME 6
 
-#undef LC_COLLATE_MASK
-#undef LC_CTYPE_MASK
-#undef LC_MESSAGES_MASK
-#undef LC_MONETARY_MASK
-#undef LC_NUMERIC_MASK
-#undef LC_TIME_MASK
-#undef LC_ALL_MASK
 #define LC_COLLATE_MASK (1 << 0)
 #define LC_CTYPE_MASK (1 << 1)
 #define LC_MESSAGES_MASK (1 << 2)
@@ -73,8 +55,14 @@ typedef struct __posix_locale *locale_t;
 #define LC_ALL_MASK (LC_COLLATE_MASK | LC_CTYPE_MASK | LC_MESSAGES_MASK | \
     LC_MONETARY_MASK | LC_NUMERIC_MASK | LC_TIME_MASK)
 
-#undef LC_GLOBAL_LOCALE
 #define LC_GLOBAL_LOCALE NULL
+
+__C_DECLS_BEGIN;
+
+#ifndef __locale_t_defined
+#define __locale_t_defined
+typedef struct __posix_locale *locale_t;
+#endif
 
 struct lconv {
 	char *currency_symbol;
@@ -112,6 +100,8 @@ extern void freelocale(locale_t locobj);
 extern locale_t newlocale(int category_mask, const char *locale,
     locale_t base);
 extern locale_t uselocale(locale_t newloc);
+
+__C_DECLS_END;
 
 #endif /* POSIX_LOCALE_H_ */
 

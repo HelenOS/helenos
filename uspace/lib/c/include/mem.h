@@ -37,6 +37,9 @@
 #define _LIBC_MEM_H_
 
 #include <stddef.h>
+#include <_bits/decls.h>
+
+__C_DECLS_BEGIN;
 
 extern void *memset(void *, int, size_t)
     __attribute__((nonnull(1)));
@@ -48,6 +51,8 @@ extern int memcmp(const void *, const void *, size_t)
     __attribute__((nonnull(1, 2)));
 extern void *memchr(const void *, int, size_t)
     __attribute__((nonnull(1)));
+
+__C_DECLS_END;
 
 #endif
 

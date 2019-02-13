@@ -44,8 +44,6 @@
 #include <async.h>
 #include <offset.h>
 
-#define VFS_MAX_OPEN_FILES  128
-
 enum vfs_change_state_type {
 	VFS_PASS_HANDLE
 };

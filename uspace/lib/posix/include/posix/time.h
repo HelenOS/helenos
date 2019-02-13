@@ -40,19 +40,18 @@
 #include <sys/types.h>
 #include <libc/time.h>
 
+#define CLOCK_REALTIME ((clockid_t) 0)
+
+#define ASCTIME_BUF_LEN  26
+
+__C_DECLS_BEGIN;
+
 #ifndef __locale_t_defined
 #define __locale_t_defined
 typedef struct __posix_locale *locale_t;
 #endif
 
-#ifndef POSIX_SIGNAL_H_
 struct sigevent;
-#endif
-
-#undef CLOCK_REALTIME
-#define CLOCK_REALTIME ((clockid_t) 0)
-
-#define ASCTIME_BUF_LEN  26
 
 struct itimerspec {
 	struct timespec it_interval; /* Timer period. */
@@ -95,6 +94,8 @@ extern int clock_settime(clockid_t clock_id,
     const struct timespec *tp);
 extern int clock_nanosleep(clockid_t clock_id, int flags,
     const struct timespec *rqtp, struct timespec *rmtp);
+
+__C_DECLS_END;
 
 #endif  // POSIX_TIME_H_
 

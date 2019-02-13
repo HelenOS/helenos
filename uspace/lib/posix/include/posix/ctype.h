@@ -38,12 +38,16 @@
 
 #include <libc/ctype.h>
 
+__C_DECLS_BEGIN;
+
 /* Obsolete Functions and Macros */
 extern int isascii(int c);
 extern int toascii(int c);
 
 #define _tolower(c) ((c) - 'A' + 'a')
 #define _toupper(c) ((c) - 'a' + 'A')
+
+__C_DECLS_END;
 
 #endif /* POSIX_CTYPE_H_ */
 

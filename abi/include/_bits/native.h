@@ -46,15 +46,16 @@
 #define _BITS_NATIVE_H_
 
 #include <inttypes.h>
+#include <_bits/decls.h>
+
+__HELENOS_DECLS_BEGIN;
 
 typedef uintptr_t pfn_t;
 typedef uintptr_t ipl_t;
 typedef uintptr_t sysarg_t;
 typedef intptr_t  native_t;
 
-#define PRIdn  PRIdPTR  /**< Format for native_t. */
-#define PRIun  PRIuPTR  /**< Format for sysarg_t. */
-#define PRIxn  PRIxPTR  /**< Format for hexadecimal sysarg_t. */
+__HELENOS_DECLS_END;
 
 #endif
 

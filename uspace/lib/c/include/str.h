@@ -37,16 +37,15 @@
 #ifndef _LIBC_STR_H_
 #define _LIBC_STR_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include <mem.h>
+#include <_bits/decls.h>
+
+#ifndef __cplusplus
 
 /* Common Unicode characters */
 #define U_SPECIAL      '?'
@@ -62,6 +61,10 @@ extern "C" {
  * ASCII of size @a spa_size using spascii_to_str().
  */
 #define SPASCII_STR_BUFSIZE(spa_size) ((spa_size) + 1)
+
+#endif
+
+__HELENOS_DECLS_BEGIN;
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern wchar_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
@@ -146,9 +149,7 @@ extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);
 
-#ifdef __cplusplus
-}
-#endif
+__HELENOS_DECLS_END;
 
 #endif
 
