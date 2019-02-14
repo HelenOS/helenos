@@ -85,7 +85,7 @@ extern int unlink(const char *path);
 extern int dup(int fildes);
 extern int dup2(int fildes, int fildes2);
 
-#ifdef _LARGEFILE64_SOURCE
+#if defined(_LARGEFILE64_SOURCE) || defined(_GNU_SOURCE)
 extern off64_t lseek64(int fildes, off64_t offset, int whence);
 extern int ftruncate64(int fildes, off64_t length);
 #endif

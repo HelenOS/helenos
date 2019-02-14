@@ -60,7 +60,7 @@ extern ssize_t getdelim(char **__restrict__ lineptr, size_t *__restrict__ n,
 extern ssize_t getline(char **__restrict__ lineptr, size_t *__restrict__ n,
     FILE *__restrict__ stream);
 
-#ifdef _LARGEFILE64_SOURCE
+#if defined(_LARGEFILE64_SOURCE) || defined(_GNU_SOURCE)
 extern int fseeko64(FILE *stream, off64_t offset, int whence);
 extern off64_t ftello64(FILE *stream);
 #endif

@@ -54,7 +54,7 @@ typedef int64_t off_t;
 typedef long off_t;
 #endif
 
-#ifdef _LARGEFILE64_SOURCE
+#if defined(_LARGEFILE64_SOURCE) || defined(_GNU_SOURCE)
 typedef int64_t off64_t;
 #endif
 
