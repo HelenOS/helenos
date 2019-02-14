@@ -271,58 +271,6 @@ PCUT_TEST(getopt_case_sensitive)
 	PCUT_ASSERT_INT_EQUALS(-1, ret);
 }
 
-PCUT_TEST(getopt_flag_whitespace)
-{
-	int argc = 2;
-	const char *argv[] = {
-		"get_opt_test",
-		"-p -f",
-	};
-
-	const char *options = "pf";
-
-	int ret;
-	optreset = 1;
-	opterr = 0;
-
-	ret = getopt(argc, (char *const *)argv, options);
-
-	PCUT_ASSERT_INT_EQUALS('p', ret);
-	PCUT_ASSERT_INT_EQUALS(1, optind);
-
-	ret = getopt(argc, (char *const *)argv, options);
-
-	PCUT_ASSERT_INT_EQUALS('f', ret);
-	PCUT_ASSERT_INT_EQUALS(1, optind);
-
-	ret = getopt(argc, (char *const *)argv, options);
-	PCUT_ASSERT_INT_EQUALS(-1, ret);
-}
-
-PCUT_TEST(getopt_param_whitespace)
-{
-	int argc = 2;
-	const char *argv[] = {
-		"get_opt_test",
-		"-p param",
-	};
-
-	const char *options = "p:";
-
-	int ret;
-	optreset = 1;
-	opterr = 0;
-
-	ret = getopt(argc, (char *const *)argv, options);
-
-	PCUT_ASSERT_INT_EQUALS('p', ret);
-	PCUT_ASSERT_INT_EQUALS(2, optind);
-	PCUT_ASSERT_STR_EQUALS(" param", optarg);
-
-	ret = getopt(argc, (char *const *)argv, options);
-	PCUT_ASSERT_INT_EQUALS(-1, ret);
-}
-
 PCUT_TEST(getopt_optional_param)
 {
 	int argc = 4;
