@@ -63,8 +63,8 @@ errno_t uuid_generate(uuid_t *uuid)
 	}
 
 	/* Version 4 UUID from random or pseudo-random numbers */
-	uuid->b[8] = (uuid->b[8] & ~0xc0) | 0x40;
-	uuid->b[6] = (uuid->b[6] & 0xf0) | 0x40;
+	uuid->b[6] = (uuid->b[6] & 0x0f) | 0x40;
+	uuid->b[8] = (uuid->b[8] & 0x3f) | 0x80;
 
 	return EOK;
 error:
