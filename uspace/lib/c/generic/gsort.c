@@ -79,7 +79,7 @@ static void _gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
 	while (i < cnt) {
 		if ((i != 0) &&
 		    (cmp(INDEX(data, i, elem_size),
-		    INDEX(data, i - 1, elem_size), arg) == -1)) {
+		    INDEX(data, i - 1, elem_size), arg) < 0)) {
 			memcpy(slot, INDEX(data, i, elem_size), elem_size);
 			memcpy(INDEX(data, i, elem_size), INDEX(data, i - 1, elem_size),
 			    elem_size);
