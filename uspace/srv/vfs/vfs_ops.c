@@ -89,16 +89,18 @@ errno_t vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
 {
 	errno_t rc;
 
-	/* If the file descriptors are the same, do nothing. */
-	if (oldfd == newfd)
-		return EOK;
-
 	/* Lookup the file structure corresponding to fd. */
 	vfs_file_t *oldfile = vfs_file_get(oldfd);
 	if (oldfile == NULL)
 		return EBADF;
 
 	assert(oldfile->node != NULL);
+
+	/* If the file descriptors are the same, do nothing. */
+	if (oldfd == newfd) {
+		vfs_file_put(oldfile);
+		return EOK;
+	}
 
 	if (newfd != -1) {
 		/* Assign the old file to newfd. */
