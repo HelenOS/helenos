@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 	display_blocks = false;
 
 	/* Parse command-line options */
-	while ((optres = getopt(argc, argv, ":ubh")) != -1) {
+	while ((optres = getopt(argc, argv, "ubh")) != -1) {
 		switch (optres) {
 		case 'h':
 			print_usage();
@@ -77,12 +77,6 @@ int main(int argc, char *argv[])
 
 		case 'b':
 			display_blocks = true;
-			break;
-
-		case ':':
-			fprintf(stderr, "Option -%c requires an operand\n",
-			    optopt);
-			errflg++;
 			break;
 
 		case '?':

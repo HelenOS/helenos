@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2019 Matthieu Riolo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,83 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <pcut/pcut.h>
+#include <gsort.h>
+
+static int cmp_func(void *a, void *b, void *param)
+{
+	int ia = *(int *)a;
+	int ib = *(int *)b;
+
+	if (ia == ib)
+		return 0;
+
+	return ia < ib ? -1 : 1;
+}
 
 PCUT_INIT;
 
-PCUT_IMPORT(cap);
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(double_to_str);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(getopt);
-PCUT_IMPORT(gsort);
-PCUT_IMPORT(ieee_double);
-PCUT_IMPORT(imath);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
-PCUT_IMPORT(uuid);
+PCUT_TEST_SUITE(gsort);
 
-PCUT_MAIN();
+/* sort ascending */
+PCUT_TEST(gsort_asc)
+{
+	int size = 10;
+	int data[size];
+
+	for (int i = 0; i < size; i++) {
+		data[i] = i;
+	}
+
+	bool ret = gsort(data, size, sizeof(int), cmp_func, NULL);
+	PCUT_ASSERT_TRUE(ret);
+
+	for (int i = 0; i < size; i++) {
+		PCUT_ASSERT_INT_EQUALS(i, data[i]);
+	}
+}
+
+/* sort ascending including double entries of the same number */
+PCUT_TEST(gsort_asc_complex)
+{
+	int size = 10;
+	int data[size];
+
+	for (int i = 0; i < size; i++) {
+		data[i] = (i * 13) % 9;
+	}
+
+	data[0] = 2;
+	data[1] = 0;
+	data[2] = 4;
+	data[3] = 1;
+
+	bool ret = gsort(data, size, sizeof(int), cmp_func, NULL);
+	PCUT_ASSERT_TRUE(ret);
+
+	int prev = data[0];
+	for (int i = 1; i < size; i++) {
+		PCUT_ASSERT_TRUE(prev <= data[i]);
+		prev = data[i];
+	}
+}
+
+/* sort descanding */
+PCUT_TEST(gsort_desc)
+{
+	int size = 10;
+	int data[size];
+
+	for (int i = 0; i < size; i++) {
+		data[i] = size - i;
+	}
+
+	bool ret = gsort(&data, size, sizeof(int), cmp_func, NULL);
+	PCUT_ASSERT_TRUE(ret);
+
+	for (int i = 0; i < size; i++) {
+		PCUT_ASSERT_INT_EQUALS(i + 1, data[i]);
+	}
+}
+
+PCUT_EXPORT(gsort);

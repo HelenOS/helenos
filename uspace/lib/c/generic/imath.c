@@ -49,7 +49,7 @@
  */
 errno_t ipow10_u64(unsigned exp, uint64_t *res)
 {
-	unsigned a;
+	uint64_t a;
 	uint64_t r;
 
 	r = 1;

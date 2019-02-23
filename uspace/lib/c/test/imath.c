@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2019 Matthieu Riolo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,71 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <pcut/pcut.h>
+#include <imath.h>
+
+static uint64_t MAX_NUM = 10000000000000000000U;
+static unsigned MAX_EXP = 19;
 
 PCUT_INIT;
 
-PCUT_IMPORT(cap);
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(double_to_str);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(getopt);
-PCUT_IMPORT(gsort);
-PCUT_IMPORT(ieee_double);
-PCUT_IMPORT(imath);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
-PCUT_IMPORT(uuid);
+PCUT_TEST_SUITE(imath);
 
-PCUT_MAIN();
+PCUT_TEST(ipow10_u64_zero)
+{
+	errno_t ret;
+	uint64_t result;
+	ret = ipow10_u64(0, &result);
+
+	PCUT_ASSERT_ERRNO_VAL(EOK, ret);
+	PCUT_ASSERT_INT_EQUALS(1, result);
+}
+
+PCUT_TEST(ipow10_u64_one)
+{
+	errno_t ret;
+	uint64_t result;
+	ret = ipow10_u64(1, &result);
+
+	PCUT_ASSERT_ERRNO_VAL(EOK, ret);
+	PCUT_ASSERT_INT_EQUALS(10, result);
+}
+
+PCUT_TEST(ipow10_u64_max)
+{
+	errno_t ret;
+	uint64_t result;
+	ret = ipow10_u64(MAX_EXP, &result);
+
+	PCUT_ASSERT_ERRNO_VAL(EOK, ret);
+	PCUT_ASSERT_INT_EQUALS(MAX_NUM, result);
+}
+
+PCUT_TEST(ipow10_u64_too_large)
+{
+	errno_t ret;
+	uint64_t result;
+	ret = ipow10_u64(MAX_EXP + 1, &result);
+
+	PCUT_ASSERT_ERRNO_VAL(ERANGE, ret);
+}
+
+PCUT_TEST(ilog10_u64_zero)
+{
+	unsigned ret = ilog10_u64(0);
+	PCUT_ASSERT_INT_EQUALS(0, ret);
+}
+
+PCUT_TEST(ilog10_u64_one)
+{
+	unsigned ret = ilog10_u64(1);
+	PCUT_ASSERT_INT_EQUALS(0, ret);
+}
+
+PCUT_TEST(ilog10_u64_max)
+{
+	unsigned ret = ilog10_u64(MAX_NUM);
+	PCUT_ASSERT_INT_EQUALS(MAX_EXP, ret);
+}
+
+PCUT_EXPORT(imath);

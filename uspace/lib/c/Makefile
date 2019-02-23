@@ -189,22 +189,29 @@ SOURCES = \
 
 TEST_SOURCES = \
 	test/adt/circ_buf.c \
+	test/adt/odict.c \
+	test/cap.c \
 	test/casting.c \
+	test/double_to_str.c \
 	test/fibril/timer.c \
-	test/main.c \
-	test/mem.c \
+	test/getopt.c \
+	test/gsort.c \
+	test/ieee_double.c \
+	test/imath.c \
 	test/inttypes.c \
 	test/io/table.c \
-	test/stdio/scanf.c \
-	test/odict.c \
+	test/main.c \
+	test/mem.c \
 	test/perf.c \
 	test/perm.c \
 	test/qsort.c \
 	test/sprintf.c \
+	test/stdio/scanf.c \
 	test/stdio.c \
 	test/stdlib.c \
 	test/str.c \
-	test/string.c
+	test/string.c \
+	test/uuid.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
