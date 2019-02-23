@@ -63,7 +63,7 @@ extern char *__strtok_r(char *, const char *, char **);
 extern char *strerror(int);
 extern size_t strlen(const char *);
 
-#if defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_LIBC_SOURCE)
+#if defined(_HELENOS_SOURCE) || defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_LIBC_SOURCE)
 extern size_t strnlen(const char *, size_t);
 extern char *strdup(const char *);
 extern char *strndup(const char *, size_t);
