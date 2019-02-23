@@ -146,7 +146,7 @@ static void ethip_client_conn(ipc_call_t *icall, void *arg)
 	ethip_nic_t *nic;
 	service_id_t sid;
 
-	sid = (service_id_t) IPC_GET_ARG2(*icall);
+	sid = (service_id_t) ipc_get_arg2(icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_client_conn(%u)", (unsigned)sid);
 	nic = ethip_nic_find_by_iplink_sid(sid);
 	if (nic == NULL) {

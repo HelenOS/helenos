@@ -124,7 +124,7 @@ errno_t dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 		return retval;
 	}
 
-	size_t act_size = IPC_GET_ARG2(answer_cname);
+	size_t act_size = ipc_get_arg2(&answer_cname);
 	assert(act_size <= DNSR_NAME_MAX_SIZE);
 
 	cname_buf[act_size] = '\0';

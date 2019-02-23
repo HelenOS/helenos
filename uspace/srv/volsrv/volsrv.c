@@ -137,7 +137,7 @@ static void vol_part_add_srv(vol_parts_t *parts, ipc_call_t *icall)
 	service_id_t sid;
 	errno_t rc;
 
-	sid = IPC_GET_ARG1(*icall);
+	sid = ipc_get_arg1(icall);
 
 	rc = vol_part_add_part(parts, sid);
 	if (rc != EOK) {
@@ -155,7 +155,7 @@ static void vol_part_info_srv(vol_parts_t *parts, ipc_call_t *icall)
 	vol_part_info_t pinfo;
 	errno_t rc;
 
-	sid = IPC_GET_ARG1(*icall);
+	sid = ipc_get_arg1(icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_info_srv(%zu)",
 	    sid);
 	rc = vol_part_find_by_id_ref(parts, sid, &part);
@@ -203,7 +203,7 @@ static void vol_part_eject_srv(vol_parts_t *parts, ipc_call_t *icall)
 	vol_part_t *part;
 	errno_t rc;
 
-	sid = IPC_GET_ARG1(*icall);
+	sid = ipc_get_arg1(icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_srv(%zu)", sid);
 
 	rc = vol_part_find_by_id_ref(parts, sid, &part);
@@ -229,7 +229,7 @@ static void vol_part_insert_srv(vol_parts_t *parts, ipc_call_t *icall)
 	vol_part_t *part;
 	errno_t rc;
 
-	sid = IPC_GET_ARG1(*icall);
+	sid = ipc_get_arg1(icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_insert_srv(%zu)", sid);
 
 	rc = vol_part_find_by_id_ref(parts, sid, &part);
@@ -293,7 +293,7 @@ static void vol_part_empty_srv(vol_parts_t *parts, ipc_call_t *icall)
 	vol_part_t *part;
 	errno_t rc;
 
-	sid = IPC_GET_ARG1(*icall);
+	sid = ipc_get_arg1(icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_srv(%zu)", sid);
 
 	rc = vol_part_find_by_id_ref(parts, sid, &part);
@@ -319,7 +319,7 @@ static void vol_part_get_lsupp_srv(vol_parts_t *parts, ipc_call_t *icall)
 	vol_label_supp_t vlsupp;
 	errno_t rc;
 
-	fstype = IPC_GET_ARG1(*icall);
+	fstype = ipc_get_arg1(icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_get_lsupp_srv(%u)",
 	    fstype);
 
@@ -361,8 +361,8 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv()");
 
-	sid = IPC_GET_ARG1(*icall);
-	fstype = IPC_GET_ARG2(*icall);
+	sid = ipc_get_arg1(icall);
+	fstype = ipc_get_arg2(icall);
 
 	rc = async_data_write_accept((void **)&label, true, 0, VOL_LABEL_MAXLEN,
 	    0, NULL);
@@ -423,7 +423,7 @@ static void vol_part_set_mountp_srv(vol_parts_t *parts,
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_set_mountp_srv()");
 
-	sid = IPC_GET_ARG1(*icall);
+	sid = ipc_get_arg1(icall);
 
 	rc = async_data_write_accept((void **)&mountp, true, 0,
 	    VOL_MOUNTP_MAXLEN, 0, NULL);
@@ -498,7 +498,7 @@ static void vol_info_srv(vol_parts_t *parts, ipc_call_t *icall)
 	vol_info_t vinfo;
 	errno_t rc;
 
-	vid.id = IPC_GET_ARG1(*icall);
+	vid.id = ipc_get_arg1(icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_info_srv(%zu)", vid.id);
 
 	rc = vol_volume_find_by_id_ref(parts->volumes, vid, &volume);
@@ -555,7 +555,7 @@ static void vol_client_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

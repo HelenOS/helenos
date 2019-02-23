@@ -89,7 +89,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
 
-	ip_ver_t ver = IPC_GET_ARG1(*icall);
+	ip_ver_t ver = ipc_get_arg1(icall);
 
 	char *name;
 	errno_t rc = async_data_write_accept((void **) &name, true, 0,
@@ -218,7 +218,7 @@ static void dnsr_client_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

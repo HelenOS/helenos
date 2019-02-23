@@ -545,7 +545,7 @@ static errno_t route_call(ipc_call_t *call)
 
 	errno_t rc = mpsc_send(conn->msg_channel, call);
 
-	if (IPC_GET_IMETHOD(*call) == IPC_M_PHONE_HUNGUP) {
+	if (ipc_get_imethod(call) == IPC_M_PHONE_HUNGUP) {
 		/* Close the channel, but let the connection fibril answer. */
 		mpsc_close(conn->msg_channel);
 		// FIXME: Ideally, we should be able to discard/answer the
@@ -655,8 +655,8 @@ static void queue_notification(ipc_call_t *call)
 		notification_freelist_total++;
 	}
 
-	ht_link_t *link = hash_table_find(&notification_hash_table,
-	    &IPC_GET_IMETHOD(*call));
+	sysarg_t imethod = ipc_get_imethod(call);
+	ht_link_t *link = hash_table_find(&notification_hash_table, &imethod);
 	if (!link) {
 		/* Invalid notification. */
 		// TODO: Make sure this can't happen and turn it into assert.
@@ -870,7 +870,7 @@ bool async_get_call_timeout(ipc_call_t *call, usec_t usecs)
 		 */
 
 		memset(call, 0, sizeof(ipc_call_t));
-		IPC_SET_IMETHOD(*call, IPC_M_PHONE_HUNGUP);
+		ipc_set_imethod(call, IPC_M_PHONE_HUNGUP);
 		call->cap_handle = CAP_NIL;
 	}
 
@@ -943,14 +943,14 @@ static void handle_call(ipc_call_t *call)
 	}
 
 	/* New connection */
-	if (IPC_GET_IMETHOD(*call) == IPC_M_CONNECT_ME_TO) {
+	if (ipc_get_imethod(call) == IPC_M_CONNECT_ME_TO) {
 		connection_t *conn = calloc(1, sizeof(*conn));
 		if (!conn) {
 			ipc_answer_0(call->cap_handle, ENOMEM);
 			return;
 		}
 
-		iface_t iface = (iface_t) IPC_GET_ARG1(*call);
+		iface_t iface = (iface_t) ipc_get_arg1(call);
 
 		// TODO: Currently ignores all ports but the first one.
 		void *data;
@@ -1220,10 +1220,10 @@ bool async_share_in_receive(ipc_call_t *call, size_t *size)
 
 	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(*call) != IPC_M_SHARE_IN)
+	if (ipc_get_imethod(call) != IPC_M_SHARE_IN)
 		return false;
 
-	*size = (size_t) IPC_GET_ARG1(*call);
+	*size = (size_t) ipc_get_arg1(call);
 	return true;
 }
 
@@ -1275,11 +1275,11 @@ bool async_share_out_receive(ipc_call_t *call, size_t *size,
 
 	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(*call) != IPC_M_SHARE_OUT)
+	if (ipc_get_imethod(call) != IPC_M_SHARE_OUT)
 		return false;
 
-	*size = (size_t) IPC_GET_ARG2(*call);
-	*flags = (unsigned int) IPC_GET_ARG3(*call);
+	*size = (size_t) ipc_get_arg2(call);
+	*flags = (unsigned int) ipc_get_arg3(call);
 	return true;
 }
 
@@ -1328,11 +1328,11 @@ bool async_data_read_receive(ipc_call_t *call, size_t *size)
 
 	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(*call) != IPC_M_DATA_READ)
+	if (ipc_get_imethod(call) != IPC_M_DATA_READ)
 		return false;
 
 	if (size)
-		*size = (size_t) IPC_GET_ARG2(*call);
+		*size = (size_t) ipc_get_arg2(call);
 
 	return true;
 }
@@ -1487,11 +1487,11 @@ bool async_data_write_receive(ipc_call_t *call, size_t *size)
 
 	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(*call) != IPC_M_DATA_WRITE)
+	if (ipc_get_imethod(call) != IPC_M_DATA_WRITE)
 		return false;
 
 	if (size)
-		*size = (size_t) IPC_GET_ARG2(*call);
+		*size = (size_t) ipc_get_arg2(call);
 
 	return true;
 }
@@ -1731,10 +1731,10 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 	ipc_call_t call;
 	async_get_call(&call);
 
-	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(call);
+	cap_phone_handle_t phandle = (cap_handle_t) ipc_get_arg5(&call);
 
-	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) ||
-	    !CAP_HANDLE_VALID((phandle))) {
+	if ((ipc_get_imethod(&call) != IPC_M_CONNECT_TO_ME) ||
+	    !cap_handle_valid((phandle))) {
 		async_answer_0(&call, EINVAL);
 		return NULL;
 	}
@@ -1775,10 +1775,10 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
  */
 async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 {
-	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(*call);
+	cap_phone_handle_t phandle = (cap_handle_t) ipc_get_arg5(call);
 
-	if ((IPC_GET_IMETHOD(*call) != IPC_M_CONNECT_TO_ME) ||
-	    !CAP_HANDLE_VALID((phandle)))
+	if ((ipc_get_imethod(call) != IPC_M_CONNECT_TO_ME) ||
+	    !cap_handle_valid((phandle)))
 		return NULL;
 
 	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
@@ -1802,7 +1802,7 @@ bool async_state_change_receive(ipc_call_t *call)
 
 	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(*call) != IPC_M_STATE_CHANGE_AUTHORIZE)
+	if (ipc_get_imethod(call) != IPC_M_STATE_CHANGE_AUTHORIZE)
 		return false;
 
 	return true;
@@ -1812,7 +1812,7 @@ errno_t async_state_change_finalize(ipc_call_t *call, async_exch_t *other_exch)
 {
 	assert(call);
 
-	return async_answer_1(call, EOK, CAP_HANDLE_RAW(other_exch->phone));
+	return async_answer_1(call, EOK, cap_handle_raw(other_exch->phone));
 }
 
 __noreturn void async_manager(void)

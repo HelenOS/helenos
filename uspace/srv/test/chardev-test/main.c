@@ -99,7 +99,7 @@ static void chardev_test_connection(ipc_call_t *icall, void *arg)
 	chardev_srvs_t *svc;
 	sysarg_t svcid;
 
-	svcid = IPC_GET_ARG2(*icall);
+	svcid = ipc_get_arg2(icall);
 	if (svcid == smallx_svc_id) {
 		svc = &smallx_srvs;
 	} else if (svcid == largex_svc_id) {

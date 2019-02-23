@@ -118,12 +118,12 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	as_area_pager_info_t *pager_info = &area->backend_data.pager_info;
 
 	ipc_data_t data = { };
-	IPC_SET_IMETHOD(data, IPC_M_PAGE_IN);
-	IPC_SET_ARG1(data, upage - area->base);
-	IPC_SET_ARG2(data, PAGE_SIZE);
-	IPC_SET_ARG3(data, pager_info->id1);
-	IPC_SET_ARG4(data, pager_info->id2);
-	IPC_SET_ARG5(data, pager_info->id3);
+	ipc_set_imethod(&data, IPC_M_PAGE_IN);
+	ipc_set_arg1(&data, upage - area->base);
+	ipc_set_arg2(&data, PAGE_SIZE);
+	ipc_set_arg3(&data, pager_info->id1);
+	ipc_set_arg4(&data, pager_info->id2);
+	ipc_set_arg5(&data, pager_info->id3);
 
 	errno_t rc = ipc_req_internal(pager_info->pager, &data, (sysarg_t) true);
 
@@ -135,7 +135,7 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		return AS_PF_FAULT;
 	}
 
-	if (IPC_GET_RETVAL(data) != EOK)
+	if (ipc_get_retval(&data) != EOK)
 		return AS_PF_FAULT;
 
 	/*
@@ -144,7 +144,7 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	 * incremented (if applicable).
 	 */
 
-	uintptr_t frame = IPC_GET_ARG1(data);
+	uintptr_t frame = ipc_get_arg1(&data);
 	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
 	if (!used_space_insert(&area->used_space, upage, 1))
 		panic("Cannot insert used space.");

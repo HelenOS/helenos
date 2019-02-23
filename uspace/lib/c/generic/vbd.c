@@ -189,7 +189,7 @@ static errno_t vbd_get_ids_once(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
 		return retval;
 	}
 
-	*act_size = IPC_GET_ARG1(answer);
+	*act_size = ipc_get_arg1(&answer);
 	return EOK;
 }
 
@@ -299,7 +299,7 @@ errno_t vbd_part_create(vbd_t *vbd, service_id_t disk, vbd_part_spec_t *pspec,
 	if (retval != EOK)
 		return EIO;
 
-	*rpart = (vbd_part_id_t)IPC_GET_ARG1(answer);
+	*rpart = (vbd_part_id_t)ipc_get_arg1(&answer);
 	return EOK;
 
 }

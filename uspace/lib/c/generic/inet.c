@@ -179,8 +179,8 @@ static void inet_ev_recv(ipc_call_t *icall)
 {
 	inet_dgram_t dgram;
 
-	dgram.tos = IPC_GET_ARG1(*icall);
-	dgram.iplink = IPC_GET_ARG2(*icall);
+	dgram.tos = ipc_get_arg1(icall);
+	dgram.iplink = ipc_get_arg2(icall);
 
 	ipc_call_t call;
 	size_t size;
@@ -239,12 +239,12 @@ static void inet_cb_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case INET_EV_RECV:
 			inet_ev_recv(&call);
 			break;

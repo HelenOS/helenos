@@ -301,12 +301,12 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, errno_t sc_rc)
 
 	phandle = (cap_phone_handle_t) sc_args[0];
 
-	IPC_SET_IMETHOD(call, sc_args[1]);
-	IPC_SET_ARG1(call, sc_args[2]);
-	IPC_SET_ARG2(call, sc_args[3]);
-	IPC_SET_ARG3(call, sc_args[4]);
-	IPC_SET_ARG4(call, sc_args[5]);
-	IPC_SET_ARG5(call, 0);
+	ipc_set_imethod(&call, sc_args[1]);
+	ipc_set_arg1(&call, sc_args[2]);
+	ipc_set_arg2(&call, sc_args[3]);
+	ipc_set_arg3(&call, sc_args[4]);
+	ipc_set_arg4(&call, sc_args[5]);
+	ipc_set_arg5(&call, 0);
 
 	ipcp_call_out(phandle, &call, 0);
 }

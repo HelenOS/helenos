@@ -633,10 +633,10 @@ static void comp_window_get_event(window_t *win, ipc_call_t *icall)
 
 static void comp_window_damage(window_t *win, ipc_call_t *icall)
 {
-	double x = IPC_GET_ARG1(*icall);
-	double y = IPC_GET_ARG2(*icall);
-	double width = IPC_GET_ARG3(*icall);
-	double height = IPC_GET_ARG4(*icall);
+	double x = ipc_get_arg1(icall);
+	double y = ipc_get_arg2(icall);
+	double width = ipc_get_arg3(icall);
+	double height = ipc_get_arg4(icall);
 
 	if ((width == 0) || (height == 0)) {
 		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
@@ -654,8 +654,8 @@ static void comp_window_damage(window_t *win, ipc_call_t *icall)
 
 static void comp_window_grab(window_t *win, ipc_call_t *icall)
 {
-	sysarg_t pos_id = IPC_GET_ARG1(*icall);
-	sysarg_t grab_flags = IPC_GET_ARG2(*icall);
+	sysarg_t pos_id = ipc_get_arg1(icall);
+	sysarg_t grab_flags = ipc_get_arg2(icall);
 
 	/*
 	 * Filter out resize grab flags if the window
@@ -731,18 +731,18 @@ static void comp_window_resize(window_t *win, ipc_call_t *icall)
 	}
 
 	/* Create new surface for the resized window. */
-	surface_t *new_surface = surface_create(IPC_GET_ARG3(*icall),
-	    IPC_GET_ARG4(*icall), new_cell_storage, SURFACE_FLAG_SHARED);
+	surface_t *new_surface = surface_create(ipc_get_arg3(icall),
+	    ipc_get_arg4(icall), new_cell_storage, SURFACE_FLAG_SHARED);
 	if (!new_surface) {
 		as_area_destroy(new_cell_storage);
 		async_answer_0(icall, ENOMEM);
 		return;
 	}
 
-	sysarg_t offset_x = IPC_GET_ARG1(*icall);
-	sysarg_t offset_y = IPC_GET_ARG2(*icall);
+	sysarg_t offset_x = ipc_get_arg1(icall);
+	sysarg_t offset_y = ipc_get_arg2(icall);
 	window_placement_flags_t placement_flags =
-	    (window_placement_flags_t) IPC_GET_ARG5(*icall);
+	    (window_placement_flags_t) ipc_get_arg5(icall);
 
 	comp_update_viewport_bound_rect();
 
@@ -920,14 +920,14 @@ static void comp_window_close_request(window_t *win, ipc_call_t *icall)
 static void client_connection(ipc_call_t *icall, void *arg)
 {
 	ipc_call_t call;
-	service_id_t service_id = (service_id_t) IPC_GET_ARG2(*icall);
+	service_id_t service_id = (service_id_t) ipc_get_arg2(icall);
 
 	/* Allocate resources for new window and register it to the location service. */
 	if (service_id == winreg_id) {
 		async_accept_0(icall);
 
 		async_get_call(&call);
-		if (IPC_GET_IMETHOD(call) == WINDOW_REGISTER) {
+		if (ipc_get_imethod(&call) == WINDOW_REGISTER) {
 			fibril_mutex_lock(&window_list_mtx);
 
 			window_t *win = window_create();
@@ -937,7 +937,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 				return;
 			}
 
-			win->flags = IPC_GET_ARG1(call);
+			win->flags = ipc_get_arg1(&call);
 
 			char name_in[LOC_NAME_MAXLEN + 1];
 			snprintf(name_in, LOC_NAME_MAXLEN, "%s%s/win%zuin", NAMESPACE,
@@ -1013,13 +1013,13 @@ static void client_connection(ipc_call_t *icall, void *arg)
 		while (true) {
 			async_get_call(&call);
 
-			if (!IPC_GET_IMETHOD(call)) {
+			if (!ipc_get_imethod(&call)) {
 				async_answer_0(&call, EOK);
 				window_destroy(win);
 				return;
 			}
 
-			switch (IPC_GET_IMETHOD(call)) {
+			switch (ipc_get_imethod(&call)) {
 			case WINDOW_GET_EVENT:
 				comp_window_get_event(win, &call);
 				break;
@@ -1031,13 +1031,13 @@ static void client_connection(ipc_call_t *icall, void *arg)
 		while (true) {
 			async_get_call(&call);
 
-			if (!IPC_GET_IMETHOD(call)) {
+			if (!ipc_get_imethod(&call)) {
 				comp_window_close(win, &call);
 				window_destroy(win);
 				return;
 			}
 
-			switch (IPC_GET_IMETHOD(call)) {
+			switch (ipc_get_imethod(&call)) {
 			case WINDOW_DAMAGE:
 				comp_window_damage(win, &call);
 				break;
@@ -1066,7 +1066,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 
 static void comp_mode_change(viewport_t *vp, ipc_call_t *icall)
 {
-	sysarg_t mode_idx = IPC_GET_ARG2(*icall);
+	sysarg_t mode_idx = ipc_get_arg2(icall);
 	fibril_mutex_lock(&viewport_list_mtx);
 
 	/* Retrieve the mode that shall be set. */
@@ -1164,7 +1164,7 @@ static void vsl_notifications(ipc_call_t *icall, void *arg)
 	viewport_t *vp = NULL;
 	fibril_mutex_lock(&viewport_list_mtx);
 	list_foreach(viewport_list, link, viewport_t, cur) {
-		if (cur->dsid == (service_id_t) IPC_GET_ARG1(*icall)) {
+		if (cur->dsid == (service_id_t) ipc_get_arg1(icall)) {
 			vp = cur;
 			break;
 		}
@@ -1179,12 +1179,12 @@ static void vsl_notifications(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_hangup(vp->sess);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case VISUALIZER_MODE_CHANGE:
 			comp_mode_change(vp, &call);
 			break;

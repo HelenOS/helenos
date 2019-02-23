@@ -178,7 +178,7 @@ irq_code_t ddisk_irq_code = {
 void ddisk_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "ddisk_irq_handler(), status=%" PRIx32,
-	    (uint32_t) IPC_GET_ARG1(*icall));
+	    (uint32_t) ipc_get_arg1(icall));
 
 	ddisk_t *ddisk = (ddisk_t *) ddf_dev_data_get(dev);
 

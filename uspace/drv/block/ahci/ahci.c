@@ -896,8 +896,8 @@ static irq_cmd_t ahci_cmds[] = {
 static void ahci_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	ahci_dev_t *ahci = dev_ahci_dev(dev);
-	unsigned int port = IPC_GET_ARG1(*icall);
-	ahci_port_is_t pxis = IPC_GET_ARG2(*icall);
+	unsigned int port = ipc_get_arg1(icall);
+	ahci_port_is_t pxis = ipc_get_arg2(icall);
 
 	if (port >= AHCI_MAX_PORTS)
 		return;

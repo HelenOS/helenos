@@ -232,7 +232,7 @@ static void inet_get_srcaddr_srv(inet_client_t *client, ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srcaddr_srv()");
 
-	uint8_t tos = IPC_GET_ARG1(*icall);
+	uint8_t tos = ipc_get_arg1(icall);
 
 	ipc_call_t call;
 	size_t size;
@@ -290,11 +290,11 @@ static void inet_send_srv(inet_client_t *client, ipc_call_t *icall)
 
 	inet_dgram_t dgram;
 
-	dgram.iplink = IPC_GET_ARG1(*icall);
-	dgram.tos = IPC_GET_ARG2(*icall);
+	dgram.iplink = ipc_get_arg1(icall);
+	dgram.tos = ipc_get_arg2(icall);
 
-	uint8_t ttl = IPC_GET_ARG3(*icall);
-	int df = IPC_GET_ARG4(*icall);
+	uint8_t ttl = ipc_get_arg3(icall);
+	int df = ipc_get_arg4(icall);
 
 	ipc_call_t call;
 	size_t size;
@@ -351,7 +351,7 @@ static void inet_set_proto_srv(inet_client_t *client, ipc_call_t *call)
 {
 	sysarg_t proto;
 
-	proto = IPC_GET_ARG1(*call);
+	proto = ipc_get_arg1(call);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_set_proto_srv(%lu)", (unsigned long) proto);
 
 	if (proto > UINT8_MAX) {
@@ -396,7 +396,7 @@ static void inet_default_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

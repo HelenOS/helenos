@@ -254,7 +254,7 @@ errno_t devman_add_function(const char *name, fun_type_t ftype,
 	async_wait_for(req, &retval);
 	if (retval == EOK) {
 		if (funh != NULL)
-			*funh = (int) IPC_GET_ARG1(answer);
+			*funh = (int) ipc_get_arg1(&answer);
 	} else {
 		if (funh != NULL)
 			*funh = -1;
@@ -393,7 +393,7 @@ errno_t devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
 	}
 
 	if (handle != NULL)
-		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
+		*handle = (devman_handle_t) ipc_get_arg1(&answer);
 
 	return retval;
 }
@@ -428,8 +428,8 @@ static errno_t devman_get_str_internal(sysarg_t method, sysarg_t arg1,
 	}
 
 	if (r1 != NULL)
-		*r1 = IPC_GET_ARG1(answer);
-	act_size = IPC_GET_ARG2(dreply);
+		*r1 = ipc_get_arg1(&answer);
+	act_size = ipc_get_arg2(&dreply);
 	assert(act_size <= buf_size - 1);
 	buf[act_size] = '\0';
 
@@ -516,7 +516,7 @@ static errno_t devman_get_handles_once(sysarg_t method, sysarg_t arg1,
 		return retval;
 	}
 
-	*act_size = IPC_GET_ARG1(answer);
+	*act_size = ipc_get_arg1(&answer);
 	return EOK;
 }
 
@@ -662,7 +662,7 @@ errno_t devman_driver_get_handle(const char *drvname, devman_handle_t *handle)
 	}
 
 	if (handle != NULL)
-		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
+		*handle = (devman_handle_t) ipc_get_arg1(&answer);
 
 	return retval;
 }

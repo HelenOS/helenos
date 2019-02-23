@@ -108,14 +108,14 @@ void logger_connection_handler_writer(ipc_call_t *icall)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case LOGGER_WRITER_CREATE_LOG:
-			log = handle_create_log(IPC_GET_ARG1(call));
+			log = handle_create_log(ipc_get_arg1(&call));
 			if (log == NULL) {
 				async_answer_0(&call, ENOMEM);
 				break;
@@ -129,8 +129,8 @@ void logger_connection_handler_writer(ipc_call_t *icall)
 			async_answer_1(&call, EOK, (sysarg_t) log);
 			break;
 		case LOGGER_WRITER_MESSAGE:
-			rc = handle_receive_message(IPC_GET_ARG1(call),
-			    IPC_GET_ARG2(call));
+			rc = handle_receive_message(ipc_get_arg1(&call),
+			    ipc_get_arg2(&call));
 			async_answer_0(&call, rc);
 			break;
 		default:

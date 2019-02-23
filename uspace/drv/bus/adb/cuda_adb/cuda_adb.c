@@ -207,7 +207,7 @@ static void cuda_dev_connection(ipc_call_t *icall, void *arg)
 
 	while (true) {
 		async_get_call(&call);
-		method = IPC_GET_IMETHOD(call);
+		method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up. */

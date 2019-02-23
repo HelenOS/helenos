@@ -341,7 +341,7 @@ static loc_server_t *loc_server_register(void)
 	ipc_call_t icall;
 	async_get_call(&icall);
 
-	if (IPC_GET_IMETHOD(icall) != LOC_SERVER_REGISTER) {
+	if (ipc_get_imethod(&icall) != LOC_SERVER_REGISTER) {
 		async_answer_0(&icall, EREFUSED);
 		return NULL;
 	}
@@ -546,7 +546,7 @@ static void loc_service_unregister(ipc_call_t *icall, loc_server_t *server)
 	loc_service_t *svc;
 
 	fibril_mutex_lock(&services_list_mutex);
-	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
+	svc = loc_service_find_id(ipc_get_arg1(icall));
 	if (svc == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(icall, ENOENT);
@@ -582,7 +582,7 @@ static void loc_category_get_name(ipc_call_t *icall)
 
 	fibril_mutex_lock(&cdir.mutex);
 
-	cat = category_get(&cdir, IPC_GET_ARG1(*icall));
+	cat = category_get(&cdir, ipc_get_arg1(icall));
 	if (cat == NULL) {
 		fibril_mutex_unlock(&cdir.mutex);
 		async_answer_0(&call, ENOENT);
@@ -622,7 +622,7 @@ static void loc_service_get_name(ipc_call_t *icall)
 
 	fibril_mutex_lock(&services_list_mutex);
 
-	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
+	svc = loc_service_find_id(ipc_get_arg1(icall));
 	if (svc == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(&call, ENOENT);
@@ -670,7 +670,7 @@ static void loc_service_get_server_name(ipc_call_t *icall)
 
 	fibril_mutex_lock(&services_list_mutex);
 
-	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
+	svc = loc_service_find_id(ipc_get_arg1(icall));
 	if (svc == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(&call, ENOENT);
@@ -714,8 +714,8 @@ static void loc_forward(ipc_call_t *call, void *arg)
 	/*
 	 * Get ID from request
 	 */
-	iface_t iface = IPC_GET_ARG1(*call);
-	service_id_t id = IPC_GET_ARG2(*call);
+	iface_t iface = ipc_get_arg1(call);
+	service_id_t id = ipc_get_arg2(call);
 	loc_service_t *svc = loc_service_find_id(id);
 
 	if ((svc == NULL) || (svc->server == NULL) || (!svc->server->sess)) {
@@ -773,7 +773,7 @@ recheck:
 	 * Device was not found.
 	 */
 	if (svc == NULL) {
-		if (IPC_GET_ARG1(*icall) & IPC_FLAG_BLOCKING) {
+		if (ipc_get_arg1(icall) & IPC_FLAG_BLOCKING) {
 			/* Blocking lookup */
 			fibril_condvar_wait(&services_list_cv,
 			    &services_list_mutex);
@@ -826,7 +826,7 @@ recheck:
 	 * Namespace was not found.
 	 */
 	if (namespace == NULL) {
-		if (IPC_GET_ARG1(*icall) & IPC_FLAG_BLOCKING) {
+		if (ipc_get_arg1(icall) & IPC_FLAG_BLOCKING) {
 			/* Blocking lookup */
 			fibril_condvar_wait(&services_list_cv,
 			    &services_list_mutex);
@@ -931,10 +931,10 @@ static void loc_id_probe(ipc_call_t *icall)
 	fibril_mutex_lock(&services_list_mutex);
 
 	loc_namespace_t *namespace =
-	    loc_namespace_find_id(IPC_GET_ARG1(*icall));
+	    loc_namespace_find_id(ipc_get_arg1(icall));
 	if (namespace == NULL) {
 		loc_service_t *svc =
-		    loc_service_find_id(IPC_GET_ARG1(*icall));
+		    loc_service_find_id(ipc_get_arg1(icall));
 		if (svc == NULL)
 			async_answer_1(icall, EOK, LOC_OBJECT_NONE);
 		else
@@ -957,7 +957,7 @@ static void loc_get_service_count(ipc_call_t *icall)
 	fibril_mutex_lock(&services_list_mutex);
 
 	loc_namespace_t *namespace =
-	    loc_namespace_find_id(IPC_GET_ARG1(*icall));
+	    loc_namespace_find_id(ipc_get_arg1(icall));
 	if (namespace == NULL)
 		async_answer_0(icall, EEXIST);
 	else
@@ -1078,7 +1078,7 @@ static void loc_get_services(ipc_call_t *icall)
 	fibril_mutex_lock(&services_list_mutex);
 
 	loc_namespace_t *namespace =
-	    loc_namespace_find_id(IPC_GET_ARG1(*icall));
+	    loc_namespace_find_id(ipc_get_arg1(icall));
 	if (namespace == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(&call, ENOENT);
@@ -1134,7 +1134,7 @@ static void loc_category_get_svcs(ipc_call_t *icall)
 
 	fibril_mutex_lock(&cdir.mutex);
 
-	category_t *cat = category_get(&cdir, IPC_GET_ARG1(*icall));
+	category_t *cat = category_get(&cdir, ipc_get_arg1(icall));
 	if (cat == NULL) {
 		fibril_mutex_unlock(&cdir.mutex);
 		async_answer_0(&call, ENOENT);
@@ -1246,7 +1246,7 @@ static void loc_null_create(ipc_call_t *icall)
 
 static void loc_null_destroy(ipc_call_t *icall)
 {
-	sysarg_t i = IPC_GET_ARG1(*icall);
+	sysarg_t i = ipc_get_arg1(icall);
 	if (i >= NULL_SERVICES) {
 		async_answer_0(icall, ELIMIT);
 		return;
@@ -1280,8 +1280,8 @@ static void loc_service_add_to_cat(ipc_call_t *icall)
 	service_id_t svc_id;
 	errno_t retval;
 
-	svc_id = IPC_GET_ARG1(*icall);
-	cat_id = IPC_GET_ARG2(*icall);
+	svc_id = ipc_get_arg1(icall);
+	cat_id = ipc_get_arg2(icall);
 
 	fibril_mutex_lock(&services_list_mutex);
 	fibril_mutex_lock(&cdir.mutex);
@@ -1418,12 +1418,12 @@ static void loc_connection_supplier(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case LOC_SERVER_UNREGISTER:
 			if (server == NULL)
 				async_answer_0(&call, ENOENT);
@@ -1474,12 +1474,12 @@ static void loc_connection_consumer(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case LOC_SERVICE_GET_ID:
 			loc_service_get_id(&call);
 			break;

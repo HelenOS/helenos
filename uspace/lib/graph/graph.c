@@ -242,7 +242,7 @@ errno_t graph_notify_disconnect(async_sess_t *sess, sysarg_t handle)
 
 static void vs_claim(visualizer_t *vs, ipc_call_t *icall)
 {
-	vs->client_side_handle = IPC_GET_ARG1(*icall);
+	vs->client_side_handle = ipc_get_arg1(icall);
 	errno_t rc = vs->ops.claim(vs);
 	async_answer_0(icall, rc);
 }
@@ -282,7 +282,7 @@ static void vs_enumerate_modes(visualizer_t *vs, ipc_call_t *icall)
 	}
 
 	fibril_mutex_lock(&vs->mode_mtx);
-	link_t *link = list_nth(&vs->modes, IPC_GET_ARG1(*icall));
+	link_t *link = list_nth(&vs->modes, ipc_get_arg1(icall));
 
 	if (link != NULL) {
 		vslmode_list_element_t *mode_elem =
@@ -359,7 +359,7 @@ static void vs_get_mode(visualizer_t *vs, ipc_call_t *icall)
 		return;
 	}
 
-	sysarg_t mode_idx = IPC_GET_ARG1(*icall);
+	sysarg_t mode_idx = ipc_get_arg1(icall);
 
 	fibril_mutex_lock(&vs->mode_mtx);
 	vslmode_list_element_t *mode_elem = NULL;
@@ -396,8 +396,8 @@ static void vs_set_mode(visualizer_t *vs, ipc_call_t *icall)
 	}
 
 	/* Retrieve mode index and version. */
-	sysarg_t mode_idx = IPC_GET_ARG1(*icall);
-	sysarg_t mode_version = IPC_GET_ARG2(*icall);
+	sysarg_t mode_idx = ipc_get_arg1(icall);
+	sysarg_t mode_version = ipc_get_arg2(icall);
 
 	/* Find mode in the list. */
 	fibril_mutex_lock(&vs->mode_mtx);
@@ -469,12 +469,12 @@ static void vs_set_mode(visualizer_t *vs, ipc_call_t *icall)
 
 static void vs_update_damaged_region(visualizer_t *vs, ipc_call_t *icall)
 {
-	sysarg_t x_offset = (IPC_GET_ARG5(*icall) >> 16);
-	sysarg_t y_offset = (IPC_GET_ARG5(*icall) & 0x0000ffff);
+	sysarg_t x_offset = (ipc_get_arg5(icall) >> 16);
+	sysarg_t y_offset = (ipc_get_arg5(icall) & 0x0000ffff);
 
 	errno_t rc = vs->ops.handle_damage(vs,
-	    IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall),
-	    IPC_GET_ARG3(*icall), IPC_GET_ARG4(*icall),
+	    ipc_get_arg1(icall), ipc_get_arg2(icall),
+	    ipc_get_arg3(icall), ipc_get_arg4(icall),
 	    x_offset, y_offset);
 	async_answer_0(icall, rc);
 }
@@ -515,12 +515,12 @@ void graph_visualizer_connection(visualizer_t *vs, ipc_call_t *icall, void *arg)
 	while (true) {
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case VISUALIZER_CLAIM:
 			vs_claim(vs, &call);
 			break;
@@ -575,12 +575,12 @@ void graph_renderer_connection(renderer_t *rnd, ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		default:
 			async_answer_0(&call, EINVAL);
 			goto terminate;
@@ -594,8 +594,8 @@ terminate:
 void graph_client_connection(ipc_call_t *icall, void *arg)
 {
 	/* Find the visualizer or renderer with the given service ID. */
-	visualizer_t *vs = graph_get_visualizer(IPC_GET_ARG2(*icall));
-	renderer_t *rnd = graph_get_renderer(IPC_GET_ARG2(*icall));
+	visualizer_t *vs = graph_get_visualizer(ipc_get_arg2(icall));
+	renderer_t *rnd = graph_get_renderer(ipc_get_arg2(icall));
 
 	if (vs != NULL)
 		graph_visualizer_connection(vs, icall, arg);

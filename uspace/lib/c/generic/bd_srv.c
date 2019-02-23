@@ -50,8 +50,8 @@ static void bd_read_blocks_srv(bd_srv_t *srv, ipc_call_t *call)
 	size_t size;
 	errno_t rc;
 
-	ba = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-	cnt = IPC_GET_ARG3(*call);
+	ba = MERGE_LOUP32(ipc_get_arg1(call), ipc_get_arg2(call));
+	cnt = ipc_get_arg3(call);
 
 	ipc_call_t rcall;
 	if (!async_data_read_receive(&rcall, &size)) {
@@ -94,7 +94,7 @@ static void bd_read_toc_srv(bd_srv_t *srv, ipc_call_t *call)
 	size_t size;
 	errno_t rc;
 
-	session = IPC_GET_ARG1(*call);
+	session = ipc_get_arg1(call);
 
 	ipc_call_t rcall;
 	if (!async_data_read_receive(&rcall, &size)) {
@@ -136,8 +136,8 @@ static void bd_sync_cache_srv(bd_srv_t *srv, ipc_call_t *call)
 	size_t cnt;
 	errno_t rc;
 
-	ba = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-	cnt = IPC_GET_ARG3(*call);
+	ba = MERGE_LOUP32(ipc_get_arg1(call), ipc_get_arg2(call));
+	cnt = ipc_get_arg3(call);
 
 	if (srv->srvs->ops->sync_cache == NULL) {
 		async_answer_0(call, ENOTSUP);
@@ -156,8 +156,8 @@ static void bd_write_blocks_srv(bd_srv_t *srv, ipc_call_t *call)
 	size_t size;
 	errno_t rc;
 
-	ba = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-	cnt = IPC_GET_ARG3(*call);
+	ba = MERGE_LOUP32(ipc_get_arg1(call), ipc_get_arg2(call));
+	cnt = ipc_get_arg3(call);
 
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
@@ -246,7 +246,7 @@ errno_t bd_conn(ipc_call_t *icall, bd_srvs_t *srvs)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

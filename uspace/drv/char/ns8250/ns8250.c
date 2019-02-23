@@ -1079,7 +1079,7 @@ static errno_t ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
 static void ns8250_default_handler(chardev_srv_t *srv, ipc_call_t *call)
 {
 	ns8250_t *ns8250 = srv_ns8250(srv);
-	sysarg_t method = IPC_GET_IMETHOD(*call);
+	sysarg_t method = ipc_get_imethod(call);
 	errno_t ret;
 	unsigned int baud_rate, parity, word_length, stop_bits;
 
@@ -1092,10 +1092,10 @@ static void ns8250_default_handler(chardev_srv_t *srv, ipc_call_t *call)
 		break;
 
 	case SERIAL_SET_COM_PROPS:
-		baud_rate = IPC_GET_ARG1(*call);
-		parity = IPC_GET_ARG2(*call);
-		word_length = IPC_GET_ARG3(*call);
-		stop_bits = IPC_GET_ARG4(*call);
+		baud_rate = ipc_get_arg1(call);
+		parity = ipc_get_arg2(call);
+		word_length = ipc_get_arg3(call);
+		stop_bits = ipc_get_arg4(call);
 		ret = ns8250_set_props(ns8250->dev, baud_rate, parity, word_length,
 		    stop_bits);
 		async_answer_0(call, ret);

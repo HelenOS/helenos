@@ -225,14 +225,14 @@ static errno_t out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 		return rc;
 
 	unsigned last = *pfirst + *plen;
-	*pfirst = IPC_GET_ARG3(answer) & 0xffff;
+	*pfirst = ipc_get_arg3(&answer) & 0xffff;
 	*plen = last - *pfirst;
 
-	result->triplet.fs_handle = (fs_handle_t) IPC_GET_ARG1(answer);
+	result->triplet.fs_handle = (fs_handle_t) ipc_get_arg1(&answer);
 	result->triplet.service_id = base->service_id;
-	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
-	result->size = MERGE_LOUP32(IPC_GET_ARG4(answer), IPC_GET_ARG5(answer));
-	result->type = (IPC_GET_ARG3(answer) >> 16) ?
+	result->triplet.index = (fs_index_t) ipc_get_arg2(&answer);
+	result->size = MERGE_LOUP32(ipc_get_arg4(&answer), ipc_get_arg5(&answer));
+	result->type = (ipc_get_arg3(&answer) >> 16) ?
 	    VFS_NODE_DIRECTORY : VFS_NODE_FILE;
 	return EOK;
 }

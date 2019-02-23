@@ -333,7 +333,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			if (client->sess != NULL) {
 				async_hangup(client->sess);
 				client->sess = NULL;
@@ -352,7 +352,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 			} else
 				async_answer_0(&call, ELIMIT);
 		} else {
-			switch (IPC_GET_IMETHOD(call)) {
+			switch (ipc_get_imethod(&call)) {
 			case INPUT_ACTIVATE:
 				active_client = client;
 				client_arbitration();
@@ -367,7 +367,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 
 static void kconsole_event_handler(ipc_call_t *call, void *arg)
 {
-	if (IPC_GET_ARG1(*call)) {
+	if (ipc_get_arg1(call)) {
 		/* Kernel console activated */
 		active = false;
 	} else {

@@ -172,7 +172,7 @@ errno_t pc_lpt_add(pc_lpt_t *lpt, pc_lpt_res_t *res)
 
 	return EOK;
 error:
-	if (CAP_HANDLE_VALID(lpt->irq_handle))
+	if (cap_handle_valid(lpt->irq_handle))
 		async_irq_unsubscribe(lpt->irq_handle);
 	if (bound)
 		ddf_fun_unbind(fun);

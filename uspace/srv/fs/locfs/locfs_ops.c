@@ -596,7 +596,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if ((errno_t) rc == EHANGUP)
 			rc = ENOTSUP;
 
-		*rbytes = IPC_GET_ARG1(answer);
+		*rbytes = ipc_get_arg1(&answer);
 		return rc;
 	}
 
@@ -660,7 +660,7 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if ((errno_t) rc == EHANGUP)
 			rc = ENOTSUP;
 
-		*wbytes = IPC_GET_ARG1(answer);
+		*wbytes = ipc_get_arg1(&answer);
 		*nsize = 0;
 		return rc;
 	}

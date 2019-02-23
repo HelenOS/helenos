@@ -189,7 +189,7 @@ errno_t usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 	if (opening_request_rc != EOK)
 		return (errno_t) opening_request_rc;
 
-	size_t act_size = IPC_GET_ARG2(data_request_call);
+	size_t act_size = ipc_get_arg2(&data_request_call);
 
 	/* Copy the individual items. */
 	memcpy(buf, buffer, act_size);
@@ -198,7 +198,7 @@ errno_t usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 		*actual_size = act_size;
 
 	if (event_nr != NULL)
-		*event_nr = IPC_GET_ARG1(opening_request_call);
+		*event_nr = ipc_get_arg1(&opening_request_call);
 
 	return EOK;
 }
@@ -274,7 +274,7 @@ errno_t usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
 	if (opening_request_rc != EOK)
 		return (errno_t) opening_request_rc;
 
-	size_t act_size = IPC_GET_ARG2(data_request_call);
+	size_t act_size = ipc_get_arg2(&data_request_call);
 
 	if (actual_size != NULL)
 		*actual_size = act_size;

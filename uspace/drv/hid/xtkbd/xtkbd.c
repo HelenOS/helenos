@@ -343,7 +343,7 @@ static errno_t polling(void *arg)
  */
 static void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall)
 {
-	const sysarg_t method = IPC_GET_IMETHOD(*icall);
+	const sysarg_t method = ipc_get_imethod(icall);
 	xt_kbd_t *kbd = ddf_dev_data_get(ddf_fun_get_dev(fun));
 	unsigned mods;
 	async_sess_t *sess;
@@ -354,7 +354,7 @@ static void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall)
 		 * XT keyboards do not support setting mods,
 		 * assume AT keyboard with Scan Code Set 1.
 		 */
-		mods = IPC_GET_ARG1(*icall);
+		mods = ipc_get_arg1(icall);
 		const uint8_t status = 0 |
 		    ((mods & KM_CAPS_LOCK) ? LI_CAPS : 0) |
 		    ((mods & KM_NUM_LOCK) ? LI_NUM : 0) |

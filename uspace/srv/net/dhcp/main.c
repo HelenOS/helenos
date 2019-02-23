@@ -90,7 +90,7 @@ static void dhcp_link_add_srv(ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_link_add_srv()");
 
-	link_id = IPC_GET_ARG1(*call);
+	link_id = ipc_get_arg1(call);
 
 	rc = dhcpsrv_link_add(link_id);
 	async_answer_0(call, rc);
@@ -103,7 +103,7 @@ static void dhcp_link_remove_srv(ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_link_remove_srv()");
 
-	link_id = IPC_GET_ARG1(*call);
+	link_id = ipc_get_arg1(call);
 
 	rc = dhcpsrv_link_remove(link_id);
 	async_answer_0(call, rc);
@@ -116,7 +116,7 @@ static void dhcp_discover_srv(ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_discover_srv()");
 
-	link_id = IPC_GET_ARG1(*call);
+	link_id = ipc_get_arg1(call);
 
 	rc = dhcpsrv_discover(link_id);
 	async_answer_0(call, rc);
@@ -132,7 +132,7 @@ static void dhcp_client_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

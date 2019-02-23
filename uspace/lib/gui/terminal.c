@@ -681,7 +681,7 @@ static void term_connection(ipc_call_t *icall, void *arg)
 	terminal_t *term = NULL;
 
 	list_foreach(terms, link, terminal_t, cur) {
-		if (cur->dsid == (service_id_t) IPC_GET_ARG2(*icall)) {
+		if (cur->dsid == (service_id_t) ipc_get_arg2(icall)) {
 			term = cur;
 			break;
 		}

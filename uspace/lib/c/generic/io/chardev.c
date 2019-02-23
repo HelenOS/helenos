@@ -124,9 +124,9 @@ errno_t chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread,
 		return retval;
 	}
 
-	*nread = IPC_GET_ARG2(answer);
+	*nread = ipc_get_arg2(&answer);
 	/* In case of partial success, ARG1 contains the error code */
-	return (errno_t) IPC_GET_ARG1(answer);
+	return (errno_t) ipc_get_arg1(&answer);
 
 }
 
@@ -175,9 +175,9 @@ static errno_t chardev_write_once(chardev_t *chardev, const void *data,
 		return retval;
 	}
 
-	*nwritten = IPC_GET_ARG2(answer);
+	*nwritten = ipc_get_arg2(&answer);
 	/* In case of partial success, ARG1 contains the error code */
-	return (errno_t) IPC_GET_ARG1(answer);
+	return (errno_t) ipc_get_arg1(&answer);
 }
 
 /** Write to character device.

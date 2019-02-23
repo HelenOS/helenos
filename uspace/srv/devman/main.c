@@ -66,7 +66,7 @@ dev_tree_t device_tree;
 
 static void devman_connection_device(ipc_call_t *icall, void *arg)
 {
-	devman_handle_t handle = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = ipc_get_arg2(icall);
 	dev_node_t *dev = NULL;
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
@@ -148,7 +148,7 @@ cleanup:
 
 static void devman_connection_parent(ipc_call_t *icall, void *arg)
 {
-	devman_handle_t handle = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = ipc_get_arg2(icall);
 	dev_node_t *dev = NULL;
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
@@ -227,8 +227,8 @@ cleanup:
 
 static void devman_forward(ipc_call_t *icall, void *arg)
 {
-	iface_t iface = IPC_GET_ARG1(*icall);
-	service_id_t service_id = IPC_GET_ARG2(*icall);
+	iface_t iface = ipc_get_arg1(icall);
+	service_id_t service_id = ipc_get_arg2(icall);
 
 	fun_node_t *fun = find_loc_tree_function(&device_tree, service_id);
 

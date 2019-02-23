@@ -155,21 +155,21 @@ void console_set_pos(console_ctrl_t *ctrl, sysarg_t col, sysarg_t row)
 
 static errno_t console_ev_decode(ipc_call_t *call, cons_event_t *event)
 {
-	event->type = IPC_GET_ARG1(*call);
+	event->type = ipc_get_arg1(call);
 
 	switch (event->type) {
 	case CEV_KEY:
-		event->ev.key.type = IPC_GET_ARG2(*call);
-		event->ev.key.key = IPC_GET_ARG3(*call);
-		event->ev.key.mods = IPC_GET_ARG4(*call);
-		event->ev.key.c = IPC_GET_ARG5(*call);
+		event->ev.key.type = ipc_get_arg2(call);
+		event->ev.key.key = ipc_get_arg3(call);
+		event->ev.key.mods = ipc_get_arg4(call);
+		event->ev.key.c = ipc_get_arg5(call);
 		break;
 	case CEV_POS:
-		event->ev.pos.pos_id = IPC_GET_ARG2(*call) >> 16;
-		event->ev.pos.type = IPC_GET_ARG2(*call) & 0xffff;
-		event->ev.pos.btn_num = IPC_GET_ARG3(*call);
-		event->ev.pos.hpos = IPC_GET_ARG4(*call);
-		event->ev.pos.vpos = IPC_GET_ARG5(*call);
+		event->ev.pos.pos_id = ipc_get_arg2(call) >> 16;
+		event->ev.pos.type = ipc_get_arg2(call) & 0xffff;
+		event->ev.pos.btn_num = ipc_get_arg3(call);
+		event->ev.pos.hpos = ipc_get_arg4(call);
+		event->ev.pos.vpos = ipc_get_arg5(call);
 		break;
 	default:
 		return EIO;

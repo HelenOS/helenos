@@ -298,12 +298,12 @@ static void ethip_nic_cb_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case NIC_EV_ADDR_CHANGED:
 			ethip_nic_addr_changed(nic, &call);
 			break;
@@ -314,7 +314,7 @@ static void ethip_nic_cb_conn(ipc_call_t *icall, void *arg)
 			ethip_nic_device_state(nic, &call);
 			break;
 		default:
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "unknown IPC method: %" PRIun, IPC_GET_IMETHOD(call));
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "unknown IPC method: %" PRIun, ipc_get_imethod(&call));
 			async_answer_0(&call, ENOTSUP);
 		}
 	}

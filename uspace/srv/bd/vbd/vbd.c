@@ -128,7 +128,7 @@ static void vbds_disk_info_srv(ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_info_srv()");
 
-	disk_sid = IPC_GET_ARG1(*icall);
+	disk_sid = ipc_get_arg1(icall);
 	rc = vbds_disk_info(disk_sid, &dinfo);
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
@@ -168,8 +168,8 @@ static void vbds_label_create_srv(ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create_srv()");
 
-	disk_sid = IPC_GET_ARG1(*icall);
-	ltype = IPC_GET_ARG2(*icall);
+	disk_sid = ipc_get_arg1(icall);
+	ltype = ipc_get_arg2(icall);
 	rc = vbds_label_create(disk_sid, ltype);
 	async_answer_0(icall, rc);
 }
@@ -181,7 +181,7 @@ static void vbds_label_delete_srv(ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_delete_srv()");
 
-	disk_sid = IPC_GET_ARG1(*icall);
+	disk_sid = ipc_get_arg1(icall);
 	rc = vbds_label_delete(disk_sid);
 	async_answer_0(icall, rc);
 }
@@ -202,7 +202,7 @@ static void vbds_label_get_parts_srv(ipc_call_t *icall)
 		return;
 	}
 
-	sid = IPC_GET_ARG1(*icall);
+	sid = ipc_get_arg1(icall);
 
 	category_id_t *id_buf = (category_id_t *) malloc(size);
 	if (id_buf == NULL) {
@@ -232,7 +232,7 @@ static void vbds_part_get_info_srv(ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_get_info_srv()");
 
-	part = IPC_GET_ARG1(*icall);
+	part = ipc_get_arg1(icall);
 	rc = vbds_part_get_info(part, &pinfo);
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
@@ -273,7 +273,7 @@ static void vbds_part_create_srv(ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_create_srv()");
 
-	disk_sid = IPC_GET_ARG1(*icall);
+	disk_sid = ipc_get_arg1(icall);
 
 	ipc_call_t call;
 	size_t size;
@@ -312,7 +312,7 @@ static void vbds_part_delete_srv(ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_delete_srv()");
 
-	part = IPC_GET_ARG1(*icall);
+	part = ipc_get_arg1(icall);
 	rc = vbds_part_delete(part);
 	async_answer_0(icall, rc);
 }
@@ -326,8 +326,8 @@ static void vbds_suggest_ptype_srv(ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_suggest_ptype_srv()");
 
-	disk_sid = IPC_GET_ARG1(*icall);
-	pcnt = IPC_GET_ARG2(*icall);
+	disk_sid = ipc_get_arg1(icall);
+	pcnt = ipc_get_arg2(icall);
 
 	rc = vbds_suggest_ptype(disk_sid, pcnt, &ptype);
 	if (rc != EOK) {
@@ -369,7 +369,7 @@ static void vbds_ctl_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */
@@ -417,7 +417,7 @@ static void vbds_client_conn(ipc_call_t *icall, void *arg)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_client_conn()");
 
-	sid = (service_id_t) IPC_GET_ARG2(*icall);
+	sid = (service_id_t) ipc_get_arg2(icall);
 
 	if (sid == ctl_sid)
 		vbds_ctl_conn(icall, arg);

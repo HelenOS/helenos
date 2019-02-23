@@ -52,7 +52,7 @@
 
 errno_t udebug_request_preprocess(call_t *call, phone_t *phone)
 {
-	switch (IPC_GET_ARG1(call->data)) {
+	switch (ipc_get_arg1(&call->data)) {
 		/* future UDEBUG_M_REGS_WRITE, UDEBUG_M_MEM_WRITE: */
 	default:
 		break;
@@ -75,7 +75,7 @@ static void udebug_receive_begin(call_t *call)
 
 	rc = udebug_begin(call, &active);
 	if (rc != EOK) {
-		IPC_SET_RETVAL(call->data, rc);
+		ipc_set_retval(&call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
@@ -85,7 +85,7 @@ static void udebug_receive_begin(call_t *call)
 	 * send a reply.
 	 */
 	if (active) {
-		IPC_SET_RETVAL(call->data, EOK);
+		ipc_set_retval(&call->data, EOK);
 		ipc_answer(&TASK->kb.box, call);
 	}
 }
@@ -101,7 +101,7 @@ static void udebug_receive_end(call_t *call)
 
 	rc = udebug_end();
 
-	IPC_SET_RETVAL(call->data, rc);
+	ipc_set_retval(&call->data, rc);
 	ipc_answer(&TASK->kb.box, call);
 }
 
@@ -115,10 +115,10 @@ static void udebug_receive_set_evmask(call_t *call)
 	errno_t rc;
 	udebug_evmask_t mask;
 
-	mask = IPC_GET_ARG2(call->data);
+	mask = ipc_get_arg2(&call->data);
 	rc = udebug_set_evmask(mask);
 
-	IPC_SET_RETVAL(call->data, rc);
+	ipc_set_retval(&call->data, rc);
 	ipc_answer(&TASK->kb.box, call);
 }
 
@@ -132,11 +132,11 @@ static void udebug_receive_go(call_t *call)
 	thread_t *t;
 	errno_t rc;
 
-	t = (thread_t *)IPC_GET_ARG2(call->data);
+	t = (thread_t *)ipc_get_arg2(&call->data);
 
 	rc = udebug_go(t, call);
 	if (rc != EOK) {
-		IPC_SET_RETVAL(call->data, rc);
+		ipc_set_retval(&call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
@@ -152,10 +152,10 @@ static void udebug_receive_stop(call_t *call)
 	thread_t *t;
 	errno_t rc;
 
-	t = (thread_t *)IPC_GET_ARG2(call->data);
+	t = (thread_t *)ipc_get_arg2(&call->data);
 
 	rc = udebug_stop(t, call);
-	IPC_SET_RETVAL(call->data, rc);
+	ipc_set_retval(&call->data, rc);
 	ipc_answer(&TASK->kb.box, call);
 }
 
@@ -172,8 +172,8 @@ static void udebug_receive_thread_read(call_t *call)
 	size_t copied, needed;
 	errno_t rc;
 
-	uspace_addr = IPC_GET_ARG2(call->data);	/* Destination address */
-	buf_size = IPC_GET_ARG3(call->data);	/* Dest. buffer size */
+	uspace_addr = ipc_get_arg2(&call->data);	/* Destination address */
+	buf_size = ipc_get_arg3(&call->data);	/* Dest. buffer size */
 
 	/*
 	 * Read thread list. Variable n will be filled with actual number
@@ -181,7 +181,7 @@ static void udebug_receive_thread_read(call_t *call)
 	 */
 	rc = udebug_thread_read(&buffer, buf_size, &copied, &needed);
 	if (rc != EOK) {
-		IPC_SET_RETVAL(call->data, rc);
+		ipc_set_retval(&call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
@@ -190,15 +190,15 @@ static void udebug_receive_thread_read(call_t *call)
 	 * Make use of call->buffer to transfer data to caller's userspace
 	 */
 
-	IPC_SET_RETVAL(call->data, 0);
+	ipc_set_retval(&call->data, 0);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
 	 * (no way to distinguish method in answer)
 	 */
-	IPC_SET_ARG1(call->data, uspace_addr);
-	IPC_SET_ARG2(call->data, copied);
-	IPC_SET_ARG3(call->data, needed);
+	ipc_set_arg1(&call->data, uspace_addr);
+	ipc_set_arg2(&call->data, copied);
+	ipc_set_arg3(&call->data, needed);
 	call->buffer = buffer;
 
 	ipc_answer(&TASK->kb.box, call);
@@ -218,8 +218,8 @@ static void udebug_receive_name_read(call_t *call)
 	size_t buf_size;
 	void *data;
 
-	uspace_addr = IPC_GET_ARG2(call->data);	/* Destination address */
-	buf_size = IPC_GET_ARG3(call->data);	/* Dest. buffer size */
+	uspace_addr = ipc_get_arg2(&call->data);	/* Destination address */
+	buf_size = ipc_get_arg3(&call->data);	/* Dest. buffer size */
 
 	/*
 	 * Read task name.
@@ -237,16 +237,16 @@ static void udebug_receive_name_read(call_t *call)
 	 * Make use of call->buffer to transfer data to caller's userspace
 	 */
 
-	IPC_SET_RETVAL(call->data, 0);
+	ipc_set_retval(&call->data, 0);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
 	 * (no way to distinguish method in answer)
 	 */
-	IPC_SET_ARG1(call->data, uspace_addr);
-	IPC_SET_ARG2(call->data, to_copy);
+	ipc_set_arg1(&call->data, uspace_addr);
+	ipc_set_arg2(&call->data, to_copy);
 
-	IPC_SET_ARG3(call->data, data_size);
+	ipc_set_arg3(&call->data, data_size);
 	call->buffer = data;
 
 	ipc_answer(&TASK->kb.box, call);
@@ -267,15 +267,15 @@ static void udebug_receive_areas_read(call_t *call)
 	size_t buf_size;
 	as_area_info_t *data;
 
-	uspace_addr = IPC_GET_ARG2(call->data);	/* Destination address */
-	buf_size = IPC_GET_ARG3(call->data);	/* Dest. buffer size */
+	uspace_addr = ipc_get_arg2(&call->data);	/* Destination address */
+	buf_size = ipc_get_arg3(&call->data);	/* Dest. buffer size */
 
 	/*
 	 * Read area list.
 	 */
 	data = as_get_area_info(AS, &data_size);
 	if (!data) {
-		IPC_SET_RETVAL(call->data, ENOMEM);
+		ipc_set_retval(&call->data, ENOMEM);
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
@@ -291,16 +291,16 @@ static void udebug_receive_areas_read(call_t *call)
 	 * Make use of call->buffer to transfer data to caller's userspace
 	 */
 
-	IPC_SET_RETVAL(call->data, 0);
+	ipc_set_retval(&call->data, 0);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
 	 * (no way to distinguish method in answer)
 	 */
-	IPC_SET_ARG1(call->data, uspace_addr);
-	IPC_SET_ARG2(call->data, to_copy);
+	ipc_set_arg1(&call->data, uspace_addr);
+	ipc_set_arg2(&call->data, to_copy);
 
-	IPC_SET_ARG3(call->data, data_size);
+	ipc_set_arg3(&call->data, data_size);
 	call->buffer = (uint8_t *) data;
 
 	ipc_answer(&TASK->kb.box, call);
@@ -318,11 +318,11 @@ static void udebug_receive_args_read(call_t *call)
 	errno_t rc;
 	void *buffer;
 
-	t = (thread_t *)IPC_GET_ARG2(call->data);
+	t = (thread_t *)ipc_get_arg2(&call->data);
 
 	rc = udebug_args_read(t, &buffer);
 	if (rc != EOK) {
-		IPC_SET_RETVAL(call->data, rc);
+		ipc_set_retval(&call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
@@ -331,16 +331,16 @@ static void udebug_receive_args_read(call_t *call)
 	 * Make use of call->buffer to transfer data to caller's userspace
 	 */
 
-	uspace_addr = IPC_GET_ARG3(call->data);
+	uspace_addr = ipc_get_arg3(&call->data);
 
-	IPC_SET_RETVAL(call->data, 0);
+	ipc_set_retval(&call->data, 0);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
 	 * (no way to distinguish method in answer)
 	 */
-	IPC_SET_ARG1(call->data, uspace_addr);
-	IPC_SET_ARG2(call->data, 6 * sizeof(sysarg_t));
+	ipc_set_arg1(&call->data, uspace_addr);
+	ipc_set_arg2(&call->data, 6 * sizeof(sysarg_t));
 	call->buffer = buffer;
 
 	ipc_answer(&TASK->kb.box, call);
@@ -358,11 +358,11 @@ static void udebug_receive_regs_read(call_t *call)
 	void *buffer = NULL;
 	errno_t rc;
 
-	t = (thread_t *) IPC_GET_ARG2(call->data);
+	t = (thread_t *) ipc_get_arg2(&call->data);
 
 	rc = udebug_regs_read(t, &buffer);
 	if (rc != EOK) {
-		IPC_SET_RETVAL(call->data, rc);
+		ipc_set_retval(&call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
@@ -373,17 +373,17 @@ static void udebug_receive_regs_read(call_t *call)
 	 * Make use of call->buffer to transfer data to caller's userspace
 	 */
 
-	uspace_addr = IPC_GET_ARG3(call->data);
+	uspace_addr = ipc_get_arg3(&call->data);
 	to_copy = sizeof(istate_t);
 
-	IPC_SET_RETVAL(call->data, 0);
+	ipc_set_retval(&call->data, 0);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
 	 * (no way to distinguish method in answer)
 	 */
-	IPC_SET_ARG1(call->data, uspace_addr);
-	IPC_SET_ARG2(call->data, to_copy);
+	ipc_set_arg1(&call->data, uspace_addr);
+	ipc_set_arg2(&call->data, to_copy);
 
 	call->buffer = buffer;
 
@@ -403,27 +403,27 @@ static void udebug_receive_mem_read(call_t *call)
 	void *buffer = NULL;
 	errno_t rc;
 
-	uspace_dst = IPC_GET_ARG2(call->data);
-	uspace_src = IPC_GET_ARG3(call->data);
-	size = IPC_GET_ARG4(call->data);
+	uspace_dst = ipc_get_arg2(&call->data);
+	uspace_src = ipc_get_arg3(&call->data);
+	size = ipc_get_arg4(&call->data);
 
 	rc = udebug_mem_read(uspace_src, size, &buffer);
 	if (rc != EOK) {
-		IPC_SET_RETVAL(call->data, rc);
+		ipc_set_retval(&call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
 	}
 
 	assert(buffer != NULL);
 
-	IPC_SET_RETVAL(call->data, 0);
+	ipc_set_retval(&call->data, 0);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
 	 * (no way to distinguish method in answer)
 	 */
-	IPC_SET_ARG1(call->data, uspace_dst);
-	IPC_SET_ARG2(call->data, size);
+	ipc_set_arg1(&call->data, uspace_dst);
+	ipc_set_arg2(&call->data, size);
 	call->buffer = buffer;
 
 	ipc_answer(&TASK->kb.box, call);
@@ -438,7 +438,7 @@ void udebug_call_receive(call_t *call)
 {
 	int debug_method;
 
-	debug_method = IPC_GET_ARG1(call->data);
+	debug_method = ipc_get_arg1(&call->data);
 
 	if (debug_method != UDEBUG_M_BEGIN) {
 		/*
@@ -449,7 +449,7 @@ void udebug_call_receive(call_t *call)
 		 * control exits this function.
 		 */
 		if (TASK->udebug.debugger != call->sender) {
-			IPC_SET_RETVAL(call->data, EINVAL);
+			ipc_set_retval(&call->data, EINVAL);
 			ipc_answer(&TASK->kb.box, call);
 			return;
 		}

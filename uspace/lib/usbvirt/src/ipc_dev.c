@@ -132,7 +132,7 @@ static void ipc_control_read(usbvirt_device_t *dev, ipc_call_t *icall)
  */
 static void ipc_control_write(usbvirt_device_t *dev, ipc_call_t *icall)
 {
-	size_t data_buffer_len = IPC_GET_ARG1(*icall);
+	size_t data_buffer_len = ipc_get_arg1(icall);
 	errno_t rc;
 
 	void *setup_packet = NULL;
@@ -176,7 +176,7 @@ static void ipc_control_write(usbvirt_device_t *dev, ipc_call_t *icall)
 static void ipc_data_in(usbvirt_device_t *dev,
     usb_transfer_type_t transfer_type, ipc_call_t *icall)
 {
-	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
+	usb_endpoint_t endpoint = ipc_get_arg1(icall);
 
 	errno_t rc;
 
@@ -219,7 +219,7 @@ static void ipc_data_in(usbvirt_device_t *dev,
 static void ipc_data_out(usbvirt_device_t *dev,
     usb_transfer_type_t transfer_type, ipc_call_t *icall)
 {
-	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
+	usb_endpoint_t endpoint = ipc_get_arg1(icall);
 
 	void *data_buffer = NULL;
 	size_t data_buffer_size = 0;
@@ -249,7 +249,7 @@ static void ipc_data_out(usbvirt_device_t *dev,
  */
 bool usbvirt_ipc_handle_call(usbvirt_device_t *dev, ipc_call_t *call)
 {
-	switch (IPC_GET_IMETHOD(*call)) {
+	switch (ipc_get_imethod(call)) {
 	case IPC_M_USBVIRT_GET_NAME:
 		ipc_get_name(dev, call);
 		break;

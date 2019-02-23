@@ -100,7 +100,7 @@ static void irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 	assert(dev);
 	hc_device_t *hcd = dev_to_hcd(dev);
 
-	const uint32_t status = IPC_GET_ARG1(*call);
+	const uint32_t status = ipc_get_arg1(call);
 	hcd->bus->ops->interrupt(hcd->bus, status);
 }
 

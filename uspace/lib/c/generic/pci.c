@@ -121,7 +121,7 @@ static errno_t pci_get_ids_once(pci_t *pci, sysarg_t method, sysarg_t arg1,
 		return retval;
 	}
 
-	*act_size = IPC_GET_ARG1(answer);
+	*act_size = ipc_get_arg1(&answer);
 	return EOK;
 }
 

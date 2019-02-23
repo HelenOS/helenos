@@ -43,11 +43,11 @@
 
 static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
-	size_t size = as_area_get_size(IPC_GET_ARG1(call->data));
+	size_t size = as_area_get_size(ipc_get_arg1(&call->data));
 
 	if (!size)
 		return EPERM;
-	IPC_SET_ARG2(call->data, size);
+	ipc_set_arg2(&call->data, size);
 
 	return EOK;
 }
@@ -56,7 +56,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	errno_t rc = EOK;
 
-	if (!IPC_GET_RETVAL(answer->data)) {
+	if (!ipc_get_retval(&answer->data)) {
 		/* Accepted, handle as_area receipt */
 
 		irq_spinlock_lock(&answer->sender->lock, true);
@@ -64,16 +64,16 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		irq_spinlock_unlock(&answer->sender->lock, true);
 
 		uintptr_t dst_base = (uintptr_t) -1;
-		rc = as_area_share(as, IPC_GET_ARG1(*olddata),
-		    IPC_GET_ARG2(*olddata), AS, IPC_GET_ARG3(*olddata),
-		    &dst_base, IPC_GET_ARG1(answer->data));
+		rc = as_area_share(as, ipc_get_arg1(olddata),
+		    ipc_get_arg2(olddata), AS, ipc_get_arg3(olddata),
+		    &dst_base, ipc_get_arg1(&answer->data));
 
 		if (rc == EOK) {
-			rc = copy_to_uspace((void *) IPC_GET_ARG2(answer->data),
+			rc = copy_to_uspace((void *) ipc_get_arg2(&answer->data),
 			    &dst_base, sizeof(dst_base));
 		}
 
-		IPC_SET_RETVAL(answer->data, rc);
+		ipc_set_retval(&answer->data, rc);
 	}
 
 	return rc;

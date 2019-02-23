@@ -153,7 +153,7 @@ errno_t ns_service_init(void)
 static void ns_forward(async_sess_t *sess, ipc_call_t *call, iface_t iface)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	async_forward_1(call, exch, iface, IPC_GET_ARG3(*call), IPC_FF_NONE);
+	async_forward_1(call, exch, iface, ipc_get_arg3(call), IPC_FF_NONE);
 	async_exchange_end(exch);
 }
 
@@ -365,7 +365,7 @@ static errno_t ns_pending_conn_add(service_t service, iface_t iface,
  */
 void ns_service_forward(service_t service, iface_t iface, ipc_call_t *call)
 {
-	sysarg_t flags = IPC_GET_ARG4(*call);
+	sysarg_t flags = ipc_get_arg4(call);
 	errno_t retval;
 
 	ht_link_t *link = hash_table_find(&service_hash_table, &service);

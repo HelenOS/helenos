@@ -159,18 +159,18 @@ static void kbdev_callback_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			kbdev_destroy(kbdev);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case KBDEV_EVENT:
 			/* Got event from keyboard device */
 			retval = 0;
-			type = IPC_GET_ARG1(call);
-			key = IPC_GET_ARG2(call);
+			type = ipc_get_arg1(&call);
+			key = ipc_get_arg2(&call);
 			kbd_push_event(kbdev->kbd_dev, type, key);
 			break;
 		default:

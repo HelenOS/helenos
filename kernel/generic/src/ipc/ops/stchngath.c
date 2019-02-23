@@ -45,7 +45,7 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 	task_t *other_task_s;
 
 	kobject_t *sender_obj = kobject_get(TASK,
-	    (cap_handle_t) IPC_GET_ARG5(call->data), KOBJECT_TYPE_PHONE);
+	    (cap_handle_t) ipc_get_arg5(&call->data), KOBJECT_TYPE_PHONE);
 	if (!sender_obj)
 		return ENOENT;
 
@@ -61,7 +61,7 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 	mutex_unlock(&sender_obj->phone->lock);
 
 	/* Remember the third party task hash. */
-	IPC_SET_ARG5(call->data, (sysarg_t) other_task_s);
+	ipc_set_arg5(&call->data, (sysarg_t) other_task_s);
 
 	kobject_put(sender_obj);
 	return EOK;
@@ -71,46 +71,46 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	errno_t rc = EOK;
 
-	if (!IPC_GET_RETVAL(answer->data)) {
+	if (!ipc_get_retval(&answer->data)) {
 		/* The recipient authorized the change of state. */
 		task_t *other_task_s;
 		task_t *other_task_r;
 
 		kobject_t *recipient_obj = kobject_get(TASK,
-		    (cap_handle_t) IPC_GET_ARG1(answer->data),
+		    (cap_handle_t) ipc_get_arg1(&answer->data),
 		    KOBJECT_TYPE_PHONE);
 		if (!recipient_obj) {
-			IPC_SET_RETVAL(answer->data, ENOENT);
+			ipc_set_retval(&answer->data, ENOENT);
 			return ENOENT;
 		}
 
 		mutex_lock(&recipient_obj->phone->lock);
 		if (recipient_obj->phone->state != IPC_PHONE_CONNECTED) {
 			mutex_unlock(&recipient_obj->phone->lock);
-			IPC_SET_RETVAL(answer->data, EINVAL);
+			ipc_set_retval(&answer->data, EINVAL);
 			kobject_put(recipient_obj);
 			return EINVAL;
 		}
 
 		other_task_r = recipient_obj->phone->callee->task;
-		other_task_s = (task_t *) IPC_GET_ARG5(*olddata);
+		other_task_s = (task_t *) ipc_get_arg5(olddata);
 
 		/*
 		 * See if both the sender and the recipient meant the
 		 * same third party task.
 		 */
 		if (other_task_r != other_task_s) {
-			IPC_SET_RETVAL(answer->data, EINVAL);
+			ipc_set_retval(&answer->data, EINVAL);
 			rc = EINVAL;
 		} else {
 			rc = event_task_notify_5(other_task_r,
 			    EVENT_TASK_STATE_CHANGE, false,
-			    IPC_GET_ARG1(*olddata),
-			    IPC_GET_ARG2(*olddata),
-			    IPC_GET_ARG3(*olddata),
+			    ipc_get_arg1(olddata),
+			    ipc_get_arg2(olddata),
+			    ipc_get_arg3(olddata),
 			    LOWER32(olddata->task_id),
 			    UPPER32(olddata->task_id));
-			IPC_SET_RETVAL(answer->data, rc);
+			ipc_set_retval(&answer->data, rc);
 		}
 
 		mutex_unlock(&recipient_obj->phone->lock);

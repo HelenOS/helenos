@@ -111,10 +111,10 @@ static void input_ev_key(input_t *input, ipc_call_t *call)
 	wchar_t c;
 	errno_t rc;
 
-	type = IPC_GET_ARG1(*call);
-	key = IPC_GET_ARG2(*call);
-	mods = IPC_GET_ARG3(*call);
-	c = IPC_GET_ARG4(*call);
+	type = ipc_get_arg1(call);
+	key = ipc_get_arg2(call);
+	mods = ipc_get_arg3(call);
+	c = ipc_get_arg4(call);
 
 	rc = input->ev_ops->key(input, type, key, mods, c);
 	async_answer_0(call, rc);
@@ -126,8 +126,8 @@ static void input_ev_move(input_t *input, ipc_call_t *call)
 	int dy;
 	errno_t rc;
 
-	dx = IPC_GET_ARG1(*call);
-	dy = IPC_GET_ARG2(*call);
+	dx = ipc_get_arg1(call);
+	dy = ipc_get_arg2(call);
 
 	rc = input->ev_ops->move(input, dx, dy);
 	async_answer_0(call, rc);
@@ -141,10 +141,10 @@ static void input_ev_abs_move(input_t *input, ipc_call_t *call)
 	unsigned max_y;
 	errno_t rc;
 
-	x = IPC_GET_ARG1(*call);
-	y = IPC_GET_ARG2(*call);
-	max_x = IPC_GET_ARG3(*call);
-	max_y = IPC_GET_ARG4(*call);
+	x = ipc_get_arg1(call);
+	y = ipc_get_arg2(call);
+	max_x = ipc_get_arg3(call);
+	max_y = ipc_get_arg4(call);
 
 	rc = input->ev_ops->abs_move(input, x, y, max_x, max_y);
 	async_answer_0(call, rc);
@@ -156,8 +156,8 @@ static void input_ev_button(input_t *input, ipc_call_t *call)
 	int press;
 	errno_t rc;
 
-	bnum = IPC_GET_ARG1(*call);
-	press = IPC_GET_ARG2(*call);
+	bnum = ipc_get_arg1(call);
+	press = ipc_get_arg2(call);
 
 	rc = input->ev_ops->button(input, bnum, press);
 	async_answer_0(call, rc);
@@ -171,12 +171,12 @@ static void input_cb_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case INPUT_EVENT_ACTIVE:
 			input_ev_active(input, &call);
 			break;

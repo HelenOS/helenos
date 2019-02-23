@@ -231,7 +231,7 @@ errno_t tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
 	if (rc != EOK)
 		goto error;
 
-	conn_id = IPC_GET_ARG1(answer);
+	conn_id = ipc_get_arg1(&answer);
 
 	rc = tcp_conn_new(tcp, conn_id, cb, arg, rconn);
 	if (rc != EOK)
@@ -347,7 +347,7 @@ errno_t tcp_listener_create(tcp_t *tcp, inet_ep_t *ep, tcp_listen_cb_t *lcb,
 		goto error;
 
 	lst->tcp = tcp;
-	lst->id = IPC_GET_ARG1(answer);
+	lst->id = ipc_get_arg1(&answer);
 	lst->lcb = lcb;
 	lst->lcb_arg = larg;
 	lst->cb = cb;
@@ -568,7 +568,7 @@ errno_t tcp_conn_recv(tcp_conn_t *conn, void *buf, size_t bsize, size_t *nrecv)
 		return retval;
 	}
 
-	*nrecv = IPC_GET_ARG1(answer);
+	*nrecv = ipc_get_arg1(&answer);
 	fibril_mutex_unlock(&conn->lock);
 	return EOK;
 }
@@ -625,7 +625,7 @@ again:
 		return retval;
 	}
 
-	*nrecv = IPC_GET_ARG1(answer);
+	*nrecv = ipc_get_arg1(&answer);
 	fibril_mutex_unlock(&conn->lock);
 	return EOK;
 }
@@ -642,7 +642,7 @@ static void tcp_ev_connected(tcp_t *tcp, ipc_call_t *icall)
 	sysarg_t conn_id;
 	errno_t rc;
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 
 	rc = tcp_conn_get(tcp, conn_id, &conn);
 	if (rc != EOK) {
@@ -670,7 +670,7 @@ static void tcp_ev_conn_failed(tcp_t *tcp, ipc_call_t *icall)
 	sysarg_t conn_id;
 	errno_t rc;
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 
 	rc = tcp_conn_get(tcp, conn_id, &conn);
 	if (rc != EOK) {
@@ -698,7 +698,7 @@ static void tcp_ev_conn_reset(tcp_t *tcp, ipc_call_t *icall)
 	sysarg_t conn_id;
 	errno_t rc;
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 
 	rc = tcp_conn_get(tcp, conn_id, &conn);
 	if (rc != EOK) {
@@ -726,7 +726,7 @@ static void tcp_ev_data(tcp_t *tcp, ipc_call_t *icall)
 	sysarg_t conn_id;
 	errno_t rc;
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 
 	rc = tcp_conn_get(tcp, conn_id, &conn);
 	if (rc != EOK) {
@@ -770,8 +770,8 @@ static void tcp_ev_new_conn(tcp_t *tcp, ipc_call_t *icall)
 	tcp_in_conn_t *cinfo;
 	errno_t rc;
 
-	lst_id = IPC_GET_ARG1(*icall);
-	conn_id = IPC_GET_ARG2(*icall);
+	lst_id = ipc_get_arg1(icall);
+	conn_id = ipc_get_arg2(icall);
 
 	rc = tcp_listener_get(tcp, lst_id, &lst);
 	if (rc != EOK) {
@@ -820,13 +820,13 @@ static void tcp_cb_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			/* Hangup*/
 			async_answer_0(&call, EOK);
 			goto out;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case TCP_EV_CONNECTED:
 			tcp_ev_connected(tcp, &call);
 			break;

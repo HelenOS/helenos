@@ -152,12 +152,12 @@ static errno_t event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2
 				call->flags |= IPC_CALL_NOTIF;
 				call->priv = ++event->counter;
 
-				IPC_SET_IMETHOD(call->data, event->imethod);
-				IPC_SET_ARG1(call->data, a1);
-				IPC_SET_ARG2(call->data, a2);
-				IPC_SET_ARG3(call->data, a3);
-				IPC_SET_ARG4(call->data, a4);
-				IPC_SET_ARG5(call->data, a5);
+				ipc_set_imethod(&call->data, event->imethod);
+				ipc_set_arg1(&call->data, a1);
+				ipc_set_arg2(&call->data, a2);
+				ipc_set_arg3(&call->data, a3);
+				ipc_set_arg4(&call->data, a4);
+				ipc_set_arg5(&call->data, a5);
 
 				call->data.task_id = TASK ? TASK->taskid : 0;
 

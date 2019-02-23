@@ -42,13 +42,13 @@
 
 static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
-	size_t size = IPC_GET_ARG2(call->data);
+	size_t size = ipc_get_arg2(&call->data);
 
 	if (size > DATA_XFER_LIMIT) {
-		int flags = IPC_GET_ARG3(call->data);
+		int flags = ipc_get_arg3(&call->data);
 
 		if (flags & IPC_XF_RESTRICT)
-			IPC_SET_ARG2(call->data, DATA_XFER_LIMIT);
+			ipc_set_arg2(&call->data, DATA_XFER_LIMIT);
 		else
 			return ELIMIT;
 	}
@@ -60,29 +60,29 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	assert(!answer->buffer);
 
-	if (!IPC_GET_RETVAL(answer->data)) {
+	if (!ipc_get_retval(&answer->data)) {
 		/* The recipient agreed to send data. */
-		uintptr_t src = IPC_GET_ARG1(answer->data);
-		uintptr_t dst = IPC_GET_ARG1(*olddata);
-		size_t max_size = IPC_GET_ARG2(*olddata);
-		size_t size = IPC_GET_ARG2(answer->data);
+		uintptr_t src = ipc_get_arg1(&answer->data);
+		uintptr_t dst = ipc_get_arg1(olddata);
+		size_t max_size = ipc_get_arg2(olddata);
+		size_t size = ipc_get_arg2(&answer->data);
 
 		if (size && size <= max_size) {
 			/*
 			 * Copy the destination VA so that this piece of
 			 * information is not lost.
 			 */
-			IPC_SET_ARG1(answer->data, dst);
+			ipc_set_arg1(&answer->data, dst);
 
 			answer->buffer = malloc(size);
 			if (!answer->buffer) {
-				IPC_SET_RETVAL(answer->data, ENOMEM);
+				ipc_set_retval(&answer->data, ENOMEM);
 				return EOK;
 			}
 			errno_t rc = copy_from_uspace(answer->buffer,
 			    (void *) src, size);
 			if (rc) {
-				IPC_SET_RETVAL(answer->data, rc);
+				ipc_set_retval(&answer->data, rc);
 				/*
 				 * answer->buffer will be cleaned up in
 				 * ipc_call_free().
@@ -90,9 +90,9 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 				return EOK;
 			}
 		} else if (!size) {
-			IPC_SET_RETVAL(answer->data, EOK);
+			ipc_set_retval(&answer->data, EOK);
 		} else {
-			IPC_SET_RETVAL(answer->data, ELIMIT);
+			ipc_set_retval(&answer->data, ELIMIT);
 		}
 	}
 
@@ -102,13 +102,13 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 static errno_t answer_process(call_t *answer)
 {
 	if (answer->buffer) {
-		uintptr_t dst = IPC_GET_ARG1(answer->data);
-		size_t size = IPC_GET_ARG2(answer->data);
+		uintptr_t dst = ipc_get_arg1(&answer->data);
+		size_t size = ipc_get_arg2(&answer->data);
 		errno_t rc;
 
 		rc = copy_to_uspace((void *) dst, answer->buffer, size);
 		if (rc)
-			IPC_SET_RETVAL(answer->data, rc);
+			ipc_set_retval(&answer->data, rc);
 	}
 
 	return EOK;

@@ -35,8 +35,10 @@
 #ifndef _ABI_IPC_IPC_H_
 #define _ABI_IPC_IPC_H_
 
+#include <stdint.h>
 #include <abi/proc/task.h>
 #include <abi/cap.h>
+#include <_bits/errno.h>
 
 /** Length of data being transferred with IPC call
  *
@@ -70,24 +72,6 @@
  * IPC_M_DATA_READ requests.
  */
 #define DATA_XFER_LIMIT  (64 * 1024)
-
-/* Macros for manipulating calling data */
-#define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (sysarg_t) (retval))
-#define IPC_SET_IMETHOD(data, val)    ((data).args[0] = (val))
-#define IPC_SET_ARG1(data, val)       ((data).args[1] = (val))
-#define IPC_SET_ARG2(data, val)       ((data).args[2] = (val))
-#define IPC_SET_ARG3(data, val)       ((data).args[3] = (val))
-#define IPC_SET_ARG4(data, val)       ((data).args[4] = (val))
-#define IPC_SET_ARG5(data, val)       ((data).args[5] = (val))
-
-#define IPC_GET_IMETHOD(data)  ((data).args[0])
-#define IPC_GET_RETVAL(data)   ((errno_t) (data).args[0])
-
-#define IPC_GET_ARG1(data)  ((data).args[1])
-#define IPC_GET_ARG2(data)  ((data).args[2])
-#define IPC_GET_ARG3(data)  ((data).args[3])
-#define IPC_GET_ARG4(data)  ((data).args[4])
-#define IPC_GET_ARG5(data)  ((data).args[5])
 
 /* Forwarding flags. */
 #define IPC_FF_NONE  0
@@ -126,6 +110,77 @@ typedef struct {
 	/** Capability handle */
 	cap_call_handle_t cap_handle;
 } ipc_data_t;
+
+/* Functions for manipulating calling data */
+
+static inline void ipc_set_retval(ipc_data_t *data, errno_t retval)
+{
+	data->args[0] = (sysarg_t) retval;
+}
+
+static inline void ipc_set_imethod(ipc_data_t *data, sysarg_t val)
+{
+	data->args[0] = val;
+}
+
+static inline void ipc_set_arg1(ipc_data_t *data, sysarg_t val)
+{
+	data->args[1] = val;
+}
+
+static inline void ipc_set_arg2(ipc_data_t *data, sysarg_t val)
+{
+	data->args[2] = val;
+}
+
+static inline void ipc_set_arg3(ipc_data_t *data, sysarg_t val)
+{
+	data->args[3] = val;
+}
+
+static inline void ipc_set_arg4(ipc_data_t *data, sysarg_t val)
+{
+	data->args[4] = val;
+}
+
+static inline void ipc_set_arg5(ipc_data_t *data, sysarg_t val)
+{
+	data->args[5] = val;
+}
+
+static inline sysarg_t ipc_get_imethod(ipc_data_t *data)
+{
+	return data->args[0];
+}
+static inline errno_t ipc_get_retval(ipc_data_t *data)
+{
+	return (errno_t) data->args[0];
+}
+
+static inline sysarg_t ipc_get_arg1(ipc_data_t *data)
+{
+	return data->args[1];
+}
+
+static inline sysarg_t ipc_get_arg2(ipc_data_t *data)
+{
+	return data->args[2];
+}
+
+static inline sysarg_t ipc_get_arg3(ipc_data_t *data)
+{
+	return data->args[3];
+}
+
+static inline sysarg_t ipc_get_arg4(ipc_data_t *data)
+{
+	return data->args[4];
+}
+
+static inline sysarg_t ipc_get_arg5(ipc_data_t *data)
+{
+	return data->args[5];
+}
 
 #endif
 

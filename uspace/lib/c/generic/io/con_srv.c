@@ -43,20 +43,20 @@
 
 static errno_t console_ev_encode(cons_event_t *event, ipc_call_t *icall)
 {
-	IPC_SET_ARG1(*icall, event->type);
+	ipc_set_arg1(icall, event->type);
 
 	switch (event->type) {
 	case CEV_KEY:
-		IPC_SET_ARG2(*icall, event->ev.key.type);
-		IPC_SET_ARG3(*icall, event->ev.key.key);
-		IPC_SET_ARG4(*icall, event->ev.key.mods);
-		IPC_SET_ARG5(*icall, event->ev.key.c);
+		ipc_set_arg2(icall, event->ev.key.type);
+		ipc_set_arg3(icall, event->ev.key.key);
+		ipc_set_arg4(icall, event->ev.key.mods);
+		ipc_set_arg5(icall, event->ev.key.c);
 		break;
 	case CEV_POS:
-		IPC_SET_ARG2(*icall, (event->ev.pos.pos_id << 16) | (event->ev.pos.type & 0xffff));
-		IPC_SET_ARG3(*icall, event->ev.pos.btn_num);
-		IPC_SET_ARG4(*icall, event->ev.pos.hpos);
-		IPC_SET_ARG5(*icall, event->ev.pos.vpos);
+		ipc_set_arg2(icall, (event->ev.pos.pos_id << 16) | (event->ev.pos.type & 0xffff));
+		ipc_set_arg3(icall, event->ev.pos.btn_num);
+		ipc_set_arg4(icall, event->ev.pos.hpos);
+		ipc_set_arg5(icall, event->ev.pos.vpos);
 		break;
 	default:
 		return EIO;
@@ -157,8 +157,8 @@ static void con_set_pos_srv(con_srv_t *srv, ipc_call_t *icall)
 	sysarg_t col;
 	sysarg_t row;
 
-	col = IPC_GET_ARG1(*icall);
-	row = IPC_GET_ARG2(*icall);
+	col = ipc_get_arg1(icall);
+	row = ipc_get_arg2(icall);
 
 	if (srv->srvs->ops->set_pos == NULL) {
 		async_answer_0(icall, ENOTSUP);
@@ -217,7 +217,7 @@ static void con_set_style_srv(con_srv_t *srv, ipc_call_t *icall)
 {
 	console_style_t style;
 
-	style = IPC_GET_ARG1(*icall);
+	style = ipc_get_arg1(icall);
 
 	if (srv->srvs->ops->set_style == NULL) {
 		async_answer_0(icall, ENOTSUP);
@@ -234,9 +234,9 @@ static void con_set_color_srv(con_srv_t *srv, ipc_call_t *icall)
 	console_color_t fgcolor;
 	console_color_attr_t flags;
 
-	bgcolor = IPC_GET_ARG1(*icall);
-	fgcolor = IPC_GET_ARG2(*icall);
-	flags = IPC_GET_ARG3(*icall);
+	bgcolor = ipc_get_arg1(icall);
+	fgcolor = ipc_get_arg2(icall);
+	flags = ipc_get_arg3(icall);
 
 	if (srv->srvs->ops->set_color == NULL) {
 		async_answer_0(icall, ENOTSUP);
@@ -252,8 +252,8 @@ static void con_set_rgb_color_srv(con_srv_t *srv, ipc_call_t *icall)
 	pixel_t bgcolor;
 	pixel_t fgcolor;
 
-	bgcolor = IPC_GET_ARG1(*icall);
-	fgcolor = IPC_GET_ARG2(*icall);
+	bgcolor = ipc_get_arg1(icall);
+	fgcolor = ipc_get_arg2(icall);
 
 	if (srv->srvs->ops->set_rgb_color == NULL) {
 		async_answer_0(icall, ENOTSUP);
@@ -268,7 +268,7 @@ static void con_set_cursor_visibility_srv(con_srv_t *srv, ipc_call_t *icall)
 {
 	bool show;
 
-	show = IPC_GET_ARG1(*icall);
+	show = ipc_get_arg1(icall);
 
 	if (srv->srvs->ops->set_cursor_visibility == NULL) {
 		async_answer_0(icall, ENOTSUP);
@@ -302,8 +302,8 @@ static void con_get_event_srv(con_srv_t *srv, ipc_call_t *icall)
 		return;
 	}
 
-	async_answer_5(icall, rc, IPC_GET_ARG1(result), IPC_GET_ARG2(result),
-	    IPC_GET_ARG3(result), IPC_GET_ARG4(result), IPC_GET_ARG5(result));
+	async_answer_5(icall, rc, ipc_get_arg1(&result), ipc_get_arg2(&result),
+	    ipc_get_arg3(&result), ipc_get_arg4(&result), ipc_get_arg5(&result));
 }
 
 static con_srv_t *con_srv_create(con_srvs_t *srvs)
@@ -363,7 +363,7 @@ errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 		if (!received)
 			break;
 
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

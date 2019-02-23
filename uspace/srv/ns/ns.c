@@ -54,8 +54,8 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 	iface_t iface;
 	service_t service;
 
-	iface = IPC_GET_ARG1(*icall);
-	service = IPC_GET_ARG2(*icall);
+	iface = ipc_get_arg1(icall);
+	service = ipc_get_arg2(icall);
 	if (service != 0) {
 		/*
 		 * Client requests to be connected to a service.
@@ -75,7 +75,7 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 		ns_pending_conn_process();
 
 		async_get_call(&call);
-		if (!IPC_GET_IMETHOD(call))
+		if (!ipc_get_imethod(&call))
 			break;
 
 		task_id_t id;
@@ -83,10 +83,10 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 
 		service_t service;
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case NS_REGISTER:
-			service = IPC_GET_ARG1(call);
-			iface = IPC_GET_ARG2(call);
+			service = ipc_get_arg1(&call);
+			iface = ipc_get_arg2(&call);
 
 			/*
 			 * Server requests service registration.
@@ -100,7 +100,7 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 
 			break;
 		case NS_REGISTER_BROKER:
-			service = IPC_GET_ARG1(call);
+			service = ipc_get_arg1(&call);
 			retval = ns_service_register_broker(service);
 			break;
 		case NS_PING:
@@ -108,7 +108,7 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 			break;
 		case NS_TASK_WAIT:
 			id = (task_id_t)
-			    MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			    MERGE_LOUP32(ipc_get_arg1(&call), ipc_get_arg2(&call));
 			wait_for_task(id, &call);
 			continue;
 		case NS_ID_INTRO:
@@ -119,7 +119,7 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 			break;
 		default:
 			printf("%s: Method not supported (%" PRIun ")\n",
-			    NAME, IPC_GET_IMETHOD(call));
+			    NAME, ipc_get_imethod(&call));
 			retval = ENOTSUP;
 			break;
 		}

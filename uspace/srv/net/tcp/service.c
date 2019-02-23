@@ -805,7 +805,7 @@ static void tcp_conn_destroy_srv(tcp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_destroy_srv()");
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 	rc = tcp_conn_destroy_impl(client, conn_id);
 	async_answer_0(icall, rc);
 }
@@ -871,7 +871,7 @@ static void tcp_listener_destroy_srv(tcp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_listener_destroy_srv()");
 
-	lst_id = IPC_GET_ARG1(*icall);
+	lst_id = ipc_get_arg1(icall);
 	rc = tcp_listener_destroy_impl(client, lst_id);
 	async_answer_0(icall, rc);
 }
@@ -891,7 +891,7 @@ static void tcp_conn_send_fin_srv(tcp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_send_fin_srv()");
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 	rc = tcp_conn_send_fin_impl(client, conn_id);
 	async_answer_0(icall, rc);
 }
@@ -911,7 +911,7 @@ static void tcp_conn_push_srv(tcp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_push_srv()");
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 	rc = tcp_conn_push_impl(client, conn_id);
 	async_answer_0(icall, rc);
 }
@@ -931,7 +931,7 @@ static void tcp_conn_reset_srv(tcp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_reset_srv()");
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 	rc = tcp_conn_reset_impl(client, conn_id);
 	async_answer_0(icall, rc);
 }
@@ -983,7 +983,7 @@ static void tcp_conn_send_srv(tcp_client_t *client, ipc_call_t *icall)
 		return;
 	}
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 
 	rc = tcp_conn_send_impl(client, conn_id, data, size);
 	if (rc != EOK) {
@@ -1014,7 +1014,7 @@ static void tcp_conn_recv_srv(tcp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_srv()");
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 
 	if (!async_data_read_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
@@ -1069,7 +1069,7 @@ static void tcp_conn_recv_wait_srv(tcp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv()");
 
-	conn_id = IPC_GET_ARG1(*icall);
+	conn_id = ipc_get_arg1(icall);
 
 	if (!async_data_read_receive(&call, &size)) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - data_receive failed");
@@ -1179,7 +1179,7 @@ static void tcp_client_conn(ipc_call_t *icall, void *arg)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_client_conn: wait req");
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_client_conn: method=%d",
 		    (int)method);

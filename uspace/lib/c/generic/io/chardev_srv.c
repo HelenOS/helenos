@@ -50,7 +50,7 @@ static void chardev_read_srv(chardev_srv_t *srv, ipc_call_t *icall)
 	chardev_flags_t flags;
 	errno_t rc;
 
-	flags = IPC_GET_ARG1(*icall);
+	flags = ipc_get_arg1(icall);
 
 	ipc_call_t call;
 	if (!async_data_read_receive(&call, &size)) {
@@ -153,7 +153,7 @@ errno_t chardev_conn(ipc_call_t *icall, chardev_srvs_t *srvs)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

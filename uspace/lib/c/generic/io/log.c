@@ -207,7 +207,7 @@ log_t log_create(const char *name, log_t parent)
 	if ((rc != EOK) || (reg_msg_rc != EOK))
 		return parent;
 
-	return IPC_GET_ARG1(answer);
+	return ipc_get_arg1(&answer);
 }
 
 /** Write an entry to the log.

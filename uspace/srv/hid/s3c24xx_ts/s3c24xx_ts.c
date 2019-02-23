@@ -377,7 +377,7 @@ static void s3c24xx_ts_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			if (ts->client_sess != NULL) {
 				async_hangup(ts->client_sess);
 				ts->client_sess = NULL;

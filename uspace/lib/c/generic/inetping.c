@@ -153,7 +153,7 @@ static void inetping_ev_recv(ipc_call_t *icall)
 {
 	inetping_sdu_t sdu;
 
-	sdu.seq_no = IPC_GET_ARG1(*icall);
+	sdu.seq_no = ipc_get_arg1(icall);
 
 	ipc_call_t call;
 	size_t size;
@@ -212,12 +212,12 @@ static void inetping_cb_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case INETPING_EV_RECV:
 			inetping_ev_recv(&call);
 			break;

@@ -102,10 +102,10 @@ static void device_event_callback(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case PCM_EVENT_PLAYBACK_STARTED:
 		case PCM_EVENT_FRAMES_PLAYED:
-			printf("%" PRIun " frames: ", IPC_GET_ARG1(call));
+			printf("%" PRIun " frames: ", ipc_get_arg1(&call));
 			async_answer_0(&call, EOK);
 			break;
 		case PCM_EVENT_PLAYBACK_TERMINATED:
@@ -117,7 +117,7 @@ static void device_event_callback(ipc_call_t *icall, void *arg)
 			fibril_mutex_unlock(&pb->mutex);
 			return;
 		default:
-			printf("Unknown event %" PRIun ".\n", IPC_GET_IMETHOD(call));
+			printf("Unknown event %" PRIun ".\n", ipc_get_imethod(&call));
 			async_answer_0(&call, ENOTSUP);
 			continue;
 

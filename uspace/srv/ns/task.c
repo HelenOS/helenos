@@ -224,7 +224,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call)
 
 errno_t ns_task_id_intro(ipc_call_t *call)
 {
-	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
+	task_id_t id = MERGE_LOUP32(ipc_get_arg1(call), ipc_get_arg2(call));
 
 	ht_link_t *link = hash_table_find(&phone_to_id, &call->request_label);
 	if (link != NULL)
@@ -288,7 +288,7 @@ errno_t ns_task_retval(ipc_call_t *call)
 
 	ht->finished = true;
 	ht->have_rval = true;
-	ht->retval = IPC_GET_ARG1(*call);
+	ht->retval = ipc_get_arg1(call);
 
 	process_pending_wait();
 

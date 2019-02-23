@@ -61,12 +61,12 @@ static void vfs_pager(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case IPC_M_PAGE_IN:
 			vfs_page_in(&call);
 			break;
@@ -79,11 +79,11 @@ static void vfs_pager(ipc_call_t *icall, void *arg)
 
 static void notification_handler(ipc_call_t *call, void *arg)
 {
-	if (IPC_GET_ARG1(*call) == VFS_PASS_HANDLE)
+	if (ipc_get_arg1(call) == VFS_PASS_HANDLE)
 		vfs_op_pass_handle(
-		    (task_id_t) MERGE_LOUP32(IPC_GET_ARG4(*call),
-		    IPC_GET_ARG5(*call)), call->task_id,
-		    (int) IPC_GET_ARG2(*call));
+		    (task_id_t) MERGE_LOUP32(ipc_get_arg4(call),
+		    ipc_get_arg5(call)), call->task_id,
+		    (int) ipc_get_arg2(call));
 }
 
 int main(int argc, char **argv)

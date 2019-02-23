@@ -42,15 +42,15 @@
 
 static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
-	uintptr_t src = IPC_GET_ARG1(call->data);
-	size_t size = IPC_GET_ARG2(call->data);
+	uintptr_t src = ipc_get_arg1(&call->data);
+	size_t size = ipc_get_arg2(&call->data);
 
 	if (size > DATA_XFER_LIMIT) {
-		int flags = IPC_GET_ARG3(call->data);
+		int flags = ipc_get_arg3(&call->data);
 
 		if (flags & IPC_XF_RESTRICT) {
 			size = DATA_XFER_LIMIT;
-			IPC_SET_ARG2(call->data, size);
+			ipc_set_arg2(&call->data, size);
 		} else
 			return ELIMIT;
 	}
@@ -74,19 +74,19 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	assert(answer->buffer);
 
-	if (!IPC_GET_RETVAL(answer->data)) {
+	if (!ipc_get_retval(&answer->data)) {
 		/* The recipient agreed to receive data. */
-		uintptr_t dst = (uintptr_t)IPC_GET_ARG1(answer->data);
-		size_t size = (size_t)IPC_GET_ARG2(answer->data);
-		size_t max_size = (size_t)IPC_GET_ARG2(*olddata);
+		uintptr_t dst = (uintptr_t)ipc_get_arg1(&answer->data);
+		size_t size = (size_t)ipc_get_arg2(&answer->data);
+		size_t max_size = (size_t)ipc_get_arg2(olddata);
 
 		if (size <= max_size) {
 			errno_t rc = copy_to_uspace((void *) dst,
 			    answer->buffer, size);
 			if (rc)
-				IPC_SET_RETVAL(answer->data, rc);
+				ipc_set_retval(&answer->data, rc);
 		} else {
-			IPC_SET_RETVAL(answer->data, ELIMIT);
+			ipc_set_retval(&answer->data, ELIMIT);
 		}
 	}
 

@@ -1037,7 +1037,7 @@ static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 	assert(dev);
 	assert(icall);
 
-	uint16_t isr = (uint16_t) IPC_GET_ARG2(*icall) & INT_KNOWN;
+	uint16_t isr = (uint16_t) ipc_get_arg2(icall) & INT_KNOWN;
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 

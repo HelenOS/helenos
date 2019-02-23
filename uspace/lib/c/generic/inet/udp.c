@@ -189,7 +189,7 @@ errno_t udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
 		goto error;
 
 	assoc->udp = udp;
-	assoc->id = IPC_GET_ARG1(answer);
+	assoc->id = ipc_get_arg1(&answer);
 	assoc->cb = cb;
 	assoc->cb_arg = arg;
 
@@ -403,8 +403,8 @@ static errno_t udp_rmsg_info(udp_t *udp, udp_rmsg_t *rmsg)
 		return retval;
 
 	rmsg->udp = udp;
-	rmsg->assoc_id = IPC_GET_ARG1(answer);
-	rmsg->size = IPC_GET_ARG2(answer);
+	rmsg->assoc_id = ipc_get_arg1(&answer);
+	rmsg->size = ipc_get_arg2(&answer);
 	rmsg->remote_ep = ep;
 	return EOK;
 }
@@ -497,13 +497,13 @@ static void udp_cb_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			/* Hangup */
 			async_answer_0(&call, EOK);
 			goto out;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case UDP_EV_DATA:
 			udp_ev_data(udp, &call);
 			break;

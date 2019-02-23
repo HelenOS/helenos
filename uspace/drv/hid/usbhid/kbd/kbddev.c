@@ -158,13 +158,13 @@ typedef enum usb_kbd_flags {
  */
 static void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall)
 {
-	const sysarg_t method = IPC_GET_IMETHOD(*icall);
+	const sysarg_t method = ipc_get_imethod(icall);
 	usb_kbd_t *kbd_dev = ddf_fun_data_get(fun);
 	async_sess_t *sess;
 
 	switch (method) {
 	case KBDEV_SET_IND:
-		kbd_dev->mods = IPC_GET_ARG1(*icall);
+		kbd_dev->mods = ipc_get_arg1(icall);
 		usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
 		async_answer_0(icall, EOK);
 		break;

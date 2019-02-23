@@ -294,7 +294,7 @@ void hc_init_hw(const hc_t *instance)
 	const uint32_t pa = addr_to_phys(instance->frame_list);
 	pio_write_32(&registers->flbaseadd, pa);
 
-	if (CAP_HANDLE_VALID(instance->base.irq_handle)) {
+	if (cap_handle_valid(instance->base.irq_handle)) {
 		/* Enable all interrupts, but resume interrupt */
 		pio_write_16(&instance->registers->usbintr,
 		    UHCI_INTR_ALLOW_INTERRUPTS);

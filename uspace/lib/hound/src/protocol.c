@@ -139,7 +139,7 @@ errno_t hound_service_register_context(hound_sess_t *sess,
 
 	async_exchange_end(exch);
 	if (ret == EOK) {
-		*id = (hound_context_id_t) IPC_GET_ARG1(call);
+		*id = (hound_context_id_t) ipc_get_arg1(&call);
 	}
 
 	return ret;
@@ -157,7 +157,7 @@ errno_t hound_service_unregister_context(hound_sess_t *sess,
 	assert(sess);
 	async_exch_t *exch = async_exchange_begin(sess);
 	const errno_t ret = async_req_1_0(exch, IPC_M_HOUND_CONTEXT_UNREGISTER,
-	    CAP_HANDLE_RAW(id));
+	    cap_handle_raw(id));
 	async_exchange_end(exch);
 	return ret;
 }
@@ -202,7 +202,7 @@ errno_t hound_service_get_list(hound_sess_t *sess, char ***ids, size_t *count,
 		async_exchange_end(exch);
 		return ret;
 	}
-	unsigned name_count = IPC_GET_ARG1(res_call);
+	unsigned name_count = ipc_get_arg1(&res_call);
 
 	/* Start receiving names */
 	char **names = NULL;
@@ -314,7 +314,7 @@ errno_t hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
 		}
 	};
 
-	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, CAP_HANDLE_RAW(id),
+	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, cap_handle_raw(id),
 	    flags, c.arg, bsize);
 }
 
@@ -405,14 +405,14 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case IPC_M_HOUND_CONTEXT_REGISTER:
 			/* check interface functions */
 			if (!server_iface || !server_iface->add_context) {
 				async_answer_0(&call, ENOTSUP);
 				break;
 			}
-			bool record = IPC_GET_ARG1(call);
+			bool record = ipc_get_arg1(&call);
 			void *name;
 
 			/* Get context name */
@@ -430,7 +430,7 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 			if (ret != EOK) {
 				async_answer_0(&call, ret);
 			} else {
-				async_answer_1(&call, EOK, CAP_HANDLE_RAW(context));
+				async_answer_1(&call, EOK, cap_handle_raw(context));
 			}
 			break;
 		case IPC_M_HOUND_CONTEXT_UNREGISTER:
@@ -441,7 +441,7 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 			}
 
 			/* get id, 1st param */
-			context = (hound_context_id_t) IPC_GET_ARG1(call);
+			context = (hound_context_id_t) ipc_get_arg1(&call);
 			ret = server_iface->rem_context(server_iface->server,
 			    context);
 			async_answer_0(&call, ret);
@@ -454,9 +454,9 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 			}
 
 			char **list = NULL;
-			flags = IPC_GET_ARG1(call);
-			size_t count = IPC_GET_ARG2(call);
-			const bool conn = IPC_GET_ARG3(call);
+			flags = ipc_get_arg1(&call);
+			size_t count = ipc_get_arg2(&call);
+			const bool conn = ipc_get_arg3(&call);
 			char *conn_name = NULL;
 			ret = EOK;
 
@@ -567,15 +567,15 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 			}
 
 			/* get parameters */
-			context = (hound_context_id_t) IPC_GET_ARG1(call);
-			flags = IPC_GET_ARG2(call);
-			const format_convert_t c = { .arg = IPC_GET_ARG3(call) };
+			context = (hound_context_id_t) ipc_get_arg1(&call);
+			flags = ipc_get_arg2(&call);
+			const format_convert_t c = { .arg = ipc_get_arg3(&call) };
 			const pcm_format_t f = {
 				.sampling_rate = c.f.rate * 100,
 				.channels = c.f.channels,
 				.sample_format = c.f.format,
 			};
-			size_t bsize = IPC_GET_ARG4(call);
+			size_t bsize = ipc_get_arg4(&call);
 
 			void *stream;
 			ret = server_iface->add_stream(server_iface->server,
@@ -639,9 +639,9 @@ static void hound_server_read_data(void *stream)
 
 	/* accept data write or drain */
 	while (async_data_write_receive(&call, &size) ||
-	    (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
+	    (ipc_get_imethod(&call) == IPC_M_HOUND_STREAM_DRAIN)) {
 		/* check drain first */
-		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
+		if (ipc_get_imethod(&call) == IPC_M_HOUND_STREAM_DRAIN) {
 			errno_t ret = ENOTSUP;
 			if (server_iface->drain_stream)
 				ret = server_iface->drain_stream(stream);
@@ -667,7 +667,7 @@ static void hound_server_read_data(void *stream)
 			    stream, buffer, size);
 		}
 	}
-	const errno_t ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT ?
+	const errno_t ret = ipc_get_imethod(&call) == IPC_M_HOUND_STREAM_EXIT ?
 	    EOK : EINVAL;
 
 	async_answer_0(&call, ret);
@@ -686,9 +686,9 @@ static void hound_server_write_data(void *stream)
 
 	/* accept data read and drain */
 	while (async_data_read_receive(&call, &size) ||
-	    (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
+	    (ipc_get_imethod(&call) == IPC_M_HOUND_STREAM_DRAIN)) {
 		/* drain does not make much sense but it is allowed */
-		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
+		if (ipc_get_imethod(&call) == IPC_M_HOUND_STREAM_DRAIN) {
 			errno_t ret = ENOTSUP;
 			if (server_iface->drain_stream)
 				ret = server_iface->drain_stream(stream);
@@ -711,7 +711,7 @@ static void hound_server_write_data(void *stream)
 			    async_data_read_finalize(&call, buffer, size);
 		}
 	}
-	const errno_t ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT ?
+	const errno_t ret = ipc_get_imethod(&call) == IPC_M_HOUND_STREAM_EXIT ?
 	    EOK : EINVAL;
 
 	async_answer_0(&call, ret);

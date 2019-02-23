@@ -82,7 +82,7 @@ static void receive_device_name(async_sess_t *sess)
 	if ((data_request_rc != EOK) || (opening_request_rc != EOK))
 		return;
 
-	size_t len = IPC_GET_ARG2(data_request_call);
+	size_t len = ipc_get_arg2(&data_request_call);
 	plugged_device_name[len] = 0;
 }
 

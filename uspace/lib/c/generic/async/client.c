@@ -215,7 +215,7 @@ void async_reply_received(ipc_call_t *data)
 
 	fibril_rmutex_lock(&message_mutex);
 
-	msg->retval = IPC_GET_RETVAL(*data);
+	msg->retval = ipc_get_retval(data);
 
 	/* Copy data inside lock, just in case the call was detached */
 	if ((msg->dataptr) && (data))
@@ -485,19 +485,19 @@ static errno_t async_req_fast(async_exch_t *exch, sysarg_t imethod,
 	async_wait_for(aid, &rc);
 
 	if (r1)
-		*r1 = IPC_GET_ARG1(result);
+		*r1 = ipc_get_arg1(&result);
 
 	if (r2)
-		*r2 = IPC_GET_ARG2(result);
+		*r2 = ipc_get_arg2(&result);
 
 	if (r3)
-		*r3 = IPC_GET_ARG3(result);
+		*r3 = ipc_get_arg3(&result);
 
 	if (r4)
-		*r4 = IPC_GET_ARG4(result);
+		*r4 = ipc_get_arg4(&result);
 
 	if (r5)
-		*r5 = IPC_GET_ARG5(result);
+		*r5 = ipc_get_arg5(&result);
 
 	return rc;
 }
@@ -537,19 +537,19 @@ static errno_t async_req_slow(async_exch_t *exch, sysarg_t imethod,
 	async_wait_for(aid, &rc);
 
 	if (r1)
-		*r1 = IPC_GET_ARG1(result);
+		*r1 = ipc_get_arg1(&result);
 
 	if (r2)
-		*r2 = IPC_GET_ARG2(result);
+		*r2 = ipc_get_arg2(&result);
 
 	if (r3)
-		*r3 = IPC_GET_ARG3(result);
+		*r3 = ipc_get_arg3(&result);
 
 	if (r4)
-		*r4 = IPC_GET_ARG4(result);
+		*r4 = ipc_get_arg4(&result);
 
 	if (r5)
-		*r5 = IPC_GET_ARG5(result);
+		*r5 = ipc_get_arg5(&result);
 
 	return rc;
 }
@@ -804,7 +804,7 @@ static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
 	if (rc != EOK)
 		return rc;
 
-	*out_phone = (cap_phone_handle_t) IPC_GET_ARG5(result);
+	*out_phone = (cap_phone_handle_t) ipc_get_arg5(&result);
 	return EOK;
 }
 
@@ -1259,7 +1259,7 @@ errno_t async_state_change_start(async_exch_t *exch, sysarg_t arg1, sysarg_t arg
     sysarg_t arg3, async_exch_t *other_exch)
 {
 	return async_req_5_0(exch, IPC_M_STATE_CHANGE_AUTHORIZE,
-	    arg1, arg2, arg3, 0, CAP_HANDLE_RAW(other_exch->phone));
+	    arg1, arg2, arg3, 0, cap_handle_raw(other_exch->phone));
 }
 
 /** Lock and get session remote state

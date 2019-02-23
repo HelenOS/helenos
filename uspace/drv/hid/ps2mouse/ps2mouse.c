@@ -428,7 +428,7 @@ static errno_t probe_intellimouse(ps2_mouse_t *mouse, bool buttons)
  */
 void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall)
 {
-	const sysarg_t method = IPC_GET_IMETHOD(*icall);
+	const sysarg_t method = ipc_get_imethod(icall);
 	ps2_mouse_t *mouse = ddf_dev_data_get(ddf_fun_get_dev(fun));
 	async_sess_t *sess;
 

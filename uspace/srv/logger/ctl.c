@@ -74,18 +74,18 @@ void logger_connection_handler_control(ipc_call_t *icall)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case LOGGER_CONTROL_SET_DEFAULT_LEVEL:
-			rc = set_default_logging_level(IPC_GET_ARG1(call));
+			rc = set_default_logging_level(ipc_get_arg1(&call));
 			async_answer_0(&call, rc);
 			break;
 		case LOGGER_CONTROL_SET_LOG_LEVEL:
-			rc = handle_log_level_change(IPC_GET_ARG1(call));
+			rc = handle_log_level_change(ipc_get_arg1(&call));
 			async_answer_0(&call, rc);
 			break;
 		case LOGGER_CONTROL_SET_ROOT:

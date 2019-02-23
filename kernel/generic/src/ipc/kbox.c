@@ -120,7 +120,7 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 	}
 
 	LOG("Continue with hangup message.");
-	IPC_SET_RETVAL(call->data, 0);
+	ipc_set_retval(&call->data, 0);
 	ipc_answer(&TASK->kb.box, call);
 
 	mutex_lock(&TASK->kb.cleanup_lock);
@@ -173,7 +173,7 @@ static void kbox_thread_proc(void *arg)
 		if (call == NULL)
 			continue;  /* Try again. */
 
-		switch (IPC_GET_IMETHOD(call->data)) {
+		switch (ipc_get_imethod(&call->data)) {
 
 		case IPC_M_DEBUG:
 			/* Handle debug call. */
