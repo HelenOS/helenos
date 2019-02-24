@@ -302,13 +302,14 @@ namespace std
                 {
                     int olderrno{errno};
                     errno = EOK;
+                    char *endptr = NULL;
 
                     if constexpr (is_signed<BaseType>::value)
-                        res = ::strtoll(base.buffer_, nullptr, num_base);
+                        res = ::strtoll(base.buffer_, &endptr, num_base);
                     else
-                        res = ::strtoull(base.buffer_, nullptr, num_base);
+                        res = ::strtoull(base.buffer_, &endptr, num_base);
 
-                    if (errno != EOK)
+                    if (errno != EOK || endptr == base.buffer_)
                         err |= ios_base::failbit;
 
                     errno = olderrno;
