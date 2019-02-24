@@ -72,9 +72,9 @@ IRQ_SPINLOCK_INITIALIZE(irq_uspace_hash_table_lock);
 hash_table_t irq_uspace_hash_table;
 
 static size_t irq_ht_hash(const ht_link_t *);
-static size_t irq_ht_key_hash(void *);
+static size_t irq_ht_key_hash(const void *);
 static bool irq_ht_equal(const ht_link_t *, const ht_link_t *);
-static bool irq_ht_key_equal(void *, const ht_link_t *);
+static bool irq_ht_key_equal(const void *, const ht_link_t *);
 
 static hash_table_ops_t irq_ht_ops = {
 	.hash = irq_ht_hash,
@@ -207,9 +207,9 @@ size_t irq_ht_hash(const ht_link_t *item)
 }
 
 /** Return the hash of the key. */
-size_t irq_ht_key_hash(void *key)
+size_t irq_ht_key_hash(const void *key)
 {
-	inr_t *inr = (inr_t *) key;
+	const inr_t *inr = key;
 	return hash_mix(*inr);
 }
 
@@ -222,9 +222,9 @@ bool irq_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
 }
 
 /** Return true if the key is equal to the item's lookup key. */
-bool irq_ht_key_equal(void *key, const ht_link_t *item)
+bool irq_ht_key_equal(const void *key, const ht_link_t *item)
 {
-	inr_t *inr = (inr_t *) key;
+	const inr_t *inr = key;
 	irq_t *irq = hash_table_get_inst(item, irq_t, link);
 	return irq->inr == *inr;
 }

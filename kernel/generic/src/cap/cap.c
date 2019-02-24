@@ -100,15 +100,15 @@ static size_t caps_hash(const ht_link_t *item)
 	return hash_mix(cap_handle_raw(cap->handle));
 }
 
-static size_t caps_key_hash(void *key)
+static size_t caps_key_hash(const void *key)
 {
-	cap_handle_t *handle = (cap_handle_t *) key;
+	const cap_handle_t *handle = key;
 	return hash_mix(cap_handle_raw(*handle));
 }
 
-static bool caps_key_equal(void *key, const ht_link_t *item)
+static bool caps_key_equal(const void *key, const ht_link_t *item)
 {
-	cap_handle_t *handle = (cap_handle_t *) key;
+	const cap_handle_t *handle = key;
 	cap_t *cap = hash_table_get_inst(item, cap_t, caps_link);
 	return *handle == cap->handle;
 }
