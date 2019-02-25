@@ -68,9 +68,43 @@ __attribute__((noinline)) static uintmax_t _max_value(int base)
 	return UINTMAX_MAX / base;
 }
 
+static inline int _prefixbase(const char *restrict *nptrptr, bool nonstandard_prefixes)
+{
+	const char *nptr = *nptrptr;
+
+	if (nptr[0] != '0')
+		return 10;
+
+	if (nptr[1] == 'x' || nptr[1] == 'X') {
+		*nptrptr += 2;
+		return 16;
+	}
+
+	if (nonstandard_prefixes) {
+		switch (nptr[1]) {
+		case 'b':
+		case 'B':
+			*nptrptr += 2;
+			return 2;
+		case 'o':
+		case 'O':
+			*nptrptr += 2;
+			return 8;
+		case 'd':
+		case 'D':
+		case 't':
+		case 'T':
+			*nptrptr += 2;
+			return 10;
+		}
+	}
+
+	return 8;
+}
+
 static inline uintmax_t _strtoumax(
     const char *restrict nptr, char **restrict endptr, int base,
-    bool *restrict sgn)
+    bool *restrict sgn, errno_t *err, bool nonstandard_prefixes)
 {
 	assert(nptr != NULL);
 	assert(sgn != NULL);
@@ -95,27 +129,22 @@ static inline uintmax_t _strtoumax(
 
 	/* Figure out the base. */
 
-	if (base == 0) {
-		if (*nptr == '0') {
-			if (tolower(nptr[1]) == 'x') {
-				/* 0x... is hex. */
-				base = 16;
-				nptr += 2;
-			} else {
-				/* 0... is octal. */
-				base = 8;
-			}
-		} else {
-			/* Anything else is decimal by default. */
-			base = 10;
-		}
-	} else if (base == 16) {
-		/* Allow hex number to be prefixed with "0x". */
-		if (nptr[0] == '0' && tolower(nptr[1]) == 'x') {
+	if (base == 0)
+		base = _prefixbase(&nptr, nonstandard_prefixes);
+
+	if (base == 16 && !nonstandard_prefixes) {
+		/*
+		 * Standard strto* functions allow hexadecimal prefix to be
+		 * present when base is explicitly set to 16.
+		 * Our nonstandard str_* functions don't allow it.
+		 */
+
+		if (nptr[0] == '0' && (nptr[1] == 'x' || nptr[1] == 'X'))
 			nptr += 2;
-		}
-	} else if (base < 0 || base == 1 || base > 36) {
-		errno = EINVAL;
+	}
+
+	if (base < 2 || base > 36) {
+		*err = EINVAL;
 		return 0;
 	}
 
@@ -126,11 +155,10 @@ static inline uintmax_t _strtoumax(
 	int digit;
 
 	while (digit = _digit_value(*nptr), digit < base) {
-
 		if (result > max ||
 		    __builtin_add_overflow(result * base, digit, &result)) {
 
-			errno = ERANGE;
+			*err = ERANGE;
 			result = UINTMAX_MAX;
 			break;
 		}
@@ -144,6 +172,8 @@ static inline uintmax_t _strtoumax(
 		/*
 		 * Move the pointer to the end of the number,
 		 * in case it isn't there already.
+		 * This can happen when the number has legal formatting,
+		 * but is out of range of the target type.
 		 */
 		while (_digit_value(*nptr) < base) {
 			nptr++;
@@ -156,17 +186,18 @@ static inline uintmax_t _strtoumax(
 }
 
 static inline intmax_t _strtosigned(const char *nptr, char **endptr, int base,
-    intmax_t min, intmax_t max)
+    intmax_t min, intmax_t max, errno_t *err, bool nonstandard_prefixes)
 {
 	bool sgn = false;
-	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn);
+	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn, err,
+	    nonstandard_prefixes);
 
 	if (number > (uintmax_t) max) {
 		if (sgn && (number - 1 == (uintmax_t) max)) {
 			return min;
 		}
 
-		errno = ERANGE;
+		*err = ERANGE;
 		return (sgn ? min : max);
 	}
 
@@ -174,26 +205,18 @@ static inline intmax_t _strtosigned(const char *nptr, char **endptr, int base,
 }
 
 static inline uintmax_t _strtounsigned(const char *nptr, char **endptr, int base,
-    uintmax_t max)
+    uintmax_t max, errno_t *err, bool nonstandard_prefixes)
 {
 	bool sgn = false;
-	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn);
-
-	if (sgn) {
-		if (number == 0) {
-			return 0;
-		} else {
-			errno = ERANGE;
-			return max;
-		}
-	}
+	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn, err,
+	    nonstandard_prefixes);
 
 	if (number > max) {
-		errno = ERANGE;
+		*err = ERANGE;
 		return max;
 	}
 
-	return number;
+	return (sgn ? -number : number);
 }
 
 /** Convert initial part of string to long int according to given base.
@@ -211,7 +234,7 @@ static inline uintmax_t _strtounsigned(const char *nptr, char **endptr, int base
  */
 long strtol(const char *nptr, char **endptr, int base)
 {
-	return _strtosigned(nptr, endptr, base, LONG_MIN, LONG_MAX);
+	return _strtosigned(nptr, endptr, base, LONG_MIN, LONG_MAX, &errno, false);
 }
 
 /** Convert initial part of string to unsigned long according to given base.
@@ -229,27 +252,27 @@ long strtol(const char *nptr, char **endptr, int base)
  */
 unsigned long strtoul(const char *nptr, char **endptr, int base)
 {
-	return _strtounsigned(nptr, endptr, base, ULONG_MAX);
+	return _strtounsigned(nptr, endptr, base, ULONG_MAX, &errno, false);
 }
 
 long long strtoll(const char *nptr, char **endptr, int base)
 {
-	return _strtosigned(nptr, endptr, base, LLONG_MIN, LLONG_MAX);
+	return _strtosigned(nptr, endptr, base, LLONG_MIN, LLONG_MAX, &errno, false);
 }
 
 unsigned long long strtoull(const char *nptr, char **endptr, int base)
 {
-	return _strtounsigned(nptr, endptr, base, ULLONG_MAX);
+	return _strtounsigned(nptr, endptr, base, ULLONG_MAX, &errno, false);
 }
 
 intmax_t strtoimax(const char *nptr, char **endptr, int base)
 {
-	return _strtosigned(nptr, endptr, base, INTMAX_MIN, INTMAX_MAX);
+	return _strtosigned(nptr, endptr, base, INTMAX_MIN, INTMAX_MAX, &errno, false);
 }
 
 uintmax_t strtoumax(const char *nptr, char **endptr, int base)
 {
-	return _strtounsigned(nptr, endptr, base, UINTMAX_MAX);
+	return _strtounsigned(nptr, endptr, base, UINTMAX_MAX, &errno, false);
 }
 
 int atoi(const char *nptr)
