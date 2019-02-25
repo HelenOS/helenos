@@ -230,10 +230,10 @@ static long notification_freelist_used = 0;
 
 static sysarg_t notification_avail = 0;
 
-static size_t client_key_hash(void *key)
+static size_t client_key_hash(const void *key)
 {
-	task_id_t in_task_id = *(task_id_t *) key;
-	return in_task_id;
+	const task_id_t *in_task_id = key;
+	return *in_task_id;
 }
 
 static size_t client_hash(const ht_link_t *item)
@@ -242,11 +242,11 @@ static size_t client_hash(const ht_link_t *item)
 	return client_key_hash(&client->in_task_id);
 }
 
-static bool client_key_equal(void *key, const ht_link_t *item)
+static bool client_key_equal(const void *key, const ht_link_t *item)
 {
-	task_id_t in_task_id = *(task_id_t *) key;
+	const task_id_t *in_task_id = key;
 	client_t *client = hash_table_get_inst(item, client_t, link);
-	return in_task_id == client->in_task_id;
+	return *in_task_id == client->in_task_id;
 }
 
 /** Operations for the client hash table. */
@@ -489,10 +489,10 @@ errno_t async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t a
 	return EOK;
 }
 
-static size_t notification_key_hash(void *key)
+static size_t notification_key_hash(const void *key)
 {
-	sysarg_t id = *(sysarg_t *) key;
-	return id;
+	const sysarg_t *id = key;
+	return *id;
 }
 
 static size_t notification_hash(const ht_link_t *item)
@@ -502,12 +502,12 @@ static size_t notification_hash(const ht_link_t *item)
 	return notification_key_hash(&notification->imethod);
 }
 
-static bool notification_key_equal(void *key, const ht_link_t *item)
+static bool notification_key_equal(const void *key, const ht_link_t *item)
 {
-	sysarg_t id = *(sysarg_t *) key;
+	const sysarg_t *id = key;
 	notification_t *notification =
 	    hash_table_get_inst(item, notification_t, htlink);
-	return id == notification->imethod;
+	return *id == notification->imethod;
 }
 
 /** Operations for the notification hash table. */

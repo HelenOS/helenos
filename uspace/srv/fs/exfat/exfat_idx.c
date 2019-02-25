@@ -116,9 +116,9 @@ typedef struct {
 	unsigned pdi;
 } pos_key_t;
 
-static inline size_t pos_key_hash(void *key)
+static inline size_t pos_key_hash(const void *key)
 {
-	pos_key_t *pos = (pos_key_t *)key;
+	const pos_key_t *pos = key;
 
 	size_t hash = 0;
 	hash = hash_combine(pos->pfc, pos->pdi);
@@ -138,9 +138,9 @@ static size_t pos_hash(const ht_link_t *item)
 	return pos_key_hash(&pkey);
 }
 
-static bool pos_key_equal(void *key, const ht_link_t *item)
+static bool pos_key_equal(const void *key, const ht_link_t *item)
 {
-	pos_key_t *pos = (pos_key_t *)key;
+	const pos_key_t *pos = key;
 	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uph_link);
 
 	return pos->service_id == fidx->service_id &&
@@ -167,9 +167,9 @@ typedef struct {
 	fs_index_t index;
 } idx_key_t;
 
-static size_t idx_key_hash(void *key_arg)
+static size_t idx_key_hash(const void *key_arg)
 {
-	idx_key_t *key = (idx_key_t *)key_arg;
+	const idx_key_t *key = key_arg;
 	return hash_combine(key->service_id, key->index);
 }
 
@@ -179,10 +179,10 @@ static size_t idx_hash(const ht_link_t *item)
 	return hash_combine(fidx->service_id, fidx->index);
 }
 
-static bool idx_key_equal(void *key_arg, const ht_link_t *item)
+static bool idx_key_equal(const void *key_arg, const ht_link_t *item)
 {
 	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uih_link);
-	idx_key_t *key = (idx_key_t *)key_arg;
+	const idx_key_t *key = key_arg;
 
 	return key->index == fidx->index && key->service_id == fidx->service_id;
 }

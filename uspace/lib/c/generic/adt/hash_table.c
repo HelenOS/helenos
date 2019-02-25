@@ -244,7 +244,7 @@ bool hash_table_insert_unique(hash_table_t *h, ht_link_t *item)
  * @return Matching item on success, NULL if there is no such item.
  *
  */
-ht_link_t *hash_table_find(const hash_table_t *h, void *key)
+ht_link_t *hash_table_find(const hash_table_t *h, const void *key)
 {
 	assert(h && h->bucket);
 
@@ -302,11 +302,10 @@ hash_table_find_next(const hash_table_t *h, ht_link_t *first, ht_link_t *item)
  * @param h    Hash table.
  * @param key  Array of keys that will be compared against items of
  *             the hash table.
- * @param keys Number of keys in the 'key' array.
  *
  * @return Returns the number of removed items.
  */
-size_t hash_table_remove(hash_table_t *h, void *key)
+size_t hash_table_remove(hash_table_t *h, const void *key)
 {
 	assert(h && h->bucket);
 	assert(!h->apply_ongoing);

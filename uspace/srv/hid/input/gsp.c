@@ -63,9 +63,9 @@ typedef struct {
 	int input;
 } trans_key_t;
 
-static size_t trans_key_hash(void *key)
+static size_t trans_key_hash(const void *key)
 {
-	trans_key_t *trans_key = (trans_key_t *)key;
+	const trans_key_t *trans_key = key;
 	return hash_combine(trans_key->input, trans_key->old_state);
 }
 
@@ -75,9 +75,9 @@ static size_t trans_hash(const ht_link_t *item)
 	return hash_combine(t->input, t->old_state);
 }
 
-static bool trans_key_equal(void *key, const ht_link_t *item)
+static bool trans_key_equal(const void *key, const ht_link_t *item)
 {
-	trans_key_t *trans_key = (trans_key_t *)key;
+	const trans_key_t *trans_key = key;
 	gsp_trans_t *t = hash_table_get_inst(item, gsp_trans_t, link);
 
 	return trans_key->input == t->input && trans_key->old_state == t->old_state;

@@ -64,9 +64,10 @@ typedef struct {
 	async_sess_t *sess;
 } hashed_iface_t;
 
-static size_t service_key_hash(void *key)
+static size_t service_key_hash(const void *key)
 {
-	return *(service_t *) key;
+	const service_t *srv = key;
+	return *srv;
 }
 
 static size_t service_hash(const ht_link_t *item)
@@ -77,17 +78,19 @@ static size_t service_hash(const ht_link_t *item)
 	return service->service;
 }
 
-static bool service_key_equal(void *key, const ht_link_t *item)
+static bool service_key_equal(const void *key, const ht_link_t *item)
 {
+	const service_t *srv = key;
 	hashed_service_t *service =
 	    hash_table_get_inst(item, hashed_service_t, link);
 
-	return service->service == *(service_t *) key;
+	return service->service == *srv;
 }
 
-static size_t iface_key_hash(void *key)
+static size_t iface_key_hash(const void *key)
 {
-	return *(iface_t *) key;
+	const iface_t *iface = key;
+	return *iface;
 }
 
 static size_t iface_hash(const ht_link_t *item)
@@ -98,12 +101,13 @@ static size_t iface_hash(const ht_link_t *item)
 	return iface->iface;
 }
 
-static bool iface_key_equal(void *key, const ht_link_t *item)
+static bool iface_key_equal(const void *key, const ht_link_t *item)
 {
+	const iface_t *kiface = key;
 	hashed_iface_t *iface =
 	    hash_table_get_inst(item, hashed_iface_t, link);
 
-	return iface->iface == *(iface_t *) key;
+	return iface->iface == *kiface;
 }
 
 /** Operations for service hash table. */

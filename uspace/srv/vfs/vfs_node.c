@@ -59,9 +59,9 @@ hash_table_t nodes;
 #define KEY_DEV_HANDLE	1
 #define KEY_INDEX	2
 
-static size_t nodes_key_hash(void *);
+static size_t nodes_key_hash(const void *);
 static size_t nodes_hash(const ht_link_t *);
-static bool nodes_key_equal(void *, const ht_link_t *);
+static bool nodes_key_equal(const void *, const ht_link_t *);
 static vfs_triplet_t node_triplet(vfs_node_t *node);
 
 /** VFS node hash table operations. */
@@ -279,9 +279,9 @@ errno_t vfs_open_node_remote(vfs_node_t *node)
 	return rc;
 }
 
-static size_t nodes_key_hash(void *key)
+static size_t nodes_key_hash(const void *key)
 {
-	vfs_triplet_t *tri = key;
+	const vfs_triplet_t *tri = key;
 	size_t hash = hash_combine(tri->fs_handle, tri->index);
 	return hash_combine(hash, tri->service_id);
 }
@@ -293,9 +293,9 @@ static size_t nodes_hash(const ht_link_t *item)
 	return nodes_key_hash(&tri);
 }
 
-static bool nodes_key_equal(void *key, const ht_link_t *item)
+static bool nodes_key_equal(const void *key, const ht_link_t *item)
 {
-	vfs_triplet_t *tri = key;
+	const vfs_triplet_t *tri = key;
 	vfs_node_t *node = hash_table_get_inst(item, vfs_node_t, nh_link);
 	return node->fs_handle == tri->fs_handle &&
 	    node->service_id == tri->service_id && node->index == tri->index;
