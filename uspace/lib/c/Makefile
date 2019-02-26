@@ -211,6 +211,7 @@ TEST_SOURCES = \
 	test/stdlib.c \
 	test/str.c \
 	test/string.c \
+	test/strtol.c \
 	test/uuid.c
 
 include $(USPACE_PREFIX)/Makefile.common

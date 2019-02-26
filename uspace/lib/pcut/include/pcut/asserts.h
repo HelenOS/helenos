@@ -194,6 +194,37 @@ void pcut_str_error(int error, char *buffer, int size);
 		} \
 	} while (0)
 
+/** Assertion for checking that two integers are equal.
+ *
+ * @param expected Expected (correct) value.
+ * @param actual Actually obtained (computed) value we wish to test.
+ */
+#define PCUT_ASSERT_UINT_EQUALS(expected, actual) \
+	do {\
+		unsigned long long pcut_expected_eval = (expected); \
+		unsigned long long pcut_actual_eval = (actual); \
+		if (pcut_expected_eval != pcut_actual_eval) { \
+			PCUT_ASSERTION_FAILED("Expected <%llu> but got <%llu> (%s != %s)", \
+				pcut_expected_eval, pcut_actual_eval, \
+				#expected, #actual); \
+		} \
+	} while (0)
+
+/** Assertion for checking that two pointers are equal.
+ *
+ * @param expected Expected (correct) value.
+ * @param actual Actually obtained (computed) value we wish to test.
+ */
+#define PCUT_ASSERT_PTR_EQUALS(expected, actual) \
+	do {\
+		const void *pcut_expected_eval = (expected); \
+		const void *pcut_actual_eval = (actual); \
+		if (pcut_expected_eval != pcut_actual_eval) { \
+			PCUT_ASSERTION_FAILED("Expected '" #actual "' = '" #expected "' = <%p> but got '" #actual "' = <%p>", \
+				pcut_expected_eval, pcut_actual_eval); \
+		} \
+	} while (0)
+
 /** Assertion for checking that two doubles are close enough.
  *
  * @param expected Expected (correct) value.

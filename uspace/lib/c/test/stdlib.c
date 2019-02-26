@@ -62,33 +62,6 @@ PCUT_TEST(decls)
 	(void) ptr;
 }
 
-/** atoi function */
-PCUT_TEST(atoi)
-{
-	int i;
-
-	i = atoi(" \t42");
-	PCUT_ASSERT_TRUE(i == 42);
-}
-
-/** atol function */
-PCUT_TEST(atol)
-{
-	long li;
-
-	li = atol(" \t42");
-	PCUT_ASSERT_TRUE(li == 42);
-}
-
-/** atoll function */
-PCUT_TEST(atoll)
-{
-	long long lli;
-
-	lli = atoll(" \t42");
-	PCUT_ASSERT_TRUE(lli == 42);
-}
-
 /** strtold function */
 #include <stdio.h>
 PCUT_TEST(strtold)
@@ -100,97 +73,6 @@ PCUT_TEST(strtold)
 	ld = strtold(str, &endptr);
 	printf("ld=%.10lf\n", (double)ld);
 	PCUT_ASSERT_TRUE(ld == 42.0);
-}
-
-/** strtol function */
-PCUT_TEST(strtol)
-{
-	long li;
-	char *ep;
-
-	li = strtol(" \t42x", &ep, 10);
-	PCUT_ASSERT_TRUE(li == 42);
-	PCUT_ASSERT_TRUE(*ep == 'x');
-}
-
-/** strtol function with auto-detected base 10 */
-PCUT_TEST(strtol_dec_auto)
-{
-	long li;
-	char *ep;
-
-	li = strtol(" \t42x", &ep, 0);
-	PCUT_ASSERT_TRUE(li == 42);
-	PCUT_ASSERT_TRUE(*ep == 'x');
-}
-
-/** strtol function with octal number */
-PCUT_TEST(strtol_oct)
-{
-	long li;
-	char *ep;
-
-	li = strtol(" \t052x", &ep, 8);
-	PCUT_ASSERT_TRUE(li == 052);
-	PCUT_ASSERT_TRUE(*ep == 'x');
-}
-
-/** strtol function with octal number with prefix */
-#include <stdio.h>
-PCUT_TEST(strtol_oct_prefix)
-{
-	long li;
-	char *ep;
-
-	li = strtol(" \t052x", &ep, 0);
-	printf("li=%ld (0%lo)\n", li, li);
-	PCUT_ASSERT_TRUE(li == 052);
-	PCUT_ASSERT_TRUE(*ep == 'x');
-}
-
-/** strtol function with hex number */
-PCUT_TEST(strtol_hex)
-{
-	long li;
-	char *ep;
-
-	li = strtol(" \t2ax", &ep, 16);
-	PCUT_ASSERT_TRUE(li == 0x2a);
-	PCUT_ASSERT_TRUE(*ep == 'x');
-}
-
-/** strtol function with hex number with hex prefix */
-PCUT_TEST(strtol_hex_prefixed)
-{
-	long li;
-	char *ep;
-
-	li = strtol(" \t0x2ax", &ep, 0);
-	PCUT_ASSERT_TRUE(li == 0x2a);
-	PCUT_ASSERT_TRUE(*ep == 'x');
-}
-
-/** strtol function with base 16 and number with 0x prefix */
-PCUT_TEST(strtol_base16_prefix)
-{
-	long li;
-	char *ep;
-
-	li = strtol(" \t0x1y", &ep, 16);
-	printf("li=%ld\n", li);
-	PCUT_ASSERT_TRUE(li == 1);
-	PCUT_ASSERT_TRUE(*ep == 'y');
-}
-
-/** strtol function with base 36 number */
-PCUT_TEST(strtol_base36)
-{
-	long li;
-	char *ep;
-
-	li = strtol(" \tz1.", &ep, 36);
-	PCUT_ASSERT_TRUE(li == 35 * 36 + 1);
-	PCUT_ASSERT_TRUE(*ep == '.');
 }
 
 /** rand function */
