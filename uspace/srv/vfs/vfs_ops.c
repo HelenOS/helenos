@@ -617,6 +617,11 @@ errno_t vfs_op_resize(int fd, int64_t size)
 	if (!file)
 		return EBADF;
 
+	if (!file->open_write || file->node->type != VFS_NODE_FILE) {
+		vfs_file_put(file);
+		return EINVAL;
+	}
+
 	fibril_rwlock_write_lock(&file->node->contents_rwlock);
 
 	errno_t rc = vfs_truncate_internal(file->node->fs_handle,
