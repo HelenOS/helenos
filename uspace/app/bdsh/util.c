@@ -73,3 +73,16 @@ unsigned int cli_set_prompt(cliuser_t *usr)
 
 	return 0;
 }
+
+/*
+ * Returns true if the string is a relative or an absolute path
+ */
+bool is_path(const char *cmd)
+{
+
+	bool ret = str_lcmp(cmd, "/", 1) == 0;
+	ret = ret || str_lcmp(cmd, "./", 2) == 0;
+	ret = ret || str_lcmp(cmd, "../", 3) == 0;
+
+	return ret;
+}

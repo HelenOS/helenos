@@ -71,8 +71,10 @@ static int try_access(const char *f)
 static char *find_command(char *cmd)
 {
 	/* The user has specified a full or relative path, just give it back. */
-	if (-1 != try_access(cmd)) {
-		return str_dup(cmd);
+	if (is_path(cmd)) {
+		if (-1 != try_access(cmd)) {
+			return str_dup(cmd);
+		}
 	}
 
 	char *found = (char *)malloc(PATH_MAX);
