@@ -46,7 +46,7 @@
 #include "exec.h"
 #include "errors.h"
 
-static char *find_command(char *);
+static errno_t find_command(char *, char **);
 static int try_access(const char *);
 
 const char *search_dir[] = { "/app", NULL };
@@ -64,33 +64,50 @@ static int try_access(const char *f)
 		return -1;
 }
 
-/** Returns the full path of "cmd" if cmd is found
+/** Returns EOK if no internal failure or else ENOMEM
  *
- * else just hand back cmd as it was presented
+ * When the parameter `cmd` can be found then the absolute path will be set in `found`.
+ * Or else `found` will be NULL.
+ * `found` will be newly allocated and must be freed by the caller
  */
-static char *find_command(char *cmd)
+static errno_t find_command(char *cmd, char **found)
 {
 	/* The user has specified a full or relative path, just give it back. */
 	if (is_path(cmd)) {
 		if (-1 != try_access(cmd)) {
-			return str_dup(cmd);
+			*found = str_dup(cmd);
+			return EOK;
 		}
+
+		*found = NULL;
+		return EOK;
 	}
 
-	char *found = (char *)malloc(PATH_MAX);
+	*found = (char *)malloc(PATH_MAX);
+	if (*found == NULL) {
+		return ENOMEM;
+	}
+
 	/* We now have n places to look for the command */
 	size_t i;
+	size_t cmd_length = str_length(cmd);
 	for (i = 0; search_dir[i] != NULL; i++) {
-		memset(found, 0, PATH_MAX);
-		snprintf(found, PATH_MAX, "%s/%s", search_dir[i], cmd);
-		if (-1 != try_access(found)) {
-			return (char *) found;
+		if (str_length(search_dir[i]) + cmd_length + 2 > PATH_MAX) {
+			free(*found);
+			return ENOMEM;
+		}
+
+		memset(*found, 0, PATH_MAX);
+		snprintf(*found, PATH_MAX, "%s/%s", search_dir[i], cmd);
+		if (-1 != try_access(*found)) {
+			return EOK;
 		}
 	}
-	free(found);
+	free(*found);
+	*found = NULL;
 
-	/* We didn't find it, just give it back as-is. */
-	return str_dup(cmd);
+	/* We didn't find it, return NULL */
+	return EOK;
 }
 
 unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
@@ -104,7 +121,16 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	int file_handles[3] = { -1, -1, -1 };
 	FILE *files[3];
 
-	tmp = find_command(cmd);
+	rc = find_command(cmd, &tmp);
+	if (rc != EOK) {
+		cli_error(CL_ENOMEM, "%s: failure executing find_command()", progname);
+		return 1;
+	}
+
+	if (tmp == NULL) {
+		cli_error(CL_EEXEC, "%s: Command not found '%s'", progname, cmd);
+		return 1;
+	}
 
 	files[0] = io->stdin;
 	files[1] = io->stdout;

@@ -218,6 +218,11 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 
 		if (!is_path(prefix) && cs->is_command) {
 			cs->path_list[0] = malloc(sizeof(char) * PATH_MAX);
+			if (cs->path_list[0] == NULL) {
+				retval = ENOMEM;
+				goto error;
+			}
+
 			int ret = snprintf(cs->path_list[0], PATH_MAX, "%s/%s", search_dir[0], dirname);
 			if (ret < 0 || ret >= PATH_MAX) {
 				retval = ENOMEM;
@@ -227,6 +232,7 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 			cs->path_list[0] = dirname;
 		}
 
+		free(prefix);
 		cs->path_list[1] = NULL;
 		/*
 		 * The second const ensures that we can't assign a const
