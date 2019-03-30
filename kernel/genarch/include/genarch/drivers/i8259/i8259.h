@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_ia32
+/** @addtogroup kernel_genarch
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ia32_I8259_H_
-#define KERN_ia32_I8259_H_
+#ifndef KERN_I8259_H_
+#define KERN_I8259_H_
 
 #include <typedefs.h>
 #include <arch/interrupt.h>

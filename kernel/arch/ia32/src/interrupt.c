@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <debug.h>
 #include <panic.h>
-#include <arch/drivers/i8259.h>
+#include <genarch/drivers/i8259/i8259.h>
 #include <halt.h>
 #include <cpu.h>
 #include <arch/asm.h>

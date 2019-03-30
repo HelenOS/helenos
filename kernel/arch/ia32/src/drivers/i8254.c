@@ -41,7 +41,7 @@
 #include <time/delay.h>
 #include <arch/cycle.h>
 #include <arch/interrupt.h>
-#include <arch/drivers/i8259.h>
+#include <genarch/drivers/i8259/i8259.h>
 #include <arch/drivers/i8254.h>
 #include <cpu.h>
 #include <config.h>

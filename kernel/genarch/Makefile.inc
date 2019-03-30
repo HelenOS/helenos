@@ -84,6 +84,11 @@ GENARCH_SOURCES += \
 	genarch/src/drivers/i8042/i8042.c
 endif
 
+ifeq ($(CONFIG_I8259),y)
+GENARCH_SOURCES += \
+	genarch/src/drivers/i8259/i8259.c
+endif
+
 ifeq ($(CONFIG_NS16550),y)
 GENARCH_SOURCES += \
 	genarch/src/drivers/ns16550/ns16550.c

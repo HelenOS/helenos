@@ -46,10 +46,10 @@
 #include <arch/bios/bios.h>
 #include <arch/boot/boot.h>
 #include <arch/drivers/i8254.h>
-#include <arch/drivers/i8259.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/drivers/ega/ega.h>
 #include <genarch/drivers/i8042/i8042.h>
+#include <genarch/drivers/i8259/i8259.h>
 #include <genarch/drivers/ns16550/ns16550.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/fb/bfb.h>

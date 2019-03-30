@@ -54,7 +54,7 @@
 #include <mm/as.h>
 #include <log.h>
 #include <mem.h>
-#include <arch/drivers/i8259.h>
+#include <genarch/drivers/i8259/i8259.h>
 #include <cpu.h>
 
 #ifdef CONFIG_SMP

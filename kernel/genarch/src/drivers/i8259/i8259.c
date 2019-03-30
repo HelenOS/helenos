@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_ia32
+/** @addtogroup kernel_genarch
  * @{
  */
 /**
@@ -36,7 +36,7 @@
  * Programmable Interrupt Controller for UP systems based on i8259 chip.
  */
 
-#include <arch/drivers/i8259.h>
+#include <genarch/drivers/i8259/i8259.h>
 #include <cpu.h>
 #include <stdint.h>
 #include <arch/asm.h>
