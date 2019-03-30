@@ -37,10 +37,8 @@
  */
 
 #include <genarch/drivers/i8259/i8259.h>
-#include <cpu.h>
+#include <typedefs.h>
 #include <stdint.h>
-#include <arch/asm.h>
-#include <arch.h>
 #include <log.h>
 #include <interrupt.h>
 
@@ -50,7 +48,8 @@ static void pic_spurious(unsigned int n, istate_t *istate);
 static i8259_t *saved_pic0;
 static i8259_t *saved_pic1;
 
-void i8259_init(i8259_t *pic0, i8259_t *pic1)
+void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
+    unsigned int irq0_int, unsigned int irq8_int)
 {
 	saved_pic0 = pic0;
 	saved_pic1 = pic1;
@@ -58,11 +57,11 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1)
 	/* ICW1: this is ICW1, ICW4 to follow */
 	pio_write_8(&pic0->port1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
-	/* ICW2: IRQ 0 maps to INT IRQBASE */
-	pio_write_8(&pic0->port2, IVT_IRQBASE);
+	/* ICW2: IRQ 0 maps to INT irq0_int */
+	pio_write_8(&pic0->port2, irq0_int);
 
 	/* ICW3: pic1 using IRQ IRQ_PIC1 */
-	pio_write_8(&pic0->port2, 1 << IRQ_PIC1);
+	pio_write_8(&pic0->port2, 1 << pic1_irq);
 
 	/* ICW4: i8086 mode */
 	pio_write_8(&pic0->port2, 1);
@@ -70,11 +69,11 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1)
 	/* ICW1: ICW1, ICW4 to follow */
 	pio_write_8(&pic1->port1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
-	/* ICW2: IRQ 8 maps to INT (IVT_IRQBASE + 8) */
-	pio_write_8(&pic1->port2, IVT_IRQBASE + 8);
+	/* ICW2: IRQ 8 maps to INT irq8_int */
+	pio_write_8(&pic1->port2, irq8_int);
 
 	/* ICW3: pic1 is known as IRQ_PIC1 */
-	pio_write_8(&pic1->port2, IRQ_PIC1);
+	pio_write_8(&pic1->port2, pic1_irq);
 
 	/* ICW4: i8086 mode */
 	pio_write_8(&pic1->port2, 1);
@@ -95,7 +94,7 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1)
 	irqs_info = "i8259";
 
 	pic_disable_irqs(0xffff);		/* disable all irq's */
-	pic_enable_irqs(1 << IRQ_PIC1);		/* but enable pic1 */
+	pic_enable_irqs(1 << pic1_irq);		/* but enable pic1_irq */
 }
 
 void pic_enable_irqs(uint16_t irqmask)

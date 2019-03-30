@@ -51,7 +51,7 @@ typedef struct {
 	ioport8_t port2;
 } __attribute__((packed)) i8259_t;
 
-extern void i8259_init(i8259_t *, i8259_t *);
+extern void i8259_init(i8259_t *, i8259_t *, inr_t, unsigned int, unsigned int);
 extern void pic_enable_irqs(uint16_t);
 extern void pic_disable_irqs(uint16_t);
 extern void pic_eoi(void);
