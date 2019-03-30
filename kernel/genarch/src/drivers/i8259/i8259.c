@@ -46,31 +46,38 @@
 
 static void pic_spurious(unsigned int n, istate_t *istate);
 
-void i8259_init(void)
+// XXX: need to change pic_* API to get rid of these
+static i8259_t *saved_pic0;
+static i8259_t *saved_pic1;
+
+void i8259_init(i8259_t *pic0, i8259_t *pic1)
 {
+	saved_pic0 = pic0;
+	saved_pic1 = pic1;
+
 	/* ICW1: this is ICW1, ICW4 to follow */
-	pio_write_8(PIC_PIC0PORT1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
+	pio_write_8(&pic0->port1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
 	/* ICW2: IRQ 0 maps to INT IRQBASE */
-	pio_write_8(PIC_PIC0PORT2, IVT_IRQBASE);
+	pio_write_8(&pic0->port2, IVT_IRQBASE);
 
 	/* ICW3: pic1 using IRQ IRQ_PIC1 */
-	pio_write_8(PIC_PIC0PORT2, 1 << IRQ_PIC1);
+	pio_write_8(&pic0->port2, 1 << IRQ_PIC1);
 
 	/* ICW4: i8086 mode */
-	pio_write_8(PIC_PIC0PORT2, 1);
+	pio_write_8(&pic0->port2, 1);
 
 	/* ICW1: ICW1, ICW4 to follow */
-	pio_write_8(PIC_PIC1PORT1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
+	pio_write_8(&pic1->port1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
 	/* ICW2: IRQ 8 maps to INT (IVT_IRQBASE + 8) */
-	pio_write_8(PIC_PIC1PORT2, IVT_IRQBASE + 8);
+	pio_write_8(&pic1->port2, IVT_IRQBASE + 8);
 
 	/* ICW3: pic1 is known as IRQ_PIC1 */
-	pio_write_8(PIC_PIC1PORT2, IRQ_PIC1);
+	pio_write_8(&pic1->port2, IRQ_PIC1);
 
 	/* ICW4: i8086 mode */
-	pio_write_8(PIC_PIC1PORT2, 1);
+	pio_write_8(&pic1->port2, 1);
 
 	/*
 	 * Register interrupt handler for the PIC spurious interrupt.
@@ -96,12 +103,14 @@ void pic_enable_irqs(uint16_t irqmask)
 	uint8_t x;
 
 	if (irqmask & 0xff) {
-		x = pio_read_8(PIC_PIC0PORT2);
-		pio_write_8(PIC_PIC0PORT2, (uint8_t) (x & (~(irqmask & 0xff))));
+		x = pio_read_8(&saved_pic0->port2);
+		pio_write_8(&saved_pic0->port2,
+		    (uint8_t) (x & (~(irqmask & 0xff))));
 	}
 	if (irqmask >> 8) {
-		x = pio_read_8(PIC_PIC1PORT2);
-		pio_write_8(PIC_PIC1PORT2, (uint8_t) (x & (~(irqmask >> 8))));
+		x = pio_read_8(&saved_pic1->port2);
+		pio_write_8(&saved_pic1->port2,
+		    (uint8_t) (x & (~(irqmask >> 8))));
 	}
 }
 
@@ -110,19 +119,20 @@ void pic_disable_irqs(uint16_t irqmask)
 	uint8_t x;
 
 	if (irqmask & 0xff) {
-		x = pio_read_8(PIC_PIC0PORT2);
-		pio_write_8(PIC_PIC0PORT2, (uint8_t) (x | (irqmask & 0xff)));
+		x = pio_read_8(&saved_pic0->port2);
+		pio_write_8(&saved_pic0->port2,
+		    (uint8_t) (x | (irqmask & 0xff)));
 	}
 	if (irqmask >> 8) {
-		x = pio_read_8(PIC_PIC1PORT2);
-		pio_write_8(PIC_PIC1PORT2, (uint8_t) (x | (irqmask >> 8)));
+		x = pio_read_8(&saved_pic1->port2);
+		pio_write_8(&saved_pic1->port2, (uint8_t) (x | (irqmask >> 8)));
 	}
 }
 
 void pic_eoi(void)
 {
-	pio_write_8(PIC_PIC0PORT1, PIC_OCW4 | PIC_OCW4_NSEOI);
-	pio_write_8(PIC_PIC1PORT1, PIC_OCW4 | PIC_OCW4_NSEOI);
+	pio_write_8(&saved_pic0->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
+	pio_write_8(&saved_pic1->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 }
 
 void pic_spurious(unsigned int n __attribute__((unused)), istate_t *istate __attribute__((unused)))

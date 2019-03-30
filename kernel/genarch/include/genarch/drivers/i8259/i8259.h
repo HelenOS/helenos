@@ -38,11 +38,6 @@
 #include <typedefs.h>
 #include <arch/interrupt.h>
 
-#define PIC_PIC0PORT1  ((ioport8_t *) 0x20U)
-#define PIC_PIC0PORT2  ((ioport8_t *) 0x21U)
-#define PIC_PIC1PORT1  ((ioport8_t *) 0xa0U)
-#define PIC_PIC1PORT2  ((ioport8_t *) 0xa1U)
-
 /* ICW1 bits */
 #define PIC_ICW1           (1 << 4)
 #define PIC_ICW1_NEEDICW4  (1 << 0)
@@ -51,7 +46,12 @@
 #define PIC_OCW4           (0 << 3)
 #define PIC_OCW4_NSEOI     (1 << 5)
 
-extern void i8259_init(void);
+typedef struct {
+	ioport8_t port1;
+	ioport8_t port2;
+} __attribute__((packed)) i8259_t;
+
+extern void i8259_init(i8259_t *, i8259_t *);
 extern void pic_enable_irqs(uint16_t);
 extern void pic_disable_irqs(uint16_t);
 extern void pic_eoi(void);

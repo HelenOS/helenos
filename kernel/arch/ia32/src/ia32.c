@@ -108,7 +108,8 @@ void ia32_pre_mm_init(void)
 		bios_init();
 
 		/* PIC */
-		i8259_init();
+		i8259_init((i8259_t *) I8259_PIC0_BASE,
+		    (i8259_t *) I8259_PIC1_BASE);
 	}
 }
 
