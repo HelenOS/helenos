@@ -122,6 +122,15 @@ void amd64_pre_mm_init(void)
 		i8259_init((i8259_t *) I8259_PIC0_BASE,
 		    (i8259_t *) I8259_PIC1_BASE, IRQ_PIC1, IVT_IRQBASE,
 		    IVT_IRQBASE + 8);
+
+		/*
+		 * Set the enable/disable IRQs handlers.
+		 * Set the End-of-Interrupt handler.
+		 */
+		enable_irqs_function = pic_enable_irqs;
+		disable_irqs_function = pic_disable_irqs;
+		eoi_function = pic_eoi;
+		irqs_info = "i8259";
 	}
 }
 

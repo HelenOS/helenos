@@ -80,18 +80,13 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
 
 	/*
 	 * Register interrupt handler for the PIC spurious interrupt.
+	 *
+	 * XXX: This is currently broken. Both IRQ 7 and IRQ 15 can be spurious
+	 *      or can be actual interrupts. This needs to be detected when
+	 *      the interrupt happens by inspecting ISR.
 	 */
-	exc_register(VECTOR_PIC_SPUR, "pic_spurious", false,
+	exc_register(irq0_int + 7, "pic_spurious", false,
 	    (iroutine_t) pic_spurious);
-
-	/*
-	 * Set the enable/disable IRQs handlers.
-	 * Set the End-of-Interrupt handler.
-	 */
-	enable_irqs_function = pic_enable_irqs;
-	disable_irqs_function = pic_disable_irqs;
-	eoi_function = pic_eoi;
-	irqs_info = "i8259";
 
 	pic_disable_irqs(0xffff);		/* disable all irq's */
 	pic_enable_irqs(1 << pic1_irq);		/* but enable pic1_irq */
