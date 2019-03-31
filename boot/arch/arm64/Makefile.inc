@@ -53,6 +53,11 @@ ENDIANESS = LE
 EXTRA_CFLAGS = -fpic -fvisibility=hidden
 EXTRA_LDFLAGS = -Wl,-shared
 
+ifeq ($(MACHINE), virt)
+	RD_DRVS_ESSENTIAL += \
+		intctl/gicv2
+endif
+
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \
