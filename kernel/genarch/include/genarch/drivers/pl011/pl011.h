@@ -37,6 +37,7 @@
 #ifndef KERN_PL011_H_
 #define KERN_PL011_H_
 
+#include <ddi/ddi.h>
 #include <ddi/irq.h>
 #include <console/chardev.h>
 #include <typedefs.h>
@@ -149,6 +150,7 @@ typedef struct {
 	indev_t *indev;
 	outdev_t outdev;
 	irq_t irq;
+	parea_t parea;
 } pl011_uart_t;
 
 bool pl011_uart_init(pl011_uart_t *, inr_t, uintptr_t);

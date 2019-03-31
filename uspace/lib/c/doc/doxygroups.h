@@ -20,6 +20,11 @@
  */
 
 /**
+ * @addtogroup libcarm64 arm64
+ * @ingroup libc
+ */
+
+/**
  * @addtogroup libcia32 ia32
  * @ingroup libc
  */

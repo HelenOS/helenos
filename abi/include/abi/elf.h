@@ -76,6 +76,7 @@ enum elf_machine {
 	EM_SPARCV9     = 43,   /* SPARC64 */
 	EM_IA_64       = 50,   /* IA-64 */
 	EM_X86_64      = 62,   /* AMD64/EMT64 */
+	EM_AARCH64     = 183,  /* ARM 64-bit architecture */
 	EM_RISCV       = 243,  /* RISC-V */
 };
 
@@ -514,6 +515,7 @@ typedef struct elf32_note elf_note_t;
 typedef struct elf32_dyn elf_dyn_t;
 typedef struct elf32_rel elf_rel_t;
 typedef struct elf32_rela elf_rela_t;
+#define ELF_R_TYPE(i)  ELF32_R_TYPE(i)
 #endif
 
 #ifdef __64_BITS__
@@ -525,6 +527,7 @@ typedef struct elf64_note elf_note_t;
 typedef struct elf64_dyn elf_dyn_t;
 typedef struct elf64_rel elf_rel_t;
 typedef struct elf64_rela elf_rela_t;
+#define ELF_R_TYPE(i)  ELF64_R_TYPE(i)
 #endif
 
 #endif

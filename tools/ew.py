@@ -93,6 +93,22 @@ def platform_to_qemu_options(platform, machine, processor):
 		return 'system-x86_64', pc_options(64)
 	elif platform == 'arm32':
 		return 'system-arm', '-M integratorcp'
+	elif platform == 'arm64':
+		# Check that ROM image is present. Provide the user with
+		# appropriate steps to fix this problem.
+		if not os.path.exists('QEMU_EFI_ARM64.fd'):
+			sys.stderr.write('Could not find ' +
+			    '\'QEMU_EFI_ARM64.fd\' which is expected to ' +
+			    'contain EDK2 firmware image.\n')
+			sys.stderr.write('Pre-built image can be obtained by ' +
+			    'running the following command:\n')
+			sys.stderr.write('$ wget http://snapshots.linaro.org/' +
+			    'components/kernel/leg-virt-tianocore-edk2-' +
+			    'upstream/latest/QEMU-AARCH64/RELEASE_GCC49/' +
+			    'QEMU_EFI.fd -O QEMU_EFI_ARM64.fd\n')
+			raise Exception
+		return 'system-aarch64', \
+		    '-M virt -cpu cortex-a57 -m 1024 -bios QEMU_EFI_ARM64.fd'
 	elif platform == 'ia32':
 		return 'system-i386', pc_options(32)
 	elif platform == 'mips32':
@@ -207,8 +223,8 @@ def qemu_run(platform, machine, processor):
 	if options != '':
 		cmdline += ' ' + options
 
-	cmdline += qemu_bd_options()
-
+	if (not 'hdd' in cfg.keys() or cfg['hdd']):
+		cmdline += qemu_bd_options()
 	if (not 'net' in cfg.keys()) or cfg['net']:
 		cmdline += qemu_net_options()
 	if (not 'usb' in cfg.keys()) or cfg['usb']:
@@ -233,6 +249,13 @@ def qemu_run(platform, machine, processor):
 
 	if cfg['image'] == 'image.iso':
 		cmdline += ' -boot d -cdrom image.iso'
+	elif cfg['image'] == 'image.iso@arm64':
+		# Define image.iso cdrom backend.
+		cmdline += ' -drive if=none,file=image.iso,id=cdrom,media=cdrom'
+		# Define scsi bus.
+		cmdline += ' -device virtio-scsi-device'
+		# Define cdrom frontend connected to this scsi bus.
+		cmdline += ' -device scsi-cd,drive=cdrom'
 	elif cfg['image'] == 'image.boot':
 		cmdline += ' -kernel image.boot'
 	else:
@@ -275,6 +298,19 @@ emulators = {
 			'audio' : False,
 			'xhci' : False,
 			'tablet' : False
+		}
+	},
+	'arm64' : {
+		'virt' : {
+			'run' : qemu_run,
+			'image' : 'image.iso@arm64',
+			'audio' : False,
+			'console' : True,
+			'hdd' : False,
+			'net' : False,
+			'tablet' : False,
+			'usb' : False,
+			'xhci' : False
 		}
 	},
 	'ia32' : {
