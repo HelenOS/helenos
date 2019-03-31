@@ -65,6 +65,7 @@ show_usage() {
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
 	echo " arm32      ARM 32b"
+	echo " arm64      AArch64"
 	echo " ia32       IA-32 (x86, i386)"
 	echo " ia64       IA-64 (Itanium)"
 	echo " mips32     MIPS little-endian 32b"
@@ -102,7 +103,7 @@ test_version() {
 	echo
 	
 	if [ -z "$1" ] || [ "$1" == "all" ] ; then
-		PLATFORMS=("amd64" "arm32" "ia32" "ia64" "mips32" "mips32eb" "ppc32" "riscv64" "sparc64")
+		PLATFORMS=("amd64" "arm32" "arm64" "ia32" "ia64" "mips32" "mips32eb" "ppc32" "riscv64" "sparc64")
 	else
 		PLATFORMS=("$1")
 	fi
@@ -274,6 +275,9 @@ set_target_from_platform() {
 	case "$1" in
 		"arm32")
 			GNU_ARCH="arm"
+			;;
+		"arm64")
+			GNU_ARCH="aarch64"
 			;;
 		"ia32")
 			GNU_ARCH="i686"
@@ -496,7 +500,7 @@ case "$1" in
 	--test-version)
 		test_version
 		;;
-	amd64|arm32|ia32|ia64|mips32|mips32eb|ppc32|riscv64|sparc64)
+	amd64|arm32|arm64|ia32|ia64|mips32|mips32eb|ppc32|riscv64|sparc64)
 		prepare
 		build_target "$1"
 		;;
@@ -504,6 +508,7 @@ case "$1" in
 		prepare
 		build_target "amd64"
 		build_target "arm32"
+		build_target "arm64"
 		build_target "ia32"
 		build_target "ia64"
 		build_target "mips32"
@@ -516,6 +521,7 @@ case "$1" in
 		prepare
 		build_target "amd64"
 		build_target "arm32"
+		build_target "arm64"
 		build_target "ia32"
 		build_target "ia64"
 		build_target "mips32"
@@ -527,6 +533,7 @@ case "$1" in
 		prepare
 		build_target "amd64" &
 		build_target "arm32" &
+		build_target "arm64" &
 		build_target "ia32" &
 		build_target "ia64" &
 		build_target "mips32" &
@@ -542,18 +549,19 @@ case "$1" in
 		build_target "arm32" &
 		wait
 
+		build_target "arm64" &
 		build_target "ia32" &
+		wait
+
 		build_target "ia64" &
-		wait
-
 		build_target "mips32" &
+		wait
+
 		build_target "mips32eb" &
-		wait
-
 		build_target "ppc32" &
-		build_target "riscv64" &
 		wait
 
+		build_target "riscv64" &
 		build_target "sparc64" &
 		wait
 		;;
