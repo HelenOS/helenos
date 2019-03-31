@@ -180,6 +180,7 @@ DIRS = \
 	drv/hid/usbhid \
 	drv/hid/xtkbd \
 	drv/intctl/apic \
+	drv/intctl/gicv2 \
 	drv/intctl/i8259 \
 	drv/intctl/icp-ic \
 	drv/intctl/obio \
