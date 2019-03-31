@@ -75,9 +75,9 @@ pte_t *ptl0_create(unsigned int flags)
 	pte_t *dst_ptl0 = (pte_t *)
 	    PA2KA(frame_alloc(PTL0_FRAMES, FRAME_LOWMEM, PTL0_SIZE - 1));
 
-	if (flags & FLAG_AS_KERNEL)
-		memsetb(dst_ptl0, PTL0_SIZE, 0);
-	else {
+	memsetb(dst_ptl0, PTL0_SIZE, 0);
+
+	if (!KERNEL_SEPARATE_PTL0 && !(flags & FLAG_AS_KERNEL)) {
 		/*
 		 * Copy the kernel address space portion to new PTL0.
 		 */
@@ -92,7 +92,6 @@ pte_t *ptl0_create(unsigned int flags)
 		uintptr_t dst = (uintptr_t)
 		    &dst_ptl0[PTL0_INDEX(KERNEL_ADDRESS_SPACE_START)];
 
-		memsetb(dst_ptl0, PTL0_SIZE, 0);
 		memcpy((void *) dst, (void *) src,
 		    PTL0_SIZE - (src - (uintptr_t) src_ptl0));
 

@@ -36,7 +36,7 @@ OPTIMIZATION = 3
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 AFLAGS = --fatal-warnings
-LDFLAGS = -Wl,--fatal-warnings,--warn-common
+LDFLAGS = -Wl,--fatal-warnings,--warn-common $(EXTRA_LDFLAGS)
 
 COMMON_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -nostdlib \

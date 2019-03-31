@@ -59,9 +59,13 @@ static void pl011_uart_putwchar(outdev_t *dev, wchar_t ch)
 {
 	pl011_uart_t *uart = dev->data;
 
-	if (!ascii_check(ch)) {
+	/* If the userspace owns the console, do not output anything. */
+	if (uart->parea.mapped && !console_override)
+		return;
+
+	if (!ascii_check(ch))
 		pl011_uart_sendb(uart, U_SPECIAL);
-	} else {
+	else {
 		if (ch == '\n')
 			pl011_uart_sendb(uart, (uint8_t) '\r');
 		pl011_uart_sendb(uart, (uint8_t) ch);
@@ -99,7 +103,7 @@ bool pl011_uart_init(pl011_uart_t *uart, inr_t interrupt, uintptr_t addr)
 {
 	assert(uart);
 	uart->regs = (void *)km_map(addr, sizeof(pl011_uart_regs_t),
-	    KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
+	    KM_NATURAL_ALIGNMENT, PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	assert(uart->regs);
 
 	/* Disable UART */
@@ -129,6 +133,13 @@ bool pl011_uart_init(pl011_uart_t *uart, inr_t interrupt, uintptr_t addr)
 	uart->irq.claim = pl011_uart_claim;
 	uart->irq.handler = pl011_uart_irq_handler;
 	uart->irq.instance = uart;
+
+	ddi_parea_init(&uart->parea);
+	uart->parea.pbase = addr;
+	uart->parea.frames = 1;
+	uart->parea.unpriv = false;
+	uart->parea.mapped = false;
+	ddi_parea_register(&uart->parea);
 
 	return true;
 }

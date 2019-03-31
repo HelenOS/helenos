@@ -73,3 +73,4 @@ RD_DATA_NON_ESSENTIAL += \
 POST_OUTPUT = $(ROOT_PATH)/image.iso
 BUILD = Makefile.empty
 POSTBUILD = Makefile.grub
+GRUB_LOADER = multiboot

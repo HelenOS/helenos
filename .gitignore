@@ -13,6 +13,7 @@
 /Makefile.common
 /Makefile.config
 /PKG
+/QEMU_EFI_ARM64.fd
 /common.h
 /config.h
 /cscope.out
@@ -23,6 +24,7 @@
 /uImage.bin
 autotool/
 boot/arch/arm32/_link.ld
+boot/arch/arm64/_link.ld
 boot/arch/ia64/_link.ld
 boot/arch/mips32/_link.ld
 boot/arch/ppc32/_link.ld
@@ -48,6 +50,7 @@ doxygen/latex/
 kernel/arch/abs32le/_link.ld
 kernel/arch/amd64/_link.ld
 kernel/arch/arm32/_link.ld
+kernel/arch/arm64/_link.ld
 kernel/arch/ia32/_link.ld
 kernel/arch/ia64/_link.ld
 kernel/arch/mips32/_link.ld
@@ -360,6 +363,10 @@ uspace/lib/c/arch/arm32/_link-dlexe.ld
 uspace/lib/c/arch/arm32/_link-loader.ld
 uspace/lib/c/arch/arm32/_link-shlib.ld
 uspace/lib/c/arch/arm32/_link.ld
+uspace/lib/c/arch/arm64/_link-dlexe.ld
+uspace/lib/c/arch/arm64/_link-loader.ld
+uspace/lib/c/arch/arm64/_link-shlib.ld
+uspace/lib/c/arch/arm64/_link.ld
 uspace/lib/c/arch/ia32/_link-dlexe.ld
 uspace/lib/c/arch/ia32/_link-loader.ld
 uspace/lib/c/arch/ia32/_link-shlib.ld

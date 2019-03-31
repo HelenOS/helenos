@@ -29,6 +29,11 @@
  */
 
 /**
+ * @defgroup abi_arm64 arm64
+ * @ingroup abi
+ */
+
+/**
  * @defgroup abi_ia32 ia32
  * @ingroup abi
  */
