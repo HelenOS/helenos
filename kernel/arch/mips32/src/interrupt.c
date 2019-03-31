@@ -37,23 +37,14 @@
 #include <typedefs.h>
 #include <arch.h>
 #include <arch/cp0.h>
-#include <arch/smp/dorder.h>
 #include <time/clock.h>
 #include <ipc/sysipc.h>
 
 #define IRQ_COUNT   8
 #define TIMER_IRQ   7
 
-#ifdef MACHINE_msim
-#define DORDER_IRQ  5
-#endif
-
 function virtual_timer_fnc = NULL;
 static irq_t timer_irq;
-
-#ifdef MACHINE_msim
-static irq_t dorder_irq;
-#endif
 
 // TODO: This is SMP unsafe!!!
 
@@ -155,18 +146,6 @@ static void timer_irq_handler(irq_t *irq)
 		virtual_timer_fnc();
 }
 
-#ifdef MACHINE_msim
-static irq_ownership_t dorder_claim(irq_t *irq)
-{
-	return IRQ_ACCEPT;
-}
-
-static void dorder_irq_handler(irq_t *irq)
-{
-	dorder_ipi_ack(1 << dorder_cpuid());
-}
-#endif
-
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)
 {
@@ -180,16 +159,6 @@ void interrupt_init(void)
 
 	timer_start();
 	cp0_unmask_int(TIMER_IRQ);
-
-#ifdef MACHINE_msim
-	irq_initialize(&dorder_irq);
-	dorder_irq.inr = DORDER_IRQ;
-	dorder_irq.claim = dorder_claim;
-	dorder_irq.handler = dorder_irq_handler;
-	irq_register(&dorder_irq);
-
-	cp0_unmask_int(DORDER_IRQ);
-#endif
 }
 
 /** @}

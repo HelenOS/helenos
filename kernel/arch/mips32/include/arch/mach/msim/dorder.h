@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2007 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,14 @@
 /** @file
  */
 
-#ifndef KERN_mips32_MSIM_H_
-#define KERN_mips32_MSIM_H_
+#ifndef KERN_mips32_DORDER_H_
+#define KERN_mips32_DORDER_H_
 
-/** Address of devices. */
-#define MSIM_VIDEORAM     0x90000000
-#define MSIM_KBD_ADDRESS  0x90000000
+#include <stdint.h>
 
-#define MSIM_KBD_IRQ      2
-#define MSIM_DDISK_IRQ    6
+extern void dorder_init(void);
+extern uint32_t dorder_cpuid(void);
+extern void dorder_ipi_ack(uint32_t);
 
 #endif
 

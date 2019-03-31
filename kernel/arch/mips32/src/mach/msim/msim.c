@@ -34,9 +34,9 @@
  */
 
 #include <arch/mach/msim/msim.h>
+#include <arch/mach/msim/dorder.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
-#include <arch/drivers/msim.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/srln/srln.h>
@@ -61,6 +61,7 @@ struct mips32_machine_ops msim_machine_ops = {
 
 void msim_init(void)
 {
+	dorder_init();
 	cp0_unmask_int(MSIM_DDISK_IRQ);
 }
 

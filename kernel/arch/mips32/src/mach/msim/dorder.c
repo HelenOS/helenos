@@ -32,15 +32,53 @@
 /** @file
  */
 
-#ifndef KERN_mips32_DORDER_H_
-#define KERN_mips32_DORDER_H_
-
+#include <arch/mach/msim/dorder.h>
+#include <arch/mach/msim/msim.h>
 #include <stdint.h>
+#include <smp/ipi.h>
+#include <interrupt.h>
 
-extern uint32_t dorder_cpuid(void);
-extern void dorder_ipi_ack(uint32_t);
+static irq_t dorder_irq;
+
+#ifdef CONFIG_SMP
+
+void ipi_broadcast_arch(int ipi)
+{
+	*((volatile uint32_t *) MSIM_DORDER_ADDRESS) = 0x7fffffff;
+}
 
 #endif
+
+static irq_ownership_t dorder_claim(irq_t *irq)
+{
+	return IRQ_ACCEPT;
+}
+
+static void dorder_irq_handler(irq_t *irq)
+{
+	dorder_ipi_ack(1 << dorder_cpuid());
+}
+
+void dorder_init(void)
+{
+	irq_initialize(&dorder_irq);
+	dorder_irq.inr = MSIM_DORDER_IRQ;
+	dorder_irq.claim = dorder_claim;
+	dorder_irq.handler = dorder_irq_handler;
+	irq_register(&dorder_irq);
+
+	cp0_unmask_int(MSIM_DORDER_IRQ);
+}
+
+uint32_t dorder_cpuid(void)
+{
+	return *((volatile uint32_t *) MSIM_DORDER_ADDRESS);
+}
+
+void dorder_ipi_ack(uint32_t mask)
+{
+	*((volatile uint32_t *) (MSIM_DORDER_ADDRESS + 4)) = mask;
+}
 
 /** @}
  */

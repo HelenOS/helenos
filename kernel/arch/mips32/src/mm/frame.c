@@ -40,7 +40,7 @@
 #include <mm/asid.h>
 #include <config.h>
 #ifdef MACHINE_msim
-#include <arch/drivers/msim.h>
+#include <arch/mach/msim/msim.h>
 #endif
 #include <arch/arch.h>
 #include <stdio.h>
@@ -56,7 +56,7 @@
 #define ZERO_PAGE_VALUE   (((volatile uint32_t *) ZERO_PAGE_ADDR)[ZERO_PAGE_OFFSET])
 
 #define ZERO_PAGE_VALUE_KSEG1(frame) \
-	(((volatile uint32_t *) (0xa0000000 + (frame << ZERO_PAGE_WIDTH)))[ZERO_PAGE_OFFSET])
+	(((volatile uint32_t *) PA2KSEG1(frame << ZERO_PAGE_WIDTH))[ZERO_PAGE_OFFSET])
 
 #define MAX_REGIONS  32
 
@@ -79,11 +79,11 @@ static bool frame_available(pfn_t frame)
 {
 #ifdef MACHINE_msim
 	/* MSIM device (dprinter) */
-	if (frame == (KA2PA(MSIM_VIDEORAM) >> ZERO_PAGE_WIDTH))
+	if (frame == (KSEG12PA(MSIM_VIDEORAM) >> ZERO_PAGE_WIDTH))
 		return false;
 
 	/* MSIM device (dkeyboard) */
-	if (frame == (KA2PA(MSIM_KBD_ADDRESS) >> ZERO_PAGE_WIDTH))
+	if (frame == (KSEG12PA(MSIM_KBD_ADDRESS) >> ZERO_PAGE_WIDTH))
 		return false;
 #endif
 
