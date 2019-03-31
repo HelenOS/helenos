@@ -37,6 +37,8 @@
 #include <stdint.h>
 #include <smp/ipi.h>
 #include <interrupt.h>
+#include <arch/asm.h>
+#include <typedefs.h>
 
 static irq_t dorder_irq;
 
@@ -44,7 +46,7 @@ static irq_t dorder_irq;
 
 void ipi_broadcast_arch(int ipi)
 {
-	*((volatile uint32_t *) MSIM_DORDER_ADDRESS) = 0x7fffffff;
+	pio_write_32(((ioport32_t *) MSIM_DORDER_ADDRESS), 0x7fffffff);
 }
 
 #endif
@@ -72,12 +74,12 @@ void dorder_init(void)
 
 uint32_t dorder_cpuid(void)
 {
-	return *((volatile uint32_t *) MSIM_DORDER_ADDRESS);
+	return pio_read_32((ioport32_t *) MSIM_DORDER_ADDRESS);
 }
 
 void dorder_ipi_ack(uint32_t mask)
 {
-	*((volatile uint32_t *) (MSIM_DORDER_ADDRESS + 4)) = mask;
+	pio_write_32((ioport32_t *) (MSIM_DORDER_ADDRESS + 4), mask);
 }
 
 /** @}
