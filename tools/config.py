@@ -46,6 +46,149 @@ MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
 PRESETS_DIR = 'defaults'
 
+class BinaryOp:
+	def __init__(self, operator, left, right):
+		assert operator in ('&', '|', '=', '!=')
+
+		self._operator = operator
+		self._left = left
+		self._right = right
+
+	def evaluate(self, config):
+		if self._operator == '&':
+			return self._left.evaluate(config) and \
+			    self._right.evaluate(config)
+		if self._operator == '|':
+			return self._left.evaluate(config) or \
+			    self._right.evaluate(config)
+
+		# '=' or '!='
+		if not self._left in config:
+			config_val = ''
+		else:
+			config_val = config[self._left]
+			if config_val == '*':
+				config_val = 'y'
+
+		if self._operator == '=':
+			return self._right == config_val
+		return self._right != config_val
+
+# Expression parser
+class CondParser:
+	TOKEN_EOE = 0
+	TOKEN_SPECIAL = 1
+	TOKEN_STRING = 2
+
+	def __init__(self, text):
+		self._text = text
+
+	def parse(self):
+		self._position = -1
+		self._next_char()
+		self._next_token()
+
+		res = self._parse_expr()
+		if self._token_type != self.TOKEN_EOE:
+			self._error("Expected end of expression")
+		return res
+
+	def _next_char(self):
+		self._position += 1
+		if self._position >= len(self._text):
+			self._char = None
+		else:
+			self._char = self._text[self._position]
+		self._is_special_char = self._char in \
+		    ('&', '|', '=', '!', '(', ')')
+
+	def _error(self, msg):
+		raise RuntimeError("Error parsing expression: %s:\n%s\n%s^" %
+		    (msg, self._text, " " * self._token_position))
+
+	def _next_token(self):
+		self._token_position = self._position
+
+		# End of expression
+		if self._char == None:
+			self._token = None
+			self._token_type = self.TOKEN_EOE
+			return
+
+		# '&', '|', '=', '!=', '(', ')'
+		if self._is_special_char:
+			self._token = self._char
+			self._next_char()
+			if self._token == '!':
+				if self._char != '=':
+					self._error("Expected '='")
+				self._token += self._char
+				self._next_char()
+			self._token_type = self.TOKEN_SPECIAL
+			return
+
+		# <var> or <val>
+		self._token = ''
+		self._token_type = self.TOKEN_STRING
+		while True:
+			self._token += self._char
+			self._next_char()
+			if self._is_special_char or self._char == None:
+				break
+
+	def _parse_expr(self):
+		""" <expr> ::= <or_expr> ('&' <or_expr>)* """
+
+		left = self._parse_or_expr()
+		while self._token == '&':
+			self._next_token()
+			left = BinaryOp('&', left, self._parse_or_expr())
+		return left
+
+	def _parse_or_expr(self):
+		""" <or_expr> ::= <factor> ('|' <factor>)* """
+
+		left = self._parse_factor()
+		while self._token == '|':
+			self._next_token()
+			left = BinaryOp('|', left, self._parse_factor())
+		return left
+
+	def _parse_factor(self):
+		""" <factor> ::= <var> <cond> | '(' <expr> ')' """
+
+		if self._token == '(':
+			self._next_token()
+			res = self._parse_expr()
+			if self._token != ')':
+				self._error("Expected ')'")
+			self._next_token()
+			return res
+
+		if self._token_type == self.TOKEN_STRING:
+			var = self._token
+			self._next_token()
+			return self._parse_cond(var)
+
+		self._error("Expected '(' or <var>")
+
+	def _parse_cond(self, var):
+		""" <cond> ::= '=' <val> | '!=' <val> """
+
+		if self._token not in ('=', '!='):
+			self._error("Expected '=' or '!='")
+
+		oper = self._token
+		self._next_token()
+
+		if self._token_type != self.TOKEN_STRING:
+			self._error("Expected <val>")
+
+		val = self._token
+		self._next_token()
+
+		return BinaryOp(oper, var, val)
+
 def read_config(fname, config):
 	"Read saved values from last configuration run or a preset file"
 
@@ -57,78 +200,6 @@ def read_config(fname, config):
 			config[res.group(1)] = res.group(2)
 
 	inf.close()
-
-def check_condition(text, config, rules):
-	"Check that the condition specified on input line is True (only CNF and DNF is supported)"
-
-	ctype = 'cnf'
-
-	if (')|' in text) or ('|(' in text):
-		ctype = 'dnf'
-
-	if ctype == 'cnf':
-		conds = text.split('&')
-	else:
-		conds = text.split('|')
-
-	for cond in conds:
-		if cond.startswith('(') and cond.endswith(')'):
-			cond = cond[1:-1]
-
-		inside = check_inside(cond, config, ctype)
-
-		if (ctype == 'cnf') and (not inside):
-			return False
-
-		if (ctype == 'dnf') and inside:
-			return True
-
-	if ctype == 'cnf':
-		return True
-
-	return False
-
-def check_inside(text, config, ctype):
-	"Check for condition"
-
-	if ctype == 'cnf':
-		conds = text.split('|')
-	else:
-		conds = text.split('&')
-
-	for cond in conds:
-		res = re.match(r'^(.*?)(!?=)(.*)$', cond)
-		if not res:
-			raise RuntimeError("Invalid condition: %s" % cond)
-
-		condname = res.group(1)
-		oper = res.group(2)
-		condval = res.group(3)
-
-		if not condname in config:
-			varval = ''
-		else:
-			varval = config[condname]
-			if (varval == '*'):
-				varval = 'y'
-
-		if ctype == 'cnf':
-			if (oper == '=') and (condval == varval):
-				return True
-
-			if (oper == '!=') and (condval != varval):
-				return True
-		else:
-			if (oper == '=') and (condval != varval):
-				return False
-
-			if (oper == '!=') and (condval == varval):
-				return False
-
-	if ctype == 'cnf':
-		return False
-
-	return True
 
 def parse_rules(fname, rules):
 	"Parse rules file"
@@ -148,6 +219,8 @@ def parse_rules(fname, rules):
 				raise RuntimeError("Weird line: %s" % line)
 
 			cond = res.group(1)
+			if cond:
+				cond = CondParser(cond).parse()
 			varname = res.group(2)
 			vartype = res.group(3)
 
@@ -231,7 +304,7 @@ def infer_verify_choices(config, rules):
 	for rule in rules:
 		varname, vartype, name, choices, cond = rule
 
-		if cond and (not check_condition(cond, config, rules)):
+		if cond and not cond.evaluate(config):
 			continue
 
 		if not varname in config:
@@ -278,9 +351,8 @@ def random_choices(config, rules, start_index):
 	varname, vartype, name, choices, cond = rules[start_index]
 
 	# First check that this rule would make sense
-	if cond:
-		if not check_condition(cond, config, rules):
-			return random_choices(config, rules, start_index + 1)
+	if cond and not cond.evaluate(config):
+		return random_choices(config, rules, start_index + 1)
 
 	# Remember previous choices for backtracking
 	yes_no = 0
@@ -486,7 +558,7 @@ def create_output(mkname, mcname, config, rules):
 	defs = 'CONFIG_DEFS ='
 
 	for varname, vartype, name, choices, cond in rules:
-		if cond and (not check_condition(cond, config, rules)):
+		if cond and not cond.evaluate(config):
 			continue
 
 		if not varname in config:
@@ -675,7 +747,7 @@ def main():
 			for rule in rules:
 				varname, vartype, name, choices, cond = rule
 
-				if cond and (not check_condition(cond, config, rules)):
+				if cond and not cond.evaluate(config):
 					continue
 
 				if varname == selname:
