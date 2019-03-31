@@ -338,6 +338,7 @@ uspace/drv/nic/rtl8139/rtl8139
 uspace/drv/nic/rtl8169/rtl8169
 uspace/drv/nic/virtio-net/virtio-net
 uspace/drv/platform/amdm37x/amdm37x
+uspace/drv/platform/arm64virt/arm64virt
 uspace/drv/platform/icp/icp
 uspace/drv/platform/mac/mac
 uspace/drv/platform/malta/malta
