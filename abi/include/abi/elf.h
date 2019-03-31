@@ -244,6 +244,59 @@ enum elf_segment_access {
 };
 
 /**
+ * Dynamic array tags
+ */
+enum elf_dynamic_tag {
+	DT_NULL     = 0,
+	DT_NEEDED   = 1,
+	DT_PLTRELSZ = 2,
+	DT_PLTGOT   = 3,
+	DT_HASH     = 4,
+	DT_STRTAB   = 5,
+	DT_SYMTAB   = 6,
+	DT_RELA     = 7,
+	DT_RELASZ   = 8,
+	DT_RELAENT  = 9,
+	DT_STRSZ    = 10,
+	DT_SYMENT   = 11,
+	DT_INIT     = 12,
+	DT_FINI     = 13,
+	DT_SONAME   = 14,
+	DT_RPATH    = 15,
+	DT_SYMBOLIC = 16,
+	DT_REL      = 17,
+	DT_RELSZ    = 18,
+	DT_RELENT   = 19,
+	DT_PLTREL   = 20,
+	DT_DEBUG    = 21,
+	DT_TEXTREL  = 22,
+	DT_JMPREL   = 23,
+	DT_BIND_NOW = 24,
+	DT_LOPROC   = 0x70000000,
+	DT_HIPROC   = 0x7fffffff,
+};
+
+/**
+ * Special section indexes
+ */
+enum {
+	SHN_UNDEF     = 0,
+	SHN_LORESERVE = 0xff00,
+	SHN_LOPROC    = 0xff00,
+	SHN_HIPROC    = 0xff1f,
+	SHN_ABS       = 0xfff1,
+	SHN_COMMON    = 0xfff2,
+	SHN_HIRESERVE = 0xffff,
+};
+
+/**
+ * Special symbol table index
+ */
+enum {
+	STN_UNDEF = 0,
+};
+
+/**
  * ELF data types
  *
  * These types are found to be identical in both 32-bit and 64-bit
@@ -405,12 +458,62 @@ struct elf64_note {
 	elf_word type;
 };
 
+/**
+ * Dynamic structure
+ */
+struct elf32_dyn {
+	elf_sword d_tag;
+	union {
+		elf_word d_val;
+		elf32_addr d_ptr;
+	} d_un;
+};
+
+struct elf64_dyn {
+	elf_sxword d_tag;
+	union {
+		elf_xword d_val;
+		elf64_addr d_ptr;
+	} d_un;
+};
+
+struct elf32_rel {
+	elf32_addr r_offset;
+	elf_word r_info;
+};
+
+struct elf32_rela {
+	elf32_addr r_offset;
+	elf_word r_info;
+	elf_sword r_addend;
+};
+
+struct elf64_rel {
+	elf64_addr r_offset;
+	elf_xword r_info;
+};
+
+struct elf64_rela {
+	elf64_addr r_offset;
+	elf_xword r_info;
+	elf_sxword r_addend;
+};
+
+#define ELF32_R_SYM(i) ((i) >> 8)
+#define ELF32_R_TYPE(i) ((unsigned char)(i))
+
+#define ELF64_R_SYM(i) ((i) >> 32)
+#define ELF64_R_TYPE(i) ((i) & 0xffffffffL)
+
 #ifdef __32_BITS__
 typedef struct elf32_header elf_header_t;
 typedef struct elf32_segment_header elf_segment_header_t;
 typedef struct elf32_section_header elf_section_header_t;
 typedef struct elf32_symbol elf_symbol_t;
 typedef struct elf32_note elf_note_t;
+typedef struct elf32_dyn elf_dyn_t;
+typedef struct elf32_rel elf_rel_t;
+typedef struct elf32_rela elf_rela_t;
 #endif
 
 #ifdef __64_BITS__
@@ -419,6 +522,9 @@ typedef struct elf64_segment_header elf_segment_header_t;
 typedef struct elf64_section_header elf_section_header_t;
 typedef struct elf64_symbol elf_symbol_t;
 typedef struct elf64_note elf_note_t;
+typedef struct elf64_dyn elf_dyn_t;
+typedef struct elf64_rel elf_rel_t;
+typedef struct elf64_rela elf_rela_t;
 #endif
 
 #endif
