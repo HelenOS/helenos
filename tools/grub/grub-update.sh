@@ -71,8 +71,8 @@ cd "$workdir" || exit 1
 git pull || exit 1
 git reset --hard "$grub_rev" || exit 1
 
-echo "$grub_rev" >"$helenosdir"/boot/grub.pc/REVISION || exit 1
-echo "$grub_rev" > "$helenosdir"/boot/grub.efi/REVISION || exit 1
+echo "$grub_rev" >"$helenosdir"/boot/grub/ia32-pc/REVISION || exit 1
+echo "$grub_rev" > "$helenosdir"/boot/grub/ia32-efi/REVISION || exit 1
 
 # Build each platform to a different directory
 ./autogen.sh || exit 1
@@ -81,18 +81,18 @@ grub_build i386 efi
 grub_build x86_64 efi
 
 # Extract El Torrito boot image for i386-pc
-cd "$helenosdir"/boot/grub.pc || exit 1
+cd "$helenosdir"/boot/grub/ia32-pc || exit 1
 rm -f pc.img || exit 1
 "$builddir"/i386-pc/bin/grub-mkrescue -o phony --xorriso="$origdir/getimage.sh" || exit 1
 
 # Extract El Torrito boot image for i386-efi
-cd "$helenosdir"/boot/grub.efi || exit 1
+cd "$helenosdir"/boot/grub/ia32-efi || exit 1
 rm -f efi.img.gz || exit 1
 "$builddir"/i386-efi/bin/grub-mkrescue -o phony --xorriso="$origdir/getimage.sh" || exit 1
 mv efi.img i386-efi.img
 
 # Extract El Torrito boot image for x86_64-efi
-cd "$helenosdir"/boot/grub.efi || exit 1
+cd "$helenosdir"/boot/grub/ia32-efi || exit 1
 rm -f efi.img.gz || exit 1
 "$builddir"/x86_64-efi/bin/grub-mkrescue -o phony --xorriso="$origdir/getimage.sh" || exit 1
 
@@ -105,8 +105,8 @@ rm -rf tmp || exit 1
 rm -f i386-efi.img || exit 1
 
 # Update Grub files for all platforms
-grub_files_update grub.pc i386-pc
-grub_files_update grub.efi i386-efi
-grub_files_update grub.efi x86_64-efi
+grub_files_update grub/ia32-pc i386-pc
+grub_files_update grub/ia32-efi i386-efi
+grub_files_update grub/ia32-efi x86_64-efi
 
 echo "GRUB update successful."
