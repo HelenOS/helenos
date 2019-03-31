@@ -55,6 +55,7 @@ EXTRA_LDFLAGS = -Wl,-shared
 
 ifeq ($(MACHINE), virt)
 	RD_DRVS_ESSENTIAL += \
+		char/pl011 \
 		intctl/gicv2
 endif
 

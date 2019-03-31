@@ -215,6 +215,8 @@ errno_t chardev_init(void)
 		/* OK */
 #elif defined(MACHINE_msim)
 		/* OK */
+#elif defined(UARCH_arm64) && defined(MACHINE_virt)
+		/* OK */
 #else
 		return EOK;
 #endif

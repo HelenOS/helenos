@@ -168,6 +168,7 @@ DIRS = \
 	drv/char/msim-con \
 	drv/char/ns8250 \
 	drv/char/pc-lpt \
+	drv/char/pl011 \
 	drv/char/pl050 \
 	drv/char/ski-con \
 	drv/char/sun4v-con \
