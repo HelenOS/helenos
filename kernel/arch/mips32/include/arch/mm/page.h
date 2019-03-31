@@ -42,6 +42,7 @@
 #define PAGE_SIZE	FRAME_SIZE
 
 #ifndef __ASSEMBLER__
+#	define PA2KSEG1(x)	(((uintptr_t) (x)) + 0xa0000000)
 #	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
 #	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else

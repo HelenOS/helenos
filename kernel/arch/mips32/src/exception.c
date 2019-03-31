@@ -188,6 +188,8 @@ static void interrupt_exception(unsigned int n, istate_t *istate)
 				 * The IRQ handler was found.
 				 */
 				irq->handler(irq);
+				if (irq->cir)
+					irq->cir(irq->cir_arg, i);
 				irq_spinlock_unlock(&irq->lock, false);
 			} else {
 				/*

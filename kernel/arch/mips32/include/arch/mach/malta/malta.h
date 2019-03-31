@@ -37,6 +37,19 @@
 #define KERN_mips32_malta_H_
 
 #include <arch/machine_func.h>
+#include <arch/mm/page.h>
+
+#define MALTA_PCI_BASE		PA2KSEG1(0x18000000UL)
+#define MALTA_GT64120_BASE	PA2KSEG1(0x1be00000UL)
+
+#define PIC0_BASE		(MALTA_PCI_BASE + 0x20)
+#define PIC1_BASE		(MALTA_PCI_BASE + 0xa0)
+
+#define TTY_BASE		(MALTA_PCI_BASE + 0x3f8)
+#define TTY_CPU_INT		2
+#define TTY_ISA_IRQ		4
+
+#define GT64120_PCI0_INTACK	(MALTA_GT64120_BASE + 0xc34)
 
 extern struct mips32_machine_ops malta_machine_ops;
 

@@ -37,6 +37,10 @@
 #include <console/console.h>
 #include <console/chardev.h>
 #include <arch/mm/page.h>
+#include <genarch/drivers/i8259/i8259.h>
+#include <genarch/drivers/ns16550/ns16550.h>
+#include <genarch/srln/srln.h>
+#include <arch/interrupt.h>
 
 static void malta_init(void);
 static void malta_cpu_halt(void);
@@ -56,8 +60,34 @@ struct mips32_machine_ops malta_machine_ops = {
 	.machine_get_platform_name = malta_get_platform_name
 };
 
+#ifdef CONFIG_NS16550
+static ns16550_instance_t *tty_instance;
+#endif
+#ifdef CONFIG_NS16550_OUT
+static outdev_t *tty_out;
+#endif
+
+#ifdef CONFIG_NS16550
+static void tty_clear_interrupt(void *arg, inr_t inr)
+{
+	(void) pio_read_8((ioport8_t *) GT64120_PCI0_INTACK);
+	pic_eoi();
+}
+#endif
+
 void malta_init(void)
 {
+	i8259_init((i8259_t *) PIC0_BASE, (i8259_t *) PIC1_BASE, 2, 0, 8);
+
+#if (defined(CONFIG_NS16550) || defined(CONFIG_NS16550_OUT))
+#ifdef CONFIG_NS16550_OUT
+	outdev_t **tty_out_ptr = &tty_out;
+#else
+	outdev_t **tty_out_ptr = NULL;
+#endif
+	tty_instance = ns16550_init((ioport8_t *) TTY_BASE, 0, TTY_CPU_INT,
+	    tty_clear_interrupt, NULL, tty_out_ptr);
+#endif
 }
 
 void malta_cpu_halt(void)
@@ -72,39 +102,28 @@ void malta_frame_init(void)
 {
 }
 
-#define YAMON_SUBR_BASE         PA2KA(0x1fc00500)
-#define YAMON_SUBR_PRINT_COUNT  (YAMON_SUBR_BASE + 0x4)
-
-typedef void (**yamon_print_count_ptr_t)(uint32_t, const char *, uint32_t);
-
-yamon_print_count_ptr_t yamon_print_count =
-    (yamon_print_count_ptr_t) YAMON_SUBR_PRINT_COUNT;
-
-static void yamon_putwchar(outdev_t *dev, const wchar_t wch)
-{
-
-	const char ch = (char) wch;
-
-	(*yamon_print_count)(0, &ch, 1);
-}
-
-static outdev_t yamon_outdev;
-static outdev_operations_t yamon_outdev_ops = {
-	.write = yamon_putwchar,
-	.redraw = NULL,
-	.scroll_up = NULL,
-	.scroll_down = NULL
-};
-
 void malta_output_init(void)
 {
-	outdev_initialize("yamon", &yamon_outdev, &yamon_outdev_ops);
-	stdout_wire(&yamon_outdev);
+#ifdef CONFIG_NS16550_OUT
+	if (tty_out)
+		stdout_wire(tty_out);
+#endif
 }
 
 void malta_input_init(void)
 {
-	(void) stdin_wire();
+#ifdef CONFIG_NS16550
+	if (tty_instance) {
+		srln_instance_t *srln_instance = srln_init();
+		if (srln_instance) {
+			indev_t *sink = stdin_wire();
+			indev_t *srln = srln_wire(srln_instance, sink);
+			ns16550_wire(tty_instance, srln);
+			pic_enable_irqs(1 << TTY_ISA_IRQ);
+			cp0_unmask_int(TTY_CPU_INT);
+		}
+	}
+#endif
 }
 
 const char *malta_get_platform_name(void)
