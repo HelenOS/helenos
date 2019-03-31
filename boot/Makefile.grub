@@ -30,7 +30,7 @@
 
 include Makefile.common
 
-GRUB = grub.$(GRUB_ARCH)
+GRUB = grub/$(BARCH)-$(GRUB_ARCH)
 BOOT = $(DISTROOT)/boot
 BOOT_CONFIG = $(BOOT)/grub/grub.cfg
 

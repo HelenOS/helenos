@@ -38,7 +38,7 @@
 
 orig_dir="$(cd "$(dirname "$0")" && pwd)"
 grub_tools_dir="$orig_dir/grub-build/i386-pc/bin"
-grub_mod_dir="$orig_dir/../../boot/grub.pc/i386-pc"
+grub_mod_dir="$orig_dir/../../boot/grub/ia32-pc/i386-pc"
 
 "$grub_tools_dir"/grub-mkimage --directory "$grub_mod_dir" \
     --prefix "$grub_mod_dir" --output "$grub_mod_dir/core.img" \
