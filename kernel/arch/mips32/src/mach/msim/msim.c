@@ -80,7 +80,8 @@ void msim_frame_init(void)
 void msim_output_init(void)
 {
 #ifdef CONFIG_MSIM_PRN
-	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
+	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS,
+	    KSEG12PA(MSIM_KBD_ADDRESS));
 	if (dsrlndev)
 		stdout_wire(dsrlndev);
 #endif
