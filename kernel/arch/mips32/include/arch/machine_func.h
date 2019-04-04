@@ -42,6 +42,7 @@
 #define KERN_mips32_MACHINE_FUNC_H_
 
 #include <typedefs.h>
+#include <stdbool.h>
 
 struct mips32_machine_ops {
 	void (*machine_init)(void);
