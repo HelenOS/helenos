@@ -68,7 +68,7 @@
 #define MIPS_INTERRUPTS    8
 #define HW_INTERRUPTS      (MIPS_INTERRUPTS - 3)
 
-typedef void (* int_handler_t)(unsigned int);
+typedef void (*int_handler_t)(unsigned int);
 extern int_handler_t int_handler[];
 
 extern void exception(istate_t *istate);
