@@ -46,6 +46,8 @@
 #define PIC0_BASE		(MALTA_PCI_BASE + 0x20)
 #define PIC1_BASE		(MALTA_PCI_BASE + 0xa0)
 
+#define ISA_IRQ_COUNT		16
+
 #define TTY_BASE		(MALTA_PCI_BASE + 0x3f8)
 #define TTY_ISA_IRQ		4
 

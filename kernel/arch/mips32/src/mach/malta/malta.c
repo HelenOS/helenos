@@ -88,7 +88,7 @@ static void malta_isa_irq_handler(unsigned int i)
 
 void malta_init(void)
 {
-	irq_init(16, 16);
+	irq_init(ISA_IRQ_COUNT, ISA_IRQ_COUNT);
 
 	i8259_init((i8259_t *) PIC0_BASE, (i8259_t *) PIC1_BASE, 2, 0, 8);
 
