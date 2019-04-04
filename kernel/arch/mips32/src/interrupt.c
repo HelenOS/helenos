@@ -47,7 +47,7 @@ static unsigned long nextcount;
 static unsigned long lastcount;
 
 /** Table of interrupt handlers. */
-int_handler_t int_handler[INTERRUPTS] = {};
+int_handler_t int_handler[MIPS_INTERRUPTS] = {};
 
 /** Disable interrupts.
  *

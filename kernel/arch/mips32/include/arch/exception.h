@@ -65,8 +65,8 @@
 #define INT_HW4    6
 #define INT_TIMER  7
 
-#define INTERRUPTS    8
-#define HW_INTERRUPTS (INTERRUPTS - 3)
+#define MIPS_INTERRUPTS    8
+#define HW_INTERRUPTS      (MIPS_INTERRUPTS - 3)
 
 typedef void (* int_handler_t)(unsigned int);
 extern int_handler_t int_handler[];

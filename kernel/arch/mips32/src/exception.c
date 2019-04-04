@@ -174,7 +174,7 @@ static void interrupt_exception(unsigned int n, istate_t *istate)
 	im = (cp0_status_read() & cp0_status_im_mask) >> cp0_status_im_shift;
 
 	unsigned int i;
-	for (i = 0; i < INTERRUPTS; i++) {
+	for (i = 0; i < MIPS_INTERRUPTS; i++) {
 
 		/*
 		 * The interrupt could only occur if it is unmasked in the
