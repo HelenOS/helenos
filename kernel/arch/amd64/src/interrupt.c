@@ -221,8 +221,8 @@ void interrupt_init(void)
 		exc_register(i, "null", false, (iroutine_t) null_interrupt);
 
 	for (i = 0; i < IRQ_COUNT; i++) {
-		if ((i != IRQ_PIC0_SPUR) && (i != IRQ_PIC1_SPUR)
-		    && (i != IRQ_PIC1))
+		if ((i != IRQ_PIC0_SPUR) && (i != IRQ_PIC1_SPUR) &&
+		    (i != IRQ_PIC1))
 			exc_register(IVT_IRQBASE + i, "irq", true,
 			    (iroutine_t) irq_interrupt);
 	}
