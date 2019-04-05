@@ -171,7 +171,9 @@ static void irq_interrupt(unsigned int n, istate_t *istate)
 	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
 	assert(inum < IRQ_COUNT);
-	assert((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
+	assert(inum != IRQ_PIC0_SPUR);
+	assert(inum != IRQ_PIC1_SPUR);
+	assert(inum != IRQ_PIC1);
 
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
@@ -200,6 +202,17 @@ static void irq_interrupt(unsigned int n, istate_t *istate)
 		trap_virtual_eoi();
 }
 
+static void pic_spurious(unsigned int n, istate_t *istate)
+{
+	/*
+	 * XXX: Examine ISR to figure out whether this is indeed a spurious
+	 *      or actual IRQ.
+	 */
+#ifdef CONFIG_DEBUG
+	log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt", CPU->id);
+#endif
+}
+
 void interrupt_init(void)
 {
 	unsigned int i;
@@ -208,7 +221,8 @@ void interrupt_init(void)
 		exc_register(i, "null", false, (iroutine_t) null_interrupt);
 
 	for (i = 0; i < IRQ_COUNT; i++) {
-		if ((i != IRQ_PIC_SPUR) && (i != IRQ_PIC1))
+		if ((i != IRQ_PIC0_SPUR) && (i != IRQ_PIC1_SPUR)
+		    && (i != IRQ_PIC1))
 			exc_register(IVT_IRQBASE + i, "irq", true,
 			    (iroutine_t) irq_interrupt);
 	}
@@ -217,6 +231,10 @@ void interrupt_init(void)
 	exc_register(VECTOR_NM, "nm_fault", true, (iroutine_t) nm_fault);
 	exc_register(VECTOR_SS, "ss_fault", true, (iroutine_t) ss_fault);
 	exc_register(VECTOR_GP, "gp_fault", true, (iroutine_t) gp_fault);
+	exc_register(VECTOR_PIC0_SPUR, "pic0_spurious", true,
+	    (iroutine_t) pic_spurious);
+	exc_register(VECTOR_PIC1_SPUR, "pic1_spurious", true,
+	    (iroutine_t) pic_spurious);
 
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,

@@ -42,8 +42,6 @@
 #include <log.h>
 #include <interrupt.h>
 
-static void pic_spurious(unsigned int n, istate_t *istate);
-
 // XXX: need to change pic_* API to get rid of these
 static i8259_t *saved_pic0;
 static i8259_t *saved_pic1;
@@ -77,16 +75,6 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
 
 	/* ICW4: i8086 mode */
 	pio_write_8(&pic1->port2, 1);
-
-	/*
-	 * Register interrupt handler for the PIC spurious interrupt.
-	 *
-	 * XXX: This is currently broken. Both IRQ 7 and IRQ 15 can be spurious
-	 *      or can be actual interrupts. This needs to be detected when
-	 *      the interrupt happens by inspecting ISR.
-	 */
-	exc_register(irq0_int + 7, "pic_spurious", false,
-	    (iroutine_t) pic_spurious);
 
 	pic_disable_irqs(0xffff);		/* disable all irq's */
 	pic_enable_irqs(1 << pic1_irq);		/* but enable pic1_irq */
@@ -127,13 +115,6 @@ void pic_eoi(void)
 {
 	pio_write_8(&saved_pic0->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 	pio_write_8(&saved_pic1->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
-}
-
-void pic_spurious(unsigned int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
-{
-#ifdef CONFIG_DEBUG
-	log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt", CPU->id);
-#endif
 }
 
 /** @}

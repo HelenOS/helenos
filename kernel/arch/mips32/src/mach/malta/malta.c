@@ -73,6 +73,17 @@ static outdev_t *tty_out;
 static void malta_isa_irq_handler(unsigned int i)
 {
 	uint8_t isa_irq = host2uint32_t_le(pio_read_32(GT64120_PCI0_INTACK));
+	if (isa_irq == PIC0_SPURIOUS_IRQ || isa_irq == PIC1_SPURIOUS_IRQ) {
+		/*
+		 * XXX: Examine ISR to figure out whether this is indeed a
+		 *      spurious or actual IRQ.
+		 */
+#ifdef CONFIG_DEBUG
+		log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt",
+		    CPU->id);
+		return;
+#endif
+	}
 	irq_t *irq = irq_dispatch_and_lock(isa_irq);
 	if (irq) {
 		irq->handler(irq);
