@@ -507,7 +507,7 @@ void l_apic_init(void)
 }
 
 /** Local APIC End of Interrupt. */
-void l_apic_eoi(void)
+void l_apic_eoi(unsigned int ignored)
 {
 	l_apic[EOI] = 0;
 }

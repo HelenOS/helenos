@@ -111,10 +111,11 @@ void pic_disable_irqs(uint16_t irqmask)
 	}
 }
 
-void pic_eoi(void)
+void pic_eoi(unsigned int irq)
 {
+	if (irq >= 8)
+		pio_write_8(&saved_pic1->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 	pio_write_8(&saved_pic0->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
-	pio_write_8(&saved_pic1->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 }
 
 /** @}

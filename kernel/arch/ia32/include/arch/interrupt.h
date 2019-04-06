@@ -89,7 +89,7 @@
 
 extern void (*disable_irqs_function)(uint16_t);
 extern void (*enable_irqs_function)(uint16_t);
-extern void (*eoi_function)(void);
+extern void (*eoi_function)(unsigned int);
 extern const char *irqs_info;
 
 extern void interrupt_init(void);

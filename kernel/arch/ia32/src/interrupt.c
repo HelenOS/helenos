@@ -62,7 +62,7 @@
 
 void (*disable_irqs_function)(uint16_t irqmask) = NULL;
 void (*enable_irqs_function)(uint16_t irqmask) = NULL;
-void (*eoi_function)(void) = NULL;
+void (*eoi_function)(unsigned int) = NULL;
 const char *irqs_info = NULL;
 
 void istate_decode(istate_t *istate)
@@ -89,10 +89,10 @@ void istate_decode(istate_t *istate)
 	    (uint32_t) &istate->esp);
 }
 
-static void trap_virtual_eoi(void)
+static void trap_virtual_eoi(unsigned int inum)
 {
 	if (eoi_function)
-		eoi_function();
+		eoi_function(inum);
 	else
 		panic("No eoi_function.");
 
@@ -178,7 +178,7 @@ static void nm_fault(unsigned int n __attribute__((unused)),
 static void tlb_shootdown_ipi(unsigned int n __attribute__((unused)),
     istate_t *istate __attribute__((unused)))
 {
-	trap_virtual_eoi();
+	trap_virtual_eoi(0);
 	tlb_shootdown_ipi_recv();
 }
 #endif
@@ -203,7 +203,7 @@ static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused
 
 		if (irq->preack) {
 			/* Send EOI before processing the interrupt */
-			trap_virtual_eoi();
+			trap_virtual_eoi(inum);
 			ack = true;
 		}
 		irq->handler(irq);
@@ -218,7 +218,7 @@ static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused
 	}
 
 	if (!ack)
-		trap_virtual_eoi();
+		trap_virtual_eoi(inum);
 }
 
 static void pic_spurious(unsigned int n, istate_t *istate)

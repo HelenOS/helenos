@@ -94,7 +94,7 @@ static void malta_isa_irq_handler(unsigned int i)
 		    CPU->id, isa_irq);
 #endif
 	}
-	pic_eoi();
+	pic_eoi(isa_irq);
 }
 
 void malta_init(void)

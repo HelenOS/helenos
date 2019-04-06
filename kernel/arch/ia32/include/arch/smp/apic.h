@@ -355,7 +355,7 @@ extern uint8_t bsp_l_apic;
 extern void apic_init(void);
 
 extern void l_apic_init(void);
-extern void l_apic_eoi(void);
+extern void l_apic_eoi(unsigned int);
 extern int l_apic_send_custom_ipi(uint8_t, uint8_t);
 extern int l_apic_broadcast_custom_ipi(uint8_t);
 extern int l_apic_send_init_ipi(uint8_t);

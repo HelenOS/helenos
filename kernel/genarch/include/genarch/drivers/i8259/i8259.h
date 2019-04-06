@@ -54,7 +54,7 @@ typedef struct {
 extern void i8259_init(i8259_t *, i8259_t *, inr_t, unsigned int, unsigned int);
 extern void pic_enable_irqs(uint16_t);
 extern void pic_disable_irqs(uint16_t);
-extern void pic_eoi(void);
+extern void pic_eoi(unsigned int);
 
 #endif
 
