@@ -45,6 +45,7 @@
 #include <security/perm.h>
 #include <mm/frame.h>
 #include <mm/as.h>
+#include <mm/km.h>
 #include <mm/page.h>
 #include <synch/mutex.h>
 #include <syscall/copy.h>
@@ -55,6 +56,7 @@
 #include <mem.h>
 #include <trace.h>
 #include <bitops.h>
+#include <arch/asm.h>
 
 /** This lock protects the @c pareas ordered dictionary. */
 static mutex_t pareas_lock;
@@ -525,6 +527,24 @@ sys_errno_t sys_dmamem_unmap(uintptr_t virt, size_t size, unsigned int flags)
 		return dmamem_unmap(virt, size);
 	else
 		return dmamem_unmap_anonymous(virt);
+}
+void *pio_map(void *phys, size_t size)
+{
+#ifdef IO_SPACE_BOUNDARY
+	if (phys < IO_SPACE_BOUNDARY)
+		return phys;
+#endif
+	return (void *) km_map((uintptr_t) phys, size, KM_NATURAL_ALIGNMENT,
+	    PAGE_READ | PAGE_WRITE | PAGE_NOT_CACHEABLE);
+}
+
+void pio_unmap(void *phys, void *virt, size_t size)
+{
+#ifdef IO_SPACE_BOUNDARY
+	if (phys < IO_SPACE_BOUNDARY)
+		return;
+#endif
+	km_unmap((uintptr_t) virt, size);
 }
 
 /** @}
