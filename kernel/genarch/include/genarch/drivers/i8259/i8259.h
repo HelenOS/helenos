@@ -37,14 +37,22 @@
 
 #include <typedefs.h>
 #include <arch/interrupt.h>
+#include <stdbool.h>
 
 /* ICW1 bits */
 #define PIC_ICW1           (1 << 4)
 #define PIC_ICW1_NEEDICW4  (1 << 0)
 
+/* OCW3 bits */
+#define PIC_OCW3           (1 << 3)
+#define PIC_OCW3_READ_ISR  (3 << 0)
+
 /* OCW4 bits */
 #define PIC_OCW4           (0 << 3)
 #define PIC_OCW4_NSEOI     (1 << 5)
+
+#define PIC_IRQ_COUNT      8
+#define PIC_SPURIOUS_IRQ   7
 
 typedef struct {
 	ioport8_t port1;
@@ -55,6 +63,8 @@ extern void i8259_init(i8259_t *, i8259_t *, inr_t, unsigned int, unsigned int);
 extern void pic_enable_irqs(uint16_t);
 extern void pic_disable_irqs(uint16_t);
 extern void pic_eoi(unsigned int);
+extern bool pic_is_spurious(unsigned int);
+extern void pic_handle_spurious(unsigned int);
 
 #endif
 

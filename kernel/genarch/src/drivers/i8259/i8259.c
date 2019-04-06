@@ -89,10 +89,10 @@ void pic_enable_irqs(uint16_t irqmask)
 		pio_write_8(&saved_pic0->port2,
 		    (uint8_t) (x & (~(irqmask & 0xff))));
 	}
-	if (irqmask >> 8) {
+	if (irqmask >> PIC_IRQ_COUNT) {
 		x = pio_read_8(&saved_pic1->port2);
 		pio_write_8(&saved_pic1->port2,
-		    (uint8_t) (x & (~(irqmask >> 8))));
+		    (uint8_t) (x & (~(irqmask >> PIC_IRQ_COUNT))));
 	}
 }
 
@@ -105,17 +105,34 @@ void pic_disable_irqs(uint16_t irqmask)
 		pio_write_8(&saved_pic0->port2,
 		    (uint8_t) (x | (irqmask & 0xff)));
 	}
-	if (irqmask >> 8) {
+	if (irqmask >> PIC_IRQ_COUNT) {
 		x = pio_read_8(&saved_pic1->port2);
-		pio_write_8(&saved_pic1->port2, (uint8_t) (x | (irqmask >> 8)));
+		pio_write_8(&saved_pic1->port2,
+		    (uint8_t) (x | (irqmask >> PIC_IRQ_COUNT)));
 	}
 }
 
 void pic_eoi(unsigned int irq)
 {
-	if (irq >= 8)
+	if (irq >= PIC_IRQ_COUNT)
 		pio_write_8(&saved_pic1->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 	pio_write_8(&saved_pic0->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
+}
+
+bool pic_is_spurious(unsigned int irq)
+{
+	pio_write_8(&saved_pic0->port1, PIC_OCW3 | PIC_OCW3_READ_ISR);
+	pio_write_8(&saved_pic1->port1, PIC_OCW3 | PIC_OCW3_READ_ISR);
+	uint8_t isr_lo = pio_read_8(&saved_pic0->port1);
+	uint8_t isr_hi = pio_read_8(&saved_pic1->port1);
+	return !(((isr_hi << PIC_IRQ_COUNT) | isr_lo) & (1 << irq));
+}
+
+void pic_handle_spurious(unsigned int irq)
+{
+	/* For spurious IRQs from pic1, we need to isssue an EOI to pic0 */
+	if (irq >= PIC_IRQ_COUNT)
+		pio_write_8(&saved_pic0->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 }
 
 /** @}

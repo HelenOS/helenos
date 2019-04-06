@@ -171,8 +171,6 @@ static void irq_interrupt(unsigned int n, istate_t *istate)
 	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
 	assert(inum < IRQ_COUNT);
-	assert(inum != IRQ_PIC0_SPUR);
-	assert(inum != IRQ_PIC1_SPUR);
 	assert(inum != IRQ_PIC1);
 
 	irq_t *irq = irq_dispatch_and_lock(inum);
@@ -189,12 +187,9 @@ static void irq_interrupt(unsigned int n, istate_t *istate)
 		irq->handler(irq);
 		irq_spinlock_unlock(&irq->lock, false);
 	} else {
-		/*
-		 * Spurious interrupt.
-		 */
 #ifdef CONFIG_DEBUG
-		log(LF_ARCH, LVL_DEBUG, "cpu%u: spurious interrupt (inum=%u)",
-		    CPU->id, inum);
+		log(LF_ARCH, LVL_DEBUG, "cpu%u: unhandled IRQ %u", CPU->id,
+		    inum);
 #endif
 	}
 
@@ -204,12 +199,16 @@ static void irq_interrupt(unsigned int n, istate_t *istate)
 
 static void pic_spurious(unsigned int n, istate_t *istate)
 {
-	/*
-	 * XXX: Examine ISR to figure out whether this is indeed a spurious
-	 *      or actual IRQ.
-	 */
+	unsigned int inum = n - IVT_IRQBASE;
+	if (!pic_is_spurious(inum)) {
+		/* This is actually not a spurious IRQ, so proceed as usual. */
+		irq_interrupt(n, istate);
+		return;
+	}
+	pic_handle_spurious(n);
 #ifdef CONFIG_DEBUG
-	log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt", CPU->id);
+	log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt %u", CPU->id,
+	    inum);
 #endif
 }
 
