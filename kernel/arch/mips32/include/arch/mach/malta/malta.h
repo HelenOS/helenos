@@ -40,7 +40,9 @@
 #include <arch/mm/page.h>
 #include <typedefs.h>
 
-#define MALTA_PCI_BASE		PA2KSEG1(0x18000000UL)
+#define MALTA_PCI_PHYSBASE	0x18000000UL
+
+#define MALTA_PCI_BASE		PA2KSEG1(MALTA_PCI_PHYSBASE)
 #define MALTA_GT64120_BASE	PA2KSEG1(0x1be00000UL)
 
 #define PIC0_BASE		(MALTA_PCI_BASE + 0x20)
@@ -48,7 +50,7 @@
 
 #define ISA_IRQ_COUNT		16
 
-#define TTY_BASE		(MALTA_PCI_BASE + 0x3f8)
+#define TTY_BASE		(MALTA_PCI_PHYSBASE + 0x3f8)
 #define TTY_ISA_IRQ		4
 
 #define GT64120_PCI0_INTACK	((ioport32_t *) (MALTA_GT64120_BASE + 0xc34))
