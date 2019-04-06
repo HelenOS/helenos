@@ -51,15 +51,17 @@
 #define PIC_OCW4           (0 << 3)
 #define PIC_OCW4_NSEOI     (1 << 5)
 
-#define PIC_IRQ_COUNT      8
-#define PIC_SPURIOUS_IRQ   7
+#define PIC0_IRQ_COUNT      8
+#define PIC1_IRQ_COUNT      8
+
+#define PIC0_IRQ_PIC1       2
 
 typedef struct {
 	ioport8_t port1;
 	ioport8_t port2;
 } __attribute__((packed)) i8259_t;
 
-extern void i8259_init(i8259_t *, i8259_t *, inr_t, unsigned int);
+extern void i8259_init(i8259_t *, i8259_t *, unsigned int);
 extern void pic_enable_irqs(uint16_t);
 extern void pic_disable_irqs(uint16_t);
 extern void pic_eoi(unsigned int);

@@ -46,8 +46,7 @@
 static i8259_t *saved_pic0;
 static i8259_t *saved_pic1;
 
-void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
-    unsigned int irq0_vec)
+void i8259_init(i8259_t *pic0, i8259_t *pic1, unsigned int irq0_vec)
 {
 	saved_pic0 = pic0;
 	saved_pic1 = pic1;
@@ -58,8 +57,8 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
 	/* ICW2: IRQ 0 maps to interrupt vector address irq0_vec */
 	pio_write_8(&pic0->port2, irq0_vec);
 
-	/* ICW3: pic1 using IRQ IRQ_PIC1 */
-	pio_write_8(&pic0->port2, 1 << pic1_irq);
+	/* ICW3: pic1 using IRQ PIC0_IRQ_PIC1 */
+	pio_write_8(&pic0->port2, 1 << PIC0_IRQ_PIC1);
 
 	/* ICW4: i8086 mode */
 	pio_write_8(&pic0->port2, 1);
@@ -68,16 +67,16 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
 	pio_write_8(&pic1->port1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
 	/* ICW2: IRQ 8 maps to interrupt vector address irq0_vec + 8 */
-	pio_write_8(&pic1->port2, irq0_vec + PIC_IRQ_COUNT);
+	pio_write_8(&pic1->port2, irq0_vec + PIC0_IRQ_COUNT);
 
-	/* ICW3: pic1 is known as IRQ_PIC1 */
-	pio_write_8(&pic1->port2, pic1_irq);
+	/* ICW3: pic1 is known as PIC0_IRQ_PIC1 */
+	pio_write_8(&pic1->port2, PIC0_IRQ_PIC1);
 
 	/* ICW4: i8086 mode */
 	pio_write_8(&pic1->port2, 1);
 
 	pic_disable_irqs(0xffff);		/* disable all irq's */
-	pic_enable_irqs(1 << pic1_irq);		/* but enable pic1_irq */
+	pic_enable_irqs(1 << PIC0_IRQ_PIC1);	/* but enable PIC0_IRQ_PIC1 */
 }
 
 void pic_enable_irqs(uint16_t irqmask)
@@ -89,10 +88,10 @@ void pic_enable_irqs(uint16_t irqmask)
 		pio_write_8(&saved_pic0->port2,
 		    (uint8_t) (x & (~(irqmask & 0xff))));
 	}
-	if (irqmask >> PIC_IRQ_COUNT) {
+	if (irqmask >> PIC0_IRQ_COUNT) {
 		x = pio_read_8(&saved_pic1->port2);
 		pio_write_8(&saved_pic1->port2,
-		    (uint8_t) (x & (~(irqmask >> PIC_IRQ_COUNT))));
+		    (uint8_t) (x & (~(irqmask >> PIC0_IRQ_COUNT))));
 	}
 }
 
@@ -105,16 +104,16 @@ void pic_disable_irqs(uint16_t irqmask)
 		pio_write_8(&saved_pic0->port2,
 		    (uint8_t) (x | (irqmask & 0xff)));
 	}
-	if (irqmask >> PIC_IRQ_COUNT) {
+	if (irqmask >> PIC0_IRQ_COUNT) {
 		x = pio_read_8(&saved_pic1->port2);
 		pio_write_8(&saved_pic1->port2,
-		    (uint8_t) (x | (irqmask >> PIC_IRQ_COUNT)));
+		    (uint8_t) (x | (irqmask >> PIC0_IRQ_COUNT)));
 	}
 }
 
 void pic_eoi(unsigned int irq)
 {
-	if (irq >= PIC_IRQ_COUNT)
+	if (irq >= PIC0_IRQ_COUNT)
 		pio_write_8(&saved_pic1->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 	pio_write_8(&saved_pic0->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 }
@@ -125,13 +124,13 @@ bool pic_is_spurious(unsigned int irq)
 	pio_write_8(&saved_pic1->port1, PIC_OCW3 | PIC_OCW3_READ_ISR);
 	uint8_t isr_lo = pio_read_8(&saved_pic0->port1);
 	uint8_t isr_hi = pio_read_8(&saved_pic1->port1);
-	return !(((isr_hi << PIC_IRQ_COUNT) | isr_lo) & (1 << irq));
+	return !(((isr_hi << PIC0_IRQ_COUNT) | isr_lo) & (1 << irq));
 }
 
 void pic_handle_spurious(unsigned int irq)
 {
 	/* For spurious IRQs from pic1, we need to isssue an EOI to pic0 */
-	if (irq >= PIC_IRQ_COUNT)
+	if (irq >= PIC0_IRQ_COUNT)
 		pio_write_8(&saved_pic0->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 }
 

@@ -120,7 +120,7 @@ void amd64_pre_mm_init(void)
 
 		/* PIC */
 		i8259_init((i8259_t *) I8259_PIC0_BASE,
-		    (i8259_t *) I8259_PIC1_BASE, IRQ_PIC1, IVT_IRQBASE);
+		    (i8259_t *) I8259_PIC1_BASE, IVT_IRQBASE);
 
 		/*
 		 * Set the enable/disable IRQs handlers.
