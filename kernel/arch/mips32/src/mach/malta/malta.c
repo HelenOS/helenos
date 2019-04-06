@@ -43,7 +43,9 @@
 #include <arch/interrupt.h>
 #include <stdbool.h>
 #include <byteorder.h>
+#include <sysinfo/sysinfo.h>
 #include <log.h>
+#include <str.h>
 
 static void malta_init(void);
 static void malta_cpu_halt(void);
@@ -99,6 +101,7 @@ void malta_init(void)
 	irq_init(ISA_IRQ_COUNT, ISA_IRQ_COUNT);
 
 	i8259_init((i8259_t *) PIC0_BASE, (i8259_t *) PIC1_BASE, 0);
+	sysinfo_set_item_val("i8259", NULL, true);
 
 	int_handler[INT_HW0] = malta_isa_irq_handler;
 	cp0_unmask_int(INT_HW0);
@@ -112,6 +115,9 @@ void malta_init(void)
 	tty_instance = ns16550_init((ioport8_t *) TTY_BASE, 0, TTY_ISA_IRQ,
 	    NULL, NULL, tty_out_ptr);
 #endif
+
+	const char *args = "console=devices/\\hw\\pci0\\00:0a.0\\com1\\a";
+	str_ncpy(bargs, CONFIG_BOOT_ARGUMENTS_BUFLEN, args, str_length(args));
 }
 
 void malta_cpu_halt(void)

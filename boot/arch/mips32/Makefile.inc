@@ -53,10 +53,12 @@ endif
 ifeq ($(MACHINE), $(filter $(MACHINE),bmalta lmalta))
 	RD_DRVS_ESSENTIAL += \
 		platform/malta \
+		intctl/i8259 \
 		block/ata_bd \
 		bus/pci/pciintel \
 		bus/isa \
 		char/i8042 \
+		char/ns8250 \
 		hid/ps2mouse \
 		hid/xtkbd
 
