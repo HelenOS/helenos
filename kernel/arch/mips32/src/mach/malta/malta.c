@@ -98,7 +98,7 @@ void malta_init(void)
 {
 	irq_init(ISA_IRQ_COUNT, ISA_IRQ_COUNT);
 
-	i8259_init((i8259_t *) PIC0_BASE, (i8259_t *) PIC1_BASE, 2, 0, 8);
+	i8259_init((i8259_t *) PIC0_BASE, (i8259_t *) PIC1_BASE, 2, 0);
 
 	int_handler[INT_HW0] = malta_isa_irq_handler;
 	cp0_unmask_int(INT_HW0);

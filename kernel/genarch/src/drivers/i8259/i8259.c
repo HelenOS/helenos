@@ -47,7 +47,7 @@ static i8259_t *saved_pic0;
 static i8259_t *saved_pic1;
 
 void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
-    unsigned int irq0_int, unsigned int irq8_int)
+    unsigned int irq0_vec)
 {
 	saved_pic0 = pic0;
 	saved_pic1 = pic1;
@@ -55,8 +55,8 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
 	/* ICW1: this is ICW1, ICW4 to follow */
 	pio_write_8(&pic0->port1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
-	/* ICW2: IRQ 0 maps to INT irq0_int */
-	pio_write_8(&pic0->port2, irq0_int);
+	/* ICW2: IRQ 0 maps to interrupt vector address irq0_vec */
+	pio_write_8(&pic0->port2, irq0_vec);
 
 	/* ICW3: pic1 using IRQ IRQ_PIC1 */
 	pio_write_8(&pic0->port2, 1 << pic1_irq);
@@ -67,8 +67,8 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1, inr_t pic1_irq,
 	/* ICW1: ICW1, ICW4 to follow */
 	pio_write_8(&pic1->port1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
-	/* ICW2: IRQ 8 maps to INT irq8_int */
-	pio_write_8(&pic1->port2, irq8_int);
+	/* ICW2: IRQ 8 maps to interrupt vector address irq0_vec + 8 */
+	pio_write_8(&pic1->port2, irq0_vec + PIC_IRQ_COUNT);
 
 	/* ICW3: pic1 is known as IRQ_PIC1 */
 	pio_write_8(&pic1->port2, pic1_irq);
