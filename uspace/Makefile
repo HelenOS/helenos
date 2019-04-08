@@ -232,6 +232,7 @@ LIBS = \
 	lib/dltest \
 	lib/fdisk \
 	lib/fmtutil \
+	lib/gfx \
 	lib/scsi \
 	lib/sif \
 	lib/compress \

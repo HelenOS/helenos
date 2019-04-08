@@ -245,6 +245,7 @@ endif
 
 RD_TESTS = \
 	$(USPACE_PATH)/lib/c/test-libc \
+	$(USPACE_PATH)/lib/gfx/test-libgfx \
 	$(USPACE_PATH)/lib/label/test-liblabel \
 	$(USPACE_PATH)/lib/posix/test-libposix \
 	$(USPACE_PATH)/lib/sif/test-libsif \
