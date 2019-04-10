@@ -25,7 +25,7 @@ incurred by them.
 
 ## Portability
 
-HelenOS runs on seven different processor architectures and machines ranging
+HelenOS runs on eight different processor architectures and machines ranging
 from embedded ARM devices and single-board computers through multicore 32-bit
 and 64-bit desktop PCs to 64-bit Itanium and SPARC rack-mount servers.
 
