@@ -31,6 +31,7 @@ USPACE_PREFIX = ../..
 LIBRARY = libgfx
 
 SOURCES = \
+	src/backend/console.c \
 	src/color.c \
 	src/context.c \
 	src/render.c

@@ -30,52 +30,16 @@
  * @{
  */
 /**
- * @file Color operations
+ * @file GFX console backend
  */
 
-#include <gfx/color.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include "private/color.h"
+#ifndef _GFX_TYPES_BACKEND_CONSOLE_H
+#define _GFX_TYPES_BACKEND_CONSOLE_H
 
-/** Create new 16-bit per channel RGB color.
- *
- * Create a new RGB color where the R, G, B components have 16 bits
- * of precision each.
- *
- * @param r Red component
- * @param g Green component
- * @param b Blue component
- * @param rcolor Place to store pointer to new color
- *
- * @return EOK on success or an error code, ENOMEM if out of resources,
- *         EIO if the graphic device connection was lost
- */
-errno_t gfx_color_new_rgb_i16(uint16_t r, uint16_t g, uint16_t b,
-    gfx_color_t **rcolor)
-{
-	gfx_color_t *color;
+struct console_gc;
+typedef struct console_gc console_gc_t;
 
-	color = calloc(1, sizeof(gfx_color_t));
-	if (color == NULL)
-		return ENOMEM;
-
-	color->r = r;
-	color->g = g;
-	color->b = b;
-
-	*rcolor = color;
-	return EOK;
-}
-
-/** Delete color.
- *
- * @param color Color
- */
-void gfx_color_delete(gfx_color_t *color)
-{
-	free(color);
-}
+#endif
 
 /** @}
  */

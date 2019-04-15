@@ -106,7 +106,7 @@ PCUT_TEST(fill_rect)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
-errno_t testgc_set_color(void *arg, gfx_color_t *color)
+static errno_t testgc_set_color(void *arg, gfx_color_t *color)
 {
 	test_gc_t *tgc = (test_gc_t *) arg;
 
@@ -115,7 +115,7 @@ errno_t testgc_set_color(void *arg, gfx_color_t *color)
 	return EOK;
 }
 
-errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
+static errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	test_gc_t *tgc = (test_gc_t *) arg;
 

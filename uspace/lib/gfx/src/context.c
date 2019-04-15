@@ -63,10 +63,13 @@ errno_t gfx_context_new(gfx_context_ops_t *ops, void *arg,
 
 /** Delete graphics context.
  *
- * @param gc Graphics context
+ * @param gc Graphics context or @c NULL
  */
 errno_t gfx_context_delete(gfx_context_t *gc)
 {
+	if (gc == NULL)
+		return EOK;
+
 	free(gc);
 	return EOK;
 }
