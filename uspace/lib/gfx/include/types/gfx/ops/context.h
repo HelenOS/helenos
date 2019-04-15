@@ -30,37 +30,28 @@
  * @{
  */
 /**
- * @file Rendering operations
+ * @file Graphics context ops
+ *
+ * The ops structure describing an implementation of a graphics context.
  */
 
-#include <gfx/render.h>
-#include "../private/context.h"
+#ifndef _GFX_TYPES_OPS_CONTEXT_H
+#define _GFX_TYPES_OPS_CONTEXT_H
 
-/** Set drawing color.
- *
- * @param gc Graphic context
- * @param color Color
- *
- * @return EOK on success, ENOMEM if insufficient resources,
- *         EIO if grahic device connection was lost
- */
-errno_t gfx_set_color(gfx_context_t *gc, gfx_color_t *color)
-{
-	return gc->ops->set_color(gc->arg, color);
-}
+#include <errno.h>
+#include <types/gfx/color.h>
+#include <types/gfx/coord.h>
+#include <types/gfx/context.h>
 
-/** Fill rectangle using the current drawing color.
- *
- * @param gc Graphic context
- * @param rect Rectangle
- *
- * @return EOK on success, ENOMEM if insufficient resources,
- *         EIO if grahic device connection was lost
- */
-errno_t gfx_fill_rect(gfx_context_t *gc, gfx_rect_t *rect)
-{
-	return gc->ops->fill_rect(gc->arg, rect);
-}
+/** Graphics context ops */
+typedef struct {
+	/** Set drawing collor */
+	errno_t (*set_color)(void *, gfx_color_t *);
+	/** Fill rectangle using the current drawing color */
+	errno_t (*fill_rect)(void *, gfx_rect_t *);
+} gfx_context_ops_t;
+
+#endif
 
 /** @}
  */

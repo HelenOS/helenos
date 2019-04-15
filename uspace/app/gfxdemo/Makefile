@@ -28,16 +28,11 @@
 
 USPACE_PREFIX = ../..
 
-LIBRARY = libgfx
+LIBS = gfx
+
+BINARY = gfxdemo
 
 SOURCES = \
-	src/color.c \
-	src/context.c \
-	src/render.c
-
-TEST_SOURCES = \
-	test/color.c \
-	test/main.c \
-	test/render.c
+	gfxdemo.c
 
 include $(USPACE_PREFIX)/Makefile.common

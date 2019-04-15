@@ -48,6 +48,7 @@ DIRS = \
 	app/fdisk \
 	app/fontviewer \
 	app/getterm \
+	app/gfxdemo \
 	app/gunzip \
 	app/hbench \
 	app/init \

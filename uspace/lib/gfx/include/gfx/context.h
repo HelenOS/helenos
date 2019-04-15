@@ -40,7 +40,13 @@
 #ifndef _GFX_CONTEXT_H
 #define _GFX_CONTEXT_H
 
+#include <errno.h>
 #include <types/gfx/context.h>
+#include <types/gfx/ops/context.h>
+
+extern errno_t gfx_context_new(gfx_context_ops_t *, void *,
+    gfx_context_t **);
+extern errno_t gfx_context_delete(gfx_context_t *);
 
 #endif
 

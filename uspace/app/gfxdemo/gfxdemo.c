@@ -26,40 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup gfxdemo
  * @{
  */
-/**
- * @file Rendering operations
+/** @file Graphic demo
  */
 
+#include <gfx/color.h>
 #include <gfx/render.h>
-#include "../private/context.h"
 
-/** Set drawing color.
- *
- * @param gc Graphic context
- * @param color Color
- *
- * @return EOK on success, ENOMEM if insufficient resources,
- *         EIO if grahic device connection was lost
- */
-errno_t gfx_set_color(gfx_context_t *gc, gfx_color_t *color)
+int main(int argc, char *argv[])
 {
-	return gc->ops->set_color(gc->arg, color);
-}
-
-/** Fill rectangle using the current drawing color.
- *
- * @param gc Graphic context
- * @param rect Rectangle
- *
- * @return EOK on success, ENOMEM if insufficient resources,
- *         EIO if grahic device connection was lost
- */
-errno_t gfx_fill_rect(gfx_context_t *gc, gfx_rect_t *rect)
-{
-	return gc->ops->fill_rect(gc->arg, rect);
 }
 
 /** @}

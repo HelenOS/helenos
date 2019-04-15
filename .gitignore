@@ -104,6 +104,7 @@ uspace/app/edit/edit
 uspace/app/fdisk/fdisk
 uspace/app/fontviewer/fontviewer
 uspace/app/getterm/getterm
+uspace/app/gfxdemo/gfxdemo
 uspace/app/gunzip/gunzip
 uspace/app/hbench/hbench
 uspace/app/inet/inet
@@ -385,6 +386,7 @@ uspace/lib/c/arch/sparc64/_link-loader.ld
 uspace/lib/c/arch/sparc64/_link-shlib.ld
 uspace/lib/c/arch/sparc64/_link.ld
 uspace/lib/c/test-libc
+uspace/lib/gfx/test-libgfx
 uspace/lib/label/test-liblabel
 uspace/lib/math/test-libmath
 uspace/lib/pcut/test-libpcut-*

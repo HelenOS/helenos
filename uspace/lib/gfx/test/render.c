@@ -27,26 +27,53 @@
  */
 
 #include <gfx/color.h>
+#include <gfx/context.h>
 #include <gfx/render.h>
 #include <pcut/pcut.h>
+#include <mem.h>
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(render);
+
+static errno_t testgc_set_color(void *, gfx_color_t *);
+static errno_t testgc_fill_rect(void *, gfx_rect_t *);
+
+static gfx_context_ops_t ops = {
+	.set_color = testgc_set_color,
+	.fill_rect = testgc_fill_rect
+};
+
+/** Test graphics context data */
+typedef struct {
+	gfx_color_t *dclr;
+	gfx_rect_t *rect;
+} test_gc_t;
 
 PCUT_TEST(set_color)
 {
 	errno_t rc;
 	gfx_color_t *color;
 	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+
+	memset(&tgc, 0, sizeof(tgc));
+
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = gfx_set_color(gc, color);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(color, tgc.dclr);
+	PCUT_ASSERT_NULL(tgc.rect);
 
 	gfx_color_delete(color);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 PCUT_TEST(fill_rect)
@@ -55,17 +82,46 @@ PCUT_TEST(fill_rect)
 	gfx_color_t *color;
 	gfx_rect_t rect;
 	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+
+	memset(&tgc, 0, sizeof(tgc));
+
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = gfx_set_color(gc, color);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(color, tgc.dclr);
 
 	rc = gfx_fill_rect(gc, &rect);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(&rect, tgc.rect);
 
 	gfx_color_delete(color);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+errno_t testgc_set_color(void *arg, gfx_color_t *color)
+{
+	test_gc_t *tgc = (test_gc_t *) arg;
+
+	/* Technically we should copy the data */
+	tgc->dclr = color;
+	return EOK;
+}
+
+errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
+{
+	test_gc_t *tgc = (test_gc_t *) arg;
+
+	/* Technically we should copy the data */
+	tgc->rect = rect;
+	return EOK;
 }
 
 PCUT_EXPORT(render);

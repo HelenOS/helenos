@@ -30,36 +30,45 @@
  * @{
  */
 /**
- * @file Rendering operations
+ * @file Graphics context
  */
 
-#include <gfx/render.h>
+#include <gfx/context.h>
+#include <stdlib.h>
 #include "../private/context.h"
 
-/** Set drawing color.
+/** Create new graphics context.
  *
- * @param gc Graphic context
- * @param color Color
+ * Create new graphics context with the specified ops and argument.
  *
- * @return EOK on success, ENOMEM if insufficient resources,
- *         EIO if grahic device connection was lost
+ * @param ops Graphics context ops
+ * @param arg Instance argument
+ * @param rgc Place to store pointer to new graphics context on success
+ * @return EOK on success, ENOMEM if out of memory
  */
-errno_t gfx_set_color(gfx_context_t *gc, gfx_color_t *color)
+errno_t gfx_context_new(gfx_context_ops_t *ops, void *arg,
+    gfx_context_t **rgc)
 {
-	return gc->ops->set_color(gc->arg, color);
+	gfx_context_t *gc;
+
+	gc = calloc(1, sizeof(gfx_context_t));
+	if (gc == NULL)
+		return ENOMEM;
+
+	gc->ops = ops;
+	gc->arg = arg;
+	*rgc = gc;
+	return EOK;
 }
 
-/** Fill rectangle using the current drawing color.
+/** Delete graphics context.
  *
- * @param gc Graphic context
- * @param rect Rectangle
- *
- * @return EOK on success, ENOMEM if insufficient resources,
- *         EIO if grahic device connection was lost
+ * @param gc Graphics context
  */
-errno_t gfx_fill_rect(gfx_context_t *gc, gfx_rect_t *rect)
+errno_t gfx_context_delete(gfx_context_t *gc)
 {
-	return gc->ops->fill_rect(gc->arg, rect);
+	free(gc);
+	return EOK;
 }
 
 /** @}

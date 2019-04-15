@@ -190,6 +190,7 @@ RD_APPS_NON_ESSENTIAL = \
 	download \
 	edit \
 	fdisk \
+	gfxdemo \
 	gunzip \
 	hbench \
 	inet \
