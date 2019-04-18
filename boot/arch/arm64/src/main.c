@@ -190,12 +190,10 @@ efi_status_t bootstrap(void *efi_handle_in,
 	 */
 
 	/* Statically check PAGE_SIZE and BOOT_OFFSET. */
-#if PAGE_SIZE != 4096
-#error Unsupported PAGE_SIZE
-#endif
-#if !IS_ALIGNED(BOOT_OFFSET, PAGE_SIZE)
-#error Unsupported BOOT_OFFSET
-#endif
+	_Static_assert(PAGE_SIZE == 4096, "PAGE_SIZE must be equal to 4096");
+	_Static_assert(IS_ALIGNED(BOOT_OFFSET, PAGE_SIZE),
+	    "BOOT_OFFSET must be a multiple of PAGE_SIZE");
+
 	/*
 	 * Dynamically check the memory base. The condition should be always
 	 * true because UEFI guarantees each physical/virtual address in the
