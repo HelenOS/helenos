@@ -13,7 +13,6 @@
 /Makefile.common
 /Makefile.config
 /PKG
-/QEMU_EFI_ARM64.fd
 /common.h
 /config.h
 /cscope.out

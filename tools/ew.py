@@ -88,27 +88,45 @@ def pc_options(guest_width):
 def malta_options():
 	return '-cpu 4Kc'
 
+def find_firmware(name, environ_var, default_paths, extra_info=None):
+	"""Find firmware image(s)."""
+
+	if environ_var in os.environ:
+		return os.environ[environ_var]
+
+	for path in default_paths:
+		if os.path.exists(path):
+			return path
+
+	sys.stderr.write("Cannot find %s binary image(s)!\n" % name)
+	sys.stderr.write(
+	    "Either set %s environment variable accordingly or place the image(s) in one of the default locations: %s.\n" %
+	    (environ_var, ", ".join(default_paths)))
+	if extra_info is not None:
+		sys.stderr.write(extra_info)
+	return None
+
 def platform_to_qemu_options(platform, machine, processor):
 	if platform == 'amd64':
 		return 'system-x86_64', pc_options(64)
 	elif platform == 'arm32':
 		return 'system-arm', '-M integratorcp'
 	elif platform == 'arm64':
-		# Check that ROM image is present. Provide the user with
-		# appropriate steps to fix this problem.
-		if not os.path.exists('QEMU_EFI_ARM64.fd'):
-			sys.stderr.write('Could not find ' +
-			    '\'QEMU_EFI_ARM64.fd\' which is expected to ' +
-			    'contain EDK2 firmware image.\n')
-			sys.stderr.write('Pre-built image can be obtained by ' +
-			    'running the following command:\n')
-			sys.stderr.write('$ wget http://snapshots.linaro.org/' +
-			    'components/kernel/leg-virt-tianocore-edk2-' +
-			    'upstream/latest/QEMU-AARCH64/RELEASE_GCC49/' +
-			    'QEMU_EFI.fd -O QEMU_EFI_ARM64.fd\n')
+		# Search for the EDK2 firmware image
+		default_paths = (
+			'/usr/local/qemu-efi-aarch64/QEMU_EFI.fd', # Custom
+			'/usr/share/edk2/aarch64/QEMU_EFI.fd',     # Fedora
+			'/usr/share/qemu-efi-aarch64/QEMU_EFI.fd', # Ubuntu
+		)
+		extra_info = ("Pre-compiled binary can be obtained from "
+		    "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/latest/QEMU-AARCH64/RELEASE_GCC49/QEMU_EFI.fd.\n")
+		efi_path = find_firmware(
+		    "EDK2", 'EW_QEMU_EFI_AARCH64', default_paths, extra_info)
+		if efi_path is None:
 			raise Exception
+
 		return 'system-aarch64', \
-		    '-M virt -cpu cortex-a57 -m 1024 -bios QEMU_EFI_ARM64.fd'
+		    '-M virt -cpu cortex-a57 -m 1024 -bios %s' % efi_path
 	elif platform == 'ia32':
 		return 'system-i386', pc_options(32)
 	elif platform == 'mips32':
@@ -123,18 +141,12 @@ def platform_to_qemu_options(platform, machine, processor):
 			raise Exception
 		if processor == 'us':
 			return 'system-sparc64', '-M sun4u --prom-env boot-args="console=devices/\\hw\\pci0\\01:01.0\\com1\\a"'
-		elif processor == 'sun4v':
-			default_path = '/usr/local/opensparc/image/'
-		try:
-			if os.path.exists(default_path):
-				opensparc_bins = default_path
-			elif os.path.exists(os.environ['OPENSPARC_BINARIES']):
-				opensparc_bins = os.environ['OPENSPARC_BINARIES']
-			else:
-				raise Exception
-		except:
-			print("Cannot find OpenSPARC binary images!")
-			print("Either set OPENSPARC_BINARIES environment variable accordingly or place the images in %s." % (default_path))
+
+		# processor = 'sun4v'
+		opensparc_bins = find_firmware(
+		    "OpenSPARC", 'OPENSPARC_BINARIES',
+		    ('/usr/local/opensparc/image/', ))
+		if opensparc_bins is None:
 			raise Exception
 
 		return 'system-sparc64', '-M niagara -m 256 -L %s' % (opensparc_bins)
