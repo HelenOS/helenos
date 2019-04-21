@@ -310,7 +310,8 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 		 */
 		t.a = true;
 		t.d = true;
-		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_SECONDARY,
+		dtlb_demap(TLB_DEMAP_PAGE,
+		    (as == AS_KERNEL) ? TLB_DEMAP_PRIMARY : TLB_DEMAP_SECONDARY,
 		    page_16k + index * MMU_PAGE_SIZE);
 		dtlb_pte_copy(&t, index, false);
 #ifdef CONFIG_TSB
