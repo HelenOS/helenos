@@ -205,14 +205,6 @@ void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 				continue;
 			}
 
-			sym_size = sym->st_size;
-			if (sym_size != sym_def->st_size) {
-				printf("Warning: Mismatched symbol sizes.\n");
-				/* Take the lower value. */
-				if (sym_size > sym_def->st_size)
-					sym_size = sym_def->st_size;
-			}
-
 			DPRINTF("sym_addr = 0x%zx\n", sym_addr);
 			DPRINTF("r_offset=0x%zx\n", r_offset);
 
