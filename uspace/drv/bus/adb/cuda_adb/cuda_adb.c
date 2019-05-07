@@ -295,7 +295,6 @@ static void cuda_irq_handler(ipc_call_t *call, void *arg)
 		break;
 	}
 
-
 	fibril_mutex_unlock(&cuda->dev_lock);
 
 	/* Handle an incoming packet. */
