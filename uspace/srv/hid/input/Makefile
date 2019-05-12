@@ -31,11 +31,17 @@ USPACE_PREFIX = ../../..
 BINARY = input
 LIBS = drv
 
+ROOT_PATH = $(USPACE_PREFIX)/..
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+
+include $(CONFIG_MAKEFILE)
+
+ifndef CONFIG_KB_LAYOUT
+$(error CONFIG_KB_LAYOUT must be set! Please reconfigure your HelenOS.config)
+endif
+
 SOURCES = \
-	layout/cz.c \
-	layout/us_qwerty.c \
-	layout/us_dvorak.c \
-	layout/ar.c \
+	layout/$(CONFIG_KB_LAYOUT).c \
 	port/chardev.c \
 	proto/mousedev.c \
 	ctl/kbdev.c \
@@ -46,4 +52,6 @@ SOURCES = \
 	layout.c \
 	stroke.c
 
+
 include $(USPACE_PREFIX)/Makefile.common
+

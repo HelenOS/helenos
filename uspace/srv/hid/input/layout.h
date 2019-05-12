@@ -55,10 +55,7 @@ typedef struct layout_ops {
 	wchar_t (*parse_ev)(layout_t *, kbd_event_t *);
 } layout_ops_t;
 
-extern layout_ops_t us_qwerty_ops;
-extern layout_ops_t us_dvorak_ops;
-extern layout_ops_t cz_ops;
-extern layout_ops_t ar_ops;
+extern layout_ops_t layout_default;
 
 extern layout_t *layout_create(layout_ops_t *);
 extern void layout_destroy(layout_t *);

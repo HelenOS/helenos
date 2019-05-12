@@ -44,11 +44,15 @@ static errno_t us_qwerty_create(layout_t *);
 static void us_qwerty_destroy(layout_t *);
 static wchar_t us_qwerty_parse_ev(layout_t *, kbd_event_t *ev);
 
-layout_ops_t us_qwerty_ops = {
+#ifdef CONFIG_KB_LAYOUT_us_qwerty
+
+layout_ops_t layout_default = {
 	.create = us_qwerty_create,
 	.destroy = us_qwerty_destroy,
 	.parse_ev = us_qwerty_parse_ev
 };
+
+#endif
 
 static wchar_t map_lcase[] = {
 	[KC_Q] = 'q',

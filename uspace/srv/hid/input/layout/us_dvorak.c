@@ -44,11 +44,15 @@ static errno_t us_dvorak_create(layout_t *);
 static void us_dvorak_destroy(layout_t *);
 static wchar_t us_dvorak_parse_ev(layout_t *, kbd_event_t *ev);
 
-layout_ops_t us_dvorak_ops = {
+#ifdef CONFIG_KB_LAYOUT_us_dvorak
+
+layout_ops_t layout_default = {
 	.create = us_dvorak_create,
 	.destroy = us_dvorak_destroy,
 	.parse_ev = us_dvorak_parse_ev
 };
+
+#endif
 
 static wchar_t map_lcase[] = {
 	[KC_R] = 'p',

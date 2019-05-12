@@ -45,11 +45,15 @@ static errno_t ar_create(layout_t *);
 static void ar_destroy(layout_t *);
 static wchar_t ar_parse_ev(layout_t *, kbd_event_t *ev);
 
-layout_ops_t ar_ops = {
+#ifdef CONFIG_KB_LAYOUT_ar
+
+layout_ops_t layout_default = {
 	.create = ar_create,
 	.destroy = ar_destroy,
 	.parse_ev = ar_parse_ev
 };
+
+#endif
 
 static wchar_t map_not_shifted[] = {
 	[KC_BACKTICK] = L'ذ',

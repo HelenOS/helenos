@@ -56,11 +56,15 @@ typedef struct {
 	enum m_state mstate;
 } layout_cz_t;
 
-layout_ops_t cz_ops = {
+#ifdef CONFIG_KB_LAYOUT_us_qwerty
+
+layout_ops_t layout_default = {
 	.create = cz_create,
 	.destroy = cz_destroy,
 	.parse_ev = cz_parse_ev
 };
+
+#endif
 
 static wchar_t map_lcase[] = {
 	[KC_Q] = 'q',

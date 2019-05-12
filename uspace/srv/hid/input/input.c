@@ -65,15 +65,6 @@
 #include "mouse_proto.h"
 #include "serial.h"
 
-#define NUM_LAYOUTS  4
-
-static layout_ops_t *layout[NUM_LAYOUTS] = {
-	&us_qwerty_ops,
-	&us_dvorak_ops,
-	&cz_ops,
-	&ar_ops
-};
-
 typedef struct {
 	/** Link into the list of clients */
 	link_t link;
@@ -205,33 +196,9 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 		}
 	}
 
-	// TODO: More elegant layout switching
-
-	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
-	    (key == KC_F1)) {
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) && (key == KC_F1)) {
 		layout_destroy(kdev->active_layout);
-		kdev->active_layout = layout_create(layout[0]);
-		return;
-	}
-
-	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
-	    (key == KC_F2)) {
-		layout_destroy(kdev->active_layout);
-		kdev->active_layout = layout_create(layout[1]);
-		return;
-	}
-
-	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
-	    (key == KC_F3)) {
-		layout_destroy(kdev->active_layout);
-		kdev->active_layout = layout_create(layout[2]);
-		return;
-	}
-
-	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
-	    (key == KC_F4)) {
-		layout_destroy(kdev->active_layout);
-		kdev->active_layout = layout_create(layout[3]);
+		kdev->active_layout = layout_create(&layout_default);
 		return;
 	}
 
@@ -391,7 +358,7 @@ static kbd_dev_t *kbd_dev_new(void)
 
 	kdev->mods = KM_NUM_LOCK;
 	kdev->lock_keys = 0;
-	kdev->active_layout = layout_create(layout[0]);
+	kdev->active_layout = layout_create(&layout_default);
 
 	return kdev;
 }
