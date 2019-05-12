@@ -219,6 +219,11 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
 		app/dltests
 endif
 
+## build keyboard layouts
+ifeq ($(CONFIG_RTLD),y)
+	DIRS += srv/hid/input/layout
+endif
+
 ## System libraries
 #
 

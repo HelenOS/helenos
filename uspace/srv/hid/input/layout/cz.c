@@ -56,13 +56,25 @@ typedef struct {
 	enum m_state mstate;
 } layout_cz_t;
 
-#ifdef CONFIG_KB_LAYOUT_us_qwerty
+#ifdef CONFIG_KB_LAYOUT_cz
 
 layout_ops_t layout_default = {
 	.create = cz_create,
 	.destroy = cz_destroy,
 	.parse_ev = cz_parse_ev
 };
+
+#else
+
+layout_ops_t get_layout(void);
+layout_ops_t get_layout(void) {
+	layout_ops_t layout_default = {
+		.create = cz_create,
+		.destroy = cz_destroy,
+		.parse_ev = cz_parse_ev
+	};
+	return layout_default;
+}
 
 #endif
 

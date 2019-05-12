@@ -53,6 +53,18 @@ layout_ops_t layout_default = {
 	.parse_ev = ar_parse_ev
 };
 
+#else
+
+layout_ops_t get_layout(void);
+layout_ops_t get_layout(void) {
+	layout_ops_t layout_default = {
+		.create = ar_create,
+		.destroy = ar_destroy,
+		.parse_ev = ar_parse_ev
+	};
+	return layout_default;
+}
+
 #endif
 
 static wchar_t map_not_shifted[] = {

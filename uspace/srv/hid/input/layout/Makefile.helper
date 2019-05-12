@@ -1,0 +1,8 @@
+
+USPACE_PREFIX = ../../../..
+
+LIBRARY = $(LAYOUT)
+SOVERSION = 0.0
+SOURCES = $(LAYOUT).c
+
+include $(USPACE_PREFIX)/Makefile.common

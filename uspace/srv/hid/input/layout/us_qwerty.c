@@ -52,6 +52,18 @@ layout_ops_t layout_default = {
 	.parse_ev = us_qwerty_parse_ev
 };
 
+#else
+
+layout_ops_t get_layout(void);
+layout_ops_t get_layout(void) {
+	layout_ops_t layout_default = {
+		.create = us_qwerty_create,
+		.destroy = us_qwerty_destroy,
+		.parse_ev = us_qwerty_parse_ev
+	};
+	return layout_default;
+}
+
 #endif
 
 static wchar_t map_lcase[] = {
