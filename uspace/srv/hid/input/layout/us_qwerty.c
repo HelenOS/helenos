@@ -34,6 +34,10 @@
  * @brief US QWERTY layout
  */
 
+#if !(defined(CONFIG_KB_LAYOUT_EXTERNAL) || defined(CONFIG_KB_LAYOUT_us_qwerty))
+#error Invalid configuration of CONFIG_KB_LAYOUT
+#else
+
 #include <errno.h>
 #include <io/console.h>
 #include <io/keycode.h>
@@ -44,26 +48,21 @@ static errno_t us_qwerty_create(layout_t *);
 static void us_qwerty_destroy(layout_t *);
 static wchar_t us_qwerty_parse_ev(layout_t *, kbd_event_t *ev);
 
-#ifdef CONFIG_KB_LAYOUT_us_qwerty
-
-layout_ops_t layout_default = {
+static const layout_ops_t layout_intern = {
 	.create = us_qwerty_create,
 	.destroy = us_qwerty_destroy,
 	.parse_ev = us_qwerty_parse_ev
 };
 
-#else
-
+#ifdef CONFIG_KB_LAYOUT_EXTERNAL
 layout_ops_t get_layout(void);
-layout_ops_t get_layout(void) {
-	layout_ops_t layout_default = {
-		.create = us_qwerty_create,
-		.destroy = us_qwerty_destroy,
-		.parse_ev = us_qwerty_parse_ev
-	};
-	return layout_default;
+layout_ops_t get_layout(void)
+{
+	return layout_intern;
 }
-
+#else 
+layout_ops_t layout_default = layout_intern;
+layout_ops_t layout_active = layout_intern;
 #endif
 
 static wchar_t map_lcase[] = {
@@ -265,6 +264,8 @@ static wchar_t us_qwerty_parse_ev(layout_t *state, kbd_event_t *ev)
 
 	return c;
 }
+
+#endif
 
 /**
  * @}

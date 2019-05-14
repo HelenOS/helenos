@@ -56,6 +56,7 @@ typedef struct layout_ops {
 } layout_ops_t;
 
 extern layout_ops_t layout_default;
+extern layout_ops_t layout_active;
 
 extern layout_t *layout_create(layout_ops_t *);
 extern void layout_destroy(layout_t *);

@@ -34,6 +34,10 @@
  * @brief Czech QWERTZ layout
  */
 
+#if !(defined(CONFIG_KB_LAYOUT_EXTERNAL) || defined(CONFIG_KB_LAYOUT_cz))
+#error Invalid configuration of CONFIG_KB_LAYOUT
+#else
+
 #include <errno.h>
 #include <io/console.h>
 #include <io/keycode.h>
@@ -46,6 +50,23 @@ static errno_t cz_create(layout_t *);
 static void cz_destroy(layout_t *);
 static wchar_t cz_parse_ev(layout_t *, kbd_event_t *ev);
 
+static const layout_ops_t layout_intern = {
+	.create = cz_create,
+	.destroy = cz_destroy,
+	.parse_ev = cz_parse_ev
+};
+
+#ifdef CONFIG_KB_LAYOUT_EXTERNAL
+layout_ops_t get_layout(void);
+layout_ops_t get_layout(void)
+{
+	return layout_intern;
+}
+#else 
+layout_ops_t layout_default = layout_intern;
+layout_ops_t layout_active = layout_intern;
+#endif
+
 enum m_state {
 	ms_start,
 	ms_hacek,
@@ -55,28 +76,6 @@ enum m_state {
 typedef struct {
 	enum m_state mstate;
 } layout_cz_t;
-
-#ifdef CONFIG_KB_LAYOUT_cz
-
-layout_ops_t layout_default = {
-	.create = cz_create,
-	.destroy = cz_destroy,
-	.parse_ev = cz_parse_ev
-};
-
-#else
-
-layout_ops_t get_layout(void);
-layout_ops_t get_layout(void) {
-	layout_ops_t layout_default = {
-		.create = cz_create,
-		.destroy = cz_destroy,
-		.parse_ev = cz_parse_ev
-	};
-	return layout_default;
-}
-
-#endif
 
 static wchar_t map_lcase[] = {
 	[KC_Q] = 'q',
@@ -445,6 +444,8 @@ static wchar_t cz_parse_ev(layout_t *state, kbd_event_t *ev)
 
 	return 0;
 }
+
+#endif
 
 /**
  * @}

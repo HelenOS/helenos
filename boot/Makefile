@@ -59,6 +59,13 @@ build_dist: clean_dist
 		cp "$$file" "$(DIST_PATH)/lib/" ; \
 	done
 
+ifeq ($(CONFIG_RTLD), y)
+	for layout in $(USPACE_PATH)/srv/hid/input/layout/*.so ; do \
+		mkdir -p "$(DIST_PATH)/lib/layouts/" ; \
+		cp "$$layout" $(DIST_PATH)/lib/layouts/ ; \
+	done
+endif
+	
 ifeq ($(CONFIG_DEVEL_FILES), y)
 	mkdir -p "$(DIST_PATH)/inc/c/"
 	cp -r -L "$(USPACE_PATH)/lib/c/include/." "$(DIST_PATH)/inc/c/"

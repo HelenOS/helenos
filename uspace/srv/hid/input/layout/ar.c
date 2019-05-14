@@ -35,6 +35,10 @@
  * @brief Arabic keyboard layout (Based on US QWERTY layout's code)
  */
 
+#if !(defined(CONFIG_KB_LAYOUT_EXTERNAL) || defined(CONFIG_KB_LAYOUT_ar))
+#error Invalid configuration of CONFIG_KB_LAYOUT
+#else
+
 #include <errno.h>
 #include <io/console.h>
 #include <io/keycode.h>
@@ -45,26 +49,21 @@ static errno_t ar_create(layout_t *);
 static void ar_destroy(layout_t *);
 static wchar_t ar_parse_ev(layout_t *, kbd_event_t *ev);
 
-#ifdef CONFIG_KB_LAYOUT_ar
-
-layout_ops_t layout_default = {
+static const layout_ops_t layout_intern = {
 	.create = ar_create,
 	.destroy = ar_destroy,
 	.parse_ev = ar_parse_ev
 };
 
-#else
-
+#ifdef CONFIG_KB_LAYOUT_EXTERNAL
 layout_ops_t get_layout(void);
-layout_ops_t get_layout(void) {
-	layout_ops_t layout_default = {
-		.create = ar_create,
-		.destroy = ar_destroy,
-		.parse_ev = ar_parse_ev
-	};
-	return layout_default;
+layout_ops_t get_layout(void)
+{
+	return layout_intern;
 }
-
+#else 
+layout_ops_t layout_default = layout_intern;
+layout_ops_t layout_active = layout_intern;
 #endif
 
 static wchar_t map_not_shifted[] = {
@@ -254,6 +253,8 @@ static wchar_t ar_parse_ev(layout_t *state, kbd_event_t *ev)
 
 	return c;
 }
+
+#endif
 
 /**
  * @}
