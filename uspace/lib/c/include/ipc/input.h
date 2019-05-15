@@ -38,7 +38,8 @@
 #include <ipc/common.h>
 
 typedef enum {
-	INPUT_ACTIVATE = IPC_FIRST_USER_METHOD
+	INPUT_ACTIVATE = IPC_FIRST_USER_METHOD,
+	INPUT_CHANGE_LAYOUT
 } input_request_t;
 
 typedef enum {
