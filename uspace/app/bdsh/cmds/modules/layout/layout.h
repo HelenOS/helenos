@@ -3,6 +3,4 @@
 
 /* Prototypes for the layout command, excluding entry points */
 
-
 #endif /* LAYOUT_H */
-

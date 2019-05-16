@@ -119,7 +119,7 @@ static errno_t layout_load(const char *layout_name)
 	length += str_size(suffix);
 	length += str_size(layout_name);
 	char *path = malloc(sizeof(char) * (length + 1));
-	
+
 	if (path == NULL) {
 		printf("%s: Error allocating layout path. Out of memory.\n", NAME);
 		return ENOMEM;
@@ -129,7 +129,6 @@ static errno_t layout_load(const char *layout_name)
 	str_append(path, length, prefix);
 	str_append(path, length, layout_name);
 	str_append(path, length, suffix);
-	printf("%s\n", path);
 
 	void *handle = dlopen(path, 0);
 	if (handle == NULL) {
@@ -339,6 +338,34 @@ static void client_arbitration(void)
 	}
 }
 
+/* Handler for IPC call INPUT_CHANGE_LAYOUT */
+static void client_change_layout_handler(ipc_call_t *call)
+{
+	void *layout_name;
+	errno_t ret = async_data_write_accept(&layout_name, true, 0, 0, 0, 0);
+	if (ret != EOK) {
+		async_answer_0(call, ret);
+		return;
+	}
+
+	errno_t retval = layout_load((char *)layout_name);
+	free(layout_name);
+	async_answer_0(call, retval);
+}
+
+/* Handler for IPC call INPUT_GET_LAYOUT */
+static void client_get_layout_handler(ipc_call_t *call)
+{
+	const char *layout_name = layout_active.get_name();
+	size_t length = str_size(layout_name) + 1;
+	ipc_call_t id;
+
+	async_answer_1(call, EOK, length);
+	if (async_data_read_receive(&id, NULL)) {
+		async_data_read_finalize(&id, layout_name, length);
+	}
+}
+
 /** New client connection */
 static void client_connection(ipc_call_t *icall, void *arg)
 {
@@ -379,19 +406,12 @@ static void client_connection(ipc_call_t *icall, void *arg)
 				client_arbitration();
 				async_answer_0(&call, EOK);
 				break;
-			case INPUT_CHANGE_LAYOUT: {
-				void * layout_name;
-				errno_t ret = async_data_write_accept(&layout_name, true, 0, 0, 0, 0);
-				if (ret != EOK) {
-					async_answer_0(&call, ret);
-					break;
-				}
-
-				errno_t retval = layout_load((char *)layout_name);
-				free(layout_name);
-				async_answer_0(&call, retval);
+			case INPUT_CHANGE_LAYOUT:
+				client_change_layout_handler(&call);
 				break;
-			}
+			case INPUT_GET_LAYOUT:
+				client_get_layout_handler(&call);
+				break;
 			default:
 				async_answer_0(&call, EINVAL);
 			}

@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <dirent.h>
 #include <ipc/services.h>
 #include <ipc/input.h>
@@ -45,7 +46,6 @@
 static const char *cmdname = "layout";
 static const char *path_layouts = "/lib/layouts/";
 
-
 /* Dispays help for layout in various levels */
 void help_cmd_layout(unsigned int level)
 {
@@ -53,11 +53,11 @@ void help_cmd_layout(unsigned int level)
 
 	if (level != HELP_SHORT) {
 		printf(
-			"Usage: %s\n"
-			"\t%s list\tlists all layouts\n"
-			"\t%s get\t displays currently set layout\n"
-			"\t%s set <layout>\tchanges to the new layout\n",
-			cmdname, cmdname, cmdname, cmdname);
+		    "Usage: %s\n"
+		    "\t%s list\tlists all layouts\n"
+		    "\t%s get\t displays currently set layout\n"
+		    "\t%s set <layout>\tchanges to the new layout\n",
+		    cmdname, cmdname, cmdname, cmdname);
 	}
 
 	return;
@@ -101,12 +101,60 @@ error:
 	return ERROR;
 }
 
+/* displays active keyboard layout */
 static int cmd_layout_get(void)
 {
-	return CMD_FAILURE;
+	service_id_t svcid;
+	ipc_call_t call;
+	errno_t rc = loc_service_get_id(SERVICE_NAME_HID_INPUT, &svcid, 0);
+	if (rc != EOK) {
+		cli_error(CL_ENOENT, "%s: Failing to find service `%s`\n", cmdname, SERVICE_NAME_HID_INPUT);
+		return CMD_FAILURE;
+	}
+
+	async_sess_t *sess = loc_service_connect(svcid, INTERFACE_ANY, 0);
+	if (sess == NULL) {
+		cli_error(CL_ENOENT, "%s: Failing to connect to service `%s`\n", cmdname, SERVICE_NAME_HID_INPUT);
+		return CMD_FAILURE;
+	}
+
+	void *layout_name = NULL;
+	async_exch_t *exch = async_exchange_begin(sess);
+	aid_t mid = async_send_0(exch, INPUT_GET_LAYOUT, &call);
+	async_wait_for(mid, &rc);
+
+	if (rc != EOK) {
+		goto error;
+	}
+
+	size_t length = ipc_get_arg1(&call);
+
+	layout_name = malloc(length * sizeof(char *));
+	if (layout_name == NULL) {
+		cli_error(CL_ENOMEM, "%s: Failing to allocate memory for keyboard layout\n", cmdname);
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = async_data_read_start(exch, layout_name, length);
+
+	if (rc == EOK) {
+		printf("%s\n", (char *)layout_name);
+	} else {
+		printf("%s: Failing to get activated keyboard layout\n (%s)\n", cmdname, str_error(rc));
+		goto error;
+	}
+
+error:
+	free(layout_name);
+	async_exchange_end(exch);
+	async_hangup(sess);
+
+	return rc == EOK ? CMD_SUCCESS : CMD_FAILURE;
+
 }
 
-
+/* changes the keyboard layout */
 static int cmd_layout_set(char *layout)
 {
 #ifdef CONFIG_RTLD
@@ -128,12 +176,17 @@ static int cmd_layout_set(char *layout)
 
 	aid_t mid = async_send_0(exch, INPUT_CHANGE_LAYOUT, &call);
 	rc = async_data_write_start(exch, layout, str_size(layout));
-	
-	if (rc == EOK)
+
+	if (rc == EOK) {
 		async_wait_for(mid, &rc);
-	
+	}
+
 	async_exchange_end(exch);
 	async_hangup(sess);
+
+	if (rc != EOK) {
+		printf("%s: Cannot activate keyboard layout `%s`\n (%s)\n", cmdname, layout, str_error(rc));
+	}
 
 	return rc == EOK ? CMD_SUCCESS : CMD_FAILURE;
 #else
@@ -154,10 +207,9 @@ int cmd_layout(char **argv)
 			return cmd_layout_get();
 		} else if (str_cmp(argv[1], "set") == 0 && argc == 3) {
 			return cmd_layout_set(argv[2]);
-		}	
+		}
 	}
 
 	help_cmd_layout(HELP_LONG);
 	return CMD_FAILURE;
 }
-

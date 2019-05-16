@@ -67,7 +67,6 @@ layout_ops_t layout_default = layout_intern;
 layout_ops_t layout_active = layout_intern;
 #endif
 
-
 static const char *us_qwerty_name(void)
 {
 	return "us_qwerty";
