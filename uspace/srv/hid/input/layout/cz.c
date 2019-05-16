@@ -49,11 +49,13 @@
 static errno_t cz_create(layout_t *);
 static void cz_destroy(layout_t *);
 static wchar_t cz_parse_ev(layout_t *, kbd_event_t *ev);
+static const char *cz_name(void);
 
 static const layout_ops_t layout_intern = {
 	.create = cz_create,
 	.destroy = cz_destroy,
-	.parse_ev = cz_parse_ev
+	.parse_ev = cz_parse_ev,
+	.get_name = cz_name
 };
 
 #ifdef CONFIG_KB_LAYOUT_EXTERNAL
@@ -66,6 +68,11 @@ layout_ops_t get_layout(void)
 layout_ops_t layout_default = layout_intern;
 layout_ops_t layout_active = layout_intern;
 #endif
+
+static const char *cz_name(void)
+{
+	return "cz";
+}
 
 enum m_state {
 	ms_start,

@@ -48,11 +48,13 @@
 static errno_t ar_create(layout_t *);
 static void ar_destroy(layout_t *);
 static wchar_t ar_parse_ev(layout_t *, kbd_event_t *ev);
+static const char *ar_name(void);
 
 static const layout_ops_t layout_intern = {
 	.create = ar_create,
 	.destroy = ar_destroy,
-	.parse_ev = ar_parse_ev
+	.parse_ev = ar_parse_ev,
+	.get_name = ar_name
 };
 
 #ifdef CONFIG_KB_LAYOUT_EXTERNAL
@@ -65,6 +67,11 @@ layout_ops_t get_layout(void)
 layout_ops_t layout_default = layout_intern;
 layout_ops_t layout_active = layout_intern;
 #endif
+
+static const char *ar_name(void)
+{
+	return "ar";
+}
 
 static wchar_t map_not_shifted[] = {
 	[KC_BACKTICK] = L'ذ',

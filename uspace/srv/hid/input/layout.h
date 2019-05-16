@@ -53,6 +53,7 @@ typedef struct layout_ops {
 	errno_t (*create)(layout_t *);
 	void (*destroy)(layout_t *);
 	wchar_t (*parse_ev)(layout_t *, kbd_event_t *);
+	const char *(*get_name)(void);
 } layout_ops_t;
 
 extern layout_ops_t layout_default;

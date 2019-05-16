@@ -47,11 +47,13 @@
 static errno_t us_qwerty_create(layout_t *);
 static void us_qwerty_destroy(layout_t *);
 static wchar_t us_qwerty_parse_ev(layout_t *, kbd_event_t *ev);
+static const char *us_qwerty_name(void);
 
 static const layout_ops_t layout_intern = {
 	.create = us_qwerty_create,
 	.destroy = us_qwerty_destroy,
-	.parse_ev = us_qwerty_parse_ev
+	.parse_ev = us_qwerty_parse_ev,
+	.get_name = us_qwerty_name
 };
 
 #ifdef CONFIG_KB_LAYOUT_EXTERNAL
@@ -64,6 +66,12 @@ layout_ops_t get_layout(void)
 layout_ops_t layout_default = layout_intern;
 layout_ops_t layout_active = layout_intern;
 #endif
+
+
+static const char *us_qwerty_name(void)
+{
+	return "us_qwerty";
+}
 
 static wchar_t map_lcase[] = {
 	[KC_Q] = 'q',
