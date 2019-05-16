@@ -48,21 +48,21 @@ typedef enum {
 	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
 } service_t;
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
+#define SERVICE_NAME_CHARDEV_TEST_SMALLX   "chardev-test/smallx"
+#define SERVICE_NAME_CHARDEV_TEST_LARGEX   "chardev-test/largex"
 #define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_HID_INPUT    "hid/input"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
+#define SERVICE_NAME_CLIPBOARD             "clipboard"
+#define SERVICE_NAME_CORECFG               "corecfg"
+#define SERVICE_NAME_DHCP                  "net/dhcp"
+#define SERVICE_NAME_DNSR                  "net/dnsr"
+#define SERVICE_NAME_INET                  "net/inet"
+#define SERVICE_NAME_IPC_TEST              "ipc-test"
+#define SERVICE_NAME_HID_INPUT             "hid/input"
+#define SERVICE_NAME_NETCONF               "net/netconf"
+#define SERVICE_NAME_UDP                   "net/udp"
+#define SERVICE_NAME_TCP                   "net/tcp"
+#define SERVICE_NAME_VBD                   "vbd"
+#define SERVICE_NAME_VOLSRV                "volsrv"
 
 #endif
 
