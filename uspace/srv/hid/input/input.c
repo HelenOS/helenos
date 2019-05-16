@@ -109,44 +109,46 @@ static void layout_change(layout_ops_t *layout)
 	}
 }
 
-static void layout_load(const char *layout_name)
+static errno_t layout_load(const char *layout_name)
 {
-/*
-	async_get_call(ipc_call_t *);
-ipc_get_arg1(ipc_call_t *);
-*/	
-	const char *prefix = "/lib/layouts/";
+#ifdef CONFIG_RTLD
+	const char *prefix = "layouts/";
 	const char *suffix = ".so";
 	size_t length = 1;
 	length += str_size(prefix);
 	length += str_size(suffix);
 	length += str_size(layout_name);
-	char *path = malloc(sizeof(char) * length);
-
+	char *path = malloc(sizeof(char) * (length + 1));
+	
 	if (path == NULL) {
 		printf("%s: Error allocating layout path. Out of memory.\n", NAME);
-		return;
+		return ENOMEM;
 	}
 
+	path[0] = '\0';
 	str_append(path, length, prefix);
 	str_append(path, length, layout_name);
 	str_append(path, length, suffix);
+	printf("%s\n", path);
 
 	void *handle = dlopen(path, 0);
 	if (handle == NULL) {
 		printf("%s: Keyboard layout could not be found.\n", NAME);
-		return;
+		return ENOENT;
 	}
 
-	layout_ops_t (*get_layout)(void) = dlsym(handle, "dl_get_constant");
+	layout_ops_t (*get_layout)(void) = dlsym(handle, "get_layout");
 
 	if (get_layout == NULL) {
 		printf("%s: Keyboard layout constructor could not be found.\n", NAME);
-		return;
+		return ENOENT;
 	}
 
 	layout_active = get_layout();
 	layout_change(&layout_active);
+#endif
+
+	return EOK;
 }
 
 static void *client_data_create(void)
@@ -378,9 +380,16 @@ static void client_connection(ipc_call_t *icall, void *arg)
 				async_answer_0(&call, EOK);
 				break;
 			case INPUT_CHANGE_LAYOUT: {
-				char * layout_name = (char *)ipc_get_arg1(&call);
-				layout_load(layout_name);
+				void * layout_name;
+				errno_t ret = async_data_write_accept(&layout_name, true, 0, 0, 0, 0);
+				if (ret != EOK) {
+					async_answer_0(&call, ret);
+					break;
+				}
+
+				errno_t retval = layout_load((char *)layout_name);
 				free(layout_name);
+				async_answer_0(&call, retval);
 				break;
 			}
 			default:

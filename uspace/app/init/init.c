@@ -47,6 +47,7 @@
 #include <config.h>
 #include <io/logctl.h>
 #include <vol.h>
+#include <ipc/services.h>
 #include "untar.h"
 #include "init.h"
 
@@ -64,7 +65,7 @@
 
 #define SRV_COMPOSITOR  "/srv/hid/compositor"
 
-#define HID_INPUT              "hid/input"
+#define HID_INPUT              SERVICE_NAME_HID_INPUT
 #define HID_OUTPUT             "hid/output"
 #define HID_COMPOSITOR_SERVER  ":0"
 
