@@ -52,6 +52,7 @@ SOURCES = \
 	cmds/modules/unmount/unmount.c \
 	cmds/modules/kcon/kcon.c \
 	cmds/modules/cmp/cmp.c \
+	cmds/modules/layout/layout.c \
 	cmds/builtins/builtin_aliases.c \
 	cmds/builtins/builtins.c \
 	cmds/builtins/batch/batch.c \

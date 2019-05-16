@@ -62,6 +62,7 @@
 #include "printf/entry.h"
 #include "echo/entry.h"
 #include "cmp/entry.h"
+#include "layout/entry.h"
 
 /*
  * Each .def function fills the module_t struct with the individual name, entry
@@ -87,6 +88,7 @@ module_t modules[] = {
 #include "printf/printf_def.inc"
 #include "echo/echo_def.inc"
 #include "cmp/cmp_def.inc"
+#include "layout/layout_def.inc"
 
 	{ NULL, NULL, NULL, NULL }
 };
