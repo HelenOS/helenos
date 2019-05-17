@@ -124,7 +124,10 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 */
 
 	DPRINTF("Load all program dependencies\n");
-	module_load_deps(prog, 0);
+	errno_t rc = module_load_deps(prog, 0);
+	if (rc != EOK) {
+		return rc;
+	}
 
 	/* Compute static TLS size */
 	modules_process_tls(env);
