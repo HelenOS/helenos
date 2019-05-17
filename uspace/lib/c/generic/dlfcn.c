@@ -53,6 +53,10 @@ void *dlopen(const char *path, int flag)
 	m = module_find(runtime_env, path);
 	if (m == NULL) {
 		m = module_load(runtime_env, path, mlf_local);
+		if (m == NULL) {
+			return NULL;
+		}
+
 		if (module_load_deps(m, mlf_local) != EOK) {
 			return NULL;
 		}
