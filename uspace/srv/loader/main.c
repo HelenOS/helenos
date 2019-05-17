@@ -289,8 +289,8 @@ static int ldr_load(ipc_call_t *req)
 {
 	DPRINTF("LOADER_LOAD()\n");
 
-	int rc = elf_load(program_fd, &prog_info);
-	if (rc != EE_OK) {
+	errno_t rc = elf_load(program_fd, &prog_info);
+	if (rc != EOK) {
 		DPRINTF("Failed to load executable for '%s'.\n", progname);
 		async_answer_0(req, EINVAL);
 		return 1;
