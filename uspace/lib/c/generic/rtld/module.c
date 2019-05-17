@@ -64,8 +64,10 @@ errno_t module_create_static_exec(rtld_t *rtld, module_t **rmodule)
 	module_t *module;
 
 	module = calloc(1, sizeof(module_t));
-	if (module == NULL)
+	if (module == NULL) {
+		DPRINTF("malloc failed\n");
 		return ENOMEM;
+	}
 
 	module->id = rtld_get_next_id(rtld);
 	module->dyn.soname = "[program]";
@@ -181,11 +183,11 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	elf_finfo_t info;
 	char name_buf[NAME_BUF_SIZE];
 	module_t *m;
-	int rc;
+	errno_t rc;
 
 	m = calloc(1, sizeof(module_t));
 	if (m == NULL) {
-		printf("malloc failed\n");
+		DPRINTF("malloc failed\n");
 		goto error;
 	}
 
@@ -196,7 +198,7 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 		m->local = true;
 
 	if (str_size(name) > NAME_BUF_SIZE - 2) {
-		printf("soname too long. increase NAME_BUF_SIZE\n");
+		DPRINTF("soname too long. increase NAME_BUF_SIZE\n");
 		goto error;
 	}
 
@@ -207,8 +209,8 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	DPRINTF("filename:'%s'\n", name_buf);
 
 	rc = elf_load_file_name(name_buf, RTLD_MODULE_LDF, &info);
-	if (rc != EE_OK) {
-		printf("Failed to load '%s'\n", name_buf);
+	if (rc != EOK) {
+		DPRINTF("Failed to load '%s'\n", name_buf);
 		goto error;
 	}
 
@@ -217,7 +219,7 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	DPRINTF("loaded '%s' at 0x%zx\n", name_buf, m->bias);
 
 	if (info.dynamic == NULL) {
-		printf("Error: '%s' is not a dynamically-linked object.\n",
+		DPRINTF("Error: '%s' is not a dynamically-linked object.\n",
 		    name_buf);
 		goto error;
 	}
@@ -284,7 +286,7 @@ errno_t module_load_deps(module_t *m, mlflags_t flags)
 
 	m->deps = malloc(n * sizeof(module_t *));
 	if (!m->deps) {
-		printf("malloc failed\n");
+		DPRINTF("malloc failed\n");
 		return ENOMEM;
 	}
 

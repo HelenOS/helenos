@@ -49,7 +49,7 @@ struct thread;
 typedef struct program {
 	struct task *task;           /**< Program task */
 	struct thread *main_thread;  /**< Program main thread */
-	unsigned int loader_status;  /**< Binary loader error status */
+	errno_t loader_status;  /**< Binary loader error status */
 } program_t;
 
 extern void *program_loader;

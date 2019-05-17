@@ -47,7 +47,7 @@
 #include <ipc/ipcrsc.h>
 #include <security/perm.h>
 #include <lib/elf_load.h>
-#include <errno.h>
+#include <str.h>
 #include <log.h>
 #include <syscall/copy.h>
 #include <proc/program.h>
@@ -75,7 +75,7 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 	if (!kernel_uarg)
 		return ENOMEM;
 
-	prg->loader_status = EE_OK;
+	prg->loader_status = EOK;
 	prg->task = task_create(as, name);
 	if (!prg->task) {
 		free(kernel_uarg);
@@ -148,7 +148,7 @@ errno_t program_create_from_image(void *image_addr, char *name, program_t *prg)
 		return ENOMEM;
 
 	prg->loader_status = elf_load((elf_header_t *) image_addr, as);
-	if (prg->loader_status != EE_OK) {
+	if (prg->loader_status != EOK) {
 		as_release(as);
 		prg->task = NULL;
 		prg->main_thread = NULL;
@@ -182,10 +182,10 @@ errno_t program_create_loader(program_t *prg, char *name)
 	}
 
 	prg->loader_status = elf_load((elf_header_t *) program_loader, as);
-	if (prg->loader_status != EE_OK) {
+	if (prg->loader_status != EOK) {
 		as_release(as);
 		log(LF_OTHER, LVL_ERROR, "Cannot spawn loader (%s)",
-		    elf_error(prg->loader_status));
+		    str_error(prg->loader_status));
 		return ENOENT;
 	}
 

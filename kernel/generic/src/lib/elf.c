@@ -49,16 +49,7 @@
 
 #include <lib/elf_load.h>
 
-static const char *error_codes[] = {
-	"no error",
-	"invalid image",
-	"address space error",
-	"incompatible image",
-	"unsupported image type",
-	"irrecoverable error"
-};
-
-static int load_segment(elf_segment_header_t *, elf_header_t *, as_t *);
+static errno_t load_segment(elf_segment_header_t *, elf_header_t *, as_t *);
 
 /** ELF loader
  *
@@ -66,17 +57,17 @@ static int load_segment(elf_segment_header_t *, elf_header_t *, as_t *);
  * @param as     Created and properly mapped address space
  * @param flags  A combination of ELD_F_*
  *
- * @return EE_OK on success
+ * @return EOK on success
  *
  */
-unsigned int elf_load(elf_header_t *header, as_t *as)
+errno_t elf_load(elf_header_t *header, as_t *as)
 {
 	/* Identify ELF */
 	if ((header->e_ident[EI_MAG0] != ELFMAG0) ||
 	    (header->e_ident[EI_MAG1] != ELFMAG1) ||
 	    (header->e_ident[EI_MAG2] != ELFMAG2) ||
 	    (header->e_ident[EI_MAG3] != ELFMAG3))
-		return EE_INVALID;
+		return EINVAL;
 
 	/* Identify ELF compatibility */
 	if ((header->e_ident[EI_DATA] != ELF_DATA_ENCODING) ||
@@ -84,18 +75,18 @@ unsigned int elf_load(elf_header_t *header, as_t *as)
 	    (header->e_ident[EI_VERSION] != EV_CURRENT) ||
 	    (header->e_version != EV_CURRENT) ||
 	    (header->e_ident[EI_CLASS] != ELF_CLASS))
-		return EE_INCOMPATIBLE;
+		return EINVAL;
 
 	if (header->e_phentsize != sizeof(elf_segment_header_t))
-		return EE_INCOMPATIBLE;
+		return EINVAL;
 
 	/* Check if the object type is supported. */
 	if (header->e_type != ET_EXEC)
-		return EE_UNSUPPORTED;
+		return ENOTSUP;
 
 	/* Check if the ELF image starts on a page boundary */
 	if (ALIGN_UP((uintptr_t) header, PAGE_SIZE) != (uintptr_t) header)
-		return EE_UNSUPPORTED;
+		return ENOTSUP;
 
 	/* Walk through all segment headers and process them. */
 	elf_half i;
@@ -107,26 +98,12 @@ unsigned int elf_load(elf_header_t *header, as_t *as)
 		if (seghdr->p_type != PT_LOAD)
 			continue;
 
-		int rc = load_segment(seghdr, header, as);
-		if (rc != EE_OK)
+		errno_t rc = load_segment(seghdr, header, as);
+		if (rc != EOK)
 			return rc;
 	}
 
-	return EE_OK;
-}
-
-/** Print error message according to error code.
- *
- * @param rc Return code returned by elf_load().
- *
- * @return NULL terminated description of error.
- *
- */
-const char *elf_error(unsigned int rc)
-{
-	assert(rc < sizeof(error_codes) / sizeof(char *));
-
-	return error_codes[rc];
+	return EOK;
 }
 
 /** Load segment described by program header entry.
@@ -135,17 +112,17 @@ const char *elf_error(unsigned int rc)
  * @param elf   ELF header.
  * @param as    Address space into wich the ELF is being loaded.
  *
- * @return EE_OK on success, error code otherwise.
+ * @return EOK on success, error code otherwise.
  *
  */
-int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
+errno_t load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 {
 	mem_backend_data_t backend_data;
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
 		    (entry->p_vaddr % entry->p_align))
-			return EE_INVALID;
+			return EINVAL;
 	}
 
 	unsigned int flags = 0;
@@ -176,14 +153,14 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	as_area_t *area = as_area_create(as, flags, mem_sz,
 	    AS_AREA_ATTR_NONE, &elf_backend, &backend_data, &base, 0);
 	if (!area)
-		return EE_MEMORY;
+		return ENOMEM;
 
 	/*
 	 * The segment will be mapped on demand by elf_page_fault().
 	 *
 	 */
 
-	return EE_OK;
+	return EOK;
 }
 
 /** @}
