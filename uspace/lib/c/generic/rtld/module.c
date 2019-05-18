@@ -301,6 +301,10 @@ errno_t module_load_deps(module_t *m, mlflags_t flags)
 			dm = module_find(m->rtld, dep_name);
 			if (!dm) {
 				dm = module_load(m->rtld, dep_name, flags);
+				if (!dm) {
+					return EINVAL;
+				}
+
 				errno_t rc = module_load_deps(dm, flags);
 				if (rc != EOK) {
 					return rc;
