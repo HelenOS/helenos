@@ -30,9 +30,11 @@
 #define UTIL_H
 
 #include "scli.h"
+#include <stdbool.h>
 
 /* Utility functions */
 extern unsigned int cli_count_args(char **);
 extern unsigned int cli_set_prompt(cliuser_t *usr);
+extern bool is_path(const char *cmd);
 
 #endif

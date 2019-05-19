@@ -39,6 +39,7 @@
 #include "compl.h"
 #include "exec.h"
 #include "tok.h"
+#include "util.h"
 
 static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state);
 static errno_t compl_get_next(void *state, char **compl);
@@ -208,15 +209,30 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 			goto error;
 		}
 		*cstart += rpath_sep + 1 - prefix;
-		free(prefix);
-		prefix = NULL;
 
 		cs->path_list = malloc(sizeof(char *) * 2);
 		if (cs->path_list == NULL) {
 			retval = ENOMEM;
 			goto error;
 		}
-		cs->path_list[0] = dirname;
+
+		if (!is_path(prefix) && cs->is_command) {
+			cs->path_list[0] = malloc(sizeof(char) * PATH_MAX);
+			if (cs->path_list[0] == NULL) {
+				retval = ENOMEM;
+				goto error;
+			}
+
+			int ret = snprintf(cs->path_list[0], PATH_MAX, "%s/%s", search_dir[0], dirname);
+			if (ret < 0 || ret >= PATH_MAX) {
+				retval = ENOMEM;
+				goto error;
+			}
+		} else {
+			cs->path_list[0] = dirname;
+		}
+
+		free(prefix);
 		cs->path_list[1] = NULL;
 		/*
 		 * The second const ensures that we can't assign a const
