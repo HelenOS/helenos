@@ -89,7 +89,6 @@ int isspace(int c)
 	case '\r':
 	case '\v':
 		return 1;
-		break;
 	default:
 		return 0;
 	}
