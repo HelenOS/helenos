@@ -76,26 +76,37 @@ static inline int _prefixbase(const char *restrict *nptrptr, bool nonstandard_pr
 		return 10;
 
 	if (nptr[1] == 'x' || nptr[1] == 'X') {
-		*nptrptr += 2;
-		return 16;
+		if (_digit_value(nptr[2]) < 16) {
+			*nptrptr += 2;
+			return 16;
+		}
 	}
 
 	if (nonstandard_prefixes) {
 		switch (nptr[1]) {
 		case 'b':
 		case 'B':
-			*nptrptr += 2;
-			return 2;
+			if (_digit_value(nptr[2]) < 2) {
+				*nptrptr += 2;
+				return 2;
+			}
+			break;
 		case 'o':
 		case 'O':
-			*nptrptr += 2;
-			return 8;
+			if (_digit_value(nptr[2]) < 8) {
+				*nptrptr += 2;
+				return 8;
+			}
+			break;
 		case 'd':
 		case 'D':
 		case 't':
 		case 'T':
-			*nptrptr += 2;
-			return 10;
+			if (_digit_value(nptr[2]) < 10) {
+				*nptrptr += 2;
+				return 10;
+			}
+			break;
 		}
 	}
 
@@ -108,6 +119,8 @@ static inline uintmax_t _strtoumax(
 {
 	assert(nptr != NULL);
 	assert(sgn != NULL);
+
+	const char *first = nptr;
 
 	/* Skip leading whitespace. */
 
@@ -137,9 +150,12 @@ static inline uintmax_t _strtoumax(
 		 * Standard strto* functions allow hexadecimal prefix to be
 		 * present when base is explicitly set to 16.
 		 * Our nonstandard str_* functions don't allow it.
+		 * I don't know if that is intended, just matching the original
+		 * functionality here.
 		 */
 
-		if (nptr[0] == '0' && (nptr[1] == 'x' || nptr[1] == 'X'))
+		if (nptr[0] == '0' && (nptr[1] == 'x' || nptr[1] == 'X') &&
+		    _digit_value(nptr[2]) < base)
 			nptr += 2;
 	}
 
@@ -148,7 +164,16 @@ static inline uintmax_t _strtoumax(
 		return 0;
 	}
 
-	/* Read the value. */
+	/* Must be at least one digit. */
+
+	if (_digit_value(*nptr) >= base) {
+		/* No digits on input. */
+		if (endptr != NULL)
+			*endptr = (char *) first;
+		return 0;
+	}
+
+	/* Read the value.  */
 
 	uintmax_t result = 0;
 	uintmax_t max = _max_value(base);

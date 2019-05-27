@@ -403,6 +403,13 @@ PCUT_TEST(strtol_fringe)
 
 	endp = endp_unchanged;
 	errno = errno_unchanged;
+	output = strtol(input = "    0xg", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input + 5, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
 	output = strtol(input = "    0x1", &endp, base = 0);
 	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
 	PCUT_ASSERT_PTR_EQUALS(input + 7, endp);
@@ -417,10 +424,80 @@ PCUT_TEST(strtol_fringe)
 
 	endp = endp_unchanged;
 	errno = errno_unchanged;
+	output = strtol(input = "    0xg", &endp, base = 16);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input + 5, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    g", &endp, base = 16);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
 	output = strtol(input = "    0x1", &endp, base = 16);
 	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
 	PCUT_ASSERT_PTR_EQUALS(input + 7, endp);
 	PCUT_ASSERT_INT_EQUALS(1, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    +", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    -", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    +", &endp, base = 10);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    -", &endp, base = 10);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "+", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "-", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "+", &endp, base = 10);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "-", &endp, base = 10);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
 }
 
 PCUT_EXPORT(strtol);
