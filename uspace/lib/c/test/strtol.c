@@ -217,7 +217,6 @@ PCUT_TEST(str_uint_overflow)
 #else
 	/* Correct result. */
 	PCUT_ASSERT_INT_EQUALS(EOVERFLOW, rc);
-	PCUT_ASSERT_UINT_EQUALS(UINT64_MAX, result);
 #endif
 
 	/* 3^40 */
@@ -245,7 +244,6 @@ PCUT_TEST(str_uint_overflow)
 #else
 	/* Correct result. */
 	PCUT_ASSERT_INT_EQUALS(EOVERFLOW, rc);
-	PCUT_ASSERT_UINT_EQUALS(UINT64_MAX, result);
 #endif
 }
 

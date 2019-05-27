@@ -43,8 +43,13 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <str.h>
 
-// TODO: unit tests
+// FIXME: The original HelenOS functions return EOVERFLOW instead
+//        of ERANGE. It's a pointless distinction from standard functions,
+//        so we should change that. Beware the callers though.
+
+// TODO: more unit tests
 
 static inline int _digit_value(int c)
 {
@@ -68,7 +73,7 @@ __attribute__((noinline)) static uintmax_t _max_value(int base)
 	return UINTMAX_MAX / base;
 }
 
-static inline int _prefixbase(const char *restrict *nptrptr, bool nonstandard_prefixes)
+static inline int _prefixbase(const char *restrict *nptrptr, bool nonstd)
 {
 	const char *nptr = *nptrptr;
 
@@ -82,7 +87,7 @@ static inline int _prefixbase(const char *restrict *nptrptr, bool nonstandard_pr
 		}
 	}
 
-	if (nonstandard_prefixes) {
+	if (nonstd) {
 		switch (nptr[1]) {
 		case 'b':
 		case 'B':
@@ -115,7 +120,7 @@ static inline int _prefixbase(const char *restrict *nptrptr, bool nonstandard_pr
 
 static inline uintmax_t _strtoumax(
     const char *restrict nptr, char **restrict endptr, int base,
-    bool *restrict sgn, errno_t *err, bool nonstandard_prefixes)
+    bool *restrict sgn, errno_t *err, bool nonstd)
 {
 	assert(nptr != NULL);
 	assert(sgn != NULL);
@@ -143,9 +148,9 @@ static inline uintmax_t _strtoumax(
 	/* Figure out the base. */
 
 	if (base == 0)
-		base = _prefixbase(&nptr, nonstandard_prefixes);
+		base = _prefixbase(&nptr, nonstd);
 
-	if (base == 16 && !nonstandard_prefixes) {
+	if (base == 16 && !nonstd) {
 		/*
 		 * Standard strto* functions allow hexadecimal prefix to be
 		 * present when base is explicitly set to 16.
@@ -183,7 +188,7 @@ static inline uintmax_t _strtoumax(
 		if (result > max ||
 		    __builtin_add_overflow(result * base, digit, &result)) {
 
-			*err = ERANGE;
+			*err = nonstd ? EOVERFLOW : ERANGE;
 			result = UINTMAX_MAX;
 			break;
 		}
@@ -211,18 +216,17 @@ static inline uintmax_t _strtoumax(
 }
 
 static inline intmax_t _strtosigned(const char *nptr, char **endptr, int base,
-    intmax_t min, intmax_t max, errno_t *err, bool nonstandard_prefixes)
+    intmax_t min, intmax_t max, errno_t *err, bool nonstd)
 {
 	bool sgn = false;
-	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn, err,
-	    nonstandard_prefixes);
+	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn, err, nonstd);
 
 	if (number > (uintmax_t) max) {
 		if (sgn && (number - 1 == (uintmax_t) max)) {
 			return min;
 		}
 
-		*err = ERANGE;
+		*err = nonstd ? EOVERFLOW : ERANGE;
 		return (sgn ? min : max);
 	}
 
@@ -230,14 +234,19 @@ static inline intmax_t _strtosigned(const char *nptr, char **endptr, int base,
 }
 
 static inline uintmax_t _strtounsigned(const char *nptr, char **endptr, int base,
-    uintmax_t max, errno_t *err, bool nonstandard_prefixes)
+    uintmax_t max, errno_t *err, bool nonstd)
 {
 	bool sgn = false;
-	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn, err,
-	    nonstandard_prefixes);
+	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn, err, nonstd);
+
+	if (nonstd && sgn) {
+		/* Do not allow negative values */
+		*err = EINVAL;
+		return 0;
+	}
 
 	if (number > max) {
-		*err = ERANGE;
+		*err = nonstd ? EOVERFLOW : ERANGE;
 		return max;
 	}
 
@@ -313,6 +322,216 @@ long atol(const char *nptr)
 long long atoll(const char *nptr)
 {
 	return strtoll(nptr, NULL, 10);
+}
+
+/** Convert string to uint8_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+errno_t str_uint8_t(const char *nptr, const char **endptr, unsigned int base,
+    bool strict, uint8_t *result)
+{
+	assert(result != NULL);
+
+	errno_t rc = EOK;
+	char *lendptr = (char *) nptr;
+
+	uintmax_t r = _strtounsigned(nptr, &lendptr, base, UINT8_MAX, &rc, true);
+
+	if (endptr)
+		*endptr = lendptr;
+
+	if (rc != EOK)
+		return rc;
+
+	if (strict && *lendptr != '\0')
+		return EINVAL;
+
+	*result = r;
+	return EOK;
+}
+
+/** Convert string to uint16_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+errno_t str_uint16_t(const char *nptr, const char **endptr, unsigned int base,
+    bool strict, uint16_t *result)
+{
+	assert(result != NULL);
+
+	errno_t rc = EOK;
+	char *lendptr = (char *) nptr;
+
+	uintmax_t r = _strtounsigned(nptr, &lendptr, base, UINT16_MAX, &rc, true);
+
+	if (endptr)
+		*endptr = lendptr;
+
+	if (rc != EOK)
+		return rc;
+
+	if (strict && *lendptr != '\0')
+		return EINVAL;
+
+	*result = r;
+	return EOK;
+}
+
+/** Convert string to uint32_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+errno_t str_uint32_t(const char *nptr, const char **endptr, unsigned int base,
+    bool strict, uint32_t *result)
+{
+	assert(result != NULL);
+
+	errno_t rc = EOK;
+	char *lendptr = (char *) nptr;
+
+	uintmax_t r = _strtounsigned(nptr, &lendptr, base, UINT32_MAX, &rc, true);
+
+	if (endptr)
+		*endptr = lendptr;
+
+	if (rc != EOK)
+		return rc;
+
+	if (strict && *lendptr != '\0')
+		return EINVAL;
+
+	*result = r;
+	return EOK;
+}
+
+/** Convert string to uint64_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+errno_t str_uint64_t(const char *nptr, const char **endptr, unsigned int base,
+    bool strict, uint64_t *result)
+{
+	assert(result != NULL);
+
+	errno_t rc = EOK;
+	char *lendptr = (char *) nptr;
+
+	uintmax_t r = _strtounsigned(nptr, &lendptr, base, UINT64_MAX, &rc, true);
+
+	if (endptr)
+		*endptr = lendptr;
+
+	if (rc != EOK)
+		return rc;
+
+	if (strict && *lendptr != '\0')
+		return EINVAL;
+
+	*result = r;
+	return EOK;
+}
+
+/** Convert string to int64_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+errno_t str_int64_t(const char *nptr, const char **endptr, unsigned int base,
+    bool strict, int64_t *result)
+{
+	assert(result != NULL);
+
+	errno_t rc = EOK;
+	char *lendptr = (char *) nptr;
+
+	intmax_t r = _strtosigned(nptr, &lendptr, base, INT64_MIN, INT64_MAX, &rc, true);
+
+	if (endptr)
+		*endptr = lendptr;
+
+	if (rc != EOK)
+		return rc;
+
+	if (strict && *lendptr != '\0')
+		return EINVAL;
+
+	*result = r;
+	return EOK;
+}
+
+/** Convert string to size_t.
+ *
+ * @param nptr   Pointer to string.
+ * @param endptr If not NULL, pointer to the first invalid character
+ *               is stored here.
+ * @param base   Zero or number between 2 and 36 inclusive.
+ * @param strict Do not allow any trailing characters.
+ * @param result Result of the conversion.
+ *
+ * @return EOK if conversion was successful.
+ *
+ */
+errno_t str_size_t(const char *nptr, const char **endptr, unsigned int base,
+    bool strict, size_t *result)
+{
+	assert(result != NULL);
+
+	errno_t rc = EOK;
+	char *lendptr = (char *) nptr;
+
+	uintmax_t r = _strtounsigned(nptr, &lendptr, base, SIZE_MAX, &rc, true);
+
+	if (endptr)
+		*endptr = lendptr;
+
+	if (rc != EOK)
+		return rc;
+
+	if (strict && *lendptr != '\0')
+		return EINVAL;
+
+	*result = r;
+	return EOK;
 }
 
 /** @}

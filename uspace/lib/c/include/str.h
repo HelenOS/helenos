@@ -133,7 +133,7 @@ extern errno_t str_uint64_t(const char *, const char **, unsigned int, bool,
     uint64_t *);
 extern errno_t str_size_t(const char *, const char **, unsigned int, bool,
     size_t *);
-extern int str_int64_t(const char *, const char **, unsigned int, bool,
+extern errno_t str_int64_t(const char *, const char **, unsigned int, bool,
     int64_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);
