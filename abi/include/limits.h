@@ -83,8 +83,6 @@ _Static_assert(((char)-1) < 0, "char should be signed");
 #undef MB_LEN_MAX
 #define MB_LEN_MAX 4
 
-#define __NAME_MAX  256
-
 #ifdef _HELENOS_SOURCE
 #define UCHAR_MIN   0
 #define USHRT_MIN   0
@@ -103,7 +101,7 @@ _Static_assert(((char)-1) < 0, "char should be signed");
     defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
 
 #define SSIZE_MAX  INTPTR_MAX
-#define NAME_MAX   __NAME_MAX
+#define NAME_MAX   255
 
 #endif
 

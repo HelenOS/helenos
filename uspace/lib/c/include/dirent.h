@@ -35,13 +35,12 @@
 #ifndef _LIBC_DIRENT_H_
 #define _LIBC_DIRENT_H_
 
-#include <limits.h>
 #include <_bits/decls.h>
 
 __C_DECLS_BEGIN;
 
 struct dirent {
-	char d_name[__NAME_MAX + 1];
+	char d_name[256];
 };
 
 typedef struct __dirstream DIR;
