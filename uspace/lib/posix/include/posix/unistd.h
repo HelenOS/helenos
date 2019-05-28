@@ -46,6 +46,18 @@
 /* Process Termination */
 #define _exit exit
 
+/* Standard Streams */
+#define STDIN_FILENO (fileno(stdin))
+#define STDOUT_FILENO (fileno(stdout))
+#define STDERR_FILENO (fileno(stderr))
+
+#define	F_OK 0 /* Test for existence. */
+#define	X_OK 1 /* Test for execute permission. */
+#define	W_OK 2 /* Test for write permission. */
+#define	R_OK 4 /* Test for read permission. */
+
+__C_DECLS_BEGIN;
+
 extern char *optarg;
 extern int optind, opterr, optopt;
 extern int getopt(int, char *const [], const char *);
@@ -105,23 +117,7 @@ extern off_t lseek(int fildes, off_t offset, int whence);
 extern int ftruncate(int fildes, off_t length);
 #endif
 
-/* Standard Streams */
-#undef STDIN_FILENO
-#define STDIN_FILENO (fileno(stdin))
-#undef STDOUT_FILENO
-#define STDOUT_FILENO (fileno(stdout))
-#undef STDERR_FILENO
-#define STDERR_FILENO (fileno(stderr))
-
 /* File Accessibility */
-#undef F_OK
-#undef X_OK
-#undef W_OK
-#undef R_OK
-#define	F_OK 0 /* Test for existence. */
-#define	X_OK 1 /* Test for execute permission. */
-#define	W_OK 2 /* Test for write permission. */
-#define	R_OK 4 /* Test for read permission. */
 extern int access(const char *path, int amode);
 
 /* System Parameters */
@@ -169,6 +165,8 @@ extern int pipe(int fildes[2]);
 
 /* Issue alarm signal. */
 extern unsigned int alarm(unsigned int);
+
+__C_DECLS_END;
 
 #endif /* POSIX_UNISTD_H_ */
 

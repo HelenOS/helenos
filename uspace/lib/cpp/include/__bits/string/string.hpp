@@ -81,12 +81,12 @@ namespace std
 
         static int compare(const char_type* s1, const char_type* s2, size_t n)
         {
-            return hel::str_lcmp(s1, s2, n);
+            return ::strncmp(s1, s2, n);
         }
 
         static size_t length(const char_type* s)
         {
-            return hel::str_size(s);
+            return ::strlen(s);
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)
@@ -366,13 +366,15 @@ namespace std
         {
             // TODO: This function does not exits...
             __unimplemented();
-            //return hel::wstr_lcmp(s1, s2, n);
             return 0;
         }
 
         static size_t length(const char_type* s)
         {
-            return hel::wstr_size(s);
+            size_t i = 0;
+            while (s[i] != 0)
+                i++;
+            return i;
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)

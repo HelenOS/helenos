@@ -39,6 +39,7 @@
 #include <macros.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #include "format.h"
 

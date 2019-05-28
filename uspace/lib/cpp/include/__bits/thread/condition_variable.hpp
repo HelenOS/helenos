@@ -34,11 +34,6 @@
 
 namespace std
 {
-    extern "C" {
-        #include <fibril.h>
-        #include <fibril_synch.h>
-    }
-
     enum class cv_status
     {
         no_timeout,

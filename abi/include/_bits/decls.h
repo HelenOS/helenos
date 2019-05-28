@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2019 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup bits
  * @{
  */
-/** @file Memory management declarations.
+/** @file
  */
 
-#ifndef POSIX_SYS_MMAN_H_
-#define POSIX_SYS_MMAN_H_
+#ifndef _BITS_DECLS_H_
+#define _BITS_DECLS_H_
 
-#include <sys/types.h>
-#include <_bits/decls.h>
+#ifdef __cplusplus
 
-#define MAP_FAILED  ((void *) -1)
+#define __HELENOS_DECLS_BEGIN \
+	namespace helenos { \
+	extern "C" {
 
-#define MAP_SHARED     (1 << 0)
-#define MAP_PRIVATE    (1 << 1)
-#define MAP_FIXED      (1 << 2)
-#define MAP_ANONYMOUS  (1 << 3)
-#define MAP_ANON       MAP_ANONYMOUS
+#define __HELENOS_DECLS_END \
+	} \
+	}
 
-#define PROT_NONE   0
-#define PROT_READ   1
-#define PROT_WRITE  2
-#define PROT_EXEC   4
+#define __C_DECLS_BEGIN \
+	extern "C" {
 
-__C_DECLS_BEGIN;
+#define __C_DECLS_END \
+	}
 
-extern void *mmap(void *start, size_t length, int prot, int flags, int fd,
-    off_t offset);
-extern int munmap(void *start, size_t length);
+#else  /* !__cplusplus */
 
-__C_DECLS_END;
+#define __HELENOS_DECLS_BEGIN
+#define __HELENOS_DECLS_END
+#define __C_DECLS_BEGIN
+#define __C_DECLS_END
 
-#endif /* POSIX_SYS_MMAN_H_ */
+#endif  /* __cplusplus */
+
+#endif
 
 /** @}
  */

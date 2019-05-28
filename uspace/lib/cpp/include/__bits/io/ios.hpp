@@ -40,7 +40,7 @@
 namespace std
 {
     using streamoff = long long;
-    using streamsize = hel::ssize_t;
+    using streamsize = ::ssize_t;
 
     /**
      * 27.5.3, ios_base:

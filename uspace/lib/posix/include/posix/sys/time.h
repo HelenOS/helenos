@@ -34,6 +34,9 @@
 #define POSIX_SYS_TIME_H_
 
 #include <time.h>
+#include <_bits/decls.h>
+
+__C_DECLS_BEGIN;
 
 struct timeval {
 	time_t tv_sec;        /* seconds */
@@ -41,6 +44,8 @@ struct timeval {
 };
 
 extern int gettimeofday(struct timeval *, void *);
+
+__C_DECLS_END;
 
 #endif
 

@@ -44,14 +44,16 @@
 #include <stdarg.h>
 #include <limits.h>
 
+#define P_tmpdir "/tmp"
+
+#define L_ctermid PATH_MAX
+
+__C_DECLS_BEGIN;
+
 extern FILE *fdopen(int, const char *);
 extern int fileno(FILE *);
 
-#define P_tmpdir "/tmp"
-
 /* Identifying the Terminal */
-#undef L_ctermid
-#define L_ctermid PATH_MAX
 extern char *ctermid(char *s);
 
 /* Input/Output */
@@ -96,6 +98,8 @@ extern int putchar_unlocked(int c);
 
 /* Temporary Files */
 extern char *tempnam(const char *dir, const char *pfx);
+
+__C_DECLS_END;
 
 #endif /* POSIX_STDIO_H_ */
 

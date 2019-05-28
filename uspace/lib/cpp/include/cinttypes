@@ -29,37 +29,18 @@
 #ifndef LIBCPP_CINTTYPES
 #define LIBCPP_CINTTYPES
 
-
-namespace std::hel
-{
-    extern "C" {
-        #include <inttypes.h>
-    }
-}
+#include <cstdint>
+#include <inttypes.h>
 
 namespace std
 {
-    using std::hel::imaxdiv_t;
-    /* using std::hel::abs; */
-    /* using std::hel::div; */
-    /* using std::hel::imaxabs; */
-    /* using std::hel::imaxdiv; */
-    /* using std::hel::strtoimax; */
-    /* using std::hel::strtoumax; */
-    /* using std::hel::wcstoimax; */
-    /* using std::hel::wcstoumax; */
+    using ::imaxdiv_t;
+    using ::imaxabs;
+    using ::imaxdiv;
+    using ::strtoimax;
+    using ::strtoumax;
+    using ::wcstoimax;
+    using ::wcstoumax;
 }
-
-using std::hel::imaxdiv_t;
-/* using std::hel::abs; */
-/* using std::hel::div; */
-/* using std::hel::imaxabs; */
-/* using std::hel::imaxdiv; */
-/* using std::hel::strtoimax; */
-/* using std::hel::strtoumax; */
-/* using std::hel::wcstoimax; */
-/* using std::hel::wcstoumax; */
-
-#include <cstdint>
 
 #endif

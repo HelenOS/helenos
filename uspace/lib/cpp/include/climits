@@ -29,17 +29,6 @@
 #ifndef LIBCPP_CLIMITS
 #define LIBCPP_CLIMITS
 
-
-namespace std::hel
-{
-    extern "C" {
-        #include <limits.h>
-    }
-}
-
-namespace std
-{
-    // Note: Only macros imported here.
-}
+#include <limits.h>
 
 #endif

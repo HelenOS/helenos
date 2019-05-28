@@ -39,12 +39,9 @@
 #include <adt/list.h>
 #include <time.h>
 #include <stdbool.h>
+#include <_bits/decls.h>
 
-typedef struct {
-	fibril_owner_info_t oi;  /**< Keep this the first thing. */
-	int counter;
-	list_t waiters;
-} fibril_mutex_t;
+#ifndef __cplusplus
 
 #define FIBRIL_MUTEX_INITIALIZER(name) \
 	{ \
@@ -57,13 +54,6 @@ typedef struct {
 
 #define FIBRIL_MUTEX_INITIALIZE(name) \
 	fibril_mutex_t name = FIBRIL_MUTEX_INITIALIZER(name)
-
-typedef struct {
-	fibril_owner_info_t oi;  /**< Keep this the first thing. */
-	unsigned int writers;
-	unsigned int readers;
-	list_t waiters;
-} fibril_rwlock_t;
 
 #define FIBRIL_RWLOCK_INITIALIZER(name) \
 	{ \
@@ -78,10 +68,6 @@ typedef struct {
 #define FIBRIL_RWLOCK_INITIALIZE(name) \
 	fibril_rwlock_t name = FIBRIL_RWLOCK_INITIALIZER(name)
 
-typedef struct {
-	list_t waiters;
-} fibril_condvar_t;
-
 #define FIBRIL_CONDVAR_INITIALIZER(name) \
 	{ \
 		.waiters = LIST_INITIALIZER((name).waiters), \
@@ -89,6 +75,36 @@ typedef struct {
 
 #define FIBRIL_CONDVAR_INITIALIZE(name) \
 	fibril_condvar_t name = FIBRIL_CONDVAR_INITIALIZER(name)
+
+#define FIBRIL_SEMAPHORE_INITIALIZER(name, cnt) \
+	{ \
+		.count = (cnt), \
+		.waiters = LIST_INITIALIZER((name).waiters), \
+	}
+
+#define FIBRIL_SEMAPHORE_INITIALIZE(name, cnt) \
+	fibril_semaphore_t name = FIBRIL_SEMAPHORE_INITIALIZER(name, cnt)
+
+#endif
+
+__HELENOS_DECLS_BEGIN;
+
+typedef struct {
+	fibril_owner_info_t oi;  /**< Keep this the first thing. */
+	int counter;
+	list_t waiters;
+} fibril_mutex_t;
+
+typedef struct {
+	fibril_owner_info_t oi;  /**< Keep this the first thing. */
+	unsigned int writers;
+	unsigned int readers;
+	list_t waiters;
+} fibril_rwlock_t;
+
+typedef struct {
+	list_t waiters;
+} fibril_condvar_t;
 
 typedef void (*fibril_timer_fun_t)(void *);
 
@@ -132,15 +148,6 @@ typedef struct {
 	list_t waiters;
 	bool closed;
 } fibril_semaphore_t;
-
-#define FIBRIL_SEMAPHORE_INITIALIZER(name, cnt) \
-	{ \
-		.count = (cnt), \
-		.waiters = LIST_INITIALIZER((name).waiters), \
-	}
-
-#define FIBRIL_SEMAPHORE_INITIALIZE(name, cnt) \
-	fibril_semaphore_t name = FIBRIL_SEMAPHORE_INITIALIZER(name, cnt)
 
 extern void __fibril_synch_init(void);
 extern void __fibril_synch_fini(void);
@@ -188,6 +195,8 @@ extern void mpsc_destroy(mpsc_t *);
 extern errno_t mpsc_send(mpsc_t *, const void *);
 extern errno_t mpsc_receive(mpsc_t *, void *, const struct timespec *);
 extern void mpsc_close(mpsc_t *);
+
+__HELENOS_DECLS_END;
 
 #endif
 

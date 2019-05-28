@@ -41,21 +41,16 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <trace.h>
+#include <_bits/decls.h>
 
-/** Doubly linked list link. */
-typedef struct link {
-	struct link *prev;  /**< Pointer to the previous item in the list. */
-	struct link *next;  /**< Pointer to the next item in the list. */
-} link_t;
+#ifndef __cplusplus
 
-/** Doubly linked list. */
-typedef struct list {
-	link_t head;  /**< List head. Does not have any data. */
-} list_t;
-
-extern bool list_member(const link_t *, const list_t *);
-extern void list_splice(list_t *, link_t *);
-extern unsigned long list_count(const list_t *);
+/**
+ * We don't define the macros in C++ to avoid polluting headers with
+ * namespaceless names. We don't actually need them, so this is fine.
+ * We still allow including the rest of the file (in `helenos` namespace)
+ * so that we can expose publicly visible types that have list_t members.
+ */
 
 /** Declare and initialize statically allocated list.
  *
@@ -136,6 +131,29 @@ extern unsigned long list_count(const list_t *);
 
 #define assert_link_not_used(link) \
 	assert(!link_used(link))
+
+#define list_pop(list, type, member) \
+	((type *) list_pop_internal(list, \
+	    (list_link_to_void(&(((type *) NULL)->member)) - NULL)))
+
+#endif  /* !__cplusplus */
+
+__HELENOS_DECLS_BEGIN;
+
+/** Doubly linked list link. */
+typedef struct __adt_list_link {
+	struct __adt_list_link *prev;  /**< Pointer to the previous item in the list. */
+	struct __adt_list_link *next;  /**< Pointer to the next item in the list. */
+} link_t;
+
+/** Doubly linked list. */
+typedef struct {
+	link_t head;  /**< List head. Does not have any data. */
+} list_t;
+
+extern bool list_member(const link_t *, const list_t *);
+extern void list_splice(list_t *, link_t *);
+extern unsigned long list_count(const list_t *);
 
 /** Returns true if the link is definitely part of a list. False if not sure. */
 static inline bool link_in_use(const link_t *link)
@@ -424,9 +442,7 @@ static inline void *list_pop_internal(list_t *list, ptrdiff_t offset)
 	return (void *) (((uint8_t *) tmp) - offset);
 }
 
-#define list_pop(list, type, member) \
-	((type *) list_pop_internal(list, \
-	    (list_link_to_void(&(((type *) NULL)->member)) - NULL)))
+__HELENOS_DECLS_END;
 
 #endif
 

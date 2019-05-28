@@ -38,6 +38,22 @@
 #include <as.h>
 #include <unistd.h>
 
+static int _prot_to_as(int prot)
+{
+	int ret = 0;
+
+	if (prot & PROT_READ)
+		ret |= AS_AREA_READ;
+
+	if (prot & PROT_WRITE)
+		ret |= AS_AREA_WRITE;
+
+	if (prot & PROT_EXEC)
+		ret |= AS_AREA_EXEC;
+
+	return ret;
+}
+
 void *mmap(void *start, size_t length, int prot, int flags, int fd,
     off_t offset)
 {
@@ -52,7 +68,7 @@ void *mmap(void *start, size_t length, int prot, int flags, int fd,
 	if (!(flags & MAP_ANONYMOUS))
 		return MAP_FAILED;
 
-	return as_area_create(start, length, prot, AS_AREA_UNPAGED);
+	return as_area_create(start, length, _prot_to_as(prot), AS_AREA_UNPAGED);
 }
 
 int munmap(void *start, size_t length)
