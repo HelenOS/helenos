@@ -98,6 +98,10 @@ extern int dup(int fildes);
 extern int dup2(int fildes, int fildes2);
 
 #if defined(_LARGEFILE64_SOURCE) || defined(_GNU_SOURCE)
+// FIXME: this should just be defined in <sys/types.h>, but for some reason
+//        build of coastline binutils on mips32 doesn't see the definition there
+typedef int64_t off64_t;
+
 extern off64_t lseek64(int fildes, off64_t offset, int whence);
 extern int ftruncate64(int fildes, off64_t length);
 #endif
