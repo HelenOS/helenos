@@ -111,11 +111,16 @@ static errno_t ls_print(struct dir_elem_t *de)
 			char *rptr;
 			errno_t rc = cap_format(&cap, &rptr);
 			if (rc == EOK) {
-				char bytes[9], suffix[3];
-				sscanf(rptr, "%s %s", bytes, suffix);
-				free(rptr);
+				char *sep = str_rchr(rptr, ' ');
+				if (sep == NULL) {
+					free(rptr);
+					return ENOENT;
+				}
 
-				printf("%-40s\t%*s %2s\n", de->name, width - 3, bytes, suffix);
+				*sep = '\0';
+
+				printf("%-40s\t%*s %2s\n", de->name, width - 3, rptr, sep + 1);
+				free(rptr);
 			} else
 				return rc;
 		}
