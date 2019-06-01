@@ -102,28 +102,29 @@ static errno_t ls_print(struct dir_elem_t *de)
 	if (de->s.is_file) {
 		if (ls.exact_size) {
 			printf("%-40s\t%*llu\n", de->name, width, (long long) de->s.size);
-		} else {
-			cap_spec_t cap;
-
-			cap_from_blocks(de->s.size, 1, &cap);
-			cap_simplify(&cap);
-
-			char *rptr;
-			errno_t rc = cap_format(&cap, &rptr);
-			if (rc == EOK) {
-				char *sep = str_rchr(rptr, ' ');
-				if (sep == NULL) {
-					free(rptr);
-					return ENOENT;
-				}
-
-				*sep = '\0';
-
-				printf("%-40s\t%*s %2s\n", de->name, width - 3, rptr, sep + 1);
-				free(rptr);
-			} else
-				return rc;
+			return EOK;
 		}
+
+		cap_spec_t cap;
+		cap_from_blocks(de->s.size, 1, &cap);
+		cap_simplify(&cap);
+
+		char *rptr;
+		errno_t rc = cap_format(&cap, &rptr);
+		if (rc != EOK) {
+			return rc;
+		}
+
+		char *sep = str_rchr(rptr, ' ');
+		if (sep == NULL) {
+			free(rptr);
+			return ENOENT;
+		}
+
+		*sep = '\0';
+
+		printf("%-40s\t%*s %2s\n", de->name, width - 3, rptr, sep + 1);
+		free(rptr);
 	} else if (de->s.is_directory)
 		printf("%-40s\t%*s\n", de->name, width, "<dir>");
 	else
