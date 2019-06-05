@@ -106,6 +106,8 @@ void mips32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 	sdram_size = bootinfo->sdram_size;
 #endif
 
+	str_cpy(bargs, CONFIG_BOOT_ARGUMENTS_BUFLEN, bootinfo->bootargs);
+
 	/* Initialize machine_ops pointer. */
 	machine_ops_init();
 }

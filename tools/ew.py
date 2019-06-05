@@ -86,7 +86,7 @@ def pc_options(guest_width):
 	return opts[1:]
 
 def malta_options():
-	return '-cpu 4Kc'
+	return '-cpu 4Kc -append "console=devices/\\hw\\pci0\\00:0a.0\\com1\\a"'
 
 def find_firmware(name, environ_var, default_paths, extra_info=None):
 	"""Find firmware image(s)."""

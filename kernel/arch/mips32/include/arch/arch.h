@@ -41,6 +41,7 @@
 #define TASKMAP_MAX_RECORDS        32
 #define CPUMAP_MAX_RECORDS         32
 #define BOOTINFO_TASK_NAME_BUFLEN  32
+#define BOOTINFO_BOOTARGS_BUFLEN   256
 
 extern size_t cpu_count;
 
@@ -65,6 +66,7 @@ typedef struct {
 #endif
 	uint32_t cpumap;
 	taskmap_t taskmap;
+	char bootargs[BOOTINFO_BOOTARGS_BUFLEN];
 } bootinfo_t;
 
 extern void mips32_pre_main(void *entry, bootinfo_t *bootinfo);
