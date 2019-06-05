@@ -216,10 +216,10 @@ TEST_SOURCES = \
 
 include $(USPACE_PREFIX)/Makefile.common
 
-$(LIBC_PREFIX)/crt0.o: $(LIBC_PREFIX)/arch/$(UARCH)/src/entry.o
+$(LIBC_PREFIX)/crt0.o: $(LIBC_PREFIX)/arch/$(UARCH)/src/crt0.o
 	cp $< $@
 
-$(LIBC_PREFIX)/crt1.o: $(LIBC_PREFIX)/generic/crt/entry.o
+$(LIBC_PREFIX)/crt1.o: $(LIBC_PREFIX)/generic/crt/crt1.o
 	cp $< $@
 
 AUTOCHECK = $(realpath $(ROOT_PATH)/tools/autocheck.awk)
