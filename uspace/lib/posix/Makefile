@@ -46,9 +46,6 @@ EXPORT_FILES = \
 	$(LIBC_PREFIX)/crt1.o \
 	$(LIBRARY).a
 
-PRE_DEPEND = $(INCLUDE_LIBC)
-EXTRA_CLEAN = $(INCLUDE_LIBC)
-
 SOURCES = \
 	src/ctype.c \
 	src/dlfcn.c \
@@ -130,7 +127,7 @@ export-libs: $(EXPORT_FILES) export-includes
 	mkdir -p $(EXPORT_DIR)/lib
 	cp -L $(EXPORT_FILES) $(EXPORT_DIR)/lib
 
-export-includes: $(INCLUDE_LIBC) $(shell find ./include ../c/arch/$(UARCH)/include $(ROOT_PATH)/abi/include -name '*.h')
+export-includes: $(shell find ./include ../c/arch/$(UARCH)/include $(ROOT_PATH)/abi/include -name '*.h')
 	mkdir -p $(EXPORT_DIR)/include
 	rm -rf $(EXPORT_DIR)/include.new
 	cp -r -L -T ./include $(EXPORT_DIR)/include.new
