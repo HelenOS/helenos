@@ -224,8 +224,7 @@ endif
 
 BASE_LIBS = \
 	lib/c \
-	lib/cpp \
-	lib/untar
+	lib/cpp
 
 LIBS = \
 	lib/fs \
@@ -252,6 +251,7 @@ LIBS = \
 	lib/nic \
 	lib/ext4 \
 	lib/trackmod \
+	lib/untar \
 	lib/uri \
 	lib/usb \
 	lib/usbhost \
