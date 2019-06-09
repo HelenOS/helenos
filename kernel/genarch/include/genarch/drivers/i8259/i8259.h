@@ -40,23 +40,6 @@
 #include <genarch/pic/pic_ops.h>
 #include <stdbool.h>
 
-/* ICW1 bits */
-#define PIC_ICW1           (1 << 4)
-#define PIC_ICW1_NEEDICW4  (1 << 0)
-
-/* OCW3 bits */
-#define PIC_OCW3           (1 << 3)
-#define PIC_OCW3_READ_ISR  (3 << 0)
-
-/* OCW4 bits */
-#define PIC_OCW4           (0 << 3)
-#define PIC_OCW4_NSEOI     (1 << 5)
-
-#define PIC0_IRQ_COUNT      8
-#define PIC1_IRQ_COUNT      8
-
-#define PIC0_IRQ_PIC1       2
-
 typedef struct {
 	ioport8_t port1;
 	ioport8_t port2;
