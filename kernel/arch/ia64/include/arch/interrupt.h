@@ -91,8 +91,6 @@ extern void universal_handler(unsigned int, istate_t *);
 extern void external_interrupt(unsigned int, istate_t *);
 extern void disabled_fp_register(unsigned int, istate_t *);
 
-extern void trap_virtual_enable_irqs(uint16_t);
-
 void exception_init(void);
 #endif
 

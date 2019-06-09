@@ -74,8 +74,8 @@ static outdev_t *tty_out;
 static void malta_isa_irq_handler(unsigned int i)
 {
 	uint8_t isa_irq = host2uint32_t_le(pio_read_32(GT64120_PCI0_INTACK));
-	if (pic_is_spurious(isa_irq)) {
-		pic_handle_spurious(isa_irq);
+	if (i8259_is_spurious(isa_irq)) {
+		i8259_handle_spurious(isa_irq);
 #ifdef CONFIG_DEBUG
 		log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt %u",
 		    CPU->id, isa_irq);
@@ -92,7 +92,7 @@ static void malta_isa_irq_handler(unsigned int i)
 		    CPU->id, isa_irq);
 #endif
 	}
-	pic_eoi(isa_irq);
+	i8259_eoi(isa_irq);
 }
 
 void malta_init(void)
@@ -145,7 +145,7 @@ void malta_input_init(void)
 			indev_t *sink = stdin_wire();
 			indev_t *srln = srln_wire(srln_instance, sink);
 			ns16550_wire(tty_instance, srln);
-			pic_enable_irqs(1 << TTY_ISA_IRQ);
+			i8259_enable_irqs(1 << TTY_ISA_IRQ);
 		}
 	}
 #endif

@@ -42,6 +42,17 @@
 #include <log.h>
 #include <interrupt.h>
 
+static const char *i8259_get_name(void);
+
+pic_ops_t i8259_pic_ops = {
+	.get_name = i8259_get_name,
+	.enable_irqs = i8259_enable_irqs,
+	.disable_irqs = i8259_disable_irqs,
+	.eoi = i8259_eoi,
+	.is_spurious = i8259_is_spurious,
+	.handle_spurious = i8259_handle_spurious
+};
+
 // XXX: need to change pic_* API to get rid of these
 static i8259_t *saved_pic0;
 static i8259_t *saved_pic1;
@@ -75,11 +86,16 @@ void i8259_init(i8259_t *pic0, i8259_t *pic1, unsigned int irq0_vec)
 	/* ICW4: i8086 mode */
 	pio_write_8(&pic1->port2, 1);
 
-	pic_disable_irqs(0xffff);		/* disable all irq's */
-	pic_enable_irqs(1 << PIC0_IRQ_PIC1);	/* but enable PIC0_IRQ_PIC1 */
+	i8259_disable_irqs(0xffff);		/* disable all irq's */
+	i8259_enable_irqs(1 << PIC0_IRQ_PIC1);	/* but enable PIC0_IRQ_PIC1 */
 }
 
-void pic_enable_irqs(uint16_t irqmask)
+const char *i8259_get_name(void)
+{
+	return "i8259";
+}
+
+void i8259_enable_irqs(uint16_t irqmask)
 {
 	uint8_t x;
 
@@ -95,7 +111,7 @@ void pic_enable_irqs(uint16_t irqmask)
 	}
 }
 
-void pic_disable_irqs(uint16_t irqmask)
+void i8259_disable_irqs(uint16_t irqmask)
 {
 	uint8_t x;
 
@@ -111,14 +127,14 @@ void pic_disable_irqs(uint16_t irqmask)
 	}
 }
 
-void pic_eoi(unsigned int irq)
+void i8259_eoi(unsigned int irq)
 {
 	if (irq >= PIC0_IRQ_COUNT)
 		pio_write_8(&saved_pic1->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 	pio_write_8(&saved_pic0->port1, PIC_OCW4 | PIC_OCW4_NSEOI);
 }
 
-bool pic_is_spurious(unsigned int irq)
+bool i8259_is_spurious(unsigned int irq)
 {
 	pio_write_8(&saved_pic0->port1, PIC_OCW3 | PIC_OCW3_READ_ISR);
 	pio_write_8(&saved_pic1->port1, PIC_OCW3 | PIC_OCW3_READ_ISR);
@@ -127,7 +143,7 @@ bool pic_is_spurious(unsigned int irq)
 	return !(((isr_hi << PIC0_IRQ_COUNT) | isr_lo) & (1 << irq));
 }
 
-void pic_handle_spurious(unsigned int irq)
+void i8259_handle_spurious(unsigned int irq)
 {
 	/* For spurious IRQs from pic1, we need to isssue an EOI to pic0 */
 	if (irq >= PIC0_IRQ_COUNT)

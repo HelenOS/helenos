@@ -39,6 +39,7 @@
 #include <debug.h>
 #include <panic.h>
 #include <genarch/drivers/i8259/i8259.h>
+#include <genarch/pic/pic_ops.h>
 #include <halt.h>
 #include <cpu.h>
 #include <arch/asm.h>
@@ -60,10 +61,7 @@
  * Interrupt and exception dispatching.
  */
 
-void (*disable_irqs_function)(uint16_t irqmask) = NULL;
-void (*enable_irqs_function)(uint16_t irqmask) = NULL;
-void (*eoi_function)(unsigned int) = NULL;
-const char *irqs_info = NULL;
+pic_ops_t *pic_ops = NULL;
 
 void istate_decode(istate_t *istate)
 {
@@ -87,15 +85,6 @@ void istate_decode(istate_t *istate)
 	    istate->esi, istate->edi, istate->ebp,
 	    istate_from_uspace(istate) ? istate->esp :
 	    (uint32_t) &istate->esp);
-}
-
-static void trap_virtual_eoi(unsigned int inum)
-{
-	if (eoi_function)
-		eoi_function(inum);
-	else
-		panic("No eoi_function.");
-
 }
 
 static void null_interrupt(unsigned int n, istate_t *istate)
@@ -178,7 +167,7 @@ static void nm_fault(unsigned int n __attribute__((unused)),
 static void tlb_shootdown_ipi(unsigned int n __attribute__((unused)),
     istate_t *istate __attribute__((unused)))
 {
-	trap_virtual_eoi(0);
+	pic_ops->eoi(0);
 	tlb_shootdown_ipi_recv();
 }
 #endif
@@ -201,7 +190,7 @@ static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused
 
 		if (irq->preack) {
 			/* Send EOI before processing the interrupt */
-			trap_virtual_eoi(inum);
+			pic_ops->eoi(inum);
 			ack = true;
 		}
 		irq->handler(irq);
@@ -214,18 +203,18 @@ static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused
 	}
 
 	if (!ack)
-		trap_virtual_eoi(inum);
+		pic_ops->eoi(inum);
 }
 
 static void pic_spurious(unsigned int n, istate_t *istate)
 {
 	unsigned int inum = n - IVT_IRQBASE;
-	if (!pic_is_spurious(inum)) {
+	if (!pic_ops->is_spurious(inum)) {
 		/* This is actually not a spurious IRQ, so proceed as usual. */
 		irq_interrupt(n, istate);
 		return;
 	}
-	pic_handle_spurious(n);
+	pic_ops->handle_spurious(n);
 #ifdef CONFIG_DEBUG
 	log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt %u", CPU->id,
 	    inum);
@@ -261,22 +250,6 @@ void interrupt_init(void)
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,
 	    (iroutine_t) tlb_shootdown_ipi);
 #endif
-}
-
-void trap_virtual_enable_irqs(uint16_t irqmask)
-{
-	if (enable_irqs_function)
-		enable_irqs_function(irqmask);
-	else
-		panic("No enable_irqs_function.");
-}
-
-void trap_virtual_disable_irqs(uint16_t irqmask)
-{
-	if (disable_irqs_function)
-		disable_irqs_function(irqmask);
-	else
-		panic("No disable_irqs_function.");
 }
 
 /** @}

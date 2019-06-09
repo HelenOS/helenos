@@ -300,10 +300,6 @@ void external_interrupt(unsigned int n, istate_t *istate)
 	}
 }
 
-void trap_virtual_enable_irqs(uint16_t irqmask)
-{
-}
-
 void exception_init(void)
 {
 	unsigned int i;

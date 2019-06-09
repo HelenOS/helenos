@@ -129,7 +129,7 @@ void kmp(void *arg __attribute__((unused)))
 	pio_write_8((ioport8_t *) 0x70, 0xf);
 	pio_write_8((ioport8_t *) 0x71, 0xa);
 
-	pic_disable_irqs(0xffff);
+	i8259_disable_irqs(0xffff);
 	apic_init();
 
 	for (i = 0; i < config.cpu_count; i++) {

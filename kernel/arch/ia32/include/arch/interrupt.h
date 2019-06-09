@@ -87,14 +87,7 @@
 #define VECTOR_TLB_SHOOTDOWN_IPI  (IVT_FREEBASE + 1)
 #define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
 
-extern void (*disable_irqs_function)(uint16_t);
-extern void (*enable_irqs_function)(uint16_t);
-extern void (*eoi_function)(unsigned int);
-extern const char *irqs_info;
-
 extern void interrupt_init(void);
-extern void trap_virtual_enable_irqs(uint16_t);
-extern void trap_virtual_disable_irqs(uint16_t);
 
 #endif
 

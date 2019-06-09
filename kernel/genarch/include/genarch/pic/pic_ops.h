@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2019 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,44 +32,22 @@
 /** @file
  */
 
-#ifndef KERN_I8259_H_
-#define KERN_I8259_H_
+#ifndef KERN_PIC_OPS_H_
+#define KERN_PIC_OPS_H_
 
-#include <typedefs.h>
-#include <arch/interrupt.h>
-#include <genarch/pic/pic_ops.h>
+#include <stdint.h>
 #include <stdbool.h>
 
-/* ICW1 bits */
-#define PIC_ICW1           (1 << 4)
-#define PIC_ICW1_NEEDICW4  (1 << 0)
-
-/* OCW3 bits */
-#define PIC_OCW3           (1 << 3)
-#define PIC_OCW3_READ_ISR  (3 << 0)
-
-/* OCW4 bits */
-#define PIC_OCW4           (0 << 3)
-#define PIC_OCW4_NSEOI     (1 << 5)
-
-#define PIC0_IRQ_COUNT      8
-#define PIC1_IRQ_COUNT      8
-
-#define PIC0_IRQ_PIC1       2
-
 typedef struct {
-	ioport8_t port1;
-	ioport8_t port2;
-} __attribute__((packed)) i8259_t;
+	const char *(*get_name)(void);
+	void (*disable_irqs)(uint16_t);
+	void (*enable_irqs)(uint16_t);
+	void (*eoi)(unsigned int);
+	bool (*is_spurious)(unsigned int);
+	void (*handle_spurious)(unsigned int);
+} pic_ops_t;
 
-extern pic_ops_t i8259_pic_ops;
-
-extern void i8259_init(i8259_t *, i8259_t *, unsigned int);
-extern void i8259_enable_irqs(uint16_t);
-extern void i8259_disable_irqs(uint16_t);
-extern void i8259_eoi(unsigned int);
-extern bool i8259_is_spurious(unsigned int);
-extern void i8259_handle_spurious(unsigned int);
+extern pic_ops_t *pic_ops;
 
 #endif
 

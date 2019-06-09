@@ -59,6 +59,7 @@
 #include <arch/pm.h>
 #include <arch/vreg.h>
 #include <arch/kseg.h>
+#include <genarch/pic/pic_ops.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -122,14 +123,8 @@ void amd64_pre_mm_init(void)
 		i8259_init((i8259_t *) I8259_PIC0_BASE,
 		    (i8259_t *) I8259_PIC1_BASE, IVT_IRQBASE);
 
-		/*
-		 * Set the enable/disable IRQs handlers.
-		 * Set the End-of-Interrupt handler.
-		 */
-		enable_irqs_function = pic_enable_irqs;
-		disable_irqs_function = pic_disable_irqs;
-		eoi_function = pic_eoi;
-		irqs_info = "i8259";
+		/* Set PIC operations. */
+		pic_ops = &i8259_pic_ops;
 	}
 }
 
@@ -208,8 +203,8 @@ void amd64_post_smp_init(void)
 			indev_t *sink = stdin_wire();
 			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
 			i8042_wire(i8042_instance, kbrd);
-			trap_virtual_enable_irqs(1 << IRQ_KBD);
-			trap_virtual_enable_irqs(1 << IRQ_MOUSE);
+			pic_ops->enable_irqs(1 << IRQ_KBD);
+			pic_ops->enable_irqs(1 << IRQ_MOUSE);
 		}
 	}
 #endif
@@ -234,7 +229,7 @@ void amd64_post_smp_init(void)
 			indev_t *sink = stdin_wire();
 			indev_t *srln = srln_wire(srln_instance, sink);
 			ns16550_wire(ns16550_instance, srln);
-			trap_virtual_enable_irqs(1 << IRQ_NS16550);
+			pic_ops->enable_irqs(1 << IRQ_NS16550);
 		}
 #endif
 #ifdef CONFIG_NS16550_OUT
@@ -245,8 +240,7 @@ void amd64_post_smp_init(void)
 	}
 #endif
 
-	if (irqs_info != NULL)
-		sysinfo_set_item_val(irqs_info, NULL, true);
+	sysinfo_set_item_val(pic_ops->get_name(), NULL, true);
 }
 
 void calibrate_delay_loop(void)
