@@ -127,6 +127,11 @@ ifneq ($(CONFIG_USE_SHARED_LIBS),y)
 	endif
 endif
 
+# LINK_DYNAMIC is only here to allow app/dltest to link dynamically in otherwise static build.
+ifeq ($(LINK_DYNAMIC),y)
+	STATIC_BUILD = n
+endif
+
 ifeq ($(STATIC_BUILD),y)
 	LDFLAGS += -static
 endif
