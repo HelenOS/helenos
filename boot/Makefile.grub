@@ -50,7 +50,7 @@ all: $(POST_OUTPUT)
 
 $(POST_OUTPUT): build_dist
 ifeq ($(GRUB_ARCH),pc)
-	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS-CD" -eltorito-boot $(ELTORITO) -no-emul-boot -boot-load-size 64 -boot-info-table -o $@ $(DISTROOT)/
+	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS-CD" -eltorito-boot $(ELTORITO) -no-emul-boot -boot-info-table -o $@ $(DISTROOT)/
 endif
 ifeq ($(GRUB_ARCH),efi)
 	$(GENISOIMAGE) -J -r -input-charset utf-8 -V "HelenOS-CD" --efi-boot $(ELTORITO) -o $@ $(DISTROOT)/
