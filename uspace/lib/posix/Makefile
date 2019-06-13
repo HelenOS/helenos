@@ -137,9 +137,7 @@ export-includes: $(shell find ./include ../c/arch/$(UARCH)/include $(ROOT_PATH)/
 	cp -L ../clui/tinput.h $(EXPORT_DIR)/include.new/libclui
 	rm -rf $(EXPORT_DIR)/include
 	mkdir -p $(EXPORT_DIR)/include.new/libdraw
-	cp -r -L -t $(EXPORT_DIR)/include.new/libdraw ../draw/*.h
-	mkdir -p $(EXPORT_DIR)/include.new/libdraw/codec
-	cp -r -L -t $(EXPORT_DIR)/include.new/libdraw/codec ../draw/codec/*.h
+	cp -r -L -t $(EXPORT_DIR)/include.new/libdraw ../draw/include/*
 	mkdir -p $(EXPORT_DIR)/include.new/libgui
 	cp -L -t $(EXPORT_DIR)/include.new/libgui ../gui/*.h
 	mkdir -p $(EXPORT_DIR)/include.new/libhound

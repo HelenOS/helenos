@@ -39,6 +39,7 @@
 
 #include <stdint.h>
 
+#include "font.h"
 #include "surface.h"
 #include "source.h"
 
@@ -107,6 +108,13 @@ typedef struct {
 	void *backend_data;
 } font_t;
 
+typedef struct {
+	errno_t (*resolve_glyph)(void *, const wchar_t, glyph_id_t *);
+	errno_t (*load_glyph_surface)(void *, glyph_id_t, surface_t **);
+	errno_t (*load_glyph_metrics)(void *, glyph_id_t, glyph_metrics_t *);
+	void (*release)(void *);
+} bitmap_font_decoder_t;
+
 extern font_t *font_create(font_backend_t *, void *);
 extern errno_t font_get_metrics(font_t *, font_metrics_t *);
 extern errno_t font_resolve_glyph(font_t *, wchar_t, glyph_id_t *);
@@ -118,6 +126,11 @@ extern void font_release(font_t *);
 extern errno_t font_get_box(font_t *, char *, sysarg_t *, sysarg_t *);
 extern errno_t font_draw_text(font_t *, drawctx_t *, source_t *, const char *,
     sysarg_t, sysarg_t);
+
+extern errno_t bitmap_font_create(bitmap_font_decoder_t *, void *, uint32_t,
+    font_metrics_t, uint16_t, font_t **);
+extern errno_t embedded_font_create(font_t **, uint16_t points);
+extern errno_t pcf_font_create(font_t **, char *path, uint16_t points);
 
 #endif
 

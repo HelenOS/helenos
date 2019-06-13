@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2012 Petr Koupy
- * Copyright (c) 2014 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,24 +33,34 @@
  * @file
  */
 
-#ifndef DRAW_FONT_BITMAP_BACKEND_H_
-#define DRAW_FONT_BITMAP_BACKEND_H_
+#ifndef DRAW_CURSOR_H_
+#define DRAW_CURSOR_H_
 
 #include <stdint.h>
 
-#include "../font.h"
-#include "../surface.h"
-#include "../source.h"
+#include "surface.h"
+
+typedef enum {
+	CURSOR_DECODER_EMBEDDED
+} cursor_decoder_type_t;
 
 typedef struct {
-	errno_t (*resolve_glyph)(void *, const wchar_t, glyph_id_t *);
-	errno_t (*load_glyph_surface)(void *, glyph_id_t, surface_t **);
-	errno_t (*load_glyph_metrics)(void *, glyph_id_t, glyph_metrics_t *);
+	void (*init)(char *, uint8_t *, void **);
+	surface_t *(*render)(uint8_t);
 	void (*release)(void *);
-} bitmap_font_decoder_t;
+} cursor_decoder_t;
 
-extern errno_t bitmap_font_create(bitmap_font_decoder_t *, void *, uint32_t,
-    font_metrics_t, uint16_t, font_t **);
+typedef struct cursor {
+	uint8_t state_count;
+	surface_t **states;
+	cursor_decoder_t *decoder;
+	void *decoder_data;
+} cursor_t;
+
+extern cursor_decoder_t cd_embedded;
+
+extern void cursor_init(cursor_t *, cursor_decoder_type_t, char *);
+extern void cursor_release(cursor_t *);
 
 #endif
 

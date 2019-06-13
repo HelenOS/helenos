@@ -34,7 +34,7 @@
  */
 
 #include <stdlib.h>
-#include <surface.h>
+#include <draw/surface.h>
 
 #include "window.h"
 #include "minimal.h"

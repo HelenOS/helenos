@@ -36,7 +36,7 @@
 #ifndef GUI_COMMON_H_
 #define GUI_COMMON_H_
 
-#include <drawctx.h>
+#include <draw/drawctx.h>
 
 extern void draw_icon_cross(surface_t *, sysarg_t, sysarg_t, pixel_t, pixel_t);
 extern void draw_bevel(drawctx_t *, source_t *, sysarg_t, sysarg_t, sysarg_t,

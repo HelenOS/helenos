@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,12 +34,18 @@
  * @file
  */
 
-#ifndef DRAW_CURSOR_EMBEDDED_H_
-#define DRAW_CURSOR_EMBEDDED_H_
+#ifndef DRAW_CODEC_H_
+#define DRAW_CODEC_H_
 
-#include "../cursor.h"
+#include <stddef.h>
+#include "surface.h"
 
-extern cursor_decoder_t cd_embedded;
+extern surface_t *decode_tga_gz(void *, size_t, surface_flags_t);
+extern bool encode_tga_gz(surface_t *, void **, size_t *);
+extern surface_t *decode_tga(void *, size_t, surface_flags_t);
+extern bool encode_tga(surface_t *, void **, size_t *);
+extern surface_t *decode_webp(void *, size_t, surface_flags_t);
+extern bool encode_webp(surface_t *, void **, size_t *);
 
 #endif
 

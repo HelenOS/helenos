@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2014 Martin Sucha
+ * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,16 +30,29 @@
 /** @addtogroup draw
  * @{
  */
-/**
- * @file
+/** @file
  */
 
-#ifndef DRAW_FONT_PBF_H_
-#define DRAW_FONT_PBF_H_
+#ifndef GFX_H_
+#define GFX_H_
 
-#include "../font.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 
-extern errno_t pcf_font_create(font_t **, char *path, uint16_t points);
+#define CURSOR_WIDTH   11
+#define CURSOR_HEIGHT  18
+
+#define FONT_GLYPHS     2899
+#define FONT_WIDTH      8
+#define FONT_SCANLINES  16
+#define FONT_ASCENDER   12
+
+extern uint8_t cursor_texture[];
+extern uint8_t cursor_mask[];
+
+extern uint16_t fb_font_glyph(const wchar_t, bool *);
+extern uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES];
 
 #endif
 

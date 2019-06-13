@@ -35,9 +35,9 @@
 
 #include <stdlib.h>
 #include <transform.h>
-#include <source.h>
-#include <surface.h>
-#include <drawctx.h>
+#include <draw/source.h>
+#include <draw/surface.h>
+#include <draw/drawctx.h>
 #include "window.h"
 #include "canvas.h"
 

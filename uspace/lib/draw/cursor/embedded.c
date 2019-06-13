@@ -38,9 +38,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "../gfx/cursor-11x18.h"
-#include "embedded.h"
-#include "../surface.h"
+#include <draw/gfx.h>
+#include <draw/cursor.h>
+#include <draw/surface.h>
 
 static void cde_init(char *path, uint8_t *state_count, void **data)
 {
