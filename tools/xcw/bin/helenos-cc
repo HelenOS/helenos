@@ -31,25 +31,60 @@
 # Facilitate cross-compiling external software to HelenOS
 #
 
+
+
 XCW="$(dirname "$0")"
 SRC_ROOT="$XCW/../../.."
 if [ -z "$EXPORT_DIR" ]; then
-	EXPORT_DIR="$SRC_ROOT/uspace/export"
+	EXPORT_DIR="$SRC_ROOT/dist"
 fi
-UARCH="$("$XCW"/helenos-bld-config --uarch)"
-CC="$("$XCW"/helenos-bld-config --cc)"
-CFLAGS="$("$XCW"/helenos-bld-config --cflags)"
-ENDIAN="$("$XCW"/helenos-bld-config --endian)"
 
-echo helenos-cc "$@"
-"$CC" \
-    -O3 -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32LE -finput-charset=UTF-8 \
-    $CFLAGS \
-    -Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
-    -std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings -ggdb \
-    -fno-omit-frame-pointer \
-    -D "$ENDIAN" \
-    "$@" \
-    -I"$XCW"/../include \
-    -I"$EXPORT_DIR"/include/libc \
-    -I"$EXPORT_DIR"/include
+HELENOS_EXPORT_ROOT="$EXPORT_DIR"
+
+source "${EXPORT_DIR}/config/config.sh"
+
+# CC is a compilation driver, so we should check which stage of compilation
+# is actually running and select which flags to provide. This makes no
+# difference for GCC, but e.g. clang warns when a flag is provided that is
+# unused
+
+needs_cflags=true
+needs_ldflags=true
+
+for flag in "$@"; do
+	case "$flag" in
+		-E)
+			needs_cflags=false
+			needs_ldflags=false
+			break
+			;;
+		-c|-S)
+			needs_ldflags=false
+			break
+			;;
+	esac
+done
+
+flags="-fwide-exec-charset=UTF-32LE -finput-charset=UTF-8 -fexec-charset=UTF-8"
+flags="$flags -isystem ${HELENOS_EXPORT_ROOT}/include/libc -idirafter ${HELENOS_EXPORT_ROOT}/include"
+
+if $needs_cflags; then
+	flags="$flags -O3 \
+	    -Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
+	    -std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings -ggdb"
+
+	flags="$flags $HELENOS_CFLAGS"
+fi
+
+if $needs_ldflags; then
+	flags="$flags $HELENOS_LDFLAGS"
+fi
+
+flags="$flags $@"
+
+if $needs_ldflags; then
+	flags="$flags $HELENOS_LDLIBS"
+fi
+
+echo "helenos-cc" "$@"
+PATH="$HELENOS_CROSS_PATH:$PATH" "${HELENOS_TARGET}-gcc" $flags

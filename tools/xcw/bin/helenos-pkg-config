@@ -33,9 +33,8 @@
 
 XCW="$(dirname "$0")"
 SRC_ROOT="$XCW/../../.."
-UARCH="$("$XCW"/helenos-bld-config --uarch)"
 if [ -z "$EXPORT_DIR" ]; then
-	EXPORT_DIR="$SRC_ROOT/uspace/export"
+	EXPORT_DIR="$SRC_ROOT/dist"
 fi
 INCLUDE_DIR="$EXPORT_DIR/include"
 LIB_DIR="$EXPORT_DIR/lib"
