@@ -41,58 +41,9 @@ import subprocess
 SANDBOX = 'autotool'
 CONFIG = 'Makefile.config'
 MAKEFILE = 'Makefile.common'
-HEADER = 'common.h.new'
-GUARD = '_AUTOTOOL_COMMON_H_'
 
-PROBE_SOURCE = 'probe.c'
-PROBE_OUTPUT = 'probe.s'
-
-PACKAGE_BINUTILS = "usually part of binutils"
-PACKAGE_GCC = "preferably version 4.7.0 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
 PACKAGE_CLANG = "reasonably recent version of clang needs to be installed"
-
-TOOLCHAIN_FAIL = [
-	"Compiler toolchain for target is not installed, or CROSS_PREFIX",
-	"environment variable is not set correctly. Use tools/toolchain.sh",
-	"to (re)build the cross-compiler toolchain."]
-COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
-COMPILER_WARNING = "The compilation of HelenOS might fail."
-
-PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, tag, name, signedness, base, size, compatible) \\
-	asm volatile ( \\
-		"AUTOTOOL_DECLARE\\t" category "\\t" tag "\\t" name "\\t" signedness "\\t" base "\\t%[size_val]\\t%[cmp_val]\\n" \\
-		: \\
-		: [size_val] "n" (size), [cmp_val] "n" (compatible) \\
-	)
-
-#define STRING(arg)      STRING_ARG(arg)
-#define STRING_ARG(arg)  #arg
-
-#define DECLARE_BUILTIN_TYPE(tag, type) \\
-	AUTOTOOL_DECLARE("unsigned long long int", tag, STRING(type), "unsigned", "long long", sizeof(type), __builtin_types_compatible_p(type, unsigned long long int)); \\
-	AUTOTOOL_DECLARE("unsigned long int", tag, STRING(type), "unsigned", "long", sizeof(type), __builtin_types_compatible_p(type, unsigned long int)); \\
-	AUTOTOOL_DECLARE("unsigned int", tag, STRING(type), "unsigned", "int", sizeof(type), __builtin_types_compatible_p(type, unsigned int)); \\
-	AUTOTOOL_DECLARE("unsigned short int", tag, STRING(type), "unsigned", "short", sizeof(type), __builtin_types_compatible_p(type, unsigned short int)); \\
-	AUTOTOOL_DECLARE("unsigned char", tag, STRING(type), "unsigned", "char", sizeof(type), __builtin_types_compatible_p(type, unsigned char)); \\
-	AUTOTOOL_DECLARE("signed long long int", tag, STRING(type), "signed", "long long", sizeof(type), __builtin_types_compatible_p(type, signed long long int)); \\
-	AUTOTOOL_DECLARE("signed long int", tag, STRING(type), "signed", "long", sizeof(type), __builtin_types_compatible_p(type, signed long int)); \\
-	AUTOTOOL_DECLARE("signed int", tag, STRING(type), "signed", "int", sizeof(type), __builtin_types_compatible_p(type, signed int)); \\
-	AUTOTOOL_DECLARE("signed short int", tag, STRING(type), "signed", "short", sizeof(type), __builtin_types_compatible_p(type, signed short int)); \\
-	AUTOTOOL_DECLARE("signed char", tag, STRING(type), "signed", "char", sizeof(type), __builtin_types_compatible_p(type, signed char)); \\
-	AUTOTOOL_DECLARE("pointer", tag, STRING(type), "N/A", "pointer", sizeof(type), __builtin_types_compatible_p(type, void*)); \\
-	AUTOTOOL_DECLARE("long double", tag, STRING(type), "signed", "long double", sizeof(type), __builtin_types_compatible_p(type, long double)); \\
-	AUTOTOOL_DECLARE("double", tag, STRING(type), "signed", "double", sizeof(type), __builtin_types_compatible_p(type, double)); \\
-	AUTOTOOL_DECLARE("float", tag, STRING(type), "signed", "float", sizeof(type), __builtin_types_compatible_p(type, float));
-
-extern int main(int, char *[]);
-
-int main(int argc, char *argv[])
-{
-"""
-
-PROBE_TAIL = """}
-"""
 
 def read_config(fname, config):
 	"Read HelenOS build configuration"
@@ -118,19 +69,6 @@ def print_error(msg):
 	sys.stderr.write("\n")
 
 	sys.exit(1)
-
-def print_warning(msg):
-	"Print a bold error message"
-
-	sys.stderr.write("\n")
-	sys.stderr.write("######################################################################\n")
-	sys.stderr.write("HelenOS build sanity check warning:\n")
-	sys.stderr.write("\n")
-	sys.stderr.write("%s\n" % "\n".join(msg))
-	sys.stderr.write("######################################################################\n")
-	sys.stderr.write("\n")
-
-	time.sleep(5)
 
 def sandbox_enter():
 	"Create a temporal sandbox directory for running tests"
@@ -370,150 +308,6 @@ def check_binutils(path, prefix, common, details):
 	check_app([common['OBJDUMP'], "--version"], "GNU Objdump utility", details)
 	check_app([common['STRIP'], "--version"], "GNU strip", details)
 
-def decode_value(value):
-	"Decode integer value"
-
-	base = 10
-
-	if ((value.startswith('$')) or (value.startswith('#'))):
-		value = value[1:]
-
-	if (value.startswith('0x')):
-		value = value[2:]
-		base = 16
-
-	return int(value, base)
-
-def probe_compiler(cc, common, typesizes):
-	"Generate, compile and parse probing source"
-
-	check_common(common, "CC")
-
-	outf = open(PROBE_SOURCE, 'w')
-	outf.write(PROBE_HEAD)
-
-	for typedef in typesizes:
-		if 'def' in typedef:
-			outf.write("#ifdef %s\n" % typedef['def'])
-		outf.write("\tDECLARE_BUILTIN_TYPE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
-		if 'def' in typedef:
-			outf.write("#endif\n")
-
-	outf.write(PROBE_TAIL)
-	outf.close()
-
-	args = cc.split(' ')
-	args.extend(["-S", "-o", PROBE_OUTPUT, PROBE_SOURCE])
-
-	try:
-		sys.stderr.write("Checking compiler properties ... ")
-		output = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE).communicate()
-	except:
-		sys.stderr.write("failed\n")
-		print_error(["Error executing \"%s\"." % " ".join(args),
-		             "Make sure that the compiler works properly."])
-
-	if (not os.path.isfile(PROBE_OUTPUT)):
-		sys.stderr.write("failed\n")
-		print(output[1])
-		print_error(["Error executing \"%s\"." % " ".join(args),
-		             "The compiler did not produce the output file \"%s\"." % PROBE_OUTPUT,
-		             "",
-		             output[0],
-		             output[1]])
-
-	sys.stderr.write("ok\n")
-
-	inf = open(PROBE_OUTPUT, 'r')
-	lines = inf.readlines()
-	inf.close()
-
-	builtins = {}
-
-	for j in range(len(lines)):
-		tokens = lines[j].strip().split("\t")
-
-		if (len(tokens) > 0):
-			if (tokens[0] == "AUTOTOOL_DECLARE"):
-				if (len(tokens) < 8):
-					print_error(["Malformed declaration in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
-
-				category = tokens[1]
-				tag = tokens[2]
-				name = tokens[3]
-				signedness = tokens[4]
-				base = tokens[5]
-				size = tokens[6]
-				compatible = tokens[7]
-
-				try:
-					compatible_int = decode_value(compatible)
-					size_int = decode_value(size)
-				except:
-					print_error(["Integer value expected in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
-
-				if (compatible_int == 1):
-					builtins[tag] = {
-						'tag': tag,
-						'name': name,
-						'sign': signedness,
-						'base': base,
-						'size': size_int,
-					}
-
-	for typedef in typesizes:
-		if not typedef['tag'] in builtins:
-			print_error(['Unable to determine the properties of type %s.' % typedef['tag'],
-		             COMPILER_FAIL])
-		if 'sname' in typedef:
-			builtins[typedef['tag']]['sname'] = typedef['sname']
-
-	return builtins
-
-def get_suffix(type):
-	if type['sign'] == 'unsigned':
-		return {
-			"char": "",
-			"short": "",
-			"int": "U",
-			"long": "UL",
-			"long long": "ULL",
-		}[type['base']]
-	else:
-		return {
-			"char": "",
-			"short": "",
-			"int": "",
-			"long": "L",
-			"long long": "LL",
-		}[type['base']]
-
-def get_max(type):
-	val = (1 << (type['size']*8 - 1))
-	if type['sign'] == 'unsigned':
-		val *= 2
-	return val - 1
-
-def detect_sizes(probe):
-	"Detect properties of builtin types"
-
-	macros = {}
-
-	for type in probe.values():
-		macros['__SIZEOF_%s__' % type['tag']] = type['size']
-
-		if ('sname' in type):
-			macros['__%s_TYPE__'  % type['sname']] = type['name']
-			macros['__%s_WIDTH__' % type['sname']] = type['size']*8
-			macros['__%s_%s__' % (type['sname'], type['sign'].upper())] = "1"
-			macros['__%s_C_SUFFIX__' % type['sname']] = get_suffix(type)
-			macros['__%s_MAX__' % type['sname']] = "%d%s" % (get_max(type), get_suffix(type))
-
-	if (probe['SIZE_T']['sign'] != 'unsigned'):
-		print_error(['The type size_t is not unsigned.', COMPILER_FAIL])
-
-	return macros
-
 def create_makefile(mkname, common):
 	"Create makefile output"
 
@@ -646,32 +440,10 @@ def main():
 			if common['GENISOIMAGE'] == 'xorriso':
 				common['GENISOIMAGE'] += ' -as genisoimage'
 
-		probe = probe_compiler(cc_autogen, common,
-			[
-				{'type': 'long long int', 'tag': 'LONG_LONG', 'sname': 'LLONG' },
-				{'type': 'long int', 'tag': 'LONG', 'sname': 'LONG' },
-				{'type': 'int', 'tag': 'INT', 'sname': 'INT' },
-				{'type': 'short int', 'tag': 'SHORT', 'sname': 'SHRT'},
-				{'type': 'void*', 'tag': 'POINTER'},
-				{'type': 'long double', 'tag': 'LONG_DOUBLE'},
-				{'type': 'double', 'tag': 'DOUBLE'},
-				{'type': 'float', 'tag': 'FLOAT'},
-				{'type': '__SIZE_TYPE__', 'tag': 'SIZE_T', 'def': '__SIZE_TYPE__', 'sname': 'SIZE' },
-				{'type': '__PTRDIFF_TYPE__', 'tag': 'PTRDIFF_T', 'def': '__PTRDIFF_TYPE__', 'sname': 'PTRDIFF' },
-				{'type': '__WINT_TYPE__', 'tag': 'WINT_T', 'def': '__WINT_TYPE__', 'sname': 'WINT' },
-				{'type': '__WCHAR_TYPE__', 'tag': 'WCHAR_T', 'def': '__WCHAR_TYPE__', 'sname': 'WCHAR' },
-				{'type': '__INTMAX_TYPE__', 'tag': 'INTMAX_T', 'def': '__INTMAX_TYPE__', 'sname': 'INTMAX' },
-				{'type': 'unsigned __INTMAX_TYPE__', 'tag': 'UINTMAX_T', 'def': '__INTMAX_TYPE__', 'sname': 'UINTMAX' },
-			]
-		)
-
-		macros = detect_sizes(probe)
-
 	finally:
 		sandbox_leave(owd)
 
 	create_makefile(MAKEFILE, common)
-	create_header(HEADER, macros)
 
 	return 0
 

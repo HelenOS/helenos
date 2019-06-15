@@ -34,7 +34,6 @@ ROOT_PATH = ..
 VERSION_DEF = $(ROOT_PATH)/version
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-COMMON_HEADER = $(ROOT_PATH)/common.h
 COMMON_HEADER_ARCH = arch/$(KARCH)/include/arch/common.h
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
@@ -73,7 +72,7 @@ endif
 .PHONY: all clean autogen_clean depend
 .DELETE_ON_ERROR:
 
-all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(KERNEL) $(DISASM)
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(KERNEL) $(DISASM)
 
 clean: autogen_clean
 	rm -f $(KERNEL) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* arch/*/_link.ld arch/*/include/arch/common.h

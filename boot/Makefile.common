@@ -34,7 +34,6 @@ ROOT_PATH = ..
 VERSION_DEF = $(ROOT_PATH)/version
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-COMMON_HEADER = $(ROOT_PATH)/common.h
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 CONFIG_HEADER = $(ROOT_PATH)/config.h
