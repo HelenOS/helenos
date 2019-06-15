@@ -83,7 +83,7 @@ static void set_alias(const char *name, const char *value)
 	}
 }
 
-static bool valide_name(const char *name)
+static bool validate_name(const char *name)
 {
 	while (*name != '\0') {
 		if (*name == '/')
@@ -134,7 +134,7 @@ int cmd_alias(char **argv)
 		char *value;
 		if ((value = str_chr(name, '=')) != NULL) {
 			name[value - name] = '\0';
-			if (!valide_name(name)) {
+			if (!validate_name(name)) {
 				cli_error(CL_EFAIL, "%s: invalid alias name given\n", cmdname);
 				free(name);
 				return CMD_FAILURE;
