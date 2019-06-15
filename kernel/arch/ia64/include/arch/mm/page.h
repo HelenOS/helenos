@@ -37,6 +37,7 @@
 #define KERN_ia64_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <arch/register.h>
 
 #ifndef __ASSEMBLER__
 #include <assert.h>
@@ -75,8 +76,8 @@
 #define MA_UNCACHEABLE  0x04
 
 /** Privilege Levels. Only the most and the least privileged ones are ever used. */
-#define PL_KERNEL  0x00
-#define PL_USER    0x03
+#define PL_KERNEL  PSR_CPL_KERNEL
+#define PL_USER    PSR_CPL_USER
 
 /* Access Rigths. Only certain combinations are used by the kernel. */
 #define AR_READ     0x00

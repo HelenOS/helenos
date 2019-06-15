@@ -57,6 +57,9 @@
 #define PSR_RT_MASK   (1 << 27)
 #define PSR_IT_MASK   (1 << 36)
 
+#define PSR_CPL_USER   3
+#define PSR_CPL_KERNEL 0
+
 #define PSR_CPL_SHIFT         32
 #define PSR_CPL_MASK_SHIFTED  3
 
