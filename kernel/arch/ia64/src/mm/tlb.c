@@ -483,9 +483,9 @@ void alternate_instruction_tlb_fault(unsigned int n, istate_t *istate)
 	uintptr_t va;
 	pte_t t;
 
-	va = istate->cr_ifa; /* faulting address */
+	assert(istate_from_uspace(istate));
 
-	assert(!is_kernel_fault(va));
+	va = istate->cr_ifa; /* faulting address */
 
 	bool found = page_mapping_find(AS, va, true, &t);
 	if (found) {
@@ -679,9 +679,9 @@ void instruction_access_bit_fault(unsigned int n, istate_t *istate)
 	uintptr_t va;
 	pte_t t;
 
-	va = istate->cr_ifa;  /* faulting address */
+	assert(istate_from_uspace(istate));
 
-	assert(!is_kernel_fault(va));
+	va = istate->cr_ifa;  /* faulting address */
 
 	bool found = page_mapping_find(AS, va, true, &t);
 
@@ -751,9 +751,9 @@ void data_access_rights_fault(unsigned int n, istate_t *istate)
 	uintptr_t va;
 	pte_t t;
 
-	va = istate->cr_ifa;  /* faulting address */
+	assert(istate_from_uspace(istate));
 
-	assert(!is_kernel_fault(va));
+	va = istate->cr_ifa;  /* faulting address */
 
 	/*
 	 * Assume a write to a read-only page.
@@ -778,9 +778,9 @@ void page_not_present(unsigned int n, istate_t *istate)
 	uintptr_t va;
 	pte_t t;
 
-	va = istate->cr_ifa;  /* faulting address */
+	assert(istate_from_uspace(istate));
 
-	assert(!is_kernel_fault(va));
+	va = istate->cr_ifa;  /* faulting address */
 
 	bool found = page_mapping_find(AS, va, true, &t);
 
