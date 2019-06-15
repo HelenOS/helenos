@@ -44,7 +44,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 
 KERNEL_PATH = $(ROOT_PATH)/kernel
 USPACE_PATH = $(ROOT_PATH)/uspace
-DIST_PATH = $(USPACE_PATH)/dist
+DIST_PATH = $(ROOT_PATH)/dist
 DIST_OVERLAY_PATH = $(USPACE_PATH)/overlay
 TOOLS_PATH = $(ROOT_PATH)/tools
 DRVS_PATH = drv
@@ -66,24 +66,24 @@ DISTROOT = distroot
 INITRD = initrd
 
 INIT_TASKS = \
-	$(USPACE_PATH)/srv/ns/ns \
-	$(USPACE_PATH)/srv/loader/loader \
-	$(USPACE_PATH)/app/init/init \
-	$(USPACE_PATH)/srv/locsrv/locsrv \
-	$(USPACE_PATH)/srv/bd/rd/rd \
-	$(USPACE_PATH)/srv/vfs/vfs \
-	$(USPACE_PATH)/srv/logger/logger
+	srv/ns \
+	srv/loader \
+	app/init \
+	srv/locsrv \
+	srv/bd/rd \
+	srv/vfs \
+	srv/logger
 
 ifeq ($(RDFMT),tmpfs)
-	INIT_TASKS += $(USPACE_PATH)/srv/fs/tmpfs/tmpfs
+	INIT_TASKS += srv/fs/tmpfs
 endif
 
 ifeq ($(RDFMT),fat)
-	INIT_TASKS += $(USPACE_PATH)/srv/fs/fat/fat
+	INIT_TASKS += srv/fs/fat
 endif
 
 ifeq ($(RDFMT),ext4fs)
-	INIT_TASKS += $(USPACE_PATH)/srv/fs/ext4fs/ext4fs
+	INIT_TASKS += srv/fs/ext4fs
 endif
 
 RD_SRVS_ESSENTIAL = \
@@ -145,25 +145,6 @@ RD_DRVS_NON_ESSENTIAL = \
 	nic/virtio-net \
 	block/ahci \
 	block/virtio-blk
-
-RD_DRV_CFG =
-
-RD_DRVS_FW_NON_ESSENTIAL = \
-	nic/ar9271
-
-RD_LIBS =
-
-ifeq ($(CONFIG_DEVEL_FILES), y)
-	RD_LIBS += \
-		$(USPACE_PATH)/lib/c/libc.a
-endif
-
-ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
-	RD_LIBS += \
-		$(USPACE_PATH)/lib/c/libc.so.0 \
-		$(USPACE_PATH)/lib/math/libmath.so.0 \
-		$(USPACE_PATH)/lib/dltest/libdltest.so.0
-endif
 
 RD_APPS_ESSENTIAL = \
 	bdsh \
@@ -242,29 +223,9 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_APPS_NON_ESSENTIAL += dltest dltests
 endif
 
-RD_TESTS = \
-	$(USPACE_PATH)/lib/c/test-libc \
-	$(USPACE_PATH)/lib/label/test-liblabel \
-	$(USPACE_PATH)/lib/posix/test-libposix \
-	$(USPACE_PATH)/lib/sif/test-libsif \
-	$(USPACE_PATH)/lib/uri/test-liburi \
-	$(USPACE_PATH)/lib/math/test-libmath \
-	$(USPACE_PATH)/drv/bus/usb/xhci/test-xhci \
-	$(USPACE_PATH)/app/bdsh/test-bdsh \
-	$(USPACE_PATH)/srv/net/tcp/test-tcp \
-	$(USPACE_PATH)/srv/volsrv/test-volsrv \
-
-RD_DATA_ESSENTIAL = \
-	$(USPACE_PATH)/app/bdsh/demo.txt
-
-RD_DATA_NON_ESSENTIAL = \
-	$(USPACE_PATH)/app/modplay/demo.xm \
-	$(USPACE_PATH)/app/viewer/logo.tga
-
-
 COMPONENTS = \
 	$(KERNEL_PATH)/kernel.elf \
-	$(INIT_TASKS) \
+	$(addprefix $(DIST_PATH)/,$(INIT_TASKS)) \
 	$(INITRD).img
 
 
@@ -278,14 +239,10 @@ ifeq ($(CONFIG_BAREBONE),y)
 	RD_SRVS = $(RD_SRVS_ESSENTIAL)
 	RD_APPS = $(RD_APPS_ESSENTIAL)
 	RD_DRVS = $(RD_DRVS_ESSENTIAL)
-	RD_DRVS_FW = $(RD_DRVS_FW_ESSENTIAL)
-	RD_DATA = $(RD_DATA_ESSENTIAL)
 else
 	RD_SRVS = $(RD_SRVS_ESSENTIAL) $(RD_SRVS_NON_ESSENTIAL)
 	RD_APPS = $(RD_APPS_ESSENTIAL) $(RD_APPS_NON_ESSENTIAL)
 	RD_DRVS = $(RD_DRVS_ESSENTIAL) $(RD_DRVS_NON_ESSENTIAL)
-	RD_DRVS_FW = $(RD_DRVS_FW_ESSENTIAL) $(RD_DRVS_FW_NON_ESSENTIAL)
-	RD_DATA = $(RD_DATA_ESSENTIAL) $(RD_DATA_NON_ESSENTIAL)
 endif
 
 MODULES := $(notdir $(COMPONENTS))

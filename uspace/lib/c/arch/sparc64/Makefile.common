@@ -36,7 +36,6 @@ COMMON_CFLAGS += -m64 -mcmodel=medlow -mhard-float -m$(QUADFLOAT)-quad-float
 
 LDFLAGS += -Wl,-no-check-sections,--gc-sections
 
-ENDIANESS = BE
 
 
 ifeq ($(PROCESSOR),us)

@@ -57,37 +57,6 @@ BITS = 32
 ENDIANESS = LE
 EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
 
-ifeq ($(MACHINE), gta02)
-	RD_SRVS_ESSENTIAL += \
-		hid/s3c24xx_ts \
-		hw/char/s3c24xx_uart
-endif
-
-ifeq ($(MACHINE), $(filter $(MACHINE),beagleboardxm beaglebone))
-	RD_DRVS_ESSENTIAL += \
-		platform/amdm37x \
-		fb/amdm37x_dispc
-endif
-
-ifeq ($(MACHINE), integratorcp)
-	RD_DRVS_ESSENTIAL += \
-		char/pl050 \
-		hid/atkbd \
-		hid/ps2mouse \
-		intctl/icp-ic \
-		platform/icp
-endif
-
-RD_DRVS_ESSENTIAL += \
-	bus/usb/ehci \
-	bus/usb/ohci \
-	bus/usb/usbdiag \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbmid \
-	block/usbmast \
-	hid/usbhid
-
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/eabi.S \

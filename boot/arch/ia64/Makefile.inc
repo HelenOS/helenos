@@ -33,10 +33,6 @@ BITS = 64
 ENDIANESS = LE
 EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
 
-RD_SRVS_NON_ESSENTIAL +=
-
-RD_SRVS_ESSENTIAL +=
-
 SOURCES = \
 	arch/$(BARCH)/src/boot.S \
 	arch/$(BARCH)/src/asm.S \
@@ -65,36 +61,4 @@ SOURCES = \
 ifeq ($(MACHINE),ski)
 SOURCES += \
 	arch/$(BARCH)/src/ski.c
-endif
-
-ifeq ($(MACHINE),i460GX)
-RD_DRVS_ESSENTIAL += \
-	platform/pc \
-	bus/pci/pciintel \
-	bus/isa \
-	char/i8042 \
-	hid/xtkbd
-
-RD_DRVS_NON_ESSENTIAL += \
-	char/ns8250 \
-	time/cmos-rtc \
-	bus/usb/ehci\
-	bus/usb/ohci \
-	bus/usb/uhci \
-	bus/usb/usbdiag \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbmid \
-	bus/usb/vhc \
-	block/usbmast \
-	hid/usbhid
-
-RD_DRV_CFG += \
-	bus/isa
-endif
-
-ifeq ($(MACHINE),ski)
-RD_DRVS_ESSENTIAL += \
-	char/ski-con \
-	platform/ski
 endif

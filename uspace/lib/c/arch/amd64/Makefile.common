@@ -35,5 +35,4 @@ COMMON_CFLAGS += -fno-omit-frame-pointer -Wl,-z,max-page-size=0x1000
 
 LDFLAGS += -Wl,--gc-sections
 
-ENDIANESS = LE
 

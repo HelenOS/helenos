@@ -37,21 +37,6 @@ BITS = 32
 ENDIANESS = BE
 EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
 
-RD_DRVS_ESSENTIAL += \
-	platform/mac \
-	bus/adb/cuda_adb \
-	bus/pci/pciintel \
-	bus/usb/ohci \
-	bus/usb/usbdiag \
-	bus/usb/usbflbk \
-	bus/usb/usbhub \
-	bus/usb/usbmid \
-	bus/usb/vhc \
-	block/usbmast \
-	hid/adb-kbd \
-	hid/adb-mouse \
-	hid/usbhid
-
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \

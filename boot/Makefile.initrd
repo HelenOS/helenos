@@ -26,13 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+INIT_FILES := $(addprefix $(DIST_PATH).initrd/,$(INIT_TASKS))
+INIT_FILES := $(INIT_FILES) $(addsuffix .gz,$(INIT_FILES))
+
 $(INITRD).img:
+	rm -rf $(DIST_PATH).initrd
+	cp -R $(DIST_PATH) $(DIST_PATH).initrd
+	rm -f $(INIT_FILES)
+	rm -rf $(DIST_PATH).initrd/boot
 ifeq ($(RDFMT),tmpfs)
-	tar -c -f $@ -C $(DIST_PATH) .
+	tar -c -f $@ -C $(DIST_PATH).initrd .
 endif
 ifeq ($(RDFMT),fat)
-	$(MKFAT) 1048576 $(DIST_PATH) $@
+	$(MKFAT) 1048576 $(DIST_PATH).initrd $@
 endif
 ifeq ($(RDFMT),ext4fs)
-	$(MKEXT4) 1048576 $(DIST_PATH) $@
+	$(MKEXT4) 1048576 $(DIST_PATH).initrd $@
 endif

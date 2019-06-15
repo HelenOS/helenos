@@ -1,0 +1,30 @@
+# See http://mesonbuild.com/Cross-compilation.html
+
+[binaries]
+c = 'ia64-helenos-gcc'
+cpp = 'ia64-helenos-g++'
+ar = 'ia64-helenos-ar'
+strip = 'ia64-helenos-strip'
+nm = 'ia64-helenos-nm'
+objcopy = 'ia64-helenos-objcopy'
+objdump = 'ia64-helenos-objdump'
+as = 'ia64-helenos-as'
+ld = 'ia64-helenos-ld'
+
+[properties]
+has_function_printf = true
+needs_exe_wrapper = true
+
+c_args = [ '-D__LE__', '-fno-unwind-tables' ]
+cpp_args = [ '-D__LE__', '-fno-unwind-tables', '-fno-exceptions' ]
+c_link_args = [ '-nostdlib', '-lgcc' ]
+cpp_link_args = [ '-nostdlib', '-lgcc' ]
+cc_arch = 'ia64'
+h_arch = 'ia64'
+bits = 64
+
+[host_machine]
+system = 'helenos'
+cpu_family = 'ia64'
+cpu = 'ia64'
+endian = 'little'

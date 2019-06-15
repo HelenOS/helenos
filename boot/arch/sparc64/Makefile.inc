@@ -48,9 +48,6 @@ RD_DRVS_ESSENTIAL += \
 	bus/isa \
 	intctl/obio \
 	char/ns8250
-
-RD_DRV_CFG += \
-	bus/isa
 endif
 
 SOURCES = \

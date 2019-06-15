@@ -1,0 +1,1 @@
+src = files('pkg.c')

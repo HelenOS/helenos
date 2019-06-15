@@ -1,0 +1,30 @@
+# See http://mesonbuild.com/Cross-compilation.html
+
+[binaries]
+c = 'mips-helenos-gcc'
+cpp = 'mips-helenos-g++'
+ar = 'mips-helenos-ar'
+strip = 'mips-helenos-strip'
+nm = 'mips-helenos-nm'
+objcopy = 'mips-helenos-objcopy'
+objdump = 'mips-helenos-objdump'
+as = 'mips-helenos-as'
+ld = 'mips-helenos-ld'
+
+[properties]
+has_function_printf = true
+needs_exe_wrapper = true
+
+c_args = [ '-D__BE__', '-fno-omit-frame-pointer', '-msoft-float', '-mabi=32' ]
+cpp_args = [ '-D__BE__', '-fno-omit-frame-pointer', '-msoft-float', '-mabi=32', '-fno-exceptions' ]
+c_link_args = [ '-nostdlib', '-lgcc', '-msoft-float', '-mabi=32' ]
+cpp_link_args = [ '-nostdlib', '-lgcc', '-msoft-float', '-mabi=32' ]
+cc_arch = 'mips'
+h_arch = 'mips32'
+bits = 32
+
+[host_machine]
+system = 'helenos'
+cpu_family = 'mips'
+cpu = 'mips'
+endian = 'big'

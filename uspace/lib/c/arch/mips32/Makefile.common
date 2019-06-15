@@ -31,16 +31,13 @@ AS_PROLOG = .module softfloat;.abicalls;
 LDFLAGS += -Wl,--gc-sections
 
 ifeq ($(MACHINE),msim)
-	ENDIANESS = LE
 	COMMON_CFLAGS += -march=r4000
 endif
 
 ifeq ($(MACHINE),lmalta)
-	ENDIANESS = LE
 	COMMON_CFLAGS += -march=4kc
 endif
 
 ifeq ($(MACHINE),bmalta)
-	ENDIANESS = BE
 	COMMON_CFLAGS += -march=4kc
 endif

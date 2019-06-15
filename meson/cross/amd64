@@ -1,0 +1,30 @@
+# See http://mesonbuild.com/Cross-compilation.html
+
+[binaries]
+c = 'amd64-helenos-gcc'
+cpp = 'amd64-helenos-g++'
+ar = 'amd64-helenos-ar'
+strip = 'amd64-helenos-strip'
+nm = 'amd64-helenos-nm'
+objcopy = 'amd64-helenos-objcopy'
+objdump = 'amd64-helenos-objdump'
+as = 'amd64-helenos-as'
+ld = 'amd64-helenos-ld'
+
+[properties]
+has_function_printf = true
+needs_exe_wrapper = true
+
+c_args = [ '-D__LE__', '-fno-omit-frame-pointer' ]
+cpp_args = [ '-D__LE__', '-fno-omit-frame-pointer', '-fno-exceptions' ]
+c_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
+cpp_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
+cc_arch = 'amd64'
+h_arch = 'amd64'
+bits = 64
+
+[host_machine]
+system = 'helenos'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

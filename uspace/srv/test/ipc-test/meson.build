@@ -1,0 +1,1 @@
+src = files('main.c')

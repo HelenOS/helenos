@@ -37,6 +37,7 @@ ifneq ($(POSTBUILD),)
 endif
 
 build_dist: clean_dist
+	cp -r -L -T -u "$(USPACE_PATH)/dist" "$(DIST_PATH)"
 	mkdir -p "$(DIST_PATH)/app/"
 	mkdir -p "$(DIST_PATH)/cfg/"
 	mkdir -p "$(DIST_PATH)/data/"
@@ -48,66 +49,10 @@ build_dist: clean_dist
 	mkdir -p "$(DIST_PATH)/vol/"
 	mkdir -p "$(DIST_PATH)/w/"
 
-	for srv in $(RD_SRVS) ; do \
-		srv_dir="`dirname "$$srv"`" ; \
-		srv_name="`basename "$$srv"`" ; \
-		mkdir -p "$(DIST_PATH)/srv/$$srv_dir" ; \
-		cp "$(USPACE_PATH)/srv/$$srv/$$srv_name" "$(DIST_PATH)/srv/$$srv" ; \
-	done
-
-	for file in $(RD_LIBS) ; do \
-		cp "$$file" "$(DIST_PATH)/lib/" ; \
-	done
-
 ifeq ($(CONFIG_DEVEL_FILES), y)
-	mkdir -p "$(DIST_PATH)/inc/c/"
-	cp -r -L "$(USPACE_PATH)/lib/c/include/." "$(DIST_PATH)/inc/c/"
-	cp -r -L "$(ROOT_PATH)/abi/include/." "$(DIST_PATH)/inc/c/"
-	cp -r -L "$(USPACE_PATH)/lib/c/arch/$(UARCH)/include/." "$(DIST_PATH)/inc/c/"
-	cp -L "$(USPACE_PATH)/lib/c/crt0.o" "$(DIST_PATH)/lib/"
-	cp -L "$(USPACE_PATH)/lib/c/crt1.o" "$(DIST_PATH)/lib/"
 	cp -L "$(LIBGCC_PATH)" "$(DIST_PATH)/lib/"
 endif
 
-	for app in $(RD_APPS) ; do \
-		app_dir="`dirname "$$app"`" ; \
-		app_name="`basename "$$app"`" ; \
-		mkdir -p "$(DIST_PATH)/app/$$app_dir" ; \
-		cp "$(USPACE_PATH)/app/$$app/$$app_name" "$(DIST_PATH)/app/$$app" ; \
-	done
-	for file in $(RD_DATA) ; do \
-		cp "$$file" "$(DIST_PATH)/" ; \
-	done
-
-ifeq ($(CONFIG_PCUT_TESTS),y)
-	for file in $(RD_TESTS) ; do \
-		cp "$$file" "$(DIST_PATH)/test/" ; \
-	done
-endif
-
-ifeq ($(CONFIG_PCUT_SELF_TESTS),y)
-	for file in $(USPACE_PATH)/lib/pcut/test-libpcut-*; do \
-		cp "$$file" "$(DIST_PATH)/test/" ; \
-	done
-endif
-
-	for drv in $(RD_DRVS) ; do \
-		drv_dir="`dirname "$$drv"`" ; \
-		drv_name="`basename "$$drv"`" ; \
-		mkdir -p "$(DIST_PATH)/$(DRVS_PATH)/$$drv_name" ; \
-		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv_dir/$$drv_name/$$drv_name" "$(DIST_PATH)/$(DRVS_PATH)/$$drv_name/" ; \
-		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv_dir/$$drv_name/$$drv_name.ma" "$(DIST_PATH)/$(DRVS_PATH)/$$drv_name/" ; \
-	done
-	for file in $(RD_DRV_CFG) ; do \
-		file_dir="`dirname "$$file"`" ; \
-		file_name="`basename "$$file"`" ; \
-		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file_dir/$$file_name/"*".dev" "$(DIST_PATH)/$(DRVS_PATH)/$$file_name/" ; \
-	done
-	for file in $(RD_DRVS_FW) ; do \
-		file_dir="`dirname "$$file"`" ; \
-		file_name="`basename "$$file"`" ; \
-		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file_dir/$$file_name/$$file_name.fw" "$(DIST_PATH)/$(DRVS_PATH)/$$file_name/" ; \
-	done
 	if ls $(DIST_OVERLAY_PATH)/* >/dev/null 2>/dev/null; then \
 		cp -r -L $(DIST_OVERLAY_PATH)/* "$(DIST_PATH)"; \
 	fi

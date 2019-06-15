@@ -44,8 +44,9 @@ CC="$("$XCW"/helenos-bld-config --cc)"
 echo helenos-ld "$@"
 "$CC" \
     $CFLAGS \
+    -Wl,--whole-archive \
+    "$EXPORT_DIR"/lib/libstartfiles.a \
+    -Wl,--no-whole-archive \
     "$@" \
-    "$EXPORT_DIR"/lib/crt0.o \
-    "$EXPORT_DIR"/lib/crt1.o \
     "$EXPORT_DIR"/lib/libc.a \
     -lgcc

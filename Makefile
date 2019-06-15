@@ -36,6 +36,7 @@ CHECK = tools/check.sh
 CONFIG = tools/config.py
 AUTOTOOL = tools/autotool.py
 SANDBOX = autotool
+MESON = meson
 
 CONFIG_RULES = HelenOS.config
 
@@ -46,31 +47,52 @@ CONFIG_HEADER = config.h
 ERRNO_HEADER = abi/include/abi/errno.h
 ERRNO_INPUT = abi/include/abi/errno.in
 
+-include $(CONFIG_MAKEFILE)
+-include $(COMMON_MAKEFILE)
+
+# TODO: make meson reconfigure correctly when library build changes
+
+ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
+	MESON_ARGS = -Ddefault_library=shared
+else
+	MESON_ARGS = -Ddefault_library=static
+endif
+
+CROSS_PATH = $(shell dirname "$(CC)")
+
 .PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace export-posix space
 
 all: kernel uspace export-cross test-xcw
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
 
-common: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER)
+build/build.ninja: Makefile.config version
+	PATH="$(CROSS_PATH):$$PATH" meson . build --cross-file meson/cross/$(UARCH) $(MESON_ARGS)
+
+common: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) build/build.ninja
 
 kernel: common
 	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
 
 uspace: common
-	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
+	PATH="$(CROSS_PATH):$$PATH" ninja -C build
+	PATH="$(CROSS_PATH):$$PATH" DESTDIR="$$PWD/dist" meson install --no-rebuild --only-changed -C build > build/install.log
 
 test-xcw: uspace export-cross
+ifeq ($(CONFIG_DEVEL_FILES),y)
 	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo
+endif
 
 export-posix: common
 ifndef EXPORT_DIR
 	@echo ERROR: Variable EXPORT_DIR is not defined. && false
 else
-	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath $(EXPORT_DIR))
+	mkdir -p $(EXPORT_DIR)
+	$(MAKE) -r -C uspace/lib/posix export EXPORT_DIR=$(abspath $(EXPORT_DIR)) UARCH=$(UARCH)
 endif
 
 export-cross: common
-	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath uspace/export)
+	mkdir -p uspace/export
+	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath uspace/export) UARCH=$(UARCH)
 
 precheck: clean
 	$(MAKE) -r all PRECHECK=y

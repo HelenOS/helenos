@@ -49,29 +49,6 @@ ifeq ($(MACHINE),bmalta)
 	EXTRA_CFLAGS += -march=4kc
 endif
 
-ifeq ($(MACHINE), $(filter $(MACHINE),bmalta lmalta))
-	RD_DRVS_ESSENTIAL += \
-		platform/malta \
-		intctl/i8259 \
-		block/ata_bd \
-		bus/pci/pciintel \
-		bus/isa \
-		char/i8042 \
-		char/ns8250 \
-		hid/ps2mouse \
-		hid/xtkbd
-
-	RD_DRV_CFG += \
-		bus/isa
-endif
-
-ifeq ($(MACHINE),msim)
-	RD_DRVS_ESSENTIAL += \
-		platform/msim \
-		block/ddisk \
-		char/msim-con
-endif
-
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
 	arch/$(BARCH)/src/main.c \

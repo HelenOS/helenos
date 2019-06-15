@@ -29,5 +29,4 @@
 COMMON_CFLAGS += -fno-unwind-tables
 LDFLAGS += -Wl,--gc-sections
 
-ENDIANESS = LE
 
