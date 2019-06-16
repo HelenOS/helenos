@@ -214,7 +214,7 @@ errno_t page_find_mapping(uintptr_t virt, uintptr_t *phys)
  * @return ENOENT if no virtual address mapping found.
  *
  */
-sys_errno_t sys_page_find_mapping(uintptr_t virt, uintptr_t *phys_ptr)
+sys_errno_t sys_page_find_mapping(uintptr_t virt, uspace_ptr(uintptr_t) phys_ptr)
 {
 	uintptr_t phys;
 	errno_t rc = page_find_mapping(virt, &phys);

@@ -65,7 +65,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    "xorq %%rdi, %%rdi\n"
 	    "iretq\n"
 	    :: [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
-	      [stack_top] "r" ((uint8_t *) kernel_uarg->uspace_stack +
+	      [stack_top] "r" (kernel_uarg->uspace_stack +
 	      kernel_uarg->uspace_stack_size),
 	      [rflags] "r" (rflags),
 	      [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),

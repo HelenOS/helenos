@@ -160,11 +160,11 @@ void asm_delay_loop(const uint32_t usec)
 void userspace(uspace_arg_t *kernel_uarg)
 {
 	(void) interrupts_disable();
-	switch_to_userspace((uintptr_t) kernel_uarg->uspace_entry,
-	    ((uintptr_t) kernel_uarg->uspace_stack) +
+	switch_to_userspace(kernel_uarg->uspace_entry,
+	    kernel_uarg->uspace_stack +
 	    kernel_uarg->uspace_stack_size -
 	    (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
-	    (uintptr_t) kernel_uarg->uspace_uarg);
+	    kernel_uarg->uspace_uarg);
 
 	/* Not reached */
 	while (true)

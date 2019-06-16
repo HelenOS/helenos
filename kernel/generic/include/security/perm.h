@@ -74,8 +74,8 @@ typedef uint32_t perm_t;
 
 #ifdef __32_BITS__
 
-extern sys_errno_t sys_perm_grant(sysarg64_t *, perm_t);
-extern sys_errno_t sys_perm_revoke(sysarg64_t *, perm_t);
+extern sys_errno_t sys_perm_grant(uspace_ptr(sysarg64_t), perm_t);
+extern sys_errno_t sys_perm_revoke(uspace_ptr(sysarg64_t), perm_t);
 
 #endif  /* __32_BITS__ */
 

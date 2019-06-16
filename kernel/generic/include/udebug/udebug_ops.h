@@ -54,7 +54,7 @@ errno_t udebug_args_read(thread_t *t, void **buffer);
 
 errno_t udebug_regs_read(thread_t *t, void **buffer);
 
-errno_t udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer);
+errno_t udebug_mem_read(uspace_ptr(void) uspace_addr, size_t n, void **buffer);
 
 #endif
 

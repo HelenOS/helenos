@@ -55,6 +55,20 @@ typedef uintptr_t ipl_t;
 typedef uintptr_t sysarg_t;
 typedef intptr_t  native_t;
 
+#ifdef KERNEL
+
+typedef sysarg_t uspace_addr_t;
+/* We might implement a way to check validity of the type some day. */
+#define uspace_ptr(type) uspace_addr_t
+#define USPACE_NULL 0
+
+#else /* !KERNEL */
+
+typedef void *uspace_addr_t;
+#define uspace_ptr(type) type *
+
+#endif
+
 __HELENOS_DECLS_END;
 
 #endif

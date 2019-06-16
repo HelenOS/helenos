@@ -70,7 +70,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	volatile ustate_t ustate;
 
 	/* set first parameter */
-	ustate.r0 = (uintptr_t) kernel_uarg->uspace_uarg;
+	ustate.r0 = kernel_uarg->uspace_uarg;
 
 	/* %r1 is defined to hold pcb_ptr - set it to 0 */
 	ustate.r1 = 0;
@@ -92,11 +92,11 @@ void userspace(uspace_arg_t *kernel_uarg)
 	ustate.lr = 0;
 
 	/* set user stack */
-	ustate.sp = ((uint32_t) kernel_uarg->uspace_stack) +
+	ustate.sp = kernel_uarg->uspace_stack +
 	    kernel_uarg->uspace_stack_size;
 
 	/* set where uspace execution starts */
-	ustate.pc = (uintptr_t) kernel_uarg->uspace_entry;
+	ustate.pc = kernel_uarg->uspace_entry;
 
 	/* status register in user mode */
 	ipl_t user_mode = current_status_reg_read() &

@@ -69,7 +69,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		    &dst_base, ipc_get_arg1(&answer->data));
 
 		if (rc == EOK) {
-			rc = copy_to_uspace((void *) ipc_get_arg2(&answer->data),
+			rc = copy_to_uspace(ipc_get_arg2(&answer->data),
 			    &dst_base, sizeof(dst_base));
 		}
 
