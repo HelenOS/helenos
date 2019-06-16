@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,60 +27,47 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-COMMON_CFLAGS += -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
-AS_PROLOG = .module softfloat;
+kernel_c_args += [ '-mconstant-gp', '-fno-unwind-tables', '-mfixed-range=f32-f127' ]
+kernel_link_args += [ '-Wl,-EL' ]
 
-BITS = 32
+arch_src += files(
+	'src/start.S',
+	'src/asm.S',
+	'src/dummy.S',
+	'src/ia64.c',
+	'src/fpu_context.c',
+	'src/context.S',
+	'src/cpu/cpu.c',
+	'src/debug/stacktrace.c',
+	'src/debug/stacktrace_asm.S',
+	'src/ivt.S',
+	'src/interrupt.c',
+	'src/mm/km.c',
+	'src/mm/as.c',
+	'src/mm/frame.c',
+	'src/mm/page.c',
+	'src/mm/tlb.c',
+	'src/mm/vhpt.c',
+	'src/proc/scheduler.c',
+	'src/ddi/ddi.c',
+	'src/smc.c',
+	'src/smp/smp.c',
+	'src/drivers/it.c',
+)
 
-## Accepted MACHINEs
-#
-
-ifeq ($(MACHINE),msim)
-	ENDIANESS = LE
-	COMMON_CFLAGS += -march=r4000
-endif
-ifeq ($(MACHINE),bmalta)
-	ENDIANESS = BE
-	COMMON_CFLAGS += -D__BE__ -march=4kc
-endif
-ifeq ($(MACHINE),lmalta)
-	ENDIANESS = LE
-	COMMON_CFLAGS += -march=4kc
-endif
-
-ARCH_SOURCES = \
-	arch/$(KARCH)/src/start.S \
-	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/mips32.c \
-	arch/$(KARCH)/src/asm.S \
-	arch/$(KARCH)/src/exception.c \
-	arch/$(KARCH)/src/interrupt.c \
-	arch/$(KARCH)/src/cache.c \
-	arch/$(KARCH)/src/debugger.c \
-	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/debug/stacktrace.c \
-	arch/$(KARCH)/src/debug/stacktrace_asm.S \
-	arch/$(KARCH)/src/mm/km.c \
-	arch/$(KARCH)/src/mm/frame.c \
-	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/mm/as.c \
-	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/smc.c \
-	arch/$(KARCH)/src/smp/smp.c \
-	arch/$(KARCH)/src/machine_func.c
-
-ifeq ($(MACHINE),$(filter lmalta bmalta,$(MACHINE)))
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/malta/malta.c
+if MACHINE == 'ski'
+	arch_src += files('src/drivers/ski.c')
 endif
 
-ifeq ($(MACHINE),msim)
-	ARCH_SOURCES += \
-		arch/$(KARCH)/src/mach/msim/msim.c \
-		arch/$(KARCH)/src/mach/msim/dorder.c
+if MACHINE == 'i460GX'
+	kernel_c_args += [ '-DI460GX' ]
 endif
 
-ARCH_AUTOCHECK_HEADERS = \
-	arch/$(KARCH)/include/arch/istate_struct.h \
-	arch/$(KARCH)/include/arch/context_struct.h \
-	arch/$(KARCH)/include/arch/fpu_context_struct.h
+_check_headers = [
+	'include/arch/istate_struct.h',
+	'include/arch/context_struct.h',
+]
+
+foreach h : _check_headers
+	arch_src += [ autocheck.process(h) ]
+endforeach

@@ -60,24 +60,19 @@ endif
 
 CROSS_PATH = $(shell dirname "$(CC)")
 
-.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace export-posix space
+.PHONY: all precheck cscope cscope_parts autotool config_default config distclean clean check releasefile release common export-posix space
 
-all: kernel uspace export-cross test-xcw
+all: common export-cross test-xcw
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
 
 build/build.ninja: Makefile.config version
 	PATH="$(CROSS_PATH):$$PATH" meson . build --cross-file meson/cross/$(UARCH) $(MESON_ARGS)
 
 common: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) build/build.ninja
-
-kernel: common
-	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
-
-uspace: common
 	PATH="$(CROSS_PATH):$$PATH" ninja -C build
 	PATH="$(CROSS_PATH):$$PATH" DESTDIR="$$PWD/dist" meson install --no-rebuild --only-changed -C build > build/install.log
 
-test-xcw: uspace export-cross
+test-xcw: common export-cross
 ifeq ($(CONFIG_DEVEL_FILES),y)
 	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo
 endif

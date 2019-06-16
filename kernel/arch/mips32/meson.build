@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015 Petr Pavlu
+# Copyright (c) 2005 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,56 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = \
-	arch/$(UARCH)/src/entryjmp.S \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/stacktrace.c \
-	arch/$(UARCH)/src/stacktrace_asm.S \
-	arch/$(UARCH)/src/syscall.c \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/thread_entry.S
+kernel_c_args += [
+	'-msoft-float',
+	'-mno-abicalls',
+	'-G', '0',
+	'-fno-zero-initialized-in-bss',
+	'-mabi=32',
+]
 
-ARCH_AUTOCHECK_HEADERS = \
-	arch/$(UARCH)/include/libarch/fibril_context.h
+as_prolog = '.module softfloat;'
+
+arch_src += files(
+	'src/start.S',
+	'src/context.S',
+	'src/mips32.c',
+	'src/asm.S',
+	'src/exception.c',
+	'src/interrupt.c',
+	'src/cache.c',
+	'src/debugger.c',
+	'src/cpu/cpu.c',
+	'src/debug/stacktrace.c',
+	'src/debug/stacktrace_asm.S',
+	'src/mm/km.c',
+	'src/mm/frame.c',
+	'src/mm/page.c',
+	'src/mm/tlb.c',
+	'src/mm/as.c',
+	'src/fpu_context.c',
+	'src/smc.c',
+	'src/smp/smp.c',
+	'src/machine_func.c',
+)
+
+if MACHINE == 'lmalta' or MACHINE == 'bmalta'
+	arch_src += files('src/mach/malta/malta.c')
+
+elif MACHINE == 'msim'
+	arch_src += files(
+		'src/mach/msim/msim.c',
+		'src/mach/msim/dorder.c',
+	)
+
+endif
+
+_check_headers = [
+	'include/arch/istate_struct.h',
+	'include/arch/context_struct.h',
+	'include/arch/fpu_context_struct.h',
+]
+
+foreach h : _check_headers
+	arch_src += [ autocheck.process(h) ]
+endforeach

@@ -26,18 +26,54 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-COMMON_CFLAGS += -msoft-float -mabi=32
-AS_PROLOG = .module softfloat;.abicalls;
-LDFLAGS += -Wl,--gc-sections
+kernel_c_args += [ '-mno-mmx', '-mno-sse', '-mno-sse2', '-mno-sse3', '-mno-3dnow' ]
 
-ifeq ($(MACHINE),msim)
-	COMMON_CFLAGS += -march=r4000
-endif
+# TODO: fix this
+kernel_link_args += [ '-Wl,--no-gc-sections' ]
 
-ifeq ($(MACHINE),lmalta)
-	COMMON_CFLAGS += -march=4kc
-endif
+arch_src += files(
+	'src/context.S',
+	'src/debug/stacktrace.c',
+	'src/debug/stacktrace_asm.S',
+	'src/delay.S',
+	'src/asm.S',
+	'src/proc/scheduler.c',
+	'src/proc/task.c',
+	'src/proc/thread.c',
+	'src/bios/bios.c',
+	'src/smp/ap.S',
+	'src/smp/apic.c',
+	'src/smp/mps.c',
+	'src/smp/smp.c',
+	'src/atomic.S',
+	'src/smp/ipi.c',
+	'src/ia32.c',
+	'src/vreg.c',
+	'src/interrupt.c',
+	'src/pm.c',
+	'src/userspace.c',
+	'src/smc.c',
+	'src/cpu/cpu.c',
+	'src/mm/km.c',
+	'src/mm/as.c',
+	'src/mm/frame.c',
+	'src/mm/page.c',
+	'src/mm/tlb.c',
+	'src/ddi/ddi.c',
+	'src/drivers/i8254.c',
+	'src/boot/multiboot.S',
+	'src/boot/multiboot2.S',
+	'src/boot/memmap.c',
+	'src/fpu_context.c',
+	'src/syscall.c',
+)
 
-ifeq ($(MACHINE),bmalta)
-	COMMON_CFLAGS += -march=4kc
-endif
+_check_headers = [
+	'include/arch/istate_struct.h',
+	'include/arch/context_struct.h',
+	'include/arch/boot/memmap_struct.h',
+]
+
+foreach h : _check_headers
+	arch_src += [ autocheck.process(h) ]
+endforeach

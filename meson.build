@@ -309,7 +309,7 @@ foreach lang : [ 'c', 'cpp' ]
 	add_project_link_arguments(extra_cflags, language : [ lang ])
 endforeach
 
-#subdir('kernel')
+subdir('kernel')
 subdir('uspace')
 
 

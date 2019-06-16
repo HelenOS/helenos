@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,68 +27,69 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
-FPU_NO_CFLAGS = -mno-sse -mno-sse2
-
 # TODO: Red Zone is only a problem if we allow interrupts to land on an active
 #       stack. Using separate stack for interrupts and ensuring that we never
 #       enable interrupts on an interrupt stack would allow us to get rid of
 #       the argument.
 
-COMMON_CFLAGS += -mcmodel=$(MEMORY_MODEL) -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
+kernel_c_args += [ '-mno-sse', '-mno-sse2', '-mcmodel=' + MEMORY_MODEL, '-mno-red-zone', '-fno-unwind-tables', '-fno-omit-frame-pointer' ]
 
-BITS = 64
-ENDIANESS = LE
+# TODO: fix this
+kernel_link_args += [ '-Wl,--no-gc-sections' ]
 
-## Accepted CPUs
-#
-
-ifeq ($(PROCESSOR),opteron)
-	COMMON_CFLAGS += -march=opteron
+if PROCESSOR == 'opteron'
+	kernel_c_args += '-march=opteron'
 endif
 
-ARCH_SOURCES = \
-	arch/$(KARCH)/src/fpu_context.c \
-	arch/$(KARCH)/src/boot/multiboot.S \
-	arch/$(KARCH)/src/boot/multiboot2.S \
-	arch/$(KARCH)/src/boot/memmap.c \
-	arch/$(KARCH)/src/debug/stacktrace.c \
-	arch/$(KARCH)/src/debug/stacktrace_asm.S \
-	arch/$(KARCH)/src/pm.c \
-	arch/$(KARCH)/src/vreg.c \
-	arch/$(KARCH)/src/kseg.c \
-	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/ddi/ddi.c \
-	arch/$(KARCH)/src/drivers/i8254.c \
-	arch/$(KARCH)/src/delay.S \
-	arch/$(KARCH)/src/amd64.c \
-	arch/$(KARCH)/src/bios/bios.c \
-	arch/$(KARCH)/src/interrupt.c \
-	arch/$(KARCH)/src/mm/km.c \
-	arch/$(KARCH)/src/mm/as.c \
-	arch/$(KARCH)/src/mm/frame.c \
-	arch/$(KARCH)/src/mm/page.c \
-	arch/$(KARCH)/src/mm/tlb.c \
-	arch/$(KARCH)/src/asm.S \
-	arch/$(KARCH)/src/cpu/cpu.c \
-	arch/$(KARCH)/src/proc/scheduler.c \
-	arch/$(KARCH)/src/proc/task.c \
-	arch/$(KARCH)/src/proc/thread.c \
-	arch/$(KARCH)/src/userspace.c \
-	arch/$(KARCH)/src/smc.c \
-	arch/$(KARCH)/src/syscall.c
+arch_src += files(
+	'src/amd64.c',
+	'src/asm.S',
+	'src/bios/bios.c',
+	'src/boot/memmap.c',
+	'src/boot/multiboot2.S',
+	'src/boot/multiboot.S',
+	'src/context.S',
+	'src/cpu/cpu.c',
+	'src/ddi/ddi.c',
+	'src/debug/stacktrace_asm.S',
+	'src/debug/stacktrace.c',
+	'src/delay.S',
+	'src/drivers/i8254.c',
+	'src/fpu_context.c',
+	'src/interrupt.c',
+	'src/kseg.c',
+	'src/mm/as.c',
+	'src/mm/frame.c',
+	'src/mm/km.c',
+	'src/mm/page.c',
+	'src/mm/tlb.c',
+	'src/pm.c',
+	'src/proc/scheduler.c',
+	'src/proc/task.c',
+	'src/proc/thread.c',
+	'src/smc.c',
+	'src/syscall.c',
+	'src/userspace.c',
+	'src/vreg.c',
+)
 
-ifeq ($(CONFIG_SMP),y)
-	ARCH_SOURCES += \
-		arch/$(KARCH)/src/smp/ap.S \
-		arch/$(KARCH)/src/smp/apic.c \
-		arch/$(KARCH)/src/smp/ipi.c \
-		arch/$(KARCH)/src/smp/mps.c \
-		arch/$(KARCH)/src/smp/smp.c
+if CONFIG_SMP
+	arch_src += files(
+		'src/smp/apic.c',
+		'src/smp/ap.S',
+		'src/smp/ipi.c',
+		'src/smp/mps.c',
+		'src/smp/smp.c',
+	)
 endif
 
-ARCH_AUTOCHECK_HEADERS = \
-	arch/$(KARCH)/include/arch/istate_struct.h \
-	arch/$(KARCH)/include/arch/context_struct.h \
-	arch/$(KARCH)/include/arch/kseg_struct.h \
-	arch/$(KARCH)/include/arch/boot/memmap_struct.h
+_check_headers = [
+	'include/arch/boot/memmap_struct.h',
+	'include/arch/context_struct.h',
+	'include/arch/istate_struct.h',
+	'include/arch/kseg_struct.h',
+]
+
+foreach h : _check_headers
+	arch_src += [ autocheck.process(h) ]
+endforeach

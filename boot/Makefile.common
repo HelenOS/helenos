@@ -42,7 +42,6 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-KERNEL_PATH = $(ROOT_PATH)/kernel
 USPACE_PATH = $(ROOT_PATH)/uspace
 DIST_PATH = $(ROOT_PATH)/dist
 DIST_OVERLAY_PATH = $(USPACE_PATH)/overlay
@@ -224,7 +223,7 @@ ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 endif
 
 COMPONENTS = \
-	$(KERNEL_PATH)/kernel.elf \
+	$(DIST_PATH)/boot/kernel.elf \
 	$(addprefix $(DIST_PATH)/,$(INIT_TASKS)) \
 	$(INITRD).img
 

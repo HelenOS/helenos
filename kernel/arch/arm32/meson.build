@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar, Michal Kebrt
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,60 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = \
-	arch/$(UARCH)/src/entryjmp.S \
-	arch/$(UARCH)/src/thread_entry.S \
-	arch/$(UARCH)/src/syscall.S \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/ddi.c \
-	arch/$(UARCH)/src/stacktrace.c \
-	arch/$(UARCH)/src/stacktrace_asm.S \
-	arch/$(UARCH)/src/rtld/dynamic.c \
-	arch/$(UARCH)/src/rtld/reloc.c
 
-ARCH_AUTOCHECK_HEADERS = \
-	arch/$(UARCH)/include/libarch/fibril_context.h
+atsign = '%'
+
+kernel_c_args += [ '-fno-omit-frame-pointer', '-mapcs-frame', '-mno-unaligned-access', '-mfpu=vfpv3' ]
+
+if CONFIG_FPU
+	# This is necessary to allow vmsr insn and fpexc manipulation
+	# Use vfp32 to allow context save/restore of d16-d31 regs.
+	kernel_c_args += [ '-mfloat-abi=hard', '-mfpu=vfp3' ]
+endif
+
+arch_src += files(
+	'src/start.S',
+	'src/asm.S',
+	'src/eabi.S',
+	'src/exc_handler.S',
+	'src/arm32.c',
+	'src/machine_func.c',
+	'src/context.S',
+	'src/dummy.S',
+	'src/cpu/cpu.c',
+	'src/interrupt.c',
+	'src/exception.c',
+	'src/userspace.c',
+	'src/smc.c',
+	'src/debug/stacktrace.c',
+	'src/debug/stacktrace_asm.S',
+	'src/mm/km.c',
+	'src/mm/as.c',
+	'src/mm/frame.c',
+	'src/mm/page.c',
+	'src/mm/tlb.c',
+	'src/mm/page_fault.c',
+	'src/atomic.c',
+	'src/ras.c',
+)
+
+if CONFIG_FPU
+	arch_src += files('src/fpu_context.c', 'src/fpu.S')
+endif
+
+if MACHINE == 'gta02'
+	arch_src += files('src/mach/gta02/gta02.c')
+
+elif MACHINE == 'integratorcp'
+	arch_src += files('src/mach/integratorcp/integratorcp.c')
+
+elif MACHINE == 'beagleboardxm'
+	arch_src += files('src/mach/beagleboardxm/beagleboardxm.c')
+
+elif MACHINE == 'beaglebone'
+	arch_src += files('src/mach/beaglebone/beaglebone.c')
+
+elif MACHINE == 'raspberrypi'
+	arch_src += files('src/mach/raspberrypi/raspberrypi.c')
+
+endif
