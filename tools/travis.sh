@@ -51,6 +51,7 @@ arm32/beaglebone:arm-helenos:uImage.bin
 arm32/gta02:arm-helenos:uImage.bin
 arm32/integratorcp:arm-helenos:image.boot
 arm32/raspberrypi:arm-helenos:uImage.bin
+arm64/virt:aarch64-helenos:image.iso
 ia32:i686-helenos:image.iso
 ia64/i460GX:ia64-helenos:image.boot
 ia64/ski:ia64-helenos:image.boot
