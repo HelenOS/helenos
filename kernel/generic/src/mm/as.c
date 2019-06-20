@@ -2127,6 +2127,10 @@ sys_errno_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
 sys_errno_t sys_as_area_get_info(uintptr_t address, uspace_ptr_as_area_info_t dest)
 {
 	as_area_t *area;
+	as_area_info_t info;
+
+	/* Prevent leaking stack bytes via structure padding. */
+	memset(&info, 0, sizeof(info));
 
 	mutex_lock(&AS->lock);
 	area = find_area_and_lock(AS, address);
@@ -2135,11 +2139,9 @@ sys_errno_t sys_as_area_get_info(uintptr_t address, uspace_ptr_as_area_info_t de
 		return ENOENT;
 	}
 
-	as_area_info_t info = {
-		.start_addr = area->base,
-		.size = P2SZ(area->pages),
-		.flags = area->flags,
-	};
+	info.start_addr = area->base;
+	info.size = P2SZ(area->pages);
+	info.flags = area->flags;
 
 	mutex_unlock(&area->lock);
 	mutex_unlock(&AS->lock);
