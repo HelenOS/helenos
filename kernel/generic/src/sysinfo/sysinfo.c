@@ -676,7 +676,7 @@ _NO_TRACE static sysinfo_return_t sysinfo_get_item(const char *name,
  *                binary data, just calculate the size.
  *
  */
-_NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(uspace_ptr(void) ptr, size_t size,
+_NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(uspace_addr_t ptr, size_t size,
     bool dry_run)
 {
 	sysinfo_return_t ret;
@@ -785,7 +785,7 @@ _NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
  *                binary data, just calculate the size.
  *
  */
-_NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(uspace_ptr(void) ptr, size_t size,
+_NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(uspace_addr_t ptr, size_t size,
     bool dry_run)
 {
 	sysinfo_return_t ret;
@@ -830,8 +830,8 @@ _NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(uspace_ptr(void) ptr, 
  * @return Error code (EOK in case of no error).
  *
  */
-sys_errno_t sys_sysinfo_get_keys_size(uspace_ptr(void) path_ptr, size_t path_size,
-    uspace_ptr(void) size_ptr)
+sys_errno_t sys_sysinfo_get_keys_size(uspace_addr_t path_ptr, size_t path_size,
+    uspace_addr_t size_ptr)
 {
 	errno_t rc;
 
@@ -878,8 +878,8 @@ sys_errno_t sys_sysinfo_get_keys_size(uspace_ptr(void) path_ptr, size_t path_siz
  * @return Error code (EOK in case of no error).
  *
  */
-sys_errno_t sys_sysinfo_get_keys(uspace_ptr(void) path_ptr, size_t path_size,
-    uspace_ptr(void) buffer_ptr, size_t buffer_size, uspace_ptr(size_t) size_ptr)
+sys_errno_t sys_sysinfo_get_keys(uspace_addr_t path_ptr, size_t path_size,
+    uspace_addr_t buffer_ptr, size_t buffer_size, uspace_ptr(size_t) size_ptr)
 {
 	errno_t rc;
 
@@ -913,7 +913,7 @@ sys_errno_t sys_sysinfo_get_keys(uspace_ptr(void) path_ptr, size_t path_size,
  * @return Item value type.
  *
  */
-sysarg_t sys_sysinfo_get_val_type(uspace_ptr(void) path_ptr, size_t path_size)
+sysarg_t sys_sysinfo_get_val_type(uspace_addr_t path_ptr, size_t path_size)
 {
 	/*
 	 * Get the item.
@@ -949,8 +949,8 @@ sysarg_t sys_sysinfo_get_val_type(uspace_ptr(void) path_ptr, size_t path_size)
  * @return Error code (EOK in case of no error).
  *
  */
-sys_errno_t sys_sysinfo_get_value(uspace_ptr(void) path_ptr, size_t path_size,
-    uspace_ptr(void) value_ptr)
+sys_errno_t sys_sysinfo_get_value(uspace_addr_t path_ptr, size_t path_size,
+    uspace_addr_t value_ptr)
 {
 	errno_t rc;
 
@@ -985,8 +985,8 @@ sys_errno_t sys_sysinfo_get_value(uspace_ptr(void) path_ptr, size_t path_size,
  * @return Error code (EOK in case of no error).
  *
  */
-sys_errno_t sys_sysinfo_get_data_size(uspace_ptr(void) path_ptr, size_t path_size,
-    uspace_ptr(void) size_ptr)
+sys_errno_t sys_sysinfo_get_data_size(uspace_addr_t path_ptr, size_t path_size,
+    uspace_addr_t size_ptr)
 {
 	errno_t rc;
 
@@ -1035,8 +1035,8 @@ sys_errno_t sys_sysinfo_get_data_size(uspace_ptr(void) path_ptr, size_t path_siz
  * @return Error code (EOK in case of no error).
  *
  */
-sys_errno_t sys_sysinfo_get_data(uspace_ptr(void) path_ptr, size_t path_size,
-    uspace_ptr(void) buffer_ptr, size_t buffer_size, uspace_ptr(size_t) size_ptr)
+sys_errno_t sys_sysinfo_get_data(uspace_addr_t path_ptr, size_t path_size,
+    uspace_addr_t buffer_ptr, size_t buffer_size, uspace_ptr(size_t) size_ptr)
 {
 	errno_t rc;
 

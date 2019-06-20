@@ -394,7 +394,7 @@ void putwchar(const wchar_t ch)
  * Print to kernel log.
  *
  */
-sys_errno_t sys_kio(int cmd, uspace_ptr(void) buf, size_t size)
+sys_errno_t sys_kio(int cmd, uspace_addr_t buf, size_t size)
 {
 	char *data;
 	errno_t rc;
