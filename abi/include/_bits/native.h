@@ -69,6 +69,7 @@ typedef void *uspace_addr_t;
 
 #endif
 
+// TODO: Put this in a better location.
 #define uspace_ptr_as_area_info_t uspace_ptr(as_area_info_t)
 #define uspace_ptr_as_area_pager_info_t uspace_ptr(as_area_pager_info_t)
 #define uspace_ptr_cap_irq_handle_t uspace_ptr(cap_irq_handle_t)

@@ -247,7 +247,7 @@ _NO_TRACE static errno_t physmem_unmap(uintptr_t virt)
  *
  */
 sys_errno_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
-    uspace_addr_t virt_ptr, uintptr_t bound)
+    uspace_ptr_uintptr_t virt_ptr, uintptr_t bound)
 {
 	uintptr_t virt;
 	errno_t rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
@@ -464,7 +464,7 @@ _NO_TRACE static errno_t dmamem_unmap_anonymous(uintptr_t virt)
 }
 
 sys_errno_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
-    uspace_addr_t phys_ptr, uspace_addr_t virt_ptr, uintptr_t bound)
+    uspace_ptr_uintptr_t phys_ptr, uspace_ptr_uintptr_t virt_ptr, uintptr_t bound)
 {
 	if ((flags & DMAMEM_FLAGS_ANONYMOUS) == 0) {
 		/*
