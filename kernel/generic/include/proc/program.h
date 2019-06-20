@@ -59,7 +59,7 @@ extern errno_t program_create_from_image(void *, char *, program_t *);
 extern errno_t program_create_loader(program_t *, char *);
 extern void program_ready(program_t *);
 
-extern sys_errno_t sys_program_spawn_loader(uspace_ptr(char), size_t);
+extern sys_errno_t sys_program_spawn_loader(uspace_ptr_char, size_t);
 
 #endif
 

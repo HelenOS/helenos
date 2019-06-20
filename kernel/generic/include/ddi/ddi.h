@@ -70,8 +70,8 @@ extern sys_errno_t sys_dmamem_map(size_t, unsigned int, unsigned int, uspace_add
     uspace_addr_t, uintptr_t);
 extern sys_errno_t sys_dmamem_unmap(uintptr_t, size_t, unsigned int);
 
-extern sys_errno_t sys_iospace_enable(uspace_ptr(ddi_ioarg_t));
-extern sys_errno_t sys_iospace_disable(uspace_ptr(ddi_ioarg_t));
+extern sys_errno_t sys_iospace_enable(uspace_ptr_ddi_ioarg_t);
+extern sys_errno_t sys_iospace_disable(uspace_ptr_ddi_ioarg_t);
 
 /*
  * Interface to be implemented by all architectures.

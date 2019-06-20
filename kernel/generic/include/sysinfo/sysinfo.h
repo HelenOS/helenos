@@ -162,11 +162,11 @@ extern void sysinfo_init(void);
 extern void sysinfo_dump(sysinfo_item_t *);
 
 extern sys_errno_t sys_sysinfo_get_keys_size(uspace_addr_t, size_t, uspace_addr_t);
-extern sys_errno_t sys_sysinfo_get_keys(uspace_addr_t, size_t, uspace_addr_t, size_t, uspace_ptr(size_t));
+extern sys_errno_t sys_sysinfo_get_keys(uspace_addr_t, size_t, uspace_addr_t, size_t, uspace_ptr_size_t);
 extern sysarg_t sys_sysinfo_get_val_type(uspace_addr_t, size_t);
 extern sys_errno_t sys_sysinfo_get_value(uspace_addr_t, size_t, uspace_addr_t);
 extern sys_errno_t sys_sysinfo_get_data_size(uspace_addr_t, size_t, uspace_addr_t);
-extern sys_errno_t sys_sysinfo_get_data(uspace_addr_t, size_t, uspace_addr_t, size_t, uspace_ptr(size_t));
+extern sys_errno_t sys_sysinfo_get_data(uspace_addr_t, size_t, uspace_addr_t, size_t, uspace_ptr_size_t);
 
 #endif
 

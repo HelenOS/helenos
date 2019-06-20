@@ -217,7 +217,7 @@ void program_ready(program_t *prg)
  * @return EOK on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_program_spawn_loader(uspace_ptr(char) uspace_name, size_t name_len)
+sys_errno_t sys_program_spawn_loader(uspace_ptr_char uspace_name, size_t name_len)
 {
 	/* Cap length of name and copy it from userspace. */
 	if (name_len > TASK_NAME_BUFLEN - 1)

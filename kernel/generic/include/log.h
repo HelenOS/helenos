@@ -52,7 +52,7 @@ extern int log(log_facility_t, log_level_t, const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(3, 4);
 
 extern sys_errno_t sys_klog(sysarg_t, uspace_addr_t buf, size_t size,
-    sysarg_t level, uspace_ptr(size_t) uspace_nread);
+    sysarg_t level, uspace_ptr_size_t uspace_nread);
 
 #endif /* KERN_LOG_H_ */
 

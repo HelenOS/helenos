@@ -392,7 +392,7 @@ _NO_TRACE static errno_t iospace_disable(task_id_t id, uintptr_t ioaddr, size_t 
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-sys_errno_t sys_iospace_enable(uspace_ptr(ddi_ioarg_t) uspace_io_arg)
+sys_errno_t sys_iospace_enable(uspace_ptr_ddi_ioarg_t uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
@@ -403,7 +403,7 @@ sys_errno_t sys_iospace_enable(uspace_ptr(ddi_ioarg_t) uspace_io_arg)
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
-sys_errno_t sys_iospace_disable(uspace_ptr(ddi_ioarg_t) uspace_io_arg)
+sys_errno_t sys_iospace_disable(uspace_ptr_ddi_ioarg_t uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));

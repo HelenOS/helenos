@@ -295,7 +295,7 @@ int log(log_facility_t fac, log_level_t level, const char *fmt, ...)
  *
  */
 sys_errno_t sys_klog(sysarg_t operation, uspace_addr_t buf, size_t size,
-    sysarg_t level, uspace_ptr(size_t) uspace_nread)
+    sysarg_t level, uspace_ptr_size_t uspace_nread)
 {
 	char *data;
 	errno_t rc;

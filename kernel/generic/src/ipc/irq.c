@@ -222,7 +222,7 @@ static void code_free(irq_code_t *code)
  * @return Kernel address of the copied IRQ code.
  *
  */
-static irq_code_t *code_from_uspace(uspace_ptr(irq_code_t) ucode)
+static irq_code_t *code_from_uspace(uspace_ptr_irq_code_t ucode)
 {
 	irq_pio_range_t *ranges = NULL;
 	irq_cmd_t *cmds = NULL;
@@ -322,7 +322,7 @@ static kobject_ops_t irq_kobject_ops = {
  *
  */
 errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
-    uspace_ptr(irq_code_t) ucode, uspace_ptr(cap_irq_handle_t) uspace_handle)
+    uspace_ptr_irq_code_t ucode, uspace_ptr_cap_irq_handle_t uspace_handle)
 {
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;

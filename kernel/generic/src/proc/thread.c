@@ -997,8 +997,8 @@ static int threads_cmp(void *a, void *b)
 /** Process syscall to create new thread.
  *
  */
-sys_errno_t sys_thread_create(uspace_ptr(uspace_arg_t) uspace_uarg, uspace_ptr(char) uspace_name,
-    size_t name_len, uspace_ptr(thread_id_t) uspace_thread_id)
+sys_errno_t sys_thread_create(uspace_ptr_uspace_arg_t uspace_uarg, uspace_ptr_char uspace_name,
+    size_t name_len, uspace_ptr_thread_id_t uspace_thread_id)
 {
 	if (name_len > THREAD_NAME_BUFLEN - 1)
 		name_len = THREAD_NAME_BUFLEN - 1;
@@ -1087,7 +1087,7 @@ sys_errno_t sys_thread_exit(int uspace_status)
  * @return 0 on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_thread_get_id(uspace_ptr(thread_id_t) uspace_thread_id)
+sys_errno_t sys_thread_get_id(uspace_ptr_thread_id_t uspace_thread_id)
 {
 	/*
 	 * No need to acquire lock on THREAD because tid

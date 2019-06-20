@@ -879,7 +879,7 @@ sys_errno_t sys_sysinfo_get_keys_size(uspace_addr_t path_ptr, size_t path_size,
  *
  */
 sys_errno_t sys_sysinfo_get_keys(uspace_addr_t path_ptr, size_t path_size,
-    uspace_addr_t buffer_ptr, size_t buffer_size, uspace_ptr(size_t) size_ptr)
+    uspace_addr_t buffer_ptr, size_t buffer_size, uspace_ptr_size_t size_ptr)
 {
 	errno_t rc;
 
@@ -1036,7 +1036,7 @@ sys_errno_t sys_sysinfo_get_data_size(uspace_addr_t path_ptr, size_t path_size,
  *
  */
 sys_errno_t sys_sysinfo_get_data(uspace_addr_t path_ptr, size_t path_size,
-    uspace_addr_t buffer_ptr, size_t buffer_size, uspace_ptr(size_t) size_ptr)
+    uspace_addr_t buffer_ptr, size_t buffer_size, uspace_ptr_size_t size_ptr)
 {
 	errno_t rc;
 

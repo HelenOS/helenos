@@ -322,7 +322,7 @@ void task_release(task_t *task)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_task_get_id(uspace_ptr(sysarg64_t) uspace_taskid)
+sys_errno_t sys_task_get_id(uspace_ptr_sysarg64_t uspace_taskid)
 {
 	/*
 	 * No need to acquire lock on TASK because taskid remains constant for
@@ -362,7 +362,7 @@ sysarg_t sys_task_get_id(void)
  * @return 0 on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_task_set_name(const uspace_ptr(char) uspace_name, size_t name_len)
+sys_errno_t sys_task_set_name(const uspace_ptr_char uspace_name, size_t name_len)
 {
 	char namebuf[TASK_NAME_BUFLEN];
 
@@ -403,7 +403,7 @@ sys_errno_t sys_task_set_name(const uspace_ptr(char) uspace_name, size_t name_le
  * @return 0 on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_task_kill(uspace_ptr(task_id_t) uspace_taskid)
+sys_errno_t sys_task_kill(uspace_ptr_task_id_t uspace_taskid)
 {
 	task_id_t taskid;
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(taskid));

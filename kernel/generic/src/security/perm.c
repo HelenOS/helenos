@@ -157,7 +157,7 @@ static errno_t perm_revoke(task_id_t taskid, perm_t perms)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_perm_grant(uspace_ptr(sysarg64_t) uspace_taskid, perm_t perms)
+sys_errno_t sys_perm_grant(uspace_ptr_sysarg64_t uspace_taskid, perm_t perms)
 {
 	sysarg64_t taskid;
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
@@ -178,7 +178,7 @@ sys_errno_t sys_perm_grant(uspace_ptr(sysarg64_t) uspace_taskid, perm_t perms)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_perm_revoke(uspace_ptr(sysarg64_t) uspace_taskid, perm_t perms)
+sys_errno_t sys_perm_revoke(uspace_ptr_sysarg64_t uspace_taskid, perm_t perms)
 {
 	sysarg64_t taskid;
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
