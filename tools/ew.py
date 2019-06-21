@@ -56,16 +56,25 @@ def cfg_get(platform, machine, processor):
 		return emulators[platform][machine][processor]
 
 def termemu_detect():
-	for termemu in ['xfce4-terminal', 'xterm']:
+	emus = ['gnome-terminal', 'xfce4-terminal', 'xterm']
+	for termemu in emus:
 		try:
 			subprocess.check_output('which ' + termemu, shell = True)
 			return termemu
 		except:
 			pass
 
+	print('Could not find any of the terminal emulators %s.'%(emus))
+	sys.exit(1)
+
 def run_in_console(cmd, title):
 	ecmd = cmd.replace('"', '\\"')
-	cmdline = termemu_detect() + ' -T ' + '"' + title + '"' + ' -e "' + ecmd + '"'
+	temu = termemu_detect()
+	if temu == 'gnome-terminal':
+		cmdline = temu + ' -- ' + ecmd
+	else:
+		cmdline = temu + ' -T ' + '"' + title + '"' + ' -e "' + ecmd + '"'
+
 	print(cmdline)
 	if not is_override('dryrun'):
 		subprocess.call(cmdline, shell = True)
