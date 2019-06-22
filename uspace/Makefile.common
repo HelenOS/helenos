@@ -295,6 +295,7 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 
 LIB_CFLAGS = $(CFLAGS) -fPIC
+LIB_CXXFLAGS = $(CXXFLAGS) -fPIC
 LIB_LDFLAGS = $(LDFLAGS) -shared -Wl,-soname,$(LSONAME) -Wl,--no-undefined,--no-allow-shlib-undefined
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
@@ -414,12 +415,12 @@ endif
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 %.lo: %.cpp | depend
-	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(LIB_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 %.lo: %.cxx | depend
-	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(LIB_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 %.lo: %.cc | depend
-	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(LIB_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 -include $(DEPENDS)
