@@ -64,7 +64,7 @@ static bool print_alias(const char *name)
 	return false;
 }
 
-static void set_alias(const char *name, const char *value)
+static errno_t set_alias(const char *name, const char *value)
 {
 	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)name, NULL);
 
@@ -73,14 +73,37 @@ static void set_alias(const char *name, const char *value)
 		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
 		free(data->value);
 		data->value = str_dup(value);
+
+		if (data->value == NULL) {
+			cli_error(CL_ENOMEM, "%s: failing to allocate memory for value\n", cmdname);
+			return ENOMEM;
+		}
 	} else {
 		/* add new value */
 		alias_t *data = (alias_t *)calloc(1, sizeof(alias_t));
-		data->name = str_dup(name);
-		data->value = str_dup(value);
+		if (data == NULL) {
+			cli_error(CL_ENOMEM, "%s: failing to allocate memory for data container\n", cmdname);
+			return ENOMEM;
+		}
 
+		data->name = str_dup(name);
+		if (data->name == NULL) {
+			cli_error(CL_ENOMEM, "%s: failing to allocate memory for name\n", cmdname);
+			free(data);
+			return ENOMEM;
+		}
+
+		data->value = str_dup(value);
+		if (data->value == NULL) {
+			cli_error(CL_ENOMEM, "%s: failing to allocate memory for value\n", cmdname);
+			free(data->name);
+			free(data);
+			return ENOMEM;
+		}
 		odict_insert(&data->odict, &alias_dict, NULL);
 	}
+
+	return EOK;
 }
 
 static bool validate_name(const char *name)
@@ -130,25 +153,24 @@ int cmd_alias(char **argv)
 
 	size_t i;
 	for (i = 1; argv[i] != NULL; i++) {
-		char *name = str_dup(argv[i]);
+		char *name = argv[i];
 		char *value;
 		if ((value = str_chr(name, '=')) != NULL) {
 			name[value - name] = '\0';
+
 			if (!validate_name(name)) {
 				cli_error(CL_EFAIL, "%s: invalid alias name given\n", cmdname);
-				free(name);
 				return CMD_FAILURE;
 			}
 
-			set_alias(name, value + 1);
+			if (set_alias(name, value + 1) != EOK) {
+				return CMD_FAILURE;
+			}
 		} else {
 			if (!print_alias(name)) {
-				free(name);
 				return CMD_FAILURE;
 			}
 		}
-
-		free(name);
 	}
 
 	return CMD_SUCCESS;
