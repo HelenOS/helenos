@@ -69,7 +69,7 @@ namespace __cxxabiv1
         std::terminate();
     }
 
-#ifdef PLATFORM_arm32
+#ifdef __arm__
     extern "C" int __aeabi_atexit(void* p, void (*f)(void*), void* d)
     {
         return __cxa_atexit(f, p, d);
