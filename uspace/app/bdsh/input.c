@@ -85,8 +85,13 @@ static bool find_alias_hup(alias_t *alias, list_t *alias_hups)
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
  * the handler
  */
-static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups)
+static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t count_executed_hups)
 {
+	if (count_executed_hups >= HUBS_MAX) {
+		cli_error(CL_EFAIL, "%s: maximal alias hubs reached\n", PACKAGE_NAME);
+		return ELIMIT;
+	}
+
 	token_t *tokens_buf = calloc(WORD_MAX, sizeof(token_t));
 	if (tokens_buf == NULL)
 		return ENOMEM;
@@ -196,12 +201,24 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups)
 		/* check if the alias already has been resolved once */
 		if (!find_alias_hup(data, alias_hups)) {
 			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(alias_hup_t));
+			if (hup == NULL) {
+				cli_error(CL_EFAIL, "%s: cannot allocate alias structure\n", PACKAGE_NAME);
+				rc = ENOMEM;
+				goto finit;
+			}
+
 			hup->alias = data;
 			list_append(&hup->alias_hup_link, alias_hups);
 
 			char *oldLine = usr->line;
 			const size_t input_length = str_size(usr->line) - str_size(cmd[0]) + str_size(data->value) + 1;
-			usr->line = (char *)malloc(input_length * sizeof(char));
+			usr->line = (char *)malloc(input_length);
+			if (usr->line == NULL) {
+				cli_error(CL_EFAIL, "%s: cannot allocate input structure\n", PACKAGE_NAME);
+				rc = ENOMEM;
+				goto finit;
+			}
+
 			usr->line[0] = '\0';
 
 			unsigned int cmd_replace_index = cmd_token_start;
@@ -221,7 +238,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups)
 			}
 
 			/* reprocess input after string replace */
-			rc = process_input_nohup(usr, alias_hups);
+			rc = process_input_nohup(usr, alias_hups, count_executed_hups + 1);
 			usr->line = oldLine;
 			goto finit;
 		}
@@ -286,7 +303,7 @@ errno_t process_input(cliuser_t *usr)
 	list_t alias_hups;
 	list_initialize(&alias_hups);
 
-	errno_t rc = process_input_nohup(usr, &alias_hups);
+	errno_t rc = process_input_nohup(usr, &alias_hups, 0);
 
 	list_foreach_safe(alias_hups, cur_link, next_link) {
 		alias_hup_t *cur_item = list_get_instance(cur_link, alias_hup_t, alias_hup_link);

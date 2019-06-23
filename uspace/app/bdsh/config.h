@@ -41,6 +41,11 @@
 #define EXIT_FAILURE 1
 #endif
 
+/* define maximal nested aliases */
+#ifndef HUBS_MAX
+#define HUBS_MAX 20
+#endif
+
 /* Used in many places */
 #define SMALL_BUFLEN 256
 #define LARGE_BUFLEN 1024
