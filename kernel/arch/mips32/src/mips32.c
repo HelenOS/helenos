@@ -70,13 +70,9 @@ arch_ops_t mips32_ops = {
 
 arch_ops_t *arch_ops = &mips32_ops;
 
-/*
- * Why the linker moves the variable 64K away in assembler
- * when not in .text section?
- */
-
 /* Stack pointer saved when entering user mode */
-uintptr_t supervisor_sp __attribute__((section(".text")));
+// FIXME: This won't work with SMP unless thread creation is globally serialized.
+uintptr_t supervisor_sp;
 
 size_t cpu_count = 0;
 
