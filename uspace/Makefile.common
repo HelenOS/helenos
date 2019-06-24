@@ -108,7 +108,6 @@ LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
 START_FILES = $(LIBC_PREFIX)/crt0.o $(LIBC_PREFIX)/crt1.o
 
-AFLAGS = --fatal-warnings
 LDFLAGS = -Wl,--fatal-warnings,--warn-common
 
 STATIC_BUILD = n
@@ -193,7 +192,8 @@ DEFAULT_CFLAGS = \
 	-Wwrite-strings \
 	-Werror-implicit-function-declaration \
 	-Wsystem-headers \
-	-Wunknown-pragmas
+	-Wunknown-pragmas \
+	-Wa,--fatal-warnings
 
 # XXX: -fno-builtin-strftime is for a seemingly spurious format warning.
 
@@ -298,8 +298,6 @@ LIB_CFLAGS = $(CFLAGS) -fPIC
 LIB_CXXFLAGS = $(CXXFLAGS) -fPIC
 LIB_LDFLAGS = $(LDFLAGS) -shared -Wl,-soname,$(LSONAME) -Wl,--no-undefined,--no-allow-shlib-undefined
 
-AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
-
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 TEST_OBJECTS := $(addsuffix .test.o,$(basename $(TEST_SOURCES)))
@@ -385,10 +383,10 @@ $(LSONAME):
 endif
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
@@ -406,10 +404,10 @@ endif
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
 
 %.lo: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 %.lo: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 %.lo: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)

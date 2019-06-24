@@ -91,7 +91,8 @@ DEFS = -D_HELENOS_SOURCE -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -nostdlib \
 	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common \
-	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=. \
+	-Wa,--fatal-warnings
 
 GCC_CFLAGS = -std=gnu11 -Wall -Wextra -Wno-unused-parameter \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
@@ -100,7 +101,8 @@ GCC_CFLAGS = -std=gnu11 -Wall -Wextra -Wno-unused-parameter \
 CLANG_CFLAGS = -std=gnu11 -Wall -Wextra -Wno-unused-parameter \
 	-Wno-missing-field-initializers -Wno-unused-command-line-argument \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
-	-Wwrite-strings -pipe -fno-stack-protector -fno-PIC
+	-Wwrite-strings -pipe -fno-stack-protector -fno-PIC \
+	-mllvm -asm-macro-max-nesting-depth=1000
 
 ifeq ($(CONFIG_DEBUG),y)
 	COMMON_CFLAGS += -Werror
@@ -118,7 +120,6 @@ ifeq ($(CONFIG_LINE_DEBUG),y)
 	COMMON_CFLAGS += -g
 endif
 
-AFLAGS += --fatal-warnings
 LDFLAGS += -Wl,-n -T $(LINK) -Wl,-M,--fatal-warnings,--warn-common
 
 ifeq ($(CONFIG_STRIP_BINARIES),y)
@@ -340,15 +341,9 @@ GENERIC_DEPENDS := $(addsuffix .d,$(basename $(GENERIC_SOURCES)))
 ARCH_DEPENDS := $(addsuffix .d,$(basename $(ARCH_SOURCES)))
 GENARCH_DEPENDS := $(addsuffix .d,$(basename $(GENARCH_SOURCES)))
 
-AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
-
 -include $(GENERIC_DEPENDS)
 -include $(ARCH_DEPENDS)
 -include $(GENARCH_DEPENDS)
-
-ifeq ($(COMPILER),clang)
-	AS_CFLAGS += -mllvm -asm-macro-max-nesting-depth=1000
-endif
 
 ifeq ($(CONFIG_SYMTAB),y)
 	SYMTAB_OBJECTS := generic/src/debug/real_map.o
@@ -373,19 +368,19 @@ $(LINK): $(LINK).in
 	cd $(<D) && $(AUTOCHECK) $(<F) > $(@F)
 
 %.o: %.S
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS)
 
 %.o: %.s
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS)
 
 %.o: %.c
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION))
 
 $(REAL_MAP).o: $(REAL_MAP).bin
-	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$<\"" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $@ -
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$<\"" | $(CC) $(CFLAGS) -x assembler -c -o $@ -
 
 $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
-	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $(EMPTY_MAP) -
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)" | $(CC) $(CFLAGS) -x assembler -c -o $(EMPTY_MAP) -
 	$(CC) $(DEFS) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
@@ -393,7 +388,7 @@ $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	# Do it once again, this time to get correct even the symbols
 	# on architectures that have bss after symtab
 
-	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$@\"" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $(SIZEOK_MAP) -
+	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$@\"" | $(CC) $(CFLAGS) -x assembler -c -o $(SIZEOK_MAP) -
 	$(CC) $(DEFS) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
