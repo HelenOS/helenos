@@ -68,11 +68,11 @@ def termemu_detect():
 	sys.exit(1)
 
 def run_in_console(cmd, title):
-	ecmd = cmd.replace('"', '\\"')
 	temu = termemu_detect()
 	if temu == 'gnome-terminal':
-		cmdline = temu + ' -- ' + ecmd
+		cmdline = temu + ' -- ' + cmd
 	else:
+		ecmd = cmd.replace('"', '\\"')
 		cmdline = temu + ' -T ' + '"' + title + '"' + ' -e "' + ecmd + '"'
 
 	print(cmdline)
