@@ -585,13 +585,13 @@ def create_output(mkname, mcname, config, rules):
 
 	outmk.write('TIMESTAMP_UNIX = %d\n' % timestamp_unix)
 	outmc.write('#define TIMESTAMP_UNIX %d\n' % timestamp_unix)
-	defs += ' "-DTIMESTAMP_UNIX=%d"\n' % timestamp_unix
+	defs += ' "-DTIMESTAMP_UNIX=%d"' % timestamp_unix
 
 	outmk.write('TIMESTAMP = %s\n' % timestamp)
 	outmc.write('#define TIMESTAMP %s\n' % timestamp)
-	defs += ' "-DTIMESTAMP=%s"\n' % timestamp
+	defs += ' "-DTIMESTAMP=%s"' % timestamp
 
-	outmk.write(defs)
+	outmk.write('%s\n' % defs)
 
 	outmk.close()
 	outmc.close()
