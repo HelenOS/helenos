@@ -34,7 +34,7 @@ kernel_c_args += [ '-fno-omit-frame-pointer', '-mapcs-frame', '-mno-unaligned-ac
 if CONFIG_FPU
 	# This is necessary to allow vmsr insn and fpexc manipulation
 	# Use vfp32 to allow context save/restore of d16-d31 regs.
-	kernel_c_args += [ '-mfloat-abi=hard', '-mfpu=vfp3' ]
+	kernel_c_args += [ '-mfloat-abi=hard' ]
 endif
 
 arch_src += files(
