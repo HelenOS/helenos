@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2005 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,39 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = \
-	arch/$(UARCH)/src/entryjmp.S \
-	arch/$(UARCH)/src/thread_entry.S \
-	arch/$(UARCH)/src/syscall.c \
-	arch/$(UARCH)/src/fibril.S \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/stacktrace.c \
-	arch/$(UARCH)/src/stacktrace_asm.S \
-	arch/$(UARCH)/src/rtld/dynamic.c \
-	arch/$(UARCH)/src/rtld/reloc.c
+# FIXME: enable gc-sections
+kernel_c_args += [ '-msoft-float', '-fno-function-sections' ]
+kernel_link_args += [ '-Wl,--no-check-sections', '-Wl,--no-gc-sections' ]
 
-ARCH_AUTOCHECK_HEADERS = \
-	arch/$(UARCH)/include/libarch/fibril_context.h
+arch_src += files(
+	'src/context.S',
+	'src/debug/stacktrace.c',
+	'src/debug/stacktrace_asm.S',
+	'src/fpu_context.S',
+	'src/boot/boot.S',
+	'src/ppc32.c',
+	'src/dummy.S',
+	'src/exception.S',
+	'src/interrupt.c',
+	'src/asm.S',
+	'src/cpu/cpu.c',
+	'src/proc/scheduler.c',
+	'src/smc.c',
+	'src/mm/km.c',
+	'src/mm/as.c',
+	'src/mm/frame.c',
+	'src/mm/page.c',
+	'src/mm/pht.c',
+	'src/mm/tlb.c',
+	'src/drivers/pic.c',
+)
+
+_check_headers = [
+	'include/arch/istate_struct.h',
+	'include/arch/context_struct.h',
+	'include/arch/fpu_context_struct.h',
+]
+
+foreach h : _check_headers
+	arch_src += [ autocheck.process(h) ]
+endforeach
