@@ -37,9 +37,6 @@ BITS = 32
 ENDIANESS = BE
 EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
 
-RD_SRVS_ESSENTIAL += \
-	hw/bus/cuda_adb
-
 RD_DRVS_ESSENTIAL += \
 	platform/mac \
 	bus/adb/cuda_adb \
