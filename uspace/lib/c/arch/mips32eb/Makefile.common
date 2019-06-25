@@ -32,8 +32,6 @@ LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = BE
 
-BFD_ARCH = mips
-BFD_NAME = elf32-tradbigmips
 
 ifeq ($(MACHINE),bmalta)
 	COMMON_CFLAGS += -march=4kc

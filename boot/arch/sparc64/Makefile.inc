@@ -32,7 +32,6 @@ POSTBUILD = Makefile.silo
 
 BFD_NAME = elf64-sparc
 BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = sparc
 
 BITS = 64
 ENDIANESS = BE

@@ -32,7 +32,6 @@ POSTBUILD = Makefile.yaboot
 
 BFD_NAME = elf32-powerpc
 BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = powerpc:common
 
 BITS = 32
 ENDIANESS = BE

@@ -52,7 +52,6 @@ endif
 
 BFD_NAME = elf32-littlearm
 BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = arm
 
 BITS = 32
 ENDIANESS = LE

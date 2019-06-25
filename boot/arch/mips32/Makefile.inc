@@ -26,7 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_ARCH = mips
 BITS = 32
 EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
 AS_PROLOG = .module softfloat;

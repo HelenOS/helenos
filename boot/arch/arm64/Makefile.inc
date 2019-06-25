@@ -35,7 +35,6 @@ BFD_NAME = elf64-littleaarch64
 # Request binary BFD output. The ARM64 port manually prepares the .text
 # section to look as a PE file than can be loaded on EFI systems.
 BFD_OUTPUT = binary
-BFD_ARCH = aarch64
 
 BITS = 64
 ENDIANESS = LE

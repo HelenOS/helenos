@@ -37,5 +37,3 @@ LDFLAGS += -Wl,--gc-sections -Wl,-z,max-page-size=0x1000
 
 ENDIANESS = BE
 
-BFD_NAME = elf32-powerpc
-BFD_ARCH = powerpc:common

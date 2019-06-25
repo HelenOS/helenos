@@ -28,5 +28,3 @@
 
 ENDIANESS = LE
 
-BFD_NAME = elf64-littleriscv
-BFD_ARCH = riscv

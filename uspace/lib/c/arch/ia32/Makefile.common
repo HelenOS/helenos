@@ -41,5 +41,3 @@ LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = LE
 
-BFD_NAME = elf32-i386
-BFD_ARCH = i386

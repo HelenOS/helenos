@@ -32,8 +32,6 @@ LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = LE
 
-BFD_ARCH = mips
-BFD_NAME = elf32-tradlittlemips
 
 ifeq ($(MACHINE),msim)
 	COMMON_CFLAGS += -march=r4000

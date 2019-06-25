@@ -28,7 +28,6 @@
 
 BFD_NAME = elf64-ia64-little
 BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = ia64
 
 BITS = 64
 ENDIANESS = LE

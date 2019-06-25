@@ -32,5 +32,3 @@ LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = LE
 
-BFD_NAME = elf64-littleaarch64
-BFD_ARCH = aarch64

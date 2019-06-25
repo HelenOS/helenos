@@ -26,9 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf64-littleaarch64
-BFD_ARCH = aarch64
-BFD = binary
 
 COMMON_CFLAGS += -fno-omit-frame-pointer -march=armv8-a+nofp+nosimd \
 	-mgeneral-regs-only

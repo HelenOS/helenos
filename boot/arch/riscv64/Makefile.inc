@@ -28,7 +28,6 @@
 
 BFD_NAME = elf64-littleriscv
 BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = riscv
 
 BITS = 64
 ENDIANESS = LE
