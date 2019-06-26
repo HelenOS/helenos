@@ -62,6 +62,10 @@ endif
 
 CROSS_PATH = $(shell dirname "$(CC)")
 
+ifeq ($(MACHINE),bmalta)
+	UARCH = mips32eb
+endif
+
 .PHONY: all precheck cscope cscope_parts autotool config_default config distclean clean check releasefile release common export-posix space
 
 all: common export-cross test-xcw

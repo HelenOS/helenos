@@ -27,20 +27,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# TODO: Red Zone is only a problem if we allow interrupts to land on an active
-#       stack. Using separate stack for interrupts and ensuring that we never
-#       enable interrupts on an interrupt stack would allow us to get rid of
-#       the argument.
-
-kernel_c_args += [ '-mno-sse', '-mno-sse2', '-mcmodel=' + MEMORY_MODEL, '-mno-red-zone', '-fno-unwind-tables', '-fno-omit-frame-pointer' ]
-
-# TODO: fix this
-kernel_link_args += [ '-Wl,--no-gc-sections' ]
-
-if PROCESSOR == 'opteron'
-	kernel_c_args += '-march=opteron'
-endif
-
 arch_src += files(
 	'src/amd64.c',
 	'src/asm.S',

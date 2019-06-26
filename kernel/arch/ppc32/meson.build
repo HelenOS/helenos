@@ -26,10 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# FIXME: enable gc-sections
-kernel_c_args += [ '-msoft-float', '-fno-function-sections' ]
-kernel_link_args += [ '-Wl,--no-check-sections', '-Wl,--no-gc-sections' ]
-
 arch_src += files(
 	'src/context.S',
 	'src/debug/stacktrace.c',
@@ -52,6 +48,7 @@ arch_src += files(
 	'src/mm/tlb.c',
 	'src/drivers/pic.c',
 )
+
 
 _check_headers = [
 	'include/arch/istate_struct.h',

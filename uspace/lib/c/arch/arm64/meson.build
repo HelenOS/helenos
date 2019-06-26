@@ -11,11 +11,3 @@ arch_src += files(
 )
 
 arch_start_src = files('src/crt0.S')
-
-if MACHINE == 'virt'
-	rd_essential += [
-		'drv/char/pl011',
-		'drv/intctl/gicv2',
-		'drv/platform/arm64virt',
-	]
-endif

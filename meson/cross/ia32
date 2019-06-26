@@ -15,10 +15,6 @@ ld = 'i686-helenos-ld'
 has_function_printf = true
 needs_exe_wrapper = true
 
-c_args = [ '-D__LE__', '-mno-tls-direct-seg-refs', '-fno-omit-frame-pointer' ]
-cpp_args = [ '-D__LE__', '-mno-tls-direct-seg-refs', '-fno-omit-frame-pointer', '-fno-exceptions' ]
-c_link_args = [ '-nostdlib', '-lgcc', '-mno-tls-direct-seg-refs' ]
-cpp_link_args = [ '-nostdlib', '-lgcc', '-mno-tls-direct-seg-refs' ]
 cc_arch = 'i686'
 h_arch = 'ia32'
 bits = 32

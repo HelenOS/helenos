@@ -13,22 +13,3 @@ arch_src += files(
 )
 
 arch_start_src = files('src/crt0.S')
-
-rd_essential += [
-	'app/edit',
-	'app/mixerctl',
-	'app/wavplay',
-
-	'srv/audio/hound',
-
-	'drv/intctl/apic',
-	'drv/intctl/i8259',
-	'drv/platform/pc',
-	'drv/block/ata_bd',
-	'drv/bus/pci/pciintel',
-	'drv/bus/isa',
-	'drv/audio/sb16',
-	'drv/char/i8042',
-	'drv/hid/ps2mouse',
-	'drv/hid/xtkbd',
-]

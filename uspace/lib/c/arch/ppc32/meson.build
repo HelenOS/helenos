@@ -13,19 +13,3 @@ arch_src += files(
 )
 
 arch_start_src = files('src/crt0.S')
-
-rd_essential += [
-	'drv/platform/mac',
-	'drv/bus/adb/cuda_adb',
-	'drv/bus/pci/pciintel',
-	'drv/bus/usb/ohci',
-	'drv/bus/usb/usbdiag',
-	'drv/bus/usb/usbflbk',
-	'drv/bus/usb/usbhub',
-	'drv/bus/usb/usbmid',
-	'drv/bus/usb/vhc',
-	'drv/block/usbmast',
-	'drv/hid/adb-kbd',
-	'drv/hid/adb-mouse',
-	'drv/hid/usbhid',
-]

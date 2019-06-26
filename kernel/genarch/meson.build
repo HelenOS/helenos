@@ -163,7 +163,6 @@ endif
 
 
 genarch_src = []
-genarch_check_headers = []
 
 foreach f : _src
 	genarch_src += files('src' / f)

@@ -1,9 +1,5 @@
 always_static = (get_option('default_library') == 'static')
 
-# Redefined in libarch, if necessary.
-# Used in a few places where we generate custom assembly.
-as_prolog = ''
-
 # Which libraries are installed when CONFIG_DEVEL_FILES is enabled
 installed_libs = [
 	'c',
@@ -172,8 +168,9 @@ foreach l : libs
 				#       and get rid of private_includes.
 				include_directories: [ private_includes, includes ],
 				dependencies: _shared_deps,
-				c_args: c_args,
-				link_args: link_args,
+				c_args: arch_uspace_c_args + c_args,
+				cpp_args: arch_uspace_c_args + c_args,
+				link_args: arch_uspace_c_args + arch_uspace_link_args + link_args,
 				version: version,
 				build_by_default: true,
 				install: install_shared_lib,
@@ -206,8 +203,8 @@ foreach l : libs
 			#       and get rid of private_includes.
 			include_directories: [ private_includes, includes ],
 			dependencies: _include_deps,
-			c_args: c_args,
-			link_args: link_args,
+			c_args: arch_uspace_c_args + c_args,
+			cpp_args: arch_uspace_c_args + c_args,
 			install: install_static_lib,
 			install_dir: 'lib',
 		)
@@ -294,7 +291,9 @@ foreach test : testfiles
 		objects: startfiles,
 		install: true,
 		install_dir: 'test',
-		link_args: _ldargs,
+		c_args: arch_uspace_c_args,
+		cpp_args: arch_uspace_c_args,
+		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,
 	)
 
 	if disassemble

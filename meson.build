@@ -172,63 +172,6 @@ add_project_link_arguments(
 	language : [ 'c', 'cpp' ],
 )
 
-if h_arch == 'arm32'
-	add_project_arguments(
-		'-mcpu=' + '-'.join(PROCESSOR.split('_')),
-		CONFIG_FPU ? '-mfloat-abi=hard' : [],
-		language : [ 'c', 'cpp' ],
-	)
-
-	add_project_link_arguments(
-		'-mcpu=' + '-'.join(PROCESSOR.split('_')),
-		CONFIG_FPU ? '-mfloat-abi=hard' : [],
-		language : [ 'c', 'cpp' ],
-	)
-
-elif h_arch == 'ia32'
-# FIXME: enabling -march for uspace makes malloc tests crash. Investigate.
-
-#	if PROCESSOR == 'core'
-#		# FIXME
-#		add_project_arguments('-march=prescott', language : [ 'c', 'cpp' ])
-#		add_project_link_arguments('-march=prescott', language : [ 'c', 'cpp' ])
-#	else
-#		add_project_arguments('-march=' + '-'.join(PROCESSOR.split('_')), language : [ 'c', 'cpp' ])
-#		add_project_link_arguments('-march=' + '-'.join(PROCESSOR.split('_')), language : [ 'c', 'cpp' ])
-#	endif
-
-elif h_arch == 'mips32'
-
-	if MACHINE == 'msim'
-		add_project_arguments('-march=r4000', language : [ 'c', 'cpp' ])
-		add_project_link_arguments('-march=r4000', language : [ 'c', 'cpp' ])
-
-	elif MACHINE == 'bmalta'
-		add_project_arguments('-march=4kc', language : [ 'c', 'cpp' ])
-		add_project_link_arguments('-march=4kc', language : [ 'c', 'cpp' ])
-
-	elif MACHINE == 'lmalta'
-		add_project_arguments('-march=4kc', language : [ 'c', 'cpp' ])
-		add_project_link_arguments('-march=4kc', language : [ 'c', 'cpp' ])
-
-	else
-		error('Unknown machine')
-
-	endif
-
-elif h_arch == 'ppc32'
-
-	if CONFIG_FPU
-		float = '-mhard-float'
-	else
-		float = '-msoft-float'
-	endif
-
-	add_project_arguments(float, language : [ 'c', 'cpp' ])
-	add_project_link_arguments(float, language : [ 'c', 'cpp' ])
-
-endif
-
 # TODO: enable more warnings
 # FIXME: -fno-builtin-strftime works around seemingly spurious format warning.
 # We should investigate what's going on there.
@@ -309,6 +252,61 @@ foreach lang : [ 'c', 'cpp' ]
 	add_project_link_arguments(extra_cflags, language : [ lang ])
 endforeach
 
+# Init binaries.
+rd_init = [
+	'app/init',
+	'srv/bd/rd',
+	'srv/fs/' + RDFMT,
+	'srv/loader',
+	'srv/locsrv',
+	'srv/logger',
+	'srv/ns',
+	'srv/vfs',
+]
+
+# Binaries allowed on the initrd image when CONFIG_BAREBONE is enabled.
+rd_essential = rd_init + [
+	'app/bdsh',
+	'app/getterm',
+	'app/kio',
+
+	'srv/devman',
+	'srv/fs/locfs',
+	'srv/hid/input',
+	'srv/hid/output',
+	'srv/hid/compositor',
+	'srv/hid/console',
+	'srv/klog',
+
+	'drv/root/root',
+	'drv/root/virt',
+	'drv/fb/kfb',
+]
+
+if CONFIG_FB
+	rd_essential += [
+		'app/vlaunch',
+		'app/vterm',
+	]
+endif
+
+
+## The at-sign
+#
+# The `atsign` variable holds the ASCII character representing the at-sign
+# ('@') used in various $(AS) constructs (e.g. @progbits). On architectures that
+# don't use '@' for starting a comment, `atsign` is merely '@'. However, on
+# those that do use it for starting a comment (e.g. arm32), `atsign` must be
+# defined as the percentile-sign ('%') in the architecture-dependent files.
+#
+atsign = '@'
+
+## Some architectures need a particular string at the beginning of assembly files.
+kernel_as_prolog = ''
+uspace_as_prolog = ''
+
+subdir('meson' / 'arch' / h_arch)
+
 subdir('kernel')
 subdir('uspace')
 
@@ -350,8 +348,8 @@ cc_arch = meson.get_cross_property('cc_arch')
 conf_data = configuration_data({
 	'HELENOS_CROSS_PATH' : cc_path,
 	'HELENOS_ARCH' : cc_arch,
-	'HELENOS_CFLAGS' : ' '.join(meson.get_cross_property('c_args')),
-	'HELENOS_CXXFLAGS' : ' '.join(meson.get_cross_property('cpp_args')),
+	'HELENOS_CFLAGS' : ' '.join(arch_uspace_c_args),
+	'HELENOS_CXXFLAGS' : ' '.join(arch_uspace_c_args),
 	'HELENOS_CPPFLAGS' : ' '.join(export_cppflags),
 	'HELENOS_LDFLAGS' : ' '.join(export_ldflags),
 	'HELENOS_LDLIBS' : ' '.join(export_ldlibs),

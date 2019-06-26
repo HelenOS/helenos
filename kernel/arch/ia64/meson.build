@@ -27,9 +27,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-kernel_c_args += [ '-mconstant-gp', '-fno-unwind-tables', '-mfixed-range=f32-f127' ]
-kernel_link_args += [ '-Wl,-EL' ]
-
 arch_src += files(
 	'src/start.S',
 	'src/asm.S',
@@ -59,9 +56,6 @@ if MACHINE == 'ski'
 	arch_src += files('src/drivers/ski.c')
 endif
 
-if MACHINE == 'i460GX'
-	kernel_c_args += [ '-DI460GX' ]
-endif
 
 _check_headers = [
 	'include/arch/istate_struct.h',

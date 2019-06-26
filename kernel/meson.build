@@ -1,32 +1,23 @@
 
-## The at-sign
-#
-# The `atsign` variable holds the ASCII character representing the at-sign
-# ('@') used in various $(AS) constructs (e.g. @progbits). On architectures that
-# don't use '@' for starting a comment, `atsign` is merely '@'. However, on
-# those that do use it for starting a comment (e.g. arm32), `atsign` must be
-# defined as the percentile-sign ('%') in the architecture-dependent files.
-#
-atsign = '@'
-
-## Some architectures need a particular string at the beginning of assembly files.
-as_prolog = ''
-
-kernel_c_args = []
-kernel_link_args = []
-kernel_includes = []
 arch_src = []
 
+# Fills arch_src.
 subdir('arch' / h_arch)
+
+# Defines genarch_src.
 subdir('genarch')
+
+# Defines generic_src, instrumentable_src.
 subdir('generic')
+
+# Defines test_src
 subdir('test')
 
 ## Cross-platform assembly to start a symtab.data section
 #
 symtab_section = '.section symtab.data, "a", ' + atsign + 'progbits;'
 
-kernel_includes += include_directories(
+kernel_include_dirs = include_directories(
 	'generic/include',
 	'genarch/include',
 	'arch' / h_arch / 'include',
@@ -45,6 +36,7 @@ kernel_defs = [
 	'-D__@0@_BITS__'.format(meson.get_cross_property('bits')),
 ]
 
+# Preprocess linker script using C preprocessor.
 kernel_ldscript = custom_target('_link.ld',
 	input: 'arch' / h_arch / '_link.ld.in',
 	output: '_link.ld',
@@ -62,7 +54,7 @@ kernel_ldscript = custom_target('_link.ld',
 	capture: true,
 )
 
-kernel_link_args += [
+kernel_link_args = arch_kernel_link_args + [
 	'-Wl,--nmagic',
 	'-T', meson.current_build_dir() / '_link.ld',
 ]
@@ -72,7 +64,7 @@ if CONFIG_STRIP_BINARIES
 	kernel_link_args += [ '-s' ]
 endif
 
-kernel_c_args += kernel_defs + [
+kernel_c_args = arch_kernel_c_args + kernel_defs + [
 	'-ffreestanding',
 	# TODO: remove this flag
 	'-Wno-cast-function-type',
@@ -87,14 +79,14 @@ if cc.get_id() == 'clang'
 endif
 
 instrumentables = static_library('instrumentables', instrumentable_src,
-	include_directories: kernel_includes,
+	include_directories: kernel_include_dirs,
 	implicit_include_directories: false,
 	c_args: kernel_c_args + (CONFIG_TRACE ? [ '-finstrument-functions' ] : []),
 	pic: false,
 )
 
 noninstrumentables = static_library('noninstrumentables', arch_src, genarch_src, generic_src, test_src,
-	include_directories: kernel_includes,
+	include_directories: kernel_include_dirs,
 	implicit_include_directories: false,
 	c_args: kernel_c_args,
 	pic: false,
@@ -128,7 +120,7 @@ endif
 kernel_map_S = custom_target('empty_map.S',
 	output: 'empty_map.S',
 	capture: true,
-	command: [ 'echo', as_prolog + symtab_section ],
+	command: [ 'echo', kernel_as_prolog + symtab_section ],
 )
 
 foreach iter : iterations
@@ -138,7 +130,7 @@ foreach iter : iterations
 	kernel_map_path = meson.current_build_dir() / kernel_map_name
 
 	kernel_elf = executable(kernel_name + '.elf', kernel_map_S,
-		include_directories: kernel_includes,
+		include_directories: kernel_include_dirs,
 		implicit_include_directories: false,
 		c_args: kernel_c_args,
 		link_args: kernel_c_args + kernel_link_args + [
@@ -169,7 +161,7 @@ foreach iter : iterations
 			input: kernel_map_bin,
 			output: kernel_map_S_name,
 			capture: true,
-			command: [ 'echo', as_prolog + symtab_section + ' .incbin "@INPUT@"' ],
+			command: [ 'echo', kernel_as_prolog + symtab_section + ' .incbin "@INPUT@"' ],
 		)
 	endif
 endforeach

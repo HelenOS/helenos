@@ -15,10 +15,6 @@ ld = 'amd64-helenos-ld'
 has_function_printf = true
 needs_exe_wrapper = true
 
-c_args = [ '-D__LE__', '-fno-omit-frame-pointer' ]
-cpp_args = [ '-D__LE__', '-fno-omit-frame-pointer', '-fno-exceptions' ]
-c_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
-cpp_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
 cc_arch = 'amd64'
 h_arch = 'amd64'
 bits = 64

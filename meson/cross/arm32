@@ -14,10 +14,7 @@ ld = 'arm-helenos-ld'
 [properties]
 has_function_printf = true
 needs_exe_wrapper = true
-c_args = [ '-D__LE__', '-fno-omit-frame-pointer', '-mapcs-frame', '-ffixed-r9', '-mtp=soft' ]
-cpp_args = [ '-D__LE__', '-fno-omit-frame-pointer', '-mapcs-frame', '-ffixed-r9', '-mtp=soft', '-fno-exceptions' ]
-c_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000', '-mapcs-frame', '-ffixed-r9', '-mtp=soft' ]
-cpp_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000', '-mapcs-frame', '-ffixed-r9', '-mtp=soft', '-fno-exceptions' ]
+
 cc_arch = 'arm'
 h_arch = 'arm32'
 bits = 32

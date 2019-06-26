@@ -6,50 +6,10 @@ install_nonessential_data = not CONFIG_BAREBONE
 # This is currently disabled due to boot image size restrictions.
 install_debug_files = false
 
-rd_essential = []
-
 subdir('lib')
 subdir('app')
 subdir('srv')
 subdir('drv')
-
-init = [
-	'app/init',
-	'srv/bd/rd',
-	'srv/fs/' + RDFMT,
-	'srv/loader',
-	'srv/locsrv',
-	'srv/logger',
-	'srv/ns',
-	'srv/vfs',
-]
-
-rd_essential += init
-
-rd_essential += [
-	'app/bdsh',
-	'app/getterm',
-	'app/kio',
-
-	'srv/devman',
-	'srv/fs/locfs',
-	'srv/hid/input',
-	'srv/hid/output',
-	'srv/hid/compositor',
-	'srv/hid/console',
-	'srv/klog',
-
-	'drv/root/root',
-	'drv/root/virt',
-	'drv/fb/kfb',
-]
-
-if CONFIG_FB
-	rd_essential += [
-		'app/vlaunch',
-		'app/vterm',
-	]
-endif
 
 dirs = []
 
@@ -114,7 +74,7 @@ foreach appdirs : dirs
 	endif
 
 	# Init binaries need to always be linked statically.
-	static_build = (not CONFIG_USE_SHARED_LIBS) or init.contains(dir)
+	static_build = (not CONFIG_USE_SHARED_LIBS) or rd_init.contains(dir)
 
 	# Add the corresponding standard libraries to dependencies.
 
@@ -201,8 +161,9 @@ foreach tst : bin_targets
 		include_directories: tst.get('includes'),
 		dependencies: tst.get('dependencies'),
 		objects: startfiles,
-		c_args: tst.get('c_args'),
-		link_args: _ldargs,
+		c_args: arch_uspace_c_args + tst.get('c_args'),
+		cpp_args: arch_uspace_c_args + tst.get('c_args'),
+		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,
 		implicit_include_directories: false,
 		install: false,
 		#install_dir: tst.get('install_dir'),

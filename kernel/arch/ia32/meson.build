@@ -26,11 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-kernel_c_args += [ '-mno-mmx', '-mno-sse', '-mno-sse2', '-mno-sse3', '-mno-3dnow' ]
-
-# TODO: fix this
-kernel_link_args += [ '-Wl,--no-gc-sections' ]
-
 arch_src += files(
 	'src/context.S',
 	'src/debug/stacktrace.c',

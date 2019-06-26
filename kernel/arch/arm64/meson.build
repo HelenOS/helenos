@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-kernel_c_args += [ '-fno-omit-frame-pointer', '-march=armv8-a+nofp+nosimd', '-mgeneral-regs-only' ]
-
 arch_src += files(
 	'src/arm64.c',
 	'src/asm.S',

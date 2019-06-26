@@ -26,16 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-kernel_c_args += [
-	'-msoft-float',
-	'-mno-abicalls',
-	'-G', '0',
-	'-fno-zero-initialized-in-bss',
-	'-mabi=32',
-]
-
-as_prolog = '.module softfloat;'
-
 arch_src += files(
 	'src/start.S',
 	'src/context.S',
@@ -69,6 +59,7 @@ elif MACHINE == 'msim'
 	)
 
 endif
+
 
 _check_headers = [
 	'include/arch/istate_struct.h',

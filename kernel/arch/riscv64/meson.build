@@ -26,8 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-kernel_c_args += [ '-mcmodel=medany' ]
-
 arch_src += files(
 	'src/boot/boot.S',
 	'src/asm.S',
@@ -47,6 +45,7 @@ arch_src += files(
 	'src/mm/page.c',
 	'src/mm/tlb.c',
 )
+
 
 _check_headers = [
 	'include/arch/istate_struct.h',

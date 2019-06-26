@@ -15,10 +15,6 @@ ld = 'ia64-helenos-ld'
 has_function_printf = true
 needs_exe_wrapper = true
 
-c_args = [ '-D__LE__', '-fno-unwind-tables' ]
-cpp_args = [ '-D__LE__', '-fno-unwind-tables', '-fno-exceptions' ]
-c_link_args = [ '-nostdlib', '-lgcc' ]
-cpp_link_args = [ '-nostdlib', '-lgcc' ]
 cc_arch = 'ia64'
 h_arch = 'ia64'
 bits = 64

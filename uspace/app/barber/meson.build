@@ -36,7 +36,7 @@ _images = files(
 _images_zip = custom_target('barber_images.zip',
 	input : _images,
 	output : [ 'images.zip' ],
-	command : [ mkarray, '@OUTDIR@', 'images', 'image', as_prolog, '.data', '@INPUT@' ],
+	command : [ mkarray, '@OUTDIR@', 'images', 'image', uspace_as_prolog, '.data', '@INPUT@' ],
 )
 _imgs_s = custom_target('barber_images.s',
 	input : _images_zip,

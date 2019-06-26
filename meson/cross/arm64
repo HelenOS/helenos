@@ -14,10 +14,7 @@ ld = 'aarch64-helenos-ld'
 [properties]
 has_function_printf = true
 needs_exe_wrapper = true
-c_args = [ '-D__LE__', '-fno-omit-frame-pointer' ]
-cpp_args = [ '-D__LE__', '-fno-omit-frame-pointer', '-fno-exceptions' ]
-c_link_args = [ '-nostdlib', '-lgcc' ]
-cpp_link_args = [ '-nostdlib', '-lgcc', '-fno-exceptions' ]
+
 cc_arch = 'aarch64'
 h_arch = 'arm64'
 bits = 64

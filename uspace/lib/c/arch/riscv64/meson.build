@@ -10,6 +10,3 @@ arch_src += files(
 )
 
 arch_start_src = files('src/crt0.c')
-
-rd_essential += [
-]
