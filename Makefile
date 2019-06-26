@@ -38,6 +38,8 @@ AUTOTOOL = tools/autotool.py
 SANDBOX = autotool
 MESON = meson
 
+BUILD_DIR=$(abspath build)
+
 CONFIG_RULES = HelenOS.config
 
 COMMON_MAKEFILE = Makefile.common
@@ -63,14 +65,14 @@ CROSS_PATH = $(shell dirname "$(CC)")
 .PHONY: all precheck cscope cscope_parts autotool config_default config distclean clean check releasefile release common export-posix space
 
 all: common export-cross test-xcw
-	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
+	$(MAKE) -r -C boot PRECHECK=$(PRECHECK) BUILD_DIR=$(BUILD_DIR)
 
-build/build.ninja: Makefile.config version
-	PATH="$(CROSS_PATH):$$PATH" meson . build --cross-file meson/cross/$(UARCH) $(MESON_ARGS)
+$(BUILD_DIR)/build.ninja: Makefile.config version
+	PATH="$(CROSS_PATH):$$PATH" meson . $(BUILD_DIR) --cross-file meson/cross/$(UARCH) $(MESON_ARGS)
 
-common: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) build/build.ninja
-	PATH="$(CROSS_PATH):$$PATH" ninja -C build
-	PATH="$(CROSS_PATH):$$PATH" DESTDIR="$$PWD/dist" meson install --no-rebuild --only-changed -C build > build/install.log
+common: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
+	PATH="$(CROSS_PATH):$$PATH" ninja -C $(BUILD_DIR)
+	PATH="$(CROSS_PATH):$$PATH" DESTDIR="$(BUILD_DIR)/dist" meson install --no-rebuild --only-changed -C $(BUILD_DIR) > $(BUILD_DIR)/install.log
 
 test-xcw: common export-cross
 ifeq ($(CONFIG_DEVEL_FILES),y)

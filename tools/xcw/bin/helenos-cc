@@ -36,7 +36,7 @@
 XCW="$(dirname "$0")"
 SRC_ROOT="$XCW/../../.."
 if [ -z "$EXPORT_DIR" ]; then
-	EXPORT_DIR="$SRC_ROOT/dist"
+	EXPORT_DIR="$SRC_ROOT/build/dist"
 fi
 
 HELENOS_EXPORT_ROOT="$EXPORT_DIR"
