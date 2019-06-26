@@ -16,7 +16,6 @@ has_function_printf = true
 needs_exe_wrapper = true
 
 cc_arch = 'aarch64'
-h_arch = 'arm64'
 bits = 64
 
 [host_machine]

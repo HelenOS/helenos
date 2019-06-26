@@ -62,8 +62,10 @@ endif
 
 CROSS_PATH = $(shell dirname "$(CC)")
 
+CROSS_TARGET ?= $(UARCH)
+
 ifeq ($(MACHINE),bmalta)
-	UARCH = mips32eb
+	CROSS_TARGET = mips32eb
 endif
 
 .PHONY: all precheck cscope cscope_parts autotool config_default config distclean clean check releasefile release common export-posix space
@@ -72,7 +74,7 @@ all: common export-cross test-xcw
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK) BUILD_DIR=$(BUILD_DIR)
 
 $(BUILD_DIR)/build.ninja: Makefile.config version
-	PATH="$(CROSS_PATH):$$PATH" meson . $(BUILD_DIR) --cross-file meson/cross/$(UARCH) $(MESON_ARGS)
+	PATH="$(CROSS_PATH):$$PATH" meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET) $(MESON_ARGS)
 
 common: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
 	PATH="$(CROSS_PATH):$$PATH" ninja -C $(BUILD_DIR)

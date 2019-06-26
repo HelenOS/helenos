@@ -110,6 +110,9 @@ config_variables = [
 	'CONFIG_VIA_CUDA',
 	'MACHINE',
 	'MEMORY_MODEL',
+
+	'UARCH',
+	'KARCH',
 ]
 
 foreach varname : config_variables
@@ -154,7 +157,6 @@ endforeach
 
 HELENOS_RELEASE = HELENOS_VERSION + '.' + HELENOS_PATCHLEVEL + '.' + HELENOS_SUBLEVEL
 
-h_arch = meson.get_cross_property('h_arch')
 
 meson.add_install_script('install.sh', CONFIG_DEVEL_FILES.to_string())
 
@@ -204,7 +206,7 @@ extra_common_flags = [
 	'-fdebug-prefix-map=' + meson.source_root() + '=.',
 ]
 
-if h_arch != 'ia64'
+if UARCH != 'ia64'
 	extra_common_flags += [ '-fvar-tracking-assignments' ]
 endif
 
@@ -306,7 +308,7 @@ atsign = '@'
 kernel_as_prolog = ''
 uspace_as_prolog = ''
 
-subdir('meson' / 'arch' / h_arch)
+subdir('meson' / 'arch' / UARCH)
 
 subdir('kernel')
 subdir('uspace')

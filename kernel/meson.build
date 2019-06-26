@@ -2,7 +2,7 @@
 arch_src = []
 
 # Fills arch_src.
-subdir('arch' / h_arch)
+subdir('arch' / KARCH)
 
 # Defines genarch_src.
 subdir('genarch')
@@ -20,8 +20,8 @@ symtab_section = '.section symtab.data, "a", ' + atsign + 'progbits;'
 kernel_include_dirs = include_directories(
 	'generic/include',
 	'genarch/include',
-	'arch' / h_arch / 'include',
-	'..' / 'abi' / 'arch' / h_arch / 'include',
+	'arch' / KARCH / 'include',
+	'..' / 'abi' / 'arch' / KARCH / 'include',
 	'..' / 'abi' / 'include',
 	'test',
 )
@@ -38,13 +38,13 @@ kernel_defs = [
 
 # Preprocess linker script using C preprocessor.
 kernel_ldscript = custom_target('_link.ld',
-	input: 'arch' / h_arch / '_link.ld.in',
+	input: 'arch' / KARCH / '_link.ld.in',
 	output: '_link.ld',
 	command: [
 		cc.cmd_array(),
 		arch_kernel_c_args,
 		kernel_defs,
-		'-I' + meson.current_source_dir() / 'arch' / h_arch / 'include',
+		'-I' + meson.current_source_dir() / 'arch' / KARCH / 'include',
 		'-D__ASSEMBLER__',
 		'-D__LINKER__',
 		'-E',

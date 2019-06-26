@@ -23,13 +23,13 @@ if CONFIG_TEST
 		'thread/thread1.c',
 	)
 
-	if h_arch == 'mips32'
+	if KARCH == 'mips32'
 		test_src += files('debug/mips1.c')
 	else
 		test_src += files('debug/mips1_skip.c')
 	endif
 
-	if h_arch == 'ia64'
+	if KARCH == 'ia64'
 		test_src += files('mm/purge1.c')
 	else
 		test_src += files('mm/purge1_skip.c')

@@ -63,6 +63,6 @@ drvs = [
 ]
 
 # sun4u driver won't compile on 32-bit targets
-if h_arch == 'sparc64'
+if UARCH == 'sparc64'
 	drvs += 'platform/sun4u'
 endif

@@ -16,7 +16,6 @@ has_function_printf = true
 needs_exe_wrapper = true
 
 cc_arch = 'mipsel'
-h_arch = 'mips32'
 bits = 32
 
 [host_machine]

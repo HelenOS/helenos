@@ -1,6 +1,6 @@
 # libarch
 arch_src = []
-subdir(join_paths('arch', h_arch))
+subdir('arch' / UARCH)
 
 c_args = [ '-fno-builtin', '-D_LIBC_SOURCE' ]
 
@@ -8,8 +8,8 @@ root_path = '..' / '..' / '..'
 
 incdirs = [
 	'include',
-	'arch' / h_arch / 'include',
-	root_path / 'abi' / 'arch' / h_arch / 'include',
+	'arch' / UARCH / 'include',
+	root_path / 'abi' / 'arch' / UARCH / 'include',
 	root_path / 'abi' / 'include',
 ]
 
