@@ -63,6 +63,7 @@ config_variables = [
 	'CONFIG_STRIP_BINARIES',
 	'CONFIG_UBSAN',
 	'CONFIG_USE_SHARED_LIBS',
+	'CROSS_TARGET',
 	'OPTIMIZATION',
 	'PROCESSOR',
 	'QUADFLOAT',
@@ -219,8 +220,6 @@ if CONFIG_LINE_DEBUG
 endif
 
 extra_cflags = extra_common_flags + [
-	'-imacros', join_paths(meson.source_root(), 'config.h'),
-
 	'-Wmissing-prototypes',
 
 	'-Wno-missing-braces',

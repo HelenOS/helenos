@@ -26,10 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = \
-	arch/$(UARCH)/src/entryjmp.c \
-	arch/$(UARCH)/src/thread_entry.c \
-	arch/$(UARCH)/src/fibril.c \
-	arch/$(UARCH)/src/tls.c \
-	arch/$(UARCH)/src/syscall.c \
-	arch/$(UARCH)/src/stacktrace.c
+arch_src += files(
+	'src/debug/stacktrace.c',
+	'src/proc/scheduler.c',
+	'src/proc/task.c',
+	'src/proc/thread.c',
+	'src/abs32le.c',
+	'src/userspace.c',
+	'src/smc.c',
+	'src/cpu/cpu.c',
+	'src/smp/smp.c',
+	'src/smp/ipi.c',
+	'src/mm/km.c',
+	'src/mm/as.c',
+	'src/mm/frame.c',
+	'src/mm/page.c',
+	'src/mm/tlb.c',
+)
