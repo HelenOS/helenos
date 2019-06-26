@@ -91,16 +91,18 @@ int cmd_unalias(char **argv)
 		}
 	}
 
+	int rc = CMD_SUCCESS;
 	size_t i;
 	for (i = 1; argv[i] != NULL; i++) {
 		alias_link = odict_find_eq(&alias_dict, (void *)argv[i], NULL);
 
 		if (alias_link == NULL) {
 			cli_error(CL_ENOENT, "%s: No alias '%s' found\n", cmdname, argv[i]);
+			rc = CMD_FAILURE;
 		} else {
 			free_alias(alias_link);
 		}
 	}
 
-	return CMD_SUCCESS;
+	return rc;
 }

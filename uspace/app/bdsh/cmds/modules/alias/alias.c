@@ -71,13 +71,15 @@ static errno_t set_alias(const char *name, const char *value)
 	if (alias_link != NULL) {
 		/* update existing value */
 		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
-		free(data->value);
-		data->value = str_dup(value);
+		char *dup_value = str_dup(value);
 
-		if (data->value == NULL) {
+		if (dup_value == NULL) {
 			cli_error(CL_ENOMEM, "%s: failing to allocate memory for value\n", cmdname);
 			return ENOMEM;
 		}
+
+		free(data->value);
+		data->value = dup_value;
 	} else {
 		/* add new value */
 		alias_t *data = (alias_t *)calloc(1, sizeof(alias_t));
