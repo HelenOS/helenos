@@ -42,6 +42,7 @@ kernel_ldscript = custom_target('_link.ld',
 	output: '_link.ld',
 	command: [
 		cc.cmd_array(),
+		arch_kernel_c_args,
 		kernel_defs,
 		'-I' + meson.current_source_dir() / 'arch' / h_arch / 'include',
 		'-D__ASSEMBLER__',

@@ -1,7 +1,6 @@
 # TODO: Use vcs_tag() to generate version string
 # TODO: jobfile
 # TODO: lto
-# TODO: -D__$(ENDIANESS)__ in cross
 # TODO: CONFIG_BUILD_SHARED_LIBS
 # TODO: fix clang build
 
@@ -66,6 +65,7 @@ config_variables = [
 	'CONFIG_USE_SHARED_LIBS',
 	'OPTIMIZATION',
 	'PROCESSOR',
+	'QUADFLOAT',
 	'RDFMT',
 
 	# Kernel only
@@ -105,6 +105,7 @@ config_variables = [
 	'CONFIG_SYMTAB',
 	'CONFIG_TEST',
 	'CONFIG_TRACE',
+	'CONFIG_TSB',
 	'CONFIG_UDEBUG',
 	'CONFIG_VIA_CUDA',
 	'MACHINE',

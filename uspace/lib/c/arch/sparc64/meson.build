@@ -26,29 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(PROCESSOR),sun4v)
-COMMON_CFLAGS += -mcpu=niagara -mno-vis
-else
-COMMON_CFLAGS += -mcpu=ultrasparc
-endif
+arch_src += [ autocheck.process('include/libarch/fibril_context.h') ]
 
-COMMON_CFLAGS += -m64 -mcmodel=medlow -mhard-float -m$(QUADFLOAT)-quad-float
+arch_src += files(
+	'src/entryjmp.S',
+	'src/thread_entry.S',
+	'src/fibril.S',
+	'src/tls.c',
+	'src/stacktrace.c',
+	'src/stacktrace_asm.S',
+	'src/rtld/dynamic.c',
+	'src/rtld/reloc.c',
+)
 
-LDFLAGS += -Wl,-no-check-sections,--gc-sections
-
-
-
-ifeq ($(PROCESSOR),us)
-	DEFS += -DSUN4U
-endif
-
-ifeq ($(PROCESSOR),us3)
-	DEFS += -DSUN4U
-endif
-
-ifeq ($(PROCESSOR),sun4v)
-	DEFS += -DSUN4V
-	COMMON_CFLAGS += -Wl,-z,max-page-size=0x2000
-else
-	COMMON_CFLAGS += -Wl,-z,max-page-size=0x4000
-endif
+arch_start_src = files('src/crt0.S')

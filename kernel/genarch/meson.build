@@ -141,7 +141,7 @@ if CONFIG_OFW_TREE
 endif
 
 if CONFIG_OFW_PCI
-	_src += [ 'ofw/ebus.c', 'ofw/pci.c ', 'ofw/sbus.c', 'ofw/upa.c' ]
+	_src += [ 'ofw/ebus.c', 'ofw/pci.c', 'ofw/sbus.c', 'ofw/upa.c' ]
 endif
 
 if CONFIG_MULTIBOOT
