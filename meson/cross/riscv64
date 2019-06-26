@@ -1,0 +1,30 @@
+# See http://mesonbuild.com/Cross-compilation.html
+
+[binaries]
+c = 'riscv64-helenos-gcc'
+cpp = 'riscv64-helenos-g++'
+ar = 'riscv64-helenos-ar'
+strip = 'riscv64-helenos-strip'
+nm = 'riscv64-helenos-nm'
+objcopy = 'riscv64-helenos-objcopy'
+objdump = 'riscv64-helenos-objdump'
+as = 'riscv64-helenos-as'
+ld = 'riscv64-helenos-ld'
+
+[properties]
+has_function_printf = true
+needs_exe_wrapper = true
+
+c_args = [ '-D__LE__', '-fno-omit-frame-pointer' ]
+cpp_args = [ '-D__LE__', '-fno-omit-frame-pointer', '-fno-exceptions' ]
+c_link_args = [ '-nostdlib', '-lgcc' ]
+cpp_link_args = [ '-nostdlib', '-lgcc' ]
+cc_arch = 'riscv64'
+h_arch = 'riscv64'
+bits = 64
+
+[host_machine]
+system = 'helenos'
+cpu_family = 'riscv64'
+cpu = 'riscv64'
+endian = 'little'
