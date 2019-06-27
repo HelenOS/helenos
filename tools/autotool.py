@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Copyright (c) 2010 Martin Decky
 # All rights reserved.
@@ -199,6 +199,10 @@ def get_target(config):
 	if (config['PLATFORM'] == "arm32"):
 		platform = config['PLATFORM']
 		target = "arm-helenos"
+
+	if (config['PLATFORM'] == "arm64"):
+		platform = config['PLATFORM']
+		target = "aarch64-helenos"
 
 	if (config['PLATFORM'] == "ia32"):
 		platform = config['PLATFORM']
@@ -632,7 +636,7 @@ def main():
 		check_libgcc(common)
 
 		# Platform-specific utilities
-		if ((config['BARCH'] == "amd64") or (config['BARCH'] == "ia32") or (config['BARCH'] == "ppc32") or (config['BARCH'] == "sparc64")):
+		if (config['BARCH'] in ('amd64', 'arm64', 'ia32', 'ppc32', 'sparc64')):
 			common['GENISOIMAGE'] = check_app_alternatives(["genisoimage", "mkisofs", "xorriso"], ["--version"], "ISO 9660 creation utility", "usually part of genisoimage")
 			if common['GENISOIMAGE'] == 'xorriso':
 				common['GENISOIMAGE'] += ' -as genisoimage'

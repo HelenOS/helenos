@@ -163,7 +163,7 @@ do { \
  * @param i  Index of the entry to return.
  *
  */
-NO_TRACE static inline int get_pt_level0_flags(pte_t *pt, size_t i)
+_NO_TRACE static inline int get_pt_level0_flags(pte_t *pt, size_t i)
 {
 	const pte_level0_t *p = &pt[i].l0;
 	const unsigned np = (p->descriptor_type == PTE_DESCRIPTOR_NOT_PRESENT);
@@ -179,7 +179,7 @@ NO_TRACE static inline int get_pt_level0_flags(pte_t *pt, size_t i)
  * @param i  Index of the entry to return.
  *
  */
-NO_TRACE static inline int get_pt_level1_flags(pte_t *pt, size_t i)
+_NO_TRACE static inline int get_pt_level1_flags(pte_t *pt, size_t i)
 {
 	const pte_level1_t *p = &pt[i].l1;
 
@@ -205,7 +205,7 @@ NO_TRACE static inline int get_pt_level1_flags(pte_t *pt, size_t i)
  * @param flags new flags
  *
  */
-NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
+_NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_level0_t *p = &pt[i].l0;
 
@@ -238,7 +238,7 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
  * @param flags New flags.
  *
  */
-NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
+_NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_level1_t *p = &pt[i].l1;
 
@@ -296,7 +296,7 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	pt_coherence(p);
 }
 
-NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
+_NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
 {
 	pte_level0_t *p = &pt[i].l0;
 
@@ -306,7 +306,7 @@ NO_TRACE static inline void set_pt_level0_present(pte_t *pt, size_t i)
 	pt_coherence(p);
 }
 
-NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
+_NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 {
 	pte_level1_t *p = &pt[i].l1;
 

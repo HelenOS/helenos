@@ -31,8 +31,8 @@
  * @{
  */
 
-#ifndef LIBC_IO_LOG_H_
-#define LIBC_IO_LOG_H_
+#ifndef _LIBC_IO_LOG_H_
+#define _LIBC_IO_LOG_H_
 
 #include <stdarg.h>
 #include <inttypes.h>

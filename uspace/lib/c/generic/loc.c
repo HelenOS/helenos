@@ -61,12 +61,12 @@ static void loc_cb_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case LOC_EVENT_CAT_CHANGE:
 			fibril_mutex_lock(&loc_callback_mutex);
 			loc_cat_change_cb_t cb_fun = cat_change_cb;
@@ -302,7 +302,7 @@ errno_t loc_service_register(const char *fqsn, service_id_t *sid)
 	}
 
 	if (sid != NULL)
-		*sid = (service_id_t) IPC_GET_ARG1(answer);
+		*sid = (service_id_t) ipc_get_arg1(&answer);
 
 	return retval;
 }
@@ -358,7 +358,7 @@ errno_t loc_service_get_id(const char *fqdn, service_id_t *handle,
 	}
 
 	if (handle != NULL)
-		*handle = (service_id_t) IPC_GET_ARG1(answer);
+		*handle = (service_id_t) ipc_get_arg1(&answer);
 
 	return retval;
 }
@@ -403,7 +403,7 @@ static errno_t loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 	if (retval != EOK)
 		return retval;
 
-	act_size = IPC_GET_ARG2(dreply);
+	act_size = ipc_get_arg2(&dreply);
 	assert(act_size <= LOC_NAME_MAXLEN);
 	name_buf[act_size] = '\0';
 
@@ -491,7 +491,7 @@ errno_t loc_namespace_get_id(const char *name, service_id_t *handle,
 	}
 
 	if (handle != NULL)
-		*handle = (service_id_t) IPC_GET_ARG1(answer);
+		*handle = (service_id_t) ipc_get_arg1(&answer);
 
 	return retval;
 }
@@ -540,7 +540,7 @@ errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
 	}
 
 	if (cat_id != NULL)
-		*cat_id = (category_id_t) IPC_GET_ARG1(answer);
+		*cat_id = (category_id_t) ipc_get_arg1(&answer);
 
 	return retval;
 }
@@ -777,7 +777,7 @@ static errno_t loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
 		return retval;
 	}
 
-	*act_size = IPC_GET_ARG1(answer);
+	*act_size = ipc_get_arg1(&answer);
 	return EOK;
 }
 

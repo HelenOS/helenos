@@ -38,18 +38,42 @@
 #include <sys/types.h>
 #include <ucontext.h>
 
+#define SIG_DFL ((void (*)(int)) __posix_default_signal_handler)
+#define SIG_ERR ((void (*)(int)) NULL)
+#define SIG_HOLD ((void (*)(int)) __posix_hold_signal_handler)
+#define SIG_IGN ((void (*)(int)) __posix_ignore_signal_handler)
+
+/* Values of sigevent::sigev_notify */
+#define SIGEV_NONE 0
+#define SIGEV_SIGNAL 0
+#define SIGEV_THREAD 0
+
+#define SIGRT_MIN 0
+#define SIGRT_MAX 0
+
+#define SIG_BLOCK 0
+#define SIG_UNBLOCK 1
+#define SIG_SETMASK 2
+
+#define SA_NOCLDSTOP (1 << 0)
+#define SA_ONSTACK (1 << 1)
+#define SA_RESETHAND (1 << 2)
+#define SA_RESTART (1 << 3)
+#define SA_SIGINFO (1 << 4)
+#define SA_NOCLDWAIT (1 << 5)
+#define SA_NODEFER (1 << 6)
+
+#define SS_ONSTACK 0
+#define SS_DISABLE 0
+
+#define MINSIGSTKSZ 0
+#define SIGSTKSZ 0
+
+__C_DECLS_BEGIN;
+
 extern void __posix_default_signal_handler(int signo);
 extern void __posix_hold_signal_handler(int signo);
 extern void __posix_ignore_signal_handler(int signo);
-
-#undef SIG_DFL
-#define SIG_DFL ((void (*)(int)) __posix_default_signal_handler)
-#undef SIG_ERR
-#define SIG_ERR ((void (*)(int)) NULL)
-#undef SIG_HOLD
-#define SIG_HOLD ((void (*)(int)) __posix_hold_signal_handler)
-#undef SIG_IGN
-#define SIG_IGN ((void (*)(int)) __posix_ignore_signal_handler)
 
 typedef struct {
 	int si_signo;
@@ -73,51 +97,6 @@ struct sigaction {
 	int sa_flags;
 	void (*sa_sigaction)(int, siginfo_t *, void *);
 };
-
-/* Values of sigevent::sigev_notify */
-#undef SIGEV_NONE
-#undef SIGEV_SIGNAL
-#undef SIGEV_THREAD
-#define SIGEV_NONE 0
-#define SIGEV_SIGNAL 0
-#define SIGEV_THREAD 0
-
-#undef SIGRT_MIN
-#undef SIGRT_MAX
-#define SIGRT_MIN 0
-#define SIGRT_MAX 0
-
-#undef SIG_BLOCK
-#undef SIG_UNBLOCK
-#undef SIG_SETMASK
-#define SIG_BLOCK 0
-#define SIG_UNBLOCK 1
-#define SIG_SETMASK 2
-
-#undef SA_NOCLDSTOP
-#undef SA_ONSTACK
-#undef SA_RESETHAND
-#undef SA_RESTART
-#undef SA_SIGINFO
-#undef SA_NOCLDWAIT
-#undef SA_NODEFER
-#define SA_NOCLDSTOP (1 << 0)
-#define SA_ONSTACK (1 << 1)
-#define SA_RESETHAND (1 << 2)
-#define SA_RESTART (1 << 3)
-#define SA_SIGINFO (1 << 4)
-#define SA_NOCLDWAIT (1 << 5)
-#define SA_NODEFER (1 << 6)
-
-#undef SS_ONSTACK
-#undef SS_DISABLE
-#define SS_ONSTACK 0
-#define SS_DISABLE 0
-
-#undef MINSIGSTKSZ
-#undef SIGSTKSZ
-#define MINSIGSTKSZ 0
-#define SIGSTKSZ 0
 
 /* Full POSIX set */
 enum {
@@ -243,6 +222,8 @@ extern int thread_sigmask(int how, const sigset_t *__restrict__ set,
     sigset_t *__restrict__ oset);
 extern int sigprocmask(int how, const sigset_t *__restrict__ set,
     sigset_t *__restrict__ oset);
+
+__C_DECLS_END;
 
 #endif /* POSIX_SIGNAL_H_ */
 

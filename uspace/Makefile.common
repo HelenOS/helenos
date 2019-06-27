@@ -45,8 +45,6 @@
 # Optionally, for a binary:
 #   STATIC_NEEDED      set to 'y' for init binaries, will build statically
 #                      linked version
-#   STATIC_ONLY        set to 'y' if binary cannot be linked dynamically
-#                      (e.g. uses thread-local variables)
 #
 # Optionally, for a library:
 #   SOVERSION            shared library version (major.minor),
@@ -110,33 +108,31 @@ LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
 START_FILES = $(LIBC_PREFIX)/crt0.o $(LIBC_PREFIX)/crt1.o
 
-AFLAGS = --fatal-warnings
 LDFLAGS = -Wl,--fatal-warnings,--warn-common
+
+STATIC_BUILD = n
 
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
-else
-	ifeq ($(STATIC_ONLY),y)
+endif
+
+ifneq ($(CONFIG_BUILD_SHARED_LIBS),y)
+	STATIC_BUILD = y
+endif
+
+ifneq ($(CONFIG_USE_SHARED_LIBS),y)
+	ifeq ($(LIBRARY),)
 		STATIC_BUILD = y
-	else
-		ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
-			ifeq ($(CONFIG_USE_SHARED_LIBS),y)
-				STATIC_BUILD = n
-			else
-				ifeq ($(LIBRARY),)
-					STATIC_BUILD = y
-				else
-					STATIC_BUILD = n
-				endif
-			endif
-		else
-			STATIC_BUILD = y
-		endif
 	endif
 endif
 
-ifneq ($(STATIC_BUILD),y)
-	LINK_DYNAMIC = y
+# LINK_DYNAMIC is only here to allow app/dltest to link dynamically in otherwise static build.
+ifeq ($(LINK_DYNAMIC),y)
+	STATIC_BUILD = n
+endif
+
+ifeq ($(STATIC_BUILD),y)
+	LDFLAGS += -static
 endif
 
 BASE_LIBS =
@@ -151,10 +147,6 @@ endif
 
 BASE_LIBS += -lgcc
 
-ifneq ($(LINK_DYNAMIC),y)
-	LDFLAGS += -static
-endif
-
 INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
 
 ifneq ($(LIBRARY),)
@@ -163,9 +155,16 @@ endif
 
 INCLUDES_FLAGS += $(foreach lib,$(LIBS), -I$(LIB_PREFIX)/$(lib) -I$(LIB_PREFIX)/$(lib)/include)
 
-# TODO: get rid of this special case
-ifneq ($(filter math, $(LIBS)),)
-	INCLUDES_FLAGS += $(LIBMATH_INCLUDES_FLAGS)
+DEPLIBS := $(LIBS)
+
+ifneq ($(filter %.cpp %.cc %.cxx, $(SOURCES)),)
+	ifneq ($(LIBRARY),libcpp)
+		DEPLIBS += cpp
+	endif
+endif
+
+ifneq ($(LIBRARY),libc)
+	DEPLIBS += c
 endif
 
 # PCUT-based unit tests
@@ -193,7 +192,8 @@ DEFAULT_CFLAGS = \
 	-Wwrite-strings \
 	-Werror-implicit-function-declaration \
 	-Wsystem-headers \
-	-Wunknown-pragmas
+	-Wunknown-pragmas \
+	-Wa,--fatal-warnings
 
 # XXX: -fno-builtin-strftime is for a seemingly spurious format warning.
 
@@ -295,21 +295,16 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 
 LIB_CFLAGS = $(CFLAGS) -fPIC
+LIB_CXXFLAGS = $(CXXFLAGS) -fPIC
 LIB_LDFLAGS = $(LDFLAGS) -shared -Wl,-soname,$(LSONAME) -Wl,--no-undefined,--no-allow-shlib-undefined
-
-AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 TEST_OBJECTS := $(addsuffix .test.o,$(basename $(TEST_SOURCES)))
 DEPENDS := $(addsuffix .d,$(basename $(SOURCES))) $(addsuffix .test.d,$(basename $(TEST_SOURCES)))
 
-LIBTAGS := $(foreach lib,$(LIBS), $(USPACE_PREFIX)/lib/$(lib)/tag)
+LIBTAGS := $(foreach lib,$(DEPLIBS), $(USPACE_PREFIX)/lib/$(lib)/tag)
 LIBARGS := $(addprefix -L$(USPACE_PREFIX)/lib/, $(LIBS)) $(addprefix -l, $(LIBS))
-
-ifneq ($(LIBRARY),libc)
-	LIBTAGS := $(LIBC_PREFIX)/tag $(LIBTAGS)
-endif
 
 .PHONY: all all-test clean fasterclean depend
 
@@ -338,7 +333,7 @@ tag:
 # This is needed to ensure correct build order of libraries and code depending on them.
 deps.mk: Makefile
 	echo > $@.new
-	for lib in $(LIBS); do \
+	for lib in $(DEPLIBS); do \
 		echo "$(SELF_TARGET): lib/$$lib.build" >> $@.new; \
 	done
 	mv -f $@.new $@
@@ -388,10 +383,10 @@ $(LSONAME):
 endif
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
@@ -409,21 +404,21 @@ endif
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
 
 %.lo: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 %.lo: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 %.lo: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 %.lo: %.cpp | depend
-	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(LIB_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 %.lo: %.cxx | depend
-	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(LIB_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 %.lo: %.cc | depend
-	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(LIB_CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 -include $(DEPENDS)

@@ -37,18 +37,7 @@
 
 #include <abi/elf.h>
 
-/**
- * ELF error return codes
- */
-#define EE_OK             0  /* No error */
-#define EE_INVALID        1  /* Invalid ELF image */
-#define EE_MEMORY         2  /* Cannot allocate address space */
-#define EE_INCOMPATIBLE   3  /* ELF image is not compatible with current architecture */
-#define EE_UNSUPPORTED    4  /* Non-supported ELF (e.g. dynamic ELFs) */
-#define EE_IRRECOVERABLE  5  /* Irrecoverable error. */
-
-extern unsigned int elf_load(elf_header_t *, as_t *);
-extern const char *elf_error(unsigned int rc);
+extern errno_t elf_load(elf_header_t *, as_t *);
 
 #endif
 

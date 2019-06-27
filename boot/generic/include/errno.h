@@ -39,6 +39,8 @@
 #define EINVAL     -14  /* Invalid value. */
 #define EOVERFLOW  -16  /* The result does not fit its size. */
 
+typedef int errno_t;
+
 #endif
 
 /** @}

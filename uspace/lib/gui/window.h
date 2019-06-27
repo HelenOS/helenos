@@ -41,7 +41,7 @@
 #include <fibril_synch.h>
 #include <ipc/window.h>
 #include <io/window.h>
-#include <surface.h>
+#include <draw/surface.h>
 
 #include "widget.h"
 

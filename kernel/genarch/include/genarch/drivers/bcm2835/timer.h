@@ -63,22 +63,11 @@ typedef struct {
 	ioport32_t c3;
 } bcm2835_timer_t;
 
-static inline void bcm2835_timer_start(bcm2835_timer_t *timer)
-{
-	assert(timer);
-	/* Clear pending interrupt on channel 1 */
-	timer->cs |= BCM2835_TIMER_CS_M1;
-	/* Initialize compare value for match channel 1 */
-	timer->c1 = timer->clo + (BCM2835_CLOCK_FREQ / HZ);
-}
-
-static inline void bcm2835_timer_irq_ack(bcm2835_timer_t *timer)
-{
-	assert(timer);
-	/* Clear pending interrupt on channel 1 */
-	timer->cs |= BCM2835_TIMER_CS_M1;
-	/* Reprogram compare value for match channel 1 */
-	timer->c1 = timer->clo + (BCM2835_CLOCK_FREQ / HZ);
-}
+extern void bcm2835_timer_start(bcm2835_timer_t *);
+extern void bcm2835_timer_irq_ack(bcm2835_timer_t *);
 
 #endif /* KERN_BCM2835_TIMER_H_ */
+
+/**
+ * @}
+ */

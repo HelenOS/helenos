@@ -33,8 +33,8 @@
  * @file
  */
 
-#ifndef LIBC_IO_MODE_H_
-#define LIBC_IO_MODE_H_
+#ifndef _LIBC_IO_MODE_H_
+#define _LIBC_IO_MODE_H_
 
 #include <abi/fb/visuals.h>
 #include <adt/list.h>

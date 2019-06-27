@@ -29,7 +29,6 @@
 
 COMMON_CFLAGS += -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 
-AFLAGS += -mconstant-gp
 LDFLAGS += -Wl,-EL
 
 BITS = 64

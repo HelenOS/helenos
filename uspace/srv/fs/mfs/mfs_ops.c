@@ -99,9 +99,9 @@ typedef struct {
 } node_key_t;
 
 static size_t
-open_nodes_key_hash(void *key)
+open_nodes_key_hash(const void *key)
 {
-	node_key_t *node_key = (node_key_t *)key;
+	const node_key_t *node_key = key;
 	return hash_combine(node_key->service_id, node_key->index);
 }
 
@@ -113,9 +113,9 @@ open_nodes_hash(const ht_link_t *item)
 }
 
 static bool
-open_nodes_key_equal(void *key, const ht_link_t *item)
+open_nodes_key_equal(const void *key, const ht_link_t *item)
 {
-	node_key_t *node_key = (node_key_t *)key;
+	const node_key_t *node_key = key;
 	struct mfs_node *mnode = hash_table_get_inst(item, struct mfs_node, link);
 
 	return node_key->service_id == mnode->instance->service_id &&

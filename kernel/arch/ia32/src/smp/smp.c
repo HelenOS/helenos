@@ -54,7 +54,7 @@
 #include <mm/as.h>
 #include <log.h>
 #include <mem.h>
-#include <arch/drivers/i8259.h>
+#include <genarch/drivers/i8259/i8259.h>
 #include <cpu.h>
 
 #ifdef CONFIG_SMP
@@ -129,7 +129,7 @@ void kmp(void *arg __attribute__((unused)))
 	pio_write_8((ioport8_t *) 0x70, 0xf);
 	pio_write_8((ioport8_t *) 0x71, 0xa);
 
-	pic_disable_irqs(0xffff);
+	i8259_disable_irqs(0xffff);
 	apic_init();
 
 	for (i = 0; i < config.cpu_count; i++) {

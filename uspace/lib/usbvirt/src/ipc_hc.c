@@ -112,7 +112,7 @@ errno_t usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 		return (errno_t) opening_request_rc;
 
 	if (data_transferred_size != NULL)
-		*data_transferred_size = IPC_GET_ARG2(data_request_call);
+		*data_transferred_size = ipc_get_arg2(&data_request_call);
 
 	return EOK;
 }
@@ -249,7 +249,7 @@ errno_t usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
 		return (errno_t) opening_request_rc;
 
 	if (act_size != NULL)
-		*act_size = IPC_GET_ARG2(data_request_call);
+		*act_size = ipc_get_arg2(&data_request_call);
 
 	return EOK;
 }

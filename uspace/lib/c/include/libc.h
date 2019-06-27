@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_LIBC_H_
-#define LIBC_LIBC_H_
+#ifndef _LIBC_LIBC_H_
+#define _LIBC_LIBC_H_
 
 #include <stdint.h>
 #include <abi/syscall.h>

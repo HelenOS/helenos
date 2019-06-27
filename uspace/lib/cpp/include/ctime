@@ -29,51 +29,27 @@
 #ifndef LIBCPP_CTIME
 #define LIBCPP_CTIME
 
-
-namespace std::hel
-{
-    extern "C" {
-        #include <time.h>
-    }
-}
+#include <time.h>
 
 namespace std
 {
-    /* using std::hel::clock_t; */
-    using std::hel::size_t;
-    using std::hel::time_t;
-    using std::hel::tm;
-    /* using std::hel::timespec; */
+    using ::clock_t;
+    using ::size_t;
+    using ::time_t;
+    using ::tm;
+    using ::timespec;
 
-    /* using std::hel::clock; */
-    using std::hel::time;
-    using std::hel::difftime;
+    using ::clock;
+    using ::time;
+    using ::difftime;
 
-    /* using std::hel::ctime; */
-    /* using std::hel::asctime; */
-    using std::hel::strftime;
-    /* using std::hel::wcsftime; */
-    /* using std::hel::gmtime; */
-    /* using std::hel::localtime; */
-    using std::hel::mktime;
+    using ::ctime;
+    using ::asctime;
+    using ::strftime;
+    /* using ::wcsftime; */
+    /* using ::gmtime; */
+    /* using ::localtime; */
+    using ::mktime;
 }
-
-/* using std::hel::clock_t; */
-using std::hel::size_t;
-using std::hel::time_t;
-using std::hel::tm;
-/* using std::hel::timespec; */
-
-/* using std::hel::clock; */
-using std::hel::time;
-using std::hel::difftime;
-
-/* using std::hel::ctime; */
-/* using std::hel::asctime; */
-using std::hel::strftime;
-/* using std::hel::wcsftime; */
-/* using std::hel::gmtime; */
-/* using std::hel::localtime; */
-using std::hel::mktime;
 
 #endif

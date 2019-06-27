@@ -67,7 +67,7 @@ static outdev_operations_t dsrlndev_ops = {
 	.scroll_down = NULL
 };
 
-outdev_t *dsrlnout_init(ioport8_t *base)
+outdev_t *dsrlnout_init(ioport8_t *base, uintptr_t base_phys)
 {
 	outdev_t *dsrlndev = malloc(sizeof(outdev_t));
 	if (!dsrlndev)
@@ -84,7 +84,7 @@ outdev_t *dsrlnout_init(ioport8_t *base)
 
 	instance->base = base;
 	ddi_parea_init(&instance->parea);
-	instance->parea.pbase = KA2PA(base);
+	instance->parea.pbase = base_phys;
 	instance->parea.frames = 1;
 	instance->parea.unpriv = false;
 	instance->parea.mapped = false;

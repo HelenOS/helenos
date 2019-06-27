@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_COLOR_H_
-#define LIBC_IO_COLOR_H_
+#ifndef _LIBC_IO_COLOR_H_
+#define _LIBC_IO_COLOR_H_
 
 typedef enum {
 	COLOR_BLACK   = 0,

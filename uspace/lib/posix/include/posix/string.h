@@ -46,13 +46,11 @@
 #include <stddef.h>
 
 #include <libc/mem.h>
-#ifdef _HELENOS_SOURCE
-#undef _HELENOS_SOURCE
+
+#define _REALLY_WANT_STRING_H
 #include <libc/string.h>
-#define _HELENOS_SOURCE
-#else
-#include <libc/string.h>
-#endif
+
+__C_DECLS_BEGIN;
 
 /* Copying and Concatenation */
 extern char *stpcpy(char *__restrict__ dest, const char *__restrict__ src);
@@ -72,11 +70,11 @@ extern int strerror_r(int errnum, char *buf, size_t bufsz);
 extern char *strsignal(int signum);
 
 /* Legacy Declarations */
-#ifndef POSIX_STRINGS_H_
 extern int ffs(int i);
 extern int strcasecmp(const char *s1, const char *s2);
 extern int strncasecmp(const char *s1, const char *s2, size_t n);
-#endif
+
+__C_DECLS_END;
 
 #endif  // POSIX_STRING_H_
 

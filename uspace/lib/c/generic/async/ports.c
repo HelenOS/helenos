@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define LIBC_ASYNC_C_
+#define _LIBC_ASYNC_C_
 #include <ipc/ipc.h>
 #include <async.h>
 #include "../private/async.h"
-#undef LIBC_ASYNC_C_
+#undef _LIBC_ASYNC_C_
 
 #include <ipc/irq.h>
 #include <ipc/event.h>
@@ -102,10 +102,10 @@ static void *fallback_port_data = NULL;
 static fibril_rmutex_t interface_mutex;
 static hash_table_t interface_hash_table;
 
-static size_t interface_key_hash(void *key)
+static size_t interface_key_hash(const void *key)
 {
-	iface_t iface = *(iface_t *) key;
-	return iface;
+	const iface_t *iface = key;
+	return *iface;
 }
 
 static size_t interface_hash(const ht_link_t *item)
@@ -114,11 +114,11 @@ static size_t interface_hash(const ht_link_t *item)
 	return interface_key_hash(&interface->iface);
 }
 
-static bool interface_key_equal(void *key, const ht_link_t *item)
+static bool interface_key_equal(const void *key, const ht_link_t *item)
 {
-	iface_t iface = *(iface_t *) key;
+	const iface_t *iface = key;
 	interface_t *interface = hash_table_get_inst(item, interface_t, link);
-	return iface == interface->iface;
+	return *iface == interface->iface;
 }
 
 /** Operations for the port hash table. */
@@ -130,10 +130,10 @@ static hash_table_ops_t interface_hash_table_ops = {
 	.remove_callback = NULL
 };
 
-static size_t port_key_hash(void *key)
+static size_t port_key_hash(const void *key)
 {
-	port_id_t port_id = *(port_id_t *) key;
-	return port_id;
+	const port_id_t *port_id = key;
+	return *port_id;
 }
 
 static size_t port_hash(const ht_link_t *item)
@@ -142,11 +142,11 @@ static size_t port_hash(const ht_link_t *item)
 	return port_key_hash(&port->id);
 }
 
-static bool port_key_equal(void *key, const ht_link_t *item)
+static bool port_key_equal(const void *key, const ht_link_t *item)
 {
-	port_id_t port_id = *(port_id_t *) key;
+	const port_id_t *port_id = key;
 	port_t *port = hash_table_get_inst(item, port_t, link);
-	return port_id == port->id;
+	return *port_id == port->id;
 }
 
 /** Operations for the port hash table. */

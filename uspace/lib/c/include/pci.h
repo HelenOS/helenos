@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PCI_H_
-#define LIBC_PCI_H_
+#ifndef _LIBC_PCI_H_
+#define _LIBC_PCI_H_
 
 #include <errno.h>
 #include <ipc/devman.h>

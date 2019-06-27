@@ -27,7 +27,6 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = ext4 fs block crypto
 BINARY = pci
 
 SOURCES = \

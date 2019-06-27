@@ -538,12 +538,12 @@ void ipc_irq_top_half_handler(irq_t *irq)
 		call->priv = ++irq->notif_cfg.counter;
 
 		/* Set up args */
-		IPC_SET_IMETHOD(call->data, irq->notif_cfg.imethod);
-		IPC_SET_ARG1(call->data, irq->notif_cfg.scratch[1]);
-		IPC_SET_ARG2(call->data, irq->notif_cfg.scratch[2]);
-		IPC_SET_ARG3(call->data, irq->notif_cfg.scratch[3]);
-		IPC_SET_ARG4(call->data, irq->notif_cfg.scratch[4]);
-		IPC_SET_ARG5(call->data, irq->notif_cfg.scratch[5]);
+		ipc_set_imethod(&call->data, irq->notif_cfg.imethod);
+		ipc_set_arg1(&call->data, irq->notif_cfg.scratch[1]);
+		ipc_set_arg2(&call->data, irq->notif_cfg.scratch[2]);
+		ipc_set_arg3(&call->data, irq->notif_cfg.scratch[3]);
+		ipc_set_arg4(&call->data, irq->notif_cfg.scratch[4]);
+		ipc_set_arg5(&call->data, irq->notif_cfg.scratch[5]);
 
 		send_call(irq, call);
 	}
@@ -575,12 +575,12 @@ void ipc_irq_send_msg(irq_t *irq, sysarg_t a1, sysarg_t a2, sysarg_t a3,
 		/* Put a counter to the message */
 		call->priv = ++irq->notif_cfg.counter;
 
-		IPC_SET_IMETHOD(call->data, irq->notif_cfg.imethod);
-		IPC_SET_ARG1(call->data, a1);
-		IPC_SET_ARG2(call->data, a2);
-		IPC_SET_ARG3(call->data, a3);
-		IPC_SET_ARG4(call->data, a4);
-		IPC_SET_ARG5(call->data, a5);
+		ipc_set_imethod(&call->data, irq->notif_cfg.imethod);
+		ipc_set_arg1(&call->data, a1);
+		ipc_set_arg2(&call->data, a2);
+		ipc_set_arg3(&call->data, a3);
+		ipc_set_arg4(&call->data, a4);
+		ipc_set_arg5(&call->data, a5);
 
 		send_call(irq, call);
 	}

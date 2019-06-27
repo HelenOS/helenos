@@ -34,11 +34,13 @@
  * @file
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <str.h>
 #include <io/log.h>
+#include <types/casting.h>
 #include "tester.h"
 
 bool test_quiet;
@@ -143,17 +145,13 @@ static void list_tests(void)
 			len = str_length(test->name);
 	}
 
-	unsigned int _len = (unsigned int) len;
-	if ((_len != len) || (((int) _len) < 0)) {
-		printf("Command length overflow\n");
-		return;
-	}
+	assert(can_cast_size_t_to_int(len) && "test name length overflow");
 
 	for (test = tests; test->name != NULL; test++)
-		printf("%-*s %s%s\n", _len, test->name, test->desc,
+		printf("%-*s %s%s\n", (int) len, test->name, test->desc,
 		    (test->safe ? "" : " (unsafe)"));
 
-	printf("%-*s Run all safe tests\n", _len, "*");
+	printf("%-*s Run all safe tests\n", (int) len, "*");
 }
 
 int main(int argc, char *argv[])

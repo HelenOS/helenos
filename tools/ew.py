@@ -56,16 +56,25 @@ def cfg_get(platform, machine, processor):
 		return emulators[platform][machine][processor]
 
 def termemu_detect():
-	for termemu in ['xfce4-terminal', 'xterm']:
+	emus = ['gnome-terminal', 'xfce4-terminal', 'xterm']
+	for termemu in emus:
 		try:
 			subprocess.check_output('which ' + termemu, shell = True)
 			return termemu
 		except:
 			pass
 
+	print('Could not find any of the terminal emulators %s.'%(emus))
+	sys.exit(1)
+
 def run_in_console(cmd, title):
-	ecmd = cmd.replace('"', '\\"')
-	cmdline = termemu_detect() + ' -T ' + '"' + title + '"' + ' -e "' + ecmd + '"'
+	temu = termemu_detect()
+	if temu == 'gnome-terminal':
+		cmdline = temu + ' -- ' + cmd
+	else:
+		ecmd = cmd.replace('"', '\\"')
+		cmdline = temu + ' -T ' + '"' + title + '"' + ' -e "' + ecmd + '"'
+
 	print(cmdline)
 	if not is_override('dryrun'):
 		subprocess.call(cmdline, shell = True)
@@ -86,13 +95,47 @@ def pc_options(guest_width):
 	return opts[1:]
 
 def malta_options():
-	return '-cpu 4Kc'
+	return '-cpu 4Kc -append "console=devices/\\hw\\pci0\\00:0a.0\\com1\\a"'
+
+def find_firmware(name, environ_var, default_paths, extra_info=None):
+	"""Find firmware image(s)."""
+
+	if environ_var in os.environ:
+		return os.environ[environ_var]
+
+	for path in default_paths:
+		if os.path.exists(path):
+			return path
+
+	sys.stderr.write("Cannot find %s binary image(s)!\n" % name)
+	sys.stderr.write(
+	    "Either set %s environment variable accordingly or place the image(s) in one of the default locations: %s.\n" %
+	    (environ_var, ", ".join(default_paths)))
+	if extra_info is not None:
+		sys.stderr.write(extra_info)
+	return None
 
 def platform_to_qemu_options(platform, machine, processor):
 	if platform == 'amd64':
 		return 'system-x86_64', pc_options(64)
 	elif platform == 'arm32':
 		return 'system-arm', '-M integratorcp'
+	elif platform == 'arm64':
+		# Search for the EDK2 firmware image
+		default_paths = (
+			'/usr/local/qemu-efi-aarch64/QEMU_EFI.fd', # Custom
+			'/usr/share/edk2/aarch64/QEMU_EFI.fd',     # Fedora
+			'/usr/share/qemu-efi-aarch64/QEMU_EFI.fd', # Ubuntu
+		)
+		extra_info = ("Pre-compiled binary can be obtained from "
+		    "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/latest/QEMU-AARCH64/RELEASE_GCC49/QEMU_EFI.fd.\n")
+		efi_path = find_firmware(
+		    "EDK2", 'EW_QEMU_EFI_AARCH64', default_paths, extra_info)
+		if efi_path is None:
+			raise Exception
+
+		return 'system-aarch64', \
+		    '-M virt -cpu cortex-a57 -m 1024 -bios %s' % efi_path
 	elif platform == 'ia32':
 		return 'system-i386', pc_options(32)
 	elif platform == 'mips32':
@@ -107,18 +150,12 @@ def platform_to_qemu_options(platform, machine, processor):
 			raise Exception
 		if processor == 'us':
 			return 'system-sparc64', '-M sun4u --prom-env boot-args="console=devices/\\hw\\pci0\\01:01.0\\com1\\a"'
-		elif processor == 'sun4v':
-			default_path = '/usr/local/opensparc/image/'
-		try:
-			if os.path.exists(default_path):
-				opensparc_bins = default_path
-			elif os.path.exists(os.environ['OPENSPARC_BINARIES']):
-				opensparc_bins = os.environ['OPENSPARC_BINARIES']
-			else:
-				raise Exception
-		except:
-			print("Cannot find OpenSPARC binary images!")
-			print("Either set OPENSPARC_BINARIES environment variable accordingly or place the images in %s." % (default_path))
+
+		# processor = 'sun4v'
+		opensparc_bins = find_firmware(
+		    "OpenSPARC", 'OPENSPARC_BINARIES',
+		    ('/usr/local/opensparc/image/', ))
+		if opensparc_bins is None:
 			raise Exception
 
 		return 'system-sparc64', '-M niagara -m 256 -L %s' % (opensparc_bins)
@@ -134,7 +171,14 @@ def qemu_bd_options():
 
 	hdisk_mk()
 
-	return ' -drive file=hdisk.img,index=0,media=disk,format=raw'
+	hdd_options = ''
+	if 'hdd' in overrides.keys():
+		if 'ata' in overrides['hdd'].keys():
+			hdd_options += ''
+		elif 'virtio-blk' in overrides['hdd'].keys():
+			hdd_options += ',if=virtio'
+
+	return ' -drive file=hdisk.img,index=0,media=disk,format=raw' + hdd_options
 
 def qemu_nic_ne2k_options():
 	return ' -device ne2k_isa,irq=5,netdev=n1'
@@ -200,8 +244,8 @@ def qemu_run(platform, machine, processor):
 	if options != '':
 		cmdline += ' ' + options
 
-	cmdline += qemu_bd_options()
-
+	if (not 'hdd' in cfg.keys() or cfg['hdd']):
+		cmdline += qemu_bd_options()
 	if (not 'net' in cfg.keys()) or cfg['net']:
 		cmdline += qemu_net_options()
 	if (not 'usb' in cfg.keys()) or cfg['usb']:
@@ -226,6 +270,13 @@ def qemu_run(platform, machine, processor):
 
 	if cfg['image'] == 'image.iso':
 		cmdline += ' -boot d -cdrom image.iso'
+	elif cfg['image'] == 'image.iso@arm64':
+		# Define image.iso cdrom backend.
+		cmdline += ' -drive if=none,file=image.iso,id=cdrom,media=cdrom'
+		# Define scsi bus.
+		cmdline += ' -device virtio-scsi-device'
+		# Define cdrom frontend connected to this scsi bus.
+		cmdline += ' -device scsi-cd,drive=cdrom'
 	elif cfg['image'] == 'image.boot':
 		cmdline += ' -kernel image.boot'
 	else:
@@ -268,6 +319,19 @@ emulators = {
 			'audio' : False,
 			'xhci' : False,
 			'tablet' : False
+		}
+	},
+	'arm64' : {
+		'virt' : {
+			'run' : qemu_run,
+			'image' : 'image.iso@arm64',
+			'audio' : False,
+			'console' : True,
+			'hdd' : False,
+			'net' : False,
+			'tablet' : False,
+			'usb' : False,
+			'xhci' : False
 		}
 	},
 	'ia32' : {
@@ -335,7 +399,7 @@ emulators = {
 
 def usage():
 	print("%s - emulator wrapper for running HelenOS\n" % os.path.basename(sys.argv[0]))
-	print("%s [-d] [-h] [-net e1k|rtl8139|ne2k|virtio-net] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb] [-noxhci] [-notablet]\n" %
+	print("%s [-d] [-h] [-net e1k|rtl8139|ne2k|virtio-net] [-hdd ata|virtio-blk] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb] [-noxhci] [-notablet]\n" %
 	    os.path.basename(sys.argv[0]))
 	print("-d\tDry run: do not run the emulation, just print the command line.")
 	print("-h\tPrint the usage information and exit.")
@@ -356,6 +420,7 @@ def fail(platform, machine):
 
 def run():
 	expect_nic = False
+	expect_hdd = False
 	expect_qemu = False
 
 	for i in range(1, len(sys.argv)):
@@ -377,6 +442,19 @@ def run():
 				exit()
 			continue
 
+		if expect_hdd:
+			expect_hdd = False
+			if not 'hdd' in overrides.keys():
+				overrides['hdd'] = {}
+			if sys.argv[i] == 'ata':
+				overrides['hdd']['ata'] = True
+			elif sys.argv[i] == 'virtio-blk':
+				overrides['hdd']['virtio-blk'] = True
+			else:
+				usage()
+				exit()
+			continue
+
 		if expect_qemu:
 			expect_qemu = False
 			overrides['qemu_path'] = sys.argv[i]
@@ -388,6 +466,8 @@ def run():
 			overrides['dryrun'] = True
 		elif sys.argv[i] == '-net' and i < len(sys.argv) - 1:
 			expect_nic = True
+		elif sys.argv[i] == '-hdd' and i < len(sys.argv) - 1:
+			expect_hdd = True
 		elif sys.argv[i] == '-nohdd':
 			overrides['nohdd'] = True
 		elif sys.argv[i] == '-nokvm':

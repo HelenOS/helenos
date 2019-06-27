@@ -33,8 +33,8 @@
  * @file
  */
 
-#ifndef LIBC_abs32le_SYSCALL_H_
-#define LIBC_abs32le_SYSCALL_H_
+#ifndef _LIBC_abs32le_SYSCALL_H_
+#define _LIBC_abs32le_SYSCALL_H_
 
 #include <abi/syscall.h>
 #include <types/common.h>

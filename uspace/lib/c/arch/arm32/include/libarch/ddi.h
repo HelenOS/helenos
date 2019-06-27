@@ -30,8 +30,8 @@
  * @ingroup libcarm32
  */
 
-#ifndef LIBC_arm32_DDI_H_
-#define LIBC_arm32_DDI_H_
+#ifndef _LIBC_arm32_DDI_H_
+#define _LIBC_arm32_DDI_H_
 
 #include <ddi.h>
 

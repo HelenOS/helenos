@@ -45,7 +45,7 @@ else
 endif
 
 BINARY = loader
-STATIC_ONLY = y
+STATIC_NEEDED = y
 
 GENERIC_SOURCES = \
 	main.c

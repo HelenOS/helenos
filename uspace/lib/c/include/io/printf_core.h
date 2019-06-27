@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PRINTF_CORE_H_
-#define LIBC_PRINTF_CORE_H_
+#ifndef _LIBC_PRINTF_CORE_H_
+#define _LIBC_PRINTF_CORE_H_
 
 #include <stddef.h>
 #include <stdarg.h>

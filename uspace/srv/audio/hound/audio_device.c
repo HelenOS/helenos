@@ -274,7 +274,7 @@ static void device_event_callback(ipc_call_t *icall, void *arg)
 		async_get_call(&call);
 		async_answer_0(&call, EOK);
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case PCM_EVENT_FRAMES_PLAYED:
 			getuptime(&time1);
 			//TODO add underrun detection.

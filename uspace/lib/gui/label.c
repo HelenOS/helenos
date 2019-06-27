@@ -34,10 +34,10 @@
  */
 
 #include <str.h>
-#include <drawctx.h>
+#include <draw/drawctx.h>
 #include <stdlib.h>
-#include <surface.h>
-#include <font/embedded.h>
+#include <draw/surface.h>
+#include <draw/font.h>
 #include <errno.h>
 #include "window.h"
 #include "label.h"

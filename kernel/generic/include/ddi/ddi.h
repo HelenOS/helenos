@@ -59,6 +59,9 @@ extern void ddi_init(void);
 extern void ddi_parea_init(parea_t *);
 extern void ddi_parea_register(parea_t *);
 
+extern void *pio_map(void *, size_t);
+extern void pio_unmap(void *, void *, size_t);
+
 extern sys_errno_t sys_physmem_map(uintptr_t, size_t, unsigned int, void *,
     uintptr_t);
 extern sys_errno_t sys_physmem_unmap(uintptr_t);

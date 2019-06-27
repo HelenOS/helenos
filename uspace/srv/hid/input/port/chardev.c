@@ -63,7 +63,9 @@ static const char *in_devs[] = {
 	/** S3C24xx UART - Openmoko debug console */
 	"char/s3c24xx_uart",
 	/** Ski console, MSIM console, Sun4v console */
-	"devices/\\hw\\console\\a"
+	"devices/\\hw\\console\\a",
+	/** PL011 serial console */
+	"devices/\\hw\\uart\\a"
 };
 
 static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);

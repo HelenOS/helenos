@@ -163,9 +163,9 @@ static void kio_notification_handler(ipc_call_t *call, void *arg)
 
 	fibril_mutex_lock(&mtx);
 
-	size_t kio_start = (size_t) IPC_GET_ARG1(*call);
-	size_t kio_len = (size_t) IPC_GET_ARG2(*call);
-	size_t kio_stored = (size_t) IPC_GET_ARG3(*call);
+	size_t kio_start = (size_t) ipc_get_arg1(call);
+	size_t kio_len = (size_t) ipc_get_arg2(call);
+	size_t kio_stored = (size_t) ipc_get_arg3(call);
 
 	size_t offset = (kio_start + kio_len - kio_stored) % kio_length;
 

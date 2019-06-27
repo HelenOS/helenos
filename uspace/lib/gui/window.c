@@ -51,11 +51,10 @@
 #include <loc.h>
 
 #include <io/pixel.h>
-#include <source.h>
-#include <font.h>
-#include <drawctx.h>
-#include <surface.h>
-#include <font/embedded.h>
+#include <draw/source.h>
+#include <draw/font.h>
+#include <draw/drawctx.h>
+#include <draw/surface.h>
 
 #include "common.h"
 #include "connection.h"

@@ -32,8 +32,8 @@
 /** @file Block device client interface
  */
 
-#ifndef LIBC_BD_H_
-#define LIBC_BD_H_
+#ifndef _LIBC_BD_H_
+#define _LIBC_BD_H_
 
 #include <async.h>
 #include <offset.h>

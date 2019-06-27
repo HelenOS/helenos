@@ -36,6 +36,9 @@
 #define POSIX_UCONTEXT_H_
 
 #include <sys/types.h>
+#include <_bits/decls.h>
+
+__C_DECLS_BEGIN;
 
 typedef int sig_atomic_t;
 typedef uint32_t sigset_t;
@@ -69,6 +72,8 @@ typedef struct ucontext {
 	stack_t uc_stack;
 	mcontext_t uc_mcontext;
 } ucontext_t;
+
+__C_DECLS_END;
 
 #endif
 

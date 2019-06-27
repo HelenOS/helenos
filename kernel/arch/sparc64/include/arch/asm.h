@@ -43,39 +43,39 @@
 #include <barrier.h>
 #include <trace.h>
 
-NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
+_NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;
 	memory_barrier();
 }
 
-NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
+_NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
 	*port = v;
 	memory_barrier();
 }
 
-NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
+_NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
 {
 	*port = v;
 	memory_barrier();
 }
 
-NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
+_NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	uint8_t rv = *port;
 	memory_barrier();
 	return rv;
 }
 
-NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
+_NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	uint16_t rv = *port;
 	memory_barrier();
 	return rv;
 }
 
-NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
+_NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	uint32_t rv = *port;
 	memory_barrier();
@@ -87,7 +87,7 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
  * @return Value of PSTATE register.
  *
  */
-NO_TRACE static inline uint64_t pstate_read(void)
+_NO_TRACE static inline uint64_t pstate_read(void)
 {
 	uint64_t v;
 
@@ -104,7 +104,7 @@ NO_TRACE static inline uint64_t pstate_read(void)
  * @param v New value of PSTATE register.
  *
  */
-NO_TRACE static inline void pstate_write(uint64_t v)
+_NO_TRACE static inline void pstate_write(uint64_t v)
 {
 	asm volatile (
 	    "wrpr %[v], %[zero], %%pstate\n"
@@ -118,7 +118,7 @@ NO_TRACE static inline void pstate_write(uint64_t v)
  * @return Value of TICK_comapre register.
  *
  */
-NO_TRACE static inline uint64_t tick_compare_read(void)
+_NO_TRACE static inline uint64_t tick_compare_read(void)
 {
 	uint64_t v;
 
@@ -135,7 +135,7 @@ NO_TRACE static inline uint64_t tick_compare_read(void)
  * @param v New value of TICK_comapre register.
  *
  */
-NO_TRACE static inline void tick_compare_write(uint64_t v)
+_NO_TRACE static inline void tick_compare_write(uint64_t v)
 {
 	asm volatile (
 	    "wr %[v], %[zero], %%tick_cmpr\n"
@@ -149,7 +149,7 @@ NO_TRACE static inline void tick_compare_write(uint64_t v)
  * @return Value of STICK_compare register.
  *
  */
-NO_TRACE static inline uint64_t stick_compare_read(void)
+_NO_TRACE static inline uint64_t stick_compare_read(void)
 {
 	uint64_t v;
 
@@ -166,7 +166,7 @@ NO_TRACE static inline uint64_t stick_compare_read(void)
  * @param v New value of STICK_comapre register.
  *
  */
-NO_TRACE static inline void stick_compare_write(uint64_t v)
+_NO_TRACE static inline void stick_compare_write(uint64_t v)
 {
 	asm volatile (
 	    "wr %[v], %[zero], %%asr25\n"
@@ -180,7 +180,7 @@ NO_TRACE static inline void stick_compare_write(uint64_t v)
  * @return Value of TICK register.
  *
  */
-NO_TRACE static inline uint64_t tick_read(void)
+_NO_TRACE static inline uint64_t tick_read(void)
 {
 	uint64_t v;
 
@@ -197,7 +197,7 @@ NO_TRACE static inline uint64_t tick_read(void)
  * @param v New value of TICK register.
  *
  */
-NO_TRACE static inline void tick_write(uint64_t v)
+_NO_TRACE static inline void tick_write(uint64_t v)
 {
 	asm volatile (
 	    "wrpr %[v], %[zero], %%tick\n"
@@ -211,7 +211,7 @@ NO_TRACE static inline void tick_write(uint64_t v)
  * @return Value of FPRS register.
  *
  */
-NO_TRACE static inline uint64_t fprs_read(void)
+_NO_TRACE static inline uint64_t fprs_read(void)
 {
 	uint64_t v;
 
@@ -228,7 +228,7 @@ NO_TRACE static inline uint64_t fprs_read(void)
  * @param v New value of FPRS register.
  *
  */
-NO_TRACE static inline void fprs_write(uint64_t v)
+_NO_TRACE static inline void fprs_write(uint64_t v)
 {
 	asm volatile (
 	    "wr %[v], %[zero], %%fprs\n"
@@ -242,7 +242,7 @@ NO_TRACE static inline void fprs_write(uint64_t v)
  * @return Value of SOFTINT register.
  *
  */
-NO_TRACE static inline uint64_t softint_read(void)
+_NO_TRACE static inline uint64_t softint_read(void)
 {
 	uint64_t v;
 
@@ -259,7 +259,7 @@ NO_TRACE static inline uint64_t softint_read(void)
  * @param v New value of SOFTINT register.
  *
  */
-NO_TRACE static inline void softint_write(uint64_t v)
+_NO_TRACE static inline void softint_write(uint64_t v)
 {
 	asm volatile (
 	    "wr %[v], %[zero], %%softint\n"
@@ -275,7 +275,7 @@ NO_TRACE static inline void softint_write(uint64_t v)
  * @param v New value of CLEAR_SOFTINT register.
  *
  */
-NO_TRACE static inline void clear_softint_write(uint64_t v)
+_NO_TRACE static inline void clear_softint_write(uint64_t v)
 {
 	asm volatile (
 	    "wr %[v], %[zero], %%clear_softint\n"
@@ -291,7 +291,7 @@ NO_TRACE static inline void clear_softint_write(uint64_t v)
  * @param v New value of SET_SOFTINT register.
  *
  */
-NO_TRACE static inline void set_softint_write(uint64_t v)
+_NO_TRACE static inline void set_softint_write(uint64_t v)
 {
 	asm volatile (
 	    "wr %[v], %[zero], %%set_softint\n"
@@ -308,7 +308,7 @@ NO_TRACE static inline void set_softint_write(uint64_t v)
  * @return Old interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_enable(void)
+_NO_TRACE static inline ipl_t interrupts_enable(void)
 {
 	pstate_reg_t pstate;
 	uint64_t value = pstate_read();
@@ -328,7 +328,7 @@ NO_TRACE static inline ipl_t interrupts_enable(void)
  * @return Old interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_disable(void)
+_NO_TRACE static inline ipl_t interrupts_disable(void)
 {
 	pstate_reg_t pstate;
 	uint64_t value = pstate_read();
@@ -347,7 +347,7 @@ NO_TRACE static inline ipl_t interrupts_disable(void)
  * @param ipl Saved interrupt priority level.
  *
  */
-NO_TRACE static inline void interrupts_restore(ipl_t ipl)
+_NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 {
 	pstate_reg_t pstate;
 
@@ -363,7 +363,7 @@ NO_TRACE static inline void interrupts_restore(ipl_t ipl)
  * @return Current interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_read(void)
+_NO_TRACE static inline ipl_t interrupts_read(void)
 {
 	return (ipl_t) pstate_read();
 }
@@ -373,7 +373,7 @@ NO_TRACE static inline ipl_t interrupts_read(void)
  * @return True if interrupts are disabled.
  *
  */
-NO_TRACE static inline bool interrupts_disabled(void)
+_NO_TRACE static inline bool interrupts_disabled(void)
 {
 	pstate_reg_t pstate;
 
@@ -388,7 +388,7 @@ NO_TRACE static inline bool interrupts_disabled(void)
  * The stack must start on page boundary.
  *
  */
-NO_TRACE static inline uintptr_t get_stack_base(void)
+_NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t unbiased_sp;
 
@@ -406,7 +406,7 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
  * @return Value of VER register.
  *
  */
-NO_TRACE static inline uint64_t ver_read(void)
+_NO_TRACE static inline uint64_t ver_read(void)
 {
 	uint64_t v;
 
@@ -423,7 +423,7 @@ NO_TRACE static inline uint64_t ver_read(void)
  * @return Current value in TPC.
  *
  */
-NO_TRACE static inline uint64_t tpc_read(void)
+_NO_TRACE static inline uint64_t tpc_read(void)
 {
 	uint64_t v;
 
@@ -440,7 +440,7 @@ NO_TRACE static inline uint64_t tpc_read(void)
  * @return Current value in TL.
  *
  */
-NO_TRACE static inline uint64_t tl_read(void)
+_NO_TRACE static inline uint64_t tl_read(void)
 {
 	uint64_t v;
 
@@ -457,7 +457,7 @@ NO_TRACE static inline uint64_t tl_read(void)
  * @return Current value in TBA.
  *
  */
-NO_TRACE static inline uint64_t tba_read(void)
+_NO_TRACE static inline uint64_t tba_read(void)
 {
 	uint64_t v;
 
@@ -474,7 +474,7 @@ NO_TRACE static inline uint64_t tba_read(void)
  * @param v New value of TBA.
  *
  */
-NO_TRACE static inline void tba_write(uint64_t v)
+_NO_TRACE static inline void tba_write(uint64_t v)
 {
 	asm volatile (
 	    "wrpr %[v], %[zero], %%tba\n"
@@ -492,7 +492,7 @@ NO_TRACE static inline void tba_write(uint64_t v)
  *         the specified address space.
  *
  */
-NO_TRACE static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
+_NO_TRACE static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 {
 	uint64_t v;
 
@@ -513,7 +513,7 @@ NO_TRACE static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
  * @param v   Value to be written.
  *
  */
-NO_TRACE static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
+_NO_TRACE static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 {
 	asm volatile (
 	    "stxa %[v], [%[va]] %[asi]\n"
@@ -525,19 +525,19 @@ NO_TRACE static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 }
 
 /** Flush all valid register windows to memory. */
-NO_TRACE static inline void flushw(void)
+_NO_TRACE static inline void flushw(void)
 {
 	asm volatile ("flushw\n");
 }
 
 /** Switch to nucleus by setting TL to 1. */
-NO_TRACE static inline void nucleus_enter(void)
+_NO_TRACE static inline void nucleus_enter(void)
 {
 	asm volatile ("wrpr %g0, 1, %tl\n");
 }
 
 /** Switch from nucleus by setting TL to 0. */
-NO_TRACE static inline void nucleus_leave(void)
+_NO_TRACE static inline void nucleus_leave(void)
 {
 	asm volatile ("wrpr %g0, %g0, %tl\n");
 }

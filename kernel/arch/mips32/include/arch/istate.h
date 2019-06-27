@@ -49,24 +49,24 @@
 
 #endif /* KERNEL */
 
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+_NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
     uintptr_t retaddr)
 {
 	istate->epc = retaddr;
 }
 
 /** Return true if exception happened while in userspace */
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+_NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
 	return istate->status & cp0_status_um_bit;
 }
 
-NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+_NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
 {
 	return istate->epc;
 }
 
-NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+_NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
 {
 	return istate->sp;
 }

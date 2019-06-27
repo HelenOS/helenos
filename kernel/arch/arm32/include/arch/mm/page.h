@@ -150,7 +150,7 @@
  * init_ptl0_section (boot/arch/arm32/src/mm.c)
  * set_pt_level1_flags (kernel/arch/arm32/include/arch/mm/page_armv6.h)
  */
-NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
+_NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 {
 	uint32_t val = (uint32_t)pt & TTBR_ADDR_MASK;
 #if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
@@ -160,13 +160,13 @@ NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 	TTBR0_write(val);
 }
 
-NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)
+_NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)
 {
 	pt[i].l0.coarse_table_addr = address >> 10;
 	pt_coherence(&pt[i].l0);
 }
 
-NO_TRACE static inline void set_ptl3_addr(pte_t *pt, size_t i, uintptr_t address)
+_NO_TRACE static inline void set_ptl3_addr(pte_t *pt, size_t i, uintptr_t address)
 {
 	pt[i].l1.frame_base_addr = address >> 12;
 	pt_coherence(&pt[i].l1);

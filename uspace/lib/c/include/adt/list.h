@@ -33,29 +33,24 @@
 /** @file
  */
 
-#ifndef LIBC_LIST_H_
-#define LIBC_LIST_H_
+#ifndef _LIBC_LIST_H_
+#define _LIBC_LIST_H_
 
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <trace.h>
+#include <_bits/decls.h>
 
-/** Doubly linked list link. */
-typedef struct link {
-	struct link *prev;  /**< Pointer to the previous item in the list. */
-	struct link *next;  /**< Pointer to the next item in the list. */
-} link_t;
+#ifndef __cplusplus
 
-/** Doubly linked list. */
-typedef struct list {
-	link_t head;  /**< List head. Does not have any data. */
-} list_t;
-
-extern bool list_member(const link_t *, const list_t *);
-extern void list_splice(list_t *, link_t *);
-extern unsigned long list_count(const list_t *);
+/**
+ * We don't define the macros in C++ to avoid polluting headers with
+ * namespaceless names. We don't actually need them, so this is fine.
+ * We still allow including the rest of the file (in `helenos` namespace)
+ * so that we can expose publicly visible types that have list_t members.
+ */
 
 /** Declare and initialize statically allocated list.
  *
@@ -137,6 +132,29 @@ extern unsigned long list_count(const list_t *);
 #define assert_link_not_used(link) \
 	assert(!link_used(link))
 
+#define list_pop(list, type, member) \
+	((type *) list_pop_internal(list, \
+	    (list_link_to_void(&(((type *) NULL)->member)) - NULL)))
+
+#endif  /* !__cplusplus */
+
+__HELENOS_DECLS_BEGIN;
+
+/** Doubly linked list link. */
+typedef struct __adt_list_link {
+	struct __adt_list_link *prev;  /**< Pointer to the previous item in the list. */
+	struct __adt_list_link *next;  /**< Pointer to the next item in the list. */
+} link_t;
+
+/** Doubly linked list. */
+typedef struct {
+	link_t head;  /**< List head. Does not have any data. */
+} list_t;
+
+extern bool list_member(const link_t *, const list_t *);
+extern void list_splice(list_t *, link_t *);
+extern unsigned long list_count(const list_t *);
+
 /** Returns true if the link is definitely part of a list. False if not sure. */
 static inline bool link_in_use(const link_t *link)
 {
@@ -150,7 +168,7 @@ static inline bool link_in_use(const link_t *link)
  * @param link Pointer to link_t structure to be initialized.
  *
  */
-NO_TRACE static inline void link_initialize(link_t *link)
+_NO_TRACE static inline void link_initialize(link_t *link)
 {
 	link->prev = NULL;
 	link->next = NULL;
@@ -163,7 +181,7 @@ NO_TRACE static inline void link_initialize(link_t *link)
  * @param list Pointer to list_t structure.
  *
  */
-NO_TRACE static inline void list_initialize(list_t *list)
+_NO_TRACE static inline void list_initialize(list_t *list)
 {
 	list->head.prev = &list->head;
 	list->head.next = &list->head;
@@ -199,7 +217,7 @@ static inline void list_insert_after(link_t *lnew, link_t *lold)
  * @param list Pointer to list_t structure.
  *
  */
-NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
+_NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
 {
 	list_insert_after(link, &list->head);
 }
@@ -212,7 +230,7 @@ NO_TRACE static inline void list_prepend(link_t *link, list_t *list)
  * @param list Pointer to list_t structure.
  *
  */
-NO_TRACE static inline void list_append(link_t *link, list_t *list)
+_NO_TRACE static inline void list_append(link_t *link, list_t *list)
 {
 	list_insert_before(link, &list->head);
 }
@@ -225,7 +243,7 @@ NO_TRACE static inline void list_append(link_t *link, list_t *list)
  *             it is contained in.
  *
  */
-NO_TRACE static inline void list_remove(link_t *link)
+_NO_TRACE static inline void list_remove(link_t *link)
 {
 	if ((link->prev != NULL) && (link->next != NULL)) {
 		link->next->prev = link->prev;
@@ -242,7 +260,7 @@ NO_TRACE static inline void list_remove(link_t *link)
  * @param list Pointer to lins_t structure.
  *
  */
-NO_TRACE static inline bool list_empty(const list_t *list)
+_NO_TRACE static inline bool list_empty(const list_t *list)
 {
 	return (list->head.next == &list->head);
 }
@@ -310,7 +328,7 @@ static inline link_t *list_prev(const link_t *link, const list_t *list)
  *              (half of the headless) list.
  *
  */
-NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
+_NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
 	part1->prev->next = part2;
 	part2->prev->next = part1;
@@ -331,7 +349,7 @@ NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t 
  *              the second half of the headless list.
  *
  */
-NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
+_NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }
@@ -346,7 +364,7 @@ NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
  *              the second headless list.
  *
  */
-NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
+_NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
 }
@@ -361,7 +379,7 @@ NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
  * @param list2 	Second list and empty output.
  *
  */
-NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
+_NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
 {
 	list_splice(list2, list1->head.prev);
 }
@@ -424,9 +442,7 @@ static inline void *list_pop_internal(list_t *list, ptrdiff_t offset)
 	return (void *) (((uint8_t *) tmp) - offset);
 }
 
-#define list_pop(list, type, member) \
-	((type *) list_pop_internal(list, \
-	    (list_link_to_void(&(((type *) NULL)->member)) - NULL)))
+__HELENOS_DECLS_END;
 
 #endif
 

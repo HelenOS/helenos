@@ -35,9 +35,9 @@
 
 #include <str.h>
 #include <stdlib.h>
-#include <drawctx.h>
-#include <surface.h>
-#include <font/embedded.h>
+#include <draw/drawctx.h>
+#include <draw/surface.h>
+#include <draw/font.h>
 #include <errno.h>
 #include "common.h"
 #include "window.h"

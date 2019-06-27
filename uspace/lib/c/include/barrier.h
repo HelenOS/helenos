@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_COMPILER_BARRIER_H_
-#define LIBC_COMPILER_BARRIER_H_
+#ifndef _LIBC_COMPILER_BARRIER_H_
+#define _LIBC_COMPILER_BARRIER_H_
 
 #include <stdatomic.h>
 
@@ -60,4 +60,4 @@ static inline void write_barrier(void)
 /** Forces the compiler to access (ie load/store) the variable only once. */
 #define ACCESS_ONCE(var) (*((volatile typeof(var)*)&(var)))
 
-#endif /* LIBC_COMPILER_BARRIER_H_ */
+#endif /* _LIBC_COMPILER_BARRIER_H_ */

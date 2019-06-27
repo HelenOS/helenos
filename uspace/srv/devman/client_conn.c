@@ -101,8 +101,8 @@ static void devman_function_get_handle(ipc_call_t *icall)
 /** Get device match ID. */
 static void devman_fun_get_match_id(ipc_call_t *icall)
 {
-	devman_handle_t handle = IPC_GET_ARG1(*icall);
-	size_t index = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = ipc_get_arg1(icall);
+	size_t index = ipc_get_arg2(icall);
 	void *buffer = NULL;
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
@@ -164,7 +164,7 @@ error:
 /** Get device name. */
 static void devman_fun_get_name(ipc_call_t *icall)
 {
-	devman_handle_t handle = IPC_GET_ARG1(*icall);
+	devman_handle_t handle = ipc_get_arg1(icall);
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
@@ -217,7 +217,7 @@ static void devman_fun_get_name(ipc_call_t *icall)
 /** Get function driver name. */
 static void devman_fun_get_driver_name(ipc_call_t *icall)
 {
-	devman_handle_t handle = IPC_GET_ARG1(*icall);
+	devman_handle_t handle = ipc_get_arg1(icall);
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
@@ -282,7 +282,7 @@ static void devman_fun_get_driver_name(ipc_call_t *icall)
 /** Get device path. */
 static void devman_fun_get_path(ipc_call_t *icall)
 {
-	devman_handle_t handle = IPC_GET_ARG1(*icall);
+	devman_handle_t handle = ipc_get_arg1(icall);
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
@@ -339,7 +339,7 @@ static void devman_dev_get_parent(ipc_call_t *icall)
 
 	fibril_rwlock_read_lock(&device_tree.rwlock);
 
-	dev = find_dev_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
+	dev = find_dev_node_no_lock(&device_tree, ipc_get_arg1(icall));
 	if (dev == NULL || dev->state == DEVICE_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		async_answer_0(icall, ENOENT);
@@ -373,7 +373,7 @@ static void devman_dev_get_functions(ipc_call_t *icall)
 	fibril_rwlock_read_lock(&device_tree.rwlock);
 
 	dev_node_t *dev = find_dev_node_no_lock(&device_tree,
-	    IPC_GET_ARG1(*icall));
+	    ipc_get_arg1(icall));
 	if (dev == NULL || dev->state == DEVICE_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		async_answer_0(&call, ENOENT);
@@ -412,7 +412,7 @@ static void devman_fun_get_child(ipc_call_t *icall)
 
 	fibril_rwlock_read_lock(&device_tree.rwlock);
 
-	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
+	fun = find_fun_node_no_lock(&device_tree, ipc_get_arg1(icall));
 	if (fun == NULL || fun->state == FUN_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		async_answer_0(icall, ENOENT);
@@ -441,7 +441,7 @@ static void devman_fun_online(ipc_call_t *icall)
 	fun_node_t *fun;
 	errno_t rc;
 
-	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
+	fun = find_fun_node(&device_tree, ipc_get_arg1(icall));
 	if (fun == NULL) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -466,7 +466,7 @@ static void devman_fun_offline(ipc_call_t *icall)
 	fun_node_t *fun;
 	errno_t rc;
 
-	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
+	fun = find_fun_node(&device_tree, ipc_get_arg1(icall));
 	if (fun == NULL) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -483,7 +483,7 @@ static void devman_fun_sid_to_handle(ipc_call_t *icall)
 {
 	fun_node_t *fun;
 
-	fun = find_loc_tree_function(&device_tree, IPC_GET_ARG1(*icall));
+	fun = find_loc_tree_function(&device_tree, ipc_get_arg1(icall));
 
 	if (fun == NULL) {
 		async_answer_0(icall, ENOENT);
@@ -549,7 +549,7 @@ static void devman_driver_get_devices(ipc_call_t *icall)
 		return;
 	}
 
-	driver_t *drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
+	driver_t *drv = driver_find(&drivers_list, ipc_get_arg1(icall));
 	if (drv == NULL) {
 		async_answer_0(&call, ENOENT);
 		async_answer_0(icall, ENOENT);
@@ -603,8 +603,8 @@ static void devman_driver_get_handle(ipc_call_t *icall)
 /** Get driver match ID. */
 static void devman_driver_get_match_id(ipc_call_t *icall)
 {
-	devman_handle_t handle = IPC_GET_ARG1(*icall);
-	size_t index = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = ipc_get_arg1(icall);
+	size_t index = ipc_get_arg2(icall);
 
 	driver_t *drv = driver_find(&drivers_list, handle);
 	if (drv == NULL) {
@@ -654,7 +654,7 @@ static void devman_driver_get_match_id(ipc_call_t *icall)
 /** Get driver name. */
 static void devman_driver_get_name(ipc_call_t *icall)
 {
-	devman_handle_t handle = IPC_GET_ARG1(*icall);
+	devman_handle_t handle = ipc_get_arg1(icall);
 
 	driver_t *drv = driver_find(&drivers_list, handle);
 	if (drv == NULL) {
@@ -696,7 +696,7 @@ static void devman_driver_get_state(ipc_call_t *icall)
 {
 	driver_t *drv;
 
-	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
+	drv = driver_find(&drivers_list, ipc_get_arg1(icall));
 	if (drv == NULL) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -711,7 +711,7 @@ static void devman_driver_load(ipc_call_t *icall)
 	driver_t *drv;
 	errno_t rc;
 
-	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
+	drv = driver_find(&drivers_list, ipc_get_arg1(icall));
 	if (drv == NULL) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -730,7 +730,7 @@ static void devman_driver_unload(ipc_call_t *icall)
 	driver_t *drv;
 	errno_t rc;
 
-	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
+	drv = driver_find(&drivers_list, ipc_get_arg1(icall));
 	if (drv == NULL) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -753,12 +753,12 @@ void devman_connection_client(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case DEVMAN_DEVICE_GET_HANDLE:
 			devman_function_get_handle(&call);
 			break;

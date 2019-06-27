@@ -33,8 +33,8 @@
  * @brief Program loader interface.
  */
 
-#ifndef LIBC_LOADER_H_
-#define LIBC_LOADER_H_
+#ifndef _LIBC_LOADER_H_
+#define _LIBC_LOADER_H_
 
 #include <abi/proc/task.h>
 

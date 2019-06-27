@@ -70,13 +70,9 @@ arch_ops_t mips32_ops = {
 
 arch_ops_t *arch_ops = &mips32_ops;
 
-/*
- * Why the linker moves the variable 64K away in assembler
- * when not in .text section?
- */
-
 /* Stack pointer saved when entering user mode */
-uintptr_t supervisor_sp __attribute__((section(".text")));
+// FIXME: This won't work with SMP unless thread creation is globally serialized.
+uintptr_t supervisor_sp;
 
 size_t cpu_count = 0;
 
@@ -105,6 +101,8 @@ void mips32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 #if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
 	sdram_size = bootinfo->sdram_size;
 #endif
+
+	str_cpy(bargs, CONFIG_BOOT_ARGUMENTS_BUFLEN, bootinfo->bootargs);
 
 	/* Initialize machine_ops pointer. */
 	machine_ops_init();

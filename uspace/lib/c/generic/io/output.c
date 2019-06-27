@@ -99,7 +99,7 @@ frontbuf_handle_t output_frontbuf_create(async_sess_t *sess,
 	if ((rc != EOK) || (ret != EOK))
 		return 0;
 
-	return (frontbuf_handle_t) IPC_GET_ARG1(answer);
+	return (frontbuf_handle_t) ipc_get_arg1(&answer);
 }
 
 errno_t output_set_style(async_sess_t *sess, console_style_t style)

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_STACK_H_
-#define LIBC_STACK_H_
+#ifndef _LIBC_STACK_H_
+#define _LIBC_STACK_H_
 
 #include <types/common.h>
 

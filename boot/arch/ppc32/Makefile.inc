@@ -32,14 +32,10 @@ POSTBUILD = Makefile.yaboot
 
 BFD_NAME = elf32-powerpc
 BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = powerpc:common
 
 BITS = 32
 ENDIANESS = BE
 EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
-
-RD_SRVS_ESSENTIAL += \
-	hw/bus/cuda_adb
 
 RD_DRVS_ESSENTIAL += \
 	platform/mac \

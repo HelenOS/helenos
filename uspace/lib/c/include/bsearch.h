@@ -32,13 +32,18 @@
 /** @file
  */
 
-#ifndef LIBC_BSEARCH_H_
-#define LIBC_BSEARCH_H_
+#ifndef _LIBC_BSEARCH_H_
+#define _LIBC_BSEARCH_H_
 
 #include <stddef.h>
+#include <_bits/decls.h>
+
+__C_DECLS_BEGIN;
 
 extern void *bsearch(const void *, const void *, size_t, size_t,
     int (*)(const void *, const void *));
+
+__C_DECLS_END;
 
 #endif
 

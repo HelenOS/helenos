@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_FOURCC_H_
-#define ABI_FOURCC_H_
+#ifndef _ABI_FOURCC_H_
+#define _ABI_FOURCC_H_
 
 #include <stdint.h>
 

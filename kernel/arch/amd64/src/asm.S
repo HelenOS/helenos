@@ -397,10 +397,7 @@ bad_rip:
 bad_rip_msg:
 	.asciz "Invalid instruction pointer."
 
-/** Print Unicode character to EGA display.
- *
- * If CONFIG_EGA is undefined or CONFIG_FB is defined
- * then this function does nothing.
+/** Print Unicode character to an early display device.
  *
  * Since the EGA can only display Extended ASCII (usually
  * ISO Latin 1) characters, some of the Unicode characters
@@ -412,6 +409,13 @@ bad_rip_msg:
  *
  */
 FUNCTION_BEGIN(early_putwchar)
+
+#if (defined(CONFIG_L4RE_UVMM_EARLY_PRINT))
+	xorl %eax, %eax  /* RAX==0: uvmm's print hypercall */
+	mov %rdi, %rcx   /* RCX:    printed character */
+	vmcall
+#endif
+
 #if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
 
 	/* Prologue, save preserved registers */

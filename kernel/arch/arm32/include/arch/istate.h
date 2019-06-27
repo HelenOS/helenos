@@ -54,25 +54,25 @@
  * @param retaddr new value of istate's PC member
  *
  */
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+_NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
     uintptr_t retaddr)
 {
 	istate->pc = retaddr;
 }
 
 /** Return true if exception happened while in userspace. */
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+_NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
 	return (istate->spsr & STATUS_REG_MODE_MASK) == USER_MODE;
 }
 
 /** Return Program Counter member of given istate structure. */
-NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+_NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
 {
 	return istate->pc;
 }
 
-NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+_NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
 {
 	return istate->fp;
 }

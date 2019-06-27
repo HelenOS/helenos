@@ -32,23 +32,24 @@
 /** @file
  */
 
-#ifndef ABI_AS_H_
-#define ABI_AS_H_
+#ifndef _ABI_AS_H_
+#define _ABI_AS_H_
 
 #include <abi/cap.h>
 
 /** Address space area flags. */
-#define AS_AREA_READ         0x01
-#define AS_AREA_WRITE        0x02
-#define AS_AREA_EXEC         0x04
-#define AS_AREA_CACHEABLE    0x08
-#define AS_AREA_GUARD        0x10
-#define AS_AREA_LATE_RESERVE 0x20
+enum {
+	AS_AREA_READ         = 0x01,
+	AS_AREA_WRITE        = 0x02,
+	AS_AREA_EXEC         = 0x04,
+	AS_AREA_CACHEABLE    = 0x08,
+	AS_AREA_GUARD        = 0x10,
+	AS_AREA_LATE_RESERVE = 0x20,
+};
 
-#define AS_AREA_ANY    ((void *) -1)
-#define AS_MAP_FAILED  ((void *) -1)
-
-#define AS_AREA_UNPAGED NULL
+static void *const AS_AREA_ANY = (void *) -1;
+static void *const AS_MAP_FAILED = (void *) -1;
+static void *const AS_AREA_UNPAGED = NULL;
 
 /** Address space area info exported to uspace. */
 typedef struct {

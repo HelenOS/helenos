@@ -69,6 +69,13 @@ namespace __cxxabiv1
         std::terminate();
     }
 
+#ifdef __arm__
+    extern "C" int __aeabi_atexit(void* p, void (*f)(void*), void* d)
+    {
+        return __cxa_atexit(f, p, d);
+    }
+#endif
+
     extern "C" int __cxa_atexit(void (*f)(void*), void* p, void* d)
     {
         if (!aux::destructors)

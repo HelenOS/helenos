@@ -29,19 +29,11 @@
 #ifndef LIBCPP_CSTDARG
 #define LIBCPP_CSTDARG
 
-
-namespace std::hel
-{
-    extern "C" {
-        #include <stdarg.h>
-    }
-}
+#include <stdarg.h>
 
 namespace std
 {
-    using std::hel::va_list;
+    using ::va_list;
 }
-
-using std::hel::va_list;
 
 #endif

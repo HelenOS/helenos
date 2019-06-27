@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_NS_H_
-#define LIBC_NS_H_
+#ifndef _LIBC_NS_H_
+#define _LIBC_NS_H_
 
 #include <ipc/services.h>
 #include <task.h>

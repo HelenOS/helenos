@@ -100,9 +100,9 @@ typedef struct {
 	fs_index_t index;
 } node_key_t;
 
-static size_t open_nodes_key_hash(void *key_arg)
+static size_t open_nodes_key_hash(const void *key_arg)
 {
-	node_key_t *key = (node_key_t *)key_arg;
+	const node_key_t *key = key_arg;
 	return hash_combine(key->service_id, key->index);
 }
 
@@ -112,9 +112,9 @@ static size_t open_nodes_hash(const ht_link_t *item)
 	return hash_combine(enode->instance->service_id, enode->inode_ref->index);
 }
 
-static bool open_nodes_key_equal(void *key_arg, const ht_link_t *item)
+static bool open_nodes_key_equal(const void *key_arg, const ht_link_t *item)
 {
-	node_key_t *key = (node_key_t *)key_arg;
+	const node_key_t *key = key_arg;
 	ext4_node_t *enode = hash_table_get_inst(item, ext4_node_t, link);
 
 	return key->service_id == enode->instance->service_id &&

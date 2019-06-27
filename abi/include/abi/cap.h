@@ -32,13 +32,15 @@
 /** @file
  */
 
-#ifndef ABI_CAP_H_
-#define ABI_CAP_H_
+#ifndef _ABI_CAP_H_
+#define _ABI_CAP_H_
 
-#define CAP_NIL  0
+#include <stdbool.h>
+#include <stdint.h>
 
-#define CAP_HANDLE_VALID(handle)  ((handle) != CAP_NIL)
-#define CAP_HANDLE_RAW(handle)    ((intptr_t) (handle))
+enum {
+	CAP_NIL = 0,
+};
 
 typedef void *cap_handle_t;
 
@@ -53,6 +55,16 @@ typedef struct {
 
 typedef struct {
 } *cap_waitq_handle_t;
+
+static inline bool cap_handle_valid(cap_handle_t handle)
+{
+	return handle != CAP_NIL;
+}
+
+static inline intptr_t cap_handle_raw(cap_handle_t handle)
+{
+	return (intptr_t) handle;
+}
 
 #endif
 

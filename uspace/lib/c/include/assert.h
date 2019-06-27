@@ -37,18 +37,24 @@
 // One must not use `#pragma once` in this header.
 // This is in accordance with the C standard.
 
-#ifndef LIBC_ASSERT_H_
-#define LIBC_ASSERT_H_
+#ifndef _LIBC_ASSERT_H_
+#define _LIBC_ASSERT_H_
+
+#include <_bits/decls.h>
 
 #ifndef __cplusplus
 #define static_assert _Static_assert
 #endif
+
+__C_DECLS_BEGIN;
 
 extern void __helenos_assert_abort(const char *, const char *, unsigned int)
     __attribute__((noreturn));
 
 extern void __helenos_assert_quick_abort(const char *, const char *, unsigned int)
     __attribute__((noreturn));
+
+__C_DECLS_END;
 
 #endif
 

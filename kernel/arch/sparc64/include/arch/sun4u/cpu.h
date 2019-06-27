@@ -75,7 +75,7 @@ typedef struct {
 /** Read the module ID (agent ID/CPUID) of the current CPU.
  *
  */
-NO_TRACE static inline uint32_t read_mid(void)
+_NO_TRACE static inline uint32_t read_mid(void)
 {
 	uint64_t icbus_config = asi_u64_read(ASI_ICBUS_CONFIG, 0);
 	icbus_config = icbus_config >> ICBUS_CONFIG_MID_SHIFT;

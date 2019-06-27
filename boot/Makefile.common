@@ -144,7 +144,8 @@ RD_DRVS_NON_ESSENTIAL = \
 	nic/rtl8169 \
 	nic/ar9271 \
 	nic/virtio-net \
-	block/ahci
+	block/ahci \
+	block/virtio-blk
 
 RD_DRV_CFG =
 
@@ -180,7 +181,6 @@ RD_APPS_NON_ESSENTIAL = \
 	barber \
 	bithenge \
 	blkdump \
-	bnchmark \
 	contacts \
 	corecfg \
 	cpptest \
@@ -191,6 +191,7 @@ RD_APPS_NON_ESSENTIAL = \
 	edit \
 	fdisk \
 	gunzip \
+	hbench \
 	inet \
 	kill \
 	killall \
@@ -204,7 +205,6 @@ RD_APPS_NON_ESSENTIAL = \
 	mkext4 \
 	mkmfs \
 	nic \
-	perf \
 	sbi \
 	sportdmp \
 	redir \

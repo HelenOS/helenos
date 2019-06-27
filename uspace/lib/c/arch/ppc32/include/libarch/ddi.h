@@ -30,8 +30,8 @@
  * @ingroup libcppc32
  */
 
-#ifndef LIBC_ppc32_DDI_H_
-#define LIBC_ppc32_DDI_H_
+#ifndef _LIBC_ppc32_DDI_H_
+#define _LIBC_ppc32_DDI_H_
 
 #include <ddi.h>
 

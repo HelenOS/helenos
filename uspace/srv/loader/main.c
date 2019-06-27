@@ -289,8 +289,8 @@ static int ldr_load(ipc_call_t *req)
 {
 	DPRINTF("LOADER_LOAD()\n");
 
-	int rc = elf_load(program_fd, &prog_info);
-	if (rc != EE_OK) {
+	errno_t rc = elf_load(program_fd, &prog_info);
+	if (rc != EOK) {
 		DPRINTF("Failed to load executable for '%s'.\n", progname);
 		async_answer_0(req, EINVAL);
 		return 1;
@@ -352,7 +352,7 @@ static __attribute__((noreturn)) void ldr_run(ipc_call_t *req)
 	 * unanswered IPC_M_PHONE_HUNGUP messages behind.
 	 */
 	async_get_call(req);
-	assert(!IPC_GET_IMETHOD(*req));
+	assert(!ipc_get_imethod(req));
 	async_answer_0(req, EOK);
 
 	DPRINTF("Jump to entry point at %p\n", pcb.entry);
@@ -391,12 +391,12 @@ static void ldr_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			exit(0);
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case LOADER_GET_TASKID:
 			ldr_get_taskid(&call);
 			continue;

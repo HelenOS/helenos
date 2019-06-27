@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2005 Martin Decky
  * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
@@ -33,20 +34,21 @@
 /** @file
  */
 
-#ifndef LIBC_STR_H_
-#define LIBC_STR_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef _LIBC_STR_H_
+#define _LIBC_STR_H_
 
 #include <errno.h>
-#include <mem.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
-#define U_SPECIAL  '?'
+#include <mem.h>
+#include <_bits/decls.h>
+
+#ifndef __cplusplus
+
+/* Common Unicode characters */
+#define U_SPECIAL      '?'
 
 /** No size limit constant */
 #define STR_NO_LIMIT  ((size_t) -1)
@@ -60,9 +62,13 @@ extern "C" {
  */
 #define SPASCII_STR_BUFSIZE(spa_size) ((spa_size) + 1)
 
+#endif
+
+__HELENOS_DECLS_BEGIN;
+
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern wchar_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
-extern errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
+extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
@@ -115,8 +121,8 @@ extern void str_ltrim(char *str, wchar_t ch);
 extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
 extern bool wstr_remove(wchar_t *str, size_t pos);
 
-extern char *str_dup(const char *);
-extern char *str_ndup(const char *, size_t max_size);
+extern char *str_dup(const char *src);
+extern char *str_ndup(const char *src, size_t n);
 
 extern char *str_tok(char *, const char *, char **);
 
@@ -130,7 +136,7 @@ extern errno_t str_uint64_t(const char *, const char **, unsigned int, bool,
     uint64_t *);
 extern errno_t str_size_t(const char *, const char **, unsigned int, bool,
     size_t *);
-extern int str_int64_t(const char *, const char **, unsigned int, bool,
+extern errno_t str_int64_t(const char *, const char **, unsigned int, bool,
     int64_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);
@@ -143,9 +149,7 @@ extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);
 extern long int strtol(const char *, char **, int);
 extern unsigned long strtoul(const char *, char **, int);
 
-#ifdef __cplusplus
-}
-#endif
+__HELENOS_DECLS_END;
 
 #endif
 

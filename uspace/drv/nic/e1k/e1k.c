@@ -1243,7 +1243,7 @@ static void e1000_interrupt_handler_impl(nic_t *nic, uint32_t icr)
 static void e1000_interrupt_handler(ipc_call_t *icall,
     ddf_dev_t *dev)
 {
-	uint32_t icr = (uint32_t) IPC_GET_ARG2(*icall);
+	uint32_t icr = (uint32_t) ipc_get_arg2(icall);
 	nic_t *nic = NIC_DATA_DEV(dev);
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 

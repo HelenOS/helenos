@@ -172,7 +172,7 @@ static void sata_bd_connection(ipc_call_t *icall, void *arg)
 	int disk_id, i;
 
 	/* Get the device service ID. */
-	dsid = IPC_GET_ARG2(*icall);
+	dsid = ipc_get_arg2(icall);
 
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;

@@ -118,8 +118,8 @@ static ddf_fun_t *driver_get_function(devman_handle_t handle)
 
 static void driver_dev_add(ipc_call_t *icall)
 {
-	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
-	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
+	devman_handle_t dev_handle = ipc_get_arg1(icall);
+	devman_handle_t parent_fun_handle = ipc_get_arg2(icall);
 
 	char *dev_name = NULL;
 	errno_t rc = async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
@@ -172,7 +172,7 @@ static void driver_dev_add(ipc_call_t *icall)
 
 static void driver_dev_remove(ipc_call_t *icall)
 {
-	devman_handle_t devh = IPC_GET_ARG1(*icall);
+	devman_handle_t devh = ipc_get_arg1(icall);
 
 	fibril_mutex_lock(&devices_mutex);
 	ddf_dev_t *dev = driver_get_device(devh);
@@ -205,7 +205,7 @@ static void driver_dev_remove(ipc_call_t *icall)
 
 static void driver_dev_gone(ipc_call_t *icall)
 {
-	devman_handle_t devh = IPC_GET_ARG1(*icall);
+	devman_handle_t devh = ipc_get_arg1(icall);
 
 	fibril_mutex_lock(&devices_mutex);
 	ddf_dev_t *dev = driver_get_device(devh);
@@ -238,7 +238,7 @@ static void driver_dev_gone(ipc_call_t *icall)
 
 static void driver_fun_online(ipc_call_t *icall)
 {
-	devman_handle_t funh = IPC_GET_ARG1(*icall);
+	devman_handle_t funh = ipc_get_arg1(icall);
 
 	/*
 	 * Look the function up. Bump reference count so that
@@ -273,7 +273,7 @@ static void driver_fun_online(ipc_call_t *icall)
 
 static void driver_fun_offline(ipc_call_t *icall)
 {
-	devman_handle_t funh = IPC_GET_ARG1(*icall);
+	devman_handle_t funh = ipc_get_arg1(icall);
 
 	/*
 	 * Look the function up. Bump reference count so that
@@ -342,12 +342,12 @@ static void driver_connection_devman(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case DRIVER_DEV_ADD:
 			driver_dev_add(&call);
 			break;
@@ -384,7 +384,7 @@ static void driver_connection_gen(ipc_call_t *icall, bool drv)
 	 * Answer the first IPC_M_CONNECT_ME_TO call and remember the handle of
 	 * the device to which the client connected.
 	 */
-	devman_handle_t handle = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = ipc_get_arg2(icall);
 
 	fibril_mutex_lock(&functions_mutex);
 	ddf_fun_t *fun = driver_get_function(handle);
@@ -428,7 +428,7 @@ static void driver_connection_gen(ipc_call_t *icall, bool drv)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* Close device function */
@@ -482,7 +482,7 @@ static void driver_connection_gen(ipc_call_t *icall, bool drv)
 		assert(rem_iface != NULL);
 
 		/* get the method of the remote interface */
-		sysarg_t iface_method_idx = IPC_GET_ARG1(call);
+		sysarg_t iface_method_idx = ipc_get_arg1(&call);
 		remote_iface_func_ptr_t iface_method_ptr =
 		    get_remote_method(rem_iface, iface_method_idx);
 		if (iface_method_ptr == NULL) {

@@ -527,7 +527,7 @@ namespace std
 
             static constexpr unsigned short min()
             {
-                return USHRT_MIN;
+                return 0;
             }
 
             static constexpr unsigned short lowest()
@@ -551,7 +551,7 @@ namespace std
 
             static constexpr unsigned int min()
             {
-                return UINT_MIN;
+                return 0;
             }
 
             static constexpr unsigned int lowest()
@@ -575,7 +575,7 @@ namespace std
 
             static constexpr unsigned long min()
             {
-                return ULONG_MIN;
+                return 0;
             }
 
             static constexpr unsigned long lowest()
@@ -599,7 +599,7 @@ namespace std
 
             static constexpr unsigned long long min()
             {
-                return ULLONG_MIN;
+                return 0;
             }
 
             static constexpr unsigned long long lowest()

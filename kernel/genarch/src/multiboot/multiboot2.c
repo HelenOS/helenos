@@ -64,7 +64,7 @@ static void multiboot2_memmap(uint32_t length, const multiboot2_memmap_t *memmap
 {
 	multiboot2_memmap_entry_t *entry = (multiboot2_memmap_entry_t *)
 	    ((uintptr_t) memmap + sizeof(*memmap));
-	uint32_t pos = sizeof(*memmap);
+	uint32_t pos = offsetof(multiboot2_tag_t, memmap) + sizeof(*memmap);
 
 	while ((pos < length) && (e820counter < MEMMAP_E820_MAX_RECORDS)) {
 		e820table[e820counter].base_address = entry->base_address;

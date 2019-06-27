@@ -78,7 +78,7 @@ static void mousedev_callback_conn(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			mousedev_destroy(mousedev);
 			return;
@@ -86,22 +86,22 @@ static void mousedev_callback_conn(ipc_call_t *icall, void *arg)
 
 		errno_t retval;
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case MOUSEEV_MOVE_EVENT:
 			mouse_push_event_move(mousedev->mouse_dev,
-			    IPC_GET_ARG1(call), IPC_GET_ARG2(call),
-			    IPC_GET_ARG3(call));
+			    ipc_get_arg1(&call), ipc_get_arg2(&call),
+			    ipc_get_arg3(&call));
 			retval = EOK;
 			break;
 		case MOUSEEV_ABS_MOVE_EVENT:
 			mouse_push_event_abs_move(mousedev->mouse_dev,
-			    IPC_GET_ARG1(call), IPC_GET_ARG2(call),
-			    IPC_GET_ARG3(call), IPC_GET_ARG4(call));
+			    ipc_get_arg1(&call), ipc_get_arg2(&call),
+			    ipc_get_arg3(&call), ipc_get_arg4(&call));
 			retval = EOK;
 			break;
 		case MOUSEEV_BUTTON_EVENT:
 			mouse_push_event_button(mousedev->mouse_dev,
-			    IPC_GET_ARG1(call), IPC_GET_ARG2(call));
+			    ipc_get_arg1(&call), ipc_get_arg2(&call));
 			retval = EOK;
 			break;
 		default:

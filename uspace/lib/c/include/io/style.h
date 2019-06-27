@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_STYLE_H_
-#define LIBC_IO_STYLE_H_
+#ifndef _LIBC_IO_STYLE_H_
+#define _LIBC_IO_STYLE_H_
 
 typedef enum {
 	STYLE_NORMAL   = 0,

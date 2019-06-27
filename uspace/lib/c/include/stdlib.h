@@ -32,18 +32,24 @@
 /** @file
  */
 
-#ifndef LIBC_STDLIB_H_
-#define LIBC_STDLIB_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef _LIBC_STDLIB_H_
+#define _LIBC_STDLIB_H_
 
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
+#include <_bits/decls.h>
 #include <bsearch.h>
 #include <malloc.h>
 #include <qsort.h>
+
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE 1
+
+#define RAND_MAX  714025
+
+#define MB_CUR_MAX 4
+
+__C_DECLS_BEGIN;
 
 /** Type returned by the div function */
 typedef struct {
@@ -68,13 +74,6 @@ typedef struct {
 	/** Remainder */
 	long long rem;
 } lldiv_t;
-
-#define EXIT_FAILURE 1
-#define EXIT_SUCCESS 0
-
-#define RAND_MAX  714025
-
-#define MB_CUR_MAX 4
 
 extern long double strtold(const char *, char **);
 
@@ -108,9 +107,7 @@ extern div_t div(int, int);
 extern ldiv_t ldiv(long, long);
 extern lldiv_t lldiv(long long, long long);
 
-#ifdef __cplusplus
-}
-#endif
+__C_DECLS_END;
 
 #endif
 

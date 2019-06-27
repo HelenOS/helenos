@@ -52,7 +52,7 @@ static void clip_put_data(ipc_call_t *req)
 	errno_t rc;
 	size_t size;
 
-	switch (IPC_GET_ARG1(*req)) {
+	switch (ipc_get_arg1(req)) {
 	case CLIPBOARD_TAG_NONE:
 		fibril_mutex_lock(&clip_mtx);
 
@@ -98,7 +98,7 @@ static void clip_get_data(ipc_call_t *req)
 	size_t size;
 
 	/* Check for clipboard data tag compatibility */
-	switch (IPC_GET_ARG1(*req)) {
+	switch (ipc_get_arg1(req)) {
 	case CLIPBOARD_TAG_DATA:
 		if (!async_data_read_receive(&call, &size)) {
 			async_answer_0(&call, EINVAL);
@@ -160,12 +160,12 @@ static void clip_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case CLIPBOARD_PUT_DATA:
 			clip_put_data(&call);
 			break;

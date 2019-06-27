@@ -53,8 +53,8 @@
 #include <align.h>
 
 static size_t ht_hash(const ht_link_t *);
-static size_t ht_key_hash(void *);
-static bool ht_key_equal(void *, const ht_link_t *);
+static size_t ht_key_hash(const void *);
+static bool ht_key_equal(const void *, const ht_link_t *);
 static void ht_remove_callback(ht_link_t *);
 
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
@@ -108,9 +108,9 @@ size_t ht_hash(const ht_link_t *item)
 }
 
 /** Return the hash of the key. */
-size_t ht_key_hash(void *arg)
+size_t ht_key_hash(const void *arg)
 {
-	uintptr_t *key = (uintptr_t *) arg;
+	const uintptr_t *key = arg;
 	size_t hash = 0;
 	hash = hash_combine(hash, key[KEY_AS]);
 	hash = hash_combine(hash, key[KEY_PAGE] >> PAGE_WIDTH);
@@ -118,9 +118,9 @@ size_t ht_key_hash(void *arg)
 }
 
 /** Return true if the key is equal to the item's lookup key. */
-bool ht_key_equal(void *arg, const ht_link_t *item)
+bool ht_key_equal(const void *arg, const ht_link_t *item)
 {
-	uintptr_t *key = (uintptr_t *) arg;
+	const uintptr_t *key = arg;
 	pte_t *pte = hash_table_get_inst(item, pte_t, link);
 	return (key[KEY_AS] == (uintptr_t) pte->as) &&
 	    (key[KEY_PAGE] == pte->page);

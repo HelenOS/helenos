@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ia64_FIBRIL_H_
-#define LIBC_ia64_FIBRIL_H_
+#ifndef _LIBC_ia64_FIBRIL_H_
+#define _LIBC_ia64_FIBRIL_H_
 
 #include <stdint.h>
 #include <align.h>
@@ -42,7 +42,7 @@
 #include <libarch/fibril_context.h>
 
 /*
- * __setjmp() and __longjmp() are both leaf procedures.
+ * __context_save() and __context_restore() are both leaf procedures.
  * No need to allocate scratch area.
  */
 #define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))

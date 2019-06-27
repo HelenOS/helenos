@@ -37,9 +37,6 @@
 #include <genarch/ofw/ebus.h>
 #include <console/console.h>
 #include <ddi/irq.h>
-#include <mm/page.h>
-#include <arch/mm/page.h>
-#include <mm/km.h>
 #include <typedefs.h>
 #include <align.h>
 #include <str.h>
@@ -87,8 +84,6 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 		return false;
 	}
 
-	size_t size = ((ofw_ebus_reg_t *) prop->value)->size;
-
 	uintptr_t pa = 0; // Prevent -Werror=maybe-uninitialized
 	if (!ofw_ebus_apply_ranges(node->parent,
 	    ((ofw_ebus_reg_t *) prop->value), &pa)) {
@@ -108,11 +103,8 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 		return false;
 	}
 
-	ioport8_t *ns16550 = (ioport8_t *) km_map(pa, size,
-	    KM_NATURAL_ALIGNMENT, PAGE_WRITE | PAGE_NOT_CACHEABLE);
-
-	ns16550_instance_t *ns16550_instance = ns16550_init(ns16550, 0, inr, cir,
-	    cir_arg, NULL);
+	ns16550_instance_t *ns16550_instance = ns16550_init((ioport8_t *) pa, 0,
+	    inr, cir, cir_arg, NULL);
 	if (ns16550_instance) {
 		kbrd_instance_t *kbrd_instance = kbrd_init();
 		if (kbrd_instance) {

@@ -56,6 +56,21 @@
 #define EXC_WATCH  23
 #define EXC_VCED   31
 
+#define INT_SW0    0
+#define INT_SW1    1
+#define INT_HW0    2
+#define INT_HW1    3
+#define INT_HW2    4
+#define INT_HW3    5
+#define INT_HW4    6
+#define INT_TIMER  7
+
+#define MIPS_INTERRUPTS    8
+#define HW_INTERRUPTS      (MIPS_INTERRUPTS - 3)
+
+typedef void (*int_handler_t)(unsigned int);
+extern int_handler_t int_handler[];
+
 extern void exception(istate_t *istate);
 extern void tlb_refill_entry(void);
 extern void exception_entry(void);

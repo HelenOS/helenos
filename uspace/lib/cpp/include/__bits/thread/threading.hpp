@@ -29,16 +29,10 @@
 #ifndef LIBCPP_BITS_THREAD_THREADING
 #define LIBCPP_BITS_THREAD_THREADING
 
-namespace std::hel
-{
-    extern "C" {
-        #include <async.h>
-        #include <fibril.h>
-        #include <fibril_synch.h>
-    }
-}
-
 #include <chrono>
+
+#include <fibril.h>
+#include <fibril_synch.h>
 
 namespace std::aux
 {
@@ -54,33 +48,33 @@ namespace std::aux
     template<>
     struct threading_policy<fibril_tag>
     {
-        using mutex_type        = hel::fibril_mutex_t;
-        using thread_type       = hel::fid_t;
-        using condvar_type      = hel::fibril_condvar_t;
-        using time_unit         = hel::usec_t;
-        using shared_mutex_type = hel::fibril_rwlock_t;
+        using mutex_type        = ::helenos::fibril_mutex_t;
+        using thread_type       = ::helenos::fid_t;
+        using condvar_type      = ::helenos::fibril_condvar_t;
+        using time_unit         = ::helenos::usec_t;
+        using shared_mutex_type = ::helenos::fibril_rwlock_t;
 
         struct thread
         {
             template<class Callable, class Payload>
             static thread_type create(Callable clbl, Payload& pld)
             {
-                return hel::fibril_create(clbl, (void*)&pld);
+                return ::helenos::fibril_create(clbl, (void*)&pld);
             }
 
             static void start(thread_type thr)
             {
-                hel::fibril_add_ready(thr);
+                ::helenos::fibril_add_ready(thr);
             }
 
             static thread_type this_thread()
             {
-                return hel::fibril_get_id();
+                return ::helenos::fibril_get_id();
             }
 
             static void yield()
             {
-                hel::fibril_yield();
+                ::helenos::fibril_yield();
             }
 
             /**
@@ -94,22 +88,22 @@ namespace std::aux
         {
             static void init(mutex_type& mtx)
             {
-                hel::fibril_mutex_initialize(&mtx);
+                ::helenos::fibril_mutex_initialize(&mtx);
             }
 
             static void lock(mutex_type& mtx)
             {
-                hel::fibril_mutex_lock(&mtx);
+                ::helenos::fibril_mutex_lock(&mtx);
             }
 
             static void unlock(mutex_type& mtx)
             {
-                hel::fibril_mutex_unlock(&mtx);
+                ::helenos::fibril_mutex_unlock(&mtx);
             }
 
             static bool try_lock(mutex_type& mtx)
             {
-                return hel::fibril_mutex_trylock(&mtx);
+                return ::helenos::fibril_mutex_trylock(&mtx);
             }
 
             static bool try_lock_for(mutex_type& mtx, time_unit timeout)
@@ -123,27 +117,27 @@ namespace std::aux
         {
             static void init(condvar_type& cv)
             {
-                hel::fibril_condvar_initialize(&cv);
+                ::helenos::fibril_condvar_initialize(&cv);
             }
 
             static void wait(condvar_type& cv, mutex_type& mtx)
             {
-                hel::fibril_condvar_wait(&cv, &mtx);
+                ::helenos::fibril_condvar_wait(&cv, &mtx);
             }
 
             static int wait_for(condvar_type& cv, mutex_type& mtx, time_unit timeout)
             {
-                return hel::fibril_condvar_wait_timeout(&cv, &mtx, timeout);
+                return ::helenos::fibril_condvar_wait_timeout(&cv, &mtx, timeout);
             }
 
             static void signal(condvar_type& cv)
             {
-                hel::fibril_condvar_signal(&cv);
+                ::helenos::fibril_condvar_signal(&cv);
             }
 
             static void broadcast(condvar_type& cv)
             {
-                hel::fibril_condvar_broadcast(&cv);
+                ::helenos::fibril_condvar_broadcast(&cv);
             }
         };
 
@@ -157,7 +151,7 @@ namespace std::aux
 
             static void sleep(time_unit time)
             {
-                hel::fibril_usleep(time);
+                ::helenos::fibril_usleep(time);
             }
         };
 
@@ -165,27 +159,27 @@ namespace std::aux
         {
             static void init(shared_mutex_type& mtx)
             {
-                hel::fibril_rwlock_initialize(&mtx);
+                ::helenos::fibril_rwlock_initialize(&mtx);
             }
 
             static void lock(shared_mutex_type& mtx)
             {
-                hel::fibril_rwlock_write_lock(&mtx);
+                ::helenos::fibril_rwlock_write_lock(&mtx);
             }
 
             static void unlock(shared_mutex_type& mtx)
             {
-                hel::fibril_rwlock_write_unlock(&mtx);
+                ::helenos::fibril_rwlock_write_unlock(&mtx);
             }
 
             static void lock_shared(shared_mutex_type& mtx)
             {
-                hel::fibril_rwlock_read_lock(&mtx);
+                ::helenos::fibril_rwlock_read_lock(&mtx);
             }
 
             static void unlock_shared(shared_mutex_type& mtx)
             {
-                hel::fibril_rwlock_read_unlock(&mtx);
+                ::helenos::fibril_rwlock_read_unlock(&mtx);
             }
 
             static bool try_lock(shared_mutex_type& mtx)

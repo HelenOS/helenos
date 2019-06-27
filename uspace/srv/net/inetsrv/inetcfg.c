@@ -256,7 +256,7 @@ static void inetcfg_addr_create_static_srv(ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_create_static_srv()");
 
-	sysarg_t link_id = IPC_GET_ARG1(*icall);
+	sysarg_t link_id = ipc_get_arg1(icall);
 
 	ipc_call_t call;
 	size_t size;
@@ -301,7 +301,7 @@ static void inetcfg_addr_delete_srv(ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_delete_srv()");
 
-	addr_id = IPC_GET_ARG1(*call);
+	addr_id = ipc_get_arg1(call);
 
 	rc = inetcfg_addr_delete(addr_id);
 	async_answer_0(call, rc);
@@ -311,7 +311,7 @@ static void inetcfg_addr_get_srv(ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_get_srv()");
 
-	sysarg_t addr_id = IPC_GET_ARG1(*icall);
+	sysarg_t addr_id = ipc_get_arg1(icall);
 
 	inet_addr_info_t ainfo;
 
@@ -374,7 +374,7 @@ static void inetcfg_addr_get_id_srv(ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_get_id_srv()");
 
-	link_id = IPC_GET_ARG1(*call);
+	link_id = ipc_get_arg1(call);
 
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
@@ -498,7 +498,7 @@ static void inetcfg_link_add_srv(ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_link_add_srv()");
 
-	link_id = IPC_GET_ARG1(*call);
+	link_id = ipc_get_arg1(call);
 
 	rc = inetcfg_link_add(link_id);
 	async_answer_0(call, rc);
@@ -515,7 +515,7 @@ static void inetcfg_link_get_srv(ipc_call_t *call)
 	inet_link_info_t linfo;
 	errno_t rc;
 
-	link_id = IPC_GET_ARG1(*call);
+	link_id = ipc_get_arg1(call);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_link_get_srv()");
 
 	linfo.name = NULL;
@@ -565,7 +565,7 @@ static void inetcfg_link_remove_srv(ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_link_remove_srv()");
 
-	link_id = IPC_GET_ARG1(*call);
+	link_id = ipc_get_arg1(call);
 
 	rc = inetcfg_link_remove(link_id);
 	async_answer_0(call, rc);
@@ -638,7 +638,7 @@ static void inetcfg_sroute_delete_srv(ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_delete_srv()");
 
-	sroute_id = IPC_GET_ARG1(*call);
+	sroute_id = ipc_get_arg1(call);
 
 	rc = inetcfg_sroute_delete(sroute_id);
 	async_answer_0(call, rc);
@@ -648,7 +648,7 @@ static void inetcfg_sroute_get_srv(ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_get_srv()");
 
-	sysarg_t sroute_id = IPC_GET_ARG1(*icall);
+	sysarg_t sroute_id = ipc_get_arg1(icall);
 
 	inet_sroute_info_t srinfo;
 
@@ -746,7 +746,7 @@ void inet_cfg_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "method %d", (int)method);
 		if (!method) {

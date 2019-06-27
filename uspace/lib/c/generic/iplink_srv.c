@@ -161,8 +161,8 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
 	iplink_sdu_t sdu;
 
-	sdu.src = IPC_GET_ARG1(*icall);
-	sdu.dest = IPC_GET_ARG2(*icall);
+	sdu.src = ipc_get_arg1(icall);
+	sdu.dest = ipc_get_arg2(icall);
 
 	errno_t rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
 	    &sdu.size);
@@ -252,7 +252,7 @@ errno_t iplink_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

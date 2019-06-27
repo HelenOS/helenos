@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_amd64_TLS_H_
-#define LIBC_amd64_TLS_H_
+#ifndef _LIBC_amd64_TLS_H_
+#define _LIBC_amd64_TLS_H_
 
 #define CONFIG_TLS_VARIANT_2
 

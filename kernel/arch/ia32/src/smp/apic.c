@@ -46,6 +46,7 @@
 #include <arch/asm.h>
 #include <arch.h>
 #include <ddi/irq.h>
+#include <genarch/pic/pic_ops.h>
 
 #ifdef CONFIG_SMP
 
@@ -61,6 +62,19 @@
  *    MSI K7D Master-L with 2x 2100MHz Athlon MP CPUs
  *
  */
+
+static const char *apic_get_name(void);
+static bool l_apic_is_spurious(unsigned int);
+static void l_apic_handle_spurious(unsigned int);
+
+pic_ops_t apic_pic_ops = {
+	.get_name = apic_get_name,
+	.enable_irqs = io_apic_enable_irqs,
+	.disable_irqs = io_apic_disable_irqs,
+	.eoi = l_apic_eoi,
+	.is_spurious = l_apic_is_spurious,
+	.handle_spurious = l_apic_handle_spurious,
+};
 
 /*
  * These variables either stay configured as initilalized, or are changed by
@@ -124,6 +138,20 @@ static const char *intpol_str[] = {
 };
 #endif /* LAPIC_VERBOSE */
 
+const char *apic_get_name(void)
+{
+	return "apic";
+}
+
+bool l_apic_is_spurious(unsigned int n)
+{
+	return n == VECTOR_APIC_SPUR;
+}
+
+void l_apic_handle_spurious(unsigned int n)
+{
+}
+
 /** APIC spurious interrupt handler.
  *
  * @param n      Interrupt vector.
@@ -133,9 +161,6 @@ static const char *intpol_str[] = {
 static void apic_spurious(unsigned int n __attribute__((unused)),
     istate_t *istate __attribute__((unused)))
 {
-#ifdef CONFIG_DEBUG
-	log(LF_ARCH, LVL_DEBUG, "cpu%u: APIC spurious interrupt", CPU->id);
-#endif
 }
 
 static irq_ownership_t l_apic_timer_claim(irq_t *irq)
@@ -174,10 +199,7 @@ void apic_init(void)
 	exc_register(VECTOR_APIC_SPUR, "apic_spurious", false,
 	    (iroutine_t) apic_spurious);
 
-	enable_irqs_function = io_apic_enable_irqs;
-	disable_irqs_function = io_apic_disable_irqs;
-	eoi_function = l_apic_eoi;
-	irqs_info = "apic";
+	pic_ops = &apic_pic_ops;
 
 	/*
 	 * Configure interrupt routing.
@@ -507,7 +529,7 @@ void l_apic_init(void)
 }
 
 /** Local APIC End of Interrupt. */
-void l_apic_eoi(void)
+void l_apic_eoi(unsigned int ignored)
 {
 	l_apic[EOI] = 0;
 }

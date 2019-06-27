@@ -275,7 +275,7 @@ static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
 	ieee80211_scan_results_t scan_results;
 	memset(&scan_results, 0, sizeof(ieee80211_scan_results_t));
 
-	bool now = IPC_GET_ARG2(*call);
+	bool now = ipc_get_arg2(call);
 
 	errno_t rc = ieee80211_iface->get_scan_results(fun, &scan_results, now);
 	if (rc == EOK) {

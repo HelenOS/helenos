@@ -66,7 +66,7 @@ dev_tree_t device_tree;
 
 static void devman_connection_device(ipc_call_t *icall, void *arg)
 {
-	devman_handle_t handle = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = ipc_get_arg2(icall);
 	dev_node_t *dev = NULL;
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
@@ -135,7 +135,7 @@ static void devman_connection_device(ipc_call_t *icall, void *arg)
 	}
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall, exch, INTERFACE_DDF_CLIENT, handle, 0, IPC_FF_NONE);
+	async_forward_1(icall, exch, INTERFACE_DDF_CLIENT, handle, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 cleanup:
@@ -148,7 +148,7 @@ cleanup:
 
 static void devman_connection_parent(ipc_call_t *icall, void *arg)
 {
-	devman_handle_t handle = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = ipc_get_arg2(icall);
 	dev_node_t *dev = NULL;
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
@@ -214,7 +214,7 @@ static void devman_connection_parent(ipc_call_t *icall, void *arg)
 	}
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall, exch, INTERFACE_DDF_DRIVER, fun_handle, 0, IPC_FF_NONE);
+	async_forward_1(icall, exch, INTERFACE_DDF_DRIVER, fun_handle, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 cleanup:
@@ -227,8 +227,8 @@ cleanup:
 
 static void devman_forward(ipc_call_t *icall, void *arg)
 {
-	iface_t iface = IPC_GET_ARG1(*icall);
-	service_id_t service_id = IPC_GET_ARG2(*icall);
+	iface_t iface = ipc_get_arg1(icall);
+	service_id_t service_id = ipc_get_arg2(icall);
 
 	fun_node_t *fun = find_loc_tree_function(&device_tree, service_id);
 
@@ -249,7 +249,7 @@ static void devman_forward(ipc_call_t *icall, void *arg)
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall, exch, iface, handle, 0, IPC_FF_NONE);
+	async_forward_1(icall, exch, iface, handle, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG,

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_FOURCC_H_
-#define LIBC_FOURCC_H_
+#ifndef _LIBC_FOURCC_H_
+#define _LIBC_FOURCC_H_
 
 #include <stdint.h>
 

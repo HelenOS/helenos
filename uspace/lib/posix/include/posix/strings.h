@@ -38,16 +38,14 @@
 
 #include <types/common.h>
 
+__C_DECLS_BEGIN;
+
 /* Search Functions */
-#ifndef POSIX_STRING_H_
 extern int ffs(int i);
-#endif
 
 /* String/Array Comparison */
-#ifndef POSIX_STRING_H_
 extern int strcasecmp(const char *s1, const char *s2);
 extern int strncasecmp(const char *s1, const char *s2, size_t n);
-#endif
 
 /*
  * TODO: not implemented due to missing locale support
@@ -62,6 +60,8 @@ extern void bcopy(const void *src, void *dest, size_t n);
 extern void bzero(void *mem, size_t n);
 extern char *index(const char *s, int c);
 extern char *rindex(const char *s, int c);
+
+__C_DECLS_END;
 
 #endif  // POSIX_STRINGS_H_
 

@@ -61,7 +61,7 @@ static errno_t inetcfg_get_ids_once(sysarg_t method, sysarg_t arg1,
 		return retval;
 	}
 
-	*act_size = IPC_GET_ARG1(answer);
+	*act_size = ipc_get_arg1(&answer);
 	return EOK;
 }
 
@@ -160,7 +160,7 @@ errno_t inetcfg_addr_create_static(const char *name, inet_naddr_t *naddr,
 	errno_t retval;
 	async_wait_for(req, &retval);
 
-	*addr_id = IPC_GET_ARG1(answer);
+	*addr_id = ipc_get_arg1(&answer);
 
 	return retval;
 }
@@ -216,12 +216,12 @@ errno_t inetcfg_addr_get(sysarg_t addr_id, inet_addr_info_t *ainfo)
 	if (retval != EOK)
 		return retval;
 
-	size_t act_size = IPC_GET_ARG2(answer_name);
+	size_t act_size = ipc_get_arg2(&answer_name);
 	assert(act_size <= LOC_NAME_MAXLEN);
 
 	name_buf[act_size] = '\0';
 
-	ainfo->ilink = IPC_GET_ARG1(answer);
+	ainfo->ilink = ipc_get_arg1(&answer);
 	ainfo->name = str_dup(name_buf);
 
 	return EOK;
@@ -243,7 +243,7 @@ errno_t inetcfg_addr_get_id(const char *name, sysarg_t link_id, sysarg_t *addr_i
 	}
 
 	async_wait_for(req, &retval);
-	*addr_id = IPC_GET_ARG1(answer);
+	*addr_id = ipc_get_arg1(&answer);
 
 	return retval;
 }
@@ -304,12 +304,12 @@ errno_t inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	if (retval != EOK)
 		return retval;
 
-	act_size = IPC_GET_ARG2(dreply);
+	act_size = ipc_get_arg2(&dreply);
 	assert(act_size <= LOC_NAME_MAXLEN);
 	name_buf[act_size] = '\0';
 
 	linfo->name = str_dup(name_buf);
-	linfo->def_mtu = IPC_GET_ARG1(answer);
+	linfo->def_mtu = ipc_get_arg1(&answer);
 
 	return EOK;
 }
@@ -358,7 +358,7 @@ errno_t inetcfg_sroute_create(const char *name, inet_naddr_t *dest,
 	errno_t retval;
 	async_wait_for(req, &retval);
 
-	*sroute_id = IPC_GET_ARG1(answer);
+	*sroute_id = ipc_get_arg1(&answer);
 
 	return retval;
 }
@@ -427,7 +427,7 @@ errno_t inetcfg_sroute_get(sysarg_t sroute_id, inet_sroute_info_t *srinfo)
 	if (retval != EOK)
 		return retval;
 
-	size_t act_size = IPC_GET_ARG2(answer_name);
+	size_t act_size = ipc_get_arg2(&answer_name);
 	assert(act_size <= LOC_NAME_MAXLEN);
 
 	name_buf[act_size] = '\0';
@@ -453,7 +453,7 @@ errno_t inetcfg_sroute_get_id(const char *name, sysarg_t *sroute_id)
 	}
 
 	async_wait_for(req, &retval);
-	*sroute_id = IPC_GET_ARG1(answer);
+	*sroute_id = ipc_get_arg1(&answer);
 
 	return retval;
 }

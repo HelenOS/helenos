@@ -102,16 +102,16 @@ static void device_event_callback(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case PCM_EVENT_CAPTURE_TERMINATED:
 			printf("Recording terminated\n");
 			record = false;
 			break;
 		case PCM_EVENT_FRAMES_CAPTURED:
-			printf("%" PRIun " frames\n", IPC_GET_ARG1(call));
+			printf("%" PRIun " frames\n", ipc_get_arg1(&call));
 			break;
 		default:
-			printf("Unknown event %" PRIun ".\n", IPC_GET_IMETHOD(call));
+			printf("Unknown event %" PRIun ".\n", ipc_get_imethod(&call));
 			async_answer_0(&call, ENOTSUP);
 			continue;
 		}

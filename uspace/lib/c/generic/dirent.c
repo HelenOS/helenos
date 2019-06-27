@@ -38,6 +38,13 @@
 #include <stddef.h>
 #include <errno.h>
 #include <assert.h>
+#include <string.h>
+
+struct __dirstream {
+	int fd;
+	struct dirent res;
+	aoff64_t pos;
+};
 
 /** Open directory.
  *
@@ -85,12 +92,14 @@ struct dirent *readdir(DIR *dirp)
 	errno_t rc;
 	ssize_t len = 0;
 
-	rc = vfs_read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
-	    NAME_MAX + 1, &len);
+	rc = vfs_read_short(dirp->fd, dirp->pos, dirp->res.d_name,
+	    sizeof(dirp->res.d_name), &len);
 	if (rc != EOK) {
 		errno = rc;
 		return NULL;
 	}
+
+	assert(strnlen(dirp->res.d_name, sizeof(dirp->res.d_name)) < sizeof(dirp->res.d_name));
 
 	dirp->pos += len;
 

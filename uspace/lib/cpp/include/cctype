@@ -29,30 +29,24 @@
 #ifndef LIBCPP_CCTYPE
 #define LIBCPP_CCTYPE
 
-
-namespace std::hel
-{
-    extern "C" {
-        #include <ctype.h>
-    }
-}
+#include <ctype.h>
 
 namespace std
 {
-    using std::hel::isalnum;
-    using std::hel::isalpha;
-    using std::hel::islower;
-    using std::hel::isupper;
-    using std::hel::isdigit;
-    /* using std::hel::isxdigit; */
-    /* using std::hel::iscntrl; */
-    /* using std::hel::isgraph; */
-    using std::hel::isspace;
-    /* using std::hel::isblank; */
-    /* using std::hel::isprint; */
-    /* using std::hel::ispunct; */
-    using std::hel::tolower;
-    using std::hel::toupper;
+    using ::isalnum;
+    using ::isalpha;
+    using ::islower;
+    using ::isupper;
+    using ::isdigit;
+    using ::isxdigit;
+    using ::iscntrl;
+    using ::isgraph;
+    using ::isspace;
+    using ::isblank;
+    using ::isprint;
+    using ::ispunct;
+    using ::tolower;
+    using ::toupper;
 }
 
 #endif

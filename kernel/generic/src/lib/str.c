@@ -1,5 +1,9 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,14 +106,16 @@
  */
 
 #include <str.h>
-#include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
-#include <errno.h>
-#include <align.h>
+
 #include <assert.h>
-#include <macros.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
+
+#include <align.h>
+#include <macros.h>
 
 /** Check the condition if wchar_t is signed */
 #ifdef __WCHAR_UNSIGNED__
@@ -615,67 +621,6 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 	dest[dest_off] = '\0';
 }
 
-/** Duplicate string.
- *
- * Allocate a new string and copy characters from the source
- * string into it. The duplicate string is allocated via sleeping
- * malloc(), thus this function can sleep in no memory conditions.
- *
- * The allocation cannot fail and the return value is always
- * a valid pointer. The duplicate string is always a well-formed
- * null-terminated UTF-8 string, but it can differ from the source
- * string on the byte level.
- *
- * @param src Source string.
- *
- * @return Duplicate string.
- *
- */
-char *str_dup(const char *src)
-{
-	size_t size = str_size(src) + 1;
-	char *dest = malloc(size);
-	if (!dest)
-		return NULL;
-
-	str_cpy(dest, size, src);
-	return dest;
-}
-
-/** Duplicate string with size limit.
- *
- * Allocate a new string and copy up to @max_size bytes from the source
- * string into it. The duplicate string is allocated via sleeping
- * malloc(), thus this function can sleep in no memory conditions.
- * No more than @max_size + 1 bytes is allocated, but if the size
- * occupied by the source string is smaller than @max_size + 1,
- * less is allocated.
- *
- * The allocation cannot fail and the return value is always
- * a valid pointer. The duplicate string is always a well-formed
- * null-terminated UTF-8 string, but it can differ from the source
- * string on the byte level.
- *
- * @param src Source string.
- * @param n   Maximum number of bytes to duplicate.
- *
- * @return Duplicate string.
- *
- */
-char *str_ndup(const char *src, size_t n)
-{
-	size_t size = str_size(src);
-	if (size > n)
-		size = n;
-
-	char *dest = malloc(size + 1);
-	if (!dest)
-		return NULL;
-
-	str_ncpy(dest, size + 1, src, size);
-	return dest;
-}
-
 /** Convert wide string to string.
  *
  * Convert wide string @a src to string. The output is written to the buffer
@@ -712,7 +657,6 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
  * @param ch  Character to look for.
  *
  * @return Pointer to character in @a str or NULL if not found.
- *
  */
 char *str_chr(const char *str, wchar_t ch)
 {
@@ -785,165 +729,65 @@ bool wstr_remove(wchar_t *str, size_t pos)
 	return true;
 }
 
-/** Convert string to uint64_t (internal variant).
+/** Duplicate string.
  *
- * @param nptr   Pointer to string.
- * @param endptr Pointer to the first invalid character is stored here.
- * @param base   Zero or number between 2 and 36 inclusive.
- * @param neg    Indication of unary minus is stored here.
- * @apram result Result of the conversion.
+ * Allocate a new string and copy characters from the source
+ * string into it. The duplicate string is allocated via sleeping
+ * malloc(), thus this function can sleep in no memory conditions.
  *
- * @return EOK if conversion was successful.
+ * The allocation cannot fail and the return value is always
+ * a valid pointer. The duplicate string is always a well-formed
+ * null-terminated UTF-8 string, but it can differ from the source
+ * string on the byte level.
+ *
+ * @param src Source string.
+ *
+ * @return Duplicate string.
  *
  */
-static errno_t str_uint(const char *nptr, char **endptr, unsigned int base,
-    bool *neg, uint64_t *result)
+char *str_dup(const char *src)
 {
-	assert(endptr != NULL);
-	assert(neg != NULL);
-	assert(result != NULL);
+	size_t size = str_size(src) + 1;
+	char *dest = malloc(size);
+	if (!dest)
+		return NULL;
 
-	*neg = false;
-	const char *str = nptr;
-
-	/* Ignore leading whitespace */
-	while (isspace(*str))
-		str++;
-
-	if (*str == '-') {
-		*neg = true;
-		str++;
-	} else if (*str == '+')
-		str++;
-
-	if (base == 0) {
-		/* Decode base if not specified */
-		base = 10;
-
-		if (*str == '0') {
-			base = 8;
-			str++;
-
-			switch (*str) {
-			case 'b':
-			case 'B':
-				base = 2;
-				str++;
-				break;
-			case 'o':
-			case 'O':
-				base = 8;
-				str++;
-				break;
-			case 'd':
-			case 'D':
-			case 't':
-			case 'T':
-				base = 10;
-				str++;
-				break;
-			case 'x':
-			case 'X':
-				base = 16;
-				str++;
-				break;
-			default:
-				str--;
-			}
-		}
-	} else {
-		/* Check base range */
-		if ((base < 2) || (base > 36)) {
-			*endptr = (char *) str;
-			return EINVAL;
-		}
-	}
-
-	*result = 0;
-	const char *startstr = str;
-
-	while (*str != 0) {
-		unsigned int digit;
-
-		if ((*str >= 'a') && (*str <= 'z'))
-			digit = *str - 'a' + 10;
-		else if ((*str >= 'A') && (*str <= 'Z'))
-			digit = *str - 'A' + 10;
-		else if ((*str >= '0') && (*str <= '9'))
-			digit = *str - '0';
-		else
-			break;
-
-		if (digit >= base)
-			break;
-
-		uint64_t prev = *result;
-		*result = (*result) * base + digit;
-
-		if (*result < prev) {
-			/* Overflow */
-			*endptr = (char *) str;
-			return EOVERFLOW;
-		}
-
-		str++;
-	}
-
-	if (str == startstr) {
-		/*
-		 * No digits were decoded => first invalid character is
-		 * the first character of the string.
-		 */
-		str = nptr;
-	}
-
-	*endptr = (char *) str;
-
-	if (str == nptr)
-		return EINVAL;
-
-	return EOK;
+	str_cpy(dest, size, src);
+	return dest;
 }
 
-/** Convert string to uint64_t.
+/** Duplicate string with size limit.
  *
- * @param nptr   Pointer to string.
- * @param endptr If not NULL, pointer to the first invalid character
- *               is stored here.
- * @param base   Zero or number between 2 and 36 inclusive.
- * @param strict Do not allow any trailing characters.
- * @param result Result of the conversion.
+ * Allocate a new string and copy up to @max_size bytes from the source
+ * string into it. The duplicate string is allocated via sleeping
+ * malloc(), thus this function can sleep in no memory conditions.
+ * No more than @max_size + 1 bytes is allocated, but if the size
+ * occupied by the source string is smaller than @max_size + 1,
+ * less is allocated.
  *
- * @return EOK if conversion was successful.
+ * The allocation cannot fail and the return value is always
+ * a valid pointer. The duplicate string is always a well-formed
+ * null-terminated UTF-8 string, but it can differ from the source
+ * string on the byte level.
+ *
+ * @param src Source string.
+ * @param n   Maximum number of bytes to duplicate.
+ *
+ * @return Duplicate string.
  *
  */
-errno_t str_uint64_t(const char *nptr, char **endptr, unsigned int base,
-    bool strict, uint64_t *result)
+char *str_ndup(const char *src, size_t n)
 {
-	assert(result != NULL);
+	size_t size = str_size(src);
+	if (size > n)
+		size = n;
 
-	bool neg;
-	char *lendptr;
-	errno_t ret = str_uint(nptr, &lendptr, base, &neg, result);
+	char *dest = malloc(size + 1);
+	if (!dest)
+		return NULL;
 
-	if (endptr != NULL)
-		*endptr = (char *) lendptr;
-
-	if (ret != EOK)
-		return ret;
-
-	/* Do not allow negative values */
-	if (neg)
-		return EINVAL;
-
-	/*
-	 * Check whether we are at the end of
-	 * the string in strict mode
-	 */
-	if ((strict) && (*lendptr != 0))
-		return EINVAL;
-
-	return EOK;
+	str_ncpy(dest, size + 1, src, size);
+	return dest;
 }
 
 void order_suffix(const uint64_t val, uint64_t *rv, char *suffix)

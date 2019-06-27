@@ -36,9 +36,9 @@
 
 static void vfs_in_clone(ipc_call_t *req)
 {
-	int oldfd = IPC_GET_ARG1(*req);
-	int newfd = IPC_GET_ARG2(*req);
-	bool desc = IPC_GET_ARG3(*req);
+	int oldfd = ipc_get_arg1(req);
+	int newfd = ipc_get_arg2(req);
+	bool desc = ipc_get_arg3(req);
 
 	int outfd = -1;
 	errno_t rc = vfs_op_clone(oldfd, newfd, desc, &outfd);
@@ -47,7 +47,7 @@ static void vfs_in_clone(ipc_call_t *req)
 
 static void vfs_in_fsprobe(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
 	char *fs_name = NULL;
 	vfs_fs_probe_info_t info;
 	errno_t rc;
@@ -112,17 +112,17 @@ out:
 
 static void vfs_in_mount(ipc_call_t *req)
 {
-	int mpfd = IPC_GET_ARG1(*req);
+	int mpfd = ipc_get_arg1(req);
 
 	/*
 	 * We expect the library to do the device-name to device-handle
 	 * translation for us, thus the device handle will arrive as ARG1
 	 * in the request.
 	 */
-	service_id_t service_id = (service_id_t) IPC_GET_ARG2(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg2(req);
 
-	unsigned int flags = (unsigned int) IPC_GET_ARG3(*req);
-	unsigned int instance = IPC_GET_ARG4(*req);
+	unsigned int flags = (unsigned int) ipc_get_arg3(req);
+	unsigned int instance = ipc_get_arg4(req);
 
 	char *opts = NULL;
 	char *fs_name = NULL;
@@ -158,8 +158,8 @@ static void vfs_in_mount(ipc_call_t *req)
 
 static void vfs_in_open(ipc_call_t *req)
 {
-	int fd = IPC_GET_ARG1(*req);
-	int mode = IPC_GET_ARG2(*req);
+	int fd = ipc_get_arg1(req);
+	int mode = ipc_get_arg2(req);
 
 	errno_t rc = vfs_op_open(fd, mode);
 	async_answer_0(req, rc);
@@ -167,16 +167,16 @@ static void vfs_in_open(ipc_call_t *req)
 
 static void vfs_in_put(ipc_call_t *req)
 {
-	int fd = IPC_GET_ARG1(*req);
+	int fd = ipc_get_arg1(req);
 	errno_t rc = vfs_op_put(fd);
 	async_answer_0(req, rc);
 }
 
 static void vfs_in_read(ipc_call_t *req)
 {
-	int fd = IPC_GET_ARG1(*req);
-	aoff64_t pos = MERGE_LOUP32(IPC_GET_ARG2(*req),
-	    IPC_GET_ARG3(*req));
+	int fd = ipc_get_arg1(req);
+	aoff64_t pos = MERGE_LOUP32(ipc_get_arg2(req),
+	    ipc_get_arg3(req));
 
 	size_t bytes = 0;
 	errno_t rc = vfs_op_read(fd, pos, &bytes);
@@ -191,7 +191,7 @@ static void vfs_in_rename(ipc_call_t *req)
 	char *new = NULL;
 	errno_t rc;
 
-	basefd = IPC_GET_ARG1(*req);
+	basefd = ipc_get_arg1(req);
 
 	/* Retrieve the old path. */
 	rc = async_data_write_accept((void **) &old, true, 0, 0, 0, NULL);
@@ -229,22 +229,22 @@ out:
 
 static void vfs_in_resize(ipc_call_t *req)
 {
-	int fd = IPC_GET_ARG1(*req);
-	int64_t size = MERGE_LOUP32(IPC_GET_ARG2(*req), IPC_GET_ARG3(*req));
+	int fd = ipc_get_arg1(req);
+	int64_t size = MERGE_LOUP32(ipc_get_arg2(req), ipc_get_arg3(req));
 	errno_t rc = vfs_op_resize(fd, size);
 	async_answer_0(req, rc);
 }
 
 static void vfs_in_stat(ipc_call_t *req)
 {
-	int fd = IPC_GET_ARG1(*req);
+	int fd = ipc_get_arg1(req);
 	errno_t rc = vfs_op_stat(fd);
 	async_answer_0(req, rc);
 }
 
 static void vfs_in_statfs(ipc_call_t *req)
 {
-	int fd = (int) IPC_GET_ARG1(*req);
+	int fd = (int) ipc_get_arg1(req);
 
 	errno_t rc = vfs_op_statfs(fd);
 	async_answer_0(req, rc);
@@ -252,15 +252,15 @@ static void vfs_in_statfs(ipc_call_t *req)
 
 static void vfs_in_sync(ipc_call_t *req)
 {
-	int fd = IPC_GET_ARG1(*req);
+	int fd = ipc_get_arg1(req);
 	errno_t rc = vfs_op_sync(fd);
 	async_answer_0(req, rc);
 }
 
 static void vfs_in_unlink(ipc_call_t *req)
 {
-	int parentfd = IPC_GET_ARG1(*req);
-	int expectfd = IPC_GET_ARG2(*req);
+	int parentfd = ipc_get_arg1(req);
+	int expectfd = ipc_get_arg2(req);
 
 	char *path;
 	errno_t rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
@@ -272,14 +272,14 @@ static void vfs_in_unlink(ipc_call_t *req)
 
 static void vfs_in_unmount(ipc_call_t *req)
 {
-	int mpfd = IPC_GET_ARG1(*req);
+	int mpfd = ipc_get_arg1(req);
 	errno_t rc = vfs_op_unmount(mpfd);
 	async_answer_0(req, rc);
 }
 
 static void vfs_in_wait_handle(ipc_call_t *req)
 {
-	bool high_fd = IPC_GET_ARG1(*req);
+	bool high_fd = ipc_get_arg1(req);
 	int fd = -1;
 	errno_t rc = vfs_op_wait_handle(high_fd, &fd);
 	async_answer_1(req, rc, fd);
@@ -291,8 +291,8 @@ static void vfs_in_walk(ipc_call_t *req)
 	 * Parent is our relative root for file lookup.
 	 * For defined flags, see <ipc/vfs.h>.
 	 */
-	int parentfd = IPC_GET_ARG1(*req);
-	int flags = IPC_GET_ARG2(*req);
+	int parentfd = ipc_get_arg1(req);
+	int flags = ipc_get_arg2(req);
 
 	int fd = 0;
 	char *path;
@@ -306,9 +306,9 @@ static void vfs_in_walk(ipc_call_t *req)
 
 static void vfs_in_write(ipc_call_t *req)
 {
-	int fd = IPC_GET_ARG1(*req);
-	aoff64_t pos = MERGE_LOUP32(IPC_GET_ARG2(*req),
-	    IPC_GET_ARG3(*req));
+	int fd = ipc_get_arg1(req);
+	aoff64_t pos = MERGE_LOUP32(ipc_get_arg2(req),
+	    ipc_get_arg3(req));
 
 	size_t bytes = 0;
 	errno_t rc = vfs_op_write(fd, pos, &bytes);
@@ -329,12 +329,12 @@ void vfs_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case VFS_IN_CLONE:
 			vfs_in_clone(&call);
 			break;

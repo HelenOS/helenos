@@ -1009,7 +1009,7 @@ errno_t nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
 	async_exchange_end(exch);
 	async_wait_for(message_id, &res);
 
-	*id = IPC_GET_ARG1(result);
+	*id = ipc_get_arg1(&result);
 	return res;
 }
 
@@ -1384,7 +1384,7 @@ static void remote_nic_set_state(ddf_fun_t *dev, void *iface,
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->set_state);
 
-	nic_device_state_t state = (nic_device_state_t) IPC_GET_ARG2(*call);
+	nic_device_state_t state = (nic_device_state_t) ipc_get_arg2(call);
 
 	errno_t rc = nic_iface->set_state(dev, state);
 	async_answer_0(call, rc);
@@ -1568,9 +1568,9 @@ static void remote_nic_set_operation_mode(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	int speed = (int) IPC_GET_ARG2(*call);
-	nic_channel_mode_t duplex = (nic_channel_mode_t) IPC_GET_ARG3(*call);
-	nic_role_t role = (nic_role_t) IPC_GET_ARG4(*call);
+	int speed = (int) ipc_get_arg2(call);
+	nic_channel_mode_t duplex = (nic_channel_mode_t) ipc_get_arg3(call);
+	nic_role_t role = (nic_role_t) ipc_get_arg4(call);
 
 	errno_t rc = nic_iface->set_operation_mode(dev, speed, duplex, role);
 	async_answer_0(call, rc);
@@ -1585,7 +1585,7 @@ static void remote_nic_autoneg_enable(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	uint32_t advertisement = (uint32_t) IPC_GET_ARG2(*call);
+	uint32_t advertisement = (uint32_t) ipc_get_arg2(call);
 
 	errno_t rc = nic_iface->autoneg_enable(dev, advertisement);
 	async_answer_0(call, rc);
@@ -1663,9 +1663,9 @@ static void remote_nic_set_pause(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	int allow_send = (int) IPC_GET_ARG2(*call);
-	int allow_receive = (int) IPC_GET_ARG3(*call);
-	uint16_t pause = (uint16_t) IPC_GET_ARG4(*call);
+	int allow_send = (int) ipc_get_arg2(call);
+	int allow_receive = (int) ipc_get_arg3(call);
+	uint16_t pause = (uint16_t) ipc_get_arg4(call);
 
 	errno_t rc = nic_iface->set_pause(dev, allow_send, allow_receive,
 	    pause);
@@ -1681,7 +1681,7 @@ static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	size_t max_count = IPC_GET_ARG2(*call);
+	size_t max_count = ipc_get_arg2(call);
 	nic_address_t *address_list = NULL;
 
 	if (max_count != 0) {
@@ -1732,8 +1732,8 @@ static void remote_nic_unicast_set_mode(ddf_fun_t *dev, void *iface,
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
 	size_t length;
-	nic_unicast_mode_t mode = IPC_GET_ARG2(*call);
-	size_t address_count = IPC_GET_ARG3(*call);
+	nic_unicast_mode_t mode = ipc_get_arg2(call);
+	size_t address_count = ipc_get_arg3(call);
 	nic_address_t *address_list = NULL;
 
 	if (address_count) {
@@ -1784,7 +1784,7 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	size_t max_count = IPC_GET_ARG2(*call);
+	size_t max_count = ipc_get_arg2(call);
 	nic_address_t *address_list = NULL;
 
 	if (max_count != 0) {
@@ -1834,8 +1834,8 @@ static void remote_nic_multicast_set_mode(ddf_fun_t *dev, void *iface,
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
-	nic_multicast_mode_t mode = IPC_GET_ARG2(*call);
-	size_t address_count = IPC_GET_ARG3(*call);
+	nic_multicast_mode_t mode = ipc_get_arg2(call);
+	size_t address_count = ipc_get_arg3(call);
 	nic_address_t *address_list = NULL;
 
 	if (address_count) {
@@ -1902,7 +1902,7 @@ static void remote_nic_broadcast_set_mode(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	nic_broadcast_mode_t mode = IPC_GET_ARG2(*call);
+	nic_broadcast_mode_t mode = ipc_get_arg2(call);
 
 	errno_t rc = nic_iface->broadcast_set_mode(dev, mode);
 	async_answer_0(call, rc);
@@ -1932,7 +1932,7 @@ static void remote_nic_defective_set_mode(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	uint32_t mode = IPC_GET_ARG2(*call);
+	uint32_t mode = ipc_get_arg2(call);
 
 	errno_t rc = nic_iface->defective_set_mode(dev, mode);
 	async_answer_0(call, rc);
@@ -1947,7 +1947,7 @@ static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	size_t max_count = IPC_GET_ARG2(*call);
+	size_t max_count = ipc_get_arg2(call);
 	nic_address_t *address_list = NULL;
 
 	if (max_count != 0) {
@@ -1997,7 +1997,7 @@ static void remote_nic_blocked_sources_set(ddf_fun_t *dev, void *iface,
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
 	size_t length;
-	size_t address_count = IPC_GET_ARG2(*call);
+	size_t address_count = ipc_get_arg2(call);
 	nic_address_t *address_list = NULL;
 
 	if (address_count) {
@@ -2080,7 +2080,7 @@ static void remote_nic_vlan_set_mask(ddf_fun_t *dev, void *iface,
 
 	nic_vlan_mask_t vlan_mask;
 	nic_vlan_mask_t *vlan_mask_pointer = NULL;
-	bool vlan_mask_set = (bool) IPC_GET_ARG2(*call);
+	bool vlan_mask_set = (bool) ipc_get_arg2(call);
 
 	if (vlan_mask_set) {
 		ipc_call_t data;
@@ -2123,9 +2123,9 @@ static void remote_nic_vlan_set_tag(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	uint16_t tag = (uint16_t) IPC_GET_ARG2(*call);
-	bool add = (int) IPC_GET_ARG3(*call);
-	bool strip = (int) IPC_GET_ARG4(*call);
+	uint16_t tag = (uint16_t) ipc_get_arg2(call);
+	bool add = (int) ipc_get_arg3(call);
+	bool strip = (int) ipc_get_arg4(call);
 
 	errno_t rc = nic_iface->vlan_set_tag(dev, tag, add, strip);
 	async_answer_0(call, rc);
@@ -2136,7 +2136,7 @@ static void remote_nic_wol_virtue_add(ddf_fun_t *dev, void *iface,
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
-	int send_data = (int) IPC_GET_ARG3(*call);
+	int send_data = (int) ipc_get_arg3(call);
 	ipc_call_t data;
 
 	if (nic_iface->wol_virtue_add == NULL) {
@@ -2174,7 +2174,7 @@ static void remote_nic_wol_virtue_add(ddf_fun_t *dev, void *iface,
 	}
 
 	nic_wv_id_t id = 0;
-	nic_wv_type_t type = (nic_wv_type_t) IPC_GET_ARG2(*call);
+	nic_wv_type_t type = (nic_wv_type_t) ipc_get_arg2(call);
 
 	errno_t rc = nic_iface->wol_virtue_add(dev, type, virtue, length, &id);
 	async_answer_1(call, rc, (sysarg_t) id);
@@ -2191,7 +2191,7 @@ static void remote_nic_wol_virtue_remove(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	nic_wv_id_t id = (nic_wv_id_t) IPC_GET_ARG2(*call);
+	nic_wv_id_t id = (nic_wv_id_t) ipc_get_arg2(call);
 
 	errno_t rc = nic_iface->wol_virtue_remove(dev, id);
 	async_answer_0(call, rc);
@@ -2207,8 +2207,8 @@ static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	nic_wv_id_t id = (nic_wv_id_t) IPC_GET_ARG2(*call);
-	size_t max_length = IPC_GET_ARG3(*call);
+	nic_wv_id_t id = (nic_wv_id_t) ipc_get_arg2(call);
+	size_t max_length = ipc_get_arg3(call);
 	nic_wv_type_t type = NIC_WV_NONE;
 	size_t length = 0;
 	ipc_call_t data;
@@ -2258,8 +2258,8 @@ static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	nic_wv_type_t type = (nic_wv_type_t) IPC_GET_ARG2(*call);
-	size_t max_count = IPC_GET_ARG3(*call);
+	nic_wv_type_t type = (nic_wv_type_t) ipc_get_arg2(call);
+	size_t max_count = ipc_get_arg3(call);
 	size_t count = 0;
 	nic_wv_id_t *id_list = NULL;
 	ipc_call_t data;
@@ -2309,7 +2309,7 @@ static void remote_nic_wol_virtue_get_caps(ddf_fun_t *dev, void *iface,
 	}
 
 	int count = -1;
-	nic_wv_type_t type = (nic_wv_type_t) IPC_GET_ARG2(*call);
+	nic_wv_type_t type = (nic_wv_type_t) ipc_get_arg2(call);
 
 	errno_t rc = nic_iface->wol_virtue_get_caps(dev, type, &count);
 	async_answer_1(call, rc, (sysarg_t) count);
@@ -2324,7 +2324,7 @@ static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	size_t max_length = (size_t) IPC_GET_ARG2(*call);
+	size_t max_length = (size_t) ipc_get_arg2(call);
 	size_t frame_length = 0;
 	nic_wv_type_t type = NIC_WV_NONE;
 	uint8_t *info = NULL;
@@ -2385,8 +2385,8 @@ static void remote_nic_offload_set(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	uint32_t mask = (uint32_t) IPC_GET_ARG2(*call);
-	uint32_t active = (uint32_t) IPC_GET_ARG3(*call);
+	uint32_t mask = (uint32_t) ipc_get_arg2(call);
+	uint32_t active = (uint32_t) ipc_get_arg3(call);
 
 	errno_t rc = nic_iface->offload_set(dev, mask, active);
 	async_answer_0(call, rc);
@@ -2402,7 +2402,7 @@ static void remote_nic_poll_get_mode(ddf_fun_t *dev, void *iface,
 	}
 
 	nic_poll_mode_t mode = NIC_POLL_IMMEDIATE;
-	int request_data = IPC_GET_ARG2(*call);
+	int request_data = ipc_get_arg2(call);
 	struct timespec period = {
 		.tv_sec = 0,
 		.tv_nsec = 0
@@ -2437,8 +2437,8 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
-	nic_poll_mode_t mode = IPC_GET_ARG2(*call);
-	int has_period = IPC_GET_ARG3(*call);
+	nic_poll_mode_t mode = ipc_get_arg2(call);
+	int has_period = ipc_get_arg3(call);
 	struct timespec period_buf;
 	struct timespec *period = NULL;
 	size_t length;

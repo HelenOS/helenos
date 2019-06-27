@@ -51,14 +51,14 @@
  * @param[in] call The interrupt call.
  *
  */
-#define IRQ_GET_ISR(call)  ((int) IPC_GET_ARG2(call))
+#define IRQ_GET_ISR(call)  ((int) ipc_get_arg2(&call))
 
 /** Return the TSR from the interrupt call.
  *
  * @param[in] call The interrupt call.
  *
  */
-#define IRQ_GET_TSR(call)  ((int) IPC_GET_ARG3(call))
+#define IRQ_GET_TSR(call)  ((int) ipc_get_arg3(&call))
 
 #define DRIVER_DATA(dev) ((nic_t *) ddf_dev_data_get(dev))
 #define NE2K(device) ((ne2k_t *) nic_get_specific(DRIVER_DATA(device)))

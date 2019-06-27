@@ -64,9 +64,10 @@ typedef struct {
 	async_sess_t *sess;
 } hashed_iface_t;
 
-static size_t service_key_hash(void *key)
+static size_t service_key_hash(const void *key)
 {
-	return *(service_t *) key;
+	const service_t *srv = key;
+	return *srv;
 }
 
 static size_t service_hash(const ht_link_t *item)
@@ -77,17 +78,19 @@ static size_t service_hash(const ht_link_t *item)
 	return service->service;
 }
 
-static bool service_key_equal(void *key, const ht_link_t *item)
+static bool service_key_equal(const void *key, const ht_link_t *item)
 {
+	const service_t *srv = key;
 	hashed_service_t *service =
 	    hash_table_get_inst(item, hashed_service_t, link);
 
-	return service->service == *(service_t *) key;
+	return service->service == *srv;
 }
 
-static size_t iface_key_hash(void *key)
+static size_t iface_key_hash(const void *key)
 {
-	return *(iface_t *) key;
+	const iface_t *iface = key;
+	return *iface;
 }
 
 static size_t iface_hash(const ht_link_t *item)
@@ -98,12 +101,13 @@ static size_t iface_hash(const ht_link_t *item)
 	return iface->iface;
 }
 
-static bool iface_key_equal(void *key, const ht_link_t *item)
+static bool iface_key_equal(const void *key, const ht_link_t *item)
 {
+	const iface_t *kiface = key;
 	hashed_iface_t *iface =
 	    hash_table_get_inst(item, hashed_iface_t, link);
 
-	return iface->iface == *(iface_t *) key;
+	return iface->iface == *kiface;
 }
 
 /** Operations for service hash table. */
@@ -153,8 +157,7 @@ errno_t ns_service_init(void)
 static void ns_forward(async_sess_t *sess, ipc_call_t *call, iface_t iface)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	async_forward_fast(call, exch, iface, IPC_GET_ARG3(*call), 0,
-	    IPC_FF_NONE);
+	async_forward_1(call, exch, iface, ipc_get_arg3(call), IPC_FF_NONE);
 	async_exchange_end(exch);
 }
 
@@ -366,7 +369,7 @@ static errno_t ns_pending_conn_add(service_t service, iface_t iface,
  */
 void ns_service_forward(service_t service, iface_t iface, ipc_call_t *call)
 {
-	sysarg_t flags = IPC_GET_ARG4(*call);
+	sysarg_t flags = ipc_get_arg4(call);
 	errno_t retval;
 
 	ht_link_t *link = hash_table_find(&service_hash_table, &service);

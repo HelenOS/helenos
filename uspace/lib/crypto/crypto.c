@@ -31,10 +31,12 @@
  * Cryptographic functions library.
  */
 
+#include <assert.h>
 #include <str.h>
 #include <macros.h>
 #include <errno.h>
 #include <byteorder.h>
+#include <limits.h>
 #include "crypto.h"
 
 /** Hash function procedure definition. */
@@ -196,6 +198,8 @@ static void sha1_proc(uint32_t *h, uint32_t *sched_arr)
 errno_t create_hash(uint8_t *input, size_t input_size, uint8_t *output,
     hash_func_t hash_sel)
 {
+	assert(input_size < SSIZE_MAX);
+
 	if (!input)
 		return EINVAL;
 

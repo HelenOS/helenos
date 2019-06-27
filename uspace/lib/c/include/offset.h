@@ -32,10 +32,16 @@
 /** @file
  */
 
-#ifndef LIBC_OFFSET_H_
-#define LIBC_OFFSET_H_
+#ifndef _LIBC_OFFSET_H_
+#define _LIBC_OFFSET_H_
+
+#ifndef _HELENOS_SOURCE
+#error This file should only be included from HelenOS sources
+#endif
 
 #include <stdint.h>
+#include <_bits/decls.h>
+#include <_bits/off64_t.h>
 
 /* off64_t */
 #define OFF64_MIN  INT64_MIN
@@ -51,11 +57,12 @@
 #define PRIxOFF64 PRIx64
 #define PRIXOFF64 PRIX64
 
-/** Relative offset */
-typedef int64_t off64_t;
+__HELENOS_DECLS_BEGIN;
 
 /** Absolute offset */
 typedef uint64_t aoff64_t;
+
+__HELENOS_DECLS_END;
 
 #endif
 

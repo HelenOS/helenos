@@ -32,12 +32,10 @@
 /** @file
  */
 
-#ifndef LIBC_TIME_H_
-#define LIBC_TIME_H_
+#ifndef _LIBC_TIME_H_
+#define _LIBC_TIME_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <_bits/decls.h>
 
 /* ISO/IEC 9899:2011 7.27.1 (2) */
 
@@ -51,6 +49,8 @@ extern "C" {
 
 #include <_bits/size_t.h>
 
+__C_DECLS_BEGIN;
+
 /* ISO/IEC 9899:2011 7.27.1 (3), (4) */
 
 typedef long long time_t;
@@ -63,9 +63,7 @@ struct timespec {
 
 struct tm {
 	int tm_sec;
-#ifdef _HELENOS_SOURCE
-	int tm_nsec;
-#endif
+	int tm_nsec;  /**< Nonstandard extension, nanoseconds since last second. */
 	int tm_min;
 	int tm_hour;
 	int tm_mday;
@@ -107,6 +105,8 @@ extern struct tm *localtime(const time_t *);
 extern size_t strftime(char *__restrict__, size_t, const char *__restrict__,
     const struct tm *__restrict__);
 
+__C_DECLS_END;
+
 #ifdef _HELENOS_SOURCE
 
 /*
@@ -115,6 +115,8 @@ extern size_t strftime(char *__restrict__, size_t, const char *__restrict__,
 
 #include <stdbool.h>
 #include <_bits/errno.h>
+
+__HELENOS_DECLS_BEGIN;
 
 typedef long long sec_t;
 typedef long long msec_t;
@@ -156,11 +158,9 @@ extern errno_t time_local2str(const time_t, char *);
 
 extern void udelay(sysarg_t);
 
-#endif /* _HELENOS_SOURCE */
+__HELENOS_DECLS_END;
 
-#ifdef __cplusplus
-}
-#endif
+#endif /* _HELENOS_SOURCE */
 
 #endif
 

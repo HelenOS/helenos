@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_CONCAPS_H_
-#define LIBC_IO_CONCAPS_H_
+#ifndef _LIBC_IO_CONCAPS_H_
+#define _LIBC_IO_CONCAPS_H_
 
 typedef enum {
 	CONSOLE_CAP_NONE = 0,

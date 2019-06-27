@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_STRERROR_H_
-#define LIBC_STRERROR_H_
+#ifndef _LIBC_STRERROR_H_
+#define _LIBC_STRERROR_H_
 
 #include <errno.h>
 

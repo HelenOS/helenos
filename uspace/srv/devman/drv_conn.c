@@ -168,7 +168,7 @@ static errno_t devman_receive_match_id(match_id_list_t *match_ids)
 	errno_t rc = 0;
 
 	async_get_call(&call);
-	if (DEVMAN_ADD_MATCH_ID != IPC_GET_IMETHOD(call)) {
+	if (DEVMAN_ADD_MATCH_ID != ipc_get_imethod(&call)) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Invalid protocol when trying to receive match id.");
 		async_answer_0(&call, EINVAL);
@@ -184,7 +184,7 @@ static errno_t devman_receive_match_id(match_id_list_t *match_ids)
 
 	async_answer_0(&call, EOK);
 
-	match_id->score = IPC_GET_ARG1(call);
+	match_id->score = ipc_get_arg1(&call);
 
 	char *match_id_str;
 	rc = async_data_write_accept((void **) &match_id_str, true, 0, 0, 0, 0);
@@ -229,9 +229,9 @@ static errno_t devman_receive_match_ids(sysarg_t match_count,
  */
 static void devman_add_function(ipc_call_t *call)
 {
-	fun_type_t ftype = (fun_type_t) IPC_GET_ARG1(*call);
-	devman_handle_t dev_handle = IPC_GET_ARG2(*call);
-	sysarg_t match_count = IPC_GET_ARG3(*call);
+	fun_type_t ftype = (fun_type_t) ipc_get_arg1(call);
+	devman_handle_t dev_handle = ipc_get_arg2(call);
+	sysarg_t match_count = ipc_get_arg3(call);
 	dev_tree_t *tree = &device_tree;
 
 	dev_node_t *pdev = find_dev_node(&device_tree, dev_handle);
@@ -329,7 +329,7 @@ static void devman_add_function(ipc_call_t *call)
 
 static void devman_add_function_to_cat(ipc_call_t *call)
 {
-	devman_handle_t handle = IPC_GET_ARG1(*call);
+	devman_handle_t handle = ipc_get_arg1(call);
 	category_id_t cat_id;
 	errno_t rc;
 
@@ -384,7 +384,7 @@ static void devman_drv_fun_online(ipc_call_t *icall, driver_t *drv)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_drv_fun_online()");
 
-	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
+	fun = find_fun_node(&device_tree, ipc_get_arg1(icall));
 	if (fun == NULL) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -424,7 +424,7 @@ static void devman_drv_fun_offline(ipc_call_t *icall, driver_t *drv)
 	fun_node_t *fun;
 	errno_t rc;
 
-	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
+	fun = find_fun_node(&device_tree, ipc_get_arg1(icall));
 	if (fun == NULL) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -457,7 +457,7 @@ static void devman_drv_fun_offline(ipc_call_t *icall, driver_t *drv)
 /** Remove function. */
 static void devman_remove_function(ipc_call_t *call)
 {
-	devman_handle_t fun_handle = IPC_GET_ARG1(*call);
+	devman_handle_t fun_handle = ipc_get_arg1(call);
 	dev_tree_t *tree = &device_tree;
 	errno_t rc;
 
@@ -601,12 +601,12 @@ void devman_connection_driver(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			break;
 		}
 
-		if (IPC_GET_IMETHOD(call) != DEVMAN_DRIVER_REGISTER) {
+		if (ipc_get_imethod(&call) != DEVMAN_DRIVER_REGISTER) {
 			fibril_mutex_lock(&client->mutex);
 			driver = client->driver;
 			fibril_mutex_unlock(&client->mutex);
@@ -617,7 +617,7 @@ void devman_connection_driver(ipc_call_t *icall, void *arg)
 			}
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case DEVMAN_DRIVER_REGISTER:
 			fibril_mutex_lock(&client->mutex);
 			if (client->driver != NULL) {

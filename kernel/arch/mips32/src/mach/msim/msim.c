@@ -34,12 +34,13 @@
  */
 
 #include <arch/mach/msim/msim.h>
+#include <arch/mach/msim/dorder.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
-#include <arch/drivers/msim.h>
 #include <genarch/drivers/dsrln/dsrlnin.h>
 #include <genarch/drivers/dsrln/dsrlnout.h>
 #include <genarch/srln/srln.h>
+#include <stdbool.h>
 
 static void msim_init(void);
 static void msim_cpu_halt(void);
@@ -59,8 +60,31 @@ struct mips32_machine_ops msim_machine_ops = {
 	.machine_get_platform_name = msim_get_platform_name
 };
 
+static void msim_irq_handler(unsigned int i)
+{
+	irq_t *irq = irq_dispatch_and_lock(i);
+	if (irq) {
+		irq->handler(irq);
+		irq_spinlock_unlock(&irq->lock, false);
+	} else {
+#ifdef CONFIG_DEBUG
+		log(LF_ARCH, LVL_DEBUG, "cpu%u: spurious IRQ (irq=%u)",
+		    CPU->id, i);
+#endif
+	}
+}
+
 void msim_init(void)
 {
+	irq_init(HW_INTERRUPTS, HW_INTERRUPTS);
+
+	int_handler[INT_HW0] = msim_irq_handler;
+	int_handler[INT_HW1] = msim_irq_handler;
+	int_handler[INT_HW2] = msim_irq_handler;
+	int_handler[INT_HW3] = msim_irq_handler;
+	int_handler[INT_HW4] = msim_irq_handler;
+
+	dorder_init();
 	cp0_unmask_int(MSIM_DDISK_IRQ);
 }
 
@@ -79,7 +103,8 @@ void msim_frame_init(void)
 void msim_output_init(void)
 {
 #ifdef CONFIG_MSIM_PRN
-	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS);
+	outdev_t *dsrlndev = dsrlnout_init((ioport8_t *) MSIM_KBD_ADDRESS,
+	    KSEG12PA(MSIM_KBD_ADDRESS));
 	if (dsrlndev)
 		stdout_wire(dsrlndev);
 #endif

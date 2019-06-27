@@ -155,7 +155,7 @@ bool cmd_register(cmd_info_t *cmd)
 }
 
 /** Print count times a character */
-NO_TRACE static void print_cc(wchar_t ch, size_t count)
+_NO_TRACE static void print_cc(wchar_t ch, size_t count)
 {
 	size_t i;
 	for (i = 0; i < count; i++)
@@ -202,7 +202,7 @@ const char *cmdtab_enum(const char *name, const char **h, void **ctx)
  * @return Number of found matches
  *
  */
-NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
+_NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
     hints_enum_func_t hints_enum)
 {
 	const char *name = input;
@@ -289,7 +289,7 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 	return found;
 }
 
-NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
+_NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
 {
 	size_t start = 0;
 	size_t end;
@@ -330,7 +330,7 @@ NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
 	return NULL;
 }
 
-NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
+_NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
     char *tmp)
 {
 	printf("%s> ", prompt);
@@ -547,7 +547,7 @@ bool kconsole_check_poll(void)
 	return check_poll(stdin);
 }
 
-NO_TRACE static bool parse_int_arg(const char *text, size_t len,
+_NO_TRACE static bool parse_int_arg(const char *text, size_t len,
     sysarg_t *result)
 {
 	bool isaddr = false;
@@ -636,7 +636,7 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
  * @return False on failure, true on success.
  *
  */
-NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
+_NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
     size_t *start, size_t *end)
 {
 	assert(start != NULL);
@@ -673,7 +673,7 @@ NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
  * @return Structure describing the command.
  *
  */
-NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
+_NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 {
 	size_t start = 0;
 	size_t end = 0;

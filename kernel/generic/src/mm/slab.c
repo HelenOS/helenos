@@ -157,7 +157,7 @@ static unsigned int _slab_initialized = 0;
 /** Allocate frames for slab space and initialize
  *
  */
-NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
+_NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
     unsigned int flags)
 {
 	size_t zone = 0;
@@ -205,7 +205,7 @@ NO_TRACE static slab_t *slab_space_alloc(slab_cache_t *cache,
  * @return number of freed frames
  *
  */
-NO_TRACE static size_t slab_space_free(slab_cache_t *cache, slab_t *slab)
+_NO_TRACE static size_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 {
 	frame_free(KA2PA(slab->start), slab->cache->frames);
 	if (!(cache->flags & SLAB_CACHE_SLINSIDE))
@@ -217,7 +217,7 @@ NO_TRACE static size_t slab_space_free(slab_cache_t *cache, slab_t *slab)
 }
 
 /** Map object to slab structure */
-NO_TRACE static slab_t *obj2slab(void *obj)
+_NO_TRACE static slab_t *obj2slab(void *obj)
 {
 	return (slab_t *) frame_get_parent(ADDR2PFN(KA2PA(obj)), 0);
 }
@@ -233,7 +233,7 @@ NO_TRACE static slab_t *obj2slab(void *obj)
  * @return Number of freed pages
  *
  */
-NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
+_NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
     slab_t *slab)
 {
 	if (!slab)
@@ -275,7 +275,7 @@ NO_TRACE static size_t slab_obj_destroy(slab_cache_t *cache, void *obj,
  * @return Object address or null
  *
  */
-NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
+_NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 {
 	irq_spinlock_lock(&cache->slablock, true);
 
@@ -331,7 +331,7 @@ NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
  * @param first If true, return first, else last mag.
  *
  */
-NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
+_NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
     bool first)
 {
 	slab_magazine_t *mag = NULL;
@@ -356,7 +356,7 @@ NO_TRACE static slab_magazine_t *get_mag_from_cache(slab_cache_t *cache,
 /** Prepend magazine to magazine list in cache
  *
  */
-NO_TRACE static void put_mag_to_cache(slab_cache_t *cache,
+_NO_TRACE static void put_mag_to_cache(slab_cache_t *cache,
     slab_magazine_t *mag)
 {
 	irq_spinlock_lock(&cache->maglock, true);
@@ -372,7 +372,7 @@ NO_TRACE static void put_mag_to_cache(slab_cache_t *cache,
  * @return Number of freed pages
  *
  */
-NO_TRACE static size_t magazine_destroy(slab_cache_t *cache,
+_NO_TRACE static size_t magazine_destroy(slab_cache_t *cache,
     slab_magazine_t *mag)
 {
 	size_t i;
@@ -391,7 +391,7 @@ NO_TRACE static size_t magazine_destroy(slab_cache_t *cache,
 /** Find full magazine, set it as current and return it
  *
  */
-NO_TRACE static slab_magazine_t *get_full_current_mag(slab_cache_t *cache)
+_NO_TRACE static slab_magazine_t *get_full_current_mag(slab_cache_t *cache)
 {
 	slab_magazine_t *cmag = cache->mag_cache[CPU->id].current;
 	slab_magazine_t *lastmag = cache->mag_cache[CPU->id].last;
@@ -428,7 +428,7 @@ NO_TRACE static slab_magazine_t *get_full_current_mag(slab_cache_t *cache)
  * @return Pointer to object or NULL if not available
  *
  */
-NO_TRACE static void *magazine_obj_get(slab_cache_t *cache)
+_NO_TRACE static void *magazine_obj_get(slab_cache_t *cache)
 {
 	if (!CPU)
 		return NULL;
@@ -458,7 +458,7 @@ NO_TRACE static void *magazine_obj_get(slab_cache_t *cache)
  * If full, put to magazines list.
  *
  */
-NO_TRACE static slab_magazine_t *make_empty_current_mag(slab_cache_t *cache)
+_NO_TRACE static slab_magazine_t *make_empty_current_mag(slab_cache_t *cache)
 {
 	slab_magazine_t *cmag = cache->mag_cache[CPU->id].current;
 	slab_magazine_t *lastmag = cache->mag_cache[CPU->id].last;
@@ -508,7 +508,7 @@ NO_TRACE static slab_magazine_t *make_empty_current_mag(slab_cache_t *cache)
  * @return 0 on success, -1 on no memory
  *
  */
-NO_TRACE static int magazine_obj_put(slab_cache_t *cache, void *obj)
+_NO_TRACE static int magazine_obj_put(slab_cache_t *cache, void *obj)
 {
 	if (!CPU)
 		return -1;
@@ -537,7 +537,7 @@ NO_TRACE static int magazine_obj_put(slab_cache_t *cache, void *obj)
 /** Return number of objects that fit in certain cache size
  *
  */
-NO_TRACE static size_t comp_objects(slab_cache_t *cache)
+_NO_TRACE static size_t comp_objects(slab_cache_t *cache)
 {
 	if (cache->flags & SLAB_CACHE_SLINSIDE)
 		return (FRAMES2SIZE(cache->frames) - sizeof(slab_t)) /
@@ -549,7 +549,7 @@ NO_TRACE static size_t comp_objects(slab_cache_t *cache)
 /** Return wasted space in slab
  *
  */
-NO_TRACE static size_t badness(slab_cache_t *cache)
+_NO_TRACE static size_t badness(slab_cache_t *cache)
 {
 	size_t objects = comp_objects(cache);
 	size_t ssize = FRAMES2SIZE(cache->frames);
@@ -563,7 +563,7 @@ NO_TRACE static size_t badness(slab_cache_t *cache)
 /** Initialize mag_cache structure in slab cache
  *
  */
-NO_TRACE static bool make_magcache(slab_cache_t *cache)
+_NO_TRACE static bool make_magcache(slab_cache_t *cache)
 {
 	assert(_slab_initialized >= 2);
 
@@ -584,7 +584,7 @@ NO_TRACE static bool make_magcache(slab_cache_t *cache)
 /** Initialize allocated memory as a slab cache
  *
  */
-NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
+_NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
     size_t size, size_t align, errno_t (*constructor)(void *obj,
     unsigned int kmflag), size_t (*destructor)(void *obj), unsigned int flags)
 {
@@ -659,7 +659,7 @@ slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,
  * @return Number of freed pages
  *
  */
-NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
+_NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
 {
 	if (cache->flags & SLAB_CACHE_NOMAGAZINE)
 		return 0; /* Nothing to do */
@@ -706,7 +706,7 @@ NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
 /** Return object to cache, use slab if known
  *
  */
-NO_TRACE static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
+_NO_TRACE static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
 {
 	if (!obj)
 		return;

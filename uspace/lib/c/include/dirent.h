@@ -32,27 +32,25 @@
 /** @file
  */
 
-#ifndef LIBC_DIRENT_H_
-#define LIBC_DIRENT_H_
+#ifndef _LIBC_DIRENT_H_
+#define _LIBC_DIRENT_H_
 
-#define NAME_MAX  256
+#include <_bits/decls.h>
 
-#include <offset.h>
+__C_DECLS_BEGIN;
 
 struct dirent {
-	char d_name[NAME_MAX + 1];
+	char d_name[256];
 };
 
-typedef struct {
-	int fd;
-	struct dirent res;
-	aoff64_t pos;
-} DIR;
+typedef struct __dirstream DIR;
 
 extern DIR *opendir(const char *);
 extern struct dirent *readdir(DIR *);
 extern void rewinddir(DIR *);
 extern int closedir(DIR *);
+
+__C_DECLS_END;
 
 #endif
 

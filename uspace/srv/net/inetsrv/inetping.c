@@ -142,7 +142,7 @@ static void inetping_send_srv(inetping_client_t *client, ipc_call_t *icall)
 	inetping_sdu_t sdu;
 	errno_t rc;
 
-	sdu.seq_no = IPC_GET_ARG1(*icall);
+	sdu.seq_no = ipc_get_arg1(icall);
 
 	ipc_call_t call;
 	size_t size;
@@ -293,7 +293,7 @@ void inetping_conn(ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		if (!method) {
 			/* The other side has hung up */

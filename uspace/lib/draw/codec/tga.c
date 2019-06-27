@@ -39,7 +39,7 @@
 #include <align.h>
 #include <stdbool.h>
 #include <pixconv.h>
-#include "tga.h"
+#include <draw/codec.h>
 
 typedef struct {
 	uint8_t id_length;

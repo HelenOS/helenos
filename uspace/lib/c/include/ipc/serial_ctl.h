@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_SERIAL_CTL_H_
-#define LIBC_IPC_SERIAL_CTL_H_
+#ifndef _LIBC_IPC_SERIAL_CTL_H_
+#define _LIBC_IPC_SERIAL_CTL_H_
 
 #include <ipc/chardev.h>
 

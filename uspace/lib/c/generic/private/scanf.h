@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PRIVATE_SCANF_H_
-#define LIBC_PRIVATE_SCANF_H_
+#ifndef _LIBC_PRIVATE_SCANF_H_
+#define _LIBC_PRIVATE_SCANF_H_
 
 #include <stddef.h>
 #include <stdio.h>

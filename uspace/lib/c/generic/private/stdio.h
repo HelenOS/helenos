@@ -32,13 +32,14 @@
 /** @file
  */
 
-#ifndef LIBC_PRIVATE_STDIO_H_
-#define LIBC_PRIVATE_STDIO_H_
+#ifndef _LIBC_PRIVATE_STDIO_H_
+#define _LIBC_PRIVATE_STDIO_H_
 
 #include <adt/list.h>
 #include <stdio.h>
 #include <async.h>
 #include <stddef.h>
+#include <offset.h>
 
 /** Maximum characters that can be pushed back by ungetc() */
 #define UNGETC_MAX 1
@@ -53,6 +54,17 @@ typedef struct {
 	/** Flush stream */
 	int (*flush)(FILE *stream);
 } __stream_ops_t;
+
+enum __buffer_state {
+	/** Buffer is empty */
+	_bs_empty,
+
+	/** Buffer contains data to be written */
+	_bs_write,
+
+	/** Buffer contains prefetched data for reading */
+	_bs_read
+};
 
 struct _IO_FILE {
 	/** Linked list pointer. */
@@ -86,7 +98,7 @@ struct _IO_FILE {
 	int need_sync;
 
 	/** Buffering type */
-	enum _buffer_type btype;
+	enum __buffer_type btype;
 
 	/** Buffer */
 	uint8_t *buf;
@@ -95,7 +107,7 @@ struct _IO_FILE {
 	size_t buf_size;
 
 	/** Buffer state */
-	enum _buffer_state buf_state;
+	enum __buffer_state buf_state;
 
 	/** Buffer I/O pointer */
 	uint8_t *buf_head;

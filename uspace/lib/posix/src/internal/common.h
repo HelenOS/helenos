@@ -66,6 +66,9 @@ static inline bool failed(int rc)
 	return false;
 }
 
+// TODO: Remove this arbitrary limit.
+#define VFS_MAX_OPEN_FILES 128
+
 extern aoff64_t posix_pos[VFS_MAX_OPEN_FILES];
 
 #endif /* LIBPOSIX_COMMON_H_ */

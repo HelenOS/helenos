@@ -52,6 +52,7 @@ GENERIC_SOURCES = \
 	generic/config.c \
 	generic/context.c \
 	generic/corecfg.c \
+	generic/ctype.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
 	generic/device/hw_res_parsed.c \
@@ -188,27 +189,37 @@ SOURCES = \
 
 TEST_SOURCES = \
 	test/adt/circ_buf.c \
+	test/adt/odict.c \
+	test/cap.c \
+	test/casting.c \
+	test/double_to_str.c \
 	test/fibril/timer.c \
-	test/main.c \
-	test/mem.c \
+	test/getopt.c \
+	test/gsort.c \
+	test/ieee_double.c \
+	test/imath.c \
 	test/inttypes.c \
 	test/io/table.c \
-	test/stdio/scanf.c \
-	test/odict.c \
+	test/main.c \
+	test/mem.c \
+	test/perf.c \
 	test/perm.c \
 	test/qsort.c \
 	test/sprintf.c \
+	test/stdio/scanf.c \
 	test/stdio.c \
 	test/stdlib.c \
 	test/str.c \
-	test/string.c
+	test/string.c \
+	test/strtol.c \
+	test/uuid.c
 
 include $(USPACE_PREFIX)/Makefile.common
 
-$(LIBC_PREFIX)/crt0.o: $(LIBC_PREFIX)/arch/$(UARCH)/src/entry.o
+$(LIBC_PREFIX)/crt0.o: $(LIBC_PREFIX)/arch/$(UARCH)/src/crt0.o
 	cp $< $@
 
-$(LIBC_PREFIX)/crt1.o: $(LIBC_PREFIX)/generic/crt/entry.o
+$(LIBC_PREFIX)/crt1.o: $(LIBC_PREFIX)/generic/crt/crt1.o
 	cp $< $@
 
 AUTOCHECK = $(realpath $(ROOT_PATH)/tools/autocheck.awk)

@@ -156,7 +156,7 @@ static void pl050_interrupt(ipc_call_t *call, ddf_dev_t *dev)
 		return;
 	}
 
-	pl050->buffer[pl050->buf_wp] = IPC_GET_ARG2(*call);
+	pl050->buffer[pl050->buf_wp] = ipc_get_arg2(call);
 	pl050->buf_wp = nidx;
 	fibril_condvar_broadcast(&pl050->buf_cv);
 	fibril_mutex_unlock(&pl050->buf_lock);

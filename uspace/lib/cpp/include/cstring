@@ -29,71 +29,38 @@
 #ifndef LIBCPP_CSTRING
 #define LIBCPP_CSTRING
 
-
-namespace std::hel
-{
-    extern "C" {
-        #include <str.h>
-    }
-}
+#define _REALLY_WANT_STRING_H
+#include <string.h>
 
 namespace std
 {
-    using std::hel::size_t;
+    using ::size_t;
 
-    /* using std::hel::strcpy; */
-    /* using std::hel::strncpy; */
-    /* using std::hel::strcat; */
-    /* using std::hel::strncat; */
-    /* using std::hel::strxfrm; */
+    using ::strcpy;
+    using ::strncpy;
+    using ::strcat;
+    using ::strncat;
+    using ::strxfrm;
 
-    /* using std::hel::strlen; */
-    /* using std::hel::strcmp; */
-    /* using std::hel::strncmp; */
-    /* using std::hel::strcoll; */
-    /* using std::hel::strchr; */
-    /* using std::hel::strrchr; */
-    /* using std::hel::strspn; */
-    /* using std::hel::strcspn; */
-    /* using std::hel::strpbrk; */
-    /* using std::hel::strstr; */
-    /* using std::hel::strok; */
+    using ::strlen;
+    using ::strcmp;
+    using ::strncmp;
+    using ::strcoll;
+    using ::strchr;
+    using ::strrchr;
+    using ::strspn;
+    using ::strcspn;
+    using ::strpbrk;
+    using ::strstr;
+    using ::strtok;
 
-    /* using std::hel::memchr; */
-    using std::hel::memcmp;
-    using std::hel::memset;
-    using std::hel::memcpy;
-    using std::hel::memmove;
+    using ::memchr;
+    using ::memcmp;
+    using ::memset;
+    using ::memcpy;
+    using ::memmove;
 
-    /* using std::hel::strerror; */
+    using ::strerror;
 }
-
-using std::hel::size_t;
-
-/* using std::hel::strcpy; */
-/* using std::hel::strncpy; */
-/* using std::hel::strcat; */
-/* using std::hel::strncat; */
-/* using std::hel::strxfrm; */
-
-/* using std::hel::strlen; */
-/* using std::hel::strcmp; */
-/* using std::hel::strncmp; */
-/* using std::hel::strcoll; */
-/* using std::hel::strchr; */
-/* using std::hel::strrchr; */
-/* using std::hel::strspn; */
-/* using std::hel::strcspn; */
-/* using std::hel::strpbrk; */
-/* using std::hel::strstr; */
-/* using std::hel::strok; */
-
-/* using std::hel::memchr; */
-using std::hel::memcmp;
-using std::hel::memset;
-using std::hel::memcpy;
-using std::hel::memmove;
-
-/* using std::hel::strerror; */
 
 #endif

@@ -1,5 +1,9 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Martin Sucha
+ * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -97,11 +101,12 @@
  *
  */
 
+#include <str.h>
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <str.h>
 
 /** Check the condition if wchar_t is signed */
 #ifdef __WCHAR_UNSIGNED__
@@ -207,7 +212,7 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
  *         was not enough space in the output buffer or EINVAL if the character
  *         code was invalid.
  */
-int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
+errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
@@ -391,7 +396,7 @@ int str_cmp(const char *s1, const char *s2)
 		if (c1 > c2)
 			return 1;
 
-		if ((c1 == 0) || (c2 == 0))
+		if (c1 == 0 || c2 == 0)
 			break;
 	}
 

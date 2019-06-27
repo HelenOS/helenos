@@ -81,11 +81,7 @@ void http_request_destroy(http_request_t *req)
 static ssize_t http_encode_method(char *buf, size_t buf_size,
     const char *method, const char *path)
 {
-	if (buf == NULL) {
-		return printf_size(HTTP_METHOD_LINE, method, path);
-	} else {
-		return snprintf(buf, buf_size, HTTP_METHOD_LINE, method, path);
-	}
+	return snprintf(buf, buf_size, HTTP_METHOD_LINE, method, path);
 }
 
 errno_t http_request_format(http_request_t *req, char **out_buf,

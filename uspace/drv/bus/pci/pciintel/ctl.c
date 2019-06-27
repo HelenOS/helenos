@@ -64,10 +64,10 @@ void pci_ctl_connection(ipc_call_t *icall, void *arg)
 	while (true) {
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call))
+		if (!ipc_get_imethod(&call))
 			break;
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case PCI_GET_DEVICES:
 			pci_ctl_get_devices_srv(bus, &call);
 			break;
@@ -139,7 +139,7 @@ static void pci_ctl_dev_get_info_srv(pci_bus_t *bus, ipc_call_t *icall)
 	pci_dev_info_t info;
 	errno_t rc;
 
-	dev_handle = IPC_GET_ARG1(*icall);
+	dev_handle = ipc_get_arg1(icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "pci_dev_get_info_srv(%zu)",
 	    dev_handle);
 	fun = pci_fun_first(bus);

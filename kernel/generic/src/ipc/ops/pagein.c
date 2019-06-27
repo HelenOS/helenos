@@ -67,13 +67,13 @@ static errno_t pagein_answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	if (!answer->priv)
 		return EOK;
 
-	if (!IPC_GET_RETVAL(answer->data)) {
+	if (!ipc_get_retval(&answer->data)) {
 
 		pte_t pte;
 		uintptr_t frame;
 
 		page_table_lock(AS, true);
-		bool found = page_mapping_find(AS, IPC_GET_ARG1(answer->data),
+		bool found = page_mapping_find(AS, ipc_get_arg1(&answer->data),
 		    false, &pte);
 		if (found & PTE_PRESENT(&pte)) {
 			frame = PTE_GET_FRAME(&pte);
@@ -85,9 +85,9 @@ static errno_t pagein_answer_preprocess(call_t *answer, ipc_data_t *olddata)
 				 */
 				frame_reference_add(ADDR2PFN(frame));
 			}
-			IPC_SET_ARG1(answer->data, frame);
+			ipc_set_arg1(&answer->data, frame);
 		} else {
-			IPC_SET_RETVAL(answer->data, ENOENT);
+			ipc_set_retval(&answer->data, ENOENT);
 		}
 		page_table_unlock(AS, true);
 	}

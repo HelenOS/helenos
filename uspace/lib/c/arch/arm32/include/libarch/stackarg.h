@@ -33,8 +33,8 @@
  *  @brief Empty.
  */
 
-#ifndef LIBC_arm32_STACKARG_H_
-#define LIBC_arm32_STACKARG_H_
+#ifndef _LIBC_arm32_STACKARG_H_
+#define _LIBC_arm32_STACKARG_H_
 
 #endif
 

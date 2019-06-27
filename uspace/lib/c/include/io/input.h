@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_INPUT_H_
-#define LIBC_IO_INPUT_H_
+#ifndef _LIBC_IO_INPUT_H_
+#define _LIBC_IO_INPUT_H_
 
 #include <async.h>
 #include <io/kbd_event.h>

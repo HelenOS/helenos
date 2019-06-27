@@ -91,7 +91,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/tlb.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/i8254.c \
-	arch/$(KARCH)/src/drivers/i8259.c \
 	arch/$(KARCH)/src/boot/multiboot.S \
 	arch/$(KARCH)/src/boot/multiboot2.S \
 	arch/$(KARCH)/src/boot/memmap.c \

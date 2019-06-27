@@ -37,6 +37,7 @@
 #define KERN_ia64_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <arch/register.h>
 
 #ifndef __ASSEMBLER__
 #include <assert.h>
@@ -75,8 +76,8 @@
 #define MA_UNCACHEABLE  0x04
 
 /** Privilege Levels. Only the most and the least privileged ones are ever used. */
-#define PL_KERNEL  0x00
-#define PL_USER    0x03
+#define PL_KERNEL  PSR_CPL_KERNEL
+#define PL_USER    PSR_CPL_USER
 
 /* Access Rigths. Only certain combinations are used by the kernel. */
 #define AR_READ     0x00
@@ -190,7 +191,7 @@ typedef union pta_register {
  *
  * @return Address of the head of VHPT collision chain.
  */
-NO_TRACE static inline uint64_t thash(uint64_t va)
+_NO_TRACE static inline uint64_t thash(uint64_t va)
 {
 	uint64_t ret;
 
@@ -212,7 +213,7 @@ NO_TRACE static inline uint64_t thash(uint64_t va)
  *
  * @return The unique tag for VPN and RID in the collision chain returned by thash().
  */
-NO_TRACE static inline uint64_t ttag(uint64_t va)
+_NO_TRACE static inline uint64_t ttag(uint64_t va)
 {
 	uint64_t ret;
 
@@ -231,7 +232,7 @@ NO_TRACE static inline uint64_t ttag(uint64_t va)
  *
  * @return Current contents of rr[i].
  */
-NO_TRACE static inline uint64_t rr_read(size_t i)
+_NO_TRACE static inline uint64_t rr_read(size_t i)
 {
 	uint64_t ret;
 
@@ -251,7 +252,7 @@ NO_TRACE static inline uint64_t rr_read(size_t i)
  * @param i Region register index.
  * @param v Value to be written to rr[i].
  */
-NO_TRACE static inline void rr_write(size_t i, uint64_t v)
+_NO_TRACE static inline void rr_write(size_t i, uint64_t v)
 {
 	assert(i < REGION_REGISTERS);
 
@@ -266,7 +267,7 @@ NO_TRACE static inline void rr_write(size_t i, uint64_t v)
  *
  * @return Current value stored in PTA.
  */
-NO_TRACE static inline uint64_t pta_read(void)
+_NO_TRACE static inline uint64_t pta_read(void)
 {
 	uint64_t ret;
 
@@ -282,7 +283,7 @@ NO_TRACE static inline uint64_t pta_read(void)
  *
  * @param v New value to be stored in PTA.
  */
-NO_TRACE static inline void pta_write(uint64_t v)
+_NO_TRACE static inline void pta_write(uint64_t v)
 {
 	asm volatile (
 	    "mov cr.pta = %[value]\n"

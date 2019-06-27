@@ -38,7 +38,7 @@
 #include <as.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "surface.h"
+#include <draw/surface.h>
 
 struct surface {
 	surface_flags_t flags;

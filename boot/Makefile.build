@@ -35,13 +35,13 @@ OPTIMIZATION = 3
 
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
-AFLAGS = --fatal-warnings
-LDFLAGS = -Wl,--fatal-warnings,--warn-common
+LDFLAGS = -Wl,--fatal-warnings,--warn-common $(EXTRA_LDFLAGS)
 
 COMMON_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -nostdlib \
 	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common \
-	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=. \
+	-Wa,--fatal-warnings
 
 GCC_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
@@ -79,8 +79,6 @@ clean:
 
 -include $(DEPENDS)
 
-AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
-
 $(BOOT_OUTPUT): $(RAW)
 	$(OBJCOPY) -O $(BFD_OUTPUT) $< $@
 
@@ -91,10 +89,10 @@ $(LINK): | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASSEMBLER__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS)
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS)
 
 %.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS)

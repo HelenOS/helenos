@@ -38,6 +38,7 @@ PROFILES = \
 	arm32/gta02 \
 	arm32/integratorcp \
 	arm32/raspberrypi \
+	arm64/virt \
 	ia32 \
 	ia64/i460GX \
 	ia64/ski \

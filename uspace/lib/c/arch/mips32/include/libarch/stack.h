@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_mips32_STACK_H_
-#define LIBC_mips32_STACK_H_
+#ifndef _LIBC_mips32_STACK_H_
+#define _LIBC_mips32_STACK_H_
 
 #define STACK_ITEM_SIZE  4
 #define STACK_ALIGNMENT  8

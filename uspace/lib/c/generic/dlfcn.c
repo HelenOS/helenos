@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -52,7 +53,14 @@ void *dlopen(const char *path, int flag)
 	m = module_find(runtime_env, path);
 	if (m == NULL) {
 		m = module_load(runtime_env, path, mlf_local);
-		module_load_deps(m, mlf_local);
+		if (m == NULL) {
+			return NULL;
+		}
+
+		if (module_load_deps(m, mlf_local) != EOK) {
+			return NULL;
+		}
+
 		/* Now relocate. */
 		module_process_relocs(m);
 	}

@@ -37,9 +37,8 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include "../font.h"
-#include "../drawctx.h"
-#include "bitmap_backend.h"
+#include <draw/font.h>
+#include <draw/drawctx.h>
 
 typedef struct {
 	surface_t *surface;

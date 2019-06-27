@@ -327,8 +327,8 @@ errno_t udebug_stop(thread_t *thread, call_t *call)
 	call = thread->udebug.go_call;
 	thread->udebug.go_call = NULL;
 
-	IPC_SET_RETVAL(call->data, 0);
-	IPC_SET_ARG1(call->data, UDEBUG_EVENT_STOP);
+	ipc_set_retval(&call->data, 0);
+	ipc_set_arg1(&call->data, UDEBUG_EVENT_STOP);
 
 	THREAD->udebug.cur_event = UDEBUG_EVENT_STOP;
 

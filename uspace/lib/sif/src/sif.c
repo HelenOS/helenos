@@ -893,7 +893,7 @@ static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
 	errno_t rc;
 	sif_node_t *node = NULL;
 	sif_node_t *child;
-	sif_attr_t *attr;
+	sif_attr_t *attr = NULL;
 	char *ntype;
 	int c;
 

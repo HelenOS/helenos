@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_MACROS_H_
-#define LIBC_MACROS_H_
+#ifndef _LIBC_MACROS_H_
+#define _LIBC_MACROS_H_
 
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 #define max(a, b)  ((a) > (b) ? (a) : (b))

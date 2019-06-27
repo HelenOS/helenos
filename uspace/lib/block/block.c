@@ -240,9 +240,9 @@ void *block_bb_get(service_id_t service_id)
 	return devcon->bb_buf;
 }
 
-static size_t cache_key_hash(void *key)
+static size_t cache_key_hash(const void *key)
 {
-	aoff64_t *lba = (aoff64_t *)key;
+	const aoff64_t *lba = key;
 	return *lba;
 }
 
@@ -252,9 +252,9 @@ static size_t cache_hash(const ht_link_t *item)
 	return b->lba;
 }
 
-static bool cache_key_equal(void *key, const ht_link_t *item)
+static bool cache_key_equal(const void *key, const ht_link_t *item)
 {
-	aoff64_t *lba = (aoff64_t *)key;
+	const aoff64_t *lba = key;
 	block_t *b = hash_table_get_inst(item, block_t, hash_link);
 	return b->lba == *lba;
 }

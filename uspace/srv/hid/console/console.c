@@ -512,7 +512,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 	console_t *cons = NULL;
 
 	for (size_t i = 0; i < CONSOLE_COUNT; i++) {
-		if (consoles[i].dsid == (service_id_t) IPC_GET_ARG2(*icall)) {
+		if (consoles[i].dsid == (service_id_t) ipc_get_arg2(icall)) {
 			cons = &consoles[i];
 			break;
 		}

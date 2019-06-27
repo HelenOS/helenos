@@ -1076,7 +1076,7 @@ void vbds_bd_conn(ipc_call_t *icall, void *arg)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_conn()");
 
-	svcid = IPC_GET_ARG2(*icall);
+	svcid = ipc_get_arg2(icall);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_conn() - svcid=%zu", svcid);
 

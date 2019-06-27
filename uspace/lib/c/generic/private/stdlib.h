@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PRIVATE_STDLIB_H_
-#define LIBC_PRIVATE_STDLIB_H_
+#ifndef _LIBC_PRIVATE_STDLIB_H_
+#define _LIBC_PRIVATE_STDLIB_H_
 
 #include <adt/list.h>
 

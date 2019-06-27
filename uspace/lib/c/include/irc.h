@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IRC_H_
-#define LIBC_IRC_H_
+#ifndef _LIBC_IRC_H_
+#define _LIBC_IRC_H_
 
 extern errno_t irc_enable_interrupt(int);
 extern errno_t irc_disable_interrupt(int);

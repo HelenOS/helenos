@@ -33,29 +33,16 @@
 /** @file
  */
 
-#ifndef LIBC_STDIO_H_
-#define LIBC_STDIO_H_
+#ifndef _LIBC_STDIO_H_
+#define _LIBC_STDIO_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <offset.h>
 #include <stdarg.h>
 #include <io/verify.h>
 #include <_bits/NULL.h>
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
 #include <_bits/wint_t.h>
-
-/** Forward declaration */
-struct _IO_FILE;
-typedef struct _IO_FILE FILE;
-
-/** File position */
-typedef struct {
-	off64_t pos;
-} fpos_t;
+#include <_bits/decls.h>
 
 #ifndef _HELENOS_SOURCE
 #define _IONBF 0
@@ -69,7 +56,7 @@ typedef struct {
 #define EOF  (-1)
 
 /** Max number of files that is guaranteed to be able to open at the same time */
-#define FOPEN_MAX VFS_MAX_OPEN_FILES
+#define FOPEN_MAX 16
 
 /** Recommended size of fixed-size array for holding file names. */
 #define FILENAME_MAX 4096
@@ -92,22 +79,41 @@ typedef struct {
 /** Minimum number of unique temporary file names */
 #define TMP_MAX 1000000
 
+__C_DECLS_BEGIN;
+
+/** Forward declaration */
+struct _IO_FILE;
+typedef struct _IO_FILE FILE;
+
+/** File position */
+typedef struct {
+	long long pos;
+} fpos_t;
+
 extern FILE *stdin;
 extern FILE *stdout;
 extern FILE *stderr;
 
 /* Character and string input functions */
-#define getc fgetc
 extern int fgetc(FILE *);
 extern char *fgets(char *, int, FILE *);
 extern char *gets(char *, size_t) __attribute__((deprecated));
 
+static inline int getc(FILE *f)
+{
+	return fgetc(f);
+}
+
 extern int getchar(void);
 
 /* Character and string output functions */
-#define putc fputc
 extern int fputc(int, FILE *);
 extern int fputs(const char *, FILE *);
+
+static inline int putc(int i, FILE *f)
+{
+	return fputc(i, f);
+}
 
 extern int putchar(int);
 extern int puts(const char *);
@@ -179,11 +185,17 @@ extern int rename(const char *, const char *);
 extern FILE *tmpfile(void);
 extern char *tmpnam(char *s);
 
+__C_DECLS_END;
+
 #ifdef _HELENOS_SOURCE
+
+#include <_bits/off64_t.h>
+
+__HELENOS_DECLS_BEGIN;
 
 /* Nonstandard extensions. */
 
-enum _buffer_type {
+enum __buffer_type {
 	/** No buffering */
 	_IONBF,
 	/** Line buffering */
@@ -192,32 +204,16 @@ enum _buffer_type {
 	_IOFBF
 };
 
-enum _buffer_state {
-	/** Buffer is empty */
-	_bs_empty,
-
-	/** Buffer contains data to be written */
-	_bs_write,
-
-	/** Buffer contains prefetched data for reading */
-	_bs_read
-};
-
-extern int vprintf_size(const char *, va_list);
-extern int printf_size(const char *, ...)
+extern int vprintf_length(const char *, va_list);
+extern int printf_length(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern FILE *fdopen(int, const char *);
 extern int fileno(FILE *);
 
-#include <offset.h>
-
 extern int fseek64(FILE *, off64_t, int);
 extern off64_t ftell64(FILE *);
 
-#endif
-
-#ifdef __cplusplus
-}
+__HELENOS_DECLS_END;
 #endif
 
 #endif

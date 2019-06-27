@@ -23,7 +23,7 @@
  # ... \endcond blocks.
  
 -ENABLED_SECTIONS       =
-+ENABLED_SECTIONS       = abs32le amd64 arm32 ia32 ia64 mips32 ppc32 riscv64 sparc64
++ENABLED_SECTIONS       = abs32le amd64 arm32 arm64 ia32 ia64 mips32 ppc32 riscv64 sparc64
  
  # The MAX_INITIALIZER_LINES tag determines the maximum number of lines that the
  # initial value of a variable or macro / define can have for it to appear in the
@@ -32,7 +32,7 @@
  # Note: If this tag is empty the current directory is searched.
  
 -INPUT                  =
-+INPUT                  = ..
++INPUT                  = ../README.md ../abi ../boot ../kernel ../uspace
  
  # This tag can be used to specify the character encoding of the source files
  # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses

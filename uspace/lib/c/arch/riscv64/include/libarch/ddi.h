@@ -29,8 +29,8 @@
 /** @file
  */
 
-#ifndef LIBC_riscv64_DDI_H_
-#define LIBC_riscv64_DDI_H_
+#ifndef _LIBC_riscv64_DDI_H_
+#define _LIBC_riscv64_DDI_H_
 
 #include <ddi.h>
 

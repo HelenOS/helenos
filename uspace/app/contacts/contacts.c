@@ -525,7 +525,7 @@ error:
 int main(void)
 {
 	errno_t rc;
-	contacts_t *contacts;
+	contacts_t *contacts = NULL;
 
 	rc = contacts_open("contacts.sif", &contacts);
 	if (rc != EOK)

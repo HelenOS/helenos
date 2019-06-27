@@ -13,4 +13,4 @@ as -o screen.o screen.s
 as -o shapes.o shapes.s
 as -o tetris.o tetris.s
 
-ld -T /inc/_link.ld -o tetris_ scores.o screen.o shapes.o tetris.o /lib/libc.a /lib/libsoftint.a
+ld -T /inc/_link.ld -o tetris_ scores.o screen.o shapes.o tetris.o /lib/libc.a -lgcc

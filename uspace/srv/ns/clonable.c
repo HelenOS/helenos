@@ -93,8 +93,8 @@ void ns_clonable_register(ipc_call_t *call)
 		async_answer_0(call, EIO);
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	async_forward_fast(&csr->call, exch, csr->iface,
-	    IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
+	async_forward_1(&csr->call, exch, csr->iface,
+	    ipc_get_arg3(&csr->call), IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	free(csr);

@@ -27,8 +27,7 @@
 #
 
 
-COMMON_CFLAGS += -mcpu=powerpc -msoft-float -m32
-AFLAGS += -a32
+COMMON_CFLAGS += -mcpu=powerpc -msoft-float -m32 -Wa,-a32
 LDFLAGS += -Wl,-no-check-sections
 
 BITS = 32

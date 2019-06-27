@@ -610,8 +610,8 @@ namespace std::chrono
 
             static time_point now()
             {
-                hel::timespec ts{};
-                hel::getrealtime(&ts);
+                ::std::timespec ts{};
+                ::helenos::getrealtime(&ts);
 
                 rep time = NSEC2USEC(ts.tv_nsec);
                 time += (ts.tv_sec * 1'000'000ul);
@@ -653,8 +653,8 @@ namespace std::chrono
 
             static time_point now()
             {
-                hel::timespec ts{};
-                hel::getuptime(&ts);
+                ::std::timespec ts{};
+                ::helenos::getuptime(&ts);
 
                 rep time = NSEC2USEC(ts.tv_nsec);
                 time += (ts.tv_sec * 1'000'000ul);

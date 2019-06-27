@@ -384,7 +384,7 @@ static void hdaudio_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
 		ddf_msg(LVL_NOTE, "## interrupt ##");
 	hda_ctl_interrupt(hda->ctl);
 
-	if (IPC_GET_ARG3(*icall) != 0) {
+	if (ipc_get_arg3(icall) != 0) {
 		/* Buffer completed */
 		hda_lock(hda);
 		if (hda->playing) {

@@ -42,6 +42,8 @@
 #define PAGE_SIZE	FRAME_SIZE
 
 #ifndef __ASSEMBLER__
+#	define KSEG12PA(x)	(((uintptr_t) (x)) - 0xa0000000)
+#	define PA2KSEG1(x)	(((uintptr_t) (x)) + 0xa0000000)
 #	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
 #	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else
@@ -160,7 +162,7 @@ typedef struct {
 	unsigned a : 1;			/**< Accessed bit. */
 } pte_t;
 
-NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+_NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 
@@ -173,7 +175,7 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	    (p->g << PAGE_GLOBAL_SHIFT));
 }
 
-NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+_NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 
@@ -188,7 +190,7 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 	p->soft_valid = 1;
 }
 
-NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
+_NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 

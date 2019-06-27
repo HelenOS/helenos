@@ -32,8 +32,8 @@
 /** @file Definitions needed to write core files in Linux-ELF format.
  */
 
-#ifndef LIBC_mips32_ELF_LINUX_H_
-#define LIBC_mips32_ELF_LINUX_H_
+#ifndef _LIBC_mips32_ELF_LINUX_H_
+#define _LIBC_mips32_ELF_LINUX_H_
 
 #include <libarch/istate.h>
 #include <stdint.h>

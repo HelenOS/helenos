@@ -53,21 +53,23 @@ typedef struct {
 	int retval;      /**< The return value. */
 } hashed_task_t;
 
-static size_t task_key_hash(void *key)
+static size_t task_key_hash(const void *key)
 {
-	return *(task_id_t *)key;
+	const task_id_t *tid = key;
+	return *tid;
 }
 
-static size_t task_hash(const ht_link_t  *item)
+static size_t task_hash(const ht_link_t *item)
 {
 	hashed_task_t *ht = hash_table_get_inst(item, hashed_task_t, link);
 	return ht->id;
 }
 
-static bool task_key_equal(void *key, const ht_link_t *item)
+static bool task_key_equal(const void *key, const ht_link_t *item)
 {
+	const task_id_t *tid = key;
 	hashed_task_t *ht = hash_table_get_inst(item, hashed_task_t, link);
-	return ht->id == *(task_id_t *)key;
+	return ht->id == *tid;
 }
 
 /** Perform actions after removal of item from the hash table. */
@@ -96,10 +98,10 @@ typedef struct {
 
 /* label-to-id hash table operations */
 
-static size_t p2i_key_hash(void *key)
+static size_t p2i_key_hash(const void *key)
 {
-	sysarg_t label = *(sysarg_t *)key;
-	return label;
+	const sysarg_t *label = key;
+	return *label;
 }
 
 static size_t p2i_hash(const ht_link_t *item)
@@ -108,12 +110,12 @@ static size_t p2i_hash(const ht_link_t *item)
 	return entry->label;
 }
 
-static bool p2i_key_equal(void *key, const ht_link_t *item)
+static bool p2i_key_equal(const void *key, const ht_link_t *item)
 {
-	sysarg_t label = *(sysarg_t *)key;
+	const sysarg_t *label = key;
 	p2i_entry_t *entry = hash_table_get_inst(item, p2i_entry_t, link);
 
-	return (label == entry->label);
+	return (*label == entry->label);
 }
 
 /** Perform actions after removal of item from the hash table.
@@ -224,7 +226,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call)
 
 errno_t ns_task_id_intro(ipc_call_t *call)
 {
-	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
+	task_id_t id = MERGE_LOUP32(ipc_get_arg1(call), ipc_get_arg2(call));
 
 	ht_link_t *link = hash_table_find(&phone_to_id, &call->request_label);
 	if (link != NULL)
@@ -288,7 +290,7 @@ errno_t ns_task_retval(ipc_call_t *call)
 
 	ht->finished = true;
 	ht->have_rval = true;
-	ht->retval = IPC_GET_ARG1(*call);
+	ht->retval = ipc_get_arg1(call);
 
 	process_pending_wait();
 

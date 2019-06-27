@@ -26,43 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_ARCH_FIBRIL_CONTEXT_H_
-#define LIBC_ARCH_FIBRIL_CONTEXT_H_
+#ifndef _LIBC_ARCH_FIBRIL_CONTEXT_H_
+#define _LIBC_ARCH_FIBRIL_CONTEXT_H_
 
-#define CONTEXT_OFFSET_SP   0x00
-#define CONTEXT_OFFSET_PC   0x08
-#define CONTEXT_OFFSET_ZERO 0x10
-#define CONTEXT_OFFSET_RA   0x18
-#define CONTEXT_OFFSET_X3   0x20
-#define CONTEXT_OFFSET_X4   0x28
-#define CONTEXT_OFFSET_X5   0x30
-#define CONTEXT_OFFSET_X6   0x38
-#define CONTEXT_OFFSET_X7   0x40
-#define CONTEXT_OFFSET_X8   0x48
-#define CONTEXT_OFFSET_X9   0x50
-#define CONTEXT_OFFSET_X10  0x58
-#define CONTEXT_OFFSET_X11  0x60
-#define CONTEXT_OFFSET_X12  0x68
-#define CONTEXT_OFFSET_X13  0x70
-#define CONTEXT_OFFSET_X14  0x78
-#define CONTEXT_OFFSET_X15  0x80
-#define CONTEXT_OFFSET_X16  0x88
-#define CONTEXT_OFFSET_X17  0x90
-#define CONTEXT_OFFSET_X18  0x98
-#define CONTEXT_OFFSET_X19  0xa0
-#define CONTEXT_OFFSET_X20  0xa8
-#define CONTEXT_OFFSET_X21  0xb0
-#define CONTEXT_OFFSET_X22  0xb8
-#define CONTEXT_OFFSET_X23  0xc0
-#define CONTEXT_OFFSET_X24  0xc8
-#define CONTEXT_OFFSET_X25  0xd0
-#define CONTEXT_OFFSET_X26  0xd8
-#define CONTEXT_OFFSET_X27  0xe0
-#define CONTEXT_OFFSET_X28  0xe8
-#define CONTEXT_OFFSET_X29  0xf0
-#define CONTEXT_OFFSET_X30  0xf8
-#define CONTEXT_OFFSET_X31  0x100
-#define CONTEXT_SIZE        0x108
+#define __CONTEXT_OFFSET_SP   0x00
+#define __CONTEXT_OFFSET_PC   0x08
+#define __CONTEXT_OFFSET_ZERO 0x10
+#define __CONTEXT_OFFSET_RA   0x18
+#define __CONTEXT_OFFSET_X3   0x20
+#define __CONTEXT_OFFSET_X4   0x28
+#define __CONTEXT_OFFSET_X5   0x30
+#define __CONTEXT_OFFSET_X6   0x38
+#define __CONTEXT_OFFSET_X7   0x40
+#define __CONTEXT_OFFSET_X8   0x48
+#define __CONTEXT_OFFSET_X9   0x50
+#define __CONTEXT_OFFSET_X10  0x58
+#define __CONTEXT_OFFSET_X11  0x60
+#define __CONTEXT_OFFSET_X12  0x68
+#define __CONTEXT_OFFSET_X13  0x70
+#define __CONTEXT_OFFSET_X14  0x78
+#define __CONTEXT_OFFSET_X15  0x80
+#define __CONTEXT_OFFSET_X16  0x88
+#define __CONTEXT_OFFSET_X17  0x90
+#define __CONTEXT_OFFSET_X18  0x98
+#define __CONTEXT_OFFSET_X19  0xa0
+#define __CONTEXT_OFFSET_X20  0xa8
+#define __CONTEXT_OFFSET_X21  0xb0
+#define __CONTEXT_OFFSET_X22  0xb8
+#define __CONTEXT_OFFSET_X23  0xc0
+#define __CONTEXT_OFFSET_X24  0xc8
+#define __CONTEXT_OFFSET_X25  0xd0
+#define __CONTEXT_OFFSET_X26  0xd8
+#define __CONTEXT_OFFSET_X27  0xe0
+#define __CONTEXT_OFFSET_X28  0xe8
+#define __CONTEXT_OFFSET_X29  0xf0
+#define __CONTEXT_OFFSET_X30  0xf8
+#define __CONTEXT_OFFSET_X31  0x100
+#define __CONTEXT_SIZE        0x108
 
 #ifndef __ASSEMBLER__
 
@@ -74,7 +74,7 @@
  * registers that must be preserved during ABI function call).
  */
 
-typedef struct context {
+typedef struct __context {
 	uint64_t sp;
 	uint64_t pc;
 	uint64_t zero;
@@ -108,7 +108,7 @@ typedef struct context {
 	uint64_t x29;
 	uint64_t x30;
 	uint64_t x31;
-} context_t;
+} __context_t;
 
 #endif
 #endif

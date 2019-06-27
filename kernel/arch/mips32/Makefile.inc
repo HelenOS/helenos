@@ -69,17 +69,14 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/smp/smp.c \
 	arch/$(KARCH)/src/machine_func.c
 
-ifeq ($(MACHINE),msim)
-	ARCH_SOURCES += \
-		arch/$(KARCH)/src/smp/dorder.c
-endif
-
 ifeq ($(MACHINE),$(filter lmalta bmalta,$(MACHINE)))
 	ARCH_SOURCES += arch/$(KARCH)/src/mach/malta/malta.c
 endif
 
 ifeq ($(MACHINE),msim)
-	ARCH_SOURCES += arch/$(KARCH)/src/mach/msim/msim.c
+	ARCH_SOURCES += \
+		arch/$(KARCH)/src/mach/msim/msim.c \
+		arch/$(KARCH)/src/mach/msim/dorder.c
 endif
 
 ARCH_AUTOCHECK_HEADERS = \

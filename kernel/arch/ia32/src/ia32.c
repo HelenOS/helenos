@@ -46,10 +46,10 @@
 #include <arch/bios/bios.h>
 #include <arch/boot/boot.h>
 #include <arch/drivers/i8254.h>
-#include <arch/drivers/i8259.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/drivers/ega/ega.h>
 #include <genarch/drivers/i8042/i8042.h>
+#include <genarch/drivers/i8259/i8259.h>
 #include <genarch/drivers/ns16550/ns16550.h>
 #include <genarch/drivers/legacy/ia32/io.h>
 #include <genarch/fb/bfb.h>
@@ -57,6 +57,7 @@
 #include <genarch/srln/srln.h>
 #include <genarch/multiboot/multiboot.h>
 #include <genarch/multiboot/multiboot2.h>
+#include <genarch/pic/pic_ops.h>
 #include <arch/pm.h>
 #include <arch/vreg.h>
 
@@ -108,7 +109,11 @@ void ia32_pre_mm_init(void)
 		bios_init();
 
 		/* PIC */
-		i8259_init();
+		i8259_init((i8259_t *) I8259_PIC0_BASE,
+		    (i8259_t *) I8259_PIC1_BASE, IVT_IRQBASE);
+
+		/* Set PIC operations. */
+		pic_ops = &i8259_pic_ops;
 	}
 }
 
@@ -183,8 +188,8 @@ void ia32_post_smp_init(void)
 			indev_t *sink = stdin_wire();
 			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
 			i8042_wire(i8042_instance, kbrd);
-			trap_virtual_enable_irqs(1 << IRQ_KBD);
-			trap_virtual_enable_irqs(1 << IRQ_MOUSE);
+			pic_ops->enable_irqs(1 << IRQ_KBD);
+			pic_ops->enable_irqs(1 << IRQ_MOUSE);
 		}
 	}
 #endif
@@ -209,7 +214,7 @@ void ia32_post_smp_init(void)
 			indev_t *sink = stdin_wire();
 			indev_t *srln = srln_wire(srln_instance, sink);
 			ns16550_wire(ns16550_instance, srln);
-			trap_virtual_enable_irqs(1 << IRQ_NS16550);
+			pic_ops->enable_irqs(1 << IRQ_NS16550);
 		}
 #endif
 #ifdef CONFIG_NS16550_OUT
@@ -220,8 +225,7 @@ void ia32_post_smp_init(void)
 	}
 #endif
 
-	if (irqs_info != NULL)
-		sysinfo_set_item_val(irqs_info, NULL, true);
+	sysinfo_set_item_val(pic_ops->get_name(), NULL, true);
 }
 
 void calibrate_delay_loop(void)

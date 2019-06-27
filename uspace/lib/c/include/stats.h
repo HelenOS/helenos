@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_STATS_H_
-#define LIBC_STATS_H_
+#ifndef _LIBC_STATS_H_
+#define _LIBC_STATS_H_
 
 #include <task.h>
 #include <stdint.h>

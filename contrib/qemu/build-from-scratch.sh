@@ -28,7 +28,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-VERSION=3.1.0
+VERSION=4.0.0
 BASENAME=qemu-${VERSION}
 BASENAME_MASTER=qemu-master
 TARBALL=${BASENAME}.tar.bz2
@@ -105,7 +105,7 @@ fi
 
 echo "==== Configuring QEMU ===="
 
-./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,ppc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --audio-drv-list=pa
+./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,aarch64-softmmu,ppc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --audio-drv-list=pa
 
 echo "==== Building QEMU ===="
 

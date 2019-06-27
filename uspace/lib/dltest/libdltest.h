@@ -46,6 +46,7 @@ enum {
 };
 
 extern int dl_get_constant(void);
+extern int dl_get_constant_via_call(void);
 extern int dl_get_private_var(void);
 extern int *dl_get_private_var_addr(void);
 extern int dl_get_private_uvar(void);

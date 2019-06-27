@@ -43,6 +43,9 @@
 #define EGA_BASE      ((ioport8_t *) 0x3d4)
 #define NS16550_BASE  ((ioport8_t *) 0x3f8)
 
+#define I8259_PIC0_BASE ((ioport8_t *) 0x20U)
+#define I8259_PIC1_BASE ((ioport8_t *) 0xA0U)
+
 #define EGA_VIDEORAM  0xb8000
 
 #endif

@@ -30,26 +30,27 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <str.h>
 
 namespace std
 {
     logic_error::logic_error(const string& what)
-        : what_{hel::str_dup(what.c_str())}
+        : what_{::helenos::str_dup(what.c_str())}
     { /* DUMMY BODY */ }
 
     logic_error::logic_error(const char* what)
-        : what_{hel::str_dup(what)}
+        : what_{::helenos::str_dup(what)}
     { /* DUMMY BODY */ }
 
     logic_error::logic_error(const logic_error& other) noexcept
-        : exception{other}, what_{hel::str_dup(other.what_)}
+        : exception{other}, what_{::helenos::str_dup(other.what_)}
     { /* DUMMY BODY */ }
 
     logic_error& logic_error::operator=(const logic_error& other)
     {
         if (what_)
             free(what_);
-        what_ = hel::str_dup(other.what_);
+        what_ = ::helenos::str_dup(other.what_);
 
         return *this;
     }
@@ -113,22 +114,22 @@ namespace std
     { /* DUMMY BODY */ }
 
     runtime_error::runtime_error(const string& what)
-        : what_{hel::str_dup(what.c_str())}
+        : what_{::helenos::str_dup(what.c_str())}
     { /* DUMMY BODY */ }
 
     runtime_error::runtime_error(const char* what)
-        : what_{hel::str_dup(what)}
+        : what_{::helenos::str_dup(what)}
     { /* DUMMY BODY */ }
 
     runtime_error::runtime_error(const runtime_error& other) noexcept
-        : exception{other}, what_{hel::str_dup(other.what_)}
+        : exception{other}, what_{::helenos::str_dup(other.what_)}
     { /* DUMMY BODY */ }
 
     runtime_error& runtime_error::operator=(const runtime_error& other)
     {
         if (what_)
             free(what_);
-        what_ = hel::str_dup(other.what_);
+        what_ = ::helenos::str_dup(other.what_);
 
         return *this;
     }

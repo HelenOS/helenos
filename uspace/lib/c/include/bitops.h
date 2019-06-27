@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_BITOPS_H_
-#define LIBC_BITOPS_H_
+#ifndef _LIBC_BITOPS_H_
+#define _LIBC_BITOPS_H_
 
 #include <stddef.h>
 #include <stdint.h>

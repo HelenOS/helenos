@@ -159,7 +159,7 @@ static void main_ap_separated_stack(void);
  * Assuming interrupts_disable().
  *
  */
-NO_TRACE void main_bsp(void)
+_NO_TRACE void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;

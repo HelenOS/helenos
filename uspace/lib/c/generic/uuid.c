@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <str.h>
+#include <stdio.h>
 
 /** Generate UUID.
  *
@@ -63,10 +64,9 @@ errno_t uuid_generate(uuid_t *uuid)
 	}
 
 	/* Version 4 UUID from random or pseudo-random numbers */
-	uuid->b[8] = (uuid->b[8] & ~0xc0) | 0x40;
-	uuid->b[6] = (uuid->b[6] & 0xf0) | 0x40;
+	uuid->b[6] = (uuid->b[6] & 0x0f) | 0x40;
+	uuid->b[8] = (uuid->b[8] & 0x3f) | 0x80;
 
-	return EOK;
 error:
 	rndgen_destroy(rndgen);
 	return rc;
@@ -138,7 +138,7 @@ errno_t uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
 		return EINVAL;
 
 	rc = str_uint64_t(str + 24, &eptr, 16, false, &node);
-	if (rc != EOK || eptr != str + 36 || *eptr != '\0')
+	if (rc != EOK || eptr != str + 36)
 		return EINVAL;
 
 	uuid->b[0] = time_low >> 24;
@@ -175,9 +175,24 @@ errno_t uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t uuid_format(uuid_t *uuid, char **rstr)
+errno_t uuid_format(uuid_t *uuid, char **rstr, bool uppercase)
 {
-	return ENOTSUP;
+	size_t size = 37;
+	char *str = malloc(sizeof(char) * size);
+	if (str == NULL)
+		return ENOMEM;
+
+	const char *format = "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x";
+	if (uppercase)
+		format = "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X";
+
+	int ret = snprintf(str, size, format, uuid->b[0], uuid->b[1], uuid->b[2], uuid->b[3], uuid->b[4], uuid->b[5], uuid->b[6], uuid->b[7], uuid->b[8], uuid->b[9], uuid->b[10], uuid->b[11], uuid->b[12], uuid->b[13], uuid->b[14], uuid->b[15]);
+
+	if (ret != 36)
+		return EINVAL;
+
+	*rstr = str;
+	return EOK;
 }
 
 /** @}

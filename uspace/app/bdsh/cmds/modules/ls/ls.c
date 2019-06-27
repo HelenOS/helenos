@@ -41,6 +41,7 @@
 #include <getopt.h>
 #include <vfs/vfs.h>
 #include <str.h>
+#include <cap.h>
 
 #include "ls.h"
 #include "errors.h"
@@ -57,13 +58,17 @@ static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "unsort", no_argument, 0, 'u' },
 	{ "recursive", no_argument, 0, 'r' },
+	{ "exact-size", no_argument, 0, 'e' },
+	{ "single-column", no_argument, 0, '1' },
 	{ 0, 0, 0, 0 }
 };
 
 /* Prototypes for the ls command, excluding entry points. */
 static unsigned int ls_start(ls_job_t *);
-static void ls_print(struct dir_elem_t *);
-static int ls_cmp(const void *, const void *);
+static errno_t ls_print(struct dir_elem_t *);
+static errno_t ls_print_single_column(struct dir_elem_t *);
+static int ls_cmp_type_name(const void *, const void *);
+static int ls_cmp_name(const void *, const void *);
 static signed int ls_scan_dir(const char *, DIR *, struct dir_elem_t **);
 static unsigned int ls_recursive(const char *, DIR *);
 static unsigned int ls_scope(const char *, struct dir_elem_t *);
@@ -73,6 +78,9 @@ static unsigned int ls_start(ls_job_t *ls)
 	ls->recursive = 0;
 	ls->sort = 1;
 
+	ls->exact_size = false;
+	ls->single_column = false;
+	ls->printer = ls_print;
 	return 1;
 }
 
@@ -87,14 +95,53 @@ static unsigned int ls_start(ls_job_t *ls)
  *
  * @param de		Directory element.
  */
-static void ls_print(struct dir_elem_t *de)
+static errno_t ls_print(struct dir_elem_t *de)
 {
-	if (de->s.is_file)
-		printf("%-40s\t%llu\n", de->name, (long long) de->s.size);
-	else if (de->s.is_directory)
-		printf("%-40s\t<dir>\n", de->name);
+	int width = 13;
+
+	if (de->s.is_file) {
+		if (ls.exact_size) {
+			printf("%-40s\t%*llu\n", de->name, width, (long long) de->s.size);
+			return EOK;
+		}
+
+		cap_spec_t cap;
+		cap_from_blocks(de->s.size, 1, &cap);
+		cap_simplify(&cap);
+
+		char *rptr;
+		errno_t rc = cap_format(&cap, &rptr);
+		if (rc != EOK) {
+			return rc;
+		}
+
+		char *sep = str_rchr(rptr, ' ');
+		if (sep == NULL) {
+			free(rptr);
+			return ENOENT;
+		}
+
+		*sep = '\0';
+
+		printf("%-40s\t%*s %2s\n", de->name, width - 3, rptr, sep + 1);
+		free(rptr);
+	} else if (de->s.is_directory)
+		printf("%-40s\t%*s\n", de->name, width, "<dir>");
 	else
 		printf("%-40s\n", de->name);
+
+	return EOK;
+}
+
+static errno_t ls_print_single_column(struct dir_elem_t *de)
+{
+	if (de->s.is_file) {
+		printf("%s\n", de->name);
+	} else {
+		printf("%s/\n", de->name);
+	}
+
+	return EOK;
 }
 
 /** Compare 2 directory elements.
@@ -108,7 +155,7 @@ static void ls_print(struct dir_elem_t *de)
  *
  * @return		-1 if a < b, 1 otherwise.
  */
-static int ls_cmp(const void *a, const void *b)
+static int ls_cmp_type_name(const void *a, const void *b)
 {
 	struct dir_elem_t const *da = a;
 	struct dir_elem_t const *db = b;
@@ -119,6 +166,20 @@ static int ls_cmp(const void *a, const void *b)
 		return -1;
 	else
 		return 1;
+}
+
+/** Compare directories/files per name
+ *
+ * This comparision ignores the type of
+ * the node. Sorted will strictly by name.
+ *
+ */
+static int ls_cmp_name(const void *a, const void *b)
+{
+	struct dir_elem_t const *da = a;
+	struct dir_elem_t const *db = b;
+
+	return str_cmp(da->name, db->name);
 }
 
 /** Scan a directory.
@@ -191,11 +252,18 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		}
 	}
 
-	if (ls.sort)
-		qsort(&tosort[0], nbdirs, sizeof(struct dir_elem_t), ls_cmp);
+	if (ls.sort) {
+		int (*compar)(const void *, const void *);
+		compar = ls.single_column ? ls_cmp_name : ls_cmp_type_name;
+		qsort(&tosort[0], nbdirs, sizeof(struct dir_elem_t), compar);
+	}
 
-	for (i = 0; i < nbdirs; i++)
-		ls_print(&tosort[i]);
+	for (i = 0; i < nbdirs; i++) {
+		if (ls.printer(&tosort[i]) != EOK) {
+			cli_error(CL_ENOMEM, "%s: Out of memory", cmdname);
+			goto out;
+		}
+	}
 
 	/* Populate the directory list. */
 	if (ls.recursive && nbdirs > 0) {
@@ -332,9 +400,11 @@ void help_cmd_ls(unsigned int level)
 		    "Usage:  %s [options] [path]\n"
 		    "If not path is given, the current working directory is used.\n"
 		    "Options:\n"
-		    "  -h, --help       A short option summary\n"
-		    "  -u, --unsort     Do not sort directory entries\n"
-		    "  -r, --recursive  List subdirectories recursively\n",
+		    "  -h, --help            A short option summary\n"
+		    "  -u, --unsort          Do not sort directory entries\n"
+		    "  -r, --recursive       List subdirectories recursively\n"
+		    "  -e, --exact-size      File sizes will be unformatted (raw bytes count)\n"
+		    "  -1, --single-column   Only the names will be returned\n",
 		    cmdname);
 	}
 
@@ -363,7 +433,7 @@ int cmd_ls(char **argv)
 	opt_ind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hur", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "hure1", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_ls(HELP_LONG);
@@ -373,6 +443,13 @@ int cmd_ls(char **argv)
 			break;
 		case 'r':
 			ls.recursive = 1;
+			break;
+		case 'e':
+			ls.exact_size = true;
+			break;
+		case '1':
+			ls.single_column = true;
+			ls.printer = ls_print_single_column;
 			break;
 		}
 	}
@@ -399,7 +476,10 @@ int cmd_ls(char **argv)
 	scope = ls_scope(de.name, &de);
 	switch (scope) {
 	case LS_FILE:
-		ls_print(&de);
+		if (ls.printer(&de) != EOK) {
+			cli_error(CL_ENOMEM, "%s: Out of memory", cmdname);
+			return CMD_FAILURE;
+		}
 		break;
 	case LS_DIR:
 		dirp = opendir(de.name);

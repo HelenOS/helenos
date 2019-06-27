@@ -33,6 +33,15 @@
 #define POSIX_PTHREAD_H_
 
 #include <time.h>
+#include <_bits/decls.h>
+
+#define PTHREAD_MUTEX_RECURSIVE 1
+
+#define PTHREAD_MUTEX_INITIALIZER { 0 }
+
+#define PTHREAD_COND_INITIALIZER { 0 }
+
+__C_DECLS_BEGIN;
 
 typedef void *pthread_t;
 
@@ -42,13 +51,9 @@ typedef struct {
 
 typedef int pthread_key_t;
 
-#define PTHREAD_MUTEX_RECURSIVE 1
-
 typedef struct pthread_mutex {
 	int dummy;
 } pthread_mutex_t;
-
-#define PTHREAD_MUTEX_INITIALIZER { 0 }
 
 typedef struct {
 	int dummy;
@@ -61,8 +66,6 @@ typedef struct {
 typedef struct {
 	int dummy;
 } pthread_cond_t;
-
-#define PTHREAD_COND_INITIALIZER { 0 }
 
 extern pthread_t pthread_self(void);
 extern int pthread_equal(pthread_t, pthread_t);
@@ -104,6 +107,8 @@ extern void *pthread_getspecific(pthread_key_t);
 extern int pthread_setspecific(pthread_key_t, const void *);
 extern int pthread_key_delete(pthread_key_t);
 extern int pthread_key_create(pthread_key_t *, void (*)(void *));
+
+__C_DECLS_END;
 
 #endif
 

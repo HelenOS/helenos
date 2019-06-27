@@ -84,6 +84,11 @@ GENARCH_SOURCES += \
 	genarch/src/drivers/i8042/i8042.c
 endif
 
+ifeq ($(CONFIG_I8259),y)
+GENARCH_SOURCES += \
+	genarch/src/drivers/i8259/i8259.c
+endif
+
 ifeq ($(CONFIG_NS16550),y)
 GENARCH_SOURCES += \
 	genarch/src/drivers/ns16550/ns16550.c
@@ -116,7 +121,14 @@ endif
 
 ifeq ($(CONFIG_BCM2835_MAILBOX),y)
 GENARCH_SOURCES += \
-	genarch/src/drivers/bcm2835/mbox.c
+	genarch/src/drivers/bcm2835/irc.c \
+	genarch/src/drivers/bcm2835/mbox.c \
+	genarch/src/drivers/bcm2835/timer.c
+endif
+
+ifeq ($(CONFIG_GICV2), y)
+GENARCH_SOURCES += \
+	genarch/src/drivers/gicv2/gicv2.c
 endif
 
 ifeq ($(CONFIG_VIA_CUDA),y)

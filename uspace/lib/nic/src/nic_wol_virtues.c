@@ -44,9 +44,10 @@
  * Hash table helper functions
  */
 
-static size_t nic_wv_key_hash(void *key)
+static size_t nic_wv_key_hash(const void *key)
 {
-	return *(nic_wv_id_t *) key;
+	const nic_wv_id_t *k = key;
+	return *k;
 }
 
 static size_t nic_wv_hash(const ht_link_t *item)
@@ -55,10 +56,11 @@ static size_t nic_wv_hash(const ht_link_t *item)
 	return virtue->id;
 }
 
-static bool nic_wv_key_equal(void *key, const ht_link_t *item)
+static bool nic_wv_key_equal(const void *key, const ht_link_t *item)
 {
-	nic_wol_virtue_t *virtue = (nic_wol_virtue_t *) item;
-	return (virtue->id == *(nic_wv_id_t *) key);
+	const nic_wv_id_t *k = key;
+	const nic_wol_virtue_t *virtue = (const nic_wol_virtue_t *) item;
+	return (virtue->id == *k);
 }
 
 /**

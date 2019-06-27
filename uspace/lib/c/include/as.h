@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_AS_H_
-#define LIBC_AS_H_
+#ifndef _LIBC_AS_H_
+#define _LIBC_AS_H_
 
 #include <types/common.h>
 #include <stddef.h>

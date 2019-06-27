@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PRIVATE_THREAD_H_
-#define LIBC_PRIVATE_THREAD_H_
+#ifndef _LIBC_PRIVATE_THREAD_H_
+#define _LIBC_PRIVATE_THREAD_H_
 
 #include <time.h>
 #include <abi/proc/uarg.h>

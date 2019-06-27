@@ -59,7 +59,6 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/drivers/i8254.c \
-	arch/$(KARCH)/src/drivers/i8259.c \
 	arch/$(KARCH)/src/delay.S \
 	arch/$(KARCH)/src/amd64.c \
 	arch/$(KARCH)/src/bios/bios.c \

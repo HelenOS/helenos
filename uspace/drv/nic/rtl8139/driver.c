@@ -826,7 +826,7 @@ static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
 	assert(dev);
 	assert(icall);
 
-	uint16_t isr = (uint16_t) IPC_GET_ARG2(*icall);
+	uint16_t isr = (uint16_t) ipc_get_arg2(icall);
 	nic_t *nic_data = nic_get_from_ddf_dev(dev);
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 

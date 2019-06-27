@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_ELF_H_
-#define ABI_ELF_H_
+#ifndef _ABI_ELF_H_
+#define _ABI_ELF_H_
 
 #include <stdint.h>
 #include <abi/arch/elf.h>
@@ -41,154 +41,261 @@
 /**
  * Current ELF version
  */
-#define EV_CURRENT  1
+enum {
+	EV_CURRENT = 1,
+};
 
 /**
  * ELF types
  */
-#define ET_NONE    0       /* No type */
-#define ET_REL     1       /* Relocatable file */
-#define ET_EXEC    2       /* Executable */
-#define ET_DYN     3       /* Shared object */
-#define ET_CORE    4       /* Core */
-#define ET_LOPROC  0xff00  /* Processor specific */
-#define ET_HIPROC  0xffff  /* Processor specific */
+enum elf_type {
+	ET_NONE   = 0,       /* No type */
+	ET_REL    = 1,       /* Relocatable file */
+	ET_EXEC   = 2,       /* Executable */
+	ET_DYN    = 3,       /* Shared object */
+	ET_CORE   = 4,       /* Core */
+};
+
+enum {
+	ET_LOPROC = 0xff00,  /* Lowest processor specific */
+	ET_HIPROC = 0xffff,  /* Highest processor specific */
+};
 
 /**
  * ELF machine types
  */
-#define EM_NO           0    /* No machine */
-#define EM_SPARC        2    /* SPARC */
-#define EM_386          3    /* i386 */
-#define EM_MIPS         8    /* MIPS RS3000 */
-#define EM_MIPS_RS3_LE  10   /* MIPS RS3000 LE */
-#define EM_PPC          20   /* PPC32 */
-#define EM_PPC64        21   /* PPC64 */
-#define EM_ARM          40   /* ARM */
-#define EM_SPARCV9      43   /* SPARC64 */
-#define EM_IA_64        50   /* IA-64 */
-#define EM_X86_64       62   /* AMD64/EMT64 */
-#define EM_RISCV        243  /* RISC-V */
+enum elf_machine {
+	EM_NO          = 0,    /* No machine */
+	EM_SPARC       = 2,    /* SPARC */
+	EM_386         = 3,    /* i386 */
+	EM_MIPS        = 8,    /* MIPS RS3000 */
+	EM_MIPS_RS3_LE = 10,   /* MIPS RS3000 LE */
+	EM_PPC         = 20,   /* PPC32 */
+	EM_PPC64       = 21,   /* PPC64 */
+	EM_ARM         = 40,   /* ARM */
+	EM_SPARCV9     = 43,   /* SPARC64 */
+	EM_IA_64       = 50,   /* IA-64 */
+	EM_X86_64      = 62,   /* AMD64/EMT64 */
+	EM_AARCH64     = 183,  /* ARM 64-bit architecture */
+	EM_RISCV       = 243,  /* RISC-V */
+};
 
 /**
  * ELF identification indexes
  */
-#define EI_MAG0        0
-#define EI_MAG1        1
-#define EI_MAG2        2
-#define EI_MAG3        3
-#define EI_CLASS       4   /* File class */
-#define EI_DATA        5   /* Data encoding */
-#define EI_VERSION     6   /* File version */
-#define EI_OSABI       7
-#define EI_ABIVERSION  8
-#define EI_PAD         9   /* Start of padding bytes */
-#define EI_NIDENT      16  /* ELF identification table size */
+enum {
+	EI_MAG0       = 0,
+	EI_MAG1       = 1,
+	EI_MAG2       = 2,
+	EI_MAG3       = 3,
+	EI_CLASS      = 4,   /* File class */
+	EI_DATA       = 5,   /* Data encoding */
+	EI_VERSION    = 6,   /* File version */
+	EI_OSABI      = 7,
+	EI_ABIVERSION = 8,
+	EI_PAD        = 9,   /* Start of padding bytes */
+	EI_NIDENT     = 16,  /* ELF identification table size */
+};
 
 /**
  * ELF magic number
  */
-#define ELFMAG0  0x7f
-#define ELFMAG1  'E'
-#define ELFMAG2  'L'
-#define ELFMAG3  'F'
+enum {
+	ELFMAG0 = 0x7f,
+	ELFMAG1 = 'E',
+	ELFMAG2 = 'L',
+	ELFMAG3 = 'F',
+};
 
 /**
  * ELF file classes
  */
-#define ELFCLASSNONE  0
-#define ELFCLASS32    1
-#define ELFCLASS64    2
+enum elf_class {
+	ELFCLASSNONE = 0,
+	ELFCLASS32   = 1,
+	ELFCLASS64   = 2,
+};
 
 /**
  * ELF data encoding types
  */
-#define ELFDATANONE  0
-#define ELFDATA2LSB  1  /* Least significant byte first (little endian) */
-#define ELFDATA2MSB  2  /* Most signigicant byte first (big endian) */
+enum elf_data_encoding {
+	ELFDATANONE = 0,
+	ELFDATA2LSB = 1,  /* Least significant byte first (little endian) */
+	ELFDATA2MSB = 2,  /* Most signigicant byte first (big endian) */
+};
 
 /**
  * ELF section types
  */
-#define SHT_NULL      0
-#define SHT_PROGBITS  1
-#define SHT_SYMTAB    2
-#define SHT_STRTAB    3
-#define SHT_RELA      4
-#define SHT_HASH      5
-#define SHT_DYNAMIC   6
-#define SHT_NOTE      7
-#define SHT_NOBITS    8
-#define SHT_REL       9
-#define SHT_SHLIB     10
-#define SHT_DYNSYM    11
-#define SHT_LOOS      0x60000000
-#define SHT_HIOS      0x6fffffff
-#define SHT_LOPROC    0x70000000
-#define SHT_HIPROC    0x7fffffff
-#define SHT_LOUSER    0x80000000
-#define SHT_HIUSER    0xffffffff
+enum elf_section_type {
+	SHT_NULL     = 0,
+	SHT_PROGBITS = 1,
+	SHT_SYMTAB   = 2,
+	SHT_STRTAB   = 3,
+	SHT_RELA     = 4,
+	SHT_HASH     = 5,
+	SHT_DYNAMIC  = 6,
+	SHT_NOTE     = 7,
+	SHT_NOBITS   = 8,
+	SHT_REL      = 9,
+	SHT_SHLIB    = 10,
+	SHT_DYNSYM   = 11,
+};
+
+enum {
+	SHT_LOOS     = 0x60000000,
+	SHT_HIOS     = 0x6fffffff,
+	SHT_LOPROC   = 0x70000000,
+	SHT_HIPROC   = 0x7fffffff,
+	SHT_LOUSER   = 0x80000000,
+	SHT_HIUSER   = 0xffffffff,
+};
 
 /**
  * ELF section flags
  */
-#define SHF_WRITE      0x1
-#define SHF_ALLOC      0x2
-#define SHF_EXECINSTR  0x4
-#define SHF_TLS        0x400
-#define SHF_MASKPROC   0xf0000000
+enum {
+	SHF_WRITE     = 0x1,
+	SHF_ALLOC     = 0x2,
+	SHF_EXECINSTR = 0x4,
+	SHF_TLS       = 0x400,
+	SHF_MASKPROC  = 0xf0000000,
+};
 
-/** Macros for decomposing elf_symbol.st_info into binging and type */
-#define ELF_ST_BIND(i)     ((i) >> 4)
-#define ELF_ST_TYPE(i)     ((i) & 0x0f)
-#define ELF_ST_INFO(b, t)  (((b) << 4) + ((t) & 0x0f))
+/** Functions for decomposing elf_symbol.st_info into binding and type */
+static inline uint8_t elf_st_bind(uint8_t info)
+{
+	return info >> 4;
+}
+
+static inline uint8_t elf_st_type(uint8_t info)
+{
+	return info & 0x0f;
+}
+
+static inline uint8_t elf_st_info(uint8_t bind, uint8_t type)
+{
+	return (bind << 4) | (type & 0x0f);
+}
 
 /**
  * Symbol binding
  */
-#define STB_LOCAL   0
-#define STB_GLOBAL  1
-#define STB_WEAK    2
-#define STB_LOPROC  13
-#define STB_HIPROC  15
+enum elf_symbol_binding {
+	STB_LOCAL  = 0,
+	STB_GLOBAL = 1,
+	STB_WEAK   = 2,
+};
+
+enum {
+	STB_LOPROC = 13,
+	STB_HIPROC = 15,
+};
 
 /**
  * Symbol types
  */
-#define STT_NOTYPE   0
-#define STT_OBJECT   1
-#define STT_FUNC     2
-#define STT_SECTION  3
-#define STT_FILE     4
-#define STT_TLS      6
-#define STT_LOPROC   13
-#define STT_HIPROC   15
+enum elf_symbol_type {
+	STT_NOTYPE  = 0,
+	STT_OBJECT  = 1,
+	STT_FUNC    = 2,
+	STT_SECTION = 3,
+	STT_FILE    = 4,
+	STT_TLS     = 6,
+};
+
+enum {
+	STT_LOPROC  = 13,
+	STT_HIPROC  = 15,
+};
 
 /**
  * Program segment types
  */
-#define PT_NULL          0
-#define PT_LOAD          1
-#define PT_DYNAMIC       2
-#define PT_INTERP        3
-#define PT_NOTE          4
-#define PT_SHLIB         5
-#define PT_PHDR          6
-#define PT_TLS           7
-#define PT_LOOS          0x60000000
-#define PT_GNU_EH_FRAME  0x6474e550
-#define PT_GNU_STACK     0x6474e551
-#define PT_GNU_RELRO     0x6474e552
-#define PT_HIOS          0x6fffffff
-#define PT_LOPROC        0x70000000
-#define PT_HIPROC        0x7fffffff
+enum elf_segment_type {
+	PT_NULL         = 0,
+	PT_LOAD         = 1,
+	PT_DYNAMIC      = 2,
+	PT_INTERP       = 3,
+	PT_NOTE         = 4,
+	PT_SHLIB        = 5,
+	PT_PHDR         = 6,
+	PT_TLS          = 7,
+
+	PT_GNU_EH_FRAME = 0x6474e550,
+	PT_GNU_STACK    = 0x6474e551,
+	PT_GNU_RELRO    = 0x6474e552,
+};
+
+enum {
+	PT_LOOS   = 0x60000000,
+	PT_HIOS   = 0x6fffffff,
+	PT_LOPROC = 0x70000000,
+	PT_HIPROC = 0x7fffffff,
+};
 
 /**
  * Program segment attributes.
  */
-#define PF_X  1
-#define PF_W  2
-#define PF_R  4
+enum elf_segment_access {
+	PF_X = 1,
+	PF_W = 2,
+	PF_R = 4,
+};
+
+/**
+ * Dynamic array tags
+ */
+enum elf_dynamic_tag {
+	DT_NULL     = 0,
+	DT_NEEDED   = 1,
+	DT_PLTRELSZ = 2,
+	DT_PLTGOT   = 3,
+	DT_HASH     = 4,
+	DT_STRTAB   = 5,
+	DT_SYMTAB   = 6,
+	DT_RELA     = 7,
+	DT_RELASZ   = 8,
+	DT_RELAENT  = 9,
+	DT_STRSZ    = 10,
+	DT_SYMENT   = 11,
+	DT_INIT     = 12,
+	DT_FINI     = 13,
+	DT_SONAME   = 14,
+	DT_RPATH    = 15,
+	DT_SYMBOLIC = 16,
+	DT_REL      = 17,
+	DT_RELSZ    = 18,
+	DT_RELENT   = 19,
+	DT_PLTREL   = 20,
+	DT_DEBUG    = 21,
+	DT_TEXTREL  = 22,
+	DT_JMPREL   = 23,
+	DT_BIND_NOW = 24,
+	DT_LOPROC   = 0x70000000,
+	DT_HIPROC   = 0x7fffffff,
+};
+
+/**
+ * Special section indexes
+ */
+enum {
+	SHN_UNDEF     = 0,
+	SHN_LORESERVE = 0xff00,
+	SHN_LOPROC    = 0xff00,
+	SHN_HIPROC    = 0xff1f,
+	SHN_ABS       = 0xfff1,
+	SHN_COMMON    = 0xfff2,
+	SHN_HIRESERVE = 0xffff,
+};
+
+/**
+ * Special symbol table index
+ */
+enum {
+	STN_UNDEF = 0,
+};
 
 /**
  * ELF data types
@@ -352,12 +459,63 @@ struct elf64_note {
 	elf_word type;
 };
 
+/**
+ * Dynamic structure
+ */
+struct elf32_dyn {
+	elf_sword d_tag;
+	union {
+		elf_word d_val;
+		elf32_addr d_ptr;
+	} d_un;
+};
+
+struct elf64_dyn {
+	elf_sxword d_tag;
+	union {
+		elf_xword d_val;
+		elf64_addr d_ptr;
+	} d_un;
+};
+
+struct elf32_rel {
+	elf32_addr r_offset;
+	elf_word r_info;
+};
+
+struct elf32_rela {
+	elf32_addr r_offset;
+	elf_word r_info;
+	elf_sword r_addend;
+};
+
+struct elf64_rel {
+	elf64_addr r_offset;
+	elf_xword r_info;
+};
+
+struct elf64_rela {
+	elf64_addr r_offset;
+	elf_xword r_info;
+	elf_sxword r_addend;
+};
+
+#define ELF32_R_SYM(i) ((i) >> 8)
+#define ELF32_R_TYPE(i) ((unsigned char)(i))
+
+#define ELF64_R_SYM(i) ((i) >> 32)
+#define ELF64_R_TYPE(i) ((i) & 0xffffffffL)
+
 #ifdef __32_BITS__
 typedef struct elf32_header elf_header_t;
 typedef struct elf32_segment_header elf_segment_header_t;
 typedef struct elf32_section_header elf_section_header_t;
 typedef struct elf32_symbol elf_symbol_t;
 typedef struct elf32_note elf_note_t;
+typedef struct elf32_dyn elf_dyn_t;
+typedef struct elf32_rel elf_rel_t;
+typedef struct elf32_rela elf_rela_t;
+#define ELF_R_TYPE(i)  ELF32_R_TYPE(i)
 #endif
 
 #ifdef __64_BITS__
@@ -366,6 +524,10 @@ typedef struct elf64_segment_header elf_segment_header_t;
 typedef struct elf64_section_header elf_section_header_t;
 typedef struct elf64_symbol elf_symbol_t;
 typedef struct elf64_note elf_note_t;
+typedef struct elf64_dyn elf_dyn_t;
+typedef struct elf64_rel elf_rel_t;
+typedef struct elf64_rela elf_rela_t;
+#define ELF_R_TYPE(i)  ELF64_R_TYPE(i)
 #endif
 
 #endif

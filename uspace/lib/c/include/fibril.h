@@ -32,13 +32,15 @@
 /** @file
  */
 
-#ifndef LIBC_FIBRIL_H_
-#define LIBC_FIBRIL_H_
+#ifndef _LIBC_FIBRIL_H_
+#define _LIBC_FIBRIL_H_
 
-#include <types/common.h>
 #include <time.h>
+#include <_bits/errno.h>
 #include <_bits/__noreturn.h>
-#include <ipc/common.h>
+#include <_bits/decls.h>
+
+__HELENOS_DECLS_BEGIN;
 
 typedef struct fibril fibril_t;
 
@@ -48,12 +50,13 @@ typedef struct {
 
 typedef fibril_t *fid_t;
 
+#ifndef __cplusplus
 /** Fibril-local variable specifier */
 #define fibril_local __thread
-
-#define FIBRIL_DFLT_STK_SIZE	0
+#endif
 
 extern fid_t fibril_create_generic(errno_t (*)(void *), void *, size_t);
+extern fid_t fibril_create(errno_t (*)(void *), void *);
 extern void fibril_destroy(fid_t);
 extern void fibril_add_ready(fid_t);
 extern fid_t fibril_get_id(void);
@@ -67,13 +70,10 @@ extern int fibril_test_spawn_runners(int);
 
 extern void fibril_detach(fid_t fid);
 
-static inline fid_t fibril_create(errno_t (*func)(void *), void *arg)
-{
-	return fibril_create_generic(func, arg, FIBRIL_DFLT_STK_SIZE);
-}
-
 extern void fibril_start(fid_t);
 extern __noreturn void fibril_exit(long);
+
+__HELENOS_DECLS_END;
 
 #endif
 

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_CORECFG_H_
-#define LIBC_CORECFG_H_
+#ifndef _LIBC_CORECFG_H_
+#define _LIBC_CORECFG_H_
 
 #include <errno.h>
 #include <stdbool.h>

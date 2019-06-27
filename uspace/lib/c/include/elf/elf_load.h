@@ -44,7 +44,7 @@ typedef struct {
 	struct rtld *env;
 } elf_info_t;
 
-extern int elf_load(int, elf_info_t *);
+extern errno_t elf_load(int, elf_info_t *);
 extern void elf_set_pcb(elf_info_t *, pcb_t *);
 
 #endif

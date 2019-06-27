@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ia32_FIBRIL_H_
-#define LIBC_ia32_FIBRIL_H_
+#ifndef _LIBC_ia32_FIBRIL_H_
+#define _LIBC_ia32_FIBRIL_H_
 
 #include <types/common.h>
 #include <libarch/fibril_context.h>

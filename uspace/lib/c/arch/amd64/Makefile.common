@@ -37,5 +37,3 @@ LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = LE
 
-BFD_NAME = elf64-x86-64
-BFD_ARCH = i386:x86-64

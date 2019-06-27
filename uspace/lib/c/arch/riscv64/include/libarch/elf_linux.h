@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_riscv64_ELF_LINUX_H_
-#define LIBC_riscv64_ELF_LINUX_H_
+#ifndef _LIBC_riscv64_ELF_LINUX_H_
+#define _LIBC_riscv64_ELF_LINUX_H_
 
 #include <libarch/istate.h>
 

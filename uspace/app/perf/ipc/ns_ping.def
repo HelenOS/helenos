@@ -1,5 +1,0 @@
-{
-	"ns_ping",
-	"Name service IPC ping-pong benchmark",
-	&bench_ns_ping
-},

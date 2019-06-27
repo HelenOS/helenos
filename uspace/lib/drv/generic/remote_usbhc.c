@@ -220,7 +220,7 @@ errno_t usbhc_transfer(async_exch_t *exch,
 	async_wait_for(opening_request, &opening_request_rc);
 
 	if (transferred)
-		*transferred = IPC_GET_ARG1(call);
+		*transferred = ipc_get_arg1(&call);
 
 	return (errno_t) opening_request_rc;
 }
@@ -264,7 +264,7 @@ void remote_usbhc_default_address_reservation(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	const bool reserve = IPC_GET_ARG2(*call);
+	const bool reserve = ipc_get_arg2(call);
 	const errno_t ret = usbhc_iface->default_address_reservation(fun, reserve);
 	async_answer_0(call, ret);
 }

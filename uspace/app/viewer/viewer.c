@@ -40,8 +40,8 @@
 #include <stdbool.h>
 #include <window.h>
 #include <canvas.h>
-#include <surface.h>
-#include <codec/tga.h>
+#include <draw/surface.h>
+#include <draw/codec.h>
 #include <task.h>
 #include <str.h>
 

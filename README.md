@@ -25,7 +25,7 @@ incurred by them.
 
 ## Portability
 
-HelenOS runs on seven different processor architectures and machines ranging
+HelenOS runs on eight different processor architectures and machines ranging
 from embedded ARM devices and single-board computers through multicore 32-bit
 and 64-bit desktop PCs to 64-bit Itanium and SPARC rack-mount servers.
 
@@ -53,14 +53,14 @@ dependencies and try again.
 As an example, here are some of the packages you will need for Ubuntu 12.10 (may be out of date):
 
 ```
-$ sudo apt-get install build-essential libgmp-dev libmpfr-dev ppl-dev libmpc-dev zlib1g-dev texinfo libtinfo-dev xutils-dev
+$ sudo apt-get install build-essential libgmp-dev libmpfr-dev ppl-dev libmpc-dev zlib1g-dev texinfo libtinfo-dev xutils-dev flex bison
 ```
 
 Whereas for CentOS/Fedora, you will need:
 
 ```
 # sudo dnf group install 'Development Tools'
-# sudo dnf install wget texinfo libmpc-devel mpfr-devel gmp-devel PyYAML genisoimage
+# sudo dnf install wget texinfo libmpc-devel mpfr-devel gmp-devel PyYAML genisoimage flex bison
 ```
 In case the toolchain script won't work no matter how hard you try, let us know.
 Please supply as many relevant information (your OS and distribution, list of

@@ -49,6 +49,10 @@
 #define dprintf(...)
 #endif
 
+// TODO: Remove this arbitrary limit.
+/** Maximum number of open files per client. */
+#define VFS_MAX_OPEN_FILES  128
+
 /**
  * A structure like this will be allocated for each registered file system.
  */

@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+#ifndef _LIBC_IPC_DEV_IFACE_H_
+#define _LIBC_IPC_DEV_IFACE_H_
 
 #include <stdlib.h>
 #include <types/common.h>
@@ -90,9 +90,9 @@ typedef enum {
  * for indexing into interfaces.
  */
 
-#define DEV_IPC_GET_ARG1(call) IPC_GET_ARG2((call))
-#define DEV_IPC_GET_ARG2(call) IPC_GET_ARG3((call))
-#define DEV_IPC_GET_ARG3(call) IPC_GET_ARG4((call))
-#define DEV_IPC_GET_ARG4(call) IPC_GET_ARG5((call))
+#define DEV_IPC_GET_ARG1(call) ipc_get_arg2(&(call))
+#define DEV_IPC_GET_ARG2(call) ipc_get_arg3(&(call))
+#define DEV_IPC_GET_ARG3(call) ipc_get_arg4(&(call))
+#define DEV_IPC_GET_ARG4(call) ipc_get_arg5(&(call))
 
 #endif

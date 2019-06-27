@@ -32,83 +32,78 @@
 /** @file
  */
 
-#ifndef ABI_IPC_IPC_H_
-#define ABI_IPC_IPC_H_
+#ifndef _ABI_IPC_IPC_H_
+#define _ABI_IPC_IPC_H_
 
+#include <stdint.h>
 #include <abi/proc/task.h>
 #include <abi/cap.h>
+#include <_bits/errno.h>
 
-/** Length of data being transferred with IPC call
- *
- * The uspace may not be able to utilize the full length
- *
- */
-#define IPC_CALL_LEN  6
+/* Miscellaneous constants */
+enum {
+	/** Length of data being transferred with IPC call
+	 *
+	 * The uspace may not be able to utilize the full length
+	 *
+	 */
+	IPC_CALL_LEN = 6,
 
-/** Maximum active async calls per phone */
-#define IPC_MAX_ASYNC_CALLS  64
+	/** Maximum active async calls per phone */
+	IPC_MAX_ASYNC_CALLS = 64,
+
+	/**
+	 * Maximum buffer size allowed for IPC_M_DATA_WRITE and
+	 * IPC_M_DATA_READ requests.
+	 */
+	DATA_XFER_LIMIT = 64 * 1024,
+};
 
 /* Flags for calls */
+enum {
+	/** This is answer to a call */
+	IPC_CALL_ANSWERED       = 1 << 0,
 
-/** This is answer to a call */
-#define IPC_CALL_ANSWERED        (1 << 0)
+	/** Answer will not be passed to userspace, will be discarded */
+	IPC_CALL_DISCARD_ANSWER = 1 << 1,
 
-/** Answer will not be passed to userspace, will be discarded */
-#define IPC_CALL_DISCARD_ANSWER  (1 << 1)
+	/** Call was forwarded */
+	IPC_CALL_FORWARDED      = 1 << 2,
 
-/** Call was forwarded */
-#define IPC_CALL_FORWARDED       (1 << 2)
+	/** Interrupt notification */
+	IPC_CALL_NOTIF          = 1 << 3,
 
-/** Interrupt notification */
-#define IPC_CALL_NOTIF           (1 << 3)
-
-/** The call was automatically answered by the kernel due to error */
-#define IPC_CALL_AUTO_REPLY      (1 << 4)
-
-/**
- * Maximum buffer size allowed for IPC_M_DATA_WRITE and
- * IPC_M_DATA_READ requests.
- */
-#define DATA_XFER_LIMIT  (64 * 1024)
-
-/* Macros for manipulating calling data */
-#define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (sysarg_t) (retval))
-#define IPC_SET_IMETHOD(data, val)    ((data).args[0] = (val))
-#define IPC_SET_ARG1(data, val)       ((data).args[1] = (val))
-#define IPC_SET_ARG2(data, val)       ((data).args[2] = (val))
-#define IPC_SET_ARG3(data, val)       ((data).args[3] = (val))
-#define IPC_SET_ARG4(data, val)       ((data).args[4] = (val))
-#define IPC_SET_ARG5(data, val)       ((data).args[5] = (val))
-
-#define IPC_GET_IMETHOD(data)  ((data).args[0])
-#define IPC_GET_RETVAL(data)   ((errno_t) (data).args[0])
-
-#define IPC_GET_ARG1(data)  ((data).args[1])
-#define IPC_GET_ARG2(data)  ((data).args[2])
-#define IPC_GET_ARG3(data)  ((data).args[3])
-#define IPC_GET_ARG4(data)  ((data).args[4])
-#define IPC_GET_ARG5(data)  ((data).args[5])
+	/** The call was automatically answered by the kernel due to error */
+	IPC_CALL_AUTO_REPLY     = 1 << 4,
+};
 
 /* Forwarding flags. */
-#define IPC_FF_NONE  0
+enum {
+	IPC_FF_NONE = 0,
 
-/**
- * The call will be routed as though it was initially sent via the phone used to
- * forward it. This feature is intended to support the situation in which the
- * forwarded call needs to be handled by the same connection fibril as any other
- * calls that were initially sent by the forwarder to the same destination. This
- * flag has no imapct on routing replies.
- */
-#define IPC_FF_ROUTE_FROM_ME  (1 << 0)
+	/**
+	 * The call will be routed as though it was initially sent via the phone
+	 * used to forward it. This feature is intended to support the situation
+	 * in which the forwarded call needs to be handled by the same
+	 * connection fibril as any other calls that were initially sent by
+	 * the forwarder to the same destination.
+	 * This flag has no imapct on routing replies.
+	 */
+	IPC_FF_ROUTE_FROM_ME = 1 << 0,
+};
 
 /* Data transfer flags. */
-#define IPC_XF_NONE  0
+enum {
+	IPC_XF_NONE = 0,
 
-/** Restrict the transfer size if necessary. */
-#define IPC_XF_RESTRICT  (1 << 0)
+	/** Restrict the transfer size if necessary. */
+	IPC_XF_RESTRICT = 1 << 0,
+};
 
 /** User-defined IPC methods */
-#define IPC_FIRST_USER_METHOD  1024
+enum {
+	IPC_FIRST_USER_METHOD = 1024,
+};
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
@@ -126,6 +121,77 @@ typedef struct {
 	/** Capability handle */
 	cap_call_handle_t cap_handle;
 } ipc_data_t;
+
+/* Functions for manipulating calling data */
+
+static inline void ipc_set_retval(ipc_data_t *data, errno_t retval)
+{
+	data->args[0] = (sysarg_t) retval;
+}
+
+static inline void ipc_set_imethod(ipc_data_t *data, sysarg_t val)
+{
+	data->args[0] = val;
+}
+
+static inline void ipc_set_arg1(ipc_data_t *data, sysarg_t val)
+{
+	data->args[1] = val;
+}
+
+static inline void ipc_set_arg2(ipc_data_t *data, sysarg_t val)
+{
+	data->args[2] = val;
+}
+
+static inline void ipc_set_arg3(ipc_data_t *data, sysarg_t val)
+{
+	data->args[3] = val;
+}
+
+static inline void ipc_set_arg4(ipc_data_t *data, sysarg_t val)
+{
+	data->args[4] = val;
+}
+
+static inline void ipc_set_arg5(ipc_data_t *data, sysarg_t val)
+{
+	data->args[5] = val;
+}
+
+static inline sysarg_t ipc_get_imethod(ipc_data_t *data)
+{
+	return data->args[0];
+}
+static inline errno_t ipc_get_retval(ipc_data_t *data)
+{
+	return (errno_t) data->args[0];
+}
+
+static inline sysarg_t ipc_get_arg1(ipc_data_t *data)
+{
+	return data->args[1];
+}
+
+static inline sysarg_t ipc_get_arg2(ipc_data_t *data)
+{
+	return data->args[2];
+}
+
+static inline sysarg_t ipc_get_arg3(ipc_data_t *data)
+{
+	return data->args[3];
+}
+
+static inline sysarg_t ipc_get_arg4(ipc_data_t *data)
+{
+	return data->args[4];
+}
+
+static inline sysarg_t ipc_get_arg5(ipc_data_t *data)
+{
+	return data->args[5];
+}
 
 #endif
 

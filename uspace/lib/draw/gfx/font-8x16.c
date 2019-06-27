@@ -34,7 +34,7 @@
  */
 
 #include <stdint.h>
-#include "font-8x16.h"
+#include <draw/gfx.h>
 
 /** Convert character to font glyph index
  *

@@ -46,6 +46,13 @@
  */
 
 /**
+ *     @cond arm64
+ *     @defgroup kernel_arm64_proc arm64
+ *     @ingroup proc
+ *     @endcond
+ */
+
+/**
  *     @cond ia32
  *     @defgroup kernel_ia32_proc ia32
  *     @ingroup proc
@@ -122,6 +129,13 @@
 /**
  *     @cond arm32
  *     @defgroup kernel_arm32_mm arm32
+ *     @ingroup mm
+ *     @endcond
+ */
+
+/**
+ *     @cond arm64
+ *     @defgroup kernel_arm64_mm arm64
  *     @ingroup mm
  *     @endcond
  */
@@ -208,6 +222,13 @@
  */
 
 /**
+ *     @cond arm64
+ *     @defgroup kernel_arm64_ddi arm64
+ *     @ingroup ddi
+ *     @endcond
+ */
+
+/**
  *     @cond ia32
  *     @defgroup kernel_ia32_ddi ia32
  *     @ingroup ddi
@@ -280,6 +301,13 @@
  */
 
 /**
+ *     @cond arm64
+ *     @defgroup kernel_arm64_debug arm64
+ *     @ingroup debug
+ *     @endcond
+ */
+
+/**
  *     @cond ia32
  *     @defgroup kernel_amd64_debug ia32/amd64
  *     @ingroup debug
@@ -346,6 +374,13 @@
 /**
  *     @cond arm32
  *     @defgroup kernel_arm32_interrupt arm32
+ *     @ingroup interrupt
+ *     @endcond
+ */
+
+/**
+ *     @cond arm64
+ *     @defgroup kernel_arm64_interrupt arm64
  *     @ingroup interrupt
  *     @endcond
  */
@@ -423,6 +458,13 @@
 /**
  *     @cond arm32
  *     @defgroup kernel_arm32 arm32
+ *     @ingroup others
+ *     @endcond
+ */
+
+/**
+ *     @cond arm64
+ *     @defgroup kernel_arm64 arm64
  *     @ingroup others
  *     @endcond
  */

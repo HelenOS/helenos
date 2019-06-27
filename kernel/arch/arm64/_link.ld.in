@@ -1,0 +1,60 @@
+/*
+ * ARM64 linker script
+ *
+ *  kernel text
+ *  kernel data
+ *
+ */
+
+#include <arch/boot/boot.h>
+#include <arch/mm/km.h>
+
+#define LOAD_ADDRESS_V  (KM_ARM64_IDENTITY_START + BOOT_OFFSET)
+#define LOAD_ADDRESS_P  BOOT_OFFSET
+
+OUTPUT_ARCH(aarch64)
+ENTRY(kernel_image_start)
+
+SECTIONS {
+	kernel_load_address = LOAD_ADDRESS_V;
+
+	.image (LOAD_ADDRESS_V + SIZEOF_HEADERS) : AT (LOAD_ADDRESS_P + SIZEOF_HEADERS) {
+		. = ALIGN(16);
+		ktext_start = .;
+		*(K_TEXT_START)
+		*(.text .text.*);
+		ktext_end = .;
+
+		kdata_start = .;
+		*(K_DATA_START)
+		*(.data);                       /* initialized data */
+		*(.bss);                        /* uninitialized static variables */
+		*(COMMON);                      /* global variables */
+
+		*(.rodata*);
+		. = ALIGN(8);
+		symbol_table = .;
+		*(symtab.*);
+
+		kdata_end = .;
+	}
+
+#ifdef CONFIG_LINE_DEBUG
+	.comment 0 : { *(.comment); }
+	.debug_abbrev 0 : { *(.debug_abbrev); }
+	.debug_aranges 0 : { *(.debug_aranges); }
+	.debug_frame 0 : { *(.debug_frame); }
+	.debug_info 0 : { *(.debug_info); }
+	.debug_line 0 : { *(.debug_line); }
+	.debug_loc 0 : { *(.debug_loc); }
+	.debug_macinfo 0 : { *(.debug_macinfo); }
+	.debug_pubnames 0 : { *(.debug_pubnames); }
+	.debug_pubtypes 0 : { *(.debug_pubtypes); }
+	.debug_ranges 0 : { *(.debug_ranges); }
+	.debug_str 0 : { *(.debug_str); }
+#endif
+
+	/DISCARD/ : {
+		*(*);
+	}
+}

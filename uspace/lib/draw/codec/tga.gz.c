@@ -36,8 +36,7 @@
 #include <errno.h>
 #include <gzip.h>
 #include <stdlib.h>
-#include "tga.gz.h"
-#include "tga.h"
+#include <draw/codec.h>
 
 /** Decode gzipped Truevision TGA format
  *

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef ABI_ASMTOOL_H_
-#define ABI_ASMTOOL_H_
+#ifndef _ABI_ASMTOOL_H_
+#define _ABI_ASMTOOL_H_
 
 #define SYMBOL(sym) \
 	.global sym; \

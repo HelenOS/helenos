@@ -29,8 +29,8 @@
 /** @file
  */
 
-#ifndef LIBC_abs32le_DDI_H_
-#define LIBC_abs32le_DDI_H_
+#ifndef _LIBC_abs32le_DDI_H_
+#define _LIBC_abs32le_DDI_H_
 
 #include <ddi.h>
 

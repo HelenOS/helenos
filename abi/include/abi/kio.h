@@ -32,11 +32,11 @@
 /** @file
  */
 
-#ifndef ABI_KIO_H_
-#define ABI_KIO_H_
+#ifndef _ABI_KIO_H_
+#define _ABI_KIO_H_
 
 enum {
-	KIO_UNKNOW,
+	KIO_UNKNOWN,
 	KIO_WRITE,
 	KIO_UPDATE,
 	KIO_COMMAND

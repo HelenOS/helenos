@@ -35,7 +35,7 @@
 
 #include <assert.h>
 
-#include "source.h"
+#include <draw/source.h>
 
 void source_init(source_t *source)
 {

@@ -59,6 +59,9 @@
 #define VIRTIO_DEV_STATUS_FAILED		128
 
 #define VIRTIO_FEATURES_0_31	0
+#define VIRTIO_FEATURES_32_63	1
+
+#define VIRTIO_F_VERSION_1	1
 
 /** Common configuration structure layout according to VIRTIO version 1.0 */
 typedef struct virtio_pci_common_cfg {

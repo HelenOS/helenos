@@ -37,13 +37,6 @@
 
 #include <sys/types.h>
 
-#undef O_CREAT
-#undef O_EXCL
-#undef O_TRUNC
-#undef O_APPEND
-#undef O_RDONLY
-#undef O_RDWR
-#undef O_WRONLY
 #define O_CREAT   1
 #define O_EXCL    2
 #define O_TRUNC   4
@@ -53,25 +46,12 @@
 #define O_WRONLY  64
 
 /* Mask for file access modes. */
-#undef O_ACCMODE
 #define O_ACCMODE (O_RDONLY | O_WRONLY | O_RDWR)
 
 /* Dummy compatibility flag */
-#undef O_NOCTTY
 #define O_NOCTTY 0
 
 /* fcntl commands */
-#undef F_DUPFD
-#undef F_DUPFD_CLOEXEC
-#undef F_GETFD
-#undef F_SETFD
-#undef F_GETFL
-#undef F_SETFL
-#undef F_GETOWN
-#undef F_SETOWN
-#undef F_GETLK
-#undef F_SETLK
-#undef F_SETLKW
 #define F_DUPFD            0 /* Duplicate file descriptor. */
 #define F_DUPFD_CLOEXEC    1 /* Same as F_DUPFD but with FD_CLOEXEC flag set. */
 #define F_GETFD            2 /* Get file descriptor flags. */
@@ -85,11 +65,14 @@
 #define F_SETLKW          10 /* Set locking information; wait if blocked. */
 
 /* File descriptor flags used with F_GETFD and F_SETFD. */
-#undef FD_CLOEXEC
 #define FD_CLOEXEC         1 /* Close on exec. */
+
+__C_DECLS_BEGIN;
 
 extern int open(const char *pathname, int flags, ...);
 extern int fcntl(int fd, int cmd, ...);
+
+__C_DECLS_END;
 
 #endif /* POSIX_FCNTL_H_ */
 

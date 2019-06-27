@@ -26,7 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_ARCH = mips
 BITS = 32
 EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
 AS_PROLOG = .module softfloat;
@@ -53,10 +52,12 @@ endif
 ifeq ($(MACHINE), $(filter $(MACHINE),bmalta lmalta))
 	RD_DRVS_ESSENTIAL += \
 		platform/malta \
+		intctl/i8259 \
 		block/ata_bd \
 		bus/pci/pciintel \
 		bus/isa \
 		char/i8042 \
+		char/ns8250 \
 		hid/ps2mouse \
 		hid/xtkbd
 

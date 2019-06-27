@@ -78,7 +78,7 @@ static void libfs_statfs(libfs_ops_t *, fs_handle_t, ipc_call_t *);
 
 static void vfs_out_fsprobe(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
 	errno_t rc;
 	vfs_fs_probe_info_t info;
 
@@ -105,7 +105,7 @@ static void vfs_out_fsprobe(ipc_call_t *req)
 
 static void vfs_out_mounted(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
 	char *opts;
 	errno_t rc;
 
@@ -131,7 +131,7 @@ static void vfs_out_mounted(ipc_call_t *req)
 
 static void vfs_out_unmounted(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
 	errno_t rc;
 
 	rc = vfs_out_ops->unmounted(service_id);
@@ -151,10 +151,10 @@ static void vfs_out_lookup(ipc_call_t *req)
 
 static void vfs_out_read(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
-	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*req),
-	    IPC_GET_ARG4(*req));
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
+	aoff64_t pos = (aoff64_t) MERGE_LOUP32(ipc_get_arg3(req),
+	    ipc_get_arg4(req));
 	size_t rbytes;
 	errno_t rc;
 
@@ -168,10 +168,10 @@ static void vfs_out_read(ipc_call_t *req)
 
 static void vfs_out_write(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
-	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*req),
-	    IPC_GET_ARG4(*req));
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
+	aoff64_t pos = (aoff64_t) MERGE_LOUP32(ipc_get_arg3(req),
+	    ipc_get_arg4(req));
 	size_t wbytes;
 	aoff64_t nsize;
 	errno_t rc;
@@ -187,10 +187,10 @@ static void vfs_out_write(ipc_call_t *req)
 
 static void vfs_out_truncate(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
-	aoff64_t size = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*req),
-	    IPC_GET_ARG4(*req));
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
+	aoff64_t size = (aoff64_t) MERGE_LOUP32(ipc_get_arg3(req),
+	    ipc_get_arg4(req));
 	errno_t rc;
 
 	rc = vfs_out_ops->truncate(service_id, index, size);
@@ -200,8 +200,8 @@ static void vfs_out_truncate(ipc_call_t *req)
 
 static void vfs_out_close(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
 	errno_t rc;
 
 	rc = vfs_out_ops->close(service_id, index);
@@ -211,8 +211,8 @@ static void vfs_out_close(ipc_call_t *req)
 
 static void vfs_out_destroy(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
 
 	errno_t rc;
 	fs_node_t *node = NULL;
@@ -238,8 +238,8 @@ static void vfs_out_stat(ipc_call_t *req)
 
 static void vfs_out_sync(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
 	errno_t rc;
 
 	rc = vfs_out_ops->sync(service_id, index);
@@ -254,8 +254,8 @@ static void vfs_out_statfs(ipc_call_t *req)
 
 static void vfs_out_is_empty(ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
 	errno_t rc;
 
 	fs_node_t *node = NULL;
@@ -289,12 +289,12 @@ static void vfs_connection(ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!ipc_get_imethod(&call)) {
 			async_answer_0(&call, EOK);
 			return;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case VFS_OUT_FSPROBE:
 			vfs_out_fsprobe(&call);
 			break;
@@ -423,9 +423,9 @@ errno_t fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	 * Pick up the answer for the request to the VFS_IN_REQUEST call.
 	 */
 	async_wait_for(req, NULL);
-	reg.fs_handle = (int) IPC_GET_ARG1(answer);
+	reg.fs_handle = (int) ipc_get_arg1(&answer);
 
-	return IPC_GET_RETVAL(answer);
+	return ipc_get_retval(&answer);
 }
 
 void fs_node_initialize(fs_node_t *fn)
@@ -489,9 +489,9 @@ static errno_t receive_fname(char *buffer)
  */
 void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_call_t *req)
 {
-	service_id_t parent_sid = IPC_GET_ARG1(*req);
-	fs_index_t parent_index = IPC_GET_ARG2(*req);
-	fs_index_t child_index = IPC_GET_ARG3(*req);
+	service_id_t parent_sid = ipc_get_arg1(req);
+	fs_index_t parent_index = ipc_get_arg2(req);
+	fs_index_t child_index = ipc_get_arg3(req);
 
 	char component[NAME_MAX + 1];
 	errno_t rc = receive_fname(component);
@@ -535,11 +535,11 @@ void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_call_t *req)
  */
 void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_call_t *req)
 {
-	unsigned first = IPC_GET_ARG1(*req);
-	unsigned len = IPC_GET_ARG2(*req);
-	service_id_t service_id = IPC_GET_ARG3(*req);
-	fs_index_t index = IPC_GET_ARG4(*req);
-	int lflag = IPC_GET_ARG5(*req);
+	unsigned first = ipc_get_arg1(req);
+	unsigned len = ipc_get_arg2(req);
+	service_id_t service_id = ipc_get_arg3(req);
+	fs_index_t index = ipc_get_arg4(req);
+	int lflag = ipc_get_arg5(req);
 
 	// TODO: Validate flags.
 
@@ -715,8 +715,8 @@ out:
 
 void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
 
 	fs_node_t *fn;
 	errno_t rc = ops->node_get(&fn, service_id, index);
@@ -752,8 +752,8 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_call_t *req)
 
 void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_call_t *req)
 {
-	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*req);
+	service_id_t service_id = (service_id_t) ipc_get_arg1(req);
+	fs_index_t index = (fs_index_t) ipc_get_arg2(req);
 
 	fs_node_t *fn;
 	errno_t rc = ops->node_get(&fn, service_id, index);
@@ -809,8 +809,8 @@ error:
  */
 void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_call_t *req)
 {
-	service_id_t service_id = IPC_GET_ARG1(*req);
-	fs_index_t index = IPC_GET_ARG2(*req);
+	service_id_t service_id = ipc_get_arg1(req);
+	fs_index_t index = ipc_get_arg2(req);
 
 	fs_node_t *fn;
 	errno_t rc = ops->node_get(&fn, service_id, index);

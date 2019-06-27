@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_TYPES_INET_HOSTPORT_H_
-#define LIBC_TYPES_INET_HOSTPORT_H_
+#ifndef _LIBC_TYPES_INET_HOSTPORT_H_
+#define _LIBC_TYPES_INET_HOSTPORT_H_
 
 #include <inet/addr.h>
 #include <stdint.h>

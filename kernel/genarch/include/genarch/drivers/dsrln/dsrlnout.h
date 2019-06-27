@@ -38,9 +38,10 @@
 #define KERN_DSRLNOUT_H_
 
 #include <typedefs.h>
+#include <stdint.h>
 #include <console/chardev.h>
 
-extern outdev_t *dsrlnout_init(ioport8_t *);
+extern outdev_t *dsrlnout_init(ioport8_t *, uintptr_t);
 
 #endif
 

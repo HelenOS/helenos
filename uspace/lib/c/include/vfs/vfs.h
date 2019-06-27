@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_VFS_H_
-#define LIBC_VFS_H_
+#ifndef _LIBC_VFS_H_
+#define _LIBC_VFS_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -43,8 +43,6 @@
 #include <stdio.h>
 #include <async.h>
 #include <offset.h>
-
-#define VFS_MAX_OPEN_FILES  128
 
 enum vfs_change_state_type {
 	VFS_PASS_HANDLE

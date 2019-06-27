@@ -32,6 +32,7 @@ ROOT_PATH = $(USPACE_PREFIX)/..
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 LIBRARY = libcpp
+SOVERSION = 0.0
 
 -include $(CONFIG_MAKEFILE)
 

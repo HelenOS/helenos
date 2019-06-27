@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ODICT_H_
-#define LIBC_ODICT_H_
+#ifndef _LIBC_ODICT_H_
+#define _LIBC_ODICT_H_
 
 #include <errno.h>
 #include <stdbool.h>

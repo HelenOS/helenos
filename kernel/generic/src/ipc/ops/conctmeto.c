@@ -58,16 +58,16 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 	pobj = NULL;
 
 	/* Remember the handle */
-	IPC_SET_ARG5(call->data, (sysarg_t) phandle);
+	ipc_set_arg5(&call->data, (sysarg_t) phandle);
 
 	return EOK;
 }
 
 static errno_t request_forget(call_t *call)
 {
-	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(call->data);
+	cap_phone_handle_t phandle = (cap_handle_t) ipc_get_arg5(&call->data);
 
-	if (CAP_HANDLE_RAW(phandle) < 0)
+	if (cap_handle_raw(phandle) < 0)
 		return EOK;
 
 	/* Move reference from call->priv to pobj */
@@ -87,13 +87,13 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	kobject_add_ref(pobj);
 
 	/* Set the recipient-assigned label */
-	pobj->phone->label = IPC_GET_ARG5(answer->data);
+	pobj->phone->label = ipc_get_arg5(&answer->data);
 
 	/* Restore phone handle in answer's ARG5 */
-	IPC_SET_ARG5(answer->data, IPC_GET_ARG5(*olddata));
+	ipc_set_arg5(&answer->data, ipc_get_arg5(olddata));
 
 	/* If the user accepted the call, connect */
-	if (IPC_GET_RETVAL(answer->data) == EOK) {
+	if (ipc_get_retval(&answer->data) == EOK) {
 		/* Hand over reference from pobj to the answerbox */
 		(void) ipc_phone_connect(pobj->phone, &TASK->answerbox);
 	} else {
@@ -106,13 +106,13 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 static errno_t answer_process(call_t *answer)
 {
-	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(answer->data);
+	cap_phone_handle_t phandle = (cap_handle_t) ipc_get_arg5(&answer->data);
 	/* Move the reference from answer->priv to pobj */
 	kobject_t *pobj = (kobject_t *) answer->priv;
 	answer->priv = 0;
 
-	if (IPC_GET_RETVAL(answer->data)) {
-		if (CAP_HANDLE_RAW(phandle) >= 0) {
+	if (ipc_get_retval(&answer->data)) {
+		if (cap_handle_raw(phandle) >= 0) {
 			/*
 			 * Cleanup the unpublished capability and drop
 			 * phone->kobject's reference.

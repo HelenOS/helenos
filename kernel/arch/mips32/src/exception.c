@@ -46,6 +46,7 @@
 #include <arch/debugger.h>
 #include <symtab.h>
 #include <log.h>
+#include <arch/machine_func.h>
 
 static const char *exctable[] = {
 	"Interrupt",
@@ -173,7 +174,7 @@ static void interrupt_exception(unsigned int n, istate_t *istate)
 	im = (cp0_status_read() & cp0_status_im_mask) >> cp0_status_im_shift;
 
 	unsigned int i;
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < MIPS_INTERRUPTS; i++) {
 
 		/*
 		 * The interrupt could only occur if it is unmasked in the
@@ -182,14 +183,9 @@ static void interrupt_exception(unsigned int n, istate_t *istate)
 		 * check both the masked and pending interrupts.
 		 */
 		if (im & ip & (1 << i)) {
-			irq_t *irq = irq_dispatch_and_lock(i);
-			if (irq) {
-				/*
-				 * The IRQ handler was found.
-				 */
-				irq->handler(irq);
-				irq_spinlock_unlock(&irq->lock, false);
-			} else {
+			if (int_handler[i])
+				int_handler[i](i);
+			else {
 				/*
 				 * Spurious interrupt.
 				 */

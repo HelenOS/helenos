@@ -38,17 +38,10 @@
 
 #include <sys/types.h>
 #include <time.h>
+#include <_bits/decls.h>
 
 /* values are the same as on Linux */
 
-#undef S_IFMT
-#undef S_IFSOCK
-#undef S_IFLNK
-#undef S_IFREG
-#undef S_IFBLK
-#undef S_IFDIR
-#undef S_IFCHR
-#undef S_IFIFO
 #define S_IFMT     0170000   /* all file types */
 #define S_IFSOCK   0140000   /* socket */
 #define S_IFLNK    0120000   /* symbolic link */
@@ -58,47 +51,25 @@
 #define S_IFCHR    0020000   /* character device */
 #define S_IFIFO    0010000   /* FIFO */
 
-#undef S_ISUID
-#undef S_ISGID
-#undef S_ISVTX
 #define S_ISUID    0004000   /* SUID */
 #define S_ISGID    0002000   /* SGID */
 #define S_ISVTX    0001000   /* sticky */
 
-#undef S_IRWXU
-#undef S_IRUSR
-#undef S_IWUSR
-#undef S_IXUSR
 #define S_IRWXU    00700     /* owner permissions */
 #define S_IRUSR    00400
 #define S_IWUSR    00200
 #define S_IXUSR    00100
 
-#undef S_IRWXG
-#undef S_IRGRP
-#undef S_IWGRP
-#undef S_IXGRP
 #define S_IRWXG    00070     /* group permissions */
 #define S_IRGRP    00040
 #define S_IWGRP    00020
 #define S_IXGRP    00010
 
-#undef S_IRWXO
-#undef S_IROTH
-#undef S_IWOTH
-#undef S_IXOTH
 #define S_IRWXO    00007     /* other permissions */
 #define S_IROTH    00004
 #define S_IWOTH    00002
 #define S_IXOTH    00001
 
-#undef S_ISREG
-#undef S_ISDIR
-#undef S_ISCHR
-#undef S_ISBLK
-#undef S_ISFIFO
-#undef S_ISLNK
-#undef S_ISSOCK
 #define S_ISREG(m) ((m & S_IFREG) != 0)
 #define S_ISDIR(m) ((m & S_IFDIR) != 0)
 #define S_ISCHR(m) ((m & S_IFCHR) != 0)
@@ -106,6 +77,8 @@
 #define S_ISFIFO(m) ((m & S_IFIFO) != 0)
 #define S_ISLNK(m) ((m & S_IFLNK) != 0) /* symbolic link? (Not in POSIX.1-1996.) */
 #define S_ISSOCK(m) ((m & S_IFSOCK) != 0) /* socket? (Not in POSIX.1-1996.) */
+
+__C_DECLS_BEGIN;
 
 struct stat {
 	dev_t     st_dev;     /* ID of device containing file */
@@ -129,6 +102,8 @@ extern int stat(const char *__restrict__ path, struct stat *__restrict__ st);
 extern int chmod(const char *path, mode_t mode);
 extern mode_t umask(mode_t mask);
 extern int mkdir(const char *path, mode_t mode);
+
+__C_DECLS_END;
 
 #endif /* POSIX_SYS_STAT_H */
 

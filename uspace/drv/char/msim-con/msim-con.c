@@ -70,7 +70,7 @@ static void msim_irq_handler(ipc_call_t *call, void *arg)
 
 	fibril_mutex_lock(&con->buf_lock);
 
-	c = IPC_GET_ARG2(*call);
+	c = ipc_get_arg2(call);
 	rc = circ_buf_push(&con->cbuf, &c);
 	if (rc != EOK)
 		ddf_msg(LVL_ERROR, "Buffer overrun");
@@ -155,7 +155,7 @@ errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 
 	return EOK;
 error:
-	if (CAP_HANDLE_VALID(con->irq_handle))
+	if (cap_handle_valid(con->irq_handle))
 		async_irq_unsubscribe(con->irq_handle);
 	if (bound)
 		ddf_fun_unbind(fun);

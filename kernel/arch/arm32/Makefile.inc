@@ -34,7 +34,7 @@ COMMON_CFLAGS += -fno-omit-frame-pointer -mapcs-frame -mcpu=$(subst _,-,$(PROCES
 ifeq ($(CONFIG_FPU),y)
 	# This is necessary to allow vmsr insn and fpexc manipulation
 	# Use vfp32 to allow context save/restore of d16-d31 regs.
-	AFLAGS += -mfloat-abi=hard -mfpu=vfp3
+	COMMON_CFLAGS += -mfloat-abi=hard
 endif
 
 BITS = 32

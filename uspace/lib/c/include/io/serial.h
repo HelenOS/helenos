@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_IO_SERIAL_H_
-#define LIBC_IO_SERIAL_H_
+#ifndef _LIBC_IO_SERIAL_H_
+#define _LIBC_IO_SERIAL_H_
 
 #include <async.h>
 #include <ipc/serial_ctl.h>

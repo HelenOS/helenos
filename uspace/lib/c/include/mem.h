@@ -33,24 +33,26 @@
 /** @file
  */
 
-#ifndef LIBC_MEM_H_
-#define LIBC_MEM_H_
+#ifndef _LIBC_MEM_H_
+#define _LIBC_MEM_H_
 
 #include <stddef.h>
-#include <cc.h>
+#include <_bits/decls.h>
+
+__C_DECLS_BEGIN;
 
 extern void *memset(void *, int, size_t)
-    __attribute__((nonnull(1)))
-    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
+    __attribute__((nonnull(1)));
 extern void *memcpy(void *, const void *, size_t)
-    __attribute__((nonnull(1, 2)))
-    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns");
+    __attribute__((nonnull(1, 2)));
 extern void *memmove(void *, const void *, size_t)
     __attribute__((nonnull(1, 2)));
 extern int memcmp(const void *, const void *, size_t)
     __attribute__((nonnull(1, 2)));
 extern void *memchr(const void *, int, size_t)
     __attribute__((nonnull(1)));
+
+__C_DECLS_END;
 
 #endif
 

@@ -404,7 +404,7 @@ static void udp_assoc_destroy_srv(udp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_destroy_srv()");
 
-	assoc_id = IPC_GET_ARG1(*icall);
+	assoc_id = ipc_get_arg1(icall);
 	rc = udp_assoc_destroy_impl(client, assoc_id);
 	async_answer_0(icall, rc);
 }
@@ -424,7 +424,7 @@ static void udp_assoc_set_nolocal_srv(udp_client_t *client, ipc_call_t *icall)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "udp_assoc_set_nolocal_srv()");
 
-	assoc_id = IPC_GET_ARG1(*icall);
+	assoc_id = ipc_get_arg1(icall);
 	rc = udp_assoc_set_nolocal_impl(client, assoc_id);
 	async_answer_0(icall, rc);
 }
@@ -497,7 +497,7 @@ static void udp_assoc_send_msg_srv(udp_client_t *client, ipc_call_t *icall)
 		return;
 	}
 
-	assoc_id = IPC_GET_ARG1(*icall);
+	assoc_id = ipc_get_arg1(icall);
 
 	rc = udp_assoc_send_msg_impl(client, assoc_id, &dest, data, size);
 	if (rc != EOK) {
@@ -591,7 +591,7 @@ static void udp_rmsg_read_srv(udp_client_t *client, ipc_call_t *icall)
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_rmsg_read_srv()");
-	off = IPC_GET_ARG1(*icall);
+	off = ipc_get_arg1(icall);
 
 	enext = udp_rmsg_get_next(client);
 
@@ -678,7 +678,7 @@ static void udp_client_conn(ipc_call_t *icall, void *arg)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn: wait req");
 		ipc_call_t call;
 		async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
+		sysarg_t method = ipc_get_imethod(&call);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn: method=%d",
 		    (int)method);

@@ -34,8 +34,8 @@
  *  IEEE 802.11 common definitions.
  */
 
-#ifndef LIBC_IEEE80211_H_
-#define LIBC_IEEE80211_H_
+#ifndef _LIBC_IEEE80211_H_
+#define _LIBC_IEEE80211_H_
 
 #include <adt/list.h>
 #include <nic/nic.h>

@@ -131,8 +131,8 @@ static void i8042_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 	i8042_t *controller = ddf_dev_data_get(dev);
 	errno_t rc;
 
-	const uint8_t status = IPC_GET_ARG1(*call);
-	const uint8_t data = IPC_GET_ARG2(*call);
+	const uint8_t status = ipc_get_arg1(call);
+	const uint8_t data = ipc_get_arg2(call);
 
 	i8042_port_t *port = (status & i8042_AUX_DATA) ?
 	    controller->aux : controller->kbd;

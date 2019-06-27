@@ -34,13 +34,12 @@
 #include "../internal.h"
 #include "report.h"
 
-#ifndef __helenos__
-#pragma warning(push, 0)
-#include <string.h>
-#pragma warning(pop)
+#ifdef __helenos__
+#define _REALLY_WANT_STRING_H
 #endif
 
 #pragma warning(push, 0)
+#include <string.h>
 #include <stdio.h>
 #pragma warning(pop)
 
@@ -56,6 +55,9 @@ static int tests_in_suite;
 
 /** Counter of failed tests in current suite. */
 static int failed_tests_in_suite;
+
+/** Comma-separated list of failed test names. */
+static char *failed_test_names;
 
 /** Initialize the TAP output.
  *
@@ -169,6 +171,19 @@ static void tap_test_done(pcut_item_t *test, int outcome,
 	print_by_lines(teardown_error_message, "# error: ");
 
 	print_by_lines(extra_output, "# stdio: ");
+
+	if (outcome != PCUT_OUTCOME_PASS) {
+		if (failed_test_names == NULL) {
+			failed_test_names = strdup(test_name);
+		} else {
+			char *fs = NULL;
+			if (asprintf(&fs, "%s, %s",
+			    failed_test_names, test_name) >= 0) {
+				free(failed_test_names);
+				failed_test_names = fs;
+			}
+		}
+	}
 }
 
 /** Report testing done. */
@@ -177,6 +192,7 @@ static void tap_done(void) {
 		printf("#> Done: all tests passed.\n");
 	} else {
 		printf("#> Done: %d of %d tests failed.\n", failed_test_counter, test_counter);
+		printf("#> Failed tests: %s\n", failed_test_names);
 	}
 }
 

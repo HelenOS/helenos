@@ -56,9 +56,10 @@ typedef struct {
 
 /* Hash table operations. */
 
-static size_t srv_proto_key_hash(void *key)
+static size_t srv_proto_key_hash(const void *key)
 {
-	return *(int *)key;
+	const int *n = key;
+	return *n;
 }
 
 static size_t srv_proto_hash(const ht_link_t *item)
@@ -67,10 +68,11 @@ static size_t srv_proto_hash(const ht_link_t *item)
 	return sp->srv;
 }
 
-static bool srv_proto_key_equal(void *key, const ht_link_t *item)
+static bool srv_proto_key_equal(const void *key, const ht_link_t *item)
 {
+	const int *n = key;
 	srv_proto_t *sp = hash_table_get_inst(item, srv_proto_t, link);
-	return sp->srv == *(int *)key;
+	return sp->srv == *n;
 }
 
 static hash_table_ops_t srv_proto_ops = {
@@ -81,9 +83,10 @@ static hash_table_ops_t srv_proto_ops = {
 	.remove_callback = NULL
 };
 
-static size_t method_oper_key_hash(void *key)
+static size_t method_oper_key_hash(const void *key)
 {
-	return *(int *)key;
+	const int *n = key;
+	return *n;
 }
 
 static size_t method_oper_hash(const ht_link_t *item)
@@ -92,10 +95,11 @@ static size_t method_oper_hash(const ht_link_t *item)
 	return mo->method;
 }
 
-static bool method_oper_key_equal(void *key, const ht_link_t *item)
+static bool method_oper_key_equal(const void *key, const ht_link_t *item)
 {
+	const int *n = key;
 	method_oper_t *mo = hash_table_get_inst(item, method_oper_t, link);
-	return mo->method == *(int *)key;
+	return mo->method == *n;
 }
 
 static hash_table_ops_t method_oper_ops = {

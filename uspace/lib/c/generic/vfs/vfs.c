@@ -640,7 +640,7 @@ errno_t vfs_mount(int mp, const char *fs_name, service_id_t serv, const char *op
 	async_wait_for(req, &rc);
 
 	if (mountedfd)
-		*mountedfd = (int) IPC_GET_ARG1(answer);
+		*mountedfd = (int) ipc_get_arg1(&answer);
 
 	if (rc != EOK)
 		return rc;
@@ -902,7 +902,7 @@ errno_t vfs_read_short(int file, aoff64_t pos, void *buf, size_t nbyte,
 	if (rc != EOK)
 		return rc;
 
-	*nread = (ssize_t) IPC_GET_ARG1(answer);
+	*nread = (ssize_t) ipc_get_arg1(&answer);
 	return EOK;
 }
 
@@ -1282,7 +1282,7 @@ errno_t vfs_walk(int parent, const char *path, int flags, int *handle)
 	if (rc != EOK)
 		return (errno_t) rc;
 
-	*handle = (int) IPC_GET_ARG1(answer);
+	*handle = (int) ipc_get_arg1(&answer);
 	return EOK;
 }
 
@@ -1366,7 +1366,7 @@ errno_t vfs_write_short(int file, aoff64_t pos, const void *buf, size_t nbyte,
 	if (rc != EOK)
 		return rc;
 
-	*nwritten = (ssize_t) IPC_GET_ARG1(answer);
+	*nwritten = (ssize_t) ipc_get_arg1(&answer);
 	return EOK;
 }
 

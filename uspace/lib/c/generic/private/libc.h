@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_PRIVATE_LIBC_H_
-#define LIBC_PRIVATE_LIBC_H_
+#ifndef _LIBC_PRIVATE_LIBC_H_
+#define _LIBC_PRIVATE_LIBC_H_
 
 #include <types/common.h>
 

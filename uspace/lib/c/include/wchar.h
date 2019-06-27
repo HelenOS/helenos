@@ -37,8 +37,8 @@
 /** @file
  */
 
-#ifndef LIBC_WCHAR_H_
-#define LIBC_WCHAR_H_
+#ifndef _LIBC_WCHAR_H_
+#define _LIBC_WCHAR_H_
 
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>

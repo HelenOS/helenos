@@ -284,9 +284,9 @@ typedef struct {
 	fs_index_t index;
 } ht_key_t;
 
-static size_t nodes_key_hash(void *k)
+static size_t nodes_key_hash(const void *k)
 {
-	ht_key_t *key = (ht_key_t *)k;
+	const ht_key_t *key = k;
 	return hash_combine(key->service_id, key->index);
 }
 
@@ -296,10 +296,10 @@ static size_t nodes_hash(const ht_link_t *item)
 	return hash_combine(node->fs->service_id, node->index);
 }
 
-static bool nodes_key_equal(void *k, const ht_link_t *item)
+static bool nodes_key_equal(const void *k, const ht_link_t *item)
 {
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
-	ht_key_t *key = (ht_key_t *)k;
+	const ht_key_t *key = k;
 
 	return key->service_id == node->fs->service_id && key->index == node->index;
 }

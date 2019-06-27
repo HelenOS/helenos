@@ -70,9 +70,10 @@ static FIBRIL_MUTEX_INITIALIZE(services_mutex);
 
 /* Implementation of hash table interface for the nodes hash table. */
 
-static size_t services_key_hash(void *key)
+static size_t services_key_hash(const void *key)
 {
-	return *(service_id_t *)key;
+	const service_id_t *k = key;
+	return *k;
 }
 
 static size_t services_hash(const ht_link_t *item)
@@ -81,10 +82,11 @@ static size_t services_hash(const ht_link_t *item)
 	return dev->service_id;
 }
 
-static bool services_key_equal(void *key, const ht_link_t *item)
+static bool services_key_equal(const void *key, const ht_link_t *item)
 {
+	const service_id_t *k = key;
 	service_t *dev = hash_table_get_inst(item, service_t, link);
-	return (dev->service_id == *(service_id_t *)key);
+	return (dev->service_id == *k);
 }
 
 static void services_remove_callback(ht_link_t *item)
@@ -582,7 +584,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		    index, LOWER32(pos), UPPER32(pos), &answer);
 
 		/* Forward the IPC_M_DATA_READ request to the driver */
-		async_forward_fast(&call, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_0(&call, exch, 0, IPC_FF_ROUTE_FROM_ME);
 
 		async_exchange_end(exch);
 
@@ -596,7 +598,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if ((errno_t) rc == EHANGUP)
 			rc = ENOTSUP;
 
-		*rbytes = IPC_GET_ARG1(answer);
+		*rbytes = ipc_get_arg1(&answer);
 		return rc;
 	}
 
@@ -646,7 +648,7 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		    index, LOWER32(pos), UPPER32(pos), &answer);
 
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
-		async_forward_fast(&call, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_0(&call, exch, 0, IPC_FF_ROUTE_FROM_ME);
 
 		async_exchange_end(exch);
 
@@ -660,7 +662,7 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if ((errno_t) rc == EHANGUP)
 			rc = ENOTSUP;
 
-		*wbytes = IPC_GET_ARG1(answer);
+		*wbytes = ipc_get_arg1(&answer);
 		*nsize = 0;
 		return rc;
 	}

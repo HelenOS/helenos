@@ -65,7 +65,7 @@ static void callback_connection(ipc_call_t *icall, void *arg)
 
 		bool processed = usbvirt_ipc_handle_call(DEV, &call);
 		if (!processed) {
-			if (!IPC_GET_IMETHOD(call)) {
+			if (!ipc_get_imethod(&call)) {
 				async_answer_0(&call, EOK);
 				return;
 			} else
