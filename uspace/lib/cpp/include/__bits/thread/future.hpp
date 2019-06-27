@@ -124,8 +124,12 @@ namespace std
 
                 void set_value(const R& val, bool set)
                 {
+                    aux::threading::mutex::lock(mutex_);
                     value_ = val;
                     value_set_ = set;
+                    aux::threading::mutex::unlock(mutex_);
+
+                    aux::threading::condvar::broadcast(condvar_);
                 }
 
                 void set_value(R&& val, bool set)
