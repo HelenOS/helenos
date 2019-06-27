@@ -132,32 +132,42 @@ foreach appdirs : dirs
 	endif
 endforeach
 
+install_script_text = []
+
 foreach tst : bin_targets
 	_ldargs = tst.get('link_args')
 	_src = tst.get('src')
 
-	_install_dir = tst.get('install_dir').split('/')
-	_install_dir += tst.get('basename')
 	_install = tst.get('install')
+	_install_dir = tst.get('install_dir')
+	_basename = tst.get('basename')
+	_full_install_path = _install_dir / _basename
+	_build_name = _full_install_path.underscorify()
+	_full_build_name = meson.current_build_dir() / _build_name
 
 	if _install
-		_install_name = 'install@' + '$'.join(_install_dir)
-	else
-		_install_name = '_'.join(_install_dir)
-	endif
+		# Due to certain quirks of our build, executables need to be built with a different name than what they are installed with.
+		# Meson doesn't support renaming installed files (at least not as of mid-2019) so we do it here manually.
 
-	if _install and install_debug_files
-		_debug_name = 'install@' + '$'.join([ 'debug' ] + _install_dir)
-	else
-		_debug_name = '_'.join(_install_dir)
+		install_script_text += [
+			'mkdir -p ${MESON_INSTALL_DESTDIR_PREFIX}"@0@"'.format(_install_dir),
+			'cp "@0@" ${MESON_INSTALL_DESTDIR_PREFIX}"@1@"'.format(_full_build_name, _full_install_path),
+		]
+
+		if install_debug_files
+			install_script_text += [
+				'cp "@0@".disasm ${MESON_INSTALL_DESTDIR_PREFIX}debug/"@1@".disasm'.format(_full_build_name, _full_install_path),
+				'cp "@0@".map ${MESON_INSTALL_DESTDIR_PREFIX}debug/"@1@".map'.format(_full_build_name, _full_install_path)
+			]
+		endif
 	endif
 
 	if link_map
 		# We want linker to generate link map for debugging.
-		_ldargs += [ '-Wl,-Map,' + meson.current_build_dir() / _debug_name + '.map' ]
+		_ldargs += [ '-Wl,-Map,' + _full_build_name + '.map' ]
 	endif
 
-	_bin = executable(_install_name, _src,
+	_bin = executable(_build_name, _src,
 		include_directories: tst.get('includes'),
 		dependencies: tst.get('dependencies'),
 		objects: startfiles,
@@ -166,19 +176,29 @@ foreach tst : bin_targets
 		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,
 		implicit_include_directories: false,
 		install: false,
-		#install_dir: tst.get('install_dir'),
+		#install_dir: _install_dir,
 		build_by_default: true,
 	)
 
 	if disassemble
-		custom_target(_debug_name + '.disasm',
+		custom_target(_build_name + '.disasm',
 			command: [ objdump, '-S', '@INPUT@' ],
 			input: _bin,
-			output: _debug_name + '.disasm',
+			output: _build_name + '.disasm',
 			capture: true,
 			install: false,
-			#install_dir: 'debug' / tst.get('install_dir'),
+			#install_dir: 'debug' / _install_dir,
 			build_by_default: true,
 		)
 	endif
 endforeach
+
+# Emit and register the install script.
+
+configure_file(
+	configuration: { 'text' : '\n'.join(install_script_text) },
+	input: 'install.sh.in',
+	output: 'install.sh',
+)
+
+meson.add_install_script(meson.current_build_dir() / 'install.sh')

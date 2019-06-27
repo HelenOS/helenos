@@ -33,15 +33,4 @@ export CONFIG_DEVEL_FILES=$1
 		done
 	fi
 
-	# Due to certain quirks of our build, executables need to be built with a different name than what they are installed with.
-	# Meson doesn't support renaming installed files (at least not as of mid-2019) so we do it here manually.
-
-	echo "######## Installing executables ########"
-
-	cd ${MESON_BUILD_ROOT}/uspace
-
-	find -name 'install@*' |
-		sed -e 'h; s:^.*/install@:@DESTDIR@:; s:\$:/:g; x; G; s:\s: :g' -e "s:@DESTDIR@:${MESON_INSTALL_DESTDIR_PREFIX}:g" |
-		xargs -L1 --verbose install -C -D -m755 -T
-
 ) > ${MESON_BUILD_ROOT}/install_custom.log 2>&1
