@@ -139,8 +139,6 @@ foreach iter : iterations
 		],
 		link_depends: kernel_ldscript,
 		link_whole: all_kernel_objects,
-		install: is_last,
-		install_dir: 'boot',
 		pie: false,
 	)
 
@@ -167,13 +165,17 @@ foreach iter : iterations
 	endif
 endforeach
 
+install_files += [[ 'boot', kernel_elf.full_path(), 'kernel.elf' ]]
+
 kernel_disasm = custom_target(kernel_name + '.disasm',
 	command: [ objdump, '-S', '@INPUT@' ],
 	input: kernel_elf,
 	output: kernel_name + '.disasm',
 	capture: true,
 	build_by_default: true,
-	# TODO: Add configuration option for installing debug files
-	install: false,
-	install_dir: 'debug' / 'kernel',
 )
+
+# TODO: Add configuration option for installing debug files
+if false
+	install_files += [[ 'boot', kernel_disasm.full_path(), 'kernel.elf.disasm' ]]
+endif

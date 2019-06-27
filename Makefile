@@ -78,7 +78,7 @@ $(BUILD_DIR)/build.ninja: Makefile.config version
 
 meson: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
 	PATH="$(CROSS_PATH):$$PATH" ninja -C $(BUILD_DIR)
-	PATH="$(CROSS_PATH):$$PATH" DESTDIR="$(BUILD_DIR)/dist" meson install --no-rebuild --only-changed -C $(BUILD_DIR) > $(BUILD_DIR)/install.log
+	PATH="$(CROSS_PATH):$$PATH" DESTDIR="$(BUILD_DIR)/dist" meson install --no-rebuild --only-changed -C $(BUILD_DIR)
 
 test-xcw: meson export-cross
 ifeq ($(CONFIG_DEVEL_FILES),y)

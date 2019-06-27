@@ -325,6 +325,9 @@ uspace_as_prolog = ''
 
 subdir('meson' / 'arch' / UARCH)
 
+install_files = []
+install_deps = []
+
 subdir('kernel')
 subdir('uspace')
 
@@ -392,3 +395,23 @@ custom_target('config.sh',
 )
 
 install_data('Makefile.common', 'Makefile.config', install_dir: 'config')
+
+
+# Emit and register the install script.
+
+install_script_text = []
+
+foreach f : install_files
+	_cmd = 'mkdir -p "${MESON_INSTALL_DESTDIR_PREFIX}@0@" && cp -L -T "@1@" "${MESON_INSTALL_DESTDIR_PREFIX}@0@/@2@"'
+	install_script_text += _cmd.format(f[0], f[1], f[2])
+endforeach
+
+install_script_text += uspace_lib_install_script_text
+
+configure_file(
+	configuration: { 'text' : '\n'.join(install_script_text) },
+	input: 'install.sh.in',
+	output: 'install.sh',
+)
+
+meson.add_install_script(meson.current_build_dir() / 'install.sh')

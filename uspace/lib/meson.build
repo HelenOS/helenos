@@ -316,6 +316,7 @@ foreach test : testfiles
 		c_args: arch_uspace_c_args,
 		cpp_args: arch_uspace_c_args,
 		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,
+		build_by_default: true,
 	)
 
 	install_files += [[ 'test', _bin.full_path(), _test_binname ]]
@@ -327,11 +328,12 @@ foreach test : testfiles
 			input: _bin,
 			output: _test_binname + '.disasm',
 			capture: true,
-			install: install_debug_files,
-			install_dir: 'debug' / 'test',
+			build_by_default: true,
 		)
 
-		install_files += [[ 'debug/test', _disasm.full_path(), _test_binname + '.disasm' ]]
-		install_deps += [ _disasm ]
+		if install_debug_files
+			install_files += [[ 'debug/test', _disasm.full_path(), _test_binname + '.disasm' ]]
+			install_deps += [ _disasm ]
+		endif
 	endif
 endforeach

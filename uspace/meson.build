@@ -6,9 +6,6 @@ install_nonessential_data = not CONFIG_BAREBONE
 # This is currently disabled due to boot image size restrictions.
 install_debug_files = false
 
-install_files = []
-install_deps = []
-
 subdir('lib')
 subdir('app')
 subdir('srv')
@@ -202,22 +199,3 @@ foreach tst : bin_targets
 		endif
 	endif
 endforeach
-
-uspace_bin_install_script_text = []
-
-foreach f : install_files
-	_cmd = 'mkdir -p "${MESON_INSTALL_DESTDIR_PREFIX}@0@" && cp -L -T "@1@" "${MESON_INSTALL_DESTDIR_PREFIX}@0@/@2@"'
-	uspace_bin_install_script_text += _cmd.format(f[0], f[1], f[2])
-endforeach
-
-uspace_install_script_text = uspace_lib_install_script_text + uspace_bin_install_script_text
-
-# Emit and register the install script.
-
-configure_file(
-	configuration: { 'text' : '\n'.join(uspace_install_script_text) },
-	input: 'install.sh.in',
-	output: 'install.sh',
-)
-
-meson.add_install_script(meson.current_build_dir() / 'install.sh')
