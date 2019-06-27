@@ -43,6 +43,7 @@ foreach drv : drvs
 		_src = meson.current_source_dir() / 'drv' / drv / _basename + '.ma'
 		_dstdir = 'drv' / _basename
 		install_files += [[ _dstdir, _src, _basename + '.ma' ]]
+		install_deps += files(_src)
 	endif
 endforeach
 
@@ -71,6 +72,7 @@ foreach appdirs : dirs
 			_dstdir = _f.get('dir')
 			_src = meson.current_source_dir() / dir / _f.get('name')
 			install_files += [[ _dstdir, _src, _f.get('name') ]]
+			install_deps += files(_src)
 		endforeach
 	endif
 

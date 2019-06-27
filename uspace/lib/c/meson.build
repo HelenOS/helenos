@@ -219,4 +219,5 @@ libstartfiles = static_library('startfiles', start_src,
 
 if CONFIG_DEVEL_FILES
 	install_files += [[ 'lib', libstartfiles.full_path(), 'libstartfiles.a' ]]
+	install_deps += [ libstartfiles ]
 endif

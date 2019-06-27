@@ -37,21 +37,7 @@ ifneq ($(POSTBUILD),)
 endif
 
 build_dist: clean_dist
-	cp -r -L -T -u "$(USPACE_PATH)/dist" "$(DIST_PATH)"
-	mkdir -p "$(DIST_PATH)/app/"
-	mkdir -p "$(DIST_PATH)/cfg/"
-	mkdir -p "$(DIST_PATH)/data/"
-	mkdir -p "$(DIST_PATH)/lib/"
-	mkdir -p "$(DIST_PATH)/loc/"
-	mkdir -p "$(DIST_PATH)/log/"
-	mkdir -p "$(DIST_PATH)/test/"
-	mkdir -p "$(DIST_PATH)/tmp/"
-	mkdir -p "$(DIST_PATH)/vol/"
-	mkdir -p "$(DIST_PATH)/w/"
 
-ifeq ($(CONFIG_DEVEL_FILES), y)
-	cp -L "$(LIBGCC_PATH)" "$(DIST_PATH)/lib/"
-endif
 
 	if ls $(DIST_OVERLAY_PATH)/* >/dev/null 2>/dev/null; then \
 		cp -r -L $(DIST_OVERLAY_PATH)/* "$(DIST_PATH)"; \

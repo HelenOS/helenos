@@ -384,7 +384,7 @@ config_mk = configure_file(
 	configuration: conf_data,
 )
 
-custom_target('config.sh',
+config_sh = custom_target('config.sh',
 	input: config_mk,
 	output: 'config.sh',
 	command: [ sed, 's:$(HELENOS_EXPORT_ROOT):${HELENOS_EXPORT_ROOT}:g', '@INPUT@' ],
@@ -392,16 +392,35 @@ custom_target('config.sh',
 )
 
 install_files += [[ 'config', meson.current_build_dir() / 'config.mk', 'config.mk' ]]
+install_deps += [ config_mk ]
 install_files += [[ 'config', meson.current_build_dir() / 'config.sh', 'config.sh' ]]
+install_deps += [ config_sh ]
 
 # TODO: remove
 install_files += [[ 'config', meson.current_source_dir() / 'Makefile.common', 'Makefile.common' ]]
+install_deps += files('Makefile.common')
 install_files += [[ 'config', meson.current_source_dir() / 'Makefile.config', 'Makefile.config' ]]
+install_deps += files('Makefile.config')
+
+if CONFIG_DEVEL_FILES
+	# Also install libgcc
+	libgcc = run_command(
+		cc.cmd_array(), arch_uspace_c_args, '-print-libgcc-file-name',
+		check: true,
+	).stdout().strip()
+
+	install_files += [[ 'lib', libgcc, 'libgcc.a' ]]
+	install_deps += [ files(libgcc) ]
+endif
 
 
-# Emit and register the install script.
+# Emit the install script.
 
 install_script_text = []
+
+# Copy uspace/dist.
+_uspace = meson.current_source_dir() / 'uspace'
+install_script_text += 'cp -r -L -T -u "@0@/dist" "${DESTDIR}"'.format(_uspace)
 
 foreach f : install_files
 	_cmd = 'mkdir -p "${DESTDIR}@0@" && cp -L -T "@1@" "${DESTDIR}@0@/@2@"'
@@ -410,21 +429,23 @@ endforeach
 
 install_script_text += uspace_lib_install_script_text
 
-install_script_name = meson.current_build_dir() / 'install.sh'
-
 install_script = configure_file(
 	configuration: { 'text' : '\n'.join(install_script_text) },
 	input: 'install.sh.in',
 	output: 'install.sh',
 )
 
-meson.add_install_script(install_script_name)
+# Build up dist
 
-custom_target('DIST',
-	output: 'dist.log',
+dist = custom_target('DIST',
+	output: 'dist.tag',
 	input: [ install_script, install_deps ],
-	command: [ sh, '@INPUT0@', meson.current_build_dir()/'dist/' ],
-	capture: true,
+	command: [ sh, '-x', '-u', '-e', '@INPUT0@', '@OUTPUT@', meson.current_build_dir()/'dist/' ],
 	build_by_default: true,
 )
+
+#initrd_img = custom_target('initrd.img',
+#	output: 'initrd.img',
+#	input: dist,
+
 

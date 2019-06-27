@@ -130,7 +130,7 @@ foreach l : libs
 			if CONFIG_DEVEL_FILES and installed_libs.contains(l)
 				_sdir = meson.current_source_dir() / l
 				uspace_lib_install_script_text += 'mkdir -p "${DESTDIR}include/lib@0@"'.format(l)
-				uspace_lib_install_script_text += 'cp -L -t "${DESTDIR}include/lib@0@" "@1@"/*.h'.format(l, _sdir)
+				uspace_lib_install_script_text += 'cp -L -t "${DESTDIR}include/lib@0@" "@1@"/*.h || true'.format(l, _sdir)
 			endif
 		endif
 	endif
