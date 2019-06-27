@@ -274,10 +274,9 @@ rd_essential = rd_init + [
 
 	'srv/devman',
 	'srv/fs/locfs',
+	'srv/hid/console',
 	'srv/hid/input',
 	'srv/hid/output',
-	'srv/hid/compositor',
-	'srv/hid/console',
 	'srv/klog',
 
 	'drv/root/root',
@@ -289,6 +288,8 @@ if CONFIG_FB
 	rd_essential += [
 		'app/vlaunch',
 		'app/vterm',
+
+		'srv/hid/compositor',
 	]
 endif
 
