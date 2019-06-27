@@ -176,9 +176,6 @@ endforeach
 
 HELENOS_RELEASE = HELENOS_VERSION + '.' + HELENOS_PATCHLEVEL + '.' + HELENOS_SUBLEVEL
 
-
-meson.add_install_script('install.sh', CONFIG_DEVEL_FILES.to_string())
-
 add_project_arguments(
 	# TODO: Remove from project arguments and only use where needed.
 	'-imacros', join_paths(meson.source_root(), 'config.h'),
