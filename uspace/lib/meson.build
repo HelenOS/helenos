@@ -62,6 +62,10 @@ include_paths = []
 # Generated list of test sources
 testfiles = []
 
+# Text of the install script.
+uspace_lib_install_script_text = []
+uspace_lib_install_depends = []
+
 foreach l : libs
 	# Variables that might be defined in library meson files:
 

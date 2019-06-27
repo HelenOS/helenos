@@ -44,4 +44,4 @@ test_src = files(
 )
 
 # TODO: install this file somewhere sane
-install_data('demo.txt', install_dir: '/')
+installed_data += { 'name': 'demo.txt', 'dir': '/' }

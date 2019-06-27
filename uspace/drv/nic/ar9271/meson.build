@@ -7,4 +7,4 @@ src = files(
 	'ar9271.c',
 )
 
-install_data('ar9271.fw', install_dir: 'drv' / 'ar9271')
+installed_data += { 'name': 'ar9271.fw', 'dir': 'drv/ar9271' }

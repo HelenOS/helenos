@@ -8,5 +8,5 @@ src = files(
 
 if install_nonessential_data
 	# TODO: install this file somewhere sane
-	install_data('demo.wav', install_dir: '/')
+	installed_data += { 'name': 'demo.wav', 'dir': '/' }
 endif

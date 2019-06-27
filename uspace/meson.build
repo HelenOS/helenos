@@ -11,6 +11,8 @@ subdir('app')
 subdir('srv')
 subdir('drv')
 
+install_files = []
+install_deps = []
 dirs = []
 
 foreach app : apps
@@ -40,7 +42,9 @@ foreach drv : drvs
 
 	# Install driver metadata.
 	if not CONFIG_BAREBONE or rd_essential.contains('drv' / drv)
-		install_data('drv' / drv / _basename + '.ma', install_dir: 'drv' / _basename)
+		_src = meson.current_source_dir() / 'drv' / drv / _basename + '.ma'
+		_dstdir = 'drv' / _basename
+		install_files += [[ _dstdir, _src, _basename + '.ma' ]]
 	endif
 endforeach
 
@@ -54,6 +58,7 @@ foreach appdirs : dirs
 	c_args = []
 	link_args = []
 	language = 'c'
+	installed_data = []
 
 	subdir(appdirs.get('subdir'))
 
@@ -61,6 +66,15 @@ foreach appdirs : dirs
 	installdir = appdirs.get('installdir')
 
 	install = not CONFIG_BAREBONE or rd_essential.contains(dir)
+
+	if install
+		# Install data files, if any.
+		foreach _f : installed_data
+			_dstdir = _f.get('dir')
+			_src = meson.current_source_dir() / dir / _f.get('name')
+			install_files += [[ _dstdir, _src, _f.get('name') ]]
+		endforeach
+	endif
 
 	# basename/dirname will be is useful later.
 	_basename = run_command(basename, dir, check: true).stdout().strip()
@@ -132,8 +146,6 @@ foreach appdirs : dirs
 	endif
 endforeach
 
-install_script_text = []
-
 foreach tst : bin_targets
 	_ldargs = tst.get('link_args')
 	_src = tst.get('src')
@@ -144,23 +156,6 @@ foreach tst : bin_targets
 	_full_install_path = _install_dir / _basename
 	_build_name = _full_install_path.underscorify()
 	_full_build_name = meson.current_build_dir() / _build_name
-
-	if _install
-		# Due to certain quirks of our build, executables need to be built with a different name than what they are installed with.
-		# Meson doesn't support renaming installed files (at least not as of mid-2019) so we do it here manually.
-
-		install_script_text += [
-			'mkdir -p ${MESON_INSTALL_DESTDIR_PREFIX}"@0@"'.format(_install_dir),
-			'cp "@0@" ${MESON_INSTALL_DESTDIR_PREFIX}"@1@"'.format(_full_build_name, _full_install_path),
-		]
-
-		if install_debug_files
-			install_script_text += [
-				'cp "@0@".disasm ${MESON_INSTALL_DESTDIR_PREFIX}debug/"@1@".disasm'.format(_full_build_name, _full_install_path),
-				'cp "@0@".map ${MESON_INSTALL_DESTDIR_PREFIX}debug/"@1@".map'.format(_full_build_name, _full_install_path)
-			]
-		endif
-	endif
 
 	if link_map
 		# We want linker to generate link map for debugging.
@@ -175,28 +170,51 @@ foreach tst : bin_targets
 		cpp_args: arch_uspace_c_args + tst.get('c_args'),
 		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,
 		implicit_include_directories: false,
-		install: false,
-		#install_dir: _install_dir,
 		build_by_default: true,
 	)
 
 	if disassemble
-		custom_target(_build_name + '.disasm',
+		_disasm = custom_target(_build_name + '.disasm',
 			command: [ objdump, '-S', '@INPUT@' ],
 			input: _bin,
 			output: _build_name + '.disasm',
 			capture: true,
-			install: false,
-			#install_dir: 'debug' / _install_dir,
 			build_by_default: true,
 		)
 	endif
+
+	if _install
+		# Due to certain quirks of our build, executables need to be built with a different name than what they are installed with.
+		# Meson doesn't support renaming installed files (at least not as of mid-2019) so we do it manually.
+
+		install_files += [[ _install_dir, _full_build_name, _basename ]]
+		install_deps += [ _bin ]
+
+		if install_debug_files
+			if disassemble
+				install_files += [[ 'debug' / _install_dir, _full_build_name + '.disasm', _basename + '.disasm' ]]
+				install_deps += [ _disasm ]
+			endif
+			if link_map
+				install_files += [[ 'debug' / _install_dir, _full_build_name + '.map', _basename + '.map' ]]
+			endif
+		endif
+	endif
 endforeach
+
+uspace_bin_install_script_text = []
+
+foreach f : install_files
+	_cmd = 'mkdir -p "${MESON_INSTALL_DESTDIR_PREFIX}@0@" && cp -L -T "@1@" "${MESON_INSTALL_DESTDIR_PREFIX}@0@/@2@"'
+	uspace_bin_install_script_text += _cmd.format(f[0], f[1], f[2])
+endforeach
+
+uspace_install_script_text = uspace_lib_install_script_text + uspace_bin_install_script_text
 
 # Emit and register the install script.
 
 configure_file(
-	configuration: { 'text' : '\n'.join(install_script_text) },
+	configuration: { 'text' : '\n'.join(uspace_install_script_text) },
 	input: 'install.sh.in',
 	output: 'install.sh',
 )
