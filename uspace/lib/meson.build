@@ -312,7 +312,7 @@ foreach test : testfiles
 	_bin = executable(_test_binname, test.get('src'),
 		include_directories: test.get('includes'),
 		dependencies: [ get_variable('lib' + _libname).get('any'), libpcut.get('any') ],
-		objects: startfiles,
+		link_whole: libstartfiles,
 		c_args: arch_uspace_c_args,
 		cpp_args: arch_uspace_c_args,
 		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,

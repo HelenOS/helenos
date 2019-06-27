@@ -166,7 +166,7 @@ foreach tst : bin_targets
 	_bin = executable(_build_name, _src,
 		include_directories: tst.get('includes'),
 		dependencies: tst.get('dependencies'),
-		objects: startfiles,
+		link_whole: libstartfiles,
 		c_args: arch_uspace_c_args + tst.get('c_args'),
 		cpp_args: arch_uspace_c_args + tst.get('c_args'),
 		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,
