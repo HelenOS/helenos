@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_MEMORY_SHARED_PAYLOAD
 #define LIBCPP_BITS_MEMORY_SHARED_PAYLOAD
 
+#include <__bits/refcount_obj.hpp>
 #include <cinttypes>
 #include <utility>
 
@@ -42,12 +43,6 @@ namespace std
 
 namespace std::aux
 {
-    /**
-     * At the moment we do not have atomics, change this
-     * to std::atomic<long> once we do.
-     */
-    using refcount_t = long;
-
     /**
      * This allows us to construct shared_ptr from
      * a payload pointer in make_shared etc.
@@ -65,21 +60,13 @@ namespace std::aux
     }
 
     template<class T>
-    class shared_payload_base
+    class shared_payload_base: public aux::refcount_obj
     {
         public:
-            virtual void destroy() = 0;
             virtual T* get() const noexcept = 0;
 
             virtual uint8_t* deleter() const noexcept = 0;
 
-            virtual void increment() noexcept = 0;
-            virtual void increment_weak() noexcept = 0;
-            virtual bool decrement() noexcept = 0;
-            virtual bool decrement_weak() noexcept = 0;
-            virtual refcount_t refs() const noexcept = 0;
-            virtual refcount_t weak_refs() const noexcept = 0;
-            virtual bool expired() const noexcept = 0;
             virtual shared_payload_base* lock() noexcept = 0;
 
             virtual ~shared_payload_base() = default;
@@ -90,20 +77,19 @@ namespace std::aux
     {
         public:
             shared_payload(T* ptr, D deleter = D{})
-                : data_{ptr}, deleter_{deleter},
-                  refcount_{1}, weak_refcount_{1}
+                : data_{ptr}, deleter_{deleter}
             { /* DUMMY BODY */ }
 
             template<class... Args>
             shared_payload(Args&&... args)
                 : data_{new T{forward<Args>(args)...}},
-                  deleter_{}, refcount_{1}, weak_refcount_{1}
+                  deleter_{}
             { /* DUMMY BODY */ }
 
             template<class Alloc, class... Args>
             shared_payload(allocator_arg_t, Alloc alloc, Args&&... args)
                 : data_{alloc.allocate(1)},
-                  deleter_{}, refcount_{1}, weak_refcount_{1}
+                  deleter_{}
             {
                 alloc.construct(data_, forward<Args>(args)...);
             }
@@ -111,14 +97,14 @@ namespace std::aux
             template<class Alloc, class... Args>
             shared_payload(D deleter, Alloc alloc, Args&&... args)
                 : data_{alloc.allocate(1)},
-                  deleter_{deleter}, refcount_{1}, weak_refcount_{1}
+                  deleter_{deleter}
             {
                 alloc.construct(data_, forward<Args>(args)...);
             }
 
             void destroy() override
             {
-                if (refs() == 0)
+                if (this->refs() == 0)
                 {
                     if (data_)
                     {
@@ -126,7 +112,7 @@ namespace std::aux
                         data_ = nullptr;
                     }
 
-                    if (weak_refs() == 0)
+                    if (this->weak_refs() == 0)
                         delete this;
                 }
             }
@@ -141,59 +127,12 @@ namespace std::aux
                 return (uint8_t*)&deleter_;
             }
 
-            void increment() noexcept override
-            {
-                __atomic_add_fetch(&refcount_, 1, __ATOMIC_ACQ_REL);
-            }
-
-            void increment_weak() noexcept override
-            {
-                __atomic_add_fetch(&weak_refcount_, 1, __ATOMIC_ACQ_REL);
-            }
-
-            bool decrement() noexcept override
-            {
-                if (__atomic_sub_fetch(&refcount_, 1, __ATOMIC_ACQ_REL) == 0)
-                {
-                    /**
-                     * First call to destroy() will delete the held object,
-                     * so it doesn't matter what the weak_refcount_ is,
-                     * but we added one and we need to remove it now.
-                     */
-                    decrement_weak();
-
-                    return true;
-                }
-                else
-                    return false;
-            }
-
-            bool decrement_weak() noexcept override
-            {
-                return __atomic_sub_fetch(&weak_refcount_, 1, __ATOMIC_ACQ_REL) == 0 && refs() == 0;
-            }
-
-            refcount_t refs() const noexcept override
-            {
-                return __atomic_load_n(&refcount_, __ATOMIC_RELAXED);
-            }
-
-            refcount_t weak_refs() const noexcept override
-            {
-                return __atomic_load_n(&weak_refcount_, __ATOMIC_RELAXED);
-            }
-
-            bool expired() const noexcept override
-            {
-                return refs() == 0;
-            }
-
             shared_payload_base<T>* lock() noexcept override
             {
-                refcount_t rfs = refs();
+                refcount_t rfs = this->refs();
                 while (rfs != 0L)
                 {
-                    if (__atomic_compare_exchange_n(&refcount_, &rfs, rfs + 1,
+                    if (__atomic_compare_exchange_n(&this->refcount_, &rfs, rfs + 1,
                                                     true, __ATOMIC_RELAXED,
                                                     __ATOMIC_RELAXED))
                     {
@@ -207,16 +146,6 @@ namespace std::aux
         private:
             T* data_;
             D deleter_;
-
-            /**
-             * We're using a trick where refcount_ > 0
-             * means weak_refcount_ has 1 added to it,
-             * this makes it easier for weak_ptrs that
-             * can't decrement the weak_refcount_ to
-             * zero with shared_ptrs using this object.
-             */
-            refcount_t refcount_;
-            refcount_t weak_refcount_;
     };
 }
 
