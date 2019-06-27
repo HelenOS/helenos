@@ -8,6 +8,7 @@ project(
     'HelenOS',
     [ 'c', 'cpp' ],
     default_options : ['buildtype=plain', 'c_std=gnu11', 'cpp_std=c++17', 'warning_level=3', 'werror=false', 'b_staticpic=false', 'default_library=shared', 'prefix=/' ],
+    meson_version: '>=0.50.1',
 )
 
 cc = meson.get_compiler('c')
@@ -27,6 +28,23 @@ autocheck = generator(find_program('tools/autocheck.awk'),
 	capture: true,
 )
 
+# Tar's arguments make sure that the archive is reproducible.
+tar = [
+	find_program('tar'),
+	'-c',
+	'-f', '@OUTPUT@',
+	'--mtime=1970-01-01 00:00:00Z',
+	'--group=0',
+	'--owner=0',
+	'--numeric-owner',
+	'--mode=go=rX,u+rw,a-s',
+	'--no-acls',
+	'--no-selinux',
+	'--no-xattrs',
+	'--format=ustar',
+	'--transform', 's:@OUTDIR@/::',
+	'@INPUT@',
+]
 
 if get_option('default_library') == 'both'
 	error('You must use either shared or static for default_library.')

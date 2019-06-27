@@ -33,6 +33,14 @@ _images = files(
 	'gfx/frame30.tga.gz',
 )
 
+_tarball = custom_target('barber_images.tar',
+	input: _images,
+	output: 'barber_images.tar',
+	command: tar,
+)
+
+# TODO
+
 _images_zip = custom_target('barber_images.zip',
 	input : _images,
 	output : [ 'images.zip' ],
