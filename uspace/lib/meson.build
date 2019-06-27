@@ -64,7 +64,6 @@ testfiles = []
 
 # Text of the install script.
 uspace_lib_install_script_text = []
-uspace_lib_install_depends = []
 
 foreach l : libs
 	# Variables that might be defined in library meson files:
@@ -145,7 +144,6 @@ foreach l : libs
 		deps += 'cpp'
 	endif
 
-	# TODO: install mapfile if install_debug_data is true
 	mapfile = meson.current_build_dir() / 'lib' + l + '.map'
 
 	link_args = [ '-Wl,--no-undefined,--no-allow-shlib-undefined' ]
@@ -174,6 +172,8 @@ foreach l : libs
 
 	if src.length() > 0
 		if not always_static
+			_libname = 'lib' + l + '.so.' + version.split('.')[0]
+
 			_shared_lib = shared_library(l, src,
 				# TODO: Include private headers using #include "quoted",
 				#       and get rid of private_includes.
@@ -184,20 +184,30 @@ foreach l : libs
 				link_args: arch_uspace_c_args + arch_uspace_link_args + link_args,
 				version: version,
 				build_by_default: true,
-				install: install_shared_lib,
-				install_dir: 'lib',
 			)
 
+			if install_shared_lib
+				install_files += [[ 'lib', _shared_lib.full_path(), _libname ]]
+				install_deps += [ _shared_lib ]
+			endif
+
+			if install_shared_lib and install_debug_files
+				install_files += [[ 'debug/lib', mapfile, _libname + '.map' ]]
+			endif
+
 			if disassemble
-				custom_target('lib' + l + '.disasm',
+				_disasm = custom_target('lib' + l + '.disasm',
 					command: [ objdump, '-S', '@INPUT@' ],
 					input: _shared_lib,
 					output: 'lib' + l + '.disasm',
 					capture: true,
 					build_by_default: true,
-					install: install_debug_files,
-					install_dir: join_paths('debug', 'lib'),
 				)
+
+				if install_shared_lib and install_debug_files
+					install_files += [[ 'debug/lib', _disasm.full_path(), _libname + '.disasm' ]]
+					install_deps += [ _disasm ]
+				endif
 			endif
 
 			_shared_dep = declare_dependency(
@@ -216,9 +226,12 @@ foreach l : libs
 			dependencies: _include_deps,
 			c_args: arch_uspace_c_args + c_args,
 			cpp_args: arch_uspace_c_args + c_args,
-			install: install_static_lib,
-			install_dir: 'lib',
 		)
+
+		if install_static_lib
+			install_files += [[ 'lib', _static_lib.full_path(), 'lib' + l + '.a' ]]
+			install_deps += [ _static_lib ]
+		endif
 
 		_static_dep = declare_dependency(
 			link_with: _static_lib,
@@ -300,15 +313,16 @@ foreach test : testfiles
 		include_directories: test.get('includes'),
 		dependencies: [ get_variable('lib' + _libname).get('any'), libpcut.get('any') ],
 		objects: startfiles,
-		install: true,
-		install_dir: 'test',
 		c_args: arch_uspace_c_args,
 		cpp_args: arch_uspace_c_args,
 		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,
 	)
 
+	install_files += [[ 'test', _bin.full_path(), _test_binname ]]
+	install_deps += [ _bin ]
+
 	if disassemble
-		custom_target(_test_binname + '.disasm',
+		_disasm = custom_target(_test_binname + '.disasm',
 			command: [ objdump, '-S', '@INPUT@' ],
 			input: _bin,
 			output: _test_binname + '.disasm',
@@ -316,5 +330,8 @@ foreach test : testfiles
 			install: install_debug_files,
 			install_dir: 'debug' / 'test',
 		)
+
+		install_files += [[ 'debug/test', _disasm.full_path(), _test_binname + '.disasm' ]]
+		install_deps += [ _disasm ]
 	endif
 endforeach
