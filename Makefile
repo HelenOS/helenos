@@ -68,24 +68,24 @@ ifeq ($(MACHINE),bmalta)
 	CROSS_TARGET = mips32eb
 endif
 
-.PHONY: all precheck cscope cscope_parts autotool config_default config distclean clean check releasefile release common export-posix space
+.PHONY: all precheck cscope cscope_parts autotool config_default config distclean clean check releasefile release meson export-posix space
 
-all: common export-cross test-xcw
+all: meson export-cross test-xcw
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK) BUILD_DIR=$(BUILD_DIR)
 
 $(BUILD_DIR)/build.ninja: Makefile.config version
 	PATH="$(CROSS_PATH):$$PATH" meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET) $(MESON_ARGS)
 
-common: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
+meson: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
 	PATH="$(CROSS_PATH):$$PATH" ninja -C $(BUILD_DIR)
 	PATH="$(CROSS_PATH):$$PATH" DESTDIR="$(BUILD_DIR)/dist" meson install --no-rebuild --only-changed -C $(BUILD_DIR) > $(BUILD_DIR)/install.log
 
-test-xcw: common export-cross
+test-xcw: meson export-cross
 ifeq ($(CONFIG_DEVEL_FILES),y)
 	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo
 endif
 
-export-posix: common
+export-posix: meson
 ifndef EXPORT_DIR
 	@echo ERROR: Variable EXPORT_DIR is not defined. && false
 else
@@ -93,7 +93,7 @@ else
 	$(MAKE) -r -C uspace/lib/posix export EXPORT_DIR=$(abspath $(EXPORT_DIR)) UARCH=$(UARCH)
 endif
 
-export-cross: common
+export-cross: meson
 	mkdir -p uspace/export
 	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath uspace/export) UARCH=$(UARCH)
 
