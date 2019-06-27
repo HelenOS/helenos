@@ -80,4 +80,9 @@ namespace std
     {
         return code_;
     }
+
+    const char* future_error::what() const noexcept
+    {
+        return code().message().c_str();
+    }
 }
