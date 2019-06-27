@@ -21,6 +21,7 @@ objdump = find_program('objdump')
 sed = find_program('sed')
 unzip = find_program('unzip')
 which = find_program('which')
+sh = find_program('sh')
 
 autocheck = generator(find_program('tools/autocheck.awk'),
 	arguments: [ '@INPUT@' ],
@@ -381,8 +382,6 @@ config_mk = configure_file(
 	input: 'config.mk.in',
 	output: 'config.mk',
 	configuration: conf_data,
-	install: true,
-	install_dir: 'config',
 )
 
 custom_target('config.sh',
@@ -390,11 +389,14 @@ custom_target('config.sh',
 	output: 'config.sh',
 	command: [ sed, 's:$(HELENOS_EXPORT_ROOT):${HELENOS_EXPORT_ROOT}:g', '@INPUT@' ],
 	capture: true,
-	install: true,
-	install_dir: 'config',
 )
 
-install_data('Makefile.common', 'Makefile.config', install_dir: 'config')
+install_files += [[ 'config', meson.current_build_dir() / 'config.mk', 'config.mk' ]]
+install_files += [[ 'config', meson.current_build_dir() / 'config.sh', 'config.sh' ]]
+
+# TODO: remove
+install_files += [[ 'config', meson.current_source_dir() / 'Makefile.common', 'Makefile.common' ]]
+install_files += [[ 'config', meson.current_source_dir() / 'Makefile.config', 'Makefile.config' ]]
 
 
 # Emit and register the install script.
@@ -402,16 +404,27 @@ install_data('Makefile.common', 'Makefile.config', install_dir: 'config')
 install_script_text = []
 
 foreach f : install_files
-	_cmd = 'mkdir -p "${MESON_INSTALL_DESTDIR_PREFIX}@0@" && cp -L -T "@1@" "${MESON_INSTALL_DESTDIR_PREFIX}@0@/@2@"'
+	_cmd = 'mkdir -p "${DESTDIR}@0@" && cp -L -T "@1@" "${DESTDIR}@0@/@2@"'
 	install_script_text += _cmd.format(f[0], f[1], f[2])
 endforeach
 
 install_script_text += uspace_lib_install_script_text
 
-configure_file(
+install_script_name = meson.current_build_dir() / 'install.sh'
+
+install_script = configure_file(
 	configuration: { 'text' : '\n'.join(install_script_text) },
 	input: 'install.sh.in',
 	output: 'install.sh',
 )
 
-meson.add_install_script(meson.current_build_dir() / 'install.sh')
+meson.add_install_script(install_script_name)
+
+custom_target('DIST',
+	output: 'dist.log',
+	input: [ install_script, install_deps ],
+	command: [ sh, '@INPUT0@', meson.current_build_dir()/'dist/' ],
+	capture: true,
+	build_by_default: true,
+)
+

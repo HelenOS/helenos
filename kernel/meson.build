@@ -126,11 +126,11 @@ kernel_map_S = custom_target('empty_map.S',
 
 foreach iter : iterations
 	is_last = (iter == iterations.length())
-	kernel_name = is_last ? 'kernel' : 'kernel.@0@'.format(iter)
+	kernel_name = 'kernel.@0@.elf'.format(iter)
 	kernel_map_name = kernel_name + '.map'
 	kernel_map_path = meson.current_build_dir() / kernel_map_name
 
-	kernel_elf = executable(kernel_name + '.elf', kernel_map_S,
+	kernel_elf = executable(kernel_name, kernel_map_S,
 		include_directories: kernel_include_dirs,
 		implicit_include_directories: false,
 		c_args: kernel_c_args,
@@ -166,11 +166,12 @@ foreach iter : iterations
 endforeach
 
 install_files += [[ 'boot', kernel_elf.full_path(), 'kernel.elf' ]]
+install_deps += [ kernel_elf ]
 
-kernel_disasm = custom_target(kernel_name + '.disasm',
+kernel_disasm = custom_target('kernel.elf.disasm',
 	command: [ objdump, '-S', '@INPUT@' ],
 	input: kernel_elf,
-	output: kernel_name + '.disasm',
+	output: 'kernel.elf.disasm',
 	capture: true,
 	build_by_default: true,
 )
@@ -178,4 +179,5 @@ kernel_disasm = custom_target(kernel_name + '.disasm',
 # TODO: Add configuration option for installing debug files
 if false
 	install_files += [[ 'boot', kernel_disasm.full_path(), 'kernel.elf.disasm' ]]
+	install_deps += [ kernel_disasm ]
 endif

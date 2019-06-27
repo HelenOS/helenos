@@ -21,11 +21,11 @@ allow_shared = true
 #        we should instead move the duplicated library parts into a shared location.
 
 if CONFIG_DEVEL_FILES
-	uspace_lib_install_script_text += 'mkdir -p "${MESON_INSTALL_DESTDIR_PREFIX}include/libc"'
+	uspace_lib_install_script_text += 'mkdir -p "${DESTDIR}include/libc"'
 
 	foreach idir : incdirs
 		_sdir = meson.current_source_dir() / idir
-		uspace_lib_install_script_text += 'cp -R -L -T "@0@" "${MESON_INSTALL_DESTDIR_PREFIX}include/libc"'.format(_sdir)
+		uspace_lib_install_script_text += 'cp -R -L -T "@0@" "${DESTDIR}include/libc"'.format(_sdir)
 	endforeach
 endif
 
