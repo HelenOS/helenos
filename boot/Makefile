@@ -26,24 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.PHONY: all build_dist clean_dist clean
+.PHONY: all clean
 
 include Makefile.common
 
-all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(PREBUILD) build_dist
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(PREBUILD)
 	$(MAKE) -r -f $(BUILD) PRECHECK=$(PRECHECK)
 ifneq ($(POSTBUILD),)
 	$(MAKE) -r -f $(POSTBUILD) PRECHECK=$(PRECHECK)
 endif
 
-build_dist: clean_dist
-
-
-	if ls $(DIST_OVERLAY_PATH)/* >/dev/null 2>/dev/null; then \
-		cp -r -L $(DIST_OVERLAY_PATH)/* "$(DIST_PATH)"; \
-	fi
-
-clean: clean_dist
+clean:
 	$(MAKE) -r -f $(BUILD) clean PRECHECK=$(PRECHECK)
 ifneq ($(POSTBUILD),)
 	$(MAKE) -r -f $(POSTBUILD) clean PRECHECK=$(PRECHECK)
@@ -51,17 +44,3 @@ endif
 	rm -f $(POST_OUTPUT) $(BOOT_OUTPUT) arch/*/include/common.h
 	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
 	find . -name '*.d' -follow -exec rm \{\} \;
-
-clean_dist:
-	rm -f $(INITRD).img $(COMPS).o $(COMPS).tar $(LINK)
-	find $(USPACE_PATH)/dist -mindepth 1 -maxdepth 1 -type f -exec rm \{\} \;
-	rm -rf $(USPACE_PATH)/dist/app
-	rm -f $(USPACE_PATH)/dist/cfg/*
-	rm -rf $(USPACE_PATH)/dist/srv
-	rm -rf $(USPACE_PATH)/dist/drv/*
-	rm -rf $(USPACE_PATH)/dist/lib/*
-	rm -rf $(USPACE_PATH)/dist/inc/*
-	rm -f $(USPACE_PATH)/dist/app/*
-	rm -f $(USPACE_PATH)/dist/test/*
-	rm -f $(USPACE_PATH)/dist/cfg/net/*
-	rm -f $(USPACE_PATH)/dist/w/*

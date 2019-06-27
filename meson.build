@@ -422,6 +422,12 @@ install_script_text = []
 _uspace = meson.current_source_dir() / 'uspace'
 install_script_text += 'cp -r -L -T -u "@0@/dist" "${DESTDIR}"'.format(_uspace)
 
+# Copy uspace/overlay
+install_script_text += 'if ls @0@/overlay/* >/dev/null 2>/dev/null; then'.format(_uspace)
+install_script_text += 'cp -r -L @0@/overlay/* "${DESTDIR}"'.format(_uspace)
+install_script_text += 'fi'
+
+
 foreach f : install_files
 	_cmd = 'mkdir -p "${DESTDIR}@0@" && cp -L -T "@1@" "${DESTDIR}@0@/@2@"'
 	install_script_text += _cmd.format(f[0], f[1], f[2])
