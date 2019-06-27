@@ -122,10 +122,17 @@ foreach l : libs
 			includes += include_directories(incdir)
 
 			if CONFIG_DEVEL_FILES and installed_libs.contains(l)
-				install_subdir(l / 'include', install_dir: 'include' / 'lib' + l, strip_directory: true)
+				_sdir = meson.current_source_dir() / l / 'include'
+				uspace_lib_install_script_text += 'cp -R -L -T "@0@" "${MESON_INSTALL_DESTDIR_PREFIX}include/lib@1@"'.format(_sdir, l)
 			endif
 		else
 			includes += include_directories(l)
+
+			if CONFIG_DEVEL_FILES and installed_libs.contains(l)
+				_sdir = meson.current_source_dir() / l
+				uspace_lib_install_script_text += 'mkdir -p "${MESON_INSTALL_DESTDIR_PREFIX}include/lib@0@"'.format(l)
+				uspace_lib_install_script_text += 'cp -L -t "${MESON_INSTALL_DESTDIR_PREFIX}include/lib@0@" "@1@"/*.h'.format(l, _sdir)
+			endif
 		endif
 	endif
 

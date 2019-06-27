@@ -6,13 +6,14 @@ install_nonessential_data = not CONFIG_BAREBONE
 # This is currently disabled due to boot image size restrictions.
 install_debug_files = false
 
+install_files = []
+install_deps = []
+
 subdir('lib')
 subdir('app')
 subdir('srv')
 subdir('drv')
 
-install_files = []
-install_deps = []
 dirs = []
 
 foreach app : apps

@@ -17,20 +17,4 @@ export CONFIG_DEVEL_FILES=$1
 	# Install library headers that are mixed in with source files (no separate 'include' subdir).
 	# The properly separated headers are installed by the meson script.
 
-	# TODO We don't currently install them all due to image size issues
-	installed_libs="lib/c lib/gui lib/draw lib/softrend"
-
-	if $CONFIG_DEVEL_FILES; then
-		echo "######## Installing headers ########"
-		cd ${MESON_SOURCE_ROOT}/uspace
-
-		incdir="${MESON_INSTALL_DESTDIR_PREFIX}include"
-
-		for libdir in ${installed_libs}; do
-			if [ -d ${libdir} -a ! -d ${libdir}/include ]; then
-				find ${libdir} -maxdepth 1 -name '*.h' -a '!' -path ${libdir}'/doc/*' | sed 's:^lib/::' | xargs --verbose -I'@' install -C -D -m644 -T 'lib/@' ${incdir}'/lib@'
-			fi
-		done
-	fi
-
 ) > ${MESON_BUILD_ROOT}/install_custom.log 2>&1
