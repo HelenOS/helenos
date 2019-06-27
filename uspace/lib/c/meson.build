@@ -214,9 +214,11 @@ start_src = [ arch_start_src, files('generic/crt/crt1.c') ]
 libstartfiles = static_library('startfiles', start_src,
 	include_directories: includes,
 	c_args: arch_uspace_c_args + c_args,
-	install: CONFIG_DEVEL_FILES,
-	install_dir: 'lib',
 	pic: false,
 )
+
+if CONFIG_DEVEL_FILES
+	install_files += [[ 'lib', libstartfiles.full_path(), 'libstartfiles.a' ]]
+endif
 
 startfiles = libstartfiles.extract_all_objects()
