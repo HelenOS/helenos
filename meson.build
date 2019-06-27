@@ -22,6 +22,8 @@ sed = find_program('sed')
 unzip = find_program('unzip')
 which = find_program('which')
 sh = find_program('sh')
+mkext4 = find_program('tools/mkext4.py')
+mkfat = find_program('tools/mkfat.py')
 
 autocheck = generator(find_program('tools/autocheck.awk'),
 	arguments: [ '@INPUT@' ],
@@ -443,15 +445,31 @@ install_script = configure_file(
 
 # Build up dist
 
+dist_dir = meson.current_build_dir()/'dist/'
+
 dist = custom_target('DIST',
 	output: 'dist.tag',
 	input: [ install_script, install_deps ],
-	command: [ sh, '-x', '-u', '-e', '@INPUT0@', '@OUTPUT@', meson.current_build_dir()/'dist/' ],
+	command: [ sh, '-x', '-u', '-e', '@INPUT0@', '@OUTPUT@', dist_dir ],
 	build_by_default: true,
 )
 
-#initrd_img = custom_target('initrd.img',
-#	output: 'initrd.img',
-#	input: dist,
+# Build initrd image
 
+if RDFMT == 'tmpfs'
+	initrd_cmd = [ 'tar', '-c', '-f', '@OUTPUT@', '-C', dist_dir, '.' ]
+elif RDFMT == 'fat'
+	initrd_cmd = [ mkfat, '1048576', dist_dir, '@OUTPUT@' ]
+elif RDFMT == 'ext4fs'
+	initrd_cmd = [ mkext4, '1048576', dist_dir, '@OUTPUT@' ]
+else
+	error('Unknown RDFMT: ' + RDFMT)
+endif
+
+initrd_img = custom_target('initrd.img',
+	output: 'initrd.img',
+	input: dist,
+	command: initrd_cmd,
+	build_by_default: true,
+)
 

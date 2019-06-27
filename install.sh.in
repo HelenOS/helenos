@@ -10,7 +10,7 @@ else
 	DESTDIR="${MESON_INSTALL_DESTDIR_PREFIX}"
 fi
 
-rm -r "${DESTDIR}"
+rm -rf "${DESTDIR}"
 
 mkdir -p "${DESTDIR}cfg/"
 mkdir -p "${DESTDIR}data/"
