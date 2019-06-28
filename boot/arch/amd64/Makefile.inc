@@ -28,5 +28,5 @@
 
 POST_OUTPUT = $(ROOT_PATH)/image.iso
 BUILD = Makefile.empty
-POSTBUILD = Makefile.grub
+POSTBUILD = Makefile.empty
 GRUB_LOADER = multiboot
