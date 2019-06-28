@@ -165,6 +165,8 @@ foreach iter : iterations
 	endif
 endforeach
 
+rd_init_binaries += [[ kernel_elf, 'boot/kernel.elf' ]]
+
 install_files += [[ 'boot', kernel_elf.full_path(), 'kernel.elf' ]]
 install_deps += [ kernel_elf ]
 

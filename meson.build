@@ -21,9 +21,27 @@ objdump = find_program('objdump')
 sed = find_program('sed')
 unzip = find_program('unzip')
 which = find_program('which')
-sh = find_program('sh')
+sh = [ find_program('sh'), '-x', '-u', '-e' ]
 mkext4 = find_program('tools/mkext4.py')
 mkfat = find_program('tools/mkfat.py')
+cp = find_program('cp')
+
+genisoimage = find_program('genisoimage', required: false)
+
+if not genisoimage.found()
+	genisoimage = find_program('mkisofs', required: false)
+endif
+
+if not genisoimage.found()
+	xorriso = find_program('xorriso', required: false)
+
+	if xorriso.found()
+		genisoimage = [ xorriso, '-as', 'genisoimage' ]
+	else
+		error('Need genisoimage, mkisofs or xorriso.')
+	endif
+endif
+
 
 autocheck = generator(find_program('tools/autocheck.awk'),
 	arguments: [ '@INPUT@' ],
@@ -135,6 +153,8 @@ config_variables = [
 
 	'UARCH',
 	'KARCH',
+	'BARCH',
+	'GRUB_ARCH',
 ]
 
 foreach varname : config_variables
@@ -274,15 +294,19 @@ endforeach
 
 # Init binaries.
 rd_init = [
-	'app/init',
-	'srv/bd/rd',
-	'srv/fs/' + RDFMT,
-	'srv/loader',
-	'srv/locsrv',
-	'srv/logger',
+	# IMPORTANT: The order of entries is important for bootloader!
 	'srv/ns',
+	'srv/loader',
+	'app/init',
+	'srv/locsrv',
+	'srv/bd/rd',
 	'srv/vfs',
+	'srv/logger',
+	'srv/fs/' + RDFMT,
 ]
+
+# References to the actual binary files. Filled in by uspace.
+rd_init_binaries = []
 
 # Binaries allowed on the initrd image when CONFIG_BAREBONE is enabled.
 rd_essential = rd_init + [
@@ -450,8 +474,7 @@ dist_dir = meson.current_build_dir()/'dist/'
 dist = custom_target('DIST',
 	output: 'dist.tag',
 	input: [ install_script, install_deps ],
-	command: [ sh, '-x', '-u', '-e', '@INPUT0@', '@OUTPUT@', dist_dir ],
-	build_by_default: true,
+	command: [ sh, '@INPUT0@', '@OUTPUT@', dist_dir ],
 )
 
 # Build initrd image
@@ -470,6 +493,15 @@ initrd_img = custom_target('initrd.img',
 	output: 'initrd.img',
 	input: dist,
 	command: initrd_cmd,
-	build_by_default: true,
 )
 
+rd_init_binaries += [[ initrd_img, 'boot/initrd.img' ]]
+
+subdir('boot')
+
+custom_target(POST_OUTPUT,
+	output: POST_OUTPUT,
+	input: POST_INPUT,
+	command: [ cp, '@INPUT@', '@OUTPUT@' ],
+	build_by_default: true,
+)

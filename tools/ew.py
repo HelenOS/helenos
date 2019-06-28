@@ -269,7 +269,7 @@ def qemu_run(platform, machine, processor):
 		cmdline += ' -m 4G'
 
 	if cfg['image'] == 'image.iso':
-		cmdline += ' -boot d -cdrom image.iso'
+		cmdline += ' -boot d -cdrom build/image.iso'
 	elif cfg['image'] == 'image.iso@arm64':
 		# Define image.iso cdrom backend.
 		cmdline += ' -drive if=none,file=image.iso,id=cdrom,media=cdrom'

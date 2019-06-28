@@ -1,0 +1,16 @@
+#!/bin/sh
+
+DIST_DIR="$1"
+GRUB_DIR="$2"
+GRUB_CFG="$3"
+
+# TODO: keep the original and compare them
+rm -rf ${DIST_DIR}
+
+mkdir -p ${DIST_DIR}/boot/grub
+cp -r -L -t ${DIST_DIR}/boot/grub ${GRUB_DIR}/*
+cp ${GRUB_CFG} ${DIST_DIR}/boot/grub
+
+gunzip -q ${DIST_DIR}/boot/grub/*.gz || true
+
+@text@

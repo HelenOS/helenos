@@ -30,5 +30,4 @@ BOOT_OUTPUT =
 RAW =
 JOB =
 MAP =
-PREBUILD =
 BUILD = Makefile.empty

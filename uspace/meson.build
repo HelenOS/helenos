@@ -126,6 +126,7 @@ foreach appdirs : dirs
 			'dependencies': _deps,
 			'c_args': c_args,
 			'link_args': link_args + (static_build ? [ '-static' ] : []),
+			'init': rd_init.contains(dir),
 		}
 	endif
 
@@ -142,6 +143,7 @@ foreach appdirs : dirs
 			'dependencies': [ _deps, libpcut.get('any') ],
 			'c_args': c_args,
 			'link_args': link_args,
+			'init': false,
 		}
 	endif
 endforeach
@@ -156,6 +158,7 @@ foreach tst : bin_targets
 	_full_install_path = _install_dir / _basename
 	_build_name = _full_install_path.underscorify()
 	_full_build_name = meson.current_build_dir() / _build_name
+	_is_init = tst.get('init')
 
 	if link_map
 		# We want linker to generate link map for debugging.
@@ -172,6 +175,10 @@ foreach tst : bin_targets
 		implicit_include_directories: false,
 		build_by_default: true,
 	)
+
+	if _is_init
+		rd_init_binaries += [[ _bin, _full_install_path ]]
+	endif
 
 	if disassemble
 		_disasm = custom_target(_build_name + '.disasm',
