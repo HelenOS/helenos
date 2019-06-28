@@ -278,7 +278,7 @@ def qemu_run(platform, machine, processor):
 		# Define cdrom frontend connected to this scsi bus.
 		cmdline += ' -device scsi-cd,drive=cdrom'
 	elif cfg['image'] == 'image.boot':
-		cmdline += ' -kernel image.boot'
+		cmdline += ' -kernel build/image.boot'
 	else:
 		cmdline += ' ' + cfg['image']
 

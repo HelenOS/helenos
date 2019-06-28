@@ -53,14 +53,6 @@ MKFAT = $(TOOLS_PATH)/mkfat.py
 MKEXT4 = $(TOOLS_PATH)/mkext4.py
 MKUIMAGE = $(TOOLS_PATH)/mkuimage.py
 
-ifeq ($(PRECHECK),y)
-	JOBFILE = $(TOOLS_PATH)/jobfile.py
-	# NOTE: You must not change the order of arguments.
-	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
-else
-	CC_JOB = $(CC) $< -o $@
-endif
-
 DISTROOT = distroot
 INITRD = initrd
 
@@ -101,6 +93,5 @@ MODULES := $(notdir $(COMPONENTS))
 
 BOOT_OUTPUT ?= $(ROOT_PATH)/image.boot
 RAW ?= image.raw
-JOB ?= image.job
 MAP ?= image.map
 BUILD ?= Makefile.build

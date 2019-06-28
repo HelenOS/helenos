@@ -22,6 +22,9 @@ arch_kernel_c_args = arch_uspace_c_args + [ '-mno-unaligned-access', '-mfpu=vfpv
 arch_kernel_link_args = [ '-nostdlib', '-Wl,-z,max-page-size=0x1000' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
 
+arch_boot_c_args = arch_kernel_c_args
+arch_boot_link_args = arch_kernel_link_args
+
 
 rd_essential += [
 	'drv/bus/usb/ehci',

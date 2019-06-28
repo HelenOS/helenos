@@ -26,53 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ifeq ($(MACHINE), gta02)
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	LADDR = 0x30008000
-	SADDR = 0x30008000
-	POSTBUILD = Makefile.uboot
-endif
-
-ifeq ($(MACHINE), $(filter $(MACHINE),beagleboardxm beaglebone))
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	LADDR = 0x80000000
-	SADDR = 0x80000000
-	POSTBUILD = Makefile.uboot
-endif
-
-ifeq ($(MACHINE), raspberrypi)
-	BOOT_OUTPUT = image.boot
-	POST_OUTPUT = $(ROOT_PATH)/uImage.bin
-	LADDR = 0x00008000
-	SADDR = 0x00008000
-	POSTBUILD = Makefile.uboot
-endif
-
-BFD_NAME = elf32-littlearm
-BFD_OUTPUT = $(BFD_NAME)
-
-BITS = 32
-ENDIANESS = LE
-EXTRA_CFLAGS = -march=$(subst _,-,$(PROCESSOR_ARCH)) -mno-unaligned-access
-
-SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/eabi.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/mm.c \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS).o \
-	genarch/src/division.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c \
-	generic/src/gzip.c \
-	generic/src/tar.c \
-	generic/src/kernel.c \
-	generic/src/payload.c
+BUILD = Makefile.empty
+POSTBUILD = Makefile.empty

@@ -26,7 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-POST_OUTPUT = $(ROOT_PATH)/image.iso
 BUILD = Makefile.empty
 POSTBUILD = Makefile.empty
-GRUB_LOADER = multiboot

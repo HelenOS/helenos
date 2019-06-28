@@ -1,6 +1,160 @@
-
 subdir('arch' / BARCH)
+
+if BUILD
+	# Order matters.
+	modules = [ 'boot/kernel.elf' ] + rd_init + [ 'boot/initrd.img' ]
+	moddeps = []
+	name_transform = ''
+
+	# Collect binary references in the correct order.
+	foreach m : modules
+		found = false
+		foreach bin : rd_init_binaries
+			if bin[1] == m
+				moddeps += bin[0]
+				found = true
+
+				_oldname = run_command(basename, bin[0].full_path(), check: true).stdout().strip()
+				_newname = run_command(basename, bin[1], check: true).stdout().strip()
+
+				name_transform += 's:.*/@0@:@1@:;'.format(_oldname, _newname)
+				break
+			endif
+		endforeach
+
+		if not found
+			error('Could not find dependency ' + m)
+		endif
+	endforeach
+
+
+	boot_include_dirs = include_directories(
+		'generic/include',
+		'arch'/BARCH/'include',
+		'genarch/include',
+		'../abi/arch'/BARCH/'include',
+		'../abi/include',
+	)
+
+	boot_defs = [
+		'-imacros', meson.source_root() / 'config.h',
+		'-D_HELENOS_SOURCE',
+		'-DBOOT',
+		'-DRELEASE=' + HELENOS_RELEASE,
+		'-DCOPYRIGHT=' + HELENOS_COPYRIGHT,
+		'-DNAME=' + HELENOS_NAME,
+		'-D__@0@_BITS__'.format(meson.get_cross_property('bits')),
+	]
+
+	boot_c_args = arch_boot_c_args + boot_defs + [
+		'-ffreestanding',
+	]
+
+	boot_link_args = arch_boot_link_args + [
+		'-nostdlib',
+		'-Wl,--nmagic',
+		'-T', meson.current_build_dir()/'_link.ld',
+		'-Wl,--no-gc-sections',
+	]
+
+	if cc.get_id() == 'clang'
+		boot_c_args += [
+			'-fno-stack-protector',
+			'-fno-PIC',
+		#	'-mllvm', '-asm-macro-max-nesting-depth=1000',
+		]
+	endif
+
+	# Preprocess linker script using C preprocessor.
+	boot_ldscript = custom_target('_link.ld',
+		input: 'arch'/KARCH/'_link.ld.in',
+		output: '_link.ld',
+		command: [
+			cc.cmd_array(),
+			boot_c_args,
+			'-I' + meson.current_source_dir()/'arch'/KARCH/'include',
+			'-D__ASSEMBLER__',
+			'-D__LINKER__',
+			'-E',
+			'-P',
+			'-x', 'c',
+			'@INPUT@',
+		],
+		capture: true,
+	)
+
+	# Create empty object file.
+	boot_empty_o = custom_target('empty.o',
+		output: 'empty.o',
+		command: [
+			cc.cmd_array(),
+			boot_c_args,
+			'-x', 'c',
+			'-c',
+			'-o', '@OUTPUT@',
+			'-',
+		],
+	)
+
+	boot_comps_tar = custom_target('components.tar',
+		input: moddeps,
+		output: 'components.tar',
+		command: [ tar, '--transform', name_transform ],
+	)
+
+	# Add .payload section to the empty object.
+	boot_comps_o = custom_target('components.o',
+		output: 'components.o',
+		input: [ boot_comps_tar, boot_empty_o ],
+		command: [
+			objcopy,
+			'--add-section', '.payload=@INPUT0@',
+			'@INPUT1@',
+			'@OUTPUT@',
+		],
+	)
+
+	boot_image_name = 'image.boot'
+	boot_image_map_path = meson.current_build_dir()/boot_image_name + '.map'
+
+	boot_elf = executable(boot_image_name + '.elf', boot_src, boot_comps_o,
+		include_directories: boot_include_dirs,
+		implicit_include_directories: false,
+		c_args: boot_c_args,
+		link_args: boot_c_args + boot_link_args + [
+			'-Wl,-Map,' + boot_image_map_path,
+		],
+		link_depends: boot_ldscript,
+		install: true,
+		install_dir: 'boot',
+		pie: false,
+	)
+
+	if boot_image_format == 'elf'
+		boot_image = boot_elf
+	endif
+
+	if boot_image_format == 'binary'
+		# Some platforms can't ELF.
+		boot_image = custom_target(boot_image_name,
+			input: boot_elf,
+			output: boot_image_name,
+			command: [ objcopy, '-O', 'binary', '@INPUT@', '@OUTPUT@' ],
+		)
+	endif
+endif
+
+if POSTBUILD == 'raw'
+	POST_INPUT = boot_image
+endif
 
 if POSTBUILD == 'grub'
 	subdir('grub')
 endif
+
+if POSTBUILD == 'uboot'
+	# TODO
+	error('unfinished')
+endif
+
+
