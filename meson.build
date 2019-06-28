@@ -51,6 +51,12 @@ autocheck = generator(find_program('tools/autocheck.awk'),
 	capture: true,
 )
 
+gzip = generator(find_program('gzip',
+	arguments: [ '--no-name', '-9', '--stdout', '@INPUT@' ]
+	output: '@PLAINNAME@.gz',
+	capture: true,
+)
+
 # Tar's arguments make sure that the archive is reproducible.
 tar = [
 	find_program('tar'),

@@ -26,30 +26,30 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-arch_uspace_c_args = [ '-D__LE__', '-fno-omit-frame-pointer' ]
-arch_kernel_c_args = arch_uspace_c_args + [ '-march=armv8-a+nofp+nosimd', '-mgeneral-regs-only' ]
-arch_kernel_link_args = [ '-nostdlib' ]
-arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
+BUILD = true
 
+POST_OUTPUT = 'image.iso'
+POSTBUILD = 'grub'
+GRUB_LOADER = 'chainloader'
 
-# UEFI binaries should be relocatable, the EFI boot service LoadImage() will
-# rebase the boot file using the .reloc information in the image if it cannot
-# load the binary at its preferred address. The ARM64 port does not provide this
-# information in its PE file (that would require manually creating it) but
-# instead the boot code is compiled with the -fpic option and the bootloader
-# relocates itself at runtime.
-#
-# N.B. The UEFI guarantees for AArch64 that during boot time the primary
-# processor is in the execution mode that has unaligned access enabled. The
-# -mstrict-align option is therefore not needed.
-arch_boot_c_args = arch_uspace_c_args + [ '-fpic', '-fvisibility=hidden', '-fno-function-sections' ]
-arch_boot_link_args = [ '-Wl,-shared', '-Wl,--no-gc-sections' ]
+# Request binary output. The ARM64 port manually prepares the .text
+# section to look as a PE file than can be loaded on EFI systems.
+boot_image_format = 'binary'
 
-
-if MACHINE == 'virt'
-	rd_essential += [
-		'drv/char/pl011',
-		'drv/intctl/gicv2',
-		'drv/platform/arm64virt',
-	]
-endif
+boot_src = files(
+	'src/asm.S',
+	'src/main.c',
+	'src/relocate.c',
+	'../../genarch/src/efi.c',
+	'../../generic/src/gzip.c',
+	'../../generic/src/inflate.c',
+	'../../generic/src/kernel.c',
+	'../../generic/src/memstr.c',
+	'../../generic/src/payload.c',
+	'../../generic/src/printf.c',
+	'../../generic/src/printf_core.c',
+	'../../generic/src/str.c',
+	'../../generic/src/tar.c',
+	'../../generic/src/version.c',
+	'../../generic/src/vprintf.c',
+)

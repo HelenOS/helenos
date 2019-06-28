@@ -272,7 +272,7 @@ def qemu_run(platform, machine, processor):
 		cmdline += ' -boot d -cdrom build/image.iso'
 	elif cfg['image'] == 'image.iso@arm64':
 		# Define image.iso cdrom backend.
-		cmdline += ' -drive if=none,file=image.iso,id=cdrom,media=cdrom'
+		cmdline += ' -drive if=none,file=build/image.iso,id=cdrom,media=cdrom'
 		# Define scsi bus.
 		cmdline += ' -device virtio-scsi-device'
 		# Define cdrom frontend connected to this scsi bus.

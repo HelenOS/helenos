@@ -4,37 +4,20 @@
 install_snippet = 'mkdir -p ${DIST_DIR}/`dirname @1@`; cp @0@ ${DIST_DIR}/@1@'
 dist_dirname = 'grub_dist'
 
-build_dist_text = []
-build_dist_deps = []
-foreach init : rd_init_binaries
-	target = 'boot/' + run_command(basename, init[1], check: true).stdout().strip()
-
-	build_dist_text += install_snippet.format(init[0].full_path(), target)
-	build_dist_deps += init[0]
-endforeach
-
-build_dist_sh = configure_file(
-	input: 'build_dist.sh.in',
-	output: 'build_dist.sh',
-	configuration: { 'text' : '\n'.join(build_dist_text) },
-)
-
-
-MODULES = rd_init + [ 'boot/initrd.img' ]
-
-if GRUB_ARCH == 'pc'
-	MULTIBOOT_CMD = 'multiboot'
-	MODULE_CMD = 'module'
-	INSMODS = [ 'insmod vbe', 'insmod vga' ]
-elif GRUB_ARCH == 'efi'
-	MULTIBOOT_CMD = 'multiboot2'
-	MODULE_CMD = 'module2'
-	INSMODS = [ 'insmod efi_gop', 'insmod efi_uga' ]
-endif
-
 if GRUB_LOADER == 'multiboot'
+	build_dist_text = []
+	build_dist_deps = []
+	foreach init : rd_init_binaries
+		target = 'boot/' + run_command(basename, init[1], check: true).stdout().strip()
+
+		build_dist_text += install_snippet.format(init[0].full_path(), target)
+		build_dist_deps += init[0]
+	endforeach
+
 	LOADS = [ 'echo \'Loading kernel\'' ]
 	LOADS += [ MULTIBOOT_CMD + ' /boot/kernel.elf' ]
+
+	MODULES = rd_init + [ 'boot/initrd.img' ]
 
 	foreach module : MODULES
 		module = '/boot/' + run_command(basename, module, check: true).stdout().strip()
@@ -44,11 +27,32 @@ if GRUB_LOADER == 'multiboot'
 endif
 
 if GRUB_LOADER == 'chainloader'
+	# init binaries are already part of the chainloaded boot image.
+	build_dist_text = [ install_snippet.format(boot_image.full_path(), 'boot/' + boot_image_name) ]
+	build_dist_deps = [ boot_image ]
+
 	LOADS = [
-		'echo \'Loading ' + BOOT_OUTPUT + '\'',
-		'chainloader /boot/' + BOOT_OUTPUT,
+		'echo \'Loading ' + boot_image_name + '\'',
+		'chainloader /boot/' + boot_image_name,
 		'boot',
 	]
+endif
+
+build_dist_sh = configure_file(
+	input: 'build_dist.sh.in',
+	output: 'build_dist.sh',
+	configuration: { 'text' : '\n'.join(build_dist_text) },
+)
+
+
+if GRUB_ARCH == 'pc'
+	MULTIBOOT_CMD = 'multiboot'
+	MODULE_CMD = 'module'
+	INSMODS = [ 'insmod vbe', 'insmod vga' ]
+elif GRUB_ARCH == 'efi'
+	MULTIBOOT_CMD = 'multiboot2'
+	MODULE_CMD = 'module2'
+	INSMODS = [ 'insmod efi_gop', 'insmod efi_uga' ]
 endif
 
 grub_cfg = configure_file(
