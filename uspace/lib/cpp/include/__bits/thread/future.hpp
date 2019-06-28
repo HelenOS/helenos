@@ -29,11 +29,15 @@
 #ifndef LIBCPP_BITS_THREAD_FUTURE
 #define LIBCPP_BITS_THREAD_FUTURE
 
+#include <__bits/functional/function.hpp>
+#include <__bits/functional/invoke.hpp>
 #include <__bits/refcount_obj.hpp>
 #include <__bits/thread/threading.hpp>
 #include <cassert>
 #include <memory>
 #include <system_error>
+#include <thread>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -103,11 +107,8 @@ namespace std
         class shared_state: public aux::refcount_obj
         {
             public:
-                const bool is_deferred_function;
-
-                shared_state(bool is_deferred = false)
-                    : is_deferred_function{is_deferred}, mutex_{},
-                      condvar_{}, value_{}, value_set_{false},
+                shared_state()
+                    : mutex_{}, condvar_{}, value_{}, value_set_{false},
                       exception_{}, has_exception_{false}
                 {
                     threading::mutex::init(mutex_);
@@ -116,14 +117,20 @@ namespace std
 
                 void destroy() override
                 {
-                    if (this->refs() < 1)
-                    {
-                        // TODO: what to destroy? just this?
-                    }
+                    /**
+                     * Note: No need to act in this case, async shared
+                     *       state is the object that needs to sometimes
+                     *       invoke its payload.
+                     */
                 }
 
                 void set_value(const R& val, bool set)
                 {
+                    /**
+                     * Note: This is the 'mark ready' move described
+                     *       in 30.6.4 (6).
+                     */
+
                     aux::threading::mutex::lock(mutex_);
                     value_ = val;
                     value_set_ = set;
@@ -132,7 +139,7 @@ namespace std
                     aux::threading::condvar::broadcast(condvar_);
                 }
 
-                void set_value(R&& val, bool set)
+                void set_value(R&& val, bool set = true)
                 {
                     aux::threading::mutex::lock(mutex_);
                     value_ = std::move(val);
@@ -142,7 +149,7 @@ namespace std
                     aux::threading::condvar::broadcast(condvar_);
                 }
 
-                void set_set(bool set = true) noexcept
+                void mark_set(bool set = true) noexcept
                 {
                     value_set_ = set;
                 }
@@ -183,7 +190,7 @@ namespace std
                  *       The same applies to the wait_for and wait_until
                  *       functions.
                  */
-                void wait()
+                virtual void wait()
                 {
                     aux::threading::mutex::lock(mutex_);
                     while (!value_set_)
@@ -217,10 +224,7 @@ namespace std
                     return value_set_;
                 }
 
-                ~shared_state()
-                {
-                    // TODO: just destroy?
-                }
+                ~shared_state() override = default;
 
             private:
                 aux::mutex_t mutex_;
@@ -231,6 +235,107 @@ namespace std
 
                 exception_ptr exception_;
                 bool has_exception_;
+        };
+
+        /**
+         * We could make one state for both async and
+         * deferred policies, but then we would be wasting
+         * memory and the only benefit would be the ability
+         * for additional implementation defined policies done
+         * directly in that state (as opposed to making new
+         * states for them).
+         *
+         * But since we have no plan (nor need) to make those,
+         * this approach seems to be the best one.
+         * TODO: Override wait_for and wait_until in both!
+         */
+
+        template<class R, class F, class... Args>
+        class async_shared_state: public shared_state<R>
+        {
+            public:
+                async_shared_state(F&& f, Args&&... args)
+                    : shared_state<R>{}, thread_{}
+                {
+                    thread_ = thread{
+                        [=](){
+                            try
+                            {
+                                this->set_value(invoke(f, args...));
+                            }
+                            catch(...) // TODO: Any exception.
+                            {
+                                // TODO: Store it.
+                            }
+                        }
+                    };
+                }
+
+                void destroy() override
+                {
+                    if (!this->is_set())
+                        thread_.join();
+                }
+
+                void wait() override
+                {
+                    if (!this->is_set())
+                        thread_.join();
+                }
+
+                ~async_shared_state() override
+                {
+                    destroy();
+                }
+
+            private:
+                thread thread_;
+        };
+
+        template<class R, class F, class... Args>
+        class deferred_shared_state: public shared_state<R>
+        {
+            public:
+                template<class G>
+                deferred_shared_state(G&& f, Args&&... args)
+                    : shared_state<R>{}, func_{forward<F>(f)},
+                      args_{forward<Args>(args)...}
+                { /* DUMMY BODY */ }
+
+                void destroy() override
+                {
+                    if (!this->is_set())
+                        invoke_(make_index_sequence<sizeof...(Args)>{});
+                }
+
+                void wait() override
+                {
+                    // TODO: Should these be synchronized for async?
+                    if (!this->is_set())
+                        invoke_(make_index_sequence<sizeof...(Args)>{});
+                }
+
+                ~deferred_shared_state() override
+                {
+                    destroy();
+                }
+
+            private:
+                function<R(decay_t<Args>...)> func_;
+                tuple<decay_t<Args>...> args_;
+
+                template<size_t... Is>
+                void invoke_(index_sequence<Is...>)
+                {
+                    try
+                    {
+                        this->set_value(invoke(move(func_), get<Is>(move(args_))...));
+                    }
+                    catch(...)
+                    {
+                        // TODO: Store it.
+                    }
+                }
         };
     }
 
@@ -358,6 +463,8 @@ namespace std
             void abandon_state_()
             {
                 /**
+                 * Note: This is the 'abandon' move described in
+                 *       30.6.4 (7).
                  * 1) If state is not ready:
                  *   a) Store exception of type future_error with
                  *      error condition broken_promise.
@@ -446,12 +553,13 @@ namespace std
 
                 wait();
 
-                auto state = state_;
-                state_ = nullptr;
-                if (state->has_exception())
-                    state->throw_stored_exception();
+                if (state_->has_exception())
+                    state_->throw_stored_exception();
+                auto res = std::move(state_->get());
 
-                return std::move(state->get());
+                release_state_();
+
+                return res;
             }
 
             bool valid() const noexcept
@@ -499,7 +607,12 @@ namespace std
         private:
             void release_state_()
             {
+                if (!state_)
+                    return;
+
                 /**
+                 * Note: This is the 'release' move described in
+                 *       30.6.4 (5).
                  * Last reference to state -> destroy state.
                  * Decrement refcount of state otherwise.
                  * Will not block, unless all following hold:
@@ -507,6 +620,16 @@ namespace std
                  *  2) State is not yet ready.
                  *  3) This was the last reference to the shared state.
                  */
+                if (state_->decrement())
+                {
+                    /**
+                     * The destroy call handles the special case
+                     * when 1) - 3) hold.
+                     */
+                    state_->destroy();
+                    delete state_;
+                    state_ = nullptr;
+                }
             }
 
             aux::shared_state<R>* state_;
@@ -524,7 +647,7 @@ namespace std
         // TODO: Copy & modify once future is done.
     };
 
-    // TODO: Make sure the move constructor of shared_future
+    // TODO: Make sure the move-future constructor of shared_future
     //       invalidates the state (i.e. sets to nullptr).
     template<class R>
     class shared_future
@@ -602,20 +725,102 @@ namespace std
     struct uses_allocator<packaged_task<R>, Alloc>: true_type
     { /* DUMMY BODY */ };
 
-    template<class F, class... Args>
-    future<result_of_t<decay_t<F>(decay_t<Args>...)>>
-    async(F&& f, Args&&... args)
+    namespace aux
     {
-        // TODO: implement
-        __unimplemented();
+        /**
+         * Note: The reason we keep the actual function
+         *       within the aux namespace is that were the non-policy
+         *       version of the function call the other one in the std
+         *       namespace, we'd get resolution conflicts. This way
+         *       aux::async is properly called even if std::async is
+         *       called either with or without a launch policy.
+         */
+        template<class F, class... Args>
+        future<result_of_t<decay_t<F>(decay_t<Args>...)>>
+        async(launch policy, F&& f, Args&&... args)
+        {
+            using result_t = result_of_t<decay_t<F>(decay_t<Args>...)>;
+
+            bool async = (static_cast<int>(policy) &
+                          static_cast<int>(launch::async)) != 0;
+            bool deferred = (static_cast<int>(policy) &
+                             static_cast<int>(launch::deferred)) != 0;
+
+            /**
+             * Note: The case when async | deferred is set in policy
+             *       is implementation defined, feel free to change.
+             */
+            if (async && deferred)
+            {
+                return future<result_t>{
+                    new aux::deferred_shared_state<
+                        result_t, F, Args...
+                    >{forward<F>(f), forward<Args>(args)...}
+                };
+            }
+            else if (async)
+            {
+                return future<result_t>{
+                    new aux::async_shared_state<
+                        result_t, F, Args...
+                    >{forward<F>(f), forward<Args>(args)...}
+                };
+            }
+            else if (deferred)
+            {
+               /**
+                * Duplicated on purpose because of the default.
+                * Do not remove!
+                */
+                return future<result_t>{
+                    new aux::deferred_shared_state<
+                        result_t, F, Args...
+                    >{forward<F>(f), forward<Args>(args)...}
+                };
+            }
+
+            /**
+             * This is undefined behaviour, let's be nice though ;)
+             */
+            return future<result_t>{
+                new aux::deferred_shared_state<
+                    result_t, F, Args...
+                >{forward<F>(f), forward<Args>(args)...}
+            };
+        }
     }
 
-    template<class F, class... Args>
-    future<result_of_t<decay_t<F>(decay_t<Args>...)>>
-    async(launch, F&& f, Args&&... args)
+    template<class F>
+    decltype(auto) async(F&& f)
     {
-        // TODO: implement
-        __unimplemented();
+        launch policy = static_cast<launch>(
+            static_cast<int>(launch::async) |
+            static_cast<int>(launch::deferred)
+        );
+
+        return aux::async(policy, forward<F>(f));
+    }
+
+    /**
+     * The async(launch, F, Args...) and async(F, Args...)
+     * overloards must not collide, so we check the first template
+     * argument and handle the special case of just a functor
+     * above.
+     */
+    template<class F, class Arg, class... Args>
+    decltype(auto) async(F&& f, Arg&& arg, Args&&... args)
+    {
+        if constexpr (is_same_v<decay_t<F>, launch>)
+            return aux::async(f, forward<Arg>(arg), forward<Args>(args)...);
+        else
+        {
+            launch policy = static_cast<launch>(
+                static_cast<int>(launch::async) |
+                static_cast<int>(launch::deferred)
+            );
+
+            return aux::async(policy, forward<F>(f), forward<Arg>(arg), forward<Args>(args)...);
+        }
     }
 }
 
