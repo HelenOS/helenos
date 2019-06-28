@@ -3,22 +3,22 @@ BUILD = true
 boot_image_format = 'elf'
 
 if MACHINE == 'gta02'
-	LADDR = 0x30008000
-	SADDR = 0x30008000
+	LADDR = '0x30008000'
+	SADDR = '0x30008000'
 	POSTBUILD = 'uboot'
 	POST_OUTPUT = 'uImage.bin'
 endif
 
 if MACHINE == 'beagleboardxm' or MACHINE == 'beaglebone'
-	LADDR = 0x80000000
-	SADDR = 0x80000000
+	LADDR = '0x80000000'
+	SADDR = '0x80000000'
 	POSTBUILD = 'uboot'
 	POST_OUTPUT = 'uImage.bin'
 endif
 
 if MACHINE == 'raspberrypi'
-	LADDR = 0x00008000
-	SADDR = 0x00008000
+	LADDR = '0x00008000'
+	SADDR = '0x00008000'
 	POSTBUILD = 'uboot'
 	POST_OUTPUT = 'uImage.bin'
 endif

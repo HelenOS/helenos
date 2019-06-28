@@ -25,6 +25,7 @@ which = find_program('which')
 sh = [ find_program('sh'), '-x', '-u', '-e' ]
 mkext4 = find_program('tools/mkext4.py')
 mkfat = find_program('tools/mkfat.py')
+mkuimage = find_program('tools/mkuimage.py')
 cp = find_program('cp')
 
 genisoimage = find_program('genisoimage', required: false)
@@ -156,6 +157,7 @@ config_variables = [
 	'KARCH',
 	'BARCH',
 	'GRUB_ARCH',
+	'UIMAGE_OS',
 ]
 
 foreach varname : config_variables

@@ -1,5 +1,9 @@
 subdir('arch' / BARCH)
 
+if POSTBUILD == 'uimage'
+	boot_image_format = 'binary'
+endif
+
 if BUILD
 	# Order matters.
 	modules = [ 'boot/kernel.elf' ] + rd_init + [ 'boot/initrd.img' ]
@@ -136,9 +140,9 @@ if BUILD
 
 	if boot_image_format == 'binary'
 		# Some platforms can't ELF.
-		boot_image = custom_target(boot_image_name,
+		boot_image = custom_target(boot_image_name + '.bin',
 			input: boot_elf,
-			output: boot_image_name,
+			output: boot_image_name + '.bin',
 			command: [ objcopy, '-O', 'binary', '@INPUT@', '@OUTPUT@' ],
 		)
 	endif
@@ -153,8 +157,21 @@ if POSTBUILD == 'grub'
 endif
 
 if POSTBUILD == 'uboot'
-	# TODO
-	error('unfinished')
+	IMAGE_NAME = 'HelenOS-' + HELENOS_RELEASE
+
+	POST_INPUT = custom_target('uboot-image',
+		output: 'uboot-image.bin',
+		input: boot_image,
+		command: [
+			mkuimage,
+			'-name', IMAGE_NAME,
+			'-laddr', LADDR,
+			'-saddr', SADDR,
+			'-ostype', UIMAGE_OS,
+			'@INPUT@',
+			'@OUTPUT@',
+		],
+	)
 endif
 
 
