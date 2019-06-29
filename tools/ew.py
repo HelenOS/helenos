@@ -263,7 +263,7 @@ def qemu_run(platform, machine, processor):
 		cmdline += ' -nographic'
 
 	if (not console and (not is_override('nographic')) and not is_override('noserial')):
-		cmdline += ' -serial stdio'
+		cmdline += ' -serial vc -monitor stdio'
 
 	if (is_override('bigmem')):
 		cmdline += ' -m 4G'
@@ -326,7 +326,6 @@ emulators = {
 			'run' : qemu_run,
 			'image' : 'image.iso@arm64',
 			'audio' : False,
-			'console' : True,
 			'hdd' : False,
 			'net' : False,
 			'tablet' : False,
