@@ -156,7 +156,6 @@ distclean: clean
 	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
 
 clean:
-	$(MAKE) -r -C doxygen clean
 	$(MAKE) -r -C tools/xcw/demo clean
 
 $(ERRNO_HEADER): $(ERRNO_INPUT)

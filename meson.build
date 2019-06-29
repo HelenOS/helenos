@@ -11,7 +11,10 @@ project(
     meson_version: '>=0.50.1',
 )
 
-subdir('doxygen')
+if not meson.is_cross_build()
+	subdir('doxygen')
+	subdir_done()
+endif
 
 cc = meson.get_compiler('c')
 basename = find_program('basename')
