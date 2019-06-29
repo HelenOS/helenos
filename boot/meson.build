@@ -159,6 +159,10 @@ if BUILD
 	endif
 endif
 
+if POSTBUILD == 'none'
+	POST_INPUT = disabler()
+endif
+
 if POSTBUILD == 'raw'
 	POST_INPUT = boot_image
 endif
