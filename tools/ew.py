@@ -33,14 +33,30 @@ Emulator wrapper for running HelenOS
 """
 
 import os
-import sys
-import subprocess
-import autotool
 import platform
+import re
+import subprocess
+import sys
 import thread
 import time
 
 overrides = {}
+
+CONFIG = 'Makefile.config'
+
+def read_config():
+	"Read HelenOS build configuration"
+
+	inf = open(CONFIG, 'r')
+	config = {}
+
+	for line in inf:
+		res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
+		if (res):
+			config[res.group(1)] = res.group(2)
+
+	inf.close()
+	return config
 
 def is_override(str):
 	if str in overrides.keys():
@@ -493,8 +509,7 @@ def run():
 			usage()
 			exit()
 
-	config = {}
-	autotool.read_config(autotool.CONFIG, config)
+	config = read_config()
 
 	if 'PLATFORM' in config.keys():
 		platform = config['PLATFORM']

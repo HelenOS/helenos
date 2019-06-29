@@ -34,15 +34,11 @@ CSCOPE = cscope
 FORMAT = clang-format
 CHECK = tools/check.sh
 CONFIG = tools/config.py
-AUTOTOOL = tools/autotool.py
-SANDBOX = autotool
 MESON = meson
 
 BUILD_DIR=$(abspath build)
 
 CONFIG_RULES = HelenOS.config
-
-COMMON_MAKEFILE = Makefile.common
 
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
@@ -60,7 +56,8 @@ else
 	MESON_ARGS = -Ddefault_library=static
 endif
 
-CROSS_PATH = $(shell dirname "$(CC)")
+CROSS_PREFIX ?= /usr/local/cross
+CROSS_PATH = $(CROSS_PREFIX)/bin
 
 CROSS_TARGET ?= $(UARCH)
 
@@ -68,9 +65,9 @@ ifeq ($(MACHINE),bmalta)
 	CROSS_TARGET = mips32eb
 endif
 
-.PHONY: all precheck cscope cscope_parts autotool config_default config distclean clean check releasefile release meson export-posix space
+.PHONY: all precheck cscope cscope_parts config_default config distclean clean check releasefile release meson export-posix space
 
-all: meson export-cross test-xcw
+all: meson
 
 $(BUILD_DIR)/build.ninja: Makefile.config version
 	PATH="$(CROSS_PATH):$$PATH" meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET) $(MESON_ARGS)
@@ -78,22 +75,10 @@ $(BUILD_DIR)/build.ninja: Makefile.config version
 meson: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
 	PATH="$(CROSS_PATH):$$PATH" ninja -C $(BUILD_DIR)
 
-test-xcw: meson export-cross
+test-xcw: meson
 ifeq ($(CONFIG_DEVEL_FILES),y)
 	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo
 endif
-
-export-posix: meson
-ifndef EXPORT_DIR
-	@echo ERROR: Variable EXPORT_DIR is not defined. && false
-else
-	mkdir -p $(EXPORT_DIR)
-	$(MAKE) -r -C uspace/lib/posix export EXPORT_DIR=$(abspath $(EXPORT_DIR)) UARCH=$(UARCH)
-endif
-
-export-cross: meson
-	mkdir -p uspace/export
-	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath uspace/export) UARCH=$(UARCH)
 
 precheck: clean
 	$(MAKE) -r all PRECHECK=y
@@ -142,11 +127,6 @@ check_errno:
 	sed -n -e '1,/COMPAT_START/d' -e 's/__errno_entry(\([A-Z0-9]\+\).*/\\b\1\\b/p' | \
 	git grep -n -f - -- ':(exclude)abi' ':(exclude)uspace/lib/posix'
 
-# Autotool (detects compiler features)
-
-autotool $(COMMON_MAKEFILE): $(CONFIG_MAKEFILE) $(AUTOTOOL)
-	$(AUTOTOOL)
-
 # Build-time configuration
 
 config_default $(CONFIG_MAKEFILE) $(CONFIG_HEADER): $(CONFIG_RULES)
@@ -176,10 +156,6 @@ distclean: clean
 	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
 
 clean:
-	rm -fr $(SANDBOX)
-	$(MAKE) -r -C kernel clean
-	$(MAKE) -r -C uspace clean
-	$(MAKE) -r -C boot clean
 	$(MAKE) -r -C doxygen clean
 	$(MAKE) -r -C tools/xcw/demo clean
 

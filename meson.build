@@ -436,8 +436,6 @@ install_files += [[ 'config', meson.current_build_dir() / 'config.sh', 'config.s
 install_deps += [ config_sh ]
 
 # TODO: remove
-install_files += [[ 'config', meson.current_source_dir() / 'Makefile.common', 'Makefile.common' ]]
-install_deps += files('Makefile.common')
 install_files += [[ 'config', meson.current_source_dir() / 'Makefile.config', 'Makefile.config' ]]
 install_deps += files('Makefile.config')
 
