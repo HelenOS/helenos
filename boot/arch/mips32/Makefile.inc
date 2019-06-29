@@ -26,44 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BITS = 32
-EXTRA_CFLAGS = -msoft-float -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mabi=32
-AS_PROLOG = .module softfloat;
-
-ifeq ($(MACHINE),msim)
-	BFD_NAME = elf32-tradlittlemips
-	BFD_OUTPUT = binary
-	ENDIANESS = LE
-	EXTRA_CFLAGS += -march=r4000
-endif
-ifeq ($(MACHINE),lmalta)
-	BFD_NAME = elf32-tradlittlemips
-	BFD_OUTPUT = elf32-tradlittlemips
-	ENDIANESS = LE
-	EXTRA_CFLAGS += -march=4kc
-endif
-ifeq ($(MACHINE),bmalta)
-	BFD_NAME = elf32-tradbigmips
-	BFD_OUTPUT = elf32-tradbigmips
-	ENDIANESS = BE
-	EXTRA_CFLAGS += -march=4kc
-endif
-
-SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS).o \
-	genarch/src/division.c \
-	genarch/src/multiplication.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c \
-	generic/src/gzip.c \
-	generic/src/tar.c \
-	generic/src/kernel.c \
-	generic/src/payload.c
+BUILD = Makefile.empty
+POSTBUILD = Makefile.empty

@@ -25,9 +25,11 @@ arch_kernel_c_args = arch_uspace_c_args + [
 	'-fno-zero-initialized-in-bss',
 ]
 
+arch_boot_c_args = arch_kernel_c_args
 
 arch_kernel_link_args = [ '-nostdlib' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
+arch_boot_link_args = []
 
 
 kernel_as_prolog = '.module softfloat;'
