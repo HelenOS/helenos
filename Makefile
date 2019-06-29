@@ -65,7 +65,7 @@ ifeq ($(MACHINE),bmalta)
 	CROSS_TARGET = mips32eb
 endif
 
-.PHONY: all precheck cscope cscope_parts config_default config distclean clean check releasefile release meson export-posix space
+.PHONY: all precheck cscope cscope_parts config_default config distclean clean check releasefile release meson space
 
 all: meson
 
@@ -109,8 +109,8 @@ $(CCHECK):
 space:
 	tools/srepl '[ \t]\+$$' ''
 
-doxy:
-	$(MAKE) -r -C doxygen
+doxy: $(BUILD_DIR)/build.ninja
+	ninja -C $(BUILD_DIR) doxygen
 
 # Pre-integration build check
 check: ccheck $(CHECK)

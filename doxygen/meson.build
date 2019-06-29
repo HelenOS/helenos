@@ -26,21 +26,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-cfg_file = doxygen.cfg
-gen_cfg = doxygen.cfg.gen
-patch_file = doxygen.cfg.diff
-output_dirs = latex html
+doxygen = find_program('doxygen')
+patch = find_program('patch')
+patch_file = files('doxygen.cfg.diff')
 
-all: doxygen.cfg
-	doxygen $^
 
-clean:
-	rm -f $(gen_cfg) $(cfg_file)
-	rm -rf $(output_dirs)
+gen_cfg = custom_target('doxygen.cfg.gen',
+	output: 'doxygen.cfg.gen',
+	command: [ doxygen, '-g', '@OUTPUT@' ],
+)
 
-$(cfg_file): $(gen_cfg)
-	cp $^ $@
-	patch $@ $(patch_file)
+dox_cfg = custom_target('doxygen.cfg',
+	output: 'doxygen.cfg',
+	input: [ gen_cfg, patch_file ],
+	command: [ patch, '-o', '@OUTPUT@', '@INPUT@' ],
+)
 
-$(gen_cfg):
-	doxygen -g $@
+run_target('doxygen', command: [ doxygen, dox_cfg ])

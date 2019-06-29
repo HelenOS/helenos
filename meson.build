@@ -11,6 +11,8 @@ project(
     meson_version: '>=0.50.1',
 )
 
+subdir('doxygen')
+
 cc = meson.get_compiler('c')
 basename = find_program('basename')
 dirname = find_program('dirname')
