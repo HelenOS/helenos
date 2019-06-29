@@ -322,7 +322,7 @@ rd_init = [
 rd_init_binaries = []
 
 # Binaries allowed on the initrd image when CONFIG_BAREBONE is enabled.
-rd_essential = rd_init + [
+rd_essential = [
 	'app/bdsh',
 	'app/getterm',
 	'app/kio',
