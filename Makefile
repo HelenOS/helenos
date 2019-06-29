@@ -71,7 +71,6 @@ endif
 .PHONY: all precheck cscope cscope_parts autotool config_default config distclean clean check releasefile release meson export-posix space
 
 all: meson export-cross test-xcw
-	$(MAKE) -r -C boot PRECHECK=$(PRECHECK) BUILD_DIR=$(BUILD_DIR)
 
 $(BUILD_DIR)/build.ninja: Makefile.config version
 	PATH="$(CROSS_PATH):$$PATH" meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET) $(MESON_ARGS)
