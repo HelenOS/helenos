@@ -26,35 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BOOT_OUTPUT = image.boot
-POST_OUTPUT = $(ROOT_PATH)/image.iso
-POSTBUILD = Makefile.yaboot
+BUILD = Makefile.empty
+POSTBUILD = Makefile.empty
 
-BFD_NAME = elf32-powerpc
-BFD_OUTPUT = $(BFD_NAME)
-
-BITS = 32
-ENDIANESS = BE
-EXTRA_CFLAGS = -mcpu=powerpc -msoft-float -m32
-
-SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/ofw.c \
-	$(COMPS).o \
-	genarch/src/ofw.c \
-	genarch/src/ofw_tree.c \
-	genarch/src/division.c \
-	genarch/src/multiplication.c \
-	generic/src/balloc.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c \
-	generic/src/gzip.c \
-	generic/src/tar.c \
-	generic/src/kernel.c \
-	generic/src/payload.c

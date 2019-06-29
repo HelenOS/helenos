@@ -167,6 +167,10 @@ if POSTBUILD == 'grub'
 	subdir('grub')
 endif
 
+if POSTBUILD == 'yaboot'
+	subdir('yaboot')
+endif
+
 if POSTBUILD == 'uboot'
 	IMAGE_NAME = 'HelenOS-' + HELENOS_RELEASE
 
@@ -184,5 +188,3 @@ if POSTBUILD == 'uboot'
 		],
 	)
 endif
-
-

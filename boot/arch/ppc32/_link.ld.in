@@ -6,6 +6,7 @@ SECTIONS {
 		loader_start = .;
 		*(BOOTSTRAP);
 		*(.text);
+		*(.text.*);
 	}
 	.data : {
 		*(.data);       /* initialized data */

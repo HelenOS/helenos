@@ -4,8 +4,10 @@ _common_c_args = [ '-D__BE__', '-fno-omit-frame-pointer', '-m32', '-Wa,-a32', '-
 
 arch_kernel_c_args = _common_c_args + [ '-msoft-float', '-fno-function-sections' ]
 arch_uspace_c_args = _common_c_args + [ CONFIG_FPU ? '-mhard-float' : '-msoft-float' ]
+arch_boot_c_args = arch_kernel_c_args
 arch_kernel_link_args = [ '-nostdlib', '-Wl,-z,max-page-size=0x1000', '-Wl,--no-check-sections', '-Wl,--no-gc-sections' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
+arch_boot_link_args = []
 
 
 rd_essential += [
