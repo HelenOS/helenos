@@ -26,39 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf64-ia64-little
-BFD_OUTPUT = $(BFD_NAME)
-
-BITS = 64
-ENDIANESS = LE
-EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
-
-SOURCES = \
-	arch/$(BARCH)/src/boot.S \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/sal.c \
-	arch/$(BARCH)/src/sal_asm.S \
-	arch/$(BARCH)/src/pal.c \
-	arch/$(BARCH)/src/pal_asm.S \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS).o \
-	genarch/src/efi.c \
-	genarch/src/division.c \
-	generic/src/balloc.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c \
-	generic/src/tar.c \
-	generic/src/gzip.c \
-	generic/src/kernel.c \
-	generic/src/payload.c
-
-ifeq ($(MACHINE),ski)
-SOURCES += \
-	arch/$(BARCH)/src/ski.c
-endif
+BUILD = Makefile.empty
+POSTBUILD = Makefile.empty
