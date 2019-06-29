@@ -304,7 +304,7 @@ def msim_run(platform, machine, processor):
 	run_in_console('msim -c tools/conf/msim.conf', 'HelenOS/mips32 on msim')
 
 def spike_run(platform, machine, processor):
-	run_in_console('spike -m1073741824:1073741824 image.boot', 'HelenOS/risvc64 on Spike')
+	run_in_console('spike -m1073741824:1073741824 build/image.boot', 'HelenOS/risvc64 on Spike')
 
 emulators = {
 	'amd64' : {

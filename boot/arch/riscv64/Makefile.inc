@@ -26,27 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BFD_NAME = elf64-littleriscv
-BFD_OUTPUT = $(BFD_NAME)
-
-BITS = 64
-ENDIANESS = LE
-EXTRA_CFLAGS = -mcmodel=medany
-
-SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/ucb.c \
-	arch/$(BARCH)/src/putchar.c \
-	$(COMPS).o \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c \
-	generic/src/gzip.c \
-	generic/src/tar.c \
-	generic/src/kernel.c \
-	generic/src/payload.c
+BUILD = Makefile.empty
+POSTBUILD = Makefile.empty
