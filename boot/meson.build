@@ -15,13 +15,24 @@ if BUILD
 		found = false
 		foreach bin : rd_init_binaries
 			if bin[1] == m
-				moddeps += bin[0]
-				found = true
-
-				_oldname = run_command(basename, bin[0].full_path(), check: true).stdout().strip()
+				_dep = bin[0]
 				_newname = run_command(basename, bin[1], check: true).stdout().strip()
+				_oldname = run_command(basename, bin[0].full_path(), check: true).stdout().strip()
 
+				if CONFIG_COMPRESSED_INIT
+					_dep = custom_target(_newname + '.gz',
+						output: _newname + '.gz',
+						input: _dep,
+						command: gzip,
+						capture: true,
+					)
+					_newname += '.gz'
+					_oldname = _newname
+				endif
+
+				moddeps += _dep
 				name_transform += 's:.*/@0@:@1@:;'.format(_oldname, _newname)
+				found = true
 				break
 			endif
 		endforeach

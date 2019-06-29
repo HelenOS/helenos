@@ -51,11 +51,14 @@ autocheck = generator(find_program('tools/autocheck.awk'),
 	capture: true,
 )
 
-gzip = generator(find_program('gzip',
-	arguments: [ '--no-name', '-9', '--stdout', '@INPUT@' ]
-	output: '@PLAINNAME@.gz',
-	capture: true,
-)
+# TODO: bug in Meson
+#gzip = generator(find_program('gzip'),
+#	arguments: [ '--no-name', '-9', '--stdout', '@INPUT@' ],
+#	output: '@PLAINNAME@.gz',
+#	capture: true,
+#)
+
+gzip = [ find_program('gzip'), '--no-name', '-9', '--stdout', '@INPUT@' ]
 
 # Tar's arguments make sure that the archive is reproducible.
 tar = [
@@ -164,6 +167,7 @@ config_variables = [
 	'BARCH',
 	'GRUB_ARCH',
 	'UIMAGE_OS',
+	'CONFIG_COMPRESSED_INIT',
 ]
 
 foreach varname : config_variables

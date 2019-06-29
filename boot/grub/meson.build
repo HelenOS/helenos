@@ -1,4 +1,12 @@
-
+if GRUB_ARCH == 'pc'
+	MULTIBOOT_CMD = 'multiboot'
+	MODULE_CMD = 'module'
+	INSMODS = [ 'insmod vbe', 'insmod vga' ]
+elif GRUB_ARCH == 'efi'
+	MULTIBOOT_CMD = 'multiboot2'
+	MODULE_CMD = 'module2'
+	INSMODS = [ 'insmod efi_gop', 'insmod efi_uga' ]
+endif
 
 # TODO
 install_snippet = 'mkdir -p ${DIST_DIR}/`dirname @1@`; cp @0@ ${DIST_DIR}/@1@'
@@ -44,16 +52,6 @@ build_dist_sh = configure_file(
 	configuration: { 'text' : '\n'.join(build_dist_text) },
 )
 
-
-if GRUB_ARCH == 'pc'
-	MULTIBOOT_CMD = 'multiboot'
-	MODULE_CMD = 'module'
-	INSMODS = [ 'insmod vbe', 'insmod vga' ]
-elif GRUB_ARCH == 'efi'
-	MULTIBOOT_CMD = 'multiboot2'
-	MODULE_CMD = 'module2'
-	INSMODS = [ 'insmod efi_gop', 'insmod efi_uga' ]
-endif
 
 grub_cfg = configure_file(
 	input: 'grub.cfg.in',
