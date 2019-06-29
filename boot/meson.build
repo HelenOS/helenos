@@ -1,6 +1,6 @@
 subdir('arch' / BARCH)
 
-if POSTBUILD == 'uimage'
+if POSTBUILD == 'uboot'
 	boot_image_format = 'binary'
 endif
 
@@ -169,6 +169,10 @@ endif
 
 if POSTBUILD == 'yaboot'
 	subdir('yaboot')
+endif
+
+if POSTBUILD == 'silo'
+	subdir('silo')
 endif
 
 if POSTBUILD == 'uboot'

@@ -380,7 +380,7 @@ emulators = {
 			},
 			'sun4v' : {
 				'run' : qemu_run,
-				'image' : '-drive if=pflash,readonly=on,file=image.iso',
+				'image' : '-drive if=pflash,readonly=on,file=build/image.iso',
 				'audio' : False,
 				'console' : True,
 				'net' : False,

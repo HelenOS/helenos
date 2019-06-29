@@ -16,6 +16,7 @@ endif
 
 
 arch_kernel_c_args = [ '-D__BE__', '-m64', '-mcmodel=medlow', '-mcpu=ultrasparc', '-mno-fpu' ]
+arch_boot_c_args = arch_kernel_c_args
 
 if PROCESSOR == 'us'
 	arch_kernel_c_args += [
@@ -35,7 +36,7 @@ elif PROCESSOR == 'sun4v'
 	]
 endif
 
-
+arch_boot_link_args = []
 arch_kernel_link_args = [ '-nostdlib', '-Wl,-no-check-sections' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 

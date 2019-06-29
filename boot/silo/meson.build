@@ -3,25 +3,22 @@ distdir = custom_target('distdir',
 	input: [
 		'build_dist.sh',
 		boot_image,
-		'ofboot.b',
-		'bootinfo.txt',
-		'yaboot',
-		'yaboot.conf',
+		'a.out/isofs.b',
+		'a.out/second.b',
+		'silo.conf'
+
 	],
 	command: [ sh, '@INPUT0@', '@INPUT1@', meson.current_source_dir(), '@OUTPUT@' ],
 )
 
 image_iso = custom_target('image.iso',
 	output: 'image.iso',
-	input: [ distdir, 'maps' ],
+	input: [ distdir, 'a.out/isofs.b' ],
 	command: [
 		genisoimage,
-		'-hfs',
-		'-part',
-		'-map', '@INPUT1@',
-		'-no-desktop',
-		'-hfs-volid', 'HelenOS',
-		'-hfs-bless', '@INPUT0@/boot',
+		'-f',
+		'-G', '@INPUT1@',
+		'-B', '...',
 		'-r',
 		'-o', '@OUTPUT@',
 		'@INPUT0@',
