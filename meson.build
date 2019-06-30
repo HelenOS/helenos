@@ -10,6 +10,9 @@ project(
     meson_version: '>=0.50.1',
 )
 
+debug_options = false
+debug_shell_scripts = false
+
 if not meson.is_cross_build()
 	subdir('doxygen')
 	subdir_done()
@@ -17,20 +20,24 @@ endif
 
 cc = meson.get_compiler('c')
 basename = find_program('basename')
+cp = find_program('cp')
 dirname = find_program('dirname')
 find = find_program('find')
 grep = find_program('grep')
 mkarray = find_program('tools/mkarray_for_meson.sh')
-objdump = find_program('objdump')
-objcopy = find_program('objcopy')
-sed = find_program('sed')
-unzip = find_program('unzip')
-which = find_program('which')
-sh = [ find_program('sh'), '-x', '-u', '-e' ]
 mkext4 = find_program('tools/mkext4.py')
 mkfat = find_program('tools/mkfat.py')
 mkuimage = find_program('tools/mkuimage.py')
-cp = find_program('cp')
+objcopy = find_program('objcopy')
+objdump = find_program('objdump')
+sed = find_program('sed')
+unzip = find_program('unzip')
+which = find_program('which')
+
+sh = [ find_program('sh'), '-u', '-e' ]
+if debug_shell_scripts
+	sh += '-x'
+endif
 
 genisoimage = find_program('genisoimage', required: false)
 
@@ -81,8 +88,6 @@ tar = [
 	'--transform', 's:@OUTDIR@/::',
 	'@INPUT@',
 ]
-
-debug_options = false
 
 # Output compiler flags for use by third-party builds.
 # NOTE: See $srcroot/meson/cross/$arch for architecture-specific compiler flags.

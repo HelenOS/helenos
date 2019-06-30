@@ -1,4 +1,5 @@
 /build
+/build_all
 /doxygen/html
 /doxygen/latex
 /tools/*.pyc
