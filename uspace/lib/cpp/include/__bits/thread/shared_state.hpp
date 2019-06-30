@@ -33,10 +33,20 @@
  * 30.6.4, shared state:
  */
 
+#include <__bits/exception.hpp>
 #include <__bits/functional/function.hpp>
 #include <__bits/functional/invoke.hpp>
 #include <__bits/refcount_obj.hpp>
+#include <__bits/thread/future_common.hpp>
 #include <__bits/thread/threading.hpp>
+#include <cerrno>
+#include <thread>
+#include <tuple>
+
+namespace std
+{
+    enum class future_status;
+}
 
 namespace std::aux
 {
@@ -136,38 +146,34 @@ namespace std::aux
             }
 
             template<class Rep, class Period>
-            virtual future_status
+            future_status
             wait_for(const chrono::duration<Rep, Period>& rel_time)
             {
                 aux::threading::mutex::lock(mutex_);
-                auto res = aux::threading::condvar::wait_for(
-                    condvar_, mutex_,
+                auto res = timed_wait_(
                     aux::threading::time::convert(rel_time)
                 );
                 aux::threading::mutex::unlock(mutex_);
 
-                return res == ETIMEOUT ? future_status::timeout
-                                       : future_status::ready;
+                return res;
             }
 
             template<class Clock, class Duration>
-            virtual future_status
+            future_status
             wait_until(const chrono::time_point<Clock, Duration>& abs_time)
             {
                 aux::threading::mutex::lock(mutex_);
-                auto res = aux::threading::condvar::wait_for(
-                    condvar_, mutex_,
-                    aux::threading::time::convert(abs_time - Clock::now())
+                auto res = timed_wait_(
+                    aux::threading::time(convert(abs_time - Clock::now()))
                 );
                 aux::threading::mutex::unlock(mutex_);
 
-                return res == ETIMEOUT ? future_status::timeout
-                                       : future_status::ready;
+                return res;
             }
 
             ~shared_state() override = default;
 
-        private:
+        protected:
             aux::mutex_t mutex_;
             aux::condvar_t condvar_;
 
@@ -176,6 +182,26 @@ namespace std::aux
 
             exception_ptr exception_;
             bool has_exception_;
+
+            /**
+             * Note: wait_for and wait_until are templates and as such
+             *       cannot be virtual and overriden by the deferred_ and
+             *       async_ children. However, we are using aux::time_unit_t
+             *       in the end anyway, so we can work around that
+             *       by using the 'template method' design pattern
+             *       (i.e. by providing a virtual function called by these
+             *       templates and then overriding that function in the
+             *       children).
+             */
+            virtual future_status timed_wait_(aux::time_unit_t time)
+            {
+                auto res = aux::threading::condvar::wait_for(
+                    condvar_, mutex_, time
+                );
+
+                return res == ETIMEOUT ? future_status::timeout
+                                       : future_status::ready;
+            }
     };
 
     /**
@@ -223,25 +249,16 @@ namespace std::aux
                     thread_.join();
             }
 
-            template<class Rep, class Period>
-            future_status
-            wait_for(const chrono::duration<Rep, Period>&) override
-            {
-                // TODO: have to sleep and check
-                return future_status::ready;
-            }
-
-            template<class Clock, class Duration>
-            future_status
-            wait_until(const chrono::time_point<Clock, Duration>&) override
-            {
-                // TODO: have to sleep and check
-                return future_status::ready;
-            }
-
             ~async_shared_state() override
             {
                 destroy();
+            }
+
+        protected:
+            future_status timed_wait_(aux::time_unit_t) override
+            {
+                // TODO: have to sleep and check
+                return future_status::timeout;
             }
 
         private:
@@ -260,37 +277,19 @@ namespace std::aux
 
             void destroy() override
             {
-                aux::threading::mutex::lock(mutex_);
+                aux::threading::mutex::lock(this->mutex_);
                 if (!this->is_set())
                     invoke_(make_index_sequence<sizeof...(Args)>{});
-                aux::threading::mutex::unlock(mutex_);
+                aux::threading::mutex::unlock(this->mutex_);
             }
 
             void wait() override
             {
-                aux::threading::mutex::lock(mutex_);
+                /**
+                 * Note: Synchronization done in invoke_ -> set_value.
+                 */
                 if (!this->is_set())
                     invoke_(make_index_sequence<sizeof...(Args)>{});
-                aux::threading::mutex::unlock(mutex_);
-            }
-
-            template<class Rep, class Period>
-            future_status
-            wait_for(const chrono::duration<Rep, Period>&) override
-            {
-                /**
-                 * Note: Neither of the wait_ functions has any effect
-                 *       for deferred functions spawned by async (which
-                 *       are the only users of this state type).
-                 */
-                return future_status::deferred;
-            }
-
-            template<class Clock, class Duration>
-            future_status
-            wait_until(const chrono::time_point<Clock, Duration>&) override
-            {
-                return future_status::deferred;
             }
 
             ~deferred_shared_state() override
@@ -298,7 +297,7 @@ namespace std::aux
                 destroy();
             }
 
-        private:
+        protected:
             function<R(decay_t<Args>...)> func_;
             tuple<decay_t<Args>...> args_;
 
@@ -313,6 +312,16 @@ namespace std::aux
                 {
                     // TODO: Store it.
                 }
+            }
+
+            future_status timed_wait_(aux::time_unit_t) override
+            {
+                /**
+                 * Note: Neither of the wait_ functions has any effect
+                 *       for deferred functions spawned by async (which
+                 *       are the only users of this state type).
+                 */
+                return future_status::deferred;
             }
     };
 }
