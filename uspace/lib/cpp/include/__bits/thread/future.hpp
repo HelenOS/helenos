@@ -188,11 +188,8 @@ namespace std
 
                 if (this->state_->has_exception())
                     this->state_->throw_stored_exception();
-                auto res = std::move(this->state_->get());
 
-                this->release_state_();
-
-                return res;
+                return this->state_->get();
             }
     };
 
