@@ -57,9 +57,6 @@ else
 	MESON_ARGS = -Ddefault_library=static
 endif
 
-CROSS_PREFIX ?= /usr/local/cross
-CROSS_PATH = $(CROSS_PREFIX)/bin
-
 CROSS_TARGET ?= $(UARCH)
 
 ifeq ($(MACHINE),bmalta)
@@ -71,10 +68,10 @@ endif
 all: meson
 
 $(BUILD_DIR)/build.ninja: $(CONFIG_MAKEFILE) $(VERSION_FILE)
-	PATH="$(CROSS_PATH):$$PATH" meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET) $(MESON_ARGS)
+	meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET) $(MESON_ARGS)
 
 meson: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
-	PATH="$(CROSS_PATH):$$PATH" ninja -C $(BUILD_DIR)
+	ninja -C $(BUILD_DIR)
 
 test-xcw: meson
 ifeq ($(CONFIG_DEVEL_FILES),y)
