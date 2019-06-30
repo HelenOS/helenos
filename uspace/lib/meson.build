@@ -1,4 +1,4 @@
-always_static = (get_option('default_library') == 'static')
+always_static = not CONFIG_BUILD_SHARED_LIBS
 
 # Which libraries are installed when CONFIG_DEVEL_FILES is enabled
 installed_libs = [

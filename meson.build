@@ -1,13 +1,12 @@
 # TODO: Use vcs_tag() to generate version string
 # TODO: jobfile
 # TODO: lto
-# TODO: CONFIG_BUILD_SHARED_LIBS
 # TODO: fix clang build
 
 project(
     'HelenOS',
     [ 'c', 'cpp' ],
-    default_options : ['buildtype=plain', 'c_std=gnu11', 'cpp_std=c++17', 'warning_level=3', 'werror=false', 'b_staticpic=false', 'default_library=shared', 'prefix=/' ],
+    default_options : ['buildtype=plain', 'c_std=gnu11', 'cpp_std=c++17', 'warning_level=3', 'werror=false', 'b_staticpic=false', 'prefix=/' ],
     meson_version: '>=0.50.1',
 )
 
@@ -82,10 +81,6 @@ tar = [
 	'--transform', 's:@OUTDIR@/::',
 	'@INPUT@',
 ]
-
-if get_option('default_library') == 'both'
-	error('You must use either shared or static for default_library.')
-endif
 
 debug_options = false
 

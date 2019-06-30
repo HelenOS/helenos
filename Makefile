@@ -49,14 +49,6 @@ VERSION_FILE = version
 -include $(CONFIG_MAKEFILE)
 -include $(COMMON_MAKEFILE)
 
-# TODO: make meson reconfigure correctly when library build changes
-
-ifeq ($(CONFIG_BUILD_SHARED_LIBS),y)
-	MESON_ARGS = -Ddefault_library=shared
-else
-	MESON_ARGS = -Ddefault_library=static
-endif
-
 CROSS_TARGET ?= $(UARCH)
 
 ifeq ($(MACHINE),bmalta)
@@ -68,7 +60,7 @@ endif
 all: meson
 
 $(BUILD_DIR)/build.ninja: $(CONFIG_MAKEFILE) $(VERSION_FILE)
-	meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET) $(MESON_ARGS)
+	meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET)
 
 meson: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
 	ninja -C $(BUILD_DIR)
