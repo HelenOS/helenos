@@ -82,7 +82,7 @@ foreach appdirs : dirs
 
 	# Extra linker flags
 
-	# TODO: let meson do this on install instead, so that disassembly works
+	# TODO: only strip after disassembly
 	if CONFIG_STRIP_BINARIES
 		link_args += [ '-s' ]
 	endif
