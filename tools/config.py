@@ -41,7 +41,11 @@ import subprocess
 import xtui
 import random
 
-RULES_FILE = sys.argv[1]
+ARGPOS_RULES = 1
+ARGPOS_CHOICE = 2
+ARGPOS_PRESET = 3
+
+RULES_FILE = sys.argv[ARGPOS_RULES]
 MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
 PRESETS_DIR = 'defaults'
@@ -675,16 +679,26 @@ def main():
 	# Parse rules file
 	parse_rules(RULES_FILE, rules)
 
+	if len(sys.argv) > ARGPOS_CHOICE:
+		choice = sys.argv[ARGPOS_CHOICE]
+	else:
+		choice = None
+
+	if len(sys.argv) > ARGPOS_PRESET:
+		preset = sys.argv[ARGPOS_PRESET]
+	else:
+		preset = None
+
 	# Input configuration file can be specified on command line
 	# otherwise configuration from previous run is used.
-	if len(sys.argv) >= 4:
-		profile = parse_profile_name(sys.argv[3])
+	if preset is not None:
+		profile = parse_profile_name(preset)
 		read_presets(profile, config)
 	elif os.path.exists(MAKEFILE):
 		read_config(MAKEFILE, config)
 
 	# Default mode: check values and regenerate configuration files
-	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
+	if choice == 'default':
 		if (infer_verify_choices(config, rules)):
 			preprocess_config(config, rules)
 			create_output(MAKEFILE, MACROS, config, rules)
@@ -692,10 +706,10 @@ def main():
 
 	# Hands-off mode: check values and regenerate configuration files,
 	# but no interactive fallback
-	if (len(sys.argv) >= 3) and (sys.argv[2] == 'hands-off'):
-		# We deliberately test sys.argv >= 4 because we do not want
+	if choice == 'hands-off':
+		# We deliberately test this because we do not want
 		# to read implicitly any possible previous run configuration
-		if len(sys.argv) < 4:
+		if preset is None:
 			sys.stderr.write("Configuration error: No presets specified\n")
 			return 2
 
@@ -708,13 +722,13 @@ def main():
 		return 1
 
 	# Check mode: only check configuration
-	if (len(sys.argv) >= 3) and (sys.argv[2] == 'check'):
+	if choice == 'check':
 		if infer_verify_choices(config, rules):
 			return 0
 		return 1
 
 	# Random mode
-	if (len(sys.argv) == 3) and (sys.argv[2] == 'random'):
+	if choice == 'random':
 		ok = random_choices(config, rules, 0)
 		if not ok:
 			sys.stderr.write("Internal error: unable to generate random config.\n")
