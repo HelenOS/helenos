@@ -131,16 +131,16 @@ check_errno:
 
 config_default $(CONFIG_MAKEFILE) $(CONFIG_HEADER): $(CONFIG_RULES)
 ifeq ($(HANDS_OFF),y)
-	$(CONFIG) $< hands-off $(PROFILE)
+	$(CONFIG) $< defaults hands-off $(PROFILE)
 else
-	$(CONFIG) $< default $(PROFILE)
+	$(CONFIG) $< defaults default $(PROFILE)
 endif
 
 config: $(CONFIG_RULES)
-	$(CONFIG) $<
+	$(CONFIG) $< defaults
 
 random-config: $(CONFIG_RULES)
-	$(CONFIG) $< random
+	$(CONFIG) $< defaults random
 
 # Release files
 

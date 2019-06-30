@@ -42,13 +42,14 @@ import xtui
 import random
 
 ARGPOS_RULES = 1
-ARGPOS_CHOICE = 2
-ARGPOS_PRESET = 3
+ARGPOS_PRESETS_DIR = 2
+ARGPOS_CHOICE = 3
+ARGPOS_PRESET = 4
 
 RULES_FILE = sys.argv[ARGPOS_RULES]
 MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
-PRESETS_DIR = 'defaults'
+PRESETS_DIR = sys.argv[ARGPOS_PRESETS_DIR]
 
 class BinaryOp:
 	def __init__(self, operator, left, right):
