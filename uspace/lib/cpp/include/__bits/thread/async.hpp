@@ -30,6 +30,7 @@
 #define LIBCPP_BITS_THREAD_ASYNC
 
 #include <__bits/thread/future.hpp>
+#include <__bits/thread/future_common.hpp>
 #include <__bits/thread/shared_state.hpp>
 #include <__bits/type_traits/result_of.hpp>
 #include <__bits/utility/forward_move.hpp>
@@ -39,7 +40,7 @@ namespace std
 
     enum class launch
     {
-        async,
+        async = 1,
         deferred
     };
 
