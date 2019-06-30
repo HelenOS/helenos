@@ -26,4 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <__bits/thread/async.hpp>
 #include <__bits/thread/future.hpp>
+#include <__bits/thread/future_common.hpp>
+#include <__bits/thread/packaged_task.hpp>
+#include <__bits/thread/promise.hpp>
+#include <__bits/thread/shared_future.hpp>
+#include <__bits/thread/shared_state.hpp>
