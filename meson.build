@@ -175,8 +175,10 @@ config_variables = [
 	'CONFIG_COMPRESSED_INIT',
 ]
 
+CONFIG_MAKEFILE = files(meson.build_root() / 'Makefile.config')
+
 foreach varname : config_variables
-	result = run_command(grep, '^' + varname + '\\b', meson.source_root() / 'Makefile.config')
+	result = run_command(grep, '^' + varname + '\\b', CONFIG_MAKEFILE)
 	if result.returncode() != 0
 		# TODO: Output negative/inapplicable variables too in config, so that we can check for typos here.
 		#warning('Missing configuration variable ' + varname + ' in Makefile.config')
@@ -219,7 +221,7 @@ HELENOS_RELEASE = HELENOS_VERSION + '.' + HELENOS_PATCHLEVEL + '.' + HELENOS_SUB
 
 add_project_arguments(
 	# TODO: Remove from project arguments and only use where needed.
-	'-imacros', join_paths(meson.source_root(), 'config.h'),
+	'-imacros', meson.build_root() / 'config.h',
 	language : [ 'c' ],
 )
 
@@ -441,8 +443,8 @@ install_files += [[ 'config', meson.current_build_dir() / 'config.sh', 'config.s
 install_deps += [ config_sh ]
 
 # TODO: remove
-install_files += [[ 'config', meson.current_source_dir() / 'Makefile.config', 'Makefile.config' ]]
-install_deps += files('Makefile.config')
+install_files += [[ 'config', meson.build_root() / 'Makefile.config', 'Makefile.config' ]]
+install_deps += CONFIG_MAKEFILE
 
 if CONFIG_DEVEL_FILES
 	# Also install libgcc

@@ -52,7 +52,7 @@ if BUILD
 	)
 
 	boot_defs = [
-		'-imacros', meson.source_root() / 'config.h',
+		'-imacros', meson.build_root() / 'config.h',
 		'-D_HELENOS_SOURCE',
 		'-DBOOT',
 		'-DRELEASE=' + HELENOS_RELEASE,

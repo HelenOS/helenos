@@ -27,7 +27,7 @@ kernel_include_dirs = include_directories(
 )
 
 kernel_defs = [
-	'-imacros', meson.source_root() / 'config.h',
+	'-imacros', meson.build_root() / 'config.h',
 	'-D_HELENOS_SOURCE',
 	'-DKERNEL',
 	'-DRELEASE=' + HELENOS_RELEASE,

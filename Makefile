@@ -33,17 +33,18 @@ CCHECK = tools/sycek/ccheck
 CSCOPE = cscope
 FORMAT = clang-format
 CHECK = tools/check.sh
-CONFIG = tools/config.py
+CONFIG = $(abspath tools/config.py)
 MESON = meson
 
 BUILD_DIR=$(abspath build)
 
 CONFIG_RULES = HelenOS.config
 
-CONFIG_MAKEFILE = Makefile.config
-CONFIG_HEADER = config.h
+CONFIG_MAKEFILE = $(BUILD_DIR)/Makefile.config
+CONFIG_HEADER = $(BUILD_DIR)/config.h
 ERRNO_HEADER = abi/include/abi/errno.h
 ERRNO_INPUT = abi/include/abi/errno.in
+VERSION_FILE = version
 
 -include $(CONFIG_MAKEFILE)
 -include $(COMMON_MAKEFILE)
@@ -69,7 +70,7 @@ endif
 
 all: meson
 
-$(BUILD_DIR)/build.ninja: Makefile.config version
+$(BUILD_DIR)/build.ninja: $(CONFIG_MAKEFILE) $(VERSION_FILE)
 	PATH="$(CROSS_PATH):$$PATH" meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET) $(MESON_ARGS)
 
 meson: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
@@ -130,17 +131,20 @@ check_errno:
 # Build-time configuration
 
 config_default $(CONFIG_MAKEFILE) $(CONFIG_HEADER): $(CONFIG_RULES)
+	mkdir -p $(BUILD_DIR)
 ifeq ($(HANDS_OFF),y)
-	$(CONFIG) $< defaults hands-off $(PROFILE)
+	cd $(BUILD_DIR) && $(CONFIG) $(abspath $<) $(abspath defaults) hands-off $(PROFILE)
 else
-	$(CONFIG) $< defaults default $(PROFILE)
+	cd $(BUILD_DIR) && $(CONFIG) $(abspath $<) $(abspath defaults) default $(PROFILE)
 endif
 
 config: $(CONFIG_RULES)
-	$(CONFIG) $< defaults
+	mkdir -p $(BUILD_DIR)
+	cd $(BUILD_DIR) && $(CONFIG) $(abspath $<) $(abspath defaults)
 
 random-config: $(CONFIG_RULES)
-	$(CONFIG) $< defaults random
+	mkdir -p $(BUILD_DIR)
+	cd $(BUILD_DIR) && $(CONFIG) $(abspath $<) $(abspath defaults) random
 
 # Release files
 
