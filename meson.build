@@ -517,9 +517,23 @@ rd_init_binaries += [[ initrd_img, 'boot/initrd.img' ]]
 
 subdir('boot')
 
-custom_target(POST_OUTPUT,
-	output: POST_OUTPUT,
-	input: POST_INPUT,
-	command: [ cp, '@INPUT@', '@OUTPUT@' ],
-	build_by_default: true,
-)
+if is_variable('POST_INPUT')
+	image = custom_target(POST_OUTPUT,
+		output: POST_OUTPUT,
+		input: POST_INPUT,
+		command: [ cp, '@INPUT@', '@OUTPUT@' ],
+	)
+
+	custom_target('image_path',
+		output: 'image_path',
+		input: image,
+		command: [ 'echo', '@INPUT@' ],
+		capture: true,
+	)
+else
+	custom_target('image_path',
+		output: 'image_path',
+		command: [ 'echo' ],
+		capture: true,
+	)
+endif

@@ -21,11 +21,12 @@ CONFIG_DEFAULTS="${SOURCE_DIR}/defaults"
 PROFILES=`find ${CONFIG_DEFAULTS} -type d -links 2 -printf "%P\n" | sort`
 
 
-echo "Configuring all profiles."
+echo
+echo "###################### Configuring all profiles ######################"
 
 for profile in $PROFILES; do
 	if [ -f ${profile}/build.ninja ]; then
-		echo "Profile ${profile} already configured."
+		ninja -C ${profile} build.ninja || exit 1
 		continue
 	fi
 
@@ -50,9 +51,22 @@ for profile in $PROFILES; do
 	meson ${SOURCE_DIR} ${profile} --cross-file ${SOURCE_DIR}/meson/cross/${cross_target} || exit 1
 done
 
-
-echo "Building all profiles."
+echo
+echo "###################### Building all profiles ######################"
 
 for profile in $PROFILES; do
-	ninja -C ${profile}
+	ninja -C ${profile} || exit 1
 done
+
+
+if [ "$#" -eq 1 ] && [ "$1" = 'images' ]; then
+	echo "###################### Building all images ######################"
+
+	for profile in $PROFILES; do
+		ninja -C ${profile} image_path || exit 1
+	done
+else
+	echo
+	echo "Bootable images not built."
+	echo "Run '$0 images' to build them as well."
+fi

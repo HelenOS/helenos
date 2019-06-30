@@ -53,6 +53,7 @@ kernel_ldscript = custom_target('_link.ld',
 		'@INPUT@',
 	],
 	capture: true,
+	build_by_default: true,
 )
 
 kernel_link_args = arch_kernel_link_args + [

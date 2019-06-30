@@ -80,6 +80,14 @@ if BUILD
 		]
 	endif
 
+	boot_files = static_library('bootfiles', boot_src,
+		include_directories: boot_include_dirs,
+		implicit_include_directories: false,
+		c_args: boot_c_args,
+		pic: false,
+		build_by_default: true,
+	)
+
 	# Preprocess linker script using C preprocessor.
 	boot_ldscript = custom_target('_link.ld',
 		input: 'arch'/KARCH/'_link.ld.in',
@@ -96,6 +104,7 @@ if BUILD
 			'@INPUT@',
 		],
 		capture: true,
+		build_by_default: true
 	)
 
 	# Create empty object file.
@@ -132,17 +141,16 @@ if BUILD
 	boot_image_name = 'image.boot'
 	boot_image_map_path = meson.current_build_dir()/boot_image_name + '.map'
 
-	boot_elf = executable(boot_image_name + '.elf', boot_src, boot_comps_o,
+	boot_elf = executable(boot_image_name + '.elf', boot_comps_o,
 		include_directories: boot_include_dirs,
-		implicit_include_directories: false,
 		c_args: boot_c_args,
 		link_args: boot_c_args + boot_link_args + [
 			'-Wl,-Map,' + boot_image_map_path,
 		],
 		link_depends: boot_ldscript,
-		install: true,
-		install_dir: 'boot',
+		link_whole: boot_files,
 		pie: false,
+		build_by_default: false,
 	)
 
 	if boot_image_format == 'elf'
@@ -157,10 +165,6 @@ if BUILD
 			command: [ objcopy, '-O', 'binary', '@INPUT@', '@OUTPUT@' ],
 		)
 	endif
-endif
-
-if POSTBUILD == 'none'
-	POST_INPUT = disabler()
 endif
 
 if POSTBUILD == 'raw'
