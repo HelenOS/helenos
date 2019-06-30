@@ -60,6 +60,7 @@ done
 
 
 if [ "$#" -eq 1 ] && [ "$1" = 'images' ]; then
+	echo
 	echo "###################### Building all images ######################"
 
 	for profile in $PROFILES; do
