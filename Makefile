@@ -26,52 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# Just for this Makefile. Sub-makes will run in parallel if requested.
-.NOTPARALLEL:
-
 CCHECK = tools/sycek/ccheck
 CSCOPE = cscope
 FORMAT = clang-format
 CHECK = tools/check.sh
-CONFIG = $(abspath tools/config.py)
-MESON = meson
 
-BUILD_DIR=$(abspath build)
-
-CONFIG_RULES = HelenOS.config
-
-CONFIG_MAKEFILE = $(BUILD_DIR)/Makefile.config
-CONFIG_HEADER = $(BUILD_DIR)/config.h
 ERRNO_HEADER = abi/include/abi/errno.h
 ERRNO_INPUT = abi/include/abi/errno.in
-VERSION_FILE = version
 
--include $(CONFIG_MAKEFILE)
--include $(COMMON_MAKEFILE)
+.PHONY: all cscope cscope_parts format ccheck ccheck-fix space doxy check check_errno releasefile release
 
-CROSS_TARGET ?= $(UARCH)
-
-ifeq ($(MACHINE),bmalta)
-	CROSS_TARGET = mips32eb
-endif
-
-.PHONY: all precheck cscope cscope_parts config_default config distclean clean check releasefile release meson space
-
-all: meson
-
-$(BUILD_DIR)/build.ninja: $(CONFIG_MAKEFILE) $(VERSION_FILE)
-	meson . $(BUILD_DIR) --cross-file meson/cross/$(CROSS_TARGET)
-
-meson: $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER) $(BUILD_DIR)/build.ninja
-	ninja -C $(BUILD_DIR)
-
-test-xcw: meson
-ifeq ($(CONFIG_DEVEL_FILES),y)
-	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo
-endif
-
-precheck: clean
-	$(MAKE) -r all PRECHECK=y
+all:
 
 cscope:
 	find abi kernel boot uspace -type f -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
@@ -92,9 +57,6 @@ ccheck: $(CCHECK)
 ccheck-fix: $(CCHECK)
 	cd tools && ./build-ccheck.sh
 	tools/ccheck.sh --fix
-
-$(CCHECK):
-	cd tools && ./build-ccheck.sh
 
 space:
 	tools/srepl '[ \t]\+$$' ''
@@ -117,24 +79,6 @@ check_errno:
 	sed -n -e '1,/COMPAT_START/d' -e 's/__errno_entry(\([A-Z0-9]\+\).*/\\b\1\\b/p' | \
 	git grep -n -f - -- ':(exclude)abi' ':(exclude)uspace/lib/posix'
 
-# Build-time configuration
-
-config_default $(CONFIG_MAKEFILE) $(CONFIG_HEADER): $(CONFIG_RULES)
-	mkdir -p $(BUILD_DIR)
-ifeq ($(HANDS_OFF),y)
-	cd $(BUILD_DIR) && $(CONFIG) $(abspath $<) $(abspath defaults) hands-off $(PROFILE)
-else
-	cd $(BUILD_DIR) && $(CONFIG) $(abspath $<) $(abspath defaults) default $(PROFILE)
-endif
-
-config: $(CONFIG_RULES)
-	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && $(CONFIG) $(abspath $<) $(abspath defaults)
-
-random-config: $(CONFIG_RULES)
-	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && $(CONFIG) $(abspath $<) $(abspath defaults) random
-
 # Release files
 
 releasefile: all
@@ -143,17 +87,7 @@ releasefile: all
 release:
 	$(MAKE) -r -C release release
 
-# Cleaning
-
-distclean: clean
-	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
-
-clean:
-	$(MAKE) -r -C tools/xcw/demo clean
-
 $(ERRNO_HEADER): $(ERRNO_INPUT)
 	echo '/* Generated file. Edit errno.in instead. */' > $@.new
 	sed 's/__errno_entry(\([^,]*\),\([^,]*\),.*/#define \1 __errno_t(\2)/' < $< >> $@.new
 	mv $@.new $@
-
--include Makefile.local
