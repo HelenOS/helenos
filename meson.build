@@ -221,7 +221,8 @@ endforeach
 HELENOS_RELEASE = HELENOS_VERSION + '.' + HELENOS_PATCHLEVEL + '.' + HELENOS_SUBLEVEL
 
 add_project_arguments(
-	# TODO: Remove from project arguments and only use where needed.
+	# TODO: Remove from project arguments and only use where necessary.
+	# Any change in config forces everything to rebuild due to lack of granularity here.
 	'-imacros', meson.build_root() / 'config.h',
 	language : [ 'c' ],
 )
@@ -574,3 +575,4 @@ endif
 #	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo
 #endif
 
+# TODO special target for posix and xcw exports, update coastline for it
