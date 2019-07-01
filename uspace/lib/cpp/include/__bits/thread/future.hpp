@@ -170,10 +170,7 @@ namespace std
 
             future& operator=(const future&) = delete;
 
-            future& operator=(future&& rhs) noexcept
-            {
-                return aux::future_base<R>::operator=(move(rhs));
-            }
+            future& operator=(future&& rhs) noexcept = default;
 
             shared_future<R> share()
             {
@@ -213,10 +210,7 @@ namespace std
 
             future& operator=(const future&) = delete;
 
-            future& operator=(future&& rhs) noexcept
-            {
-                return aux::future_base<R>::operator=(move(rhs));
-            }
+            future& operator=(future&& rhs) noexcept = default;
 
             shared_future<R&> share()
             {
