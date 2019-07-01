@@ -53,7 +53,7 @@ namespace std
                 future_base(const future_base&) = delete;
 
                 future_base(future_base&& rhs) noexcept
-                    : state_{std::move(rhs.state_)}
+                    : state_{move(rhs.state_)}
                 {
                     rhs.state_ = nullptr;
                 }
@@ -79,7 +79,7 @@ namespace std
                 future_base& operator=(future_base&& rhs) noexcept
                 {
                     release_state_();
-                    state_ = std::move(rhs.state_);
+                    state_ = move(rhs.state_);
                     rhs.state_ = nullptr;
                 }
 
@@ -161,7 +161,7 @@ namespace std
             future(const future&) = delete;
 
             future(future&& rhs) noexcept
-                : aux::future_base<R>{std::move(rhs.state_)}
+                : aux::future_base<R>{move(rhs.state_)}
             { /* DUMMY BODY */ }
 
             future(aux::shared_state<R>* state)
@@ -172,15 +172,58 @@ namespace std
 
             future& operator=(future&& rhs) noexcept
             {
-                return aux::future_base<R>::operator=(std::move(rhs));
+                return aux::future_base<R>::operator=(move(rhs));
             }
 
             shared_future<R> share()
             {
-                return shared_future<R>(std::move(*this));
+                return shared_future<R>(move(*this));
             }
 
             R get()
+            {
+                assert(this->state_);
+
+                this->wait();
+
+                if (this->state_->has_exception())
+                    this->state_->throw_stored_exception();
+
+                return move(this->state_->get());
+            }
+    };
+
+    template<class R>
+    class future<R&>: public aux::future_base<R&>
+    {
+        public:
+            future() noexcept
+                : aux::future_base<R&>{}
+            { /* DUMMY BODY */ }
+
+            future(const future&) = delete;
+
+            future(future&& rhs) noexcept
+                : aux::future_base<R&>{move(rhs.state_)}
+            { /* DUMMY BODY */ }
+
+            future(aux::shared_state<R&>* state)
+                : aux::future_base<R&>{state}
+            { /* DUMMY BODY */ }
+
+            future& operator=(const future&) = delete;
+
+            future& operator=(future&& rhs) noexcept
+            {
+                return aux::future_base<R>::operator=(move(rhs));
+            }
+
+            shared_future<R&> share()
+            {
+                return shared_future<R&>(move(*this));
+            }
+
+            R& get()
             {
                 assert(this->state_);
 
@@ -193,16 +236,42 @@ namespace std
             }
     };
 
-    template<class R>
-    class future<R&>
-    {
-        // TODO: Copy & modify once future is done.
-    };
-
     template<>
-    class future<void>
+    class future<void>: public aux::future_base<void>
     {
-        // TODO: Copy & modify once future is done.
+        public:
+            future() noexcept
+                : aux::future_base<void>{}
+            { /* DUMMY BODY */ }
+
+            future(const future&) = delete;
+
+            future(future&& rhs) noexcept
+                : aux::future_base<void>{move(rhs.state_)}
+            { /* DUMMY BODY */ }
+
+            future(aux::shared_state<void>* state)
+                : aux::future_base<void>{state}
+            { /* DUMMY BODY */ }
+
+            future& operator=(const future&) = delete;
+
+            future& operator=(future&& rhs) noexcept = default;
+
+            /* shared_future<void> share() */
+            /* { */
+            /*     return shared_future<void>(move(*this)); */
+            /* } */
+
+            void get()
+            {
+                assert(this->state_);
+
+                this->wait();
+
+                if (this->state_->has_exception())
+                    this->state_->throw_stored_exception();
+            }
     };
 }
 
