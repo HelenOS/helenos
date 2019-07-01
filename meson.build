@@ -28,6 +28,7 @@ mkarray = find_program('tools/mkarray_for_meson.sh')
 mkext4 = find_program('tools/mkext4.py')
 mkfat = find_program('tools/mkfat.py')
 mkuimage = find_program('tools/mkuimage.py')
+config_py = find_program('tools/config.py')
 objcopy = find_program('objcopy')
 objdump = find_program('objdump')
 sed = find_program('sed')
@@ -538,5 +539,16 @@ else
 	)
 endif
 
+run_target('config',
+	command: [
+		sh,
+		'-c', 'cd $1 && $2 $3 $4',
+		'--',
+		meson.build_root(),
+		config_py.path(),
+		meson.source_root() / 'HelenOS.config',
+		meson.source_root() / 'defaults',
+	]
+)
 
-# TODO: ninja config
+# TODO: Check when cross target has changed, since it won't work.
