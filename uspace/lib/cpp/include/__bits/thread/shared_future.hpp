@@ -30,6 +30,8 @@
 #define LIBCPP_BITS_THREAD_SHARED_FUTURE
 
 #include <__bits/thread/future.hpp>
+#include <__bits/thread/future_common.hpp>
+#include <type_traits>
 
 /**
  * Note: We do synchronization directly on the shared
@@ -48,7 +50,7 @@ namespace std
      */
 
     template<class R>
-    class shared_future: public aux::future_base<R>
+    class shared_future: public aux::future_base<aux::future_inner_t<R>>
     {
         public:
             shared_future() noexcept = default;
@@ -58,7 +60,7 @@ namespace std
             shared_future(shared_future&&) noexcept = default;
 
             shared_future(future<R>&& rhs)
-                : aux::future_base<R>{move(rhs.state_)}
+                : aux::future_base<aux::future_inner_t<R>>{move(rhs.state_)}
             {
                 rhs.state_ = nullptr;
             }
@@ -67,7 +69,7 @@ namespace std
 
             shared_future& operator=(shared_future&&) noexcept = default;
 
-            const R& get() const
+            aux::future_return_t<R> get() const
             {
                 assert(this->state_);
 
@@ -76,72 +78,22 @@ namespace std
                 if (this->state_->has_exception())
                     this->state_->throw_stored_exception();
 
-                return move(this->state_->get());
-            }
-    };
+                /**
+                 * Using constexpr if and the future_inner and future_result
+                 * metafunctions we can actually avoid having to create specializations
+                 * for R& and void in this case.
+                 */
+                if constexpr (!is_same_v<R, void>)
+                {
+                    if constexpr (is_reference_v<R>)
+                    {
+                        assert(this->state_->get());
 
-    template<class R>
-    class shared_future<R&>: public aux::future_base<R*>
-    {
-        public:
-            shared_future() noexcept = default;
-
-            shared_future(const shared_future&) = default;
-
-            shared_future(shared_future&&) noexcept = default;
-
-            shared_future(future<R&>&& rhs)
-                : aux::future_base<R*>{move(rhs.state_)}
-            {
-                rhs.state_ = nullptr;
-            }
-
-            shared_future& operator=(const shared_future&) = default;
-
-            shared_future& operator=(shared_future&&) noexcept = default;
-
-            R& get() const
-            {
-                assert(this->state_);
-
-                this->wait();
-
-                if (this->state_->has_exception())
-                    this->state_->throw_stored_exception();
-
-                assert(this->state_->get());
-                return *this->state_->get();
-            }
-    };
-
-    template<>
-    class shared_future<void>: public aux::future_base<void>
-    {
-        public:
-            shared_future() noexcept = default;
-
-            shared_future(const shared_future&) = default;
-
-            shared_future(shared_future&&) noexcept = default;
-
-            shared_future(future<void>&& rhs)
-                : aux::future_base<void>{move(rhs.state_)}
-            {
-                rhs.state_ = nullptr;
-            }
-
-            shared_future& operator=(const shared_future&) = default;
-
-            shared_future& operator=(shared_future&&) noexcept = default;
-
-            void get() const
-            {
-                assert(this->state_);
-
-                this->wait();
-
-                if (this->state_->has_exception())
-                    this->state_->throw_stored_exception();
+                        return *this->state_->get();
+                    }
+                    else
+                        return this->state_->get();
+                }
             }
     };
 

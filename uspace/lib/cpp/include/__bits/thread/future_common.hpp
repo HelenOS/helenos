@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_THREAD_FUTURE_COMMON
 #define LIBCPP_BITS_THREAD_FUTURE_COMMON
 
+#include <__bits/aux.hpp>
 #include <system_error>
 #include <stdexcept>
 
@@ -81,6 +82,42 @@ namespace std
         private:
             error_code code_;
     };
+
+    namespace aux
+    {
+        /**
+         * Auxilliary metafunctions that let us avoid
+         * specializations in some cases. They represent
+         * the inner stored type and the return type of
+         * the get() member function, respectively.
+         */
+
+        template<class T>
+        struct future_inner: aux::type_is<T>
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        struct future_inner<T&>: aux::type_is<T*>
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        using future_inner_t = typename future_inner<T>::type;
+
+        template<class T>
+        struct future_return: aux::type_is<const T&>
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        struct future_return<T&>: aux::type_is<T&>
+        { /* DUMMY BODY */ };
+
+        template<>
+        struct future_return<void>: aux::type_is<void>
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        using future_return_t = typename future_return<T>::type;
+    }
 }
 
 #endif
