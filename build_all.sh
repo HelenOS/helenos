@@ -24,18 +24,20 @@ PROFILES=`find ${CONFIG_DEFAULTS} -type d -links 2 -printf "%P\n" | sort`
 echo
 echo "###################### Configuring all profiles ######################"
 
+echo "Configuring profiles" $PROFILES
+
 for profile in $PROFILES; do
+	# echo "Configuring profile ${profile}"
 	if [ -f ${profile}/build.ninja ]; then
-		ninja -C ${profile} build.ninja || exit 1
+		script -q -e /dev/null -c "ninja -C '${profile}' build.ninja" </dev/null >"${profile}/configure_output.log" 2>&1  &
+		echo "$!" >"${profile}/configure.pid"
 		continue
 	fi
-
-	echo "Configuring profile ${profile}"
 
 	# Let HelenOS config tool write out Makefile.config and config.h.
 	mkdir -p ${profile} || exit 1
 	cd ${profile} || exit 1
-	${SOURCE_DIR}/tools/config.py ${CONFIG_RULES} ${CONFIG_DEFAULTS} hands-off ${profile} || exit 1
+	"${SOURCE_DIR}/tools/config.py" "${CONFIG_RULES}" "${CONFIG_DEFAULTS}" hands-off "${profile}" || exit 1
 	cd -
 
 
@@ -48,8 +50,29 @@ for profile in $PROFILES; do
 		fi
 	fi
 
-	meson ${SOURCE_DIR} ${profile} --cross-file ${SOURCE_DIR}/meson/cross/${cross_target} || exit 1
+	script -q -e /dev/null -c "meson '${SOURCE_DIR}' '${profile}' --cross-file '${SOURCE_DIR}/meson/cross/${cross_target}'" </dev/null >"${profile}/configure_output.log" 2>&1 &
+	echo "$!" >"${profile}/configure.pid"
 done
+
+failed='no'
+
+for profile in $PROFILES; do
+	if ! wait `cat "${profile}/configure.pid"`; then
+		failed='yes'
+		cat "${profile}/configure_output.log"
+		echo
+		echo "Configuration of profile ${profile} failed."
+		echo
+	fi
+done
+
+if [ "$failed" = 'yes' ]; then
+	echo
+	echo "Some configuration jobs failed."
+	exit 1
+else
+	echo "All profiles configured."
+fi
 
 echo
 echo "###################### Building all profiles ######################"
