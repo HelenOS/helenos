@@ -106,6 +106,9 @@ namespace std
             protected:
                 void abandon_state_()
                 {
+                    if (!state_)
+                        return;
+
                     /**
                      * Note: This is the 'abandon' move described in
                      *       30.6.4 (7).
@@ -115,6 +118,19 @@ namespace std
                      *   b) Mark state as ready.
                      * 2) Release the state.
                      */
+
+                    if (!state_->is_set())
+                    {
+                        // TODO: Store future_error.
+                        state_->mark_set(true);
+                    }
+
+                    if (state_->decrement())
+                    {
+                        state_->destroy();
+                        delete state_;
+                        state_ = nullptr;
+                    }
                 }
 
                 aux::shared_state<R>* state_;
