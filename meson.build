@@ -537,3 +537,6 @@ else
 		capture: true,
 	)
 endif
+
+
+# TODO: ninja config

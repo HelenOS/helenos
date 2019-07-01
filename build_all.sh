@@ -28,29 +28,9 @@ echo "Configuring profiles" $PROFILES
 
 for profile in $PROFILES; do
 	# echo "Configuring profile ${profile}"
-	if [ -f ${profile}/build.ninja ]; then
-		script -q -e /dev/null -c "ninja -C '${profile}' build.ninja" </dev/null >"${profile}/configure_output.log" 2>&1  &
-		echo "$!" >"${profile}/configure.pid"
-		continue
-	fi
 
-	# Let HelenOS config tool write out Makefile.config and config.h.
 	mkdir -p ${profile} || exit 1
-	cd ${profile} || exit 1
-	"${SOURCE_DIR}/tools/config.py" "${CONFIG_RULES}" "${CONFIG_DEFAULTS}" hands-off "${profile}" || exit 1
-	cd -
-
-
-	if [ "$profile" = 'special/abs32le' ]; then
-		cross_target='ia32'
-	else
-		cross_target=`dirname $profile`
-		if [ "$cross_target" = '.' ]; then
-			cross_target=$profile
-		fi
-	fi
-
-	script -q -e /dev/null -c "meson '${SOURCE_DIR}' '${profile}' --cross-file '${SOURCE_DIR}/meson/cross/${cross_target}'" </dev/null >"${profile}/configure_output.log" 2>&1 &
+	script -q -e /dev/null -c "cd '${profile}' && '${SOURCE_DIR}/configure.sh' '${profile}' && ninja build.ninja" </dev/null >"${profile}/configure_output.log" 2>&1  &
 	echo "$!" >"${profile}/configure.pid"
 done
 
@@ -78,6 +58,7 @@ echo
 echo "###################### Building all profiles ######################"
 
 for profile in $PROFILES; do
+	echo
 	ninja -C ${profile} || exit 1
 done
 
@@ -87,7 +68,17 @@ if [ "$#" -eq 1 ] && [ "$1" = 'images' ]; then
 	echo "###################### Building all images ######################"
 
 	for profile in $PROFILES; do
+		echo
 		ninja -C ${profile} image_path || exit 1
+	done
+
+	echo
+	for profile in $PROFILES; do
+		path=`cat ${profile}/image_path`
+
+		if [ ! -z "$path" ]; then
+			echo "built ${profile}/${path}"
+		fi
 	done
 else
 	echo
