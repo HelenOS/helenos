@@ -42,6 +42,13 @@ namespace std
 
     namespace aux
     {
+        /**
+         * Note: Because of shared_future, this base class
+         *       does implement copy constructor and copy
+         *       assignment operator. This means that the
+         *       children (std::future) need to delete this
+         *       constructor and operator themselves.
+         */
         template<class R>
         class future_base
         {
@@ -50,7 +57,11 @@ namespace std
                     : state_{nullptr}
                 { /* DUMMY BODY */ }
 
-                future_base(const future_base&) = delete;
+                future_base(const future_base& rhs)
+                    : state_{rhs.state_}
+                {
+                    state_->increment();
+                }
 
                 future_base(future_base&& rhs) noexcept
                     : state_{move(rhs.state_)}
@@ -74,7 +85,15 @@ namespace std
                     release_state_();
                 }
 
-                future_base& operator=(const future_base&) = delete;
+                future_base& operator=(const future_base& rhs)
+                {
+                    release_state_();
+                    state_ = rhs.state_;
+
+                    state_->increment();
+
+                    return *this;
+                }
 
                 future_base& operator=(future_base&& rhs) noexcept
                 {
@@ -153,6 +172,8 @@ namespace std
     template<class R>
     class future: public aux::future_base<R>
     {
+        friend class shared_future<R>;
+
         public:
             future() noexcept
                 : aux::future_base<R>{}
@@ -174,7 +195,7 @@ namespace std
 
             shared_future<R> share()
             {
-                return shared_future<R>(move(*this));
+                return shared_future<R>{move(*this)};
             }
 
             R get()
@@ -193,6 +214,8 @@ namespace std
     template<class R>
     class future<R&>: public aux::future_base<R*>
     {
+        friend class shared_future<R&>;
+
         public:
             future() noexcept
                 : aux::future_base<R*>{}
@@ -214,7 +237,7 @@ namespace std
 
             shared_future<R&> share()
             {
-                return shared_future<R&>(move(*this));
+                return shared_future<R&>{move(*this)};
             }
 
             R& get()
@@ -234,6 +257,8 @@ namespace std
     template<>
     class future<void>: public aux::future_base<void>
     {
+        friend class shared_future<void>;
+
         public:
             future() noexcept
                 : aux::future_base<void>{}
@@ -253,10 +278,12 @@ namespace std
 
             future& operator=(future&& rhs) noexcept = default;
 
-            /* shared_future<void> share() */
-            /* { */
-            /*     return shared_future<void>(move(*this)); */
-            /* } */
+            /**
+             * Note: This is just forward declaration, implementation
+             *       provided in shared_future.hpp to avoid problems
+             *       with incomplete types.
+             */
+            shared_future<void> share();
 
             void get()
             {
