@@ -69,7 +69,7 @@ namespace std
 
             shared_future& operator=(shared_future&&) noexcept = default;
 
-            aux::future_return_t<R> get() const
+            aux::future_return_shared_t<R> get() const
             {
                 assert(this->state_);
 

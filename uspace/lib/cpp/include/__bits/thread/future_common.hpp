@@ -104,19 +104,30 @@ namespace std
         using future_inner_t = typename future_inner<T>::type;
 
         template<class T>
-        struct future_return: aux::type_is<const T&>
+        struct future_return: aux::type_is<T>
         { /* DUMMY BODY */ };
 
         template<class T>
         struct future_return<T&>: aux::type_is<T&>
         { /* DUMMY BODY */ };
 
-        template<>
-        struct future_return<void>: aux::type_is<void>
+        template<class T>
+        using future_return_t = typename future_return<T>::type;
+
+        template<class T>
+        struct future_return_shared: aux::type_is<const T&>
         { /* DUMMY BODY */ };
 
         template<class T>
-        using future_return_t = typename future_return<T>::type;
+        struct future_return_shared<T&>: aux::type_is<T&>
+        { /* DUMMY BODY */ };
+
+        template<>
+        struct future_return_shared<void>: aux::type_is<void>
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        using future_return_shared_t = typename future_return_shared<T>::type;
     }
 }
 
