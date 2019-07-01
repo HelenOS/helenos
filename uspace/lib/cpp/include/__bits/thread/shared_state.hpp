@@ -45,15 +45,6 @@
 
 namespace std::aux
 {
-    /**
-     * TODO: Make this a shared_state_base which will not have the
-     *       set_value functions, but will keep the rest. Then create
-     *       shared state with the set_value function and a specialization
-     *       of that with a set_value that takes no arguments.
-     *
-     *       The value itself should be in the children (as the void one
-     *       won't have it).
-     */
     class shared_state_base: public aux::refcount_obj
     {
         public:
