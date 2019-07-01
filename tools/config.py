@@ -536,7 +536,7 @@ def create_output(mkname, mcname, config, rules):
 	sys.stderr.write("Fetching current revision identifier ... ")
 
 	try:
-		version = subprocess.Popen(['git', 'log', '-1', '--pretty=%h'], stdout = subprocess.PIPE).communicate()[0].decode().strip()
+		version = subprocess.Popen(['git', '-C', os.path.dirname(RULES_FILE), 'log', '-1', '--pretty=%h'], stdout = subprocess.PIPE).communicate()[0].decode().strip()
 		sys.stderr.write("ok\n")
 	except:
 		version = None
