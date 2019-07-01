@@ -161,6 +161,17 @@ namespace std
 
             future<R> get_future()
             {
+                assert(this->state_);
+
+                /**
+                 * Note: Future constructor that takes a shared
+                 *       state as its argument does not call increment
+                 *       because a future can be created as the only
+                 *       owner of that state (e.g. when created by
+                 *       std::async), so we have to do it here.
+                 */
+                this->state_->increment();
+
                 return future<R>{this->state_};
             }
 
@@ -252,6 +263,17 @@ namespace std
 
             future<R&> get_future()
             {
+                assert(this->state_);
+
+                /**
+                 * Note: Future constructor that takes a shared
+                 *       state as its argument does not call increment
+                 *       because a future can be created as the only
+                 *       owner of that state (e.g. when created by
+                 *       std::async), so we have to do it here.
+                 */
+                this->state_->increment();
+
                 return future<R&>{this->state_};
             }
 
@@ -314,6 +336,17 @@ namespace std
 
             future<void> get_future()
             {
+                assert(this->state_);
+
+                /**
+                 * Note: Future constructor that takes a shared
+                 *       state as its argument does not call increment
+                 *       because a future can be created as the only
+                 *       owner of that state (e.g. when created by
+                 *       std::async), so we have to do it here.
+                 */
+                this->state_->increment();
+
                 return future<void>{this->state_};
             }
 
