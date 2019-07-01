@@ -29,31 +29,126 @@
 #ifndef LIBCPP_BITS_THREAD_SHARED_FUTURE
 #define LIBCPP_BITS_THREAD_SHARED_FUTURE
 
+#include <__bits/thread/future.hpp>
+
+/**
+ * Note: We do synchronization directly on the shared
+ *       state, this means that with the exception of
+ *       some member functions (which are only defined
+ *       for specializations anyway) our future and
+ *       shared_future are basically identical. Because
+ *       of that, we can use aux::future_base for
+ *       shared_future as well.
+ */
+
 namespace std
 {
     /**
      * 30.6.7, class template shared_future:
      */
 
-    // TODO: Make sure the move-future constructor of shared_future
-    //       invalidates the state (i.e. sets to nullptr).
     template<class R>
-    class shared_future
+    class shared_future: public aux::future_base<R>
     {
-        // TODO: Copy & modify once future is done.
+        public:
+            shared_future() noexcept = default;
+
+            shared_future(const shared_future&) = default;
+
+            shared_future(shared_future&&) noexcept = default;
+
+            shared_future(future<R>&& rhs)
+                : aux::future_base<R>{move(rhs.state_)}
+            {
+                rhs.state_ = nullptr;
+            }
+
+            shared_future& operator=(const shared_future&) = default;
+
+            shared_future& operator=(shared_future&&) noexcept = default;
+
+            const R& get() const
+            {
+                assert(this->state_);
+
+                this->wait();
+
+                if (this->state_->has_exception())
+                    this->state_->throw_stored_exception();
+
+                return move(this->state_->get());
+            }
     };
 
     template<class R>
-    class shared_future<R&>
+    class shared_future<R&>: public aux::future_base<R*>
     {
-        // TODO: Copy & modify once future is done.
+        public:
+            shared_future() noexcept = default;
+
+            shared_future(const shared_future&) = default;
+
+            shared_future(shared_future&&) noexcept = default;
+
+            shared_future(future<R&>&& rhs)
+                : aux::future_base<R*>{move(rhs.state_)}
+            {
+                rhs.state_ = nullptr;
+            }
+
+            shared_future& operator=(const shared_future&) = default;
+
+            shared_future& operator=(shared_future&&) noexcept = default;
+
+            R& get() const
+            {
+                assert(this->state_);
+
+                this->wait();
+
+                if (this->state_->has_exception())
+                    this->state_->throw_stored_exception();
+
+                assert(this->state_->get());
+                return *this->state_->get();
+            }
     };
 
     template<>
-    class shared_future<void>
+    class shared_future<void>: public aux::future_base<void>
     {
-        // TODO: Copy & modify once future is done.
+        public:
+            shared_future() noexcept = default;
+
+            shared_future(const shared_future&) = default;
+
+            shared_future(shared_future&&) noexcept = default;
+
+            shared_future(future<void>&& rhs)
+                : aux::future_base<void>{move(rhs.state_)}
+            {
+                rhs.state_ = nullptr;
+            }
+
+            shared_future& operator=(const shared_future&) = default;
+
+            shared_future& operator=(shared_future&&) noexcept = default;
+
+            void get() const
+            {
+                assert(this->state_);
+
+                this->wait();
+
+                if (this->state_->has_exception())
+                    this->state_->throw_stored_exception();
+            }
     };
+
+    shared_future<void> future<void>::share()
+    {
+        return shared_future<void>{move(*this)};
+    }
 }
 
 #endif
