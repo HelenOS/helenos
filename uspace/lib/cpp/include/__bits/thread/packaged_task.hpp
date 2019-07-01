@@ -29,6 +29,13 @@
 #ifndef LIBCPP_BITS_THREAD_PACKAGED_TASK
 #define LIBCPP_BITS_THREAD_PACKAGED_TASK
 
+#include <__bits/functional/function.hpp>
+#include <__bits/thread/future.hpp>
+#include <__bits/thread/future_common.hpp>
+#include <__bits/thread/shared_state.hpp>
+#include <type_traits>
+#include <utility>
+
 namespace std
 {
     /**
@@ -41,46 +48,142 @@ namespace std
     template<class R, class... Args>
     class packaged_task<R(Args...)>
     {
-        packaged_task() noexcept
-        {}
+        public:
+            packaged_task() noexcept
+                : func_{}, state_{}
+            { /* DUMMY BODY */ }
 
-        template<class F>
-        explicit packaged_task(F&& f)
-        {}
+            template<
+                class F, enable_if_t<
+                    !is_same_v<
+                        decay_t<F>, packaged_task<R(Args...)>
+                    >, int
+                > = 0
+            >
+            explicit packaged_task(F&& f)
+                : func_{forward<F>(f)}, state_{new aux::shared_state<R>{}}
+            { /* DUMMY BODY */ }
 
-        template<class F, class Allocator>
-        explicit packaged_task(allocator_arg_t, const Allocator& a, F&& f)
-        {}
+            template<
+                class F, class Allocator, enable_if_t<
+                    is_same_v<
+                        decay_t<F>, packaged_task<R(Args...)>
+                    >, int
+                > = 0
+            >
+            explicit packaged_task(allocator_arg_t, const Allocator& a, F&& f)
+                : packaged_task{forward<F>(f)}
+            {
+                // TODO: use the allocator
+            }
 
-        ~packaged_task()
-        {}
+            ~packaged_task()
+            {
+                if (state_)
+                {
+                    if (!state_->is_set())
+                    {
+                        // TODO: store future_error
+                        state_->mark_set(true);
+                    }
 
-        packaged_task(const packaged_task&) = delete;
-        packaged_task& operator=(const packaged_task&) = delete;
+                    if (state_->decrement())
+                    {
+                        state_->destroy();
+                        delete state_;
+                        state_ = nullptr;
+                    }
+                }
+            }
 
-        packaged_task(packaged_task&& rhs)
-        {}
+            packaged_task(const packaged_task&) = delete;
+            packaged_task& operator=(const packaged_task&) = delete;
 
-        packaged_task& operator=(packaged_task&& rhs)
-        {}
+            packaged_task(packaged_task&& rhs)
+                : func_{move(rhs.func_)}, state_{move(rhs.state_)}
+            { /* DUMMY BODY */ }
 
-        void swap(packaged_task& other) noexcept
-        {}
+            packaged_task& operator=(packaged_task&& rhs)
+            {
+                if (state_)
+                {
+                    if (state_->decrement())
+                    {
+                        state_->destroy();
+                        delete state_;
+                        state_ = nullptr;
+                    }
+                }
 
-        bool valid() const noexcept
-        {}
+                func_ = move(rhs.func_);
+                state_ = move(rhs.state_);
 
-        future<R> get_future()
-        {}
+                return *this;
+            }
 
-        void operator()(Args...)
-        {}
+            void swap(packaged_task& other) noexcept
+            {
+                std::swap(func_, other.func_);
+                std::swap(state_, other.state_);
+            }
 
-        void make_ready_at_thread_exit(Args...)
-        {}
+            bool valid() const noexcept
+            {
+                return state_ != nullptr;
+            }
 
-        void reset()
-        {}
+            future<R> get_future()
+            {
+                if (!state_)
+                    throw future_error{make_error_code(future_errc::no_state)};
+
+                state_->increment();
+
+                return future<R>{state_};
+            }
+
+            /**
+             * Note: This is how the signature is in the standard,
+             *       should be investigated and verified.
+             */
+            void operator()(Args... args)
+            {
+                if (!state_)
+                    throw future_error{make_error_code(future_errc::no_state)};
+                if (state_->is_set())
+                {
+                    throw future_error{
+                        make_error_code(future_errc::promise_already_satisfied)
+                    };
+                }
+
+                try
+                {
+                    state_->set_value(invoke(func_, args...));
+                }
+                catch(...)
+                {
+                    // TODO: store it
+                }
+            }
+
+            void make_ready_at_thread_exit(Args...)
+            {
+                // TODO: implement
+            }
+
+            void reset()
+            {
+                if (!state_)
+                    throw future_error{make_error_code(future_errc::no_state)};
+
+                *this = packaged_task{move(func_)};
+            }
+
+        private:
+            function<R(Args...)> func_;
+
+            aux::shared_state<R>* state_;
     };
 
     template<class R, class... Args>
