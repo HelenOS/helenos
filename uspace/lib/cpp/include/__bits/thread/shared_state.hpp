@@ -43,19 +43,22 @@
 #include <thread>
 #include <tuple>
 
-namespace std
-{
-    enum class future_status;
-}
-
 namespace std::aux
 {
-    template<class R>
-    class shared_state: public aux::refcount_obj
+    /**
+     * TODO: Make this a shared_state_base which will not have the
+     *       set_value functions, but will keep the rest. Then create
+     *       shared state with the set_value function and a specialization
+     *       of that with a set_value that takes no arguments.
+     *
+     *       The value itself should be in the children (as the void one
+     *       won't have it).
+     */
+    class shared_state_base: public aux::refcount_obj
     {
         public:
-            shared_state()
-                : mutex_{}, condvar_{}, value_{}, value_set_{false},
+            shared_state_base()
+                : mutex_{}, condvar_{}, value_set_{false},
                   exception_{}, has_exception_{false}
             {
                 threading::mutex::init(mutex_);
@@ -71,31 +74,6 @@ namespace std::aux
                  */
             }
 
-            void set_value(const R& val, bool set)
-            {
-                /**
-                 * Note: This is the 'mark ready' move described
-                 *       in 30.6.4 (6).
-                 */
-
-                aux::threading::mutex::lock(mutex_);
-                value_ = val;
-                value_set_ = set;
-                aux::threading::mutex::unlock(mutex_);
-
-                aux::threading::condvar::broadcast(condvar_);
-            }
-
-            void set_value(R&& val, bool set = true)
-            {
-                aux::threading::mutex::lock(mutex_);
-                value_ = std::move(val);
-                value_set_ = set;
-                aux::threading::mutex::unlock(mutex_);
-
-                aux::threading::condvar::broadcast(condvar_);
-            }
-
             void mark_set(bool set = true) noexcept
             {
                 value_set_ = set;
@@ -104,11 +82,6 @@ namespace std::aux
             bool is_set() const noexcept
             {
                 return value_set_;
-            }
-
-            R& get()
-            {
-                return value_;
             }
 
             void set_exception(exception_ptr ptr)
@@ -164,20 +137,19 @@ namespace std::aux
             {
                 aux::threading::mutex::lock(mutex_);
                 auto res = timed_wait_(
-                    aux::threading::time(convert(abs_time - Clock::now()))
+                    aux::threading::time::convert(abs_time - Clock::now())
                 );
                 aux::threading::mutex::unlock(mutex_);
 
                 return res;
             }
 
-            ~shared_state() override = default;
+            ~shared_state_base() override = default;
 
         protected:
             aux::mutex_t mutex_;
             aux::condvar_t condvar_;
 
-            R value_;
             bool value_set_;
 
             exception_ptr exception_;
@@ -204,6 +176,66 @@ namespace std::aux
             }
     };
 
+    template<class R>
+    class shared_state: public shared_state_base
+    {
+        public:
+            shared_state()
+                : shared_state_base{}
+            { /* DUMMY BODY */ }
+
+            void set_value(const R& val, bool set)
+            {
+                /**
+                 * Note: This is the 'mark ready' move described
+                 *       in 30.6.4 (6).
+                 */
+
+                aux::threading::mutex::lock(mutex_);
+                value_ = val;
+                value_set_ = set;
+                aux::threading::mutex::unlock(mutex_);
+
+                aux::threading::condvar::broadcast(condvar_);
+            }
+
+            void set_value(R&& val, bool set = true)
+            {
+                aux::threading::mutex::lock(mutex_);
+                value_ = std::move(val);
+                value_set_ = set;
+                aux::threading::mutex::unlock(mutex_);
+
+                aux::threading::condvar::broadcast(condvar_);
+            }
+
+            R& get()
+            {
+                return value_;
+            }
+
+        protected:
+            R value_;
+    };
+
+    template<>
+    class shared_state<void>: public shared_state_base
+    {
+        public:
+            shared_state()
+                : shared_state_base{}
+            { /* DUMMY BODY */ }
+
+            void set_value()
+            {
+                value_set_ = true;
+                aux::threading::condvar::broadcast(condvar_);
+            }
+
+            void get()
+            { /* DUMMY BODY */ }
+    };
+
     /**
      * We could make one state for both async and
      * deferred policies, but then we would be wasting
@@ -214,6 +246,13 @@ namespace std::aux
      *
      * But since we have no plan (nor need) to make those,
      * this approach seems to be the best one.
+     *
+     * Also note that unlike the parent class shared_state,
+     * we do not need to specialize these for void. This is because
+     * the difference in class contents are handled by the parent
+     * specialization and setting the value can be handled easily
+     * by if constexpr and checking for the equivalence of the
+     * R template parameter and void.
      */
 
     template<class R, class F, class... Args>
@@ -227,7 +266,13 @@ namespace std::aux
                     [=](){
                         try
                         {
-                            this->set_value(invoke(f, args...));
+                            if constexpr (!is_same_v<R, void>)
+                                this->set_value(invoke(f, args...));
+                            else
+                            {
+                                invoke(f, args...);
+                                this->mark_set(true);
+                            }
                         }
                         catch(...) // TODO: Any exception.
                         {
@@ -306,7 +351,13 @@ namespace std::aux
             {
                 try
                 {
-                    this->set_value(invoke(move(func_), get<Is>(move(args_))...));
+                    if constexpr (!is_same_v<R, void>)
+                        this->set_value(invoke(move(func_), get<Is>(move(args_))...));
+                    else
+                    {
+                        invoke(move(func_), get<Is>(move(args_))...);
+                        this->mark_set(true);
+                    }
                 }
                 catch(...)
                 {
