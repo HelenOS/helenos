@@ -170,23 +170,23 @@ namespace std
     class shared_future;
 
     template<class R>
-    class future: public aux::future_base<R>
+    class future: public aux::future_base<aux::future_inner_t<R>>
     {
         friend class shared_future<R>;
 
         public:
             future() noexcept
-                : aux::future_base<R>{}
+                : aux::future_base<aux::future_inner_t<R>>{}
             { /* DUMMY BODY */ }
 
             future(const future&) = delete;
 
             future(future&& rhs) noexcept
-                : aux::future_base<R>{move(rhs.state_)}
+                : aux::future_base<aux::future_inner_t<R>>{move(rhs.state_)}
             { /* DUMMY BODY */ }
 
-            future(aux::shared_state<R>* state)
-                : aux::future_base<R>{state}
+            future(aux::shared_state<aux::future_inner_t<R>>* state)
+                : aux::future_base<aux::future_inner_t<R>>{state}
             { /* DUMMY BODY */ }
 
             future& operator=(const future&) = delete;
@@ -198,7 +198,7 @@ namespace std
                 return shared_future<R>{move(*this)};
             }
 
-            R get()
+            aux::future_return_t<R> get()
             {
                 assert(this->state_);
 
@@ -207,92 +207,17 @@ namespace std
                 if (this->state_->has_exception())
                     this->state_->throw_stored_exception();
 
-                return move(this->state_->get());
-            }
-    };
+                if constexpr (!is_same_v<R, void>)
+                {
+                    if constexpr (is_reference_v<R>)
+                    {
+                        assert(this->state_->get());
 
-    template<class R>
-    class future<R&>: public aux::future_base<R*>
-    {
-        friend class shared_future<R&>;
-
-        public:
-            future() noexcept
-                : aux::future_base<R*>{}
-            { /* DUMMY BODY */ }
-
-            future(const future&) = delete;
-
-            future(future&& rhs) noexcept
-                : aux::future_base<R*>{move(rhs.state_)}
-            { /* DUMMY BODY */ }
-
-            future(aux::shared_state<R*>* state)
-                : aux::future_base<R*>{state}
-            { /* DUMMY BODY */ }
-
-            future& operator=(const future&) = delete;
-
-            future& operator=(future&& rhs) noexcept = default;
-
-            shared_future<R&> share()
-            {
-                return shared_future<R&>{move(*this)};
-            }
-
-            R& get()
-            {
-                assert(this->state_);
-
-                this->wait();
-
-                if (this->state_->has_exception())
-                    this->state_->throw_stored_exception();
-
-                assert(this->state_->get());
-                return *this->state_->get();
-            }
-    };
-
-    template<>
-    class future<void>: public aux::future_base<void>
-    {
-        friend class shared_future<void>;
-
-        public:
-            future() noexcept
-                : aux::future_base<void>{}
-            { /* DUMMY BODY */ }
-
-            future(const future&) = delete;
-
-            future(future&& rhs) noexcept
-                : aux::future_base<void>{move(rhs.state_)}
-            { /* DUMMY BODY */ }
-
-            future(aux::shared_state<void>* state)
-                : aux::future_base<void>{state}
-            { /* DUMMY BODY */ }
-
-            future& operator=(const future&) = delete;
-
-            future& operator=(future&& rhs) noexcept = default;
-
-            /**
-             * Note: This is just forward declaration, implementation
-             *       provided in shared_future.hpp to avoid problems
-             *       with incomplete types.
-             */
-            shared_future<void> share();
-
-            void get()
-            {
-                assert(this->state_);
-
-                this->wait();
-
-                if (this->state_->has_exception())
-                    this->state_->throw_stored_exception();
+                        return *this->state_->get();
+                    }
+                    else
+                        return this->state_->get();
+                }
             }
     };
 }

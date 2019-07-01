@@ -96,11 +96,6 @@ namespace std
                 }
             }
     };
-
-    shared_future<void> future<void>::share()
-    {
-        return shared_future<void>{move(*this)};
-    }
 }
 
 #endif
