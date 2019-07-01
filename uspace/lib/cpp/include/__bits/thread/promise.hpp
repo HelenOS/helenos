@@ -74,7 +74,7 @@ namespace std
                 promise_base& operator=(promise_base&& rhs) noexcept
                 {
                     abandon_state_();
-                    promise_base{std::move(rhs)}.swap(*this);
+                    promise_base{move(rhs)}.swap(*this);
 
                     return *this;
                 }
@@ -84,11 +84,6 @@ namespace std
                 void swap(promise_base& other) noexcept
                 {
                     std::swap(state_, other.state_);
-                }
-
-                future<R> get_future()
-                {
-                    return future<R>{state_};
                 }
 
                 void set_exception(exception_ptr ptr)
@@ -164,6 +159,11 @@ namespace std
 
             promise& operator=(const promise&) = delete;
 
+            future<R> get_future()
+            {
+                return future<R>{this->state_};
+            }
+
             void set_value(const R& val)
             {
                 if (!this->state_)
@@ -189,7 +189,7 @@ namespace std
                     };
                 }
 
-                this->state_->set_value(std::forward<R>(val), true);
+                this->state_->set_value(forward<R>(val), true);
             }
 
             void set_value_at_thread_exit(const R& val)
@@ -218,28 +218,28 @@ namespace std
                     };
                 }
 
-                this->state_->set_value(std::forward<R>(val), false);
+                this->state_->set_value(forward<R>(val), false);
                 // TODO: schedule it to be set as ready when thread exits
             }
     };
 
     template<class R>
-    class promise<R&>: public aux::promise_base<R>
-    { // TODO: I'm afraid we will need aux::shared_state<R&> specialization for this :/
+    class promise<R&>: public aux::promise_base<R*>
+    {
         public:
             promise()
-                : aux::promise_base<R&>{}
+                : aux::promise_base<R*>{}
             { /* DUMMY BODY */ }
 
             template<class Allocator>
             promise(allocator_arg_t, const Allocator& a)
-                : aux::promise_base<R&>{}
+                : aux::promise_base<R*>{}
             {
                 // TODO: Use the allocator.
             }
 
             promise(promise&& rhs) noexcept
-                : aux::promise_base<R&>{move(rhs)}
+                : aux::promise_base<R*>{move(rhs)}
             { /* DUMMY BODY */ }
 
             promise(const promise&) = delete;
@@ -249,6 +249,40 @@ namespace std
             promise& operator=(promise&& rhs) noexcept = default;
 
             promise& operator=(const promise&) = delete;
+
+            future<R&> get_future()
+            {
+                return future<R&>{this->state_};
+            }
+
+            void set_value(R& val)
+            {
+                if (!this->state_)
+                    throw future_error{make_error_code(future_errc::no_state)};
+                if (this->state_->is_set())
+                {
+                    throw future_error{
+                        make_error_code(future_errc::promise_already_satisfied)
+                    };
+                }
+
+                this->state_->set_value(&val, true);
+            }
+
+            void set_value_at_thread_exit(R& val)
+            {
+                if (!this->state_)
+                    throw future_error{make_error_code(future_errc::no_state)};
+                if (this->state_->is_set())
+                {
+                    throw future_error{
+                        make_error_code(future_errc::promise_already_satisfied)
+                    };
+                }
+
+                this->state_->set_value(&val, false);
+                // TODO: schedule it to be set as ready when thread exits
+            }
     };
 
     template<>
@@ -277,6 +311,11 @@ namespace std
             promise& operator=(promise&& rhs) noexcept = default;
 
             promise& operator=(const promise&) = delete;
+
+            future<void> get_future()
+            {
+                return future<void>{this->state_};
+            }
 
             void set_value()
             {
