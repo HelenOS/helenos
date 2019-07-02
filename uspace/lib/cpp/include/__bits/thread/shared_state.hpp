@@ -294,7 +294,10 @@ namespace std::aux
         protected:
             future_status timed_wait_(aux::time_unit_t) override
             {
-                // TODO: have to sleep and check
+                /**
+                 * Note: Currently we have no timed join, but this
+                 *       behaviour should be compliant.
+                 */
                 return future_status::timeout;
             }
 
