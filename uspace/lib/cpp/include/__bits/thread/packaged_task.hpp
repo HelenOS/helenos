@@ -31,6 +31,7 @@
 
 #include <__bits/exception.hpp>
 #include <__bits/functional/function.hpp>
+#include <__bits/memory/allocator_traits.hpp>
 #include <__bits/thread/future.hpp>
 #include <__bits/thread/future_common.hpp>
 #include <__bits/thread/shared_state.hpp>
@@ -73,9 +74,14 @@ namespace std
                 > = 0
             >
             explicit packaged_task(allocator_arg_t, const Allocator& a, F&& f)
-                : packaged_task{forward<F>(f)}
+                : func_{forward<F>(f)}, state_{}
             {
-                // TODO: use the allocator
+                auto rebound = allocator_traits<Allocator>::rebind<
+                    aux::shared_state<R>
+                >{a};
+
+                state_ = rebound.allocate(1);
+                rebound.construct(state_);
             }
 
             ~packaged_task()

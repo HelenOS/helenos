@@ -30,6 +30,7 @@
 #define LIBCPP_BITS_THREAD_PROMISE
 
 #include <__bits/exception.hpp>
+#include <__bits/memory/allocator_traits.hpp>
 #include <__bits/thread/future.hpp>
 #include <__bits/thread/shared_state.hpp>
 #include <__bits/aux.hpp>
@@ -53,9 +54,14 @@ namespace std
 
                 template<class Allocator>
                 promise_base(allocator_arg_t, const Allocator& a)
-                    : promise_base{}
+                    : state_{}
                 {
-                    // TODO: Use the allocator.
+                    auto rebound = allocator_traits<Allocator>::rebind<
+                        aux::shared_state<R>
+                    >{a};
+
+                    state_ = rebound.allocate(1);
+                    rebound.construct(state_);
                 }
 
                 promise_base(promise_base&& rhs) noexcept
@@ -147,11 +153,9 @@ namespace std
             { /* DUMMY BODY */ }
 
             template<class Allocator>
-            promise(allocator_arg_t, const Allocator& a)
-                : aux::promise_base<R>{}
-            {
-                // TODO: Use the allocator.
-            }
+            promise(allocator_arg_t tag, const Allocator& a)
+                : aux::promise_base<R>{tag, a}
+            { /* DUMMY BODY */ }
 
             promise(promise&& rhs) noexcept
                 : aux::promise_base<R>{move(rhs)}
@@ -249,11 +253,9 @@ namespace std
             { /* DUMMY BODY */ }
 
             template<class Allocator>
-            promise(allocator_arg_t, const Allocator& a)
-                : aux::promise_base<R*>{}
-            {
-                // TODO: Use the allocator.
-            }
+            promise(allocator_arg_t tag, const Allocator& a)
+                : aux::promise_base<R*>{tag, a}
+            { /* DUMMY BODY */ }
 
             promise(promise&& rhs) noexcept
                 : aux::promise_base<R*>{move(rhs)}
@@ -322,11 +324,9 @@ namespace std
             { /* DUMMY BODY */ }
 
             template<class Allocator>
-            promise(allocator_arg_t, const Allocator& a)
-                : aux::promise_base<void>{}
-            {
-                // TODO: Use the allocator.
-            }
+            promise(allocator_arg_t tag, const Allocator& a)
+                : aux::promise_base<void>{tag, a}
+            { /* DUMMY BODY */ }
 
             promise(promise&& rhs) noexcept
                 : aux::promise_base<void>{move(rhs)}
