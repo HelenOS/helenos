@@ -75,10 +75,10 @@ namespace std::aux
                 return value_set_;
             }
 
-            void set_exception(exception_ptr ptr)
+            void set_exception(exception_ptr ptr, bool set = true)
             {
                 exception_ = ptr;
-                has_exception_ = true;
+                has_exception_ = set;
             }
 
             bool has_exception() const noexcept
@@ -88,7 +88,8 @@ namespace std::aux
 
             void throw_stored_exception() const
             {
-                // TODO: implement
+                if (has_exception_)
+                    rethrow_exception(exception_);
             }
 
             /**
@@ -265,9 +266,9 @@ namespace std::aux
                                 this->mark_set(true);
                             }
                         }
-                        catch(...) // TODO: Any exception.
+                        catch(const exception& __exception)
                         {
-                            // TODO: Store it.
+                            this->set_exception(make_exception_ptr(__exception));
                         }
                     }
                 };
@@ -350,9 +351,9 @@ namespace std::aux
                         this->mark_set(true);
                     }
                 }
-                catch(...)
+                catch(const exception& __exception)
                 {
-                    // TODO: Store it.
+                    this->set_exception(make_exception_ptr(__exception));
                 }
             }
 

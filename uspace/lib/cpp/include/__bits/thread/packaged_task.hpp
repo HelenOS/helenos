@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_THREAD_PACKAGED_TASK
 #define LIBCPP_BITS_THREAD_PACKAGED_TASK
 
+#include <__bits/exception.hpp>
 #include <__bits/functional/function.hpp>
 #include <__bits/thread/future.hpp>
 #include <__bits/thread/future_common.hpp>
@@ -83,7 +84,9 @@ namespace std
                 {
                     if (!state_->is_set())
                     {
-                        // TODO: store future_error
+                        state_->set_exception(make_exception_ptr(
+                            future_error{make_error_code(future_errc::broken_promise)}
+                        ));
                         state_->mark_set(true);
                     }
 
@@ -161,9 +164,9 @@ namespace std
                 {
                     state_->set_value(invoke(func_, args...));
                 }
-                catch(...)
+                catch(const exception& __exception)
                 {
-                    // TODO: store it
+                    state_->set_exception(make_exception_ptr(__exception));
                 }
             }
 

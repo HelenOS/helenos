@@ -29,6 +29,7 @@
 #ifndef LIBCPP_BITS_THREAD_PROMISE
 #define LIBCPP_BITS_THREAD_PROMISE
 
+#include <__bits/exception.hpp>
 #include <__bits/thread/future.hpp>
 #include <__bits/thread/shared_state.hpp>
 #include <__bits/aux.hpp>
@@ -93,9 +94,12 @@ namespace std
                     state_->set_exception(ptr);
                 }
 
-                void set_exception_at_thread_exit(exception_ptr)
+                void set_exception_at_thread_exit(exception_ptr ptr)
                 {
-                    // TODO: No exception handling, no-op at this time.
+                    assert(state_);
+
+                    state_->set_exception_ptr(ptr, false);
+                    // TODO: Mark it as 'has_exception' when thread terminates.
                 }
 
             protected:
@@ -116,7 +120,9 @@ namespace std
 
                     if (!state_->is_set())
                     {
-                        // TODO: Store future_error.
+                        state_->set_exception(make_exception_ptr(
+                            future_error{make_error_code(future_errc::broken_promise)}
+                        ));
                         state_->mark_set(true);
                     }
 
