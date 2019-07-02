@@ -56,9 +56,9 @@ namespace std
                 promise_base(allocator_arg_t, const Allocator& a)
                     : state_{}
                 {
-                    auto rebound = allocator_traits<Allocator>::rebind<
-                        aux::shared_state<R>
-                    >{a};
+                    typename allocator_traits<
+                        Allocator
+                    >::template rebind_alloc<aux::shared_state<R>> rebound{a};
 
                     state_ = rebound.allocate(1);
                     rebound.construct(state_);

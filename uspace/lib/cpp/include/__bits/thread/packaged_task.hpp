@@ -76,9 +76,9 @@ namespace std
             explicit packaged_task(allocator_arg_t, const Allocator& a, F&& f)
                 : func_{forward<F>(f)}, state_{}
             {
-                auto rebound = allocator_traits<Allocator>::rebind<
-                    aux::shared_state<R>
-                >{a};
+                typename allocator_traits<
+                    Allocator
+                >::template rebind_alloc<aux::shared_state<R>> rebound{a};
 
                 state_ = rebound.allocate(1);
                 rebound.construct(state_);
