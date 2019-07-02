@@ -198,7 +198,7 @@ namespace std
                 return shared_future<R>{move(*this)};
             }
 
-            aux::future_return_t<R> get()
+            R get()
             {
                 assert(this->state_);
 
