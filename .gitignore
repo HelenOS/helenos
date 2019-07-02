@@ -420,3 +420,4 @@ uspace/srv/vfs/vfs
 uspace/srv/vfs/vfs.gz
 uspace/srv/volsrv/test-volsrv
 uspace/srv/volsrv/volsrv
+uspace/drv/block/virtio-blk/virtio-blk

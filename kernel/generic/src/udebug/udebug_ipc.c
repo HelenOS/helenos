@@ -397,8 +397,8 @@ static void udebug_receive_regs_read(call_t *call)
  */
 static void udebug_receive_mem_read(call_t *call)
 {
-	sysarg_t uspace_dst;
-	sysarg_t uspace_src;
+	uspace_addr_t uspace_dst;
+	uspace_addr_t uspace_src;
 	unsigned size;
 	void *buffer = NULL;
 	errno_t rc;

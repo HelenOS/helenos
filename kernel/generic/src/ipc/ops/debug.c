@@ -46,11 +46,11 @@ static int request_process(call_t *call, answerbox_t *box)
 static errno_t answer_process(call_t *answer)
 {
 	if (answer->buffer) {
-		uintptr_t dst = ipc_get_arg1(&answer->data);
+		uspace_addr_t dst = ipc_get_arg1(&answer->data);
 		size_t size = ipc_get_arg2(&answer->data);
 		errno_t rc;
 
-		rc = copy_to_uspace((void *) dst, answer->buffer, size);
+		rc = copy_to_uspace(dst, answer->buffer, size);
 		if (rc)
 			ipc_set_retval(&answer->data, rc);
 	}

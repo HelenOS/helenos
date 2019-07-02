@@ -163,15 +163,15 @@ extern void task_destroy_arch(task_t *);
 #endif
 
 #ifdef __32_BITS__
-extern sys_errno_t sys_task_get_id(sysarg64_t *);
+extern sys_errno_t sys_task_get_id(uspace_ptr_sysarg64_t);
 #endif
 
 #ifdef __64_BITS__
 extern sysarg_t sys_task_get_id(void);
 #endif
 
-extern sys_errno_t sys_task_set_name(const char *, size_t);
-extern sys_errno_t sys_task_kill(task_id_t *);
+extern sys_errno_t sys_task_set_name(uspace_ptr_const_char, size_t);
+extern sys_errno_t sys_task_kill(uspace_ptr_task_id_t);
 extern sys_errno_t sys_task_exit(sysarg_t);
 
 #endif

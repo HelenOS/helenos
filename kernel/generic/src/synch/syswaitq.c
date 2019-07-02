@@ -87,7 +87,7 @@ void sys_waitq_task_cleanup(void)
  *
  * @return              Error code.
  */
-sys_errno_t sys_waitq_create(cap_waitq_handle_t *whandle)
+sys_errno_t sys_waitq_create(uspace_ptr_cap_waitq_handle_t whandle)
 {
 	waitq_t *wq = slab_alloc(waitq_cache, FRAME_ATOMIC);
 	if (!wq)

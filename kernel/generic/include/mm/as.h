@@ -372,10 +372,10 @@ extern mem_backend_t user_backend;
 
 /* Address space area related syscalls. */
 extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int, uintptr_t,
-    as_area_pager_info_t *);
+    uspace_ptr_as_area_pager_info_t);
 extern sys_errno_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
 extern sys_errno_t sys_as_area_change_flags(uintptr_t, unsigned int);
-extern sys_errno_t sys_as_area_get_info(uintptr_t, as_area_info_t *);
+extern sys_errno_t sys_as_area_get_info(uintptr_t, uspace_ptr_as_area_info_t);
 extern sys_errno_t sys_as_area_destroy(uintptr_t);
 
 /* Introspection functions. */

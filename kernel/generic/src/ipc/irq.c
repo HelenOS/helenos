@@ -222,7 +222,7 @@ static void code_free(irq_code_t *code)
  * @return Kernel address of the copied IRQ code.
  *
  */
-static irq_code_t *code_from_uspace(irq_code_t *ucode)
+static irq_code_t *code_from_uspace(uspace_ptr_irq_code_t ucode)
 {
 	irq_pio_range_t *ranges = NULL;
 	irq_cmd_t *cmds = NULL;
@@ -241,7 +241,7 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	ranges = malloc(sizeof(code->ranges[0]) * code->rangecount);
 	if (!ranges)
 		goto error;
-	rc = copy_from_uspace(ranges, code->ranges,
+	rc = copy_from_uspace(ranges, (uintptr_t) code->ranges,
 	    sizeof(code->ranges[0]) * code->rangecount);
 	if (rc != EOK)
 		goto error;
@@ -249,7 +249,7 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	cmds = malloc(sizeof(code->cmds[0]) * code->cmdcount);
 	if (!cmds)
 		goto error;
-	rc = copy_from_uspace(cmds, code->cmds,
+	rc = copy_from_uspace(cmds, (uintptr_t) code->cmds,
 	    sizeof(code->cmds[0]) * code->cmdcount);
 	if (rc != EOK)
 		goto error;
@@ -322,7 +322,7 @@ static kobject_ops_t irq_kobject_ops = {
  *
  */
 errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
-    irq_code_t *ucode, cap_irq_handle_t *uspace_handle)
+    uspace_ptr_irq_code_t ucode, uspace_ptr_cap_irq_handle_t uspace_handle)
 {
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;

@@ -547,7 +547,7 @@ errno_t udebug_regs_read(thread_t *thread, void **buffer)
  * @param buffer      For storing a pointer to the allocated buffer.
  *
  */
-errno_t udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
+errno_t udebug_mem_read(uspace_addr_t uspace_addr, size_t n, void **buffer)
 {
 	/* Verify task state */
 	mutex_lock(&TASK->udebug.lock);
@@ -568,7 +568,7 @@ errno_t udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 	 * be a problem
 	 *
 	 */
-	errno_t rc = copy_from_uspace(data_buffer, (void *) uspace_addr, n);
+	errno_t rc = copy_from_uspace(data_buffer, uspace_addr, n);
 	mutex_unlock(&TASK->udebug.lock);
 
 	if (rc != EOK)
