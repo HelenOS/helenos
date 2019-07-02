@@ -105,7 +105,7 @@ namespace std
                     assert(state_);
 
                     state_->set_exception_ptr(ptr, false);
-                    // TODO: Mark it as 'has_exception' when thread terminates.
+                    aux::set_state_exception_at_thread_exit(state_);
                 }
 
             protected:
@@ -225,7 +225,7 @@ namespace std
                 }
 
                 this->state_->set_value(val, false);
-                // TODO: schedule it to be set as ready when thread exits
+                aux::set_state_value_at_thread_exit(state_);
             }
 
             void set_value_at_thread_exit(R&& val)
@@ -240,7 +240,7 @@ namespace std
                 }
 
                 this->state_->set_value(forward<R>(val), false);
-                // TODO: schedule it to be set as ready when thread exits
+                aux::set_state_value_at_thread_exit(state_);
             }
     };
 
@@ -311,7 +311,7 @@ namespace std
                 }
 
                 this->state_->set_value(&val, false);
-                // TODO: schedule it to be set as ready when thread exits
+                aux::set_state_value_at_thread_exit(state_);
             }
     };
 

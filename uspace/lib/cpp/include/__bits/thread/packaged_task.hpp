@@ -178,7 +178,25 @@ namespace std
 
             void make_ready_at_thread_exit(Args...)
             {
-                // TODO: implement
+                if (!state_)
+                    throw future_error{make_error_code(future_errc::no_state)};
+                if (state_->is_set())
+                {
+                    throw future_error{
+                        make_error_code(future_errc::promise_already_satisfied)
+                    };
+                }
+
+                try
+                {
+                    state_->set_value(invoke(func_, args...), false);
+                }
+                catch(const exception& __exception)
+                {
+                    state_->set_exception(make_exception_ptr(__exception), false);
+                }
+
+                aux::set_state_value_at_thread_exit(state_);
             }
 
             void reset()

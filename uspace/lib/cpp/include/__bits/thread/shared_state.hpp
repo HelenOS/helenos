@@ -370,6 +370,28 @@ namespace std::aux
                 return future_status::deferred;
             }
     };
+
+    /**
+     * Note: The following two functions should:
+     *   1) Increment refcount.
+     *   2) Store ptr to a vector of shared_state_base ptrs
+     *      (as those have ::mark_set member functions).
+     *   3) If not done already, register a function
+     *      executing all these in the thread_atexit function
+     *      once that is implemented.
+     */
+
+    template<class R>
+    void set_state_value_at_thread_exit(shared_state<R>* state)
+    {
+        // TODO: implement
+    }
+
+    template<class R>
+    void set_state_exception_at_thread_exit(shared_state<R>* state)
+    {
+        // TODO: implement
+    }
 }
 
 #endif
