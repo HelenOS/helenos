@@ -176,7 +176,7 @@ namespace std
                 }
             }
 
-            void make_ready_at_thread_exit(Args...)
+            void make_ready_at_thread_exit(Args... args)
             {
                 if (!state_)
                     throw future_error{make_error_code(future_errc::no_state)};

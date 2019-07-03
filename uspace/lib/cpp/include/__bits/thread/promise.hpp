@@ -226,12 +226,12 @@ namespace std
 
                 try
                 {
-                    state_->set_value(invoke(func_, args...), false);
+                    this->state_->set_value(val, false);
                     aux::set_state_value_at_thread_exit(this->state_);
                 }
                 catch(const exception& __exception)
                 {
-                    state_->set_exception(make_exception_ptr(__exception), false);
+                    this->state_->set_exception(make_exception_ptr(__exception), false);
                     aux::set_state_exception_at_thread_exit(this->state_);
                 }
             }
@@ -249,12 +249,12 @@ namespace std
 
                 try
                 {
-                    state_->set_value(invoke(func_, args...), false);
+                    this->state_->set_value(forward(val), false);
                     aux::set_state_value_at_thread_exit(this->state_);
                 }
                 catch(const exception& __exception)
                 {
-                    state_->set_exception(make_exception_ptr(__exception), false);
+                    this->state_->set_exception(make_exception_ptr(__exception), false);
                     aux::set_state_exception_at_thread_exit(this->state_);
                 }
             }
@@ -328,12 +328,12 @@ namespace std
 
                 try
                 {
-                    state_->set_value(invoke(func_, args...), false);
+                    this->state_->set_value(&val, false);
                     aux::set_state_value_at_thread_exit(this->state_);
                 }
                 catch(const exception& __exception)
                 {
-                    state_->set_exception(make_exception_ptr(__exception), false);
+                    this->state_->set_exception(make_exception_ptr(__exception), false);
                     aux::set_state_exception_at_thread_exit(this->state_);
                 }
             }
