@@ -126,6 +126,7 @@ namespace std
 
                 func_ = move(rhs.func_);
                 state_ = move(rhs.state_);
+                rhs.state_ = nullptr;
 
                 return *this;
             }

@@ -303,6 +303,7 @@ namespace std::test
         private:
             void test_future();
             void test_promise();
+            void test_future_promise();
             void test_async();
             void test_packaged_task();
             void test_shared_future();

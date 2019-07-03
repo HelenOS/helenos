@@ -100,6 +100,8 @@ namespace std
                     release_state_();
                     state_ = move(rhs.state_);
                     rhs.state_ = nullptr;
+
+                    return *this;
                 }
 
                 bool valid() const noexcept
@@ -182,7 +184,7 @@ namespace std
             future(const future&) = delete;
 
             future(future&& rhs) noexcept
-                : aux::future_base<aux::future_inner_t<R>>{move(rhs.state_)}
+                : aux::future_base<aux::future_inner_t<R>>{move(rhs)}
             { /* DUMMY BODY */ }
 
             future(aux::shared_state<aux::future_inner_t<R>>* state)
@@ -218,6 +220,17 @@ namespace std
                     else
                         return this->state_->get();
                 }
+            }
+
+            /**
+             * Useful for testing as we can check some information
+             * otherwise unavailable to us without waiting, e.g.
+             * to check whether the state is ready, its reference
+             * count etc.
+             */
+            aux::shared_state<aux::future_inner_t<R>>* __state() noexcept
+            {
+                return this->state_;
             }
     };
 }

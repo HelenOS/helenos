@@ -114,6 +114,9 @@ namespace std::aux
             future_status
             wait_for(const chrono::duration<Rep, Period>& rel_time)
             {
+                if (value_set_)
+                    return future_status::ready;
+
                 aux::threading::mutex::lock(mutex_);
                 auto res = timed_wait_(
                     aux::threading::time::convert(rel_time)
@@ -127,6 +130,9 @@ namespace std::aux
             future_status
             wait_until(const chrono::time_point<Clock, Duration>& abs_time)
             {
+                if (value_set_)
+                    return future_status::ready;
+
                 aux::threading::mutex::lock(mutex_);
                 auto res = timed_wait_(
                     aux::threading::time::convert(abs_time - Clock::now())
@@ -188,7 +194,8 @@ namespace std::aux
                 value_set_ = set;
                 aux::threading::mutex::unlock(mutex_);
 
-                aux::threading::condvar::broadcast(condvar_);
+                if (set)
+                    aux::threading::condvar::broadcast(condvar_);
             }
 
             void set_value(R&& val, bool set = true)
@@ -198,7 +205,8 @@ namespace std::aux
                 value_set_ = set;
                 aux::threading::mutex::unlock(mutex_);
 
-                aux::threading::condvar::broadcast(condvar_);
+                if (set)
+                    aux::threading::condvar::broadcast(condvar_);
             }
 
             R& get()
@@ -292,13 +300,17 @@ namespace std::aux
             }
 
         protected:
-            future_status timed_wait_(aux::time_unit_t) override
+            future_status timed_wait_(aux::time_unit_t time) override
             {
                 /**
                  * Note: Currently we have no timed join, but this
                  *       behaviour should be compliant.
                  */
-                return future_status::timeout;
+                aux::threading::time::sleep(time);
+                if (this->value_set_)
+                    return future_status::ready;
+                else
+                    return future_status::timeout;
             }
 
         private:

@@ -108,6 +108,17 @@ namespace std
                     aux::set_state_exception_at_thread_exit(state_);
                 }
 
+                /**
+                 * Useful for testing as we can check some information
+                 * otherwise unavailable to us without waiting, e.g.
+                 * to check whether the state is ready, its reference
+                 * count etc.
+                 */
+                aux::shared_state<R>* __state()
+                {
+                    return state_;
+                }
+
             protected:
                 void abandon_state_()
                 {
@@ -249,7 +260,7 @@ namespace std
 
                 try
                 {
-                    this->state_->set_value(forward(val), false);
+                    this->state_->set_value(forward<R>(val), false);
                     aux::set_state_value_at_thread_exit(this->state_);
                 }
                 catch(const exception& __exception)

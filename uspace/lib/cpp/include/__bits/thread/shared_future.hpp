@@ -95,6 +95,17 @@ namespace std
                         return this->state_->get();
                 }
             }
+
+            /**
+             * Useful for testing as we can check some information
+             * otherwise unavailable to us without waiting, e.g.
+             * to check whether the state is ready, its reference
+             * count etc.
+             */
+            aux::shared_state<aux::future_inner_t<R>>* __state() noexcept
+            {
+                return this->state_;
+            }
     };
 }
 

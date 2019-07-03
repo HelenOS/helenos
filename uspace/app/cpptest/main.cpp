@@ -120,6 +120,7 @@ int main()
     ts.add<std::test::ratio_test>();
     ts.add<std::test::functional_test>();
     ts.add<std::test::algorithm_test>();
+    ts.add<std::test::future_test>();
 
     return ts.run(true) ? 0 : 1;
 }
