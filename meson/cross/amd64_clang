@@ -14,6 +14,9 @@ ld = 'amd64-helenos-ld'
 [properties]
 has_function_printf = true
 needs_exe_wrapper = true
+c_args = [ '-nostdlibinc' ]
+cpp_args = [ '-nostdlibinc' ]
+link_args = [ '-nostdlib' ]
 
 cc_arch = 'amd64'
 bits = 64

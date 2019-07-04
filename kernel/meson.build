@@ -69,7 +69,7 @@ endif
 kernel_c_args = arch_kernel_c_args + kernel_defs + [
 	'-ffreestanding',
 	# TODO: remove this flag
-	'-Wno-cast-function-type',
+	cc.get_supported_arguments([ '-Wno-cast-function-type' ]),
 ]
 
 if cc.get_id() == 'clang'

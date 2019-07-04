@@ -254,7 +254,6 @@ extra_common_flags = [
 	'-Werror-implicit-function-declaration',
 
 	'-Wwrite-strings',
-	'-Wsystem-headers',
 	'-Wunknown-pragmas',
 
 	'-Wno-unused-parameter',
@@ -266,6 +265,11 @@ extra_common_flags = [
 
 	'-fdebug-prefix-map=' + meson.source_root() + '=.',
 ]
+
+if cc.get_id() != 'clang'
+	# Clang's own headers emit macro redefinition warnings.
+	extra_common_flags += '-Wsystem-headers'
+endif
 
 if UARCH != 'ia64'
 	extra_common_flags += [ '-fvar-tracking-assignments' ]
@@ -449,9 +453,11 @@ install_files += [[ 'config', meson.build_root() / 'Makefile.config', 'Makefile.
 install_deps += CONFIG_MAKEFILE
 
 if CONFIG_DEVEL_FILES
-	# Also install libgcc
-	libgcc = run_command(
-		cc.cmd_array(), arch_uspace_c_args, '-print-libgcc-file-name',
+	# Also install libgcc.
+	# We have to explicitly use gcc for this, because clang only prints
+	# file name instead of whole path.
+	libgcc = run_command(cc_arch + '-helenos-gcc',
+		arch_uspace_c_args, '-print-libgcc-file-name',
 		check: true,
 	).stdout().strip()
 
