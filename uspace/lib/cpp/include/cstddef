@@ -31,13 +31,9 @@
 
 #include <stddef.h>
 
-#ifdef __clang__
-typedef decltype(nullptr) nullptr_t;
-#endif
-
 namespace std
 {
-    using ::nullptr_t;
+    using nullptr_t = decltype(nullptr);
     using ::size_t;
     using ::ptrdiff_t;
     using ::max_align_t;
