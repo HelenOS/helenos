@@ -87,8 +87,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define CAPS_START	(CAP_NIL + 1)
-#define CAPS_SIZE	(INT_MAX - CAPS_START)
+#define CAPS_START	((intptr_t) CAP_NIL + 1)
+#define CAPS_SIZE	(INT_MAX - (int) CAPS_START)
 #define CAPS_LAST	(CAPS_SIZE - 1)
 
 static slab_cache_t *cap_cache;

@@ -31,6 +31,10 @@
 
 #include <stddef.h>
 
+#ifdef __clang__
+typedef decltype(nullptr) nullptr_t;
+#endif
+
 namespace std
 {
     using ::nullptr_t;
