@@ -113,6 +113,7 @@ config_variables = [
 	'CONFIG_DEVEL_FILES',
 	'CONFIG_FPU',
 	'CONFIG_LINE_DEBUG',
+	'CONFIG_LTO',
 	'CONFIG_PCUT_SELF_TESTS',
 	'CONFIG_PCUT_TESTS',
 	'CONFIG_RTLD',
@@ -246,23 +247,21 @@ extra_common_flags = [
 	'-finput-charset=UTF-8',
 
 	'-D_HELENOS_SOURCE',
+
 	'-Wa,--fatal-warnings',
 
 	'-Wall',
 	'-Wextra',
-
 	'-Werror-implicit-function-declaration',
-
 	'-Wwrite-strings',
 	'-Wunknown-pragmas',
 
 	'-Wno-unused-parameter',
 
 	'-pipe',
+
 	'-ffunction-sections',
-
 	'-fno-common',
-
 	'-fdebug-prefix-map=' + meson.source_root() + '=.',
 ]
 

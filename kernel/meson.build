@@ -61,8 +61,12 @@ kernel_link_args = arch_kernel_link_args + [
 	'-T', meson.current_build_dir() / '_link.ld',
 ]
 
+if CONFIG_LTO
+	kernel_link_args += [ '-flto' ]
+endif
+
 if CONFIG_STRIP_BINARIES
-	# TODO: let meson do this
+	# TODO: do this after disassembling
 	kernel_link_args += [ '-s' ]
 endif
 
@@ -71,6 +75,10 @@ kernel_c_args = arch_kernel_c_args + kernel_defs + [
 	# TODO: remove this flag
 	cc.get_supported_arguments([ '-Wno-cast-function-type' ]),
 ]
+
+if CONFIG_LTO
+	kernel_c_args += [ '-flto' ]
+endif
 
 if cc.get_id() == 'clang'
 	kernel_c_args += [
