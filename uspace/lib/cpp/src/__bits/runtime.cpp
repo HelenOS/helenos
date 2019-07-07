@@ -27,6 +27,7 @@
  */
 
 #include <__bits/abi.hpp>
+#include <cassert>
 #include <cstdlib>
 #include <cstdint>
 #include <exception>
@@ -210,6 +211,7 @@ namespace __cxxabiv1
     extern "C" int __cxa_thread_atexit(void(*)(void*), void*, void*)
     {
         // TODO: needed for thread_local variables
+        __unimplemented();
         return 0;
     }
 }

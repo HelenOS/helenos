@@ -68,6 +68,10 @@ namespace std
             /**
              * Note: The case when async | deferred is set in policy
              *       is implementation defined, feel free to change.
+             * Rationale: We chose the 'deferred' policy, because unlike
+             *            the 'async' policy it carries no possible
+             *            surprise ('async' can fail due to thread
+             *            creation error).
              */
             if (async && deferred)
             {

@@ -92,36 +92,43 @@ namespace std::aux
                     rethrow_exception(exception_);
             }
 
-            /**
-             * TODO: This member function is supposed to be marked
-             *       as 'const'. In such a case, however, we cannot
-             *       use the underlying fibril API because these
-             *       references get converted to pointers and the API
-             *       does not accept e.g. 'const fibril_condvar_t*'.
-             *
-             *       The same applies to the wait_for and wait_until
-             *       functions.
-             */
-            virtual void wait()
+            virtual void wait() const
             {
-                aux::threading::mutex::lock(mutex_);
+                aux::threading::mutex::lock(
+                    const_cast<aux::mutex_t&>(mutex_)
+                );
+
                 while (!value_set_)
-                    aux::threading::condvar::wait(condvar_, mutex_);
-                aux::threading::mutex::unlock(mutex_);
+                {
+                    aux::threading::condvar::wait(
+                        const_cast<aux::condvar_t&>(condvar_),
+                        const_cast<aux::mutex_t&>(mutex_)
+                    );
+                }
+
+                aux::threading::mutex::unlock(
+                    const_cast<aux::mutex_t&>(mutex_)
+                );
             }
 
             template<class Rep, class Period>
             future_status
-            wait_for(const chrono::duration<Rep, Period>& rel_time)
+            wait_for(const chrono::duration<Rep, Period>& rel_time) const
             {
                 if (value_set_)
                     return future_status::ready;
 
-                aux::threading::mutex::lock(mutex_);
+                aux::threading::mutex::lock(
+                    const_cast<aux::mutex_t&>(mutex_)
+                );
+
                 auto res = timed_wait_(
                     aux::threading::time::convert(rel_time)
                 );
-                aux::threading::mutex::unlock(mutex_);
+
+                aux::threading::mutex::unlock(
+                    const_cast<aux::mutex_t&>(mutex_)
+                );
 
                 return res;
             }
@@ -133,11 +140,17 @@ namespace std::aux
                 if (value_set_)
                     return future_status::ready;
 
-                aux::threading::mutex::lock(mutex_);
+                aux::threading::mutex::lock(
+                    const_cast<aux::mutex_t&>(mutex_)
+                );
+
                 auto res = timed_wait_(
                     aux::threading::time::convert(abs_time - Clock::now())
                 );
-                aux::threading::mutex::unlock(mutex_);
+
+                aux::threading::mutex::unlock(
+                    const_cast<aux::mutex_t&>(mutex_)
+                );
 
                 return res;
             }
@@ -163,10 +176,11 @@ namespace std::aux
              *       templates and then overriding that function in the
              *       children).
              */
-            virtual future_status timed_wait_(aux::time_unit_t time)
+            virtual future_status timed_wait_(aux::time_unit_t time) const
             {
                 auto res = aux::threading::condvar::wait_for(
-                    condvar_, mutex_, time
+                    const_cast<aux::condvar_t&>(condvar_),
+                    const_cast<aux::mutex_t&>(mutex_), time
                 );
 
                 return res == ETIMEOUT ? future_status::timeout
@@ -288,10 +302,10 @@ namespace std::aux
                     thread_.join();
             }
 
-            void wait() override
+            void wait() const override
             {
                 if (!this->is_set())
-                    thread_.join();
+                    const_cast<thread&>(thread_).join();
             }
 
             ~async_shared_state() override
@@ -300,7 +314,7 @@ namespace std::aux
             }
 
         protected:
-            future_status timed_wait_(aux::time_unit_t time) override
+            future_status timed_wait_(aux::time_unit_t time) const override
             {
                 /**
                  * Note: Currently we have no timed join, but this
@@ -335,13 +349,17 @@ namespace std::aux
                 aux::threading::mutex::unlock(this->mutex_);
             }
 
-            void wait() override
+            void wait() const override
             {
                 /**
                  * Note: Synchronization done in invoke_ -> set_value.
                  */
                 if (!this->is_set())
-                    invoke_(make_index_sequence<sizeof...(Args)>{});
+                {
+                    const_cast<
+                        deferred_shared_state<R, F, Args...>*
+                    >(this)->invoke_(make_index_sequence<sizeof...(Args)>{});
+                }
             }
 
             ~deferred_shared_state() override
@@ -372,7 +390,7 @@ namespace std::aux
                 }
             }
 
-            future_status timed_wait_(aux::time_unit_t) override
+            future_status timed_wait_(aux::time_unit_t) const override
             {
                 /**
                  * Note: Neither of the wait_ functions has any effect
@@ -397,12 +415,14 @@ namespace std::aux
     void set_state_value_at_thread_exit(shared_state<R>* state)
     {
         // TODO: implement
+        __unimplemented();
     }
 
     template<class R>
     void set_state_exception_at_thread_exit(shared_state<R>* state)
     {
         // TODO: implement
+        __unimplemented();
     }
 }
 

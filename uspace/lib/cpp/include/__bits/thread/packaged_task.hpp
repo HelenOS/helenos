@@ -44,8 +44,15 @@ namespace std
      * 30.6.9, class template packaged_task:
      */
 
+    /**
+     * Note: The base template is not defined because
+     *       we require the template parameter to be
+     *       a callable object (e.g. a function). This
+     *       is achieved by the R(Args...) specialization
+     *       below.
+     */
     template<class>
-    class packaged_task; // undefined
+    class packaged_task;
 
     template<class R, class... Args>
     class packaged_task<R(Args...)>
