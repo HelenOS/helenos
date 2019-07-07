@@ -34,6 +34,7 @@
 #include <__bits/thread/shared_state.hpp>
 #include <__bits/type_traits/result_of.hpp>
 #include <__bits/utility/forward_move.hpp>
+#include <cassert>
 
 namespace std
 {
@@ -103,13 +104,9 @@ namespace std
             }
 
             /**
-             * This is undefined behaviour, let's be nice though ;)
+             * This is undefined behaviour, abandon ship!
              */
-            return future<result_t>{
-                new aux::deferred_shared_state<
-                    result_t, F, Args...
-                >{forward<F>(f), forward<Args>(args)...}
-            };
+            abort();
         }
     }
 
