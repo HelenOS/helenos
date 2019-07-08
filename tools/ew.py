@@ -32,6 +32,7 @@
 Emulator wrapper for running HelenOS
 """
 
+import inspect
 import os
 import platform
 import re
@@ -43,6 +44,8 @@ import time
 overrides = {}
 
 CONFIG = 'Makefile.config'
+
+TOOLS_DIR = os.path.dirname(inspect.getabsfile(inspect.currentframe()))
 
 def read_config():
 	"Read HelenOS build configuration"
@@ -179,7 +182,7 @@ def platform_to_qemu_options(platform, machine, processor):
 
 def hdisk_mk():
 	if not os.path.exists('hdisk.img'):
-		subprocess.call('tools/mkfat.py 1048576 uspace/dist/data hdisk.img', shell = True)
+		subprocess.call(TOOLS_DIR + '/mkfat.py 1048576 dist/data hdisk.img', shell = True)
 
 def qemu_bd_options():
 	if is_override('nohdd'):
@@ -285,16 +288,16 @@ def qemu_run(platform, machine, processor):
 		cmdline += ' -m 4G'
 
 	if cfg['image'] == 'image.iso':
-		cmdline += ' -boot d -cdrom build/image.iso'
+		cmdline += ' -boot d -cdrom image.iso'
 	elif cfg['image'] == 'image.iso@arm64':
 		# Define image.iso cdrom backend.
-		cmdline += ' -drive if=none,file=build/image.iso,id=cdrom,media=cdrom'
+		cmdline += ' -drive if=none,file=image.iso,id=cdrom,media=cdrom'
 		# Define scsi bus.
 		cmdline += ' -device virtio-scsi-device'
 		# Define cdrom frontend connected to this scsi bus.
 		cmdline += ' -device scsi-cd,drive=cdrom'
 	elif cfg['image'] == 'image.boot':
-		cmdline += ' -kernel build/image.boot'
+		cmdline += ' -kernel image.boot'
 	else:
 		cmdline += ' ' + cfg['image']
 
@@ -313,14 +316,14 @@ def qemu_run(platform, machine, processor):
 			subprocess.call(cmdline, shell = True)
 
 def ski_run(platform, machine, processor):
-	run_in_console('ski -i tools/conf/ski.conf', 'HelenOS/ia64 on ski')
+	run_in_console('ski -i ' + TOOLS_DIR + '/conf/ski.conf', 'HelenOS/ia64 on ski')
 
 def msim_run(platform, machine, processor):
 	hdisk_mk()
-	run_in_console('msim -c tools/conf/msim.conf', 'HelenOS/mips32 on msim')
+	run_in_console('msim -c ' + TOOLS_DIR + '/conf/msim.conf', 'HelenOS/mips32 on msim')
 
 def spike_run(platform, machine, processor):
-	run_in_console('spike -m1073741824:1073741824 build/image.boot', 'HelenOS/risvc64 on Spike')
+	run_in_console('spike -m1073741824:1073741824 image.boot', 'HelenOS/risvc64 on Spike')
 
 emulators = {
 	'amd64' : {
@@ -396,7 +399,7 @@ emulators = {
 			},
 			'sun4v' : {
 				'run' : qemu_run,
-				'image' : '-drive if=pflash,readonly=on,file=build/image.iso',
+				'image' : '-drive if=pflash,readonly=on,file=image.iso',
 				'audio' : False,
 				'console' : True,
 				'net' : False,

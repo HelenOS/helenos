@@ -1,6 +1,6 @@
 # TODO: Use vcs_tag() to generate version string
 # TODO: jobfile
-# TODO: lto
+# TODO: lto in uspace
 # TODO: fix clang build
 
 project(
