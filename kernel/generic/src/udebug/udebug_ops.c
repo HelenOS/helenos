@@ -426,7 +426,7 @@ errno_t udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
  * @param data      Place to store pointer to newly allocated block.
  * @param data_size Place to store size of the data.
  *
- * @return EOK.
+ * @return EOK on success, ENOMEM if memory allocation failed.
  *
  */
 errno_t udebug_name_read(char **data, size_t *data_size)

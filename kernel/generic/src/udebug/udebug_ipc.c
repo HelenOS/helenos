@@ -58,7 +58,7 @@ errno_t udebug_request_preprocess(call_t *call, phone_t *phone)
 		break;
 	}
 
-	return 0;
+	return EOK;
 }
 
 /** Process a BEGIN call.
@@ -190,7 +190,7 @@ static void udebug_receive_thread_read(call_t *call)
 	 * Make use of call->buffer to transfer data to caller's userspace
 	 */
 
-	ipc_set_retval(&call->data, 0);
+	ipc_set_retval(&call->data, EOK);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
@@ -217,6 +217,7 @@ static void udebug_receive_name_read(call_t *call)
 	size_t data_size;
 	size_t buf_size;
 	void *data;
+	errno_t rc;
 
 	uspace_addr = ipc_get_arg2(&call->data);	/* Destination address */
 	buf_size = ipc_get_arg3(&call->data);	/* Dest. buffer size */
@@ -224,7 +225,12 @@ static void udebug_receive_name_read(call_t *call)
 	/*
 	 * Read task name.
 	 */
-	udebug_name_read((char **) &data, &data_size);
+	rc = udebug_name_read((char **) &data, &data_size);
+	if (rc != EOK) {
+		ipc_set_retval(&call->data, rc);
+		ipc_answer(&TASK->kb.box, call);
+		return;
+	}
 
 	/* Copy MAX(buf_size, data_size) bytes */
 
@@ -237,7 +243,7 @@ static void udebug_receive_name_read(call_t *call)
 	 * Make use of call->buffer to transfer data to caller's userspace
 	 */
 
-	ipc_set_retval(&call->data, 0);
+	ipc_set_retval(&call->data, EOK);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
@@ -291,7 +297,7 @@ static void udebug_receive_areas_read(call_t *call)
 	 * Make use of call->buffer to transfer data to caller's userspace
 	 */
 
-	ipc_set_retval(&call->data, 0);
+	ipc_set_retval(&call->data, EOK);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
@@ -333,7 +339,7 @@ static void udebug_receive_args_read(call_t *call)
 
 	uspace_addr = ipc_get_arg3(&call->data);
 
-	ipc_set_retval(&call->data, 0);
+	ipc_set_retval(&call->data, EOK);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
@@ -376,7 +382,7 @@ static void udebug_receive_regs_read(call_t *call)
 	uspace_addr = ipc_get_arg3(&call->data);
 	to_copy = sizeof(istate_t);
 
-	ipc_set_retval(&call->data, 0);
+	ipc_set_retval(&call->data, EOK);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
@@ -416,7 +422,7 @@ static void udebug_receive_mem_read(call_t *call)
 
 	assert(buffer != NULL);
 
-	ipc_set_retval(&call->data, 0);
+	ipc_set_retval(&call->data, EOK);
 	/*
 	 * ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
 	 * same code in process_answer() can be used
