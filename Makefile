@@ -29,12 +29,11 @@
 CCHECK = tools/sycek/ccheck
 CSCOPE = cscope
 FORMAT = clang-format
-CHECK = tools/check.sh
 
 ERRNO_HEADER = abi/include/abi/errno.h
 ERRNO_INPUT = abi/include/abi/errno.in
 
-.PHONY: all cscope cscope_parts format ccheck ccheck-fix space doxy check check_errno releasefile release
+.PHONY: all cscope cscope_parts format ccheck ccheck-fix space doxy check_errno releasefile release
 
 all:
 
@@ -63,14 +62,6 @@ space:
 
 doxy: $(BUILD_DIR)/build.ninja
 	ninja -C $(BUILD_DIR) doxygen
-
-# Pre-integration build check
-check: ccheck $(CHECK)
-ifdef JOBS
-	$(CHECK) -j $(JOBS)
-else
-	$(CHECK) -j $(shell nproc)
-endif
 
 # `sed` pulls a list of "compatibility-only" error codes from `errno.in`,
 # the following grep finds instances of those error codes in HelenOS code.
