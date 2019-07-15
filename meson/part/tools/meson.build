@@ -6,19 +6,21 @@
 
 _tools_dir = meson.source_root() / 'tools'
 
-cc = meson.get_compiler('c')
 basename = find_program('basename')
+cc = meson.get_compiler('c')
+config_py = find_program(_tools_dir / 'config.py')
 cp = find_program('cp')
 dirname = find_program('dirname')
+doxygen = find_program('doxygen')
 find = find_program('find')
 grep = find_program('grep')
 mkarray = find_program(_tools_dir / 'mkarray_for_meson.sh')
 mkext4 = find_program(_tools_dir / 'mkext4.py')
 mkfat = find_program(_tools_dir / 'mkfat.py')
 mkuimage = find_program(_tools_dir / 'mkuimage.py')
-config_py = find_program(_tools_dir / 'config.py')
 objcopy = find_program('objcopy')
 objdump = find_program('objdump')
+patch = find_program('patch')
 sed = find_program('sed')
 unzip = find_program('unzip')
 which = find_program('which')
