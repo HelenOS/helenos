@@ -34,7 +34,9 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/ddi.c \
 	arch/$(UARCH)/src/stacktrace.c \
-	arch/$(UARCH)/src/stacktrace_asm.S
+	arch/$(UARCH)/src/stacktrace_asm.S \
+	arch/$(UARCH)/src/rtld/dynamic.c \
+	arch/$(UARCH)/src/rtld/reloc.c
 
 ARCH_AUTOCHECK_HEADERS = \
 	arch/$(UARCH)/include/libarch/fibril_context.h

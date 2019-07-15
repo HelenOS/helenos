@@ -298,5 +298,16 @@ static void fill_plt_entry_generic(uint32_t *plte, uintptr_t ta)
 	}
 }
 
+/** Get the adress of a function.
+ *
+ * @param sym Symbol
+ * @param m Module in which the symbol is located
+ * @return Address of function
+ */
+void *func_get_addr(elf_symbol_t *sym, module_t *m)
+{
+	return symbol_get_addr(sym, m, __tcb_get());
+}
+
 /** @}
  */

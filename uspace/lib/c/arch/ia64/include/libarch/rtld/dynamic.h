@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_RTLD_RTLD_ARCH_H_
-#define _LIBC_RTLD_RTLD_ARCH_H_
+#ifndef LIBC_ia64_RTLD_DYNAMIC_H_
+#define LIBC_ia64_RTLD_DYNAMIC_H_
 
-#include <rtld/rtld.h>
-#include <loader/pcb.h>
-
-void module_process_pre_arch(module_t *m);
-
-void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size);
-void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size);
-void *func_get_addr(elf_symbol_t *, module_t *);
-
-void program_run(void *entry, pcb_t *pcb);
+typedef struct {
+	/* Empty. */
+} dyn_info_arch_t;
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
-/** @file
+/** @file ia64 dynamic relocation types
  */
 
-#ifndef _LIBC_RTLD_RTLD_ARCH_H_
-#define _LIBC_RTLD_RTLD_ARCH_H_
+#ifndef LIBC_ia64_RTLD_ELF_DYN_H_
+#define LIBC_ia64_RTLD_ELF_DYN_H_
 
-#include <rtld/rtld.h>
-#include <loader/pcb.h>
-
-void module_process_pre_arch(module_t *m);
-
-void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size);
-void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size);
-void *func_get_addr(elf_symbol_t *, module_t *);
-
-void program_run(void *entry, pcb_t *pcb);
+#define R_IA_64_DIR64LSB    0x27
+#define R_IA_64_FPTR64LSB   0x47
+#define R_IA_64_REL64LSB    0x6f
+#define R_IA_64_IPLTLSB     0x81
+#define R_IA_64_DTPMOD64LSB 0xa7
+#define R_IA_64_DTPREL64LSB 0xb7
 
 #endif
 

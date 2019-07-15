@@ -417,5 +417,16 @@ static uint16_t addr_l(uint32_t addr)
 	return (uint16_t) (addr & 0x0000ffff);
 }
 
+/** Get the adress of a function.
+ *
+ * @param sym Symbol
+ * @param m Module in which the symbol is located
+ * @return Address of function
+ */
+void *func_get_addr(elf_symbol_t *sym, module_t *m)
+{
+	return symbol_get_addr(sym, m, __tcb_get());
+}
+
 /** @}
  */
