@@ -63,7 +63,7 @@ include_paths = []
 testfiles = []
 
 # Text of the install script.
-uspace_lib_install_script_text = []
+uspace_lib_devel_install_script_text = []
 
 foreach l : libs
 	# Variables that might be defined in library meson files:
@@ -120,17 +120,17 @@ foreach l : libs
 		if run_command('[', '-d', incdir, ']').returncode() == 0
 			includes += include_directories(incdir)
 
-			if CONFIG_DEVEL_FILES and installed_libs.contains(l)
+			if installed_libs.contains(l)
 				_sdir = meson.current_source_dir() / l / 'include'
-				uspace_lib_install_script_text += 'cp -R -L -T "@0@" "${DESTDIR}include/lib@1@"'.format(_sdir, l)
+				uspace_lib_devel_install_script_text += 'cp -R -L -T "@0@" "${DESTDIR}include/lib@1@"'.format(_sdir, l)
 			endif
 		else
 			includes += include_directories(l)
 
-			if CONFIG_DEVEL_FILES and installed_libs.contains(l)
+			if installed_libs.contains(l)
 				_sdir = meson.current_source_dir() / l
-				uspace_lib_install_script_text += 'mkdir -p "${DESTDIR}include/lib@0@"'.format(l)
-				uspace_lib_install_script_text += 'cp -L -t "${DESTDIR}include/lib@0@" "@1@"/*.h || true'.format(l, _sdir)
+				uspace_lib_devel_install_script_text += 'mkdir -p "${DESTDIR}include/lib@0@"'.format(l)
+				uspace_lib_devel_install_script_text += 'cp -L -t "${DESTDIR}include/lib@0@" "@1@"/*.h || true'.format(l, _sdir)
 			endif
 		endif
 	endif

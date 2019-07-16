@@ -30,6 +30,16 @@ foreach f : install_files
 	install_script_text += _cmd.format(f[0], f[1], f[2])
 endforeach
 
+if CONFIG_DEVEL_FILES
+	install_script_text += uspace_lib_devel_install_script_text
+endif
+
+install_devel_script = configure_file(
+	configuration: { 'text' : '\n'.join(uspace_lib_devel_install_script_text) },
+	input: 'install_devel.sh.in',
+	output: 'install_devel.sh',
+)
+
 install_script_text += uspace_lib_install_script_text
 
 install_script = configure_file(
@@ -41,6 +51,10 @@ install_script = configure_file(
 # Build up dist
 
 dist_dir = meson.build_root() / 'dist/'
+
+run_target('devel-headers',
+	command: [ sh, install_devel_script, dist_dir ],
+)
 
 dist = custom_target('DIST',
 	output: 'dist.tag',

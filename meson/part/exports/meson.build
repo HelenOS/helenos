@@ -8,7 +8,7 @@ cc_path = run_command(dirname, cc_fullname, check: true).stdout().strip()
 message(['Compiler directory is:', cc_path])
 
 export_cppflags = [
-	'-isystem', '$(HELENOS_EXPORT_ROOT)/include/posix',
+	'-isystem', '$(HELENOS_EXPORT_ROOT)/include/libposix',
 	'-isystem', '$(HELENOS_EXPORT_ROOT)/include/libc',
 	'-idirafter', '$(HELENOS_EXPORT_ROOT)/include',
 ]
@@ -55,8 +55,3 @@ config_sh = custom_target('config.sh',
 	command: [ sed, 's:$(HELENOS_EXPORT_ROOT):${HELENOS_EXPORT_ROOT}:g', '@INPUT@' ],
 	capture: true,
 )
-
-install_files += [[ 'config', meson.current_build_dir() / 'config.mk', 'config.mk' ]]
-install_deps += [ config_mk ]
-install_files += [[ 'config', meson.current_build_dir() / 'config.sh', 'config.sh' ]]
-install_deps += [ config_sh ]
