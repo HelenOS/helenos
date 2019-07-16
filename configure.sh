@@ -31,6 +31,7 @@ if [ "$#" -gt 1 ] || [ "$want_help" -eq 0 ]; then
 	echo
 	echo "Possible profiles:"
 	printf "\t%s\n" $PROFILES
+	echo
 
 	exit "$want_help"
 fi
