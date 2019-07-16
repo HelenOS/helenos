@@ -8,6 +8,22 @@ SOURCE_DIR=`which -- "$0" 2>/dev/null`
 SOURCE_DIR=`dirname -- "$SOURCE_DIR"`
 SOURCE_DIR=`cd $SOURCE_DIR && echo $PWD`
 
+# Check command line arguments.
+
+if [ "$#" -gt 1 ] || [ "$#" -eq 1 -a "$1" != '--no-images' ]; then
+	echo "Unknown command-line arguments."
+	echo "Usage:"
+	echo "\t$0                    # Build everything."
+	echo "\t$0 --no-images        # Build all code, but don't create bootable images."
+	exit 1
+fi
+
+if [ "$#" -eq 1 ]; then
+	NO_IMAGES=true
+else
+	NO_IMAGES=false
+fi
+
 # Make sure we don't make a mess in the source root.
 if [ "$PWD" = "$SOURCE_DIR" ]; then
 	mkdir -p build_all
@@ -62,26 +78,25 @@ for profile in $PROFILES; do
 	ninja -C ${profile} || exit 1
 done
 
-
-if [ "$#" -eq 1 ] && [ "$1" = 'images' ]; then
+if [ "$NO_IMAGES" = 'true' ]; then
 	echo
-	echo "###################### Building all images ######################"
-
-	for profile in $PROFILES; do
-		echo
-		ninja -C ${profile} image_path || exit 1
-	done
-
-	echo
-	for profile in $PROFILES; do
-		path=`cat ${profile}/image_path`
-
-		if [ ! -z "$path" ]; then
-			echo "built ${profile}/${path}"
-		fi
-	done
-else
-	echo
-	echo "Bootable images not built."
-	echo "Run '$0 images' to build them as well."
+	echo "Bootable images not built due to argument --no-images."
+	exit 0
 fi
+
+echo
+echo "###################### Building all images ######################"
+
+for profile in $PROFILES; do
+	echo
+	ninja -C ${profile} image_path || exit 1
+done
+
+echo
+for profile in $PROFILES; do
+	path=`cat ${profile}/image_path`
+
+	if [ ! -z "$path" ]; then
+		echo "built ${profile}/${path}"
+	fi
+done
