@@ -16,7 +16,7 @@ endif
 install_script_text = []
 
 # Copy uspace/dist.
-_uspace = meson.current_source_dir() / 'uspace'
+_uspace = meson.source_root() / 'uspace'
 install_script_text += 'cp -r -L -T -u "@0@/dist" "${DESTDIR}"'.format(_uspace)
 
 # Copy uspace/overlay
@@ -40,7 +40,7 @@ install_script = configure_file(
 
 # Build up dist
 
-dist_dir = meson.current_build_dir()/'dist/'
+dist_dir = meson.build_root() / 'dist/'
 
 dist = custom_target('DIST',
 	output: 'dist.tag',
