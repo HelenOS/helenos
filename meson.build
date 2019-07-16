@@ -13,7 +13,6 @@ project(
 debug_options = false
 debug_shell_scripts = false
 
-subdir('doxygen')
 subdir('meson/part/tools')
 subdir('meson/part/read_config')
 subdir('meson/part/compiler_args')
