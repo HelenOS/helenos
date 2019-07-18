@@ -40,7 +40,6 @@
 #include <panic.h>
 #include <genarch/drivers/i8259/i8259.h>
 #include <genarch/pic/pic_ops.h>
-#include <halt.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <mm/tlb.h>

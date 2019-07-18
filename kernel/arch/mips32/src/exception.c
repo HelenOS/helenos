@@ -41,7 +41,6 @@
 #include <assert.h>
 #include <proc/thread.h>
 #include <interrupt.h>
-#include <halt.h>
 #include <ddi/irq.h>
 #include <arch/debugger.h>
 #include <symtab.h>

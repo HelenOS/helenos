@@ -54,7 +54,6 @@
 #include <ipc/event.h>
 #include <stdio.h>
 #include <errno.h>
-#include <halt.h>
 #include <str.h>
 #include <syscall/copy.h>
 #include <macros.h>

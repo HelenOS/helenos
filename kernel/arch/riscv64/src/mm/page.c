@@ -41,7 +41,6 @@
 #include <mm/as.h>
 #include <align.h>
 #include <config.h>
-#include <halt.h>
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 #include <debug.h>
