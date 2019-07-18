@@ -137,6 +137,7 @@ uspace/app/ping6/ping6
 uspace/app/pkg/pkg
 uspace/app/redir/redir
 uspace/app/sbi/sbi
+uspace/app/shutdown/shutdown
 uspace/app/sportdmp/sportdmp
 uspace/app/stats/stats
 uspace/app/sysinfo/sysinfo

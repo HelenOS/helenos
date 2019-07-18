@@ -69,6 +69,7 @@ DIRS = \
 	app/pci \
 	app/redir \
 	app/sbi \
+	app/shutdown \
 	app/sportdmp \
 	app/stats \
 	app/taskdump \

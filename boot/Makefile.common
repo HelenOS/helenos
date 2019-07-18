@@ -206,6 +206,7 @@ RD_APPS_NON_ESSENTIAL = \
 	mkmfs \
 	nic \
 	sbi \
+	shutdown \
 	sportdmp \
 	redir \
 	taskdump \
