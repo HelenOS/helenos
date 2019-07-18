@@ -191,6 +191,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_SYSINFO_GET_DATA_SIZE] = (syshandler_t) sys_sysinfo_get_data_size,
 	[SYS_SYSINFO_GET_DATA] = (syshandler_t) sys_sysinfo_get_data,
 
+	[SYS_SHUTDOWN] = (syshandler_t) sys_shutdown,
+
 	/* Kernel console syscalls. */
 	[SYS_DEBUG_CONSOLE] = (syshandler_t) sys_debug_console,
 

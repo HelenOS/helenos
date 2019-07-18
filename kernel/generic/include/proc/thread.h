@@ -48,7 +48,6 @@
 #include <udebug/udebug.h>
 #include <abi/proc/thread.h>
 #include <abi/sysinfo.h>
-#include <arch.h>
 
 #define THREAD              CURRENT->thread
 

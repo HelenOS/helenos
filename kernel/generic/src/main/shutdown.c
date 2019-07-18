@@ -36,13 +36,17 @@
  * @brief Shutdown procedures.
  */
 
+#include <abi/shutdown.h>
 #include <shutdown.h>
 #include <log.h>
 #include <cpu.h>
-#include <arch/asm.h>
-#include <arch.h>
 #include <console/kconsole.h>
-#include <proc/task.h>
+#include <console/console.h>
+#include <proc/thread.h>
+#include <stdlib.h>
+
+/* pointer to the thread for the shutdown process */
+thread_t *shutdown_thread = NULL;
 
 /** Halt flag */
 atomic_t haltstate = 0;
@@ -80,6 +84,7 @@ void halt(void)
 	cpu_halt();
 }
 
+/* Reboots the kernel */
 void reboot(void)
 {
 	task_done();
@@ -90,6 +95,88 @@ void reboot(void)
 
 	arch_reboot();
 	halt();
+}
+
+/* argument structure for the shutdown thread */
+typedef struct {
+	sysarg_t mode;
+	sysarg_t delay;
+} sys_shutdown_arg_t;
+
+/* function for the shutdown thread */
+static void sys_shutdown_function(void *arguments)
+{
+	sys_shutdown_arg_t *arg = (sys_shutdown_arg_t *)arguments;
+
+	if (arg->delay != 0) {
+		thread_sleep(arg->delay);
+	}
+
+	if (thread_interrupted(THREAD)) {
+		free(arguments);
+		return;
+	}
+
+	if (arg->mode == SHUTDOWN_REBOOT) {
+		reboot();
+	} else {
+		halt();
+	}
+}
+
+/* system call handler for shutdown */
+sys_errno_t sys_shutdown(sysarg_t mode, sysarg_t delay, sysarg_t kconsole)
+{
+
+#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
+	if (kconsole) {
+		grab_console();
+	}
+#endif
+
+	irq_spinlock_lock(&threads_lock, true);
+	thread_t *thread = atomic_load(&shutdown_thread);
+	if (thread != NULL) {
+		thread_interrupt(thread);
+		atomic_store(&shutdown_thread, NULL);
+	}
+	irq_spinlock_unlock(&threads_lock, true);
+
+	/* `cancel` or default has been called */
+	if (mode != SHUTDOWN_HALT && mode != SHUTDOWN_REBOOT) {
+		return EOK;
+	}
+
+	sys_shutdown_arg_t *arg = malloc(sizeof(sys_shutdown_arg_t));
+	if (arg == NULL) {
+		return ENOMEM;
+	}
+
+	//TODO: find a better way for accessing the kernel task
+	irq_spinlock_lock(&tasks_lock, true);
+	task_t *kernel_task = task_find_by_id(1);
+	irq_spinlock_unlock(&tasks_lock, true);
+
+	if (kernel_task == NULL) {
+		goto error;
+	}
+
+	arg->mode = mode;
+	arg->delay = delay;
+
+	thread = thread_create(sys_shutdown_function, arg, kernel_task, THREAD_FLAG_NONE, "shutdown");
+
+	if (thread == NULL) {
+		goto error;
+	}
+
+	thread_ready(thread);
+	atomic_store(&shutdown_thread, thread);
+	return EOK;
+
+error:
+	free(arg);
+	return ENOENT;
 }
 
 /** @}
