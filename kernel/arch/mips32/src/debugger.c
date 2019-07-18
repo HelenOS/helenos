@@ -41,7 +41,6 @@
 #include <panic.h>
 #include <arch.h>
 #include <arch/cp0.h>
-#include <halt.h>
 #include <symtab.h>
 
 bpinfo_t breakpoints[BKPOINTS_MAX];

@@ -37,6 +37,7 @@
 
 #include <arch/asm.h>   /* get_stack_base() */
 #include <config.h>
+#include <shutdown.h>
 
 /*
  * The current_t structure holds pointers to various parts of the current
@@ -95,8 +96,6 @@ extern void current_copy(current_t *, current_t *);
 
 extern void calibrate_delay_loop(void);
 
-extern void reboot(void);
-extern void arch_reboot(void);
 extern void *arch_construct_function(fncptr_t *, void *, void *);
 
 #endif

@@ -56,7 +56,7 @@
 #include <config.h>
 #include <context.h>
 #include <fpu_context.h>
-#include <halt.h>
+#include <shutdown.h>
 #include <arch.h>
 #include <adt/list.h>
 #include <panic.h>

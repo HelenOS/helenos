@@ -38,7 +38,7 @@
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 #include <stdio.h>
-#include <halt.h>
+#include <shutdown.h>
 #include <cpu.h>
 
 /** Initialize input character device.

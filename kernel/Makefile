@@ -178,11 +178,11 @@ GENERIC_SOURCES = \
 	generic/src/debug/debug.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/log/log.c \
-	generic/src/main/main.c \
 	generic/src/main/kinit.c \
+	generic/src/main/main.c \
+	generic/src/main/shutdown.c \
 	generic/src/main/uinit.c \
 	generic/src/main/version.c \
-	generic/src/main/shutdown.c \
 	generic/src/proc/current.c \
 	generic/src/proc/program.c \
 	generic/src/proc/scheduler.c \
@@ -202,7 +202,6 @@ GENERIC_SOURCES = \
 	generic/src/mm/backend_phys.c \
 	generic/src/mm/backend_user.c \
 	generic/src/mm/slab.c \
-	generic/src/lib/halt.c \
 	generic/src/lib/mem.c \
 	generic/src/lib/memfnc.c \
 	generic/src/lib/gsort.c \

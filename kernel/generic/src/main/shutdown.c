@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,10 +36,49 @@
  * @brief Shutdown procedures.
  */
 
-#include <arch.h>
-#include <proc/task.h>
-#include <halt.h>
+#include <shutdown.h>
 #include <log.h>
+#include <cpu.h>
+#include <arch/asm.h>
+#include <arch.h>
+#include <console/kconsole.h>
+#include <proc/task.h>
+
+/** Halt flag */
+atomic_t haltstate = 0;
+
+/** Halt wrapper
+ *
+ * Set halt flag and halt the CPU.
+ *
+ */
+void halt(void)
+{
+#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
+	bool rundebugger = false;
+
+	if (!atomic_load(&haltstate)) {
+		atomic_store(&haltstate, 1);
+		rundebugger = true;
+	}
+#else
+	atomic_store(&haltstate, 1);
+#endif
+
+	interrupts_disable();
+
+#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
+	if ((rundebugger) && (kconsole_check_poll()))
+		kconsole("panic", "\nLast resort kernel console ready.\n", false);
+#endif
+
+	if (CPU)
+		log(LF_OTHER, LVL_NOTE, "cpu%u: halted", CPU->id);
+	else
+		log(LF_OTHER, LVL_NOTE, "cpu: halted");
+
+	cpu_halt();
+}
 
 void reboot(void)
 {

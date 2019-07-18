@@ -32,14 +32,16 @@
 /** @file
  */
 
-#ifndef KERN_HALT_H_
-#define KERN_HALT_H_
+#ifndef KERN_SHUTDOWN_H_
+#define KERN_SHUTDOWN_H_
 
 #include <atomic.h>
 
 extern atomic_t haltstate;
 
 extern void halt(void) __attribute__((noreturn));
+extern void reboot(void);
+extern void arch_reboot(void);
 
 #endif
 
