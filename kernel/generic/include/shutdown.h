@@ -46,6 +46,7 @@ extern thread_t *shutdown_thread;
 extern void halt(void) __attribute__((noreturn));
 extern void reboot(void);
 extern void arch_reboot(void);
+extern void abort_shutdown(void);
 extern sys_errno_t sys_shutdown(sysarg_t mode, sysarg_t delay, sysarg_t kconsole);
 
 #endif

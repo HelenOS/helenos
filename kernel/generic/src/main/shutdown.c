@@ -97,6 +97,17 @@ void reboot(void)
 	halt();
 }
 
+void abort_shutdown()
+{
+	irq_spinlock_lock(&threads_lock, true);
+	thread_t *thread = atomic_load(&shutdown_thread);
+	if (thread != NULL) {
+		thread_interrupt(thread);
+		atomic_store(&shutdown_thread, NULL);
+	}
+	irq_spinlock_unlock(&threads_lock, true);
+}
+
 /* argument structure for the shutdown thread */
 typedef struct {
 	sysarg_t mode;
@@ -134,13 +145,7 @@ sys_errno_t sys_shutdown(sysarg_t mode, sysarg_t delay, sysarg_t kconsole)
 	}
 #endif
 
-	irq_spinlock_lock(&threads_lock, true);
-	thread_t *thread = atomic_load(&shutdown_thread);
-	if (thread != NULL) {
-		thread_interrupt(thread);
-		atomic_store(&shutdown_thread, NULL);
-	}
-	irq_spinlock_unlock(&threads_lock, true);
+	abort_shutdown();
 
 	/* `cancel` or default has been called */
 	if (mode != SHUTDOWN_HALT && mode != SHUTDOWN_REBOOT) {
@@ -164,7 +169,7 @@ sys_errno_t sys_shutdown(sysarg_t mode, sysarg_t delay, sysarg_t kconsole)
 	arg->mode = mode;
 	arg->delay = delay;
 
-	thread = thread_create(sys_shutdown_function, arg, kernel_task, THREAD_FLAG_NONE, "shutdown");
+	thread_t *thread = thread_create(sys_shutdown_function, arg, kernel_task, THREAD_FLAG_NONE, "shutdown");
 
 	if (thread == NULL) {
 		goto error;

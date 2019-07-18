@@ -879,6 +879,7 @@ static int cmd_pio_write_32(cmd_arg_t *argv)
  */
 int cmd_reboot(cmd_arg_t *argv)
 {
+	abort_shutdown();
 	reboot();
 
 	/* Not reached */
@@ -1124,6 +1125,7 @@ void desc_help(void)
  */
 int cmd_halt(cmd_arg_t *argv)
 {
+	abort_shutdown();
 	halt();
 	return 1;
 }
