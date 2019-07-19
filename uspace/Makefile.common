@@ -188,12 +188,14 @@ DEFAULT_CFLAGS = \
 	-Wall \
 	-Wextra \
 	-Wno-unused-parameter \
-	-Wmissing-prototypes \
 	-Wwrite-strings \
 	-Werror-implicit-function-declaration \
-	-Wsystem-headers \
 	-Wunknown-pragmas \
 	-Wa,--fatal-warnings
+
+ifneq ($(COMPILER),clang)
+	DEFAULT_CFLAGS += -Wmissing-prototypes -Wsystem-headers
+endif
 
 # XXX: -fno-builtin-strftime is for a seemingly spurious format warning.
 
@@ -238,6 +240,10 @@ HELENOS_CFLAGS = \
 	-finput-charset=UTF-8 \
 	-fno-common \
 	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
+
+ifeq ($(COMPILER),clang)
+	COMMON_CFLAGS += -ffreestanding -nostdlibinc -Wno-unused-command-line-argument
+endif
 
 # TODO: Use a different name.
 # CFLAGS variable is traditionally used for overridable flags.

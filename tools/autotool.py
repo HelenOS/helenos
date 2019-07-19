@@ -305,9 +305,11 @@ def check_clang(path, prefix, common, details):
 	"Check for clang"
 
 	common['CLANG'] = "%sclang" % prefix
+	common['CLANGXX'] = "%sclang++" % prefix
 
 	if (not path is None):
 		common['CLANG'] = "%s/%s" % (path, common['CLANG'])
+		common['CLANGXX'] = "%s/%s" % (path, common['CLANGXX'])
 
 	check_app([common['CLANG'], "--version"], "clang", details)
 
@@ -624,13 +626,16 @@ def main():
 
 			check_common(common, "CLANG")
 			common['CC'] = common['CLANG']
+			common['CXX'] = common['CLANGXX']
 			cc_autogen = common['CC'] + " -no-integrated-as"
 
 			if (config['INTEGRATED_AS'] == "yes"):
 				common['CC'] += " -integrated-as"
+				common['CXX'] += " -integrated-as"
 
 			if (config['INTEGRATED_AS'] == "no"):
 				common['CC'] += " -no-integrated-as"
+				common['CXX'] += " -no-integrated-as"
 
 		# Find full path to libgcc
 		check_libgcc(common)
