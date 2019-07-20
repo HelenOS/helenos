@@ -30,9 +30,9 @@ kernel_defs = [
 	'-imacros', meson.build_root() / 'config.h',
 	'-D_HELENOS_SOURCE',
 	'-DKERNEL',
-	'-DRELEASE=' + HELENOS_RELEASE,
-	'-DCOPYRIGHT=' + HELENOS_COPYRIGHT,
-	'-DNAME=' + HELENOS_NAME,
+	'-DHELENOS_RELEASE=' + HELENOS_RELEASE,
+	'-DHELENOS_COPYRIGHT=' + HELENOS_COPYRIGHT,
+	'-DHELENOS_CODENAME=' + HELENOS_CODENAME,
 	'-D__@0@_BITS__'.format(meson.get_cross_property('bits')),
 ]
 

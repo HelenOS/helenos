@@ -100,22 +100,17 @@ endforeach
 
 # Also read version information.
 _version_variables = [
-	'COPYRIGHT',
-	'NAME',
-	'PATCHLEVEL',
-	'SUBLEVEL',
-	'VERSION',
+	'HELENOS_COPYRIGHT',
+	'HELENOS_CODENAME',
+	'HELENOS_RELEASE',
 ]
 
 foreach _varname : _version_variables
 	_line = run_command(grep, '^' + _varname + '\\b', _version_file, check: true).stdout().strip()
 	_val = _line.split('=')[1].strip()
 
-	_realvarname = 'HELENOS_' + _varname
-	set_variable(_realvarname, _val)
+	set_variable(_varname, _val)
 	if debug_options
-		message([ _realvarname, get_variable(_realvarname) ])
+		message([ _varname, get_variable(_varname) ])
 	endif
 endforeach
-
-HELENOS_RELEASE = HELENOS_VERSION + '.' + HELENOS_PATCHLEVEL + '.' + HELENOS_SUBLEVEL
