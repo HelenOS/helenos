@@ -24,6 +24,7 @@ patch = find_program('patch')
 sed = find_program('sed')
 unzip = find_program('unzip')
 which = find_program('which')
+cpc = find_program(_tools_dir / 'cc.sh')
 
 sh = [ find_program('sh'), '-u', '-e' ]
 if debug_shell_scripts

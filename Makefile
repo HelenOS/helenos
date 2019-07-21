@@ -33,9 +33,9 @@ FORMAT = clang-format
 ERRNO_HEADER = abi/include/abi/errno.h
 ERRNO_INPUT = abi/include/abi/errno.in
 
-.PHONY: all cscope cscope_parts format ccheck ccheck-fix space doxy check_errno releasefile release
+.PHONY: nothing cscope cscope_parts format ccheck ccheck-fix space check_errno
 
-all:
+nothing:
 
 cscope:
 	find abi kernel boot uspace -type f -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
@@ -60,23 +60,12 @@ ccheck-fix: $(CCHECK)
 space:
 	tools/srepl '[ \t]\+$$' ''
 
-doxy: $(BUILD_DIR)/build.ninja
-	ninja -C $(BUILD_DIR) doxygen
-
 # `sed` pulls a list of "compatibility-only" error codes from `errno.in`,
 # the following grep finds instances of those error codes in HelenOS code.
 check_errno:
 	@ ! cat abi/include/abi/errno.in | \
 	sed -n -e '1,/COMPAT_START/d' -e 's/__errno_entry(\([A-Z0-9]\+\).*/\\b\1\\b/p' | \
 	git grep -n -f - -- ':(exclude)abi' ':(exclude)uspace/lib/posix'
-
-# Release files
-
-releasefile: all
-	$(MAKE) -r -C release releasefile
-
-release:
-	$(MAKE) -r -C release release
 
 $(ERRNO_HEADER): $(ERRNO_INPUT)
 	echo '/* Generated file. Edit errno.in instead. */' > $@.new

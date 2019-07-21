@@ -31,11 +31,8 @@ if [ "$PWD" = "$SOURCE_DIR" ]; then
 fi
 
 CONFIG_RULES="${SOURCE_DIR}/HelenOS.config"
-CONFIG_DEFAULTS="${SOURCE_DIR}/defaults"
 
-# Find all the leaf subdirectories in the defaults directory.
-PROFILES=`find ${CONFIG_DEFAULTS} -type d -links 2 -printf "%P\n" | sort`
-
+PROFILES=`sh ${SOURCE_DIR}/tools/list_profiles.sh`
 
 echo
 echo "###################### Configuring all profiles ######################"

@@ -11,6 +11,16 @@ if CONFIG_DEVEL_FILES
 	install_deps += [ files(libgcc) ]
 endif
 
+# Collect and install copyright information.
+copyrights_file = custom_target('COPYRIGHT',
+	output: 'COPYRIGHT',
+	command: cpc,
+	capture: true,
+)
+
+install_files += [[ '', copyrights_file.full_path(), 'COPYRIGHT' ]]
+install_deps += [ copyrights_file ]
+
 # Emit the install script.
 
 install_script_text = []
