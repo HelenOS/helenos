@@ -10,11 +10,11 @@ SOURCE_DIR=`cd $SOURCE_DIR && cd .. && echo $PWD`
 
 # Check command line arguments.
 
-if [ "$#" -gt 1 ] || [ "$#" -eq 1 -a "$1" != '--no-images' ]; then
+if [ "$#" -gt 1 ] || ( [ "$#" -eq 1 ] && [ "$1" != '--no-images' ] ); then
 	echo "Unknown command-line arguments."
 	echo "Usage:"
-	echo "\t$0                    # Build everything."
-	echo "\t$0 --no-images        # Build all code, but don't create bootable images."
+	echo "    $0                    # Build everything."
+	echo "    $0 --no-images        # Build all code, but don't create bootable images."
 	exit 1
 fi
 

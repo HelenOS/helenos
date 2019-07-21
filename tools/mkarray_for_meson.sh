@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 TOOLS_DIR=`which -- "$0" 2>/dev/null`
 if [ -z "$TOOLS_DIR" ]; then
