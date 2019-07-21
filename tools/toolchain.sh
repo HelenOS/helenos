@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/sh
 
 #
 # Copyright (c) 2009 Martin Decky
@@ -102,10 +102,10 @@ test_version() {
 	echo "Start testing the version of the installed software" 
 	echo
 	
-	if [ -z "$1" ] || [ "$1" == "all" ] ; then
-		PLATFORMS=("amd64" "arm32" "arm64" "ia32" "ia64" "mips32" "mips32eb" "ppc32" "riscv64" "sparc64")
+	if [ -z "$1" ] || [ "$1" = "all" ] ; then
+		PLATFORMS='amd64 arm32 arm64 ia32 ia64 mips32 mips32eb ppc32 riscv64 sparc64'
 	else
-		PLATFORMS=("$1")
+		PLATFORMS="$1"
 	fi
 	
 	
@@ -113,16 +113,16 @@ test_version() {
 		CROSS_PREFIX="/usr/local/cross"
 	fi
 
-	for i in "${PLATFORMS[@]}"
+	for i in $PLATFORMS
 	do
 		PLATFORM="$i"
 		set_target_from_platform "$PLATFORM"
 		PREFIX="${CROSS_PREFIX}/bin/${HELENOS_TARGET}"
 
 		echo "== $PLATFORM =="
-		test_app_version "Binutils" "ld" "GNU\ ld\ \(GNU\ Binutils\)\ ((\.|[0-9])+)" "$BINUTILS_VERSION"
-		test_app_version "GCC" "gcc" "gcc\ version\ ((\.|[0-9])+)" "$GCC_VERSION"
-		test_app_version "GDB" "gdb" "GNU\ gdb\ \(GDB\)\s+((\.|[0-9])+)" "$GDB_VERSION"
+		test_app_version "Binutils" "ld" "GNU ld (.*) \([.0-9]*\)" "$BINUTILS_VERSION"
+		test_app_version "GCC" "gcc" "gcc version \([.0-9]*\)" "$GCC_VERSION"
+		test_app_version "GDB" "gdb" "GNU gdb (.*)[[:space:]]\+\([.0-9]*\)" "$GDB_VERSION"
 	done
 
 	exit
@@ -139,27 +139,25 @@ test_app_version() {
 	if [ ! -e $APP ]; then
 		echo "- $PKGNAME is missing"
 	else
-		{
-			OUT=$(${APP} -v 2>&1)
-		} &> /dev/null
+		VERSION=`${APP} -v 2>&1 | sed -n "s:^${REGEX}.*:\1:p"`
 
-		if [[ "$OUT" =~ $REGEX ]]; then
-	        VERSION="${BASH_REMATCH[1]}"
-	        if [ "$INS_VERSION" = "$VERSION" ]; then
-	        	echo "+ $PKGNAME is uptodate ($INS_VERSION)"
-	        else
-	        	echo "- $PKGNAME ($VERSION) is outdated ($INS_VERSION)"
-	        fi
-	    else
-	        echo "- $PKGNAME Unexpected output"
-	    fi
+		if [ -z "$VERSION" ]; then
+			echo "- $PKGNAME Unexpected output"
+			return 1
+		fi
+
+		if [ "$INS_VERSION" = "$VERSION" ]; then
+			echo "+ $PKGNAME is uptodate ($INS_VERSION)"
+		else
+			echo "- $PKGNAME ($VERSION) is outdated ($INS_VERSION)"
+		fi
 	fi
 }
 
 
 
 change_title() {
-	echo -en "\e]0;$1\a"
+	printf "\e]0;$1\a"
 }
 
 show_countdown() {
@@ -170,7 +168,7 @@ show_countdown() {
 		return 0
 	fi
 
-	echo -n "${TM} "
+	printf "${TM} "
 	change_title "${TM}"
 	sleep 1
 
@@ -221,30 +219,31 @@ create_dir() {
 check_dirs() {
 	OUTSIDE="$1"
 	BASE="$2"
-	ORIGINAL="`pwd`"
-
-	mkdir -p "${OUTSIDE}"
-
-	cd "${OUTSIDE}"
-	check_error $? "Unable to change directory to ${OUTSIDE}."
-	ABS_OUTSIDE="`pwd`"
+	ORIGINAL="$PWD"
 
 	cd "${BASE}"
 	check_error $? "Unable to change directory to ${BASE}."
-	ABS_BASE="`pwd`"
-
+	ABS_BASE="$PWD"
 	cd "${ORIGINAL}"
 	check_error $? "Unable to change directory to ${ORIGINAL}."
 
-	BASE_LEN="${#ABS_BASE}"
-	OUTSIDE_TRIM="${ABS_OUTSIDE:0:${BASE_LEN}}"
+	mkdir -p "${OUTSIDE}"
+	cd "${OUTSIDE}"
+	check_error $? "Unable to change directory to ${OUTSIDE}."
 
-	if [ "${OUTSIDE_TRIM}" == "${ABS_BASE}" ] ; then
+	while [ "${#PWD}" -gt "${#ABS_BASE}" ]; do
+		cd ..
+	done
+
+	if [ "$PWD" = "$ABS_BASE" ]; then
 		echo
 		echo "CROSS_PREFIX cannot reside within the working directory."
 
 		exit 5
 	fi
+
+	cd "${ORIGINAL}"
+	check_error $? "Unable to change directory to ${ORIGINAL}."
 }
 
 prepare() {

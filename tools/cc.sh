@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/sh
 
 #
 # Copyright (c) 2017 Jakub Jermar
