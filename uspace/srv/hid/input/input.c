@@ -65,7 +65,9 @@
 #include "mouse_proto.h"
 #include "serial.h"
 
-#define NUM_LAYOUTS 5
+static layout_ops_t *layout_active = &us_qwerty_ops;
+
+#define NUM_LAYOUTS  5
 
 static layout_ops_t *layout[NUM_LAYOUTS] = {
 	&us_qwerty_ops,
@@ -106,6 +108,61 @@ static list_t mouse_devs;
 static list_t serial_devs;
 
 static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
+
+/* changes all kb devices to the given layout */
+static void layout_change(layout_ops_t *layout)
+{
+	list_foreach(kbd_devs, link, kbd_dev_t, kdev) {
+		layout_t *ret = layout_create(layout);
+		if (ret != NULL) {
+			layout_destroy(kdev->active_layout);
+			kdev->active_layout = ret;
+		}
+	}
+}
+
+/* similiar like layout_change but takes as an argument the name of the layout */
+static errno_t layout_load(const char *layout_name)
+{
+	/* TODO: change this into a loader for kb layout maps */
+	for (int i = 0; i < NUM_LAYOUTS; i++) {
+		if (str_cmp(layout[i]->name, layout_name) == 0) {
+			layout_active = layout[i];
+			layout_change(layout_active);
+			return EOK;
+		}
+	}
+
+	return ENOTSUP;
+}
+
+/* Handler for IPC call INPUT_CHANGE_LAYOUT */
+static void client_change_layout_handler(ipc_call_t *call)
+{
+	void *layout_name;
+	errno_t ret = async_data_write_accept(&layout_name, true, 0, 0, 0, 0);
+	if (ret != EOK) {
+		async_answer_0(call, ret);
+		return;
+	}
+
+	errno_t retval = layout_load((char *)layout_name);
+	free(layout_name);
+	async_answer_0(call, retval);
+}
+
+/* Handler for IPC call INPUT_GET_LAYOUT */
+static void client_get_layout_handler(ipc_call_t *call)
+{
+	const char *layout_name = layout_active->name;
+	size_t length = str_size(layout_name) + 1;
+	ipc_call_t id;
+
+	async_answer_1(call, EOK, length);
+	if (async_data_read_receive(&id, NULL)) {
+		async_data_read_finalize(&id, layout_name, length);
+	}
+}
 
 static void *client_data_create(void)
 {
@@ -211,24 +268,19 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL)) {
 		switch (key) {
 		case KC_F1:
-			layout_destroy(kdev->active_layout);
-			kdev->active_layout = layout_create(layout[0]);
+			layout_change(layout[0]);
 			break;
 		case KC_F2:
-			layout_destroy(kdev->active_layout);
-			kdev->active_layout = layout_create(layout[1]);
+			layout_change(layout[1]);
 			break;
 		case KC_F3:
-			layout_destroy(kdev->active_layout);
-			kdev->active_layout = layout_create(layout[2]);
+			layout_change(layout[2]);
 			break;
 		case KC_F4:
-			layout_destroy(kdev->active_layout);
-			kdev->active_layout = layout_create(layout[3]);
+			layout_change(layout[3]);
 			break;
 		case KC_F5:
-			layout_destroy(kdev->active_layout);
-			kdev->active_layout = layout_create(layout[4]);
+			layout_change(layout[4]);
 			break;
 		default: // default: is here to avoid compiler warning about unhandled cases
 			break;
@@ -366,6 +418,12 @@ static void client_connection(ipc_call_t *icall, void *arg)
 				client_arbitration();
 				async_answer_0(&call, EOK);
 				break;
+			case INPUT_CHANGE_LAYOUT:
+				client_change_layout_handler(&call);
+				break;
+			case INPUT_GET_LAYOUT:
+				client_get_layout_handler(&call);
+				break;
 			default:
 				async_answer_0(&call, EINVAL);
 			}
@@ -399,7 +457,7 @@ static kbd_dev_t *kbd_dev_new(void)
 
 	kdev->mods = KM_NUM_LOCK;
 	kdev->lock_keys = 0;
-	kdev->active_layout = layout_create(layout[0]);
+	kdev->active_layout = layout_create(layout_active);
 
 	return kdev;
 }
