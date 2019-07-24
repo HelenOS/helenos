@@ -432,6 +432,25 @@ namespace std
             }
     };
 
+    template<>
+    class tuple<>
+    {
+        /**
+         * In some cases, e.g. for async() calls
+         * without argument to the functors, we need
+         * zero length tuples, which are provided by
+         * the following specialization.
+         * (Without it we get a resolution conflict between
+         * the default constructor and the Ts... constructor
+         * in the original tuple.)
+         */
+
+        tuple() = default;
+
+        void swap(tuple&) noexcept
+        { /* DUMMY BODY */ }
+    };
+
     /**
      * 20.4.2.7, relational operators:
      */

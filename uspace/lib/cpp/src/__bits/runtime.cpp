@@ -27,6 +27,7 @@
  */
 
 #include <__bits/abi.hpp>
+#include <cassert>
 #include <cstdlib>
 #include <cstdint>
 #include <exception>
@@ -206,4 +207,11 @@ namespace __cxxabiv1
     // Needed on arm.
     extern "C" void __cxa_end_cleanup()
     { /* DUMMY BODY */ }
+
+    extern "C" int __cxa_thread_atexit(void(*)(void*), void*, void*)
+    {
+        // TODO: needed for thread_local variables
+        __unimplemented();
+        return 0;
+    }
 }

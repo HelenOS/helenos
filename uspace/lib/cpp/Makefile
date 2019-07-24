@@ -46,6 +46,7 @@ SOURCES = \
 	src/locale.cpp \
 	src/mutex.cpp \
 	src/new.cpp \
+	src/refcount_obj.cpp \
 	src/shared_mutex.cpp \
 	src/stdexcept.cpp \
 	src/string.cpp \
@@ -62,6 +63,7 @@ SOURCES = \
 	src/__bits/test/bitset.cpp \
 	src/__bits/test/deque.cpp \
 	src/__bits/test/functional.cpp \
+	src/__bits/test/future.cpp \
 	src/__bits/test/list.cpp \
 	src/__bits/test/map.cpp \
 	src/__bits/test/memory.cpp \

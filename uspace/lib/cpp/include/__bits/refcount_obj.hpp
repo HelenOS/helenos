@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_BITS_FUNCTIONAL
-#define LIBCPP_BITS_FUNCTIONAL
+#ifndef LIBCPP_BITS_REFCOUNT_OBJ
+#define LIBCPP_BITS_REFCOUNT_OBJ
 
-#include <__bits/functional/conditional_function_typedefs.hpp>
-#include <__bits/functional/invoke.hpp>
-#include <limits>
-#include <memory>
-#include <type_traits>
-#include <utility>
-
-namespace std
+namespace std::aux
 {
     /**
-     * 20.9.3, invoke:
+     * At the moment we do not have atomics, change this
+     * to std::atomic<long> once we do.
      */
+    using refcount_t = long;
 
-    template<class F, class... Args>
-    decltype(auto) invoke(F&& f, Args&&... args)
+    class refcount_obj
     {
-        return aux::INVOKE(forward<F>(f),forward<Args>(args)...);
-    }
+        public:
+            refcount_obj() = default;
 
-    /**
-     * 20.9.11, member function adaptors:
-     */
+            void increment() noexcept;
+            void increment_weak() noexcept;
+            bool decrement() noexcept;
+            bool decrement_weak() noexcept;
+            refcount_t refs() const noexcept;
+            refcount_t weak_refs() const noexcept;
+            bool expired() const noexcept;
 
-    namespace aux
-    {
-        template<class F>
-        class mem_fn_t
-            : public conditional_function_typedefs<remove_cv_t<remove_reference_t<F>>>
-        {
-            public:
-                mem_fn_t(F f)
-                    : func_{f}
-                { /* DUMMY BODY */ }
+            virtual ~refcount_obj() = default;
+            virtual void destroy() = 0;
 
-                template<class... Args>
-                decltype(auto) operator()(Args&&... args)
-                {
-                    return INVOKE(func_, forward<Args>(args)...);
-                }
-
-            private:
-                F func_;
-        };
-    }
-
-    template<class R, class T>
-    aux::mem_fn_t<R T::*> mem_fn(R T::* f)
-    {
-        return aux::mem_fn_t<R T::*>{f};
-    }
+        protected:
+            /**
+             * We're using a trick where refcount_ > 0
+             * means weak_refcount_ has 1 added to it,
+             * this makes it easier for weak_ptrs that
+             * can't decrement the weak_refcount_ to
+             * zero with shared_ptrs using this object.
+             */
+            refcount_t refcount_{1};
+            refcount_t weak_refcount_{1};
+    };
 }
 
 #endif

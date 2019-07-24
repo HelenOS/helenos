@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_BITS_RESULT_OF
-#define LIBCPP_BITS_RESULT_OF
+#include <__bits/refcount_obj.hpp>
 
-/**
- * TODO: We have two implementations and I can't remember which
- *       one is the correnct one, investigate!
- */
-#include <__bits/invoke.hpp>
-
-namespace std
+namespace std::aux
 {
-    /**
-     * Note: This doesn't work, C++14 standard allows for F
-     *       to be any complete type, our implementation
-     *       currently works like the C++11 version where
-     *       F has to be callable.
-     * TODO: Fix this.
-     */
+    void refcount_obj::increment()
+    {
+        __atomic_add_fetch(&refcount_, 1, __ATOMIC_ACQ_REL);
+    }
 
-    template<class>
-    struct result_of;
+    void refcount_obj::increment_weak()
+    {
+        __atomic_add_fetch(&weak_refcount_, 1, __ATOMIC_ACQ_REL);
+    }
 
-    template<class F, class... Args>
-    class result_of<F(Args...)>: aux::type_is<
-        decltype(aux::invoke(declval<F>(), declval<ArgTypes>()...))
-    >
-    { /* DUMMY BODY */ };
+    bool refcount_obj::decrement()
+    {
+        if (__atomic_sub_fetch(&refcount_, 1, __ATOMIC_ACQ_REL) == 0)
+        {
+            /**
+             * First call to destroy() will delete the held object,
+             * so it doesn't matter what the weak_refcount_ is,
+             * but we added one and we need to remove it now.
+             */
+            decrement_weak();
 
-    template<class T>
-    using result_of_t = typename result_of<T>::type;
+            return true;
+        }
+        else
+            return false;
+    }
+
+    bool refcount_obj::decrement_weak()
+    {
+        return __atomic_sub_fetch(&weak_refcount_, 1, __ATOMIC_ACQ_REL) == 0 && refs() == 0;
+    }
+
+    refcount_t refcount_obj::refs() const
+    {
+        return __atomic_load_n(&refcount_, __ATOMIC_RELAXED);
+    }
+
+    refcount_t refcount_obj::weak_refs() const
+    {
+        return __atomic_load_n(&weak_refcount_, __ATOMIC_RELAXED);
+    }
+
+    bool refcount_obj::expired() const
+    {
+        return refs() == 0;
+    }
 }
-
-#endif
