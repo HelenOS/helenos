@@ -344,9 +344,14 @@ build_target() {
 		echo ">>> Creating build sysroot"
 		mkdir -p "${WORKDIR}/sysroot/include"
 		mkdir "${WORKDIR}/sysroot/lib"
+		ARCH="$PLATFORM"
+		if [ "$ARCH" = "mips32eb" ]; then
+			ARCH=mips32
+		fi
+
 		cp -r -L -t "${WORKDIR}/sysroot/include" \
 			${SRCDIR}/../abi/include/* \
-			${SRCDIR}/../uspace/lib/c/arch/${PLATFORM}/include/* \
+			${SRCDIR}/../uspace/lib/c/arch/${ARCH}/include/* \
 			${SRCDIR}/../uspace/lib/c/include/*
 		check_error $? "Failed to create build sysroot."
 	fi
