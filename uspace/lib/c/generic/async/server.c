@@ -113,7 +113,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <mem.h>
-#include <stdlib.h>
 #include <macros.h>
 #include <str_error.h>
 #include <as.h>
