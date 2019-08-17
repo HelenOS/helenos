@@ -48,7 +48,9 @@ _config_variables = [
 	'CONFIG_UBSAN',
 	'CONFIG_USE_SHARED_LIBS',
 	'CROSS_TARGET',
+	'MACHINE',
 	'OPTIMIZATION',
+	'PLATFORM',
 	'PROCESSOR',
 	'QUADFLOAT',
 	'RDFMT',
@@ -93,7 +95,6 @@ _config_variables = [
 	'CONFIG_TSB',
 	'CONFIG_UDEBUG',
 	'CONFIG_VIA_CUDA',
-	'MACHINE',
 	'MEMORY_MODEL',
 
 	'UARCH',
@@ -142,3 +143,20 @@ foreach _varname : _version_variables
 		message([ _varname, get_variable(_varname) ])
 	endif
 endforeach
+
+# Check whether PLATFORM/MACHINE is unchanged
+
+_profile = '@0@/@1@'.format(PLATFORM, MACHINE)
+_profile_file = meson.build_root() / 'prev_profile'
+
+_cmd = run_command('cat', _profile_file)
+if _cmd.returncode() == 0
+	_prev_profile = _cmd.stdout().strip()
+
+	if _prev_profile != _profile
+		error('This build directory was initially configured for ' + _prev_profile +
+			', but now is configured for ' + _profile + '. This is not supported.')
+	endif
+else
+	run_command('sh', '-c', 'echo "' + _profile + '" > ' + _profile_file, check: true)
+endif
