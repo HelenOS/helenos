@@ -153,10 +153,13 @@ elif [ "$1" = "run" ]; then
         H_HARBOUR_LIST="$H_DEFAULT_HARBOURS_LIST"
     fi
 
-
     # Build it
-    make "PROFILE=$H_ARCH" HANDS_OFF=y || exit 1
-    test -s "$H_OUTPUT_FILENAME" || exit 1
+    mkdir build-$H_ARCH || exit 1
+    cd build-$H_ARCH
+
+    ../configure.sh $H_ARCH || exit 1
+    ninja || exit 1
+    ninja image_path || exit 1
 
     echo
     echo "HelenOS for $H_ARCH built okay."
