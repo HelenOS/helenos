@@ -37,7 +37,6 @@
 
 #include <arch/mm/frame.h>
 #include <stdbool.h>
-#include <trace.h>
 
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
@@ -146,6 +145,7 @@
 #include <mm/mm.h>
 #include <arch/interrupt.h>
 #include <stddef.h>
+#include <trace.h>
 
 /* Page fault error codes. */
 
