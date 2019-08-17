@@ -26,7 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CCHECK = tools/sycek/ccheck
 CSCOPE = cscope
 FORMAT = clang-format
 
@@ -49,11 +48,11 @@ cscope_parts:
 format:
 	find abi kernel boot uspace -type f -regex '^.*\.[ch]$$' | xargs $(FORMAT) -i -sort-includes -style=file
 
-ccheck: $(CCHECK)
+ccheck:
 	cd tools && ./build-ccheck.sh
 	tools/ccheck.sh
 
-ccheck-fix: $(CCHECK)
+ccheck-fix:
 	cd tools && ./build-ccheck.sh
 	tools/ccheck.sh --fix
 
