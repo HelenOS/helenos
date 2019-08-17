@@ -86,7 +86,10 @@ fi
 if [ -n "$H_CCHECK" ]; then
     echo "Will try to run C style check."
     echo
-    make ccheck || exit 1
+    cd tools
+    ./build-ccheck.sh || exit 1
+    cd ..
+    tools/ccheck.sh || exit 1
     echo "C style check passed."
     exit 0
 fi
