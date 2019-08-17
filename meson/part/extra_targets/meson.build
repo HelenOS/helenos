@@ -56,20 +56,22 @@ if false
 	)
 endif
 
-_patch_file = files('doxygen.cfg.diff')
+if doxygen.found()
+	_patch_file = files('doxygen.cfg.diff')
 
-_gen_cfg = custom_target('doxygen.cfg.gen',
-	output: 'doxygen.cfg.gen',
-	command: [ doxygen, '-g', '@OUTPUT@' ],
-)
+	_gen_cfg = custom_target('doxygen.cfg.gen',
+		output: 'doxygen.cfg.gen',
+		command: [ doxygen, '-g', '@OUTPUT@' ],
+	)
 
-_dox_cfg = custom_target('doxygen.cfg',
-	output: 'doxygen.cfg',
-	input: [ _gen_cfg, _patch_file ],
-	command: [ patch, '-o', '@OUTPUT@', '@INPUT@' ],
-)
+	_dox_cfg = custom_target('doxygen.cfg',
+		output: 'doxygen.cfg',
+		input: [ _gen_cfg, _patch_file ],
+		command: [ patch, '-o', '@OUTPUT@', '@INPUT@' ],
+	)
 
-run_target('doxygen', command: [ doxygen, _dox_cfg ])
+	run_target('doxygen', command: [ doxygen, _dox_cfg ])
+endif
 
 # TODO text-xcw
 #ifeq ($(CONFIG_DEVEL_FILES),y)
