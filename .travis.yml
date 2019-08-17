@@ -60,6 +60,9 @@ env:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq genisoimage
+  - sudo apt-get install -qq python3-pip
+  - pip install ninja
+  - pip install meson
   - ./tools/travis.sh install
 script:
   - ./tools/travis.sh run
