@@ -84,6 +84,9 @@ if [ -f build.ninja ]; then
 	exit 0
 fi
 
+# Link tools directory for convenience.
+ln -s "${SOURCE_DIR}/tools" tools
+
 # Run HelenOS config tool.
 if [ "$#" -eq 1 ]; then
 	"${SOURCE_DIR}/tools/config.py" "${CONFIG_RULES}" "${CONFIG_DEFAULTS}" hands-off "$1" || exit 1
