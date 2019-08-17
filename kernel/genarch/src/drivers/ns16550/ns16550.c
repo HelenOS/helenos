@@ -116,6 +116,9 @@ static void ns16550_putwchar(outdev_t *dev, wchar_t ch)
 	ns16550_instance_t *instance = (ns16550_instance_t *) dev->data;
 
 	if ((!instance->parea.mapped) || (console_override)) {
+		if (ch == '\n')
+			ns16550_sendb(instance, '\r');
+
 		if (ascii_check(ch))
 			ns16550_sendb(instance, (uint8_t) ch);
 		else
