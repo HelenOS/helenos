@@ -16,8 +16,6 @@ work on the build directory.
    - Builds the ccheck tool.
  * ccheck.sh
    - Runs the ccheck tool to verify coding style of C files in the repository.
- * dest_build.py
-   - Legacy tool for out-of-tree build of the old Makefile-based source tree. Obsoleted by Meson.
  * srepl
    - A refactoring tool for global search-and-replace operations. Sed wrapper.
  * toolchain.sh
