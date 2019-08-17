@@ -157,14 +157,18 @@ elif [ "$1" = "run" ]; then
     fi
 
     # Build it
-    mkdir build-$H_ARCH || exit 1
-    cd build-$H_ARCH
+    SRCDIR="$PWD"
+
+    mkdir -p build/$H_ARCH || exit 1
+    cd build/$H_ARCH
 
     export PATH="/usr/local/cross/bin:$PATH"
 
-    ../configure.sh $H_ARCH || exit 1
+    $SRCDIR/configure.sh $H_ARCH || exit 1
     ninja || exit 1
     ninja image_path || exit 1
+
+    cd $SRCDIR
 
     echo
     echo "HelenOS for $H_ARCH built okay."
