@@ -26,11 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# TODO: Red Zone is only a problem if we allow interrupts to land on an active
-#       stack. Using separate stack for interrupts and ensuring that we never
-#       enable interrupts on an interrupt stack would allow us to get rid of
-#       the argument.
-
 arch_uspace_c_args = [
 	'-D__LE__',
 	'-fno-omit-frame-pointer',

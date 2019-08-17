@@ -32,8 +32,6 @@ POST_OUTPUT = 'image.iso'
 POSTBUILD = 'grub'
 GRUB_LOADER = 'chainloader'
 
-# FIXME: The loader crashed without explanation when CONFIG_COMPRESSED_INIT is disabled.
-
 # Request binary output. The ARM64 port manually prepares the .text
 # section to look as a PE file than can be loaded on EFI systems.
 boot_image_format = 'binary'
