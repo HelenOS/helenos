@@ -160,6 +160,8 @@ elif [ "$1" = "run" ]; then
     mkdir build-$H_ARCH || exit 1
     cd build-$H_ARCH
 
+    export PATH="/usr/local/cross/bin:$PATH"
+
     ../configure.sh $H_ARCH || exit 1
     ninja || exit 1
     ninja image_path || exit 1
