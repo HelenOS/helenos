@@ -45,6 +45,7 @@ ARGPOS_RULES = 1
 ARGPOS_PRESETS_DIR = 2
 ARGPOS_CHOICE = 3
 ARGPOS_PRESET = 4
+ARGPOS_MASK_PLATFORM = 3
 
 RULES_FILE = sys.argv[ARGPOS_RULES]
 MAKEFILE = 'Makefile.config'
@@ -690,6 +691,8 @@ def main():
 	else:
 		preset = None
 
+	mask_platform = (len(sys.argv) > ARGPOS_MASK_PLATFORM and sys.argv[ARGPOS_MASK_PLATFORM] == "--mask-platform")
+
 	# Input configuration file can be specified on command line
 	# otherwise configuration from previous run is used.
 	if preset is not None:
@@ -755,14 +758,19 @@ def main():
 
 			options = []
 			opt2row = {}
-			cnt = 1
+			cnt = 0
 
-			options.append("  --- Load preconfigured defaults ... ")
+			if not mask_platform:
+				cnt += 1
+				options.append("  --- Load preconfigured defaults ... ")
 
 			for rule in rules:
 				varname, vartype, name, choices, cond = rule
 
 				if cond and not cond.evaluate(config):
+					continue
+
+				if mask_platform and (varname == "PLATFORM" or varname == "MACHINE" or varname == "COMPILER"):
 					continue
 
 				if varname == selname:
@@ -811,7 +819,7 @@ def main():
 					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
 					continue
 
-			if value == 0:
+			if value == 0 and not mask_platform:
 				profile = choose_profile(PRESETS_DIR, MAKEFILE, screen, config)
 				if profile != None:
 					read_presets(profile, config)

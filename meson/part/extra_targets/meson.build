@@ -30,12 +30,13 @@
 run_target('config',
 	command: [
 		sh,
-		'-c', 'cd $1 && $2 $3 $4',
+		'-c', 'cd $1 && $2 $3 $4 $5',
 		'--',
 		meson.build_root(),
 		config_py.path(),
 		meson.source_root() / 'HelenOS.config',
 		meson.source_root() / 'defaults',
+		'--mask-platform',
 	]
 )
 
