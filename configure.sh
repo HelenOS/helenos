@@ -87,11 +87,13 @@ fi
 if ! which meson; then
 	echo "Your system does not have Meson installed."
 	echo 'Please use `pip3 install meson`'
+	exit 1
 fi
 
 if ! which ninja; then
 	echo "Your system does not have ninja installed."
 	echo 'Please use `pip3 install ninja`'
+	exit 1
 fi
 
 # Link tools directory for convenience.
