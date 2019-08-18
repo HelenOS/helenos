@@ -84,6 +84,16 @@ if [ -f build.ninja ]; then
 	exit 0
 fi
 
+if ! which meson; then
+	echo "Your system does not have Meson installed."
+	echo 'Please use `pip3 install meson`'
+fi
+
+if ! which ninja; then
+	echo "Your system does not have ninja installed."
+	echo 'Please use `pip3 install ninja`'
+fi
+
 # Link tools directory for convenience.
 ln -s "${SOURCE_DIR}/tools" tools
 
