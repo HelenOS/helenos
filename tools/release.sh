@@ -51,7 +51,7 @@ PROFILES=`sh ${SOURCE_DIR}/tools/list_profiles.sh`
 RELEASE=`sed -n 's:^HELENOS_RELEASE \?= \?\(.*\)$:\1:p' "${SOURCE_DIR}/version"`
 SRC_ARCHIVE="HelenOS-${RELEASE}-src.tar"
 
-git -C "${SOURCE_DIR}" archive master -o "${SRC_ARCHIVE}"
+git -C "${SOURCE_DIR}" archive master -o "${PWD}/${SRC_ARCHIVE}"
 bzip2 -f "${SRC_ARCHIVE}"
 echo "Created ${SRC_ARCHIVE}.bz2"
 
