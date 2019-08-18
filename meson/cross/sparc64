@@ -1,15 +1,15 @@
 # See http://mesonbuild.com/Cross-compilation.html
 
 [binaries]
-c = 'sparc64-helenos-gcc'
-cpp = 'sparc64-helenos-g++'
-ar = 'sparc64-helenos-ar'
-strip = 'sparc64-helenos-strip'
-nm = 'sparc64-helenos-nm'
-objcopy = 'sparc64-helenos-objcopy'
-objdump = 'sparc64-helenos-objdump'
-as = 'sparc64-helenos-as'
-ld = 'sparc64-helenos-ld'
+c = '@COMPPREFIX@gcc'
+cpp = '@COMPPREFIX@g++'
+ar = '@COMPPREFIX@ar'
+strip = '@COMPPREFIX@strip'
+nm = '@COMPPREFIX@nm'
+objcopy = '@COMPPREFIX@objcopy'
+objdump = '@COMPPREFIX@objdump'
+as = '@COMPPREFIX@as'
+ld = '@COMPPREFIX@ld'
 
 [properties]
 has_function_printf = true

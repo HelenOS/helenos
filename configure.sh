@@ -105,7 +105,36 @@ if [ "$MACHINE" = 'bmalta' ]; then
 	cross_target='mips32eb'
 fi
 
-meson "${SOURCE_DIR}" '.' --cross-file "${SOURCE_DIR}/meson/cross/${cross_target}" || exit 1
+cross_def="${SOURCE_DIR}/meson/cross/${cross_target}"
+cc_arch=`sed -n "s:cc_arch = '\(.*\)':\1:p" "$cross_def"`
+
+compname="$cc_arch-helenos-gcc"
+
+if which "$compname"; then
+	# Compiler is in PATH
+	compprefix="$cc_arch-helenos-"
+
+elif [ -n "$CROSS_PREFIX" ]; then
+	if ! which "$CROSS_PREFIX/bin/$compname"; then
+		echo "ERROR: \$CROSS_PREFIX defined but $compname is not present in $CROSS_PREFIX/bin."
+		echo "Run tools/toolchain.sh to build cross-compiling toolchain."
+		exit 1
+	fi
+
+	compprefix="$CROSS_PREFIX/bin/$cc_arch-helenos-"
+else
+	if ! which "/usr/local/cross/bin/$compname"; then
+		echo "ERROR: \$CROSS_PREFIX is not defined and $compname is not present in /usr/local/cross/bin."
+		echo "Run tools/toolchain.sh to build cross-compiling toolchain."
+		exit 1
+	fi
+
+	compprefix="/usr/local/cross/bin/$cc_arch-helenos-"
+fi
+
+sed "s:@COMPPREFIX@:$compprefix:g" "$cross_def" > crossfile || exit 1
+
+meson "${SOURCE_DIR}" '.' --cross-file crossfile || exit 1
 
 echo
 echo "Configuration for platform $PLATFORM finished."

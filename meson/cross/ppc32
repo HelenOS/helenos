@@ -1,15 +1,15 @@
 # See http://mesonbuild.com/Cross-compilation.html
 
 [binaries]
-c = 'ppc-helenos-gcc'
-cpp = 'ppc-helenos-g++'
-ar = 'ppc-helenos-ar'
-strip = 'ppc-helenos-strip'
-nm = 'ppc-helenos-nm'
-objcopy = 'ppc-helenos-objcopy'
-objdump = 'ppc-helenos-objdump'
-as = 'ppc-helenos-as'
-ld = 'ppc-helenos-ld'
+c = '@COMPPREFIX@gcc'
+cpp = '@COMPPREFIX@g++'
+ar = '@COMPPREFIX@ar'
+strip = '@COMPPREFIX@strip'
+nm = '@COMPPREFIX@nm'
+objcopy = '@COMPPREFIX@objcopy'
+objdump = '@COMPPREFIX@objdump'
+as = '@COMPPREFIX@as'
+ld = '@COMPPREFIX@ld'
 
 [properties]
 has_function_printf = true

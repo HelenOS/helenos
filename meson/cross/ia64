@@ -1,15 +1,15 @@
 # See http://mesonbuild.com/Cross-compilation.html
 
 [binaries]
-c = 'ia64-helenos-gcc'
-cpp = 'ia64-helenos-g++'
-ar = 'ia64-helenos-ar'
-strip = 'ia64-helenos-strip'
-nm = 'ia64-helenos-nm'
-objcopy = 'ia64-helenos-objcopy'
-objdump = 'ia64-helenos-objdump'
-as = 'ia64-helenos-as'
-ld = 'ia64-helenos-ld'
+c = '@COMPPREFIX@gcc'
+cpp = '@COMPPREFIX@g++'
+ar = '@COMPPREFIX@ar'
+strip = '@COMPPREFIX@strip'
+nm = '@COMPPREFIX@nm'
+objcopy = '@COMPPREFIX@objcopy'
+objdump = '@COMPPREFIX@objdump'
+as = '@COMPPREFIX@as'
+ld = '@COMPPREFIX@ld'
 
 [properties]
 has_function_printf = true

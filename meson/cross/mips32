@@ -1,15 +1,15 @@
 # See http://mesonbuild.com/Cross-compilation.html
 
 [binaries]
-c = 'mipsel-helenos-gcc'
-cpp = 'mipsel-helenos-g++'
-ar = 'mipsel-helenos-ar'
-strip = 'mipsel-helenos-strip'
-nm = 'mipsel-helenos-nm'
-objcopy = 'mipsel-helenos-objcopy'
-objdump = 'mipsel-helenos-objdump'
-as = 'mipsel-helenos-as'
-ld = 'mipsel-helenos-ld'
+c = '@COMPPREFIX@gcc'
+cpp = '@COMPPREFIX@g++'
+ar = '@COMPPREFIX@ar'
+strip = '@COMPPREFIX@strip'
+nm = '@COMPPREFIX@nm'
+objcopy = '@COMPPREFIX@objcopy'
+objdump = '@COMPPREFIX@objdump'
+as = '@COMPPREFIX@as'
+ld = '@COMPPREFIX@ld'
 
 [properties]
 has_function_printf = true

@@ -1,15 +1,15 @@
 # See http://mesonbuild.com/Cross-compilation.html
 
 [binaries]
-c = 'i686-helenos-gcc'
-cpp = 'i686-helenos-g++'
-ar = 'i686-helenos-ar'
-strip = 'i686-helenos-strip'
-nm = 'i686-helenos-nm'
-objcopy = 'i686-helenos-objcopy'
-objdump = 'i686-helenos-objdump'
-as = 'i686-helenos-as'
-ld = 'i686-helenos-ld'
+c = '@COMPPREFIX@gcc'
+cpp = '@COMPPREFIX@g++'
+ar = '@COMPPREFIX@ar'
+strip = '@COMPPREFIX@strip'
+nm = '@COMPPREFIX@nm'
+objcopy = '@COMPPREFIX@objcopy'
+objdump = '@COMPPREFIX@objdump'
+as = '@COMPPREFIX@as'
+ld = '@COMPPREFIX@ld'
 
 [properties]
 has_function_printf = true

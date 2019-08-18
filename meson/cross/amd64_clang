@@ -1,15 +1,15 @@
 # See http://mesonbuild.com/Cross-compilation.html
 
 [binaries]
-c = 'amd64-helenos-clang'
-cpp = 'amd64-helenos-clang++'
-ar = 'amd64-helenos-ar'
-strip = 'amd64-helenos-strip'
-nm = 'amd64-helenos-nm'
-objcopy = 'amd64-helenos-objcopy'
-objdump = 'amd64-helenos-objdump'
-as = 'amd64-helenos-as'
-ld = 'amd64-helenos-ld'
+c = '@COMPPREFIX@clang'
+cpp = '@COMPPREFIX@clang++'
+ar = '@COMPPREFIX@ar'
+strip = '@COMPPREFIX@strip'
+nm = '@COMPPREFIX@nm'
+objcopy = '@COMPPREFIX@objcopy'
+objdump = '@COMPPREFIX@objdump'
+as = '@COMPPREFIX@as'
+ld = '@COMPPREFIX@ld'
 
 [properties]
 has_function_printf = true
