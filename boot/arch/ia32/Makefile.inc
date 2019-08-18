@@ -1,1 +1,0 @@
-../amd64/Makefile.inc

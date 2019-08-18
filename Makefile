@@ -26,55 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# Just for this Makefile. Sub-makes will run in parallel if requested.
-.NOTPARALLEL:
-
-CCHECK = tools/sycek/ccheck
 CSCOPE = cscope
 FORMAT = clang-format
-CHECK = tools/check.sh
-CONFIG = tools/config.py
-AUTOTOOL = tools/autotool.py
-SANDBOX = autotool
 
-CONFIG_RULES = HelenOS.config
-
-COMMON_MAKEFILE = Makefile.common
-COMMON_HEADER = common.h
-
-CONFIG_MAKEFILE = Makefile.config
-CONFIG_HEADER = config.h
 ERRNO_HEADER = abi/include/abi/errno.h
 ERRNO_INPUT = abi/include/abi/errno.in
 
-.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace export-posix space
+.PHONY: nothing cscope cscope_parts format ccheck ccheck-fix space check_errno
 
-all: kernel uspace export-cross test-xcw
-	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
-
-common: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER)
-
-kernel: common
-	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
-
-uspace: common
-	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
-
-test-xcw: uspace export-cross
-	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo
-
-export-posix: common
-ifndef EXPORT_DIR
-	@echo ERROR: Variable EXPORT_DIR is not defined. && false
-else
-	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath $(EXPORT_DIR))
-endif
-
-export-cross: common
-	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath uspace/export)
-
-precheck: clean
-	$(MAKE) -r all PRECHECK=y
+nothing:
 
 cscope:
 	find abi kernel boot uspace -type f -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
@@ -88,30 +48,16 @@ cscope_parts:
 format:
 	find abi kernel boot uspace -type f -regex '^.*\.[ch]$$' | xargs $(FORMAT) -i -sort-includes -style=file
 
-ccheck: $(CCHECK)
+ccheck:
 	cd tools && ./build-ccheck.sh
 	tools/ccheck.sh
 
-ccheck-fix: $(CCHECK)
+ccheck-fix:
 	cd tools && ./build-ccheck.sh
 	tools/ccheck.sh --fix
 
-$(CCHECK):
-	cd tools && ./build-ccheck.sh
-
 space:
 	tools/srepl '[ \t]\+$$' ''
-
-doxy:
-	$(MAKE) -r -C doxygen
-
-# Pre-integration build check
-check: ccheck $(CHECK)
-ifdef JOBS
-	$(CHECK) -j $(JOBS)
-else
-	$(CHECK) -j $(shell nproc)
-endif
 
 # `sed` pulls a list of "compatibility-only" error codes from `errno.in`,
 # the following grep finds instances of those error codes in HelenOS code.
@@ -120,51 +66,7 @@ check_errno:
 	sed -n -e '1,/COMPAT_START/d' -e 's/__errno_entry(\([A-Z0-9]\+\).*/\\b\1\\b/p' | \
 	git grep -n -f - -- ':(exclude)abi' ':(exclude)uspace/lib/posix'
 
-# Autotool (detects compiler features)
-
-autotool $(COMMON_MAKEFILE) $(COMMON_HEADER): $(CONFIG_MAKEFILE) $(AUTOTOOL)
-	$(AUTOTOOL)
-	diff -q $(COMMON_HEADER).new $(COMMON_HEADER) 2> /dev/null; if [ $$? -ne 0 ]; then mv -f $(COMMON_HEADER).new $(COMMON_HEADER); fi
-
-# Build-time configuration
-
-config_default $(CONFIG_MAKEFILE) $(CONFIG_HEADER): $(CONFIG_RULES)
-ifeq ($(HANDS_OFF),y)
-	$(CONFIG) $< hands-off $(PROFILE)
-else
-	$(CONFIG) $< default $(PROFILE)
-endif
-
-config: $(CONFIG_RULES)
-	$(CONFIG) $<
-
-random-config: $(CONFIG_RULES)
-	$(CONFIG) $< random
-
-# Release files
-
-releasefile: all
-	$(MAKE) -r -C release releasefile
-
-release:
-	$(MAKE) -r -C release release
-
-# Cleaning
-
-distclean: clean
-	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
-
-clean:
-	rm -fr $(SANDBOX)
-	$(MAKE) -r -C kernel clean
-	$(MAKE) -r -C uspace clean
-	$(MAKE) -r -C boot clean
-	$(MAKE) -r -C doxygen clean
-	$(MAKE) -r -C tools/xcw/demo clean
-
 $(ERRNO_HEADER): $(ERRNO_INPUT)
 	echo '/* Generated file. Edit errno.in instead. */' > $@.new
 	sed 's/__errno_entry(\([^,]*\),\([^,]*\),.*/#define \1 __errno_t(\2)/' < $< >> $@.new
 	mv $@.new $@
-
--include Makefile.local

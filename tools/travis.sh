@@ -86,7 +86,10 @@ fi
 if [ -n "$H_CCHECK" ]; then
     echo "Will try to run C style check."
     echo
-    make ccheck || exit 1
+    cd tools
+    ./build-ccheck.sh || exit 1
+    cd ..
+    tools/ccheck.sh || exit 1
     echo "C style check passed."
     exit 0
 fi
@@ -153,10 +156,19 @@ elif [ "$1" = "run" ]; then
         H_HARBOUR_LIST="$H_DEFAULT_HARBOURS_LIST"
     fi
 
-
     # Build it
-    make "PROFILE=$H_ARCH" HANDS_OFF=y || exit 1
-    test -s "$H_OUTPUT_FILENAME" || exit 1
+    SRCDIR="$PWD"
+
+    mkdir -p build/$H_ARCH || exit 1
+    cd build/$H_ARCH
+
+    export PATH="/usr/local/cross/bin:$PATH"
+
+    $SRCDIR/configure.sh $H_ARCH || exit 1
+    ninja || exit 1
+    ninja image_path || exit 1
+
+    cd $SRCDIR
 
     echo
     echo "HelenOS for $H_ARCH built okay."

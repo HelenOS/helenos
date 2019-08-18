@@ -35,9 +35,17 @@ collected by our $0 script, followed by a list of conditions and
 disclaimer:
 EOF
 
+# Find out the path to the script.
+SOURCE_DIR=`which -- "$0" 2>/dev/null`
+# Maybe we are running bash.
+[ -z "$SOURCE_DIR" ] && SOURCE_DIR=`which -- "$BASH_SOURCE"`
+[ -z "$SOURCE_DIR" ] && exit 1
+SOURCE_DIR=`dirname -- "$SOURCE_DIR"`
+SOURCE_DIR=`cd $SOURCE_DIR && cd .. && echo $PWD`
+
 echo ""
 
-git grep 'Copyright ([cC])' | \
+git -C "$SOURCE_DIR" grep 'Copyright ([cC])' | \
 	sed -E -n 's/^.*(Copyright \([cC]\) (20[0-9][0-9]-)?20[0-9][0-9],? [-a-zA-Z., ]*[-a-zA-Z.]$)/\1/p' | \
 	sed -E 's/ ( )+/ /' | \
 	grep -v 'HelenOS project' | \

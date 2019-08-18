@@ -42,13 +42,15 @@ import xtui
 import random
 
 ARGPOS_RULES = 1
-ARGPOS_CHOICE = 2
-ARGPOS_PRESET = 3
+ARGPOS_PRESETS_DIR = 2
+ARGPOS_CHOICE = 3
+ARGPOS_PRESET = 4
+ARGPOS_MASK_PLATFORM = 3
 
 RULES_FILE = sys.argv[ARGPOS_RULES]
 MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
-PRESETS_DIR = 'defaults'
+PRESETS_DIR = sys.argv[ARGPOS_PRESETS_DIR]
 
 class BinaryOp:
 	def __init__(self, operator, left, right):
@@ -535,7 +537,7 @@ def create_output(mkname, mcname, config, rules):
 	sys.stderr.write("Fetching current revision identifier ... ")
 
 	try:
-		version = subprocess.Popen(['git', 'log', '-1', '--pretty=%h'], stdout = subprocess.PIPE).communicate()[0].decode().strip()
+		version = subprocess.Popen(['git', '-C', os.path.dirname(RULES_FILE), 'log', '-1', '--pretty=%h'], stdout = subprocess.PIPE).communicate()[0].decode().strip()
 		sys.stderr.write("ok\n")
 	except:
 		version = None
@@ -689,6 +691,8 @@ def main():
 	else:
 		preset = None
 
+	mask_platform = (len(sys.argv) > ARGPOS_MASK_PLATFORM and sys.argv[ARGPOS_MASK_PLATFORM] == "--mask-platform")
+
 	# Input configuration file can be specified on command line
 	# otherwise configuration from previous run is used.
 	if preset is not None:
@@ -754,15 +758,20 @@ def main():
 
 			options = []
 			opt2row = {}
-			cnt = 1
+			cnt = 0
 
-			options.append("  --- Load preconfigured defaults ... ")
+			if not mask_platform:
+				cnt += 1
+				options.append("  --- Load preconfigured defaults ... ")
 
 			for rule in rules:
 				varname, vartype, name, choices, cond = rule
 
 				if cond and not cond.evaluate(config):
 					continue
+
+				if mask_platform and (varname == "PLATFORM" or varname == "MACHINE" or varname == "COMPILER"):
+					rule = varname, vartype, "(locked) " + name, choices, cond
 
 				if varname == selname:
 					position = cnt
@@ -810,7 +819,7 @@ def main():
 					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
 					continue
 
-			if value == 0:
+			if value == 0 and not mask_platform:
 				profile = choose_profile(PRESETS_DIR, MAKEFILE, screen, config)
 				if profile != None:
 					read_presets(profile, config)
@@ -827,6 +836,9 @@ def main():
 				value = None
 			else:
 				value = config[selname]
+
+			if mask_platform and (selname == "PLATFORM" or selname == "MACHINE" or selname == "COMPILER"):
+					continue
 
 			if seltype == 'choice':
 				config[selname] = subchoice(screen, name, choices, value)

@@ -28,6 +28,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+# FIXME: update for meson config
+
 run_echo() {
 	echo "[exec]:" "$@"
 	"$@"
