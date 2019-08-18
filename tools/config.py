@@ -771,7 +771,7 @@ def main():
 					continue
 
 				if mask_platform and (varname == "PLATFORM" or varname == "MACHINE" or varname == "COMPILER"):
-					continue
+					rule = varname, vartype, "(locked) " + name, choices, cond
 
 				if varname == selname:
 					position = cnt
@@ -836,6 +836,9 @@ def main():
 				value = None
 			else:
 				value = config[selname]
+
+			if mask_platform and (selname == "PLATFORM" or selname == "MACHINE" or selname == "COMPILER"):
+					continue
 
 			if seltype == 'choice':
 				config[selname] = subchoice(screen, name, choices, value)
