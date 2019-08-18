@@ -30,7 +30,7 @@ if CONFIG_DEVEL_FILES
 	# If devel files are requested, we have to install libgcc.
 	# We have to explicitly use gcc for this, because clang only prints
 	# file name instead of whole path.
-	libgcc = run_command(cc_arch + '-helenos-gcc',
+	libgcc = run_command(cc_path / cc_arch + '-helenos-gcc',
 		arch_uspace_c_args, '-print-libgcc-file-name',
 		check: true,
 	).stdout().strip()
