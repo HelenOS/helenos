@@ -50,10 +50,10 @@ since the host environments are very diverse. In case the compilation of the too
 fails half way through, try to analyze the error message(s), add appropriate missing
 dependencies and try again.
 
-As an example, here are some of the packages you will need for Ubuntu 12.10 (may be out of date):
+As an example, here are some of the packages you will need for Ubuntu 16.04:
 
 ```
-$ sudo apt-get install build-essential libgmp-dev libmpfr-dev ppl-dev libmpc-dev zlib1g-dev texinfo libtinfo-dev xutils-dev flex bison
+$ sudo apt install build-essential wget texinfo flex bison dialog python-yaml genisoimage
 ```
 
 Whereas for CentOS/Fedora, you will need:
@@ -69,21 +69,54 @@ possible.
 
 ### Configuring the build
 
-Go back to the source root of HelenOS and start the build process:
+Since the summer of 2019, HelenOS uses the Meson build system.
+Make sure you have a recent-enough version of Meson and Ninja.
+The safest bet is installing both using `pip3` tool.
 
-```
-$ cd ..
-$ make PROFILE=amd64
+```sh
+$ pip3 install ninja
+$ pip3 install meson
 ```
 
-Now HelenOS should automatically start building.
+Meson does not support in-tree builds, so you have to create a directory
+for your build. You can have as many build directories as you want, each with
+its own configuration. `cd` into your build directory and run `configure.sh`
+script which exists in the source root. `configure.sh` can be run with a profile
+name, to use one of the predefined profiles, or without arguments for interactive
+configuration.
+
+```sh
+$ git clone https://github.com/HelenOS/helenos.git
+$ mkdir -p build/amd64
+$ cd build/amd64
+$ ../../helenos/configure.sh amd64
+```
 
 Note: If you installed the toolchain to a custom directory, make sure `CROSS_PREFIX`
 environment variable is correctly set.
 
+Once configuration is finished, use `ninja` to build HelenOS.
+Invoking `ninja` without arguments builds all binaries and
+debug files, but not bootable image. This is because during
+development, most builds are incremental and only meant to check
+that code builds properly. In this case, the time-consuming process of
+creating a boot image is not useful and takes most time. This behavior
+might change in the future.
+
+In case you want to rebuild the bootable image, you must invoke
+`ninja image_path`. This also emits the name of the bootable image into the
+file `image_path` in build directory.
+
+```
+$ ninja
+$ ninja image_path
+```
+
+Now HelenOS should automatically start building.
+
 ### Running the OS
 
-When you get the command line back, there should be an `image.iso` file in the source
+When you get the command line back, there should be an `image.iso` file in the build
 root directory. If you have QEMU, you should be able to start HelenOS by running:
 
 ```
