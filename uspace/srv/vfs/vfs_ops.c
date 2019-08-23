@@ -49,10 +49,13 @@
 #include <ctype.h>
 #include <assert.h>
 #include <vfs/canonify.h>
+#include <sysman/ctl.h>
 
 /* Forward declarations of static functions. */
 static errno_t vfs_truncate_internal(fs_handle_t, service_id_t, fs_index_t,
     aoff64_t);
+
+static errno_t vfs_fs_request_start(const char *fs_name, unsigned int instance);
 
 /**
  * This rwlock prevents the race between a triplet-to-VFS-node resolution and a
@@ -143,18 +146,13 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 				 * waiting for start request (which may lead to deadlock).
 				 */
 				fibril_mutex_unlock(&fs_list_lock);
-				rc = vfs_fs_request_start(fs_name, instance);
+				errno_t rc = vfs_fs_request_start(fsname, instance);
 				fibril_mutex_lock(&fs_list_lock);
 
 				if (rc != EOK) {
-					fibril_mutex_unlock(&fs_list_lock);
-					async_answer_0(callid, rc);
-					async_answer_0(rid, rc);
-					free(mp);
-					free(fs_name);
-					free(opts);
-					return;
+					return rc;
 				}
+
 				/*
 				 * Succesful start request, new server should be
 				 * registered.
@@ -215,7 +213,7 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 	return EOK;
 }
 
-static int vfs_fs_request_start(const char *fs_name, unsigned int instance)
+static errno_t vfs_fs_request_start(const char *fs_name, unsigned int instance)
 {
 	char *unit_name = NULL;
 

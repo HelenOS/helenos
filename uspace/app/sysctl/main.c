@@ -38,7 +38,8 @@
 #include <str.h>
 #include <str_error.h>
 #include <sysman/ctl.h>
-#include <unistd.h>
+#include <fibril.h>
+
 
 #define NAME "sysctl"
 #define NAME_BUFFER 256
@@ -65,12 +66,12 @@ static const char *unit_state(unit_state_t s)
 	}
 }
 
-static int list_units(int argc, char *argv[])
+static errno_t list_units(int argc, char *argv[])
 {
 	unit_handle_t *units;
 	size_t unit_cnt;
 
-	int rc = sysman_get_units(&units, &unit_cnt);
+	errno_t rc = sysman_get_units(&units, &unit_cnt);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -97,12 +98,12 @@ fail:
 	return 0;
 }
 
-static int start(int argc, char *argv[])
+static errno_t start(int argc, char *argv[])
 {
 	unit_handle_t handle;
 	char *unit_name = argv[1];
 
-	int rc = sysman_unit_handle(unit_name, &handle);
+	errno_t rc = sysman_unit_handle(unit_name, &handle);
 	if (rc != EOK) {
 		printf("Cannot obtain handle for unit '%s' (%s).\n",
 		    unit_name, str_error(rc));
@@ -119,12 +120,12 @@ static int start(int argc, char *argv[])
 	return 0;
 }
 
-static int stop(int argc, char *argv[])
+static errno_t stop(int argc, char *argv[])
 {
 	unit_handle_t handle;
 	char *unit_name = argv[1];
 
-	int rc = sysman_unit_handle(unit_name, &handle);
+	errno_t rc = sysman_unit_handle(unit_name, &handle);
 	if (rc != EOK) {
 		printf("Cannot obtain handle for unit '%s' (%s).\n",
 		    unit_name, str_error(rc));
@@ -141,14 +142,14 @@ static int stop(int argc, char *argv[])
 	return 0;
 }
 
-static int shutdown(int argc, char *argv[])
+static errno_t shutdown(int argc, char *argv[])
 {
 	const int delay = 3;
 	printf("Will shutdown in %i seconds...\n", delay);
-	sleep(delay);
+	fibril_sleep(delay);
 	printf("Shutdown now.\n");
 
-	int rc = sysman_shutdown();
+	errno_t rc = sysman_shutdown();
 	if (rc != EOK) {
 		printf("Shutdown request failed: %s.\n", str_error(rc));
 	}

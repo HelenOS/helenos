@@ -133,7 +133,7 @@ void task_done(void)
 #ifdef CONFIG_DEBUG
 				printf("[%" PRIu64 "] ", task->taskid);
 #endif
-				task_kill_internal(task);
+				task_kill_internal(task, EXIT_REASON_KILLED);
 			}
 
 			task = task_next(task);

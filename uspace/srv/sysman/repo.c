@@ -29,6 +29,7 @@
 #include <adt/hash.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
+#include <str.h>
 #include <assert.h>
 #include <errno.h>
 #include <fibril_synch.h>
@@ -54,7 +55,7 @@ static size_t units_by_handle_ht_hash(const ht_link_t *item)
 	return unit->handle;
 }
 
-static size_t units_by_handle_ht_key_hash(void *key)
+static size_t units_by_handle_ht_key_hash(const void *key)
 {
 	return *(unit_handle_t *)key;
 }
@@ -66,7 +67,7 @@ static bool units_by_handle_ht_equal(const ht_link_t *item1, const ht_link_t *it
 	    hash_table_get_inst(item2, unit_t, units_by_handle);
 }
 
-static bool units_by_handle_ht_key_equal(void *key, const ht_link_t *item)
+static bool units_by_handle_ht_key_equal(const void *key, const ht_link_t *item)
 {
 	return *(unit_handle_t *)key ==
 	    hash_table_get_inst(item, unit_t, units_by_handle)->handle;
@@ -87,7 +88,7 @@ static size_t units_by_name_ht_hash(const ht_link_t *item)
 	return hash_string(unit->name);
 }
 
-static size_t units_by_name_ht_key_hash(void *key)
+static size_t units_by_name_ht_key_hash(const void *key)
 {
 	return hash_string((const char *)key);
 }
@@ -99,7 +100,7 @@ static bool units_by_name_ht_equal(const ht_link_t *item1, const ht_link_t *item
 	    hash_table_get_inst(item2, unit_t, units_by_handle);
 }
 
-static bool units_by_name_ht_key_equal(void *key, const ht_link_t *item)
+static bool units_by_name_ht_key_equal(const void *key, const ht_link_t *item)
 {
 	return str_cmp((const char *)key,
 	    hash_table_get_inst(item, unit_t, units_by_name)->name) == 0;
@@ -165,7 +166,7 @@ int repo_add_unit(unit_t *unit)
 		list_append(&unit->units, &units_);
 		return EOK;
 	} else {
-		return EEXISTS;
+		return EEXIST;
 	}
 }
 

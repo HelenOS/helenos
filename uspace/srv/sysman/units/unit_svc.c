@@ -31,6 +31,7 @@
 #include <io/console.h> // temporary
 #include <stdlib.h>
 #include <task.h>
+#include <str.h>
 
 #include "log.h"
 #include "unit.h"
@@ -57,7 +58,7 @@ static void unit_svc_destroy(unit_t *unit)
 	util_command_deinit(&u_svc->exec_start);
 }
 
-static int unit_svc_load(unit_t *unit, ini_configuration_t *ini_conf,
+static errno_t unit_svc_load(unit_t *unit, ini_configuration_t *ini_conf,
     text_parse_t *text_parse)
 {
 	unit_svc_t *u_svc = CAST_SVC(unit);
@@ -75,7 +76,7 @@ static int unit_svc_load(unit_t *unit, ini_configuration_t *ini_conf,
 	    text_parse);
 }
 
-static int unit_svc_start(unit_t *unit)
+static errno_t unit_svc_start(unit_t *unit)
 {
 	unit_svc_t *u_svc = CAST_SVC(unit);
 	assert(u_svc);
@@ -83,7 +84,7 @@ static int unit_svc_start(unit_t *unit)
 	
 	assert(unit->state == STATE_STOPPED);
 
-	int rc = task_spawnv(&u_svc->main_task_id, NULL, u_svc->exec_start.path,
+	errno_t rc = task_spawnv(&u_svc->main_task_id, NULL, u_svc->exec_start.path,
 	    u_svc->exec_start.argv);
 
 	if (rc != EOK) {
@@ -99,7 +100,7 @@ static int unit_svc_start(unit_t *unit)
 	 * TODO move to task retval/exposee created handler
 	 */
 	if (str_cmp(unit->name, "devman.svc") == 0) {
-		async_usleep(100000);
+		fibril_usleep(100000);
 		if (console_kcon()) {
 			sysman_log(LVL_DEBUG2, "%s: Kconsole grabbed.", __func__);
 		} else {
@@ -110,7 +111,7 @@ static int unit_svc_start(unit_t *unit)
 	return EOK;
 }
 
-static int unit_svc_stop(unit_t *unit)
+static errno_t unit_svc_stop(unit_t *unit)
 {
 	unit_svc_t *u_svc = CAST_SVC(unit);
 	assert(u_svc);
@@ -128,7 +129,7 @@ static int unit_svc_stop(unit_t *unit)
 		return EOK;
 	}
 
-	int rc = task_kill(u_svc->main_task_id);
+	errno_t rc = task_kill(u_svc->main_task_id);
 
 	if (rc != EOK) {
 		/* Task may still be running, but be conservative about unit's

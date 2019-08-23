@@ -384,16 +384,16 @@ errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 
 	if (rc == EOK || rc == EINTR) {
 		if (wait->flags & TASK_WAIT_EXIT && texit)
-			*texit = ipc_get_arg1(wait->result);
+			*texit = ipc_get_arg1(&wait->result);
 		if (wait->flags & TASK_WAIT_RETVAL && retval)
-			*retval = ipc_get_arg2(wait->result);
+			*retval = ipc_get_arg2(&wait->result);
 		
 	}
 
 	if (rc == EOK) {
 		/* Is there another wait to be done? Wait for it! */
 		int old_flags = wait->flags;
-		wait->flags = ipc_get_arg3(wait->result);
+		wait->flags = ipc_get_arg3(&wait->result);
 		if (wait->flags != 0 && (old_flags & TASK_WAIT_BOTH)) {
 			rc = task_setup_wait(wait->tid, wait);
 		}
@@ -437,7 +437,7 @@ errno_t task_retval_internal(int val, bool wait_for_exit)
 	if (exch == NULL)
 		return EIO;
 
-	errno_t rc = (int) async_req_2_0(exch, TASKMAN_RETVAL, val, wait_for_exit);
+	errno_t rc = async_req_2_0(exch, TASKMAN_RETVAL, val, wait_for_exit);
 	taskman_exchange_end(exch);
 	
 	return rc;

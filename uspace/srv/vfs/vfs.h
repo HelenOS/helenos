@@ -177,6 +177,7 @@ extern void vfs_exchange_release(async_exch_t *);
 
 extern fs_handle_t fs_name_to_handle(const char *, unsigned int instance, bool);
 extern vfs_info_t *fs_handle_to_info(fs_handle_t);
+extern int vfs_get_fstypes(vfs_fstypes_t *);
 extern errno_t fs_unit_name(const char *, unsigned int, char **);
 
 extern errno_t vfs_lookup_internal(vfs_node_t *, char *, int, vfs_lookup_res_t *);

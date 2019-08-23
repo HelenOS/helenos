@@ -31,7 +31,7 @@
 
 #include <adt/dyn_array.h>
 #include <adt/list.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 
 #include "unit.h"
@@ -57,7 +57,7 @@ typedef struct job job_t;
 
 struct job {
 	link_t job_queue;
-	atomic_t refcnt;
+	atomic_uint refcnt;
 
 	unit_state_t target_state;
 	unit_t *unit;

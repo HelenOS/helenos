@@ -65,25 +65,25 @@ static void prepare_and_run_job(const char **target_name_ptr);
  * Static functions
  */
 
-static void sysman_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void sysman_connection(ipc_call_t *icall, void *arg)
 {
-	sysman_interface_t iface = IPC_GET_ARG1(*icall);
+	sysman_interface_t iface = ipc_get_arg1(icall);
 	switch (iface) {
 	case SYSMAN_PORT_BROKER:
-		sysman_connection_broker(iid, icall);
+		sysman_connection_broker(icall);
 		break;
 	case SYSMAN_PORT_CTL:
-		sysman_connection_ctl(iid, icall);
+		sysman_connection_ctl(icall);
 		break;
 	default:
 		/* Unknown interface */
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall, ENOENT);
 	}
 }
 
 /** Build hard coded configuration */
-static int create_entry_configuration(void) {
-	int rc;
+static errno_t create_entry_configuration(void) {
+	errno_t rc;
 	unit_t *mnt_initrd = NULL;
 	unit_t *cfg_init = NULL;
 	unit_t *tgt_init = NULL;
@@ -182,7 +182,7 @@ static void prepare_and_run_job(const char **target_name_ptr)
 		return;
 	}
 
-	int rc = sysman_run_job(tgt, STATE_STARTED, 0, &sequence_job_handler,
+	errno_t rc = sysman_run_job(tgt, STATE_STARTED, 0, &sequence_job_handler,
 	    target_name_ptr);
 
 	if (rc != EOK) {
@@ -192,7 +192,6 @@ static void prepare_and_run_job(const char **target_name_ptr)
 
 int main(int argc, char *argv[])
 {
-	async_set_client_connection(sysman_connection);
 	printf(NAME ": HelenOS system daemon\n");
 
 	/*
@@ -206,7 +205,7 @@ int main(int argc, char *argv[])
 	/*
 	 * Create initial configuration while we are in a single fibril
 	 */
-	int rc = create_entry_configuration();
+	errno_t rc = create_entry_configuration();
 	if (rc != EOK) {
 		sysman_log(LVL_FATAL,
 		    "Could not create initial configuration (%i).", rc);
@@ -221,7 +220,7 @@ int main(int argc, char *argv[])
 	fibril_add_ready(event_loop_fibril);
 
 	/* We're service too */
-	rc = service_register(SERVICE_SYSMAN);
+	rc = service_register(SERVICE_SYSMAN, INTERFACE_SYSMAN, sysman_connection, NULL);
 	if (rc != EOK) {
 		sysman_log(LVL_FATAL,
 		    "Cannot register at naming service (%i).", rc);

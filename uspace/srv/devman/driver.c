@@ -33,13 +33,12 @@
 
 #include <dirent.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <io/log.h>
 #include <vfs/vfs.h>
+#include <dirent.h>
 #include <loc.h>
 #include <stdio.h>
 #include <str_error.h>
-#include <sys/stat.h>
 #include <sysman/ctl.h>
 #include <task.h>
 

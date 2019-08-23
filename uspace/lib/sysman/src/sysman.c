@@ -36,8 +36,7 @@ async_exch_t *sysman_exchange_begin(sysman_interface_t iface)
 {
 	if (sysman_sess[iface] == NULL) {
 		// TODO serialize vs parallel
-		sysman_sess[iface] = service_connect_blocking(EXCHANGE_SERIALIZE,
-		    SERVICE_SYSMAN, iface, 0);
+		sysman_sess[iface] = service_connect_blocking(SERVICE_SYSMAN, INTERFACE_SYSMAN, iface);
 	}
 
 	if (sysman_sess[iface] == NULL) {

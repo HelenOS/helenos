@@ -42,13 +42,13 @@
 
 
 // TODO possibly provide as type-safe function + macro in sysman.h for generic boxing
-static ipc_callid_t *box_callid(ipc_callid_t iid)
+static ipc_call_t *box_callid(ipc_call_t *icall)
 {
-	ipc_callid_t *result = malloc(sizeof(ipc_callid_t));
-	if (result) {
-		*result = iid;
+	ipc_call_t *copy = malloc(sizeof(ipc_call_t));
+	if (copy) {
+		memcpy(copy, icall, sizeof(ipc_call_t));
 	}
-	return result;
+	return copy;
 }
 
 static void answer_callback(void *object, void *arg)
@@ -57,15 +57,15 @@ static void answer_callback(void *object, void *arg)
 	assert(job->state == JOB_FINISHED);
 	assert(job->retval != JOB_UNDEFINED_);
 
-	ipc_callid_t *iid_ptr = arg;
+	ipc_call_t *icall = arg;
 	// TODO use descriptive return value (probably refactor job retval)
 	sysarg_t retval = (job->retval == JOB_OK) ? EOK : EIO;
-	async_answer_0(*iid_ptr, retval);
-	free(iid_ptr);
+	async_answer_0(icall, retval);
+	free(icall);
 	job_del_ref(&job);
 }
 
-static void sysman_unit_handle(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_unit_handle(ipc_call_t *icall)
 {
 	char *unit_name = NULL;
 	sysarg_t retval;
@@ -83,16 +83,16 @@ static void sysman_unit_handle(ipc_callid_t iid, ipc_call_t *icall)
 		goto fail;
 	}
 
-	async_answer_1(iid, EOK, unit->handle);
+	async_answer_1(icall, EOK, unit->handle);
 	goto finish;
 
 fail:
-	async_answer_0(iid, retval);
+	async_answer_0(icall, retval);
 finish:
 	free(unit_name);
 }
 
-static void sysman_unit_start_by_name(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_unit_start_by_name(ipc_call_t *icall)
 {
 	char *unit_name = NULL;
 	sysarg_t retval;
@@ -104,7 +104,7 @@ static void sysman_unit_start_by_name(ipc_callid_t iid, ipc_call_t *icall)
 		goto answer;
 	}
 
-	int flags = IPC_GET_ARG1(*icall);
+	int flags = ipc_get_arg1(icall);
 	sysman_log(LVL_DEBUG2, "%s(%s, %x)", __func__, unit_name, flags);
 
 	unit_t *unit = repo_find_unit_by_name(unit_name);
@@ -119,13 +119,13 @@ static void sysman_unit_start_by_name(ipc_callid_t iid, ipc_call_t *icall)
 		goto answer;
 	}
 
-	ipc_callid_t *iid_ptr = box_callid(iid);
-	if (iid_ptr == NULL) {
+	ipc_call_t *icall_copy = box_callid(icall);
+	if (icall_copy == NULL) {
 		retval = ENOMEM;
 		goto answer;
 	}
 	retval = sysman_run_job(unit, STATE_STARTED, 0, &answer_callback,
-	    iid_ptr);
+	    icall_copy);
 	if (retval != EOK) {
 		goto answer;
 	}
@@ -134,19 +134,18 @@ static void sysman_unit_start_by_name(ipc_callid_t iid, ipc_call_t *icall)
 	goto finish;
 
 answer:
-	async_answer_0(iid, retval);
+	async_answer_0(icall, retval);
 finish:
 	free(unit_name);
 }
 
-static void sysman_unit_operation(ipc_callid_t iid, ipc_call_t *icall,
-    unit_state_t state)
+static void sysman_unit_operation(ipc_call_t *icall, unit_state_t state)
 {
 	sysarg_t retval;
 
-	unit_handle_t handle = IPC_GET_ARG1(*icall);
-	int flags = IPC_GET_ARG2(*icall);
-	sysman_log(LVL_DEBUG2, "%s(%i, %x, %i)", __func__, handle, flags, state);
+	unit_handle_t handle = ipc_get_arg1(icall);
+	sysarg_t flags = ipc_get_arg2(icall);
+	sysman_log(LVL_DEBUG2, "%s(%p, %lx, %i)", __func__, icall->cap_handle, flags, state);
 
 	unit_t *unit = repo_find_unit_by_handle(handle);
 	if (unit == NULL) {
@@ -159,13 +158,13 @@ static void sysman_unit_operation(ipc_callid_t iid, ipc_call_t *icall,
 		goto answer;
 	}
 
-	ipc_callid_t *iid_ptr = box_callid(iid);
-	if (iid_ptr == NULL) {
+	ipc_call_t *icall_copy = box_callid(icall);
+	if (icall_copy == NULL) {
 		retval = ENOMEM;
 		goto answer;
 	}
 	retval = sysman_run_job(unit, state, 0, &answer_callback,
-	    iid_ptr);
+	    icall_copy);
 	if (retval != EOK) {
 		goto answer;
 	}
@@ -174,17 +173,17 @@ static void sysman_unit_operation(ipc_callid_t iid, ipc_call_t *icall,
 	return;
 
 answer:
-	async_answer_0(iid, retval);
+	async_answer_0(icall, retval);
 }
 
-static void sysman_unit_start(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_unit_start(ipc_call_t *icall)
 {
-	sysman_unit_operation(iid, icall, STATE_STARTED);
+	sysman_unit_operation(icall, STATE_STARTED);
 }
 
-static void sysman_unit_stop(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_unit_stop(ipc_call_t *icall)
 {
-	sysman_unit_operation(iid, icall, STATE_STOPPED);
+	sysman_unit_operation(icall, STATE_STOPPED);
 }
 
 static int fill_handles_buffer(unit_handle_t *buffer, size_t size,
@@ -209,79 +208,79 @@ static int fill_handles_buffer(unit_handle_t *buffer, size_t size,
 	return EOK;
 }
 
-static void sysman_get_units(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_get_units(ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	ipc_call_t call;
 	size_t size;
 	size_t act_size;
 	int rc;
 	
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 	
 	
 	unit_handle_t *handles = malloc(size);
 	if (handles == NULL && size > 0) {
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(&call, ENOMEM);
+		async_answer_0(icall, ENOMEM);
 		return;
 	}
 	
 	
 	rc = fill_handles_buffer(handles, size, &act_size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 	
 	size_t real_size = min(act_size, size);
-	sysarg_t retval = async_data_read_finalize(callid, handles, real_size);
+	sysarg_t retval = async_data_read_finalize(&call, handles, real_size);
 	free(handles);
 	
-	async_answer_1(iid, retval, act_size);
+	async_answer_1(icall, retval, act_size);
 }
 
-static void sysman_unit_get_name(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_unit_get_name(ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	ipc_call_t call;
 	size_t size;
 	
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 	
-	unit_t *u = repo_find_unit_by_handle(IPC_GET_ARG1(*icall));
+	unit_t *u = repo_find_unit_by_handle(ipc_get_arg1(icall));
 	if (u == NULL) {
-		async_answer_0(callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(&call, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 	
 	size_t real_size = min(str_size(u->name) + 1, size);
-	sysarg_t retval = async_data_read_finalize(callid, u->name, real_size);
+	sysarg_t retval = async_data_read_finalize(&call, u->name, real_size);
 	
-	async_answer_0(iid, retval);
+	async_answer_0(icall, retval);
 }
 
-static void sysman_unit_get_state(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_unit_get_state(ipc_call_t *icall)
 {
-	unit_t *u = repo_find_unit_by_handle(IPC_GET_ARG1(*icall));
+	unit_t *u = repo_find_unit_by_handle(ipc_get_arg1(icall));
 	if (u == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall, ENOENT);
 	} else {
-		async_answer_1(iid, EOK, u->state);
+		async_answer_1(icall, EOK, u->state);
 	}
 }
 
-static void sysman_shutdown(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_shutdown(ipc_call_t *icall)
 {
-	int retval;
+	errno_t retval;
 	unit_t *u = repo_find_unit_by_name(TARGET_SHUTDOWN);
 	if (u == NULL) {
 		retval = ENOENT;
@@ -292,51 +291,50 @@ static void sysman_shutdown(ipc_callid_t iid, ipc_call_t *icall)
 	    shutdown_cb, NULL);
 
 finish:
-	async_answer_0(iid, retval);
+	async_answer_0(icall, retval);
 }
 
-void sysman_connection_ctl(ipc_callid_t iid, ipc_call_t *icall)
+void sysman_connection_ctl(ipc_call_t *icall)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 	/* First, accept connection */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-
-		if (!IPC_GET_IMETHOD(call)) {
+		
+		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
 			/* Client disconnected */
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case SYSMAN_CTL_UNIT_HANDLE:
-			sysman_unit_handle(callid, &call);
+			sysman_unit_handle(&call);
 			break;
 		case SYSMAN_CTL_UNIT_START_BY_NAME:
-			sysman_unit_start_by_name(callid, &call);
+			sysman_unit_start_by_name(&call);
 			break;
 		case SYSMAN_CTL_UNIT_START:
-			sysman_unit_start(callid, &call);
+			sysman_unit_start(&call);
 			break;
 		case SYSMAN_CTL_UNIT_STOP:
-			sysman_unit_stop(callid, &call);
+			sysman_unit_stop(&call);
 			break;
 		case SYSMAN_CTL_GET_UNITS:
-			sysman_get_units(callid, &call);
+			sysman_get_units(&call);
 			break;
 		case SYSMAN_CTL_UNIT_GET_NAME:
-			sysman_unit_get_name(callid, &call);
+			sysman_unit_get_name(&call);
 			break;
 		case SYSMAN_CTL_UNIT_GET_STATE:
-			sysman_unit_get_state(callid, &call);
+			sysman_unit_get_state(&call);
 			break;
 		case SYSMAN_CTL_SHUTDOWN:
-			sysman_shutdown(callid, &call);
+			sysman_shutdown(&call);
 			break;
 		default:
-			async_answer_0(callid, ENOENT);
+			async_answer_0(&call, ENOENT);
 		}
 	}
 }

@@ -344,7 +344,7 @@ int job_create_closure(job_t *main_job, job_closure_t *job_closure, int flags)
 	if (rc == EOK) {
 		dyn_array_foreach(*job_closure, job_t *, job_it) {
 			sysman_log(LVL_DEBUG2, "%s\t%s, refs: %u", __func__,
-			    unit_name((*job_it)->unit), atomic_get(&(*job_it)->refcnt));
+			    unit_name((*job_it)->unit), atomic_load(&(*job_it)->refcnt));
 		}
 	}
 

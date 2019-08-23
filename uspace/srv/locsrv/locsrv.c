@@ -583,14 +583,14 @@ static void loc_service_register(ipc_call_t *icall, loc_server_t *server)
 		free(service->name);
 		free(service);
 		free(unit_name);
-		async_answer_0(iid, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
 	if (str_cmp(namespace->name, LOC_DEVICE_NAMESPACE) == 0) {
 		sysman_exposee_added(unit_name);
 	} else {
-		sysman_main_exposee_added(unit_name, icall->in_task_id);
+		sysman_main_exposee_added(unit_name, icall->task_id);
 	}
 	free(unit_name);
 
@@ -618,8 +618,7 @@ static void loc_service_register(ipc_call_t *icall, loc_server_t *server)
 /**
  *
  */
-static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
-    loc_server_t *server)
+static void loc_service_unregister(ipc_call_t *icall, loc_server_t *server)
 {
 	loc_service_t *svc;
 
@@ -839,7 +838,7 @@ static void loc_service_get_id(ipc_call_t *icall)
 
 	fibril_mutex_lock(&services_list_mutex);
 	const loc_service_t *svc;
-	int flags = ipc_get_arg1(*icall);
+	int flags = ipc_get_arg1(icall);
 	bool start_requested = false;
 	
 recheck:
@@ -888,9 +887,9 @@ recheck:
 
 finish:
 	if (rc == EOK) {
-		async_answer_1(iid, EOK, svc->id);
+		async_answer_1(icall, EOK, svc->id);
 	} else {
-		async_answer_0(iid, rc);
+		async_answer_0(icall, rc);
 	}
 	
 	fibril_mutex_unlock(&services_list_mutex);
@@ -1668,6 +1667,8 @@ int main(int argc, char *argv[])
 	rc = service_register_broker(SERVICE_LOC, loc_forward, NULL);
 	if (rc != EOK) {
 		printf("%s: Error while registering broker service: %s\n", NAME, str_error(rc));
+		return rc;
+	}
 
 	/* Let sysman know we are broker */
 	rc = sysman_broker_register();

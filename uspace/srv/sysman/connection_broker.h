@@ -31,6 +31,6 @@
 
 #include <async.h>
 
-extern void sysman_connection_broker(ipc_callid_t, ipc_call_t *);
+extern void sysman_connection_broker(ipc_call_t *);
 
 #endif

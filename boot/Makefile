@@ -126,7 +126,7 @@ clean_dist:
 	rm -f $(INITRD).img $(COMPS).o $(COMPS).tar $(LINK)
 	find $(USPACE_PATH)/dist -mindepth 1 -maxdepth 1 -type f -exec rm \{\} \;
 	rm -rf $(USPACE_PATH)/dist/app
-	rm -f $(USPACE_PATH)/dist/cfg/*
+	rm -rf $(USPACE_PATH)/dist/cfg/*
 	rm -rf $(USPACE_PATH)/dist/srv
 	rm -rf $(USPACE_PATH)/dist/drv/*
 	rm -rf $(USPACE_PATH)/dist/lib/*

@@ -98,7 +98,6 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include "../private/async.h"
-#include "../private/ns.h"
 #undef _LIBC_ASYNC_C_
 
 #include <ipc/irq.h>
@@ -113,8 +112,8 @@
 #include <barrier.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdatomic.h>
 #include <mem.h>
-#include <stdlib.h>
 #include <macros.h>
 #include <as.h>
 #include <abi/mm/as.h>
@@ -173,10 +172,9 @@ static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 async_sess_t *create_session(cap_phone_handle_t phone, exch_mgmt_t mgmt,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
 {
-	async_sess_t *session = (async_sess_t *) malloc(sizeof(async_sess_t));
+	async_sess_t *session = (async_sess_t *) calloc(1, sizeof(async_sess_t));
 
 	if (session != NULL) {
-		session->iface = 0;
 		session->mgmt = mgmt;
 		session->phone = phone;
 		session->arg1 = arg1;
@@ -188,8 +186,6 @@ async_sess_t *create_session(cap_phone_handle_t phone, exch_mgmt_t mgmt,
 		
 		list_initialize(&session->exch_list);
 		fibril_mutex_initialize(&session->mutex);
-		atomic_set(&session->refcnt, 0);
-		&session.exchanges = 0;
 	} else {
 		errno = ENOMEM;
 	}
@@ -197,7 +193,7 @@ async_sess_t *create_session(cap_phone_handle_t phone, exch_mgmt_t mgmt,
 	return session;
 }
 
-int async_session_phone(async_sess_t *sess)
+cap_phone_handle_t async_session_phone(async_sess_t *sess)
 {
 	return sess->phone;
 }
@@ -858,10 +854,11 @@ async_sess_t *async_connect_me_to(async_exch_t *exch, iface_t iface,
 		return NULL;
 	}
 
-	async_sess_t *sess = create_session(phone, mgmt, iface, arg2, arg3);
+	async_sess_t *sess = create_session(phone, iface & IFACE_EXCHANGE_MASK, iface, arg2, arg3);
 	if (sess == NULL) {
 		ipc_hangup(phone);
 	}
+	sess->iface = iface;
 
 	return sess;
 }
@@ -911,14 +908,14 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
 	    arg3, IPC_FLAG_BLOCKING, &phone);
 	if (rc != EOK) {
 		errno = rc;
-		free(sess);
 		return NULL;
 	}
 
-	async_sess_t *sess = create_session(phone, mgmt, iface, arg2, arg3);
+	async_sess_t *sess = create_session(phone, iface & IFACE_EXCHANGE_MASK, iface, arg2, arg3);
 	if (sess == NULL) {
 		ipc_hangup(phone);
 	}
+	sess->iface = iface;
 
 	return sess;
 }

@@ -30,6 +30,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <str.h>
 
 #include "repo.h"
 #include "edge.h"
@@ -65,7 +66,7 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 
 	link_initialize(&job->job_queue);
 
-	atomic_set(&job->refcnt, 0);
+	atomic_store(&job->refcnt, 0);
 
 	job->target_state = target_state;
 	job->unit = u;
@@ -162,7 +163,7 @@ job_t *job_create(unit_t *u, unit_state_t target_state)
  */
 void job_add_ref(job_t *job)
 {
-	atomic_inc(&job->refcnt);
+	atomic_fetch_add(&job->refcnt, 1);
 }
 
 /** Remove one reference from job, last remover destroys the job
@@ -177,8 +178,9 @@ void job_del_ref(job_t **job_ptr)
 	job_t *job = *job_ptr;
 
 	assert(job != NULL);
-	assert(atomic_get(&job->refcnt) > 0);
-	if (atomic_predec(&job->refcnt) == 0) {
+	assert(atomic_load(&job->refcnt) > 0);
+	atomic_fetch_sub(&job->refcnt, 1);
+	if (atomic_load(&job->refcnt) == 0) {
 		job_destroy(job_ptr);
 	}
 }
@@ -248,9 +250,9 @@ void job_finish(job_t *job)
 	assert(job->retval != JOB_UNDEFINED_);
 	assert(!job->unit->job || job->unit->job == job);
 
-	sysman_log(LVL_DEBUG2, "%s(%p) %s ret %i, ref %i",
+	sysman_log(LVL_DEBUG2, "%s(%p) %s ret %i, ref %u",
 	    __func__, job, unit_name(job->unit), job->retval,
-	    atomic_get(&job->refcnt));
+	    atomic_load(&job->refcnt));
 
 	job->state = JOB_FINISHED;
 

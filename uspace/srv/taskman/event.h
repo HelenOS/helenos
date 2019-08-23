@@ -38,13 +38,13 @@
 #include <ipc/common.h>
 #include <abi/proc/task.h>
 
-extern int event_init(void);
+extern errno_t event_init(void);
 
 extern void event_register_listener(task_id_t, bool, async_sess_t *,
-    ipc_callid_t);
-extern void dump_events(task_id_t, ipc_callid_t);
-extern void wait_for_task(task_id_t, int, ipc_callid_t, task_id_t);
-extern int task_set_retval(task_id_t, int, bool);
+    ipc_call_t *);
+extern void dump_events(task_id_t, ipc_call_t *);
+extern void wait_for_task(task_id_t, int, ipc_call_t *, task_id_t);
+extern errno_t task_set_retval(task_id_t, int, bool);
 
 extern void task_terminated(task_id_t, exit_reason_t);
 extern void task_failed(task_id_t);

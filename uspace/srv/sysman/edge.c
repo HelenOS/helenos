@@ -121,12 +121,12 @@ void edge_resolve_output(unit_edge_t *e, unit_t *output)
 /**
  * @return        EOK on success
  * @return        ENOMEM
- * @return        EEXISTS
+ * @return        EEXIST
  */
 int edge_connect(unit_t *input, unit_t *output)
 {
 	if (edge_extract_internal(input, output)) {
-		return EEXISTS;
+		return EEXIST;
 	}
 
 	unit_edge_t *e = edge_create();

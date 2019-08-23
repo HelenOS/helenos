@@ -32,16 +32,16 @@
 #include <ipc/sysman.h>
 #include <sysman/unit.h>
 
-int sysman_unit_handle(const char *, unit_handle_t *);
+errno_t sysman_unit_handle(const char *, unit_handle_t *);
 
-int sysman_unit_start_by_name(const char *, int);
-int sysman_unit_start(unit_handle_t, int);
-int sysman_unit_stop(unit_handle_t, int);
+errno_t sysman_unit_start_by_name(const char *, int);
+errno_t sysman_unit_start(unit_handle_t, int);
+errno_t sysman_unit_stop(unit_handle_t, int);
 
-int sysman_get_units(unit_handle_t **, size_t *);
+errno_t sysman_get_units(unit_handle_t **, size_t *);
 
-int sysman_unit_get_name(unit_handle_t, char *, size_t);
-int sysman_unit_get_state(unit_handle_t, unit_state_t *);
+errno_t sysman_unit_get_name(unit_handle_t, char *, size_t);
+errno_t sysman_unit_get_state(unit_handle_t, unit_state_t *);
 
-int sysman_shutdown(void);
+errno_t sysman_shutdown(void);
 #endif

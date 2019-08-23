@@ -58,12 +58,6 @@ static void ns_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-/*
- * XXX ns does not know about session_primary, so we create an extra session for
- * actual communicaton
- */
-static async_sess_t *sess_primary = NULL;
-
 errno_t service_register(service_t service, iface_t iface,
     async_port_handler_t handler, void *data)
 {
@@ -95,17 +89,13 @@ errno_t service_register_broker(service_t service, async_port_handler_t handler,
 {
 	async_set_fallback_port_handler(handler, data);
 
-	async_sess_t *sess = get_session_primary();
-	if (sess == NULL)
-		return EIO;
-
-	async_exch_t *exch = async_exchange_begin(sess);
+	async_exch_t *exch = ns_exchange_begin();
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, NS_REGISTER_BROKER, service, &answer);
 	errno_t rc = async_connect_to_me(exch, INTERFACE_ANY, service, 0);
 
-	async_exchange_end(exch);
+	ns_exchange_end(exch);
 
 	if (rc != EOK) {
 		async_forget(req);
@@ -137,7 +127,7 @@ async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 	 */
 	async_sess_args_set(sess, iface, arg3, 0);
 
-	return csess;
+	return sess;
 }
 
 async_sess_t *service_connect_blocking(service_t service, iface_t iface,
@@ -163,7 +153,7 @@ async_sess_t *service_connect_blocking(service_t service, iface_t iface,
 
 errno_t ns_ping(void)
 {
-	async_exch_t *exch = ns_exchange_begin(sess);
+	async_exch_t *exch = ns_exchange_begin();
 	errno_t rc = async_req_0_0(exch, NS_PING);
 	ns_exchange_end(exch);
 

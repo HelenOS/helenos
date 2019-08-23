@@ -209,8 +209,7 @@ finish:
 	free(tev);
 }
 
-int sm_task_start(void)
+errno_t sm_task_start(void)
 {
-	int rc = task_register_event_handler(&sm_task_event_handler, true);
-	return rc;
+	return task_register_event_handler(&sm_task_event_handler, true);
 }

@@ -28,8 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBSYSMAN_PREFIX)/libsysman.a
-EXTRA_CFLAGS += -I$(LIBSYSMAN_PREFIX)/include
+LIBS = sysman
 BINARY = devman
 STATIC_NEEDED = y
 

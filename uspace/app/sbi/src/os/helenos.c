@@ -250,9 +250,7 @@ errno_t os_exec(char *const cmd[])
 {
 	task_id_t tid;
 	task_wait_t twait;
-	task_exit_t texit;
 	errno_t rc;
-	int retval;
 
 	task_wait_set(&twait, TASK_WAIT_EXIT);
 	rc = task_spawnv(&tid, &twait, cmd[0], (char const *const *) cmd);

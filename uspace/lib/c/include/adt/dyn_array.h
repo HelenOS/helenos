@@ -40,7 +40,7 @@
 
 typedef struct {
 	/** Data buffer of array */
-	uint8_t *_data;
+	void *_data;
 	/** Size on bytes of a single item */
 	size_t _item_size;
 

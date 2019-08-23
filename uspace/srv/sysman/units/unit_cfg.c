@@ -54,10 +54,10 @@ static config_item_t unit_configuration[] = {
  *
  * @param[out]  unit_ptr   Unit loaded from the file. Undefined when function fails.
  */
-static int cfg_parse_file(const char *dirname, const char *filename,
+static errno_t cfg_parse_file(const char *dirname, const char *filename,
     unit_t **unit_ptr)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	unit_t *new_unit = NULL;
 	char *fn = NULL;
 	ini_configuration_t ini_conf;
@@ -85,7 +85,7 @@ static int cfg_parse_file(const char *dirname, const char *filename,
 	unit_t *u = repo_find_unit_by_name_unsafe(unit_name);
 	if (u != NULL) {
 		// TODO allow updating configuration of existing unit
-		rc = EEXISTS;
+		rc = EEXIST;
 		goto finish;
 	} else {
 		new_unit = u = unit_create(unit_type);
@@ -135,7 +135,7 @@ static int cfg_parse_file(const char *dirname, const char *filename,
 dump_parse:
 	list_foreach(text_parse.errors, link, text_parse_error_t, err) {
 		sysman_log(LVL_WARN,
-		    "Error (%i) when parsing '%s' on line %i.",
+		    "Error (%i) when parsing '%s' on line %lu.",
 		    err->parse_errno, fn, err->lineno);
 	}
 
@@ -150,7 +150,7 @@ finish:
 	return rc;
 }
 
-static int cfg_load_configuration(const char *path)
+static errno_t cfg_load_configuration(const char *path)
 {
 	DIR *dir;
 	struct dirent *de;
@@ -166,7 +166,7 @@ static int cfg_load_configuration(const char *path)
 
 	while ((de = readdir(dir))) {
 		unit_t *unit = NULL;
-		int rc = cfg_parse_file(path, de->d_name, &unit);
+		errno_t rc = cfg_parse_file(path, de->d_name, &unit);
 		if (rc != EOK) {
 			sysman_log(LVL_WARN, "Cannot load unit from file %s/%s",
 			    path, de->d_name);
@@ -182,7 +182,7 @@ static int cfg_load_configuration(const char *path)
 	}
 	closedir(dir);
 
-	int rc = repo_resolve_references();
+	errno_t rc = repo_resolve_references();
 	if (rc != EOK) {
 		repo_rollback();
 		return rc;
@@ -206,7 +206,7 @@ static void unit_cfg_destroy(unit_t *unit)
 	free(u_cfg->path);
 }
 
-static int unit_cfg_load(unit_t *unit, ini_configuration_t *ini_conf,
+static errno_t unit_cfg_load(unit_t *unit, ini_configuration_t *ini_conf,
     text_parse_t *text_parse)
 {
 	unit_cfg_t *u_cfg = CAST_CFG(unit);
@@ -224,12 +224,12 @@ static int unit_cfg_load(unit_t *unit, ini_configuration_t *ini_conf,
 	    text_parse);
 }
 
-static int unit_cfg_start(unit_t *unit)
+static errno_t unit_cfg_start(unit_t *unit)
 {
 	unit_cfg_t *u_cfg = CAST_CFG(unit);
 	assert(u_cfg);
 
-	int rc = cfg_load_configuration(u_cfg->path);
+	errno_t rc = cfg_load_configuration(u_cfg->path);
 	
 	if (rc == EOK) {
 		unit->state = STATE_STARTED;
@@ -240,7 +240,7 @@ static int unit_cfg_start(unit_t *unit)
 	return rc;
 }
 
-static int unit_cfg_stop(unit_t *unit)
+static errno_t unit_cfg_stop(unit_t *unit)
 {
 	unit_cfg_t *u_cfg = CAST_CFG(unit);
 	assert(u_cfg);

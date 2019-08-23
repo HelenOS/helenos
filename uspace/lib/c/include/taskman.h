@@ -39,10 +39,10 @@
 
 /* Internal functions to be used by loader only */
 extern async_sess_t *taskman_get_session(void);
-extern int taskman_intro_loader(void);
+extern errno_t taskman_intro_loader(void);
 
 /* Internal functions to be used by NS only */
-extern int taskman_intro_ns(void);
+extern errno_t taskman_intro_ns(void);
 
 #endif
 

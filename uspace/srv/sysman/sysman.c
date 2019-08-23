@@ -89,13 +89,13 @@ static size_t observed_objects_ht_hash(const ht_link_t *item)
 	return (size_t) callbacks->object;
 }
 
-static size_t observed_objects_ht_key_hash(void *key)
+static size_t observed_objects_ht_key_hash(const void *key)
 {
 	void *object = *(void **) key;
 	return (size_t) object;
 }
 
-static bool observed_objects_ht_key_equal(void *key, const ht_link_t *item)
+static bool observed_objects_ht_key_equal(const void *key, const ht_link_t *item)
 {
 	void *object = *(void **)key;
 	return (
@@ -212,7 +212,7 @@ int sysman_events_loop(void *unused)
  *
  * @return EOK on successfully queued job
  */
-int sysman_run_job(unit_t *unit, unit_state_t target_state, int flags,
+errno_t sysman_run_job(unit_t *unit, unit_state_t target_state, int flags,
     callback_handler_t callback, void *callback_arg)
 {
 	job_t *job = job_create(unit, target_state);
@@ -278,9 +278,9 @@ void sysman_process_queue(void)
  * @return EOK on success
  * @return ENOMEM
  */
-int sysman_object_observer(void *object, callback_handler_t handler, void *data)
+errno_t sysman_object_observer(void *object, callback_handler_t handler, void *data)
 {
-	int rc;
+	errno_t rc;
 	observed_object_t *observed_object = NULL;
 	observed_object_t *new_observed_object = NULL;
 	ht_link_t *ht_link = hash_table_find(&observed_objects, &object);
@@ -313,7 +313,7 @@ fail:
 	return rc;
 }
 
-int sysman_move_observers(void *src_object, void *dst_object)
+errno_t sysman_move_observers(void *src_object, void *dst_object)
 {
 	ht_link_t *src_link = hash_table_find(&observed_objects, &src_object);
 	if (src_link == NULL) {

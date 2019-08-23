@@ -2303,7 +2303,7 @@ static errno_t compositor_srv_init(char *input_svc, char *name)
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 
 	/* Finally, register compositor server. */
-	async_set_fallback_port_handler(client_connection);
+	async_set_fallback_port_handler(client_connection, NULL);
 	
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {

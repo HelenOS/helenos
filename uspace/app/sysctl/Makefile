@@ -27,7 +27,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBSYSMAN_PREFIX)/libsysman.a
+LIBS = sysman
 EXTRA_CFLAGS += -I$(LIBSYSMAN_PREFIX)/include
 BINARY = sysctl
 

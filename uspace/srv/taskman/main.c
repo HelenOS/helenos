@@ -70,15 +70,15 @@ static FIBRIL_CONDVAR_INITIALIZE(session_ns_cv);
 /*
  * Static functions
  */
-static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
+static void connect_to_loader(ipc_call_t *icall)
 {
-	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
+	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->task_id);
 	/* We don't accept the connection request, we forward it instead to
 	 * freshly spawned loader. */
-	int rc = loader_spawn("loader");
+	errno_t rc = loader_spawn("loader");
 	
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 	
@@ -88,10 +88,10 @@ static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
 
 	/* Forward the connection request (strip interface arg). */
 	async_exch_t *exch = async_exchange_begin(sess_ref->sess);
-	rc = async_forward_fast(iid, exch,
-	    IPC_GET_ARG2(*icall),
-	    IPC_GET_ARG3(*icall),
-	    0, IPC_FF_NONE);
+	rc = async_forward_1(icall, exch,
+	    ipc_get_arg2(icall),
+	    ipc_get_arg3(icall),
+	    IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	/* After forward we can dispose all session-related resources */
@@ -99,16 +99,16 @@ static void connect_to_loader(ipc_callid_t iid, ipc_call_t *icall)
 	free(sess_ref);
 
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
 	/* Everything OK. */
 }
 
-static void connect_to_ns(ipc_callid_t iid, ipc_call_t *icall)
+static void connect_to_ns(ipc_call_t *icall)
 {
-	DPRINTF("%s, %llu\n", __func__, icall->in_task_id);
+	DPRINTF("%s, %llu\n", __func__, icall->task_id);
 
 	/* Wait until we know NS */
 	fibril_mutex_lock(&session_ns_mtx);
@@ -119,29 +119,29 @@ static void connect_to_ns(ipc_callid_t iid, ipc_call_t *icall)
 
 	/* Do not accept connection, forward it */
 	async_exch_t *exch = async_exchange_begin(session_ns);
-	int rc = async_forward_fast(iid, exch, 0, 0, 0, IPC_FF_NONE);
+	errno_t rc = async_forward_0(icall, exch, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 }
 
-static void taskman_new_task(ipc_callid_t iid, ipc_call_t *icall)
+static void taskman_new_task(ipc_call_t *icall)
 {
-	int rc = task_intro(icall->in_task_id);
-	async_answer_0(iid, rc);
+	errno_t rc = task_intro(icall->task_id);
+	async_answer_0(icall, rc);
 }
 
-static void taskman_i_am_ns(ipc_callid_t iid, ipc_call_t *icall)
+static void taskman_i_am_ns(ipc_call_t *icall)
 {
-	DPRINTF("%s, %llu\n", __func__, icall->in_task_id);
-	int rc = EOK;
+	DPRINTF("%s, %llu\n", __func__, icall->task_id);
+	errno_t rc = EOK;
 
 	fibril_mutex_lock(&session_ns_mtx);
 	if (session_ns != NULL) {
-		rc = EEXISTS;
+		rc = EEXIST;
 		goto finish;
 	}
 
@@ -156,105 +156,105 @@ static void taskman_i_am_ns(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_condvar_broadcast(&session_ns_cv);
 finish:
 	fibril_mutex_unlock(&session_ns_mtx);
-	async_answer_0(iid, rc);
+	async_answer_0(icall, rc);
 }
 
-static void taskman_ctl_wait(ipc_callid_t iid, ipc_call_t *icall)
+static void taskman_ctl_wait(ipc_call_t *icall)
 {
 	task_id_t id = (task_id_t)
-	    MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
-	int flags = IPC_GET_ARG3(*icall);
-	task_id_t waiter_id = icall->in_task_id;
+	    MERGE_LOUP32(ipc_get_arg1(icall), ipc_get_arg2(icall));
+	int flags = ipc_get_arg3(icall);
+	task_id_t waiter_id = icall->task_id;
 
-	wait_for_task(id, flags, iid, waiter_id);
+	wait_for_task(id, flags, icall, waiter_id);
 }
 
-static void taskman_ctl_retval(ipc_callid_t iid, ipc_call_t *icall)
+static void taskman_ctl_retval(ipc_call_t *icall)
 {
-	task_id_t sender = icall->in_task_id;
-	int retval = IPC_GET_ARG1(*icall);
-	bool wait_for_exit = IPC_GET_ARG2(*icall);
+	task_id_t sender = icall->task_id;
+	int retval = ipc_get_arg1(icall);
+	bool wait_for_exit = ipc_get_arg2(icall);
 
 	DPRINTF("%s:%i from %llu/%i\n", __func__, __LINE__, sender, retval);
 
-	int rc = task_set_retval(sender, retval, wait_for_exit);
-	async_answer_0(iid, rc);
+	errno_t rc = task_set_retval(sender, retval, wait_for_exit);
+	async_answer_0(icall, rc);
 }
 
-static void taskman_ctl_ev_callback(ipc_callid_t iid, ipc_call_t *icall)
+static void taskman_ctl_ev_callback(ipc_call_t *icall)
 {
-	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
+	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->task_id);
 
-	bool past_events = IPC_GET_ARG1(*icall);
+	bool past_events = ipc_get_arg1(icall);
 
 	/* Atomic -- will be used for notifications only */
 	async_sess_t *sess = async_callback_receive(EXCHANGE_ATOMIC);
 	if (sess == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall, ENOMEM);
 		return;
 	}
 
-	event_register_listener(icall->in_task_id, past_events, sess, iid);
+	event_register_listener(icall->task_id, past_events, sess, icall);
 }
 
-static void task_exit_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void task_exit_event(ipc_call_t *icall, void *arg)
 {
-	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
-	exit_reason_t exit_reason = IPC_GET_ARG3(*icall);
+	task_id_t id = MERGE_LOUP32(ipc_get_arg1(icall), ipc_get_arg2(icall));
+	exit_reason_t exit_reason = ipc_get_arg3(icall);
 	DPRINTF("%s:%i from %llu/%i\n", __func__, __LINE__, id, exit_reason);
 	task_terminated(id, exit_reason);
 }
 
-static void task_fault_event(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void task_fault_event(ipc_call_t *icall, void *arg)
 {
-	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall));
+	task_id_t id = MERGE_LOUP32(ipc_get_arg1(icall), ipc_get_arg2(icall));
 	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, id);
 	task_failed(id);
 }
 
-static void loader_callback(ipc_callid_t iid, ipc_call_t *icall)
+static void loader_callback(ipc_call_t *icall)
 {
-	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->in_task_id);
+	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->task_id);
 	// TODO check that loader is expected, would probably discard prodcons
 	//      scheme
 	
 	/* Preallocate session container */
 	sess_ref_t *sess_ref = malloc(sizeof(sess_ref_t));
 	if (sess_ref == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall, ENOMEM);
 	}
 
 	/* Create callback connection */
 	sess_ref->sess = async_callback_receive_start(EXCHANGE_ATOMIC, icall);
 	if (sess_ref->sess == NULL) {
-		async_answer_0(iid, EINVAL);
+		async_answer_0(icall, EINVAL);
 		return;
 	}
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall, EOK);
 
 	/* Notify spawners */
 	link_initialize(&sess_ref->link);
 	prodcons_produce(&sess_queue, &sess_ref->link);
 }
 
-static bool handle_call(ipc_callid_t iid, ipc_call_t *icall)
+static bool handle_call(ipc_call_t *icall)
 {
-	switch (IPC_GET_IMETHOD(*icall)) {
+	switch (ipc_get_imethod(icall)) {
 	case TASKMAN_NEW_TASK:
-		taskman_new_task(iid, icall);
+		taskman_new_task(icall);
 		break;
 	case TASKMAN_I_AM_NS:
-		taskman_i_am_ns(iid, icall);
+		taskman_i_am_ns(icall);
 		break;
 	case TASKMAN_WAIT:
-		taskman_ctl_wait(iid, icall);
+		taskman_ctl_wait(icall);
 		break;
 	case TASKMAN_RETVAL:
-		taskman_ctl_retval(iid, icall);
+		taskman_ctl_retval(icall);
 		break;
 	case TASKMAN_EVENT_CALLBACK:
-		taskman_ctl_ev_callback(iid, icall);
+		taskman_ctl_ev_callback(icall);
 		break;
 	default:
 		return false;
@@ -262,59 +262,58 @@ static bool handle_call(ipc_callid_t iid, ipc_call_t *icall)
 	return true;
 }
 
-static bool handle_implicit_call(ipc_callid_t iid, ipc_call_t *icall)
+static bool handle_implicit_call(ipc_call_t *icall)
 {
 	/*DPRINTF("%s:%i %i(%i) from %llu\n", __func__, __LINE__,
 	    IPC_GET_IMETHOD(*icall),
 	    IPC_GET_ARG1(*icall),
 	    icall->in_task_id);*/
 
-	if (IPC_GET_IMETHOD(*icall) < IPC_FIRST_USER_METHOD) {
-		switch (IPC_GET_ARG1(*icall)) {
+	if (ipc_get_imethod(icall) < IPC_FIRST_USER_METHOD) {
+		switch (ipc_get_arg1(icall)) {
 		case TASKMAN_CONNECT_TO_NS:
-			connect_to_ns(iid, icall);
+			connect_to_ns(icall);
 			break;
 		case TASKMAN_CONNECT_TO_LOADER:
-			connect_to_loader(iid, icall);
+			connect_to_loader(icall);
 			break;
 		case TASKMAN_LOADER_CALLBACK:
-			loader_callback(iid, icall);
+			loader_callback(icall);
 			break;
 		default:
 			return false;
 
 		}
 	} else {
-		return handle_call(iid, icall);
+		return handle_call(icall);
 	}
 
 	return true;
 }
 
-static void implicit_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void implicit_connection(ipc_call_t *icall, void *arg)
 {
-	if (!handle_implicit_call(iid, icall)) {
-		async_answer_0(iid, ENOTSUP);
+	if (!handle_implicit_call(icall)) {
+		async_answer_0(icall, ENOTSUP);
 		return;
 	}
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
 
-		if (!IPC_GET_IMETHOD(call)) {
+		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
 			/* Client disconnected */
 			break;
 		}
 
-		if (!handle_implicit_call(callid, &call)) {
-			async_answer_0(callid, ENOTSUP);
+		if (!handle_implicit_call(&call)) {
+			async_answer_0(icall, ENOTSUP);
 			break;
 		}
 	}
 }
 
-static void taskman_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void taskman_connection(ipc_call_t *icall, void *arg)
 {
 	/*
 	 * We don't expect (yet) clients to connect, having this function is
@@ -323,9 +322,9 @@ static void taskman_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	 * In this case those are to be forwarded, so don't continue
 	 * "listening" on such connections.
 	 */
-	if (!handle_implicit_call(iid, icall)) {
-		/* If cannot handle connection requst, give up trying */
-		async_answer_0(iid, EHANGUP);
+	if (!handle_implicit_call(icall)) {
+		/* If cannot handle connection request, give up trying */
+		async_answer_0(icall, EHANGUP);
 		return;
 	}
 }
@@ -338,7 +337,7 @@ int main(int argc, char *argv[])
 
 	/* Initialization */
 	prodcons_initialize(&sess_queue);
-	int rc = tasks_init();
+	errno_t rc = tasks_init();
 	if (rc != EOK) {
 		return rc;
 	}
@@ -367,7 +366,7 @@ int main(int argc, char *argv[])
 
 	/* Start sysman server */
 	async_set_implicit_connection(implicit_connection);
-	async_set_client_connection(taskman_connection);
+	async_set_fallback_port_handler(taskman_connection, NULL);
 
 	printf(NAME ": Accepting connections\n");
 	(void)task_set_retval(self_id, EOK, false);

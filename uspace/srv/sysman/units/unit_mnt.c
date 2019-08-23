@@ -129,7 +129,7 @@ static void unit_mnt_destroy(unit_t *unit)
 	free(u_mnt->device);
 }
 
-static int unit_mnt_load(unit_t *unit, ini_configuration_t *ini_conf,
+static errno_t unit_mnt_load(unit_t *unit, ini_configuration_t *ini_conf,
     text_parse_t *text_parse)
 {
 	unit_mnt_t *u_mnt = CAST_MNT(unit);
@@ -147,7 +147,7 @@ static int unit_mnt_load(unit_t *unit, ini_configuration_t *ini_conf,
 	    text_parse);
 }
 
-static int mount_exec(void *arg)
+static errno_t mount_exec(void *arg)
 {
 	mount_data_t *mnt_data = arg;
 	sysman_log(LVL_DEBUG2, "%s(%p, %p, %p, %p, %x, %u)",
@@ -155,7 +155,7 @@ static int mount_exec(void *arg)
 	    mnt_data->type, mnt_data->mountpoint, mnt_data->device, mnt_data->options,
 	    mnt_data->flags, mnt_data->instance);
 
-	int rc = mount(mnt_data->type, mnt_data->mountpoint, mnt_data->device,
+	errno_t rc = vfs_mount_path(mnt_data->type, mnt_data->mountpoint, mnt_data->device,
 	    mnt_data->options ? mnt_data->options : "",
 	    mnt_data->flags, mnt_data->instance);
 
@@ -187,7 +187,7 @@ static int mount_exec(void *arg)
 	return EOK;
 }
 
-static int unit_mnt_start(unit_t *unit)
+static errno_t unit_mnt_start(unit_t *unit)
 {
 	unit_mnt_t *u_mnt = CAST_MNT(unit);
 	assert(u_mnt);
@@ -227,7 +227,7 @@ static int unit_mnt_start(unit_t *unit)
 	return EOK;
 }
 
-static int unit_mnt_stop(unit_t *unit)
+static errno_t unit_mnt_stop(unit_t *unit)
 {
 	unit_mnt_t *u_mnt = CAST_MNT(unit);
 	assert(u_mnt);
@@ -244,7 +244,7 @@ static int unit_mnt_stop(unit_t *unit)
 	 * being used, it'd return EBUSY immediately. That's why we call
 	 * unmount synchronously in the event loop fibril.
 	 */
-	int rc = unmount(u_mnt->mountpoint);
+	errno_t rc = vfs_unmount_path(u_mnt->mountpoint);
 
 	if (rc == EOK) {
 		unit->state = STATE_STOPPED;

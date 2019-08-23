@@ -50,13 +50,13 @@ typedef void (*callback_handler_t)(void *object, void *data);
 
 extern void sysman_events_init(void);
 extern int sysman_events_loop(void *);
-extern int sysman_run_job(unit_t *, unit_state_t, int, callback_handler_t, void *);
+extern errno_t sysman_run_job(unit_t *, unit_state_t, int, callback_handler_t, void *);
 
 
 extern void sysman_raise_event(event_handler_t, void *);
 extern void sysman_process_queue(void);
-extern int sysman_object_observer(void *, callback_handler_t, void *);
-extern int sysman_move_observers(void *, void *);
+extern errno_t sysman_object_observer(void *, callback_handler_t, void *);
+extern errno_t sysman_move_observers(void *, void *);
 extern size_t sysman_observers_count(void *);
 
 // TODO move particular events to separate file? (or move event impl there?)

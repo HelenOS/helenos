@@ -32,11 +32,12 @@
 /** @file
  */
 
-#define LIBC_ASYNC_C_
-#include <ipc/ipc.h>
 #include "private/async.h"
 #include "private/taskman.h"
-#undef LIBC_ASYNC_C_
+
+#undef _LIBC_ASYNC_H_
+#include <ipc/ipc.h>
+#define _LIBC_ASYNC_H_
 
 #include <errno.h>
 #include <ipc/taskman.h>
@@ -49,14 +50,14 @@
  *
  * @return EOK on success, otherwise propagated error code
  */
-int taskman_intro_ns_noasync(void)
+errno_t taskman_intro_ns_noasync(void)
 {
 	assert(session_taskman);
-	int phone = async_session_phone(session_taskman);
+	cap_phone_handle_t phone = async_session_phone(session_taskman);
 
-	ipc_call_async_0(phone, TASKMAN_I_AM_NS, NULL, NULL, false);
+	ipc_call_async_0(phone, TASKMAN_I_AM_NS, NULL);
 
-	ipc_call_async_3(phone, IPC_M_CONNECT_TO_ME, 0, 0, 0, NULL, NULL, false);
+	ipc_call_async_3(phone, IPC_M_CONNECT_TO_ME, 0, 0, 0, NULL);
 
 	/*
 	 * Since this is a workaround for NS's low-level implementation, we can
@@ -66,14 +67,13 @@ int taskman_intro_ns_noasync(void)
 }
 
 
-void task_retval_noasync(int retval)
+void task_retval_noasync(errno_t retval)
 {
 	assert(session_taskman);
-	int phone = async_session_phone(session_taskman);
+	cap_phone_handle_t phone = async_session_phone(session_taskman);
 
 	/* Just send it and don't wait for an answer. */
-	ipc_call_async_2(phone, TASKMAN_RETVAL, retval, false,
-	    NULL, NULL, false);
+	ipc_call_async_2(phone, TASKMAN_RETVAL, retval, false, NULL);
 }
 
 /** @}

@@ -75,7 +75,7 @@ extern void task_cancel_wait(task_wait_t *);
 extern errno_t task_retval(int);
 
 /* Implemented in task_event.c */
-extern int task_register_event_handler(task_event_handler_t, bool);
+extern errno_t task_register_event_handler(task_event_handler_t, bool);
 
 #endif
 

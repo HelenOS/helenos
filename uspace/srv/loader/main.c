@@ -55,16 +55,13 @@
 #include <elf/elf_load.h>
 #include <entry_point.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <fibril_synch.h>
 #include <ipc/loader.h>
 #include <loader/pcb.h>
 #include <ns.h>
 #include <str.h>
-#include <sys/types.h>
 #include <task.h>
 #include <taskman.h>
-#include <unistd.h>
 #include <vfs/vfs.h>
 #include <vfs/inbox.h>
 #include <libc.h>

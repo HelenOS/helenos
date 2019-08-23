@@ -42,7 +42,7 @@
 #include <ns.h>
 #include <as.h>
 #include <async.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>

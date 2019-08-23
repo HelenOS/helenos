@@ -39,7 +39,7 @@
 #include <as.h>
 #include <assert.h>
 #include <async.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fibril.h>
@@ -168,10 +168,10 @@ void vfs_register(ipc_call_t *req)
 		dprintf("Unknow unit name for FS server.\n");
 		fibril_mutex_unlock(&fs_list_lock);
 		free(fs_info);
-		async_answer_0(rid, rc);
+		async_answer_0(req, rc);
 		return;
 	}
-	sysman_main_exposee_added(unit_name, request->in_task_id);
+	sysman_main_exposee_added(unit_name, req->task_id);
 	free(unit_name);
 	
 	/*

@@ -137,13 +137,13 @@ bool config_parse_bool(const char *string, void *dst, text_parse_t *parse,
     size_t lineno)
 {
 	bool value;
-	if (stricmp(string, "true") == 0 ||
-	    stricmp(string, "yes") == 0 ||
-	    stricmp(string, "1") == 0) {
+	if (str_casecmp(string, "true") == 0 ||
+	    str_casecmp(string, "yes") == 0 ||
+	    str_casecmp(string, "1") == 0) {
 		value = true;
-	} else if (stricmp(string, "false") == 0 ||
-	    stricmp(string, "no") == 0 ||
-	    stricmp(string, "0") == 0) {
+	} else if (str_casecmp(string, "false") == 0 ||
+	    str_casecmp(string, "no") == 0 ||
+	    str_casecmp(string, "0") == 0) {
 		value = false;
 	} else {
 		text_parse_raise_error(parse, lineno,

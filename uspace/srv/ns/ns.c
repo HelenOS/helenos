@@ -74,9 +74,7 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 		if (!ipc_get_imethod(&call))
 			break;
 
-		task_id_t id;
 		errno_t retval;
-
 		service_t service;
 
 		switch (ipc_get_imethod(&call)) {
@@ -107,7 +105,8 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 		async_answer_0(&call, retval);
 	}
 
-	(void) ns_task_disconnect(&call);
+	/* TODO: Ignore so far, in future we might unregister services */
+	//(void) ns_task_disconnect(&call);
 	async_answer_0(&call, EOK);
 }
 

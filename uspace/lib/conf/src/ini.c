@@ -74,7 +74,7 @@ static size_t ini_section_ht_hash(const ht_link_t *item)
 	return hash_string(section->name);
 }
 
-static size_t ini_section_ht_key_hash(void *key)
+static size_t ini_section_ht_key_hash(const void *key)
 {
 	/* Nameless default section */
 	if (key == NULL) {
@@ -90,7 +90,7 @@ static bool ini_section_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
 	    hash_table_get_inst(item2, ini_section_t, ht_link)->name) == 0;
 }
 
-static bool ini_section_ht_key_equal(void *key, const ht_link_t *item)
+static bool ini_section_ht_key_equal(const void *key, const ht_link_t *item)
 {
 	const char *name = key;
 	ini_section_t *section =
@@ -118,7 +118,7 @@ static size_t ini_item_ht_hash(const ht_link_t *item)
 	return hash_string(ini_item->key);
 }
 
-static size_t ini_item_ht_key_hash(void *key)
+static size_t ini_item_ht_key_hash(const void *key)
 {
 	return hash_string((const char *)key);
 }
@@ -130,7 +130,7 @@ static bool ini_item_ht_equal(const ht_link_t *item1, const ht_link_t *item2)
 	    hash_table_get_inst(item2, ini_item_t, ht_link)->key) == 0;
 }
 
-static bool ini_item_ht_key_equal(void *key, const ht_link_t *item)
+static bool ini_item_ht_key_equal(const void *key, const ht_link_t *item)
 {
 	return str_cmp((const char *)key,
 	    hash_table_get_inst(item, ini_item_t, ht_link)->key) == 0;
@@ -500,7 +500,7 @@ bool ini_item_iterator_valid(ini_item_iterator_t *iterator)
 void ini_item_iterator_inc(ini_item_iterator_t *iterator)
 {
 	iterator->cur_item =
-	    hash_table_find_next(iterator->table, iterator->cur_item);
+	    hash_table_find_next(iterator->table, iterator->first_item, iterator->cur_item);
 	iterator->incremented = true;
 }
 

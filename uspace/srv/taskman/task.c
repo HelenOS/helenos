@@ -56,7 +56,7 @@ static void task_destroy(task_t **);
  * Hash table functions
  */
 
-static size_t ht_task_key_hash(void *key)
+static size_t ht_task_key_hash(const void *key)
 {
 	return *(task_id_t*)key;
 }
@@ -67,7 +67,7 @@ static size_t ht_task_hash(const ht_link_t  *item)
 	return ht->id;
 }
 
-static bool ht_task_key_equal(void *key, const ht_link_t *item)
+static bool ht_task_key_equal(const void *key, const ht_link_t *item)
 {
 	task_t *ht = hash_table_get_inst(item, task_t, link);
 	return ht->id == *(task_id_t*)key;
@@ -198,7 +198,7 @@ int task_intro(task_id_t id)
 
 	task_t *t = task_get_by_id(id);
 	if (t != NULL) {
-		rc = EEXISTS;
+		rc = EEXIST;
 		goto finish;
 	}
 	

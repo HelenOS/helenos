@@ -28,11 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBCONF_PREFIX)/libconf.a
-EXTRA_CFLAGS += -I. \
-	-I./units \
-	-I$(LIBCONF_PREFIX)/include \
-	-I$(LIBSYSMAN_PREFIX)/include
+LIBS = conf sysman
+EXTRA_CFLAGS = -I. -I./units
 BINARY = sysman
 STATIC_NEEDED = y
 

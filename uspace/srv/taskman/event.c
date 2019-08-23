@@ -48,7 +48,7 @@ typedef struct {
 	link_t link;
 	task_id_t id;         /**< Task ID who we wait for. */
 	task_id_t waiter_id;  /**< Task ID who waits. */
-	ipc_callid_t callid;  /**< Call ID waiting for the event. */
+	ipc_call_t *icall;  /**< Call ID waiting for the event. */
 	int flags;            /**< Wait flags. */
 } pending_wait_t;
 
@@ -58,7 +58,7 @@ static FIBRIL_RWLOCK_INITIALIZE(pending_wait_lock);
 static list_t listeners;
 static FIBRIL_RWLOCK_INITIALIZE(listeners_lock);
 
-int event_init(void)
+errno_t event_init(void)
 {
 	list_initialize(&pending_waits);
 	list_initialize(&listeners);
@@ -149,13 +149,13 @@ loop:
 		rest &= ~TASK_WAIT_BOTH;
 		int match = notify_flags & pr->flags;
 		// TODO why do I even accept such calls?
-		bool answer = !(pr->callid & IPC_CALLID_NOTIFICATION);
+		bool answer = !(pr->icall->flags & IPC_CALL_NOTIF);
 
 		if (match == 0) {
 			if (notify_flags & TASK_WAIT_EXIT) {
 				/* Nothing to wait for anymore */
 				if (answer) {
-					async_answer_0(pr->callid, EINTR);
+					async_answer_0(pr->icall, EINTR);
 				}
 			} else {
 				/* Maybe later */
@@ -164,11 +164,11 @@ loop:
 		} else if (answer) {
 			if ((pr->flags & TASK_WAIT_BOTH) && match == TASK_WAIT_EXIT) {
 				/* No sense to wait for both anymore */
-				async_answer_1(pr->callid, EINTR, t->exit);
+				async_answer_1(pr->icall, EINTR, t->exit);
 			} else {
 				/* Send both exit status and retval, caller
 				 * should know what is valid */
-				async_answer_3(pr->callid, EOK, t->exit,
+				async_answer_3(pr->icall, EOK, t->exit,
 				    t->retval, rest);
 			}
 
@@ -194,9 +194,9 @@ static bool dump_walker(task_t *t, void *arg)
 }
 
 void event_register_listener(task_id_t id, bool past_events, async_sess_t *sess,
-    ipc_callid_t iid)
+    ipc_call_t *icall)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	/*
 	 * We have lock of tasks structures so that we can guarantee
 	 * that dump receiver will receive tasks correctly ordered (retval,
@@ -218,7 +218,7 @@ void event_register_listener(task_id_t id, bool past_events, async_sess_t *sess,
 	 * Answer caller first, so that they are not unnecessarily waiting
 	 * while we dump events.
 	 */
-	async_answer_0(iid, rc);
+	async_answer_0(icall, rc);
 	if (past_events) {
 		task_foreach(&dump_walker, t->sess);
 	}
@@ -227,11 +227,11 @@ finish:
 	fibril_rwlock_write_unlock(&listeners_lock);
 	fibril_rwlock_write_unlock(&task_hash_table_lock);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall, rc);
 	}
 }
 
-void wait_for_task(task_id_t id, int flags, ipc_callid_t callid,
+void wait_for_task(task_id_t id, int flags, ipc_call_t *icall,
      task_id_t waiter_id)
 {
 	assert(!(flags & TASK_WAIT_BOTH) ||
@@ -243,13 +243,13 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid,
 
 	if (t == NULL) {
 		/* No such task exists. */
-		async_answer_0(callid, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 	
 	if (t->exit != TASK_EXIT_RUNNING) {
 		//TODO are flags BOTH processed correctly here?
-		async_answer_3(callid, EOK, t->exit, t->retval, 0);
+		async_answer_3(icall, EOK, t->exit, t->retval, 0);
 		return;
 	}
 	
@@ -266,7 +266,7 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid,
 		}
 	}
 
-	int rc = EOK;
+	errno_t rc = EOK;
 	if (pr == NULL) {
 		pr = malloc(sizeof(pending_wait_t));
 		if (!pr) {
@@ -278,7 +278,7 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid,
 		pr->id = id;
 		pr->waiter_id = waiter_id;
 		pr->flags = flags;
-		pr->callid = callid;
+		pr->icall = icall;
 
 		list_append(&pr->link, &pending_waits);
 		rc = EOK;
@@ -287,27 +287,27 @@ void wait_for_task(task_id_t id, int flags, ipc_callid_t callid,
 		 * One task can wait for another task only once (per task, not
 		 * fibril).
 		 */
-		rc = EEXISTS;
+		rc = EEXIST;
 	} else {
 		/*
 		 * Reuse pending wait for the second time.
 		 */
 		pr->flags &= ~TASK_WAIT_BOTH; // TODO maybe new flags should be set?
-		pr->callid = callid;
+		pr->icall = icall;
 	}
 
 finish:
 	fibril_rwlock_write_unlock(&pending_wait_lock);
 	// TODO why IPC_CALLID_NOTIFICATION? explain!
-	if (rc != EOK && !(callid & IPC_CALLID_NOTIFICATION)) {
-		async_answer_0(callid, rc);
+	if (rc != EOK && !(icall->flags & IPC_CALL_NOTIF)) {
+		async_answer_0(icall, rc);
 	}
 }
 
 
-int task_set_retval(task_id_t sender, int retval, bool wait_for_exit)
+errno_t task_set_retval(task_id_t sender, int retval, bool wait_for_exit)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	fibril_rwlock_write_lock(&task_hash_table_lock);
 	task_t *t = task_get_by_id(sender);

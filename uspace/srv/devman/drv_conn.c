@@ -40,7 +40,6 @@
 #include <fibril_synch.h>
 #include <io/log.h>
 #include <ipc/devman.h>
-#include <ipc/driver.h>
 #include <ipc/services.h>
 #include <loc.h>
 #include <ns.h>
@@ -110,10 +109,10 @@ static driver_t *devman_driver_register(ipc_call_t *call)
 	rc = driver_unit_name(driver, &unit_name);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&driver->driver_mutex);
-		async_answer_0(callid, rc);
+		async_answer_0(call, rc);
 		return NULL;
 	}
-	sysman_main_exposee_added(unit_name, call->in_task_id);
+	sysman_main_exposee_added(unit_name, call->task_id);
 	free(unit_name);
 	
 	switch (driver->state) {

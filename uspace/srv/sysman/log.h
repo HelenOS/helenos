@@ -40,7 +40,7 @@ extern void sysman_log_init(log_level_t);
  */
 //#define sysman_log(level, fmt, ...) if(level > LVL_DEBUG2) printf("sysman: " fmt "\n", ##__VA_ARGS__)
 
-extern void sysman_log(log_level_t, const char *, ...) PRINTF_ATTRIBUTE(2, 3);
+extern void sysman_log(log_level_t, const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 
 extern void sysman_log_tofile(void);
 #endif

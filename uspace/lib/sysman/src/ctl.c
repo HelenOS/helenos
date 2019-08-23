@@ -33,13 +33,13 @@
 #include <sysman/ctl.h>
 #include <sysman/sysman.h>
 
-int sysman_unit_handle(const char *unit_name, unit_handle_t *handle_ptr)
+errno_t sysman_unit_handle(const char *unit_name, unit_handle_t *handle_ptr)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
 	ipc_call_t call;
 	aid_t req = async_send_0(exch, SYSMAN_CTL_UNIT_HANDLE, &call);
-	sysarg_t rc = async_data_write_start(exch, unit_name, str_size(unit_name));
+	errno_t rc = async_data_write_start(exch, unit_name, str_size(unit_name));
 	sysman_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -49,7 +49,7 @@ int sysman_unit_handle(const char *unit_name, unit_handle_t *handle_ptr)
 
 	async_wait_for(req, &rc);
 	if (rc == EOK) {
-		*handle_ptr = IPC_GET_ARG1(call);
+		*handle_ptr = ipc_get_arg1(&call);
 	}
 	return rc;
 }
@@ -63,12 +63,12 @@ int sysman_unit_handle(const char *unit_name, unit_handle_t *handle_ptr)
  * Still though, it's necessary to centralize timeout into sysman.
  * TODO convert to name->handle API
  */
-int sysman_unit_start_by_name(const char *unit_name, int flags)
+errno_t sysman_unit_start_by_name(const char *unit_name, int flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
 	aid_t req = async_send_1(exch, SYSMAN_CTL_UNIT_START_BY_NAME, flags, NULL);
-	sysarg_t rc = async_data_write_start(exch, unit_name, str_size(unit_name));
+	errno_t rc = async_data_write_start(exch, unit_name, str_size(unit_name));
 	sysman_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -80,34 +80,34 @@ int sysman_unit_start_by_name(const char *unit_name, int flags)
 	return rc;
 }
 
-int sysman_unit_start(unit_handle_t handle, int flags)
+errno_t sysman_unit_start(unit_handle_t handle, int flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
-	int rc = async_req_2_0(exch, SYSMAN_CTL_UNIT_START, handle, flags);
+	errno_t rc = async_req_2_0(exch, SYSMAN_CTL_UNIT_START, handle, flags);
 	sysman_exchange_end(exch);
 	
 	return rc;
 }
 
-int sysman_unit_stop(unit_handle_t handle, int flags)
+errno_t sysman_unit_stop(unit_handle_t handle, int flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
-	int rc = async_req_2_0(exch, SYSMAN_CTL_UNIT_STOP, handle, flags);
+	errno_t rc = async_req_2_0(exch, SYSMAN_CTL_UNIT_STOP, handle, flags);
 	sysman_exchange_end(exch);
 	
 	return rc;
 }
 
-static int sysman_get_units_once(sysarg_t *buf, size_t buf_size,
+static errno_t sysman_get_units_once(sysarg_t *buf, size_t buf_size,
     size_t *act_size)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, SYSMAN_CTL_GET_UNITS, &answer);
-	int rc = async_data_read_start(exch, buf, buf_size);
+	errno_t rc = async_data_read_start(exch, buf, buf_size);
 
 	sysman_exchange_end(exch);
 
@@ -116,18 +116,18 @@ static int sysman_get_units_once(sysarg_t *buf, size_t buf_size,
 		return rc;
 	}
 
-	sysarg_t retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
 		return retval;
 	}
 
-	*act_size = IPC_GET_ARG1(answer);
+	*act_size = ipc_get_arg1(&answer);
 	return EOK;
 }
 
-int sysman_get_units(unit_handle_t **units_ptr, size_t *cnt_ptr)
+errno_t sysman_get_units(unit_handle_t **units_ptr, size_t *cnt_ptr)
 {
 	*units_ptr = NULL;
 	*cnt_ptr = 0;
@@ -137,7 +137,7 @@ int sysman_get_units(unit_handle_t **units_ptr, size_t *cnt_ptr)
 	size_t act_size = 0;
 
 	while (true) {
-		int rc = sysman_get_units_once(units, alloc_size, &act_size);
+		errno_t rc = sysman_get_units_once(units, alloc_size, &act_size);
 		if (rc != EOK) {
 			return rc;
 		}
@@ -158,13 +158,13 @@ int sysman_get_units(unit_handle_t **units_ptr, size_t *cnt_ptr)
 	return EOK;
 }
 
-int sysman_unit_get_name(unit_handle_t handle, char *buf, size_t buf_size)
+errno_t sysman_unit_get_name(unit_handle_t handle, char *buf, size_t buf_size)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, SYSMAN_CTL_UNIT_GET_NAME, handle, &answer);
-	int rc = async_data_read_start(exch, buf, buf_size);
+	errno_t rc = async_data_read_start(exch, buf, buf_size);
 
 	sysman_exchange_end(exch);
 
@@ -173,7 +173,7 @@ int sysman_unit_get_name(unit_handle_t handle, char *buf, size_t buf_size)
 		return rc;
 	}
 
-	sysarg_t retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
@@ -183,19 +183,19 @@ int sysman_unit_get_name(unit_handle_t handle, char *buf, size_t buf_size)
 	return EOK;
 }
 
-int sysman_unit_get_state(unit_handle_t handle, unit_state_t *state)
+errno_t sysman_unit_get_state(unit_handle_t handle, unit_state_t *state)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
-	int rc = async_req_1_1(exch, SYSMAN_CTL_UNIT_GET_STATE, handle, state);
+	errno_t rc = async_req_1_1(exch, SYSMAN_CTL_UNIT_GET_STATE, handle, (sysarg_t *)state);
 	sysman_exchange_end(exch);
 
 	return rc;
 }
 
-int sysman_shutdown(void)
+errno_t sysman_shutdown(void)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
-	int rc = async_req_0_0(exch, SYSMAN_CTL_SHUTDOWN);
+	errno_t rc = async_req_0_0(exch, SYSMAN_CTL_SHUTDOWN);
 	sysman_exchange_end(exch);
 
 	return rc;

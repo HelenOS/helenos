@@ -35,10 +35,10 @@
 #include "log.h"
 #include "sysman.h"
 
-static void sysman_broker_register(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_broker_register(ipc_call_t *icall)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
-	async_answer_0(iid, EOK);
+	async_answer_0(icall, EOK);
 	/*
 	 *  What exactly do here? Similar behavior that has locsrv with
 	 *  servers, so that subsequent calls can be assigned to broker. Still
@@ -47,14 +47,14 @@ static void sysman_broker_register(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 }
 
-static void sysman_ipc_forwarded(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_ipc_forwarded(ipc_call_t *icall)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
-	async_answer_0(iid, ENOTSUP);
+	async_answer_0(icall, ENOTSUP);
 	// TODO implement
 }
 
-static void sysman_main_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_main_exposee_added(ipc_call_t *icall)
 {
 	char *unit_name = NULL;
 	sysarg_t retval;
@@ -78,11 +78,11 @@ static void sysman_main_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
 	retval = EOK;
 
 finish:
-	async_answer_0(iid, retval);
+	async_answer_0(icall, retval);
 	free(unit_name);
 }
 
-static void sysman_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_exposee_added(ipc_call_t *icall)
 {
 	char *exposee = NULL;
 	sysarg_t retval;
@@ -99,50 +99,49 @@ static void sysman_exposee_added(ipc_callid_t iid, ipc_call_t *icall)
 	retval = ENOTSUP;
 
 finish:
-	async_answer_0(iid, retval);
+	async_answer_0(icall, retval);
 	free(exposee);
 }
 
-static void sysman_exposee_removed(ipc_callid_t iid, ipc_call_t *icall)
+static void sysman_exposee_removed(ipc_call_t *icall)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
-	async_answer_0(iid, ENOTSUP);
+	async_answer_0(icall, ENOTSUP);
 	// TODO implement
 }
 
-void sysman_connection_broker(ipc_callid_t iid, ipc_call_t *icall)
+void sysman_connection_broker(ipc_call_t *icall)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 	/* First, accept connection */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-
-		if (!IPC_GET_IMETHOD(call)) {
+		
+		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
 			/* Client disconnected */
 			break;
 		}
 
-		switch (IPC_GET_IMETHOD(call)) {
+		switch (ipc_get_imethod(&call)) {
 		case SYSMAN_BROKER_REGISTER:
-			sysman_broker_register(callid, &call);
+			sysman_broker_register(&call);
 			break;
 		case SYSMAN_BROKER_IPC_FWD:
-			sysman_ipc_forwarded(callid, &call);
+			sysman_ipc_forwarded(&call);
 			break;
 		case SYSMAN_BROKER_MAIN_EXP_ADDED:
-			sysman_main_exposee_added(callid, &call);
+			sysman_main_exposee_added(&call);
 			break;
 		case SYSMAN_BROKER_EXP_ADDED:
-			sysman_exposee_added(callid, &call);
+			sysman_exposee_added(&call);
 			break;
 		case SYSMAN_BROKER_EXP_REMOVED:
-			sysman_exposee_removed(callid, &call);
+			sysman_exposee_removed(&call);
 			break;
 		default:
-			async_answer_0(callid, ENOENT);
+			async_answer_0(&call, ENOENT);
 		}
 	}
 }
