@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup libcongfx
  * @{
  */
 /**
@@ -34,16 +34,16 @@
  *
  */
 
-#ifndef _GFX_PRIVATE_BACKEND_CONSOLE_H
-#define _GFX_PRIVATE_BACKEND_CONSOLE_H
+#ifndef _CONGFX_PRIVATE_CONSOLE_H
+#define _CONGFX_PRIVATE_CONSOLE_H
 
+#include <gfx/context.h>
 #include <io/console.h>
 #include <stdio.h>
-#include "../context.h"
 
 /** Actual structure of graphics context.
  *
- * This is private to libgfx. It is not visible to clients nor backends.
+ * This is private to libcongfx. It is not visible to clients nor backends.
  */
 struct console_gc {
 	/** Base graphic context */

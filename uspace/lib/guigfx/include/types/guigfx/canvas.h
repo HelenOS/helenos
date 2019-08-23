@@ -26,18 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup libguigfx
  * @{
  */
 /**
- * @file GFX console backend
+ * @file GFX canvas backend
  */
 
-#ifndef _GFX_TYPES_BACKEND_CONSOLE_H
-#define _GFX_TYPES_BACKEND_CONSOLE_H
+#ifndef _GUIGFX_TYPES_CANVAS_H
+#define _GUIGFX_TYPES_CANVAS_H
 
-struct console_gc;
-typedef struct console_gc console_gc_t;
+struct canvas_gc;
+typedef struct canvas_gc canvas_gc_t;
 
 #endif
 

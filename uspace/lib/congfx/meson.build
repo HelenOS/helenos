@@ -26,14 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+deps = [ 'gfx' ]
 src = files(
-	'src/color.c',
-	'src/context.c',
-	'src/render.c'
-)
-
-test_src = files(
-	'test/color.c',
-	'test/main.c',
-	'test/render.c',
+	'src/console.c',
 )

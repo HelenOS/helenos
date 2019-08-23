@@ -26,36 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup libcongfx
  * @{
  */
 /**
- * @file GFX canvas backend structure
- *
+ * @file GFX console backend
  */
 
-#ifndef _GFX_PRIVATE_BACKEND_CANVAS_H
-#define _GFX_PRIVATE_BACKEND_CANVAS_H
+#ifndef _CONGFX_TYPES_CONSOLE_H
+#define _CONGFX_TYPES_CONSOLE_H
 
-#include <canvas.h>
-#include <draw/surface.h>
-#include <io/pixel.h>
-#include "../context.h"
-
-/** Actual structure of graphics context.
- *
- * This is private to libgfx. It is not visible to clients nor backends.
- */
-struct canvas_gc {
-	/** Base graphic context */
-	gfx_context_t *gc;
-	/** Canvas */
-	canvas_t *canvas;
-	/** Surface */
-	surface_t *surface;
-	/** Current drawing color */
-	pixel_t color;
-};
+struct console_gc;
+typedef struct console_gc console_gc_t;
 
 #endif
 

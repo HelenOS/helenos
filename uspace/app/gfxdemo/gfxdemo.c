@@ -33,10 +33,10 @@
  */
 
 #include <canvas.h>
+#include <congfx/console.h>
 #include <draw/surface.h>
 #include <fibril.h>
-#include <gfx/backend/canvas.h>
-#include <gfx/backend/console.h>
+#include <guigfx/canvas.h>
 #include <gfx/color.h>
 #include <gfx/render.h>
 #include <io/console.h>
@@ -159,8 +159,6 @@ static errno_t demo_canvas(void)
 		printf("Error creating canvas.\n");
 		return -1;
 	}
-
-//	sig_connect(&canvas->keyboard_event, NULL, wnd_keyboard_event);
 
 	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
 	window_exec(window);

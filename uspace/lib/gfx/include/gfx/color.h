@@ -43,6 +43,8 @@
 extern errno_t gfx_color_new_rgb_i16(uint16_t, uint16_t,
     uint16_t, gfx_color_t **);
 extern void gfx_color_delete(gfx_color_t *);
+extern void gfx_color_get_rgb_i16(gfx_color_t *, uint16_t *, uint16_t *,
+    uint16_t *);
 
 #endif
 

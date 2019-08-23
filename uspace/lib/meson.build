@@ -51,6 +51,7 @@ libs = [
 	'fdisk',
 	'fmtutil',
 	'fs',
+	'gfx',
 	'graph',
 	'http',
 	'label',
@@ -81,7 +82,8 @@ libs = [
 	'usbvirt',
 	'virtio',
 
-	'gfx',
+	'congfx',
+	'guigfx',
 	'ieee80211',
 ]
 

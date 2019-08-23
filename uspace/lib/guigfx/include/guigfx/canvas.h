@@ -26,18 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup libguigfx
  * @{
  */
 /**
  * @file GFX canvas backend
  */
 
-#ifndef _GFX_TYPES_BACKEND_CANVAS_H
-#define _GFX_TYPES_BACKEND_CANVAS_H
+#ifndef _GUIGFX_CANVAS_H
+#define _GUIGFX_CANVAS_H
 
-struct canvas_gc;
-typedef struct canvas_gc canvas_gc_t;
+#include <canvas.h>
+#include <types/gfx/context.h>
+#include <types/gfx/ops/context.h>
+#include <types/guigfx/canvas.h>
+
+extern gfx_context_ops_t canvas_gc_ops;
+
+extern errno_t canvas_gc_create(canvas_t *, surface_t *, canvas_gc_t **);
+extern errno_t canvas_gc_delete(canvas_gc_t *);
+extern gfx_context_t *canvas_gc_get_ctx(canvas_gc_t *);
 
 #endif
 

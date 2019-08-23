@@ -26,104 +26,113 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup libcongfx
  * @{
  */
 /**
- * @file GFX canvas backend
+ * @file GFX console backend
  *
- * This implements a graphics context over a libgui canvas.
- * This is just for experimentation purposes and its kind of backwards.
+ * This implements a graphics context over a classic console interface.
+ * This is just for experimentation purposes. In the end we want the
+ * console to actually directly suport GFX interface.
  */
 
-#include <gfx/backend/canvas.h>
+#include <congfx/console.h>
 #include <gfx/context.h>
 #include <gfx/render.h>
 #include <io/pixel.h>
 #include <stdlib.h>
-#include "../../private/backend/canvas.h"
-#include "../../private/color.h"
+#include "../private/console.h"
+#include "../private/color.h"
 
-static errno_t canvas_gc_set_color(void *, gfx_color_t *);
-static errno_t canvas_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t console_gc_set_color(void *, gfx_color_t *);
+static errno_t console_gc_fill_rect(void *, gfx_rect_t *);
 
-gfx_context_ops_t canvas_gc_ops = {
-	.set_color = canvas_gc_set_color,
-	.fill_rect = canvas_gc_fill_rect
+gfx_context_ops_t console_gc_ops = {
+	.set_color = console_gc_set_color,
+	.fill_rect = console_gc_fill_rect
 };
 
-/** Set color on canvas GC.
+/** Set color on console GC.
  *
- * Set drawing color on canvas GC.
+ * Set drawing color on console GC.
  *
- * @param arg Canvas GC
+ * @param arg Console GC
  * @param color Color
  *
  * @return EOK on success or an error code
  */
-static errno_t canvas_gc_set_color(void *arg, gfx_color_t *color)
+static errno_t console_gc_set_color(void *arg, gfx_color_t *color)
 {
-	canvas_gc_t *cgc = (canvas_gc_t *) arg;
+	console_gc_t *cgc = (console_gc_t *) arg;
+	pixel_t clr;
 
-	cgc->color = PIXEL(0, color->r >> 8, color->g >> 8, color->b >> 8);
+	clr = PIXEL(0, color->r >> 8, color->g >> 8, color->b >> 8);
+
+	console_set_rgb_color(cgc->con, clr, clr);
 	return EOK;
 }
 
-/** Fill rectangle on canvas GC.
+/** Fill rectangle on console GC.
  *
- * @param arg Canvas GC
+ * @param arg Console GC
  * @param rect Rectangle
  *
  * @return EOK on success or an error code
  */
-static errno_t canvas_gc_fill_rect(void *arg, gfx_rect_t *rect)
+static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
 {
-	canvas_gc_t *cgc = (canvas_gc_t *) arg;
+	console_gc_t *cgc = (console_gc_t *) arg;
+	int rv;
 	int x, y;
 
 	// XXX We should handle p0.x > p1.x and p0.y > p1.y
 
 	for (y = rect->p0.y; y < rect->p1.y; y++) {
-		for (x = rect->p0.x; x < rect->p1.x; x++) {
-			surface_put_pixel(cgc->surface, x, y, cgc->color);
-		}
-	}
+		console_set_pos(cgc->con, rect->p0.x, y);
 
-	update_canvas(cgc->canvas, cgc->surface);
+		for (x = rect->p0.x; x < rect->p1.x; x++) {
+			rv = fputc('X', cgc->fout);
+			if (rv < 0)
+				return EIO;
+		}
+
+		console_flush(cgc->con);
+	}
 
 	return EOK;
 }
 
-/** Create canvas GC.
+/** Create console GC.
  *
- * Create graphics context for rendering into a canvas.
+ * Create graphics context for rendering into a console.
  *
- * @param con Canvas object
- * @param fout File to which characters are written (canvas)
+ * @param con Console object
+ * @param fout File to which characters are written (console)
  * @param rgc Place to store pointer to new GC.
  *
  * @return EOK on success or an error code
  */
-errno_t canvas_gc_create(canvas_t *canvas, surface_t *surface,
-    canvas_gc_t **rgc)
+errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
+    console_gc_t **rgc)
 {
-	canvas_gc_t *cgc = NULL;
+	console_gc_t *cgc = NULL;
 	gfx_context_t *gc = NULL;
 	errno_t rc;
 
-	cgc = calloc(1, sizeof(canvas_gc_t));
+	cgc = calloc(1, sizeof(console_gc_t));
 	if (cgc == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 
-	rc = gfx_context_new(&canvas_gc_ops, cgc, &gc);
+	rc = gfx_context_new(&console_gc_ops, cgc, &gc);
 	if (rc != EOK)
 		goto error;
 
 	cgc->gc = gc;
-	cgc->canvas = canvas;
-	cgc->surface = surface;
+	cgc->con = con;
+	cgc->fout = fout;
 	*rgc = cgc;
 	return EOK;
 error:
@@ -133,11 +142,11 @@ error:
 	return rc;
 }
 
-/** Delete canvas GC.
+/** Delete console GC.
  *
- * @param cgc Canvas GC
+ * @param cgc Console GC
  */
-errno_t canvas_gc_delete(canvas_gc_t *cgc)
+errno_t console_gc_delete(console_gc_t *cgc)
 {
 	errno_t rc;
 
@@ -149,12 +158,12 @@ errno_t canvas_gc_delete(canvas_gc_t *cgc)
 	return EOK;
 }
 
-/** Get generic graphic context from canvas GC.
+/** Get generic graphic context from console GC.
  *
- * @param cgc Canvas GC
+ * @param cgc Console GC
  * @return Graphic context
  */
-gfx_context_t *canvas_gc_get_ctx(canvas_gc_t *cgc)
+gfx_context_t *console_gc_get_ctx(console_gc_t *cgc)
 {
 	return cgc->gc;
 }

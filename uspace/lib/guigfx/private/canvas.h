@@ -26,27 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup libguigfx
  * @{
  */
 /**
- * @file GFX console backend
+ * @file GFX canvas backend structure
+ *
  */
 
-#ifndef _GFX_BACKEND_CONSOLE_H
-#define _GFX_BACKEND_CONSOLE_H
+#ifndef _GUIGFX_PRIVATE_CANVAS_H
+#define _GUIGFX_PRIVATE_CANVAS_H
 
-#include <io/console.h>
-#include <stdio.h>
-#include <types/gfx/backend/console.h>
-#include <types/gfx/context.h>
-#include <types/gfx/ops/context.h>
+#include <canvas.h>
+#include <draw/surface.h>
+#include <gfx/context.h>
+#include <io/pixel.h>
 
-extern gfx_context_ops_t console_gc_ops;
-
-extern errno_t console_gc_create(console_ctrl_t *, FILE *, console_gc_t **);
-extern errno_t console_gc_delete(console_gc_t *);
-extern gfx_context_t *console_gc_get_ctx(console_gc_t *);
+/** Actual structure of graphics context.
+ *
+ * This is private to libguigfx. It is not visible to clients nor backends.
+ */
+struct canvas_gc {
+	/** Base graphic context */
+	gfx_context_t *gc;
+	/** Canvas */
+	canvas_t *canvas;
+	/** Surface */
+	surface_t *surface;
+	/** Current drawing color */
+	pixel_t color;
+};
 
 #endif
 

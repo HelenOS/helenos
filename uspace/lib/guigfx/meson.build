@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015 Jiri Svoboda
+# Copyright (c) 2019 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+deps = [ 'gui', 'gfx' ]
 src = files(
-	'src/color.c',
-	'src/context.c',
-	'src/render.c'
-)
-
-test_src = files(
-	'test/color.c',
-	'test/main.c',
-	'test/render.c',
+	'src/canvas.c'
 )

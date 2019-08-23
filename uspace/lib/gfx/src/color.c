@@ -77,5 +77,20 @@ void gfx_color_delete(gfx_color_t *color)
 	free(color);
 }
 
+/** Convert color to 16-bit RGB coordinates.
+ *
+ * @param color Color
+ * @param r Place to store red coordinate
+ * @param g Place to store green coordinate
+ * @param b Place to store blue coordinate
+ */
+void gfx_color_get_rgb_i16(gfx_color_t *color, uint16_t *r, uint16_t *g,
+    uint16_t *b)
+{
+	*r = color->r;
+	*g = color->g;
+	*b = color->b;
+}
+
 /** @}
  */
