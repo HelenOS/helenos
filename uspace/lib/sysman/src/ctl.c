@@ -86,7 +86,7 @@ errno_t sysman_unit_start(unit_handle_t handle, int flags)
 
 	errno_t rc = async_req_2_0(exch, SYSMAN_CTL_UNIT_START, handle, flags);
 	sysman_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -96,7 +96,7 @@ errno_t sysman_unit_stop(unit_handle_t handle, int flags)
 
 	errno_t rc = async_req_2_0(exch, SYSMAN_CTL_UNIT_STOP, handle, flags);
 	sysman_exchange_end(exch);
-	
+
 	return rc;
 }
 

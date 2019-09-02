@@ -37,7 +37,7 @@
 typedef struct {
 	/** Value name */
 	const char *name;
-	
+
 	/** Parse and store given string
 	 *
 	 * @param[in]  string  string to parse (it's whitespace-trimmed)

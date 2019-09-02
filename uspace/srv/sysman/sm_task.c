@@ -37,7 +37,6 @@
 #include "sysman.h"
 #include "sm_task.h"
 
-
 /** Structure for boxing task event */
 struct sm_task_event {
 	task_id_t task_id;
@@ -102,8 +101,10 @@ static unit_svc_t *sm_task_create_service(task_id_t tid)
 
 	CAST_SVC(u_svc)->main_task_id = tid;
 	CAST_SVC(u_svc)->anonymous = true;
-	/* exec_start is left undefined, maybe could be hinted by kernel's task
-	 * name */
+	/*
+	 * exec_start is left undefined, maybe could be hinted by kernel's task
+	 * name
+	 */
 
 	/*
 	 * Temporary workaround to avoid killing ourselves during shutdown,
@@ -124,7 +125,7 @@ static unit_svc_t *sm_task_create_service(task_id_t tid)
 	repo_commit();
 
 	return CAST_SVC(u_svc);
-	
+
 fail:
 	if (in_repo_update) {
 		repo_rollback();
@@ -176,7 +177,6 @@ static void sysman_event_task_event(void *data)
 		/* Inject state so that further processing makes sense */
 		u_svc->unit.state = STATE_STARTING;
 	}
-
 
 	/* Simple incomplete state automaton */
 	unit_t *u = &u_svc->unit;

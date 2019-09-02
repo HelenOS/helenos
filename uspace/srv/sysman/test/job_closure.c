@@ -37,7 +37,8 @@
 
 PCUT_INIT
 
-	
+PCUT_TEST_SUITE(job_closure);
+
 static dyn_array_t exp_closure;
 static dyn_array_t act_closure;
 
@@ -106,9 +107,8 @@ static void destroy_job_closure(dyn_array_t *closure)
 	}
 }
 
-PCUT_TEST_SUITE(job_closure);
-
-PCUT_TEST_BEFORE {
+PCUT_TEST_BEFORE
+{
 	mock_create_units();
 	mock_set_units_state(STATE_STOPPED);
 
@@ -123,7 +123,8 @@ PCUT_TEST_BEFORE {
 	repo_init();
 }
 
-PCUT_TEST_AFTER {
+PCUT_TEST_AFTER
+{
 	destroy_job_closure(&act_closure);
 	dyn_array_destroy(&act_closure);
 
@@ -133,7 +134,8 @@ PCUT_TEST_AFTER {
 	mock_destroy_units();
 }
 
-PCUT_TEST(job_closure_linear) {
+PCUT_TEST(job_closure_linear)
+{
 	unit_t *u0 = mock_units[UNIT_SERVICE][0];
 	unit_t *u1 = mock_units[UNIT_SERVICE][1];
 	unit_t *u2 = mock_units[UNIT_SERVICE][2];
@@ -164,7 +166,8 @@ PCUT_TEST(job_closure_linear) {
 	PCUT_ASSERT_TRUE(job_blocked(u2->job, u3->job));
 }
 
-PCUT_TEST(job_closure_fork) {
+PCUT_TEST(job_closure_fork)
+{
 	unit_t *u0 = mock_units[UNIT_SERVICE][0];
 	unit_t *u1 = mock_units[UNIT_SERVICE][1];
 	unit_t *u2 = mock_units[UNIT_SERVICE][2];
@@ -195,7 +198,8 @@ PCUT_TEST(job_closure_fork) {
 	PCUT_ASSERT_TRUE(job_blocked(u1->job, u3->job));
 }
 
-PCUT_TEST(job_closure_triangle) {
+PCUT_TEST(job_closure_triangle)
+{
 	unit_t *u0 = mock_units[UNIT_SERVICE][0];
 	unit_t *u1 = mock_units[UNIT_SERVICE][1];
 	unit_t *u2 = mock_units[UNIT_SERVICE][2];
@@ -229,7 +233,8 @@ PCUT_TEST(job_closure_triangle) {
 	PCUT_ASSERT_TRUE(job_blocked(u2->job, u3->job));
 }
 
-PCUT_TEST(job_closure_isolate_linears) {
+PCUT_TEST(job_closure_isolate_linears)
+{
 	unit_t *u0 = mock_units[UNIT_SERVICE][0];
 	unit_t *u1 = mock_units[UNIT_SERVICE][1];
 	unit_t *u2 = mock_units[UNIT_SERVICE][2];

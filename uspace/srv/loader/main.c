@@ -43,7 +43,6 @@
  * and completely hidden from applications.
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -442,7 +441,7 @@ int main(int argc, char *argv[])
 {
 	/* Set a handler of incomming connections. */
 	async_set_fallback_port_handler(ldr_connection, NULL);
-	
+
 	/* Announce to taskman. */
 	errno_t rc = taskman_intro_loader();
 	if (rc != EOK) {
@@ -456,7 +455,7 @@ int main(int argc, char *argv[])
 	 * forwarded connections by taskman.
 	 */
 	async_manager();
-	
+
 	/* Never reached */
 	return 0;
 }

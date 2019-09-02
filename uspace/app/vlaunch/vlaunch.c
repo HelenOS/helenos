@@ -72,7 +72,7 @@ static int app_launch(const char *app)
 		    winreg, str_error(rc));
 		return -1;
 	}
-	
+
 	int retval;
 	rc = task_wait(&wait, NULL, &retval);
 	if ((rc != EOK)) {

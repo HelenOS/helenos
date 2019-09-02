@@ -614,7 +614,7 @@ window_t *window_open(const char *winreg, const void *data,
 	win->grab = NULL;
 	win->focus = NULL;
 	win->surface = NULL;
-	
+
 	unsigned int ipc_flags = IPC_AUTOSTART;
 	service_id_t reg_dsid;
 	errno_t rc = loc_service_get_id(winreg, &reg_dsid, ipc_flags);
@@ -639,7 +639,6 @@ window_t *window_open(const char *winreg, const void *data,
 		free(win);
 		return NULL;
 	}
-
 
 	win->osess = loc_service_connect(out_dsid, INTERFACE_COMPOSITOR, ipc_flags);
 

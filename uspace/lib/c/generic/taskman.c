@@ -32,7 +32,6 @@
 /** @file
  */
 
-
 #include <async.h>
 #include <errno.h>
 #include <ipc/common.h>
@@ -85,7 +84,7 @@ async_sess_t *taskman_connect(void)
 		async_exch_t *exch = async_exchange_begin(sess);
 		aid_t req = async_send_0(exch, TASKMAN_NEW_TASK, NULL);
 		async_exchange_end(exch);
-		
+
 		if (req) {
 			async_forget(req);
 		}
@@ -103,7 +102,7 @@ async_sess_t *taskman_session_ns(void)
 	assert(exch);
 
 	async_sess_t *sess = async_connect_me_to(exch, INTERFACE_NS,
-		TASKMAN_CONNECT_TO_NS, 0);
+	    TASKMAN_CONNECT_TO_NS, 0);
 	async_exchange_end(exch);
 
 	return sess;
@@ -168,8 +167,6 @@ errno_t taskman_intro_ns(void)
 	async_wait_for(req, &retval);
 	return retval;
 }
-
-
 
 /** @}
  */

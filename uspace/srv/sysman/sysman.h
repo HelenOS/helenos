@@ -52,7 +52,6 @@ extern void sysman_events_init(void);
 extern int sysman_events_loop(void *);
 extern errno_t sysman_run_job(unit_t *, unit_state_t, int, callback_handler_t, void *);
 
-
 extern void sysman_raise_event(event_handler_t, void *);
 extern void sysman_process_queue(void);
 extern errno_t sysman_object_observer(void *, callback_handler_t, void *);

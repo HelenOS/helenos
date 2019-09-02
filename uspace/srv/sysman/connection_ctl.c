@@ -40,7 +40,6 @@
 #include "shutdown.h"
 #include "sysman.h"
 
-
 // TODO possibly provide as type-safe function + macro in sysman.h for generic boxing
 static ipc_call_t *box_callid(ipc_call_t *icall)
 {
@@ -214,33 +213,31 @@ static void sysman_get_units(ipc_call_t *icall)
 	size_t size;
 	size_t act_size;
 	int rc;
-	
+
 	if (!async_data_read_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
-	
-	
+
 	unit_handle_t *handles = malloc(size);
 	if (handles == NULL && size > 0) {
 		async_answer_0(&call, ENOMEM);
 		async_answer_0(icall, ENOMEM);
 		return;
 	}
-	
-	
+
 	rc = fill_handles_buffer(handles, size, &act_size);
 	if (rc != EOK) {
 		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
 		return;
 	}
-	
+
 	size_t real_size = min(act_size, size);
 	sysarg_t retval = async_data_read_finalize(&call, handles, real_size);
 	free(handles);
-	
+
 	async_answer_1(icall, retval, act_size);
 }
 
@@ -248,23 +245,23 @@ static void sysman_unit_get_name(ipc_call_t *icall)
 {
 	ipc_call_t call;
 	size_t size;
-	
+
 	if (!async_data_read_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
-	
+
 	unit_t *u = repo_find_unit_by_handle(ipc_get_arg1(icall));
 	if (u == NULL) {
 		async_answer_0(&call, ENOENT);
 		async_answer_0(icall, ENOENT);
 		return;
 	}
-	
+
 	size_t real_size = min(str_size(u->name) + 1, size);
 	sysarg_t retval = async_data_read_finalize(&call, u->name, real_size);
-	
+
 	async_answer_0(icall, retval);
 }
 
@@ -302,7 +299,7 @@ void sysman_connection_ctl(ipc_call_t *icall)
 
 	while (true) {
 		ipc_call_t call;
-		
+
 		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
 			/* Client disconnected */
 			break;
@@ -338,4 +335,3 @@ void sysman_connection_ctl(ipc_call_t *icall)
 		}
 	}
 }
-

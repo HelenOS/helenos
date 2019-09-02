@@ -59,7 +59,6 @@ typedef struct {
 #define dyn_array_initialize(dyn_array, type)                                  \
 	_dyn_array_initialize((dyn_array), sizeof(type))
 
-
 /** Dynamic array accessor
  *
  * @return lvalue for the given item
@@ -67,14 +66,12 @@ typedef struct {
 #define dyn_array_at(dyn_array, type, index)                                   \
 	(*((type *) (dyn_array)->_data + index))
 
-
 /** Access last element
  *
  * @return lvalue for the last item
  */
 #define dyn_array_last(dyn_array, type)                                        \
 	(*((type *) (dyn_array)->_data + ((dyn_array)->size - 1)))
-
 
 /** Insert item at given position, shift rest of array
  *
@@ -100,7 +97,6 @@ typedef struct {
  */
 #define dyn_array_append(dyn_array, type, value)                               \
 	dyn_array_insert(dyn_array, type, (dyn_array)->size, (value))
-
 
 /** Dynamic array iteration
  *

@@ -40,11 +40,11 @@
 static const char *section_name = "Mount";
 
 static config_item_t unit_configuration[] = {
-	{"What",      &config_parse_string, offsetof(unit_mnt_t, device),     NULL},
-	{"Where",     &config_parse_string, offsetof(unit_mnt_t, mountpoint), NULL},
-	{"Type",      &config_parse_string, offsetof(unit_mnt_t, type),       NULL},
-	{"Autostart", &config_parse_bool,   offsetof(unit_mnt_t, autostart),  "true"},
-	{"Blocking",  &config_parse_bool,   offsetof(unit_mnt_t, blocking),   "true"},
+	{ "What",      &config_parse_string, offsetof(unit_mnt_t, device),     NULL },
+	{ "Where",     &config_parse_string, offsetof(unit_mnt_t, mountpoint), NULL },
+	{ "Type",      &config_parse_string, offsetof(unit_mnt_t, type),       NULL },
+	{ "Autostart", &config_parse_bool,   offsetof(unit_mnt_t, autostart),  "true" },
+	{ "Blocking",  &config_parse_bool,   offsetof(unit_mnt_t, blocking),   "true" },
 	CONFIGURATION_ITEM_SENTINEL
 };
 
@@ -194,7 +194,6 @@ static errno_t unit_mnt_start(unit_t *unit)
 	/* autostart implies blocking */
 	assert(!u_mnt->autostart || u_mnt->blocking);
 
-	
 	assert(unit->state == STATE_STOPPED);
 
 	mount_data_t mnt_data;
@@ -202,7 +201,8 @@ static errno_t unit_mnt_start(unit_t *unit)
 	mnt_data.type       = u_mnt->type;
 	mnt_data.mountpoint = u_mnt->mountpoint;
 	mnt_data.device     = u_mnt->device;
-	/* TODO use other mount parameters
+	/*
+	 * TODO use other mount parameters
 	 * mnt_data.options    = u_mnt->options;
 	 * mnt_data.instance   = u_mnt->instance;
 	 */
@@ -234,7 +234,6 @@ static errno_t unit_mnt_stop(unit_t *unit)
 	/* autostart implies blocking */
 	assert(!u_mnt->autostart || u_mnt->blocking);
 
-	
 	// note: we should never hit STATE_STARTING, since it'd mean there are
 	//       two jobs running at once (unless job cancellation is implemented)
 	assert(unit->state == STATE_STARTED);
@@ -283,6 +282,4 @@ static void unit_mnt_fail(unit_t *unit)
 	unit_notify_state(unit);
 }
 
-
-DEFINE_UNIT_VMT(unit_mnt)
-
+DEFINE_UNIT_VMT(unit_mnt);

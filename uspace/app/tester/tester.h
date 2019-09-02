@@ -79,7 +79,6 @@ extern char **test_argv;
 			return "Failed " #expr " " __FILE__ ":" S__LINE__ ; \
 	} while (0)
 
-
 typedef const char *(*test_entry_t)(void);
 
 typedef struct {

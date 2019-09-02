@@ -30,7 +30,7 @@
 #include <ns.h>
 #include <sysman/sysman.h>
 
-static async_sess_t *sysman_sess[SYSMAN_PORT_MAX_] = {NULL};
+static async_sess_t *sysman_sess[SYSMAN_PORT_MAX_] = { NULL };
 
 async_exch_t *sysman_exchange_begin(sysman_interface_t iface)
 {
@@ -50,4 +50,3 @@ void sysman_exchange_end(async_exch_t *exch)
 {
 	async_exchange_end(exch);
 }
-

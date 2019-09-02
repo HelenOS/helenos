@@ -607,7 +607,7 @@ static void loc_service_register(ipc_call_t *icall, loc_server_t *server)
 	fibril_mutex_lock(&service->server->services_mutex);
 
 	list_append(&service->server_services, &service->server->services);
-	
+
 	fibril_mutex_unlock(&service->server->services_mutex);
 	fibril_condvar_broadcast(&services_list_cv);
 	fibril_mutex_unlock(&services_list_mutex);
@@ -840,7 +840,7 @@ static void loc_service_get_id(ipc_call_t *icall)
 	const loc_service_t *svc;
 	int flags = ipc_get_arg1(icall);
 	bool start_requested = false;
-	
+
 recheck:
 
 	/*
@@ -852,7 +852,8 @@ recheck:
 	 * Service was not found.
 	 */
 	if (svc == NULL) {
-		/* TODO:
+		/*
+		 * TODO:
 		 * Consider non-blocking service start, return some dummy id
 		 * and block only after connection request (actually makes more
 		 * sense as those who asks for ID might be someone else than
@@ -891,7 +892,7 @@ finish:
 	} else {
 		async_answer_0(icall, rc);
 	}
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
 	free(ns_name);
 	free(name);

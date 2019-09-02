@@ -70,7 +70,7 @@ void *program_loader = NULL;
  *
  */
 errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name,
-	struct answerbox *answerbox, program_t *prg)
+    struct answerbox *answerbox, program_t *prg)
 {
 	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
 	    malloc(sizeof(uspace_arg_t));

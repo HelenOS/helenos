@@ -66,7 +66,6 @@ typedef enum {
 #define SERVICE_NAME_VBD      "vbd"
 #define SERVICE_NAME_VOLSRV   "volsrv"
 
-
 #define LOC_DEVICE_NAMESPACE         "devices"
 #define LOC_UNIT_NAMESPACE_SEPARATOR "__"
 

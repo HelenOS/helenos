@@ -109,7 +109,6 @@ static void ini_section_ht_remove(ht_link_t *item)
 	ini_section_destroy(&section);
 }
 
-
 static size_t ini_item_ht_hash(const ht_link_t *item)
 {
 	ini_item_t *ini_item =
@@ -141,7 +140,6 @@ static void ini_item_ht_remove(ht_link_t *item)
 	ini_item_t *ini_item = hash_table_get_inst(item, ini_item_t, ht_link);
 	ini_item_destroy(&ini_item);
 }
-
 
 static hash_table_ops_t configuration_ht_ops = {
 	.hash            = &ini_section_ht_hash,
@@ -234,7 +232,7 @@ static int ini_parse_generic(line_reader_t line_reader, void *reader_data,
 		if (line[0] == ';' || line[0] == '#') {
 			continue;
 		}
-		
+
 		/* Start new section */
 		if (line[0] == '[') {
 			cur_section = ini_section_create();
@@ -255,7 +253,7 @@ static int ini_parse_generic(line_reader_t line_reader, void *reader_data,
 			cur_section->lineno = lineno;
 			*close_bracket = '\0';
 			cur_section->name = str_dup(line + 1);
-			
+
 			if (!hash_table_insert_unique(&conf->sections,
 			    &cur_section->ht_link)) {
 				ini_section_destroy(&cur_section);
@@ -328,8 +326,6 @@ finish:
 	return rc;
 }
 
-
-
 /*
  * Actual INI functions
  */
@@ -354,7 +350,7 @@ static void ini_section_init(ini_section_t *section)
 	section->name = NULL;
 }
 
-static ini_section_t* ini_section_create(void)
+static ini_section_t *ini_section_create(void)
 {
 	ini_section_t *section = malloc(sizeof(ini_section_t));
 	if (section != NULL) {
@@ -402,7 +398,6 @@ static void ini_item_destroy(ini_item_t **item_ptr)
 	*item_ptr = NULL;
 }
 
-
 /** Parse file contents to INI structure
  *
  * @param[in]    filename
@@ -446,7 +441,6 @@ int ini_parse_string(const char *string, ini_configuration_t *conf,
 	return ini_parse_generic(&read_string, &string_ptr, conf, parse);
 }
 
-
 /** Get a section from configuration
  *
  * @param[in]  ini_configuration
@@ -475,7 +469,7 @@ ini_section_t *ini_get_section(ini_configuration_t *ini_conf,
  * @return Always return iterator (even when there's no item with given key)
  */
 ini_item_iterator_t ini_section_get_iterator(ini_section_t *section,
-   const char *key)
+    const char *key)
 {
 	ini_item_iterator_t result;
 	result.first_item = hash_table_find(&section->items, (void *)key);

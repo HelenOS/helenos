@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	rc = task_wait(&twait, NULL, NULL);
 	if (rc != EOK) {
 		printf("%s: Error waiting for %s (%s)\n", APP_NAME, cmd,

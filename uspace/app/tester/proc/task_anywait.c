@@ -165,7 +165,6 @@ const char *test_proc_task_anywait(void)
 	TASSERT(last_texit == TASK_EXIT_NORMAL);
 	/* --- */
 
-
 	TPRINTF("All task waiting tests finished");
 
 	return err;

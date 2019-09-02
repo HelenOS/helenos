@@ -85,7 +85,6 @@ bool util_parse_command(const char *string, void *dst, text_parse_t *parse,
 	}
 	command->argv[command->argc] = NULL;
 
-
 	if (command->argc > MAX_COMMAND_ARGS) {
 		text_parse_raise_error(parse, lineno,
 		    CONFIGURATION_ELIMIT);
@@ -94,7 +93,6 @@ bool util_parse_command(const char *string, void *dst, text_parse_t *parse,
 		return true;
 	}
 }
-
 
 void util_command_init(command_t *command)
 {

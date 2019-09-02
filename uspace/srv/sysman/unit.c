@@ -54,10 +54,9 @@ unit_vmt_t *unit_type_vmts[] = {
 static const char *section_name = "Unit";
 
 static config_item_t unit_configuration[] = {
-	{"After", &unit_parse_unit_list, 0, ""},
+	{ "After", &unit_parse_unit_list, 0, "" },
 	CONFIGURATION_ITEM_SENTINEL
 };
-
 
 static void unit_init(unit_t *unit, unit_type_t type)
 {
@@ -65,7 +64,7 @@ static void unit_init(unit_t *unit, unit_type_t type)
 
 	size_t size = unit_type_vmts[type]->size;
 	memset(unit, 0, size);
-	
+
 	unit->type = type;
 	unit->state = STATE_STOPPED;
 	unit->repo_state = REPO_EMBRYO;
@@ -96,7 +95,8 @@ void unit_destroy(unit_t **unit_ptr)
 		return;
 
 	UNIT_VMT(unit)->destroy(unit);
-	/* TODO:
+	/*
+	 * TODO:
 	 * 	edges
 	 */
 	free(unit->name);
@@ -115,7 +115,7 @@ int unit_load(unit_t *unit, ini_configuration_t *ini_conf,
 		rc = config_load_ini_section(unit_configuration,
 		    unit_section, unit, text_parse);
 	}
-				
+
 	if (rc != EOK) {
 		return rc;
 	} else {

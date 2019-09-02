@@ -173,7 +173,7 @@ void vfs_register(ipc_call_t *req)
 	}
 	sysman_main_exposee_added(unit_name, req->task_id);
 	free(unit_name);
-	
+
 	/*
 	 * Add fs_info to the list of registered FS's.
 	 */

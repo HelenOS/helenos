@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 		printf("%s: Error registering at sysman (%i)\n", NAME, rc);
 		return rc;
 	}
-	
+
 	/*
 	 * Start accepting connections.
 	 */

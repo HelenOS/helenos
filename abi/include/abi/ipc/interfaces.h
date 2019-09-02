@@ -192,7 +192,7 @@ typedef enum {
 	INTERFACE_NS =
 	    FOURCC_COMPACT('n', 's', ' ', ' ') | IFACE_EXCHANGE_ATOMIC,
 	INTERFACE_SYSMAN =
-		FOURCC_COMPACT('s', 'y', 's', 'm') | IFACE_EXCHANGE_SERIALIZE
+	    FOURCC_COMPACT('s', 'y', 's', 'm') | IFACE_EXCHANGE_SERIALIZE
 } iface_t;
 
 #endif

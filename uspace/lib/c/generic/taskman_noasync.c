@@ -43,9 +43,6 @@
 #include <ipc/taskman.h>
 #include <taskman_noasync.h>
 
-
-
-
 /** Tell taskman we are his NS
  *
  * @return EOK on success, otherwise propagated error code
@@ -65,7 +62,6 @@ errno_t taskman_intro_ns_noasync(void)
 	 */
 	return EOK;
 }
-
 
 void task_retval_noasync(errno_t retval)
 {

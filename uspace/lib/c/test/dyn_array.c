@@ -37,22 +37,26 @@ PCUT_TEST_SUITE(dyn_array);
 typedef int data_t;
 static dyn_array_t da;
 
-PCUT_TEST_BEFORE {
+PCUT_TEST_BEFORE
+{
 	dyn_array_initialize(&da, data_t);
 	int rc = dyn_array_reserve(&da, 3);
 	assert(rc == EOK);
 }
 
-PCUT_TEST_AFTER {
+PCUT_TEST_AFTER
+{
 	dyn_array_destroy(&da);
 }
 
-PCUT_TEST(initialization) {
+PCUT_TEST(initialization)
+{
 	PCUT_ASSERT_INT_EQUALS(da.capacity, 3);
 	PCUT_ASSERT_INT_EQUALS(da.size, 0);
 }
 
-PCUT_TEST(append) {
+PCUT_TEST(append)
+{
 	dyn_array_append(&da, data_t, 42);
 	dyn_array_append(&da, data_t, 666);
 
@@ -61,14 +65,16 @@ PCUT_TEST(append) {
 	PCUT_ASSERT_INT_EQUALS(666, dyn_array_at(&da, data_t, 1));
 }
 
-PCUT_TEST(assign) {
+PCUT_TEST(assign)
+{
 	dyn_array_append(&da, data_t, 42);
 	dyn_array_at(&da, data_t, 0) = 112;
 
 	PCUT_ASSERT_INT_EQUALS(112, dyn_array_at(&da, data_t, 0));
 }
 
-PCUT_TEST(remove) {
+PCUT_TEST(remove)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 11);
 
@@ -78,7 +84,8 @@ PCUT_TEST(remove) {
 	PCUT_ASSERT_INT_EQUALS(11, dyn_array_at(&da, data_t, 0));
 }
 
-PCUT_TEST(insert) {
+PCUT_TEST(insert)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 11);
 	dyn_array_append(&da, data_t, 12);
@@ -91,7 +98,8 @@ PCUT_TEST(insert) {
 	PCUT_ASSERT_INT_EQUALS(12, dyn_array_at(&da, data_t, 3));
 }
 
-PCUT_TEST(capacity_grow) {
+PCUT_TEST(capacity_grow)
+{
 	dyn_array_append(&da, data_t, 42);
 	dyn_array_append(&da, data_t, 666);
 	dyn_array_append(&da, data_t, 42);
@@ -100,7 +108,8 @@ PCUT_TEST(capacity_grow) {
 	PCUT_ASSERT_TRUE(da.capacity > 3);
 }
 
-PCUT_TEST(capacity_shrink) {
+PCUT_TEST(capacity_shrink)
+{
 	dyn_array_append(&da, data_t, 42);
 	dyn_array_append(&da, data_t, 666);
 	dyn_array_append(&da, data_t, 42);
@@ -112,19 +121,21 @@ PCUT_TEST(capacity_shrink) {
 	PCUT_ASSERT_TRUE(da.capacity < 3);
 }
 
-PCUT_TEST(iterator) {
+PCUT_TEST(iterator)
+{
 	for (int i = 0; i < 10; ++i) {
-		dyn_array_append(&da, data_t, i*i);
+		dyn_array_append(&da, data_t, i * i);
 	}
 
 	int i = 0;
 	dyn_array_foreach(da, data_t, it) {
-		PCUT_ASSERT_INT_EQUALS(i*i, *it);
+		PCUT_ASSERT_INT_EQUALS(i * i, *it);
 		++i;
 	}
 }
 
-PCUT_TEST(find) {
+PCUT_TEST(find)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 11);
 	dyn_array_append(&da, data_t, 12);
@@ -135,7 +146,8 @@ PCUT_TEST(find) {
 	PCUT_ASSERT_INT_EQUALS(4, dyn_array_find(&da, data_t, 666));
 }
 
-PCUT_TEST(clear_range_middle) {
+PCUT_TEST(clear_range_middle)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 11);
 	dyn_array_append(&da, data_t, 12);
@@ -147,7 +159,8 @@ PCUT_TEST(clear_range_middle) {
 	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 1));
 }
 
-PCUT_TEST(clear_range_begin) {
+PCUT_TEST(clear_range_begin)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 11);
 	dyn_array_append(&da, data_t, 12);
@@ -159,7 +172,8 @@ PCUT_TEST(clear_range_begin) {
 	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 1));
 }
 
-PCUT_TEST(clear_range_end) {
+PCUT_TEST(clear_range_end)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 11);
 	dyn_array_append(&da, data_t, 12);
@@ -171,7 +185,8 @@ PCUT_TEST(clear_range_end) {
 	PCUT_ASSERT_INT_EQUALS(11, dyn_array_at(&da, data_t, 1));
 }
 
-PCUT_TEST(clear_range_empty) {
+PCUT_TEST(clear_range_empty)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 99);
 
@@ -181,7 +196,8 @@ PCUT_TEST(clear_range_empty) {
 	PCUT_ASSERT_INT_EQUALS(99, dyn_array_at(&da, data_t, 1));
 }
 
-PCUT_TEST(concat_simple) {
+PCUT_TEST(concat_simple)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 99);
 
@@ -201,7 +217,9 @@ PCUT_TEST(concat_simple) {
 
 	dyn_array_destroy(&da2);
 }
-PCUT_TEST(concat_self) {
+
+PCUT_TEST(concat_self)
+{
 	dyn_array_append(&da, data_t, 10);
 	dyn_array_append(&da, data_t, 99);
 

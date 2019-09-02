@@ -40,14 +40,13 @@
 #include <sysman/ctl.h>
 #include <fibril.h>
 
-
 #define NAME "sysctl"
 #define NAME_BUFFER 256
 
 typedef struct {
 	const char *name;
 	int args;
-	int (* handler)(int, char **);
+	int (*handler)(int, char **);
 } command_t;
 
 static const char *unit_state(unit_state_t s)
@@ -90,7 +89,8 @@ static errno_t list_units(int argc, char *argv[])
 
 		printf("%-25s\t%s\n", name, unit_state(state));
 		continue;
-fail:
+
+	fail:
 		printf(" -- unit skipped due to IPC error (%s) --\n",
 		    str_error(rc));
 	}
@@ -175,7 +175,6 @@ static void print_syntax(void)
 		printf("\n");
 	}
 }
-
 
 int main(int argc, char *argv[])
 {

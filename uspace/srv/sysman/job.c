@@ -38,11 +38,9 @@
 #include "log.h"
 #include "sysman.h"
 
-
 /*
  * Static functions
  */
-
 
 /** Remove blocking_job from blocked job structure
  *
@@ -272,4 +270,3 @@ void job_finish(job_t *job)
 	}
 	sysman_raise_event(&sysman_event_job_finished, job);
 }
-

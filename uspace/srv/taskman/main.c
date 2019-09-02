@@ -53,7 +53,6 @@
 #include "task.h"
 #include "taskman.h"
 
-
 typedef struct {
 	link_t link;
 	async_sess_t *sess;
@@ -73,15 +72,17 @@ static FIBRIL_CONDVAR_INITIALIZE(session_ns_cv);
 static void connect_to_loader(ipc_call_t *icall)
 {
 	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->task_id);
-	/* We don't accept the connection request, we forward it instead to
-	 * freshly spawned loader. */
+	/*
+	 * We don't accept the connection request, we forward it instead to
+	 * freshly spawned loader.
+	 */
 	errno_t rc = loader_spawn("loader");
-	
+
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
 		return;
 	}
-	
+
 	/* Wait until spawned task presents itself to us. */
 	link_t *link = prodcons_consume(&sess_queue);
 	sess_ref_t *sess_ref = list_get_instance(link, sess_ref_t, link);
@@ -147,7 +148,7 @@ static void taskman_i_am_ns(ipc_call_t *icall)
 
 	/* Used only for connection forwarding -- atomic */
 	session_ns = async_callback_receive(EXCHANGE_ATOMIC);
-	
+
 	if (session_ns == NULL) {
 		rc = ENOENT;
 		printf("%s: Cannot connect to NS\n", NAME);
@@ -217,7 +218,7 @@ static void loader_callback(ipc_call_t *icall)
 	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->task_id);
 	// TODO check that loader is expected, would probably discard prodcons
 	//      scheme
-	
+
 	/* Preallocate session container */
 	sess_ref_t *sess_ref = malloc(sizeof(sess_ref_t));
 	if (sess_ref == NULL) {
@@ -264,11 +265,6 @@ static bool handle_call(ipc_call_t *icall)
 
 static bool handle_implicit_call(ipc_call_t *icall)
 {
-	/*DPRINTF("%s:%i %i(%i) from %llu\n", __func__, __LINE__,
-	    IPC_GET_IMETHOD(*icall),
-	    IPC_GET_ARG1(*icall),
-	    icall->in_task_id);*/
-
 	if (ipc_get_imethod(icall) < IPC_FIRST_USER_METHOD) {
 		switch (ipc_get_arg1(icall)) {
 		case TASKMAN_CONNECT_TO_NS:
@@ -329,8 +325,6 @@ static void taskman_connection(ipc_call_t *icall, void *arg)
 	}
 }
 
-
-
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS task manager\n");
@@ -357,7 +351,7 @@ int main(int argc, char *argv[])
 		printf(NAME ": Cannot register for fault events (%i).\n", rc);
 		return rc;
 	}
-	
+
 	task_id_t self_id = task_get_id();
 	rc = task_intro(self_id);
 	if (rc != EOK) {

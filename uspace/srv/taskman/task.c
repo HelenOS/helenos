@@ -45,7 +45,7 @@ typedef struct {
 	task_walker_t walker;
 	void *arg;
 } walker_context_t;
-	
+
 /*
  * Forwards
  */
@@ -58,7 +58,7 @@ static void task_destroy(task_t **);
 
 static size_t ht_task_key_hash(const void *key)
 {
-	return *(task_id_t*)key;
+	return *(task_id_t *)key;
 }
 
 static size_t ht_task_hash(const ht_link_t  *item)
@@ -70,7 +70,7 @@ static size_t ht_task_hash(const ht_link_t  *item)
 static bool ht_task_key_equal(const void *key, const ht_link_t *item)
 {
 	task_t *ht = hash_table_get_inst(item, task_t, link);
-	return ht->id == *(task_id_t*)key;
+	return ht->id == *(task_id_t *)key;
 }
 
 /** Perform actions after removal of item from the hash table. */
@@ -126,7 +126,7 @@ int tasks_init(void)
 	}
 
 	fibril_rwlock_initialize(&task_hash_table_lock);
-	
+
 	return EOK;
 }
 
@@ -144,7 +144,7 @@ task_t *task_get_by_id(task_id_t id)
 	if (!link) {
 		return NULL;
 	}
-	
+
 	task_t *t = hash_table_get_inst(link, task_t, link);
 	return t;
 }
@@ -201,7 +201,7 @@ int task_intro(task_id_t id)
 		rc = EEXIST;
 		goto finish;
 	}
-	
+
 	t = malloc(sizeof(task_t));
 	if (t == NULL) {
 		rc = ENOMEM;
@@ -216,12 +216,11 @@ int task_intro(task_id_t id)
 
 	hash_table_insert(&task_hash_table, &t->link);
 	DPRINTF("%s: %llu\n", __func__, t->id);
-	
+
 finish:
 	fibril_rwlock_write_unlock(&task_hash_table_lock);
 	return rc;
 }
-
 
 /**
  * @}

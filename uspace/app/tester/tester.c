@@ -80,7 +80,7 @@ test_t tests[] = {
 #include "proc/dummy_task.def"
 #include "proc/task_anywait.def"
 #include "proc/task_wait.def"
-	{NULL, NULL, NULL, false}
+	{ NULL, NULL, NULL, false }
 };
 
 static bool run_test(test_t *test)

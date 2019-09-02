@@ -229,7 +229,8 @@ int job_queue_add_closure(job_closure_t *closure)
 		return rc;
 	}
 
-	/* Unmerged jobs are enqueued, merged are disposed
+	/*
+	 * Unmerged jobs are enqueued, merged are disposed
 	 *
 	 * TODO Ensure that jobs that block merged jobs contain the corrent job
 	 *      in their blocked_jobs array.
@@ -240,7 +241,6 @@ int job_queue_add_closure(job_closure_t *closure)
 			job_del_ref(&job);
 			continue;
 		}
-
 
 		unit_t *u = job->unit;
 		assert(u->job == NULL);
@@ -273,5 +273,3 @@ void job_queue_process(void)
 		job_del_ref(&job);
 	}
 }
-
-

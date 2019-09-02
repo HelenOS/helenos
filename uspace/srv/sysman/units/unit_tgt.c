@@ -81,6 +81,4 @@ static void unit_tgt_fail(unit_t *unit)
 {
 }
 
-
-DEFINE_UNIT_VMT(unit_tgt)
-
+DEFINE_UNIT_VMT(unit_tgt);

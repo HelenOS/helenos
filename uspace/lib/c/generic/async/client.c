@@ -163,12 +163,11 @@ static LIST_INITIALIZE(inactive_exch_list);
  */
 static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 
-
 /** Create session for existing phone
  *
  * @return session on success, NULL on error
  */
- 
+
 async_sess_t *create_session(cap_phone_handle_t phone, exch_mgmt_t mgmt,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
 {
@@ -180,10 +179,10 @@ async_sess_t *create_session(cap_phone_handle_t phone, exch_mgmt_t mgmt,
 		session->arg1 = arg1;
 		session->arg2 = arg2;
 		session->arg3 = arg3;
-		
+
 		fibril_mutex_initialize(&session->remote_state_mtx);
 		session->remote_state_data = NULL;
-		
+
 		list_initialize(&session->exch_list);
 		fibril_mutex_initialize(&session->mutex);
 	} else {

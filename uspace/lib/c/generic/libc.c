@@ -53,7 +53,6 @@
 #include "private/task.h"
 #include "private/taskman.h"
 
-
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
 #endif
@@ -118,7 +117,7 @@ void __libc_main(void *pcb_ptr)
 			abort();
 	}
 #endif
-	
+
 	/* Setup async framework and taskman connection */
 	__async_server_init();
 	__async_client_init();

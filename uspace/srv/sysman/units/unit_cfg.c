@@ -45,7 +45,7 @@
 static const char *section_name = "Configuration";
 
 static config_item_t unit_configuration[] = {
-	{"Path", &config_parse_string, offsetof(unit_cfg_t, path), NULL},
+	{ "Path", &config_parse_string, offsetof(unit_cfg_t, path), NULL },
 	CONFIGURATION_ITEM_SENTINEL
 };
 
@@ -80,7 +80,7 @@ static errno_t cfg_parse_file(const char *dirname, const char *filename,
 		rc = EINVAL;
 		goto finish;
 	}
-	
+
 	/* We parse files as part of ongoing repo transaction (locked). */
 	unit_t *u = repo_find_unit_by_name_unsafe(unit_name);
 	if (u != NULL) {
@@ -230,7 +230,7 @@ static errno_t unit_cfg_start(unit_t *unit)
 	assert(u_cfg);
 
 	errno_t rc = cfg_load_configuration(u_cfg->path);
-	
+
 	if (rc == EOK) {
 		unit->state = STATE_STARTED;
 	} else {
@@ -266,5 +266,4 @@ static void unit_cfg_fail(unit_t *unit)
 	assert(false);
 }
 
-DEFINE_UNIT_VMT(unit_cfg)
-
+DEFINE_UNIT_VMT(unit_cfg);

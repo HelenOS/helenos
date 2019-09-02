@@ -114,7 +114,7 @@ static errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
 	wait->tid = id;
 	async_exch_t *exch = taskman_exchange_begin();
 	if (exch == NULL)
-			return EIO;
+		return EIO;
 
 	wait->aid = async_send_3(exch, TASKMAN_WAIT, LOWER32(id), UPPER32(id),
 	    wait->flags, &wait->result);
@@ -387,7 +387,6 @@ errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 			*texit = ipc_get_arg1(&wait->result);
 		if (wait->flags & TASK_WAIT_RETVAL && retval)
 			*retval = ipc_get_arg2(&wait->result);
-		
 	}
 
 	if (rc == EOK) {
@@ -439,7 +438,7 @@ errno_t task_retval_internal(int val, bool wait_for_exit)
 
 	errno_t rc = async_req_2_0(exch, TASKMAN_RETVAL, val, wait_for_exit);
 	taskman_exchange_end(exch);
-	
+
 	return rc;
 }
 

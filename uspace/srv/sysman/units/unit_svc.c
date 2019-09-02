@@ -39,7 +39,7 @@
 static const char *section_name = "Service";
 
 static config_item_t unit_configuration[] = {
-	{"ExecStart", &util_parse_command, offsetof(unit_svc_t, exec_start), NULL},
+	{ "ExecStart", &util_parse_command, offsetof(unit_svc_t, exec_start), NULL },
 	CONFIGURATION_ITEM_SENTINEL
 };
 
@@ -81,7 +81,6 @@ static errno_t unit_svc_start(unit_t *unit)
 	unit_svc_t *u_svc = CAST_SVC(unit);
 	assert(u_svc);
 
-	
 	assert(unit->state == STATE_STOPPED);
 
 	errno_t rc = task_spawnv(&u_svc->main_task_id, NULL, u_svc->exec_start.path,
@@ -116,7 +115,6 @@ static errno_t unit_svc_stop(unit_t *unit)
 	unit_svc_t *u_svc = CAST_SVC(unit);
 	assert(u_svc);
 
-	
 	// note: May change when job cancellation is possible.
 	assert(unit->state == STATE_STARTED);
 
@@ -132,8 +130,10 @@ static errno_t unit_svc_stop(unit_t *unit)
 	errno_t rc = task_kill(u_svc->main_task_id);
 
 	if (rc != EOK) {
-		/* Task may still be running, but be conservative about unit's
-		 * state. */
+		/*
+		 * Task may still be running, but be conservative about unit's
+		 * state.
+		 */
 		unit->state = STATE_FAILED;
 		return rc;
 	}
@@ -143,11 +143,10 @@ static errno_t unit_svc_stop(unit_t *unit)
 	return EOK;
 }
 
-
 static void unit_svc_exposee_created(unit_t *unit)
 {
 	assert(CAST_SVC(unit));
-	assert(unit->state == STATE_STOPPED || unit->state == STATE_STARTING || unit->state==STATE_STARTED);
+	assert(unit->state == STATE_STOPPED || unit->state == STATE_STARTING || unit->state == STATE_STARTED);
 
 	/* Exposee itself doesn't represent started unit. */
 	//unit->state = STATE_STARTED;
@@ -159,5 +158,4 @@ static void unit_svc_fail(unit_t *unit)
 	// TODO implement
 }
 
-DEFINE_UNIT_VMT(unit_svc)
-
+DEFINE_UNIT_VMT(unit_svc);

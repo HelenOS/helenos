@@ -117,18 +117,18 @@ int main(int argc, char **argv)
 	errno_t rc = ns_service_init();
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = taskman_intro_ns_noasync();
 	if (rc != EOK) {
 		printf("%s: not accepted by taskman (%i)\n", NAME, rc);
 		return rc;
 	}
 	task_retval_noasync(0);
-	
+
 	async_set_fallback_port_handler(ns_connection, NULL);
 
 	printf("%s: Accepting connections\n", NAME);
-	
+
 	async_manager();
 
 	/* Not reached */

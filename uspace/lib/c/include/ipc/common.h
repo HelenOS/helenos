@@ -45,7 +45,8 @@
 
 /**
  * IPC_FLAG_AUTOSTART_ is for use in brokers only. In clinet code use
- * IPC_AUTOSTART that includes implies blocking behavior. */
+ * IPC_AUTOSTART that includes implies blocking behavior.
+ */
 #define IPC_FLAG_AUTOSTART_  0x02
 
 /**

@@ -114,7 +114,7 @@ static driver_t *devman_driver_register(ipc_call_t *call)
 	}
 	sysman_main_exposee_added(unit_name, call->task_id);
 	free(unit_name);
-	
+
 	switch (driver->state) {
 	case DRIVER_NOT_STARTED:
 		/* Somebody started the driver manually. */

@@ -37,6 +37,8 @@
 
 PCUT_INIT
 
+PCUT_TEST_SUITE(job_queue);
+
 static bool initialized = false;
 
 static fid_t fibril_event_loop;
@@ -50,9 +52,8 @@ static void job_finished_cb(void *object, void *arg)
 	*job_ptr = job;
 }
 
-PCUT_TEST_SUITE(job_queue);
-
-PCUT_TEST_BEFORE {
+PCUT_TEST_BEFORE
+{
 	mock_create_units();
 	mock_set_units_state(STATE_STOPPED);
 
@@ -72,11 +73,13 @@ PCUT_TEST_BEFORE {
 	}
 }
 
-PCUT_TEST_AFTER {
+PCUT_TEST_AFTER
+{
 	mock_destroy_units();
 }
 
-PCUT_TEST(single_start_sync) {
+PCUT_TEST(single_start_sync)
+{
 	unit_type_vmts[UNIT_TARGET]->start = &mock_unit_vmt_start_sync;
 
 	unit_t *u = mock_units[UNIT_TARGET][0];
@@ -93,7 +96,8 @@ PCUT_TEST(single_start_sync) {
 	job_del_ref(&job);
 }
 
-PCUT_TEST(single_start_async) {
+PCUT_TEST(single_start_async)
+{
 	unit_type_vmts[UNIT_TARGET]->start = &mock_unit_vmt_start_async;
 	unit_type_vmts[UNIT_TARGET]->exposee_created =
 	    &mock_unit_vmt_exposee_created;
@@ -116,7 +120,8 @@ PCUT_TEST(single_start_async) {
 	job_del_ref(&job);
 }
 
-PCUT_TEST(multipath_to_started_unit) {
+PCUT_TEST(multipath_to_started_unit)
+{
 	/* Setup mock behavior */
 	unit_type_vmts[UNIT_SERVICE]->start = &mock_unit_vmt_start_sync;
 
@@ -132,7 +137,7 @@ PCUT_TEST(multipath_to_started_unit) {
 	/* All services require root fs */
 	mock_add_edge(s0, m0);
 	mock_add_edge(s1, m0);
-	
+
 	/* S1 requires another mount and S0 */
 	mock_add_edge(s1, s0);
 
@@ -151,7 +156,8 @@ PCUT_TEST(multipath_to_started_unit) {
 	PCUT_ASSERT_EQUALS(STATE_STARTED, s1->state);
 }
 
-PCUT_TEST(merge_jobs_with_callback) {
+PCUT_TEST(merge_jobs_with_callback)
+{
 	/* Setup mock behavior */
 	unit_type_vmts[UNIT_SERVICE]->start = &mock_unit_vmt_start_async;
 	unit_type_vmts[UNIT_SERVICE]->exposee_created =
@@ -168,7 +174,6 @@ PCUT_TEST(merge_jobs_with_callback) {
 	sysman_process_queue();
 	/* Job not finished */
 	PCUT_ASSERT_NULL(j0);
-
 
 	/*
 	 * While s0 is starting in j0, create second job that should be merged
@@ -187,7 +192,7 @@ PCUT_TEST(merge_jobs_with_callback) {
 
 	PCUT_ASSERT_NOT_NULL(j0);
 	PCUT_ASSERT_NOT_NULL(j1);
-	
+
 	/*
 	 * Jobs were, merged so both callbacks should have been called with the
 	 * same job
@@ -200,6 +205,5 @@ PCUT_TEST(merge_jobs_with_callback) {
 
 	PCUT_ASSERT_NULL(j0);
 }
-
 
 PCUT_EXPORT(job_queue);

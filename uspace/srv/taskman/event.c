@@ -166,8 +166,10 @@ loop:
 				/* No sense to wait for both anymore */
 				async_answer_1(pr->icall, EINTR, t->exit);
 			} else {
-				/* Send both exit status and retval, caller
-				 * should know what is valid */
+				/*
+				 * Send both exit status and retval, caller
+				 * should know what is valid
+				 */
 				async_answer_3(pr->icall, EOK, t->exit,
 				    t->retval, rest);
 			}
@@ -179,7 +181,6 @@ loop:
 			}
 		}
 
-		
 		list_remove(&pr->link);
 		free(pr);
 		goto loop;
@@ -232,7 +233,7 @@ finish:
 }
 
 void wait_for_task(task_id_t id, int flags, ipc_call_t *icall,
-     task_id_t waiter_id)
+    task_id_t waiter_id)
 {
 	assert(!(flags & TASK_WAIT_BOTH) ||
 	    ((flags & TASK_WAIT_RETVAL) && (flags & TASK_WAIT_EXIT)));
@@ -246,13 +247,13 @@ void wait_for_task(task_id_t id, int flags, ipc_call_t *icall,
 		async_answer_0(icall, ENOENT);
 		return;
 	}
-	
+
 	if (t->exit != TASK_EXIT_RUNNING) {
 		//TODO are flags BOTH processed correctly here?
 		async_answer_3(icall, EOK, t->exit, t->retval, 0);
 		return;
 	}
-	
+
 	/*
 	 * Add request to pending list or reuse existing item for a second
 	 * wait.
@@ -273,7 +274,7 @@ void wait_for_task(task_id_t id, int flags, ipc_call_t *icall,
 			rc = ENOMEM;
 			goto finish;
 		}
-	
+
 		link_initialize(&pr->link);
 		pr->id = id;
 		pr->waiter_id = waiter_id;
@@ -304,11 +305,10 @@ finish:
 	}
 }
 
-
 errno_t task_set_retval(task_id_t sender, int retval, bool wait_for_exit)
 {
 	errno_t rc = EOK;
-	
+
 	fibril_rwlock_write_lock(&task_hash_table_lock);
 	task_t *t = task_get_by_id(sender);
 
@@ -316,13 +316,13 @@ errno_t task_set_retval(task_id_t sender, int retval, bool wait_for_exit)
 		rc = EINVAL;
 		goto finish;
 	}
-	
+
 	t->retval = retval;
 	t->retval_type = wait_for_exit ? RVAL_SET_EXIT : RVAL_SET;
-	
+
 	event_notify_all(t);
 	process_pending_wait();
-	
+
 finish:
 	fibril_rwlock_write_unlock(&task_hash_table_lock);
 	return rc;

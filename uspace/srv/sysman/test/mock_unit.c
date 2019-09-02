@@ -103,4 +103,3 @@ void mock_unit_vmt_exposee_created(unit_t *unit)
 	unit->state = STATE_STARTED;
 	unit_notify_state(unit);
 }
-

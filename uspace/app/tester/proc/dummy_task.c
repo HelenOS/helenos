@@ -36,7 +36,7 @@
 #include "../tester.h"
 #include "common.h"
 
-typedef void (* behavior_func_t)(void);
+typedef void (*behavior_func_t)(void);
 
 typedef struct {
 	const char *name;

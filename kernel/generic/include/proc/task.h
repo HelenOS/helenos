@@ -98,7 +98,7 @@ typedef struct task {
 
 	/** Exit reason. */
 	exit_reason_t exit_reason;
-	
+
 	/* IPC stuff */
 
 	/** Receiving communication endpoint */

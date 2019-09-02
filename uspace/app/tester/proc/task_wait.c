@@ -35,7 +35,6 @@
 #include "../tester.h"
 #include "common.h"
 
-
 const char *test_proc_task_wait(void)
 {
 	const char *err = NULL;
@@ -53,7 +52,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -61,7 +61,7 @@ const char *test_proc_task_wait(void)
 	TASSERT(texit == TASK_EXIT_UNEXPECTED);
 	TPRINTF("OK\n");
 	/* ---- */
-	
+
 	TPRINTF("12 lost wait\n");
 
 	task_wait_set(&wait, TASK_WAIT_RETVAL);
@@ -69,7 +69,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EINTR);
@@ -84,7 +85,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -102,7 +104,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -119,7 +122,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -137,7 +141,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -155,7 +160,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -165,7 +171,6 @@ const char *test_proc_task_wait(void)
 	TPRINTF("OK\n");
 	/* ---- */
 
-
 	TPRINTF("32 keep retval until exit\n");
 
 	task_wait_set(&wait, TASK_WAIT_RETVAL);
@@ -173,7 +178,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -194,7 +200,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -211,7 +218,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EINTR);
@@ -228,7 +236,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -236,7 +245,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(retval == EOK);
 	task_kill(tid); /* Terminate daemon */
 	TPRINTF("waiting 2...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -252,7 +262,8 @@ const char *test_proc_task_wait(void)
 	TASSERT(rc == EOK);
 
 	TPRINTF("waiting...");
-	texit = TASK_EXIT_RUNNING; retval = 255;
+	texit = TASK_EXIT_RUNNING;
+	retval = 255;
 	rc = task_wait(&wait, &texit, &retval);
 	TPRINTF("done.\n");
 	TASSERT(rc == EOK);
@@ -263,8 +274,6 @@ const char *test_proc_task_wait(void)
 	/* ---- */
 
 	TPRINTF("All task waiting tests finished");
-
-
 
 	return err;
 }

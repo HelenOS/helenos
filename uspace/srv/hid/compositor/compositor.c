@@ -2304,15 +2304,15 @@ static errno_t compositor_srv_init(char *input_svc, char *name)
 
 	/* Finally, register compositor server. */
 	async_set_fallback_port_handler(client_connection, NULL);
-	
+
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	server_name = name;
-	
+
 	/* Prepare window registrator (entrypoint for clients). */
 	char winreg[LOC_NAME_MAXLEN + 1];
 	snprintf(winreg, LOC_NAME_MAXLEN, "%s%s/winreg", NAMESPACE, server_name);

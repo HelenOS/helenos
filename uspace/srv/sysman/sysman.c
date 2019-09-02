@@ -39,7 +39,6 @@
 #include "task.h"
 #include "unit.h"
 
-
 /* Do not expose this generally named type */
 typedef struct {
 	link_t event_queue;
@@ -98,9 +97,8 @@ static size_t observed_objects_ht_key_hash(const void *key)
 static bool observed_objects_ht_key_equal(const void *key, const ht_link_t *item)
 {
 	void *object = *(void **)key;
-	return (
-	    hash_table_get_inst(item, observed_object_t, ht_link)->object ==
-	    object);
+	return hash_table_get_inst(item, observed_object_t, ht_link)->object ==
+	    object;
 }
 
 static hash_table_ops_t observed_objects_ht_ops = {
@@ -356,7 +354,6 @@ size_t sysman_observers_count(void *object)
 	return list_count(&observed_object->callbacks);
 }
 
-
 /*
  * Event handlers
  *
@@ -435,4 +432,3 @@ void sysman_event_unit_state_changed(void *data)
 {
 	notify_observers(data);
 }
-

@@ -42,27 +42,37 @@
 
 /** What type of retval from the task we have */
 typedef enum {
-	RVAL_UNSET,     /**< unset */
-	RVAL_SET,       /**< retval set, e.g. by server */
-	RVAL_SET_EXIT   /**< retval set, wait for expected task exit */
+	/* unset */
+	RVAL_UNSET,
+
+	/* retval set, e.g. by server */
+	RVAL_SET,
+
+	/* retval set, wait for expected task exit */
+	RVAL_SET_EXIT
 } retval_t;
 
 /** Holds necessary information of each (registered) task. */
 typedef struct {
 	ht_link_t link;
-	
-	task_id_t id;          /**< Task id. */
-	task_exit_t exit;      /**< Task's uspace exit status. */
-	bool failed;           /**< Task failed (task can exit unexpectedly
-				    even w/out failure). */
-	retval_t retval_type;  /**< Task returned a value. */
-	int retval;            /**< The return value. */
 
-	link_t listeners;      /**< Link to listeners list. */
-	async_sess_t *sess;    /**< Session for notifications to task. */
+	/* Task id. */
+	task_id_t id;
+	/* Task's uspace exit status. */
+	task_exit_t exit;
+	/* Task failed (task can exit unexpectedly even w/out failure). */
+	bool failed;
+	/* Task returned a value. */
+	retval_t retval_type;
+	/* The return value. */
+	int retval;
+	/* Link to listeners list. */
+	link_t listeners;
+	/* Session for notifications to task. */
+	async_sess_t *sess;
 } task_t;
 
-typedef bool (* task_walker_t)(task_t *, void *);
+typedef bool (*task_walker_t)(task_t *, void *);
 
 extern fibril_rwlock_t task_hash_table_lock;
 

@@ -67,7 +67,7 @@ loader_t *loader_connect(void)
 	loader_t *ldr = malloc(sizeof(loader_t));
 	if (ldr == NULL)
 		return NULL;
-	
+
 	async_sess_t *sess = taskman_session_loader();
 	if (sess == NULL) {
 		free(ldr);

@@ -82,7 +82,8 @@ static void sysman_connection(ipc_call_t *icall, void *arg)
 }
 
 /** Build hard coded configuration */
-static errno_t create_entry_configuration(void) {
+static errno_t create_entry_configuration(void)
+{
 	errno_t rc;
 	unit_t *mnt_initrd = NULL;
 	unit_t *cfg_init = NULL;
@@ -107,14 +108,13 @@ static errno_t create_entry_configuration(void) {
 	}
 	cfg_init->name           = str_dup(UNIT_CFG_INITRD);
 	CAST_CFG(cfg_init)->path = str_dup(INITRD_CFG_PATH);
-	
+
 	tgt_init = unit_create(UNIT_TARGET);
 	if (tgt_init == NULL) {
 		rc = ENOMEM;
 		goto fail;
 	}
 	tgt_init->name = str_dup(TARGET_INIT);
-	
 
 	/*
 	 * Add units to configuration and start the default target.
@@ -159,7 +159,7 @@ static void sequence_job_handler(void *object, void *arg)
 		return;
 	}
 	job_del_ref(&job);
-	
+
 	const char **target_name_ptr = arg;
 	prepare_and_run_job(target_name_ptr + 1);
 }

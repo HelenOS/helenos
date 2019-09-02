@@ -35,7 +35,6 @@
 #ifndef LIBC_TASKMAN_NOASYNC_H_
 #define LIBC_TASKMAN_NOASYNC_H_
 
-
 /* Internal functions to be used by NS only */
 extern int taskman_intro_ns_noasync(void);
 

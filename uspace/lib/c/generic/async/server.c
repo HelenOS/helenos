@@ -225,10 +225,9 @@ static async_port_handler_t implicit_connection = NULL;
  */
 void async_set_implicit_connection(async_port_handler_t conn)
 {
-        assert(implicit_connection == NULL);
-        implicit_connection = conn;
+	assert(implicit_connection == NULL);
+	implicit_connection = conn;
 }
-
 
 static fibril_rmutex_t client_mutex;
 static hash_table_t client_hash_table;

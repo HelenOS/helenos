@@ -115,7 +115,7 @@ static errno_t loopip_init(void)
 	loopip_iplink.arg = NULL;
 
 	prodcons_initialize(&loopip_rcv_queue);
-	
+
 	const char *svc_name = SERVICE_NAME_LOOPBACK;
 	service_id_t sid;
 	rc = loc_service_register(svc_name, &sid);

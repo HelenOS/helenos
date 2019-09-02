@@ -85,5 +85,3 @@ void sysman_exposee_removed(const char *exposee)
 
 	async_forget(req);
 }
-
-

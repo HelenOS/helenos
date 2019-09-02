@@ -50,7 +50,7 @@ typedef struct {
 	task_id_t tid;
 } task_wait_t;
 
-typedef void (* task_event_handler_t)(task_id_t, int, task_exit_t, int);
+typedef void (*task_event_handler_t)(task_id_t, int, task_exit_t, int);
 
 #endif
 

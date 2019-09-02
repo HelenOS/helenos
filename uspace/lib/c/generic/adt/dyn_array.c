@@ -43,9 +43,6 @@
 #include <mem.h>
 #include <stdlib.h>
 
-
-
-
 static int dyn_array_realloc(dyn_array_t *da, size_t capacity)
 {
 	if (capacity == da->capacity) {
@@ -73,7 +70,7 @@ void dyn_array_remove(dyn_array_t *da, size_t index)
 	assert(index < da->size);
 	_dyn_array_unshift(da, index, 1);
 	int rc = dyn_array_reserve(da, da->size);
-        assert(rc == EOK);
+	assert(rc == EOK);
 }
 
 /** Clear dynamic array (empty) */
@@ -95,7 +92,7 @@ void dyn_array_clear_range(dyn_array_t *da, size_t begin, size_t end)
 
 	_dyn_array_unshift(da, begin, end - begin);
 	int rc = dyn_array_reserve(da, da->size);
-        assert(rc == EOK);
+	assert(rc == EOK);
 }
 
 /** Concatenate two arrays
@@ -190,7 +187,6 @@ void _dyn_array_unshift(dyn_array_t *da, size_t index, size_t offset)
 	memmove(dst, src, size);
 	da->size -= offset;
 }
-
 
 /** @}
  */

@@ -64,8 +64,10 @@ struct job {
 
 	/** Jobs that this job is preventing from running */
 	dyn_array_t blocked_jobs;
-	/** No. of jobs that the job is actually blocking (may differ from size
-	 * of blocked_jobs for not fully merged job */
+	/**
+	 * No. of jobs that the job is actually blocking (may differ from size
+	 * of blocked_jobs for not fully merged job
+	 */
 	size_t blocked_jobs_count;
 	/** No. of jobs that must finish before this job */
 	size_t blocking_jobs;

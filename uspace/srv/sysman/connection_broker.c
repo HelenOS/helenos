@@ -95,7 +95,6 @@ static void sysman_exposee_added(ipc_call_t *icall)
 		goto finish;
 	}
 
-
 	retval = ENOTSUP;
 
 finish:
@@ -118,7 +117,7 @@ void sysman_connection_broker(ipc_call_t *icall)
 
 	while (true) {
 		ipc_call_t call;
-		
+
 		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
 			/* Client disconnected */
 			break;
@@ -145,5 +144,3 @@ void sysman_connection_broker(ipc_call_t *icall)
 		}
 	}
 }
-
-

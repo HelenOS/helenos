@@ -62,7 +62,7 @@ typedef struct {
 
 	/** Session to taskman (typically spawn parent) */
 	async_sess_t *session_taskman;
-	
+
 	/** Current working directory. */
 	char *cwd;
 

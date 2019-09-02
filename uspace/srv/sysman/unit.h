@@ -98,19 +98,19 @@ typedef struct {
 #include "unit_tgt.h"
 #include "unit_svc.h"
 
-#define DEFINE_CAST(NAME, TYPE, ENUM_TYPE)                                     \
-	static inline TYPE *CAST_##NAME(unit_t *u)                             \
-	{                                                                      \
-		if (u->type == ENUM_TYPE)                                      \
+#define DEFINE_CAST(NAME, TYPE, ENUM_TYPE)                         \
+	static inline TYPE *CAST_##NAME(unit_t *u)                     \
+	{                                                              \
+		if (u->type == ENUM_TYPE)                                  \
 			return (TYPE *)u;                                      \
-		else                                                           \
+		else                                                       \
 			return NULL;                                           \
-	}                                                                      \
+	}
 
-DEFINE_CAST(CFG, unit_cfg_t, UNIT_CONFIGURATION)
-DEFINE_CAST(MNT, unit_mnt_t, UNIT_MOUNT)
-DEFINE_CAST(TGT, unit_tgt_t, UNIT_TARGET)
-DEFINE_CAST(SVC, unit_svc_t, UNIT_SERVICE)
+DEFINE_CAST(CFG, unit_cfg_t, UNIT_CONFIGURATION);
+DEFINE_CAST(MNT, unit_mnt_t, UNIT_MOUNT);
+DEFINE_CAST(TGT, unit_tgt_t, UNIT_TARGET);
+DEFINE_CAST(SVC, unit_svc_t, UNIT_SERVICE);
 
 struct unit_vmt {
 	size_t size;

@@ -33,4 +33,4 @@ PCUT_INIT
 PCUT_IMPORT(job_closure);
 PCUT_IMPORT(job_queue);
 
-PCUT_MAIN()
+PCUT_MAIN();

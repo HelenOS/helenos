@@ -70,7 +70,4 @@ extern void edge_resolve_output(unit_edge_t *, unit_t *);
 extern int edge_connect(unit_t *, unit_t *);
 extern void edge_remove(unit_edge_t **);
 
-
 #endif
-
-

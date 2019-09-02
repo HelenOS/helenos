@@ -36,7 +36,6 @@
 #include "job_closure.h"
 #include "log.h"
 
-
 /** Struct describes how to traverse units graph */
 struct bfs_ops;
 typedef struct bfs_ops bfs_ops_t;
@@ -51,10 +50,10 @@ struct bfs_ops {
 	 * unit, incoming edge, traversing ops, user data
 	 * return result of visit (error stops further traversal)
 	 */
-	int (* visit)(unit_t *, unit_edge_t *, bfs_ops_t *, void *);
+	int (*visit)(unit_t *, unit_edge_t *, bfs_ops_t *, void *);
 
 	/** Clean units remaining in BFS queue after error */
-	void (* clean)(unit_t *, bfs_ops_t *, void *);
+	void (*clean)(unit_t *, bfs_ops_t *, void *);
 };
 
 /*
@@ -64,7 +63,7 @@ struct bfs_ops {
 static int job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
 {
 	assert(blocking_job->blocked_jobs.size ==
-    	    blocking_job->blocked_jobs_count);
+	    blocking_job->blocked_jobs_count);
 
 	int rc = dyn_array_append(&blocking_job->blocked_jobs, job_t *,
 	    blocked_job);
@@ -202,34 +201,35 @@ static int bfs_traverse_component_internal(unit_t *origin, bfs_ops_t *ops,
 	}
 	unit->bfs_tag = true;
 	list_append(&unit->bfs_link, &units_fifo);
-	
+
 	while (!list_empty(&units_fifo)) {
 		unit = list_get_instance(list_first(&units_fifo), unit_t,
 		    bfs_link);
 		list_remove(&unit->bfs_link);
 
-
-		if (ops->direction == BFS_FORWARD)
-		    list_foreach(unit->edges_out, edges_out, unit_edge_t, e) {
-			unit_t *u = e->output;
-			if (!u->bfs_tag) {
-				u->bfs_tag = true;
-				list_append(&u->bfs_link, &units_fifo);
+		if (ops->direction == BFS_FORWARD) {
+			list_foreach(unit->edges_out, edges_out, unit_edge_t, e) {
+				unit_t *u = e->output;
+				if (!u->bfs_tag) {
+					u->bfs_tag = true;
+					list_append(&u->bfs_link, &units_fifo);
+				}
+				rc = ops->visit(u, e, ops, arg);
+				if (rc != EOK) {
+					goto finish;
+				}
 			}
-			rc = ops->visit(u, e, ops, arg);
-			if (rc != EOK) {
-				goto finish;
-			}
-		} else
-		    list_foreach(unit->edges_in, edges_in, unit_edge_t, e) {
-			unit_t *u = e->input;
-			if (!u->bfs_tag) {
-				u->bfs_tag = true;
-				list_append(&u->bfs_link, &units_fifo);
-			}
-			rc = ops->visit(u, e, ops, arg);
-			if (rc != EOK) {
-				goto finish;
+		} else {
+			list_foreach(unit->edges_in, edges_in, unit_edge_t, e) {
+				unit_t *u = e->input;
+				if (!u->bfs_tag) {
+					u->bfs_tag = true;
+					list_append(&u->bfs_link, &units_fifo);
+				}
+				rc = ops->visit(u, e, ops, arg);
+				if (rc != EOK) {
+					goto finish;
+				}
 			}
 		}
 	}
@@ -242,7 +242,7 @@ finish:
 		ops->clean(u, ops, arg);
 		list_remove(cur_link);
 	}
-	
+
 	return rc;
 }
 
@@ -348,7 +348,6 @@ int job_create_closure(job_t *main_job, job_closure_t *job_closure, int flags)
 		}
 	}
 
-	
 	/* Clean after ourselves (BFS tag jobs) */
 	dyn_array_foreach(*job_closure, job_t *, job_it) {
 		job_t *j = (*job_it)->unit->bfs_data;
@@ -359,4 +358,3 @@ int job_create_closure(job_t *main_job, job_closure_t *job_closure, int flags)
 
 	return rc;
 }
-

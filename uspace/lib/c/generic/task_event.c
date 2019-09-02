@@ -62,7 +62,7 @@ static void taskman_event_conn(ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		
+
 		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
 			/* Hangup, end of game */
 			break;
@@ -98,7 +98,7 @@ errno_t task_register_event_handler(task_event_handler_t handler, bool past_even
 
 	port_id_t port;
 	errno_t rc = async_create_callback_port(exch, INTERFACE_TASKMAN_CB, 0, 0,
-		taskman_event_conn, NULL, &port);
+	    taskman_event_conn, NULL, &port);
 	taskman_exchange_end(exch);
 
 	if (rc != EOK) {

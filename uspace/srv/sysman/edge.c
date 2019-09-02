@@ -117,7 +117,6 @@ void edge_resolve_output(unit_edge_t *e, unit_t *output)
 	e->output_name = NULL;
 }
 
-
 /**
  * @return        EOK on success
  * @return        ENOMEM

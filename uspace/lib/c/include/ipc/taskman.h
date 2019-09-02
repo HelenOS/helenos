@@ -37,7 +37,6 @@
 
 #include <ipc/common.h>
 
-
 typedef enum {
 	TASKMAN_WAIT = IPC_FIRST_USER_METHOD,
 	TASKMAN_RETVAL,

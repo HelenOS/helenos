@@ -106,7 +106,6 @@ static bool units_by_name_ht_key_equal(const void *key, const ht_link_t *item)
 	    hash_table_get_inst(item, unit_t, units_by_name)->name) == 0;
 }
 
-
 static hash_table_ops_t units_by_name_ht_ops = {
 	.hash            = &units_by_name_ht_hash,
 	.key_hash        = &units_by_name_ht_key_hash,
@@ -132,9 +131,11 @@ static void repo_remove_unit_internal(unit_t *u)
 static unit_t *repo_find_unit_by_name_internal(const char *name, bool lock)
 {
 	sysman_log(LVL_DEBUG2, "%s(%s, %i)", __func__, name, lock);
-	if (lock) fibril_rwlock_read_lock(&repo_lock);
+	if (lock)
+		fibril_rwlock_read_lock(&repo_lock);
 	ht_link_t *ht_link = hash_table_find(&units_by_name, (void *)name);
-	if (lock) fibril_rwlock_read_unlock(&repo_lock);
+	if (lock)
+		fibril_rwlock_read_unlock(&repo_lock);
 
 	if (ht_link != NULL) {
 		return hash_table_get_inst(ht_link, unit_t, units_by_name);
@@ -176,7 +177,8 @@ int repo_remove_unit(unit_t *unit)
 	return EOK; /* We could check that unit is present in repo etc... */
 }
 
-void repo_begin_update(void) {
+void repo_begin_update(void)
+{
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 	fibril_rwlock_write_lock(&repo_lock);
 }
