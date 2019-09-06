@@ -193,11 +193,11 @@ SOURCES = \
 
 TEST_SOURCES = \
 	test/adt/circ_buf.c \
+	test/adt/dyn_array.c \
 	test/adt/odict.c \
 	test/cap.c \
 	test/casting.c \
 	test/double_to_str.c \
-	test/dyn_array.c \
 	test/fibril/timer.c \
 	test/getopt.c \
 	test/gsort.c \
