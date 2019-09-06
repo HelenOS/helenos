@@ -32,7 +32,7 @@
 #include "job_closure.h"
 
 extern void job_queue_init(void);
-extern int job_queue_add_closure(job_closure_t *);
+extern errno_t job_queue_add_closure(job_closure_t *);
 extern void job_queue_process(void);
 
 #endif

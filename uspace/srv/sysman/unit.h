@@ -119,11 +119,11 @@ struct unit_vmt {
 
 	void (*destroy)(unit_t *);
 
-	int (*load)(unit_t *, ini_configuration_t *, text_parse_t *);
+	errno_t (*load)(unit_t *, ini_configuration_t *, text_parse_t *);
 
-	int (*start)(unit_t *);
+	errno_t (*start)(unit_t *);
 
-	int (*stop)(unit_t *);
+	errno_t (*stop)(unit_t *);
 
 	void (*exposee_created)(unit_t *);
 
@@ -149,9 +149,9 @@ extern unit_vmt_t *unit_type_vmts[];
 extern unit_t *unit_create(unit_type_t);
 extern void unit_destroy(unit_t **);
 
-extern int unit_load(unit_t *, ini_configuration_t *, text_parse_t *);
-extern int unit_start(unit_t *);
-extern int unit_stop(unit_t *);
+extern errno_t unit_load(unit_t *, ini_configuration_t *, text_parse_t *);
+extern errno_t unit_start(unit_t *);
+extern errno_t unit_stop(unit_t *);
 extern void unit_exposee_created(unit_t *);
 extern void unit_fail(unit_t *);
 

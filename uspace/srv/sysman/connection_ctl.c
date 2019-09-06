@@ -69,7 +69,7 @@ static void sysman_unit_handle(ipc_call_t *icall)
 	char *unit_name = NULL;
 	sysarg_t retval;
 
-	int rc = async_data_write_accept((void **) &unit_name, true,
+	errno_t rc = async_data_write_accept((void **) &unit_name, true,
 	    0, 0, 0, NULL);
 	if (rc != EOK) {
 		retval = rc;
@@ -96,7 +96,7 @@ static void sysman_unit_start_by_name(ipc_call_t *icall)
 	char *unit_name = NULL;
 	sysarg_t retval;
 
-	int rc = async_data_write_accept((void **) &unit_name, true,
+	errno_t rc = async_data_write_accept((void **) &unit_name, true,
 	    0, 0, 0, NULL);
 	if (rc != EOK) {
 		retval = rc;
@@ -185,7 +185,7 @@ static void sysman_unit_stop(ipc_call_t *icall)
 	sysman_unit_operation(icall, STATE_STOPPED);
 }
 
-static int fill_handles_buffer(unit_handle_t *buffer, size_t size,
+static errno_t fill_handles_buffer(unit_handle_t *buffer, size_t size,
     size_t *act_size)
 {
 	if (size % sizeof(unit_handle_t) != 0) {
@@ -212,7 +212,7 @@ static void sysman_get_units(ipc_call_t *icall)
 	ipc_call_t call;
 	size_t size;
 	size_t act_size;
-	int rc;
+	errno_t rc;
 
 	if (!async_data_read_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);

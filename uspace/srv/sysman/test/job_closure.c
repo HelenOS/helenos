@@ -113,7 +113,7 @@ PCUT_TEST_BEFORE
 	mock_set_units_state(STATE_STOPPED);
 
 	dyn_array_initialize(&exp_closure, job_t *);
-	int rc = dyn_array_reserve(&exp_closure, MAX_TYPES * MAX_UNITS);
+	errno_t rc = dyn_array_reserve(&exp_closure, MAX_TYPES * MAX_UNITS);
 	assert(rc == EOK);
 
 	dyn_array_initialize(&act_closure, job_t *);
@@ -152,7 +152,7 @@ PCUT_TEST(job_closure_linear)
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);
 
-	int rc = job_create_closure(main_job, &act_closure, 0);
+	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
@@ -184,7 +184,7 @@ PCUT_TEST(job_closure_fork)
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);
 
-	int rc = job_create_closure(main_job, &act_closure, 0);
+	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
@@ -218,7 +218,7 @@ PCUT_TEST(job_closure_triangle)
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);
 
-	int rc = job_create_closure(main_job, &act_closure, 0);
+	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
@@ -265,7 +265,7 @@ PCUT_TEST(job_closure_isolate_linears)
 	job_t *main_job = job_create(u1, STATE_STARTED);
 	assert(main_job);
 
-	int rc = job_create_closure(main_job, &act_closure, CLOSURE_ISOLATE);
+	errno_t rc = job_create_closure(main_job, &act_closure, CLOSURE_ISOLATE);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
 	dyn_array_append(&exp_closure, job_t *, dummy_job(u0, STATE_STOPPED));

@@ -59,7 +59,7 @@ static void sysman_main_exposee_added(ipc_call_t *icall)
 	char *unit_name = NULL;
 	sysarg_t retval;
 
-	int rc = async_data_write_accept((void **) &unit_name, true,
+	errno_t rc = async_data_write_accept((void **) &unit_name, true,
 	    0, 0, 0, NULL);
 	if (rc != EOK) {
 		retval = rc;
@@ -88,7 +88,7 @@ static void sysman_exposee_added(ipc_call_t *icall)
 	sysarg_t retval;
 
 	/* Just accept data and further not supported. */
-	int rc = async_data_write_accept((void **) &exposee, true,
+	errno_t rc = async_data_write_accept((void **) &exposee, true,
 	    0, 0, 0, NULL);
 	if (rc != EOK) {
 		retval = rc;

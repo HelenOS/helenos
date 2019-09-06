@@ -43,7 +43,7 @@
 #include <mem.h>
 #include <stdlib.h>
 
-static int dyn_array_realloc(dyn_array_t *da, size_t capacity)
+static errno_t dyn_array_realloc(dyn_array_t *da, size_t capacity)
 {
 	if (capacity == da->capacity) {
 		return EOK;
@@ -69,7 +69,7 @@ void dyn_array_remove(dyn_array_t *da, size_t index)
 {
 	assert(index < da->size);
 	_dyn_array_unshift(da, index, 1);
-	int rc = dyn_array_reserve(da, da->size);
+	errno_t rc = dyn_array_reserve(da, da->size);
 	assert(rc == EOK);
 }
 
@@ -91,7 +91,7 @@ void dyn_array_clear_range(dyn_array_t *da, size_t begin, size_t end)
 	assert(end <= da->size);
 
 	_dyn_array_unshift(da, begin, end - begin);
-	int rc = dyn_array_reserve(da, da->size);
+	errno_t rc = dyn_array_reserve(da, da->size);
 	assert(rc == EOK);
 }
 
@@ -103,11 +103,11 @@ void dyn_array_clear_range(dyn_array_t *da, size_t begin, size_t end)
  * @return EOK on success
  * @return ENOMEM when allocation fails
  */
-int dyn_array_concat(dyn_array_t *da1, dyn_array_t *da2)
+errno_t dyn_array_concat(dyn_array_t *da1, dyn_array_t *da2)
 {
 	assert(da1->_item_size == da2->_item_size);
 
-	int rc = dyn_array_reserve(da1, da1->size + da2->size);
+	errno_t rc = dyn_array_reserve(da1, da1->size + da2->size);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -128,7 +128,7 @@ int dyn_array_concat(dyn_array_t *da1, dyn_array_t *da2)
  * @return EOK
  * @return ENOMEM
  */
-int dyn_array_reserve(dyn_array_t *da, size_t capacity)
+errno_t dyn_array_reserve(dyn_array_t *da, size_t capacity)
 {
 	const size_t factor = 2;
 	size_t new_capacity;

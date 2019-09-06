@@ -64,10 +64,10 @@ typedef struct {
 extern unit_edge_t *edge_create(void);
 extern void edge_destroy(unit_edge_t **);
 
-extern int edge_sprout_out(unit_t *, const char *);
+extern errno_t edge_sprout_out(unit_t *, const char *);
 extern void edge_resolve_output(unit_edge_t *, unit_t *);
 
-extern int edge_connect(unit_t *, unit_t *);
+extern errno_t edge_connect(unit_t *, unit_t *);
 extern void edge_remove(unit_edge_t **);
 
 #endif

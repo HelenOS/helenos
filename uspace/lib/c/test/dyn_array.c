@@ -40,7 +40,7 @@ static dyn_array_t da;
 PCUT_TEST_BEFORE
 {
 	dyn_array_initialize(&da, data_t);
-	int rc = dyn_array_reserve(&da, 3);
+	errno_t rc = dyn_array_reserve(&da, 3);
 	assert(rc == EOK);
 }
 

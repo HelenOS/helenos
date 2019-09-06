@@ -35,6 +35,7 @@
 #ifndef LIBC_DYN_ARRAY_H_
 #define LIBC_DYN_ARRAY_H_
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -82,7 +83,7 @@ typedef struct {
 ({                                                                             \
  	size_t _index = (index);                                               \
  	dyn_array_t *_da = (dyn_array);                                        \
-	int rc = dyn_array_reserve(_da, _da->size + 1);                        \
+	errno_t rc = dyn_array_reserve(_da, _da->size + 1);                        \
 	if (!rc) {                                                             \
 		_dyn_array_shift(_da, _index, 1);                              \
 	        dyn_array_at(_da, type, _index) = (value);                     \
@@ -133,8 +134,8 @@ extern void dyn_array_destroy(dyn_array_t *);
 extern void dyn_array_remove(dyn_array_t *, size_t);
 void dyn_array_clear(dyn_array_t *);
 void dyn_array_clear_range(dyn_array_t *, size_t, size_t);
-extern int dyn_array_concat(dyn_array_t *, dyn_array_t *);
-extern int dyn_array_reserve(dyn_array_t *, size_t);
+extern errno_t dyn_array_concat(dyn_array_t *, dyn_array_t *);
+extern errno_t dyn_array_reserve(dyn_array_t *, size_t);
 
 extern void _dyn_array_initialize(dyn_array_t *, size_t);
 extern void _dyn_array_shift(dyn_array_t *, size_t, size_t);

@@ -197,7 +197,7 @@ void job_run(job_t *job)
 		goto fail;
 	}
 
-	int rc;
+	errno_t rc;
 	// TODO put here similar evaluation as in job_check
 	//      goal is to have job_run "idempotent"
 	switch (job->target_state) {

@@ -87,7 +87,7 @@ static unit_svc_t *sm_task_create_service(task_id_t tid)
 {
 	unit_t *u_svc = unit_create(UNIT_SERVICE);
 	bool in_repo_update = false;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	if (u_svc == NULL) {
 		goto fail;
@@ -138,7 +138,7 @@ fail:
 static void sm_task_delete_service(unit_svc_t *u_svc)
 {
 	repo_begin_update();
-	int rc = repo_remove_unit(&u_svc->unit);
+	errno_t rc = repo_remove_unit(&u_svc->unit);
 	if (rc != EOK) {
 		sysman_log(LVL_WARN, "Can't remove unit %s (%i).",
 		    unit_name(&u_svc->unit), rc);

@@ -150,7 +150,7 @@ void repo_init(void)
 	hash_table_create(&units_by_handle, 0, 0, &units_by_handle_ht_ops);
 }
 
-int repo_add_unit(unit_t *unit)
+errno_t repo_add_unit(unit_t *unit)
 {
 	assert(unit);
 	assert(unit->repo_state == REPO_EMBRYO);
@@ -171,7 +171,7 @@ int repo_add_unit(unit_t *unit)
 	}
 }
 
-int repo_remove_unit(unit_t *unit)
+errno_t repo_remove_unit(unit_t *unit)
 {
 	unit->repo_state = REPO_ZOMBIE;
 	return EOK; /* We could check that unit is present in repo etc... */
@@ -282,7 +282,7 @@ static bool repo_resolve_unit(ht_link_t *ht_link, void *arg)
  * @return EOK      on success
  * @return ENOENT  when one or more resolution fails, information is logged
  */
-int repo_resolve_references(void)
+errno_t repo_resolve_references(void)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
 

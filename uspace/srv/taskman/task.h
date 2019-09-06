@@ -76,7 +76,7 @@ typedef bool (*task_walker_t)(task_t *, void *);
 
 extern fibril_rwlock_t task_hash_table_lock;
 
-extern int tasks_init(void);
+extern errno_t tasks_init(void);
 
 extern task_t *task_get_by_id(task_id_t);
 
@@ -84,7 +84,7 @@ extern void task_foreach(task_walker_t, void *);
 
 extern void task_remove(task_t **);
 
-extern int task_intro(task_id_t);
+extern errno_t task_intro(task_id_t);
 
 #endif
 

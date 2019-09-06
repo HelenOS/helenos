@@ -374,7 +374,7 @@ void sysman_event_job_process(void *data)
 	}
 	free(job_args);
 
-	int rc = job_create_closure(job, &job_closure, flags);
+	errno_t rc = job_create_closure(job, &job_closure, flags);
 	if (rc != EOK) {
 		sysman_log(LVL_ERROR, "Cannot create closure for job %p (%i)",
 		    job, rc);

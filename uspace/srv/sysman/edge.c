@@ -76,9 +76,9 @@ void edge_destroy(unit_edge_t **e_ptr)
 	*e_ptr = NULL;
 }
 
-int edge_sprout_out(unit_t *input, const char *output_name)
+errno_t edge_sprout_out(unit_t *input, const char *output_name)
 {
-	int rc;
+	errno_t rc;
 	unit_edge_t *e = edge_create();
 
 	if (e == NULL) {
@@ -122,7 +122,7 @@ void edge_resolve_output(unit_edge_t *e, unit_t *output)
  * @return        ENOMEM
  * @return        EEXIST
  */
-int edge_connect(unit_t *input, unit_t *output)
+errno_t edge_connect(unit_t *input, unit_t *output)
 {
 	if (edge_extract_internal(input, output)) {
 		return EEXIST;

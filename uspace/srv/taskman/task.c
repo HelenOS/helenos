@@ -118,7 +118,7 @@ static void task_destroy(task_t **t_ptr)
 	*t_ptr = NULL;
 }
 
-int tasks_init(void)
+errno_t tasks_init(void)
 {
 	if (!hash_table_create(&task_hash_table, 0, 0, &task_hash_table_ops)) {
 		printf(NAME ": No memory available for tasks\n");
@@ -190,9 +190,9 @@ void task_remove(task_t **ptr_t)
 	*ptr_t = NULL;
 }
 
-int task_intro(task_id_t id)
+errno_t task_intro(task_id_t id)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	fibril_rwlock_write_lock(&task_hash_table_lock);
 

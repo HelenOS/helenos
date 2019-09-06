@@ -44,7 +44,7 @@ static void unit_tgt_destroy(unit_t *unit)
 	/* Nothing more to do */
 }
 
-static int unit_tgt_load(unit_t *unit, ini_configuration_t *ini_conf,
+static errno_t unit_tgt_load(unit_t *unit, ini_configuration_t *ini_conf,
     text_parse_t *text_parse)
 {
 	unit_tgt_t *u_tgt = CAST_TGT(unit);
@@ -53,7 +53,7 @@ static int unit_tgt_load(unit_t *unit, ini_configuration_t *ini_conf,
 	return EOK;
 }
 
-static int unit_tgt_start(unit_t *unit)
+static errno_t unit_tgt_start(unit_t *unit)
 {
 	unit_tgt_t *u_tgt = CAST_TGT(unit);
 	assert(u_tgt);
@@ -62,7 +62,7 @@ static int unit_tgt_start(unit_t *unit)
 	return EOK;
 }
 
-static int unit_tgt_stop(unit_t *unit)
+static errno_t unit_tgt_stop(unit_t *unit)
 {
 	unit_tgt_t *u_tgt = CAST_TGT(unit);
 	assert(u_tgt);

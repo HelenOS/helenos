@@ -104,12 +104,12 @@ void unit_destroy(unit_t **unit_ptr)
 	unit_ptr = NULL;
 }
 
-int unit_load(unit_t *unit, ini_configuration_t *ini_conf,
+errno_t unit_load(unit_t *unit, ini_configuration_t *ini_conf,
     text_parse_t *text_parse)
 {
 	sysman_log(LVL_DEBUG, "%s('%s')", __func__, unit_name(unit));
 
-	int rc = EOK;
+	errno_t rc = EOK;
 	ini_section_t *unit_section = ini_get_section(ini_conf, section_name);
 	if (unit_section) {
 		rc = config_load_ini_section(unit_configuration,
@@ -134,7 +134,7 @@ int unit_load(unit_t *unit, ini_configuration_t *ini_conf,
  *   - STATE_STARTING, (succesful asynchronous start request)
  *   - STATE_FAILED.  (unit state changed and error occured)
  */
-int unit_start(unit_t *unit)
+errno_t unit_start(unit_t *unit)
 {
 	sysman_log(LVL_NOTE, "%s('%s')", __func__, unit_name(unit));
 	return UNIT_VMT(unit)->start(unit);
@@ -144,7 +144,7 @@ int unit_start(unit_t *unit)
  *
  * Same semantics like for unit_start applies.
  */
-int unit_stop(unit_t *unit)
+errno_t unit_stop(unit_t *unit)
 {
 	sysman_log(LVL_NOTE, "%s('%s')", __func__, unit_name(unit));
 	return UNIT_VMT(unit)->stop(unit);

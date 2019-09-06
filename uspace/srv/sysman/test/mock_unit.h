@@ -47,8 +47,8 @@ extern void mock_destroy_units(void);
 extern void mock_set_units_state(unit_state_t state);
 extern void mock_add_edge(unit_t *, unit_t *);
 
-extern int mock_unit_vmt_start_sync(unit_t *);
-extern int mock_unit_vmt_start_async(unit_t *);
+extern errno_t mock_unit_vmt_start_sync(unit_t *);
+extern errno_t mock_unit_vmt_start_async(unit_t *);
 extern void mock_unit_vmt_exposee_created(unit_t *);
 
 #endif

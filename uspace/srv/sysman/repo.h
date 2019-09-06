@@ -63,8 +63,8 @@ extern list_t units_;
 
 extern void repo_init(void);
 
-extern int repo_add_unit(unit_t *);
-extern int repo_remove_unit(unit_t *);
+extern errno_t repo_add_unit(unit_t *);
+extern errno_t repo_remove_unit(unit_t *);
 
 extern void repo_begin_update(void);
 
@@ -72,7 +72,7 @@ extern void repo_commit(void);
 
 extern void repo_rollback(void);
 
-extern int repo_resolve_references(void);
+extern errno_t repo_resolve_references(void);
 
 extern unit_t *repo_find_unit_by_name(const char *);
 extern unit_t *repo_find_unit_by_name_unsafe(const char *);

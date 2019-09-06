@@ -50,7 +50,7 @@ struct bfs_ops {
 	 * unit, incoming edge, traversing ops, user data
 	 * return result of visit (error stops further traversal)
 	 */
-	int (*visit)(unit_t *, unit_edge_t *, bfs_ops_t *, void *);
+	errno_t (*visit)(unit_t *, unit_edge_t *, bfs_ops_t *, void *);
 
 	/** Clean units remaining in BFS queue after error */
 	void (*clean)(unit_t *, bfs_ops_t *, void *);
@@ -60,12 +60,12 @@ struct bfs_ops {
  * Static functions
  */
 
-static int job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
+static errno_t job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
 {
 	assert(blocking_job->blocked_jobs.size ==
 	    blocking_job->blocked_jobs_count);
 
-	int rc = dyn_array_append(&blocking_job->blocked_jobs, job_t *,
+	errno_t rc = dyn_array_append(&blocking_job->blocked_jobs, job_t *,
 	    blocked_job);
 	if (rc != EOK) {
 		return ENOMEM;
@@ -85,10 +85,10 @@ static int job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
  *
  * @return EOK on success
  */
-static int visit_propagate_job(unit_t *u, unit_edge_t *e, bfs_ops_t *ops,
+static errno_t visit_propagate_job(unit_t *u, unit_edge_t *e, bfs_ops_t *ops,
     void *arg)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	job_t *created_job = NULL;
 	job_closure_t *closure = arg;
 
@@ -137,9 +137,9 @@ finish:
 	return rc;
 }
 
-static int visit_isolate(unit_t *u, unit_edge_t *e, bfs_ops_t *ops, void *arg)
+static errno_t visit_isolate(unit_t *u, unit_edge_t *e, bfs_ops_t *ops, void *arg)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	job_t *created_job = NULL;
 	job_closure_t *closure = arg;
 
@@ -186,10 +186,10 @@ static void traverse_clean(unit_t *u, bfs_ops_t *ops, void *arg)
 	u->bfs_data = NULL;
 }
 
-static int bfs_traverse_component_internal(unit_t *origin, bfs_ops_t *ops,
+static errno_t bfs_traverse_component_internal(unit_t *origin, bfs_ops_t *ops,
     void *arg)
 {
-	int rc;
+	errno_t rc;
 	list_t units_fifo;
 	list_initialize(&units_fifo);
 
@@ -246,13 +246,13 @@ finish:
 	return rc;
 }
 
-static int bfs_traverse_component(unit_t *origin, bfs_ops_t *ops, void *arg)
+static errno_t bfs_traverse_component(unit_t *origin, bfs_ops_t *ops, void *arg)
 {
 	/* Check invariant */
 	repo_foreach(u) {
 		assert(u->bfs_tag == false);
 	}
-	int rc = bfs_traverse_component_internal(origin, ops, arg);
+	errno_t rc = bfs_traverse_component_internal(origin, ops, arg);
 
 	/* Clean after ourselves (BFS tag jobs) */
 	repo_foreach(u) {
@@ -261,13 +261,13 @@ static int bfs_traverse_component(unit_t *origin, bfs_ops_t *ops, void *arg)
 	return rc;
 }
 
-static int bfs_traverse_all(bfs_ops_t *ops, void *arg)
+static errno_t bfs_traverse_all(bfs_ops_t *ops, void *arg)
 {
 	/* Check invariant */
 	repo_foreach(u) {
 		assert(u->bfs_tag == false);
 	}
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	repo_foreach(origin) {
 		sysman_log(LVL_DEBUG2, "%s: %p, %i", __func__, origin, origin->bfs_tag);
@@ -298,7 +298,7 @@ finish:
  *
  * @return EOK on success otherwise propagated error
  */
-int job_create_closure(job_t *main_job, job_closure_t *job_closure, int flags)
+errno_t job_create_closure(job_t *main_job, job_closure_t *job_closure, int flags)
 {
 	sysman_log(LVL_DEBUG2, "%s(%s)", __func__, unit_name(main_job->unit));
 
@@ -307,7 +307,7 @@ int job_create_closure(job_t *main_job, job_closure_t *job_closure, int flags)
 		return ENOTSUP;
 	}
 
-	int rc = dyn_array_append(job_closure, job_t *, main_job);
+	errno_t rc = dyn_array_append(job_closure, job_t *, main_job);
 	if (rc != EOK) {
 		return rc;
 	}

@@ -77,7 +77,7 @@ void mock_set_units_state(unit_state_t state)
 
 void mock_add_edge(unit_t *input, unit_t *output)
 {
-	int rc = edge_connect(input, output);
+	errno_t rc = edge_connect(input, output);
 	assert(rc == EOK);
 
 	link_t *link = list_last(&input->edges_out);
@@ -86,13 +86,13 @@ void mock_add_edge(unit_t *input, unit_t *output)
 	e->commited = true;
 }
 
-int mock_unit_vmt_start_sync(unit_t *unit)
+errno_t mock_unit_vmt_start_sync(unit_t *unit)
 {
 	unit->state = STATE_STARTED;
 	return EOK;
 }
 
-int mock_unit_vmt_start_async(unit_t *unit)
+errno_t mock_unit_vmt_start_async(unit_t *unit)
 {
 	unit->state = STATE_STARTING;
 	return EOK;

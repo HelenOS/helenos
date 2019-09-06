@@ -102,14 +102,14 @@ static inline void job_del_refs(job_t **job_ptr, size_t refs)
  * @return EOK on success
  * @return error code on fail
  */
-static int job_pre_merge(job_t *trunk, job_t *other)
+static errno_t job_pre_merge(job_t *trunk, job_t *other)
 {
 	assert(trunk->unit == other->unit);
 	assert(trunk->target_state == other->target_state);
 	assert(trunk->blocked_jobs.size == trunk->blocked_jobs_count);
 	assert(other->merged_into == NULL);
 
-	int rc = dyn_array_concat(&trunk->blocked_jobs, &other->blocked_jobs);
+	errno_t rc = dyn_array_concat(&trunk->blocked_jobs, &other->blocked_jobs);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -133,7 +133,7 @@ static void job_finish_merge(job_t *trunk, job_t *other)
 	 * allocation is done in job_pre_merge.
 	 */
 	size_t observers_refs = sysman_observers_count(other);
-	int rc = sysman_move_observers(other, trunk);
+	errno_t rc = sysman_move_observers(other, trunk);
 	assert(rc == EOK);
 
 	/* When we move observers, don't forget to pass their references too. */
@@ -165,10 +165,10 @@ void job_queue_init()
  * @return EOK on success
  * @return EBUSY when any job in closure is conflicting
  */
-int job_queue_add_closure(job_closure_t *closure)
+errno_t job_queue_add_closure(job_closure_t *closure)
 {
 	bool has_error = false;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	/* Check consistency with existing jobs. */
 	dyn_array_foreach(*closure, job_t *, job_it) {

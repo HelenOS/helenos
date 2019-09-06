@@ -37,6 +37,6 @@
 
 typedef dyn_array_t job_closure_t;
 
-extern int job_create_closure(job_t *, job_closure_t *, int);
+extern errno_t job_create_closure(job_t *, job_closure_t *, int);
 
 #endif
