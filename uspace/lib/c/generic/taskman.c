@@ -59,6 +59,8 @@ async_exch_t *taskman_exchange_begin(void)
 	assert(session_taskman);
 
 	async_exch_t *exch = async_exchange_begin(session_taskman);
+	assert(exch);
+
 	return exch;
 }
 
@@ -96,14 +98,11 @@ async_sess_t *taskman_connect(void)
 /** Ask taskman to pass/share its NS */
 async_sess_t *taskman_session_ns(void)
 {
-	assert(session_taskman);
-
-	async_exch_t *exch = async_exchange_begin(session_taskman);
-	assert(exch);
+	async_exch_t *exch = taskman_exchange_begin();
 
 	async_sess_t *sess = async_connect_me_to(exch, INTERFACE_NS,
 	    TASKMAN_CONNECT_TO_NS, 0);
-	async_exchange_end(exch);
+	taskman_exchange_end(exch);
 
 	return sess;
 }
@@ -111,12 +110,10 @@ async_sess_t *taskman_session_ns(void)
 /** Ask taskman to connect to (a new) loader instance */
 async_sess_t *taskman_session_loader(void)
 {
-	assert(session_taskman);
-
-	async_exch_t *exch = async_exchange_begin(session_taskman);
+	async_exch_t *exch = taskman_exchange_begin();
 	async_sess_t *sess = async_connect_me_to(exch, INTERFACE_LOADER,
 	    TASKMAN_CONNECT_TO_LOADER, 0);
-	async_exchange_end(exch);
+	taskman_exchange_end(exch);
 
 	return sess;
 }
@@ -136,11 +133,9 @@ async_sess_t *taskman_get_session(void)
  */
 errno_t taskman_intro_loader(void)
 {
-	assert(session_taskman);
-
-	async_exch_t *exch = async_exchange_begin(session_taskman);
+	async_exch_t *exch = taskman_exchange_begin();
 	errno_t rc = async_connect_to_me(exch, INTERFACE_LOADER, TASKMAN_LOADER_CALLBACK, 0);
-	async_exchange_end(exch);
+	taskman_exchange_end(exch);
 
 	return rc;
 }
@@ -151,9 +146,7 @@ errno_t taskman_intro_loader(void)
  */
 errno_t taskman_intro_ns(void)
 {
-	assert(session_taskman);
-
-	async_exch_t *exch = async_exchange_begin(session_taskman);
+	async_exch_t *exch = taskman_exchange_begin();
 	aid_t req = async_send_0(exch, TASKMAN_I_AM_NS, NULL);
 
 	errno_t rc = async_connect_to_me(exch, INTERFACE_NS, 0, 0);
