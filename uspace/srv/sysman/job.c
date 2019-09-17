@@ -69,7 +69,7 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 	job->target_state = target_state;
 	job->unit = u;
 
-	dyn_array_initialize(&job->blocked_jobs, job_t *);
+	array_initialize(&job->blocked_jobs, job_t *);
 	job->blocking_jobs = 0;
 	job->blocking_job_failed = false;
 
@@ -119,10 +119,10 @@ static void job_destroy(job_t **job_ptr)
 
 	assert(!link_used(&job->job_queue));
 
-	dyn_array_foreach(job->blocked_jobs, job_t *, job_it) {
+	array_foreach(job->blocked_jobs, job_t *, job_it) {
 		job_del_ref(&(*job_it));
 	}
-	dyn_array_destroy(&job->blocked_jobs);
+	array_destroy(&job->blocked_jobs);
 
 	free(job);
 	*job_ptr = NULL;
@@ -256,10 +256,10 @@ void job_finish(job_t *job)
 
 	/* First remove references, then clear the array */
 	assert(job->blocked_jobs.size == job->blocked_jobs_count);
-	dyn_array_foreach(job->blocked_jobs, job_t *, job_it) {
+	array_foreach(job->blocked_jobs, job_t *, job_it) {
 		job_unblock(*job_it, job);
 	}
-	dyn_array_clear(&job->blocked_jobs);
+	array_clear(&job->blocked_jobs);
 
 	/* Add reference for event handler */
 	if (job->unit->job == NULL) {

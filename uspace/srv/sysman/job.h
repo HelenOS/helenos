@@ -29,7 +29,7 @@
 #ifndef SYSMAN_JOB_H
 #define SYSMAN_JOB_H
 
-#include <adt/dyn_array.h>
+#include <adt/array.h>
 #include <adt/list.h>
 #include <stdatomic.h>
 #include <stdbool.h>
@@ -63,7 +63,7 @@ struct job {
 	unit_t *unit;
 
 	/** Jobs that this job is preventing from running */
-	dyn_array_t blocked_jobs;
+	array_t blocked_jobs;
 	/**
 	 * No. of jobs that the job is actually blocking (may differ from size
 	 * of blocked_jobs for not fully merged job

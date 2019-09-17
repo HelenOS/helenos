@@ -33,17 +33,17 @@
  *
  * Implementation of dynamic array that grows or shrinks based upon no. of
  * items it contains. Non-negligible part of implementation is in @ref
- * dyn_array.h because of type genericity.
+ * array.h because of type genericity.
  */
 
 #include <assert.h>
 #include <errno.h>
-#include <adt/dyn_array.h>
+#include <adt/array.h>
 #include <macros.h>
 #include <mem.h>
 #include <stdlib.h>
 
-static errno_t dyn_array_realloc(dyn_array_t *da, size_t capacity)
+static errno_t array_realloc(array_t *da, size_t capacity)
 {
 	if (capacity == da->capacity) {
 		return EOK;
@@ -57,24 +57,24 @@ static errno_t dyn_array_realloc(dyn_array_t *da, size_t capacity)
 	return (new_data == NULL) ? ENOMEM : EOK;
 }
 
-void dyn_array_destroy(dyn_array_t *da)
+void array_destroy(array_t *da)
 {
-	dyn_array_clear(da);
+	array_clear(da);
 	free(da->_data);
 	da->capacity = 0;
 }
 
 /** Remove item at given position, shift rest of array */
-void dyn_array_remove(dyn_array_t *da, size_t index)
+void array_remove(array_t *da, size_t index)
 {
 	assert(index < da->size);
-	_dyn_array_unshift(da, index, 1);
-	errno_t rc = dyn_array_reserve(da, da->size);
+	_array_unshift(da, index, 1);
+	errno_t rc = array_reserve(da, da->size);
 	assert(rc == EOK);
 }
 
 /** Clear dynamic array (empty) */
-void dyn_array_clear(dyn_array_t *da)
+void array_clear(array_t *da)
 {
 	da->size = 0;
 }
@@ -85,13 +85,13 @@ void dyn_array_clear(dyn_array_t *da)
  * @param[in]      begin  index of first item to remove
  * @param[in]      end    index behind last item to remove
  */
-void dyn_array_clear_range(dyn_array_t *da, size_t begin, size_t end)
+void array_clear_range(array_t *da, size_t begin, size_t end)
 {
 	assert(begin < da->size);
 	assert(end <= da->size);
 
-	_dyn_array_unshift(da, begin, end - begin);
-	errno_t rc = dyn_array_reserve(da, da->size);
+	_array_unshift(da, begin, end - begin);
+	errno_t rc = array_reserve(da, da->size);
 	assert(rc == EOK);
 }
 
@@ -103,11 +103,11 @@ void dyn_array_clear_range(dyn_array_t *da, size_t begin, size_t end)
  * @return EOK on success
  * @return ENOMEM when allocation fails
  */
-errno_t dyn_array_concat(dyn_array_t *da1, dyn_array_t *da2)
+errno_t array_concat(array_t *da1, array_t *da2)
 {
 	assert(da1->_item_size == da2->_item_size);
 
-	errno_t rc = dyn_array_reserve(da1, da1->size + da2->size);
+	errno_t rc = array_reserve(da1, da1->size + da2->size);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -128,7 +128,7 @@ errno_t dyn_array_concat(dyn_array_t *da1, dyn_array_t *da2)
  * @return EOK
  * @return ENOMEM
  */
-errno_t dyn_array_reserve(dyn_array_t *da, size_t capacity)
+errno_t array_reserve(array_t *da, size_t capacity)
 {
 	const size_t factor = 2;
 	size_t new_capacity;
@@ -140,10 +140,10 @@ errno_t dyn_array_reserve(dyn_array_t *da, size_t capacity)
 		new_capacity = capacity;
 	}
 
-	return dyn_array_realloc(da, new_capacity);
+	return array_realloc(da, new_capacity);
 }
 
-void _dyn_array_initialize(dyn_array_t *da, size_t item_size)
+void _array_initialize(array_t *da, size_t item_size)
 {
 	da->_item_size = item_size;
 	da->_data = NULL;
@@ -160,7 +160,7 @@ void _dyn_array_initialize(dyn_array_t *da, size_t item_size)
  * @param[in]  index   first item shifted
  * @param[in]  offset  shift in no. of items
  */
-void _dyn_array_shift(dyn_array_t *da, size_t index, size_t offset)
+void _array_shift(array_t *da, size_t index, size_t offset)
 {
 	assert(da->capacity >= da->size + offset);
 
@@ -179,7 +179,7 @@ void _dyn_array_shift(dyn_array_t *da, size_t index, size_t offset)
  * @param[in]  index   first item unshifted (removed)
  * @param[in]  offset  shift in no. of items
  */
-void _dyn_array_unshift(dyn_array_t *da, size_t index, size_t offset)
+void _array_unshift(array_t *da, size_t index, size_t offset)
 {
 	void *src = da->_data + (index + offset) * da->_item_size;
 	void *dst = da->_data + index * da->_item_size;

@@ -65,7 +65,7 @@ static errno_t job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
 	assert(blocking_job->blocked_jobs.size ==
 	    blocking_job->blocked_jobs_count);
 
-	errno_t rc = dyn_array_append(&blocking_job->blocked_jobs, job_t *,
+	errno_t rc = array_append(&blocking_job->blocked_jobs, job_t *,
 	    blocked_job);
 	if (rc != EOK) {
 		return ENOMEM;
@@ -96,7 +96,7 @@ static errno_t visit_propagate_job(unit_t *u, unit_edge_t *e, bfs_ops_t *ops,
 		if (u->bfs_data != NULL) {
 			goto finish;
 		}
-		job_t *first_job = dyn_array_last(closure, job_t *);
+		job_t *first_job = array_last(closure, job_t *);
 
 		job_add_ref(first_job);
 		u->bfs_data = first_job;
@@ -118,7 +118,7 @@ static errno_t visit_propagate_job(unit_t *u, unit_edge_t *e, bfs_ops_t *ops,
 		}
 
 		/* Pass job reference to closure and add one for unit */
-		rc = dyn_array_append(closure, job_t *, created_job);
+		rc = array_append(closure, job_t *, created_job);
 		if (rc != EOK) {
 			goto finish;
 		}
@@ -164,7 +164,7 @@ static errno_t visit_isolate(unit_t *u, unit_edge_t *e, bfs_ops_t *ops, void *ar
 		}
 
 		/* Pass job reference to closure and add one for unit */
-		rc = dyn_array_append(closure, job_t *, created_job);
+		rc = array_append(closure, job_t *, created_job);
 		if (rc != EOK) {
 			goto finish;
 		}
@@ -307,7 +307,7 @@ errno_t job_create_closure(job_t *main_job, job_closure_t *job_closure, int flag
 		return ENOTSUP;
 	}
 
-	errno_t rc = dyn_array_append(job_closure, job_t *, main_job);
+	errno_t rc = array_append(job_closure, job_t *, main_job);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -342,14 +342,14 @@ errno_t job_create_closure(job_t *main_job, job_closure_t *job_closure, int flag
 	}
 
 	if (rc == EOK) {
-		dyn_array_foreach(*job_closure, job_t *, job_it) {
+		array_foreach(*job_closure, job_t *, job_it) {
 			sysman_log(LVL_DEBUG2, "%s\t%s, refs: %u", __func__,
 			    unit_name((*job_it)->unit), atomic_load(&(*job_it)->refcnt));
 		}
 	}
 
 	/* Clean after ourselves (BFS tag jobs) */
-	dyn_array_foreach(*job_closure, job_t *, job_it) {
+	array_foreach(*job_closure, job_t *, job_it) {
 		job_t *j = (*job_it)->unit->bfs_data;
 		assert(*job_it == j);
 		job_del_ref(&j);

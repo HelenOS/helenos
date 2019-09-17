@@ -39,8 +39,8 @@ PCUT_INIT
 
 PCUT_TEST_SUITE(job_closure);
 
-static dyn_array_t exp_closure;
-static dyn_array_t act_closure;
+static array_t exp_closure;
+static array_t act_closure;
 
 static bool same_job(job_t *expected, job_t *actual)
 {
@@ -48,7 +48,7 @@ static bool same_job(job_t *expected, job_t *actual)
 	    (expected->target_state == actual->target_state);
 }
 
-static bool same_jobs(dyn_array_t *expected, dyn_array_t *actual)
+static bool same_jobs(array_t *expected, array_t *actual)
 {
 	if (expected->size != actual->size) {
 		printf("%s: |expected|, |actual| = %lu, %lu\n",
@@ -57,9 +57,9 @@ static bool same_jobs(dyn_array_t *expected, dyn_array_t *actual)
 	}
 
 	/* Verify expected \subseteq actual (we've compared sizes) */
-	dyn_array_foreach(*expected, job_t *, it_exp) {
+	array_foreach(*expected, job_t *, it_exp) {
 		bool found = false;
-		dyn_array_foreach(*actual, job_t *, it_act) {
+		array_foreach(*actual, job_t *, it_act) {
 			if (same_job(*it_exp, *it_act)) {
 				found = true;
 				break;
@@ -78,7 +78,7 @@ static bool same_jobs(dyn_array_t *expected, dyn_array_t *actual)
 static bool job_blocked(job_t *blocked_job, job_t *blocking_job)
 {
 	bool found = false;
-	dyn_array_foreach(blocking_job->blocked_jobs, job_t *, it) {
+	array_foreach(blocking_job->blocked_jobs, job_t *, it) {
 		if (*it == blocked_job) {
 			found = true;
 			break;
@@ -93,16 +93,16 @@ static job_t *dummy_job(unit_t *unit, unit_state_t target_state)
 	return result;
 }
 
-static void dummy_add_closure(dyn_array_t *closure)
+static void dummy_add_closure(array_t *closure)
 {
-	dyn_array_foreach(*closure, job_t *, it) {
+	array_foreach(*closure, job_t *, it) {
 		(*it)->unit->job = *it;
 	}
 }
 
-static void destroy_job_closure(dyn_array_t *closure)
+static void destroy_job_closure(array_t *closure)
 {
-	dyn_array_foreach(*closure, job_t *, it) {
+	array_foreach(*closure, job_t *, it) {
 		job_del_ref(&(*it));
 	}
 }
@@ -112,12 +112,12 @@ PCUT_TEST_BEFORE
 	mock_create_units();
 	mock_set_units_state(STATE_STOPPED);
 
-	dyn_array_initialize(&exp_closure, job_t *);
-	errno_t rc = dyn_array_reserve(&exp_closure, MAX_TYPES * MAX_UNITS);
+	array_initialize(&exp_closure, job_t *);
+	errno_t rc = array_reserve(&exp_closure, MAX_TYPES * MAX_UNITS);
 	assert(rc == EOK);
 
-	dyn_array_initialize(&act_closure, job_t *);
-	rc = dyn_array_reserve(&act_closure, MAX_TYPES * MAX_UNITS);
+	array_initialize(&act_closure, job_t *);
+	rc = array_reserve(&act_closure, MAX_TYPES * MAX_UNITS);
 	assert(rc == EOK);
 
 	repo_init();
@@ -126,10 +126,10 @@ PCUT_TEST_BEFORE
 PCUT_TEST_AFTER
 {
 	destroy_job_closure(&act_closure);
-	dyn_array_destroy(&act_closure);
+	array_destroy(&act_closure);
 
 	destroy_job_closure(&exp_closure);
-	dyn_array_destroy(&exp_closure);
+	array_destroy(&exp_closure);
 
 	mock_destroy_units();
 }
@@ -155,9 +155,9 @@ PCUT_TEST(job_closure_linear)
 	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
 
 	dummy_add_closure(&act_closure);
 
@@ -187,9 +187,9 @@ PCUT_TEST(job_closure_fork)
 	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
 
 	dummy_add_closure(&act_closure);
 
@@ -221,9 +221,9 @@ PCUT_TEST(job_closure_triangle)
 	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
 
 	dummy_add_closure(&act_closure);
 
@@ -268,13 +268,13 @@ PCUT_TEST(job_closure_isolate_linears)
 	errno_t rc = job_create_closure(main_job, &act_closure, CLOSURE_ISOLATE);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u0, STATE_STOPPED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STOPPED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u4, STATE_STOPPED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u5, STATE_STOPPED));
-	dyn_array_append(&exp_closure, job_t *, dummy_job(u6, STATE_STOPPED));
+	array_append(&exp_closure, job_t *, dummy_job(u0, STATE_STOPPED));
+	array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
+	array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STOPPED));
+	array_append(&exp_closure, job_t *, dummy_job(u4, STATE_STOPPED));
+	array_append(&exp_closure, job_t *, dummy_job(u5, STATE_STOPPED));
+	array_append(&exp_closure, job_t *, dummy_job(u6, STATE_STOPPED));
 
 	dummy_add_closure(&act_closure);
 

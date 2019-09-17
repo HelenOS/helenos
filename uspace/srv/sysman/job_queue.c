@@ -109,11 +109,11 @@ static errno_t job_pre_merge(job_t *trunk, job_t *other)
 	assert(trunk->blocked_jobs.size == trunk->blocked_jobs_count);
 	assert(other->merged_into == NULL);
 
-	errno_t rc = dyn_array_concat(&trunk->blocked_jobs, &other->blocked_jobs);
+	errno_t rc = array_concat(&trunk->blocked_jobs, &other->blocked_jobs);
 	if (rc != EOK) {
 		return rc;
 	}
-	dyn_array_clear(&other->blocked_jobs);
+	array_clear(&other->blocked_jobs);
 
 	// TODO allocate observed object
 
@@ -144,7 +144,7 @@ static void job_finish_merge(job_t *trunk, job_t *other)
 static void job_undo_merge(job_t *trunk)
 {
 	assert(trunk->blocked_jobs.size >= trunk->blocked_jobs_count);
-	dyn_array_clear_range(&trunk->blocked_jobs,
+	array_clear_range(&trunk->blocked_jobs,
 	    trunk->blocked_jobs_count, trunk->blocked_jobs.size);
 }
 
@@ -171,7 +171,7 @@ errno_t job_queue_add_closure(job_closure_t *closure)
 	errno_t rc = EOK;
 
 	/* Check consistency with existing jobs. */
-	dyn_array_foreach(*closure, job_t *, job_it) {
+	array_foreach(*closure, job_t *, job_it) {
 		job_t *job = *job_it;
 		job_t *other_job = job->unit->job;
 
@@ -213,7 +213,7 @@ errno_t job_queue_add_closure(job_closure_t *closure)
 
 	/* Aggregate merged jobs, or rollback any changes in existing jobs */
 	bool finish_merge = (rc == EOK) && !has_error;
-	dyn_array_foreach(*closure, job_t *, job_it) {
+	array_foreach(*closure, job_t *, job_it) {
 		if ((*job_it)->merged_into == NULL) {
 			continue;
 		}
@@ -235,7 +235,7 @@ errno_t job_queue_add_closure(job_closure_t *closure)
 	 * TODO Ensure that jobs that block merged jobs contain the corrent job
 	 *      in their blocked_jobs array.
 	 */
-	dyn_array_foreach(*closure, job_t *, job_it) {
+	array_foreach(*closure, job_t *, job_it) {
 		job_t *job = (*job_it);
 		if (job->merged_into != NULL) {
 			job_del_ref(&job);
@@ -254,7 +254,7 @@ errno_t job_queue_add_closure(job_closure_t *closure)
 	}
 
 	/* We've stolen references from the closure, so erase it */
-	dyn_array_clear(closure);
+	array_clear(closure);
 
 	return EOK;
 }
