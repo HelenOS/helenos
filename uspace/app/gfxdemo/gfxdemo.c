@@ -32,66 +32,183 @@
 /** @file Graphic demo
  */
 
+#include <canvas.h>
+#include <draw/surface.h>
 #include <fibril.h>
+#include <gfx/backend/canvas.h>
 #include <gfx/backend/console.h>
 #include <gfx/color.h>
 #include <gfx/render.h>
 #include <io/console.h>
 #include <stdlib.h>
+#include <str.h>
+#include <window.h>
 
-int main(int argc, char *argv[])
+/** Run rectangle demo on a graphic context.
+ *
+ * @param gc Graphic context
+ */
+static errno_t demo_rects(gfx_context_t *gc, int w, int h)
 {
-	console_ctrl_t *con = NULL;
 	gfx_color_t *color = NULL;
-	console_gc_t *cgc = NULL;
-	gfx_context_t *gc;
 	gfx_rect_t rect;
 	int i;
 	errno_t rc;
-
-	printf("Init console..\n");
-	con = console_init(stdin, stdout);
-	if (con == NULL)
-		return 1;
-
-	printf("Create console GC\n");
-	rc = console_gc_create(con, stdout, &cgc);
-	if (rc != EOK)
-		return 1;
-
-	gc = console_gc_get_ctx(cgc);
 
 	while (true) {
 		rc = gfx_color_new_rgb_i16(rand() % 0x10000, rand() % 0x10000,
 		    rand() % 0x10000, &color);
 		if (rc != EOK)
-			return 1;
+			return rc;
 
 		rc = gfx_set_color(gc, color);
 		if (rc != EOK)
-			return 1;
+			return rc;
 
 		for (i = 0; i < 10; i++) {
-			rect.p0.x = rand() % 79;
-			rect.p0.y = rand() % 24;
-			rect.p1.x = rect.p0.x + rand() % (79 - rect.p0.x);
-			rect.p1.y = rect.p0.y + rand() % (24 - rect.p0.y);
+			rect.p0.x = rand() % (w - 1);
+			rect.p0.y = rand() % (h - 1);
+			rect.p1.x = rect.p0.x + rand() % (w - 1 - rect.p0.x);
+			rect.p1.y = rect.p0.y + rand() % (h - 1 - rect.p0.y);
 
 			rc = gfx_fill_rect(gc, &rect);
 			if (rc != EOK)
-				return 1;
+				return rc;
 		}
 
 		gfx_color_delete(color);
 
 		fibril_usleep(500 * 1000);
 	}
+}
+
+/** Run demo on console. */
+static errno_t demo_console(void)
+{
+	console_ctrl_t *con = NULL;
+	console_gc_t *cgc = NULL;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	printf("Init console..\n");
+	con = console_init(stdin, stdout);
+	if (con == NULL)
+		return EIO;
+
+	printf("Create console GC\n");
+	rc = console_gc_create(con, stdout, &cgc);
+	if (rc != EOK)
+		return rc;
+
+	gc = console_gc_get_ctx(cgc);
+
+	rc = demo_rects(gc, 80, 25);
+	if (rc != EOK)
+		return rc;
 
 	rc = console_gc_delete(cgc);
 	if (rc != EOK)
-		return 1;
+		return rc;
 
-	return 0;
+	return EOK;
+}
+
+/** Run demo on canvas. */
+static errno_t demo_canvas(void)
+{
+	console_ctrl_t *con = NULL;
+	canvas_gc_t *cgc = NULL;
+	gfx_context_t *gc;
+	window_t *window = NULL;
+	pixel_t *pixbuf = NULL;
+	surface_t *surface = NULL;
+	canvas_t *canvas = NULL;
+	int vw, vh;
+	errno_t rc;
+
+	printf("Init canvas..\n");
+	con = console_init(stdin, stdout);
+	if (con == NULL)
+		return EIO;
+
+	window = window_open("comp:0/winreg", NULL,
+	    WINDOW_MAIN | WINDOW_DECORATED, "GFX Demo");
+	if (window == NULL) {
+		printf("Error creating window.\n");
+		return -1;
+	}
+
+	vw = 400;
+	vh = 300;
+
+	pixbuf = calloc(vw * vh, sizeof(pixel_t));
+	if (pixbuf == NULL) {
+		printf("Error allocating memory for pixel buffer.\n");
+		return -1;
+	}
+
+	surface = surface_create(vw, vh, pixbuf, 0);
+	if (surface == NULL) {
+		printf("Error creating surface.\n");
+		return -1;
+	}
+
+	canvas = create_canvas(window_root(window), NULL, vw, vh,
+	    surface);
+	if (canvas == NULL) {
+		printf("Error creating canvas.\n");
+		return -1;
+	}
+
+//	sig_connect(&canvas->keyboard_event, NULL, wnd_keyboard_event);
+
+	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
+	window_exec(window);
+
+	printf("Create canvas GC\n");
+	rc = canvas_gc_create(canvas, surface, &cgc);
+	if (rc != EOK)
+		return rc;
+
+	gc = canvas_gc_get_ctx(cgc);
+
+	rc = demo_rects(gc, 400, 300);
+	if (rc != EOK)
+		return rc;
+
+	rc = canvas_gc_delete(cgc);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+static void print_syntax(void)
+{
+	printf("syntax: gfxdemo {canvas|console}\n");
+}
+
+int main(int argc, char *argv[])
+{
+	errno_t rc;
+
+	if (argc < 2) {
+		print_syntax();
+		return 1;
+	}
+
+	if (str_cmp(argv[1], "console") == 0) {
+		rc = demo_console();
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "canvas") == 0) {
+		rc = demo_canvas();
+		if (rc != EOK)
+			return 1;
+	} else {
+		print_syntax();
+		return 1;
+	}
 }
 
 /** @}

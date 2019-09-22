@@ -26,7 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+deps = [ 'gui' ]
 src = files(
+	'src/backend/canvas.c',
 	'src/backend/console.c',
 	'src/color.c',
 	'src/context.c',
