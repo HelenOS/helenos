@@ -114,7 +114,7 @@ static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
  * @return EOK on success or an error code
  */
 errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
-    gfx_context_t **rgc)
+    console_gc_t **rgc)
 {
 	console_gc_t *cgc = NULL;
 	gfx_context_t *gc = NULL;
@@ -130,15 +130,42 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	if (rc != EOK)
 		goto error;
 
+	cgc->gc = gc;
 	cgc->con = con;
 	cgc->fout = fout;
-	*rgc = gc;
+	*rgc = cgc;
 	return EOK;
 error:
 	if (cgc != NULL)
 		free(cgc);
 	gfx_context_delete(gc);
 	return rc;
+}
+
+/** Delete console GC.
+ *
+ * @param cgc Console GC
+ */
+errno_t console_gc_delete(console_gc_t *cgc)
+{
+	errno_t rc;
+
+	rc = gfx_context_delete(cgc->gc);
+	if (rc != EOK)
+		return rc;
+
+	free(cgc);
+	return EOK;
+}
+
+/** Get generic graphic context from console GC.
+ *
+ * @param cgc Console GC
+ * @return Graphic context
+ */
+gfx_context_t *console_gc_get_ctx(console_gc_t *cgc)
+{
+	return cgc->gc;
 }
 
 /** @}

@@ -43,7 +43,8 @@ int main(int argc, char *argv[])
 {
 	console_ctrl_t *con = NULL;
 	gfx_color_t *color = NULL;
-	gfx_context_t *gc = NULL;
+	console_gc_t *cgc = NULL;
+	gfx_context_t *gc;
 	gfx_rect_t rect;
 	int i;
 	errno_t rc;
@@ -54,9 +55,11 @@ int main(int argc, char *argv[])
 		return 1;
 
 	printf("Create console GC\n");
-	rc = console_gc_create(con, stdout, &gc);
+	rc = console_gc_create(con, stdout, &cgc);
 	if (rc != EOK)
 		return 1;
+
+	gc = console_gc_get_ctx(cgc);
 
 	while (true) {
 		rc = gfx_color_new_rgb_i16(rand() % 0x10000, rand() % 0x10000,
@@ -84,11 +87,9 @@ int main(int argc, char *argv[])
 		fibril_usleep(500 * 1000);
 	}
 
-	// TODO How will we free GC subclass?
-
-	// rc = gfx_context_delete(gc);
-	// if (rc != EOK)
-	//	return 1;
+	rc = console_gc_delete(cgc);
+	if (rc != EOK)
+		return 1;
 
 	return 0;
 }

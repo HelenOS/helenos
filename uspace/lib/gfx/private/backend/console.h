@@ -39,12 +39,15 @@
 
 #include <io/console.h>
 #include <stdio.h>
+#include "../context.h"
 
 /** Actual structure of graphics context.
  *
  * This is private to libgfx. It is not visible to clients nor backends.
  */
 struct console_gc {
+	/** Base graphic context */
+	gfx_context_t *gc;
 	/** Console control structure */
 	console_ctrl_t *con;
 	/** File for printing characters */
