@@ -63,19 +63,9 @@
 
 #define DPRINTF(...)
 
-static const char *error_codes[] = {
-	"no error",
-	"invalid image",
-	"address space error",
-	"incompatible image",
-	"unsupported image type",
-	"irrecoverable error",
-	"file io error"
-};
-
-static unsigned int elf_load_module(elf_ld_t *elf);
-static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry);
-static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
+static errno_t elf_load_module(elf_ld_t *elf);
+static errno_t segment_header(elf_ld_t *elf, elf_segment_header_t *entry);
+static errno_t load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
 
 /** Load ELF binary from a file.
  *
@@ -89,10 +79,10 @@ static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
  * @param info      Pointer to a structure for storing information
  *                  extracted from the binary.
  *
- * @return EE_OK on success or EE_xx error code.
+ * @return EOK on success or an error code.
  *
  */
-int elf_load_file(int file, eld_flags_t flags, elf_finfo_t *info)
+errno_t elf_load_file(int file, eld_flags_t flags, elf_finfo_t *info)
 {
 	elf_ld_t elf;
 
@@ -102,29 +92,29 @@ int elf_load_file(int file, eld_flags_t flags, elf_finfo_t *info)
 		rc = vfs_open(ofile, MODE_READ);
 	}
 	if (rc != EOK) {
-		return EE_IO;
+		return rc;
 	}
 
 	elf.fd = ofile;
 	elf.info = info;
 	elf.flags = flags;
 
-	int ret = elf_load_module(&elf);
+	rc = elf_load_module(&elf);
 
 	vfs_put(ofile);
-	return ret;
+	return rc;
 }
 
-int elf_load_file_name(const char *path, eld_flags_t flags, elf_finfo_t *info)
+errno_t elf_load_file_name(const char *path, eld_flags_t flags, elf_finfo_t *info)
 {
 	int file;
 	errno_t rc = vfs_lookup(path, 0, &file);
 	if (rc == EOK) {
-		int ret = elf_load_file(file, flags, info);
+		rc = elf_load_file(file, flags, info);
 		vfs_put(file);
-		return ret;
+		return rc;
 	} else {
-		return EE_IO;
+		return EIO;
 	}
 }
 
@@ -135,21 +125,21 @@ int elf_load_file_name(const char *path, eld_flags_t flags, elf_finfo_t *info)
  * a pointer to the @c info structure etc.
  *
  * @param elf		Pointer to loader state buffer.
- * @return EE_OK on success or EE_xx error code.
+ * @return EOK on success or an error code.
  */
-static unsigned int elf_load_module(elf_ld_t *elf)
+static errno_t elf_load_module(elf_ld_t *elf)
 {
 	elf_header_t header_buf;
 	elf_header_t *header = &header_buf;
 	aoff64_t pos = 0;
 	size_t nr;
-	int i, ret;
+	int i;
 	errno_t rc;
 
 	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t), &nr);
 	if (rc != EOK || nr != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n");
-		return EE_IO;
+		return EIO;
 	}
 
 	/* Identify ELF */
@@ -158,7 +148,7 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 	    header->e_ident[EI_MAG2] != ELFMAG2 ||
 	    header->e_ident[EI_MAG3] != ELFMAG3) {
 		DPRINTF("Invalid header.\n");
-		return EE_INVALID;
+		return EINVAL;
 	}
 
 	/* Identify ELF compatibility */
@@ -168,24 +158,24 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 	    header->e_version != EV_CURRENT ||
 	    header->e_ident[EI_CLASS] != ELF_CLASS) {
 		DPRINTF("Incompatible data/version/class.\n");
-		return EE_INCOMPATIBLE;
+		return EINVAL;
 	}
 
 	if (header->e_phentsize != sizeof(elf_segment_header_t)) {
 		DPRINTF("e_phentsize: %u != %zu\n", header->e_phentsize,
 		    sizeof(elf_segment_header_t));
-		return EE_INCOMPATIBLE;
+		return EINVAL;
 	}
 
 	/* Check if the object type is supported. */
 	if (header->e_type != ET_EXEC && header->e_type != ET_DYN) {
 		DPRINTF("Object type %d is not supported\n", header->e_type);
-		return EE_UNSUPPORTED;
+		return ENOTSUP;
 	}
 
 	if (header->e_phoff == 0) {
 		DPRINTF("Program header table is not present!\n");
-		return EE_UNSUPPORTED;
+		return ENOTSUP;
 	}
 
 	/*
@@ -202,14 +192,14 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 
 	if (phdr_len > sizeof(phdr)) {
 		DPRINTF("more than %d program headers\n", phdr_cap);
-		return EE_UNSUPPORTED;
+		return ENOTSUP;
 	}
 
 	pos = header->e_phoff;
 	rc = vfs_read(elf->fd, &pos, phdr, phdr_len, &nr);
 	if (rc != EOK || nr != phdr_len) {
 		DPRINTF("Read error.\n");
-		return EE_IO;
+		return EIO;
 	}
 
 	uintptr_t module_base = UINTPTR_MAX;
@@ -230,7 +220,7 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 
 	if (base_offset != 0) {
 		DPRINTF("ELF headers not present in the text segment.\n");
-		return EE_INVALID;
+		return EINVAL;
 	}
 
 	/* Shared objects can be loaded with a bias */
@@ -239,7 +229,7 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 	} else {
 		if (module_base != 0) {
 			DPRINTF("Unexpected shared object format.\n");
-			return EE_INVALID;
+			return EINVAL;
 		}
 
 		/*
@@ -257,7 +247,7 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 
 		if (area == AS_MAP_FAILED) {
 			DPRINTF("Can't find suitable memory area.\n");
-			return EE_MEMORY;
+			return ENOMEM;
 		}
 
 		elf->bias = (uintptr_t) area;
@@ -269,9 +259,9 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 		if (phdr[i].p_type != PT_LOAD)
 			continue;
 
-		ret = load_segment(elf, &phdr[i]);
-		if (ret != EE_OK)
-			return ret;
+		rc = load_segment(elf, &phdr[i]);
+		if (rc != EOK)
+			return rc;
 	}
 
 	void *base = (void *) module_base + elf->bias;
@@ -291,9 +281,9 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 		if (phdr[i].p_type == PT_LOAD)
 			continue;
 
-		ret = segment_header(elf, &phdr[i]);
-		if (ret != EE_OK)
-			return ret;
+		rc = segment_header(elf, &phdr[i]);
+		if (rc != EOK)
+			return rc;
 	}
 
 	elf->info->entry =
@@ -301,20 +291,7 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 
 	DPRINTF("Done.\n");
 
-	return EE_OK;
-}
-
-/** Print error message according to error code.
- *
- * @param rc Return code returned by elf_load().
- *
- * @return NULL terminated description of error.
- */
-const char *elf_error(unsigned int rc)
-{
-	assert(rc < sizeof(error_codes) / sizeof(char *));
-
-	return error_codes[rc];
+	return EOK;
 }
 
 /** Process TLS program header.
@@ -337,9 +314,9 @@ static void tls_program_header(elf_ld_t *elf, elf_segment_header_t *hdr,
  * @param elf   Pointer to loader state buffer.
  * @param entry	Segment header.
  *
- * @return EE_OK on success, error code otherwise.
+ * @return EOK on success, error code otherwise.
  */
-static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
+static errno_t segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 {
 	switch (entry->p_type) {
 	case PT_NULL:
@@ -357,11 +334,11 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 
 		if (entry->p_filesz == 0) {
 			DPRINTF("Zero-sized ELF interp string.\n");
-			return EE_INVALID;
+			return EINVAL;
 		}
 		if (elf->info->interp[entry->p_filesz - 1] != '\0') {
 			DPRINTF("Unterminated ELF interp string.\n");
-			return EE_INVALID;
+			return EINVAL;
 		}
 		DPRINTF("interpreter: \"%s\"\n", elf->info->interp);
 		break;
@@ -388,10 +365,10 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 	case PT_SHLIB:
 	default:
 		DPRINTF("Segment p_type %d unknown.\n", entry->p_type);
-		return EE_UNSUPPORTED;
+		return ENOTSUP;
 		break;
 	}
-	return EE_OK;
+	return EOK;
 }
 
 /** Load segment described by program header entry.
@@ -399,9 +376,9 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
  * @param elf	Loader state.
  * @param entry Program header entry describing segment to be loaded.
  *
- * @return EE_OK on success, error code otherwise.
+ * @return EOK on success, error code otherwise.
  */
-int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
+errno_t load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 {
 	void *a;
 	int flags = 0;
@@ -434,7 +411,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 			    "vaddr%%align=0x%zx align=0x%zx\n",
 			    entry->p_offset % entry->p_align,
 			    seg_addr % entry->p_align, entry->p_align);
-			return EE_INVALID;
+			return EINVAL;
 		}
 	}
 
@@ -465,7 +442,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	if (a == AS_MAP_FAILED) {
 		DPRINTF("memory mapping failed (%p, %zu)\n",
 		    (void *) (base + bias), mem_sz);
-		return EE_MEMORY;
+		return ENOMEM;
 	}
 
 	DPRINTF("as_area_create(%p, %#zx, %d) -> %p\n",
@@ -478,7 +455,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	rc = vfs_read(elf->fd, &pos, seg_ptr, entry->p_filesz, &nr);
 	if (rc != EOK || nr != entry->p_filesz) {
 		DPRINTF("read error\n");
-		return EE_IO;
+		return EIO;
 	}
 
 	/*
@@ -486,23 +463,23 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 * need to set the right access mode and ensure SMC coherence.
 	 */
 	if ((elf->flags & ELDF_RW) != 0)
-		return EE_OK;
+		return EOK;
 
 	DPRINTF("as_area_change_flags(%p, %x)\n",
 	    (uint8_t *) base + bias, flags);
 	rc = as_area_change_flags((uint8_t *) base + bias, flags);
 	if (rc != EOK) {
 		DPRINTF("Failed to set memory area flags.\n");
-		return EE_MEMORY;
+		return ENOMEM;
 	}
 
 	if (flags & AS_AREA_EXEC) {
 		/* Enforce SMC coherence for the segment */
 		if (smc_coherence(seg_ptr, entry->p_filesz))
-			return EE_MEMORY;
+			return ENOMEM;
 	}
 
-	return EE_OK;
+	return EOK;
 }
 
 /** @}

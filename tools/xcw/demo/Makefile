@@ -56,7 +56,7 @@ clean:
 	rm -f $(output) $(objects)
 
 $(output): $(objects)
-	$(LD) -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ $(LIBS)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<

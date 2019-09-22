@@ -41,6 +41,10 @@
 #include <genarch/drivers/ns16550/ns16550.h>
 #include <genarch/srln/srln.h>
 #include <arch/interrupt.h>
+#include <stdbool.h>
+#include <byteorder.h>
+#include <sysinfo/sysinfo.h>
+#include <log.h>
 
 static void malta_init(void);
 static void malta_cpu_halt(void);
@@ -67,17 +71,39 @@ static ns16550_instance_t *tty_instance;
 static outdev_t *tty_out;
 #endif
 
-#ifdef CONFIG_NS16550
-static void tty_clear_interrupt(void *arg, inr_t inr)
+static void malta_isa_irq_handler(unsigned int i)
 {
-	(void) pio_read_8((ioport8_t *) GT64120_PCI0_INTACK);
-	pic_eoi();
-}
+	uint8_t isa_irq = host2uint32_t_le(pio_read_32(GT64120_PCI0_INTACK));
+	if (i8259_is_spurious(isa_irq)) {
+		i8259_handle_spurious(isa_irq);
+#ifdef CONFIG_DEBUG
+		log(LF_ARCH, LVL_DEBUG, "cpu%u: PIC spurious interrupt %u",
+		    CPU->id, isa_irq);
+		return;
 #endif
+	}
+	irq_t *irq = irq_dispatch_and_lock(isa_irq);
+	if (irq) {
+		irq->handler(irq);
+		irq_spinlock_unlock(&irq->lock, false);
+	} else {
+#ifdef CONFIG_DEBUG
+		log(LF_ARCH, LVL_DEBUG, "cpu%u: unhandled IRQ (irq=%u)",
+		    CPU->id, isa_irq);
+#endif
+	}
+	i8259_eoi(isa_irq);
+}
 
 void malta_init(void)
 {
-	i8259_init((i8259_t *) PIC0_BASE, (i8259_t *) PIC1_BASE, 2, 0, 8);
+	irq_init(ISA_IRQ_COUNT, ISA_IRQ_COUNT);
+
+	i8259_init((i8259_t *) PIC0_BASE, (i8259_t *) PIC1_BASE, 0);
+	sysinfo_set_item_val("i8259", NULL, true);
+
+	int_handler[INT_HW0] = malta_isa_irq_handler;
+	cp0_unmask_int(INT_HW0);
 
 #if (defined(CONFIG_NS16550) || defined(CONFIG_NS16550_OUT))
 #ifdef CONFIG_NS16550_OUT
@@ -85,8 +111,8 @@ void malta_init(void)
 #else
 	outdev_t **tty_out_ptr = NULL;
 #endif
-	tty_instance = ns16550_init((ioport8_t *) TTY_BASE, 0, TTY_CPU_INT,
-	    tty_clear_interrupt, NULL, tty_out_ptr);
+	tty_instance = ns16550_init((ioport8_t *) TTY_BASE, 0, TTY_ISA_IRQ,
+	    NULL, NULL, tty_out_ptr);
 #endif
 }
 
@@ -119,8 +145,7 @@ void malta_input_init(void)
 			indev_t *sink = stdin_wire();
 			indev_t *srln = srln_wire(srln_instance, sink);
 			ns16550_wire(tty_instance, srln);
-			pic_enable_irqs(1 << TTY_ISA_IRQ);
-			cp0_unmask_int(TTY_CPU_INT);
+			i8259_enable_irqs(1 << TTY_ISA_IRQ);
 		}
 	}
 #endif

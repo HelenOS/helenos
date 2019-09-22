@@ -44,7 +44,7 @@
 static bootinfo_t *bootinfo = (bootinfo_t *) PA2KA(BOOTINFO_OFFSET);
 static uint32_t *cpumap = (uint32_t *) PA2KA(CPUMAP_OFFSET);
 
-void bootstrap(void)
+void bootstrap(int kargc, char **kargv)
 {
 	version_print();
 
@@ -77,6 +77,9 @@ void bootstrap(void)
 		if (cpumap[i] != 0)
 			bootinfo->cpumap |= (1 << i);
 	}
+
+	str_cpy(bootinfo->bootargs, sizeof(bootinfo->bootargs),
+	    (kargc > 1) ? kargv[1] : "");
 
 	uintptr_t entry = check_kernel(kernel_start);
 

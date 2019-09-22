@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2019 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -293,6 +293,20 @@ namespace std::test
         private:
             void test_non_modifying();
             void test_mutating();
+    };
+
+    class future_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+        private:
+            void test_future();
+            void test_promise();
+            void test_future_promise();
+            void test_async();
+            void test_packaged_task();
+            void test_shared_future();
     };
 }
 

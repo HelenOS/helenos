@@ -36,7 +36,6 @@
 #define KERN_amd64_PAGE_H_
 
 #include <arch/mm/frame.h>
-#include <trace.h>
 
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
@@ -163,8 +162,9 @@
 
 #ifndef __ASSEMBLER__
 
-#include <mm/mm.h>
 #include <arch/interrupt.h>
+#include <mm/mm.h>
+#include <trace.h>
 #include <typedefs.h>
 
 /* Page fault error codes. */

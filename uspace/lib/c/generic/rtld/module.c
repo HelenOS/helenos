@@ -64,8 +64,10 @@ errno_t module_create_static_exec(rtld_t *rtld, module_t **rmodule)
 	module_t *module;
 
 	module = calloc(1, sizeof(module_t));
-	if (module == NULL)
+	if (module == NULL) {
+		DPRINTF("malloc failed\n");
 		return ENOMEM;
+	}
 
 	module->id = rtld_get_next_id(rtld);
 	module->dyn.soname = "[program]";
@@ -181,12 +183,12 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	elf_finfo_t info;
 	char name_buf[NAME_BUF_SIZE];
 	module_t *m;
-	int rc;
+	errno_t rc;
 
 	m = calloc(1, sizeof(module_t));
 	if (m == NULL) {
-		printf("malloc failed\n");
-		exit(1);
+		DPRINTF("malloc failed\n");
+		goto error;
 	}
 
 	m->rtld = rtld;
@@ -196,8 +198,8 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 		m->local = true;
 
 	if (str_size(name) > NAME_BUF_SIZE - 2) {
-		printf("soname too long. increase NAME_BUF_SIZE\n");
-		exit(1);
+		DPRINTF("soname too long. increase NAME_BUF_SIZE\n");
+		goto error;
 	}
 
 	/* Prepend soname with '/lib/' */
@@ -207,9 +209,9 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	DPRINTF("filename:'%s'\n", name_buf);
 
 	rc = elf_load_file_name(name_buf, RTLD_MODULE_LDF, &info);
-	if (rc != EE_OK) {
-		printf("Failed to load '%s'\n", name_buf);
-		exit(1);
+	if (rc != EOK) {
+		DPRINTF("Failed to load '%s'\n", name_buf);
+		goto error;
 	}
 
 	m->bias = elf_get_bias(info.base);
@@ -217,9 +219,9 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	DPRINTF("loaded '%s' at 0x%zx\n", name_buf, m->bias);
 
 	if (info.dynamic == NULL) {
-		printf("Error: '%s' is not a dynamically-linked object.\n",
+		DPRINTF("Error: '%s' is not a dynamically-linked object.\n",
 		    name_buf);
-		exit(1);
+		goto error;
 	}
 
 	/* Pending relocation. */
@@ -242,11 +244,17 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	    m->tdata, m->tdata_size, m->tbss_size);
 
 	return m;
+
+error:
+	if (m)
+		free(m);
+
+	return NULL;
 }
 
 /** Load all modules on which m (transitively) depends.
  */
-void module_load_deps(module_t *m, mlflags_t flags)
+errno_t module_load_deps(module_t *m, mlflags_t flags)
 {
 	elf_dyn_t *dp;
 	char *dep_name;
@@ -273,13 +281,13 @@ void module_load_deps(module_t *m, mlflags_t flags)
 	if (n == 0) {
 		/* There are no dependencies, so we are done. */
 		m->deps = NULL;
-		return;
+		return EOK;
 	}
 
 	m->deps = malloc(n * sizeof(module_t *));
 	if (!m->deps) {
-		printf("malloc failed\n");
-		exit(1);
+		DPRINTF("malloc failed\n");
+		return ENOMEM;
 	}
 
 	i = 0; /* Current dependency index */
@@ -293,7 +301,14 @@ void module_load_deps(module_t *m, mlflags_t flags)
 			dm = module_find(m->rtld, dep_name);
 			if (!dm) {
 				dm = module_load(m->rtld, dep_name, flags);
-				module_load_deps(dm, flags);
+				if (!dm) {
+					return EINVAL;
+				}
+
+				errno_t rc = module_load_deps(dm, flags);
+				if (rc != EOK) {
+					return rc;
+				}
 			}
 
 			/* Save into deps table */
@@ -301,6 +316,8 @@ void module_load_deps(module_t *m, mlflags_t flags)
 		}
 		++dp;
 	}
+
+	return EOK;
 }
 
 /** Find module structure by ID. */

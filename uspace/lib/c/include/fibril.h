@@ -35,9 +35,12 @@
 #ifndef _LIBC_FIBRIL_H_
 #define _LIBC_FIBRIL_H_
 
-#include <types/common.h>
 #include <time.h>
+#include <_bits/errno.h>
 #include <_bits/__noreturn.h>
+#include <_bits/decls.h>
+
+__HELENOS_DECLS_BEGIN;
 
 typedef struct fibril fibril_t;
 
@@ -69,6 +72,8 @@ extern void fibril_detach(fid_t fid);
 
 extern void fibril_start(fid_t);
 extern __noreturn void fibril_exit(long);
+
+__HELENOS_DECLS_END;
 
 #endif
 

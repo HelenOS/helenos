@@ -35,7 +35,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <drawctx.h>
+#include <draw/drawctx.h>
 #include "common.h"
 
 #define CROSS_WIDTH   14

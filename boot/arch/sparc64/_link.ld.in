@@ -5,7 +5,7 @@ SECTIONS {
 	.boot : {
 		loader_start = .;
 		*(BOOTSTRAP);
-		*(.text);
+		*(.text.*);
 
 		*(.data);       /* initialized data */
 		*(.rodata);

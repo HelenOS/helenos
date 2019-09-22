@@ -273,6 +273,9 @@ static void cuda_irq_handler(ipc_call_t *call, void *arg)
 
 	fibril_mutex_lock(&cuda->dev_lock);
 
+	/* Lower IFR.SR_INT so that CUDA can generate next int by raising it. */
+	pio_write_8(&cuda->regs->ifr, SR_INT);
+
 	switch (cuda->xstate) {
 	case cx_listen:
 		cuda_irq_listen(cuda);
@@ -291,9 +294,6 @@ static void cuda_irq_handler(ipc_call_t *call, void *arg)
 		cuda_irq_send(cuda);
 		break;
 	}
-
-	/* Lower IFR.SR_INT so that CUDA can generate next int by raising it. */
-	pio_write_8(&cuda->regs->ifr, SR_INT);
 
 	fibril_mutex_unlock(&cuda->dev_lock);
 

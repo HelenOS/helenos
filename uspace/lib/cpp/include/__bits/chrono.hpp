@@ -330,7 +330,7 @@ namespace std::chrono
     operator+(const duration<Rep1, Period1>& lhs, const duration<Rep2, Period2>& rhs)
     {
         using CD = common_type_t<duration<Rep1, Period1>, duration<Rep2, Period2>>;
-        return CD(CD(lhs.count()) + CD(rhs.count()));
+        return CD(CD(lhs).count() + CD(rhs).count());
     }
 
     template<class Rep1, class Period1, class Rep2, class Period2>
@@ -610,8 +610,8 @@ namespace std::chrono
 
             static time_point now()
             {
-                hel::timespec ts{};
-                hel::getrealtime(&ts);
+                ::std::timespec ts{};
+                ::helenos::getrealtime(&ts);
 
                 rep time = NSEC2USEC(ts.tv_nsec);
                 time += (ts.tv_sec * 1'000'000ul);
@@ -653,8 +653,8 @@ namespace std::chrono
 
             static time_point now()
             {
-                hel::timespec ts{};
-                hel::getuptime(&ts);
+                ::std::timespec ts{};
+                ::helenos::getuptime(&ts);
 
                 rep time = NSEC2USEC(ts.tv_nsec);
                 time += (ts.tv_sec * 1'000'000ul);

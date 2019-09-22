@@ -1,0 +1,9 @@
+#!/bin/sh
+
+if [ "$#" -ge 1 ]; then
+	DESTDIR="$1"
+else
+	DESTDIR="${MESON_INSTALL_DESTDIR_PREFIX}"
+fi
+
+@text@

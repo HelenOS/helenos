@@ -36,8 +36,9 @@
 #include <mm/km.h>
 #include <byteorder.h>
 #include <bitops.h>
+#include <typedefs.h>
 
-static volatile uint32_t *pic = NULL;
+static ioport32_t *pic = NULL;
 
 void pic_init(uintptr_t base, size_t size, cir_t *cir, void **cir_arg)
 {
@@ -49,32 +50,41 @@ void pic_init(uintptr_t base, size_t size, cir_t *cir, void **cir_arg)
 
 void pic_enable_interrupt(inr_t intnum)
 {
-	if (pic) {
-		if (intnum < 32)
-			pic[PIC_MASK_LOW] = pic[PIC_MASK_LOW] | (1 << intnum);
-		else
-			pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] | (1 << (intnum - 32));
-	}
+	if (!pic)
+		return;
 
+	if (intnum < 32) {
+		pio_write_32(&pic[PIC_MASK_LOW],
+		    pio_read_32(&pic[PIC_MASK_LOW]) | (1 << intnum));
+	} else {
+		pio_write_32(&pic[PIC_MASK_HIGH],
+		    pio_read_32(&pic[PIC_MASK_HIGH]) | (1 << (intnum - 32)));
+	}
 }
 
 void pic_disable_interrupt(inr_t intnum)
 {
-	if (pic) {
-		if (intnum < 32)
-			pic[PIC_MASK_LOW] = pic[PIC_MASK_LOW] & (~(1 << intnum));
-		else
-			pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] & (~(1 << (intnum - 32)));
+	if (!pic)
+		return;
+
+	if (intnum < 32) {
+		pio_write_32(&pic[PIC_MASK_LOW],
+		    pio_read_32(&pic[PIC_MASK_LOW]) & (~(1 << intnum)));
+	} else {
+		pio_write_32(&pic[PIC_MASK_HIGH],
+		    pio_read_32(&pic[PIC_MASK_HIGH]) & (~(1 << (intnum - 32))));
 	}
 }
 
 void pic_ack_interrupt(void *arg, inr_t intnum)
 {
-	if (pic) {
-		if (intnum < 32)
-			pic[PIC_ACK_LOW] = 1 << intnum;
-		else
-			pic[PIC_ACK_HIGH] = 1 << (intnum - 32);
+	if (!pic)
+		return;
+
+	if (intnum < 32) {
+		pio_write_32(&pic[PIC_ACK_LOW], 1 << intnum);
+	} else {
+		pio_write_32(&pic[PIC_ACK_HIGH], 1 << (intnum - 32));
 	}
 }
 
@@ -86,11 +96,11 @@ uint8_t pic_get_pending(void)
 	if (pic) {
 		uint32_t pending;
 
-		pending = pic[PIC_PENDING_LOW];
+		pending = pio_read_32(&pic[PIC_PENDING_LOW]);
 		if (pending != 0)
 			return fnzb32(pending);
 
-		pending = pic[PIC_PENDING_HIGH];
+		pending = pio_read_32(&pic[PIC_PENDING_HIGH]);
 		if (pending != 0)
 			return fnzb32(pending) + 32;
 	}

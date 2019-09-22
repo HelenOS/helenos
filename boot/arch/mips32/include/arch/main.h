@@ -29,6 +29,6 @@
 #ifndef BOOT_mips32_MAIN_H_
 #define BOOT_mips32_MAIN_H_
 
-extern void bootstrap(void);
+extern void bootstrap(int, char **);
 
 #endif

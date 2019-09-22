@@ -37,7 +37,7 @@
 #include <assert.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <surface.h>
+#include <draw/surface.h>
 #include "window.h"
 #include "grid.h"
 

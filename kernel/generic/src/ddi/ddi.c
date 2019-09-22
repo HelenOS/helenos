@@ -45,6 +45,7 @@
 #include <security/perm.h>
 #include <mm/frame.h>
 #include <mm/as.h>
+#include <mm/km.h>
 #include <mm/page.h>
 #include <synch/mutex.h>
 #include <syscall/copy.h>
@@ -55,6 +56,7 @@
 #include <mem.h>
 #include <trace.h>
 #include <bitops.h>
+#include <arch/asm.h>
 
 /** This lock protects the @c pareas ordered dictionary. */
 static mutex_t pareas_lock;
@@ -245,7 +247,7 @@ _NO_TRACE static errno_t physmem_unmap(uintptr_t virt)
  *
  */
 sys_errno_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
-    void *virt_ptr, uintptr_t bound)
+    uspace_ptr_uintptr_t virt_ptr, uintptr_t bound)
 {
 	uintptr_t virt;
 	errno_t rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
@@ -259,7 +261,7 @@ sys_errno_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
 
 	rc = copy_to_uspace(virt_ptr, &virt, sizeof(virt));
 	if (rc != EOK) {
-		physmem_unmap((uintptr_t) virt);
+		physmem_unmap(virt);
 		return rc;
 	}
 
@@ -390,7 +392,7 @@ _NO_TRACE static errno_t iospace_disable(task_id_t id, uintptr_t ioaddr, size_t 
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-sys_errno_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
+sys_errno_t sys_iospace_enable(uspace_ptr_ddi_ioarg_t uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
@@ -401,7 +403,7 @@ sys_errno_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
-sys_errno_t sys_iospace_disable(ddi_ioarg_t *uspace_io_arg)
+sys_errno_t sys_iospace_disable(uspace_ptr_ddi_ioarg_t uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
@@ -462,7 +464,7 @@ _NO_TRACE static errno_t dmamem_unmap_anonymous(uintptr_t virt)
 }
 
 sys_errno_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
-    void *phys_ptr, void *virt_ptr, uintptr_t bound)
+    uspace_ptr_uintptr_t phys_ptr, uspace_ptr_uintptr_t virt_ptr, uintptr_t bound)
 {
 	if ((flags & DMAMEM_FLAGS_ANONYMOUS) == 0) {
 		/*
@@ -470,7 +472,7 @@ sys_errno_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int fla
 		 */
 
 		uintptr_t phys;
-		errno_t rc = dmamem_map((uintptr_t) virt_ptr, size, map_flags,
+		errno_t rc = dmamem_map(virt_ptr, size, map_flags,
 		    flags, &phys);
 
 		if (rc != EOK)
@@ -478,7 +480,7 @@ sys_errno_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int fla
 
 		rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
 		if (rc != EOK) {
-			dmamem_unmap((uintptr_t) virt_ptr, size);
+			dmamem_unmap(virt_ptr, size);
 			return rc;
 		}
 	} else {
@@ -505,13 +507,13 @@ sys_errno_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int fla
 
 		rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
 		if (rc != EOK) {
-			dmamem_unmap_anonymous((uintptr_t) virt);
+			dmamem_unmap_anonymous(virt);
 			return rc;
 		}
 
 		rc = copy_to_uspace(virt_ptr, &virt, sizeof(virt));
 		if (rc != EOK) {
-			dmamem_unmap_anonymous((uintptr_t) virt);
+			dmamem_unmap_anonymous(virt);
 			return rc;
 		}
 	}
@@ -525,6 +527,24 @@ sys_errno_t sys_dmamem_unmap(uintptr_t virt, size_t size, unsigned int flags)
 		return dmamem_unmap(virt, size);
 	else
 		return dmamem_unmap_anonymous(virt);
+}
+void *pio_map(void *phys, size_t size)
+{
+#ifdef IO_SPACE_BOUNDARY
+	if (phys < IO_SPACE_BOUNDARY)
+		return phys;
+#endif
+	return (void *) km_map((uintptr_t) phys, size, KM_NATURAL_ALIGNMENT,
+	    PAGE_READ | PAGE_WRITE | PAGE_NOT_CACHEABLE);
+}
+
+void pio_unmap(void *phys, void *virt, size_t size)
+{
+#ifdef IO_SPACE_BOUNDARY
+	if (phys < IO_SPACE_BOUNDARY)
+		return;
+#endif
+	km_unmap((uintptr_t) virt, size);
 }
 
 /** @}

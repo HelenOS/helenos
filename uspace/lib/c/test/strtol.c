@@ -37,6 +37,7 @@
 #include <pcut/pcut.h>
 #include <stdlib.h>
 #include <str.h>
+#include <limits.h>
 
 PCUT_INIT;
 
@@ -216,7 +217,6 @@ PCUT_TEST(str_uint_overflow)
 #else
 	/* Correct result. */
 	PCUT_ASSERT_INT_EQUALS(EOVERFLOW, rc);
-	PCUT_ASSERT_UINT_EQUALS(UINT64_MAX, result);
 #endif
 
 	/* 3^40 */
@@ -244,8 +244,31 @@ PCUT_TEST(str_uint_overflow)
 #else
 	/* Correct result. */
 	PCUT_ASSERT_INT_EQUALS(EOVERFLOW, rc);
-	PCUT_ASSERT_UINT_EQUALS(UINT64_MAX, result);
 #endif
+}
+
+PCUT_TEST(strtoul_negative_wraparound)
+{
+	long output;
+	char *endp;
+	char *endp_unchanged = (char *) "endp_unchanged unique pointer";
+	int errno_unchanged = -1;
+	const char *input;
+	int base;
+
+	/*
+	 * N2176 7.22.1.4 The strtol, strtoll, strtoul, and strtoull functions
+	 *
+	 * "If the subject sequence begins with a minus sign, the value
+	 * resulting from the conversion is negated (in the return type)."
+	 */
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtoul(input = "-10", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input + 3, endp);
+	PCUT_ASSERT_UINT_EQUALS(-(10ul), output);
 }
 
 PCUT_TEST(strtol_fringe)
@@ -403,6 +426,13 @@ PCUT_TEST(strtol_fringe)
 
 	endp = endp_unchanged;
 	errno = errno_unchanged;
+	output = strtol(input = "    0xg", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input + 5, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
 	output = strtol(input = "    0x1", &endp, base = 0);
 	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
 	PCUT_ASSERT_PTR_EQUALS(input + 7, endp);
@@ -417,10 +447,80 @@ PCUT_TEST(strtol_fringe)
 
 	endp = endp_unchanged;
 	errno = errno_unchanged;
+	output = strtol(input = "    0xg", &endp, base = 16);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input + 5, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    g", &endp, base = 16);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
 	output = strtol(input = "    0x1", &endp, base = 16);
 	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
 	PCUT_ASSERT_PTR_EQUALS(input + 7, endp);
 	PCUT_ASSERT_INT_EQUALS(1, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    +", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    -", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    +", &endp, base = 10);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "    -", &endp, base = 10);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "+", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "-", &endp, base = 0);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "+", &endp, base = 10);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
+
+	endp = endp_unchanged;
+	errno = errno_unchanged;
+	output = strtol(input = "-", &endp, base = 10);
+	PCUT_ASSERT_INT_EQUALS(errno_unchanged, errno);
+	PCUT_ASSERT_PTR_EQUALS(input, endp);
+	PCUT_ASSERT_INT_EQUALS(0, output);
 }
 
 PCUT_EXPORT(strtol);

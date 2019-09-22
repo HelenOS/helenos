@@ -58,6 +58,12 @@
  */
 #define KERNEL_ADDRESS_SPACE_SHADOWED  KERNEL_ADDRESS_SPACE_SHADOWED_ARCH
 
+/**
+ * Defined to be true if user address space and kernel address space do not
+ * share the same page table.
+ */
+#define KERNEL_SEPARATE_PTL0 KERNEL_SEPARATE_PTL0_ARCH
+
 #define KERNEL_ADDRESS_SPACE_START  KERNEL_ADDRESS_SPACE_START_ARCH
 #define KERNEL_ADDRESS_SPACE_END    KERNEL_ADDRESS_SPACE_END_ARCH
 #define USER_ADDRESS_SPACE_START    USER_ADDRESS_SPACE_START_ARCH
@@ -366,10 +372,10 @@ extern mem_backend_t user_backend;
 
 /* Address space area related syscalls. */
 extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int, uintptr_t,
-    as_area_pager_info_t *);
+    uspace_ptr_as_area_pager_info_t);
 extern sys_errno_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
 extern sys_errno_t sys_as_area_change_flags(uintptr_t, unsigned int);
-extern sys_errno_t sys_as_area_get_info(uintptr_t, as_area_info_t *);
+extern sys_errno_t sys_as_area_get_info(uintptr_t, uspace_ptr_as_area_info_t);
 extern sys_errno_t sys_as_area_destroy(uintptr_t);
 
 /* Introspection functions. */

@@ -42,6 +42,7 @@
 
 #include <cpu.h>
 #include <stdint.h>
+#include <genarch/pic/pic_ops.h>
 
 #define FIXED  (0 << 0)
 #define LOPRI  (1 << 0)
@@ -346,6 +347,8 @@ typedef union {
 	} __attribute__((packed));
 } io_apic_id_t;
 
+extern pic_ops_t apic_pic_ops;
+
 extern volatile uint32_t *l_apic;
 extern volatile uint32_t *io_apic;
 
@@ -355,7 +358,7 @@ extern uint8_t bsp_l_apic;
 extern void apic_init(void);
 
 extern void l_apic_init(void);
-extern void l_apic_eoi(void);
+extern void l_apic_eoi(unsigned int);
 extern int l_apic_send_custom_ipi(uint8_t, uint8_t);
 extern int l_apic_broadcast_custom_ipi(uint8_t);
 extern int l_apic_send_init_ipi(uint8_t);

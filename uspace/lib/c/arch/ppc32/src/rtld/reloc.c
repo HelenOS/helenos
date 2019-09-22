@@ -239,16 +239,6 @@ void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 				continue;
 			}
 
-			sym_size = sym->st_size;
-			if (sym_size != sym_def->st_size) {
-#if 0
-				printf("Warning: Mismatched symbol sizes.\n");
-#endif
-				/* Take the lower value. */
-				if (sym_size > sym_def->st_size)
-					sym_size = sym_def->st_size;
-			}
-
 			DPRINTF("sym_addr = 0x%zx\n", sym_addr);
 			DPRINTF("r_offset=0x%zx\n", r_offset);
 
@@ -425,6 +415,17 @@ static uint16_t addr_ha(uint32_t addr)
 static uint16_t addr_l(uint32_t addr)
 {
 	return (uint16_t) (addr & 0x0000ffff);
+}
+
+/** Get the adress of a function.
+ *
+ * @param sym Symbol
+ * @param m Module in which the symbol is located
+ * @return Address of function
+ */
+void *func_get_addr(elf_symbol_t *sym, module_t *m)
+{
+	return symbol_get_addr(sym, m, __tcb_get());
 }
 
 /** @}

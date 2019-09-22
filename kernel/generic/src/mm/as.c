@@ -2091,13 +2091,13 @@ bool used_space_insert(used_space_t *used_space, uintptr_t page, size_t count)
  */
 
 sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
-    uintptr_t bound, as_area_pager_info_t *pager_info)
+    uintptr_t bound, uspace_ptr_as_area_pager_info_t pager_info)
 {
 	uintptr_t virt = base;
 	mem_backend_t *backend;
 	mem_backend_data_t backend_data;
 
-	if (pager_info == AS_AREA_UNPAGED)
+	if (!pager_info)
 		backend = &anon_backend;
 	else {
 		backend = &user_backend;
@@ -2124,9 +2124,13 @@ sys_errno_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
 	return (sys_errno_t) as_area_change_flags(AS, flags, address);
 }
 
-sys_errno_t sys_as_area_get_info(uintptr_t address, as_area_info_t *dest)
+sys_errno_t sys_as_area_get_info(uintptr_t address, uspace_ptr_as_area_info_t dest)
 {
 	as_area_t *area;
+	as_area_info_t info;
+
+	/* Prevent leaking stack bytes via structure padding. */
+	memset(&info, 0, sizeof(info));
 
 	mutex_lock(&AS->lock);
 	area = find_area_and_lock(AS, address);
@@ -2135,12 +2139,14 @@ sys_errno_t sys_as_area_get_info(uintptr_t address, as_area_info_t *dest)
 		return ENOENT;
 	}
 
-	dest->start_addr = area->base;
-	dest->size = P2SZ(area->pages);
-	dest->flags = area->flags;
+	info.start_addr = area->base;
+	info.size = P2SZ(area->pages);
+	info.flags = area->flags;
 
 	mutex_unlock(&area->lock);
 	mutex_unlock(&AS->lock);
+
+	copy_to_uspace(dest, &info, sizeof(info));
 	return EOK;
 }
 

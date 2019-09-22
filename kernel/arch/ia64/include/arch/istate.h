@@ -70,7 +70,7 @@ _NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
 
 _NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 {
-	return (istate->cr_iip) < 0xe000000000000000ULL;
+	return istate->cr_ipsr.cpl == PSR_CPL_USER;
 }
 
 #endif

@@ -38,10 +38,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-enum {
-	CAP_NIL = 0,
-};
-
 typedef void *cap_handle_t;
 
 typedef struct {
@@ -55,6 +51,8 @@ typedef struct {
 
 typedef struct {
 } *cap_waitq_handle_t;
+
+static cap_handle_t const CAP_NIL = 0;
 
 static inline bool cap_handle_valid(cap_handle_t handle)
 {

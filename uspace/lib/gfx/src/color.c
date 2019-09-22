@@ -36,7 +36,7 @@
 #include <gfx/color.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "private/color.h"
+#include "../private/color.h"
 
 /** Create new 16-bit per channel RGB color.
  *

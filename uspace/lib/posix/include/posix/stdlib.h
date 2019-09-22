@@ -41,6 +41,8 @@
 
 #include <stddef.h>
 
+__C_DECLS_BEGIN;
+
 /* Environment Access */
 extern int putenv(char *string);
 
@@ -58,6 +60,8 @@ extern int mkstemp(char *tmpl);
 /* Legacy Declarations */
 extern char *mktemp(char *tmpl) __attribute__((deprecated));
 extern int bsd_getloadavg(double loadavg[], int nelem);
+
+__C_DECLS_END;
 
 #endif  // POSIX_STDLIB_H_
 

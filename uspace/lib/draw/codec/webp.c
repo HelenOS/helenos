@@ -41,7 +41,7 @@
 #include <fourcc.h>
 #include <stdint.h>
 #include <abi/fourcc.h>
-#include "webp.h"
+#include <draw/codec.h>
 
 /** Check for input buffer overrun condition */
 #define CHECK_OVERRUN(state, retval) \

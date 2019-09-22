@@ -1,0 +1,66 @@
+#!/bin/sh
+
+#
+# Copyright (c) 2019 Jiří Zárevúcky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+if [ "$#" -ne 1 ]; then
+	echo "Must define export directory."
+	exit 1
+fi
+
+EXPORT_DIR="$1"
+
+# Only (re)build files we actually want to export.
+
+EXPORT_LIBS=" \
+	uspace/lib/libmath.a \
+	uspace/lib/libclui.a \
+	uspace/lib/libgui.a \
+	uspace/lib/libdraw.a \
+	uspace/lib/libsoftrend.a \
+	uspace/lib/libhound.a \
+	uspace/lib/libpcm.a \
+	uspace/lib/libcpp.a \
+	uspace/lib/libc.a \
+	uspace/lib/c/libstartfiles.a \
+	uspace/lib/libposix.a \
+"
+
+EXPORT_CONFIGS=" \
+	meson/part/exports/config.mk \
+	meson/part/exports/config.sh \
+"
+
+ninja $EXPORT_LIBS $EXPORT_CONFIGS
+ninja devel-headers
+
+mkdir -p "$EXPORT_DIR/lib"
+cp -t "$EXPORT_DIR/lib" $EXPORT_LIBS
+rm -rf "$EXPORT_DIR/include"
+cp -R dist/include "$EXPORT_DIR/include"
+cp -t "$EXPORT_DIR" $EXPORT_CONFIGS

@@ -29,16 +29,7 @@
 #ifndef LIBCPP_CASSERT
 #define LIBCPP_CASSERT
 
-
-extern "C" {
-    #include <assert.h>
-}
-
-// TODO: For some reason, this function isn't visible (maybe the
-//       noreturn attribute?), adding a redeclaration here for the
-//       time being.
-
-extern void __helenos_assert_abort(const char *, const char *, unsigned int);
+#include <assert.h>
 
 #define __unimplemented() assert(!"Not implemented!")
 

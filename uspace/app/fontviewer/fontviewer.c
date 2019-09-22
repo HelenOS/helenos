@@ -40,12 +40,11 @@
 #include <str_error.h>
 #include <window.h>
 #include <canvas.h>
-#include <surface.h>
-#include <codec/tga.h>
+#include <draw/surface.h>
+#include <draw/codec.h>
 #include <task.h>
-#include <drawctx.h>
-#include <font/embedded.h>
-#include <font/pcf.h>
+#include <draw/drawctx.h>
+#include <draw/font.h>
 #include <stdarg.h>
 #include <io/verify.h>
 

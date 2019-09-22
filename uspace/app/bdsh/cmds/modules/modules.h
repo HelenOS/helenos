@@ -30,7 +30,6 @@
 #define MODULES_H
 
 #include "../cmds.h"
-#include "modules.h"
 
 extern module_t modules[];
 

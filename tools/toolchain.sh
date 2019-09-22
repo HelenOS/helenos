@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/sh
 
 #
 # Copyright (c) 2009 Martin Decky
@@ -65,6 +65,7 @@ show_usage() {
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
 	echo " arm32      ARM 32b"
+	echo " arm64      AArch64"
 	echo " ia32       IA-32 (x86, i386)"
 	echo " ia64       IA-64 (Itanium)"
 	echo " mips32     MIPS little-endian 32b"
@@ -101,10 +102,10 @@ test_version() {
 	echo "Start testing the version of the installed software" 
 	echo
 	
-	if [ -z "$1" ] || [ "$1" == "all" ] ; then
-		PLATFORMS=("amd64" "arm32" "ia32" "ia64" "mips32" "mips32eb" "ppc32" "riscv64" "sparc64")
+	if [ -z "$1" ] || [ "$1" = "all" ] ; then
+		PLATFORMS='amd64 arm32 arm64 ia32 ia64 mips32 mips32eb ppc32 riscv64 sparc64'
 	else
-		PLATFORMS=("$1")
+		PLATFORMS="$1"
 	fi
 	
 	
@@ -112,16 +113,16 @@ test_version() {
 		CROSS_PREFIX="/usr/local/cross"
 	fi
 
-	for i in "${PLATFORMS[@]}"
+	for i in $PLATFORMS
 	do
 		PLATFORM="$i"
 		set_target_from_platform "$PLATFORM"
 		PREFIX="${CROSS_PREFIX}/bin/${HELENOS_TARGET}"
 
 		echo "== $PLATFORM =="
-		test_app_version "Binutils" "ld" "GNU\ ld\ \(GNU\ Binutils\)\ ((\.|[0-9])+)" "$BINUTILS_VERSION"
-		test_app_version "GCC" "gcc" "gcc\ version\ ((\.|[0-9])+)" "$GCC_VERSION"
-		test_app_version "GDB" "gdb" "GNU\ gdb\ \(GDB\)\s+((\.|[0-9])+)" "$GDB_VERSION"
+		test_app_version "Binutils" "ld" "GNU ld (.*) \([.0-9]*\)" "$BINUTILS_VERSION"
+		test_app_version "GCC" "gcc" "gcc version \([.0-9]*\)" "$GCC_VERSION"
+		test_app_version "GDB" "gdb" "GNU gdb (.*)[[:space:]]\+\([.0-9]*\)" "$GDB_VERSION"
 	done
 
 	exit
@@ -138,27 +139,25 @@ test_app_version() {
 	if [ ! -e $APP ]; then
 		echo "- $PKGNAME is missing"
 	else
-		{
-			OUT=$(${APP} -v 2>&1)
-		} &> /dev/null
+		VERSION=`${APP} -v 2>&1 | sed -n "s:^${REGEX}.*:\1:p"`
 
-		if [[ "$OUT" =~ $REGEX ]]; then
-	        VERSION="${BASH_REMATCH[1]}"
-	        if [ "$INS_VERSION" = "$VERSION" ]; then
-	        	echo "+ $PKGNAME is uptodate ($INS_VERSION)"
-	        else
-	        	echo "- $PKGNAME ($VERSION) is outdated ($INS_VERSION)"
-	        fi
-	    else
-	        echo "- $PKGNAME Unexpected output"
-	    fi
+		if [ -z "$VERSION" ]; then
+			echo "- $PKGNAME Unexpected output"
+			return 1
+		fi
+
+		if [ "$INS_VERSION" = "$VERSION" ]; then
+			echo "+ $PKGNAME is uptodate ($INS_VERSION)"
+		else
+			echo "- $PKGNAME ($VERSION) is outdated ($INS_VERSION)"
+		fi
 	fi
 }
 
 
 
 change_title() {
-	echo -en "\e]0;$1\a"
+	printf "\e]0;$1\a"
 }
 
 show_countdown() {
@@ -169,7 +168,7 @@ show_countdown() {
 		return 0
 	fi
 
-	echo -n "${TM} "
+	printf "${TM} "
 	change_title "${TM}"
 	sleep 1
 
@@ -220,30 +219,31 @@ create_dir() {
 check_dirs() {
 	OUTSIDE="$1"
 	BASE="$2"
-	ORIGINAL="`pwd`"
-
-	mkdir -p "${OUTSIDE}"
-
-	cd "${OUTSIDE}"
-	check_error $? "Unable to change directory to ${OUTSIDE}."
-	ABS_OUTSIDE="`pwd`"
+	ORIGINAL="$PWD"
 
 	cd "${BASE}"
 	check_error $? "Unable to change directory to ${BASE}."
-	ABS_BASE="`pwd`"
-
+	ABS_BASE="$PWD"
 	cd "${ORIGINAL}"
 	check_error $? "Unable to change directory to ${ORIGINAL}."
 
-	BASE_LEN="${#ABS_BASE}"
-	OUTSIDE_TRIM="${ABS_OUTSIDE:0:${BASE_LEN}}"
+	mkdir -p "${OUTSIDE}"
+	cd "${OUTSIDE}"
+	check_error $? "Unable to change directory to ${OUTSIDE}."
 
-	if [ "${OUTSIDE_TRIM}" == "${ABS_BASE}" ] ; then
+	while [ "${#PWD}" -gt "${#ABS_BASE}" ]; do
+		cd ..
+	done
+
+	if [ "$PWD" = "$ABS_BASE" ]; then
 		echo
 		echo "CROSS_PREFIX cannot reside within the working directory."
 
 		exit 5
 	fi
+
+	cd "${ORIGINAL}"
+	check_error $? "Unable to change directory to ${ORIGINAL}."
 }
 
 prepare() {
@@ -274,6 +274,9 @@ set_target_from_platform() {
 	case "$1" in
 		"arm32")
 			GNU_ARCH="arm"
+			;;
+		"arm64")
+			GNU_ARCH="aarch64"
 			;;
 		"ia32")
 			GNU_ARCH="i686"
@@ -340,9 +343,14 @@ build_target() {
 		echo ">>> Creating build sysroot"
 		mkdir -p "${WORKDIR}/sysroot/include"
 		mkdir "${WORKDIR}/sysroot/lib"
+		ARCH="$PLATFORM"
+		if [ "$ARCH" = "mips32eb" ]; then
+			ARCH=mips32
+		fi
+
 		cp -r -L -t "${WORKDIR}/sysroot/include" \
 			${SRCDIR}/../abi/include/* \
-			${SRCDIR}/../uspace/lib/c/arch/${PLATFORM}/include/* \
+			${SRCDIR}/../uspace/lib/c/arch/${ARCH}/include/* \
 			${SRCDIR}/../uspace/lib/c/include/*
 		check_error $? "Failed to create build sysroot."
 	fi
@@ -496,7 +504,7 @@ case "$1" in
 	--test-version)
 		test_version
 		;;
-	amd64|arm32|ia32|ia64|mips32|mips32eb|ppc32|riscv64|sparc64)
+	amd64|arm32|arm64|ia32|ia64|mips32|mips32eb|ppc32|riscv64|sparc64)
 		prepare
 		build_target "$1"
 		;;
@@ -504,6 +512,7 @@ case "$1" in
 		prepare
 		build_target "amd64"
 		build_target "arm32"
+		build_target "arm64"
 		build_target "ia32"
 		build_target "ia64"
 		build_target "mips32"
@@ -516,6 +525,7 @@ case "$1" in
 		prepare
 		build_target "amd64"
 		build_target "arm32"
+		build_target "arm64"
 		build_target "ia32"
 		build_target "ia64"
 		build_target "mips32"
@@ -527,6 +537,7 @@ case "$1" in
 		prepare
 		build_target "amd64" &
 		build_target "arm32" &
+		build_target "arm64" &
 		build_target "ia32" &
 		build_target "ia64" &
 		build_target "mips32" &
@@ -542,18 +553,19 @@ case "$1" in
 		build_target "arm32" &
 		wait
 
+		build_target "arm64" &
 		build_target "ia32" &
+		wait
+
 		build_target "ia64" &
-		wait
-
 		build_target "mips32" &
+		wait
+
 		build_target "mips32eb" &
-		wait
-
 		build_target "ppc32" &
-		build_target "riscv64" &
 		wait
 
+		build_target "riscv64" &
 		build_target "sparc64" &
 		wait
 		;;

@@ -38,7 +38,7 @@
 
 #include <stdbool.h>
 #include <io/pixel.h>
-#include <surface.h>
+#include <draw/surface.h>
 #include "widget.h"
 #include "connection.h"
 

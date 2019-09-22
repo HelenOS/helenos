@@ -42,6 +42,8 @@
 #include <stdlib.h>
 
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
+#pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic ignored "-Wformat-extra-args"
 
 PCUT_INIT;
 

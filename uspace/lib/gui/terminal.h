@@ -38,7 +38,7 @@
 
 #include <stddef.h>
 #include <fibril_synch.h>
-#include <font.h>
+#include <draw/font.h>
 #include <io/chargrid.h>
 #include <io/con_srv.h>
 #include <adt/list.h>

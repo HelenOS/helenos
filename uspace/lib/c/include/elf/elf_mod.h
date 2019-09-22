@@ -42,17 +42,6 @@
 #include <stdint.h>
 #include <loader/pcb.h>
 
-/**
- * ELF error return codes
- */
-#define EE_OK			0	/* No error */
-#define EE_INVALID		1	/* Invalid ELF image */
-#define EE_MEMORY		2	/* Cannot allocate address space */
-#define EE_INCOMPATIBLE		3	/* ELF image is not compatible with current architecture */
-#define EE_UNSUPPORTED		4	/* Non-supported ELF (e.g. dynamic ELFs) */
-#define EE_IRRECOVERABLE	5
-#define EE_IO			6	/* Could not read file. */
-
 typedef enum {
 	/** Leave all segments in RW access mode. */
 	ELDF_RW = 1
@@ -109,9 +98,8 @@ typedef struct {
 	elf_finfo_t *info;
 } elf_ld_t;
 
-extern const char *elf_error(unsigned int);
-extern int elf_load_file(int, eld_flags_t, elf_finfo_t *);
-extern int elf_load_file_name(const char *, eld_flags_t, elf_finfo_t *);
+extern errno_t elf_load_file(int, eld_flags_t, elf_finfo_t *);
+extern errno_t elf_load_file_name(const char *, eld_flags_t, elf_finfo_t *);
 
 #endif
 

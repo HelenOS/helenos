@@ -36,6 +36,9 @@
 #define POSIX_PWD_H_
 
 #include <sys/types.h>
+#include <_bits/decls.h>
+
+__C_DECLS_BEGIN;
 
 struct passwd {
 	char *pw_name;
@@ -56,6 +59,8 @@ extern int getpwnam_r(const char *name, struct passwd *pwd,
 extern struct passwd *getpwuid(uid_t uid);
 extern int getpwuid_r(uid_t uid, struct passwd *pwd,
     char *buffer, size_t bufsize, struct passwd **result);
+
+__C_DECLS_END;
 
 #endif /* POSIX_PWD_H_ */
 

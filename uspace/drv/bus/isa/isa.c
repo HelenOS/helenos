@@ -464,7 +464,7 @@ static void isa_fun_add_mem_range(isa_fun_t *fun, uintptr_t addr, size_t len)
 		resources[count].res.mem_range.address = addr;
 		resources[count].res.mem_range.address += isa->pio_win.mem.base;
 		resources[count].res.mem_range.size = len;
-		resources[count].res.mem_range.relative = true;
+		resources[count].res.mem_range.relative = false;
 		resources[count].res.mem_range.endianness = LITTLE_ENDIAN;
 
 		fun->hw_resources.count++;

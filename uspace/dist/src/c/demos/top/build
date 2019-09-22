@@ -7,4 +7,4 @@ cc -S -o top.s top.i
 as -o screen.o screen.s
 as -o top.o top.s
 
-ld -T /inc/_link.ld -o top_ screen.o top.o /lib/libc.a /lib/libsoftint.a
+ld -T /inc/_link.ld -o top_ screen.o top.o /lib/libc.a -lgcc

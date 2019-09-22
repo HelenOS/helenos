@@ -42,8 +42,8 @@
 #include <gfx/render.h>
 #include <io/pixel.h>
 #include <stdlib.h>
-#include "private/backend/console.h"
-#include "private/color.h"
+#include "../../private/backend/console.h"
+#include "../../private/color.h"
 
 static errno_t console_gc_set_color(void *, gfx_color_t *);
 static errno_t console_gc_fill_rect(void *, gfx_rect_t *);

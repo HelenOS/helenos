@@ -40,16 +40,22 @@
 #ifndef _BITS_ERRNO_H_
 #define _BITS_ERRNO_H_
 
-#ifdef __OPAQUE_ERRNO__
-#include <_bits/opaque_handle.h>
+#include <_bits/native.h>
+#include <_bits/decls.h>
 
-opaque_handle(errno_t);
+#ifdef __OPAQUE_ERRNO__
+#include <_bits/__opaque_handle.h>
+
+__HELENOS_DECLS_BEGIN;
+__opaque_handle(errno_t);
 typedef errno_t sys_errno_t;
+__HELENOS_DECLS_END;
+
 #define __errno_t(val) ((errno_t) val)
 
 #else
 
-#include <_bits/native.h>
+__HELENOS_DECLS_BEGIN;
 
 /**
  * The type of <errno.h> constants. Normally, this is an alias for `int`,
@@ -63,6 +69,8 @@ typedef int errno_t;
  * places where error number is always passed, but the type must be `sysarg_t`.
  */
 typedef sysarg_t sys_errno_t;
+
+__HELENOS_DECLS_END;
 
 /**
  * A C++-style "cast" to `errno_t`.

@@ -1,0 +1,23 @@
+#!/bin/sh
+
+if [ "$#" -ge 1 ]; then
+	touch "$1"
+fi
+
+if [ "$#" -ge 2 ]; then
+	DESTDIR="$2"
+else
+	DESTDIR="${MESON_INSTALL_DESTDIR_PREFIX}"
+fi
+
+rm -rf "${DESTDIR}"
+
+mkdir -p "${DESTDIR}cfg/"
+mkdir -p "${DESTDIR}data/"
+mkdir -p "${DESTDIR}loc/"
+mkdir -p "${DESTDIR}log/"
+mkdir -p "${DESTDIR}tmp/"
+mkdir -p "${DESTDIR}vol/"
+mkdir -p "${DESTDIR}w/"
+
+@text@

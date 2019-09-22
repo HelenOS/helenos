@@ -264,10 +264,10 @@ extern void thread_stack_trace(thread_id_t);
 extern slab_cache_t *fpu_context_cache;
 
 /* Thread syscall prototypes. */
-extern sys_errno_t sys_thread_create(uspace_arg_t *, char *, size_t,
-    thread_id_t *);
+extern sys_errno_t sys_thread_create(uspace_ptr_uspace_arg_t, uspace_ptr_char, size_t,
+    uspace_ptr_thread_id_t);
 extern sys_errno_t sys_thread_exit(int);
-extern sys_errno_t sys_thread_get_id(thread_id_t *);
+extern sys_errno_t sys_thread_get_id(uspace_ptr_thread_id_t);
 extern sys_errno_t sys_thread_usleep(uint32_t);
 extern sys_errno_t sys_thread_udelay(uint32_t);
 

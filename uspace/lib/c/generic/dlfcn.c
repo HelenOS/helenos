@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -43,6 +44,7 @@
 
 #include <rtld/module.h>
 #include <rtld/rtld.h>
+#include <rtld/rtld_arch.h>
 #include <rtld/symbol.h>
 
 void *dlopen(const char *path, int flag)
@@ -52,7 +54,14 @@ void *dlopen(const char *path, int flag)
 	m = module_find(runtime_env, path);
 	if (m == NULL) {
 		m = module_load(runtime_env, path, mlf_local);
-		module_load_deps(m, mlf_local);
+		if (m == NULL) {
+			return NULL;
+		}
+
+		if (module_load_deps(m, mlf_local) != EOK) {
+			return NULL;
+		}
+
 		/* Now relocate. */
 		module_process_relocs(m);
 	}
@@ -70,7 +79,10 @@ void *dlsym(void *mod, const char *sym_name)
 
 	sd = symbol_bfs_find(sym_name, (module_t *) mod, &sm);
 	if (sd != NULL) {
-		return symbol_get_addr(sd, sm, __tcb_get());
+		if (elf_st_type(sd->st_info) == STT_FUNC)
+			return func_get_addr(sd, sm);
+		else
+			return symbol_get_addr(sd, sm, __tcb_get());
 	}
 
 	return NULL;

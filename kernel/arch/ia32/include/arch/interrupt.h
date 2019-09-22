@@ -62,8 +62,9 @@
 #define IRQ_PIC1      2
 /* NS16550 at COM1 */
 #define IRQ_NS16550   4
-#define IRQ_PIC_SPUR  7
+#define IRQ_PIC0_SPUR 7
 #define IRQ_MOUSE     12
+#define IRQ_PIC1_SPUR 15
 
 /* This one must have four least significant bits set to ones */
 #define VECTOR_APIC_SPUR  (IVT_ITEMS - 1)
@@ -80,19 +81,13 @@
 #define VECTOR_PF                 (IVT_EXCBASE + EXC_PF)
 #define VECTOR_XM                 (IVT_EXCBASE + EXC_XM)
 #define VECTOR_CLK                (IVT_IRQBASE + IRQ_CLK)
-#define VECTOR_PIC_SPUR           (IVT_IRQBASE + IRQ_PIC_SPUR)
+#define VECTOR_PIC0_SPUR          (IVT_IRQBASE + IRQ_PIC0_SPUR)
+#define VECTOR_PIC1_SPUR          (IVT_IRQBASE + IRQ_PIC1_SPUR)
 #define VECTOR_SYSCALL            IVT_FREEBASE
 #define VECTOR_TLB_SHOOTDOWN_IPI  (IVT_FREEBASE + 1)
 #define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
 
-extern void (*disable_irqs_function)(uint16_t);
-extern void (*enable_irqs_function)(uint16_t);
-extern void (*eoi_function)(void);
-extern const char *irqs_info;
-
 extern void interrupt_init(void);
-extern void trap_virtual_enable_irqs(uint16_t);
-extern void trap_virtual_disable_irqs(uint16_t);
 
 #endif
 

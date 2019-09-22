@@ -52,17 +52,17 @@
  *
  * @param file File handle
  * @param info Place to store ELF program information
- * @return EE_OK on success or an EE_x error code
+ * @return EOK on success or an error code
  */
-int elf_load(int file, elf_info_t *info)
+errno_t elf_load(int file, elf_info_t *info)
 {
 #ifdef CONFIG_RTLD
 	rtld_t *env;
 #endif
-	int rc;
+	errno_t rc;
 
 	rc = elf_load_file(file, 0, &info->finfo);
-	if (rc != EE_OK) {
+	if (rc != EOK) {
 		DPRINTF("Failed to load executable '%s'.\n", file_name);
 		return rc;
 	}
@@ -71,29 +71,17 @@ int elf_load(int file, elf_info_t *info)
 		/* Statically linked program */
 		DPRINTF("Binary is statically linked.\n");
 		info->env = NULL;
-		return EE_OK;
+		return EOK;
 	}
 
 	DPRINTF("Binary is dynamically linked.\n");
 #ifdef CONFIG_RTLD
 	DPRINTF("- prog dynamic: %p\n", info->finfo.dynamic);
 
-	errno_t rc2 = rtld_prog_process(&info->finfo, &env);
-	switch (rc2) {
-	case EOK:
-		rc = EE_OK;
-		break;
-	case ENOMEM:
-		rc = EE_MEMORY;
-		break;
-	default:
-		DPRINTF("Unexpected error code from rtld_prog_process(): %s\n", str_error_name(rc2));
-		rc = EE_INVALID;
-	}
-
+	rc = rtld_prog_process(&info->finfo, &env);
 	info->env = env;
 #else
-	rc = EE_UNSUPPORTED;
+	rc = ENOTSUP;
 #endif
 	return rc;
 }

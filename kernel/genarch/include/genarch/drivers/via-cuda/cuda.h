@@ -41,52 +41,52 @@
 #include <synch/spinlock.h>
 
 typedef struct {
-	uint8_t b;
+	ioport8_t b;
 	uint8_t pad0[0x1ff];
 
-	uint8_t a;
+	ioport8_t a;
 	uint8_t pad1[0x1ff];
 
-	uint8_t dirb;
+	ioport8_t dirb;
 	uint8_t pad2[0x1ff];
 
-	uint8_t dira;
+	ioport8_t dira;
 	uint8_t pad3[0x1ff];
 
-	uint8_t t1cl;
+	ioport8_t t1cl;
 	uint8_t pad4[0x1ff];
 
-	uint8_t t1ch;
+	ioport8_t t1ch;
 	uint8_t pad5[0x1ff];
 
-	uint8_t t1ll;
+	ioport8_t t1ll;
 	uint8_t pad6[0x1ff];
 
-	uint8_t t1lh;
+	ioport8_t t1lh;
 	uint8_t pad7[0x1ff];
 
-	uint8_t t2cl;
+	ioport8_t t2cl;
 	uint8_t pad8[0x1ff];
 
-	uint8_t t2ch;
+	ioport8_t t2ch;
 	uint8_t pad9[0x1ff];
 
-	uint8_t sr;
+	ioport8_t sr;
 	uint8_t pad10[0x1ff];
 
-	uint8_t acr;
+	ioport8_t acr;
 	uint8_t pad11[0x1ff];
 
-	uint8_t pcr;
+	ioport8_t pcr;
 	uint8_t pad12[0x1ff];
 
-	uint8_t ifr;
+	ioport8_t ifr;
 	uint8_t pad13[0x1ff];
 
-	uint8_t ier;
+	ioport8_t ier;
 	uint8_t pad14[0x1ff];
 
-	uint8_t anh;
+	ioport8_t anh;
 	uint8_t pad15[0x1ff];
 } cuda_t;
 

@@ -140,6 +140,8 @@ static void exception_external(unsigned int n, istate_t *istate)
 			log(LF_ARCH, LVL_DEBUG, "cpu%u: spurious interrupt"
 			    " (inum=%" PRIu8 ")", CPU->id, inum);
 #endif
+			pic_ack_interrupt(NULL, inum);
+			break;
 		}
 	}
 }

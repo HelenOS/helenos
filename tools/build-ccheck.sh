@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright (c) 2019 Jiri Svoboda
 # All rights reserved.

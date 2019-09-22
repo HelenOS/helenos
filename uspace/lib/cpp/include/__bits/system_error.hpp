@@ -32,6 +32,7 @@
 #include <__bits/aux.hpp>
 #include <__bits/string/stringfwd.hpp>
 #include <stdexcept>
+#include <type_traits>
 
 namespace std
 {

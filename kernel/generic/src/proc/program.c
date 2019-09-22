@@ -47,7 +47,7 @@
 #include <ipc/ipcrsc.h>
 #include <security/perm.h>
 #include <lib/elf_load.h>
-#include <errno.h>
+#include <str.h>
 #include <log.h>
 #include <syscall/copy.h>
 #include <proc/program.h>
@@ -68,14 +68,14 @@ void *program_loader = NULL;
  * @return EOK on success or an error code.
  *
  */
-errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
+errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t *prg)
 {
 	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
 	    malloc(sizeof(uspace_arg_t));
 	if (!kernel_uarg)
 		return ENOMEM;
 
-	prg->loader_status = EE_OK;
+	prg->loader_status = EOK;
 	prg->task = task_create(as, name);
 	if (!prg->task) {
 		free(kernel_uarg);
@@ -85,7 +85,7 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 	/*
 	 * Create the stack address space area.
 	 */
-	uintptr_t virt = (uintptr_t) -1;
+	uintptr_t virt = (uintptr_t) AS_AREA_ANY;
 	uintptr_t bound = USER_ADDRESS_SPACE_END - (STACK_SIZE_USER - 1);
 
 	/* Adjust bound to create space for the desired guard page. */
@@ -102,12 +102,12 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 		return ENOMEM;
 	}
 
-	kernel_uarg->uspace_entry = (void *) entry_addr;
-	kernel_uarg->uspace_stack = (void *) virt;
+	kernel_uarg->uspace_entry = entry_addr;
+	kernel_uarg->uspace_stack = virt;
 	kernel_uarg->uspace_stack_size = STACK_SIZE_USER;
-	kernel_uarg->uspace_thread_function = NULL;
-	kernel_uarg->uspace_thread_arg = NULL;
-	kernel_uarg->uspace_uarg = NULL;
+	kernel_uarg->uspace_thread_function = USPACE_NULL;
+	kernel_uarg->uspace_thread_arg = USPACE_NULL;
+	kernel_uarg->uspace_uarg = USPACE_NULL;
 
 	/*
 	 * Create the main thread.
@@ -148,7 +148,7 @@ errno_t program_create_from_image(void *image_addr, char *name, program_t *prg)
 		return ENOMEM;
 
 	prg->loader_status = elf_load((elf_header_t *) image_addr, as);
-	if (prg->loader_status != EE_OK) {
+	if (prg->loader_status != EOK) {
 		as_release(as);
 		prg->task = NULL;
 		prg->main_thread = NULL;
@@ -182,10 +182,10 @@ errno_t program_create_loader(program_t *prg, char *name)
 	}
 
 	prg->loader_status = elf_load((elf_header_t *) program_loader, as);
-	if (prg->loader_status != EE_OK) {
+	if (prg->loader_status != EOK) {
 		as_release(as);
 		log(LF_OTHER, LVL_ERROR, "Cannot spawn loader (%s)",
-		    elf_error(prg->loader_status));
+		    str_error(prg->loader_status));
 		return ENOENT;
 	}
 
@@ -217,7 +217,7 @@ void program_ready(program_t *prg)
  * @return EOK on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
+sys_errno_t sys_program_spawn_loader(uspace_ptr_char uspace_name, size_t name_len)
 {
 	/* Cap length of name and copy it from userspace. */
 	if (name_len > TASK_NAME_BUFLEN - 1)

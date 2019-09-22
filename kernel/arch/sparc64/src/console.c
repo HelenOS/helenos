@@ -36,6 +36,7 @@
 
 #include <arch/drivers/scr.h>
 #include <arch/drivers/kbd.h>
+#include <arch/drivers/tty.h>
 #include <genarch/srln/srln.h>
 #include <console/chardev.h>
 #include <console/console.h>
@@ -82,6 +83,15 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 		panic("Cannot find %s.", (char *) prop_kbd->value);
 
 	kbd_init(keyboard);
+#endif
+
+#ifdef CONFIG_SUN_TTY
+	ofw_tree_property_t *prop_tty = ofw_tree_getprop(aliases, "ttya");
+	if (prop_tty && prop_tty->value) {
+		ofw_tree_node_t *tty = ofw_tree_lookup(prop_tty->value);
+		if (tty)
+			tty_init(tty);
+	}
 #endif
 }
 

@@ -29,116 +29,61 @@
 #ifndef LIBCPP_CSTDIO
 #define LIBCPP_CSTDIO
 
-
-namespace std::hel
-{
-    extern "C" {
-        #include <stdio.h>
-    }
-}
+#include <stdio.h>
 
 namespace std
 {
-    using std::hel::FILE;
-    using std::hel::stdin;
-    using std::hel::stdout;
-    using std::hel::stderr;
-    /* using std::hel::fpos_t */
-    using std::hel::size_t;
+    using ::FILE;
+    using ::stdin;
+    using ::stdout;
+    using ::stderr;
+    using ::fpos_t;
+    using ::size_t;
 
-    using std::hel::clearerr;
-    using std::hel::fclose;
-    using std::hel::feof;
-    using std::hel::ferror;
-    using std::hel::fflush;
-    using std::hel::fgetc;
-    /* using std::hel::fgetpos; */
-    using std::hel::fgets;
-    using std::hel::fopen;
-    using std::hel::fprintf;
-    using std::hel::fputc;
-    using std::hel::fputs;
-    using std::hel::fread;
-    using std::hel::freopen;
-    /* using std::hel::fscanf; */
-    using std::hel::fseek;
-    /* using std::hel::fsetpos; */
-    using std::hel::ftell;
-    using std::hel::fwrite;
-    /* using std::hel::getc; */
-    using std::hel::getchar;
-    /* using std::hel::perror; */
-    using std::hel::printf;
-    /* using std::hel::putc; */
-    using std::hel::putchar;
-    using std::hel::puts;
-    using std::hel::remove;
-    using std::hel::rename;
-    using std::hel::rewind;
-    /* using std::hel::scanf; */
-    using std::hel::setbuf;
-    using std::hel::setvbuf;
-    using std::hel::snprintf;
-    /* using std::hel::sprintf; */
-    /* using std::hel::sscanf; */
-    /* using std::hel::tmpfile; */
-    /* using std::hel::tmpnam; */
-    using std::hel::ungetc;
-    using std::hel::vfprintf;
-    using std::hel::vprintf;
-    /* using std::hel::vscanf; */
-    using std::hel::vsnprintf;
-    /* using std::hel::vsprintf; */
-    /* using std::hel::vsscanf; */
+    using ::clearerr;
+    using ::fclose;
+    using ::feof;
+    using ::ferror;
+    using ::fflush;
+    using ::fgetc;
+    using ::fgetpos;
+    using ::fgets;
+    using ::fopen;
+    using ::fprintf;
+    using ::fputc;
+    using ::fputs;
+    using ::fread;
+    using ::freopen;
+    using ::fscanf;
+    using ::fseek;
+    using ::fsetpos;
+    using ::ftell;
+    using ::fwrite;
+    using ::getc;
+    using ::getchar;
+    using ::perror;
+    using ::printf;
+    using ::putc;
+    using ::putchar;
+    using ::puts;
+    using ::remove;
+    using ::rename;
+    using ::rewind;
+    using ::scanf;
+    using ::setbuf;
+    using ::setvbuf;
+    using ::snprintf;
+    /* using ::sprintf; */
+    /* using ::sscanf; */
+    /* using ::tmpfile; */
+    /* using ::tmpnam; */
+    using ::ungetc;
+    using ::vfprintf;
+    using ::vprintf;
+    /* using ::vscanf; */
+    using ::vsnprintf;
+    /* using ::vsprintf; */
+    /* using ::vsscanf; */
 }
-
-using std::hel::FILE;
-/* using std::hel::fpos_t */
-using std::hel::size_t;
-
-using std::hel::clearerr;
-using std::hel::fclose;
-using std::hel::feof;
-using std::hel::ferror;
-using std::hel::fflush;
-using std::hel::fgetc;
-/* using std::hel::fgetpos; */
-using std::hel::fgets;
-using std::hel::fopen;
-using std::hel::fprintf;
-using std::hel::fputc;
-using std::hel::fputs;
-using std::hel::fread;
-using std::hel::freopen;
-/* using std::hel::fscanf; */
-using std::hel::fseek;
-/* using std::hel::fsetpos; */
-using std::hel::ftell;
-using std::hel::fwrite;
-/* using std::hel::getc; */
-using std::hel::getchar;
-/* using std::hel::perror; */
-using std::hel::printf;
-/* using std::hel::putc; */
-using std::hel::putchar;
-using std::hel::puts;
-using std::hel::remove;
-using std::hel::rename;
-using std::hel::rewind;
-/* using std::hel::scanf; */
-using std::hel::setbuf;
-using std::hel::setvbuf;
-using std::hel::snprintf;
-/* using std::hel::sprintf; */
-/* using std::hel::sscanf; */
-/* using std::hel::tmpfile; */
-/* using std::hel::tmpnam; */
-using std::hel::ungetc;
-using std::hel::vfprintf;
-using std::hel::vprintf;
-/* using std::hel::vscanf; */
-using std::hel::vsnprintf;
-/* using std::hel::vsprintf; */
-/* using std::hel::vsscanf; */
 
 #endif

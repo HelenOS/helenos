@@ -31,7 +31,25 @@
 
 .section BOOTSTRAP
 
+#define CP15_C1_U		22
+#define CP15_C1_IC		12
+#define CP15_C1_BP		11
+#define CP15_C1_DC		2
+
 SYMBOL(start)
+
+#ifdef PROCESSOR_ARCH_armv6
+	/*
+	 * Enable unaligned doubleword memory accesses (STRD/LDRD) if the
+	 * processor supports it. Note that that boils down to ARMv6 processors
+	 * only as the older architectures require doubleword alignment and
+	 * ARMv7 always assumes the U bit is 1.
+	 */
+	mrc	p15, 0, r0, c1, c0, 0
+	orr	r0, r0, #(1 << CP15_C1_U)
+	mcr	p15, 0, r0, c1, c0, 0
+#endif
+
 	ldr sp, =boot_stack
 	b bootstrap
 
@@ -58,11 +76,6 @@ FUNCTION_BEGIN(jump_to_kernel)
 	#
 	# r0 is kernel entry point
 	# r1 is pointer to the bootinfo structure
-
-#define CP15_C1_IC		12
-#define CP15_C1_BP		11
-#define CP15_C1_DC		2
-
 
 #ifndef PROCESSOR_ARCH_armv7_a
 	mrc	p15, 0, r4, c1, c0, 0

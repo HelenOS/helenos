@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright (c) 2018 Jiri Svoboda
 # All rights reserved.
@@ -32,7 +32,7 @@ if [ ."$CCHECK" != . ]; then
 	ccheck="$CCHECK"
 fi
 
-if [ ."$1" == .--fix ] ; then
+if [ ."$1" = .--fix ]; then
 	opt=--fix
 else
 	opt=
@@ -48,8 +48,7 @@ find abi kernel boot uspace -type f -regex '^.*\.[ch]$' \
 while read fname; do
 	outfile="$(mktemp)"
 	"$ccheck" $opt $fname >"$outfile" 2>&1
-	rc=$?
-	if [ .$rc == .0 ]; then
+	if [ $? -eq 0 ]; then
 		if [ -s "$outfile" ] ; then
 			srepcnt=$((srepcnt + 1))
 			cat "$outfile"
@@ -64,7 +63,7 @@ while read fname; do
 	rm -f "$outfile"
 done
 
-if [ $srepcnt == 0 -a $fcnt == 0 ] ; then
+if [ $srepcnt -eq 0 ] && [ $fcnt -eq 0 ]; then
 	echo "Ccheck passed."
 else
 	echo "Ccheck failed."

@@ -35,6 +35,17 @@
 
 .section BOOTSTRAP
 
+/*
+ * Registers on entry:
+ *
+ *   a0: kernel argument count (kargc)
+ *   a1: kernel argument vector (kargv) of kargc elements
+ *   a2: unused here (kenvp on Malta)
+ *   a3: RAM size on Malta
+ *
+ * This is the case on Malta.
+ * msim clears these registers, so it is de facto correct as well.
+ */
 SYMBOL(start)
 	/*
 	 * Setup the CP0 configuration
@@ -42,17 +53,17 @@ SYMBOL(start)
 	 *  - Disable 64-bit supervisor adressing mode
 	 *  - Disable 64-bit user addressing mode
 	 */
-	mfc0 $a0, $status
-	la $a1, 0xffffff1f
-	and $a0, $a1, $a0
-	mtc0 $a0, $status
+	mfc0 $t0, $status
+	la $t1, 0xffffff1f
+	and $t0, $t1, $t0
+	mtc0 $t0, $status
 
 #if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
 	/*
 	 * Remember the size of the SDRAM in bootinfo.
 	 */
-	la $a0, PA2KA(BOOTINFO_OFFSET)
-	sw $a3, 0($a0)
+	la $t0, PA2KA(BOOTINFO_OFFSET)
+	sw $a3, 0($t0)
 #endif
 
 	/*
@@ -60,49 +71,49 @@ SYMBOL(start)
 	 * is executed in parallel on all CPUs,
 	 * but it not an issue).
 	 */
-	la $a0, PA2KA(CPUMAP_OFFSET)
+	la $t0, PA2KA(CPUMAP_OFFSET)
 
-	sw $zero, 0($a0)
-	sw $zero, 4($a0)
-	sw $zero, 8($a0)
-	sw $zero, 12($a0)
+	sw $zero, 0($t0)
+	sw $zero, 4($t0)
+	sw $zero, 8($t0)
+	sw $zero, 12($t0)
 
-	sw $zero, 16($a0)
-	sw $zero, 20($a0)
-	sw $zero, 24($a0)
-	sw $zero, 28($a0)
+	sw $zero, 16($t0)
+	sw $zero, 20($t0)
+	sw $zero, 24($t0)
+	sw $zero, 28($t0)
 
-	sw $zero, 32($a0)
-	sw $zero, 36($a0)
-	sw $zero, 40($a0)
-	sw $zero, 44($a0)
+	sw $zero, 32($t0)
+	sw $zero, 36($t0)
+	sw $zero, 40($t0)
+	sw $zero, 44($t0)
 
-	sw $zero, 48($a0)
-	sw $zero, 52($a0)
-	sw $zero, 56($a0)
-	sw $zero, 60($a0)
+	sw $zero, 48($t0)
+	sw $zero, 52($t0)
+	sw $zero, 56($t0)
+	sw $zero, 60($t0)
 
-	sw $zero, 64($a0)
-	sw $zero, 68($a0)
-	sw $zero, 72($a0)
-	sw $zero, 76($a0)
+	sw $zero, 64($t0)
+	sw $zero, 68($t0)
+	sw $zero, 72($t0)
+	sw $zero, 76($t0)
 
-	sw $zero, 80($a0)
-	sw $zero, 84($a0)
-	sw $zero, 88($a0)
-	sw $zero, 92($a0)
+	sw $zero, 80($t0)
+	sw $zero, 84($t0)
+	sw $zero, 88($t0)
+	sw $zero, 92($t0)
 
-	sw $zero, 96($a0)
-	sw $zero, 100($a0)
-	sw $zero, 104($a0)
-	sw $zero, 108($a0)
+	sw $zero, 96($t0)
+	sw $zero, 100($t0)
+	sw $zero, 104($t0)
+	sw $zero, 108($t0)
 
-	sw $zero, 112($a0)
-	sw $zero, 116($a0)
-	sw $zero, 120($a0)
-	sw $zero, 124($a0)
+	sw $zero, 112($t0)
+	sw $zero, 116($t0)
+	sw $zero, 120($t0)
+	sw $zero, 124($t0)
 
-	lui $a1, 1
+	lui $t1, 1
 
 #ifdef MACHINE_msim
 
@@ -118,9 +129,9 @@ SYMBOL(start)
 	nop
 
 	/* Record CPU presence */
-	sll $a2, $k1, 2
-	addu $a2, $a2, $a0
-	sw $a1, ($a2)
+	sll $t2, $k1, 2
+	addu $t2, $t2, $t0
+	sw $t1, ($t2)
 
 	loop:
 		j loop
@@ -130,11 +141,12 @@ SYMBOL(start)
 
 	bsp:
 		/* Record CPU presence */
-		sw $a1, ($a0)
+		sw $t1, ($t0)
 
 		/* Setup initial stack */
 		la $sp, PA2KA(STACK_OFFSET)
 
+		/* a0=kargc, a1=kargv */
 		j bootstrap
 		nop
 
