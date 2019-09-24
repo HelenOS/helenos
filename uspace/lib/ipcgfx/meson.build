@@ -26,7 +26,8 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'guigfx', 'congfx', 'ipcgfx' ]
+deps = [ 'gfx' ]
 src = files(
-	'gfxdemo.c',
+	'src/client.c',
+	'src/server.c'
 )
