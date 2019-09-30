@@ -34,7 +34,7 @@
  */
 
 #include <adt/list.h>
-#include <cap.h>
+#include <capa.h>
 #include <errno.h>
 #include <fdisk.h>
 #include <loc.h>
@@ -218,7 +218,7 @@ errno_t fdisk_dev_info_get_svcname(fdisk_dev_info_t *info, char **rname)
 	return EOK;
 }
 
-errno_t fdisk_dev_info_capacity(fdisk_dev_info_t *info, cap_spec_t *cap)
+errno_t fdisk_dev_info_capacity(fdisk_dev_info_t *info, capa_spec_t *capa)
 {
 	vbd_disk_info_t vinfo;
 	errno_t rc;
@@ -227,7 +227,7 @@ errno_t fdisk_dev_info_capacity(fdisk_dev_info_t *info, cap_spec_t *cap)
 	if (rc != EOK)
 		return EIO;
 
-	cap_from_blocks(vinfo.nblocks, vinfo.block_size, cap);
+	capa_from_blocks(vinfo.nblocks, vinfo.block_size, capa);
 	return EOK;
 }
 
@@ -294,7 +294,7 @@ static errno_t fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
 	if (part->pkind == lpk_extended)
 		dev->ext_part = part;
 
-	cap_from_blocks(part->nblocks, dev->dinfo.block_size,
+	capa_from_blocks(part->nblocks, dev->dinfo.block_size,
 	    &part->capacity);
 	part->part_id = partid;
 
@@ -535,9 +535,9 @@ errno_t fdisk_dev_get_svcname(fdisk_dev_t *dev, char **rname)
 	return EOK;
 }
 
-errno_t fdisk_dev_capacity(fdisk_dev_t *dev, cap_spec_t *cap)
+errno_t fdisk_dev_capacity(fdisk_dev_t *dev, capa_spec_t *capa)
 {
-	cap_from_blocks(dev->dinfo.nblocks, dev->dinfo.block_size, cap);
+	capa_from_blocks(dev->dinfo.nblocks, dev->dinfo.block_size, capa);
 	return EOK;
 }
 
@@ -678,7 +678,8 @@ errno_t fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 }
 
 /** Get size of largest free block. */
-errno_t fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, cap_spec_t *cap)
+errno_t fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
+    capa_spec_t *capa)
 {
 	errno_t rc;
 	uint64_t b0;
@@ -697,13 +698,13 @@ errno_t fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, cap_spec_t *
 		nb -= hdrb;
 	}
 
-	cap_from_blocks(nb, dev->dinfo.block_size, cap);
+	capa_from_blocks(nb, dev->dinfo.block_size, capa);
 	return EOK;
 }
 
 /** Get total free space capacity. */
 errno_t fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
-    cap_spec_t *cap)
+    capa_spec_t *capa)
 {
 	fdisk_free_range_t fr;
 	uint64_t hdrb;
@@ -725,7 +726,7 @@ errno_t fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
 		}
 	} while (fdisk_free_range_next(&fr));
 
-	cap_from_blocks(totb, dev->dinfo.block_size, cap);
+	capa_from_blocks(totb, dev->dinfo.block_size, capa);
 	return EOK;
 }
 
@@ -937,17 +938,17 @@ static errno_t fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspe
 	int index;
 	errno_t rc;
 
-	rc = cap_to_blocks(&pspec->capacity, cv_nom, dev->dinfo.block_size,
+	rc = capa_to_blocks(&pspec->capacity, cv_nom, dev->dinfo.block_size,
 	    &nom_blocks);
 	if (rc != EOK)
 		return rc;
 
-	rc = cap_to_blocks(&pspec->capacity, cv_min, dev->dinfo.block_size,
+	rc = capa_to_blocks(&pspec->capacity, cv_min, dev->dinfo.block_size,
 	    &min_blocks);
 	if (rc != EOK)
 		return rc;
 
-	rc = cap_to_blocks(&pspec->capacity, cv_max, dev->dinfo.block_size,
+	rc = capa_to_blocks(&pspec->capacity, cv_max, dev->dinfo.block_size,
 	    &max_blocks);
 	if (rc != EOK)
 		return rc;

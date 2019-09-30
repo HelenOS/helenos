@@ -27,13 +27,13 @@
  */
 
 #include <pcut/pcut.h>
-#include <cap.h>
+#include <capa.h>
 
 PCUT_INIT;
 
-PCUT_TEST_SUITE(cap);
+PCUT_TEST_SUITE(capa);
 
-PCUT_TEST(cap_format)
+PCUT_TEST(capa_format)
 {
 	int block_size = 4;
 	size_t block[] = {
@@ -85,26 +85,26 @@ PCUT_TEST(cap_format)
 		"10.00 GB",
 	};
 
-	cap_spec_t cap;
+	capa_spec_t capa;
 	char *str;
 	errno_t rc;
 
 	int x, i;
 	for (i = 0; i < input_size; i++) {
 		for (x = 0; x < block_size; x++) {
-			cap_from_blocks(input[i], block[x], &cap);
-			cap_simplify(&cap);
+			capa_from_blocks(input[i], block[x], &capa);
+			capa_simplify(&capa);
 
-			rc = cap_format(&cap, &str);
+			rc = capa_format(&capa, &str);
 
 			PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 			PCUT_ASSERT_STR_EQUALS(out[x + (block_size * i)], str);
 			free(str);
 
-			cap_from_blocks(block[x], input[i], &cap);
-			cap_simplify(&cap);
+			capa_from_blocks(block[x], input[i], &capa);
+			capa_simplify(&capa);
 
-			rc = cap_format(&cap, &str);
+			rc = capa_format(&capa, &str);
 
 			PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 			PCUT_ASSERT_STR_EQUALS(out[x + (block_size * i)], str);
@@ -113,7 +113,7 @@ PCUT_TEST(cap_format)
 	}
 }
 
-PCUT_TEST(cap_format_rounding)
+PCUT_TEST(capa_format_rounding)
 {
 	int input_size = 8;
 	uint64_t input[] = {
@@ -138,25 +138,25 @@ PCUT_TEST(cap_format_rounding)
 		"1.000 MB",
 	};
 
-	cap_spec_t cap;
+	capa_spec_t capa;
 	char *str;
 	errno_t rc;
 
 	int i;
 	for (i = 0; i < input_size; i++) {
-		cap_from_blocks(input[i], 1, &cap);
-		cap_simplify(&cap);
+		capa_from_blocks(input[i], 1, &capa);
+		capa_simplify(&capa);
 
-		rc = cap_format(&cap, &str);
+		rc = capa_format(&capa, &str);
 
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 		PCUT_ASSERT_STR_EQUALS(out[i], str);
 		free(str);
 
-		cap_from_blocks(1, input[i], &cap);
-		cap_simplify(&cap);
+		capa_from_blocks(1, input[i], &capa);
+		capa_simplify(&capa);
 
-		rc = cap_format(&cap, &str);
+		rc = capa_format(&capa, &str);
 
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 		PCUT_ASSERT_STR_EQUALS(out[i], str);
@@ -164,7 +164,7 @@ PCUT_TEST(cap_format_rounding)
 	}
 }
 
-PCUT_TEST(cap_parse)
+PCUT_TEST(capa_parse)
 {
 	int input_size = 4;
 	const char *input[] = {
@@ -195,21 +195,21 @@ PCUT_TEST(cap_parse)
 		1555,
 	};
 
-	cap_spec_t cap;
+	capa_spec_t capa;
 	errno_t rc;
 	int i;
 
 	for (i = 0; i < input_size; i++) {
-		rc = cap_parse(input[i], &cap);
+		rc = capa_parse(input[i], &capa);
 
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-		PCUT_ASSERT_INT_EQUALS(out_cunit[i], cap.cunit);
-		PCUT_ASSERT_INT_EQUALS(out_dp[i], cap.dp);
-		PCUT_ASSERT_INT_EQUALS(out_m[i], cap.m);
+		PCUT_ASSERT_INT_EQUALS(out_cunit[i], capa.cunit);
+		PCUT_ASSERT_INT_EQUALS(out_dp[i], capa.dp);
+		PCUT_ASSERT_INT_EQUALS(out_m[i], capa.m);
 	}
 }
 
-PCUT_TEST(cap_to_blocks)
+PCUT_TEST(capa_to_blocks)
 {
 	int input_size = 0;
 	int input_m[] = {
@@ -260,28 +260,28 @@ PCUT_TEST(cap_to_blocks)
 		25924,
 	};
 
-	cap_spec_t cap;
+	capa_spec_t capa;
 	errno_t rc;
 	int i;
 	uint64_t ret;
 
 	for (i = 0; i < input_size; i++) {
-		cap.m = input_m[i];
-		cap.dp = input_dp[i];
-		cap.cunit = cu_kbyte;
+		capa.m = input_m[i];
+		capa.dp = input_dp[i];
+		capa.cunit = cu_kbyte;
 
-		rc = cap_to_blocks(&cap, cv_nom, block[i], &ret);
+		rc = capa_to_blocks(&capa, cv_nom, block[i], &ret);
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 		PCUT_ASSERT_INT_EQUALS(out_nom[i], ret);
 
-		rc = cap_to_blocks(&cap, cv_min, block[i], &ret);
+		rc = capa_to_blocks(&capa, cv_min, block[i], &ret);
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 		PCUT_ASSERT_INT_EQUALS(out_min[i], ret);
 
-		rc = cap_to_blocks(&cap, cv_max, block[i], &ret);
+		rc = capa_to_blocks(&capa, cv_max, block[i], &ret);
 		PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 		PCUT_ASSERT_INT_EQUALS(out_max[i], ret);
 	}
 }
 
-PCUT_EXPORT(cap);
+PCUT_EXPORT(capa);

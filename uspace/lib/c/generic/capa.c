@@ -33,7 +33,7 @@
  * @file Storage capacity specification.
  */
 
-#include <cap.h>
+#include <capa.h>
 #include <errno.h>
 #include <imath.h>
 #include <stdio.h>
@@ -42,9 +42,9 @@
 /** Simplified capacity parameters */
 enum {
 	/** Simplified capacity maximum integer digits */
-	scap_max_idig = 3,
+	scapa_max_idig = 3,
 	/** Simplified capacity maximum significant digits */
-	scap_max_sdig = 4
+	scapa_max_sdig = 4
 };
 
 static const char *cu_str[] = {
@@ -59,14 +59,14 @@ static const char *cu_str[] = {
 	[cu_ybyte] = "YB"
 };
 
-void cap_from_blocks(uint64_t nblocks, size_t block_size, cap_spec_t *cap)
+void capa_from_blocks(uint64_t nblocks, size_t block_size, capa_spec_t *capa)
 {
 	uint64_t tsize;
 
 	tsize = nblocks * block_size;
-	cap->m = tsize;
-	cap->dp = 0;
-	cap->cunit = cu_byte;
+	capa->m = tsize;
+	capa->dp = 0;
+	capa->cunit = cu_byte;
 }
 
 /** Convert capacity to blocks.
@@ -80,7 +80,7 @@ void cap_from_blocks(uint64_t nblocks, size_t block_size, cap_spec_t *cap)
  * the nominal (middle) value, @c cv_min gives the minimum value
  * and @c cv_max gives the maximum value.
  */
-errno_t cap_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
+errno_t capa_to_blocks(capa_spec_t *capa, capa_vsel_t cvsel, size_t block_size,
     uint64_t *rblocks)
 {
 	int exp;
@@ -91,13 +91,13 @@ errno_t cap_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
 	uint64_t rem;
 	errno_t rc;
 
-	exp = cap->cunit * 3 - cap->dp;
+	exp = capa->cunit * 3 - capa->dp;
 	if (exp < 0) {
 		rc = ipow10_u64(-exp, &f);
 		if (rc != EOK)
 			return ERANGE;
-		bytes = (cap->m + (f / 2)) / f;
-		if (bytes * f - (f / 2) != cap->m)
+		bytes = (capa->m + (f / 2)) / f;
+		if (bytes * f - (f / 2) != capa->m)
 			return ERANGE;
 	} else {
 		rc = ipow10_u64(exp, &f);
@@ -117,8 +117,8 @@ errno_t cap_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
 			break;
 		}
 
-		bytes = cap->m * f + adj;
-		if ((bytes - adj) / f != cap->m)
+		bytes = capa->m * f + adj;
+		if ((bytes - adj) / f != capa->m)
 			return ERANGE;
 	}
 
@@ -137,7 +137,7 @@ errno_t cap_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
  * Change unit and round the number so that we have at most three integer
  * digits and at most two fractional digits, e.g abc.xy <unit>.
  */
-void cap_simplify(cap_spec_t *cap)
+void capa_simplify(capa_spec_t *capa)
 {
 	uint64_t div;
 	uint64_t maxv;
@@ -145,36 +145,36 @@ void cap_simplify(cap_spec_t *cap)
 	unsigned rdig;
 	errno_t rc;
 
-	/* Change units so that we have at most @c scap_max_idig integer digits */
-	rc = ipow10_u64(scap_max_idig, &maxv);
+	/* Change units so that we have at most @c scapa_max_idig integer digits */
+	rc = ipow10_u64(scapa_max_idig, &maxv);
 	assert(rc == EOK);
 
-	rc = ipow10_u64(cap->dp, &div);
+	rc = ipow10_u64(capa->dp, &div);
 	assert(rc == EOK);
 
-	while (cap->m / div >= maxv) {
-		++cap->cunit;
-		cap->dp += 3;
+	while (capa->m / div >= maxv) {
+		++capa->cunit;
+		capa->dp += 3;
 		div = div * 1000;
 	}
 
-	/* Round the number so that we have at most @c scap_max_sdig significant digits */
-	sdig = 1 + ilog10_u64(cap->m); /* number of significant digits */
-	if (sdig > scap_max_sdig) {
+	/* Round the number so that we have at most @c scapa_max_sdig significant digits */
+	sdig = 1 + ilog10_u64(capa->m); /* number of significant digits */
+	if (sdig > scapa_max_sdig) {
 		/* Number of digits to remove */
-		rdig = sdig - scap_max_sdig;
-		if (rdig > cap->dp)
-			rdig = cap->dp;
+		rdig = sdig - scapa_max_sdig;
+		if (rdig > capa->dp)
+			rdig = capa->dp;
 
 		rc = ipow10_u64(rdig, &div);
 		assert(rc == EOK);
 
-		cap->m = (cap->m + (div / 2)) / div;
-		cap->dp -= rdig;
+		capa->m = (capa->m + (div / 2)) / div;
+		capa->dp -= rdig;
 	}
 }
 
-errno_t cap_format(cap_spec_t *cap, char **rstr)
+errno_t capa_format(capa_spec_t *capa, char **rstr)
 {
 	errno_t rc;
 	int ret;
@@ -185,19 +185,19 @@ errno_t cap_format(cap_spec_t *cap, char **rstr)
 
 	sunit = NULL;
 
-	assert(cap->cunit < CU_LIMIT);
+	assert(capa->cunit < CU_LIMIT);
 
-	rc = ipow10_u64(cap->dp, &div);
+	rc = ipow10_u64(capa->dp, &div);
 	if (rc != EOK)
 		return rc;
 
-	ipart = cap->m / div;
-	fpart = cap->m % div;
+	ipart = capa->m / div;
+	fpart = capa->m % div;
 
-	sunit = cu_str[cap->cunit];
-	if (cap->dp > 0) {
+	sunit = cu_str[capa->cunit];
+	if (capa->dp > 0) {
 		ret = asprintf(rstr, "%" PRIu64 ".%0*" PRIu64 " %s", ipart,
-		    (int)cap->dp, fpart, sunit);
+		    (int)capa->dp, fpart, sunit);
 	} else {
 		ret = asprintf(rstr, "%" PRIu64 " %s", ipart, sunit);
 	}
@@ -207,7 +207,7 @@ errno_t cap_format(cap_spec_t *cap, char **rstr)
 	return EOK;
 }
 
-static errno_t cap_digit_val(char c, int *val)
+static errno_t capa_digit_val(char c, int *val)
 {
 	switch (c) {
 	case '0':
@@ -247,7 +247,7 @@ static errno_t cap_digit_val(char c, int *val)
 	return EOK;
 }
 
-errno_t cap_parse(const char *str, cap_spec_t *cap)
+errno_t capa_parse(const char *str, capa_spec_t *capa)
 {
 	const char *eptr;
 	const char *p;
@@ -259,7 +259,7 @@ errno_t cap_parse(const char *str, cap_spec_t *cap)
 	m = 0;
 
 	eptr = str;
-	while (cap_digit_val(*eptr, &d) == EOK) {
+	while (capa_digit_val(*eptr, &d) == EOK) {
 		m = m * 10 + d;
 		++eptr;
 	}
@@ -267,7 +267,7 @@ errno_t cap_parse(const char *str, cap_spec_t *cap)
 	if (*eptr == '.') {
 		++eptr;
 		dp = 0;
-		while (cap_digit_val(*eptr, &d) == EOK) {
+		while (capa_digit_val(*eptr, &d) == EOK) {
 			m = m * 10 + d;
 			++dp;
 			++eptr;
@@ -280,7 +280,7 @@ errno_t cap_parse(const char *str, cap_spec_t *cap)
 		++eptr;
 
 	if (*eptr == '\0') {
-		cap->cunit = cu_byte;
+		capa->cunit = cu_byte;
 	} else {
 		for (i = 0; i < CU_LIMIT; i++) {
 			if (str_lcasecmp(eptr, cu_str[i],
@@ -295,11 +295,11 @@ errno_t cap_parse(const char *str, cap_spec_t *cap)
 
 		return EINVAL;
 	found:
-		cap->cunit = i;
+		capa->cunit = i;
 	}
 
-	cap->m = m;
-	cap->dp = dp;
+	capa->m = m;
+	capa->dp = dp;
 	return EOK;
 }
 

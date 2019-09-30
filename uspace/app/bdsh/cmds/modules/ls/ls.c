@@ -41,7 +41,7 @@
 #include <getopt.h>
 #include <vfs/vfs.h>
 #include <str.h>
-#include <cap.h>
+#include <capa.h>
 
 #include "ls.h"
 #include "errors.h"
@@ -105,12 +105,12 @@ static errno_t ls_print(struct dir_elem_t *de)
 			return EOK;
 		}
 
-		cap_spec_t cap;
-		cap_from_blocks(de->s.size, 1, &cap);
-		cap_simplify(&cap);
+		capa_spec_t capa;
+		capa_from_blocks(de->s.size, 1, &capa);
+		capa_simplify(&capa);
 
 		char *rptr;
-		errno_t rc = cap_format(&cap, &rptr);
+		errno_t rc = capa_format(&capa, &rptr);
 		if (rc != EOK) {
 			return rc;
 		}

@@ -54,7 +54,7 @@ typedef enum {
 	cu_ebyte,
 	cu_zbyte,
 	cu_ybyte
-} cap_unit_t;
+} capa_unit_t;
 
 /** Which of values within the precision of the capacity */
 typedef enum {
@@ -64,7 +64,7 @@ typedef enum {
 	cv_min,
 	/** The maximum value */
 	cv_max
-} cap_vsel_t;
+} capa_vsel_t;
 
 #define CU_LIMIT (cu_ybyte + 1)
 
@@ -86,14 +86,14 @@ typedef struct {
 	/** Decimal positions */
 	unsigned dp;
 	/** Capacity unit */
-	cap_unit_t cunit;
-} cap_spec_t;
+	capa_unit_t cunit;
+} capa_spec_t;
 
-extern errno_t cap_format(cap_spec_t *, char **);
-extern errno_t cap_parse(const char *, cap_spec_t *);
-extern void cap_simplify(cap_spec_t *);
-extern void cap_from_blocks(uint64_t, size_t, cap_spec_t *);
-extern errno_t cap_to_blocks(cap_spec_t *, cap_vsel_t, size_t, uint64_t *);
+extern errno_t capa_format(capa_spec_t *, char **);
+extern errno_t capa_parse(const char *, capa_spec_t *);
+extern void capa_simplify(capa_spec_t *);
+extern void capa_from_blocks(uint64_t, size_t, capa_spec_t *);
+extern errno_t capa_to_blocks(capa_spec_t *, capa_vsel_t, size_t, uint64_t *);
 
 #endif
 

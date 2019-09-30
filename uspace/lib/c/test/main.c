@@ -31,7 +31,7 @@
 
 PCUT_INIT;
 
-PCUT_IMPORT(cap);
+PCUT_IMPORT(capa);
 PCUT_IMPORT(casting);
 PCUT_IMPORT(circ_buf);
 PCUT_IMPORT(double_to_str);
