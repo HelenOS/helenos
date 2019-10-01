@@ -88,6 +88,7 @@ static char *cmd_path;
 static char **cmd_args;
 
 static task_id_t task_id;
+static task_wait_t task_w;
 static bool task_wait_for;
 
 /** Combination of events/data to print. */
@@ -112,7 +113,7 @@ static errno_t program_run(void)
 {
 	errno_t rc;
 
-	rc = task_spawnv_debug(&task_id, NULL, cmd_path,
+	rc = task_spawnv_debug(&task_id, &task_w, cmd_path,
 	    (const char *const *)cmd_args, &sess);
 
 	if (rc == ENOTSUP) {
@@ -134,6 +135,7 @@ static errno_t connect_task(task_id_t task_id)
 {
 	errno_t rc;
 	bool debug_started = false;
+	bool wait_set_up = false;
 
 	if (sess == NULL) {
 		sess = async_connect_kbox(task_id);
@@ -150,6 +152,14 @@ static errno_t connect_task(task_id_t task_id)
 		}
 
 		debug_started = true;
+
+		rc = task_setup_wait(task_id, &task_w);
+		if (rc != EOK) {
+			printf("Error setting up wait for task termination.\n");
+			goto error;
+		}
+
+		wait_set_up = true;
 	}
 
 	rc = udebug_set_evmask(sess, UDEBUG_EM_ALL);
@@ -160,6 +170,8 @@ static errno_t connect_task(task_id_t task_id)
 
 	return EOK;
 error:
+	if (wait_set_up)
+		task_cancel_wait(&task_w);
 	if (debug_started)
 		udebug_end(sess);
 	if (sess != NULL)
@@ -806,7 +818,7 @@ int main(int argc, char *argv[])
 	if (task_wait_for) {
 		printf("Waiting for task to exit.\n");
 
-		rc = task_wait_task_id(task_id, &texit, &retval);
+		rc = task_wait(&task_w, &texit, &retval);
 		if (rc != EOK) {
 			printf("Failed waiting for task.\n");
 			return -1;
