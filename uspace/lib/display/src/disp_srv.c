@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,79 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libc
  * @{
  */
 /**
- * @file  services.h
- * @brief List of all known services and their codes.
+ * @file
+ * @brief Display protocol server stub
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#include <disp_srv.h>
+#include <errno.h>
+#include <ipc/display.h>
+#include <stdlib.h>
+#include <stddef.h>
 
-#include <abi/fourcc.h>
+static void display_window_create_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	errno_t rc;
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+	if (srv->ops->window_create == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
+	rc = srv->ops->window_create(srv->arg, &wnd_id);
+	async_answer_1(icall, rc, wnd_id);
+}
 
-#endif
+static void display_window_destroy_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+
+	if (srv->ops->window_create == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->window_destroy(srv->arg, wnd_id);
+	async_answer_0(icall, rc);
+}
+
+void display_conn(ipc_call_t *icall, display_srv_t *srv)
+{
+	/* Accept the connection */
+	async_accept_0(icall);
+
+	while (true) {
+		ipc_call_t call;
+
+		async_get_call(&call);
+		sysarg_t method = ipc_get_imethod(&call);
+
+		if (!method) {
+			/* The other side has hung up */
+			async_answer_0(&call, EOK);
+			break;
+		}
+
+		switch (method) {
+		case DISPLAY_WINDOW_CREATE:
+			display_window_create_srv(srv, &call);
+			break;
+		case DISPLAY_WINDOW_DESTROY:
+			display_window_destroy_srv(srv, &call);
+			break;
+		default:
+			async_answer_0(&call, ENOTSUP);
+		}
+	}
+}
 
 /** @}
  */

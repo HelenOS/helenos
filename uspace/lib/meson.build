@@ -85,7 +85,9 @@ libs = [
 	'congfx',
 	'guigfx',
 	'ieee80211',
-	'ipcgfx'
+	'ipcgfx',
+
+	'display'
 ]
 
 # Generated list of include directory paths

@@ -35,6 +35,7 @@
 #include <canvas.h>
 #include <congfx/console.h>
 #include <draw/surface.h>
+#include <display.h>
 #include <fibril.h>
 #include <guigfx/canvas.h>
 #include <gfx/color.h>
@@ -116,7 +117,6 @@ static errno_t demo_console(void)
 /** Run demo on canvas. */
 static errno_t demo_canvas(void)
 {
-	console_ctrl_t *con = NULL;
 	canvas_gc_t *cgc = NULL;
 	gfx_context_t *gc;
 	window_t *window = NULL;
@@ -127,9 +127,6 @@ static errno_t demo_canvas(void)
 	errno_t rc;
 
 	printf("Init canvas..\n");
-	con = console_init(stdin, stdout);
-	if (con == NULL)
-		return EIO;
 
 	window = window_open("comp:0/winreg", NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "GFX Demo");
@@ -144,20 +141,20 @@ static errno_t demo_canvas(void)
 	pixbuf = calloc(vw * vh, sizeof(pixel_t));
 	if (pixbuf == NULL) {
 		printf("Error allocating memory for pixel buffer.\n");
-		return -1;
+		return ENOMEM;
 	}
 
 	surface = surface_create(vw, vh, pixbuf, 0);
 	if (surface == NULL) {
 		printf("Error creating surface.\n");
-		return -1;
+		return EIO;
 	}
 
 	canvas = create_canvas(window_root(window), NULL, vw, vh,
 	    surface);
 	if (canvas == NULL) {
 		printf("Error creating canvas.\n");
-		return -1;
+		return EIO;
 	}
 
 	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
@@ -181,9 +178,47 @@ static errno_t demo_canvas(void)
 	return EOK;
 }
 
+/** Run demo on display server. */
+static errno_t demo_display(void)
+{
+	display_t *display = NULL;
+	gfx_context_t *gc;
+	display_window_t *window = NULL;
+	errno_t rc;
+
+	printf("Init display..\n");
+
+	rc = display_open(NULL, &display);
+	if (rc != EOK) {
+		printf("Error opening display.\n");
+		return rc;
+	}
+
+	rc = display_window_create(display, &window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		return rc;
+	}
+
+	rc = display_window_get_gc(window, &gc);
+	if (rc != EOK) {
+		printf("Error getting graphics context.\n");
+	}
+
+	rc = demo_rects(gc, 400, 300);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_context_delete(gc);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 static void print_syntax(void)
 {
-	printf("syntax: gfxdemo {canvas|console}\n");
+	printf("syntax: gfxdemo {canvas|console|display}\n");
 }
 
 int main(int argc, char *argv[])
@@ -201,6 +236,10 @@ int main(int argc, char *argv[])
 			return 1;
 	} else if (str_cmp(argv[1], "canvas") == 0) {
 		rc = demo_canvas();
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "display") == 0) {
+		rc = demo_display();
 		if (rc != EOK)
 			return 1;
 	} else {

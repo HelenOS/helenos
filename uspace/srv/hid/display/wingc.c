@@ -26,140 +26,122 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libipcgfx
+/** @addtogroup display
  * @{
  */
 /**
- * @file GFX IPC backend
+ * @file GFX window backend
  *
- * This implements a graphics context via HelenOS IPC.
+ * This implements a graphics context over display server window.
  */
 
-#include <ipcgfx/client.h>
-#include <ipcgfx/ipc/gc.h>
 #include <gfx/color.h>
 #include <gfx/context.h>
+#include <gfx/render.h>
+#include <io/log.h>
 #include <stdlib.h>
-#include "../private/client.h"
+#include "wingc.h"
 
-static errno_t ipc_gc_set_color(void *, gfx_color_t *);
-static errno_t ipc_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t win_gc_set_color(void *, gfx_color_t *);
+static errno_t win_gc_fill_rect(void *, gfx_rect_t *);
 
-gfx_context_ops_t ipc_gc_ops = {
-	.set_color = ipc_gc_set_color,
-	.fill_rect = ipc_gc_fill_rect
+gfx_context_ops_t win_gc_ops = {
+	.set_color = win_gc_set_color,
+	.fill_rect = win_gc_fill_rect
 };
 
-#include <stdio.h>
-
-/** Set color on IPC GC.
+/** Set color on window GC.
  *
- * Set drawing color on IPC GC.
+ * Set drawing color on window GC.
  *
- * @param arg IPC GC
+ * @param arg Console GC
  * @param color Color
  *
  * @return EOK on success or an error code
  */
-static errno_t ipc_gc_set_color(void *arg, gfx_color_t *color)
+static errno_t win_gc_set_color(void *arg, gfx_color_t *color)
 {
-	ipc_gc_t *ipcgc = (ipc_gc_t *) arg;
-	async_exch_t *exch;
-	uint16_t r, g, b;
-	errno_t rc;
+	win_gc_t *wgc = (win_gc_t *) arg;
 
-	printf("ipc_gc_set_color\n");
-	gfx_color_get_rgb_i16(color, &r, &g, &b);
-
-	exch = async_exchange_begin(ipcgc->sess);
-	rc = async_req_3_0(exch, GC_SET_RGB_COLOR, r, g, b);
-	async_exchange_end(exch);
-
-	return rc;
+	(void) wgc;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_set_color");
+	return EOK;
 }
 
-/** Fill rectangle on IPC GC.
+/** Fill rectangle on window GC.
  *
- * @param arg IPC GC
+ * @param arg Console GC
  * @param rect Rectangle
  *
  * @return EOK on success or an error code
  */
-static errno_t ipc_gc_fill_rect(void *arg, gfx_rect_t *rect)
+static errno_t win_gc_fill_rect(void *arg, gfx_rect_t *rect)
 {
-	ipc_gc_t *ipcgc = (ipc_gc_t *) arg;
-	async_exch_t *exch;
-	errno_t rc;
+	win_gc_t *wgc = (win_gc_t *) arg;
 
-	printf("ipc_gc_fill_rect\n");
-	exch = async_exchange_begin(ipcgc->sess);
-	rc = async_req_4_0(exch, GC_FILL_RECT, rect->p0.x, rect->p0.y,
-	    rect->p1.x, rect->p1.y);
-	async_exchange_end(exch);
-
-	return rc;
+	(void) wgc;
+	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
+	return EOK;
 }
 
-/** Create IPC GC.
+/** Create window GC.
  *
- * Create graphics context for rendering via IPC.
+ * Create graphics context for rendering into a window.
  *
- * @param sess Async session
  * @param rgc Place to store pointer to new GC.
  *
  * @return EOK on success or an error code
  */
-errno_t ipc_gc_create(async_sess_t *sess, ipc_gc_t **rgc)
+errno_t win_gc_create(win_gc_t **rgc)
 {
-	ipc_gc_t *ipcgc = NULL;
+	win_gc_t *wgc = NULL;
 	gfx_context_t *gc = NULL;
 	errno_t rc;
 
-	ipcgc = calloc(1, sizeof(ipc_gc_t));
-	if (ipcgc == NULL) {
+	wgc = calloc(1, sizeof(win_gc_t));
+	if (wgc == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 
-	rc = gfx_context_new(&ipc_gc_ops, ipcgc, &gc);
+	rc = gfx_context_new(&win_gc_ops, wgc, &gc);
 	if (rc != EOK)
 		goto error;
 
-	ipcgc->gc = gc;
-	ipcgc->sess = sess;
-	*rgc = ipcgc;
+	wgc->gc = gc;
+	*rgc = wgc;
 	return EOK;
 error:
-	if (ipcgc != NULL)
-		free(ipcgc);
+	if (wgc != NULL)
+		free(wgc);
 	gfx_context_delete(gc);
 	return rc;
 }
 
-/** Delete IPC GC.
+/** Delete window GC.
  *
- * @param ipcgc IPC GC
+ * @param wgc Console GC
  */
-errno_t ipc_gc_delete(ipc_gc_t *ipcgc)
+errno_t win_gc_delete(win_gc_t *wgc)
 {
 	errno_t rc;
 
-	rc = gfx_context_delete(ipcgc->gc);
+	rc = gfx_context_delete(wgc->gc);
 	if (rc != EOK)
 		return rc;
 
-	free(ipcgc);
+	free(wgc);
 	return EOK;
 }
 
-/** Get generic graphic context from IPC GC.
+/** Get generic graphic context from window GC.
  *
- * @param ipcgc IPC GC
+ * @param wgc Console GC
  * @return Graphic context
  */
-gfx_context_t *ipc_gc_get_ctx(ipc_gc_t *ipcgc)
+gfx_context_t *win_gc_get_ctx(win_gc_t *wgc)
 {
-	return ipcgc->gc;
+	return wgc->gc;
 }
 
 /** @}

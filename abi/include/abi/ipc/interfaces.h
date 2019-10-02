@@ -186,7 +186,11 @@ typedef enum {
 	INTERFACE_IPC_TEST =
 	    FOURCC_COMPACT('i', 'p', 'c', 't') | IFACE_EXCHANGE_SERIALIZE,
 	INTERFACE_PCI =
-	    FOURCC_COMPACT('p', 'c', 'i', ' ') | IFACE_EXCHANGE_SERIALIZE
+	    FOURCC_COMPACT('p', 'c', 'i', ' ') | IFACE_EXCHANGE_SERIALIZE,
+	INTERFACE_DISPLAY =
+	    FOURCC_COMPACT('d', 's', 'p', 'l') | IFACE_EXCHANGE_SERIALIZE,
+	INTERFACE_GC =
+	    FOURCC_COMPACT('g', 'f', 'x', 'c') | IFACE_EXCHANGE_SERIALIZE,
 } iface_t;
 
 #endif

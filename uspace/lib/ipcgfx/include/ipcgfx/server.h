@@ -40,7 +40,7 @@
 #include <errno.h>
 #include <gfx/context.h>
 
-extern errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
+extern errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc);
 
 #endif
 

@@ -43,6 +43,8 @@
 #include <ipcgfx/server.h>
 #include <stdint.h>
 
+#include <stdio.h>
+
 #include <bd_srv.h>
 
 static void gc_set_rgb_color_srv(gfx_context_t *gc, ipc_call_t *call)
@@ -63,6 +65,7 @@ static void gc_set_rgb_color_srv(gfx_context_t *gc, ipc_call_t *call)
 
 	rc = gfx_set_color(gc, color);
 	async_answer_0(call, rc);
+	printf("done with rgb_color_srv\n");
 }
 
 static void gc_fill_rect_srv(gfx_context_t *gc, ipc_call_t *call)
@@ -84,6 +87,8 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 	/* Accept the connection */
 	async_accept_0(icall);
 
+	printf("gc_conn: accepted connection\n");
+
 	while (true) {
 		ipc_call_t call;
 		async_get_call(&call);
@@ -97,13 +102,19 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 
 		switch (method) {
 		case GC_SET_RGB_COLOR:
+			printf("gc_conn: set_rgb_color\n");
 			gc_set_rgb_color_srv(gc, &call);
+			printf("gc_conn: done set_rgb_color\n");
 			break;
 		case GC_FILL_RECT:
+			printf("gc_conn: fill_rect_srv\n");
 			gc_fill_rect_srv(gc, &call);
+			printf("gc_conn: done fill_rect_srv\n");
 			break;
 		default:
+			printf("gc_conn: answer einval\n");
 			async_answer_0(&call, EINVAL);
+			printf("gc_conn: done answer einval\n");
 		}
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup display
  * @{
  */
 /**
- * @file  services.h
- * @brief List of all known services and their codes.
+ * @file Display management
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#include <disp_srv.h>
+#include <errno.h>
+#include <io/log.h>
 
-#include <abi/fourcc.h>
+static errno_t disp_window_create(void *, sysarg_t *);
+static errno_t disp_window_destroy(void *, sysarg_t);
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+display_ops_t display_srv_ops = {
+	.window_create = disp_window_create,
+	.window_destroy = disp_window_destroy
+};
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
+static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create()");
+	*rwnd_id = 42;
+	return EOK;
+}
 
-#endif
+static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_destroy()");
+	return EOK;
+}
 
 /** @}
  */
