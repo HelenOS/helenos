@@ -41,7 +41,17 @@
 #include <window.h>
 #include "output.h"
 
-errno_t output_init(gfx_context_t **rgc)
+static void (*kbd_ev_handler)(void *, kbd_event_t *);
+static void *kbd_ev_arg;
+
+static void on_keyboard_event(widget_t *widget, void *data)
+{
+	printf("Keyboard event\n");
+	kbd_ev_handler(kbd_ev_arg, (kbd_event_t *) data);
+}
+
+errno_t output_init(void (*kbd_event_handler)(void *, kbd_event_t *),
+    void *arg, gfx_context_t **rgc)
 {
 	canvas_gc_t *cgc = NULL;
 	window_t *window = NULL;
@@ -52,6 +62,8 @@ errno_t output_init(gfx_context_t **rgc)
 	errno_t rc;
 
 	printf("Init canvas..\n");
+	kbd_ev_handler = kbd_event_handler;
+	kbd_ev_arg = arg;
 
 	window = window_open("comp:0/winreg", NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "Display Server");
@@ -81,6 +93,8 @@ errno_t output_init(gfx_context_t **rgc)
 		printf("Error creating canvas.\n");
 		return EIO;
 	}
+
+	sig_connect(&canvas->keyboard_event, NULL, on_keyboard_event);
 
 	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
 	window_exec(window);

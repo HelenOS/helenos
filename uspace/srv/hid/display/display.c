@@ -38,26 +38,29 @@
 #include <gfx/context.h>
 #include <io/log.h>
 #include <stdlib.h>
-#include "display.h"
+#include "client.h"
 #include "window.h"
+#include "display.h"
 
 static errno_t disp_window_create(void *, sysarg_t *);
 static errno_t disp_window_destroy(void *, sysarg_t);
+static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
 
 display_ops_t display_srv_ops = {
 	.window_create = disp_window_create,
-	.window_destroy = disp_window_destroy
+	.window_destroy = disp_window_destroy,
+	.get_event = disp_get_event
 };
 
 static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
 {
 	errno_t rc;
-	ds_display_t *disp = (ds_display_t *) arg;
+	ds_client_t *client = (ds_client_t *) arg;
 	ds_window_t *wnd;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create()");
 
-	rc = ds_window_create(disp, &wnd);
+	rc = ds_window_create(client, &wnd);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create() - ds_window_create -> %d", rc);
 	if (rc != EOK)
 		return rc;
@@ -74,16 +77,33 @@ static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
 
 static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
 {
-	ds_display_t *disp = (ds_display_t *) arg;
+	ds_client_t *client = (ds_client_t *) arg;
 	ds_window_t *wnd;
 
-	wnd = ds_display_find_window(disp, wnd_id);
+	wnd = ds_client_find_window(client, wnd_id);
 	if (wnd == NULL)
 		return ENOENT;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_destroy()");
-	ds_display_remove_window(wnd);
+	ds_client_remove_window(wnd);
 	ds_window_delete(wnd);
+	return EOK;
+}
+
+static errno_t disp_get_event(void *arg, sysarg_t *wnd_id,
+    display_wnd_ev_t *event)
+{
+	ds_client_t *client = (ds_client_t *) arg;
+	ds_window_t *wnd;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_get_event()");
+
+	rc = ds_client_get_event(client, &wnd, event);
+	if (rc != EOK)
+		return rc;
+
+	*wnd_id = wnd->id;
 	return EOK;
 }
 
@@ -101,9 +121,9 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 	if (disp == NULL)
 		return ENOMEM;
 
-	list_initialize(&disp->windows);
-	disp->next_wnd_id = 1;
+	list_initialize(&disp->clients);
 	disp->gc = gc;
+	disp->next_wnd_id = 1;
 	*rdisp = disp;
 	return EOK;
 }
@@ -114,86 +134,113 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
  */
 void ds_display_destroy(ds_display_t *disp)
 {
-	assert(list_empty(&disp->windows));
+	assert(list_empty(&disp->clients));
 	free(disp);
 }
 
-/** Add window to display.
+/** Add client to display.
  *
  * @param disp Display
- * @param wnd Window
- * @return EOK on success, ENOMEM if there are no free window identifiers
+ * @param client client
  */
-errno_t ds_display_add_window(ds_display_t *disp, ds_window_t *wnd)
+void ds_display_add_client(ds_display_t *disp, ds_client_t *client)
 {
-	assert(wnd->display == NULL);
-	assert(!link_used(&wnd->lwindows));
+	assert(client->display == NULL);
+	assert(!link_used(&client->lclients));
 
-	wnd->display = disp;
-	wnd->id = disp->next_wnd_id++;
-	list_append(&wnd->lwindows, &disp->windows);
-
-	return EOK;
+	client->display = disp;
+	list_append(&client->lclients, &disp->clients);
 }
 
-/** Remove window from display.
+/** Remove client from display.
  *
- * @param wnd Window
+ * @param client client
  */
-void ds_display_remove_window(ds_window_t *wnd)
+void ds_display_remove_client(ds_client_t *client)
 {
-	list_remove(&wnd->lwindows);
-	wnd->display = NULL;
+	list_remove(&client->lclients);
+	client->display = NULL;
 }
 
-/** Find window by ID.
+/** Get first client in display.
  *
  * @param disp Display
+ * @return First client or @c NULL if there is none
+ */
+ds_client_t *ds_display_first_client(ds_display_t *disp)
+{
+	link_t *link = list_first(&disp->clients);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_client_t, lclients);
+}
+
+/** Get next client in display.
+ *
+ * @param client Current client
+ * @return Next client or @c NULL if there is none
+ */
+ds_client_t *ds_display_next_client(ds_client_t *client)
+{
+	link_t *link = list_next(&client->lclients, &client->display->clients);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_client_t, lclients);
+}
+
+/** Find window in all clients by ID.
+ *
+ * XXX This is just a hack needed to match GC connection to a window,
+ * as we don't have a good safe way to pass the GC endpoint to our client
+ * on demand.
+ *
+ * @param display Display
  * @param id Window ID
  */
-ds_window_t *ds_display_find_window(ds_display_t *disp, ds_wnd_id_t id)
+#include <stdio.h>
+ds_window_t *ds_display_find_window(ds_display_t *display, ds_wnd_id_t id)
 {
+	ds_client_t *client;
 	ds_window_t *wnd;
 
-	// TODO Make this faster
-	wnd = ds_display_first_window(disp);
-	while (wnd != NULL) {
-		if (wnd->id == id)
+	printf("ds_display_find_window: id=0x%lx\n", id);
+
+	client = ds_display_first_client(display);
+	while (client != NULL) {
+		printf("ds_display_find_window: client=%p\n", client);
+		wnd = ds_client_find_window(client, id);
+		if (wnd != NULL) {
+			printf("ds_display_find_window: found wnd=%p id=0x%lx\n",
+			    wnd, wnd->id);
 			return wnd;
-		wnd = ds_display_next_window(wnd);
+		}
+		client = ds_display_next_client(client);
 	}
 
+	printf("ds_display_find_window: not found\n");
 	return NULL;
 }
 
-/** Get first window in display.
- *
- * @param disp Display
- * @return First window or @c NULL if there is none
- */
-ds_window_t *ds_display_first_window(ds_display_t *disp)
+errno_t ds_display_post_kbd_event(ds_display_t *display, kbd_event_t *event)
 {
-	link_t *link = list_first(&disp->windows);
+	ds_client_t *client;
+	ds_window_t *wnd;
 
-	if (link == NULL)
-		return NULL;
+	// XXX Correctly determine destination window
 
-	return list_get_instance(link, ds_window_t, lwindows);
-}
+	client = ds_display_first_client(display);
+	if (client == NULL)
+		return EOK;
 
-/** Get next window in display.
- *
- * @param wnd Current window
- * @return Next window or @c NULL if there is none
- */
-ds_window_t *ds_display_next_window(ds_window_t *wnd)
-{
-	link_t *link = list_next(&wnd->lwindows, &wnd->display->windows);
+	wnd = ds_client_first_window(client);
+	if (wnd == NULL)
+		return EOK;
 
-	if (link == NULL)
-		return NULL;
-
-	return list_get_instance(link, ds_window_t, lwindows);
+	return ds_client_post_kbd_event(client, wnd, event);
 }
 
 /** @}

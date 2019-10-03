@@ -30,35 +30,27 @@
  * @{
  */
 /**
- * @file Display server display type
+ * @file Display server client
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
+#ifndef CLIENT_H
+#define CLIENT_H
 
-#include <adt/list.h>
-#include <gfx/context.h>
-#include <io/input.h>
-#include "window.h"
+#include <disp_srv.h>
+#include "types/display/client.h"
+#include "types/display/display.h"
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
-	/** Output GC */
-	gfx_context_t *gc;
-
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
-} ds_display_t;
+extern errno_t ds_client_create(ds_display_t *, display_srv_t *, ds_client_t **);
+extern void ds_client_destroy(ds_client_t *);
+extern errno_t ds_client_add_window(ds_client_t *, ds_window_t *);
+extern void ds_client_remove_window(ds_window_t *);
+extern ds_window_t *ds_client_find_window(ds_client_t *, ds_wnd_id_t);
+extern ds_window_t *ds_client_first_window(ds_client_t *);
+extern ds_window_t *ds_client_next_window(ds_window_t *);
+extern errno_t ds_client_get_event(ds_client_t *, ds_window_t **,
+    display_wnd_ev_t *);
+extern errno_t ds_client_post_kbd_event(ds_client_t *, ds_window_t *,
+    kbd_event_t *);
 
 #endif
 

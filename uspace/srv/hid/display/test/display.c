@@ -31,8 +31,8 @@
 #include <stdio.h>
 #include <str.h>
 
+#include "../client.h"
 #include "../display.h"
-#include "../window.h"
 
 PCUT_INIT;
 
@@ -50,30 +50,27 @@ PCUT_TEST(display_create_destroy)
 	ds_display_destroy(disp);
 }
 
-/** Basic window operation. */
-PCUT_TEST(display_window)
+/** Basic client operation. */
+PCUT_TEST(display_client)
 {
 	ds_display_t *disp;
-	ds_window_t *wnd;
-	ds_window_t *w0, *w1, *w2;
+	ds_client_t *client;
+	ds_client_t *c0, *c1;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(disp, &wnd);
+	rc = ds_client_create(disp, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	w0 = ds_display_first_window(disp);
-	PCUT_ASSERT_EQUALS(w0, wnd);
+	c0 = ds_display_first_client(disp);
+	PCUT_ASSERT_EQUALS(c0, client);
 
-	w1 = ds_display_next_window(w0);
-	PCUT_ASSERT_NULL(w1);
+	c1 = ds_display_next_client(c0);
+	PCUT_ASSERT_NULL(c1);
 
-	w2 = ds_display_find_window(disp, wnd->id);
-	PCUT_ASSERT_EQUALS(w2, wnd);
-
-	ds_window_delete(wnd);
+	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
 

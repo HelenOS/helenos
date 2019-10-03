@@ -35,15 +35,34 @@
  */
 
 #include <disp_srv.h>
+#include <display/event.h>
 #include <errno.h>
+#include <io/log.h>
 #include <ipc/display.h>
 #include <stdlib.h>
 #include <stddef.h>
+
+#include <stdio.h>
+static void display_callback_create_srv(display_srv_t *srv, ipc_call_t *call)
+{
+	printf("display_callback_create_srv\n");
+
+	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
+	if (sess == NULL) {
+		async_answer_0(call, ENOMEM);
+		return;
+	}
+
+	srv->client_sess = sess;
+	async_answer_0(call, EOK);
+}
 
 static void display_window_create_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
 	errno_t rc;
+
+	printf("display_window_create_srv\n");
 
 	if (srv->ops->window_create == NULL) {
 		async_answer_0(icall, ENOTSUP);
@@ -59,6 +78,8 @@ static void display_window_destroy_srv(display_srv_t *srv, ipc_call_t *icall)
 	sysarg_t wnd_id;
 	errno_t rc;
 
+	printf("display_window_destroy_srv\n");
+
 	wnd_id = ipc_get_arg1(icall);
 
 	if (srv->ops->window_create == NULL) {
@@ -70,10 +91,52 @@ static void display_window_destroy_srv(display_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void display_get_event_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	display_wnd_ev_t event;
+	ipc_call_t call;
+	size_t size;
+	errno_t rc;
+
+	printf("display_get_event_srv\n");
+
+	if (srv->ops->get_event == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->get_event(srv->arg, &wnd_id, &event);
+	if (rc != EOK)
+		async_answer_0(icall, rc);
+
+	/* Transfer event data */
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(event)) {
+		async_answer_0(icall, EREFUSED);
+		async_answer_0(&call, EREFUSED);
+		return;
+	}
+
+	rc = async_data_read_finalize(&call, &event, sizeof(event));
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		async_answer_0(&call, rc);
+		return;
+	}
+
+	async_answer_1(icall, EOK, wnd_id);
+}
+
 void display_conn(ipc_call_t *icall, display_srv_t *srv)
 {
 	/* Accept the connection */
 	async_accept_0(icall);
+	printf("display_conn\n");
 
 	while (true) {
 		ipc_call_t call;
@@ -87,17 +150,39 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		}
 
+		printf("display_conn method=%lu\n", method);
 		switch (method) {
+		case DISPLAY_CALLBACK_CREATE:
+			display_callback_create_srv(srv, &call);
+			break;
 		case DISPLAY_WINDOW_CREATE:
 			display_window_create_srv(srv, &call);
 			break;
 		case DISPLAY_WINDOW_DESTROY:
 			display_window_destroy_srv(srv, &call);
 			break;
+		case DISPLAY_GET_EVENT:
+			display_get_event_srv(srv, &call);
+			break;
 		default:
 			async_answer_0(&call, ENOTSUP);
 		}
 	}
+}
+
+/** Send 'pending' event to client.
+ *
+ * @param srv Display server structure
+ */
+void display_srv_ev_pending(display_srv_t *srv)
+{
+	async_exch_t *exch;
+
+	printf("display_srv_ev_pending()\n");
+
+	exch = async_exchange_begin(srv->client_sess);
+	async_msg_0(exch, DISPLAY_EV_PENDING);
+	async_exchange_end(exch);
 }
 
 /** @}

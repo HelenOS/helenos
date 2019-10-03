@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <types/display/event.h>
 
 typedef struct display_ops display_ops_t;
 
@@ -50,9 +51,11 @@ typedef struct {
 struct display_ops {
 	errno_t (*window_create)(void *, sysarg_t *);
 	errno_t (*window_destroy)(void *, sysarg_t);
+	errno_t (*get_event)(void *, sysarg_t *, display_wnd_ev_t *);
 };
 
 extern void display_conn(ipc_call_t *, display_srv_t *);
+extern void display_srv_ev_pending(display_srv_t *);
 
 #endif
 

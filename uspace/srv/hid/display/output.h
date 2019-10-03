@@ -38,7 +38,8 @@
 
 #include <gfx/context.h>
 
-extern errno_t output_init(gfx_context_t **);
+extern errno_t output_init(void (*)(void *, kbd_event_t *), void *,
+    gfx_context_t **);
 
 #endif
 

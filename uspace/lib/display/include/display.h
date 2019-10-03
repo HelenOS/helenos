@@ -42,7 +42,8 @@
 
 extern errno_t display_open(const char *, display_t **);
 extern void display_close(display_t *);
-extern errno_t display_window_create(display_t *, display_window_t **);
+extern errno_t display_window_create(display_t *, display_wnd_cb_t *,
+    void *, display_window_t **);
 extern errno_t display_window_destroy(display_window_t *);
 extern errno_t display_window_get_gc(display_window_t *, gfx_context_t **);
 

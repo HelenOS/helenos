@@ -36,6 +36,8 @@
 #define _LIBDISPLAY_TYPES_DISPLAY_H_
 
 #include <async.h>
+#include <fibril_synch.h>
+#include <io/kbd_event.h>
 #include <ipc/devman.h>
 #include <stdint.h>
 
@@ -43,14 +45,37 @@
 typedef struct {
 	/** Session with display server */
 	async_sess_t *sess;
+	/** Synchronize access to display object */
+	fibril_mutex_t lock;
+	/** @c true if callback handler terminated */
+	bool cb_done;
+	/** Signalled when cb_done or ev_pending is changed */
+	fibril_condvar_t cv;
+	/** Windows (of display_window_t) */
+	list_t windows;
 } display_t;
+
+/** Display window callbacks */
+typedef struct {
+	void (*kbd_event)(void *, kbd_event_t *);
+} display_wnd_cb_t;
+
+typedef struct {
+	kbd_event_t kbd_event;
+} display_wnd_ev_t;
 
 /** Display window */
 typedef struct {
 	/** Display associated with the window */
 	display_t *display;
+	/** Link to @c display->windows */
+	link_t lwindows;
 	/** Window ID */
 	sysarg_t id;
+	/** Callback functions */
+	display_wnd_cb_t *cb;
+	/** Argument to callback functions */
+	void *cb_arg;
 } display_window_t;
 
 #endif

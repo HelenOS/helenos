@@ -29,11 +29,16 @@
 #include <async.h>
 #include <display.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <ipc/display.h>
 #include <ipc/services.h>
 #include <ipcgfx/client.h>
 #include <loc.h>
 #include <stdlib.h>
+
+static errno_t display_callback_create(display_t *);
+static void display_cb_conn(ipc_call_t *, void *);
+static errno_t display_get_window(display_t *, sysarg_t, display_window_t **);
 
 /** Open display service.
  *
@@ -51,6 +56,8 @@ errno_t display_open(const char *dsname, display_t **rdisplay)
 	if (display == NULL)
 		return ENOMEM;
 
+	list_initialize(&display->windows);
+
 	if (dsname == NULL)
 		dsname = SERVICE_NAME_DISPLAY;
 
@@ -67,8 +74,41 @@ errno_t display_open(const char *dsname, display_t **rdisplay)
 		return ENOENT;
 	}
 
+	rc = display_callback_create(display);
+	if (rc != EOK) {
+		async_hangup(display->sess);
+		free(display);
+		return EIO;
+	}
+
 	*rdisplay = display;
 	return EOK;
+}
+
+/** Create callback connection from display service.
+ *
+ * @param display Display session
+ * @return EOK on success or an error code
+ */
+static errno_t display_callback_create(display_t *display)
+{
+	async_exch_t *exch = async_exchange_begin(display->sess);
+
+	aid_t req = async_send_0(exch, DISPLAY_CALLBACK_CREATE, NULL);
+
+	port_id_t port;
+	errno_t rc = async_create_callback_port(exch, INTERFACE_DISPLAY_CB, 0, 0,
+	    display_cb_conn, display, &port);
+
+	async_exchange_end(exch);
+
+	if (rc != EOK)
+		return rc;
+
+	errno_t retval;
+	async_wait_for(req, &retval);
+
+	return retval;
 }
 
 /** Close display service.
@@ -78,16 +118,27 @@ errno_t display_open(const char *dsname, display_t **rdisplay)
 void display_close(display_t *display)
 {
 	async_hangup(display->sess);
+
+	/* Wait for callback handler to terminate */
+
+	fibril_mutex_lock(&display->lock);
+	while (!display->cb_done)
+		fibril_condvar_wait(&display->cv, &display->lock);
+	fibril_mutex_unlock(&display->lock);
+
 	free(display);
 }
 
 /** Create a display window.
  *
  * @param display Display
+ * @param cb Callback functions
+ * @param cb_arg Argument to callback functions
  * @param rwindow Place to store pointer to new window
  * @return EOK on success or an error code
  */
-errno_t display_window_create(display_t *display, display_window_t **rwindow)
+errno_t display_window_create(display_t *display, display_wnd_cb_t *cb,
+    void *cb_arg, display_window_t **rwindow)
 {
 	display_window_t *window;
 	async_exch_t *exch;
@@ -110,6 +161,10 @@ errno_t display_window_create(display_t *display, display_window_t **rwindow)
 
 	window->display = display;
 	window->id = wnd_id;
+	window->cb = cb;
+	window->cb_arg = cb_arg;
+
+	list_append(&window->lwindows, &display->windows);
 	*rwindow = window;
 	return EOK;
 }
@@ -163,6 +218,132 @@ errno_t display_window_get_gc(display_window_t *window, gfx_context_t **rgc)
 
 	*rgc = ipc_gc_get_ctx(gc);
 	return EOK;
+}
+
+/** Get display event.
+ *
+ * @param display Display
+ * @param rwindow Place to store pointe to window that received event
+ * @param event Place to store event
+ * @return EOK on success or an error code
+ */
+static errno_t display_get_event(display_t *display, display_window_t **rwindow,
+    display_wnd_ev_t *event)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	aid_t req;
+	errno_t rc;
+	sysarg_t wnd_id;
+	display_window_t *window;
+
+	exch = async_exchange_begin(display->sess);
+	req = async_send_0(exch, DISPLAY_GET_EVENT, &answer);
+	rc = async_data_read_start(exch, event, sizeof(*event));
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_exchange_end(exch);
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
+	wnd_id = ipc_get_arg1(&answer);
+	rc = display_get_window(display, wnd_id, &window);
+	if (rc != EOK)
+		return EIO;
+
+	*rwindow = window;
+	return EOK;
+}
+
+/** Display events are pending.
+ *
+ * @param display Display
+ * @param icall Call data
+ */
+static void display_ev_pending(display_t *display, ipc_call_t *icall)
+{
+	errno_t rc;
+	display_window_t *window = NULL;
+	display_wnd_ev_t event;
+
+	while (true) {
+		rc = display_get_event(display, &window, &event);
+		if (rc != EOK)
+			break;
+
+		if (window->cb->kbd_event != NULL)
+			window->cb->kbd_event(window->cb_arg, &event.kbd_event);
+	}
+
+	async_answer_0(icall, EOK);
+}
+
+/** Callback connection handler.
+ *
+ * @param icall Connect call data
+ * @param arg   Argument, display_t *
+ */
+static void display_cb_conn(ipc_call_t *icall, void *arg)
+{
+	display_t *display = (display_t *) arg;
+
+	while (true) {
+		ipc_call_t call;
+		async_get_call(&call);
+
+		if (!ipc_get_imethod(&call)) {
+			/* Hangup */
+			async_answer_0(&call, EOK);
+			goto out;
+		}
+
+		switch (ipc_get_imethod(&call)) {
+		case DISPLAY_EV_PENDING:
+			display_ev_pending(display, &call);
+			break;
+		default:
+			async_answer_0(&call, ENOTSUP);
+			break;
+		}
+	}
+
+out:
+	fibril_mutex_lock(&display->lock);
+	display->cb_done = true;
+	fibril_mutex_unlock(&display->lock);
+	fibril_condvar_broadcast(&display->cv);
+}
+
+/** Find window by ID.
+ *
+ * @param display Display
+ * @param wnd_id Window ID
+ * @param rwindow Place to store pointer to window
+ * @return EOK on success, ENOENT if not found
+ */
+static errno_t display_get_window(display_t *display, sysarg_t wnd_id,
+    display_window_t **rwindow)
+{
+	link_t *link;
+	display_window_t *window;
+
+	link = list_first(&display->windows);
+	while (link != NULL) {
+		window = list_get_instance(link, display_window_t, lwindows);
+		if (window->id == wnd_id) {
+			*rwindow = window;
+			return EOK;
+		}
+
+		link = list_next(link, &display->windows);
+	}
+
+	return ENOENT;
 }
 
 /** @}

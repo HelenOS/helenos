@@ -44,13 +44,21 @@
 #include <loc.h>
 #include <stdio.h>
 #include <task.h>
+#include "client.h"
 #include "display.h"
+#include "main.h"
 #include "output.h"
 #include "window.h"
 
-#define NAME  "display"
-
 static void display_client_conn(ipc_call_t *, void *);
+
+static void display_kbd_event(void *arg, kbd_event_t *event)
+{
+	ds_display_t *disp = (ds_display_t *) arg;
+
+	printf("display_kbd_event\n");
+	ds_display_post_kbd_event(disp, event);
+}
 
 /** Initialize display server */
 static errno_t display_srv_init(void)
@@ -59,16 +67,22 @@ static errno_t display_srv_init(void)
 	gfx_context_t *gc = NULL;
 	errno_t rc;
 
-	rc = output_init(&gc);
-	if (rc != EOK)
-		goto error;
-
-	rc = ds_display_create(gc, &disp);
-	if (rc != EOK)
-		goto error;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_srv_init()");
 
+	rc = ds_display_create(NULL, &disp);
+	if (rc != EOK)
+		goto error;
+
+	rc = output_init(display_kbd_event, (void *) disp, &gc);
+	if (rc != EOK)
+		goto error;
+
+	disp->gc = gc;
+#if 0
+	rc = ds_input_open(disp);
+	if (rc != EOK)
+		goto error;
+#endif
 	async_set_fallback_port_handler(display_client_conn, disp);
 
 	rc = loc_server_register(NAME);
@@ -87,6 +101,10 @@ static errno_t display_srv_init(void)
 
 	return EOK;
 error:
+#if 0
+	if (disp->input != NULL)
+		ds_input_close(disp);
+#endif
 	if (gc != NULL)
 		gfx_context_delete(gc);
 	if (disp != NULL)
@@ -100,9 +118,11 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 	display_srv_t srv;
 	sysarg_t wnd_id;
 	sysarg_t svc_id;
+	ds_client_t *client = NULL;
 	ds_window_t *wnd;
 	ds_display_t *disp = (ds_display_t *) arg;
 	gfx_context_t *gc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "display_client_conn arg1=%zu arg2=%zu arg3=%zu arg4=%zu.",
 	    ipc_get_arg1(icall), ipc_get_arg2(icall), ipc_get_arg3(icall),
@@ -115,13 +135,24 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 	wnd_id = ipc_get_arg3(icall);
 
 	if (svc_id != 0) {
-		/* Display management */
-		srv.ops = &display_srv_ops;
-		srv.arg = disp;
+		/* Create client object */
+		rc = ds_client_create(disp, &srv, &client);
+		if (rc != EOK) {
+			async_answer_0(icall, ENOMEM);
+			return;
+		}
 
+		/* Set up protocol structure */
+		srv.ops = &display_srv_ops;
+		srv.arg = client;
+
+		/* Handle connection */
 		display_conn(icall, &srv);
+
+		ds_client_destroy(client);
 	} else {
-		/* Window GC */
+		/* Window GC connection */
+
 		wnd = ds_display_find_window(disp, wnd_id);
 		if (wnd == NULL) {
 			async_answer_0(icall, ENOENT);
@@ -131,6 +162,7 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 		gc = ds_window_get_ctx(wnd);
 		gc_conn(icall, gc);
 	}
+
 }
 
 int main(int argc, char *argv[])

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libipcgfx
+/** @addtogroup display
  * @{
  */
 /**
@@ -37,6 +37,7 @@
 #define TYPES_DISPLAY_WINDOW_H
 
 #include <adt/list.h>
+#include <display/event.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
 
@@ -44,9 +45,9 @@ typedef sysarg_t ds_wnd_id_t;
 
 /** Display server window */
 typedef struct ds_window {
-	/** Parent display */
-	struct ds_display *display;
-	/** Link to @c display->windows */
+	/** Parent client */
+	struct ds_client *client;
+	/** Link to @c client->windows */
 	link_t lwindows;
 	/** Display position */
 	gfx_coord2_t dpos;
@@ -55,6 +56,16 @@ typedef struct ds_window {
 	/** Graphic context */
 	gfx_context_t *gc;
 } ds_window_t;
+
+/** Window event queue entry */
+typedef struct {
+	/** Link to event queue */
+	link_t levents;
+	/** Window to which the event is delivered */
+	ds_window_t *window;
+	/** Event */
+	display_wnd_ev_t event;
+} ds_window_ev_t;
 
 /** Bitmap in display server window GC */
 typedef struct {

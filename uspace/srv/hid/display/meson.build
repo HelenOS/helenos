@@ -29,6 +29,7 @@
 deps = [ 'ipcgfx', 'display', 'guigfx' ]
 
 src = files(
+	'client.c',
 	'display.c',
 	'main.c',
 	'output.c',
@@ -36,6 +37,7 @@ src = files(
 )
 
 test_src = files(
+	'client.c',
 	'display.c',
 	'window.c',
 	'test/display.c',

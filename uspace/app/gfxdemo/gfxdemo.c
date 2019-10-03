@@ -43,9 +43,18 @@
 #include <gfx/render.h>
 #include <io/console.h>
 #include <io/pixelmap.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <str.h>
 #include <window.h>
+
+static void wnd_kbd_event(void *, kbd_event_t *);
+
+static display_wnd_cb_t wnd_cb = {
+	.kbd_event = wnd_kbd_event
+};
+
+static bool quit = false;
 
 /** Clear screen.
  *
@@ -125,6 +134,9 @@ static errno_t demo_rects(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		gfx_color_delete(color);
 
 		fibril_usleep(500 * 1000);
+
+		if (quit)
+			break;
 	}
 
 	return EOK;
@@ -244,6 +256,9 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			if (rc != EOK)
 				goto error;
 			fibril_usleep(250 * 1000);
+
+			if (quit)
+				break;
 		}
 	}
 
@@ -297,6 +312,9 @@ static errno_t demo_bitmap2(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		}
 
 		fibril_usleep(500 * 1000);
+
+		if (quit)
+			break;
 	}
 
 	gfx_bitmap_destroy(bitmap);
@@ -317,7 +335,7 @@ static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 {
 	errno_t rc;
 
-	while (true) {
+	while (!quit) {
 		rc = demo_rects(gc, w, h);
 		if (rc != EOK)
 			return rc;
@@ -330,6 +348,8 @@ static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		if (rc != EOK)
 			return rc;
 	}
+
+	return EOK;
 }
 
 /** Run demo on console. */
@@ -443,7 +463,7 @@ static errno_t demo_display(void)
 		return rc;
 	}
 
-	rc = display_window_create(display, &window);
+	rc = display_window_create(display, &wnd_cb, NULL, &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		return rc;
@@ -463,6 +483,12 @@ static errno_t demo_display(void)
 		return rc;
 
 	return EOK;
+}
+
+static void wnd_kbd_event(void *arg, kbd_event_t *event)
+{
+	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
+	quit = true;
 }
 
 static void print_syntax(void)

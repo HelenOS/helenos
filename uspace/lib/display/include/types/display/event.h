@@ -26,39 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup display
+/** @addtogroup libc
  * @{
  */
-/**
- * @file Display server display type
+/** @file
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
+#ifndef _LIBDISPLAY_TYPES_DISPLAY_EVENT_H_
+#define _LIBDISPLAY_TYPES_DISPLAY_EVENT_H_
 
-#include <adt/list.h>
-#include <gfx/context.h>
-#include <io/input.h>
-#include "window.h"
+#include <io/kbd_event.h>
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
-	/** Output GC */
-	gfx_context_t *gc;
-
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
-} ds_display_t;
+typedef struct {
+	kbd_event_t kbd_event;
+} display_wnd_ev_t;
 
 #endif
 

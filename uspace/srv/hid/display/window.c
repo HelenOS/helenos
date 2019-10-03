@@ -42,6 +42,7 @@
 #include <gfx/render.h>
 #include <io/log.h>
 #include <stdlib.h>
+#include "client.h"
 #include "display.h"
 #include "window.h"
 
@@ -75,8 +76,8 @@ static errno_t ds_window_set_color(void *arg, gfx_color_t *color)
 {
 	ds_window_t *wnd = (ds_window_t *) arg;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_set_color");
-	return gfx_set_color(wnd->display->gc, color);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_set_color gc=%p", wnd->client->display->gc);
+	return gfx_set_color(wnd->client->display->gc, color);
 }
 
 /** Fill rectangle on window GC.
@@ -93,7 +94,7 @@ static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
 	gfx_rect_translate(&wnd->dpos, rect, &drect);
-	return gfx_fill_rect(wnd->display->gc, &drect);
+	return gfx_fill_rect(wnd->client->display->gc, &drect);
 }
 
 /** Create bitmap in canvas GC.
@@ -115,7 +116,8 @@ errno_t ds_window_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	if (cbm == NULL)
 		return ENOMEM;
 
-	rc = gfx_bitmap_create(wnd->display->gc, params, alloc, &cbm->bitmap);
+	rc = gfx_bitmap_create(wnd->client->display->gc, params, alloc,
+	    &cbm->bitmap);
 	if (rc != EOK)
 		goto error;
 
@@ -180,12 +182,12 @@ static errno_t ds_window_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
  *
  * Create graphics context for rendering into a window.
  *
- * @param disp Display to create window on
+ * @param client Client owning the window
  * @param rgc Place to store pointer to new GC.
  *
  * @return EOK on success or an error code
  */
-errno_t ds_window_create(ds_display_t *disp, ds_window_t **rgc)
+errno_t ds_window_create(ds_client_t *client, ds_window_t **rgc)
 {
 	ds_window_t *wnd = NULL;
 	gfx_context_t *gc = NULL;
@@ -201,7 +203,7 @@ errno_t ds_window_create(ds_display_t *disp, ds_window_t **rgc)
 	if (rc != EOK)
 		goto error;
 
-	ds_display_add_window(disp, wnd);
+	ds_client_add_window(client, wnd);
 
 	wnd->gc = gc;
 	*rgc = wnd;
@@ -221,7 +223,7 @@ errno_t ds_window_delete(ds_window_t *wnd)
 {
 	errno_t rc;
 
-	ds_display_remove_window(wnd);
+	ds_client_remove_window(wnd);
 
 	rc = gfx_context_delete(wnd->gc);
 	if (rc != EOK)

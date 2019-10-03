@@ -30,35 +30,31 @@
  * @{
  */
 /**
- * @file Display server display type
+ * @file Display server client type
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
+#ifndef TYPES_DISPLAY_CLIENT_H
+#define TYPES_DISPLAY_CLIENT_H
 
 #include <adt/list.h>
-#include <gfx/context.h>
-#include <io/input.h>
-#include "window.h"
+#include <adt/prodcons.h>
+#include <disp_srv.h>
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
-	/** Output GC */
-	gfx_context_t *gc;
+typedef sysarg_t ds_wnd_id_t;
 
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
-} ds_display_t;
+/** Display server client */
+typedef struct ds_client {
+	/** Parent display */
+	struct ds_display *display;
+	/** Display protocol per-connection structure */
+	display_srv_t *srv;
+	/** Link to @c display->clients */
+	link_t lclients;
+	/** Windows (of ds_window_t) */
+	list_t windows;
+	/** Event queue (of ds_window_ev_t) */
+	prodcons_t events;
+} ds_client_t;
 
 #endif
 
