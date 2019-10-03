@@ -37,7 +37,7 @@
 
 PCUT_INIT;
 
-PCUT_TEST_SUITE(display);
+PCUT_TEST_SUITE(client);
 
 static void test_ds_ev_pending(void *);
 
@@ -53,24 +53,11 @@ static void test_ds_ev_pending(void *arg)
 
 }
 
-/** Display creation and destruction. */
-PCUT_TEST(display_create_destroy)
-{
-	ds_display_t *disp;
-	errno_t rc;
-
-	rc = ds_display_create(NULL, &disp);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	ds_display_destroy(disp);
-}
-
-/** Basic client operation. */
-PCUT_TEST(display_client)
+/** Client creation and destruction. */
+PCUT_TEST(client_create_destroy)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
-	ds_client_t *c0, *c1;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
@@ -79,18 +66,16 @@ PCUT_TEST(display_client)
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	c0 = ds_display_first_client(disp);
-	PCUT_ASSERT_EQUALS(c0, client);
-
-	c1 = ds_display_next_client(c0);
-	PCUT_ASSERT_NULL(c1);
-
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
 
-/** Test ds_display_find_window(). */
-PCUT_TEST(display_find_window)
+/** Test ds_client_find_window().
+ *
+ * ds_client_add_window() and ds_client_remove_window() are indirectly
+ * tested too as part of creating and destroying the window
+ */
+PCUT_TEST(client_find_window)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
@@ -111,16 +96,16 @@ PCUT_TEST(display_find_window)
 	rc = ds_window_create(client, &w1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	wnd = ds_display_find_window(disp, w0->id);
+	wnd = ds_client_find_window(client, w0->id);
 	PCUT_ASSERT_EQUALS(w0, wnd);
 
-	wnd = ds_display_find_window(disp, w1->id);
+	wnd = ds_client_find_window(client, w1->id);
 	PCUT_ASSERT_EQUALS(w1, wnd);
 
-	wnd = ds_display_find_window(disp, 0);
+	wnd = ds_client_find_window(client, 0);
 	PCUT_ASSERT_NULL(wnd);
 
-	wnd = ds_display_find_window(disp, w1->id + 1);
+	wnd = ds_client_find_window(client, w1->id + 1);
 	PCUT_ASSERT_NULL(wnd);
 
 	ds_window_delete(w0);
@@ -129,13 +114,52 @@ PCUT_TEST(display_find_window)
 	ds_display_destroy(disp);
 }
 
-/** Test ds_display_post_kbd_event(). */
-PCUT_TEST(display_post_kbd_event)
+/** Test ds_client_first_window() / ds_client_next_window. */
+PCUT_TEST(client_first_next_window)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *w0;
+	ds_window_t *w1;
+	ds_window_t *wnd;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &w0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd = ds_client_first_window(client);
+	PCUT_ASSERT_EQUALS(w0, wnd);
+
+	wnd = ds_client_next_window(w0);
+	PCUT_ASSERT_EQUALS(w1, wnd);
+
+	wnd = ds_client_next_window(w1);
+	PCUT_ASSERT_NULL(wnd);
+
+	ds_window_delete(w0);
+	ds_window_delete(w1);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_client_get_event(), ds_client_post_kbd_event(). */
+PCUT_TEST(display_get_post_kbd_event)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
 	ds_window_t *wnd;
 	kbd_event_t event;
+	ds_window_t *rwindow;
+	display_wnd_ev_t revent;
 	bool called_cb = NULL;
 	errno_t rc;
 
@@ -155,13 +179,27 @@ PCUT_TEST(display_post_kbd_event)
 
 	PCUT_ASSERT_FALSE(called_cb);
 
-	rc = ds_display_post_kbd_event(disp, &event);
+#if 0
+	// XXX Forgot to change ds_client_get_event not to block
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+#endif
+
+	rc = ds_client_post_kbd_event(client, wnd, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_TRUE(called_cb);
+
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(wnd, rwindow);
+	PCUT_ASSERT_EQUALS(event.type, revent.kbd_event.type);
+	PCUT_ASSERT_EQUALS(event.key, revent.kbd_event.key);
+	PCUT_ASSERT_EQUALS(event.mods, revent.kbd_event.mods);
+	PCUT_ASSERT_EQUALS(event.c, revent.kbd_event.c);
 
 	ds_window_delete(wnd);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
 
-PCUT_EXPORT(display);
+PCUT_EXPORT(client);
