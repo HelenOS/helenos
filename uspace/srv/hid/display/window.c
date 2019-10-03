@@ -219,7 +219,7 @@ error:
  *
  * @param wnd Window GC
  */
-errno_t ds_window_delete(ds_window_t *wnd)
+errno_t ds_window_destroy(ds_window_t *wnd)
 {
 	errno_t rc;
 

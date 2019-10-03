@@ -123,8 +123,8 @@ PCUT_TEST(display_find_window)
 	wnd = ds_display_find_window(disp, w1->id + 1);
 	PCUT_ASSERT_NULL(wnd);
 
-	ds_window_delete(w0);
-	ds_window_delete(w1);
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -159,7 +159,7 @@ PCUT_TEST(display_post_kbd_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_TRUE(called_cb);
 
-	ds_window_delete(wnd);
+	ds_window_destroy(wnd);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }

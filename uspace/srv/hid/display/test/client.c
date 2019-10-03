@@ -108,8 +108,8 @@ PCUT_TEST(client_find_window)
 	wnd = ds_client_find_window(client, w1->id + 1);
 	PCUT_ASSERT_NULL(wnd);
 
-	ds_window_delete(w0);
-	ds_window_delete(w1);
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -145,8 +145,8 @@ PCUT_TEST(client_first_next_window)
 	wnd = ds_client_next_window(w1);
 	PCUT_ASSERT_NULL(wnd);
 
-	ds_window_delete(w0);
-	ds_window_delete(w1);
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -197,7 +197,7 @@ PCUT_TEST(display_get_post_kbd_event)
 	PCUT_ASSERT_EQUALS(event.mods, revent.kbd_event.mods);
 	PCUT_ASSERT_EQUALS(event.c, revent.kbd_event.c);
 
-	ds_window_delete(wnd);
+	ds_window_destroy(wnd);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }

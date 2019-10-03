@@ -60,7 +60,7 @@ PCUT_TEST(window_get_ctx)
 	gc = ds_window_get_ctx(wnd);
 	PCUT_ASSERT_NOT_NULL(gc);
 
-	ds_window_delete(wnd);
+	ds_window_destroy(wnd);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }

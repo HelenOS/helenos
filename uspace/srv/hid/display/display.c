@@ -86,7 +86,7 @@ static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_destroy()");
 	ds_client_remove_window(wnd);
-	ds_window_delete(wnd);
+	ds_window_destroy(wnd);
 	return EOK;
 }
 
