@@ -26,24 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libipcgfx
- * @{
- */
-/**
- * @file GFX IPC backend
- */
+#include <pcut/pcut.h>
 
-#ifndef TYPES_WINGC_H
-#define TYPES_WINGC_H
+PCUT_INIT;
 
-#include <gfx/context.h>
+PCUT_IMPORT(display);
 
-typedef struct win_gc {
-	/** Base graphic context */
-	gfx_context_t *gc;
-} win_gc_t;
-
-#endif
-
-/** @}
- */
+PCUT_MAIN();

@@ -26,25 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup display
+/** @addtogroup libipcgfx
  * @{
  */
 /**
- * @file Window graphics context
+ * @file Display server display type
  */
 
-#ifndef WINGC_H
-#define WINGC_H
+#ifndef TYPES_DISPLAY_DISPLAY_H
+#define TYPES_DISPLAY_DISPLAY_H
 
-#include <types/gfx/context.h>
-#include <types/gfx/ops/context.h>
-#include "types/wingc.h"
+#include <adt/list.h>
+#include "window.h"
 
-extern gfx_context_ops_t win_gc_ops;
-
-extern errno_t win_gc_create(win_gc_t **);
-extern errno_t win_gc_delete(win_gc_t *);
-extern gfx_context_t *win_gc_get_ctx(win_gc_t *);
+typedef struct ds_display {
+	/** Windows (of ds_window_t) */
+	list_t windows;
+	/** Next ID to assign to a window */
+	ds_wnd_id_t next_wnd_id;
+} ds_display_t;
 
 #endif
 

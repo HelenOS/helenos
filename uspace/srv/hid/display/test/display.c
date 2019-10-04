@@ -26,33 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
- * @{
- */
-/**
- * @file
- * @brief
- */
-
-#ifndef DISPLAY_H
-#define DISPLAY_H
-
-#include <disp_srv.h>
 #include <errno.h>
-#include "types/display/display.h"
-#include "types/display/window.h"
+#include <pcut/pcut.h>
+#include <stdio.h>
+#include <str.h>
 
-extern display_ops_t display_srv_ops;
+#include "../display.h"
 
-extern errno_t ds_display_create(ds_display_t **);
-extern void ds_display_destroy(ds_display_t *);
-extern errno_t ds_display_add_window(ds_display_t *, ds_window_t *);
-extern void ds_display_remove_window(ds_window_t *);
-extern ds_window_t *ds_display_find_window(ds_display_t *, ds_wnd_id_t);
-extern ds_window_t *ds_display_first_window(ds_display_t *);
-extern ds_window_t *ds_display_next_window(ds_window_t *);
+PCUT_INIT;
 
-#endif
+PCUT_TEST_SUITE(display);
 
-/** @}
- */
+/** Display creation and destruction. */
+PCUT_TEST(display_basic)
+{
+	ds_display_t *disp;
+	errno_t rc;
+
+	rc = ds_display_create(&disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_display_destroy(disp);
+}
+
+PCUT_EXPORT(display);

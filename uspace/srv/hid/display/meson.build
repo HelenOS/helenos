@@ -26,10 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ipcgfx', 'display' ]
+deps = [ 'ipcgfx', 'display', 'guigfx' ]
 
 src = files(
 	'display.c',
 	'main.c',
-	'wingc.c'
+	'window.c',
+)
+
+test_src = files(
+	'display.c',
+	'window.c',
+	'test/main.c',
+	'test/display.c',
 )

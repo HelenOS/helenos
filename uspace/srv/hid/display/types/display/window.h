@@ -26,31 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libipcgfx
  * @{
  */
 /**
- * @file
- * @brief
+ * @file Display server window type
  */
 
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#ifndef TYPES_DISPLAY_WINDOW_H
+#define TYPES_DISPLAY_WINDOW_H
 
-#include <disp_srv.h>
-#include <errno.h>
-#include "types/display/display.h"
-#include "types/display/window.h"
+#include <adt/list.h>
+#include <gfx/context.h>
 
-extern display_ops_t display_srv_ops;
+typedef sysarg_t ds_wnd_id_t;
 
-extern errno_t ds_display_create(ds_display_t **);
-extern void ds_display_destroy(ds_display_t *);
-extern errno_t ds_display_add_window(ds_display_t *, ds_window_t *);
-extern void ds_display_remove_window(ds_window_t *);
-extern ds_window_t *ds_display_find_window(ds_display_t *, ds_wnd_id_t);
-extern ds_window_t *ds_display_first_window(ds_display_t *);
-extern ds_window_t *ds_display_next_window(ds_window_t *);
+typedef struct ds_window {
+	/** Parent display */
+	struct ds_display *display;
+	/** Link to @c display->windows */
+	link_t lwindows;
+	/** Window ID */
+	ds_wnd_id_t id;
+	/** Graphic context */
+	gfx_context_t *gc;
+} ds_window_t;
 
 #endif
 

@@ -36,6 +36,9 @@
 #include <disp_srv.h>
 #include <errno.h>
 #include <io/log.h>
+#include <stdlib.h>
+#include "display.h"
+#include "window.h"
 
 static errno_t disp_window_create(void *, sysarg_t *);
 static errno_t disp_window_destroy(void *, sysarg_t);
@@ -47,15 +50,143 @@ display_ops_t display_srv_ops = {
 
 static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
 {
+	errno_t rc;
+	ds_display_t *disp = (ds_display_t *) arg;
+	ds_window_t *wnd;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create()");
-	*rwnd_id = 42;
+
+	rc = ds_window_create(disp, &wnd);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create() - ds_window_create -> %d", rc);
+	if (rc != EOK)
+		return rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create() -> EOK, id=%zu",
+	    wnd->id);
+	*rwnd_id = wnd->id;
 	return EOK;
 }
 
 static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
 {
+	ds_display_t *disp = (ds_display_t *) arg;
+	ds_window_t *wnd;
+
+	wnd = ds_display_find_window(disp, wnd_id);
+	if (wnd == NULL)
+		return ENOENT;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_destroy()");
+	ds_display_remove_window(wnd);
+	ds_window_delete(wnd);
 	return EOK;
+}
+
+/** Create display.
+ *
+ * @param rdisp Place to store pointer to new display.
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ds_display_create(ds_display_t **rdisp)
+{
+	ds_display_t *disp;
+
+	disp = calloc(1, sizeof(ds_display_t));
+	if (disp == NULL)
+		return ENOMEM;
+
+	list_initialize(&disp->windows);
+	disp->next_wnd_id = 1;
+	*rdisp = disp;
+	return EOK;
+}
+
+/** Destroy display.
+ *
+ * @param disp Display
+ */
+void ds_display_destroy(ds_display_t *disp)
+{
+	assert(list_empty(&disp->windows));
+	free(disp);
+}
+
+/** Add window to display.
+ *
+ * @param disp Display
+ * @param wnd Window
+ * @return EOK on success, ENOMEM if there are no free window identifiers
+ */
+errno_t ds_display_add_window(ds_display_t *disp, ds_window_t *wnd)
+{
+	assert(wnd->display == NULL);
+	assert(!link_used(&wnd->lwindows));
+
+	wnd->display = disp;
+	wnd->id = disp->next_wnd_id++;
+	list_append(&wnd->lwindows, &disp->windows);
+
+	return EOK;
+}
+
+/** Remove window from display.
+ *
+ * @param wnd Window
+ */
+void ds_display_remove_window(ds_window_t *wnd)
+{
+	list_remove(&wnd->lwindows);
+	wnd->display = NULL;
+}
+
+/** Find window by ID.
+ *
+ * @param disp Display
+ * @param id Window ID
+ */
+ds_window_t *ds_display_find_window(ds_display_t *disp, ds_wnd_id_t id)
+{
+	ds_window_t *wnd;
+
+	// TODO Make this faster
+	wnd = ds_display_first_window(disp);
+	while (wnd != NULL) {
+		if (wnd->id == id)
+			return wnd;
+		wnd = ds_display_next_window(wnd);
+	}
+
+	return NULL;
+}
+
+/** Get first window in display.
+ *
+ * @param disp Display
+ * @return First window or @c NULL if there is none
+ */
+ds_window_t *ds_display_first_window(ds_display_t *disp)
+{
+	link_t *link = list_first(&disp->windows);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_window_t, lwindows);
+}
+
+/** Get next window in display.
+ *
+ * @param wnd Current window
+ * @return Next window or @c NULL if there is none
+ */
+ds_window_t *ds_display_next_window(ds_window_t *wnd)
+{
+	link_t *link = list_next(&wnd->lwindows, &wnd->display->windows);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_window_t, lwindows);
 }
 
 /** @}

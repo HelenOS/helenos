@@ -45,7 +45,7 @@
 #include <stdio.h>
 #include <task.h>
 #include "display.h"
-#include "wingc.h"
+#include "window.h"
 
 #define NAME  "display"
 
@@ -54,11 +54,16 @@ static void display_client_conn(ipc_call_t *, void *);
 /** Initialize display server */
 static errno_t display_srv_init(void)
 {
+	ds_display_t *disp = NULL;
 	errno_t rc;
+
+	rc = ds_display_create(&disp);
+	if (rc != EOK)
+		goto error;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_srv_init()");
 
-	async_set_fallback_port_handler(display_client_conn, NULL/*parts*/);
+	async_set_fallback_port_handler(display_client_conn, disp);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
@@ -76,6 +81,8 @@ static errno_t display_srv_init(void)
 
 	return EOK;
 error:
+	if (disp != NULL)
+		ds_display_destroy(disp);
 	return rc;
 }
 
@@ -85,9 +92,9 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 	display_srv_t srv;
 	sysarg_t wnd_id;
 	sysarg_t svc_id;
-	win_gc_t *wgc = NULL;
+	ds_window_t *wnd;
+	ds_display_t *disp = (ds_display_t *) arg;
 	gfx_context_t *gc;
-	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "display_client_conn arg1=%zu arg2=%zu arg3=%zu arg4=%zu.",
 	    ipc_get_arg1(icall), ipc_get_arg2(icall), ipc_get_arg3(icall),
@@ -102,22 +109,19 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 	if (svc_id != 0) {
 		/* Display management */
 		srv.ops = &display_srv_ops;
-		srv.arg = NULL;
+		srv.arg = disp;
 
 		display_conn(icall, &srv);
 	} else {
-		(void) wnd_id;
 		/* Window GC */
-		rc = win_gc_create(&wgc);
-		if (rc != EOK) {
-			async_answer_0(icall, ENOMEM);
+		wnd = ds_display_find_window(disp, wnd_id);
+		if (wnd == NULL) {
+			async_answer_0(icall, ENOENT);
 			return;
 		}
 
-		gc = win_gc_get_ctx(wgc);
+		gc = ds_window_get_ctx(wnd);
 		gc_conn(icall, gc);
-
-		win_gc_delete(wgc);
 	}
 }
 

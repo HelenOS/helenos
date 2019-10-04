@@ -40,14 +40,15 @@
 #include <gfx/render.h>
 #include <io/log.h>
 #include <stdlib.h>
-#include "wingc.h"
+#include "display.h"
+#include "window.h"
 
-static errno_t win_gc_set_color(void *, gfx_color_t *);
-static errno_t win_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t ds_window_set_color(void *, gfx_color_t *);
+static errno_t ds_window_fill_rect(void *, gfx_rect_t *);
 
-gfx_context_ops_t win_gc_ops = {
-	.set_color = win_gc_set_color,
-	.fill_rect = win_gc_fill_rect
+gfx_context_ops_t ds_window_ops = {
+	.set_color = ds_window_set_color,
+	.fill_rect = ds_window_fill_rect
 };
 
 /** Set color on window GC.
@@ -59,89 +60,92 @@ gfx_context_ops_t win_gc_ops = {
  *
  * @return EOK on success or an error code
  */
-static errno_t win_gc_set_color(void *arg, gfx_color_t *color)
+static errno_t ds_window_set_color(void *arg, gfx_color_t *color)
 {
-	win_gc_t *wgc = (win_gc_t *) arg;
+	ds_window_t *wnd = (ds_window_t *) arg;
 
-	(void) wgc;
+	(void) wnd;
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_set_color");
 	return EOK;
 }
 
 /** Fill rectangle on window GC.
  *
- * @param arg Console GC
+ * @param arg Window GC
  * @param rect Rectangle
  *
  * @return EOK on success or an error code
  */
-static errno_t win_gc_fill_rect(void *arg, gfx_rect_t *rect)
+static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 {
-	win_gc_t *wgc = (win_gc_t *) arg;
+	ds_window_t *wnd = (ds_window_t *) arg;
 
-	(void) wgc;
+	(void) wnd;
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
 	return EOK;
 }
 
-/** Create window GC.
+/** Create window.
  *
  * Create graphics context for rendering into a window.
  *
+ * @param disp Display to create window on
  * @param rgc Place to store pointer to new GC.
  *
  * @return EOK on success or an error code
  */
-errno_t win_gc_create(win_gc_t **rgc)
+errno_t ds_window_create(ds_display_t *disp, ds_window_t **rgc)
 {
-	win_gc_t *wgc = NULL;
+	ds_window_t *wnd = NULL;
 	gfx_context_t *gc = NULL;
 	errno_t rc;
 
-	wgc = calloc(1, sizeof(win_gc_t));
-	if (wgc == NULL) {
+	wnd = calloc(1, sizeof(ds_window_t));
+	if (wnd == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 
-	rc = gfx_context_new(&win_gc_ops, wgc, &gc);
+	rc = gfx_context_new(&ds_window_ops, wnd, &gc);
 	if (rc != EOK)
 		goto error;
 
-	wgc->gc = gc;
-	*rgc = wgc;
+	ds_display_add_window(disp, wnd);
+
+	wnd->gc = gc;
+	*rgc = wnd;
 	return EOK;
 error:
-	if (wgc != NULL)
-		free(wgc);
+	if (wnd != NULL)
+		free(wnd);
 	gfx_context_delete(gc);
 	return rc;
 }
 
 /** Delete window GC.
  *
- * @param wgc Console GC
+ * @param wnd Window GC
  */
-errno_t win_gc_delete(win_gc_t *wgc)
+errno_t ds_window_delete(ds_window_t *wnd)
 {
 	errno_t rc;
 
-	rc = gfx_context_delete(wgc->gc);
+	rc = gfx_context_delete(wnd->gc);
 	if (rc != EOK)
 		return rc;
 
-	free(wgc);
+	free(wnd);
 	return EOK;
 }
 
-/** Get generic graphic context from window GC.
+/** Get generic graphic context from window.
  *
- * @param wgc Console GC
+ * @param wnd Window
  * @return Graphic context
  */
-gfx_context_t *win_gc_get_ctx(win_gc_t *wgc)
+gfx_context_t *ds_window_get_ctx(ds_window_t *wnd)
 {
-	return wgc->gc;
+	return wnd->gc;
 }
 
 /** @}

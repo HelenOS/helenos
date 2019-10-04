@@ -26,31 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup display
  * @{
  */
 /**
- * @file
- * @brief
+ * @file Display server window
  */
 
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#ifndef WINDOW_H
+#define WINDOW_H
 
-#include <disp_srv.h>
 #include <errno.h>
+#include <types/gfx/context.h>
+#include <types/gfx/ops/context.h>
 #include "types/display/display.h"
 #include "types/display/window.h"
 
-extern display_ops_t display_srv_ops;
+extern gfx_context_ops_t window_gc_ops;
 
-extern errno_t ds_display_create(ds_display_t **);
-extern void ds_display_destroy(ds_display_t *);
-extern errno_t ds_display_add_window(ds_display_t *, ds_window_t *);
-extern void ds_display_remove_window(ds_window_t *);
-extern ds_window_t *ds_display_find_window(ds_display_t *, ds_wnd_id_t);
-extern ds_window_t *ds_display_first_window(ds_display_t *);
-extern ds_window_t *ds_display_next_window(ds_window_t *);
+extern errno_t ds_window_create(ds_display_t *, ds_window_t **);
+extern errno_t ds_window_delete(ds_window_t *);
+extern gfx_context_t *ds_window_get_ctx(ds_window_t *);
 
 #endif
 
