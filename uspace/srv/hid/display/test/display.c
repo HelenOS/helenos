@@ -38,6 +38,18 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(display);
 
+static void test_ds_ev_pending(void *);
+
+static ds_client_cb_t test_ds_client_cb = {
+	.ev_pending = test_ds_ev_pending
+};
+
+static void test_ds_ev_pending(void *arg)
+{
+	printf("test_ds_ev_pending\n");
+}
+
+
 /** Display creation and destruction. */
 PCUT_TEST(display_create_destroy)
 {
@@ -61,7 +73,7 @@ PCUT_TEST(display_client)
 	rc = ds_display_create(NULL, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_client_create(disp, NULL, &client);
+	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	c0 = ds_display_first_client(disp);

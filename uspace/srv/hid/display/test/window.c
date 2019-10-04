@@ -46,7 +46,7 @@ PCUT_TEST(window_get_ctx)
 	gfx_context_t *gc;
 	errno_t rc;
 
-	rc = ds_client_create(NULL, NULL, &client);
+	rc = ds_client_create(NULL, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_window_create(client, &wnd);

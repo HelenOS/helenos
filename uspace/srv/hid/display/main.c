@@ -51,6 +51,11 @@
 #include "window.h"
 
 static void display_client_conn(ipc_call_t *, void *);
+static void display_client_ev_pending(void *);
+
+static ds_client_cb_t display_client_cb = {
+	.ev_pending = display_client_ev_pending
+};
 
 static void display_kbd_event(void *arg, kbd_event_t *event)
 {
@@ -58,6 +63,13 @@ static void display_kbd_event(void *arg, kbd_event_t *event)
 
 	printf("display_kbd_event\n");
 	ds_display_post_kbd_event(disp, event);
+}
+
+static void display_client_ev_pending(void *arg)
+{
+	display_srv_t *srv = (display_srv_t *) arg;
+	printf("display_client_ev_pending\n");
+	display_srv_ev_pending(srv);
 }
 
 /** Initialize display server */
@@ -136,7 +148,7 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 
 	if (svc_id != 0) {
 		/* Create client object */
-		rc = ds_client_create(disp, &srv, &client);
+		rc = ds_client_create(disp, &display_client_cb, &srv, &client);
 		if (rc != EOK) {
 			async_answer_0(icall, ENOMEM);
 			return;

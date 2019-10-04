@@ -38,16 +38,22 @@
 
 #include <adt/list.h>
 #include <adt/prodcons.h>
-#include <disp_srv.h>
 
 typedef sysarg_t ds_wnd_id_t;
+
+/** Display server client callbacks */
+typedef struct {
+	void (*ev_pending)(void *);
+} ds_client_cb_t;
 
 /** Display server client */
 typedef struct ds_client {
 	/** Parent display */
 	struct ds_display *display;
-	/** Display protocol per-connection structure */
-	display_srv_t *srv;
+	/** Callbacks */
+	ds_client_cb_t *cb;
+	/** Callback argument */
+	void *cb_arg;
 	/** Link to @c display->clients */
 	link_t lclients;
 	/** Windows (of ds_window_t) */

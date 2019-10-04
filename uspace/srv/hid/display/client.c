@@ -33,7 +33,6 @@
  * @file Display server client
  */
 
-#include <disp_srv.h>
 #include <errno.h>
 #include <stdlib.h>
 #include "client.h"
@@ -43,11 +42,13 @@
 /** Create client.
  *
  * @param display Parent display
+ * @param cb Client callbacks
+ * @param cb_arg Callback argument
  * @param rclient Place to store pointer to new client.
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ds_client_create(ds_display_t *display, display_srv_t *srv,
-    ds_client_t **rclient)
+errno_t ds_client_create(ds_display_t *display, ds_client_cb_t *cb,
+    void *cb_arg, ds_client_t **rclient)
 {
 	ds_client_t *client;
 
@@ -57,7 +58,8 @@ errno_t ds_client_create(ds_display_t *display, display_srv_t *srv,
 
 	list_initialize(&client->windows);
 	prodcons_initialize(&client->events);
-	client->srv = srv;
+	client->cb = cb;
+	client->cb_arg = cb_arg;
 
 	ds_display_add_client(display, client);
 
@@ -194,7 +196,7 @@ errno_t ds_client_post_kbd_event(ds_client_t *client, ds_window_t *ewindow,
 
 	/* Notify the client */
 	// TODO Do not send more than once until client drains the queue
-	display_srv_ev_pending(client->srv);
+	client->cb->ev_pending(client->cb_arg);
 
 	return EOK;
 }
