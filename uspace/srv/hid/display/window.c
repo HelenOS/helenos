@@ -130,6 +130,8 @@ errno_t ds_window_delete(ds_window_t *wnd)
 {
 	errno_t rc;
 
+	ds_display_remove_window(wnd);
+
 	rc = gfx_context_delete(wnd->gc);
 	if (rc != EOK)
 		return rc;

@@ -26,11 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <pcut/pcut.h>
+#include <stdio.h>
+#include <str.h>
+
+#include "../display.h"
+#include "../window.h"
 
 PCUT_INIT;
 
-PCUT_IMPORT(display);
-PCUT_IMPORT(window);
+PCUT_TEST_SUITE(window);
 
-PCUT_MAIN();
+/** Test ds_window_get_ctx(). */
+PCUT_TEST(window_get_ctx)
+{
+	ds_display_t *disp;
+	ds_window_t *wnd;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	rc = ds_display_create(&disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(disp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = ds_window_get_ctx(wnd);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	ds_window_delete(wnd);
+	ds_display_destroy(disp);
+}
+
+PCUT_EXPORT(window);

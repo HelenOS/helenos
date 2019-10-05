@@ -37,6 +37,7 @@ src = files(
 test_src = files(
 	'display.c',
 	'window.c',
-	'test/main.c',
 	'test/display.c',
+	'test/main.c',
+	'test/window.c',
 )

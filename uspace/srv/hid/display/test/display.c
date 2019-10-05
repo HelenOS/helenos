@@ -32,13 +32,14 @@
 #include <str.h>
 
 #include "../display.h"
+#include "../window.h"
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(display);
 
 /** Display creation and destruction. */
-PCUT_TEST(display_basic)
+PCUT_TEST(display_create_destroy)
 {
 	ds_display_t *disp;
 	errno_t rc;
@@ -46,6 +47,33 @@ PCUT_TEST(display_basic)
 	rc = ds_display_create(&disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	ds_display_destroy(disp);
+}
+
+/** Basic window operation. */
+PCUT_TEST(display_window)
+{
+	ds_display_t *disp;
+	ds_window_t *wnd;
+	ds_window_t *w0, *w1, *w2;
+	errno_t rc;
+
+	rc = ds_display_create(&disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(disp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	w0 = ds_display_first_window(disp);
+	PCUT_ASSERT_EQUALS(w0, wnd);
+
+	w1 = ds_display_next_window(w0);
+	PCUT_ASSERT_NULL(w1);
+
+	w2 = ds_display_find_window(disp, wnd->id);
+	PCUT_ASSERT_EQUALS(w2, wnd);
+
+	ds_window_delete(wnd);
 	ds_display_destroy(disp);
 }
 
