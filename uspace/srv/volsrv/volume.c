@@ -366,10 +366,8 @@ void vol_volume_del_ref(vol_volume_t *volume)
 {
 	if (refcount_down(&volume->refcnt)) {
 		/* No more references. Check if volume is persistent. */
-		if (!vol_volume_is_persist(volume)) {
-			list_remove(&volume->lvolumes);
-			vol_volume_delete(volume);
-		}
+		list_remove(&volume->lvolumes);
+		vol_volume_delete(volume);
 	}
 }
 
@@ -398,6 +396,9 @@ errno_t vol_volume_set_mountp(vol_volume_t *volume, const char *mountp)
 	if (vol_volume_is_persist(volume)) {
 		/* Volume is now persistent */
 		if (volume->nvolume == NULL) {
+			/* Prevent volume from being freed */
+			refcount_up(&volume->refcnt);
+
 			/* Create volume node */
 			rc = sif_trans_begin(volume->volumes->repo, &trans);
 			if (rc != EOK)
@@ -425,6 +426,9 @@ errno_t vol_volume_set_mountp(vol_volume_t *volume, const char *mountp)
 			trans = NULL;
 			volume->nvolume = nvolume;
 		} else {
+			/* Allow volume to be freed */
+			vol_volume_del_ref(volume);
+
 			/* Update volume node */
 			rc = sif_trans_begin(volume->volumes->repo, &trans);
 			if (rc != EOK)
