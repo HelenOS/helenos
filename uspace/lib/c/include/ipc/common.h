@@ -39,8 +39,7 @@
 #include <abi/ipc/ipc.h>
 
 /* Well known phone descriptors */
-#define PHONE_INITIAL  0
-
+static cap_phone_handle_t const PHONE_INITIAL = (cap_phone_handle_t) (CAP_NIL + 1);
 #define IPC_FLAG_BLOCKING   0x01
 
 /**
