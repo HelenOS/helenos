@@ -324,13 +324,6 @@ static void test_display_conn(ipc_call_t *icall, void *arg)
 	gfx_context_t *gc;
 	errno_t rc;
 
-/*	log_msg(LOG_DEFAULT, LVL_NOTE, "test_display_conn arg1=%zu arg2=%zu arg3=%zu arg4=%zu.",
-	    ipc_get_arg1(icall), ipc_get_arg2(icall), ipc_get_arg3(icall),
-	    ipc_get_arg4(icall));
-*/
-	(void) icall;
-	(void) arg;
-
 	svc_id = ipc_get_arg2(icall);
 	wnd_id = ipc_get_arg3(icall);
 
@@ -404,6 +397,5 @@ static errno_t test_gc_set_color(void *arg, gfx_color_t *color)
 	resp->set_color_called = true;
 	return resp->rc;
 }
-
 
 PCUT_EXPORT(display);
