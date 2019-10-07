@@ -30,6 +30,10 @@
 #include <errno.h>
 #include <display.h>
 #include <disp_srv.h>
+#include <gfx/color.h>
+#include <gfx/context.h>
+#include <gfx/render.h>
+#include <ipcgfx/server.h>
 #include <loc.h>
 #include <pcut/pcut.h>
 
@@ -41,8 +45,40 @@ static const char *test_display_server = "test-display";
 static const char *test_display_svc = "test/display";
 
 static void test_display_conn(ipc_call_t *, void *);
+static void test_kbd_event(void *, kbd_event_t *);
 
-static display_ops_t test_display_srv_ops;
+static errno_t test_window_create(void *, sysarg_t *);
+static errno_t test_window_destroy(void *, sysarg_t);
+static errno_t test_get_event(void *, sysarg_t *, display_wnd_ev_t *);
+
+static errno_t test_gc_set_color(void *, gfx_color_t *);
+
+static display_ops_t test_display_srv_ops = {
+	.window_create = test_window_create,
+	.window_destroy = test_window_destroy,
+	.get_event = test_get_event
+};
+
+static display_wnd_cb_t test_display_wnd_cb = {
+	.kbd_event = test_kbd_event
+};
+
+static gfx_context_ops_t test_gc_ops = {
+	.set_color = test_gc_set_color
+};
+
+/** Describes to the server how to respond to our request and pass tracking
+ * data back to the client.
+ */
+typedef struct {
+	errno_t rc;
+	sysarg_t wnd_id;
+	display_wnd_ev_t event;
+	bool window_create_called;
+	bool window_destroy_called;
+	bool get_event_called;
+	bool set_color_called;
+} test_response_t;
 
 /** display_open(), display_close() work for valid display service */
 PCUT_TEST(open_close)
@@ -71,48 +107,303 @@ PCUT_TEST(open_close)
 /** display_window_create() with server returning error response works */
 PCUT_TEST(window_create_failure)
 {
-	// TODO
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_window_t *wnd;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	wnd = NULL;
+	resp.rc = ENOMEM;
+	resp.window_create_called = false;
+	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	PCUT_ASSERT_TRUE(resp.window_create_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_NULL(wnd);
+
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
-/** display_window_create() with server returning success */
-PCUT_TEST(window_create_success)
+/** display_window_create() and display_window_destroy() with success
+ *
+ * with server returning success,
+ */
+PCUT_TEST(window_create_destroy_success)
 {
-	// TODO
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_window_t *wnd;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	wnd = NULL;
+	resp.rc = EOK;
+	resp.window_create_called = false;
+	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	PCUT_ASSERT_TRUE(resp.window_create_called);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	resp.window_destroy_called = false;
+	rc = display_window_destroy(wnd);
+	PCUT_ASSERT_TRUE(resp.window_destroy_called);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
-/** display_window_create() with server returning error response works */
+/** display_window_create() with server returning error response works. */
 PCUT_TEST(window_destroy_failure)
 {
-	// TODO
-}
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_window_t *wnd;
+	test_response_t resp;
 
-/** display_window_create() with server returning success */
-PCUT_TEST(window_destroy_success)
-{
-	// TODO
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = EOK;
+	resp.window_create_called = false;
+	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	PCUT_ASSERT_TRUE(resp.window_create_called);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	resp.rc = EIO;
+	resp.window_destroy_called = false;
+	rc = display_window_destroy(wnd);
+	PCUT_ASSERT_TRUE(resp.window_destroy_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** display_window_get_gc with server returning failure */
 PCUT_TEST(window_get_gc_failure)
 {
-	// TODO
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_window_t *wnd;
+	test_response_t resp;
+	gfx_context_t *gc;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	wnd = NULL;
+	resp.rc = EOK;
+	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	gc = NULL;
+	resp.rc = ENOMEM;
+	rc = display_window_get_gc(wnd, &gc);
+	/* async_connect_me_to() does not return specific error */
+	PCUT_ASSERT_ERRNO_VAL(EIO, rc);
+	PCUT_ASSERT_NULL(gc);
+
+	resp.rc = EOK;
+	rc = display_window_destroy(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** display_window_get_gc with server returning success */
 PCUT_TEST(window_get_gc_success)
 {
-	// TODO
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_window_t *wnd;
+	test_response_t resp;
+	gfx_context_t *gc;
+	gfx_color_t *color;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	wnd = NULL;
+	resp.rc = EOK;
+	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	gc = NULL;
+	rc = display_window_get_gc(wnd, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	resp.set_color_called = false;
+	rc = gfx_set_color(gc, color);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(resp.set_color_called);
+
+	gfx_color_delete(color);
+
+	rc = display_window_destroy(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 static void test_display_conn(ipc_call_t *icall, void *arg)
 {
+	test_response_t *resp = (test_response_t *) arg;
 	display_srv_t srv;
+	sysarg_t wnd_id;
+	sysarg_t svc_id;
+	gfx_context_t *gc;
+	errno_t rc;
 
-	display_srv_initialize(&srv);
-	srv.ops = &test_display_srv_ops;
-	srv.arg = NULL;
+/*	log_msg(LOG_DEFAULT, LVL_NOTE, "test_display_conn arg1=%zu arg2=%zu arg3=%zu arg4=%zu.",
+	    ipc_get_arg1(icall), ipc_get_arg2(icall), ipc_get_arg3(icall),
+	    ipc_get_arg4(icall));
+*/
+	(void) icall;
+	(void) arg;
 
-	display_conn(icall, &srv);
+	svc_id = ipc_get_arg2(icall);
+	wnd_id = ipc_get_arg3(icall);
+
+	if (svc_id != 0) {
+		/* Set up protocol structure */
+		display_srv_initialize(&srv);
+		srv.ops = &test_display_srv_ops;
+		srv.arg = arg;
+
+		/* Handle connection */
+		display_conn(icall, &srv);
+	} else {
+		(void) wnd_id;
+
+		if (resp->rc != EOK) {
+			async_answer_0(icall, resp->rc);
+			return;
+		}
+
+		rc = gfx_context_new(&test_gc_ops, arg, &gc);
+		if (rc != EOK) {
+			async_answer_0(icall, ENOMEM);
+			return;
+		}
+
+		/* Window GC connection */
+		gc_conn(icall, gc);
+	}
 }
+
+static void test_kbd_event(void *arg, kbd_event_t *event)
+{
+}
+
+static errno_t test_window_create(void *arg, sysarg_t *rwnd_id)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->window_create_called = true;
+	if (resp->rc == EOK)
+		*rwnd_id = resp->wnd_id;
+
+	return resp->rc;
+}
+
+static errno_t test_window_destroy(void *arg, sysarg_t wnd_id)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->window_destroy_called = true;
+	return resp->rc;
+}
+
+static errno_t test_get_event(void *arg, sysarg_t *wnd_id, display_wnd_ev_t *event)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->get_event_called = true;
+	if (resp->rc == EOK) {
+		*wnd_id = resp->wnd_id;
+		*event = resp->event;
+	}
+
+	return resp->rc;
+}
+
+static errno_t test_gc_set_color(void *arg, gfx_color_t *color)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->set_color_called = true;
+	return resp->rc;
+}
+
 
 PCUT_EXPORT(display);

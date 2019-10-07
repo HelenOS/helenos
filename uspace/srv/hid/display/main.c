@@ -175,7 +175,6 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 		gc = ds_window_get_ctx(wnd);
 		gc_conn(icall, gc);
 	}
-
 }
 
 int main(int argc, char *argv[])
