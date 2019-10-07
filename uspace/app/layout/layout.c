@@ -39,6 +39,7 @@
 #include <str_error.h>
 #include <ipc/services.h>
 #include <ipc/input.h>
+#include <io/input.h>
 #include <abi/ipc/interfaces.h>
 #include <loc.h>
 
@@ -51,10 +52,32 @@ static void print_help()
 
 	printf(
 	    "Usage: %s\n"
-	    "\t%s list\tlists all layouts\n"
-	    "\t%s get\t displays currently set layout\n"
-	    "\t%s set <layout>\tchanges to the new layout\n",
+	    "\t%s list             lists all layouts\n"
+	    "\t%s get              displays currently set layout\n"
+	    "\t%s set <layout>     changes to the new layout\n",
 	    cmdname, cmdname, cmdname, cmdname);
+}
+
+static async_sess_t *hid_exchange_start()
+{
+	service_id_t svcid;
+	errno_t rc = loc_service_get_id(SERVICE_NAME_HID_INPUT, &svcid, 0);
+	if (rc != EOK) {
+		printf("%s: Failing to find service `%s` (%s)\n",
+		    cmdname,
+		    SERVICE_NAME_HID_INPUT,
+		    str_error(rc));
+		return NULL;
+	}
+
+	async_sess_t *sess = loc_service_connect(svcid, INTERFACE_ANY, 0);
+	if (sess == NULL) {
+		printf("%s: Failing to connect to service `%s`\n",
+		    cmdname,
+		    SERVICE_NAME_HID_INPUT);
+	}
+
+	return sess;
 }
 
 /* lists all available kb layouts */
@@ -74,95 +97,51 @@ static errno_t list_layout(void)
 /* displays active keyboard layout */
 static errno_t get_layout(void)
 {
-	service_id_t svcid;
-	ipc_call_t call;
-	errno_t rc = loc_service_get_id(SERVICE_NAME_HID_INPUT, &svcid, 0);
-	if (rc != EOK) {
-		printf("%s: Failing to find service `%s`\n", cmdname, SERVICE_NAME_HID_INPUT);
-		return rc;
-	}
+	async_sess_t *sess = hid_exchange_start();
+	if (sess == NULL)
+		return EREFUSED;
 
-	async_sess_t *sess = loc_service_connect(svcid, INTERFACE_ANY, 0);
-	if (sess == NULL) {
-		printf("%s: Failing to connect to service `%s`\n", cmdname, SERVICE_NAME_HID_INPUT);
-		return rc;
-	}
-
-	void *layout_name = NULL;
-	async_exch_t *exch = async_exchange_begin(sess);
-	aid_t mid = async_send_0(exch, INPUT_GET_LAYOUT, &call);
-	async_wait_for(mid, &rc);
-
-	if (rc != EOK) {
-		goto error;
-	}
-
-	size_t length = ipc_get_arg1(&call);
-
-	layout_name = malloc(length * sizeof(char *));
-	if (layout_name == NULL) {
-		printf("%s: Failing to allocate memory for keyboard layout\n", cmdname);
-		rc = ENOMEM;
-		goto error;
-	}
-
-	rc = async_data_read_start(exch, layout_name, length);
+	char *layout_name;
+	errno_t rc = input_layout_get(sess, &layout_name);
 
 	if (rc == EOK) {
-		printf("%s\n", (char *)layout_name);
+		printf("%s\n", layout_name);
+		free(layout_name);
 	} else {
-		printf("%s: Failing to get activated keyboard layout\n (%s)\n", cmdname, str_error(rc));
-		goto error;
+		printf("%s: Failing to retrive keyboard layout (%s)\n",
+		    cmdname,
+		    str_error(rc));
 	}
 
-error:
-	free(layout_name);
-	async_exchange_end(exch);
 	async_hangup(sess);
-
 	return rc;
-
 }
 
 /* changes the keyboard layout */
-static errno_t set_layout(char *layout)
+static errno_t set_layout(char *layout_name)
 {
-	service_id_t svcid;
-	ipc_call_t call;
-	errno_t rc = loc_service_get_id(SERVICE_NAME_HID_INPUT, &svcid, 0);
-	if (rc != EOK) {
-		printf("%s: Failing to find service `%s`\n", cmdname, SERVICE_NAME_HID_INPUT);
-		return rc;
-	}
+	async_sess_t *sess = hid_exchange_start();
+	if (sess == NULL)
+		return EREFUSED;
 
-	async_sess_t *sess = loc_service_connect(svcid, INTERFACE_ANY, 0);
-	if (sess == NULL) {
-		printf("%s: Failing to connect to service `%s`\n", cmdname, SERVICE_NAME_HID_INPUT);
-		return rc;
-	}
+	errno_t rc = input_layout_set(sess, layout_name);
 
-	async_exch_t *exch = async_exchange_begin(sess);
+	if (rc != EOK)
+		printf("%s: Cannot activate keyboard layout `%s`\n (%s)\n",
+		    cmdname,
+		    layout_name,
+		    str_error(rc));
 
-	aid_t mid = async_send_0(exch, INPUT_CHANGE_LAYOUT, &call);
-	rc = async_data_write_start(exch, layout, str_size(layout));
-
-	if (rc == EOK) {
-		async_wait_for(mid, &rc);
-	}
-
-	async_exchange_end(exch);
 	async_hangup(sess);
-
-	if (rc != EOK) {
-		printf("%s: Cannot activate keyboard layout `%s`\n (%s)\n", cmdname, layout, str_error(rc));
-	}
-
 	return rc;
 }
 
 int main(int argc, char *argv[])
 {
-	if (argc == 2) {
+	errno_t rc = EINVAL;
+	if (argc == 1) {
+		rc = EOK;
+	} else if (argc == 2) {
 		if (str_cmp(argv[1], "list") == 0) {
 			return list_layout();
 		} else if (str_cmp(argv[1], "get") == 0) {
@@ -175,5 +154,5 @@ int main(int argc, char *argv[])
 	}
 
 	print_help();
-	return 1;
+	return rc;
 }

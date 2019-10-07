@@ -41,6 +41,7 @@
 #include <io/input.h>
 #include <ipc/input.h>
 #include <stdlib.h>
+#include <str.h>
 
 static void input_cb_conn(ipc_call_t *icall, void *arg);
 
@@ -199,6 +200,67 @@ static void input_cb_conn(ipc_call_t *icall, void *arg)
 			async_answer_0(&call, ENOTSUP);
 		}
 	}
+}
+
+/**
+ * Retrieves the active keyboard layout
+ * @param sess Active session to the input server
+ * @param layout The name of the currently active layout,
+ *        needs to be freed by the caller
+ * @return EOK if sucessful or the corresponding error code.
+ *         If a failure occurs the param layout is already freed
+ */
+errno_t input_layout_get(async_sess_t *sess, char **layout)
+{
+	errno_t rc;
+	ipc_call_t call;
+	async_exch_t *exch = async_exchange_begin(sess);
+	aid_t mid = async_send_0(exch, INPUT_GET_LAYOUT, &call);
+	async_wait_for(mid, &rc);
+
+	if (rc != EOK) {
+		goto error;
+	}
+
+	size_t length = ipc_get_arg1(&call);
+
+	*layout = malloc(length * sizeof(char *));
+	if (layout == NULL) {
+		rc = ENOMEM;
+		free(*layout);
+		goto error;
+	}
+
+	rc = async_data_read_start(exch, *layout, length);
+
+	if (rc != EOK)
+		free(*layout);
+
+error:
+	async_exchange_end(exch);
+	return rc;
+}
+
+/**
+ * Changes the keyboard layout
+ * @param sess Active session to the input server
+ * @param layout The name of the layout which should be activated
+ * @return EOK if sucessful or the corresponding error code.
+ */
+errno_t input_layout_set(async_sess_t *sess, const char *layout)
+{
+	errno_t rc;
+	ipc_call_t call;
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	aid_t mid = async_send_0(exch, INPUT_CHANGE_LAYOUT, &call);
+	rc = async_data_write_start(exch, layout, str_size(layout));
+
+	if (rc == EOK)
+		async_wait_for(mid, &rc);
+
+	async_exchange_end(exch);
+	return rc;
 }
 
 /** @}
