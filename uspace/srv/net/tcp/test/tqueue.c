@@ -31,6 +31,7 @@
 #include <pcut/pcut.h>
 
 #include "../conn.h"
+#include "../segment.h"
 #include "../tqueue.h"
 
 PCUT_INIT;
@@ -116,6 +117,7 @@ PCUT_TEST(ctrl_seg_teardown)
 	PCUT_ASSERT_EQUALS(1, seg_cnt);
 	PCUT_ASSERT_EQUALS(CTL_SYN, trans_seg[0]->ctrl);
 	PCUT_ASSERT_EQUALS(10, trans_seg[0]->seq);
+	tcp_segment_delete(trans_seg[0]);
 }
 
 /** Test sending data and FIN */
@@ -155,6 +157,7 @@ PCUT_TEST(new_data_fin)
 	PCUT_ASSERT_EQUALS(1, seg_cnt);
 	PCUT_ASSERT_EQUALS(CTL_FIN | CTL_ACK, trans_seg[0]->ctrl);
 	PCUT_ASSERT_EQUALS(10, trans_seg[0]->seq);
+	tcp_segment_delete(trans_seg[0]);
 }
 
 /** Test sending data when send window is smaller */
@@ -197,6 +200,7 @@ PCUT_TEST(new_data_small_win)
 	PCUT_ASSERT_EQUALS(1, seg_cnt);
 	PCUT_ASSERT_EQUALS(CTL_ACK, trans_seg[0]->ctrl);
 	PCUT_ASSERT_EQUALS(10, trans_seg[0]->seq);
+	tcp_segment_delete(trans_seg[0]);
 }
 
 /** Test flushing tqueue due to receiving an ACK */
@@ -255,7 +259,7 @@ PCUT_TEST(ack_received)
 
 static void tqueue_test_transmit_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 {
-	trans_seg[seg_cnt++] = seg;
+	trans_seg[seg_cnt++] = tcp_segment_dup(seg);
 }
 
 PCUT_EXPORT(tqueue);
