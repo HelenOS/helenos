@@ -142,6 +142,7 @@ static errno_t connect_task(task_id_t task_id)
 		if (sess == NULL) {
 			printf("Error connecting to task %" PRIu64 ".\n",
 			    task_id);
+			rc = EIO;
 			goto error;
 		}
 
