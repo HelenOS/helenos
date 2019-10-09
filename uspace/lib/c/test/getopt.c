@@ -277,8 +277,7 @@ PCUT_TEST(getopt_optional_param)
 	const char *argv[] = {
 		"get_opt_test",
 		"-f",
-		"-p",
-		"param"
+		"-pparam"
 	};
 
 	const char *options = "f::p::";
