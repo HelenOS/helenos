@@ -152,6 +152,7 @@ void capa_simplify(capa_spec_t *capa)
 	rc = ipow10_u64(capa->dp, &div);
 	assert(rc == EOK);
 
+	/* Change units until we have no more than scapa_max_idig integer digits */
 	while (capa->m / div >= maxv) {
 		++capa->cunit;
 		capa->dp += 3;
@@ -169,8 +170,29 @@ void capa_simplify(capa_spec_t *capa)
 		rc = ipow10_u64(rdig, &div);
 		assert(rc == EOK);
 
+		/* Division with rounding */
 		capa->m = (capa->m + (div / 2)) / div;
 		capa->dp -= rdig;
+	}
+
+	/*
+	 * If we rounded up from something like 999.95 to 1000.0,, we still
+	 * have more than scapa_max_idig integer digits and need to change
+	 * units once more.
+	 */
+	rc = ipow10_u64(capa->dp, &div);
+	assert(rc == EOK);
+
+	if (capa->m / div >= 1000) {
+		++capa->cunit;
+		capa->dp += 3;
+
+		/*
+		 * We now have one more significant digit than we want
+		 * so round to one less digits
+		 */
+		capa->m = (capa->m + 5) / 10;
+		--capa->dp;
 	}
 }
 
@@ -201,6 +223,7 @@ errno_t capa_format(capa_spec_t *capa, char **rstr)
 	} else {
 		ret = asprintf(rstr, "%" PRIu64 " %s", ipart, sunit);
 	}
+
 	if (ret < 0)
 		return ENOMEM;
 
