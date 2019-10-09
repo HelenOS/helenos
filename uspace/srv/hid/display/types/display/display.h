@@ -37,6 +37,7 @@
 #define TYPES_DISPLAY_DISPLAY_H
 
 #include <adt/list.h>
+#include <gfx/context.h>
 #include "window.h"
 
 typedef struct ds_display {
@@ -44,6 +45,8 @@ typedef struct ds_display {
 	list_t windows;
 	/** Next ID to assign to a window */
 	ds_wnd_id_t next_wnd_id;
+	/** Output GC */
+	gfx_context_t *gc;
 } ds_display_t;
 
 #endif

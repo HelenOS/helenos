@@ -31,6 +31,7 @@ deps = [ 'ipcgfx', 'display', 'guigfx' ]
 src = files(
 	'display.c',
 	'main.c',
+	'output.c',
 	'window.c',
 )
 

@@ -35,6 +35,7 @@
 
 #include <disp_srv.h>
 #include <errno.h>
+#include <gfx/context.h>
 #include <io/log.h>
 #include <stdlib.h>
 #include "display.h"
@@ -84,10 +85,11 @@ static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
 
 /** Create display.
  *
+ * @param gc Graphics context for displaying output
  * @param rdisp Place to store pointer to new display.
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ds_display_create(ds_display_t **rdisp)
+errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 {
 	ds_display_t *disp;
 
@@ -97,6 +99,7 @@ errno_t ds_display_create(ds_display_t **rdisp)
 
 	list_initialize(&disp->windows);
 	disp->next_wnd_id = 1;
+	disp->gc = gc;
 	*rdisp = disp;
 	return EOK;
 }

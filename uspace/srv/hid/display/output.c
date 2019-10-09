@@ -26,37 +26,73 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Display server output
+ */
+
 #include <errno.h>
-#include <pcut/pcut.h>
+#include <gfx/context.h>
+#include <guigfx/canvas.h>
 #include <stdio.h>
-#include <str.h>
+#include <stdlib.h>
+#include <window.h>
+#include "output.h"
 
-#include "../display.h"
-#include "../window.h"
-
-PCUT_INIT;
-
-PCUT_TEST_SUITE(window);
-
-/** Test ds_window_get_ctx(). */
-PCUT_TEST(window_get_ctx)
+errno_t output_init(gfx_context_t **rgc)
 {
-	ds_display_t *disp;
-	ds_window_t *wnd;
-	gfx_context_t *gc;
+	canvas_gc_t *cgc = NULL;
+	window_t *window = NULL;
+	pixel_t *pixbuf = NULL;
+	surface_t *surface = NULL;
+	canvas_t *canvas = NULL;
+	int vw, vh;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	printf("Init canvas..\n");
 
-	rc = ds_window_create(disp, &wnd);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	window = window_open("comp:0/winreg", NULL,
+	    WINDOW_MAIN | WINDOW_DECORATED, "Display Server");
+	if (window == NULL) {
+		printf("Error creating window.\n");
+		return -1;
+	}
 
-	gc = ds_window_get_ctx(wnd);
-	PCUT_ASSERT_NOT_NULL(gc);
+	vw = 400;
+	vh = 300;
 
-	ds_window_delete(wnd);
-	ds_display_destroy(disp);
+	pixbuf = calloc(vw * vh, sizeof(pixel_t));
+	if (pixbuf == NULL) {
+		printf("Error allocating memory for pixel buffer.\n");
+		return ENOMEM;
+	}
+
+	surface = surface_create(vw, vh, pixbuf, 0);
+	if (surface == NULL) {
+		printf("Error creating surface.\n");
+		return EIO;
+	}
+
+	canvas = create_canvas(window_root(window), NULL, vw, vh,
+	    surface);
+	if (canvas == NULL) {
+		printf("Error creating canvas.\n");
+		return EIO;
+	}
+
+	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
+	window_exec(window);
+
+	printf("Create canvas GC\n");
+	rc = canvas_gc_create(canvas, surface, &cgc);
+	if (rc != EOK)
+		return rc;
+
+	*rgc = canvas_gc_get_ctx(cgc);
+	return EOK;
 }
 
-PCUT_EXPORT(window);
+/** @}
+ */

@@ -64,9 +64,8 @@ static errno_t ds_window_set_color(void *arg, gfx_color_t *color)
 {
 	ds_window_t *wnd = (ds_window_t *) arg;
 
-	(void) wnd;
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_set_color");
-	return EOK;
+	return gfx_set_color(wnd->display->gc, color);
 }
 
 /** Fill rectangle on window GC.
@@ -80,9 +79,8 @@ static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	ds_window_t *wnd = (ds_window_t *) arg;
 
-	(void) wnd;
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
-	return EOK;
+	return gfx_fill_rect(wnd->display->gc, rect);
 }
 
 /** Create window.

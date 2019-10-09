@@ -44,7 +44,7 @@ PCUT_TEST(display_create_destroy)
 	ds_display_t *disp;
 	errno_t rc;
 
-	rc = ds_display_create(&disp);
+	rc = ds_display_create(NULL, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ds_display_destroy(disp);
@@ -58,7 +58,7 @@ PCUT_TEST(display_window)
 	ds_window_t *w0, *w1, *w2;
 	errno_t rc;
 
-	rc = ds_display_create(&disp);
+	rc = ds_display_create(NULL, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_window_create(disp, &wnd);

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup display
  * @{
  */
 /**
@@ -39,12 +39,13 @@
 
 #include <disp_srv.h>
 #include <errno.h>
+#include <gfx/context.h>
 #include "types/display/display.h"
 #include "types/display/window.h"
 
 extern display_ops_t display_srv_ops;
 
-extern errno_t ds_display_create(ds_display_t **);
+extern errno_t ds_display_create(gfx_context_t *, ds_display_t **);
 extern void ds_display_destroy(ds_display_t *);
 extern errno_t ds_display_add_window(ds_display_t *, ds_window_t *);
 extern void ds_display_remove_window(ds_window_t *);

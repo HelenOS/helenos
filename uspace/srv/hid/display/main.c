@@ -6,7 +6,7 @@
  * modification, are permitted provided that the following conditions
  * are met:
  *
- * - Redistributions of source code must retain the above copyright
+ * - Redistribution1s of source code must retain the above copyright
  *   notice, this list of conditions and the following disclaimer.
  * - Redistributions in binary form must reproduce the above copyright
  *   notice, this list of conditions and the following disclaimer in the
@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <task.h>
 #include "display.h"
+#include "output.h"
 #include "window.h"
 
 #define NAME  "display"
@@ -55,9 +56,14 @@ static void display_client_conn(ipc_call_t *, void *);
 static errno_t display_srv_init(void)
 {
 	ds_display_t *disp = NULL;
+	gfx_context_t *gc = NULL;
 	errno_t rc;
 
-	rc = ds_display_create(&disp);
+	rc = output_init(&gc);
+	if (rc != EOK)
+		goto error;
+
+	rc = ds_display_create(gc, &disp);
 	if (rc != EOK)
 		goto error;
 
@@ -81,6 +87,8 @@ static errno_t display_srv_init(void)
 
 	return EOK;
 error:
+	if (gc != NULL)
+		gfx_context_delete(gc);
 	if (disp != NULL)
 		ds_display_destroy(disp);
 	return rc;

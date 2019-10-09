@@ -26,37 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <pcut/pcut.h>
-#include <stdio.h>
-#include <str.h>
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Display server output
+ */
 
-#include "../display.h"
-#include "../window.h"
+#ifndef OUTPUT_H
+#define OUTPUT_H
 
-PCUT_INIT;
+#include <gfx/context.h>
 
-PCUT_TEST_SUITE(window);
+extern errno_t output_init(gfx_context_t **);
 
-/** Test ds_window_get_ctx(). */
-PCUT_TEST(window_get_ctx)
-{
-	ds_display_t *disp;
-	ds_window_t *wnd;
-	gfx_context_t *gc;
-	errno_t rc;
+#endif
 
-	rc = ds_display_create(NULL, &disp);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rc = ds_window_create(disp, &wnd);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = ds_window_get_ctx(wnd);
-	PCUT_ASSERT_NOT_NULL(gc);
-
-	ds_window_delete(wnd);
-	ds_display_destroy(disp);
-}
-
-PCUT_EXPORT(window);
+/** @}
+ */
