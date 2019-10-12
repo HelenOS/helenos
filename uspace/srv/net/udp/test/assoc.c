@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,94 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
- * @{
- */
-/** @file UDP associations
- */
-
-#ifndef ASSOC_H
-#define ASSOC_H
-
+#include <errno.h>
 #include <inet/endpoint.h>
-#include <ipc/loc.h>
-#include "udp_type.h"
+#include <io/log.h>
+#include <pcut/pcut.h>
 
-extern errno_t udp_assocs_init(void);
-extern void udp_assocs_fini(void);
-extern udp_assoc_t *udp_assoc_new(inet_ep2_t *, udp_assoc_cb_t *, void *);
-extern void udp_assoc_delete(udp_assoc_t *);
-extern errno_t udp_assoc_add(udp_assoc_t *);
-extern void udp_assoc_remove(udp_assoc_t *);
-extern void udp_assoc_addref(udp_assoc_t *);
-extern void udp_assoc_delref(udp_assoc_t *);
-extern void udp_assoc_set_iplink(udp_assoc_t *, service_id_t);
-extern errno_t udp_assoc_send(udp_assoc_t *, inet_ep_t *, udp_msg_t *);
-extern errno_t udp_assoc_recv(udp_assoc_t *, udp_msg_t **, inet_ep_t *);
-extern void udp_assoc_received(inet_ep2_t *, udp_msg_t *);
-extern void udp_assoc_reset(udp_assoc_t *);
+#include "../assoc.h"
 
-#endif
+PCUT_INIT;
 
-/** @}
- */
+PCUT_TEST_SUITE(assoc);
+
+static void test_recv_msg(void *, inet_ep2_t *, udp_msg_t *);
+
+static udp_assoc_cb_t test_assoc_cb = {
+	.recv_msg = test_recv_msg
+};
+
+PCUT_TEST_BEFORE
+{
+	errno_t rc;
+
+	/* We will be calling functions that perform logging */
+	rc = log_init("test-udp");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = udp_assocs_init();
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+PCUT_TEST_AFTER
+{
+	udp_assocs_fini();
+}
+
+/** Test creating and deleting association */
+PCUT_TEST(new_delete)
+{
+	udp_assoc_t *assoc;
+	inet_ep2_t epp;
+
+	inet_ep2_init(&epp);
+	assoc = udp_assoc_new(&epp, &test_assoc_cb, NULL);
+	PCUT_ASSERT_NOT_NULL(assoc);
+
+	udp_assoc_delete(assoc);
+}
+
+/** Test adding, removing association */
+PCUT_TEST(add_remove)
+{
+	udp_assoc_t *assoc;
+	inet_ep2_t epp;
+	errno_t rc;
+
+	inet_ep2_init(&epp);
+
+	assoc = udp_assoc_new(&epp, &test_assoc_cb, NULL);
+	PCUT_ASSERT_NOT_NULL(assoc);
+
+	rc = udp_assoc_add(assoc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	udp_assoc_remove(assoc);
+	udp_assoc_delete(assoc);
+}
+
+PCUT_TEST(addref_delref)
+{
+}
+
+PCUT_TEST(set_iplink)
+{
+}
+
+PCUT_TEST(send_recv)
+{
+}
+
+PCUT_TEST(received)
+{
+}
+
+PCUT_TEST(reset)
+{
+}
+
+static void test_recv_msg(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
+{
+}
+
+PCUT_EXPORT(assoc);

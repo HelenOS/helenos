@@ -71,6 +71,15 @@ errno_t udp_assocs_init(void)
 	return EOK;
 }
 
+/** Finalize associations. */
+void udp_assocs_fini(void)
+{
+	assert(list_empty(&assoc_list));
+
+	amap_destroy(amap);
+	amap = NULL;
+}
+
 /** Create new association structure.
  *
  * @param epp		Endpoint pair (will be copied)
@@ -173,8 +182,8 @@ void udp_assoc_delete(udp_assoc_t *assoc)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: udp_assoc_delete(%p)", assoc->name, assoc);
 
 	assert(assoc->deleted == false);
-	udp_assoc_delref(assoc);
 	assoc->deleted = true;
+	udp_assoc_delref(assoc);
 }
 
 /** Enlist association.

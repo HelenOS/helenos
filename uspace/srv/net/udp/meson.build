@@ -27,11 +27,23 @@
 #
 
 deps = [ 'nettl' ]
-src = files(
+
+_common_src = files(
 	'assoc.c',
 	'msg.c',
+)
+
+src = files(
 	'pdu.c',
 	'service.c',
 	'udp.c',
 	'udp_inet.c',
 )
+
+test_src = files(
+	'test/assoc.c',
+	'test/main.c',
+)
+
+src = [ _common_src, src ]
+test_src = [ _common_src, test_src ]
