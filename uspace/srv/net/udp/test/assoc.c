@@ -137,7 +137,7 @@ PCUT_TEST(set_iplink)
 	PCUT_ASSERT_INT_EQUALS(42, assoc->ident.local_link);
 
 	udp_assoc_delete(assoc);
- }
+}
 
 /** Sending message with destination not set in association and NULL
  * destination argument should fail with EINVAL.
