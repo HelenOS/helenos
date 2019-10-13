@@ -133,6 +133,38 @@ errno_t udp_inet_init(void)
 	return EOK;
 }
 
+/** Get source address.
+ *
+ * @param remote Remote address
+ * @param tos Type of service
+ * @param local Place to store local address
+ * @return EOK on success or an error code
+ */
+errno_t udp_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
+{
+	return inet_get_srcaddr(remote, tos, local);
+}
+
+/** Transmit message over network layer. */
+errno_t udp_transmit_msg(inet_ep2_t *epp, udp_msg_t *msg)
+{
+	udp_pdu_t *pdu;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_transmit_msg()");
+
+	rc = udp_pdu_encode(epp, msg, &pdu);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed encoding PDU");
+		return rc;
+	}
+
+	rc = udp_transmit_pdu(pdu);
+	udp_pdu_delete(pdu);
+
+	return rc;
+}
+
 /**
  * @}
  */

@@ -36,6 +36,7 @@
 #define UDP_TYPE_H
 
 #include <async.h>
+#include <errno.h>
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <inet/endpoint.h>
@@ -43,6 +44,7 @@
 #include <refcount.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <inet/addr.h>
 
 #define UDP_FRAGMENT_SIZE 65535
@@ -86,7 +88,21 @@ typedef struct {
 	size_t data_size;
 } udp_pdu_t;
 
-/** Association callbacks */
+/** Functions needed by associations module.
+ *
+ * Functions that need to be provided by the caller so that the associations
+ * module can function.
+ */
+typedef struct {
+	errno_t (*get_srcaddr)(inet_addr_t *, uint8_t, inet_addr_t *);
+	errno_t (*transmit_msg)(inet_ep2_t *, udp_msg_t *);
+} udp_assocs_dep_t;
+
+/** Association callbacks.
+ *
+ * Callbacks for a particular association, to notify caller of events
+ * on the association.
+ */
 typedef struct {
 	/** Message received */
 	void (*recv_msg)(void *, inet_ep2_t *, udp_msg_t *);

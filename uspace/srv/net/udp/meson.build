@@ -31,10 +31,10 @@ deps = [ 'nettl' ]
 _common_src = files(
 	'assoc.c',
 	'msg.c',
+	'pdu.c',
 )
 
 src = files(
-	'pdu.c',
 	'service.c',
 	'udp.c',
 	'udp_inet.c',

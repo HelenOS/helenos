@@ -45,6 +45,17 @@ static udp_assoc_cb_t test_assoc_cb = {
 	.recv_msg = test_recv_msg
 };
 
+static errno_t test_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
+static errno_t test_transmit_msg(inet_ep2_t *, udp_msg_t *);
+
+static udp_assocs_dep_t test_assocs_dep = {
+	.get_srcaddr = test_get_srcaddr,
+	.transmit_msg = test_transmit_msg
+};
+
+static inet_ep2_t *sent_epp;
+static udp_msg_t *sent_msg;
+
 PCUT_TEST_BEFORE
 {
 	errno_t rc;
@@ -53,7 +64,7 @@ PCUT_TEST_BEFORE
 	rc = log_init("test-udp");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = udp_assocs_init();
+	rc = udp_assocs_init(&test_assocs_dep);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
@@ -128,8 +139,201 @@ PCUT_TEST(set_iplink)
 	udp_assoc_delete(assoc);
  }
 
-PCUT_TEST(send_recv)
+/** Sending message with destination not set in association and NULL
+ * destination argument should fail with EINVAL.
+ */
+PCUT_TEST(send_null_dest)
 {
+	udp_assoc_t *assoc;
+	inet_ep2_t epp;
+	inet_ep_t dest;
+	errno_t rc;
+	udp_msg_t *msg;
+	const char *msgstr = "Hello";
+
+	msg = udp_msg_new();
+	PCUT_ASSERT_NOT_NULL(msg);
+	msg->data_size = str_size(msgstr) + 1;
+	msg->data = str_dup(msgstr);
+
+	inet_ep2_init(&epp);
+	inet_ep_init(&dest);
+
+	assoc = udp_assoc_new(&epp, &test_assoc_cb, NULL);
+	PCUT_ASSERT_NOT_NULL(assoc);
+
+	rc = udp_assoc_add(assoc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = udp_assoc_send(assoc, &dest, msg);
+	PCUT_ASSERT_ERRNO_VAL(EINVAL, rc);
+
+	udp_msg_delete(msg);
+
+	udp_assoc_remove(assoc);
+	udp_assoc_delete(assoc);
+}
+
+/** Sending message with destination not set in association and unset
+ * destination argument should fail with EINVAL.
+ */
+PCUT_TEST(send_unset_dest)
+{
+	udp_assoc_t *assoc;
+	inet_ep2_t epp;
+	inet_ep_t dest;
+	errno_t rc;
+	udp_msg_t *msg;
+	const char *msgstr = "Hello";
+
+	msg = udp_msg_new();
+	PCUT_ASSERT_NOT_NULL(msg);
+	msg->data_size = str_size(msgstr) + 1;
+	msg->data = str_dup(msgstr);
+
+	inet_ep2_init(&epp);
+	inet_ep_init(&dest);
+
+	assoc = udp_assoc_new(&epp, &test_assoc_cb, NULL);
+	PCUT_ASSERT_NOT_NULL(assoc);
+
+	rc = udp_assoc_add(assoc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = udp_assoc_send(assoc, &dest, msg);
+	PCUT_ASSERT_ERRNO_VAL(EINVAL, rc);
+
+	udp_msg_delete(msg);
+
+	udp_assoc_remove(assoc);
+	udp_assoc_delete(assoc);
+}
+
+/** Sending message with explicit destination */
+PCUT_TEST(send_explicit_dest)
+{
+	udp_assoc_t *assoc;
+	inet_ep2_t epp;
+	inet_ep_t dest;
+	errno_t rc;
+	udp_msg_t *msg;
+	const char *msgstr = "Hello";
+
+	msg = udp_msg_new();
+	PCUT_ASSERT_NOT_NULL(msg);
+	msg->data_size = str_size(msgstr) + 1;
+	msg->data = str_dup(msgstr);
+
+	inet_ep2_init(&epp);
+	inet_addr(&dest.addr, 127, 0, 0, 1);
+	dest.port = 42;
+
+	assoc = udp_assoc_new(&epp, &test_assoc_cb, NULL);
+	PCUT_ASSERT_NOT_NULL(assoc);
+
+	rc = udp_assoc_add(assoc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	sent_epp = NULL;
+	sent_msg = NULL;
+
+	rc = udp_assoc_send(assoc, &dest, msg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(msg, sent_msg);
+	PCUT_ASSERT_TRUE(inet_addr_compare(&dest.addr, &sent_epp->remote.addr));
+	PCUT_ASSERT_EQUALS(dest.port, sent_epp->remote.port);
+
+	udp_msg_delete(msg);
+
+	udp_assoc_remove(assoc);
+	udp_assoc_delete(assoc);
+}
+
+/** Sending message with destination set in association and NULL destination
+ * argument
+ */
+PCUT_TEST(send_assoc_null_dest)
+{
+	udp_assoc_t *assoc;
+	inet_ep2_t epp;
+	errno_t rc;
+	udp_msg_t *msg;
+	const char *msgstr = "Hello";
+
+	msg = udp_msg_new();
+	PCUT_ASSERT_NOT_NULL(msg);
+	msg->data_size = str_size(msgstr) + 1;
+	msg->data = str_dup(msgstr);
+
+	inet_ep2_init(&epp);
+	inet_addr(&epp.remote.addr, 127, 0, 0, 1);
+	epp.remote.port = 42;
+	inet_addr(&epp.local.addr, 127, 0, 0, 1);
+	epp.local.port = 1;
+
+	assoc = udp_assoc_new(&epp, &test_assoc_cb, NULL);
+	PCUT_ASSERT_NOT_NULL(assoc);
+
+	rc = udp_assoc_add(assoc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	sent_epp = NULL;
+	sent_msg = NULL;
+
+	rc = udp_assoc_send(assoc, NULL, msg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(msg, sent_msg);
+	PCUT_ASSERT_TRUE(inet_addr_compare(&epp.remote.addr, &sent_epp->remote.addr));
+	PCUT_ASSERT_EQUALS(epp.remote.port, sent_epp->remote.port);
+
+	udp_msg_delete(msg);
+
+	udp_assoc_remove(assoc);
+	udp_assoc_delete(assoc);
+}
+
+/** Sending message with destination set in association and unset destination
+ * argument should return EINVAL
+ */
+PCUT_TEST(send_assoc_unset_dest)
+{
+	udp_assoc_t *assoc;
+	inet_ep2_t epp;
+	inet_ep_t dest;
+	errno_t rc;
+	udp_msg_t *msg;
+	const char *msgstr = "Hello";
+
+	msg = udp_msg_new();
+	PCUT_ASSERT_NOT_NULL(msg);
+	msg->data_size = str_size(msgstr) + 1;
+	msg->data = str_dup(msgstr);
+
+	inet_ep2_init(&epp);
+	inet_addr(&epp.remote.addr, 127, 0, 0, 1);
+	epp.remote.port = 42;
+	inet_addr(&epp.local.addr, 127, 0, 0, 1);
+	epp.local.port = 1;
+	inet_ep_init(&dest);
+
+	assoc = udp_assoc_new(&epp, &test_assoc_cb, NULL);
+	PCUT_ASSERT_NOT_NULL(assoc);
+
+	rc = udp_assoc_add(assoc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = udp_assoc_send(assoc, &dest, msg);
+	PCUT_ASSERT_ERRNO_VAL(EINVAL, rc);
+
+	udp_msg_delete(msg);
+
+	udp_assoc_remove(assoc);
+	udp_assoc_delete(assoc);
+}
+
+PCUT_TEST(recv)
+{
+	// XXX Looks like currently udp_assoc_recv() is not used at all
 }
 
 /** Test udp_assoc_received() */
@@ -186,6 +390,20 @@ static void test_recv_msg(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
 	bool *received = (bool *) arg;
 
 	*received = true;
+}
+
+static errno_t test_get_srcaddr(inet_addr_t *remote, uint8_t tos,
+    inet_addr_t *local)
+{
+	inet_addr(local, 127, 0, 0, 1);
+	return EOK;
+}
+
+static errno_t test_transmit_msg(inet_ep2_t *epp, udp_msg_t *msg)
+{
+	sent_epp = epp;
+	sent_msg = msg;
+	return EOK;
 }
 
 PCUT_EXPORT(assoc);
