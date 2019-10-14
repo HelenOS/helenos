@@ -54,7 +54,6 @@ PCUT_TEST(encode_decode_v4)
 	udp_msg_t *dmsg;
 	udp_pdu_t *pdu;
 	const char *msgstr = "Hello";
-	char *slocal, *sdlocal, *sremote, *sdremote;
 	errno_t rc;
 
 	inet_ep2_init(&epp);
