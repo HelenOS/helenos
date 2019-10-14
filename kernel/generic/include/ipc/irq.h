@@ -45,6 +45,9 @@
 #include <ddi/irq.h>
 #include <typedefs.h>
 #include <adt/list.h>
+#include <cap/cap.h>
+
+extern kobject_ops_t irq_kobject_ops;
 
 extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
 extern void ipc_irq_top_half_handler(irq_t *);
