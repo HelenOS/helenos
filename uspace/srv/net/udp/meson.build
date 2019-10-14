@@ -42,7 +42,9 @@ src = files(
 
 test_src = files(
 	'test/assoc.c',
+	'test/msg.c',
 	'test/main.c',
+	'test/pdu.c',
 )
 
 src = [ _common_src, src ]
