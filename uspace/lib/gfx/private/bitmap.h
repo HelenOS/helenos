@@ -30,21 +30,24 @@
  * @{
  */
 /**
- * @file Color structure
+ * @file Bitmap structure
  *
  */
 
 #ifndef _GFX_PRIVATE_COLOR_H
 #define _GFX_PRIVATE_COLOR_H
 
-/** Actual structure of graphics color.
+#include <types/gfx/context.h>
+
+/** Bitmap
  *
  * This is private to libgfx. It is not visible to clients nor backends.
  */
-struct gfx_color {
-	uint16_t r;
-	uint16_t g;
-	uint16_t b;
+struct gfx_bitmap {
+	/** Graphics context of the bitmap */
+	gfx_context_t *gc;
+	/** GC-private data */
+	void *gc_priv;
 };
 
 #endif

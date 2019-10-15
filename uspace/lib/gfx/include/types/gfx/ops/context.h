@@ -39,6 +39,7 @@
 #define _GFX_TYPES_OPS_CONTEXT_H
 
 #include <errno.h>
+#include <types/gfx/bitmap.h>
 #include <types/gfx/color.h>
 #include <types/gfx/coord.h>
 #include <types/gfx/context.h>
@@ -49,6 +50,17 @@ typedef struct {
 	errno_t (*set_color)(void *, gfx_color_t *);
 	/** Fill rectangle using the current drawing color */
 	errno_t (*fill_rect)(void *, gfx_rect_t *);
+	/** Create bitmap */
+	errno_t (*bitmap_create)(void *, gfx_bitmap_params_t *, void *,
+	    gfx_bitmap_t **);
+	/** Delete bitmap */
+	errno_t (*bitmap_delete)(void *, gfx_bitmap_t *);
+	/** Render bitmap */
+	errno_t (*bitmap_render)(void *, gfx_bitmap_t *, gfx_rect_t *,
+	    gfx_coord2_t *);
+	/** Get bitmap allocation info */
+	errno_t (*bitmap_get_alloc)(void *, gfx_bitmap_t *,
+	    gfx_bitmap_alloc_t *);
 } gfx_context_ops_t;
 
 #endif

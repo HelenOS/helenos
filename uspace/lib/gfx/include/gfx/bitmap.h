@@ -30,22 +30,22 @@
  * @{
  */
 /**
- * @file Color structure
- *
+ * @file Bitmap
  */
 
-#ifndef _GFX_PRIVATE_COLOR_H
-#define _GFX_PRIVATE_COLOR_H
+#ifndef _GFX_BITMAP_H
+#define _GFX_BITMAP_H
 
-/** Actual structure of graphics color.
- *
- * This is private to libgfx. It is not visible to clients nor backends.
- */
-struct gfx_color {
-	uint16_t r;
-	uint16_t g;
-	uint16_t b;
-};
+#include <errno.h>
+#include <types/gfx/context.h>
+#include <types/gfx/coord.h>
+#include <types/gfx/bitmap.h>
+
+extern errno_t gfx_bitmap_create(gfx_context_t *, gfx_bitmap_params_t *,
+     gfx_bitmap_alloc_t *, gfx_bitmap_t **);
+extern errno_t gfx_bitmap_delete(gfx_bitmap_t *);
+extern errno_t gfx_bitmap_render(gfx_bitmap_t *, gfx_rect_t *, gfx_coord2_t *);
+extern errno_t gfx_bitmap_get_alloc(gfx_bitmap_t *, gfx_bitmap_alloc_t *);
 
 #endif
 

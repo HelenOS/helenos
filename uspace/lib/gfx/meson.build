@@ -27,6 +27,7 @@
 #
 
 src = files(
+	'src/bitmap.c',
 	'src/color.c',
 	'src/context.c',
 	'src/render.c'

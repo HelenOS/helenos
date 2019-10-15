@@ -30,22 +30,34 @@
  * @{
  */
 /**
- * @file Color structure
- *
+ * @file Color types
  */
 
-#ifndef _GFX_PRIVATE_COLOR_H
-#define _GFX_PRIVATE_COLOR_H
+#ifndef _GFX_TYPES_BITMAP_H
+#define _GFX_TYPES_BITMAP_H
 
-/** Actual structure of graphics color.
- *
- * This is private to libgfx. It is not visible to clients nor backends.
- */
-struct gfx_color {
-	uint16_t r;
-	uint16_t g;
-	uint16_t b;
-};
+#include <errno.h>
+#include <stddef.h>
+#include <types/gfx/coord.h>
+
+struct gfx_bitmap;
+typedef struct gfx_bitmap gfx_bitmap_t;
+
+/** Bitmap parameters */
+typedef struct {
+	/** Rectangle represented in pixel array */
+	gfx_rect_t rect;
+} gfx_bitmap_params_t;
+
+/** Bitmap allocation info */
+typedef struct {
+	/** Byte offset from one successive line to the next */
+	int pitch;
+	/** Byte offset of first pixel */
+	size_t off0;
+	/** Pixel array */
+	void *pixels;
+} gfx_bitmap_alloc_t;
 
 #endif
 
