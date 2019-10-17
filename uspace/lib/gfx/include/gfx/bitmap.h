@@ -42,8 +42,8 @@
 #include <types/gfx/bitmap.h>
 
 extern errno_t gfx_bitmap_create(gfx_context_t *, gfx_bitmap_params_t *,
-     gfx_bitmap_alloc_t *, gfx_bitmap_t **);
-extern errno_t gfx_bitmap_delete(gfx_bitmap_t *);
+    gfx_bitmap_alloc_t *, gfx_bitmap_t **);
+extern errno_t gfx_bitmap_destroy(gfx_bitmap_t *);
 extern errno_t gfx_bitmap_render(gfx_bitmap_t *, gfx_rect_t *, gfx_coord2_t *);
 extern errno_t gfx_bitmap_get_alloc(gfx_bitmap_t *, gfx_bitmap_alloc_t *);
 

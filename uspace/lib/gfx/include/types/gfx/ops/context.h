@@ -51,16 +51,14 @@ typedef struct {
 	/** Fill rectangle using the current drawing color */
 	errno_t (*fill_rect)(void *, gfx_rect_t *);
 	/** Create bitmap */
-	errno_t (*bitmap_create)(void *, gfx_bitmap_params_t *, void *,
-	    gfx_bitmap_t **);
-	/** Delete bitmap */
-	errno_t (*bitmap_delete)(void *, gfx_bitmap_t *);
+	errno_t (*bitmap_create)(void *, gfx_bitmap_params_t *,
+	    gfx_bitmap_alloc_t *, void **);
+	/** Destroy bitmap */
+	errno_t (*bitmap_destroy)(void *);
 	/** Render bitmap */
-	errno_t (*bitmap_render)(void *, gfx_bitmap_t *, gfx_rect_t *,
-	    gfx_coord2_t *);
+	errno_t (*bitmap_render)(void *, gfx_rect_t *, gfx_coord2_t *);
 	/** Get bitmap allocation info */
-	errno_t (*bitmap_get_alloc)(void *, gfx_bitmap_t *,
-	    gfx_bitmap_alloc_t *);
+	errno_t (*bitmap_get_alloc)(void *, gfx_bitmap_alloc_t *);
 } gfx_context_ops_t;
 
 #endif
