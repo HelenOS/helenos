@@ -39,7 +39,9 @@
 
 #include <canvas.h>
 #include <draw/surface.h>
+#include <gfx/bitmap.h>
 #include <gfx/context.h>
+#include <gfx/coord.h>
 #include <io/pixel.h>
 
 /** Actual structure of graphics context.
@@ -56,6 +58,20 @@ struct canvas_gc {
 	/** Current drawing color */
 	pixel_t color;
 };
+
+/** Bitmap in canvas GC */
+typedef struct {
+	/** Containing canvas GC */
+	struct canvas_gc *cgc;
+	/** Allocation info */
+	gfx_bitmap_alloc_t alloc;
+	/** @c true if we allocated the bitmap, @c false if allocated by caller */
+	bool myalloc;
+	/** Surface */
+	surface_t *surface;
+	/** Rectangle covered by bitmap */
+	gfx_rect_t rect;
+} canvas_gc_bitmap_t;
 
 #endif
 

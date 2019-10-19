@@ -36,21 +36,33 @@
  * This is just for experimentation purposes and its kind of backwards.
  */
 
+#include <draw/drawctx.h>
+#include <draw/source.h>
 #include <gfx/color.h>
 #include <gfx/context.h>
 #include <gfx/render.h>
 #include <guigfx/canvas.h>
 #include <io/pixel.h>
 #include <stdlib.h>
+#include <transform.h>
 #include "../private/canvas.h"
 //#include "../../private/color.h"
 
 static errno_t canvas_gc_set_color(void *, gfx_color_t *);
 static errno_t canvas_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t canvas_gc_bitmap_create(void *, gfx_bitmap_params_t *,
+    gfx_bitmap_alloc_t *, void **);
+static errno_t canvas_gc_bitmap_destroy(void *);
+static errno_t canvas_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
+static errno_t canvas_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 gfx_context_ops_t canvas_gc_ops = {
 	.set_color = canvas_gc_set_color,
-	.fill_rect = canvas_gc_fill_rect
+	.fill_rect = canvas_gc_fill_rect,
+	.bitmap_create = canvas_gc_bitmap_create,
+	.bitmap_destroy = canvas_gc_bitmap_destroy,
+	.bitmap_render = canvas_gc_bitmap_render,
+	.bitmap_get_alloc = canvas_gc_bitmap_get_alloc
 };
 
 /** Set color on canvas GC.
@@ -160,6 +172,144 @@ errno_t canvas_gc_delete(canvas_gc_t *cgc)
 gfx_context_t *canvas_gc_get_ctx(canvas_gc_t *cgc)
 {
 	return cgc->gc;
+}
+
+/** Create bitmap in canvas GC.
+ *
+ * @param arg Canvas GC
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+errno_t canvas_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	canvas_gc_t *cgc = (canvas_gc_t *) arg;
+	canvas_gc_bitmap_t *cbm = NULL;
+	int w, h;
+	errno_t rc;
+
+	cbm = calloc(1, sizeof(canvas_gc_bitmap_t));
+	if (cbm == NULL)
+		return ENOMEM;
+
+	w = params->rect.p1.x - params->rect.p0.x;
+	h = params->rect.p1.y - params->rect.p0.y;
+	cbm->rect = params->rect;
+
+	if (alloc == NULL) {
+		cbm->surface = surface_create(w, h, NULL, 0);
+		if (cbm->surface == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		cbm->alloc.pitch = w * sizeof(uint32_t);
+		cbm->alloc.off0 = 0;
+		cbm->alloc.pixels = surface_direct_access(cbm->surface);
+		cbm->myalloc = true;
+	} else {
+		cbm->surface = surface_create(w, h, alloc->pixels, 0);
+		if (cbm->surface == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		cbm->alloc = *alloc;
+	}
+
+	cbm->cgc = cgc;
+	*rbm = (void *)cbm;
+	return EOK;
+error:
+	if (cbm != NULL)
+		free(cbm);
+	return rc;
+}
+
+/** Destroy bitmap in canvas GC.
+ *
+ * @param bm Bitmap
+ * @return EOK on success or an error code
+ */
+static errno_t canvas_gc_bitmap_destroy(void *bm)
+{
+	canvas_gc_bitmap_t *cbm = (canvas_gc_bitmap_t *)bm;
+	if (cbm->myalloc)
+		surface_destroy(cbm->surface);
+	// XXX if !cbm->myalloc, surface is leaked - no way to destroy it
+	// without destroying the pixel buffer
+	free(cbm);
+	return EOK;
+}
+
+/** Render bitmap in canvas GC.
+ *
+ * @param bm Bitmap
+ * @param srect0 Source rectangle or @c NULL
+ * @param offs0 Offset or @c NULL
+ * @return EOK on success or an error code
+ */
+static errno_t canvas_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
+    gfx_coord2_t *offs0)
+{
+	canvas_gc_bitmap_t *cbm = (canvas_gc_bitmap_t *)bm;
+	gfx_rect_t srect;
+	gfx_rect_t drect;
+	gfx_coord2_t offs;
+
+	if (srect0 != NULL)
+		srect = *srect0;
+	else
+		srect = cbm->rect;
+
+	if (offs0 != NULL) {
+		offs = *offs0;
+	} else {
+		offs.x = 0;
+		offs.y = 0;
+	}
+
+	// XXX Add function to translate rectangle
+	drect.p0.x = srect.p0.x + offs.x;
+	drect.p0.y = srect.p0.y + offs.y;
+	drect.p1.x = srect.p1.x + offs.x;
+	drect.p1.y = srect.p1.y + offs.y;
+
+	transform_t transform;
+	transform_identity(&transform);
+	transform_translate(&transform, offs.x - cbm->rect.p0.x,
+	    offs.y - cbm->rect.p0.y);
+
+	source_t source;
+	source_init(&source);
+	source_set_transform(&source, transform);
+	source_set_texture(&source, cbm->surface,
+	    PIXELMAP_EXTEND_TRANSPARENT_BLACK);
+
+	drawctx_t drawctx;
+	drawctx_init(&drawctx, cbm->cgc->surface);
+
+	drawctx_set_source(&drawctx, &source);
+	drawctx_transfer(&drawctx, drect.p0.x, drect.p0.y,
+	    drect.p1.x - drect.p0.x, drect.p1.y - drect.p0.y);
+
+	update_canvas(cbm->cgc->canvas, cbm->cgc->surface);
+	return EOK;
+}
+
+/** Get allocation info for bitmap in canvas GC.
+ *
+ * @param bm Bitmap
+ * @param alloc Place to store allocation info
+ * @return EOK on success or an error code
+ */
+static errno_t canvas_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
+{
+	canvas_gc_bitmap_t *cbm = (canvas_gc_bitmap_t *)bm;
+	*alloc = cbm->alloc;
+	return EOK;
 }
 
 /** @}

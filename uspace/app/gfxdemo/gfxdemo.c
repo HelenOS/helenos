@@ -38,9 +38,11 @@
 #include <display.h>
 #include <fibril.h>
 #include <guigfx/canvas.h>
+#include <gfx/bitmap.h>
 #include <gfx/color.h>
 #include <gfx/render.h>
 #include <io/console.h>
+#include <io/pixelmap.h>
 #include <stdlib.h>
 #include <str.h>
 #include <window.h>
@@ -48,15 +50,17 @@
 /** Run rectangle demo on a graphic context.
  *
  * @param gc Graphic context
+ * @param w Width
+ * @param h Height
  */
 static errno_t demo_rects(gfx_context_t *gc, int w, int h)
 {
 	gfx_color_t *color = NULL;
 	gfx_rect_t rect;
-	int i;
+	int i, j;
 	errno_t rc;
 
-	while (true) {
+	for (j = 0; j < 10; j++) {
 		rc = gfx_color_new_rgb_i16(rand() % 0x10000, rand() % 0x10000,
 		    rand() % 0x10000, &color);
 		if (rc != EOK)
@@ -81,6 +85,93 @@ static errno_t demo_rects(gfx_context_t *gc, int w, int h)
 
 		fibril_usleep(500 * 1000);
 	}
+
+	return EOK;
+}
+
+/** Run bitmap demo on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_bitmap(gfx_context_t *gc, int w, int h)
+{
+	gfx_bitmap_t *bitmap;
+	gfx_bitmap_params_t params;
+	gfx_bitmap_alloc_t alloc;
+	int i, j;
+	gfx_coord2_t offs;
+	gfx_rect_t srect;
+	errno_t rc;
+	pixelmap_t pixelmap;
+
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = w;
+	params.rect.p1.y = h;
+
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_bitmap_get_alloc(bitmap, &alloc);
+	if (rc != EOK)
+		return rc;
+
+	/* Fill bitmap with something. In absence of anything else, use pixelmap */
+	pixelmap.width = w;
+	pixelmap.height = h;
+	pixelmap.data = alloc.pixels;
+
+	for (i = 0; i < w; i++) {
+		for (j = 0; j < h; j++) {
+			pixelmap_put_pixel(&pixelmap, i, j,
+			    PIXEL(255, (i % 30) < 3 ? 255 : 0,
+			    (j % 30) < 3 ? 255 : 0, i / 2));
+		}
+	}
+
+	for (j = 0; j < 10; j++) {
+		for (i = 0; i < 5; i++) {
+			srect.p0.x = rand() % (w - 40);
+			srect.p0.y = rand() % (h - 40);
+			srect.p1.x = srect.p0.x + rand() % (w - srect.p0.x);
+			srect.p1.y = srect.p0.y + rand() % (h - srect.p0.y);
+			offs.x = rand() % (w - srect.p1.x);
+			offs.y = rand() % (h - srect.p1.y);
+			offs.x = 0;
+			offs.y = 0;
+
+			gfx_bitmap_render(bitmap, &srect, &offs);
+			fibril_usleep(500 * 1000);
+		}
+	}
+
+	gfx_bitmap_destroy(bitmap);
+
+	return EOK;
+}
+
+/** Run demo loop on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_loop(gfx_context_t *gc, int w, int h)
+{
+	errno_t rc;
+
+	while (true) {
+		rc = demo_rects(gc, w, h);
+		if (rc != EOK)
+			return rc;
+
+		rc = demo_bitmap(gc, w, h);
+		if (rc != EOK)
+			return rc;
+	}
 }
 
 /** Run demo on console. */
@@ -103,7 +194,7 @@ static errno_t demo_console(void)
 
 	gc = console_gc_get_ctx(cgc);
 
-	rc = demo_rects(gc, 80, 25);
+	rc = demo_loop(gc, 80, 25);
 	if (rc != EOK)
 		return rc;
 
@@ -167,7 +258,7 @@ static errno_t demo_canvas(void)
 
 	gc = canvas_gc_get_ctx(cgc);
 
-	rc = demo_rects(gc, 400, 300);
+	rc = demo_loop(gc, 400, 300);
 	if (rc != EOK)
 		return rc;
 
@@ -205,7 +296,7 @@ static errno_t demo_display(void)
 		printf("Error getting graphics context.\n");
 	}
 
-	rc = demo_rects(gc, 400, 300);
+	rc = demo_loop(gc, 400, 300);
 	if (rc != EOK)
 		return rc;
 
