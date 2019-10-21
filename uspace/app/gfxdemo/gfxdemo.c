@@ -53,7 +53,7 @@
  * @param w Width
  * @param h Height
  */
-static errno_t demo_rects(gfx_context_t *gc, int w, int h)
+static errno_t demo_rects(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 {
 	gfx_color_t *color = NULL;
 	gfx_rect_t rect;
@@ -95,7 +95,7 @@ static errno_t demo_rects(gfx_context_t *gc, int w, int h)
  * @param w Width
  * @param h Height
  */
-static errno_t demo_bitmap(gfx_context_t *gc, int w, int h)
+static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 {
 	gfx_bitmap_t *bitmap;
 	gfx_bitmap_params_t params;
@@ -159,7 +159,7 @@ static errno_t demo_bitmap(gfx_context_t *gc, int w, int h)
  * @param w Width
  * @param h Height
  */
-static errno_t demo_loop(gfx_context_t *gc, int w, int h)
+static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 {
 	errno_t rc;
 
@@ -214,7 +214,7 @@ static errno_t demo_canvas(void)
 	pixel_t *pixbuf = NULL;
 	surface_t *surface = NULL;
 	canvas_t *canvas = NULL;
-	int vw, vh;
+	gfx_coord_t vw, vh;
 	errno_t rc;
 
 	printf("Init canvas..\n");

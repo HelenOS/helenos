@@ -91,7 +91,7 @@ static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	console_gc_t *cgc = (console_gc_t *) arg;
 	int rv;
-	int x, y;
+	gfx_coord_t x, y;
 
 	// XXX We should handle p0.x > p1.x and p0.y > p1.y
 
@@ -190,7 +190,7 @@ errno_t console_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 {
 	console_gc_t *cgc = (console_gc_t *) arg;
 	console_gc_bitmap_t *cbm = NULL;
-	int w, h;
+	gfx_coord_t w, h;
 	errno_t rc;
 
 	cbm = calloc(1, sizeof(console_gc_bitmap_t));
@@ -249,7 +249,7 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
     gfx_coord2_t *offs0)
 {
 	console_gc_bitmap_t *cbm = (console_gc_bitmap_t *)bm;
-	int x, y;
+	gfx_coord_t x, y;
 	int rv;
 	pixel_t clr;
 	pixelmap_t pixelmap;

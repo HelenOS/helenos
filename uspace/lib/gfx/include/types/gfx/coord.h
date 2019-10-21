@@ -39,9 +39,11 @@
 #include <errno.h>
 #include <stdint.h>
 
+typedef int gfx_coord_t;
+
 typedef struct {
-	int x;
-	int y;
+	gfx_coord_t x;
+	gfx_coord_t y;
 } gfx_coord2_t;
 
 typedef struct {

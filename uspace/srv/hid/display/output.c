@@ -48,7 +48,7 @@ errno_t output_init(gfx_context_t **rgc)
 	pixel_t *pixbuf = NULL;
 	surface_t *surface = NULL;
 	canvas_t *canvas = NULL;
-	int vw, vh;
+	gfx_coord_t vw, vh;
 	errno_t rc;
 
 	printf("Init canvas..\n");
