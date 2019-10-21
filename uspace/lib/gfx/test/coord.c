@@ -26,23 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
- * @{
- */
-/**
- * @file Graphic coordinates
- */
+#include <gfx/coord.h>
+#include <pcut/pcut.h>
 
-#ifndef _GFX_COORD_H
-#define _GFX_COORD_H
+PCUT_INIT;
 
-#include <types/gfx/coord.h>
+PCUT_TEST_SUITE(coord);
 
 extern void gfx_coord2_add(gfx_coord2_t *, gfx_coord2_t *, gfx_coord2_t *);
 extern void gfx_coord2_subtract(gfx_coord2_t *, gfx_coord2_t *, gfx_coord2_t *);
 extern void gfx_rect_translate(gfx_coord2_t *, gfx_rect_t *, gfx_rect_t *);
 
-#endif
+/** gfx_coord2_add should add two coordinate vectors */
+PCUT_TEST(coord2_add)
+{
+	gfx_coord2_t a, b;
+	gfx_coord2_t d;
 
-/** @}
- */
+	a.x = 10;
+	a.y = 11;
+	b.x = 20;
+	b.y = 22;
+
+	gfx_coord2_add(&a, &b, &d);
+
+	PCUT_ASSERT_EQUALS(a.x + b.x, d.x);
+	PCUT_ASSERT_EQUALS(a.y + b.y, d.y);
+}
+
+/** gfx_coord2_subtract should subtract two coordinate vectors */
+PCUT_TEST(coord2_subtract)
+{
+	gfx_coord2_t a, b;
+	gfx_coord2_t d;
+
+	a.x = 10;
+	a.y = 11;
+	b.x = 20;
+	b.y = 22;
+
+	gfx_coord2_subtract(&a, &b, &d);
+
+	PCUT_ASSERT_EQUALS(a.x - b.x, d.x);
+	PCUT_ASSERT_EQUALS(a.y - b.y, d.y);
+}
+
+/** gfx_rect_translate should translate rectangle */
+PCUT_TEST(rect_translate)
+{
+	gfx_coord2_t offs;
+	gfx_rect_t srect;
+	gfx_rect_t drect;
+
+	offs.x = 5;
+	offs.y = 6;
+
+	srect.p0.x = 10;
+	srect.p0.y = 11;
+	srect.p1.x = 20;
+	srect.p1.y = 22;
+
+	gfx_rect_translate(&offs, &srect, &drect);
+
+	PCUT_ASSERT_EQUALS(offs.x + srect.p0.x, drect.p0.x);
+	PCUT_ASSERT_EQUALS(offs.y + srect.p0.y, drect.p0.y);
+	PCUT_ASSERT_EQUALS(offs.x + srect.p1.x, drect.p1.x);
+	PCUT_ASSERT_EQUALS(offs.y + srect.p1.y, drect.p1.y);
+}
+
+PCUT_EXPORT(coord);

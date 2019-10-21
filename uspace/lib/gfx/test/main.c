@@ -32,6 +32,7 @@ PCUT_INIT;
 
 PCUT_IMPORT(bitmap);
 PCUT_IMPORT(color);
+PCUT_IMPORT(coord);
 PCUT_IMPORT(render);
 
 PCUT_MAIN();

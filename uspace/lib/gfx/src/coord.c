@@ -30,19 +30,46 @@
  * @{
  */
 /**
- * @file Graphic coordinates
+ * @file Coordinates
  */
 
-#ifndef _GFX_COORD_H
-#define _GFX_COORD_H
+#include <gfx/coord.h>
 
-#include <types/gfx/coord.h>
+/** Add two vectors.
+ *
+ * @param a First vector
+ * @param b Second vector
+ * @param d Destination
+ */
+void gfx_coord2_add(gfx_coord2_t *a, gfx_coord2_t *b, gfx_coord2_t *d)
+{
+	d->x = a->x + b->x;
+	d->y = a->y + b->y;
+}
 
-extern void gfx_coord2_add(gfx_coord2_t *, gfx_coord2_t *, gfx_coord2_t *);
-extern void gfx_coord2_subtract(gfx_coord2_t *, gfx_coord2_t *, gfx_coord2_t *);
-extern void gfx_rect_translate(gfx_coord2_t *, gfx_rect_t *, gfx_rect_t *);
+/** Subtract two vectors.
+ *
+ * @param a First vector
+ * @param b Second vector
+ * @param d Destination
+ */
+void gfx_coord2_subtract(gfx_coord2_t *a, gfx_coord2_t *b, gfx_coord2_t *d)
+{
+	d->x = a->x - b->x;
+	d->y = a->y - b->y;
+}
 
-#endif
+/** Move (translate) rectangle.
+ *
+ * @param trans Translation
+ * @param src Source rectangle
+ * @param dest Destination rectangle
+ */
+void gfx_rect_translate(gfx_coord2_t *trans, gfx_rect_t *src, gfx_rect_t *dest)
+{
+	gfx_coord2_add(trans, &src->p0, &dest->p0);
+	gfx_coord2_add(trans, &src->p1, &dest->p1);
+}
 
 /** @}
  */

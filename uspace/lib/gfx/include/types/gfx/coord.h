@@ -33,8 +33,8 @@
  * @file Graphic coordinates
  */
 
-#ifndef _GFX_COORD_H
-#define _GFX_COORD_H
+#ifndef _GFX_TYPES_COORD_H
+#define _GFX_TYPES_COORD_H
 
 #include <errno.h>
 #include <stdint.h>

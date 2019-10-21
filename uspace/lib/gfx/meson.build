@@ -29,6 +29,7 @@
 src = files(
 	'src/bitmap.c',
 	'src/color.c',
+	'src/coord.c',
 	'src/context.c',
 	'src/render.c'
 )
@@ -36,6 +37,7 @@ src = files(
 test_src = files(
 	'test/bitmap.c',
 	'test/color.c',
+	'test/coord.c',
 	'test/main.c',
 	'test/render.c',
 )

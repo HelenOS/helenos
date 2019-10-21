@@ -187,30 +187,29 @@ errno_t canvas_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 {
 	canvas_gc_t *cgc = (canvas_gc_t *) arg;
 	canvas_gc_bitmap_t *cbm = NULL;
-	gfx_coord_t w, h;
+	gfx_coord2_t dim;
 	errno_t rc;
 
 	cbm = calloc(1, sizeof(canvas_gc_bitmap_t));
 	if (cbm == NULL)
 		return ENOMEM;
 
-	w = params->rect.p1.x - params->rect.p0.x;
-	h = params->rect.p1.y - params->rect.p0.y;
+	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
 	cbm->rect = params->rect;
 
 	if (alloc == NULL) {
-		cbm->surface = surface_create(w, h, NULL, 0);
+		cbm->surface = surface_create(dim.x, dim.y, NULL, 0);
 		if (cbm->surface == NULL) {
 			rc = ENOMEM;
 			goto error;
 		}
 
-		cbm->alloc.pitch = w * sizeof(uint32_t);
+		cbm->alloc.pitch = dim.x * sizeof(uint32_t);
 		cbm->alloc.off0 = 0;
 		cbm->alloc.pixels = surface_direct_access(cbm->surface);
 		cbm->myalloc = true;
 	} else {
-		cbm->surface = surface_create(w, h, alloc->pixels, 0);
+		cbm->surface = surface_create(dim.x, dim.y, alloc->pixels, 0);
 		if (cbm->surface == NULL) {
 			rc = ENOMEM;
 			goto error;
@@ -258,6 +257,7 @@ static errno_t canvas_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	gfx_rect_t srect;
 	gfx_rect_t drect;
 	gfx_coord2_t offs;
+	gfx_coord2_t dim;
 
 	if (srect0 != NULL)
 		srect = *srect0;
@@ -271,11 +271,10 @@ static errno_t canvas_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		offs.y = 0;
 	}
 
-	// XXX Add function to translate rectangle
-	drect.p0.x = srect.p0.x + offs.x;
-	drect.p0.y = srect.p0.y + offs.y;
-	drect.p1.x = srect.p1.x + offs.x;
-	drect.p1.y = srect.p1.y + offs.y;
+	/* Destination rectangle */
+	gfx_rect_translate(&offs, &srect, &drect);
+
+	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
 
 	transform_t transform;
 	transform_identity(&transform);
@@ -292,8 +291,7 @@ static errno_t canvas_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	drawctx_init(&drawctx, cbm->cgc->surface);
 
 	drawctx_set_source(&drawctx, &source);
-	drawctx_transfer(&drawctx, drect.p0.x, drect.p0.y,
-	    drect.p1.x - drect.p0.x, drect.p1.y - drect.p0.y);
+	drawctx_transfer(&drawctx, drect.p0.x, drect.p0.y, dim.x, dim.y);
 
 	update_canvas(cbm->cgc->canvas, cbm->cgc->surface);
 	return EOK;
