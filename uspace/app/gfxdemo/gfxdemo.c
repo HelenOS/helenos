@@ -135,7 +135,7 @@ static errno_t demo_bitmap(gfx_context_t *gc, int w, int h)
 	for (j = 0; j < 10; j++) {
 		for (i = 0; i < 5; i++) {
 			srect.p0.x = rand() % (w - 40);
-			srect.p0.y = rand() % (h - 40);
+			srect.p0.y = rand() % (h - 20);
 			srect.p1.x = srect.p0.x + rand() % (w - srect.p0.x);
 			srect.p1.y = srect.p0.y + rand() % (h - srect.p0.y);
 			offs.x = rand() % (w - srect.p1.x);

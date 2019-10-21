@@ -39,6 +39,7 @@
 
 #include <gfx/context.h>
 #include <io/console.h>
+#include <io/pixel.h>
 #include <stdio.h>
 
 /** Actual structure of graphics context.
@@ -52,7 +53,21 @@ struct console_gc {
 	console_ctrl_t *con;
 	/** File for printing characters */
 	FILE *fout;
+	/** Current drawing color */
+	pixel_t clr;
 };
+
+/** Bitmap in console GC */
+typedef struct {
+	/** Containing console GC */
+	struct console_gc *cgc;
+	/** Allocation info */
+	gfx_bitmap_alloc_t alloc;
+	/** @c true if we allocated the bitmap, @c false if allocated by caller */
+	bool myalloc;
+	/** Rectangle covered by bitmap */
+	gfx_rect_t rect;
+} console_gc_bitmap_t;
 
 #endif
 

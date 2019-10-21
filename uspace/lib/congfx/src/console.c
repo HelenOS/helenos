@@ -41,16 +41,26 @@
 #include <gfx/context.h>
 #include <gfx/render.h>
 #include <io/pixel.h>
+#include <io/pixelmap.h>
 #include <stdlib.h>
 #include "../private/console.h"
 #include "../private/color.h"
 
 static errno_t console_gc_set_color(void *, gfx_color_t *);
 static errno_t console_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t console_gc_bitmap_create(void *, gfx_bitmap_params_t *,
+    gfx_bitmap_alloc_t *, void **);
+static errno_t console_gc_bitmap_destroy(void *);
+static errno_t console_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
+static errno_t console_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 gfx_context_ops_t console_gc_ops = {
 	.set_color = console_gc_set_color,
-	.fill_rect = console_gc_fill_rect
+	.fill_rect = console_gc_fill_rect,
+	.bitmap_create = console_gc_bitmap_create,
+	.bitmap_destroy = console_gc_bitmap_destroy,
+	.bitmap_render = console_gc_bitmap_render,
+	.bitmap_get_alloc = console_gc_bitmap_get_alloc
 };
 
 /** Set color on console GC.
@@ -65,11 +75,8 @@ gfx_context_ops_t console_gc_ops = {
 static errno_t console_gc_set_color(void *arg, gfx_color_t *color)
 {
 	console_gc_t *cgc = (console_gc_t *) arg;
-	pixel_t clr;
 
-	clr = PIXEL(0, color->r >> 8, color->g >> 8, color->b >> 8);
-
-	console_set_rgb_color(cgc->con, clr, clr);
+	cgc->clr = PIXEL(0, color->r >> 8, color->g >> 8, color->b >> 8);
 	return EOK;
 }
 
@@ -87,6 +94,8 @@ static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	int x, y;
 
 	// XXX We should handle p0.x > p1.x and p0.y > p1.y
+
+	console_set_rgb_color(cgc->con, cgc->clr, cgc->clr);
 
 	for (y = rect->p0.y; y < rect->p1.y; y++) {
 		console_set_pos(cgc->con, rect->p0.x, y);
@@ -167,6 +176,142 @@ gfx_context_t *console_gc_get_ctx(console_gc_t *cgc)
 {
 	return cgc->gc;
 }
+
+/** Create bitmap in console GC.
+ *
+ * @param arg console GC
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+errno_t console_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	console_gc_t *cgc = (console_gc_t *) arg;
+	console_gc_bitmap_t *cbm = NULL;
+	int w, h;
+	errno_t rc;
+
+	cbm = calloc(1, sizeof(console_gc_bitmap_t));
+	if (cbm == NULL)
+		return ENOMEM;
+
+	w = params->rect.p1.x - params->rect.p0.x;
+	h = params->rect.p1.y - params->rect.p0.y;
+	cbm->rect = params->rect;
+
+	if (alloc == NULL) {
+		cbm->alloc.pitch = w * sizeof(uint32_t);
+		cbm->alloc.off0 = 0;
+		cbm->alloc.pixels = calloc(w * h, sizeof(uint32_t));
+		if (cbm->alloc.pixels == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		cbm->myalloc = true;
+	} else {
+		cbm->alloc = *alloc;
+	}
+
+	cbm->cgc = cgc;
+	*rbm = (void *)cbm;
+	return EOK;
+error:
+	if (cbm != NULL)
+		free(cbm);
+	return rc;
+}
+
+/** Destroy bitmap in console GC.
+ *
+ * @param bm Bitmap
+ * @return EOK on success or an error code
+ */
+static errno_t console_gc_bitmap_destroy(void *bm)
+{
+	console_gc_bitmap_t *cbm = (console_gc_bitmap_t *)bm;
+	if (cbm->myalloc)
+		free(cbm->alloc.pixels);
+	free(cbm);
+	return EOK;
+}
+
+/** Render bitmap in console GC.
+ *
+ * @param bm Bitmap
+ * @param srect0 Source rectangle or @c NULL
+ * @param offs0 Offset or @c NULL
+ * @return EOK on success or an error code
+ */
+static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
+    gfx_coord2_t *offs0)
+{
+	console_gc_bitmap_t *cbm = (console_gc_bitmap_t *)bm;
+	int x, y;
+	int rv;
+	pixel_t clr;
+	pixelmap_t pixelmap;
+	gfx_rect_t srect;
+	gfx_rect_t drect;
+	gfx_coord2_t offs;
+
+	if (srect0 != NULL)
+		srect = *srect0;
+	else
+		srect = cbm->rect;
+
+	if (offs0 != NULL) {
+		offs = *offs0;
+	} else {
+		offs.x = 0;
+		offs.y = 0;
+	}
+
+	// XXX Add function to translate rectangle
+	drect.p0.x = srect.p0.x + offs.x;
+	drect.p0.y = srect.p0.y + offs.y;
+	drect.p1.x = srect.p1.x + offs.x;
+	drect.p1.y = srect.p1.y + offs.y;
+
+	pixelmap.width = cbm->rect.p1.x - cbm->rect.p0.x;
+	pixelmap.height = cbm->rect.p1.y = cbm->rect.p1.y;
+	pixelmap.data = cbm->alloc.pixels;
+
+	for (y = drect.p0.y; y < drect.p1.y; y++) {
+		console_set_pos(cbm->cgc->con, drect.p0.x, y);
+
+		for (x = drect.p0.x; x < drect.p1.x; x++) {
+			clr = pixelmap_get_pixel(&pixelmap,
+			    x - offs.x - cbm->rect.p0.x,
+			    y - offs.y - cbm->rect.p0.y);
+			console_set_rgb_color(cbm->cgc->con, clr, clr);
+
+			rv = fputc('X', cbm->cgc->fout);
+			if (rv < 0)
+				return EIO;
+
+			console_flush(cbm->cgc->con);
+		}
+	}
+
+	return EOK;
+}
+
+/** Get allocation info for bitmap in console GC.
+ *
+ * @param bm Bitmap
+ * @param alloc Place to store allocation info
+ * @return EOK on success or an error code
+ */
+static errno_t console_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
+{
+	console_gc_bitmap_t *cbm = (console_gc_bitmap_t *)bm;
+	*alloc = cbm->alloc;
+	return EOK;
+}
+
 
 /** @}
  */
