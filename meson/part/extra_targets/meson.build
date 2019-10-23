@@ -71,7 +71,14 @@ if doxygen.found()
 		command: [ patch, '-o', '@OUTPUT@', '@INPUT@' ],
 	)
 
-	run_target('doxygen', command: [ doxygen, _dox_cfg ])
+	run_target('doxygen', command: [
+		sh,
+		'-c', 'cd $1 && $2 $3',
+		'--',
+		meson.source_root() / 'doxygen',
+		doxygen.path(),
+		_dox_cfg,
+	])
 endif
 
 # TODO text-xcw
