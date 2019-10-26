@@ -35,19 +35,23 @@
  * Serve a graphics context via HelenOS IPC.
  */
 
+#include <as.h>
 #include <errno.h>
+#include <gfx/bitmap.h>
 #include <gfx/color.h>
 #include <gfx/render.h>
 #include <ipc/bd.h>
 #include <ipcgfx/ipc/gc.h>
 #include <ipcgfx/server.h>
 #include <stdint.h>
-
+#include <stdlib.h>
 #include <stdio.h>
 
-#include <bd_srv.h>
+#include "../private/server.h"
 
-static void gc_set_rgb_color_srv(gfx_context_t *gc, ipc_call_t *call)
+static ipc_gc_srv_bitmap_t *gc_bitmap_lookup(ipc_gc_srv_t *, sysarg_t);
+
+static void gc_set_rgb_color_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
 {
 	uint16_t r, g, b;
 	gfx_color_t *color;
@@ -63,12 +67,12 @@ static void gc_set_rgb_color_srv(gfx_context_t *gc, ipc_call_t *call)
 		return;
 	}
 
-	rc = gfx_set_color(gc, color);
+	rc = gfx_set_color(srvgc->gc, color);
 	async_answer_0(call, rc);
 	printf("done with rgb_color_srv\n");
 }
 
-static void gc_fill_rect_srv(gfx_context_t *gc, ipc_call_t *call)
+static void gc_fill_rect_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
 {
 	gfx_rect_t rect;
 	errno_t rc;
@@ -78,16 +82,171 @@ static void gc_fill_rect_srv(gfx_context_t *gc, ipc_call_t *call)
 	rect.p1.x = ipc_get_arg3(call);
 	rect.p1.y = ipc_get_arg4(call);
 
-	rc = gfx_fill_rect(gc, &rect);
+	rc = gfx_fill_rect(srvgc->gc, &rect);
 	async_answer_0(call, rc);
+}
+
+static void gc_bitmap_create_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
+{
+	gfx_bitmap_params_t params;
+	gfx_bitmap_alloc_t alloc;
+	gfx_bitmap_t *bitmap;
+	gfx_coord2_t dim;
+	ipc_gc_srv_bitmap_t *srvbmp = NULL;
+	ipc_call_t call;
+	size_t size;
+	unsigned int flags;
+	void *pixels;
+	errno_t rc;
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(gfx_bitmap_params_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, &params, size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	/* Bitmap dimensions */
+	gfx_coord2_subtract(&params.rect.p1, &params.rect.p0, &dim);
+
+	if (!async_share_out_receive(&call, &size, &flags)) {
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	/* Check size */
+	if (size != PAGES2SIZE(SIZE2PAGES(dim.x * dim.y * sizeof(uint32_t)))) {
+		printf("size=%zu, expected=%zu\n", size, dim.x * dim.y * sizeof(uint32_t));
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_share_out_finalize(&call, &pixels);
+	if (rc != EOK || pixels == AS_MAP_FAILED) {
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	alloc.pitch = dim.x * sizeof(uint32_t);
+	alloc.off0 = 0;
+	alloc.pixels = pixels;
+
+	srvbmp = calloc(1, sizeof(ipc_gc_srv_bitmap_t));
+	if (srvbmp == NULL) {
+		as_area_destroy(pixels);
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	rc = gfx_bitmap_create(srvgc->gc, &params, &alloc, &bitmap);
+	if (rc != EOK) {
+		free(srvbmp);
+		as_area_destroy(pixels);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	srvbmp->srvgc = srvgc;
+	list_append(&srvbmp->lbitmaps, &srvgc->bitmaps);
+	srvbmp->bmp = bitmap;
+	srvbmp->bmp_id = srvgc->next_bmp_id++;
+	printf("gc_bitmap_create_srv: storing bmp_id=%lu\n", srvbmp->bmp_id);
+
+	async_answer_1(icall, EOK, srvbmp->bmp_id);
+}
+
+static void gc_bitmap_destroy_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
+{
+	sysarg_t bmp_id;
+	ipc_gc_srv_bitmap_t *bitmap;
+	errno_t rc;
+
+	bmp_id = ipc_get_arg1(call);
+
+	bitmap = gc_bitmap_lookup(srvgc, bmp_id);
+	if (bitmap == NULL) {
+		async_answer_0(call, ENOENT);
+		return;
+	}
+
+	rc = gfx_bitmap_destroy(bitmap->bmp);
+	if (rc != EOK) {
+		async_answer_0(call, rc);
+		return;
+	}
+
+	list_remove(&bitmap->lbitmaps);
+	free(bitmap);
+
+	async_answer_0(call, rc);
+}
+
+static void gc_bitmap_render_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
+{
+	ipc_gc_srv_bitmap_t *bitmap;
+	sysarg_t bmp_id;
+	gfx_rect_t srect;
+	gfx_coord2_t offs;
+	ipc_call_t call;
+	size_t size;
+	errno_t rc;
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(gfx_rect_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, &srect, size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	bmp_id = ipc_get_arg1(icall);
+	offs.x = ipc_get_arg2(icall);
+	offs.y = ipc_get_arg3(icall);
+
+	bitmap = gc_bitmap_lookup(srvgc, bmp_id);
+	if (bitmap == NULL) {
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	rc = gfx_bitmap_render(bitmap->bmp, &srect, &offs);
+	async_answer_0(icall, rc);
 }
 
 errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 {
+	ipc_gc_srv_t srvgc;
+
 	/* Accept the connection */
 	async_accept_0(icall);
 
 	printf("gc_conn: accepted connection\n");
+	srvgc.gc = gc;
+	list_initialize(&srvgc.bitmaps);
+	srvgc.next_bmp_id = 1;
 
 	while (true) {
 		ipc_call_t call;
@@ -103,13 +262,28 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 		switch (method) {
 		case GC_SET_RGB_COLOR:
 			printf("gc_conn: set_rgb_color\n");
-			gc_set_rgb_color_srv(gc, &call);
+			gc_set_rgb_color_srv(&srvgc, &call);
 			printf("gc_conn: done set_rgb_color\n");
 			break;
 		case GC_FILL_RECT:
 			printf("gc_conn: fill_rect_srv\n");
-			gc_fill_rect_srv(gc, &call);
+			gc_fill_rect_srv(&srvgc, &call);
 			printf("gc_conn: done fill_rect_srv\n");
+			break;
+		case GC_BITMAP_CREATE:
+			printf("gc_conn: bitmap_create_srv\n");
+			gc_bitmap_create_srv(&srvgc, &call);
+			printf("gc_conn: done bitmap_create_srv\n");
+			break;
+		case GC_BITMAP_DESTROY:
+			printf("gc_conn: bitmap_destroy_srv\n");
+			gc_bitmap_destroy_srv(&srvgc, &call);
+			printf("gc_conn: done bitmap_destroy_srv\n");
+			break;
+		case GC_BITMAP_RENDER:
+			printf("gc_conn: bitmap_render_srv\n");
+			gc_bitmap_render_srv(&srvgc, &call);
+			printf("gc_conn: done bitmap_render_srv\n");
 			break;
 		default:
 			printf("gc_conn: answer einval\n");
@@ -119,6 +293,24 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 	}
 
 	return EOK;
+}
+
+static ipc_gc_srv_bitmap_t *gc_bitmap_lookup(ipc_gc_srv_t *srvgc,
+    sysarg_t bmp_id)
+{
+	link_t *link;
+	ipc_gc_srv_bitmap_t *bmp;
+
+	link = list_first(&srvgc->bitmaps);
+	while (link != NULL) {
+		bmp = list_get_instance(link, ipc_gc_srv_bitmap_t, lbitmaps);
+		printf("gc_bitmap_lookup: %lu==%lu?\n", bmp->bmp_id, bmp_id);
+		if (bmp->bmp_id == bmp_id)
+			return bmp;
+		link = list_next(link, &srvgc->bitmaps);
+	}
+
+	return NULL;
 }
 
 /** @}

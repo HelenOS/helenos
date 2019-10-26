@@ -35,7 +35,9 @@
  * This implements a graphics context over display server window.
  */
 
+#include <gfx/bitmap.h>
 #include <gfx/color.h>
+#include <gfx/coord.h>
 #include <gfx/context.h>
 #include <gfx/render.h>
 #include <io/log.h>
@@ -45,10 +47,19 @@
 
 static errno_t ds_window_set_color(void *, gfx_color_t *);
 static errno_t ds_window_fill_rect(void *, gfx_rect_t *);
+static errno_t ds_window_bitmap_create(void *, gfx_bitmap_params_t *,
+    gfx_bitmap_alloc_t *, void **);
+static errno_t ds_window_bitmap_destroy(void *);
+static errno_t ds_window_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
+static errno_t ds_window_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 gfx_context_ops_t ds_window_ops = {
 	.set_color = ds_window_set_color,
-	.fill_rect = ds_window_fill_rect
+	.fill_rect = ds_window_fill_rect,
+	.bitmap_create = ds_window_bitmap_create,
+	.bitmap_destroy = ds_window_bitmap_destroy,
+	.bitmap_render = ds_window_bitmap_render,
+	.bitmap_get_alloc = ds_window_bitmap_get_alloc
 };
 
 /** Set color on window GC.
@@ -81,6 +92,80 @@ static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
 	return gfx_fill_rect(wnd->display->gc, rect);
+}
+
+/** Create bitmap in canvas GC.
+ *
+ * @param arg Canvas GC
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+errno_t ds_window_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	ds_window_t *wnd = (ds_window_t *) arg;
+	ds_window_bitmap_t *cbm = NULL;
+	errno_t rc;
+
+	cbm = calloc(1, sizeof(ds_window_bitmap_t));
+	if (cbm == NULL)
+		return ENOMEM;
+
+	rc = gfx_bitmap_create(wnd->display->gc, params, alloc, &cbm->bitmap);
+	if (rc != EOK)
+		goto error;
+
+	cbm->wnd = wnd;
+	*rbm = (void *)cbm;
+	return EOK;
+error:
+	if (cbm != NULL)
+		free(cbm);
+	return rc;
+}
+
+/** Destroy bitmap in canvas GC.
+ *
+ * @param bm Bitmap
+ * @return EOK on success or an error code
+ */
+static errno_t ds_window_bitmap_destroy(void *bm)
+{
+	ds_window_bitmap_t *cbm = (ds_window_bitmap_t *)bm;
+
+	gfx_bitmap_destroy(cbm->bitmap);
+	free(cbm);
+	return EOK;
+}
+
+/** Render bitmap in canvas GC.
+ *
+ * @param bm Bitmap
+ * @param srect0 Source rectangle or @c NULL
+ * @param offs0 Offset or @c NULL
+ * @return EOK on success or an error code
+ */
+static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
+    gfx_coord2_t *offs0)
+{
+	ds_window_bitmap_t *cbm = (ds_window_bitmap_t *)bm;
+
+	return gfx_bitmap_render(cbm->bitmap, srect0, offs0);
+}
+
+/** Get allocation info for bitmap in canvas GC.
+ *
+ * @param bm Bitmap
+ * @param alloc Place to store allocation info
+ * @return EOK on success or an error code
+ */
+static errno_t ds_window_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
+{
+	ds_window_bitmap_t *cbm = (ds_window_bitmap_t *)bm;
+
+	return gfx_bitmap_get_alloc(cbm->bitmap, alloc);
 }
 
 /** Create window.

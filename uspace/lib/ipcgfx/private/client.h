@@ -51,6 +51,20 @@ struct ipc_gc {
 	async_sess_t *sess;
 };
 
+/** Bitmap in IPC GC */
+typedef struct {
+	/** Containing IPC GC */
+	struct ipc_gc *ipcgc;
+	/** Allocation info */
+	gfx_bitmap_alloc_t alloc;
+	/** @c true if we allocated the bitmap, @c false if allocated by caller */
+	bool myalloc;
+	/** Rectangle covered by bitmap */
+	gfx_rect_t rect;
+	/** Server bitmap ID */
+	sysarg_t bmp_id;
+} ipc_gc_bitmap_t;
+
 #endif
 
 /** @}

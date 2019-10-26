@@ -30,36 +30,41 @@
  * @{
  */
 /**
- * @file Display server window type
+ * @file IPC GFX backend structure
+ *
  */
 
-#ifndef TYPES_DISPLAY_WINDOW_H
-#define TYPES_DISPLAY_WINDOW_H
+#ifndef _IPCGFX_PRIVATE_SERVER_H
+#define _IPCGFX_PRIVATE_SERVER_H
 
 #include <adt/list.h>
+#include <async.h>
+#include <gfx/bitmap.h>
 #include <gfx/context.h>
+#include <gfx/coord.h>
 
-typedef sysarg_t ds_wnd_id_t;
-
-/** Display server window */
-typedef struct ds_window {
-	/** Parent display */
-	struct ds_display *display;
-	/** Link to @c display->windows */
-	link_t lwindows;
-	/** Window ID */
-	ds_wnd_id_t id;
-	/** Graphic context */
-	gfx_context_t *gc;
-} ds_window_t;
-
-/** Bitmap in display server window GC */
+/** Server-side of IPC GC connection.
+ */
 typedef struct {
-	/** Containing window */
-	ds_window_t *wnd;
-	/** Display bitmap */
-	gfx_bitmap_t *bitmap;
-} ds_window_bitmap_t;
+	/** Graphics context to serve */
+	gfx_context_t *gc;
+	/** List of bitmaps (ipc_gc_srv_bitmap_t) */
+	list_t bitmaps;
+	/** Next bitmap ID to allocate */
+	sysarg_t next_bmp_id;
+} ipc_gc_srv_t;
+
+/** Bitmap in canvas GC */
+typedef struct {
+	/** Containing canvas GC */
+	ipc_gc_srv_t *srvgc;
+	/** Link to srvgc->bitmaps */
+	link_t lbitmaps;
+	/** Backing bitmap */
+	gfx_bitmap_t *bmp;
+	/** Bitmap ID */
+	sysarg_t bmp_id;
+} ipc_gc_srv_bitmap_t;
 
 #endif
 

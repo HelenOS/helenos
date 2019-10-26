@@ -143,7 +143,9 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			offs.x = 0;
 			offs.y = 0;
 
-			gfx_bitmap_render(bitmap, &srect, &offs);
+			rc = gfx_bitmap_render(bitmap, &srect, &offs);
+			if (rc != EOK)
+				goto error;
 			fibril_usleep(500 * 1000);
 		}
 	}
@@ -151,6 +153,9 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	gfx_bitmap_destroy(bitmap);
 
 	return EOK;
+error:
+	gfx_bitmap_destroy(bitmap);
+	return rc;
 }
 
 /** Run demo loop on a graphic context.

@@ -35,19 +35,30 @@
  * This implements a graphics context via HelenOS IPC.
  */
 
+#include <as.h>
 #include <ipcgfx/client.h>
 #include <ipcgfx/ipc/gc.h>
 #include <gfx/color.h>
+#include <gfx/coord.h>
 #include <gfx/context.h>
 #include <stdlib.h>
 #include "../private/client.h"
 
 static errno_t ipc_gc_set_color(void *, gfx_color_t *);
 static errno_t ipc_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t ipc_gc_bitmap_create(void *, gfx_bitmap_params_t *,
+    gfx_bitmap_alloc_t *, void **);
+static errno_t ipc_gc_bitmap_destroy(void *);
+static errno_t ipc_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
+static errno_t ipc_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 gfx_context_ops_t ipc_gc_ops = {
 	.set_color = ipc_gc_set_color,
-	.fill_rect = ipc_gc_fill_rect
+	.fill_rect = ipc_gc_fill_rect,
+	.bitmap_create = ipc_gc_bitmap_create,
+	.bitmap_destroy = ipc_gc_bitmap_destroy,
+	.bitmap_render = ipc_gc_bitmap_render,
+	.bitmap_get_alloc = ipc_gc_bitmap_get_alloc
 };
 
 #include <stdio.h>
@@ -98,6 +109,186 @@ static errno_t ipc_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	async_exchange_end(exch);
 
 	return rc;
+}
+
+/** Create bitmap in IPC GC.
+ *
+ * @param arg IPC GC
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+errno_t ipc_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	ipc_gc_t *ipcgc = (ipc_gc_t *) arg;
+	ipc_gc_bitmap_t *ipcbm = NULL;
+	gfx_coord2_t dim;
+	async_exch_t *exch = NULL;
+	ipc_call_t answer;
+	aid_t req;
+	errno_t rc;
+
+	ipcbm = calloc(1, sizeof(ipc_gc_bitmap_t));
+	if (ipcbm == NULL)
+		return ENOMEM;
+
+	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
+	ipcbm->rect = params->rect;
+
+	if (alloc == NULL) {
+		ipcbm->alloc.pitch = dim.x * sizeof(uint32_t);
+		ipcbm->alloc.off0 = 0;
+		ipcbm->alloc.pixels = as_area_create(AS_AREA_ANY,
+		    dim.x * dim.y * sizeof(uint32_t), AS_AREA_READ |
+		    AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
+		if (ipcbm->alloc.pixels == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		ipcbm->myalloc = true;
+	} else {
+		/*
+		 * XXX We could allow this if the pixels point to a shareable
+		 * area or we could do a copy of the data when rendering
+		 */
+		rc = ENOTSUP;
+		goto error;
+	}
+
+	exch = async_exchange_begin(ipcgc->sess);
+	req = async_send_0(exch, GC_BITMAP_CREATE, &answer);
+	rc = async_data_write_start(exch, params, sizeof (gfx_bitmap_params_t));
+	if (rc != EOK) {
+		async_forget(req);
+		goto error;
+	}
+
+	rc = async_share_out_start(exch, ipcbm->alloc.pixels,
+	    AS_AREA_READ | AS_AREA_CACHEABLE);
+	if (rc != EOK) {
+		async_forget(req);
+		goto error;
+	}
+	async_exchange_end(exch);
+	exch = NULL;
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		goto error;
+
+	ipcbm->ipcgc = ipcgc;
+	ipcbm->bmp_id = ipc_get_arg1(&answer);
+	*rbm = (void *)ipcbm;
+	return EOK;
+error:
+	if (exch != NULL)
+		async_exchange_end(exch);
+	if (ipcbm != NULL) {
+		if (ipcbm->alloc.pixels != NULL)
+			as_area_destroy(ipcbm->alloc.pixels);
+		free(ipcbm);
+	}
+	return rc;
+}
+
+/** Destroy bitmap in IPC GC.
+ *
+ * @param bm Bitmap
+ * @return EOK on success or an error code
+ */
+static errno_t ipc_gc_bitmap_destroy(void *bm)
+{
+	ipc_gc_bitmap_t *ipcbm = (ipc_gc_bitmap_t *)bm;
+	async_exch_t *exch;
+	errno_t rc;
+
+	printf("ipc_gc_bitmap_destroy\n");
+
+	exch = async_exchange_begin(ipcbm->ipcgc->sess);
+	rc = async_req_1_0(exch, GC_BITMAP_DESTROY, ipcbm->bmp_id);
+	async_exchange_end(exch);
+
+	if (rc != EOK)
+		return rc;
+
+	if (ipcbm->myalloc)
+		as_area_destroy(ipcbm->alloc.pixels);
+	free(ipcbm);
+	return EOK;
+}
+
+/** Render bitmap in IPC GC.
+ *
+ * @param bm Bitmap
+ * @param srect0 Source rectangle or @c NULL
+ * @param offs0 Offset or @c NULL
+ * @return EOK on success or an error code
+ */
+static errno_t ipc_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
+    gfx_coord2_t *offs0)
+{
+	ipc_gc_bitmap_t *ipcbm = (ipc_gc_bitmap_t *)bm;
+	gfx_rect_t srect;
+	gfx_rect_t drect;
+	gfx_coord2_t offs;
+	async_exch_t *exch = NULL;
+	ipc_call_t answer;
+	aid_t req;
+	errno_t rc;
+
+	if (srect0 != NULL)
+		srect = *srect0;
+	else
+		srect = ipcbm->rect;
+
+	if (offs0 != NULL) {
+		offs = *offs0;
+	} else {
+		offs.x = 0;
+		offs.y = 0;
+	}
+
+	/* Destination rectangle */
+	gfx_rect_translate(&offs, &srect, &drect);
+
+	exch = async_exchange_begin(ipcbm->ipcgc->sess);
+	req = async_send_3(exch, GC_BITMAP_RENDER, ipcbm->bmp_id, offs.x,
+	    offs.y, &answer);
+
+	rc = async_data_write_start(exch, &srect, sizeof (gfx_rect_t));
+	if (rc != EOK) {
+		async_forget(req);
+		goto error;
+	}
+
+	async_exchange_end(exch);
+	exch = NULL;
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	if (exch != NULL)
+		async_exchange_end(exch);
+	return rc;
+}
+
+/** Get allocation info for bitmap in IPC GC.
+ *
+ * @param bm Bitmap
+ * @param alloc Place to store allocation info
+ * @return EOK on success or an error code
+ */
+static errno_t ipc_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
+{
+	ipc_gc_bitmap_t *ipcbm = (ipc_gc_bitmap_t *)bm;
+	*alloc = ipcbm->alloc;
+	return EOK;
 }
 
 /** Create IPC GC.
