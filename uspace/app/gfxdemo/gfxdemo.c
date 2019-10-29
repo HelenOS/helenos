@@ -47,6 +47,43 @@
 #include <str.h>
 #include <window.h>
 
+/** Clear screen.
+ *
+ * @param gc Graphic context
+ * @param w Screen width
+ * @param h Screen height
+ */
+static errno_t clear_scr(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_color_t *color = NULL;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = w;
+	rect.p1.y = h;
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+	return EOK;
+error:
+	if (color != NULL)
+		gfx_color_delete(color);
+	return rc;
+}
+
 /** Run rectangle demo on a graphic context.
  *
  * @param gc Graphic context
@@ -59,6 +96,10 @@ static errno_t demo_rects(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	gfx_rect_t rect;
 	int i, j;
 	errno_t rc;
+
+	rc = clear_scr(gc, w, h);
+	if (rc != EOK)
+		return rc;
 
 	for (j = 0; j < 10; j++) {
 		rc = gfx_color_new_rgb_i16(rand() % 0x10000, rand() % 0x10000,
@@ -89,37 +130,25 @@ static errno_t demo_rects(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	return EOK;
 }
 
-/** Run bitmap demo on a graphic context.
+/** Fill bitmap with tartan pattern.
  *
- * @param gc Graphic context
- * @param w Width
- * @param h Height
+ * @param bitmap Bitmap
+ * @param w Bitmap width
+ * @param h Bitmap height
+ * @return EOK on success or an error code
  */
-static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+static errno_t bitmap_tartan(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 {
-	gfx_bitmap_t *bitmap;
-	gfx_bitmap_params_t params;
-	gfx_bitmap_alloc_t alloc;
 	int i, j;
-	gfx_coord2_t offs;
-	gfx_rect_t srect;
-	errno_t rc;
 	pixelmap_t pixelmap;
-
-	params.rect.p0.x = 0;
-	params.rect.p0.y = 0;
-	params.rect.p1.x = w;
-	params.rect.p1.y = h;
-
-	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
-	if (rc != EOK)
-		return rc;
+	gfx_bitmap_alloc_t alloc;
+	errno_t rc;
 
 	rc = gfx_bitmap_get_alloc(bitmap, &alloc);
 	if (rc != EOK)
 		return rc;
 
-	/* Fill bitmap with something. In absence of anything else, use pixelmap */
+	/* In absence of anything else, use pixelmap */
 	pixelmap.width = w;
 	pixelmap.height = h;
 	pixelmap.data = alloc.pixels;
@@ -132,22 +161,142 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		}
 	}
 
+	return EOK;
+}
+
+/** Fill bitmap with moire pattern.
+ *
+ * @param bitmap Bitmap
+ * @param w Bitmap width
+ * @param h Bitmap height
+ * @return EOK on success or an error code
+ */
+static errno_t bitmap_moire(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
+{
+	int i, j;
+	int k;
+	pixelmap_t pixelmap;
+	gfx_bitmap_alloc_t alloc;
+	errno_t rc;
+
+	rc = gfx_bitmap_get_alloc(bitmap, &alloc);
+	if (rc != EOK)
+		return rc;
+
+	/* In absence of anything else, use pixelmap */
+	pixelmap.width = w;
+	pixelmap.height = h;
+	pixelmap.data = alloc.pixels;
+
+	for (i = 0; i < w; i++) {
+		for (j = 0; j < h; j++) {
+			k = i * i + j * j;
+			pixelmap_put_pixel(&pixelmap, i, j,
+			    PIXEL(255, k, k, k));
+		}
+	}
+
+	return EOK;
+}
+
+/** Run bitmap demo on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_bitmap_t *bitmap;
+	gfx_bitmap_params_t params;
+	int i, j;
+	gfx_coord2_t offs;
+	gfx_rect_t srect;
+	errno_t rc;
+
+	rc = clear_scr(gc, w, h);
+	if (rc != EOK)
+		return rc;
+
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = w;
+	params.rect.p1.y = h;
+
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	if (rc != EOK)
+		return rc;
+
+	rc = bitmap_tartan(bitmap, w, h);
+	if (rc != EOK)
+		goto error;
+
 	for (j = 0; j < 10; j++) {
 		for (i = 0; i < 5; i++) {
 			srect.p0.x = rand() % (w - 40);
 			srect.p0.y = rand() % (h - 20);
 			srect.p1.x = srect.p0.x + rand() % (w - srect.p0.x);
 			srect.p1.y = srect.p0.y + rand() % (h - srect.p0.y);
-			offs.x = rand() % (w - srect.p1.x);
-			offs.y = rand() % (h - srect.p1.y);
 			offs.x = 0;
 			offs.y = 0;
 
 			rc = gfx_bitmap_render(bitmap, &srect, &offs);
 			if (rc != EOK)
 				goto error;
-			fibril_usleep(500 * 1000);
+			fibril_usleep(250 * 1000);
 		}
+	}
+
+	gfx_bitmap_destroy(bitmap);
+
+	return EOK;
+error:
+	gfx_bitmap_destroy(bitmap);
+	return rc;
+}
+
+/** Run second bitmap demo on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_bitmap2(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_bitmap_t *bitmap;
+	gfx_bitmap_params_t params;
+	int i, j;
+	gfx_coord2_t offs;
+	errno_t rc;
+
+	rc = clear_scr(gc, w, h);
+	if (rc != EOK)
+		return rc;
+
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 40;
+	params.rect.p1.y = 20;
+
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	if (rc != EOK)
+		return rc;
+
+	rc = bitmap_moire(bitmap, 40, 20);
+	if (rc != EOK)
+		goto error;
+
+	for (j = 0; j < 10; j++) {
+		for (i = 0; i < 10; i++) {
+			offs.x = rand() % (w - 40);
+			offs.y = rand() % (h - 20);
+
+			rc = gfx_bitmap_render(bitmap, NULL, &offs);
+			if (rc != EOK)
+				goto error;
+		}
+
+		fibril_usleep(500 * 1000);
 	}
 
 	gfx_bitmap_destroy(bitmap);
@@ -174,6 +323,10 @@ static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			return rc;
 
 		rc = demo_bitmap(gc, w, h);
+		if (rc != EOK)
+			return rc;
+
+		rc = demo_bitmap2(gc, w, h);
 		if (rc != EOK)
 			return rc;
 	}
