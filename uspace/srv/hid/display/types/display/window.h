@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <gfx/context.h>
+#include <gfx/coord.h>
 
 typedef sysarg_t ds_wnd_id_t;
 
@@ -47,6 +48,8 @@ typedef struct ds_window {
 	struct ds_display *display;
 	/** Link to @c display->windows */
 	link_t lwindows;
+	/** Display position */
+	gfx_coord2_t dpos;
 	/** Window ID */
 	ds_wnd_id_t id;
 	/** Graphic context */

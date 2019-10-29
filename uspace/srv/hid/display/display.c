@@ -64,6 +64,10 @@ static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create() -> EOK, id=%zu",
 	    wnd->id);
+
+	wnd->dpos.x = ((wnd->id - 1) & 1) * 400;
+	wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
+
 	*rwnd_id = wnd->id;
 	return EOK;
 }

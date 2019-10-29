@@ -60,8 +60,8 @@ errno_t output_init(gfx_context_t **rgc)
 		return -1;
 	}
 
-	vw = 400;
-	vh = 300;
+	vw = 800;
+	vh = 600;
 
 	pixbuf = calloc(vw * vh, sizeof(pixel_t));
 	if (pixbuf == NULL) {

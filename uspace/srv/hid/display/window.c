@@ -89,9 +89,11 @@ static errno_t ds_window_set_color(void *arg, gfx_color_t *color)
 static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	ds_window_t *wnd = (ds_window_t *) arg;
+	gfx_rect_t drect;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
-	return gfx_fill_rect(wnd->display->gc, rect);
+	gfx_rect_translate(&wnd->dpos, rect, &drect);
+	return gfx_fill_rect(wnd->display->gc, &drect);
 }
 
 /** Create bitmap in canvas GC.
@@ -151,8 +153,14 @@ static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
     gfx_coord2_t *offs0)
 {
 	ds_window_bitmap_t *cbm = (ds_window_bitmap_t *)bm;
+	gfx_coord2_t doffs;
 
-	return gfx_bitmap_render(cbm->bitmap, srect0, offs0);
+	if (offs0 != NULL)
+		gfx_coord2_add(&cbm->wnd->dpos, offs0, &doffs);
+	else
+		doffs = cbm->wnd->dpos;
+
+	return gfx_bitmap_render(cbm->bitmap, srect0, &doffs);
 }
 
 /** Get allocation info for bitmap in canvas GC.
