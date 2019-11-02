@@ -139,6 +139,51 @@ PCUT_TEST(display_find_window)
 	ds_display_destroy(disp);
 }
 
+/** Test ds_display_window_by_pos(). */
+PCUT_TEST(display_window_by_pos)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *w0;
+	ds_window_t *w1;
+	ds_window_t *wnd;
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &w0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	w0->dpos.x = 10;
+	w0->dpos.y = 10;
+
+	w1->dpos.x = 400;
+	w1->dpos.y = 400;
+
+	pos.x = 10;
+	pos.y = 10;
+	wnd = ds_display_window_by_pos(disp, &pos);
+	PCUT_ASSERT_EQUALS(w0, wnd);
+
+	pos.x = 400;
+	pos.y = 400;
+	wnd = ds_display_window_by_pos(disp, &pos);
+	PCUT_ASSERT_EQUALS(w1, wnd);
+
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 /** Basic seat operation. */
 PCUT_TEST(display_seat)
 {
@@ -163,7 +208,8 @@ PCUT_TEST(display_seat)
 	ds_display_destroy(disp);
 }
 
-/** Test ds_display_post_kbd_event(). */
+/** Test ds_display_post_kbd_event() delivers event to client callback.
+ */
 PCUT_TEST(display_post_kbd_event)
 {
 	ds_display_t *disp;
@@ -171,7 +217,7 @@ PCUT_TEST(display_post_kbd_event)
 	ds_client_t *client;
 	ds_window_t *wnd;
 	kbd_event_t event;
-	bool called_cb = NULL;
+	bool called_cb = false;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
@@ -200,6 +246,126 @@ PCUT_TEST(display_post_kbd_event)
 	PCUT_ASSERT_TRUE(called_cb);
 
 	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_seat_destroy(seat);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_display_post_kbd_event() with Alt-Tab switches focus.
+ */
+PCUT_TEST(display_post_kbd_event_alt_tab)
+{
+	ds_display_t *disp;
+	ds_seat_t *seat;
+	ds_client_t *client;
+	ds_window_t *w0, *w1;
+	kbd_event_t event;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &w0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_seat_set_focus(seat, w0);
+
+	event.type = KEY_PRESS;
+	event.key = KC_TAB;
+	event.mods = KM_ALT;
+	event.c = L'\0';
+
+	PCUT_ASSERT_FALSE(called_cb);
+
+	rc = ds_display_post_kbd_event(disp, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(called_cb);
+
+	/* Next window should be focused */
+	PCUT_ASSERT_EQUALS(w1, seat->focus);
+
+	rc = ds_display_post_kbd_event(disp, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(called_cb);
+
+	/* Focus should be back to the first window */
+	PCUT_ASSERT_EQUALS(w0, seat->focus);
+
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
+	ds_client_destroy(client);
+	ds_seat_destroy(seat);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_display_post_pos_event() with click on window switches focus
+ */
+PCUT_TEST(display_post_pos_event_wnd_switch)
+{
+	ds_display_t *disp;
+	ds_seat_t *seat;
+	ds_client_t *client;
+	ds_window_t *w0, *w1;
+	pos_event_t event;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &w0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	w0->dpos.x = 10;
+	w0->dpos.y = 10;
+
+	w1->dpos.x = 400;
+	w1->dpos.y = 400;
+
+	ds_seat_set_focus(seat, w0);
+
+	event.type = POS_PRESS;
+	event.btn_num = 1;
+
+	PCUT_ASSERT_FALSE(called_cb);
+
+	event.hpos = 400;
+	event.vpos = 400;
+	rc = ds_display_post_pos_event(disp, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(called_cb);
+
+	PCUT_ASSERT_EQUALS(w1, seat->focus);
+
+	event.hpos = 10;
+	event.vpos = 10;
+	rc = ds_display_post_pos_event(disp, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(called_cb);
+
+	PCUT_ASSERT_EQUALS(w0, seat->focus);
+
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
 	ds_client_destroy(client);
 	ds_seat_destroy(seat);
 	ds_display_destroy(disp);

@@ -37,8 +37,11 @@
 #define OUTPUT_H
 
 #include <gfx/context.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 
 extern errno_t output_init(void (*)(void *, kbd_event_t *), void *,
+    void (*)(void *, pos_event_t *), void *,
     gfx_context_t **);
 
 #endif

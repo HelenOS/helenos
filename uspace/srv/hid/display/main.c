@@ -39,6 +39,8 @@
 #include <gfx/context.h>
 #include <str_error.h>
 #include <io/log.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 #include <ipc/services.h>
 #include <ipcgfx/server.h>
 #include <loc.h>
@@ -63,8 +65,14 @@ static void display_kbd_event(void *arg, kbd_event_t *event)
 {
 	ds_display_t *disp = (ds_display_t *) arg;
 
-	printf("display_kbd_event\n");
 	ds_display_post_kbd_event(disp, event);
+}
+
+static void display_pos_event(void *arg, pos_event_t *event)
+{
+	ds_display_t *disp = (ds_display_t *) arg;
+
+	ds_display_post_pos_event(disp, event);
 }
 
 static void display_client_ev_pending(void *arg)
@@ -92,7 +100,8 @@ static errno_t display_srv_init(void)
 	if (rc != EOK)
 		goto error;
 
-	rc = output_init(display_kbd_event, (void *) disp, &gc);
+	rc = output_init(display_kbd_event, (void *) disp,
+	    display_pos_event, (void *) disp, &gc);
 	if (rc != EOK)
 		goto error;
 

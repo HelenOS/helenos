@@ -36,6 +36,8 @@
 #include <errno.h>
 #include <gfx/context.h>
 #include <guigfx/canvas.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <window.h>
@@ -43,6 +45,8 @@
 
 static void (*kbd_ev_handler)(void *, kbd_event_t *);
 static void *kbd_ev_arg;
+static void (*pos_ev_handler)(void *, pos_event_t *);
+static void *pos_ev_arg;
 
 static void on_keyboard_event(widget_t *widget, void *data)
 {
@@ -50,8 +54,14 @@ static void on_keyboard_event(widget_t *widget, void *data)
 	kbd_ev_handler(kbd_ev_arg, (kbd_event_t *) data);
 }
 
+static void on_position_event(widget_t *widget, void *data)
+{
+	pos_ev_handler(pos_ev_arg, (pos_event_t *) data);
+}
+
 errno_t output_init(void (*kbd_event_handler)(void *, kbd_event_t *),
-    void *arg, gfx_context_t **rgc)
+    void *karg, void (*pos_event_handler)(void *, pos_event_t *),
+    void *parg, gfx_context_t **rgc)
 {
 	canvas_gc_t *cgc = NULL;
 	window_t *window = NULL;
@@ -63,7 +73,10 @@ errno_t output_init(void (*kbd_event_handler)(void *, kbd_event_t *),
 
 	printf("Init canvas..\n");
 	kbd_ev_handler = kbd_event_handler;
-	kbd_ev_arg = arg;
+	kbd_ev_arg = karg;
+
+	pos_ev_handler = pos_event_handler;
+	pos_ev_arg = parg;
 
 	window = window_open("comp:0/winreg", NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "Display Server");
@@ -95,6 +108,7 @@ errno_t output_init(void (*kbd_event_handler)(void *, kbd_event_t *),
 	}
 
 	sig_connect(&canvas->keyboard_event, NULL, on_keyboard_event);
+	sig_connect(&canvas->position_event, NULL, on_position_event);
 
 	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
 	window_exec(window);

@@ -163,6 +163,29 @@ ds_window_t *ds_display_find_window(ds_display_t *display, ds_wnd_id_t id)
 	return NULL;
 }
 
+/** Find window by display position.
+ *
+ * @param display Display
+ * @param pos Display position
+ */
+ds_window_t *ds_display_window_by_pos(ds_display_t *display, gfx_coord2_t *pos)
+{
+	ds_window_t *wnd;
+
+	wnd = ds_display_first_window(display);
+	while (wnd != NULL) {
+		// XXX Need to know window dimensions
+		if (pos->x >= wnd->dpos.x && pos->y >= wnd->dpos.y &&
+		    pos->x <= wnd->dpos.x + 100 && pos->y <= wnd->dpos.y + 100) {
+			return wnd;
+		}
+
+		wnd = ds_display_next_window(wnd);
+	}
+
+	return NULL;
+}
+
 /** Add window to display.
  *
  * @param display Display
@@ -236,6 +259,37 @@ errno_t ds_display_post_kbd_event(ds_display_t *display, kbd_event_t *event)
 		return EOK;
 
 	return ds_seat_post_kbd_event(seat, event);
+}
+
+/** Post position event to a display.
+ *
+ * @param display Display
+ * @param event Event
+ */
+errno_t ds_display_post_pos_event(ds_display_t *display, pos_event_t *event)
+{
+	gfx_coord2_t pos;
+	ds_window_t *wnd;
+	ds_seat_t *seat;
+
+	/* Focus window on button press */
+	if (event->type == POS_PRESS) {
+		printf("Button press\n");
+		pos.x = event->hpos;
+		pos.y = event->vpos;
+
+		wnd = ds_display_window_by_pos(display, &pos);
+		if (wnd != NULL) {
+			seat = ds_display_first_seat(display);
+			if (seat == NULL)
+				return EOK;
+
+			ds_seat_set_focus(seat, wnd);
+			return EOK;
+		}
+	}
+
+	return EOK;
 }
 
 /** Add seat to display.
