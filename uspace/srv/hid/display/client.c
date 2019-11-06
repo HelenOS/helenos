@@ -33,6 +33,7 @@
  * @file Display server client
  */
 
+#include <adt/list.h>
 #include <errno.h>
 #include <stdlib.h>
 #include "client.h"
@@ -57,7 +58,7 @@ errno_t ds_client_create(ds_display_t *display, ds_client_cb_t *cb,
 		return ENOMEM;
 
 	list_initialize(&client->windows);
-	prodcons_initialize(&client->events);
+	list_initialize(&client->events);
 	client->cb = cb;
 	client->cb_arg = cb_arg;
 
@@ -161,9 +162,9 @@ ds_window_t *ds_client_next_window(ds_window_t *wnd)
 
 /** Get next event from client event queue.
  *
- * This function blocks until an event is available.
- *
- * @param wnd Window
+ * @param client Client
+ * @param ewindow Place to store pointer to window receiving the event
+ * @param event Place to store event
  * @return Graphic context
  */
 errno_t ds_client_get_event(ds_client_t *client, ds_window_t **ewindow,
@@ -172,7 +173,9 @@ errno_t ds_client_get_event(ds_client_t *client, ds_window_t **ewindow,
 	link_t *link;
 	ds_window_ev_t *wevent;
 
-	link = prodcons_consume(&client->events);
+	link = list_first(&client->events);
+	if (link == NULL)
+		return ENOENT;
 	wevent = list_get_instance(link, ds_window_ev_t, levents);
 
 	*ewindow = wevent->window;
@@ -181,6 +184,14 @@ errno_t ds_client_get_event(ds_client_t *client, ds_window_t **ewindow,
 	return EOK;
 }
 
+/** Post keyboard event to the client's message queue.
+ *
+ * @param client Client
+ * @param ewindow Window that the message is targetted to
+ * @param event Event
+ *
+ * @return EOK on success or an error code
+ */
 errno_t ds_client_post_kbd_event(ds_client_t *client, ds_window_t *ewindow,
     kbd_event_t *event)
 {
@@ -192,7 +203,7 @@ errno_t ds_client_post_kbd_event(ds_client_t *client, ds_window_t *ewindow,
 
 	wevent->window = ewindow;
 	wevent->event.kbd_event = *event;
-	prodcons_produce(&client->events, &wevent->levents);
+	list_append(&wevent->levents, &client->events);
 
 	/* Notify the client */
 	// TODO Do not send more than once until client drains the queue

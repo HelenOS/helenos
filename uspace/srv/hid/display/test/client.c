@@ -179,11 +179,8 @@ PCUT_TEST(display_get_post_kbd_event)
 
 	PCUT_ASSERT_FALSE(called_cb);
 
-#if 0
-	// XXX Forgot to change ds_client_get_event not to block
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
-#endif
 
 	rc = ds_client_post_kbd_event(client, wnd, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);

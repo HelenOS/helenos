@@ -37,7 +37,6 @@
 #define TYPES_DISPLAY_CLIENT_H
 
 #include <adt/list.h>
-#include <adt/prodcons.h>
 
 typedef sysarg_t ds_wnd_id_t;
 
@@ -59,7 +58,7 @@ typedef struct ds_client {
 	/** Windows (of ds_window_t) */
 	list_t windows;
 	/** Event queue (of ds_window_ev_t) */
-	prodcons_t events;
+	list_t events;
 } ds_client_t;
 
 #endif
