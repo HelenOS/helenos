@@ -26,55 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#include <pcut/pcut.h>
 
-#ifndef _LIBDISPLAY_TYPES_DISPLAY_H_
-#define _LIBDISPLAY_TYPES_DISPLAY_H_
+PCUT_INIT;
 
-#include <async.h>
-#include <fibril_synch.h>
-#include <io/kbd_event.h>
-#include <ipc/devman.h>
-#include <stdint.h>
+PCUT_IMPORT(display);
 
-/** Display server session */
-typedef struct {
-	/** Session with display server */
-	async_sess_t *sess;
-	/** Synchronize access to display object */
-	fibril_mutex_t lock;
-	/** @c true if callback handler terminated */
-	bool cb_done;
-	/** Signalled when cb_done or ev_pending is changed */
-	fibril_condvar_t cv;
-	/** Windows (of display_window_t) */
-	list_t windows;
-} display_t;
-
-/** Display window callbacks */
-typedef struct {
-	void (*kbd_event)(void *, kbd_event_t *);
-} display_wnd_cb_t;
-
-/** Display window */
-typedef struct {
-	/** Display associated with the window */
-	display_t *display;
-	/** Link to @c display->windows */
-	link_t lwindows;
-	/** Window ID */
-	sysarg_t id;
-	/** Callback functions */
-	display_wnd_cb_t *cb;
-	/** Argument to callback functions */
-	void *cb_arg;
-} display_window_t;
-
-#endif
-
-/** @}
- */
+PCUT_MAIN();

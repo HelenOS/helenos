@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <io/log.h>
 #include <ipc/display.h>
+#include <mem.h>
 #include <stdlib.h>
 #include <stddef.h>
 
@@ -168,6 +169,21 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			async_answer_0(&call, ENOTSUP);
 		}
 	}
+
+	/* Hang up callback session */
+	if (srv->client_sess != NULL) {
+		async_hangup(srv->client_sess);
+		srv->client_sess = NULL;
+	}
+}
+
+/** Initialize display server structure
+ *
+ * @param srv Display server structure to initialize
+ */
+void display_srv_initialize(display_srv_t *srv)
+{
+	memset(srv, 0, sizeof(*srv));
 }
 
 /** Send 'pending' event to client.

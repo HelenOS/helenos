@@ -155,6 +155,7 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 		}
 
 		/* Set up protocol structure */
+		display_srv_initialize(&srv);
 		srv.ops = &display_srv_ops;
 		srv.arg = client;
 

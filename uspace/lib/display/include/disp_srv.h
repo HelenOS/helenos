@@ -55,6 +55,7 @@ struct display_ops {
 };
 
 extern void display_conn(ipc_call_t *, display_srv_t *);
+extern void display_srv_initialize(display_srv_t *);
 extern void display_srv_ev_pending(display_srv_t *);
 
 #endif

@@ -28,6 +28,7 @@
 
 #include <async.h>
 #include <display.h>
+#include <display/event.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <ipc/display.h>
@@ -56,6 +57,8 @@ errno_t display_open(const char *dsname, display_t **rdisplay)
 	if (display == NULL)
 		return ENOMEM;
 
+	fibril_mutex_initialize(&display->lock);
+	fibril_condvar_initialize(&display->cv);
 	list_initialize(&display->windows);
 
 	if (dsname == NULL)
