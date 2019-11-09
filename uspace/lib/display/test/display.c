@@ -89,6 +89,7 @@ PCUT_TEST(open_close)
 
 	async_set_fallback_port_handler(test_display_conn, disp);
 
+	// FIXME This causes this test to be non-reentrant!
 	rc = loc_server_register(test_display_server);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
@@ -115,6 +116,7 @@ PCUT_TEST(window_create_failure)
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
+	// FIXME This causes this test to be non-reentrant!
 	rc = loc_server_register(test_display_server);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
@@ -152,6 +154,7 @@ PCUT_TEST(window_create_destroy_success)
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
+	// FIXME This causes this test to be non-reentrant!
 	rc = loc_server_register(test_display_server);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
@@ -191,6 +194,7 @@ PCUT_TEST(window_destroy_failure)
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
+	// FIXME This causes this test to be non-reentrant!
 	rc = loc_server_register(test_display_server);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
@@ -231,6 +235,7 @@ PCUT_TEST(window_get_gc_failure)
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
+	// FIXME This causes this test to be non-reentrant!
 	rc = loc_server_register(test_display_server);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
@@ -276,6 +281,7 @@ PCUT_TEST(window_get_gc_success)
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
+	// FIXME This causes this test to be non-reentrant!
 	rc = loc_server_register(test_display_server);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
@@ -315,6 +321,11 @@ PCUT_TEST(window_get_gc_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Test display service connection.
+ *
+ * This is very similar to connection handler in the display server.
+ * XXX This should be folded into display_srv, if possible
+ */
 static void test_display_conn(ipc_call_t *icall, void *arg)
 {
 	test_response_t *resp = (test_response_t *) arg;
