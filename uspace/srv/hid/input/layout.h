@@ -59,6 +59,7 @@ extern layout_ops_t us_qwerty_ops;
 extern layout_ops_t us_dvorak_ops;
 extern layout_ops_t cz_ops;
 extern layout_ops_t ar_ops;
+extern layout_ops_t fr_azerty_ops;
 
 extern layout_t *layout_create(layout_ops_t *);
 extern void layout_destroy(layout_t *);
