@@ -30,6 +30,7 @@
 deps = [ 'drv' ]
 src = files(
 	'layout/cz.c',
+	'layout/fr_azerty.c',
 	'layout/us_qwerty.c',
 	'layout/us_dvorak.c',
 	'layout/ar.c',
