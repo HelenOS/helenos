@@ -108,8 +108,10 @@ static void display_get_event_srv(display_srv_t *srv, ipc_call_t *icall)
 	}
 
 	rc = srv->ops->get_event(srv->arg, &wnd_id, &event);
-	if (rc != EOK)
+	if (rc != EOK) {
 		async_answer_0(icall, rc);
+		return;
+	}
 
 	/* Transfer event data */
 	if (!async_data_read_receive(&call, &size)) {

@@ -176,7 +176,9 @@ errno_t ds_client_get_event(ds_client_t *client, ds_window_t **ewindow,
 	link = list_first(&client->events);
 	if (link == NULL)
 		return ENOENT;
+
 	wevent = list_get_instance(link, ds_window_ev_t, levents);
+	list_remove(link);
 
 	*ewindow = wevent->window;
 	*event = wevent->event;

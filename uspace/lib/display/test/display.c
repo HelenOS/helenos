@@ -78,6 +78,7 @@ typedef struct {
 	bool window_destroy_called;
 	bool get_event_called;
 	bool set_color_called;
+	display_srv_t *srv;
 } test_response_t;
 
 /** display_open(), display_close() work for valid display service */
@@ -86,8 +87,9 @@ PCUT_TEST(open_close)
 	errno_t rc;
 	service_id_t sid;
 	display_t *disp = NULL;
+	test_response_t resp;
 
-	async_set_fallback_port_handler(test_display_conn, disp);
+	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
 	rc = loc_server_register(test_display_server);
@@ -321,6 +323,57 @@ PCUT_TEST(window_get_gc_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Keyboard event can be delivered from server to client callback function */
+#include <stdio.h>
+PCUT_TEST(kbd_event_deliver)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_window_t *wnd;
+	test_response_t resp;
+	gfx_context_t *gc;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+	PCUT_ASSERT_NOT_NULL(resp.srv);
+
+	wnd = NULL;
+	resp.rc = EOK;
+	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	printf(" ** call display_window_get_gc\n");
+	gc = NULL;
+	rc = display_window_get_gc(wnd, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	printf(" ** call display_srv_ev_pending\n");
+	display_srv_ev_pending(resp.srv);
+
+	printf(" ** call display_window_destroy\n");
+	rc = display_window_destroy(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	printf(" ** call display_close\n");
+	display_close(disp);
+	printf(" ** call loc_service_unregister\n");
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Test display service connection.
  *
  * This is very similar to connection handler in the display server.
@@ -343,9 +396,12 @@ static void test_display_conn(ipc_call_t *icall, void *arg)
 		display_srv_initialize(&srv);
 		srv.ops = &test_display_srv_ops;
 		srv.arg = arg;
+		resp->srv = &srv;
 
 		/* Handle connection */
 		display_conn(icall, &srv);
+
+		resp->srv = NULL;
 	} else {
 		(void) wnd_id;
 

@@ -188,6 +188,7 @@ errno_t display_window_destroy(display_window_t *window)
 
 	async_exchange_end(exch);
 
+	list_remove(&window->lwindows);
 	free(window);
 	return rc;
 }

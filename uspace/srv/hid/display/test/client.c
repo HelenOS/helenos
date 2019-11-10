@@ -194,6 +194,9 @@ PCUT_TEST(display_get_post_kbd_event)
 	PCUT_ASSERT_EQUALS(event.mods, revent.kbd_event.mods);
 	PCUT_ASSERT_EQUALS(event.c, revent.kbd_event.c);
 
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
 	ds_window_destroy(wnd);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
