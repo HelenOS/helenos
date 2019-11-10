@@ -244,12 +244,11 @@ static errno_t display_get_event(display_t *display, display_window_t **rwindow,
 	exch = async_exchange_begin(display->sess);
 	req = async_send_0(exch, DISPLAY_GET_EVENT, &answer);
 	rc = async_data_read_start(exch, event, sizeof(*event));
+	async_exchange_end(exch);
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-
-	async_exchange_end(exch);
 
 	async_wait_for(req, &rc);
 	if (rc != EOK)
