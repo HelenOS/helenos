@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <display.h>
 #include <disp_srv.h>
+#include <fibril_synch.h>
 #include <gfx/color.h>
 #include <gfx/context.h>
 #include <gfx/render.h>
@@ -74,10 +75,15 @@ typedef struct {
 	errno_t rc;
 	sysarg_t wnd_id;
 	display_wnd_ev_t event;
+	display_wnd_ev_t revent;
+	int event_cnt;
 	bool window_create_called;
 	bool window_destroy_called;
 	bool get_event_called;
 	bool set_color_called;
+	bool kbd_event_called;
+	fibril_condvar_t kbd_event_cv;
+	fibril_mutex_t kbd_event_lock;
 	display_srv_t *srv;
 } test_response_t;
 
@@ -324,7 +330,6 @@ PCUT_TEST(window_get_gc_success)
 }
 
 /** Keyboard event can be delivered from server to client callback function */
-#include <stdio.h>
 PCUT_TEST(kbd_event_deliver)
 {
 	errno_t rc;
@@ -350,26 +355,49 @@ PCUT_TEST(kbd_event_deliver)
 
 	wnd = NULL;
 	resp.rc = EOK;
-	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	rc = display_window_create(disp, &test_display_wnd_cb, (void *) &resp,
+	    &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wnd);
 
-	printf(" ** call display_window_get_gc\n");
 	gc = NULL;
 	rc = display_window_get_gc(wnd, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(gc);
 
-	printf(" ** call display_srv_ev_pending\n");
+	resp.event_cnt = 1;
+	resp.event.kbd_event.type = KEY_PRESS;
+	resp.event.kbd_event.key = KC_ENTER;
+	resp.event.kbd_event.mods = 0;
+	resp.event.kbd_event.c = L'\0';
+	resp.wnd_id = wnd->id;
+	resp.kbd_event_called = false;
+	fibril_mutex_initialize(&resp.kbd_event_lock);
+	fibril_condvar_initialize(&resp.kbd_event_cv);
 	display_srv_ev_pending(resp.srv);
 
-	printf(" ** call display_window_destroy\n");
+	/* Wait for the event handler to be called. */
+	fibril_mutex_lock(&resp.kbd_event_lock);
+	while (!resp.kbd_event_called) {
+		fibril_condvar_wait(&resp.kbd_event_cv, &resp.kbd_event_lock);
+	}
+	fibril_mutex_unlock(&resp.kbd_event_lock);
+
+	/* Verify that the event was delivered correctly */
+	PCUT_ASSERT_EQUALS(resp.event.kbd_event.type,
+	    resp.revent.kbd_event.type);
+	PCUT_ASSERT_EQUALS(resp.event.kbd_event.key,
+	    resp.revent.kbd_event.key);
+	PCUT_ASSERT_EQUALS(resp.event.kbd_event.mods,
+	    resp.revent.kbd_event.mods);
+	PCUT_ASSERT_EQUALS(resp.event.kbd_event.c,
+	    resp.revent.kbd_event.c);
+
 	rc = display_window_destroy(wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	printf(" ** call display_close\n");
 	display_close(disp);
-	printf(" ** call loc_service_unregister\n");
+
 	rc = loc_service_unregister(sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -423,6 +451,14 @@ static void test_display_conn(ipc_call_t *icall, void *arg)
 
 static void test_kbd_event(void *arg, kbd_event_t *event)
 {
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->revent.kbd_event = *event;
+
+	fibril_mutex_lock(&resp->kbd_event_lock);
+	resp->kbd_event_called = true;
+	fibril_condvar_broadcast(&resp->kbd_event_cv);
+	fibril_mutex_unlock(&resp->kbd_event_lock);
 }
 
 static errno_t test_window_create(void *arg, sysarg_t *rwnd_id)
@@ -449,12 +485,14 @@ static errno_t test_get_event(void *arg, sysarg_t *wnd_id, display_wnd_ev_t *eve
 	test_response_t *resp = (test_response_t *) arg;
 
 	resp->get_event_called = true;
-	if (resp->rc == EOK) {
+	if (resp->event_cnt > 0) {
+		--resp->event_cnt;
 		*wnd_id = resp->wnd_id;
 		*event = resp->event;
+		return EOK;
 	}
 
-	return resp->rc;
+	return ENOENT;
 }
 
 static errno_t test_gc_set_color(void *arg, gfx_color_t *color)
