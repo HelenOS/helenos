@@ -202,4 +202,29 @@ PCUT_TEST(display_get_post_kbd_event)
 	ds_display_destroy(disp);
 }
 
+/** Test client being destroyed while still having a window.
+ *
+ * This can happen if client forgets to destroy window or if the client
+ * is disconnected (or terminated).
+ */
+PCUT_TEST(client_leftover_window)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 PCUT_EXPORT(client);

@@ -219,18 +219,12 @@ error:
  *
  * @param wnd Window GC
  */
-errno_t ds_window_destroy(ds_window_t *wnd)
+void ds_window_destroy(ds_window_t *wnd)
 {
-	errno_t rc;
-
 	ds_client_remove_window(wnd);
-
-	rc = gfx_context_delete(wnd->gc);
-	if (rc != EOK)
-		return rc;
+	(void) gfx_context_delete(wnd->gc);
 
 	free(wnd);
-	return EOK;
 }
 
 /** Get generic graphic context from window.

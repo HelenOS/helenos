@@ -74,6 +74,14 @@ errno_t ds_client_create(ds_display_t *display, ds_client_cb_t *cb,
  */
 void ds_client_destroy(ds_client_t *client)
 {
+	ds_window_t *window;
+
+	window = ds_client_first_window(client);
+	while (window != NULL) {
+		ds_window_destroy(window);
+		window = ds_client_first_window(client);
+	}
+
 	assert(list_empty(&client->windows));
 	ds_display_remove_client(client);
 	free(client);
