@@ -30,6 +30,7 @@ deps = [ 'nettl' ]
 
 _common_src = files(
 	'assoc.c',
+	'cassoc.c',
 	'msg.c',
 	'pdu.c',
 )
