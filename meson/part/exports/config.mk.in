@@ -1,5 +1,6 @@
 # Generated from config.mk.in using Meson. Do not modify.
 # Do not forget to set HELENOS_EXPORT_ROOT when using the file.
+HELENOS_OVERLAY_PATH="@HELENOS_OVERLAY_PATH@"
 HELENOS_CROSS_PATH="@HELENOS_CROSS_PATH@"
 HELENOS_ARCH="@HELENOS_ARCH@"
 HELENOS_TARGET="@HELENOS_TARGET@"

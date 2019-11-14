@@ -47,9 +47,12 @@
 
 CC = helenos-cc
 LD = helenos-ld
+INSTALL = install
+TEST = helenos-test
 CFLAGS = -std=gnu11 -Wall `helenos-pkg-config --cflags libgui libdraw libmath` \
     -D_HELENOS_SOURCE
 LIBS = `helenos-pkg-config --libs libgui libdraw libmath`
+PREFIX = `helenos-bld-config --install-dir`
 output = viewer
 objects = viewer.o
 
@@ -58,6 +61,16 @@ all: $(output)
 
 clean:
 	rm -f $(output) $(objects)
+
+install: $(output)
+	mkdir -p $(PREFIX)/app
+	$(INSTALL) -T $(output) $(PREFIX)/app/$(output)-xcw
+
+uninstall:
+	rm -f $(PREFIX)/app/$(output)-xcw
+
+test: install
+	$(TEST)
 
 $(output): $(objects)
 	$(CC) -o $@ $^ $(LIBS)
