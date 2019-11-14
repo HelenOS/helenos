@@ -35,9 +35,12 @@
 # Example commands to build this demo:
 #
 #    cd <helenos-source-dir>
-#    make distclean && make -j 4 PROFILE=amd64
-#    cd <helenos-source-dir>/tools/xcw/demo
-#    export PATH=$PATH:<helenos-source-dir>/tools/xcw/bin
+#    mkdir build
+#    cd build
+#    ../configure.sh
+#    ninja
+#    cd ../tools/xcw/demo
+#    export PATH=$PATH:<helenos-source-dir>/build/tools/xcw/bin
 #    make
 #
 

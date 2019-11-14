@@ -34,14 +34,14 @@
 
 
 XCW="$(dirname "$0")"
-SRC_ROOT="$XCW/../../.."
+BUILD_ROOT="$(dirname "$(dirname "$(dirname "$XCW")")")"
 if [ -z "$EXPORT_DIR" ]; then
-	EXPORT_DIR="$SRC_ROOT/build/dist"
+	EXPORT_DIR="$BUILD_ROOT/export"
 fi
 
 HELENOS_EXPORT_ROOT="$EXPORT_DIR"
 
-source "${EXPORT_DIR}/config/config.sh"
+source "${EXPORT_DIR}/config.sh"
 
 # CC is a compilation driver, so we should check which stage of compilation
 # is actually running and select which flags to provide. This makes no
