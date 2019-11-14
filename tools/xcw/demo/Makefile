@@ -39,6 +39,7 @@
 #    cd build
 #    ../configure.sh
 #    ninja
+#    ../tools/export.sh export
 #    cd ../tools/xcw/demo
 #    export PATH=$PATH:<helenos-source-dir>/build/tools/xcw/bin
 #    make
