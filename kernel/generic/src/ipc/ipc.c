@@ -99,7 +99,7 @@ static void call_destroy(void *arg)
 	slab_free(call_cache, call);
 }
 
-static kobject_ops_t call_kobject_ops = {
+kobject_ops_t call_kobject_ops = {
 	.destroy = call_destroy
 };
 
@@ -126,7 +126,7 @@ call_t *ipc_call_alloc(void)
 	}
 
 	_ipc_call_init(call);
-	kobject_initialize(kobj, KOBJECT_TYPE_CALL, call, &call_kobject_ops);
+	kobject_initialize(kobj, KOBJECT_TYPE_CALL, call);
 	call->kobject = kobj;
 
 	return call;

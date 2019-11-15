@@ -39,7 +39,6 @@
 #include <stdbool.h>
 #include <fibril_synch.h>
 #include <inet/endpoint.h>
-#include <inet/inet.h>
 #include <io/log.h>
 #include <nettl/amap.h>
 #include <stdlib.h>
@@ -47,7 +46,6 @@
 #include "assoc.h"
 #include "msg.h"
 #include "pdu.h"
-#include "udp_inet.h"
 #include "udp_type.h"
 
 static LIST_INITIALIZE(assoc_list);
@@ -56,9 +54,10 @@ static amap_t *amap;
 
 static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *);
 static errno_t udp_assoc_queue_msg(udp_assoc_t *, inet_ep2_t *, udp_msg_t *);
+static udp_assocs_dep_t *assocs_dep;
 
 /** Initialize associations. */
-errno_t udp_assocs_init(void)
+errno_t udp_assocs_init(udp_assocs_dep_t *dep)
 {
 	errno_t rc;
 
@@ -68,7 +67,17 @@ errno_t udp_assocs_init(void)
 		return ENOMEM;
 	}
 
+	assocs_dep = dep;
 	return EOK;
+}
+
+/** Finalize associations. */
+void udp_assocs_fini(void)
+{
+	assert(list_empty(&assoc_list));
+
+	amap_destroy(amap);
+	amap = NULL;
 }
 
 /** Create new association structure.
@@ -173,8 +182,8 @@ void udp_assoc_delete(udp_assoc_t *assoc)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: udp_assoc_delete(%p)", assoc->name, assoc);
 
 	assert(assoc->deleted == false);
-	udp_assoc_delref(assoc);
 	assoc->deleted = true;
+	udp_assoc_delref(assoc);
 }
 
 /** Enlist association.
@@ -243,7 +252,6 @@ void udp_assoc_set_iplink(udp_assoc_t *assoc, service_id_t iplink)
  */
 errno_t udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 {
-	udp_pdu_t *pdu;
 	inet_ep2_t epp;
 	errno_t rc;
 
@@ -265,7 +273,8 @@ errno_t udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - check no local addr");
 	if (inet_addr_is_any(&epp.local.addr) && !assoc->nolocal) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Determine local address.");
-		rc = inet_get_srcaddr(&epp.remote.addr, 0, &epp.local.addr);
+		rc = (*assocs_dep->get_srcaddr)(&epp.remote.addr, 0,
+		    &epp.local.addr);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Cannot determine "
 			    "local address.");
@@ -279,16 +288,8 @@ errno_t udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 	    epp.remote.addr.version != epp.local.addr.version)
 		return EINVAL;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - encode pdu");
-
-	rc = udp_pdu_encode(&epp, msg, &pdu);
-	if (rc != EOK)
-		return ENOMEM;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - transmit");
-
-	rc = udp_transmit_pdu(pdu);
-	udp_pdu_delete(pdu);
+	rc = (*assocs_dep->transmit_msg)(&epp, msg);
 
 	if (rc != EOK)
 		return EIO;

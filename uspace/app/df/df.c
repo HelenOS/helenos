@@ -34,7 +34,7 @@
  * @file
  */
 
-#include <cap.h>
+#include <capa.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,11 +123,11 @@ int main(int argc, char *argv[])
 
 static errno_t size_to_human_readable(uint64_t nblocks, size_t block_size, char **rptr)
 {
-	cap_spec_t cap;
+	capa_spec_t capa;
 
-	cap_from_blocks(nblocks, block_size, &cap);
-	cap_simplify(&cap);
-	return cap_format(&cap, rptr);
+	capa_from_blocks(nblocks, block_size, &capa);
+	capa_simplify(&capa);
+	return capa_format(&capa, rptr);
 }
 
 static void print_header(void)

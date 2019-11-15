@@ -52,6 +52,7 @@ extern errno_t loader_set_args(loader_t *, const char *const[]);
 extern errno_t loader_add_inbox(loader_t *, const char *, int);
 extern errno_t loader_load_program(loader_t *);
 extern errno_t loader_run(loader_t *);
+extern void loader_run_nowait(loader_t *);
 extern void loader_abort(loader_t *);
 
 #endif

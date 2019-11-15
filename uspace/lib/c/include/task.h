@@ -35,6 +35,7 @@
 #ifndef _LIBC_TASK_H_
 #define _LIBC_TASK_H_
 
+#include <async.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <abi/proc/task.h>
@@ -55,8 +56,12 @@ extern errno_t task_kill(task_id_t);
 
 extern errno_t task_spawnv(task_id_t *, task_wait_t *, const char *path,
     const char *const []);
+extern errno_t task_spawnv_debug(task_id_t *, task_wait_t *, const char *path,
+    const char *const [], async_sess_t **);
 extern errno_t task_spawnvf(task_id_t *, task_wait_t *, const char *path,
     const char *const [], int, int, int);
+extern errno_t task_spawnvf_debug(task_id_t *, task_wait_t *, const char *path,
+    const char *const [], int, int, int, async_sess_t **);
 extern errno_t task_spawn(task_id_t *, task_wait_t *, const char *path, int,
     va_list ap);
 extern errno_t task_spawnl(task_id_t *, task_wait_t *, const char *path, ...)

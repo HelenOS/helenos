@@ -186,6 +186,9 @@ static const size_t _offset = ALIGN_UP(sizeof(size_t), alignof(max_align_t));
 
 void *malloc(size_t size)
 {
+	if (size + _offset < size)
+		return NULL;
+
 	void *obj = mem_alloc(alignof(max_align_t), size + _offset) + _offset;
 
 	/* Remember the allocation size just before the object. */

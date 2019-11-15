@@ -53,7 +53,7 @@ static void waitq_destroy(void *arg)
 	slab_free(waitq_cache, wq);
 }
 
-static kobject_ops_t waitq_kobject_ops = {
+kobject_ops_t waitq_kobject_ops = {
 	.destroy = waitq_destroy
 };
 
@@ -99,7 +99,7 @@ sys_errno_t sys_waitq_create(uspace_ptr_cap_waitq_handle_t whandle)
 		slab_free(waitq_cache, wq);
 		return (sys_errno_t) ENOMEM;
 	}
-	kobject_initialize(kobj, KOBJECT_TYPE_WAITQ, wq, &waitq_kobject_ops);
+	kobject_initialize(kobj, KOBJECT_TYPE_WAITQ, wq);
 
 	cap_handle_t handle;
 	errno_t rc = cap_alloc(TASK, &handle);

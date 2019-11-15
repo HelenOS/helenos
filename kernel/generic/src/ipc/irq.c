@@ -305,7 +305,7 @@ static void irq_destroy(void *arg)
 	slab_free(irq_cache, irq);
 }
 
-static kobject_ops_t irq_kobject_ops = {
+kobject_ops_t irq_kobject_ops = {
 	.destroy = irq_destroy
 };
 
@@ -384,7 +384,7 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 
-	kobject_initialize(kobject, KOBJECT_TYPE_IRQ, irq, &irq_kobject_ops);
+	kobject_initialize(kobject, KOBJECT_TYPE_IRQ, irq);
 	cap_publish(TASK, handle, kobject);
 
 	return EOK;

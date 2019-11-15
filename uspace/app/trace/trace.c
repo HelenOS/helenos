@@ -46,7 +46,6 @@
 #include <task.h>
 #include <mem.h>
 #include <str.h>
-#include <loader/loader.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <fibril_synch.h>
@@ -85,28 +84,17 @@ static kbd_event_t cev;
 
 void thread_trace_start(uintptr_t thread_hash);
 
+static char *cmd_path;
+static char **cmd_args;
+
 static task_id_t task_id;
-static loader_t *task_ldr;
+static task_wait_t task_w;
 static bool task_wait_for;
 
 /** Combination of events/data to print. */
 display_mask_t display_mask;
 
-static errno_t program_run_fibril(void *arg);
 static errno_t cev_fibril(void *arg);
-
-static void program_run(void)
-{
-	fid_t fid;
-
-	fid = fibril_create(program_run_fibril, NULL);
-	if (fid == 0) {
-		printf("Error creating fibril\n");
-		exit(1);
-	}
-
-	fibril_add_ready(fid);
-}
 
 static void cev_fibril_start(void)
 {
@@ -121,58 +109,75 @@ static void cev_fibril_start(void)
 	fibril_add_ready(fid);
 }
 
-static errno_t program_run_fibril(void *arg)
+static errno_t program_run(void)
 {
 	errno_t rc;
 
-	/*
-	 * This must be done in background as it will block until
-	 * we let the task reply to this call.
-	 */
-	rc = loader_run(task_ldr);
-	if (rc != EOK) {
-		printf("Error running program\n");
-		exit(1);
+	rc = task_spawnv_debug(&task_id, &task_w, cmd_path,
+	    (const char *const *)cmd_args, &sess);
+
+	if (rc == ENOTSUP) {
+		printf("You do not have userspace debugging support "
+		    "compiled in the kernel.\n");
+		printf("Compile kernel with 'Support for userspace debuggers' "
+		    "(CONFIG_UDEBUG) enabled.\n");
 	}
 
-	task_ldr = NULL;
+	if (rc != EOK) {
+		printf("Error running program (%s)\n", str_error_name(rc));
+		return rc;
+	}
 
-	printf("program_run_fibril exiting\n");
-	return 0;
+	return EOK;
 }
 
 static errno_t connect_task(task_id_t task_id)
 {
-	async_sess_t *ksess = async_connect_kbox(task_id);
+	errno_t rc;
+	bool debug_started = false;
+	bool wait_set_up = false;
 
-	if (!ksess) {
-		if (errno == ENOTSUP) {
-			printf("You do not have userspace debugging support "
-			    "compiled in the kernel.\n");
-			printf("Compile kernel with 'Support for userspace debuggers' "
-			    "(CONFIG_UDEBUG) enabled.\n");
-			return errno;
+	if (sess == NULL) {
+		sess = async_connect_kbox(task_id);
+		if (sess == NULL) {
+			printf("Error connecting to task %" PRIu64 ".\n",
+			    task_id);
+			rc = EIO;
+			goto error;
 		}
 
-		printf("Error connecting\n");
-		printf("ipc_connect_task(%" PRIu64 ") -> %s ", task_id, str_error_name(errno));
-		return errno;
+		rc = udebug_begin(sess);
+		if (rc != EOK) {
+			printf("Error starting debug session.\n");
+			goto error;
+		}
+
+		debug_started = true;
+
+		rc = task_setup_wait(task_id, &task_w);
+		if (rc != EOK) {
+			printf("Error setting up wait for task termination.\n");
+			goto error;
+		}
+
+		wait_set_up = true;
 	}
 
-	errno_t rc = udebug_begin(ksess);
-	if (rc != EOK) {
-		printf("udebug_begin() -> %s\n", str_error_name(rc));
-		return rc;
-	}
-
-	rc = udebug_set_evmask(ksess, UDEBUG_EM_ALL);
+	rc = udebug_set_evmask(sess, UDEBUG_EM_ALL);
 	if (rc != EOK) {
 		printf("udebug_set_evmask(0x%x) -> %s\n ", UDEBUG_EM_ALL, str_error_name(rc));
 		return rc;
 	}
 
-	sess = ksess;
-	return 0;
+	return EOK;
+error:
+	if (wait_set_up)
+		task_cancel_wait(&task_w);
+	if (debug_started)
+		udebug_end(sess);
+	if (sess != NULL)
+		async_hangup(sess);
+	return rc;
 }
 
 static errno_t get_thread_list(void)
@@ -197,7 +202,7 @@ static errno_t get_thread_list(void)
 	}
 	printf("\ntotal of %zu threads\n", tb_needed / sizeof(uintptr_t));
 
-	return 0;
+	return EOK;
 }
 
 void val_print(sysarg_t val, val_type_t v_type)
@@ -487,7 +492,7 @@ static errno_t trace_loop(void *thread_hash_arg)
 	}
 
 	printf("Finished tracing thread [%d].\n", thread_id);
-	return 0;
+	return EOK;
 }
 
 void thread_trace_start(uintptr_t thread_hash)
@@ -501,78 +506,6 @@ void thread_trace_start(uintptr_t thread_hash)
 		printf("Warning: Failed creating fibril\n");
 	}
 	fibril_add_ready(fid);
-}
-
-static loader_t *preload_task(const char *path, char **argv,
-    task_id_t *task_id)
-{
-	loader_t *ldr;
-	errno_t rc;
-
-	/* Spawn a program loader */
-	ldr = loader_connect();
-	if (ldr == NULL)
-		return NULL;
-
-	/* Get task ID. */
-	rc = loader_get_task_id(ldr, task_id);
-	if (rc != EOK)
-		goto error;
-
-	/* Send program. */
-	rc = loader_set_program_path(ldr, path);
-	if (rc != EOK)
-		goto error;
-
-	/* Send arguments */
-	rc = loader_set_args(ldr, (const char **) argv);
-	if (rc != EOK)
-		goto error;
-
-	/* Send default files */
-	int fd_root;
-	int fd_stdin;
-	int fd_stdout;
-	int fd_stderr;
-
-	fd_root = vfs_root();
-	if (fd_root >= 0) {
-		rc = loader_add_inbox(ldr, "root", fd_root);
-		vfs_put(fd_root);
-		if (rc != EOK)
-			goto error;
-	}
-
-	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK)) {
-		rc = loader_add_inbox(ldr, "stdin", fd_stdin);
-		if (rc != EOK)
-			goto error;
-	}
-
-	if ((stdout != NULL) && (vfs_fhandle(stdout, &fd_stdout) == EOK)) {
-		rc = loader_add_inbox(ldr, "stdout", fd_stdout);
-		if (rc != EOK)
-			goto error;
-	}
-
-	if ((stderr != NULL) && (vfs_fhandle(stderr, &fd_stderr) == EOK)) {
-		rc = loader_add_inbox(ldr, "stderr", fd_stderr);
-		if (rc != EOK)
-			goto error;
-	}
-
-	/* Load the program. */
-	rc = loader_load_program(ldr);
-	if (rc != EOK)
-		goto error;
-
-	/* Success */
-	return ldr;
-
-	/* Error exit */
-error:
-	loader_abort(ldr);
-	return NULL;
 }
 
 static errno_t cev_fibril(void *arg)
@@ -806,7 +739,6 @@ static int parse_args(int argc, char *argv[])
 				--argc;
 				++argv;
 				task_id = strtol(*argv, &err_p, 10);
-				task_ldr = NULL;
 				task_wait_for = false;
 				if (*err_p) {
 					printf("Task ID syntax error\n");
@@ -847,7 +779,8 @@ static int parse_args(int argc, char *argv[])
 	while (*cp)
 		printf("'%s'\n", *cp++);
 
-	task_ldr = preload_task(*argv, argv, &task_id);
+	cmd_path = *argv;
+	cmd_args = argv;
 	task_wait_for = true;
 
 	return 0;
@@ -869,6 +802,9 @@ int main(int argc, char *argv[])
 
 	main_init();
 
+	if (cmd_path != NULL)
+		program_run();
+
 	rc = connect_task(task_id);
 	if (rc != EOK) {
 		printf("Failed connecting to task %" PRIu64 ".\n", task_id);
@@ -877,16 +813,13 @@ int main(int argc, char *argv[])
 
 	printf("Connected to task %" PRIu64 ".\n", task_id);
 
-	if (task_ldr != NULL)
-		program_run();
-
 	cev_fibril_start();
 	trace_task(task_id);
 
 	if (task_wait_for) {
 		printf("Waiting for task to exit.\n");
 
-		rc = task_wait_task_id(task_id, &texit, &retval);
+		rc = task_wait(&task_w, &texit, &retval);
 		if (rc != EOK) {
 			printf("Failed waiting for task.\n");
 			return -1;

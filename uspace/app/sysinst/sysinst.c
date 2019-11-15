@@ -37,7 +37,7 @@
 
 #include <block.h>
 #include <byteorder.h>
-#include <cap.h>
+#include <capa.h>
 #include <errno.h>
 #include <fdisk.h>
 #include <loc.h>
@@ -97,7 +97,7 @@ static errno_t sysinst_label_dev(const char *dev, service_id_t *psvc_id)
 	fdisk_part_t *part;
 	fdisk_part_spec_t pspec;
 	fdisk_part_info_t pinfo;
-	cap_spec_t cap;
+	capa_spec_t capa;
 	service_id_t sid;
 	errno_t rc;
 
@@ -136,14 +136,14 @@ static errno_t sysinst_label_dev(const char *dev, service_id_t *psvc_id)
 
 	printf("sysinst_label_dev(): create partition\n");
 
-	rc = fdisk_part_get_max_avail(fdev, spc_pri, &cap);
+	rc = fdisk_part_get_max_avail(fdev, spc_pri, &capa);
 	if (rc != EOK) {
 		printf("Error getting available capacity: %s.\n", str_error(rc));
 		return rc;
 	}
 
 	fdisk_pspec_init(&pspec);
-	pspec.capacity = cap;
+	pspec.capacity = capa;
 	pspec.pkind = lpk_primary;
 	pspec.fstype = fs_ext4; /* Cannot be changed without modifying core.img */
 	pspec.mountp = MOUNT_POINT;

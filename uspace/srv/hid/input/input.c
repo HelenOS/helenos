@@ -65,13 +65,14 @@
 #include "mouse_proto.h"
 #include "serial.h"
 
-#define NUM_LAYOUTS  4
+#define NUM_LAYOUTS 5
 
 static layout_ops_t *layout[NUM_LAYOUTS] = {
 	&us_qwerty_ops,
 	&us_dvorak_ops,
 	&cz_ops,
-	&ar_ops
+	&ar_ops,
+	&fr_azerty_ops
 };
 
 typedef struct {
@@ -207,32 +208,31 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 
 	// TODO: More elegant layout switching
 
-	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
-	    (key == KC_F1)) {
-		layout_destroy(kdev->active_layout);
-		kdev->active_layout = layout_create(layout[0]);
-		return;
-	}
-
-	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
-	    (key == KC_F2)) {
-		layout_destroy(kdev->active_layout);
-		kdev->active_layout = layout_create(layout[1]);
-		return;
-	}
-
-	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
-	    (key == KC_F3)) {
-		layout_destroy(kdev->active_layout);
-		kdev->active_layout = layout_create(layout[2]);
-		return;
-	}
-
-	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
-	    (key == KC_F4)) {
-		layout_destroy(kdev->active_layout);
-		kdev->active_layout = layout_create(layout[3]);
-		return;
+	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL)) {
+		switch (key) {
+		case KC_F1:
+			layout_destroy(kdev->active_layout);
+			kdev->active_layout = layout_create(layout[0]);
+			break;
+		case KC_F2:
+			layout_destroy(kdev->active_layout);
+			kdev->active_layout = layout_create(layout[1]);
+			break;
+		case KC_F3:
+			layout_destroy(kdev->active_layout);
+			kdev->active_layout = layout_create(layout[2]);
+			break;
+		case KC_F4:
+			layout_destroy(kdev->active_layout);
+			kdev->active_layout = layout_create(layout[3]);
+			break;
+		case KC_F5:
+			layout_destroy(kdev->active_layout);
+			kdev->active_layout = layout_create(layout[4]);
+			break;
+		default: // default: is here to avoid compiler warning about unhandled cases
+			break;
+		}
 	}
 
 	ev.type = type;

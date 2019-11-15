@@ -344,6 +344,29 @@ errno_t loader_run(loader_t *ldr)
 	return EOK;
 }
 
+/** Instruct loader to execute the program and do not wait for reply.
+ *
+ * This function does not block even if the loaded task is stopped
+ * for debugging.
+ *
+ * After using this function, no further operations can be performed
+ * on the loader structure and it is deallocated.
+ *
+ * @param ldr Loader connection structure.
+ *
+ * @return Zero on success or an error code.
+ *
+ */
+void loader_run_nowait(loader_t *ldr)
+{
+	async_exch_t *exch = async_exchange_begin(ldr->sess);
+	async_msg_0(exch, LOADER_RUN);
+	async_exchange_end(exch);
+
+	async_hangup(ldr->sess);
+	free(ldr);
+}
+
 /** Cancel the loader session.
  *
  * Tell the loader not to load any program and terminate.

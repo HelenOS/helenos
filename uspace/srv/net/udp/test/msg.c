@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief Keyboard layout interface.
- * @ingroup input
- * @{
- */
-/** @file
- */
+#include <pcut/pcut.h>
+#include <str.h>
+#include "../msg.h"
 
-#ifndef KBD_LAYOUT_H_
-#define KBD_LAYOUT_H_
+PCUT_INIT;
 
-#include <io/console.h>
+PCUT_TEST_SUITE(msg);
 
-/** Layout instance state */
-typedef struct layout {
-	/** Ops structure */
-	struct layout_ops *ops;
+/** Test creating and deleting dummy message */
+PCUT_TEST(new_delete)
+{
+	udp_msg_t *msg;
 
-	/* Layout-private data */
-	void *layout_priv;
-} layout_t;
+	msg = udp_msg_new();
+	udp_msg_delete(msg);
+}
 
-/** Layout ops */
-typedef struct layout_ops {
-	errno_t (*create)(layout_t *);
-	void (*destroy)(layout_t *);
-	wchar_t (*parse_ev)(layout_t *, kbd_event_t *);
-} layout_ops_t;
+/** Test creating, filling in and deleting message */
+PCUT_TEST(new_fill_in_delete)
+{
+	udp_msg_t *msg;
+	const char *msgstr = "Hello";
 
-extern layout_ops_t us_qwerty_ops;
-extern layout_ops_t us_dvorak_ops;
-extern layout_ops_t cz_ops;
-extern layout_ops_t ar_ops;
-extern layout_ops_t fr_azerty_ops;
+	msg = udp_msg_new();
+	PCUT_ASSERT_NOT_NULL(msg);
+	msg->data_size = str_size(msgstr) + 1;
+	msg->data = str_dup(msgstr);
 
-extern layout_t *layout_create(layout_ops_t *);
-extern void layout_destroy(layout_t *);
-extern wchar_t layout_parse_ev(layout_t *, kbd_event_t *);
+	udp_msg_delete(msg);
+}
 
-#endif
-
-/**
- * @}
- */
+PCUT_EXPORT(msg);

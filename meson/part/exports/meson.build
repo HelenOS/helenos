@@ -61,6 +61,7 @@ export_ldlibs = [
 cc_arch = meson.get_cross_property('cc_arch')
 
 conf_data = configuration_data({
+	'HELENOS_OVERLAY_PATH' : meson.source_root() / 'uspace/overlay',
 	'HELENOS_CROSS_PATH' : cc_path,
 	'HELENOS_ARCH' : cc_arch,
 	'HELENOS_CFLAGS' : ' '.join(arch_uspace_c_args),

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief Keyboard layout interface.
- * @ingroup input
+/** @addtogroup udp
  * @{
  */
-/** @file
+/** @file UDP client associations
  */
 
-#ifndef KBD_LAYOUT_H_
-#define KBD_LAYOUT_H_
+#ifndef CASSOC_H
+#define CASSOC_H
 
-#include <io/console.h>
+#include <errno.h>
+#include "udp_type.h"
 
-/** Layout instance state */
-typedef struct layout {
-	/** Ops structure */
-	struct layout_ops *ops;
-
-	/* Layout-private data */
-	void *layout_priv;
-} layout_t;
-
-/** Layout ops */
-typedef struct layout_ops {
-	errno_t (*create)(layout_t *);
-	void (*destroy)(layout_t *);
-	wchar_t (*parse_ev)(layout_t *, kbd_event_t *);
-} layout_ops_t;
-
-extern layout_ops_t us_qwerty_ops;
-extern layout_ops_t us_dvorak_ops;
-extern layout_ops_t cz_ops;
-extern layout_ops_t ar_ops;
-extern layout_ops_t fr_azerty_ops;
-
-extern layout_t *layout_create(layout_ops_t *);
-extern void layout_destroy(layout_t *);
-extern wchar_t layout_parse_ev(layout_t *, kbd_event_t *);
+errno_t udp_cassoc_create(udp_client_t *, udp_assoc_t *, udp_cassoc_t **);
+void udp_cassoc_destroy(udp_cassoc_t *);
+errno_t udp_cassoc_get(udp_client_t *, sysarg_t, udp_cassoc_t **);
+errno_t udp_cassoc_queue_msg(udp_cassoc_t *, inet_ep2_t *, udp_msg_t *);
 
 #endif
 
-/**
- * @}
+/** @}
  */

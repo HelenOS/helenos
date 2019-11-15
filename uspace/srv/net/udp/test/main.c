@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inputgen generic
- * @brief Keyboard layout interface.
- * @ingroup input
- * @{
- */
-/** @file
- */
+#include <pcut/pcut.h>
 
-#ifndef KBD_LAYOUT_H_
-#define KBD_LAYOUT_H_
+PCUT_INIT;
 
-#include <io/console.h>
+PCUT_IMPORT(assoc);
+PCUT_IMPORT(msg);
+PCUT_IMPORT(pdu);
 
-/** Layout instance state */
-typedef struct layout {
-	/** Ops structure */
-	struct layout_ops *ops;
-
-	/* Layout-private data */
-	void *layout_priv;
-} layout_t;
-
-/** Layout ops */
-typedef struct layout_ops {
-	errno_t (*create)(layout_t *);
-	void (*destroy)(layout_t *);
-	wchar_t (*parse_ev)(layout_t *, kbd_event_t *);
-} layout_ops_t;
-
-extern layout_ops_t us_qwerty_ops;
-extern layout_ops_t us_dvorak_ops;
-extern layout_ops_t cz_ops;
-extern layout_ops_t ar_ops;
-extern layout_ops_t fr_azerty_ops;
-
-extern layout_t *layout_create(layout_ops_t *);
-extern void layout_destroy(layout_t *);
-extern wchar_t layout_parse_ev(layout_t *, kbd_event_t *);
-
-#endif
-
-/**
- * @}
- */
+PCUT_MAIN();

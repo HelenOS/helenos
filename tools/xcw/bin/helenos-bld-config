@@ -26,14 +26,26 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Test run in emulator
+# Get build configration information
 # HelenOS Cross Compiler Wrapper (XCW)
 # Facilitate cross-compiling external software to HelenOS
 #
 
 XCW="$(dirname "$0")"
 BUILD_ROOT="$(dirname "$(dirname "$(dirname "$XCW")")")"
+if [ -z "$EXPORT_DIR" ]; then
+	EXPORT_DIR="$BUILD_ROOT/export"
+fi
 
-cd "$BUILD_ROOT"
-ninja image_path
-tools/ew.py
+HELENOS_EXPORT_ROOT="$EXPORT_DIR"
+
+source "${EXPORT_DIR}/config.sh"
+
+case ".$1" in
+*.--install-dir) echo "$HELENOS_OVERLAY_PATH";;
+(*)
+	echo "Unknown option $1" >&2
+	echo "Usage: helenos-bld-config <option>" >&2
+	echo "        --install-dir Print directory where files should be installed" >&2
+	exit 1;;
+esac

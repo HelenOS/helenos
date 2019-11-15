@@ -64,7 +64,7 @@ src += files(
 	'generic/bd.c',
 	'generic/bd_srv.c',
 	'generic/perm.c',
-	'generic/cap.c',
+	'generic/capa.c',
 	'generic/clipboard.c',
 	'generic/config.c',
 	'generic/context.c',
@@ -203,7 +203,7 @@ endif
 test_src = files(
 	'test/adt/circ_buf.c',
 	'test/adt/odict.c',
-	'test/cap.c',
+	'test/capa.c',
 	'test/casting.c',
 	'test/double_to_str.c',
 	'test/fibril/timer.c',

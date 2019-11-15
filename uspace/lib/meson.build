@@ -36,6 +36,9 @@ installed_libs = [
 	'draw',
 	'softrend',
 	'posix',
+	'clui',
+	'pcm',
+	'hound'
 ]
 
 # IMPORTANT: Dependencies must be listed before libs that depend on them.

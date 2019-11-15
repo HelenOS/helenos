@@ -37,6 +37,9 @@
 
 #include <typedefs.h>
 #include <abi/cap.h>
+#include <cap/cap.h>
+
+extern kobject_ops_t waitq_kobject_ops;
 
 extern void sys_waitq_init(void);
 

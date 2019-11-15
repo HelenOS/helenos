@@ -35,6 +35,12 @@
 #ifndef _ABI_SYSCALL_H_
 #define _ABI_SYSCALL_H_
 
+/** System calls.
+ *
+ * If you are adding or removing syscalls, or changing the number of
+ * their arguments, please update syscall description table
+ * in @c uspace/app/trace/syscalls.c
+ */
 typedef enum {
 	SYS_KIO = 0,
 

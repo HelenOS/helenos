@@ -32,10 +32,11 @@
 #
 
 XCW="$(dirname "$0")"
-SRC_ROOT="$XCW/../../.."
+BUILD_ROOT="$(dirname "$(dirname "$(dirname "$XCW")")")"
 if [ -z "$EXPORT_DIR" ]; then
-	EXPORT_DIR="$SRC_ROOT/build/dist"
+	EXPORT_DIR="$BUILD_ROOT/export"
 fi
+
 INCLUDE_DIR="$EXPORT_DIR/include"
 LIB_DIR="$EXPORT_DIR/lib"
 
