@@ -45,6 +45,9 @@
 #include <vfs/vfs.h>
 #include <vfs/inbox.h>
 #include <io/kio.h>
+#include <str.h>
+#include <stats.h>
+
 #include "private/libc.h"
 #include "private/async.h"
 #include "private/io.h"
@@ -65,11 +68,19 @@ static fibril_t main_fibril;
 static void initialize_taskman(pcb_t *pcb)
 {
 	if (__pcb == NULL) {
-		async_sess_t *session_tm = taskman_connect();
-		if (session_tm == NULL) {
+		//make sure taskman does not initialize itself
+		stats_task_t *stats = stats_get_task(task_get_id());
+		if (stats == NULL || stats->name == NULL)
 			abort();
+
+		if (str_cmp(stats->name, "init:taskman") != 0) {
+			async_sess_t *session_tm = taskman_connect();
+			if (session_tm == NULL)
+				abort();
+			__task_init(session_tm);
 		}
-		__task_init(session_tm);
+
+		free(stats);
 	} else {
 		__task_init(__pcb->session_taskman);
 	}
