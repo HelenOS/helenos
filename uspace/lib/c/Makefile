@@ -166,7 +166,6 @@ GENERIC_SOURCES = \
 	generic/arg_parse.c \
 	generic/stats.c \
 	generic/taskman.c \
-	generic/taskman_noasync.c \
 	generic/assert.c \
 	generic/bsearch.c \
 	generic/pci.c \
