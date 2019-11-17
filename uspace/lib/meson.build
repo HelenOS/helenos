@@ -38,7 +38,10 @@ installed_libs = [
 	'posix',
 	'clui',
 	'pcm',
-	'hound'
+	'hound',
+	'gfx',
+	'ipcgfx',
+	'display',
 ]
 
 # IMPORTANT: Dependencies must be listed before libs that depend on them.
