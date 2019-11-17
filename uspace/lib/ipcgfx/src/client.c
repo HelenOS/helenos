@@ -143,7 +143,7 @@ errno_t ipc_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 		ipcbm->alloc.pixels = as_area_create(AS_AREA_ANY,
 		    dim.x * dim.y * sizeof(uint32_t), AS_AREA_READ |
 		    AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
-		if (ipcbm->alloc.pixels == NULL) {
+		if (ipcbm->alloc.pixels == AS_MAP_FAILED) {
 			rc = ENOMEM;
 			goto error;
 		}

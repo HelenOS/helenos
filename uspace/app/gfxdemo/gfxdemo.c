@@ -472,6 +472,7 @@ static errno_t demo_display(void)
 	rc = display_window_get_gc(window, &gc);
 	if (rc != EOK) {
 		printf("Error getting graphics context.\n");
+		return rc;
 	}
 
 	rc = demo_loop(gc, 400, 300);
