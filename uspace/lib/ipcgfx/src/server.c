@@ -261,34 +261,23 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 
 		switch (method) {
 		case GC_SET_RGB_COLOR:
-			printf("gc_conn: set_rgb_color\n");
 			gc_set_rgb_color_srv(&srvgc, &call);
-			printf("gc_conn: done set_rgb_color\n");
 			break;
 		case GC_FILL_RECT:
-			printf("gc_conn: fill_rect_srv\n");
 			gc_fill_rect_srv(&srvgc, &call);
-			printf("gc_conn: done fill_rect_srv\n");
 			break;
 		case GC_BITMAP_CREATE:
-			printf("gc_conn: bitmap_create_srv\n");
 			gc_bitmap_create_srv(&srvgc, &call);
-			printf("gc_conn: done bitmap_create_srv\n");
 			break;
 		case GC_BITMAP_DESTROY:
-			printf("gc_conn: bitmap_destroy_srv\n");
 			gc_bitmap_destroy_srv(&srvgc, &call);
-			printf("gc_conn: done bitmap_destroy_srv\n");
 			break;
 		case GC_BITMAP_RENDER:
-			printf("gc_conn: bitmap_render_srv\n");
 			gc_bitmap_render_srv(&srvgc, &call);
-			printf("gc_conn: done bitmap_render_srv\n");
 			break;
 		default:
-			printf("gc_conn: answer einval\n");
 			async_answer_0(&call, EINVAL);
-			printf("gc_conn: done answer einval\n");
+			break;
 		}
 	}
 
@@ -304,7 +293,6 @@ static ipc_gc_srv_bitmap_t *gc_bitmap_lookup(ipc_gc_srv_t *srvgc,
 	link = list_first(&srvgc->bitmaps);
 	while (link != NULL) {
 		bmp = list_get_instance(link, ipc_gc_srv_bitmap_t, lbitmaps);
-		printf("gc_bitmap_lookup: %lu==%lu?\n", bmp->bmp_id, bmp_id);
 		if (bmp->bmp_id == bmp_id)
 			return bmp;
 		link = list_next(link, &srvgc->bitmaps);

@@ -61,8 +61,6 @@ gfx_context_ops_t ipc_gc_ops = {
 	.bitmap_get_alloc = ipc_gc_bitmap_get_alloc
 };
 
-#include <stdio.h>
-
 /** Set color on IPC GC.
  *
  * Set drawing color on IPC GC.
@@ -79,7 +77,6 @@ static errno_t ipc_gc_set_color(void *arg, gfx_color_t *color)
 	uint16_t r, g, b;
 	errno_t rc;
 
-	printf("ipc_gc_set_color\n");
 	gfx_color_get_rgb_i16(color, &r, &g, &b);
 
 	exch = async_exchange_begin(ipcgc->sess);
@@ -102,7 +99,6 @@ static errno_t ipc_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	async_exch_t *exch;
 	errno_t rc;
 
-	printf("ipc_gc_fill_rect\n");
 	exch = async_exchange_begin(ipcgc->sess);
 	rc = async_req_4_0(exch, GC_FILL_RECT, rect->p0.x, rect->p0.y,
 	    rect->p1.x, rect->p1.y);
@@ -204,8 +200,6 @@ static errno_t ipc_gc_bitmap_destroy(void *bm)
 	ipc_gc_bitmap_t *ipcbm = (ipc_gc_bitmap_t *)bm;
 	async_exch_t *exch;
 	errno_t rc;
-
-	printf("ipc_gc_bitmap_destroy\n");
 
 	exch = async_exchange_begin(ipcbm->ipcgc->sess);
 	rc = async_req_1_0(exch, GC_BITMAP_DESTROY, ipcbm->bmp_id);
