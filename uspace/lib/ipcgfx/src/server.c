@@ -162,7 +162,8 @@ static void gc_bitmap_create_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 	list_append(&srvbmp->lbitmaps, &srvgc->bitmaps);
 	srvbmp->bmp = bitmap;
 	srvbmp->bmp_id = srvgc->next_bmp_id++;
-	printf("gc_bitmap_create_srv: storing bmp_id=%lu\n", srvbmp->bmp_id);
+	printf("gc_bitmap_create_srv: storing bmp_id=%u\n",
+	    (unsigned) srvbmp->bmp_id);
 
 	async_answer_1(icall, EOK, srvbmp->bmp_id);
 }

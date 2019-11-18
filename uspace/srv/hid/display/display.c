@@ -207,15 +207,15 @@ ds_window_t *ds_display_find_window(ds_display_t *display, ds_wnd_id_t id)
 	ds_client_t *client;
 	ds_window_t *wnd;
 
-	printf("ds_display_find_window: id=0x%lx\n", id);
+	printf("ds_display_find_window: id=0x%x\n", (unsigned) id);
 
 	client = ds_display_first_client(display);
 	while (client != NULL) {
 		printf("ds_display_find_window: client=%p\n", client);
 		wnd = ds_client_find_window(client, id);
 		if (wnd != NULL) {
-			printf("ds_display_find_window: found wnd=%p id=0x%lx\n",
-			    wnd, wnd->id);
+			printf("ds_display_find_window: found wnd=%p id=0x%x\n",
+			    wnd, (unsigned) wnd->id);
 			return wnd;
 		}
 		client = ds_display_next_client(client);

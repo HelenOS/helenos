@@ -153,7 +153,7 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		}
 
-		printf("display_conn method=%lu\n", method);
+		printf("display_conn method=%u\n", (unsigned) method);
 		switch (method) {
 		case DISPLAY_CALLBACK_CREATE:
 			display_callback_create_srv(srv, &call);
