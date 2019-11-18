@@ -265,7 +265,7 @@ static bool term_update_scroll(terminal_t *term, pixelmap_t *pixelmap,
 static bool term_update_cursor(terminal_t *term, pixelmap_t *pixelmap,
     sysarg_t sx, sysarg_t sy)
 {
-	bool damage = false;
+	bool update = false;
 
 	sysarg_t front_col;
 	sysarg_t front_row;
@@ -285,17 +285,17 @@ static bool term_update_cursor(terminal_t *term, pixelmap_t *pixelmap,
 		chargrid_set_cursor_visibility(term->backbuf,
 		    front_visibility);
 		term_update_char(term, pixelmap, sx, sy, back_col, back_row);
-		damage = true;
+		update = true;
 	}
 
 	if ((front_col != back_col) || (front_row != back_row)) {
 		chargrid_set_cursor(term->backbuf, front_col, front_row);
 		term_update_char(term, pixelmap, sx, sy, back_col, back_row);
 		term_update_char(term, pixelmap, sx, sy, front_col, front_row);
-		damage = true;
+		update = true;
 	}
 
-	return damage;
+	return update;
 }
 
 static void term_update(terminal_t *term)
@@ -314,12 +314,12 @@ static void term_update(terminal_t *term)
 	pixelmap.height = term->h;
 	pixelmap.data = alloc.pixels;
 
-	bool damage = false;
+	bool update = false;
 	sysarg_t sx = 0/*term->widget.hpos*/;
 	sysarg_t sy = 0/*term->widget.vpos*/;
 
 	if (term_update_scroll(term, &pixelmap, sx, sy)) {
-		damage = true;
+		update = true;
 	} else {
 		for (sysarg_t y = 0; y < term->rows; y++) {
 			for (sysarg_t x = 0; x < term->cols; x++) {
@@ -347,21 +347,21 @@ static void term_update(terminal_t *term)
 
 				if (update) {
 					term_update_char(term, &pixelmap, sx, sy, x, y);
-					damage = true;
+					update = true;
 				}
 			}
 		}
 	}
 
 	if (term_update_cursor(term, &pixelmap, sx, sy))
-		damage = true;
+		update = true;
 
-	(void) damage; // XXX
+	(void) update; // XXX
 
 	fibril_mutex_unlock(&term->mtx);
 }
 
-static void term_damage(terminal_t *term)
+static void term_repaint(terminal_t *term)
 {
 	pixelmap_t pixelmap;
 	gfx_bitmap_alloc_t alloc;
@@ -799,7 +799,7 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 	list_append(&term->link, &terms);
 	getterm(vc, "/app/bdsh");
 
-	term_damage(term);
+	term_repaint(term);
 
 	*rterm = term;
 	return EOK;
