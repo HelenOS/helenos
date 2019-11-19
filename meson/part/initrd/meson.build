@@ -98,6 +98,7 @@ dist = custom_target('DIST',
 	output: 'dist.tag',
 	input: [ install_script, install_deps ],
 	command: [ sh, '@INPUT0@', '@OUTPUT@', dist_dir ],
+	build_always_stale: true,
 )
 
 # Build initrd image
