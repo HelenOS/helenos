@@ -34,6 +34,8 @@
  */
 
 #include <gfx/coord.h>
+#include <macros.h>
+#include <stdbool.h>
 
 /** Add two vectors.
  *
@@ -59,6 +61,29 @@ void gfx_coord2_subtract(gfx_coord2_t *a, gfx_coord2_t *b, gfx_coord2_t *d)
 	d->y = a->y - b->y;
 }
 
+/** Sort points of a span.
+ *
+ * Sort the begin and end points so that the begin point has the lower
+ * coordinate (i.e. if needed, the span is transposed, if not, it is simply
+ * copied).
+ *
+ * @param s0 Source span start point
+ * @param s1 Source span end point
+ * @param d0 Destination span start point
+ * @param d1 Destination span end point
+ */
+void gfx_span_points_sort(gfx_coord_t s0, gfx_coord_t s1, gfx_coord_t *d0,
+    gfx_coord_t *d1)
+{
+	if (s0 <= s1) {
+		*d0 = s0;
+		*d1 = s1;
+	} else {
+		*d0 = s1 + 1;
+		*d1 = s0 + 1;
+	}
+}
+
 /** Move (translate) rectangle.
  *
  * @param trans Translation
@@ -69,6 +94,59 @@ void gfx_rect_translate(gfx_coord2_t *trans, gfx_rect_t *src, gfx_rect_t *dest)
 {
 	gfx_coord2_add(trans, &src->p0, &dest->p0);
 	gfx_coord2_add(trans, &src->p1, &dest->p1);
+}
+
+/** Compute envelope of two rectangles.
+ *
+ * Envelope is the minimal rectangle covering all pixels of both rectangles.
+ */
+void gfx_rect_envelope(gfx_rect_t *a, gfx_rect_t *b, gfx_rect_t *dest)
+{
+	gfx_rect_t sa, sb;
+
+	if (gfx_rect_is_empty(a)) {
+		*dest = *b;
+		return;
+	}
+
+	if (gfx_rect_is_empty(b)) {
+		*dest = *a;
+		return;
+	}
+
+	/* a and b are both non-empty */
+
+	gfx_rect_points_sort(a, &sa);
+	gfx_rect_points_sort(b, &sb);
+
+	dest->p0.x = min(sa.p0.x, sb.p0.x);
+	dest->p0.y = min(sa.p0.y, sb.p0.y);
+	dest->p1.x = max(sa.p1.x, sb.p1.x);
+	dest->p1.y = max(sa.p1.y, sb.p1.y);
+}
+
+/** Sort points of a rectangle.
+ *
+ * Shuffle around coordinates of a rectangle so that p0.x < p1.x and
+ * p0.y < p0.y.
+ *
+ * @param src Source rectangle
+ * @param dest Destination (sorted) rectangle
+ */
+void gfx_rect_points_sort(gfx_rect_t *src, gfx_rect_t *dest)
+{
+	gfx_span_points_sort(src->p0.x, src->p1.x, &dest->p0.x, &dest->p1.x);
+	gfx_span_points_sort(src->p0.y, src->p1.y, &dest->p0.y, &dest->p1.y);
+}
+
+/** Determine if rectangle contains no pixels
+ *
+ * @param rect Rectangle
+ * @return @c true iff rectangle contains no pixels
+ */
+bool gfx_rect_is_empty(gfx_rect_t *rect)
+{
+	return rect->p0.x == rect->p1.x || rect->p0.y == rect->p1.y;
 }
 
 /** @}
