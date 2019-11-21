@@ -176,13 +176,15 @@ static void term_update_region(terminal_t *term, sysarg_t x, sysarg_t y,
     sysarg_t w, sysarg_t h)
 {
 	gfx_rect_t rect;
+	gfx_rect_t nupdate;
 
 	rect.p0.x = x;
 	rect.p0.y = y;
 	rect.p1.x = x + w;
 	rect.p1.y = y + h;
 
-	(void) gfx_bitmap_render(term->bmp, &rect, NULL);
+	gfx_rect_envelope(&term->update, &rect, &nupdate);
+	term->update = nupdate;
 }
 
 static void term_update_char(terminal_t *term, pixelmap_t *pixelmap,
@@ -356,7 +358,14 @@ static void term_update(terminal_t *term)
 	if (term_update_cursor(term, &pixelmap, sx, sy))
 		update = true;
 
-	(void) update; // XXX
+	if (update) {
+		(void) gfx_bitmap_render(term->bmp, &term->update, NULL);
+
+		term->update.p0.x = 0;
+		term->update.p0.y = 0;
+		term->update.p1.x = 0;
+		term->update.p1.y = 0;
+	}
 
 	fibril_mutex_unlock(&term->mtx);
 }
@@ -800,6 +809,11 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 	getterm(vc, "/app/bdsh");
 
 	term_repaint(term);
+
+	term->update.p0.x = 0;
+	term->update.p0.y = 0;
+	term->update.p1.x = 0;
+	term->update.p1.y = 0;
 
 	*rterm = term;
 	return EOK;

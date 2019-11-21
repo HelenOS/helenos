@@ -42,6 +42,7 @@
 #include <fibril_synch.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
+#include <gfx/coord.h>
 #include <io/chargrid.h>
 #include <io/con_srv.h>
 #include <loc.h>
@@ -57,6 +58,7 @@ typedef struct {
 	gfx_bitmap_t *bmp;
 	sysarg_t w;
 	sysarg_t h;
+	gfx_rect_t update;
 
 	fibril_mutex_t mtx;
 	link_t link;
