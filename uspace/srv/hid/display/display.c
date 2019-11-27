@@ -30,10 +30,9 @@
  * @{
  */
 /**
- * @file Display management
+ * @file Display server display
  */
 
-#include <disp_srv.h>
 #include <errno.h>
 #include <gfx/context.h>
 #include <io/log.h>
@@ -41,71 +40,6 @@
 #include "client.h"
 #include "window.h"
 #include "display.h"
-
-static errno_t disp_window_create(void *, sysarg_t *);
-static errno_t disp_window_destroy(void *, sysarg_t);
-static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
-
-display_ops_t display_srv_ops = {
-	.window_create = disp_window_create,
-	.window_destroy = disp_window_destroy,
-	.get_event = disp_get_event
-};
-
-static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
-{
-	errno_t rc;
-	ds_client_t *client = (ds_client_t *) arg;
-	ds_window_t *wnd;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create()");
-
-	rc = ds_window_create(client, &wnd);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create() - ds_window_create -> %d", rc);
-	if (rc != EOK)
-		return rc;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create() -> EOK, id=%zu",
-	    wnd->id);
-
-	wnd->dpos.x = ((wnd->id - 1) & 1) * 400;
-	wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
-
-	*rwnd_id = wnd->id;
-	return EOK;
-}
-
-static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
-{
-	ds_client_t *client = (ds_client_t *) arg;
-	ds_window_t *wnd;
-
-	wnd = ds_client_find_window(client, wnd_id);
-	if (wnd == NULL)
-		return ENOENT;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_destroy()");
-	ds_client_remove_window(wnd);
-	ds_window_destroy(wnd);
-	return EOK;
-}
-
-static errno_t disp_get_event(void *arg, sysarg_t *wnd_id,
-    display_wnd_ev_t *event)
-{
-	ds_client_t *client = (ds_client_t *) arg;
-	ds_window_t *wnd;
-	errno_t rc;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_get_event()");
-
-	rc = ds_client_get_event(client, &wnd, event);
-	if (rc != EOK)
-		return rc;
-
-	*wnd_id = wnd->id;
-	return EOK;
-}
 
 /** Create display.
  *

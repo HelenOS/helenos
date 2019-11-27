@@ -30,26 +30,15 @@
  * @{
  */
 /**
- * @file Display server display
+ * @file Display ops implementation
  */
 
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#ifndef DSOPS_H
+#define DSOPS_H
 
-#include <errno.h>
-#include <gfx/context.h>
-#include <io/kbd_event.h>
-#include "types/display/client.h"
-#include "types/display/display.h"
+#include <disp_srv.h>
 
-extern errno_t ds_display_create(gfx_context_t *, ds_display_t **);
-extern void ds_display_destroy(ds_display_t *);
-extern void ds_display_add_client(ds_display_t *, ds_client_t *);
-extern void ds_display_remove_client(ds_client_t *);
-extern ds_client_t *ds_display_first_client(ds_display_t *);
-extern ds_client_t *ds_display_next_client(ds_client_t *);
-extern ds_window_t *ds_display_find_window(ds_display_t *, ds_wnd_id_t);
-extern errno_t ds_display_post_kbd_event(ds_display_t *, kbd_event_t *);
+extern display_ops_t display_srv_ops;
 
 #endif
 

@@ -46,6 +46,7 @@
 #include <task.h>
 #include "client.h"
 #include "display.h"
+#include "dsops.h"
 #include "main.h"
 #include "output.h"
 #include "window.h"
