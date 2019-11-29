@@ -41,6 +41,7 @@
 #include <io/kbd_event.h>
 #include "types/display/client.h"
 #include "types/display/display.h"
+#include "types/display/seat.h"
 
 extern errno_t ds_display_create(gfx_context_t *, ds_display_t **);
 extern void ds_display_destroy(ds_display_t *);
@@ -50,6 +51,10 @@ extern ds_client_t *ds_display_first_client(ds_display_t *);
 extern ds_client_t *ds_display_next_client(ds_client_t *);
 extern ds_window_t *ds_display_find_window(ds_display_t *, ds_wnd_id_t);
 extern errno_t ds_display_post_kbd_event(ds_display_t *, kbd_event_t *);
+extern void ds_display_add_seat(ds_display_t *, ds_seat_t *);
+extern void ds_display_remove_seat(ds_seat_t *);
+extern ds_seat_t *ds_display_first_seat(ds_display_t *);
+extern ds_seat_t *ds_display_next_seat(ds_seat_t *);
 
 #endif
 

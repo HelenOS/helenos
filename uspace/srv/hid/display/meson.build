@@ -34,12 +34,14 @@ src = files(
 	'dsops.c',
 	'main.c',
 	'output.c',
+	'seat.c',
 	'window.c',
 )
 
 test_src = files(
 	'client.c',
 	'display.c',
+	'seat.c',
 	'window.c',
 	'test/client.c',
 	'test/display.c',

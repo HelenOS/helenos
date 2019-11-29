@@ -33,6 +33,7 @@
 
 #include "../client.h"
 #include "../display.h"
+#include "../seat.h"
 #include "../window.h"
 
 PCUT_INIT;
@@ -129,10 +130,35 @@ PCUT_TEST(display_find_window)
 	ds_display_destroy(disp);
 }
 
+/** Basic seat operation. */
+PCUT_TEST(display_seat)
+{
+	ds_display_t *disp;
+	ds_seat_t *seat;
+	ds_seat_t *s0, *s1;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	s0 = ds_display_first_seat(disp);
+	PCUT_ASSERT_EQUALS(s0, seat);
+
+	s1 = ds_display_next_seat(s0);
+	PCUT_ASSERT_NULL(s1);
+
+	ds_seat_destroy(seat);
+	ds_display_destroy(disp);
+}
+
 /** Test ds_display_post_kbd_event(). */
 PCUT_TEST(display_post_kbd_event)
 {
 	ds_display_t *disp;
+	ds_seat_t *seat;
 	ds_client_t *client;
 	ds_window_t *wnd;
 	kbd_event_t event;
@@ -140,6 +166,9 @@ PCUT_TEST(display_post_kbd_event)
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -161,6 +190,7 @@ PCUT_TEST(display_post_kbd_event)
 
 	ds_window_destroy(wnd);
 	ds_client_destroy(client);
+	ds_seat_destroy(seat);
 	ds_display_destroy(disp);
 }
 

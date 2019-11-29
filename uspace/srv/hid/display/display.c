@@ -38,6 +38,7 @@
 #include <io/log.h>
 #include <stdlib.h>
 #include "client.h"
+#include "seat.h"
 #include "window.h"
 #include "display.h"
 
@@ -58,6 +59,7 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 	list_initialize(&disp->clients);
 	disp->gc = gc;
 	disp->next_wnd_id = 1;
+	list_initialize(&disp->seats);
 	*rdisp = disp;
 	return EOK;
 }
@@ -69,13 +71,14 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 void ds_display_destroy(ds_display_t *disp)
 {
 	assert(list_empty(&disp->clients));
+	assert(list_empty(&disp->seats));
 	free(disp);
 }
 
 /** Add client to display.
  *
  * @param disp Display
- * @param client client
+ * @param client Client
  */
 void ds_display_add_client(ds_display_t *disp, ds_client_t *client)
 {
@@ -88,7 +91,7 @@ void ds_display_add_client(ds_display_t *disp, ds_client_t *client)
 
 /** Remove client from display.
  *
- * @param client client
+ * @param client Client
  */
 void ds_display_remove_client(ds_client_t *client)
 {
@@ -159,22 +162,79 @@ ds_window_t *ds_display_find_window(ds_display_t *display, ds_wnd_id_t id)
 	return NULL;
 }
 
+/** Post keyboard event to a display.
+ *
+ * The event is routed to the correct window by first determining the
+ * seat the keyboard device belongs to and then the event is sent to the
+ * window focused by that seat.
+ *
+ * @param display Display
+ * @param event Event
+ */
 errno_t ds_display_post_kbd_event(ds_display_t *display, kbd_event_t *event)
 {
-	ds_client_t *client;
-	ds_window_t *wnd;
+	ds_seat_t *seat;
 
-	// XXX Correctly determine destination window
-
-	client = ds_display_first_client(display);
-	if (client == NULL)
+	// TODO Determine which seat the event belongs to
+	seat = ds_display_first_seat(display);
+	if (seat == NULL)
 		return EOK;
 
-	wnd = ds_client_first_window(client);
-	if (wnd == NULL)
-		return EOK;
+	return ds_seat_post_kbd_event(seat, event);
+}
 
-	return ds_client_post_kbd_event(client, wnd, event);
+/** Add seat to display.
+ *
+ * @param disp Display
+ * @param seat Seat
+ */
+void ds_display_add_seat(ds_display_t *disp, ds_seat_t *seat)
+{
+	assert(seat->display == NULL);
+	assert(!link_used(&seat->lseats));
+
+	seat->display = disp;
+	list_append(&seat->lseats, &disp->seats);
+}
+
+/** Remove seat from display.
+ *
+ * @param seat Seat
+ */
+void ds_display_remove_seat(ds_seat_t *seat)
+{
+	list_remove(&seat->lseats);
+	seat->display = NULL;
+}
+
+/** Get first seat in display.
+ *
+ * @param disp Display
+ * @return First seat or @c NULL if there is none
+ */
+ds_seat_t *ds_display_first_seat(ds_display_t *disp)
+{
+	link_t *link = list_first(&disp->seats);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_seat_t, lseats);
+}
+
+/** Get next seat in display.
+ *
+ * @param seat Current seat
+ * @return Next seat or @c NULL if there is none
+ */
+ds_seat_t *ds_display_next_seat(ds_seat_t *seat)
+{
+	link_t *link = list_next(&seat->lseats, &seat->display->seats);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_seat_t, lseats);
 }
 
 /** @}

@@ -36,7 +36,6 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <display/event.h>
 #include <errno.h>
 #include <types/gfx/context.h>
 #include <types/gfx/ops/context.h>

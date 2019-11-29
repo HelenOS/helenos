@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include "client.h"
 #include "display.h"
+#include "seat.h"
 #include "window.h"
 
 /** Create client.
@@ -111,6 +112,15 @@ errno_t ds_client_add_window(ds_client_t *client, ds_window_t *wnd)
  */
 void ds_client_remove_window(ds_window_t *wnd)
 {
+	ds_seat_t *seat;
+
+	/* Make sure window is no longer focused in any seat */
+	seat = ds_display_first_seat(wnd->client->display);
+	while (seat != NULL) {
+		ds_seat_evac_focus(seat, wnd);
+		seat = ds_display_next_seat(seat);
+	}
+
 	list_remove(&wnd->lwindows);
 	wnd->client = NULL;
 }

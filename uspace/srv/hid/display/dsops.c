@@ -37,8 +37,10 @@
 #include <errno.h>
 #include <io/log.h>
 #include "client.h"
-#include "window.h"
+#include "display.h"
 #include "dsops.h"
+#include "seat.h"
+#include "window.h"
 
 static errno_t disp_window_create(void *, sysarg_t *);
 static errno_t disp_window_destroy(void *, sysarg_t);
@@ -54,6 +56,7 @@ static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
 {
 	errno_t rc;
 	ds_client_t *client = (ds_client_t *) arg;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create()");
@@ -68,6 +71,14 @@ static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
 
 	wnd->dpos.x = ((wnd->id - 1) & 1) * 400;
 	wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
+
+	/*
+	 * XXX This should be performed by window manager. It needs to determine
+	 * whether the new window should get focus and which seat should
+	 * focus on it.
+	 */
+	seat = ds_display_first_seat(client->display);
+	ds_seat_set_focus(seat, wnd);
 
 	*rwnd_id = wnd->id;
 	return EOK;

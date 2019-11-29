@@ -36,6 +36,8 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include <errno.h>
+#include <io/kbd_event.h>
 #include "types/display/client.h"
 #include "types/display/display.h"
 

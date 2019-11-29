@@ -30,38 +30,23 @@
  * @{
  */
 /**
- * @file Display server display type
+ * @file Display server seat
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
+#ifndef SEAT_H
+#define SEAT_H
 
-#include <adt/list.h>
-#include <gfx/context.h>
-#include <io/input.h>
-#include "window.h"
+#include <errno.h>
+#include <io/kbd_event.h>
+#include "types/display/display.h"
+#include "types/display/seat.h"
+#include "types/display/window.h"
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
-	/** Output GC */
-	gfx_context_t *gc;
-
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
-
-	/** Seats (of ds_seat_t) */
-	list_t seats;
-} ds_display_t;
+extern errno_t ds_seat_create(ds_display_t *, ds_seat_t **);
+extern void ds_seat_destroy(ds_seat_t *);
+extern void ds_seat_set_focus(ds_seat_t *, ds_window_t *);
+extern void ds_seat_evac_focus(ds_seat_t *, ds_window_t *);
+extern errno_t ds_seat_post_kbd_event(ds_seat_t *, kbd_event_t *);
 
 #endif
 

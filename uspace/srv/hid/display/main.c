@@ -49,6 +49,7 @@
 #include "dsops.h"
 #include "main.h"
 #include "output.h"
+#include "seat.h"
 #include "window.h"
 
 static void display_client_conn(ipc_call_t *, void *);
@@ -77,12 +78,17 @@ static void display_client_ev_pending(void *arg)
 static errno_t display_srv_init(void)
 {
 	ds_display_t *disp = NULL;
+	ds_seat_t *seat = NULL;
 	gfx_context_t *gc = NULL;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_srv_init()");
 
 	rc = ds_display_create(NULL, &disp);
+	if (rc != EOK)
+		goto error;
+
+	rc = ds_seat_create(disp, &seat);
 	if (rc != EOK)
 		goto error;
 
@@ -120,6 +126,8 @@ error:
 #endif
 	if (gc != NULL)
 		gfx_context_delete(gc);
+	if (seat != NULL)
+		ds_seat_destroy(seat);
 	if (disp != NULL)
 		ds_display_destroy(disp);
 	return rc;

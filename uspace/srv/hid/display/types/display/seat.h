@@ -30,38 +30,23 @@
  * @{
  */
 /**
- * @file Display server display type
+ * @file Display server seat type
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
+#ifndef TYPES_DISPLAY_SEAT_H
+#define TYPES_DISPLAY_SEAT_H
 
 #include <adt/list.h>
-#include <gfx/context.h>
-#include <io/input.h>
-#include "window.h"
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
-	/** Output GC */
-	gfx_context_t *gc;
-
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
-
-	/** Seats (of ds_seat_t) */
-	list_t seats;
-} ds_display_t;
+/** Display server seat */
+typedef struct ds_seat {
+	/** Containing display */
+	struct ds_display *display;
+	/** Link to display->seats */
+	link_t lseats;
+	/** Window this seat is focused on */
+	struct ds_window *focus;
+} ds_seat_t;
 
 #endif
 

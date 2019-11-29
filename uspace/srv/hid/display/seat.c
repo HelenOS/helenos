@@ -30,40 +30,84 @@
  * @{
  */
 /**
- * @file Display server display type
+ * @file Display server seat
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
-
 #include <adt/list.h>
-#include <gfx/context.h>
-#include <io/input.h>
+#include <errno.h>
+#include <stdlib.h>
+#include "client.h"
+#include "display.h"
+#include "seat.h"
 #include "window.h"
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
-	/** Output GC */
-	gfx_context_t *gc;
+/** Create seat.
+ *
+ * @param display Parent display
+ * @param rseat Place to store pointer to new seat.
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ds_seat_create(ds_display_t *display, ds_seat_t **rseat)
+{
+	ds_seat_t *seat;
 
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
+	seat = calloc(1, sizeof(ds_seat_t));
+	if (seat == NULL)
+		return ENOMEM;
 
-	/** Seats (of ds_seat_t) */
-	list_t seats;
-} ds_display_t;
+	ds_display_add_seat(display, seat);
 
-#endif
+	*rseat = seat;
+	return EOK;
+}
+
+/** Destroy seat.
+ *
+ * @param seat Seat
+ */
+void ds_seat_destroy(ds_seat_t *seat)
+{
+	ds_display_remove_seat(seat);
+	free(seat);
+}
+
+void ds_seat_set_focus(ds_seat_t *seat, ds_window_t *wnd)
+{
+	seat->focus = wnd;
+}
+
+void ds_seat_evac_focus(ds_seat_t *seat, ds_window_t *wnd)
+{
+	ds_window_t *nwnd;
+
+	if (seat->focus == wnd) {
+		/* Focus a different window. XXX Need list of all windows */
+		nwnd = ds_client_next_window(wnd);
+		if (nwnd == NULL)
+			nwnd = ds_client_first_window(wnd->client);
+		if (nwnd == wnd)
+			nwnd = NULL;
+
+		ds_seat_set_focus(seat, nwnd);
+	}
+}
+
+/** Post keyboard event to the seat's focused window.
+ *
+ * @param seat Seat
+ * @param event Event
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
+{
+	ds_window_t *dwindow = seat->focus;
+
+	if (dwindow == NULL)
+		return EOK;
+
+	return ds_client_post_kbd_event(dwindow->client, dwindow, event);
+}
 
 /** @}
  */
