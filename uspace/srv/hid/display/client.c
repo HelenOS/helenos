@@ -92,18 +92,15 @@ void ds_client_destroy(ds_client_t *client)
  *
  * @param client client
  * @param wnd Window
- * @return EOK on success, ENOMEM if there are no free window identifiers
  */
-errno_t ds_client_add_window(ds_client_t *client, ds_window_t *wnd)
+void ds_client_add_window(ds_client_t *client, ds_window_t *wnd)
 {
 	assert(wnd->client == NULL);
-	assert(!link_used(&wnd->lwindows));
+	assert(!link_used(&wnd->lcwindows));
 
 	wnd->client = client;
 	wnd->id = client->display->next_wnd_id++;
-	list_append(&wnd->lwindows, &client->windows);
-
-	return EOK;
+	list_append(&wnd->lcwindows, &client->windows);
 }
 
 /** Remove window from client.
@@ -121,7 +118,7 @@ void ds_client_remove_window(ds_window_t *wnd)
 		seat = ds_display_next_seat(seat);
 	}
 
-	list_remove(&wnd->lwindows);
+	list_remove(&wnd->lcwindows);
 	wnd->client = NULL;
 }
 
@@ -161,7 +158,7 @@ ds_window_t *ds_client_first_window(ds_client_t *client)
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, ds_window_t, lwindows);
+	return list_get_instance(link, ds_window_t, lcwindows);
 }
 
 /** Get next window in client.
@@ -171,12 +168,12 @@ ds_window_t *ds_client_first_window(ds_client_t *client)
  */
 ds_window_t *ds_client_next_window(ds_window_t *wnd)
 {
-	link_t *link = list_next(&wnd->lwindows, &wnd->client->windows);
+	link_t *link = list_next(&wnd->lcwindows, &wnd->client->windows);
 
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, ds_window_t, lwindows);
+	return list_get_instance(link, ds_window_t, lcwindows);
 }
 
 /** Get next event from client event queue.

@@ -44,7 +44,7 @@
 extern errno_t ds_client_create(ds_display_t *, ds_client_cb_t *, void *,
     ds_client_t **);
 extern void ds_client_destroy(ds_client_t *);
-extern errno_t ds_client_add_window(ds_client_t *, ds_window_t *);
+extern void ds_client_add_window(ds_client_t *, ds_window_t *);
 extern void ds_client_remove_window(ds_window_t *);
 extern ds_window_t *ds_client_find_window(ds_client_t *, ds_wnd_id_t);
 extern ds_window_t *ds_client_first_window(ds_client_t *);

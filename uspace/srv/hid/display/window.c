@@ -204,6 +204,7 @@ errno_t ds_window_create(ds_client_t *client, ds_window_t **rgc)
 		goto error;
 
 	ds_client_add_window(client, wnd);
+	ds_display_add_window(client->display, wnd);
 
 	wnd->gc = gc;
 	*rgc = wnd;
@@ -222,6 +223,7 @@ error:
 void ds_window_destroy(ds_window_t *wnd)
 {
 	ds_client_remove_window(wnd);
+	ds_display_remove_window(wnd);
 	(void) gfx_context_delete(wnd->gc);
 
 	free(wnd);

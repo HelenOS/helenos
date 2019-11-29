@@ -61,6 +61,9 @@ typedef struct ds_display {
 
 	/** Seats (of ds_seat_t) */
 	list_t seats;
+
+	/** Windows (of ds_window_t) in stacking order */
+	list_t windows;
 } ds_display_t;
 
 #endif

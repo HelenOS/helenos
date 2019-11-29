@@ -48,7 +48,11 @@ typedef struct ds_window {
 	/** Parent client */
 	struct ds_client *client;
 	/** Link to @c client->windows */
-	link_t lwindows;
+	link_t lcwindows;
+	/** Containing display */
+	struct ds_display *display;
+	/** Link to @c display->windows */
+	link_t ldwindows;
 	/** Display position */
 	gfx_coord2_t dpos;
 	/** Window ID */

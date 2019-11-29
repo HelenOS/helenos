@@ -60,6 +60,7 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 	disp->gc = gc;
 	disp->next_wnd_id = 1;
 	list_initialize(&disp->seats);
+	list_initialize(&disp->windows);
 	*rdisp = disp;
 	return EOK;
 }
@@ -160,6 +161,60 @@ ds_window_t *ds_display_find_window(ds_display_t *display, ds_wnd_id_t id)
 
 	printf("ds_display_find_window: not found\n");
 	return NULL;
+}
+
+/** Add window to display.
+ *
+ * @param display Display
+ * @param wnd Window
+ */
+void ds_display_add_window(ds_display_t *display, ds_window_t *wnd)
+{
+	assert(wnd->display == NULL);
+	assert(!link_used(&wnd->ldwindows));
+
+	wnd->display = display;
+	list_prepend(&wnd->ldwindows, &display->windows);
+}
+
+/** Remove window from display.
+ *
+ * @param wnd Window
+ */
+void ds_display_remove_window(ds_window_t *wnd)
+{
+	list_remove(&wnd->ldwindows);
+	wnd->display = NULL;
+}
+
+/** Get first window in display.
+ *
+ * @param display Display
+ * @return First window or @c NULL if there is none
+ */
+ds_window_t *ds_display_first_window(ds_display_t *display)
+{
+	link_t *link = list_first(&display->windows);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_window_t, ldwindows);
+}
+
+/** Get next window in client.
+ *
+ * @param wnd Current window
+ * @return Next window or @c NULL if there is none
+ */
+ds_window_t *ds_display_next_window(ds_window_t *wnd)
+{
+	link_t *link = list_next(&wnd->ldwindows, &wnd->display->windows);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_window_t, ldwindows);
 }
 
 /** Post keyboard event to a display.
