@@ -38,7 +38,7 @@
 
 PCUT_INIT;
 
-PCUT_TEST_SUITE(display);
+PCUT_TEST_SUITE(seat);
 
 static void test_ds_ev_pending(void *);
 
@@ -54,49 +54,12 @@ static void test_ds_ev_pending(void *arg)
 
 }
 
-/** Display creation and destruction. */
-PCUT_TEST(display_create_destroy)
-{
-	ds_display_t *disp;
-	errno_t rc;
-
-	rc = ds_display_create(NULL, &disp);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	ds_display_destroy(disp);
-}
-
-/** Basic client operation. */
-PCUT_TEST(display_client)
+/** Set focus. */
+PCUT_TEST(set_focus)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
-	ds_client_t *c0, *c1;
-	errno_t rc;
-
-	rc = ds_display_create(NULL, &disp);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	c0 = ds_display_first_client(disp);
-	PCUT_ASSERT_EQUALS(c0, client);
-
-	c1 = ds_display_next_client(c0);
-	PCUT_ASSERT_NULL(c1);
-
-	ds_client_destroy(client);
-	ds_display_destroy(disp);
-}
-
-/** Test ds_display_find_window(). */
-PCUT_TEST(display_find_window)
-{
-	ds_display_t *disp;
-	ds_client_t *client;
-	ds_window_t *w0;
-	ds_window_t *w1;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	errno_t rc;
 
@@ -104,6 +67,40 @@ PCUT_TEST(display_find_window)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_seat_set_focus(seat, wnd);
+	PCUT_ASSERT_EQUALS(wnd, seat->focus);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Evacuate focus. */
+PCUT_TEST(evac_focus)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *w0;
+	ds_window_t *w1;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_window_create(client, &w1);
@@ -112,97 +109,17 @@ PCUT_TEST(display_find_window)
 	rc = ds_window_create(client, &w0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	wnd = ds_display_first_window(disp);
-	PCUT_ASSERT_EQUALS(w0, wnd);
+	ds_seat_set_focus(seat, w1);
+	PCUT_ASSERT_EQUALS(w1, seat->focus);
 
-	wnd = ds_display_next_window(wnd);
-	PCUT_ASSERT_EQUALS(w1, wnd);
-
-	wnd = ds_display_next_window(wnd);
-	PCUT_ASSERT_NULL(wnd);
-
-	wnd = ds_display_find_window(disp, w0->id);
-	PCUT_ASSERT_EQUALS(w0, wnd);
-
-	wnd = ds_display_find_window(disp, w1->id);
-	PCUT_ASSERT_EQUALS(w1, wnd);
-
-	wnd = ds_display_find_window(disp, 0);
-	PCUT_ASSERT_NULL(wnd);
-
-	wnd = ds_display_find_window(disp, w0->id + 1);
-	PCUT_ASSERT_NULL(wnd);
+	ds_seat_evac_focus(seat, w1);
+	PCUT_ASSERT_EQUALS(w0, seat->focus);
 
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
 
-/** Basic seat operation. */
-PCUT_TEST(display_seat)
-{
-	ds_display_t *disp;
-	ds_seat_t *seat;
-	ds_seat_t *s0, *s1;
-	errno_t rc;
-
-	rc = ds_display_create(NULL, &disp);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rc = ds_seat_create(disp, &seat);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	s0 = ds_display_first_seat(disp);
-	PCUT_ASSERT_EQUALS(s0, seat);
-
-	s1 = ds_display_next_seat(s0);
-	PCUT_ASSERT_NULL(s1);
-
-	ds_seat_destroy(seat);
-	ds_display_destroy(disp);
-}
-
-/** Test ds_display_post_kbd_event(). */
-PCUT_TEST(display_post_kbd_event)
-{
-	ds_display_t *disp;
-	ds_seat_t *seat;
-	ds_client_t *client;
-	ds_window_t *wnd;
-	kbd_event_t event;
-	bool called_cb = NULL;
-	errno_t rc;
-
-	rc = ds_display_create(NULL, &disp);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rc = ds_seat_create(disp, &seat);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rc = ds_window_create(client, &wnd);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	ds_seat_set_focus(seat, wnd);
-
-	event.type = KEY_PRESS;
-	event.key = KC_ENTER;
-	event.mods = 0;
-	event.c = L'\0';
-
-	PCUT_ASSERT_FALSE(called_cb);
-
-	rc = ds_display_post_kbd_event(disp, &event);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_TRUE(called_cb);
-
-	ds_window_destroy(wnd);
-	ds_client_destroy(client);
-	ds_seat_destroy(seat);
-	ds_display_destroy(disp);
-}
-
-PCUT_EXPORT(display);
+PCUT_EXPORT(seat);

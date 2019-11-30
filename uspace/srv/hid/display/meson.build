@@ -46,5 +46,6 @@ test_src = files(
 	'test/client.c',
 	'test/display.c',
 	'test/main.c',
+	'test/seat.c',
 	'test/window.c',
 )
