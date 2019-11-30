@@ -135,7 +135,7 @@ static errno_t cfg_parse_file(const char *dirname, const char *filename,
 dump_parse:
 	list_foreach(text_parse.errors, link, text_parse_error_t, err) {
 		sysman_log(LVL_WARN,
-		    "Error (%i) when parsing '%s' on line %lu.",
+		    "Error (%i) when parsing '%s' on line %zu.",
 		    err->parse_errno, fn, err->lineno);
 	}
 

@@ -215,7 +215,7 @@ errno_t task_intro(task_id_t id)
 	t->id = id;
 
 	hash_table_insert(&task_hash_table, &t->link);
-	DPRINTF("%s: %llu\n", __func__, t->id);
+	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, t->id);
 
 finish:
 	fibril_rwlock_write_unlock(&task_hash_table_lock);

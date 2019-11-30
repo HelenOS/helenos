@@ -144,7 +144,7 @@ static void sysman_unit_operation(ipc_call_t *icall, unit_state_t state)
 
 	unit_handle_t handle = ipc_get_arg1(icall);
 	sysarg_t flags = ipc_get_arg2(icall);
-	sysman_log(LVL_DEBUG2, "%s(%p, %lx, %i)", __func__, icall->cap_handle, flags, state);
+	sysman_log(LVL_DEBUG2, "%s(%p, %" SCNuPTR ", %i)", __func__, icall->cap_handle, flags, state);
 
 	unit_t *unit = repo_find_unit_by_handle(handle);
 	if (unit == NULL) {

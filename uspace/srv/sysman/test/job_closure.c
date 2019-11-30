@@ -51,7 +51,7 @@ static bool same_job(job_t *expected, job_t *actual)
 static bool same_jobs(array_t *expected, array_t *actual)
 {
 	if (expected->size != actual->size) {
-		printf("%s: |expected|, |actual| = %lu, %lu\n",
+		printf("%s: |expected|, |actual| = %zu, %zu\n",
 		    __func__, expected->size, actual->size);
 		return false;
 	}

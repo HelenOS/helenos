@@ -71,7 +71,7 @@ static FIBRIL_CONDVAR_INITIALIZE(session_ns_cv);
  */
 static void connect_to_loader(ipc_call_t *icall)
 {
-	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->task_id);
+	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, icall->task_id);
 	/*
 	 * We don't accept the connection request, we forward it instead to
 	 * freshly spawned loader.
@@ -109,7 +109,7 @@ static void connect_to_loader(ipc_call_t *icall)
 
 static void connect_to_ns(ipc_call_t *icall)
 {
-	DPRINTF("%s, %llu\n", __func__, icall->task_id);
+	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, icall->task_id);
 
 	/* Wait until we know NS */
 	fibril_mutex_lock(&session_ns_mtx);
@@ -129,6 +129,7 @@ static void connect_to_ns(ipc_call_t *icall)
 
 static void taskman_new_task(ipc_call_t *icall)
 {
+	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, icall->task_id);
 	errno_t rc = task_intro(icall->task_id);
 	if (rc == EOK) {
 		async_accept_0(icall);
@@ -139,7 +140,7 @@ static void taskman_new_task(ipc_call_t *icall)
 
 static void taskman_i_am_ns(ipc_call_t *icall)
 {
-	DPRINTF("%s, %llu\n", __func__, icall->task_id);
+	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, icall->task_id);
 	errno_t rc = EOK;
 
 	fibril_mutex_lock(&session_ns_mtx);
@@ -183,7 +184,7 @@ static void taskman_ctl_retval(ipc_call_t *icall)
 	int retval = ipc_get_arg1(icall);
 	bool wait_for_exit = ipc_get_arg2(icall);
 
-	DPRINTF("%s:%i from %llu/%i\n", __func__, __LINE__, sender, retval);
+	DPRINTF("%s:%d from %" PRIu64 "/%i\n", __func__, __LINE__, sender, retval);
 
 	errno_t rc = task_set_retval(sender, retval, wait_for_exit);
 	async_answer_0(icall, rc);
@@ -191,7 +192,7 @@ static void taskman_ctl_retval(ipc_call_t *icall)
 
 static void taskman_ctl_ev_callback(ipc_call_t *icall)
 {
-	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->task_id);
+	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, icall->task_id);
 
 	bool past_events = ipc_get_arg1(icall);
 
@@ -209,20 +210,20 @@ static void task_exit_event(ipc_call_t *icall, void *arg)
 {
 	task_id_t id = MERGE_LOUP32(ipc_get_arg1(icall), ipc_get_arg2(icall));
 	exit_reason_t exit_reason = ipc_get_arg3(icall);
-	DPRINTF("%s:%i from %llu/%i\n", __func__, __LINE__, id, exit_reason);
+	DPRINTF("%s:%d from %" PRIu64 "/%i\n", __func__, __LINE__, id, exit_reason);
 	task_terminated(id, exit_reason);
 }
 
 static void task_fault_event(ipc_call_t *icall, void *arg)
 {
 	task_id_t id = MERGE_LOUP32(ipc_get_arg1(icall), ipc_get_arg2(icall));
-	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, id);
+	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, id);
 	task_failed(id);
 }
 
 static void loader_callback(ipc_call_t *icall)
 {
-	DPRINTF("%s:%i from %llu\n", __func__, __LINE__, icall->task_id);
+	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, icall->task_id);
 	// TODO check that loader is expected, would probably discard prodcons
 	//      scheme
 
@@ -261,6 +262,10 @@ static void taskman_connection(ipc_call_t *icall, void *arg)
 			connect_to_loader(icall);
 			return;
 		default:
+			DPRINTF("%s:%d from %" PRIu64 "/%" SCNuPTR "/%" SCNuPTR "/%" SCNuPTR "\n",
+			    __func__, __LINE__,
+			    icall->task_id, ipc_get_imethod(icall),
+			    ipc_get_arg1(icall), ipc_get_arg2(icall));
 			async_answer_0(icall, ENOTSUP);
 			return;
 		}
@@ -270,6 +275,10 @@ static void taskman_connection(ipc_call_t *icall, void *arg)
 			loader_callback(icall);
 			return;
 		default:
+			DPRINTF("%s:%d from %" PRIu64 "/%" SCNuPTR "/%" SCNuPTR "/%" SCNuPTR "\n",
+			    __func__, __LINE__,
+			    icall->task_id, ipc_get_imethod(icall),
+			    ipc_get_arg1(icall), ipc_get_arg2(icall));
 			async_answer_0(icall, ENOTSUP);
 			return;
 		}
@@ -281,6 +290,7 @@ static void taskman_connection(ipc_call_t *icall, void *arg)
 
 		if (!async_get_call(&call)) {
 			/* Client disconnected */
+			DPRINTF("%s:%d client disconnected\n", __func__, __LINE__);
 			return;
 		}
 
@@ -298,6 +308,10 @@ static void taskman_connection(ipc_call_t *icall, void *arg)
 			taskman_ctl_ev_callback(&call);
 			break;
 		default:
+			DPRINTF("%s:%d from %" PRIu64 "/%" SCNuPTR "/%" SCNuPTR "/%" SCNuPTR "\n",
+			    __func__, __LINE__,
+			    call.task_id, ipc_get_imethod(&call),
+			    ipc_get_arg1(&call), ipc_get_arg2(&call));
 			async_answer_0(&call, ENOTSUP);
 		}
 	}
