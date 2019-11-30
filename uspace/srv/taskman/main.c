@@ -35,7 +35,7 @@
  * @addtogroup taskman
  * @{
  */
-
+#include <abi/ipc/methods.h>
 #include <adt/prodcons.h>
 #include <assert.h>
 #include <async.h>
@@ -123,16 +123,18 @@ static void connect_to_ns(ipc_call_t *icall)
 	errno_t rc = async_forward_0(icall, exch, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
-	if (rc != EOK) {
+	if (rc != EOK)
 		async_answer_0(icall, rc);
-		return;
-	}
 }
 
 static void taskman_new_task(ipc_call_t *icall)
 {
 	errno_t rc = task_intro(icall->task_id);
-	async_answer_0(icall, rc);
+	if (rc == EOK) {
+		async_accept_0(icall);
+	} else {
+		async_answer_0(icall, rc);
+	}
 }
 
 static void taskman_i_am_ns(ipc_call_t *icall)
@@ -157,7 +159,12 @@ static void taskman_i_am_ns(ipc_call_t *icall)
 	fibril_condvar_broadcast(&session_ns_cv);
 finish:
 	fibril_mutex_unlock(&session_ns_mtx);
-	async_answer_0(icall, rc);
+
+	if (rc == EOK) {
+		async_accept_0(icall);
+	} else {
+		async_answer_0(icall, rc);
+	}
 }
 
 static void taskman_ctl_wait(ipc_call_t *icall)
@@ -239,89 +246,60 @@ static void loader_callback(ipc_call_t *icall)
 	prodcons_produce(&sess_queue, &sess_ref->link);
 }
 
-static bool handle_call(ipc_call_t *icall)
+static void taskman_connection(ipc_call_t *icall, void *arg)
 {
-	switch (ipc_get_imethod(icall)) {
-	case TASKMAN_NEW_TASK:
-		taskman_new_task(icall);
-		break;
-	case TASKMAN_I_AM_NS:
-		taskman_i_am_ns(icall);
-		break;
-	case TASKMAN_WAIT:
-		taskman_ctl_wait(icall);
-		break;
-	case TASKMAN_RETVAL:
-		taskman_ctl_retval(icall);
-		break;
-	case TASKMAN_EVENT_CALLBACK:
-		taskman_ctl_ev_callback(icall);
-		break;
-	default:
-		return false;
-	}
-	return true;
-}
-
-static bool handle_implicit_call(ipc_call_t *icall)
-{
-	if (ipc_get_imethod(icall) < IPC_FIRST_USER_METHOD) {
-		switch (ipc_get_arg1(icall)) {
+	/* handle new incoming calls */
+	if (ipc_get_imethod(icall) == IPC_M_CONNECT_ME_TO) {
+		switch (ipc_get_arg2(icall)) {
+		case TASKMAN_NEW_TASK:
+			taskman_new_task(icall);
+			break;
 		case TASKMAN_CONNECT_TO_NS:
 			connect_to_ns(icall);
-			break;
+			return;
 		case TASKMAN_CONNECT_TO_LOADER:
 			connect_to_loader(icall);
-			break;
+			return;
+		default:
+			async_answer_0(icall, ENOTSUP);
+			return;
+		}
+	} else if (ipc_get_imethod(icall) == IPC_M_CONNECT_TO_ME) {
+		switch (ipc_get_arg2(icall)) {
 		case TASKMAN_LOADER_CALLBACK:
 			loader_callback(icall);
-			break;
+			return;
 		default:
-			return false;
-
+			async_answer_0(icall, ENOTSUP);
+			return;
 		}
-	} else {
-		return handle_call(icall);
 	}
 
-	return true;
-}
-
-static void implicit_connection(ipc_call_t *icall, void *arg)
-{
-	if (!handle_implicit_call(icall)) {
-		async_answer_0(icall, ENOTSUP);
-		return;
-	}
-
+	/* handle accepted calls */
 	while (true) {
 		ipc_call_t call;
 
-		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
+		if (!async_get_call(&call)) {
 			/* Client disconnected */
-			break;
+			return;
 		}
 
-		if (!handle_implicit_call(&call)) {
-			async_answer_0(icall, ENOTSUP);
+		switch (ipc_get_imethod(&call)) {
+		case TASKMAN_I_AM_NS:
+			taskman_i_am_ns(&call);
 			break;
+		case TASKMAN_WAIT:
+			taskman_ctl_wait(&call);
+			break;
+		case TASKMAN_RETVAL:
+			taskman_ctl_retval(&call);
+			break;
+		case TASKMAN_EVENT_CALLBACK:
+			taskman_ctl_ev_callback(&call);
+			break;
+		default:
+			async_answer_0(&call, ENOTSUP);
 		}
-	}
-}
-
-static void taskman_connection(ipc_call_t *icall, void *arg)
-{
-	/*
-	 * We don't expect (yet) clients to connect, having this function is
-	 * just to adapt to async framework that creates new connection for
-	 * each IPC_M_CONNECT_ME_TO.
-	 * In this case those are to be forwarded, so don't continue
-	 * "listening" on such connections.
-	 */
-	if (!handle_implicit_call(icall)) {
-		/* If cannot handle connection request, give up trying */
-		async_answer_0(icall, EHANGUP);
-		return;
 	}
 }
 
@@ -359,7 +337,6 @@ int main(int argc, char *argv[])
 	}
 
 	/* Start sysman server */
-	async_set_implicit_connection(implicit_connection);
 	async_set_fallback_port_handler(taskman_connection, NULL);
 
 	printf(NAME ": Accepting connections\n");

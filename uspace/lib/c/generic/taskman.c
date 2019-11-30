@@ -68,7 +68,7 @@ void taskman_exchange_end(async_exch_t *exch)
 {
 	async_exchange_end(exch);
 }
-#include <stdio.h>
+
 /** Wrap PHONE_INITIAL with session and introduce to taskman
  */
 async_sess_t *taskman_connect(void)
@@ -84,12 +84,9 @@ async_sess_t *taskman_connect(void)
 	if (sess != NULL) {
 		/* Introduce ourselves and ignore answer */
 		async_exch_t *exch = async_exchange_begin(sess);
-		aid_t req = async_send_0(exch, TASKMAN_NEW_TASK, NULL);
+		sess = async_connect_me_to(exch, INTERFACE_ANY,
+		    TASKMAN_NEW_TASK, 0);
 		async_exchange_end(exch);
-
-		if (req) {
-			async_forget(req);
-		}
 	}
 
 	return sess;

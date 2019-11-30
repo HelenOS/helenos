@@ -215,20 +215,6 @@ void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 	async_client_data_destroy = dtor;
 }
 
-static async_port_handler_t implicit_connection = NULL;
-
-/** Setter for implicit_connection function pointer.
- *
- * @param conn Function that will implement a new connection fibril for
- *             unrouted calls.
- *
- */
-void async_set_implicit_connection(async_port_handler_t conn)
-{
-	assert(implicit_connection == NULL);
-	implicit_connection = conn;
-}
-
 static fibril_rmutex_t client_mutex;
 static hash_table_t client_hash_table;
 
@@ -406,8 +392,6 @@ sysarg_t async_get_label(void)
  * @param call        Call data of the opening call. If call is NULL, it's
  *                    either a callback connection that was opened by
  *                    accepting the IPC_M_CONNECT_TO_ME call.
- *                    Alternatively, it is zero when we are opening
- *                    implicit connection.
  * @param handler     Connection handler.
  * @param data        Client argument to pass to the connection handler.
  *
@@ -978,21 +962,10 @@ static void handle_call(ipc_call_t *call)
 
 	/* Route the call according to its request label */
 	errno_t rc = route_call(call);
-	if (rc == EOK) {
+	if (rc == EOK)
 		return;
-	} else if (implicit_connection != NULL) {
-		connection_t *conn = calloc(1, sizeof(connection_t));
-		if (!conn) {
-			ipc_answer_0(call->cap_handle, ENOMEM);
-			return;
-		}
-
-		async_new_connection(conn, call->task_id, call, implicit_connection, NULL);
-		return;
-	}
 
 	// TODO: Log the error.
-
 	if (call->cap_handle != CAP_NIL)
 		/* Unknown call from unknown phone - hang it up */
 		ipc_answer_0(call->cap_handle, EHANGUP);

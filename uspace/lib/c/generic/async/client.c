@@ -856,7 +856,7 @@ async_sess_t *async_connect_me_to(async_exch_t *exch, iface_t iface,
 	async_sess_t *sess = create_session(phone, iface & IFACE_EXCHANGE_MASK, iface, arg2, arg3);
 	if (sess == NULL) {
 		ipc_hangup(phone);
-	}else {
+	} else {
 		sess->iface = iface;
 	}
 
@@ -914,7 +914,7 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
 	async_sess_t *sess = create_session(phone, iface & IFACE_EXCHANGE_MASK, iface, arg2, arg3);
 	if (sess == NULL) {
 		ipc_hangup(phone);
-	}else {
+	} else {
 		sess->iface = iface;
 	}
 
