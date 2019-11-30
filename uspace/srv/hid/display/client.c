@@ -112,7 +112,7 @@ void ds_client_remove_window(ds_window_t *wnd)
 	ds_seat_t *seat;
 
 	/* Make sure window is no longer focused in any seat */
-	seat = ds_display_first_seat(wnd->client->display);
+	seat = ds_display_first_seat(wnd->display);
 	while (seat != NULL) {
 		ds_seat_evac_focus(seat, wnd);
 		seat = ds_display_next_seat(seat);

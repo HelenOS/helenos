@@ -76,8 +76,8 @@ static errno_t ds_window_set_color(void *arg, gfx_color_t *color)
 {
 	ds_window_t *wnd = (ds_window_t *) arg;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_set_color gc=%p", wnd->client->display->gc);
-	return gfx_set_color(wnd->client->display->gc, color);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_set_color gc=%p", wnd->display->gc);
+	return gfx_set_color(wnd->display->gc, color);
 }
 
 /** Fill rectangle on window GC.
@@ -94,7 +94,7 @@ static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
 	gfx_rect_translate(&wnd->dpos, rect, &drect);
-	return gfx_fill_rect(wnd->client->display->gc, &drect);
+	return gfx_fill_rect(wnd->display->gc, &drect);
 }
 
 /** Create bitmap in canvas GC.
@@ -116,7 +116,7 @@ errno_t ds_window_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	if (cbm == NULL)
 		return ENOMEM;
 
-	rc = gfx_bitmap_create(wnd->client->display->gc, params, alloc,
+	rc = gfx_bitmap_create(wnd->display->gc, params, alloc,
 	    &cbm->bitmap);
 	if (rc != EOK)
 		goto error;
