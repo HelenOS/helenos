@@ -177,6 +177,8 @@ PCUT_TEST(display_post_kbd_event)
 	rc = ds_window_create(client, &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	ds_seat_set_focus(seat, wnd);
+
 	event.type = KEY_PRESS;
 	event.key = KC_ENTER;
 	event.mods = 0;
