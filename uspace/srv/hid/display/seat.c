@@ -101,8 +101,17 @@ void ds_seat_evac_focus(ds_seat_t *seat, ds_window_t *wnd)
  */
 errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
 {
-	ds_window_t *dwindow = seat->focus;
+	ds_window_t *dwindow;
+	bool alt_or_shift;
 
+	alt_or_shift = event->mods & (KM_SHIFT | KM_ALT);
+	if (event->type == KEY_PRESS && alt_or_shift && event->key == KC_TAB) {
+		/* On Alt-Tab or Shift-Tab, switch focus to next window */
+		ds_seat_evac_focus(seat, seat->focus);
+		return EOK;
+	}
+
+	dwindow = seat->focus;
 	if (dwindow == NULL)
 		return EOK;
 
