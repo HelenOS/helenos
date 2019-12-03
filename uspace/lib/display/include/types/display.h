@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdisplay
  * @{
  */
 /** @file
@@ -38,7 +38,6 @@
 #include <async.h>
 #include <fibril_synch.h>
 #include <io/kbd_event.h>
-#include <ipc/devman.h>
 #include <stdint.h>
 
 /** Display server session */

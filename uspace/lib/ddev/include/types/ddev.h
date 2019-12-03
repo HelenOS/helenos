@@ -26,27 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdisplay
+/** @addtogroup libddev
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IPC_DISPLAY_H_
-#define _LIBC_IPC_DISPLAY_H_
+#ifndef _LIBDDEV_TYPES_DDEV_H_
+#define _LIBDDEV_TYPES_DDEV_H_
 
-#include <ipc/common.h>
+#include <async.h>
 
-typedef enum {
-	DISPLAY_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	DISPLAY_WINDOW_CREATE,
-	DISPLAY_WINDOW_DESTROY,
-	DISPLAY_GET_EVENT
-} display_request_t;
-
-typedef enum {
-	DISPLAY_EV_PENDING = IPC_FIRST_USER_METHOD
-} display_event_t;
+/** Display server session */
+typedef struct {
+	/** Session with display device */
+	async_sess_t *sess;
+} ddev_t;
 
 #endif
 

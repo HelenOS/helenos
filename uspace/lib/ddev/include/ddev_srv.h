@@ -32,21 +32,28 @@
 /** @file
  */
 
-#ifndef _LIBC_IPC_DISPLAY_H_
-#define _LIBC_IPC_DISPLAY_H_
+#ifndef _LIBDDEV_DDEV_SRV_H_
+#define _LIBDDEV_DDEV_SRV_H_
 
-#include <ipc/common.h>
+#include <async.h>
+#include <errno.h>
+#include <gfx/context.h>
 
-typedef enum {
-	DISPLAY_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	DISPLAY_WINDOW_CREATE,
-	DISPLAY_WINDOW_DESTROY,
-	DISPLAY_GET_EVENT
-} display_request_t;
+typedef struct ddev_ops ddev_ops_t;
 
-typedef enum {
-	DISPLAY_EV_PENDING = IPC_FIRST_USER_METHOD
-} display_event_t;
+/** Display device server structure (per client session) */
+typedef struct {
+	async_sess_t *client_sess;
+	ddev_ops_t *ops;
+	void *arg;
+} ddev_srv_t;
+
+struct ddev_ops {
+	errno_t (*get_gc)(void *, gfx_context_t **);
+};
+
+extern void ddev_conn(ipc_call_t *, ddev_srv_t *);
+extern void ddev_srv_initialize(ddev_srv_t *);
 
 #endif
 

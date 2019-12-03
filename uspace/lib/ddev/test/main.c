@@ -26,29 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdisplay
- * @{
- */
-/** @file
- */
+#include <pcut/pcut.h>
 
-#ifndef _LIBC_IPC_DISPLAY_H_
-#define _LIBC_IPC_DISPLAY_H_
+PCUT_INIT;
 
-#include <ipc/common.h>
+PCUT_IMPORT(ddev);
 
-typedef enum {
-	DISPLAY_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	DISPLAY_WINDOW_CREATE,
-	DISPLAY_WINDOW_DESTROY,
-	DISPLAY_GET_EVENT
-} display_request_t;
-
-typedef enum {
-	DISPLAY_EV_PENDING = IPC_FIRST_USER_METHOD
-} display_event_t;
-
-#endif
-
-/** @}
- */
+PCUT_MAIN();

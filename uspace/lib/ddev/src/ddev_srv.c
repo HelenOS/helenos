@@ -26,29 +26,65 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdisplay
+/** @addtogroup libddev
  * @{
  */
-/** @file
+/**
+ * @file
+ * @brief Display protocol server stub
  */
 
-#ifndef _LIBC_IPC_DISPLAY_H_
-#define _LIBC_IPC_DISPLAY_H_
+#include <ddev_srv.h>
+#include <errno.h>
+#include <io/log.h>
+#include <ipc/ddev.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <stddef.h>
 
-#include <ipc/common.h>
+#include <stdio.h>
 
-typedef enum {
-	DISPLAY_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	DISPLAY_WINDOW_CREATE,
-	DISPLAY_WINDOW_DESTROY,
-	DISPLAY_GET_EVENT
-} display_request_t;
+void ddev_conn(ipc_call_t *icall, ddev_srv_t *srv)
+{
+	/* Accept the connection */
+	async_accept_0(icall);
+	printf("display_conn\n");
 
-typedef enum {
-	DISPLAY_EV_PENDING = IPC_FIRST_USER_METHOD
-} display_event_t;
+	while (true) {
+		ipc_call_t call;
 
-#endif
+		async_get_call(&call);
+		sysarg_t method = ipc_get_imethod(&call);
+
+		if (!method) {
+			/* The other side has hung up */
+			async_answer_0(&call, EOK);
+			break;
+		}
+
+		printf("display_conn method=%u\n", (unsigned) method);
+		switch (method) {
+		case DDEV_GET_GC:
+		default:
+			async_answer_0(&call, ENOTSUP);
+		}
+	}
+
+	/* Hang up callback session */
+	if (srv->client_sess != NULL) {
+		async_hangup(srv->client_sess);
+		srv->client_sess = NULL;
+	}
+}
+
+/** Initialize display device server structure
+ *
+ * @param srv Display device server structure to initialize
+ */
+void ddev_srv_initialize(ddev_srv_t *srv)
+{
+	memset(srv, 0, sizeof(*srv));
+}
 
 /** @}
  */

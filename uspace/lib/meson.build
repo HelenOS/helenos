@@ -93,7 +93,8 @@ libs = [
 	'ieee80211',
 	'ipcgfx',
 
-	'display'
+	'ddev',
+	'display',
 ]
 
 # Generated list of include directory paths
