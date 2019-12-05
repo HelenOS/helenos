@@ -209,7 +209,7 @@ static void test_ddev_conn(ipc_call_t *icall, void *arg)
 			return;
 		}
 
-		/* Window GC connection */
+		/* GC connection */
 		gc_conn(icall, gc);
 	}
 }

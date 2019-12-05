@@ -30,41 +30,34 @@
  * @{
  */
 /**
- * @file Display server display type
+ * @file Display server display device type
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
+#ifndef TYPES_DISPLAY_DDEV_H
+#define TYPES_DISPLAY_DDEV_H
 
 #include <adt/list.h>
-#include <io/input.h>
-#include "window.h"
+#include <ddev.h>
+#include <gfx/context.h>
+#include <loc.h>
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
-
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
-
-	/** Seats (of ds_seat_t) */
-	list_t seats;
-
-	/** Windows (of ds_window_t) in stacking order */
-	list_t windows;
-
-	/** Display devices (of ds_ddev_t) */
-	list_t ddevs;
-} ds_display_t;
+/** Display server display device */
+typedef struct ds_ddev {
+	/** Parent display */
+	struct ds_display *display;
+	/** Link to display->ddevs */
+	link_t lddevs;
+	/** Link to output->ddevs */
+	link_t loutdevs;
+	/** Device GC */
+	gfx_context_t *gc;
+	/** Service ID */
+	service_id_t svc_id;
+	/** Service name */
+	char *svc_name;
+	/** Underlying display device */
+	ddev_t *dd;
+} ds_ddev_t;
 
 #endif
 

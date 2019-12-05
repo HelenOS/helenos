@@ -83,10 +83,11 @@ static void display_client_ev_pending(void *arg)
 }
 
 /** Initialize display server */
-static errno_t display_srv_init(void)
+static errno_t display_srv_init(ds_output_t **routput)
 {
 	ds_display_t *disp = NULL;
 	ds_seat_t *seat = NULL;
+	ds_output_t *output = NULL;
 	gfx_context_t *gc = NULL;
 	errno_t rc;
 
@@ -100,17 +101,21 @@ static errno_t display_srv_init(void)
 	if (rc != EOK)
 		goto error;
 
-	rc = output_init(display_kbd_event, (void *) disp,
-	    display_pos_event, (void *) disp, &gc);
-	if (rc != EOK)
-		goto error;
-
-	disp->gc = gc;
 #if 0
 	rc = ds_input_open(disp);
 	if (rc != EOK)
 		goto error;
 #endif
+	rc = ds_output_create(display_kbd_event, (void *) disp,
+	    display_pos_event, (void *) disp, &output);
+	if (rc != EOK)
+		goto error;
+
+	output->def_display = disp;
+	rc = ds_output_start_discovery(output);
+	if (rc != EOK)
+		goto error;
+
 	async_set_fallback_port_handler(display_client_conn, disp);
 
 	rc = loc_server_register(NAME);
@@ -127,12 +132,15 @@ static errno_t display_srv_init(void)
 		goto error;
 	}
 
+	*routput = output;
 	return EOK;
 error:
 #if 0
 	if (disp->input != NULL)
 		ds_input_close(disp);
 #endif
+	if (output != NULL)
+		ds_output_destroy(output);
 	if (gc != NULL)
 		gfx_context_delete(gc);
 	if (seat != NULL)
@@ -198,6 +206,7 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 int main(int argc, char *argv[])
 {
 	errno_t rc;
+	ds_output_t *output;
 
 	printf("%s: Display server\n", NAME);
 
@@ -206,7 +215,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = display_srv_init();
+	rc = display_srv_init(&output);
 	if (rc != EOK)
 		return 1;
 

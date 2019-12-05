@@ -57,8 +57,8 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 		return ENOMEM;
 
 	list_initialize(&disp->clients);
-	disp->gc = gc;
 	disp->next_wnd_id = 1;
+	list_initialize(&disp->ddevs);
 	list_initialize(&disp->seats);
 	list_initialize(&disp->windows);
 	*rdisp = disp;
@@ -344,6 +344,72 @@ ds_seat_t *ds_display_next_seat(ds_seat_t *seat)
 		return NULL;
 
 	return list_get_instance(link, ds_seat_t, lseats);
+}
+
+/** Add display device to display.
+ *
+ * @param disp Display
+ * @param ddev Display device
+ */
+void ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
+{
+	assert(ddev->display == NULL);
+	assert(!link_used(&ddev->lddevs));
+
+	ddev->display = disp;
+	list_append(&ddev->lddevs, &disp->ddevs);
+}
+
+/** Remove display device from display.
+ *
+ * @param ddev Display device
+ */
+void ds_display_remove_ddev(ds_ddev_t *ddev)
+{
+	list_remove(&ddev->lddevs);
+	ddev->display = NULL;
+}
+
+/** Get first display device in display.
+ *
+ * @param disp Display
+ * @return First display device or @c NULL if there is none
+ */
+ds_ddev_t *ds_display_first_ddev(ds_display_t *disp)
+{
+	link_t *link = list_first(&disp->ddevs);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_ddev_t, lddevs);
+}
+
+/** Get next display device in display.
+ *
+ * @param ddev Current display device
+ * @return Next display device or @c NULL if there is none
+ */
+ds_ddev_t *ds_display_next_ddev(ds_ddev_t *ddev)
+{
+	link_t *link = list_next(&ddev->lddevs, &ddev->display->ddevs);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_ddev_t, lddevs);
+}
+
+// XXX
+gfx_context_t *ds_display_get_gc(ds_display_t *display)
+{
+	ds_ddev_t *ddev;
+
+	ddev = ds_display_first_ddev(display);
+	if (ddev == NULL)
+		abort();
+
+	return ddev->gc;
 }
 
 /** @}

@@ -30,41 +30,24 @@
  * @{
  */
 /**
- * @file Display server display type
+ * @file Display server output
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
+#ifndef TYPES_DISPLAY_OUTPUT_H
+#define TYPES_DISPLAY_OUTPUT_H
 
 #include <adt/list.h>
-#include <io/input.h>
-#include "window.h"
+#include <fibril_synch.h>
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
-
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
-
-	/** Seats (of ds_seat_t) */
-	list_t seats;
-
-	/** Windows (of ds_window_t) in stacking order */
-	list_t windows;
-
+/** Display server output */
+typedef struct ds_output {
+	/** Discovery lock */
+	fibril_mutex_t lock;
 	/** Display devices (of ds_ddev_t) */
 	list_t ddevs;
-} ds_display_t;
+	/** Display to which we will be adding discovered devices */
+	struct ds_display *def_display;
+} ds_output_t;
 
 #endif
 

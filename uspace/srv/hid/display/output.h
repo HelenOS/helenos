@@ -39,10 +39,12 @@
 #include <gfx/context.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include "types/display/output.h"
 
-extern errno_t output_init(void (*)(void *, kbd_event_t *), void *,
-    void (*)(void *, pos_event_t *), void *,
-    gfx_context_t **);
+extern errno_t ds_output_create(void (*)(void *, kbd_event_t *),
+    void *, void (*)(void *, pos_event_t *), void *, ds_output_t **);
+extern errno_t ds_output_start_discovery(ds_output_t *);
+extern void ds_output_destroy(ds_output_t *);
 
 #endif
 

@@ -33,16 +33,18 @@
  * @file Display server output
  */
 
+#include <assert.h>
 #include <errno.h>
-#include <gfx/context.h>
-#include <guigfx/canvas.h>
+#include <fibril_synch.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <window.h>
+#include "ddev.h"
 #include "output.h"
 
+#if 0
 static void (*kbd_ev_handler)(void *, kbd_event_t *);
 static void *kbd_ev_arg;
 static void (*pos_ev_handler)(void *, pos_event_t *);
@@ -58,68 +60,138 @@ static void on_position_event(widget_t *widget, void *data)
 {
 	pos_ev_handler(pos_ev_arg, (pos_event_t *) data);
 }
+#endif
 
-errno_t output_init(void (*kbd_event_handler)(void *, kbd_event_t *),
-    void *karg, void (*pos_event_handler)(void *, pos_event_t *),
-    void *parg, gfx_context_t **rgc)
+/** Check for new display devices.
+ *
+ * @param output Display server output
+ */
+static errno_t ds_output_check_new_devs(ds_output_t *output)
 {
-	canvas_gc_t *cgc = NULL;
-	window_t *window = NULL;
-	pixel_t *pixbuf = NULL;
-	surface_t *surface = NULL;
-	canvas_t *canvas = NULL;
-	gfx_coord_t vw, vh;
+	category_id_t ddev_cid;
+	service_id_t *svcs;
+	size_t count, i;
+	bool already_known;
+	ds_ddev_t *nddev;
 	errno_t rc;
 
-	printf("Init canvas..\n");
-	kbd_ev_handler = kbd_event_handler;
-	kbd_ev_arg = karg;
+	assert(fibril_mutex_is_locked(&output->lock));
 
-	pos_ev_handler = pos_event_handler;
-	pos_ev_arg = parg;
-
-	window = window_open("comp:0/winreg", NULL,
-	    WINDOW_MAIN | WINDOW_DECORATED, "Display Server");
-	if (window == NULL) {
-		printf("Error creating window.\n");
-		return -1;
-	}
-
-	vw = 800;
-	vh = 600;
-
-	pixbuf = calloc(vw * vh, sizeof(pixel_t));
-	if (pixbuf == NULL) {
-		printf("Error allocating memory for pixel buffer.\n");
-		return ENOMEM;
-	}
-
-	surface = surface_create(vw, vh, pixbuf, 0);
-	if (surface == NULL) {
-		printf("Error creating surface.\n");
+	rc = loc_category_get_id("display-device", &ddev_cid,
+	    IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("Error looking up category 'display-device'.\n");
 		return EIO;
 	}
 
-	canvas = create_canvas(window_root(window), NULL, vw, vh,
-	    surface);
-	if (canvas == NULL) {
-		printf("Error creating canvas.\n");
+	/*
+	 * Check for new dispay devices
+	 */
+	rc = loc_category_get_svcs(ddev_cid, &svcs, &count);
+	if (rc != EOK) {
+		printf("Error getting list of display devices.\n");
 		return EIO;
 	}
 
-	sig_connect(&canvas->keyboard_event, NULL, on_keyboard_event);
-	sig_connect(&canvas->position_event, NULL, on_position_event);
+	for (i = 0; i < count; i++) {
+		already_known = false;
 
-	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
-	window_exec(window);
+		/* Determine whether we already know this device. */
+		list_foreach(output->ddevs, loutdevs, ds_ddev_t, ddev) {
+			if (ddev->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
 
-	printf("Create canvas GC\n");
-	rc = canvas_gc_create(canvas, surface, &cgc);
-	if (rc != EOK)
-		return rc;
+		if (!already_known) {
+			rc = ds_ddev_open(output->def_display, svcs[i], &nddev);
+			if (rc != EOK) {
+				printf("Error adding display device.\n");
+				continue;
+			}
 
-	*rgc = canvas_gc_get_ctx(cgc);
+			list_append(&nddev->loutdevs, &output->ddevs);
+
+			printf("Added display device '%lu'\n",
+			    (unsigned long) svcs[i]);
+		}
+	}
+
+	free(svcs);
+
 	return EOK;
+}
+
+/** Display device category change callback.
+ *
+ * @param arg Display server output (cast to void *)
+ */
+static void ds_ddev_change_cb(void *arg)
+{
+	ds_output_t *output = (ds_output_t *) arg;
+
+	printf("ds_ddev_change_cb\n");
+	fibril_mutex_lock(&output->lock);
+	(void) ds_output_check_new_devs(output);
+	fibril_mutex_unlock(&output->lock);
+}
+
+/** Create display server output.
+ *
+ * @param kbd_event_handler
+ * @param karg
+ * @param pos_event_handler
+ * @param parg
+ * @param routput Place to store pointer to display server output object.
+ * @return EOK on success or an error code
+ */
+errno_t ds_output_create(void (*kbd_event_handler)(void *, kbd_event_t *),
+    void *karg, void (*pos_event_handler)(void *, pos_event_t *),
+    void *parg, ds_output_t **routput)
+{
+	ds_output_t *output;
+
+	output = calloc(1, sizeof(ds_output_t));
+	if (output == NULL)
+		return ENOMEM;
+
+	fibril_mutex_initialize(&output->lock);
+	list_initialize(&output->ddevs);
+
+	*routput = output;
+	return EOK;
+}
+
+/** Start display device discovery.
+ *
+ * @param output Display server output
+ * @return EOK on success or an error code
+ */
+errno_t ds_output_start_discovery(ds_output_t *output)
+{
+	errno_t rc;
+
+	rc = loc_register_cat_change_cb(ds_ddev_change_cb, output);
+	if (rc != EOK) {
+		printf("Failed registering callback for device discovery.\n");
+		return rc;
+	}
+
+	fibril_mutex_lock(&output->lock);
+	rc = ds_output_check_new_devs(output);
+	fibril_mutex_unlock(&output->lock);
+
+	return rc;
+}
+
+/** Destroy display server output.
+ *
+ * @param output Display server output
+ */
+void ds_output_destroy(ds_output_t *output)
+{
+	free(output);
 }
 
 /** @}

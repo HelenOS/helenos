@@ -26,5 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'graph' ]
+deps = [ 'ipcgfx', 'ddev' ]
 src = files('main.c', 'rfb.c')

@@ -30,43 +30,82 @@
  * @{
  */
 /**
- * @file Display server display type
+ * @file Display server display device
  */
 
-#ifndef TYPES_DISPLAY_DISPLAY_H
-#define TYPES_DISPLAY_DISPLAY_H
-
 #include <adt/list.h>
-#include <io/input.h>
-#include "window.h"
+#include <ddev.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "display.h"
+#include "ddev.h"
 
-/** Display server display */
-typedef struct ds_display {
-	/** Clients (of ds_client_t) */
-	list_t clients;
+/** Open display device.
+ *
+ * @param display Parent display
+ * @param svc_id Service ID
+ * @param rddev Place to store pointer to new display device.
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
+    ds_ddev_t **rddev)
+{
+	ds_ddev_t *ddev;
+	gfx_context_t *gc;
+	ddev_t *dd = NULL;
+	char *name = NULL;
+	errno_t rc;
 
-	/** Next ID to assign to a window.
-	 *
-	 * XXX Window IDs need to be unique per display just because
-	 * we don't have a way to match GC connection to the proper
-	 * client. Really this should be in ds_client_t and the ID
-	 * space should be per client.
-	 */
-	ds_wnd_id_t next_wnd_id;
-	/** Input service */
-	input_t *input;
+	rc = loc_service_get_name(svc_id, &name);
+	if (rc != EOK) {
+		printf("Error resolving name of service %lu.\n",
+		    (unsigned long) svc_id);
+		return rc;
+	}
 
-	/** Seats (of ds_seat_t) */
-	list_t seats;
+	rc = ddev_open(name, &dd);
+	if (rc != EOK) {
+		printf("Error opening display device '%s'.\n", name);
+		free(name);
+		return rc;
+	}
 
-	/** Windows (of ds_window_t) in stacking order */
-	list_t windows;
+	rc = ddev_get_gc(dd, &gc);
+	if (rc != EOK) {
+		printf("Error getting device context for '%s'.\n", name);
+		ddev_close(dd);
+		free(name);
+		return rc;
+	}
 
-	/** Display devices (of ds_ddev_t) */
-	list_t ddevs;
-} ds_display_t;
+	ddev = calloc(1, sizeof(ds_ddev_t));
+	if (ddev == NULL) {
+		free(name);
+		ddev_close(dd);
+		return ENOMEM;
+	}
 
-#endif
+	ddev->svc_name = name;
+	ddev->svc_id = svc_id;
+	ddev->dd = dd;
+	ddev->gc = gc;
+
+	ds_display_add_ddev(display, ddev);
+
+	*rddev = ddev;
+	return EOK;
+}
+
+/** Destroy display device.
+ *
+ * @param ddev Display device
+ */
+void ds_ddev_close(ds_ddev_t *ddev)
+{
+	ds_display_remove_ddev(ddev);
+	free(ddev);
+}
 
 /** @}
  */
