@@ -122,7 +122,9 @@ errno_t ipc_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	ipc_gc_bitmap_t *ipcbm = NULL;
 	gfx_coord2_t dim;
 	async_exch_t *exch = NULL;
+	as_area_info_t info;
 	ipc_call_t answer;
+	size_t asize;
 	aid_t req;
 	errno_t rc;
 
@@ -147,11 +149,27 @@ errno_t ipc_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 		ipcbm->myalloc = true;
 	} else {
 		/*
-		 * XXX We could allow this if the pixels point to a shareable
-		 * area or we could do a copy of the data when rendering
+		 * Accept user allocation if it points to a an acceptable
+		 * memory area.
 		 */
-		rc = ENOTSUP;
-		goto error;
+		rc = as_area_get_info(alloc->pixels, &info);
+		if (rc != EOK)
+			goto error;
+
+		/* Pixels should start at the beginning of the area */
+		if (info.start_addr != (uintptr_t) alloc->pixels) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		/* Size of area should be size of bitmap rounded up to page size */
+		asize = PAGES2SIZE(SIZE2PAGES(alloc->pitch * dim.y));
+		if (info.size != asize) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		ipcbm->alloc = *alloc;
 	}
 
 	exch = async_exchange_begin(ipcgc->sess);

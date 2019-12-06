@@ -223,7 +223,11 @@ static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	gfx_rect_t srect;
 	gfx_rect_t drect;
 	gfx_coord2_t offs;
+	gfx_coord2_t bmdim;
 	gfx_coord2_t dim;
+	gfx_coord_t x, y;
+	pixelmap_t pbm;
+	pixel_t color;
 
 	if (srect0 != NULL)
 		srect = *srect0;
@@ -239,8 +243,22 @@ static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 
 	/* Destination rectangle */
 	gfx_rect_translate(&offs, &srect, &drect);
-
 	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
+	gfx_coord2_subtract(&rfbbm->rect.p1, &rfbbm->rect.p0, &bmdim);
+
+	pbm.width = bmdim.x;
+	pbm.height = bmdim.y;
+	pbm.data = rfbbm->alloc.pixels;
+
+	for (y = srect.p0.y; y < srect.p1.y; y++) {
+		for (x = srect.p0.x; x < srect.p1.x; x++) {
+			color = pixelmap_get_pixel(&pbm, x, y);
+			pixelmap_put_pixel(&rfbbm->rfb->rfb.framebuffer,
+			    x + offs.x, y + offs.y, color);
+		}
+	}
+
+	rfb_gc_invalidate_rect(rfbbm->rfb, &drect);
 
 	return EOK;
 }
