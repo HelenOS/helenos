@@ -49,7 +49,7 @@ typedef struct {
 } ddev_srv_t;
 
 struct ddev_ops {
-	errno_t (*get_gc)(void *, gfx_context_t **);
+	errno_t (*get_gc)(void *, sysarg_t *, sysarg_t *);
 };
 
 extern void ddev_conn(ipc_call_t *, ddev_srv_t *);

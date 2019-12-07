@@ -501,21 +501,16 @@ int main(int argc, char *argv[])
 {
 	errno_t rc;
 
-	if (argc < 2) {
-		print_syntax();
-		return 1;
-	}
-
-	if (str_cmp(argv[1], "console") == 0) {
+	if (argc < 2 || str_cmp(argv[1], "display") == 0) {
+		rc = demo_display();
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "console") == 0) {
 		rc = demo_console();
 		if (rc != EOK)
 			return 1;
 	} else if (str_cmp(argv[1], "canvas") == 0) {
 		rc = demo_canvas();
-		if (rc != EOK)
-			return 1;
-	} else if (str_cmp(argv[1], "display") == 0) {
-		rc = demo_display();
 		if (rc != EOK)
 			return 1;
 	} else {

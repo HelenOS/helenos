@@ -47,7 +47,7 @@ static const char *test_ddev_svc = "test/ddev";
 
 static void test_ddev_conn(ipc_call_t *, void *);
 
-static errno_t test_get_gc(void *, gfx_context_t **);
+static errno_t test_get_gc(void *, sysarg_t *, sysarg_t *);
 static errno_t test_gc_set_color(void *, gfx_color_t *);
 
 static ddev_ops_t test_ddev_ops = {
@@ -214,10 +214,11 @@ static void test_ddev_conn(ipc_call_t *icall, void *arg)
 	}
 }
 
-static errno_t test_get_gc(void *arg, gfx_context_t **rgc)
+static errno_t test_get_gc(void *arg, sysarg_t *arg2, sysarg_t *arg3)
 {
-	*rgc = NULL;
-	return ENOTSUP;
+	*arg2 = 0;
+	*arg3 = 42;
+	return EOK;
 }
 
 static errno_t test_gc_set_color(void *arg, gfx_color_t *color)

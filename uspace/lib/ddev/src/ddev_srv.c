@@ -44,11 +44,36 @@
 
 #include <stdio.h>
 
+/** Connect to a GC.
+ *
+ * XXX As a workaround here we tell the client the values of arg2 and arg3
+ * needed to connect to the GC using async_connect_me_to(), these need
+ * to be provided by the ddev_ops_t.get_gc. Different values are needed
+ * for a DDF driver or a regular server. This would not be needed if we
+ * had a proper way of creating an endpoint and passing it to our client.
+ */
+static void ddev_get_gc_srv(ddev_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t arg2;
+	sysarg_t arg3;
+	errno_t rc;
+
+	printf("ddev_get_gc_srv\n");
+
+	if (srv->ops->get_gc == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->get_gc(srv->arg, &arg2, &arg3);
+	async_answer_2(icall, rc, arg2, arg3);
+}
+
 void ddev_conn(ipc_call_t *icall, ddev_srv_t *srv)
 {
 	/* Accept the connection */
 	async_accept_0(icall);
-	printf("display_conn\n");
+	printf("ddev_conn\n");
 
 	while (true) {
 		ipc_call_t call;
@@ -65,6 +90,8 @@ void ddev_conn(ipc_call_t *icall, ddev_srv_t *srv)
 		printf("display_conn method=%u\n", (unsigned) method);
 		switch (method) {
 		case DDEV_GET_GC:
+			ddev_get_gc_srv(srv, &call);
+			break;
 		default:
 			async_answer_0(&call, ENOTSUP);
 		}

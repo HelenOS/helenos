@@ -68,7 +68,7 @@ typedef struct {
 	bool myalloc;
 } rfb_bitmap_t;
 
-gfx_context_ops_t rfb_gc_ops = {
+static gfx_context_ops_t rfb_gc_ops = {
 	.set_color = rfb_gc_set_color,
 	.fill_rect = rfb_gc_fill_rect,
 	.bitmap_create = rfb_gc_bitmap_create,
@@ -275,61 +275,6 @@ static errno_t rfb_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 	*alloc = rfbbm->alloc;
 	return EOK;
 }
-
-#if 0
-static errno_t rfb_handle_damage_pixels(visualizer_t *vs,
-    sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
-    sysarg_t x_offset, sysarg_t y_offset)
-{
-	fibril_mutex_lock(&rfb.lock);
-
-	if (x0 + width > rfb.width || y0 + height > rfb.height) {
-		fibril_mutex_unlock(&rfb.lock);
-		return EINVAL;
-	}
-
-	/* TODO update surface_t and use it */
-	if (!rfb.damage_valid) {
-		rfb.damage_rect.x = x0;
-		rfb.damage_rect.y = y0;
-		rfb.damage_rect.width = width;
-		rfb.damage_rect.height = height;
-		rfb.damage_valid = true;
-	} else {
-		if (x0 < rfb.damage_rect.x) {
-			rfb.damage_rect.width += rfb.damage_rect.x - x0;
-			rfb.damage_rect.x = x0;
-		}
-		if (y0 < rfb.damage_rect.y) {
-			rfb.damage_rect.height += rfb.damage_rect.y - y0;
-			rfb.damage_rect.y = y0;
-		}
-		sysarg_t x1 = x0 + width;
-		sysarg_t dx1 = rfb.damage_rect.x + rfb.damage_rect.width;
-		if (x1 > dx1) {
-			rfb.damage_rect.width += x1 - dx1;
-		}
-		sysarg_t y1 = y0 + height;
-		sysarg_t dy1 = rfb.damage_rect.y + rfb.damage_rect.height;
-		if (y1 > dy1) {
-			rfb.damage_rect.height += y1 - dy1;
-		}
-	}
-
-	pixelmap_t *map = &vs->cells;
-
-	for (sysarg_t y = y0; y < height + y0; ++y) {
-		for (sysarg_t x = x0; x < width + x0; ++x) {
-			pixel_t pix = pixelmap_get_pixel(map, (x + x_offset) % map->width,
-			    (y + y_offset) % map->height);
-			pixelmap_put_pixel(&rfb.framebuffer, x, y, pix);
-		}
-	}
-
-	fibril_mutex_unlock(&rfb.lock);
-	return EOK;
-}
-#endif
 
 static void syntax_print(void)
 {

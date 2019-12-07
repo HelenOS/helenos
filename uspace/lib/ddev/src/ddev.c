@@ -87,17 +87,18 @@ errno_t ddev_get_gc(ddev_t *ddev, gfx_context_t **rgc)
 {
 	async_sess_t *sess;
 	async_exch_t *exch;
+	sysarg_t arg2;
+	sysarg_t arg3;
 	ipc_gc_t *gc;
 	errno_t rc;
 
 	exch = async_exchange_begin(ddev->sess);
-	sess = async_connect_me_to(exch, INTERFACE_GC, 0, 42);
-	if (sess == NULL) {
-		async_exchange_end(exch);
-		return EIO;
-	}
-
+	rc = async_req_0_2(exch, DDEV_GET_GC, &arg2, &arg3);
+	sess = async_connect_me_to(exch, INTERFACE_GC, arg2, arg3);
 	async_exchange_end(exch);
+
+	if (sess == NULL)
+		return EIO;
 
 	rc = ipc_gc_create(sess, &gc);
 	if (rc != EOK) {
