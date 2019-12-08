@@ -235,6 +235,14 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 		}
 	}
 
+	if (type == KEY_PRESS) {
+		switch (key) {
+		case KC_F12:
+			console_kcon();
+			break;
+		}
+	}
+
 	ev.type = type;
 	ev.key = key;
 	ev.mods = kdev->mods;
