@@ -33,6 +33,7 @@ src = files(
 	'ddev.c',
 	'display.c',
 	'dsops.c',
+	'input.c',
 	'main.c',
 	'output.c',
 	'seat.c',

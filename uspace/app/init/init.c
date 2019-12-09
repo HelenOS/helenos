@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
 		rc = display_server();
 		if (rc == EOK) {
 			fibril_sleep(1);
-			gui_start("/app/gfxdemo");
+			gui_start("/app/terminal");
 		}
 	}
 

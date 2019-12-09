@@ -49,6 +49,7 @@
 #include "client.h"
 #include "display.h"
 #include "dsops.h"
+#include "input.h"
 #include "main.h"
 #include "output.h"
 #include "seat.h"
@@ -60,20 +61,6 @@ static void display_client_ev_pending(void *);
 static ds_client_cb_t display_client_cb = {
 	.ev_pending = display_client_ev_pending
 };
-
-static void display_kbd_event(void *arg, kbd_event_t *event)
-{
-	ds_display_t *disp = (ds_display_t *) arg;
-
-	ds_display_post_kbd_event(disp, event);
-}
-
-static void display_pos_event(void *arg, pos_event_t *event)
-{
-	ds_display_t *disp = (ds_display_t *) arg;
-
-	ds_display_post_pos_event(disp, event);
-}
 
 static void display_client_ev_pending(void *arg)
 {
@@ -101,13 +88,11 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK)
 		goto error;
 
-#if 0
 	rc = ds_input_open(disp);
 	if (rc != EOK)
 		goto error;
-#endif
-	rc = ds_output_create(display_kbd_event, (void *) disp,
-	    display_pos_event, (void *) disp, &output);
+
+	rc = ds_output_create(&output);
 	if (rc != EOK)
 		goto error;
 

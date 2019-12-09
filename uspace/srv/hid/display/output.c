@@ -44,24 +44,6 @@
 #include "ddev.h"
 #include "output.h"
 
-#if 0
-static void (*kbd_ev_handler)(void *, kbd_event_t *);
-static void *kbd_ev_arg;
-static void (*pos_ev_handler)(void *, pos_event_t *);
-static void *pos_ev_arg;
-
-static void on_keyboard_event(widget_t *widget, void *data)
-{
-	printf("Keyboard event\n");
-	kbd_ev_handler(kbd_ev_arg, (kbd_event_t *) data);
-}
-
-static void on_position_event(widget_t *widget, void *data)
-{
-	pos_ev_handler(pos_ev_arg, (pos_event_t *) data);
-}
-#endif
-
 /** Check for new display devices.
  *
  * @param output Display server output
@@ -139,16 +121,10 @@ static void ds_ddev_change_cb(void *arg)
 
 /** Create display server output.
  *
- * @param kbd_event_handler
- * @param karg
- * @param pos_event_handler
- * @param parg
  * @param routput Place to store pointer to display server output object.
  * @return EOK on success or an error code
  */
-errno_t ds_output_create(void (*kbd_event_handler)(void *, kbd_event_t *),
-    void *karg, void (*pos_event_handler)(void *, pos_event_t *),
-    void *parg, ds_output_t **routput)
+errno_t ds_output_create(ds_output_t **routput)
 {
 	ds_output_t *output;
 
