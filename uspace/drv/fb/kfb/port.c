@@ -305,7 +305,10 @@ static void kfb_client_conn(ipc_call_t *icall, void *arg)
 	kfb = (kfb_t *) ddf_fun_data_get((ddf_fun_t *) arg);
 
 	printf("kfb_client_conn arg2=%lu arg3=%lu arg4=%lu\n",
-	    ipc_get_arg2(icall), ipc_get_arg3(icall), ipc_get_arg4(icall));
+	    (unsigned long) ipc_get_arg2(icall),
+	    (unsigned long) ipc_get_arg3(icall),
+	    (unsigned long) ipc_get_arg4(icall));
+
 	gc_id = ipc_get_arg3(icall);
 
 	if (gc_id == 0) {
