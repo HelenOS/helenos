@@ -489,7 +489,8 @@ static errno_t demo_display(void)
 static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
 	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
-	quit = true;
+	if (event->type == KEY_PRESS)
+		quit = true;
 }
 
 static void print_syntax(void)

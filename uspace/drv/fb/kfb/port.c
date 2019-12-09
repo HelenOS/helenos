@@ -244,7 +244,9 @@ static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	gfx_coord2_t offs;
 	gfx_coord2_t bmdim;
 	gfx_coord2_t dim;
-	gfx_coord_t x, y;
+	gfx_coord2_t sp;
+	gfx_coord2_t dp;
+	gfx_coord2_t pos;
 	pixelmap_t pbm;
 	pixel_t color;
 
@@ -269,11 +271,14 @@ static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pbm.height = bmdim.y;
 	pbm.data = kfbbm->alloc.pixels;
 
-	for (y = srect.p0.y; y < srect.p1.y; y++) {
-		for (x = srect.p0.x; x < srect.p1.x; x++) {
-			color = pixelmap_get_pixel(&pbm, x, y);
+	for (pos.y = srect.p0.y; pos.y < srect.p1.y; pos.y++) {
+		for (pos.x = srect.p0.x; pos.x < srect.p1.x; pos.x++) {
+			gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
+			gfx_coord2_add(&pos, &offs, &dp);
+
+			color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
 			kfb->pixel2visual(kfb->addr +
-			    FB_POS(kfb, x, y), color);
+			    FB_POS(kfb, dp.x, dp.y), color);
 		}
 	}
 
