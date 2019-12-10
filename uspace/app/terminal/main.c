@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	task_retval(0);
 	async_manager();
 	return 0;
 }

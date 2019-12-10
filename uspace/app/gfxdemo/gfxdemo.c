@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <str.h>
+#include <task.h>
 #include <window.h>
 
 static void wnd_kbd_event(void *, kbd_event_t *);
@@ -436,6 +437,8 @@ static errno_t demo_canvas(void)
 
 	gc = canvas_gc_get_ctx(cgc);
 
+	task_retval(0);
+
 	rc = demo_loop(gc, 400, 300);
 	if (rc != EOK)
 		return rc;
@@ -474,6 +477,8 @@ static errno_t demo_display(void)
 		printf("Error getting graphics context.\n");
 		return rc;
 	}
+
+	task_retval(0);
 
 	rc = demo_loop(gc, 400, 300);
 	if (rc != EOK)
