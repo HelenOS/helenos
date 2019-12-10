@@ -41,7 +41,6 @@
 typedef sysarg_t (*syshandler_t)(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
 
-extern syshandler_t syscall_table[SYSCALL_END];
 extern sysarg_t syscall_handler(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
