@@ -51,14 +51,18 @@
 #define HOUR    3600
 #define MINUTE  60
 
+#define KERNEL_NAME  "kernel"
+#define INIT_PREFIX  "init:"
+
 typedef enum {
 	LIST_TASKS,
 	LIST_THREADS,
 	LIST_IPCCS,
 	LIST_CPUS,
-	LIST_LOAD,
-	LIST_UPTIME
-} list_toggle_t;
+	PRINT_LOAD,
+	PRINT_UPTIME,
+	PRINT_ARCH
+} output_toggle_t;
 
 static void list_tasks(void)
 {
@@ -223,42 +227,174 @@ static void print_uptime(void)
 	    (uptime.tv_sec % HOUR) / MINUTE, uptime.tv_sec % MINUTE);
 }
 
+static char *escape_dot(const char *str)
+{
+	size_t size = 0;
+	for (size_t i = 0; str[i] != 0; i++) {
+		if (str[i] == '"')
+			size++;
+
+		size++;
+	}
+
+	char *escaped_str = calloc(size + 1, sizeof(char));
+	if (escaped_str == NULL)
+		return NULL;
+
+	size_t pos = 0;
+	for (size_t i = 0; str[i] != 0; i++) {
+		if (str[i] == '"') {
+			escaped_str[pos] = '\\';
+			pos++;
+		}
+
+		escaped_str[pos] = str[i];
+		pos++;
+	}
+
+	escaped_str[pos] = 0;
+
+	return escaped_str;
+}
+
+static void print_arch(void)
+{
+	size_t count_tasks;
+	stats_task_t *stats_tasks = stats_get_tasks(&count_tasks);
+
+	if (stats_tasks == NULL) {
+		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
+		return;
+	}
+
+	size_t count_ipccs;
+	stats_ipcc_t *stats_ipccs = stats_get_ipccs(&count_ipccs);
+
+	if (stats_ipccs == NULL) {
+		fprintf(stderr, "%s: Unable to get IPC connections\n", NAME);
+		return;
+	}
+
+	/* Global dot language attributes */
+	printf("digraph HelenOS {\n");
+	printf("\tlayout=sfdp\n");
+	printf("\t// layout=neato\n");
+	printf("\tsplines=true\n");
+	printf("\t// splines=ortho\n");
+	printf("\tconcentrate=true\n");
+	printf("\tcenter=true\n");
+	printf("\toverlap=false\n");
+	printf("\toutputorder=edgesfirst\n");
+	printf("\tfontsize=12\n");
+	printf("\tnode [shape=component style=filled color=red "
+	    "fillcolor=yellow]\n\t\n");
+
+	bool kernel_found = false;
+	task_id_t kernel_id = 0;
+
+	/* Tasks as vertices (components) */
+	for (size_t i = 0; i < count_tasks; i++) {
+		/* Kernel task */
+		bool kernel = (str_cmp(stats_tasks[i].name, KERNEL_NAME) == 0);
+
+		/* Init task */
+		bool init = str_test_prefix(stats_tasks[i].name, INIT_PREFIX);
+
+		char *escaped_name = NULL;
+
+		if (init)
+			escaped_name = escape_dot(str_suffix(stats_tasks[i].name,
+			    str_length(INIT_PREFIX)));
+		else
+			escaped_name = escape_dot(stats_tasks[i].name);
+
+		if (escaped_name == NULL)
+			continue;
+
+		if (kernel) {
+			if (kernel_found) {
+				fprintf(stderr, "%s: Duplicate kernel tasks\n", NAME);
+			} else {
+				kernel_found = true;
+				kernel_id = stats_tasks[i].task_id;
+			}
+
+			printf("\ttask%" PRIu64 " [label=\"%s\" shape=invtrapezium "
+			    "fillcolor=gold]\n", stats_tasks[i].task_id, escaped_name);
+		} else if (init)
+			printf("\ttask%" PRIu64 " [label=\"%s\" fillcolor=orange]\n",
+			    stats_tasks[i].task_id, escaped_name);
+		else
+			printf("\ttask%" PRIu64 " [label=\"%s\"]\n", stats_tasks[i].task_id,
+			    escaped_name);
+
+		free(escaped_name);
+	}
+
+	printf("\t\n");
+
+	if (kernel_found) {
+		/*
+		 * Add an invisible edge from all user
+		 * space tasks to the kernel to increase
+		 * the kernel ranking.
+		 */
+
+		for (size_t i = 0; i < count_tasks; i++) {
+			/* Skip the kernel itself */
+			if (stats_tasks[i].task_id == kernel_id)
+				continue;
+
+			printf("\ttask%" PRIu64 " -> task%" PRIu64 " [style=\"invis\"]\n",
+				    stats_tasks[i].task_id, kernel_id);
+		}
+	}
+
+	printf("\t\n");
+
+	/* IPC connections as edges */
+	for (size_t i = 0; i < count_ipccs; i++) {
+		printf("\ttask%" PRIu64 " -> task%" PRIu64 "\n",
+			    stats_ipccs[i].caller, stats_ipccs[i].callee);
+	}
+
+	printf("}\n");
+
+	free(stats_tasks);
+	free(stats_ipccs);
+}
+
 static void usage(const char *name)
 {
 	printf(
-	    "Usage: %s [-t task_id] [-i task_id] [-at] [-ai] [-c] [-l] [-u]\n"
+	    "Usage: %s [-t task_id] [-i task_id] [-at] [-ai] [-c] [-l] [-u] [-d]\n"
 	    "\n"
 	    "Options:\n"
-	    "\t-t task_id\n"
-	    "\t--task=task_id\n"
+	    "\t-t task_id | --task=task_id\n"
 	    "\t\tList threads of the given task\n"
 	    "\n"
-	    "\t-i task_id\n"
-	    "\t--ipcc=task_id\n"
+	    "\t-i task_id | --ipcc=task_id\n"
 	    "\t\tList IPC connections of the given task\n"
 	    "\n"
-	    "\t-at\n"
-	    "\t--all-threads\n"
+	    "\t-at | --all-threads\n"
 	    "\t\tList all threads\n"
 	    "\n"
-	    "\t-ai\n"
-	    "\t--all-ipccs\n"
+	    "\t-ai | --all-ipccs\n"
 	    "\t\tList all IPC connections\n"
 	    "\n"
-	    "\t-c\n"
-	    "\t--cpus\n"
+	    "\t-c | --cpus\n"
 	    "\t\tList CPUs\n"
 	    "\n"
-	    "\t-l\n"
-	    "\t--load\n"
+	    "\t-l | --load\n"
 	    "\t\tPrint system load\n"
 	    "\n"
-	    "\t-u\n"
-	    "\t--uptime\n"
+	    "\t-u | --uptime\n"
 	    "\t\tPrint system uptime\n"
 	    "\n"
-	    "\t-h\n"
-	    "\t--help\n"
+	    "\t-d | --design\n"
+	    "\t\tPrint the current system architecture graph\n"
+	    "\n"
+	    "\t-h | --help\n"
 	    "\t\tPrint this usage information\n"
 	    "\n"
 	    "Without any options all tasks are listed\n",
@@ -267,7 +403,7 @@ static void usage(const char *name)
 
 int main(int argc, char *argv[])
 {
-	list_toggle_t list_toggle = LIST_TASKS;
+	output_toggle_t output_toggle = LIST_TASKS;
 	bool toggle_all = false;
 	task_id_t task_id = 0;
 
@@ -282,14 +418,14 @@ int main(int argc, char *argv[])
 
 		/* All IPC connections */
 		if ((off = arg_parse_short_long(argv[i], "-ai", "--all-ipccs")) != -1) {
-			list_toggle = LIST_IPCCS;
+			output_toggle = LIST_IPCCS;
 			toggle_all = true;
 			continue;
 		}
 
 		/* All threads */
 		if ((off = arg_parse_short_long(argv[i], "-at", "--all-threads")) != -1) {
-			list_toggle = LIST_THREADS;
+			output_toggle = LIST_THREADS;
 			toggle_all = true;
 			continue;
 		}
@@ -306,7 +442,7 @@ int main(int argc, char *argv[])
 
 			task_id = tmp;
 
-			list_toggle = LIST_IPCCS;
+			output_toggle = LIST_IPCCS;
 			continue;
 		}
 
@@ -322,30 +458,36 @@ int main(int argc, char *argv[])
 
 			task_id = tmp;
 
-			list_toggle = LIST_THREADS;
+			output_toggle = LIST_THREADS;
 			continue;
 		}
 
 		/* CPUs */
 		if ((off = arg_parse_short_long(argv[i], "-c", "--cpus")) != -1) {
-			list_toggle = LIST_CPUS;
+			output_toggle = LIST_CPUS;
 			continue;
 		}
 
 		/* Load */
 		if ((off = arg_parse_short_long(argv[i], "-l", "--load")) != -1) {
-			list_toggle = LIST_LOAD;
+			output_toggle = PRINT_LOAD;
 			continue;
 		}
 
 		/* Uptime */
 		if ((off = arg_parse_short_long(argv[i], "-u", "--uptime")) != -1) {
-			list_toggle = LIST_UPTIME;
+			output_toggle = PRINT_UPTIME;
+			continue;
+		}
+
+		/* Architecture */
+		if ((off = arg_parse_short_long(argv[i], "-d", "--design")) != -1) {
+			output_toggle = PRINT_ARCH;
 			continue;
 		}
 	}
 
-	switch (list_toggle) {
+	switch (output_toggle) {
 	case LIST_TASKS:
 		list_tasks();
 		break;
@@ -358,11 +500,14 @@ int main(int argc, char *argv[])
 	case LIST_CPUS:
 		list_cpus();
 		break;
-	case LIST_LOAD:
+	case PRINT_LOAD:
 		print_load();
 		break;
-	case LIST_UPTIME:
+	case PRINT_UPTIME:
 		print_uptime();
+		break;
+	case PRINT_ARCH:
+		print_arch();
 		break;
 	}
 
