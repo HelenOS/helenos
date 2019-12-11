@@ -119,14 +119,19 @@ int main(int argc, char **argv)
 	if (rc != EOK)
 		return rc;
 
+	/** fallback port handler must be set before ns gets
+	 * introduced to taskman. Taskman will wait until
+	 * the introduction, then it will start forwarding
+	 * calls to ns.
+	 */
+	async_set_fallback_port_handler(ns_connection, NULL);
+
 	rc = taskman_intro_ns();
 	if (rc != EOK) {
 		printf("%s: not accepted by taskman (%i)\n", NAME, rc);
 		return rc;
 	}
 	task_retval(0);
-
-	async_set_fallback_port_handler(ns_connection, NULL);
 
 	printf("%s: Accepting connections\n", NAME);
 
