@@ -35,6 +35,8 @@
 
 #include <adt/list.h>
 #include <errno.h>
+#include <gfx/color.h>
+#include <gfx/render.h>
 #include <stdlib.h>
 #include "client.h"
 #include "display.h"
@@ -56,6 +58,8 @@ errno_t ds_seat_create(ds_display_t *display, ds_seat_t **rseat)
 		return ENOMEM;
 
 	ds_display_add_seat(display, seat);
+	seat->pntpos.x = 10;
+	seat->pntpos.y = 10;
 
 	*rseat = seat;
 	return EOK;
@@ -71,11 +75,23 @@ void ds_seat_destroy(ds_seat_t *seat)
 	free(seat);
 }
 
+/** Set seat focus to a window.
+ *
+ * @param seat Seat
+ * @param wnd Window to focus
+ */
 void ds_seat_set_focus(ds_seat_t *seat, ds_window_t *wnd)
 {
 	seat->focus = wnd;
 }
 
+/** Evacuate focus from window.
+ *
+ * If seat's focus is @a wnd, it will be set to a different window.
+ *
+ * @param seat Seat
+ * @param wnd Window to evacuate focus from
+ */
 void ds_seat_evac_focus(ds_seat_t *seat, ds_window_t *wnd)
 {
 	ds_window_t *nwnd;
@@ -116,6 +132,132 @@ errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
 		return EOK;
 
 	return ds_client_post_kbd_event(dwindow->client, dwindow, event);
+}
+
+/** Draw cross at seat pointer position.
+ *
+ * @param seat Seat
+ * @param len Cross length
+ * @param w Cross extra width
+ * @param br Brightness (0 to 65535)
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t ds_seat_draw_cross(ds_seat_t *seat, gfx_coord_t len,
+    gfx_coord_t w, uint16_t br)
+{
+	gfx_color_t *color = NULL;
+	gfx_context_t *gc;
+	gfx_rect_t rect, r0;
+	errno_t rc;
+
+	gc = ds_display_get_gc(seat->display);
+	if (gc == NULL)
+		return EOK;
+
+	rc = gfx_color_new_rgb_i16(br, br, br, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		goto error;
+
+	r0.p0.x = -len;
+	r0.p0.y = -w;
+	r0.p1.x = +len + 1;
+	r0.p1.y = +w + 1;
+	gfx_rect_translate(&seat->pntpos, &r0, &rect);
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	r0.p0.x = -w;
+	r0.p0.y = -len;
+	r0.p1.x = +w + 1;
+	r0.p1.y = +len + 1;
+	gfx_rect_translate(&seat->pntpos, &r0, &rect);
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+	return EOK;
+error:
+	if (color != NULL)
+		gfx_color_delete(color);
+	return rc;
+}
+
+/** Draw or clear seat pointer
+ *
+ * @param seat Seat
+ * @param shown @c true to display pointer, @c false to clear it
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t ds_seat_draw_pointer(ds_seat_t *seat, bool shown)
+{
+	errno_t rc;
+
+	rc = ds_seat_draw_cross(seat, 8, 1, 0);
+	if (rc != EOK)
+		return rc;
+
+	rc = ds_seat_draw_cross(seat, 8, 0, shown ? 65535 : 0);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Post pointing device event to the seat
+ *
+ * @param seat Seat
+ * @param event Event
+ *
+ * @return EOK on success or an error code
+ */
+#include <stdio.h>
+errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
+{
+	ds_window_t *wnd;
+	gfx_coord2_t npos;
+
+	printf("ds_seat_post_ptd_event\n");
+	/* Focus window on button press */
+	if (event->type == PTD_PRESS) {
+		printf("PTD_PRESS\n");
+		wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
+		if (wnd != NULL) {
+			printf("set focus\n");
+			ds_seat_set_focus(seat, wnd);
+			return EOK;
+		}
+	}
+
+	if (event->type == PTD_MOVE) {
+		printf("PTD_MOVE\n");
+		gfx_coord2_add(&seat->pntpos, &event->dmove, &npos);
+		if (npos.x < 10)
+			npos.x = 10;
+		if (npos.y < 10)
+			npos.y = 10;
+		if (npos.x > 1024 - 10)
+			npos.x = 1024 - 10;
+		if (npos.y > 768 - 10)
+			npos.y = 768 - 10;
+
+		printf("clear pointer\n");
+		(void) ds_seat_draw_pointer(seat, false);
+		seat->pntpos = npos;
+		printf("draw pointer\n");
+		(void) ds_seat_draw_pointer(seat, true);
+	}
+
+	return EOK;
 }
 
 /** @}

@@ -26,30 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup display
+/** @addtogroup libc
  * @{
  */
-/**
- * @file Display server seat type
+/** @file
  */
 
-#ifndef TYPES_DISPLAY_SEAT_H
-#define TYPES_DISPLAY_SEAT_H
+#ifndef TYPES_DISPLAY_PTD_EVENT_H
+#define TYPES_DISPLAY_PTD_EVENT_H
 
-#include <adt/list.h>
 #include <gfx/coord.h>
 
-/** Display server seat */
-typedef struct ds_seat {
-	/** Containing display */
-	struct ds_display *display;
-	/** Link to display->seats */
-	link_t lseats;
-	/** Window this seat is focused on */
-	struct ds_window *focus;
-	/** Pointer position */
-	gfx_coord2_t pntpos;
-} ds_seat_t;
+typedef enum {
+	PTD_MOVE,
+	PTD_PRESS,
+	PTD_RELEASE
+} ptd_event_type_t;
+
+/** Pointing device event */
+typedef struct {
+	ptd_event_type_t type;
+	/** Button number for PTD_PRESS or PTD_RELEASE */
+	int btn_num;
+	/** Relative move vector for PTD_MOVE */
+	gfx_coord2_t dmove;
+} ptd_event_t;
 
 #endif
 

@@ -84,18 +84,37 @@ static errno_t ds_input_ev_key(input_t *input, kbd_event_type_t type,
 
 static errno_t ds_input_ev_move(input_t *input, int dx, int dy)
 {
-	return EOK;
+	ds_display_t *disp = (ds_display_t *) input->user;
+	ptd_event_t event;
+
+	printf("ds_input_ev_move\n");
+	event.type = PTD_MOVE;
+	event.dmove.x = dx;
+	event.dmove.y = dy;
+
+	return ds_display_post_ptd_event(disp, &event);
 }
 
 static errno_t ds_input_ev_abs_move(input_t *input, unsigned x, unsigned y,
     unsigned max_x, unsigned max_y)
 {
+	printf("ds_input_ev_abs_move x=%u y=%u mx=%u my=%u\n",
+	    x, y, max_x, max_y);
 	return EOK;
 }
 
 static errno_t ds_input_ev_button(input_t *input, int bnum, int bpress)
 {
-	return EOK;
+	ds_display_t *disp = (ds_display_t *) input->user;
+	ptd_event_t event;
+
+	printf("ds_input_ev_abs_button\n");
+	event.type = bpress ? PTD_PRESS : PTD_RELEASE;
+	event.btn_num = bnum;
+	event.dmove.x = 0;
+	event.dmove.y = 0;
+
+	return ds_display_post_ptd_event(disp, &event);
 }
 
 /** Open input service.

@@ -39,10 +39,10 @@
 #include <errno.h>
 #include <gfx/context.h>
 #include <io/kbd_event.h>
-#include <io/pos_event.h>
 #include "types/display/client.h"
 #include "types/display/ddev.h"
 #include "types/display/display.h"
+#include "types/display/ptd_event.h"
 #include "types/display/seat.h"
 
 extern errno_t ds_display_create(gfx_context_t *, ds_display_t **);
@@ -58,7 +58,7 @@ extern void ds_display_remove_window(ds_window_t *);
 extern ds_window_t *ds_display_first_window(ds_display_t *);
 extern ds_window_t *ds_display_next_window(ds_window_t *);
 extern errno_t ds_display_post_kbd_event(ds_display_t *, kbd_event_t *);
-extern errno_t ds_display_post_pos_event(ds_display_t *, pos_event_t *);
+extern errno_t ds_display_post_ptd_event(ds_display_t *, ptd_event_t *);
 extern void ds_display_add_seat(ds_display_t *, ds_seat_t *);
 extern void ds_display_remove_seat(ds_seat_t *);
 extern ds_seat_t *ds_display_first_seat(ds_display_t *);

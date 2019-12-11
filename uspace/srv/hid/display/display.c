@@ -266,30 +266,17 @@ errno_t ds_display_post_kbd_event(ds_display_t *display, kbd_event_t *event)
  * @param display Display
  * @param event Event
  */
-errno_t ds_display_post_pos_event(ds_display_t *display, pos_event_t *event)
+errno_t ds_display_post_ptd_event(ds_display_t *display, ptd_event_t *event)
 {
-	gfx_coord2_t pos;
-	ds_window_t *wnd;
 	ds_seat_t *seat;
 
-	/* Focus window on button press */
-	if (event->type == POS_PRESS) {
-		printf("Button press\n");
-		pos.x = event->hpos;
-		pos.y = event->vpos;
+	// TODO Determine which seat the event belongs to
+	seat = ds_display_first_seat(display);
+	printf("ds_display_post_ptd_event: seat=%p\n", seat);
+	if (seat == NULL)
+		return EOK;
 
-		wnd = ds_display_window_by_pos(display, &pos);
-		if (wnd != NULL) {
-			seat = ds_display_first_seat(display);
-			if (seat == NULL)
-				return EOK;
-
-			ds_seat_set_focus(seat, wnd);
-			return EOK;
-		}
-	}
-
-	return EOK;
+	return ds_seat_post_ptd_event(seat, event);
 }
 
 /** Add seat to display.
@@ -407,7 +394,7 @@ gfx_context_t *ds_display_get_gc(ds_display_t *display)
 
 	ddev = ds_display_first_ddev(display);
 	if (ddev == NULL)
-		abort();
+		return NULL;
 
 	return ddev->gc;
 }

@@ -308,15 +308,15 @@ PCUT_TEST(display_post_kbd_event_alt_tab)
 	ds_display_destroy(disp);
 }
 
-/** Test ds_display_post_pos_event() with click on window switches focus
+/** Test ds_display_post_ptd_event() with click on window switches focus
  */
-PCUT_TEST(display_post_pos_event_wnd_switch)
+PCUT_TEST(display_post_ptd_event_wnd_switch)
 {
 	ds_display_t *disp;
 	ds_seat_t *seat;
 	ds_client_t *client;
 	ds_window_t *w0, *w1;
-	pos_event_t event;
+	ptd_event_t event;
 	bool called_cb = false;
 	errno_t rc;
 
@@ -341,24 +341,35 @@ PCUT_TEST(display_post_pos_event_wnd_switch)
 	w1->dpos.x = 400;
 	w1->dpos.y = 400;
 
-	ds_seat_set_focus(seat, w0);
-
-	event.type = POS_PRESS;
-	event.btn_num = 1;
-
 	PCUT_ASSERT_FALSE(called_cb);
 
-	event.hpos = 400;
-	event.vpos = 400;
-	rc = ds_display_post_pos_event(disp, &event);
+	ds_seat_set_focus(seat, w0);
+
+	event.type = PTD_MOVE;
+	event.dmove.x = 400;
+	event.dmove.y = 400;
+	rc = ds_display_post_ptd_event(disp, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(called_cb);
+
+	event.type = PTD_PRESS;
+	event.btn_num = 1;
+	rc = ds_display_post_ptd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_FALSE(called_cb);
 
 	PCUT_ASSERT_EQUALS(w1, seat->focus);
 
-	event.hpos = 10;
-	event.vpos = 10;
-	rc = ds_display_post_pos_event(disp, &event);
+	event.type = PTD_MOVE;
+	event.dmove.x = -400;
+	event.dmove.y = -400;
+	rc = ds_display_post_ptd_event(disp, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(called_cb);
+
+	event.type = PTD_PRESS;
+	event.btn_num = 1;
+	rc = ds_display_post_ptd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_FALSE(called_cb);
 
