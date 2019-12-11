@@ -346,7 +346,7 @@ static void print_arch(void)
 				continue;
 
 			printf("\ttask%" PRIu64 " -> task%" PRIu64 " [style=\"invis\"]\n",
-				    stats_tasks[i].task_id, kernel_id);
+			    stats_tasks[i].task_id, kernel_id);
 		}
 	}
 
@@ -355,7 +355,7 @@ static void print_arch(void)
 	/* IPC connections as edges */
 	for (size_t i = 0; i < count_ipccs; i++) {
 		printf("\ttask%" PRIu64 " -> task%" PRIu64 "\n",
-			    stats_ipccs[i].caller, stats_ipccs[i].callee);
+		    stats_ipccs[i].caller, stats_ipccs[i].callee);
 	}
 
 	printf("}\n");
