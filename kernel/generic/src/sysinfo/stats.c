@@ -484,9 +484,10 @@ static void *get_stats_ipccs(struct sysinfo_item *item, size_t *size,
 		    produce_stats_ipcc_cb, &state);
 
 		irq_spinlock_lock(&tasks_lock, true);
-		task_release(task);
 
-		task = task_next(task);
+		task_t *prev_task = task;
+		task = task_next(prev_task);
+		task_release(prev_task);
 	}
 
 	irq_spinlock_unlock(&tasks_lock, true);
