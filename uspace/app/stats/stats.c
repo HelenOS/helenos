@@ -51,6 +51,15 @@
 #define HOUR    3600
 #define MINUTE  60
 
+typedef enum {
+	LIST_TASKS,
+	LIST_THREADS,
+	LIST_IPCCS,
+	LIST_CPUS,
+	LIST_LOAD,
+	LIST_UPTIME
+} list_toggle_t;
+
 static void list_tasks(void)
 {
 	size_t count;
@@ -64,8 +73,7 @@ static void list_tasks(void)
 	printf("[taskid] [thrds] [resident] [virtual] [ucycles]"
 	    " [kcycles] [name\n");
 
-	size_t i;
-	for (i = 0; i < count; i++) {
+	for (size_t i = 0; i < count; i++) {
 		uint64_t resmem;
 		uint64_t virtmem;
 		uint64_t ucycles;
@@ -102,8 +110,7 @@ static void list_threads(task_id_t task_id, bool all)
 
 	printf("[taskid] [threadid] [state ] [prio] [cpu ] [ucycles] [kcycles]\n");
 
-	size_t i;
-	for (i = 0; i < count; i++) {
+	for (size_t i = 0; i < count; i++) {
 		if ((all) || (stats_threads[i].task_id == task_id)) {
 			uint64_t ucycles, kcycles;
 			char usuffix, ksuffix;
@@ -129,6 +136,28 @@ static void list_threads(task_id_t task_id, bool all)
 	free(stats_threads);
 }
 
+static void list_ipccs(task_id_t task_id, bool all)
+{
+	size_t count;
+	stats_ipcc_t *stats_ipccs = stats_get_ipccs(&count);
+
+	if (stats_ipccs == NULL) {
+		fprintf(stderr, "%s: Unable to get IPC connections\n", NAME);
+		return;
+	}
+
+	printf("[caller] [callee]\n");
+
+	for (size_t i = 0; i < count; i++) {
+		if ((all) || (stats_ipccs[i].caller == task_id)) {
+			printf("%-8" PRIu64 " %-8" PRIu64 "\n",
+			    stats_ipccs[i].caller, stats_ipccs[i].callee);
+		}
+	}
+
+	free(stats_ipccs);
+}
+
 static void list_cpus(void)
 {
 	size_t count;
@@ -141,8 +170,7 @@ static void list_cpus(void)
 
 	printf("[id] [MHz     ] [busy cycles] [idle cycles]\n");
 
-	size_t i;
-	for (i = 0; i < count; i++) {
+	for (size_t i = 0; i < count; i++) {
 		printf("%-4u ", cpus[i].id);
 		if (cpus[i].active) {
 			uint64_t bcycles, icycles;
@@ -173,8 +201,7 @@ static void print_load(void)
 
 	printf("%s: Load average: ", NAME);
 
-	size_t i;
-	for (i = 0; i < count; i++) {
+	for (size_t i = 0; i < count; i++) {
 		if (i > 0)
 			printf(" ");
 
@@ -199,16 +226,24 @@ static void print_uptime(void)
 static void usage(const char *name)
 {
 	printf(
-	    "Usage: %s [-t task_id] [-a] [-c] [-l] [-u]\n"
+	    "Usage: %s [-t task_id] [-i task_id] [-at] [-ai] [-c] [-l] [-u]\n"
 	    "\n"
 	    "Options:\n"
 	    "\t-t task_id\n"
 	    "\t--task=task_id\n"
 	    "\t\tList threads of the given task\n"
 	    "\n"
-	    "\t-a\n"
-	    "\t--all\n"
+	    "\t-i task_id\n"
+	    "\t--ipcc=task_id\n"
+	    "\t\tList IPC connections of the given task\n"
+	    "\n"
+	    "\t-at\n"
+	    "\t--all-threads\n"
 	    "\t\tList all threads\n"
+	    "\n"
+	    "\t-ai\n"
+	    "\t--all-ipccs\n"
+	    "\t\tList all IPC connections\n"
 	    "\n"
 	    "\t-c\n"
 	    "\t--cpus\n"
@@ -232,17 +267,11 @@ static void usage(const char *name)
 
 int main(int argc, char *argv[])
 {
-	bool toggle_tasks = true;
-	bool toggle_threads = false;
+	list_toggle_t list_toggle = LIST_TASKS;
 	bool toggle_all = false;
-	bool toggle_cpus = false;
-	bool toggle_load = false;
-	bool toggle_uptime = false;
-
 	task_id_t task_id = 0;
 
-	int i;
-	for (i = 1; i < argc; i++) {
+	for (int i = 1; i < argc; i++) {
 		int off;
 
 		/* Usage */
@@ -251,67 +280,91 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 
-		/* All threads */
-		if ((off = arg_parse_short_long(argv[i], "-a", "--all")) != -1) {
-			toggle_tasks = false;
-			toggle_threads = true;
+		/* All IPC connections */
+		if ((off = arg_parse_short_long(argv[i], "-ai", "--all-ipccs")) != -1) {
+			list_toggle = LIST_IPCCS;
 			toggle_all = true;
 			continue;
 		}
 
-		/* CPUs */
-		if ((off = arg_parse_short_long(argv[i], "-c", "--cpus")) != -1) {
-			toggle_tasks = false;
-			toggle_cpus = true;
+		/* All threads */
+		if ((off = arg_parse_short_long(argv[i], "-at", "--all-threads")) != -1) {
+			list_toggle = LIST_THREADS;
+			toggle_all = true;
 			continue;
 		}
 
-		/* Threads */
-		if ((off = arg_parse_short_long(argv[i], "-t", "--task=")) != -1) {
+		/* IPC connections */
+		if ((off = arg_parse_short_long(argv[i], "-i", "--ipcc=")) != -1) {
 			// TODO: Support for 64b range
 			int tmp;
 			errno_t ret = arg_parse_int(argc, argv, &i, &tmp, off);
 			if (ret != EOK) {
-				printf("%s: Malformed task_id '%s'\n", NAME, argv[i]);
+				printf("%s: Malformed task id '%s'\n", NAME, argv[i]);
 				return -1;
 			}
 
 			task_id = tmp;
 
-			toggle_tasks = false;
-			toggle_threads = true;
+			list_toggle = LIST_IPCCS;
+			continue;
+		}
+
+		/* Tasks */
+		if ((off = arg_parse_short_long(argv[i], "-t", "--task=")) != -1) {
+			// TODO: Support for 64b range
+			int tmp;
+			errno_t ret = arg_parse_int(argc, argv, &i, &tmp, off);
+			if (ret != EOK) {
+				printf("%s: Malformed task id '%s'\n", NAME, argv[i]);
+				return -1;
+			}
+
+			task_id = tmp;
+
+			list_toggle = LIST_THREADS;
+			continue;
+		}
+
+		/* CPUs */
+		if ((off = arg_parse_short_long(argv[i], "-c", "--cpus")) != -1) {
+			list_toggle = LIST_CPUS;
 			continue;
 		}
 
 		/* Load */
 		if ((off = arg_parse_short_long(argv[i], "-l", "--load")) != -1) {
-			toggle_tasks = false;
-			toggle_load = true;
+			list_toggle = LIST_LOAD;
 			continue;
 		}
 
 		/* Uptime */
 		if ((off = arg_parse_short_long(argv[i], "-u", "--uptime")) != -1) {
-			toggle_tasks = false;
-			toggle_uptime = true;
+			list_toggle = LIST_UPTIME;
 			continue;
 		}
 	}
 
-	if (toggle_tasks)
+	switch (list_toggle) {
+	case LIST_TASKS:
 		list_tasks();
-
-	if (toggle_threads)
+		break;
+	case LIST_THREADS:
 		list_threads(task_id, toggle_all);
-
-	if (toggle_cpus)
+		break;
+	case LIST_IPCCS:
+		list_ipccs(task_id, toggle_all);
+		break;
+	case LIST_CPUS:
 		list_cpus();
-
-	if (toggle_load)
+		break;
+	case LIST_LOAD:
 		print_load();
-
-	if (toggle_uptime)
+		break;
+	case LIST_UPTIME:
 		print_uptime();
+		break;
+	}
 
 	return 0;
 }
