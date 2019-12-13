@@ -44,7 +44,9 @@ extern void gfx_coord2_subtract(gfx_coord2_t *, gfx_coord2_t *, gfx_coord2_t *);
 extern void gfx_span_points_sort(gfx_coord_t, gfx_coord_t, gfx_coord_t *,
     gfx_coord_t *);
 extern void gfx_rect_translate(gfx_coord2_t *, gfx_rect_t *, gfx_rect_t *);
+extern void gfx_rect_rtranslate(gfx_coord2_t *, gfx_rect_t *, gfx_rect_t *);
 extern void gfx_rect_envelope(gfx_rect_t *, gfx_rect_t *, gfx_rect_t *);
+extern void gfx_rect_clip(gfx_rect_t *, gfx_rect_t *, gfx_rect_t *);
 extern void gfx_rect_points_sort(gfx_rect_t *, gfx_rect_t *);
 extern bool gfx_rect_is_empty(gfx_rect_t *);
 

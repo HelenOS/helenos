@@ -86,19 +86,35 @@ void gfx_span_points_sort(gfx_coord_t s0, gfx_coord_t s1, gfx_coord_t *d0,
 
 /** Move (translate) rectangle.
  *
- * @param trans Translation
+ * @param trans Translation offset
  * @param src Source rectangle
  * @param dest Destination rectangle
  */
 void gfx_rect_translate(gfx_coord2_t *trans, gfx_rect_t *src, gfx_rect_t *dest)
 {
-	gfx_coord2_add(trans, &src->p0, &dest->p0);
-	gfx_coord2_add(trans, &src->p1, &dest->p1);
+	gfx_coord2_add(&src->p0, trans, &dest->p0);
+	gfx_coord2_add(&src->p1, trans, &dest->p1);
+}
+
+/** Reverse move (translate) rectangle.
+ *
+ * @param trans Translation offset
+ * @param src Source rectangle
+ * @param dest Destination rectangle
+ */
+void gfx_rect_rtranslate(gfx_coord2_t *trans, gfx_rect_t *src, gfx_rect_t *dest)
+{
+	gfx_coord2_subtract(&src->p0, trans, &dest->p0);
+	gfx_coord2_subtract(&src->p1, trans, &dest->p1);
 }
 
 /** Compute envelope of two rectangles.
  *
  * Envelope is the minimal rectangle covering all pixels of both rectangles.
+ *
+ * @param a First rectangle
+ * @param b Second rectangle
+ * @param dest Place to store enveloping rectangle
  */
 void gfx_rect_envelope(gfx_rect_t *a, gfx_rect_t *b, gfx_rect_t *dest)
 {
@@ -123,6 +139,28 @@ void gfx_rect_envelope(gfx_rect_t *a, gfx_rect_t *b, gfx_rect_t *dest)
 	dest->p0.y = min(sa.p0.y, sb.p0.y);
 	dest->p1.x = max(sa.p1.x, sb.p1.x);
 	dest->p1.y = max(sa.p1.y, sb.p1.y);
+}
+
+/** Compute intersection of two rectangles.
+ *
+ * If the two rectangles do not intersect, the result will be an empty
+ * rectangle (check with gfx_rect_is_empty()).
+ *
+ * @param rect Source rectangle
+ * @param clip Clipping rectangle
+ * @param dest Place to store clipped rectangle
+ */
+void gfx_rect_clip(gfx_rect_t *rect, gfx_rect_t *clip, gfx_rect_t *dest)
+{
+	gfx_rect_t srect, sclip;
+
+	gfx_rect_points_sort(rect, &srect);
+	gfx_rect_points_sort(clip, &sclip);
+
+	dest->p0.x = min(max(srect.p0.x, sclip.p0.x), sclip.p1.x);
+	dest->p0.y = min(max(srect.p0.y, sclip.p0.y), sclip.p1.y);
+	dest->p1.x = max(sclip.p0.x, min(srect.p1.x, sclip.p1.x));
+	dest->p1.y = max(sclip.p0.y, min(srect.p1.y, sclip.p1.y));
 }
 
 /** Sort points of a rectangle.
