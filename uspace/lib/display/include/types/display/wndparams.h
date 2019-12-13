@@ -32,32 +32,22 @@
 /** @file
  */
 
-#ifndef _LIBDISPLAY_DISP_SRV_H_
-#define _LIBDISPLAY_DISP_SRV_H_
+#ifndef _LIBDISPLAY_TYPES_DISPLAY_WNDPARAMS_H_
+#define _LIBDISPLAY_TYPES_DISPLAY_WNDPARAMS_H_
 
-#include <async.h>
-#include <errno.h>
-#include <types/display/event.h>
-#include <types/display/wndparams.h>
+#include <gfx/coord.h>
 
-typedef struct display_ops display_ops_t;
-
-/** Display server structure (per client session) */
+/** Parameters for a new window.
+ *
+ * The window's dimensions are determined by the bounding rectangle,
+ * the position of which does not relate to its positon on the display,
+ * it just determines which range of logical coordinates is used
+ * by the window.
+ */
 typedef struct {
-	async_sess_t *client_sess;
-	display_ops_t *ops;
-	void *arg;
-} display_srv_t;
-
-struct display_ops {
-	errno_t (*window_create)(void *, display_wnd_params_t *, sysarg_t *);
-	errno_t (*window_destroy)(void *, sysarg_t);
-	errno_t (*get_event)(void *, sysarg_t *, display_wnd_ev_t *);
-};
-
-extern void display_conn(ipc_call_t *, display_srv_t *);
-extern void display_srv_initialize(display_srv_t *);
-extern void display_srv_ev_pending(display_srv_t *);
+	/** Bounding rectangle */
+	gfx_rect_t rect;
+} display_wnd_params_t;
 
 #endif
 

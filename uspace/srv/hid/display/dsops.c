@@ -42,7 +42,7 @@
 #include "seat.h"
 #include "window.h"
 
-static errno_t disp_window_create(void *, sysarg_t *);
+static errno_t disp_window_create(void *, display_wnd_params_t *, sysarg_t *);
 static errno_t disp_window_destroy(void *, sysarg_t);
 static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
 
@@ -52,7 +52,8 @@ display_ops_t display_srv_ops = {
 	.get_event = disp_get_event
 };
 
-static errno_t disp_window_create(void *arg, sysarg_t *rwnd_id)
+static errno_t disp_window_create(void *arg, display_wnd_params_t *params,
+    sysarg_t *rwnd_id)
 {
 	errno_t rc;
 	ds_client_t *client = (ds_client_t *) arg;

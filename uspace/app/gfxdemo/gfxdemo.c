@@ -455,6 +455,7 @@ static errno_t demo_display(void)
 {
 	display_t *display = NULL;
 	gfx_context_t *gc;
+	display_wnd_params_t params;
 	display_window_t *window = NULL;
 	errno_t rc;
 
@@ -466,7 +467,13 @@ static errno_t demo_display(void)
 		return rc;
 	}
 
-	rc = display_window_create(display, &wnd_cb, NULL, &window);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 400;
+	params.rect.p1.y = 300;
+
+	rc = display_window_create(display, &params, &wnd_cb, NULL, &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		return rc;

@@ -714,6 +714,7 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 {
 	terminal_t *term;
 	gfx_bitmap_params_t params;
+	display_wnd_params_t wparams;
 	errno_t rc;
 
 	term = calloc(1, sizeof(terminal_t));
@@ -754,8 +755,14 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 		goto error;
 	}
 
-	rc = display_window_create(display, &terminal_wnd_cb, (void *) term,
-	    &term->window);
+	display_wnd_params_init(&wparams);
+	wparams.rect.p0.x = 0;
+	wparams.rect.p0.y = 0;
+	wparams.rect.p1.x = width;
+	wparams.rect.p1.y = height;
+
+	rc = display_window_create(display, &wparams, &terminal_wnd_cb,
+	    (void *) term, &term->window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		goto error;

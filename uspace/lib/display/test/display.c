@@ -48,7 +48,7 @@ static const char *test_display_svc = "test/display";
 static void test_display_conn(ipc_call_t *, void *);
 static void test_kbd_event(void *, kbd_event_t *);
 
-static errno_t test_window_create(void *, sysarg_t *);
+static errno_t test_window_create(void *, display_wnd_params_t *, sysarg_t *);
 static errno_t test_window_destroy(void *, sysarg_t);
 static errno_t test_get_event(void *, sysarg_t *, display_wnd_ev_t *);
 
@@ -78,6 +78,7 @@ typedef struct {
 	display_wnd_ev_t revent;
 	int event_cnt;
 	bool window_create_called;
+	gfx_rect_t create_rect;
 	bool window_destroy_called;
 	bool get_event_called;
 	bool set_color_called;
@@ -119,6 +120,7 @@ PCUT_TEST(window_create_failure)
 	errno_t rc;
 	service_id_t sid;
 	display_t *disp = NULL;
+	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
 
@@ -138,8 +140,19 @@ PCUT_TEST(window_create_failure)
 	wnd = NULL;
 	resp.rc = ENOMEM;
 	resp.window_create_called = false;
-	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
 	PCUT_ASSERT_TRUE(resp.window_create_called);
+	PCUT_ASSERT_EQUALS(params.rect.p0.x, resp.create_rect.p0.x);
+	PCUT_ASSERT_EQUALS(params.rect.p0.y, resp.create_rect.p0.y);
+	PCUT_ASSERT_EQUALS(params.rect.p1.x, resp.create_rect.p1.x);
+	PCUT_ASSERT_EQUALS(params.rect.p1.y, resp.create_rect.p1.y);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 	PCUT_ASSERT_NULL(wnd);
 
@@ -157,6 +170,7 @@ PCUT_TEST(window_create_destroy_success)
 	errno_t rc;
 	service_id_t sid;
 	display_t *disp = NULL;
+	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
 
@@ -176,8 +190,19 @@ PCUT_TEST(window_create_destroy_success)
 	wnd = NULL;
 	resp.rc = EOK;
 	resp.window_create_called = false;
-	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
 	PCUT_ASSERT_TRUE(resp.window_create_called);
+	PCUT_ASSERT_EQUALS(params.rect.p0.x, resp.create_rect.p0.x);
+	PCUT_ASSERT_EQUALS(params.rect.p0.y, resp.create_rect.p0.y);
+	PCUT_ASSERT_EQUALS(params.rect.p1.x, resp.create_rect.p1.x);
+	PCUT_ASSERT_EQUALS(params.rect.p1.y, resp.create_rect.p1.y);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wnd);
 
@@ -197,6 +222,7 @@ PCUT_TEST(window_destroy_failure)
 	errno_t rc;
 	service_id_t sid;
 	display_t *disp = NULL;
+	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
 
@@ -215,8 +241,19 @@ PCUT_TEST(window_destroy_failure)
 
 	resp.rc = EOK;
 	resp.window_create_called = false;
-	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
 	PCUT_ASSERT_TRUE(resp.window_create_called);
+	PCUT_ASSERT_EQUALS(params.rect.p0.x, resp.create_rect.p0.x);
+	PCUT_ASSERT_EQUALS(params.rect.p0.y, resp.create_rect.p0.y);
+	PCUT_ASSERT_EQUALS(params.rect.p1.x, resp.create_rect.p1.x);
+	PCUT_ASSERT_EQUALS(params.rect.p1.y, resp.create_rect.p1.y);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wnd);
 
@@ -237,6 +274,7 @@ PCUT_TEST(window_get_gc_failure)
 	errno_t rc;
 	service_id_t sid;
 	display_t *disp = NULL;
+	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
 	gfx_context_t *gc;
@@ -256,7 +294,14 @@ PCUT_TEST(window_get_gc_failure)
 
 	wnd = NULL;
 	resp.rc = EOK;
-	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wnd);
 
@@ -282,6 +327,7 @@ PCUT_TEST(window_get_gc_success)
 	errno_t rc;
 	service_id_t sid;
 	display_t *disp = NULL;
+	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
 	gfx_context_t *gc;
@@ -302,7 +348,14 @@ PCUT_TEST(window_get_gc_success)
 
 	wnd = NULL;
 	resp.rc = EOK;
-	rc = display_window_create(disp, &test_display_wnd_cb, NULL, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wnd);
 
@@ -335,6 +388,7 @@ PCUT_TEST(kbd_event_deliver)
 	errno_t rc;
 	service_id_t sid;
 	display_t *disp = NULL;
+	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
 	gfx_context_t *gc;
@@ -355,8 +409,14 @@ PCUT_TEST(kbd_event_deliver)
 
 	wnd = NULL;
 	resp.rc = EOK;
-	rc = display_window_create(disp, &test_display_wnd_cb, (void *) &resp,
-	    &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wnd);
 
@@ -461,11 +521,13 @@ static void test_kbd_event(void *arg, kbd_event_t *event)
 	fibril_mutex_unlock(&resp->kbd_event_lock);
 }
 
-static errno_t test_window_create(void *arg, sysarg_t *rwnd_id)
+static errno_t test_window_create(void *arg, display_wnd_params_t *params,
+    sysarg_t *rwnd_id)
 {
 	test_response_t *resp = (test_response_t *) arg;
 
 	resp->window_create_called = true;
+	resp->create_rect = params->rect;
 	if (resp->rc == EOK)
 		*rwnd_id = resp->wnd_id;
 

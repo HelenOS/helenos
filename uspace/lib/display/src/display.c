@@ -35,6 +35,7 @@
 #include <ipc/services.h>
 #include <ipcgfx/client.h>
 #include <loc.h>
+#include <mem.h>
 #include <stdlib.h>
 
 static errno_t display_callback_create(display_t *);
@@ -132,20 +133,31 @@ void display_close(display_t *display)
 	free(display);
 }
 
+/** Initialize window parameters structure.
+ *
+ * @param params Window parameters structure
+ */
+void display_wnd_params_init(display_wnd_params_t *params)
+{
+	memset(params, 0, sizeof(*params));
+}
+
 /** Create a display window.
  *
  * @param display Display
+ * @param params Window parameters
  * @param cb Callback functions
  * @param cb_arg Argument to callback functions
  * @param rwindow Place to store pointer to new window
  * @return EOK on success or an error code
  */
-errno_t display_window_create(display_t *display, display_wnd_cb_t *cb,
-    void *cb_arg, display_window_t **rwindow)
+errno_t display_window_create(display_t *display, display_wnd_params_t *params,
+    display_wnd_cb_t *cb, void *cb_arg, display_window_t **rwindow)
 {
 	display_window_t *window;
 	async_exch_t *exch;
-	sysarg_t wnd_id;
+	aid_t req;
+	ipc_call_t answer;
 	errno_t rc;
 
 	window = calloc(1, sizeof(display_window_t));
@@ -153,17 +165,20 @@ errno_t display_window_create(display_t *display, display_wnd_cb_t *cb,
 		return ENOMEM;
 
 	exch = async_exchange_begin(display->sess);
-	rc = async_req_0_1(exch, DISPLAY_WINDOW_CREATE, &wnd_id);
-
+	req = async_send_0(exch, DISPLAY_WINDOW_CREATE, &answer);
+	rc = async_data_write_start(exch, params, sizeof (display_wnd_params_t));
 	async_exchange_end(exch);
-
 	if (rc != EOK) {
-		free(window);
+		async_forget(req);
 		return rc;
 	}
 
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
 	window->display = display;
-	window->id = wnd_id;
+	window->id = ipc_get_arg1(&answer);
 	window->cb = cb;
 	window->cb_arg = cb_arg;
 

@@ -61,16 +61,38 @@ static void display_callback_create_srv(display_srv_t *srv, ipc_call_t *call)
 static void display_window_create_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
+	ipc_call_t call;
+	display_wnd_params_t params;
+	size_t size;
 	errno_t rc;
 
 	printf("display_window_create_srv\n");
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(display_wnd_params_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, &params, size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
 
 	if (srv->ops->window_create == NULL) {
 		async_answer_0(icall, ENOTSUP);
 		return;
 	}
 
-	rc = srv->ops->window_create(srv->arg, &wnd_id);
+	rc = srv->ops->window_create(srv->arg, &params, &wnd_id);
 	async_answer_1(icall, rc, wnd_id);
 }
 
