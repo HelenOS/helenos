@@ -32,11 +32,11 @@
 #include <sysman/sysman.h>
 #include <str.h>
 
-int sysman_broker_register(void)
+errno_t sysman_broker_register(void)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_BROKER);
 
-	int rc = async_req_0_0(exch, SYSMAN_BROKER_REGISTER);
+	errno_t rc = async_req_0_0(exch, SYSMAN_BROKER_REGISTER);
 	sysman_exchange_end(exch);
 
 	return rc;
