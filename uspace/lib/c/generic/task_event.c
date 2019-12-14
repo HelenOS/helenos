@@ -40,9 +40,7 @@
 
 #include "private/taskman.h"
 
-static task_event_handler_t task_event_handler = NULL;
-
-static void taskman_task_event(ipc_call_t *icall)
+static void taskman_task_event(ipc_call_t *icall, task_event_handler_t handler)
 {
 	task_id_t tid = (task_id_t)
 	    MERGE_LOUP32(ipc_get_arg1(icall), ipc_get_arg2(icall));
@@ -50,27 +48,25 @@ static void taskman_task_event(ipc_call_t *icall)
 	task_exit_t texit = ipc_get_arg4(icall);
 	int retval = ipc_get_arg5(icall);
 
-	task_event_handler(tid, flags, texit, retval);
+	handler(tid, flags, texit, retval);
 
 	async_answer_0(icall, EOK);
 }
 
 static void taskman_event_conn(ipc_call_t *icall, void *arg)
 {
-	/* Accept connection */
-	async_answer_0(icall, EOK);
-
 	while (true) {
 		ipc_call_t call;
 
 		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
 			/* Hangup, end of game */
-			break;
+			async_answer_0(&call, EOK);
+			return;
 		}
 
 		switch (ipc_get_imethod(&call)) {
 		case TASKMAN_EV_TASK:
-			taskman_task_event(&call);
+			taskman_task_event(&call, (task_event_handler_t)arg);
 			break;
 		default:
 			async_answer_0(&call, ENOTSUP);
@@ -84,21 +80,14 @@ static void taskman_event_conn(ipc_call_t *icall, void *arg)
  */
 errno_t task_register_event_handler(task_event_handler_t handler, bool past_events)
 {
-	/*
-	 * so far support assign once, modification cannot be naïve due to
-	 * races
-	 */
-	assert(task_event_handler == NULL);
 	assert(handler != NULL); /* no support for "unregistration" */
-
-	task_event_handler = handler;
 
 	async_exch_t *exch = taskman_exchange_begin();
 	aid_t req = async_send_1(exch, TASKMAN_EVENT_CALLBACK, past_events, NULL);
 
 	port_id_t port;
 	errno_t rc = async_create_callback_port(exch, INTERFACE_TASKMAN_CB, 0, 0,
-	    taskman_event_conn, NULL, &port);
+	    taskman_event_conn, handler, &port);
 	taskman_exchange_end(exch);
 
 	if (rc != EOK) {
