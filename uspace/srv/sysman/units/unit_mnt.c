@@ -155,7 +155,7 @@ static errno_t mount_exec(void *arg)
 	    mnt_data->type, mnt_data->mountpoint, mnt_data->device, mnt_data->options,
 	    mnt_data->flags, mnt_data->instance);
 
-	errno_t rc = vfs_mount_path(mnt_data->type, mnt_data->mountpoint, mnt_data->device,
+	errno_t rc = vfs_mount_path(mnt_data->mountpoint, mnt_data->type, mnt_data->device,
 	    mnt_data->options ? mnt_data->options : "",
 	    mnt_data->flags, mnt_data->instance);
 
