@@ -255,7 +255,7 @@ static void vol_part_insert_by_path_srv(vol_parts_t *parts, ipc_call_t *icall)
 	char *path = NULL;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_insert_by_path_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_insert_by_path_srv()");
 
 	rc = async_data_write_accept((void **)&path, true, 0, VOL_MOUNTP_MAXLEN,
 	    0, NULL);
@@ -359,7 +359,7 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 	char *mountp = NULL;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_srv()");
 
 	sid = ipc_get_arg1(icall);
 	fstype = ipc_get_arg2(icall);
@@ -372,7 +372,7 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 	}
 
 	if (label != NULL) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv: label='%s'",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_srv: label='%s'",
 		    label);
 	}
 
@@ -384,7 +384,7 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 	}
 
 	if (mountp != NULL) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv: mountp='%s'",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_srv: mountp='%s'",
 		    mountp);
 	}
 
@@ -421,7 +421,7 @@ static void vol_part_set_mountp_srv(vol_parts_t *parts,
 	char *mountp;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_set_mountp_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_set_mountp_srv()");
 
 	sid = ipc_get_arg1(icall);
 
@@ -433,7 +433,7 @@ static void vol_part_set_mountp_srv(vol_parts_t *parts,
 	}
 
 	if (mountp != NULL) {
-		log_msg(LOG_DEFAULT, LVL_NOTE,
+		log_msg(LOG_DEFAULT, LVL_DEBUG,
 		    "vol_part_set_mountp_srv: mountp='%s'", mountp);
 	}
 
@@ -463,7 +463,7 @@ static void vol_get_volumes_srv(vol_parts_t *parts, ipc_call_t *icall)
 	size_t act_size;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_get_volumes_srv()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_get_volumes_srv()");
 
 	if (!async_data_read_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);

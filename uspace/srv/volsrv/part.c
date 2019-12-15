@@ -128,7 +128,7 @@ static errno_t vol_part_check_new(vol_parts_t *parts)
 		}
 
 		if (!already_known) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Found partition '%lu'",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Found partition '%lu'",
 			    (unsigned long) svcs[i]);
 			rc = vol_part_add_locked(parts, svcs[i]);
 			if (rc != EOK) {
@@ -154,7 +154,7 @@ static errno_t vol_part_check_new(vol_parts_t *parts)
 		}
 
 		if (!still_exists) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "Partition '%zu' is gone",
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Partition '%zu' is gone",
 			    part->svc_id);
 			vol_part_remove_locked(part);
 		}
@@ -209,7 +209,7 @@ static errno_t vol_part_probe(vol_part_t *part)
 	vol_volume_t *volume;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Probe partition %s", part->svc_name);
 
 	assert(fibril_mutex_is_locked(&part->parts->lock));
 
@@ -222,7 +222,7 @@ static errno_t vol_part_probe(vol_part_t *part)
 	}
 
 	if (fst->name != NULL) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Found %s, label '%s'",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Found %s, label '%s'",
 		    fst->name, info.label);
 		label = str_dup(info.label);
 		if (label == NULL) {
@@ -316,11 +316,11 @@ static errno_t vol_part_determine_mount_path(vol_part_t *part, char **rpath,
 	/* Get configured mount point */
 	if (str_size(part->volume->mountp) > 0) {
 		cfg_mp = part->volume->mountp;
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Configured mount point '%s'",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Configured mount point '%s'",
 		    cfg_mp);
 	} else {
 		cfg_mp = vol_part_def_mountp(part);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Default mount point '%s'",
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Default mount point '%s'",
 		    cfg_mp);
 	}
 
@@ -333,7 +333,7 @@ static errno_t vol_part_determine_mount_path(vol_part_t *part, char **rpath,
 			return EOK;
 		}
 
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Determine MP label='%s'", part->label);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Determine MP label='%s'", part->label);
 		err = asprintf(&mp, "/vol/%s", part->label);
 		if (err < 0) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory");
@@ -377,7 +377,7 @@ static errno_t vol_part_mount(vol_part_t *part)
 
 	if (mp_auto) {
 		/* Create directory for automatic mount point */
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Create mount point '%s'", mp);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Create mount point '%s'", mp);
 		rc = vfs_link_path(mp, KIND_DIRECTORY, NULL);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating mount point '%s'",
@@ -387,14 +387,17 @@ static errno_t vol_part_mount(vol_part_t *part)
 		}
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Call vfs_mount_path mp='%s' fstype='%s' svc_name='%s'",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Call vfs_mount_path mp='%s' fstype='%s' svc_name='%s'",
 	    mp, fstype_str(part->fstype), part->svc_name);
 	rc = vfs_mount_path(mp, fstype_str(part->fstype),
 	    part->svc_name, "", 0, 0);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Failed mounting to %s", mp);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed mounting %s at %s to %s",
+		    fstype_str(part->fstype), part->svc_name, mp);
+	} else {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Mounted %s at %s to %s\n",
+		    fstype_str(part->fstype), part->svc_name, mp);
 	}
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Mount to %s -> %d\n", mp, rc);
 
 	part->cur_mp = mp;
 	part->cur_mp_auto = mp_auto;
@@ -408,7 +411,7 @@ static errno_t vol_part_add_locked(vol_parts_t *parts, service_id_t sid)
 	errno_t rc;
 
 	assert(fibril_mutex_is_locked(&parts->lock));
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_add_locked(%zu)", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_add_locked(%zu)", sid);
 
 	/* Check for duplicates */
 	rc = vol_part_find_by_id_ref_locked(parts, sid, &part);
@@ -417,7 +420,7 @@ static errno_t vol_part_add_locked(vol_parts_t *parts, service_id_t sid)
 		return EEXIST;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "partition %zu is new", sid);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "partition %zu is new", sid);
 
 	part = vol_part_new();
 	if (part == NULL)
@@ -442,7 +445,7 @@ static errno_t vol_part_add_locked(vol_parts_t *parts, service_id_t sid)
 
 	list_append(&part->lparts, &parts->parts);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Added partition %zu", part->svc_id);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Added partition %zu", part->svc_id);
 
 	return EOK;
 
@@ -454,12 +457,12 @@ error:
 static void vol_part_remove_locked(vol_part_t *part)
 {
 	assert(fibril_mutex_is_locked(&part->parts->lock));
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_remove_locked(%zu)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_remove_locked(%zu)",
 	    part->svc_id);
 
 	list_remove(&part->lparts);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Removed partition.");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Removed partition.");
 	vol_part_del_ref(part);
 }
 

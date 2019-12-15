@@ -95,7 +95,7 @@ static vol_volume_t *vol_volume_new(void)
  */
 static void vol_volume_delete(vol_volume_t *volume)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Freeing volume %p", volume);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Freeing volume %p", volume);
 
 	free(volume->label);
 	free(volume->mountp);
@@ -218,7 +218,7 @@ static void vol_volume_add_locked(vol_volumes_t *volumes,
     vol_volume_t *volume)
 {
 	assert(fibril_mutex_is_locked(&volumes->lock));
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_volume_add_locked(%p)", volume);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_volume_add_locked(%p)", volume);
 
 	volume->volumes = volumes;
 	list_append(&volume->lvolumes, &volumes->volumes);
