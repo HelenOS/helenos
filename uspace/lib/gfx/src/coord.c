@@ -144,7 +144,8 @@ void gfx_rect_envelope(gfx_rect_t *a, gfx_rect_t *b, gfx_rect_t *dest)
 /** Compute intersection of two rectangles.
  *
  * If the two rectangles do not intersect, the result will be an empty
- * rectangle (check with gfx_rect_is_empty()).
+ * rectangle (check with gfx_rect_is_empty()). The resulting rectangle
+ * is always sorted.
  *
  * @param rect Source rectangle
  * @param clip Clipping rectangle

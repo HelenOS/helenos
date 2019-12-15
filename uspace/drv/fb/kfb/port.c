@@ -67,8 +67,7 @@ typedef struct {
 	ddf_fun_t *fun;
 
 	sysarg_t paddr;
-	sysarg_t width;
-	sysarg_t height;
+	gfx_rect_t rect;
 	size_t offset;
 	size_t scanline;
 	visual_t visual;
@@ -153,12 +152,14 @@ static errno_t kfb_gc_set_color(void *arg, gfx_color_t *color)
 static errno_t kfb_gc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	kfb_t *kfb = (kfb_t *) arg;
+	gfx_rect_t crect;
 	gfx_coord_t x, y;
 
-	// XXX We should handle p0.x > p1.x and p0.y > p1.y
+	/* Make sure we have a sorted, clipped rectangle */
+	gfx_rect_clip(rect, &kfb->rect, &crect);
 
-	for (y = rect->p0.y; y < rect->p1.y; y++) {
-		for (x = rect->p0.x; x < rect->p1.x; x++) {
+	for (y = crect.p0.y; y < crect.p1.y; y++) {
+		for (x = crect.p0.x; x < crect.p1.x; x++) {
 			kfb->pixel2visual(kfb->addr + FB_POS(kfb, x, y),
 			    kfb->color);
 		}
@@ -241,6 +242,8 @@ static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	kfb_t *kfb = kfbbm->kfb;
 	gfx_rect_t srect;
 	gfx_rect_t drect;
+	gfx_rect_t skfbrect;
+	gfx_rect_t crect;
 	gfx_coord2_t offs;
 	gfx_coord2_t bmdim;
 	gfx_coord2_t dim;
@@ -250,8 +253,10 @@ static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pixelmap_t pbm;
 	pixel_t color;
 
+	/* Clip source rectangle to bitmap bounds */
+
 	if (srect0 != NULL)
-		srect = *srect0;
+		gfx_rect_clip(srect0, &kfbbm->rect, &srect);
 	else
 		srect = kfbbm->rect;
 
@@ -271,8 +276,17 @@ static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pbm.height = bmdim.y;
 	pbm.data = kfbbm->alloc.pixels;
 
-	for (pos.y = srect.p0.y; pos.y < srect.p1.y; pos.y++) {
-		for (pos.x = srect.p0.x; pos.x < srect.p1.x; pos.x++) {
+	/* Transform KFB bounding rectangle back to bitmap coordinate system */
+	gfx_rect_rtranslate(&offs, &kfb->rect, &skfbrect);
+
+	/*
+	 * Make sure we have a sorted source rectangle, clipped so that
+	 * destination lies within KFB bounding rectangle
+	 */
+	gfx_rect_clip(&srect, &skfbrect, &crect);
+
+	for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+		for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
 			gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
 			gfx_coord2_add(&pos, &offs, &dp);
 
@@ -428,8 +442,11 @@ errno_t port_init(ddf_dev_t *dev)
 
 	kfb->fun = fun;
 
-	kfb->width = width;
-	kfb->height = height;
+	kfb->rect.p0.x = 0;
+	kfb->rect.p0.y = 0;
+	kfb->rect.p1.x = width;
+	kfb->rect.p1.y = height;
+
 	kfb->paddr = paddr;
 	kfb->offset = offset;
 	kfb->scanline = scanline;

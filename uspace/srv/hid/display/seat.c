@@ -58,8 +58,8 @@ errno_t ds_seat_create(ds_display_t *display, ds_seat_t **rseat)
 		return ENOMEM;
 
 	ds_display_add_seat(display, seat);
-	seat->pntpos.x = 10;
-	seat->pntpos.y = 10;
+	seat->pntpos.x = 0;
+	seat->pntpos.y = 0;
 
 	*rseat = seat;
 	return EOK;
@@ -241,14 +241,14 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 	if (event->type == PTD_MOVE) {
 		printf("PTD_MOVE\n");
 		gfx_coord2_add(&seat->pntpos, &event->dmove, &npos);
-		if (npos.x < 10)
-			npos.x = 10;
-		if (npos.y < 10)
-			npos.y = 10;
-		if (npos.x > 1024 - 10)
-			npos.x = 1024 - 10;
-		if (npos.y > 768 - 10)
-			npos.y = 768 - 10;
+		if (npos.x < 0)
+			npos.x = 0;
+		if (npos.y < 0)
+			npos.y = 0;
+		if (npos.x > 1024)
+			npos.x = 1024;
+		if (npos.y > 768)
+			npos.y = 768;
 
 		printf("clear pointer\n");
 		(void) ds_seat_draw_pointer(seat, false);
