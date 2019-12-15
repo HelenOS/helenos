@@ -39,7 +39,6 @@
 
 extern void display_wnd_params_init(display_wnd_params_t *);
 
-
 #endif
 
 /** @}

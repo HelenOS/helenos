@@ -188,5 +188,21 @@ bool gfx_rect_is_empty(gfx_rect_t *rect)
 	return rect->p0.x == rect->p1.x || rect->p0.y == rect->p1.y;
 }
 
+/** Return true if pixel at coordinate @a coord lies within rectangle @a rect. */
+bool gfx_pix_inside_rect(gfx_coord2_t *coord, gfx_rect_t *rect)
+{
+	gfx_rect_t sr;
+
+	gfx_rect_points_sort(rect, &sr);
+
+	if (coord->x < sr.p0.x || coord->y < sr.p0.y)
+		return false;
+
+	if (coord->x >= sr.p1.x || coord->y >= sr.p1.y)
+		return false;
+
+	return true;
+}
+
 /** @}
  */

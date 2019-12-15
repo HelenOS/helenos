@@ -171,14 +171,15 @@ ds_window_t *ds_display_find_window(ds_display_t *display, ds_wnd_id_t id)
 ds_window_t *ds_display_window_by_pos(ds_display_t *display, gfx_coord2_t *pos)
 {
 	ds_window_t *wnd;
+	gfx_rect_t drect;
 
 	wnd = ds_display_first_window(display);
 	while (wnd != NULL) {
-		// XXX Need to know window dimensions
-		if (pos->x >= wnd->dpos.x && pos->y >= wnd->dpos.y &&
-		    pos->x <= wnd->dpos.x + 100 && pos->y <= wnd->dpos.y + 100) {
+		/* Window bounding rectangle on display */
+		gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
+
+		if (gfx_pix_inside_rect(pos, &drect))
 			return wnd;
-		}
 
 		wnd = ds_display_next_window(wnd);
 	}

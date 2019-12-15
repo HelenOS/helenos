@@ -49,6 +49,7 @@ extern void gfx_rect_envelope(gfx_rect_t *, gfx_rect_t *, gfx_rect_t *);
 extern void gfx_rect_clip(gfx_rect_t *, gfx_rect_t *, gfx_rect_t *);
 extern void gfx_rect_points_sort(gfx_rect_t *, gfx_rect_t *);
 extern bool gfx_rect_is_empty(gfx_rect_t *);
+extern bool gfx_pix_inside_rect(gfx_coord2_t *, gfx_rect_t *);
 
 #endif
 

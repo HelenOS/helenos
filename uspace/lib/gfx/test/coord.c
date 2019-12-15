@@ -523,4 +523,48 @@ PCUT_TEST(rect_is_empty_reverse_neg)
 	PCUT_ASSERT_FALSE(gfx_rect_is_empty(&rect));
 }
 
+/** gfx_pix_inside_rect for  */
+PCUT_TEST(pix_inside_rect)
+{
+	gfx_coord2_t coord;
+	gfx_rect_t rect;
+
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+
+	coord.x = 0;
+	coord.y = 1;
+	PCUT_ASSERT_FALSE(gfx_pix_inside_rect(&coord, &rect));
+
+	coord.x = 1;
+	coord.y = 1;
+	PCUT_ASSERT_FALSE(gfx_pix_inside_rect(&coord, &rect));
+
+	coord.x = 0;
+	coord.y = 2;
+	PCUT_ASSERT_FALSE(gfx_pix_inside_rect(&coord, &rect));
+
+	coord.x = 1;
+	coord.y = 2;
+	PCUT_ASSERT_TRUE(gfx_pix_inside_rect(&coord, &rect));
+
+	coord.x = 2;
+	coord.y = 3;
+	PCUT_ASSERT_TRUE(gfx_pix_inside_rect(&coord, &rect));
+
+	coord.x = 3;
+	coord.y = 3;
+	PCUT_ASSERT_FALSE(gfx_pix_inside_rect(&coord, &rect));
+
+	coord.x = 2;
+	coord.y = 4;
+	PCUT_ASSERT_FALSE(gfx_pix_inside_rect(&coord, &rect));
+
+	coord.x = 3;
+	coord.y = 4;
+	PCUT_ASSERT_FALSE(gfx_pix_inside_rect(&coord, &rect));
+}
+
 PCUT_EXPORT(coord);
