@@ -73,11 +73,6 @@ static errno_t disp_window_create(void *arg, display_wnd_params_t *params,
 	wnd->dpos.x = ((wnd->id - 1) & 1) * 400;
 	wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
 
-	/*
-	 * XXX This should be performed by window manager. It needs to determine
-	 * whether the new window should get focus and which seat should
-	 * focus on it.
-	 */
 	seat = ds_display_first_seat(client->display);
 	ds_seat_set_focus(seat, wnd);
 

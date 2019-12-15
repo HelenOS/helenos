@@ -97,7 +97,6 @@ void ds_seat_evac_focus(ds_seat_t *seat, ds_window_t *wnd)
 	ds_window_t *nwnd;
 
 	if (seat->focus == wnd) {
-		/* Focus a different window. XXX Delegate to WM */
 		nwnd = ds_display_next_window(wnd);
 		if (nwnd == NULL)
 			nwnd = ds_display_first_window(wnd->display);

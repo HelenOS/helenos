@@ -209,7 +209,7 @@ static errno_t ds_window_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
  *
  * Create graphics context for rendering into a window.
  *
- * @param client Client owning the window=
+ * @param client Client owning the window
  * @param params Window parameters
  * @param rgc Place to store pointer to new GC.
  *
