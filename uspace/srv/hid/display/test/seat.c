@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <disp_srv.h>
 #include <errno.h>
 #include <pcut/pcut.h>
 #include <stdio.h>
@@ -61,6 +62,7 @@ PCUT_TEST(set_focus)
 	ds_client_t *client;
 	ds_seat_t *seat;
 	ds_window_t *wnd;
+	display_wnd_params_t params;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
@@ -72,7 +74,11 @@ PCUT_TEST(set_focus)
 	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ds_seat_set_focus(seat, wnd);
@@ -92,6 +98,7 @@ PCUT_TEST(evac_focus)
 	ds_seat_t *seat;
 	ds_window_t *w0;
 	ds_window_t *w1;
+	display_wnd_params_t params;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
@@ -103,10 +110,14 @@ PCUT_TEST(evac_focus)
 	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &w1);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &w1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &w0);
+	rc = ds_window_create(client, &params, &w0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ds_seat_set_focus(seat, w1);

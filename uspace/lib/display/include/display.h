@@ -38,12 +38,11 @@
 #include <errno.h>
 #include <gfx/context.h>
 #include <stdbool.h>
-#include "types/display/wndparams.h"
+#include "display/wndparams.h"
 #include "types/display.h"
 
 extern errno_t display_open(const char *, display_t **);
 extern void display_close(display_t *);
-extern void display_wnd_params_init(display_wnd_params_t *);
 extern errno_t display_window_create(display_t *, display_wnd_params_t *,
     display_wnd_cb_t *, void *, display_window_t **);
 extern errno_t display_window_destroy(display_window_t *);

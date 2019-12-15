@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <disp_srv.h>
 #include <errno.h>
 #include <pcut/pcut.h>
 #include <stdio.h>
@@ -82,6 +83,7 @@ PCUT_TEST(client_find_window)
 	ds_window_t *w0;
 	ds_window_t *w1;
 	ds_window_t *wnd;
+	display_wnd_params_t params;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
@@ -90,10 +92,14 @@ PCUT_TEST(client_find_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &w0);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &w0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &w1);
+	rc = ds_window_create(client, &params, &w1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	wnd = ds_client_find_window(client, w0->id);
@@ -122,6 +128,7 @@ PCUT_TEST(client_first_next_window)
 	ds_window_t *w0;
 	ds_window_t *w1;
 	ds_window_t *wnd;
+	display_wnd_params_t params;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
@@ -130,10 +137,14 @@ PCUT_TEST(client_first_next_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &w0);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &w0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &w1);
+	rc = ds_window_create(client, &params, &w1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	wnd = ds_client_first_window(client);
@@ -157,6 +168,7 @@ PCUT_TEST(display_get_post_kbd_event)
 	ds_display_t *disp;
 	ds_client_t *client;
 	ds_window_t *wnd;
+	display_wnd_params_t params;
 	kbd_event_t event;
 	ds_window_t *rwindow;
 	display_wnd_ev_t revent;
@@ -169,7 +181,11 @@ PCUT_TEST(display_get_post_kbd_event)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	event.type = KEY_PRESS;
@@ -212,6 +228,7 @@ PCUT_TEST(client_leftover_window)
 	ds_display_t *disp;
 	ds_client_t *client;
 	ds_window_t *wnd;
+	display_wnd_params_t params;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
@@ -220,7 +237,11 @@ PCUT_TEST(client_leftover_window)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ds_client_destroy(client);

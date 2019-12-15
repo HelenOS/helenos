@@ -183,12 +183,14 @@ static errno_t ds_window_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
  *
  * Create graphics context for rendering into a window.
  *
- * @param client Client owning the window
+ * @param client Client owning the window=
+ * @param params Window parameters
  * @param rgc Place to store pointer to new GC.
  *
  * @return EOK on success or an error code
  */
-errno_t ds_window_create(ds_client_t *client, ds_window_t **rgc)
+errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
+    ds_window_t **rgc)
 {
 	ds_window_t *wnd = NULL;
 	gfx_context_t *gc = NULL;
@@ -207,6 +209,7 @@ errno_t ds_window_create(ds_client_t *client, ds_window_t **rgc)
 	ds_client_add_window(client, wnd);
 	ds_display_add_window(client->display, wnd);
 
+	wnd->rect = params->rect;
 	wnd->gc = gc;
 	*rgc = wnd;
 	return EOK;

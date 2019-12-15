@@ -41,10 +41,12 @@
 #include <types/gfx/ops/context.h>
 #include "types/display/display.h"
 #include "types/display/window.h"
+#include "types/display/wndparams.h"
 
 extern gfx_context_ops_t window_gc_ops;
 
-extern errno_t ds_window_create(ds_client_t *, ds_window_t **);
+extern errno_t ds_window_create(ds_client_t *, display_wnd_params_t *,
+    ds_window_t **);
 extern void ds_window_destroy(ds_window_t *);
 extern gfx_context_t *ds_window_get_ctx(ds_window_t *);
 

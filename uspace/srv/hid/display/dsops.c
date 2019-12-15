@@ -62,7 +62,7 @@ static errno_t disp_window_create(void *arg, display_wnd_params_t *params,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create()");
 
-	rc = ds_window_create(client, &wnd);
+	rc = ds_window_create(client, params, &wnd);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create() - ds_window_create -> %d", rc);
 	if (rc != EOK)
 		return rc;

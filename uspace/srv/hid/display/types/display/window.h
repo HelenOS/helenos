@@ -53,6 +53,8 @@ typedef struct ds_window {
 	struct ds_display *display;
 	/** Link to @c display->windows */
 	link_t ldwindows;
+	/** Bounding rectangle */
+	gfx_rect_t rect;
 	/** Display position */
 	gfx_coord2_t dpos;
 	/** Window ID */

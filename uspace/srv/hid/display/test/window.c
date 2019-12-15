@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <disp_srv.h>
 #include <errno.h>
 #include <pcut/pcut.h>
 #include <stdio.h>
@@ -45,6 +46,7 @@ PCUT_TEST(window_get_ctx)
 	ds_display_t *disp;
 	ds_client_t *client;
 	ds_window_t *wnd;
+	display_wnd_params_t params;
 	gfx_context_t *gc;
 	errno_t rc;
 
@@ -54,7 +56,11 @@ PCUT_TEST(window_get_ctx)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_window_create(client, &wnd);
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gc = ds_window_get_ctx(wnd);
