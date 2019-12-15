@@ -91,10 +91,12 @@ static errno_t ds_window_set_color(void *arg, gfx_color_t *color)
 static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	ds_window_t *wnd = (ds_window_t *) arg;
+	gfx_rect_t crect;
 	gfx_rect_t drect;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
-	gfx_rect_translate(&wnd->dpos, rect, &drect);
+	gfx_rect_clip(rect, &wnd->rect, &crect);
+	gfx_rect_translate(&wnd->dpos, &crect, &drect);
 	return gfx_fill_rect(ds_display_get_gc(wnd->display), &drect);
 }
 
@@ -123,6 +125,7 @@ errno_t ds_window_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 		goto error;
 
 	cbm->wnd = wnd;
+	cbm->rect = params->rect;
 	*rbm = (void *)cbm;
 	return EOK;
 error:
@@ -157,11 +160,34 @@ static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
 {
 	ds_window_bitmap_t *cbm = (ds_window_bitmap_t *)bm;
 	gfx_coord2_t doffs;
+	gfx_coord2_t offs;
+	gfx_rect_t srect;
+	gfx_rect_t swrect;
+	gfx_rect_t crect;
 
-	if (offs0 != NULL)
-		gfx_coord2_add(&cbm->wnd->dpos, offs0, &doffs);
-	else
-		doffs = cbm->wnd->dpos;
+	if (srect0 != NULL) {
+		/* Clip source rectangle to bitmap rectangle */
+		gfx_rect_clip(srect0, &cbm->rect, &srect);
+	} else {
+		/* Source is entire bitmap rectangle */
+		srect = cbm->rect;
+	}
+
+	if (offs0 != NULL) {
+		offs = *offs0;
+	} else {
+		offs.x = 0;
+		offs.y = 0;
+	}
+
+	/* Transform window rectangle back to bitmap coordinate system */
+	gfx_rect_rtranslate(&offs, &cbm->wnd->rect, &swrect);
+
+	/* Clip so that transformed rectangle will be inside the window */
+	gfx_rect_clip(&srect, &swrect, &crect);
+
+	/* Offset for rendering on screen = window pos + offs */
+	gfx_coord2_add(&cbm->wnd->dpos, &offs, &doffs);
 
 	return gfx_bitmap_render(cbm->bitmap, srect0, &doffs);
 }

@@ -79,6 +79,8 @@ typedef struct {
 	ds_window_t *wnd;
 	/** Display bitmap */
 	gfx_bitmap_t *bitmap;
+	/** Bounding rectangle */
+	gfx_rect_t rect;
 } ds_window_bitmap_t;
 
 #endif
