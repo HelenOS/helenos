@@ -153,12 +153,12 @@ static errno_t hda_corb_init(hda_t *hda)
 	uint8_t selsz;
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "hda_corb_init()");
+	ddf_msg(LVL_DEBUG, "hda_corb_init()");
 
 	/* Stop CORB if not stopped */
 	ctl = hda_reg8_read(&hda->regs->corbctl);
 	if ((ctl & BIT_V(uint8_t, corbctl_run)) != 0) {
-		ddf_msg(LVL_NOTE, "CORB is enabled, disabling first.");
+		ddf_msg(LVL_DEBUG, "CORB is enabled, disabling first.");
 		hda_reg8_write(&hda->regs->corbctl, ctl & ~BIT_V(uint8_t,
 		    corbctl_run));
 	}
@@ -175,7 +175,7 @@ static errno_t hda_corb_init(hda_t *hda)
 	corbsz = corbsz & ~BIT_RANGE(uint8_t, corbsize_size_h, corbsize_size_l);
 	corbsz = corbsz | selsz;
 
-	ddf_msg(LVL_NOTE, "Setting CORB Size register to 0x%x", corbsz);
+	ddf_msg(LVL_DEBUG, "Setting CORB Size register to 0x%x", corbsz);
 	hda_reg8_write(&hda->regs->corbsize, corbsz);
 	hda->ctl->corb_entries = hda_rb_entries(selsz);
 
@@ -189,23 +189,23 @@ static errno_t hda_corb_init(hda_t *hda)
 	    &hda->ctl->corb_phys, &hda->ctl->corb_virt);
 	if (rc != EOK) {
 		hda->ctl->corb_virt = NULL;
-		ddf_msg(LVL_NOTE, "Failed allocating DMA memory for CORB");
+		ddf_msg(LVL_ERROR, "Failed allocating DMA memory for CORB");
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "Set CORB base registers");
+	ddf_msg(LVL_DEBUG, "Set CORB base registers");
 
 	/* Update CORB base registers */
 	hda_reg32_write(&hda->regs->corblbase, LOWER32(hda->ctl->corb_phys));
 	hda_reg32_write(&hda->regs->corbubase, UPPER32(hda->ctl->corb_phys));
 
-	ddf_msg(LVL_NOTE, "Reset CORB Read/Write pointers");
+	ddf_msg(LVL_DEBUG, "Reset CORB Read/Write pointers");
 
 	/* Reset CORB Read Pointer */
 	rc = hda_ctl_reg16_set_reset(&hda->regs->corbrp,
 	    BIT_V(uint16_t, corbrp_rst));
 	if (rc != EOK) {
-		ddf_msg(LVL_NOTE, "Failed resetting CORBRP");
+		ddf_msg(LVL_ERROR, "Failed resetting CORBRP");
 		goto error;
 	}
 
@@ -214,11 +214,11 @@ static errno_t hda_corb_init(hda_t *hda)
 
 	/* Start CORB */
 	ctl = hda_reg8_read(&hda->regs->corbctl);
-	ddf_msg(LVL_NOTE, "CORBctl (0x%x) = 0x%x",
+	ddf_msg(LVL_DEBUG, "CORBctl (0x%x) = 0x%x",
 	    (unsigned)((void *)&hda->regs->corbctl - (void *)hda->regs), ctl | BIT_V(uint8_t, corbctl_run));
 	hda_reg8_write(&hda->regs->corbctl, ctl | BIT_V(uint8_t, corbctl_run));
 
-	ddf_msg(LVL_NOTE, "CORB initialized");
+	ddf_msg(LVL_DEBUG, "CORB initialized");
 	return EOK;
 error:
 	if (hda->ctl->corb_virt != NULL) {
@@ -250,12 +250,12 @@ static errno_t hda_rirb_init(hda_t *hda)
 	uint8_t selsz;
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "hda_rirb_init()");
+	ddf_msg(LVL_DEBUG, "hda_rirb_init()");
 
 	/* Stop RIRB if not stopped */
 	ctl = hda_reg8_read(&hda->regs->rirbctl);
 	if ((ctl & BIT_V(uint8_t, rirbctl_run)) != 0) {
-		ddf_msg(LVL_NOTE, "RIRB is enabled, disabling first.");
+		ddf_msg(LVL_DEBUG, "RIRB is enabled, disabling first.");
 		hda_reg8_write(&hda->regs->corbctl, ctl & ~BIT_V(uint8_t,
 		    rirbctl_run));
 	}
@@ -272,7 +272,7 @@ static errno_t hda_rirb_init(hda_t *hda)
 	rirbsz = rirbsz & ~BIT_RANGE(uint8_t, rirbsize_size_h, rirbsize_size_l);
 	rirbsz = rirbsz | (selsz << rirbsize_size_l);
 
-	ddf_msg(LVL_NOTE, "Setting RIRB Size register to 0x%x", rirbsz);
+	ddf_msg(LVL_DEBUG, "Setting RIRB Size register to 0x%x", rirbsz);
 	hda_reg8_write(&hda->regs->rirbsize, rirbsz);
 	hda->ctl->rirb_entries = hda_rb_entries(selsz);
 
@@ -286,17 +286,17 @@ static errno_t hda_rirb_init(hda_t *hda)
 	    &hda->ctl->rirb_phys, &hda->ctl->rirb_virt);
 	if (rc != EOK) {
 		hda->ctl->rirb_virt = NULL;
-		ddf_msg(LVL_NOTE, "Failed allocating DMA memory for RIRB");
+		ddf_msg(LVL_ERROR, "Failed allocating DMA memory for RIRB");
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "Set RIRB base registers");
+	ddf_msg(LVL_DEBUG, "Set RIRB base registers");
 
 	/* Update RIRB base registers */
 	hda_reg32_write(&hda->regs->rirblbase, LOWER32(hda->ctl->rirb_phys));
 	hda_reg32_write(&hda->regs->rirbubase, UPPER32(hda->ctl->rirb_phys));
 
-	ddf_msg(LVL_NOTE, "Reset RIRB Write pointer");
+	ddf_msg(LVL_DEBUG, "Reset RIRB Write pointer");
 
 	/* Reset RIRB Write Pointer */
 	hda_reg16_write(&hda->regs->rirbwp, BIT_V(uint16_t, rirbwp_rst));
@@ -308,12 +308,12 @@ static errno_t hda_rirb_init(hda_t *hda)
 
 	/* Start RIRB and enable RIRB interrupt */
 	ctl = hda_reg8_read(&hda->regs->rirbctl);
-	ddf_msg(LVL_NOTE, "RIRBctl (0x%x) = 0x%x",
+	ddf_msg(LVL_DEBUG, "RIRBctl (0x%x) = 0x%x",
 	    (unsigned)((void *)&hda->regs->rirbctl - (void *)hda->regs), ctl | BIT_V(uint8_t, rirbctl_run));
 	hda_reg8_write(&hda->regs->rirbctl, ctl | BIT_V(uint8_t, rirbctl_run) |
 	    BIT_V(uint8_t, rirbctl_int));
 
-	ddf_msg(LVL_NOTE, "RIRB initialized");
+	ddf_msg(LVL_DEBUG, "RIRB initialized");
 	return EOK;
 error:
 	if (hda->ctl->rirb_virt != NULL) {
@@ -478,14 +478,14 @@ static errno_t hda_solrb_read(hda_t *hda, hda_rirb_entry_t *data, size_t count)
 			}
 
 			if (hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
-				ddf_msg(LVL_NOTE, "hda_solrb_read() - last ditch effort process RIRB");
+				ddf_msg(LVL_DEBUG, "hda_solrb_read() - last ditch effort process RIRB");
 				fibril_mutex_unlock(&hda->ctl->solrb_lock);
 				hda_ctl_process_rirb(hda->ctl);
 				fibril_mutex_lock(&hda->ctl->solrb_lock);
 			}
 
 			if (hda->ctl->solrb_wp == hda->ctl->solrb_rp) {
-				ddf_msg(LVL_NOTE, "hda_solrb_read() time out");
+				ddf_msg(LVL_DEBUG, "hda_solrb_read() time out");
 				fibril_mutex_unlock(&hda->ctl->solrb_lock);
 				return ETIMEOUT;
 			}
@@ -524,7 +524,7 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "reg 0x%zx STATESTS = 0x%x",
+	ddf_msg(LVL_DEBUG, "reg 0x%zx STATESTS = 0x%x",
 	    (void *)&hda->regs->statests - (void *)hda->regs,
 	    hda_reg16_read(&hda->regs->statests));
 	/**
@@ -533,17 +533,17 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	 */
 	hda_reg16_write(&hda->regs->statests, 0x7f);
 
-	ddf_msg(LVL_NOTE, "after clearing reg 0x%zx STATESTS = 0x%x",
+	ddf_msg(LVL_DEBUG, "after clearing reg 0x%zx STATESTS = 0x%x",
 	    (void *)&hda->regs->statests - (void *)hda->regs,
 	    hda_reg16_read(&hda->regs->statests));
 
 	gctl = hda_reg32_read(&hda->regs->gctl);
 	if ((gctl & BIT_V(uint32_t, gctl_crst)) != 0) {
-		ddf_msg(LVL_NOTE, "Controller not in reset. Resetting.");
+		ddf_msg(LVL_DEBUG, "Controller not in reset. Resetting.");
 		hda_reg32_write(&hda->regs->gctl, gctl & ~BIT_V(uint32_t, gctl_crst));
 	}
 
-	ddf_msg(LVL_NOTE, "Taking controller out of reset.");
+	ddf_msg(LVL_DEBUG, "Taking controller out of reset.");
 	hda_reg32_write(&hda->regs->gctl, gctl | BIT_V(uint32_t, gctl_crst));
 
 	/* Wait for CRST to read as 1 */
@@ -551,11 +551,11 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	while (cnt > 0) {
 		gctl = hda_reg32_read(&hda->regs->gctl);
 		if ((gctl & BIT_V(uint32_t, gctl_crst)) != 0) {
-			ddf_msg(LVL_NOTE, "gctl=0x%x", gctl);
+			ddf_msg(LVL_DEBUG, "gctl=0x%x", gctl);
 			break;
 		}
 
-		ddf_msg(LVL_NOTE, "Waiting for controller to initialize.");
+		ddf_msg(LVL_DEBUG, "Waiting for controller to initialize.");
 		fibril_usleep(100 * 1000);
 		--cnt;
 	}
@@ -565,26 +565,26 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "Controller is out of reset.");
+	ddf_msg(LVL_DEBUG, "Controller is out of reset.");
 
-	ddf_msg(LVL_NOTE, "Read GCAP");
+	ddf_msg(LVL_DEBUG, "Read GCAP");
 	uint16_t gcap = hda_reg16_read(&hda->regs->gcap);
 	ctl->ok64bit = (gcap & BIT_V(uint16_t, gcap_64ok)) != 0;
 	ctl->oss = BIT_RANGE_EXTRACT(uint16_t, gcap_oss_h, gcap_oss_l, gcap);
 	ctl->iss = BIT_RANGE_EXTRACT(uint16_t, gcap_iss_h, gcap_iss_l, gcap);
 	ctl->bss = BIT_RANGE_EXTRACT(uint16_t, gcap_bss_h, gcap_bss_l, gcap);
-	ddf_msg(LVL_NOTE, "GCAP: 0x%x (64OK=%d)", gcap, ctl->ok64bit);
-	ddf_msg(LVL_NOTE, "iss: %d, oss: %d, bss: %d\n",
+	ddf_msg(LVL_DEBUG, "GCAP: 0x%x (64OK=%d)", gcap, ctl->ok64bit);
+	ddf_msg(LVL_DEBUG, "iss: %d, oss: %d, bss: %d\n",
 	    ctl->iss, ctl->oss, ctl->bss);
 	/* Give codecs enough time to enumerate themselves */
 	fibril_usleep(codec_enum_wait_us);
 
-	ddf_msg(LVL_NOTE, "STATESTS = 0x%x",
+	ddf_msg(LVL_DEBUG, "STATESTS = 0x%x",
 	    hda_reg16_read(&hda->regs->statests));
 
 	/* Enable interrupts */
 	intctl = hda_reg32_read(&hda->regs->intctl);
-	ddf_msg(LVL_NOTE, "intctl (0x%x) := 0x%x",
+	ddf_msg(LVL_DEBUG, "intctl (0x%x) := 0x%x",
 	    (unsigned)((void *)&hda->regs->intctl - (void *)hda->regs),
 	    intctl | BIT_V(uint32_t, intctl_gie) | BIT_V(uint32_t, intctl_cie));
 	hda_reg32_write(&hda->regs->intctl, intctl |
@@ -599,15 +599,15 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_NOTE, "call hda_codec_init()");
+	ddf_msg(LVL_DEBUG, "call hda_codec_init()");
 	hda->ctl->codec = hda_codec_init(hda, 0);
 	if (hda->ctl->codec == NULL) {
-		ddf_msg(LVL_NOTE, "hda_codec_init() failed");
+		ddf_msg(LVL_DEBUG, "hda_codec_init() failed");
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "intsts=0x%x", hda_reg32_read(&hda->regs->intsts));
-	ddf_msg(LVL_NOTE, "sdesc[%d].sts=0x%x",
+	ddf_msg(LVL_DEBUG, "intsts=0x%x", hda_reg32_read(&hda->regs->intsts));
+	ddf_msg(LVL_DEBUG, "sdesc[%d].sts=0x%x",
 	    hda->ctl->iss, hda_reg8_read(&hda->regs->sdesc[hda->ctl->iss].sts));
 
 	return ctl;
@@ -621,7 +621,7 @@ error:
 
 void hda_ctl_fini(hda_ctl_t *ctl)
 {
-	ddf_msg(LVL_NOTE, "hda_ctl_fini()");
+	ddf_msg(LVL_DEBUG, "hda_ctl_fini()");
 	hda_rirb_fini(ctl->hda);
 	hda_corb_fini(ctl->hda);
 	free(ctl);
@@ -676,16 +676,16 @@ void hda_ctl_interrupt(hda_ctl_t *ctl)
 
 void hda_ctl_dump_info(hda_ctl_t *ctl)
 {
-	ddf_msg(LVL_NOTE, "corbwp=%d, corbrp=%d",
+	ddf_msg(LVL_DEBUG, "corbwp=%d, corbrp=%d",
 	    hda_reg16_read(&ctl->hda->regs->corbwp),
 	    hda_reg16_read(&ctl->hda->regs->corbrp));
-	ddf_msg(LVL_NOTE, "corbctl=0x%x, corbsts=0x%x",
+	ddf_msg(LVL_DEBUG, "corbctl=0x%x, corbsts=0x%x",
 	    hda_reg8_read(&ctl->hda->regs->corbctl),
 	    hda_reg8_read(&ctl->hda->regs->corbsts));
-	ddf_msg(LVL_NOTE, "rirbwp=0x%x, soft-rirbrp=0x%zx",
+	ddf_msg(LVL_DEBUG, "rirbwp=0x%x, soft-rirbrp=0x%zx",
 	    hda_reg16_read(&ctl->hda->regs->rirbwp),
 	    ctl->rirb_rp);
-	ddf_msg(LVL_NOTE, "solrb_wp=0x%zx, solrb_rp=0x%zx",
+	ddf_msg(LVL_DEBUG, "solrb_wp=0x%zx, solrb_rp=0x%zx",
 	    ctl->solrb_wp, ctl->solrb_wp);
 }
 

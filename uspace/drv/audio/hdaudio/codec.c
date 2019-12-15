@@ -69,10 +69,10 @@ static errno_t hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t pay
 
 #if 0
 	if (resp != NULL) {
-		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
+		ddf_msg(LVL_DEBUG, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
 		    *resp);
 	} else {
-		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32, verb);
+		ddf_msg(LVL_DEBUG, "verb 0x%" PRIx32, verb);
 	}
 #endif
 	return rc;
@@ -272,7 +272,7 @@ static errno_t hda_set_out_amp_max(hda_codec_t *codec, uint8_t aw)
 		goto error;
 
 	offset = ampcaps & 0x7f;
-	ddf_msg(LVL_NOTE, "out amp caps 0x%x (offset=0x%x)",
+	ddf_msg(LVL_DEBUG, "out amp caps 0x%x (offset=0x%x)",
 	    ampcaps, offset);
 
 	rc = hda_set_amp_gain_mute(codec, aw, 0xb000 + offset);
@@ -287,7 +287,7 @@ static errno_t hda_set_out_amp_max(hda_codec_t *codec, uint8_t aw)
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_NOTE, "gain/mute: L:0x%x R:0x%x", gmleft, gmright);
+	ddf_msg(LVL_DEBUG, "gain/mute: L:0x%x R:0x%x", gmleft, gmright);
 
 	return EOK;
 error:
@@ -308,7 +308,7 @@ static errno_t hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
 		goto error;
 
 	offset = ampcaps & 0x7f;
-	ddf_msg(LVL_NOTE, "in amp caps 0x%x (offset=0x%x)", ampcaps, offset);
+	ddf_msg(LVL_DEBUG, "in amp caps 0x%x (offset=0x%x)", ampcaps, offset);
 
 	for (i = 0; i < 15; i++) {
 		rc = hda_set_amp_gain_mute(codec, aw, 0x7000 + (i << 8) + offset);
@@ -323,7 +323,7 @@ static errno_t hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "in:%d gain/mute: L:0x%x R:0x%x",
+		ddf_msg(LVL_DEBUG, "in:%d gain/mute: L:0x%x R:0x%x",
 		    i, gmleft, gmright);
 	}
 
@@ -344,7 +344,7 @@ static errno_t hda_clist_dump(hda_codec_t *codec, uint8_t aw)
 	int epresp;
 	int i, j;
 
-	ddf_msg(LVL_NOTE, "Connections for widget %d:", aw);
+	ddf_msg(LVL_DEBUG, "Connections for widget %d:", aw);
 
 	rc = hda_get_clist_len(codec, aw, &longform, &len);
 	if (rc != EOK) {
@@ -383,7 +383,7 @@ static errno_t hda_clist_dump(hda_codec_t *codec, uint8_t aw)
 		}
 
 		for (j = 0; j < epresp && i < len; j++) {
-			ddf_msg(LVL_NOTE, "<- %d%s", resp & mask,
+			ddf_msg(LVL_DEBUG, "<- %d%s", resp & mask,
 			    (int)cidx == i ? " *** current *** " : "");
 			resp = resp >> shift;
 			++i;
@@ -405,13 +405,13 @@ static errno_t hda_pin_init(hda_codec_t *codec, uint8_t aw)
 	rc = hda_get_cfg_def(codec, aw, &cfgdef);
 	if (rc != EOK)
 		goto error;
-	ddf_msg(LVL_NOTE, "aw %d: PIN cdfgef=0x%x",
+	ddf_msg(LVL_DEBUG, "aw %d: PIN cdfgef=0x%x",
 	    aw, cfgdef);
 
 	rc = hda_get_pin_caps(codec, aw, &pcaps);
 	if (rc != EOK)
 		goto error;
-	ddf_msg(LVL_NOTE, "aw %d : PIN caps=0x%x",
+	ddf_msg(LVL_DEBUG, "aw %d : PIN caps=0x%x",
 	    aw, pcaps);
 
 	if ((pcaps & BIT_V(uint32_t, pwc_eapd)) != 0) {
@@ -419,7 +419,7 @@ static errno_t hda_pin_init(hda_codec_t *codec, uint8_t aw)
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "PIN %d had EAPD value=0x%x", aw, eapd);
+		ddf_msg(LVL_DEBUG, "PIN %d had EAPD value=0x%x", aw, eapd);
 
 		rc = hda_set_eapd_btl_enable(codec, aw, eapd | 2);
 		if (rc != EOK)
@@ -429,32 +429,32 @@ static errno_t hda_pin_init(hda_codec_t *codec, uint8_t aw)
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "PIN %d now has EAPD value=0x%x", aw, eapd);
+		ddf_msg(LVL_DEBUG, "PIN %d now has EAPD value=0x%x", aw, eapd);
 	}
 
 	pctl = 0;
 	if ((pcaps & BIT_V(uint32_t, pwc_output)) != 0) {
-		ddf_msg(LVL_NOTE, "PIN %d will enable output", aw);
+		ddf_msg(LVL_DEBUG, "PIN %d will enable output", aw);
 		pctl = pctl | BIT_V(uint8_t, pctl_out_enable);
 	}
 
 	if ((pcaps & BIT_V(uint32_t, pwc_input)) != 0) {
-		ddf_msg(LVL_NOTE, "PIN %d will enable input", aw);
+		ddf_msg(LVL_DEBUG, "PIN %d will enable input", aw);
 		pctl = pctl | BIT_V(uint8_t, pctl_in_enable);
 	}
 
 	if ((pcaps & BIT_V(uint32_t, pwc_hpd)) != 0) {
-		ddf_msg(LVL_NOTE, "PIN %d will enable headphone drive", aw);
+		ddf_msg(LVL_DEBUG, "PIN %d will enable headphone drive", aw);
 		pctl = pctl | BIT_V(uint8_t, pctl_hpd_enable);
 	}
 
 #if 0
 	if ((pcaps & BIT_V(uint32_t, pwc_input)) != 0) {
-		ddf_msg(LVL_NOTE, "PIN %d will enable input");
+		ddf_msg(LVL_DEBUG, "PIN %d will enable input");
 		pctl = pctl | BIT_V(uint8_t, pctl_input_enable);
 	}
 #endif
-	ddf_msg(LVL_NOTE, "Setting PIN %d ctl to 0x%x", aw, pctl);
+	ddf_msg(LVL_DEBUG, "Setting PIN %d ctl to 0x%x", aw, pctl);
 	rc = hda_set_pin_ctl(codec, aw, pctl);
 	if (rc != EOK)
 		goto error;
@@ -464,7 +464,7 @@ static errno_t hda_pin_init(hda_codec_t *codec, uint8_t aw)
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_NOTE, "PIN %d ctl reads as 0x%x", aw, pctl);
+	ddf_msg(LVL_DEBUG, "PIN %d ctl reads as 0x%x", aw, pctl);
 
 	return EOK;
 error:
@@ -477,12 +477,12 @@ static errno_t hda_power_ctl_init(hda_codec_t *codec, uint8_t aw)
 	errno_t rc;
 	uint32_t pwrstate;
 
-	ddf_msg(LVL_NOTE, "aw %d is power control-capable", aw);
+	ddf_msg(LVL_DEBUG, "aw %d is power control-capable", aw);
 
 	rc = hda_get_power_state(codec, aw, &pwrstate);
 	if (rc != EOK)
 		goto error;
-	ddf_msg(LVL_NOTE, "aw %d: power state = 0x%x", aw, pwrstate);
+	ddf_msg(LVL_DEBUG, "aw %d: power state = 0x%x", aw, pwrstate);
 
 	return EOK;
 error:
@@ -516,24 +516,24 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_NOTE, "hda_get_subnc -> %s", str_error_name(rc));
-	ddf_msg(LVL_NOTE, "sfg=%d nfg=%d", sfg, nfg);
+	ddf_msg(LVL_DEBUG, "hda_get_subnc -> %s", str_error_name(rc));
+	ddf_msg(LVL_DEBUG, "sfg=%d nfg=%d", sfg, nfg);
 
 	for (fg = sfg; fg < sfg + nfg; fg++) {
-		ddf_msg(LVL_NOTE, "Enumerate FG %d", fg);
+		ddf_msg(LVL_DEBUG, "Enumerate FG %d", fg);
 
 		rc = hda_get_fgrp_type(codec, fg, &unsol, &grptype);
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "hda_get_fgrp_type -> %s", str_error_name(rc));
-		ddf_msg(LVL_NOTE, "unsol: %d, grptype: %d", unsol, grptype);
+		ddf_msg(LVL_DEBUG, "hda_get_fgrp_type -> %s", str_error_name(rc));
+		ddf_msg(LVL_DEBUG, "unsol: %d, grptype: %d", unsol, grptype);
 
 		rc = hda_get_gpio_cnt(codec, fg, &gpio);
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "GPIO: wake=%d unsol=%d gpis=%d gpos=%d gpios=%d",
+		ddf_msg(LVL_DEBUG, "GPIO: wake=%d unsol=%d gpis=%d gpos=%d gpios=%d",
 		    (gpio & BIT_V(uint32_t, 31)) != 0,
 		    (gpio & BIT_V(uint32_t, 30)) != 0,
 		    BIT_RANGE_EXTRACT(uint32_t, 23, 16, gpio),
@@ -548,14 +548,14 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "hda_get_subnc -> %s", str_error_name(rc));
-		ddf_msg(LVL_NOTE, "saw=%d baw=%d", saw, naw);
+		ddf_msg(LVL_DEBUG, "hda_get_subnc -> %s", str_error_name(rc));
+		ddf_msg(LVL_DEBUG, "saw=%d baw=%d", saw, naw);
 
 		for (aw = saw; aw < saw + naw; aw++) {
 			rc = hda_get_aw_caps(codec, aw, &awtype, &awcaps);
 			if (rc != EOK)
 				goto error;
-			ddf_msg(LVL_NOTE, "aw %d: type=0x%x caps=0x%x",
+			ddf_msg(LVL_DEBUG, "aw %d: type=0x%x caps=0x%x",
 			    aw, awtype, awcaps);
 
 			if ((awcaps & BIT_V(uint32_t, awc_power_cntrl)) != 0) {
@@ -593,15 +593,15 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 				if (rc != EOK)
 					goto error;
 
-				ddf_msg(LVL_NOTE, "Output widget %d: rates=0x%x formats=0x%x",
+				ddf_msg(LVL_DEBUG, "Output widget %d: rates=0x%x formats=0x%x",
 				    aw, rates, formats);
 			} else if (awtype == awt_audio_input) {
 				if (codec->in_aw < 0) {
-					ddf_msg(LVL_NOTE, "Selected input "
+					ddf_msg(LVL_DEBUG, "Selected input "
 					    "widget %d\n", aw);
 					codec->in_aw = aw;
 				} else {
-					ddf_msg(LVL_NOTE, "Ignoring input "
+					ddf_msg(LVL_DEBUG, "Ignoring input "
 					    "widget %d\n", aw);
 				}
 
@@ -613,7 +613,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 				if (rc != EOK)
 					goto error;
 
-				ddf_msg(LVL_NOTE, "Input widget %d: rates=0x%x formats=0x%x",
+				ddf_msg(LVL_DEBUG, "Input widget %d: rates=0x%x formats=0x%x",
 				    aw, rates, formats);
 			}
 
@@ -627,7 +627,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 
 	hda_ctl_dump_info(hda->ctl);
 
-	ddf_msg(LVL_NOTE, "Codec OK");
+	ddf_msg(LVL_DEBUG, "Codec OK");
 	return codec;
 error:
 	free(codec);
@@ -636,7 +636,7 @@ error:
 
 void hda_codec_fini(hda_codec_t *codec)
 {
-	ddf_msg(LVL_NOTE, "hda_codec_fini()");
+	ddf_msg(LVL_DEBUG, "hda_codec_fini()");
 	free(codec);
 }
 
@@ -651,12 +651,12 @@ errno_t hda_out_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
 
 		/* Configure converter */
 
-		ddf_msg(LVL_NOTE, "Configure output converter format");
+		ddf_msg(LVL_DEBUG, "Configure output converter format");
 		rc = hda_set_converter_fmt(codec, out_aw, stream->fmt);
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "Configure output converter stream, channel");
+		ddf_msg(LVL_DEBUG, "Configure output converter stream, channel");
 		rc = hda_set_converter_ctl(codec, out_aw, stream->sid, 0);
 		if (rc != EOK)
 			goto error;
@@ -673,12 +673,12 @@ errno_t hda_in_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
 
 	/* Configure converter */
 
-	ddf_msg(LVL_NOTE, "Configure input converter format");
+	ddf_msg(LVL_DEBUG, "Configure input converter format");
 	rc = hda_set_converter_fmt(codec, codec->in_aw, stream->fmt);
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_NOTE, "Configure input converter stream, channel");
+	ddf_msg(LVL_DEBUG, "Configure input converter stream, channel");
 	rc = hda_set_converter_ctl(codec, codec->in_aw, stream->sid, 0);
 	if (rc != EOK)
 		goto error;
