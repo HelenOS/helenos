@@ -162,14 +162,14 @@ errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_base_t *res)
 		return rc;
 
 	for (i = 0; i < MAX_DISKS; i++) {
-		ddf_msg(LVL_NOTE, "Identify drive %d...", i);
+		ddf_msg(LVL_DEBUG, "Identify drive %d...", i);
 
 		rc = disk_init(ctrl, &ctrl->disk[i], i);
 
 		if (rc == EOK) {
 			disk_print_summary(&ctrl->disk[i]);
 		} else {
-			ddf_msg(LVL_NOTE, "Not found.");
+			ddf_msg(LVL_DEBUG, "Not found.");
 		}
 	}
 
@@ -191,7 +191,7 @@ errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_base_t *res)
 
 	if (n_disks == 0) {
 		ddf_msg(LVL_WARN, "No disks detected.");
-		rc = EIO;
+		rc = ENOENT;
 		goto error;
 	}
 
@@ -367,7 +367,7 @@ static errno_t disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 	rc = ata_identify_dev(d, &idata);
 	if (rc == EOK) {
 		/* Success. It's a register (non-packet) device. */
-		ddf_msg(LVL_NOTE, "ATA register-only device found.");
+		ddf_msg(LVL_DEBUG, "ATA register-only device found.");
 		d->dev_type = ata_reg_dev;
 	} else if (rc == EIO) {
 		/*
