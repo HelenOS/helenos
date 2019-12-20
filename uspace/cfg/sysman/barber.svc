@@ -1,7 +1,5 @@
 [Unit]
-After = rootfs.mnt
 
 ; unclear status of barber as service (more relevant to user session)
 [Service]
-ExecStart = /root/app/barber comp:0/winreg
-
+ExecStart = /app/barber comp:0/winreg

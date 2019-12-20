@@ -1,11 +1,7 @@
 [Unit]
-; mountpoint dependency must be explicit
-After = rootfs.mnt
-
 ; explicit
 ; as it's somehow needed for keyboard/mouse drivers (via ISA/PCI driver calls?)
 After = irc.svc
 
 [Service]
-ExecStart = /root/srv/input hid/input
-
+ExecStart = /srv/input hid/input

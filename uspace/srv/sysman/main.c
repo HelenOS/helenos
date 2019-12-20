@@ -51,7 +51,8 @@
 
 static const char *target_sequence[] = {
 	TARGET_INIT,
-	TARGET_ROOTFS,
+	//TODO: Mount root fs
+	//TARGET_ROOTFS,
 	TARGET_DEFAULT,
 	NULL
 };

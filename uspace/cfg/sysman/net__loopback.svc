@@ -1,3 +1,2 @@
 [Service]
-ExecStart = /root/srv/loopip
-
+ExecStart = /srv/loopip

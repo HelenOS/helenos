@@ -1,10 +1,7 @@
 [Unit]
-; explicit because of executable path
-After = rootfs.mnt
 ; explicit as vterm->getterm needs it
 After = locfs.mnt
 
 ; unclear status of vlaunch as a service (more relevant to user session)
 [Service]
-ExecStart = /root/app/vlaunch comp:0/winreg
-
+ExecStart = /app/vlaunch comp:0/winreg

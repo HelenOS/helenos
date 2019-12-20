@@ -1,2 +1,2 @@
 [Service]
-ExecStart = /root/srv/nconfsrv
+ExecStart = /srv/nconfsrv

@@ -3,5 +3,4 @@
 After = net__ethip.svc
 
 [Service]
-ExecStart = /root/srv/tcp
-
+ExecStart = /srv/tcp

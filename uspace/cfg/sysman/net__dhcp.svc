@@ -1,2 +1,2 @@
 [Service]
-ExecStart = /root/srv/dhcp
+ExecStart = /srv/dhcp

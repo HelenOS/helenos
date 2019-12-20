@@ -1,3 +1,2 @@
 [Service]
-ExecStart = /root/srv/locfs
-
+ExecStart = /srv/locfs
