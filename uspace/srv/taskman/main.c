@@ -231,6 +231,7 @@ static void loader_callback(ipc_call_t *icall)
 	sess_ref_t *sess_ref = malloc(sizeof(sess_ref_t));
 	if (sess_ref == NULL) {
 		async_answer_0(icall, ENOMEM);
+		return;
 	}
 
 	/* Create callback connection */
@@ -269,19 +270,6 @@ static void taskman_connection(ipc_call_t *icall, void *arg)
 			async_answer_0(icall, ENOTSUP);
 			return;
 		}
-	} else if (ipc_get_imethod(icall) == IPC_M_CONNECT_TO_ME) {
-		switch (ipc_get_arg2(icall)) {
-		case TASKMAN_LOADER_CALLBACK:
-			loader_callback(icall);
-			return;
-		default:
-			DPRINTF("%s:%d from %" PRIu64 "/%" SCNuPTR "/%" SCNuPTR "/%" SCNuPTR "\n",
-			    __func__, __LINE__,
-			    icall->task_id, ipc_get_imethod(icall),
-			    ipc_get_arg1(icall), ipc_get_arg2(icall));
-			async_answer_0(icall, ENOTSUP);
-			return;
-		}
 	}
 
 	/* handle accepted calls */
@@ -307,6 +295,14 @@ static void taskman_connection(ipc_call_t *icall, void *arg)
 		case TASKMAN_EVENT_CALLBACK:
 			taskman_ctl_ev_callback(&call);
 			break;
+		case IPC_M_CONNECT_TO_ME:
+			if (ipc_get_arg2(&call) == TASKMAN_LOADER_CALLBACK) {
+				loader_callback(&call);
+				break;
+			}
+			goto FALLTHROUGH_DEFAULT;
+			break;
+		FALLTHROUGH_DEFAULT:
 		default:
 			DPRINTF("%s:%d from %" PRIu64 "/%" SCNuPTR "/%" SCNuPTR "/%" SCNuPTR "\n",
 			    __func__, __LINE__,
