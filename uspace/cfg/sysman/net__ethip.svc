@@ -1,2 +1,2 @@
 [Service]
-ExecStart = /srv/ethip
+ExecStart = /srv/net/ethip

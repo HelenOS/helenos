@@ -1,2 +1,2 @@
 [Service]
-ExecStart = /srv/dnsrsrv
+ExecStart = /srv/net/dnsrsrv

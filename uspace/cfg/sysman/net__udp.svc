@@ -1,2 +1,2 @@
 [Service]
-ExecStart = /srv/udp
+ExecStart = /srv/net/udp

@@ -1,2 +1,2 @@
 [Service]
-ExecStart = /srv/inetsrv
+ExecStart = /srv/net/inetsrv
