@@ -87,6 +87,10 @@ static errno_t unit_svc_start(unit_t *unit)
 	    u_svc->exec_start.argv);
 
 	if (rc != EOK) {
+		sysman_log(LVL_ERROR, "%s: failed to spawn task '%s' for unit '%s'.",
+		    __func__,
+		    u_svc->exec_start.path,
+		    unit_name(unit));
 		unit->state = STATE_FAILED;
 		return rc;
 	}
