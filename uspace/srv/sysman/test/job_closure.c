@@ -244,7 +244,8 @@ PCUT_TEST(job_closure_isolate_linears)
 	unit_t *u6 = mock_units[UNIT_SERVICE][6];
 	repo_begin_update();
 	for (int i = 0; i < 7; ++i) {
-		repo_add_unit(mock_units[UNIT_SERVICE][i]);
+		errno_t rc = repo_add_unit(mock_units[UNIT_SERVICE][i]);
+		PCUT_ASSERT_INT_EQUALS(EOK, rc);
 	}
 	repo_commit();
 

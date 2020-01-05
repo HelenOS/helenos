@@ -134,22 +134,25 @@ static errno_t create_entry_configuration(void)
 	 */
 	repo_begin_update();
 
-	repo_add_unit(mnt_initrd);
-	repo_add_unit(cfg_init);
-	repo_add_unit(tgt_init);
+	rc = repo_add_unit(mnt_initrd);
+	if (rc != EOK)
+		goto rollback;
+	rc = repo_add_unit(cfg_init);
+	if (rc != EOK)
+		goto rollback;
+	rc = repo_add_unit(tgt_init);
+	if (rc != EOK)
+		goto rollback;
 
 	rc = edge_connect(tgt_init, cfg_init);
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto rollback;
-	}
 
 	rc = edge_connect(cfg_init, mnt_initrd);
-	if (rc != EOK) {
+	if (rc != EOK)
 		goto rollback;
-	}
 
 	repo_commit();
-
 	return EOK;
 
 fail:

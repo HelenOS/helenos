@@ -154,6 +154,7 @@ static errno_t cfg_load_configuration(const char *path)
 {
 	DIR *dir;
 	struct dirent *de;
+	errno_t rc;
 
 	dir = opendir(path);
 	if (dir == NULL) {
@@ -166,7 +167,7 @@ static errno_t cfg_load_configuration(const char *path)
 
 	while ((de = readdir(dir))) {
 		unit_t *unit = NULL;
-		errno_t rc = cfg_parse_file(path, de->d_name, &unit);
+		rc = cfg_parse_file(path, de->d_name, &unit);
 		if (rc != EOK) {
 			sysman_log(LVL_WARN, "Cannot load unit from file %s/%s",
 			    path, de->d_name);
@@ -178,18 +179,23 @@ static errno_t cfg_load_configuration(const char *path)
 		}
 
 		assert(unit->repo_state == REPO_EMBRYO);
-		repo_add_unit(unit);
+		rc = repo_add_unit(unit);
+		if (rc != EOK)
+			goto error;
+
 	}
 	closedir(dir);
 
-	errno_t rc = repo_resolve_references();
-	if (rc != EOK) {
-		repo_rollback();
-		return rc;
-	}
+	rc = repo_resolve_references();
+	if (rc != EOK)
+		goto error;
 
 	repo_commit();
 	return EOK;
+
+error:
+	repo_rollback();
+	return rc;
 }
 
 static void unit_cfg_init(unit_t *unit)
