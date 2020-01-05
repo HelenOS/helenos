@@ -291,7 +291,7 @@ static void ldr_add_inbox(ipc_call_t *req)
  * @return 0 on success, !0 on error.
  *
  */
-static int ldr_load(ipc_call_t *req)
+static void ldr_load(ipc_call_t *req)
 {
 	DPRINTF("LOADER_LOAD()\n");
 
@@ -299,7 +299,7 @@ static int ldr_load(ipc_call_t *req)
 	if (rc != EOK) {
 		DPRINTF("Failed to load executable for '%s'.\n", progname);
 		async_answer_0(req, EINVAL);
-		return 1;
+		return;
 	}
 
 	DPRINTF("Loaded.\n");
@@ -317,7 +317,7 @@ static int ldr_load(ipc_call_t *req)
 	if (!pcb.tcb) {
 		DPRINTF("Failed to make TLS for '%s'.\n", progname);
 		async_answer_0(req, ENOMEM);
-		return 1;
+		return;
 	}
 
 	elf_set_pcb(&prog_info, &pcb);
@@ -336,7 +336,6 @@ static int ldr_load(ipc_call_t *req)
 
 	DPRINTF("Answering.\n");
 	async_answer_0(req, EOK);
-	return 0;
 }
 
 /** Run the previously loaded program.
