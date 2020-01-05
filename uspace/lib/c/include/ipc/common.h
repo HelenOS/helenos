@@ -43,7 +43,7 @@ static cap_phone_handle_t const PHONE_INITIAL = (cap_phone_handle_t) (CAP_NIL + 
 #define IPC_FLAG_BLOCKING   0x01
 
 /**
- * IPC_FLAG_AUTOSTART_ is for use in brokers only. In clinet code use
+ * IPC_FLAG_AUTOSTART_ is for use in brokers only. In client code use
  * IPC_AUTOSTART that includes implies blocking behavior.
  */
 #define IPC_FLAG_AUTOSTART_  0x02

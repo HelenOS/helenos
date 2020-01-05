@@ -606,7 +606,7 @@ sys_errno_t sys_ipc_forward_fast(cap_call_handle_t chandle,
 
 /** Forward a received call to another destination - slow version.
  *
- * This function is the slow verision of the sys_ipc_forward_fast interface.
+ * This function is the slow version of the sys_ipc_forward_fast interface.
  * It can copy all five new arguments and the new interface and method from
  * the userspace. It naturally extends the functionality of the fast version.
  * For system methods, it additionally stores the new value of arg3 to ARG4.

@@ -444,7 +444,7 @@ int main(int argc, char *argv[])
 	/* Announce to taskman. */
 	errno_t rc = taskman_intro_loader();
 	if (rc != EOK) {
-		printf("%s: did not receive connectin from taskman (%i)\n",
+		printf("%s: did not receive connection from taskman (%i)\n",
 		    NAME, rc);
 		return rc;
 	}
