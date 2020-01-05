@@ -88,7 +88,7 @@ errno_t usbdiag_test_in(async_exch_t *exch,
 	errno_t retval;
 	async_wait_for(req, &retval);
 
-	return (errno_t) retval;
+	return retval;
 }
 
 errno_t usbdiag_test_out(async_exch_t *exch,
@@ -122,7 +122,7 @@ errno_t usbdiag_test_out(async_exch_t *exch,
 	errno_t retval;
 	async_wait_for(req, &retval);
 
-	return (errno_t) retval;
+	return retval;
 }
 
 static void remote_usbdiag_test_in(ddf_fun_t *, void *, ipc_call_t *);

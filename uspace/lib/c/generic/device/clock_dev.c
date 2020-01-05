@@ -66,7 +66,7 @@ clock_dev_time_get(async_sess_t *sess, struct tm *t)
 	}
 
 	async_wait_for(req, &rc);
-	return (errno_t)rc;
+	return rc;
 }
 
 /** Set the current time
@@ -97,7 +97,7 @@ clock_dev_time_set(async_sess_t *sess, struct tm *t)
 	}
 
 	async_wait_for(req, &rc);
-	return (errno_t)rc;
+	return rc;
 }
 
 /** @}

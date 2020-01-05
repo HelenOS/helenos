@@ -78,7 +78,7 @@ errno_t ieee80211_get_scan_results(async_sess_t *dev_sess,
 	async_wait_for(aid, &res);
 
 	if (res != EOK)
-		return (errno_t) res;
+		return res;
 
 	return rc;
 }
@@ -143,9 +143,9 @@ errno_t ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *passwo
 		async_wait_for(aid, &rc_orig);
 
 		if (rc_orig == EOK)
-			return (errno_t) rc;
+			return rc;
 
-		return (errno_t) rc_orig;
+		return rc_orig;
 	}
 
 	// FIXME: Typecasting string literal
@@ -158,9 +158,9 @@ errno_t ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *passwo
 		async_wait_for(aid, &rc_orig);
 
 		if (rc_orig == EOK)
-			return (errno_t) rc;
+			return rc;
 
-		return (errno_t) rc_orig;
+		return rc_orig;
 	}
 
 	async_exchange_end(exch);
@@ -181,7 +181,7 @@ errno_t ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *passwo
 
 	rc = dhcp_discover(link_id);
 
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Disconnect device from network.

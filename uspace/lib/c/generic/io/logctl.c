@@ -84,7 +84,7 @@ errno_t logctl_set_default_level(log_level_t new_level)
 	if (rc != EOK)
 		return rc;
 
-	rc = (errno_t) async_req_1_0(exchange,
+	rc = async_req_1_0(exchange,
 	    LOGGER_CONTROL_SET_DEFAULT_LEVEL, new_level);
 
 	async_exchange_end(exchange);
@@ -118,7 +118,7 @@ errno_t logctl_set_log_level(const char *logname, log_level_t new_level)
 	if (rc != EOK)
 		return rc;
 
-	return (errno_t) reg_msg_rc;
+	return reg_msg_rc;
 }
 
 /** Set logger's VFS root.
@@ -144,7 +144,7 @@ errno_t logctl_set_root(void)
 	if (rc != EOK)
 		return rc;
 
-	return (errno_t) reg_msg_rc;
+	return reg_msg_rc;
 }
 
 /** @}

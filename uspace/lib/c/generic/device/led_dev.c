@@ -50,7 +50,7 @@ errno_t led_dev_color_set(async_sess_t *sess, pixel_t pixel)
 	errno_t rc;
 	async_wait_for(req, &rc);
 
-	return (errno_t) rc;
+	return rc;
 }
 
 /** @}

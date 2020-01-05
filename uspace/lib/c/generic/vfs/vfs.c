@@ -741,7 +741,7 @@ errno_t vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
 	if ((rc != EOK) && (null_id != -1))
 		loc_null_destroy(null_id);
 
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Open a file handle for I/O
@@ -1187,7 +1187,7 @@ errno_t vfs_unlink(int parent, const char *child, int expect)
 	async_wait_for(req, &rc_orig);
 
 	if (rc_orig != EOK)
-		return (errno_t) rc_orig;
+		return rc_orig;
 	return rc;
 }
 
@@ -1277,10 +1277,10 @@ errno_t vfs_walk(int parent, const char *path, int flags, int *handle)
 	async_wait_for(req, &rc_orig);
 
 	if (rc_orig != EOK)
-		return (errno_t) rc_orig;
+		return rc_orig;
 
 	if (rc != EOK)
-		return (errno_t) rc;
+		return rc;
 
 	*handle = (int) ipc_get_arg1(&answer);
 	return EOK;

@@ -107,7 +107,7 @@ errno_t clipboard_put_str(const char *str)
 		    CLIPBOARD_TAG_NONE);
 		clip_exchange_end(exch);
 
-		return (errno_t) rc;
+		return rc;
 	} else {
 		async_exch_t *exch = clip_exchange_begin();
 		aid_t req = async_send_1(exch, CLIPBOARD_PUT_DATA, CLIPBOARD_TAG_DATA,
@@ -119,14 +119,14 @@ errno_t clipboard_put_str(const char *str)
 			errno_t rc_orig;
 			async_wait_for(req, &rc_orig);
 			if (rc_orig == EOK)
-				return (errno_t) rc;
+				return rc;
 			else
-				return (errno_t) rc_orig;
+				return rc_orig;
 		}
 
 		async_wait_for(req, &rc);
 
-		return (errno_t) rc;
+		return rc;
 	}
 }
 
@@ -152,7 +152,7 @@ errno_t clipboard_get_str(char **str)
 		clip_exchange_end(exch);
 
 		if (rc != EOK)
-			return (errno_t) rc;
+			return rc;
 
 		char *sbuf;
 
@@ -175,7 +175,7 @@ errno_t clipboard_get_str(char **str)
 			rc = async_data_read_start(exch, (void *) sbuf, size);
 			clip_exchange_end(exch);
 
-			if ((errno_t) rc == EOVERFLOW) {
+			if (rc == EOVERFLOW) {
 				/*
 				 * The data in the clipboard has changed since
 				 * the last call of CLIPBOARD_CONTENT
@@ -187,9 +187,9 @@ errno_t clipboard_get_str(char **str)
 				errno_t rc_orig;
 				async_wait_for(req, &rc_orig);
 				if (rc_orig == EOK)
-					return (errno_t) rc;
+					return rc;
 				else
-					return (errno_t) rc_orig;
+					return rc_orig;
 			}
 
 			async_wait_for(req, &rc);

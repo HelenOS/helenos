@@ -181,13 +181,13 @@ errno_t usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 	if (data_request_rc != EOK) {
 		/* Prefer return code of the opening request. */
 		if (opening_request_rc != EOK)
-			return (errno_t) opening_request_rc;
+			return opening_request_rc;
 		else
-			return (errno_t) data_request_rc;
+			return data_request_rc;
 	}
 
 	if (opening_request_rc != EOK)
-		return (errno_t) opening_request_rc;
+		return opening_request_rc;
 
 	size_t act_size = ipc_get_arg2(&data_request_call);
 
@@ -266,13 +266,13 @@ errno_t usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
 	if (data_request_rc != EOK) {
 		/* Prefer return code of the opening request. */
 		if (opening_request_rc != EOK)
-			return (errno_t) opening_request_rc;
+			return opening_request_rc;
 		else
-			return (errno_t) data_request_rc;
+			return data_request_rc;
 	}
 
 	if (opening_request_rc != EOK)
-		return (errno_t) opening_request_rc;
+		return opening_request_rc;
 
 	size_t act_size = ipc_get_arg2(&data_request_call);
 

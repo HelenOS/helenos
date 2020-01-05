@@ -595,7 +595,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		async_wait_for(msg, &rc);
 
 		/* Do not propagate EHANGUP back to VFS. */
-		if ((errno_t) rc == EHANGUP)
+		if (rc == EHANGUP)
 			rc = ENOTSUP;
 
 		*rbytes = ipc_get_arg1(&answer);
@@ -659,7 +659,7 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		async_wait_for(msg, &rc);
 
 		/* Do not propagate EHANGUP back to VFS. */
-		if ((errno_t) rc == EHANGUP)
+		if (rc == EHANGUP)
 			rc = ENOTSUP;
 
 		*wbytes = ipc_get_arg1(&answer);

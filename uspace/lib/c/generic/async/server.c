@@ -1394,7 +1394,7 @@ static errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod
 	errno_t rc;
 	async_wait_for(msg, &rc);
 
-	return (errno_t) rc;
+	return rc;
 }
 
 errno_t async_data_read_forward_0_0(async_exch_t *exch, sysarg_t imethod)
@@ -1639,7 +1639,7 @@ static errno_t async_data_write_forward_fast(async_exch_t *exch,
 	errno_t rc;
 	async_wait_for(msg, &rc);
 
-	return (errno_t) rc;
+	return rc;
 }
 
 errno_t async_data_write_forward_0_0(async_exch_t *exch, sysarg_t imethod)

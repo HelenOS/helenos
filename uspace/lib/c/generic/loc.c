@@ -313,14 +313,10 @@ errno_t loc_service_register(const char *fqsn, service_id_t *sid)
  */
 errno_t loc_service_unregister(service_id_t sid)
 {
-	async_exch_t *exch;
-	errno_t retval;
-
-	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
-	retval = async_req_1_0(exch, LOC_SERVICE_UNREGISTER, sid);
+	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
+	errno_t rc = async_req_1_0(exch, LOC_SERVICE_UNREGISTER, sid);
 	loc_exchange_end(exch);
-
-	return (errno_t)retval;
+	return rc;
 }
 
 errno_t loc_service_get_id(const char *fqdn, service_id_t *handle,

@@ -101,11 +101,11 @@ errno_t loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 
 	if (rc != EOK) {
 		async_forget(req);
-		return (errno_t) rc;
+		return rc;
 	}
 
 	async_wait_for(req, &rc);
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Set current working directory for the loaded task.
@@ -139,11 +139,11 @@ errno_t loader_set_cwd(loader_t *ldr)
 
 	if (rc != EOK) {
 		async_forget(req);
-		return (errno_t) rc;
+		return rc;
 	}
 
 	async_wait_for(req, &rc);
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Set the program to load.
@@ -173,11 +173,11 @@ errno_t loader_set_program(loader_t *ldr, const char *name, int file)
 
 	if (rc != EOK) {
 		async_forget(req);
-		return (errno_t) rc;
+		return rc;
 	}
 
 	async_wait_for(req, &rc);
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Set the program to load by path.
@@ -258,11 +258,11 @@ errno_t loader_set_args(loader_t *ldr, const char *const argv[])
 
 	if (rc != EOK) {
 		async_forget(req);
-		return (errno_t) rc;
+		return rc;
 	}
 
 	async_wait_for(req, &rc);
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Add a file to the task's inbox.
@@ -295,7 +295,7 @@ errno_t loader_add_inbox(loader_t *ldr, const char *name, int file)
 		async_forget(req);
 	}
 
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Instruct loader to load the program.

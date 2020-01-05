@@ -443,7 +443,7 @@ static errno_t rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t 
 
 	chunk->size = ipc_get_arg1(answer);
 
-	return (errno_t) rc;
+	return rc;
 }
 
 static errno_t vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
@@ -739,7 +739,7 @@ static errno_t vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service
 	    UPPER32(size));
 	vfs_exchange_release(exch);
 
-	return (errno_t) rc;
+	return rc;
 }
 
 errno_t vfs_op_unlink(int parentfd, int expectfd, char *path)

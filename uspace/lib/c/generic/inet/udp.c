@@ -199,7 +199,7 @@ errno_t udp_assoc_create(udp_t *udp, inet_ep2_t *epp, udp_cb_t *cb, void *arg,
 	return EOK;
 error:
 	free(assoc);
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Destroy UDP association.

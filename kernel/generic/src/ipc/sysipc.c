@@ -191,7 +191,7 @@ errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	}
 	spinlock_unlock(&answer->forget_lock);
 
-	if ((errno_t) ipc_get_retval(&answer->data) == EHANGUP) {
+	if (ipc_get_retval(&answer->data) == EHANGUP) {
 		phone_t *phone = answer->caller_phone;
 		mutex_lock(&phone->lock);
 		if (phone->state == IPC_PHONE_CONNECTED) {
@@ -237,7 +237,7 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
  */
 static void process_answer(call_t *call)
 {
-	if (((errno_t) ipc_get_retval(&call->data) == EHANGUP) &&
+	if ((ipc_get_retval(&call->data) == EHANGUP) &&
 	    (call->flags & IPC_CALL_FORWARDED))
 		ipc_set_retval(&call->data, EFORWARD);
 

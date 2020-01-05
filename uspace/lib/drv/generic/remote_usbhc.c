@@ -137,7 +137,7 @@ errno_t usbhc_register_endpoint(async_exch_t *exch, usb_pipe_desc_t *pipe_desc,
 	async_wait_for(opening_request, &opening_request_rc);
 
 	if (opening_request_rc)
-		return (errno_t) opening_request_rc;
+		return opening_request_rc;
 
 	usb_pipe_desc_t dest;
 	ret = async_data_read_start(exch, &dest, sizeof(dest));
@@ -173,7 +173,7 @@ errno_t usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pip
 	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
-	return (errno_t) opening_request_rc;
+	return opening_request_rc;
 }
 
 /**
@@ -222,7 +222,7 @@ errno_t usbhc_transfer(async_exch_t *exch,
 	if (transferred)
 		*transferred = ipc_get_arg1(&call);
 
-	return (errno_t) opening_request_rc;
+	return opening_request_rc;
 }
 
 static void remote_usbhc_default_address_reservation(ddf_fun_t *, void *, ipc_call_t *);

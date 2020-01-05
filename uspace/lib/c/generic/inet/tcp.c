@@ -239,7 +239,7 @@ errno_t tcp_conn_create(tcp_t *tcp, inet_ep2_t *epp, tcp_cb_t *cb, void *arg,
 
 	return EOK;
 error:
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Destroy TCP connection.
@@ -359,7 +359,7 @@ errno_t tcp_listener_create(tcp_t *tcp, inet_ep_t *ep, tcp_listen_cb_t *lcb,
 	return EOK;
 error:
 	free(lst);
-	return (errno_t) rc;
+	return rc;
 }
 
 /** Destroy TCP connection listener.
