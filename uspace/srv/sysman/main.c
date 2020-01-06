@@ -68,29 +68,20 @@ static void prepare_and_run_job(const char **target_name_ptr);
 
 static void sysman_connection(ipc_call_t *icall, void *arg)
 {
+	/* First, accept connection */
 	async_accept_0(icall);
 
-	while (true) {
-		ipc_call_t call;
-		async_get_call(&call);
-
-		if (!ipc_get_imethod(&call)) {
-			async_answer_0(&call, EOK);
-			break;
-		}
-
-		sysman_interface_t iface = ipc_get_arg1(&call);
-		switch (iface) {
-		case SYSMAN_PORT_BROKER:
-			sysman_connection_broker(&call);
-			break;
-		case SYSMAN_PORT_CTL:
-			sysman_connection_ctl(&call);
-			break;
-		default:
-			/* Unknown interface */
-			async_answer_0(&call, ENOENT);
-		}
+	sysman_interface_t iface = ipc_get_arg2(icall);
+	switch (iface) {
+	case SYSMAN_PORT_BROKER:
+		sysman_connection_broker(icall);
+		break;
+	case SYSMAN_PORT_CTL:
+		sysman_connection_ctl(icall);
+		break;
+	default:
+		/* Unknown interface */
+		async_answer_0(icall, ENOENT);
 	}
 }
 

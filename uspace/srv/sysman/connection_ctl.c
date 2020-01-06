@@ -294,8 +294,6 @@ finish:
 void sysman_connection_ctl(ipc_call_t *icall)
 {
 	sysman_log(LVL_DEBUG2, "%s", __func__);
-	/* First, accept connection */
-	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
