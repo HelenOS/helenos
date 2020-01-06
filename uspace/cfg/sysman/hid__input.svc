@@ -4,4 +4,4 @@
 After = irc.svc
 
 [Service]
-ExecStart = /srv/input hid/input
+ExecStart = /srv/hid/input hid/input

@@ -1,3 +1,0 @@
-[Service]
-ExecStart = /drv/leon3/leon3
-;Broker = devman.svc

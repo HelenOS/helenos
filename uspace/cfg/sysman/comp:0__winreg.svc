@@ -1,4 +1,4 @@
 [Unit]
 
 [Service]
-ExecStart = /srv/compositor hid/input :0
+ExecStart = /srv/hid/compositor hid/input :0

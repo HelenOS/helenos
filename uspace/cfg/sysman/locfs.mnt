@@ -1,5 +1,8 @@
+[Unit]
+; explicit start locfs to prevent deadlock
+After = locfs.svc
+
 [Mount]
 What = 
 Where = /loc
 Type = locfs
-

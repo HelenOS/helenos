@@ -1,6 +1,6 @@
 [Unit]
 ; explicit, NS not instrumented for autostart
-After = logger.svc
+; After = logger.svc
 
 [Service]
 ExecStart = /srv/devman
