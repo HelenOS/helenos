@@ -1,5 +1,6 @@
 [Unit]
 After = devman.svc
+After = tmpfs.mnt
 After = vlaunch.svc barber.svc
 ; TODO change to Requires
 After = network.tgt
