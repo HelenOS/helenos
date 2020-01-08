@@ -28,7 +28,6 @@
 
 USPACE_PREFIX = ../..
 LIBS = sysman
-EXTRA_CFLAGS += -I$(LIBSYSMAN_PREFIX)/include
 BINARY = sysctl
 
 SOURCES = \

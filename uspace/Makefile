@@ -88,6 +88,7 @@ DIRS = \
 	app/nic \
 	app/ping \
 	app/pkg \
+	app/sysctl \
 	app/sysinfo \
 	app/sysinst \
 	app/mkbd \

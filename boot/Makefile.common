@@ -228,6 +228,7 @@ RD_APPS_NON_ESSENTIAL = \
 	ping \
 	pkg \
 	stats \
+	sysctl \
 	sysinfo \
 	sysinst \
 	top \
