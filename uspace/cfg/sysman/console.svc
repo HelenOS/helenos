@@ -1,0 +1,6 @@
+[Unit]
+After = hid__input.svc
+After = hid__output.svc
+
+[Service]
+ExecStart = /srv/hid/console hid/input hid/output

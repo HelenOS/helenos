@@ -1,0 +1,6 @@
+[Unit]
+After = locfs.mnt
+After = network.tgt
+
+[Service]
+ExecStart = /srv/hid/remcons

@@ -1,0 +1,2 @@
+[Service]
+ExecStart = /srv/hid/s3c24xx_ts

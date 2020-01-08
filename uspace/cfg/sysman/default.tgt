@@ -1,6 +1,24 @@
 [Unit]
-After = devman.svc
-After = tmpfs.mnt
-After = vlaunch.svc barber.svc
+
 ; TODO change to Requires
+After = devman.svc
+
+; arm32 specific
+; After = s3c24xx_uart.svc
+; After = s3c24xx_ts.svc
+
+After = klog.svc
+; currently deactivated as it prevents 'sysctl shutdown' from working
+; After = taskmon.svc
+After = tmpfs.mnt
+After = vbd.svc
+After = volsrv.svc
 After = network.tgt
+
+After = clipboard.svc
+After = remcons.svc
+
+After = hound.svc
+
+After = console.svc
+After = barber.svc vlaunch.svc vterm.svc
