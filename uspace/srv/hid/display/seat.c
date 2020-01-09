@@ -214,6 +214,8 @@ static errno_t ds_seat_draw_pointer(ds_seat_t *seat, bool shown)
 
 /** Post pointing device event to the seat
  *
+ * Update pointer position and generate position event.
+ *
  * @param seat Seat
  * @param event Event
  *
@@ -222,23 +224,39 @@ static errno_t ds_seat_draw_pointer(ds_seat_t *seat, bool shown)
 #include <stdio.h>
 errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 {
-	ds_window_t *wnd;
 	gfx_coord2_t npos;
+	ds_window_t *wnd;
+	pos_event_t pevent;
+	errno_t rc;
 
 	printf("ds_seat_post_ptd_event\n");
+	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
+
 	/* Focus window on button press */
-	if (event->type == PTD_PRESS) {
-		printf("PTD_PRESS\n");
-		wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
+	if (event->type == PTD_PRESS && event->btn_num == 1) {
+		printf("PTD_PRESS (button = %d)\n", event->btn_num);
 		if (wnd != NULL) {
 			printf("set focus\n");
 			ds_seat_set_focus(seat, wnd);
-			return EOK;
 		}
+	}
+
+	if (event->type == PTD_PRESS || event->type == PTD_RELEASE) {
+		pevent.pos_id = 0;
+		pevent.type = (event->type == PTD_PRESS) ?
+		    POS_PRESS : POS_RELEASE;
+		pevent.btn_num = event->btn_num;
+		pevent.hpos = seat->pntpos.x;
+		pevent.vpos = seat->pntpos.y;
+
+		rc = ds_seat_post_pos_event(seat, &pevent);
+		if (rc != EOK)
+			return rc;
 	}
 
 	if (event->type == PTD_MOVE) {
 		printf("PTD_MOVE\n");
+
 		gfx_coord2_add(&seat->pntpos, &event->dmove, &npos);
 		if (npos.x < 0)
 			npos.x = 0;
@@ -252,8 +270,52 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		printf("clear pointer\n");
 		(void) ds_seat_draw_pointer(seat, false);
 		seat->pntpos = npos;
+
+		pevent.pos_id = 0;
+		pevent.type = POS_UPDATE;
+		pevent.btn_num = 0;
+		pevent.hpos = seat->pntpos.x;
+		pevent.vpos = seat->pntpos.y;
+
+		rc = ds_seat_post_pos_event(seat, &pevent);
+		if (rc != EOK)
+			return rc;
+
 		printf("draw pointer\n");
 		(void) ds_seat_draw_pointer(seat, true);
+	}
+
+	return EOK;
+}
+
+/** Post position event to seat.
+ *
+ * Deliver event to relevant windows.
+ *
+ * @param seat Seat
+ * @param event Position event
+ */
+errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
+{
+	ds_window_t *wnd;
+	errno_t rc;
+
+	printf("ds_seat_post_pos_event\n");
+
+	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
+	if (wnd != NULL) {
+		printf("send event to window at pointer position\n");
+		rc = ds_window_post_pos_event(wnd, event);
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (seat->focus != wnd) {
+		printf("send event to focused window\n");
+
+		rc = ds_window_post_pos_event(seat->focus, event);
+		if (rc != EOK)
+			return rc;
 	}
 
 	return EOK;

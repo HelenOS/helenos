@@ -43,6 +43,14 @@
 
 typedef sysarg_t ds_wnd_id_t;
 
+/** Window state */
+typedef enum {
+	/** Idle */
+	dsw_idle,
+	/** Moving by mouse drag */
+	dsw_moving
+} ds_window_state_t;
+
 /** Display server window */
 typedef struct ds_window {
 	/** Parent client */
@@ -61,6 +69,11 @@ typedef struct ds_window {
 	ds_wnd_id_t id;
 	/** Graphic context */
 	gfx_context_t *gc;
+
+	/** State */
+	ds_window_state_t state;
+	/** Original position before started to move the window */
+	gfx_coord2_t orig_pos;
 } ds_window_t;
 
 /** Window event queue entry */

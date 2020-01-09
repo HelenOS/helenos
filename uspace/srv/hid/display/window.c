@@ -269,5 +269,114 @@ gfx_context_t *ds_window_get_ctx(ds_window_t *wnd)
 	return wnd->gc;
 }
 
+/** Start moving a window by mouse drag.
+ *
+ * @param wnd Window
+ * @param event Button press event
+ */
+static void ds_window_start_move(ds_window_t *wnd, pos_event_t *event)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_start_move (%d, %d)",
+	    (int) event->hpos, (int) event->vpos);
+
+	assert(wnd->state == dsw_idle);
+
+	wnd->orig_pos.x = event->hpos;
+	wnd->orig_pos.y = event->vpos;
+	wnd->state = dsw_moving;
+}
+
+/** Finish moving a window by mouse drag.
+ *
+ * @param wnd Window
+ * @param event Button release event
+ */
+static void ds_window_finish_move(ds_window_t *wnd, pos_event_t *event)
+{
+	gfx_coord2_t pos;
+	gfx_coord2_t dmove;
+	gfx_coord2_t nwpos;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_finish_move (%d, %d)",
+	    (int) event->hpos, (int) event->vpos);
+
+	assert(wnd->state == dsw_moving);
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+	gfx_coord2_subtract(&pos, &wnd->orig_pos, &dmove);
+
+	gfx_coord2_add(&wnd->dpos, &dmove, &nwpos);
+	wnd->dpos = nwpos;
+	wnd->state = dsw_idle;
+}
+
+/** Update window position when moving by mouse drag.
+ *
+ * @param wnd Window
+ * @param event Position update event
+ */
+static void ds_window_update_move(ds_window_t *wnd, pos_event_t *event)
+{
+	gfx_coord2_t pos;
+	gfx_coord2_t dmove;
+	gfx_coord2_t nwpos;
+	gfx_rect_t drect;
+	gfx_color_t *color;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_move (%d, %d)",
+	    (int) event->hpos, (int) event->vpos);
+
+	assert(wnd->state == dsw_moving);
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+	gfx_coord2_subtract(&pos, &wnd->orig_pos, &dmove);
+
+	gfx_coord2_add(&wnd->dpos, &dmove, &nwpos);
+	gfx_rect_translate(&nwpos, &wnd->rect, &drect);
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		return;
+
+	gc = ds_display_get_gc(wnd->display); // XXX
+	if (gc != NULL) {
+		gfx_set_color(ds_display_get_gc(wnd->display), color);
+		gfx_fill_rect(ds_display_get_gc(wnd->display), &drect);
+	}
+
+	gfx_color_delete(color);
+}
+
+/** Post position event to window.
+ *
+ * @param wnd Window
+ * @param event Position event
+ */
+errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	    "ds_window_post_pos_event type=%d pos=%d,%d\n", event->type,
+	    (int) event->hpos, (int) event->vpos);
+
+	if (event->type == POS_PRESS) {
+		if (wnd->state == dsw_idle)
+			ds_window_start_move(wnd, event);
+	}
+
+	if (event->type == POS_RELEASE) {
+		if (wnd->state == dsw_moving)
+			ds_window_finish_move(wnd, event);
+	}
+
+	if (event->type == POS_UPDATE) {
+		if (wnd->state == dsw_moving)
+			ds_window_update_move(wnd, event);
+	}
+
+	return EOK;
+}
+
 /** @}
  */

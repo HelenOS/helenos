@@ -163,7 +163,7 @@ PCUT_TEST(client_first_next_window)
 }
 
 /** Test ds_client_get_event(), ds_client_post_kbd_event(). */
-PCUT_TEST(display_get_post_kbd_event)
+PCUT_TEST(client_get_post_kbd_event)
 {
 	ds_display_t *disp;
 	ds_client_t *client;

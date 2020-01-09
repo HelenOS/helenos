@@ -46,7 +46,7 @@
 
 /** Graphics context ops */
 typedef struct {
-	/** Set drawing collor */
+	/** Set drawing color */
 	errno_t (*set_color)(void *, gfx_color_t *);
 	/** Fill rectangle using the current drawing color */
 	errno_t (*fill_rect)(void *, gfx_rect_t *);
