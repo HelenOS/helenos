@@ -97,20 +97,6 @@ static errno_t unit_svc_start(unit_t *unit)
 
 	unit->state = STATE_STARTING;
 
-	/*
-	 * Workaround to see log output even after devman starts (and overrides
-	 * kernel's frame buffer.
-	 * TODO move to task retval/exposee created handler
-	 */
-	if (str_cmp(unit->name, "devman.svc") == 0) {
-		fibril_usleep(100000);
-		if (console_kcon()) {
-			sysman_log(LVL_DEBUG2, "%s: Kconsole grabbed.", __func__);
-		} else {
-			sysman_log(LVL_DEBUG2, "%s: no kconsole.", __func__);
-		}
-	}
-
 	return EOK;
 }
 
