@@ -131,10 +131,19 @@ async_sess_t *taskman_get_session(void)
 errno_t taskman_intro_loader(void)
 {
 	async_exch_t *exch = taskman_exchange_begin();
-	errno_t rc = async_connect_to_me(exch, INTERFACE_ANY, TASKMAN_LOADER_CALLBACK, 0);
+	aid_t req = async_send_0(exch, TASKMAN_I_AM_LOADER, NULL);
+
+	errno_t rc = async_connect_to_me(exch, INTERFACE_ANY, 0, 0);
 	taskman_exchange_end(exch);
 
-	return rc;
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	errno_t retval;
+	async_wait_for(req, &retval);
+	return retval;
 }
 
 /** Tell taskman we are his NS

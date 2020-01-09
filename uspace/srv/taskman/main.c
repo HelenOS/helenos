@@ -221,7 +221,7 @@ static void task_fault_event(ipc_call_t *icall, void *arg)
 	task_failed(id);
 }
 
-static void loader_callback(ipc_call_t *icall)
+static void taskman_i_am_loader(ipc_call_t *icall)
 {
 	DPRINTF("%s:%d from %" PRIu64 "\n", __func__, __LINE__, icall->task_id);
 	// TODO check that loader is expected, would probably discard prodcons
@@ -235,13 +235,7 @@ static void loader_callback(ipc_call_t *icall)
 	}
 
 	/* Create callback connection */
-	sess_ref->sess = async_callback_receive_start(EXCHANGE_ATOMIC, icall);
-	if (sess_ref->sess == NULL) {
-		async_answer_0(icall, EINVAL);
-		return;
-	}
-
-	async_answer_0(icall, EOK);
+	sess_ref->sess = async_callback_receive(EXCHANGE_ATOMIC);
 
 	/* Notify spawners */
 	link_initialize(&sess_ref->link);
@@ -250,41 +244,42 @@ static void loader_callback(ipc_call_t *icall)
 
 static void taskman_connection(ipc_call_t *icall, void *arg)
 {
-	/* handle new incoming calls */
-	if (ipc_get_imethod(icall) == IPC_M_CONNECT_ME_TO) {
-		switch (ipc_get_arg2(icall)) {
-		case TASKMAN_NEW_TASK:
-			taskman_new_task(icall);
-			break;
-		case TASKMAN_CONNECT_TO_NS:
-			connect_to_ns(icall);
-			return;
-		case TASKMAN_CONNECT_TO_LOADER:
-			connect_to_loader(icall);
-			return;
-		default:
-			DPRINTF("%s:%d from %" PRIu64 "/%" SCNuPTR "/%" SCNuPTR "/%" SCNuPTR "\n",
-			    __func__, __LINE__,
-			    icall->task_id, ipc_get_imethod(icall),
-			    ipc_get_arg1(icall), ipc_get_arg2(icall));
-			async_answer_0(icall, ENOTSUP);
-			return;
-		}
+	/* handle new incoming IPC_M_CONNECT_ME_TO calls */
+	switch (ipc_get_arg2(icall)) {
+	case TASKMAN_NEW_TASK:
+		taskman_new_task(icall);
+		break;
+	case TASKMAN_CONNECT_TO_NS:
+		connect_to_ns(icall);
+		break;
+	case TASKMAN_CONNECT_TO_LOADER:
+		connect_to_loader(icall);
+		break;
+	default:
+		DPRINTF("%s:%d from %" PRIu64 "/%" SCNuPTR "/%" SCNuPTR "/%" SCNuPTR "\n",
+		    __func__, __LINE__,
+		    icall->task_id, ipc_get_imethod(icall),
+		    ipc_get_arg1(icall), ipc_get_arg2(icall));
+		async_answer_0(icall, ENOTSUP);
+		return;
 	}
 
 	/* handle accepted calls */
 	while (true) {
 		ipc_call_t call;
 
-		if (!async_get_call(&call)) {
+		if (!async_get_call(&call) || !ipc_get_imethod(&call)) {
 			/* Client disconnected */
 			DPRINTF("%s:%d client disconnected\n", __func__, __LINE__);
-			return;
+			break;
 		}
 
 		switch (ipc_get_imethod(&call)) {
 		case TASKMAN_I_AM_NS:
 			taskman_i_am_ns(&call);
+			break;
+		case TASKMAN_I_AM_LOADER:
+			taskman_i_am_loader(&call);
 			break;
 		case TASKMAN_WAIT:
 			taskman_ctl_wait(&call);
@@ -295,14 +290,6 @@ static void taskman_connection(ipc_call_t *icall, void *arg)
 		case TASKMAN_EVENT_CALLBACK:
 			taskman_ctl_ev_callback(&call);
 			break;
-		case IPC_M_CONNECT_TO_ME:
-			if (ipc_get_arg2(&call) == TASKMAN_LOADER_CALLBACK) {
-				loader_callback(&call);
-				break;
-			}
-			goto FALLTHROUGH_DEFAULT;
-			break;
-		FALLTHROUGH_DEFAULT:
 		default:
 			DPRINTF("%s:%d from %" PRIu64 "/%" SCNuPTR "/%" SCNuPTR "/%" SCNuPTR "\n",
 			    __func__, __LINE__,
