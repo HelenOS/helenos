@@ -68,7 +68,7 @@ typedef struct {
 	int retval;
 	/* Link to listeners list. */
 	link_t listeners;
-	/* Session for notifications to task. */
+	/* Session for sending event notifications to registrar. */
 	async_sess_t *sess;
 } task_t;
 

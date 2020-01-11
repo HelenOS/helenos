@@ -131,10 +131,9 @@ int main(int argc, char **argv)
 		printf("%s: not accepted by taskman (%i)\n", NAME, rc);
 		return rc;
 	}
+
 	task_retval(0);
-
 	printf("%s: Accepting connections\n", NAME);
-
 	async_manager();
 
 	/* Not reached */

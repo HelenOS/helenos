@@ -75,7 +75,7 @@ static int app_launch(const char *app)
 
 	int retval;
 	rc = task_wait(&wait, NULL, &retval);
-	if ((rc != EOK)) {
+	if (rc != EOK) {
 		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
 		    app, str_error(rc));
 		return -1;

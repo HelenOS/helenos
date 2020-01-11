@@ -50,9 +50,9 @@
 
 #include "private/libc.h"
 #include "private/async.h"
+#include "private/malloc.h"
 #include "private/io.h"
 #include "private/fibril.h"
-#include "private/malloc.h"
 #include "private/task.h"
 #include "private/taskman.h"
 

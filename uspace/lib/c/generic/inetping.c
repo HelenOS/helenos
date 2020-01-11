@@ -59,7 +59,6 @@ errno_t inetping_init(inetping_ev_ops_t *ev_ops)
 
 	inetping_sess = loc_service_connect(inetping_svc, INTERFACE_INETPING,
 	    IPC_AUTOSTART);
-
 	if (inetping_sess == NULL)
 		return ENOENT;
 

@@ -389,9 +389,10 @@ sysarg_t async_get_label(void)
  *                    label of the connected phone and request_label of incoming
  *                    calls routed through that phone.
  * @param in_task_id  Identification of the incoming connection.
- * @param call        Call data of the opening call. If call is NULL, it's
- *                    either a callback connection that was opened by
- *                    accepting the IPC_M_CONNECT_TO_ME call.
+ * @param call        Call data of the opening call. If call is NULL, the
+ *                    connection was opened by accepting the
+ *                    IPC_M_CONNECT_TO_ME call and this function is called
+ *                    directly by the server.
  * @param handler     Connection handler.
  * @param data        Client argument to pass to the connection handler.
  *
@@ -966,6 +967,7 @@ static void handle_call(ipc_call_t *call)
 		return;
 
 	// TODO: Log the error.
+
 	if (call->cap_handle != CAP_NIL)
 		/* Unknown call from unknown phone - hang it up */
 		ipc_answer_0(call->cap_handle, EHANGUP);
@@ -1739,8 +1741,7 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 
 	async_sess_t *sess = create_session(phandle, mgmt, 0, 0, 0);
 	if (sess == NULL) {
-		ipc_hangup(phandle);
-		async_answer_0(&call, errno);
+		async_answer_0(&call, ENOMEM);
 	} else {
 		/* Acknowledge the connected phone */
 		async_answer_0(&call, EOK);

@@ -38,7 +38,7 @@
  * handshake with loader so that apparent caller can communicate with the
  * loader.
  *
- * The apparent caller uses his phone to send the pathname and various other
+ * The apparent caller uses its phone to send the pathname and various other
  * information to the loader. This is normally done by the C library
  * and completely hidden from applications.
  */
@@ -48,17 +48,17 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <ipc/services.h>
-#include <as.h>
-#include <async.h>
-#include <elf/elf.h>
-#include <elf/elf_load.h>
+#include <ipc/loader.h>
+#include <ns.h>
+#include <loader/pcb.h>
 #include <entry_point.h>
 #include <errno.h>
-#include <fibril_synch.h>
-#include <ipc/loader.h>
-#include <loader/pcb.h>
-#include <ns.h>
+#include <async.h>
 #include <str.h>
+#include <as.h>
+#include <elf/elf.h>
+#include <elf/elf_load.h>
+#include <fibril_synch.h>
 #include <task.h>
 #include <taskman.h>
 #include <vfs/vfs.h>

@@ -35,10 +35,9 @@
 #include <errno.h>
 #include <io/log.h>
 #include <vfs/vfs.h>
-#include <dirent.h>
 #include <loc.h>
-#include <stdio.h>
 #include <str_error.h>
+#include <stdio.h>
 #include <sysman/ctl.h>
 #include <task.h>
 

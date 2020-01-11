@@ -29,7 +29,6 @@
 
 USPACE_PREFIX = ../..
 LIBS = sysman
-EXTRA_CFLAGS += -I$(USPACE_PREFIX)/lib/sysman/include
 BINARY = vfs
 STATIC_NEEDED = y
 

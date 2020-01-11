@@ -32,18 +32,18 @@
 /** @file
  */
 
-#include <async.h>
-#include <errno.h>
 #include <ipc/loader.h>
 #include <ipc/services.h>
 #include <ipc/taskman.h>
-#include <libc.h>
-#include <loader/loader.h>
 #include <ns.h>
-#include <stdlib.h>
-#include <str.h>
 #include <task.h>
+#include <str.h>
+#include <libc.h>
+#include <stdlib.h>
+#include <async.h>
+#include <errno.h>
 #include <vfs/vfs.h>
+#include <loader/loader.h>
 
 #include "private/loader.h"
 #include "private/taskman.h"

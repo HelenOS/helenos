@@ -625,7 +625,6 @@ window_t *window_open(const char *winreg, const void *data,
 
 	async_sess_t *reg_sess =
 	    loc_service_connect(reg_dsid, INTERFACE_COMPOSITOR, ipc_flags);
-
 	if (reg_sess == NULL) {
 		free(win);
 		return NULL;
@@ -641,14 +640,12 @@ window_t *window_open(const char *winreg, const void *data,
 	}
 
 	win->osess = loc_service_connect(out_dsid, INTERFACE_COMPOSITOR, ipc_flags);
-
 	if (win->osess == NULL) {
 		free(win);
 		return NULL;
 	}
 
 	win->isess = loc_service_connect(in_dsid, INTERFACE_COMPOSITOR, ipc_flags);
-
 	if (win->isess == NULL) {
 		async_hangup(win->osess);
 		free(win);

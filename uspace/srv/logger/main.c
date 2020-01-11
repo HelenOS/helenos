@@ -82,7 +82,6 @@ int main(int argc, char *argv[])
 	}
 
 	printf("%s: Accepting connections\n", NAME);
-
 	task_retval(EOK);
 	async_manager();
 

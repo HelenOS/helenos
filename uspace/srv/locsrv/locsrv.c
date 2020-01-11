@@ -35,19 +35,19 @@
 /** @file
  */
 
-#include <assert.h>
-#include <async.h>
-#include <errno.h>
-#include <ipc/loc.h>
 #include <ipc/services.h>
+#include <ns.h>
+#include <async.h>
+#include <stdio.h>
+#include <errno.h>
+#include <stdbool.h>
 #include <fibril_synch.h>
 #include <macros.h>
-#include <ns.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
+#include <ipc/loc.h>
+#include <assert.h>
 #include <sysman/broker.h>
 #include <sysman/ctl.h>
 

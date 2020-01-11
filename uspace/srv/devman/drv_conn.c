@@ -35,19 +35,19 @@
  */
 
 #include <assert.h>
-#include <async.h>
-#include <errno.h>
-#include <fibril_synch.h>
-#include <io/log.h>
-#include <ipc/devman.h>
 #include <ipc/services.h>
-#include <loc.h>
 #include <ns.h>
-#include <stdbool.h>
+#include <async.h>
 #include <stdio.h>
+#include <errno.h>
+#include <str_error.h>
+#include <stdbool.h>
+#include <fibril_synch.h>
 #include <stdlib.h>
 #include <str.h>
-#include <str_error.h>
+#include <io/log.h>
+#include <ipc/devman.h>
+#include <loc.h>
 #include <sysman/broker.h>
 
 #include "client_conn.h"

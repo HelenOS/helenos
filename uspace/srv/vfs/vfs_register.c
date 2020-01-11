@@ -35,20 +35,20 @@
  * @brief
  */
 
-#include <adt/list.h>
-#include <as.h>
-#include <assert.h>
+#include <ipc/services.h>
 #include <async.h>
-#include <stdatomic.h>
-#include <ctype.h>
-#include <errno.h>
 #include <fibril.h>
 #include <fibril_synch.h>
-#include <ipc/services.h>
-#include <stdbool.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <ctype.h>
+#include <stdbool.h>
+#include <adt/list.h>
+#include <as.h>
+#include <assert.h>
+#include <stdatomic.h>
 #include <sysman/broker.h>
 #include "vfs.h"
 

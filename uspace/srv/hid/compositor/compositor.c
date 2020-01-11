@@ -2266,6 +2266,7 @@ static void discover_viewports(void)
 
 	if (!list_empty(&viewport_list))
 		input_activate(input);
+
 ret:
 	fibril_mutex_unlock(&discovery_mtx);
 }

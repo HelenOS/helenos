@@ -34,7 +34,11 @@
  */
 /** @file
  */
-
+#include <task.h>
+#include <loader/loader.h>
+#include <stdarg.h>
+#include <str.h>
+#include <macros.h>
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
@@ -42,12 +46,6 @@
 #include <stdlib.h>
 #include <ipc/taskman.h>
 #include <libc.h>
-#include <loader/loader.h>
-#include <macros.h>
-#include <malloc.h>
-#include <stdarg.h>
-#include <str.h>
-#include <task.h>
 #include <taskman.h>
 #include <vfs/vfs.h>
 
@@ -423,7 +421,6 @@ errno_t task_wait_task_id(task_id_t id, int flags, task_exit_t *texit, int *retv
 	task_wait_t wait;
 	wait.flags = flags;
 	errno_t rc = task_setup_wait(id, &wait);
-
 	if (rc != EOK)
 		return rc;
 

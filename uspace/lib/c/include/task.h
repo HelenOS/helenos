@@ -67,10 +67,9 @@ extern errno_t task_spawn(task_id_t *, task_wait_t *, const char *path, int,
 extern errno_t task_spawnl(task_id_t *, task_wait_t *, const char *path, ...)
     __attribute__((sentinel));
 
+extern void task_cancel_wait(task_wait_t *);
 extern errno_t task_wait(task_wait_t *, task_exit_t *, int *);
 extern errno_t task_wait_task_id(task_id_t, int, task_exit_t *, int *);
-
-extern void task_cancel_wait(task_wait_t *);
 
 extern errno_t task_retval(int);
 

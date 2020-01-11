@@ -131,8 +131,6 @@ extern void *async_get_client_data(void);
 extern void *async_get_client_data_by_id(task_id_t);
 extern void async_put_client_data_by_id(task_id_t);
 
-extern void async_set_implicit_connection(async_port_handler_t);
-
 extern errno_t async_create_port(iface_t, async_port_handler_t, void *,
     port_id_t *);
 extern void async_set_fallback_port_handler(async_port_handler_t, void *);
