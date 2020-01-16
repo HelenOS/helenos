@@ -40,6 +40,7 @@
 #include <display/event.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
+#include <io/pixelmap.h>
 
 typedef sysarg_t ds_wnd_id_t;
 
@@ -69,6 +70,12 @@ typedef struct ds_window {
 	ds_wnd_id_t id;
 	/** Graphic context */
 	gfx_context_t *gc;
+	/** Bitmap in the display device */
+	gfx_bitmap_t *bitmap;
+	/** Pixel map for accessing the window bitmap */
+	pixelmap_t pixelmap;
+	/** Current drawing color */
+	pixel_t color;
 
 	/** State */
 	ds_window_state_t state;
