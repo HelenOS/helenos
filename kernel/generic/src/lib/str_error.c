@@ -52,7 +52,7 @@ static const char *err_name[] = {
 };
 
 #undef __errno_entry
-#define __errno_entry(name, num, desc) "[" #name "]" desc,
+#define __errno_entry(name, num, desc) "[" #name "] " desc,
 
 static const char *err_desc[] = {
 #include <abi/errno.in>
