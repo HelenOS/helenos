@@ -82,12 +82,16 @@ static pixel_t color_header_unfocus_surface = PIXEL(255, 12, 57, 92);
 static pixel_t color_caption_focus = PIXEL(255, 255, 255, 255);
 static pixel_t color_caption_unfocus = PIXEL(255, 207, 207, 207);
 
+static void window_focus_event(void *);
 static void window_kbd_event(void *, kbd_event_t *);
 static void window_pos_event(void *, pos_event_t *);
+static void window_unfocus_event(void *);
 
 static display_wnd_cb_t window_cb = {
+	.focus_event = window_focus_event,
 	.kbd_event = window_kbd_event,
-	.pos_event = window_pos_event
+	.pos_event = window_pos_event,
+	.unfocus_event = window_unfocus_event
 };
 
 static void paint_internal(widget_t *widget)
@@ -586,10 +590,6 @@ static errno_t event_loop(void *arg)
 			deliver_keyboard_event(win, event->data.kbd);
 			break;
 		case ET_POSITION_EVENT:
-			if (!win->is_focused) {
-				win->is_focused = true;
-				handle_refresh(win);
-			}
 			deliver_position_event(win, event->data.pos);
 			break;
 		case ET_SIGNAL_EVENT:
@@ -765,6 +765,20 @@ void window_close(window_t *win)
 	//win_close_request(win->osess);
 }
 
+static void window_focus_event(void *arg)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_WINDOW_FOCUS;
+	prodcons_produce(&win->events, &event->link);
+}
+
 static void window_kbd_event(void *arg, kbd_event_t *kevent)
 {
 	window_t *win = (window_t *) arg;
@@ -792,6 +806,20 @@ static void window_pos_event(void *arg, pos_event_t *pevent)
 	link_initialize(&event->link);
 	event->type = ET_POSITION_EVENT;
 	event->data.pos = *pevent;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_unfocus_event(void *arg)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_WINDOW_UNFOCUS;
 	prodcons_produce(&win->events, &event->link);
 }
 

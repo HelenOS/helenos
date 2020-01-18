@@ -82,7 +82,13 @@ void ds_seat_destroy(ds_seat_t *seat)
  */
 void ds_seat_set_focus(ds_seat_t *seat, ds_window_t *wnd)
 {
+	if (seat->focus != NULL)
+		ds_window_post_unfocus_event(seat->focus);
+
 	seat->focus = wnd;
+
+	if (wnd != NULL)
+		ds_window_post_focus_event(wnd);
 }
 
 /** Evacuate focus from window.

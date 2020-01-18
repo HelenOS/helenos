@@ -57,8 +57,14 @@ typedef struct {
 
 /** Display window callbacks */
 typedef struct {
+	/** Focus event */
+	void (*focus_event)(void *);
+	/** Keyboard event callback */
 	void (*kbd_event)(void *, kbd_event_t *);
+	/** Position event callback */
 	void (*pos_event)(void *, pos_event_t *);
+	/** Unfocus event */
+	void (*unfocus_event)(void *);
 } display_wnd_cb_t;
 
 /** Display window */

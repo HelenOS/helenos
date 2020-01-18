@@ -517,5 +517,27 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 	return ds_client_post_pos_event(wnd->client, wnd, &tevent);
 }
 
+/** Post focus event to window.
+ *
+ * @param wnd Window
+ */
+errno_t ds_window_post_focus_event(ds_window_t *wnd)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_focus_event\n");
+
+	return ds_client_post_focus_event(wnd->client, wnd);
+}
+
+/** Post unfocus event to window.
+ *
+ * @param wnd Window
+ */
+errno_t ds_window_post_unfocus_event(ds_window_t *wnd)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_unfocus_event\n");
+
+	return ds_client_post_unfocus_event(wnd->client, wnd);
+}
+
 /** @}
  */

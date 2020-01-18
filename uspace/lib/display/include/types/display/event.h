@@ -38,15 +38,26 @@
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 
+/** Display window event type */
 typedef enum {
+	/** Window gained focus */
+	wev_focus,
+	/** Keyboard event */
 	wev_kbd,
-	wev_pos
+	/** Position event */
+	wev_pos,
+	/** Window lost focus */
+	wev_unfocus
 } display_wnd_ev_type_t;
 
+/** Display window event */
 typedef struct {
+	/** Event type */
 	display_wnd_ev_type_t etype;
 	union {
+		/** Keyboard event data */
 		kbd_event_t kbd;
+		/** Position event data */
 		pos_event_t pos;
 	} ev;
 } display_wnd_ev_t;

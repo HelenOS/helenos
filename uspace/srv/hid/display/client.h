@@ -52,10 +52,12 @@ extern ds_window_t *ds_client_first_window(ds_client_t *);
 extern ds_window_t *ds_client_next_window(ds_window_t *);
 extern errno_t ds_client_get_event(ds_client_t *, ds_window_t **,
     display_wnd_ev_t *);
+extern errno_t ds_client_post_focus_event(ds_client_t *, ds_window_t *);
 extern errno_t ds_client_post_kbd_event(ds_client_t *, ds_window_t *,
     kbd_event_t *);
 extern errno_t ds_client_post_pos_event(ds_client_t *, ds_window_t *,
     pos_event_t *);
+extern errno_t ds_client_post_unfocus_event(ds_client_t *, ds_window_t *);
 
 #endif
 

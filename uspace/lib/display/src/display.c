@@ -295,6 +295,11 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 			break;
 
 		switch (event.etype) {
+		case wev_focus:
+			if (window->cb != NULL && window->cb->focus_event != NULL) {
+				window->cb->focus_event(window->cb_arg);
+			}
+			break;
 		case wev_kbd:
 			if (window->cb != NULL && window->cb->kbd_event != NULL) {
 				window->cb->kbd_event(window->cb_arg,
@@ -305,6 +310,11 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 			if (window->cb != NULL && window->cb->pos_event != NULL) {
 				window->cb->pos_event(window->cb_arg,
 				    &event.ev.pos);
+			}
+			break;
+		case wev_unfocus:
+			if (window->cb != NULL && window->cb->unfocus_event != NULL) {
+				window->cb->unfocus_event(window->cb_arg);
 			}
 			break;
 		}
