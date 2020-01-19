@@ -138,14 +138,13 @@ errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
  * @param seat Seat
  * @param len Cross length
  * @param w Cross extra width
- * @param br Brightness (0 to 65535)
+ * @param color Color
  *
  * @return EOK on success or an error code
  */
 static errno_t ds_seat_draw_cross(ds_seat_t *seat, gfx_coord_t len,
-    gfx_coord_t w, uint16_t br)
+    gfx_coord_t w, gfx_color_t *color)
 {
-	gfx_color_t *color = NULL;
 	gfx_context_t *gc;
 	gfx_rect_t rect, r0;
 	errno_t rc;
@@ -153,10 +152,6 @@ static errno_t ds_seat_draw_cross(ds_seat_t *seat, gfx_coord_t len,
 	gc = ds_display_get_gc(seat->display);
 	if (gc == NULL)
 		return EOK;
-
-	rc = gfx_color_new_rgb_i16(br, br, br, &color);
-	if (rc != EOK)
-		goto error;
 
 	rc = gfx_set_color(gc, color);
 	if (rc != EOK)
@@ -182,11 +177,8 @@ static errno_t ds_seat_draw_cross(ds_seat_t *seat, gfx_coord_t len,
 	if (rc != EOK)
 		goto error;
 
-	gfx_color_delete(color);
 	return EOK;
 error:
-	if (color != NULL)
-		gfx_color_delete(color);
 	return rc;
 }
 
@@ -200,16 +192,32 @@ error:
 static errno_t ds_seat_draw_pointer(ds_seat_t *seat, bool shown)
 {
 	errno_t rc;
+	gfx_color_t *black = NULL;
+	gfx_color_t *white;
 
-	rc = ds_seat_draw_cross(seat, 8, 1, 0);
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &black);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &white);
+	if (rc != EOK)
+		goto error;
+
+	rc = ds_seat_draw_cross(seat, 8, 1, shown ? black :
+	    seat->display->bg_color);
 	if (rc != EOK)
 		return rc;
 
-	rc = ds_seat_draw_cross(seat, 8, 0, shown ? 65535 : 0);
+	rc = ds_seat_draw_cross(seat, 8, 0, shown ? white :
+	    seat->display->bg_color);
 	if (rc != EOK)
 		return rc;
 
 	return EOK;
+error:
+	if (black != NULL)
+		gfx_color_delete(black);
+	return rc;
 }
 
 /** Post pointing device event to the seat

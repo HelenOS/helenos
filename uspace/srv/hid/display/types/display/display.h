@@ -37,6 +37,7 @@
 #define TYPES_DISPLAY_DISPLAY_H
 
 #include <adt/list.h>
+#include <gfx/color.h>
 #include <io/input.h>
 #include "window.h"
 
@@ -64,6 +65,9 @@ typedef struct ds_display {
 
 	/** Display devices (of ds_ddev_t) */
 	list_t ddevs;
+
+	/** Background color */
+	gfx_color_t *bg_color;
 } ds_display_t;
 
 #endif

@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <gfx/context.h>
+#include <gfx/coord.h>
 #include <io/kbd_event.h>
 #include "types/display/client.h"
 #include "types/display/ddev.h"
@@ -68,6 +69,7 @@ extern void ds_display_remove_ddev(ds_ddev_t *);
 extern ds_ddev_t *ds_display_first_ddev(ds_display_t *);
 extern ds_ddev_t *ds_display_next_ddev(ds_ddev_t *);
 extern gfx_context_t *ds_display_get_gc(ds_display_t *);
+extern errno_t ds_display_paint_bg(ds_display_t *, gfx_rect_t *);
 
 #endif
 

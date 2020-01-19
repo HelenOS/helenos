@@ -93,6 +93,10 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 
 	ds_display_add_ddev(display, ddev);
 
+	rc = ds_display_paint_bg(display, NULL);
+	if (rc != EOK)
+		return rc;
+
 	*rddev = ddev;
 	return EOK;
 }

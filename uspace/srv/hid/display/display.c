@@ -35,6 +35,7 @@
 
 #include <errno.h>
 #include <gfx/context.h>
+#include <gfx/render.h>
 #include <io/log.h>
 #include <stdlib.h>
 #include "client.h"
@@ -51,10 +52,17 @@
 errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 {
 	ds_display_t *disp;
+	errno_t rc;
 
 	disp = calloc(1, sizeof(ds_display_t));
 	if (disp == NULL)
 		return ENOMEM;
+
+	rc = gfx_color_new_rgb_i16(0x8000, 0xc800, 0xffff, &disp->bg_color);
+	if (rc != EOK) {
+		free(disp);
+		return ENOMEM;
+	}
 
 	list_initialize(&disp->clients);
 	disp->next_wnd_id = 1;
@@ -73,6 +81,7 @@ void ds_display_destroy(ds_display_t *disp)
 {
 	assert(list_empty(&disp->clients));
 	assert(list_empty(&disp->seats));
+	gfx_color_delete(disp->bg_color);
 	free(disp);
 }
 
@@ -398,6 +407,37 @@ gfx_context_t *ds_display_get_gc(ds_display_t *display)
 		return NULL;
 
 	return ddev->gc;
+}
+
+/** Paint display background.
+ *
+ * @param display Display
+ * @param rect Bounding rectangle or @c NULL to repaint entire display
+ */
+errno_t ds_display_paint_bg(ds_display_t *disp, gfx_rect_t *rect)
+{
+	gfx_rect_t dsrect;
+	gfx_rect_t crect;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	dsrect.p0.x = 0;
+	dsrect.p0.y = 0;
+	dsrect.p1.x = 1024;
+	dsrect.p1.y = 768;
+
+	if (rect != NULL)
+		gfx_rect_clip(&dsrect, rect, &crect);
+	else
+		crect = dsrect;
+
+	gc = ds_display_get_gc(disp); // XXX
+
+	rc = gfx_set_color(gc, disp->bg_color);
+	if (rc != EOK)
+		return rc;
+
+	return gfx_fill_rect(gc, &crect);
 }
 
 /** @}

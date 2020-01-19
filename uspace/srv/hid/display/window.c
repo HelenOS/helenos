@@ -419,6 +419,14 @@ static void ds_window_update_move(ds_window_t *wnd, pos_event_t *event)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_move (%d, %d)",
 	    (int) event->hpos, (int) event->vpos);
 
+	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
+
+	gc = ds_display_get_gc(wnd->display); // XXX
+	if (gc != NULL) {
+		gfx_set_color(gc, wnd->display->bg_color);
+		gfx_fill_rect(gc, &drect);
+	}
+
 	assert(wnd->state == dsw_moving);
 	pos.x = event->hpos;
 	pos.y = event->vpos;
@@ -426,6 +434,9 @@ static void ds_window_update_move(ds_window_t *wnd, pos_event_t *event)
 
 	gfx_coord2_add(&wnd->dpos, &dmove, &nwpos);
 	gfx_rect_translate(&nwpos, &wnd->rect, &drect);
+
+	wnd->orig_pos = pos;
+	wnd->dpos = nwpos;
 
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	if (rc != EOK)
