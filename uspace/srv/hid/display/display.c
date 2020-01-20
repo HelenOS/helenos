@@ -235,6 +235,21 @@ ds_window_t *ds_display_first_window(ds_display_t *display)
 	return list_get_instance(link, ds_window_t, ldwindows);
 }
 
+/** Get last window in display.
+ *
+ * @param display Display
+ * @return Last window or @c NULL if there is none
+ */
+ds_window_t *ds_display_last_window(ds_display_t *display)
+{
+	link_t *link = list_last(&display->windows);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_window_t, ldwindows);
+}
+
 /** Get next window in client.
  *
  * @param wnd Current window
@@ -243,6 +258,21 @@ ds_window_t *ds_display_first_window(ds_display_t *display)
 ds_window_t *ds_display_next_window(ds_window_t *wnd)
 {
 	link_t *link = list_next(&wnd->ldwindows, &wnd->display->windows);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_window_t, ldwindows);
+}
+
+/** Get previous window in client.
+ *
+ * @param wnd Current window
+ * @return Previous window or @c NULL if there is none
+ */
+ds_window_t *ds_display_prev_window(ds_window_t *wnd)
+{
+	link_t *link = list_prev(&wnd->ldwindows, &wnd->display->windows);
 
 	if (link == NULL)
 		return NULL;
@@ -438,6 +468,34 @@ errno_t ds_display_paint_bg(ds_display_t *disp, gfx_rect_t *rect)
 		return rc;
 
 	return gfx_fill_rect(gc, &crect);
+}
+
+/** Paint display.
+ *
+ * @param display Display
+ * @param rect Bounding rectangle or @c NULL to repaint entire display
+ */
+errno_t ds_display_paint(ds_display_t *disp, gfx_rect_t *rect)
+{
+	errno_t rc;
+	ds_window_t *wnd;
+
+	/* Paint background */
+	rc = ds_display_paint_bg(disp, rect);
+	if (rc != EOK)
+		return rc;
+
+	/* Paint windows bottom to top */
+	wnd = ds_display_last_window(disp);
+	while (wnd != NULL) {
+		rc = ds_window_paint(wnd, rect);
+		if (rc != EOK)
+			return rc;
+
+		wnd = ds_display_prev_window(wnd);
+	}
+
+	return EOK;
 }
 
 /** @}

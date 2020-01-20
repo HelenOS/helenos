@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <io/pos_event.h>
 #include <types/gfx/context.h>
+#include <types/gfx/coord.h>
 #include <types/gfx/ops/context.h>
 #include "types/display/display.h"
 #include "types/display/window.h"
@@ -50,6 +51,7 @@ extern errno_t ds_window_create(ds_client_t *, display_wnd_params_t *,
     ds_window_t **);
 extern void ds_window_destroy(ds_window_t *);
 extern gfx_context_t *ds_window_get_ctx(ds_window_t *);
+extern errno_t ds_window_paint(ds_window_t *, gfx_rect_t *);
 extern errno_t ds_window_post_pos_event(ds_window_t *, pos_event_t *);
 
 #endif

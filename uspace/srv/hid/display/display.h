@@ -57,7 +57,9 @@ extern ds_window_t *ds_display_window_by_pos(ds_display_t *, gfx_coord2_t *);
 extern void ds_display_add_window(ds_display_t *, ds_window_t *);
 extern void ds_display_remove_window(ds_window_t *);
 extern ds_window_t *ds_display_first_window(ds_display_t *);
+extern ds_window_t *ds_display_last_window(ds_display_t *);
 extern ds_window_t *ds_display_next_window(ds_window_t *);
+extern ds_window_t *ds_display_prev_window(ds_window_t *);
 extern errno_t ds_display_post_kbd_event(ds_display_t *, kbd_event_t *);
 extern errno_t ds_display_post_ptd_event(ds_display_t *, ptd_event_t *);
 extern void ds_display_add_seat(ds_display_t *, ds_seat_t *);
@@ -70,6 +72,7 @@ extern ds_ddev_t *ds_display_first_ddev(ds_display_t *);
 extern ds_ddev_t *ds_display_next_ddev(ds_ddev_t *);
 extern gfx_context_t *ds_display_get_gc(ds_display_t *);
 extern errno_t ds_display_paint_bg(ds_display_t *, gfx_rect_t *);
+extern errno_t ds_display_paint(ds_display_t *, gfx_rect_t *);
 
 #endif
 

@@ -127,6 +127,15 @@ PCUT_TEST(display_find_window)
 	wnd = ds_display_next_window(wnd);
 	PCUT_ASSERT_NULL(wnd);
 
+	wnd = ds_display_last_window(disp);
+	PCUT_ASSERT_EQUALS(w1, wnd);
+
+	wnd = ds_display_prev_window(wnd);
+	PCUT_ASSERT_EQUALS(w0, wnd);
+
+	wnd = ds_display_prev_window(wnd);
+	PCUT_ASSERT_NULL(wnd);
+
 	wnd = ds_display_find_window(disp, w0->id);
 	PCUT_ASSERT_EQUALS(w0, wnd);
 

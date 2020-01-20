@@ -347,15 +347,34 @@ gfx_context_t *ds_window_get_ctx(ds_window_t *wnd)
 	return wnd->gc;
 }
 
-/** Repaint a window using its backing bitmap.
+/** Paint a window using its backing bitmap.
  *
- * @param wnd Window to repaint
+ * @param wnd Window to paint
+ * @param rect Display rectangle to paint to
  * @return EOK on success or an error code
  */
-static errno_t ds_window_repaint(ds_window_t *wnd)
+errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_start_repaint");
-	return gfx_bitmap_render(wnd->bitmap, NULL, &wnd->dpos);
+	gfx_rect_t srect;
+	gfx_rect_t *brect;
+	gfx_rect_t crect;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_paint");
+
+	if (rect != NULL) {
+		gfx_rect_rtranslate(&wnd->dpos, rect, &srect);
+
+		/* Determine if we have anything to do */
+		gfx_rect_clip(&srect, rect, &crect);
+		if (gfx_rect_is_empty(&crect))
+			return EOK;
+
+		brect = &srect;
+	} else {
+		brect = NULL;
+	}
+
+	return gfx_bitmap_render(wnd->bitmap, brect, &wnd->dpos);
 }
 
 /** Start moving a window by mouse drag.
@@ -398,7 +417,7 @@ static void ds_window_finish_move(ds_window_t *wnd, pos_event_t *event)
 	wnd->dpos = nwpos;
 	wnd->state = dsw_idle;
 
-	(void) ds_window_repaint(wnd);
+	(void) ds_display_paint(wnd->display, NULL);
 }
 
 /** Update window position when moving by mouse drag.
