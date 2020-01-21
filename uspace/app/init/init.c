@@ -50,6 +50,9 @@
 #include "untar.h"
 #include "init.h"
 
+#define BANNER_LEFT   "######> "
+#define BANNER_RIGHT  " <######"
+
 #define ROOT_DEVICE       "bd/initrd"
 #define ROOT_MOUNT_POINT  "/"
 
@@ -80,6 +83,19 @@ static const char *sys_dirs[] = {
 static void info_print(void)
 {
 	printf("%s: HelenOS init\n", NAME);
+}
+
+static void oom_check(errno_t rc, const char *path)
+{
+	if (rc == ENOMEM) {
+		printf("%sOut-of-memory condition detected%s\n", BANNER_LEFT,
+		    BANNER_RIGHT);
+		printf("%sBailing out of the boot process after %s%s\n",
+		    BANNER_LEFT, path, BANNER_RIGHT);
+		printf("%sMore physical memory is required%s\n", BANNER_LEFT,
+		    BANNER_RIGHT);
+		exit(ENOMEM);
+	}
 }
 
 /** Report mount operation success */
@@ -198,6 +214,7 @@ static errno_t srv_startl(const char *path, ...)
 	va_end(ap);
 
 	if (rc != EOK) {
+		oom_check(rc, path);
 		printf("%s: Error spawning %s (%s)\n", NAME, path,
 		    str_error(rc));
 		return rc;
@@ -278,9 +295,10 @@ static int gui_start(const char *app, const char *srv_name)
 	task_wait_t wait;
 	errno_t rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
 	if (rc != EOK) {
+		oom_check(rc, app);
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
 		    winreg, str_error(rc));
-		return -1;
+		return rc;
 	}
 
 	task_exit_t texit;
@@ -289,7 +307,7 @@ static int gui_start(const char *app, const char *srv_name)
 	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL)) {
 		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
 		    app, str_error(rc));
-		return -1;
+		return rc;
 	}
 
 	return retval;
@@ -303,18 +321,22 @@ static void getterm(const char *svc, const char *app, bool msg)
 
 		errno_t rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
 		    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
-		if (rc != EOK)
+		if (rc != EOK) {
+			oom_check(rc, APP_GETTERM);
 			printf("%s: Error spawning %s %s %s --msg --wait -- %s\n",
 			    NAME, APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
+		}
 	} else {
 		printf("%s: Spawning %s %s %s --wait -- %s\n", NAME,
 		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 
 		errno_t rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
 		    LOCFS_MOUNT_POINT, "--wait", "--", app, NULL);
-		if (rc != EOK)
+		if (rc != EOK) {
+			oom_check(rc, APP_GETTERM);
 			printf("%s: Error spawning %s %s %s --wait -- %s\n",
 			    NAME, APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
+		}
 	}
 }
 
