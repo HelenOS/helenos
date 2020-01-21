@@ -186,7 +186,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 		as_release(as);
 		log(LF_OTHER, LVL_ERROR, "Cannot spawn loader (%s)",
 		    str_error(prg->loader_status));
-		return ENOENT;
+		return prg->loader_status;
 	}
 
 	return program_create(as, ((elf_header_t *) program_loader)->e_entry,
