@@ -45,13 +45,15 @@
 #include <loader/loader.h>
 #include "private/loader.h"
 
-/** Connect to a new program loader.
+/** Spawn a new program loader.
  *
- * Spawns a new program loader task and returns the connection structure.
+ * Spawn a new program loader task. The loader then independetly
+ * connects to the naming service.
  *
  * @param name Symbolic name to set on the newly created task.
  *
  * @return Error code.
+ *
  */
 errno_t loader_spawn(const char *name)
 {
@@ -59,14 +61,21 @@ errno_t loader_spawn(const char *name)
 	    (sysarg_t) name, str_size(name));
 }
 
-loader_t *loader_connect(void)
+/** Connect to a program loader.
+ *
+ * @param rc Placeholder for return code. Unused if NULL.
+ *
+ * @return Loader structure.
+ *
+ */
+loader_t *loader_connect(errno_t *rc)
 {
 	loader_t *ldr = malloc(sizeof(loader_t));
 	if (ldr == NULL)
 		return NULL;
 
 	async_sess_t *sess =
-	    service_connect_blocking(SERVICE_LOADER, INTERFACE_LOADER, 0);
+	    service_connect_blocking(SERVICE_LOADER, INTERFACE_LOADER, 0, rc);
 	if (sess == NULL) {
 		free(ldr);
 		return NULL;

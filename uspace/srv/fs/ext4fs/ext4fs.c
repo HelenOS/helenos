@@ -42,6 +42,7 @@
 #include <task.h>
 #include <ipc/services.h>
 #include <str.h>
+#include <str_error.h>
 #include "ext4/ops.h"
 #include "../../vfs/vfs.h"
 
@@ -65,23 +66,26 @@ int main(int argc, char **argv)
 		}
 	}
 
+	errno_t rc;
 	async_sess_t *vfs_sess = service_connect_blocking(SERVICE_VFS,
-	    INTERFACE_VFS_DRIVER, 0);
+	    INTERFACE_VFS_DRIVER, 0, &rc);
 	if (!vfs_sess) {
-		printf("%s: Failed to connect to VFS\n", NAME);
+		printf("%s: Failed to connect to VFS: %s\n", NAME, str_error(rc));
 		return 2;
 	}
 
-	errno_t rc = ext4_global_init();
+	rc = ext4_global_init();
 	if (rc != EOK) {
-		printf("%s: Global initialization failed\n", NAME);
+		printf("%s: Global initialization failed: %s\n", NAME,
+		    str_error(rc));
 		return rc;
 	}
 
 	rc = fs_register(vfs_sess, &ext4fs_vfs_info, &ext4_ops,
 	    &ext4_libfs_ops);
 	if (rc != EOK) {
-		printf("%s: Failed to register file system\n", NAME);
+		printf("%s: Failed to register file system: %s\n", NAME,
+		    str_error(rc));
 		return rc;
 	}
 

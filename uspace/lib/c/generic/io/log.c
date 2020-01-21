@@ -166,11 +166,11 @@ errno_t log_init(const char *prog_name)
 	if (log_prog_name == NULL)
 		return ENOMEM;
 
+	errno_t rc;
 	logger_session = service_connect_blocking(SERVICE_LOGGER,
-	    INTERFACE_LOGGER_WRITER, 0);
-	if (logger_session == NULL) {
-		return ENOMEM;
-	}
+	    INTERFACE_LOGGER_WRITER, 0, &rc);
+	if (logger_session == NULL)
+		return rc;
 
 	default_log_id = log_create(prog_name, LOG_NO_PARENT);
 

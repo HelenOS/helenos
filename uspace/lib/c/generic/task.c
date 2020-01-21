@@ -180,15 +180,16 @@ errno_t task_spawnvf_debug(task_id_t *id, task_wait_t *wait,
 	async_sess_t *ksess = NULL;
 
 	/* Connect to a program loader. */
-	loader_t *ldr = loader_connect();
+	errno_t rc;
+	loader_t *ldr = loader_connect(&rc);
 	if (ldr == NULL)
-		return EREFUSED;
+		return rc;
 
 	bool wait_initialized = false;
 
 	/* Get task ID. */
 	task_id_t task_id;
-	errno_t rc = loader_get_task_id(ldr, &task_id);
+	rc = loader_get_task_id(ldr, &task_id);
 	if (rc != EOK)
 		goto error;
 
@@ -249,10 +250,9 @@ errno_t task_spawnvf_debug(task_id_t *id, task_wait_t *wait,
 
 	/* Start a debug session if requested */
 	if (rsess != NULL) {
-		ksess = async_connect_kbox(task_id);
+		ksess = async_connect_kbox(task_id, &rc);
 		if (ksess == NULL) {
 			/* Most likely debugging support is not compiled in */
-			rc = ENOTSUP;
 			goto error;
 		}
 
@@ -401,9 +401,10 @@ errno_t task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...
  */
 errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
 {
-	async_sess_t *sess_ns = ns_session_get();
+	errno_t rc;
+	async_sess_t *sess_ns = ns_session_get(&rc);
 	if (sess_ns == NULL)
-		return EIO;
+		return rc;
 
 	async_exch_t *exch = async_exchange_begin(sess_ns);
 	wait->aid = async_send_2(exch, NS_TASK_WAIT, LOWER32(id), UPPER32(id),
@@ -483,12 +484,13 @@ errno_t task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)
 
 errno_t task_retval(int val)
 {
-	async_sess_t *sess_ns = ns_session_get();
+	errno_t rc;
+	async_sess_t *sess_ns = ns_session_get(&rc);
 	if (sess_ns == NULL)
-		return EIO;
+		return rc;
 
 	async_exch_t *exch = async_exchange_begin(sess_ns);
-	errno_t rc = (errno_t) async_req_1_0(exch, NS_RETVAL, val);
+	rc = (errno_t) async_req_1_0(exch, NS_RETVAL, val);
 	async_exchange_end(exch);
 
 	return rc;

@@ -43,7 +43,7 @@ struct loader;
 typedef struct loader loader_t;
 
 extern errno_t loader_spawn(const char *);
-extern loader_t *loader_connect(void);
+extern loader_t *loader_connect(errno_t *);
 extern errno_t loader_get_task_id(loader_t *, task_id_t *);
 extern errno_t loader_set_cwd(loader_t *);
 extern errno_t loader_set_program(loader_t *, const char *, int);

@@ -138,11 +138,10 @@ static errno_t connect_task(task_id_t task_id)
 	bool wait_set_up = false;
 
 	if (sess == NULL) {
-		sess = async_connect_kbox(task_id);
+		sess = async_connect_kbox(task_id, &rc);
 		if (sess == NULL) {
 			printf("Error connecting to task %" PRIu64 ".\n",
 			    task_id);
-			rc = EIO;
 			goto error;
 		}
 

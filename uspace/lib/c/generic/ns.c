@@ -48,12 +48,13 @@ static async_sess_t *sess_ns = NULL;
 errno_t service_register(service_t service, iface_t iface,
     async_port_handler_t handler, void *data)
 {
-	async_sess_t *sess = ns_session_get();
+	errno_t rc;
+	async_sess_t *sess = ns_session_get(&rc);
 	if (sess == NULL)
-		return EIO;
+		return rc;
 
 	port_id_t port;
-	errno_t rc = async_create_port(iface, handler, data, &port);
+	rc = async_create_port(iface, handler, data, &port);
 	if (rc != EOK)
 		return rc;
 
@@ -80,15 +81,16 @@ errno_t service_register_broker(service_t service, async_port_handler_t handler,
 {
 	async_set_fallback_port_handler(handler, data);
 
-	async_sess_t *sess = ns_session_get();
+	errno_t rc;
+	async_sess_t *sess = ns_session_get(&rc);
 	if (sess == NULL)
-		return EIO;
+		return rc;
 
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, NS_REGISTER_BROKER, service, &answer);
-	errno_t rc = async_connect_to_me(exch, INTERFACE_ANY, service, 0);
+	rc = async_connect_to_me(exch, INTERFACE_ANY, service, 0);
 
 	async_exchange_end(exch);
 
@@ -102,9 +104,20 @@ errno_t service_register_broker(service_t service, async_port_handler_t handler,
 	return rc;
 }
 
-async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
+/** Connect to a singleton service.
+ *
+ * @param service Singleton service ID.
+ * @param iface   Interface to connect to.
+ * @param arg3    Custom connection argument.
+ * @param rc      Placeholder for return code. Unused if NULL.
+ *
+ * @return New session on success or NULL on error.
+ *
+ */
+async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3,
+    errno_t *rc)
 {
-	async_sess_t *sess = ns_session_get();
+	async_sess_t *sess = ns_session_get(rc);
 	if (sess == NULL)
 		return NULL;
 
@@ -113,7 +126,7 @@ async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 		return NULL;
 
 	async_sess_t *csess =
-	    async_connect_me_to(exch, iface, service, arg3);
+	    async_connect_me_to(exch, iface, service, arg3, rc);
 	async_exchange_end(exch);
 
 	if (csess == NULL)
@@ -129,16 +142,26 @@ async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 	return csess;
 }
 
+/** Wait and connect to a singleton service.
+ *
+ * @param service Singleton service ID.
+ * @param iface   Interface to connect to.
+ * @param arg3    Custom connection argument.
+ * @param rc      Placeholder for return code. Unused if NULL.
+ *
+ * @return New session on success or NULL on error.
+ *
+ */
 async_sess_t *service_connect_blocking(service_t service, iface_t iface,
-    sysarg_t arg3)
+    sysarg_t arg3, errno_t *rc)
 {
-	async_sess_t *sess = ns_session_get();
+	async_sess_t *sess = ns_session_get(rc);
 	if (sess == NULL)
 		return NULL;
 
 	async_exch_t *exch = async_exchange_begin(sess);
 	async_sess_t *csess =
-	    async_connect_me_to_blocking(exch, iface, service, arg3);
+	    async_connect_me_to_blocking(exch, iface, service, arg3, rc);
 	async_exchange_end(exch);
 
 	if (csess == NULL)
@@ -156,12 +179,13 @@ async_sess_t *service_connect_blocking(service_t service, iface_t iface,
 
 errno_t ns_ping(void)
 {
-	async_sess_t *sess = ns_session_get();
+	errno_t rc;
+	async_sess_t *sess = ns_session_get(&rc);
 	if (sess == NULL)
-		return EIO;
+		return rc;
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	errno_t rc = async_req_0_0(exch, NS_PING);
+	rc = async_req_0_0(exch, NS_PING);
 	async_exchange_end(exch);
 
 	return rc;
@@ -169,25 +193,25 @@ errno_t ns_ping(void)
 
 errno_t ns_intro(task_id_t id)
 {
-	async_exch_t *exch;
-	async_sess_t *sess = ns_session_get();
+	errno_t rc;
+	async_sess_t *sess = ns_session_get(&rc);
 	if (sess == NULL)
 		return EIO;
 
-	exch = async_exchange_begin(sess);
-	errno_t rc = async_req_2_0(exch, NS_ID_INTRO, LOWER32(id), UPPER32(id));
+	async_exch_t *exch = async_exchange_begin(sess);
+	rc = async_req_2_0(exch, NS_ID_INTRO, LOWER32(id), UPPER32(id));
 	async_exchange_end(exch);
 
 	return rc;
 }
 
-async_sess_t *ns_session_get(void)
+async_sess_t *ns_session_get(errno_t *rc)
 {
 	async_exch_t *exch;
 
 	if (sess_ns == NULL) {
 		exch = async_exchange_begin(&session_ns);
-		sess_ns = async_connect_me_to(exch, 0, 0, 0);
+		sess_ns = async_connect_me_to(exch, 0, 0, 0, rc);
 		async_exchange_end(exch);
 		if (sess_ns == NULL)
 			return NULL;

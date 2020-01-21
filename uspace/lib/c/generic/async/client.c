@@ -888,29 +888,36 @@ static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
  * @param iface Connection interface.
  * @param arg2  User defined argument.
  * @param arg3  User defined argument.
+ * @param rc    Placeholder for return code. Unused if NULL.
  *
  * @return New session on success or NULL on error.
  *
  */
 async_sess_t *async_connect_me_to(async_exch_t *exch, iface_t iface,
-    sysarg_t arg2, sysarg_t arg3)
+    sysarg_t arg2, sysarg_t arg3, errno_t *rc)
 {
 	if (exch == NULL) {
-		errno = ENOENT;
+		if (rc != NULL)
+			*rc = ENOENT;
+
 		return NULL;
 	}
 
 	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
 	if (sess == NULL) {
-		errno = ENOMEM;
+		if (rc != NULL)
+			*rc = ENOMEM;
+
 		return NULL;
 	}
 
 	cap_phone_handle_t phone;
-	errno_t rc = async_connect_me_to_internal(exch->phone, iface, arg2,
+	errno_t ret = async_connect_me_to_internal(exch->phone, iface, arg2,
 	    arg3, 0, &phone);
-	if (rc != EOK) {
-		errno = rc;
+	if (ret != EOK) {
+		if (rc != NULL)
+			*rc = ret;
+
 		free(sess);
 		return NULL;
 	}
@@ -956,29 +963,36 @@ void async_sess_args_set(async_sess_t *sess, iface_t iface, sysarg_t arg2,
  * @param iface Connection interface.
  * @param arg2  User defined argument.
  * @param arg3  User defined argument.
+ * @param rc    Placeholder for return code. Unused if NULL.
  *
  * @return New session on success or NULL on error.
  *
  */
 async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
-    sysarg_t arg2, sysarg_t arg3)
+    sysarg_t arg2, sysarg_t arg3, errno_t *rc)
 {
 	if (exch == NULL) {
-		errno = ENOENT;
+		if (rc != NULL)
+			*rc = ENOENT;
+
 		return NULL;
 	}
 
 	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
 	if (sess == NULL) {
-		errno = ENOMEM;
+		if (rc != NULL)
+			*rc = ENOMEM;
+
 		return NULL;
 	}
 
 	cap_phone_handle_t phone;
-	errno_t rc = async_connect_me_to_internal(exch->phone, iface, arg2,
+	errno_t ret = async_connect_me_to_internal(exch->phone, iface, arg2,
 	    arg3, IPC_FLAG_BLOCKING, &phone);
-	if (rc != EOK) {
-		errno = rc;
+	if (ret != EOK) {
+		if (rc != NULL)
+			*rc = ret;
+
 		free(sess);
 		return NULL;
 	}
@@ -998,19 +1012,28 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
 
 /** Connect to a task specified by id.
  *
+ * @param id Task to which to connect.
+ * @param rc Placeholder for return code. Unused if NULL.
+ *
+ * @return New session on success or NULL on error.
+ *
  */
-async_sess_t *async_connect_kbox(task_id_t id)
+async_sess_t *async_connect_kbox(task_id_t id, errno_t *rc)
 {
 	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
 	if (sess == NULL) {
-		errno = ENOMEM;
+		if (rc != NULL)
+			*rc = ENOMEM;
+
 		return NULL;
 	}
 
 	cap_phone_handle_t phone;
-	errno_t rc = ipc_connect_kbox(id, &phone);
-	if (rc != EOK) {
-		errno = rc;
+	errno_t ret = ipc_connect_kbox(id, &phone);
+	if (ret != EOK) {
+		if (rc != NULL)
+			*rc = ret;
+
 		free(sess);
 		return NULL;
 	}
