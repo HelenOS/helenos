@@ -182,14 +182,13 @@ error:
 	return rc;
 }
 
-/** Draw or clear seat pointer
+/** Draw seat pointer
  *
  * @param seat Seat
- * @param shown @c true to display pointer, @c false to clear it
  *
  * @return EOK on success or an error code
  */
-static errno_t ds_seat_draw_pointer(ds_seat_t *seat, bool shown)
+static errno_t ds_seat_draw_pointer(ds_seat_t *seat)
 {
 	errno_t rc;
 	gfx_color_t *black = NULL;
@@ -203,21 +202,42 @@ static errno_t ds_seat_draw_pointer(ds_seat_t *seat, bool shown)
 	if (rc != EOK)
 		goto error;
 
-	rc = ds_seat_draw_cross(seat, 8, 1, shown ? black :
-	    seat->display->bg_color);
+	rc = ds_seat_draw_cross(seat, 8, 1, black);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	rc = ds_seat_draw_cross(seat, 8, 0, shown ? white :
-	    seat->display->bg_color);
+	rc = ds_seat_draw_cross(seat, 8, 0, white);
 	if (rc != EOK)
-		return rc;
+		goto error;
+
+	gfx_color_delete(black);
+	gfx_color_delete(white);
 
 	return EOK;
 error:
 	if (black != NULL)
 		gfx_color_delete(black);
+	if (white != NULL)
+		gfx_color_delete(white);
 	return rc;
+}
+
+/** Clear seat pointer
+ *
+ * @param seat Seat
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t ds_seat_clear_pointer(ds_seat_t *seat)
+{
+	gfx_rect_t rect;
+
+	rect.p0.x = seat->pntpos.x - 8;
+	rect.p0.y = seat->pntpos.y - 8;
+	rect.p1.x = seat->pntpos.x + 8 + 1;
+	rect.p1.y = seat->pntpos.y + 8 + 1;
+
+	return ds_display_paint(seat->display, &rect);
 }
 
 /** Post pointing device event to the seat
@@ -276,7 +296,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 			npos.y = 768;
 
 		printf("clear pointer\n");
-		(void) ds_seat_draw_pointer(seat, false);
+		(void) ds_seat_clear_pointer(seat);
 		seat->pntpos = npos;
 
 		pevent.pos_id = 0;
@@ -290,7 +310,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 			return rc;
 
 		printf("draw pointer\n");
-		(void) ds_seat_draw_pointer(seat, true);
+		(void) ds_seat_draw_pointer(seat);
 	}
 
 	return EOK;
