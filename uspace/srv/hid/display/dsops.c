@@ -70,11 +70,13 @@ static errno_t disp_window_create(void *arg, display_wnd_params_t *params,
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_create() -> EOK, id=%zu",
 	    wnd->id);
 
+	/* XXX All the below should probably be part of ds_window_create() */
 	wnd->dpos.x = ((wnd->id - 1) & 1) * 400;
 	wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
 
 	seat = ds_display_first_seat(client->display);
 	ds_seat_set_focus(seat, wnd);
+	(void) ds_display_paint(wnd->display, NULL);
 
 	*rwnd_id = wnd->id;
 	return EOK;

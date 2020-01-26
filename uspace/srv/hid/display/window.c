@@ -328,13 +328,20 @@ error:
  */
 void ds_window_destroy(ds_window_t *wnd)
 {
+	ds_display_t *disp;
+
+	disp = wnd->display;
+
 	ds_client_remove_window(wnd);
 	ds_display_remove_window(wnd);
+
 	(void) gfx_context_delete(wnd->gc);
 	if (wnd->bitmap != NULL)
 		gfx_bitmap_destroy(wnd->bitmap);
 
 	free(wnd);
+
+	(void) ds_display_paint(disp, NULL);
 }
 
 /** Get generic graphic context from window.
