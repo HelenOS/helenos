@@ -365,7 +365,7 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
 		gfx_rect_rtranslate(&wnd->dpos, rect, &srect);
 
 		/* Determine if we have anything to do */
-		gfx_rect_clip(&srect, rect, &crect);
+		gfx_rect_clip(&srect, &wnd->rect, &crect);
 		if (gfx_rect_is_empty(&crect))
 			return EOK;
 
