@@ -300,11 +300,11 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		wnd->pixelmap.width = dims.x;
 		wnd->pixelmap.height = dims.y;
 		wnd->pixelmap.data = alloc.pixels;
-	}
 
-	if (wnd->pixelmap.data == NULL) {
-		rc = ENOMEM;
-		goto error;
+		if (wnd->pixelmap.data == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
 	}
 
 	wnd->rect = params->rect;
@@ -380,6 +380,10 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
 	} else {
 		brect = NULL;
 	}
+
+	/* This can happen in unit tests */
+	if (wnd->bitmap == NULL)
+		return EOK;
 
 	return gfx_bitmap_render(wnd->bitmap, brect, &wnd->dpos);
 }

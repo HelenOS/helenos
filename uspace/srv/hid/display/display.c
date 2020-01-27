@@ -462,6 +462,8 @@ errno_t ds_display_paint_bg(ds_display_t *disp, gfx_rect_t *rect)
 		crect = dsrect;
 
 	gc = ds_display_get_gc(disp); // XXX
+	if (gc == NULL)
+		return EOK;
 
 	rc = gfx_set_color(gc, disp->bg_color);
 	if (rc != EOK)

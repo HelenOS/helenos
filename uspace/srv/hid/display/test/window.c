@@ -124,8 +124,8 @@ PCUT_TEST(window_post_pos_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_INT_EQUALS(dsw_moving, wnd->state);
-	PCUT_ASSERT_INT_EQUALS(wnd->dpos.x, 0);
-	PCUT_ASSERT_INT_EQUALS(wnd->dpos.y, 0);
+	PCUT_ASSERT_INT_EQUALS(wnd->dpos.x, 1);
+	PCUT_ASSERT_INT_EQUALS(wnd->dpos.y, 2);
 
 	event.type = POS_RELEASE;
 	event.hpos = 13;

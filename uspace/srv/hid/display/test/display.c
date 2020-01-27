@@ -395,6 +395,12 @@ PCUT_TEST(display_post_ptd_event_wnd_switch)
 
 	PCUT_ASSERT_EQUALS(w1, seat->focus);
 
+	event.type = PTD_RELEASE;
+	event.btn_num = 1;
+	rc = ds_display_post_ptd_event(disp, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(called_cb);
+
 	event.type = PTD_MOVE;
 	event.dmove.x = -400 + 10;
 	event.dmove.y = -400 + 10;
