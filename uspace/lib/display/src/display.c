@@ -294,7 +294,7 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 		if (rc != EOK)
 			break;
 
-		if (window->cb->kbd_event != NULL)
+		if (window->cb != NULL && window->cb->kbd_event != NULL)
 			window->cb->kbd_event(window->cb_arg, &event.kbd_event);
 	}
 

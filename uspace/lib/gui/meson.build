@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'draw' , 'softrend' , 'graph' ]
+deps = [ 'draw' , 'softrend', 'display' ]
 src = files(
 	'common.c',
 	'button.c',

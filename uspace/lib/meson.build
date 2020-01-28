@@ -75,11 +75,12 @@ libs = [
 	'uri',
 
 	'bithenge',
+	'congfx',
 	'draw',
 	'drv',
 	'ext4',
-	'gui',
 	'hound',
+	'ipcgfx',
 	'nic',
 	'usb',
 	'usbdev',
@@ -88,13 +89,13 @@ libs = [
 	'usbvirt',
 	'virtio',
 
-	'congfx',
-	'guigfx',
 	'ieee80211',
-	'ipcgfx',
-
 	'ddev',
 	'display',
+
+	'gui',
+
+	'guigfx',
 ]
 
 # Generated list of include directory paths

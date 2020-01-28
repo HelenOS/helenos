@@ -36,12 +36,14 @@
 #ifndef GUI_WINDOW_H_
 #define GUI_WINDOW_H_
 
-#include <async.h>
 #include <adt/prodcons.h>
 #include <fibril_synch.h>
 #include <ipc/window.h>
 #include <io/window.h>
 #include <draw/surface.h>
+#include <display.h>
+#include <gfx/bitmap.h>
+#include <gfx/context.h>
 
 #include "widget.h"
 
@@ -50,14 +52,16 @@ struct window {
 	bool is_decorated; /**< True if the window decorations should be rendered. */
 	bool is_focused; /**< True for the top level window of the desktop. */
 	char *caption; /**< Text title of the window header. */
-	async_sess_t *isess; /**< Input events from compositor. */
-	async_sess_t *osess; /**< Mainly for damage reporting to compositor. */
+	display_t *display; /**< Display service */
+	display_window_t *dwindow; /**< Display window */
+	gfx_context_t *gc; /**< GC of the window */
 	prodcons_t events; /**< Queue for window event loop. */
 	widget_t root; /**< Decoration widget serving as a root of widget hiearchy. */
 	widget_t *grab; /**< Widget owning the mouse or NULL. */
 	widget_t *focus; /**< Widget owning the keyboard or NULL. */
 	fibril_mutex_t guard; /**< Mutex guarding window surface. */
 	surface_t *surface; /**< Window surface shared with compositor. */
+	gfx_bitmap_t *bitmap; /**< Window bitmap */
 };
 
 /**
