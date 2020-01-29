@@ -369,8 +369,13 @@ static void handle_signal_event(window_t *win, signal_event_t event)
 static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
     sysarg_t width, sysarg_t height, window_placement_flags_t placement_flags)
 {
+	display_wnd_params_t wparams;
+	display_window_t *new_window = NULL;
 	gfx_bitmap_params_t params;
 	gfx_bitmap_alloc_t alloc;
+	gfx_bitmap_t *new_bitmap = NULL;
+	gfx_context_t *new_gc = NULL;
+	errno_t rc;
 
 	if (width < 2 * border_thickness + header_min_width) {
 		//win_damage(win->osess, 0, 0, 0, 0);
@@ -388,7 +393,25 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	if (!new_surface)
 		return;
 
-	gfx_bitmap_t *new_bitmap = NULL;
+	display_wnd_params_init(&wparams);
+	wparams.rect.p0.x = 0;
+	wparams.rect.p0.y = 0;
+	wparams.rect.p1.x = width;
+	wparams.rect.p1.y = height;
+
+	rc = display_window_create(win->display, &wparams, NULL, NULL,
+	    &new_window);
+	if (rc != EOK) {
+		surface_destroy(new_surface);
+		return;
+	}
+
+	rc = display_window_get_gc(new_window, &new_gc);
+	if (rc != EOK) {
+		display_window_destroy(new_window);
+		surface_destroy(new_surface);
+		return;
+	}
 
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
@@ -399,8 +422,10 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	alloc.off0 = 0;
 	alloc.pixels = surface_direct_access(new_surface);
 
-	errno_t rc = gfx_bitmap_create(win->gc, &params, &alloc, &new_bitmap);
+	rc = gfx_bitmap_create(new_gc, &params, &alloc, &new_bitmap);
 	if (rc != EOK) {
+		gfx_context_delete(new_gc);
+		display_window_destroy(new_window);
 		surface_destroy(new_surface);
 		return;
 	}
@@ -409,8 +434,12 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	fibril_mutex_lock(&win->guard);
 	surface_t *old_surface = win->surface;
 	gfx_bitmap_t *old_bitmap = win->bitmap;
+	display_window_t *old_window = win->dwindow;
+	gfx_context_t *old_gc = win->gc;
 	win->surface = new_surface;
 	win->bitmap = new_bitmap;
+	win->dwindow = new_window;
+	win->gc = new_gc;
 	fibril_mutex_unlock(&win->guard);
 
 	/*
@@ -439,6 +468,9 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 		fibril_mutex_lock(&win->guard);
 		new_surface = win->surface;
 		win->surface = old_surface;
+		win->bitmap = old_bitmap;
+		win->dwindow = old_window;
+		win->gc = old_gc;
 		fibril_mutex_unlock(&win->guard);
 
 		win->root.rearrange(&win->root, 0, 0, old_width, old_height);
@@ -451,6 +483,10 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 
 		surface_destroy(new_surface);
 	} else {
+		if (old_window != NULL)
+			display_window_destroy(old_window);
+		if (old_gc != NULL)
+			gfx_context_delete(old_gc);
 		if (old_bitmap != NULL)
 			gfx_bitmap_destroy(old_bitmap);
 		/* Deallocate old surface. */
@@ -487,7 +523,8 @@ static void handle_damage(window_t *win)
 
 		printf("render damaged region: %d,%d,%d,%d,\n",
 		    (int)x,(int)y,(int)width,(int)height);
-		(void) gfx_bitmap_render(win->bitmap, &rect, NULL);
+		if (win->bitmap != NULL)
+			(void) gfx_bitmap_render(win->bitmap, &rect, NULL);
 	}
 }
 
@@ -630,7 +667,7 @@ static errno_t fetch_input(void *arg)
 window_t *window_open(const char *winreg, const void *data,
     window_flags_t flags, const char *caption)
 {
-	window_t *win = (window_t *) malloc(sizeof(window_t));
+	window_t *win = (window_t *) calloc(1, sizeof(window_t));
 	if (!win)
 		return NULL;
 
@@ -658,29 +695,6 @@ window_t *window_open(const char *winreg, const void *data,
 		return NULL;
 	}
 
-	display_wnd_params_t params;
-	display_wnd_params_init(&params);
-
-	params.rect.p0.x = 0;
-	params.rect.p0.y = 0;
-	params.rect.p1.x = 200;
-	params.rect.p1.y = 100;
-
-	rc = display_window_create(win->display, &params, NULL, NULL,
-	    &win->dwindow);
-	if (rc != EOK) {
-		display_close(win->display);
-		free(win);
-		return NULL;
-	}
-
-	rc = display_window_get_gc(win->dwindow, &win->gc);
-	if (rc != EOK) {
-		(void) display_window_destroy(win->dwindow);
-		display_close(win->display);
-		free(win);
-		return NULL;
-	}
 
 	if (caption == NULL)
 		win->caption = NULL;
