@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020 Jiri Svoboda
+# Copyright (c) 2021 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@ src = files(
 	'src/label.c',
 	'src/paint.c',
 	'src/pbutton.c',
+	'src/rbutton.c',
 	'src/resource.c',
 	'src/ui.c',
 	'src/wdecor.c',
@@ -53,6 +54,7 @@ test_src = files(
 	'test/main.c',
 	'test/paint.c',
 	'test/pbutton.c',
+	'test/rbutton.c',
 	'test/resource.c',
 	'test/ui.c',
 	'test/wdecor.c',

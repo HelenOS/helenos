@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,7 +129,7 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_color_new_rgb_i16(0, 0, 0, &wnd_frame_sh_color);
+	rc = gfx_color_new_rgb_i16(0x4444, 0x4444, 0x4444, &wnd_frame_sh_color);
 	if (rc != EOK)
 		goto error;
 

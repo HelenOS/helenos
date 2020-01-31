@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,6 +67,12 @@ static ui_checkbox_cb_t checkbox_cb = {
 	.switched = checkbox_switched
 };
 
+static void rb_selected(ui_rbutton_group_t *, void *, void *);
+
+static ui_rbutton_group_cb_t rbutton_group_cb = {
+	.selected = rb_selected
+};
+
 /** Window close button was clicked.
  *
  * @param window Window
@@ -125,6 +131,24 @@ static void checkbox_switched(ui_checkbox_t *checkbox, void *arg, bool enable)
 	}
 }
 
+/** Radio button was selected.
+ *
+ * @param rbgroup Radio button group
+ * @param garg Group argument (demo)
+ * @param barg Button argument
+ */
+static void rb_selected(ui_rbutton_group_t *rbgroup, void *garg, void *barg)
+{
+	ui_demo_t *demo = (ui_demo_t *) garg;
+	const char *text = (const char *) barg;
+	errno_t rc;
+
+	rc = ui_entry_set_text(demo->entry, text);
+	if (rc != EOK)
+		printf("Error changing entry text.\n");
+	(void) ui_entry_paint(demo->entry);
+}
+
 /** Run UI demo on display server. */
 static errno_t ui_demo(const char *display_spec)
 {
@@ -152,7 +176,7 @@ static errno_t ui_demo(const char *display_spec)
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 220;
-	params.rect.p1.y = 220;
+	params.rect.p1.y = 330;
 
 	memset((void *) &demo, 0, sizeof(demo));
 	demo.ui = ui;
@@ -306,6 +330,72 @@ static errno_t ui_demo(const char *display_spec)
 	ui_checkbox_set_rect(demo.checkbox, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_checkbox_ctl(demo.checkbox));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_rbutton_group_create(ui_res, &demo.rbgroup);
+	if (rc != EOK) {
+		printf("Error creating radio button group.\n");
+		return rc;
+	}
+
+	rc = ui_rbutton_create(demo.rbgroup, "Option 1", (void *) "First",
+	    &demo.rb1);
+	if (rc != EOK) {
+		printf("Error creating radio button.\n");
+		return rc;
+	}
+
+	ui_rbutton_group_set_cb(demo.rbgroup, &rbutton_group_cb,
+	    (void *) &demo);
+
+	rect.p0.x = 15;
+	rect.p0.y = 210;
+	rect.p1.x = 140;
+	rect.p1.y = 230;
+	ui_rbutton_set_rect(demo.rb1, &rect);
+
+	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb1));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_rbutton_create(demo.rbgroup, "Option 2", (void *) "Second",
+	    &demo.rb2);
+	if (rc != EOK) {
+		printf("Error creating radio button.\n");
+		return rc;
+	}
+
+	rect.p0.x = 15;
+	rect.p0.y = 240;
+	rect.p1.x = 140;
+	rect.p1.y = 260;
+	ui_rbutton_set_rect(demo.rb2, &rect);
+
+	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb2));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_rbutton_create(demo.rbgroup, "Option 3", (void *) "Third",
+	    &demo.rb3);
+	if (rc != EOK) {
+		printf("Error creating radio button.\n");
+		return rc;
+	}
+
+	rect.p0.x = 15;
+	rect.p0.y = 270;
+	rect.p1.x = 140;
+	rect.p1.y = 290;
+	ui_rbutton_set_rect(demo.rb3, &rect);
+
+	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb3));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;

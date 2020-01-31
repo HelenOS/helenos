@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/pbutton.h>
+#include <ui/rbutton.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 
@@ -56,6 +57,10 @@ typedef struct {
 	ui_pbutton_t *pb1;
 	ui_pbutton_t *pb2;
 	ui_checkbox_t *checkbox;
+	ui_rbutton_group_t *rbgroup;
+	ui_rbutton_t *rb1;
+	ui_rbutton_t *rb2;
+	ui_rbutton_t *rb3;
 } ui_demo_t;
 
 #endif

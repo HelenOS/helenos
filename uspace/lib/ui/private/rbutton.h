@@ -26,22 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Radio button structure
+ *
+ */
 
-PCUT_INIT;
+#ifndef _UI_PRIVATE_RBUTTON_H
+#define _UI_PRIVATE_RBUTTON_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(checkbox);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(rbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <gfx/coord.h>
+#include <stdbool.h>
 
-PCUT_MAIN();
+/** Actual structure of radio button group.
+ *
+ * This is private to libui.
+ */
+struct ui_rbutton_group {
+	/** UI resource */
+	struct ui_resource *res;
+	/** Callbacks */
+	struct ui_rbutton_group_cb *cb;
+	/** Callback argument */
+	void *arg;
+	/** Selected button */
+	struct ui_rbutton *selected;
+};
+
+/** Actual structure of radio button.
+ *
+ * This is private to libui.
+ */
+struct ui_rbutton {
+	/** Base control object */
+	struct ui_control *control;
+	/** Containing radio button group */
+	struct ui_rbutton_group *group;
+	/** Callback argument */
+	void *arg;
+	/** Radio button rectangle */
+	gfx_rect_t rect;
+	/** Caption */
+	const char *caption;
+	/** Radio button is currently held down */
+	bool held;
+	/** Pointer is currently inside */
+	bool inside;
+};
+
+#endif
+
+/** @}
+ */

@@ -26,22 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Painting routines
+ */
 
-PCUT_INIT;
+#ifndef _UI_TYPES_PAINT_H
+#define _UI_TYPES_PAINT_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(checkbox);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(rbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+/** Filled circle parts */
+typedef enum {
+	/** Upper-left half */
+	ui_fcircle_upleft = 0x1,
+	/** Lower-right half */
+	ui_fcircle_lowright = 0x2,
+	/** Entire circle */
+	ui_fcircle_entire =
+	    ui_fcircle_upleft |
+	    ui_fcircle_lowright
+} ui_fcircle_part_t;
 
-PCUT_MAIN();
+#endif
+
+/** @}
+ */

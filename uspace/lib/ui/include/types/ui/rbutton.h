@@ -26,22 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Radio button
+ */
 
-PCUT_INIT;
+#ifndef _UI_TYPES_RBUTTON_H
+#define _UI_TYPES_RBUTTON_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(checkbox);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(rbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <stdbool.h>
 
-PCUT_MAIN();
+struct ui_rbutton_group;
+typedef struct ui_rbutton_group ui_rbutton_group_t;
+
+struct ui_rbutton;
+typedef struct ui_rbutton ui_rbutton_t;
+
+/** Radio button callbacks */
+typedef struct ui_rbutton_group_cb {
+	void (*selected)(ui_rbutton_group_t *, void *, void *);
+} ui_rbutton_group_cb_t;
+
+#endif
+
+/** @}
+ */
