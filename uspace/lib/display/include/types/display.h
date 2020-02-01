@@ -61,11 +61,13 @@ typedef struct {
 
 /** Display window callbacks */
 typedef struct {
+	/** Close event */
+	void (*close_event)(void *);
 	/** Focus event */
 	void (*focus_event)(void *);
-	/** Keyboard event callback */
+	/** Keyboard event */
 	void (*kbd_event)(void *, kbd_event_t *);
-	/** Position event callback */
+	/** Position event */
 	void (*pos_event)(void *, pos_event_t *);
 	/** Unfocus event */
 	void (*unfocus_event)(void *);

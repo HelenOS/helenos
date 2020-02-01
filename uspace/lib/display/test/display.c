@@ -47,6 +47,7 @@ static const char *test_display_svc = "test/display";
 
 static void test_display_conn(ipc_call_t *, void *);
 
+static void test_close_event(void *);
 static void test_focus_event(void *);
 static void test_kbd_event(void *, kbd_event_t *);
 static void test_pos_event(void *, pos_event_t *);
@@ -68,6 +69,7 @@ static display_ops_t test_display_srv_ops = {
 };
 
 static display_wnd_cb_t test_display_wnd_cb = {
+	.close_event = test_close_event,
 	.focus_event = test_focus_event,
 	.kbd_event = test_kbd_event,
 	.pos_event = test_pos_event,
@@ -99,6 +101,7 @@ typedef struct {
 
 	bool get_event_called;
 	bool set_color_called;
+	bool close_event_called;
 	bool focus_event_called;
 	bool kbd_event_called;
 	bool pos_event_called;
@@ -529,6 +532,71 @@ PCUT_TEST(window_get_gc_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Close event can be delivered from server to client callback function */
+PCUT_TEST(close_event_deliver)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_wnd_params_t params;
+	display_window_t *wnd;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+	PCUT_ASSERT_NOT_NULL(resp.srv);
+
+	wnd = NULL;
+	resp.rc = EOK;
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	resp.event_cnt = 1;
+	resp.event.etype = wev_close;
+	resp.wnd_id = wnd->id;
+	resp.close_event_called = false;
+	fibril_mutex_initialize(&resp.event_lock);
+	fibril_condvar_initialize(&resp.event_cv);
+	display_srv_ev_pending(resp.srv);
+
+	/* Wait for the event handler to be called. */
+	fibril_mutex_lock(&resp.event_lock);
+	while (!resp.close_event_called) {
+		fibril_condvar_wait(&resp.event_cv, &resp.event_lock);
+	}
+	fibril_mutex_unlock(&resp.event_lock);
+
+	/* Verify that the event was delivered correctly */
+	PCUT_ASSERT_EQUALS(resp.event.etype,
+	    resp.revent.etype);
+
+	rc = display_window_destroy(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_close(disp);
+
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Focus event can be delivered from server to client callback function */
 PCUT_TEST(focus_event_deliver)
 {
@@ -858,6 +926,18 @@ static void test_display_conn(ipc_call_t *icall, void *arg)
 		/* Window GC connection */
 		gc_conn(icall, gc);
 	}
+}
+
+static void test_close_event(void *arg)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->revent.etype = wev_close;
+
+	fibril_mutex_lock(&resp->event_lock);
+	resp->close_event_called = true;
+	fibril_condvar_broadcast(&resp->event_cv);
+	fibril_mutex_unlock(&resp->event_lock);
 }
 
 static void test_focus_event(void *arg)

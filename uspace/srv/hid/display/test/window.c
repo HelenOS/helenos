@@ -123,6 +123,54 @@ PCUT_TEST(window_get_ctx)
 	ds_display_destroy(disp);
 }
 
+/** Test ds_window_post_kbd_event() with Alt-F4 sends close event */
+PCUT_TEST(window_post_kbd_event_alt_f4)
+{
+	gfx_context_t *gc;
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	ds_window_t *rwindow;
+	display_wnd_ev_t revent;
+	display_wnd_params_t params;
+	kbd_event_t event;
+	errno_t rc;
+
+	rc = gfx_context_new(&dummy_ops, NULL, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_display_create(gc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	event.type = KEY_PRESS;
+	event.mods = KM_ALT;
+	event.key = KC_F4;
+	rc = ds_window_post_kbd_event(wnd, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(wnd, rwindow);
+	PCUT_ASSERT_EQUALS(wev_close, revent.etype);
+
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 /** Test ds_window_post_pos_event() */
 PCUT_TEST(window_post_pos_event)
 {

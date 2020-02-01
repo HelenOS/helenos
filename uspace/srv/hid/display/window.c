@@ -528,6 +528,28 @@ static void ds_window_update_move(ds_window_t *wnd, pos_event_t *event)
 	gfx_color_delete(color);
 }
 
+/** Post keyboard event to window.
+ *
+ * @param wnd Window
+ * @param event Event
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_window_post_kbd_event(ds_window_t *wnd, kbd_event_t *event)
+{
+	bool alt_or_shift;
+
+	alt_or_shift = event->mods & (KM_SHIFT | KM_ALT);
+
+	if (event->type == KEY_PRESS && alt_or_shift && event->key == KC_F4) {
+		/* On Alt-F4 or Shift-F4 send close event to the window */
+		ds_client_post_close_event(wnd->client, wnd);
+		return EOK;
+	}
+
+	return ds_client_post_kbd_event(wnd->client, wnd, event);
+}
+
 /** Post position event to window.
  *
  * @param wnd Window

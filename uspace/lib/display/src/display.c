@@ -369,6 +369,11 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 			break;
 
 		switch (event.etype) {
+		case wev_close:
+			if (window->cb != NULL && window->cb->close_event != NULL) {
+				window->cb->close_event(window->cb_arg);
+			}
+			break;
 		case wev_focus:
 			if (window->cb != NULL && window->cb->focus_event != NULL) {
 				window->cb->focus_event(window->cb_arg);

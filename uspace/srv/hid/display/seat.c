@@ -136,7 +136,7 @@ errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
 	if (dwindow == NULL)
 		return EOK;
 
-	return ds_client_post_kbd_event(dwindow->client, dwindow, event);
+	return ds_window_post_kbd_event(dwindow, event);
 }
 
 /** Draw cross at seat pointer position.

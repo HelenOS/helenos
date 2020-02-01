@@ -49,9 +49,11 @@
 #include <task.h>
 #include <window.h>
 
+static void wnd_close_event(void *);
 static void wnd_kbd_event(void *, kbd_event_t *);
 
 static display_wnd_cb_t wnd_cb = {
+	.close_event = wnd_close_event,
 	.kbd_event = wnd_kbd_event
 };
 
@@ -497,6 +499,12 @@ static errno_t demo_display(void)
 		return rc;
 
 	return EOK;
+}
+
+static void wnd_close_event(void *arg)
+{
+	printf("Close event\n");
+	quit = true;
 }
 
 static void wnd_kbd_event(void *arg, kbd_event_t *event)

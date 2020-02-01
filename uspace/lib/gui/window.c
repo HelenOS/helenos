@@ -82,12 +82,14 @@ static pixel_t color_header_unfocus_surface = PIXEL(255, 12, 57, 92);
 static pixel_t color_caption_focus = PIXEL(255, 255, 255, 255);
 static pixel_t color_caption_unfocus = PIXEL(255, 207, 207, 207);
 
+static void window_close_event(void *);
 static void window_focus_event(void *);
 static void window_kbd_event(void *, kbd_event_t *);
 static void window_pos_event(void *, pos_event_t *);
 static void window_unfocus_event(void *);
 
 static display_wnd_cb_t window_cb = {
+	.close_event = window_close_event,
 	.focus_event = window_focus_event,
 	.kbd_event = window_kbd_event,
 	.pos_event = window_pos_event,
@@ -331,7 +333,7 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
 			//win_grab(widget->window->osess, event.pos_id, flags);
 		} else if (close && btn_left) {
-			//win_close_request(widget->window->osess);
+			window_close(widget->window);
 		} else if (header && btn_left) {
 			window_grab_flags_t flags = GF_EMPTY;
 			flags |= GF_MOVE_X;
@@ -765,8 +767,22 @@ void window_yield(window_t *win)
 
 void window_close(window_t *win)
 {
-	/* Request compositor to init closing cascade. */
-	//win_close_request(win->osess);
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_WINDOW_CLOSE;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_close_event(void *arg)
+{
+	window_t *win = (window_t *) arg;
+
+	window_close(win);
 }
 
 static void window_focus_event(void *arg)

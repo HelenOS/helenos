@@ -40,6 +40,8 @@
 
 /** Display window event type */
 typedef enum {
+	/** Request to close window */
+	wev_close,
 	/** Window gained focus */
 	wev_focus,
 	/** Keyboard event */
