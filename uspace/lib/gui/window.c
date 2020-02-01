@@ -82,6 +82,12 @@ static pixel_t color_header_unfocus_surface = PIXEL(255, 12, 57, 92);
 static pixel_t color_caption_focus = PIXEL(255, 255, 255, 255);
 static pixel_t color_caption_unfocus = PIXEL(255, 207, 207, 207);
 
+static void window_kbd_event(void *, kbd_event_t *);
+
+static display_wnd_cb_t window_cb = {
+	.kbd_event = window_kbd_event
+};
+
 static void paint_internal(widget_t *widget)
 {
 	surface_t *surface = window_claim(widget->window);
@@ -399,8 +405,8 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	wparams.rect.p1.x = width;
 	wparams.rect.p1.y = height;
 
-	rc = display_window_create(win->display, &wparams, NULL, NULL,
-	    &new_window);
+	rc = display_window_create(win->display, &wparams, &window_cb,
+	    (void *) win, &new_window);
 	if (rc != EOK) {
 		surface_destroy(new_surface);
 		return;
@@ -791,6 +797,21 @@ void window_close(window_t *win)
 {
 	/* Request compositor to init closing cascade. */
 	//win_close_request(win->osess);
+}
+
+static void window_kbd_event(void *arg, kbd_event_t *kevent)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_KEYBOARD_EVENT;
+	event->data.kbd = *kevent;
+	prodcons_produce(&win->events, &event->link);
 }
 
 /** @}
