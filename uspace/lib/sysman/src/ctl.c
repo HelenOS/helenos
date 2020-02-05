@@ -185,9 +185,11 @@ errno_t sysman_unit_get_name(unit_handle_t handle, char *buf, size_t buf_size)
 
 errno_t sysman_unit_get_state(unit_handle_t handle, unit_state_t *state)
 {
+	sysarg_t ret;
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
-	errno_t rc = async_req_1_1(exch, SYSMAN_CTL_UNIT_GET_STATE, handle, (sysarg_t *)state);
+	errno_t rc = async_req_1_1(exch, SYSMAN_CTL_UNIT_GET_STATE, handle, &ret);
 	sysman_exchange_end(exch);
+	*state = (unit_state_t)ret;
 
 	return rc;
 }

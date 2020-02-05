@@ -75,15 +75,16 @@ static errno_t list_units(int argc, char *argv[])
 		return rc;
 	}
 
-	for (unit_handle_t *it = units; it - units < (int)unit_cnt; ++it) {
+	for (size_t i = 0; i < unit_cnt; i++) {
+		unit_handle_t handle = units[i];
 		char name[NAME_BUFFER];
 		unit_state_t state;
 
-		rc = sysman_unit_get_name(*it, name, NAME_BUFFER);
+		rc = sysman_unit_get_name(handle, name, NAME_BUFFER);
 		if (rc != EOK)
 			goto fail;
 
-		rc = sysman_unit_get_state(*it, &state);
+		rc = sysman_unit_get_state(handle, &state);
 		if (rc != EOK)
 			goto fail;
 
