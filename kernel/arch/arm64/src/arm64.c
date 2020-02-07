@@ -166,9 +166,13 @@ void userspace(uspace_arg_t *kernel_uarg)
 
 	asm volatile (
 	    /*
-	     * Clear all general-purpose registers, except x0 that holds an
-	     * argument for the user space.
+	     * Reset the kernel stack to its base value.
+	     *
+	     * Clear all general-purpose registers,
+	     * except x0 that holds an argument for
+	     * the user space.
 	     */
+	    "mov sp, %[kstack]\n"
 	    "mov x0, %[uspace_uarg]\n"
 	    "mov x1, #0\n"
 	    "mov x2, #0\n"
@@ -201,7 +205,9 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    "mov x29, #0\n"
 	    "mov x30, #0\n"
 	    "eret\n"
-	    :: [uspace_uarg] "r" (kernel_uarg->uspace_uarg)
+	    :: [uspace_uarg] "r" (kernel_uarg->uspace_uarg),
+	       [kstack] "r" (((uint64_t) (THREAD->kstack))
+	           + MEM_STACK_SIZE - SP_DELTA)
 	);
 
 	unreachable();
