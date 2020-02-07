@@ -206,8 +206,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    "mov x30, #0\n"
 	    "eret\n"
 	    :: [uspace_uarg] "r" (kernel_uarg->uspace_uarg),
-	       [kstack] "r" (((uint64_t) (THREAD->kstack))
-	           + MEM_STACK_SIZE - SP_DELTA)
+	      [kstack] "r" (((uint64_t) (THREAD->kstack)) +
+	      MEM_STACK_SIZE - SP_DELTA)
 	);
 
 	unreachable();
