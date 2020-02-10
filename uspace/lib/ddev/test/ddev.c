@@ -48,10 +48,12 @@ static const char *test_ddev_svc = "test/ddev";
 static void test_ddev_conn(ipc_call_t *, void *);
 
 static errno_t test_get_gc(void *, sysarg_t *, sysarg_t *);
+static errno_t test_get_info(void *, ddev_info_t *);
 static errno_t test_gc_set_color(void *, gfx_color_t *);
 
 static ddev_ops_t test_ddev_ops = {
-	.get_gc = test_get_gc
+	.get_gc = test_get_gc,
+	.get_info = test_get_info
 };
 
 static gfx_context_ops_t test_gc_ops = {
@@ -65,6 +67,7 @@ typedef struct {
 	errno_t rc;
 	bool set_color_called;
 	ddev_srv_t *srv;
+	ddev_info_t info;
 } test_response_t;
 
 /** ddev_open(), ddev_close() work for valid display device service */
@@ -171,6 +174,80 @@ PCUT_TEST(dev_get_gc_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** ddev_get_info with server returning failure */
+PCUT_TEST(dev_get_info_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	ddev_t *ddev = NULL;
+	test_response_t resp;
+	ddev_info_t info;
+
+	async_set_fallback_port_handler(test_ddev_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_ddev_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_ddev_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ddev_open(test_ddev_svc, &ddev);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(ddev);
+
+	resp.rc = ENOMEM;
+	rc = ddev_get_info(ddev, &info);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	ddev_close(ddev);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ddev_get_info with server returning success */
+PCUT_TEST(dev_get_info_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	ddev_t *ddev = NULL;
+	test_response_t resp;
+	ddev_info_t info;
+
+	async_set_fallback_port_handler(test_ddev_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_ddev_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_ddev_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ddev_open(test_ddev_svc, &ddev);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(ddev);
+
+	resp.rc = EOK;
+
+	ddev_info_init(&resp.info);
+	resp.info.rect.p0.x = 1;
+	resp.info.rect.p0.y = 2;
+	resp.info.rect.p1.x = 3;
+	resp.info.rect.p1.y = 4;
+
+	rc = ddev_get_info(ddev, &info);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	PCUT_ASSERT_INT_EQUALS(resp.info.rect.p0.x, info.rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(resp.info.rect.p0.y, info.rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(resp.info.rect.p1.x, info.rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(resp.info.rect.p1.y, info.rect.p1.y);
+
+	ddev_close(ddev);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Test display device connection.
  *
  * This is very similar to connection handler in the display server.
@@ -218,6 +295,17 @@ static errno_t test_get_gc(void *arg, sysarg_t *arg2, sysarg_t *arg3)
 {
 	*arg2 = 0;
 	*arg3 = 42;
+	return EOK;
+}
+
+static errno_t test_get_info(void *arg, ddev_info_t *info)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	if (resp->rc != EOK)
+		return resp->rc;
+
+	*info = resp->info;
 	return EOK;
 }
 

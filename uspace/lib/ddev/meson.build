@@ -30,6 +30,7 @@ deps = [ 'gfx', 'ipcgfx' ]
 src = files(
 	'src/ddev.c',
 	'src/ddev_srv.c',
+	'src/info.c',
 )
 
 test_src = files(

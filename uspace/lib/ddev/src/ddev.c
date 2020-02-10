@@ -110,5 +110,33 @@ errno_t ddev_get_gc(ddev_t *ddev, gfx_context_t **rgc)
 	return EOK;
 }
 
+/** Get display device information.
+ *
+ * @param ddev Display device
+ * @param info Place to store information
+ */
+errno_t ddev_get_info(ddev_t *ddev, ddev_info_t *info)
+{
+	async_exch_t *exch;
+	errno_t retval;
+	ipc_call_t answer;
+
+	exch = async_exchange_begin(ddev->sess);
+	aid_t req = async_send_0(exch, DDEV_GET_INFO, &answer);
+
+	errno_t rc = async_data_read_start(exch, info, sizeof(ddev_info_t));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &retval);
+	if (retval != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** @}
  */

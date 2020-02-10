@@ -69,6 +69,51 @@ static void ddev_get_gc_srv(ddev_srv_t *srv, ipc_call_t *icall)
 	async_answer_2(icall, rc, arg2, arg3);
 }
 
+/** Get display device information */
+static void ddev_get_info_srv(ddev_srv_t *srv, ipc_call_t *icall)
+{
+	ddev_info_t info;
+	errno_t rc;
+
+	printf("ddev_get_info_srv\n");
+
+	ipc_call_t call;
+	size_t size;
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(ddev_info_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	if (srv->ops->get_info == NULL) {
+		printf("get_info is NULL -> ENOTSUP\n");
+		async_answer_0(&call, ENOTSUP);
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->get_info(srv->arg, &info);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	rc = async_data_read_finalize(&call, &info, sizeof(ddev_info_t));
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	async_answer_0(icall, EOK);
+}
+
 void ddev_conn(ipc_call_t *icall, ddev_srv_t *srv)
 {
 	/* Accept the connection */
@@ -91,6 +136,9 @@ void ddev_conn(ipc_call_t *icall, ddev_srv_t *srv)
 		switch (method) {
 		case DDEV_GET_GC:
 			ddev_get_gc_srv(srv, &call);
+			break;
+		case DDEV_GET_INFO:
+			ddev_get_info_srv(srv, &call);
 			break;
 		default:
 			async_answer_0(&call, ENOTSUP);

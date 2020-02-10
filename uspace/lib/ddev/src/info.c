@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libddev
- * @{
+#include <ddev/info.h>
+#include <mem.h>
+
+/** Initialize display device information structure.
+ *
+ * @param info Display device information structure
  */
-/** @file
- */
-
-#ifndef _LIBC_IPC_DDEV_H_
-#define _LIBC_IPC_DDEV_H_
-
-#include <ipc/common.h>
-
-typedef enum {
-	DDEV_GET_GC = IPC_FIRST_USER_METHOD,
-	DDEV_GET_INFO
-} ddev_request_t;
-
-#endif
+void ddev_info_init(ddev_info_t *info)
+{
+	memset(info, 0, sizeof(ddev_info_t));
+}
 
 /** @}
  */

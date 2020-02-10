@@ -38,6 +38,7 @@
 #include <async.h>
 #include <errno.h>
 #include <gfx/context.h>
+#include "types/ddev/info.h"
 
 typedef struct ddev_ops ddev_ops_t;
 
@@ -50,6 +51,7 @@ typedef struct {
 
 struct ddev_ops {
 	errno_t (*get_gc)(void *, sysarg_t *, sysarg_t *);
+	errno_t (*get_info)(void *, ddev_info_t *);
 };
 
 extern void ddev_conn(ipc_call_t *, ddev_srv_t *);

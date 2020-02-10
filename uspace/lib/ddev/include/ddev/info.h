@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,12 @@
 /** @file
  */
 
-#ifndef _LIBC_IPC_DDEV_H_
-#define _LIBC_IPC_DDEV_H_
+#ifndef _LIBDDEV_DDEV_INFO_H_
+#define _LIBDDEV_DDEV_INFO_H_
 
-#include <ipc/common.h>
+#include "types/ddev/info.h"
 
-typedef enum {
-	DDEV_GET_GC = IPC_FIRST_USER_METHOD,
-	DDEV_GET_INFO
-} ddev_request_t;
+extern void ddev_info_init(ddev_info_t *);
 
 #endif
 
