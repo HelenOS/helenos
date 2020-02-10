@@ -461,8 +461,10 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	fibril_mutex_unlock(&win->guard);
 
 	/* Inform compositor about new surface. */
-//	errno_t rc = win_resize(win->osess, offset_x, offset_y, width, height,
-//	    placement_flags, surface_direct_access(new_surface));
+#if 0
+	errno_t rc = win_resize(win->osess, offset_x, offset_y, width, height,
+	    placement_flags, surface_direct_access(new_surface));
+#endif
 	rc = EOK;
 
 	if (rc != EOK) {
@@ -519,7 +521,6 @@ static void handle_damage(window_t *win)
 	surface_reset_damaged_region(win->surface);
 	fibril_mutex_unlock(&win->guard);
 
-
 	if (width > 0 && height > 0) {
 		/* Notify compositor. */
 		//win_damage(win->osess, x, y, width, height);
@@ -529,8 +530,6 @@ static void handle_damage(window_t *win)
 		rect.p1.x = x + width;
 		rect.p1.y = y + height;
 
-		printf("render damaged region: %d,%d,%d,%d,\n",
-		    (int)x,(int)y,(int)width,(int)height);
 		if (win->bitmap != NULL)
 			(void) gfx_bitmap_render(win->bitmap, &rect, NULL);
 	}
@@ -640,38 +639,6 @@ static errno_t event_loop(void *arg)
 	return 0;
 }
 
-/* Input fetcher from compositor. Runs in own dedicated fibril. */
-static errno_t fetch_input(void *arg)
-{
-//	errno_t rc;
-//	bool terminate = false;
-//	window_t *win = (window_t *) arg;
-
-/*	while (true) {
-		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
-
-		if (event) {
-			rc = win_get_event(win->isess, event);
-			if (rc == EOK) {
-				terminate = (event->type == ET_WINDOW_CLOSE);
-				link_initialize(&event->link);
-				prodcons_produce(&win->events, &event->link);
-			} else {
-				free(event);
-				terminate = true;
-			}
-		} else {
-			terminate = true;
-		}
-
-		if (terminate) {
-			break;
-		}
-	}
-*/
-	return 0;
-}
-
 window_t *window_open(const char *winreg, const void *data,
     window_flags_t flags, const char *caption)
 {
@@ -702,7 +669,6 @@ window_t *window_open(const char *winreg, const void *data,
 		free(win);
 		return NULL;
 	}
-
 
 	if (caption == NULL)
 		win->caption = NULL;
@@ -776,12 +742,10 @@ widget_t *window_root(window_t *win)
 void window_exec(window_t *win)
 {
 	fid_t ev_fid = fibril_create(event_loop, win);
-	fid_t fi_fid = fibril_create(fetch_input, win);
-	if (!ev_fid || !fi_fid) {
+	if (!ev_fid) {
 		return;
 	}
 	fibril_add_ready(ev_fid);
-	fibril_add_ready(fi_fid);
 }
 
 surface_t *window_claim(window_t *win)
