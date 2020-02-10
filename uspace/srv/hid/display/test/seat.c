@@ -231,10 +231,11 @@ PCUT_TEST(post_kbd_event_regular)
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(wnd, rwindow);
-	PCUT_ASSERT_EQUALS(event.type, revent.kbd_event.type);
-	PCUT_ASSERT_EQUALS(event.key, revent.kbd_event.key);
-	PCUT_ASSERT_EQUALS(event.mods, revent.kbd_event.mods);
-	PCUT_ASSERT_EQUALS(event.c, revent.kbd_event.c);
+	PCUT_ASSERT_EQUALS(wev_kbd, revent.etype);
+	PCUT_ASSERT_EQUALS(event.type, revent.ev.kbd.type);
+	PCUT_ASSERT_EQUALS(event.key, revent.ev.kbd.key);
+	PCUT_ASSERT_EQUALS(event.mods, revent.ev.kbd.mods);
+	PCUT_ASSERT_EQUALS(event.c, revent.ev.kbd.c);
 
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);

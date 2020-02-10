@@ -83,9 +83,11 @@ static pixel_t color_caption_focus = PIXEL(255, 255, 255, 255);
 static pixel_t color_caption_unfocus = PIXEL(255, 207, 207, 207);
 
 static void window_kbd_event(void *, kbd_event_t *);
+static void window_pos_event(void *, pos_event_t *);
 
 static display_wnd_cb_t window_cb = {
-	.kbd_event = window_kbd_event
+	.kbd_event = window_kbd_event,
+	.pos_event = window_pos_event
 };
 
 static void paint_internal(widget_t *widget)
@@ -811,6 +813,21 @@ static void window_kbd_event(void *arg, kbd_event_t *kevent)
 	link_initialize(&event->link);
 	event->type = ET_KEYBOARD_EVENT;
 	event->data.kbd = *kevent;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_pos_event(void *arg, pos_event_t *pevent)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_POSITION_EVENT;
+	event->data.pos = *pevent;
 	prodcons_produce(&win->events, &event->link);
 }
 

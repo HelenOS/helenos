@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <io/kbd_event.h>
+#include <io/pos_event.h>
 #include "types/display/client.h"
 #include "types/display/display.h"
 
@@ -53,6 +54,8 @@ extern errno_t ds_client_get_event(ds_client_t *, ds_window_t **,
     display_wnd_ev_t *);
 extern errno_t ds_client_post_kbd_event(ds_client_t *, ds_window_t *,
     kbd_event_t *);
+extern errno_t ds_client_post_pos_event(ds_client_t *, ds_window_t *,
+    pos_event_t *);
 
 #endif
 

@@ -376,8 +376,6 @@ PCUT_TEST(display_post_ptd_event_wnd_switch)
 	w1->dpos.x = 400;
 	w1->dpos.y = 400;
 
-	PCUT_ASSERT_FALSE(called_cb);
-
 	ds_seat_set_focus(seat, w0);
 
 	event.type = PTD_MOVE;
@@ -385,13 +383,11 @@ PCUT_TEST(display_post_ptd_event_wnd_switch)
 	event.dmove.y = 400;
 	rc = ds_display_post_ptd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
 
 	event.type = PTD_PRESS;
 	event.btn_num = 1;
 	rc = ds_display_post_ptd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
 
 	PCUT_ASSERT_EQUALS(w1, seat->focus);
 
@@ -399,20 +395,17 @@ PCUT_TEST(display_post_ptd_event_wnd_switch)
 	event.btn_num = 1;
 	rc = ds_display_post_ptd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
 
 	event.type = PTD_MOVE;
 	event.dmove.x = -400 + 10;
 	event.dmove.y = -400 + 10;
 	rc = ds_display_post_ptd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
 
 	event.type = PTD_PRESS;
 	event.btn_num = 1;
 	rc = ds_display_post_ptd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
 
 	PCUT_ASSERT_EQUALS(w0, seat->focus);
 

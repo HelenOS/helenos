@@ -205,10 +205,66 @@ PCUT_TEST(client_get_post_kbd_event)
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(wnd, rwindow);
-	PCUT_ASSERT_EQUALS(event.type, revent.kbd_event.type);
-	PCUT_ASSERT_EQUALS(event.key, revent.kbd_event.key);
-	PCUT_ASSERT_EQUALS(event.mods, revent.kbd_event.mods);
-	PCUT_ASSERT_EQUALS(event.c, revent.kbd_event.c);
+	PCUT_ASSERT_EQUALS(wev_kbd, revent.etype);
+	PCUT_ASSERT_EQUALS(event.type, revent.ev.kbd.type);
+	PCUT_ASSERT_EQUALS(event.key, revent.ev.kbd.key);
+	PCUT_ASSERT_EQUALS(event.mods, revent.ev.kbd.mods);
+	PCUT_ASSERT_EQUALS(event.c, revent.ev.kbd.c);
+
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_client_get_event(), ds_client_post_pos_event(). */
+PCUT_TEST(client_get_post_pos_event)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	pos_event_t event;
+	ds_window_t *rwindow;
+	display_wnd_ev_t revent;
+	bool called_cb = NULL;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	event.type = POS_PRESS;
+	event.hpos = 1;
+	event.vpos = 2;
+
+	PCUT_ASSERT_FALSE(called_cb);
+
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	rc = ds_client_post_pos_event(client, wnd, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(called_cb);
+
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(wnd, rwindow);
+	PCUT_ASSERT_EQUALS(wev_pos, revent.etype);
+	PCUT_ASSERT_EQUALS(event.type, revent.ev.pos.type);
+	PCUT_ASSERT_EQUALS(event.hpos, revent.ev.pos.hpos);
+	PCUT_ASSERT_EQUALS(event.vpos, revent.ev.pos.vpos);
 
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);

@@ -294,8 +294,20 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 		if (rc != EOK)
 			break;
 
-		if (window->cb != NULL && window->cb->kbd_event != NULL)
-			window->cb->kbd_event(window->cb_arg, &event.kbd_event);
+		switch (event.etype) {
+		case wev_kbd:
+			if (window->cb != NULL && window->cb->kbd_event != NULL) {
+				window->cb->kbd_event(window->cb_arg,
+				    &event.ev.kbd);
+			}
+			break;
+		case wev_pos:
+			if (window->cb != NULL && window->cb->pos_event != NULL) {
+				window->cb->pos_event(window->cb_arg,
+				    &event.ev.pos);
+			}
+			break;
+		}
 	}
 
 	async_answer_0(icall, EOK);

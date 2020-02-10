@@ -38,6 +38,7 @@
 #include <async.h>
 #include <fibril_synch.h>
 #include <io/kbd_event.h>
+#include <io/pos_event.h>
 #include <stdint.h>
 
 /** Display server session */
@@ -57,6 +58,7 @@ typedef struct {
 /** Display window callbacks */
 typedef struct {
 	void (*kbd_event)(void *, kbd_event_t *);
+	void (*pos_event)(void *, pos_event_t *);
 } display_wnd_cb_t;
 
 /** Display window */

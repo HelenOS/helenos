@@ -36,9 +36,19 @@
 #define _LIBDISPLAY_TYPES_DISPLAY_EVENT_H_
 
 #include <io/kbd_event.h>
+#include <io/pos_event.h>
+
+typedef enum {
+	wev_kbd,
+	wev_pos
+} display_wnd_ev_type_t;
 
 typedef struct {
-	kbd_event_t kbd_event;
+	display_wnd_ev_type_t etype;
+	union {
+		kbd_event_t kbd;
+		pos_event_t pos;
+	} ev;
 } display_wnd_ev_t;
 
 #endif

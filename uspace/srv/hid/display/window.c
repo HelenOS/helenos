@@ -488,6 +488,8 @@ static void ds_window_update_move(ds_window_t *wnd, pos_event_t *event)
  */
 errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 {
+	pos_event_t tevent;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "ds_window_post_pos_event type=%d pos=%d,%d\n", event->type,
 	    (int) event->hpos, (int) event->vpos);
@@ -507,7 +509,12 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 			ds_window_update_move(wnd, event);
 	}
 
-	return EOK;
+	/* Transform event coordinates to window-local */
+	tevent = *event;
+	tevent.hpos -= wnd->dpos.x;
+	tevent.vpos -= wnd->dpos.y;
+
+	return ds_client_post_pos_event(wnd->client, wnd, &tevent);
 }
 
 /** @}
