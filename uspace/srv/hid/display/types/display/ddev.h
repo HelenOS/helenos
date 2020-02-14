@@ -51,6 +51,8 @@ typedef struct ds_ddev {
 	link_t loutdevs;
 	/** Device GC */
 	gfx_context_t *gc;
+	/** Display device information */
+	ddev_info_t info;
 	/** Service ID */
 	service_id_t svc_id;
 	/** Service name */

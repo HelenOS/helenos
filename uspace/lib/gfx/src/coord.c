@@ -61,6 +61,20 @@ void gfx_coord2_subtract(gfx_coord2_t *a, gfx_coord2_t *b, gfx_coord2_t *d)
 	d->y = a->y - b->y;
 }
 
+void gfx_coord2_clip(gfx_coord2_t *a, gfx_rect_t *clip, gfx_coord2_t *d)
+{
+	gfx_rect_t sclip;
+	gfx_coord2_t t;
+
+	gfx_rect_points_sort(clip, &sclip);
+
+	t.x = min(a->x, clip->p1.x - 1);
+	t.y = min(a->y, clip->p1.y - 1);
+
+	d->x = max(clip->p0.x, t.x);
+	d->y = max(clip->p0.y, t.y);
+}
+
 /** Sort points of a span.
  *
  * Sort the begin and end points so that the begin point has the lower

@@ -383,6 +383,10 @@ void ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
 	assert(ddev->display == NULL);
 	assert(!link_used(&ddev->lddevs));
 
+	/* Set display dimensions to dimensions of first display device */
+	if (gfx_rect_is_empty(&disp->rect))
+		disp->rect = ddev->info.rect;
+
 	ddev->display = disp;
 	list_append(&ddev->lddevs, &disp->ddevs);
 }
@@ -446,20 +450,14 @@ gfx_context_t *ds_display_get_gc(ds_display_t *display)
  */
 errno_t ds_display_paint_bg(ds_display_t *disp, gfx_rect_t *rect)
 {
-	gfx_rect_t dsrect;
 	gfx_rect_t crect;
 	gfx_context_t *gc;
 	errno_t rc;
 
-	dsrect.p0.x = 0;
-	dsrect.p0.y = 0;
-	dsrect.p1.x = 1024;
-	dsrect.p1.y = 768;
-
 	if (rect != NULL)
-		gfx_rect_clip(&dsrect, rect, &crect);
+		gfx_rect_clip(&disp->rect, rect, &crect);
 	else
-		crect = dsrect;
+		crect = disp->rect;
 
 	gc = ds_display_get_gc(disp); // XXX
 	if (gc == NULL)

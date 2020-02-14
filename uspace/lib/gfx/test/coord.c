@@ -67,6 +67,69 @@ PCUT_TEST(coord2_subtract)
 	PCUT_ASSERT_INT_EQUALS(a.y - b.y, d.y);
 }
 
+/** gfx_coord2_clip with point to lower-left of clipping rectangle */
+PCUT_TEST(coord2_clip_ll)
+{
+	gfx_coord2_t p;
+	gfx_coord2_t cp;
+	gfx_rect_t rect;
+
+	p.x = 1;
+	p.y = 2;
+
+	rect.p0.x = 3;
+	rect.p0.y = 4;
+	rect.p1.x = 5;
+	rect.p1.y = 6;
+
+	gfx_coord2_clip(&p, &rect, &cp);
+
+	PCUT_ASSERT_INT_EQUALS(3, cp.x);
+	PCUT_ASSERT_INT_EQUALS(4, cp.y);
+}
+
+/** gfx_coord2_clip with point inside the clipping rectangle */
+PCUT_TEST(coord2_clip_mm)
+{
+	gfx_coord2_t p;
+	gfx_coord2_t cp;
+	gfx_rect_t rect;
+
+	p.x = 2;
+	p.y = 3;
+
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+
+	gfx_coord2_clip(&p, &rect, &cp);
+
+	PCUT_ASSERT_INT_EQUALS(2, cp.x);
+	PCUT_ASSERT_INT_EQUALS(3, cp.y);
+}
+
+/** gfx_coord2_clip with point to upper-right of clipping rectangle */
+PCUT_TEST(coord2_clip_hh)
+{
+	gfx_coord2_t p;
+	gfx_coord2_t cp;
+	gfx_rect_t rect;
+
+	p.x = 5;
+	p.y = 6;
+
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+
+	gfx_coord2_clip(&p, &rect, &cp);
+
+	PCUT_ASSERT_INT_EQUALS(2, cp.x);
+	PCUT_ASSERT_INT_EQUALS(3, cp.y);
+}
+
 /** gfx_rect_translate should translate rectangle */
 PCUT_TEST(rect_translate)
 {

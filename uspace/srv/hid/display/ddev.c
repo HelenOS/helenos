@@ -36,6 +36,7 @@
 #include <adt/list.h>
 #include <ddev.h>
 #include <errno.h>
+#include <io/log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "display.h"
@@ -52,6 +53,7 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
     ds_ddev_t **rddev)
 {
 	ds_ddev_t *ddev;
+	ddev_info_t info;
 	gfx_context_t *gc;
 	ddev_t *dd = NULL;
 	char *name = NULL;
@@ -70,6 +72,19 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 		free(name);
 		return rc;
 	}
+
+	rc = ddev_get_info(dd, &info);
+	if (rc != EOK) {
+		printf("Error getting information for display device '%s'.\n",
+		    name);
+		free(name);
+		ddev_close(dd);
+		return rc;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Device rectangle for '%s': "
+	    "%d,%d,%d,%d\n", name, info.rect.p0.x, info.rect.p0.y,
+	    info.rect.p1.x, info.rect.p1.y);
 
 	rc = ddev_get_gc(dd, &gc);
 	if (rc != EOK) {
@@ -90,6 +105,7 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 	ddev->svc_id = svc_id;
 	ddev->dd = dd;
 	ddev->gc = gc;
+	ddev->info = info;
 
 	ds_display_add_ddev(display, ddev);
 

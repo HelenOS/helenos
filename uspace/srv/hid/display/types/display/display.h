@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <gfx/color.h>
+#include <gfx/coord.h>
 #include <io/input.h>
 #include "window.h"
 
@@ -68,6 +69,9 @@ typedef struct ds_display {
 
 	/** Background color */
 	gfx_color_t *bg_color;
+
+	/** Bounding rectangle */
+	gfx_rect_t rect;
 } ds_display_t;
 
 #endif

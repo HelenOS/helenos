@@ -252,6 +252,7 @@ static errno_t ds_seat_clear_pointer(ds_seat_t *seat)
 #include <stdio.h>
 errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 {
+	ds_display_t *disp = seat->display;
 	gfx_coord2_t npos;
 	ds_window_t *wnd;
 	pos_event_t pevent;
@@ -286,14 +287,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		printf("PTD_MOVE\n");
 
 		gfx_coord2_add(&seat->pntpos, &event->dmove, &npos);
-		if (npos.x < 0)
-			npos.x = 0;
-		if (npos.y < 0)
-			npos.y = 0;
-		if (npos.x > 1024)
-			npos.x = 1024;
-		if (npos.y > 768)
-			npos.y = 768;
+		gfx_coord2_clip(&npos, &disp->rect, &npos);
 
 		printf("clear pointer\n");
 		(void) ds_seat_clear_pointer(seat);

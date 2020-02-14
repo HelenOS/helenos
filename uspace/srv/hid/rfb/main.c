@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <ddev/info.h>
 #include <ddev_srv.h>
 #include <errno.h>
 #include <fibril_synch.h>
@@ -45,6 +46,9 @@
 
 #define NAME "rfb"
 
+static errno_t rfb_ddev_get_gc(void *, sysarg_t *, sysarg_t *);
+static errno_t rfb_ddev_get_info(void *, ddev_info_t *);
+
 static errno_t rfb_gc_set_color(void *, gfx_color_t *);
 static errno_t rfb_gc_fill_rect(void *, gfx_rect_t *);
 static errno_t rfb_gc_bitmap_create(void *, gfx_bitmap_params_t *,
@@ -54,6 +58,8 @@ static errno_t rfb_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t rfb_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 static ddev_ops_t rfb_ddev_ops = {
+	.get_gc = rfb_ddev_get_gc,
+	.get_info = rfb_ddev_get_info
 };
 
 typedef struct {
@@ -102,6 +108,27 @@ static void rfb_gc_invalidate_rect(rfb_gc_t *rfbgc, gfx_rect_t *rect)
 	rfb->damage_rect.y = new_rect.p0.y;
 	rfb->damage_rect.width = new_rect.p1.x - new_rect.p0.x;
 	rfb->damage_rect.height = new_rect.p1.y - new_rect.p1.y;
+}
+
+static errno_t rfb_ddev_get_gc(void *arg, sysarg_t *arg2, sysarg_t *arg3)
+{
+	*arg2 = 0;
+	*arg3 = 42;
+	return EOK;
+}
+
+static errno_t rfb_ddev_get_info(void *arg, ddev_info_t *info)
+{
+	rfb_t *rfb = (rfb_t *) arg;
+
+	ddev_info_init(info);
+
+	info->rect.p0.x = 0;
+	info->rect.p0.y = 0;
+	info->rect.p1.x = rfb->width;
+	info->rect.p1.y = rfb->height;
+
+	return EOK;
 }
 
 /** Set color on RFB.
@@ -283,6 +310,7 @@ static void syntax_print(void)
 
 static void client_connection(ipc_call_t *icall, void *arg)
 {
+	rfb_t *rfb = (rfb_t *) arg;
 	ddev_srv_t srv;
 	sysarg_t svc_id;
 	gfx_context_t *gc;
@@ -294,12 +322,12 @@ static void client_connection(ipc_call_t *icall, void *arg)
 		/* Set up protocol structure */
 		ddev_srv_initialize(&srv);
 		srv.ops = &rfb_ddev_ops;
-		srv.arg = arg;
+		srv.arg = (void *) rfb;
 
 		/* Handle connection */
 		ddev_conn(icall, &srv);
 	} else {
-		rc = gfx_context_new(&rfb_gc_ops, arg, &gc);
+		rc = gfx_context_new(&rfb_gc_ops, (void *) rfb, &gc);
 		if (rc != EOK) {
 			async_answer_0(icall, ENOMEM);
 			return;

@@ -42,6 +42,7 @@
 #include <align.h>
 #include <as.h>
 #include <ddev_srv.h>
+#include <ddev/info.h>
 #include <ddi.h>
 #include <ddf/log.h>
 #include <errno.h>
@@ -92,6 +93,7 @@ typedef struct {
 } kfb_bitmap_t;
 
 static errno_t kfb_ddev_get_gc(void *, sysarg_t *, sysarg_t *);
+static errno_t kfb_ddev_get_info(void *, ddev_info_t *);
 
 static errno_t kfb_gc_set_color(void *, gfx_color_t *);
 static errno_t kfb_gc_fill_rect(void *, gfx_rect_t *);
@@ -102,7 +104,8 @@ static errno_t kfb_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t kfb_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 static ddev_ops_t kfb_ddev_ops = {
-	.get_gc = kfb_ddev_get_gc
+	.get_gc = kfb_ddev_get_gc,
+	.get_info = kfb_ddev_get_info
 };
 
 static gfx_context_ops_t kfb_gc_ops = {
@@ -120,6 +123,15 @@ static errno_t kfb_ddev_get_gc(void *arg, sysarg_t *arg2, sysarg_t *arg3)
 
 	*arg2 = ddf_fun_get_handle(kfb->fun);
 	*arg3 = 42;
+	return EOK;
+}
+
+static errno_t kfb_ddev_get_info(void *arg, ddev_info_t *info)
+{
+	kfb_t *kfb = (kfb_t *) arg;
+
+	ddev_info_init(info);
+	info->rect = kfb->rect;
 	return EOK;
 }
 
