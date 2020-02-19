@@ -65,10 +65,10 @@
 #define APP_GETTERM  "/app/getterm"
 
 #define SRV_DISPLAY  "/srv/hid/display"
+#define DISPLAY_SVC  "hid/display"
 
 #define HID_INPUT              "hid/input"
 #define HID_OUTPUT             "hid/output"
-#define HID_COMPOSITOR_SERVER  ":0"
 
 #define srv_start(path, ...) \
 	srv_startl(path, path, ##__VA_ARGS__, NULL)
@@ -260,13 +260,13 @@ static errno_t display_server(void)
 	return srv_start(SRV_DISPLAY);
 }
 
-static int gui_start(const char *app)
+static int gui_start(const char *app, const char *display_svc)
 {
 	printf("%s: Spawning %s\n", NAME, app);
 
 	task_id_t id;
 	task_wait_t wait;
-	errno_t rc = task_spawnl(&id, &wait, app, app, NULL);
+	errno_t rc = task_spawnl(&id, &wait, app, app, display_svc, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", NAME, app,
 		    str_error(rc));
@@ -450,7 +450,9 @@ int main(int argc, char *argv[])
 		rc = display_server();
 		if (rc == EOK) {
 			fibril_sleep(1);
-			gui_start("/app/terminal");
+			gui_start("/app/barber", DISPLAY_SVC);
+			gui_start("/app/vlaunch", DISPLAY_SVC);
+			gui_start("/app/vterm", DISPLAY_SVC);
 		}
 	}
 
