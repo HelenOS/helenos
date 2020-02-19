@@ -61,6 +61,12 @@ void gfx_coord2_subtract(gfx_coord2_t *a, gfx_coord2_t *b, gfx_coord2_t *d)
 	d->y = a->y - b->y;
 }
 
+/** Clip point coordinates to be within a rectangle.
+ *
+ * @param a Pixel coordinates
+ * @param clip Clipping rectangle
+ * @param d Place to store clipped coordinates
+ */
 void gfx_coord2_clip(gfx_coord2_t *a, gfx_rect_t *clip, gfx_coord2_t *d)
 {
 	gfx_rect_t sclip;
@@ -73,6 +79,32 @@ void gfx_coord2_clip(gfx_coord2_t *a, gfx_rect_t *clip, gfx_coord2_t *d)
 
 	d->x = max(clip->p0.x, t.x);
 	d->y = max(clip->p0.y, t.y);
+}
+
+/** Transform coordinates via rectangle to rectangle projection.
+ *
+ * Transform pixel coordinate via a projection that maps one rectangle
+ * onto another rectangle. The source rectangle must have both dimensions
+ * greater than one.
+ *
+ * @param a Pixel coordinates
+ * @param srect Source rectangle
+ * @param drect Destination rectangle
+ * @param d Place to store resulting coordinates.
+ */
+void gfx_coord2_project(gfx_coord2_t *a, gfx_rect_t *srect, gfx_rect_t *drect,
+    gfx_coord2_t *d)
+{
+	gfx_rect_t sr;
+	gfx_rect_t dr;
+
+	gfx_rect_points_sort(srect, &sr);
+	gfx_rect_points_sort(drect, &dr);
+
+	d->x = dr.p0.x + (a->x - sr.p0.x) * (dr.p1.x - dr.p0.x - 1) /
+	    (sr.p1.x - sr.p0.x - 1);
+	d->y = dr.p0.y + (a->y - sr.p0.y) * (dr.p1.y - dr.p0.y - 1) /
+	    (sr.p1.y - sr.p0.y - 1);
 }
 
 /** Sort points of a span.

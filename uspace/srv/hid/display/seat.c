@@ -255,6 +255,7 @@ static errno_t ds_seat_clear_pointer(ds_seat_t *seat)
  *
  * @return EOK on success or an error code
  */
+#include <stdio.h>
 errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 {
 	ds_display_t *disp = seat->display;
@@ -287,6 +288,34 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 
 	if (event->type == PTD_MOVE) {
 		gfx_coord2_add(&seat->pntpos, &event->dmove, &npos);
+		gfx_coord2_clip(&npos, &disp->rect, &npos);
+
+		(void) ds_seat_clear_pointer(seat);
+		seat->pntpos = npos;
+
+		pevent.pos_id = 0;
+		pevent.type = POS_UPDATE;
+		pevent.btn_num = 0;
+		pevent.hpos = seat->pntpos.x;
+		pevent.vpos = seat->pntpos.y;
+
+		rc = ds_seat_post_pos_event(seat, &pevent);
+		if (rc != EOK)
+			return rc;
+
+		(void) ds_seat_draw_pointer(seat);
+	}
+
+	if (event->type == PTD_ABS_MOVE) {
+		/*
+		 * Project input device area onto display area. Technically
+		 * we probably want to project onto the area of a particular
+		 * display device. The tricky part is figuring out which
+		 * display device the input device is associated with.
+		 */
+		gfx_coord2_project(&event->apos, &event->abounds,
+		    &disp->rect, &npos);
+
 		gfx_coord2_clip(&npos, &disp->rect, &npos);
 
 		(void) ds_seat_clear_pointer(seat);

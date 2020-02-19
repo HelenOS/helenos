@@ -130,6 +130,47 @@ PCUT_TEST(coord2_clip_hh)
 	PCUT_ASSERT_INT_EQUALS(3, cp.y);
 }
 
+/** gfx_coord2_project projects pixel from one rectangle to another  */
+PCUT_TEST(coord2_project)
+{
+	gfx_coord2_t a, d;
+	gfx_rect_t srect, drect;
+
+	srect.p0.x = 10;
+	srect.p0.y = 10;
+	srect.p1.x = 20 + 1;
+	srect.p1.y = 20 + 1;
+
+	drect.p0.x = 100;
+	drect.p0.y = 100;
+	drect.p1.x = 200 + 1;
+	drect.p1.y = 200 + 1;
+
+	a.x = 10;
+	a.y = 10;
+	gfx_coord2_project(&a, &srect, &drect, &d);
+	PCUT_ASSERT_INT_EQUALS(100, d.x);
+	PCUT_ASSERT_INT_EQUALS(100, d.y);
+
+	a.x = 15;
+	a.y = 15;
+	gfx_coord2_project(&a, &srect, &drect, &d);
+	PCUT_ASSERT_INT_EQUALS(150, d.x);
+	PCUT_ASSERT_INT_EQUALS(150, d.y);
+
+	a.x = 12;
+	a.y = 16;
+	gfx_coord2_project(&a, &srect, &drect, &d);
+	PCUT_ASSERT_INT_EQUALS(120, d.x);
+	PCUT_ASSERT_INT_EQUALS(160, d.y);
+
+	a.x = 20;
+	a.y = 20;
+	gfx_coord2_project(&a, &srect, &drect, &d);
+	PCUT_ASSERT_INT_EQUALS(200, d.x);
+	PCUT_ASSERT_INT_EQUALS(200, d.y);
+}
+
 /** gfx_rect_translate should translate rectangle */
 PCUT_TEST(rect_translate)
 {

@@ -96,9 +96,18 @@ static errno_t ds_input_ev_move(input_t *input, int dx, int dy)
 static errno_t ds_input_ev_abs_move(input_t *input, unsigned x, unsigned y,
     unsigned max_x, unsigned max_y)
 {
-	printf("ds_input_ev_abs_move x=%u y=%u mx=%u my=%u\n",
-	    x, y, max_x, max_y);
-	return EOK;
+	ds_display_t *disp = (ds_display_t *) input->user;
+	ptd_event_t event;
+
+	event.type = PTD_ABS_MOVE;
+	event.apos.x = x;
+	event.apos.y = y;
+	event.abounds.p0.x = 0;
+	event.abounds.p0.y = 0;
+	event.abounds.p1.x = max_x + 1;
+	event.abounds.p1.y = max_y + 1;
+
+	return ds_display_post_ptd_event(disp, &event);
 }
 
 static errno_t ds_input_ev_button(input_t *input, int bnum, int bpress)

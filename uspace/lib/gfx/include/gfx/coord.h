@@ -42,6 +42,8 @@
 extern void gfx_coord2_add(gfx_coord2_t *, gfx_coord2_t *, gfx_coord2_t *);
 extern void gfx_coord2_subtract(gfx_coord2_t *, gfx_coord2_t *, gfx_coord2_t *);
 extern void gfx_coord2_clip(gfx_coord2_t *, gfx_rect_t *, gfx_coord2_t *);
+extern void gfx_coord2_project(gfx_coord2_t *, gfx_rect_t *, gfx_rect_t *,
+    gfx_coord2_t *);
 extern void gfx_span_points_sort(gfx_coord_t, gfx_coord_t, gfx_coord_t *,
     gfx_coord_t *);
 extern void gfx_rect_translate(gfx_coord2_t *, gfx_rect_t *, gfx_rect_t *);
