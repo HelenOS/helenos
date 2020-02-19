@@ -65,7 +65,7 @@ static ds_client_cb_t display_client_cb = {
 static void display_client_ev_pending(void *arg)
 {
 	display_srv_t *srv = (display_srv_t *) arg;
-	printf("display_client_ev_pending\n");
+
 	display_srv_ev_pending(srv);
 }
 

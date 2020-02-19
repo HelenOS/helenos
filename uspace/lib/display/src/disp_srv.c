@@ -43,11 +43,8 @@
 #include <stdlib.h>
 #include <stddef.h>
 
-#include <stdio.h>
 static void display_callback_create_srv(display_srv_t *srv, ipc_call_t *call)
 {
-	printf("display_callback_create_srv\n");
-
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL) {
 		async_answer_0(call, ENOMEM);
@@ -65,8 +62,6 @@ static void display_window_create_srv(display_srv_t *srv, ipc_call_t *icall)
 	display_wnd_params_t params;
 	size_t size;
 	errno_t rc;
-
-	printf("display_window_create_srv\n");
 
 	if (!async_data_write_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
@@ -101,8 +96,6 @@ static void display_window_destroy_srv(display_srv_t *srv, ipc_call_t *icall)
 	sysarg_t wnd_id;
 	errno_t rc;
 
-	printf("display_window_destroy_srv\n");
-
 	wnd_id = ipc_get_arg1(icall);
 
 	if (srv->ops->window_create == NULL) {
@@ -121,8 +114,6 @@ static void display_get_event_srv(display_srv_t *srv, ipc_call_t *icall)
 	ipc_call_t call;
 	size_t size;
 	errno_t rc;
-
-	printf("display_get_event_srv\n");
 
 	if (srv->ops->get_event == NULL) {
 		async_answer_0(icall, ENOTSUP);
@@ -161,7 +152,6 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 {
 	/* Accept the connection */
 	async_accept_0(icall);
-	printf("display_conn\n");
 
 	while (true) {
 		ipc_call_t call;
@@ -175,7 +165,6 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		}
 
-		printf("display_conn method=%u\n", (unsigned) method);
 		switch (method) {
 		case DISPLAY_CALLBACK_CREATE:
 			display_callback_create_srv(srv, &call);
@@ -217,8 +206,6 @@ void display_srv_initialize(display_srv_t *srv)
 void display_srv_ev_pending(display_srv_t *srv)
 {
 	async_exch_t *exch;
-
-	printf("display_srv_ev_pending()\n");
 
 	exch = async_exchange_begin(srv->client_sess);
 	async_msg_0(exch, DISPLAY_EV_PENDING);

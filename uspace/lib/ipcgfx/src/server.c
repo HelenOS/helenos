@@ -69,7 +69,6 @@ static void gc_set_rgb_color_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
 
 	rc = gfx_set_color(srvgc->gc, color);
 	async_answer_0(call, rc);
-	printf("done with rgb_color_srv\n");
 }
 
 static void gc_fill_rect_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)

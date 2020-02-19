@@ -312,7 +312,6 @@ errno_t ds_display_post_ptd_event(ds_display_t *display, ptd_event_t *event)
 
 	// TODO Determine which seat the event belongs to
 	seat = ds_display_first_seat(display);
-	printf("ds_display_post_ptd_event: seat=%p\n", seat);
 	if (seat == NULL)
 		return EOK;
 

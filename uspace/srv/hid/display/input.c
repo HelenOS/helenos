@@ -73,7 +73,6 @@ static errno_t ds_input_ev_key(input_t *input, kbd_event_type_t type,
 	ds_display_t *disp = (ds_display_t *) input->user;
 	kbd_event_t event;
 
-	printf("ds_input_ev_key\n");
 	event.type = type;
 	event.key = key;
 	event.mods = mods;
@@ -87,7 +86,6 @@ static errno_t ds_input_ev_move(input_t *input, int dx, int dy)
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
 
-	printf("ds_input_ev_move\n");
 	event.type = PTD_MOVE;
 	event.dmove.x = dx;
 	event.dmove.y = dy;
@@ -108,7 +106,6 @@ static errno_t ds_input_ev_button(input_t *input, int bnum, int bpress)
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
 
-	printf("ds_input_ev_abs_button\n");
 	event.type = bpress ? PTD_PRESS : PTD_RELEASE;
 	event.btn_num = bnum;
 	event.dmove.x = 0;
@@ -128,7 +125,6 @@ errno_t ds_input_open(ds_display_t *display)
 	service_id_t dsid;
 	const char *svc = "hid/input";
 
-	printf("ds_input_open\n");
 	errno_t rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc != EOK) {
 		printf("%s: Input service %s not found\n", NAME, svc);
@@ -152,7 +148,6 @@ errno_t ds_input_open(ds_display_t *display)
 	}
 
 	input_activate(display->input);
-	printf("ds_input_open: DONE\n");
 	return EOK;
 }
 

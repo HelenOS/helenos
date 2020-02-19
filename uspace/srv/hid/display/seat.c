@@ -255,7 +255,6 @@ static errno_t ds_seat_clear_pointer(ds_seat_t *seat)
  *
  * @return EOK on success or an error code
  */
-#include <stdio.h>
 errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 {
 	ds_display_t *disp = seat->display;
@@ -264,14 +263,11 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 	pos_event_t pevent;
 	errno_t rc;
 
-	printf("ds_seat_post_ptd_event\n");
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
 
 	/* Focus window on button press */
 	if (event->type == PTD_PRESS && event->btn_num == 1) {
-		printf("PTD_PRESS (button = %d)\n", event->btn_num);
 		if (wnd != NULL) {
-			printf("set focus\n");
 			ds_seat_set_focus(seat, wnd);
 		}
 	}
@@ -290,12 +286,9 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 	}
 
 	if (event->type == PTD_MOVE) {
-		printf("PTD_MOVE\n");
-
 		gfx_coord2_add(&seat->pntpos, &event->dmove, &npos);
 		gfx_coord2_clip(&npos, &disp->rect, &npos);
 
-		printf("clear pointer\n");
 		(void) ds_seat_clear_pointer(seat);
 		seat->pntpos = npos;
 
@@ -309,7 +302,6 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		if (rc != EOK)
 			return rc;
 
-		printf("draw pointer\n");
 		(void) ds_seat_draw_pointer(seat);
 	}
 
@@ -328,19 +320,14 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	ds_window_t *wnd;
 	errno_t rc;
 
-	printf("ds_seat_post_pos_event\n");
-
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
 	if (wnd != NULL) {
-		printf("send event to window at pointer position\n");
 		rc = ds_window_post_pos_event(wnd, event);
 		if (rc != EOK)
 			return rc;
 	}
 
 	if (seat->focus != wnd) {
-		printf("send event to focused window\n");
-
 		rc = ds_window_post_pos_event(seat->focus, event);
 		if (rc != EOK)
 			return rc;
