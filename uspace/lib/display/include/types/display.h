@@ -39,7 +39,11 @@
 #include <fibril_synch.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include <stddef.h>
 #include <stdint.h>
+
+/** Use the default display service (argument to display_open() */
+#define DISPLAY_DEFAULT NULL
 
 /** Display server session */
 typedef struct {

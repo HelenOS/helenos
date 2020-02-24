@@ -43,8 +43,8 @@ LIB_DIR="$EXPORT_DIR/lib"
 libmath_cflags="-I$INCLUDE_DIR/libmath"
 libmath_libs="$LIB_DIR/libmath.a"
 
-libgui_cflags="-I$INCLUDE_DIR/libgui"
-libgui_libs="$LIB_DIR/libgui.a"
+libgui_cflags="-I$INCLUDE_DIR/libgui -I$INCLUDE_DIR/libdisplay -I$INCLUDE_DIR/libgfx -I$INCLUDE_DIR/libipcgfx"
+libgui_libs="$LIB_DIR/libgui.a $LIB_DIR/libdisplay.a $LIB_DIR/libipcgfx.a $LIB_DIR/libgfx.a"
 
 libdraw_cflags="-I$INCLUDE_DIR/libdraw"
 libdraw_libs="$LIB_DIR/libdraw.a $LIB_DIR/libsoftrend.a"

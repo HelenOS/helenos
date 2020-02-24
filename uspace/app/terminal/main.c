@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	terminal_t *terminal = NULL;
 	errno_t rc;
 
-	rc = display_open(NULL, &display);
+	rc = display_open(DISPLAY_DEFAULT, &display);
 	if (rc != EOK) {
 		printf("%s: Error opening display.\n", NAME);
 		return 1;

@@ -398,7 +398,7 @@ static errno_t demo_canvas(void)
 
 	printf("Init canvas..\n");
 
-	window = window_open("comp:0/winreg", NULL,
+	window = window_open(DISPLAY_DEFAULT, NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "GFX Demo");
 	if (window == NULL) {
 		printf("Error creating window.\n");
@@ -461,7 +461,7 @@ static errno_t demo_display(void)
 
 	printf("Init display..\n");
 
-	rc = display_open(NULL, &display);
+	rc = display_open(DISPLAY_DEFAULT, &display);
 	if (rc != EOK) {
 		printf("Error opening display.\n");
 		return rc;

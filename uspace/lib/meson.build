@@ -32,6 +32,7 @@ always_static = not CONFIG_BUILD_SHARED_LIBS
 installed_libs = [
 	'c',
 	'math',
+	'display',
 	'gui',
 	'draw',
 	'softrend',
