@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <gfx/coord.h>
 #include "display/wndparams.h"
 #include "types/display/event.h"
 
@@ -52,6 +53,7 @@ typedef struct {
 struct display_ops {
 	errno_t (*window_create)(void *, display_wnd_params_t *, sysarg_t *);
 	errno_t (*window_destroy)(void *, sysarg_t);
+	errno_t (*window_resize)(void *, sysarg_t, gfx_coord2_t *, gfx_rect_t *);
 	errno_t (*get_event)(void *, sysarg_t *, display_wnd_ev_t *);
 };
 

@@ -42,6 +42,7 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include "../private/params.h"
 
 static void display_callback_create_srv(display_srv_t *srv, ipc_call_t *call)
 {
@@ -104,6 +105,45 @@ static void display_window_destroy_srv(display_srv_t *srv, ipc_call_t *icall)
 	}
 
 	rc = srv->ops->window_destroy(srv->arg, wnd_id);
+	async_answer_0(icall, rc);
+}
+
+static void display_window_resize_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	ipc_call_t call;
+	display_wnd_move_t wmove;
+	size_t size;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(display_wnd_move_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, &wmove, size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	if (srv->ops->window_resize == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->window_resize(srv->arg, wnd_id, &wmove.offs,
+	    &wmove.nrect);
 	async_answer_0(icall, rc);
 }
 
@@ -174,6 +214,9 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		case DISPLAY_WINDOW_DESTROY:
 			display_window_destroy_srv(srv, &call);
+			break;
+		case DISPLAY_WINDOW_RESIZE:
+			display_window_resize_srv(srv, &call);
 			break;
 		case DISPLAY_GET_EVENT:
 			display_get_event_srv(srv, &call);

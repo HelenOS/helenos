@@ -52,7 +52,6 @@ static void test_ds_ev_pending(void *arg)
 	bool *called_cb = (bool *) arg;
 	printf("test_ds_ev_pending\n");
 	*called_cb = true;
-
 }
 
 /** Display creation and destruction. */
@@ -264,7 +263,7 @@ PCUT_TEST(display_post_kbd_event)
 	event.mods = 0;
 	event.c = L'\0';
 
-	PCUT_ASSERT_FALSE(called_cb);
+	called_cb = false;
 
 	rc = ds_display_post_kbd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -315,18 +314,24 @@ PCUT_TEST(display_post_kbd_event_alt_tab)
 	event.mods = KM_ALT;
 	event.c = L'\0';
 
-	PCUT_ASSERT_FALSE(called_cb);
+	called_cb = false;
 
 	rc = ds_display_post_kbd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
+
+	/* Got gocus/unfocus events */
+	PCUT_ASSERT_TRUE(called_cb);
 
 	/* Next window should be focused */
 	PCUT_ASSERT_EQUALS(w1, seat->focus);
 
+	called_cb = false;
+
 	rc = ds_display_post_kbd_event(disp, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
+
+	/* Got gocus/unfocus events */
+	PCUT_ASSERT_TRUE(called_cb);
 
 	/* Focus should be back to the first window */
 	PCUT_ASSERT_EQUALS(w0, seat->focus);
@@ -359,6 +364,16 @@ PCUT_TEST(display_post_ptd_event_wnd_switch)
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/*
+	 * For PTD_MOVE to work we need to set display dimensions (as pointer
+	 * move is clipped to the display rectangle. Here we do it directly
+	 * instead of adding a display device.
+	 */
+	disp->rect.p0.x = 0;
+	disp->rect.p0.y = 0;
+	disp->rect.p1.x = 500;
+	disp->rect.p1.y = 500;
 
 	display_wnd_params_init(&params);
 	params.rect.p0.x = params.rect.p0.y = 0;

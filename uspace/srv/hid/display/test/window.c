@@ -49,6 +49,49 @@ static gfx_context_ops_t dummy_ops = {
 	.fill_rect = dummy_fill_rect
 };
 
+/** Test ds_window_resize(). */
+PCUT_TEST(window_resize)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	gfx_coord2_t offs;
+	gfx_rect_t nrect;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd->dpos.x = 100;
+	wnd->dpos.y = 100;
+
+	offs.x = -2;
+	offs.y = -3;
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = 12;
+	params.rect.p1.y = 13;
+	rc = ds_window_resize(wnd, &offs, &nrect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(98, wnd->dpos.x);
+	PCUT_ASSERT_INT_EQUALS(97, wnd->dpos.y);
+
+	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 /** Test ds_window_get_ctx(). */
 PCUT_TEST(window_get_ctx)
 {

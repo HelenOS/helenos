@@ -50,6 +50,7 @@ extern gfx_context_ops_t window_gc_ops;
 extern errno_t ds_window_create(ds_client_t *, display_wnd_params_t *,
     ds_window_t **);
 extern void ds_window_destroy(ds_window_t *);
+extern errno_t ds_window_resize(ds_window_t *, gfx_coord2_t *, gfx_rect_t *);
 extern gfx_context_t *ds_window_get_ctx(ds_window_t *);
 extern errno_t ds_window_paint(ds_window_t *, gfx_rect_t *);
 extern errno_t ds_window_post_pos_event(ds_window_t *, pos_event_t *);

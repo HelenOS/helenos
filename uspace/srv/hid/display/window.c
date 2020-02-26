@@ -263,7 +263,6 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	ds_window_t *wnd = NULL;
 	gfx_context_t *gc = NULL;
 	gfx_context_t *dgc;
-	gfx_rect_t rect;
 	gfx_coord2_t dims;
 	gfx_bitmap_params_t bparams;
 	gfx_bitmap_alloc_t alloc;
@@ -282,9 +281,6 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	ds_client_add_window(client, wnd);
 	ds_display_add_window(client->display, wnd);
 
-	gfx_rect_points_sort(&params->rect, &rect);
-	gfx_coord2_subtract(&rect.p1, &rect.p0, &dims);
-
 	bparams.rect = params->rect;
 
 	dgc = ds_display_get_gc(wnd->display); // XXX
@@ -297,14 +293,10 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		if (rc != EOK)
 			goto error;
 
+		gfx_rect_dims(&params->rect, &dims);
 		wnd->pixelmap.width = dims.x;
 		wnd->pixelmap.height = dims.y;
 		wnd->pixelmap.data = alloc.pixels;
-
-		if (wnd->pixelmap.data == NULL) {
-			rc = ENOMEM;
-			goto error;
-		}
 	}
 
 	wnd->rect = params->rect;
@@ -322,9 +314,9 @@ error:
 	return rc;
 }
 
-/** Delete window GC.
+/** Destroy window.
  *
- * @param wnd Window GC
+ * @param wnd Window
  */
 void ds_window_destroy(ds_window_t *wnd)
 {
@@ -342,6 +334,59 @@ void ds_window_destroy(ds_window_t *wnd)
 	free(wnd);
 
 	(void) ds_display_paint(disp, NULL);
+}
+
+/** Resize window.
+ *
+ * @param wnd Window
+ */
+errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
+    gfx_rect_t *nrect)
+{
+	gfx_context_t *dgc;
+	gfx_bitmap_params_t bparams;
+	gfx_bitmap_t *nbitmap;
+	pixelmap_t npixelmap;
+	gfx_coord2_t dims;
+	gfx_bitmap_alloc_t alloc;
+	gfx_coord2_t ndpos;
+	errno_t rc;
+
+	dgc = ds_display_get_gc(wnd->display); // XXX
+	if (dgc != NULL) {
+		bparams.rect = *nrect;
+
+		rc = gfx_bitmap_create(dgc, &bparams, NULL, &nbitmap);
+		if (rc != EOK)
+			return ENOMEM;
+
+		rc = gfx_bitmap_get_alloc(nbitmap, &alloc);
+		if (rc != EOK) {
+			gfx_bitmap_destroy(nbitmap);
+			return ENOMEM;
+		}
+
+		gfx_rect_dims(nrect, &dims);
+		npixelmap.width = dims.x;
+		npixelmap.height = dims.y;
+		npixelmap.data = alloc.pixels;
+
+		/* TODO: Transfer contents within overlap */
+
+		if (wnd->bitmap != NULL)
+			gfx_bitmap_destroy(wnd->bitmap);
+
+		wnd->bitmap = nbitmap;
+		wnd->pixelmap = npixelmap;
+	}
+
+	gfx_coord2_add(&wnd->dpos, offs, &ndpos);
+
+	wnd->dpos = ndpos;
+	wnd->rect = *nrect;
+
+	(void) ds_display_paint(wnd->display, NULL);
+	return EOK;
 }
 
 /** Get generic graphic context from window.

@@ -238,7 +238,7 @@ PCUT_TEST(span_points_sort_equal)
 }
 
 /** Sorting span with hight start and lower end point results in transposed span. */
-PCUT_TEST(span_points_sort_decs)
+PCUT_TEST(span_points_sort_desc)
 {
 	gfx_coord_t a, b;
 
@@ -577,6 +577,40 @@ PCUT_TEST(rect_points_sort_reversed)
 	gfx_span_points_sort(2, 1, &s0, &s1);
 	PCUT_ASSERT_INT_EQUALS(2, s0);
 	PCUT_ASSERT_INT_EQUALS(3, s1);
+}
+
+/** Rectangle dimensions for straight rectangle are computed correctly */
+PCUT_TEST(rect_dims_straight)
+{
+	gfx_rect_t rect;
+	gfx_coord2_t dims;
+
+	rect.p0.x = 1;
+	rect.p0.y = 10;
+	rect.p1.x = 100;
+	rect.p1.y = 1000;
+
+	gfx_rect_dims(&rect, &dims);
+
+	PCUT_ASSERT_INT_EQUALS(99, dims.x);
+	PCUT_ASSERT_INT_EQUALS(990, dims.y);
+}
+
+/** Rectangle dimensions for reversed rectangle are computed correctly */
+PCUT_TEST(rect_dims_straight)
+{
+	gfx_rect_t rect;
+	gfx_coord2_t dims;
+
+	rect.p0.x = 1000;
+	rect.p0.y = 100;
+	rect.p1.x = 10;
+	rect.p1.y = 1;
+
+	gfx_rect_dims(&rect, &dims);
+
+	PCUT_ASSERT_INT_EQUALS(990, dims.x);
+	PCUT_ASSERT_INT_EQUALS(99, dims.y);
 }
 
 /** gfx_rect_is_empty for straight rectangle with zero columns returns true */

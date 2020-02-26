@@ -35,6 +35,7 @@
 
 #include <disp_srv.h>
 #include <errno.h>
+#include <gfx/coord.h>
 #include <io/log.h>
 #include "client.h"
 #include "display.h"
@@ -44,11 +45,14 @@
 
 static errno_t disp_window_create(void *, display_wnd_params_t *, sysarg_t *);
 static errno_t disp_window_destroy(void *, sysarg_t);
+static errno_t disp_window_resize(void *, sysarg_t, gfx_coord2_t *,
+    gfx_rect_t *);
 static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
 
 display_ops_t display_srv_ops = {
 	.window_create = disp_window_create,
 	.window_destroy = disp_window_destroy,
+	.window_resize = disp_window_resize,
 	.get_event = disp_get_event
 };
 
@@ -95,6 +99,20 @@ static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
 	ds_client_remove_window(wnd);
 	ds_window_destroy(wnd);
 	return EOK;
+}
+
+static errno_t disp_window_resize(void *arg, sysarg_t wnd_id,
+    gfx_coord2_t *offs, gfx_rect_t *nbound)
+{
+	ds_client_t *client = (ds_client_t *) arg;
+	ds_window_t *wnd;
+
+	wnd = ds_client_find_window(client, wnd_id);
+	if (wnd == NULL)
+		return ENOENT;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "disp_window_resize()");
+	return ds_window_resize(wnd, offs, nbound);
 }
 
 static errno_t disp_get_event(void *arg, sysarg_t *wnd_id,

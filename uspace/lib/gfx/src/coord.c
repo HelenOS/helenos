@@ -234,6 +234,22 @@ bool gfx_rect_is_empty(gfx_rect_t *rect)
 	return rect->p0.x == rect->p1.x || rect->p0.y == rect->p1.y;
 }
 
+/** Get rectangle dimensions.
+ *
+ * Get a vector containing the x, y dimensions of a rectangle. These are
+ * always nonnegative.
+ *
+ * @param rect Rectangle
+ * @param dims Place to store dimensions
+ */
+void gfx_rect_dims(gfx_rect_t *rect, gfx_coord2_t *dims)
+{
+	gfx_rect_t srect;
+
+	gfx_rect_points_sort(rect, &srect);
+	gfx_coord2_subtract(&srect.p1, &srect.p0, dims);
+}
+
 /** Return true if pixel at coordinate @a coord lies within rectangle @a rect. */
 bool gfx_pix_inside_rect(gfx_coord2_t *coord, gfx_rect_t *rect)
 {

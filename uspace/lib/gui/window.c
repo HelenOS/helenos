@@ -381,12 +381,11 @@ static void handle_signal_event(window_t *win, signal_event_t event)
 static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
     sysarg_t width, sysarg_t height, window_placement_flags_t placement_flags)
 {
-	display_wnd_params_t wparams;
-	display_window_t *new_window = NULL;
 	gfx_bitmap_params_t params;
 	gfx_bitmap_alloc_t alloc;
 	gfx_bitmap_t *new_bitmap = NULL;
-	gfx_context_t *new_gc = NULL;
+	gfx_coord2_t offs;
+	gfx_rect_t nrect;
 	errno_t rc;
 
 	if (width < 2 * border_thickness + header_min_width) {
@@ -405,26 +404,6 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	if (!new_surface)
 		return;
 
-	display_wnd_params_init(&wparams);
-	wparams.rect.p0.x = 0;
-	wparams.rect.p0.y = 0;
-	wparams.rect.p1.x = width;
-	wparams.rect.p1.y = height;
-
-	rc = display_window_create(win->display, &wparams, &window_cb,
-	    (void *) win, &new_window);
-	if (rc != EOK) {
-		surface_destroy(new_surface);
-		return;
-	}
-
-	rc = display_window_get_gc(new_window, &new_gc);
-	if (rc != EOK) {
-		display_window_destroy(new_window);
-		surface_destroy(new_surface);
-		return;
-	}
-
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = width;
@@ -434,10 +413,8 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	alloc.off0 = 0;
 	alloc.pixels = surface_direct_access(new_surface);
 
-	rc = gfx_bitmap_create(new_gc, &params, &alloc, &new_bitmap);
+	rc = gfx_bitmap_create(win->gc, &params, &alloc, &new_bitmap);
 	if (rc != EOK) {
-		gfx_context_delete(new_gc);
-		display_window_destroy(new_window);
 		surface_destroy(new_surface);
 		return;
 	}
@@ -446,12 +423,8 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	fibril_mutex_lock(&win->guard);
 	surface_t *old_surface = win->surface;
 	gfx_bitmap_t *old_bitmap = win->bitmap;
-	display_window_t *old_window = win->dwindow;
-	gfx_context_t *old_gc = win->gc;
 	win->surface = new_surface;
 	win->bitmap = new_bitmap;
-	win->dwindow = new_window;
-	win->gc = new_gc;
 	fibril_mutex_unlock(&win->guard);
 
 	/*
@@ -464,13 +437,15 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	surface_reset_damaged_region(win->surface);
 	fibril_mutex_unlock(&win->guard);
 
-	/* Inform compositor about new surface. */
-#if 0
-	errno_t rc = win_resize(win->osess, offset_x, offset_y, width, height,
-	    placement_flags, surface_direct_access(new_surface));
-#endif
-	rc = EOK;
+	/* Resize the display window. */
+	offs.x = offset_x;
+	offs.y = offset_y;
+	nrect.p0.x = 0;
+	nrect.p0.y = 0;
+	nrect.p1.x = width;
+	nrect.p1.y = height;
 
+	rc = display_window_resize(win->dwindow, &offs, &nrect);
 	if (rc != EOK) {
 		/* Rollback to old surface. Reverse all changes. */
 
@@ -483,8 +458,6 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 		new_surface = win->surface;
 		win->surface = old_surface;
 		win->bitmap = old_bitmap;
-		win->dwindow = old_window;
-		win->gc = old_gc;
 		fibril_mutex_unlock(&win->guard);
 
 		win->root.rearrange(&win->root, 0, 0, old_width, old_height);
@@ -497,10 +470,6 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 
 		surface_destroy(new_surface);
 	} else {
-		if (old_window != NULL)
-			display_window_destroy(old_window);
-		if (old_gc != NULL)
-			gfx_context_delete(old_gc);
 		if (old_bitmap != NULL)
 			gfx_bitmap_destroy(old_bitmap);
 		/* Deallocate old surface. */
@@ -642,6 +611,8 @@ static errno_t event_loop(void *arg)
 window_t *window_open(const char *winreg, const void *data,
     window_flags_t flags, const char *caption)
 {
+	display_wnd_params_t wparams;
+
 	window_t *win = (window_t *) calloc(1, sizeof(window_t));
 	if (!win)
 		return NULL;
@@ -662,10 +633,42 @@ window_t *window_open(const char *winreg, const void *data,
 	win->root.handle_position_event = root_handle_position_event;
 	win->grab = NULL;
 	win->focus = NULL;
-	win->surface = NULL;
+
+	/* Allocate resources for new surface. */
+	win->surface = surface_create(100, 100, NULL, SURFACE_FLAG_SHARED);
+	if (win->surface == NULL) {
+		free(win);
+		return NULL;
+	}
 
 	errno_t rc = display_open(winreg, &win->display);
 	if (rc != EOK) {
+		surface_destroy(win->surface);
+		free(win);
+		return NULL;
+	}
+
+	/* Window dimensions are not know at this time */
+	display_wnd_params_init(&wparams);
+	wparams.rect.p0.x = 0;
+	wparams.rect.p0.y = 0;
+	wparams.rect.p1.x = 100;
+	wparams.rect.p1.y = 100;
+
+	rc = display_window_create(win->display, &wparams, &window_cb,
+	    (void *) win, &win->dwindow);
+	if (rc != EOK) {
+		display_close(win->display);
+		surface_destroy(win->surface);
+		free(win);
+		return NULL;
+	}
+
+	rc = display_window_get_gc(win->dwindow, &win->gc);
+	if (rc != EOK) {
+		display_window_destroy(win->dwindow);
+		display_close(win->display);
+		surface_destroy(win->surface);
 		free(win);
 		return NULL;
 	}

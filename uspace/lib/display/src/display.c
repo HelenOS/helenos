@@ -37,6 +37,7 @@
 #include <loc.h>
 #include <mem.h>
 #include <stdlib.h>
+#include "../private/params.h"
 
 static errno_t display_callback_create(display_t *);
 static void display_cb_conn(ipc_call_t *, void *);
@@ -236,6 +237,76 @@ errno_t display_window_get_gc(display_window_t *window, gfx_context_t **rgc)
 	}
 
 	*rgc = ipc_gc_get_ctx(gc);
+	return EOK;
+}
+
+/** Resize display window.
+ *
+ * It seems resizing windows should be easy with bounding rectangles.
+ * You have an old bounding rectangle and a new bounding rectangle (@a nrect).
+ * Change .p0 and top-left corner moves. Change .p1 and bottom-right corner
+ * moves. Piece of cake!
+ *
+ * There's always a catch, though. By series of resizes and moves .p0 could
+ * drift outside of the range of @c gfx_coord_t. Now what? @a offs to the
+ * rescue! @a offs moves the @em boundaries of the window with respect
+ * to the display, while keeping the @em contents of the window in the
+ * same place (with respect to the display). In other words, @a offs shifts
+ * the window's internal coordinate system.
+ *
+ * A few examples follow:
+ *
+ * Enlarge window by moving bottom-right corner 1 right, 1 down:
+ *
+ *   bound = (0, 0, 10, 10)
+ *   offs  = (0, 0)
+ *   nrect = (0, 0, 11, 11)
+ *
+ * Enlarge window by moving top-left corner, 1 up, 1 left, allowing the
+ * window-relative coordinate of the top-left corner to drift (undesirable)
+ *
+ *   bound = (0, 0, 10, 10)
+ *   offs  = (0, 0)
+ *   nrect = (-1, -1, 10, 10) <- this is the new bounding rectangle
+ *
+ * Enlarge window by moving top-left corner 1 up, 1 left, keeping top-left
+ * corner locked to (0,0) window-relative coordinates (desirable):
+ *
+ *   bound = (0, 0, 10, 10)
+ *   off   = (-1,-1)        <- top-left corner goes 1 up, 1 left
+ *   nrect = (0, 0, 11, 11) <- window still starts at 0,0 window-relative
+ *
+ * @param window Window
+ * @param nrect New bounding rectangle
+ * @param offs
+ * @return EOK on success or an error code. In both cases @a window must
+ *         not be accessed anymore
+ */
+errno_t display_window_resize(display_window_t *window, gfx_coord2_t *offs,
+    gfx_rect_t *nrect)
+{
+	async_exch_t *exch;
+	aid_t req;
+	ipc_call_t answer;
+	display_wnd_move_t wmove;
+	errno_t rc;
+
+	wmove.offs = *offs;
+	wmove.nrect = *nrect;
+
+	exch = async_exchange_begin(window->display->sess);
+	req = async_send_1(exch, DISPLAY_WINDOW_RESIZE, window->id, &answer);
+	rc = async_data_write_start(exch, &wmove, sizeof (display_wnd_move_t));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
 }
 
