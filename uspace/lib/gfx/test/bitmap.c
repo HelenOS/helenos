@@ -83,6 +83,7 @@ PCUT_TEST(create_destroy)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 1;
 	params.rect.p0.y = 2;
 	params.rect.p1.x = 3;
@@ -118,6 +119,8 @@ PCUT_TEST(render)
 	memset(&tgc, 0, sizeof(tgc));
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_bitmap_params_init(&params);
 
 	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -158,6 +161,8 @@ PCUT_TEST(get_alloc)
 	memset(&tgc, 0, sizeof(tgc));
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_bitmap_params_init(&params);
 
 	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);

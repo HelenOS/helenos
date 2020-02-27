@@ -597,7 +597,7 @@ PCUT_TEST(rect_dims_straight)
 }
 
 /** Rectangle dimensions for reversed rectangle are computed correctly */
-PCUT_TEST(rect_dims_straight)
+PCUT_TEST(rect_dims_reversed)
 {
 	gfx_rect_t rect;
 	gfx_coord2_t dims;

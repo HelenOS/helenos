@@ -774,6 +774,7 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 		goto error;
 	}
 
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = width;

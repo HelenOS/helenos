@@ -281,6 +281,7 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	ds_client_add_window(client, wnd);
 	ds_display_add_window(client->display, wnd);
 
+	gfx_bitmap_params_init(&bparams);
 	bparams.rect = params->rect;
 
 	dgc = ds_display_get_gc(wnd->display); // XXX
@@ -354,6 +355,7 @@ errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
 
 	dgc = ds_display_get_gc(wnd->display); // XXX
 	if (dgc != NULL) {
+		gfx_bitmap_params_init(&bparams);
 		bparams.rect = *nrect;
 
 		rc = gfx_bitmap_create(dgc, &bparams, NULL, &nbitmap);

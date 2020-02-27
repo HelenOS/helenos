@@ -329,6 +329,8 @@ PCUT_TEST(bitmap_create_failure)
 
 	resp.rc = ENOMEM;
 	resp.bitmap_create_called = false;
+
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 1;
 	params.rect.p0.y = 2;
 	params.rect.p1.x = 3;
@@ -386,6 +388,8 @@ PCUT_TEST(bitmap_create_destroy_success)
 
 	resp.rc = EOK;
 	resp.bitmap_create_called = false;
+
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 1;
 	params.rect.p0.y = 2;
 	params.rect.p1.x = 3;
@@ -447,6 +451,7 @@ PCUT_TEST(bitmap_destroy_failure)
 	PCUT_ASSERT_NOT_NULL(gc);
 
 	resp.rc = EOK;
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 1;
 	params.rect.p0.y = 2;
 	params.rect.p1.x = 3;
@@ -501,6 +506,7 @@ PCUT_TEST(bitmap_render_failure)
 	PCUT_ASSERT_NOT_NULL(gc);
 
 	resp.rc = EOK;
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 1;
 	params.rect.p0.y = 2;
 	params.rect.p1.x = 3;
@@ -568,6 +574,7 @@ PCUT_TEST(bitmap_render_success)
 	PCUT_ASSERT_NOT_NULL(gc);
 
 	resp.rc = EOK;
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 1;
 	params.rect.p0.y = 2;
 	params.rect.p1.x = 3;
@@ -634,6 +641,7 @@ PCUT_TEST(bitmap_get_alloc)
 	PCUT_ASSERT_NOT_NULL(gc);
 
 	resp.rc = EOK;
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 1;
 	params.rect.p0.y = 2;
 	params.rect.p1.x = 3;

@@ -34,10 +34,23 @@
  */
 
 #include <gfx/bitmap.h>
+#include <mem.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include "../private/bitmap.h"
 #include "../private/context.h"
+
+/** Initialize bitmap parameters structure.
+ *
+ * Bitmap parameters structure must always be initialized using this function
+ * first.
+ *
+ * @param params Bitmap parameters structure
+ */
+void gfx_bitmap_params_init(gfx_bitmap_params_t *params)
+{
+	memset(params, 0, sizeof(gfx_bitmap_params_t));
+}
 
 /** Allocate bitmap in a graphics context.
  *

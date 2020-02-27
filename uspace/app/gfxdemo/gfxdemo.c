@@ -231,6 +231,7 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	if (rc != EOK)
 		return rc;
 
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = w;

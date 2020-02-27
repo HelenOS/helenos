@@ -404,6 +404,7 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	if (!new_surface)
 		return;
 
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = width;

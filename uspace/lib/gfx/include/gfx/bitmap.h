@@ -41,6 +41,7 @@
 #include <types/gfx/coord.h>
 #include <types/gfx/bitmap.h>
 
+extern void gfx_bitmap_params_init(gfx_bitmap_params_t *);
 extern errno_t gfx_bitmap_create(gfx_context_t *, gfx_bitmap_params_t *,
     gfx_bitmap_alloc_t *, gfx_bitmap_t **);
 extern errno_t gfx_bitmap_destroy(gfx_bitmap_t *);

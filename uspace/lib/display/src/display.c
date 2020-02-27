@@ -136,6 +136,9 @@ void display_close(display_t *display)
 
 /** Initialize window parameters structure.
  *
+ * Window parameters structure must always be initialized using this function
+ * first.
+ *
  * @param params Window parameters structure
  */
 void display_wnd_params_init(display_wnd_params_t *params)
