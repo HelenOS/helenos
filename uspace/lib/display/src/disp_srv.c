@@ -112,7 +112,7 @@ static void display_window_resize_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
 	ipc_call_t call;
-	display_wnd_move_t wmove;
+	display_wnd_resize_t wresize;
 	size_t size;
 	errno_t rc;
 
@@ -124,13 +124,13 @@ static void display_window_resize_srv(display_srv_t *srv, ipc_call_t *icall)
 		return;
 	}
 
-	if (size != sizeof(display_wnd_move_t)) {
+	if (size != sizeof(display_wnd_resize_t)) {
 		async_answer_0(&call, EINVAL);
 		async_answer_0(icall, EINVAL);
 		return;
 	}
 
-	rc = async_data_write_finalize(&call, &wmove, size);
+	rc = async_data_write_finalize(&call, &wresize, size);
 	if (rc != EOK) {
 		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
@@ -142,8 +142,8 @@ static void display_window_resize_srv(display_srv_t *srv, ipc_call_t *icall)
 		return;
 	}
 
-	rc = srv->ops->window_resize(srv->arg, wnd_id, &wmove.offs,
-	    &wmove.nrect);
+	rc = srv->ops->window_resize(srv->arg, wnd_id, &wresize.offs,
+	    &wresize.nrect);
 	async_answer_0(icall, rc);
 }
 

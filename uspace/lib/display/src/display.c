@@ -291,15 +291,15 @@ errno_t display_window_resize(display_window_t *window, gfx_coord2_t *offs,
 	async_exch_t *exch;
 	aid_t req;
 	ipc_call_t answer;
-	display_wnd_move_t wmove;
+	display_wnd_resize_t wresize;
 	errno_t rc;
 
-	wmove.offs = *offs;
-	wmove.nrect = *nrect;
+	wresize.offs = *offs;
+	wresize.nrect = *nrect;
 
 	exch = async_exchange_begin(window->display->sess);
 	req = async_send_1(exch, DISPLAY_WINDOW_RESIZE, window->id, &answer);
-	rc = async_data_write_start(exch, &wmove, sizeof (display_wnd_move_t));
+	rc = async_data_write_start(exch, &wresize, sizeof (display_wnd_resize_t));
 	async_exchange_end(exch);
 	if (rc != EOK) {
 		async_forget(req);
