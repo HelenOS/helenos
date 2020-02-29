@@ -103,7 +103,7 @@ static void sysman_unit_start_by_name(ipc_call_t *icall)
 		goto answer;
 	}
 
-	int flags = ipc_get_arg1(icall);
+	ipc_start_flag_t flags = ipc_get_arg1(icall);
 	sysman_log(LVL_DEBUG2, "%s(%s, %x)", __func__, unit_name, flags);
 
 	unit_t *unit = repo_find_unit_by_name(unit_name);
@@ -143,8 +143,8 @@ static void sysman_unit_operation(ipc_call_t *icall, unit_state_t state)
 	sysarg_t retval;
 
 	unit_handle_t handle = ipc_get_arg1(icall);
-	sysarg_t flags = ipc_get_arg2(icall);
-	sysman_log(LVL_DEBUG2, "%s(%p, %" SCNuPTR ", %i)", __func__, icall->cap_handle, flags, state);
+	ipc_start_flag_t flags = ipc_get_arg2(icall);
+	sysman_log(LVL_DEBUG2, "%s(%p, %u, %i)", __func__, icall->cap_handle, flags, state);
 
 	unit_t *unit = repo_find_unit_by_handle(handle);
 	if (unit == NULL) {

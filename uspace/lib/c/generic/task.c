@@ -416,7 +416,7 @@ errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
  *
  * @return EOK on success, else error code.
  */
-errno_t task_wait_task_id(task_id_t id, int flags, task_exit_t *texit, int *retval)
+errno_t task_wait_task_id(task_id_t id, task_wait_flag_t flags, task_exit_t *texit, int *retval)
 {
 	task_wait_t wait;
 	wait.flags = flags;

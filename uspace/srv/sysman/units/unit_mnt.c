@@ -53,7 +53,7 @@ typedef struct {
 	char *mountpoint;
 	char *device;
 	char *options;
-	unsigned int flags;
+	ipc_start_flag_t flags;
 	unsigned int instance;
 
 	unit_t *unit;
@@ -207,8 +207,8 @@ static errno_t unit_mnt_start(unit_t *unit)
 	 * mnt_data.instance   = u_mnt->instance;
 	 */
 
-	mnt_data.flags |= u_mnt->blocking ? IPC_FLAG_BLOCKING : 0;
-	mnt_data.flags |= u_mnt->autostart ? IPC_AUTOSTART : 0;
+	mnt_data.flags |= u_mnt->blocking ? true : 0;
+	mnt_data.flags |= u_mnt->autostart ? true : 0;
 	mnt_data.unit = unit;
 
 	if (u_mnt->blocking) {

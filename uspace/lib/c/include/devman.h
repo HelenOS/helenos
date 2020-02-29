@@ -52,12 +52,12 @@ extern errno_t devman_remove_function(devman_handle_t);
 extern errno_t devman_drv_fun_online(devman_handle_t);
 extern errno_t devman_drv_fun_offline(devman_handle_t);
 
-extern async_sess_t *devman_device_connect(devman_handle_t, unsigned int);
+extern async_sess_t *devman_device_connect(devman_handle_t, ipc_start_flag_t);
 extern async_sess_t *devman_parent_device_connect(devman_handle_t,
     unsigned int);
 
 extern errno_t devman_fun_get_handle(const char *, devman_handle_t *,
-    unsigned int);
+    ipc_start_flag_t);
 extern errno_t devman_fun_get_child(devman_handle_t, devman_handle_t *);
 extern errno_t devman_dev_get_parent(devman_handle_t, devman_handle_t *);
 extern errno_t devman_dev_get_functions(devman_handle_t, devman_handle_t **,

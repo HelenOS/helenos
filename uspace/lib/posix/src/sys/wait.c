@@ -100,7 +100,7 @@ pid_t waitpid(pid_t pid, int *stat_ptr, int options)
 	assert(stat_ptr != NULL);
 	assert(options == 0 /* None of the options are supported. */);
 
-	int flags = TASK_WAIT_RETVAL | TASK_WAIT_EXIT;
+	task_wait_flag_t flags = TASK_WAIT_RETVAL | TASK_WAIT_EXIT;
 	task_exit_t texit;
 	int retval;
 

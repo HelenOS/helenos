@@ -49,7 +49,7 @@ typedef struct {
 	task_id_t id;         /**< Task ID who we wait for. */
 	task_id_t waiter_id;  /**< Task ID who waits. */
 	ipc_call_t *icall;  /**< Call ID waiting for the event. */
-	int flags;            /**< Wait flags. */
+	task_wait_flag_t flags; /**< Wait flags. */
 } pending_wait_t;
 
 static list_t pending_waits;
@@ -66,9 +66,9 @@ errno_t event_init(void)
 	return EOK;
 }
 
-static int event_flags(task_t *task)
+static task_wait_flag_t event_flags(task_t *task)
 {
-	int flags = 0;
+	task_wait_flag_t flags = TASK_WAIT_NONE;
 	if (task->retval_type == RVAL_SET) {
 		flags |= TASK_WAIT_RETVAL;
 	}
@@ -87,8 +87,8 @@ static int event_flags(task_t *task)
 
 static void event_notify(task_t *sender, async_sess_t *sess)
 {
-	int flags = event_flags(sender);
-	if (flags == 0) {
+	task_wait_flag_t flags = event_flags(sender);
+	if (flags == TASK_WAIT_NONE) {
 		return;
 	}
 
@@ -113,8 +113,8 @@ static void event_notify(task_t *sender, async_sess_t *sess)
  */
 static void event_notify_all(task_t *sender)
 {
-	int flags = event_flags(sender);
-	if (flags == 0) {
+	task_wait_flag_t flags = event_flags(sender);
+	if (flags == TASK_WAIT_NONE) {
 		return;
 	}
 
@@ -139,15 +139,15 @@ loop:
 		if (t == NULL) {
 			continue; // TODO really when does this happen?
 		}
-		int notify_flags = event_flags(t);
+		task_wait_flag_t notify_flags = event_flags(t);
 
 		/*
 		 * In current implementation you can wait for single retval,
 		 * thus it can be never present in rest flags.
 		 */
-		int rest = (~notify_flags & pr->flags) & ~TASK_WAIT_RETVAL;
+		task_wait_flag_t rest = (~notify_flags & pr->flags) & ~TASK_WAIT_RETVAL;
 		rest &= ~TASK_WAIT_BOTH;
-		int match = notify_flags & pr->flags;
+		bool match = notify_flags & pr->flags;
 		// TODO why do I even accept such calls?
 		bool answer = !(pr->icall->flags & IPC_CALL_NOTIF);
 
@@ -232,7 +232,7 @@ finish:
 	}
 }
 
-void wait_for_task(task_id_t id, int flags, ipc_call_t *icall,
+void wait_for_task(task_id_t id, task_wait_flag_t flags, ipc_call_t *icall,
     task_id_t waiter_id)
 {
 	assert(!(flags & TASK_WAIT_BOTH) ||

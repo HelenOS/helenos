@@ -51,19 +51,19 @@ extern errno_t loc_service_unregister(service_id_t);
 extern errno_t loc_service_add_to_cat(service_id_t, category_id_t);
 
 extern errno_t loc_service_get_id(const char *, service_id_t *,
-    unsigned int);
+    ipc_start_flag_t);
 extern errno_t loc_service_get_name(service_id_t, char **);
 extern errno_t loc_service_get_server_name(service_id_t, char **);
 extern errno_t loc_namespace_get_id(const char *, service_id_t *,
-    unsigned int);
+    ipc_start_flag_t);
 extern errno_t loc_category_get_id(const char *, category_id_t *,
-    unsigned int);
+    ipc_start_flag_t);
 extern errno_t loc_category_get_name(category_id_t, char **);
 extern errno_t loc_category_get_svcs(category_id_t, category_id_t **, size_t *);
 extern loc_object_type_t loc_id_probe(service_id_t);
 
 extern async_sess_t *loc_service_connect(service_id_t, iface_t,
-    unsigned int);
+    ipc_start_flag_t);
 
 extern int loc_null_create(void);
 extern void loc_null_destroy(int);

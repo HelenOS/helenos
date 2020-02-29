@@ -34,9 +34,9 @@
 
 errno_t sysman_unit_handle(const char *, unit_handle_t *);
 
-errno_t sysman_unit_start_by_name(const char *, int);
-errno_t sysman_unit_start(unit_handle_t, int);
-errno_t sysman_unit_stop(unit_handle_t, int);
+errno_t sysman_unit_start_by_name(const char *, ipc_start_flag_t);
+errno_t sysman_unit_start(unit_handle_t, ipc_start_flag_t);
+errno_t sysman_unit_stop(unit_handle_t, ipc_start_flag_t);
 
 errno_t sysman_get_units(unit_handle_t **, size_t *);
 

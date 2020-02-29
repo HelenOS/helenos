@@ -63,7 +63,7 @@ errno_t sysman_unit_handle(const char *unit_name, unit_handle_t *handle_ptr)
  * Still though, it's necessary to centralize timeout into sysman.
  * TODO convert to name->handle API
  */
-errno_t sysman_unit_start_by_name(const char *unit_name, int flags)
+errno_t sysman_unit_start_by_name(const char *unit_name, ipc_start_flag_t flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
@@ -80,7 +80,7 @@ errno_t sysman_unit_start_by_name(const char *unit_name, int flags)
 	return rc;
 }
 
-errno_t sysman_unit_start(unit_handle_t handle, int flags)
+errno_t sysman_unit_start(unit_handle_t handle, ipc_start_flag_t flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 
@@ -90,7 +90,7 @@ errno_t sysman_unit_start(unit_handle_t handle, int flags)
 	return rc;
 }
 
-errno_t sysman_unit_stop(unit_handle_t handle, int flags)
+errno_t sysman_unit_stop(unit_handle_t handle, ipc_start_flag_t flags)
 {
 	async_exch_t *exch = sysman_exchange_begin(SYSMAN_PORT_CTL);
 

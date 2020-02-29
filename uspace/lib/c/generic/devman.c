@@ -285,7 +285,7 @@ errno_t devman_add_device_to_category(devman_handle_t devman_handle,
 	return retval;
 }
 
-async_sess_t *devman_device_connect(devman_handle_t handle, unsigned int flags)
+async_sess_t *devman_device_connect(devman_handle_t handle, ipc_start_flag_t flags)
 {
 	async_sess_t *sess;
 
@@ -358,7 +358,7 @@ async_sess_t *devman_parent_device_connect(devman_handle_t handle,
 }
 
 errno_t devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
-    unsigned int flags)
+    ipc_start_flag_t flags)
 {
 	async_exch_t *exch;
 

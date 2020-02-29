@@ -40,7 +40,7 @@
 /** Structure for boxing task event */
 struct sm_task_event {
 	task_id_t task_id;
-	int flags;
+	task_wait_flag_t flags;
 	task_exit_t texit;
 	int retval;
 };
@@ -50,7 +50,7 @@ static void sysman_event_task_event(void *);
 /**
  * @note This function runs in separate fibril (not same as event loop).
  */
-static void sm_task_event_handler(task_id_t tid, int flags, task_exit_t texit,
+static void sm_task_event_handler(task_id_t tid, task_wait_flag_t flags, task_exit_t texit,
     int retval)
 {
 	sm_task_event_t *tev = malloc(sizeof(sm_task_event_t));

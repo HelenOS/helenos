@@ -96,7 +96,7 @@ static void connect_to_loader(ipc_call_t *icall)
 	async_exchange_end(exch);
 
 	/* After forward we can dispose all session-related resources */
-	async_hangup(sess_ref->sess);
+	//async_hangup(sess_ref->sess);
 	free(sess_ref);
 
 	if (rc != EOK) {

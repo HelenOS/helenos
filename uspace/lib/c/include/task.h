@@ -40,11 +40,7 @@
 #include <abi/proc/task.h>
 #include <types/task.h>
 
-#define TASK_WAIT_EXIT   0x1
-#define TASK_WAIT_RETVAL 0x2
-#define TASK_WAIT_BOTH   0x4
-
-static inline void task_wait_set(task_wait_t *wait, int flags)
+static inline void task_wait_set(task_wait_t *wait, task_wait_flag_t flags)
 {
 	wait->flags = flags;
 }
@@ -69,7 +65,7 @@ extern errno_t task_spawnl(task_id_t *, task_wait_t *, const char *path, ...)
 
 extern void task_cancel_wait(task_wait_t *);
 extern errno_t task_wait(task_wait_t *, task_exit_t *, int *);
-extern errno_t task_wait_task_id(task_id_t, int, task_exit_t *, int *);
+extern errno_t task_wait_task_id(task_id_t, task_wait_flag_t, task_exit_t *, int *);
 
 extern errno_t task_retval(int);
 

@@ -38,7 +38,7 @@
 
 static task_id_t task_id;
 static task_exit_t last_texit;
-static int last_flags;
+static task_wait_flag_t last_flags;
 static int last_retval;
 static bool handler_hit;
 
@@ -48,7 +48,7 @@ static FIBRIL_MUTEX_INITIALIZE(sync_mtx);
 
 static FIBRIL_CONDVAR_INITIALIZE(sync_cv);
 
-static void task_event_handler(task_id_t tid, int flags, task_exit_t texit,
+static void task_event_handler(task_id_t tid, task_wait_flag_t flags, task_exit_t texit,
     int retval)
 {
 	fibril_rwlock_read_lock(&tid_lck);

@@ -40,19 +40,21 @@
 
 /* Well known phone descriptors */
 static cap_phone_handle_t const PHONE_INITIAL = (cap_phone_handle_t) (CAP_NIL + 1);
-#define IPC_FLAG_BLOCKING   0x01
 
-/**
- * IPC_FLAG_AUTOSTART_ is for use in brokers only. In client code use
- * IPC_AUTOSTART that includes implies blocking behavior.
- */
-#define IPC_FLAG_AUTOSTART_  0x02
+typedef enum {
+	/**
+	 * IPC_FLAG_AUTOSTART_ is for use in brokers only. In client code use
+	 * IPC_AUTOSTART that includes implies blocking behavior.
+	 */
+	IPC_FLAG_BLOCKING = 0x01,
+	IPC_FLAG_AUTOSTART_ = 0x02,
 
-/**
- * Similar to blocking IPC_FLAG_BLOCKING behavior, broker will attempt to
- * start the server.
- */
-#define IPC_AUTOSTART (IPC_FLAG_BLOCKING | IPC_FLAG_AUTOSTART_)
+	/**
+	 * Similar to blocking IPC_FLAG_BLOCKING behavior, broker will attempt to
+	 * start the server.
+	 */
+	IPC_AUTOSTART = (IPC_FLAG_BLOCKING | IPC_FLAG_AUTOSTART_),
+} ipc_start_flag_t;
 
 typedef ipc_data_t ipc_call_t;
 

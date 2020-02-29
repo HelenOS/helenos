@@ -453,7 +453,7 @@ errno_t loc_service_get_server_name(service_id_t svc_id, char **name)
 }
 
 errno_t loc_namespace_get_id(const char *name, service_id_t *handle,
-    unsigned int flags)
+    ipc_start_flag_t flags)
 {
 	async_exch_t *exch;
 
@@ -502,7 +502,7 @@ errno_t loc_namespace_get_id(const char *name, service_id_t *handle,
  * @return		EOK on success or an error code
  */
 errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
-    unsigned int flags)
+    ipc_start_flag_t flags)
 {
 	async_exch_t *exch;
 
@@ -557,7 +557,7 @@ loc_object_type_t loc_id_probe(service_id_t handle)
 }
 
 async_sess_t *loc_service_connect(service_id_t handle, iface_t iface,
-    unsigned int flags)
+    ipc_start_flag_t flags)
 {
 	async_sess_t *sess;
 

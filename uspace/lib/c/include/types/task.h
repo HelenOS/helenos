@@ -38,19 +38,26 @@
 #include <async.h>
 
 typedef enum {
+	TASK_WAIT_NONE   = 0x0,
+	TASK_WAIT_EXIT   = 0x1,
+	TASK_WAIT_RETVAL = 0x2,
+	TASK_WAIT_BOTH   = 0x4
+} task_wait_flag_t;
+
+typedef enum {
 	TASK_EXIT_RUNNING,   /**< Internal taskman value. */
 	TASK_EXIT_NORMAL,
 	TASK_EXIT_UNEXPECTED
 } task_exit_t;
 
 typedef struct {
-	int flags;
+	task_wait_flag_t flags;
 	ipc_call_t result;
 	aid_t aid;
 	task_id_t tid;
 } task_wait_t;
 
-typedef void (*task_event_handler_t)(task_id_t, int, task_exit_t, int);
+typedef void (*task_event_handler_t)(task_id_t, task_wait_flag_t, task_exit_t, int);
 
 #endif
 

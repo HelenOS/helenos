@@ -615,7 +615,7 @@ window_t *window_open(const char *winreg, const void *data,
 	win->focus = NULL;
 	win->surface = NULL;
 
-	unsigned int ipc_flags = IPC_AUTOSTART;
+	ipc_start_flag_t ipc_flags = IPC_AUTOSTART;
 	service_id_t reg_dsid;
 	errno_t rc = loc_service_get_id(winreg, &reg_dsid, ipc_flags);
 	if (rc != EOK) {
