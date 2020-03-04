@@ -45,6 +45,7 @@
 
 static errno_t disp_window_create(void *, display_wnd_params_t *, sysarg_t *);
 static errno_t disp_window_destroy(void *, sysarg_t);
+static errno_t disp_window_move_req(void *, sysarg_t, gfx_coord2_t *);
 static errno_t disp_window_resize(void *, sysarg_t, gfx_coord2_t *,
     gfx_rect_t *);
 static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
@@ -52,6 +53,7 @@ static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
 display_ops_t display_srv_ops = {
 	.window_create = disp_window_create,
 	.window_destroy = disp_window_destroy,
+	.window_move_req = disp_window_move_req,
 	.window_resize = disp_window_resize,
 	.get_event = disp_get_event
 };
@@ -98,6 +100,21 @@ static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_destroy()");
 	ds_client_remove_window(wnd);
 	ds_window_destroy(wnd);
+	return EOK;
+}
+
+static errno_t disp_window_move_req(void *arg, sysarg_t wnd_id,
+    gfx_coord2_t *pos)
+{
+	ds_client_t *client = (ds_client_t *) arg;
+	ds_window_t *wnd;
+
+	wnd = ds_client_find_window(client, wnd_id);
+	if (wnd == NULL)
+		return ENOENT;
+
+	log_msg(LVL_NOTE, LVL_DEBUG, "disp_window_move_req()");
+	ds_window_move_req(wnd, pos);
 	return EOK;
 }
 

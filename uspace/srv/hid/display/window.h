@@ -57,6 +57,7 @@ extern errno_t ds_window_post_kbd_event(ds_window_t *, kbd_event_t *);
 extern errno_t ds_window_post_pos_event(ds_window_t *, pos_event_t *);
 extern errno_t ds_window_post_focus_event(ds_window_t *);
 extern errno_t ds_window_post_unfocus_event(ds_window_t *);
+extern void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *);
 
 #endif
 

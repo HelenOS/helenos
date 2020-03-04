@@ -435,6 +435,25 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
 	return gfx_bitmap_render(wnd->bitmap, brect, &wnd->dpos);
 }
 
+/** Start moving a window, detected by client.
+ *
+ * @param wnd Window
+ * @param pos Position where the pointer was when the move started
+ *            relative to the window
+ * @param event Button press event
+ */
+void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *pos)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_move_req (%d, %d)",
+	    (int) pos->x, (int) pos->y);
+
+	if (wnd->state != dsw_idle)
+		return;
+
+	gfx_coord2_add(&wnd->dpos, pos, &wnd->orig_pos);
+	wnd->state = dsw_moving;
+}
+
 /** Start moving a window by mouse drag.
  *
  * @param wnd Window
@@ -445,7 +464,8 @@ static void ds_window_start_move(ds_window_t *wnd, pos_event_t *event)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_start_move (%d, %d)",
 	    (int) event->hpos, (int) event->vpos);
 
-	assert(wnd->state == dsw_idle);
+	if (wnd->state != dsw_idle)
+		return;
 
 	wnd->orig_pos.x = event->hpos;
 	wnd->orig_pos.y = event->vpos;
@@ -466,7 +486,9 @@ static void ds_window_finish_move(ds_window_t *wnd, pos_event_t *event)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_finish_move (%d, %d)",
 	    (int) event->hpos, (int) event->vpos);
 
-	assert(wnd->state == dsw_moving);
+	if (wnd->state != dsw_moving)
+		return;
+
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 	gfx_coord2_subtract(&pos, &wnd->orig_pos, &dmove);
@@ -496,6 +518,9 @@ static void ds_window_update_move(ds_window_t *wnd, pos_event_t *event)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_move (%d, %d)",
 	    (int) event->hpos, (int) event->vpos);
 
+	if (wnd->state != dsw_moving)
+		return;
+
 	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
 
 	gc = ds_display_get_gc(wnd->display); // XXX
@@ -504,7 +529,6 @@ static void ds_window_update_move(ds_window_t *wnd, pos_event_t *event)
 		gfx_fill_rect(gc, &drect);
 	}
 
-	assert(wnd->state == dsw_moving);
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 	gfx_coord2_subtract(&pos, &wnd->orig_pos, &dmove);
@@ -558,25 +582,27 @@ errno_t ds_window_post_kbd_event(ds_window_t *wnd, kbd_event_t *event)
 errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 {
 	pos_event_t tevent;
+	gfx_coord2_t pos;
+	gfx_rect_t drect;
+	bool inside;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "ds_window_post_pos_event type=%d pos=%d,%d\n", event->type,
 	    (int) event->hpos, (int) event->vpos);
 
-	if (event->type == POS_PRESS) {
-		if (wnd->state == dsw_idle)
-			ds_window_start_move(wnd, event);
-	}
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
+	inside = gfx_pix_inside_rect(&pos, &drect);
 
-	if (event->type == POS_RELEASE) {
-		if (wnd->state == dsw_moving)
-			ds_window_finish_move(wnd, event);
-	}
+	if (event->type == POS_PRESS && event->btn_num == 2 && inside)
+		ds_window_start_move(wnd, event);
 
-	if (event->type == POS_UPDATE) {
-		if (wnd->state == dsw_moving)
-			ds_window_update_move(wnd, event);
-	}
+	if (event->type == POS_RELEASE)
+		ds_window_finish_move(wnd, event);
+
+	if (event->type == POS_UPDATE)
+		ds_window_update_move(wnd, event);
 
 	/* Transform event coordinates to window-local */
 	tevent = *event;

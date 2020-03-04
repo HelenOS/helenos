@@ -200,7 +200,11 @@ PCUT_TEST(window_post_pos_event)
 
 	PCUT_ASSERT_INT_EQUALS(dsw_idle, wnd->state);
 
+	wnd->dpos.x = 10;
+	wnd->dpos.y = 10;
+
 	event.type = POS_PRESS;
+	event.btn_num = 2;
 	event.hpos = 10;
 	event.vpos = 10;
 	rc = ds_window_post_pos_event(wnd, &event);
@@ -215,8 +219,8 @@ PCUT_TEST(window_post_pos_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_INT_EQUALS(dsw_moving, wnd->state);
-	PCUT_ASSERT_INT_EQUALS(wnd->dpos.x, 1);
-	PCUT_ASSERT_INT_EQUALS(wnd->dpos.y, 2);
+	PCUT_ASSERT_INT_EQUALS(11, wnd->dpos.x);
+	PCUT_ASSERT_INT_EQUALS(12, wnd->dpos.y);
 
 	event.type = POS_RELEASE;
 	event.hpos = 13;
@@ -226,8 +230,50 @@ PCUT_TEST(window_post_pos_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_INT_EQUALS(dsw_idle, wnd->state);
-	PCUT_ASSERT_INT_EQUALS(wnd->dpos.x, 3);
-	PCUT_ASSERT_INT_EQUALS(wnd->dpos.y, 4);
+	PCUT_ASSERT_INT_EQUALS(13, wnd->dpos.x);
+	PCUT_ASSERT_INT_EQUALS(14, wnd->dpos.y);
+
+	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_window_move_req() */
+PCUT_TEST(window_move_req)
+{
+	gfx_context_t *gc;
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	rc = gfx_context_new(&dummy_ops, NULL, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_display_create(gc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(dsw_idle, wnd->state);
+
+	pos.x = 42;
+	pos.y = 43;
+	ds_window_move_req(wnd, &pos);
+
+	PCUT_ASSERT_INT_EQUALS(dsw_moving, wnd->state);
+	PCUT_ASSERT_INT_EQUALS(pos.x, wnd->orig_pos.x);
+	PCUT_ASSERT_INT_EQUALS(pos.y, wnd->orig_pos.y);
 
 	ds_window_destroy(wnd);
 	ds_client_destroy(client);

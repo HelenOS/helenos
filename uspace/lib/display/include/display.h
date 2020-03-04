@@ -48,6 +48,7 @@ extern errno_t display_window_create(display_t *, display_wnd_params_t *,
     display_wnd_cb_t *, void *, display_window_t **);
 extern errno_t display_window_destroy(display_window_t *);
 extern errno_t display_window_get_gc(display_window_t *, gfx_context_t **);
+extern errno_t display_window_move_req(display_window_t *, gfx_coord2_t *);
 extern errno_t display_window_resize(display_window_t *,
     gfx_coord2_t *, gfx_rect_t *);
 

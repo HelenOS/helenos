@@ -271,6 +271,8 @@ static void root_handle_keyboard_event(widget_t *widget, kbd_event_t event)
 
 static void root_handle_position_event(widget_t *widget, pos_event_t event)
 {
+	gfx_coord2_t pos;
+
 	if (widget->window->is_decorated) {
 		sysarg_t width = widget->width;
 		sysarg_t height = widget->height;
@@ -338,7 +340,10 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 			window_grab_flags_t flags = GF_EMPTY;
 			flags |= GF_MOVE_X;
 			flags |= GF_MOVE_Y;
-			//win_grab(widget->window->osess, event.pos_id, flags);
+			pos.x = event.hpos;
+			pos.y = event.vpos;
+			(void) display_window_move_req(widget->window->dwindow,
+			    &pos);
 		} else {
 			list_foreach(widget->children, link, widget_t, child) {
 				child->handle_position_event(child, event);
