@@ -1,0 +1,2 @@
+[Service]
+ExecStart = /drv/pc-lpt/pc-lpt
