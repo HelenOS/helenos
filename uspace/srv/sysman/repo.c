@@ -277,6 +277,27 @@ static bool repo_resolve_unit(ht_link_t *ht_link, void *arg)
 	return true;
 }
 
+static bool repo_clean_up_unit(ht_link_t *ht_link, void *arg)
+{
+	unit_t *unit = hash_table_get_inst(ht_link, unit_t, units_by_name);
+
+	if (unit->conditions != UNIT_CONDITION_NONE) {
+		unit_log_condition(unit);
+
+		list_foreach_safe(unit->edges_in, current_link, iter) {
+			unit_edge_t *e = list_get_instance(current_link, unit_edge_t, edges_in);
+			edge_remove(&e);
+		}
+
+		list_foreach_safe(unit->edges_out, current_link, iter) {
+			unit_edge_t *e = list_get_instance(current_link, unit_edge_t, edges_out);
+			edge_remove(&e);
+		}
+	}
+
+	return true;
+}
+
 /** Resolve unresolved dependencies between any pair of units_by_name
  *
  * @return EOK      on success
@@ -288,6 +309,12 @@ errno_t repo_resolve_references(void)
 
 	bool has_error = false;
 	hash_table_apply(&units_by_name, &repo_resolve_unit, &has_error);
+
+	if (!has_error) {
+		//once all references have been built test if there are
+		//units which dont meet the conditions. If yes, remove the edges
+		hash_table_apply(&units_by_name, &repo_clean_up_unit, &has_error);
+	}
 
 	return has_error ? ENOENT : EOK;
 }

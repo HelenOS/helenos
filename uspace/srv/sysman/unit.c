@@ -55,6 +55,7 @@ static const char *section_name = "Unit";
 
 static config_item_t unit_configuration[] = {
 	{ "After", &unit_parse_unit_list, 0, "" },
+	{ "ConditionArchitecture", &unit_parse_condition_architecture, 0, "" },
 	CONFIGURATION_ITEM_SENTINEL
 };
 
@@ -68,6 +69,7 @@ static void unit_init(unit_t *unit, unit_type_t type)
 	unit->type = type;
 	unit->state = STATE_STOPPED;
 	unit->repo_state = REPO_EMBRYO;
+	unit->conditions = UNIT_CONDITION_NONE;
 
 	link_initialize(&unit->units);
 	link_initialize(&unit->bfs_link);
@@ -136,6 +138,7 @@ errno_t unit_load(unit_t *unit, ini_configuration_t *ini_conf,
  */
 errno_t unit_start(unit_t *unit)
 {
+	assert(unit->conditions == UNIT_CONDITION_NONE);
 	sysman_log(LVL_NOTE, "%s('%s')", __func__, unit_name(unit));
 	return UNIT_VMT(unit)->start(unit);
 }
@@ -146,6 +149,7 @@ errno_t unit_start(unit_t *unit)
  */
 errno_t unit_stop(unit_t *unit)
 {
+	assert(unit->conditions == UNIT_CONDITION_NONE);
 	sysman_log(LVL_NOTE, "%s('%s')", __func__, unit_name(unit));
 	return UNIT_VMT(unit)->stop(unit);
 }
@@ -192,6 +196,35 @@ const char *unit_name(const unit_t *unit)
 	return unit->name ? unit->name : "";
 }
 
+/**
+ * Logs a message for the failed conditions of a unit
+ */
+void unit_log_condition(unit_t *unit)
+{
+	assert(unit->conditions != UNIT_CONDITION_NONE);
+	unit_condition_t conditions = unit->conditions;
+	while (conditions != UNIT_CONDITION_NONE) {
+		const char *type = NULL;
+		if (conditions & UNIT_CONDITION_ARCHITECTURE) {
+			conditions ^= UNIT_CONDITION_ARCHITECTURE;
+			type = "architecture";
+		} else {
+			sysman_log(
+			    LVL_NOTE,
+			    "Condition restriction: unit '%s' does not meet the unkown condition '%d'",
+			    unit_name(unit),
+			    conditions);
+			return;
+		}
+
+		sysman_log(
+		    LVL_NOTE,
+		    "Condition restriction: unit '%s' does not meet the '%s' condition",
+		    unit_name(unit),
+		    type);
+	}
+}
+
 bool unit_parse_unit_list(const char *string, void *dst, text_parse_t *parse,
     size_t lineno)
 {
@@ -218,5 +251,41 @@ bool unit_parse_unit_list(const char *string, void *dst, text_parse_t *parse,
 
 finish:
 	free(my_string);
+	return result;
+}
+
+bool unit_parse_condition_architecture(const char *string, void *dst, text_parse_t *parse,
+    size_t lineno)
+{
+	unit_t *unit = dst;
+	bool result = true;
+	char *str = NULL;
+
+	if (str_length(string) == 0) {
+		goto finish;
+	}
+
+	str = str_dup(string);
+	if (str == NULL) {
+		result = false;
+		goto finish;
+	}
+
+	char *split = str;
+	char *tok;
+	bool conditions = false;
+	while ((tok = str_tok(split, " ", &split))) {
+		if (str_casecmp(tok, STRING(UARCH)) == 0) {
+			conditions = true;
+			break;
+		}
+	}
+
+	if (!conditions) {
+		unit->conditions |= UNIT_CONDITION_ARCHITECTURE;
+	}
+
+finish:
+	free(str);
 	return result;
 }

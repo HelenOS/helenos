@@ -54,6 +54,11 @@ typedef enum {
 	REPO_ZOMBIE
 } repo_state_t;
 
+typedef enum {
+	UNIT_CONDITION_NONE = 0,
+	UNIT_CONDITION_ARCHITECTURE = 1
+} unit_condition_t;
+
 typedef struct {
 	/** Link to name-to-unit hash table */
 	ht_link_t units_by_name;
@@ -91,6 +96,12 @@ typedef struct {
 
 	list_t edges_in;
 	list_t edges_out;
+
+	/**
+	 * flag for conditions which were not meet
+	 * determines if the unit should be started
+	 */
+	unit_condition_t conditions;
 } unit_t;
 
 #include "unit_cfg.h"
@@ -160,7 +171,9 @@ extern void unit_notify_state(unit_t *);
 extern unit_type_t unit_type_name_to_type(const char *);
 
 extern const char *unit_name(const unit_t *);
+extern void unit_log_condition(unit_t *unit);
 
 extern bool unit_parse_unit_list(const char *, void *, text_parse_t *, size_t);
+extern bool unit_parse_condition_architecture(const char *, void *, text_parse_t *, size_t);
 
 #endif

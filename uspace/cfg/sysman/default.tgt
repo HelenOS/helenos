@@ -3,9 +3,8 @@
 ; TODO change to Requires
 After = devman.svc
 
-; arm32 specific
-; After = s3c24xx_uart.svc
-; After = s3c24xx_ts.svc
+After = s3c24xx_uart.svc
+After = s3c24xx_ts.svc
 
 After = klog.svc
 ; currently deactivated as it prevents 'sysctl shutdown' from working
