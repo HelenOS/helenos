@@ -250,6 +250,7 @@ errno_t display_window_get_gc(display_window_t *window, gfx_context_t **rgc)
  * mouse press on the title bar or such.
  *
  * @param window Window
+ * @param pos Position in the window where the button was pressed
  * @return EOK on success or an error code
  */
 errno_t display_window_move_req(display_window_t *window, gfx_coord2_t *pos)
@@ -261,6 +262,42 @@ errno_t display_window_move_req(display_window_t *window, gfx_coord2_t *pos)
 
 	exch = async_exchange_begin(window->display->sess);
 	req = async_send_1(exch, DISPLAY_WINDOW_MOVE_REQ, window->id, &answer);
+	rc = async_data_write_start(exch, (void *)pos, sizeof (gfx_coord2_t));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Request a window resize.
+ *
+ * Request the display service to initiate a user window resize operation
+ * (i.e. let the user resize the window). Used when the client detects
+ * mouse press on the window frame or such.
+ *
+ * @param window Window
+ * @param rsztype Resize type (which part of window frame is being dragged)
+ * @param pos Position in the window where the button was pressed
+ * @return EOK on success or an error code
+ */
+errno_t display_window_resize_req(display_window_t *window,
+    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos)
+{
+	async_exch_t *exch;
+	aid_t req;
+	ipc_call_t answer;
+	errno_t rc;
+
+	exch = async_exchange_begin(window->display->sess);
+	req = async_send_2(exch, DISPLAY_WINDOW_RESIZE_REQ, window->id,
+	    (sysarg_t) rsztype, &answer);
 	rc = async_data_write_start(exch, (void *)pos, sizeof (gfx_coord2_t));
 	async_exchange_end(exch);
 	if (rc != EOK) {

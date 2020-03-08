@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,24 +32,21 @@
 /** @file
  */
 
-#ifndef _LIBC_IPC_DISPLAY_H_
-#define _LIBC_IPC_DISPLAY_H_
+#ifndef _LIBDISPLAY_TYPES_DISPLAY_WNDRESIZE_H_
+#define _LIBDISPLAY_TYPES_DISPLAY_WNDRESIZE_H_
 
-#include <ipc/common.h>
-
+/** Window resize type */
 typedef enum {
-	DISPLAY_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	DISPLAY_WINDOW_CREATE,
-	DISPLAY_WINDOW_DESTROY,
-	DISPLAY_WINDOW_MOVE_REQ,
-	DISPLAY_WINDOW_RESIZE,
-	DISPLAY_WINDOW_RESIZE_REQ,
-	DISPLAY_GET_EVENT
-} display_request_t;
+	display_wr_top = 0x1,
+	display_wr_left = 0x2,
+	display_wr_bottom = 0x4,
+	display_wr_right = 0x8,
 
-typedef enum {
-	DISPLAY_EV_PENDING = IPC_FIRST_USER_METHOD
-} display_event_t;
+	display_wr_top_left = display_wr_top | display_wr_left,
+	display_wr_bottom_left = display_wr_bottom | display_wr_left,
+	display_wr_bottom_right = display_wr_bottom | display_wr_right,
+	display_wr_top_right = display_wr_top | display_wr_right
+} display_wnd_rsztype_t;
 
 #endif
 

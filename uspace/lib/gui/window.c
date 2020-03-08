@@ -292,56 +292,36 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 		bool close = (header) &&
 		    (event.hpos >= width - border_thickness - close_thickness);
 
-		if (top && left && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_X;
-			flags |= GF_MOVE_Y;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			//win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (bottom && left && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_X;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			//win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (bottom && right && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			//win_grab(widget->window->osess, event.pos_id, flags);
+		pos.x = event.hpos;
+		pos.y = event.vpos;
+
+		if (top && left && btn_left) {
+			(void) display_window_resize_req(widget->window->dwindow,
+			    display_wr_top_left, &pos);
+		} else if (bottom && left && btn_left) {
+			(void) display_window_resize_req(widget->window->dwindow,
+			    display_wr_bottom_left, &pos);
+		} else if (bottom && right && btn_left) {
+			(void) display_window_resize_req(widget->window->dwindow,
+			    display_wr_bottom_right, &pos);
 		} else if (top && right && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_Y;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			//win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (top && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_Y;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			//win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (left && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_X;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			//win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (bottom && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			//win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (right && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			//win_grab(widget->window->osess, event.pos_id, flags);
+			(void) display_window_resize_req(widget->window->dwindow,
+			    display_wr_top_right, &pos);
+		} else if (top && btn_left) {
+			(void) display_window_resize_req(widget->window->dwindow,
+			    display_wr_top, &pos);
+		} else if (left && btn_left) {
+			(void) display_window_resize_req(widget->window->dwindow,
+			    display_wr_bottom, &pos);
+		} else if (bottom && btn_left) {
+			(void) display_window_resize_req(widget->window->dwindow,
+			    display_wr_bottom, &pos);
+		} else if (right && btn_left) {
+			(void) display_window_resize_req(widget->window->dwindow,
+			    display_wr_bottom, &pos);
 		} else if (close && btn_left) {
 			window_close(widget->window);
 		} else if (header && btn_left) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_X;
-			flags |= GF_MOVE_Y;
-			pos.x = event.hpos;
-			pos.y = event.vpos;
 			(void) display_window_move_req(widget->window->dwindow,
 			    &pos);
 		} else {

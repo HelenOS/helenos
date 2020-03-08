@@ -40,6 +40,7 @@
 #include <gfx/coord.h>
 #include <stdbool.h>
 #include "display/wndparams.h"
+#include "display/wndresize.h"
 #include "types/display.h"
 
 extern errno_t display_open(const char *, display_t **);
@@ -49,6 +50,8 @@ extern errno_t display_window_create(display_t *, display_wnd_params_t *,
 extern errno_t display_window_destroy(display_window_t *);
 extern errno_t display_window_get_gc(display_window_t *, gfx_context_t **);
 extern errno_t display_window_move_req(display_window_t *, gfx_coord2_t *);
+extern errno_t display_window_resize_req(display_window_t *,
+    display_wnd_rsztype_t, gfx_coord2_t *);
 extern errno_t display_window_resize(display_window_t *,
     gfx_coord2_t *, gfx_rect_t *);
 
