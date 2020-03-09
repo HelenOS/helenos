@@ -68,7 +68,7 @@ static void print_usage(char *app_name)
 	_OPTION("-s --strings", "Try to print all string descriptors.");
 	_OPTION("-S --status", "Get status of the device.");
 	_OPTION("-r --hid-report", "Dump HID report descriptor.");
-	_OPTION("-r --hid-report-usages", "Dump usages of HID report.");
+	_OPTION("-R --hid-report-usages", "Dump usages of HID report.");
 
 	printf("\n");
 	printf("If no option is specified, `-i' is considered default.\n");
