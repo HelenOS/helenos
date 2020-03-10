@@ -81,6 +81,12 @@ if doxygen.found()
 	])
 endif
 
+if cppcheck.found()
+	run_target('cppcheck', command: ['cppcheck', '--project=' +
+		join_paths(meson.build_root(), 'compile_commands.json'),
+		' -q --force --file-list=*.c* --platform=unix32 --enable=all' ])
+endif
+
 # TODO text-xcw
 #ifeq ($(CONFIG_DEVEL_FILES),y)
 #	export PATH=$$PATH:$(abspath tools/xcw/bin) && $(MAKE) -r -C tools/xcw/demo

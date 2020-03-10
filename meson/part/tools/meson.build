@@ -53,6 +53,7 @@ sed = find_program('sed')
 unzip = find_program('unzip')
 which = find_program('which')
 cpc = find_program(_tools_dir / 'cc.sh')
+cppcheck = find_program('cppcheck', required: false)
 
 sh = [ find_program('sh'), '-u', '-e' ]
 if debug_shell_scripts
