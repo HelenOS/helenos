@@ -242,7 +242,7 @@ void extract_payload(taskmap_t *tmap, uint8_t *kernel_dest, uint8_t *mem_end,
 
 	tmap->cnt = 0;
 
-	for (int i = 0; i <= TASKMAP_MAX_RECORDS; i++) {
+	for (int i = 0; i < TASKMAP_MAX_RECORDS; i++) {
 		/*
 		 * `task` holds the location and size of the previous component.
 		 */
