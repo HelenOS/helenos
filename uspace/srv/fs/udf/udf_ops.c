@@ -327,8 +327,10 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 
 	/* initialize block cache */
 	errno_t rc = block_init(service_id, MAX_SIZE);
-	if (rc != EOK)
+	if (rc != EOK) {
+		free(instance);
 		return rc;
+	}
 
 	rc = fs_instance_create(service_id, instance);
 	if (rc != EOK) {
