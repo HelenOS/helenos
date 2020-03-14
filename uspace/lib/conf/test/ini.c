@@ -38,17 +38,20 @@ PCUT_TEST_SUITE(ini);
 static ini_configuration_t ini_conf;
 static text_parse_t parse;
 
-PCUT_TEST_BEFORE {
+PCUT_TEST_BEFORE
+{
 	ini_configuration_init(&ini_conf);
 	text_parse_init(&parse);
 }
 
-PCUT_TEST_AFTER {
+PCUT_TEST_AFTER
+{
 	text_parse_deinit(&parse);
 	ini_configuration_deinit(&ini_conf);
 }
 
-PCUT_TEST(simple_parsing) {
+PCUT_TEST(simple_parsing)
+{
 	const char *data =
 	    "[Section]\n"
 	    "key = value\n"
@@ -67,7 +70,8 @@ PCUT_TEST(simple_parsing) {
 	PCUT_ASSERT_STR_EQUALS(ini_item_iterator_value(&it), "value");
 }
 
-PCUT_TEST(default_section) {
+PCUT_TEST(default_section)
+{
 	const char *data =
 	    "key = value\n"
 	    "key2 = value2\n";
@@ -85,7 +89,8 @@ PCUT_TEST(default_section) {
 	PCUT_ASSERT_STR_EQUALS(ini_item_iterator_value(&it), "value");
 }
 
-PCUT_TEST(multikey) {
+PCUT_TEST(multikey)
+{
 	const char *data =
 	    "key = value\n"
 	    "key = value2\n";
@@ -113,7 +118,8 @@ PCUT_TEST(multikey) {
 	PCUT_ASSERT_FALSE(ini_item_iterator_valid(&it));
 }
 
-PCUT_TEST(dup_section) {
+PCUT_TEST(dup_section)
+{
 	const char *data =
 	    "[Section]\n"
 	    "key = value\n"
@@ -132,7 +138,8 @@ PCUT_TEST(dup_section) {
 	PCUT_ASSERT_INT_EQUALS(error->parse_errno, INI_EDUP_SECTION);
 }
 
-PCUT_TEST(empty_section) {
+PCUT_TEST(empty_section)
+{
 	const char *data =
 	    "[Section1]\n"
 	    "[Section2]\n"

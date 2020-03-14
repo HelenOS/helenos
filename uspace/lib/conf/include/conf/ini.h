@@ -102,7 +102,6 @@ typedef struct {
 	bool incremented;
 } ini_item_iterator_t;
 
-
 extern void ini_configuration_init(ini_configuration_t *);
 extern void ini_configuration_deinit(ini_configuration_t *);
 
@@ -121,7 +120,5 @@ extern void ini_item_iterator_inc(ini_item_iterator_t *);
 extern const char *ini_item_iterator_value(ini_item_iterator_t *);
 
 extern size_t ini_item_iterator_lineno(ini_item_iterator_t *);
-
-
 
 #endif

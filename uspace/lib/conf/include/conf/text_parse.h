@@ -52,7 +52,6 @@ typedef struct {
 	int parse_errno;
 } text_parse_error_t;
 
-
 extern void text_parse_init(text_parse_t *);
 extern void text_parse_deinit(text_parse_t *);
 

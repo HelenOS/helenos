@@ -62,7 +62,8 @@ void text_parse_deinit(text_parse_t *parse)
  * @param[in]  parse_errno  user error code
  */
 void text_parse_raise_error(text_parse_t *parse, size_t lineno,
-    int parse_errno) {
+    int parse_errno)
+{
 	assert(parse);
 
 	parse->has_error = true;
