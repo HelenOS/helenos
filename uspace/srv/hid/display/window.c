@@ -435,25 +435,6 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
 	return gfx_bitmap_render(wnd->bitmap, brect, &wnd->dpos);
 }
 
-/** Start moving a window, detected by client.
- *
- * @param wnd Window
- * @param pos Position where the pointer was when the move started
- *            relative to the window
- * @param event Button press event
- */
-void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *pos)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_move_req (%d, %d)",
-	    (int) pos->x, (int) pos->y);
-
-	if (wnd->state != dsw_idle)
-		return;
-
-	gfx_coord2_add(&wnd->dpos, pos, &wnd->orig_pos);
-	wnd->state = dsw_moving;
-}
-
 /** Start moving a window by mouse drag.
  *
  * @param wnd Window
@@ -552,6 +533,83 @@ static void ds_window_update_move(ds_window_t *wnd, pos_event_t *event)
 	gfx_color_delete(color);
 }
 
+/** Finish resizing a window by mouse drag.
+ *
+ * @param wnd Window
+ * @param event Button release event
+ */
+static void ds_window_finish_resize(ds_window_t *wnd, pos_event_t *event)
+{
+	gfx_coord2_t pos;
+	gfx_coord2_t dresize;
+	gfx_rect_t nrect;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_finish_resize (%d, %d)",
+	    (int) event->hpos, (int) event->vpos);
+
+	if (wnd->state != dsw_resizing)
+		return;
+
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+	gfx_coord2_subtract(&pos, &wnd->orig_pos, &dresize);
+
+	/* Compute new rectangle */
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+
+	wnd->state = dsw_idle;
+	ds_client_post_resize_event(wnd->client, wnd, &nrect);
+}
+
+/** Update window position when resizing by mouse drag.
+ *
+ * @param wnd Window
+ * @param event Position update event
+ */
+static void ds_window_update_resize(ds_window_t *wnd, pos_event_t *event)
+{
+	gfx_coord2_t pos;
+	gfx_coord2_t dresize;
+	gfx_rect_t nrect;
+	gfx_rect_t drect;
+	gfx_color_t *color;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_resize (%d, %d)",
+	    (int) event->hpos, (int) event->vpos);
+
+	if (wnd->state != dsw_resizing)
+		return;
+
+	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
+
+	gc = ds_display_get_gc(wnd->display); // XXX
+	if (gc != NULL) {
+		gfx_set_color(gc, wnd->display->bg_color);
+		gfx_fill_rect(gc, &drect);
+	}
+
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+	gfx_coord2_subtract(&pos, &wnd->orig_pos, &dresize);
+
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	gfx_rect_translate(&wnd->dpos, &nrect, &drect);
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		return;
+
+	gc = ds_display_get_gc(wnd->display); // XXX
+	if (gc != NULL) {
+		gfx_set_color(gc, color);
+		gfx_fill_rect(gc, &drect);
+	}
+
+	gfx_color_delete(color);
+}
+
 /** Post keyboard event to window.
  *
  * @param wnd Window
@@ -598,11 +656,15 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 	if (event->type == POS_PRESS && event->btn_num == 2 && inside)
 		ds_window_start_move(wnd, event);
 
-	if (event->type == POS_RELEASE)
+	if (event->type == POS_RELEASE) {
 		ds_window_finish_move(wnd, event);
+		ds_window_finish_resize(wnd, event);
+	}
 
-	if (event->type == POS_UPDATE)
+	if (event->type == POS_UPDATE) {
 		ds_window_update_move(wnd, event);
+		ds_window_update_resize(wnd, event);
+	}
 
 	/* Transform event coordinates to window-local */
 	tevent = *event;
@@ -632,6 +694,69 @@ errno_t ds_window_post_unfocus_event(ds_window_t *wnd)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_unfocus_event\n");
 
 	return ds_client_post_unfocus_event(wnd->client, wnd);
+}
+
+/** Start moving a window, detected by client.
+ *
+ * @param wnd Window
+ * @param pos Position where the pointer was when the move started
+ *            relative to the window
+ * @param event Button press event
+ */
+void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *pos)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_move_req (%d, %d)",
+	    (int) pos->x, (int) pos->y);
+
+	if (wnd->state != dsw_idle)
+		return;
+
+	gfx_coord2_add(&wnd->dpos, pos, &wnd->orig_pos);
+	wnd->state = dsw_moving;
+}
+
+/** Start resizing a window, detected by client.
+ *
+ * @param wnd Window
+ * @param rsztype Resize type (which part of window is being dragged)
+ * @param pos Position where the pointer was when the resize started
+ *            relative to the window
+ * @param event Button press event
+ */
+void ds_window_resize_req(ds_window_t *wnd, display_wnd_rsztype_t rsztype,
+    gfx_coord2_t *pos)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_window_resize_req (%d, %d, %d)",
+	    (int) rsztype, (int) pos->x, (int) pos->y);
+
+	if (wnd->state != dsw_idle)
+		return;
+
+	gfx_coord2_add(&wnd->dpos, pos, &wnd->orig_pos);
+	wnd->state = dsw_resizing;
+	wnd->rsztype = rsztype;
+}
+
+/** Compute new window rectangle after resize operation.
+ *
+ * @param wnd Window which is being resized (in dsw_resizing state and thus
+ *            has rsztype set)
+ * @param dresize Amount by which to resize
+ * @param nrect Place to store new rectangle
+ */
+void ds_window_calc_resize(ds_window_t *wnd, gfx_coord2_t *dresize,
+    gfx_rect_t *nrect)
+{
+	*nrect = wnd->rect;
+
+	if ((wnd->rsztype & display_wr_top) != 0)
+		nrect->p0.y += dresize->y;
+	if ((wnd->rsztype & display_wr_left) != 0)
+		nrect->p0.x += dresize->x;
+	if ((wnd->rsztype & display_wr_bottom) != 0)
+		nrect->p1.y += dresize->y;
+	if ((wnd->rsztype & display_wr_right) != 0)
+		nrect->p1.x += dresize->x;
 }
 
 /** @}

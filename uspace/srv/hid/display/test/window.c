@@ -280,6 +280,139 @@ PCUT_TEST(window_move_req)
 	ds_display_destroy(disp);
 }
 
+/** Test ds_window_resize_req() */
+PCUT_TEST(window_resize_req)
+{
+	gfx_context_t *gc;
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	rc = gfx_context_new(&dummy_ops, NULL, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_display_create(gc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(dsw_idle, wnd->state);
+
+	pos.x = 42;
+	pos.y = 43;
+	ds_window_resize_req(wnd, display_wr_top_right, &pos);
+
+	PCUT_ASSERT_INT_EQUALS(dsw_resizing, wnd->state);
+	PCUT_ASSERT_INT_EQUALS(display_wr_top_right, wnd->rsztype);
+	PCUT_ASSERT_INT_EQUALS(pos.x, wnd->orig_pos.x);
+	PCUT_ASSERT_INT_EQUALS(pos.y, wnd->orig_pos.y);
+
+	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+PCUT_TEST(window_calc_resize)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	gfx_coord2_t dresize;
+	gfx_rect_t nrect;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 10;
+	params.rect.p0.y = 11;
+	params.rect.p1.x = 20;
+	params.rect.p1.y = 21;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd->state = dsw_resizing;
+	dresize.x = 5;
+	dresize.y = 6;
+
+	wnd->rsztype = display_wr_top;
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	PCUT_ASSERT_INT_EQUALS(10, nrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(17, nrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(20, nrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(21, nrect.p1.y);
+
+	wnd->rsztype = display_wr_top_left;
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	PCUT_ASSERT_INT_EQUALS(15, nrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(17, nrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(20, nrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(21, nrect.p1.y);
+
+	wnd->rsztype = display_wr_left;
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	PCUT_ASSERT_INT_EQUALS(15, nrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(11, nrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(20, nrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(21, nrect.p1.y);
+
+	wnd->rsztype = display_wr_bottom_left;
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	PCUT_ASSERT_INT_EQUALS(15, nrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(11, nrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(20, nrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(27, nrect.p1.y);
+
+	wnd->rsztype = display_wr_bottom;
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	PCUT_ASSERT_INT_EQUALS(10, nrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(11, nrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(20, nrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(27, nrect.p1.y);
+
+	wnd->rsztype = display_wr_bottom_right;
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	PCUT_ASSERT_INT_EQUALS(10, nrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(11, nrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(25, nrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(27, nrect.p1.y);
+
+	wnd->rsztype = display_wr_right;
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	PCUT_ASSERT_INT_EQUALS(10, nrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(11, nrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(25, nrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(21, nrect.p1.y);
+
+	wnd->rsztype = display_wr_top_right;
+	ds_window_calc_resize(wnd, &dresize, &nrect);
+	PCUT_ASSERT_INT_EQUALS(10, nrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(17, nrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(25, nrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(21, nrect.p1.y);
+
+	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 static errno_t dummy_set_color(void *arg, gfx_color_t *color)
 {
 	return EOK;

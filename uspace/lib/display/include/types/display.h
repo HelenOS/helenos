@@ -69,6 +69,8 @@ typedef struct {
 	void (*kbd_event)(void *, kbd_event_t *);
 	/** Position event */
 	void (*pos_event)(void *, pos_event_t *);
+	/** Resize event */
+	void (*resize_event)(void *, gfx_rect_t *);
 	/** Unfocus event */
 	void (*unfocus_event)(void *);
 } display_wnd_cb_t;

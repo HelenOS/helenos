@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <display/event.h>
+#include <display/wndresize.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
 #include <io/pixelmap.h>
@@ -49,7 +50,9 @@ typedef enum {
 	/** Idle */
 	dsw_idle,
 	/** Moving by mouse drag */
-	dsw_moving
+	dsw_moving,
+	/** Resizing by mouse drag */
+	dsw_resizing
 } ds_window_state_t;
 
 /** Display server window */
@@ -79,8 +82,10 @@ typedef struct ds_window {
 
 	/** State */
 	ds_window_state_t state;
-	/** Original position before started to move the window */
+	/** Original position before started to move or resize the window */
 	gfx_coord2_t orig_pos;
+	/** Window resize type (if state is dsw_resizing) */
+	display_wnd_rsztype_t rsztype;
 } ds_window_t;
 
 /** Window event queue entry */

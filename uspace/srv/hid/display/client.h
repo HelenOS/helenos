@@ -58,6 +58,8 @@ extern errno_t ds_client_post_kbd_event(ds_client_t *, ds_window_t *,
     kbd_event_t *);
 extern errno_t ds_client_post_pos_event(ds_client_t *, ds_window_t *,
     pos_event_t *);
+extern errno_t ds_client_post_resize_event(ds_client_t *, ds_window_t *,
+    gfx_rect_t *);
 extern errno_t ds_client_post_unfocus_event(ds_client_t *, ds_window_t *);
 
 #endif

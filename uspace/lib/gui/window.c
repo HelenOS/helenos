@@ -86,6 +86,7 @@ static void window_close_event(void *);
 static void window_focus_event(void *);
 static void window_kbd_event(void *, kbd_event_t *);
 static void window_pos_event(void *, pos_event_t *);
+static void window_resize_event(void *, gfx_rect_t *);
 static void window_unfocus_event(void *);
 
 static display_wnd_cb_t window_cb = {
@@ -93,6 +94,7 @@ static display_wnd_cb_t window_cb = {
 	.focus_event = window_focus_event,
 	.kbd_event = window_kbd_event,
 	.pos_event = window_pos_event,
+	.resize_event = window_resize_event,
 	.unfocus_event = window_unfocus_event
 };
 
@@ -312,13 +314,13 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 			    display_wr_top, &pos);
 		} else if (left && btn_left) {
 			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_bottom, &pos);
+			    display_wr_left, &pos);
 		} else if (bottom && btn_left) {
 			(void) display_window_resize_req(widget->window->dwindow,
 			    display_wr_bottom, &pos);
 		} else if (right && btn_left) {
 			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_bottom, &pos);
+			    display_wr_right, &pos);
 		} else if (close && btn_left) {
 			window_close(widget->window);
 		} else if (header && btn_left) {
@@ -811,6 +813,25 @@ static void window_pos_event(void *arg, pos_event_t *pevent)
 	link_initialize(&event->link);
 	event->type = ET_POSITION_EVENT;
 	event->data.pos = *pevent;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_resize_event(void *arg, gfx_rect_t *nrect)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_WINDOW_RESIZE;
+	event->data.resize.offset_x = nrect->p0.x;
+	event->data.resize.offset_y = nrect->p0.y;
+	event->data.resize.width = nrect->p1.x - nrect->p0.x;
+	event->data.resize.height = nrect->p1.y - nrect->p0.y;
+	event->data.resize.placement_flags = WINDOW_PLACEMENT_ANY;
 	prodcons_produce(&win->events, &event->link);
 }
 

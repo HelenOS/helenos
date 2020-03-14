@@ -459,6 +459,12 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 				    &event.ev.pos);
 			}
 			break;
+		case wev_resize:
+			if (window->cb != NULL && window->cb->resize_event != NULL) {
+				window->cb->resize_event(window->cb_arg,
+				    &event.ev.resize.rect);
+			}
+			break;
 		case wev_unfocus:
 			if (window->cb != NULL && window->cb->unfocus_event != NULL) {
 				window->cb->unfocus_event(window->cb_arg);

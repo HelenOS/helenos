@@ -315,6 +315,36 @@ errno_t ds_client_post_pos_event(ds_client_t *client, ds_window_t *ewindow,
 	return EOK;
 }
 
+/** Post resize event to the client's message queue.
+ *
+ * @param client Client
+ * @param ewindow Window that the message is targetted to
+ * @param rect New window rectangle
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_client_post_resize_event(ds_client_t *client, ds_window_t *ewindow,
+    gfx_rect_t *rect)
+{
+	ds_window_ev_t *wevent;
+
+	wevent = calloc(1, sizeof(ds_window_ev_t));
+	if (wevent == NULL)
+		return ENOMEM;
+
+	wevent->window = ewindow;
+	wevent->event.etype = wev_resize;
+	wevent->event.ev.resize.rect = *rect;
+	list_append(&wevent->levents, &client->events);
+
+	/* Notify the client */
+	// TODO Do not send more than once until client drains the queue
+	if (client->cb != NULL && client->cb->ev_pending != NULL)
+		client->cb->ev_pending(client->cb_arg);
+
+	return EOK;
+}
+
 /** Post unfocus event to the client's message queue.
  *
  * @param client Client

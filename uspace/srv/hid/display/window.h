@@ -36,6 +36,8 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+#include <display/wndparams.h>
+#include <display/wndresize.h>
 #include <errno.h>
 #include <io/pos_event.h>
 #include <types/gfx/context.h>
@@ -43,7 +45,6 @@
 #include <types/gfx/ops/context.h>
 #include "types/display/display.h"
 #include "types/display/window.h"
-#include "types/display/wndparams.h"
 
 extern gfx_context_ops_t window_gc_ops;
 
@@ -58,6 +59,10 @@ extern errno_t ds_window_post_pos_event(ds_window_t *, pos_event_t *);
 extern errno_t ds_window_post_focus_event(ds_window_t *);
 extern errno_t ds_window_post_unfocus_event(ds_window_t *);
 extern void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *);
+extern void ds_window_resize_req(ds_window_t *wnd, display_wnd_rsztype_t,
+    gfx_coord2_t *);
+extern void ds_window_calc_resize(ds_window_t *wnd, gfx_coord2_t *,
+    gfx_rect_t *);
 
 #endif
 
