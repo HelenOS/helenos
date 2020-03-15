@@ -107,7 +107,7 @@ static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 	gfx_rect_clip(rect, &wnd->rect, &crect);
 	gfx_rect_translate(&wnd->dpos, &crect, &drect);
 
-	/* Render a copy to the backbuffer */
+	/* Render into the backbuffer */
 	for (y = crect.p0.y; y < crect.p1.y; y++) {
 		for (x = crect.p0.x; x < crect.p1.x; x++) {
 			pixelmap_put_pixel(&wnd->pixelmap, x - wnd->rect.p0.x,
@@ -115,7 +115,8 @@ static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
 		}
 	}
 
-	return gfx_fill_rect(ds_display_get_gc(wnd->display), &drect);
+	/* Repaint this area of the display */
+	return ds_display_paint(wnd->display, &drect);
 }
 
 /** Create bitmap in window GC.
@@ -182,6 +183,7 @@ static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
 	gfx_rect_t srect;
 	gfx_rect_t swrect;
 	gfx_rect_t crect;
+	gfx_rect_t drect;
 	gfx_coord_t x, y;
 	pixelmap_t pixelmap;
 	gfx_bitmap_alloc_t alloc;
@@ -212,6 +214,9 @@ static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
 	/* Offset for rendering on screen = window pos + offs */
 	gfx_coord2_add(&cbm->wnd->dpos, &offs, &doffs);
 
+	/* Resulting rectangle on the screen we are drawing into */
+	gfx_rect_translate(&doffs, &crect, &drect);
+
 	rc = gfx_bitmap_get_alloc(cbm->bitmap, &alloc);
 	if (rc != EOK)
 		return rc;
@@ -232,7 +237,8 @@ static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
 		}
 	}
 
-	return gfx_bitmap_render(cbm->bitmap, &crect, &doffs);
+	/* Repaint this area of the display */
+	return ds_display_paint(cbm->wnd->display, &drect);
 }
 
 /** Get allocation info for bitmap in window GC.
@@ -391,6 +397,14 @@ errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
 
 	(void) ds_display_paint(wnd->display, NULL);
 	return EOK;
+}
+
+void ds_window_bring_to_top(ds_window_t *wnd)
+{
+	ds_display_t *disp = wnd->display;
+
+	ds_display_remove_window(wnd);
+	ds_display_add_window(disp, wnd);
 }
 
 /** Get generic graphic context from window.
