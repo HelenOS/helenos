@@ -550,6 +550,8 @@ static void ds_window_finish_resize(ds_window_t *wnd, pos_event_t *event)
 	if (wnd->state != dsw_resizing)
 		return;
 
+	(void) ds_display_paint(wnd->display, NULL);
+
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 	gfx_coord2_subtract(&pos, &wnd->orig_pos, &dresize);
