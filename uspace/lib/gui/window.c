@@ -644,6 +644,8 @@ window_t *window_open(const char *winreg, const void *data,
 	wparams.rect.p0.y = 0;
 	wparams.rect.p1.x = 100;
 	wparams.rect.p1.y = 100;
+	wparams.min_size.x = 2 * border_thickness + header_min_width;
+	wparams.min_size.y = 2 * border_thickness + header_height;
 
 	rc = display_window_create(win->display, &wparams, &window_cb,
 	    (void *) win, &win->dwindow);

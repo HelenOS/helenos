@@ -42,6 +42,7 @@
 #include <gfx/render.h>
 #include <io/log.h>
 #include <io/pixelmap.h>
+#include <macros.h>
 #include <stdlib.h>
 #include "client.h"
 #include "display.h"
@@ -301,6 +302,7 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	}
 
 	wnd->rect = params->rect;
+	wnd->min_size = params->min_size;
 	wnd->gc = gc;
 	*rgc = wnd;
 	return EOK;
@@ -749,16 +751,33 @@ void ds_window_resize_req(ds_window_t *wnd, display_wnd_rsztype_t rsztype,
 void ds_window_calc_resize(ds_window_t *wnd, gfx_coord2_t *dresize,
     gfx_rect_t *nrect)
 {
-	*nrect = wnd->rect;
+	if ((wnd->rsztype & display_wr_top) != 0) {
+		nrect->p0.y = min(wnd->rect.p0.y + dresize->y,
+		    wnd->rect.p1.y - wnd->min_size.y);
+	} else {
+		nrect->p0.y = wnd->rect.p0.y;
+	}
 
-	if ((wnd->rsztype & display_wr_top) != 0)
-		nrect->p0.y += dresize->y;
-	if ((wnd->rsztype & display_wr_left) != 0)
-		nrect->p0.x += dresize->x;
-	if ((wnd->rsztype & display_wr_bottom) != 0)
-		nrect->p1.y += dresize->y;
-	if ((wnd->rsztype & display_wr_right) != 0)
-		nrect->p1.x += dresize->x;
+	if ((wnd->rsztype & display_wr_left) != 0) {
+		nrect->p0.x = min(wnd->rect.p0.x + dresize->x,
+		    wnd->rect.p1.x - wnd->min_size.x);
+	} else {
+		nrect->p0.x = wnd->rect.p0.x;
+	}
+
+	if ((wnd->rsztype & display_wr_bottom) != 0) {
+		nrect->p1.y = max(wnd->rect.p1.y + dresize->y,
+		    wnd->rect.p0.y + wnd->min_size.y);
+	} else {
+		nrect->p1.y = wnd->rect.p1.y;
+	}
+
+	if ((wnd->rsztype & display_wr_right) != 0) {
+		nrect->p1.x = max(wnd->rect.p1.x + dresize->x,
+		    wnd->rect.p0.x + wnd->min_size.x);
+	} else {
+		nrect->p1.x = wnd->rect.p1.x;
+	}
 }
 
 /** @}

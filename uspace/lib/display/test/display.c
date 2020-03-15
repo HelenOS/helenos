@@ -96,6 +96,7 @@ typedef struct {
 	int event_cnt;
 	bool window_create_called;
 	gfx_rect_t create_rect;
+	gfx_coord2_t create_min_size;
 	bool window_destroy_called;
 	sysarg_t destroy_wnd_id;
 
@@ -182,6 +183,8 @@ PCUT_TEST(window_create_failure)
 	params.rect.p0.y = 0;
 	params.rect.p0.x = 100;
 	params.rect.p0.y = 100;
+	params.min_size.x = 11;
+	params.min_size.y = 12;
 
 	rc = display_window_create(disp, &params, &test_display_wnd_cb,
 	    (void *) &resp, &wnd);
@@ -190,6 +193,8 @@ PCUT_TEST(window_create_failure)
 	PCUT_ASSERT_EQUALS(params.rect.p0.y, resp.create_rect.p0.y);
 	PCUT_ASSERT_EQUALS(params.rect.p1.x, resp.create_rect.p1.x);
 	PCUT_ASSERT_EQUALS(params.rect.p1.y, resp.create_rect.p1.y);
+	PCUT_ASSERT_EQUALS(params.min_size.x, resp.create_min_size.x);
+	PCUT_ASSERT_EQUALS(params.min_size.y, resp.create_min_size.y);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 	PCUT_ASSERT_NULL(wnd);
 
@@ -1237,6 +1242,7 @@ static errno_t test_window_create(void *arg, display_wnd_params_t *params,
 
 	resp->window_create_called = true;
 	resp->create_rect = params->rect;
+	resp->create_min_size = params->min_size;
 	if (resp->rc == EOK)
 		*rwnd_id = resp->wnd_id;
 

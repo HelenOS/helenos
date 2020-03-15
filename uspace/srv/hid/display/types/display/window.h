@@ -69,6 +69,8 @@ typedef struct ds_window {
 	gfx_rect_t rect;
 	/** Display position */
 	gfx_coord2_t dpos;
+	/** Minimum size */
+	gfx_coord2_t min_size;
 	/** Window ID */
 	ds_wnd_id_t id;
 	/** Graphic context */

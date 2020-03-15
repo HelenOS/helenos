@@ -47,6 +47,8 @@
 typedef struct {
 	/** Bounding rectangle */
 	gfx_rect_t rect;
+	/** Minimum size (when being resized) */
+	gfx_coord2_t min_size;
 } display_wnd_params_t;
 
 #endif
