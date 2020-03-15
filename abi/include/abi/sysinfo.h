@@ -124,6 +124,14 @@ typedef struct {
 	unsigned int cpu;       /**< Associated CPU ID (if on_cpu is true) */
 } stats_thread_t;
 
+/** Statistics about a single IPC connection
+ *
+ */
+typedef struct {
+	task_id_t caller;  /**< Source task ID */
+	task_id_t callee;  /**< Target task ID */
+} stats_ipcc_t;
+
 /** Statistics about a single exception
  *
  */

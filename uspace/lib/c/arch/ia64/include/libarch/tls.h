@@ -41,7 +41,7 @@
 
 /* This structure must be exactly 16 bytes long */
 typedef struct {
-	void *dtv; /* unused in static linking*/
+	void **dtv;
 	void *fibril_data;
 } tcb_t;
 

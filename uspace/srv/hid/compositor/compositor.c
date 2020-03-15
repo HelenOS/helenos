@@ -66,11 +66,11 @@
 
 #include <transform.h>
 #include <rectangle.h>
-#include <surface.h>
-#include <cursor.h>
-#include <source.h>
-#include <drawctx.h>
-#include <codec/tga.h>
+#include <draw/surface.h>
+#include <draw/cursor.h>
+#include <draw/source.h>
+#include <draw/drawctx.h>
+#include <draw/codec.h>
 
 #include "compositor.h"
 

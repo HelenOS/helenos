@@ -55,69 +55,7 @@
 #include <udebug/udebug.h>
 #include <log.h>
 
-/** Dispatch system call */
-sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
-    sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
-{
-	/* Do userpace accounting */
-	irq_spinlock_lock(&THREAD->lock, true);
-	thread_update_accounting(true);
-	irq_spinlock_unlock(&THREAD->lock, true);
-
-#ifdef CONFIG_UDEBUG
-	/*
-	 * An istate_t-compatible record was created on the stack by the
-	 * low-level syscall handler. This is the userspace space state
-	 * structure.
-	 */
-	THREAD->udebug.uspace_state = istate_get(THREAD);
-
-	/*
-	 * Early check for undebugged tasks. We do not lock anything as this
-	 * test need not be precise in either direction.
-	 */
-	if (THREAD->udebug.active)
-		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
-#endif
-
-	sysarg_t rc;
-	if (id < SYSCALL_END) {
-		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
-	} else {
-		log(LF_OTHER, LVL_ERROR,
-		    "Task %" PRIu64 ": Unknown syscall %#" PRIxn, TASK->taskid, id);
-		task_kill_self(true);
-	}
-
-	if (THREAD->interrupted)
-		thread_exit();
-
-#ifdef CONFIG_UDEBUG
-	if (THREAD->udebug.active) {
-		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
-
-		/*
-		 * Stopping point needed for tasks that only invoke
-		 * non-blocking system calls. Not needed if the task
-		 * is not being debugged (it cannot block here).
-		 */
-		udebug_stoppable_begin();
-		udebug_stoppable_end();
-	}
-
-	/* Clear userspace state pointer */
-	THREAD->udebug.uspace_state = NULL;
-#endif
-
-	/* Do kernel accounting */
-	irq_spinlock_lock(&THREAD->lock, true);
-	thread_update_accounting(false);
-	irq_spinlock_unlock(&THREAD->lock, true);
-
-	return rc;
-}
-
-syshandler_t syscall_table[SYSCALL_END] = {
+static syshandler_t syscall_table[] = {
 	/* System management syscalls. */
 	[SYS_KIO] = (syshandler_t) sys_kio,
 
@@ -196,6 +134,68 @@ syshandler_t syscall_table[SYSCALL_END] = {
 
 	[SYS_KLOG] = (syshandler_t) sys_klog,
 };
+
+/** Dispatch system call */
+sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
+{
+	/* Do userpace accounting */
+	irq_spinlock_lock(&THREAD->lock, true);
+	thread_update_accounting(true);
+	irq_spinlock_unlock(&THREAD->lock, true);
+
+#ifdef CONFIG_UDEBUG
+	/*
+	 * An istate_t-compatible record was created on the stack by the
+	 * low-level syscall handler. This is the userspace space state
+	 * structure.
+	 */
+	THREAD->udebug.uspace_state = istate_get(THREAD);
+
+	/*
+	 * Early check for undebugged tasks. We do not lock anything as this
+	 * test need not be precise in either direction.
+	 */
+	if (THREAD->udebug.active)
+		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
+#endif
+
+	sysarg_t rc;
+	if (id < sizeof_array(syscall_table)) {
+		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
+	} else {
+		log(LF_OTHER, LVL_ERROR,
+		    "Task %" PRIu64 ": Unknown syscall %#" PRIxn, TASK->taskid, id);
+		task_kill_self(true);
+	}
+
+	if (THREAD->interrupted)
+		thread_exit();
+
+#ifdef CONFIG_UDEBUG
+	if (THREAD->udebug.active) {
+		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
+
+		/*
+		 * Stopping point needed for tasks that only invoke
+		 * non-blocking system calls. Not needed if the task
+		 * is not being debugged (it cannot block here).
+		 */
+		udebug_stoppable_begin();
+		udebug_stoppable_end();
+	}
+
+	/* Clear userspace state pointer */
+	THREAD->udebug.uspace_state = NULL;
+#endif
+
+	/* Do kernel accounting */
+	irq_spinlock_lock(&THREAD->lock, true);
+	thread_update_accounting(false);
+	irq_spinlock_unlock(&THREAD->lock, true);
+
+	return rc;
+}
 
 /** @}
  */

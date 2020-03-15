@@ -95,10 +95,10 @@ void i8254_init(void)
 void i8254_normal_operation(void)
 {
 	pio_write_8(CLK_PORT4, 0x36);
-	pic_disable_irqs(1 << IRQ_CLK);
+	i8259_disable_irqs(1 << IRQ_CLK);
 	pio_write_8(CLK_PORT1, (CLK_CONST / HZ) & 0xf);
 	pio_write_8(CLK_PORT1, (CLK_CONST / HZ) >> 8);
-	pic_enable_irqs(1 << IRQ_CLK);
+	i8259_enable_irqs(1 << IRQ_CLK);
 }
 
 void i8254_calibrate_delay_loop(void)

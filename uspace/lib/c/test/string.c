@@ -27,9 +27,8 @@
  */
 
 /* Prevent an error from being generated */
-#undef _HELENOS_SOURCE
+#define _REALLY_WANT_STRING_H
 #include <string.h>
-#define _HELENOS_SOURCE
 #include <pcut/pcut.h>
 
 #ifndef __clang__

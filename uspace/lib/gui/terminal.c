@@ -36,8 +36,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <io/chargrid.h>
-#include <surface.h>
-#include <gfx/font-8x16.h>
+#include <draw/surface.h>
+#include <draw/gfx.h>
 #include <io/con_srv.h>
 #include <io/concaps.h>
 #include <io/console.h>

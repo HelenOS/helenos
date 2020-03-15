@@ -330,7 +330,7 @@ namespace std::chrono
     operator+(const duration<Rep1, Period1>& lhs, const duration<Rep2, Period2>& rhs)
     {
         using CD = common_type_t<duration<Rep1, Period1>, duration<Rep2, Period2>>;
-        return CD(CD(lhs.count()) + CD(rhs.count()));
+        return CD(CD(lhs).count() + CD(rhs).count());
     }
 
     template<class Rep1, class Period1, class Rep2, class Period2>

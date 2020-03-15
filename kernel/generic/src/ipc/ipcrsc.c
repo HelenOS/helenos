@@ -51,7 +51,7 @@ static void phone_destroy(void *arg)
 	slab_free(phone_cache, phone);
 }
 
-static kobject_ops_t phone_kobject_ops = {
+kobject_ops_t phone_kobject_ops = {
 	.destroy = phone_destroy
 };
 
@@ -93,8 +93,7 @@ errno_t phone_alloc(task_t *task, bool publish, cap_phone_handle_t *phandle,
 		phone->state = IPC_PHONE_CONNECTING;
 		phone->hangup_call = hcall;
 
-		kobject_initialize(kobj, KOBJECT_TYPE_PHONE, phone,
-		    &phone_kobject_ops);
+		kobject_initialize(kobj, KOBJECT_TYPE_PHONE, phone);
 		phone->kobject = kobj;
 
 		if (publish)

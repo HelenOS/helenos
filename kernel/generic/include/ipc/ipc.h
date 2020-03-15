@@ -171,6 +171,8 @@ extern slab_cache_t *phone_cache;
 
 extern answerbox_t *ipc_box_0;
 
+extern kobject_ops_t call_kobject_ops;
+
 extern void ipc_init(void);
 
 extern call_t *ipc_call_alloc(void);

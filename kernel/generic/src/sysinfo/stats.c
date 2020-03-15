@@ -68,6 +68,14 @@
 /** Compute load in 5 second intervals */
 #define LOAD_INTERVAL  5
 
+/** IPC connections statistics state */
+typedef struct {
+	bool counting;
+	size_t count;
+	size_t i;
+	stats_ipcc_t *data;
+} ipccs_state_t;
+
 /** Fixed-point representation of
  *
  * 1 / exp(5 sec / 1 min)
@@ -370,6 +378,121 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 	irq_spinlock_unlock(&threads_lock, true);
 
 	return ((void *) stats_threads);
+}
+
+/** Produce IPC connection statistics
+ *
+ * Summarize IPC connection information into IPC connection statistics.
+ *
+ * @param cap Phone capability.
+ * @param arg State variable.
+ *
+ */
+static bool produce_stats_ipcc_cb(cap_t *cap, void *arg)
+{
+	phone_t *phone = cap->kobject->phone;
+	ipccs_state_t *state = (ipccs_state_t *) arg;
+
+	if (state->counting) {
+		/*
+		 * Simply update the number of entries
+		 * in case we are in the counting mode.
+		 */
+
+		state->count++;
+		return true;
+	}
+
+	/* We are in the gathering mode */
+
+	if ((state->data == NULL) || (state->i >= state->count)) {
+		/*
+		 * Do nothing if we have no buffer
+		 * to store the data to (meaning we are
+		 * in a dry run) or the buffer is already
+		 * full.
+		 */
+
+		return true;
+	}
+
+	mutex_lock(&phone->lock);
+
+	if (phone->state == IPC_PHONE_CONNECTED) {
+		state->data[state->i].caller = phone->caller->taskid;
+		state->data[state->i].callee = phone->callee->task->taskid;
+		state->i++;
+	}
+
+	mutex_unlock(&phone->lock);
+
+	return true;
+}
+
+/** Get IPC connections statistics
+ *
+ * @param item    Sysinfo item (unused).
+ * @param size    Size of the returned data.
+ * @param dry_run Do not get the data, just calculate the size.
+ * @param data    Unused.
+ *
+ * @return Data containing several stats_ipccs_t structures.
+ *         If the return value is not NULL, it should be freed
+ *         in the context of the sysinfo request.
+ *
+ */
+static void *get_stats_ipccs(struct sysinfo_item *item, size_t *size,
+    bool dry_run, void *data)
+{
+	/* Messing with tasks structures, avoid deadlock */
+	irq_spinlock_lock(&tasks_lock, true);
+
+	ipccs_state_t state = {
+		.counting = true,
+		.count = 0,
+		.i = 0,
+		.data = NULL
+	};
+
+	/* Compute the number of IPC connections */
+	task_t *task = task_first();
+	while (task != NULL) {
+		task_hold(task);
+		irq_spinlock_unlock(&tasks_lock, true);
+
+		caps_apply_to_kobject_type(task, KOBJECT_TYPE_PHONE,
+		    produce_stats_ipcc_cb, &state);
+
+		irq_spinlock_lock(&tasks_lock, true);
+
+		task = task_next(task);
+	}
+
+	state.counting = false;
+	*size = sizeof(stats_ipcc_t) * state.count;
+
+	if (!dry_run)
+		state.data = (stats_ipcc_t *) malloc(*size);
+
+	/* Gather the statistics for each task */
+	task = task_first();
+	while (task != NULL) {
+		/* We already hold a reference to the task */
+		irq_spinlock_unlock(&tasks_lock, true);
+
+		caps_apply_to_kobject_type(task, KOBJECT_TYPE_PHONE,
+		    produce_stats_ipcc_cb, &state);
+
+		irq_spinlock_lock(&tasks_lock, true);
+
+		task_t *prev_task = task;
+		task = task_next(prev_task);
+		task_release(prev_task);
+	}
+
+	irq_spinlock_unlock(&tasks_lock, true);
+
+	return ((void *) state.data);
 }
 
 /** Get a single task statistics
@@ -753,6 +876,7 @@ void stats_init(void)
 	sysinfo_set_item_gen_data("system.load", NULL, get_stats_load, NULL);
 	sysinfo_set_item_gen_data("system.tasks", NULL, get_stats_tasks, NULL);
 	sysinfo_set_item_gen_data("system.threads", NULL, get_stats_threads, NULL);
+	sysinfo_set_item_gen_data("system.ipccs", NULL, get_stats_ipccs, NULL);
 	sysinfo_set_item_gen_data("system.exceptions", NULL, get_stats_exceptions, NULL);
 	sysinfo_set_subtree_fn("system.tasks", NULL, get_stats_task, NULL);
 	sysinfo_set_subtree_fn("system.threads", NULL, get_stats_thread, NULL);

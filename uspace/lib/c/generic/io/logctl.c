@@ -47,10 +47,11 @@ static errno_t start_logger_exchange(async_exch_t **exchange_out)
 	assert(exchange_out != NULL);
 
 	if (logger_session == NULL) {
+		errno_t rc;
 		logger_session = service_connect_blocking(SERVICE_LOGGER,
-		    INTERFACE_LOGGER_CONTROL, 0);
+		    INTERFACE_LOGGER_CONTROL, 0, &rc);
 		if (logger_session == NULL)
-			return ENOMEM;
+			return rc;
 	}
 
 	assert(logger_session != NULL);

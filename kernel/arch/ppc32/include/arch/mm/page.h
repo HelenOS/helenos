@@ -36,7 +36,6 @@
 #define KERN_ppc32_PAGE_H_
 
 #include <arch/mm/frame.h>
-#include <trace.h>
 
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
@@ -149,6 +148,7 @@
 
 #include <mm/mm.h>
 #include <arch/interrupt.h>
+#include <trace.h>
 
 /** Page Table Entry. */
 typedef struct {

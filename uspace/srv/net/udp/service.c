@@ -45,6 +45,7 @@
 #include <stdlib.h>
 
 #include "assoc.h"
+#include "cassoc.h"
 #include "msg.h"
 #include "service.h"
 #include "udp_type.h"
@@ -54,41 +55,12 @@
 /** Maximum message size */
 #define MAX_MSG_SIZE DATA_XFER_LIMIT
 
-static void udp_cassoc_recv_msg(void *, inet_ep2_t *, udp_msg_t *);
+static void udp_recv_msg_cassoc(void *, inet_ep2_t *, udp_msg_t *);
 
 /** Callbacks to tie us to association layer */
 static udp_assoc_cb_t udp_cassoc_cb = {
-	.recv_msg = udp_cassoc_recv_msg
+	.recv_msg = udp_recv_msg_cassoc
 };
-
-/** Add message to client receive queue.
- *
- * @param cassoc Client association
- * @param epp    Endpoint pair on which message was received
- * @param msg    Message
- *
- * @return EOK on success, ENOMEM if out of memory
- */
-static errno_t udp_cassoc_queue_msg(udp_cassoc_t *cassoc, inet_ep2_t *epp,
-    udp_msg_t *msg)
-{
-	udp_crcv_queue_entry_t *rqe;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_cassoc_queue_msg(%p, %p, %p)",
-	    cassoc, epp, msg);
-
-	rqe = calloc(1, sizeof(udp_crcv_queue_entry_t));
-	if (rqe == NULL)
-		return ENOMEM;
-
-	link_initialize(&rqe->link);
-	rqe->epp = *epp;
-	rqe->msg = msg;
-	rqe->cassoc = cassoc;
-
-	list_append(&rqe->link, &cassoc->client->crcv_queue);
-	return EOK;
-}
 
 /** Send 'data' event to client.
  *
@@ -107,74 +79,6 @@ static void udp_ev_data(udp_client_t *client)
 	async_forget(req);
 }
 
-/** Create client association.
- *
- * This effectively adds an association into a client's namespace.
- *
- * @param client  Client
- * @param assoc   Association
- * @param rcassoc Place to store pointer to new client association
- *
- * @return EOK on soccess, ENOMEM if out of memory
- */
-static errno_t udp_cassoc_create(udp_client_t *client, udp_assoc_t *assoc,
-    udp_cassoc_t **rcassoc)
-{
-	udp_cassoc_t *cassoc;
-	sysarg_t id;
-
-	cassoc = calloc(1, sizeof(udp_cassoc_t));
-	if (cassoc == NULL)
-		return ENOMEM;
-
-	/* Allocate new ID */
-	id = 0;
-	list_foreach (client->cassoc, lclient, udp_cassoc_t, cassoc) {
-		if (cassoc->id >= id)
-			id = cassoc->id + 1;
-	}
-
-	cassoc->id = id;
-	cassoc->client = client;
-	cassoc->assoc = assoc;
-
-	list_append(&cassoc->lclient, &client->cassoc);
-	*rcassoc = cassoc;
-	return EOK;
-}
-
-/** Destroy client association.
- *
- * @param cassoc Client association
- */
-static void udp_cassoc_destroy(udp_cassoc_t *cassoc)
-{
-	list_remove(&cassoc->lclient);
-	free(cassoc);
-}
-
-/** Get client association by ID.
- *
- * @param client  Client
- * @param id      Client association ID
- * @param rcassoc Place to store pointer to client association
- *
- * @return EOK on success, ENOENT if no client association with the given ID
- *         is found.
- */
-static errno_t udp_cassoc_get(udp_client_t *client, sysarg_t id,
-    udp_cassoc_t **rcassoc)
-{
-	list_foreach (client->cassoc, lclient, udp_cassoc_t, cassoc) {
-		if (cassoc->id == id) {
-			*rcassoc = cassoc;
-			return EOK;
-		}
-	}
-
-	return ENOENT;
-}
-
 /** Message received on client association.
  *
  * Used as udp_assoc_cb.recv_msg callback.
@@ -183,7 +87,7 @@ static errno_t udp_cassoc_get(udp_client_t *client, sysarg_t id,
  * @param epp Endpoint pair where message was received
  * @param msg Message
  */
-static void udp_cassoc_recv_msg(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
+static void udp_recv_msg_cassoc(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
 {
 	udp_cassoc_t *cassoc = (udp_cassoc_t *) arg;
 

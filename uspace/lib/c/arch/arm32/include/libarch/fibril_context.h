@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 /*
- * Only registers preserved accross function calls are included. r9 is
+ * Only registers preserved across function calls are included. r9 is
  * used to store a TLS address. -ffixed-r9 gcc forces gcc not to use this
  * register. -mtp=soft forces gcc to use #__aeabi_read_tp to obtain
  * TLS address.

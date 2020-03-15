@@ -43,9 +43,8 @@
 #include <stdlib.h>
 #include <str.h>
 
-#include "pcf.h"
-#include "../drawctx.h"
-#include "bitmap_backend.h"
+#include <draw/font.h>
+#include <draw/drawctx.h>
 
 #define PCF_TABLE_ACCELERATORS 0x02
 #define PCF_TABLE_METRICS      0x04

@@ -38,9 +38,8 @@
 #include <stdlib.h>
 #include <str.h>
 
-#include "font.h"
-#include "font/embedded.h"
-#include "drawctx.h"
+#include <draw/font.h>
+#include <draw/drawctx.h>
 
 font_t *font_create(font_backend_t *backend, void *backend_data)
 {

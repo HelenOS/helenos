@@ -66,6 +66,24 @@ namespace std
 }
 
 /**
+ * The language allows us to odr-use a variable
+ * that is not defined. We use this to support
+ * macros redefining the catch keyword that are
+ * followed by a block that uses that symbol.
+ *
+ * Normally, that would produce a compiler error
+ * as the declaration of that variale would be removed
+ * with the catch statement, but if we use the following
+ * declaration's name as the name of the caught exception,
+ * all will work well because of this extern declaration.
+ *
+ * Note: We do not follow our usual convention of using
+ * the aux:: namespace because that cannot be used in
+ * variable declaration.
+ */
+extern int __exception;
+
+/**
  * These macros allow us to choose how the program
  * should behave when an exception is thrown
  * (LIBCPP_EXCEPTION_HANDLE_THROW) or caught
@@ -86,7 +104,7 @@ namespace std
 #define LIBCPP_EXCEPTION_ABORT        ::std::abort();
 #define LIBCPP_EXCEPTION_IGNORE       /* IGNORE */
 #define LIBCPP_EXCEPTION_HANDLE_THROW LIBCPP_EXCEPTION_IGNORE
-#define LIBCPP_EXCEPTION_HANDLE_CATCH LIBCPP_EXCEPTION_HANG
+#define LIBCPP_EXCEPTION_HANDLE_CATCH LIBCPP_EXCEPTION_ABORT
 
 #define try if constexpr (::std::aux::try_blocks_allowed)
 

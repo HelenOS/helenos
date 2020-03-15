@@ -33,7 +33,7 @@
  * @file
  */
 
-#include <cap.h>
+#include <capa.h>
 #include <errno.h>
 #include <fdisk.h>
 #include <io/label.h>
@@ -135,9 +135,9 @@ static errno_t fdsk_dev_sel_choice(service_id_t *rsvcid)
 	fdisk_dev_info_t *info;
 	nchoice_t *choice = NULL;
 	char *svcname = NULL;
-	cap_spec_t cap;
+	capa_spec_t capa;
 	fdisk_dev_info_t *sdev;
-	char *scap = NULL;
+	char *scapa = NULL;
 	char *dtext = NULL;
 	service_id_t svcid;
 	void *sel;
@@ -176,7 +176,7 @@ static errno_t fdsk_dev_sel_choice(service_id_t *rsvcid)
 			continue;
 		}
 
-		rc = fdisk_dev_info_capacity(info, &cap);
+		rc = fdisk_dev_info_capacity(info, &capa);
 		if (rc != EOK) {
 			printf("Error getting device capacity "
 			    "(device %s).\n", svcname);
@@ -184,16 +184,16 @@ static errno_t fdsk_dev_sel_choice(service_id_t *rsvcid)
 			continue;
 		}
 
-		cap_simplify(&cap);
+		capa_simplify(&capa);
 
-		rc = cap_format(&cap, &scap);
+		rc = capa_format(&capa, &scapa);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
 			goto error;
 		}
 
-		int ret = asprintf(&dtext, "%s (%s)", svcname, scap);
+		int ret = asprintf(&dtext, "%s (%s)", svcname, scapa);
 		if (ret < 0) {
 			rc = ENOMEM;
 			printf("Out of memory.\n");
@@ -202,8 +202,8 @@ static errno_t fdsk_dev_sel_choice(service_id_t *rsvcid)
 
 		free(svcname);
 		svcname = NULL;
-		free(scap);
-		scap = NULL;
+		free(scapa);
+		scapa = NULL;
 
 		rc = nchoice_add(choice, dtext, info, 0);
 		if (rc != EOK) {
@@ -260,7 +260,7 @@ error:
 		nchoice_destroy(choice);
 	free(dtext);
 	free(svcname);
-	free(scap);
+	free(scapa);
 	return rc;
 }
 
@@ -431,14 +431,14 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 {
 	errno_t rc;
 	fdisk_part_spec_t pspec;
-	cap_spec_t cap;
-	cap_spec_t mcap;
+	capa_spec_t capa;
+	capa_spec_t mcapa;
 	vol_label_supp_t vlsupp;
 	vol_fstype_t fstype = 0;
 	tinput_t *tinput = NULL;
 	fdisk_spc_t spc;
-	char *scap;
-	char *smcap = NULL;
+	char *scapa;
+	char *smcapa = NULL;
 	char *label = NULL;
 	char *mountp = NULL;
 
@@ -447,15 +447,15 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	else
 		spc = spc_pri;
 
-	rc = fdisk_part_get_max_avail(dev, spc, &mcap);
+	rc = fdisk_part_get_max_avail(dev, spc, &mcapa);
 	if (rc != EOK) {
 		rc = EIO;
 		goto error;
 	}
 
-	cap_simplify(&mcap);
+	capa_simplify(&mcapa);
 
-	rc = cap_format(&mcap, &smcap);
+	rc = capa_format(&mcapa, &smcapa);
 	if (rc != EOK) {
 		rc = ENOMEM;
 		goto error;
@@ -473,19 +473,19 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 
 	while (true) {
 		printf("Enter capacity of new partition.\n");
-		rc = tinput_read_i(tinput, smcap, &scap);
+		rc = tinput_read_i(tinput, smcapa, &scapa);
 		if (rc != EOK)
 			goto error;
 
-		rc = cap_parse(scap, &cap);
+		rc = capa_parse(scapa, &capa);
 		if (rc == EOK)
 			break;
 	}
 
 	tinput_destroy(tinput);
 	tinput = NULL;
-	free(smcap);
-	smcap = NULL;
+	free(smcapa);
+	smcapa = NULL;
 
 	if (pkind != lpk_extended) {
 		rc = fdsk_select_fstype(&fstype);
@@ -544,7 +544,7 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	tinput = NULL;
 
 	fdisk_pspec_init(&pspec);
-	pspec.capacity = cap;
+	pspec.capacity = capa;
 	pspec.pkind = pkind;
 	pspec.fstype = fstype;
 	pspec.label = label;
@@ -560,7 +560,7 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	free(mountp);
 	return EOK;
 error:
-	free(smcap);
+	free(smcapa);
 	free(label);
 	free(mountp);
 	if (tinput != NULL)
@@ -580,7 +580,7 @@ static errno_t fdsk_add_part_choices(fdisk_dev_t *dev,
 {
 	fdisk_part_t *part;
 	fdisk_part_info_t pinfo;
-	char *scap = NULL;
+	char *scapa = NULL;
 	char *spkind = NULL;
 	char *sfstype = NULL;
 	char *sdesc = NULL;
@@ -595,9 +595,9 @@ static errno_t fdsk_add_part_choices(fdisk_dev_t *dev,
 			goto error;
 		}
 
-		cap_simplify(&pinfo.capacity);
+		capa_simplify(&pinfo.capacity);
 
-		rc = cap_format(&pinfo.capacity, &scap);
+		rc = capa_format(&pinfo.capacity, &scapa);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
@@ -622,14 +622,14 @@ static errno_t fdsk_add_part_choices(fdisk_dev_t *dev,
 				label = "(No name)";
 
 			int ret = asprintf(&sdesc, "%s %s, %s, %s", label,
-			    scap, spkind, sfstype);
+			    scapa, spkind, sfstype);
 			if (ret < 0) {
 				rc = ENOMEM;
 				goto error;
 			}
 
 		} else {
-			int ret = asprintf(&sdesc, "%s, %s", scap, spkind);
+			int ret = asprintf(&sdesc, "%s, %s", scapa, spkind);
 			if (ret < 0) {
 				rc = ENOMEM;
 				goto error;
@@ -643,8 +643,8 @@ static errno_t fdsk_add_part_choices(fdisk_dev_t *dev,
 			goto error;
 		}
 
-		free(scap);
-		scap = NULL;
+		free(scapa);
+		scapa = NULL;
 		free(spkind);
 		spkind = NULL;
 		free(sfstype);
@@ -657,7 +657,7 @@ static errno_t fdsk_add_part_choices(fdisk_dev_t *dev,
 
 	return EOK;
 error:
-	free(scap);
+	free(scapa);
 	free(spkind);
 	free(sfstype);
 	free(sdesc);
@@ -906,13 +906,13 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 	fdisk_label_info_t linfo;
 	fdisk_part_t *part;
 	fdisk_part_info_t pinfo;
-	cap_spec_t cap;
-	cap_spec_t mcap;
+	capa_spec_t capa;
+	capa_spec_t mcapa;
 	fdisk_dev_flags_t dflags;
 	char *sltype = NULL;
-	char *sdcap = NULL;
-	char *scap = NULL;
-	char *smcap = NULL;
+	char *sdcapa = NULL;
+	char *scapa = NULL;
+	char *smcapa = NULL;
 	char *sfstype = NULL;
 	char *svcname = NULL;
 	char *spkind;
@@ -935,15 +935,15 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 		goto error;
 	}
 
-	rc = fdisk_dev_capacity(dev, &cap);
+	rc = fdisk_dev_capacity(dev, &capa);
 	if (rc != EOK) {
 		printf("Error getting device capacity.\n");
 		goto error;
 	}
 
-	cap_simplify(&cap);
+	capa_simplify(&capa);
 
-	rc = cap_format(&cap, &sdcap);
+	rc = capa_format(&capa, &sdcapa);
 	if (rc != EOK) {
 		printf("Out of memory.\n");
 		goto error;
@@ -957,9 +957,9 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 
 	fdisk_dev_get_flags(dev, &dflags);
 
-	printf("Device: %s (%s)\n", svcname, sdcap);
-	free(sdcap);
-	sdcap = NULL;
+	printf("Device: %s (%s)\n", svcname, sdcapa);
+	free(sdcapa);
+	sdcapa = NULL;
 
 	rc = fdisk_label_get_info(dev, &linfo);
 	if (rc != EOK) {
@@ -995,9 +995,9 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		cap_simplify(&pinfo.capacity);
+		capa_simplify(&pinfo.capacity);
 
-		rc = cap_format(&pinfo.capacity, &scap);
+		rc = capa_format(&pinfo.capacity, &scapa);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
@@ -1015,9 +1015,9 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 			label = "(No name)";
 
 		if (linfo.ltype == lt_none)
-			printf("Entire disk: %s %s", label, scap);
+			printf("Entire disk: %s %s", label, scapa);
 		else
-			printf("Partition %d: %s %s", npart, label, scap);
+			printf("Partition %d: %s %s", npart, label, scapa);
 
 		if ((linfo.flags & lf_ext_supp) != 0) {
 			rc = label_pkind_format(pinfo.pkind, &spkind);
@@ -1036,8 +1036,8 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 
 		printf("\n");
 
-		free(scap);
-		scap = NULL;
+		free(scapa);
+		scapa = NULL;
 		free(sfstype);
 		sfstype = NULL;
 
@@ -1046,88 +1046,88 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 
 	/* Display available space */
 	if ((linfo.flags & lf_can_create_pri) != 0) {
-		rc = fdisk_part_get_max_avail(dev, spc_pri, &mcap);
+		rc = fdisk_part_get_max_avail(dev, spc_pri, &mcapa);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
 		}
 
-		cap_simplify(&mcap);
+		capa_simplify(&mcapa);
 
-		rc = cap_format(&mcap, &smcap);
+		rc = capa_format(&mcapa, &smcapa);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
 		}
 
 		if ((linfo.flags & lf_ext_supp) != 0)
-			printf("Maximum free primary block: %s\n", smcap);
+			printf("Maximum free primary block: %s\n", smcapa);
 		else
-			printf("Maximum free block: %s\n", smcap);
+			printf("Maximum free block: %s\n", smcapa);
 
-		free(smcap);
-		smcap = NULL;
+		free(smcapa);
+		smcapa = NULL;
 
-		rc = fdisk_part_get_tot_avail(dev, spc_pri, &mcap);
+		rc = fdisk_part_get_tot_avail(dev, spc_pri, &mcapa);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
 		}
 
-		cap_simplify(&mcap);
+		capa_simplify(&mcapa);
 
-		rc = cap_format(&mcap, &smcap);
+		rc = capa_format(&mcapa, &smcapa);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
 		}
 
 		if ((linfo.flags & lf_ext_supp) != 0)
-			printf("Total free primary space: %s\n", smcap);
+			printf("Total free primary space: %s\n", smcapa);
 		else
-			printf("Total free space: %s\n", smcap);
+			printf("Total free space: %s\n", smcapa);
 
-		free(smcap);
-		smcap = NULL;
+		free(smcapa);
+		smcapa = NULL;
 	}
 
 	/* Display available space */
 	if ((linfo.flags & lf_can_create_log) != 0) {
-		rc = fdisk_part_get_max_avail(dev, spc_log, &mcap);
+		rc = fdisk_part_get_max_avail(dev, spc_log, &mcapa);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
 		}
 
-		cap_simplify(&mcap);
+		capa_simplify(&mcapa);
 
-		rc = cap_format(&mcap, &smcap);
+		rc = capa_format(&mcapa, &smcapa);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
 		}
 
-		printf("Maximum free logical block: %s\n", smcap);
-		free(smcap);
-		smcap = NULL;
+		printf("Maximum free logical block: %s\n", smcapa);
+		free(smcapa);
+		smcapa = NULL;
 
-		rc = fdisk_part_get_tot_avail(dev, spc_log, &mcap);
+		rc = fdisk_part_get_tot_avail(dev, spc_log, &mcapa);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
 		}
 
-		cap_simplify(&mcap);
+		capa_simplify(&mcapa);
 
-		rc = cap_format(&mcap, &smcap);
+		rc = capa_format(&mcapa, &smcapa);
 		if (rc != EOK) {
 			rc = ENOMEM;
 			goto error;
 		}
 
-		printf("Total free logical space: %s\n", smcap);
-		free(smcap);
-		smcap = NULL;
+		printf("Total free logical space: %s\n", smcapa);
+		free(smcapa);
+		smcapa = NULL;
 	}
 
 	rc = nchoice_set_prompt(choice, "Select action");
@@ -1278,9 +1278,9 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 	nchoice_destroy(choice);
 	return EOK;
 error:
-	free(sdcap);
-	free(scap);
-	free(smcap);
+	free(sdcapa);
+	free(scapa);
+	free(smcapa);
 	free(sfstype);
 	free(svcname);
 	if (choice != NULL)

@@ -35,8 +35,7 @@
 
 #include <stdlib.h>
 
-#include "cursor.h"
-#include "cursor/embedded.h"
+#include <draw/cursor.h>
 
 void cursor_init(cursor_t *cursor, cursor_decoder_type_t decoder, char *path)
 {

@@ -133,6 +133,9 @@ static errno_t ata_dev_add(ddf_dev_t *dev)
 	ctrl->dev = dev;
 
 	rc = ata_ctrl_init(ctrl, &res);
+	if (rc == ENOENT)
+		goto error;
+
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed initializing ATA controller.");
 		rc = EIO;

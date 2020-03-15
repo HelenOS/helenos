@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2018 Jiri Svoboda
+# Copyright (c) 2019 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,8 @@
 #
 
 XCW="$(dirname "$0")"
-SRC_ROOT="$XCW/../../.."
+BUILD_ROOT="$(dirname "$(dirname "$(dirname "$XCW")")")"
 
-cd "$SRC_ROOT"
-make
+cd "$BUILD_ROOT"
+ninja image_path
 tools/ew.py

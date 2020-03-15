@@ -62,16 +62,16 @@ extern void ddi_parea_register(parea_t *);
 extern void *pio_map(void *, size_t);
 extern void pio_unmap(void *, void *, size_t);
 
-extern sys_errno_t sys_physmem_map(uintptr_t, size_t, unsigned int, void *,
+extern sys_errno_t sys_physmem_map(uintptr_t, size_t, unsigned int, uspace_ptr_uintptr_t,
     uintptr_t);
 extern sys_errno_t sys_physmem_unmap(uintptr_t);
 
-extern sys_errno_t sys_dmamem_map(size_t, unsigned int, unsigned int, void *,
-    void *, uintptr_t);
+extern sys_errno_t sys_dmamem_map(size_t, unsigned int, unsigned int, uspace_ptr_uintptr_t,
+    uspace_ptr_uintptr_t, uintptr_t);
 extern sys_errno_t sys_dmamem_unmap(uintptr_t, size_t, unsigned int);
 
-extern sys_errno_t sys_iospace_enable(ddi_ioarg_t *);
-extern sys_errno_t sys_iospace_disable(ddi_ioarg_t *);
+extern sys_errno_t sys_iospace_enable(uspace_ptr_ddi_ioarg_t);
+extern sys_errno_t sys_iospace_disable(uspace_ptr_ddi_ioarg_t);
 
 /*
  * Interface to be implemented by all architectures.

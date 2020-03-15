@@ -29,158 +29,210 @@
 #ifndef LIBCPP_BITS_THREAD_FUTURE
 #define LIBCPP_BITS_THREAD_FUTURE
 
+#include <__bits/thread/future_common.hpp>
+#include <__bits/thread/shared_state.hpp>
+#include <__bits/utility/forward_move.hpp>
 #include <cassert>
-#include <memory>
-#include <system_error>
-#include <type_traits>
 
 namespace std
 {
     /**
-     * 30.6, futures:
+     * 30.6.6, class template future:
      */
 
-    enum class future_errc
-    { // The 5001 start is to not collide with system_error's codes.
-        broken_promise = 5001,
-        future_already_retrieved,
-        promise_already_satisfied,
-        no_state
-    };
-
-    enum class launch
+    namespace aux
     {
-        async,
-        deferred
-    };
+        /**
+         * Note: Because of shared_future, this base class
+         *       does implement copy constructor and copy
+         *       assignment operator. This means that the
+         *       children (std::future) need to delete this
+         *       constructor and operator themselves.
+         */
+        template<class R>
+        class future_base
+        {
+            public:
+                future_base() noexcept
+                    : state_{nullptr}
+                { /* DUMMY BODY */ }
 
-    enum class future_status
+                future_base(const future_base& rhs)
+                    : state_{rhs.state_}
+                {
+                    state_->increment();
+                }
+
+                future_base(future_base&& rhs) noexcept
+                    : state_{move(rhs.state_)}
+                {
+                    rhs.state_ = nullptr;
+                }
+
+                future_base(aux::shared_state<R>* state)
+                    : state_{state}
+                {
+                    /**
+                     * Note: This is a custom non-standard constructor that allows
+                     *       us to create a future directly from a shared state. This
+                     *       should never be a problem as aux::shared_state is a private
+                     *       type and future has no constructor templates.
+                     */
+                }
+
+                virtual ~future_base()
+                {
+                    release_state_();
+                }
+
+                future_base& operator=(const future_base& rhs)
+                {
+                    release_state_();
+                    state_ = rhs.state_;
+
+                    state_->increment();
+
+                    return *this;
+                }
+
+                future_base& operator=(future_base&& rhs) noexcept
+                {
+                    release_state_();
+                    state_ = move(rhs.state_);
+                    rhs.state_ = nullptr;
+
+                    return *this;
+                }
+
+                bool valid() const noexcept
+                {
+                    return state_ != nullptr;
+                }
+
+                void wait() const noexcept
+                {
+                    assert(state_);
+
+                    state_->wait();
+                }
+
+                template<class Rep, class Period>
+                future_status
+                wait_for(const chrono::duration<Rep, Period>& rel_time) const
+                {
+                    assert(state_);
+
+                    return state_->wait_for(rel_time);
+                }
+
+                template<class Clock, class Duration>
+                future_status
+                wait_until(
+                    const chrono::time_point<Clock, Duration>& abs_time
+                ) const
+                {
+                    assert(state_);
+
+                    return state_->wait_until(abs_time);
+                }
+
+            protected:
+                void release_state_()
+                {
+                    if (!state_)
+                        return;
+
+                    /**
+                     * Note: This is the 'release' move described in
+                     *       30.6.4 (5).
+                     * Last reference to state -> destroy state.
+                     * Decrement refcount of state otherwise.
+                     * Will not block, unless all following hold:
+                     *  1) State was created by call to std::async.
+                     *  2) State is not yet ready.
+                     *  3) This was the last reference to the shared state.
+                     */
+                    if (state_->decrement())
+                    {
+                        /**
+                         * The destroy call handles the special case
+                         * when 1) - 3) hold.
+                         */
+                        state_->destroy();
+                        delete state_;
+                        state_ = nullptr;
+                    }
+                }
+
+                aux::shared_state<R>* state_;
+        };
+    }
+
+    template<class R>
+    class shared_future;
+
+    template<class R>
+    class future: public aux::future_base<aux::future_inner_t<R>>
     {
-        ready,
-        timeout,
-        deferred
-    };
+        friend class shared_future<R>;
 
-    /**
-     * 30.6.2, error handling:
-     */
-
-    template<>
-    struct is_error_code_enum<future_errc>: true_type
-    { /* DUMMY BODY */ };
-
-    error_code make_error_code(future_errc) noexcept;
-    error_condition make_error_condition(future_errc) noexcept;
-
-    const error_category& future_category() noexcept;
-
-    /**
-     * 30.6.3, class future_error:
-     */
-
-    class future_error: public logic_error
-    {
         public:
-            future_error(error_code ec);
+            future() noexcept
+                : aux::future_base<aux::future_inner_t<R>>{}
+            { /* DUMMY BODY */ }
 
-            const error_code& code() const noexcept;
+            future(const future&) = delete;
 
-        private:
-            error_code code_;
+            future(future&& rhs) noexcept
+                : aux::future_base<aux::future_inner_t<R>>{move(rhs)}
+            { /* DUMMY BODY */ }
+
+            future(aux::shared_state<aux::future_inner_t<R>>* state)
+                : aux::future_base<aux::future_inner_t<R>>{state}
+            { /* DUMMY BODY */ }
+
+            future& operator=(const future&) = delete;
+
+            future& operator=(future&& rhs) noexcept = default;
+
+            shared_future<R> share()
+            {
+                return shared_future<R>{move(*this)};
+            }
+
+            R get()
+            {
+                assert(this->state_);
+
+                this->wait();
+
+                if (this->state_->has_exception())
+                    this->state_->throw_stored_exception();
+
+                if constexpr (!is_same_v<R, void>)
+                {
+                    if constexpr (is_reference_v<R>)
+                    {
+                        assert(this->state_->get());
+
+                        return *this->state_->get();
+                    }
+                    else
+                        return this->state_->get();
+                }
+            }
+
+            /**
+             * Useful for testing as we can check some information
+             * otherwise unavailable to us without waiting, e.g.
+             * to check whether the state is ready, its reference
+             * count etc.
+             */
+            aux::shared_state<aux::future_inner_t<R>>* __state() noexcept
+            {
+                return this->state_;
+            }
     };
-
-    /**
-     * 30.6.4, shared state:
-     */
-
-    template<class R>
-    class promise
-    {
-    };
-
-    template<class R>
-    class promise<R&>
-    {
-    };
-
-    template<>
-    class promise<void>
-    {
-    };
-
-    template<class R>
-    void swap(promise<R>& lhs, promise<R>& rhs) noexcept
-    {
-        lhs.swap(rhs);
-    }
-
-    template<class R, class Alloc>
-    struct uses_allocator<promise<R>, Alloc>: true_type
-    { /* DUMMY BODY */ };
-
-    template<class R>
-    class future
-    {
-    };
-
-    template<class R>
-    class future<R&>
-    {
-    };
-
-    template<>
-    class future<void>
-    {
-    };
-
-    template<class R>
-    class shared_future
-    {
-    };
-
-    template<class R>
-    class shared_future<R&>
-    {
-    };
-
-    template<>
-    class shared_future<void>
-    {
-    };
-
-    template<class>
-    class packaged_task; // undefined
-
-    template<class R, class... Args>
-    class packaged_task<R(Args...)>
-    {
-    };
-
-    template<class R, class... Args>
-    void swap(packaged_task<R(Args...)>& lhs, packaged_task<R(Args...)>& rhs) noexcept
-    {
-        lhs.swap(rhs);
-    };
-
-    template<class R, class Alloc>
-    struct uses_allocator<packaged_task<R>, Alloc>: true_type
-    { /* DUMMY BODY */ };
-
-    template<class F, class... Args>
-    future<result_of_t<decay_t<F>(decay_t<Args>...)>>
-    async(F&& f, Args&&... args)
-    {
-        // TODO: implement
-        __unimplemented();
-    }
-
-    template<class F, class... Args>
-    future<result_of_t<decay_t<F>(decay_t<Args>...)>>
-    async(launch, F&& f, Args&&... args)
-    {
-        // TODO: implement
-        __unimplemented();
-    }
 }
 
 #endif

@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "path.h"
+#include <draw/path.h>
 
 struct path {
 	list_t list;

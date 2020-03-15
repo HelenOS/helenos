@@ -454,14 +454,13 @@ errno_t tcp_conn_send(tcp_conn_t *conn, const void *data, size_t bytes)
 
 	exch = async_exchange_begin(conn->tcp->sess);
 	aid_t req = async_send_1(exch, TCP_CONN_SEND, conn->id, NULL);
-
 	rc = async_data_write_start(exch, data, bytes);
+	async_exchange_end(exch);
+
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-
-	async_exchange_end(exch);
 
 	if (rc != EOK) {
 		async_forget(req);

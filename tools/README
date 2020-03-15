@@ -1,0 +1,61 @@
+## Tools
+
+This directory contains various scripts.
+Some of them are used by the build system itself and are not relevant for most
+people. Others are available for manual use, and that category further
+divides into those meant to be used in the source directory, and those that
+work on the build directory.
+
+
+### Source directory scripts
+
+ * build_all.sh
+   - Builds (or incrementally rebuilds) all predefined HelenOS configurations.
+     Can be executed in arbitrary directory outside the source tree.
+ * build-ccheck.sh
+   - Builds the ccheck tool.
+ * ccheck.sh
+   - Runs the ccheck tool to verify coding style of C files in the repository.
+ * srepl
+   - A refactoring tool for global search-and-replace operations. Sed wrapper.
+ * toolchain.sh
+   - Builds the cross-compiler toolchains necessary to build HelenOS.
+ * release.sh
+   - Builds everything (as in build_all.sh), and generates release artifacts.
+
+
+### Build directory scripts
+
+ * ew.py
+   - Emulator Wrapper. After building the system image, some machines can be
+     run in an emulator, mostly QEMU. This script simplifies it.
+ * export.sh
+   - Exports a subset of development files in a form suitable for cross-compiling
+     third-party software independently of the HelenOS source tree.
+     The exported files are specific for the currently built configuration.
+
+
+### Used by build scripts
+
+ * autocheck.awk
+ * cc.sh
+ * config.py
+ * mkarray.py, mkarray_for_meson.sh
+ * mkuimage.py
+
+
+### Misc
+
+ * filldir.py
+   - Fill a directory with N empty directories. Seems to be unused, purpose unclear.
+ * gentestfile.py
+   - Generates test file for uspace/app/testread.
+ * jobfile.py
+   - Obsolete tooling support. Replaced by Meson.
+ * mkext2.py, mkext4.py, mkfat.py
+   - File system builders that don't require root privileges.
+     Used by build scripts and by ew.py.
+ * travis.sh
+   - Runs Travis CI jobs. Not meant for human consumption.
+ * imgutil.py, xstruct.py, xtui.py
+   - Libraries for other python scripts.

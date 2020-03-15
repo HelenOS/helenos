@@ -244,24 +244,6 @@ static inline uintmax_t _strtoumax(
 	return result;
 }
 
-static inline intmax_t _strtosigned(const char *nptr, char **endptr, int base,
-    intmax_t min, intmax_t max, errno_t *err, bool nonstd)
-{
-	bool sgn = false;
-	uintmax_t number = _strtoumax(nptr, endptr, base, &sgn, err, nonstd);
-
-	if (number > (uintmax_t) max) {
-		if (sgn && (number - 1 == (uintmax_t) max)) {
-			return min;
-		}
-
-		*err = nonstd ? EOVERFLOW : ERANGE;
-		return (sgn ? min : max);
-	}
-
-	return (sgn ? -number : number);
-}
-
 static inline uintmax_t _strtounsigned(const char *nptr, char **endptr, int base,
     uintmax_t max, errno_t *err, bool nonstd)
 {

@@ -88,7 +88,7 @@ async_exch_t *devman_exchange_begin_blocking(iface_t iface)
 			if (devman_driver_block_sess == NULL)
 				devman_driver_block_sess =
 				    service_connect_blocking(SERVICE_DEVMAN,
-				    INTERFACE_DDF_DRIVER, 0);
+				    INTERFACE_DDF_DRIVER, 0, NULL);
 		}
 
 		fibril_mutex_unlock(&devman_driver_block_mutex);
@@ -107,7 +107,7 @@ async_exch_t *devman_exchange_begin_blocking(iface_t iface)
 			if (devman_client_block_sess == NULL)
 				devman_client_block_sess =
 				    service_connect_blocking(SERVICE_DEVMAN,
-				    INTERFACE_DDF_CLIENT, 0);
+				    INTERFACE_DDF_CLIENT, 0, NULL);
 		}
 
 		fibril_mutex_unlock(&devman_client_block_mutex);
@@ -137,7 +137,7 @@ async_exch_t *devman_exchange_begin(iface_t iface)
 		if (devman_driver_sess == NULL)
 			devman_driver_sess =
 			    service_connect(SERVICE_DEVMAN,
-			    INTERFACE_DDF_DRIVER, 0);
+			    INTERFACE_DDF_DRIVER, 0, NULL);
 
 		fibril_mutex_unlock(&devman_driver_mutex);
 
@@ -151,7 +151,7 @@ async_exch_t *devman_exchange_begin(iface_t iface)
 		if (devman_client_sess == NULL)
 			devman_client_sess =
 			    service_connect(SERVICE_DEVMAN,
-			    INTERFACE_DDF_CLIENT, 0);
+			    INTERFACE_DDF_CLIENT, 0, NULL);
 
 		fibril_mutex_unlock(&devman_client_mutex);
 
@@ -291,10 +291,10 @@ async_sess_t *devman_device_connect(devman_handle_t handle, unsigned int flags)
 
 	if (flags & IPC_FLAG_BLOCKING)
 		sess = service_connect_blocking(SERVICE_DEVMAN,
-		    INTERFACE_DEVMAN_DEVICE, handle);
+		    INTERFACE_DEVMAN_DEVICE, handle, NULL);
 	else
 		sess = service_connect(SERVICE_DEVMAN,
-		    INTERFACE_DEVMAN_DEVICE, handle);
+		    INTERFACE_DEVMAN_DEVICE, handle, NULL);
 
 	return sess;
 }
@@ -349,10 +349,10 @@ async_sess_t *devman_parent_device_connect(devman_handle_t handle,
 
 	if (flags & IPC_FLAG_BLOCKING)
 		sess = service_connect_blocking(SERVICE_DEVMAN,
-		    INTERFACE_DEVMAN_PARENT, handle);
+		    INTERFACE_DEVMAN_PARENT, handle, NULL);
 	else
-		sess = service_connect_blocking(SERVICE_DEVMAN,
-		    INTERFACE_DEVMAN_PARENT, handle);
+		sess = service_connect(SERVICE_DEVMAN,
+		    INTERFACE_DEVMAN_PARENT, handle, NULL);
 
 	return sess;
 }

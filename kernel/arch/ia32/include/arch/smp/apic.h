@@ -42,6 +42,7 @@
 
 #include <cpu.h>
 #include <stdint.h>
+#include <genarch/pic/pic_ops.h>
 
 #define FIXED  (0 << 0)
 #define LOPRI  (1 << 0)
@@ -345,6 +346,8 @@ typedef union {
 		unsigned int : 4;          /**< Reserved. */
 	} __attribute__((packed));
 } io_apic_id_t;
+
+extern pic_ops_t apic_pic_ops;
 
 extern volatile uint32_t *l_apic;
 extern volatile uint32_t *io_apic;

@@ -39,7 +39,8 @@
 #include <ipc/loc.h>
 #include "udp_type.h"
 
-extern errno_t udp_assocs_init(void);
+extern errno_t udp_assocs_init(udp_assocs_dep_t *);
+extern void udp_assocs_fini(void);
 extern udp_assoc_t *udp_assoc_new(inet_ep2_t *, udp_assoc_cb_t *, void *);
 extern void udp_assoc_delete(udp_assoc_t *);
 extern errno_t udp_assoc_add(udp_assoc_t *);

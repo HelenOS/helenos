@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2018 Matthieu Riolo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <types/adt/odict.h>
 
 typedef struct {
 	const char *name;
@@ -52,5 +54,13 @@ extern const char *progname;
 
 extern iostate_t *get_iostate(void);
 extern void set_iostate(iostate_t *);
+
+extern odict_t alias_dict;
+
+typedef struct {
+	odlink_t odict;
+	char *name;
+	char *value;
+} alias_t;
 
 #endif

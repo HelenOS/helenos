@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 PCUT_INIT;
 
 PCUT_TEST_SUITE(stdlib);

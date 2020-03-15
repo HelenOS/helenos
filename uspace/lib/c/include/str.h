@@ -97,6 +97,7 @@ extern int str_casecmp(const char *s1, const char *s2);
 extern int str_lcasecmp(const char *s1, const char *s2, size_t max_len);
 
 extern bool str_test_prefix(const char *s, const char *p);
+extern const char *str_suffix(const char *s, size_t prefix_length);
 
 extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);

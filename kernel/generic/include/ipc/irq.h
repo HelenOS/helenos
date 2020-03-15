@@ -45,12 +45,15 @@
 #include <ddi/irq.h>
 #include <typedefs.h>
 #include <adt/list.h>
+#include <cap/cap.h>
+
+extern kobject_ops_t irq_kobject_ops;
 
 extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
 extern void ipc_irq_top_half_handler(irq_t *);
 
-extern errno_t ipc_irq_subscribe(answerbox_t *, inr_t, sysarg_t, irq_code_t *,
-    cap_irq_handle_t *);
+extern errno_t ipc_irq_subscribe(answerbox_t *, inr_t, sysarg_t, uspace_ptr_irq_code_t,
+    uspace_ptr_cap_irq_handle_t);
 extern errno_t ipc_irq_unsubscribe(answerbox_t *, cap_irq_handle_t);
 
 /*

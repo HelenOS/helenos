@@ -72,14 +72,16 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	errno_t rc;
 	async_sess_t *vfs_sess =
-	    service_connect_blocking(SERVICE_VFS, INTERFACE_VFS_DRIVER, 0);
+	    service_connect_blocking(SERVICE_VFS, INTERFACE_VFS_DRIVER, 0, &rc);
 	if (!vfs_sess) {
-		log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to connect to VFS");
+		log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to connect to VFS: %s",
+		    str_error(rc));
 		return 2;
 	}
 
-	errno_t rc = fs_register(vfs_sess, &udf_vfs_info, &udf_ops,
+	rc = fs_register(vfs_sess, &udf_vfs_info, &udf_ops,
 	    &udf_libfs_ops);
 	if (rc != EOK)
 		goto err;

@@ -10,4 +10,4 @@ as -o sheet.o sheet.s
 as -o edit.o edit.s
 as -o search.o search.s
 
-ld -T /inc/_link.ld -o edit_ sheet.o edit.o search.o /lib/libc.a /lib/libsoftint.a
+ld -T /inc/_link.ld -o edit_ sheet.o edit.o search.o /lib/libc.a -lgcc

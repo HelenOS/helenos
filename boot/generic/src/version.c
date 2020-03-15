@@ -31,9 +31,9 @@
 #include <macros.h>
 
 static const char *project = "HelenOS bootloader";
-static const char *copyright = STRING(COPYRIGHT);
-static const char *release = STRING(RELEASE);
-static const char *name = STRING(NAME);
+static const char *copyright = STRING(HELENOS_COPYRIGHT);
+static const char *release = STRING(HELENOS_RELEASE);
+static const char *name = STRING(HELENOS_CODENAME);
 static const char *arch = STRING(KARCH);
 
 #ifdef REVISION

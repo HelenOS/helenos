@@ -34,6 +34,7 @@
 /** @file
  */
 
+#include <async.h>
 #include <task.h>
 #include <loader/loader.h>
 #include <stdarg.h>
@@ -45,6 +46,7 @@
 #include <errno.h>
 #include <ns.h>
 #include <stdlib.h>
+#include <udebug.h>
 #include <libc.h>
 #include "private/ns.h"
 #include <vfs/vfs.h>
@@ -93,18 +95,21 @@ errno_t task_kill(task_id_t task_id)
  *
  * This is really just a convenience wrapper over the more complicated
  * loader API. Arguments are passed as a null-terminated array of strings.
+ * A debug session is created optionally.
  *
  * @param id   If not NULL, the ID of the task is stored here on success.
  * @param wait If not NULL, setup waiting for task's return value and store
  *             the information necessary for waiting here on success.
  * @param path Pathname of the binary to execute.
  * @param argv Command-line arguments.
+ * @param rsess   Place to store pointer to debug session or @c NULL
+ *                not to start a debug session
  *
  * @return Zero on success or an error code.
  *
  */
-errno_t task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
-    const char *const args[])
+errno_t task_spawnv_debug(task_id_t *id, task_wait_t *wait, const char *path,
+    const char *const args[], async_sess_t **rsess)
 {
 	/* Send default files */
 
@@ -124,40 +129,67 @@ errno_t task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
 		(void) vfs_fhandle(stderr, &fd_stderr);
 	}
 
-	return task_spawnvf(id, wait, path, args, fd_stdin, fd_stdout,
-	    fd_stderr);
+	return task_spawnvf_debug(id, wait, path, args, fd_stdin, fd_stdout,
+	    fd_stderr, rsess);
 }
 
 /** Create a new task by running an executable from the filesystem.
  *
  * This is really just a convenience wrapper over the more complicated
  * loader API. Arguments are passed as a null-terminated array of strings.
- * Files are passed as null-terminated array of pointers to fdi_node_t.
  *
- * @param id      If not NULL, the ID of the task is stored here on success.
- * @param wait    If not NULL, setup waiting for task's return value and store
- * @param path    Pathname of the binary to execute.
- * @param argv    Command-line arguments.
- * @param std_in  File to use as stdin.
- * @param std_out File to use as stdout.
- * @param std_err File to use as stderr.
+ * @param id   If not NULL, the ID of the task is stored here on success.
+ * @param wait If not NULL, setup waiting for task's return value and store
+ *             the information necessary for waiting here on success.
+ * @param path Pathname of the binary to execute.
+ * @param argv Command-line arguments.
  *
  * @return Zero on success or an error code.
  *
  */
-errno_t task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
-    const char *const args[], int fd_stdin, int fd_stdout, int fd_stderr)
+errno_t task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
+    const char *const args[])
 {
+	return task_spawnv_debug(id, wait, path, args, NULL);
+}
+
+/** Create a new task by loading an executable from the filesystem.
+ *
+ * This is really just a convenience wrapper over the more complicated
+ * loader API. Arguments are passed as a null-terminated array of strings.
+ * Files are passed as null-terminated array of pointers to fdi_node_t.
+ * A debug session is created optionally.
+ *
+ * @param id      If not NULL, the ID of the task is stored here on success.
+ * @param wait    If not NULL, setup waiting for task's return value and store.
+ * @param path    Pathname of the binary to execute.
+ * @param argv    Command-line arguments
+ * @param std_in  File to use as stdin
+ * @param std_out File to use as stdout
+ * @param std_err File to use as stderr
+ * @param rsess   Place to store pointer to debug session or @c NULL
+ *                not to start a debug session
+ *
+ * @return Zero on success or an error code
+ *
+ */
+errno_t task_spawnvf_debug(task_id_t *id, task_wait_t *wait,
+    const char *path, const char *const args[], int fd_stdin, int fd_stdout,
+    int fd_stderr, async_sess_t **rsess)
+{
+	async_sess_t *ksess = NULL;
+
 	/* Connect to a program loader. */
-	loader_t *ldr = loader_connect();
+	errno_t rc;
+	loader_t *ldr = loader_connect(&rc);
 	if (ldr == NULL)
-		return EREFUSED;
+		return rc;
 
 	bool wait_initialized = false;
 
 	/* Get task ID. */
 	task_id_t task_id;
-	errno_t rc = loader_get_task_id(ldr, &task_id);
+	rc = loader_get_task_id(ldr, &task_id);
 	if (rc != EOK)
 		goto error;
 
@@ -216,24 +248,69 @@ errno_t task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 		wait_initialized = true;
 	}
 
-	/* Run it. */
-	rc = loader_run(ldr);
-	if (rc != EOK)
-		goto error;
+	/* Start a debug session if requested */
+	if (rsess != NULL) {
+		ksess = async_connect_kbox(task_id, &rc);
+		if (ksess == NULL) {
+			/* Most likely debugging support is not compiled in */
+			goto error;
+		}
+
+		rc = udebug_begin(ksess);
+		if (rc != EOK)
+			goto error;
+
+		/*
+		 * Run it, not waiting for response. It would never come
+		 * as the loader is stopped.
+		 */
+		loader_run_nowait(ldr);
+	} else {
+		/* Run it. */
+		rc = loader_run(ldr);
+		if (rc != EOK)
+			goto error;
+	}
 
 	/* Success */
 	if (id != NULL)
 		*id = task_id;
-
+	if (rsess != NULL)
+		*rsess = ksess;
 	return EOK;
 
 error:
+	if (ksess != NULL)
+		async_hangup(ksess);
 	if (wait_initialized)
 		task_cancel_wait(wait);
 
 	/* Error exit */
 	loader_abort(ldr);
 	return rc;
+}
+
+/** Create a new task by running an executable from the filesystem.
+ *
+ * Arguments are passed as a null-terminated array of strings.
+ * Files are passed as null-terminated array of pointers to fdi_node_t.
+ *
+ * @param id      If not NULL, the ID of the task is stored here on success.
+ * @param wait    If not NULL, setup waiting for task's return value and store.
+ * @param path    Pathname of the binary to execute
+ * @param argv    Command-line arguments
+ * @param std_in  File to use as stdin
+ * @param std_out File to use as stdout
+ * @param std_err File to use as stderr
+ *
+ * @return Zero on success or an error code.
+ *
+ */
+errno_t task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
+    const char *const args[], int fd_stdin, int fd_stdout, int fd_stderr)
+{
+	return task_spawnvf_debug(id, wait, path, args, fd_stdin, fd_stdout,
+	    fd_stderr, NULL);
 }
 
 /** Create a new task by running an executable from the filesystem.
@@ -324,9 +401,10 @@ errno_t task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...
  */
 errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
 {
-	async_sess_t *sess_ns = ns_session_get();
+	errno_t rc;
+	async_sess_t *sess_ns = ns_session_get(&rc);
 	if (sess_ns == NULL)
-		return EIO;
+		return rc;
 
 	async_exch_t *exch = async_exchange_begin(sess_ns);
 	wait->aid = async_send_2(exch, NS_TASK_WAIT, LOWER32(id), UPPER32(id),
@@ -406,12 +484,13 @@ errno_t task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)
 
 errno_t task_retval(int val)
 {
-	async_sess_t *sess_ns = ns_session_get();
+	errno_t rc;
+	async_sess_t *sess_ns = ns_session_get(&rc);
 	if (sess_ns == NULL)
-		return EIO;
+		return rc;
 
 	async_exch_t *exch = async_exchange_begin(sess_ns);
-	errno_t rc = (errno_t) async_req_1_0(exch, NS_RETVAL, val);
+	rc = (errno_t) async_req_1_0(exch, NS_RETVAL, val);
 	async_exchange_end(exch);
 
 	return rc;

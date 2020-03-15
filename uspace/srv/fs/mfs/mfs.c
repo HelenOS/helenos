@@ -73,10 +73,9 @@ int main(int argc, char **argv)
 	}
 
 	async_sess_t *vfs_sess = service_connect_blocking(SERVICE_VFS,
-	    INTERFACE_VFS_DRIVER, 0);
-
+	    INTERFACE_VFS_DRIVER, 0, &rc);
 	if (!vfs_sess) {
-		printf(NAME ": failed to connect to VFS\n");
+		printf(NAME ": failed to connect to VFS: %s\n", str_error(rc));
 		rc = errno;
 		goto err;
 	}

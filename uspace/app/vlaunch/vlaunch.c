@@ -45,10 +45,10 @@
 #include <label.h>
 #include <canvas.h>
 
-#include <surface.h>
-#include <source.h>
-#include <drawctx.h>
-#include <codec/tga.h>
+#include <draw/surface.h>
+#include <draw/source.h>
+#include <draw/drawctx.h>
+#include <draw/codec.h>
 
 #include "images.h"
 

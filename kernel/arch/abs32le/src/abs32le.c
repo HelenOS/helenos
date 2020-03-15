@@ -125,12 +125,12 @@ void fpu_context_restore(fpu_context_t *ctx)
 {
 }
 
-uintptr_t memcpy_from_uspace(void *dst, const void *uspace_src, size_t size)
+uintptr_t memcpy_from_uspace(void *dst, uspace_addr_t uspace_src, size_t size)
 {
 	return 0;
 }
 
-uintptr_t memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
+uintptr_t memcpy_to_uspace(uspace_addr_t uspace_dst, const void *src, size_t size)
 {
 	return 0;
 }

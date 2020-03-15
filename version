@@ -26,23 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## This file defines the release information of HelenOS.
-#
-# The release string RELEASE consists of three or four components
-# (version, patch level, sublevel and optionally an extra level).
-#
-# The NAME string is the code name of the given release.
-#
 
-VERSION = 0
-PATCHLEVEL = 9
-SUBLEVEL = 1
-
-ifdef EXTRAVERSION
-	RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL).$(EXTRAVERSION)
-else
-	RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)
-endif
-
-NAME = Armonia
-COPYRIGHT = Copyright (c) 2001-2019 HelenOS project
+HELENOS_RELEASE = 0.9.1
+HELENOS_CODENAME = Armonia
+HELENOS_COPYRIGHT = Copyright (c) 2001-2019 HelenOS project

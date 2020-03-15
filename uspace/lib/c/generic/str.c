@@ -802,6 +802,32 @@ bool str_test_prefix(const char *s, const char *p)
 	return false;
 }
 
+/** Get a string suffix.
+ *
+ * Return a string suffix defined by the prefix length.
+ *
+ * @param s             The string to get the suffix from.
+ * @param prefix_length Number of prefix characters to ignore.
+ *
+ * @return String suffix.
+ *
+ */
+const char *str_suffix(const char *s, size_t prefix_length)
+{
+	size_t off = 0;
+	size_t i = 0;
+
+	while (true) {
+		str_decode(s, &off, STR_NO_LIMIT);
+		i++;
+
+		if (i >= prefix_length)
+			break;
+	}
+
+	return s + off;
+}
+
 /** Copy string.
  *
  * Copy source string @a src to destination buffer @a dest.

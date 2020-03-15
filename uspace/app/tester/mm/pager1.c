@@ -64,7 +64,8 @@ static void *create_paged_area(size_t size)
 
 	TPRINTF("Connecting to VFS pager...\n");
 
-	vfs_pager_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_PAGER, 0);
+	vfs_pager_sess = service_connect_blocking(SERVICE_VFS, INTERFACE_PAGER,
+	    0, NULL);
 
 	if (!vfs_pager_sess) {
 		vfs_put(fd);

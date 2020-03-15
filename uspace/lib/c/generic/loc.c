@@ -152,7 +152,7 @@ async_exch_t *loc_exchange_begin_blocking(iface_t iface)
 			if (loc_supp_block_sess == NULL)
 				loc_supp_block_sess =
 				    service_connect_blocking(SERVICE_LOC,
-				    INTERFACE_LOC_SUPPLIER, 0);
+				    INTERFACE_LOC_SUPPLIER, 0, NULL);
 		}
 
 		fibril_mutex_unlock(&loc_supp_block_mutex);
@@ -171,7 +171,7 @@ async_exch_t *loc_exchange_begin_blocking(iface_t iface)
 			if (loc_cons_block_sess == NULL)
 				loc_cons_block_sess =
 				    service_connect_blocking(SERVICE_LOC,
-				    INTERFACE_LOC_CONSUMER, 0);
+				    INTERFACE_LOC_CONSUMER, 0, NULL);
 		}
 
 		fibril_mutex_unlock(&loc_cons_block_mutex);
@@ -201,7 +201,7 @@ async_exch_t *loc_exchange_begin(iface_t iface)
 		if (loc_supplier_sess == NULL)
 			loc_supplier_sess =
 			    service_connect(SERVICE_LOC,
-			    INTERFACE_LOC_SUPPLIER, 0);
+			    INTERFACE_LOC_SUPPLIER, 0, NULL);
 
 		fibril_mutex_unlock(&loc_supplier_mutex);
 
@@ -215,7 +215,7 @@ async_exch_t *loc_exchange_begin(iface_t iface)
 		if (loc_consumer_sess == NULL)
 			loc_consumer_sess =
 			    service_connect(SERVICE_LOC,
-			    INTERFACE_LOC_CONSUMER, 0);
+			    INTERFACE_LOC_CONSUMER, 0, NULL);
 
 		fibril_mutex_unlock(&loc_consumer_mutex);
 
@@ -566,9 +566,9 @@ async_sess_t *loc_service_connect(service_id_t handle, iface_t iface,
 	async_sess_t *sess;
 
 	if (flags & IPC_FLAG_BLOCKING)
-		sess = service_connect_blocking(SERVICE_LOC, iface, handle);
+		sess = service_connect_blocking(SERVICE_LOC, iface, handle, NULL);
 	else
-		sess = service_connect(SERVICE_LOC, iface, handle);
+		sess = service_connect(SERVICE_LOC, iface, handle, NULL);
 
 	return sess;
 }

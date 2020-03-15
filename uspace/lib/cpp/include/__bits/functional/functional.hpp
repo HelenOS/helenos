@@ -45,7 +45,7 @@ namespace std
     template<class F, class... Args>
     decltype(auto) invoke(F&& f, Args&&... args)
     {
-        return aux::INVOKE(forward<F>(f)(forward<Args>(args)...));
+        return aux::INVOKE(forward<F>(f),forward<Args>(args)...);
     }
 
     /**

@@ -125,23 +125,24 @@ int main(int argc, char *argv[])
 
 static errno_t connect_task(task_id_t task_id)
 {
-	async_sess_t *ksess = async_connect_kbox(task_id);
+	errno_t rc;
+	async_sess_t *ksess = async_connect_kbox(task_id, &rc);
 
 	if (!ksess) {
-		if (errno == ENOTSUP) {
+		if (rc == ENOTSUP) {
 			printf("You do not have userspace debugging support "
 			    "compiled in the kernel.\n");
 			printf("Compile kernel with 'Support for userspace debuggers' "
 			    "(CONFIG_UDEBUG) enabled.\n");
-			return errno;
+			return rc;
 		}
 
 		printf("Error connecting\n");
 		printf("async_connect_kbox(%" PRIu64 ") -> %s", task_id, str_error_name(errno));
-		return errno;
+		return rc;
 	}
 
-	errno_t rc = udebug_begin(ksess);
+	rc = udebug_begin(ksess);
 	if (rc != EOK) {
 		printf("udebug_begin() -> %s\n", str_error_name(rc));
 		return rc;

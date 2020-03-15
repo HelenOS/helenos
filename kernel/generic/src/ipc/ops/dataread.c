@@ -62,8 +62,8 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 	if (!ipc_get_retval(&answer->data)) {
 		/* The recipient agreed to send data. */
-		uintptr_t src = ipc_get_arg1(&answer->data);
-		uintptr_t dst = ipc_get_arg1(olddata);
+		uspace_addr_t src = ipc_get_arg1(&answer->data);
+		uspace_addr_t dst = ipc_get_arg1(olddata);
 		size_t max_size = ipc_get_arg2(olddata);
 		size_t size = ipc_get_arg2(&answer->data);
 
@@ -80,7 +80,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 				return EOK;
 			}
 			errno_t rc = copy_from_uspace(answer->buffer,
-			    (void *) src, size);
+			    src, size);
 			if (rc) {
 				ipc_set_retval(&answer->data, rc);
 				/*
@@ -102,11 +102,11 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 static errno_t answer_process(call_t *answer)
 {
 	if (answer->buffer) {
-		uintptr_t dst = ipc_get_arg1(&answer->data);
+		uspace_addr_t dst = ipc_get_arg1(&answer->data);
 		size_t size = ipc_get_arg2(&answer->data);
 		errno_t rc;
 
-		rc = copy_to_uspace((void *) dst, answer->buffer, size);
+		rc = copy_to_uspace(dst, answer->buffer, size);
 		if (rc)
 			ipc_set_retval(&answer->data, rc);
 	}

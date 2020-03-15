@@ -79,14 +79,15 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	errno_t rc;
 	async_sess_t *vfs_sess = service_connect_blocking(SERVICE_VFS,
-	    INTERFACE_VFS_DRIVER, 0);
+	    INTERFACE_VFS_DRIVER, 0, &rc);
 	if (!vfs_sess) {
-		printf("%s: Unable to connect to VFS\n", NAME);
+		printf("%s: Unable to connect to VFS: %s\n", NAME, str_error(rc));
 		return -1;
 	}
 
-	errno_t rc = fs_register(vfs_sess, &tmpfs_vfs_info, &tmpfs_ops,
+	rc = fs_register(vfs_sess, &tmpfs_vfs_info, &tmpfs_ops,
 	    &tmpfs_libfs_ops);
 	if (rc != EOK) {
 		printf("%s: Failed to register file system: %s\n", NAME,

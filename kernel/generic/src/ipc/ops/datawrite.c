@@ -42,7 +42,7 @@
 
 static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
-	uintptr_t src = ipc_get_arg1(&call->data);
+	uspace_addr_t src = ipc_get_arg1(&call->data);
 	size_t size = ipc_get_arg2(&call->data);
 
 	if (size > DATA_XFER_LIMIT) {
@@ -58,7 +58,7 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 	call->buffer = (uint8_t *) malloc(size);
 	if (!call->buffer)
 		return ENOMEM;
-	errno_t rc = copy_from_uspace(call->buffer, (void *) src, size);
+	errno_t rc = copy_from_uspace(call->buffer, src, size);
 	if (rc != EOK) {
 		/*
 		 * call->buffer will be cleaned up in ipc_call_free() at the
@@ -76,12 +76,12 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 	if (!ipc_get_retval(&answer->data)) {
 		/* The recipient agreed to receive data. */
-		uintptr_t dst = (uintptr_t)ipc_get_arg1(&answer->data);
-		size_t size = (size_t)ipc_get_arg2(&answer->data);
-		size_t max_size = (size_t)ipc_get_arg2(olddata);
+		uspace_addr_t dst = ipc_get_arg1(&answer->data);
+		size_t size = ipc_get_arg2(&answer->data);
+		size_t max_size = ipc_get_arg2(olddata);
 
 		if (size <= max_size) {
-			errno_t rc = copy_to_uspace((void *) dst,
+			errno_t rc = copy_to_uspace(dst,
 			    answer->buffer, size);
 			if (rc)
 				ipc_set_retval(&answer->data, rc);

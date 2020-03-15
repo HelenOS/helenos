@@ -82,17 +82,28 @@
 #include <abi/errno.h>
 #include <mm/slab.h>
 #include <adt/list.h>
+#include <synch/syswaitq.h>
+#include <ipc/ipcrsc.h>
+#include <ipc/ipc.h>
+#include <ipc/irq.h>
 
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#define CAPS_START	(CAP_NIL + 1)
-#define CAPS_SIZE	(INT_MAX - CAPS_START)
+#define CAPS_START	((intptr_t) CAP_NIL + 1)
+#define CAPS_SIZE	(INT_MAX - (int) CAPS_START)
 #define CAPS_LAST	(CAPS_SIZE - 1)
 
 static slab_cache_t *cap_cache;
 static slab_cache_t *kobject_cache;
+
+kobject_ops_t *kobject_ops[KOBJECT_TYPE_MAX] = {
+	[KOBJECT_TYPE_CALL] = &call_kobject_ops,
+	[KOBJECT_TYPE_IRQ] = &irq_kobject_ops,
+	[KOBJECT_TYPE_PHONE] = &phone_kobject_ops,
+	[KOBJECT_TYPE_WAITQ] = &waitq_kobject_ops
+};
 
 static size_t caps_hash(const ht_link_t *item)
 {
@@ -411,10 +422,8 @@ void kobject_free(kobject_t *kobj)
  * @param kobj  Kernel object to initialize.
  * @param type  Type of the kernel object.
  * @param raw   Raw pointer to the encapsulated object.
- * @param ops   Pointer to kernel object operations for the respective type.
  */
-void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw,
-    kobject_ops_t *ops)
+void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw)
 {
 	atomic_store(&kobj->refcnt, 1);
 
@@ -423,7 +432,6 @@ void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw,
 
 	kobj->type = type;
 	kobj->raw = raw;
-	kobj->ops = ops;
 }
 
 /** Get new reference to kernel object from capability
@@ -473,7 +481,7 @@ void kobject_add_ref(kobject_t *kobj)
 void kobject_put(kobject_t *kobj)
 {
 	if (atomic_postdec(&kobj->refcnt) == 1) {
-		kobj->ops->destroy(kobj->raw);
+		KOBJECT_OP(kobj)->destroy(kobj->raw);
 		kobject_free(kobj);
 	}
 }

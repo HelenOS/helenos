@@ -39,8 +39,8 @@
 #include <stdint.h>
 #include <io/pixel.h>
 
-#include <source.h>
-#include <font.h>
+#include <draw/source.h>
+#include <draw/font.h>
 
 #include "connection.h"
 #include "widget.h"

@@ -44,8 +44,8 @@
 #include <device/led_dev.h>
 #include <window.h>
 #include <canvas.h>
-#include <surface.h>
-#include <codec/tga.gz.h>
+#include <draw/surface.h>
+#include <draw/codec.h>
 #include "images.h"
 
 #define NAME  "barber"

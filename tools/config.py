@@ -41,10 +41,16 @@ import subprocess
 import xtui
 import random
 
-RULES_FILE = sys.argv[1]
+ARGPOS_RULES = 1
+ARGPOS_PRESETS_DIR = 2
+ARGPOS_CHOICE = 3
+ARGPOS_PRESET = 4
+ARGPOS_MASK_PLATFORM = 3
+
+RULES_FILE = sys.argv[ARGPOS_RULES]
 MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
-PRESETS_DIR = 'defaults'
+PRESETS_DIR = sys.argv[ARGPOS_PRESETS_DIR]
 
 class BinaryOp:
 	def __init__(self, operator, left, right):
@@ -531,7 +537,7 @@ def create_output(mkname, mcname, config, rules):
 	sys.stderr.write("Fetching current revision identifier ... ")
 
 	try:
-		version = subprocess.Popen(['git', 'log', '-1', '--pretty=%h'], stdout = subprocess.PIPE).communicate()[0].decode().strip()
+		version = subprocess.Popen(['git', '-C', os.path.dirname(RULES_FILE), 'log', '-1', '--pretty=%h'], stdout = subprocess.PIPE).communicate()[0].decode().strip()
 		sys.stderr.write("ok\n")
 	except:
 		version = None
@@ -585,13 +591,13 @@ def create_output(mkname, mcname, config, rules):
 
 	outmk.write('TIMESTAMP_UNIX = %d\n' % timestamp_unix)
 	outmc.write('#define TIMESTAMP_UNIX %d\n' % timestamp_unix)
-	defs += ' "-DTIMESTAMP_UNIX=%d"\n' % timestamp_unix
+	defs += ' "-DTIMESTAMP_UNIX=%d"' % timestamp_unix
 
 	outmk.write('TIMESTAMP = %s\n' % timestamp)
 	outmc.write('#define TIMESTAMP %s\n' % timestamp)
-	defs += ' "-DTIMESTAMP=%s"\n' % timestamp
+	defs += ' "-DTIMESTAMP=%s"' % timestamp
 
-	outmk.write(defs)
+	outmk.write('%s\n' % defs)
 
 	outmk.close()
 	outmc.close()
@@ -675,16 +681,28 @@ def main():
 	# Parse rules file
 	parse_rules(RULES_FILE, rules)
 
+	if len(sys.argv) > ARGPOS_CHOICE:
+		choice = sys.argv[ARGPOS_CHOICE]
+	else:
+		choice = None
+
+	if len(sys.argv) > ARGPOS_PRESET:
+		preset = sys.argv[ARGPOS_PRESET]
+	else:
+		preset = None
+
+	mask_platform = (len(sys.argv) > ARGPOS_MASK_PLATFORM and sys.argv[ARGPOS_MASK_PLATFORM] == "--mask-platform")
+
 	# Input configuration file can be specified on command line
 	# otherwise configuration from previous run is used.
-	if len(sys.argv) >= 4:
-		profile = parse_profile_name(sys.argv[3])
+	if preset is not None:
+		profile = parse_profile_name(preset)
 		read_presets(profile, config)
 	elif os.path.exists(MAKEFILE):
 		read_config(MAKEFILE, config)
 
 	# Default mode: check values and regenerate configuration files
-	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
+	if choice == 'default':
 		if (infer_verify_choices(config, rules)):
 			preprocess_config(config, rules)
 			create_output(MAKEFILE, MACROS, config, rules)
@@ -692,10 +710,10 @@ def main():
 
 	# Hands-off mode: check values and regenerate configuration files,
 	# but no interactive fallback
-	if (len(sys.argv) >= 3) and (sys.argv[2] == 'hands-off'):
-		# We deliberately test sys.argv >= 4 because we do not want
+	if choice == 'hands-off':
+		# We deliberately test this because we do not want
 		# to read implicitly any possible previous run configuration
-		if len(sys.argv) < 4:
+		if preset is None:
 			sys.stderr.write("Configuration error: No presets specified\n")
 			return 2
 
@@ -708,13 +726,13 @@ def main():
 		return 1
 
 	# Check mode: only check configuration
-	if (len(sys.argv) >= 3) and (sys.argv[2] == 'check'):
+	if choice == 'check':
 		if infer_verify_choices(config, rules):
 			return 0
 		return 1
 
 	# Random mode
-	if (len(sys.argv) == 3) and (sys.argv[2] == 'random'):
+	if choice == 'random':
 		ok = random_choices(config, rules, 0)
 		if not ok:
 			sys.stderr.write("Internal error: unable to generate random config.\n")
@@ -740,15 +758,20 @@ def main():
 
 			options = []
 			opt2row = {}
-			cnt = 1
+			cnt = 0
 
-			options.append("  --- Load preconfigured defaults ... ")
+			if not mask_platform:
+				cnt += 1
+				options.append("  --- Load preconfigured defaults ... ")
 
 			for rule in rules:
 				varname, vartype, name, choices, cond = rule
 
 				if cond and not cond.evaluate(config):
 					continue
+
+				if mask_platform and (varname == "PLATFORM" or varname == "MACHINE" or varname == "COMPILER"):
+					rule = varname, vartype, "(locked) " + name, choices, cond
 
 				if varname == selname:
 					position = cnt
@@ -796,7 +819,7 @@ def main():
 					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
 					continue
 
-			if value == 0:
+			if value == 0 and not mask_platform:
 				profile = choose_profile(PRESETS_DIR, MAKEFILE, screen, config)
 				if profile != None:
 					read_presets(profile, config)
@@ -813,6 +836,9 @@ def main():
 				value = None
 			else:
 				value = config[selname]
+
+			if mask_platform and (selname == "PLATFORM" or selname == "MACHINE" or selname == "COMPILER"):
+					continue
 
 			if seltype == 'choice':
 				config[selname] = subchoice(screen, name, choices, value)

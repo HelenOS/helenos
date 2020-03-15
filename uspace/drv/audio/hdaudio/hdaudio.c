@@ -162,7 +162,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 	void *regs = NULL;
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "hda_dev_add()");
+	ddf_msg(LVL_DEBUG, "hda_dev_add()");
 	hw_res_list_parsed_init(&res);
 
 	hda = ddf_dev_data_alloc(dev, sizeof(hda_t));
@@ -174,7 +174,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 
 	fibril_mutex_initialize(&hda->lock);
 
-	ddf_msg(LVL_NOTE, "create parent sess");
+	ddf_msg(LVL_DEBUG, "create parent sess");
 	hda->parent_sess = ddf_dev_parent_sess_get(dev);
 	if (hda->parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed connecting parent driver.\n");
@@ -182,7 +182,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "get HW res list");
+	ddf_msg(LVL_DEBUG, "get HW res list");
 	rc = hw_res_get_list_parsed(hda->parent_sess, &res, 0);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed getting resource list.\n");
@@ -198,7 +198,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 	hda->rwbase = RNGABS(res.mem_ranges.ranges[0]);
 	hda->rwsize = RNGSZ(res.mem_ranges.ranges[0]);
 
-	ddf_msg(LVL_NOTE, "hda reg base: %" PRIx64,
+	ddf_msg(LVL_DEBUG, "hda reg base: %" PRIx64,
 	    RNGABS(res.mem_ranges.ranges[0]));
 
 	if (hda->rwsize < sizeof(hda_regs_t)) {
@@ -207,7 +207,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "enable PIO");
+	ddf_msg(LVL_DEBUG, "enable PIO");
 	rc = pio_enable((void *)(uintptr_t)hda->rwbase, hda->rwsize, &regs);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error enabling PIO range.");
@@ -216,13 +216,13 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 
 	hda->regs = (hda_regs_t *)regs;
 
-	ddf_msg(LVL_NOTE, "IRQs: %zu", res.irqs.count);
+	ddf_msg(LVL_DEBUG, "IRQs: %zu", res.irqs.count);
 	if (res.irqs.count != 1) {
 		ddf_msg(LVL_ERROR, "Unexpected IRQ count %zu (!= 1)",
 		    res.irqs.count);
 		goto error;
 	}
-	ddf_msg(LVL_NOTE, "interrupt no: %d", res.irqs.irqs[0]);
+	ddf_msg(LVL_DEBUG, "interrupt no: %d", res.irqs.irqs[0]);
 
 	ncmds_base = sizeof(hdaudio_irq_commands) / sizeof(irq_cmd_t);
 	ncmds_sdesc = sizeof(hdaudio_irq_commands_sdesc) / sizeof(irq_cmd_t);
@@ -255,7 +255,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 		cmds[ncmds_base + i * ncmds_sdesc + 3].addr = (void *)&rphys->sdesc[i].sts;
 	}
 
-	ddf_msg(LVL_NOTE, "range0.base=%zu", hdaudio_irq_pio_ranges[0].base);
+	ddf_msg(LVL_DEBUG, "range0.base=%zu", hdaudio_irq_pio_ranges[0].base);
 
 	rc = hw_res_enable_interrupt(hda->parent_sess, res.irqs.irqs[0]);
 	if (rc != EOK) {
@@ -280,7 +280,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "create function");
+	ddf_msg(LVL_DEBUG, "create function");
 	fun_pcm = ddf_fun_create(dev, fun_exposed, "pcm");
 	if (fun_pcm == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating function 'pcm'.");
@@ -322,7 +322,7 @@ error:
 	// pio_disable(regs);
 	hw_res_list_parsed_clean(&res);
 
-	ddf_msg(LVL_NOTE, "Failing hda_dev_add() -> %s", str_error_name(rc));
+	ddf_msg(LVL_DEBUG, "Failing hda_dev_add() -> %s", str_error_name(rc));
 	return rc;
 }
 

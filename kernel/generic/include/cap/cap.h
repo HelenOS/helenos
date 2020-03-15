@@ -69,6 +69,10 @@ typedef struct kobject_ops {
 	void (*destroy)(void *);
 } kobject_ops_t;
 
+extern kobject_ops_t *kobject_ops[];
+
+#define KOBJECT_OP(k)	kobject_ops[(k)->type]
+
 /*
  * Everything in kobject_t except for the atomic reference count, the capability
  * list and its lock is imutable.
@@ -81,8 +85,6 @@ typedef struct kobject {
 	mutex_t caps_list_lock;
 	/** List of published capabilities associated with the kobject */
 	list_t caps_list;
-
-	kobject_ops_t *ops;
 
 	union {
 		void *raw;
@@ -138,8 +140,7 @@ extern void cap_free(struct task *, cap_handle_t);
 
 extern kobject_t *kobject_alloc(unsigned int);
 extern void kobject_free(kobject_t *);
-extern void kobject_initialize(kobject_t *, kobject_type_t, void *,
-    kobject_ops_t *);
+extern void kobject_initialize(kobject_t *, kobject_type_t, void *);
 extern kobject_t *kobject_get(struct task *, cap_handle_t, kobject_type_t);
 extern void kobject_add_ref(kobject_t *);
 extern void kobject_put(kobject_t *);

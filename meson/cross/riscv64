@@ -1,0 +1,25 @@
+# See http://mesonbuild.com/Cross-compilation.html
+
+[binaries]
+c = '@COMPPREFIX@gcc'
+cpp = '@COMPPREFIX@g++'
+ar = '@COMPPREFIX@ar'
+strip = '@COMPPREFIX@strip'
+nm = '@COMPPREFIX@nm'
+objcopy = '@COMPPREFIX@objcopy'
+objdump = '@COMPPREFIX@objdump'
+as = '@COMPPREFIX@as'
+ld = '@COMPPREFIX@ld'
+
+[properties]
+has_function_printf = true
+needs_exe_wrapper = true
+
+cc_arch = 'riscv64'
+bits = 64
+
+[host_machine]
+system = 'helenos'
+cpu_family = 'riscv64'
+cpu = 'riscv64'
+endian = 'little'

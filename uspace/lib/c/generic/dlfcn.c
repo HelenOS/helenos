@@ -44,6 +44,7 @@
 
 #include <rtld/module.h>
 #include <rtld/rtld.h>
+#include <rtld/rtld_arch.h>
 #include <rtld/symbol.h>
 
 void *dlopen(const char *path, int flag)
@@ -78,7 +79,10 @@ void *dlsym(void *mod, const char *sym_name)
 
 	sd = symbol_bfs_find(sym_name, (module_t *) mod, &sm);
 	if (sd != NULL) {
-		return symbol_get_addr(sd, sm, __tcb_get());
+		if (elf_st_type(sd->st_info) == STT_FUNC)
+			return func_get_addr(sd, sm);
+		else
+			return symbol_get_addr(sd, sm, __tcb_get());
 	}
 
 	return NULL;

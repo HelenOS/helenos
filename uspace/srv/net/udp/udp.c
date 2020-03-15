@@ -46,13 +46,18 @@
 
 #define NAME       "udp"
 
+static udp_assocs_dep_t udp_assocs_dep = {
+	.get_srcaddr = udp_get_srcaddr,
+	.transmit_msg = udp_transmit_msg
+};
+
 static errno_t udp_init(void)
 {
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_init()");
 
-	rc = udp_assocs_init();
+	rc = udp_assocs_init(&udp_assocs_dep);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing associations.");
 		return ENOMEM;

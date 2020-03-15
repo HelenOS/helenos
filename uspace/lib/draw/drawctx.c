@@ -37,7 +37,7 @@
 #include <adt/list.h>
 #include <stdlib.h>
 
-#include "drawctx.h"
+#include <draw/drawctx.h>
 
 void drawctx_init(drawctx_t *context, surface_t *surface)
 {

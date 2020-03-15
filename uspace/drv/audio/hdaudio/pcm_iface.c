@@ -91,7 +91,7 @@ static hda_t *fun_to_hda(ddf_fun_t *fun)
 
 static errno_t hda_get_info_str(ddf_fun_t *fun, const char **name)
 {
-	ddf_msg(LVL_NOTE, "hda_get_info_str()");
+	ddf_msg(LVL_DEBUG, "hda_get_info_str()");
 	if (name)
 		*name = "High Definition Audio";
 	return EOK;
@@ -101,7 +101,7 @@ static unsigned hda_query_cap(ddf_fun_t *fun, audio_cap_t cap)
 {
 	hda_t *hda = fun_to_hda(fun);
 
-	ddf_msg(LVL_NOTE, "hda_query_cap(%d)", cap);
+	ddf_msg(LVL_DEBUG, "hda_query_cap(%d)", cap);
 	switch (cap) {
 	case AUDIO_CAP_PLAYBACK:
 	case AUDIO_CAP_INTERRUPT:
@@ -128,7 +128,7 @@ static errno_t hda_test_format(ddf_fun_t *fun, unsigned *channels,
 {
 	errno_t rc = EOK;
 
-	ddf_msg(LVL_NOTE, "hda_test_format(%u, %u, %d)\n",
+	ddf_msg(LVL_DEBUG, "hda_test_format(%u, %u, %d)\n",
 	    *channels, *rate, *format);
 
 	if (*channels != 1) {
@@ -156,13 +156,13 @@ static errno_t hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 
 	hda_lock(hda);
 
-	ddf_msg(LVL_NOTE, "hda_get_buffer(): hda=%p", hda);
+	ddf_msg(LVL_DEBUG, "hda_get_buffer(): hda=%p", hda);
 	if (hda->pcm_buffers != NULL) {
 		hda_unlock(hda);
 		return EBUSY;
 	}
 
-	ddf_msg(LVL_NOTE, "hda_get_buffer() - allocate stream buffers");
+	ddf_msg(LVL_DEBUG, "hda_get_buffer() - allocate stream buffers");
 	rc = hda_stream_buffers_alloc(hda, &hda->pcm_buffers);
 	if (rc != EOK) {
 		assert(rc == ENOMEM);
@@ -170,12 +170,12 @@ static errno_t hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 		return ENOMEM;
 	}
 
-	ddf_msg(LVL_NOTE, "hda_get_buffer() - fill info");
+	ddf_msg(LVL_DEBUG, "hda_get_buffer() - fill info");
 	/* XXX This is only one buffer */
 	*buffer = hda->pcm_buffers->buf[0];
 	*size = hda->pcm_buffers->bufsize * hda->pcm_buffers->nbuffers;
 
-	ddf_msg(LVL_NOTE, "hda_get_buffer() returing EOK, buffer=%p, size=%zu",
+	ddf_msg(LVL_DEBUG, "hda_get_buffer() returing EOK, buffer=%p, size=%zu",
 	    *buffer, *size);
 
 	hda_unlock(hda);
@@ -184,7 +184,7 @@ static errno_t hda_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 
 static errno_t hda_get_buffer_position(ddf_fun_t *fun, size_t *pos)
 {
-	ddf_msg(LVL_NOTE, "hda_get_buffer_position()");
+	ddf_msg(LVL_DEBUG, "hda_get_buffer_position()");
 	return ENOTSUP;
 }
 
@@ -192,7 +192,7 @@ static errno_t hda_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
 {
 	hda_t *hda = fun_to_hda(fun);
 
-	ddf_msg(LVL_NOTE, "hda_set_event_session()");
+	ddf_msg(LVL_DEBUG, "hda_set_event_session()");
 	hda_lock(hda);
 	hda->ev_sess = sess;
 	hda_unlock(hda);
@@ -205,7 +205,7 @@ static async_sess_t *hda_get_event_session(ddf_fun_t *fun)
 	hda_t *hda = fun_to_hda(fun);
 	async_sess_t *sess;
 
-	ddf_msg(LVL_NOTE, "hda_get_event_session()");
+	ddf_msg(LVL_DEBUG, "hda_get_event_session()");
 
 	hda_lock(hda);
 	sess = hda->ev_sess;
@@ -220,7 +220,7 @@ static errno_t hda_release_buffer(ddf_fun_t *fun)
 
 	hda_lock(hda);
 
-	ddf_msg(LVL_NOTE, "hda_release_buffer()");
+	ddf_msg(LVL_DEBUG, "hda_release_buffer()");
 	if (hda->pcm_buffers == NULL) {
 		hda_unlock(hda);
 		return EINVAL;
@@ -239,7 +239,7 @@ static errno_t hda_start_playback(ddf_fun_t *fun, unsigned frames,
 	hda_t *hda = fun_to_hda(fun);
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "hda_start_playback()");
+	ddf_msg(LVL_DEBUG, "hda_start_playback()");
 	hda_lock(hda);
 
 	if (hda->pcm_stream != NULL) {
@@ -278,7 +278,7 @@ static errno_t hda_stop_playback(ddf_fun_t *fun, bool immediate)
 {
 	hda_t *hda = fun_to_hda(fun);
 
-	ddf_msg(LVL_NOTE, "hda_stop_playback()");
+	ddf_msg(LVL_DEBUG, "hda_stop_playback()");
 	hda_lock(hda);
 	hda_stream_stop(hda->pcm_stream);
 	hda_stream_reset(hda->pcm_stream);
@@ -298,7 +298,7 @@ static errno_t hda_start_capture(ddf_fun_t *fun, unsigned frames, unsigned chann
 	hda_t *hda = fun_to_hda(fun);
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "hda_start_capture()");
+	ddf_msg(LVL_DEBUG, "hda_start_capture()");
 	hda_lock(hda);
 
 	if (hda->pcm_stream != NULL) {
@@ -311,7 +311,7 @@ static errno_t hda_start_capture(ddf_fun_t *fun, unsigned frames, unsigned chann
 	/* 48 kHz, 16-bits, 1 channel */
 	fmt = (fmt_base_44khz << fmt_base) | (fmt_bits_16 << fmt_bits_l) | 1;
 
-	ddf_msg(LVL_NOTE, "hda_start_capture() - create input stream");
+	ddf_msg(LVL_DEBUG, "hda_start_capture() - create input stream");
 	hda->pcm_stream = hda_stream_create(hda, sdir_input, hda->pcm_buffers,
 	    fmt);
 	if (hda->pcm_stream == NULL) {
@@ -337,7 +337,7 @@ static errno_t hda_stop_capture(ddf_fun_t *fun, bool immediate)
 {
 	hda_t *hda = fun_to_hda(fun);
 
-	ddf_msg(LVL_NOTE, "hda_stop_capture()");
+	ddf_msg(LVL_DEBUG, "hda_stop_capture()");
 	hda_lock(hda);
 	hda_stream_stop(hda->pcm_stream);
 	hda_stream_reset(hda->pcm_stream);

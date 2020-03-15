@@ -37,7 +37,7 @@
 #define LIBFDISK_TYPES_H_
 
 #include <adt/list.h>
-#include <cap.h>
+#include <capa.h>
 #include <loc.h>
 #include <stdint.h>
 #include <types/label.h>
@@ -125,7 +125,7 @@ typedef struct fdisk_part {
 	/** Link to fdisk_dev_t.log_ba */
 	link_t llog_ba;
 	/** Capacity */
-	cap_spec_t capacity;
+	capa_spec_t capacity;
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** Partition contents */
@@ -149,7 +149,7 @@ typedef struct fdisk_part {
 /** Specification of new partition */
 typedef struct {
 	/** Desired capacity */
-	cap_spec_t capacity;
+	capa_spec_t capacity;
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** File system type */
@@ -163,7 +163,7 @@ typedef struct {
 /** Partition info */
 typedef struct {
 	/** Capacity */
-	cap_spec_t capacity;
+	capa_spec_t capacity;
 	/** Partition kind */
 	label_pkind_t pkind;
 	/** Partition contents */

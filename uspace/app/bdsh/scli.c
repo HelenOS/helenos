@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008 Tim Post
+ * Copyright (c) 2018 Matthieu Riolo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +31,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <str.h>
+#include <adt/odict.h>
 #include "config.h"
 #include "scli.h"
 #include "input.h"
@@ -41,6 +43,8 @@
 static cliuser_t usr;
 static iostate_t *iostate;
 static iostate_t stdiostate;
+
+odict_t alias_dict;
 
 /*
  * Globals that are modified during start-up that modules/builtins
@@ -54,6 +58,16 @@ volatile unsigned int cli_verbocity = 1;
  * (change to your liking in configure.ac and re-run autoconf)
  */
 const char *progname = PACKAGE_NAME;
+
+static int alias_cmp(void *a, void *b)
+{
+	return str_cmp((char *)a, (char *)b);
+}
+
+static void *alias_key(odlink_t *odlink)
+{
+	return (void *)odict_get_instance(odlink, alias_t, odict)->name;
+}
 
 /* These are not exposed, even to builtins */
 static int cli_init(cliuser_t *);
@@ -106,6 +120,8 @@ int main(int argc, char *argv[])
 	stdiostate.stdout = stdout;
 	stdiostate.stderr = stderr;
 	iostate = &stdiostate;
+
+	odict_initialize(&alias_dict, alias_key, alias_cmp);
 
 	if (cli_init(&usr))
 		exit(EXIT_FAILURE);

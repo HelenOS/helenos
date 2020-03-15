@@ -478,12 +478,10 @@ void udebug_thread_fault(void)
 		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
 	mutex_unlock(&THREAD->udebug.lock);
 
-	/* Make sure the debugging session is over before proceeding. */
-	mutex_lock(&THREAD->udebug.lock);
-	while (THREAD->udebug.active)
-		condvar_wait(&THREAD->udebug.active_cv, &THREAD->udebug.lock);
-	mutex_unlock(&THREAD->udebug.lock);
-
+	/*
+	 * This is where we will typically block until a post-mortem debugger
+	 * terminates the debugging session.
+	 */
 	udebug_stoppable_end();
 }
 

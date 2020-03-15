@@ -155,20 +155,24 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    SPSR_MODE_ARM64_EL0T);
 
 	/* Set program entry. */
-	ELR_EL1_write((uint64_t) kernel_uarg->uspace_entry);
+	ELR_EL1_write(kernel_uarg->uspace_entry);
 
 	/* Set user stack. */
-	SP_EL0_write(((uint64_t) kernel_uarg->uspace_stack +
-	    kernel_uarg->uspace_stack_size));
+	SP_EL0_write(kernel_uarg->uspace_stack +
+	    kernel_uarg->uspace_stack_size);
 
 	/* Clear Thread ID register. */
 	TPIDR_EL0_write(0);
 
 	asm volatile (
 	    /*
-	     * Clear all general-purpose registers, except x0 that holds an
-	     * argument for the user space.
+	     * Reset the kernel stack to its base value.
+	     *
+	     * Clear all general-purpose registers,
+	     * except x0 that holds an argument for
+	     * the user space.
 	     */
+	    "mov sp, %[kstack]\n"
 	    "mov x0, %[uspace_uarg]\n"
 	    "mov x1, #0\n"
 	    "mov x2, #0\n"
@@ -201,7 +205,9 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    "mov x29, #0\n"
 	    "mov x30, #0\n"
 	    "eret\n"
-	    :: [uspace_uarg] "r" (kernel_uarg->uspace_uarg)
+	    :: [uspace_uarg] "r" (kernel_uarg->uspace_uarg),
+	      [kstack] "r" (((uint64_t) (THREAD->kstack)) +
+	      MEM_STACK_SIZE - SP_DELTA)
 	);
 
 	unreachable();

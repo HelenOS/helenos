@@ -183,6 +183,32 @@ stats_thread_t *stats_get_threads(size_t *count)
 	return stats_threads;
 }
 
+/** Get IPC connections statistics.
+ *
+ * @param count Number of records returned.
+ *
+ * @return Array of stats_ipcc_t structures.
+ *         If non-NULL then it should be eventually freed
+ *         by free().
+ *
+ */
+stats_ipcc_t *stats_get_ipccs(size_t *count)
+{
+	size_t size = 0;
+	stats_ipcc_t *stats_ipccs =
+	    (stats_ipcc_t *) sysinfo_get_data("system.ipccs", &size);
+
+	if ((size % sizeof(stats_ipcc_t)) != 0) {
+		if (stats_ipccs != NULL)
+			free(stats_ipccs);
+		*count = 0;
+		return NULL;
+	}
+
+	*count = size / sizeof(stats_ipcc_t);
+	return stats_ipccs;
+}
+
 /** Get exception statistics.
  *
  * @param count Number of records returned.

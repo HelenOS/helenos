@@ -68,7 +68,7 @@ void *program_loader = NULL;
  * @return EOK on success or an error code.
  *
  */
-errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
+errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t *prg)
 {
 	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
 	    malloc(sizeof(uspace_arg_t));
@@ -85,7 +85,7 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 	/*
 	 * Create the stack address space area.
 	 */
-	uintptr_t virt = (uintptr_t) -1;
+	uintptr_t virt = (uintptr_t) AS_AREA_ANY;
 	uintptr_t bound = USER_ADDRESS_SPACE_END - (STACK_SIZE_USER - 1);
 
 	/* Adjust bound to create space for the desired guard page. */
@@ -102,12 +102,12 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 		return ENOMEM;
 	}
 
-	kernel_uarg->uspace_entry = (void *) entry_addr;
-	kernel_uarg->uspace_stack = (void *) virt;
+	kernel_uarg->uspace_entry = entry_addr;
+	kernel_uarg->uspace_stack = virt;
 	kernel_uarg->uspace_stack_size = STACK_SIZE_USER;
-	kernel_uarg->uspace_thread_function = NULL;
-	kernel_uarg->uspace_thread_arg = NULL;
-	kernel_uarg->uspace_uarg = NULL;
+	kernel_uarg->uspace_thread_function = USPACE_NULL;
+	kernel_uarg->uspace_thread_arg = USPACE_NULL;
+	kernel_uarg->uspace_uarg = USPACE_NULL;
 
 	/*
 	 * Create the main thread.
@@ -186,7 +186,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 		as_release(as);
 		log(LF_OTHER, LVL_ERROR, "Cannot spawn loader (%s)",
 		    str_error(prg->loader_status));
-		return ENOENT;
+		return prg->loader_status;
 	}
 
 	return program_create(as, ((elf_header_t *) program_loader)->e_entry,
@@ -217,7 +217,7 @@ void program_ready(program_t *prg)
  * @return EOK on success or an error code from @ref errno.h.
  *
  */
-sys_errno_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
+sys_errno_t sys_program_spawn_loader(uspace_ptr_char uspace_name, size_t name_len)
 {
 	/* Cap length of name and copy it from userspace. */
 	if (name_len > TASK_NAME_BUFLEN - 1)

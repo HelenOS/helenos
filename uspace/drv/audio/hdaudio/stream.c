@@ -100,7 +100,7 @@ errno_t hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "Stream buf phys=0x%llx virt=%p",
+		ddf_msg(LVL_DEBUG, "Stream buf phys=0x%llx virt=%p",
 		    (unsigned long long)buffer_phys, buffer);
 
 		bufs->buf[i] = buffer;
@@ -122,7 +122,7 @@ errno_t hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 	    hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE,
 	    0, &buffer_phys, &buffer);
 	if (rc != EOK) {
-		ddf_msg(LVL_NOTE, "dmamem_map_anon -> %s", str_error_name(rc));
+		ddf_msg(LVL_DEBUG, "dmamem_map_anon -> %s", str_error_name(rc));
 		goto error;
 	}
 
@@ -130,7 +130,7 @@ errno_t hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 		bufs->buf[i] = buffer + i * bufs->bufsize;
 		bufs->buf_phys[i] = buffer_phys + i * bufs->bufsize;
 
-		ddf_msg(LVL_NOTE, "Stream buf phys=0x%llx virt=%p",
+		ddf_msg(LVL_DEBUG, "Stream buf phys=0x%llx virt=%p",
 		    (long long unsigned)(uintptr_t)bufs->buf[i],
 		    (void *)bufs->buf_phys[i]);
 	}
@@ -245,35 +245,35 @@ hda_stream_t *hda_stream_create(hda_t *hda, hda_stream_dir_t dir,
 	stream->fmt = fmt;
 	stream->buffers = bufs;
 
-	ddf_msg(LVL_NOTE, "snum=%d sdidx=%d", stream->sid, stream->sdid);
+	ddf_msg(LVL_DEBUG, "snum=%d sdidx=%d", stream->sid, stream->sdid);
 
-	ddf_msg(LVL_NOTE, "Configure stream descriptor");
+	ddf_msg(LVL_DEBUG, "Configure stream descriptor");
 	hda_stream_desc_configure(stream);
 	return stream;
 }
 
 void hda_stream_destroy(hda_stream_t *stream)
 {
-	ddf_msg(LVL_NOTE, "hda_stream_destroy()");
+	ddf_msg(LVL_DEBUG, "hda_stream_destroy()");
 	hda_stream_reset_noinit(stream);
 	free(stream);
 }
 
 void hda_stream_start(hda_stream_t *stream)
 {
-	ddf_msg(LVL_NOTE, "hda_stream_start()");
+	ddf_msg(LVL_DEBUG, "hda_stream_start()");
 	hda_stream_set_run(stream, true);
 }
 
 void hda_stream_stop(hda_stream_t *stream)
 {
-	ddf_msg(LVL_NOTE, "hda_stream_stop()");
+	ddf_msg(LVL_DEBUG, "hda_stream_stop()");
 	hda_stream_set_run(stream, false);
 }
 
 void hda_stream_reset(hda_stream_t *stream)
 {
-	ddf_msg(LVL_NOTE, "hda_stream_reset()");
+	ddf_msg(LVL_DEBUG, "hda_stream_reset()");
 	hda_stream_reset_noinit(stream);
 	hda_stream_desc_configure(stream);
 }
