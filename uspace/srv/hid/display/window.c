@@ -399,6 +399,10 @@ errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
 	return EOK;
 }
 
+/** Bring window to top.
+ *
+ * @param wnd Window
+ */
 void ds_window_bring_to_top(ds_window_t *wnd)
 {
 	ds_display_t *disp = wnd->display;
