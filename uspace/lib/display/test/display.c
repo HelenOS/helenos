@@ -61,6 +61,7 @@ static errno_t test_window_resize_req(void *, sysarg_t, display_wnd_rsztype_t,
 static errno_t test_window_resize(void *, sysarg_t, gfx_coord2_t *,
     gfx_rect_t *);
 static errno_t test_get_event(void *, sysarg_t *, display_wnd_ev_t *);
+static errno_t test_get_info(void *, display_info_t *);
 
 static errno_t test_gc_set_color(void *, gfx_color_t *);
 
@@ -70,7 +71,8 @@ static display_ops_t test_display_srv_ops = {
 	.window_move_req = test_window_move_req,
 	.window_resize_req = test_window_resize_req,
 	.window_resize = test_window_resize,
-	.get_event = test_get_event
+	.get_event = test_get_event,
+	.get_info = test_get_info
 };
 
 static display_wnd_cb_t test_display_wnd_cb = {
@@ -115,6 +117,10 @@ typedef struct {
 	sysarg_t resize_wnd_id;
 
 	bool get_event_called;
+
+	bool get_info_called;
+	gfx_rect_t get_info_rect;
+
 	bool set_color_called;
 	bool close_event_called;
 	bool focus_event_called;
@@ -830,7 +836,7 @@ PCUT_TEST(close_event_deliver)
 	fibril_mutex_unlock(&resp.event_lock);
 
 	/* Verify that the event was delivered correctly */
-	PCUT_ASSERT_EQUALS(resp.event.etype,
+	PCUT_ASSERT_INT_EQUALS(resp.event.etype,
 	    resp.revent.etype);
 
 	rc = display_window_destroy(wnd);
@@ -895,7 +901,7 @@ PCUT_TEST(focus_event_deliver)
 	fibril_mutex_unlock(&resp.event_lock);
 
 	/* Verify that the event was delivered correctly */
-	PCUT_ASSERT_EQUALS(resp.event.etype,
+	PCUT_ASSERT_INT_EQUALS(resp.event.etype,
 	    resp.revent.etype);
 
 	rc = display_window_destroy(wnd);
@@ -964,15 +970,15 @@ PCUT_TEST(kbd_event_deliver)
 	fibril_mutex_unlock(&resp.event_lock);
 
 	/* Verify that the event was delivered correctly */
-	PCUT_ASSERT_EQUALS(resp.event.etype,
+	PCUT_ASSERT_INT_EQUALS(resp.event.etype,
 	    resp.revent.etype);
-	PCUT_ASSERT_EQUALS(resp.event.ev.kbd.type,
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.kbd.type,
 	    resp.revent.ev.kbd.type);
-	PCUT_ASSERT_EQUALS(resp.event.ev.kbd.key,
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.kbd.key,
 	    resp.revent.ev.kbd.key);
-	PCUT_ASSERT_EQUALS(resp.event.ev.kbd.mods,
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.kbd.mods,
 	    resp.revent.ev.kbd.mods);
-	PCUT_ASSERT_EQUALS(resp.event.ev.kbd.c,
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.kbd.c,
 	    resp.revent.ev.kbd.c);
 
 	rc = display_window_destroy(wnd);
@@ -1041,15 +1047,15 @@ PCUT_TEST(pos_event_deliver)
 	fibril_mutex_unlock(&resp.event_lock);
 
 	/* Verify that the event was delivered correctly */
-	PCUT_ASSERT_EQUALS(resp.event.etype,
+	PCUT_ASSERT_INT_EQUALS(resp.event.etype,
 	    resp.revent.etype);
-	PCUT_ASSERT_EQUALS(resp.event.ev.pos.type,
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.pos.type,
 	    resp.revent.ev.pos.type);
-	PCUT_ASSERT_EQUALS(resp.event.ev.pos.btn_num,
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.pos.btn_num,
 	    resp.revent.ev.pos.btn_num);
-	PCUT_ASSERT_EQUALS(resp.event.ev.pos.hpos,
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.pos.hpos,
 	    resp.revent.ev.pos.hpos);
-	PCUT_ASSERT_EQUALS(resp.event.ev.pos.vpos,
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.pos.vpos,
 	    resp.revent.ev.pos.vpos);
 
 	rc = display_window_destroy(wnd);
@@ -1101,7 +1107,7 @@ PCUT_TEST(unfocus_event_deliver)
 	resp.event_cnt = 1;
 	resp.event.etype = wev_unfocus;
 	resp.wnd_id = wnd->id;
-	resp.focus_event_called = false;
+	resp.unfocus_event_called = false;
 	fibril_mutex_initialize(&resp.event_lock);
 	fibril_condvar_initialize(&resp.event_cv);
 	display_srv_ev_pending(resp.srv);
@@ -1114,7 +1120,7 @@ PCUT_TEST(unfocus_event_deliver)
 	fibril_mutex_unlock(&resp.event_lock);
 
 	/* Verify that the event was delivered correctly */
-	PCUT_ASSERT_EQUALS(resp.event.etype,
+	PCUT_ASSERT_INT_EQUALS(resp.event.etype,
 	    resp.revent.etype);
 
 	rc = display_window_destroy(wnd);
@@ -1122,6 +1128,82 @@ PCUT_TEST(unfocus_event_deliver)
 
 	display_close(disp);
 
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** display_get_info() with server returning failure response works. */
+PCUT_TEST(get_info_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_info_t info;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = ENOMEM;
+	resp.get_info_called = false;
+
+	rc = display_get_info(disp, &info);
+	PCUT_ASSERT_TRUE(resp.get_info_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** display_get_info() with server returning success response works. */
+PCUT_TEST(get_info_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_info_t info;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = EOK;
+	resp.get_info_called = false;
+	resp.get_info_rect.p0.x = 10;
+	resp.get_info_rect.p0.y = 11;
+	resp.get_info_rect.p1.x = 20;
+	resp.get_info_rect.p1.y = 21;
+
+	rc = display_get_info(disp, &info);
+	PCUT_ASSERT_TRUE(resp.get_info_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_INT_EQUALS(resp.get_info_rect.p0.x, info.rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(resp.get_info_rect.p0.y, info.rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(resp.get_info_rect.p1.x, info.rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(resp.get_info_rect.p1.y, info.rect.p1.y);
+
+	display_close(disp);
 	rc = loc_service_unregister(sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -1293,7 +1375,8 @@ static errno_t test_window_resize(void *arg, sysarg_t wnd_id,
 	return resp->rc;
 }
 
-static errno_t test_get_event(void *arg, sysarg_t *wnd_id, display_wnd_ev_t *event)
+static errno_t test_get_event(void *arg, sysarg_t *wnd_id,
+    display_wnd_ev_t *event)
 {
 	test_response_t *resp = (test_response_t *) arg;
 
@@ -1306,6 +1389,16 @@ static errno_t test_get_event(void *arg, sysarg_t *wnd_id, display_wnd_ev_t *eve
 	}
 
 	return ENOENT;
+}
+
+static errno_t test_get_info(void *arg, display_info_t *info)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->get_info_called = true;
+	info->rect = resp->get_info_rect;
+
+	return resp->rc;
 }
 
 static errno_t test_gc_set_color(void *arg, gfx_color_t *color)

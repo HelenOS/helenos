@@ -51,6 +51,7 @@ static errno_t disp_window_resize_req(void *, sysarg_t,
 static errno_t disp_window_resize(void *, sysarg_t, gfx_coord2_t *,
     gfx_rect_t *);
 static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
+static errno_t disp_get_info(void *, display_info_t *);
 
 display_ops_t display_srv_ops = {
 	.window_create = disp_window_create,
@@ -58,7 +59,8 @@ display_ops_t display_srv_ops = {
 	.window_move_req = disp_window_move_req,
 	.window_resize_req = disp_window_resize_req,
 	.window_resize = disp_window_resize,
-	.get_event = disp_get_event
+	.get_event = disp_get_event,
+	.get_info = disp_get_info
 };
 
 static errno_t disp_window_create(void *arg, display_wnd_params_t *params,
@@ -164,6 +166,16 @@ static errno_t disp_get_event(void *arg, sysarg_t *wnd_id,
 		return rc;
 
 	*wnd_id = wnd->id;
+	return EOK;
+}
+
+static errno_t disp_get_info(void *arg, display_info_t *info)
+{
+	ds_client_t *client = (ds_client_t *) arg;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_get_info()");
+
+	ds_display_get_info(client->display, info);
 	return EOK;
 }
 

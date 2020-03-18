@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +32,10 @@
 /** @file
  */
 
-#ifndef _LIBC_IPC_DISPLAY_H_
-#define _LIBC_IPC_DISPLAY_H_
+#ifndef _LIBDISPLAY_DISPLAY_INFO_H_
+#define _LIBDISPLAY_DISPLAY_INFO_H_
 
-#include <ipc/common.h>
-
-typedef enum {
-	DISPLAY_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	DISPLAY_WINDOW_CREATE,
-	DISPLAY_WINDOW_DESTROY,
-	DISPLAY_WINDOW_MOVE_REQ,
-	DISPLAY_WINDOW_RESIZE,
-	DISPLAY_WINDOW_RESIZE_REQ,
-	DISPLAY_GET_EVENT,
-	DISPLAY_GET_INFO
-} display_request_t;
-
-typedef enum {
-	DISPLAY_EV_PENDING = IPC_FIRST_USER_METHOD
-} display_event_t;
+#include <types/display/info.h>
 
 #endif
 

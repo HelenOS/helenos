@@ -40,6 +40,7 @@
 #include <gfx/coord.h>
 #include "display/wndparams.h"
 #include "types/display/event.h"
+#include "types/display/info.h"
 #include "types/display/wndresize.h"
 
 typedef struct display_ops display_ops_t;
@@ -59,6 +60,7 @@ struct display_ops {
 	    gfx_coord2_t *);
 	errno_t (*window_resize)(void *, sysarg_t, gfx_coord2_t *, gfx_rect_t *);
 	errno_t (*get_event)(void *, sysarg_t *, display_wnd_ev_t *);
+	errno_t (*get_info)(void *, display_info_t *);
 };
 
 extern void display_conn(ipc_call_t *, display_srv_t *);

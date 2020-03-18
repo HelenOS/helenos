@@ -36,6 +36,7 @@
 
 #include <disp_srv.h>
 #include <display/event.h>
+#include <display/info.h>
 #include <display/wndresize.h>
 #include <errno.h>
 #include <io/log.h>
@@ -267,6 +268,47 @@ static void display_get_event_srv(display_srv_t *srv, ipc_call_t *icall)
 	async_answer_1(icall, EOK, wnd_id);
 }
 
+static void display_get_info_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	display_info_t info;
+	ipc_call_t call;
+	size_t size;
+	errno_t rc;
+
+	if (srv->ops->get_info == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	/* Transfer information */
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(info)) {
+		async_answer_0(icall, EREFUSED);
+		async_answer_0(&call, EREFUSED);
+		return;
+	}
+
+	rc = srv->ops->get_info(srv->arg, &info);
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		async_answer_0(&call, rc);
+		return;
+	}
+
+	rc = async_data_read_finalize(&call, &info, sizeof(info));
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		async_answer_0(&call, rc);
+		return;
+	}
+
+	async_answer_0(icall, EOK);
+}
+
 void display_conn(ipc_call_t *icall, display_srv_t *srv)
 {
 	/* Accept the connection */
@@ -305,6 +347,9 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		case DISPLAY_GET_EVENT:
 			display_get_event_srv(srv, &call);
+			break;
+		case DISPLAY_GET_INFO:
+			display_get_info_srv(srv, &call);
 			break;
 		default:
 			async_answer_0(&call, ENOTSUP);

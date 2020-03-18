@@ -42,9 +42,12 @@
 #include "display/wndparams.h"
 #include "display/wndresize.h"
 #include "types/display.h"
+#include "types/display/info.h"
 
 extern errno_t display_open(const char *, display_t **);
 extern void display_close(display_t *);
+extern errno_t display_get_info(display_t *, display_info_t *);
+
 extern errno_t display_window_create(display_t *, display_wnd_params_t *,
     display_wnd_cb_t *, void *, display_window_t **);
 extern errno_t display_window_destroy(display_window_t *);

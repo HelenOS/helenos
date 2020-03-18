@@ -384,7 +384,7 @@ errno_t display_window_resize(display_window_t *window, gfx_coord2_t *offs,
 /** Get display event.
  *
  * @param display Display
- * @param rwindow Place to store pointe to window that received event
+ * @param rwindow Place to store pointer to window that received event
  * @param event Place to store event
  * @return EOK on success or an error code
  */
@@ -417,6 +417,35 @@ static errno_t display_get_event(display_t *display, display_window_t **rwindow,
 		return EIO;
 
 	*rwindow = window;
+	return EOK;
+}
+
+/** Get display information.
+ *
+ * @param display Display
+ * @param info Place to store display information
+ * @return EOK on success or an error code
+ */
+errno_t display_get_info(display_t *display, display_info_t *info)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	aid_t req;
+	errno_t rc;
+
+	exch = async_exchange_begin(display->sess);
+	req = async_send_0(exch, DISPLAY_GET_INFO, &answer);
+	rc = async_data_read_start(exch, info, sizeof(*info));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
 }
 

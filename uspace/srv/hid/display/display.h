@@ -36,6 +36,7 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
+#include <display/info.h>
 #include <errno.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
@@ -48,6 +49,7 @@
 
 extern errno_t ds_display_create(gfx_context_t *, ds_display_t **);
 extern void ds_display_destroy(ds_display_t *);
+extern void ds_display_get_info(ds_display_t *, display_info_t *);
 extern void ds_display_add_client(ds_display_t *, ds_client_t *);
 extern void ds_display_remove_client(ds_client_t *);
 extern ds_client_t *ds_display_first_client(ds_display_t *);

@@ -85,6 +85,15 @@ void ds_display_destroy(ds_display_t *disp)
 	free(disp);
 }
 
+/** Get display information.
+ *
+ * @param disp Display
+ */
+void ds_display_get_info(ds_display_t *disp, display_info_t *info)
+{
+	info->rect = disp->rect;
+}
+
 /** Add client to display.
  *
  * @param disp Display
