@@ -56,6 +56,7 @@ static void test_unfocus_event(void *);
 static errno_t test_window_create(void *, display_wnd_params_t *, sysarg_t *);
 static errno_t test_window_destroy(void *, sysarg_t);
 static errno_t test_window_move_req(void *, sysarg_t, gfx_coord2_t *);
+static errno_t test_window_move(void *, sysarg_t, gfx_coord2_t *);
 static errno_t test_window_resize_req(void *, sysarg_t, display_wnd_rsztype_t,
     gfx_coord2_t *);
 static errno_t test_window_resize(void *, sysarg_t, gfx_coord2_t *,
@@ -69,6 +70,7 @@ static display_ops_t test_display_srv_ops = {
 	.window_create = test_window_create,
 	.window_destroy = test_window_destroy,
 	.window_move_req = test_window_move_req,
+	.window_move = test_window_move,
 	.window_resize_req = test_window_resize_req,
 	.window_resize = test_window_resize,
 	.get_event = test_get_event,
@@ -105,6 +107,10 @@ typedef struct {
 	bool window_move_req_called;
 	sysarg_t move_req_wnd_id;
 	gfx_coord2_t move_req_pos;
+
+	bool window_move_called;
+	sysarg_t move_wnd_id;
+	gfx_coord2_t move_dpos;
 
 	bool window_resize_req_called;
 	sysarg_t resize_req_wnd_id;
@@ -421,6 +427,114 @@ PCUT_TEST(window_move_req_success)
 	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.move_req_wnd_id);
 	PCUT_ASSERT_INT_EQUALS(pos.x, resp.move_req_pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, resp.move_req_pos.y);
+
+	display_window_destroy(wnd);
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** display_window_move() with server returning error response works. */
+PCUT_TEST(window_move_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_wnd_params_t params;
+	display_window_t *wnd;
+	gfx_coord2_t dpos;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = EOK;
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	resp.rc = EIO;
+	resp.window_move_called = false;
+	dpos.x = 11;
+	dpos.y = 12;
+
+	rc = display_window_move(wnd, &dpos);
+	PCUT_ASSERT_TRUE(resp.window_move_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.move_wnd_id);
+	PCUT_ASSERT_INT_EQUALS(dpos.x, resp.move_dpos.x);
+	PCUT_ASSERT_INT_EQUALS(dpos.y, resp.move_dpos.y);
+
+	display_window_destroy(wnd);
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** display_window_move() with server returning success response works. */
+PCUT_TEST(window_move_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_wnd_params_t params;
+	display_window_t *wnd;
+	gfx_coord2_t dpos;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = EOK;
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	resp.rc = EOK;
+	resp.window_move_called = false;
+	dpos.x = 11;
+	dpos.y = 12;
+
+	rc = display_window_move(wnd, &dpos);
+	PCUT_ASSERT_TRUE(resp.window_move_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.move_wnd_id);
+	PCUT_ASSERT_INT_EQUALS(dpos.x, resp.move_dpos.x);
+	PCUT_ASSERT_INT_EQUALS(dpos.y, resp.move_dpos.y);
 
 	display_window_destroy(wnd);
 	display_close(disp);
@@ -1348,6 +1462,16 @@ static errno_t test_window_move_req(void *arg, sysarg_t wnd_id,
 	resp->window_move_req_called = true;
 	resp->move_req_wnd_id = wnd_id;
 	resp->move_req_pos = *pos;
+	return resp->rc;
+}
+
+static errno_t test_window_move(void *arg, sysarg_t wnd_id, gfx_coord2_t *dpos)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->window_move_called = true;
+	resp->move_wnd_id = wnd_id;
+	resp->move_dpos = *dpos;
 	return resp->rc;
 }
 

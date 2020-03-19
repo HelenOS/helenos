@@ -51,7 +51,6 @@ extern gfx_context_ops_t window_gc_ops;
 extern errno_t ds_window_create(ds_client_t *, display_wnd_params_t *,
     ds_window_t **);
 extern void ds_window_destroy(ds_window_t *);
-extern errno_t ds_window_resize(ds_window_t *, gfx_coord2_t *, gfx_rect_t *);
 extern void ds_window_bring_to_top(ds_window_t *);
 extern gfx_context_t *ds_window_get_ctx(ds_window_t *);
 extern errno_t ds_window_paint(ds_window_t *, gfx_rect_t *);
@@ -59,10 +58,12 @@ extern errno_t ds_window_post_kbd_event(ds_window_t *, kbd_event_t *);
 extern errno_t ds_window_post_pos_event(ds_window_t *, pos_event_t *);
 extern errno_t ds_window_post_focus_event(ds_window_t *);
 extern errno_t ds_window_post_unfocus_event(ds_window_t *);
-extern void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *);
-extern void ds_window_resize_req(ds_window_t *wnd, display_wnd_rsztype_t,
+extern void ds_window_move_req(ds_window_t *, gfx_coord2_t *);
+extern void ds_window_move(ds_window_t *, gfx_coord2_t *);
+extern void ds_window_resize_req(ds_window_t *, display_wnd_rsztype_t,
     gfx_coord2_t *);
-extern void ds_window_calc_resize(ds_window_t *wnd, gfx_coord2_t *,
+extern errno_t ds_window_resize(ds_window_t *, gfx_coord2_t *, gfx_rect_t *);
+extern void ds_window_calc_resize(ds_window_t *, gfx_coord2_t *,
     gfx_rect_t *);
 
 #endif

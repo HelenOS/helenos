@@ -345,60 +345,6 @@ void ds_window_destroy(ds_window_t *wnd)
 	(void) ds_display_paint(disp, NULL);
 }
 
-/** Resize window.
- *
- * @param wnd Window
- */
-errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
-    gfx_rect_t *nrect)
-{
-	gfx_context_t *dgc;
-	gfx_bitmap_params_t bparams;
-	gfx_bitmap_t *nbitmap;
-	pixelmap_t npixelmap;
-	gfx_coord2_t dims;
-	gfx_bitmap_alloc_t alloc;
-	gfx_coord2_t ndpos;
-	errno_t rc;
-
-	dgc = ds_display_get_gc(wnd->display); // XXX
-	if (dgc != NULL) {
-		gfx_bitmap_params_init(&bparams);
-		bparams.rect = *nrect;
-
-		rc = gfx_bitmap_create(dgc, &bparams, NULL, &nbitmap);
-		if (rc != EOK)
-			return ENOMEM;
-
-		rc = gfx_bitmap_get_alloc(nbitmap, &alloc);
-		if (rc != EOK) {
-			gfx_bitmap_destroy(nbitmap);
-			return ENOMEM;
-		}
-
-		gfx_rect_dims(nrect, &dims);
-		npixelmap.width = dims.x;
-		npixelmap.height = dims.y;
-		npixelmap.data = alloc.pixels;
-
-		/* TODO: Transfer contents within overlap */
-
-		if (wnd->bitmap != NULL)
-			gfx_bitmap_destroy(wnd->bitmap);
-
-		wnd->bitmap = nbitmap;
-		wnd->pixelmap = npixelmap;
-	}
-
-	gfx_coord2_add(&wnd->dpos, offs, &ndpos);
-
-	wnd->dpos = ndpos;
-	wnd->rect = *nrect;
-
-	(void) ds_display_paint(wnd->display, NULL);
-	return EOK;
-}
-
 /** Bring window to top.
  *
  * @param wnd Window
@@ -737,6 +683,16 @@ void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *pos)
 	wnd->state = dsw_moving;
 }
 
+/** Move window.
+ *
+ * @param wnd Window
+ */
+void ds_window_move(ds_window_t *wnd, gfx_coord2_t *dpos)
+{
+	wnd->dpos = *dpos;
+	(void) ds_display_paint(wnd->display, NULL);
+}
+
 /** Start resizing a window, detected by client.
  *
  * @param wnd Window
@@ -757,6 +713,60 @@ void ds_window_resize_req(ds_window_t *wnd, display_wnd_rsztype_t rsztype,
 	gfx_coord2_add(&wnd->dpos, pos, &wnd->orig_pos);
 	wnd->state = dsw_resizing;
 	wnd->rsztype = rsztype;
+}
+
+/** Resize window.
+ *
+ * @param wnd Window
+ */
+errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
+    gfx_rect_t *nrect)
+{
+	gfx_context_t *dgc;
+	gfx_bitmap_params_t bparams;
+	gfx_bitmap_t *nbitmap;
+	pixelmap_t npixelmap;
+	gfx_coord2_t dims;
+	gfx_bitmap_alloc_t alloc;
+	gfx_coord2_t ndpos;
+	errno_t rc;
+
+	dgc = ds_display_get_gc(wnd->display); // XXX
+	if (dgc != NULL) {
+		gfx_bitmap_params_init(&bparams);
+		bparams.rect = *nrect;
+
+		rc = gfx_bitmap_create(dgc, &bparams, NULL, &nbitmap);
+		if (rc != EOK)
+			return ENOMEM;
+
+		rc = gfx_bitmap_get_alloc(nbitmap, &alloc);
+		if (rc != EOK) {
+			gfx_bitmap_destroy(nbitmap);
+			return ENOMEM;
+		}
+
+		gfx_rect_dims(nrect, &dims);
+		npixelmap.width = dims.x;
+		npixelmap.height = dims.y;
+		npixelmap.data = alloc.pixels;
+
+		/* TODO: Transfer contents within overlap */
+
+		if (wnd->bitmap != NULL)
+			gfx_bitmap_destroy(wnd->bitmap);
+
+		wnd->bitmap = nbitmap;
+		wnd->pixelmap = npixelmap;
+	}
+
+	gfx_coord2_add(&wnd->dpos, offs, &ndpos);
+
+	wnd->dpos = ndpos;
+	wnd->rect = *nrect;
+
+	(void) ds_display_paint(wnd->display, NULL);
+	return EOK;
 }
 
 /** Compute new window rectangle after resize operation.

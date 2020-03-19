@@ -148,6 +148,45 @@ static void display_window_move_req_srv(display_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void display_window_move_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	ipc_call_t call;
+	gfx_coord2_t dpos;
+	size_t size;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(gfx_coord2_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, &dpos, size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	if (srv->ops->window_move == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->window_move(srv->arg, wnd_id, &dpos);
+	async_answer_0(icall, rc);
+}
+
+
 static void display_window_resize_req_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
@@ -338,6 +377,9 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		case DISPLAY_WINDOW_MOVE_REQ:
 			display_window_move_req_srv(srv, &call);
+			break;
+		case DISPLAY_WINDOW_MOVE:
+			display_window_move_srv(srv, &call);
 			break;
 		case DISPLAY_WINDOW_RESIZE_REQ:
 			display_window_resize_req_srv(srv, &call);

@@ -374,6 +374,9 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	gfx_bitmap_alloc_t alloc;
 	gfx_bitmap_t *new_bitmap = NULL;
 	gfx_coord2_t offs;
+	gfx_coord2_t dpos;
+	display_info_t dinfo;
+	gfx_rect_t drect;
 	gfx_rect_t nrect;
 	errno_t rc;
 
@@ -459,15 +462,45 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 		}
 
 		surface_destroy(new_surface);
-	} else {
-		if (old_bitmap != NULL)
-			gfx_bitmap_destroy(old_bitmap);
-		/* Deallocate old surface. */
-		if (old_surface)
-			surface_destroy(old_surface);
-
-		(void) gfx_bitmap_render(win->bitmap, NULL, NULL);
+		return;
 	}
+
+	if (old_bitmap != NULL)
+		gfx_bitmap_destroy(old_bitmap);
+	/* Deallocate old surface. */
+	if (old_surface)
+		surface_destroy(old_surface);
+
+	if (placement_flags != WINDOW_PLACEMENT_ANY) {
+		dpos.x = 0;
+		dpos.y = 0;
+
+		rc = display_get_info(win->display, &dinfo);
+		if (rc != EOK) {
+			(void) gfx_bitmap_render(win->bitmap, NULL, NULL);
+			return;
+		}
+
+		drect = dinfo.rect;
+
+		if (placement_flags & WINDOW_PLACEMENT_LEFT)
+			dpos.x = drect.p0.x;
+		else if (placement_flags & WINDOW_PLACEMENT_CENTER_X)
+			dpos.x = (drect.p0.x + drect.p0.y - width) / 2;
+		else
+			dpos.x = drect.p1.x - width;
+
+		if (placement_flags & WINDOW_PLACEMENT_TOP)
+			dpos.y = drect.p0.y;
+		else if (placement_flags & WINDOW_PLACEMENT_CENTER_Y)
+			dpos.y = (drect.p0.y + drect.p1.y - height) / 2;
+		else
+			dpos.y = drect.p1.y - height;
+
+		(void) display_window_move(win->dwindow, &dpos);
+	}
+
+	(void) gfx_bitmap_render(win->bitmap, NULL, NULL);
 }
 
 static void handle_refresh(window_t *win)

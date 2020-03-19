@@ -58,6 +58,7 @@ struct display_ops {
 	errno_t (*window_move_req)(void *, sysarg_t, gfx_coord2_t *);
 	errno_t (*window_resize_req)(void *, sysarg_t, display_wnd_rsztype_t,
 	    gfx_coord2_t *);
+	errno_t (*window_move)(void *, sysarg_t, gfx_coord2_t *);
 	errno_t (*window_resize)(void *, sysarg_t, gfx_coord2_t *, gfx_rect_t *);
 	errno_t (*get_event)(void *, sysarg_t *, display_wnd_ev_t *);
 	errno_t (*get_info)(void *, display_info_t *);

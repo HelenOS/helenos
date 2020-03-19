@@ -276,6 +276,40 @@ errno_t display_window_move_req(display_window_t *window, gfx_coord2_t *pos)
 	return EOK;
 }
 
+/** Move display window.
+ *
+ * Set new display position of a window. Display position determines where
+ * the origin of the window coordinate system lies. Note that the top left
+ * corner of the window need not coincide with the window's 0,0 point.
+ *
+ * @param window Window
+ * @param dpos New display position
+ * @return EOK on success or an error code
+ */
+errno_t display_window_move(display_window_t *window, gfx_coord2_t *dpos)
+{
+	async_exch_t *exch;
+	aid_t req;
+	ipc_call_t answer;
+	errno_t rc;
+
+	exch = async_exchange_begin(window->display->sess);
+	req = async_send_1(exch, DISPLAY_WINDOW_MOVE, window->id, &answer);
+	rc = async_data_write_start(exch, dpos, sizeof (gfx_coord2_t));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+
 /** Request a window resize.
  *
  * Request the display service to initiate a user window resize operation
