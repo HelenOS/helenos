@@ -309,7 +309,6 @@ errno_t display_window_move(display_window_t *window, gfx_coord2_t *dpos)
 	return EOK;
 }
 
-
 /** Request a window resize.
  *
  * Request the display service to initiate a user window resize operation

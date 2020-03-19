@@ -186,7 +186,6 @@ static void display_window_move_srv(display_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
-
 static void display_window_resize_req_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
