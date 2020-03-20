@@ -553,11 +553,15 @@ errno_t nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
 	/* Check if we haven't reached the maximum */
 	if (nic_data->wol_virtues.caps_max[type] < 0) {
 		fibril_rwlock_write_unlock(&nic_data->wv_lock);
+		free(virtue->data);
+		free(virtue);
 		return EINVAL;
 	}
 	if ((int) nic_data->wol_virtues.lists_sizes[type] >=
 	    nic_data->wol_virtues.caps_max[type]) {
 		fibril_rwlock_write_unlock(&nic_data->wv_lock);
+		free(virtue->data);
+		free(virtue);
 		return ELIMIT;
 	}
 	/* Call the user-defined add callback */
