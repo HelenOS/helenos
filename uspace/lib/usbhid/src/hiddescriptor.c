@@ -365,6 +365,7 @@ errno_t usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 
 	/* usage path context initialization */
 	if (!(usage_path = usb_hid_report_path())) {
+		free(report_item);
 		return ENOMEM;
 	}
 	usb_hid_report_path_append_item(usage_path, 0, 0);
