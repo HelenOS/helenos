@@ -143,12 +143,13 @@ static errno_t add_platform_fun(ddf_dev_t *dev)
 	}
 
 	/* Null-terminate string. */
-	platform = realloc(platform, platform_size + 1);
-	if (platform == NULL) {
+	char *tmp = realloc(platform, platform_size + 1);
+	if (tmp == NULL) {
 		ddf_msg(LVL_ERROR, "Memory allocation failed.");
+		free(platform);
 		return ENOMEM;
 	}
-
+	platform = tmp;
 	platform[platform_size] = '\0';
 
 	/* Construct match ID. */
