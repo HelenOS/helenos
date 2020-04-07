@@ -408,6 +408,11 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
  */
 static void ds_window_start_move(ds_window_t *wnd, gfx_coord2_t *pos)
 {
+	gfx_color_t *color;
+	gfx_context_t *gc;
+	gfx_rect_t drect;
+	errno_t rc;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_start_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
@@ -416,6 +421,21 @@ static void ds_window_start_move(ds_window_t *wnd, gfx_coord2_t *pos)
 
 	wnd->orig_pos = *pos;
 	wnd->state = dsw_moving;
+	wnd->preview_pos = wnd->dpos;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		return;
+
+	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
+
+	gc = ds_display_get_gc(wnd->display); // XXX
+	if (gc != NULL) {
+		gfx_set_color(gc, color);
+		gfx_fill_rect(gc, &drect);
+	}
+
+	gfx_color_delete(color);
 }
 
 /** Finish moving a window by mouse drag.
@@ -463,21 +483,15 @@ static void ds_window_update_move(ds_window_t *wnd, gfx_coord2_t *pos)
 	if (wnd->state != dsw_moving)
 		return;
 
-	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
-
-	gc = ds_display_get_gc(wnd->display); // XXX
-	if (gc != NULL) {
-		gfx_set_color(gc, wnd->display->bg_color);
-		gfx_fill_rect(gc, &drect);
-	}
+	gfx_rect_translate(&wnd->preview_pos, &wnd->rect, &drect);
+	ds_display_paint(wnd->display, &drect);
 
 	gfx_coord2_subtract(pos, &wnd->orig_pos, &dmove);
 
 	gfx_coord2_add(&wnd->dpos, &dmove, &nwpos);
-	gfx_rect_translate(&nwpos, &wnd->rect, &drect);
+	wnd->preview_pos = nwpos;
 
-	wnd->orig_pos = *pos;
-	wnd->dpos = nwpos;
+	gfx_rect_translate(&nwpos, &wnd->rect, &drect);
 
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	if (rc != EOK)
