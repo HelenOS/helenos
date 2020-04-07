@@ -524,6 +524,7 @@ static void ds_window_start_resize(ds_window_t *wnd,
 	wnd->orig_pos = *pos;
 	wnd->state = dsw_resizing;
 	wnd->rsztype = rsztype;
+	wnd->preview_rect = wnd->rect;
 }
 
 /** Finish resizing a window by mouse drag.
@@ -573,18 +574,14 @@ static void ds_window_update_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	if (wnd->state != dsw_resizing)
 		return;
 
-	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
-
-	gc = ds_display_get_gc(wnd->display); // XXX
-	if (gc != NULL) {
-		gfx_set_color(gc, wnd->display->bg_color);
-		gfx_fill_rect(gc, &drect);
-	}
+	gfx_rect_translate(&wnd->dpos, &wnd->preview_rect, &drect);
+	(void) ds_display_paint(wnd->display, &drect);
 
 	gfx_coord2_subtract(pos, &wnd->orig_pos, &dresize);
 
 	ds_window_calc_resize(wnd, &dresize, &nrect);
 	gfx_rect_translate(&wnd->dpos, &nrect, &drect);
+	wnd->preview_rect = nrect;
 
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	if (rc != EOK)

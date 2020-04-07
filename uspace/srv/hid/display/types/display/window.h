@@ -69,8 +69,10 @@ typedef struct ds_window {
 	gfx_rect_t rect;
 	/** Display position */
 	gfx_coord2_t dpos;
-	/** Preview position */
+	/** Preview position (when moving) */
 	gfx_coord2_t preview_pos;
+	/** Preview rectangle (when resizing) */
+	gfx_rect_t preview_rect;
 	/** Minimum size */
 	gfx_coord2_t min_size;
 	/** Window ID */
