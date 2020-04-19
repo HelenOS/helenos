@@ -818,9 +818,12 @@ static errno_t loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
 			break;
 
 		alloc_size = act_size;
-		ids = realloc(ids, alloc_size);
-		if (ids == NULL)
+		service_id_t *tmp = realloc(ids, alloc_size);
+		if (tmp == NULL) {
+			free(ids);
 			return ENOMEM;
+		}
+		ids = tmp;
 	}
 
 	*count = act_size / sizeof(category_id_t);
