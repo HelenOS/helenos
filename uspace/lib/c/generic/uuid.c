@@ -188,8 +188,10 @@ errno_t uuid_format(uuid_t *uuid, char **rstr, bool uppercase)
 
 	int ret = snprintf(str, size, format, uuid->b[0], uuid->b[1], uuid->b[2], uuid->b[3], uuid->b[4], uuid->b[5], uuid->b[6], uuid->b[7], uuid->b[8], uuid->b[9], uuid->b[10], uuid->b[11], uuid->b[12], uuid->b[13], uuid->b[14], uuid->b[15]);
 
-	if (ret != 36)
+	if (ret != 36) {
+		free(str);
 		return EINVAL;
+	}
 
 	*rstr = str;
 	return EOK;
