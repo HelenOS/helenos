@@ -87,10 +87,10 @@ void ds_seat_set_focus(ds_seat_t *seat, ds_window_t *wnd)
 
 	seat->focus = wnd;
 
-	if (wnd != NULL)
+	if (wnd != NULL) {
 		ds_window_post_focus_event(wnd);
-
-	ds_window_bring_to_top(wnd);
+		ds_window_bring_to_top(wnd);
+	}
 }
 
 /** Evacuate focus from window.
