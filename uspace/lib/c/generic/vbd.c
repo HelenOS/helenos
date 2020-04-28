@@ -230,9 +230,12 @@ static errno_t vbd_get_ids_internal(vbd_t *vbd, sysarg_t method, sysarg_t arg1,
 			break;
 
 		alloc_size = act_size;
-		ids = realloc(ids, alloc_size);
-		if (ids == NULL)
+		service_id_t *tmp = realloc(ids, alloc_size);
+		if (tmp == NULL) {
+			free(ids);
 			return ENOMEM;
+		}
+		ids = tmp;
 	}
 
 	*count = act_size / sizeof(service_id_t);
