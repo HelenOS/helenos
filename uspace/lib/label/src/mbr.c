@@ -327,8 +327,10 @@ static errno_t mbr_create(label_bd_t *bd, label_t **rlabel)
 	}
 
 	label = calloc(1, sizeof(label_t));
-	if (label == NULL)
-		return ENOMEM;
+	if (label == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
 
 	list_initialize(&label->parts);
 	list_initialize(&label->pri_parts);
