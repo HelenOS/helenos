@@ -78,8 +78,10 @@ errno_t sheet_create(sheet_t **rsh)
 	sh->text_size = 0;
 
 	sh->data = malloc(sh->dbuf_size);
-	if (sh->data == NULL)
+	if (sh->data == NULL) {
+		free(sh);
 		return ENOMEM;
+	}
 
 	list_initialize(&sh->tags);
 
