@@ -790,9 +790,12 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 			break;
 
 		buf_size *= 2;
-		buf = realloc(buf, buf_size);
-		if (buf == NULL)
+		char *tmp = realloc(buf, buf_size);
+		if (tmp == NULL) {
+			free(buf);
 			return NULL;
+		}
+		buf = tmp;
 	}
 
 	return buf;
