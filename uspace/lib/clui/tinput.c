@@ -703,11 +703,13 @@ static void tinput_text_complete(tinput_t *ti)
 		if (cnum >= compl_len) {
 			/* Extend array */
 			compl_len = 2 * compl_len;
-			compl = realloc(compl, compl_len * sizeof(char *));
-			if (compl == NULL) {
+			char **temp = realloc(compl, compl_len * sizeof(char *));
+			if (temp == NULL) {
+				free(compl);
 				printf("Error: Out of memory.\n");
 				break;
 			}
+			compl = temp;
 		}
 
 		compl[cnum] = str_dup(ctmp);
