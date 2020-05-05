@@ -281,7 +281,7 @@ extern async_sess_t *async_connect_kbox(task_id_t, errno_t *);
 
 extern errno_t async_connect_to_me(async_exch_t *, iface_t, sysarg_t, sysarg_t);
 
-extern errno_t async_hangup(async_sess_t *);
+extern void async_hangup(async_sess_t *);
 
 extern async_exch_t *async_exchange_begin(async_sess_t *);
 extern void async_exchange_end(async_exch_t *);

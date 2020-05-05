@@ -421,12 +421,8 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 	usb_mouse_t *mouse_dev = data;
 
 	/* Hangup session to the console */
-	if (mouse_dev->mouse_sess != NULL) {
-		const errno_t ret = async_hangup(mouse_dev->mouse_sess);
-		if (ret != EOK)
-			usb_log_warning("Failed to hang up mouse session: "
-			    "%p, %s.\n", mouse_dev->mouse_sess, str_error(ret));
-	}
+	if (mouse_dev->mouse_sess != NULL)
+		async_hangup(mouse_dev->mouse_sess);
 
 	free(mouse_dev->buttons);
 	FUN_UNBIND_DESTROY(mouse_dev->mouse_fun);
