@@ -1051,7 +1051,11 @@ async_sess_t *async_connect_kbox(task_id_t id, errno_t *rc)
 
 static void async_hangup_internal(cap_phone_handle_t phone)
 {
-	(void) ipc_hangup(phone);
+	errno_t rc;
+
+	rc = ipc_hangup(phone);
+	assert(rc == EOK);
+	(void) rc;
 }
 
 /** Wrapper for ipc_hangup.
@@ -1076,7 +1080,9 @@ void async_hangup(async_sess_t *sess)
 
 		list_remove(&exch->sess_link);
 		list_remove(&exch->global_link);
-		async_hangup_internal(exch->phone);
+		if (sess->mgmt != EXCHANGE_ATOMIC &&
+		    sess->mgmt != EXCHANGE_SERIALIZE)
+			async_hangup_internal(exch->phone);
 		free(exch);
 	}
 
