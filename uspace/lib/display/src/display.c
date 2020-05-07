@@ -122,11 +122,12 @@ static errno_t display_callback_create(display_t *display)
  */
 void display_close(display_t *display)
 {
+	fibril_mutex_lock(&display->lock);
 	async_hangup(display->sess);
+	display->sess = NULL;
 
 	/* Wait for callback handler to terminate */
 
-	fibril_mutex_lock(&display->lock);
 	while (!display->cb_done)
 		fibril_condvar_wait(&display->cv, &display->lock);
 	fibril_mutex_unlock(&display->lock);
@@ -494,7 +495,15 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 	display_wnd_ev_t event;
 
 	while (true) {
-		rc = display_get_event(display, &window, &event);
+		fibril_mutex_lock(&display->lock);
+
+		if (display->sess != NULL)
+			rc = display_get_event(display, &window, &event);
+		else
+			rc = ENOENT;
+
+		fibril_mutex_unlock(&display->lock);
+
 		if (rc != EOK)
 			break;
 

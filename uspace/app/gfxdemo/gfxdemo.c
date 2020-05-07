@@ -498,6 +498,9 @@ static errno_t demo_display(void)
 	if (rc != EOK)
 		return rc;
 
+	display_window_destroy(window);
+	display_close(display);
+
 	return EOK;
 }
 
