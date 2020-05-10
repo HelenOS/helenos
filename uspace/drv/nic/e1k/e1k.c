@@ -255,9 +255,15 @@ irq_cmd_t e1000_irq_commands[] = {
 		.dstarg = 2
 	},
 	{
+		.cmd = CMD_AND,
+		.value = ICR_RXT0,
+		.srcarg = 2,
+		.dstarg = 1
+	},
+	{
 		.cmd = CMD_PREDICATE,
 		.value = 2,
-		.srcarg = 2
+		.srcarg = 1
 	},
 	{
 		/* Disable interrupts until interrupt routine is finished */
@@ -1273,7 +1279,7 @@ inline static errno_t e1000_register_int_handler(nic_t *nic,
 
 	e1000_irq_code.ranges[0].base = (uintptr_t) e1000->reg_base_phys;
 	e1000_irq_code.cmds[0].addr = e1000->reg_base_phys + E1000_ICR;
-	e1000_irq_code.cmds[2].addr = e1000->reg_base_phys + E1000_IMC;
+	e1000_irq_code.cmds[3].addr = e1000->reg_base_phys + E1000_IMC;
 
 	errno_t rc = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
 	    e1000_interrupt_handler, &e1000_irq_code, handle);
