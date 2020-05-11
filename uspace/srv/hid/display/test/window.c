@@ -219,8 +219,9 @@ PCUT_TEST(window_post_pos_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_INT_EQUALS(dsw_moving, wnd->state);
-	PCUT_ASSERT_INT_EQUALS(11, wnd->dpos.x);
-	PCUT_ASSERT_INT_EQUALS(12, wnd->dpos.y);
+	/* Window position does not update until after release */
+	PCUT_ASSERT_INT_EQUALS(10, wnd->dpos.x);
+	PCUT_ASSERT_INT_EQUALS(10, wnd->dpos.y);
 
 	event.type = POS_RELEASE;
 	event.hpos = 13;
