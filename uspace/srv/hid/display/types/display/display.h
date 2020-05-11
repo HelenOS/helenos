@@ -37,6 +37,7 @@
 #define TYPES_DISPLAY_DISPLAY_H
 
 #include <adt/list.h>
+#include <fibril_synch.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
 #include <io/input.h>
@@ -44,6 +45,8 @@
 
 /** Display server display */
 typedef struct ds_display {
+	/** Synchronize access to display */
+	fibril_mutex_t lock;
 	/** Clients (of ds_client_t) */
 	list_t clients;
 

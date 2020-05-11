@@ -64,6 +64,7 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 		return ENOMEM;
 	}
 
+	fibril_mutex_initialize(&disp->lock);
 	list_initialize(&disp->clients);
 	disp->next_wnd_id = 1;
 	list_initialize(&disp->ddevs);
@@ -83,6 +84,27 @@ void ds_display_destroy(ds_display_t *disp)
 	assert(list_empty(&disp->seats));
 	gfx_color_delete(disp->bg_color);
 	free(disp);
+}
+
+/** Lock display.
+ *
+ * This should be called in any thread that wishes to access the display
+ * or its child objects (e.g. windows).
+ *
+ * @param disp Display
+ */
+void ds_display_lock(ds_display_t *disp)
+{
+	fibril_mutex_lock(&disp->lock);
+}
+
+/** Unlock display.
+ *
+ * @param disp Display
+ */
+void ds_display_unlock(ds_display_t *disp)
+{
+	fibril_mutex_unlock(&disp->lock);
 }
 
 /** Get display information.

@@ -72,25 +72,33 @@ static errno_t ds_input_ev_key(input_t *input, kbd_event_type_t type,
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	kbd_event_t event;
+	errno_t rc;
 
 	event.type = type;
 	event.key = key;
 	event.mods = mods;
 	event.c = c;
 
-	return ds_display_post_kbd_event(disp, &event);
+	ds_display_lock(disp);
+	rc = ds_display_post_kbd_event(disp, &event);
+	ds_display_unlock(disp);
+	return rc;
 }
 
 static errno_t ds_input_ev_move(input_t *input, int dx, int dy)
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
+	errno_t rc;
 
 	event.type = PTD_MOVE;
 	event.dmove.x = dx;
 	event.dmove.y = dy;
 
-	return ds_display_post_ptd_event(disp, &event);
+	ds_display_lock(disp);
+	rc = ds_display_post_ptd_event(disp, &event);
+	ds_display_unlock(disp);
+	return rc;
 }
 
 static errno_t ds_input_ev_abs_move(input_t *input, unsigned x, unsigned y,
@@ -98,6 +106,7 @@ static errno_t ds_input_ev_abs_move(input_t *input, unsigned x, unsigned y,
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
+	errno_t rc;
 
 	event.type = PTD_ABS_MOVE;
 	event.apos.x = x;
@@ -107,20 +116,27 @@ static errno_t ds_input_ev_abs_move(input_t *input, unsigned x, unsigned y,
 	event.abounds.p1.x = max_x + 1;
 	event.abounds.p1.y = max_y + 1;
 
-	return ds_display_post_ptd_event(disp, &event);
+	ds_display_lock(disp);
+	rc = ds_display_post_ptd_event(disp, &event);
+	ds_display_unlock(disp);
+	return rc;
 }
 
 static errno_t ds_input_ev_button(input_t *input, int bnum, int bpress)
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
+	errno_t rc;
 
 	event.type = bpress ? PTD_PRESS : PTD_RELEASE;
 	event.btn_num = bnum;
 	event.dmove.x = 0;
 	event.dmove.y = 0;
 
-	return ds_display_post_ptd_event(disp, &event);
+	ds_display_lock(disp);
+	rc = ds_display_post_ptd_event(disp, &event);
+	ds_display_unlock(disp);
+	return rc;
 }
 
 /** Open input service.

@@ -49,6 +49,8 @@
 
 extern errno_t ds_display_create(gfx_context_t *, ds_display_t **);
 extern void ds_display_destroy(ds_display_t *);
+extern void ds_display_lock(ds_display_t *);
+extern void ds_display_unlock(ds_display_t *);
 extern void ds_display_get_info(ds_display_t *, display_info_t *);
 extern void ds_display_add_client(ds_display_t *, ds_client_t *);
 extern void ds_display_remove_client(ds_client_t *);
