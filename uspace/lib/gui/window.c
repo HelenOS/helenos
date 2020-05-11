@@ -518,9 +518,6 @@ static void handle_damage(window_t *win)
 	fibril_mutex_unlock(&win->guard);
 
 	if (width > 0 && height > 0) {
-		/* Notify compositor. */
-		//win_damage(win->osess, x, y, width, height);
-
 		rect.p0.x = x;
 		rect.p0.y = y;
 		rect.p1.x = x + width;

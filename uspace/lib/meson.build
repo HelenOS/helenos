@@ -59,7 +59,6 @@ libs = [
 	'fmtutil',
 	'fs',
 	'gfx',
-	'graph',
 	'http',
 	'label',
 	'math',

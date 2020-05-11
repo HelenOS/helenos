@@ -131,7 +131,6 @@ src += files(
 	'generic/io/console.c',
 	'generic/io/table.c',
 	'generic/io/visualizer.c',
-	'generic/io/window.c',
 	'generic/iplink.c',
 	'generic/iplink_srv.c',
 	'generic/irc.c',

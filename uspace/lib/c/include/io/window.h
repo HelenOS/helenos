@@ -35,11 +35,9 @@
 #ifndef _LIBC_IO_WINDOW_H_
 #define _LIBC_IO_WINDOW_H_
 
-#include <stdbool.h>
-#include <async.h>
-#include <loc.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include <types/common.h>
 
 typedef enum {
 	WINDOW_MAIN = 1,
@@ -111,18 +109,6 @@ typedef struct {
 	window_event_type_t type;
 	window_event_data_t data;
 } window_event_t;
-
-extern errno_t win_register(async_sess_t *, window_flags_t, service_id_t *,
-    service_id_t *);
-
-extern errno_t win_get_event(async_sess_t *, window_event_t *);
-
-extern errno_t win_damage(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
-extern errno_t win_grab(async_sess_t *, sysarg_t, sysarg_t);
-extern errno_t win_resize(async_sess_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    window_placement_flags_t, void *);
-extern errno_t win_close(async_sess_t *);
-extern errno_t win_close_request(async_sess_t *);
 
 #endif
 

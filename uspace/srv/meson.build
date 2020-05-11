@@ -42,7 +42,6 @@ srvs = [
 	'fs/mfs',
 	'fs/tmpfs',
 	'fs/udf',
-	'hid/compositor',
 	'hid/console',
 	'hid/display',
 	'hid/input',
