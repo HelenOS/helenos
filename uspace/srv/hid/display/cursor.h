@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,28 +30,23 @@
  * @{
  */
 /**
- * @file Display server seat type
+ * @file Display server cursor
  */
 
-#ifndef TYPES_DISPLAY_SEAT_H
-#define TYPES_DISPLAY_SEAT_H
+#ifndef CURSOR_H
+#define CURSOR_H
 
-#include <adt/list.h>
-#include <gfx/coord.h>
+#include <errno.h>
+#include <types/gfx/coord.h>
+#include <stdint.h>
+#include "types/display/display.h"
+#include "types/display/cursor.h"
 
-/** Display server seat */
-typedef struct ds_seat {
-	/** Containing display */
-	struct ds_display *display;
-	/** Link to display->seats */
-	link_t lseats;
-	/** Window this seat is focused on */
-	struct ds_window *focus;
-	/** Current seat cursor */
-	struct ds_cursor *cursor;
-	/** Pointer position */
-	gfx_coord2_t pntpos;
-} ds_seat_t;
+extern errno_t ds_cursor_create(ds_display_t *, gfx_rect_t *, const uint8_t *,
+    ds_cursor_t **);
+extern void ds_cursor_destroy(ds_cursor_t *);
+extern errno_t ds_cursor_paint(ds_cursor_t *, gfx_coord2_t *);
+extern void ds_cursor_get_rect(ds_cursor_t *, gfx_coord2_t *, gfx_rect_t *);
 
 #endif
 

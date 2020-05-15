@@ -30,9 +30,7 @@
  * @{
  */
 /**
- * @file GFX window backend
- *
- * This implements a graphics context over display server window.
+ * @file Display server window
  */
 
 #include <gfx/bitmap.h>

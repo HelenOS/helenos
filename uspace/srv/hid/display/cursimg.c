@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,30 +30,42 @@
  * @{
  */
 /**
- * @file Display server seat type
+ * @file Display server built-in cursor images
  */
 
-#ifndef TYPES_DISPLAY_SEAT_H
-#define TYPES_DISPLAY_SEAT_H
+#include <types/display/cursor.h>
+#include "cursimg.h"
 
-#include <adt/list.h>
-#include <gfx/coord.h>
+static uint8_t arrow_img[] = {
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+	1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0,
+	1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0,
+	1, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0,
+	1, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0,
+	1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0,
+	1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0,
+	1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0,
+	1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1,
+	1, 2, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0,
+	1, 2, 2, 1, 0, 1, 2, 2, 1, 0, 0, 0, 0,
+	1, 2, 1, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0,
+	1, 1, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0,
+	1, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0
+};
 
-/** Display server seat */
-typedef struct ds_seat {
-	/** Containing display */
-	struct ds_display *display;
-	/** Link to display->seats */
-	link_t lseats;
-	/** Window this seat is focused on */
-	struct ds_window *focus;
-	/** Current seat cursor */
-	struct ds_cursor *cursor;
-	/** Pointer position */
-	gfx_coord2_t pntpos;
-} ds_seat_t;
-
-#endif
+ds_cursimg_t ds_cursimg[dcurs_limit] = {
+	{
+		.rect = { 0, 0, 13, 21 },
+		.image = arrow_img
+	}
+};
 
 /** @}
  */

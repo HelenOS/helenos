@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup display
+/** @addtogroup libdisplay
  * @{
  */
-/**
- * @file Display server seat type
+/** @file
  */
 
-#ifndef TYPES_DISPLAY_SEAT_H
-#define TYPES_DISPLAY_SEAT_H
+#ifndef _LIBDISPLAY_TYPES_DISPLAY_CURSOR_H_
+#define _LIBDISPLAY_TYPES_DISPLAY_CURSOR_H_
 
-#include <adt/list.h>
-#include <gfx/coord.h>
+/** Stock cursor types */
+typedef enum {
+	/** Standard arrow */
+	dcurs_arrow,
+	/** Double arrow pointing up and down */
+	dcurs_size_ud,
+	/** Double arrow pointing left and right */
+	dcurs_size_lr,
+	/** Double arrow pointing up-left and down-right */
+	dcurs_size_uldr,
+	/** Double arrow pointing up-right nad down-left */
+	dcurs_size_urdl
+} display_stock_cursor_t;
 
-/** Display server seat */
-typedef struct ds_seat {
-	/** Containing display */
-	struct ds_display *display;
-	/** Link to display->seats */
-	link_t lseats;
-	/** Window this seat is focused on */
-	struct ds_window *focus;
-	/** Current seat cursor */
-	struct ds_cursor *cursor;
-	/** Pointer position */
-	gfx_coord2_t pntpos;
-} ds_seat_t;
+enum {
+	/** Number of stock cursor types */
+	dcurs_limit = dcurs_size_urdl
+};
 
 #endif
 

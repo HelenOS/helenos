@@ -39,6 +39,7 @@
 #include <gfx/render.h>
 #include <stdlib.h>
 #include "client.h"
+#include "cursor.h"
 #include "display.h"
 #include "seat.h"
 #include "window.h"
@@ -60,6 +61,8 @@ errno_t ds_seat_create(ds_display_t *display, ds_seat_t **rseat)
 	ds_display_add_seat(display, seat);
 	seat->pntpos.x = 0;
 	seat->pntpos.y = 0;
+
+	seat->cursor = display->cursor[dcurs_arrow];
 
 	*rseat = seat;
 	return EOK;
@@ -141,55 +144,6 @@ errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
 	return ds_window_post_kbd_event(dwindow, event);
 }
 
-/** Draw cross at seat pointer position.
- *
- * @param seat Seat
- * @param len Cross length
- * @param w Cross extra width
- * @param color Color
- *
- * @return EOK on success or an error code
- */
-static errno_t ds_seat_draw_cross(ds_seat_t *seat, gfx_coord_t len,
-    gfx_coord_t w, gfx_color_t *color)
-{
-	gfx_context_t *gc;
-	gfx_rect_t rect, r0;
-	errno_t rc;
-
-	gc = ds_display_get_gc(seat->display);
-	if (gc == NULL)
-		return EOK;
-
-	rc = gfx_set_color(gc, color);
-	if (rc != EOK)
-		goto error;
-
-	r0.p0.x = -len;
-	r0.p0.y = -w;
-	r0.p1.x = +len + 1;
-	r0.p1.y = +w + 1;
-	gfx_rect_translate(&seat->pntpos, &r0, &rect);
-
-	rc = gfx_fill_rect(gc, &rect);
-	if (rc != EOK)
-		goto error;
-
-	r0.p0.x = -w;
-	r0.p0.y = -len;
-	r0.p1.x = +w + 1;
-	r0.p1.y = +len + 1;
-	gfx_rect_translate(&seat->pntpos, &r0, &rect);
-
-	rc = gfx_fill_rect(gc, &rect);
-	if (rc != EOK)
-		goto error;
-
-	return EOK;
-error:
-	return rc;
-}
-
 /** Draw seat pointer
  *
  * @param seat Seat
@@ -198,36 +152,7 @@ error:
  */
 static errno_t ds_seat_draw_pointer(ds_seat_t *seat)
 {
-	errno_t rc;
-	gfx_color_t *black = NULL;
-	gfx_color_t *white;
-
-	rc = gfx_color_new_rgb_i16(0, 0, 0, &black);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &white);
-	if (rc != EOK)
-		goto error;
-
-	rc = ds_seat_draw_cross(seat, 8, 1, black);
-	if (rc != EOK)
-		goto error;
-
-	rc = ds_seat_draw_cross(seat, 8, 0, white);
-	if (rc != EOK)
-		goto error;
-
-	gfx_color_delete(black);
-	gfx_color_delete(white);
-
-	return EOK;
-error:
-	if (black != NULL)
-		gfx_color_delete(black);
-	if (white != NULL)
-		gfx_color_delete(white);
-	return rc;
+	return ds_cursor_paint(seat->cursor, &seat->pntpos);
 }
 
 /** Clear seat pointer
@@ -240,11 +165,10 @@ static errno_t ds_seat_clear_pointer(ds_seat_t *seat)
 {
 	gfx_rect_t rect;
 
-	rect.p0.x = seat->pntpos.x - 8;
-	rect.p0.y = seat->pntpos.y - 8;
-	rect.p1.x = seat->pntpos.x + 8 + 1;
-	rect.p1.y = seat->pntpos.y + 8 + 1;
+	/* Get rectangle covered by cursor */
+	ds_cursor_get_rect(seat->cursor, &seat->pntpos, &rect);
 
+	/* Repaint it */
 	return ds_display_paint(seat->display, &rect);
 }
 

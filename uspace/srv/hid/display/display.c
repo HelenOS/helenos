@@ -39,6 +39,8 @@
 #include <io/log.h>
 #include <stdlib.h>
 #include "client.h"
+#include "cursimg.h"
+#include "cursor.h"
 #include "seat.h"
 #include "window.h"
 #include "display.h"
@@ -52,6 +54,8 @@
 errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 {
 	ds_display_t *disp;
+	ds_cursor_t *cursor;
+	int i;
 	errno_t rc;
 
 	disp = calloc(1, sizeof(ds_display_t));
@@ -64,6 +68,17 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 		return ENOMEM;
 	}
 
+	list_initialize(&disp->cursors);
+
+	for (i = 0; i < dcurs_limit; i++) {
+		rc = ds_cursor_create(disp, &ds_cursimg[i].rect,
+		    ds_cursimg[i].image, &cursor);
+		if (rc != EOK)
+			goto error;
+
+		disp->cursor[i] = cursor;
+	}
+
 	fibril_mutex_initialize(&disp->lock);
 	list_initialize(&disp->clients);
 	disp->next_wnd_id = 1;
@@ -72,6 +87,9 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 	list_initialize(&disp->windows);
 	*rdisp = disp;
 	return EOK;
+error:
+	ds_display_destroy(disp);
+	return rc;
 }
 
 /** Destroy display.
@@ -82,6 +100,7 @@ void ds_display_destroy(ds_display_t *disp)
 {
 	assert(list_empty(&disp->clients));
 	assert(list_empty(&disp->seats));
+	/* XXX destroy cursors */
 	gfx_color_delete(disp->bg_color);
 	free(disp);
 }
@@ -459,6 +478,30 @@ ds_ddev_t *ds_display_next_ddev(ds_ddev_t *ddev)
 		return NULL;
 
 	return list_get_instance(link, ds_ddev_t, lddevs);
+}
+
+/** Add cursor to display.
+ *
+ * @param display Display
+ * @param cursor Cursor
+ */
+void ds_display_add_cursor(ds_display_t *display, ds_cursor_t *cursor)
+{
+	assert(cursor->display == NULL);
+	assert(!link_used(&cursor->ldisplay));
+
+	cursor->display = display;
+	list_prepend(&cursor->ldisplay, &display->cursors);
+}
+
+/** Remove cursor from display.
+ *
+ * @param cursor Cursor
+ */
+void ds_display_remove_cursor(ds_cursor_t *cursor)
+{
+	list_remove(&cursor->ldisplay);
+	cursor->display = NULL;
 }
 
 // XXX

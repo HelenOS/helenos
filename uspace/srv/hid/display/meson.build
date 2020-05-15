@@ -30,6 +30,8 @@ deps = [ 'ipcgfx', 'display', 'ddev' ]
 
 src = files(
 	'client.c',
+	'cursor.c',
+	'cursimg.c',
 	'ddev.c',
 	'display.c',
 	'dsops.c',
@@ -42,10 +44,13 @@ src = files(
 
 test_src = files(
 	'client.c',
+	'cursimg.c',
+	'cursor.c',
 	'display.c',
 	'seat.c',
 	'window.c',
 	'test/client.c',
+	'test/cursor.c',
 	'test/display.c',
 	'test/main.c',
 	'test/seat.c',

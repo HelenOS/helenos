@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,28 +30,15 @@
  * @{
  */
 /**
- * @file Display server seat type
+ * @file Display server built-in cursor images
  */
 
-#ifndef TYPES_DISPLAY_SEAT_H
-#define TYPES_DISPLAY_SEAT_H
+#ifndef CURSIMG_H
+#define CURSIMG_H
 
-#include <adt/list.h>
-#include <gfx/coord.h>
+#include "types/display/cursimg.h"
 
-/** Display server seat */
-typedef struct ds_seat {
-	/** Containing display */
-	struct ds_display *display;
-	/** Link to display->seats */
-	link_t lseats;
-	/** Window this seat is focused on */
-	struct ds_window *focus;
-	/** Current seat cursor */
-	struct ds_cursor *cursor;
-	/** Pointer position */
-	gfx_coord2_t pntpos;
-} ds_seat_t;
+extern ds_cursimg_t ds_cursimg[dcurs_limit];
 
 #endif
 

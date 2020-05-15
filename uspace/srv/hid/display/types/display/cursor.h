@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,28 +30,29 @@
  * @{
  */
 /**
- * @file Display server seat type
+ * @file Display server cursor type
  */
 
-#ifndef TYPES_DISPLAY_SEAT_H
-#define TYPES_DISPLAY_SEAT_H
+#ifndef TYPES_DISPLAY_CURSOR_H
+#define TYPES_DISPLAY_CURSOR_H
 
 #include <adt/list.h>
+#include <gfx/bitmap.h>
 #include <gfx/coord.h>
 
-/** Display server seat */
-typedef struct ds_seat {
+/** Bitmap in display server window GC */
+typedef struct ds_cursor {
 	/** Containing display */
 	struct ds_display *display;
-	/** Link to display->seats */
-	link_t lseats;
-	/** Window this seat is focused on */
-	struct ds_window *focus;
-	/** Current seat cursor */
-	struct ds_cursor *cursor;
-	/** Pointer position */
-	gfx_coord2_t pntpos;
-} ds_seat_t;
+	/** Link to list of all cursors in display */
+	link_t ldisplay;
+	/** Bitmap in the display device */
+	gfx_bitmap_t *bitmap;
+	/** Rectangle represented in the image */
+	gfx_rect_t rect;
+	/** Cursor image */
+	const uint8_t *image;
+} ds_cursor_t;
 
 #endif
 

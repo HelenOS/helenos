@@ -41,6 +41,8 @@
 #include <gfx/color.h>
 #include <gfx/coord.h>
 #include <io/input.h>
+#include <types/display/cursor.h>
+#include "cursor.h"
 #include "window.h"
 
 /** Display server display */
@@ -72,6 +74,12 @@ typedef struct ds_display {
 
 	/** Background color */
 	gfx_color_t *bg_color;
+
+	/** Stock cursors */
+	ds_cursor_t *cursor[dcurs_limit];
+
+	/** List of all cursors */
+	list_t cursors;
 
 	/** Bounding rectangle */
 	gfx_rect_t rect;

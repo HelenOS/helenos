@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,69 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup display
- * @{
- */
-/**
- * @file Display server seat type
- */
+#include <errno.h>
+#include <pcut/pcut.h>
 
-#ifndef TYPES_DISPLAY_SEAT_H
-#define TYPES_DISPLAY_SEAT_H
+#include "../cursor.h"
+#include "../cursimg.h"
+#include "../display.h"
 
-#include <adt/list.h>
-#include <gfx/coord.h>
+PCUT_INIT;
 
-/** Display server seat */
-typedef struct ds_seat {
-	/** Containing display */
-	struct ds_display *display;
-	/** Link to display->seats */
-	link_t lseats;
-	/** Window this seat is focused on */
-	struct ds_window *focus;
-	/** Current seat cursor */
-	struct ds_cursor *cursor;
-	/** Pointer position */
-	gfx_coord2_t pntpos;
-} ds_seat_t;
+PCUT_TEST_SUITE(cursor);
 
-#endif
+/** Test ds_cursor_create(), ds_cursor_destroy(). */
+PCUT_TEST(cursor_create_destroy)
+{
+	ds_display_t *disp;
+	ds_cursor_t *cursor;
+	errno_t rc;
 
-/** @}
- */
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_cursor_create(disp, &ds_cursimg[dcurs_arrow].rect,
+	    ds_cursimg[dcurs_arrow].image, &cursor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_cursor_destroy(cursor);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_cursor_paint(). */
+PCUT_TEST(cursor_paint)
+{
+	ds_display_t *disp;
+	ds_cursor_t *cursor;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_cursor_create(disp, &ds_cursimg[dcurs_arrow].rect,
+	    ds_cursimg[dcurs_arrow].image, &cursor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_cursor_destroy(cursor);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_cursor_get_rect() */
+PCUT_TEST(cursor_get_rect)
+{
+	ds_display_t *disp;
+	ds_cursor_t *cursor;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_cursor_create(disp, &ds_cursimg[dcurs_arrow].rect,
+	    ds_cursimg[dcurs_arrow].image, &cursor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_cursor_destroy(cursor);
+	ds_display_destroy(disp);
+}
+
+PCUT_EXPORT(cursor);
