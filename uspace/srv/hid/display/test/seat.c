@@ -52,7 +52,6 @@ static void test_ds_ev_pending(void *arg)
 	bool *called_cb = (bool *) arg;
 	printf("test_ds_ev_pending\n");
 	*called_cb = true;
-
 }
 
 /** Set focus. */
@@ -63,12 +62,13 @@ PCUT_TEST(set_focus)
 	ds_seat_t *seat;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
+	bool called_cb = false;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_seat_create(disp, &seat);
@@ -83,6 +83,7 @@ PCUT_TEST(set_focus)
 
 	ds_seat_set_focus(seat, wnd);
 	PCUT_ASSERT_EQUALS(wnd, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
 
 	ds_window_destroy(wnd);
 	ds_seat_destroy(seat);
@@ -99,12 +100,13 @@ PCUT_TEST(evac_focus)
 	ds_window_t *w0;
 	ds_window_t *w1;
 	display_wnd_params_t params;
+	bool called_cb = false;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_seat_create(disp, &seat);
@@ -122,9 +124,12 @@ PCUT_TEST(evac_focus)
 
 	ds_seat_set_focus(seat, w1);
 	PCUT_ASSERT_EQUALS(w1, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
 
 	ds_seat_evac_focus(seat, w1);
 	PCUT_ASSERT_EQUALS(w0, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
 
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);
@@ -142,13 +147,14 @@ PCUT_TEST(post_kbd_event_alt_tab)
 	ds_window_t *w0;
 	ds_window_t *w1;
 	display_wnd_params_t params;
+	bool called_cb = false;
 	kbd_event_t event;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_seat_create(disp, &seat);
@@ -166,6 +172,8 @@ PCUT_TEST(post_kbd_event_alt_tab)
 
 	ds_seat_set_focus(seat, w1);
 	PCUT_ASSERT_EQUALS(w1, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
 
 	event.type = KEY_PRESS;
 	event.mods = KM_ALT;
@@ -173,6 +181,7 @@ PCUT_TEST(post_kbd_event_alt_tab)
 	rc = ds_seat_post_kbd_event(seat, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(w0, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
 
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);
@@ -192,7 +201,7 @@ PCUT_TEST(post_kbd_event_regular)
 	kbd_event_t event;
 	ds_window_t *rwindow;
 	display_wnd_ev_t revent;
-	bool called_cb = NULL;
+	bool called_cb = false;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, &disp);
@@ -214,12 +223,15 @@ PCUT_TEST(post_kbd_event_regular)
 	ds_seat_set_focus(seat, wnd);
 	PCUT_ASSERT_EQUALS(wnd, seat->focus);
 
+	PCUT_ASSERT_TRUE(called_cb);
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	called_cb = false;
+
 	event.type = KEY_PRESS;
 	event.key = KC_ENTER;
 	event.mods = 0;
 	event.c = L'\0';
-
-	PCUT_ASSERT_FALSE(called_cb);
 
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
@@ -241,6 +253,7 @@ PCUT_TEST(post_kbd_event_regular)
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -267,6 +280,10 @@ PCUT_TEST(post_ptd_event_wnd_switch)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	/* Set up display size to allow the pointer a range of movement */
+	disp->rect.p1.x = 500;
+	disp->rect.p1.y = 500;
+
 	display_wnd_params_init(&params);
 	params.rect.p0.x = params.rect.p0.y = 0;
 	params.rect.p1.x = params.rect.p1.y = 1;
@@ -292,13 +309,16 @@ PCUT_TEST(post_ptd_event_wnd_switch)
 	event.dmove.y = 400;
 	rc = ds_seat_post_ptd_event(seat, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
+
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
 
 	event.type = PTD_PRESS;
 	event.btn_num = 1;
 	rc = ds_seat_post_ptd_event(seat, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
 
 	PCUT_ASSERT_EQUALS(w1, seat->focus);
 
@@ -307,13 +327,15 @@ PCUT_TEST(post_ptd_event_wnd_switch)
 	event.dmove.y = -400 + 10;
 	rc = ds_seat_post_ptd_event(seat, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
 
 	event.type = PTD_PRESS;
 	event.btn_num = 1;
 	rc = ds_seat_post_ptd_event(seat, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_FALSE(called_cb);
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
 
 	PCUT_ASSERT_EQUALS(w0, seat->focus);
 

@@ -33,6 +33,7 @@ PCUT_INIT;
 PCUT_IMPORT(client);
 PCUT_IMPORT(cursor);
 PCUT_IMPORT(display);
+PCUT_IMPORT(seat);
 PCUT_IMPORT(window);
 
 PCUT_MAIN();

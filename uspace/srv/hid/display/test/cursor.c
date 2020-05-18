@@ -54,7 +54,6 @@ static gfx_context_ops_t dummy_ops = {
 	.bitmap_get_alloc = dummy_bitmap_get_alloc
 };
 
-
 typedef struct {
 	bool render_called;
 } test_response_t;
@@ -208,6 +207,5 @@ static errno_t dummy_bitmap_get_alloc(void *arg, gfx_bitmap_alloc_t *alloc)
 	*alloc = bm->alloc;
 	return EOK;
 }
-
 
 PCUT_EXPORT(cursor);
