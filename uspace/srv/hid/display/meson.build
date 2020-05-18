@@ -46,6 +46,7 @@ test_src = files(
 	'client.c',
 	'cursimg.c',
 	'cursor.c',
+	'ddev.c',
 	'display.c',
 	'seat.c',
 	'window.c',

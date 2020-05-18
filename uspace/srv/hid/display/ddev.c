@@ -42,6 +42,39 @@
 #include "display.h"
 #include "ddev.h"
 
+/** Create display device object.
+ *
+ * @param display Parent display
+ * @param dd Display device
+ * @param info Display device info
+ * @param svc_id Display device service ID
+ * @param svc_name Display device service name
+ * @param gc Display device GC
+ * @param rddev Place to store pointer to new display device.
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ds_ddev_create(ds_display_t *display, ddev_t *dd,
+    ddev_info_t *info, char *svc_name, service_id_t svc_id,
+    gfx_context_t *gc, ds_ddev_t **rddev)
+{
+	ds_ddev_t *ddev;
+
+	ddev = calloc(1, sizeof(ds_ddev_t));
+	if (ddev == NULL)
+		return ENOMEM;
+
+	ddev->svc_name = svc_name;
+	ddev->svc_id = svc_id;
+	ddev->dd = dd;
+	ddev->gc = gc;
+	ddev->info = *info;
+
+	ds_display_add_ddev(display, ddev);
+
+	*rddev = ddev;
+	return EOK;
+}
+
 /** Open display device.
  *
  * @param display Parent display
@@ -94,20 +127,13 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 		return rc;
 	}
 
-	ddev = calloc(1, sizeof(ds_ddev_t));
-	if (ddev == NULL) {
+	rc = ds_ddev_create(display, dd, &info, name, svc_id, gc, &ddev);
+	if (rc != EOK) {
 		free(name);
 		ddev_close(dd);
-		return ENOMEM;
+		gfx_context_delete(gc);
+		return rc;
 	}
-
-	ddev->svc_name = name;
-	ddev->svc_id = svc_id;
-	ddev->dd = dd;
-	ddev->gc = gc;
-	ddev->info = info;
-
-	ds_display_add_ddev(display, ddev);
 
 	rc = ds_display_paint_bg(display, NULL);
 	if (rc != EOK)

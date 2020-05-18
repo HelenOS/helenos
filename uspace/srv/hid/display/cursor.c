@@ -103,6 +103,8 @@ errno_t ds_cursor_paint(ds_cursor_t *cursor, gfx_coord2_t *pos)
 	errno_t rc;
 
 	dgc = ds_display_get_gc(cursor->display); // XXX
+	if (dgc == NULL)
+		return EOK;
 
 	gfx_bitmap_params_init(&bparams);
 	bparams.rect = cursor->rect;
@@ -143,8 +145,6 @@ errno_t ds_cursor_paint(ds_cursor_t *cursor, gfx_coord2_t *pos)
 				++pp;
 			}
 		}
-
-		return EOK;
 	}
 
 	return gfx_bitmap_render(cursor->bitmap, NULL, pos);
