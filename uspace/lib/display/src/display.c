@@ -415,6 +415,28 @@ errno_t display_window_resize(display_window_t *window, gfx_coord2_t *offs,
 	return EOK;
 }
 
+/** Set window cursor.
+ *
+ * Set cursor that is displayed when pointer is over the window. The default
+ * is the arrow pointer.
+ *
+ * @param window Window
+ * @param cursor Cursor to display
+ * @return EOK on success or an error code
+ */
+errno_t display_window_set_cursor(display_window_t *window,
+    display_stock_cursor_t cursor)
+{
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(window->display->sess);
+	rc = async_req_2_0(exch, DISPLAY_WINDOW_SET_CURSOR, window->id,
+	    cursor);
+	async_exchange_end(exch);
+	return rc;
+}
+
 /** Get display event.
  *
  * @param display Display

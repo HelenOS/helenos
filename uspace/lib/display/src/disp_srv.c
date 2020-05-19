@@ -265,6 +265,24 @@ static void display_window_resize_srv(display_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void display_window_set_cursor_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	display_stock_cursor_t cursor;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+	cursor = ipc_get_arg2(icall);
+
+	if (srv->ops->window_set_cursor == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->window_set_cursor(srv->arg, wnd_id, cursor);
+	async_answer_0(icall, rc);
+}
+
 static void display_get_event_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
@@ -385,6 +403,9 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		case DISPLAY_WINDOW_RESIZE:
 			display_window_resize_srv(srv, &call);
+			break;
+		case DISPLAY_WINDOW_SET_CURSOR:
+			display_window_set_cursor_srv(srv, &call);
 			break;
 		case DISPLAY_GET_EVENT:
 			display_get_event_srv(srv, &call);

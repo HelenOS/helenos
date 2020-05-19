@@ -42,6 +42,7 @@
 #include "display/wndparams.h"
 #include "display/wndresize.h"
 #include "types/display.h"
+#include "types/display/cursor.h"
 #include "types/display/info.h"
 
 extern errno_t display_open(const char *, display_t **);
@@ -58,6 +59,8 @@ extern errno_t display_window_resize_req(display_window_t *,
 extern errno_t display_window_move(display_window_t *, gfx_coord2_t *);
 extern errno_t display_window_resize(display_window_t *,
     gfx_coord2_t *, gfx_rect_t *);
+extern errno_t display_window_set_cursor(display_window_t *,
+    display_stock_cursor_t);
 
 #endif
 
