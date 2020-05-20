@@ -308,6 +308,7 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	wnd->rect = params->rect;
 	wnd->min_size = params->min_size;
 	wnd->gc = gc;
+	wnd->cursor = wnd->display->cursor[dcurs_arrow];
 	*rgc = wnd;
 	return EOK;
 error:
@@ -818,6 +819,22 @@ void ds_window_calc_resize(ds_window_t *wnd, gfx_coord2_t *dresize,
 		    wnd->rect.p0.x + wnd->min_size.x);
 	} else {
 		nrect->p1.x = wnd->rect.p1.x;
+	}
+}
+
+/** Set window cursor.
+ *
+ * @param wnd Window
+ * @return EOK on success, EINVAL if @a cursor is invalid
+ */
+errno_t ds_window_set_cursor(ds_window_t *wnd, display_stock_cursor_t cursor)
+{
+	if (cursor >= dcurs_arrow &&
+	    cursor < (display_stock_cursor_t) dcurs_limit) {
+		wnd->cursor = wnd->display->cursor[cursor];
+		return EOK;
+	} else {
+		return EINVAL;
 	}
 }
 

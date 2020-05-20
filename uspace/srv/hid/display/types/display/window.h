@@ -85,6 +85,8 @@ typedef struct ds_window {
 	pixelmap_t pixelmap;
 	/** Current drawing color */
 	pixel_t color;
+	/** Cursor set by client */
+	struct ds_cursor *cursor;
 
 	/** State */
 	ds_window_state_t state;

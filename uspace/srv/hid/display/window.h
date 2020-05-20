@@ -43,6 +43,7 @@
 #include <types/gfx/context.h>
 #include <types/gfx/coord.h>
 #include <types/gfx/ops/context.h>
+#include "types/display/cursor.h"
 #include "types/display/display.h"
 #include "types/display/window.h"
 
@@ -65,6 +66,7 @@ extern void ds_window_resize_req(ds_window_t *, display_wnd_rsztype_t,
 extern errno_t ds_window_resize(ds_window_t *, gfx_coord2_t *, gfx_rect_t *);
 extern void ds_window_calc_resize(ds_window_t *, gfx_coord2_t *,
     gfx_rect_t *);
+extern errno_t ds_window_set_cursor(ds_window_t *, display_stock_cursor_t);
 
 #endif
 

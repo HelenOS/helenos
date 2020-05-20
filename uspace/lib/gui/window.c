@@ -98,6 +98,14 @@ static display_wnd_cb_t window_cb = {
 	.unfocus_event = window_unfocus_event
 };
 
+static void set_cursor(window_t *window, display_stock_cursor_t cursor)
+{
+	if (cursor != window->cursor) {
+		(void) display_window_set_cursor(window->dwindow, cursor);
+		window->cursor = cursor;
+	}
+}
+
 static void paint_internal(widget_t *widget)
 {
 	surface_t *surface = window_claim(widget->window);
@@ -293,6 +301,17 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 		    (event.vpos < border_thickness + header_height);
 		bool close = (header) &&
 		    (event.hpos >= width - border_thickness - close_thickness);
+
+		if ((top && left) || (bottom && right))
+			(void) set_cursor(widget->window, dcurs_size_uldr);
+		else if ((top && right) || (bottom && left))
+			(void) set_cursor(widget->window, dcurs_size_urdl);
+		else if (top || bottom)
+			(void) set_cursor(widget->window, dcurs_size_ud);
+		else if (left || right)
+			(void) set_cursor(widget->window, dcurs_size_lr);
+		else
+			(void) set_cursor(widget->window, dcurs_arrow);
 
 		pos.x = event.hpos;
 		pos.y = event.vpos;
@@ -653,6 +672,7 @@ window_t *window_open(const char *winreg, const void *data,
 	win->root.handle_position_event = root_handle_position_event;
 	win->grab = NULL;
 	win->focus = NULL;
+	win->cursor = dcurs_arrow;
 
 	/* Allocate resources for new surface. */
 	win->surface = surface_create(100, 100, NULL, SURFACE_FLAG_SHARED);

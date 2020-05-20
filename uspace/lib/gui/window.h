@@ -62,6 +62,7 @@ struct window {
 	fibril_mutex_t guard; /**< Mutex guarding window surface. */
 	surface_t *surface; /**< Window surface shared with display server. */
 	gfx_bitmap_t *bitmap; /**< Window bitmap */
+	display_stock_cursor_t cursor; /**< Selected cursor */
 };
 
 /**

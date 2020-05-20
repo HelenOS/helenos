@@ -277,9 +277,15 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
 	if (wnd != NULL) {
+		/* Moving over a window */
+		seat->cursor = wnd->cursor;
+
 		rc = ds_window_post_pos_event(wnd, event);
 		if (rc != EOK)
 			return rc;
+	} else {
+		/* Not over a window */
+		seat->cursor = seat->display->cursor[dcurs_arrow];
 	}
 
 	if (seat->focus != wnd) {

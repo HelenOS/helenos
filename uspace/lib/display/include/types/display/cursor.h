@@ -51,7 +51,7 @@ typedef enum {
 
 enum {
 	/** Number of stock cursor types */
-	dcurs_limit = dcurs_size_urdl
+	dcurs_limit = dcurs_size_urdl + 1
 };
 
 #endif

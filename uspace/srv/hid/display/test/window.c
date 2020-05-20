@@ -589,6 +589,56 @@ PCUT_TEST(window_calc_resize)
 	ds_display_destroy(disp);
 }
 
+/** Test ds_window_set_cursor() */
+PCUT_TEST(window_set_cursor)
+{
+	gfx_context_t *gc;
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = gfx_context_new(&dummy_ops, NULL, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_display_create(gc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_EQUALS(wnd->display->cursor[dcurs_arrow], wnd->cursor);
+
+	rc = ds_window_set_cursor(wnd, -1);
+	PCUT_ASSERT_ERRNO_VAL(EINVAL, rc);
+	PCUT_ASSERT_EQUALS(wnd->display->cursor[dcurs_arrow], wnd->cursor);
+
+	rc = ds_window_set_cursor(wnd, dcurs_limit);
+	PCUT_ASSERT_ERRNO_VAL(EINVAL, rc);
+	PCUT_ASSERT_EQUALS(wnd->display->cursor[dcurs_arrow], wnd->cursor);
+
+	rc = ds_window_set_cursor(wnd, dcurs_limit + 1);
+	PCUT_ASSERT_ERRNO_VAL(EINVAL, rc);
+	PCUT_ASSERT_EQUALS(wnd->display->cursor[dcurs_arrow], wnd->cursor);
+
+	rc = ds_window_set_cursor(wnd, dcurs_size_lr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(wnd->display->cursor[dcurs_size_lr], wnd->cursor);
+
+	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+
 static errno_t dummy_set_color(void *arg, gfx_color_t *color)
 {
 	return EOK;
