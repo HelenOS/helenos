@@ -47,8 +47,10 @@ typedef struct ds_seat {
 	link_t lseats;
 	/** Window this seat is focused on */
 	struct ds_window *focus;
-	/** Current seat cursor */
-	struct ds_cursor *cursor;
+	/** Cursor selected by client */
+	struct ds_cursor *client_cursor;
+	/** Cursor override for window management or @c NULL */
+	struct ds_cursor *wm_cursor;
 	/** Pointer position */
 	gfx_coord2_t pntpos;
 } ds_seat_t;

@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include "client.h"
 #include "display.h"
+#include "seat.h"
 #include "window.h"
 
 static errno_t ds_window_set_color(void *, gfx_color_t *);
@@ -514,6 +515,9 @@ static void ds_window_update_move(ds_window_t *wnd, gfx_coord2_t *pos)
 static void ds_window_start_resize(ds_window_t *wnd,
     display_wnd_rsztype_t rsztype, gfx_coord2_t *pos)
 {
+	ds_seat_t *seat;
+	display_stock_cursor_t ctype;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_start_resize (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
@@ -524,6 +528,11 @@ static void ds_window_start_resize(ds_window_t *wnd,
 	wnd->state = dsw_resizing;
 	wnd->rsztype = rsztype;
 	wnd->preview_rect = wnd->rect;
+
+	// XXX Need client to tell us which seat started the resize!
+	seat = ds_display_first_seat(wnd->display);
+	ctype = display_cursor_from_wrsz(rsztype);
+	ds_seat_set_wm_cursor(seat, wnd->display->cursor[ctype]);
 }
 
 /** Finish resizing a window by mouse drag.
@@ -535,6 +544,7 @@ static void ds_window_finish_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 {
 	gfx_coord2_t dresize;
 	gfx_rect_t nrect;
+	ds_seat_t *seat;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_finish_resize (%d, %d)",
 	    (int) pos->x, (int) pos->y);
@@ -551,6 +561,10 @@ static void ds_window_finish_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 
 	wnd->state = dsw_idle;
 	ds_client_post_resize_event(wnd->client, wnd, &nrect);
+
+	// XXX Need to know which seat started the resize!
+	seat = ds_display_first_seat(wnd->display);
+	ds_seat_set_wm_cursor(seat, NULL);
 }
 
 /** Update window position when resizing by mouse drag.

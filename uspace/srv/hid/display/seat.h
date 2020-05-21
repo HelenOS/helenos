@@ -51,6 +51,7 @@ extern void ds_seat_evac_focus(ds_seat_t *, ds_window_t *);
 extern errno_t ds_seat_post_kbd_event(ds_seat_t *, kbd_event_t *);
 extern errno_t ds_seat_post_ptd_event(ds_seat_t *, ptd_event_t *);
 extern errno_t ds_seat_post_pos_event(ds_seat_t *, pos_event_t *);
+extern void ds_seat_set_wm_cursor(ds_seat_t *, ds_cursor_t *);
 
 #endif
 

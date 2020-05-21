@@ -35,6 +35,7 @@
 
 #include "../client.h"
 #include "../display.h"
+#include "../seat.h"
 #include "../window.h"
 
 PCUT_INIT;
@@ -54,6 +55,7 @@ PCUT_TEST(window_resize)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	gfx_coord2_t offs;
@@ -64,6 +66,9 @@ PCUT_TEST(window_resize)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -88,6 +93,7 @@ PCUT_TEST(window_resize)
 	PCUT_ASSERT_INT_EQUALS(97, wnd->dpos.y);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -287,6 +293,7 @@ PCUT_TEST(window_resize_req)
 	gfx_context_t *gc;
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	gfx_coord2_t pos;
@@ -299,6 +306,9 @@ PCUT_TEST(window_resize_req)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -320,6 +330,7 @@ PCUT_TEST(window_resize_req)
 	PCUT_ASSERT_INT_EQUALS(pos.y, wnd->orig_pos.y);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -637,7 +648,6 @@ PCUT_TEST(window_set_cursor)
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
-
 
 static errno_t dummy_set_color(void *arg, gfx_color_t *color)
 {

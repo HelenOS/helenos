@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,5 +31,6 @@
 PCUT_INIT;
 
 PCUT_IMPORT(display);
+PCUT_IMPORT(wndresize);
 
 PCUT_MAIN();

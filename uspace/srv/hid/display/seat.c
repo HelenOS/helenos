@@ -44,6 +44,9 @@
 #include "seat.h"
 #include "window.h"
 
+static errno_t ds_seat_clear_pointer(ds_seat_t *);
+static errno_t ds_seat_draw_pointer(ds_seat_t *);
+
 /** Create seat.
  *
  * @param display Parent display
@@ -62,7 +65,8 @@ errno_t ds_seat_create(ds_display_t *display, ds_seat_t **rseat)
 	seat->pntpos.x = 0;
 	seat->pntpos.y = 0;
 
-	seat->cursor = display->cursor[dcurs_arrow];
+	seat->client_cursor = display->cursor[dcurs_arrow];
+	seat->wm_cursor = NULL;
 
 	*rseat = seat;
 	return EOK;
@@ -144,6 +148,79 @@ errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
 	return ds_window_post_kbd_event(dwindow, event);
 }
 
+/** Get current cursor used by seat.
+ *
+ * @param wmcurs WM curor
+ * @param ccurs Client cursor
+ * @return
+ */
+static ds_cursor_t *ds_seat_compute_cursor(ds_cursor_t *wmcurs, ds_cursor_t *ccurs)
+{
+	if (wmcurs != NULL)
+		return wmcurs;
+
+	return ccurs;
+}
+
+/** Get current cursor used by seat.
+ *
+ * @param seat Seat
+ * @return Current cursor
+ */
+static ds_cursor_t *ds_seat_get_cursor(ds_seat_t *seat)
+{
+	return ds_seat_compute_cursor(seat->wm_cursor, seat->client_cursor);
+}
+
+/** Set client cursor.
+ *
+ * Set cursor selected by client. This may update the actual cursor
+ * if WM is not overriding the cursor.
+ *
+ * @param seat Seat
+ * @param cursor Client cursor
+ */
+static void ds_seat_set_client_cursor(ds_seat_t *seat, ds_cursor_t *cursor)
+{
+	ds_cursor_t *old_cursor;
+	ds_cursor_t *new_cursor;
+
+	old_cursor = ds_seat_get_cursor(seat);
+	new_cursor = ds_seat_compute_cursor(seat->wm_cursor, cursor);
+
+	if (new_cursor != old_cursor)
+		ds_seat_clear_pointer(seat);
+
+	seat->client_cursor = cursor;
+
+	if (new_cursor != old_cursor)
+		ds_seat_draw_pointer(seat);
+}
+
+/** Set WM cursor.
+ *
+ * Set cursor override for window management.
+ *
+ * @param seat Seat
+ * @param cursor WM cursor override or @c NULL not to override the cursor
+ */
+void ds_seat_set_wm_cursor(ds_seat_t *seat, ds_cursor_t *cursor)
+{
+	ds_cursor_t *old_cursor;
+	ds_cursor_t *new_cursor;
+
+	old_cursor = ds_seat_get_cursor(seat);
+	new_cursor = ds_seat_compute_cursor(cursor, seat->client_cursor);
+
+	if (new_cursor != old_cursor)
+		ds_seat_clear_pointer(seat);
+
+	seat->wm_cursor = cursor;
+
+	if (new_cursor != old_cursor)
+		ds_seat_draw_pointer(seat);
+}
+
 /** Draw seat pointer
  *
  * @param seat Seat
@@ -152,7 +229,10 @@ errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
  */
 static errno_t ds_seat_draw_pointer(ds_seat_t *seat)
 {
-	return ds_cursor_paint(seat->cursor, &seat->pntpos);
+	ds_cursor_t *cursor;
+
+	cursor = ds_seat_get_cursor(seat);
+	return ds_cursor_paint(cursor, &seat->pntpos);
 }
 
 /** Clear seat pointer
@@ -164,9 +244,12 @@ static errno_t ds_seat_draw_pointer(ds_seat_t *seat)
 static errno_t ds_seat_clear_pointer(ds_seat_t *seat)
 {
 	gfx_rect_t rect;
+	ds_cursor_t *cursor;
+
+	cursor = ds_seat_get_cursor(seat);
 
 	/* Get rectangle covered by cursor */
-	ds_cursor_get_rect(seat->cursor, &seat->pntpos, &rect);
+	ds_cursor_get_rect(cursor, &seat->pntpos, &rect);
 
 	/* Repaint it */
 	return ds_display_paint(seat->display, &rect);
@@ -181,7 +264,6 @@ static errno_t ds_seat_clear_pointer(ds_seat_t *seat)
  *
  * @return EOK on success or an error code
  */
-#include <stdio.h>
 errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 {
 	ds_display_t *disp = seat->display;
@@ -278,14 +360,14 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
 	if (wnd != NULL) {
 		/* Moving over a window */
-		seat->cursor = wnd->cursor;
+		ds_seat_set_client_cursor(seat, wnd->cursor);
 
 		rc = ds_window_post_pos_event(wnd, event);
 		if (rc != EOK)
 			return rc;
 	} else {
 		/* Not over a window */
-		seat->cursor = seat->display->cursor[dcurs_arrow];
+		ds_seat_set_client_cursor(seat, seat->display->cursor[dcurs_arrow]);
 	}
 
 	if (seat->focus != wnd) {

@@ -168,6 +168,9 @@ static errno_t disp_window_resize_req(void *arg, sysarg_t wnd_id,
 	ds_client_t *client = (ds_client_t *) arg;
 	ds_window_t *wnd;
 
+	if (!display_wndrsz_valid(rsztype))
+		return EINVAL;
+
 	ds_display_lock(client->display);
 
 	wnd = ds_client_find_window(client, wnd_id);

@@ -352,4 +352,30 @@ PCUT_TEST(post_pos_event)
 	// XXX
 }
 
+/** Set WM cursor */
+PCUT_TEST(set_wm_cursor)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_seat_set_wm_cursor(seat, disp->cursor[dcurs_size_ud]);
+	ds_seat_set_wm_cursor(seat, NULL);
+
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 PCUT_EXPORT(seat);
