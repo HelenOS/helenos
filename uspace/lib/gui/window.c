@@ -66,6 +66,7 @@ static sysarg_t bevel_thickness = 1;
 static sysarg_t header_height = 20;
 static sysarg_t header_min_width = 40;
 static sysarg_t close_thickness = 20;
+static sysarg_t corner_size = 24;
 
 static pixel_t color_highlight = PIXEL(255, 255, 255, 255);
 static pixel_t color_shadow = PIXEL(255, 85, 85, 85);
@@ -288,13 +289,18 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 		sysarg_t height = widget->height;
 
 		bool btn_left = (event.btn_num == 1) && (event.type == POS_PRESS);
-		bool btn_right = (event.btn_num == 2) && (event.type == POS_PRESS);
-		bool allowed_button = btn_left || btn_right;
 
 		bool left = (event.hpos < border_thickness);
 		bool right = (event.hpos >= width - border_thickness);
 		bool top = (event.vpos < border_thickness);
 		bool bottom = (event.vpos >= height - border_thickness);
+		bool edge = left || right || top || bottom;
+
+		bool cleft = (event.hpos < corner_size);
+		bool cright = (event.hpos >= width - corner_size);
+		bool ctop = (event.vpos < corner_size);
+		bool cbottom = (event.vpos >= height - corner_size);
+
 		bool header = (event.hpos >= border_thickness) &&
 		    (event.hpos < width - border_thickness) &&
 		    (event.vpos >= border_thickness) &&
@@ -302,44 +308,42 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 		bool close = (header) &&
 		    (event.hpos >= width - border_thickness - close_thickness);
 
-		if ((top && left) || (bottom && right))
-			(void) set_cursor(widget->window, dcurs_size_uldr);
-		else if ((top && right) || (bottom && left))
-			(void) set_cursor(widget->window, dcurs_size_urdl);
-		else if (top || bottom)
-			(void) set_cursor(widget->window, dcurs_size_ud);
-		else if (left || right)
-			(void) set_cursor(widget->window, dcurs_size_lr);
-		else
+		bool isresize = true;
+		display_wnd_rsztype_t rsztype = 0;
+
+		if (edge && ctop && cleft) {
+			rsztype = display_wr_top_left;
+		} else if (edge && cbottom && cleft) {
+			rsztype = display_wr_bottom_left;
+		} else if (edge && cbottom && cright) {
+			rsztype = display_wr_bottom_right;
+		} else if (edge && ctop && cright) {
+			rsztype = display_wr_top_right;
+		} else if (top) {
+			rsztype = display_wr_top;
+		} else if (left) {
+			rsztype = display_wr_left;
+		} else if (bottom) {
+			rsztype = display_wr_bottom;
+		} else if (right) {
+			rsztype = display_wr_right;
+		} else {
+			isresize = false;
+		}
+
+		if (isresize) {
+			(void) set_cursor(widget->window,
+			    display_cursor_from_wrsz(rsztype));
+		} else {
 			(void) set_cursor(widget->window, dcurs_arrow);
+		}
 
 		pos.x = event.hpos;
 		pos.y = event.vpos;
 
-		if (top && left && btn_left) {
-			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_top_left, &pos);
-		} else if (bottom && left && btn_left) {
-			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_bottom_left, &pos);
-		} else if (bottom && right && btn_left) {
-			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_bottom_right, &pos);
-		} else if (top && right && allowed_button) {
-			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_top_right, &pos);
-		} else if (top && btn_left) {
-			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_top, &pos);
-		} else if (left && btn_left) {
-			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_left, &pos);
-		} else if (bottom && btn_left) {
-			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_bottom, &pos);
-		} else if (right && btn_left) {
-			(void) display_window_resize_req(widget->window->dwindow,
-			    display_wr_right, &pos);
+		if (isresize && btn_left) {
+			(void) display_window_resize_req(
+			    widget->window->dwindow, rsztype, &pos);
 		} else if (close && btn_left) {
 			window_close(widget->window);
 		} else if (header && btn_left) {
