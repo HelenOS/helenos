@@ -470,8 +470,7 @@ static void ds_window_finish_move(ds_window_t *wnd, gfx_coord2_t *pos)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_finish_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
-	if (wnd->state != dsw_moving)
-		return;
+	assert(wnd->state == dsw_moving);
 
 	gfx_coord2_subtract(pos, &wnd->orig_pos, &dmove);
 
@@ -499,8 +498,7 @@ static void ds_window_update_move(ds_window_t *wnd, gfx_coord2_t *pos)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
-	if (wnd->state != dsw_moving)
-		return;
+	assert(wnd->state == dsw_moving);
 
 	gfx_rect_translate(&wnd->preview_pos, &wnd->rect, &drect);
 	ds_display_paint(wnd->display, &drect);
@@ -568,8 +566,7 @@ static void ds_window_finish_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_finish_resize (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
-	if (wnd->state != dsw_resizing)
-		return;
+	assert(wnd->state == dsw_resizing);
 
 	(void) ds_display_paint(wnd->display, NULL);
 
@@ -603,8 +600,7 @@ static void ds_window_update_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_resize (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
-	if (wnd->state != dsw_resizing)
-		return;
+	assert(wnd->state == dsw_resizing);
 
 	gfx_rect_translate(&wnd->dpos, &wnd->preview_rect, &drect);
 	(void) ds_display_paint(wnd->display, &drect);
@@ -671,17 +667,33 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
 	inside = gfx_pix_inside_rect(&pos, &drect);
 
-	if (event->type == POS_PRESS && event->btn_num == 2 && inside)
+	if (event->type == POS_PRESS && event->btn_num == 2 && inside) {
 		ds_window_start_move(wnd, &pos);
+		return EOK;
+	}
 
 	if (event->type == POS_RELEASE) {
-		ds_window_finish_move(wnd, &pos);
-		ds_window_finish_resize(wnd, &pos);
+		if (wnd->state == dsw_moving) {
+			ds_window_finish_move(wnd, &pos);
+			return EOK;
+		}
+
+		if (wnd->state == dsw_resizing) {
+			ds_window_finish_resize(wnd, &pos);
+			return EOK;
+		}
 	}
 
 	if (event->type == POS_UPDATE) {
-		ds_window_update_move(wnd, &pos);
-		ds_window_update_resize(wnd, &pos);
+		if (wnd->state == dsw_moving) {
+			ds_window_update_move(wnd, &pos);
+			return EOK;
+		}
+
+		if (wnd->state == dsw_resizing) {
+			ds_window_update_resize(wnd, &pos);
+			return EOK;
+		}
 	}
 
 	/* Transform event coordinates to window-local */
