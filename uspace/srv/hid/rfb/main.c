@@ -71,6 +71,8 @@ typedef struct {
 	rfb_gc_t *rfb;
 	gfx_bitmap_alloc_t alloc;
 	gfx_rect_t rect;
+	gfx_bitmap_flags_t flags;
+	pixel_t key_color;
 	bool myalloc;
 } rfb_bitmap_t;
 
@@ -198,6 +200,8 @@ errno_t rfb_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 
 	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
 	rfbbm->rect = params->rect;
+	rfbbm->flags = params->flags;
+	rfbbm->key_color = params->key_color;
 
 	if (alloc == NULL) {
 		rfbbm->alloc.pitch = dim.x * sizeof(uint32_t);
@@ -277,11 +281,23 @@ static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pbm.height = bmdim.y;
 	pbm.data = rfbbm->alloc.pixels;
 
-	for (y = srect.p0.y; y < srect.p1.y; y++) {
-		for (x = srect.p0.x; x < srect.p1.x; x++) {
-			color = pixelmap_get_pixel(&pbm, x, y);
-			pixelmap_put_pixel(&rfbbm->rfb->rfb.framebuffer,
-			    x + offs.x, y + offs.y, color);
+	if ((rfbbm->flags & bmpf_color_key) == 0) {
+		for (y = srect.p0.y; y < srect.p1.y; y++) {
+			for (x = srect.p0.x; x < srect.p1.x; x++) {
+				color = pixelmap_get_pixel(&pbm, x, y);
+				pixelmap_put_pixel(&rfbbm->rfb->rfb.framebuffer,
+				    x + offs.x, y + offs.y, color);
+			}
+		}
+	} else {
+		for (y = srect.p0.y; y < srect.p1.y; y++) {
+			for (x = srect.p0.x; x < srect.p1.x; x++) {
+				color = pixelmap_get_pixel(&pbm, x, y);
+				if (color != rfbbm->key_color) {
+					pixelmap_put_pixel(&rfbbm->rfb->rfb.framebuffer,
+					    x + offs.x, y + offs.y, color);
+				}
+			}
 		}
 	}
 

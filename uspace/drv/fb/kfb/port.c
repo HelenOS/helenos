@@ -89,6 +89,8 @@ typedef struct {
 	kfb_t *kfb;
 	gfx_bitmap_alloc_t alloc;
 	gfx_rect_t rect;
+	gfx_bitmap_flags_t flags;
+	pixel_t key_color;
 	bool myalloc;
 } kfb_bitmap_t;
 
@@ -202,6 +204,8 @@ errno_t kfb_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 
 	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
 	kfbbm->rect = params->rect;
+	kfbbm->flags = params->flags;
+	kfbbm->key_color = params->key_color;
 
 	if (alloc == NULL) {
 		kfbbm->alloc.pitch = dim.x * sizeof(uint32_t);
@@ -297,14 +301,29 @@ static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	 */
 	gfx_rect_clip(&srect, &skfbrect, &crect);
 
-	for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
-		for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
-			gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
-			gfx_coord2_add(&pos, &offs, &dp);
+	if ((kfbbm->flags & bmpf_color_key) != 0) {
+		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+				gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
+				gfx_coord2_add(&pos, &offs, &dp);
 
-			color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
-			kfb->pixel2visual(kfb->addr +
-			    FB_POS(kfb, dp.x, dp.y), color);
+				color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+				if (color != kfbbm->key_color) {
+					kfb->pixel2visual(kfb->addr +
+					    FB_POS(kfb, dp.x, dp.y), color);
+				}
+			}
+		}
+	} else {
+		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+				gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
+				gfx_coord2_add(&pos, &offs, &dp);
+
+				color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+				kfb->pixel2visual(kfb->addr +
+				    FB_POS(kfb, dp.x, dp.y), color);
+			}
 		}
 	}
 

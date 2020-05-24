@@ -108,6 +108,8 @@ errno_t ds_cursor_paint(ds_cursor_t *cursor, gfx_coord2_t *pos)
 
 	gfx_bitmap_params_init(&bparams);
 	bparams.rect = cursor->rect;
+	bparams.flags = bmpf_color_key;
+	bparams.key_color = PIXEL(0, 0, 255, 255);
 
 	if (cursor->bitmap == NULL) {
 		rc = gfx_bitmap_create(dgc, &bparams, NULL, &cursor->bitmap);

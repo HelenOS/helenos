@@ -214,6 +214,42 @@ static errno_t bitmap_moire(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 	return EOK;
 }
 
+/** Render circle to a bitmap.
+ *
+ * @param bitmap Bitmap
+ * @param w Bitmap width
+ * @param h Bitmap height
+ * @return EOK on success or an error code
+ */
+static errno_t bitmap_circle(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
+{
+	int i, j;
+	int k;
+	pixelmap_t pixelmap;
+	gfx_bitmap_alloc_t alloc;
+	errno_t rc;
+
+	rc = gfx_bitmap_get_alloc(bitmap, &alloc);
+	if (rc != EOK)
+		return rc;
+
+	/* In absence of anything else, use pixelmap */
+	pixelmap.width = w;
+	pixelmap.height = h;
+	pixelmap.data = alloc.pixels;
+
+	for (i = 0; i < w; i++) {
+		for (j = 0; j < h; j++) {
+			k = i * i + j * j;
+			pixelmap_put_pixel(&pixelmap, i, j,
+			    k < w * w / 2 ? PIXEL(255, 0, 255, 0) :
+			    PIXEL(0, 255, 0, 255));
+		}
+	}
+
+	return EOK;
+}
+
 /** Run bitmap demo on a graphic context.
  *
  * @param gc Graphic context
@@ -328,6 +364,62 @@ error:
 	gfx_bitmap_destroy(bitmap);
 	return rc;
 }
+/** Run bitmap color key demo on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_bitmap_kc(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_bitmap_t *bitmap;
+	gfx_bitmap_params_t params;
+	int i, j;
+	gfx_coord2_t offs;
+	errno_t rc;
+
+	rc = clear_scr(gc, w, h);
+	if (rc != EOK)
+		return rc;
+
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 40;
+	params.rect.p1.y = 40;
+	params.flags = bmpf_color_key;
+	params.key_color = PIXEL(0, 255, 0, 255);
+
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	if (rc != EOK)
+		return rc;
+
+	rc = bitmap_circle(bitmap, 40, 40);
+	if (rc != EOK)
+		goto error;
+
+	for (j = 0; j < 10; j++) {
+		for (i = 0; i < 10; i++) {
+			offs.x = j * 20 + i * 20;
+			offs.y = i * 20;
+
+			rc = gfx_bitmap_render(bitmap, NULL, &offs);
+			if (rc != EOK)
+				goto error;
+		}
+
+		fibril_usleep(500 * 1000);
+
+		if (quit)
+			break;
+	}
+
+	gfx_bitmap_destroy(bitmap);
+
+	return EOK;
+error:
+	gfx_bitmap_destroy(bitmap);
+	return rc;
+}
 
 /** Run demo loop on a graphic context.
  *
@@ -349,6 +441,10 @@ static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			return rc;
 
 		rc = demo_bitmap2(gc, w, h);
+		if (rc != EOK)
+			return rc;
+
+		rc = demo_bitmap_kc(gc, w, h);
 		if (rc != EOK)
 			return rc;
 	}

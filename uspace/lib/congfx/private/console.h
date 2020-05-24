@@ -51,6 +51,8 @@ struct console_gc {
 	gfx_context_t *gc;
 	/** Console control structure */
 	console_ctrl_t *con;
+	/** Console bounding rectangle */
+	gfx_rect_t rect;
 	/** File for printing characters */
 	FILE *fout;
 	/** Current drawing color */
@@ -67,6 +69,10 @@ typedef struct {
 	bool myalloc;
 	/** Rectangle covered by bitmap */
 	gfx_rect_t rect;
+	/** Bitmap flags */
+	gfx_bitmap_flags_t flags;
+	/** Key color */
+	pixel_t key_color;
 } console_gc_bitmap_t;
 
 #endif

@@ -71,6 +71,10 @@ typedef struct {
 	surface_t *surface;
 	/** Rectangle covered by bitmap */
 	gfx_rect_t rect;
+	/** Bitmap flags */
+	gfx_bitmap_flags_t flags;
+	/** Key color */
+	pixel_t key_color;
 } canvas_gc_bitmap_t;
 
 #endif

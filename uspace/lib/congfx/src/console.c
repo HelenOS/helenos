@@ -128,6 +128,8 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 {
 	console_gc_t *cgc = NULL;
 	gfx_context_t *gc = NULL;
+	sysarg_t rows;
+	sysarg_t cols;
 	errno_t rc;
 
 	cgc = calloc(1, sizeof(console_gc_t));
@@ -136,6 +138,10 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 		goto error;
 	}
 
+	rc = console_get_size(con, &cols, &rows);
+	if (rc != EOK)
+		goto error;
+
 	rc = gfx_context_new(&console_gc_ops, cgc, &gc);
 	if (rc != EOK)
 		goto error;
@@ -143,6 +149,11 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	cgc->gc = gc;
 	cgc->con = con;
 	cgc->fout = fout;
+	cgc->rect.p0.x = 0;
+	cgc->rect.p0.y = 0;
+	cgc->rect.p1.x = cols;
+	cgc->rect.p1.y = rows - 1; /* make sure we avoid bottom-right corner */
+
 	*rgc = cgc;
 	return EOK;
 error:
@@ -200,6 +211,8 @@ errno_t console_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 
 	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
 	cbm->rect = params->rect;
+	cbm->flags = params->flags;
+	cbm->key_color = params->key_color;
 
 	if (alloc == NULL) {
 		cbm->alloc.pitch = dim.x * sizeof(uint32_t);
@@ -255,6 +268,7 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pixelmap_t pixelmap;
 	gfx_rect_t srect;
 	gfx_rect_t drect;
+	gfx_rect_t crect;
 	gfx_coord2_t offs;
 
 	if (srect0 != NULL)
@@ -269,27 +283,49 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		offs.y = 0;
 	}
 
-	// XXX Add function to translate rectangle
 	gfx_rect_translate(&offs, &srect, &drect);
+	gfx_rect_clip(&drect, &cbm->cgc->rect, &crect);
 
 	pixelmap.width = cbm->rect.p1.x - cbm->rect.p0.x;
 	pixelmap.height = cbm->rect.p1.y = cbm->rect.p1.y;
 	pixelmap.data = cbm->alloc.pixels;
 
-	for (y = drect.p0.y; y < drect.p1.y; y++) {
-		console_set_pos(cbm->cgc->con, drect.p0.x, y);
+	if ((cbm->flags & bmpf_color_key) == 0) {
+		for (y = crect.p0.y; y < crect.p1.y; y++) {
+			console_set_pos(cbm->cgc->con, crect.p0.x, y);
 
-		for (x = drect.p0.x; x < drect.p1.x; x++) {
-			clr = pixelmap_get_pixel(&pixelmap,
-			    x - offs.x - cbm->rect.p0.x,
-			    y - offs.y - cbm->rect.p0.y);
-			console_set_rgb_color(cbm->cgc->con, clr, clr);
+			for (x = crect.p0.x; x < crect.p1.x; x++) {
+				clr = pixelmap_get_pixel(&pixelmap,
+				    x - offs.x - cbm->rect.p0.x,
+				    y - offs.y - cbm->rect.p0.y);
+				console_set_rgb_color(cbm->cgc->con, clr, clr);
 
-			rv = fputc('X', cbm->cgc->fout);
-			if (rv < 0)
-				return EIO;
+				rv = fputc('X', cbm->cgc->fout);
+				if (rv < 0)
+					return EIO;
 
-			console_flush(cbm->cgc->con);
+				console_flush(cbm->cgc->con);
+			}
+		}
+	} else {
+		for (y = crect.p0.y; y < crect.p1.y; y++) {
+			for (x = crect.p0.x; x < crect.p1.x; x++) {
+
+				clr = pixelmap_get_pixel(&pixelmap,
+				    x - offs.x - cbm->rect.p0.x,
+				    y - offs.y - cbm->rect.p0.y);
+				console_set_rgb_color(cbm->cgc->con, clr, clr);
+
+				if (clr != cbm->key_color) {
+					console_set_pos(cbm->cgc->con, x, y);
+					rv = fputc('X', cbm->cgc->fout);
+					if (rv < 0)
+						return EIO;
+
+					console_flush(cbm->cgc->con);
+				}
+
+			}
 		}
 	}
 

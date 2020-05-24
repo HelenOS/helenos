@@ -196,6 +196,8 @@ errno_t canvas_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 
 	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
 	cbm->rect = params->rect;
+	cbm->flags = params->flags;
+	cbm->key_color = params->key_color;
 
 	if (alloc == NULL) {
 		cbm->surface = surface_create(dim.x, dim.y, NULL, 0);
@@ -258,6 +260,8 @@ static errno_t canvas_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	gfx_rect_t drect;
 	gfx_coord2_t offs;
 	gfx_coord2_t dim;
+	gfx_coord_t x, y;
+	pixel_t pixel;
 
 	if (srect0 != NULL)
 		srect = *srect0;
@@ -287,11 +291,23 @@ static errno_t canvas_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	source_set_texture(&source, cbm->surface,
 	    PIXELMAP_EXTEND_TRANSPARENT_BLACK);
 
-	drawctx_t drawctx;
-	drawctx_init(&drawctx, cbm->cgc->surface);
+	if ((cbm->flags & bmpf_color_key) == 0) {
+		drawctx_t drawctx;
+		drawctx_init(&drawctx, cbm->cgc->surface);
 
-	drawctx_set_source(&drawctx, &source);
-	drawctx_transfer(&drawctx, drect.p0.x, drect.p0.y, dim.x, dim.y);
+		drawctx_set_source(&drawctx, &source);
+		drawctx_transfer(&drawctx, drect.p0.x, drect.p0.y, dim.x, dim.y);
+	} else {
+		for (y = drect.p0.y; y < drect.p1.y; y++) {
+			for (x = drect.p0.x; x < drect.p1.x; x++) {
+				pixel = source_determine_pixel(&source, x, y);
+				if (pixel != cbm->key_color) {
+					surface_put_pixel(cbm->cgc->surface,
+					    x, y, pixel);
+				}
+			}
+		}
+	}
 
 	update_canvas(cbm->cgc->canvas, cbm->cgc->surface);
 	return EOK;

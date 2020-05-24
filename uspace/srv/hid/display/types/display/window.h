@@ -41,6 +41,7 @@
 #include <display/wndresize.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
+#include <io/pixel.h>
 #include <io/pixelmap.h>
 
 typedef sysarg_t ds_wnd_id_t;
@@ -114,6 +115,10 @@ typedef struct {
 	gfx_bitmap_t *bitmap;
 	/** Bounding rectangle */
 	gfx_rect_t rect;
+	/** Bitmap flags */
+	gfx_bitmap_flags_t flags;
+	/** Key color */
+	pixel_t key_color;
 } ds_window_bitmap_t;
 
 #endif

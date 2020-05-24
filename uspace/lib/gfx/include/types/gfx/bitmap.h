@@ -37,16 +37,27 @@
 #define _GFX_TYPES_BITMAP_H
 
 #include <errno.h>
+#include <io/pixel.h>
 #include <stddef.h>
 #include <types/gfx/coord.h>
 
 struct gfx_bitmap;
 typedef struct gfx_bitmap gfx_bitmap_t;
 
+/** Bitmap flags */
+typedef enum {
+	/** Enable color key */
+	bmpf_color_key = 0x1
+} gfx_bitmap_flags_t;
+
 /** Bitmap parameters */
 typedef struct {
 	/** Rectangle represented in pixel array */
 	gfx_rect_t rect;
+	/** Bitmap flags */
+	gfx_bitmap_flags_t flags;
+	/** Key color */
+	pixel_t key_color;
 } gfx_bitmap_params_t;
 
 /** Bitmap allocation info */

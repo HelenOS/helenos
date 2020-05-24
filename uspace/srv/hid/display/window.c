@@ -130,25 +130,27 @@ errno_t ds_window_bitmap_create(void *arg, gfx_bitmap_params_t *params,
     gfx_bitmap_alloc_t *alloc, void **rbm)
 {
 	ds_window_t *wnd = (ds_window_t *) arg;
-	ds_window_bitmap_t *cbm = NULL;
+	ds_window_bitmap_t *wbm = NULL;
 	errno_t rc;
 
-	cbm = calloc(1, sizeof(ds_window_bitmap_t));
-	if (cbm == NULL)
+	wbm = calloc(1, sizeof(ds_window_bitmap_t));
+	if (wbm == NULL)
 		return ENOMEM;
 
 	rc = gfx_bitmap_create(ds_display_get_gc(wnd->display), params, alloc,
-	    &cbm->bitmap);
+	    &wbm->bitmap);
 	if (rc != EOK)
 		goto error;
 
-	cbm->wnd = wnd;
-	cbm->rect = params->rect;
-	*rbm = (void *)cbm;
+	wbm->wnd = wnd;
+	wbm->rect = params->rect;
+	wbm->flags = params->flags;
+	wbm->key_color = params->key_color;
+	*rbm = (void *)wbm;
 	return EOK;
 error:
-	if (cbm != NULL)
-		free(cbm);
+	if (wbm != NULL)
+		free(wbm);
 	return rc;
 }
 
@@ -159,10 +161,10 @@ error:
  */
 static errno_t ds_window_bitmap_destroy(void *bm)
 {
-	ds_window_bitmap_t *cbm = (ds_window_bitmap_t *)bm;
+	ds_window_bitmap_t *wbm = (ds_window_bitmap_t *)bm;
 
-	gfx_bitmap_destroy(cbm->bitmap);
-	free(cbm);
+	gfx_bitmap_destroy(wbm->bitmap);
+	free(wbm);
 	return EOK;
 }
 
@@ -176,7 +178,7 @@ static errno_t ds_window_bitmap_destroy(void *bm)
 static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
     gfx_coord2_t *offs0)
 {
-	ds_window_bitmap_t *cbm = (ds_window_bitmap_t *)bm;
+	ds_window_bitmap_t *wbm = (ds_window_bitmap_t *)bm;
 	gfx_coord2_t doffs;
 	gfx_coord2_t offs;
 	gfx_rect_t srect;
@@ -191,10 +193,10 @@ static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
 
 	if (srect0 != NULL) {
 		/* Clip source rectangle to bitmap rectangle */
-		gfx_rect_clip(srect0, &cbm->rect, &srect);
+		gfx_rect_clip(srect0, &wbm->rect, &srect);
 	} else {
 		/* Source is entire bitmap rectangle */
-		srect = cbm->rect;
+		srect = wbm->rect;
 	}
 
 	if (offs0 != NULL) {
@@ -205,39 +207,56 @@ static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
 	}
 
 	/* Transform window rectangle back to bitmap coordinate system */
-	gfx_rect_rtranslate(&offs, &cbm->wnd->rect, &swrect);
+	gfx_rect_rtranslate(&offs, &wbm->wnd->rect, &swrect);
 
 	/* Clip so that transformed rectangle will be inside the window */
 	gfx_rect_clip(&srect, &swrect, &crect);
 
 	/* Offset for rendering on screen = window pos + offs */
-	gfx_coord2_add(&cbm->wnd->dpos, &offs, &doffs);
+	gfx_coord2_add(&wbm->wnd->dpos, &offs, &doffs);
 
 	/* Resulting rectangle on the screen we are drawing into */
 	gfx_rect_translate(&doffs, &crect, &drect);
 
-	rc = gfx_bitmap_get_alloc(cbm->bitmap, &alloc);
+	rc = gfx_bitmap_get_alloc(wbm->bitmap, &alloc);
 	if (rc != EOK)
 		return rc;
 
-	pixelmap.width = cbm->rect.p1.x - cbm->rect.p0.x;
-	pixelmap.height = cbm->rect.p1.y - cbm->rect.p0.y;
+	pixelmap.width = wbm->rect.p1.x - wbm->rect.p0.x;
+	pixelmap.height = wbm->rect.p1.y - wbm->rect.p0.y;
 	pixelmap.data = alloc.pixels;
 
 	/* Render a copy to the backbuffer */
-	for (y = crect.p0.y; y < crect.p1.y; y++) {
-		for (x = crect.p0.x; x < crect.p1.x; x++) {
-			pixel = pixelmap_get_pixel(&pixelmap,
-			    x - cbm->rect.p0.x, y - cbm->rect.p0.y);
-			pixelmap_put_pixel(&cbm->wnd->pixelmap,
-			    x + offs.x - cbm->rect.p0.x + cbm->wnd->rect.p0.x,
-			    y + offs.y - cbm->rect.p0.y + cbm->wnd->rect.p0.y,
-			    pixel);
+	if ((wbm->flags & bmpf_color_key) == 0) {
+		for (y = crect.p0.y; y < crect.p1.y; y++) {
+			for (x = crect.p0.x; x < crect.p1.x; x++) {
+				pixel = pixelmap_get_pixel(&pixelmap,
+				    x - wbm->rect.p0.x, y - wbm->rect.p0.y);
+				pixelmap_put_pixel(&wbm->wnd->pixelmap,
+				    x + offs.x - wbm->rect.p0.x + wbm->wnd->rect.p0.x,
+				    y + offs.y - wbm->rect.p0.y + wbm->wnd->rect.p0.y,
+				    pixel);
+			}
+		}
+	} else {
+		for (y = crect.p0.y; y < crect.p1.y; y++) {
+			for (x = crect.p0.x; x < crect.p1.x; x++) {
+				pixel = pixelmap_get_pixel(&pixelmap,
+				    x - wbm->rect.p0.x, y - wbm->rect.p0.y);
+				if (pixel != wbm->key_color) {
+					pixelmap_put_pixel(&wbm->wnd->pixelmap,
+					    x + offs.x - wbm->rect.p0.x +
+					    wbm->wnd->rect.p0.x,
+					    y + offs.y - wbm->rect.p0.y +
+					    wbm->wnd->rect.p0.y,
+					    pixel);
+				}
+			}
 		}
 	}
 
 	/* Repaint this area of the display */
-	return ds_display_paint(cbm->wnd->display, &drect);
+	return ds_display_paint(wbm->wnd->display, &drect);
 }
 
 /** Get allocation info for bitmap in window GC.
@@ -248,9 +267,9 @@ static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
  */
 static errno_t ds_window_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 {
-	ds_window_bitmap_t *cbm = (ds_window_bitmap_t *)bm;
+	ds_window_bitmap_t *wbm = (ds_window_bitmap_t *)bm;
 
-	return gfx_bitmap_get_alloc(cbm->bitmap, alloc);
+	return gfx_bitmap_get_alloc(wbm->bitmap, alloc);
 }
 
 /** Create window.
