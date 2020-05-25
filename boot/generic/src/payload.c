@@ -60,13 +60,14 @@ static const char *ext(const char *s)
 static void basename(char *s)
 {
 	char *e = (char *) ext(s);
-	if (str_cmp(e, ".gz") == 0)
+	if (e != NULL && str_cmp(e, ".gz") == 0)
 		*e = '\0';
 }
 
 static bool isgzip(const char *s)
 {
-	return str_cmp(ext(s), ".gz") == 0;
+	const char *e = ext(s);
+	return e != NULL && str_cmp(e, ".gz") == 0;
 }
 
 static bool overlaps(uint8_t *start1, uint8_t *end1,
