@@ -61,18 +61,20 @@ if debug_shell_scripts
 endif
 
 genisoimage = find_program('genisoimage', required: false)
-
-if not genisoimage.found()
+if genisoimage.found()
+	genisoimage_type = 'genisoimage'
+else
 	genisoimage = find_program('mkisofs', required: false)
-endif
-
-if not genisoimage.found()
-	xorriso = find_program('xorriso', required: false)
-
-	if xorriso.found()
-		genisoimage = [ xorriso, '-as', 'genisoimage' ]
+	if genisoimage.found()
+		genisoimage_type = 'mkisofs'
 	else
-		error('Need genisoimage, mkisofs or xorriso.')
+		xorriso = find_program('xorriso', required: false)
+		if xorriso.found()
+			genisoimage = [ xorriso, '-as', 'genisoimage' ]
+			genisoimage_type = 'genisoimage'
+		else
+			error('Need genisoimage, mkisofs or xorriso.')
+		endif
 	endif
 endif
 

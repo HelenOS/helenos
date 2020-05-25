@@ -107,7 +107,11 @@ grub_image = 'boot/grub' / GRUB_ARCH + '.img'
 if GRUB_ARCH == 'pc'
 	genisoimage_args = [ '-eltorito-boot', grub_image, '-no-emul-boot', '-boot-info-table' ]
 elif GRUB_ARCH == 'efi'
-	genisoimage_args = [ '--efi-boot', grub_image ]
+	if genisoimage_type == 'mkisofs'
+		genisoimage_args = [ '-eltorito-platform', 'efi', '-eltorito-boot', grub_image, '-no-emul-boot' ]
+	else
+		genisoimage_args = [ '--efi-boot', grub_image ]
+	endif
 endif
 
 image_iso = custom_target('image.iso',
