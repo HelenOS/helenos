@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,49 +30,47 @@
  * @{
  */
 /**
- * @file GFX canvas backend structure
+ * @file GFX memory backend structure
  *
  */
 
-#ifndef _GUIGFX_PRIVATE_CANVAS_H
-#define _GUIGFX_PRIVATE_CANVAS_H
+#ifndef _MEMGFX_PRIVATE_MEMGC_H
+#define _MEMGFX_PRIVATE_MEMGC_H
 
-#include <canvas.h>
-#include <draw/surface.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
 #include <io/pixel.h>
 
-/** Actual structure of canvas GC. */
-struct canvas_gc {
+/** Actual structure of memory GC. */
+struct mem_gc {
 	/** Base graphic context */
 	gfx_context_t *gc;
-	/** Canvas */
-	canvas_t *canvas;
-	/** Surface */
-	surface_t *surface;
+	/** Bounding rectangle */
+	gfx_rect_t rect;
+	/** Update rectangle */
+	gfx_rect_t upd_rect;
+	/** Allocation info */
+	gfx_bitmap_alloc_t alloc;
 	/** Current drawing color */
 	pixel_t color;
 };
 
-/** Bitmap in canvas GC */
+/** Bitmap in memory GC */
 typedef struct {
 	/** Containing canvas GC */
-	struct canvas_gc *cgc;
+	struct mem_gc *mgc;
 	/** Allocation info */
 	gfx_bitmap_alloc_t alloc;
 	/** @c true if we allocated the bitmap, @c false if allocated by caller */
 	bool myalloc;
-	/** Surface */
-	surface_t *surface;
 	/** Rectangle covered by bitmap */
 	gfx_rect_t rect;
 	/** Bitmap flags */
 	gfx_bitmap_flags_t flags;
 	/** Key color */
 	pixel_t key_color;
-} canvas_gc_bitmap_t;
+} mem_gc_bitmap_t;
 
 #endif
 

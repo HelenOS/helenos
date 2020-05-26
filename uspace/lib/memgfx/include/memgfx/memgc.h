@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,53 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libguigfx
+/** @addtogroup libmemgfx
  * @{
  */
 /**
- * @file GFX canvas backend structure
- *
+ * @file GFX memory backend
  */
 
-#ifndef _GUIGFX_PRIVATE_CANVAS_H
-#define _GUIGFX_PRIVATE_CANVAS_H
+#ifndef _MEMGFX_MEMGC_H
+#define _MEMGFX_MEMGC_H
 
-#include <canvas.h>
-#include <draw/surface.h>
-#include <gfx/bitmap.h>
-#include <gfx/context.h>
-#include <gfx/coord.h>
-#include <io/pixel.h>
+#include <errno.h>
+#include <types/gfx/bitmap.h>
+#include <types/gfx/context.h>
+#include <types/gfx/coord.h>
+#include <types/gfx/ops/context.h>
+#include <types/memgfx/memgc.h>
 
-/** Actual structure of canvas GC. */
-struct canvas_gc {
-	/** Base graphic context */
-	gfx_context_t *gc;
-	/** Canvas */
-	canvas_t *canvas;
-	/** Surface */
-	surface_t *surface;
-	/** Current drawing color */
-	pixel_t color;
-};
+extern gfx_context_ops_t mem_gc_ops;
 
-/** Bitmap in canvas GC */
-typedef struct {
-	/** Containing canvas GC */
-	struct canvas_gc *cgc;
-	/** Allocation info */
-	gfx_bitmap_alloc_t alloc;
-	/** @c true if we allocated the bitmap, @c false if allocated by caller */
-	bool myalloc;
-	/** Surface */
-	surface_t *surface;
-	/** Rectangle covered by bitmap */
-	gfx_rect_t rect;
-	/** Bitmap flags */
-	gfx_bitmap_flags_t flags;
-	/** Key color */
-	pixel_t key_color;
-} canvas_gc_bitmap_t;
+extern errno_t mem_gc_create(gfx_rect_t *, gfx_bitmap_alloc_t *, mem_gc_t **);
+extern errno_t mem_gc_delete(mem_gc_t *);
+extern gfx_context_t *mem_gc_get_ctx(mem_gc_t *);
+extern void mem_gc_get_update_rect(mem_gc_t *, gfx_rect_t *);
+extern void mem_gc_clear_update_rect(mem_gc_t *);
 
 #endif
 

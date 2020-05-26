@@ -81,6 +81,7 @@ libs = [
 	'ext4',
 	'hound',
 	'ipcgfx',
+	'memgfx',
 	'nic',
 	'usb',
 	'usbdev',

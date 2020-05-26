@@ -113,7 +113,7 @@ static errno_t canvas_gc_fill_rect(void *arg, gfx_rect_t *rect)
  *
  * Create graphics context for rendering into a canvas.
  *
- * @param con Canvas object
+ * @param canvas Canvas object
  * @param fout File to which characters are written (canvas)
  * @param rgc Place to store pointer to new GC.
  *
