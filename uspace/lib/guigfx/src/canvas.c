@@ -77,11 +77,8 @@ gfx_context_ops_t canvas_gc_ops = {
 static errno_t canvas_gc_set_color(void *arg, gfx_color_t *color)
 {
 	canvas_gc_t *cgc = (canvas_gc_t *) arg;
-	uint16_t r, g, b;
 
-	gfx_color_get_rgb_i16(color, &r, &g, &b);
-	cgc->color = PIXEL(0, r >> 8, g >> 8, b >> 8);
-	return EOK;
+	return gfx_set_color(cgc->mbgc, color);
 }
 
 /** Fill rectangle on canvas GC.
@@ -94,19 +91,13 @@ static errno_t canvas_gc_set_color(void *arg, gfx_color_t *color)
 static errno_t canvas_gc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	canvas_gc_t *cgc = (canvas_gc_t *) arg;
-	gfx_coord_t x, y;
+	errno_t rc;
 
-	// XXX We should handle p0.x > p1.x and p0.y > p1.y
+	rc = gfx_fill_rect(cgc->mbgc, rect);
+	if (rc == EOK)
+		update_canvas(cgc->canvas, cgc->surface);
 
-	for (y = rect->p0.y; y < rect->p1.y; y++) {
-		for (x = rect->p0.x; x < rect->p1.x; x++) {
-			surface_put_pixel(cgc->surface, x, y, cgc->color);
-		}
-	}
-
-	update_canvas(cgc->canvas, cgc->surface);
-
-	return EOK;
+	return rc;
 }
 
 /** Create canvas GC.
@@ -124,7 +115,12 @@ errno_t canvas_gc_create(canvas_t *canvas, surface_t *surface,
 {
 	canvas_gc_t *cgc = NULL;
 	gfx_context_t *gc = NULL;
+	surface_coord_t w, h;
+	gfx_rect_t rect;
+	gfx_bitmap_alloc_t alloc;
 	errno_t rc;
+
+	surface_get_resolution(surface, &w, &h);
 
 	cgc = calloc(1, sizeof(canvas_gc_t));
 	if (cgc == NULL) {
@@ -136,15 +132,31 @@ errno_t canvas_gc_create(canvas_t *canvas, surface_t *surface,
 	if (rc != EOK)
 		goto error;
 
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = w;
+	rect.p1.y = h;
+
+	alloc.pitch = w * sizeof(uint32_t);
+	alloc.off0 = 0;
+	alloc.pixels = surface_direct_access(surface);
+
+	rc = mem_gc_create(&rect, &alloc, &cgc->mgc);
+	if (rc != EOK)
+		goto error;
+
+	cgc->mbgc = mem_gc_get_ctx(cgc->mgc);
+
 	cgc->gc = gc;
 	cgc->canvas = canvas;
 	cgc->surface = surface;
 	*rgc = cgc;
 	return EOK;
 error:
+	if (gc != NULL)
+		gfx_context_delete(gc);
 	if (cgc != NULL)
 		free(cgc);
-	gfx_context_delete(gc);
 	return rc;
 }
 
@@ -155,6 +167,8 @@ error:
 errno_t canvas_gc_delete(canvas_gc_t *cgc)
 {
 	errno_t rc;
+
+	mem_gc_delete(cgc->mgc);
 
 	rc = gfx_context_delete(cgc->gc);
 	if (rc != EOK)
@@ -187,38 +201,15 @@ errno_t canvas_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 {
 	canvas_gc_t *cgc = (canvas_gc_t *) arg;
 	canvas_gc_bitmap_t *cbm = NULL;
-	gfx_coord2_t dim;
 	errno_t rc;
 
 	cbm = calloc(1, sizeof(canvas_gc_bitmap_t));
 	if (cbm == NULL)
 		return ENOMEM;
 
-	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
-	cbm->rect = params->rect;
-	cbm->flags = params->flags;
-	cbm->key_color = params->key_color;
-
-	if (alloc == NULL) {
-		cbm->surface = surface_create(dim.x, dim.y, NULL, 0);
-		if (cbm->surface == NULL) {
-			rc = ENOMEM;
-			goto error;
-		}
-
-		cbm->alloc.pitch = dim.x * sizeof(uint32_t);
-		cbm->alloc.off0 = 0;
-		cbm->alloc.pixels = surface_direct_access(cbm->surface);
-		cbm->myalloc = true;
-	} else {
-		cbm->surface = surface_create(dim.x, dim.y, alloc->pixels, 0);
-		if (cbm->surface == NULL) {
-			rc = ENOMEM;
-			goto error;
-		}
-
-		cbm->alloc = *alloc;
-	}
+	rc = gfx_bitmap_create(cgc->mbgc, params, alloc, &cbm->mbitmap);
+	if (rc != EOK)
+		goto error;
 
 	cbm->cgc = cgc;
 	*rbm = (void *)cbm;
@@ -237,10 +228,12 @@ error:
 static errno_t canvas_gc_bitmap_destroy(void *bm)
 {
 	canvas_gc_bitmap_t *cbm = (canvas_gc_bitmap_t *)bm;
-	if (cbm->myalloc)
-		surface_destroy(cbm->surface);
-	// XXX if !cbm->myalloc, surface is leaked - no way to destroy it
-	// without destroying the pixel buffer
+	errno_t rc;
+
+	rc = gfx_bitmap_destroy(cbm->mbitmap);
+	if (rc != EOK)
+		return rc;
+
 	free(cbm);
 	return EOK;
 }
@@ -256,61 +249,13 @@ static errno_t canvas_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
     gfx_coord2_t *offs0)
 {
 	canvas_gc_bitmap_t *cbm = (canvas_gc_bitmap_t *)bm;
-	gfx_rect_t srect;
-	gfx_rect_t drect;
-	gfx_coord2_t offs;
-	gfx_coord2_t dim;
-	gfx_coord_t x, y;
-	pixel_t pixel;
+	errno_t rc;
 
-	if (srect0 != NULL)
-		srect = *srect0;
-	else
-		srect = cbm->rect;
+	rc = gfx_bitmap_render(cbm->mbitmap, srect0, offs0);
+	if (rc == EOK)
+		update_canvas(cbm->cgc->canvas, cbm->cgc->surface);
 
-	if (offs0 != NULL) {
-		offs = *offs0;
-	} else {
-		offs.x = 0;
-		offs.y = 0;
-	}
-
-	/* Destination rectangle */
-	gfx_rect_translate(&offs, &srect, &drect);
-
-	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
-
-	transform_t transform;
-	transform_identity(&transform);
-	transform_translate(&transform, offs.x - cbm->rect.p0.x,
-	    offs.y - cbm->rect.p0.y);
-
-	source_t source;
-	source_init(&source);
-	source_set_transform(&source, transform);
-	source_set_texture(&source, cbm->surface,
-	    PIXELMAP_EXTEND_TRANSPARENT_BLACK);
-
-	if ((cbm->flags & bmpf_color_key) == 0) {
-		drawctx_t drawctx;
-		drawctx_init(&drawctx, cbm->cgc->surface);
-
-		drawctx_set_source(&drawctx, &source);
-		drawctx_transfer(&drawctx, drect.p0.x, drect.p0.y, dim.x, dim.y);
-	} else {
-		for (y = drect.p0.y; y < drect.p1.y; y++) {
-			for (x = drect.p0.x; x < drect.p1.x; x++) {
-				pixel = source_determine_pixel(&source, x, y);
-				if (pixel != cbm->key_color) {
-					surface_put_pixel(cbm->cgc->surface,
-					    x, y, pixel);
-				}
-			}
-		}
-	}
-
-	update_canvas(cbm->cgc->canvas, cbm->cgc->surface);
-	return EOK;
+	return rc;
 }
 
 /** Get allocation info for bitmap in canvas GC.
@@ -322,8 +267,8 @@ static errno_t canvas_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 static errno_t canvas_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 {
 	canvas_gc_bitmap_t *cbm = (canvas_gc_bitmap_t *)bm;
-	*alloc = cbm->alloc;
-	return EOK;
+
+	return gfx_bitmap_get_alloc(cbm->mbitmap, alloc);
 }
 
 /** @}

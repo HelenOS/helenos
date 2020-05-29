@@ -192,7 +192,6 @@ PCUT_TEST(bitmap_render)
 	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-
 	rc = gfx_bitmap_get_alloc(bitmap, &balloc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 

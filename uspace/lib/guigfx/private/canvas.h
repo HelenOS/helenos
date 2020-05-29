@@ -43,6 +43,7 @@
 #include <gfx/context.h>
 #include <gfx/coord.h>
 #include <io/pixel.h>
+#include <memgfx/memgc.h>
 
 /** Actual structure of canvas GC. */
 struct canvas_gc {
@@ -52,26 +53,18 @@ struct canvas_gc {
 	canvas_t *canvas;
 	/** Surface */
 	surface_t *surface;
-	/** Current drawing color */
-	pixel_t color;
+	/** Memory GC */
+	mem_gc_t *mgc;
+	/** Base GC for memory GC */
+	gfx_context_t *mbgc;
 };
 
 /** Bitmap in canvas GC */
 typedef struct {
 	/** Containing canvas GC */
 	struct canvas_gc *cgc;
-	/** Allocation info */
-	gfx_bitmap_alloc_t alloc;
-	/** @c true if we allocated the bitmap, @c false if allocated by caller */
-	bool myalloc;
-	/** Surface */
-	surface_t *surface;
-	/** Rectangle covered by bitmap */
-	gfx_rect_t rect;
-	/** Bitmap flags */
-	gfx_bitmap_flags_t flags;
-	/** Key color */
-	pixel_t key_color;
+	/** Memory GC bitmap */
+	gfx_bitmap_t *mbitmap;
 } canvas_gc_bitmap_t;
 
 #endif

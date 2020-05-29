@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gui', 'gfx' ]
+deps = [ 'gui', 'gfx', 'memgfx' ]
 src = files(
 	'src/canvas.c'
 )
