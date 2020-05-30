@@ -36,8 +36,12 @@
 #ifndef _MEMGFX_TYPES_MEMGC_H
 #define _MEMGFX_TYPES_MEMGC_H
 
+#include <types/gfx/coord.h>
+
 struct mem_gc;
 typedef struct mem_gc mem_gc_t;
+
+typedef void (*mem_gc_update_cb_t)(void *, gfx_rect_t *);
 
 #endif
 

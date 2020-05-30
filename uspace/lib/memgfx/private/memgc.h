@@ -48,10 +48,12 @@ struct mem_gc {
 	gfx_context_t *gc;
 	/** Bounding rectangle */
 	gfx_rect_t rect;
-	/** Update rectangle */
-	gfx_rect_t upd_rect;
 	/** Allocation info */
 	gfx_bitmap_alloc_t alloc;
+	/** Update callback */
+	mem_gc_update_cb_t update;
+	/** Argument to callback */
+	void *cb_arg;
 	/** Current drawing color */
 	pixel_t color;
 };

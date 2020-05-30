@@ -47,25 +47,15 @@
 
 /** Actual structure of canvas GC. */
 struct canvas_gc {
+	/** Memory GC */
+	mem_gc_t *mgc;
 	/** Base graphic context */
 	gfx_context_t *gc;
 	/** Canvas */
 	canvas_t *canvas;
 	/** Surface */
 	surface_t *surface;
-	/** Memory GC */
-	mem_gc_t *mgc;
-	/** Base GC for memory GC */
-	gfx_context_t *mbgc;
 };
-
-/** Bitmap in canvas GC */
-typedef struct {
-	/** Containing canvas GC */
-	struct canvas_gc *cgc;
-	/** Memory GC bitmap */
-	gfx_bitmap_t *mbitmap;
-} canvas_gc_bitmap_t;
 
 #endif
 

@@ -122,12 +122,14 @@ static errno_t mem_gc_fill_rect(void *arg, gfx_rect_t *rect)
  *
  * @param rect Bounding rectangle
  * @param alloc Allocation info
+ * @param update_cb Function called to update a rectangle
+ * @param cb_arg Argument to callback function
  * @param rgc Place to store pointer to new memory GC
  *
  * @return EOK on success or an error code
  */
 errno_t mem_gc_create(gfx_rect_t *rect, gfx_bitmap_alloc_t *alloc,
-    mem_gc_t **rgc)
+    mem_gc_update_cb_t update_cb, void *cb_arg, mem_gc_t **rgc)
 {
 	mem_gc_t *mgc = NULL;
 	gfx_context_t *gc = NULL;
@@ -158,7 +160,8 @@ errno_t mem_gc_create(gfx_rect_t *rect, gfx_bitmap_alloc_t *alloc,
 	assert(rect->p0.y == 0);
 	assert(alloc->pitch == rect->p1.x * (int)sizeof(uint32_t));
 
-	mem_gc_clear_update_rect(mgc);
+	mgc->update = update_cb;
+	mgc->cb_arg = cb_arg;
 
 	*rgc = mgc;
 	return EOK;
@@ -197,23 +200,7 @@ gfx_context_t *mem_gc_get_ctx(mem_gc_t *mgc)
 
 static void mem_gc_invalidate_rect(mem_gc_t *mgc, gfx_rect_t *rect)
 {
-	gfx_rect_t nrect;
-
-	gfx_rect_envelope(&mgc->upd_rect, rect, &nrect);
-	mgc->upd_rect = nrect;
-}
-
-void mem_gc_get_update_rect(mem_gc_t *mgc, gfx_rect_t *rect)
-{
-	*rect = mgc->upd_rect;
-}
-
-void mem_gc_clear_update_rect(mem_gc_t *mgc)
-{
-	mgc->upd_rect.p0.x = 0;
-	mgc->upd_rect.p0.y = 0;
-	mgc->upd_rect.p1.x = 0;
-	mgc->upd_rect.p1.y = 0;
+	mgc->update(mgc->cb_arg, rect);
 }
 
 /** Create bitmap in memory GC.
