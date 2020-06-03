@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ipcgfx', 'display', 'ddev' ]
+deps = [ 'ipcgfx', 'memgfx', 'display', 'ddev' ]
 
 src = files(
 	'client.c',

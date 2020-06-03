@@ -94,16 +94,17 @@ static errno_t mem_gc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	mem_gc_t *mgc = (mem_gc_t *) arg;
 	gfx_rect_t crect;
-	gfx_coord2_t dims;
 	gfx_coord_t x, y;
 	pixelmap_t pixelmap;
 
 	/* Make sure we have a sorted, clipped rectangle */
 	gfx_rect_clip(rect, &mgc->rect, &crect);
 
-	gfx_rect_dims(&mgc->rect, &dims);
-	pixelmap.width = dims.x;
-	pixelmap.height = dims.y;
+	assert(mgc->rect.p0.x == 0);
+	assert(mgc->rect.p0.y == 0);
+	assert(mgc->alloc.pitch == mgc->rect.p1.x * (int)sizeof(uint32_t));
+	pixelmap.width = mgc->rect.p1.x;
+	pixelmap.height = mgc->rect.p1.y;
 	pixelmap.data = mgc->alloc.pixels;
 
 	for (y = crect.p0.y; y < crect.p1.y; y++) {
@@ -149,17 +150,6 @@ errno_t mem_gc_create(gfx_rect_t *rect, gfx_bitmap_alloc_t *alloc,
 	mgc->rect = *rect;
 	mgc->alloc = *alloc;
 
-	/*
-	 * These are the limitations of pixelmap which we are using.
-	 * Rather than falling back to an ad-hoc method of pixel access
-	 * (which is not searchable), use pixelmap for now and switch
-	 * to a better, more universal method later (e.g. supporting
-	 * different color depths).
-	 */
-	assert(rect->p0.x == 0);
-	assert(rect->p0.y == 0);
-	assert(alloc->pitch == rect->p1.x * (int)sizeof(uint32_t));
-
 	mgc->update = update_cb;
 	mgc->cb_arg = cb_arg;
 
@@ -186,6 +176,19 @@ errno_t mem_gc_delete(mem_gc_t *mgc)
 
 	free(mgc);
 	return EOK;
+}
+
+/** Retarget memory GC to a different block of memory.
+ *
+ * @param mgc Memory GC
+ * @param rect New bounding rectangle
+ * @param alloc Allocation info of the new block
+ */
+void mem_gc_retarget(mem_gc_t *mgc, gfx_rect_t *rect,
+    gfx_bitmap_alloc_t *alloc)
+{
+	mgc->rect = *rect;
+	mgc->alloc = *alloc;
 }
 
 /** Get generic graphic context from memory GC.
@@ -282,8 +285,6 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	gfx_coord2_t offs;
 	gfx_coord2_t dim;
 	gfx_coord_t x, y;
-	gfx_coord2_t sdims;
-	gfx_coord2_t ddims;
 	pixelmap_t smap;
 	pixelmap_t dmap;
 	pixel_t pixel;
@@ -305,14 +306,18 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 
 	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
 
-	gfx_rect_dims(&mbm->rect, &sdims);
-	smap.width = sdims.x;
-	smap.height = sdims.y;
+	assert(mbm->rect.p0.x == 0);
+	assert(mbm->rect.p0.y == 0);
+	assert(mbm->alloc.pitch == mbm->rect.p1.x * (int)sizeof(uint32_t));
+	smap.width = mbm->rect.p1.x;
+	smap.height = mbm->rect.p1.y;
 	smap.data = mbm->alloc.pixels;
 
-	gfx_rect_dims(&mbm->mgc->rect, &ddims);
-	dmap.width = ddims.x;
-	dmap.height = ddims.y;
+	assert(mbm->mgc->rect.p0.x == 0);
+	assert(mbm->mgc->rect.p0.y == 0);
+	assert(mbm->mgc->alloc.pitch == mbm->mgc->rect.p1.x * (int)sizeof(uint32_t));
+	dmap.width = mbm->mgc->rect.p1.x;
+	dmap.height = mbm->mgc->rect.p1.y;
 	dmap.data = mbm->mgc->alloc.pixels;
 
 	if ((mbm->flags & bmpf_color_key) == 0) {

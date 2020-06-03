@@ -43,6 +43,7 @@
 #include <gfx/coord.h>
 #include <io/pixel.h>
 #include <io/pixelmap.h>
+#include <memgfx/memgc.h>
 
 typedef sysarg_t ds_wnd_id_t;
 
@@ -78,6 +79,8 @@ typedef struct ds_window {
 	gfx_coord2_t min_size;
 	/** Window ID */
 	ds_wnd_id_t id;
+	/** Memory GC */
+	mem_gc_t *mgc;
 	/** Graphic context */
 	gfx_context_t *gc;
 	/** Bitmap in the display device */

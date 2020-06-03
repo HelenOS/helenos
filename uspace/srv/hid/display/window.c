@@ -41,236 +41,14 @@
 #include <io/log.h>
 #include <io/pixelmap.h>
 #include <macros.h>
+#include <memgfx/memgc.h>
 #include <stdlib.h>
 #include "client.h"
 #include "display.h"
 #include "seat.h"
 #include "window.h"
 
-static errno_t ds_window_set_color(void *, gfx_color_t *);
-static errno_t ds_window_fill_rect(void *, gfx_rect_t *);
-static errno_t ds_window_bitmap_create(void *, gfx_bitmap_params_t *,
-    gfx_bitmap_alloc_t *, void **);
-static errno_t ds_window_bitmap_destroy(void *);
-static errno_t ds_window_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
-static errno_t ds_window_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
-
-gfx_context_ops_t ds_window_ops = {
-	.set_color = ds_window_set_color,
-	.fill_rect = ds_window_fill_rect,
-	.bitmap_create = ds_window_bitmap_create,
-	.bitmap_destroy = ds_window_bitmap_destroy,
-	.bitmap_render = ds_window_bitmap_render,
-	.bitmap_get_alloc = ds_window_bitmap_get_alloc
-};
-
-/** Set color on window GC.
- *
- * Set drawing color on window GC.
- *
- * @param arg Console GC
- * @param color Color
- *
- * @return EOK on success or an error code
- */
-static errno_t ds_window_set_color(void *arg, gfx_color_t *color)
-{
-	ds_window_t *wnd = (ds_window_t *) arg;
-	uint16_t r, g, b;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_set_color gc=%p",
-	    ds_display_get_gc(wnd->display));
-
-	gfx_color_get_rgb_i16(color, &r, &g, &b);
-	wnd->color = PIXEL(0, r >> 8, g >> 8, b >> 8);
-
-	return gfx_set_color(ds_display_get_gc(wnd->display), color);
-}
-
-/** Fill rectangle on window GC.
- *
- * @param arg Window GC
- * @param rect Rectangle
- *
- * @return EOK on success or an error code
- */
-static errno_t ds_window_fill_rect(void *arg, gfx_rect_t *rect)
-{
-	ds_window_t *wnd = (ds_window_t *) arg;
-	gfx_rect_t crect;
-	gfx_rect_t drect;
-	gfx_coord_t x, y;
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "gc_fill_rect");
-
-	gfx_rect_clip(rect, &wnd->rect, &crect);
-	gfx_rect_translate(&wnd->dpos, &crect, &drect);
-
-	/* Render into the backbuffer */
-	for (y = crect.p0.y; y < crect.p1.y; y++) {
-		for (x = crect.p0.x; x < crect.p1.x; x++) {
-			pixelmap_put_pixel(&wnd->pixelmap, x - wnd->rect.p0.x,
-			    y - wnd->rect.p0.y, wnd->color);
-		}
-	}
-
-	/* Repaint this area of the display */
-	return ds_display_paint(wnd->display, &drect);
-}
-
-/** Create bitmap in window GC.
- *
- * @param arg Window GC
- * @param params Bitmap params
- * @param alloc Bitmap allocation info or @c NULL
- * @param rbm Place to store pointer to new bitmap
- * @return EOK on success or an error code
- */
-errno_t ds_window_bitmap_create(void *arg, gfx_bitmap_params_t *params,
-    gfx_bitmap_alloc_t *alloc, void **rbm)
-{
-	ds_window_t *wnd = (ds_window_t *) arg;
-	ds_window_bitmap_t *wbm = NULL;
-	errno_t rc;
-
-	wbm = calloc(1, sizeof(ds_window_bitmap_t));
-	if (wbm == NULL)
-		return ENOMEM;
-
-	rc = gfx_bitmap_create(ds_display_get_gc(wnd->display), params, alloc,
-	    &wbm->bitmap);
-	if (rc != EOK)
-		goto error;
-
-	wbm->wnd = wnd;
-	wbm->rect = params->rect;
-	wbm->flags = params->flags;
-	wbm->key_color = params->key_color;
-	*rbm = (void *)wbm;
-	return EOK;
-error:
-	if (wbm != NULL)
-		free(wbm);
-	return rc;
-}
-
-/** Destroy bitmap in window GC.
- *
- * @param bm Bitmap
- * @return EOK on success or an error code
- */
-static errno_t ds_window_bitmap_destroy(void *bm)
-{
-	ds_window_bitmap_t *wbm = (ds_window_bitmap_t *)bm;
-
-	gfx_bitmap_destroy(wbm->bitmap);
-	free(wbm);
-	return EOK;
-}
-
-/** Render bitmap in window GC.
- *
- * @param bm Bitmap
- * @param srect0 Source rectangle or @c NULL
- * @param offs0 Offset or @c NULL
- * @return EOK on success or an error code
- */
-static errno_t ds_window_bitmap_render(void *bm, gfx_rect_t *srect0,
-    gfx_coord2_t *offs0)
-{
-	ds_window_bitmap_t *wbm = (ds_window_bitmap_t *)bm;
-	gfx_coord2_t doffs;
-	gfx_coord2_t offs;
-	gfx_rect_t srect;
-	gfx_rect_t swrect;
-	gfx_rect_t crect;
-	gfx_rect_t drect;
-	gfx_coord_t x, y;
-	pixelmap_t pixelmap;
-	gfx_bitmap_alloc_t alloc;
-	pixel_t pixel;
-	errno_t rc;
-
-	if (srect0 != NULL) {
-		/* Clip source rectangle to bitmap rectangle */
-		gfx_rect_clip(srect0, &wbm->rect, &srect);
-	} else {
-		/* Source is entire bitmap rectangle */
-		srect = wbm->rect;
-	}
-
-	if (offs0 != NULL) {
-		offs = *offs0;
-	} else {
-		offs.x = 0;
-		offs.y = 0;
-	}
-
-	/* Transform window rectangle back to bitmap coordinate system */
-	gfx_rect_rtranslate(&offs, &wbm->wnd->rect, &swrect);
-
-	/* Clip so that transformed rectangle will be inside the window */
-	gfx_rect_clip(&srect, &swrect, &crect);
-
-	/* Offset for rendering on screen = window pos + offs */
-	gfx_coord2_add(&wbm->wnd->dpos, &offs, &doffs);
-
-	/* Resulting rectangle on the screen we are drawing into */
-	gfx_rect_translate(&doffs, &crect, &drect);
-
-	rc = gfx_bitmap_get_alloc(wbm->bitmap, &alloc);
-	if (rc != EOK)
-		return rc;
-
-	pixelmap.width = wbm->rect.p1.x - wbm->rect.p0.x;
-	pixelmap.height = wbm->rect.p1.y - wbm->rect.p0.y;
-	pixelmap.data = alloc.pixels;
-
-	/* Render a copy to the backbuffer */
-	if ((wbm->flags & bmpf_color_key) == 0) {
-		for (y = crect.p0.y; y < crect.p1.y; y++) {
-			for (x = crect.p0.x; x < crect.p1.x; x++) {
-				pixel = pixelmap_get_pixel(&pixelmap,
-				    x - wbm->rect.p0.x, y - wbm->rect.p0.y);
-				pixelmap_put_pixel(&wbm->wnd->pixelmap,
-				    x + offs.x - wbm->rect.p0.x + wbm->wnd->rect.p0.x,
-				    y + offs.y - wbm->rect.p0.y + wbm->wnd->rect.p0.y,
-				    pixel);
-			}
-		}
-	} else {
-		for (y = crect.p0.y; y < crect.p1.y; y++) {
-			for (x = crect.p0.x; x < crect.p1.x; x++) {
-				pixel = pixelmap_get_pixel(&pixelmap,
-				    x - wbm->rect.p0.x, y - wbm->rect.p0.y);
-				if (pixel != wbm->key_color) {
-					pixelmap_put_pixel(&wbm->wnd->pixelmap,
-					    x + offs.x - wbm->rect.p0.x +
-					    wbm->wnd->rect.p0.x,
-					    y + offs.y - wbm->rect.p0.y +
-					    wbm->wnd->rect.p0.y,
-					    pixel);
-				}
-			}
-		}
-	}
-
-	/* Repaint this area of the display */
-	return ds_display_paint(wbm->wnd->display, &drect);
-}
-
-/** Get allocation info for bitmap in window GC.
- *
- * @param bm Bitmap
- * @param alloc Place to store allocation info
- * @return EOK on success or an error code
- */
-static errno_t ds_window_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
-{
-	ds_window_bitmap_t *wbm = (ds_window_bitmap_t *)bm;
-
-	return gfx_bitmap_get_alloc(wbm->bitmap, alloc);
-}
+static void ds_window_update_cb(void *, gfx_rect_t *);
 
 /** Create window.
  *
@@ -286,7 +64,6 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
     ds_window_t **rgc)
 {
 	ds_window_t *wnd = NULL;
-	gfx_context_t *gc = NULL;
 	gfx_context_t *dgc;
 	gfx_coord2_t dims;
 	gfx_bitmap_params_t bparams;
@@ -298,10 +75,6 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		rc = ENOMEM;
 		goto error;
 	}
-
-	rc = gfx_context_new(&ds_window_ops, wnd, &gc);
-	if (rc != EOK)
-		goto error;
 
 	ds_client_add_window(client, wnd);
 	ds_display_add_window(client->display, wnd);
@@ -323,11 +96,22 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		wnd->pixelmap.width = dims.x;
 		wnd->pixelmap.height = dims.y;
 		wnd->pixelmap.data = alloc.pixels;
+	} else {
+		/* This is just for unit tests */
+		gfx_rect_dims(&params->rect, &dims);
+		alloc.pitch = dims.x * sizeof(uint32_t);
+		alloc.off0 = 0;
+		alloc.pixels = calloc(1, alloc.pitch * dims.y);
 	}
+
+	rc = mem_gc_create(&params->rect, &alloc, ds_window_update_cb,
+	    (void *)wnd, &wnd->mgc);
+	if (rc != EOK)
+		goto error;
 
 	wnd->rect = params->rect;
 	wnd->min_size = params->min_size;
-	wnd->gc = gc;
+	wnd->gc = mem_gc_get_ctx(wnd->mgc);
 	wnd->cursor = wnd->display->cursor[dcurs_arrow];
 	*rgc = wnd;
 	return EOK;
@@ -338,7 +122,6 @@ error:
 		free(wnd);
 	}
 
-	gfx_context_delete(gc);
 	return rc;
 }
 
@@ -355,7 +138,8 @@ void ds_window_destroy(ds_window_t *wnd)
 	ds_client_remove_window(wnd);
 	ds_display_remove_window(wnd);
 
-	(void) gfx_context_delete(wnd->gc);
+	mem_gc_delete(wnd->mgc);
+
 	if (wnd->bitmap != NULL)
 		gfx_bitmap_destroy(wnd->bitmap);
 
@@ -817,6 +601,9 @@ errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
 
 		wnd->bitmap = nbitmap;
 		wnd->pixelmap = npixelmap;
+
+		/* Point memory GC to the new bitmap */
+		mem_gc_retarget(wnd->mgc, nrect, &alloc);
 	}
 
 	gfx_coord2_add(&wnd->dpos, offs, &ndpos);
@@ -881,6 +668,20 @@ errno_t ds_window_set_cursor(ds_window_t *wnd, display_stock_cursor_t cursor)
 	} else {
 		return EINVAL;
 	}
+}
+
+/** Window memory GC update callbac.
+ *
+ * This is called by the window's memory GC when a rectangle us updated.
+ */
+static void ds_window_update_cb(void *arg, gfx_rect_t *rect)
+{
+	ds_window_t *wnd = (ds_window_t *)arg;
+	gfx_rect_t drect;
+
+	/* Repaint the corresponding part of the display */
+	gfx_rect_translate(&wnd->dpos, rect, &drect);
+	(void) ds_display_paint(wnd->display, &drect);
 }
 
 /** @}
