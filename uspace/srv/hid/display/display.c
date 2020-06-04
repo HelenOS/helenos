@@ -552,6 +552,7 @@ errno_t ds_display_paint(ds_display_t *disp, gfx_rect_t *rect)
 {
 	errno_t rc;
 	ds_window_t *wnd;
+	ds_seat_t *seat;
 
 	/* Paint background */
 	rc = ds_display_paint_bg(disp, rect);
@@ -566,6 +567,15 @@ errno_t ds_display_paint(ds_display_t *disp, gfx_rect_t *rect)
 			return rc;
 
 		wnd = ds_display_prev_window(wnd);
+	}
+
+	seat = ds_display_first_seat(disp);
+	while (seat != NULL) {
+		rc = ds_seat_paint_pointer(seat, rect);
+		if (rc != EOK)
+			return rc;
+
+		seat = ds_display_next_seat(seat);
 	}
 
 	return EOK;

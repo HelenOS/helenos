@@ -44,8 +44,8 @@
 #include "seat.h"
 #include "window.h"
 
-static errno_t ds_seat_clear_pointer(ds_seat_t *);
-static errno_t ds_seat_draw_pointer(ds_seat_t *);
+static void ds_seat_get_pointer_rect(ds_seat_t *, gfx_rect_t *);
+static errno_t ds_seat_repaint_pointer(ds_seat_t *, gfx_rect_t *);
 
 /** Create seat.
  *
@@ -184,17 +184,18 @@ static void ds_seat_set_client_cursor(ds_seat_t *seat, ds_cursor_t *cursor)
 {
 	ds_cursor_t *old_cursor;
 	ds_cursor_t *new_cursor;
+	gfx_rect_t old_rect;
 
 	old_cursor = ds_seat_get_cursor(seat);
 	new_cursor = ds_seat_compute_cursor(seat->wm_cursor, cursor);
 
-	if (new_cursor != old_cursor)
-		ds_seat_clear_pointer(seat);
-
-	seat->client_cursor = cursor;
-
-	if (new_cursor != old_cursor)
-		ds_seat_draw_pointer(seat);
+	if (new_cursor != old_cursor) {
+		ds_seat_get_pointer_rect(seat, &old_rect);
+		seat->client_cursor = cursor;
+		ds_seat_repaint_pointer(seat, &old_rect);
+	} else {
+		seat->client_cursor = cursor;
+	}
 }
 
 /** Set WM cursor.
@@ -208,51 +209,76 @@ void ds_seat_set_wm_cursor(ds_seat_t *seat, ds_cursor_t *cursor)
 {
 	ds_cursor_t *old_cursor;
 	ds_cursor_t *new_cursor;
+	gfx_rect_t old_rect;
 
 	old_cursor = ds_seat_get_cursor(seat);
 	new_cursor = ds_seat_compute_cursor(cursor, seat->client_cursor);
 
-	if (new_cursor != old_cursor)
-		ds_seat_clear_pointer(seat);
-
-	seat->wm_cursor = cursor;
-
-	if (new_cursor != old_cursor)
-		ds_seat_draw_pointer(seat);
+	if (new_cursor != old_cursor) {
+		ds_seat_get_pointer_rect(seat, &old_rect);
+		seat->wm_cursor = cursor;
+		ds_seat_repaint_pointer(seat, &old_rect);
+	} else {
+		seat->wm_cursor = cursor;
+	}
 }
 
-/** Draw seat pointer
+/** Get rectangle covered by pointer.
  *
  * @param seat Seat
- *
- * @return EOK on success or an error code
+ * @param rect Place to store rectangle
  */
-static errno_t ds_seat_draw_pointer(ds_seat_t *seat)
+void ds_seat_get_pointer_rect(ds_seat_t *seat, gfx_rect_t *rect)
 {
 	ds_cursor_t *cursor;
 
 	cursor = ds_seat_get_cursor(seat);
-	return ds_cursor_paint(cursor, &seat->pntpos);
+	ds_cursor_get_rect(cursor, &seat->pntpos, rect);
 }
 
-/** Clear seat pointer
+/** Repaint seat pointer
+ *
+ * Repaint the pointer after it has moved or changed. This is done by
+ * repainting the are of the display previously (@a old_rect) and currently
+ * covered by the pointer.
  *
  * @param seat Seat
+ * @param old_rect Rectangle previously covered by pointer
  *
  * @return EOK on success or an error code
  */
-static errno_t ds_seat_clear_pointer(ds_seat_t *seat)
+static errno_t ds_seat_repaint_pointer(ds_seat_t *seat, gfx_rect_t *old_rect)
 {
-	gfx_rect_t rect;
-	ds_cursor_t *cursor;
+	gfx_rect_t new_rect;
+	gfx_rect_t isect;
+	gfx_rect_t envelope;
+	errno_t rc;
 
-	cursor = ds_seat_get_cursor(seat);
+	ds_seat_get_pointer_rect(seat, &new_rect);
 
-	/* Get rectangle covered by cursor */
-	ds_cursor_get_rect(cursor, &seat->pntpos, &rect);
+	gfx_rect_clip(old_rect, &new_rect, &isect);
+	if (gfx_rect_is_empty(&isect)) {
+		/* Rectangles do not intersect. Repaint them separately. */
+		rc = ds_display_paint(seat->display, &new_rect);
+		if (rc != EOK)
+			return rc;
 
-	/* Repaint it */
-	return ds_display_paint(seat->display, &rect);
+		rc = ds_display_paint(seat->display, old_rect);
+		if (rc != EOK)
+			return rc;
+	} else {
+		/*
+		 * Rectangles intersect. As an optimization, repaint them
+		 * in a single operation.
+		 */
+		gfx_rect_envelope(old_rect, &new_rect, &envelope);
+
+		rc = ds_display_paint(seat->display, &envelope);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
 }
 
 /** Post pointing device event to the seat
@@ -268,6 +294,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 {
 	ds_display_t *disp = seat->display;
 	gfx_coord2_t npos;
+	gfx_rect_t old_rect;
 	ds_window_t *wnd;
 	pos_event_t pevent;
 	errno_t rc;
@@ -298,7 +325,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		gfx_coord2_add(&seat->pntpos, &event->dmove, &npos);
 		gfx_coord2_clip(&npos, &disp->rect, &npos);
 
-		(void) ds_seat_clear_pointer(seat);
+		ds_seat_get_pointer_rect(seat, &old_rect);
 		seat->pntpos = npos;
 
 		pevent.pos_id = 0;
@@ -311,7 +338,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		if (rc != EOK)
 			return rc;
 
-		(void) ds_seat_draw_pointer(seat);
+		ds_seat_repaint_pointer(seat, &old_rect);
 	}
 
 	if (event->type == PTD_ABS_MOVE) {
@@ -326,7 +353,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 
 		gfx_coord2_clip(&npos, &disp->rect, &npos);
 
-		(void) ds_seat_clear_pointer(seat);
+		ds_seat_get_pointer_rect(seat, &old_rect);
 		seat->pntpos = npos;
 
 		pevent.pos_id = 0;
@@ -339,7 +366,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		if (rc != EOK)
 			return rc;
 
-		(void) ds_seat_draw_pointer(seat);
+		ds_seat_repaint_pointer(seat, &old_rect);
 	}
 
 	return EOK;
@@ -377,6 +404,20 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	}
 
 	return EOK;
+}
+
+/** Paint seat pointer.
+ *
+ * @param seat Seat whose pointer to paint
+ * @param rect Clipping rectangle
+ */
+errno_t ds_seat_paint_pointer(ds_seat_t *seat, gfx_rect_t *rect)
+{
+	ds_cursor_t *cursor;
+
+	cursor = ds_seat_get_cursor(seat);
+	(void) rect; // XXX ds_cursor_paint should accept a clipping rectangle
+	return ds_cursor_paint(cursor, &seat->pntpos);
 }
 
 /** @}
