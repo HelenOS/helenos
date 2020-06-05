@@ -49,6 +49,7 @@
 #include "window.h"
 
 static void ds_window_update_cb(void *, gfx_rect_t *);
+static void ds_window_get_preview_rect(ds_window_t *, gfx_rect_t *);
 
 /** Create window.
  *
@@ -204,6 +205,139 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
 	return gfx_bitmap_render(wnd->bitmap, brect, &wnd->dpos);
 }
 
+/** Get the preview rectangle for a window.
+ *
+ * Get the preview rectangle if the window is being resized or moved.
+ * If the window is not being resized or moved, return an empty rectangle.
+ *
+ * @param wnd Window
+ * @param rect Place to store preview rectangle
+ */
+static void ds_window_get_preview_rect(ds_window_t *wnd, gfx_rect_t *rect)
+{
+	switch (wnd->state) {
+	case dsw_idle:
+		break;
+	case dsw_moving:
+		gfx_rect_translate(&wnd->preview_pos, &wnd->rect, rect);
+		return;
+	case dsw_resizing:
+		gfx_rect_translate(&wnd->dpos, &wnd->preview_rect, rect);
+		return;
+	}
+
+	rect->p0.x = 0;
+	rect->p0.y = 0;
+	rect->p1.x = 0;
+	rect->p1.y = 0;
+}
+
+/** Paint window preview if the window is being moved or resized.
+ *
+ * If the window is not being resized or moved, take no action and return
+ * success.
+ *
+ * @param wnd Window for which to paint preview
+ * @param rect Clipping rectangle
+ * @return EOK on success or an error code
+ */
+errno_t ds_window_paint_preview(ds_window_t *wnd, gfx_rect_t *rect)
+{
+	errno_t rc;
+	gfx_color_t *color;
+	gfx_rect_t prect;
+	gfx_rect_t drect;
+	gfx_context_t *gc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_paint_preview");
+
+	/*
+	 * Get preview rectangle. If the window is not being resized/moved,
+	 * we should get an empty rectangle.
+	 */
+	ds_window_get_preview_rect(wnd, &prect);
+	if (gfx_rect_is_empty(&prect)) {
+		/* There is nothing to paint */
+		return EOK;
+	}
+
+	/* Clip rendering to the clipping rectangle */
+	gfx_rect_clip(&prect, rect, &drect);
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		return rc;
+
+	gc = ds_display_get_gc(wnd->display); // XXX
+	if (gc != NULL) {
+		gfx_set_color(gc, color);
+		gfx_fill_rect(gc, &drect);
+	}
+
+	gfx_color_delete(color);
+	return EOK;
+}
+
+/** Repaint window preview when resizing or moving.
+ *
+ * Repaint the window preview wich was previously at rectangle @a old_rect.
+ * The current preview rectangle is determined from window state. If
+ * the window did not previously have a preview, @a old_rect should point
+ * to an empty rectangle or be NULL. When window has finished
+ * moving or resizing, the preview will be cleared.
+ *
+ * @param wnd Window for which to paint preview
+ * @param rect Clipping rectangle
+ * @return EOK on success or an error code
+ */
+static errno_t ds_window_repaint_preview(ds_window_t *wnd, gfx_rect_t *old_rect)
+{
+	errno_t rc;
+	gfx_rect_t prect;
+	gfx_rect_t envelope;
+	bool oldr;
+	bool newr;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_repaint_preview");
+
+	/*
+	 * Get current preview rectangle. If the window is not being resized/moved,
+	 * we should get an empty rectangle.
+	 */
+	ds_window_get_preview_rect(wnd, &prect);
+
+	oldr = (old_rect != NULL) && !gfx_rect_is_empty(old_rect);
+	newr = !gfx_rect_is_empty(&prect);
+
+	if (oldr && newr && gfx_rect_is_incident(old_rect, &prect)) {
+		/*
+		 * As an optimization, repaint both rectangles in a single
+		 * operation.
+		 */
+
+		gfx_rect_envelope(old_rect, &prect, &envelope);
+
+		rc = ds_display_paint(wnd->display, &envelope);
+		if (rc != EOK)
+			return rc;
+	} else {
+		/* Repaint each rectangle separately */
+		if (oldr) {
+			rc = ds_display_paint(wnd->display, old_rect);
+			if (rc != EOK)
+				return rc;
+		}
+
+		if (newr) {
+			rc = ds_display_paint(wnd->display, &prect);
+			if (rc != EOK)
+				return rc;
+		}
+	}
+
+	return EOK;
+}
+
 /** Start moving a window by mouse drag.
  *
  * @param wnd Window
@@ -211,11 +345,6 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
  */
 static void ds_window_start_move(ds_window_t *wnd, gfx_coord2_t *pos)
 {
-	gfx_color_t *color;
-	gfx_context_t *gc;
-	gfx_rect_t drect;
-	errno_t rc;
-
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_start_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
@@ -226,19 +355,7 @@ static void ds_window_start_move(ds_window_t *wnd, gfx_coord2_t *pos)
 	wnd->state = dsw_moving;
 	wnd->preview_pos = wnd->dpos;
 
-	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
-	if (rc != EOK)
-		return;
-
-	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
-
-	gc = ds_display_get_gc(wnd->display); // XXX
-	if (gc != NULL) {
-		gfx_set_color(gc, color);
-		gfx_fill_rect(gc, &drect);
-	}
-
-	gfx_color_delete(color);
+	(void) ds_window_repaint_preview(wnd, NULL);
 }
 
 /** Finish moving a window by mouse drag.
@@ -250,6 +367,7 @@ static void ds_window_finish_move(ds_window_t *wnd, gfx_coord2_t *pos)
 {
 	gfx_coord2_t dmove;
 	gfx_coord2_t nwpos;
+	gfx_rect_t old_rect;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_finish_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
@@ -257,8 +375,10 @@ static void ds_window_finish_move(ds_window_t *wnd, gfx_coord2_t *pos)
 	assert(wnd->state == dsw_moving);
 
 	gfx_coord2_subtract(pos, &wnd->orig_pos, &dmove);
-
 	gfx_coord2_add(&wnd->dpos, &dmove, &nwpos);
+
+	ds_window_get_preview_rect(wnd, &old_rect);
+
 	wnd->dpos = nwpos;
 	wnd->state = dsw_idle;
 
@@ -274,37 +394,20 @@ static void ds_window_update_move(ds_window_t *wnd, gfx_coord2_t *pos)
 {
 	gfx_coord2_t dmove;
 	gfx_coord2_t nwpos;
-	gfx_rect_t drect;
-	gfx_color_t *color;
-	gfx_context_t *gc;
-	errno_t rc;
+	gfx_rect_t old_rect;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
 	assert(wnd->state == dsw_moving);
 
-	gfx_rect_translate(&wnd->preview_pos, &wnd->rect, &drect);
-	ds_display_paint(wnd->display, &drect);
-
 	gfx_coord2_subtract(pos, &wnd->orig_pos, &dmove);
-
 	gfx_coord2_add(&wnd->dpos, &dmove, &nwpos);
+
+	ds_window_get_preview_rect(wnd, &old_rect);
 	wnd->preview_pos = nwpos;
 
-	gfx_rect_translate(&nwpos, &wnd->rect, &drect);
-
-	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
-	if (rc != EOK)
-		return;
-
-	gc = ds_display_get_gc(wnd->display); // XXX
-	if (gc != NULL) {
-		gfx_set_color(gc, color);
-		gfx_fill_rect(gc, &drect);
-	}
-
-	gfx_color_delete(color);
+	(void) ds_window_repaint_preview(wnd, &old_rect);
 }
 
 /** Start resizing a window by mouse drag.
@@ -334,6 +437,8 @@ static void ds_window_start_resize(ds_window_t *wnd,
 	seat = ds_display_first_seat(wnd->display);
 	ctype = display_cursor_from_wrsz(rsztype);
 	ds_seat_set_wm_cursor(seat, wnd->display->cursor[ctype]);
+
+	(void) ds_window_repaint_preview(wnd, NULL);
 }
 
 /** Finish resizing a window by mouse drag.
@@ -351,9 +456,6 @@ static void ds_window_finish_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	    (int) pos->x, (int) pos->y);
 
 	assert(wnd->state == dsw_resizing);
-
-	(void) ds_display_paint(wnd->display, NULL);
-
 	gfx_coord2_subtract(pos, &wnd->orig_pos, &dresize);
 
 	/* Compute new rectangle */
@@ -365,6 +467,8 @@ static void ds_window_finish_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	// XXX Need to know which seat started the resize!
 	seat = ds_display_first_seat(wnd->display);
 	ds_seat_set_wm_cursor(seat, NULL);
+
+	(void) ds_display_paint(wnd->display, NULL);
 }
 
 /** Update window position when resizing by mouse drag.
@@ -376,36 +480,19 @@ static void ds_window_update_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 {
 	gfx_coord2_t dresize;
 	gfx_rect_t nrect;
-	gfx_rect_t drect;
-	gfx_color_t *color;
-	gfx_context_t *gc;
-	errno_t rc;
+	gfx_rect_t old_rect;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_resize (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
 	assert(wnd->state == dsw_resizing);
 
-	gfx_rect_translate(&wnd->dpos, &wnd->preview_rect, &drect);
-	(void) ds_display_paint(wnd->display, &drect);
-
 	gfx_coord2_subtract(pos, &wnd->orig_pos, &dresize);
-
 	ds_window_calc_resize(wnd, &dresize, &nrect);
-	gfx_rect_translate(&wnd->dpos, &nrect, &drect);
+
+	ds_window_get_preview_rect(wnd, &old_rect);
 	wnd->preview_rect = nrect;
-
-	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
-	if (rc != EOK)
-		return;
-
-	gc = ds_display_get_gc(wnd->display); // XXX
-	if (gc != NULL) {
-		gfx_set_color(gc, color);
-		gfx_fill_rect(gc, &drect);
-	}
-
-	gfx_color_delete(color);
+	(void) ds_window_repaint_preview(wnd, &old_rect);
 }
 
 /** Post keyboard event to window.

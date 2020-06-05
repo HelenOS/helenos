@@ -55,6 +55,7 @@ extern void ds_window_destroy(ds_window_t *);
 extern void ds_window_bring_to_top(ds_window_t *);
 extern gfx_context_t *ds_window_get_ctx(ds_window_t *);
 extern errno_t ds_window_paint(ds_window_t *, gfx_rect_t *);
+errno_t ds_window_paint_preview(ds_window_t *, gfx_rect_t *);
 extern errno_t ds_window_post_kbd_event(ds_window_t *, kbd_event_t *);
 extern errno_t ds_window_post_pos_event(ds_window_t *, pos_event_t *);
 extern errno_t ds_window_post_focus_event(ds_window_t *);

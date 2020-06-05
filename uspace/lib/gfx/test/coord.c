@@ -559,6 +559,24 @@ PCUT_TEST(rect_clip_rect_hh)
 	PCUT_ASSERT_INT_EQUALS(6, dest.p1.y);
 }
 
+/** Clip rectangle with no clipping rectangle */
+PCUT_TEST(rect_clip_rect_noclip)
+{
+	gfx_rect_t rect;
+	gfx_rect_t dest;
+
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+
+	gfx_rect_clip(&rect, NULL, &dest);
+	PCUT_ASSERT_INT_EQUALS(rect.p0.x, dest.p0.x);
+	PCUT_ASSERT_INT_EQUALS(rect.p0.y, dest.p0.y);
+	PCUT_ASSERT_INT_EQUALS(rect.p1.x, dest.p1.x);
+	PCUT_ASSERT_INT_EQUALS(rect.p1.y, dest.p1.y);
+}
+
 /** Sort span points that are already sorted should produde indentical points */
 PCUT_TEST(rect_points_sort_sorted)
 {
@@ -637,7 +655,7 @@ PCUT_TEST(rect_is_empty_pos_y)
 	PCUT_ASSERT_TRUE(gfx_rect_is_empty(&rect));
 }
 
-/** gfx_rect_is_empty for staright non-empty rectangle returns false */
+/** gfx_rect_is_empty for straight non-empty rectangle returns false */
 PCUT_TEST(rect_is_empty_neg)
 {
 	gfx_rect_t rect;
@@ -659,6 +677,101 @@ PCUT_TEST(rect_is_empty_reverse_neg)
 	rect.p1.x = 0;
 	rect.p1.y = 1;
 	PCUT_ASSERT_FALSE(gfx_rect_is_empty(&rect));
+}
+
+/** gfx_rect_is_incident for neighboring rectangles returns false */
+PCUT_TEST(rect_is_incident_neighbor)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 1;
+	a.p0.y = 2;
+	a.p1.x = 3;
+	a.p1.y = 4;
+
+	b.p0.x = 3;
+	b.p0.y = 2;
+	b.p1.x = 5;
+	b.p1.y = 6;
+
+	PCUT_ASSERT_FALSE(gfx_rect_is_incident(&a, &b));
+}
+
+/** gfx_rect_is_incident for a inside b returns true */
+PCUT_TEST(rect_is_incident_a_inside_b)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 2;
+	a.p0.y = 3;
+	a.p1.x = 4;
+	a.p1.y = 5;
+
+	b.p0.x = 1;
+	b.p0.y = 2;
+	b.p1.x = 5;
+	b.p1.y = 6;
+
+	PCUT_ASSERT_TRUE(gfx_rect_is_incident(&a, &b));
+}
+
+/** gfx_rect_is_incident for b inside a returns true */
+PCUT_TEST(rect_is_incident_b_inside_a)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 1;
+	a.p0.y = 2;
+	a.p1.x = 5;
+	a.p1.y = 6;
+
+	b.p0.x = 2;
+	b.p0.y = 3;
+	b.p1.x = 4;
+	b.p1.y = 5;
+
+	PCUT_ASSERT_TRUE(gfx_rect_is_incident(&a, &b));
+}
+
+/** gfx_rect_is_incident for a and b sharing corner returns true */
+PCUT_TEST(rect_is_incident_corner)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 1;
+	a.p0.y = 2;
+	a.p1.x = 3;
+	a.p1.y = 4;
+
+	b.p0.x = 2;
+	b.p0.y = 3;
+	b.p1.x = 4;
+	b.p1.y = 5;
+
+	PCUT_ASSERT_TRUE(gfx_rect_is_incident(&a, &b));
+}
+
+/** gfx_rect_is_incident for a == b returns true */
+PCUT_TEST(rect_is_incident_same)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 1;
+	a.p0.y = 2;
+	a.p1.x = 3;
+	a.p1.y = 4;
+
+	b.p0.x = 1;
+	b.p0.y = 2;
+	b.p1.x = 3;
+	b.p1.y = 4;
+
+	PCUT_ASSERT_TRUE(gfx_rect_is_incident(&a, &b));
 }
 
 /** gfx_pix_inside_rect for  */

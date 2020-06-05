@@ -36,6 +36,7 @@
 #include <gfx/coord.h>
 #include <macros.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 /** Add two vectors.
  *
@@ -191,15 +192,20 @@ void gfx_rect_envelope(gfx_rect_t *a, gfx_rect_t *b, gfx_rect_t *dest)
  *
  * If the two rectangles do not intersect, the result will be an empty
  * rectangle (check with gfx_rect_is_empty()). The resulting rectangle
- * is always sorted.
+ * is always sorted. If @a clip is NULL, no clipping is performed.
  *
  * @param rect Source rectangle
- * @param clip Clipping rectangle
+ * @param clip Clipping rectangle or @c NULL
  * @param dest Place to store clipped rectangle
  */
 void gfx_rect_clip(gfx_rect_t *rect, gfx_rect_t *clip, gfx_rect_t *dest)
 {
 	gfx_rect_t srect, sclip;
+
+	if (clip == NULL) {
+		*dest = *rect;
+		return;
+	}
 
 	gfx_rect_points_sort(rect, &srect);
 	gfx_rect_points_sort(clip, &sclip);
@@ -232,6 +238,20 @@ void gfx_rect_points_sort(gfx_rect_t *src, gfx_rect_t *dest)
 bool gfx_rect_is_empty(gfx_rect_t *rect)
 {
 	return rect->p0.x == rect->p1.x || rect->p0.y == rect->p1.y;
+}
+
+/** Determine if two rectangles share any pixels
+ *
+ * @param a First rectangle
+ * @param b Second rectangle
+ * @return @c true iff rectangles share any pixels
+ */
+bool gfx_rect_is_incident(gfx_rect_t *a, gfx_rect_t *b)
+{
+	gfx_rect_t r;
+
+	gfx_rect_clip(a, b, &r);
+	return !gfx_rect_is_empty(&r);
 }
 
 /** Get rectangle dimensions.

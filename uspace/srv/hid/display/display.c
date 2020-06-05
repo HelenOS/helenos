@@ -569,6 +569,17 @@ errno_t ds_display_paint(ds_display_t *disp, gfx_rect_t *rect)
 		wnd = ds_display_prev_window(wnd);
 	}
 
+	/* Paint window previews for windows being resized or moved */
+	wnd = ds_display_last_window(disp);
+	while (wnd != NULL) {
+		rc = ds_window_paint_preview(wnd, rect);
+		if (rc != EOK)
+			return rc;
+
+		wnd = ds_display_prev_window(wnd);
+	}
+
+	/* Paint pointers */
 	seat = ds_display_first_seat(disp);
 	while (seat != NULL) {
 		rc = ds_seat_paint_pointer(seat, rect);

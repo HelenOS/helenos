@@ -250,14 +250,12 @@ void ds_seat_get_pointer_rect(ds_seat_t *seat, gfx_rect_t *rect)
 static errno_t ds_seat_repaint_pointer(ds_seat_t *seat, gfx_rect_t *old_rect)
 {
 	gfx_rect_t new_rect;
-	gfx_rect_t isect;
 	gfx_rect_t envelope;
 	errno_t rc;
 
 	ds_seat_get_pointer_rect(seat, &new_rect);
 
-	gfx_rect_clip(old_rect, &new_rect, &isect);
-	if (gfx_rect_is_empty(&isect)) {
+	if (gfx_rect_is_incident(old_rect, &new_rect)) {
 		/* Rectangles do not intersect. Repaint them separately. */
 		rc = ds_display_paint(seat->display, &new_rect);
 		if (rc != EOK)
