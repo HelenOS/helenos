@@ -239,7 +239,7 @@ void ds_seat_get_pointer_rect(ds_seat_t *seat, gfx_rect_t *rect)
 /** Repaint seat pointer
  *
  * Repaint the pointer after it has moved or changed. This is done by
- * repainting the are of the display previously (@a old_rect) and currently
+ * repainting the area of the display previously (@a old_rect) and currently
  * covered by the pointer.
  *
  * @param seat Seat

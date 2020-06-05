@@ -670,7 +670,7 @@ errno_t ds_window_set_cursor(ds_window_t *wnd, display_stock_cursor_t cursor)
 	}
 }
 
-/** Window memory GC update callbac.
+/** Window memory GC update callback.
  *
  * This is called by the window's memory GC when a rectangle us updated.
  */
