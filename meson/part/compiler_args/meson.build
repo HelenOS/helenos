@@ -38,10 +38,8 @@ add_project_arguments(
 )
 
 add_project_link_arguments(
-	cc.get_supported_link_arguments([
-		'-Wl,--gc-sections',
-		'-Wl,--warn-common',
-	]),
+	'-Wl,--gc-sections',
+	'-Wl,--warn-common',
 	'-Wl,--fatal-warnings',
 	language : [ 'c', 'cpp' ],
 )
