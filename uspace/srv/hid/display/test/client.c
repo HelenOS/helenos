@@ -61,7 +61,7 @@ PCUT_TEST(client_create_destroy)
 	ds_client_t *client;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
@@ -86,7 +86,7 @@ PCUT_TEST(client_find_window)
 	display_wnd_params_t params;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
@@ -131,7 +131,7 @@ PCUT_TEST(client_first_next_window)
 	display_wnd_params_t params;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
@@ -174,7 +174,7 @@ PCUT_TEST(client_get_post_close_event)
 	bool called_cb = NULL;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -221,7 +221,7 @@ PCUT_TEST(client_get_post_focus_event)
 	bool called_cb = NULL;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -269,7 +269,7 @@ PCUT_TEST(client_get_post_kbd_event)
 	bool called_cb = NULL;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -326,7 +326,7 @@ PCUT_TEST(client_get_post_pos_event)
 	bool called_cb = NULL;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -381,7 +381,7 @@ PCUT_TEST(client_get_post_resize_event)
 	bool called_cb = NULL;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -437,7 +437,7 @@ PCUT_TEST(client_get_post_unfocus_event)
 	bool called_cb = NULL;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -485,7 +485,7 @@ PCUT_TEST(client_leftover_window)
 	display_wnd_params_t params;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);

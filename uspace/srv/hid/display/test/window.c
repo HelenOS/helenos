@@ -62,7 +62,7 @@ PCUT_TEST(window_resize)
 	gfx_rect_t nrect;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
@@ -108,7 +108,7 @@ PCUT_TEST(window_get_ctx)
 	gfx_context_t *gc;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
@@ -145,7 +145,7 @@ PCUT_TEST(window_post_kbd_event_alt_f4)
 	rc = gfx_context_new(&dummy_ops, NULL, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_display_create(gc, &disp);
+	rc = ds_display_create(gc, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
@@ -191,7 +191,7 @@ PCUT_TEST(window_post_pos_event)
 	rc = gfx_context_new(&dummy_ops, NULL, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_display_create(gc, &disp);
+	rc = ds_display_create(gc, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
@@ -259,7 +259,7 @@ PCUT_TEST(window_move_req)
 	rc = gfx_context_new(&dummy_ops, NULL, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_display_create(gc, &disp);
+	rc = ds_display_create(gc, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
@@ -302,7 +302,7 @@ PCUT_TEST(window_resize_req)
 	rc = gfx_context_new(&dummy_ops, NULL, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_display_create(gc, &disp);
+	rc = ds_display_create(gc, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
@@ -348,7 +348,7 @@ PCUT_TEST(window_calc_resize)
 	gfx_rect_t nrect;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
@@ -613,7 +613,7 @@ PCUT_TEST(window_set_cursor)
 	rc = gfx_context_new(&dummy_ops, NULL, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_display_create(gc, &disp);
+	rc = ds_display_create(gc, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);

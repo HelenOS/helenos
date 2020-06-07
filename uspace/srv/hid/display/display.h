@@ -48,7 +48,8 @@
 #include "types/display/ptd_event.h"
 #include "types/display/seat.h"
 
-extern errno_t ds_display_create(gfx_context_t *, ds_display_t **);
+extern errno_t ds_display_create(gfx_context_t *, ds_display_flags_t,
+    ds_display_t **);
 extern void ds_display_destroy(ds_display_t *);
 extern void ds_display_lock(ds_display_t *);
 extern void ds_display_unlock(ds_display_t *);
@@ -71,7 +72,7 @@ extern void ds_display_add_seat(ds_display_t *, ds_seat_t *);
 extern void ds_display_remove_seat(ds_seat_t *);
 extern ds_seat_t *ds_display_first_seat(ds_display_t *);
 extern ds_seat_t *ds_display_next_seat(ds_seat_t *);
-extern void ds_display_add_ddev(ds_display_t *, ds_ddev_t *);
+extern errno_t ds_display_add_ddev(ds_display_t *, ds_ddev_t *);
 extern void ds_display_remove_ddev(ds_ddev_t *);
 extern ds_ddev_t *ds_display_first_ddev(ds_display_t *);
 extern ds_ddev_t *ds_display_next_ddev(ds_ddev_t *);

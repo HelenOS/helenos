@@ -70,7 +70,7 @@ PCUT_TEST(cursor_create_destroy)
 	ds_cursor_t *cursor;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_cursor_create(disp, &ds_cursimg[dcurs_arrow].rect,
@@ -96,7 +96,7 @@ PCUT_TEST(cursor_paint)
 	rc = gfx_context_new(&dummy_ops, &resp, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_display_create(gc, &disp);
+	rc = ds_display_create(gc, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ddev_info_init(&ddinfo);
@@ -129,7 +129,7 @@ PCUT_TEST(cursor_get_rect)
 	gfx_rect_t rect1, rect2;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_cursor_create(disp, &ds_cursimg[dcurs_arrow].rect,

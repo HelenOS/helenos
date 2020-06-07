@@ -60,7 +60,7 @@ PCUT_TEST(display_create_destroy)
 	ds_display_t *disp;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ds_display_destroy(disp);
@@ -74,7 +74,7 @@ PCUT_TEST(display_client)
 	ds_client_t *c0, *c1;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
@@ -101,7 +101,7 @@ PCUT_TEST(display_find_window)
 	display_wnd_params_t params;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
@@ -165,7 +165,7 @@ PCUT_TEST(display_window_by_pos)
 	gfx_coord2_t pos;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
@@ -211,7 +211,7 @@ PCUT_TEST(display_seat)
 	ds_seat_t *s0, *s1;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_seat_create(disp, &seat);
@@ -240,7 +240,7 @@ PCUT_TEST(display_post_kbd_event)
 	bool called_cb = false;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_seat_create(disp, &seat);
@@ -288,7 +288,7 @@ PCUT_TEST(display_post_kbd_event_alt_tab)
 	bool called_cb = false;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_seat_create(disp, &seat);
@@ -356,7 +356,7 @@ PCUT_TEST(display_post_ptd_event_wnd_switch)
 	bool called_cb = false;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_seat_create(disp, &seat);

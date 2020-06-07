@@ -41,9 +41,18 @@
 #include <gfx/color.h>
 #include <gfx/coord.h>
 #include <io/input.h>
+#include <memgfx/memgc.h>
 #include <types/display/cursor.h>
 #include "cursor.h"
 #include "window.h"
+
+/** Display flags */
+typedef enum {
+	/** No flags enabled */
+	df_none = 0,
+	/** Use double buffer for display */
+	df_disp_double_buf = 0x1
+} ds_display_flags_t;
 
 /** Display server display */
 typedef struct ds_display {
@@ -83,6 +92,18 @@ typedef struct ds_display {
 
 	/** Bounding rectangle */
 	gfx_rect_t rect;
+
+	/** Backbuffer bitmap or @c NULL if not double-buffering */
+	gfx_bitmap_t *backbuf;
+
+	/** Backbuffer GC or @c NULL if not double-buffering */
+	mem_gc_t *bbgc;
+
+	/** Backbuffer dirty rectangle */
+	gfx_rect_t dirty_rect;
+
+	/** Display flags */
+	ds_display_flags_t flags;
 } ds_display_t;
 
 #endif

@@ -58,6 +58,7 @@ errno_t ds_ddev_create(ds_display_t *display, ddev_t *dd,
     gfx_context_t *gc, ds_ddev_t **rddev)
 {
 	ds_ddev_t *ddev;
+	errno_t rc;
 
 	ddev = calloc(1, sizeof(ds_ddev_t));
 	if (ddev == NULL)
@@ -69,7 +70,11 @@ errno_t ds_ddev_create(ds_display_t *display, ddev_t *dd,
 	ddev->gc = gc;
 	ddev->info = *info;
 
-	ds_display_add_ddev(display, ddev);
+	rc = ds_display_add_ddev(display, ddev);
+	if (rc != EOK) {
+		free(ddev);
+		return rc;
+	}
 
 	*rddev = ddev;
 	return EOK;

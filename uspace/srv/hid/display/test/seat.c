@@ -65,7 +65,7 @@ PCUT_TEST(set_focus)
 	bool called_cb = false;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -103,7 +103,7 @@ PCUT_TEST(evac_focus)
 	bool called_cb = false;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -151,7 +151,7 @@ PCUT_TEST(post_kbd_event_alt_tab)
 	kbd_event_t event;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -204,7 +204,7 @@ PCUT_TEST(post_kbd_event_regular)
 	bool called_cb = false;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -271,7 +271,7 @@ PCUT_TEST(post_ptd_event_wnd_switch)
 	bool called_cb = false;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_seat_create(disp, &seat);
@@ -361,7 +361,7 @@ PCUT_TEST(set_wm_cursor)
 	bool called_cb = false;
 	errno_t rc;
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);

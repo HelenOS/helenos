@@ -34,9 +34,11 @@
  */
 
 #include <errno.h>
+#include <gfx/bitmap.h>
 #include <gfx/context.h>
 #include <gfx/render.h>
 #include <io/log.h>
+#include <memgfx/memgc.h>
 #include <stdlib.h>
 #include "client.h"
 #include "cursimg.h"
@@ -45,13 +47,18 @@
 #include "window.h"
 #include "display.h"
 
+static gfx_context_t *ds_display_get_unbuf_gc(ds_display_t *);
+static void ds_display_update_cb(void *, gfx_rect_t *);
+
 /** Create display.
  *
  * @param gc Graphics context for displaying output
+ * @param flags Display flags
  * @param rdisp Place to store pointer to new display.
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
+errno_t ds_display_create(gfx_context_t *gc, ds_display_flags_t flags,
+    ds_display_t **rdisp)
 {
 	ds_display_t *disp;
 	ds_cursor_t *cursor;
@@ -85,6 +92,7 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_t **rdisp)
 	list_initialize(&disp->ddevs);
 	list_initialize(&disp->seats);
 	list_initialize(&disp->windows);
+	disp->flags = flags;
 	*rdisp = disp;
 	return EOK;
 error:
@@ -422,22 +430,94 @@ ds_seat_t *ds_display_next_seat(ds_seat_t *seat)
 	return list_get_instance(link, ds_seat_t, lseats);
 }
 
+/** Allocate back buffer for display.
+ *
+ * @param disp Display
+ * @return EOK on success or if no back buffer is required, otherwise
+ *         an error code.
+ */
+static errno_t ds_display_alloc_backbuf(ds_display_t *disp)
+{
+	gfx_context_t *ugc;
+	gfx_bitmap_params_t params;
+	gfx_bitmap_alloc_t alloc;
+	errno_t rc;
+
+	/* Allocate backbuffer */
+	if ((disp->flags & df_disp_double_buf) == 0) {
+		/* Not double buffering. Nothing to do. */
+		return EOK;
+	}
+
+	ugc = ds_display_get_unbuf_gc(disp);
+
+	gfx_bitmap_params_init(&params);
+	params.rect = disp->rect;
+
+	rc = gfx_bitmap_create(ugc, &params, NULL,
+	    &disp->backbuf);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_bitmap_get_alloc(disp->backbuf, &alloc);
+	if (rc != EOK)
+		goto error;
+
+	rc = mem_gc_create(&disp->rect, &alloc,
+	    ds_display_update_cb, (void *) disp, &disp->bbgc);
+	if (rc != EOK)
+		goto error;
+
+	disp->dirty_rect.p0.x = 0;
+	disp->dirty_rect.p0.y = 0;
+	disp->dirty_rect.p1.x = 0;
+	disp->dirty_rect.p1.y = 0;
+
+	return EOK;
+error:
+	if (disp->backbuf != NULL) {
+		gfx_bitmap_destroy(disp->backbuf);
+		disp->backbuf = NULL;
+	}
+
+	return rc;
+}
+
 /** Add display device to display.
  *
  * @param disp Display
  * @param ddev Display device
+ * @return EOK on success, or an error code
  */
-void ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
+errno_t ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
 {
+	errno_t rc;
+
 	assert(ddev->display == NULL);
 	assert(!link_used(&ddev->lddevs));
 
-	/* Set display dimensions to dimensions of first display device */
-	if (gfx_rect_is_empty(&disp->rect))
-		disp->rect = ddev->info.rect;
-
 	ddev->display = disp;
 	list_append(&ddev->lddevs, &disp->ddevs);
+
+	/* First display device */
+	if (gfx_rect_is_empty(&disp->rect)) {
+		/* Set screen dimensions */
+		disp->rect = ddev->info.rect;
+
+		/* Allocate backbuffer */
+		rc = ds_display_alloc_backbuf(disp);
+		if (rc != EOK)
+			goto error;
+	}
+
+	return EOK;
+error:
+	disp->rect.p0.x = 0;
+	disp->rect.p0.y = 0;
+	disp->rect.p1.x = 0;
+	disp->rect.p1.y = 0;
+	list_remove(&ddev->lddevs);
+	return rc;
 }
 
 /** Remove display device from display.
@@ -505,7 +585,7 @@ void ds_display_remove_cursor(ds_cursor_t *cursor)
 }
 
 // XXX
-gfx_context_t *ds_display_get_gc(ds_display_t *display)
+static gfx_context_t *ds_display_get_unbuf_gc(ds_display_t *display)
 {
 	ds_ddev_t *ddev;
 
@@ -514,6 +594,15 @@ gfx_context_t *ds_display_get_gc(ds_display_t *display)
 		return NULL;
 
 	return ddev->gc;
+}
+
+// XXX
+gfx_context_t *ds_display_get_gc(ds_display_t *display)
+{
+	if ((display->flags & df_disp_double_buf) != 0)
+		return mem_gc_get_ctx(display->bbgc);
+	else
+		return ds_display_get_unbuf_gc(display);
 }
 
 /** Paint display background.
@@ -541,6 +630,34 @@ errno_t ds_display_paint_bg(ds_display_t *disp, gfx_rect_t *rect)
 		return rc;
 
 	return gfx_fill_rect(gc, &crect);
+}
+
+/** Update front buffer from back buffer.
+ *
+ * If the display is not double-buffered, no action is taken.
+ *
+ * @param disp Display
+ * @return EOK on success, or an error code
+ */
+static errno_t ds_display_update(ds_display_t *disp)
+{
+	errno_t rc;
+
+	if (disp->backbuf == NULL) {
+		/* Not double-buffered, nothing to do. */
+		return EOK;
+	}
+
+	rc = gfx_bitmap_render(disp->backbuf, &disp->dirty_rect, NULL);
+	if (rc != EOK)
+		return rc;
+
+	disp->dirty_rect.p0.x = 0;
+	disp->dirty_rect.p0.y = 0;
+	disp->dirty_rect.p1.x = 0;
+	disp->dirty_rect.p1.y = 0;
+
+	return EOK;
 }
 
 /** Paint display.
@@ -589,7 +706,24 @@ errno_t ds_display_paint(ds_display_t *disp, gfx_rect_t *rect)
 		seat = ds_display_next_seat(seat);
 	}
 
-	return EOK;
+	return ds_display_update(disp);
+}
+
+/** Display update callback.
+ *
+ * Called by backbuffer memory GC when something is rendered into it.
+ * Updates the display's dirty rectangle.
+ *
+ * @param arg Argument (display cast as void *)
+ * @param rect Rectangle to update
+ */
+static void ds_display_update_cb(void *arg, gfx_rect_t *rect)
+{
+	ds_display_t *disp = (ds_display_t *) arg;
+	gfx_rect_t env;
+
+	gfx_rect_envelope(&disp->dirty_rect, rect, &env);
+	disp->dirty_rect = env;
 }
 
 /** @}

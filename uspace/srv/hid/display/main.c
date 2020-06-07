@@ -58,6 +58,19 @@
 static void display_client_conn(ipc_call_t *, void *);
 static void display_client_ev_pending(void *);
 
+#ifdef CONFIG_DISP_DOUBLE_BUF
+/*
+ * Double buffering is one way to provide flicker-free display.
+ */
+static ds_display_flags_t disp_flags = df_disp_double_buf;
+#else
+/*
+ * With double buffering disabled, wet screen flicker since front-to-back
+ * rendering is not implemented.
+ */
+static ds_display_flags_t disp_flags = df_none;
+#endif
+
 static ds_client_cb_t display_client_cb = {
 	.ev_pending = display_client_ev_pending
 };
@@ -80,7 +93,7 @@ static errno_t display_srv_init(ds_output_t **routput)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_srv_init()");
 
-	rc = ds_display_create(NULL, &disp);
+	rc = ds_display_create(NULL, disp_flags, &disp);
 	if (rc != EOK)
 		goto error;
 

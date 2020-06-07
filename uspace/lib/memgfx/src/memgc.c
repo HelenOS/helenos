@@ -283,7 +283,6 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	gfx_rect_t srect;
 	gfx_rect_t drect;
 	gfx_coord2_t offs;
-	gfx_coord2_t dim;
 	gfx_coord_t x, y;
 	pixelmap_t smap;
 	pixelmap_t dmap;
@@ -304,13 +303,10 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	/* Destination rectangle */
 	gfx_rect_translate(&offs, &srect, &drect);
 
-	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
-
-	assert(mbm->rect.p0.x == 0);
-	assert(mbm->rect.p0.y == 0);
-	assert(mbm->alloc.pitch == mbm->rect.p1.x * (int)sizeof(uint32_t));
-	smap.width = mbm->rect.p1.x;
-	smap.height = mbm->rect.p1.y;
+	assert(mbm->alloc.pitch == (mbm->rect.p1.x - mbm->rect.p0.x) *
+	    (int)sizeof(uint32_t));
+	smap.width = mbm->rect.p1.x - mbm->rect.p0.x;
+	smap.height = mbm->rect.p1.y - mbm->rect.p0.y;
 	smap.data = mbm->alloc.pixels;
 
 	assert(mbm->mgc->rect.p0.x == 0);
@@ -323,16 +319,18 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	if ((mbm->flags & bmpf_color_key) == 0) {
 		for (y = drect.p0.y; y < drect.p1.y; y++) {
 			for (x = drect.p0.x; x < drect.p1.x; x++) {
-				pixel = pixelmap_get_pixel(&smap, x - offs.x,
-				    y - offs.y);
+				pixel = pixelmap_get_pixel(&smap,
+				    x - mbm->rect.p0.x - offs.x,
+				    y - mbm->rect.p0.y - offs.y);
 				pixelmap_put_pixel(&dmap, x, y, pixel);
 			}
 		}
 	} else {
 		for (y = drect.p0.y; y < drect.p1.y; y++) {
 			for (x = drect.p0.x; x < drect.p1.x; x++) {
-				pixel = pixelmap_get_pixel(&smap, x - offs.x,
-				    y - offs.y);
+				pixel = pixelmap_get_pixel(&smap,
+				    x - mbm->rect.p0.x - offs.x,
+				    y - mbm->rect.p0.y - offs.y);
 				if (pixel != mbm->key_color)
 					pixelmap_put_pixel(&dmap, x, y, pixel);
 			}
