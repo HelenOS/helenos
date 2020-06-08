@@ -246,10 +246,9 @@ errno_t ds_window_paint_preview(ds_window_t *wnd, gfx_rect_t *rect)
 	errno_t rc;
 	gfx_color_t *color;
 	gfx_rect_t prect;
-	gfx_rect_t drect;
+	gfx_rect_t dr;
+	gfx_rect_t pr;
 	gfx_context_t *gc;
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_paint_preview");
 
 	/*
 	 * Get preview rectangle. If the window is not being resized/moved,
@@ -261,8 +260,8 @@ errno_t ds_window_paint_preview(ds_window_t *wnd, gfx_rect_t *rect)
 		return EOK;
 	}
 
-	/* Clip rendering to the clipping rectangle */
-	gfx_rect_clip(&prect, rect, &drect);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_paint_preview");
+	prect.p0.x, prect.p0.y, prect.p1.x, prect.p1.y);
 
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	if (rc != EOK)
@@ -271,7 +270,41 @@ errno_t ds_window_paint_preview(ds_window_t *wnd, gfx_rect_t *rect)
 	gc = ds_display_get_gc(wnd->display); // XXX
 	if (gc != NULL) {
 		gfx_set_color(gc, color);
-		gfx_fill_rect(gc, &drect);
+
+		/*
+		 * TODO: Ideally we'd want XOR operation to make the preview
+		 * frame visible on any background. If we wanted to get really
+		 * fancy, we'd fill it with a pattern
+		 */
+
+		pr.p0.x = prect.p0.x;
+		pr.p0.y = prect.p0.y;
+		pr.p1.x = prect.p1.x;
+		pr.p1.y = prect.p0.y + 1;
+		gfx_rect_clip(&pr, rect, &dr);
+		gfx_fill_rect(gc, &dr);
+
+		pr.p0.x = prect.p0.x;
+		pr.p0.y = prect.p1.y - 1;
+		pr.p1.x = prect.p1.x;
+		pr.p1.y = prect.p1.y;
+		gfx_rect_clip(&pr, rect, &dr);
+		gfx_fill_rect(gc, &dr);
+
+		pr.p0.x = prect.p0.x;
+		pr.p0.y = prect.p0.y;
+		pr.p1.x = prect.p0.x + 1;
+		pr.p1.y = prect.p1.y;
+		gfx_rect_clip(&pr, rect, &dr);
+		gfx_fill_rect(gc, &dr);
+
+		pr.p0.x = prect.p1.x - 1;
+		pr.p0.y = prect.p0.y;
+		pr.p1.x = prect.p1.x;
+		pr.p1.y = prect.p1.y;
+		gfx_rect_clip(&pr, rect, &dr);
+		gfx_fill_rect(gc, &dr);
+
 	}
 
 	gfx_color_delete(color);
