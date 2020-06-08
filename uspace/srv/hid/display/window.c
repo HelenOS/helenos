@@ -83,7 +83,7 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	gfx_bitmap_params_init(&bparams);
 	bparams.rect = params->rect;
 
-	dgc = ds_display_get_gc(wnd->display); // XXX
+	dgc = ds_display_get_gc(wnd->display);
 	if (dgc != NULL) {
 		rc = gfx_bitmap_create(dgc, &bparams, NULL, &wnd->bitmap);
 		if (rc != EOK)
@@ -267,7 +267,7 @@ errno_t ds_window_paint_preview(ds_window_t *wnd, gfx_rect_t *rect)
 	if (rc != EOK)
 		return rc;
 
-	gc = ds_display_get_gc(wnd->display); // XXX
+	gc = ds_display_get_gc(wnd->display);
 	if (gc != NULL) {
 		gfx_set_color(gc, color);
 
@@ -694,7 +694,7 @@ errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
 	gfx_coord2_t ndpos;
 	errno_t rc;
 
-	dgc = ds_display_get_gc(wnd->display); // XXX
+	dgc = ds_display_get_gc(wnd->display);
 	if (dgc != NULL) {
 		gfx_bitmap_params_init(&bparams);
 		bparams.rect = *nrect;

@@ -584,11 +584,23 @@ void ds_display_remove_cursor(ds_cursor_t *cursor)
 	cursor->display = NULL;
 }
 
-// XXX
+/** Get unbuffered GC.
+ *
+ * Get the display's (unbuffered) graphic context. If the display
+ * is double-buffered, this returns GC of the front buffer. If the display
+ * is unbuffered, this is the same as @c ds_display_get_gc().
+ *
+ * @param display Display
+ * @return Unbuffered GC
+ */
 static gfx_context_t *ds_display_get_unbuf_gc(ds_display_t *display)
 {
 	ds_ddev_t *ddev;
 
+	/*
+	 * XXX To properly support multiple display devices, create
+	 * a cloning GC that copies rendering operation to each output.
+	 */
 	ddev = ds_display_first_ddev(display);
 	if (ddev == NULL)
 		return NULL;
@@ -596,7 +608,14 @@ static gfx_context_t *ds_display_get_unbuf_gc(ds_display_t *display)
 	return ddev->gc;
 }
 
-// XXX
+/** Get display GC.
+ *
+ * Get the graphic context used to paint the display. This is to be used
+ * for all display server paint operations.
+ *
+ * @param display Display
+ * @return Graphic context for painting to the display
+ */
 gfx_context_t *ds_display_get_gc(ds_display_t *display)
 {
 	if ((display->flags & df_disp_double_buf) != 0)
@@ -621,7 +640,7 @@ errno_t ds_display_paint_bg(ds_display_t *disp, gfx_rect_t *rect)
 	else
 		crect = disp->rect;
 
-	gc = ds_display_get_gc(disp); // XXX
+	gc = ds_display_get_gc(disp);
 	if (gc == NULL)
 		return EOK;
 

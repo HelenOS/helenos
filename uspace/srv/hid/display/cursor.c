@@ -102,7 +102,7 @@ errno_t ds_cursor_paint(ds_cursor_t *cursor, gfx_coord2_t *pos)
 	const uint8_t *pp;
 	errno_t rc;
 
-	dgc = ds_display_get_gc(cursor->display); // XXX
+	dgc = ds_display_get_gc(cursor->display);
 	if (dgc == NULL)
 		return EOK;
 
