@@ -449,7 +449,6 @@ int main(int argc, char *argv[])
 	if (!config_key_exists("console")) {
 		rc = display_server();
 		if (rc == EOK) {
-			fibril_sleep(1);
 			gui_start("/app/barber", DISPLAY_SVC);
 			gui_start("/app/vlaunch", DISPLAY_SVC);
 			gui_start("/app/vterm", DISPLAY_SVC);
