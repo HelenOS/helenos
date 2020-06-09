@@ -147,7 +147,7 @@ def platform_to_qemu_options(platform, machine, processor):
 			'/usr/share/qemu-efi-aarch64/QEMU_EFI.fd', # Ubuntu
 		)
 		extra_info = ("Pre-compiled binary can be obtained from "
-		    "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/latest/QEMU-AARCH64/RELEASE_GCC49/QEMU_EFI.fd.\n")
+		    "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/latest/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd.\n")
 		efi_path = find_firmware(
 		    "EDK2", 'EW_QEMU_EFI_AARCH64', default_paths, extra_info)
 		if efi_path is None:
