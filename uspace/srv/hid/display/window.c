@@ -260,9 +260,6 @@ errno_t ds_window_paint_preview(ds_window_t *wnd, gfx_rect_t *rect)
 		return EOK;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_paint_preview");
-	prect.p0.x, prect.p0.y, prect.p1.x, prect.p1.y);
-
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	if (rc != EOK)
 		return rc;

@@ -383,6 +383,17 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	errno_t rc;
 
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
+
+	if (seat->focus != wnd) {
+		rc = ds_window_post_pos_event(seat->focus, event);
+		if (rc != EOK)
+			return rc;
+
+		/* Only deliver release events to the focused window */
+		if (event->type == POS_RELEASE)
+			return EOK;
+	}
+
 	if (wnd != NULL) {
 		/* Moving over a window */
 		ds_seat_set_client_cursor(seat, wnd->cursor);
@@ -393,12 +404,6 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	} else {
 		/* Not over a window */
 		ds_seat_set_client_cursor(seat, seat->display->cursor[dcurs_arrow]);
-	}
-
-	if (seat->focus != wnd) {
-		rc = ds_window_post_pos_event(seat->focus, event);
-		if (rc != EOK)
-			return rc;
 	}
 
 	return EOK;
