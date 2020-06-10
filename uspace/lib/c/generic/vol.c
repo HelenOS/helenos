@@ -167,9 +167,12 @@ static errno_t vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
 			break;
 
 		alloc_size = act_size;
-		ids = realloc(ids, alloc_size);
-		if (ids == NULL)
+		service_id_t *temp = realloc(ids, alloc_size);
+		if (temp == NULL) {
+			free(ids);
 			return ENOMEM;
+		}
+		ids = temp;
 	}
 
 	*count = act_size / sizeof(service_id_t);
