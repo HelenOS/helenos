@@ -80,10 +80,6 @@
 #define STRUCT_OVERHEAD \
 	(sizeof(heap_block_head_t) + sizeof(heap_block_foot_t))
 
-/** Overhead of each area. */
-#define AREA_OVERHEAD(size) \
-	(ALIGN_UP(size + sizeof(heap_area_t), BASE_ALIGN))
-
 /** Calculate real size of a heap block.
  *
  * Add header and footer size.
@@ -97,6 +93,10 @@
  *
  */
 #define NET_SIZE(size)  ((size) - STRUCT_OVERHEAD)
+
+/** Overhead of each area. */
+#define AREA_OVERHEAD(size) \
+	(ALIGN_UP(GROSS_SIZE(size) + sizeof(heap_area_t), BASE_ALIGN))
 
 /** Get first block in heap area.
  *
