@@ -90,19 +90,6 @@ _NO_TRACE static inline bool interrupts_disabled(void)
 	return ((interrupts_read() & SSTATUS_SIE_MASK) == 0);
 }
 
-_NO_TRACE static inline uintptr_t get_stack_base(void)
-{
-	uintptr_t base;
-
-	asm volatile (
-	    "and %[base], sp, %[mask]\n"
-	    : [base] "=r" (base)
-	    : [mask] "r" (~(STACK_SIZE - 1))
-	);
-
-	return base;
-}
-
 _NO_TRACE static inline void cpu_sleep(void)
 {
 }

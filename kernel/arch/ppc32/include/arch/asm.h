@@ -162,26 +162,6 @@ _NO_TRACE static inline bool interrupts_disabled(void)
 	return ((msr_read() & MSR_EE) == 0);
 }
 
-/** Return base address of current stack.
- *
- * Return the base address of the current stack.
- * The stack is assumed to be STACK_SIZE bytes long.
- * The stack must start on page boundary.
- *
- */
-_NO_TRACE static inline uintptr_t get_stack_base(void)
-{
-	uintptr_t base;
-
-	asm volatile (
-	    "and %[base], %%sp, %[mask]\n"
-	    : [base] "=r" (base)
-	    : [mask] "r" (~(STACK_SIZE - 1))
-	);
-
-	return base;
-}
-
 _NO_TRACE static inline void cpu_sleep(void)
 {
 }

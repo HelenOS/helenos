@@ -190,8 +190,10 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 	kmflags |= FRAME_LOWMEM;
 	kmflags &= ~FRAME_HIGHMEM;
 
-	// NOTE: All kernel stacks must be aligned to STACK_SIZE,
-	//       see get_stack_base().
+	/*
+	 * NOTE: All kernel stacks must be aligned to STACK_SIZE,
+	 *       see CURRENT.
+	 */
 
 	uintptr_t stack_phys =
 	    frame_alloc(STACK_FRAMES, kmflags, STACK_SIZE - 1);

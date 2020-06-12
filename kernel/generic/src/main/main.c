@@ -169,8 +169,10 @@ _NO_TRACE void main_bsp(void)
 	config.kernel_size =
 	    ALIGN_UP((uintptr_t) kdata_end - config.base, PAGE_SIZE);
 
-	// NOTE: All kernel stacks must be aligned to STACK_SIZE,
-	//       see get_stack_base().
+	/*
+	 * NOTE: All kernel stacks must be aligned to STACK_SIZE,
+	 *       see CURRENT.
+	 */
 
 	/* Place the stack after the kernel, init and ballocs. */
 	config.stack_base =

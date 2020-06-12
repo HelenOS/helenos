@@ -159,24 +159,6 @@ _NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 	return v;
 }
 
-/** Return base address of current memory stack.
- *
- * The memory stack is assumed to be STACK_SIZE / 2 long. Note that there is
- * also the RSE stack, which takes up the upper half of STACK_SIZE.
- * The memory stack must start on page boundary.
- */
-_NO_TRACE static inline uintptr_t get_stack_base(void)
-{
-	uint64_t value;
-
-	asm volatile (
-	    "mov %[value] = r12"
-	    : [value] "=r" (value)
-	);
-
-	return (value & (~(STACK_SIZE / 2 - 1)));
-}
-
 /** Return Processor State Register.
  *
  * @return PSR.

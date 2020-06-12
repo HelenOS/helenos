@@ -70,10 +70,11 @@ void cpu_init(void)
 		/* Initialize everything */
 		memsetb(cpus, sizeof(cpu_t) * config.cpu_count, 0);
 
-		// NOTE: All kernel stacks must be aligned to STACK_SIZE,
-		//       see get_stack_base().
-		size_t i;
-		for (i = 0; i < config.cpu_count; i++) {
+		/*
+		 * NOTE: All kernel stacks must be aligned to STACK_SIZE,
+		 *       see CURRENT.
+		 */
+		for (size_t i = 0; i < config.cpu_count; i++) {
 			uintptr_t stack_phys = frame_alloc(STACK_FRAMES,
 			    FRAME_LOWMEM | FRAME_ATOMIC, STACK_SIZE - 1);
 			if (!stack_phys)

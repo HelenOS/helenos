@@ -53,26 +53,6 @@ _NO_TRACE static inline void cpu_sleep(void)
 	asm volatile ("wfe");
 }
 
-/** Return base address of current stack.
- *
- * Return the base address of the current stack.
- * The stack is assumed to be STACK_SIZE bytes long.
- * The stack must start on page boundary.
- */
-_NO_TRACE static inline uintptr_t get_stack_base(void)
-{
-	uintptr_t v;
-
-	asm volatile (
-	    "mov %[v], sp\n"
-	    "and %[v], %[v], %[size]\n"
-	    : [v] "=&r" (v)
-	    : [size] "r" (~((uint64_t) STACK_SIZE - 1))
-	);
-
-	return v;
-}
-
 /** Halts CPU. */
 _NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 {

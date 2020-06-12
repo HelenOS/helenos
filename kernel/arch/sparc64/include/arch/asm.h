@@ -381,26 +381,6 @@ _NO_TRACE static inline bool interrupts_disabled(void)
 	return !pstate.ie;
 }
 
-/** Return base address of current stack.
- *
- * Return the base address of the current stack.
- * The stack is assumed to be STACK_SIZE bytes long.
- * The stack must start on page boundary.
- *
- */
-_NO_TRACE static inline uintptr_t get_stack_base(void)
-{
-	uintptr_t unbiased_sp;
-
-	asm volatile (
-	    "add %%sp, %[stack_bias], %[unbiased_sp]\n"
-	    : [unbiased_sp] "=r" (unbiased_sp)
-	    : [stack_bias] "i" (STACK_BIAS)
-	);
-
-	return ALIGN_DOWN(unbiased_sp, STACK_SIZE);
-}
-
 /** Read Version Register.
  *
  * @return Value of VER register.

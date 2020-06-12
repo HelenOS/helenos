@@ -44,26 +44,6 @@ _NO_TRACE static inline void cpu_sleep(void)
 	asm volatile ("wait");
 }
 
-/** Return base address of current stack
- *
- * Return the base address of the current stack.
- * The stack is assumed to be STACK_SIZE bytes long.
- * The stack must start on page boundary.
- *
- */
-_NO_TRACE static inline uintptr_t get_stack_base(void)
-{
-	uintptr_t base;
-
-	asm volatile (
-	    "and %[base], $29, %[mask]\n"
-	    : [base] "=r" (base)
-	    : [mask] "r" (~(STACK_SIZE - 1))
-	);
-
-	return base;
-}
-
 _NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;

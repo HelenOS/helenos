@@ -40,7 +40,7 @@
 #include <arch/context_struct.h>
 
 /*
- * Put one item onto the stack to support get_stack_base() and align it up.
+ * Put one item onto the stack to support CURRENT and align it up.
  */
 #define SP_DELTA  (ABI_STACK_FRAME + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 

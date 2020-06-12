@@ -41,7 +41,7 @@
 #include <arch/context_struct.h>
 #include <arch/regutils.h>
 
-/* Put one item onto the stack to support get_stack_base() and align it up. */
+/* Put one item onto the stack to support CURRENT and align it up. */
 #define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 
 #define context_set(c, _pc, stack, size) \

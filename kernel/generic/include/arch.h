@@ -35,16 +35,23 @@
 #ifndef KERN_ARCH_H_
 #define KERN_ARCH_H_
 
-#include <arch/asm.h>   /* get_stack_base() */
 #include <config.h>
 
-/*
+/** Return the current_t structure
+ *
  * The current_t structure holds pointers to various parts of the current
  * execution state, like running task, thread, address space, etc.
+ *
+ * The current_t structure is located at the base address of the current
+ * stack. The stack is assumed to be STACK_SIZE bytes long. The stack base
+ * address must be aligned to STACK_SIZE.
+ *
  */
-#define CURRENT  ((current_t * )(get_stack_base()))
+#define CURRENT \
+	((current_t *) (((uintptr_t) __builtin_frame_address(0)) & \
+	    (~((uintptr_t) STACK_SIZE - 1))))
 
-#define MAGIC                UINT32_C(0xfacefeed)
+#define MAGIC  UINT32_C(0xfacefeed)
 
 #define container_check(ctn1, ctn2)  ((ctn1) == (ctn2))
 
@@ -58,18 +65,20 @@ struct task;
 struct cpu;
 struct as;
 
-/**
+/** Current structure
+ *
  * For each possible kernel stack, structure
  * of the following type will be placed at
  * the base address of the stack.
+ *
  */
 typedef struct {
-	size_t preemption;     /**< Preemption disabled counter and flag. */
-	struct thread *thread; /**< Current thread. */
-	struct task *task;     /**< Current task. */
-	struct cpu *cpu;       /**< Executing cpu. */
-	struct as *as;         /**< Current address space. */
-	uint32_t magic;        /**< Magic value */
+	size_t preemption;      /**< Preemption disabled counter and flag. */
+	struct thread *thread;  /**< Current thread. */
+	struct task *task;      /**< Current task. */
+	struct cpu *cpu;        /**< Executing CPU. */
+	struct as *as;          /**< Current address space. */
+	uint32_t magic;         /**< Magic value. */
 } current_t;
 
 typedef struct {
@@ -88,7 +97,7 @@ extern arch_ops_t *arch_ops;
 			(s)->op(); \
 	} while (0)
 
-#define ARCH_OP(op)	ARCH_STRUCT_OP(arch_ops, op)
+#define ARCH_OP(op)  ARCH_STRUCT_OP(arch_ops, op)
 
 extern void current_initialize(current_t *);
 extern void current_copy(current_t *, current_t *);

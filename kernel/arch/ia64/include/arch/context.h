@@ -45,7 +45,7 @@
  * context_save_arch() and context_restore_arch() are both leaf procedures.
  * No need to allocate scratch area.
  *
- * One item is put onto the stack to support get_stack_base().
+ * One item is put onto the stack to support CURRENT.
  */
 #define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
 

@@ -94,26 +94,6 @@ _NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 	return *port;
 }
 
-/** Return base address of current stack.
- *
- * Return the base address of the current stack.
- * The stack is assumed to be STACK_SIZE bytes long.
- * The stack must start on page boundary.
- *
- */
-_NO_TRACE static inline uintptr_t get_stack_base(void)
-{
-	uintptr_t v;
-
-	asm volatile (
-	    "and %[v], sp, %[size]\n"
-	    : [v] "=r" (v)
-	    : [size] "r" (~(STACK_SIZE - 1))
-	);
-
-	return v;
-}
-
 extern void cpu_halt(void) __attribute__((noreturn));
 extern void asm_delay_loop(uint32_t t);
 extern void userspace_asm(uintptr_t ustack, uintptr_t uspace_uarg,
