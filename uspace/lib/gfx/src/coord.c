@@ -254,6 +254,29 @@ bool gfx_rect_is_incident(gfx_rect_t *a, gfx_rect_t *b)
 	return !gfx_rect_is_empty(&r);
 }
 
+/** Return true if rectangle @a a is contained in rectangle @a b.
+ *
+ * @param a Inside rectangle
+ * @param b Outside rectangle
+ * @return @c true iff @a a is (non-strictly) inside @a b
+ */
+bool gfx_rect_is_inside(gfx_rect_t *a, gfx_rect_t *b)
+{
+	gfx_rect_t sa;
+	gfx_rect_t sb;
+
+	gfx_rect_points_sort(a, &sa);
+	gfx_rect_points_sort(b, &sb);
+
+	if (sa.p0.x < sb.p0.x || sa.p0.y < sb.p0.y)
+		return false;
+
+	if (sa.p1.x > sb.p1.x || sa.p1.y > sb.p1.y)
+		return false;
+
+	return true;
+}
+
 /** Get rectangle dimensions.
  *
  * Get a vector containing the x, y dimensions of a rectangle. These are

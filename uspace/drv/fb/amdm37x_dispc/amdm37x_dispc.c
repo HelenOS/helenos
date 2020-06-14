@@ -381,6 +381,10 @@ errno_t amdm37x_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	gfx_coord2_t dim;
 	errno_t rc;
 
+	/* Check that we support all required flags */
+	if ((params->flags & ~bmpf_color_key) != 0)
+		return ENOTSUP;
+
 	dcbm = calloc(1, sizeof(amdm37x_bitmap_t));
 	if (dcbm == NULL)
 		return ENOMEM;
@@ -482,6 +486,7 @@ static errno_t amdm37x_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	 */
 	gfx_rect_clip(&srect, &skfbrect, &crect);
 
+	// XXX bmpf_color_key
 	for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
 		for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
 			gfx_coord2_subtract(&pos, &dcbm->rect.p0, &sp);

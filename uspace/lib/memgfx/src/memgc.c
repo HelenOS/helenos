@@ -36,6 +36,7 @@
  * software renderer).
  */
 
+#include <as.h>
 #include <assert.h>
 #include <gfx/color.h>
 #include <gfx/context.h>
@@ -222,6 +223,10 @@ errno_t mem_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	gfx_coord2_t dim;
 	errno_t rc;
 
+	/* Check that we support all requested flags */
+	if ((params->flags & ~(bmpf_color_key | bmpf_direct_output)) != 0)
+		return ENOTSUP;
+
 	mbm = calloc(1, sizeof(mem_gc_bitmap_t));
 	if (mbm == NULL)
 		return ENOMEM;
@@ -231,13 +236,50 @@ errno_t mem_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	mbm->flags = params->flags;
 	mbm->key_color = params->key_color;
 
-	if (alloc == NULL) {
+	if ((params->flags & bmpf_direct_output) != 0) {
+		/* Caller cannot specify allocation for direct output */
+		if (alloc != NULL) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		/* Bounding rectangle must be within GC bounding rectangle */
+		if (!gfx_rect_is_inside(&mbm->rect, &mgc->rect)) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		mbm->alloc = mgc->alloc;
+
+		/* Don't free pixel array when destroying bitmap */
+		mbm->myalloc = false;
+	} else if (alloc == NULL) {
+#if 0
+		/*
+		 * TODO: If the bitmap is not required to be sharable,
+		 * we could allocate it with a simple malloc.
+		 * Need to have a bitmap flag specifying that the
+		 * allocation should be sharable. IPC GC could
+		 * automatically add this flag
+		 */
 		mbm->alloc.pitch = dim.x * sizeof(uint32_t);
 		mbm->alloc.off0 = 0;
 		mbm->alloc.pixels = malloc(mbm->alloc.pitch * dim.y);
 		mbm->myalloc = true;
 
 		if (mbm->alloc.pixels == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+#endif
+		mbm->alloc.pitch = dim.x * sizeof(uint32_t);
+		mbm->alloc.off0 = 0;
+		mbm->alloc.pixels = as_area_create(AS_AREA_ANY,
+		    dim.x * dim.y * sizeof(uint32_t), AS_AREA_READ |
+		    AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
+		mbm->myalloc = true;
+
+		if (mbm->alloc.pixels == AS_MAP_FAILED) {
 			rc = ENOMEM;
 			goto error;
 		}
@@ -262,8 +304,13 @@ error:
 static errno_t mem_gc_bitmap_destroy(void *bm)
 {
 	mem_gc_bitmap_t *mbm = (mem_gc_bitmap_t *)bm;
-	if (mbm->myalloc)
+	if (mbm->myalloc) {
+#if 0
+		/* TODO: if we alloc allocating the bitmap with malloc */
 		free(mbm->alloc.pixels);
+#endif
+		as_area_destroy(mbm->alloc.pixels);
+	}
 
 	free(mbm);
 	return EOK;
@@ -316,7 +363,9 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	dmap.height = mbm->mgc->rect.p1.y;
 	dmap.data = mbm->mgc->alloc.pixels;
 
-	if ((mbm->flags & bmpf_color_key) == 0) {
+	if ((mbm->flags & bmpf_direct_output) != 0) {
+		/* Nothing to do */
+	} else if ((mbm->flags & bmpf_color_key) == 0) {
 		for (y = drect.p0.y; y < drect.p1.y; y++) {
 			for (x = drect.p0.x; x < drect.p1.x; x++) {
 				pixel = pixelmap_get_pixel(&smap,

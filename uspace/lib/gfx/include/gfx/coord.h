@@ -54,6 +54,7 @@ extern void gfx_rect_points_sort(gfx_rect_t *, gfx_rect_t *);
 extern void gfx_rect_dims(gfx_rect_t *, gfx_coord2_t *);
 extern bool gfx_rect_is_empty(gfx_rect_t *);
 extern bool gfx_rect_is_incident(gfx_rect_t *, gfx_rect_t *);
+extern bool gfx_rect_is_inside(gfx_rect_t *, gfx_rect_t *);
 extern bool gfx_pix_inside_rect(gfx_coord2_t *, gfx_rect_t *);
 
 #endif

@@ -127,7 +127,6 @@ static void gc_bitmap_create_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 
 	/* Check size */
 	if (size != PAGES2SIZE(SIZE2PAGES(dim.x * dim.y * sizeof(uint32_t)))) {
-		printf("size=%zu, expected=%zu\n", size, dim.x * dim.y * sizeof(uint32_t));
 		async_answer_0(icall, EINVAL);
 		return;
 	}
@@ -162,6 +161,91 @@ static void gc_bitmap_create_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 	srvbmp->bmp = bitmap;
 	srvbmp->bmp_id = srvgc->next_bmp_id++;
 	printf("gc_bitmap_create_srv: storing bmp_id=%u\n",
+	    (unsigned) srvbmp->bmp_id);
+
+	async_answer_1(icall, EOK, srvbmp->bmp_id);
+}
+
+static void gc_bitmap_create_doutput_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
+{
+	gfx_bitmap_params_t params;
+	gfx_bitmap_alloc_t alloc;
+	gfx_bitmap_t *bitmap;
+	gfx_coord2_t dim;
+	ipc_gc_srv_bitmap_t *srvbmp = NULL;
+	ipc_call_t call;
+	size_t size;
+	errno_t rc;
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(gfx_bitmap_params_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, &params, size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	/* Bitmap dimensions */
+	gfx_coord2_subtract(&params.rect.p1, &params.rect.p0, &dim);
+
+	if (!async_share_in_receive(&call, &size)) {
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	/* Check size */
+	if (size != PAGES2SIZE(SIZE2PAGES(dim.x * dim.y * sizeof(uint32_t)))) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = gfx_bitmap_create(srvgc->gc, &params, NULL, &bitmap);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	rc = gfx_bitmap_get_alloc(bitmap, &alloc);
+	if (rc != EOK) {
+		gfx_bitmap_destroy(bitmap);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	rc = async_share_in_finalize(&call, alloc.pixels, AS_AREA_READ |
+	    AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	if (rc != EOK) {
+		gfx_bitmap_destroy(bitmap);
+		async_answer_0(icall, EIO);
+		return;
+	}
+
+	srvbmp = calloc(1, sizeof(ipc_gc_srv_bitmap_t));
+	if (srvbmp == NULL) {
+		gfx_bitmap_destroy(bitmap);
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	srvbmp->srvgc = srvgc;
+	list_append(&srvbmp->lbitmaps, &srvgc->bitmaps);
+	srvbmp->bmp = bitmap;
+	srvbmp->bmp_id = srvgc->next_bmp_id++;
+	printf("gc_bitmap_create_doutput_srv: storing bmp_id=%u\n",
 	    (unsigned) srvbmp->bmp_id);
 
 	async_answer_1(icall, EOK, srvbmp->bmp_id);
@@ -268,6 +352,9 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 			break;
 		case GC_BITMAP_CREATE:
 			gc_bitmap_create_srv(&srvgc, &call);
+			break;
+		case GC_BITMAP_CREATE_DOUTPUT:
+			gc_bitmap_create_doutput_srv(&srvgc, &call);
 			break;
 		case GC_BITMAP_DESTROY:
 			gc_bitmap_destroy_srv(&srvgc, &call);

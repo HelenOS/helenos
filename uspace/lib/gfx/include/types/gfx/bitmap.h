@@ -47,7 +47,9 @@ typedef struct gfx_bitmap gfx_bitmap_t;
 /** Bitmap flags */
 typedef enum {
 	/** Enable color key */
-	bmpf_color_key = 0x1
+	bmpf_color_key = 0x1,
+	/** Directly map GC output into this bitmap */
+	bmpf_direct_output = 0x2
 } gfx_bitmap_flags_t;
 
 /** Bitmap parameters */

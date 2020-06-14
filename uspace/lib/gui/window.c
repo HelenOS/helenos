@@ -413,32 +413,71 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 		return;
 	}
 
-	/* Allocate resources for new surface. */
-	surface_t *new_surface = surface_create(width, height, NULL,
-	    SURFACE_FLAG_SHARED);
-	if (!new_surface)
+	fibril_mutex_lock(&win->guard);
+
+	/* Deallocate old bitmap. */
+	if (win->bitmap != NULL) {
+		gfx_bitmap_destroy(win->bitmap);
+		win->bitmap = NULL;
+	}
+
+	/* Deallocate old surface. */
+	if (win->surface != NULL) {
+		surface_destroy(win->surface);
+		win->surface = NULL;
+	}
+
+	/* Resize the display window. */
+	offs.x = offset_x;
+	offs.y = offset_y;
+	nrect.p0.x = 0;
+	nrect.p0.y = 0;
+	nrect.p1.x = width;
+	nrect.p1.y = height;
+
+	rc = display_window_resize(win->dwindow, &offs, &nrect);
+	if (rc != EOK)
 		return;
 
 	gfx_bitmap_params_init(&params);
+#ifndef CONFIG_WIN_DOUBLE_BUF
+	params.flags = bmpf_direct_output;
+#else
+	params.flags = 0;
+#endif
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = width;
 	params.rect.p1.y = height;
 
-	alloc.pitch = width * sizeof(uint32_t);
-	alloc.off0 = 0;
-	alloc.pixels = surface_direct_access(new_surface);
-
-	rc = gfx_bitmap_create(win->gc, &params, &alloc, &new_bitmap);
+	rc = gfx_bitmap_create(win->gc, &params, NULL, &new_bitmap);
 	if (rc != EOK) {
-		surface_destroy(new_surface);
+		if (rc == ENOTSUP) {
+			/* Direct output is not supported */
+			params.flags &= ~bmpf_direct_output;
+			rc = gfx_bitmap_create(win->gc, &params, NULL, &new_bitmap);
+			if (rc != EOK) {
+				fibril_mutex_unlock(&win->guard);
+				return;
+			}
+		}
+	}
+
+	rc = gfx_bitmap_get_alloc(new_bitmap, &alloc);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&win->guard);
 		return;
 	}
 
-	/* Switch new and old surface. */
-	fibril_mutex_lock(&win->guard);
-	surface_t *old_surface = win->surface;
-	gfx_bitmap_t *old_bitmap = win->bitmap;
+	/* Allocate new surface. */
+	surface_t *new_surface = surface_create(width, height, alloc.pixels, 0);
+	if (!new_surface) {
+		gfx_bitmap_destroy(new_bitmap);
+		fibril_mutex_unlock(&win->guard);
+		return;
+	}
+
+	/* Switch in new surface and bitmap. */
 	win->surface = new_surface;
 	win->bitmap = new_bitmap;
 	fibril_mutex_unlock(&win->guard);
@@ -452,47 +491,6 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	fibril_mutex_lock(&win->guard);
 	surface_reset_damaged_region(win->surface);
 	fibril_mutex_unlock(&win->guard);
-
-	/* Resize the display window. */
-	offs.x = offset_x;
-	offs.y = offset_y;
-	nrect.p0.x = 0;
-	nrect.p0.y = 0;
-	nrect.p1.x = width;
-	nrect.p1.y = height;
-
-	rc = display_window_resize(win->dwindow, &offs, &nrect);
-	if (rc != EOK) {
-		/* Rollback to old surface. Reverse all changes. */
-
-		sysarg_t old_width = 0;
-		sysarg_t old_height = 0;
-		if (old_surface)
-			surface_get_resolution(old_surface, &old_width, &old_height);
-
-		fibril_mutex_lock(&win->guard);
-		new_surface = win->surface;
-		win->surface = old_surface;
-		win->bitmap = old_bitmap;
-		fibril_mutex_unlock(&win->guard);
-
-		win->root.rearrange(&win->root, 0, 0, old_width, old_height);
-
-		if (win->surface) {
-			fibril_mutex_lock(&win->guard);
-			surface_reset_damaged_region(win->surface);
-			fibril_mutex_unlock(&win->guard);
-		}
-
-		surface_destroy(new_surface);
-		return;
-	}
-
-	if (old_bitmap != NULL)
-		gfx_bitmap_destroy(old_bitmap);
-	/* Deallocate old surface. */
-	if (old_surface)
-		surface_destroy(old_surface);
 
 	if (placement_flags != WINDOW_PLACEMENT_ANY) {
 		dpos.x = 0;

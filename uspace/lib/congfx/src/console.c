@@ -205,6 +205,10 @@ errno_t console_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	gfx_coord2_t dim;
 	errno_t rc;
 
+	/* Check that we support all requested flags */
+	if ((params->flags & ~bmpf_color_key) != 0)
+		return ENOTSUP;
+
 	cbm = calloc(1, sizeof(console_gc_bitmap_t));
 	if (cbm == NULL)
 		return ENOMEM;

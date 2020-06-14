@@ -107,7 +107,7 @@ static errno_t ipc_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	return rc;
 }
 
-/** Create bitmap in IPC GC.
+/** Create normal bitmap in IPC GC.
  *
  * @param arg IPC GC
  * @param params Bitmap params
@@ -115,7 +115,8 @@ static errno_t ipc_gc_fill_rect(void *arg, gfx_rect_t *rect)
  * @param rbm Place to store pointer to new bitmap
  * @return EOK on success or an error code
  */
-errno_t ipc_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+static errno_t ipc_gc_bitmap_create_normal(void *arg,
+    gfx_bitmap_params_t *params,
     gfx_bitmap_alloc_t *alloc, void **rbm)
 {
 	ipc_gc_t *ipcgc = (ipc_gc_t *) arg;
@@ -206,6 +207,100 @@ error:
 		free(ipcbm);
 	}
 	return rc;
+}
+
+/** Create direct output bitmap in IPC GC.
+ *
+ * @param arg IPC GC
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+static errno_t ipc_gc_bitmap_create_direct_output(void *arg,
+    gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	ipc_gc_t *ipcgc = (ipc_gc_t *) arg;
+	ipc_gc_bitmap_t *ipcbm = NULL;
+	gfx_coord2_t dim;
+	async_exch_t *exch = NULL;
+	void *pixels;
+	ipc_call_t answer;
+	size_t asize;
+	aid_t req;
+	errno_t rc;
+
+	/* Cannot specify allocation for direct output bitmap */
+	if (alloc != NULL)
+		return EINVAL;
+
+	ipcbm = calloc(1, sizeof(ipc_gc_bitmap_t));
+	if (ipcbm == NULL)
+		return ENOMEM;
+
+	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
+	ipcbm->rect = params->rect;
+
+	ipcbm->alloc.pitch = dim.x * sizeof(uint32_t);
+	ipcbm->alloc.off0 = 0;
+	ipcbm->myalloc = true;
+
+	asize = PAGES2SIZE(SIZE2PAGES(ipcbm->alloc.pitch * dim.y));
+
+	exch = async_exchange_begin(ipcgc->sess);
+	req = async_send_0(exch, GC_BITMAP_CREATE_DOUTPUT, &answer);
+	rc = async_data_write_start(exch, params, sizeof (gfx_bitmap_params_t));
+	if (rc != EOK) {
+		async_forget(req);
+		goto error;
+	}
+
+	rc = async_share_in_start_0_0(exch, asize, &pixels);
+	if (rc != EOK) {
+		async_forget(req);
+		goto error;
+	}
+	async_exchange_end(exch);
+	exch = NULL;
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		goto error;
+
+	ipcbm->ipcgc = ipcgc;
+	ipcbm->bmp_id = ipc_get_arg1(&answer);
+	ipcbm->alloc.pixels = pixels;
+	*rbm = (void *)ipcbm;
+	return EOK;
+error:
+	if (exch != NULL)
+		async_exchange_end(exch);
+	if (ipcbm != NULL) {
+		if (ipcbm->alloc.pixels != NULL)
+			as_area_destroy(ipcbm->alloc.pixels);
+		free(ipcbm);
+	}
+	return rc;
+}
+
+/** Create bitmap in IPC GC.
+ *
+ * @param arg IPC GC
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+errno_t ipc_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	if ((params->flags & bmpf_direct_output) != 0) {
+		return ipc_gc_bitmap_create_direct_output(arg, params, alloc,
+		    rbm);
+	} else {
+		return ipc_gc_bitmap_create_normal(arg, params, alloc, rbm);
+	}
 }
 
 /** Destroy bitmap in IPC GC.

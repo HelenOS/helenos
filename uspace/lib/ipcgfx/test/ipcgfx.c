@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <as.h>
 #include <async.h>
 #include <errno.h>
 #include <gfx/bitmap.h>
@@ -95,6 +96,7 @@ typedef struct {
 /** Bitmap in test GC */
 typedef struct {
 	test_response_t *resp;
+	gfx_bitmap_alloc_t alloc;
 } test_bitmap_t;
 
 /** gfx_set_color with server returning failure */
@@ -473,6 +475,131 @@ PCUT_TEST(bitmap_destroy_failure)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** gfx_bitmap_create direct output bitmap with server returning failure */
+PCUT_TEST(bitmap_create_dout_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	test_response_t resp;
+	gfx_context_t *gc;
+	gfx_bitmap_params_t params;
+	gfx_bitmap_t *bitmap;
+	async_sess_t *sess;
+	ipc_gc_t *ipcgc;
+
+	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_ipcgfx_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	sess = loc_service_connect(sid, INTERFACE_GC, 0);
+	PCUT_ASSERT_NOT_NULL(sess);
+
+	rc = ipc_gc_create(sess, &ipcgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = ipc_gc_get_ctx(ipcgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	resp.rc = ENOMEM;
+	resp.bitmap_create_called = false;
+
+	gfx_bitmap_params_init(&params);
+	params.flags = bmpf_direct_output;
+	params.rect.p0.x = 1;
+	params.rect.p0.y = 2;
+	params.rect.p1.x = 3;
+	params.rect.p1.y = 4;
+	bitmap = NULL;
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_TRUE(resp.bitmap_create_called);
+	PCUT_ASSERT_EQUALS(params.rect.p0.x, resp.bitmap_create_params.rect.p0.x);
+	PCUT_ASSERT_EQUALS(params.rect.p0.y, resp.bitmap_create_params.rect.p0.y);
+	PCUT_ASSERT_EQUALS(params.rect.p1.x, resp.bitmap_create_params.rect.p1.x);
+	PCUT_ASSERT_EQUALS(params.rect.p1.y, resp.bitmap_create_params.rect.p1.y);
+	PCUT_ASSERT_EQUALS((params.rect.p1.x - params.rect.p0.x) *
+	    sizeof(uint32_t), (unsigned) resp.bitmap_create_alloc.pitch);
+	PCUT_ASSERT_EQUALS(0, resp.bitmap_create_alloc.off0);
+	PCUT_ASSERT_NOT_NULL(resp.bitmap_create_alloc.pixels);
+	PCUT_ASSERT_NULL(bitmap);
+
+	ipc_gc_delete(ipcgc);
+	async_hangup(sess);
+
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** gfx_bitmap_create direct output bitmap with server returning success */
+PCUT_TEST(bitmap_create_dout_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	test_response_t resp;
+	gfx_context_t *gc;
+	gfx_bitmap_params_t params;
+	gfx_bitmap_t *bitmap;
+	async_sess_t *sess;
+	ipc_gc_t *ipcgc;
+
+	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_ipcgfx_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	sess = loc_service_connect(sid, INTERFACE_GC, 0);
+	PCUT_ASSERT_NOT_NULL(sess);
+
+	rc = ipc_gc_create(sess, &ipcgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = ipc_gc_get_ctx(ipcgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	resp.rc = EOK;
+	resp.bitmap_create_called = false;
+
+	gfx_bitmap_params_init(&params);
+	params.flags = bmpf_direct_output;
+	params.rect.p0.x = 1;
+	params.rect.p0.y = 2;
+	params.rect.p1.x = 3;
+	params.rect.p1.y = 4;
+	bitmap = NULL;
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(resp.bitmap_create_called);
+	PCUT_ASSERT_EQUALS(params.rect.p0.x, resp.bitmap_create_params.rect.p0.x);
+	PCUT_ASSERT_EQUALS(params.rect.p0.y, resp.bitmap_create_params.rect.p0.y);
+	PCUT_ASSERT_EQUALS(params.rect.p1.x, resp.bitmap_create_params.rect.p1.x);
+	PCUT_ASSERT_EQUALS(params.rect.p1.y, resp.bitmap_create_params.rect.p1.y);
+	PCUT_ASSERT_EQUALS((params.rect.p1.x - params.rect.p0.x) *
+	    sizeof(uint32_t), (unsigned) resp.bitmap_create_alloc.pitch);
+	PCUT_ASSERT_EQUALS(0, resp.bitmap_create_alloc.off0);
+	PCUT_ASSERT_NOT_NULL(resp.bitmap_create_alloc.pixels);
+	PCUT_ASSERT_NOT_NULL(bitmap);
+
+	resp.bitmap_destroy_called = false;
+	rc = gfx_bitmap_destroy(bitmap);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(resp.bitmap_destroy_called);
+
+	ipc_gc_delete(ipcgc);
+	async_hangup(sess);
+
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** gfx_bitmap_render with server returning failure */
 PCUT_TEST(bitmap_render_failure)
 {
@@ -732,10 +859,24 @@ errno_t test_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 {
 	test_response_t *resp = (test_response_t *) arg;
 	test_bitmap_t *bitmap;
+	gfx_coord2_t dim;
 
 	resp->bitmap_create_called = true;
 	resp->bitmap_create_params = *params;
-	resp->bitmap_create_alloc = *alloc;
+
+	if ((params->flags & bmpf_direct_output) != 0) {
+		gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
+
+		resp->bitmap_create_alloc.pitch = dim.x * sizeof(uint32_t);
+		resp->bitmap_create_alloc.off0 = 0;
+		resp->bitmap_create_alloc.pixels = as_area_create(AS_AREA_ANY,
+		    dim.x * dim.y * sizeof(uint32_t), AS_AREA_READ |
+		    AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
+		if (resp->bitmap_create_alloc.pixels == AS_MAP_FAILED)
+			return ENOMEM;
+	} else {
+		resp->bitmap_create_alloc = *alloc;
+	}
 
 	if (resp->rc != EOK)
 		return resp->rc;
@@ -745,6 +886,7 @@ errno_t test_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 		return ENOMEM;
 
 	bitmap->resp = resp;
+	bitmap->alloc = resp->bitmap_create_alloc;
 	*rbm = (void *) bitmap;
 	return EOK;
 }
@@ -762,6 +904,9 @@ static errno_t test_gc_bitmap_destroy(void *bm)
 	resp->bitmap_destroy_called = true;
 	if (resp->rc != EOK)
 		return resp->rc;
+
+	if ((resp->bitmap_create_params.flags & bmpf_direct_output) != 0)
+		as_area_destroy(resp->bitmap_create_alloc.pixels);
 
 	free(bitmap);
 	return EOK;
@@ -794,8 +939,10 @@ static errno_t test_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
  */
 static errno_t test_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 {
-	/* Currently IPC GC does not pass this method to the server */
-	return ENOTSUP;
+	test_bitmap_t *bitmap = (test_bitmap_t *) bm;
+
+	*alloc = bitmap->alloc;
+	return EOK;
 }
 
 PCUT_EXPORT(ipcgfx);

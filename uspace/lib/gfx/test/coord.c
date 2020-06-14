@@ -774,6 +774,106 @@ PCUT_TEST(rect_is_incident_same)
 	PCUT_ASSERT_TRUE(gfx_rect_is_incident(&a, &b));
 }
 
+/** gfx_rect_is_inside is true for rectangle strictly inside */
+PCUT_TEST(rect_is_inside_strict)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 2;
+	a.p0.y = 3;
+	a.p1.x = 4;
+	a.p1.y = 5;
+
+	b.p0.x = 1;
+	b.p0.y = 2;
+	b.p1.x = 5;
+	b.p1.y = 6;
+
+	PCUT_ASSERT_TRUE(gfx_rect_is_inside(&a, &b));
+}
+
+/** gfx_rect_is_inside is true for two equal rectangles */
+PCUT_TEST(rect_is_inside_same)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 1;
+	a.p0.y = 2;
+	a.p1.x = 3;
+	a.p1.y = 4;
+
+	b.p0.x = 1;
+	b.p0.y = 2;
+	b.p1.x = 3;
+	b.p1.y = 4;
+
+	PCUT_ASSERT_TRUE(gfx_rect_is_inside(&a, &b));
+}
+
+/** gfx_rect_is_inside is false for @c a.p0 outside */
+PCUT_TEST(rect_is_inside_p0_outside)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 0;
+	a.p0.y = 2;
+	a.p1.x = 3;
+	a.p1.y = 4;
+
+	b.p0.x = 1;
+	b.p0.y = 2;
+	b.p1.x = 3;
+	b.p1.y = 4;
+
+	PCUT_ASSERT_FALSE(gfx_rect_is_inside(&a, &b));
+
+	a.p0.x = 1;
+	a.p0.y = 1;
+	a.p1.x = 3;
+	a.p1.y = 4;
+
+	b.p0.x = 1;
+	b.p0.y = 2;
+	b.p1.x = 3;
+	b.p1.y = 4;
+
+	PCUT_ASSERT_FALSE(gfx_rect_is_inside(&a, &b));
+}
+
+/** gfx_rect_is_inside is false for @c a.p1 outside */
+PCUT_TEST(rect_is_inside_p1_outside)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+
+	a.p0.x = 1;
+	a.p0.y = 2;
+	a.p1.x = 4;
+	a.p1.y = 4;
+
+	b.p0.x = 1;
+	b.p0.y = 2;
+	b.p1.x = 3;
+	b.p1.y = 4;
+
+	PCUT_ASSERT_FALSE(gfx_rect_is_inside(&a, &b));
+
+	a.p0.x = 1;
+	a.p0.y = 2;
+	a.p1.x = 3;
+	a.p1.y = 5;
+
+	b.p0.x = 1;
+	b.p0.y = 2;
+	b.p1.x = 3;
+	b.p1.y = 4;
+
+	PCUT_ASSERT_FALSE(gfx_rect_is_inside(&a, &b));
+}
+
 /** gfx_pix_inside_rect for  */
 PCUT_TEST(pix_inside_rect)
 {
