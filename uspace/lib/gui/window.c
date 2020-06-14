@@ -470,7 +470,8 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	}
 
 	/* Allocate new surface. */
-	surface_t *new_surface = surface_create(width, height, alloc.pixels, 0);
+	surface_t *new_surface = surface_create(width, height, alloc.pixels,
+	    SURFACE_FLAG_SHARED);
 	if (!new_surface) {
 		gfx_bitmap_destroy(new_bitmap);
 		fibril_mutex_unlock(&win->guard);
