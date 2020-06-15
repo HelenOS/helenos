@@ -163,6 +163,10 @@ static void gc_bitmap_create_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 	printf("gc_bitmap_create_srv: storing bmp_id=%u\n",
 	    (unsigned) srvbmp->bmp_id);
 
+	/* We created the memory area by sharing it in */
+	srvbmp->myalloc = true;
+	srvbmp->pixels = pixels;
+
 	async_answer_1(icall, EOK, srvbmp->bmp_id);
 }
 
@@ -245,6 +249,11 @@ static void gc_bitmap_create_doutput_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 	list_append(&srvbmp->lbitmaps, &srvgc->bitmaps);
 	srvbmp->bmp = bitmap;
 	srvbmp->bmp_id = srvgc->next_bmp_id++;
+
+	/* Area allocated by backing GC, we just shared it out */
+	srvbmp->myalloc = false;
+	srvbmp->pixels = alloc.pixels; // Not really needed
+
 	printf("gc_bitmap_create_doutput_srv: storing bmp_id=%u\n",
 	    (unsigned) srvbmp->bmp_id);
 
@@ -270,6 +279,9 @@ static void gc_bitmap_destroy_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
 		async_answer_0(call, rc);
 		return;
 	}
+
+	if (bitmap->myalloc)
+		as_area_destroy(bitmap->pixels);
 
 	list_remove(&bitmap->lbitmaps);
 	free(bitmap);

@@ -42,6 +42,7 @@
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
+#include <stdbool.h>
 
 /** Server-side of IPC GC connection.
  */
@@ -64,6 +65,10 @@ typedef struct {
 	gfx_bitmap_t *bmp;
 	/** Bitmap ID */
 	sysarg_t bmp_id;
+	/** @c true if we allocated the pixels */
+	bool myalloc;
+	/** Pixels of the bitmap */
+	void *pixels;
 } ipc_gc_srv_bitmap_t;
 
 #endif
