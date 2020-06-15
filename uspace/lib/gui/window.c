@@ -508,7 +508,7 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 		if (placement_flags & WINDOW_PLACEMENT_LEFT)
 			dpos.x = drect.p0.x;
 		else if (placement_flags & WINDOW_PLACEMENT_CENTER_X)
-			dpos.x = (drect.p0.x + drect.p0.y - width) / 2;
+			dpos.x = (drect.p0.x + drect.p1.x - width) / 2;
 		else
 			dpos.x = drect.p1.x - width;
 
