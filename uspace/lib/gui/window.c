@@ -568,6 +568,14 @@ static void handle_close(window_t *win)
 	win->grab = NULL;
 	win->focus = NULL;
 
+	gfx_bitmap_destroy(win->bitmap);
+
+	/*
+	 * XXX Here we should properly destroy the IPC GC. We only have
+	 * the generic GC so either it would need to be cast back or
+	 * GC needs a virtual destructor.
+	 */
+
 	display_window_destroy(win->dwindow);
 	display_close(win->display);
 
