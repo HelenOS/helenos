@@ -27,6 +27,7 @@
  */
 
 #include <balloc.h>
+#include <stdalign.h>
 #include <stddef.h>
 #include <align.h>
 
@@ -50,7 +51,7 @@ void *balloc(size_t size, size_t alignment)
 		return NULL;
 
 	/* Enforce minimal alignment. */
-	alignment = ALIGN_UP(alignment, 4);
+	alignment = ALIGN_UP(alignment, alignof(max_align_t));
 
 	uintptr_t addr = phys_base + ALIGN_UP(ballocs->size, alignment);
 

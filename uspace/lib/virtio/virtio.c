@@ -34,6 +34,7 @@
 #include <as.h>
 #include <align.h>
 #include <macros.h>
+#include <stdalign.h>
 
 #include <ddf/log.h>
 #include <barrier.h>
@@ -229,11 +230,11 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 	 * the individual components
 	 */
 	size_t mem_size = sizeof(virtq_desc_t[size]);
-	mem_size = ALIGN_UP(mem_size, _Alignof(virtq_avail_t));
+	mem_size = ALIGN_UP(mem_size, alignof(virtq_avail_t));
 	avail_offset = mem_size;
 	mem_size += sizeof(virtq_avail_t) + sizeof(ioport16_t[size]) +
 	    sizeof(ioport16_t);
-	mem_size = ALIGN_UP(mem_size, _Alignof(virtq_used_t));
+	mem_size = ALIGN_UP(mem_size, alignof(virtq_used_t));
 	used_offset = mem_size;
 	mem_size += sizeof(virtq_used_t) + sizeof(virtq_used_elem_t[size]) +
 	    sizeof(ioport16_t);

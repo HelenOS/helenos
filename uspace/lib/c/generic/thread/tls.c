@@ -36,6 +36,7 @@
  */
 
 #include <assert.h>
+#include <stdalign.h>
 #include <stddef.h>
 #include <align.h>
 #include <tls.h>
@@ -68,7 +69,7 @@ static ptrdiff_t _tcb_data_offset(void)
 	return ALIGN_UP((ptrdiff_t) sizeof(tcb_t), tls_align);
 #else
 	size_t tls_size = tls ? tls->p_memsz : 0;
-	return -ALIGN_UP((ptrdiff_t) tls_size, max(tls_align, _Alignof(tcb_t)));
+	return -ALIGN_UP((ptrdiff_t) tls_size, max(tls_align, alignof(tcb_t)));
 #endif
 }
 
@@ -103,10 +104,10 @@ static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 	    ALIGN_UP(sizeof(tcb_t), tls_align) + tls_size;
 #else
 	size_t alloc_size =
-	    ALIGN_UP(tls_size, max(tls_align, _Alignof(tcb_t))) + sizeof(tcb_t);
+	    ALIGN_UP(tls_size, max(tls_align, alignof(tcb_t))) + sizeof(tcb_t);
 #endif
 
-	void *area = alloc(max(tls_align, _Alignof(tcb_t)), alloc_size);
+	void *area = alloc(max(tls_align, alignof(tcb_t)), alloc_size);
 	if (!area)
 		return NULL;
 
@@ -186,7 +187,7 @@ void tls_free(tcb_t *tcb)
 	assert(tls != NULL);
 	tls_free_arch(tcb,
 	    ALIGN_UP(tls->p_memsz, tls->p_align) + sizeof(tcb_t),
-	    max(tls->p_align, _Alignof(tcb_t)));
+	    max(tls->p_align, alignof(tcb_t)));
 }
 
 #ifdef CONFIG_TLS_VARIANT_1

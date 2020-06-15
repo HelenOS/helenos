@@ -34,6 +34,7 @@
  */
 
 #include <malloc.h>
+#include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <as.h>
@@ -197,6 +198,14 @@ static heap_block_head_t *next_fit = NULL;
 static fibril_rmutex_t malloc_mutex;
 
 #define malloc_assert(expr) safe_assert(expr)
+
+/*
+ * Make sure the base alignment is sufficient.
+ */
+static_assert(BASE_ALIGN >= alignof(heap_area_t), "");
+static_assert(BASE_ALIGN >= alignof(heap_block_head_t), "");
+static_assert(BASE_ALIGN >= alignof(heap_block_foot_t), "");
+static_assert(BASE_ALIGN >= alignof(max_align_t), "");
 
 /** Serializes access to the heap from multiple threads. */
 static inline void heap_lock(void)

@@ -39,6 +39,7 @@
 #include <elf/elf_load.h>
 #include <errno.h>
 #include <loader/pcb.h>
+#include <stdalign.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -352,7 +353,7 @@ void modules_process_tls(rtld_t *rtld)
 {
 #ifdef CONFIG_TLS_VARIANT_1
 	rtld->tls_size = sizeof(tcb_t);
-	rtld->tls_align = _Alignof(tcb_t);
+	rtld->tls_align = alignof(tcb_t);
 
 	list_foreach(rtld->modules, modules_link, module_t, m) {
 		list_append(&m->imodules_link, &rtld->imodules);
@@ -365,7 +366,7 @@ void modules_process_tls(rtld_t *rtld)
 
 #else
 	rtld->tls_size = 0;
-	rtld->tls_align = _Alignof(tcb_t);
+	rtld->tls_align = alignof(tcb_t);
 
 	list_foreach(rtld->modules, modules_link, module_t, m) {
 		list_append(&m->imodules_link, &rtld->imodules);
