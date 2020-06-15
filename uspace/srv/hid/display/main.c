@@ -196,6 +196,10 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 			return;
 		}
 
+		/*
+		 * XXX We need a way to make sure that the connection does
+		 * not stay active after the window had been destroyed
+		 */
 		gc = ds_window_get_ctx(wnd);
 		gc_conn(icall, gc);
 	}

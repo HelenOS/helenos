@@ -380,6 +380,7 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 		}
 	}
 
+	// TODO: Destroy all remaining bitmaps (+ emit warning?)
 	return EOK;
 }
 
