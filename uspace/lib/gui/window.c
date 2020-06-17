@@ -308,7 +308,7 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 		bool close = (header) &&
 		    (event.hpos >= width - border_thickness - close_thickness);
 
-		bool isresize = true;
+		bool isresize = widget->window->is_resizable;
 		display_wnd_rsztype_t rsztype = 0;
 
 		if (edge && ctop && cleft) {
@@ -669,6 +669,7 @@ window_t *window_open(const char *winreg, const void *data,
 
 	win->is_main = flags & WINDOW_MAIN;
 	win->is_decorated = flags & WINDOW_DECORATED;
+	win->is_resizable = flags & WINDOW_RESIZEABLE;
 	win->is_focused = true;
 	prodcons_initialize(&win->events);
 	fibril_mutex_initialize(&win->guard);
@@ -883,6 +884,9 @@ static void window_resize_event(void *arg, gfx_rect_t *nrect)
 {
 	window_t *win = (window_t *) arg;
 	window_event_t *event;
+
+	if (!win->is_resizable)
+		return;
 
 	event = (window_event_t *) calloc(1, sizeof(window_event_t));
 	if (event == NULL)

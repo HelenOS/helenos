@@ -51,6 +51,7 @@ struct window {
 	bool is_main; /**< True for the main window of the application. */
 	bool is_decorated; /**< True if the window decorations should be rendered. */
 	bool is_focused; /**< True for the top level window of the desktop. */
+	bool is_resizable; /**< True if window is resizable */
 	char *caption; /**< Text title of the window header. */
 	display_t *display; /**< Display service */
 	display_window_t *dwindow; /**< Display window */
