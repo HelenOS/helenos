@@ -295,7 +295,7 @@ FUNCTION_BEGIN(fpu_context_restore)
 	nop
 FUNCTION_END(fpu_context_restore)
 
-FUNCTION_BEGIN(early_putwchar)
+FUNCTION_BEGIN(early_putuchar)
 	j $ra
 	nop
-FUNCTION_END(early_putwchar)
+FUNCTION_END(early_putuchar)

@@ -139,7 +139,7 @@ static sysarg_t chargrid_update_cols(chargrid_t *scrbuf)
  *         updated to a new row, this value is 2.
  *
  */
-sysarg_t chargrid_putwchar(chargrid_t *scrbuf, wchar_t ch, bool update)
+sysarg_t chargrid_putuchar(chargrid_t *scrbuf, char32_t ch, bool update)
 {
 	assert(scrbuf->col < scrbuf->cols);
 	assert(scrbuf->row < scrbuf->rows);
@@ -198,7 +198,7 @@ sysarg_t chargrid_tabstop(chargrid_t *scrbuf, sysarg_t tab_size)
 	sysarg_t flush = 1;
 
 	for (sysarg_t i = 0; i < spaces; i++)
-		flush += chargrid_putwchar(scrbuf, ' ', true) - 1;
+		flush += chargrid_putuchar(scrbuf, ' ', true) - 1;
 
 	return flush;
 }
@@ -227,12 +227,12 @@ sysarg_t chargrid_backspace(chargrid_t *scrbuf)
 		scrbuf->col = scrbuf->cols - 1;
 		scrbuf->row--;
 
-		chargrid_putwchar(scrbuf, ' ', false);
+		chargrid_putuchar(scrbuf, ' ', false);
 		return 2;
 	}
 
 	scrbuf->col--;
-	chargrid_putwchar(scrbuf, ' ', false);
+	chargrid_putuchar(scrbuf, ' ', false);
 	return 1;
 }
 

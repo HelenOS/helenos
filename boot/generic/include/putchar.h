@@ -36,8 +36,9 @@
 #define BOOT_PUTCHAR_H_
 
 #include <stddef.h>
+#include <uchar.h>
 
-extern void putwchar(wchar_t);
+extern void putuchar(char32_t);
 
 #endif
 

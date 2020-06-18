@@ -75,7 +75,7 @@ static indev_operations_t kbrd_raw_ops = {
  *
  * @param sc Scancode of the key being released.
  */
-static void key_released(kbrd_instance_t *instance, wchar_t sc)
+static void key_released(kbrd_instance_t *instance, char32_t sc)
 {
 	spinlock_lock(&instance->keylock);
 
@@ -102,12 +102,12 @@ static void key_released(kbrd_instance_t *instance, wchar_t sc)
  *
  * @param sc Scancode of the key being pressed.
  */
-static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
+static void key_pressed(kbrd_instance_t *instance, char32_t sc)
 {
 	bool letter;
 	bool shift;
 	bool capslock;
-	wchar_t ch;
+	char32_t ch;
 
 	spinlock_lock(&instance->keylock);
 
@@ -157,7 +157,7 @@ static void kkbrd(void *arg)
 	kbrd_instance_t *instance = (kbrd_instance_t *) arg;
 
 	while (true) {
-		wchar_t sc = indev_pop_character(&instance->raw);
+		char32_t sc = indev_pop_character(&instance->raw);
 
 		if (sc == IGNORE_CODE)
 			continue;

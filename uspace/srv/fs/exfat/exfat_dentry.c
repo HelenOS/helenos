@@ -109,7 +109,7 @@ void exfat_dentry_get_vollabel(const exfat_vollabel_dentry_t *vollabel,
 	dst[i] = '\0';
 }
 
-bool exfat_valid_char(wchar_t ch)
+bool exfat_valid_char(char32_t ch)
 {
 	if (ch >= 0x01 && ch <= 0x1F)
 		return false;
@@ -133,7 +133,7 @@ bool exfat_valid_char(wchar_t ch)
 bool exfat_valid_name(const char *name)
 {
 	size_t off = 0;
-	wchar_t ch;
+	char32_t ch;
 
 	while ((ch = str_decode(name, &off, STR_NO_LIMIT)) != 0) {
 		if (!exfat_valid_char(ch))

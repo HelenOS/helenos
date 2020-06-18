@@ -63,7 +63,7 @@ errno_t font_get_metrics(font_t *font, font_metrics_t *metrics)
 	return font->backend->get_font_metrics(font->backend_data, metrics);
 }
 
-errno_t font_resolve_glyph(font_t *font, wchar_t c, glyph_id_t *glyph_id)
+errno_t font_resolve_glyph(font_t *font, char32_t c, glyph_id_t *glyph_id)
 {
 	return font->backend->resolve_glyph(font->backend_data, c, glyph_id);
 }
@@ -94,7 +94,7 @@ errno_t font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height
 
 	size_t off = 0;
 	while (true) {
-		wchar_t c = str_decode(text, &off, STR_NO_LIMIT);
+		char32_t c = str_decode(text, &off, STR_NO_LIMIT);
 		if (c == 0)
 			break;
 
@@ -137,7 +137,7 @@ errno_t font_draw_text(font_t *font, drawctx_t *context, source_t *source,
 
 	size_t off = 0;
 	while (true) {
-		wchar_t c = str_decode(text, &off, STR_NO_LIMIT);
+		char32_t c = str_decode(text, &off, STR_NO_LIMIT);
 		if (c == 0)
 			break;
 

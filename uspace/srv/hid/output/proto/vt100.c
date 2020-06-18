@@ -139,14 +139,14 @@ static void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
 }
 
 vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
-    vt100_putwchar_t putwchar_fn, vt100_control_puts_t control_puts_fn,
+    vt100_putuchar_t putuchar_fn, vt100_control_puts_t control_puts_fn,
     vt100_flush_t flush_fn)
 {
 	vt100_state_t *state = malloc(sizeof(vt100_state_t));
 	if (state == NULL)
 		return NULL;
 
-	state->putwchar = putwchar_fn;
+	state->putuchar = putuchar_fn;
 	state->control_puts = control_puts_fn;
 	state->flush = flush_fn;
 
@@ -219,9 +219,9 @@ void vt100_cursor_visibility(vt100_state_t *state, bool visible)
 		state->control_puts("\033[?25l");
 }
 
-void vt100_putwchar(vt100_state_t *state, wchar_t ch)
+void vt100_putuchar(vt100_state_t *state, char32_t ch)
 {
-	state->putwchar(ch == 0 ? ' ' : ch);
+	state->putuchar(ch == 0 ? ' ' : ch);
 	state->cur_col++;
 
 	if (state->cur_col >= state->cols) {

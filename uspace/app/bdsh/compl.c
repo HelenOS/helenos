@@ -43,7 +43,7 @@
 #include "tok.h"
 #include "util.h"
 
-static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state);
+static errno_t compl_init(char32_t *text, size_t pos, size_t *cstart, void **state);
 static errno_t compl_get_next(void *state, char **compl);
 static void compl_fini(void *state);
 
@@ -93,7 +93,7 @@ typedef struct {
  *
  * Set up iterators in completion object, based on current token.
  */
-static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **state)
+static errno_t compl_init(char32_t *text, size_t pos, size_t *cstart, void **state)
 {
 	compl_t *cs = NULL;
 	char *stext = NULL;

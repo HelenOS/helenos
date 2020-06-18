@@ -104,7 +104,7 @@ static console_t *active_console = &consoles[0];
 
 static errno_t input_ev_active(input_t *);
 static errno_t input_ev_deactive(input_t *);
-static errno_t input_ev_key(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
+static errno_t input_ev_key(input_t *, kbd_event_type_t, keycode_t, keymod_t, char32_t);
 static errno_t input_ev_move(input_t *, int, int);
 static errno_t input_ev_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
 static errno_t input_ev_button(input_t *, int, int);
@@ -249,7 +249,7 @@ static errno_t input_ev_deactive(input_t *input)
 }
 
 static errno_t input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key,
-    keymod_t mods, wchar_t c)
+    keymod_t mods, char32_t c)
 {
 	if ((key >= KC_F1) && (key <= KC_F1 + CONSOLE_COUNT) &&
 	    ((mods & KM_CTRL) == 0)) {
@@ -292,7 +292,7 @@ static errno_t input_ev_button(input_t *input, int bnum, int bpress)
 }
 
 /** Process a character from the client (TTY emulation). */
-static void cons_write_char(console_t *cons, wchar_t ch)
+static void cons_write_char(console_t *cons, char32_t ch)
 {
 	sysarg_t updated = 0;
 
@@ -311,7 +311,7 @@ static void cons_write_char(console_t *cons, wchar_t ch)
 		updated = chargrid_backspace(cons->frontbuf);
 		break;
 	default:
-		updated = chargrid_putwchar(cons->frontbuf, ch, true);
+		updated = chargrid_putuchar(cons->frontbuf, ch, true);
 	}
 
 	fibril_mutex_unlock(&cons->mtx);
@@ -370,7 +370,7 @@ static errno_t cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 
 			/* Accept key presses of printable chars only. */
 			if ((event->type == KEY_PRESS) && (event->c != 0)) {
-				wchar_t tmp[2] = { event->c, 0 };
+				char32_t tmp[2] = { event->c, 0 };
 				wstr_to_str(cons->char_remains, UTF8_CHAR_BUFFER_SIZE, tmp);
 				cons->char_remains_len = str_size(cons->char_remains);
 			}

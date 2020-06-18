@@ -89,7 +89,7 @@ static void bi_char_get_as_string(run_t *run)
 		return;
 	}
 
-	str = os_chr_to_astr((wchar_t) char_val);
+	str = os_chr_to_astr((char32_t) char_val);
 
 	/* Ownership of str is transferred. */
 	builtin_return_string(run, str);

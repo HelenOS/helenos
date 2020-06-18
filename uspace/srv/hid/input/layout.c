@@ -68,7 +68,7 @@ void layout_destroy(layout_t *layout)
 }
 
 /** Parse keyboard event. */
-wchar_t layout_parse_ev(layout_t *layout, kbd_event_t *ev)
+char32_t layout_parse_ev(layout_t *layout, kbd_event_t *ev)
 {
 	return (*layout->ops->parse_ev)(layout, ev);
 }

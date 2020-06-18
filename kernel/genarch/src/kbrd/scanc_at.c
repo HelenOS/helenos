@@ -38,7 +38,7 @@
 #include <str.h>
 
 /** Primary meaning of scancodes. */
-wchar_t sc_primary_map[] = {
+char32_t sc_primary_map[] = {
 	U_NULL, /* 0x00 */
 	U_SPECIAL, /* 0x01 - F9 */
 	U_SPECIAL, /* 0x02 - F7 */
@@ -134,7 +134,7 @@ wchar_t sc_primary_map[] = {
 };
 
 /** Secondary meaning of scancodes. */
-wchar_t sc_secondary_map[] = {
+char32_t sc_secondary_map[] = {
 	U_NULL, /* 0x00 */
 	U_SPECIAL, /* 0x01 - F9 */
 	U_SPECIAL, /* 0x02 - F7 */

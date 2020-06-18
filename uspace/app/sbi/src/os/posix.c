@@ -163,7 +163,7 @@ errno_t os_str_get_char(const char *str, int index, int *out_char)
  * @param chr		Character
  * @return		Newly allocated string.
  */
-char *os_chr_to_astr(wchar_t chr)
+char *os_chr_to_astr(char32_t chr)
 {
 	char *str;
 

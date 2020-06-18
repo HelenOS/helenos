@@ -93,7 +93,7 @@ char *os_str_aslice(const char *str, size_t start, size_t length)
 	size_t offset;
 	size_t i;
 	size_t size;
-	wchar_t c;
+	char32_t c;
 
 	assert(start + length <= str_length(str));
 
@@ -154,7 +154,7 @@ errno_t os_str_get_char(const char *str, int index, int *out_char)
 {
 	size_t offset;
 	int i;
-	wchar_t c = 0;
+	char32_t c = 0;
 
 	if (index < 0)
 		return EINVAL;
@@ -177,7 +177,7 @@ errno_t os_str_get_char(const char *str, int index, int *out_char)
  * @param chr		Character
  * @return		Newly allocated string.
  */
-char *os_chr_to_astr(wchar_t chr)
+char *os_chr_to_astr(char32_t chr)
 {
 	char *str;
 	size_t offset;

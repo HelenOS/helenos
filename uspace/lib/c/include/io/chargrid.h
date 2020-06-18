@@ -78,7 +78,7 @@ extern bool chargrid_cursor_at(chargrid_t *, sysarg_t, sysarg_t);
 
 extern sysarg_t chargrid_get_top_row(chargrid_t *);
 
-extern sysarg_t chargrid_putwchar(chargrid_t *, wchar_t, bool);
+extern sysarg_t chargrid_putuchar(chargrid_t *, char32_t, bool);
 extern sysarg_t chargrid_newline(chargrid_t *);
 extern sysarg_t chargrid_tabstop(chargrid_t *, sysarg_t);
 extern sysarg_t chargrid_backspace(chargrid_t *);

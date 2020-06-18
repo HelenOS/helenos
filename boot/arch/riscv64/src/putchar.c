@@ -32,7 +32,7 @@
 #include <str.h>
 #include <arch/ucb.h>
 
-void putwchar(wchar_t ch)
+void putuchar(char32_t ch)
 {
 	if (ascii_check(ch))
 		htif_cmd(HTIF_DEVICE_CONSOLE, HTIF_CONSOLE_PUTC, ch);

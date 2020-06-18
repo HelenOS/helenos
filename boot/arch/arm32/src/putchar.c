@@ -192,9 +192,10 @@ static void scons_sendb(uint8_t byte)
 
 /** Display a character
  *
- * @param ch	Character to display
+ * @param ch Character to display
+ *
  */
-void putwchar(const wchar_t ch)
+void putuchar(const char32_t ch)
 {
 	if (ch == '\n')
 		scons_sendb('\r');

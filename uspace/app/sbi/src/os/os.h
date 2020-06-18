@@ -37,7 +37,7 @@ int os_str_cmp(const char *a, const char *b);
 char *os_str_dup(const char *str);
 size_t os_str_length(const char *str);
 errno_t os_str_get_char(const char *str, int index, int *out_char);
-char *os_chr_to_astr(wchar_t chr);
+char *os_chr_to_astr(char32_t chr);
 void os_input_disp_help(void);
 errno_t os_input_line(const char *prompt, char **ptr);
 errno_t os_exec(char *const cmd[]);

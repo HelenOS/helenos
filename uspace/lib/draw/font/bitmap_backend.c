@@ -66,7 +66,7 @@ static errno_t bb_get_font_metrics(void *backend_data, font_metrics_t *font_metr
 	return EOK;
 }
 
-static errno_t bb_resolve_glyph(void *backend_data, wchar_t c, glyph_id_t *glyph_id)
+static errno_t bb_resolve_glyph(void *backend_data, char32_t c, glyph_id_t *glyph_id)
 {
 	bitmap_backend_data_t *data = (bitmap_backend_data_t *) backend_data;
 	return data->decoder->resolve_glyph(data->decoder_data, c, glyph_id);

@@ -107,7 +107,7 @@ create_directory(const char *user_path, bool create_parents)
 		size_t off = 0;
 		while (true) {
 			size_t prev_off = off;
-			wchar_t cur_char = str_decode(path, &off, STR_NO_LIMIT);
+			char32_t cur_char = str_decode(path, &off, STR_NO_LIMIT);
 			if ((cur_char == 0) || (cur_char == U_SPECIAL)) {
 				break;
 			}

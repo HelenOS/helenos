@@ -36,7 +36,7 @@
 #include <str.h>
 #include <errno.h>
 #include <adt/list.h>
-#include <wchar.h>
+#include <uchar.h>
 #include "../private/stdio.h"
 #include "../private/sstream.h"
 

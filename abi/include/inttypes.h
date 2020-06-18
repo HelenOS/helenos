@@ -42,6 +42,7 @@
 
 #include <stdint.h>
 #include <_bits/wchar_t.h>
+#include <_bits/uchar.h>
 #include <_bits/decls.h>
 
 /*
@@ -336,12 +337,14 @@ typedef struct {
 	intmax_t rem;
 } imaxdiv_t;
 
-intmax_t imaxabs(intmax_t);
-imaxdiv_t imaxdiv(intmax_t, intmax_t);
-intmax_t strtoimax(const char *__restrict__, char **__restrict__, int);
-uintmax_t strtoumax(const char *__restrict__, char **__restrict__, int);
-intmax_t wcstoimax(const wchar_t *__restrict__, wchar_t **__restrict__, int);
-uintmax_t wcstoumax(const wchar_t *__restrict__, wchar_t **__restrict__, int);
+extern intmax_t imaxabs(intmax_t);
+extern imaxdiv_t imaxdiv(intmax_t, intmax_t);
+extern intmax_t strtoimax(const char *__restrict__, char **__restrict__, int);
+extern uintmax_t strtoumax(const char *__restrict__, char **__restrict__, int);
+extern intmax_t wcstoimax(const wchar_t *__restrict__, wchar_t **__restrict__,
+    int);
+extern uintmax_t wcstoumax(const wchar_t *__restrict__, wchar_t **__restrict__,
+    int);
 
 __C_DECLS_END;
 

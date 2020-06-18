@@ -111,7 +111,7 @@ static void ns16550_sendb(ns16550_instance_t *instance, uint8_t byte)
 	ns16550_reg_write(instance, NS16550_REG_THR, byte);
 }
 
-static void ns16550_putwchar(outdev_t *dev, wchar_t ch)
+static void ns16550_putuchar(outdev_t *dev, char32_t ch)
 {
 	ns16550_instance_t *instance = (ns16550_instance_t *) dev->data;
 
@@ -127,7 +127,7 @@ static void ns16550_putwchar(outdev_t *dev, wchar_t ch)
 }
 
 static outdev_operations_t ns16550_ops = {
-	.write = ns16550_putwchar,
+	.write = ns16550_putuchar,
 	.redraw = NULL
 };
 

@@ -58,7 +58,7 @@ typedef struct {
 	keymod_t mods;
 
 	/** The character that was generated or '\0' for none. */
-	wchar_t c;
+	char32_t c;
 } kbd_event_t;
 
 #endif

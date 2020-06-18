@@ -97,6 +97,6 @@ SYMBOL(memcpy_to_uspace_failover_address)
 	mov r0, #0
 	ldmia sp!, {r4, r5, pc}
 
-FUNCTION_BEGIN(early_putwchar)
+FUNCTION_BEGIN(early_putuchar)
 	mov pc, lr
-FUNCTION_END(early_putwchar)
+FUNCTION_END(early_putuchar)

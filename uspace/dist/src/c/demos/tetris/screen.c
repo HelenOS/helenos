@@ -370,7 +370,7 @@ errno_t tgetchar(void)
 	 * make timeleft zero and return -1.
 	 */
 
-	wchar_t c = 0;
+	char32_t c = 0;
 
 	while (c == 0) {
 		cons_event_t event;
@@ -392,7 +392,7 @@ errno_t tgetchar(void)
  */
 errno_t twait(void)
 {
-	wchar_t c = 0;
+	char32_t c = 0;
 
 	while (c == 0) {
 		cons_event_t event;

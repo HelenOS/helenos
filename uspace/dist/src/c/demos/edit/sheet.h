@@ -100,8 +100,8 @@ extern void sheet_get_row_width(sheet_t *, int, int *);
 extern void sheet_get_num_rows(sheet_t *, int *);
 extern void spt_get_coord(spt_t const *, coord_t *);
 extern bool spt_equal(spt_t const *, spt_t const *);
-extern wchar_t spt_next_char(spt_t, spt_t *);
-extern wchar_t spt_prev_char(spt_t, spt_t *);
+extern char32_t spt_next_char(spt_t, spt_t *);
+extern char32_t spt_prev_char(spt_t, spt_t *);
 
 extern void sheet_place_tag(sheet_t *, spt_t const *, tag_t *);
 extern void sheet_remove_tag(sheet_t *, tag_t *);

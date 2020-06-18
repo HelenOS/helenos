@@ -41,7 +41,7 @@
 #define FONT_WIDTH      8
 #define FONT_SCANLINES  16
 
-extern uint16_t fb_font_glyph(const wchar_t);
+extern uint16_t fb_font_glyph(const char32_t);
 extern uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES];
 
 #endif

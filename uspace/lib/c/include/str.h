@@ -66,30 +66,30 @@
 
 __HELENOS_DECLS_BEGIN;
 
-extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
-extern wchar_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
-extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
+extern char32_t str_decode(const char *str, size_t *offset, size_t sz);
+extern char32_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
+extern errno_t chr_encode(char32_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);
-extern size_t wstr_size(const wchar_t *str);
+extern size_t wstr_size(const char32_t *str);
 
 extern size_t str_nsize(const char *str, size_t max_size);
-extern size_t wstr_nsize(const wchar_t *str, size_t max_size);
+extern size_t wstr_nsize(const char32_t *str, size_t max_size);
 
 extern size_t str_lsize(const char *str, size_t max_len);
-extern size_t wstr_lsize(const wchar_t *str, size_t max_len);
+extern size_t wstr_lsize(const char32_t *str, size_t max_len);
 
 extern size_t str_length(const char *str);
-extern size_t wstr_length(const wchar_t *wstr);
+extern size_t wstr_length(const char32_t *wstr);
 
 extern size_t str_nlength(const char *str, size_t size);
-extern size_t wstr_nlength(const wchar_t *str, size_t size);
+extern size_t wstr_nlength(const char32_t *str, size_t size);
 
-extern size_t chr_width(wchar_t ch);
+extern size_t chr_width(char32_t ch);
 extern size_t str_width(const char *str);
 
-extern bool ascii_check(wchar_t ch);
-extern bool chr_check(wchar_t ch);
+extern bool ascii_check(char32_t ch);
+extern bool chr_check(char32_t ch);
 
 extern int str_cmp(const char *s1, const char *s2);
 extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
@@ -104,23 +104,23 @@ extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void str_append(char *dest, size_t size, const char *src);
 
 extern errno_t spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n);
-extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
-extern char *wstr_to_astr(const wchar_t *src);
-extern void str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
-extern wchar_t *str_to_awstr(const char *src);
+extern void wstr_to_str(char *dest, size_t size, const char32_t *src);
+extern char *wstr_to_astr(const char32_t *src);
+extern void str_to_wstr(char32_t *dest, size_t dlen, const char *src);
+extern char32_t *str_to_awstr(const char *src);
 extern errno_t utf16_to_str(char *dest, size_t size, const uint16_t *src);
 extern errno_t str_to_utf16(uint16_t *dest, size_t dlen, const char *src);
 extern size_t utf16_wsize(const uint16_t *ustr);
 
-extern char *str_chr(const char *str, wchar_t ch);
-extern char *str_rchr(const char *str, wchar_t ch);
+extern char *str_chr(const char *str, char32_t ch);
+extern char *str_rchr(const char *str, char32_t ch);
 extern char *str_str(const char *hs, const char *n);
 
-extern void str_rtrim(char *str, wchar_t ch);
-extern void str_ltrim(char *str, wchar_t ch);
+extern void str_rtrim(char *str, char32_t ch);
+extern void str_ltrim(char *str, char32_t ch);
 
-extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
-extern bool wstr_remove(wchar_t *str, size_t pos);
+extern bool wstr_linsert(char32_t *str, char32_t ch, size_t pos, size_t max_pos);
+extern bool wstr_remove(char32_t *str, size_t pos);
 
 extern char *str_dup(const char *src);
 extern char *str_ndup(const char *src, size_t n);

@@ -41,6 +41,7 @@
 #include <_bits/NULL.h>
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
+#include <_bits/uchar.h>
 #include <_bits/wint_t.h>
 #include <_bits/decls.h>
 
@@ -122,6 +123,9 @@ extern int ungetc(int, FILE *);
 
 extern wint_t fputwc(wchar_t, FILE *);
 extern wint_t putwchar(wchar_t);
+
+extern wint_t fputuc(char32_t, FILE *);
+extern wint_t putuchar(char32_t);
 
 /* Formatted string output functions */
 extern int fprintf(FILE *, const char *, ...)

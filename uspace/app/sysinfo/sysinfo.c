@@ -55,7 +55,7 @@ static void dump_bytes_text(char *data, size_t size)
 	size_t offset = 0;
 
 	while (offset < size) {
-		wchar_t c = str_decode(data, &offset, size);
+		char32_t c = str_decode(data, &offset, size);
 		printf("%lc", (wint_t) c);
 	}
 }

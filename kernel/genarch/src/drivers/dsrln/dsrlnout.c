@@ -48,7 +48,7 @@ typedef struct {
 	ioport8_t *base;
 } dsrlnout_instance_t;
 
-static void dsrlnout_putwchar(outdev_t *dev, const wchar_t ch)
+static void dsrlnout_putuchar(outdev_t *dev, const char32_t ch)
 {
 	dsrlnout_instance_t *instance = (dsrlnout_instance_t *) dev->data;
 
@@ -61,7 +61,7 @@ static void dsrlnout_putwchar(outdev_t *dev, const wchar_t ch)
 }
 
 static outdev_operations_t dsrlndev_ops = {
-	.write = dsrlnout_putwchar,
+	.write = dsrlnout_putuchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL

@@ -57,7 +57,7 @@ static void key_handle_ctrl(kbd_event_t *ev)
 	}
 }
 
-static void send_char(wchar_t c)
+static void send_char(char32_t c)
 {
 	char cbuf[STR_BOUNDS(1)];
 	size_t offs;

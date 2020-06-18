@@ -48,7 +48,7 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 	if (search == NULL)
 		return NULL;
 
-	wchar_t *p = str_to_awstr(pattern);
+	char32_t *p = str_to_awstr(pattern);
 	if (p == NULL) {
 		free(search);
 		return NULL;
@@ -61,7 +61,7 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 		size_t pos, half;
 		half = search->pattern_length / 2;
 		for (pos = 0; pos < half; pos++) {
-			wchar_t tmp = p[pos];
+			char32_t tmp = p[pos];
 			p[pos] = p[search->pattern_length - pos - 1];
 			p[search->pattern_length - pos - 1] = tmp;
 		}
@@ -105,7 +105,7 @@ errno_t search_next_match(search_t *s, match_t *match)
 {
 	search_equals_fn eq = s->ops.equals;
 
-	wchar_t cur_char;
+	char32_t cur_char;
 	errno_t rc = EOK;
 	while ((rc = s->ops.producer(s->client_data, &cur_char)) == EOK && cur_char > 0) {
 		/* Deal with mismatches */
@@ -139,7 +139,7 @@ void search_fini(search_t *search)
 
 }
 
-bool char_exact_equals(const wchar_t a, const wchar_t b)
+bool char_exact_equals(const char32_t a, const char32_t b)
 {
 	return a == b;
 }

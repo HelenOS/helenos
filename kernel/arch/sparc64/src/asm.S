@@ -188,7 +188,7 @@ SYMBOL(memcpy_to_uspace_failover_address)
 	jmp %o7 + 8   /* exit point */
 	mov %g0, %o0  /* return 0 on failure */
 
-FUNCTION_BEGIN(early_putwchar)
+FUNCTION_BEGIN(early_putuchar)
 	retl
 	nop
-FUNCTION_END(early_putwchar)
+FUNCTION_END(early_putuchar)

@@ -47,17 +47,17 @@ static int vprintf_str_write(const char *str, size_t size, void *stream)
 	return str_nlength(str, wr);
 }
 
-static int vprintf_wstr_write(const wchar_t *str, size_t size, void *stream)
+static int vprintf_wstr_write(const char32_t *str, size_t size, void *stream)
 {
 	size_t offset = 0;
 	size_t chars = 0;
 
 	while (offset < size) {
-		if (fputwc(str[chars], (FILE *) stream) <= 0)
+		if (fputuc(str[chars], (FILE *) stream) <= 0)
 			break;
 
 		chars++;
-		offset += sizeof(wchar_t);
+		offset += sizeof(char32_t);
 	}
 
 	return chars;

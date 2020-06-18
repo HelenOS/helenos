@@ -46,7 +46,7 @@
  * If found is not null, indicate whether the glyph was found or not.
  *
  */
-uint16_t fb_font_glyph(const wchar_t ch, bool *found)
+uint16_t fb_font_glyph(const char32_t ch, bool *found)
 {
 	if (found)
 		*found = true;

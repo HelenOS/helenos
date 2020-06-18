@@ -55,7 +55,7 @@ bool console_prompt_display_all_hints(indev_t *indev, size_t hints)
 	printf("Display all %zu possibilities? (y or n) ", hints);
 
 	while (true) {
-		wchar_t answer = indev_pop_character(indev);
+		char32_t answer = indev_pop_character(indev);
 
 		if ((answer == 'y') || (answer == 'Y')) {
 			printf("y");
@@ -86,7 +86,7 @@ bool console_prompt_more_hints(indev_t *indev, size_t *display_hints)
 
 	printf("--More--");
 	while (true) {
-		wchar_t continue_showing_hints = indev_pop_character(indev);
+		char32_t continue_showing_hints = indev_pop_character(indev);
 		/* Display a full page again? */
 		if ((continue_showing_hints == 'y') ||
 		    (continue_showing_hints == 'Y') ||

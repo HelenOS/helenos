@@ -46,7 +46,7 @@
 #include <ieee_double.h>
 #include <assert.h>
 #include <macros.h>
-#include <wchar.h>
+#include <uchar.h>
 
 /** show prefixes 0x or 0 */
 #define __PRINTF_FLAG_PREFIX       0x00000001
@@ -186,7 +186,7 @@ static int printf_putnchars(const char *buf, size_t size,
  * @return Number of wide characters printed.
  *
  */
-static int printf_wputnchars(const wchar_t *buf, size_t size,
+static int printf_wputnchars(const char32_t *buf, size_t size,
     printf_spec_t *ps)
 {
 	return ps->wstr_write((void *) buf, size, ps->data);
@@ -232,12 +232,12 @@ static int printf_putchar(const char ch, printf_spec_t *ps)
  * @return Number of characters printed.
  *
  */
-static int printf_putwchar(const wchar_t ch, printf_spec_t *ps)
+static int printf_putuchar(const char32_t ch, printf_spec_t *ps)
 {
 	if (!chr_check(ch))
 		return ps->str_write((void *) &invalch, 1, ps->data);
 
-	return ps->wstr_write(&ch, sizeof(wchar_t), ps->data);
+	return ps->wstr_write(&ch, sizeof(char32_t), ps->data);
 }
 
 /** Print one formatted ASCII character.
@@ -287,7 +287,7 @@ static int print_char(const char ch, int width, uint32_t flags, printf_spec_t *p
  * @return Number of characters printed, negative value on failure.
  *
  */
-static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_t *ps)
+static int print_wchar(const char32_t ch, int width, uint32_t flags, printf_spec_t *ps)
 {
 	size_t counter = 0;
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
@@ -301,7 +301,7 @@ static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_
 		}
 	}
 
-	if (printf_putwchar(ch, ps) > 0)
+	if (printf_putuchar(ch, ps) > 0)
 		counter++;
 
 	while (--width > 0) {
@@ -374,7 +374,7 @@ static int print_str(char *str, int width, unsigned int precision,
  *
  * @return Number of wide characters printed, negative value on failure.
  */
-static int print_wstr(wchar_t *str, int width, unsigned int precision,
+static int print_wstr(char32_t *str, int width, unsigned int precision,
     uint32_t flags, printf_spec_t *ps)
 {
 	if (str == NULL)
@@ -1275,7 +1275,7 @@ static int print_double(double g, char spec, int precision, int width,
  *  - ""   Signed or unsigned int (default value).@n
  *  - "l"  Signed or unsigned long int.@n
  *         If conversion is "c", the character is wint_t (wide character).@n
- *         If conversion is "s", the string is wchar_t * (wide string).@n
+ *         If conversion is "s", the string is char32_t * (wide string).@n
  *  - "ll" Signed or unsigned long long int.@n
  *  - "z"  Signed or unsigned ssize_t or site_t.@n
  *
@@ -1329,7 +1329,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 
 	while (true) {
 		i = nxt;
-		wchar_t uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+		char32_t uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 
 		if (uc == 0)
 			break;
@@ -1492,7 +1492,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				precision = max(0,  precision);
 
 				if (qualifier == PrintfQualifierLong)
-					retval = print_wstr(va_arg(ap, wchar_t *), width, precision, flags, ps);
+					retval = print_wstr(va_arg(ap, char32_t *), width, precision, flags, ps);
 				else
 					retval = print_str(va_arg(ap, char *), width, precision, flags, ps);
 

@@ -58,10 +58,10 @@
 #include <stdlib.h>  /* malloc */
 
 #define KIO_PAGES    8
-#define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE / sizeof(wchar_t))
+#define KIO_LENGTH   (KIO_PAGES * PAGE_SIZE / sizeof(char32_t))
 
 /** Kernel log cyclic buffer */
-wchar_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
+char32_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
 static atomic_bool kio_inited = ATOMIC_VAR_INIT(false);
@@ -94,7 +94,7 @@ static indev_operations_t stdin_ops = {
 	.signal = stdin_signal
 };
 
-static void stdout_write(outdev_t *, wchar_t);
+static void stdout_write(outdev_t *, char32_t);
 static void stdout_redraw(outdev_t *);
 static void stdout_scroll_up(outdev_t *);
 static void stdout_scroll_down(outdev_t *);
@@ -147,7 +147,7 @@ void stdout_wire(outdev_t *outdev)
 	list_append(&outdev->link, &stdout->list);
 }
 
-static void stdout_write(outdev_t *dev, wchar_t ch)
+static void stdout_write(outdev_t *dev, char32_t ch)
 {
 	list_foreach(dev->list, link, outdev_t, sink) {
 		if ((sink) && (sink->op->write))
@@ -260,14 +260,14 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 	size_t count = 0;
 	buf[offset] = 0;
 
-	wchar_t ch;
+	char32_t ch;
 	while ((ch = indev_pop_character(indev)) != '\n') {
 		if (ch == '\b') {
 			if (count > 0) {
 				/* Space, backspace, space */
-				putwchar('\b');
-				putwchar(' ');
-				putwchar('\b');
+				putuchar('\b');
+				putuchar(' ');
+				putuchar('\b');
 
 				count--;
 				offset = str_lsize(buf, count);
@@ -276,7 +276,7 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 		}
 
 		if (chr_encode(ch, buf, &offset, buflen - 1) == EOK) {
-			putwchar(ch);
+			putuchar(ch);
 			count++;
 			buf[offset] = 0;
 		}
@@ -286,10 +286,10 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 }
 
 /** Get character from input device & echo it to screen */
-wchar_t getc(indev_t *indev)
+char32_t getc(indev_t *indev)
 {
-	wchar_t ch = indev_pop_character(indev);
-	putwchar(ch);
+	char32_t ch = indev_pop_character(indev);
+	putuchar(ch);
 	return ch;
 }
 
@@ -323,7 +323,7 @@ void kio_flush(void)
 
 	/* Print characters that weren't printed earlier */
 	while (kio_stored > 0) {
-		wchar_t tmp = kio[(kio_start + kio_len - kio_stored) % KIO_LENGTH];
+		char32_t tmp = kio[(kio_start + kio_len - kio_stored) % KIO_LENGTH];
 		kio_stored--;
 
 		/*
@@ -343,7 +343,7 @@ void kio_flush(void)
  *
  * The caller is required to hold kio_lock
  */
-void kio_push_char(const wchar_t ch)
+void kio_push_char(const char32_t ch)
 {
 	kio[(kio_start + kio_len) % KIO_LENGTH] = ch;
 	if (kio_len < KIO_LENGTH)
@@ -359,7 +359,7 @@ void kio_push_char(const wchar_t ch)
 		kio_uspace++;
 }
 
-void putwchar(const wchar_t ch)
+void putuchar(const char32_t ch)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
 
@@ -376,12 +376,12 @@ void putwchar(const wchar_t ch)
 		 * The character is still stored in the kernel log
 		 * for possible future output.
 		 *
-		 * The early_putwchar() function is used to output
+		 * The early_putuchar() function is used to output
 		 * the character for low-level debugging purposes.
 		 * Note that the early_putc() function might be
 		 * a no-op on certain hardware configurations.
 		 */
-		early_putwchar(ch);
+		early_putuchar(ch);
 	}
 
 	/* Force notification on newline */

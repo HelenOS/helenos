@@ -96,7 +96,7 @@ static errno_t dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
     size_t *act_size)
 {
 	size_t off;
-	wchar_t c;
+	char32_t c;
 	size_t lsize;
 	size_t pi, di;
 

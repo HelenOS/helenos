@@ -42,7 +42,7 @@
 
 static errno_t us_dvorak_create(layout_t *);
 static void us_dvorak_destroy(layout_t *);
-static wchar_t us_dvorak_parse_ev(layout_t *, kbd_event_t *ev);
+static char32_t us_dvorak_parse_ev(layout_t *, kbd_event_t *ev);
 
 layout_ops_t us_dvorak_ops = {
 	.create = us_dvorak_create,
@@ -50,7 +50,7 @@ layout_ops_t us_dvorak_ops = {
 	.parse_ev = us_dvorak_parse_ev
 };
 
-static wchar_t map_lcase[] = {
+static char32_t map_lcase[] = {
 	[KC_R] = 'p',
 	[KC_T] = 'y',
 	[KC_Y] = 'f',
@@ -83,7 +83,7 @@ static wchar_t map_lcase[] = {
 	[KC_SLASH] = 'z',
 };
 
-static wchar_t map_ucase[] = {
+static char32_t map_ucase[] = {
 	[KC_R] = 'P',
 	[KC_T] = 'Y',
 	[KC_Y] = 'F',
@@ -116,7 +116,7 @@ static wchar_t map_ucase[] = {
 	[KC_SLASH] = 'Z',
 };
 
-static wchar_t map_not_shifted[] = {
+static char32_t map_not_shifted[] = {
 	[KC_BACKTICK] = '`',
 
 	[KC_1] = '1',
@@ -146,7 +146,7 @@ static wchar_t map_not_shifted[] = {
 	[KC_Z] = ';',
 };
 
-static wchar_t map_shifted[] = {
+static char32_t map_shifted[] = {
 	[KC_BACKTICK] = '~',
 
 	[KC_1] = '!',
@@ -176,7 +176,7 @@ static wchar_t map_shifted[] = {
 	[KC_Z] = ':',
 };
 
-static wchar_t map_neutral[] = {
+static char32_t map_neutral[] = {
 	[KC_BACKSPACE] = '\b',
 	[KC_TAB] = '\t',
 	[KC_ENTER] = '\n',
@@ -189,7 +189,7 @@ static wchar_t map_neutral[] = {
 	[KC_NENTER] = '\n'
 };
 
-static wchar_t map_numeric[] = {
+static char32_t map_numeric[] = {
 	[KC_N7] = '7',
 	[KC_N8] = '8',
 	[KC_N9] = '9',
@@ -204,7 +204,7 @@ static wchar_t map_numeric[] = {
 	[KC_NPERIOD] = '.'
 };
 
-static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
+static char32_t translate(unsigned int key, char32_t *map, size_t map_length)
 {
 	if (key >= map_length)
 		return 0;
@@ -220,36 +220,36 @@ static void us_dvorak_destroy(layout_t *state)
 {
 }
 
-static wchar_t us_dvorak_parse_ev(layout_t *state, kbd_event_t *ev)
+static char32_t us_dvorak_parse_ev(layout_t *state, kbd_event_t *ev)
 {
-	wchar_t c;
+	char32_t c;
 
 	/* Produce no characters when Ctrl or Alt is pressed. */
 	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
 		return 0;
 
-	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(wchar_t));
+	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(char32_t));
 	if (c != 0)
 		return c;
 
 	if (((ev->mods & KM_SHIFT) != 0) ^ ((ev->mods & KM_CAPS_LOCK) != 0))
-		c = translate(ev->key, map_ucase, sizeof(map_ucase) / sizeof(wchar_t));
+		c = translate(ev->key, map_ucase, sizeof(map_ucase) / sizeof(char32_t));
 	else
-		c = translate(ev->key, map_lcase, sizeof(map_lcase) / sizeof(wchar_t));
+		c = translate(ev->key, map_lcase, sizeof(map_lcase) / sizeof(char32_t));
 
 	if (c != 0)
 		return c;
 
 	if ((ev->mods & KM_SHIFT) != 0)
-		c = translate(ev->key, map_shifted, sizeof(map_shifted) / sizeof(wchar_t));
+		c = translate(ev->key, map_shifted, sizeof(map_shifted) / sizeof(char32_t));
 	else
-		c = translate(ev->key, map_not_shifted, sizeof(map_not_shifted) / sizeof(wchar_t));
+		c = translate(ev->key, map_not_shifted, sizeof(map_not_shifted) / sizeof(char32_t));
 
 	if (c != 0)
 		return c;
 
 	if ((ev->mods & KM_NUM_LOCK) != 0)
-		c = translate(ev->key, map_numeric, sizeof(map_numeric) / sizeof(wchar_t));
+		c = translate(ev->key, map_numeric, sizeof(map_numeric) / sizeof(char32_t));
 	else
 		c = 0;
 

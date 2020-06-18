@@ -37,7 +37,7 @@
  * Strings and characters use the Universal Character Set (UCS). The standard
  * strings, called just strings are encoded in UTF-8. Wide strings (encoded
  * in UTF-32) are supported to a limited degree. A single character is
- * represented as wchar_t.@n
+ * represented as char32_t.@n
  *
  * Overview of the terminology:@n
  *
@@ -45,8 +45,8 @@
  *  --------------------  ----------------------------------------------------
  *  byte                  8 bits stored in uint8_t (unsigned 8 bit integer)
  *
- *  character             UTF-32 encoded Unicode character, stored in wchar_t
- *                        (signed 32 bit integer), code points 0 .. 1114111
+ *  character             UTF-32 encoded Unicode character, stored in char32_t
+ *                        (unsigned 32 bit integer), code points 0 .. 1114111
  *                        are valid
  *
  *  ASCII character       7 bit encoded ASCII character, stored in char
@@ -56,7 +56,7 @@
  *  string                UTF-8 encoded NULL-terminated Unicode string, char *
  *
  *  wide string           UTF-32 encoded NULL-terminated Unicode string,
- *                        wchar_t *
+ *                        char32_t *
  *
  *  [wide] string size    number of BYTES in a [wide] string (excluding
  *                        the NULL-terminator), size_t
@@ -95,7 +95,7 @@
  *
  * A specific character inside a [wide] string can be referred to by:@n
  *
- *  pointer (char *, wchar_t *)
+ *  pointer (char *, char32_t *)
  *  byte offset (size_t)
  *  character index (size_t)
  *
@@ -107,13 +107,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
-/** Check the condition if wchar_t is signed */
-#ifdef __WCHAR_UNSIGNED__
-#define WCHAR_SIGNED_CHECK(cond)  (true)
-#else
-#define WCHAR_SIGNED_CHECK(cond)  (cond)
-#endif
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
 #define LO_MASK_8(n)  ((uint8_t) ((1 << (n)) - 1))
@@ -142,7 +135,7 @@
  *         NULL if attempt to decode beyond @a size.
  *
  */
-wchar_t str_decode(const char *str, size_t *offset, size_t size)
+char32_t str_decode(const char *str, size_t *offset, size_t size)
 {
 	if (*offset + 1 > size)
 		return 0;
@@ -179,7 +172,7 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 	if (*offset + cbytes > size)
 		return U_SPECIAL;
 
-	wchar_t ch = b0 & LO_MASK_8(b0_bits);
+	char32_t ch = b0 & LO_MASK_8(b0_bits);
 
 	/* Decode continuation bytes */
 	while (cbytes > 0) {
@@ -190,7 +183,7 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 			return U_SPECIAL;
 
 		/* Shift data bits to ch */
-		ch = (ch << CONT_BITS) | (wchar_t) (b & LO_MASK_8(CONT_BITS));
+		ch = (ch << CONT_BITS) | (char32_t) (b & LO_MASK_8(CONT_BITS));
 		cbytes--;
 	}
 
@@ -212,7 +205,7 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
  *         was not enough space in the output buffer or EINVAL if the character
  *         code was invalid.
  */
-errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
+errno_t chr_encode(const char32_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
@@ -339,9 +332,9 @@ size_t str_length(const char *str)
  * @return True if character is plain ASCII.
  *
  */
-bool ascii_check(wchar_t ch)
+bool ascii_check(char32_t ch)
 {
-	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 127))
+	if (ch <= 127)
 		return true;
 
 	return false;
@@ -352,9 +345,9 @@ bool ascii_check(wchar_t ch)
  * @return True if character is a valid Unicode code point.
  *
  */
-bool chr_check(wchar_t ch)
+bool chr_check(char32_t ch)
 {
-	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 1114111))
+	if (ch <= 1114111)
 		return true;
 
 	return false;
@@ -380,8 +373,8 @@ bool chr_check(wchar_t ch)
  */
 int str_cmp(const char *s1, const char *s2)
 {
-	wchar_t c1 = 0;
-	wchar_t c2 = 0;
+	char32_t c1 = 0;
+	char32_t c2 = 0;
 
 	size_t off1 = 0;
 	size_t off2 = 0;
@@ -420,7 +413,7 @@ void str_cpy(char *dest, size_t size, const char *src)
 	size_t src_off = 0;
 	size_t dest_off = 0;
 
-	wchar_t ch;
+	char32_t ch;
 	while ((ch = str_decode(src, &src_off, STR_NO_LIMIT)) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;

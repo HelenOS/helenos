@@ -41,7 +41,7 @@
 
 extern void htif_init(volatile uint64_t *, volatile uint64_t *);
 extern outdev_t *htifout_init(void);
-extern void htif_putwchar(outdev_t *, const wchar_t);
+extern void htif_putuchar(outdev_t *, const char32_t);
 
 #endif
 

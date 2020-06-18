@@ -62,7 +62,7 @@
  *
  * @return		EOK on success, error code on failure.
  */
-typedef errno_t (*tinput_compl_init_fn)(wchar_t *text, size_t pos, size_t *cstart,
+typedef errno_t (*tinput_compl_init_fn)(char32_t *text, size_t pos, size_t *cstart,
     void **state);
 
 /** Obtain one text completion alternative.
@@ -110,7 +110,7 @@ typedef struct {
 	tinput_compl_ops_t *compl_ops;
 
 	/** Buffer holding text currently being edited */
-	wchar_t buffer[INPUT_MAX_SIZE + 1];
+	char32_t buffer[INPUT_MAX_SIZE + 1];
 
 	/** Linear position on screen where the prompt starts */
 	unsigned prompt_coord;

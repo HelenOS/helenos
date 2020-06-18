@@ -38,7 +38,7 @@ ofw_arg_t ofw(ofw_args_t *args)
 	return ((ofw_entry_t) ofw_cif)(args);
 }
 
-void putwchar(wchar_t ch)
+void putuchar(char32_t ch)
 {
 	if (ch == '\n')
 		ofw_putchar('\r');

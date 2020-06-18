@@ -56,11 +56,11 @@
 /* Device instance */
 static niagara_instance_t *instance = NULL;
 
-static void niagara_putwchar(outdev_t *, const wchar_t);
+static void niagara_putuchar(outdev_t *, const char32_t);
 
 /** Character device operations */
 static outdev_operations_t niagara_ops = {
-	.write = niagara_putwchar,
+	.write = niagara_putuchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -102,7 +102,7 @@ static inline void do_putchar(char c)
 }
 
 /** Write a single character to the standard output. */
-static void niagara_putwchar(outdev_t *dev, wchar_t ch)
+static void niagara_putuchar(outdev_t *dev, char32_t ch)
 {
 	if ((!outbuf_parea.mapped) || (console_override)) {
 		if (ascii_check(ch)) {

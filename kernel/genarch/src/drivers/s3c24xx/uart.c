@@ -60,7 +60,7 @@ static void s3c24xx_uart_sendb(outdev_t *dev, uint8_t byte)
 	pio_write_32(&uart->io->utxh, byte);
 }
 
-static void s3c24xx_uart_putwchar(outdev_t *dev, wchar_t ch)
+static void s3c24xx_uart_putuchar(outdev_t *dev, char32_t ch)
 {
 	s3c24xx_uart_t *uart =
 	    (s3c24xx_uart_t *) dev->data;
@@ -93,7 +93,7 @@ static void s3c24xx_uart_irq_handler(irq_t *irq)
 }
 
 static outdev_operations_t s3c24xx_uart_ops = {
-	.write = s3c24xx_uart_putwchar,
+	.write = s3c24xx_uart_putuchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL

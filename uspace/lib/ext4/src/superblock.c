@@ -888,14 +888,14 @@ errno_t ext4_superblock_get_volume_name(ext4_superblock_t *sb, char *buf,
 {
 	size_t i;
 	size_t wi;
-	wchar_t ch;
+	char32_t ch;
 	errno_t rc;
 
 	i = 0;
 	wi = 0;
 	while (sb->volume_name[i] != '\0' && i < sizeof(sb->volume_name)) {
 		/* ISO 8859-1 codes map to identical Unicode code points */
-		ch = (wchar_t)(uint8_t)sb->volume_name[i];
+		ch = (char32_t)(uint8_t)sb->volume_name[i];
 		rc = chr_encode(ch, buf, &wi, bufsz - 1);
 		if (rc != EOK)
 			return rc;
@@ -916,7 +916,7 @@ errno_t ext4_superblock_get_volume_name(ext4_superblock_t *sb, char *buf,
 errno_t ext4_superblock_set_volume_name(ext4_superblock_t *sb, const char *name)
 {
 	size_t off;
-	wchar_t ch;
+	char32_t ch;
 	size_t wi;
 
 	off = 0;

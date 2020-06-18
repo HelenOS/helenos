@@ -55,13 +55,13 @@
 typedef struct {
 	link_t link;
 	size_t length;
-	wchar_t *data;
+	char32_t *data;
 } item_t;
 
 static prodcons_t pc;
 
 /* Pointer to kio area */
-static wchar_t *kio = (wchar_t *) AS_AREA_ANY;
+static char32_t *kio = (char32_t *) AS_AREA_ANY;
 static size_t kio_length;
 
 /* Notification mutex */
@@ -76,14 +76,14 @@ static FIBRIL_MUTEX_INITIALIZE(mtx);
  * @param data   Pointer to the kernel kio buffer.
  *
  */
-static void producer(size_t length, wchar_t *data)
+static void producer(size_t length, char32_t *data)
 {
 	item_t *item = (item_t *) malloc(sizeof(item_t));
 	if (item == NULL)
 		return;
 
-	size_t sz = sizeof(wchar_t) * length;
-	wchar_t *buf = (wchar_t *) malloc(sz);
+	size_t sz = sizeof(char32_t) * length;
+	char32_t *buf = (char32_t *) malloc(sz);
 	if (buf == NULL) {
 		free(item);
 		return;
@@ -120,11 +120,11 @@ static errno_t consumer(void *data)
 		item_t *item = list_get_instance(link, item_t, link);
 
 		for (size_t i = 0; i < item->length; i++)
-			putwchar(item->data[i]);
+			putuchar(item->data[i]);
 
 		if (log != NULL) {
 			for (size_t i = 0; i < item->length; i++)
-				fputwc(item->data[i], log);
+				fputuc(item->data[i], log);
 
 			fflush(log);
 			vfs_sync(fileno(log));
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
 	}
 
 	size_t size = pages * PAGE_SIZE;
-	kio_length = size / sizeof(wchar_t);
+	kio_length = size / sizeof(char32_t);
 
 	rc = physmem_map(faddr, pages, AS_AREA_READ | AS_AREA_CACHEABLE,
 	    (void *) &kio);

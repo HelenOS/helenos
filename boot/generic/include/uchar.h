@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2020 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup kernel_generic
+ * @{
+ */
 /** @file
  */
 
-#include <stddef.h>
-#include <printf.h>
-#include <printf_core.h>
-#include <putchar.h>
-#include <str.h>
+#ifndef BOOT_UCHAR_H_
+#define BOOT_UCHAR_H_
 
-static int vprintf_str_write(const char *str, size_t size, void *data)
-{
-	size_t offset = 0;
-	size_t chars = 0;
+#include <_bits/uchar.h>
 
-	while (offset < size) {
-		putuchar(str_decode(str, &offset, size));
-		chars++;
-	}
-
-	return chars;
-}
-
-int puts(const char *str)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-	char32_t uc;
-
-	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {
-		putuchar(uc);
-		chars++;
-	}
-
-	putuchar('\n');
-	return chars;
-}
-
-int vprintf(const char *fmt, va_list ap)
-{
-	printf_spec_t ps = {
-		vprintf_str_write,
-		NULL
-	};
-
-	int ret = printf_core(fmt, &ps, ap);
-
-	return ret;
-}
+#endif
 
 /** @}
  */

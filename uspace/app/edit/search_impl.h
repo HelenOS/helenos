@@ -42,7 +42,7 @@
 struct search {
 	/* Note: This structure is opaque for the user. */
 
-	wchar_t *pattern;
+	char32_t *pattern;
 	size_t pattern_length;
 	ssize_t *back_table;
 	size_t pattern_pos;

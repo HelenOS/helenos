@@ -55,9 +55,9 @@ FUNCTION_BEGIN(memcpy_to_uspace_failover_address)
 FUNCTION_END(memcpy_from_uspace_failover_address)
 FUNCTION_END(memcpy_to_uspace_failover_address)
 
-FUNCTION_BEGIN(early_putwchar)
+FUNCTION_BEGIN(early_putuchar)
 	ret
-FUNCTION_END(early_putwchar)
+FUNCTION_END(early_putuchar)
 
 /* Static checks for the istate_t save/load. */
 #if ISTATE_OFFSET_X0 + 8 != ISTATE_OFFSET_X1

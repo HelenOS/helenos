@@ -122,13 +122,13 @@ typedef struct {
 	unsigned int position;
 } fb_instance_t;
 
-static void fb_putwchar(outdev_t *, wchar_t);
+static void fb_putuchar(outdev_t *, char32_t);
 static void fb_redraw(outdev_t *);
 static void fb_scroll_up(outdev_t *);
 static void fb_scroll_down(outdev_t *);
 
 static outdev_operations_t fbdev_ops = {
-	.write = fb_putwchar,
+	.write = fb_putuchar,
 	.redraw = fb_redraw,
 	.scroll_up = fb_scroll_up,
 	.scroll_down = fb_scroll_down
@@ -417,7 +417,7 @@ static void fb_redraw_internal(fb_instance_t *instance)
  * Emulate basic terminal commands.
  *
  */
-static void fb_putwchar(outdev_t *dev, wchar_t ch)
+static void fb_putuchar(outdev_t *dev, char32_t ch)
 {
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
 	spinlock_lock(&instance->lock);

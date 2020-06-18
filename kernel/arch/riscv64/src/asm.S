@@ -34,9 +34,9 @@ FUNCTION_BEGIN(asm_delay_loop)
 	ret
 FUNCTION_END(asm_delay_loop)
 
-FUNCTION_BEGIN(early_putwchar)
+FUNCTION_BEGIN(early_putuchar)
 	ret
-FUNCTION_END(early_putwchar)
+FUNCTION_END(early_putuchar)
 
 FUNCTION_BEGIN(cpu_halt)
 	j cpu_halt

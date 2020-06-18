@@ -40,8 +40,8 @@
 
 struct search;
 typedef struct search search_t;
-typedef bool (*search_equals_fn)(const wchar_t, const wchar_t);
-typedef errno_t (*search_producer_fn)(void *, wchar_t *);
+typedef bool (*search_equals_fn)(const char32_t, const char32_t);
+typedef errno_t (*search_producer_fn)(void *, char32_t *);
 typedef errno_t (*search_mark_fn)(void *, void **);
 typedef void (*search_mark_free_fn)(void *);
 
@@ -57,7 +57,7 @@ typedef struct search_ops {
 	search_mark_free_fn mark_free;
 } search_ops_t;
 
-extern bool char_exact_equals(const wchar_t, const wchar_t);
+extern bool char_exact_equals(const char32_t, const char32_t);
 extern search_t *search_init(const char *, void *, search_ops_t, bool);
 extern errno_t search_next_match(search_t *, match_t *);
 extern void search_fini(search_t *);

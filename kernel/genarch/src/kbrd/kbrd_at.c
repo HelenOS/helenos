@@ -58,7 +58,7 @@
 #define AT_NUM_SCAN_CODE	0x77
 #define AT_SCROLL_SCAN_CODE	0x7E
 
-static bool is_lock_key(wchar_t);
+static bool is_lock_key(char32_t);
 
 static indev_operations_t kbrd_raw_ops = {
 	.poll = NULL
@@ -68,7 +68,7 @@ static indev_operations_t kbrd_raw_ops = {
  *
  * @param sc Scancode of the key being released.
  */
-static void key_released(kbrd_instance_t *instance, wchar_t sc)
+static void key_released(kbrd_instance_t *instance, char32_t sc)
 {
 	spinlock_lock(&instance->keylock);
 
@@ -95,7 +95,7 @@ static void key_released(kbrd_instance_t *instance, wchar_t sc)
  *
  * @param sc Scancode of the key being pressed.
  */
-static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
+static void key_pressed(kbrd_instance_t *instance, char32_t sc)
 {
 	bool letter;
 	bool shift;
@@ -139,7 +139,7 @@ static void kkbrd(void *arg)
 	kbrd_instance_t *instance = (kbrd_instance_t *) arg;
 
 	while (true) {
-		wchar_t sc = indev_pop_character(&instance->raw);
+		char32_t sc = indev_pop_character(&instance->raw);
 
 		if (sc == AT_KEY_RELEASE) {
 			key_released_flag = 1;
@@ -202,7 +202,7 @@ indev_t *kbrd_wire(kbrd_instance_t *instance, indev_t *sink)
 	return &instance->raw;
 }
 
-static bool is_lock_key(wchar_t sc)
+static bool is_lock_key(char32_t sc)
 {
 	return ((sc == AT_CAPS_SCAN_CODE) || (sc == AT_NUM_SCAN_CODE) ||
 	    (sc == AT_SCROLL_SCAN_CODE));

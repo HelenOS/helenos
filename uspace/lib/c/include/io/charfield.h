@@ -37,7 +37,7 @@
 #define _LIBC_IO_CHARFIELD_H_
 
 #include <stdbool.h>
-#include <wchar.h>
+#include <uchar.h>
 #include <io/color.h>
 #include <io/style.h>
 #include <io/pixel.h>
@@ -76,7 +76,7 @@ typedef struct {
 } char_attrs_t;
 
 typedef struct {
-	wchar_t ch;
+	char32_t ch;
 	char_attrs_t attrs;
 	char_flags_t flags;
 } charfield_t;

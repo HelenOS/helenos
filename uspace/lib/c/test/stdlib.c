@@ -47,8 +47,8 @@ PCUT_TEST(decls)
 	size_t sz = 0;
 	(void) sz;
 
-	/* Make sure wchar_t is defined */
-	wchar_t wc = L'\0';
+	/* Make sure char32_t is defined */
+	char32_t wc = L'\0';
 	(void) wc;
 
 	/* Make sure EXIT_FAILURE and EXIT_SUCCESS are defined */

@@ -46,22 +46,22 @@ static int vprintf_str_write(const char *str, size_t size, void *data)
 	size_t chars = 0;
 
 	while (offset < size) {
-		putwchar(str_decode(str, &offset, size));
+		putuchar(str_decode(str, &offset, size));
 		chars++;
 	}
 
 	return chars;
 }
 
-static int vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
+static int vprintf_wstr_write(const char32_t *str, size_t size, void *data)
 {
 	size_t offset = 0;
 	size_t chars = 0;
 
 	while (offset < size) {
-		putwchar(str[chars]);
+		putuchar(str[chars]);
 		chars++;
-		offset += sizeof(wchar_t);
+		offset += sizeof(char32_t);
 	}
 
 	return chars;
@@ -71,14 +71,14 @@ int puts(const char *str)
 {
 	size_t offset = 0;
 	size_t chars = 0;
-	wchar_t uc;
+	char32_t uc;
 
 	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {
-		putwchar(uc);
+		putuchar(uc);
 		chars++;
 	}
 
-	putwchar('\n');
+	putuchar('\n');
 	return chars;
 }
 

@@ -56,7 +56,7 @@ static void draw_char(vt100_state_t *state, charfield_t *field,
 {
 	vt100_goto(state, col, row);
 	vt100_set_attr(state, field->attrs);
-	vt100_putwchar(state, field->ch);
+	vt100_putuchar(state, field->ch);
 }
 
 static errno_t serial_yield(outdev_t *dev)
@@ -121,11 +121,11 @@ static outdev_ops_t serial_ops = {
 	.flush = serial_flush
 };
 
-errno_t serial_init(vt100_putwchar_t putwchar_fn,
+errno_t serial_init(vt100_putuchar_t putuchar_fn,
     vt100_control_puts_t control_puts_fn, vt100_flush_t flush_fn)
 {
 	vt100_state_t *state =
-	    vt100_state_create(SERIAL_COLS, SERIAL_ROWS, putwchar_fn,
+	    vt100_state_create(SERIAL_COLS, SERIAL_ROWS, putuchar_fn,
 	    control_puts_fn, flush_fn);
 	if (state == NULL)
 		return ENOMEM;

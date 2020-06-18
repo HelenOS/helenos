@@ -139,7 +139,7 @@ static int kio_vprintf_str_write(const char *str, size_t size, void *data)
 	return str_nlength(str, wr);
 }
 
-static int kio_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
+static int kio_vprintf_wstr_write(const char32_t *str, size_t size, void *data)
 {
 	size_t offset = 0;
 	size_t chars = 0;
@@ -153,7 +153,7 @@ static int kio_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 			kio_write(buf, sz, &wr);
 
 		chars++;
-		offset += sizeof(wchar_t);
+		offset += sizeof(char32_t);
 	}
 
 	return chars;

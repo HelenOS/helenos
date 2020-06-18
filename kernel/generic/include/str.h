@@ -43,7 +43,7 @@
 #include <stdint.h>
 
 /* Common Unicode characters */
-#define U_SPECIAL      '?'
+#define U_SPECIAL  '?'
 
 #define U_LEFT_ARROW   0x2190
 #define U_UP_ARROW     0x2191
@@ -68,38 +68,38 @@
 /** Maximum size of a string containing @c length characters */
 #define STR_BOUNDS(length)  ((length) << 2)
 
-extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
-extern errno_t chr_encode(wchar_t ch, char *str, size_t *offset, size_t sz);
+extern char32_t str_decode(const char *, size_t *, size_t);
+extern errno_t chr_encode(char32_t, char *, size_t *, size_t);
 
-extern size_t str_size(const char *str);
-extern size_t wstr_size(const wchar_t *str);
+extern size_t str_size(const char *);
+extern size_t wstr_size(const char32_t *);
 
-extern size_t str_lsize(const char *str, size_t max_len);
-extern size_t wstr_lsize(const wchar_t *str, size_t max_len);
+extern size_t str_lsize(const char *, size_t);
+extern size_t wstr_lsize(const char32_t *, size_t);
 
-extern size_t str_length(const char *str);
-extern size_t wstr_length(const wchar_t *wstr);
+extern size_t str_length(const char *);
+extern size_t wstr_length(const char32_t *);
 
-extern size_t str_nlength(const char *str, size_t size);
-extern size_t wstr_nlength(const wchar_t *str, size_t size);
+extern size_t str_nlength(const char *, size_t);
+extern size_t wstr_nlength(const char32_t *, size_t);
 
-extern bool ascii_check(wchar_t ch);
-extern bool chr_check(wchar_t ch);
+extern bool ascii_check(char32_t);
+extern bool chr_check(char32_t);
 
-extern int str_cmp(const char *s1, const char *s2);
-extern int str_lcmp(const char *s1, const char *s2, size_t max_len);
+extern int str_cmp(const char *, const char *);
+extern int str_lcmp(const char *, const char *, size_t);
 
-extern void str_cpy(char *dest, size_t size, const char *src);
-extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
-extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
+extern void str_cpy(char *, size_t, const char *);
+extern void str_ncpy(char *, size_t, const char *, size_t);
+extern void wstr_to_str(char *, size_t, const char32_t *);
 
-extern char *str_chr(const char *str, wchar_t ch);
+extern char *str_chr(const char *, char32_t);
 
-extern bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos);
-extern bool wstr_remove(wchar_t *str, size_t pos);
+extern bool wstr_linsert(char32_t *, char32_t, size_t, size_t);
+extern bool wstr_remove(char32_t *, size_t);
 
-extern char *str_dup(const char *src);
-extern char *str_ndup(const char *src, size_t n);
+extern char *str_dup(const char *);
+extern char *str_ndup(const char *, size_t);
 
 extern errno_t str_uint64_t(const char *, char **, unsigned int, bool,
     uint64_t *);
@@ -107,8 +107,8 @@ extern errno_t str_uint64_t(const char *, char **, unsigned int, bool,
 extern void order_suffix(const uint64_t, uint64_t *, char *);
 extern void bin_order_suffix(const uint64_t, uint64_t *, const char **, bool);
 
-extern const char *str_error(errno_t err);
-extern const char *str_error_name(errno_t err);
+extern const char *str_error(errno_t);
+extern const char *str_error_name(errno_t);
 
 #endif
 

@@ -154,7 +154,7 @@ void insertscore(int score, int level)
 
 		if (kev->key == KC_BACKSPACE) {
 			if (i > 0) {
-				wchar_t uc;
+				char32_t uc;
 
 				--i;
 				while (off > 0) {

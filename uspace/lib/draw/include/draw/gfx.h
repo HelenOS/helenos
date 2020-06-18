@@ -39,6 +39,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <uchar.h>
 
 #define CURSOR_WIDTH   11
 #define CURSOR_HEIGHT  18
@@ -51,7 +52,7 @@
 extern uint8_t cursor_texture[];
 extern uint8_t cursor_mask[];
 
-extern uint16_t fb_font_glyph(const wchar_t, bool *);
+extern uint16_t fb_font_glyph(const char32_t, bool *);
 extern uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES];
 
 #endif

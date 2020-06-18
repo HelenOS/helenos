@@ -87,7 +87,7 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 		size_t index = 0;
 
 		while (index < size) {
-			wchar_t uc = str_decode(str, &index, size);
+			char32_t uc = str_decode(str, &index, size);
 
 			if (chr_encode(uc, data->dst, &data->len, data->size - 1) != EOK)
 				break;
@@ -132,11 +132,11 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
  *         printed).
  *
  */
-static int vsnprintf_wstr_write(const wchar_t *str, size_t size, vsnprintf_data_t *data)
+static int vsnprintf_wstr_write(const char32_t *str, size_t size, vsnprintf_data_t *data)
 {
 	size_t index = 0;
 
-	while (index < (size / sizeof(wchar_t))) {
+	while (index < (size / sizeof(char32_t))) {
 		size_t left = data->size - data->len;
 
 		if (left == 0)
@@ -176,7 +176,7 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 	};
 	printf_spec_t ps = {
 		(int (*) (const char *, size_t, void *)) vsnprintf_str_write,
-		(int (*) (const wchar_t *, size_t, void *)) vsnprintf_wstr_write,
+		(int (*) (const char32_t *, size_t, void *)) vsnprintf_wstr_write,
 		&data
 	};
 

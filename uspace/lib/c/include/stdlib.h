@@ -37,6 +37,7 @@
 
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
+#include <_bits/uchar.h>
 #include <_bits/decls.h>
 #include <bsearch.h>
 #include <malloc.h>

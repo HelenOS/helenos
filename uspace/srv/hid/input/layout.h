@@ -52,7 +52,7 @@ typedef struct layout {
 typedef struct layout_ops {
 	errno_t (*create)(layout_t *);
 	void (*destroy)(layout_t *);
-	wchar_t (*parse_ev)(layout_t *, kbd_event_t *);
+	char32_t (*parse_ev)(layout_t *, kbd_event_t *);
 } layout_ops_t;
 
 extern layout_ops_t us_qwerty_ops;
@@ -63,7 +63,7 @@ extern layout_ops_t fr_azerty_ops;
 
 extern layout_t *layout_create(layout_ops_t *);
 extern void layout_destroy(layout_t *);
-extern wchar_t layout_parse_ev(layout_t *, kbd_event_t *);
+extern char32_t layout_parse_ev(layout_t *, kbd_event_t *);
 
 #endif
 

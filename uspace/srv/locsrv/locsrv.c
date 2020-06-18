@@ -124,7 +124,7 @@ static bool loc_fqsn_split(const char *fqsn, char **ns_name, char **name)
 
 	size_t offset = 0;
 	size_t offset_prev = 0;
-	wchar_t c;
+	char32_t c;
 
 	while ((c = str_decode(fqsn, &offset, STR_NO_LIMIT)) != 0) {
 		if (c == '/') {

@@ -46,7 +46,7 @@
 typedef struct {
 	const char *string;
 	size_t offset;
-	wchar_t ch;
+	char32_t ch;
 } string_iterator_t;
 
 static inline string_iterator_t string_iterator(const char *string)
@@ -63,7 +63,7 @@ static inline bool string_iterator_done(const string_iterator_t *i)
 	return i->ch == L'\0';
 }
 
-static inline errno_t string_iterator_next(string_iterator_t *i, wchar_t *out)
+static inline errno_t string_iterator_next(string_iterator_t *i, char32_t *out)
 {
 	*out = i->ch;
 	if (*out == U_SPECIAL)

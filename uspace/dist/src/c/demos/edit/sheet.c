@@ -192,7 +192,7 @@ void sheet_copy_out(sheet_t *sh, spt_t const *spos, spt_t const *epos,
 	size_t range_sz;
 	size_t copy_sz;
 	size_t off, prev;
-	wchar_t c;
+	char32_t c;
 
 	spp = sh->data + spos->b_off;
 	range_sz = epos->b_off - spos->b_off;
@@ -219,7 +219,7 @@ void sheet_get_cell_pt(sheet_t *sh, coord_t const *coord, enum dir_spec dir,
     spt_t *pt)
 {
 	size_t cur_pos, prev_pos;
-	wchar_t c;
+	char32_t c;
 	coord_t cc;
 
 	cc.row = cc.column = 1;
@@ -288,7 +288,7 @@ void spt_get_coord(spt_t const *pos, coord_t *coord)
 {
 	size_t off;
 	coord_t cc;
-	wchar_t c;
+	char32_t c;
 	sheet_t *sh;
 
 	sh = pos->sh;
@@ -317,17 +317,17 @@ bool spt_equal(spt_t const *a, spt_t const *b)
 }
 
 /** Get a character at spt and return next spt */
-wchar_t spt_next_char(spt_t spt, spt_t *next)
+char32_t spt_next_char(spt_t spt, spt_t *next)
 {
-	wchar_t ch = str_decode(spt.sh->data, &spt.b_off, spt.sh->text_size);
+	char32_t ch = str_decode(spt.sh->data, &spt.b_off, spt.sh->text_size);
 	if (next)
 		*next = spt;
 	return ch;
 }
 
-wchar_t spt_prev_char(spt_t spt, spt_t *prev)
+char32_t spt_prev_char(spt_t spt, spt_t *prev)
 {
-	wchar_t ch = str_decode_reverse(spt.sh->data, &spt.b_off, spt.sh->text_size);
+	char32_t ch = str_decode_reverse(spt.sh->data, &spt.b_off, spt.sh->text_size);
 	if (prev)
 		*prev = spt;
 	return ch;

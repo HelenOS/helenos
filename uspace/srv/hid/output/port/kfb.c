@@ -78,7 +78,7 @@ static uint8_t pointer_mask[] = {
 };
 
 /** Function to draw a character. */
-typedef void (*draw_char_t)(sysarg_t, sysarg_t, bool, wchar_t, pixel_t,
+typedef void (*draw_char_t)(sysarg_t, sysarg_t, bool, char32_t, pixel_t,
     pixel_t);
 
 typedef struct {
@@ -286,7 +286,7 @@ static void attrs_rgb(char_attrs_t attrs, pixel_t *bgcolor, pixel_t *fgcolor)
  * @param fbgcolor Foreground color.
  *
  */
-static void draw_char_aligned(sysarg_t x, sysarg_t y, bool inverted, wchar_t ch,
+static void draw_char_aligned(sysarg_t x, sysarg_t y, bool inverted, char32_t ch,
     pixel_t bgcolor, pixel_t fgcolor)
 {
 	size_t word_size = sizeof(unsigned long);
@@ -349,7 +349,7 @@ static void draw_char_aligned(sysarg_t x, sysarg_t y, bool inverted, wchar_t ch,
  *
  */
 static void draw_char_fallback(sysarg_t x, sysarg_t y, bool inverted,
-    wchar_t ch, pixel_t bgcolor, pixel_t fgcolor)
+    char32_t ch, pixel_t bgcolor, pixel_t fgcolor)
 {
 	/* Character glyph */
 	uint16_t glyph = fb_font_glyph(ch);

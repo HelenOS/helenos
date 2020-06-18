@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <wchar.h>
+#include <uchar.h>
 #include <bithenge/blob.h>
 #include <bithenge/print.h>
 #include <bithenge/tree.h>
@@ -163,7 +163,7 @@ static errno_t print_string(state_t *state, bithenge_node_t *node)
 	state_printf(state, "\"");
 	string_iterator_t i = string_iterator(value);
 	while (!string_iterator_done(&i)) {
-		wchar_t ch;
+		char32_t ch;
 		errno_t rc = string_iterator_next(&i, &ch);
 		if (rc != EOK)
 			return rc;

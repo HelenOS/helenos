@@ -49,7 +49,7 @@ typedef struct {
 typedef struct input_ev_ops {
 	errno_t (*active)(input_t *);
 	errno_t (*deactive)(input_t *);
-	errno_t (*key)(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
+	errno_t (*key)(input_t *, kbd_event_type_t, keycode_t, keymod_t, char32_t);
 	errno_t (*move)(input_t *, int, int);
 	errno_t (*abs_move)(input_t *, unsigned, unsigned, unsigned, unsigned);
 	errno_t (*button)(input_t *, int, int);

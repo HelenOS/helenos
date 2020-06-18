@@ -42,7 +42,7 @@
  * glyph in the font or returns an index to the question
  * mark glyph if no specific glyph exists.
  */
-uint16_t fb_font_glyph(const wchar_t ch)
+uint16_t fb_font_glyph(const char32_t ch)
 {
 	if (ch == 0x0000)
 		return 0;

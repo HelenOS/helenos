@@ -503,7 +503,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 
 	while (true) {
 		i = nxt;
-		wchar_t uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+		char32_t uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 
 		if (uc == 0)
 			break;

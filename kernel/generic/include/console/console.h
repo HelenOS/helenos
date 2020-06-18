@@ -56,7 +56,7 @@
 extern indev_t *stdin;
 extern outdev_t *stdout;
 
-extern void early_putwchar(wchar_t);
+extern void early_putuchar(char32_t);
 
 extern indev_t *stdin_wire(void);
 extern void stdout_wire(outdev_t *outdev);
@@ -65,10 +65,10 @@ extern void console_init(void);
 extern void kio_init(void);
 extern void kio_update(void *);
 extern void kio_flush(void);
-extern void kio_push_char(const wchar_t);
+extern void kio_push_char(const char32_t);
 SPINLOCK_EXTERN(kio_lock);
 
-extern wchar_t getc(indev_t *indev);
+extern char32_t getc(indev_t *indev);
 extern size_t gets(indev_t *indev, char *buf, size_t buflen);
 extern sys_errno_t sys_kio(int cmd, uspace_addr_t buf, size_t size);
 

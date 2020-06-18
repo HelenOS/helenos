@@ -47,6 +47,7 @@
 #include <ipc/loc.h>
 #include <adt/list.h>
 #include <wchar.h>
+#include <uchar.h>
 #include "../private/io.h"
 #include "../private/stdio.h"
 
@@ -748,9 +749,31 @@ wint_t fputwc(wchar_t wc, FILE *stream)
 	return wc;
 }
 
+wint_t fputuc(char32_t wc, FILE *stream)
+{
+	char buf[STR_BOUNDS(1)];
+	size_t sz = 0;
+
+	if (chr_encode(wc, buf, &sz, STR_BOUNDS(1)) != EOK) {
+		errno = EILSEQ;
+		return WEOF;
+	}
+
+	size_t wr = fwrite(buf, 1, sz, stream);
+	if (wr < sz)
+		return WEOF;
+
+	return wc;
+}
+
 wint_t putwchar(wchar_t wc)
 {
 	return fputwc(wc, stdout);
+}
+
+wint_t putuchar(char32_t wc)
+{
+	return fputuc(wc, stdout);
 }
 
 int fputc(int c, FILE *stream)

@@ -112,7 +112,7 @@ static void tinput_display_prompt(tinput_t *ti)
 
 static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 {
-	wchar_t *dbuf = malloc((INPUT_MAX_SIZE + 1) * sizeof(wchar_t));
+	char32_t *dbuf = malloc((INPUT_MAX_SIZE + 1) * sizeof(char32_t));
 	if (!dbuf)
 		return;
 
@@ -125,7 +125,7 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 
 	size_t p = start;
 	if (p < sa) {
-		memcpy(dbuf, ti->buffer + p, (sa - p) * sizeof(wchar_t));
+		memcpy(dbuf, ti->buffer + p, (sa - p) * sizeof(char32_t));
 		dbuf[sa - p] = '\0';
 		printf("%ls", dbuf);
 		p = sa;
@@ -136,7 +136,7 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 		console_set_style(ti->console, STYLE_SELECTED);
 
 		memcpy(dbuf, ti->buffer + p,
-		    (sb - p) * sizeof(wchar_t));
+		    (sb - p) * sizeof(char32_t));
 		dbuf[sb - p] = '\0';
 		printf("%ls", dbuf);
 		p = sb;
@@ -147,13 +147,13 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 
 	if (p < ti->nc) {
 		memcpy(dbuf, ti->buffer + p,
-		    (ti->nc - p) * sizeof(wchar_t));
+		    (ti->nc - p) * sizeof(char32_t));
 		dbuf[ti->nc - p] = '\0';
 		printf("%ls", dbuf);
 	}
 
 	for (p = 0; p < pad; p++)
-		putwchar(' ');
+		putuchar(' ');
 
 	console_flush(ti->console);
 
@@ -191,7 +191,7 @@ static void tinput_jump_after(tinput_t *ti)
 {
 	tinput_console_set_lpos(ti, ti->text_coord + ti->nc);
 	console_flush(ti->console);
-	putwchar('\n');
+	putuchar('\n');
 }
 
 static errno_t tinput_display(tinput_t *ti)
@@ -211,7 +211,7 @@ static errno_t tinput_display(tinput_t *ti)
 	return EOK;
 }
 
-static void tinput_insert_char(tinput_t *ti, wchar_t c)
+static void tinput_insert_char(tinput_t *ti, char32_t c)
 {
 	if (ti->nc == INPUT_MAX_SIZE)
 		return;
@@ -262,7 +262,7 @@ static void tinput_insert_string(tinput_t *ti, const char *str)
 	size_t off = 0;
 	size_t i = 0;
 	while (i < ilen) {
-		wchar_t c = str_decode(str, &off, STR_NO_LIMIT);
+		char32_t c = str_decode(str, &off, STR_NO_LIMIT);
 		if (c == '\0')
 			break;
 
@@ -505,7 +505,7 @@ static void tinput_sel_delete(tinput_t *ti)
 		return;
 
 	memmove(ti->buffer + sa, ti->buffer + sb,
-	    (ti->nc - sb) * sizeof(wchar_t));
+	    (ti->nc - sb) * sizeof(char32_t));
 
 	ti->pos = ti->sel_start = sa;
 	ti->nc -= (sb - sa);
@@ -525,7 +525,7 @@ static void tinput_sel_copy_to_cb(tinput_t *ti)
 	char *str;
 
 	if (sb < ti->nc) {
-		wchar_t tmp_c = ti->buffer[sb];
+		char32_t tmp_c = ti->buffer[sb];
 		ti->buffer[sb] = '\0';
 		str = wstr_to_astr(ti->buffer + sa);
 		ti->buffer[sb] = tmp_c;
@@ -601,7 +601,7 @@ static size_t common_pref_len(const char *a, const char *b)
 {
 	size_t i;
 	size_t a_off, b_off;
-	wchar_t ca, cb;
+	char32_t ca, cb;
 
 	i = 0;
 	a_off = 0;

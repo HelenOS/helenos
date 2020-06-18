@@ -213,13 +213,13 @@ static int log_printf_str_write(const char *str, size_t size, void *data)
 	return chars;
 }
 
-static int log_printf_wstr_write(const wchar_t *wstr, size_t size, void *data)
+static int log_printf_wstr_write(const char32_t *wstr, size_t size, void *data)
 {
 	char buffer[16];
 	size_t offset = 0;
 	size_t chars = 0;
 
-	for (offset = 0; offset < size; offset += sizeof(wchar_t), chars++) {
+	for (offset = 0; offset < size; offset += sizeof(char32_t), chars++) {
 		kio_push_char(wstr[chars]);
 
 		size_t buffer_offset = 0;

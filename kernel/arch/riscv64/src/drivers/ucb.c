@@ -41,7 +41,7 @@ static volatile uint64_t *tohost;
 static volatile uint64_t *fromhost;
 
 static outdev_operations_t htifdev_ops = {
-	.write = htif_putwchar,
+	.write = htif_putuchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -84,7 +84,7 @@ static void htif_cmd(uint8_t device, uint8_t cmd, uint64_t payload)
 	*tohost = val;
 }
 
-void htif_putwchar(outdev_t *dev, const wchar_t ch)
+void htif_putuchar(outdev_t *dev, const char32_t ch)
 {
 	if (ascii_check(ch))
 		htif_cmd(HTIF_DEVICE_CONSOLE, HTIF_CONSOLE_PUTC, ch);

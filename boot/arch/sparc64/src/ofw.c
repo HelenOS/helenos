@@ -42,7 +42,7 @@
 #include <putchar.h>
 #include <str.h>
 
-void putwchar(wchar_t ch)
+void putuchar(char32_t ch)
 {
 	if (ch == '\n')
 		ofw_putchar('\r');

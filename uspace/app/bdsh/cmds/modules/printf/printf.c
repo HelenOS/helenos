@@ -67,7 +67,7 @@ void help_cmd_printf(unsigned int level)
  * @param ch  formatted flag.
  * @param arg string with data to print.
  */
-static int print_arg(wchar_t ch, const char *arg)
+static int print_arg(char32_t ch, const char *arg)
 {
 	switch (ch) {
 	case 'd':
@@ -92,7 +92,7 @@ static int print_arg(wchar_t ch, const char *arg)
  *
  * @param ch  Control character.
  */
-static int process_ctl(wchar_t ch)
+static int process_ctl(char32_t ch)
 {
 	switch (ch) {
 	case 'n':
@@ -119,7 +119,7 @@ int cmd_printf(char **argv)
 	unsigned int argc;
 	char *fmt;
 	size_t pos, fmt_sz;
-	wchar_t ch;
+	char32_t ch;
 	bool esc_flag = false;
 	unsigned int carg;     // Current argument
 
@@ -169,11 +169,11 @@ int cmd_printf(char **argv)
 				esc_flag = false;
 				break;
 			}
-			putwchar(ch);
+			putuchar(ch);
 			break;
 
 		emit:
-			putwchar(ch);
+			putuchar(ch);
 			esc_flag = false;
 		}
 	}

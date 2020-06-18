@@ -264,6 +264,6 @@ SYMBOL(memcpy_to_uspace_failover_address)
 	xor r3, r3, r3
 	blr
 
-FUNCTION_BEGIN(early_putwchar)
+FUNCTION_BEGIN(early_putuchar)
 	blr
-FUNCTION_END(early_putwchar)
+FUNCTION_END(early_putuchar)

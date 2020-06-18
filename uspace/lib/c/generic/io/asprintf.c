@@ -45,7 +45,7 @@ static int asprintf_str_write(const char *str, size_t count, void *unused)
 	return str_nlength(str, count);
 }
 
-static int asprintf_wstr_write(const wchar_t *str, size_t count, void *unused)
+static int asprintf_wstr_write(const char32_t *str, size_t count, void *unused)
 {
 	return wstr_nlength(str, count);
 }

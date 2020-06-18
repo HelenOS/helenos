@@ -36,7 +36,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
+#include <uchar.h>
 
 #define max(aleph, bet) ((aleph) > (bet) ? (aleph) : (bet))
 #define min(aleph, bet) ((aleph) < (bet) ? (aleph) : (bet))
@@ -54,10 +54,10 @@ static inline string_iterator_t string_iterator(const char *string)
 	return string;
 }
 
-static inline errno_t string_iterator_next(string_iterator_t *i, wchar_t *out)
+static inline errno_t string_iterator_next(string_iterator_t *i, char32_t *out)
 {
 	wint_t rc = btowc(*(*i)++); // TODO
-	*out = (wchar_t) rc;
+	*out = (char32_t) rc;
 	return rc == WEOF ? EILSEQ : EOK;
 }
 
@@ -71,7 +71,7 @@ static inline size_t str_length(const char *string)
 	return strlen(string);
 }
 
-static inline const char *str_chr(const char *string, wchar_t ch)
+static inline const char *str_chr(const char *string, char32_t ch)
 {
 	return strchr(string, wctob(ch)); // TODO
 }

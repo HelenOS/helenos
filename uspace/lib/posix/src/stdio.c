@@ -248,7 +248,7 @@ static int _dprintf_str_write(const char *str, size_t size, void *fd)
  * @param fd File descriptor of the opened file.
  * @return The number of written characters.
  */
-static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
+static int _dprintf_wstr_write(const char32_t *str, size_t size, void *fd)
 {
 	size_t offset = 0;
 	size_t chars = 0;
@@ -267,7 +267,7 @@ static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
 			break;
 
 		chars++;
-		offset += sizeof(wchar_t);
+		offset += sizeof(char32_t);
 	}
 
 	return chars;

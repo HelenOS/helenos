@@ -359,7 +359,7 @@ size_t fat_lfn_set_entry(const uint16_t *src, size_t *offset, size_t size,
 
 void str_to_ascii(char *dst, const char *src, size_t count, uint8_t pad)
 {
-	wchar_t ch;
+	char32_t ch;
 	size_t off = 0;
 	size_t i = 0;
 
@@ -380,7 +380,7 @@ void str_to_ascii(char *dst, const char *src, size_t count, uint8_t pad)
 
 bool fat_valid_name(const char *name)
 {
-	wchar_t ch;
+	char32_t ch;
 	size_t offset = 0;
 	bool result = true;
 

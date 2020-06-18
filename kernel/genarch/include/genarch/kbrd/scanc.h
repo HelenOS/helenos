@@ -40,8 +40,8 @@
 
 #define SCANCODES  128
 
-extern wchar_t sc_primary_map[SCANCODES];
-extern wchar_t sc_secondary_map[SCANCODES];
+extern char32_t sc_primary_map[SCANCODES];
+extern char32_t sc_secondary_map[SCANCODES];
 
 #endif
 

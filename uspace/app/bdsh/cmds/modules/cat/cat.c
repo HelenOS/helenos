@@ -153,13 +153,13 @@ static void newpage(void)
 	lines_remaining = console_rows - 1;
 }
 
-static void paged_char(wchar_t c)
+static void paged_char(char32_t c)
 {
 	if (last_char_was_newline && number) {
 		lineno++;
 		printf("%6u  ", lineno);
 	}
-	putwchar(c);
+	putuchar(c);
 	last_char_was_newline = c == '\n';
 	if (paging_enabled) {
 		chars_remaining--;
@@ -268,7 +268,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 					paged_char(hexchars[((uint8_t)buff[i]) % 16]);
 					paged_char(((count + i + 1) & 0xf) == 0 ? '\n' : ' ');
 				} else {
-					wchar_t c = str_decode(buff, &offset, bytes);
+					char32_t c = str_decode(buff, &offset, bytes);
 					if (c == 0) {
 						/* Reached end of string */
 						break;

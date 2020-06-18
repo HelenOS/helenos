@@ -54,7 +54,7 @@ struct indev;
 /** Input character device operations interface. */
 typedef struct {
 	/** Read character directly from device, assume interrupts disabled. */
-	wchar_t (*poll)(struct indev *);
+	char32_t (*poll)(struct indev *);
 
 	/** Signal out-of-band condition. */
 	void (*signal)(struct indev *, indev_signal_t);
@@ -67,7 +67,7 @@ typedef struct indev {
 
 	/** Protects everything below. */
 	IRQ_SPINLOCK_DECLARE(lock);
-	wchar_t buffer[INDEV_BUFLEN];
+	char32_t buffer[INDEV_BUFLEN];
 	size_t counter;
 
 	/** Implementation of indev operations. */
@@ -81,7 +81,7 @@ struct outdev;
 /** Output character device operations interface. */
 typedef struct {
 	/** Write character to output. */
-	void (*write)(struct outdev *, wchar_t);
+	void (*write)(struct outdev *, char32_t);
 
 	/** Redraw any previously cached characters. */
 	void (*redraw)(struct outdev *);
@@ -111,8 +111,8 @@ typedef struct outdev {
 
 extern void indev_initialize(const char *, indev_t *,
     indev_operations_t *);
-extern void indev_push_character(indev_t *, wchar_t);
-extern wchar_t indev_pop_character(indev_t *);
+extern void indev_push_character(indev_t *, char32_t);
+extern char32_t indev_pop_character(indev_t *);
 extern void indev_signal(indev_t *, indev_signal_t);
 
 extern void outdev_initialize(const char *, outdev_t *,

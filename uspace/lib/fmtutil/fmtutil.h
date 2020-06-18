@@ -43,9 +43,9 @@ typedef enum {
  *
  * @returns EOK on success or an error code on failure
  */
-typedef errno_t (*line_consumer_fn)(wchar_t *, size_t, bool, void *);
+typedef errno_t (*line_consumer_fn)(char32_t *, size_t, bool, void *);
 
-extern errno_t print_aligned_w(const wchar_t *, size_t, bool, align_mode_t);
+extern errno_t print_aligned_w(const char32_t *, size_t, bool, align_mode_t);
 extern errno_t print_aligned(const char *, size_t, bool, align_mode_t);
 extern errno_t print_wrapped(const char *, size_t, align_mode_t);
 extern errno_t print_wrapped_console(const char *, align_mode_t);
@@ -57,4 +57,4 @@ extern errno_t print_wrapped_console(const char *, align_mode_t);
  * @param consumer the function that receives wrapped lines
  * @param data user data to pass to the consumer function
  */
-extern errno_t wrap(wchar_t *, size_t, line_consumer_fn, void *);
+extern errno_t wrap(char32_t *, size_t, line_consumer_fn, void *);

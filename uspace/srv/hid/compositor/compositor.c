@@ -155,7 +155,7 @@ static bool active = false;
 
 static errno_t comp_active(input_t *);
 static errno_t comp_deactive(input_t *);
-static errno_t comp_key_press(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
+static errno_t comp_key_press(input_t *, kbd_event_type_t, keycode_t, keymod_t, char32_t);
 static errno_t comp_mouse_move(input_t *, int, int);
 static errno_t comp_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
 static errno_t comp_mouse_button(input_t *, int, int);
@@ -1862,7 +1862,7 @@ static errno_t comp_deactive(input_t *input)
 }
 
 static errno_t comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
-    keymod_t mods, wchar_t c)
+    keymod_t mods, char32_t c)
 {
 	bool win_transform = (mods & KM_ALT) &&
 	    (key == KC_W || key == KC_S || key == KC_A || key == KC_D ||

@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef TAR_H_
-#define TAR_H_
+#ifndef BOOT_TAR_H_
+#define BOOT_TAR_H_
 
 #include <stdbool.h>
 #include <stddef.h>

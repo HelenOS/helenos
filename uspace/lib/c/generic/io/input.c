@@ -108,7 +108,7 @@ static void input_ev_key(input_t *input, ipc_call_t *call)
 	kbd_event_type_t type;
 	keycode_t key;
 	keymod_t mods;
-	wchar_t c;
+	char32_t c;
 	errno_t rc;
 
 	type = ipc_get_arg1(call);

@@ -35,9 +35,9 @@
 #include "tok.h"
 
 /* Forward declarations of static functions */
-static wchar_t tok_get_char(tokenizer_t *);
-static wchar_t tok_look_char(tokenizer_t *);
-static errno_t tok_push_char(tokenizer_t *, wchar_t);
+static char32_t tok_get_char(tokenizer_t *);
+static char32_t tok_look_char(tokenizer_t *);
+static errno_t tok_push_char(tokenizer_t *, char32_t);
 static errno_t tok_push_token(tokenizer_t *);
 static bool tok_pending_chars(tokenizer_t *);
 static errno_t tok_finish_string(tokenizer_t *);
@@ -91,7 +91,7 @@ void tok_fini(tokenizer_t *tok)
 errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 {
 	errno_t rc;
-	wchar_t next_char;
+	char32_t next_char;
 
 	/* Read the input line char by char and append tokens */
 	while ((next_char = tok_look_char(tok)) != 0) {
@@ -181,7 +181,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 errno_t tok_finish_string(tokenizer_t *tok)
 {
 	errno_t rc;
-	wchar_t next_char;
+	char32_t next_char;
 
 	while ((next_char = tok_look_char(tok)) != 0) {
 		if (next_char == '\'') {
@@ -213,25 +213,25 @@ errno_t tok_finish_string(tokenizer_t *tok)
 }
 
 /** Get a char from input, advancing the input position */
-wchar_t tok_get_char(tokenizer_t *tok)
+char32_t tok_get_char(tokenizer_t *tok)
 {
 	tok->in_char_offset++;
 	return str_decode(tok->in, &tok->in_offset, STR_NO_LIMIT);
 }
 
 /** Get a char from input, while staying on the same input position */
-wchar_t tok_look_char(tokenizer_t *tok)
+char32_t tok_look_char(tokenizer_t *tok)
 {
 	size_t old_offset = tok->in_offset;
 	size_t old_char_offset = tok->in_char_offset;
-	wchar_t ret = tok_get_char(tok);
+	char32_t ret = tok_get_char(tok);
 	tok->in_offset = old_offset;
 	tok->in_char_offset = old_char_offset;
 	return ret;
 }
 
 /** Append a char to the end of the current token */
-errno_t tok_push_char(tokenizer_t *tok, wchar_t ch)
+errno_t tok_push_char(tokenizer_t *tok, char32_t ch)
 {
 	return chr_encode(ch, tok->outbuf, &tok->outbuf_offset, tok->outbuf_size);
 }

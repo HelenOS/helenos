@@ -59,10 +59,10 @@ enum {
 	SKI_PUTCHAR      = 31
 };
 
-static void ski_putwchar(outdev_t *, const wchar_t);
+static void ski_putuchar(outdev_t *, const char32_t);
 
 static outdev_operations_t skidev_ops = {
-	.write = ski_putwchar,
+	.write = ski_putuchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -81,7 +81,7 @@ static parea_t ski_parea;
  * @return ASCII code of pressed key or 0 if no key pressed.
  *
  */
-static wchar_t ski_getchar(void)
+static char32_t ski_getchar(void)
 {
 	uint64_t ch;
 
@@ -95,7 +95,7 @@ static wchar_t ski_getchar(void)
 	    : "r15", "r8"
 	);
 
-	return (wchar_t) ch;
+	return (char32_t) ch;
 }
 
 /** Ask keyboard if a key was pressed.
@@ -110,7 +110,7 @@ static void poll_keyboard(ski_instance_t *instance)
 		return;
 
 	while (count > 0) {
-		wchar_t ch = ski_getchar();
+		char32_t ch = ski_getchar();
 
 		if (ch == '\0')
 			break;
@@ -202,7 +202,7 @@ static void ski_do_putchar(char ch)
  * @param ch     Character to be printed.
  *
  */
-static void ski_putwchar(outdev_t *dev, wchar_t ch)
+static void ski_putuchar(outdev_t *dev, char32_t ch)
 {
 	if (ski_parea.mapped && !console_override)
 		return;

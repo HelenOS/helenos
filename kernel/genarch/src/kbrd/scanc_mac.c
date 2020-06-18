@@ -39,7 +39,7 @@
 #include <str.h>
 
 /** Primary meaning of scancodes. */
-wchar_t sc_primary_map[SCANCODES] = {
+char32_t sc_primary_map[SCANCODES] = {
 	[0x00] = 'a',
 	[0x01] = 's',
 	[0x02] = 'd',
@@ -171,7 +171,7 @@ wchar_t sc_primary_map[SCANCODES] = {
 };
 
 /** Secondary meaning of scancodes. */
-wchar_t sc_secondary_map[SCANCODES] = {
+char32_t sc_secondary_map[SCANCODES] = {
 	[0x00] = 'A',
 	[0x01] = 'S',
 	[0x02] = 'D',

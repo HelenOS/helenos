@@ -146,7 +146,7 @@ static void pane_row_range_display(int r0, int r1);
 static void pane_status_display(void);
 static void pane_caret_display(void);
 
-static void insert_char(wchar_t c);
+static void insert_char(char32_t c);
 static void delete_char_before(void);
 static void delete_char_after(void);
 static void caret_update(void);
@@ -629,7 +629,7 @@ static char *prompt(char const *prompt, char const *init_value)
 	cons_event_t ev;
 	kbd_event_t *kev;
 	char *str;
-	wchar_t buffer[INFNAME_MAX_LEN + 1];
+	char32_t buffer[INFNAME_MAX_LEN + 1];
 	int max_len;
 	int nc;
 	bool done;
@@ -669,7 +669,7 @@ static char *prompt(char const *prompt, char const *init_value)
 					break;
 				default:
 					if (kev->c >= 32 && nc < max_len) {
-						putwchar(kev->c);
+						putuchar(kev->c);
 						console_flush(con);
 						buffer[nc++] = kev->c;
 					}
@@ -695,7 +695,7 @@ static char *prompt(char const *prompt, char const *init_value)
 static errno_t file_insert(char *fname)
 {
 	FILE *f;
-	wchar_t c;
+	char32_t c;
 	char buf[BUF_SIZE];
 	int bcnt;
 	int n_read;
@@ -849,7 +849,7 @@ static void pane_row_range_display(int r0, int r1)
 	spt_t rb, re, dep, pt;
 	coord_t rbc, rec;
 	char row_buf[ROW_BUF_SIZE];
-	wchar_t c;
+	char32_t c;
 	size_t pos, size;
 	int s_column;
 	coord_t csel_start, csel_end, ctmp;
@@ -1054,7 +1054,7 @@ static void pane_caret_display(void)
 }
 
 /** Insert a character at caret position. */
-static void insert_char(wchar_t c)
+static void insert_char(char32_t c)
 {
 	spt_t pt;
 	char cbuf[STR_BOUNDS(1) + 1];
@@ -1284,7 +1284,7 @@ static void caret_go_to_line_ask(void)
 }
 
 /* Search operations */
-static errno_t search_spt_producer(void *data, wchar_t *ret)
+static errno_t search_spt_producer(void *data, char32_t *ret)
 {
 	assert(data != NULL);
 	assert(ret != NULL);
@@ -1293,7 +1293,7 @@ static errno_t search_spt_producer(void *data, wchar_t *ret)
 	return EOK;
 }
 
-static errno_t search_spt_reverse_producer(void *data, wchar_t *ret)
+static errno_t search_spt_reverse_producer(void *data, char32_t *ret)
 {
 	assert(data != NULL);
 	assert(ret != NULL);
@@ -1512,7 +1512,7 @@ static void insert_clipboard_data(void)
 {
 	char *str;
 	size_t off;
-	wchar_t c;
+	char32_t c;
 	errno_t rc;
 
 	rc = clipboard_get_str(&str);
@@ -1608,7 +1608,7 @@ static bool pt_is_word_beginning(spt_t *pt)
 	    (pt_is_punctuation(&lp) && !pt_is_punctuation(pt));
 }
 
-static wchar_t get_first_wchar(const char *str)
+static char32_t get_first_wchar(const char *str)
 {
 	size_t offset = 0;
 	return str_decode(str, &offset, str_size(str));
@@ -1629,7 +1629,7 @@ static bool pt_is_delimiter(spt_t *pt)
 	if (ch == NULL)
 		return false;
 
-	wchar_t first_char = get_first_wchar(ch);
+	char32_t first_char = get_first_wchar(ch);
 	switch (first_char) {
 	case ' ':
 	case '\t':
@@ -1655,7 +1655,7 @@ static bool pt_is_punctuation(spt_t *pt)
 	if (ch == NULL)
 		return false;
 
-	wchar_t first_char = get_first_wchar(ch);
+	char32_t first_char = get_first_wchar(ch);
 	switch (first_char) {
 	case ',':
 	case '.':

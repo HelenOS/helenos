@@ -32,7 +32,7 @@
 #include <str.h>
 #include <arch/ski.h>
 
-void putwchar(const wchar_t ch)
+void putuchar(const char32_t ch)
 {
 #ifdef MACHINE_ski
 	if (ascii_check(ch))

@@ -55,7 +55,7 @@ static void ksrln(void *arg)
 	uint32_t escape = 0;
 
 	while (true) {
-		wchar_t ch = indev_pop_character(&instance->raw);
+		char32_t ch = indev_pop_character(&instance->raw);
 
 		/* ANSI escape sequence processing */
 		if (escape != 0) {

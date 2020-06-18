@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 #include <stddef.h>
-#include <wchar.h>
+#include <uchar.h>
 #include "../tester.h"
 
 const char *test_print4(void)

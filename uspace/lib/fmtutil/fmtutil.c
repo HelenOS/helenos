@@ -61,10 +61,10 @@ errno_t print_wrapped_console(const char *str, align_mode_t alignment)
 }
 
 /** Line consumer that prints the lines aligned according to spec */
-static errno_t print_line(wchar_t *wstr, size_t chars, bool last, void *data)
+static errno_t print_line(char32_t *wstr, size_t chars, bool last, void *data)
 {
 	printmode_t *pm = (printmode_t *) data;
-	wchar_t old_char = wstr[chars];
+	char32_t old_char = wstr[chars];
 	wstr[chars] = 0;
 	errno_t rc = print_aligned_w(wstr, pm->width, last, pm->alignment);
 	wstr[chars] = old_char;
@@ -77,7 +77,7 @@ errno_t print_wrapped(const char *str, size_t width, align_mode_t mode)
 	pm.alignment = mode;
 	pm.newline_always = false;
 	pm.width = width;
-	wchar_t *wstr = str_to_awstr(str);
+	char32_t *wstr = str_to_awstr(str);
 	if (wstr == NULL) {
 		return ENOMEM;
 	}
@@ -86,7 +86,7 @@ errno_t print_wrapped(const char *str, size_t width, align_mode_t mode)
 	return rc;
 }
 
-errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
+errno_t print_aligned_w(const char32_t *wstr, size_t width, bool last,
     align_mode_t mode)
 {
 	size_t i;
@@ -94,24 +94,24 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
 	if (mode == ALIGN_LEFT || (mode == ALIGN_JUSTIFY && last)) {
 		for (i = 0; i < width; i++) {
 			if (i < len)
-				putwchar(wstr[i]);
+				putuchar(wstr[i]);
 			else
-				putwchar(' ');
+				putuchar(' ');
 		}
 	} else if (mode == ALIGN_RIGHT) {
 		for (i = 0; i < width; i++) {
 			if (i < width - len)
-				putwchar(' ');
+				putuchar(' ');
 			else
-				putwchar(wstr[i - (width - len)]);
+				putuchar(wstr[i - (width - len)]);
 		}
 	} else if (mode == ALIGN_CENTER) {
 		size_t padding = (width - len) / 2;
 		for (i = 0; i < width; i++) {
 			if ((i < padding) || ((i - padding) >= len))
-				putwchar(' ');
+				putuchar(' ');
 			else
-				putwchar(wstr[i - padding]);
+				putuchar(wstr[i - padding]);
 		}
 	} else if (mode == ALIGN_JUSTIFY) {
 		size_t words = 0;
@@ -145,19 +145,19 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
 				    (((done_words - 1) * excess_spaces) /
 				    (words - 1)));
 				for (j = 0; j < spaces; j++) {
-					putwchar(' ');
+					putuchar(' ');
 				}
 				done_chars += spaces;
 			}
 			while (i < len && wstr[i] != ' ') {
-				putwchar(wstr[i++]);
+				putuchar(wstr[i++]);
 				done_chars++;
 			}
 			done_words++;
 		}
 	skip_words:
 		while (done_chars < width) {
-			putwchar(' ');
+			putuchar(' ');
 			done_chars++;
 		}
 	} else {
@@ -168,7 +168,7 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
 }
 errno_t print_aligned(const char *str, size_t width, bool last, align_mode_t mode)
 {
-	wchar_t *wstr = str_to_awstr(str);
+	char32_t *wstr = str_to_awstr(str);
 	if (wstr == NULL) {
 		return ENOMEM;
 	}
@@ -177,7 +177,7 @@ errno_t print_aligned(const char *str, size_t width, bool last, align_mode_t mod
 	return rc;
 }
 
-errno_t wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
+errno_t wrap(char32_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 {
 	size_t word_start = 0;
 	size_t last_word_end = 0;

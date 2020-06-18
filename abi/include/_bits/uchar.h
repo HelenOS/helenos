@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2020 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup bits
+ * @{
+ */
 /** @file
  */
 
-#include <stddef.h>
-#include <printf.h>
-#include <printf_core.h>
-#include <putchar.h>
-#include <str.h>
+#ifndef _BITS_UCHAR_H_
+#define _BITS_UCHAR_H_
 
-static int vprintf_str_write(const char *str, size_t size, void *data)
-{
-	size_t offset = 0;
-	size_t chars = 0;
+#include <stdint.h>
 
-	while (offset < size) {
-		putuchar(str_decode(str, &offset, size));
-		chars++;
-	}
+typedef uint8_t char8_t;
+typedef uint32_t char32_t;
 
-	return chars;
-}
-
-int puts(const char *str)
-{
-	size_t offset = 0;
-	size_t chars = 0;
-	char32_t uc;
-
-	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {
-		putuchar(uc);
-		chars++;
-	}
-
-	putuchar('\n');
-	return chars;
-}
-
-int vprintf(const char *fmt, va_list ap)
-{
-	printf_spec_t ps = {
-		vprintf_str_write,
-		NULL
-	};
-
-	int ret = printf_core(fmt, &ps, ap);
-
-	return ret;
-}
+#endif
 
 /** @}
  */

@@ -105,7 +105,7 @@ print "#define FONT_GLYPHS     " . (@chars + 1). "\n";
 print "#define FONT_SCANLINES  " . $height . "\n";
 
 print "\n";
-print "uint16_t fb_font_glyph(const wchar_t ch)\n";
+print "uint16_t fb_font_glyph(const char32_t ch)\n";
 print "{\n";
 print "\tif (ch == 0x0000)\n";
 print "\t\treturn 0;\n\n";

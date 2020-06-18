@@ -56,7 +56,7 @@ static void yamon_putchar(char ch)
 }
 #endif
 
-void putwchar(const wchar_t ch)
+void putuchar(const char32_t ch)
 {
 	if (ascii_check(ch))
 		_putchar(ch);

@@ -85,7 +85,7 @@
 SPINLOCK_INITIALIZE(cmd_lock);  /**< Lock protecting command list. */
 LIST_INITIALIZE(cmd_list);      /**< Command list. */
 
-static wchar_t history[KCONSOLE_HISTORY][MAX_CMDLINE] = { };
+static char32_t history[KCONSOLE_HISTORY][MAX_CMDLINE] = { };
 static size_t history_pos = 0;
 
 /** Initialize kconsole data structures
@@ -155,11 +155,11 @@ bool cmd_register(cmd_info_t *cmd)
 }
 
 /** Print count times a character */
-_NO_TRACE static void print_cc(wchar_t ch, size_t count)
+_NO_TRACE static void print_cc(char32_t ch, size_t count)
 {
 	size_t i;
 	for (i = 0; i < count; i++)
-		putwchar(ch);
+		putuchar(ch);
 }
 
 /** Try to find a command beginning with prefix */
@@ -289,7 +289,7 @@ _NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 	return found;
 }
 
-_NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
+_NO_TRACE static cmd_info_t *parse_cmd(const char32_t *cmdline)
 {
 	size_t start = 0;
 	size_t end;
@@ -330,21 +330,21 @@ _NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
 	return NULL;
 }
 
-_NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
+_NO_TRACE static char32_t *clever_readline(const char *prompt, indev_t *indev,
     char *tmp)
 {
 	printf("%s> ", prompt);
 
 	size_t position = 0;
-	wchar_t *current = history[history_pos];
+	char32_t *current = history[history_pos];
 	current[0] = 0;
 
 	while (true) {
-		wchar_t ch = indev_pop_character(indev);
+		char32_t ch = indev_pop_character(indev);
 
 		if (ch == '\n') {
 			/* Enter */
-			putwchar(ch);
+			putuchar(ch);
 			break;
 		}
 
@@ -355,7 +355,7 @@ _NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 
 			if (wstr_remove(current, position - 1)) {
 				position--;
-				putwchar('\b');
+				putuchar('\b');
 				printf("%ls ", current + position);
 				print_cc('\b', wstr_length(current) - position + 1);
 				continue;
@@ -368,7 +368,7 @@ _NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 			/* Move to the end of the word */
 			for (; (current[position] != 0) && (!isspace(current[position]));
 			    position++)
-				putwchar(current[position]);
+				putuchar(current[position]);
 
 			/*
 			 * Find the beginning of the word
@@ -463,7 +463,7 @@ _NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 		if (ch == U_LEFT_ARROW) {
 			/* Left */
 			if (position > 0) {
-				putwchar('\b');
+				putuchar('\b');
 				position--;
 			}
 			continue;
@@ -472,7 +472,7 @@ _NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev,
 		if (ch == U_RIGHT_ARROW) {
 			/* Right */
 			if (position < wstr_length(current)) {
-				putwchar(current[position]);
+				putuchar(current[position]);
 				position++;
 			}
 			continue;
@@ -645,7 +645,7 @@ _NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
 	bool found_start = false;
 	size_t offset = *start;
 	size_t prev = *start;
-	wchar_t ch;
+	char32_t ch;
 
 	while ((ch = str_decode(cmdline, &offset, size)) != 0) {
 		if (!found_start) {
@@ -824,7 +824,7 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 	}
 
 	while (true) {
-		wchar_t *tmp = clever_readline((char *) prompt, stdin, buffer);
+		char32_t *tmp = clever_readline((char *) prompt, stdin, buffer);
 		size_t len = wstr_length(tmp);
 		if (!len)
 			continue;

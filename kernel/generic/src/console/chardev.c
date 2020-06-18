@@ -64,7 +64,7 @@ void indev_initialize(const char *name, indev_t *indev,
  * @param ch    Character being pushed.
  *
  */
-void indev_push_character(indev_t *indev, wchar_t ch)
+void indev_push_character(indev_t *indev, char32_t ch)
 {
 	assert(indev);
 
@@ -91,7 +91,7 @@ void indev_push_character(indev_t *indev, wchar_t ch)
  * @return Character read.
  *
  */
-wchar_t indev_pop_character(indev_t *indev)
+char32_t indev_pop_character(indev_t *indev)
 {
 	if (atomic_load(&haltstate)) {
 		/*
@@ -116,7 +116,7 @@ wchar_t indev_pop_character(indev_t *indev)
 
 	waitq_sleep(&indev->wq);
 	irq_spinlock_lock(&indev->lock, true);
-	wchar_t ch = indev->buffer[(indev->index - indev->counter) %
+	char32_t ch = indev->buffer[(indev->index - indev->counter) %
 	    INDEV_BUFLEN];
 	indev->counter--;
 	irq_spinlock_unlock(&indev->lock, true);
