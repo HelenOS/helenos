@@ -40,7 +40,7 @@ static char buf[BUF_SIZE + 1];
 const char *test_stdio1(void)
 {
 	FILE *file;
-	const char *file_name = "/textdemo";
+	const char *file_name = "/demo.txt";
 
 	TPRINTF("Open file \"%s\"...", file_name);
 	errno = 0;
