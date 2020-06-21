@@ -109,7 +109,7 @@ static void rfb_gc_invalidate_rect(rfb_gc_t *rfbgc, gfx_rect_t *rect)
 	rfb->damage_rect.x = new_rect.p0.x;
 	rfb->damage_rect.y = new_rect.p0.y;
 	rfb->damage_rect.width = new_rect.p1.x - new_rect.p0.x;
-	rfb->damage_rect.height = new_rect.p1.y - new_rect.p1.y;
+	rfb->damage_rect.height = new_rect.p1.y - new_rect.p0.y;
 }
 
 static errno_t rfb_ddev_get_gc(void *arg, sysarg_t *arg2, sysarg_t *arg3)

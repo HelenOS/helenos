@@ -41,6 +41,7 @@
 #include <memgfx/memgc.h>
 #include <stdlib.h>
 #include "client.h"
+#include "clonegc.h"
 #include "cursimg.h"
 #include "cursor.h"
 #include "seat.h"
@@ -504,8 +505,23 @@ errno_t ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
 		/* Set screen dimensions */
 		disp->rect = ddev->info.rect;
 
+		/* Create cloning GC */
+		rc = ds_clonegc_create(ddev->gc, &disp->fbgc);
+		if (rc != EOK) {
+			// XXX Remove output
+			return ENOMEM;
+		}
+
 		/* Allocate backbuffer */
 		rc = ds_display_alloc_backbuf(disp);
+		if (rc != EOK) {
+			// XXX Remove output
+			// XXX Delete clone GC
+			goto error;
+		}
+	} else {
+		/* Add new output device to cloning GC */
+		rc = ds_clonegc_add_output(disp->fbgc, ddev->gc);
 		if (rc != EOK)
 			goto error;
 	}
@@ -595,17 +611,11 @@ void ds_display_remove_cursor(ds_cursor_t *cursor)
  */
 static gfx_context_t *ds_display_get_unbuf_gc(ds_display_t *display)
 {
-	ds_ddev_t *ddev;
-
-	/*
-	 * XXX To properly support multiple display devices, create
-	 * a cloning GC that copies rendering operation to each output.
-	 */
-	ddev = ds_display_first_ddev(display);
-	if (ddev == NULL)
+	/* In case of unit tests */
+	if (display->fbgc == NULL)
 		return NULL;
 
-	return ddev->gc;
+	return ds_clonegc_get_ctx(display->fbgc);
 }
 
 /** Get display GC.

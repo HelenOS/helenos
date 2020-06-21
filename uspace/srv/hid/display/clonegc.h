@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Cloning grapics context
+ */
 
-PCUT_INIT;
+#ifndef CLONEGC_H
+#define CLONEGC_H
 
-PCUT_IMPORT(client);
-PCUT_IMPORT(clonegc);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(display);
-PCUT_IMPORT(seat);
-PCUT_IMPORT(window);
+#include <errno.h>
+#include <gfx/bitmap.h>
+#include "types/display/clonegc.h"
 
-PCUT_MAIN();
+extern gfx_context_ops_t ds_clonegc_ops;
+
+extern errno_t ds_clonegc_create(gfx_context_t *, ds_clonegc_t **);
+extern errno_t ds_clonegc_delete(ds_clonegc_t *);
+extern errno_t ds_clonegc_add_output(ds_clonegc_t *, gfx_context_t *);
+extern gfx_context_t *ds_clonegc_get_ctx(ds_clonegc_t *);
+
+#endif
+
+/** @}
+ */

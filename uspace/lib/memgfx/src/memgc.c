@@ -69,7 +69,7 @@ gfx_context_ops_t mem_gc_ops = {
  *
  * Set drawing color on memory GC.
  *
- * @param arg Canvas GC
+ * @param arg Memory GC
  * @param color Color
  *
  * @return EOK on success or an error code
@@ -86,7 +86,7 @@ static errno_t mem_gc_set_color(void *arg, gfx_color_t *color)
 
 /** Fill rectangle on memory GC.
  *
- * @param arg Canvas GC
+ * @param arg Memory GC
  * @param rect Rectangle
  *
  * @return EOK on success or an error code
@@ -165,7 +165,7 @@ error:
 
 /** Delete memory GC.
  *
- * @param mgc Canvas GC
+ * @param mgc Memory GC
  */
 errno_t mem_gc_delete(mem_gc_t *mgc)
 {
@@ -194,7 +194,7 @@ void mem_gc_retarget(mem_gc_t *mgc, gfx_rect_t *rect,
 
 /** Get generic graphic context from memory GC.
  *
- * @param mgc Canvas GC
+ * @param mgc Memory GC
  * @return Graphic context
  */
 gfx_context_t *mem_gc_get_ctx(mem_gc_t *mgc)
@@ -209,7 +209,7 @@ static void mem_gc_invalidate_rect(mem_gc_t *mgc, gfx_rect_t *rect)
 
 /** Create bitmap in memory GC.
  *
- * @param arg Canvas GC
+ * @param arg Memory GC
  * @param params Bitmap params
  * @param alloc Bitmap allocation info or @c NULL
  * @param rbm Place to store pointer to new bitmap

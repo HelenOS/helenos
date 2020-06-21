@@ -44,6 +44,7 @@
 #include <memgfx/memgc.h>
 #include <types/display/cursor.h>
 #include "cursor.h"
+#include "clonegc.h"
 #include "window.h"
 
 /** Display flags */
@@ -98,6 +99,9 @@ typedef struct ds_display {
 
 	/** Backbuffer GC or @c NULL if not double-buffering */
 	mem_gc_t *bbgc;
+
+	/** Frontbuffer (clone) GC */
+	ds_clonegc_t *fbgc;
 
 	/** Backbuffer dirty rectangle */
 	gfx_rect_t dirty_rect;

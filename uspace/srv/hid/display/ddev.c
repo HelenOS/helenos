@@ -140,7 +140,7 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 		return rc;
 	}
 
-	rc = ds_display_paint_bg(display, NULL);
+	rc = ds_display_paint(display, NULL);
 	if (rc != EOK)
 		return rc;
 

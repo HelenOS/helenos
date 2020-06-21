@@ -30,6 +30,7 @@ deps = [ 'ipcgfx', 'memgfx', 'display', 'ddev' ]
 
 src = files(
 	'client.c',
+	'clonegc.c',
 	'cursor.c',
 	'cursimg.c',
 	'ddev.c',
@@ -44,6 +45,7 @@ src = files(
 
 test_src = files(
 	'client.c',
+	'clonegc.c',
 	'cursimg.c',
 	'cursor.c',
 	'ddev.c',
@@ -51,6 +53,7 @@ test_src = files(
 	'seat.c',
 	'window.c',
 	'test/client.c',
+	'test/clonegc.c',
 	'test/cursor.c',
 	'test/display.c',
 	'test/main.c',

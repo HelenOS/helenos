@@ -76,8 +76,10 @@ errno_t gfx_bitmap_create(gfx_context_t *gc, gfx_bitmap_params_t *params,
 		return ENOMEM;
 
 	rc = gc->ops->bitmap_create(gc->arg, params, alloc, &bm_priv);
-	if (rc != EOK)
+	if (rc != EOK) {
+		free(bitmap);
 		return rc;
+	}
 
 	bitmap->gc = gc;
 	bitmap->gc_priv = bm_priv;
