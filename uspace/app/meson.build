@@ -75,7 +75,6 @@ apps = [
 	'sysinfo',
 	'sysinst',
 	'taskdump',
-	'terminal',
 	'tester',
 	'testread',
 	'testrunner',
