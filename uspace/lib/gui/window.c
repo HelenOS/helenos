@@ -67,6 +67,7 @@ static sysarg_t header_height = 20;
 static sysarg_t header_min_width = 40;
 static sysarg_t close_thickness = 20;
 static sysarg_t corner_size = 24;
+static sysarg_t window_initial_size = 1;
 
 static pixel_t color_highlight = PIXEL(255, 255, 255, 255);
 static pixel_t color_shadow = PIXEL(255, 85, 85, 85);
@@ -427,6 +428,36 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 		win->surface = NULL;
 	}
 
+	/* Place window, if appropriate */
+	if (placement_flags != WINDOW_PLACEMENT_ANY) {
+		dpos.x = 0;
+		dpos.y = 0;
+
+		rc = display_get_info(win->display, &dinfo);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&win->guard);
+			return;
+		}
+
+		drect = dinfo.rect;
+
+		if (placement_flags & WINDOW_PLACEMENT_LEFT)
+			dpos.x = drect.p0.x;
+		else if (placement_flags & WINDOW_PLACEMENT_CENTER_X)
+			dpos.x = (drect.p0.x + drect.p1.x - width) / 2;
+		else
+			dpos.x = drect.p1.x - width;
+
+		if (placement_flags & WINDOW_PLACEMENT_TOP)
+			dpos.y = drect.p0.y;
+		else if (placement_flags & WINDOW_PLACEMENT_CENTER_Y)
+			dpos.y = (drect.p0.y + drect.p1.y - height) / 2;
+		else
+			dpos.y = drect.p1.y - height;
+
+		(void) display_window_move(win->dwindow, &dpos);
+	}
+
 	/* Resize the display window. */
 	offs.x = offset_x;
 	offs.y = offset_y;
@@ -436,8 +467,10 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	nrect.p1.y = height;
 
 	rc = display_window_resize(win->dwindow, &offs, &nrect);
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_mutex_unlock(&win->guard);
 		return;
+	}
 
 	gfx_bitmap_params_init(&params);
 #ifndef CONFIG_WIN_DOUBLE_BUF
@@ -492,35 +525,6 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	fibril_mutex_lock(&win->guard);
 	surface_reset_damaged_region(win->surface);
 	fibril_mutex_unlock(&win->guard);
-
-	if (placement_flags != WINDOW_PLACEMENT_ANY) {
-		dpos.x = 0;
-		dpos.y = 0;
-
-		rc = display_get_info(win->display, &dinfo);
-		if (rc != EOK) {
-			(void) gfx_bitmap_render(win->bitmap, NULL, NULL);
-			return;
-		}
-
-		drect = dinfo.rect;
-
-		if (placement_flags & WINDOW_PLACEMENT_LEFT)
-			dpos.x = drect.p0.x;
-		else if (placement_flags & WINDOW_PLACEMENT_CENTER_X)
-			dpos.x = (drect.p0.x + drect.p1.x - width) / 2;
-		else
-			dpos.x = drect.p1.x - width;
-
-		if (placement_flags & WINDOW_PLACEMENT_TOP)
-			dpos.y = drect.p0.y;
-		else if (placement_flags & WINDOW_PLACEMENT_CENTER_Y)
-			dpos.y = (drect.p0.y + drect.p1.y - height) / 2;
-		else
-			dpos.y = drect.p1.y - height;
-
-		(void) display_window_move(win->dwindow, &dpos);
-	}
 
 	(void) gfx_bitmap_render(win->bitmap, NULL, NULL);
 }
@@ -687,7 +691,8 @@ window_t *window_open(const char *winreg, const void *data,
 	win->cursor = dcurs_arrow;
 
 	/* Allocate resources for new surface. */
-	win->surface = surface_create(100, 100, NULL, SURFACE_FLAG_SHARED);
+	win->surface = surface_create( window_initial_size,
+	    window_initial_size, NULL, SURFACE_FLAG_SHARED);
 	if (win->surface == NULL) {
 		free(win);
 		return NULL;
@@ -704,8 +709,8 @@ window_t *window_open(const char *winreg, const void *data,
 	display_wnd_params_init(&wparams);
 	wparams.rect.p0.x = 0;
 	wparams.rect.p0.y = 0;
-	wparams.rect.p1.x = 100;
-	wparams.rect.p1.y = 100;
+	wparams.rect.p1.x = window_initial_size;
+	wparams.rect.p1.y = window_initial_size;
 	wparams.min_size.x = 2 * border_thickness + header_min_width;
 	wparams.min_size.y = 2 * border_thickness + header_height;
 
