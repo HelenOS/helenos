@@ -691,7 +691,7 @@ window_t *window_open(const char *winreg, const void *data,
 	win->cursor = dcurs_arrow;
 
 	/* Allocate resources for new surface. */
-	win->surface = surface_create( window_initial_size,
+	win->surface = surface_create(window_initial_size,
 	    window_initial_size, NULL, SURFACE_FLAG_SHARED);
 	if (win->surface == NULL) {
 		free(win);
