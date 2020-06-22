@@ -101,16 +101,16 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK)
 		goto error;
 
-	rc = ds_input_open(disp);
-	if (rc != EOK)
-		goto error;
-
 	rc = ds_output_create(&output);
 	if (rc != EOK)
 		goto error;
 
 	output->def_display = disp;
 	rc = ds_output_start_discovery(output);
+	if (rc != EOK)
+		goto error;
+
+	rc = ds_input_open(disp);
 	if (rc != EOK)
 		goto error;
 
