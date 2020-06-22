@@ -37,9 +37,9 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <io/kbd_event.h>
+#include <io/log.h>
 #include <io/pos_event.h>
 #include <loc.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include "ddev.h"
 #include "output.h"
@@ -62,7 +62,8 @@ static errno_t ds_output_check_new_devs(ds_output_t *output)
 	rc = loc_category_get_id("display-device", &ddev_cid,
 	    IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("Error looking up category 'display-device'.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Error looking up category 'display-device'.\n");
 		return EIO;
 	}
 
@@ -71,7 +72,8 @@ static errno_t ds_output_check_new_devs(ds_output_t *output)
 	 */
 	rc = loc_category_get_svcs(ddev_cid, &svcs, &count);
 	if (rc != EOK) {
-		printf("Error getting list of display devices.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Error getting list of display devices.\n");
 		return EIO;
 	}
 
@@ -89,13 +91,15 @@ static errno_t ds_output_check_new_devs(ds_output_t *output)
 		if (!already_known) {
 			rc = ds_ddev_open(output->def_display, svcs[i], &nddev);
 			if (rc != EOK) {
-				printf("Error adding display device.\n");
+				log_msg(LOG_DEFAULT, LVL_ERROR,
+				    "Error adding display device.\n");
 				continue;
 			}
 
 			list_append(&nddev->loutdevs, &output->ddevs);
 
-			printf("Added display device '%lu'\n",
+			log_msg(LOG_DEFAULT, LVL_NOTE,
+			    "Added display device '%lu'\n",
 			    (unsigned long) svcs[i]);
 		}
 	}
@@ -113,7 +117,6 @@ static void ds_ddev_change_cb(void *arg)
 {
 	ds_output_t *output = (ds_output_t *) arg;
 
-	printf("ds_ddev_change_cb\n");
 	fibril_mutex_lock(&output->lock);
 	(void) ds_output_check_new_devs(output);
 	fibril_mutex_unlock(&output->lock);
@@ -150,7 +153,8 @@ errno_t ds_output_start_discovery(ds_output_t *output)
 
 	rc = loc_register_cat_change_cb(ds_ddev_change_cb, output);
 	if (rc != EOK) {
-		printf("Failed registering callback for device discovery.\n");
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed registering callback for device discovery.\n");
 		return rc;
 	}
 

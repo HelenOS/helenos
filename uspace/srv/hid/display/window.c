@@ -668,7 +668,7 @@ void ds_window_resize_req(ds_window_t *wnd, display_wnd_rsztype_t rsztype,
 {
 	gfx_coord2_t orig_pos;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_window_resize_req (%d, %d, %d)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_resize_req (%d, %d, %d)",
 	    (int) rsztype, (int) pos->x, (int) pos->y);
 
 	gfx_coord2_add(&wnd->dpos, pos, &orig_pos);

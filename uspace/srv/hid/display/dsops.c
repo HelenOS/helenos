@@ -137,7 +137,7 @@ static errno_t disp_window_move_req(void *arg, sysarg_t wnd_id,
 		return ENOENT;
 	}
 
-	log_msg(LVL_NOTE, LVL_DEBUG, "disp_window_move_req()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_move_req()");
 	ds_window_move_req(wnd, pos);
 	ds_display_unlock(client->display);
 	return EOK;
@@ -156,7 +156,7 @@ static errno_t disp_window_move(void *arg, sysarg_t wnd_id, gfx_coord2_t *pos)
 		return ENOENT;
 	}
 
-	log_msg(LVL_NOTE, LVL_DEBUG, "disp_window_move()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_move()");
 	ds_window_move(wnd, pos);
 	ds_display_unlock(client->display);
 	return EOK;
@@ -179,7 +179,7 @@ static errno_t disp_window_resize_req(void *arg, sysarg_t wnd_id,
 		return ENOENT;
 	}
 
-	log_msg(LVL_NOTE, LVL_DEBUG, "disp_window_resize_req()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_resize_req()");
 	ds_window_resize_req(wnd, rsztype, pos);
 	ds_display_unlock(client->display);
 	return EOK;
@@ -200,7 +200,7 @@ static errno_t disp_window_resize(void *arg, sysarg_t wnd_id,
 		return ENOENT;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "disp_window_resize()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_resize()");
 	rc = ds_window_resize(wnd, offs, nbound);
 	ds_display_unlock(client->display);
 	return rc;
@@ -221,7 +221,7 @@ static errno_t disp_window_set_cursor(void *arg, sysarg_t wnd_id,
 		return ENOENT;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "disp_window_set_cursor()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_set_cursor()");
 	rc = ds_window_set_cursor(wnd, cursor);
 	ds_display_unlock(client->display);
 	return rc;

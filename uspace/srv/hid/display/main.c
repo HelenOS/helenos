@@ -160,7 +160,7 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 	gfx_context_t *gc;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "display_client_conn arg1=%zu arg2=%zu arg3=%zu arg4=%zu.",
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_client_conn arg1=%zu arg2=%zu arg3=%zu arg4=%zu.",
 	    ipc_get_arg1(icall), ipc_get_arg2(icall), ipc_get_arg3(icall),
 	    ipc_get_arg4(icall));
 

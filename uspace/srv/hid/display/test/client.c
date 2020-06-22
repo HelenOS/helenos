@@ -29,7 +29,6 @@
 #include <disp_srv.h>
 #include <errno.h>
 #include <pcut/pcut.h>
-#include <stdio.h>
 #include <str.h>
 
 #include "../client.h"
@@ -49,9 +48,7 @@ static ds_client_cb_t test_ds_client_cb = {
 static void test_ds_ev_pending(void *arg)
 {
 	bool *called_cb = (bool *) arg;
-	printf("test_ds_ev_pending\n");
 	*called_cb = true;
-
 }
 
 /** Client creation and destruction. */

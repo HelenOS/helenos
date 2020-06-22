@@ -127,17 +127,13 @@ void ds_client_remove_window(ds_window_t *wnd)
  * @param client Client
  * @param id Window ID
  */
-#include <stdio.h>
 ds_window_t *ds_client_find_window(ds_client_t *client, ds_wnd_id_t id)
 {
 	ds_window_t *wnd;
 
 	// TODO Make this faster
-	printf("ds_client_find_window: id=0x%x\n", (unsigned) id);
 	wnd = ds_client_first_window(client);
 	while (wnd != NULL) {
-		printf("ds_client_find_window: wnd=%p wnd->id=0x%x\n", wnd,
-		    (unsigned) wnd->id);
 		if (wnd->id == id)
 			return wnd;
 		wnd = ds_client_next_window(wnd);

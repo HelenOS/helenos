@@ -34,8 +34,8 @@
 
 #include <errno.h>
 #include <io/input.h>
+#include <io/log.h>
 #include <loc.h>
-#include <stdio.h>
 #include <str_error.h>
 #include "display.h"
 #include "input.h"
@@ -152,14 +152,15 @@ errno_t ds_input_open(ds_display_t *display)
 
 	errno_t rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc != EOK) {
-		printf("%s: Input service %s not found\n", NAME, svc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Input service %s not found\n",
+		    svc);
 		return rc;
 	}
 
 	sess = loc_service_connect(dsid, INTERFACE_INPUT, 0);
 	if (sess == NULL) {
-		printf("%s: Unable to connect to input service %s\n", NAME,
-		    svc);
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Unable to connect to input service %s\n", svc);
 		return EIO;
 	}
 
@@ -167,8 +168,9 @@ errno_t ds_input_open(ds_display_t *display)
 	    &display->input);
 	if (rc != EOK) {
 		async_hangup(sess);
-		printf("%s: Unable to communicate with service %s (%s)\n",
-		    NAME, svc, str_error(rc));
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Unable to communicate with service %s (%s)\n",
+		    svc, str_error(rc));
 		return rc;
 	}
 
