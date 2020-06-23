@@ -81,8 +81,8 @@ PCUT_TEST(cursor_create_destroy)
 	ds_display_destroy(disp);
 }
 
-/** Test ds_cursor_paint(). */
-PCUT_TEST(cursor_paint)
+/** Test ds_cursor_paint() renders the cursor. */
+PCUT_TEST(cursor_paint_render)
 {
 	gfx_context_t *gc;
 	ds_display_t *disp;
@@ -112,9 +112,59 @@ PCUT_TEST(cursor_paint)
 
 	pos.x = 0;
 	pos.y = 0;
-	ds_cursor_paint(cursor, &pos);
+	ds_cursor_paint(cursor, &pos, NULL);
 
 	PCUT_ASSERT_TRUE(resp.render_called);
+
+	ds_cursor_destroy(cursor);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_cursor_paint() optimizes out rendering using clipping rectangle. */
+PCUT_TEST(cursor_paint_norender)
+{
+	gfx_context_t *gc;
+	ds_display_t *disp;
+	ds_cursor_t *cursor;
+	ds_ddev_t *ddev;
+	ddev_info_t ddinfo;
+	gfx_coord2_t pos;
+	gfx_rect_t clip;
+	test_response_t resp;
+	errno_t rc;
+
+	rc = gfx_context_new(&dummy_ops, &resp, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_display_create(gc, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ddev_info_init(&ddinfo);
+
+	rc = ds_ddev_create(disp, NULL, &ddinfo, NULL, 0, gc, &ddev);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_cursor_create(disp, &ds_cursimg[dcurs_arrow].rect,
+	    ds_cursimg[dcurs_arrow].image, &cursor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	resp.render_called = false;
+
+	/*
+	 * Clipping rectangle not intersecting the area where cursor is to
+	 * be rendered
+	 */
+	clip.p0.x = 100;
+	clip.p0.y = 100;
+	clip.p1.x = 150;
+	clip.p1.y = 150;
+
+	pos.x = 0;
+	pos.y = 0;
+	ds_cursor_paint(cursor, &pos, &clip);
+
+	/* Rendering should have been optimized out */
+	PCUT_ASSERT_FALSE(resp.render_called);
 
 	ds_cursor_destroy(cursor);
 	ds_display_destroy(disp);

@@ -88,15 +88,19 @@ void ds_cursor_destroy(ds_cursor_t *cursor)
  *
  * @param cursor Cusor to paint
  * @param pos Position to paint at
+ * @param clip Clipping rectangle or @c NULL
  * @return EOK on success or an error code
  */
-errno_t ds_cursor_paint(ds_cursor_t *cursor, gfx_coord2_t *pos)
+errno_t ds_cursor_paint(ds_cursor_t *cursor, gfx_coord2_t *pos,
+    gfx_rect_t *clip)
 {
 	gfx_context_t *dgc;
 	gfx_coord_t x, y;
 	gfx_bitmap_params_t bparams;
 	gfx_bitmap_alloc_t alloc;
 	gfx_coord2_t dims;
+	gfx_rect_t sclip;
+	gfx_rect_t srect;
 	pixelmap_t pixelmap;
 	pixel_t pixel;
 	const uint8_t *pp;
@@ -149,7 +153,21 @@ errno_t ds_cursor_paint(ds_cursor_t *cursor, gfx_coord2_t *pos)
 		}
 	}
 
-	return gfx_bitmap_render(cursor->bitmap, NULL, pos);
+	/* Determine source rectangle */
+	if (clip == NULL) {
+		srect = cursor->rect;
+	} else {
+		gfx_rect_rtranslate(pos, clip, &sclip);
+		gfx_rect_clip(&cursor->rect, &sclip, &srect);
+	}
+
+	if (!gfx_rect_is_empty(&srect)) {
+		rc = gfx_bitmap_render(cursor->bitmap, &srect, pos);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
 error:
 	return rc;
 }

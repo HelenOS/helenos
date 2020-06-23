@@ -419,8 +419,7 @@ errno_t ds_seat_paint_pointer(ds_seat_t *seat, gfx_rect_t *rect)
 	ds_cursor_t *cursor;
 
 	cursor = ds_seat_get_cursor(seat);
-	(void) rect; // XXX ds_cursor_paint should accept a clipping rectangle
-	return ds_cursor_paint(cursor, &seat->pntpos);
+	return ds_cursor_paint(cursor, &seat->pntpos, rect);
 }
 
 /** @}
