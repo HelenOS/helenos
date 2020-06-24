@@ -152,7 +152,7 @@ errno_t ds_input_open(ds_display_t *display)
 
 	errno_t rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Input service %s not found\n",
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Input service %s not found",
 		    svc);
 		return rc;
 	}
@@ -160,7 +160,7 @@ errno_t ds_input_open(ds_display_t *display)
 	sess = loc_service_connect(dsid, INTERFACE_INPUT, 0);
 	if (sess == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Unable to connect to input service %s\n", svc);
+		    "Unable to connect to input service %s", svc);
 		return EIO;
 	}
 
@@ -169,7 +169,7 @@ errno_t ds_input_open(ds_display_t *display)
 	if (rc != EOK) {
 		async_hangup(sess);
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Unable to communicate with service %s (%s)\n",
+		    "Unable to communicate with service %s (%s)",
 		    svc, str_error(rc));
 		return rc;
 	}

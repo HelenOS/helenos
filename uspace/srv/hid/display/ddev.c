@@ -99,7 +99,7 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 	rc = loc_service_get_name(svc_id, &name);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Error resolving name of service %lu.\n",
+		    "Error resolving name of service %lu.",
 		    (unsigned long) svc_id);
 		return rc;
 	}
@@ -107,7 +107,7 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 	rc = ddev_open(name, &dd);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Error opening display device '%s'.\n", name);
+		    "Error opening display device '%s'.", name);
 		free(name);
 		return rc;
 	}
@@ -115,7 +115,7 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 	rc = ddev_get_info(dd, &info);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Error getting information for display device '%s'.\n",
+		    "Error getting information for display device '%s'.",
 		    name);
 		free(name);
 		ddev_close(dd);
@@ -123,13 +123,13 @@ errno_t ds_ddev_open(ds_display_t *display, service_id_t svc_id,
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Device rectangle for '%s': "
-	    "%d,%d,%d,%d\n", name, info.rect.p0.x, info.rect.p0.y,
+	    "%d,%d,%d,%d", name, info.rect.p0.x, info.rect.p0.y,
 	    info.rect.p1.x, info.rect.p1.y);
 
 	rc = ddev_get_gc(dd, &gc);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Error getting device context for '%s'.\n", name);
+		    "Error getting device context for '%s'.", name);
 		ddev_close(dd);
 		free(name);
 		return rc;

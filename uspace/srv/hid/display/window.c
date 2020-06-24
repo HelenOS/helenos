@@ -560,7 +560,7 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 	bool inside;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
-	    "ds_window_post_pos_event type=%d pos=%d,%d\n", event->type,
+	    "ds_window_post_pos_event type=%d pos=%d,%d", event->type,
 	    (int) event->hpos, (int) event->vpos);
 
 	pos.x = event->hpos;
@@ -611,7 +611,7 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
  */
 errno_t ds_window_post_focus_event(ds_window_t *wnd)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_focus_event\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_focus_event");
 
 	return ds_client_post_focus_event(wnd->client, wnd);
 }
@@ -622,7 +622,7 @@ errno_t ds_window_post_focus_event(ds_window_t *wnd)
  */
 errno_t ds_window_post_unfocus_event(ds_window_t *wnd)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_unfocus_event\n");
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_unfocus_event");
 
 	return ds_client_post_unfocus_event(wnd->client, wnd);
 }

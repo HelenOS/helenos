@@ -63,7 +63,7 @@ static errno_t ds_output_check_new_devs(ds_output_t *output)
 	    IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Error looking up category 'display-device'.\n");
+		    "Error looking up category 'display-device'.");
 		return EIO;
 	}
 
@@ -73,7 +73,7 @@ static errno_t ds_output_check_new_devs(ds_output_t *output)
 	rc = loc_category_get_svcs(ddev_cid, &svcs, &count);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Error getting list of display devices.\n");
+		    "Error getting list of display devices.");
 		return EIO;
 	}
 
@@ -92,14 +92,14 @@ static errno_t ds_output_check_new_devs(ds_output_t *output)
 			rc = ds_ddev_open(output->def_display, svcs[i], &nddev);
 			if (rc != EOK) {
 				log_msg(LOG_DEFAULT, LVL_ERROR,
-				    "Error adding display device.\n");
+				    "Error adding display device.");
 				continue;
 			}
 
 			list_append(&nddev->loutdevs, &output->ddevs);
 
 			log_msg(LOG_DEFAULT, LVL_NOTE,
-			    "Added display device '%lu'\n",
+			    "Added display device '%lu'",
 			    (unsigned long) svcs[i]);
 		}
 	}
@@ -154,7 +154,7 @@ errno_t ds_output_start_discovery(ds_output_t *output)
 	rc = loc_register_cat_change_cb(ds_ddev_change_cb, output);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Failed registering callback for device discovery.\n");
+		    "Failed registering callback for device discovery.");
 		return rc;
 	}
 
