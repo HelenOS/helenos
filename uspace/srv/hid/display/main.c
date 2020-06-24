@@ -120,6 +120,7 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		rc = EEXIST;
+		goto error;
 	}
 
 	service_id_t sid;

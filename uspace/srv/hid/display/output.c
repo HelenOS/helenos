@@ -162,6 +162,12 @@ errno_t ds_output_start_discovery(ds_output_t *output)
 	rc = ds_output_check_new_devs(output);
 	fibril_mutex_unlock(&output->lock);
 
+	/* Fail if we did not open at least one device */
+	if (list_empty(&output->ddevs)) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "No output device found.");
+		return ENOENT;
+	}
+
 	return rc;
 }
 

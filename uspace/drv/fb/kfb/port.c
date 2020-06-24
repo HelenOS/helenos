@@ -376,6 +376,12 @@ static void kfb_client_conn(ipc_call_t *icall, void *arg)
 	} else {
 		assert(gc_id == 42);
 
+		if (kfb->addr != AS_AREA_ANY) {
+			/* This means there already is a GC connection */
+			async_answer_0(icall, EBUSY);
+			return;
+		}
+
 		rc = physmem_map(kfb->paddr + kfb->offset,
 		    ALIGN_UP(kfb->size, PAGE_SIZE) >> PAGE_WIDTH,
 		    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb->addr);
@@ -391,14 +397,14 @@ static void kfb_client_conn(ipc_call_t *icall, void *arg)
 
 		rc = physmem_unmap(kfb->addr);
 		if (rc == EOK)
-			kfb->addr = NULL;
+			kfb->addr = AS_AREA_ANY;
 	}
 
 	return;
 error:
-	if (kfb->addr != NULL) {
+	if (kfb->addr != AS_AREA_ANY) {
 		if (physmem_unmap(kfb->addr) == EOK)
-			kfb->addr = NULL;
+			kfb->addr = AS_AREA_ANY;
 	}
 
 	async_answer_0(icall, rc);
