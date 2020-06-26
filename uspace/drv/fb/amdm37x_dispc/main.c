@@ -90,7 +90,7 @@ static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)
 
 	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "a");
 	if (!fun) {
-		ddf_log_error("Failed to create visualizer function.");
+		ddf_log_error("Failed to create display device function.");
 		return ENOMEM;
 	}
 
@@ -123,7 +123,7 @@ static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)
 
 	rc = ddf_fun_add_to_category(fun, "display-device");
 	if (rc != EOK) {
-		ddf_log_error("Failed to add function: %s to visualizer "
+		ddf_log_error("Failed to add function: %s to display device "
 		    "category.", str_error(rc));
 		amdm37x_dispc_fini(dispc);
 		ddf_fun_unbind(fun);

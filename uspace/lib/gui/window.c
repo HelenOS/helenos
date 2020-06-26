@@ -404,15 +404,11 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	gfx_rect_t nrect;
 	errno_t rc;
 
-	if (width < 2 * border_thickness + header_min_width) {
-		//win_damage(win->osess, 0, 0, 0, 0);
+	if (width < 2 * border_thickness + header_min_width)
 		return;
-	}
 
-	if (height < 2 * border_thickness + header_height) {
-		//win_damage(win->osess, 0, 0, 0, 0);
+	if (height < 2 * border_thickness + header_height)
 		return;
-	}
 
 	fibril_mutex_lock(&win->guard);
 

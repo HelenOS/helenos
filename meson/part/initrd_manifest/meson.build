@@ -62,6 +62,6 @@ if CONFIG_FB
 		'app/vlaunch',
 		'app/vterm',
 
-		'srv/hid/compositor',
+		'srv/hid/display',
 	]
 endif

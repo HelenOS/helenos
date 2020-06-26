@@ -426,13 +426,13 @@ int main(int argc, char **argv)
 	category_id_t ddev_cid;
 	rc = loc_category_get_id("display-device", &ddev_cid, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		fprintf(stderr, NAME ": Unable to get visualizer category id.\n");
+		fprintf(stderr, NAME ": Unable to get display device category id.\n");
 		return 1;
 	}
 
 	rc = loc_service_add_to_cat(service_id, ddev_cid);
 	if (rc != EOK) {
-		fprintf(stderr, NAME ": Unable to add service to visualizer category.\n");
+		fprintf(stderr, NAME ": Unable to add service to display device category.\n");
 		return 1;
 	}
 
