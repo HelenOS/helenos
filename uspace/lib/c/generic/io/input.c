@@ -253,7 +253,7 @@ errno_t input_layout_set(async_sess_t *sess, const char *layout)
 	ipc_call_t call;
 	async_exch_t *exch = async_exchange_begin(sess);
 
-	aid_t mid = async_send_0(exch, INPUT_CHANGE_LAYOUT, &call);
+	aid_t mid = async_send_0(exch, INPUT_SET_LAYOUT, &call);
 	rc = async_data_write_start(exch, layout, str_size(layout));
 
 	if (rc == EOK)

@@ -46,7 +46,7 @@
 static const char *cmdname = "layout";
 
 /* Dispays help for layout in various levels */
-static void print_help()
+static void print_help(void)
 {
 	printf("Changes, lists or displays the current keyboard layout.\n");
 

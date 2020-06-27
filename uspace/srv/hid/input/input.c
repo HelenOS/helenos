@@ -136,8 +136,8 @@ static errno_t layout_load(const char *layout_name)
 	return ENOTSUP;
 }
 
-/* Handler for IPC call INPUT_CHANGE_LAYOUT */
-static void client_change_layout_handler(ipc_call_t *call)
+/* Handler for IPC call INPUT_SET_LAYOUT */
+static void client_set_layout_srv(ipc_call_t *call)
 {
 	void *layout_name;
 	errno_t ret = async_data_write_accept(&layout_name, true, 0, 0, 0, 0);
@@ -152,7 +152,7 @@ static void client_change_layout_handler(ipc_call_t *call)
 }
 
 /* Handler for IPC call INPUT_GET_LAYOUT */
-static void client_get_layout_handler(ipc_call_t *call)
+static void client_get_layout_srv(ipc_call_t *call)
 {
 	const char *layout_name = layout_active->name;
 	size_t length = str_size(layout_name) + 1;
@@ -418,11 +418,11 @@ static void client_connection(ipc_call_t *icall, void *arg)
 				client_arbitration();
 				async_answer_0(&call, EOK);
 				break;
-			case INPUT_CHANGE_LAYOUT:
-				client_change_layout_handler(&call);
+			case INPUT_SET_LAYOUT:
+				client_set_layout_srv(&call);
 				break;
 			case INPUT_GET_LAYOUT:
-				client_get_layout_handler(&call);
+				client_get_layout_srv(&call);
 				break;
 			default:
 				async_answer_0(&call, EINVAL);
