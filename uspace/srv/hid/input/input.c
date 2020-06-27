@@ -49,6 +49,7 @@
 #include <ipc/services.h>
 #include <ipc/input.h>
 #include <loc.h>
+#include <macros.h>
 #include <ns.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -156,12 +157,18 @@ static void client_get_layout_srv(ipc_call_t *call)
 {
 	const char *layout_name = layout_active->name;
 	size_t length = str_size(layout_name) + 1;
-	ipc_call_t id;
+	ipc_call_t rec_call;
 
-	async_answer_1(call, EOK, length);
-	if (async_data_read_receive(&id, NULL)) {
-		async_data_read_finalize(&id, layout_name, length);
+	size_t max_size;
+	if (!async_data_read_receive(&rec_call, &max_size)) {
+		async_answer_0(&rec_call, EREFUSED);
+		async_answer_0(call, EREFUSED);
+		return;
 	}
+
+	errno_t rc = async_data_read_finalize(&rec_call, layout_name,
+	    min(length, max_size));
+	async_answer_0(call, rc);
 }
 
 static void *client_data_create(void)

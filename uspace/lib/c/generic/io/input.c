@@ -212,33 +212,43 @@ static void input_cb_conn(ipc_call_t *icall, void *arg)
  */
 errno_t input_layout_get(async_sess_t *sess, char **layout)
 {
-	errno_t rc;
-	ipc_call_t call;
+	*layout = NULL;
+
 	async_exch_t *exch = async_exchange_begin(sess);
-	aid_t mid = async_send_0(exch, INPUT_GET_LAYOUT, &call);
-	async_wait_for(mid, &rc);
 
-	if (rc != EOK) {
-		goto error;
-	}
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, INPUT_GET_LAYOUT, &answer);
 
-	size_t length = ipc_get_arg1(&call);
+	char layout_buf[INPUT_LAYOUT_NAME_MAXLEN + 1];
+	ipc_call_t dreply;
+	aid_t dreq = async_data_read(exch, layout_buf, INPUT_LAYOUT_NAME_MAXLEN,
+	    &dreply);
 
-	*layout = malloc(length * sizeof(char *));
-	if (layout == NULL) {
-		rc = ENOMEM;
-		free(*layout);
-		goto error;
-	}
+	errno_t dretval;
+	async_wait_for(dreq, &dretval);
 
-	rc = async_data_read_start(exch, *layout, length);
-
-	if (rc != EOK)
-		free(*layout);
-
-error:
 	async_exchange_end(exch);
-	return rc;
+
+	if (dretval != EOK) {
+		async_forget(req);
+		return dretval;
+	}
+
+	errno_t retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK)
+		return retval;
+
+	size_t length = ipc_get_arg2(&dreply);
+	assert(length <= INPUT_LAYOUT_NAME_MAXLEN);
+	layout_buf[length] = '\0';
+
+	*layout = str_dup(layout_buf);
+	if (*layout == NULL)
+		return ENOMEM;
+
+	return EOK;
 }
 
 /**
