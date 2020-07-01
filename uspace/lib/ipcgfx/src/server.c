@@ -160,8 +160,6 @@ static void gc_bitmap_create_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 	list_append(&srvbmp->lbitmaps, &srvgc->bitmaps);
 	srvbmp->bmp = bitmap;
 	srvbmp->bmp_id = srvgc->next_bmp_id++;
-	printf("gc_bitmap_create_srv: storing bmp_id=%u\n",
-	    (unsigned) srvbmp->bmp_id);
 
 	/* We created the memory area by sharing it in */
 	srvbmp->myalloc = true;
@@ -254,9 +252,6 @@ static void gc_bitmap_create_doutput_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 	srvbmp->myalloc = false;
 	srvbmp->pixels = alloc.pixels; // Not really needed
 
-	printf("gc_bitmap_create_doutput_srv: storing bmp_id=%u\n",
-	    (unsigned) srvbmp->bmp_id);
-
 	async_answer_1(icall, EOK, srvbmp->bmp_id);
 }
 
@@ -339,7 +334,6 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 	/* Accept the connection */
 	async_accept_0(icall);
 
-	printf("gc_conn: accepted connection\n");
 	srvgc.gc = gc;
 	list_initialize(&srvgc.bitmaps);
 	srvgc.next_bmp_id = 1;
