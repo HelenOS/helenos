@@ -361,7 +361,7 @@ build_target() {
 	check_error $? "Change directory failed."
 
 	change_title "binutils: configure (${PLATFORM})"
-	CFLAGS=-Wno-error "${BASEDIR}/downloads/binutils-${BINUTILS_VERSION}/configure" \
+	CFLAGS="-Wno-error -fcommon" "${BASEDIR}/downloads/binutils-${BINUTILS_VERSION}/configure" \
 		"--target=${TARGET}" \
 		"--prefix=${PREFIX}" \
 		"--program-prefix=${TARGET}-" \
@@ -438,7 +438,7 @@ build_target() {
 	check_error $? "Change directory failed."
 
 	change_title "GDB: configure (${PLATFORM})"
-	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
+	CFLAGS="-fcommon" PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
 		"--target=${TARGET}" \
 		"--prefix=${PREFIX}" \
 		"--program-prefix=${TARGET}-" \
