@@ -38,7 +38,7 @@ import platform
 import re
 import subprocess
 import sys
-import thread
+import _thread
 import time
 
 overrides = {}
@@ -67,9 +67,9 @@ def is_override(str):
 	return False
 
 def cfg_get(platform, machine, processor):
-	if machine == "" or emulators[platform].has_key("run"):
+	if machine == "" or "run" in emulators[platform]:
 		return emulators[platform]
-	elif processor == "" or emulators[platform][machine].has_key("run"):
+	elif processor == "" or "run" in emulators[platform][machine]:
 		return emulators[platform][machine]
 	else:
 		return emulators[platform][machine][processor]
