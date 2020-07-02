@@ -34,8 +34,8 @@
  *
  */
 
-#ifndef _GFX_PRIVATE_COLOR_H
-#define _GFX_PRIVATE_COLOR_H
+#ifndef _GFX_PRIVATE_BITMAP_H
+#define _GFX_PRIVATE_BITMAP_H
 
 #include <types/gfx/context.h>
 
