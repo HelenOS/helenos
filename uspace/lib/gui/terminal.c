@@ -41,6 +41,7 @@
 #include <io/con_srv.h>
 #include <io/concaps.h>
 #include <io/console.h>
+#include <loc.h>
 #include <task.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>

@@ -43,8 +43,8 @@ LIB_DIR="$EXPORT_DIR/lib"
 libmath_cflags="-I$INCLUDE_DIR/libmath"
 libmath_libs="$LIB_DIR/libmath.a"
 
-libgui_cflags="-I$INCLUDE_DIR/libgui"
-libgui_libs="$LIB_DIR/libgui.a"
+libgui_cflags="-I$INCLUDE_DIR/libgui -I$INCLUDE_DIR/libdisplay -I$INCLUDE_DIR/libgfx -I$INCLUDE_DIR/libipcgfx"
+libgui_libs="$LIB_DIR/libgui.a $LIB_DIR/libdisplay.a $LIB_DIR/libipcgfx.a $LIB_DIR/libgfx.a"
 
 libdraw_cflags="-I$INCLUDE_DIR/libdraw"
 libdraw_libs="$LIB_DIR/libdraw.a $LIB_DIR/libsoftrend.a"
@@ -54,6 +54,15 @@ libhound_libs="$LIB_DIR/libhound.a"
 
 libpcm_cflags="-I$INCLUDE_DIR/libpcm"
 libpcm_libs="$LIB_DIR/libpcm.a"
+
+libgfx_cflags="-I$INCLUDE_DIR/libgfx"
+libgfx_libs="$LIB_DIR/libgfx.a"
+
+libipcgfx_cflags="-I$INCLUDE_DIR/libipcgfx"
+libipcgfx_libs="$LIB_DIR/libipcgfx.a"
+
+libdisplay_cflags="-I$INCLUDE_DIR/libdisplay"
+libdisplay_libs="$LIB_DIR/libdisplay.a"
 
 action=none
 pkg=
@@ -70,6 +79,9 @@ while [ ".$1" != . ] ; do
 	    (libmath) ;;
 	    (libhound) ;;
 	    (libpcm) ;;
+	    (libgfx) ;;
+	    (libipcgfx) ;;
+	    (libdisplay) ;;
 	    (*) echo "Unknown package $1" >&2; exit 1;;
 	    esac
 

@@ -33,6 +33,7 @@
  * @file
  */
 
+#include <fibril.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <vfs/vfs.h>
@@ -46,6 +47,7 @@
 #include <str_error.h>
 #include <config.h>
 #include <io/logctl.h>
+#include <vfs/vfs.h>
 #include <vol.h>
 #include "untar.h"
 #include "init.h"
@@ -65,11 +67,11 @@
 #define SRV_CONSOLE  "/srv/hid/console"
 #define APP_GETTERM  "/app/getterm"
 
-#define SRV_COMPOSITOR  "/srv/hid/compositor"
+#define SRV_DISPLAY  "/srv/hid/display"
+#define DISPLAY_SVC  "hid/display"
 
 #define HID_INPUT              "hid/input"
 #define HID_OUTPUT             "hid/output"
-#define HID_COMPOSITOR_SERVER  ":0"
 
 #define srv_start(path, ...) \
 	srv_startl(path, path, ##__VA_ARGS__, NULL)
@@ -270,35 +272,23 @@ static errno_t console(const char *isvc, const char *osvc)
 	return srv_start(SRV_CONSOLE, isvc, osvc);
 }
 
-static errno_t compositor(const char *isvc, const char *name)
+static errno_t display_server(void)
 {
-	/* Wait for the input service to be ready */
-	service_id_t service_id;
-	errno_t rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		printf("%s: Error waiting on %s (%s)\n", NAME, isvc,
-		    str_error(rc));
-		return rc;
-	}
-
-	return srv_start(SRV_COMPOSITOR, isvc, name);
+	return srv_start(SRV_DISPLAY);
 }
 
-static int gui_start(const char *app, const char *srv_name)
+static int gui_start(const char *app, const char *display_svc)
 {
-	char winreg[50];
-	snprintf(winreg, sizeof(winreg), "%s%s%s", "comp", srv_name, "/winreg");
-
-	printf("%s: Spawning %s %s\n", NAME, app, winreg);
+	printf("%s: Spawning %s\n", NAME, app);
 
 	task_id_t id;
 	task_wait_t wait;
-	errno_t rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
+	errno_t rc = task_spawnl(&id, &wait, app, app, display_svc, NULL);
 	if (rc != EOK) {
 		oom_check(rc, app);
-		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
-		    winreg, str_error(rc));
-		return rc;
+		printf("%s: Error spawning %s (%s)\n", NAME, app,
+		    str_error(rc));
+		return -1;
 	}
 
 	task_exit_t texit;
@@ -479,11 +469,11 @@ int main(int argc, char *argv[])
 	init_sysvol();
 
 	if (!config_key_exists("console")) {
-		rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
+		rc = display_server();
 		if (rc == EOK) {
-			gui_start("/app/barber", HID_COMPOSITOR_SERVER);
-			gui_start("/app/vlaunch", HID_COMPOSITOR_SERVER);
-			gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
+			gui_start("/app/barber", DISPLAY_SVC);
+			gui_start("/app/vlaunch", DISPLAY_SVC);
+			gui_start("/app/vterm", DISPLAY_SVC);
 		}
 	}
 

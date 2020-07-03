@@ -26,131 +26,342 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
+#include <ddev/info.h>
+#include <ddev_srv.h>
 #include <errno.h>
-#include <loc.h>
-#include <stdio.h>
 #include <fibril_synch.h>
-#include <abi/ipc/methods.h>
+#include <gfx/color.h>
+#include <gfx/context.h>
+#include <gfx/coord.h>
 #include <inttypes.h>
 #include <io/log.h>
-#include <str.h>
-#include <task.h>
-
-#include <abi/fb/visuals.h>
-#include <adt/list.h>
-#include <io/mode.h>
 #include <io/pixelmap.h>
-#include <io/chargrid.h>
-#include <graph.h>
+#include <ipcgfx/server.h>
+#include <loc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <task.h>
 
 #include "rfb.h"
 
 #define NAME "rfb"
 
-static vslmode_list_element_t pixel_mode;
-static visualizer_t *vis;
-static rfb_t rfb;
+static errno_t rfb_ddev_get_gc(void *, sysarg_t *, sysarg_t *);
+static errno_t rfb_ddev_get_info(void *, ddev_info_t *);
 
-static errno_t rfb_claim(visualizer_t *vs)
-{
-	return EOK;
-}
+static errno_t rfb_gc_set_color(void *, gfx_color_t *);
+static errno_t rfb_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t rfb_gc_bitmap_create(void *, gfx_bitmap_params_t *,
+    gfx_bitmap_alloc_t *, void **);
+static errno_t rfb_gc_bitmap_destroy(void *);
+static errno_t rfb_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
+static errno_t rfb_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
-static errno_t rfb_yield(visualizer_t *vs)
-{
-	return EOK;
-}
-
-static errno_t rfb_suspend(visualizer_t *vs)
-{
-	return EOK;
-}
-
-static errno_t rfb_wakeup(visualizer_t *vs)
-{
-	return EOK;
-}
-
-static errno_t rfb_handle_damage_pixels(visualizer_t *vs,
-    sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
-    sysarg_t x_offset, sysarg_t y_offset)
-{
-	fibril_mutex_lock(&rfb.lock);
-
-	if (x0 + width > rfb.width || y0 + height > rfb.height) {
-		fibril_mutex_unlock(&rfb.lock);
-		return EINVAL;
-	}
-
-	/* TODO update surface_t and use it */
-	if (!rfb.damage_valid) {
-		rfb.damage_rect.x = x0;
-		rfb.damage_rect.y = y0;
-		rfb.damage_rect.width = width;
-		rfb.damage_rect.height = height;
-		rfb.damage_valid = true;
-	} else {
-		if (x0 < rfb.damage_rect.x) {
-			rfb.damage_rect.width += rfb.damage_rect.x - x0;
-			rfb.damage_rect.x = x0;
-		}
-		if (y0 < rfb.damage_rect.y) {
-			rfb.damage_rect.height += rfb.damage_rect.y - y0;
-			rfb.damage_rect.y = y0;
-		}
-		sysarg_t x1 = x0 + width;
-		sysarg_t dx1 = rfb.damage_rect.x + rfb.damage_rect.width;
-		if (x1 > dx1) {
-			rfb.damage_rect.width += x1 - dx1;
-		}
-		sysarg_t y1 = y0 + height;
-		sysarg_t dy1 = rfb.damage_rect.y + rfb.damage_rect.height;
-		if (y1 > dy1) {
-			rfb.damage_rect.height += y1 - dy1;
-		}
-	}
-
-	pixelmap_t *map = &vs->cells;
-
-	for (sysarg_t y = y0; y < height + y0; ++y) {
-		for (sysarg_t x = x0; x < width + x0; ++x) {
-			pixel_t pix = pixelmap_get_pixel(map, (x + x_offset) % map->width,
-			    (y + y_offset) % map->height);
-			pixelmap_put_pixel(&rfb.framebuffer, x, y, pix);
-		}
-	}
-
-	fibril_mutex_unlock(&rfb.lock);
-	return EOK;
-}
-
-static errno_t rfb_change_mode(visualizer_t *vs, vslmode_t new_mode)
-{
-	return EOK;
-}
-
-static visualizer_ops_t rfb_ops = {
-	.claim = rfb_claim,
-	.yield = rfb_yield,
-	.change_mode = rfb_change_mode,
-	.handle_damage = rfb_handle_damage_pixels,
-	.suspend = rfb_suspend,
-	.wakeup = rfb_wakeup
+static ddev_ops_t rfb_ddev_ops = {
+	.get_gc = rfb_ddev_get_gc,
+	.get_info = rfb_ddev_get_info
 };
+
+typedef struct {
+	rfb_t rfb;
+	pixel_t color;
+} rfb_gc_t;
+
+typedef struct {
+	rfb_gc_t *rfb;
+	gfx_bitmap_alloc_t alloc;
+	gfx_rect_t rect;
+	gfx_bitmap_flags_t flags;
+	pixel_t key_color;
+	bool myalloc;
+} rfb_bitmap_t;
+
+static gfx_context_ops_t rfb_gc_ops = {
+	.set_color = rfb_gc_set_color,
+	.fill_rect = rfb_gc_fill_rect,
+	.bitmap_create = rfb_gc_bitmap_create,
+	.bitmap_destroy = rfb_gc_bitmap_destroy,
+	.bitmap_render = rfb_gc_bitmap_render,
+	.bitmap_get_alloc = rfb_gc_bitmap_get_alloc
+};
+
+static void rfb_gc_invalidate_rect(rfb_gc_t *rfbgc, gfx_rect_t *rect)
+{
+	rfb_t *rfb = &rfbgc->rfb;
+	gfx_rect_t old_rect;
+	gfx_rect_t new_rect;
+
+	if (gfx_rect_is_empty(rect))
+		return;
+
+	if (!rfb->damage_valid) {
+		old_rect.p0.x = old_rect.p0.y = 0;
+		old_rect.p1.x = old_rect.p1.y = 0;
+	} else {
+		old_rect.p0.x = rfb->damage_rect.x;
+		old_rect.p0.y = rfb->damage_rect.y;
+		old_rect.p1.x = rfb->damage_rect.x + rfb->damage_rect.width;
+		old_rect.p1.y = rfb->damage_rect.y + rfb->damage_rect.height;
+	}
+
+	gfx_rect_envelope(&old_rect, rect, &new_rect);
+
+	rfb->damage_rect.x = new_rect.p0.x;
+	rfb->damage_rect.y = new_rect.p0.y;
+	rfb->damage_rect.width = new_rect.p1.x - new_rect.p0.x;
+	rfb->damage_rect.height = new_rect.p1.y - new_rect.p0.y;
+}
+
+static errno_t rfb_ddev_get_gc(void *arg, sysarg_t *arg2, sysarg_t *arg3)
+{
+	*arg2 = 0;
+	*arg3 = 42;
+	return EOK;
+}
+
+static errno_t rfb_ddev_get_info(void *arg, ddev_info_t *info)
+{
+	rfb_t *rfb = (rfb_t *) arg;
+
+	ddev_info_init(info);
+
+	info->rect.p0.x = 0;
+	info->rect.p0.y = 0;
+	info->rect.p1.x = rfb->width;
+	info->rect.p1.y = rfb->height;
+
+	return EOK;
+}
+
+/** Set color on RFB.
+ *
+ * Set drawing color on RFB GC.
+ *
+ * @param arg RFB
+ * @param color Color
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t rfb_gc_set_color(void *arg, gfx_color_t *color)
+{
+	rfb_gc_t *rfb = (rfb_gc_t *) arg;
+	uint16_t r, g, b;
+
+	gfx_color_get_rgb_i16(color, &r, &g, &b);
+	rfb->color = PIXEL(0, r >> 8, g >> 8, b >> 8);
+	return EOK;
+}
+
+/** Fill rectangle on RFB.
+ *
+ * @param arg RFB
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t rfb_gc_fill_rect(void *arg, gfx_rect_t *rect)
+{
+	rfb_gc_t *rfb = (rfb_gc_t *) arg;
+	gfx_coord_t x, y;
+
+	// XXX We should handle p0.x > p1.x and p0.y > p1.y
+
+	for (y = rect->p0.y; y < rect->p1.y; y++) {
+		for (x = rect->p0.x; x < rect->p1.x; x++) {
+			pixelmap_put_pixel(&rfb->rfb.framebuffer, x, y,
+			    rfb->color);
+		}
+	}
+
+	rfb_gc_invalidate_rect(rfb, rect);
+
+	return EOK;
+}
+
+/** Create bitmap in RFB GC.
+ *
+ * @param arg RFB
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+errno_t rfb_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	rfb_gc_t *rfb = (rfb_gc_t *) arg;
+	rfb_bitmap_t *rfbbm = NULL;
+	gfx_coord2_t dim;
+	errno_t rc;
+
+	/* Check that we support all required flags */
+	if ((params->flags & ~bmpf_color_key) != 0)
+		return ENOTSUP;
+
+	rfbbm = calloc(1, sizeof(rfb_bitmap_t));
+	if (rfbbm == NULL)
+		return ENOMEM;
+
+	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
+	rfbbm->rect = params->rect;
+	rfbbm->flags = params->flags;
+	rfbbm->key_color = params->key_color;
+
+	if (alloc == NULL) {
+		rfbbm->alloc.pitch = dim.x * sizeof(uint32_t);
+		rfbbm->alloc.off0 = 0;
+		rfbbm->alloc.pixels = malloc(rfbbm->alloc.pitch * dim.y);
+		rfbbm->myalloc = true;
+
+		if (rfbbm->alloc.pixels == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+	} else {
+		rfbbm->alloc = *alloc;
+	}
+
+	rfbbm->rfb = rfb;
+	*rbm = (void *)rfbbm;
+	return EOK;
+error:
+	if (rbm != NULL)
+		free(rfbbm);
+	return rc;
+}
+
+/** Destroy bitmap in RFB GC.
+ *
+ * @param bm Bitmap
+ * @return EOK on success or an error code
+ */
+static errno_t rfb_gc_bitmap_destroy(void *bm)
+{
+	rfb_bitmap_t *rfbbm = (rfb_bitmap_t *)bm;
+	if (rfbbm->myalloc)
+		free(rfbbm->alloc.pixels);
+	free(rfbbm);
+	return EOK;
+}
+
+/** Render bitmap in RFB GC.
+ *
+ * @param bm Bitmap
+ * @param srect0 Source rectangle or @c NULL
+ * @param offs0 Offset or @c NULL
+ * @return EOK on success or an error code
+ */
+static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
+    gfx_coord2_t *offs0)
+{
+	rfb_bitmap_t *rfbbm = (rfb_bitmap_t *)bm;
+	gfx_rect_t srect;
+	gfx_rect_t drect;
+	gfx_coord2_t offs;
+	gfx_coord2_t bmdim;
+	gfx_coord2_t dim;
+	gfx_coord_t x, y;
+	pixelmap_t pbm;
+	pixel_t color;
+
+	if (srect0 != NULL)
+		srect = *srect0;
+	else
+		srect = rfbbm->rect;
+
+	if (offs0 != NULL) {
+		offs = *offs0;
+	} else {
+		offs.x = 0;
+		offs.y = 0;
+	}
+
+	/* Destination rectangle */
+	gfx_rect_translate(&offs, &srect, &drect);
+	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
+	gfx_coord2_subtract(&rfbbm->rect.p1, &rfbbm->rect.p0, &bmdim);
+
+	pbm.width = bmdim.x;
+	pbm.height = bmdim.y;
+	pbm.data = rfbbm->alloc.pixels;
+
+	if ((rfbbm->flags & bmpf_color_key) == 0) {
+		for (y = srect.p0.y; y < srect.p1.y; y++) {
+			for (x = srect.p0.x; x < srect.p1.x; x++) {
+				color = pixelmap_get_pixel(&pbm, x, y);
+				pixelmap_put_pixel(&rfbbm->rfb->rfb.framebuffer,
+				    x + offs.x, y + offs.y, color);
+			}
+		}
+	} else {
+		for (y = srect.p0.y; y < srect.p1.y; y++) {
+			for (x = srect.p0.x; x < srect.p1.x; x++) {
+				color = pixelmap_get_pixel(&pbm, x, y);
+				if (color != rfbbm->key_color) {
+					pixelmap_put_pixel(&rfbbm->rfb->rfb.framebuffer,
+					    x + offs.x, y + offs.y, color);
+				}
+			}
+		}
+	}
+
+	rfb_gc_invalidate_rect(rfbbm->rfb, &drect);
+
+	return EOK;
+}
+
+/** Get allocation info for bitmap in RFB GC.
+ *
+ * @param bm Bitmap
+ * @param alloc Place to store allocation info
+ * @return EOK on success or an error code
+ */
+static errno_t rfb_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
+{
+	rfb_bitmap_t *rfbbm = (rfb_bitmap_t *)bm;
+	*alloc = rfbbm->alloc;
+	return EOK;
+}
 
 static void syntax_print(void)
 {
 	fprintf(stderr, "Usage: %s <name> <width> <height> [port]\n", NAME);
 }
 
-static void client_connection(ipc_call_t *call, void *data)
+static void client_connection(ipc_call_t *icall, void *arg)
 {
-	graph_visualizer_connection(vis, call, data);
+	rfb_t *rfb = (rfb_t *) arg;
+	ddev_srv_t srv;
+	sysarg_t svc_id;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	svc_id = ipc_get_arg2(icall);
+
+	if (svc_id != 0) {
+		/* Set up protocol structure */
+		ddev_srv_initialize(&srv);
+		srv.ops = &rfb_ddev_ops;
+		srv.arg = (void *) rfb;
+
+		/* Handle connection */
+		ddev_conn(icall, &srv);
+	} else {
+		rc = gfx_context_new(&rfb_gc_ops, (void *) rfb, &gc);
+		if (rc != EOK) {
+			async_answer_0(icall, ENOMEM);
+			return;
+		}
+
+		/* GC connection */
+		gc_conn(icall, gc);
+	}
 }
 
 int main(int argc, char **argv)
 {
+	rfb_t rfb;
+
 	log_init(NAME);
 
 	if (argc <= 3) {
@@ -187,34 +398,7 @@ int main(int argc, char **argv)
 
 	rfb_init(&rfb, width, height, rfb_name);
 
-	vis = malloc(sizeof(visualizer_t));
-	if (vis == NULL) {
-		fprintf(stderr, "Failed allocating visualizer struct\n");
-		return 3;
-	}
-
-	graph_init_visualizer(vis);
-
-	pixel_mode.mode.index = 0;
-	pixel_mode.mode.version = 0;
-	pixel_mode.mode.refresh_rate = 0;
-	pixel_mode.mode.screen_aspect.width = rfb.width;
-	pixel_mode.mode.screen_aspect.height = rfb.height;
-	pixel_mode.mode.screen_width = rfb.width;
-	pixel_mode.mode.screen_height = rfb.height;
-	pixel_mode.mode.cell_aspect.width = 1;
-	pixel_mode.mode.cell_aspect.height = 1;
-	pixel_mode.mode.cell_visual.pixel_visual = VISUAL_RGB_8_8_8;
-
-	link_initialize(&pixel_mode.link);
-	list_append(&pixel_mode.link, &vis->modes);
-
-	vis->def_mode_idx = 0;
-
-	vis->ops = rfb_ops;
-	vis->dev_ctx = NULL;
-
-	async_set_fallback_port_handler(client_connection, NULL);
+	async_set_fallback_port_handler(client_connection, &rfb);
 
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
@@ -239,16 +423,16 @@ int main(int argc, char **argv)
 
 	free(service_name);
 
-	category_id_t visualizer_category;
-	rc = loc_category_get_id("visualizer", &visualizer_category, IPC_FLAG_BLOCKING);
+	category_id_t ddev_cid;
+	rc = loc_category_get_id("display-device", &ddev_cid, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		fprintf(stderr, NAME ": Unable to get visualizer category id.\n");
+		fprintf(stderr, NAME ": Unable to get display device category id.\n");
 		return 1;
 	}
 
-	rc = loc_service_add_to_cat(service_id, visualizer_category);
+	rc = loc_service_add_to_cat(service_id, ddev_cid);
 	if (rc != EOK) {
-		fprintf(stderr, NAME ": Unable to add service to visualizer category.\n");
+		fprintf(stderr, NAME ": Unable to add service to display device category.\n");
 		return 1;
 	}
 

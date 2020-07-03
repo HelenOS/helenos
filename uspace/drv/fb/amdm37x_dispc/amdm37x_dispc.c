@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
@@ -34,11 +35,16 @@
  */
 
 #include <align.h>
+#include <as.h>
 #include <assert.h>
 #include <errno.h>
+#include <ddev_srv.h>
+#include <ddev/info.h>
+#include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ddi.h>
-#include <as.h>
+#include <gfx/color.h>
+#include <io/pixelmap.h>
 
 #include "amdm37x_dispc.h"
 
@@ -54,22 +60,32 @@
 #define CONFIG_BFB_HEIGHT 768
 #endif
 
-static errno_t change_mode(visualizer_t *vis, vslmode_t mode);
-static errno_t handle_damage(visualizer_t *vs,
-    sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
-    sysarg_t x_offset, sysarg_t y_offset);
-static errno_t dummy(visualizer_t *vs)
-{
-	return EOK;
-}
+static errno_t amdm37x_change_mode(amdm37x_dispc_t *, unsigned, unsigned,
+    visual_t);
 
-static const visualizer_ops_t amdm37x_dispc_vis_ops = {
-	.change_mode = change_mode,
-	.handle_damage = handle_damage,
-	.claim = dummy,
-	.yield = dummy,
-	.suspend = dummy,
-	.wakeup = dummy,
+static errno_t amdm37x_ddev_get_gc(void *, sysarg_t *, sysarg_t *);
+static errno_t amdm37x_ddev_get_info(void *, ddev_info_t *);
+
+static errno_t amdm37x_gc_set_color(void *, gfx_color_t *);
+static errno_t amdm37x_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t amdm37x_gc_bitmap_create(void *, gfx_bitmap_params_t *,
+    gfx_bitmap_alloc_t *, void **);
+static errno_t amdm37x_gc_bitmap_destroy(void *);
+static errno_t amdm37x_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
+static errno_t amdm37x_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
+
+ddev_ops_t amdm37x_ddev_ops = {
+	.get_gc = amdm37x_ddev_get_gc,
+	.get_info = amdm37x_ddev_get_info
+};
+
+gfx_context_ops_t amdm37x_gc_ops = {
+	.set_color = amdm37x_gc_set_color,
+	.fill_rect = amdm37x_gc_fill_rect,
+	.bitmap_create = amdm37x_gc_bitmap_create,
+	.bitmap_destroy = amdm37x_gc_bitmap_destroy,
+	.bitmap_render = amdm37x_gc_bitmap_render,
+	.bitmap_get_alloc = amdm37x_gc_bitmap_get_alloc
 };
 
 static const struct {
@@ -93,29 +109,9 @@ static const struct {
 	[VISUAL_RGBA_8_8_8_8] = { .bpp = 4, .func = pixel2rgba_8888 },
 };
 
-static void mode_init(vslmode_list_element_t *mode,
-    unsigned width, unsigned height, visual_t visual)
+errno_t amdm37x_dispc_init(amdm37x_dispc_t *instance, ddf_fun_t *fun)
 {
-	mode->mode.index = 0;
-	mode->mode.version = 0;
-	mode->mode.refresh_rate = 0;
-	mode->mode.screen_aspect.width = width;
-	mode->mode.screen_aspect.height = height;
-	mode->mode.screen_width = width;
-	mode->mode.screen_height = height;
-	mode->mode.cell_aspect.width = 1;
-	mode->mode.cell_aspect.height = 1;
-	mode->mode.cell_visual.pixel_visual = visual;
-
-	link_initialize(&mode->link);
-
-}
-
-errno_t amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
-{
-	assert(instance);
-	assert(vis);
-
+	instance->fun = fun;
 	instance->fb_data = NULL;
 	instance->size = 0;
 
@@ -144,14 +140,10 @@ errno_t amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
 		return EIO;
 	}
 
-	mode_init(&instance->modes[0],
-	    CONFIG_BFB_WIDTH, CONFIG_BFB_HEIGHT, visual);
-
-	/* Handle vis stuff */
-	vis->dev_ctx = instance;
-	vis->def_mode_idx = 0;
-	vis->ops = amdm37x_dispc_vis_ops;
-	list_append(&instance->modes[0].link, &vis->modes);
+	ret = amdm37x_change_mode(instance, CONFIG_BFB_WIDTH,
+	    CONFIG_BFB_HEIGHT, visual);
+	if (ret != EOK)
+		return EIO;
 
 	return EOK;
 }
@@ -268,18 +260,12 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	return EOK;
 }
 
-static errno_t change_mode(visualizer_t *vis, vslmode_t mode)
+static errno_t amdm37x_change_mode(amdm37x_dispc_t *dispc, unsigned x,
+    unsigned y, visual_t visual)
 {
-	assert(vis);
-	assert(vis->dev_ctx);
-
-	amdm37x_dispc_t *dispc = vis->dev_ctx;
-	const visual_t visual = mode.cell_visual.pixel_visual;
 	assert((size_t)visual < sizeof(pixel2visual_table) / sizeof(pixel2visual_table[0]));
 	const unsigned bpp = pixel2visual_table[visual].bpp;
 	pixel2visual_t p2v = pixel2visual_table[visual].func;
-	const unsigned x = mode.screen_width;
-	const unsigned y = mode.screen_height;
 	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp * 8);
 	const size_t size = ALIGN_UP(x * y * bpp, PAGE_SIZE);
 	uintptr_t pa;
@@ -295,51 +281,236 @@ static errno_t change_mode(visualizer_t *vis, vslmode_t mode)
 
 	dispc->fb_data = buffer;
 	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp * 8, (uint32_t)pa);
-	dispc->active_fb.idx = mode.index;
 	dispc->active_fb.width = x;
 	dispc->active_fb.height = y;
 	dispc->active_fb.pitch = 0;
 	dispc->active_fb.bpp = bpp;
 	dispc->active_fb.pixel2visual = p2v;
+	dispc->rect.p0.x = 0;
+	dispc->rect.p0.y = 0;
+	dispc->rect.p1.x = x;
+	dispc->rect.p1.y = y;
 	dispc->size = size;
-	assert(mode.index < 1);
 
 	return EOK;
 }
 
-static errno_t handle_damage(visualizer_t *vs,
-    sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
-    sysarg_t x_offset, sysarg_t y_offset)
-{
-	assert(vs);
-	assert(vs->dev_ctx);
-	amdm37x_dispc_t *dispc = vs->dev_ctx;
-	pixelmap_t *map = &vs->cells;
+#define FB_POS(d, x, y) \
+    (((y) * ((d)->active_fb.width + (d)->active_fb.pitch) + (x)) \
+    * (d)->active_fb.bpp)
 
-#define FB_POS(x, y) \
-	(((y) * (dispc->active_fb.width + dispc->active_fb.pitch) + (x)) \
-	    * dispc->active_fb.bpp)
-	if (x_offset == 0 && y_offset == 0) {
-		/* Faster damage routine ignoring offsets. */
-		for (sysarg_t y = y0; y < height + y0; ++y) {
-			pixel_t *pixel = pixelmap_pixel_at(map, x0, y);
-			for (sysarg_t x = x0; x < width + x0; ++x) {
-				dispc->active_fb.pixel2visual(
-				    dispc->fb_data + FB_POS(x, y), *pixel++);
-			}
-		}
-	} else {
-		for (sysarg_t y = y0; y < height + y0; ++y) {
-			for (sysarg_t x = x0; x < width + x0; ++x) {
-				dispc->active_fb.pixel2visual(
-				    dispc->fb_data + FB_POS(x, y),
-				    *pixelmap_pixel_at(map,
-				    (x + x_offset) % map->width,
-				    (y + y_offset) % map->height));
-			}
+static errno_t amdm37x_ddev_get_gc(void *arg, sysarg_t *arg2, sysarg_t *arg3)
+{
+	amdm37x_dispc_t *dispc = (amdm37x_dispc_t *) arg;
+
+	*arg2 = ddf_fun_get_handle(dispc->fun);
+	*arg3 = 42;
+	return EOK;
+}
+
+static errno_t amdm37x_ddev_get_info(void *arg, ddev_info_t *info)
+{
+	amdm37x_dispc_t *dispc = (amdm37x_dispc_t *) arg;
+
+	ddev_info_init(info);
+	info->rect.p0.x = 0;
+	info->rect.p0.y = 0;
+	info->rect.p1.x = dispc->active_fb.width;
+	info->rect.p1.y = dispc->active_fb.height;
+	return EOK;
+}
+
+/** Set color on AMDM37x display controller.
+ *
+ * Set drawing color on AMDM37x GC.
+ *
+ * @param arg AMDM37x display controller
+ * @param color Color
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t amdm37x_gc_set_color(void *arg, gfx_color_t *color)
+{
+	amdm37x_dispc_t *dispc = (amdm37x_dispc_t *) arg;
+	uint16_t r, g, b;
+
+	gfx_color_get_rgb_i16(color, &r, &g, &b);
+	dispc->color = PIXEL(0, r >> 8, g >> 8, b >> 8);
+	return EOK;
+}
+
+/** Fill rectangle on AMDM37x display controller.
+ *
+ * @param arg AMDM37x display controller
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t amdm37x_gc_fill_rect(void *arg, gfx_rect_t *rect)
+{
+	amdm37x_dispc_t *dispc = (amdm37x_dispc_t *) arg;
+	gfx_rect_t crect;
+	gfx_coord_t x, y;
+
+	/* Make sure we have a sorted, clipped rectangle */
+	gfx_rect_clip(rect, &dispc->rect, &crect);
+
+	for (y = crect.p0.y; y < crect.p1.y; y++) {
+		for (x = crect.p0.x; x < crect.p1.x; x++) {
+			dispc->active_fb.pixel2visual(dispc->fb_data +
+			    FB_POS(dispc, x, y), dispc->color);
 		}
 	}
 
+	return EOK;
+}
+
+/** Create bitmap in AMDM37x GC.
+ *
+ * @param arg AMDM37x display controller
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+errno_t amdm37x_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	amdm37x_dispc_t *dispc = (amdm37x_dispc_t *) arg;
+	amdm37x_bitmap_t *dcbm = NULL;
+	gfx_coord2_t dim;
+	errno_t rc;
+
+	/* Check that we support all required flags */
+	if ((params->flags & ~bmpf_color_key) != 0)
+		return ENOTSUP;
+
+	dcbm = calloc(1, sizeof(amdm37x_bitmap_t));
+	if (dcbm == NULL)
+		return ENOMEM;
+
+	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
+	dcbm->rect = params->rect;
+
+	if (alloc == NULL) {
+		dcbm->alloc.pitch = dim.x * sizeof(uint32_t);
+		dcbm->alloc.off0 = 0;
+		dcbm->alloc.pixels = malloc(dcbm->alloc.pitch * dim.y);
+		dcbm->myalloc = true;
+
+		if (dcbm->alloc.pixels == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+	} else {
+		dcbm->alloc = *alloc;
+	}
+
+	dcbm->dispc = dispc;
+	*rbm = (void *)dcbm;
+	return EOK;
+error:
+	if (rbm != NULL)
+		free(dcbm);
+	return rc;
+}
+
+/** Destroy bitmap in AMDM37x GC.
+ *
+ * @param bm Bitmap
+ * @return EOK on success or an error code
+ */
+static errno_t amdm37x_gc_bitmap_destroy(void *bm)
+{
+	amdm37x_bitmap_t *dcbm = (amdm37x_bitmap_t *)bm;
+	if (dcbm->myalloc)
+		free(dcbm->alloc.pixels);
+	free(dcbm);
+	return EOK;
+}
+
+/** Render bitmap in AMDM37x GC.
+ *
+ * @param bm Bitmap
+ * @param srect0 Source rectangle or @c NULL
+ * @param offs0 Offset or @c NULL
+ * @return EOK on success or an error code
+ */
+static errno_t amdm37x_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
+    gfx_coord2_t *offs0)
+{
+	amdm37x_bitmap_t *dcbm = (amdm37x_bitmap_t *)bm;
+	amdm37x_dispc_t *dispc = dcbm->dispc;
+	gfx_rect_t srect;
+	gfx_rect_t drect;
+	gfx_rect_t skfbrect;
+	gfx_rect_t crect;
+	gfx_coord2_t offs;
+	gfx_coord2_t bmdim;
+	gfx_coord2_t dim;
+	gfx_coord2_t sp;
+	gfx_coord2_t dp;
+	gfx_coord2_t pos;
+	pixelmap_t pbm;
+	pixel_t color;
+
+	/* Clip source rectangle to bitmap bounds */
+
+	if (srect0 != NULL)
+		gfx_rect_clip(srect0, &dcbm->rect, &srect);
+	else
+		srect = dcbm->rect;
+
+	if (offs0 != NULL) {
+		offs = *offs0;
+	} else {
+		offs.x = 0;
+		offs.y = 0;
+	}
+
+	/* Destination rectangle */
+	gfx_rect_translate(&offs, &srect, &drect);
+	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
+	gfx_coord2_subtract(&dcbm->rect.p1, &dcbm->rect.p0, &bmdim);
+
+	pbm.width = bmdim.x;
+	pbm.height = bmdim.y;
+	pbm.data = dcbm->alloc.pixels;
+
+	/* Transform AMDM37x bounding rectangle back to bitmap coordinate system */
+	gfx_rect_rtranslate(&offs, &dispc->rect, &skfbrect);
+
+	/*
+	 * Make sure we have a sorted source rectangle, clipped so that
+	 * destination lies within AMDM37x bounding rectangle
+	 */
+	gfx_rect_clip(&srect, &skfbrect, &crect);
+
+	// XXX bmpf_color_key
+	for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+		for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+			gfx_coord2_subtract(&pos, &dcbm->rect.p0, &sp);
+			gfx_coord2_add(&pos, &offs, &dp);
+
+			color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+			dispc->active_fb.pixel2visual(dispc->fb_data +
+			    FB_POS(dispc, dp.x, dp.y), color);
+		}
+	}
+
+	return EOK;
+}
+
+/** Get allocation info for bitmap in AMDM37x GC.
+ *
+ * @param bm Bitmap
+ * @param alloc Place to store allocation info
+ * @return EOK on success or an error code
+ */
+static errno_t amdm37x_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
+{
+	amdm37x_bitmap_t *dcbm = (amdm37x_bitmap_t *)bm;
+	*alloc = dcbm->alloc;
 	return EOK;
 }
 

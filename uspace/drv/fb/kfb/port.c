@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2019 Jiri Svoboda
  * Copyright (c) 2006 Jakub Vana
  * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2008 Martin Decky
@@ -37,37 +38,37 @@
  */
 
 #include <abi/fb/visuals.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <errno.h>
-
-#include <stdlib.h>
-#include <mem.h>
-#include <as.h>
-#include <align.h>
-
-#include <sysinfo.h>
-#include <ddi.h>
-
 #include <adt/list.h>
-
+#include <align.h>
+#include <as.h>
+#include <ddev_srv.h>
+#include <ddev/info.h>
+#include <ddi.h>
+#include <ddf/log.h>
+#include <errno.h>
+#include <gfx/bitmap.h>
+#include <gfx/color.h>
+#include <gfx/coord.h>
 #include <io/mode.h>
 #include <io/pixelmap.h>
-#include <io/chargrid.h>
-
+#include <ipcgfx/server.h>
+#include <mem.h>
 #include <pixconv.h>
-
-#include <graph.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sysinfo.h>
 
 #include "kfb.h"
 #include "port.h"
 
-#define FB_POS(x, y)  ((y) * kfb.scanline + (x) * kfb.pixel_bytes)
+#define FB_POS(fb, x, y)  ((y) * (fb)->scanline + (x) * (fb)->pixel_bytes)
 
 typedef struct {
+	ddf_fun_t *fun;
+
 	sysarg_t paddr;
-	sysarg_t width;
-	sysarg_t height;
+	gfx_rect_t rect;
 	size_t offset;
 	size_t scanline;
 	visual_t visual;
@@ -79,56 +80,253 @@ typedef struct {
 
 	size_t size;
 	uint8_t *addr;
+
+	/** Current drawing color */
+	pixel_t color;
 } kfb_t;
 
-static kfb_t kfb;
+typedef struct {
+	kfb_t *kfb;
+	gfx_bitmap_alloc_t alloc;
+	gfx_rect_t rect;
+	gfx_bitmap_flags_t flags;
+	pixel_t key_color;
+	bool myalloc;
+} kfb_bitmap_t;
 
-static vslmode_list_element_t pixel_mode;
+static errno_t kfb_ddev_get_gc(void *, sysarg_t *, sysarg_t *);
+static errno_t kfb_ddev_get_info(void *, ddev_info_t *);
 
-static errno_t kfb_claim(visualizer_t *vs)
+static errno_t kfb_gc_set_color(void *, gfx_color_t *);
+static errno_t kfb_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t kfb_gc_bitmap_create(void *, gfx_bitmap_params_t *,
+    gfx_bitmap_alloc_t *, void **);
+static errno_t kfb_gc_bitmap_destroy(void *);
+static errno_t kfb_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
+static errno_t kfb_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
+
+static ddev_ops_t kfb_ddev_ops = {
+	.get_gc = kfb_ddev_get_gc,
+	.get_info = kfb_ddev_get_info
+};
+
+static gfx_context_ops_t kfb_gc_ops = {
+	.set_color = kfb_gc_set_color,
+	.fill_rect = kfb_gc_fill_rect,
+	.bitmap_create = kfb_gc_bitmap_create,
+	.bitmap_destroy = kfb_gc_bitmap_destroy,
+	.bitmap_render = kfb_gc_bitmap_render,
+	.bitmap_get_alloc = kfb_gc_bitmap_get_alloc
+};
+
+static errno_t kfb_ddev_get_gc(void *arg, sysarg_t *arg2, sysarg_t *arg3)
 {
-	return physmem_map(kfb.paddr + kfb.offset,
-	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
-	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
-}
+	kfb_t *kfb = (kfb_t *) arg;
 
-static errno_t kfb_yield(visualizer_t *vs)
-{
-	errno_t rc;
-
-	if (vs->mode_set) {
-		vs->ops.handle_damage = NULL;
-	}
-
-	rc = physmem_unmap(kfb.addr);
-	if (rc != EOK)
-		return rc;
-
-	kfb.addr = NULL;
+	*arg2 = ddf_fun_get_handle(kfb->fun);
+	*arg3 = 42;
 	return EOK;
 }
 
-static errno_t kfb_handle_damage_pixels(visualizer_t *vs,
-    sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
-    sysarg_t x_offset, sysarg_t y_offset)
+static errno_t kfb_ddev_get_info(void *arg, ddev_info_t *info)
 {
-	pixelmap_t *map = &vs->cells;
+	kfb_t *kfb = (kfb_t *) arg;
 
-	if (x_offset == 0 && y_offset == 0) {
-		/* Faster damage routine ignoring offsets. */
-		for (sysarg_t y = y0; y < height + y0; ++y) {
-			pixel_t *pixel = pixelmap_pixel_at(map, x0, y);
-			for (sysarg_t x = x0; x < width + x0; ++x) {
-				kfb.pixel2visual(kfb.addr + FB_POS(x, y), *pixel++);
+	ddev_info_init(info);
+	info->rect = kfb->rect;
+	return EOK;
+}
+
+/** Set color on KFB.
+ *
+ * Set drawing color on KFB GC.
+ *
+ * @param arg KFB
+ * @param color Color
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t kfb_gc_set_color(void *arg, gfx_color_t *color)
+{
+	kfb_t *kfb = (kfb_t *) arg;
+	uint16_t r, g, b;
+
+	gfx_color_get_rgb_i16(color, &r, &g, &b);
+	kfb->color = PIXEL(0, r >> 8, g >> 8, b >> 8);
+	return EOK;
+}
+
+/** Fill rectangle on KFB.
+ *
+ * @param arg KFB
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t kfb_gc_fill_rect(void *arg, gfx_rect_t *rect)
+{
+	kfb_t *kfb = (kfb_t *) arg;
+	gfx_rect_t crect;
+	gfx_coord_t x, y;
+
+	/* Make sure we have a sorted, clipped rectangle */
+	gfx_rect_clip(rect, &kfb->rect, &crect);
+
+	for (y = crect.p0.y; y < crect.p1.y; y++) {
+		for (x = crect.p0.x; x < crect.p1.x; x++) {
+			kfb->pixel2visual(kfb->addr + FB_POS(kfb, x, y),
+			    kfb->color);
+		}
+	}
+
+	return EOK;
+}
+
+/** Create bitmap in KFB GC.
+ *
+ * @param arg KFB
+ * @param params Bitmap params
+ * @param alloc Bitmap allocation info or @c NULL
+ * @param rbm Place to store pointer to new bitmap
+ * @return EOK on success or an error code
+ */
+errno_t kfb_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	kfb_t *kfb = (kfb_t *) arg;
+	kfb_bitmap_t *kfbbm = NULL;
+	gfx_coord2_t dim;
+	errno_t rc;
+
+	/* Check that we support all required flags */
+	if ((params->flags & ~bmpf_color_key) != 0)
+		return ENOTSUP;
+
+	kfbbm = calloc(1, sizeof(kfb_bitmap_t));
+	if (kfbbm == NULL)
+		return ENOMEM;
+
+	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
+	kfbbm->rect = params->rect;
+	kfbbm->flags = params->flags;
+	kfbbm->key_color = params->key_color;
+
+	if (alloc == NULL) {
+		kfbbm->alloc.pitch = dim.x * sizeof(uint32_t);
+		kfbbm->alloc.off0 = 0;
+		kfbbm->alloc.pixels = malloc(kfbbm->alloc.pitch * dim.y);
+		kfbbm->myalloc = true;
+
+		if (kfbbm->alloc.pixels == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+	} else {
+		kfbbm->alloc = *alloc;
+	}
+
+	kfbbm->kfb = kfb;
+	*rbm = (void *)kfbbm;
+	return EOK;
+error:
+	if (rbm != NULL)
+		free(kfbbm);
+	return rc;
+}
+
+/** Destroy bitmap in KFB GC.
+ *
+ * @param bm Bitmap
+ * @return EOK on success or an error code
+ */
+static errno_t kfb_gc_bitmap_destroy(void *bm)
+{
+	kfb_bitmap_t *kfbbm = (kfb_bitmap_t *)bm;
+	if (kfbbm->myalloc)
+		free(kfbbm->alloc.pixels);
+	free(kfbbm);
+	return EOK;
+}
+
+/** Render bitmap in KFB GC.
+ *
+ * @param bm Bitmap
+ * @param srect0 Source rectangle or @c NULL
+ * @param offs0 Offset or @c NULL
+ * @return EOK on success or an error code
+ */
+static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
+    gfx_coord2_t *offs0)
+{
+	kfb_bitmap_t *kfbbm = (kfb_bitmap_t *)bm;
+	kfb_t *kfb = kfbbm->kfb;
+	gfx_rect_t srect;
+	gfx_rect_t drect;
+	gfx_rect_t skfbrect;
+	gfx_rect_t crect;
+	gfx_coord2_t offs;
+	gfx_coord2_t bmdim;
+	gfx_coord2_t dim;
+	gfx_coord2_t sp;
+	gfx_coord2_t dp;
+	gfx_coord2_t pos;
+	pixelmap_t pbm;
+	pixel_t color;
+
+	/* Clip source rectangle to bitmap bounds */
+
+	if (srect0 != NULL)
+		gfx_rect_clip(srect0, &kfbbm->rect, &srect);
+	else
+		srect = kfbbm->rect;
+
+	if (offs0 != NULL) {
+		offs = *offs0;
+	} else {
+		offs.x = 0;
+		offs.y = 0;
+	}
+
+	/* Destination rectangle */
+	gfx_rect_translate(&offs, &srect, &drect);
+	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
+	gfx_coord2_subtract(&kfbbm->rect.p1, &kfbbm->rect.p0, &bmdim);
+
+	pbm.width = bmdim.x;
+	pbm.height = bmdim.y;
+	pbm.data = kfbbm->alloc.pixels;
+
+	/* Transform KFB bounding rectangle back to bitmap coordinate system */
+	gfx_rect_rtranslate(&offs, &kfb->rect, &skfbrect);
+
+	/*
+	 * Make sure we have a sorted source rectangle, clipped so that
+	 * destination lies within KFB bounding rectangle
+	 */
+	gfx_rect_clip(&srect, &skfbrect, &crect);
+
+	if ((kfbbm->flags & bmpf_color_key) != 0) {
+		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+				gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
+				gfx_coord2_add(&pos, &offs, &dp);
+
+				color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+				if (color != kfbbm->key_color) {
+					kfb->pixel2visual(kfb->addr +
+					    FB_POS(kfb, dp.x, dp.y), color);
+				}
 			}
 		}
 	} else {
-		for (sysarg_t y = y0; y < height + y0; ++y) {
-			for (sysarg_t x = x0; x < width + x0; ++x) {
-				kfb.pixel2visual(kfb.addr + FB_POS(x, y),
-				    *pixelmap_pixel_at(map,
-				    (x + x_offset) % map->width,
-				    (y + y_offset) % map->height));
+		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+				gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
+				gfx_coord2_add(&pos, &offs, &dp);
+
+				color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+				kfb->pixel2visual(kfb->addr +
+				    FB_POS(kfb, dp.x, dp.y), color);
 			}
 		}
 	}
@@ -136,68 +334,127 @@ static errno_t kfb_handle_damage_pixels(visualizer_t *vs,
 	return EOK;
 }
 
-static errno_t kfb_change_mode(visualizer_t *vs, vslmode_t new_mode)
+/** Get allocation info for bitmap in KFB GC.
+ *
+ * @param bm Bitmap
+ * @param alloc Place to store allocation info
+ * @return EOK on success or an error code
+ */
+static errno_t kfb_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 {
-	vs->ops.handle_damage = kfb_handle_damage_pixels;
+	kfb_bitmap_t *kfbbm = (kfb_bitmap_t *)bm;
+	*alloc = kfbbm->alloc;
 	return EOK;
 }
 
-static errno_t kfb_suspend(visualizer_t *vs)
+#include <stdio.h>
+static void kfb_client_conn(ipc_call_t *icall, void *arg)
 {
-	return EOK;
-}
-
-static errno_t kfb_wakeup(visualizer_t *vs)
-{
-	return EOK;
-}
-
-static visualizer_ops_t kfb_ops = {
-	.claim = kfb_claim,
-	.yield = kfb_yield,
-	.change_mode = kfb_change_mode,
-	.handle_damage = NULL,
-	.suspend = kfb_suspend,
-	.wakeup = kfb_wakeup
-};
-
-static void graph_vsl_connection(ipc_call_t *icall, void *arg)
-{
-	visualizer_t *vsl;
+	kfb_t *kfb;
+	ddev_srv_t srv;
+	sysarg_t gc_id;
+	gfx_context_t *gc;
 	errno_t rc;
 
-	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
-	graph_visualizer_connection(vsl, icall, NULL);
+	kfb = (kfb_t *) ddf_fun_data_get((ddf_fun_t *) arg);
 
-	if (kfb.addr != NULL) {
-		rc = physmem_unmap(kfb.addr);
+	printf("kfb_client_conn arg2=%lu arg3=%lu arg4=%lu\n",
+	    (unsigned long) ipc_get_arg2(icall),
+	    (unsigned long) ipc_get_arg3(icall),
+	    (unsigned long) ipc_get_arg4(icall));
+
+	gc_id = ipc_get_arg3(icall);
+
+	if (gc_id == 0) {
+		/* Set up protocol structure */
+		ddev_srv_initialize(&srv);
+		srv.ops = &kfb_ddev_ops;
+		srv.arg = kfb;
+
+		/* Handle connection */
+		ddev_conn(icall, &srv);
+	} else {
+		assert(gc_id == 42);
+
+		if (kfb->addr != AS_AREA_ANY) {
+			/* This means there already is a GC connection */
+			async_answer_0(icall, EBUSY);
+			return;
+		}
+
+		rc = physmem_map(kfb->paddr + kfb->offset,
+		    ALIGN_UP(kfb->size, PAGE_SIZE) >> PAGE_WIDTH,
+		    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb->addr);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_context_new(&kfb_gc_ops, kfb, &gc);
+		if (rc != EOK)
+			goto error;
+
+		/* GC connection */
+		gc_conn(icall, gc);
+
+		rc = physmem_unmap(kfb->addr);
 		if (rc == EOK)
-			kfb.addr = NULL;
+			kfb->addr = AS_AREA_ANY;
 	}
+
+	return;
+error:
+	if (kfb->addr != AS_AREA_ANY) {
+		if (physmem_unmap(kfb->addr) == EOK)
+			kfb->addr = AS_AREA_ANY;
+	}
+
+	async_answer_0(icall, rc);
 }
 
 errno_t port_init(ddf_dev_t *dev)
 {
+	ddf_fun_t *fun = NULL;
+	kfb_t *kfb = NULL;
+	errno_t rc;
+
+	fun = ddf_fun_create(dev, fun_exposed, "kfb");
+	if (fun == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	ddf_fun_set_conn_handler(fun, &kfb_client_conn);
+
+	kfb = ddf_fun_data_alloc(fun, sizeof(kfb_t));
+	if (kfb == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
 	sysarg_t present;
-	errno_t rc = sysinfo_get_value("fb", &present);
+	rc = sysinfo_get_value("fb", &present);
 	if (rc != EOK)
 		present = false;
 
-	if (!present)
-		return ENOENT;
+	if (!present) {
+		ddf_fun_destroy(fun);
+		rc = ENOENT;
+		goto error;
+	}
 
 	sysarg_t kind;
 	rc = sysinfo_get_value("fb.kind", &kind);
 	if (rc != EOK)
 		kind = (sysarg_t) -1;
 
-	if (kind != 1)
-		return EINVAL;
+	if (kind != 1) {
+		rc = EINVAL;
+		goto error;
+	}
 
 	sysarg_t paddr;
 	rc = sysinfo_get_value("fb.address.physical", &paddr);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysarg_t offset;
 	rc = sysinfo_get_value("fb.offset", &offset);
@@ -207,156 +464,124 @@ errno_t port_init(ddf_dev_t *dev)
 	sysarg_t width;
 	rc = sysinfo_get_value("fb.width", &width);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysarg_t height;
 	rc = sysinfo_get_value("fb.height", &height);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysarg_t scanline;
 	rc = sysinfo_get_value("fb.scanline", &scanline);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	sysarg_t visual;
 	rc = sysinfo_get_value("fb.visual", &visual);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	kfb.width = width;
-	kfb.height = height;
-	kfb.paddr = paddr;
-	kfb.offset = offset;
-	kfb.scanline = scanline;
-	kfb.visual = visual;
+	kfb->fun = fun;
+
+	kfb->rect.p0.x = 0;
+	kfb->rect.p0.y = 0;
+	kfb->rect.p1.x = width;
+	kfb->rect.p1.y = height;
+
+	kfb->paddr = paddr;
+	kfb->offset = offset;
+	kfb->scanline = scanline;
+	kfb->visual = visual;
 
 	switch (visual) {
 	case VISUAL_INDIRECT_8:
-		kfb.pixel2visual = pixel2bgr_323;
-		kfb.visual2pixel = bgr_323_2pixel;
-		kfb.visual_mask = visual_mask_323;
-		kfb.pixel_bytes = 1;
+		kfb->pixel2visual = pixel2bgr_323;
+		kfb->visual2pixel = bgr_323_2pixel;
+		kfb->visual_mask = visual_mask_323;
+		kfb->pixel_bytes = 1;
 		break;
 	case VISUAL_RGB_5_5_5_LE:
-		kfb.pixel2visual = pixel2rgb_555_le;
-		kfb.visual2pixel = rgb_555_le_2pixel;
-		kfb.visual_mask = visual_mask_555;
-		kfb.pixel_bytes = 2;
+		kfb->pixel2visual = pixel2rgb_555_le;
+		kfb->visual2pixel = rgb_555_le_2pixel;
+		kfb->visual_mask = visual_mask_555;
+		kfb->pixel_bytes = 2;
 		break;
 	case VISUAL_RGB_5_5_5_BE:
-		kfb.pixel2visual = pixel2rgb_555_be;
-		kfb.visual2pixel = rgb_555_be_2pixel;
-		kfb.visual_mask = visual_mask_555;
-		kfb.pixel_bytes = 2;
+		kfb->pixel2visual = pixel2rgb_555_be;
+		kfb->visual2pixel = rgb_555_be_2pixel;
+		kfb->visual_mask = visual_mask_555;
+		kfb->pixel_bytes = 2;
 		break;
 	case VISUAL_RGB_5_6_5_LE:
-		kfb.pixel2visual = pixel2rgb_565_le;
-		kfb.visual2pixel = rgb_565_le_2pixel;
-		kfb.visual_mask = visual_mask_565;
-		kfb.pixel_bytes = 2;
+		kfb->pixel2visual = pixel2rgb_565_le;
+		kfb->visual2pixel = rgb_565_le_2pixel;
+		kfb->visual_mask = visual_mask_565;
+		kfb->pixel_bytes = 2;
 		break;
 	case VISUAL_RGB_5_6_5_BE:
-		kfb.pixel2visual = pixel2rgb_565_be;
-		kfb.visual2pixel = rgb_565_be_2pixel;
-		kfb.visual_mask = visual_mask_565;
-		kfb.pixel_bytes = 2;
+		kfb->pixel2visual = pixel2rgb_565_be;
+		kfb->visual2pixel = rgb_565_be_2pixel;
+		kfb->visual_mask = visual_mask_565;
+		kfb->pixel_bytes = 2;
 		break;
 	case VISUAL_RGB_8_8_8:
-		kfb.pixel2visual = pixel2rgb_888;
-		kfb.visual2pixel = rgb_888_2pixel;
-		kfb.visual_mask = visual_mask_888;
-		kfb.pixel_bytes = 3;
+		kfb->pixel2visual = pixel2rgb_888;
+		kfb->visual2pixel = rgb_888_2pixel;
+		kfb->visual_mask = visual_mask_888;
+		kfb->pixel_bytes = 3;
 		break;
 	case VISUAL_BGR_8_8_8:
-		kfb.pixel2visual = pixel2bgr_888;
-		kfb.visual2pixel = bgr_888_2pixel;
-		kfb.visual_mask = visual_mask_888;
-		kfb.pixel_bytes = 3;
+		kfb->pixel2visual = pixel2bgr_888;
+		kfb->visual2pixel = bgr_888_2pixel;
+		kfb->visual_mask = visual_mask_888;
+		kfb->pixel_bytes = 3;
 		break;
 	case VISUAL_RGB_8_8_8_0:
-		kfb.pixel2visual = pixel2rgb_8880;
-		kfb.visual2pixel = rgb_8880_2pixel;
-		kfb.visual_mask = visual_mask_8880;
-		kfb.pixel_bytes = 4;
+		kfb->pixel2visual = pixel2rgb_8880;
+		kfb->visual2pixel = rgb_8880_2pixel;
+		kfb->visual_mask = visual_mask_8880;
+		kfb->pixel_bytes = 4;
 		break;
 	case VISUAL_RGB_0_8_8_8:
-		kfb.pixel2visual = pixel2rgb_0888;
-		kfb.visual2pixel = rgb_0888_2pixel;
-		kfb.visual_mask = visual_mask_0888;
-		kfb.pixel_bytes = 4;
+		kfb->pixel2visual = pixel2rgb_0888;
+		kfb->visual2pixel = rgb_0888_2pixel;
+		kfb->visual_mask = visual_mask_0888;
+		kfb->pixel_bytes = 4;
 		break;
 	case VISUAL_BGR_0_8_8_8:
-		kfb.pixel2visual = pixel2bgr_0888;
-		kfb.visual2pixel = bgr_0888_2pixel;
-		kfb.visual_mask = visual_mask_0888;
-		kfb.pixel_bytes = 4;
+		kfb->pixel2visual = pixel2bgr_0888;
+		kfb->visual2pixel = bgr_0888_2pixel;
+		kfb->visual_mask = visual_mask_0888;
+		kfb->pixel_bytes = 4;
 		break;
 	case VISUAL_BGR_8_8_8_0:
-		kfb.pixel2visual = pixel2bgr_8880;
-		kfb.visual2pixel = bgr_8880_2pixel;
-		kfb.visual_mask = visual_mask_8880;
-		kfb.pixel_bytes = 4;
+		kfb->pixel2visual = pixel2bgr_8880;
+		kfb->visual2pixel = bgr_8880_2pixel;
+		kfb->visual_mask = visual_mask_8880;
+		kfb->pixel_bytes = 4;
 		break;
 	default:
 		return EINVAL;
 	}
 
-	kfb.size = scanline * height;
-	kfb.addr = AS_AREA_ANY;
+	kfb->size = scanline * height;
+	kfb->addr = AS_AREA_ANY;
 
-	ddf_fun_t *fun_vs = ddf_fun_create(dev, fun_exposed, "vsl0");
-	if (fun_vs == NULL) {
-		as_area_destroy(kfb.addr);
-		return ENOMEM;
-	}
-	ddf_fun_set_conn_handler(fun_vs, &graph_vsl_connection);
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK)
+		goto error;
 
-	visualizer_t *vs = ddf_fun_data_alloc(fun_vs, sizeof(visualizer_t));
-	if (vs == NULL) {
-		as_area_destroy(kfb.addr);
-		return ENOMEM;
-	}
-	graph_init_visualizer(vs);
-
-	pixel_mode.mode.index = 0;
-	pixel_mode.mode.version = 0;
-	pixel_mode.mode.refresh_rate = 0;
-	pixel_mode.mode.screen_aspect.width = width;
-	pixel_mode.mode.screen_aspect.height = height;
-	pixel_mode.mode.screen_width = width;
-	pixel_mode.mode.screen_height = height;
-	pixel_mode.mode.cell_aspect.width = 1;
-	pixel_mode.mode.cell_aspect.height = 1;
-	pixel_mode.mode.cell_visual.pixel_visual = visual;
-
-	link_initialize(&pixel_mode.link);
-	list_append(&pixel_mode.link, &vs->modes);
-
-	vs->def_mode_idx = 0;
-
-	vs->ops = kfb_ops;
-	vs->dev_ctx = NULL;
-
-	rc = ddf_fun_bind(fun_vs);
+	rc = ddf_fun_add_to_category(fun, "display-device");
 	if (rc != EOK) {
-		list_remove(&pixel_mode.link);
-		ddf_fun_destroy(fun_vs);
-		as_area_destroy(kfb.addr);
-		return rc;
-	}
-
-	vs->reg_svc_handle = ddf_fun_get_handle(fun_vs);
-	rc = ddf_fun_add_to_category(fun_vs, "visualizer");
-	if (rc != EOK) {
-		list_remove(&pixel_mode.link);
-		ddf_fun_unbind(fun_vs);
-		ddf_fun_destroy(fun_vs);
-		as_area_destroy(kfb.addr);
-		return rc;
+		ddf_fun_unbind(fun);
+		goto error;
 	}
 
 	return EOK;
+error:
+	if (fun != NULL)
+		ddf_fun_destroy(fun);
+	return rc;
 }
 
 /** @}

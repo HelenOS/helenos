@@ -47,7 +47,6 @@
 #include <adt/prodcons.h>
 #include <adt/list.h>
 
-#include <async.h>
 #include <loc.h>
 
 #include <io/pixel.h>
@@ -55,6 +54,7 @@
 #include <draw/font.h>
 #include <draw/drawctx.h>
 #include <draw/surface.h>
+#include <display.h>
 
 #include "common.h"
 #include "connection.h"
@@ -66,6 +66,8 @@ static sysarg_t bevel_thickness = 1;
 static sysarg_t header_height = 20;
 static sysarg_t header_min_width = 40;
 static sysarg_t close_thickness = 20;
+static sysarg_t corner_size = 24;
+static sysarg_t window_initial_size = 1;
 
 static pixel_t color_highlight = PIXEL(255, 255, 255, 255);
 static pixel_t color_shadow = PIXEL(255, 85, 85, 85);
@@ -81,6 +83,30 @@ static pixel_t color_header_unfocus_surface = PIXEL(255, 12, 57, 92);
 
 static pixel_t color_caption_focus = PIXEL(255, 255, 255, 255);
 static pixel_t color_caption_unfocus = PIXEL(255, 207, 207, 207);
+
+static void window_close_event(void *);
+static void window_focus_event(void *);
+static void window_kbd_event(void *, kbd_event_t *);
+static void window_pos_event(void *, pos_event_t *);
+static void window_resize_event(void *, gfx_rect_t *);
+static void window_unfocus_event(void *);
+
+static display_wnd_cb_t window_cb = {
+	.close_event = window_close_event,
+	.focus_event = window_focus_event,
+	.kbd_event = window_kbd_event,
+	.pos_event = window_pos_event,
+	.resize_event = window_resize_event,
+	.unfocus_event = window_unfocus_event
+};
+
+static void set_cursor(window_t *window, display_stock_cursor_t cursor)
+{
+	if (cursor != window->cursor) {
+		(void) display_window_set_cursor(window->dwindow, cursor);
+		window->cursor = cursor;
+	}
+}
 
 static void paint_internal(widget_t *widget)
 {
@@ -257,18 +283,25 @@ static void root_handle_keyboard_event(widget_t *widget, kbd_event_t event)
 
 static void root_handle_position_event(widget_t *widget, pos_event_t event)
 {
+	gfx_coord2_t pos;
+
 	if (widget->window->is_decorated) {
 		sysarg_t width = widget->width;
 		sysarg_t height = widget->height;
 
 		bool btn_left = (event.btn_num == 1) && (event.type == POS_PRESS);
-		bool btn_right = (event.btn_num == 2) && (event.type == POS_PRESS);
-		bool allowed_button = btn_left || btn_right;
 
 		bool left = (event.hpos < border_thickness);
 		bool right = (event.hpos >= width - border_thickness);
 		bool top = (event.vpos < border_thickness);
 		bool bottom = (event.vpos >= height - border_thickness);
+		bool edge = left || right || top || bottom;
+
+		bool cleft = (event.hpos < corner_size);
+		bool cright = (event.hpos >= width - corner_size);
+		bool ctop = (event.vpos < corner_size);
+		bool cbottom = (event.vpos >= height - corner_size);
+
 		bool header = (event.hpos >= border_thickness) &&
 		    (event.hpos < width - border_thickness) &&
 		    (event.vpos >= border_thickness) &&
@@ -276,55 +309,47 @@ static void root_handle_position_event(widget_t *widget, pos_event_t event)
 		bool close = (header) &&
 		    (event.hpos >= width - border_thickness - close_thickness);
 
-		if (top && left && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_X;
-			flags |= GF_MOVE_Y;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (bottom && left && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_X;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (bottom && right && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (top && right && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_Y;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (top && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_Y;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (left && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_X;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (bottom && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= btn_left ? GF_RESIZE_Y : GF_SCALE_Y;
-			win_grab(widget->window->osess, event.pos_id, flags);
-		} else if (right && allowed_button) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= btn_left ? GF_RESIZE_X : GF_SCALE_X;
-			win_grab(widget->window->osess, event.pos_id, flags);
+		bool isresize = widget->window->is_resizable;
+		display_wnd_rsztype_t rsztype = 0;
+
+		if (edge && ctop && cleft) {
+			rsztype = display_wr_top_left;
+		} else if (edge && cbottom && cleft) {
+			rsztype = display_wr_bottom_left;
+		} else if (edge && cbottom && cright) {
+			rsztype = display_wr_bottom_right;
+		} else if (edge && ctop && cright) {
+			rsztype = display_wr_top_right;
+		} else if (top) {
+			rsztype = display_wr_top;
+		} else if (left) {
+			rsztype = display_wr_left;
+		} else if (bottom) {
+			rsztype = display_wr_bottom;
+		} else if (right) {
+			rsztype = display_wr_right;
+		} else {
+			isresize = false;
+		}
+
+		if (isresize) {
+			(void) set_cursor(widget->window,
+			    display_cursor_from_wrsz(rsztype));
+		} else {
+			(void) set_cursor(widget->window, dcurs_arrow);
+		}
+
+		pos.x = event.hpos;
+		pos.y = event.vpos;
+
+		if (isresize && btn_left) {
+			(void) display_window_resize_req(
+			    widget->window->dwindow, rsztype, &pos);
 		} else if (close && btn_left) {
-			win_close_request(widget->window->osess);
+			window_close(widget->window);
 		} else if (header && btn_left) {
-			window_grab_flags_t flags = GF_EMPTY;
-			flags |= GF_MOVE_X;
-			flags |= GF_MOVE_Y;
-			win_grab(widget->window->osess, event.pos_id, flags);
+			(void) display_window_move_req(widget->window->dwindow,
+			    &pos);
 		} else {
 			list_foreach(widget->children, link, widget_t, child) {
 				child->handle_position_event(child, event);
@@ -369,26 +394,122 @@ static void handle_signal_event(window_t *win, signal_event_t event)
 static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
     sysarg_t width, sysarg_t height, window_placement_flags_t placement_flags)
 {
-	if (width < 2 * border_thickness + header_min_width) {
-		win_damage(win->osess, 0, 0, 0, 0);
-		return;
-	}
+	gfx_bitmap_params_t params;
+	gfx_bitmap_alloc_t alloc;
+	gfx_bitmap_t *new_bitmap = NULL;
+	gfx_coord2_t offs;
+	gfx_coord2_t dpos;
+	display_info_t dinfo;
+	gfx_rect_t drect;
+	gfx_rect_t nrect;
+	errno_t rc;
 
-	if (height < 2 * border_thickness + header_height) {
-		win_damage(win->osess, 0, 0, 0, 0);
-		return;
-	}
-
-	/* Allocate resources for new surface. */
-	surface_t *new_surface = surface_create(width, height, NULL,
-	    SURFACE_FLAG_SHARED);
-	if (!new_surface)
+	if (width < 2 * border_thickness + header_min_width)
 		return;
 
-	/* Switch new and old surface. */
+	if (height < 2 * border_thickness + header_height)
+		return;
+
 	fibril_mutex_lock(&win->guard);
-	surface_t *old_surface = win->surface;
+
+	/* Deallocate old bitmap. */
+	if (win->bitmap != NULL) {
+		gfx_bitmap_destroy(win->bitmap);
+		win->bitmap = NULL;
+	}
+
+	/* Deallocate old surface. */
+	if (win->surface != NULL) {
+		surface_destroy(win->surface);
+		win->surface = NULL;
+	}
+
+	/* Place window, if appropriate */
+	if (placement_flags != WINDOW_PLACEMENT_ANY) {
+		dpos.x = 0;
+		dpos.y = 0;
+
+		rc = display_get_info(win->display, &dinfo);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&win->guard);
+			return;
+		}
+
+		drect = dinfo.rect;
+
+		if (placement_flags & WINDOW_PLACEMENT_LEFT)
+			dpos.x = drect.p0.x;
+		else if (placement_flags & WINDOW_PLACEMENT_CENTER_X)
+			dpos.x = (drect.p0.x + drect.p1.x - width) / 2;
+		else
+			dpos.x = drect.p1.x - width;
+
+		if (placement_flags & WINDOW_PLACEMENT_TOP)
+			dpos.y = drect.p0.y;
+		else if (placement_flags & WINDOW_PLACEMENT_CENTER_Y)
+			dpos.y = (drect.p0.y + drect.p1.y - height) / 2;
+		else
+			dpos.y = drect.p1.y - height;
+
+		(void) display_window_move(win->dwindow, &dpos);
+	}
+
+	/* Resize the display window. */
+	offs.x = offset_x;
+	offs.y = offset_y;
+	nrect.p0.x = 0;
+	nrect.p0.y = 0;
+	nrect.p1.x = width;
+	nrect.p1.y = height;
+
+	rc = display_window_resize(win->dwindow, &offs, &nrect);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&win->guard);
+		return;
+	}
+
+	gfx_bitmap_params_init(&params);
+#ifndef CONFIG_WIN_DOUBLE_BUF
+	params.flags = bmpf_direct_output;
+#else
+	params.flags = 0;
+#endif
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = width;
+	params.rect.p1.y = height;
+
+	rc = gfx_bitmap_create(win->gc, &params, NULL, &new_bitmap);
+	if (rc != EOK) {
+		if (rc == ENOTSUP) {
+			/* Direct output is not supported */
+			params.flags &= ~bmpf_direct_output;
+			rc = gfx_bitmap_create(win->gc, &params, NULL, &new_bitmap);
+			if (rc != EOK) {
+				fibril_mutex_unlock(&win->guard);
+				return;
+			}
+		}
+	}
+
+	rc = gfx_bitmap_get_alloc(new_bitmap, &alloc);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&win->guard);
+		return;
+	}
+
+	/* Allocate new surface. */
+	surface_t *new_surface = surface_create(width, height, alloc.pixels,
+	    SURFACE_FLAG_SHARED);
+	if (!new_surface) {
+		gfx_bitmap_destroy(new_bitmap);
+		fibril_mutex_unlock(&win->guard);
+		return;
+	}
+
+	/* Switch in new surface and bitmap. */
 	win->surface = new_surface;
+	win->bitmap = new_bitmap;
 	fibril_mutex_unlock(&win->guard);
 
 	/*
@@ -401,37 +522,7 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 	surface_reset_damaged_region(win->surface);
 	fibril_mutex_unlock(&win->guard);
 
-	/* Inform compositor about new surface. */
-	errno_t rc = win_resize(win->osess, offset_x, offset_y, width, height,
-	    placement_flags, surface_direct_access(new_surface));
-
-	if (rc != EOK) {
-		/* Rollback to old surface. Reverse all changes. */
-
-		sysarg_t old_width = 0;
-		sysarg_t old_height = 0;
-		if (old_surface)
-			surface_get_resolution(old_surface, &old_width, &old_height);
-
-		fibril_mutex_lock(&win->guard);
-		new_surface = win->surface;
-		win->surface = old_surface;
-		fibril_mutex_unlock(&win->guard);
-
-		win->root.rearrange(&win->root, 0, 0, old_width, old_height);
-
-		if (win->surface) {
-			fibril_mutex_lock(&win->guard);
-			surface_reset_damaged_region(win->surface);
-			fibril_mutex_unlock(&win->guard);
-		}
-
-		surface_destroy(new_surface);
-	} else {
-		/* Deallocate old surface. */
-		if (old_surface)
-			surface_destroy(old_surface);
-	}
+	(void) gfx_bitmap_render(win->bitmap, NULL, NULL);
 }
 
 static void handle_refresh(window_t *win)
@@ -442,14 +533,20 @@ static void handle_refresh(window_t *win)
 static void handle_damage(window_t *win)
 {
 	sysarg_t x, y, width, height;
+	gfx_rect_t rect;
 	fibril_mutex_lock(&win->guard);
 	surface_get_damaged_region(win->surface, &x, &y, &width, &height);
 	surface_reset_damaged_region(win->surface);
 	fibril_mutex_unlock(&win->guard);
 
 	if (width > 0 && height > 0) {
-		/* Notify compositor. */
-		win_damage(win->osess, x, y, width, height);
+		rect.p0.x = x;
+		rect.p0.y = y;
+		rect.p1.x = x + width;
+		rect.p1.y = y + height;
+
+		if (win->bitmap != NULL)
+			(void) gfx_bitmap_render(win->bitmap, &rect, NULL);
 	}
 }
 
@@ -471,9 +568,16 @@ static void handle_close(window_t *win)
 	win->grab = NULL;
 	win->focus = NULL;
 
-	win_close(win->osess);
-	async_hangup(win->isess);
-	async_hangup(win->osess);
+	gfx_bitmap_destroy(win->bitmap);
+
+	/*
+	 * XXX Here we should properly destroy the IPC GC. We only have
+	 * the generic GC so either it would need to be cast back or
+	 * GC needs a virtual destructor.
+	 */
+
+	display_window_destroy(win->dwindow);
+	display_close(win->display);
 
 	while (!list_empty(&win->events.list)) {
 		window_event_t *event = (window_event_t *) list_first(&win->events.list);
@@ -505,10 +609,6 @@ static errno_t event_loop(void *arg)
 			deliver_keyboard_event(win, event->data.kbd);
 			break;
 		case ET_POSITION_EVENT:
-			if (!win->is_focused) {
-				win->is_focused = true;
-				handle_refresh(win);
-			}
 			deliver_position_event(win, event->data.pos);
 			break;
 		case ET_SIGNAL_EVENT:
@@ -558,47 +658,18 @@ static errno_t event_loop(void *arg)
 	return 0;
 }
 
-/* Input fetcher from compositor. Runs in own dedicated fibril. */
-static errno_t fetch_input(void *arg)
-{
-	errno_t rc;
-	bool terminate = false;
-	window_t *win = (window_t *) arg;
-
-	while (true) {
-		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
-
-		if (event) {
-			rc = win_get_event(win->isess, event);
-			if (rc == EOK) {
-				terminate = (event->type == ET_WINDOW_CLOSE);
-				link_initialize(&event->link);
-				prodcons_produce(&win->events, &event->link);
-			} else {
-				free(event);
-				terminate = true;
-			}
-		} else {
-			terminate = true;
-		}
-
-		if (terminate) {
-			break;
-		}
-	}
-
-	return 0;
-}
-
 window_t *window_open(const char *winreg, const void *data,
     window_flags_t flags, const char *caption)
 {
-	window_t *win = (window_t *) malloc(sizeof(window_t));
+	display_wnd_params_t wparams;
+
+	window_t *win = (window_t *) calloc(1, sizeof(window_t));
 	if (!win)
 		return NULL;
 
 	win->is_main = flags & WINDOW_MAIN;
 	win->is_decorated = flags & WINDOW_DECORATED;
+	win->is_resizable = flags & WINDOW_RESIZEABLE;
 	win->is_focused = true;
 	prodcons_initialize(&win->events);
 	fibril_mutex_initialize(&win->guard);
@@ -613,40 +684,46 @@ window_t *window_open(const char *winreg, const void *data,
 	win->root.handle_position_event = root_handle_position_event;
 	win->grab = NULL;
 	win->focus = NULL;
-	win->surface = NULL;
+	win->cursor = dcurs_arrow;
 
-	service_id_t reg_dsid;
-	errno_t rc = loc_service_get_id(winreg, &reg_dsid, 0);
+	/* Allocate resources for new surface. */
+	win->surface = surface_create(window_initial_size,
+	    window_initial_size, NULL, SURFACE_FLAG_SHARED);
+	if (win->surface == NULL) {
+		free(win);
+		return NULL;
+	}
+
+	errno_t rc = display_open(winreg, &win->display);
 	if (rc != EOK) {
+		surface_destroy(win->surface);
 		free(win);
 		return NULL;
 	}
 
-	async_sess_t *reg_sess =
-	    loc_service_connect(reg_dsid, INTERFACE_COMPOSITOR, 0);
-	if (reg_sess == NULL) {
-		free(win);
-		return NULL;
-	}
+	/* Window dimensions are not know at this time */
+	display_wnd_params_init(&wparams);
+	wparams.rect.p0.x = 0;
+	wparams.rect.p0.y = 0;
+	wparams.rect.p1.x = window_initial_size;
+	wparams.rect.p1.y = window_initial_size;
+	wparams.min_size.x = 2 * border_thickness + header_min_width;
+	wparams.min_size.y = 2 * border_thickness + header_height;
 
-	service_id_t in_dsid;
-	service_id_t out_dsid;
-	rc = win_register(reg_sess, flags, &in_dsid, &out_dsid);
-	async_hangup(reg_sess);
+	rc = display_window_create(win->display, &wparams, &window_cb,
+	    (void *) win, &win->dwindow);
 	if (rc != EOK) {
+		display_close(win->display);
+		surface_destroy(win->surface);
 		free(win);
 		return NULL;
 	}
 
-	win->osess = loc_service_connect(out_dsid, INTERFACE_COMPOSITOR, 0);
-	if (win->osess == NULL) {
-		free(win);
-		return NULL;
-	}
-
-	win->isess = loc_service_connect(in_dsid, INTERFACE_COMPOSITOR, 0);
-	if (win->isess == NULL) {
-		async_hangup(win->osess);
+	rc = display_window_get_gc(win->dwindow, &win->gc);
+	if (rc != EOK) {
+		display_window_destroy(win->dwindow);
+		display_close(win->display);
+		surface_destroy(win->surface);
 		free(win);
 		return NULL;
 	}
@@ -723,12 +800,10 @@ widget_t *window_root(window_t *win)
 void window_exec(window_t *win)
 {
 	fid_t ev_fid = fibril_create(event_loop, win);
-	fid_t fi_fid = fibril_create(fetch_input, win);
-	if (!ev_fid || !fi_fid) {
+	if (!ev_fid) {
 		return;
 	}
 	fibril_add_ready(ev_fid);
-	fibril_add_ready(fi_fid);
 }
 
 surface_t *window_claim(window_t *win)
@@ -744,8 +819,102 @@ void window_yield(window_t *win)
 
 void window_close(window_t *win)
 {
-	/* Request compositor to init closing cascade. */
-	win_close_request(win->osess);
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_WINDOW_CLOSE;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_close_event(void *arg)
+{
+	window_t *win = (window_t *) arg;
+
+	window_close(win);
+}
+
+static void window_focus_event(void *arg)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_WINDOW_FOCUS;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_kbd_event(void *arg, kbd_event_t *kevent)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_KEYBOARD_EVENT;
+	event->data.kbd = *kevent;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_pos_event(void *arg, pos_event_t *pevent)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_POSITION_EVENT;
+	event->data.pos = *pevent;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_resize_event(void *arg, gfx_rect_t *nrect)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	if (!win->is_resizable)
+		return;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_WINDOW_RESIZE;
+	event->data.resize.offset_x = nrect->p0.x;
+	event->data.resize.offset_y = nrect->p0.y;
+	event->data.resize.width = nrect->p1.x - nrect->p0.x;
+	event->data.resize.height = nrect->p1.y - nrect->p0.y;
+	event->data.resize.placement_flags = WINDOW_PLACEMENT_ANY;
+	prodcons_produce(&win->events, &event->link);
+}
+
+static void window_unfocus_event(void *arg)
+{
+	window_t *win = (window_t *) arg;
+	window_event_t *event;
+
+	event = (window_event_t *) calloc(1, sizeof(window_event_t));
+	if (event == NULL)
+		return;
+
+	link_initialize(&event->link);
+	event->type = ET_WINDOW_UNFOCUS;
+	prodcons_produce(&win->events, &event->link);
 }
 
 /** @}

@@ -40,9 +40,6 @@
 
 #define NAME  "kfb"
 
-extern ddf_dev_ops_t graph_vsl_device_ops;
-extern ddf_dev_ops_t graph_rnd_device_ops;
-
 #endif
 
 /** @}
