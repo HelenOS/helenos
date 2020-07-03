@@ -36,6 +36,7 @@
 #define _LIBC_IO_KBD_EVENT_H_
 
 #include <adt/list.h>
+#include <inttypes.h>
 #include <io/keycode.h>
 
 typedef enum {

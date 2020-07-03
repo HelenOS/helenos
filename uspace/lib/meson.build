@@ -32,13 +32,17 @@ always_static = not CONFIG_BUILD_SHARED_LIBS
 installed_libs = [
 	'c',
 	'math',
+	'display',
 	'gui',
 	'draw',
 	'softrend',
 	'posix',
 	'clui',
 	'pcm',
-	'hound'
+	'hound',
+	'gfx',
+	'ipcgfx',
+	'display',
 ]
 
 # IMPORTANT: Dependencies must be listed before libs that depend on them.
@@ -54,7 +58,7 @@ libs = [
 	'fdisk',
 	'fmtutil',
 	'fs',
-	'graph',
+	'gfx',
 	'http',
 	'label',
 	'math',
@@ -71,11 +75,13 @@ libs = [
 	'uri',
 
 	'bithenge',
+	'congfx',
 	'draw',
 	'drv',
 	'ext4',
-	'gui',
 	'hound',
+	'ipcgfx',
+	'memgfx',
 	'nic',
 	'usb',
 	'usbdev',
@@ -85,6 +91,12 @@ libs = [
 	'virtio',
 
 	'ieee80211',
+	'ddev',
+	'display',
+
+	'gui',
+
+	'guigfx',
 ]
 
 # Generated list of include directory paths

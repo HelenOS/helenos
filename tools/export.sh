@@ -40,7 +40,10 @@ EXPORT_DIR="$1"
 EXPORT_LIBS=" \
 	uspace/lib/libmath.a \
 	uspace/lib/libclui.a \
+	uspace/lib/libdisplay.a \
+	uspace/lib/libgfx.a \
 	uspace/lib/libgui.a \
+	uspace/lib/libipcgfx.a \
 	uspace/lib/libdraw.a \
 	uspace/lib/libsoftrend.a \
 	uspace/lib/libhound.a \

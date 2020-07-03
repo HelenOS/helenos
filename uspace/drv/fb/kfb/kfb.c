@@ -35,7 +35,6 @@
 
 #include <errno.h>
 #include <stdio.h>
-#include <graph.h>
 #include "port.h"
 #include "kfb.h"
 

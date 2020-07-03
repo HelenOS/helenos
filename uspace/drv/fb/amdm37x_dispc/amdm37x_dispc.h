@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
@@ -36,14 +37,19 @@
 #ifndef AMDM37X_DISPC_H_
 #define AMDM37X_DISPC_H_
 
-#include <graph.h>
 #include <abi/fb/visuals.h>
+#include <ddev_srv.h>
+#include <ddf/driver.h>
+#include <gfx/context.h>
+#include <gfx/coord.h>
+#include <io/pixel.h>
 #include <pixconv.h>
 #include <ddi.h>
 
 #include "amdm37x_dispc_regs.h"
 
 typedef struct {
+	ddf_fun_t *fun;
 	amdm37x_dispc_regs_t *regs;
 
 	struct {
@@ -52,17 +58,26 @@ typedef struct {
 		unsigned height;
 		unsigned pitch;
 		unsigned bpp;
-		unsigned idx;
 	} active_fb;
 
+	pixel_t color;
+	gfx_rect_t rect;
 	size_t size;
 	void *fb_data;
-
-	vslmode_list_element_t modes[1];
 } amdm37x_dispc_t;
 
-errno_t amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis);
-errno_t amdm37x_dispc_fini(amdm37x_dispc_t *instance);
+typedef struct {
+	amdm37x_dispc_t *dispc;
+	gfx_bitmap_alloc_t alloc;
+	gfx_rect_t rect;
+	bool myalloc;
+} amdm37x_bitmap_t;
+
+extern ddev_ops_t amdm37x_ddev_ops;
+extern gfx_context_ops_t amdm37x_gc_ops;
+
+extern errno_t amdm37x_dispc_init(amdm37x_dispc_t *, ddf_fun_t *);
+extern errno_t amdm37x_dispc_fini(amdm37x_dispc_t *);
 
 #endif
 /** @}

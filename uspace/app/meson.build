@@ -44,6 +44,7 @@ apps = [
 	'fdisk',
 	'fontviewer',
 	'getterm',
+	'gfxdemo',
 	'gunzip',
 	'hbench',
 	'inet',

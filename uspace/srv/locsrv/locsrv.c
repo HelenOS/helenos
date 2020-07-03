@@ -1377,10 +1377,10 @@ static bool loc_init(void)
 	cat = category_new("irc");
 	categ_dir_add_cat(&cdir, cat);
 
-	cat = category_new("visualizer");
+	cat = category_new("renderer");
 	categ_dir_add_cat(&cdir, cat);
 
-	cat = category_new("renderer");
+	cat = category_new("display-device");
 	categ_dir_add_cat(&cdir, cat);
 
 	cat = category_new("audio-pcm");

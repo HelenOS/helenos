@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2013 Jan Vesely
  * Copyright (c) 2011 Petr Koupy
  * All rights reserved.
@@ -34,46 +35,67 @@
  * @file
  */
 
+#include <ddev_srv.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <errno.h>
+#include <ipcgfx/server.h>
 #include <str_error.h>
 #include <stdio.h>
-#include <graph.h>
 
 #include "amdm37x_dispc.h"
 
 #define NAME  "amdm37x_dispc"
 
-static void graph_vsl_connection(ipc_call_t *icall, void *arg)
+static void amdm37x_client_conn(ipc_call_t *icall, void *arg)
 {
-	visualizer_t *vsl;
+	amdm37x_dispc_t *dispc;
+	ddev_srv_t srv;
+	sysarg_t gc_id;
+	gfx_context_t *gc;
+	errno_t rc;
 
-	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
-	graph_visualizer_connection(vsl, icall, NULL);
+	dispc = (amdm37x_dispc_t *) ddf_dev_data_get(
+	    ddf_fun_get_dev((ddf_fun_t *) arg));
+
+	gc_id = ipc_get_arg3(icall);
+
+	if (gc_id == 0) {
+		/* Set up protocol structure */
+		ddev_srv_initialize(&srv);
+		srv.ops = &amdm37x_ddev_ops;
+		srv.arg = dispc;
+
+		/* Handle connection */
+		ddev_conn(icall, &srv);
+	} else {
+		assert(gc_id == 42);
+
+		rc = gfx_context_new(&amdm37x_gc_ops, dispc, &gc);
+		if (rc != EOK)
+			goto error;
+
+		/* GC connection */
+		gc_conn(icall, gc);
+	}
+
+	return;
+error:
+	async_answer_0(icall, rc);
 }
 
 static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)
 {
 	assert(dev);
-	/* Visualizer part */
-	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "viz");
+
+	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "a");
 	if (!fun) {
-		ddf_log_error("Failed to create visualizer function.");
+		ddf_log_error("Failed to create display device function.");
 		return ENOMEM;
 	}
 
-	visualizer_t *vis = ddf_fun_data_alloc(fun, sizeof(visualizer_t));
-	if (!vis) {
-		ddf_log_error("Failed to allocate visualizer structure.");
-		ddf_fun_destroy(fun);
-		return ENOMEM;
-	}
+	ddf_fun_set_conn_handler(fun, &amdm37x_client_conn);
 
-	graph_init_visualizer(vis);
-	vis->reg_svc_handle = ddf_fun_get_handle(fun);
-
-	ddf_fun_set_conn_handler(fun, graph_vsl_connection);
 	/* Hw part */
 	amdm37x_dispc_t *dispc =
 	    ddf_dev_data_alloc(dev, sizeof(amdm37x_dispc_t));
@@ -83,7 +105,7 @@ static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 
-	errno_t rc = amdm37x_dispc_init(dispc, vis);
+	errno_t rc = amdm37x_dispc_init(dispc, fun);
 	if (rc != EOK) {
 		ddf_log_error("Failed to init dispc: %s.", str_error(rc));
 		ddf_fun_destroy(fun);
@@ -99,9 +121,9 @@ static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)
 		return rc;
 	}
 
-	rc = ddf_fun_add_to_category(fun, "visualizer");
+	rc = ddf_fun_add_to_category(fun, "display-device");
 	if (rc != EOK) {
-		ddf_log_error("Failed to add function: %s to visualizer "
+		ddf_log_error("Failed to add function: %s to display device "
 		    "category.", str_error(rc));
 		amdm37x_dispc_fini(dispc);
 		ddf_fun_unbind(fun);

@@ -36,12 +36,14 @@
 #ifndef GUI_WINDOW_H_
 #define GUI_WINDOW_H_
 
-#include <async.h>
 #include <adt/prodcons.h>
 #include <fibril_synch.h>
 #include <ipc/window.h>
 #include <io/window.h>
 #include <draw/surface.h>
+#include <display.h>
+#include <gfx/bitmap.h>
+#include <gfx/context.h>
 
 #include "widget.h"
 
@@ -49,19 +51,23 @@ struct window {
 	bool is_main; /**< True for the main window of the application. */
 	bool is_decorated; /**< True if the window decorations should be rendered. */
 	bool is_focused; /**< True for the top level window of the desktop. */
+	bool is_resizable; /**< True if window is resizable */
 	char *caption; /**< Text title of the window header. */
-	async_sess_t *isess; /**< Input events from compositor. */
-	async_sess_t *osess; /**< Mainly for damage reporting to compositor. */
+	display_t *display; /**< Display service */
+	display_window_t *dwindow; /**< Display window */
+	gfx_context_t *gc; /**< GC of the window */
 	prodcons_t events; /**< Queue for window event loop. */
 	widget_t root; /**< Decoration widget serving as a root of widget hiearchy. */
 	widget_t *grab; /**< Widget owning the mouse or NULL. */
 	widget_t *focus; /**< Widget owning the keyboard or NULL. */
 	fibril_mutex_t guard; /**< Mutex guarding window surface. */
-	surface_t *surface; /**< Window surface shared with compositor. */
+	surface_t *surface; /**< Window surface shared with display server. */
+	gfx_bitmap_t *bitmap; /**< Window bitmap */
+	display_stock_cursor_t cursor; /**< Selected cursor */
 };
 
 /**
- * Allocate all resources for new window and register it in the compositor.
+ * Allocate all resources for new window and register it in the display server.
  * If the window is declared as main, its closure causes termination of the
  * whole application. Note that opened window does not have any surface yet.
  */
@@ -70,9 +76,9 @@ extern window_t *window_open(const char *, const void *, window_flags_t,
 
 /**
  * Post resize event into event loop. Window negotiates new surface with
- * compositor and asks all widgets in the tree to calculate their new properties
- * and to paint themselves on the new surface (top-bottom order). Should be
- * called also after opening new window to obtain surface.
+ * display server and asks all widgets in the tree to calculate their new
+ * properties and to paint themselves on the new surface (top-bottom order).
+ * Should be called also after opening new window to obtain surface.
  */
 extern void window_resize(window_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     window_placement_flags_t);
@@ -89,8 +95,8 @@ extern errno_t window_set_caption(window_t *, const char *);
 extern void window_refresh(window_t *);
 
 /**
- * Post damage event into event loop. Handler informs compositor to update the
- * window surface on the screen. Should be called by widget after painting
+ * Post damage event into event loop. Handler informs display server to update
+ * the window surface on the screen. Should be called by widget after painting
  * itself or copying its buffer onto window surface.
  */
 extern void window_damage(window_t *);
@@ -119,7 +125,7 @@ extern surface_t *window_claim(window_t *);
 extern void window_yield(window_t *);
 
 /**
- * Initiate the closing cascade for the window. First, compositor deallocates
+ * Initiate the closing cascade for the window. First, display sever deallocates
  * output resources, prepares special closing input event for the window and
  * deallocates input resources after the event is dispatched. When window
  * fetches closing event, it is posted into event loop and input fibril
