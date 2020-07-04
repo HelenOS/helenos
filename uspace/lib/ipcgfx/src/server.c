@@ -330,6 +330,8 @@ static void gc_bitmap_render_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 {
 	ipc_gc_srv_t srvgc;
+	ipc_gc_srv_bitmap_t *bitmap;
+	link_t *link;
 
 	/* Accept the connection */
 	async_accept_0(icall);
@@ -374,7 +376,26 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 		}
 	}
 
-	// TODO: Destroy all remaining bitmaps (+ emit warning?)
+	/*
+	 * Destroy all remaining bitmaps. A client should destroy all
+	 * the bitmaps before closing connection. But it could happen
+	 * that the client is misbehaving or was abruptly disconnected
+	 * (e.g. crashed).
+	 */
+	link = list_first(&srvgc.bitmaps);
+	while (link != NULL) {
+		bitmap = list_get_instance(link, ipc_gc_srv_bitmap_t,
+		    lbitmaps);
+
+		(void) gfx_bitmap_destroy(bitmap->bmp);
+		if (bitmap->myalloc)
+			as_area_destroy(bitmap->pixels);
+		list_remove(&bitmap->lbitmaps);
+		free(bitmap);
+
+		link = list_first(&srvgc.bitmaps);
+	}
+
 	return EOK;
 }
 
