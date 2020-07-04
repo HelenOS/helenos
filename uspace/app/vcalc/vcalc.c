@@ -467,14 +467,35 @@ static void on_eval_click(widget_t *widget, void *data)
 	display_update();
 }
 
+static void print_syntax(void)
+{
+	printf("Syntax: %s [-d <display>]\n", NAME);
+}
+
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		printf("%s: Compositor server not specified.\n", NAME);
-		return 1;
+	const char *display_svc = DISPLAY_DEFAULT;
+	int i;
+
+	i = 1;
+	while (i < argc) {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
 	}
 
-	window_t *main_window = window_open(argv[1], NULL,
+	window_t *main_window = window_open(display_svc, NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, NAME);
 	if (!main_window) {
 		printf("%s: Cannot open main window.\n", NAME);

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -35,6 +36,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 #include <io/pixel.h>
 #include <task.h>
 
@@ -106,62 +108,83 @@ static my_label_t *create_my_label(widget_t *parent,
 	}
 }
 
+static void print_syntax(void)
+{
+	printf("Syntax: %s [-d <display>]\n", NAME);
+}
+
 int main(int argc, char *argv[])
 {
-	if (argc >= 2) {
-		window_t *main_window = window_open(argv[1], NULL,
-		    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, "vdemo");
-		if (!main_window) {
-			printf("Cannot open main window.\n");
+	const char *disp_svc = DISPLAY_DEFAULT;
+	int i;
+
+	i = 1;
+	while (i < argc) {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			disp_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
 			return 1;
 		}
+	}
 
-		pixel_t grd_bg = PIXEL(255, 240, 240, 240);
-
-		pixel_t btn_bg = PIXEL(255, 240, 240, 240);
-		pixel_t btn_fg = PIXEL(255, 186, 186, 186);
-		pixel_t btn_text = PIXEL(255, 0, 0, 0);
-
-		pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
-		pixel_t lbl_text = PIXEL(255, 0, 0, 0);
-
-		my_label_t *lbl_action = create_my_label(NULL, "Hello there!", 16,
-		    lbl_bg, lbl_text);
-		button_t *btn_confirm = create_button(NULL, NULL, "Confirm", 16,
-		    btn_bg, btn_fg, btn_text);
-		button_t *btn_cancel = create_button(NULL, NULL, "Cancel", 16,
-		    btn_bg, btn_fg, btn_text);
-		grid_t *grid = create_grid(window_root(main_window), NULL, 2, 2,
-		    grd_bg);
-		if (!lbl_action || !btn_confirm || !btn_cancel || !grid) {
-			window_close(main_window);
-			printf("Cannot create widgets.\n");
-			return 1;
-		}
-
-		sig_connect(
-		    &btn_confirm->clicked,
-		    &lbl_action->label.widget,
-		    lbl_action->confirm);
-		sig_connect(
-		    &btn_cancel->clicked,
-		    &lbl_action->label.widget,
-		    lbl_action->cancel);
-
-		grid->add(grid, &lbl_action->label.widget, 0, 0, 2, 1);
-		grid->add(grid, &btn_confirm->widget, 0, 1, 1, 1);
-		grid->add(grid, &btn_cancel->widget, 1, 1, 1, 1);
-		window_resize(main_window, 0, 0, 200, 76,
-		    WINDOW_PLACEMENT_CENTER);
-
-		window_exec(main_window);
-		task_retval(0);
-		async_manager();
-		return 1;
-	} else {
-		printf("Compositor server not specified.\n");
+	window_t *main_window = window_open(disp_svc, NULL,
+	    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, "vdemo");
+	if (!main_window) {
+		printf("Cannot open main window.\n");
 		return 1;
 	}
+
+	pixel_t grd_bg = PIXEL(255, 240, 240, 240);
+
+	pixel_t btn_bg = PIXEL(255, 240, 240, 240);
+	pixel_t btn_fg = PIXEL(255, 186, 186, 186);
+	pixel_t btn_text = PIXEL(255, 0, 0, 0);
+
+	pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
+	pixel_t lbl_text = PIXEL(255, 0, 0, 0);
+
+	my_label_t *lbl_action = create_my_label(NULL, "Hello there!", 16,
+	    lbl_bg, lbl_text);
+	button_t *btn_confirm = create_button(NULL, NULL, "Confirm", 16,
+	    btn_bg, btn_fg, btn_text);
+	button_t *btn_cancel = create_button(NULL, NULL, "Cancel", 16,
+	    btn_bg, btn_fg, btn_text);
+	grid_t *grid = create_grid(window_root(main_window), NULL, 2, 2,
+	    grd_bg);
+	if (!lbl_action || !btn_confirm || !btn_cancel || !grid) {
+		window_close(main_window);
+		printf("Cannot create widgets.\n");
+		return 1;
+	}
+
+	sig_connect(
+	    &btn_confirm->clicked,
+	    &lbl_action->label.widget,
+	    lbl_action->confirm);
+	sig_connect(
+	    &btn_cancel->clicked,
+	    &lbl_action->label.widget,
+	    lbl_action->cancel);
+
+	grid->add(grid, &lbl_action->label.widget, 0, 0, 2, 1);
+	grid->add(grid, &btn_confirm->widget, 0, 1, 1, 1);
+	grid->add(grid, &btn_cancel->widget, 1, 1, 1, 1);
+	window_resize(main_window, 0, 0, 200, 76,
+	    WINDOW_PLACEMENT_CENTER);
+
+	window_exec(main_window);
+	task_retval(0);
+	async_manager();
+	return 0;
 }
 
 /** @}

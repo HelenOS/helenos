@@ -39,6 +39,7 @@
 #include <task.h>
 #include <loc.h>
 #include <stats.h>
+#include <str.h>
 #include <fibril_synch.h>
 #include <io/pixel.h>
 #include <device/led_dev.h>
@@ -246,11 +247,32 @@ static void loc_callback(void *arg)
 	free(svcs);
 }
 
+static void print_syntax(void)
+{
+	printf("Syntax: %s [-d <display>]\n", NAME);
+}
+
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		printf("Compositor server not specified.\n");
-		return 1;
+	const char *display_svc = DISPLAY_DEFAULT;
+	int i;
+
+	i = 1;
+	while (i < argc) {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
 	}
 
 	list_initialize(&led_devs);
@@ -276,7 +298,7 @@ int main(int argc, char *argv[])
 		return 1;
 
 	winreg = argv[1];
-	window_t *main_window = window_open(argv[1], NULL,
+	window_t *main_window = window_open(display_svc, NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "barber");
 	if (!main_window) {
 		printf("Cannot open main window.\n");

@@ -175,34 +175,55 @@ static bool img_setup(surface_t *local_surface)
 	return true;
 }
 
+static void print_syntax(void)
+{
+	printf("Syntax: %s [-d <display>] <image-file>...\n", NAME);
+}
+
 int main(int argc, char *argv[])
 {
+	const char *display_svc = DISPLAY_DEFAULT;
 	window_flags_t flags;
 	surface_t *lsface;
 	bool fullscreen;
 	sysarg_t dwidth;
 	sysarg_t dheight;
+	int i;
 
-	if (argc < 2) {
-		printf("Compositor server not specified.\n");
-		return 1;
+	i = 1;
+	while (i < argc && argv[i][0] == '-') {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
 	}
 
-	if (argc < 3) {
+	if (i >= argc) {
 		printf("No image files specified.\n");
+		print_syntax();
 		return 1;
 	}
 
-	imgs_count = argc - 2;
+	imgs_count = argc - i;
 	imgs = calloc(imgs_count, sizeof(char *));
 	if (imgs == NULL) {
 		printf("Out of memory.\n");
 		return 2;
 	}
 
-	for (int i = 0; i < argc - 2; i++) {
-		imgs[i] = str_dup(argv[i + 2]);
-		if (imgs[i] == NULL) {
+	for (int j = 0; j < argc - i; j++) {
+		imgs[j] = str_dup(argv[i + j]);
+		if (imgs[j] == NULL) {
 			printf("Out of memory.\n");
 			return 3;
 		}
@@ -220,7 +241,7 @@ int main(int argc, char *argv[])
 	if (!fullscreen)
 		flags |= WINDOW_DECORATED;
 
-	main_window = window_open(argv[1], NULL, flags, "viewer");
+	main_window = window_open(display_svc, NULL, flags, "viewer");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 5;

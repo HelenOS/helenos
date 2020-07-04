@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <str.h>
 #include <str_error.h>
 #include <window.h>
 #include <canvas.h>
@@ -244,20 +245,41 @@ out_err:
 	return rc;
 }
 
+static void print_syntax(void)
+{
+	printf("Syntax: %s [-d <display>]\n", NAME);
+}
+
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		printf("Compositor server not specified.\n");
-		return 1;
+	const char *display_svc = DISPLAY_DEFAULT;
+	int i;
+
+	i = 1;
+	while (i < argc) {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
 	}
 
-	if (argc < 3) {
+	if (i < argc) {
 		font_path = NULL;
 	} else {
-		font_path = argv[2];
+		font_path = argv[i];
 	}
 
-	main_window = window_open(argv[1], NULL, WINDOW_MAIN, "fontviewer");
+	main_window = window_open(display_svc, NULL, WINDOW_MAIN, "fontviewer");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 2;

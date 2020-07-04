@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -486,7 +486,7 @@ static errno_t demo_console(void)
 }
 
 /** Run demo on canvas. */
-static errno_t demo_canvas(void)
+static errno_t demo_canvas(const char *display_svc)
 {
 	canvas_gc_t *cgc = NULL;
 	gfx_context_t *gc;
@@ -499,7 +499,7 @@ static errno_t demo_canvas(void)
 
 	printf("Init canvas..\n");
 
-	window = window_open(DISPLAY_DEFAULT, NULL,
+	window = window_open(display_svc, NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "GFX Demo");
 	if (window == NULL) {
 		printf("Error creating window.\n");
@@ -552,7 +552,7 @@ static errno_t demo_canvas(void)
 }
 
 /** Run demo on display server. */
-static errno_t demo_display(void)
+static errno_t demo_display(const char *display_svc)
 {
 	display_t *display = NULL;
 	gfx_context_t *gc;
@@ -562,7 +562,7 @@ static errno_t demo_display(void)
 
 	printf("Init display..\n");
 
-	rc = display_open(DISPLAY_DEFAULT, &display);
+	rc = display_open(display_svc, &display);
 	if (rc != EOK) {
 		printf("Error opening display.\n");
 		return rc;
@@ -617,23 +617,43 @@ static void wnd_kbd_event(void *arg, kbd_event_t *event)
 
 static void print_syntax(void)
 {
-	printf("syntax: gfxdemo {canvas|console|display}\n");
+	printf("Syntax: gfxdemo [-d <display>] {canvas|console|display}\n");
 }
 
 int main(int argc, char *argv[])
 {
 	errno_t rc;
+	const char *display_svc = DISPLAY_DEFAULT;
+	int i;
 
-	if (argc < 2 || str_cmp(argv[1], "display") == 0) {
-		rc = demo_display();
+	i = 1;
+	while (i < argc && argv[i][0] == '-') {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
+	}
+
+	if (i >= argc || str_cmp(argv[i], "display") == 0) {
+		rc = demo_display(display_svc);
 		if (rc != EOK)
 			return 1;
-	} else if (str_cmp(argv[1], "console") == 0) {
+	} else if (str_cmp(argv[i], "console") == 0) {
 		rc = demo_console();
 		if (rc != EOK)
 			return 1;
-	} else if (str_cmp(argv[1], "canvas") == 0) {
-		rc = demo_canvas();
+	} else if (str_cmp(argv[i], "canvas") == 0) {
+		rc = demo_canvas(display_svc);
 		if (rc != EOK)
 			return 1;
 	} else {

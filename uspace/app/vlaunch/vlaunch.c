@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 #include <task.h>
 #include <str_error.h>
 
@@ -57,18 +58,26 @@
 #define LOGO_WIDTH   196
 #define LOGO_HEIGHT  66
 
-static char *winreg = NULL;
+static char *display_svc = DISPLAY_DEFAULT;
 
 static int app_launch(const char *app)
 {
-	printf("%s: Spawning %s %s \n", NAME, app, winreg);
-
+	errno_t rc;
 	task_id_t id;
 	task_wait_t wait;
-	errno_t rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
+
+	if (display_svc != DISPLAY_DEFAULT) {
+		printf("%s: Spawning %s -d %s\n", NAME, app, display_svc);
+		rc = task_spawnl(&id, &wait, app, app, "-d", display_svc, NULL);
+	} else {
+		printf("%s: Spawning %s\n", NAME, app);
+		rc = task_spawnl(&id, &wait, app, app, NULL);
+	}
+
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
-		    winreg, str_error(rc));
+		    display_svc != DISPLAY_DEFAULT ? display_svc :
+		    "<default>", str_error(rc));
 		return -1;
 	}
 
@@ -90,11 +99,31 @@ static void on_btn_click(widget_t *widget, void *data)
 	app_launch(app);
 }
 
+static void print_syntax(void)
+{
+	printf("Syntax: %s [-d <display>]\n", NAME);
+}
+
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		printf("Compositor server not specified.\n");
-		return 1;
+	int i;
+
+	i = 1;
+	while (i < argc) {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
 	}
 
 	surface_t *logo = decode_tga((void *) helenos_tga, helenos_tga_size, 0);
@@ -103,8 +132,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	winreg = argv[1];
-	window_t *main_window = window_open(argv[1], NULL,
+	window_t *main_window = window_open(display_svc, NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, "vlaunch");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
