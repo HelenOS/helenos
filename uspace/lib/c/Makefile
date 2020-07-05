@@ -144,7 +144,6 @@ GENERIC_SOURCES = \
 	generic/async/ports.c \
 	generic/loader.c \
 	generic/getopt.c \
-	generic/adt/array.c \
 	generic/adt/checksum.c \
 	generic/adt/circ_buf.c \
 	generic/adt/list.c \
@@ -191,7 +190,6 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 TEST_SOURCES = \
-	test/adt/array.c \
 	test/adt/circ_buf.c \
 	test/adt/odict.c \
 	test/cap.c \

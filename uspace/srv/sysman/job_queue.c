@@ -102,31 +102,30 @@ static inline void job_del_refs(job_t **job_ptr, size_t refs)
  * @return EOK on success
  * @return error code on fail
  */
-static errno_t job_pre_merge(job_t *trunk, job_t *other)
+static void job_pre_merge(job_t *trunk, job_t *other)
 {
 	assert(trunk->unit == other->unit);
 	assert(trunk->target_state == other->target_state);
-	assert(trunk->blocked_jobs.size == trunk->blocked_jobs_count);
+	assert(list_count(&trunk->blocked_jobs) == trunk->blocked_jobs_count);
 	assert(other->merged_into == NULL);
 
-	errno_t rc = array_concat(&trunk->blocked_jobs, &other->blocked_jobs);
-	if (rc != EOK) {
-		return rc;
+	list_concat(&trunk->blocked_jobs, &other->blocked_jobs);
+
+	while (!list_empty(&other->blocked_jobs)) {
+		job_link_t *job_link = list_pop(&other->blocked_jobs, job_link_t, link);
+		free(job_link);
 	}
-	array_clear(&other->blocked_jobs);
 
 	// TODO allocate observed object
 
 	other->merged_into = trunk;
-
-	return EOK;
 }
 
 static void job_finish_merge(job_t *trunk, job_t *other)
 {
-	assert(trunk->blocked_jobs.size >= trunk->blocked_jobs_count);
+	assert(list_count(&trunk->blocked_jobs) >= trunk->blocked_jobs_count);
 	//TODO aggregate merged blocked_jobs
-	trunk->blocked_jobs_count = other->blocked_jobs.size;
+	trunk->blocked_jobs_count = list_count(&other->blocked_jobs);
 
 	/*
 	 * Note, the sysman_move_observers cannot fail here sice all necessary
@@ -143,9 +142,15 @@ static void job_finish_merge(job_t *trunk, job_t *other)
 
 static void job_undo_merge(job_t *trunk)
 {
-	assert(trunk->blocked_jobs.size >= trunk->blocked_jobs_count);
-	array_clear_range(&trunk->blocked_jobs,
-	    trunk->blocked_jobs_count, trunk->blocked_jobs.size);
+	unsigned long count = list_count(&trunk->blocked_jobs);
+	assert(count >= trunk->blocked_jobs_count);
+
+	while (count-- > 0) {
+		link_t *last_link = list_last(&trunk->blocked_jobs);
+		job_link_t *job_link = list_get_instance(last_link, job_link_t, link);
+		list_remove(last_link);
+		free(job_link);
+	}
 }
 
 /*
@@ -171,8 +176,8 @@ errno_t job_queue_add_closure(job_closure_t *closure)
 	errno_t rc = EOK;
 
 	/* Check consistency with existing jobs. */
-	array_foreach(*closure, job_t *, job_it) {
-		job_t *job = *job_it;
+	list_foreach(*closure, link, job_link_t, job_it) {
+		job_t *job = job_it->job;
 		job_t *other_job = job->unit->job;
 
 		if (other_job == NULL) {
@@ -204,23 +209,21 @@ errno_t job_queue_add_closure(job_closure_t *closure)
 		} else {
 			// TODO think about other options to merging
 			//      (replacing, cancelling)
-			rc = job_pre_merge(other_job, job);
-			if (rc != EOK) {
-				break;
-			}
+			job_pre_merge(other_job, job);
 		}
 	}
 
 	/* Aggregate merged jobs, or rollback any changes in existing jobs */
 	bool finish_merge = (rc == EOK) && !has_error;
-	array_foreach(*closure, job_t *, job_it) {
-		if ((*job_it)->merged_into == NULL) {
+	list_foreach(*closure, link, job_link_t, job_it) {
+		job_t *job = job_it->job;
+		if (job->merged_into == NULL) {
 			continue;
 		}
 		if (finish_merge) {
-			job_finish_merge((*job_it)->merged_into, *job_it);
+			job_finish_merge(job->merged_into, job);
 		} else {
-			job_undo_merge((*job_it)->merged_into);
+			job_undo_merge(job->merged_into);
 		}
 	}
 	if (has_error) {
@@ -235,8 +238,8 @@ errno_t job_queue_add_closure(job_closure_t *closure)
 	 * TODO Ensure that jobs that block merged jobs contain the corrent job
 	 *      in their blocked_jobs array.
 	 */
-	array_foreach(*closure, job_t *, job_it) {
-		job_t *job = (*job_it);
+	list_foreach(*closure, link, job_link_t, job_it) {
+		job_t *job = job_it->job;
 		if (job->merged_into != NULL) {
 			job_del_ref(&job);
 			continue;
@@ -254,7 +257,10 @@ errno_t job_queue_add_closure(job_closure_t *closure)
 	}
 
 	/* We've stolen references from the closure, so erase it */
-	array_clear(closure);
+	while (!list_empty(closure)) {
+		job_link_t *job_link = list_pop(closure, job_link_t, link);
+		free(job_link);
+	}
 
 	return EOK;
 }

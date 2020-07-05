@@ -31,7 +31,6 @@
 
 PCUT_INIT;
 
-PCUT_IMPORT(array);
 PCUT_IMPORT(cap);
 PCUT_IMPORT(casting);
 PCUT_IMPORT(circ_buf);

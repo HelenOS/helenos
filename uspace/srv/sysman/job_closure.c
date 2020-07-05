@@ -62,14 +62,18 @@ struct bfs_ops {
 
 static errno_t job_add_blocked_job(job_t *blocking_job, job_t *blocked_job)
 {
-	assert(blocking_job->blocked_jobs.size ==
+	assert(list_count(&blocking_job->blocked_jobs) ==
 	    blocking_job->blocked_jobs_count);
 
-	errno_t rc = array_append(&blocking_job->blocked_jobs, job_t *,
-	    blocked_job);
-	if (rc != EOK) {
+	job_link_t *job_link = calloc(1, sizeof(job_link_t));
+	if (job_link == NULL) {
 		return ENOMEM;
 	}
+
+	job_link->job = blocked_job;
+
+	list_append(&job_link->link, &blocking_job->blocked_jobs);
+
 	job_add_ref(blocked_job);
 
 	blocking_job->blocked_jobs_count += 1;
@@ -96,7 +100,10 @@ static errno_t visit_propagate_job(unit_t *u, unit_edge_t *e, bfs_ops_t *ops,
 		if (u->bfs_data != NULL) {
 			goto finish;
 		}
-		job_t *first_job = array_last(closure, job_t *);
+
+		link_t *last_link = list_last(closure);
+		job_link_t *job_link = list_get_instance(last_link, job_link_t, link);
+		job_t *first_job = job_link->job;
 
 		job_add_ref(first_job);
 		u->bfs_data = first_job;
@@ -117,11 +124,15 @@ static errno_t visit_propagate_job(unit_t *u, unit_edge_t *e, bfs_ops_t *ops,
 			goto finish;
 		}
 
-		/* Pass job reference to closure and add one for unit */
-		rc = array_append(closure, job_t *, created_job);
-		if (rc != EOK) {
+		job_link_t *job_link = calloc(1, sizeof(job_link_t));
+		if (job_link == NULL) {
 			goto finish;
 		}
+
+		job_link->job = created_job;
+
+		/* Pass job reference to closure and add one for unit */
+		list_append(&job_link->link, closure);
 
 		job_add_ref(created_job);
 		u->bfs_data = created_job;
@@ -163,11 +174,15 @@ static errno_t visit_isolate(unit_t *u, unit_edge_t *e, bfs_ops_t *ops, void *ar
 			goto finish;
 		}
 
-		/* Pass job reference to closure and add one for unit */
-		rc = array_append(closure, job_t *, created_job);
-		if (rc != EOK) {
+		job_link_t *job_link = calloc(1, sizeof(job_link_t));
+		if (job_link == NULL) {
 			goto finish;
 		}
+
+		job_link->job = created_job;
+
+		/* Pass job reference to closure and add one for unit */
+		list_append(&job_link->link, closure);
 	}
 	rc = visit_propagate_job(u, e, ops, closure);
 
@@ -307,10 +322,15 @@ errno_t job_create_closure(job_t *main_job, job_closure_t *job_closure, int flag
 		return ENOTSUP;
 	}
 
-	errno_t rc = array_append(job_closure, job_t *, main_job);
-	if (rc != EOK) {
-		return rc;
+	job_link_t *job_link = calloc(1, sizeof(job_link_t));
+	if (job_link == NULL) {
+		return ENOMEM;
 	}
+
+	job_link->job = main_job;
+
+	list_append(&job_link->link, job_closure);
+
 	job_add_ref(main_job); /* Add one for the closure */
 
 	/* Propagate main_job to other (dependent) units */
@@ -329,7 +349,7 @@ errno_t job_create_closure(job_t *main_job, job_closure_t *job_closure, int flag
 		assert(false);
 	}
 
-	rc = bfs_traverse_component(main_job->unit, &propagate_ops, job_closure);
+	errno_t rc = bfs_traverse_component(main_job->unit, &propagate_ops, job_closure);
 
 	sysman_log(LVL_DEBUG2, "%s: %i&%i", __func__, flags, CLOSURE_ISOLATE);
 	if (flags & CLOSURE_ISOLATE) {
@@ -342,18 +362,19 @@ errno_t job_create_closure(job_t *main_job, job_closure_t *job_closure, int flag
 	}
 
 	if (rc == EOK) {
-		array_foreach(*job_closure, job_t *, job_it) {
+		list_foreach(*job_closure, link, job_link_t, job_it) {
+			job_t *job = job_it->job;
 			sysman_log(LVL_DEBUG2, "%s\t%s, refs: %u", __func__,
-			    unit_name((*job_it)->unit), atomic_load(&(*job_it)->refcnt));
+			    unit_name(job->unit), atomic_load(&job->refcnt));
 		}
 	}
 
 	/* Clean after ourselves (BFS tag jobs) */
-	array_foreach(*job_closure, job_t *, job_it) {
-		job_t *j = (*job_it)->unit->bfs_data;
-		assert(*job_it == j);
+	list_foreach(*job_closure, link, job_link_t, job_it) {
+		job_t *j = job_it->job->unit->bfs_data;
+		assert(job_it->job == j);
 		job_del_ref(&j);
-		(*job_it)->unit->bfs_data = NULL;
+		job_it->job->unit->bfs_data = NULL;
 	}
 
 	return rc;

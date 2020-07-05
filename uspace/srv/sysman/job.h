@@ -29,7 +29,6 @@
 #ifndef SYSMAN_JOB_H
 #define SYSMAN_JOB_H
 
-#include <adt/array.h>
 #include <adt/list.h>
 #include <stdatomic.h>
 #include <stdbool.h>
@@ -55,6 +54,11 @@ typedef enum {
 struct job;
 typedef struct job job_t;
 
+typedef struct {
+	link_t link;
+	job_t *job;
+} job_link_t;
+
 struct job {
 	link_t job_queue;
 	atomic_uint refcnt;
@@ -63,7 +67,7 @@ struct job {
 	unit_t *unit;
 
 	/** Jobs that this job is preventing from running */
-	array_t blocked_jobs;
+	list_t blocked_jobs;
 	/**
 	 * No. of jobs that the job is actually blocking (may differ from size
 	 * of blocked_jobs for not fully merged job

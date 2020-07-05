@@ -29,13 +29,13 @@
 #ifndef SYSMAN_JOB_CLOSURE_H
 #define SYSMAN_JOB_CLOSURE_H
 
-#include <adt/array.h>
+#include <adt/list.h>
 
 #include "job.h"
 
 #define CLOSURE_ISOLATE 0x1
 
-typedef array_t job_closure_t;
+typedef list_t job_closure_t;
 
 extern errno_t job_create_closure(job_t *, job_closure_t *, int);
 

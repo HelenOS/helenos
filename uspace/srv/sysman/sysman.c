@@ -365,8 +365,8 @@ void sysman_event_job_process(void *data)
 	job_args_t *job_args = data;
 	job_t *job = job_args->job;
 	int flags = job_args->flags;
-	array_t job_closure;
-	array_initialize(&job_closure, job_t *);
+	list_t job_closure;
+	list_initialize(&job_closure);
 
 	if (job_args->callback != NULL) {
 		job_add_ref(job);
@@ -401,10 +401,11 @@ fail:
 	job_finish(job);
 	job_del_ref(&job);
 
-	array_foreach(job_closure, job_t *, closure_job) {
-		job_del_ref(&(*closure_job));
+	while (!list_empty(&job_closure)) {
+		job_link_t *job_link = list_pop(&job_closure, job_link_t, link);
+		job_del_ref(&job_link->job);
+		free(job_link);
 	}
-	array_destroy(&job_closure);
 }
 
 void sysman_event_job_finished(void *data)

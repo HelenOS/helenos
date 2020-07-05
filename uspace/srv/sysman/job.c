@@ -69,7 +69,7 @@ static void job_init(job_t *job, unit_t *u, unit_state_t target_state)
 	job->target_state = target_state;
 	job->unit = u;
 
-	array_initialize(&job->blocked_jobs, job_t *);
+	list_initialize(&job->blocked_jobs);
 	job->blocking_jobs = 0;
 	job->blocking_job_failed = false;
 
@@ -119,10 +119,11 @@ static void job_destroy(job_t **job_ptr)
 
 	assert(!link_used(&job->job_queue));
 
-	array_foreach(job->blocked_jobs, job_t *, job_it) {
-		job_del_ref(&(*job_it));
+	while (!list_empty(&job->blocked_jobs)) {
+		job_link_t *job_it = list_pop(&job->blocked_jobs, job_link_t, link);
+		job_del_ref(&job_it->job);
+		free(job_it);
 	}
-	array_destroy(&job->blocked_jobs);
 
 	free(job);
 	*job_ptr = NULL;
@@ -255,11 +256,13 @@ void job_finish(job_t *job)
 	job->state = JOB_FINISHED;
 
 	/* First remove references, then clear the array */
-	assert(job->blocked_jobs.size == job->blocked_jobs_count);
-	array_foreach(job->blocked_jobs, job_t *, job_it) {
-		job_unblock(*job_it, job);
+	assert(list_count(&job->blocked_jobs) == job->blocked_jobs_count);
+
+	while (!list_empty(&job->blocked_jobs)) {
+		job_link_t *job_it = list_pop(&job->blocked_jobs, job_link_t, link);
+		job_unblock(job_it->job, job);
+		free(job_it);
 	}
-	array_clear(&job->blocked_jobs);
 
 	/* Add reference for event handler */
 	if (job->unit->job == NULL) {

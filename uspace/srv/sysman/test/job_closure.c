@@ -39,8 +39,8 @@ PCUT_INIT
 
 PCUT_TEST_SUITE(job_closure);
 
-static array_t exp_closure;
-static array_t act_closure;
+static list_t exp_closure;
+static list_t act_closure;
 
 static bool same_job(job_t *expected, job_t *actual)
 {
@@ -48,26 +48,26 @@ static bool same_job(job_t *expected, job_t *actual)
 	    (expected->target_state == actual->target_state);
 }
 
-static bool same_jobs(array_t *expected, array_t *actual)
+static bool same_jobs(list_t *expected, list_t *actual)
 {
-	if (expected->size != actual->size) {
+	if (list_count(expected) != list_count(actual)) {
 		printf("%s: |expected|, |actual| = %zu, %zu\n",
-		    __func__, expected->size, actual->size);
+		    __func__, list_count(expected), list_count(actual));
 		return false;
 	}
 
 	/* Verify expected \subseteq actual (we've compared sizes) */
-	array_foreach(*expected, job_t *, it_exp) {
+	list_foreach(*expected, link, job_link_t, it_exp) {
 		bool found = false;
-		array_foreach(*actual, job_t *, it_act) {
-			if (same_job(*it_exp, *it_act)) {
+		list_foreach(*actual, link, job_link_t, it_act) {
+			if (same_job(it_exp->job, it_act->job)) {
 				found = true;
 				break;
 			}
 		}
 		if (!found) {
 			printf("%s: expected job for %s\n",
-			    __func__, unit_name((*it_exp)->unit));
+			    __func__, unit_name(it_exp->job->unit));
 			return false;
 		}
 	}
@@ -78,8 +78,8 @@ static bool same_jobs(array_t *expected, array_t *actual)
 static bool job_blocked(job_t *blocked_job, job_t *blocking_job)
 {
 	bool found = false;
-	array_foreach(blocking_job->blocked_jobs, job_t *, it) {
-		if (*it == blocked_job) {
+	list_foreach(blocking_job->blocked_jobs, link, job_link_t, it) {
+		if (it->job == blocked_job) {
 			found = true;
 			break;
 		}
@@ -93,17 +93,17 @@ static job_t *dummy_job(unit_t *unit, unit_state_t target_state)
 	return result;
 }
 
-static void dummy_add_closure(array_t *closure)
+static void dummy_add_closure(list_t *closure)
 {
-	array_foreach(*closure, job_t *, it) {
-		(*it)->unit->job = *it;
+	list_foreach(*closure, link, job_link_t, it) {
+		it->job->unit->job = it->job;
 	}
 }
 
-static void destroy_job_closure(array_t *closure)
+static void destroy_job_closure(list_t *closure)
 {
-	array_foreach(*closure, job_t *, it) {
-		job_del_ref(&(*it));
+	list_foreach(*closure, link, job_link_t, it) {
+		job_del_ref(&it->job);
 	}
 }
 
@@ -112,13 +112,8 @@ PCUT_TEST_BEFORE
 	mock_create_units();
 	mock_set_units_state(STATE_STOPPED);
 
-	array_initialize(&exp_closure, job_t *);
-	errno_t rc = array_reserve(&exp_closure, MAX_TYPES * MAX_UNITS);
-	assert(rc == EOK);
-
-	array_initialize(&act_closure, job_t *);
-	rc = array_reserve(&act_closure, MAX_TYPES * MAX_UNITS);
-	assert(rc == EOK);
+	list_initialize(&exp_closure);
+	list_initialize(&act_closure);
 
 	repo_init();
 }
@@ -126,10 +121,16 @@ PCUT_TEST_BEFORE
 PCUT_TEST_AFTER
 {
 	destroy_job_closure(&act_closure);
-	array_destroy(&act_closure);
+	while (!list_empty(&act_closure)) {
+		job_link_t *job_link = list_pop(&act_closure, job_link_t, link);
+		free(job_link);
+	}
 
 	destroy_job_closure(&exp_closure);
-	array_destroy(&exp_closure);
+	while (!list_empty(&exp_closure)) {
+		job_link_t *job_link = list_pop(&exp_closure, job_link_t, link);
+		free(job_link);
+	}
 
 	mock_destroy_units();
 }
@@ -155,9 +156,23 @@ PCUT_TEST(job_closure_linear)
 	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
-	array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
-	array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
-	array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
+	job_link_t *job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u1, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u2, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u3, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
 
 	dummy_add_closure(&act_closure);
 
@@ -187,9 +202,23 @@ PCUT_TEST(job_closure_fork)
 	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
-	array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
-	array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
-	array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
+	job_link_t *job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u1, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u2, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u3, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
 
 	dummy_add_closure(&act_closure);
 
@@ -221,9 +250,23 @@ PCUT_TEST(job_closure_triangle)
 	errno_t rc = job_create_closure(main_job, &act_closure, 0);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
-	array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
-	array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
-	array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STARTED));
+	job_link_t *job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u1, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u2, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u3, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
 
 	dummy_add_closure(&act_closure);
 
@@ -269,13 +312,47 @@ PCUT_TEST(job_closure_isolate_linears)
 	errno_t rc = job_create_closure(main_job, &act_closure, CLOSURE_ISOLATE);
 	PCUT_ASSERT_INT_EQUALS(EOK, rc);
 
-	array_append(&exp_closure, job_t *, dummy_job(u0, STATE_STOPPED));
-	array_append(&exp_closure, job_t *, dummy_job(u1, STATE_STARTED));
-	array_append(&exp_closure, job_t *, dummy_job(u2, STATE_STARTED));
-	array_append(&exp_closure, job_t *, dummy_job(u3, STATE_STOPPED));
-	array_append(&exp_closure, job_t *, dummy_job(u4, STATE_STOPPED));
-	array_append(&exp_closure, job_t *, dummy_job(u5, STATE_STOPPED));
-	array_append(&exp_closure, job_t *, dummy_job(u6, STATE_STOPPED));
+	job_link_t *job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u0, STATE_STOPPED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u1, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u2, STATE_STARTED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u3, STATE_STOPPED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u4, STATE_STOPPED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u5, STATE_STOPPED);
+
+	list_append(&job_link->link, &exp_closure);
+
+	job_link = calloc(1, sizeof(job_link_t));
+	PCUT_ASSERT_NOT_NULL(job_link);
+	job_link->job = dummy_job(u6, STATE_STOPPED);
+
+	list_append(&job_link->link, &exp_closure);
 
 	dummy_add_closure(&act_closure);
 
