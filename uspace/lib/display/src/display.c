@@ -175,12 +175,15 @@ errno_t display_window_create(display_t *display, display_wnd_params_t *params,
 	async_exchange_end(exch);
 	if (rc != EOK) {
 		async_forget(req);
+		free(window);
 		return rc;
 	}
 
 	async_wait_for(req, &rc);
-	if (rc != EOK)
+	if (rc != EOK) {
+		free(window);
 		return rc;
+	}
 
 	window->display = display;
 	window->id = ipc_get_arg1(&answer);
