@@ -797,8 +797,11 @@ static void ds_window_update_cb(void *arg, gfx_rect_t *rect)
 	gfx_rect_t drect;
 
 	/* Repaint the corresponding part of the display */
+
 	gfx_rect_translate(&wnd->dpos, rect, &drect);
+	ds_display_lock(wnd->display);
 	(void) ds_display_paint(wnd->display, &drect);
+	ds_display_unlock(wnd->display);
 }
 
 /** @}
