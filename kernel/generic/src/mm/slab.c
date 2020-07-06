@@ -836,14 +836,14 @@ void slab_print_list(void)
 
 		irq_spinlock_lock(&slab_cache_lock, true);
 
-		link_t *cur = slab_cache_list.head.next;
+		link_t *cur = list_first(&slab_cache_list);
 		size_t i = 0;
-		while (i < skip && cur != &slab_cache_list.head) {
+		while (i < skip && cur != NULL) {
 			i++;
-			cur = cur->next;
+			cur = list_next(cur, &slab_cache_list);
 		}
 
-		if (cur == &slab_cache_list.head) {
+		if (cur == NULL) {
 			irq_spinlock_unlock(&slab_cache_lock, true);
 			break;
 		}

@@ -171,9 +171,9 @@ const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 	spinlock_lock(&cmd_lock);
 
 	if (*startpos == NULL)
-		*startpos = cmd_list.head.next;
+		*startpos = list_first(&cmd_list);
 
-	for (; *startpos != &cmd_list.head; *startpos = (*startpos)->next) {
+	for (; *startpos != NULL; *startpos = list_next(*startpos, &cmd_list)) {
 		cmd_info_t *hlp = list_get_instance(*startpos, cmd_info_t, link);
 
 		const char *curname = hlp->name;
@@ -181,7 +181,7 @@ const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 			continue;
 
 		if (str_lcmp(curname, name, namelen) == 0) {
-			*startpos = (*startpos)->next;
+			*startpos = list_next(*startpos, &cmd_list);
 			if (h)
 				*h = hlp->description;
 

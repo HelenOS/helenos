@@ -609,9 +609,9 @@ not_satisfied:
 			thread_t *thread = NULL;
 
 			/* Search rq from the back */
-			link_t *link = cpu->rq[rq].rq.head.prev;
+			link_t *link = list_last(&cpu->rq[rq].rq);
 
-			while (link != &(cpu->rq[rq].rq.head)) {
+			while (link != NULL) {
 				thread = (thread_t *) list_get_instance(link,
 				    thread_t, rq_link);
 
@@ -643,7 +643,7 @@ not_satisfied:
 
 				irq_spinlock_unlock(&thread->lock, false);
 
-				link = link->prev;
+				link = list_prev(link, &cpu->rq[rq].rq);
 				thread = NULL;
 			}
 

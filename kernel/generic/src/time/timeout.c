@@ -117,9 +117,10 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 	 */
 	uint64_t sum = 0;
 	timeout_t *target = NULL;
-	link_t *cur;
-	for (cur = CPU->timeout_active_list.head.next;
-	    cur != &CPU->timeout_active_list.head; cur = cur->next) {
+	link_t *cur, *prev;
+	prev = NULL;
+	for (cur = list_first(&CPU->timeout_active_list);
+	    cur != NULL; cur = list_next(cur, &CPU->timeout_active_list)) {
 		target = list_get_instance(cur, timeout_t, link);
 		irq_spinlock_lock(&target->lock, false);
 
@@ -130,11 +131,13 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 
 		sum += target->ticks;
 		irq_spinlock_unlock(&target->lock, false);
+		prev = cur;
 	}
 
-	/* Avoid using cur->prev directly */
-	link_t *prev = cur->prev;
-	list_insert_after(&timeout->link, prev);
+	if (prev == NULL)
+		list_prepend(&timeout->link, &CPU->timeout_active_list);
+	else
+		list_insert_after(&timeout->link, prev);
 
 	/*
 	 * Adjust timeout->ticks according to ticks
@@ -145,7 +148,7 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 	/*
 	 * Decrease ticks of timeout's immediate succesor by timeout->ticks.
 	 */
-	if (cur != &CPU->timeout_active_list.head) {
+	if (cur != NULL) {
 		irq_spinlock_lock(&target->lock, false);
 		target->ticks -= timeout->ticks;
 		irq_spinlock_unlock(&target->lock, false);
@@ -186,8 +189,9 @@ grab_locks:
 	 * and is lurking in timeout->cpu->timeout_active_list.
 	 */
 
-	link_t *cur = timeout->link.next;
-	if (cur != &timeout->cpu->timeout_active_list.head) {
+	link_t *cur = list_next(&timeout->link,
+	    &timeout->cpu->timeout_active_list);
+	if (cur != NULL) {
 		timeout_t *tmp = list_get_instance(cur, timeout_t, link);
 		irq_spinlock_lock(&tmp->lock, false);
 		tmp->ticks += timeout->ticks;
