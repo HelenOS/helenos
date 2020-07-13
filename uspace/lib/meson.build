@@ -79,6 +79,7 @@ libs = [
 	'draw',
 	'drv',
 	'ext4',
+	'gfxfont',
 	'hound',
 	'ipcgfx',
 	'memgfx',
