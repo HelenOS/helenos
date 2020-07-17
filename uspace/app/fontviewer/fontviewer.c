@@ -247,7 +247,7 @@ out_err:
 
 static void print_syntax(void)
 {
-	printf("Syntax: %s [-d <display>]\n", NAME);
+	printf("Syntax: %s [-d <display>] [<font-file>]\n", NAME);
 }
 
 int main(int argc, char *argv[])
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
 	int i;
 
 	i = 1;
-	while (i < argc) {
+	while (i < argc && argv[i][0] == '-') {
 		if (str_cmp(argv[i], "-d") == 0) {
 			++i;
 			if (i >= argc) {
@@ -274,9 +274,9 @@ int main(int argc, char *argv[])
 	}
 
 	if (i < argc) {
-		font_path = NULL;
-	} else {
 		font_path = argv[i];
+	} else {
+		font_path = NULL;
 	}
 
 	main_window = window_open(display_svc, NULL, WINDOW_MAIN, "fontviewer");
