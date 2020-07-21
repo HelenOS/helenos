@@ -37,6 +37,7 @@
 #ifndef _GFX_PRIVATE_FONT_H
 #define _GFX_PRIVATE_FONT_H
 
+#include <adt/list.h>
 #include <types/gfx/context.h>
 #include <types/gfx/font.h>
 
@@ -49,6 +50,8 @@ struct gfx_font {
 	gfx_context_t *gc;
 	/** Font metrics */
 	gfx_font_metrics_t metrics;
+	/** Glyphs */
+	list_t glyphs;
 };
 
 #endif

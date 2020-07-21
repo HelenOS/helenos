@@ -33,12 +33,15 @@
  * @file Font
  */
 
+#include <adt/list.h>
 #include <assert.h>
 #include <errno.h>
 #include <gfx/font.h>
+#include <gfx/glyph.h>
 #include <mem.h>
 #include <stdlib.h>
 #include "../private/font.h"
+#include "../private/glyph.h"
 
 /** Initialize font metrics structure.
  *
@@ -82,6 +85,7 @@ errno_t gfx_font_create(gfx_context_t *gc, gfx_font_metrics_t *metrics,
 	}
 
 	font->metrics = *metrics;
+	list_initialize(&font->glyphs);
 	*rfont = font;
 	return EOK;
 }
@@ -92,6 +96,14 @@ errno_t gfx_font_create(gfx_context_t *gc, gfx_font_metrics_t *metrics,
  */
 void gfx_font_destroy(gfx_font_t *font)
 {
+	gfx_glyph_t *glyph;
+
+	glyph = gfx_font_first_glyph(font);
+	while (glyph != NULL) {
+		gfx_glyph_destroy(glyph);
+		glyph = gfx_font_first_glyph(font);
+	}
+
 	free(font);
 }
 
@@ -124,7 +136,13 @@ errno_t gfx_font_set_metrics(gfx_font_t *font, gfx_font_metrics_t *metrics)
  */
 gfx_glyph_t *gfx_font_first_glyph(gfx_font_t *font)
 {
-	return NULL;
+	link_t *link;
+
+	link = list_first(&font->glyphs);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, gfx_glyph_t, lglyphs);
 }
 
 /** Get next glyph in font.
@@ -134,7 +152,13 @@ gfx_glyph_t *gfx_font_first_glyph(gfx_font_t *font)
  */
 gfx_glyph_t *gfx_font_next_glyph(gfx_glyph_t *cur)
 {
-	return NULL;
+	link_t *link;
+
+	link = list_next(&cur->lglyphs, &cur->font->glyphs);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, gfx_glyph_t, lglyphs);
 }
 
 /** Search for glyph that should be set for the beginning of a string.
@@ -148,7 +172,21 @@ gfx_glyph_t *gfx_font_next_glyph(gfx_glyph_t *cur)
 int gfx_font_search_glyph(gfx_font_t *font, const char *str,
     gfx_glyph_t **rglyph, size_t *rsize)
 {
-	return EOK;
+	gfx_glyph_t *glyph;
+	size_t msize;
+
+	glyph = gfx_font_first_glyph(font);
+	while (glyph != NULL) {
+		if (gfx_glyph_matches(glyph, str, &msize)) {
+			*rglyph = glyph;
+			*rsize = msize;
+			return EOK;
+		}
+
+		glyph = gfx_font_next_glyph(glyph);
+	}
+
+	return ENOENT;
 }
 
 /** @}

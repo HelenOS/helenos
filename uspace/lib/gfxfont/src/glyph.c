@@ -38,6 +38,8 @@
 #include <gfx/glyph.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <str.h>
+#include "../private/font.h"
 #include "../private/glyph.h"
 
 /** Initialize glyph metrics structure.
@@ -82,6 +84,8 @@ errno_t gfx_glyph_create(gfx_font_t *font, gfx_glyph_metrics_t *metrics,
 	}
 
 	glyph->metrics = *metrics;
+	list_append(&glyph->lglyphs, &glyph->font->glyphs);
+	list_initialize(&glyph->patterns);
 	*rglyph = glyph;
 	return EOK;
 }
@@ -92,6 +96,7 @@ errno_t gfx_glyph_create(gfx_font_t *font, gfx_glyph_metrics_t *metrics,
  */
 void gfx_glyph_destroy(gfx_glyph_t *glyph)
 {
+	list_remove(&glyph->lglyphs);
 	free(glyph);
 }
 
@@ -129,6 +134,30 @@ errno_t gfx_glyph_set_metrics(gfx_glyph_t *glyph, gfx_glyph_metrics_t *metrics)
  */
 errno_t gfx_glyph_set_pattern(gfx_glyph_t *glyph, const char *pattern)
 {
+	gfx_glyph_pattern_t *pat;
+
+	pat = gfx_glyph_first_pattern(glyph);
+	while (pat != NULL) {
+		if (str_cmp(pat->text, pattern) == 0) {
+			/* Already set */
+			return EOK;
+		}
+
+		pat = gfx_glyph_next_pattern(pat);
+	}
+
+	pat = calloc(1, sizeof(gfx_glyph_pattern_t));
+	if (pat == NULL)
+		return ENOMEM;
+
+	pat->glyph = glyph;
+	pat->text = str_dup(pattern);
+	if (pat->text == NULL) {
+		free(pat);
+		return ENOMEM;
+	}
+
+	list_append(&pat->lpatterns, &glyph->patterns);
 	return EOK;
 }
 
@@ -141,17 +170,85 @@ errno_t gfx_glyph_set_pattern(gfx_glyph_t *glyph, const char *pattern)
  */
 void gfx_glyph_clear_pattern(gfx_glyph_t *glyph, const char *pattern)
 {
+	gfx_glyph_pattern_t *pat;
+
+	pat = gfx_glyph_first_pattern(glyph);
+	while (pat != NULL) {
+		if (str_cmp(pat->text, pattern) == 0) {
+			list_remove(&pat->lpatterns);
+			free(pat->text);
+			free(pat);
+			return;
+		}
+
+		pat = gfx_glyph_next_pattern(pat);
+	}
 }
 
-/** Open glyph bitmap for editing.
+/** Determine if glyph maches the beginning of a string.
  *
  * @param glyph Glyph
- * @param rbmp Place to store glyph bitmap
- * @return EOK on success, ENOMEM if out of memory
+ * @param str String
+ * @param rsize Place to store number of bytes in the matching pattern
+ * @return @c true iff glyph matches the beginning of the string
  */
-errno_t gfx_glyph_open_bmp(gfx_glyph_t *glyph, gfx_glyph_bmp_t **rbmp)
+bool gfx_glyph_matches(gfx_glyph_t *glyph, const char *str, size_t *rsize)
 {
-	return EOK;
+	gfx_glyph_pattern_t *pat;
+
+	pat = gfx_glyph_first_pattern(glyph);
+	while (pat != NULL) {
+		if (str_test_prefix(str, pat->text)) {
+			*rsize = str_size(pat->text);
+			return true;
+		}
+
+		pat = gfx_glyph_next_pattern(pat);
+	}
+
+	return false;
+}
+
+/** Get first glyph pattern.
+ *
+ * @param glyph Glyph
+ * @return First pattern or @c NULL if there are none
+ */
+gfx_glyph_pattern_t *gfx_glyph_first_pattern(gfx_glyph_t *glyph)
+{
+	link_t *link;
+
+	link = list_first(&glyph->patterns);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, gfx_glyph_pattern_t, lpatterns);
+}
+
+/** Get next glyph pattern.
+ *
+ * @param cur Current pattern
+ * @return Next pattern or @c NULL if there are none
+ */
+gfx_glyph_pattern_t *gfx_glyph_next_pattern(gfx_glyph_pattern_t *cur)
+{
+	link_t *link;
+
+	link = list_next(&cur->lpatterns, &cur->glyph->patterns);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, gfx_glyph_pattern_t, lpatterns);
+}
+
+/** Return pattern string.
+ *
+ * @param pattern Pattern
+ * @return Pattern string (owned by @a pattern)
+ */
+const char *gfx_glyph_pattern_str(gfx_glyph_pattern_t *pattern)
+{
+	return pattern->text;
 }
 
 /** @}

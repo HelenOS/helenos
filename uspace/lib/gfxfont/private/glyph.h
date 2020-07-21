@@ -48,9 +48,24 @@ struct gfx_glyph {
 	/** Containing font */
 	struct gfx_font *font;
 	/** Link to list of glyphs in the font */
-	list_t lglyphs;
+	link_t lglyphs;
 	/** Glyph metrics */
 	gfx_glyph_metrics_t metrics;
+	/** Text patterns (of gfx_glyph_pattern_t) */
+	list_t patterns;
+};
+
+/** Glyph pattern.
+ *
+ * Glyph is set if pattern is found in text.
+ */
+struct gfx_glyph_pattern {
+	/** Containing glyph */
+	struct gfx_glyph *glyph;
+	/** Link to gfx_glyph.patterns */
+	link_t lpatterns;
+	/** Pattern text */
+	char *text;
 };
 
 #endif

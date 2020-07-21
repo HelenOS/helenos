@@ -37,6 +37,8 @@
 #ifndef _GFX_PRIVATE_GLYPH_BMP_H
 #define _GFX_PRIVATE_GLYPH_BMP_H
 
+#include <gfx/coord.h>
+
 /** Glyph bitmap
  *
  * Glyph bitmap open for editing. This is used to edit glyph bitmap.
@@ -48,6 +50,10 @@
 struct gfx_glyph_bmp {
 	/** Containing glyph */
 	struct gfx_glyph *glyph;
+	/** Rectangle covered by bitmap */
+	gfx_rect_t rect;
+	/** Pixel array */
+	int *pixels;
 };
 
 #endif

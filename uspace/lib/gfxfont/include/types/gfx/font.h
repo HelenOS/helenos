@@ -44,7 +44,7 @@ typedef struct gfx_font gfx_font_t;
 /** Font metrics */
 typedef struct {
 	/** Ascent */
-	gfx_coord_t acent;
+	gfx_coord_t ascent;
 	/** Descent */
 	gfx_coord_t descent;
 	/** Leading */

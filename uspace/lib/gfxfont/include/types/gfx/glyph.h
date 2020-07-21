@@ -41,6 +41,9 @@
 struct gfx_glyph;
 typedef struct gfx_glyph gfx_glyph_t;
 
+struct gfx_glyph_pattern;
+typedef struct gfx_glyph_pattern gfx_glyph_pattern_t;
+
 /** Glyph metrics */
 typedef struct {
 	/** Advance */
