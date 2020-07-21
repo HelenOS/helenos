@@ -174,7 +174,7 @@ static errno_t gfx_glyph_bmp_extend(gfx_glyph_bmp_t *bmp, gfx_coord2_t *pos)
 		for (x = bmp->rect.p0.x; x < bmp->rect.p1.x; x++) {
 			npixels[(y - nrect.p0.y) * npitch + x - nrect.p0.x] =
 			    bmp->pixels[(y - bmp->rect.p0.y) * opitch +
-				x - bmp->rect.p0.x];
+			    x - bmp->rect.p0.x];
 		}
 	}
 
