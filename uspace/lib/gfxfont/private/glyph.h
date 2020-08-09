@@ -38,6 +38,7 @@
 #define _GFX_PRIVATE_GLYPH_H
 
 #include <adt/list.h>
+#include <gfx/coord.h>
 #include <types/gfx/glyph.h>
 
 /** Glyph
@@ -53,6 +54,10 @@ struct gfx_glyph {
 	gfx_glyph_metrics_t metrics;
 	/** Text patterns (of gfx_glyph_pattern_t) */
 	list_t patterns;
+	/** Rectangle within font bitmap containing the glyph */
+	gfx_rect_t rect;
+	/** Glyph origin within font bitmap (pen start point) */
+	gfx_coord2_t origin;
 };
 
 /** Glyph pattern.
@@ -67,6 +72,9 @@ struct gfx_glyph_pattern {
 	/** Pattern text */
 	char *text;
 };
+
+extern errno_t gfx_glyph_transfer(gfx_glyph_t *, gfx_coord_t, gfx_bitmap_t *,
+    gfx_rect_t *);
 
 #endif
 

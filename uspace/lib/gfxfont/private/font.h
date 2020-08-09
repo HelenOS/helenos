@@ -38,12 +38,20 @@
 #define _GFX_PRIVATE_FONT_H
 
 #include <adt/list.h>
+#include <errno.h>
+#include <types/gfx/bitmap.h>
 #include <types/gfx/context.h>
 #include <types/gfx/font.h>
 
 /** Font
  *
  * This is private to libgfxfont.
+ *
+ * Font bitmap contains all the glyphs packed side by side (in order of
+ * @c gfx_font_t.glyphs). This is to conserve space and number of bitmaps
+ * used. The baselines of the glyphs are not mutually aligned.
+ * For each glyph @c gfx_glyph_t.origin designates
+ * pen start point (and thus the position of the baseline).
  */
 struct gfx_font {
 	/** Graphics context of the font */
@@ -52,7 +60,14 @@ struct gfx_font {
 	gfx_font_metrics_t metrics;
 	/** Glyphs */
 	list_t glyphs;
+	/** Font bitmap */
+	gfx_bitmap_t *bitmap;
+	/** Bitmap rectangle */
+	gfx_rect_t rect;
 };
+
+extern errno_t gfx_font_splice_at_glyph(gfx_font_t *, gfx_glyph_t *,
+    gfx_coord_t, gfx_coord_t);
 
 #endif
 

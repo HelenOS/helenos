@@ -35,7 +35,9 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <gfx/bitmap.h>
 #include <gfx/glyph.h>
+#include <io/pixelmap.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <str.h>
@@ -249,6 +251,52 @@ gfx_glyph_pattern_t *gfx_glyph_next_pattern(gfx_glyph_pattern_t *cur)
 const char *gfx_glyph_pattern_str(gfx_glyph_pattern_t *pattern)
 {
 	return pattern->text;
+}
+
+/** Transfer glyph to new font bitmap.
+ *
+ * @param glyph Glyph
+ * @param offs Offset in new font bitmap
+ * @param dest New font bitmap
+ * @param drect Bounding rectangle for @a dest
+ *
+ * @return EOK on success or an error code
+ */
+errno_t gfx_glyph_transfer(gfx_glyph_t *glyph, gfx_coord_t offs,
+    gfx_bitmap_t *dest, gfx_rect_t *drect)
+{
+	pixelmap_t smap;
+	pixelmap_t dmap;
+	gfx_bitmap_alloc_t salloc;
+	gfx_bitmap_alloc_t dalloc;
+	gfx_coord_t x, y;
+	pixel_t pixel;
+	errno_t rc;
+
+	rc = gfx_bitmap_get_alloc(glyph->font->bitmap, &salloc);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_bitmap_get_alloc(dest, &dalloc);
+	if (rc != EOK)
+		return rc;
+
+	smap.width = glyph->font->rect.p1.x;
+	smap.height = glyph->font->rect.p1.y;
+	smap.data = salloc.pixels;
+
+	dmap.width = drect->p1.x;
+	dmap.height = drect->p1.y;
+	dmap.data = dalloc.pixels;
+
+	for (y = drect->p0.y; y < drect->p1.y; y++) {
+		for (x = drect->p0.x; x < drect->p1.x; x++) {
+			pixel = pixelmap_get_pixel(&smap, x, y);
+			pixelmap_put_pixel(&dmap, x + offs, y, pixel);
+		}
+	}
+
+	return EOK;
 }
 
 /** @}
