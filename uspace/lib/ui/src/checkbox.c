@@ -145,12 +145,12 @@ void ui_checkbox_set_rect(ui_checkbox_t *checkbox, gfx_rect_t *rect)
 	checkbox->rect = *rect;
 }
 
-/** Paint check box.
+/** Paint check box in graphics mode.
  *
  * @param checkbox Check box
  * @return EOK on success or an error code
  */
-errno_t ui_checkbox_paint(ui_checkbox_t *checkbox)
+errno_t ui_checkbox_paint_gfx(ui_checkbox_t *checkbox)
 {
 	gfx_coord2_t pos;
 	gfx_text_fmt_t fmt;
@@ -221,6 +221,67 @@ errno_t ui_checkbox_paint(ui_checkbox_t *checkbox)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Paint check box in text mode.
+ *
+ * @param checkbox Check box
+ * @return EOK on success or an error code
+ */
+errno_t ui_checkbox_paint_text(ui_checkbox_t *checkbox)
+{
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	bool depressed;
+	errno_t rc;
+
+	/* Paint checkbox */
+
+	depressed = checkbox->held && checkbox->inside;
+
+	pos.x = checkbox->rect.p0.x;
+	pos.y = checkbox->rect.p0.y;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.color = depressed ? checkbox->res->entry_act_bg_color :
+	    checkbox->res->wnd_text_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	rc = gfx_puttext(checkbox->res->font, &pos, &fmt,
+	    checkbox->checked ? "[X]" : "[ ]");
+	if (rc != EOK)
+		goto error;
+
+	/* Paint checkbox label */
+
+	pos.x += 4;
+	fmt.color = checkbox->res->wnd_text_color;
+
+	rc = gfx_puttext(checkbox->res->font, &pos, &fmt, checkbox->caption);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_update(checkbox->res->gc);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Paint check box.
+ *
+ * @param checkbox Check box
+ * @return EOK on success or an error code
+ */
+errno_t ui_checkbox_paint(ui_checkbox_t *checkbox)
+{
+	if (checkbox->res->textmode)
+		return ui_checkbox_paint_text(checkbox);
+	else
+		return ui_checkbox_paint_gfx(checkbox);
 }
 
 /** Press down button.

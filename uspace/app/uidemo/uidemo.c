@@ -228,7 +228,6 @@ static void uidemo_show_message(ui_demo_t *demo, const char *caption,
 	ui_msg_dialog_set_cb(dialog, &msg_dialog_cb, &demo);
 }
 
-
 /** File/load menu entry selected.
  *
  * @param mentry Menu entry
@@ -716,10 +715,18 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_checkbox_set_cb(demo.checkbox, &checkbox_cb, (void *) &demo);
 
-	rect.p0.x = 15;
-	rect.p0.y = 190;
-	rect.p1.x = 140;
-	rect.p1.y = 210;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 20;
+		rect.p0.y = 12;
+		rect.p1.x = 40;
+		rect.p1.y = 13;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 190;
+		rect.p1.x = 140;
+		rect.p1.y = 210;
+	}
 	ui_checkbox_set_rect(demo.checkbox, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_checkbox_ctl(demo.checkbox));

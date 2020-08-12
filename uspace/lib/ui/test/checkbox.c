@@ -150,8 +150,8 @@ PCUT_TEST(set_rect)
 	ui_checkbox_destroy(checkbox);
 }
 
-/** Paint check box */
-PCUT_TEST(paint)
+/** Paint check box in graphics mode */
+PCUT_TEST(paint_gfx)
 {
 	errno_t rc;
 	gfx_context_t *gc = NULL;
@@ -170,7 +170,37 @@ PCUT_TEST(paint)
 	rc = ui_checkbox_create(resource, "Hello", &checkbox);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_checkbox_paint(checkbox);
+	rc = ui_checkbox_paint_gfx(checkbox);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_checkbox_destroy(checkbox);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint check box in text mode */
+PCUT_TEST(paint_text)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_checkbox_t *checkbox;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, true, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_checkbox_create(resource, "Hello", &checkbox);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_checkbox_paint_text(checkbox);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_checkbox_destroy(checkbox);
