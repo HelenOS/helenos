@@ -41,21 +41,26 @@
 struct gfx_font;
 typedef struct gfx_font gfx_font_t;
 
-/** Font metrics */
-typedef struct {
-	/** Ascent */
-	gfx_coord_t ascent;
-	/** Descent */
-	gfx_coord_t descent;
-	/** Leading */
-	gfx_coord_t leading;
-} gfx_font_metrics_t;
+struct gfx_font_info;
+typedef struct gfx_font_info gfx_font_info_t;
 
-/** Text metrics */
+/** Font flags */
+typedef enum {
+	/** Bold */
+	gff_bold = 0x1,
+	/** Italic */
+	gff_italic = 0x2,
+	/** Bold, italic */
+	gff_bold_italic = gff_bold | gff_italic
+} gfx_font_flags_t;
+
+/** Font properties */
 typedef struct {
-	/** Bounding rectangle (not including oversize elements) */
-	gfx_rect_t bounds;
-} gfx_text_metrics_t;
+	/** Size */
+	gfx_coord_t size;
+	/** Flags */
+	gfx_font_flags_t flags;
+} gfx_font_props_t;
 
 #endif
 

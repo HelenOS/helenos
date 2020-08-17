@@ -42,6 +42,7 @@
 #include <types/gfx/bitmap.h>
 #include <types/gfx/context.h>
 #include <types/gfx/font.h>
+#include <types/gfx/typeface.h>
 
 /** Font
  *
@@ -54,8 +55,8 @@
  * pen start point (and thus the position of the baseline).
  */
 struct gfx_font {
-	/** Graphics context of the font */
-	gfx_context_t *gc;
+	/** Containing typeface */
+	struct gfx_typeface *typeface;
 	/** Font metrics */
 	gfx_font_metrics_t metrics;
 	/** Glyphs */
@@ -64,6 +65,21 @@ struct gfx_font {
 	gfx_bitmap_t *bitmap;
 	/** Bitmap rectangle */
 	gfx_rect_t rect;
+};
+
+/** Font info
+ *
+ * This is an entry in the list of fonts in typeface
+ */
+struct gfx_font_info {
+	/** Containing typeface */
+	struct gfx_typeface *typeface;
+	/** Link to @c typeface->fonts */
+	link_t lfonts;
+	/** Font properties */
+	gfx_font_props_t props;
+	/** Font or @c NULL if font is not present in memory */
+	struct gfx_font *font;
 };
 
 extern errno_t gfx_font_splice_at_glyph(gfx_font_t *, gfx_glyph_t *,

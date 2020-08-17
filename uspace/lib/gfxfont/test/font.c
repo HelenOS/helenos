@@ -29,8 +29,10 @@
 #include <gfx/context.h>
 #include <gfx/font.h>
 #include <gfx/glyph.h>
+#include <gfx/typeface.h>
 #include <pcut/pcut.h>
 #include "../private/font.h"
+#include "../private/typeface.h"
 
 PCUT_INIT;
 
@@ -69,7 +71,9 @@ typedef struct {
 /** Test creating and destroying font */
 PCUT_TEST(create_destroy)
 {
+	gfx_font_props_t props;
 	gfx_font_metrics_t metrics;
+	gfx_typeface_t *tface;
 	gfx_font_t *font;
 	gfx_context_t *gc;
 	test_gc_t tgc;
@@ -78,11 +82,17 @@ PCUT_TEST(create_destroy)
 	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gfx_font_metrics_init(&metrics);
-	rc = gfx_font_create(gc, &metrics, &font);
+	rc = gfx_typeface_create(gc, &tface);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gfx_font_destroy(font);
+	gfx_font_props_init(&props);
+	gfx_font_metrics_init(&metrics);
+	rc = gfx_font_create(tface, &props, &metrics, &font);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -90,8 +100,10 @@ PCUT_TEST(create_destroy)
 /** Test gfx_font_get_metrics() */
 PCUT_TEST(get_metrics)
 {
+	gfx_font_props_t props;
 	gfx_font_metrics_t metrics;
 	gfx_font_metrics_t gmetrics;
+	gfx_typeface_t *tface;
 	gfx_font_t *font;
 	gfx_context_t *gc;
 	test_gc_t tgc;
@@ -105,7 +117,12 @@ PCUT_TEST(get_metrics)
 	metrics.descent = 2;
 	metrics.leading = 3;
 
-	rc = gfx_font_create(gc, &metrics, &font);
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&props);
+	gfx_font_metrics_init(&metrics);
+	rc = gfx_font_create(tface, &props, &metrics, &font);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_font_get_metrics(font, &gmetrics);
@@ -113,7 +130,8 @@ PCUT_TEST(get_metrics)
 	PCUT_ASSERT_INT_EQUALS(metrics.descent, gmetrics.descent);
 	PCUT_ASSERT_INT_EQUALS(metrics.leading, gmetrics.leading);
 
-	gfx_font_destroy(font);
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -121,9 +139,11 @@ PCUT_TEST(get_metrics)
 /** Test gfx_font_set_metrics() */
 PCUT_TEST(set_metrics)
 {
+	gfx_font_props_t props;
 	gfx_font_metrics_t metrics1;
 	gfx_font_metrics_t metrics2;
 	gfx_font_metrics_t gmetrics;
+	gfx_typeface_t *tface;
 	gfx_font_t *font;
 	gfx_context_t *gc;
 	test_gc_t tgc;
@@ -132,12 +152,17 @@ PCUT_TEST(set_metrics)
 	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&props);
+
 	gfx_font_metrics_init(&metrics1);
 	metrics1.ascent = 1;
 	metrics1.descent = 2;
 	metrics1.leading = 3;
 
-	rc = gfx_font_create(gc, &metrics1, &font);
+	rc = gfx_font_create(tface, &props, &metrics1, &font);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_font_metrics_init(&metrics2);
@@ -153,7 +178,8 @@ PCUT_TEST(set_metrics)
 	PCUT_ASSERT_INT_EQUALS(metrics2.descent, gmetrics.descent);
 	PCUT_ASSERT_INT_EQUALS(metrics2.leading, gmetrics.leading);
 
-	gfx_font_destroy(font);
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -161,8 +187,10 @@ PCUT_TEST(set_metrics)
 /** Test gfx_font_first_glyph() */
 PCUT_TEST(first_glyph)
 {
+	gfx_font_props_t props;
 	gfx_font_metrics_t metrics;
 	gfx_glyph_metrics_t gmetrics;
+	gfx_typeface_t *tface;
 	gfx_font_t *font;
 	gfx_context_t *gc;
 	gfx_glyph_t *glyph;
@@ -175,7 +203,12 @@ PCUT_TEST(first_glyph)
 
 	gfx_font_metrics_init(&metrics);
 
-	rc = gfx_font_create(gc, &metrics, &font);
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&props);
+	gfx_font_metrics_init(&metrics);
+	rc = gfx_font_create(tface, &props, &metrics, &font);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Should get NULL since there is no glyph in the font */
@@ -192,7 +225,8 @@ PCUT_TEST(first_glyph)
 	PCUT_ASSERT_EQUALS(glyph, gfirst);
 
 	gfx_glyph_destroy(glyph);
-	gfx_font_destroy(font);
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -200,8 +234,10 @@ PCUT_TEST(first_glyph)
 /** Test gfx_font_next_glyph() */
 PCUT_TEST(next_glyph)
 {
+	gfx_font_props_t props;
 	gfx_font_metrics_t metrics;
 	gfx_glyph_metrics_t gmetrics;
+	gfx_typeface_t *tface;
 	gfx_font_t *font;
 	gfx_context_t *gc;
 	gfx_glyph_t *glyph1;
@@ -216,7 +252,12 @@ PCUT_TEST(next_glyph)
 
 	gfx_font_metrics_init(&metrics);
 
-	rc = gfx_font_create(gc, &metrics, &font);
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&props);
+	gfx_font_metrics_init(&metrics);
+	rc = gfx_font_create(tface, &props, &metrics, &font);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Add first glyph */
@@ -239,7 +280,8 @@ PCUT_TEST(next_glyph)
 
 	gfx_glyph_destroy(glyph1);
 	gfx_glyph_destroy(glyph2);
-	gfx_font_destroy(font);
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -247,7 +289,9 @@ PCUT_TEST(next_glyph)
 /** Test gfx_font_search_glyph() */
 PCUT_TEST(search_glyph)
 {
+	gfx_font_props_t props;
 	gfx_font_metrics_t metrics;
+	gfx_typeface_t *tface;
 	gfx_font_t *font;
 	gfx_context_t *gc;
 	gfx_glyph_t *glyph;
@@ -260,13 +304,19 @@ PCUT_TEST(search_glyph)
 
 	gfx_font_metrics_init(&metrics);
 
-	rc = gfx_font_create(gc, &metrics, &font);
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&props);
+	gfx_font_metrics_init(&metrics);
+	rc = gfx_font_create(tface, &props, &metrics, &font);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = gfx_font_search_glyph(font, "Hello", &glyph, &bytes);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
-	gfx_font_destroy(font);
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -274,7 +324,9 @@ PCUT_TEST(search_glyph)
 /** Test gfx_font_splice_at_glyph() */
 PCUT_TEST(splice_at_glyph)
 {
+	gfx_font_props_t props;
 	gfx_font_metrics_t fmetrics;
+	gfx_typeface_t *tface;
 	gfx_font_t *font;
 	gfx_glyph_metrics_t gmetrics;
 	gfx_glyph_t *glyph;
@@ -285,8 +337,12 @@ PCUT_TEST(splice_at_glyph)
 	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&props);
 	gfx_font_metrics_init(&fmetrics);
-	rc = gfx_font_create(gc, &fmetrics, &font);
+	rc = gfx_font_create(tface, &props, &fmetrics, &font);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_glyph_metrics_init(&gmetrics);
@@ -298,7 +354,8 @@ PCUT_TEST(splice_at_glyph)
 
 	gfx_glyph_destroy(glyph);
 
-	gfx_font_destroy(font);
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }

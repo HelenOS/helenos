@@ -36,7 +36,7 @@
 #ifndef FONTEDIT_H
 #define FONTEDIT_H
 
-#include <gfx/font.h>
+#include <gfx/typeface.h>
 #include <guigfx/canvas.h>
 
 /** Font editor */
@@ -49,8 +49,8 @@ typedef struct {
 	int width;
 	/** Window height */
 	int height;
-	/** Font */
-	gfx_font_t *font;
+	/** Typeface */
+	gfx_typeface_t *typeface;
 } font_edit_t;
 
 #endif

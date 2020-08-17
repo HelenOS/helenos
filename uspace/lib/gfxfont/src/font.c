@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include "../private/font.h"
 #include "../private/glyph.h"
+#include "../private/typeface.h"
 
 /** Initialize font metrics structure.
  *
@@ -56,9 +57,31 @@ void gfx_font_metrics_init(gfx_font_metrics_t *metrics)
 	memset(metrics, 0, sizeof(gfx_font_metrics_t));
 }
 
-/** Create font in graphics context.
+/** Initialize font properties structure.
  *
- * @param gc Graphic context
+ * Font properties structure must always be initialized using this function
+ * first.
+ *
+ * @param props Font properties structure
+ */
+void gfx_font_props_init(gfx_font_props_t *props)
+{
+	memset(props, 0, sizeof(gfx_font_props_t));
+}
+
+/** Get font properties.
+ *
+ * @param finfo Font info
+ * @param props Place to store font properties
+ */
+void gfx_font_get_props(gfx_font_info_t *finfo, gfx_font_props_t *props)
+{
+	*props = finfo->props;
+}
+
+/** Create font.
+ *
+ * @param tface Typeface
  * @param metrics Font metrics
  * @param rfont Place to store pointer to new font
  *
@@ -66,47 +89,84 @@ void gfx_font_metrics_init(gfx_font_metrics_t *metrics)
  *         ENOMEM if insufficient resources, EIO if graphic device connection
  *         was lost
  */
-errno_t gfx_font_create(gfx_context_t *gc, gfx_font_metrics_t *metrics,
-    gfx_font_t **rfont)
+errno_t gfx_font_create(gfx_typeface_t *tface, gfx_font_props_t *props,
+    gfx_font_metrics_t *metrics, gfx_font_t **rfont)
 {
-	gfx_font_t *font;
+	gfx_font_info_t *finfo = NULL;
+	gfx_font_t *font = NULL;
 	gfx_bitmap_params_t params;
 	errno_t rc;
 
-	font = calloc(1, sizeof(gfx_font_t));
-	if (font == NULL)
-		return ENOMEM;
+	finfo = calloc(1, sizeof(gfx_font_info_t));
+	if (finfo == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
 
-	font->gc = gc;
+	font = calloc(1, sizeof(gfx_font_t));
+	if (font == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	finfo->typeface = tface;
+	finfo->props = *props;
+	finfo->font = font;
+	font->typeface = tface;
 
 	rc = gfx_font_set_metrics(font, metrics);
 	if (rc != EOK) {
 		assert(rc == EINVAL);
-		free(font);
-		return rc;
+		goto error;
 	}
 
 	/* Create font bitmap */
 	gfx_bitmap_params_init(&params);
 	params.rect = font->rect;
 
-	rc = gfx_bitmap_create(font->gc, &params, NULL, &font->bitmap);
-	if (rc != EOK) {
-		free(font);
-		return rc;
-	}
+	rc = gfx_bitmap_create(tface->gc, &params, NULL, &font->bitmap);
+	if (rc != EOK)
+		goto error;
 
 	font->metrics = *metrics;
 	list_initialize(&font->glyphs);
+	list_append(&finfo->lfonts, &tface->fonts);
 	*rfont = font;
+	return EOK;
+error:
+	if (finfo != NULL)
+		free(finfo);
+	if (font != NULL)
+		free(font);
+	return rc;
+}
+
+/** Open font.
+ *
+ * @param finfo Font info
+ * @param rfont Place to store pointer to open font
+ * @return EOK on success or an error code
+ */
+errno_t gfx_font_open(gfx_font_info_t *finfo, gfx_font_t **rfont)
+{
+	if (finfo->font == NULL) {
+		/*
+		 * We cannot load an absent font yet.
+		 * This should not happen.
+		 */
+		assert(false);
+		return ENOTSUP;
+	}
+
+	*rfont = finfo->font;
 	return EOK;
 }
 
-/** Destroy font.
+/** Close font.
  *
  * @param font Font
  */
-void gfx_font_destroy(gfx_font_t *font)
+void gfx_font_close(gfx_font_t *font)
 {
 	gfx_glyph_t *glyph;
 
@@ -231,7 +291,7 @@ errno_t gfx_font_splice_at_glyph(gfx_font_t *font, gfx_glyph_t *glyph,
 	if (height > params.rect.p1.y)
 		params.rect.p1.y = height;
 
-	rc = gfx_bitmap_create(font->gc, &params, NULL, &nbitmap);
+	rc = gfx_bitmap_create(font->typeface->gc, &params, NULL, &nbitmap);
 	if (rc != EOK)
 		goto error;
 

@@ -37,7 +37,9 @@
 #include <fibril.h>
 #include <guigfx/canvas.h>
 #include <gfx/color.h>
+#include <gfx/font.h>
 #include <gfx/render.h>
+#include <gfx/typeface.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,7 +118,9 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 	surface_t *surface = NULL;
 	canvas_t *canvas = NULL;
 	font_edit_t *fedit = NULL;
+	gfx_typeface_t *tface = NULL;
 	gfx_font_t *font = NULL;
+	gfx_font_props_t props;
 	gfx_font_metrics_t metrics;
 	gfx_coord_t vw, vh;
 	gfx_context_t *gc;
@@ -177,9 +181,17 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 	}
 
 	gc = canvas_gc_get_ctx(cgc);
+
+	rc = gfx_typeface_create(gc, &tface);
+	if (rc != EOK) {
+		printf("Error creating typeface.\n");
+		goto error;
+	}
+
+	gfx_font_props_init(&props);
 	gfx_font_metrics_init(&metrics);
 
-	rc = gfx_font_create(gc, &metrics, &font);
+	rc = gfx_font_create(tface, &props, &metrics, &font);
 	if (rc != EOK) {
 		printf("Error creating font.\n");
 		goto error;
@@ -189,7 +201,7 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 	fedit->gc = gc;
 	fedit->width = vw;
 	fedit->height = vh;
-	fedit->font = font;
+	fedit->typeface = tface;
 
 	*rfedit = fedit;
 	return EOK;

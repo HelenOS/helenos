@@ -36,7 +36,6 @@
 #include <errno.h>
 #include <gfx/bitmap.h>
 #include <gfx/coord.h>
-#include <gfx/font.h>
 #include <gfx/glyph_bmp.h>
 #include <io/pixelmap.h>
 #include <stdlib.h>

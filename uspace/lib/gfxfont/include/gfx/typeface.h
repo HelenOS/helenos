@@ -26,13 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libgfxfont
+ * @{
+ */
+/**
+ * @file Typeface
+ */
 
-PCUT_INIT;
+#ifndef _GFX_TYPEFACE_H
+#define _GFX_TYPEFACE_H
 
-PCUT_IMPORT(font);
-PCUT_IMPORT(glyph);
-PCUT_IMPORT(glyph_bmp);
-PCUT_IMPORT(typeface);
+#include <errno.h>
+#include <stddef.h>
+#include <types/gfx/context.h>
+#include <types/gfx/font.h>
+#include <types/gfx/glyph.h>
+#include <types/gfx/typeface.h>
 
-PCUT_MAIN();
+extern errno_t gfx_typeface_create(gfx_context_t *, gfx_typeface_t **);
+extern void gfx_typeface_destroy(gfx_typeface_t *);
+extern gfx_font_info_t *gfx_typeface_first_font(gfx_typeface_t *);
+extern gfx_font_info_t *gfx_typeface_next_font(gfx_font_info_t *);
+
+#endif
+
+/** @}
+ */

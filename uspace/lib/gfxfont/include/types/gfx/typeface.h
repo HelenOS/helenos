@@ -26,13 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libgfxfont
+ * @{
+ */
+/**
+ * @file Font types
+ */
 
-PCUT_INIT;
+#ifndef _TYPES_GFX_TYPEFACE_H
+#define _TYPES_GFX_TYPEFACE_H
 
-PCUT_IMPORT(font);
-PCUT_IMPORT(glyph);
-PCUT_IMPORT(glyph_bmp);
-PCUT_IMPORT(typeface);
+#include <types/gfx/coord.h>
 
-PCUT_MAIN();
+struct gfx_typeface;
+typedef struct gfx_typeface gfx_typeface_t;
+
+/** Font metrics */
+typedef struct {
+	/** Ascent */
+	gfx_coord_t ascent;
+	/** Descent */
+	gfx_coord_t descent;
+	/** Leading */
+	gfx_coord_t leading;
+} gfx_font_metrics_t;
+
+/** Text metrics */
+typedef struct {
+	/** Bounding rectangle (not including oversize elements) */
+	gfx_rect_t bounds;
+} gfx_text_metrics_t;
+
+#endif
+
+/** @}
+ */
