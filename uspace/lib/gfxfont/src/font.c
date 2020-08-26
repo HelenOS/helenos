@@ -112,7 +112,13 @@ errno_t gfx_font_create(gfx_typeface_t *tface, gfx_font_props_t *props,
 	finfo->typeface = tface;
 	finfo->props = *props;
 	finfo->font = font;
+
 	font->typeface = tface;
+
+	font->rect.p0.x = 0;
+	font->rect.p0.y = 0;
+	font->rect.p1.x = 1;
+	font->rect.p1.y = 1;
 
 	rc = gfx_font_set_metrics(font, metrics);
 	if (rc != EOK) {

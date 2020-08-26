@@ -36,6 +36,8 @@
 #ifndef FONTEDIT_H
 #define FONTEDIT_H
 
+#include <gfx/glyph.h>
+#include <gfx/glyph_bmp.h>
 #include <gfx/typeface.h>
 #include <guigfx/canvas.h>
 
@@ -51,6 +53,10 @@ typedef struct {
 	int height;
 	/** Typeface */
 	gfx_typeface_t *typeface;
+	/** Glyph */
+	gfx_glyph_t *glyph;
+	/** Glyph bitmap */
+	gfx_glyph_bmp_t *gbmp;
 } font_edit_t;
 
 #endif

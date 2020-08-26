@@ -38,6 +38,7 @@
 #include <guigfx/canvas.h>
 #include <gfx/color.h>
 #include <gfx/font.h>
+#include <gfx/glyph.h>
 #include <gfx/render.h>
 #include <gfx/typeface.h>
 #include <stdbool.h>
@@ -47,6 +48,12 @@
 #include <task.h>
 #include <window.h>
 #include "fontedit.h"
+
+enum {
+	glyph_scale = 8
+};
+
+static errno_t font_edit_paint(font_edit_t *);
 
 /** Clear screen.
  *
@@ -85,6 +92,74 @@ error:
 	return rc;
 }
 
+/** Handle font editor position event.
+ *
+ * @param widget Canvas widget
+ * @param data Position event
+ */
+static void font_edit_pos_event(widget_t *widget, void *data)
+{
+	pos_event_t *event = (pos_event_t *) data;
+	font_edit_t *fedit;
+
+	fedit = (font_edit_t *) widget_get_data(widget);
+
+	if (event->type == POS_PRESS) {
+		gfx_glyph_bmp_setpix(fedit->gbmp, event->hpos / glyph_scale,
+		    event->vpos / glyph_scale, 1);
+		font_edit_paint(fedit);
+	}
+}
+
+/** Paint glyph bitmap.
+ *
+ * @param fedit Font editor
+ */
+static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
+{
+	gfx_color_t *color = NULL;
+	gfx_rect_t rect;
+	errno_t rc;
+	int w, h;
+	int x, y;
+	int pix;
+
+	w = 50;
+	h = 50;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(fedit->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	for (y = 0; y < h; y++) {
+		for (x = 0; x < w; x++) {
+			pix = gfx_glyph_bmp_getpix(fedit->gbmp, x, y);
+
+			rect.p0.x = x * glyph_scale;
+			rect.p0.y = y * glyph_scale;
+			rect.p1.x = (x + 1) * glyph_scale;
+			rect.p1.y = (y + 1) * glyph_scale;
+
+			if (pix != 0) {
+				rc = gfx_fill_rect(fedit->gc, &rect);
+				if (rc != EOK)
+					goto error;
+			}
+		}
+	}
+
+	gfx_color_delete(color);
+	return EOK;
+error:
+	if (color != NULL)
+		gfx_color_delete(color);
+	return rc;
+}
+
 /** Paint font editor.
  *
  * @param fedit Font editor
@@ -98,6 +173,10 @@ static errno_t font_edit_paint(font_edit_t *fedit)
 	h = fedit->height;
 
 	rc = clear_scr(fedit->gc, w, h);
+	if (rc != EOK)
+		return rc;
+
+	rc = font_edit_paint_gbmp(fedit);
 	if (rc != EOK)
 		return rc;
 
@@ -122,6 +201,9 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 	gfx_font_t *font = NULL;
 	gfx_font_props_t props;
 	gfx_font_metrics_t metrics;
+	gfx_glyph_metrics_t gmetrics;
+	gfx_glyph_t *glyph;
+	gfx_glyph_bmp_t *bmp;
 	gfx_coord_t vw, vh;
 	gfx_context_t *gc;
 	errno_t rc;
@@ -162,7 +244,7 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 	/* Memory block pixbuf is now owned by surface */
 	pixbuf = NULL;
 
-	canvas = create_canvas(window_root(window), NULL, vw, vh,
+	canvas = create_canvas(window_root(window), fedit, vw, vh,
 	    surface);
 	if (canvas == NULL) {
 		printf("Error creating canvas.\n");
@@ -197,11 +279,30 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 		goto error;
 	}
 
+	gfx_glyph_metrics_init(&gmetrics);
+
+	rc = gfx_glyph_create(font, &gmetrics, &glyph);
+	if (rc != EOK) {
+		printf("Error creating glyph.\n");
+		goto error;
+	}
+
+	rc = gfx_glyph_bmp_open(glyph, &bmp);
+	if (rc != EOK) {
+		printf("Error opening glyph bitmap.\n");
+		goto error;
+	}
+
+	sig_connect(&canvas->position_event, &canvas->widget,
+	    font_edit_pos_event);
+
 	fedit->cgc = cgc;
 	fedit->gc = gc;
 	fedit->width = vw;
 	fedit->height = vh;
 	fedit->typeface = tface;
+	fedit->glyph = glyph;
+	fedit->gbmp = bmp;
 
 	*rfedit = fedit;
 	return EOK;
@@ -211,6 +312,14 @@ error:
 	 * to leave destruction of these resources to a window destroy
 	 * handler (which we have no way of registering)
 	 */
+	if (bmp != NULL)
+		gfx_glyph_bmp_close(bmp);
+	if (glyph != NULL)
+		gfx_glyph_destroy(glyph);
+	if (font != NULL)
+		gfx_font_close(font);
+	if (tface != NULL)
+		gfx_typeface_destroy(tface);
 	if (surface != NULL)
 		surface_destroy(surface);
 	if (pixbuf != NULL)
