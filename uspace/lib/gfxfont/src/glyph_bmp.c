@@ -164,6 +164,16 @@ void gfx_glyph_bmp_close(gfx_glyph_bmp_t *bmp)
 	free(bmp);
 }
 
+/** Get rectangle covered by glyph bitmap.
+ *
+ * @param bmp Glyph bitmap
+ * @param rect Place to store rectangle
+ */
+void gfx_glyph_bmp_get_rect(gfx_glyph_bmp_t *bmp, gfx_rect_t *rect)
+{
+	*rect = bmp->rect;
+}
+
 /** Get pixel from glyph bitmap.
  *
  * @param bmp Glyph bitmap

@@ -50,7 +50,9 @@
 #include "fontedit.h"
 
 enum {
-	glyph_scale = 8
+	glyph_scale = 8,
+	glyph_orig_x = 100,
+	glyph_orig_y = 100
 };
 
 static errno_t font_edit_paint(font_edit_t *);
@@ -101,14 +103,41 @@ static void font_edit_pos_event(widget_t *widget, void *data)
 {
 	pos_event_t *event = (pos_event_t *) data;
 	font_edit_t *fedit;
+	int x, y;
 
 	fedit = (font_edit_t *) widget_get_data(widget);
 
 	if (event->type == POS_PRESS) {
-		gfx_glyph_bmp_setpix(fedit->gbmp, event->hpos / glyph_scale,
-		    event->vpos / glyph_scale, 1);
+		x = gfx_coord_div_rneg((int)event->hpos - glyph_orig_x,
+		    glyph_scale);
+		y = gfx_coord_div_rneg((int)event->vpos - glyph_orig_y,
+		    glyph_scale);
+
+		printf("x=%d y=%d\n", x, y);
+		gfx_glyph_bmp_setpix(fedit->gbmp, x, y, 1);
 		font_edit_paint(fedit);
 	}
+}
+
+/** Convert glyph pixel coordinates to displayed rectangle.
+ *
+ * Since we upscale the glyph a pixel in the glyph corresponds to a rectangle
+ * on the screen.
+ *
+ * @param fedit Font editor
+ * @param x X coordinate in glyph
+ * @param y Y coordinate in glyph
+ * @param drect Place to store displayed rectangle coordinates
+ */
+static void font_edit_gpix_to_disp(font_edit_t *fedit, int x, int y,
+    gfx_rect_t *drect)
+{
+	(void) fedit;
+
+	drect->p0.x = glyph_orig_x + x * glyph_scale;
+	drect->p0.y = glyph_orig_y + y * glyph_scale;
+	drect->p1.x = glyph_orig_x + (x + 1) * glyph_scale;
+	drect->p1.y = glyph_orig_y + (y + 1) * glyph_scale;
 }
 
 /** Paint glyph bitmap.
@@ -119,13 +148,10 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 {
 	gfx_color_t *color = NULL;
 	gfx_rect_t rect;
+	gfx_rect_t grect;
 	errno_t rc;
-	int w, h;
 	int x, y;
 	int pix;
-
-	w = 50;
-	h = 50;
 
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	if (rc != EOK)
@@ -135,16 +161,17 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 	if (rc != EOK)
 		goto error;
 
-	for (y = 0; y < h; y++) {
-		for (x = 0; x < w; x++) {
+	gfx_glyph_bmp_get_rect(fedit->gbmp, &grect);
+	printf("grect=%d,%d,%d,%d\n", grect.p0.x, grect.p0.y,
+	    grect.p1.x, grect.p1.y);
+
+	for (y = grect.p0.y; y < grect.p1.y; y++) {
+		for (x = grect.p0.x; x < grect.p1.x; x++) {
 			pix = gfx_glyph_bmp_getpix(fedit->gbmp, x, y);
 
-			rect.p0.x = x * glyph_scale;
-			rect.p0.y = y * glyph_scale;
-			rect.p1.x = (x + 1) * glyph_scale;
-			rect.p1.y = (y + 1) * glyph_scale;
-
 			if (pix != 0) {
+				font_edit_gpix_to_disp(fedit, x, y, &rect);
+
 				rc = gfx_fill_rect(fedit->gc, &rect);
 				if (rc != EOK)
 					goto error;
@@ -153,6 +180,25 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 	}
 
 	gfx_color_delete(color);
+
+	/* Display glyph origin */
+
+	rc = gfx_color_new_rgb_i16(0, 0xffff, 0, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(fedit->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	font_edit_gpix_to_disp(fedit, 0, 0, &rect);
+
+	rc = gfx_fill_rect(fedit->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
 	return EOK;
 error:
 	if (color != NULL)

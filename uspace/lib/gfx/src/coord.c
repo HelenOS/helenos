@@ -38,6 +38,27 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+/** Divide @a a by @a b and round towards negative numbers.
+ *
+ * Regular integer division always rounds towards zero. This is not useful
+ * e.g. for scaling down, where we always need to round towards negative
+ * numbers.
+ *
+ * @param a Dividend
+ * @param b Divisor
+ * @return Quotient
+ */
+gfx_coord_t gfx_coord_div_rneg(gfx_coord_t a, gfx_coord_t b)
+{
+	if ((a > 0 && b > 0) || (a < 0 && b < 0)) {
+		/* Result is non-negative, round towards zero */
+		return a / b;
+	} else {
+		/* Result is negative, round away from zero */
+		return (a - b + 1) / b;
+	}
+}
+
 /** Add two vectors.
  *
  * @param a First vector
