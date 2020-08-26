@@ -33,6 +33,25 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(coord);
 
+/** gfx_coord_div_rneg rounds towards negative numbers */
+PCUT_TEST(coord_div_rneg)
+{
+	PCUT_ASSERT_INT_EQUALS(-3, gfx_coord_div_rneg(-7, 3));
+	PCUT_ASSERT_INT_EQUALS(-2, gfx_coord_div_rneg(-6, 3));
+	PCUT_ASSERT_INT_EQUALS(-2, gfx_coord_div_rneg(-5, 3));
+	PCUT_ASSERT_INT_EQUALS(-2, gfx_coord_div_rneg(-4, 3));
+	PCUT_ASSERT_INT_EQUALS(-1, gfx_coord_div_rneg(-3, 3));
+	PCUT_ASSERT_INT_EQUALS(-1, gfx_coord_div_rneg(-2, 3));
+	PCUT_ASSERT_INT_EQUALS(-1, gfx_coord_div_rneg(-1, 3));
+	PCUT_ASSERT_INT_EQUALS(0, gfx_coord_div_rneg(0, 3));
+	PCUT_ASSERT_INT_EQUALS(0, gfx_coord_div_rneg(1, 3));
+	PCUT_ASSERT_INT_EQUALS(0, gfx_coord_div_rneg(2, 3));
+	PCUT_ASSERT_INT_EQUALS(1, gfx_coord_div_rneg(3, 3));
+	PCUT_ASSERT_INT_EQUALS(1, gfx_coord_div_rneg(4, 3));
+	PCUT_ASSERT_INT_EQUALS(1, gfx_coord_div_rneg(5, 3));
+	PCUT_ASSERT_INT_EQUALS(2, gfx_coord_div_rneg(6, 3));
+}
+
 /** gfx_coord2_add should add two coordinate vectors */
 PCUT_TEST(coord2_add)
 {
