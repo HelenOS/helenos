@@ -54,6 +54,7 @@ extern bool gfx_glyph_matches(gfx_glyph_t *, const char *, size_t *);
 extern gfx_glyph_pattern_t *gfx_glyph_first_pattern(gfx_glyph_t *);
 extern gfx_glyph_pattern_t *gfx_glyph_next_pattern(gfx_glyph_pattern_t *);
 extern const char *gfx_glyph_pattern_str(gfx_glyph_pattern_t *);
+extern errno_t gfx_glyph_render(gfx_glyph_t *, gfx_coord2_t *);
 
 #endif
 

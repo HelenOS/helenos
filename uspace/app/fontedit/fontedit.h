@@ -53,6 +53,8 @@ typedef struct {
 	int height;
 	/** Typeface */
 	gfx_typeface_t *typeface;
+	/** Font */
+	gfx_font_t *font;
 	/** Glyph */
 	gfx_glyph_t *glyph;
 	/** Glyph bitmap */

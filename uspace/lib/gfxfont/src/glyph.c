@@ -253,6 +253,20 @@ const char *gfx_glyph_pattern_str(gfx_glyph_pattern_t *pattern)
 	return pattern->text;
 }
 
+/** Render glyph to GC.
+ *
+ * @param glyph Glyph
+ * @param pos Position to render to (where glyph origin is placed)
+ */
+errno_t gfx_glyph_render(gfx_glyph_t *glyph, gfx_coord2_t *pos)
+{
+	gfx_coord2_t offs;
+
+	gfx_coord2_subtract(pos, &glyph->origin, &offs);
+
+	return gfx_bitmap_render(glyph->font->bitmap, &glyph->rect, &offs);
+}
+
 /** Transfer glyph to new font bitmap.
  *
  * @param glyph Glyph

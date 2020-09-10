@@ -247,7 +247,7 @@ gfx_glyph_t *gfx_font_next_glyph(gfx_glyph_t *cur)
  * @param rsize Place to store number of bytes to advance in the string
  * @return EOK on success, ENOENT if no matching glyph was found
  */
-int gfx_font_search_glyph(gfx_font_t *font, const char *str,
+errno_t gfx_font_search_glyph(gfx_font_t *font, const char *str,
     gfx_glyph_t **rglyph, size_t *rsize)
 {
 	gfx_glyph_t *glyph;

@@ -119,6 +119,27 @@ static void font_edit_pos_event(widget_t *widget, void *data)
 	}
 }
 
+/** Handle font editor keyboard event.
+ *
+ * @param widget Canvas widget
+ * @param data Position event
+ */
+static void font_edit_kbd_event(widget_t *widget, void *data)
+{
+	kbd_event_t *event = (kbd_event_t *) data;
+	font_edit_t *fedit;
+
+	fedit = (font_edit_t *) widget_get_data(widget);
+
+	if (event->type == KEY_PRESS) {
+		if (event->key == KC_S) {
+			printf("Save!\n");
+			(void) gfx_glyph_bmp_save(fedit->gbmp);
+			font_edit_paint(fedit);
+		}
+	}
+}
+
 /** Convert glyph pixel coordinates to displayed rectangle.
  *
  * Since we upscale the glyph a pixel in the glyph corresponds to a rectangle
@@ -138,6 +159,43 @@ static void font_edit_gpix_to_disp(font_edit_t *fedit, int x, int y,
 	drect->p0.y = glyph_orig_y + y * glyph_scale;
 	drect->p1.x = glyph_orig_x + (x + 1) * glyph_scale;
 	drect->p1.y = glyph_orig_y + (y + 1) * glyph_scale;
+}
+
+/** Paint font preview.
+ *
+ * @param fedit Font editor
+ */
+static errno_t font_edit_paint_preview(font_edit_t *fedit)
+{
+	gfx_glyph_metrics_t gmetrics;
+	size_t stradv;
+	const char *cp;
+	gfx_glyph_t *glyph;
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	cp = "ABCD";
+	pos.x = 20;
+	pos.y = 20;
+
+	while (*cp != '\0') {
+		rc = gfx_font_search_glyph(fedit->font, cp, &glyph, &stradv);
+		if (rc != EOK) {
+			++cp;
+			continue;
+		}
+
+		gfx_glyph_get_metrics(glyph, &gmetrics);
+
+		rc = gfx_glyph_render(glyph, &pos);
+		if (rc != EOK)
+			return rc;
+
+		cp += stradv;
+		pos.x += gmetrics.advance;
+	}
+
+	return EOK;
 }
 
 /** Paint glyph bitmap.
@@ -223,6 +281,10 @@ static errno_t font_edit_paint(font_edit_t *fedit)
 		return rc;
 
 	rc = font_edit_paint_gbmp(fedit);
+	if (rc != EOK)
+		return rc;
+
+	rc = font_edit_paint_preview(fedit);
 	if (rc != EOK)
 		return rc;
 
@@ -333,6 +395,12 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 		goto error;
 	}
 
+	rc = gfx_glyph_set_pattern(glyph, "A");
+	if (rc != EOK) {
+		printf("Error setting glyph pattern.\n");
+		goto error;
+	}
+
 	rc = gfx_glyph_bmp_open(glyph, &bmp);
 	if (rc != EOK) {
 		printf("Error opening glyph bitmap.\n");
@@ -341,12 +409,15 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 
 	sig_connect(&canvas->position_event, &canvas->widget,
 	    font_edit_pos_event);
+	sig_connect(&canvas->keyboard_event, &canvas->widget,
+	    font_edit_kbd_event);
 
 	fedit->cgc = cgc;
 	fedit->gc = gc;
 	fedit->width = vw;
 	fedit->height = vh;
 	fedit->typeface = tface;
+	fedit->font = font;
 	fedit->glyph = glyph;
 	fedit->gbmp = bmp;
 
