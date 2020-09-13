@@ -114,7 +114,7 @@ static void font_edit_pos_event(widget_t *widget, void *data)
 		    glyph_scale);
 
 		printf("x=%d y=%d\n", x, y);
-		gfx_glyph_bmp_setpix(fedit->gbmp, x, y, 1);
+		gfx_glyph_bmp_setpix(fedit->gbmp, x, y, fedit->pen_color);
 		font_edit_paint(fedit);
 	}
 }
@@ -132,10 +132,22 @@ static void font_edit_kbd_event(widget_t *widget, void *data)
 	fedit = (font_edit_t *) widget_get_data(widget);
 
 	if (event->type == KEY_PRESS) {
-		if (event->key == KC_S) {
+		switch (event->key) {
+		case KC_S:
 			printf("Save!\n");
 			(void) gfx_glyph_bmp_save(fedit->gbmp);
 			font_edit_paint(fedit);
+			break;
+		case KC_1:
+			printf("Set pixels\n");
+			fedit->pen_color = 1;
+			break;
+		case KC_2:
+			printf("Clear pixels\n");
+			fedit->pen_color = 0;
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -416,6 +428,7 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 	fedit->gc = gc;
 	fedit->width = vw;
 	fedit->height = vh;
+	fedit->pen_color = 1;
 	fedit->typeface = tface;
 	fedit->font = font;
 	fedit->glyph = glyph;

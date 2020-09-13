@@ -51,6 +51,8 @@ typedef struct {
 	int width;
 	/** Window height */
 	int height;
+	/** Pen color (1 = set, 0 = reset) */
+	int pen_color;
 	/** Typeface */
 	gfx_typeface_t *typeface;
 	/** Font */
