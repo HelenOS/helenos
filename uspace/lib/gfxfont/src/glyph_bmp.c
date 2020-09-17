@@ -65,12 +65,11 @@ errno_t gfx_glyph_bmp_open(gfx_glyph_t *glyph, gfx_glyph_bmp_t **rbmp)
 	if (bmp == NULL)
 		return ENOMEM;
 
-	bmp->rect.p0.x = 0;
-	bmp->rect.p0.y = 0;
-	bmp->rect.p1.x = glyph->rect.p1.x - glyph->rect.p0.x;
-	bmp->rect.p1.y = glyph->rect.p1.y - glyph->rect.p0.y;
+	/* Bitmap coordinates are relative to glyph origin point */
+	gfx_rect_rtranslate(&glyph->origin, &glyph->rect, &bmp->rect);
 
-	bmp->pixels = calloc(bmp->rect.p1.x * bmp->rect.p1.y, sizeof(int));
+	bmp->pixels = calloc((bmp->rect.p1.x - bmp->rect.p0.x) *
+	    (bmp->rect.p1.y - bmp->rect.p0.y), sizeof(int));
 	if (bmp->pixels == NULL) {
 		free(bmp);
 		return ENOMEM;
@@ -91,12 +90,13 @@ errno_t gfx_glyph_bmp_open(gfx_glyph_t *glyph, gfx_glyph_bmp_t **rbmp)
 
 	/* Copy pixels from font bitmap */
 
-	for (y = 0; y < bmp->rect.p1.y; y++) {
-		for (x = 0; x < bmp->rect.p1.x; x++) {
-			pixel = pixelmap_get_pixel(&pmap, glyph->rect.p0.x + x,
-			    glyph->rect.p0.y + y);
-			bmp->pixels[y * bmp->rect.p1.x + x] =
-			    (pixel != 0) ? 1 : 0;
+	for (y = bmp->rect.p0.y; y < bmp->rect.p1.y; y++) {
+		for (x = bmp->rect.p0.x; x < bmp->rect.p1.x; x++) {
+			pixel = pixelmap_get_pixel(&pmap, glyph->origin.x + x,
+			    glyph->origin.y + y);
+			bmp->pixels[(y - bmp->rect.p0.y) *
+			    (bmp->rect.p1.x - bmp->rect.p0.x) +
+			    (x - bmp->rect.p0.x)] = (pixel != 0) ? 1 : 0;
 		}
 	}
 
@@ -125,8 +125,7 @@ errno_t gfx_glyph_bmp_save(gfx_glyph_bmp_t *bmp)
 	 * of the empty equal to new glyph bitmap width. The glyph width
 	 * is adjusted.
 	 */
-	rc = gfx_font_splice_at_glyph(font, glyph,
-	    bmp->rect.p1.x - bmp->rect.p0.x, bmp->rect.p1.y - bmp->rect.p0.y);
+	rc = gfx_font_splice_at_glyph(font, glyph, &bmp->rect);
 	if (rc != EOK)
 		return rc;
 
@@ -142,12 +141,14 @@ errno_t gfx_glyph_bmp_save(gfx_glyph_bmp_t *bmp)
 
 	/* Copy pixels to font bitmap */
 
-	for (y = 0; y < bmp->rect.p1.y; y++) {
-		for (x = 0; x < bmp->rect.p1.x; x++) {
-			pixel = bmp->pixels[y * bmp->rect.p1.x + x] ?
+	for (y = bmp->rect.p0.y; y < bmp->rect.p1.y; y++) {
+		for (x = bmp->rect.p0.x; x < bmp->rect.p1.x; x++) {
+			pixel = bmp->pixels[(y - bmp->rect.p0.y) *
+			    (bmp->rect.p1.x - bmp->rect.p0.x) +
+			    (x - bmp->rect.p0.x)] ?
 			    PIXEL(255, 255, 255, 255) : PIXEL(0, 0, 0, 0);
-			pixelmap_put_pixel(&pmap, glyph->rect.p0.x + x,
-			    glyph->rect.p0.y + y, pixel);
+			pixelmap_put_pixel(&pmap, glyph->origin.x + x,
+			    glyph->origin.y + y, pixel);
 		}
 	}
 
@@ -192,6 +193,7 @@ int gfx_glyph_bmp_getpix(gfx_glyph_bmp_t *bmp, gfx_coord_t x, gfx_coord_t y)
 		return 0;
 
 	pitch = bmp->rect.p1.x - bmp->rect.p0.x;
+
 	return bmp->pixels[(y - bmp->rect.p0.y) * pitch +
 	    (x - bmp->rect.p0.x)];
 }
@@ -213,6 +215,7 @@ errno_t gfx_glyph_bmp_setpix(gfx_glyph_bmp_t *bmp, gfx_coord_t x,
 
 	pos.x = x;
 	pos.y = y;
+
 	if (!gfx_pix_inside_rect(&pos, &bmp->rect)) {
 		rc = gfx_glyph_bmp_extend(bmp, &pos);
 		if (rc != EOK)

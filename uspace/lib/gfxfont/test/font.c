@@ -331,6 +331,7 @@ PCUT_TEST(splice_at_glyph)
 	gfx_glyph_metrics_t gmetrics;
 	gfx_glyph_t *glyph;
 	gfx_context_t *gc;
+	gfx_rect_t nrect;
 	test_gc_t tgc;
 	errno_t rc;
 
@@ -349,7 +350,11 @@ PCUT_TEST(splice_at_glyph)
 	rc = gfx_glyph_create(font, &gmetrics, &glyph);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = gfx_font_splice_at_glyph(font, glyph, 10, 10);
+	nrect.p0.x = -5;
+	nrect.p0.y = -5;
+	nrect.p1.x = 5;
+	nrect.p1.y = 5;
+	rc = gfx_font_splice_at_glyph(font, glyph, &nrect);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_glyph_destroy(glyph);

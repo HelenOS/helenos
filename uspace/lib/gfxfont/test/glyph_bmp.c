@@ -184,7 +184,40 @@ PCUT_TEST(save)
 	pix = gfx_glyph_bmp_getpix(bmp, 0, 1);
 	PCUT_ASSERT_INT_EQUALS(0, pix);
 
+	/* ... */
+
+	rc = gfx_glyph_bmp_setpix(bmp, 1, -1, 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_glyph_bmp_save(bmp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	gfx_glyph_bmp_close(bmp);
+
+	/* Once again */
+
+	rc = gfx_glyph_bmp_open(glyph, &bmp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(bmp);
+
+	pix = gfx_glyph_bmp_getpix(bmp, 0, 0);
+	PCUT_ASSERT_INT_EQUALS(1, pix);
+
+	pix = gfx_glyph_bmp_getpix(bmp, 1, 1);
+	PCUT_ASSERT_INT_EQUALS(1, pix);
+
+	pix = gfx_glyph_bmp_getpix(bmp, 1, 0);
+	PCUT_ASSERT_INT_EQUALS(0, pix);
+
+	pix = gfx_glyph_bmp_getpix(bmp, 0, 1);
+	PCUT_ASSERT_INT_EQUALS(0, pix);
+
+	pix = gfx_glyph_bmp_getpix(bmp, 1, -1);
+	PCUT_ASSERT_INT_EQUALS(1, pix);
+
+	pix = gfx_glyph_bmp_getpix(bmp, 0, -1);
+	PCUT_ASSERT_INT_EQUALS(0, pix);
+
 	gfx_glyph_destroy(glyph);
 
 	gfx_font_close(font);

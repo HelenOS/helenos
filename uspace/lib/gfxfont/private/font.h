@@ -83,7 +83,7 @@ struct gfx_font_info {
 };
 
 extern errno_t gfx_font_splice_at_glyph(gfx_font_t *, gfx_glyph_t *,
-    gfx_coord_t, gfx_coord_t);
+    gfx_rect_t *);
 
 #endif
 

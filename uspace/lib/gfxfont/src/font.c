@@ -270,36 +270,44 @@ errno_t gfx_font_search_glyph(gfx_font_t *font, const char *str,
 /** Replace glyph graphic with empty space of specified width.
  *
  * This is used to resize a glyph in the font bitmap. This changes
- * the bitmap widht and might also make the bitmap taller.
- * Width and height of the glyph is also adjusted accordingly.
+ * the bitmap widht might also make the bitmap taller.
+ * Dimensions of the glyph are also adjusted according to @a nrect.
  *
  * @param font Font
  * @param glyph Glyph to replace
- * @param width Width of replacement space
- * @param height Height of replacement space
+ * @param nrect Replacement rectangle
  */
 errno_t gfx_font_splice_at_glyph(gfx_font_t *font, gfx_glyph_t *glyph,
-    gfx_coord_t width, gfx_coord_t height)
+    gfx_rect_t *nrect)
 {
 	gfx_glyph_t *g;
 	gfx_bitmap_t *nbitmap;
 	gfx_bitmap_params_t params;
 	gfx_coord_t dwidth;
+	gfx_coord_t x0;
 	errno_t rc;
 
 	/* Change of width of glyph */
-	dwidth = width - (glyph->rect.p1.x - glyph->rect.p0.x);
+	dwidth = (nrect->p1.x - nrect->p0.x) -
+	    (glyph->rect.p1.x - glyph->rect.p0.x);
 
 	/* Create new font bitmap, wider by dwidth pixels */
 	gfx_bitmap_params_init(&params);
 	params.rect = font->rect;
 	params.rect.p1.x += dwidth;
-	if (height > params.rect.p1.y)
-		params.rect.p1.y = height;
+	if (nrect->p1.y - nrect->p0.y > params.rect.p1.y)
+		params.rect.p1.y = nrect->p1.y - nrect->p0.y;
 
 	rc = gfx_bitmap_create(font->typeface->gc, &params, NULL, &nbitmap);
 	if (rc != EOK)
 		goto error;
+
+	/*
+	 * In x0 we compute the left margin of @a glyph. We start with
+	 * zero and then, if there are any preceding glyphs, we set it
+	 * to the right margin of the last one.
+	 */
+	x0 = 0;
 
 	/* Transfer glyphs before @a glyph */
 	g = gfx_font_first_glyph(font);
@@ -309,6 +317,9 @@ errno_t gfx_font_splice_at_glyph(gfx_font_t *font, gfx_glyph_t *glyph,
 		rc = gfx_glyph_transfer(g, 0, nbitmap, &params.rect);
 		if (rc != EOK)
 			goto error;
+
+		/* Left margin of the next glyph */
+		x0 = g->rect.p1.x;
 
 		g = gfx_font_next_glyph(g);
 	}
@@ -330,9 +341,10 @@ errno_t gfx_font_splice_at_glyph(gfx_font_t *font, gfx_glyph_t *glyph,
 		g = gfx_font_next_glyph(g);
 	}
 
-	/* Update glyph width and height */
-	glyph->rect.p1.x = glyph->rect.p0.x + width;
-	glyph->rect.p1.y = glyph->rect.p0.y + height;
+	/* Place glyph rectangle inside the newly created space */
+	glyph->origin.x = x0 - nrect->p0.x;
+	glyph->origin.y = 0 - nrect->p0.y;
+	gfx_rect_translate(&glyph->origin, nrect, &glyph->rect);
 
 	/* Update font bitmap */
 	gfx_bitmap_destroy(font->bitmap);
