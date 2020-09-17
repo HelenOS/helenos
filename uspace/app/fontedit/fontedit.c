@@ -94,6 +94,21 @@ error:
 	return rc;
 }
 
+/** Adjust advance of the current glyph.
+ *
+ * @param fedit Font editor
+ */
+static void font_edit_adjust_advance(font_edit_t *fedit, gfx_coord_t change)
+{
+	gfx_glyph_metrics_t gmetrics;
+
+	gfx_glyph_get_metrics(fedit->glyph, &gmetrics);
+	gmetrics.advance += change;
+	(void) gfx_glyph_set_metrics(fedit->glyph, &gmetrics);
+
+	font_edit_paint(fedit);
+}
+
 /** Handle font editor position event.
  *
  * @param widget Canvas widget
@@ -119,6 +134,106 @@ static void font_edit_pos_event(widget_t *widget, void *data)
 	}
 }
 
+/** Handle font editor control-key press.
+ *
+ * @param widget Canvas widget
+ * @param data Position event
+ */
+static void font_edit_ctrl_key(font_edit_t *fedit, kbd_event_t *event)
+{
+	switch (event->key) {
+	case KC_S:
+		printf("Save!\n");
+		(void) gfx_glyph_bmp_save(fedit->gbmp);
+		font_edit_paint(fedit);
+		break;
+	case KC_1:
+		printf("Set pixels\n");
+		fedit->pen_color = 1;
+		break;
+	case KC_2:
+		printf("Clear pixels\n");
+		fedit->pen_color = 0;
+		break;
+	case KC_3:
+		font_edit_adjust_advance(fedit, -1);
+		break;
+	case KC_4:
+		font_edit_adjust_advance(fedit, +1);
+		break;
+	default:
+		break;
+	}
+}
+
+/** Handle font editor unmodified key press.
+ *
+ * @param widget Canvas widget
+ * @param data Position event
+ */
+static void font_edit_unmod_key(font_edit_t *fedit, kbd_event_t *event)
+{
+	char str[5];
+	gfx_glyph_metrics_t gmetrics;
+	gfx_glyph_t *glyph;
+	gfx_glyph_bmp_t *bmp;
+	size_t stradv;
+	errno_t rc;
+
+	if (event->c == '\0')
+		return;
+
+	printf("Character '%lc'\n", event->c);
+	snprintf(str, sizeof(str), "%lc", event->c);
+
+	rc = gfx_font_search_glyph(fedit->font, str, &glyph, &stradv);
+	if (rc == EOK) {
+		/* Found an existing glyph */
+		rc = gfx_glyph_bmp_open(glyph, &bmp);
+		if (rc != EOK) {
+			printf("Error opening glyph bitmap.\n");
+			return;
+		}
+
+		gfx_glyph_bmp_close(fedit->gbmp);
+		fedit->glyph = glyph;
+		fedit->gbmp = bmp;
+		font_edit_paint(fedit);
+		return;
+	}
+
+	/* Create new glyph */
+
+	gfx_glyph_metrics_init(&gmetrics);
+	rc = gfx_glyph_create(fedit->font, &gmetrics, &glyph);
+	if (rc != EOK) {
+		printf("Error creating glyph.\n");
+		goto error;
+	}
+
+	rc = gfx_glyph_set_pattern(glyph, str);
+	if (rc != EOK) {
+		printf("Error setting glyph pattern.\n");
+		goto error;
+	}
+
+	rc = gfx_glyph_bmp_open(glyph, &bmp);
+	if (rc != EOK) {
+		printf("Error opening glyph bitmap.\n");
+		goto error;
+	}
+
+	gfx_glyph_bmp_close(fedit->gbmp);
+	fedit->glyph = glyph;
+	fedit->gbmp = bmp;
+	font_edit_paint(fedit);
+	return;
+error:
+	if (glyph != NULL)
+		gfx_glyph_destroy(glyph);
+	return;
+}
+
 /** Handle font editor keyboard event.
  *
  * @param widget Canvas widget
@@ -131,24 +246,14 @@ static void font_edit_kbd_event(widget_t *widget, void *data)
 
 	fedit = (font_edit_t *) widget_get_data(widget);
 
-	if (event->type == KEY_PRESS) {
-		switch (event->key) {
-		case KC_S:
-			printf("Save!\n");
-			(void) gfx_glyph_bmp_save(fedit->gbmp);
-			font_edit_paint(fedit);
-			break;
-		case KC_1:
-			printf("Set pixels\n");
-			fedit->pen_color = 1;
-			break;
-		case KC_2:
-			printf("Clear pixels\n");
-			fedit->pen_color = 0;
-			break;
-		default:
-			break;
-		}
+	if (event->type != KEY_PRESS)
+		return;
+
+	if ((event->mods & KM_CTRL) != 0 &&
+	    (event->mods & (KM_ALT | KM_SHIFT)) == 0) {
+		font_edit_ctrl_key(fedit, event);
+	} else if ((event->mods & (KM_CTRL | KM_ALT)) == 0) {
+		font_edit_unmod_key(fedit, event);
 	}
 }
 
@@ -219,6 +324,7 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 	gfx_color_t *color = NULL;
 	gfx_rect_t rect;
 	gfx_rect_t grect;
+	gfx_glyph_metrics_t gmetrics;
 	errno_t rc;
 	int x, y;
 	int pix;
@@ -251,7 +357,7 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 
 	gfx_color_delete(color);
 
-	/* Display glyph origin */
+	/* Display glyph origin and advance */
 
 	rc = gfx_color_new_rgb_i16(0, 0xffff, 0, &color);
 	if (rc != EOK)
@@ -262,6 +368,14 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 		goto error;
 
 	font_edit_gpix_to_disp(fedit, 0, 0, &rect);
+
+	rc = gfx_fill_rect(fedit->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_glyph_get_metrics(fedit->glyph, &gmetrics);
+
+	font_edit_gpix_to_disp(fedit, gmetrics.advance, 0, &rect);
 
 	rc = gfx_fill_rect(fedit->gc, &rect);
 	if (rc != EOK)
