@@ -48,7 +48,7 @@
  * @return EOK on success, ENOMEM if out of memory, EIO if failed to open
  *         file.
  */
-int riff_wopen(const char *fname, riffw_t **rrw)
+errno_t riff_wopen(const char *fname, riffw_t **rrw)
 {
 	riffw_t *rw;
 
@@ -72,7 +72,7 @@ int riff_wopen(const char *fname, riffw_t **rrw)
  * @return EOK on success. On write error EIO is returned and RIFF writer
  *         is destroyed anyway.
  */
-int riff_wclose(riffw_t *rw)
+errno_t riff_wclose(riffw_t *rw)
 {
 	int rv;
 
@@ -88,7 +88,7 @@ int riff_wclose(riffw_t *rw)
  * @param v  Value
  * @return EOK on success, EIO on error.
  */
-int riff_write_uint32(riffw_t *rw, uint32_t v)
+errno_t riff_write_uint32(riffw_t *rw, uint32_t v)
 {
 	uint32_t vle;
 
@@ -107,10 +107,10 @@ int riff_write_uint32(riffw_t *rw, uint32_t v)
  *
  * @return EOK on success, EIO on write error
  */
-int riff_wchunk_start(riffw_t *rw, riff_ckid_t ckid, riff_wchunk_t *wchunk)
+errno_t riff_wchunk_start(riffw_t *rw, riff_ckid_t ckid, riff_wchunk_t *wchunk)
 {
 	long pos;
-	int rc;
+	errno_t rc;
 
 	pos = ftell(rw->f);
 	if (pos < 0)
@@ -140,11 +140,11 @@ int riff_wchunk_start(riffw_t *rw, riff_ckid_t ckid, riff_wchunk_t *wchunk)
  *
  * @return EOK on success, EIO error.
  */
-int riff_wchunk_end(riffw_t *rw, riff_wchunk_t *wchunk)
+errno_t riff_wchunk_end(riffw_t *rw, riff_wchunk_t *wchunk)
 {
 	long pos;
 	long cksize;
-	int rc;
+	errno_t rc;
 
 	pos = ftell(rw->f);
 	if (pos < 0)
@@ -175,7 +175,7 @@ int riff_wchunk_end(riffw_t *rw, riff_wchunk_t *wchunk)
  *
  * @return EOK on success, EIO on error.
  */
-int riff_wchunk_write(riffw_t *rw, void *data, size_t bytes)
+errno_t riff_wchunk_write(riffw_t *rw, void *data, size_t bytes)
 {
 	size_t nw;
 
@@ -194,10 +194,10 @@ int riff_wchunk_write(riffw_t *rw, void *data, size_t bytes)
  * @return EOK on success, ENOMEM if out of memory, EIO if failed to open
  *         file..
  */
-int riff_ropen(const char *fname, riffr_t **rrr)
+errno_t riff_ropen(const char *fname, riffr_t **rrr)
 {
 	riffr_t *rr;
-	int rc;
+	errno_t rc;
 
 	rr = calloc(1, sizeof(riffr_t));
 	if (rr == NULL) {
@@ -225,9 +225,9 @@ error:
  * @param rr RIFF reader
  * @return EOK on success, EIO on error.
  */
-int riff_rclose(riffr_t *rr)
+errno_t riff_rclose(riffr_t *rr)
 {
-	int rc;
+	errno_t rc;
 
 	rc = fclose(rr->f);
 	free(rr);
@@ -240,7 +240,7 @@ int riff_rclose(riffr_t *rr)
  * @param v  Place to store value
  * @return EOK on success, EIO on error.
  */
-int riff_read_uint32(riffr_t *rr, uint32_t *v)
+errno_t riff_read_uint32(riffr_t *rr, uint32_t *v)
 {
 	uint32_t vle;
 
@@ -258,9 +258,9 @@ int riff_read_uint32(riffr_t *rr, uint32_t *v)
  *
  * @return EOK on success, EIO on error.
  */
-int riff_rchunk_start(riffr_t *rr, riff_rchunk_t *rchunk)
+errno_t riff_rchunk_start(riffr_t *rr, riff_rchunk_t *rchunk)
 {
-	int rc;
+	errno_t rc;
 	long pos;
 
 	pos = ftell(rr->f);
@@ -316,7 +316,7 @@ static long riff_rchunk_get_ndpos(riff_rchunk_t *rchunk)
  * @param rchunk Chunk structure
  * @return EOK on success, EIO on error.
  */
-int riff_rchunk_end(riffr_t *rr, riff_rchunk_t *rchunk)
+errno_t riff_rchunk_end(riffr_t *rr, riff_rchunk_t *rchunk)
 {
 	long ckend;
 
@@ -342,7 +342,7 @@ int riff_rchunk_end(riffr_t *rr, riff_rchunk_t *rchunk)
  * @return EOK on success, ELIMIT if file position is not within @a rchunk,
  *         EIO on I/O error.
  */
-int riff_rchunk_read(riffr_t *rr, riff_rchunk_t *rchunk, void *buf,
+errno_t riff_rchunk_read(riffr_t *rr, riff_rchunk_t *rchunk, void *buf,
     size_t bytes, size_t *nread)
 {
 	long pos;

@@ -36,22 +36,23 @@
 #ifndef RIFF_CHUNK_H
 #define RIFF_CHUNK_H
 
+#include <errno.h>
 #include <stddef.h>
 #include <types/riff/chunk.h>
 
-extern int riff_wopen(const char *, riffw_t **);
-extern int riff_wclose(riffw_t *);
-extern int riff_wchunk_start(riffw_t *, riff_ckid_t, riff_wchunk_t *);
-extern int riff_wchunk_end(riffw_t *, riff_wchunk_t *);
-extern int riff_wchunk_write(riffw_t *, void *, size_t);
-extern int riff_write_uint32(riffw_t *, uint32_t);
+extern errno_t riff_wopen(const char *, riffw_t **);
+extern errno_t riff_wclose(riffw_t *);
+extern errno_t riff_wchunk_start(riffw_t *, riff_ckid_t, riff_wchunk_t *);
+extern errno_t riff_wchunk_end(riffw_t *, riff_wchunk_t *);
+extern errno_t riff_wchunk_write(riffw_t *, void *, size_t);
+extern errno_t riff_write_uint32(riffw_t *, uint32_t);
 
-extern int riff_ropen(const char *, riffr_t **);
-extern int riff_rclose(riffr_t *);
-extern int riff_read_uint32(riffr_t *, uint32_t *);
-extern int riff_rchunk_start(riffr_t *, riff_rchunk_t *);
-extern int riff_rchunk_end(riffr_t *, riff_rchunk_t *);
-extern int riff_rchunk_read(riffr_t *, riff_rchunk_t *, void *, size_t,
+extern errno_t riff_ropen(const char *, riffr_t **);
+extern errno_t riff_rclose(riffr_t *);
+extern errno_t riff_read_uint32(riffr_t *, uint32_t *);
+extern errno_t riff_rchunk_start(riffr_t *, riff_rchunk_t *);
+extern errno_t riff_rchunk_end(riffr_t *, riff_rchunk_t *);
+extern errno_t riff_rchunk_read(riffr_t *, riff_rchunk_t *, void *, size_t,
     size_t *);
 
 #endif

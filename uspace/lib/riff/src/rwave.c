@@ -93,11 +93,11 @@ static int rwave_decode_fmt(rwave_fmt_t *fmt, rwave_params_t *params)
  *
  * @return EOK on success, EIO on I/O error, ENOMEM if out of memory.
  */
-int rwave_wopen(const char *fname, rwave_params_t *params, rwavew_t **rww)
+errno_t rwave_wopen(const char *fname, rwave_params_t *params, rwavew_t **rww)
 {
 	riff_wchunk_t fmt;
 	rwave_fmt_t rwfmt;
-	int rc;
+	errno_t rc;
 	rwavew_t *ww;
 
 	rwave_encode_fmt(params, &rwfmt);
@@ -168,12 +168,12 @@ error:
  * @return EOK on success, EIO on I/O error, ENOTSUP if sample format is
  *         not supported.
  */
-int rwave_write_samples(rwavew_t *ww, void *data, size_t bytes)
+errno_t rwave_write_samples(rwavew_t *ww, void *data, size_t bytes)
 {
 	size_t i;
 	uint16_t *d16, *b16;
 	size_t now;
-	int rc;
+	errno_t rc;
 
 	/* Convert sample data to little endian */
 
@@ -214,9 +214,9 @@ int rwave_write_samples(rwavew_t *ww, void *data, size_t bytes)
  * @return EOK on success, EIO on I/O error - in which case @a ww is destroyed
  *         anyway.
  */
-int rwave_wclose(rwavew_t *ww)
+errno_t rwave_wclose(rwavew_t *ww)
 {
-	int rc;
+	errno_t rc;
 
 	rc = riff_wchunk_end(ww->rw, &ww->wave);
 	if (rc == EOK)
@@ -239,14 +239,14 @@ int rwave_wclose(rwavew_t *ww)
  *
  * @return EOK on success, EIO on I/O error, ENOMEM if out of memory
  */
-int rwave_ropen(const char *fname, rwave_params_t *params, rwaver_t **rwr)
+errno_t rwave_ropen(const char *fname, rwave_params_t *params, rwaver_t **rwr)
 {
 	rwaver_t *wr = NULL;
 	uint32_t form_id;
 	riff_rchunk_t fmt;
 	rwave_fmt_t wfmt;
 	size_t nread;
-	int rc;
+	errno_t rc;
 
 	wr = calloc(1, sizeof(rwaver_t));
 	if (wr == NULL) {
@@ -348,9 +348,9 @@ error:
  * @return EOK if zero or more bytes successfully read and @a *nread is set,
  *         EIO on I/O error.
  */
-int rwave_read_samples(rwaver_t *wr, void *buf, size_t bytes, size_t *nread)
+errno_t rwave_read_samples(rwaver_t *wr, void *buf, size_t bytes, size_t *nread)
 {
-	int rc;
+	errno_t rc;
 
 	rc = riff_rchunk_read(wr->rr, &wr->data, buf, bytes, nread);
 	if (rc != EOK) {
@@ -368,9 +368,9 @@ int rwave_read_samples(rwaver_t *wr, void *buf, size_t bytes, size_t *nread)
  * @return EOK on success, EIO on I/O error in which case @a wr is destroyed
  *         anyway.
  */
-int rwave_rclose(rwaver_t *wr)
+errno_t rwave_rclose(rwaver_t *wr)
 {
-	int rc;
+	errno_t rc;
 
 	rc = riff_rchunk_end(wr->rr, &wr->wave);
 	if (rc != EOK) {
