@@ -40,9 +40,11 @@
 #include <gfx/glyph.h>
 #include <gfx/typeface.h>
 #include <mem.h>
+#include <riff/chunk.h>
 #include <stdlib.h>
 #include "../private/font.h"
 #include "../private/glyph.h"
+#include "../private/tpf_file.h"
 #include "../private/typeface.h"
 
 /** Create typeface in graphics context.
@@ -108,6 +110,56 @@ gfx_font_info_t *gfx_typeface_next_font(gfx_font_info_t *cur)
 		return NULL;
 
 	return list_get_instance(link, gfx_font_info_t, lfonts);
+}
+
+/** Save typeface into a TPF file.
+ *
+ * @param tface Typeface
+ * @param fname Destination file name
+ * @return EOK on success or an error code
+ */
+errno_t gfx_typeface_save(gfx_typeface_t *tface, const char *fname)
+{
+	riffw_t *riffw = NULL;
+	errno_t rc;
+	gfx_font_info_t *finfo;
+	riff_wchunk_t riffck;
+
+	rc = riff_wopen(fname, &riffw);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_start(riffw, CKID_RIFF, &riffck);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_write_uint32(riffw, FORM_TPFC);
+	if (rc != EOK)
+		goto error;
+
+	finfo = gfx_typeface_first_font(tface);
+	while (finfo != NULL) {
+		/* Save font */
+		rc = gfx_font_save(finfo, riffw);
+		if (rc != EOK)
+			goto error;
+
+		finfo = gfx_typeface_next_font(finfo);
+	}
+
+	rc = riff_wchunk_end(riffw, &riffck);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_wclose(riffw);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+error:
+	if (riffw != NULL)
+		riff_wclose(riffw);
+	return rc;
 }
 
 /** @}

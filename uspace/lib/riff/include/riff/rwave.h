@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfxfont
+/** @addtogroup libriff
  * @{
  */
 /**
- * @file Typeface
+ * @file Waveform Audio File Format (WAVE).
  */
 
-#ifndef _GFX_TYPEFACE_H
-#define _GFX_TYPEFACE_H
+#ifndef RIFF_WAVE_H
+#define RIFF_WAVE_H
 
-#include <errno.h>
-#include <stddef.h>
-#include <types/gfx/context.h>
-#include <types/gfx/font.h>
-#include <types/gfx/glyph.h>
-#include <types/gfx/typeface.h>
+#include <types/riff/rwave.h>
 
-extern errno_t gfx_typeface_create(gfx_context_t *, gfx_typeface_t **);
-extern void gfx_typeface_destroy(gfx_typeface_t *);
-extern gfx_font_info_t *gfx_typeface_first_font(gfx_typeface_t *);
-extern gfx_font_info_t *gfx_typeface_next_font(gfx_font_info_t *);
-extern errno_t gfx_typeface_save(gfx_typeface_t *, const char *);
+extern int rwave_wopen(const char *, rwave_params_t *params, rwavew_t **);
+extern int rwave_write_samples(rwavew_t *, void *, size_t);
+extern int rwave_wclose(rwavew_t *);
+
+extern int rwave_ropen(const char *, rwave_params_t *params, rwaver_t **);
+extern int rwave_read_samples(rwaver_t *, void *, size_t, size_t *);
+extern int rwave_rclose(rwaver_t *);
 
 #endif
 

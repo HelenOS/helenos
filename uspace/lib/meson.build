@@ -67,6 +67,7 @@ libs = [
 	'pcm',
 	'pcut',
 	'posix',
+	'riff',
 	'scsi',
 	'sif',
 	'softrend',

@@ -30,24 +30,37 @@
  * @{
  */
 /**
- * @file Typeface
+ * @file TPF file definitions
+ *
  */
 
-#ifndef _GFX_TYPEFACE_H
-#define _GFX_TYPEFACE_H
+#ifndef _GFX_PRIVATE_TPF_FILE_H
+#define _GFX_PRIVATE_TPF_FILE_H
 
-#include <errno.h>
-#include <stddef.h>
-#include <types/gfx/context.h>
-#include <types/gfx/font.h>
-#include <types/gfx/glyph.h>
-#include <types/gfx/typeface.h>
+enum {
+	/** Typeface RIFF format ID */
+	FORM_TPFC = 0x43465054,
 
-extern errno_t gfx_typeface_create(gfx_context_t *, gfx_typeface_t **);
-extern void gfx_typeface_destroy(gfx_typeface_t *);
-extern gfx_font_info_t *gfx_typeface_first_font(gfx_typeface_t *);
-extern gfx_font_info_t *gfx_typeface_next_font(gfx_font_info_t *);
-extern errno_t gfx_typeface_save(gfx_typeface_t *, const char *);
+	/** Font list type */
+	LTYPE_font = 0x746e6f66,
+
+	/** Font properties chunk ID */
+	CKID_fprp = 0x70727066,
+	/** Font metrics chunk ID */
+	CKID_fmtr = 0x72746d66,
+	/** Font bitmap chunk ID */
+	CKID_fbmp = 0x706d6266,
+
+	/** Glyph list type */
+	LTYPE_glph = 0x68706c67,
+
+	/** Glyph metrics chunk ID */
+	CKID_gmtr = 0x72746d67,
+	/** Glyph patterns chunk ID */
+	CKID_gpat = 0x74617067,
+	/** Glyph rectangle/origin chunk ID */
+	CKID_gror = 0x726f7267
+};
 
 #endif
 

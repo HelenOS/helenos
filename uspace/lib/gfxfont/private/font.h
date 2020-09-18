@@ -43,6 +43,7 @@
 #include <types/gfx/context.h>
 #include <types/gfx/font.h>
 #include <types/gfx/typeface.h>
+#include <riff/chunk.h>
 
 /** Font
  *
@@ -84,6 +85,7 @@ struct gfx_font_info {
 
 extern errno_t gfx_font_splice_at_glyph(gfx_font_t *, gfx_glyph_t *,
     gfx_rect_t *);
+extern errno_t gfx_font_save(gfx_font_info_t *, riffw_t *);
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2015 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfxfont
+/** @addtogroup libriff
  * @{
  */
 /**
- * @file Typeface
+ * @file RIFF chunk.
  */
 
-#ifndef _GFX_TYPEFACE_H
-#define _GFX_TYPEFACE_H
+#ifndef RIFF_CHUNK_H
+#define RIFF_CHUNK_H
 
-#include <errno.h>
 #include <stddef.h>
-#include <types/gfx/context.h>
-#include <types/gfx/font.h>
-#include <types/gfx/glyph.h>
-#include <types/gfx/typeface.h>
+#include <types/riff/chunk.h>
 
-extern errno_t gfx_typeface_create(gfx_context_t *, gfx_typeface_t **);
-extern void gfx_typeface_destroy(gfx_typeface_t *);
-extern gfx_font_info_t *gfx_typeface_first_font(gfx_typeface_t *);
-extern gfx_font_info_t *gfx_typeface_next_font(gfx_font_info_t *);
-extern errno_t gfx_typeface_save(gfx_typeface_t *, const char *);
+extern int riff_wopen(const char *, riffw_t **);
+extern int riff_wclose(riffw_t *);
+extern int riff_wchunk_start(riffw_t *, riff_ckid_t, riff_wchunk_t *);
+extern int riff_wchunk_end(riffw_t *, riff_wchunk_t *);
+extern int riff_wchunk_write(riffw_t *, void *, size_t);
+extern int riff_write_uint32(riffw_t *, uint32_t);
+
+extern int riff_ropen(const char *, riffr_t **);
+extern int riff_rclose(riffr_t *);
+extern int riff_read_uint32(riffr_t *, uint32_t *);
+extern int riff_rchunk_start(riffr_t *, riff_rchunk_t *);
+extern int riff_rchunk_end(riffr_t *, riff_rchunk_t *);
+extern int riff_rchunk_read(riffr_t *, riff_rchunk_t *, void *, size_t,
+    size_t *);
 
 #endif
 

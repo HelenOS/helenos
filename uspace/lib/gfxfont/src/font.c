@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include "../private/font.h"
 #include "../private/glyph.h"
+#include "../private/tpf_file.h"
 #include "../private/typeface.h"
 
 /** Initialize font metrics structure.
@@ -356,6 +357,150 @@ error:
 	if (nbitmap != NULL)
 		gfx_bitmap_destroy(nbitmap);
 	return rc;
+}
+
+/** Save font properties to RIFF TPF file.
+ *
+ * @param props Font properties
+ * @param riffw RIFF writer
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_font_props_save(gfx_font_props_t *props, riffw_t *riffw)
+{
+	errno_t rc;
+	riff_wchunk_t propsck;
+
+	rc = riff_wchunk_start(riffw, CKID_fprp, &propsck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_write(riffw, (void *) props, sizeof(*props));
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_end(riffw, &propsck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Save font metrics to RIFF TPF file.
+ *
+ * @param metrics Font metrics
+ * @param riffw RIFF writer
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_font_metrics_save(gfx_font_metrics_t *metrics,
+    riffw_t *riffw)
+{
+	errno_t rc;
+	riff_wchunk_t mtrck;
+
+	rc = riff_wchunk_start(riffw, CKID_fmtr, &mtrck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_write(riffw, (void *) metrics, sizeof(*metrics));
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_end(riffw, &mtrck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Save font bitmap to RIFF TPF file.
+ *
+ * @param font Font
+ * @param riffw RIFF writer
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_font_bitmap_save(gfx_font_t *font, riffw_t *riffw)
+{
+	errno_t rc;
+	riff_wchunk_t bmpck;
+	gfx_bitmap_alloc_t alloc;
+
+	rc = gfx_bitmap_get_alloc(font->bitmap, &alloc);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_start(riffw, CKID_fbmp, &bmpck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_write_uint32(riffw, font->rect.p1.x);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_write_uint32(riffw, font->rect.p1.y);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_write_uint32(riffw, 8 * sizeof(uint32_t));
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_write(riffw, (void *) alloc.pixels,
+	    font->rect.p1.x * font->rect.p1.y * sizeof(uint32_t));
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_end(riffw, &bmpck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Save font into RIFF TPF file.
+ *
+ * @param finfo Font info
+ * @param riffw RIFF writer
+ */
+errno_t gfx_font_save(gfx_font_info_t *finfo, riffw_t *riffw)
+{
+	errno_t rc;
+	riff_wchunk_t fontck;
+	gfx_glyph_t *glyph;
+
+	rc = riff_wchunk_start(riffw, CKID_LIST, &fontck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_write_uint32(riffw, LTYPE_font);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_font_props_save(&finfo->props, riffw);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_font_metrics_save(&finfo->font->metrics, riffw);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_font_bitmap_save(finfo->font, riffw);
+	if (rc != EOK)
+		return rc;
+
+	glyph = gfx_font_first_glyph(finfo->font);
+	while (glyph != NULL) {
+		rc = gfx_glyph_save(glyph, riffw);
+		if (rc != EOK)
+			return rc;
+
+		glyph = gfx_font_next_glyph(glyph);
+	}
+
+	rc = riff_wchunk_end(riffw, &fontck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 /** @}

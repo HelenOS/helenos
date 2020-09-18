@@ -141,10 +141,15 @@ static void font_edit_pos_event(widget_t *widget, void *data)
  */
 static void font_edit_ctrl_key(font_edit_t *fedit, kbd_event_t *event)
 {
+	errno_t rc;
+
 	switch (event->key) {
 	case KC_S:
 		printf("Save!\n");
 		(void) gfx_glyph_bmp_save(fedit->gbmp);
+		rc = gfx_typeface_save(fedit->typeface, "/test.tpf");
+		if (rc != EOK)
+			printf("Error saving typeface.\n");
 		font_edit_paint(fedit);
 		break;
 	case KC_1:

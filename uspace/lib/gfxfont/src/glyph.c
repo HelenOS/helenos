@@ -43,6 +43,7 @@
 #include <str.h>
 #include "../private/font.h"
 #include "../private/glyph.h"
+#include "../private/tpf_file.h"
 
 /** Initialize glyph metrics structure.
  *
@@ -309,6 +310,138 @@ errno_t gfx_glyph_transfer(gfx_glyph_t *glyph, gfx_coord_t offs,
 			pixelmap_put_pixel(&dmap, x + offs, y, pixel);
 		}
 	}
+
+	return EOK;
+}
+
+/** Save glyph metrics to RIFF TPF file.
+ *
+ * @param metrics Glyph metrics
+ * @param riffw RIFF writer
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_glyph_metrics_save(gfx_glyph_metrics_t *metrics,
+    riffw_t *riffw)
+{
+	errno_t rc;
+	riff_wchunk_t mtrck;
+
+	rc = riff_wchunk_start(riffw, CKID_gmtr, &mtrck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_write(riffw, (void *) metrics, sizeof(*metrics));
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_end(riffw, &mtrck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Save glyph patterns to RIFF TPF file.
+ *
+ * @param glyph Glyph
+ * @param riffw RIFF writer
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_glyph_patterns_save(gfx_glyph_t *glyph, riffw_t *riffw)
+{
+	errno_t rc;
+	riff_wchunk_t patck;
+	gfx_glyph_pattern_t *pat;
+	const char *str;
+
+	rc = riff_wchunk_start(riffw, CKID_gpat, &patck);
+	if (rc != EOK)
+		return rc;
+
+	pat = gfx_glyph_first_pattern(glyph);
+	while (pat != NULL) {
+		str = gfx_glyph_pattern_str(pat);
+
+		rc = riff_wchunk_write(riffw, (void *) str, 1 + str_size(str));
+		if (rc != EOK)
+			return rc;
+
+		pat = gfx_glyph_next_pattern(pat);
+	}
+
+	rc = riff_wchunk_end(riffw, &patck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Save glyph rectangle/origin to RIFF TPF file.
+ *
+ * @param glyph Glyph
+ * @param riffw RIFF writer
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_glyph_rectangle_origin_save(gfx_glyph_t *glyph,
+    riffw_t *riffw)
+{
+	errno_t rc;
+	riff_wchunk_t rorck;
+
+	rc = riff_wchunk_start(riffw, CKID_gror, &rorck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_write(riffw, (void *) &glyph->rect,
+	    sizeof(glyph->rect));
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_write(riffw, (void *) &glyph->origin,
+	    sizeof(glyph->origin));
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_end(riffw, &rorck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Save glyph into RIFF TPF file.
+ *
+ * @param glyph Glyph
+ * @param riffw RIFF writer
+ */
+errno_t gfx_glyph_save(gfx_glyph_t *glyph, riffw_t *riffw)
+{
+	errno_t rc;
+	riff_wchunk_t glyphck;
+
+	rc = riff_wchunk_start(riffw, CKID_LIST, &glyphck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_write_uint32(riffw, LTYPE_glph);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_glyph_metrics_save(&glyph->metrics, riffw);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_glyph_patterns_save(glyph, riffw);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_glyph_rectangle_origin_save(glyph, riffw);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_wchunk_end(riffw, &glyphck);
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 }

@@ -26,18 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'riff' ]
 src = files(
-	'src/font.c',
-	'src/glyph.c',
-	'src/glyph_bmp.c',
-	'src/typeface.c',
-)
-
-test_src = files(
-	'test/font.c',
-	'test/glyph.c',
-	'test/glyph_bmp.c',
-	'test/main.c',
-	'test/typeface.c',
+	'src/chunk.c',
+	'src/rwave.c',
 )
