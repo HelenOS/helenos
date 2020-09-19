@@ -254,19 +254,19 @@ errno_t rwave_ropen(const char *fname, rwave_params_t *params, rwaver_t **rwr)
 		goto error;
 	}
 
-	rc = riff_ropen(fname, &wr->rr);
+	rc = riff_ropen(fname, &wr->wave, &wr->rr);
 	if (rc != EOK) {
 		assert(rc == EIO || rc == ENOMEM);
 		goto error;
 	}
 
-	rc = riff_rchunk_start(wr->rr, &wr->wave);
-	if (rc != EOK) {
-		assert(rc == EIO);
+	if (wr->wave.ckid != CKID_RIFF) {
+		printf("Not RIFF file\n");
+		rc = ENOMEM;
 		goto error;
 	}
 
-	rc = riff_read_uint32(wr->rr, &form_id);
+	rc = riff_read_uint32(&wr->wave, &form_id);
 	if (rc != EOK) {
 		assert(rc == EIO);
 		goto error;
@@ -278,7 +278,7 @@ errno_t rwave_ropen(const char *fname, rwave_params_t *params, rwaver_t **rwr)
 		goto error;
 	}
 
-	rc = riff_rchunk_start(wr->rr, &fmt);
+	rc = riff_rchunk_start(&wr->wave, &fmt);
 	if (rc != EOK) {
 		assert(rc == EIO);
 		goto error;
@@ -290,7 +290,7 @@ errno_t rwave_ropen(const char *fname, rwave_params_t *params, rwaver_t **rwr)
 		goto error;
 	}
 
-	rc = riff_rchunk_read(wr->rr, &fmt, &wfmt, sizeof(rwave_fmt_t), &nread);
+	rc = riff_read(&fmt, &wfmt, sizeof(rwave_fmt_t), &nread);
 	if (rc != EOK) {
 		printf("error reading fmt chunk\n");
 		assert(rc == EIO || rc == ELIMIT);
@@ -303,7 +303,7 @@ errno_t rwave_ropen(const char *fname, rwave_params_t *params, rwaver_t **rwr)
 		goto error;
 	}
 
-	rc = riff_rchunk_end(wr->rr, &fmt);
+	rc = riff_rchunk_end(&fmt);
 	if (rc != EOK) {
 		assert(rc == EIO);
 		goto error;
@@ -317,7 +317,7 @@ errno_t rwave_ropen(const char *fname, rwave_params_t *params, rwaver_t **rwr)
 		goto error;
 	}
 
-	rc = riff_rchunk_start(wr->rr, &wr->data);
+	rc = riff_rchunk_start(&wr->wave, &wr->data);
 	if (rc != EOK) {
 		assert(rc == EIO);
 		goto error;
@@ -352,7 +352,7 @@ errno_t rwave_read_samples(rwaver_t *wr, void *buf, size_t bytes, size_t *nread)
 {
 	errno_t rc;
 
-	rc = riff_rchunk_read(wr->rr, &wr->data, buf, bytes, nread);
+	rc = riff_read(&wr->data, buf, bytes, nread);
 	if (rc != EOK) {
 		assert(rc == EIO || rc == ELIMIT);
 		return EIO;
@@ -372,7 +372,7 @@ errno_t rwave_rclose(rwaver_t *wr)
 {
 	errno_t rc;
 
-	rc = riff_rchunk_end(wr->rr, &wr->wave);
+	rc = riff_rchunk_end(&wr->wave);
 	if (rc != EOK) {
 		assert(rc == EIO);
 		goto error;

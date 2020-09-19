@@ -116,7 +116,7 @@ errno_t riff_wchunk_start(riffw_t *rw, riff_ckid_t ckid, riff_wchunk_t *wchunk)
 	if (pos < 0)
 		return EIO;
 
-	wchunk->ckstart = pos;
+	wchunk->ckstart = pos + 2 * sizeof(uint32_t);
 
 	rc = riff_write_uint32(rw, ckid);
 	if (rc != EOK) {
@@ -150,9 +150,9 @@ errno_t riff_wchunk_end(riffw_t *rw, riff_wchunk_t *wchunk)
 	if (pos < 0)
 		return EIO;
 
-	cksize = pos - wchunk->ckstart - 8;
+	cksize = pos - wchunk->ckstart;
 
-	if (fseek(rw->f, wchunk->ckstart + 4, SEEK_SET) < 0)
+	if (fseek(rw->f, wchunk->ckstart - 4, SEEK_SET) < 0)
 		return EIO;
 
 	rc = riff_write_uint32(rw, cksize);
@@ -189,15 +189,19 @@ errno_t riff_wchunk_write(riffw_t *rw, void *data, size_t bytes)
 /** Open RIFF file for reading.
  *
  * @param fname File name
+ * @param riffck Place to store root (RIFF) chunk
  * @param rrr   Place to store pointer to RIFF reader
  *
  * @return EOK on success, ENOMEM if out of memory, EIO if failed to open
  *         file..
  */
-errno_t riff_ropen(const char *fname, riffr_t **rrr)
+errno_t riff_ropen(const char *fname, riff_rchunk_t *riffck, riffr_t **rrr)
 {
 	riffr_t *rr;
+	riff_rchunk_t fchunk;
+	long fsize;
 	errno_t rc;
+	int rv;
 
 	rr = calloc(1, sizeof(riffr_t));
 	if (rr == NULL) {
@@ -210,6 +214,32 @@ errno_t riff_ropen(const char *fname, riffr_t **rrr)
 		rc = EIO;
 		goto error;
 	}
+
+	rv = fseek(rr->f, 0, SEEK_END);
+	if (rv < 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	fsize = ftell(rr->f);
+	if (fsize < 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	rv = fseek(rr->f, 0, SEEK_SET);
+	if (rv < 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	fchunk.riffr = rr;
+	fchunk.ckstart = 0;
+	fchunk.cksize = fsize;
+
+	rc = riff_rchunk_start(&fchunk, riffck);
+	if (rc != EOK)
+		goto error;
 
 	*rrr = rr;
 	return EOK;
@@ -236,16 +266,19 @@ errno_t riff_rclose(riffr_t *rr)
 
 /** Read uint32_t from RIFF file.
  *
- * @param rr RIFF reader
+ * @param rchunk RIFF chunk
  * @param v  Place to store value
  * @return EOK on success, EIO on error.
  */
-errno_t riff_read_uint32(riffr_t *rr, uint32_t *v)
+errno_t riff_read_uint32(riff_rchunk_t *rchunk, uint32_t *v)
 {
 	uint32_t vle;
+	errno_t rc;
+	size_t nread;
 
-	if (fread(&vle, 1, sizeof(vle), rr->f) < sizeof(vle))
-		return EIO;
+	rc = riff_read(rchunk, &vle, sizeof(vle), &nread);
+	if (rc != EOK)
+		return rc;
 
 	*v = uint32_t_le2host(vle);
 	return EOK;
@@ -253,27 +286,28 @@ errno_t riff_read_uint32(riffr_t *rr, uint32_t *v)
 
 /** Start reading RIFF chunk.
  *
- * @param rr     RIFF reader
+ * @param parent Parent chunk
  * @param rchunk Pointer to chunk structure to fill in
  *
  * @return EOK on success, EIO on error.
  */
-errno_t riff_rchunk_start(riffr_t *rr, riff_rchunk_t *rchunk)
+errno_t riff_rchunk_start(riff_rchunk_t *parent, riff_rchunk_t *rchunk)
 {
 	errno_t rc;
 	long pos;
 
-	pos = ftell(rr->f);
+	pos = ftell(parent->riffr->f);
 	if (pos < 0) {
 		rc = EIO;
 		goto error;
 	}
 
-	rchunk->ckstart = pos;
-	rc = riff_read_uint32(rr, &rchunk->ckid);
+	rchunk->riffr = parent->riffr;
+	rchunk->ckstart = pos + 8;
+	rc = riff_read_uint32(parent, &rchunk->ckid);
 	if (rc != EOK)
 		goto error;
-	rc = riff_read_uint32(rr, &rchunk->cksize);
+	rc = riff_read_uint32(parent, &rchunk->cksize);
 	if (rc != EOK)
 		goto error;
 
@@ -289,7 +323,7 @@ error:
  */
 static long riff_rchunk_get_end(riff_rchunk_t *rchunk)
 {
-	return rchunk->ckstart + 8 + rchunk->cksize;
+	return rchunk->ckstart + rchunk->cksize;
 }
 
 /** Return file offset of first (non-padding) byte after end of chunk.
@@ -312,18 +346,18 @@ static long riff_rchunk_get_ndpos(riff_rchunk_t *rchunk)
  *
  * Seek to the first byte after end of chunk.
  *
- * @param rr     RIFF reader
  * @param rchunk Chunk structure
  * @return EOK on success, EIO on error.
  */
-errno_t riff_rchunk_end(riffr_t *rr, riff_rchunk_t *rchunk)
+errno_t riff_rchunk_end(riff_rchunk_t *rchunk)
 {
 	long ckend;
 
 	ckend = riff_rchunk_get_ndpos(rchunk);
-	if (fseek(rr->f, ckend, SEEK_SET) < 0)
+	if (fseek(rchunk->riffr->f, ckend, SEEK_SET) < 0)
 		return EIO;
 
+	rchunk->riffr = NULL;
 	return EOK;
 }
 
@@ -333,8 +367,7 @@ errno_t riff_rchunk_end(riffr_t *rr, riff_rchunk_t *rchunk)
  * left until the end of the chunk, less will be read. The actual number
  * of bytes read is returned in @a *nbytes (can even be 0).
  *
- * @param rr RIFF reader
- * @param rchunk RIFF chunk
+ * @param rchunk RIFF chunk for reading
  * @param buf Buffer to read to
  * @param bytes Number of bytes to read
  * @param nread Place to store number of bytes actually read
@@ -342,14 +375,14 @@ errno_t riff_rchunk_end(riffr_t *rr, riff_rchunk_t *rchunk)
  * @return EOK on success, ELIMIT if file position is not within @a rchunk,
  *         EIO on I/O error.
  */
-errno_t riff_rchunk_read(riffr_t *rr, riff_rchunk_t *rchunk, void *buf,
-    size_t bytes, size_t *nread)
+errno_t riff_read(riff_rchunk_t *rchunk, void *buf, size_t bytes,
+    size_t *nread)
 {
 	long pos;
 	long ckend;
 	long toread;
 
-	pos = ftell(rr->f);
+	pos = ftell(rchunk->riffr->f);
 	if (pos < 0)
 		return EIO;
 
@@ -363,7 +396,7 @@ errno_t riff_rchunk_read(riffr_t *rr, riff_rchunk_t *rchunk, void *buf,
 		return EOK;
 	}
 
-	*nread = fread(buf, 1, toread, rr->f);
+	*nread = fread(buf, 1, toread, rchunk->riffr->f);
 	if (*nread == 0)
 		return EIO;
 

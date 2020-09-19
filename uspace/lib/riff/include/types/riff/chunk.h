@@ -42,8 +42,21 @@
 typedef uint32_t riff_ckid_t;
 typedef uint32_t riff_cksize_t;
 
+/** RIFF writer */
+typedef struct {
+	FILE *f;
+	/** Chunk start offset */
+	long ckstart;
+} riffw_t;
+
+/** RIFF reader */
+typedef struct {
+	FILE *f;
+} riffr_t;
+
 /** RIFF chunk for reading */
 typedef struct {
+	riffr_t *riffr;
 	long ckstart;
 	riff_ckid_t ckid;
 	riff_cksize_t cksize;
@@ -60,18 +73,6 @@ typedef struct {
 	riff_ckid_t ckid;
 	riff_cksize_t cksize;
 } riff_ckinfo_t;
-
-/** RIFF writer */
-typedef struct {
-	FILE *f;
-	/** Chunk start offset */
-	long ckstart;
-} riffw_t;
-
-/** RIFF reader */
-typedef struct {
-	FILE *f;
-} riffr_t;
 
 enum {
 	/** RIFF chunk ID */
