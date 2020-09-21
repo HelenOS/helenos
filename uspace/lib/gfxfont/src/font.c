@@ -374,7 +374,7 @@ static errno_t gfx_font_props_save(gfx_font_props_t *props, riffw_t *riffw)
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_wchunk_write(riffw, (void *) props, sizeof(*props));
+	rc = riff_write(riffw, (void *) props, sizeof(*props));
 	if (rc != EOK)
 		return rc;
 
@@ -401,7 +401,7 @@ static errno_t gfx_font_metrics_save(gfx_font_metrics_t *metrics,
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_wchunk_write(riffw, (void *) metrics, sizeof(*metrics));
+	rc = riff_write(riffw, (void *) metrics, sizeof(*metrics));
 	if (rc != EOK)
 		return rc;
 
@@ -444,7 +444,7 @@ static errno_t gfx_font_bitmap_save(gfx_font_t *font, riffw_t *riffw)
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_wchunk_write(riffw, (void *) alloc.pixels,
+	rc = riff_write(riffw, (void *) alloc.pixels,
 	    font->rect.p1.x * font->rect.p1.y * sizeof(uint32_t));
 	if (rc != EOK)
 		return rc;

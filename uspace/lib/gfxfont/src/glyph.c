@@ -330,7 +330,7 @@ static errno_t gfx_glyph_metrics_save(gfx_glyph_metrics_t *metrics,
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_wchunk_write(riffw, (void *) metrics, sizeof(*metrics));
+	rc = riff_write(riffw, (void *) metrics, sizeof(*metrics));
 	if (rc != EOK)
 		return rc;
 
@@ -362,7 +362,7 @@ static errno_t gfx_glyph_patterns_save(gfx_glyph_t *glyph, riffw_t *riffw)
 	while (pat != NULL) {
 		str = gfx_glyph_pattern_str(pat);
 
-		rc = riff_wchunk_write(riffw, (void *) str, 1 + str_size(str));
+		rc = riff_write(riffw, (void *) str, 1 + str_size(str));
 		if (rc != EOK)
 			return rc;
 
@@ -392,13 +392,11 @@ static errno_t gfx_glyph_rectangle_origin_save(gfx_glyph_t *glyph,
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_wchunk_write(riffw, (void *) &glyph->rect,
-	    sizeof(glyph->rect));
+	rc = riff_write(riffw, (void *) &glyph->rect, sizeof(glyph->rect));
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_wchunk_write(riffw, (void *) &glyph->origin,
-	    sizeof(glyph->origin));
+	rc = riff_write(riffw, (void *) &glyph->origin, sizeof(glyph->origin));
 	if (rc != EOK)
 		return rc;
 

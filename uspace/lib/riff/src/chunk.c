@@ -151,6 +151,8 @@ errno_t riff_wchunk_end(riffw_t *rw, riff_wchunk_t *wchunk)
 		return EIO;
 
 	cksize = pos - wchunk->ckstart;
+	if (pos % 2 != 0)
+		++pos;
 
 	if (fseek(rw->f, wchunk->ckstart - 4, SEEK_SET) < 0)
 		return EIO;
@@ -175,7 +177,7 @@ errno_t riff_wchunk_end(riffw_t *rw, riff_wchunk_t *wchunk)
  *
  * @return EOK on success, EIO on error.
  */
-errno_t riff_wchunk_write(riffw_t *rw, void *data, size_t bytes)
+errno_t riff_write(riffw_t *rw, void *data, size_t bytes)
 {
 	size_t nw;
 
@@ -280,6 +282,9 @@ errno_t riff_read_uint32(riff_rchunk_t *rchunk, uint32_t *v)
 	if (rc != EOK)
 		return rc;
 
+	if (nread != sizeof(vle))
+		return ELIMIT;
+
 	*v = uint32_t_le2host(vle);
 	return EOK;
 }
@@ -314,6 +319,16 @@ errno_t riff_rchunk_start(riff_rchunk_t *parent, riff_rchunk_t *rchunk)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Return chunk data size.
+ *
+ * @param rchunk RIFF chunk
+ * @return Pure data size (excluding type+size header) in bytes
+ */
+uint32_t riff_rchunk_size(riff_rchunk_t *rchunk)
+{
+	return rchunk->cksize;
 }
 
 /** Return file offset where chunk ends

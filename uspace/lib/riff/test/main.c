@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libriff
- * @{
- */
-/**
- * @file RIFF chunk.
- */
+#include <pcut/pcut.h>
 
-#ifndef RIFF_CHUNK_H
-#define RIFF_CHUNK_H
+PCUT_INIT;
 
-#include <errno.h>
-#include <stddef.h>
-#include <types/riff/chunk.h>
+PCUT_IMPORT(chunk);
+PCUT_IMPORT(rwave);
 
-extern errno_t riff_wopen(const char *, riffw_t **);
-extern errno_t riff_wclose(riffw_t *);
-extern errno_t riff_wchunk_start(riffw_t *, riff_ckid_t, riff_wchunk_t *);
-extern errno_t riff_wchunk_end(riffw_t *, riff_wchunk_t *);
-extern errno_t riff_write(riffw_t *, void *, size_t);
-extern errno_t riff_write_uint32(riffw_t *, uint32_t);
-
-extern errno_t riff_ropen(const char *, riff_rchunk_t *, riffr_t **);
-extern errno_t riff_rclose(riffr_t *);
-extern errno_t riff_read_uint32(riff_rchunk_t *, uint32_t *);
-extern errno_t riff_rchunk_start(riff_rchunk_t *, riff_rchunk_t *);
-extern errno_t riff_rchunk_end(riff_rchunk_t *);
-extern errno_t riff_read(riff_rchunk_t *, void *, size_t, size_t *);
-extern uint32_t riff_rchunk_size(riff_rchunk_t *);
-
-#endif
-
-/** @}
- */
+PCUT_MAIN();

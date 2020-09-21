@@ -136,7 +136,7 @@ errno_t rwave_wopen(const char *fname, rwave_params_t *params, rwavew_t **rww)
 	if (rc != EOK)
 		goto error;
 
-	rc = riff_wchunk_write(ww->rw, &rwfmt, sizeof(rwfmt));
+	rc = riff_write(ww->rw, &rwfmt, sizeof(rwfmt));
 	if (rc != EOK)
 		goto error;
 
@@ -195,7 +195,7 @@ errno_t rwave_write_samples(rwavew_t *ww, void *data, size_t bytes)
 			return ENOTSUP;
 		}
 
-		rc = riff_wchunk_write(ww->rw, ww->buf, now);
+		rc = riff_write(ww->rw, ww->buf, now);
 		if (rc != EOK) {
 			assert(rc == EIO);
 			return rc;

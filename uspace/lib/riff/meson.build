@@ -30,3 +30,9 @@ src = files(
 	'src/chunk.c',
 	'src/rwave.c',
 )
+
+test_src = files(
+	'test/chunk.c',
+	'test/main.c',
+	'test/rwave.c',
+)
