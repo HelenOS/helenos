@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <macros.h>
 #include <riff/chunk.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 /** Open RIFF file for writing
@@ -270,7 +271,7 @@ errno_t riff_rclose(riffr_t *rr)
  *
  * @param rchunk RIFF chunk
  * @param v  Place to store value
- * @return EOK on success, EIO on error.
+ * @return EOK on success, ELIMIT if at the end of parent chunk, EIO on error.
  */
 errno_t riff_read_uint32(riff_rchunk_t *rchunk, uint32_t *v)
 {
@@ -294,7 +295,8 @@ errno_t riff_read_uint32(riff_rchunk_t *rchunk, uint32_t *v)
  * @param parent Parent chunk
  * @param rchunk Pointer to chunk structure to fill in
  *
- * @return EOK on success, EIO on error.
+ * @return EOK on success, ELIMIT if at the end of parent chunk,
+ *         EIO on error.
  */
 errno_t riff_rchunk_start(riff_rchunk_t *parent, riff_rchunk_t *rchunk)
 {
@@ -319,6 +321,75 @@ errno_t riff_rchunk_start(riff_rchunk_t *parent, riff_rchunk_t *rchunk)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Find and start reading RIFF chunk of with specific chunk ID.
+ * Other types of chunks are skipped.
+ *
+ * @param parent Parent chunk
+ * @param rchunk Pointer to chunk structure to fill in
+ *
+ * @return EOK on success, ENOENT chunk was not found and end was reached
+ *         EIO on error.
+ */
+errno_t riff_rchunk_match(riff_rchunk_t *parent, riff_ckid_t ckid,
+    riff_rchunk_t *rchunk)
+{
+	errno_t rc;
+
+	while (true) {
+		rc = riff_rchunk_start(parent, rchunk);
+		if (rc == ELIMIT)
+			return ENOENT;
+		if (rc != EOK)
+			return rc;
+
+		if (rchunk->ckid == ckid)
+			break;
+
+		rc = riff_rchunk_end(rchunk);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+/** Find and start reading RIFF LIST chunk of specified type.
+ * Other chunks or LIST chunks of other type are skipped.
+ *
+ * @param parent Parent chunk
+ * @param rchunk Pointer to chunk structure to fill in
+ *
+ * @return EOK on success, ENOENT chunk was not found and end was reached
+ *         EIO on error.
+ */
+errno_t riff_rchunk_list_match(riff_rchunk_t *parent, riff_ltype_t ltype,
+    riff_rchunk_t *rchunk)
+{
+	errno_t rc;
+	riff_ltype_t rltype;
+
+	while (true) {
+		rc = riff_rchunk_match(parent, CKID_LIST, rchunk);
+		if (rc == ELIMIT)
+			return ENOENT;
+		if (rc != EOK)
+			return rc;
+
+		rc = riff_read_uint32(parent, &rltype);
+		if (rc != EOK)
+			return rc;
+
+		if (rltype == ltype)
+			break;
+
+		rc = riff_rchunk_end(rchunk);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
 }
 
 /** Return chunk data size.

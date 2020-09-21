@@ -41,6 +41,7 @@
 
 typedef uint32_t riff_ckid_t;
 typedef uint32_t riff_cksize_t;
+typedef uint32_t riff_ltype_t;
 
 /** RIFF writer */
 typedef struct {

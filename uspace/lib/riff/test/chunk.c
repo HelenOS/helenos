@@ -326,7 +326,221 @@ PCUT_TEST(list_chunks)
 	rc = riff_rclose(rr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-//	(void) remove(p);
+	(void) remove(p);
+}
+
+/** Match specific chunk type in a RIFF file */
+PCUT_TEST(match_chunk)
+{
+	char fname[L_tmpnam];
+	char *p;
+	riffw_t *rw;
+	riffr_t *rr;
+	riff_wchunk_t wriffck;
+	riff_wchunk_t wdatack;
+	riff_rchunk_t rriffck;
+	riff_rchunk_t rdatack;
+	uint32_t rword;
+	errno_t rc;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Write RIFF file */
+
+	rc = riff_wopen(p, &rw);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(rw);
+
+	rc = riff_wchunk_start(rw, CKID_RIFF, &wriffck);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Write first data chunk */
+
+	rc = riff_wchunk_start(rw, CKID_dat1, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Write second data chunk */
+
+	rc = riff_wchunk_start(rw, CKID_dat2, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Write third data chunk */
+
+	rc = riff_wchunk_start(rw, CKID_dat1, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wriffck);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wclose(rw);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Read back RIFF file */
+
+	rc = riff_ropen(p, &rriffck, &rr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(rr);
+
+	PCUT_ASSERT_INT_EQUALS(CKID_RIFF, rriffck.ckid);
+
+	/* Match second data chunk */
+
+	rc = riff_rchunk_match(&rriffck, CKID_dat2, &rdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_INT_EQUALS(CKID_dat2, rdatack.ckid);
+
+	rc = riff_read_uint32(&rdatack, &rword);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, rword);
+
+	rc = riff_rchunk_end(&rdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Try matching dat2 again (should not match) */
+
+	rc = riff_rchunk_match(&rriffck, CKID_dat2, &rdatack);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	/* Try matching dat1 again (but there's nothing left) */
+
+	rc = riff_rchunk_match(&rriffck, CKID_dat1, &rdatack);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	rc = riff_rclose(rr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	(void) remove(p);
+}
+
+/** Match specific LIST chunk type in a RIFF file */
+PCUT_TEST(list_match)
+{
+	char fname[L_tmpnam];
+	char *p;
+	riffw_t *rw;
+	riffr_t *rr;
+	riff_wchunk_t wriffck;
+	riff_wchunk_t wdatack;
+	riff_rchunk_t rriffck;
+	riff_rchunk_t rdatack;
+	uint32_t rword;
+	errno_t rc;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Write RIFF file */
+
+	rc = riff_wopen(p, &rw);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(rw);
+
+	rc = riff_wchunk_start(rw, CKID_RIFF, &wriffck);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Write first LIST chunk */
+
+	rc = riff_wchunk_start(rw, CKID_LIST, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, LTYPE_lst1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Write second data chunk */
+
+	rc = riff_wchunk_start(rw, CKID_LIST, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, LTYPE_lst2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Write third data chunk */
+
+	rc = riff_wchunk_start(rw, CKID_LIST, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, LTYPE_lst1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wriffck);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wclose(rw);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Read back RIFF file */
+
+	rc = riff_ropen(p, &rriffck, &rr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(rr);
+
+	PCUT_ASSERT_INT_EQUALS(CKID_RIFF, rriffck.ckid);
+
+	/* Match second LIST chunk */
+
+	rc = riff_rchunk_list_match(&rriffck, LTYPE_lst2, &rdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_read_uint32(&rdatack, &rword);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, rword);
+
+	rc = riff_rchunk_end(&rdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Try matching lst2 again (should not match) */
+
+	rc = riff_rchunk_list_match(&rriffck, LTYPE_lst2, &rdatack);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	/* Try matching lst1 again (but there's nothing left) */
+
+	rc = riff_rchunk_list_match(&rriffck, LTYPE_lst1, &rdatack);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	rc = riff_rclose(rr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	(void) remove(p);
 }
 
 PCUT_EXPORT(chunk);

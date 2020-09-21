@@ -51,6 +51,9 @@ extern errno_t riff_ropen(const char *, riff_rchunk_t *, riffr_t **);
 extern errno_t riff_rclose(riffr_t *);
 extern errno_t riff_read_uint32(riff_rchunk_t *, uint32_t *);
 extern errno_t riff_rchunk_start(riff_rchunk_t *, riff_rchunk_t *);
+extern errno_t riff_rchunk_match(riff_rchunk_t *, riff_ckid_t, riff_rchunk_t *);
+extern errno_t riff_rchunk_list_match(riff_rchunk_t *, riff_ltype_t,
+    riff_rchunk_t *);
 extern errno_t riff_rchunk_end(riff_rchunk_t *);
 extern errno_t riff_read(riff_rchunk_t *, void *, size_t, size_t *);
 extern uint32_t riff_rchunk_size(riff_rchunk_t *);
