@@ -33,6 +33,7 @@ PCUT_INIT;
 PCUT_IMPORT(font);
 PCUT_IMPORT(glyph);
 PCUT_IMPORT(glyph_bmp);
+PCUT_IMPORT(tpf);
 PCUT_IMPORT(typeface);
 
 PCUT_MAIN();

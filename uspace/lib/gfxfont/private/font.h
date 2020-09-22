@@ -58,6 +58,8 @@
 struct gfx_font {
 	/** Containing typeface */
 	struct gfx_typeface *typeface;
+	/** Containing font info */
+	struct gfx_font_info *finfo;
 	/** Font metrics */
 	gfx_font_metrics_t metrics;
 	/** Glyphs */
@@ -81,10 +83,14 @@ struct gfx_font_info {
 	gfx_font_props_t props;
 	/** Font or @c NULL if font is not present in memory */
 	struct gfx_font *font;
+	/** Font chunk from which font can be read */
+	riff_rchunk_t fontck;
 };
 
 extern errno_t gfx_font_splice_at_glyph(gfx_font_t *, gfx_glyph_t *,
     gfx_rect_t *);
+extern errno_t gfx_font_info_load(gfx_typeface_t *, riff_rchunk_t *);
+extern errno_t gfx_font_load(gfx_font_info_t *);
 extern errno_t gfx_font_save(gfx_font_info_t *, riffw_t *);
 
 #endif

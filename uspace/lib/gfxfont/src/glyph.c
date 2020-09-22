@@ -314,6 +314,34 @@ errno_t gfx_glyph_transfer(gfx_glyph_t *glyph, gfx_coord_t offs,
 	return EOK;
 }
 
+/** Load glyph metrics from RIFF TPF file.
+ *
+ * @param parent Parent chunk
+ * @param metrics Place to store glyph metrics
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_glyph_metrics_load(riff_rchunk_t *parent,
+    gfx_glyph_metrics_t *metrics)
+{
+	errno_t rc;
+	riff_rchunk_t mtrck;
+	size_t nread;
+
+	rc = riff_rchunk_match(parent, CKID_gmtr, &mtrck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_read(&mtrck, (void *) metrics, sizeof(*metrics), &nread);
+	if (rc != EOK || nread != sizeof(*metrics))
+		return EIO;
+
+	rc = riff_rchunk_end(&mtrck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Save glyph metrics to RIFF TPF file.
  *
  * @param metrics Glyph metrics
@@ -341,6 +369,57 @@ static errno_t gfx_glyph_metrics_save(gfx_glyph_metrics_t *metrics,
 	return EOK;
 }
 
+/** Load glyph patterns from RIFF TPF file.
+ *
+ * @param parent Parent chunk
+ * @param glyph Glyph
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_glyph_patterns_load(riff_rchunk_t *parent,
+    gfx_glyph_t *glyph)
+{
+	errno_t rc;
+	riff_rchunk_t patck;
+	uint32_t cksize;
+	size_t i;
+	size_t nread;
+	char *buf = NULL;
+
+	rc = riff_rchunk_match(parent, CKID_gpat, &patck);
+	if (rc != EOK)
+		goto error;
+
+	cksize = riff_rchunk_size(&patck);
+	buf = malloc(cksize);
+	if (buf == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = riff_read(&patck, buf, cksize, &nread);
+	if (rc != EOK || nread != cksize)
+		goto error;
+
+	i = 0;
+	while (i < cksize) {
+		rc = gfx_glyph_set_pattern(glyph, &buf[i]);
+		if (rc != EOK)
+			goto error;
+
+		i += str_size(&buf[i]) + 1;
+	}
+
+	rc = riff_rchunk_end(&patck);
+	if (rc != EOK)
+		goto error;
+
+	free(buf);
+	return EOK;
+error:
+	if (buf != NULL)
+		free(buf);
+	return rc;
+}
 /** Save glyph patterns to RIFF TPF file.
  *
  * @param glyph Glyph
@@ -370,6 +449,40 @@ static errno_t gfx_glyph_patterns_save(gfx_glyph_t *glyph, riffw_t *riffw)
 	}
 
 	rc = riff_wchunk_end(riffw, &patck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Load glyph rectangle/origin from RIFF TPF file.
+ *
+ * @param parent Parent chunk
+ * @param glyph Glyph
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_glyph_rectangle_origin_load(riff_rchunk_t *parent,
+    gfx_glyph_t *glyph)
+{
+	errno_t rc;
+	riff_rchunk_t rorck;
+	size_t nread;
+
+	rc = riff_rchunk_match(parent, CKID_gror, &rorck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_read(&rorck, (void *) &glyph->rect, sizeof(glyph->rect),
+	    &nread);
+	if (rc != EOK || nread != sizeof(glyph->rect))
+		return EIO;
+
+	rc = riff_read(&rorck, (void *) &glyph->origin, sizeof(glyph->origin),
+	    &nread);
+	if (rc != EOK || nread != sizeof(glyph->origin))
+		return EIO;
+
+	rc = riff_rchunk_end(&rorck);
 	if (rc != EOK)
 		return rc;
 
@@ -407,10 +520,55 @@ static errno_t gfx_glyph_rectangle_origin_save(gfx_glyph_t *glyph,
 	return EOK;
 }
 
+/** Load glyph from RIFF TPF file.
+ *
+ * @param font Containing font
+ * @param parent Parent chunk
+ * @return EOK on success or an error code
+ */
+errno_t gfx_glyph_load(gfx_font_t *font, riff_rchunk_t *parent)
+{
+	errno_t rc;
+	gfx_glyph_metrics_t metrics;
+	gfx_glyph_t *glyph = NULL;
+	riff_rchunk_t glyphck;
+
+	rc = riff_rchunk_list_match(parent, LTYPE_glph, &glyphck);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_glyph_metrics_load(&glyphck, &metrics);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_glyph_create(font, &metrics, &glyph);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_glyph_patterns_load(&glyphck, glyph);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_glyph_rectangle_origin_load(&glyphck, glyph);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_rchunk_end(&glyphck);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	if (glyph != NULL)
+		gfx_glyph_destroy(glyph);
+	return rc;
+}
+
 /** Save glyph into RIFF TPF file.
  *
  * @param glyph Glyph
  * @param riffw RIFF writer
+ * @return EOK on success or an error code
  */
 errno_t gfx_glyph_save(gfx_glyph_t *glyph, riffw_t *riffw)
 {

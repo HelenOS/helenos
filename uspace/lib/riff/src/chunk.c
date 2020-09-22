@@ -392,6 +392,46 @@ errno_t riff_rchunk_list_match(riff_rchunk_t *parent, riff_ltype_t ltype,
 	return EOK;
 }
 
+/** Seek to position in chunk.
+ *
+ * @param rchunk RIFF chunk
+ * @param offset Offset
+ * @param whence SEEK_SET, SEEK_CUR or SEEK_END
+ * @return EOK on success or an error code
+ */
+errno_t riff_rchunk_seek(riff_rchunk_t *rchunk, long offset, int whence)
+{
+	long pos;
+	long dest;
+	int rv;
+
+	switch (whence) {
+	case SEEK_SET:
+		dest = rchunk->ckstart + offset;
+		break;
+	case SEEK_END:
+		dest = rchunk->ckstart + rchunk->cksize + offset;
+		break;
+	case SEEK_CUR:
+		pos = ftell(rchunk->riffr->f);
+		if (pos < 0)
+			return EIO;
+		dest = pos + offset;
+		break;
+	default:
+		return EINVAL;
+	}
+
+	if (dest < rchunk->ckstart || dest > rchunk->ckstart + rchunk->cksize)
+		return ELIMIT;
+
+	rv = fseek(rchunk->riffr->f, dest, SEEK_SET);
+	if (rv < 0)
+		return EIO;
+
+	return EOK;
+}
+
 /** Return chunk data size.
  *
  * @param rchunk RIFF chunk
@@ -430,7 +470,8 @@ static long riff_rchunk_get_ndpos(riff_rchunk_t *rchunk)
 
 /** Finish reading RIFF chunk.
  *
- * Seek to the first byte after end of chunk.
+ * Seek to the first byte after end of chunk. It is allowed, though,
+ * to return to the chunk later, e.g. using riff_rchunk_seek(@a rchunk, ..).
  *
  * @param rchunk Chunk structure
  * @return EOK on success, EIO on error.
@@ -443,7 +484,6 @@ errno_t riff_rchunk_end(riff_rchunk_t *rchunk)
 	if (fseek(rchunk->riffr->f, ckend, SEEK_SET) < 0)
 		return EIO;
 
-	rchunk->riffr = NULL;
 	return EOK;
 }
 

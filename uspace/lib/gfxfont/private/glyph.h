@@ -76,6 +76,7 @@ struct gfx_glyph_pattern {
 
 extern errno_t gfx_glyph_transfer(gfx_glyph_t *, gfx_coord_t, gfx_bitmap_t *,
     gfx_rect_t *);
+extern errno_t gfx_glyph_load(gfx_font_t *, riff_rchunk_t *);
 extern errno_t gfx_glyph_save(gfx_glyph_t *, riffw_t *);
 
 #endif

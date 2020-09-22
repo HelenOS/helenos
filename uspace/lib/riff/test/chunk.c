@@ -543,4 +543,110 @@ PCUT_TEST(list_match)
 	(void) remove(p);
 }
 
+/** Seek back to different positions in a chunk */
+PCUT_TEST(rchunk_seek)
+{
+	char fname[L_tmpnam];
+	char *p;
+	riffw_t *rw;
+	riffr_t *rr;
+	riff_wchunk_t wriffck;
+	riff_wchunk_t wdatack;
+	riff_rchunk_t rriffck;
+	riff_rchunk_t rdatack;
+	uint32_t rword;
+	errno_t rc;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Write RIFF file */
+
+	rc = riff_wopen(p, &rw);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(rw);
+
+	rc = riff_wchunk_start(rw, CKID_RIFF, &wriffck);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Write data chunk */
+
+	rc = riff_wchunk_start(rw, CKID_dat1, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_write_uint32(rw, 4);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wchunk_end(rw, &wriffck);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_wclose(rw);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Read back RIFF file */
+
+	rc = riff_ropen(p, &rriffck, &rr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(rr);
+
+	PCUT_ASSERT_INT_EQUALS(CKID_RIFF, rriffck.ckid);
+
+	/* Read data chunk */
+
+	rc = riff_rchunk_start(&rriffck, &rdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_INT_EQUALS(CKID_dat1, rdatack.ckid);
+
+	rc = riff_read_uint32(&rdatack, &rword);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_INT_EQUALS(1, rword);
+
+	rc = riff_rchunk_end(&rdatack);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Try reading first word of data chunk again */
+
+	rc = riff_rchunk_seek(&rdatack, 0, SEEK_SET);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_read_uint32(&rdatack, &rword);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_INT_EQUALS(1, rword);
+
+	/* Try reading last word of data chunk */
+
+	rc = riff_rchunk_seek(&rdatack, -4, SEEK_END);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_read_uint32(&rdatack, &rword);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_INT_EQUALS(4, rword);
+
+	/* Try reading previous word of data chunk */
+
+	rc = riff_rchunk_seek(&rdatack, -8, SEEK_CUR);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = riff_read_uint32(&rdatack, &rword);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_INT_EQUALS(3, rword);
+
+	rc = riff_rclose(rr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	(void) remove(p);
+}
+
 PCUT_EXPORT(chunk);

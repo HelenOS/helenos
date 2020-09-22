@@ -47,6 +47,8 @@ extern errno_t gfx_typeface_create(gfx_context_t *, gfx_typeface_t **);
 extern void gfx_typeface_destroy(gfx_typeface_t *);
 extern gfx_font_info_t *gfx_typeface_first_font(gfx_typeface_t *);
 extern gfx_font_info_t *gfx_typeface_next_font(gfx_font_info_t *);
+extern errno_t gfx_typeface_open(gfx_context_t *, const char *,
+    gfx_typeface_t **);
 extern errno_t gfx_typeface_save(gfx_typeface_t *, const char *);
 
 #endif

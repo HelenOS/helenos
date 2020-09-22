@@ -80,9 +80,10 @@ void gfx_font_get_props(gfx_font_info_t *finfo, gfx_font_props_t *props)
 	*props = finfo->props;
 }
 
-/** Create font.
+/** Create font with existing font info structure.
  *
  * @param tface Typeface
+ * @param finfo Font info
  * @param metrics Font metrics
  * @param rfont Place to store pointer to new font
  *
@@ -90,31 +91,20 @@ void gfx_font_get_props(gfx_font_info_t *finfo, gfx_font_props_t *props)
  *         ENOMEM if insufficient resources, EIO if graphic device connection
  *         was lost
  */
-errno_t gfx_font_create(gfx_typeface_t *tface, gfx_font_props_t *props,
-    gfx_font_metrics_t *metrics, gfx_font_t **rfont)
+static errno_t gfx_font_create_with_info(gfx_typeface_t *tface,
+    gfx_font_info_t *finfo, gfx_font_metrics_t *metrics, gfx_font_t **rfont)
 {
-	gfx_font_info_t *finfo = NULL;
 	gfx_font_t *font = NULL;
 	gfx_bitmap_params_t params;
 	errno_t rc;
-
-	finfo = calloc(1, sizeof(gfx_font_info_t));
-	if (finfo == NULL) {
-		rc = ENOMEM;
-		goto error;
-	}
 
 	font = calloc(1, sizeof(gfx_font_t));
 	if (font == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
-
-	finfo->typeface = tface;
-	finfo->props = *props;
-	finfo->font = font;
-
 	font->typeface = tface;
+	font->finfo = finfo;
 
 	font->rect.p0.x = 0;
 	font->rect.p0.y = 0;
@@ -137,14 +127,52 @@ errno_t gfx_font_create(gfx_typeface_t *tface, gfx_font_props_t *props,
 
 	font->metrics = *metrics;
 	list_initialize(&font->glyphs);
+	*rfont = font;
+	return EOK;
+error:
+	if (font != NULL)
+		free(font);
+	return rc;
+}
+
+/** Create font.
+ *
+ * @param tface Typeface
+ * @param props Font properties
+ * @param metrics Font metrics
+ * @param rfont Place to store pointer to new font
+ *
+ * @return EOK on success, EINVAL if parameters are invald,
+ *         ENOMEM if insufficient resources, EIO if graphic device connection
+ *         was lost
+ */
+errno_t gfx_font_create(gfx_typeface_t *tface, gfx_font_props_t *props,
+    gfx_font_metrics_t *metrics, gfx_font_t **rfont)
+{
+	gfx_font_info_t *finfo = NULL;
+	gfx_font_t *font = NULL;
+	errno_t rc;
+
+	finfo = calloc(1, sizeof(gfx_font_info_t));
+	if (finfo == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	finfo->typeface = tface;
+	finfo->props = *props;
+
+	rc = gfx_font_create_with_info(tface, finfo, metrics, &font);
+	if (rc != EOK)
+		goto error;
+
+	finfo->font = font;
 	list_append(&finfo->lfonts, &tface->fonts);
 	*rfont = font;
 	return EOK;
 error:
 	if (finfo != NULL)
 		free(finfo);
-	if (font != NULL)
-		free(font);
 	return rc;
 }
 
@@ -156,13 +184,16 @@ error:
  */
 errno_t gfx_font_open(gfx_font_info_t *finfo, gfx_font_t **rfont)
 {
+	errno_t rc;
+
 	if (finfo->font == NULL) {
-		/*
-		 * We cannot load an absent font yet.
-		 * This should not happen.
-		 */
-		assert(false);
-		return ENOTSUP;
+		/* Load absent font from TPF file */
+		rc = gfx_font_load(finfo);
+		if (rc != EOK)
+			return rc;
+
+		assert(finfo->font != NULL);
+		finfo->font->finfo = finfo;
 	}
 
 	*rfont = finfo->font;
@@ -183,6 +214,7 @@ void gfx_font_close(gfx_font_t *font)
 		glyph = gfx_font_first_glyph(font);
 	}
 
+	font->finfo->font = NULL;
 	free(font);
 }
 
@@ -359,6 +391,34 @@ error:
 	return rc;
 }
 
+/** Load font properties from RIFF TPF file.
+ *
+ * @param parent Parent chunk
+ * @param props Font properties
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_font_props_load(riff_rchunk_t *parent,
+    gfx_font_props_t *props)
+{
+	errno_t rc;
+	riff_rchunk_t propsck;
+	size_t nread;
+
+	rc = riff_rchunk_match(parent, CKID_fprp, &propsck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_read(&propsck, (void *) props, sizeof(*props), &nread);
+	if (rc != EOK || nread != sizeof(*props))
+		return EIO;
+
+	rc = riff_rchunk_end(&propsck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Save font properties to RIFF TPF file.
  *
  * @param props Font properties
@@ -379,6 +439,34 @@ static errno_t gfx_font_props_save(gfx_font_props_t *props, riffw_t *riffw)
 		return rc;
 
 	rc = riff_wchunk_end(riffw, &propsck);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Load font metrics from RIFF TPF file.
+ *
+ * @param parent Parent chunk
+ * @param metrics Font metrics
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_font_metrics_load(riff_rchunk_t *parent,
+    gfx_font_metrics_t *metrics)
+{
+	errno_t rc;
+	riff_rchunk_t mtrck;
+	size_t nread;
+
+	rc = riff_rchunk_match(parent, CKID_fmtr, &mtrck);
+	if (rc != EOK)
+		return rc;
+
+	rc = riff_read(&mtrck, (void *) metrics, sizeof(*metrics), &nread);
+	if (rc != EOK || nread != sizeof(*metrics))
+		return EIO;
+
+	rc = riff_rchunk_end(&mtrck);
 	if (rc != EOK)
 		return rc;
 
@@ -410,6 +498,83 @@ static errno_t gfx_font_metrics_save(gfx_font_metrics_t *metrics,
 		return rc;
 
 	return EOK;
+}
+
+/** Load font bitmap from RIFF TPF file.
+ *
+ * @param parent Parent chunk
+ * @param font Font
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_font_bitmap_load(riff_rchunk_t *parent, gfx_font_t *font)
+{
+	errno_t rc;
+	riff_rchunk_t bmpck;
+	gfx_bitmap_params_t params;
+	gfx_bitmap_alloc_t alloc;
+	gfx_bitmap_t *bitmap = NULL;
+	uint32_t width;
+	uint32_t height;
+	uint32_t depth;
+	size_t nread;
+
+	rc = riff_rchunk_match(parent, CKID_fbmp, &bmpck);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_read_uint32(&bmpck, &width);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_read_uint32(&bmpck, &height);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_read_uint32(&bmpck, &depth);
+	if (rc != EOK)
+		goto error;
+
+	if (depth != 8 * sizeof(uint32_t)) {
+		rc = ENOTSUP;
+		goto error;
+	}
+
+	gfx_bitmap_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = width;
+	params.rect.p1.y = height;
+
+	rc = gfx_bitmap_create(font->typeface->gc, &params, NULL, &bitmap);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_bitmap_get_alloc(bitmap, &alloc);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_read(&bmpck, (void *) alloc.pixels,
+	    width * height * sizeof(uint32_t), &nread);
+	if (rc != EOK)
+		goto error;
+
+	if (nread != width * height * sizeof(uint32_t)) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = riff_rchunk_end(&bmpck);
+	if (rc != EOK)
+		goto error;
+
+	gfx_bitmap_destroy(font->bitmap);
+	font->bitmap = bitmap;
+	font->rect = params.rect;
+	return EOK;
+error:
+	if (bitmap != NULL)
+		gfx_bitmap_destroy(bitmap);
+	return rc;
 }
 
 /** Save font bitmap to RIFF TPF file.
@@ -456,10 +621,107 @@ static errno_t gfx_font_bitmap_save(gfx_font_t *font, riffw_t *riffw)
 	return EOK;
 }
 
+/** Load font info from RIFF TPF file.
+ *
+ * @param tface Containing typeface
+ * @param parent Parent chunk
+ * @return EOK on success or an error code
+ */
+errno_t gfx_font_info_load(gfx_typeface_t *tface, riff_rchunk_t *parent)
+{
+	errno_t rc;
+	riff_rchunk_t fontck;
+	gfx_font_props_t props;
+	gfx_font_info_t *finfo = NULL;
+	gfx_font_t *font = NULL;
+
+	rc = riff_rchunk_list_match(parent, LTYPE_font, &fontck);
+	if (rc != EOK)
+		goto error;
+
+	finfo = calloc(1, sizeof(gfx_font_info_t));
+	if (finfo == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	finfo->fontck = fontck;
+
+	rc = gfx_font_props_load(&fontck, &props);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_rchunk_end(&fontck);
+	if (rc != EOK)
+		goto error;
+
+	finfo->typeface = tface;
+	list_append(&finfo->lfonts, &tface->fonts);
+	finfo->props = props;
+	finfo->font = NULL;
+
+	return EOK;
+error:
+	if (finfo != NULL)
+		free(finfo);
+	if (font != NULL)
+		gfx_font_close(font);
+	return rc;
+}
+
+/** Load font from RIFF TPF file.
+ *
+ * @param finfo Font information
+ * @return EOK on success or an error code
+ */
+errno_t gfx_font_load(gfx_font_info_t *finfo)
+{
+	errno_t rc;
+	gfx_font_metrics_t metrics;
+	gfx_font_t *font = NULL;
+
+	/* Seek to beginning of chunk (just after list type) */
+	rc = riff_rchunk_seek(&finfo->fontck, sizeof(uint32_t), SEEK_SET);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_font_props_load(&finfo->fontck, &finfo->props);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_font_metrics_load(&finfo->fontck, &metrics);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_font_create_with_info(finfo->typeface, finfo, &metrics, &font);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_font_bitmap_load(&finfo->fontck, font);
+	if (rc != EOK)
+		goto error;
+
+	while (true) {
+		rc = gfx_glyph_load(font, &finfo->fontck);
+		if (rc == ENOENT)
+			break;
+		if (rc != EOK)
+			goto error;
+	}
+
+	finfo->font = font;
+	return EOK;
+error:
+	if (font != NULL)
+		gfx_font_close(font);
+	return rc;
+}
+
 /** Save font into RIFF TPF file.
  *
  * @param finfo Font info
  * @param riffw RIFF writer
+ * @return EOK on success or an error code
  */
 errno_t gfx_font_save(gfx_font_info_t *finfo, riffw_t *riffw)
 {

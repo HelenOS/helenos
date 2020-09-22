@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <gfx/bitmap.h>
+#include <gfx/font.h>
 #include <gfx/glyph.h>
 #include <gfx/typeface.h>
 #include <mem.h>
@@ -77,6 +78,21 @@ errno_t gfx_typeface_create(gfx_context_t *gc, gfx_typeface_t **rtface)
  */
 void gfx_typeface_destroy(gfx_typeface_t *tface)
 {
+	gfx_font_info_t *finfo;
+
+	if (tface->riffr != NULL)
+		(void) riff_rclose(tface->riffr);
+
+	finfo = gfx_typeface_first_font(tface);
+	while (finfo != NULL) {
+		if (finfo->font != NULL)
+			gfx_font_close(finfo->font);
+		list_remove(&finfo->lfonts);
+		free(finfo);
+
+		finfo = gfx_typeface_first_font(tface);
+	}
+
 	free(tface);
 }
 
@@ -112,6 +128,90 @@ gfx_font_info_t *gfx_typeface_next_font(gfx_font_info_t *cur)
 	return list_get_instance(link, gfx_font_info_t, lfonts);
 }
 
+/** Open typeface from a TPF file.
+ *
+ * @param gc Graphic context
+ * @param fname File name
+ * @param rtface Place to store pointer to open typeface
+ * @return EOK on success or an error code
+ */
+errno_t gfx_typeface_open(gfx_context_t *gc, const char *fname,
+    gfx_typeface_t **rtface)
+{
+	riffr_t *riffr = NULL;
+	gfx_typeface_t *tface = NULL;
+	errno_t rc;
+	riff_rchunk_t riffck;
+	uint32_t format;
+
+	rc = gfx_typeface_create(gc, &tface);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_ropen(fname, &riffck, &riffr);
+	if (rc != EOK)
+		goto error;
+
+	rc = riff_read_uint32(&riffck, &format);
+	if (rc != EOK)
+		goto error;
+
+	if (format != FORM_TPFC) {
+		rc = ENOTSUP;
+		goto error;
+	}
+
+	while (true) {
+		rc = gfx_font_info_load(tface, &riffck);
+		if (rc == ENOENT)
+			break;
+
+		if (rc != EOK)
+			goto error;
+	}
+
+	rc = riff_rchunk_end(&riffck);
+	if (rc != EOK)
+		goto error;
+
+	tface->riffr = riffr;
+	*rtface = tface;
+	return EOK;
+error:
+	if (riffr != NULL)
+		riff_rclose(riffr);
+	if (tface != NULL)
+		gfx_typeface_destroy(tface);
+	return rc;
+}
+
+/** Make sure all typeface fonts are loaded.
+ *
+ * @param tface Typeface
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_typeface_loadin(gfx_typeface_t *tface)
+{
+	gfx_font_t *font;
+	gfx_font_info_t *finfo;
+	errno_t rc;
+
+	finfo = gfx_typeface_first_font(tface);
+	while (finfo != NULL) {
+		/* Open font to make sure it is loaded */
+		rc = gfx_font_open(finfo, &font);
+		if (rc != EOK)
+			return rc;
+
+		/* Don't need this anymore */
+		(void)font;
+
+		finfo = gfx_typeface_next_font(finfo);
+	}
+
+	return EOK;
+}
+
 /** Save typeface into a TPF file.
  *
  * @param tface Typeface
@@ -124,6 +224,14 @@ errno_t gfx_typeface_save(gfx_typeface_t *tface, const char *fname)
 	errno_t rc;
 	gfx_font_info_t *finfo;
 	riff_wchunk_t riffck;
+
+	/*
+	 * Make sure all fonts are loaded before writing (in case
+	 * we are writing into our original backing file).
+	 */
+	rc = gfx_typeface_loadin(tface);
+	if (rc != EOK)
+		return rc;
 
 	rc = riff_wopen(fname, &riffw);
 	if (rc != EOK)

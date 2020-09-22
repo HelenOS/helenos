@@ -39,6 +39,7 @@
 
 #include <adt/list.h>
 #include <errno.h>
+#include <riff/chunk.h>
 #include <types/gfx/bitmap.h>
 #include <types/gfx/context.h>
 #include <types/gfx/typeface.h>
@@ -56,6 +57,8 @@ struct gfx_typeface {
 	gfx_context_t *gc;
 	/** Fonts (of gfx_font_info_t) */
 	list_t fonts;
+	/** RIFF reader of the open typeface file or @c NULL */
+	riffr_t *riffr;
 };
 
 #endif
