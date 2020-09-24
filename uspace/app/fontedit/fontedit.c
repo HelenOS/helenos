@@ -166,6 +166,10 @@ static void font_edit_ctrl_key(font_edit_t *fedit, kbd_event_t *event)
 	case KC_4:
 		font_edit_adjust_advance(fedit, +1);
 		break;
+	case KC_X:
+		(void) gfx_glyph_bmp_clear(fedit->gbmp);
+		font_edit_paint(fedit);
+		break;
 	default:
 		break;
 	}

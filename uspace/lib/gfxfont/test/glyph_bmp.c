@@ -341,7 +341,7 @@ PCUT_TEST(setpix_flip)
 }
 
 /** Test glyph_bmp_setpix() properly extends pixel array */
-PCUT_TEST(setpix_externd)
+PCUT_TEST(setpix_extend)
 {
 	gfx_font_props_t fprops;
 	gfx_font_metrics_t fmetrics;
@@ -405,6 +405,77 @@ PCUT_TEST(setpix_externd)
 			PCUT_ASSERT_INT_EQUALS((x & 1) ^ (y & 1) ^ 1, pix);
 		}
 	}
+
+	gfx_glyph_bmp_close(bmp);
+
+	gfx_glyph_destroy(glyph);
+
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Test glyph_bmp_clear() properly clears bitmap */
+PCUT_TEST(clear)
+{
+	gfx_font_props_t fprops;
+	gfx_font_metrics_t fmetrics;
+	gfx_typeface_t *tface;
+	gfx_font_t *font;
+	gfx_glyph_metrics_t gmetrics;
+	gfx_glyph_t *glyph;
+	gfx_context_t *gc;
+	gfx_glyph_bmp_t *bmp;
+	gfx_rect_t rect;
+	test_gc_t tgc;
+	int pix;
+	errno_t rc;
+
+	rc = gfx_context_new(&test_ops, (void *) &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&fprops);
+	gfx_font_metrics_init(&fmetrics);
+	rc = gfx_font_create(tface, &fprops, &fmetrics, &font);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_glyph_metrics_init(&gmetrics);
+	gmetrics.advance = 1;
+
+	rc = gfx_glyph_create(font, &gmetrics, &glyph);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	bmp = NULL;
+
+	rc = gfx_glyph_bmp_open(glyph, &bmp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(bmp);
+
+	/* Set some pixels */
+
+	rc = gfx_glyph_bmp_setpix(bmp, 0, 0, 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_glyph_bmp_setpix(bmp, 1, 1, 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Clear the bitmap and check */
+	gfx_glyph_bmp_clear(bmp);
+
+	gfx_glyph_bmp_get_rect(bmp, &rect);
+	PCUT_ASSERT_INT_EQUALS(0, rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, rect.p1.y);
+
+	pix = gfx_glyph_bmp_getpix(bmp, 0, 0);
+	PCUT_ASSERT_INT_EQUALS(0, pix);
+	pix = gfx_glyph_bmp_getpix(bmp, 1, 1);
+	PCUT_ASSERT_INT_EQUALS(0, pix);
 
 	gfx_glyph_bmp_close(bmp);
 

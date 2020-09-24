@@ -48,6 +48,7 @@ extern void gfx_glyph_bmp_get_rect(gfx_glyph_bmp_t *, gfx_rect_t *);
 extern int gfx_glyph_bmp_getpix(gfx_glyph_bmp_t *, gfx_coord_t, gfx_coord_t);
 extern errno_t gfx_glyph_bmp_setpix(gfx_glyph_bmp_t *, gfx_coord_t,
     gfx_coord_t, int);
+extern errno_t gfx_glyph_bmp_clear(gfx_glyph_bmp_t *);
 
 #endif
 

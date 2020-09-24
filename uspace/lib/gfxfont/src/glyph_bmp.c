@@ -228,6 +228,32 @@ errno_t gfx_glyph_bmp_setpix(gfx_glyph_bmp_t *bmp, gfx_coord_t x,
 	return EOK;
 }
 
+/** Clear glyph bitmap
+ *
+ * @param bmp Glyph bitmap
+ *
+ * @return EOK on sucesss, ENOMEM if out of memory
+ */
+errno_t gfx_glyph_bmp_clear(gfx_glyph_bmp_t *bmp)
+{
+	int *npixels;
+
+	/* Allocate new pixel array */
+	npixels = calloc(sizeof(int), 1);
+	if (npixels == NULL)
+		return ENOMEM;
+
+	/* Switch new and old data */
+	free(bmp->pixels);
+	bmp->pixels = npixels;
+	bmp->rect.p0.x = 0;
+	bmp->rect.p0.y = 0;
+	bmp->rect.p1.x = 0;
+	bmp->rect.p1.y = 0;
+
+	return EOK;
+}
+
 /** Extend glyph bitmap to cover a patricular pixel.
  *
  * @param bmp Glyph bitmap
