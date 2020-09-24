@@ -35,6 +35,7 @@
 
 #include <adt/list.h>
 #include <assert.h>
+#include <byteorder.h>
 #include <errno.h>
 #include <gfx/bitmap.h>
 #include <gfx/font.h>
@@ -402,19 +403,23 @@ static errno_t gfx_font_props_load(riff_rchunk_t *parent,
 {
 	errno_t rc;
 	riff_rchunk_t propsck;
+	tpf_font_props_t tprops;
 	size_t nread;
 
 	rc = riff_rchunk_match(parent, CKID_fprp, &propsck);
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_read(&propsck, (void *) props, sizeof(*props), &nread);
-	if (rc != EOK || nread != sizeof(*props))
+	rc = riff_read(&propsck, (void *) &tprops, sizeof(tprops), &nread);
+	if (rc != EOK || nread != sizeof(tprops))
 		return EIO;
 
 	rc = riff_rchunk_end(&propsck);
 	if (rc != EOK)
 		return rc;
+
+	props->size = uint16_t_le2host(tprops.size);
+	props->flags = uint16_t_le2host(tprops.flags);
 
 	return EOK;
 }
@@ -429,12 +434,16 @@ static errno_t gfx_font_props_save(gfx_font_props_t *props, riffw_t *riffw)
 {
 	errno_t rc;
 	riff_wchunk_t propsck;
+	tpf_font_props_t tprops;
+
+	tprops.size = host2uint16_t_le(props->size);
+	tprops.flags = host2uint16_t_le(props->flags);
 
 	rc = riff_wchunk_start(riffw, CKID_fprp, &propsck);
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_write(riffw, (void *) props, sizeof(*props));
+	rc = riff_write(riffw, (void *) &tprops, sizeof(tprops));
 	if (rc != EOK)
 		return rc;
 
@@ -456,20 +465,24 @@ static errno_t gfx_font_metrics_load(riff_rchunk_t *parent,
 {
 	errno_t rc;
 	riff_rchunk_t mtrck;
+	tpf_font_metrics_t tmetrics;
 	size_t nread;
 
 	rc = riff_rchunk_match(parent, CKID_fmtr, &mtrck);
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_read(&mtrck, (void *) metrics, sizeof(*metrics), &nread);
-	if (rc != EOK || nread != sizeof(*metrics))
+	rc = riff_read(&mtrck, (void *) &tmetrics, sizeof(tmetrics), &nread);
+	if (rc != EOK || nread != sizeof(tmetrics))
 		return EIO;
 
 	rc = riff_rchunk_end(&mtrck);
 	if (rc != EOK)
 		return rc;
 
+	metrics->ascent = uint16_t_le2host(tmetrics.ascent);
+	metrics->descent = uint16_t_le2host(tmetrics.descent);
+	metrics->leading = uint16_t_le2host(tmetrics.leading);
 	return EOK;
 }
 
@@ -483,13 +496,18 @@ static errno_t gfx_font_metrics_save(gfx_font_metrics_t *metrics,
     riffw_t *riffw)
 {
 	errno_t rc;
+	tpf_font_metrics_t tmetrics;
 	riff_wchunk_t mtrck;
+
+	tmetrics.ascent = host2uint16_t_le(metrics->ascent);
+	tmetrics.descent = host2uint16_t_le(metrics->descent);
+	tmetrics.leading = host2uint16_t_le(metrics->leading);
 
 	rc = riff_wchunk_start(riffw, CKID_fmtr, &mtrck);
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_write(riffw, (void *) metrics, sizeof(*metrics));
+	rc = riff_write(riffw, (void *) &tmetrics, sizeof(tmetrics));
 	if (rc != EOK)
 		return rc;
 
@@ -510,31 +528,30 @@ static errno_t gfx_font_bitmap_load(riff_rchunk_t *parent, gfx_font_t *font)
 {
 	errno_t rc;
 	riff_rchunk_t bmpck;
+	tpf_font_bmp_hdr_t thdr;
 	gfx_bitmap_params_t params;
 	gfx_bitmap_alloc_t alloc;
 	gfx_bitmap_t *bitmap = NULL;
 	uint32_t width;
 	uint32_t height;
-	uint32_t depth;
+	uint16_t fmt;
+	uint16_t depth;
 	size_t nread;
 
 	rc = riff_rchunk_match(parent, CKID_fbmp, &bmpck);
 	if (rc != EOK)
 		goto error;
 
-	rc = riff_read_uint32(&bmpck, &width);
-	if (rc != EOK)
+	rc = riff_read(&bmpck, &thdr, sizeof(thdr), &nread);
+	if (rc != EOK || nread != sizeof(thdr))
 		goto error;
 
-	rc = riff_read_uint32(&bmpck, &height);
-	if (rc != EOK)
-		goto error;
+	width = uint32_t_le2host(thdr.width);
+	height = uint32_t_le2host(thdr.height);
+	fmt = uint16_t_le2host(thdr.fmt);
+	depth = uint16_t_le2host(thdr.depth);
 
-	rc = riff_read_uint32(&bmpck, &depth);
-	if (rc != EOK)
-		goto error;
-
-	if (depth != 8 * sizeof(uint32_t)) {
+	if (fmt != 0 || depth != 8 * sizeof(uint32_t)) {
 		rc = ENOTSUP;
 		goto error;
 	}
@@ -586,8 +603,14 @@ error:
 static errno_t gfx_font_bitmap_save(gfx_font_t *font, riffw_t *riffw)
 {
 	errno_t rc;
+	tpf_font_bmp_hdr_t thdr;
 	riff_wchunk_t bmpck;
 	gfx_bitmap_alloc_t alloc;
+
+	thdr.width = host2uint32_t_le(font->rect.p1.x);
+	thdr.height = host2uint32_t_le(font->rect.p1.y);
+	thdr.fmt = 0;
+	thdr.depth = host2uint16_t_le(8 * sizeof(uint32_t));
 
 	rc = gfx_bitmap_get_alloc(font->bitmap, &alloc);
 	if (rc != EOK)
@@ -597,15 +620,7 @@ static errno_t gfx_font_bitmap_save(gfx_font_t *font, riffw_t *riffw)
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_write_uint32(riffw, font->rect.p1.x);
-	if (rc != EOK)
-		return rc;
-
-	rc = riff_write_uint32(riffw, font->rect.p1.y);
-	if (rc != EOK)
-		return rc;
-
-	rc = riff_write_uint32(riffw, 8 * sizeof(uint32_t));
+	rc = riff_write(riffw, &thdr, sizeof(thdr));
 	if (rc != EOK)
 		return rc;
 

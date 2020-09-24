@@ -34,6 +34,7 @@
  */
 
 #include <assert.h>
+#include <byteorder.h>
 #include <errno.h>
 #include <gfx/bitmap.h>
 #include <gfx/glyph.h>
@@ -325,20 +326,22 @@ static errno_t gfx_glyph_metrics_load(riff_rchunk_t *parent,
 {
 	errno_t rc;
 	riff_rchunk_t mtrck;
+	tpf_glyph_metrics_t tmetrics;
 	size_t nread;
 
 	rc = riff_rchunk_match(parent, CKID_gmtr, &mtrck);
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_read(&mtrck, (void *) metrics, sizeof(*metrics), &nread);
-	if (rc != EOK || nread != sizeof(*metrics))
+	rc = riff_read(&mtrck, (void *) &tmetrics, sizeof(tmetrics), &nread);
+	if (rc != EOK || nread != sizeof(tmetrics))
 		return EIO;
 
 	rc = riff_rchunk_end(&mtrck);
 	if (rc != EOK)
 		return rc;
 
+	metrics->advance = uint16_t_le2host(tmetrics.advance);
 	return EOK;
 }
 
@@ -352,13 +355,16 @@ static errno_t gfx_glyph_metrics_save(gfx_glyph_metrics_t *metrics,
     riffw_t *riffw)
 {
 	errno_t rc;
+	tpf_glyph_metrics_t tmetrics;
 	riff_wchunk_t mtrck;
+
+	tmetrics.advance = host2uint16_t_le(metrics->advance);
 
 	rc = riff_wchunk_start(riffw, CKID_gmtr, &mtrck);
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_write(riffw, (void *) metrics, sizeof(*metrics));
+	rc = riff_write(riffw, (void *) &tmetrics, sizeof(tmetrics));
 	if (rc != EOK)
 		return rc;
 
@@ -465,6 +471,7 @@ static errno_t gfx_glyph_rectangle_origin_load(riff_rchunk_t *parent,
     gfx_glyph_t *glyph)
 {
 	errno_t rc;
+	tpf_glyph_ror_t tror;
 	riff_rchunk_t rorck;
 	size_t nread;
 
@@ -472,20 +479,21 @@ static errno_t gfx_glyph_rectangle_origin_load(riff_rchunk_t *parent,
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_read(&rorck, (void *) &glyph->rect, sizeof(glyph->rect),
+	rc = riff_read(&rorck, (void *) &tror, sizeof(tror),
 	    &nread);
-	if (rc != EOK || nread != sizeof(glyph->rect))
-		return EIO;
-
-	rc = riff_read(&rorck, (void *) &glyph->origin, sizeof(glyph->origin),
-	    &nread);
-	if (rc != EOK || nread != sizeof(glyph->origin))
+	if (rc != EOK || nread != sizeof(tror))
 		return EIO;
 
 	rc = riff_rchunk_end(&rorck);
 	if (rc != EOK)
 		return rc;
 
+	glyph->rect.p0.x = uint32_t_le2host(tror.p0x);
+	glyph->rect.p0.y = uint32_t_le2host(tror.p0y);
+	glyph->rect.p1.x = uint32_t_le2host(tror.p1x);
+	glyph->rect.p1.y = uint32_t_le2host(tror.p1y);
+	glyph->origin.x = uint32_t_le2host(tror.orig_x);
+	glyph->origin.y = uint32_t_le2host(tror.orig_y);
 	return EOK;
 }
 
@@ -499,17 +507,21 @@ static errno_t gfx_glyph_rectangle_origin_save(gfx_glyph_t *glyph,
     riffw_t *riffw)
 {
 	errno_t rc;
+	tpf_glyph_ror_t tror;
 	riff_wchunk_t rorck;
+
+	tror.p0x = host2uint32_t_le(glyph->rect.p0.x);
+	tror.p0y = host2uint32_t_le(glyph->rect.p0.y);
+	tror.p1x = host2uint32_t_le(glyph->rect.p1.x);
+	tror.p1y = host2uint32_t_le(glyph->rect.p1.y);
+	tror.orig_x = host2uint32_t_le(glyph->origin.x);
+	tror.orig_y = host2uint32_t_le(glyph->origin.y);
 
 	rc = riff_wchunk_start(riffw, CKID_gror, &rorck);
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_write(riffw, (void *) &glyph->rect, sizeof(glyph->rect));
-	if (rc != EOK)
-		return rc;
-
-	rc = riff_write(riffw, (void *) &glyph->origin, sizeof(glyph->origin));
+	rc = riff_write(riffw, (void *) &tror, sizeof(tror));
 	if (rc != EOK)
 		return rc;
 
