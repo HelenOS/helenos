@@ -147,7 +147,7 @@ static void font_edit_ctrl_key(font_edit_t *fedit, kbd_event_t *event)
 	case KC_S:
 		printf("Save!\n");
 		(void) gfx_glyph_bmp_save(fedit->gbmp);
-		rc = gfx_typeface_save(fedit->typeface, "/test.tpf");
+		rc = gfx_typeface_save(fedit->typeface, fedit->fname);
 		if (rc != EOK)
 			printf("Error saving typeface.\n");
 		font_edit_paint(fedit);
@@ -425,10 +425,12 @@ static errno_t font_edit_paint(font_edit_t *fedit)
 /** Create font editor.
  *
  * @param display_svc Display service
+ * @param fname Font file to open or @c NULL to create new font
  * @param rfedit Place to store pointer to new font editor
  * @return EOK on success or an error code
  */
-static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
+static errno_t font_edit_create(const char *display_svc, const char *fname,
+    font_edit_t **rfedit)
 {
 	canvas_gc_t *cgc = NULL;
 	window_t *window = NULL;
@@ -438,6 +440,7 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 	font_edit_t *fedit = NULL;
 	gfx_typeface_t *tface = NULL;
 	gfx_font_t *font = NULL;
+	gfx_font_info_t *finfo;
 	gfx_font_props_t props;
 	gfx_font_metrics_t metrics;
 	gfx_glyph_metrics_t gmetrics;
@@ -503,33 +506,51 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 
 	gc = canvas_gc_get_ctx(cgc);
 
-	rc = gfx_typeface_create(gc, &tface);
-	if (rc != EOK) {
-		printf("Error creating typeface.\n");
-		goto error;
-	}
+	if (fname == NULL) {
+		rc = gfx_typeface_create(gc, &tface);
+		if (rc != EOK) {
+			printf("Error creating typeface.\n");
+			goto error;
+		}
 
-	gfx_font_props_init(&props);
-	gfx_font_metrics_init(&metrics);
+		gfx_font_props_init(&props);
+		gfx_font_metrics_init(&metrics);
 
-	rc = gfx_font_create(tface, &props, &metrics, &font);
-	if (rc != EOK) {
-		printf("Error creating font.\n");
-		goto error;
-	}
+		rc = gfx_font_create(tface, &props, &metrics, &font);
+		if (rc != EOK) {
+			printf("Error creating font.\n");
+		    	goto error;
+		}
 
-	gfx_glyph_metrics_init(&gmetrics);
+		gfx_glyph_metrics_init(&gmetrics);
 
-	rc = gfx_glyph_create(font, &gmetrics, &glyph);
-	if (rc != EOK) {
-		printf("Error creating glyph.\n");
-		goto error;
-	}
+		rc = gfx_glyph_create(font, &gmetrics, &glyph);
+		if (rc != EOK) {
+			printf("Error creating glyph.\n");
+			goto error;
+		}
 
-	rc = gfx_glyph_set_pattern(glyph, "A");
-	if (rc != EOK) {
-		printf("Error setting glyph pattern.\n");
-		goto error;
+		rc = gfx_glyph_set_pattern(glyph, "A");
+		if (rc != EOK) {
+			printf("Error setting glyph pattern.\n");
+			goto error;
+		}
+	} else {
+		rc = gfx_typeface_open(gc, fname, &tface);
+		if (rc != EOK) {
+			printf("Error opening typeface '%s.\n",
+			    fname);
+			goto error;
+		}
+
+		finfo = gfx_typeface_first_font(tface);
+		rc = gfx_font_open(finfo, &font);
+		if (rc != EOK) {
+			printf("Error opening font.\n");
+			goto error;
+		}
+
+		glyph = gfx_font_first_glyph(font);
 	}
 
 	rc = gfx_glyph_bmp_open(glyph, &bmp);
@@ -543,11 +564,15 @@ static errno_t font_edit_create(const char *display_svc, font_edit_t **rfedit)
 	sig_connect(&canvas->keyboard_event, &canvas->widget,
 	    font_edit_kbd_event);
 
+	if (fname == NULL)
+		fname = "new.tpf";
+
 	fedit->cgc = cgc;
 	fedit->gc = gc;
 	fedit->width = vw;
 	fedit->height = vh;
 	fedit->pen_color = 1;
+	fedit->fname = fname;
 	fedit->typeface = tface;
 	fedit->font = font;
 	fedit->glyph = glyph;
@@ -582,13 +607,14 @@ error:
 
 static void print_syntax(void)
 {
-	printf("Syntax: fontedit [-d <display>]\n");
+	printf("Syntax: fontedit [-d <display>] [<file.tpf>]\n");
 }
 
 int main(int argc, char *argv[])
 {
 	errno_t rc;
 	const char *display_svc = DISPLAY_DEFAULT;
+	const char *fname = NULL;
 	font_edit_t *fedit;
 	int i;
 
@@ -610,7 +636,20 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	rc = font_edit_create(display_svc, &fedit);
+	/* File name argument? */
+	if (i < argc) {
+		fname = argv[i];
+		++i;
+	}
+
+	/* Extra arguments? */
+	if (i < argc) {
+		printf("Unexpected argument '%s'.\n", argv[i]);
+		print_syntax();
+		return 1;
+	}
+
+	rc = font_edit_create(display_svc, fname, &fedit);
 	if (rc != EOK)
 		return 1;
 

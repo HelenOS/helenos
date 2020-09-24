@@ -53,6 +53,8 @@ typedef struct {
 	int height;
 	/** Pen color (1 = set, 0 = reset) */
 	int pen_color;
+	/** File name */
+	const char *fname;
 	/** Typeface */
 	gfx_typeface_t *typeface;
 	/** Font */
