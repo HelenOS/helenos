@@ -523,7 +523,7 @@ static errno_t font_edit_create(const char *display_svc, const char *fname,
 		rc = gfx_font_create(tface, &props, &metrics, &font);
 		if (rc != EOK) {
 			printf("Error creating font.\n");
-		    	goto error;
+			goto error;
 		}
 
 		gfx_glyph_metrics_init(&gmetrics);
