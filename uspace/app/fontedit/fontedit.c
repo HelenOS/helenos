@@ -134,6 +134,56 @@ static void font_edit_pos_event(widget_t *widget, void *data)
 	}
 }
 
+/** Duplicate previously selected glyph to the current glyph.
+ *
+ * @param fedit Font editor
+ */
+static void font_edit_copy_paste(font_edit_t *fedit)
+{
+	gfx_glyph_bmp_t *src_bmp;
+	gfx_glyph_metrics_t gmetrics;
+	gfx_rect_t rect;
+	gfx_coord_t x, y;
+	int pix;
+	errno_t rc;
+
+	/* If source and destination are the same, there is nothing to do. */
+	if (fedit->glyph == fedit->src_glyph)
+		return;
+
+	rc = gfx_glyph_bmp_open(fedit->src_glyph, &src_bmp);
+	if (rc != EOK) {
+		printf("Error opening source glyph.\n");
+		return;
+	}
+
+	gfx_glyph_bmp_get_rect(src_bmp, &rect);
+
+	rc = gfx_glyph_bmp_clear(fedit->gbmp);
+	if (rc != EOK) {
+		printf("Error clearing glyph bitmap.\n");
+		return;
+	}
+
+	for (y = rect.p0.y; y < rect.p1.y; y++) {
+		for (x = rect.p0.x; x < rect.p1.x; x++) {
+			pix = gfx_glyph_bmp_getpix(src_bmp, x, y);
+			rc = gfx_glyph_bmp_setpix(fedit->gbmp, x, y, pix);
+			if (rc != EOK) {
+				printf("Error setting pixel.\n");
+				return;
+			}
+		}
+	}
+
+	/* Copy metrics over */
+	gfx_glyph_get_metrics(fedit->src_glyph, &gmetrics);
+	(void) gfx_glyph_set_metrics(fedit->glyph, &gmetrics);
+
+	font_edit_paint(fedit);
+
+}
+
 /** Handle font editor control-key press.
  *
  * @param widget Canvas widget
@@ -169,6 +219,14 @@ static void font_edit_ctrl_key(font_edit_t *fedit, kbd_event_t *event)
 	case KC_X:
 		(void) gfx_glyph_bmp_clear(fedit->gbmp);
 		font_edit_paint(fedit);
+		break;
+	case KC_C:
+		/* Select source glyph for copying */
+		fedit->src_glyph = fedit->glyph;
+		break;
+	case KC_V:
+		/* Duplicate another glyph */
+		font_edit_copy_paste(fedit);
 		break;
 	default:
 		break;

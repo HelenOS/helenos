@@ -63,6 +63,8 @@ typedef struct {
 	gfx_glyph_t *glyph;
 	/** Glyph bitmap */
 	gfx_glyph_bmp_t *gbmp;
+	/** Glyph used as source for copy/paste */
+	gfx_glyph_t *src_glyph;
 } font_edit_t;
 
 #endif
