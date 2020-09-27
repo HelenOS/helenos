@@ -115,17 +115,21 @@ errno_t gfx_glyph_bmp_save(gfx_glyph_bmp_t *bmp)
 	gfx_glyph_t *glyph = bmp->glyph;
 	gfx_font_t *font = glyph->font;
 	gfx_coord_t x, y;
+	gfx_rect_t used_rect;
 	pixel_t pixel;
 	pixelmap_t pmap;
 	gfx_bitmap_alloc_t alloc;
 	errno_t rc;
+
+	/* Find actual rectangle being used */
+	gfx_glyph_bmp_find_used_rect(bmp, &used_rect);
 
 	/*
 	 * Replace glyph with empty space in the font bitmap, the width
 	 * of the empty equal to new glyph bitmap width. The glyph width
 	 * is adjusted.
 	 */
-	rc = gfx_font_splice_at_glyph(font, glyph, &bmp->rect);
+	rc = gfx_font_splice_at_glyph(font, glyph, &used_rect);
 	if (rc != EOK)
 		return rc;
 
@@ -141,8 +145,8 @@ errno_t gfx_glyph_bmp_save(gfx_glyph_bmp_t *bmp)
 
 	/* Copy pixels to font bitmap */
 
-	for (y = bmp->rect.p0.y; y < bmp->rect.p1.y; y++) {
-		for (x = bmp->rect.p0.x; x < bmp->rect.p1.x; x++) {
+	for (y = used_rect.p0.y; y < used_rect.p1.y; y++) {
+		for (x = used_rect.p0.x; x < used_rect.p1.x; x++) {
 			pixel = bmp->pixels[(y - bmp->rect.p0.y) *
 			    (bmp->rect.p1.x - bmp->rect.p0.x) +
 			    (x - bmp->rect.p0.x)] ?
@@ -173,6 +177,55 @@ void gfx_glyph_bmp_close(gfx_glyph_bmp_t *bmp)
 void gfx_glyph_bmp_get_rect(gfx_glyph_bmp_t *bmp, gfx_rect_t *rect)
 {
 	*rect = bmp->rect;
+}
+
+/** Find minimum rectangle covering all non-background pixels.
+ *
+ * @param bmp Glyph bitmap
+ * @param rect Place to store rectangle
+ */
+void gfx_glyph_bmp_find_used_rect(gfx_glyph_bmp_t *bmp, gfx_rect_t *rect)
+{
+	gfx_coord_t x, y;
+	gfx_coord2_t min;
+	gfx_coord2_t max;
+	bool anypix;
+	int pix;
+
+	min.x = bmp->rect.p1.x;
+	min.y = bmp->rect.p1.y;
+	max.x = bmp->rect.p0.x;
+	max.y = bmp->rect.p0.y;
+
+	anypix = false;
+	for (y = bmp->rect.p0.y; y < bmp->rect.p1.y; y++) {
+		for (x = bmp->rect.p0.x; x < bmp->rect.p1.x; x++) {
+			pix = gfx_glyph_bmp_getpix(bmp, x, y);
+			if (pix != 0) {
+				anypix = true;
+				if (x < min.x)
+					min.x = x;
+				if (y < min.y)
+					min.y = y;
+				if (x > max.x)
+					max.x = x;
+				if (y > max.y)
+					max.y = y;
+			}
+		}
+	}
+
+	if (anypix) {
+		rect->p0.x = min.x;
+		rect->p0.y = min.y;
+		rect->p1.x = max.x + 1;
+		rect->p1.y = max.y + 1;
+	} else {
+		rect->p0.x = 0;
+		rect->p0.y = 0;
+		rect->p1.x = 0;
+		rect->p1.y = 0;
+	}
 }
 
 /** Get pixel from glyph bitmap.

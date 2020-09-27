@@ -38,6 +38,7 @@
 #define _GFX_PRIVATE_GLYPH_BMP_H
 
 #include <gfx/coord.h>
+#include <types/gfx/glyph_bmp.h>
 
 /** Glyph bitmap
  *
@@ -55,6 +56,8 @@ struct gfx_glyph_bmp {
 	/** Pixel array */
 	int *pixels;
 };
+
+extern void gfx_glyph_bmp_find_used_rect(gfx_glyph_bmp_t *, gfx_rect_t *);
 
 #endif
 
