@@ -422,8 +422,10 @@ errno_t riff_rchunk_seek(riff_rchunk_t *rchunk, long offset, int whence)
 		return EINVAL;
 	}
 
-	if (dest < rchunk->ckstart || dest > rchunk->ckstart + rchunk->cksize)
+	if (dest < rchunk->ckstart || (unsigned long) dest > rchunk->ckstart +
+	    rchunk->cksize) {
 		return ELIMIT;
+	}
 
 	rv = fseek(rchunk->riffr->f, dest, SEEK_SET);
 	if (rv < 0)
