@@ -39,6 +39,7 @@
 
 #include <adt/list.h>
 #include <errno.h>
+#include <stdint.h>
 #include <types/gfx/bitmap.h>
 #include <types/gfx/context.h>
 #include <types/gfx/font.h>
@@ -90,6 +91,10 @@ struct gfx_font_info {
 extern errno_t gfx_font_splice_at_glyph(gfx_font_t *, gfx_glyph_t *,
     gfx_rect_t *);
 extern errno_t gfx_font_info_load(gfx_typeface_t *, riff_rchunk_t *);
+extern errno_t gfx_font_bitmap_pack(gfx_coord_t, gfx_coord_t, uint32_t *,
+    void **, size_t *);
+extern errno_t gfx_font_bitmap_unpack(gfx_coord_t, gfx_coord_t, void *, size_t,
+    uint32_t *);
 extern errno_t gfx_font_load(gfx_font_info_t *);
 extern errno_t gfx_font_save(gfx_font_info_t *, riffw_t *);
 

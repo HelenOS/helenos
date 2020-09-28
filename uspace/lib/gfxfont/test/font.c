@@ -365,6 +365,83 @@ PCUT_TEST(splice_at_glyph)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Test gfx_font_bitmap_pack() properly packs bitmap */
+PCUT_TEST(bitmap_pack)
+{
+	errno_t rc;
+	gfx_coord_t width, height;
+	gfx_coord_t i;
+	uint32_t *pixels;
+	void *data;
+	size_t size;
+	uint8_t *dp;
+
+	width = 10;
+	height = 10;
+
+	pixels = calloc(sizeof(uint32_t), width * height);
+	PCUT_ASSERT_NOT_NULL(pixels);
+
+	for (i = 0; i < 10; i++)
+		pixels[i * width + i] = PIXEL(255, 255, 255, 255);
+
+	rc = gfx_font_bitmap_pack(width, height, pixels, &data, &size);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(data);
+	PCUT_ASSERT_INT_EQUALS(20, size);
+
+	dp = data;
+
+	for (i = 0; i < 8; i++) {
+		PCUT_ASSERT_INT_EQUALS(0x80 >> i, dp[2 * i]);
+		PCUT_ASSERT_INT_EQUALS(0, dp[2 * i + 1]);
+	}
+
+	for (i = 8; i < 10; i++) {
+		PCUT_ASSERT_INT_EQUALS(0, dp[2 * i]);
+		PCUT_ASSERT_INT_EQUALS(0x80 >> (i - 8), dp[2 * i + 1]);
+	}
+}
+
+/** Test gfx_font_bitmap_unpack() properly unpacks bitmap */
+PCUT_TEST(bitmap_unpack)
+{
+	errno_t rc;
+	gfx_coord_t width, height;
+	gfx_coord_t i, j;
+	uint32_t epix;
+	uint32_t *pixels;
+	uint8_t data[20];
+
+	width = 10;
+	height = 10;
+
+	for (i = 0; i < 8; i++) {
+		data[2 * i] = 0x80 >> i;
+		data[2 * i + 1] = 0;
+	}
+
+	for (i = 8; i < 10; i++) {
+		data[2 * i] = 0;
+		data[2 * i + 1] = 0x80 >> (i - 8);
+	}
+
+	pixels = calloc(sizeof(uint32_t), width * height);
+	PCUT_ASSERT_NOT_NULL(pixels);
+
+	rc = gfx_font_bitmap_unpack(width, height, data, sizeof(data),
+	    pixels);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	for (j = 0; j < 10; j++) {
+		for (i = 0; i < 10; i++) {
+			epix = (i == j) ? PIXEL(255, 255, 255, 255) :
+			    PIXEL(0, 0, 0, 0);
+			PCUT_ASSERT_INT_EQUALS(epix, pixels[j * width + i]);
+		}
+	}
+}
+
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)
 {
 	return EOK;

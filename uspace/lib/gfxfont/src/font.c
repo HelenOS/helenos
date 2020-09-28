@@ -518,6 +518,101 @@ static errno_t gfx_font_metrics_save(gfx_font_metrics_t *metrics,
 	return EOK;
 }
 
+/** Bit pack font bitmap into 1 bits/pixel format.
+ *
+ * @param width Bitmap width
+ * @param height Bitmap height
+ * @param pixels Bitmap pixels
+ * @param rdata Place to store pointer to packed data
+ * @param rsize Place to store size of packed data
+ * @return EOK on sucess, ENOMEM if out of memory
+ */
+errno_t gfx_font_bitmap_pack(gfx_coord_t width, gfx_coord_t height,
+    uint32_t *pixels, void **rdata, size_t *rsize)
+{
+	void *data;
+	size_t size;
+	size_t bytes_line;
+	gfx_coord_t x, y;
+	uint8_t b;
+	uint8_t *dp;
+	uint32_t *sp;
+	uint32_t pix;
+
+	bytes_line = (width + 7) / 8;
+	size = height * bytes_line;
+
+	data = malloc(size);
+	if (data == NULL)
+		return ENOMEM;
+
+	sp = pixels;
+	dp = data;
+	for (y = 0; y < height; y++) {
+		b = 0;
+		for (x = 0; x < width; x++) {
+			pix = *sp++;
+			b = (b << 1) | (pix & 1);
+			/* Write eight bits */
+			if ((x & 7) == 7) {
+				*dp++ = b;
+				b = 0;
+			}
+		}
+
+		/* Write remaining bits */
+		if ((x & 7) != 0) {
+			b = b << (8 - (x & 7));
+			*dp++ = b;
+		}
+	}
+
+	*rdata = data;
+	*rsize = size;
+	return EOK;
+}
+
+/** Unpack font bitmap from 1 bits/pixel format.
+ *
+ * @param width Bitmap width
+ * @param height Bitmap height
+ * @param data Packed data
+ * @param dsize Size of packed data
+ * @param pixels Bitmap pixels
+ * @return EOK on success, EINVAL if data size is invalid
+ */
+errno_t gfx_font_bitmap_unpack(gfx_coord_t width, gfx_coord_t height,
+    void *data, size_t dsize, uint32_t *pixels)
+{
+	size_t size;
+	size_t bytes_line;
+	gfx_coord_t x, y;
+	uint8_t b;
+	uint8_t *sp;
+	uint32_t *dp;
+
+	bytes_line = (width + 7) / 8;
+	size = height * bytes_line;
+
+	if (dsize != size)
+		return EINVAL;
+
+	sp = data;
+	dp = pixels;
+	for (y = 0; y < height; y++) {
+		b = 0;
+		for (x = 0; x < width; x++) {
+			if ((x & 7) == 0)
+				b = *sp++;
+			*dp++ = (b >> 7) ? PIXEL(255, 255, 255, 255) :
+			    PIXEL(0, 0, 0, 0);
+			b = b << 1;
+		}
+	}
+
+	return EOK;
+}
+
 /** Load font bitmap from RIFF TPF file.
  *
  * @param parent Parent chunk
@@ -536,6 +631,9 @@ static errno_t gfx_font_bitmap_load(riff_rchunk_t *parent, gfx_font_t *font)
 	uint32_t height;
 	uint16_t fmt;
 	uint16_t depth;
+	size_t bytes_line;
+	void *data = NULL;
+	size_t size;
 	size_t nread;
 
 	rc = riff_rchunk_match(parent, CKID_fbmp, &bmpck);
@@ -551,8 +649,17 @@ static errno_t gfx_font_bitmap_load(riff_rchunk_t *parent, gfx_font_t *font)
 	fmt = uint16_t_le2host(thdr.fmt);
 	depth = uint16_t_le2host(thdr.depth);
 
-	if (fmt != 0 || depth != 8 * sizeof(uint32_t)) {
+	if (fmt != 0 || depth != 1) {
 		rc = ENOTSUP;
+		goto error;
+	}
+
+	bytes_line = (width + 7) / 8;
+	size = height * bytes_line;
+
+	data = malloc(size);
+	if (data == NULL) {
+		rc = ENOMEM;
 		goto error;
 	}
 
@@ -570,12 +677,11 @@ static errno_t gfx_font_bitmap_load(riff_rchunk_t *parent, gfx_font_t *font)
 	if (rc != EOK)
 		goto error;
 
-	rc = riff_read(&bmpck, (void *) alloc.pixels,
-	    width * height * sizeof(uint32_t), &nread);
+	rc = riff_read(&bmpck, data, size, &nread);
 	if (rc != EOK)
 		goto error;
 
-	if (nread != width * height * sizeof(uint32_t)) {
+	if (nread != size) {
 		rc = EIO;
 		goto error;
 	}
@@ -584,11 +690,18 @@ static errno_t gfx_font_bitmap_load(riff_rchunk_t *parent, gfx_font_t *font)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_font_bitmap_unpack(width, height, data, size, alloc.pixels);
+	if (rc != EOK)
+		goto error;
+
+	free(data);
 	gfx_bitmap_destroy(font->bitmap);
 	font->bitmap = bitmap;
 	font->rect = params.rect;
 	return EOK;
 error:
+	if (data != NULL)
+		free(data);
 	if (bitmap != NULL)
 		gfx_bitmap_destroy(bitmap);
 	return rc;
@@ -606,34 +719,45 @@ static errno_t gfx_font_bitmap_save(gfx_font_t *font, riffw_t *riffw)
 	tpf_font_bmp_hdr_t thdr;
 	riff_wchunk_t bmpck;
 	gfx_bitmap_alloc_t alloc;
-
-	thdr.width = host2uint32_t_le(font->rect.p1.x);
-	thdr.height = host2uint32_t_le(font->rect.p1.y);
-	thdr.fmt = 0;
-	thdr.depth = host2uint16_t_le(8 * sizeof(uint32_t));
+	void *data = NULL;
+	size_t dsize;
 
 	rc = gfx_bitmap_get_alloc(font->bitmap, &alloc);
 	if (rc != EOK)
 		return rc;
 
-	rc = riff_wchunk_start(riffw, CKID_fbmp, &bmpck);
+	rc = gfx_font_bitmap_pack(font->rect.p1.x, font->rect.p1.y,
+	    alloc.pixels, &data, &dsize);
 	if (rc != EOK)
 		return rc;
+
+	thdr.width = host2uint32_t_le(font->rect.p1.x);
+	thdr.height = host2uint32_t_le(font->rect.p1.y);
+	thdr.fmt = 0;
+	thdr.depth = host2uint16_t_le(1);
+
+	rc = riff_wchunk_start(riffw, CKID_fbmp, &bmpck);
+	if (rc != EOK)
+		goto error;
 
 	rc = riff_write(riffw, &thdr, sizeof(thdr));
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	rc = riff_write(riffw, (void *) alloc.pixels,
-	    font->rect.p1.x * font->rect.p1.y * sizeof(uint32_t));
+	rc = riff_write(riffw, data, dsize);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	rc = riff_wchunk_end(riffw, &bmpck);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
+	free(data);
 	return EOK;
+error:
+	if (data != NULL)
+		free(data);
+	return rc;
 }
 
 /** Load font info from RIFF TPF file.
