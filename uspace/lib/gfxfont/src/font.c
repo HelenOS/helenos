@@ -273,6 +273,38 @@ gfx_glyph_t *gfx_font_next_glyph(gfx_glyph_t *cur)
 	return list_get_instance(link, gfx_glyph_t, lglyphs);
 }
 
+/** Get last glyph in font.
+ *
+ * @param font Font
+ * @return Last glyph or @c NULL if there are none
+ */
+gfx_glyph_t *gfx_font_last_glyph(gfx_font_t *font)
+{
+	link_t *link;
+
+	link = list_last(&font->glyphs);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, gfx_glyph_t, lglyphs);
+}
+
+/** Get previous glyph in font.
+ *
+ * @param cur Current glyph
+ * @return Previous glyph in font or @c NULL if @a cur was the last one
+ */
+gfx_glyph_t *gfx_font_prev_glyph(gfx_glyph_t *cur)
+{
+	link_t *link;
+
+	link = list_prev(&cur->lglyphs, &cur->font->glyphs);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, gfx_glyph_t, lglyphs);
+}
+
 /** Search for glyph that should be set for the beginning of a string.
  *
  * @param font Font

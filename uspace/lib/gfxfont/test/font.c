@@ -286,6 +286,108 @@ PCUT_TEST(next_glyph)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Test gfx_font_last_glyph() */
+PCUT_TEST(last_glyph)
+{
+	gfx_font_props_t props;
+	gfx_font_metrics_t metrics;
+	gfx_glyph_metrics_t gmetrics;
+	gfx_typeface_t *tface;
+	gfx_font_t *font;
+	gfx_context_t *gc;
+	gfx_glyph_t *glyph;
+	gfx_glyph_t *glast;
+	test_gc_t tgc;
+	errno_t rc;
+
+	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_metrics_init(&metrics);
+
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&props);
+	gfx_font_metrics_init(&metrics);
+	rc = gfx_font_create(tface, &props, &metrics, &font);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Should get NULL since there is no glyph in the font */
+	glyph = gfx_font_last_glyph(font);
+	PCUT_ASSERT_NULL(glyph);
+
+	/* Now add one */
+	gfx_glyph_metrics_init(&gmetrics);
+	rc = gfx_glyph_create(font, &gmetrics, &glyph);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* gfx_font_last_glyph() should return the same */
+	glast = gfx_font_last_glyph(font);
+	PCUT_ASSERT_EQUALS(glyph, glast);
+
+	gfx_glyph_destroy(glyph);
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Test gfx_font_prev_glyph() */
+PCUT_TEST(prev_glyph)
+{
+	gfx_font_props_t props;
+	gfx_font_metrics_t metrics;
+	gfx_glyph_metrics_t gmetrics;
+	gfx_typeface_t *tface;
+	gfx_font_t *font;
+	gfx_context_t *gc;
+	gfx_glyph_t *glyph1;
+	gfx_glyph_t *glyph2;
+	gfx_glyph_t *gfirst;
+	gfx_glyph_t *gsecond;
+	test_gc_t tgc;
+	errno_t rc;
+
+	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_metrics_init(&metrics);
+
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_props_init(&props);
+	gfx_font_metrics_init(&metrics);
+	rc = gfx_font_create(tface, &props, &metrics, &font);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Add first glyph */
+	gfx_glyph_metrics_init(&gmetrics);
+	rc = gfx_glyph_create(font, &gmetrics, &glyph1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Add second glyph */
+	gfx_glyph_metrics_init(&gmetrics);
+	rc = gfx_glyph_create(font, &gmetrics, &glyph2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* gfx_font_last_glyph() should return glyph2 */
+	gsecond = gfx_font_last_glyph(font);
+	PCUT_ASSERT_EQUALS(glyph2, gsecond);
+
+	/* gfx_font_prev_glyph() should return glyph1 */
+	gfirst = gfx_font_prev_glyph(gsecond);
+	PCUT_ASSERT_EQUALS(glyph1, gfirst);
+
+	gfx_glyph_destroy(glyph1);
+	gfx_glyph_destroy(glyph2);
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Test gfx_font_search_glyph() */
 PCUT_TEST(search_glyph)
 {

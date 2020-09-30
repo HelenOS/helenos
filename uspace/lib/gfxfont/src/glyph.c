@@ -37,6 +37,7 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <gfx/bitmap.h>
+#include <gfx/font.h>
 #include <gfx/glyph.h>
 #include <io/pixelmap.h>
 #include <mem.h>
@@ -72,6 +73,7 @@ errno_t gfx_glyph_create(gfx_font_t *font, gfx_glyph_metrics_t *metrics,
     gfx_glyph_t **rglyph)
 {
 	gfx_glyph_t *glyph;
+	gfx_glyph_t *last;
 	errno_t rc;
 
 	glyph = calloc(1, sizeof(gfx_glyph_t));
@@ -87,9 +89,24 @@ errno_t gfx_glyph_create(gfx_font_t *font, gfx_glyph_metrics_t *metrics,
 		return rc;
 	}
 
+	last = gfx_font_last_glyph(font);
+
 	glyph->metrics = *metrics;
 	list_append(&glyph->lglyphs, &glyph->font->glyphs);
 	list_initialize(&glyph->patterns);
+
+	if (last != NULL)
+		glyph->rect.p0.x = last->rect.p1.x;
+	else
+		glyph->rect.p0.x = 0;
+
+	glyph->rect.p0.y = 0;
+	glyph->rect.p1.x = glyph->rect.p0.x;
+	glyph->rect.p1.y = glyph->rect.p1.y;
+
+	glyph->origin.x = glyph->rect.p0.x;
+	glyph->origin.y = glyph->rect.p0.y;
+
 	*rglyph = glyph;
 	return EOK;
 }

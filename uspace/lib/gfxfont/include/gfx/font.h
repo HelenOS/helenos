@@ -55,6 +55,8 @@ extern errno_t gfx_font_set_metrics(gfx_font_t *,
     gfx_font_metrics_t *);
 extern gfx_glyph_t *gfx_font_first_glyph(gfx_font_t *);
 extern gfx_glyph_t *gfx_font_next_glyph(gfx_glyph_t *);
+extern gfx_glyph_t *gfx_font_last_glyph(gfx_font_t *);
+extern gfx_glyph_t *gfx_font_prev_glyph(gfx_glyph_t *);
 extern errno_t gfx_font_search_glyph(gfx_font_t *, const char *, gfx_glyph_t **,
     size_t *);
 
