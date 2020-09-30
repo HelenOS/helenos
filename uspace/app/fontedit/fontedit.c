@@ -52,7 +52,7 @@
 enum {
 	glyph_scale = 8,
 	glyph_orig_x = 100,
-	glyph_orig_y = 100
+	glyph_orig_y = 200
 };
 
 static errno_t font_edit_paint(font_edit_t *);
@@ -345,22 +345,26 @@ static void font_edit_gpix_to_disp(font_edit_t *fedit, int x, int y,
 	drect->p1.y = glyph_orig_y + (y + 1) * glyph_scale;
 }
 
-/** Paint font preview.
+/** Paint font preview string.
  *
  * @param fedit Font editor
+ * @param x Starting X coordinate
+ * @Param y Starting Y coordinate
+ * @param str String
  */
-static errno_t font_edit_paint_preview(font_edit_t *fedit)
+static errno_t font_edit_paint_preview_str(font_edit_t *fedit,
+    gfx_coord_t x, gfx_coord_t y, const char *str)
 {
 	gfx_glyph_metrics_t gmetrics;
 	size_t stradv;
 	const char *cp;
-	gfx_glyph_t *glyph;
 	gfx_coord2_t pos;
+	gfx_glyph_t *glyph;
 	errno_t rc;
 
-	cp = "ABCD";
-	pos.x = 20;
-	pos.y = 20;
+	pos.x = x;
+	pos.y = y;
+	cp = str;
 
 	while (*cp != '\0') {
 		rc = gfx_font_search_glyph(fedit->font, cp, &glyph, &stradv);
@@ -378,6 +382,37 @@ static errno_t font_edit_paint_preview(font_edit_t *fedit)
 		cp += stradv;
 		pos.x += gmetrics.advance;
 	}
+
+	return EOK;
+}
+
+/** Paint font preview.
+ *
+ * @param fedit Font editor
+ */
+static errno_t font_edit_paint_preview(font_edit_t *fedit)
+{
+	errno_t rc;
+
+	rc = font_edit_paint_preview_str(fedit, 20, 20,
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+	if (rc != EOK)
+		return rc;
+
+	rc = font_edit_paint_preview_str(fedit, 20, 40,
+	    "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG");
+	if (rc != EOK)
+		return rc;
+
+	rc = font_edit_paint_preview_str(fedit, 20, 60,
+	    "abcdefghijklmnopqrstuvwxyz");
+	if (rc != EOK)
+		return rc;
+
+	rc = font_edit_paint_preview_str(fedit, 20, 80,
+	    "the quick brown fox jumps over the lazy dog");
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 }
