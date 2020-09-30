@@ -332,8 +332,8 @@ errno_t gfx_glyph_transfer(gfx_glyph_t *glyph, gfx_coord_t offs,
 
 	for (y = drect.p0.y; y < drect.p1.y; y++) {
 		for (x = drect.p0.x; x < drect.p1.x; x++) {
-			pixel = pixelmap_get_pixel(&smap, x, y);
-			pixelmap_put_pixel(&dmap, x + offs, y, pixel);
+			pixel = pixelmap_get_pixel(&smap, x - offs, y);
+			pixelmap_put_pixel(&dmap, x, y, pixel);
 		}
 	}
 
