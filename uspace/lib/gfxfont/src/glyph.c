@@ -273,19 +273,21 @@ errno_t gfx_glyph_render(gfx_glyph_t *glyph, gfx_coord2_t *pos)
  *
  * @param glyph Glyph
  * @param offs Offset in new font bitmap
- * @param dest New font bitmap
- * @param drect Bounding rectangle for @a dest
+ * @param dbmp New font bitmap
+ * @param dbrect Bounding rectangle for @a dbmp
  *
  * @return EOK on success or an error code
  */
 errno_t gfx_glyph_transfer(gfx_glyph_t *glyph, gfx_coord_t offs,
-    gfx_bitmap_t *dest, gfx_rect_t *drect)
+    gfx_bitmap_t *dbmp, gfx_rect_t *dbrect)
 {
 	pixelmap_t smap;
 	pixelmap_t dmap;
 	gfx_bitmap_alloc_t salloc;
 	gfx_bitmap_alloc_t dalloc;
+	gfx_rect_t drect;
 	gfx_coord_t x, y;
+	gfx_coord2_t off2;
 	pixel_t pixel;
 	errno_t rc;
 
@@ -293,7 +295,7 @@ errno_t gfx_glyph_transfer(gfx_glyph_t *glyph, gfx_coord_t offs,
 	if (rc != EOK)
 		return rc;
 
-	rc = gfx_bitmap_get_alloc(dest, &dalloc);
+	rc = gfx_bitmap_get_alloc(dbmp, &dalloc);
 	if (rc != EOK)
 		return rc;
 
@@ -301,12 +303,18 @@ errno_t gfx_glyph_transfer(gfx_glyph_t *glyph, gfx_coord_t offs,
 	smap.height = glyph->font->rect.p1.y;
 	smap.data = salloc.pixels;
 
-	dmap.width = drect->p1.x;
-	dmap.height = drect->p1.y;
+	dmap.width = dbrect->p1.x;
+	dmap.height = dbrect->p1.y;
 	dmap.data = dalloc.pixels;
 
-	for (y = drect->p0.y; y < drect->p1.y; y++) {
-		for (x = drect->p0.x; x < drect->p1.x; x++) {
+	/* Compute destination rectangle */
+	off2.x = offs;
+	off2.y = 0;
+	gfx_rect_translate(&off2, &glyph->rect, &drect);
+	assert(gfx_rect_is_inside(&drect, dbrect));
+
+	for (y = drect.p0.y; y < drect.p1.y; y++) {
+		for (x = drect.p0.x; x < drect.p1.x; x++) {
 			pixel = pixelmap_get_pixel(&smap, x, y);
 			pixelmap_put_pixel(&dmap, x + offs, y, pixel);
 		}
