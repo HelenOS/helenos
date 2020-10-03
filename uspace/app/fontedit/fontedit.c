@@ -109,6 +109,54 @@ static void font_edit_adjust_advance(font_edit_t *fedit, gfx_coord_t change)
 	font_edit_paint(fedit);
 }
 
+/** Adjust font ascent.
+ *
+ * @param fedit Font editor
+ */
+static void font_edit_adjust_ascent(font_edit_t *fedit, gfx_coord_t change)
+{
+	gfx_font_metrics_t fmetrics;
+
+	gfx_font_get_metrics(fedit->font, &fmetrics);
+	fmetrics.ascent += change;
+	(void) gfx_font_set_metrics(fedit->font, &fmetrics);
+
+	printf("New ascent: %d\n", fmetrics.ascent);
+	font_edit_paint(fedit);
+}
+
+/** Adjust font descent.
+ *
+ * @param fedit Font editor
+ */
+static void font_edit_adjust_descent(font_edit_t *fedit, gfx_coord_t change)
+{
+	gfx_font_metrics_t fmetrics;
+
+	gfx_font_get_metrics(fedit->font, &fmetrics);
+	fmetrics.descent += change;
+	(void) gfx_font_set_metrics(fedit->font, &fmetrics);
+
+	printf("New descent: %d\n", fmetrics.descent);
+	font_edit_paint(fedit);
+}
+
+/** Adjust font leading.
+ *
+ * @param fedit Font editor
+ */
+static void font_edit_adjust_leading(font_edit_t *fedit, gfx_coord_t change)
+{
+	gfx_font_metrics_t fmetrics;
+
+	gfx_font_get_metrics(fedit->font, &fmetrics);
+	fmetrics.leading += change;
+	(void) gfx_font_set_metrics(fedit->font, &fmetrics);
+
+	printf("New leading: %d\n", fmetrics.leading);
+	font_edit_paint(fedit);
+}
+
 /** Handle font editor position event.
  *
  * @param widget Canvas widget
@@ -215,6 +263,24 @@ static void font_edit_ctrl_key(font_edit_t *fedit, kbd_event_t *event)
 		break;
 	case KC_4:
 		font_edit_adjust_advance(fedit, +1);
+		break;
+	case KC_5:
+		font_edit_adjust_ascent(fedit, -1);
+		break;
+	case KC_6:
+		font_edit_adjust_ascent(fedit, +1);
+		break;
+	case KC_7:
+		font_edit_adjust_descent(fedit, -1);
+		break;
+	case KC_8:
+		font_edit_adjust_descent(fedit, +1);
+		break;
+	case KC_9:
+		font_edit_adjust_leading(fedit, -1);
+		break;
+	case KC_0:
+		font_edit_adjust_leading(fedit, +1);
 		break;
 	case KC_X:
 		(void) gfx_glyph_bmp_clear(fedit->gbmp);
@@ -431,10 +497,56 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 	gfx_color_t *color = NULL;
 	gfx_rect_t rect;
 	gfx_rect_t grect;
+	gfx_font_metrics_t fmetrics;
 	gfx_glyph_metrics_t gmetrics;
 	errno_t rc;
 	int x, y;
 	int pix;
+
+	/* Display font baseline, ascent, descent, leading */
+
+	gfx_font_get_metrics(fedit->font, &fmetrics);
+
+	rc = gfx_color_new_rgb_i16(0, 0x4000, 0x4000, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(fedit->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	font_edit_gpix_to_disp(fedit, 0, 0, &rect);
+	rect.p1.x += 100;
+
+	rc = gfx_fill_rect(fedit->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	font_edit_gpix_to_disp(fedit, 0, -fmetrics.ascent, &rect);
+	rect.p1.x += 100;
+
+	rc = gfx_fill_rect(fedit->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	font_edit_gpix_to_disp(fedit, 0, fmetrics.descent, &rect);
+	rect.p1.x += 100;
+
+	rc = gfx_fill_rect(fedit->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	font_edit_gpix_to_disp(fedit, 0, fmetrics.descent +
+	    fmetrics.leading, &rect);
+	rect.p1.x += 100;
+
+	rc = gfx_fill_rect(fedit->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
+	/* Display glyph */
 
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
 	if (rc != EOK)
@@ -463,6 +575,7 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 	}
 
 	gfx_color_delete(color);
+
 
 	/* Display glyph origin and advance */
 
