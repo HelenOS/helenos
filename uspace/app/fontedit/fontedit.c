@@ -576,7 +576,6 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 
 	gfx_color_delete(color);
 
-
 	/* Display glyph origin and advance */
 
 	rc = gfx_color_new_rgb_i16(0, 0xffff, 0, &color);
