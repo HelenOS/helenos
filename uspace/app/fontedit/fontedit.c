@@ -414,6 +414,11 @@ static errno_t font_edit_paint_preview(font_edit_t *fedit)
 	if (rc != EOK)
 		return rc;
 
+	rc = font_edit_paint_preview_str(fedit, 20, 100,
+	    "0123456789,./<>?;'\\:\"|[]{}`~!@#$%^&*()-_=+");
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
 }
 
