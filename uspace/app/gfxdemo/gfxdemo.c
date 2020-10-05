@@ -41,6 +41,9 @@
 #include <gfx/bitmap.h>
 #include <gfx/color.h>
 #include <gfx/render.h>
+#include <gfx/font.h>
+#include <gfx/text.h>
+#include <gfx/typeface.h>
 #include <io/console.h>
 #include <io/pixelmap.h>
 #include <stdbool.h>
@@ -365,6 +368,7 @@ error:
 	gfx_bitmap_destroy(bitmap);
 	return rc;
 }
+
 /** Run bitmap color key demo on a graphic context.
  *
  * @param gc Graphic context
@@ -423,6 +427,197 @@ error:
 	return rc;
 }
 
+/** Run text demo on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_color_t *color = NULL;
+	gfx_rect_t rect;
+	gfx_typeface_t *tface = NULL;
+	gfx_font_info_t *finfo;
+	gfx_font_t *font = NULL;
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	int i;
+	errno_t rc;
+
+	rc = gfx_typeface_open(gc, "/data/font/helena.tpf", &tface);
+	if (rc != EOK) {
+		printf("Error opening typeface\n");
+		goto error;
+	}
+
+	finfo = gfx_typeface_first_font(tface);
+	if (finfo == NULL) {
+		printf("Typeface contains no font.\n");
+		rc = ENOENT;
+		goto error;
+	}
+
+	rc = gfx_font_open(finfo, &font);
+	if (rc != EOK) {
+		printf("Error opening font.\n");
+		goto error;
+	}
+
+	rc = clear_scr(gc, w, h);
+	if (rc != EOK)
+		goto error;
+
+	/* Vertical bars */
+
+	for (i = 0; i < 20; i++) {
+		rc = gfx_color_new_rgb_i16(0, 0x8000 * i / 20,
+		    0x8000 * i / 20, &color);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_set_color(gc, color);
+		if (rc != EOK)
+			goto error;
+
+		rect.p0.x = w * i / 20;
+		rect.p0.y = 0;
+		rect.p1.x = w * (i + 1) / 20;
+		rect.p1.y = h;
+
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			goto error;
+
+		gfx_color_delete(color);
+	}
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0x8000, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = w / 20;
+	rect.p0.y = 3 * h / 15;
+	rect.p1.x = w - w / 20;
+	rect.p1.y = 5 * h / 15;
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		goto error;
+
+	gfx_text_fmt_init(&fmt);
+
+	pos.x = rect.p0.x;
+	pos.y = rect.p0.y;
+	rc = gfx_puttext(font, &pos, &fmt, "Top left");
+	if (rc != EOK) {
+		printf("Error rendering text.\n");
+		goto error;
+	}
+
+	pos.x = (rect.p0.x + rect.p1.x) / 2;
+	pos.y = rect.p0.y;
+	fmt.halign = gfx_halign_center;
+	rc = gfx_puttext(font, &pos, &fmt, "Top center");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = rect.p1.x;
+	pos.y = rect.p0.y;
+	fmt.halign = gfx_halign_right;
+	rc = gfx_puttext(font, &pos, &fmt, "Top right");
+	if (rc != EOK)
+		goto error;
+
+	fmt.valign = gfx_valign_center;
+
+	pos.x = rect.p0.x;
+	pos.y = (rect.p0.y + rect.p1.y) / 2;
+	fmt.halign = gfx_halign_left;
+	rc = gfx_puttext(font, &pos, &fmt, "Center left");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = (rect.p0.x + rect.p1.x) / 2;
+	pos.y = (rect.p0.y + rect.p1.y) / 2;
+	fmt.halign = gfx_halign_center;
+	rc = gfx_puttext(font, &pos, &fmt, "Center");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = rect.p1.x;
+	pos.y = (rect.p0.y + rect.p1.y) / 2;
+	fmt.halign = gfx_halign_right;
+	rc = gfx_puttext(font, &pos, &fmt, "Center right");
+	if (rc != EOK)
+		goto error;
+
+	fmt.valign = gfx_valign_bottom;
+
+	pos.x = rect.p0.x;
+	pos.y = rect.p1.y;
+	fmt.halign = gfx_halign_left;
+	rc = gfx_puttext(font, &pos, &fmt, "Bottom left");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = (rect.p0.x + rect.p1.x) / 2;
+	pos.y = rect.p1.y;
+	fmt.halign = gfx_halign_center;
+	rc = gfx_puttext(font, &pos, &fmt, "Bottom center");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = rect.p1.x;
+	pos.y = rect.p1.y;
+	fmt.halign = gfx_halign_right;
+	rc = gfx_puttext(font, &pos, &fmt, "Bottom right");
+	if (rc != EOK)
+		goto error;
+
+	gfx_text_fmt_init(&fmt);
+
+	for (i = 0; i < 8; i++) {
+		pos.x = w / 20;
+		pos.y = (7 + i) * h / 15;
+		rc = gfx_puttext(font, &pos, &fmt, "The quick brown fox jumps over the lazy dog.");
+		if (rc != EOK)
+			goto error;
+	}
+
+	for (i = 0; i < 10; i++) {
+		fibril_usleep(500 * 1000);
+		if (quit)
+			break;
+	}
+
+	gfx_color_delete(color);
+
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+	return EOK;
+error:
+	if (font != NULL)
+		gfx_font_close(font);
+	if (tface != NULL)
+		gfx_typeface_destroy(tface);
+	return rc;
+}
+
 /** Run demo loop on a graphic context.
  *
  * @param gc Graphic context
@@ -447,6 +642,10 @@ static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			return rc;
 
 		rc = demo_bitmap_kc(gc, w, h);
+		if (rc != EOK)
+			return rc;
+
+		rc = demo_text(gc, w, h);
 		if (rc != EOK)
 			return rc;
 	}

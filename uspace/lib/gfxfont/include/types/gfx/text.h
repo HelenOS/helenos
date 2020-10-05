@@ -26,15 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libgfxfont
+ * @{
+ */
+/**
+ * @file Text types
+ */
 
-PCUT_INIT;
+#ifndef _TYPES_GFX_TEXT_H
+#define _TYPES_GFX_TEXT_H
 
-PCUT_IMPORT(font);
-PCUT_IMPORT(glyph);
-PCUT_IMPORT(glyph_bmp);
-PCUT_IMPORT(text);
-PCUT_IMPORT(tpf);
-PCUT_IMPORT(typeface);
+#include <types/gfx/coord.h>
 
-PCUT_MAIN();
+/** Text horizontal alignment */
+typedef enum {
+	/** Align text left */
+	gfx_halign_left,
+	/** Align text on the center */
+	gfx_halign_center,
+	/** Align text right */
+	gfx_halign_right,
+	/** Justify text on both left and right edge */
+	gfx_halign_justify
+} gfx_halign_t;
+
+/** Text vertical alignment */
+typedef enum {
+	/** Align top */
+	gfx_valign_top,
+	/** Align center */
+	gfx_valign_center,
+	/** Align bottom */
+	gfx_valign_bottom
+} gfx_valign_t;
+
+/** Text formatting */
+typedef struct {
+	/** Horizontal alignment */
+	gfx_halign_t halign;
+	/** Justification width (for gfx_halign_justify) */
+	gfx_coord_t justify_width;
+	/** Vertical alignment */
+	gfx_valign_t valign;
+} gfx_text_fmt_t;
+
+#endif
+
+/** @}
+ */

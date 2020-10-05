@@ -31,6 +31,7 @@ src = files(
 	'src/font.c',
 	'src/glyph.c',
 	'src/glyph_bmp.c',
+	'src/text.c',
 	'src/typeface.c',
 )
 
@@ -39,6 +40,7 @@ test_src = files(
 	'test/glyph.c',
 	'test/glyph_bmp.c',
 	'test/main.c',
+	'test/text.c',
 	'test/tpf.c',
 	'test/typeface.c',
 )

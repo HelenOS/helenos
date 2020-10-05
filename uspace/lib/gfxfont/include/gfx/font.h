@@ -41,6 +41,7 @@
 #include <types/gfx/context.h>
 #include <types/gfx/font.h>
 #include <types/gfx/glyph.h>
+#include <types/gfx/text.h>
 #include <types/gfx/typeface.h>
 
 extern void gfx_font_metrics_init(gfx_font_metrics_t *);

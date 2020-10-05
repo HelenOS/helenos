@@ -40,6 +40,7 @@
 #include <gfx/font.h>
 #include <gfx/glyph.h>
 #include <gfx/render.h>
+#include <gfx/text.h>
 #include <gfx/typeface.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -421,35 +422,15 @@ static void font_edit_gpix_to_disp(font_edit_t *fedit, int x, int y,
 static errno_t font_edit_paint_preview_str(font_edit_t *fedit,
     gfx_coord_t x, gfx_coord_t y, const char *str)
 {
-	gfx_glyph_metrics_t gmetrics;
-	size_t stradv;
-	const char *cp;
+	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
-	gfx_glyph_t *glyph;
-	errno_t rc;
+
+	gfx_text_fmt_init(&fmt);
 
 	pos.x = x;
 	pos.y = y;
-	cp = str;
 
-	while (*cp != '\0') {
-		rc = gfx_font_search_glyph(fedit->font, cp, &glyph, &stradv);
-		if (rc != EOK) {
-			++cp;
-			continue;
-		}
-
-		gfx_glyph_get_metrics(glyph, &gmetrics);
-
-		rc = gfx_glyph_render(glyph, &pos);
-		if (rc != EOK)
-			return rc;
-
-		cp += stradv;
-		pos.x += gmetrics.advance;
-	}
-
-	return EOK;
+	return gfx_puttext(fedit->font, &pos, &fmt, str);
 }
 
 /** Paint font preview.

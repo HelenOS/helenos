@@ -26,15 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libgfxfont
+ * @{
+ */
+/**
+ * @file Text formatting
+ */
 
-PCUT_INIT;
+#ifndef _GFX_TEXT_H
+#define _GFX_TEXT_H
 
-PCUT_IMPORT(font);
-PCUT_IMPORT(glyph);
-PCUT_IMPORT(glyph_bmp);
-PCUT_IMPORT(text);
-PCUT_IMPORT(tpf);
-PCUT_IMPORT(typeface);
+#include <errno.h>
+#include <types/gfx/coord.h>
+#include <types/gfx/font.h>
+#include <types/gfx/text.h>
 
-PCUT_MAIN();
+extern void gfx_text_fmt_init(gfx_text_fmt_t *);
+extern gfx_coord_t gfx_text_width(gfx_font_t *, const char *);
+extern errno_t gfx_puttext(gfx_font_t *, gfx_coord2_t *, gfx_text_fmt_t *,
+    const char *);
+
+#endif
+
+/** @}
+ */
