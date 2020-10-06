@@ -122,9 +122,9 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 	}
 
 	/* Adjust position for vertical alignment */
-	if (fmt->valign != gfx_valign_bottom) {
-		gfx_font_get_metrics(font, &fmetrics);
+	gfx_font_get_metrics(font, &fmetrics);
 
+	if (fmt->valign != gfx_valign_baseline) {
 		switch (fmt->valign) {
 		case gfx_valign_top:
 			cpos.y += fmetrics.ascent;
@@ -132,6 +132,9 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 		case gfx_valign_center:
 			cpos.y += fmetrics.ascent / 2;
 			break;
+		case gfx_valign_bottom:
+			cpos.y -= fmetrics.descent;
+		    	break;
 		default:
 			break;
 		}

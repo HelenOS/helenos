@@ -57,7 +57,9 @@ typedef enum {
 	/** Align center */
 	gfx_valign_center,
 	/** Align bottom */
-	gfx_valign_bottom
+	gfx_valign_bottom,
+	/** Align to baseline */
+	gfx_valign_baseline
 } gfx_valign_t;
 
 /** Text formatting */

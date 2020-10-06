@@ -501,7 +501,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		goto error;
 
 	rect.p0.x = w / 20;
-	rect.p0.y = 3 * h / 15;
+	rect.p0.y = 2 * h / 15;
 	rect.p1.x = w - w / 20;
 	rect.p1.y = 5 * h / 15;
 
@@ -529,14 +529,14 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		goto error;
 	}
 
-	pos.x = (rect.p0.x + rect.p1.x) / 2;
+	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
 	pos.y = rect.p0.y;
 	fmt.halign = gfx_halign_center;
 	rc = gfx_puttext(font, &pos, &fmt, "Top center");
 	if (rc != EOK)
 		goto error;
 
-	pos.x = rect.p1.x;
+	pos.x = rect.p1.x - 1;
 	pos.y = rect.p0.y;
 	fmt.halign = gfx_halign_right;
 	rc = gfx_puttext(font, &pos, &fmt, "Top right");
@@ -546,21 +546,21 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	fmt.valign = gfx_valign_center;
 
 	pos.x = rect.p0.x;
-	pos.y = (rect.p0.y + rect.p1.y) / 2;
+	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
 	fmt.halign = gfx_halign_left;
 	rc = gfx_puttext(font, &pos, &fmt, "Center left");
 	if (rc != EOK)
 		goto error;
 
-	pos.x = (rect.p0.x + rect.p1.x) / 2;
-	pos.y = (rect.p0.y + rect.p1.y) / 2;
+	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
+	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
 	fmt.halign = gfx_halign_center;
 	rc = gfx_puttext(font, &pos, &fmt, "Center");
 	if (rc != EOK)
 		goto error;
 
-	pos.x = rect.p1.x;
-	pos.y = (rect.p0.y + rect.p1.y) / 2;
+	pos.x = rect.p1.x - 1;
+	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
 	fmt.halign = gfx_halign_right;
 	rc = gfx_puttext(font, &pos, &fmt, "Center right");
 	if (rc != EOK)
@@ -569,21 +569,21 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	fmt.valign = gfx_valign_bottom;
 
 	pos.x = rect.p0.x;
-	pos.y = rect.p1.y;
+	pos.y = rect.p1.y - 1;
 	fmt.halign = gfx_halign_left;
 	rc = gfx_puttext(font, &pos, &fmt, "Bottom left");
 	if (rc != EOK)
 		goto error;
 
-	pos.x = (rect.p0.x + rect.p1.x) / 2;
-	pos.y = rect.p1.y;
+	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
+	pos.y = rect.p1.y - 1;
 	fmt.halign = gfx_halign_center;
 	rc = gfx_puttext(font, &pos, &fmt, "Bottom center");
 	if (rc != EOK)
 		goto error;
 
-	pos.x = rect.p1.x;
-	pos.y = rect.p1.y;
+	pos.x = rect.p1.x - 1;
+	pos.y = rect.p1.y - 1;
 	fmt.halign = gfx_halign_right;
 	rc = gfx_puttext(font, &pos, &fmt, "Bottom right");
 	if (rc != EOK)
