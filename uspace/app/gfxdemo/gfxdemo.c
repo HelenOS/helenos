@@ -589,14 +589,27 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	if (rc != EOK)
 		goto error;
 
+	gfx_color_delete(color);
+
 	gfx_text_fmt_init(&fmt);
 
 	for (i = 0; i < 8; i++) {
+		rc = gfx_color_new_rgb_i16((i & 4) ? 0xffff : 0,
+		    (i & 2) ? 0xffff : 0, (i & 1) ? 0xffff : 0, &color);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_set_color(gc, color);
+		if (rc != EOK)
+			goto error;
+
 		pos.x = w / 20;
 		pos.y = (7 + i) * h / 15;
 		rc = gfx_puttext(font, &pos, &fmt, "The quick brown fox jumps over the lazy dog.");
 		if (rc != EOK)
 			goto error;
+
+		gfx_color_delete(color);
 	}
 
 	for (i = 0; i < 10; i++) {
@@ -604,8 +617,6 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		if (quit)
 			break;
 	}
-
-	gfx_color_delete(color);
 
 	gfx_font_close(font);
 	gfx_typeface_destroy(tface);

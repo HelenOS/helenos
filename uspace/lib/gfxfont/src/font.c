@@ -121,7 +121,7 @@ static errno_t gfx_font_create_with_info(gfx_typeface_t *tface,
 	/* Create font bitmap */
 	gfx_bitmap_params_init(&params);
 	params.rect = font->rect;
-	params.flags = bmpf_color_key;
+	params.flags = bmpf_color_key | bmpf_colorize;
 	params.key_color = PIXEL(0, 0, 0, 0);
 
 	rc = gfx_bitmap_create(tface->gc, &params, NULL, &font->bitmap);
@@ -365,7 +365,7 @@ errno_t gfx_font_splice_at_glyph(gfx_font_t *font, gfx_glyph_t *glyph,
 	params.rect.p1.x += dwidth;
 	if (nrect->p1.y - nrect->p0.y > params.rect.p1.y)
 		params.rect.p1.y = nrect->p1.y - nrect->p0.y;
-	params.flags = bmpf_color_key;
+	params.flags = bmpf_color_key | bmpf_colorize;
 	params.key_color = PIXEL(0, 0, 0, 0);
 
 	rc = gfx_bitmap_create(font->typeface->gc, &params, NULL, &nbitmap);
@@ -704,7 +704,7 @@ static errno_t gfx_font_bitmap_load(riff_rchunk_t *parent, gfx_font_t *font)
 	params.rect.p0.y = 0;
 	params.rect.p1.x = width;
 	params.rect.p1.y = height;
-	params.flags = bmpf_color_key;
+	params.flags = bmpf_color_key | bmpf_colorize;
 	params.key_color = PIXEL(0, 0, 0, 0);
 
 	rc = gfx_bitmap_create(font->typeface->gc, &params, NULL, &bitmap);

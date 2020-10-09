@@ -67,10 +67,18 @@ typedef struct {
 } amdm37x_dispc_t;
 
 typedef struct {
+	/* Containing display controller */
 	amdm37x_dispc_t *dispc;
+	/** Allocation info */
 	gfx_bitmap_alloc_t alloc;
-	gfx_rect_t rect;
+	/** @c true if we allocated the bitmap, @c false if allocated by caller */
 	bool myalloc;
+	/** Rectangle covered by bitmap */
+	gfx_rect_t rect;
+	/** Bitmap flags */
+	gfx_bitmap_flags_t flags;
+	/** Key color */
+	pixel_t key_color;
 } amdm37x_bitmap_t;
 
 extern ddev_ops_t amdm37x_ddev_ops;

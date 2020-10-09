@@ -134,7 +134,7 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 			break;
 		case gfx_valign_bottom:
 			cpos.y -= fmetrics.descent;
-		    	break;
+			break;
 		default:
 			break;
 		}
