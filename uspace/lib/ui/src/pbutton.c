@@ -34,17 +34,25 @@
  */
 
 #include <errno.h>
+#include <gfx/color.h>
+#include <gfx/context.h>
+#include <gfx/render.h>
+#include <gfx/text.h>
 #include <stdlib.h>
+#include <str.h>
 #include <ui/pbutton.h>
 #include "../private/pbutton.h"
+#include "../private/resource.h"
 
 /** Create new push button.
  *
+ * @param resource UI resource
  * @param caption Caption
  * @param rpbutton Place to store pointer to new push button
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_pbutton_create(const char *caption, ui_pbutton_t **rpbutton)
+errno_t ui_pbutton_create(ui_resource_t *resource, const char *caption,
+    ui_pbutton_t **rpbutton)
 {
 	ui_pbutton_t *pbutton;
 
@@ -52,7 +60,13 @@ errno_t ui_pbutton_create(const char *caption, ui_pbutton_t **rpbutton)
 	if (pbutton == NULL)
 		return ENOMEM;
 
-	(void) caption;
+	pbutton->caption = str_dup(caption);
+	if (pbutton->caption == NULL) {
+		free(pbutton);
+		return ENOMEM;
+	}
+
+	pbutton->res = resource;
 	*rpbutton = pbutton;
 	return EOK;
 }
@@ -67,6 +81,71 @@ void ui_pbutton_destroy(ui_pbutton_t *pbutton)
 		return;
 
 	free(pbutton);
+}
+
+/** Set button rectangle.
+ *
+ * @param pbutton Button
+ * @param rect New button rectanle
+ */
+void ui_pbutton_set_rect(ui_pbutton_t *pbutton, gfx_rect_t *rect)
+{
+	pbutton->rect = *rect;
+}
+
+/** Paint push button.
+ *
+ * @param pbutton Push button
+ * @return EOK on success or an error code
+ */
+errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
+{
+	gfx_color_t *color = NULL;
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	errno_t rc;
+
+	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(pbutton->res->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(pbutton->res->gc, &pbutton->rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(pbutton->res->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	/* Center of button rectangle */
+	pos.x = (pbutton->rect.p0.x + pbutton->rect.p1.x) / 2;
+	pos.y = (pbutton->rect.p0.y + pbutton->rect.p1.y) / 2;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.halign = gfx_halign_center;
+	fmt.valign = gfx_valign_center;
+
+	rc = gfx_puttext(pbutton->res->font, &pos, &fmt, pbutton->caption);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
+	return EOK;
+error:
+	if (color != NULL)
+		gfx_color_delete(color);
+	return rc;
 }
 
 /** @}

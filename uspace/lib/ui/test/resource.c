@@ -26,11 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <pcut/pcut.h>
+#include <ui/resource.h>
 
 PCUT_INIT;
 
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
+PCUT_TEST_SUITE(resource);
 
-PCUT_MAIN();
+PCUT_TEST(dummy)
+{
+}
+
+PCUT_EXPORT(resource);

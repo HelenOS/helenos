@@ -26,11 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file User interface resources
+ */
 
-PCUT_INIT;
+#ifndef _UI_TYPES_RESOURCE_H
+#define _UI_TYPES_RESOURCE_H
 
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
+struct ui_resource;
+typedef struct ui_resource ui_resource_t;
 
-PCUT_MAIN();
+#endif
+
+/** @}
+ */

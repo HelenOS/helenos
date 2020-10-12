@@ -26,12 +26,14 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx' ]
+deps = [ 'gfx', 'gfxfont' ]
 src = files(
 	'src/pbutton.c',
+	'src/resource.c',
 )
 
 test_src = files(
 	'test/main.c',
 	'test/pbutton.c',
+	'test/resource.c',
 )

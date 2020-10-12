@@ -30,30 +30,79 @@
  * @{
  */
 /**
- * @file Push button structure
- *
+ * @file UI resources
  */
 
-#ifndef _UI_PRIVATE_PBUTTON_H
-#define _UI_PRIVATE_PBUTTON_H
-
+#include <errno.h>
+#include <gfx/color.h>
 #include <gfx/context.h>
-#include <gfx/coord.h>
+#include <gfx/font.h>
+#include <gfx/render.h>
+#include <gfx/typeface.h>
+#include <stdlib.h>
+#include <str.h>
+#include <ui/resource.h>
+#include "../private/resource.h"
 
-/** Actual structure of push button.
+static const char *ui_typeface_path = "/data/font/helena.tpf";
+
+/** Create new UI resource.
  *
- * This is private to libui.
+ * @param gc Graphic context
+ * @param rresource Place to store pointer to new push button
+ * @return EOK on success, ENOMEM if out of memory
  */
-struct ui_pbutton {
-	/** UI resource */
-	struct ui_resource *res;
-	/** Push button rectangle */
-	gfx_rect_t rect;
-	/** Caption */
-	const char *caption;
-};
+errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
+{
+	ui_resource_t *resource;
+	gfx_typeface_t *tface = NULL;
+	gfx_font_t *font = NULL;
+	gfx_font_info_t *finfo;
+	errno_t rc;
 
-#endif
+	resource = calloc(1, sizeof(ui_resource_t));
+	if (resource == NULL)
+		return ENOMEM;
+
+	rc = gfx_typeface_open(gc, ui_typeface_path, &tface);
+	if (rc != EOK)
+		goto error;
+
+	finfo = gfx_typeface_first_font(tface);
+	if (finfo == NULL) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = gfx_font_open(finfo, &font);
+	if (rc != EOK)
+		goto error;
+
+	resource->gc = gc;
+	resource->tface = tface;
+	resource->font = font;
+	*rresource = resource;
+	return EOK;
+error:
+	if (tface != NULL)
+		gfx_typeface_destroy(tface);
+	free(resource);
+	return rc;
+}
+
+/** Destroy UI resource.
+ *
+ * @param resource Push button or @c NULL
+ */
+void ui_resource_destroy(ui_resource_t *resource)
+{
+	if (resource == NULL)
+		return;
+
+	gfx_font_close(resource->font);
+	gfx_typeface_destroy(resource->tface);
+	free(resource);
+}
 
 /** @}
  */

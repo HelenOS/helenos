@@ -26,11 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file UI resources
+ */
 
-PCUT_INIT;
+#ifndef _UI_RESOURCE_H
+#define _UI_RESOURCE_H
 
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
+#include <errno.h>
+#include <gfx/context.h>
+#include <types/ui/resource.h>
 
-PCUT_MAIN();
+extern errno_t ui_resource_create(gfx_context_t *, ui_resource_t **);
+extern void ui_resource_destroy(ui_resource_t *);
+
+#endif
+
+/** @}
+ */

@@ -26,11 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Resource structure
+ *
+ */
 
-PCUT_INIT;
+#ifndef _UI_PRIVATE_RESOURCE_H
+#define _UI_PRIVATE_RESOURCE_H
 
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
+#include <gfx/context.h>
+#include <gfx/font.h>
+#include <gfx/typeface.h>
 
-PCUT_MAIN();
+/** Actual structure of UI resources.
+ *
+ * Contains resources common accross the entire UI. This is private to libui.
+ */
+struct ui_resource {
+	/** Graphic context */
+	gfx_context_t *gc;
+	/** Typeface */
+	gfx_typeface_t *tface;
+	/** Font */
+	gfx_font_t *font;
+};
+
+#endif
+
+/** @}
+ */

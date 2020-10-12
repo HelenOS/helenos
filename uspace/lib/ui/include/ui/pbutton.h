@@ -37,10 +37,15 @@
 #define _UI_PBUTTON_H
 
 #include <errno.h>
+#include <gfx/coord.h>
 #include <types/ui/pbutton.h>
+#include <types/ui/resource.h>
 
-extern errno_t ui_pbutton_create(const char *, ui_pbutton_t **);
+extern errno_t ui_pbutton_create(ui_resource_t *, const char *,
+    ui_pbutton_t **);
 extern void ui_pbutton_destroy(ui_pbutton_t *);
+extern void ui_pbutton_set_rect(ui_pbutton_t *, gfx_rect_t *);
+extern errno_t ui_pbutton_paint(ui_pbutton_t *);
 
 #endif
 

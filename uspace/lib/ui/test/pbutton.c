@@ -39,7 +39,7 @@ PCUT_TEST(create_destroy)
 	ui_pbutton_t *pbutton;
 	errno_t rc;
 
-	rc = ui_pbutton_create("Hello", &pbutton);
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_pbutton_destroy(pbutton);
