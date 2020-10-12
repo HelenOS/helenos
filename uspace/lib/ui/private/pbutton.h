@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup libui
  * @{
  */
 /**
- * @file Color structure
+ * @file Push button structure
  *
  */
 
-#ifndef _GFX_PRIVATE_COLOR_H
-#define _GFX_PRIVATE_COLOR_H
+#ifndef _UI_PRIVATE_PBUTTON_H
+#define _UI_PRIVATE_PBUTTON_H
 
-#include <stdint.h>
-
-/** Actual structure of graphics color.
+/** Actual structure of push button.
  *
- * This is private to libgfx. It is not visible to clients nor backends.
+ * This is private to libui.
  */
-struct gfx_color {
-	uint16_t r;
-	uint16_t g;
-	uint16_t b;
+struct ui_pbutton {
+	const char *caption;
 };
 
 #endif

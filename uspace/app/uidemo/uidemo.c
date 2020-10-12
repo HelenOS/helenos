@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup uidemo
  * @{
  */
-/**
- * @file Color structure
- *
+/** @file User interface demo
  */
 
-#ifndef _GFX_PRIVATE_COLOR_H
-#define _GFX_PRIVATE_COLOR_H
+#include <display.h>
+#include <stdio.h>
+#include <str.h>
+#include <ui/pbutton.h>
 
-#include <stdint.h>
+static void print_syntax(void)
+{
+	printf("Syntax: uidemo [-d <display>]\n");
+}
 
-/** Actual structure of graphics color.
- *
- * This is private to libgfx. It is not visible to clients nor backends.
- */
-struct gfx_color {
-	uint16_t r;
-	uint16_t g;
-	uint16_t b;
-};
+int main(int argc, char *argv[])
+{
+	const char *display_svc = DISPLAY_DEFAULT;
+	ui_pbutton_t *pbutton;
+	errno_t rc;
+	int i;
 
-#endif
+	i = 1;
+	while (i < argc && argv[i][0] == '-') {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
+	}
+
+	if (i < argc) {
+		print_syntax();
+		return 1;
+	}
+
+	printf("Display service: %s\n", display_svc);
+
+	rc = ui_pbutton_create("Hello", &pbutton);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return 1;
+	}
+
+	ui_pbutton_destroy(pbutton);
+	return 0;
+}
 
 /** @}
  */

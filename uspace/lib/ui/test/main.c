@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
- * @{
- */
-/**
- * @file Color structure
- *
- */
+#include <pcut/pcut.h>
 
-#ifndef _GFX_PRIVATE_COLOR_H
-#define _GFX_PRIVATE_COLOR_H
+PCUT_INIT;
 
-#include <stdint.h>
+PCUT_IMPORT(pbutton);
 
-/** Actual structure of graphics color.
- *
- * This is private to libgfx. It is not visible to clients nor backends.
- */
-struct gfx_color {
-	uint16_t r;
-	uint16_t g;
-	uint16_t b;
-};
-
-#endif
-
-/** @}
- */
+PCUT_MAIN();

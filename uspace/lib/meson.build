@@ -97,6 +97,7 @@ libs = [
 	'display',
 
 	'gui',
+	'ui',
 
 	'guigfx',
 ]

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libgfx
+/** @addtogroup libui
  * @{
  */
 /**
- * @file Color structure
- *
+ * @file Push button
  */
 
-#ifndef _GFX_PRIVATE_COLOR_H
-#define _GFX_PRIVATE_COLOR_H
+#include <errno.h>
+#include <stdlib.h>
+#include <ui/pbutton.h>
+#include "../private/pbutton.h"
 
-#include <stdint.h>
-
-/** Actual structure of graphics color.
+/** Create new push button.
  *
- * This is private to libgfx. It is not visible to clients nor backends.
+ * @param caption Caption
+ * @param rpbutton Place to store pointer to new push button
+ * @return EOK on success, ENOMEM if out of memory
  */
-struct gfx_color {
-	uint16_t r;
-	uint16_t g;
-	uint16_t b;
-};
+errno_t ui_pbutton_create(const char *caption, ui_pbutton_t **rpbutton)
+{
+	ui_pbutton_t *pbutton;
 
-#endif
+	pbutton = calloc(1, sizeof(ui_pbutton_t));
+	if (pbutton == NULL)
+		return ENOMEM;
+
+	(void) caption;
+	*rpbutton = pbutton;
+	return EOK;
+}
+
+/** Destroy push button.
+ *
+ * @param pbutton Push button or @c NULL
+ */
+void ui_pbutton_destroy(ui_pbutton_t *pbutton)
+{
+	if (pbutton == NULL)
+		return;
+
+	free(pbutton);
+}
 
 /** @}
  */
