@@ -26,35 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libui
+/** @addtogroup uidemo
  * @{
  */
 /**
- * @file Push button structure
- *
+ * @file User interface demo
  */
 
-#ifndef _UI_PRIVATE_PBUTTON_H
-#define _UI_PRIVATE_PBUTTON_H
+#ifndef UIDEMO_H
+#define UIDEMO_H
 
-#include <gfx/context.h>
-#include <gfx/coord.h>
-#include <stdbool.h>
-
-/** Actual structure of push button.
- *
- * This is private to libui.
- */
-struct ui_pbutton {
-	/** UI resource */
-	struct ui_resource *res;
-	/** Push button rectangle */
-	gfx_rect_t rect;
-	/** Caption */
-	const char *caption;
-	/** Button is currently held down */
-	bool held;
-};
+/** User interface demo */
+typedef struct {
+	ui_pbutton_t *pb1;
+	ui_pbutton_t *pb2;
+} ui_demo_t;
 
 #endif
 

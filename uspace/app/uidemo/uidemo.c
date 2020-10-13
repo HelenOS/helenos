@@ -38,33 +38,90 @@
 #include <task.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
+#include "uidemo.h"
 
 static void wnd_close_event(void *);
 static void wnd_kbd_event(void *, kbd_event_t *);
+static void wnd_pos_event(void *, pos_event_t *);
 
 static display_wnd_cb_t wnd_cb = {
 	.close_event = wnd_close_event,
-	.kbd_event = wnd_kbd_event
+	.kbd_event = wnd_kbd_event,
+	.pos_event = wnd_pos_event
 };
 
 static bool quit = false;
 
+/** Print syntax. */
 static void print_syntax(void)
 {
 	printf("Syntax: uidemo [-d <display>]\n");
 }
 
+/** Handle window close event. */
 static void wnd_close_event(void *arg)
 {
 	printf("Close event\n");
 	quit = true;
 }
 
+/** Handle window keyboard event */
 static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
 	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
 	if (event->type == KEY_PRESS)
 		quit = true;
+}
+
+/** Handle window position event */
+static void wnd_pos_event(void *arg, pos_event_t *event)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	gfx_rect_t rect1;
+	gfx_rect_t rect2;
+	gfx_coord2_t pos;
+
+	rect1.p0.x = 20;
+	rect1.p0.y = 50;
+	rect1.p1.x = 100;
+	rect1.p1.y = 80;
+
+	rect2.p0.x = 120;
+	rect2.p0.y = 50;
+	rect2.p1.x = 200;
+	rect2.p1.y = 80;
+
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+
+	if (event->type == POS_PRESS) {
+		printf("Button press\n");
+
+		if (gfx_pix_inside_rect(&pos, &rect1)) {
+			printf("Press button 1\n");
+			ui_pbutton_press(demo->pb1);
+			(void) ui_pbutton_paint(demo->pb1);
+		}
+		if (gfx_pix_inside_rect(&pos, &rect2)) {
+			printf("Press button 2\n");
+			ui_pbutton_press(demo->pb2);
+			(void) ui_pbutton_paint(demo->pb2);
+		}
+	}
+
+	if (event->type == POS_RELEASE) {
+		printf("Button release\n");
+		if (gfx_pix_inside_rect(&pos, &rect1)) {
+			printf("Release button 1\n");
+			ui_pbutton_release(demo->pb1);
+			(void) ui_pbutton_paint(demo->pb1);
+		}
+		if (gfx_pix_inside_rect(&pos, &rect2)) {
+			printf("Release button 2\n");
+			ui_pbutton_release(demo->pb2);
+			(void) ui_pbutton_paint(demo->pb2);
+		}
+	}
 }
 
 /** Run UI demo on display server. */
@@ -75,8 +132,7 @@ static errno_t ui_demo_display(const char *display_svc)
 	display_wnd_params_t params;
 	display_window_t *window = NULL;
 	ui_resource_t *ui_res;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
+	ui_demo_t demo;
 	gfx_rect_t rect;
 	errno_t rc;
 
@@ -94,7 +150,8 @@ static errno_t ui_demo_display(const char *display_svc)
 	params.rect.p1.x = 220;
 	params.rect.p1.y = 100;
 
-	rc = display_window_create(display, &params, &wnd_cb, NULL, &window);
+	rc = display_window_create(display, &params, &wnd_cb, (void *) &demo,
+	    &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		return rc;
@@ -111,51 +168,51 @@ static errno_t ui_demo_display(const char *display_svc)
 	rc = ui_resource_create(gc, &ui_res);
 	if (rc != EOK) {
 		printf("Error creating UI.\n");
-		return 1;
+		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "Confirm", &pb1);
+	rc = ui_pbutton_create(ui_res, "Confirm", &demo.pb1);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
-		return 1;
+		return rc;
 	}
 
 	rect.p0.x = 20;
 	rect.p0.y = 50;
 	rect.p1.x = 100;
 	rect.p1.y = 80;
-	ui_pbutton_set_rect(pb1, &rect);
+	ui_pbutton_set_rect(demo.pb1, &rect);
 
-	rc = ui_pbutton_create(ui_res, "Cancel", &pb2);
+	rc = ui_pbutton_create(ui_res, "Cancel", &demo.pb2);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
-		return 1;
+		return rc;
 	}
 
 	rect.p0.x = 120;
 	rect.p0.y = 50;
 	rect.p1.x = 200;
 	rect.p1.y = 80;
-	ui_pbutton_set_rect(pb2, &rect);
+	ui_pbutton_set_rect(demo.pb2, &rect);
 
-	rc = ui_pbutton_paint(pb1);
+	rc = ui_pbutton_paint(demo.pb1);
 	if (rc != EOK) {
 		printf("Error painting button.\n");
-		return 1;
+		return rc;
 	}
 
-	rc = ui_pbutton_paint(pb2);
+	rc = ui_pbutton_paint(demo.pb2);
 	if (rc != EOK) {
 		printf("Error painting button.\n");
-		return 1;
+		return rc;
 	}
 
 	while (!quit) {
 		fibril_usleep(100 * 1000);
 	}
 
-	ui_pbutton_destroy(pb1);
-	ui_pbutton_destroy(pb2);
+	ui_pbutton_destroy(demo.pb1);
+	ui_pbutton_destroy(demo.pb2);
 
 	rc = gfx_context_delete(gc);
 	if (rc != EOK)

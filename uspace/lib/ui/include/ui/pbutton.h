@@ -46,6 +46,8 @@ extern errno_t ui_pbutton_create(ui_resource_t *, const char *,
 extern void ui_pbutton_destroy(ui_pbutton_t *);
 extern void ui_pbutton_set_rect(ui_pbutton_t *, gfx_rect_t *);
 extern errno_t ui_pbutton_paint(ui_pbutton_t *);
+extern void ui_pbutton_press(ui_pbutton_t *);
+extern void ui_pbutton_release(ui_pbutton_t *);
 
 #endif
 

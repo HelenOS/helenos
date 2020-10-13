@@ -44,6 +44,12 @@
 #include "../private/pbutton.h"
 #include "../private/resource.h"
 
+/** Caption movement when button is pressed down */
+enum {
+	ui_pb_press_dx = 2,
+	ui_pb_press_dy = 2
+};
+
 /** Create new push button.
  *
  * @param resource UI resource
@@ -105,9 +111,15 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	gfx_text_fmt_t fmt;
 	errno_t rc;
 
-	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
-	if (rc != EOK)
-		goto error;
+	if (pbutton->held) {
+		rc = gfx_color_new_rgb_i16(0x8000, 0, 0, &color);
+		if (rc != EOK)
+			goto error;
+	} else {
+		rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
+		if (rc != EOK)
+			goto error;
+	}
 
 	rc = gfx_set_color(pbutton->res->gc, color);
 	if (rc != EOK)
@@ -131,6 +143,11 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	pos.x = (pbutton->rect.p0.x + pbutton->rect.p1.x) / 2;
 	pos.y = (pbutton->rect.p0.y + pbutton->rect.p1.y) / 2;
 
+	if (pbutton->held) {
+		pos.x += ui_pb_press_dx;
+		pos.y += ui_pb_press_dy;
+	}
+
 	gfx_text_fmt_init(&fmt);
 	fmt.halign = gfx_halign_center;
 	fmt.valign = gfx_valign_center;
@@ -146,6 +163,28 @@ error:
 	if (color != NULL)
 		gfx_color_delete(color);
 	return rc;
+}
+
+/** Press down button.
+ *
+ * This does not automatically repaint the button.
+ *
+ * @param pbutton Push button
+ */
+void ui_pbutton_press(ui_pbutton_t *pbutton)
+{
+	pbutton->held = true;
+}
+
+/** Release button.
+ *
+ * This does not automatically repaint the button.
+ *
+ * @param pbutton Push button
+ */
+void ui_pbutton_release(ui_pbutton_t *pbutton)
+{
+	pbutton->held = false;
 }
 
 /** @}
