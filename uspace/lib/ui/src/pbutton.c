@@ -38,6 +38,7 @@
 #include <gfx/context.h>
 #include <gfx/render.h>
 #include <gfx/text.h>
+#include <io/pos_event.h>
 #include <stdlib.h>
 #include <str.h>
 #include <ui/pbutton.h>
@@ -405,6 +406,31 @@ void ui_pbutton_press(ui_pbutton_t *pbutton)
 void ui_pbutton_release(ui_pbutton_t *pbutton)
 {
 	pbutton->held = false;
+}
+
+/** Handle push button position event.
+ *
+ * @param pbutton Push button
+ * @param pos_event Position event
+ */
+void ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
+{
+	gfx_coord2_t pos;
+
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+
+	if (gfx_pix_inside_rect(&pos, &pbutton->rect)) {
+		if (event->type == POS_PRESS) {
+			ui_pbutton_press(pbutton);
+			(void) ui_pbutton_paint(pbutton);
+		}
+	}
+
+	if (event->type == POS_RELEASE && pbutton->held) {
+		ui_pbutton_release(pbutton);
+		(void) ui_pbutton_paint(pbutton);
+	}
 }
 
 /** @}

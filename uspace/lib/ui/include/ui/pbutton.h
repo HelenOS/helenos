@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <gfx/coord.h>
+#include <io/pos_event.h>
 #include <types/ui/pbutton.h>
 #include <types/ui/resource.h>
 #include <stdbool.h>
@@ -50,6 +51,7 @@ extern void ui_pbutton_set_default(ui_pbutton_t *, bool);
 extern errno_t ui_pbutton_paint(ui_pbutton_t *);
 extern void ui_pbutton_press(ui_pbutton_t *);
 extern void ui_pbutton_release(ui_pbutton_t *);
+extern void ui_pbutton_pos_event(ui_pbutton_t *, pos_event_t *);
 
 #endif
 

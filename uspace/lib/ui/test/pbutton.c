@@ -184,6 +184,49 @@ PCUT_TEST(press_release)
 	ui_pbutton_destroy(pbutton);
 }
 
+/** ui_pos_event() correctly translates POS_PRESS/POS_RELEASE */
+PCUT_TEST(pos_event_press_release)
+{
+	ui_pbutton_t *pbutton;
+	pos_event_t event;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(pbutton->held);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 30;
+	rect.p1.y = 40;
+	ui_pbutton_set_rect(pbutton, &rect);
+
+	/* Press outside does nothing */
+	event.type = POS_PRESS;
+	event.hpos = 9;
+	event.vpos = 20;
+	ui_pbutton_pos_event(pbutton, &event);
+	PCUT_ASSERT_FALSE(pbutton->held);
+
+	/* Press inside depresses button */
+	event.type = POS_PRESS;
+	event.hpos = 10;
+	event.vpos = 20;
+	ui_pbutton_pos_event(pbutton, &event);
+	PCUT_ASSERT_TRUE(pbutton->held);
+
+	/* Release outside (or anywhere) relases button */
+	event.type = POS_RELEASE;
+	event.hpos = 9;
+	event.vpos = 20;
+	ui_pbutton_pos_event(pbutton, &event);
+	PCUT_ASSERT_FALSE(pbutton->held);
+
+	ui_pbutton_destroy(pbutton);
+}
+
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)
 {
 	(void) arg;
@@ -213,8 +256,8 @@ static errno_t testgc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 		    sizeof(uint32_t);
 		tbm->alloc.off0 = 0;
 		tbm->alloc.pixels = calloc(sizeof(uint32_t),
-			(params->rect.p1.x - params->rect.p0.x) *
-			(params->rect.p1.y - params->rect.p0.y));
+		    (params->rect.p1.x - params->rect.p0.x) *
+		    (params->rect.p1.y - params->rect.p0.y));
 		tbm->myalloc = true;
 		if (tbm->alloc.pixels == NULL) {
 			free(tbm);

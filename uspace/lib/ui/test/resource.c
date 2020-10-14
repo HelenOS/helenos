@@ -113,8 +113,8 @@ static errno_t testgc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 		    sizeof(uint32_t);
 		tbm->alloc.off0 = 0;
 		tbm->alloc.pixels = calloc(sizeof(uint32_t),
-			(params->rect.p1.x - params->rect.p0.x) *
-			(params->rect.p1.y - params->rect.p0.y));
+		    (params->rect.p1.x - params->rect.p0.x) *
+		    (params->rect.p1.y - params->rect.p0.y));
 		tbm->myalloc = true;
 		if (tbm->alloc.pixels == NULL) {
 			free(tbm);

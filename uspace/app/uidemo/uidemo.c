@@ -80,51 +80,9 @@ static void wnd_kbd_event(void *arg, kbd_event_t *event)
 static void wnd_pos_event(void *arg, pos_event_t *event)
 {
 	ui_demo_t *demo = (ui_demo_t *) arg;
-	gfx_rect_t rect1;
-	gfx_rect_t rect2;
-	gfx_coord2_t pos;
 
-	rect1.p0.x = 20;
-	rect1.p0.y = 50;
-	rect1.p1.x = 100;
-	rect1.p1.y = 80;
-
-	rect2.p0.x = 120;
-	rect2.p0.y = 50;
-	rect2.p1.x = 200;
-	rect2.p1.y = 80;
-
-	pos.x = event->hpos;
-	pos.y = event->vpos;
-
-	if (event->type == POS_PRESS) {
-		printf("Button press\n");
-
-		if (gfx_pix_inside_rect(&pos, &rect1)) {
-			printf("Press button 1\n");
-			ui_pbutton_press(demo->pb1);
-			(void) ui_pbutton_paint(demo->pb1);
-		}
-		if (gfx_pix_inside_rect(&pos, &rect2)) {
-			printf("Press button 2\n");
-			ui_pbutton_press(demo->pb2);
-			(void) ui_pbutton_paint(demo->pb2);
-		}
-	}
-
-	if (event->type == POS_RELEASE) {
-		printf("Button release\n");
-		if (gfx_pix_inside_rect(&pos, &rect1)) {
-			printf("Release button 1\n");
-			ui_pbutton_release(demo->pb1);
-			(void) ui_pbutton_paint(demo->pb1);
-		}
-		if (gfx_pix_inside_rect(&pos, &rect2)) {
-			printf("Release button 2\n");
-			ui_pbutton_release(demo->pb2);
-			(void) ui_pbutton_paint(demo->pb2);
-		}
-	}
+	ui_pbutton_pos_event(demo->pb1, event);
+	ui_pbutton_pos_event(demo->pb2, event);
 }
 
 /** Run UI demo on display server. */
