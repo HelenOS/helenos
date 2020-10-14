@@ -26,15 +26,98 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
+#include <gfx/context.h>
+#include <gfx/coord.h>
+#include <mem.h>
 #include <pcut/pcut.h>
+#include <stdbool.h>
 #include <ui/pbutton.h>
+#include <ui/resource.h>
+#include "../private/pbutton.h"
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(pbutton);
 
+static errno_t testgc_set_color(void *, gfx_color_t *);
+static errno_t testgc_fill_rect(void *, gfx_rect_t *);
+static errno_t testgc_bitmap_create(void *, gfx_bitmap_params_t *,
+    gfx_bitmap_alloc_t *, void **);
+static errno_t testgc_bitmap_destroy(void *);
+static errno_t testgc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
+static errno_t testgc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
+
+static gfx_context_ops_t ops = {
+	.set_color = testgc_set_color,
+	.fill_rect = testgc_fill_rect,
+	.bitmap_create = testgc_bitmap_create,
+	.bitmap_destroy = testgc_bitmap_destroy,
+	.bitmap_render = testgc_bitmap_render,
+	.bitmap_get_alloc = testgc_bitmap_get_alloc
+};
+
+typedef struct {
+	bool bm_created;
+	bool bm_destroyed;
+	gfx_bitmap_params_t bm_params;
+	void *bm_pixels;
+	gfx_rect_t bm_srect;
+	gfx_coord2_t bm_offs;
+	bool bm_rendered;
+	bool bm_got_alloc;
+} test_gc_t;
+
+typedef struct {
+	test_gc_t *tgc;
+	gfx_bitmap_alloc_t alloc;
+	bool myalloc;
+} testgc_bitmap_t;
+
+/** Create and destroy button */
 PCUT_TEST(create_destroy)
+{
+	ui_pbutton_t *pbutton = NULL;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(pbutton);
+
+	ui_pbutton_destroy(pbutton);
+}
+
+/** ui_pbutton_destroy() can take NULL argument (no-op) */
+PCUT_TEST(destroy_null)
+{
+	ui_pbutton_destroy(NULL);
+}
+
+/** Set button rectangle sets internal field */
+PCUT_TEST(set_rect)
+{
+	ui_pbutton_t *pbutton;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+
+	ui_pbutton_set_rect(pbutton, &rect);
+	PCUT_ASSERT_INT_EQUALS(rect.p0.x, pbutton->rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(rect.p0.y, pbutton->rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(rect.p1.x, pbutton->rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(rect.p1.y, pbutton->rect.p1.y);
+
+	ui_pbutton_destroy(pbutton);
+}
+
+/** Set default flag sets internal field */
+PCUT_TEST(set_default)
 {
 	ui_pbutton_t *pbutton;
 	errno_t rc;
@@ -42,7 +125,139 @@ PCUT_TEST(create_destroy)
 	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	ui_pbutton_set_default(pbutton, true);
+	PCUT_ASSERT_TRUE(pbutton->isdefault);
+
+	ui_pbutton_set_default(pbutton, false);
+	PCUT_ASSERT_FALSE(pbutton->isdefault);
+
 	ui_pbutton_destroy(pbutton);
+}
+
+/** Paint button */
+PCUT_TEST(paint)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_pbutton_t *pbutton;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_pbutton_create(resource, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_pbutton_paint(pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_pbutton_destroy(pbutton);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ui_pbutton_press()/release() sets/clears internal held flag */
+PCUT_TEST(press_release)
+{
+	ui_pbutton_t *pbutton;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(pbutton->held);
+
+	ui_pbutton_press(pbutton);
+	PCUT_ASSERT_TRUE(pbutton->held);
+
+	ui_pbutton_release(pbutton);
+	PCUT_ASSERT_FALSE(pbutton->held);
+
+	ui_pbutton_destroy(pbutton);
+}
+
+static errno_t testgc_set_color(void *arg, gfx_color_t *color)
+{
+	(void) arg;
+	(void) color;
+	return EOK;
+}
+
+static errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
+{
+	(void) arg;
+	(void) rect;
+	return EOK;
+}
+
+static errno_t testgc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
+    gfx_bitmap_alloc_t *alloc, void **rbm)
+{
+	test_gc_t *tgc = (test_gc_t *) arg;
+	testgc_bitmap_t *tbm;
+
+	tbm = calloc(1, sizeof(testgc_bitmap_t));
+	if (tbm == NULL)
+		return ENOMEM;
+
+	if (alloc == NULL) {
+		tbm->alloc.pitch = (params->rect.p1.x - params->rect.p0.x) *
+		    sizeof(uint32_t);
+		tbm->alloc.off0 = 0;
+		tbm->alloc.pixels = calloc(sizeof(uint32_t),
+			(params->rect.p1.x - params->rect.p0.x) *
+			(params->rect.p1.y - params->rect.p0.y));
+		tbm->myalloc = true;
+		if (tbm->alloc.pixels == NULL) {
+			free(tbm);
+			return ENOMEM;
+		}
+	} else {
+		tbm->alloc = *alloc;
+	}
+
+	tbm->tgc = tgc;
+	tgc->bm_created = true;
+	tgc->bm_params = *params;
+	tgc->bm_pixels = tbm->alloc.pixels;
+	*rbm = (void *)tbm;
+	return EOK;
+}
+
+static errno_t testgc_bitmap_destroy(void *bm)
+{
+	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
+	if (tbm->myalloc)
+		free(tbm->alloc.pixels);
+	tbm->tgc->bm_destroyed = true;
+	free(tbm);
+	return EOK;
+}
+
+static errno_t testgc_bitmap_render(void *bm, gfx_rect_t *srect,
+    gfx_coord2_t *offs)
+{
+	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
+	tbm->tgc->bm_rendered = true;
+	tbm->tgc->bm_srect = *srect;
+	tbm->tgc->bm_offs = *offs;
+	return EOK;
+}
+
+static errno_t testgc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
+{
+	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
+	*alloc = tbm->alloc;
+	tbm->tgc->bm_got_alloc = true;
+	return EOK;
 }
 
 PCUT_EXPORT(pbutton);

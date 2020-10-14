@@ -92,7 +92,7 @@ error:
 
 /** Destroy UI resource.
  *
- * @param resource Push button or @c NULL
+ * @param resource UI resource or @c NULL
  */
 void ui_resource_destroy(ui_resource_t *resource)
 {
