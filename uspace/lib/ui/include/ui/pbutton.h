@@ -40,11 +40,13 @@
 #include <gfx/coord.h>
 #include <types/ui/pbutton.h>
 #include <types/ui/resource.h>
+#include <stdbool.h>
 
 extern errno_t ui_pbutton_create(ui_resource_t *, const char *,
     ui_pbutton_t **);
 extern void ui_pbutton_destroy(ui_pbutton_t *);
 extern void ui_pbutton_set_rect(ui_pbutton_t *, gfx_rect_t *);
+extern void ui_pbutton_set_default(ui_pbutton_t *, bool);
 extern errno_t ui_pbutton_paint(ui_pbutton_t *);
 extern void ui_pbutton_press(ui_pbutton_t *);
 extern void ui_pbutton_release(ui_pbutton_t *);

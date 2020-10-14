@@ -52,6 +52,8 @@ struct ui_pbutton {
 	gfx_rect_t rect;
 	/** Caption */
 	const char *caption;
+	/** Button is selected as default */
+	bool isdefault;
 	/** Button is currently held down */
 	bool held;
 };

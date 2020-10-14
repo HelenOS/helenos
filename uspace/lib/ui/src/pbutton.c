@@ -46,8 +46,8 @@
 
 /** Caption movement when button is pressed down */
 enum {
-	ui_pb_press_dx = 2,
-	ui_pb_press_dy = 2
+	ui_pb_press_dx = 1,
+	ui_pb_press_dy = 1
 };
 
 /** Create new push button.
@@ -99,6 +99,207 @@ void ui_pbutton_set_rect(ui_pbutton_t *pbutton, gfx_rect_t *rect)
 	pbutton->rect = *rect;
 }
 
+/** Set default flag.
+ *
+ * Default button is the one activated by Enter key, it is marked
+ * by thicker frame.
+ *
+ * @param pbutton Button
+ * @param isdefault @c true iff button is default
+ */
+void ui_pbutton_set_default(ui_pbutton_t *pbutton, bool isdefault)
+{
+	pbutton->isdefault = isdefault;
+}
+
+/** Paint outer button frame.
+ *
+ * @param pbutton Push button
+ * @return EOK on success or an error code
+ */
+static errno_t ui_pbutton_paint_frame(ui_pbutton_t *pbutton)
+{
+	gfx_color_t *color = NULL;
+	gfx_rect_t rect;
+	gfx_coord_t thickness;
+	errno_t rc;
+
+	thickness = pbutton->isdefault ? 2 : 1;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(pbutton->res->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = pbutton->rect.p0.x + 1;
+	rect.p0.y = pbutton->rect.p0.y;
+	rect.p1.x = pbutton->rect.p1.x - 1;
+	rect.p1.y = pbutton->rect.p0.y + thickness;
+	rc = gfx_fill_rect(pbutton->res->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = pbutton->rect.p0.x + 1;
+	rect.p0.y = pbutton->rect.p1.y - thickness;
+	rect.p1.x = pbutton->rect.p1.x - 1;
+	rect.p1.y = pbutton->rect.p1.y;
+	rc = gfx_fill_rect(pbutton->res->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = pbutton->rect.p0.x;
+	rect.p0.y = pbutton->rect.p0.y + 1;
+	rect.p1.x = pbutton->rect.p0.x + thickness;
+	rect.p1.y = pbutton->rect.p1.y - 1;
+	rc = gfx_fill_rect(pbutton->res->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = pbutton->rect.p1.x - thickness;
+	rect.p0.y = pbutton->rect.p0.y + 1;
+	rect.p1.x = pbutton->rect.p1.x;
+	rect.p1.y = pbutton->rect.p1.y - 1;
+	rc = gfx_fill_rect(pbutton->res->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+	return EOK;
+error:
+	if (color != NULL)
+		gfx_color_delete(color);
+	return rc;
+}
+
+/** Paint outset button bevel.
+ *
+ * @param pbutton Push button
+ * @return EOK on success or an error code
+ */
+static errno_t ui_pbutton_paint_outset(ui_pbutton_t *pbutton,
+    gfx_rect_t *rect)
+{
+	gfx_color_t *color = NULL;
+	gfx_rect_t frect;
+	gfx_coord_t i;
+	errno_t rc;
+
+	/* Highlight */
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(pbutton->res->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	for (i = 0; i < 2; i++) {
+		frect.p0.x = rect->p0.x + i;
+		frect.p0.y = rect->p0.y + i;
+		frect.p1.x = rect->p1.x - i - 1;
+		frect.p1.y = rect->p0.y + i + 1;
+		rc = gfx_fill_rect(pbutton->res->gc, &frect);
+		if (rc != EOK)
+			goto error;
+
+		frect.p0.x = rect->p0.x + i;
+		frect.p0.y = rect->p0.y + i + 1;
+		frect.p1.x = rect->p0.x + i + 1;
+		frect.p1.y = rect->p1.y - i - 1;
+		rc = gfx_fill_rect(pbutton->res->gc, &frect);
+		if (rc != EOK)
+			goto error;
+	}
+
+	gfx_color_delete(color);
+	color = NULL;
+
+	/* Shadow */
+
+	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(pbutton->res->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	for (i = 0; i < 2; i++) {
+		frect.p0.x = rect->p0.x + i;
+		frect.p0.y = rect->p1.y - i - 1;
+		frect.p1.x = rect->p1.x - i - 1;
+		frect.p1.y = rect->p1.y - i;
+		rc = gfx_fill_rect(pbutton->res->gc, &frect);
+		if (rc != EOK)
+			goto error;
+
+		frect.p0.x = rect->p1.x - i - 1;
+		frect.p0.y = rect->p0.y + i;
+		frect.p1.x = rect->p1.x - i;
+		frect.p1.y = rect->p1.y - i;
+		rc = gfx_fill_rect(pbutton->res->gc, &frect);
+		if (rc != EOK)
+			goto error;
+	}
+
+	gfx_color_delete(color);
+
+	return EOK;
+error:
+	if (color != NULL)
+		gfx_color_delete(color);
+	return rc;
+}
+
+/** Paint inset button bevel.
+ *
+ * @param pbutton Push button
+ * @return EOK on success or an error code
+ */
+static errno_t ui_pbutton_paint_inset(ui_pbutton_t *pbutton,
+    gfx_rect_t *rect)
+{
+	gfx_color_t *color = NULL;
+	gfx_rect_t frect;
+	errno_t rc;
+
+	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(pbutton->res->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	frect.p0.x = rect->p0.x;
+	frect.p0.y = rect->p0.y;
+	frect.p1.x = rect->p1.x;
+	frect.p1.y = rect->p0.y + 2;
+	rc = gfx_fill_rect(pbutton->res->gc, &frect);
+	if (rc != EOK)
+		goto error;
+
+	frect.p0.x = rect->p0.x;
+	frect.p0.y = rect->p0.y + 2;
+	frect.p1.x = rect->p0.x + 2;
+	frect.p1.y = rect->p1.y;
+	rc = gfx_fill_rect(pbutton->res->gc, &frect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
+	return EOK;
+error:
+	if (color != NULL)
+		gfx_color_delete(color);
+	return rc;
+}
+
 /** Paint push button.
  *
  * @param pbutton Push button
@@ -109,27 +310,31 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	gfx_color_t *color = NULL;
 	gfx_coord2_t pos;
 	gfx_text_fmt_t fmt;
+	gfx_rect_t rect;
+	gfx_coord_t thickness;
 	errno_t rc;
 
-	if (pbutton->held) {
-		rc = gfx_color_new_rgb_i16(0x8000, 0, 0, &color);
-		if (rc != EOK)
-			goto error;
-	} else {
-		rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
-		if (rc != EOK)
-			goto error;
-	}
+	thickness = pbutton->isdefault ? 2 : 1;
+
+	rect.p0.x = pbutton->rect.p0.x + thickness;
+	rect.p0.y = pbutton->rect.p0.y + thickness;
+	rect.p1.x = pbutton->rect.p1.x - thickness;
+	rect.p1.y = pbutton->rect.p1.y - thickness;
+
+	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
+	if (rc != EOK)
+		goto error;
 
 	rc = gfx_set_color(pbutton->res->gc, color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_fill_rect(pbutton->res->gc, &pbutton->rect);
+	rc = gfx_fill_rect(pbutton->res->gc, &rect);
 	if (rc != EOK)
 		goto error;
 
 	gfx_color_delete(color);
+	color = NULL;
 
 	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
 	if (rc != EOK)
@@ -140,8 +345,8 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 		goto error;
 
 	/* Center of button rectangle */
-	pos.x = (pbutton->rect.p0.x + pbutton->rect.p1.x) / 2;
-	pos.y = (pbutton->rect.p0.y + pbutton->rect.p1.y) / 2;
+	pos.x = (rect.p0.x + rect.p1.x) / 2;
+	pos.y = (rect.p0.y + rect.p1.y) / 2;
 
 	if (pbutton->held) {
 		pos.x += ui_pb_press_dx;
@@ -157,6 +362,21 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 		goto error;
 
 	gfx_color_delete(color);
+	color = NULL;
+
+	rc = ui_pbutton_paint_frame(pbutton);
+	if (rc != EOK)
+		goto error;
+
+	if (pbutton->held) {
+		rc = ui_pbutton_paint_inset(pbutton, &rect);
+		if (rc != EOK)
+			goto error;
+	} else {
+		rc = ui_pbutton_paint_outset(pbutton, &rect);
+		if (rc != EOK)
+			goto error;
+	}
 
 	return EOK;
 error:

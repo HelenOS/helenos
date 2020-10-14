@@ -33,6 +33,9 @@
  */
 
 #include <display.h>
+#include <gfx/color.h>
+#include <gfx/coord.h>
+#include <gfx/render.h>
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
@@ -134,6 +137,7 @@ static errno_t ui_demo_display(const char *display_svc)
 	ui_resource_t *ui_res;
 	ui_demo_t demo;
 	gfx_rect_t rect;
+	gfx_color_t *color = NULL;
 	errno_t rc;
 
 	printf("Init display..\n");
@@ -183,6 +187,8 @@ static errno_t ui_demo_display(const char *display_svc)
 	rect.p1.y = 80;
 	ui_pbutton_set_rect(demo.pb1, &rect);
 
+	ui_pbutton_set_default(demo.pb1, true);
+
 	rc = ui_pbutton_create(ui_res, "Cancel", &demo.pb2);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
@@ -194,6 +200,27 @@ static errno_t ui_demo_display(const char *display_svc)
 	rect.p1.x = 200;
 	rect.p1.y = 80;
 	ui_pbutton_set_rect(demo.pb2, &rect);
+
+	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
+	if (rc != EOK) {
+		printf("Error allocating color.\n");
+		return rc;
+	}
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK) {
+		printf("Error setting color.\n");
+		return rc;
+	}
+
+	rc = gfx_fill_rect(gc, &params.rect);
+	if (rc != EOK) {
+		printf("Error filling background.\n");
+		return rc;
+	}
+
+	gfx_color_delete(color);
+	color = NULL;
 
 	rc = ui_pbutton_paint(demo.pb1);
 	if (rc != EOK) {
