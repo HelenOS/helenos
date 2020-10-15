@@ -46,11 +46,15 @@
 extern errno_t ui_pbutton_create(ui_resource_t *, const char *,
     ui_pbutton_t **);
 extern void ui_pbutton_destroy(ui_pbutton_t *);
+extern void ui_pbutton_set_cb(ui_pbutton_t *, ui_pbutton_cb_t *, void *);
 extern void ui_pbutton_set_rect(ui_pbutton_t *, gfx_rect_t *);
 extern void ui_pbutton_set_default(ui_pbutton_t *, bool);
 extern errno_t ui_pbutton_paint(ui_pbutton_t *);
 extern void ui_pbutton_press(ui_pbutton_t *);
 extern void ui_pbutton_release(ui_pbutton_t *);
+extern void ui_pbutton_enter(ui_pbutton_t *);
+extern void ui_pbutton_leave(ui_pbutton_t *);
+extern void ui_pbutton_clicked(ui_pbutton_t *);
 extern void ui_pbutton_pos_event(ui_pbutton_t *, pos_event_t *);
 
 #endif

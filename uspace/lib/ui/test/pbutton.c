@@ -56,6 +56,15 @@ static gfx_context_ops_t ops = {
 	.bitmap_get_alloc = testgc_bitmap_get_alloc
 };
 
+static void test_pbutton_clicked(ui_pbutton_t *, void *);
+
+static ui_pbutton_cb_t test_pbutton_cb = {
+	.clicked = test_pbutton_clicked
+};
+
+static ui_pbutton_cb_t dummy_pbutton_cb = {
+};
+
 typedef struct {
 	bool bm_created;
 	bool bm_destroyed;
@@ -72,6 +81,10 @@ typedef struct {
 	gfx_bitmap_alloc_t alloc;
 	bool myalloc;
 } testgc_bitmap_t;
+
+typedef struct {
+	bool clicked;
+} test_cb_resp_t;
 
 /** Create and destroy button */
 PCUT_TEST(create_destroy)
@@ -164,35 +177,199 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
-/** ui_pbutton_press()/release() sets/clears internal held flag */
-PCUT_TEST(press_release)
+/** Test ui_pbutton_clicked() */
+PCUT_TEST(clicked)
 {
-	ui_pbutton_t *pbutton;
 	errno_t rc;
+	ui_pbutton_t *pbutton;
+	test_cb_resp_t resp;
 
 	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	/* Clicked with no callbacks set */
+	ui_pbutton_clicked(pbutton);
+
+	/* Clicked with callback not implementing clicked */
+	ui_pbutton_set_cb(pbutton, &dummy_pbutton_cb, NULL);
+	ui_pbutton_clicked(pbutton);
+
+	/* Clicked with real callback set */
+	resp.clicked = false;
+	ui_pbutton_set_cb(pbutton, &test_pbutton_cb, &resp);
+	ui_pbutton_clicked(pbutton);
+	PCUT_ASSERT_TRUE(resp.clicked);
+
+	ui_pbutton_destroy(pbutton);
+}
+
+/** Press and release button */
+PCUT_TEST(press_release)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_pbutton_t *pbutton;
+	test_cb_resp_t resp;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_pbutton_create(resource, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	resp.clicked = false;
+	ui_pbutton_set_cb(pbutton, &test_pbutton_cb, &resp);
+
 	PCUT_ASSERT_FALSE(pbutton->held);
+	PCUT_ASSERT_FALSE(pbutton->inside);
 
 	ui_pbutton_press(pbutton);
 	PCUT_ASSERT_TRUE(pbutton->held);
+	PCUT_ASSERT_TRUE(pbutton->inside);
+	PCUT_ASSERT_FALSE(resp.clicked);
 
 	ui_pbutton_release(pbutton);
 	PCUT_ASSERT_FALSE(pbutton->held);
+	PCUT_ASSERT_TRUE(pbutton->inside);
+	PCUT_ASSERT_TRUE(resp.clicked);
 
 	ui_pbutton_destroy(pbutton);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Press, leave and release button */
+PCUT_TEST(press_leave_release)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_pbutton_t *pbutton;
+	test_cb_resp_t resp;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_pbutton_create(resource, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	resp.clicked = false;
+	ui_pbutton_set_cb(pbutton, &test_pbutton_cb, &resp);
+
+	PCUT_ASSERT_FALSE(pbutton->held);
+	PCUT_ASSERT_FALSE(pbutton->inside);
+
+	ui_pbutton_press(pbutton);
+	PCUT_ASSERT_TRUE(pbutton->held);
+	PCUT_ASSERT_TRUE(pbutton->inside);
+	PCUT_ASSERT_FALSE(resp.clicked);
+
+	ui_pbutton_leave(pbutton);
+	PCUT_ASSERT_TRUE(pbutton->held);
+	PCUT_ASSERT_FALSE(pbutton->inside);
+	PCUT_ASSERT_FALSE(resp.clicked);
+
+	ui_pbutton_release(pbutton);
+	PCUT_ASSERT_FALSE(pbutton->held);
+	PCUT_ASSERT_FALSE(pbutton->inside);
+	PCUT_ASSERT_FALSE(resp.clicked);
+
+	ui_pbutton_destroy(pbutton);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Press, leave, enter and release button */
+PCUT_TEST(press_leave_enter_release)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_pbutton_t *pbutton;
+	test_cb_resp_t resp;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_pbutton_create(resource, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	resp.clicked = false;
+	ui_pbutton_set_cb(pbutton, &test_pbutton_cb, &resp);
+
+	PCUT_ASSERT_FALSE(pbutton->held);
+	PCUT_ASSERT_FALSE(pbutton->inside);
+
+	ui_pbutton_press(pbutton);
+	PCUT_ASSERT_TRUE(pbutton->held);
+	PCUT_ASSERT_TRUE(pbutton->inside);
+	PCUT_ASSERT_FALSE(resp.clicked);
+
+	ui_pbutton_leave(pbutton);
+	PCUT_ASSERT_TRUE(pbutton->held);
+	PCUT_ASSERT_FALSE(pbutton->inside);
+	PCUT_ASSERT_FALSE(resp.clicked);
+
+	ui_pbutton_enter(pbutton);
+	PCUT_ASSERT_TRUE(pbutton->held);
+	PCUT_ASSERT_TRUE(pbutton->inside);
+	PCUT_ASSERT_FALSE(resp.clicked);
+
+	ui_pbutton_release(pbutton);
+	PCUT_ASSERT_FALSE(pbutton->held);
+	PCUT_ASSERT_TRUE(pbutton->inside);
+	PCUT_ASSERT_TRUE(resp.clicked);
+
+	ui_pbutton_destroy(pbutton);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** ui_pos_event() correctly translates POS_PRESS/POS_RELEASE */
 PCUT_TEST(pos_event_press_release)
 {
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_pbutton_t *pbutton;
 	pos_event_t event;
 	gfx_rect_t rect;
-	errno_t rc;
 
-	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_pbutton_create(resource, "Hello", &pbutton);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(pbutton->held);
@@ -225,6 +402,68 @@ PCUT_TEST(pos_event_press_release)
 	PCUT_ASSERT_FALSE(pbutton->held);
 
 	ui_pbutton_destroy(pbutton);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ui_pos_event() correctly translates POS_UPDATE to enter/leave */
+PCUT_TEST(pos_event_enter_leave)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_pbutton_t *pbutton;
+	pos_event_t event;
+	gfx_rect_t rect;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_pbutton_create(resource, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(pbutton->inside);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 30;
+	rect.p1.y = 40;
+	ui_pbutton_set_rect(pbutton, &rect);
+
+	/* Moving outside does nothing */
+	event.type = POS_UPDATE;
+	event.hpos = 9;
+	event.vpos = 20;
+	ui_pbutton_pos_event(pbutton, &event);
+	PCUT_ASSERT_FALSE(pbutton->inside);
+
+	/* Moving inside sets inside flag */
+	event.type = POS_UPDATE;
+	event.hpos = 10;
+	event.vpos = 20;
+	ui_pbutton_pos_event(pbutton, &event);
+	PCUT_ASSERT_TRUE(pbutton->inside);
+
+	/* Moving outside clears inside flag */
+	event.type = POS_UPDATE;
+	event.hpos = 9;
+	event.vpos = 20;
+	ui_pbutton_pos_event(pbutton, &event);
+	PCUT_ASSERT_FALSE(pbutton->inside);
+
+	ui_pbutton_destroy(pbutton);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)
@@ -301,6 +540,13 @@ static errno_t testgc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 	*alloc = tbm->alloc;
 	tbm->tgc->bm_got_alloc = true;
 	return EOK;
+}
+
+static void test_pbutton_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->clicked = true;
 }
 
 PCUT_EXPORT(pbutton);

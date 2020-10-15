@@ -90,6 +90,18 @@ void ui_pbutton_destroy(ui_pbutton_t *pbutton)
 	free(pbutton);
 }
 
+/** Set push button callbacks.
+ *
+ * @param pbutton Push button
+ * @param cb Push button callbacks
+ * @param arg Callback argument
+ */
+void ui_pbutton_set_cb(ui_pbutton_t *pbutton, ui_pbutton_cb_t *cb, void *arg)
+{
+	pbutton->cb = cb;
+	pbutton->arg = arg;
+}
+
 /** Set button rectangle.
  *
  * @param pbutton Button
@@ -313,9 +325,11 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	gfx_text_fmt_t fmt;
 	gfx_rect_t rect;
 	gfx_coord_t thickness;
+	bool depressed;
 	errno_t rc;
 
 	thickness = pbutton->isdefault ? 2 : 1;
+	depressed = pbutton->held && pbutton->inside;
 
 	rect.p0.x = pbutton->rect.p0.x + thickness;
 	rect.p0.y = pbutton->rect.p0.y + thickness;
@@ -349,7 +363,7 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	pos.x = (rect.p0.x + rect.p1.x) / 2;
 	pos.y = (rect.p0.y + rect.p1.y) / 2;
 
-	if (pbutton->held) {
+	if (depressed) {
 		pos.x += ui_pb_press_dx;
 		pos.y += ui_pb_press_dy;
 	}
@@ -369,7 +383,7 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	if (rc != EOK)
 		goto error;
 
-	if (pbutton->held) {
+	if (depressed) {
 		rc = ui_pbutton_paint_inset(pbutton, &rect);
 		if (rc != EOK)
 			goto error;
@@ -388,24 +402,71 @@ error:
 
 /** Press down button.
  *
- * This does not automatically repaint the button.
- *
  * @param pbutton Push button
  */
 void ui_pbutton_press(ui_pbutton_t *pbutton)
 {
+	if (pbutton->held)
+		return;
+
+	pbutton->inside = true;
 	pbutton->held = true;
+	(void) ui_pbutton_paint(pbutton);
 }
 
 /** Release button.
- *
- * This does not automatically repaint the button.
  *
  * @param pbutton Push button
  */
 void ui_pbutton_release(ui_pbutton_t *pbutton)
 {
+	if (!pbutton->held)
+		return;
+
 	pbutton->held = false;
+
+	if (pbutton->inside) {
+		(void) ui_pbutton_paint(pbutton);
+		ui_pbutton_clicked(pbutton);
+	}
+}
+
+/** Pointer entered button.
+ *
+ * @param pbutton Push button
+ */
+void ui_pbutton_enter(ui_pbutton_t *pbutton)
+{
+	if (pbutton->inside)
+		return;
+
+	pbutton->inside = true;
+	if (pbutton->held)
+		(void) ui_pbutton_paint(pbutton);
+}
+
+/** Pointer left button.
+ *
+ * @param pbutton Push button
+ */
+void ui_pbutton_leave(ui_pbutton_t *pbutton)
+{
+	if (!pbutton->inside)
+		return;
+
+	pbutton->inside = false;
+	if (pbutton->held)
+		(void) ui_pbutton_paint(pbutton);
+}
+
+/** Button was clicked.
+ *
+ * @param pbutton Push button
+ */
+void ui_pbutton_clicked(ui_pbutton_t *pbutton)
+{
+	if (pbutton->cb != NULL && pbutton->cb->clicked != NULL)
+		pbutton->cb->clicked(pbutton, pbutton->arg);
 }
 
 /** Handle push button position event.
@@ -416,20 +477,28 @@ void ui_pbutton_release(ui_pbutton_t *pbutton)
 void ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
 {
 	gfx_coord2_t pos;
+	bool inside;
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 
-	if (gfx_pix_inside_rect(&pos, &pbutton->rect)) {
-		if (event->type == POS_PRESS) {
-			ui_pbutton_press(pbutton);
-			(void) ui_pbutton_paint(pbutton);
-		}
-	}
+	inside = gfx_pix_inside_rect(&pos, &pbutton->rect);
 
-	if (event->type == POS_RELEASE && pbutton->held) {
+	switch (event->type) {
+	case POS_PRESS:
+		if (inside)
+			ui_pbutton_press(pbutton);
+		break;
+	case POS_RELEASE:
 		ui_pbutton_release(pbutton);
-		(void) ui_pbutton_paint(pbutton);
+		break;
+	case POS_UPDATE:
+		if (inside && !pbutton->inside) {
+			ui_pbutton_enter(pbutton);
+		} else if (!inside && pbutton->inside) {
+			ui_pbutton_leave(pbutton);
+		}
+		break;
 	}
 }
 

@@ -48,6 +48,10 @@
 struct ui_pbutton {
 	/** UI resource */
 	struct ui_resource *res;
+	/** Callbacks */
+	struct ui_pbutton_cb *cb;
+	/** Callback argument */
+	void *arg;
 	/** Push button rectangle */
 	gfx_rect_t rect;
 	/** Caption */
@@ -56,6 +60,8 @@ struct ui_pbutton {
 	bool isdefault;
 	/** Button is currently held down */
 	bool held;
+	/** Pointer is currently inside */
+	bool inside;
 };
 
 #endif

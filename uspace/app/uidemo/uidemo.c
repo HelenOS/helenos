@@ -53,6 +53,12 @@ static display_wnd_cb_t wnd_cb = {
 	.pos_event = wnd_pos_event
 };
 
+static void pb_clicked(ui_pbutton_t *, void *);
+
+static ui_pbutton_cb_t pbutton_cb = {
+	.clicked = pb_clicked
+};
+
 static bool quit = false;
 
 /** Print syntax. */
@@ -83,6 +89,22 @@ static void wnd_pos_event(void *arg, pos_event_t *event)
 
 	ui_pbutton_pos_event(demo->pb1, event);
 	ui_pbutton_pos_event(demo->pb2, event);
+}
+
+/** Push button was clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (demo)
+ */
+static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	if (pbutton == demo->pb1) {
+		printf("Clicked 'Confirm' button\n");
+	} else {
+		printf("Clicked 'Cancel' button\n");
+	}
 }
 
 /** Run UI demo on display server. */
@@ -139,6 +161,8 @@ static errno_t ui_demo_display(const char *display_svc)
 		return rc;
 	}
 
+	ui_pbutton_set_cb(demo.pb1, &pbutton_cb, (void *) &demo);
+
 	rect.p0.x = 20;
 	rect.p0.y = 50;
 	rect.p1.x = 100;
@@ -152,6 +176,8 @@ static errno_t ui_demo_display(const char *display_svc)
 		printf("Error creating button.\n");
 		return rc;
 	}
+
+	ui_pbutton_set_cb(demo.pb2, &pbutton_cb, (void *) &demo);
 
 	rect.p0.x = 120;
 	rect.p0.y = 50;
