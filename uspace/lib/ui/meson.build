@@ -28,12 +28,14 @@
 
 deps = [ 'gfx', 'gfxfont' ]
 src = files(
+	'src/paint.c',
 	'src/pbutton.c',
 	'src/resource.c',
 )
 
 test_src = files(
 	'test/main.c',
+	'test/paint.c',
 	'test/pbutton.c',
 	'test/resource.c',
 )

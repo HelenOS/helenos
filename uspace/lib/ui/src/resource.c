@@ -58,6 +58,11 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	gfx_typeface_t *tface = NULL;
 	gfx_font_t *font = NULL;
 	gfx_font_info_t *finfo;
+	gfx_color_t *btn_frame_color = NULL;
+	gfx_color_t *btn_face_color = NULL;
+	gfx_color_t *btn_text_color = NULL;
+	gfx_color_t *btn_highlight_color = NULL;
+	gfx_color_t *btn_shadow_color = NULL;
 	errno_t rc;
 
 	resource = calloc(1, sizeof(ui_resource_t));
@@ -78,12 +83,48 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &btn_frame_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &btn_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &btn_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+	    &btn_highlight_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &btn_shadow_color);
+	if (rc != EOK)
+		goto error;
+
 	resource->gc = gc;
 	resource->tface = tface;
 	resource->font = font;
+	resource->btn_frame_color = btn_frame_color;
+	resource->btn_face_color = btn_face_color;
+	resource->btn_text_color = btn_text_color;
+	resource->btn_highlight_color = btn_highlight_color;
+	resource->btn_shadow_color = btn_shadow_color;
 	*rresource = resource;
 	return EOK;
 error:
+	if (btn_frame_color != NULL)
+		gfx_color_delete(btn_frame_color);
+	if (btn_face_color != NULL)
+		gfx_color_delete(btn_face_color);
+	if (btn_text_color != NULL)
+		gfx_color_delete(btn_text_color);
+	if (btn_highlight_color != NULL)
+		gfx_color_delete(btn_highlight_color);
+	if (btn_shadow_color != NULL)
+		gfx_color_delete(btn_shadow_color);
 	if (tface != NULL)
 		gfx_typeface_destroy(tface);
 	free(resource);
@@ -98,6 +139,12 @@ void ui_resource_destroy(ui_resource_t *resource)
 {
 	if (resource == NULL)
 		return;
+
+	gfx_color_delete(resource->btn_frame_color);
+	gfx_color_delete(resource->btn_face_color);
+	gfx_color_delete(resource->btn_text_color);
+	gfx_color_delete(resource->btn_highlight_color);
+	gfx_color_delete(resource->btn_shadow_color);
 
 	gfx_font_close(resource->font);
 	gfx_typeface_destroy(resource->tface);

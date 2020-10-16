@@ -41,6 +41,7 @@
 #include <io/pos_event.h>
 #include <stdlib.h>
 #include <str.h>
+#include <ui/paint.h>
 #include <ui/pbutton.h>
 #include "../private/pbutton.h"
 #include "../private/resource.h"
@@ -132,18 +133,13 @@ void ui_pbutton_set_default(ui_pbutton_t *pbutton, bool isdefault)
  */
 static errno_t ui_pbutton_paint_frame(ui_pbutton_t *pbutton)
 {
-	gfx_color_t *color = NULL;
 	gfx_rect_t rect;
 	gfx_coord_t thickness;
 	errno_t rc;
 
 	thickness = pbutton->isdefault ? 2 : 1;
 
-	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_set_color(pbutton->res->gc, color);
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_frame_color);
 	if (rc != EOK)
 		goto error;
 
@@ -179,11 +175,8 @@ static errno_t ui_pbutton_paint_frame(ui_pbutton_t *pbutton)
 	if (rc != EOK)
 		goto error;
 
-	gfx_color_delete(color);
 	return EOK;
 error:
-	if (color != NULL)
-		gfx_color_delete(color);
 	return rc;
 }
 
@@ -195,77 +188,9 @@ error:
 static errno_t ui_pbutton_paint_outset(ui_pbutton_t *pbutton,
     gfx_rect_t *rect)
 {
-	gfx_color_t *color = NULL;
-	gfx_rect_t frect;
-	gfx_coord_t i;
-	errno_t rc;
-
-	/* Highlight */
-
-	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_set_color(pbutton->res->gc, color);
-	if (rc != EOK)
-		goto error;
-
-	for (i = 0; i < 2; i++) {
-		frect.p0.x = rect->p0.x + i;
-		frect.p0.y = rect->p0.y + i;
-		frect.p1.x = rect->p1.x - i - 1;
-		frect.p1.y = rect->p0.y + i + 1;
-		rc = gfx_fill_rect(pbutton->res->gc, &frect);
-		if (rc != EOK)
-			goto error;
-
-		frect.p0.x = rect->p0.x + i;
-		frect.p0.y = rect->p0.y + i + 1;
-		frect.p1.x = rect->p0.x + i + 1;
-		frect.p1.y = rect->p1.y - i - 1;
-		rc = gfx_fill_rect(pbutton->res->gc, &frect);
-		if (rc != EOK)
-			goto error;
-	}
-
-	gfx_color_delete(color);
-	color = NULL;
-
-	/* Shadow */
-
-	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_set_color(pbutton->res->gc, color);
-	if (rc != EOK)
-		goto error;
-
-	for (i = 0; i < 2; i++) {
-		frect.p0.x = rect->p0.x + i;
-		frect.p0.y = rect->p1.y - i - 1;
-		frect.p1.x = rect->p1.x - i - 1;
-		frect.p1.y = rect->p1.y - i;
-		rc = gfx_fill_rect(pbutton->res->gc, &frect);
-		if (rc != EOK)
-			goto error;
-
-		frect.p0.x = rect->p1.x - i - 1;
-		frect.p0.y = rect->p0.y + i;
-		frect.p1.x = rect->p1.x - i;
-		frect.p1.y = rect->p1.y - i;
-		rc = gfx_fill_rect(pbutton->res->gc, &frect);
-		if (rc != EOK)
-			goto error;
-	}
-
-	gfx_color_delete(color);
-
-	return EOK;
-error:
-	if (color != NULL)
-		gfx_color_delete(color);
-	return rc;
+	return ui_paint_bevel(pbutton->res->gc, rect,
+	    pbutton->res->btn_highlight_color,
+	    pbutton->res->btn_shadow_color, 2, NULL);
 }
 
 /** Paint inset button bevel.
@@ -276,41 +201,9 @@ error:
 static errno_t ui_pbutton_paint_inset(ui_pbutton_t *pbutton,
     gfx_rect_t *rect)
 {
-	gfx_color_t *color = NULL;
-	gfx_rect_t frect;
-	errno_t rc;
-
-	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_set_color(pbutton->res->gc, color);
-	if (rc != EOK)
-		goto error;
-
-	frect.p0.x = rect->p0.x;
-	frect.p0.y = rect->p0.y;
-	frect.p1.x = rect->p1.x;
-	frect.p1.y = rect->p0.y + 2;
-	rc = gfx_fill_rect(pbutton->res->gc, &frect);
-	if (rc != EOK)
-		goto error;
-
-	frect.p0.x = rect->p0.x;
-	frect.p0.y = rect->p0.y + 2;
-	frect.p1.x = rect->p0.x + 2;
-	frect.p1.y = rect->p1.y;
-	rc = gfx_fill_rect(pbutton->res->gc, &frect);
-	if (rc != EOK)
-		goto error;
-
-	gfx_color_delete(color);
-
-	return EOK;
-error:
-	if (color != NULL)
-		gfx_color_delete(color);
-	return rc;
+	return ui_paint_bevel(pbutton->res->gc, rect,
+	    pbutton->res->btn_shadow_color,
+	    pbutton->res->btn_face_color, 2, NULL);
 }
 
 /** Paint push button.
@@ -320,7 +213,6 @@ error:
  */
 errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 {
-	gfx_color_t *color = NULL;
 	gfx_coord2_t pos;
 	gfx_text_fmt_t fmt;
 	gfx_rect_t rect;
@@ -336,11 +228,7 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	rect.p1.x = pbutton->rect.p1.x - thickness;
 	rect.p1.y = pbutton->rect.p1.y - thickness;
 
-	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_set_color(pbutton->res->gc, color);
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_face_color);
 	if (rc != EOK)
 		goto error;
 
@@ -348,14 +236,7 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	if (rc != EOK)
 		goto error;
 
-	gfx_color_delete(color);
-	color = NULL;
-
-	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_set_color(pbutton->res->gc, color);
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_text_color);
 	if (rc != EOK)
 		goto error;
 
@@ -376,9 +257,6 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	if (rc != EOK)
 		goto error;
 
-	gfx_color_delete(color);
-	color = NULL;
-
 	rc = ui_pbutton_paint_frame(pbutton);
 	if (rc != EOK)
 		goto error;
@@ -395,8 +273,6 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 
 	return EOK;
 error:
-	if (color != NULL)
-		gfx_color_delete(color);
 	return rc;
 }
 

@@ -30,41 +30,18 @@
  * @{
  */
 /**
- * @file Resource structure
- *
+ * @file Painting routines
  */
 
-#ifndef _UI_PRIVATE_RESOURCE_H
-#define _UI_PRIVATE_RESOURCE_H
+#ifndef _UI_PAINT_H
+#define _UI_PAINT_H
 
+#include <errno.h>
 #include <gfx/color.h>
-#include <gfx/context.h>
-#include <gfx/font.h>
-#include <gfx/typeface.h>
+#include <gfx/coord.h>
 
-/** Actual structure of UI resources.
- *
- * Contains resources common accross the entire UI. This is private to libui.
- */
-struct ui_resource {
-	/** Graphic context */
-	gfx_context_t *gc;
-	/** Typeface */
-	gfx_typeface_t *tface;
-	/** Font */
-	gfx_font_t *font;
-
-	/** Button frame color */
-	gfx_color_t *btn_frame_color;
-	/** Button face color */
-	gfx_color_t *btn_face_color;
-	/** Button text color */
-	gfx_color_t *btn_text_color;
-	/** Button highlight color */
-	gfx_color_t *btn_highlight_color;
-	/** Button shadow color */
-	gfx_color_t *btn_shadow_color;
-};
+errno_t ui_paint_bevel(gfx_context_t *, gfx_rect_t *, gfx_color_t *,
+    gfx_color_t *, gfx_coord_t, gfx_rect_t *);
 
 #endif
 
