@@ -106,7 +106,7 @@ void ui_pbutton_set_cb(ui_pbutton_t *pbutton, ui_pbutton_cb_t *cb, void *arg)
 /** Set button rectangle.
  *
  * @param pbutton Button
- * @param rect New button rectanle
+ * @param rect New button rectangle
  */
 void ui_pbutton_set_rect(ui_pbutton_t *pbutton, gfx_rect_t *rect)
 {

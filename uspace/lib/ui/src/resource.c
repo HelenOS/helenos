@@ -49,7 +49,7 @@ static const char *ui_typeface_path = "/data/font/helena.tpf";
 /** Create new UI resource.
  *
  * @param gc Graphic context
- * @param rresource Place to store pointer to new push button
+ * @param rresource Place to store pointer to new UI resource
  * @return EOK on success, ENOMEM if out of memory
  */
 errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)

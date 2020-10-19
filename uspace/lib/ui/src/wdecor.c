@@ -101,7 +101,7 @@ void ui_wdecor_set_cb(ui_wdecor_t *wdecor, ui_wdecor_cb_t *cb, void *arg)
 /** Set window decoration rectangle.
  *
  * @param wdecor Window decoration
- * @param rect New button rectanle
+ * @param rect New window decoration rectangle
  */
 void ui_wdecor_set_rect(ui_wdecor_t *wdecor, gfx_rect_t *rect)
 {

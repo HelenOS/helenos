@@ -30,6 +30,7 @@
 
 PCUT_INIT;
 
+PCUT_IMPORT(label);
 PCUT_IMPORT(paint);
 PCUT_IMPORT(pbutton);
 PCUT_IMPORT(resource);

@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
+#include <ui/label.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/wdecor.h>
@@ -137,11 +138,20 @@ static void wnd_unfocus_event(void *arg)
 static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	ui_demo_t *demo = (ui_demo_t *) arg;
+	errno_t rc;
 
 	if (pbutton == demo->pb1) {
 		printf("Clicked 'Confirm' button\n");
+		rc = ui_label_set_text(demo->label, "Confirmed");
+		if (rc != EOK)
+			printf("Error changing label text.\n");
+		(void) ui_label_paint(demo->label);
 	} else {
 		printf("Clicked 'Cancel' button\n");
+		rc = ui_label_set_text(demo->label, "Cancelled");
+		if (rc != EOK)
+			printf("Error changing label text.\n");
+		(void) ui_label_paint(demo->label);
 	}
 }
 
@@ -220,6 +230,18 @@ static errno_t ui_demo_display(const char *display_svc)
 	ui_wdecor_set_rect(demo.wdecor, &params.rect);
 	ui_wdecor_set_cb(demo.wdecor, &wdecor_cb, (void *) &demo);
 
+	rc = ui_label_create(ui_res, "Hello there!", &demo.label);
+	if (rc != EOK) {
+		printf("Error creating label.\n");
+		return rc;
+	}
+
+	rect.p0.x = 60;
+	rect.p0.y = 37;
+	rect.p1.x = 160;
+	rect.p1.y = 50;
+	ui_label_set_rect(demo.label, &rect);
+
 	rc = ui_pbutton_create(ui_res, "Confirm", &demo.pb1);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
@@ -228,10 +250,10 @@ static errno_t ui_demo_display(const char *display_svc)
 
 	ui_pbutton_set_cb(demo.pb1, &pbutton_cb, (void *) &demo);
 
-	rect.p0.x = 20;
-	rect.p0.y = 50;
-	rect.p1.x = 100;
-	rect.p1.y = 80;
+	rect.p0.x = 15;
+	rect.p0.y = 60;
+	rect.p1.x = 105;
+	rect.p1.y = 88;
 	ui_pbutton_set_rect(demo.pb1, &rect);
 
 	ui_pbutton_set_default(demo.pb1, true);
@@ -244,10 +266,10 @@ static errno_t ui_demo_display(const char *display_svc)
 
 	ui_pbutton_set_cb(demo.pb2, &pbutton_cb, (void *) &demo);
 
-	rect.p0.x = 120;
-	rect.p0.y = 50;
-	rect.p1.x = 200;
-	rect.p1.y = 80;
+	rect.p0.x = 115;
+	rect.p0.y = 60;
+	rect.p1.x = 205;
+	rect.p1.y = 88;
 	ui_pbutton_set_rect(demo.pb2, &rect);
 
 	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
@@ -274,6 +296,12 @@ static errno_t ui_demo_display(const char *display_svc)
 	rc = ui_wdecor_paint(demo.wdecor);
 	if (rc != EOK) {
 		printf("Error painting window decoration.\n");
+		return rc;
+	}
+
+	rc = ui_label_paint(demo.label);
+	if (rc != EOK) {
+		printf("Error painting button.\n");
 		return rc;
 	}
 

@@ -26,29 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Label structure
+ *
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PRIVATE_LABEL_H
+#define _UI_PRIVATE_LABEL_H
 
-#include <display.h>
-#include <ui/label.h>
-#include <ui/pbutton.h>
-#include <ui/wdecor.h>
+#include <gfx/coord.h>
 
-/** User interface demo */
-typedef struct {
-	display_window_t *dwindow;
-	ui_wdecor_t *wdecor;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-} ui_demo_t;
+/** Actual structure of label.
+ *
+ * This is private to libui.
+ */
+struct ui_label {
+	/** UI resource */
+	struct ui_resource *res;
+	/** Label rectangle */
+	gfx_rect_t rect;
+	/** Text */
+	char *text;
+};
 
 #endif
 
