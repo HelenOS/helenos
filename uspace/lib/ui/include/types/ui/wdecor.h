@@ -26,27 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Window decoration
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_TYPES_WDECOR_H
+#define _UI_TYPES_WDECOR_H
 
-#include <display.h>
-#include <ui/pbutton.h>
-#include <ui/wdecor.h>
+#include <gfx/coord.h>
 
-/** User interface demo */
-typedef struct {
-	display_window_t *dwindow;
-	ui_wdecor_t *wdecor;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-} ui_demo_t;
+struct ui_wdecor;
+typedef struct ui_wdecor ui_wdecor_t;
+
+/** Window decoration callbacks */
+typedef struct ui_wdecor_cb {
+	void (*close)(ui_wdecor_t *, void *);
+	void (*move)(ui_wdecor_t *, void *, gfx_coord2_t *);
+} ui_wdecor_cb_t;
 
 #endif
 

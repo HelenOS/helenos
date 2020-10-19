@@ -31,6 +31,7 @@ src = files(
 	'src/paint.c',
 	'src/pbutton.c',
 	'src/resource.c',
+	'src/wdecor.c'
 )
 
 test_src = files(
@@ -38,4 +39,5 @@ test_src = files(
 	'test/paint.c',
 	'test/pbutton.c',
 	'test/resource.c',
+	'test/wdecor.c',
 )

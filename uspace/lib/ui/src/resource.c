@@ -63,6 +63,16 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	gfx_color_t *btn_text_color = NULL;
 	gfx_color_t *btn_highlight_color = NULL;
 	gfx_color_t *btn_shadow_color = NULL;
+	gfx_color_t *wnd_face_color = NULL;
+	gfx_color_t *wnd_text_color = NULL;
+	gfx_color_t *wnd_frame_hi_color = NULL;
+	gfx_color_t *wnd_frame_sh_color = NULL;
+	gfx_color_t *wnd_highlight_color = NULL;
+	gfx_color_t *wnd_shadow_color = NULL;
+	gfx_color_t *tbar_act_bg_color = NULL;
+	gfx_color_t *tbar_inact_bg_color = NULL;
+	gfx_color_t *tbar_act_text_color = NULL;
+	gfx_color_t *tbar_inact_text_color = NULL;
 	errno_t rc;
 
 	resource = calloc(1, sizeof(ui_resource_t));
@@ -104,14 +114,72 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &wnd_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &wnd_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &wnd_frame_hi_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &wnd_frame_sh_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+	    &wnd_highlight_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &wnd_shadow_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x5858, 0x6a6a, 0xc4c4, &tbar_act_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+	    &tbar_act_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xdddd, 0xdddd, 0xdddd,
+	    &tbar_inact_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x5858, 0x5858, 0x5858,
+	    &tbar_inact_text_color);
+	if (rc != EOK)
+		goto error;
+
 	resource->gc = gc;
 	resource->tface = tface;
 	resource->font = font;
+
 	resource->btn_frame_color = btn_frame_color;
 	resource->btn_face_color = btn_face_color;
 	resource->btn_text_color = btn_text_color;
 	resource->btn_highlight_color = btn_highlight_color;
 	resource->btn_shadow_color = btn_shadow_color;
+
+	resource->wnd_face_color = wnd_face_color;
+	resource->wnd_text_color = wnd_text_color;
+	resource->wnd_frame_hi_color = wnd_frame_hi_color;
+	resource->wnd_frame_sh_color = wnd_frame_sh_color;
+	resource->wnd_highlight_color = wnd_highlight_color;
+	resource->wnd_shadow_color = wnd_shadow_color;
+
+	resource->tbar_act_bg_color = tbar_act_bg_color;
+	resource->tbar_act_text_color = tbar_act_text_color;
+	resource->tbar_inact_bg_color = tbar_inact_bg_color;
+	resource->tbar_inact_text_color = tbar_inact_text_color;
+
 	*rresource = resource;
 	return EOK;
 error:
@@ -125,6 +193,29 @@ error:
 		gfx_color_delete(btn_highlight_color);
 	if (btn_shadow_color != NULL)
 		gfx_color_delete(btn_shadow_color);
+
+	if (wnd_face_color != NULL)
+		gfx_color_delete(wnd_face_color);
+	if (wnd_text_color != NULL)
+		gfx_color_delete(wnd_text_color);
+	if (wnd_frame_hi_color != NULL)
+		gfx_color_delete(wnd_frame_hi_color);
+	if (wnd_frame_sh_color != NULL)
+		gfx_color_delete(wnd_frame_sh_color);
+	if (wnd_highlight_color != NULL)
+		gfx_color_delete(wnd_highlight_color);
+	if (wnd_shadow_color != NULL)
+		gfx_color_delete(wnd_shadow_color);
+
+	if (tbar_act_bg_color != NULL)
+		gfx_color_delete(tbar_act_bg_color);
+	if (tbar_act_text_color != NULL)
+		gfx_color_delete(tbar_act_text_color);
+	if (tbar_inact_bg_color != NULL)
+		gfx_color_delete(tbar_inact_bg_color);
+	if (tbar_inact_text_color != NULL)
+		gfx_color_delete(tbar_inact_text_color);
+
 	if (tface != NULL)
 		gfx_typeface_destroy(tface);
 	free(resource);
@@ -145,6 +236,18 @@ void ui_resource_destroy(ui_resource_t *resource)
 	gfx_color_delete(resource->btn_text_color);
 	gfx_color_delete(resource->btn_highlight_color);
 	gfx_color_delete(resource->btn_shadow_color);
+
+	gfx_color_delete(resource->wnd_face_color);
+	gfx_color_delete(resource->wnd_text_color);
+	gfx_color_delete(resource->wnd_frame_hi_color);
+	gfx_color_delete(resource->wnd_frame_sh_color);
+	gfx_color_delete(resource->wnd_highlight_color);
+	gfx_color_delete(resource->wnd_shadow_color);
+
+	gfx_color_delete(resource->tbar_act_bg_color);
+	gfx_color_delete(resource->tbar_act_text_color);
+	gfx_color_delete(resource->tbar_inact_bg_color);
+	gfx_color_delete(resource->tbar_inact_text_color);
 
 	gfx_font_close(resource->font);
 	gfx_typeface_destroy(resource->tface);

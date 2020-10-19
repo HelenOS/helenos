@@ -41,22 +41,33 @@
 #include <task.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
+#include <ui/wdecor.h>
 #include "uidemo.h"
 
 static void wnd_close_event(void *);
+static void wnd_focus_event(void *);
 static void wnd_kbd_event(void *, kbd_event_t *);
 static void wnd_pos_event(void *, pos_event_t *);
+static void wnd_unfocus_event(void *);
 
 static display_wnd_cb_t wnd_cb = {
 	.close_event = wnd_close_event,
+	.focus_event = wnd_focus_event,
 	.kbd_event = wnd_kbd_event,
-	.pos_event = wnd_pos_event
+	.pos_event = wnd_pos_event,
+	.unfocus_event = wnd_unfocus_event
 };
 
 static void pb_clicked(ui_pbutton_t *, void *);
 
 static ui_pbutton_cb_t pbutton_cb = {
 	.clicked = pb_clicked
+};
+
+static void wd_move(ui_wdecor_t *, void *, gfx_coord2_t *);
+
+static ui_wdecor_cb_t wdecor_cb = {
+	.move = wd_move
 };
 
 static bool quit = false;
@@ -74,6 +85,17 @@ static void wnd_close_event(void *arg)
 	quit = true;
 }
 
+/** Handle window focus event. */
+static void wnd_focus_event(void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	if (demo->wdecor != NULL) {
+		ui_wdecor_set_active(demo->wdecor, true);
+		ui_wdecor_paint(demo->wdecor);
+	}
+}
+
 /** Handle window keyboard event */
 static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
@@ -87,8 +109,24 @@ static void wnd_pos_event(void *arg, pos_event_t *event)
 {
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
+	/* Make sure we don't process events until fully initialized */
+	if (demo->wdecor == NULL || demo->pb1 == NULL || demo->pb2 == NULL)
+		return;
+
+	ui_wdecor_pos_event(demo->wdecor, event);
 	ui_pbutton_pos_event(demo->pb1, event);
 	ui_pbutton_pos_event(demo->pb2, event);
+}
+
+/** Handle window unfocus event. */
+static void wnd_unfocus_event(void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	if (demo->wdecor != NULL) {
+		ui_wdecor_set_active(demo->wdecor, false);
+		ui_wdecor_paint(demo->wdecor);
+	}
 }
 
 /** Push button was clicked.
@@ -105,6 +143,19 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	} else {
 		printf("Clicked 'Cancel' button\n");
 	}
+}
+
+/** Window decoration requested window move.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (demo)
+ * @param pos Position where the title bar was pressed
+ */
+static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	(void) display_window_move_req(demo->dwindow, pos);
 }
 
 /** Run UI demo on display server. */
@@ -134,12 +185,16 @@ static errno_t ui_demo_display(const char *display_svc)
 	params.rect.p1.x = 220;
 	params.rect.p1.y = 100;
 
+	memset((void *) &demo, 0, sizeof(demo));
+
 	rc = display_window_create(display, &params, &wnd_cb, (void *) &demo,
 	    &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		return rc;
 	}
+
+	demo.dwindow = window;
 
 	rc = display_window_get_gc(window, &gc);
 	if (rc != EOK) {
@@ -154,6 +209,16 @@ static errno_t ui_demo_display(const char *display_svc)
 		printf("Error creating UI.\n");
 		return rc;
 	}
+
+	printf("Create window decoration\n");
+	rc = ui_wdecor_create(ui_res, "UI Demo", &demo.wdecor);
+	if (rc != EOK) {
+		printf("Error creating window decoration.\n");
+		return rc;
+	}
+
+	ui_wdecor_set_rect(demo.wdecor, &params.rect);
+	ui_wdecor_set_cb(demo.wdecor, &wdecor_cb, (void *) &demo);
 
 	rc = ui_pbutton_create(ui_res, "Confirm", &demo.pb1);
 	if (rc != EOK) {
@@ -206,6 +271,12 @@ static errno_t ui_demo_display(const char *display_svc)
 	gfx_color_delete(color);
 	color = NULL;
 
+	rc = ui_wdecor_paint(demo.wdecor);
+	if (rc != EOK) {
+		printf("Error painting window decoration.\n");
+		return rc;
+	}
+
 	rc = ui_pbutton_paint(demo.pb1);
 	if (rc != EOK) {
 		printf("Error painting button.\n");
@@ -222,6 +293,7 @@ static errno_t ui_demo_display(const char *display_svc)
 		fibril_usleep(100 * 1000);
 	}
 
+	ui_wdecor_destroy(demo.wdecor);
 	ui_pbutton_destroy(demo.pb1);
 	ui_pbutton_destroy(demo.pb2);
 

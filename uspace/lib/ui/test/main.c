@@ -33,5 +33,6 @@ PCUT_INIT;
 PCUT_IMPORT(paint);
 PCUT_IMPORT(pbutton);
 PCUT_IMPORT(resource);
+PCUT_IMPORT(wdecor);
 
 PCUT_MAIN();

@@ -37,7 +37,6 @@
 #ifndef _UI_PRIVATE_PBUTTON_H
 #define _UI_PRIVATE_PBUTTON_H
 
-#include <gfx/context.h>
 #include <gfx/coord.h>
 #include <stdbool.h>
 

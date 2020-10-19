@@ -26,27 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Window decoration structure
+ *
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PRIVATE_WDECOR_H
+#define _UI_PRIVATE_WDECOR_H
 
-#include <display.h>
-#include <ui/pbutton.h>
-#include <ui/wdecor.h>
+#include <gfx/coord.h>
+#include <stdbool.h>
+#include <types/ui/wdecor.h>
 
-/** User interface demo */
-typedef struct {
-	display_window_t *dwindow;
-	ui_wdecor_t *wdecor;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-} ui_demo_t;
+/** Actual structure of push button.
+ *
+ * This is private to libui.
+ */
+struct ui_wdecor {
+	/** UI resource */
+	struct ui_resource *res;
+	/** Callbacks */
+	struct ui_wdecor_cb *cb;
+	/** Callback argument */
+	void *arg;
+	/** Window decoration rectangle */
+	gfx_rect_t rect;
+	/** Caption */
+	const char *caption;
+	/** Window is active */
+	bool active;
+};
+
+extern void ui_wdecor_move(ui_wdecor_t *, gfx_coord2_t *);
 
 #endif
 

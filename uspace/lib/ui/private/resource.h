@@ -64,6 +64,28 @@ struct ui_resource {
 	gfx_color_t *btn_highlight_color;
 	/** Button shadow color */
 	gfx_color_t *btn_shadow_color;
+
+	/** Window face color */
+	gfx_color_t *wnd_face_color;
+	/** Window text color */
+	gfx_color_t *wnd_text_color;
+	/** Window frame hightlight color */
+	gfx_color_t *wnd_frame_hi_color;
+	/** Window frame shadow color */
+	gfx_color_t *wnd_frame_sh_color;
+	/** Window highlight color */
+	gfx_color_t *wnd_highlight_color;
+	/** Window shadow color */
+	gfx_color_t *wnd_shadow_color;
+
+	/** Active titlebar background color */
+	gfx_color_t *tbar_act_bg_color;
+	/** Active titlebar text color */
+	gfx_color_t *tbar_act_text_color;
+	/** Inactive titlebar background color */
+	gfx_color_t *tbar_inact_bg_color;
+	/** Inactive titlebar text color */
+	gfx_color_t *tbar_inact_text_color;
 };
 
 #endif

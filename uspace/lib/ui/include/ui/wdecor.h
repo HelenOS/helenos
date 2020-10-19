@@ -26,27 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Window decoration
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_WDECOR_H
+#define _UI_WDECOR_H
 
-#include <display.h>
-#include <ui/pbutton.h>
-#include <ui/wdecor.h>
+#include <errno.h>
+#include <gfx/coord.h>
+#include <io/pos_event.h>
+#include <stdbool.h>
+#include <types/ui/resource.h>
+#include <types/ui/wdecor.h>
 
-/** User interface demo */
-typedef struct {
-	display_window_t *dwindow;
-	ui_wdecor_t *wdecor;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-} ui_demo_t;
+extern errno_t ui_wdecor_create(ui_resource_t *, const char *,
+    ui_wdecor_t **);
+extern void ui_wdecor_destroy(ui_wdecor_t *);
+extern void ui_wdecor_set_cb(ui_wdecor_t *, ui_wdecor_cb_t *, void *);
+extern void ui_wdecor_set_rect(ui_wdecor_t *, gfx_rect_t *);
+extern void ui_wdecor_set_active(ui_wdecor_t *, bool);
+extern errno_t ui_wdecor_paint(ui_wdecor_t *);
+extern void ui_wdecor_pos_event(ui_wdecor_t *, pos_event_t *);
 
 #endif
 
