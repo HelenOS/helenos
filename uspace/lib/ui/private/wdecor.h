@@ -55,11 +55,14 @@ struct ui_wdecor {
 	/** Window decoration rectangle */
 	gfx_rect_t rect;
 	/** Caption */
-	const char *caption;
+	char *caption;
 	/** Window is active */
 	bool active;
+	/** Close button */
+	struct ui_pbutton *btn_close;
 };
 
+extern void ui_wdecor_close(ui_wdecor_t *);
 extern void ui_wdecor_move(ui_wdecor_t *, gfx_coord2_t *);
 
 #endif

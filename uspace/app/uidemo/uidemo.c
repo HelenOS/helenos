@@ -65,13 +65,13 @@ static ui_pbutton_cb_t pbutton_cb = {
 	.clicked = pb_clicked
 };
 
+static void wd_close(ui_wdecor_t *, void *);
 static void wd_move(ui_wdecor_t *, void *, gfx_coord2_t *);
 
 static ui_wdecor_cb_t wdecor_cb = {
+	.close = wd_close,
 	.move = wd_move
 };
-
-static bool quit = false;
 
 /** Print syntax. */
 static void print_syntax(void)
@@ -82,8 +82,10 @@ static void print_syntax(void)
 /** Handle window close event. */
 static void wnd_close_event(void *arg)
 {
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
 	printf("Close event\n");
-	quit = true;
+	demo->quit = true;
 }
 
 /** Handle window focus event. */
@@ -100,9 +102,10 @@ static void wnd_focus_event(void *arg)
 /** Handle window keyboard event */
 static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	(void) demo;
 	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
-	if (event->type == KEY_PRESS)
-		quit = true;
 }
 
 /** Handle window position event */
@@ -155,6 +158,19 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	}
 }
 
+/** Window decoration requested window closure.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (demo)
+ */
+static void wd_close(ui_wdecor_t *wdecor, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	printf("Close window requested\n");
+	demo->quit = true;
+}
+
 /** Window decoration requested window move.
  *
  * @param wdecor Window decoration
@@ -204,6 +220,7 @@ static errno_t ui_demo_display(const char *display_svc)
 		return rc;
 	}
 
+	demo.quit = false;
 	demo.dwindow = window;
 
 	rc = display_window_get_gc(window, &gc);
@@ -317,7 +334,7 @@ static errno_t ui_demo_display(const char *display_svc)
 		return rc;
 	}
 
-	while (!quit) {
+	while (!demo.quit) {
 		fibril_usleep(100 * 1000);
 	}
 

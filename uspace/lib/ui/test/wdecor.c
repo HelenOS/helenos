@@ -31,6 +31,7 @@
 #include <mem.h>
 #include <pcut/pcut.h>
 #include <stdbool.h>
+#include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/wdecor.h>
 #include "../private/wdecor.h"
@@ -56,9 +57,11 @@ static gfx_context_ops_t ops = {
 	.bitmap_get_alloc = testgc_bitmap_get_alloc
 };
 
+static void test_wdecor_close(ui_wdecor_t *, void *);
 static void test_wdecor_move(ui_wdecor_t *, void *, gfx_coord2_t *);
 
 static ui_wdecor_cb_t test_wdecor_cb = {
+	.close = test_wdecor_close,
 	.move = test_wdecor_move
 };
 
@@ -83,6 +86,7 @@ typedef struct {
 } testgc_bitmap_t;
 
 typedef struct {
+	bool close;
 	bool move;
 	gfx_coord2_t pos;
 } test_cb_resp_t;
@@ -180,6 +184,32 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Test ui_wdecor_close() */
+PCUT_TEST(close)
+{
+	errno_t rc;
+	ui_wdecor_t *wdecor;
+	test_cb_resp_t resp;
+
+	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Close callback with no callbacks set */
+	ui_wdecor_close(wdecor);
+
+	/* Close callback with close callback not implemented */
+	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
+	ui_wdecor_close(wdecor);
+
+	/* Close callback with real callback set */
+	resp.close = false;
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
+	ui_wdecor_close(wdecor);
+	PCUT_ASSERT_TRUE(resp.close);
+
+	ui_wdecor_destroy(wdecor);
+}
+
 /** Test ui_wdecor_move() */
 PCUT_TEST(move)
 {
@@ -210,6 +240,34 @@ PCUT_TEST(move)
 	PCUT_ASSERT_TRUE(resp.move);
 	PCUT_ASSERT_INT_EQUALS(pos.x, resp.pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, resp.pos.y);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** Clicking the close button generates close callback */
+PCUT_TEST(close_btn_clicked)
+{
+	ui_wdecor_t *wdecor;
+	gfx_rect_t rect;
+	test_cb_resp_t resp;
+	errno_t rc;
+
+	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, (void *) &resp);
+
+	resp.close = false;
+
+	ui_pbutton_clicked(wdecor->btn_close);
+	PCUT_ASSERT_TRUE(resp.close);
 
 	ui_wdecor_destroy(wdecor);
 }
@@ -325,6 +383,13 @@ static errno_t testgc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 	*alloc = tbm->alloc;
 	tbm->tgc->bm_got_alloc = true;
 	return EOK;
+}
+
+static void test_wdecor_close(ui_wdecor_t *wdecor, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->close = true;
 }
 
 static void test_wdecor_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)

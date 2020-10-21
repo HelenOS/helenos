@@ -48,6 +48,7 @@ typedef struct {
 	ui_label_t *label;
 	ui_pbutton_t *pb1;
 	ui_pbutton_t *pb2;
+	bool quit;
 } ui_demo_t;
 
 #endif

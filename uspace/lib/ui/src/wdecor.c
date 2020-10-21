@@ -42,9 +42,16 @@
 #include <stdlib.h>
 #include <str.h>
 #include <ui/paint.h>
+#include <ui/pbutton.h>
 #include <ui/wdecor.h>
 #include "../private/resource.h"
 #include "../private/wdecor.h"
+
+static void ui_wdecor_btn_clicked(ui_pbutton_t *, void *);
+
+static ui_pbutton_cb_t ui_wdecor_btn_close_cb = {
+	.clicked = ui_wdecor_btn_clicked
+};
 
 /** Create new window decoration.
  *
@@ -57,6 +64,7 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
     ui_wdecor_t **rwdecor)
 {
 	ui_wdecor_t *wdecor;
+	errno_t rc;
 
 	wdecor = calloc(1, sizeof(ui_wdecor_t));
 	if (wdecor == NULL)
@@ -67,6 +75,16 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 		free(wdecor);
 		return ENOMEM;
 	}
+
+	rc = ui_pbutton_create(resource, "X", &wdecor->btn_close);
+	if (rc != EOK) {
+		free(wdecor->caption);
+		free(wdecor);
+		return rc;
+	}
+
+	ui_pbutton_set_cb(wdecor->btn_close, &ui_wdecor_btn_close_cb,
+	    (void *)wdecor);
 
 	wdecor->res = resource;
 	wdecor->active = true;
@@ -83,6 +101,8 @@ void ui_wdecor_destroy(ui_wdecor_t *wdecor)
 	if (wdecor == NULL)
 		return;
 
+	ui_pbutton_destroy(wdecor->btn_close);
+	free(wdecor->caption);
 	free(wdecor);
 }
 
@@ -105,7 +125,15 @@ void ui_wdecor_set_cb(ui_wdecor_t *wdecor, ui_wdecor_cb_t *cb, void *arg)
  */
 void ui_wdecor_set_rect(ui_wdecor_t *wdecor, gfx_rect_t *rect)
 {
+	gfx_rect_t crect;
+
 	wdecor->rect = *rect;
+	crect.p0.x = rect->p1.x - 5 - 20;
+	crect.p0.y = rect->p0.y + 5;
+	crect.p1.x = rect->p1.x - 5;
+	crect.p1.y = rect->p0.y + 5 + 20;
+
+	ui_pbutton_set_rect(wdecor->btn_close, &crect);
 }
 
 /** Set active flag.
@@ -190,7 +218,22 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	if (rc != EOK)
 		return rc;
 
+	rc = ui_pbutton_paint(wdecor->btn_close);
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
+}
+
+/** Send decoration close event.
+ *
+ * @param wdecor Window decoration
+ * @param pos Position where the title bar was pressed
+ */
+void ui_wdecor_close(ui_wdecor_t *wdecor)
+{
+	if (wdecor->cb != NULL && wdecor->cb->close != NULL)
+		wdecor->cb->close(wdecor, wdecor->arg);
 }
 
 /** Send decoration move event.
@@ -212,6 +255,7 @@ void ui_wdecor_move(ui_wdecor_t *wdecor, gfx_coord2_t *pos)
 void ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 {
 	gfx_rect_t trect;
+	gfx_rect_t cbrect;
 	gfx_coord2_t pos;
 
 	trect.p0.x = wdecor->rect.p0.x + 3;
@@ -219,11 +263,34 @@ void ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 	trect.p1.x = wdecor->rect.p1.x - 3;
 	trect.p1.y = trect.p0.y + 22;
 
+	cbrect.p0.x = wdecor->rect.p1.x - 5 - 20;
+	cbrect.p0.y = wdecor->rect.p0.y + 5;
+	cbrect.p1.x = wdecor->rect.p1.x - 5;
+	cbrect.p1.y = wdecor->rect.p0.y + 5 + 20;
+
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 
+	if (gfx_pix_inside_rect(&pos, &cbrect)) {
+		ui_pbutton_pos_event(wdecor->btn_close, event);
+		return;
+	}
+
 	if (event->type == POS_PRESS && gfx_pix_inside_rect(&pos, &trect))
 		ui_wdecor_move(wdecor, &pos);
+}
+
+/** Window decoration close button was clicked.
+ *
+ * @param pbutton Close button
+ * @param arg Argument (ui_wdecor_t)
+ */
+static void ui_wdecor_btn_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *) arg;
+
+	(void) pbutton;
+	ui_wdecor_close(wdecor);
 }
 
 /** @}
