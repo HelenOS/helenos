@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <gfx/coord.h>
+#include <gfx/text.h>
 #include <types/ui/label.h>
 #include <types/ui/resource.h>
 
@@ -45,6 +46,7 @@ extern errno_t ui_label_create(ui_resource_t *, const char *,
     ui_label_t **);
 extern void ui_label_destroy(ui_label_t *);
 extern void ui_label_set_rect(ui_label_t *, gfx_rect_t *);
+extern void ui_label_set_halign(ui_label_t *, gfx_halign_t);
 extern errno_t ui_label_set_text(ui_label_t *, const char *);
 extern errno_t ui_label_paint(ui_label_t *);
 

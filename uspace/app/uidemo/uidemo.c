@@ -258,6 +258,7 @@ static errno_t ui_demo_display(const char *display_svc)
 	rect.p1.x = 160;
 	rect.p1.y = 50;
 	ui_label_set_rect(demo.label, &rect);
+	ui_label_set_halign(demo.label, gfx_halign_center);
 
 	rc = ui_pbutton_create(ui_res, "Confirm", &demo.pb1);
 	if (rc != EOK) {

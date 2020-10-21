@@ -67,6 +67,7 @@ errno_t ui_label_create(ui_resource_t *resource, const char *text,
 	}
 
 	label->res = resource;
+	label->halign = gfx_halign_left;
 	*rlabel = label;
 	return EOK;
 }
@@ -91,6 +92,16 @@ void ui_label_destroy(ui_label_t *label)
 void ui_label_set_rect(ui_label_t *label, gfx_rect_t *rect)
 {
 	label->rect = *rect;
+}
+
+/** Set label horizontal text alignment.
+ *
+ * @param label Label
+ * @param halign Horizontal alignment
+ */
+void ui_label_set_halign(ui_label_t *label, gfx_halign_t halign)
+{
+	label->halign = halign;
 }
 
 /** Set label text.
@@ -134,10 +145,23 @@ errno_t ui_label_paint(ui_label_t *label)
 	if (rc != EOK)
 		goto error;
 
-	pos = label->rect.p0;
+	switch (label->halign) {
+	case gfx_halign_left:
+	case gfx_halign_justify:
+		pos.x = label->rect.p0.x;
+		break;
+	case gfx_halign_center:
+		pos.x = (label->rect.p0.x + label->rect.p1.x) / 2;
+		break;
+	case gfx_halign_right:
+		pos.y = label->rect.p1.x;
+		break;
+	}
+
+	pos.y = label->rect.p0.y;
 
 	gfx_text_fmt_init(&fmt);
-	fmt.halign = gfx_halign_left;
+	fmt.halign = label->halign;
 	fmt.valign = gfx_valign_top;
 
 	rc = gfx_set_color(label->res->gc, label->res->wnd_text_color);

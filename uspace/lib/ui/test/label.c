@@ -120,6 +120,23 @@ PCUT_TEST(set_rect)
 	ui_label_destroy(label);
 }
 
+/** Set button text horizontal alignment sets internal field */
+PCUT_TEST(set_halign)
+{
+	ui_label_t *label;
+	errno_t rc;
+
+	rc = ui_label_create(NULL, "Hello", &label);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_label_set_halign(label, gfx_halign_left);
+	PCUT_ASSERT_EQUALS(gfx_halign_left, label->halign);
+	ui_label_set_halign(label, gfx_halign_center);
+	PCUT_ASSERT_EQUALS(gfx_halign_center, label->halign);
+
+	ui_label_destroy(label);
+}
+
 /** Set button rectangle sets internal field */
 PCUT_TEST(set_text)
 {

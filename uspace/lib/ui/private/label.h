@@ -38,6 +38,7 @@
 #define _UI_PRIVATE_LABEL_H
 
 #include <gfx/coord.h>
+#include <gfx/text.h>
 
 /** Actual structure of label.
  *
@@ -48,6 +49,8 @@ struct ui_label {
 	struct ui_resource *res;
 	/** Label rectangle */
 	gfx_rect_t rect;
+	/** Horizontal alignment */
+	gfx_halign_t halign;
 	/** Text */
 	char *text;
 };
