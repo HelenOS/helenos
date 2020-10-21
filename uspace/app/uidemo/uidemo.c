@@ -84,7 +84,6 @@ static void wnd_close_event(void *arg)
 {
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
-	printf("Close event\n");
 	demo->quit = true;
 }
 
@@ -105,7 +104,6 @@ static void wnd_kbd_event(void *arg, kbd_event_t *event)
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
 	(void) demo;
-	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
 }
 
 /** Handle window position event */
@@ -144,13 +142,11 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	errno_t rc;
 
 	if (pbutton == demo->pb1) {
-		printf("Clicked 'Confirm' button\n");
 		rc = ui_label_set_text(demo->label, "Confirmed");
 		if (rc != EOK)
 			printf("Error changing label text.\n");
 		(void) ui_label_paint(demo->label);
 	} else {
-		printf("Clicked 'Cancel' button\n");
 		rc = ui_label_set_text(demo->label, "Cancelled");
 		if (rc != EOK)
 			printf("Error changing label text.\n");
@@ -167,7 +163,6 @@ static void wd_close(ui_wdecor_t *wdecor, void *arg)
 {
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
-	printf("Close window requested\n");
 	demo->quit = true;
 }
 
@@ -196,8 +191,6 @@ static errno_t ui_demo_display(const char *display_svc)
 	gfx_rect_t rect;
 	gfx_color_t *color = NULL;
 	errno_t rc;
-
-	printf("Init display..\n");
 
 	rc = display_open(display_svc, &display);
 	if (rc != EOK) {
@@ -237,7 +230,6 @@ static errno_t ui_demo_display(const char *display_svc)
 		return rc;
 	}
 
-	printf("Create window decoration\n");
 	rc = ui_wdecor_create(ui_res, "UI Demo", &demo.wdecor);
 	if (rc != EOK) {
 		printf("Error creating window decoration.\n");
