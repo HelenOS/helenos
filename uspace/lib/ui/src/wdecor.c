@@ -279,16 +279,16 @@ void ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 {
 	gfx_coord2_t pos;
 	ui_wdecor_geom_t geom;
+	ui_evclaim_t claim;
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 
 	ui_wdecor_get_geom(wdecor, &geom);
 
-	if (gfx_pix_inside_rect(&pos, &geom.btn_close_rect)) {
-		ui_pbutton_pos_event(wdecor->btn_close, event);
+	claim = ui_pbutton_pos_event(wdecor->btn_close, event);
+	if (claim == ui_claimed)
 		return;
-	}
 
 	if (event->type == POS_PRESS &&
 	    gfx_pix_inside_rect(&pos, &geom.title_bar_rect))

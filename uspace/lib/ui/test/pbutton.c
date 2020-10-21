@@ -358,6 +358,7 @@ PCUT_TEST(pos_event_press_release)
 	test_gc_t tgc;
 	ui_resource_t *resource = NULL;
 	ui_pbutton_t *pbutton;
+	ui_evclaim_t claim;
 	pos_event_t event;
 	gfx_rect_t rect;
 
@@ -380,26 +381,29 @@ PCUT_TEST(pos_event_press_release)
 	rect.p1.y = 40;
 	ui_pbutton_set_rect(pbutton, &rect);
 
-	/* Press outside does nothing */
+	/* Press outside is not claimed and does nothing */
 	event.type = POS_PRESS;
 	event.hpos = 9;
 	event.vpos = 20;
-	ui_pbutton_pos_event(pbutton, &event);
+	claim = ui_pbutton_pos_event(pbutton, &event);
 	PCUT_ASSERT_FALSE(pbutton->held);
+	PCUT_ASSERT_EQUALS(ui_unclaimed, claim);
 
-	/* Press inside depresses button */
+	/* Press inside is claimed and depresses button */
 	event.type = POS_PRESS;
 	event.hpos = 10;
 	event.vpos = 20;
-	ui_pbutton_pos_event(pbutton, &event);
+	claim = ui_pbutton_pos_event(pbutton, &event);
 	PCUT_ASSERT_TRUE(pbutton->held);
+	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
-	/* Release outside (or anywhere) relases button */
+	/* Release outside (or anywhere) is claimed and relases button */
 	event.type = POS_RELEASE;
 	event.hpos = 9;
 	event.vpos = 20;
-	ui_pbutton_pos_event(pbutton, &event);
+	claim = ui_pbutton_pos_event(pbutton, &event);
 	PCUT_ASSERT_FALSE(pbutton->held);
+	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_pbutton_destroy(pbutton);
 	ui_resource_destroy(resource);

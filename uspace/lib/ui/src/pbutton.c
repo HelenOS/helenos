@@ -349,8 +349,9 @@ void ui_pbutton_clicked(ui_pbutton_t *pbutton)
  *
  * @param pbutton Push button
  * @param pos_event Position event
+ * @return @c ui_claimed iff the event is claimed
  */
-void ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
+ui_evclaim_t ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
 {
 	gfx_coord2_t pos;
 	bool inside;
@@ -362,20 +363,28 @@ void ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
 
 	switch (event->type) {
 	case POS_PRESS:
-		if (inside)
+		if (inside) {
 			ui_pbutton_press(pbutton);
+			return ui_claimed;
+		}
 		break;
 	case POS_RELEASE:
-		ui_pbutton_release(pbutton);
+		if (pbutton->held) {
+			ui_pbutton_release(pbutton);
+			return ui_claimed;
+		}
 		break;
 	case POS_UPDATE:
 		if (inside && !pbutton->inside) {
 			ui_pbutton_enter(pbutton);
+			return ui_claimed;
 		} else if (!inside && pbutton->inside) {
 			ui_pbutton_leave(pbutton);
 		}
 		break;
 	}
+
+	return ui_unclaimed;
 }
 
 /** @}

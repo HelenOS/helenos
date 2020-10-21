@@ -30,33 +30,23 @@
  * @{
  */
 /**
- * @file Push button
+ * @file Event
  */
 
-#ifndef _UI_PBUTTON_H
-#define _UI_PBUTTON_H
+#ifndef _UI_TYPES_EVENT_H
+#define _UI_TYPES_EVENT_H
 
-#include <errno.h>
-#include <gfx/coord.h>
-#include <io/pos_event.h>
-#include <types/ui/event.h>
-#include <types/ui/pbutton.h>
-#include <types/ui/resource.h>
-#include <stdbool.h>
-
-extern errno_t ui_pbutton_create(ui_resource_t *, const char *,
-    ui_pbutton_t **);
-extern void ui_pbutton_destroy(ui_pbutton_t *);
-extern void ui_pbutton_set_cb(ui_pbutton_t *, ui_pbutton_cb_t *, void *);
-extern void ui_pbutton_set_rect(ui_pbutton_t *, gfx_rect_t *);
-extern void ui_pbutton_set_default(ui_pbutton_t *, bool);
-extern errno_t ui_pbutton_paint(ui_pbutton_t *);
-extern void ui_pbutton_press(ui_pbutton_t *);
-extern void ui_pbutton_release(ui_pbutton_t *);
-extern void ui_pbutton_enter(ui_pbutton_t *);
-extern void ui_pbutton_leave(ui_pbutton_t *);
-extern void ui_pbutton_clicked(ui_pbutton_t *);
-extern ui_evclaim_t ui_pbutton_pos_event(ui_pbutton_t *, pos_event_t *);
+/** Event claim.
+ *
+ * This type is returned by an event processing function to signal whether
+ * it ruled that the event is destined for it or not
+ */
+typedef enum {
+	/** Event claimed */
+	ui_claimed,
+	/** Event not claimed */
+	ui_unclaimed
+} ui_evclaim_t;
 
 #endif
 
