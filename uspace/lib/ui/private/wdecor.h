@@ -62,8 +62,24 @@ struct ui_wdecor {
 	struct ui_pbutton *btn_close;
 };
 
+/** Window decoration geometry.
+ *
+ * Computed rectangles of window decoration elements.
+ */
+typedef struct {
+	/** Interior rectangle */
+	gfx_rect_t interior_rect;
+	/** Title bar rectangle */
+	gfx_rect_t title_bar_rect;
+	/** Close button rectangle */
+	gfx_rect_t btn_close_rect;
+	/** Application area rectangle */
+	gfx_rect_t app_area_rect;
+} ui_wdecor_geom_t;
+
 extern void ui_wdecor_close(ui_wdecor_t *);
 extern void ui_wdecor_move(ui_wdecor_t *, gfx_coord2_t *);
+extern void ui_wdecor_get_geom(ui_wdecor_t *, ui_wdecor_geom_t *);
 
 #endif
 

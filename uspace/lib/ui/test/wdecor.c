@@ -309,6 +309,47 @@ PCUT_TEST(pos_event_move)
 	ui_wdecor_destroy(wdecor);
 }
 
+PCUT_TEST(get_geom)
+{
+	ui_wdecor_t *wdecor;
+	gfx_rect_t rect;
+	ui_wdecor_geom_t geom;
+	errno_t rc;
+
+	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+	ui_wdecor_get_geom(wdecor, &geom);
+
+	PCUT_ASSERT_INT_EQUALS(14, geom.interior_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(24, geom.interior_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, geom.interior_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(196, geom.interior_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(14, geom.title_bar_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(24, geom.title_bar_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, geom.title_bar_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(46, geom.title_bar_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(75, geom.btn_close_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(25, geom.btn_close_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(95, geom.btn_close_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(45, geom.btn_close_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(14, geom.app_area_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(46, geom.app_area_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, geom.app_area_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(196, geom.app_area_rect.p1.y);
+
+	ui_wdecor_destroy(wdecor);
+}
+
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)
 {
 	(void) arg;

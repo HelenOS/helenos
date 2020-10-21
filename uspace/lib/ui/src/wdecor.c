@@ -125,15 +125,12 @@ void ui_wdecor_set_cb(ui_wdecor_t *wdecor, ui_wdecor_cb_t *cb, void *arg)
  */
 void ui_wdecor_set_rect(ui_wdecor_t *wdecor, gfx_rect_t *rect)
 {
-	gfx_rect_t crect;
+	ui_wdecor_geom_t geom;
 
 	wdecor->rect = *rect;
-	crect.p0.x = rect->p1.x - 5 - 20;
-	crect.p0.y = rect->p0.y + 5;
-	crect.p1.x = rect->p1.x - 5;
-	crect.p1.y = rect->p0.y + 5 + 20;
 
-	ui_pbutton_set_rect(wdecor->btn_close, &crect);
+	ui_wdecor_get_geom(wdecor, &geom);
+	ui_pbutton_set_rect(wdecor->btn_close, &geom.btn_close_rect);
 }
 
 /** Set active flag.
@@ -160,8 +157,10 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	gfx_rect_t trect;
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
+	ui_wdecor_geom_t geom;
 
 	rect = wdecor->rect;
+	ui_wdecor_get_geom(wdecor, &geom);
 
 	rc = ui_paint_bevel(wdecor->res->gc, &rect,
 	    wdecor->res->wnd_frame_hi_color,
@@ -181,9 +180,7 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	if (rc != EOK)
 		return rc;
 
-	trect.p0 = rect.p0;
-	trect.p1.x = rect.p1.x;
-	trect.p1.y = rect.p0.y + 22;
+	trect = geom.title_bar_rect;
 
 	rc = ui_paint_bevel(wdecor->res->gc, &trect,
 	    wdecor->res->wnd_shadow_color,
@@ -247,6 +244,32 @@ void ui_wdecor_move(ui_wdecor_t *wdecor, gfx_coord2_t *pos)
 		wdecor->cb->move(wdecor, wdecor->arg, pos);
 }
 
+/** Get window decoration geometry.
+ *
+ * @param wdecor Window decoration
+ * @param geom Structure to fill in with computed geometry
+ */
+void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
+{
+	geom->interior_rect.p0.x = wdecor->rect.p0.x + 4;
+	geom->interior_rect.p0.y = wdecor->rect.p0.y + 4;
+	geom->interior_rect.p1.x = wdecor->rect.p1.x - 4;
+	geom->interior_rect.p1.y = wdecor->rect.p1.y - 4;
+
+	geom->title_bar_rect.p0 = geom->interior_rect.p0;
+	geom->title_bar_rect.p1.x = geom->interior_rect.p1.x;
+	geom->title_bar_rect.p1.y = geom->interior_rect.p0.y + 22;
+
+	geom->btn_close_rect.p0.x = geom->title_bar_rect.p1.x - 1 - 20;
+	geom->btn_close_rect.p0.y = geom->title_bar_rect.p0.y + 1;
+	geom->btn_close_rect.p1.x = geom->title_bar_rect.p1.x - 1;
+	geom->btn_close_rect.p1.y = geom->title_bar_rect.p0.y + 1 + 20;
+
+	geom->app_area_rect.p0.x = geom->interior_rect.p0.x;
+	geom->app_area_rect.p0.y = geom->title_bar_rect.p1.y;
+	geom->app_area_rect.p1 = geom->interior_rect.p1;
+}
+
 /** Handle window decoration position event.
  *
  * @param wdecor Window decoration
@@ -254,29 +277,21 @@ void ui_wdecor_move(ui_wdecor_t *wdecor, gfx_coord2_t *pos)
  */
 void ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 {
-	gfx_rect_t trect;
-	gfx_rect_t cbrect;
 	gfx_coord2_t pos;
-
-	trect.p0.x = wdecor->rect.p0.x + 3;
-	trect.p0.y = wdecor->rect.p0.y + 3;
-	trect.p1.x = wdecor->rect.p1.x - 3;
-	trect.p1.y = trect.p0.y + 22;
-
-	cbrect.p0.x = wdecor->rect.p1.x - 5 - 20;
-	cbrect.p0.y = wdecor->rect.p0.y + 5;
-	cbrect.p1.x = wdecor->rect.p1.x - 5;
-	cbrect.p1.y = wdecor->rect.p0.y + 5 + 20;
+	ui_wdecor_geom_t geom;
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 
-	if (gfx_pix_inside_rect(&pos, &cbrect)) {
+	ui_wdecor_get_geom(wdecor, &geom);
+
+	if (gfx_pix_inside_rect(&pos, &geom.btn_close_rect)) {
 		ui_pbutton_pos_event(wdecor->btn_close, event);
 		return;
 	}
 
-	if (event->type == POS_PRESS && gfx_pix_inside_rect(&pos, &trect))
+	if (event->type == POS_PRESS &&
+	    gfx_pix_inside_rect(&pos, &geom.title_bar_rect))
 		ui_wdecor_move(wdecor, &pos);
 }
 
