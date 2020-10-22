@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Petr Koupy
+# Copyright (c) 2020 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'softrend' , 'compress', 'fbfont' ]
 src = files(
-	'codec/tga.c',
-	'codec/tga.gz.c',
-	'codec/webp.c',
-	'cursor/embedded.c',
-	'font/embedded.c',
-	'font/bitmap_backend.c',
-	'font/pcf.c',
-	'gfx/cursor-11x18.c',
-	'drawctx.c',
-	'cursor.c',
-	'font.c',
-	'path.c',
-	'source.c',
-	'surface.c',
+	'src/font-8x16.c',
 )

@@ -55,6 +55,7 @@ libs = [
 	'cpp',
 	'crypto',
 	'dltest',
+	'fbfont',
 	'fdisk',
 	'fmtutil',
 	'fs',

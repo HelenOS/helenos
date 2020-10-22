@@ -27,14 +27,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup draw
+/** @addtogroup libfbfont
  * @{
  */
 /** @file
  */
 
 #include <stdint.h>
-#include <draw/gfx.h>
+#include <str.h>
+#include "../include/fbfont/font-8x16.h"
 
 /** Convert character to font glyph index
  *

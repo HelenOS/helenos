@@ -41,6 +41,7 @@
 #include <draw/gfx.h>
 #include <draw/font.h>
 #include <draw/drawctx.h>
+#include <fbfont/font-8x16.h>
 
 static errno_t fde_resolve_glyph(void *unused, const char32_t chr,
     glyph_id_t *glyph_id)

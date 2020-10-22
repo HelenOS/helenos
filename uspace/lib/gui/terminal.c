@@ -38,6 +38,7 @@
 #include <io/chargrid.h>
 #include <draw/surface.h>
 #include <draw/gfx.h>
+#include <fbfont/font-8x16.h>
 #include <io/con_srv.h>
 #include <io/concaps.h>
 #include <io/console.h>

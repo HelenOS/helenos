@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,13 +36,15 @@
 #ifndef FONT_8X16_H_
 #define FONT_8X16_H_
 
-#include <sys/types.h>
+#include <stdint.h>
+#include <str.h>
 
 #define FONT_GLYPHS     2899
 #define FONT_WIDTH      8
 #define FONT_SCANLINES  16
+#define FONT_ASCENDER   12
 
-extern uint16_t fb_font_glyph(const char32_t);
+extern uint16_t fb_font_glyph(const char32_t, bool *);
 extern uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES];
 
 #endif

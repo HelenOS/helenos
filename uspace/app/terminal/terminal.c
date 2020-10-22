@@ -36,8 +36,8 @@
 
 #include <adt/list.h>
 #include <adt/prodcons.h>
-#include <draw/gfx.h>
 #include <errno.h>
+#include <fbfont/font-8x16.h>
 #include <io/chargrid.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>

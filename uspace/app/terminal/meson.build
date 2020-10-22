@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'draw', 'gfx', 'ipcgfx', 'display' ]
+deps = [ 'fbfont', 'display', 'ui' ]
 src = files(
 	'main.c',
 	'terminal.c',

@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'draw' , 'softrend', 'display' ]
+deps = [ 'draw' , 'softrend', 'fbfont', 'display' ]
 src = files(
 	'common.c',
 	'button.c',
