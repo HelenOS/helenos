@@ -49,6 +49,8 @@
 #include <adt/prodcons.h>
 #include <stdatomic.h>
 #include <str.h>
+#include <ui/resource.h>
+#include <ui/wdecor.h>
 
 #define UTF8_CHAR_BUFFER_SIZE  (STR_BOUNDS(1) + 1)
 
@@ -59,6 +61,9 @@ typedef struct {
 	sysarg_t w;
 	sysarg_t h;
 	gfx_rect_t update;
+
+	ui_resource_t *ui_res;
+	ui_wdecor_t *wdecor;
 
 	fibril_mutex_t mtx;
 	link_t link;

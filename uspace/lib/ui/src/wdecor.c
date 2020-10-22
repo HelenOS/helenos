@@ -270,6 +270,23 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 	geom->app_area_rect.p1 = geom->interior_rect.p1;
 }
 
+/** Get outer rectangle from application area rectangle.
+ *
+ * Note that this needs to work just based on a UI, without having an actual
+ * window decoration, since we need it in order to create the window
+ * and its decoration.
+ *
+ * @param app Application area rectangle
+ * @param rect Place to store (outer) window decoration rectangle
+ */
+void ui_wdecor_rect_from_app(gfx_rect_t *app, gfx_rect_t *rect)
+{
+	rect->p0.x = app->p0.x - 4;
+	rect->p0.y = app->p0.y - 22 - 4;
+	rect->p1.x = app->p1.x + 4;
+	rect->p1.y = app->p1.y + 4;
+}
+
 /** Handle window decoration position event.
  *
  * @param wdecor Window decoration

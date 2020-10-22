@@ -39,13 +39,44 @@
 
 #define NAME  "terminal"
 
+/** Print syntax. */
+static void print_syntax(void)
+{
+	printf("Syntax: %s [-d <display>]\n", NAME);
+}
+
 int main(int argc, char *argv[])
 {
+	const char *display_svc = DISPLAY_DEFAULT;
 	display_t *display = NULL;
 	terminal_t *terminal = NULL;
 	errno_t rc;
+	int i;
 
-	rc = display_open(DISPLAY_DEFAULT, &display);
+	i = 1;
+	while (i < argc && argv[i][0] == '-') {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_svc = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
+	}
+
+	if (i < argc) {
+		print_syntax();
+		return 1;
+	}
+
+	rc = display_open(display_svc, &display);
 	if (rc != EOK) {
 		printf("%s: Error opening display.\n", NAME);
 		return 1;

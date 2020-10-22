@@ -309,6 +309,7 @@ PCUT_TEST(pos_event_move)
 	ui_wdecor_destroy(wdecor);
 }
 
+/** ui_wdecor_get_geom() produces the correct geometry */
 PCUT_TEST(get_geom)
 {
 	ui_wdecor_t *wdecor;
@@ -348,6 +349,25 @@ PCUT_TEST(get_geom)
 	PCUT_ASSERT_INT_EQUALS(196, geom.app_area_rect.p1.y);
 
 	ui_wdecor_destroy(wdecor);
+}
+
+/** ui_wdecor_rect_from_app() correctly converts application to window rect */
+PCUT_TEST(rect_from_app)
+{
+	gfx_rect_t arect;
+	gfx_rect_t rect;
+
+	arect.p0.x = 14;
+	arect.p0.y = 46;
+	arect.p1.x = 96;
+	arect.p1.y = 196;
+
+	ui_wdecor_rect_from_app(&arect, &rect);
+
+	PCUT_ASSERT_INT_EQUALS(10, rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(20, rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(100, rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(200, rect.p1.y);
 }
 
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)
