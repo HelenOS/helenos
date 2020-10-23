@@ -61,6 +61,8 @@ typedef struct {
 	sysarg_t w;
 	sysarg_t h;
 	gfx_rect_t update;
+	gfx_coord2_t off;
+	bool is_focused;
 
 	ui_resource_t *ui_res;
 	ui_wdecor_t *wdecor;

@@ -297,7 +297,7 @@ static bool term_update_cursor(terminal_t *term, pixelmap_t *pixelmap,
 
 	bool front_visibility =
 	    chargrid_get_cursor_visibility(term->frontbuf) &&
-	    /*term->widget.window->is_focused*/true;
+	    term->is_focused;
 	bool back_visibility =
 	    chargrid_get_cursor_visibility(term->backbuf);
 
@@ -694,6 +694,9 @@ static void terminal_focus_event(void *arg)
 	if (term->wdecor != NULL) {
 		ui_wdecor_set_active(term->wdecor, true);
 		ui_wdecor_paint(term->wdecor);
+
+		term->is_focused = true;
+		term_update(term);
 	}
 }
 
@@ -712,6 +715,7 @@ static void terminal_kbd_event(void *arg, kbd_event_t *kbd_event)
 /** Handle window position event */
 static void terminal_pos_event(void *arg, pos_event_t *event)
 {
+	cons_event_t cevent;
 	terminal_t *term = (terminal_t *) arg;
 
 	/* Make sure we don't process events until fully initialized */
@@ -719,6 +723,20 @@ static void terminal_pos_event(void *arg, pos_event_t *event)
 		return;
 
 	ui_wdecor_pos_event(term->wdecor, event);
+
+	sysarg_t sx = -term->off.x;
+	sysarg_t sy = -term->off.y;
+
+	if (event->type == POS_PRESS) {
+		cevent.type = CEV_POS;
+		cevent.ev.pos.type = event->type;
+		cevent.ev.pos.pos_id = event->pos_id;
+		cevent.ev.pos.btn_num = event->btn_num;
+
+		cevent.ev.pos.hpos = (event->hpos - sx) / FONT_WIDTH;
+		cevent.ev.pos.vpos = (event->vpos - sy) / FONT_SCANLINES;
+		terminal_queue_cons_event(term, &cevent);
+	}
 }
 
 /** Handle window unfocus event. */
@@ -729,29 +747,11 @@ static void terminal_unfocus_event(void *arg)
 	if (term->wdecor != NULL) {
 		ui_wdecor_set_active(term->wdecor, false);
 		ui_wdecor_paint(term->wdecor);
+
+		term->is_focused = false;
+		term_update(term);
 	}
 }
-
-#if 0
-static void terminal_handle_position_event(widget_t *widget, pos_event_t pos_event)
-{
-	cons_event_t event;
-	terminal_t *term = (terminal_t *) widget;
-	sysarg_t sx = term->widget.hpos;
-	sysarg_t sy = term->widget.vpos;
-
-	if (pos_event.type == POS_PRESS) {
-		event.type = CEV_POS;
-		event.ev.pos.type = pos_event.type;
-		event.ev.pos.pos_id = pos_event.pos_id;
-		event.ev.pos.btn_num = pos_event.btn_num;
-
-		event.ev.pos.hpos = (pos_event.hpos - sx) / FONT_WIDTH;
-		event.ev.pos.vpos = (pos_event.vpos - sy) / FONT_SCANLINES;
-		terminal_queue_cons_event(term, &event);
-	}
-}
-#endif
 
 /** Window decoration requested window closure.
  *
@@ -868,6 +868,8 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &wparams.rect);
 
+	term->off = off;
+
 	rc = display_window_create(display, &wparams, &terminal_wnd_cb,
 	    (void *) term, &term->window);
 	if (rc != EOK) {
@@ -940,12 +942,12 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 	list_append(&term->link, &terms);
 	getterm(vc, "/app/bdsh");
 
-	term_repaint(term);
-
 	term->update.p0.x = 0;
 	term->update.p0.y = 0;
 	term->update.p1.x = 0;
 	term->update.p1.y = 0;
+
+	term_repaint(term);
 
 	*rterm = term;
 	return EOK;
