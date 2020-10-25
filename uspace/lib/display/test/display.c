@@ -330,6 +330,12 @@ PCUT_TEST(window_destroy_failure)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** display_window_destroy() can handle NULL argument */
+PCUT_TEST(window_destroy_null)
+{
+	display_window_destroy(NULL);
+}
+
 /** display_window_move_req() with server returning error response works. */
 PCUT_TEST(window_move_req_failure)
 {

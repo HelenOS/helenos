@@ -27,15 +27,31 @@
  */
 
 #include <pcut/pcut.h>
+#include <ui/ui.h>
+#include "../private/ui.h"
 
 PCUT_INIT;
 
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+PCUT_TEST_SUITE(ui);
 
-PCUT_MAIN();
+/** Create and destroy UI */
+PCUT_TEST(create_destroy)
+{
+	ui_t *ui = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(ui);
+	PCUT_ASSERT_NULL(ui->display);
+
+	ui_destroy(ui);
+}
+
+/** ui_destroy() can take NULL argument (no-op) */
+PCUT_TEST(destroy_null)
+{
+	ui_destroy(NULL);
+}
+
+PCUT_EXPORT(ui);

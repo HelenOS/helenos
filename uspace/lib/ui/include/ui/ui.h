@@ -26,16 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file User interface
+ */
 
-PCUT_INIT;
+#ifndef _UI_UI_H
+#define _UI_UI_H
 
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <display.h>
+#include <errno.h>
+#include <types/ui/ui.h>
 
-PCUT_MAIN();
+extern errno_t ui_create(const char *, ui_t **);
+extern errno_t ui_create_disp(display_t *, ui_t **);
+extern void ui_destroy(ui_t *);
+
+#endif
+
+/** @}
+ */

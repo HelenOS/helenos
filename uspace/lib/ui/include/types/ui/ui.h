@@ -26,16 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file User interface
+ */
 
-PCUT_INIT;
+#ifndef _UI_TYPES_UI_H
+#define _UI_TYPES_UI_H
 
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <gfx/coord.h>
 
-PCUT_MAIN();
+struct ui;
+typedef struct ui ui_t;
+
+/** Use the default display service (argument to ui_create() */
+#define UI_DISPLAY_DEFAULT NULL
+
+#endif
+
+/** @}
+ */

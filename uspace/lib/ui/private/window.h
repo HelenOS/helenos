@@ -26,16 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Window structure
+ *
+ */
 
-PCUT_INIT;
+#ifndef _UI_PRIVATE_WINDOW_H
+#define _UI_PRIVATE_WINDOW_H
 
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <display.h>
+#include <gfx/context.h>
 
-PCUT_MAIN();
+/** Actual structure of window.
+ *
+ * This is private to libui.
+ */
+struct ui_window {
+	/** Containing user interface */
+	struct ui *ui;
+	/** Display window */
+	display_window_t *dwindow;
+	/** Window GC */
+	gfx_context_t *gc;
+	/** UI resource. Ideally this would be in ui_t. */
+	struct ui_resource *res;
+	/** Window decoration */
+	struct ui_wdecor *wdecor;
+};
+
+#endif
+
+/** @}
+ */

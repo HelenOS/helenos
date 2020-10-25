@@ -26,13 +26,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'gfxfont' ]
+deps = [ 'gfx', 'gfxfont', 'display' ]
 src = files(
+	'src/dummygc.c',
 	'src/label.c',
 	'src/paint.c',
 	'src/pbutton.c',
 	'src/resource.c',
-	'src/wdecor.c'
+	'src/ui.c',
+	'src/wdecor.c',
+	'src/window.c',
 )
 
 test_src = files(
@@ -41,5 +44,7 @@ test_src = files(
 	'test/paint.c',
 	'test/pbutton.c',
 	'test/resource.c',
+	'test/ui.c',
 	'test/wdecor.c',
+	'test/window.c',
 )

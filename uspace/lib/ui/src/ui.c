@@ -26,16 +26,79 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file User interface
+ */
 
-PCUT_INIT;
+#include <display.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <ui/ui.h>
+#include "../private/ui.h"
 
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+/** Create new user interface.
+ *
+ * @param ospec Output specification or @c UI_DISPLAY_DEFAULT to use
+ *              the default output
+ * @param rui Place to store pointer to new UI
+ * @return EOK on success or an error code
+ */
+errno_t ui_create(const char *ospec, ui_t **rui)
+{
+	errno_t rc;
+	display_t *display;
+	ui_t *ui;
 
-PCUT_MAIN();
+	rc = display_open(ospec, &display);
+	if (rc != EOK)
+		return rc;
+
+	rc = ui_create_disp(display, &ui);
+	if (rc != EOK) {
+		display_close(display);
+		return rc;
+	}
+
+	ui->display = display;
+	ui->myoutput = true;
+	return EOK;
+}
+
+/** Create new user interface using display service.
+ *
+ * @param disp Display
+ * @param rui Place to store pointer to new UI
+ * @return EOK on success or an error code
+ */
+errno_t ui_create_disp(display_t *disp, ui_t **rui)
+{
+	ui_t *ui;
+
+	ui = calloc(1, sizeof(ui_t));
+	if (ui == NULL)
+		return ENOMEM;
+
+	ui->display = disp;
+	*rui = ui;
+	return EOK;
+}
+
+/** Destroy user interface.
+ *
+ * @param ui User interface or @c NULL
+ */
+void ui_destroy(ui_t *ui)
+{
+	if (ui == NULL)
+		return;
+
+	if (ui->myoutput)
+		display_close(ui->display);
+	free(ui);
+}
+
+/** @}
+ */

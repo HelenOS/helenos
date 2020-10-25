@@ -26,16 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file User interface
+ *
+ */
 
-PCUT_INIT;
+#ifndef _UI_PRIVATE_UI_H
+#define _UI_PRIVATE_UI_H
 
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <display.h>
+#include <stdbool.h>
 
-PCUT_MAIN();
+/** Actual structure of user interface.
+ *
+ * This is private to libui.
+ */
+struct ui {
+	/** Display */
+	display_t *display;
+	/** Output owned by UI, clean up when destroying UI */
+	bool myoutput;
+};
+
+#endif
+
+/** @}
+ */

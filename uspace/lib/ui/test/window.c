@@ -26,16 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <mem.h>
 #include <pcut/pcut.h>
+#include <stdbool.h>
+#include <ui/ui.h>
+#include <ui/window.h>
+#include "../private/window.h"
 
 PCUT_INIT;
 
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+PCUT_TEST_SUITE(window);
 
-PCUT_MAIN();
+/** Create and destroy window */
+PCUT_TEST(create_destroy)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_params_t params;
+	ui_window_t *window = NULL;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_window_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_window_destroy() can take NULL argument (no-op) */
+PCUT_TEST(destroy_null)
+{
+	ui_window_destroy(NULL);
+}
+
+PCUT_EXPORT(window);
