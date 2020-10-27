@@ -43,6 +43,8 @@
 extern errno_t ui_create(const char *, ui_t **);
 extern errno_t ui_create_disp(display_t *, ui_t **);
 extern void ui_destroy(ui_t *);
+extern void ui_quit(ui_t *);
+extern void ui_run(ui_t *);
 
 #endif
 

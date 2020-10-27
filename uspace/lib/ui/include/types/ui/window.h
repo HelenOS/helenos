@@ -36,16 +36,24 @@
 #ifndef _UI_TYPES_WINDOW_H
 #define _UI_TYPES_WINDOW_H
 
+#include <io/pos_event.h>
+
 struct ui_window;
 typedef struct ui_window ui_window_t;
 
 /** Window parameters */
 typedef struct {
 	/** Window rectangle */
-	gfx_rect_t *rect;
+	gfx_rect_t rect;
 	/** Window caption */
 	const char *caption;
-} ui_window_params_t;
+} ui_wnd_params_t;
+
+/** Window callbacks */
+typedef struct ui_window_cb {
+	void (*close)(ui_window_t *, void *);
+	void (*pos)(ui_window_t *, void *, pos_event_t *);
+} ui_window_cb_t;
 
 #endif
 

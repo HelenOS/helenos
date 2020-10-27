@@ -35,6 +35,7 @@
 
 #include <display.h>
 #include <errno.h>
+#include <fibril.h>
 #include <stdlib.h>
 #include <ui/ui.h>
 #include "../private/ui.h"
@@ -64,6 +65,7 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 
 	ui->display = display;
 	ui->myoutput = true;
+	*rui = ui;
 	return EOK;
 }
 
@@ -98,6 +100,32 @@ void ui_destroy(ui_t *ui)
 	if (ui->myoutput)
 		display_close(ui->display);
 	free(ui);
+}
+
+/** Execute user interface.
+ *
+ * This function returns once the application starts the termination
+ * process by calling ui_quit(@a ui).
+ *
+ * @param ui User interface
+ */
+void ui_run(ui_t *ui)
+{
+	while (!ui->quit)
+		fibril_usleep(100000);
+}
+
+/** Terminate user interface.
+ *
+ * Calling this function causes the user interface to terminate
+ * (i.e. exit from ui_run()). This would be typically called from
+ * an event handler.
+ *
+ * @param ui User interface
+ */
+void ui_quit(ui_t *ui)
+{
+	ui->quit = true;
 }
 
 /** @}

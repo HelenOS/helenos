@@ -49,6 +49,8 @@ struct ui {
 	display_t *display;
 	/** Output owned by UI, clean up when destroying UI */
 	bool myoutput;
+	/** @c true if terminating */
+	bool quit;
 };
 
 #endif

@@ -225,7 +225,6 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 /** Send decoration close event.
  *
  * @param wdecor Window decoration
- * @param pos Position where the title bar was pressed
  */
 void ui_wdecor_close(ui_wdecor_t *wdecor)
 {

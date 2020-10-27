@@ -37,13 +37,20 @@
 #define _UI_WINDOW_H
 
 #include <errno.h>
+#include <gfx/context.h>
+#include <gfx/coord.h>
 #include <types/ui/ui.h>
+#include <types/ui/resource.h>
 #include <types/ui/window.h>
 
-extern void ui_window_params_init(ui_window_params_t *);
-extern errno_t ui_window_create(ui_t *, ui_window_params_t *,
+extern void ui_wnd_params_init(ui_wnd_params_t *);
+extern errno_t ui_window_create(ui_t *, ui_wnd_params_t *,
     ui_window_t **);
+extern void ui_window_set_cb(ui_window_t *, ui_window_cb_t *, void *);
 extern void ui_window_destroy(ui_window_t *);
+extern ui_resource_t *ui_window_get_res(ui_window_t *);
+extern gfx_context_t *ui_window_get_gc(ui_window_t *);
+extern void ui_window_get_app_rect(ui_window_t *, gfx_rect_t *);
 
 #endif
 

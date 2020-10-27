@@ -39,16 +39,16 @@
 #include <display.h>
 #include <ui/label.h>
 #include <ui/pbutton.h>
-#include <ui/wdecor.h>
+#include <ui/ui.h>
+#include <ui/window.h>
 
 /** User interface demo */
 typedef struct {
-	display_window_t *dwindow;
-	ui_wdecor_t *wdecor;
+	ui_t *ui;
+	ui_window_t *window;
 	ui_label_t *label;
 	ui_pbutton_t *pb1;
 	ui_pbutton_t *pb2;
-	bool quit;
 } ui_demo_t;
 
 #endif

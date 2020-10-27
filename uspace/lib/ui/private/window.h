@@ -39,6 +39,7 @@
 
 #include <display.h>
 #include <gfx/context.h>
+#include <io/pos_event.h>
 
 /** Actual structure of window.
  *
@@ -47,6 +48,10 @@
 struct ui_window {
 	/** Containing user interface */
 	struct ui *ui;
+	/** Callbacks */
+	struct ui_window_cb *cb;
+	/** Callback argument */
+	void *arg;
 	/** Display window */
 	display_window_t *dwindow;
 	/** Window GC */
@@ -56,6 +61,9 @@ struct ui_window {
 	/** Window decoration */
 	struct ui_wdecor *wdecor;
 };
+
+extern void ui_window_close(ui_window_t *);
+extern void ui_window_pos(ui_window_t *, pos_event_t *);
 
 #endif
 
