@@ -37,7 +37,6 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-#include <display.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <gfx/bitmap.h>
@@ -49,23 +48,23 @@
 #include <adt/prodcons.h>
 #include <stdatomic.h>
 #include <str.h>
-#include <ui/resource.h>
-#include <ui/wdecor.h>
+#include <ui/ui.h>
+#include <ui/window.h>
 
 #define UTF8_CHAR_BUFFER_SIZE  (STR_BOUNDS(1) + 1)
 
 typedef struct {
-	display_window_t *window;
+	ui_t *ui;
+	ui_window_t *window;
+	ui_resource_t *ui_res;
 	gfx_context_t *gc;
+
 	gfx_bitmap_t *bmp;
 	sysarg_t w;
 	sysarg_t h;
 	gfx_rect_t update;
 	gfx_coord2_t off;
 	bool is_focused;
-
-	ui_resource_t *ui_res;
-	ui_wdecor_t *wdecor;
 
 	fibril_mutex_t mtx;
 	link_t link;
@@ -85,7 +84,7 @@ typedef struct {
 	con_srvs_t srvs;
 } terminal_t;
 
-extern errno_t terminal_create(display_t *, sysarg_t, sysarg_t, terminal_t **);
+extern errno_t terminal_create(const char *, sysarg_t, sysarg_t, terminal_t **);
 extern void terminal_destroy(terminal_t *);
 
 #endif

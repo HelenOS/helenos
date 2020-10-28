@@ -36,6 +36,7 @@
 #include <display.h>
 #include <errno.h>
 #include <gfx/context.h>
+#include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <mem.h>
 #include <stdlib.h>
@@ -220,6 +221,8 @@ static void dwnd_focus_event(void *arg)
 		ui_wdecor_set_active(window->wdecor, true);
 		ui_wdecor_paint(window->wdecor);
 	}
+
+	ui_window_focus(window);
 }
 
 /** Handle window keyboard event */
@@ -228,7 +231,7 @@ static void dwnd_kbd_event(void *arg, kbd_event_t *kbd_event)
 	ui_window_t *window = (ui_window_t *) arg;
 
 	(void) window;
-	(void) kbd_event;
+	ui_window_kbd(window, kbd_event);
 }
 
 /** Handle window position event */
@@ -253,6 +256,8 @@ static void dwnd_unfocus_event(void *arg)
 		ui_wdecor_set_active(window->wdecor, false);
 		ui_wdecor_paint(window->wdecor);
 	}
+
+	ui_window_unfocus(window);
 }
 
 /** Window decoration requested window closure.
@@ -290,6 +295,26 @@ void ui_window_close(ui_window_t *window)
 		window->cb->close(window, window->arg);
 }
 
+/** Send window focus event.
+ *
+ * @param window Window
+ */
+void ui_window_focus(ui_window_t *window)
+{
+	if (window->cb != NULL && window->cb->focus != NULL)
+		window->cb->focus(window, window->arg);
+}
+
+/** Send window keyboard event.
+ *
+ * @param window Window
+ */
+void ui_window_kbd(ui_window_t *window, kbd_event_t *kbd)
+{
+	if (window->cb != NULL && window->cb->kbd != NULL)
+		window->cb->kbd(window, window->arg, kbd);
+}
+
 /** Send window position event.
  *
  * @param window Window
@@ -298,6 +323,16 @@ void ui_window_pos(ui_window_t *window, pos_event_t *pos)
 {
 	if (window->cb != NULL && window->cb->pos != NULL)
 		window->cb->pos(window, window->arg, pos);
+}
+
+/** Send window unfocus event.
+ *
+ * @param window Window
+ */
+void ui_window_unfocus(ui_window_t *window)
+{
+	if (window->cb != NULL && window->cb->unfocus != NULL)
+		window->cb->unfocus(window, window->arg);
 }
 
 /** @}

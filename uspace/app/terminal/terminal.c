@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file Terminal application using display service for output
+ * @file Terminal application
  */
 
 #include <adt/list.h>
@@ -50,7 +50,9 @@
 #include <stdlib.h>
 #include <str.h>
 #include <ui/resource.h>
+#include <ui/ui.h>
 #include <ui/wdecor.h>
+#include <ui/window.h>
 
 #include "terminal.h"
 
@@ -101,26 +103,18 @@ static con_ops_t con_ops = {
 	.get_event = term_get_event
 };
 
-static void terminal_close_event(void *);
-static void terminal_focus_event(void *);
-static void terminal_kbd_event(void *, kbd_event_t *);
-static void terminal_pos_event(void *, pos_event_t *);
-static void terminal_unfocus_event(void *);
+static void terminal_close_event(ui_window_t *, void *);
+static void terminal_focus_event(ui_window_t *, void *);
+static void terminal_kbd_event(ui_window_t *, void *, kbd_event_t *);
+static void terminal_pos_event(ui_window_t *, void *, pos_event_t *);
+static void terminal_unfocus_event(ui_window_t *, void *);
 
-static display_wnd_cb_t terminal_wnd_cb = {
-	.close_event = terminal_close_event,
-	.focus_event = terminal_focus_event,
-	.kbd_event = terminal_kbd_event,
-	.pos_event = terminal_pos_event,
-	.unfocus_event = terminal_unfocus_event
-};
-
-static void terminal_wd_close(ui_wdecor_t *, void *);
-static void terminal_wd_move(ui_wdecor_t *, void *, gfx_coord2_t *);
-
-static ui_wdecor_cb_t wdecor_cb = {
-	.close = terminal_wd_close,
-	.move = terminal_wd_move
+static ui_window_cb_t terminal_window_cb = {
+	.close = terminal_close_event,
+	.focus = terminal_focus_event,
+	.kbd = terminal_kbd_event,
+	.pos = terminal_pos_event,
+	.unfocus = terminal_unfocus_event
 };
 
 static terminal_t *srv_to_terminal(con_srv_t *srv)
@@ -676,7 +670,7 @@ static void terminal_queue_cons_event(terminal_t *term, cons_event_t *ev)
 }
 
 /** Handle window close event. */
-static void terminal_close_event(void *arg)
+static void terminal_close_event(ui_window_t *window, void *arg)
 {
 	terminal_t *term = (terminal_t *) arg;
 
@@ -687,21 +681,17 @@ static void terminal_close_event(void *arg)
 }
 
 /** Handle window focus event. */
-static void terminal_focus_event(void *arg)
+static void terminal_focus_event(ui_window_t *window, void *arg)
 {
 	terminal_t *term = (terminal_t *) arg;
 
-	if (term->wdecor != NULL) {
-		ui_wdecor_set_active(term->wdecor, true);
-		ui_wdecor_paint(term->wdecor);
-
-		term->is_focused = true;
-		term_update(term);
-	}
+	term->is_focused = true;
+	term_update(term);
 }
 
 /** Handle window keyboard event */
-static void terminal_kbd_event(void *arg, kbd_event_t *kbd_event)
+static void terminal_kbd_event(ui_window_t *window, void *arg,
+    kbd_event_t *kbd_event)
 {
 	terminal_t *term = (terminal_t *) arg;
 	cons_event_t event;
@@ -713,16 +703,10 @@ static void terminal_kbd_event(void *arg, kbd_event_t *kbd_event)
 }
 
 /** Handle window position event */
-static void terminal_pos_event(void *arg, pos_event_t *event)
+static void terminal_pos_event(ui_window_t *window, void *arg, pos_event_t *event)
 {
 	cons_event_t cevent;
 	terminal_t *term = (terminal_t *) arg;
-
-	/* Make sure we don't process events until fully initialized */
-	if (term->wdecor == NULL)
-		return;
-
-	ui_wdecor_pos_event(term->wdecor, event);
 
 	sysarg_t sx = -term->off.x;
 	sysarg_t sy = -term->off.y;
@@ -740,46 +724,12 @@ static void terminal_pos_event(void *arg, pos_event_t *event)
 }
 
 /** Handle window unfocus event. */
-static void terminal_unfocus_event(void *arg)
+static void terminal_unfocus_event(ui_window_t *window, void *arg)
 {
 	terminal_t *term = (terminal_t *) arg;
 
-	if (term->wdecor != NULL) {
-		ui_wdecor_set_active(term->wdecor, false);
-		ui_wdecor_paint(term->wdecor);
-
-		term->is_focused = false;
-		term_update(term);
-	}
-}
-
-/** Window decoration requested window closure.
- *
- * @param wdecor Window decoration
- * @param arg Argument (demo)
- */
-static void terminal_wd_close(ui_wdecor_t *wdecor, void *arg)
-{
-	terminal_t *term = (terminal_t *) arg;
-
-	(void) term;
-
-	// XXX This is not really a clean way of terminating
-	exit(0);
-}
-
-/** Window decoration requested window move.
- *
- * @param wdecor Window decoration
- * @param arg Argument (demo)
- * @param pos Position where the title bar was pressed
- */
-static void terminal_wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
-{
-	terminal_t *term = (terminal_t *) arg;
-
-	if (term->window != NULL)
-		(void) display_window_move_req(term->window, pos);
+	term->is_focused = false;
+	term_update(term);
 }
 
 static void term_connection(ipc_call_t *icall, void *arg)
@@ -804,12 +754,12 @@ static void term_connection(ipc_call_t *icall, void *arg)
 	con_conn(icall, &term->srvs);
 }
 
-errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
-    terminal_t **rterm)
+errno_t terminal_create(const char *display_spec, sysarg_t width,
+    sysarg_t height, terminal_t **rterm)
 {
 	terminal_t *term;
 	gfx_bitmap_params_t params;
-	display_wnd_params_t wparams;
+	ui_wnd_params_t wparams;
 	gfx_rect_t rect;
 	gfx_coord2_t off;
 	gfx_rect_t wrect;
@@ -858,7 +808,8 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 	rect.p1.x = width;
 	rect.p1.y = height;
 
-	display_wnd_params_init(&wparams);
+	ui_wnd_params_init(&wparams);
+	wparams.caption = "Terminal";
 
 	/*
 	 * Compute window rectangle such that application area corresponds
@@ -870,35 +821,22 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 
 	term->off = off;
 
-	rc = display_window_create(display, &wparams, &terminal_wnd_cb,
-	    (void *) term, &term->window);
+	rc = ui_create(display_spec, &term->ui);
+	if (rc != EOK) {
+		printf("Error creating UI on %s.\n", display_spec);
+		goto error;
+	}
+
+	rc = ui_window_create(term->ui, &wparams, &term->window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		goto error;
 	}
 
-	rc = display_window_get_gc(term->window, &term->gc);
-	if (rc != EOK) {
-		printf("Error getting window GC.\n");
-		goto error;
-	}
+	term->gc = ui_window_get_gc(term->window);
+	term->ui_res = ui_window_get_res(term->window);
 
-	rc = ui_resource_create(term->gc, &term->ui_res);
-	if (rc != EOK) {
-		printf("Error creating UI.\n");
-		goto error;
-	}
-
-	rc = ui_wdecor_create(term->ui_res, "Terminal", &term->wdecor);
-	if (rc != EOK) {
-		printf("Error creating window decoration.\n");
-		goto error;
-	}
-
-	ui_wdecor_set_rect(term->wdecor, &wparams.rect);
-	ui_wdecor_set_cb(term->wdecor, &wdecor_cb, (void *) term);
-
-	(void) ui_wdecor_paint(term->wdecor);
+	ui_window_set_cb(term->window, &terminal_window_cb, (void *) term);
 
 	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
@@ -942,6 +880,8 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 	list_append(&term->link, &terms);
 	getterm(vc, "/app/bdsh");
 
+	term->is_focused = true;
+
 	term->update.p0.x = 0;
 	term->update.p0.y = 0;
 	term->update.p1.x = 0;
@@ -952,14 +892,10 @@ errno_t terminal_create(display_t *display, sysarg_t width, sysarg_t height,
 	*rterm = term;
 	return EOK;
 error:
-	if (term->wdecor != NULL)
-		ui_wdecor_destroy(term->wdecor);
-	if (term->ui_res != NULL)
-		ui_resource_destroy(term->ui_res);
-	if (term->gc != NULL)
-		gfx_context_delete(term->gc);
 	if (term->window != NULL)
-		display_window_destroy(term->window);
+		ui_window_destroy(term->window);
+	if (term->ui != NULL)
+		ui_destroy(term->ui);
 	if (term->frontbuf != NULL)
 		chargrid_destroy(term->frontbuf);
 	if (term->backbuf != NULL)

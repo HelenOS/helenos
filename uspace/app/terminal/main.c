@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2020 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 /** @file
  */
 
-#include <display.h>
 #include <stdio.h>
 #include <task.h>
+#include <ui/ui.h>
 #include "terminal.h"
 
 #define NAME  "terminal"
@@ -42,13 +42,12 @@
 /** Print syntax. */
 static void print_syntax(void)
 {
-	printf("Syntax: %s [-d <display>]\n", NAME);
+	printf("Syntax: %s [-d <display-spec>]\n", NAME);
 }
 
 int main(int argc, char *argv[])
 {
-	const char *display_svc = DISPLAY_DEFAULT;
-	display_t *display = NULL;
+	const char *display_spec = UI_DISPLAY_DEFAULT;
 	terminal_t *terminal = NULL;
 	errno_t rc;
 	int i;
@@ -63,7 +62,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 
-			display_svc = argv[i++];
+			display_spec = argv[i++];
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -76,17 +75,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = display_open(display_svc, &display);
-	if (rc != EOK) {
-		printf("%s: Error opening display.\n", NAME);
+	rc = terminal_create(display_spec, 640, 480, &terminal);
+	if (rc != EOK)
 		return 1;
-	}
-
-	rc = terminal_create(display, 640, 480, &terminal);
-	if (rc != EOK) {
-		display_close(display);
-		return 1;
-	}
 
 	task_retval(0);
 	async_manager();

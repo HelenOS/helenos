@@ -39,6 +39,7 @@
 
 #include <display.h>
 #include <gfx/context.h>
+#include <io/kbd_event.h>
 #include <io/pos_event.h>
 
 /** Actual structure of window.
@@ -63,7 +64,10 @@ struct ui_window {
 };
 
 extern void ui_window_close(ui_window_t *);
+extern void ui_window_focus(ui_window_t *);
+extern void ui_window_kbd(ui_window_t *, kbd_event_t *);
 extern void ui_window_pos(ui_window_t *, pos_event_t *);
+extern void ui_window_unfocus(ui_window_t *);
 
 #endif
 

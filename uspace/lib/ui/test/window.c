@@ -28,6 +28,7 @@
 
 #include <gfx/context.h>
 #include <gfx/coord.h>
+#include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <mem.h>
 #include <pcut/pcut.h>
@@ -42,11 +43,17 @@ PCUT_INIT;
 PCUT_TEST_SUITE(window);
 
 static void test_window_close(ui_window_t *, void *);
+static void test_window_focus(ui_window_t *, void *);
+static void test_window_kbd(ui_window_t *, void *, kbd_event_t *);
 static void test_window_pos(ui_window_t *, void *, pos_event_t *);
+static void test_window_unfocus(ui_window_t *, void *);
 
 static ui_window_cb_t test_window_cb = {
 	.close = test_window_close,
-	.pos = test_window_pos
+	.focus = test_window_focus,
+	.kbd = test_window_kbd,
+	.pos = test_window_pos,
+	.unfocus = test_window_unfocus
 };
 
 static ui_window_cb_t dummy_window_cb = {
@@ -54,8 +61,12 @@ static ui_window_cb_t dummy_window_cb = {
 
 typedef struct {
 	bool close;
+	bool focus;
+	bool kbd;
+	kbd_event_t kbd_event;
 	bool pos;
 	pos_event_t pos_event;
+	bool unfocus;
 } test_cb_resp_t;
 
 /** Create and destroy window */
@@ -155,6 +166,88 @@ PCUT_TEST(close)
 	ui_destroy(ui);
 }
 
+/** ui_window_focus() calls focus callback set via ui_window_set_cb() */
+PCUT_TEST(focus)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	test_cb_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	/* Focus callback with no callbacks set */
+	ui_window_focus(window);
+
+	/* Focus callback with focus callback not implemented */
+	ui_window_set_cb(window, &dummy_window_cb, NULL);
+	ui_window_focus(window);
+
+	/* Focus callback with real callback set */
+	resp.close = false;
+	ui_window_set_cb(window, &test_window_cb, &resp);
+	ui_window_focus(window);
+	PCUT_ASSERT_TRUE(resp.focus);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_window_kbd() calls kbd callback set via ui_window_set_cb() */
+PCUT_TEST(kbd)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	kbd_event_t kbd_event;
+	test_cb_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	kbd_event.type = POS_PRESS;
+	kbd_event.key = KC_X;
+	kbd_event.mods = 0;
+	kbd_event.c = 'x';
+
+	/* Kbd callback with no callbacks set */
+	ui_window_kbd(window, &kbd_event);
+
+	/* Kbd callback with kbd callback not implemented */
+	ui_window_set_cb(window, &dummy_window_cb, NULL);
+	ui_window_kbd(window, &kbd_event);
+
+	/* Kbd callback with real callback set */
+	resp.kbd = false;
+	ui_window_set_cb(window, &test_window_cb, &resp);
+	ui_window_kbd(window, &kbd_event);
+	PCUT_ASSERT_TRUE(resp.kbd);
+	PCUT_ASSERT_EQUALS(kbd_event.type, resp.kbd_event.type);
+	PCUT_ASSERT_INT_EQUALS(kbd_event.key, resp.kbd_event.key);
+	PCUT_ASSERT_INT_EQUALS(kbd_event.mods, resp.kbd_event.mods);
+	PCUT_ASSERT_INT_EQUALS(kbd_event.c, resp.kbd_event.c);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_window_pos() calls pos callback set via ui_window_set_cb() */
 PCUT_TEST(pos)
 {
@@ -203,11 +296,63 @@ PCUT_TEST(pos)
 	ui_destroy(ui);
 }
 
+/** ui_window_unfocus() calls unfocus callback set via ui_window_set_cb() */
+PCUT_TEST(unfocus)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	test_cb_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	/* Unfocus callback with no callbacks set */
+	ui_window_unfocus(window);
+
+	/* Unfocus callback with unfocus callback not implemented */
+	ui_window_set_cb(window, &dummy_window_cb, NULL);
+	ui_window_unfocus(window);
+
+	/* Unfocus callback with real callback set */
+	resp.close = false;
+	ui_window_set_cb(window, &test_window_cb, &resp);
+	ui_window_unfocus(window);
+	PCUT_ASSERT_TRUE(resp.unfocus);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 static void test_window_close(ui_window_t *window, void *arg)
 {
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
 	resp->close = true;
+}
+
+static void test_window_focus(ui_window_t *window, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->focus = true;
+}
+
+static void test_window_kbd(ui_window_t *window, void *arg,
+    kbd_event_t *event)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->kbd = true;
+	resp->kbd_event = *event;
 }
 
 static void test_window_pos(ui_window_t *window, void *arg,
@@ -217,6 +362,13 @@ static void test_window_pos(ui_window_t *window, void *arg,
 
 	resp->pos = true;
 	resp->pos_event = *event;
+}
+
+static void test_window_unfocus(ui_window_t *window, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->unfocus = true;
 }
 
 PCUT_EXPORT(window);
