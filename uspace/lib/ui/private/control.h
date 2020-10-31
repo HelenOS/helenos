@@ -26,32 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file UI control structure
+ *
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PRIVATE_CONTROL_H
+#define _UI_PRIVATE_CONTROL_H
 
-#include <display.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/pbutton.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <gfx/coord.h>
+#include <stdbool.h>
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-} ui_demo_t;
+/** Actual structure of UI control.
+ *
+ * UI control is the abstract base class to all UI controls (e.g. push button,
+ * label). This is private to libui.
+ */
+struct ui_control {
+	/** Pointer to layout element structure this control is attached to
+	 * or @c NULL if the control is not attached to a layout
+	 */
+	void *elemp;
+	/** Ops */
+	struct ui_control_ops *ops;
+	/** Extended data */
+	void *ext;
+};
 
 #endif
 

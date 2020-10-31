@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <gfx/coord.h>
 #include <io/pos_event.h>
+#include <types/ui/control.h>
 #include <types/ui/event.h>
 #include <types/ui/pbutton.h>
 #include <types/ui/resource.h>
@@ -47,6 +48,7 @@
 extern errno_t ui_pbutton_create(ui_resource_t *, const char *,
     ui_pbutton_t **);
 extern void ui_pbutton_destroy(ui_pbutton_t *);
+extern ui_control_t *ui_pbutton_ctl(ui_pbutton_t *);
 extern void ui_pbutton_set_cb(ui_pbutton_t *, ui_pbutton_cb_t *, void *);
 extern void ui_pbutton_set_rect(ui_pbutton_t *, gfx_rect_t *);
 extern void ui_pbutton_set_default(ui_pbutton_t *, bool);

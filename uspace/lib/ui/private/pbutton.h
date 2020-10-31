@@ -45,6 +45,8 @@
  * This is private to libui.
  */
 struct ui_pbutton {
+	/** Base control object */
+	struct ui_control *control;
 	/** UI resource */
 	struct ui_resource *res;
 	/** Callbacks */

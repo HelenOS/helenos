@@ -26,32 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Fixed layout structure
+ *
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PRIVATE_FIXED_H
+#define _UI_PRIVATE_FIXED_H
 
-#include <display.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/pbutton.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <adt/list.h>
+#include <gfx/coord.h>
+#include <stdbool.h>
+#include <types/ui/fixed.h>
 
-/** User interface demo */
+/** Actual structure of fixed layout.
+ *
+ * This is private to libui.
+ */
+struct ui_fixed {
+	/** Layout elements (ui_fixed_elem_t) */
+	list_t elem;
+};
+
+/** Fixed layout element. */
 typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-} ui_demo_t;
+	/** Containing fixed layout */
+	struct ui_fixed *fixed;
+	/** Link to @c fixed->elem list */
+	link_t lelems;
+	/** Control */
+	ui_control_t *control;
+} ui_fixed_elem_t;
+
+extern ui_fixed_elem_t *ui_fixed_first(ui_fixed_t *f);
+extern ui_fixed_elem_t *ui_fixed_next(ui_fixed_elem_t *);
 
 #endif
 

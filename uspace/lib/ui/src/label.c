@@ -39,10 +39,18 @@
 #include <gfx/text.h>
 #include <stdlib.h>
 #include <str.h>
+#include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/label.h>
 #include "../private/label.h"
 #include "../private/resource.h"
+
+static ui_evclaim_t ui_label_ctl_pos_event(void *, pos_event_t *);
+
+/** Label control ops */
+ui_control_ops_t ui_label_ops = {
+	.pos_event = ui_label_ctl_pos_event
+};
 
 /** Create new label.
  *
@@ -55,13 +63,21 @@ errno_t ui_label_create(ui_resource_t *resource, const char *text,
     ui_label_t **rlabel)
 {
 	ui_label_t *label;
+	errno_t rc;
 
 	label = calloc(1, sizeof(ui_label_t));
 	if (label == NULL)
 		return ENOMEM;
 
+	rc = ui_control_new(&ui_label_ops, (void *) label, &label->control);
+	if (rc != EOK) {
+		free(label);
+		return rc;
+	}
+
 	label->text = str_dup(text);
 	if (label->text == NULL) {
+		ui_control_delete(label->control);
 		free(label);
 		return ENOMEM;
 	}
@@ -81,7 +97,18 @@ void ui_label_destroy(ui_label_t *label)
 	if (label == NULL)
 		return;
 
+	ui_control_delete(label->control);
 	free(label);
+}
+
+/** Get base control from label.
+ *
+ * @param label Label
+ * @return Control
+ */
+ui_control_t *ui_label_ctl(ui_label_t *label)
+{
+	return label->control;
 }
 
 /** Set label rectangle.
@@ -175,6 +202,20 @@ errno_t ui_label_paint(ui_label_t *label)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Handle label control position event.
+ *
+ * @param arg Argument (ui_label_t *)
+ * @param pos_event Position event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_label_ctl_pos_event(void *arg, pos_event_t *event)
+{
+	ui_label_t *label = (ui_label_t *) arg;
+
+	(void) label;
+	return ui_unclaimed;
 }
 
 /** @}

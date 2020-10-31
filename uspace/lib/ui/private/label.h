@@ -45,6 +45,8 @@
  * This is private to libui.
  */
 struct ui_label {
+	/** Base control object */
+	struct ui_control *control;
 	/** UI resource */
 	struct ui_resource *res;
 	/** Label rectangle */

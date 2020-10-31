@@ -26,32 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file UI control
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_CONTROL_H
+#define _UI_CONTROL_H
 
-#include <display.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/pbutton.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <errno.h>
+#include <io/pos_event.h>
+#include <types/ui/control.h>
+#include <types/ui/event.h>
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-} ui_demo_t;
+extern errno_t ui_control_new(ui_control_ops_t *, void *, ui_control_t **);
+extern void ui_control_delete(ui_control_t *);
+extern ui_evclaim_t ui_control_pos_event(ui_control_t *, pos_event_t *);
 
 #endif
 

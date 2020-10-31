@@ -28,7 +28,9 @@
 
 deps = [ 'gfx', 'gfxfont', 'display' ]
 src = files(
+	'src/control.c',
 	'src/dummygc.c',
+	'src/fixed.c',
 	'src/label.c',
 	'src/paint.c',
 	'src/pbutton.c',
@@ -39,6 +41,8 @@ src = files(
 )
 
 test_src = files(
+	'test/control.c',
+	'test/fixed.c',
 	'test/label.c',
 	'test/main.c',
 	'test/paint.c',

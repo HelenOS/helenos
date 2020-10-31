@@ -30,6 +30,8 @@
 
 PCUT_INIT;
 
+PCUT_IMPORT(control);
+PCUT_IMPORT(fixed);
 PCUT_IMPORT(label);
 PCUT_IMPORT(paint);
 PCUT_IMPORT(pbutton);

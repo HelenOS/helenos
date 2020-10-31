@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
+#include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
@@ -83,11 +84,10 @@ static void wnd_pos(ui_window_t *window, void *arg, pos_event_t *event)
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
 	/* Make sure we don't process events until fully initialized */
-	if (demo->pb1 == NULL || demo->pb2 == NULL)
+	if (demo->fixed == NULL)
 		return;
 
-	ui_pbutton_pos_event(demo->pb1, event);
-	ui_pbutton_pos_event(demo->pb2, event);
+	ui_fixed_pos_event(demo->fixed, event);
 }
 
 /** Push button was clicked.
@@ -158,6 +158,12 @@ static errno_t ui_demo(const char *display_spec)
 	gc = ui_window_get_gc(window);
 	ui_window_get_app_rect(window, &app_rect);
 
+	rc = ui_fixed_create(&demo.fixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		return rc;
+	}
+
 	rc = ui_label_create(ui_res, "Hello there!", &demo.label);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
@@ -170,6 +176,12 @@ static errno_t ui_demo(const char *display_spec)
 	rect.p1.y = 50;
 	ui_label_set_rect(demo.label, &rect);
 	ui_label_set_halign(demo.label, gfx_halign_center);
+
+	rc = ui_fixed_add(demo.fixed, ui_label_ctl(demo.label));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
 
 	rc = ui_pbutton_create(ui_res, "Confirm", &demo.pb1);
 	if (rc != EOK) {
@@ -187,6 +199,12 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_pbutton_set_default(demo.pb1, true);
 
+	rc = ui_fixed_add(demo.fixed, ui_pbutton_ctl(demo.pb1));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
 	rc = ui_pbutton_create(ui_res, "Cancel", &demo.pb2);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
@@ -200,6 +218,12 @@ static errno_t ui_demo(const char *display_spec)
 	rect.p1.x = 205;
 	rect.p1.y = 88;
 	ui_pbutton_set_rect(demo.pb2, &rect);
+
+	rc = ui_fixed_add(demo.fixed, ui_pbutton_ctl(demo.pb2));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
 
 	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
 	if (rc != EOK) {
@@ -238,6 +262,10 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	ui_run(ui);
+
+	ui_fixed_remove(demo.fixed, ui_label_ctl(demo.label));
+	ui_fixed_remove(demo.fixed, ui_pbutton_ctl(demo.pb1));
+	ui_fixed_remove(demo.fixed, ui_pbutton_ctl(demo.pb2));
 
 	ui_pbutton_destroy(demo.pb1);
 	ui_pbutton_destroy(demo.pb2);

@@ -41,6 +41,7 @@
 #include <io/pos_event.h>
 #include <stdlib.h>
 #include <str.h>
+#include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/pbutton.h>
 #include "../private/pbutton.h"
@@ -50,6 +51,13 @@
 enum {
 	ui_pb_press_dx = 1,
 	ui_pb_press_dy = 1
+};
+
+static ui_evclaim_t ui_pbutton_ctl_pos_event(void *, pos_event_t *);
+
+/** Push button control ops */
+ui_control_ops_t ui_pbutton_ops = {
+	.pos_event = ui_pbutton_ctl_pos_event
 };
 
 /** Create new push button.
@@ -63,13 +71,22 @@ errno_t ui_pbutton_create(ui_resource_t *resource, const char *caption,
     ui_pbutton_t **rpbutton)
 {
 	ui_pbutton_t *pbutton;
+	errno_t rc;
 
 	pbutton = calloc(1, sizeof(ui_pbutton_t));
 	if (pbutton == NULL)
 		return ENOMEM;
 
+	rc = ui_control_new(&ui_pbutton_ops, (void *) pbutton,
+	    &pbutton->control);
+	if (rc != EOK) {
+		free(pbutton);
+		return rc;
+	}
+
 	pbutton->caption = str_dup(caption);
 	if (pbutton->caption == NULL) {
+		ui_control_delete(pbutton->control);
 		free(pbutton);
 		return ENOMEM;
 	}
@@ -88,7 +105,18 @@ void ui_pbutton_destroy(ui_pbutton_t *pbutton)
 	if (pbutton == NULL)
 		return;
 
+	ui_control_delete(pbutton->control);
 	free(pbutton);
+}
+
+/** Get base control from push button.
+ *
+ * @param pbutton Push button
+ * @return Control
+ */
+ui_control_t *ui_pbutton_ctl(ui_pbutton_t *pbutton)
+{
+	return pbutton->control;
 }
 
 /** Set push button callbacks.
@@ -385,6 +413,19 @@ ui_evclaim_t ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
 	}
 
 	return ui_unclaimed;
+}
+
+/** Handle push button control position event.
+ *
+ * @param arg Argument (ui_pbutton_t *)
+ * @param pos_event Position event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_pbutton_ctl_pos_event(void *arg, pos_event_t *event)
+{
+	ui_pbutton_t *pbutton = (ui_pbutton_t *) arg;
+
+	return ui_pbutton_pos_event(pbutton, event);
 }
 
 /** @}

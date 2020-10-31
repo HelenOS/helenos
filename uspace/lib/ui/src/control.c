@@ -26,34 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file UI control
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#include <errno.h>
+#include <io/pos_event.h>
+#include <stdlib.h>
+#include <ui/control.h>
+#include "../private/control.h"
 
-#include <display.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/pbutton.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+/** Allocate new UI control.
+ *
+ * @param ops Control ops
+ * @param ext Control extended data
+ * @param rcontrol Place to store pointer to new control
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ui_control_new(ui_control_ops_t *ops, void *ext,
+    ui_control_t **rcontrol)
+{
+	ui_control_t *control;
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-} ui_demo_t;
+	control = calloc(1, sizeof(ui_control_t));
+	if (control == NULL)
+		return ENOMEM;
 
-#endif
+	control->ops = ops;
+	control->ext = ext;
+	*rcontrol = control;
+	return EOK;
+}
+
+/** Delete UI control.
+ *
+ * @param control UI control or @c NULL
+ */
+void ui_control_delete(ui_control_t *control)
+{
+	if (control == NULL)
+		return;
+
+	free(control);
+}
+
+/** Deliver position event to UI control.
+ *
+ * @param control Push button
+ * @param pos_event Position event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_control_pos_event(ui_control_t *control, pos_event_t *event)
+{
+	return control->ops->pos_event(control->ext, event);
+}
 
 /** @}
  */
