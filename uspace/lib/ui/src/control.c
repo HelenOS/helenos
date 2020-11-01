@@ -73,6 +73,16 @@ void ui_control_delete(ui_control_t *control)
 	free(control);
 }
 
+/** Paint UI control.
+ *
+ * @param control Push button
+ * @return EOK on success or an error code
+ */
+errno_t ui_control_paint(ui_control_t *control)
+{
+	return control->ops->paint(control->ext);
+}
+
 /** Deliver position event to UI control.
  *
  * @param control Push button

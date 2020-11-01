@@ -146,6 +146,28 @@ ui_fixed_elem_t *ui_fixed_next(ui_fixed_elem_t *cur)
 	return list_get_instance(link, ui_fixed_elem_t, lelems);
 }
 
+/** Paint fixed layout.
+ *
+ * @param fixed Fixed layout
+ * @return EOK on success or an error code
+ */
+errno_t ui_fixed_paint(ui_fixed_t *fixed)
+{
+	ui_fixed_elem_t *elem;
+	errno_t rc;
+
+	elem = ui_fixed_first(fixed);
+	while (elem != NULL) {
+		rc = ui_control_paint(elem->control);
+		if (rc != EOK)
+			return rc;
+
+		elem = ui_fixed_next(elem);
+	}
+
+	return EOK;
+}
+
 /** Handle fixed layout position event.
  *
  * @param fixed Fixed layout

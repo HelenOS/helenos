@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <pcut/pcut.h>
 #include <stddef.h>
 #include <ui/control.h>
@@ -36,9 +37,11 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(fixed);
 
+static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
 
 static ui_control_ops_t test_ctl_ops = {
+	.paint = test_ctl_paint,
 	.pos_event = test_ctl_pos_event
 };
 
@@ -46,6 +49,11 @@ static ui_control_ops_t test_ctl_ops = {
 typedef struct {
 	/** Claim to return */
 	ui_evclaim_t claim;
+	/** Result code to return */
+	errno_t rc;
+
+	/** @c true iff paint was called */
+	bool paint;
 
 	/** @c true iff pos_event was called */
 	bool pos;
@@ -106,7 +114,42 @@ PCUT_TEST(add_remove)
 	ui_fixed_destroy(fixed);
 }
 
-/** ui_pos_event() delivers position event to control */
+/** ui_fixed_paint() delivers paint request to control */
+PCUT_TEST(paint)
+{
+	ui_fixed_t *fixed = NULL;
+	ui_control_t *control;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_fixed_create(&fixed);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_control_new(&test_ctl_ops, (void *) &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_fixed_add(fixed, control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	resp.paint = false;
+	resp.rc = EOK;
+
+	rc = ui_fixed_paint(fixed);
+	PCUT_ASSERT_EQUALS(resp.rc, rc);
+	PCUT_ASSERT_TRUE(resp.paint);
+
+	resp.paint = false;
+	resp.rc = EINVAL;
+
+	rc = ui_fixed_paint(fixed);
+	PCUT_ASSERT_EQUALS(resp.rc, rc);
+	PCUT_ASSERT_TRUE(resp.paint);
+
+	ui_fixed_remove(fixed, control);
+	ui_fixed_destroy(fixed);
+}
+
+/** ui_fixed_pos_event() delivers position event to control */
 PCUT_TEST(pos_event)
 {
 	ui_fixed_t *fixed = NULL;
@@ -144,6 +187,14 @@ PCUT_TEST(pos_event)
 
 	ui_fixed_remove(fixed, control);
 	ui_fixed_destroy(fixed);
+}
+
+static errno_t test_ctl_paint(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *) arg;
+
+	resp->paint = true;
+	return resp->rc;
 }
 
 static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)

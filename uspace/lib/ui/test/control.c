@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <mem.h>
 #include <io/pos_event.h>
 #include <pcut/pcut.h>
@@ -37,9 +38,11 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(control);
 
+static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
 
 static ui_control_ops_t test_ctl_ops = {
+	.paint = test_ctl_paint,
 	.pos_event = test_ctl_pos_event
 };
 
@@ -47,6 +50,11 @@ static ui_control_ops_t test_ctl_ops = {
 typedef struct {
 	/** Claim to return */
 	ui_evclaim_t claim;
+	/** Result code to return */
+	errno_t rc;
+
+	/** @c true iff paint was called */
+	bool paint;
 
 	/** @c true iff pos_event was called */
 	bool pos;
@@ -71,6 +79,34 @@ PCUT_TEST(new_delete)
 PCUT_TEST(delete_null)
 {
 	ui_control_delete(NULL);
+}
+
+/** Test sending paint request to control */
+PCUT_TEST(paint)
+{
+	ui_control_t *control = NULL;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	resp.rc = EOK;
+	resp.paint = false;
+
+	rc = ui_control_paint(control);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_TRUE(resp.paint);
+
+	resp.rc = EINVAL;
+	resp.paint = false;
+
+	rc = ui_control_paint(control);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_TRUE(resp.paint);
+
+	ui_control_delete(control);
 }
 
 /** Test sending position event to control */
@@ -104,6 +140,14 @@ PCUT_TEST(pos_event)
 	PCUT_ASSERT_INT_EQUALS(resp.pevent.vpos, event.vpos);
 
 	ui_control_delete(control);
+}
+
+static errno_t test_ctl_paint(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *) arg;
+
+	resp->paint = true;
+	return resp->rc;
 }
 
 static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)

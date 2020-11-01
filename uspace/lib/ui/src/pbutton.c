@@ -53,10 +53,12 @@ enum {
 	ui_pb_press_dy = 1
 };
 
+static errno_t ui_pbutton_ctl_paint(void *);
 static ui_evclaim_t ui_pbutton_ctl_pos_event(void *, pos_event_t *);
 
 /** Push button control ops */
 ui_control_ops_t ui_pbutton_ops = {
+	.paint = ui_pbutton_ctl_paint,
 	.pos_event = ui_pbutton_ctl_pos_event
 };
 
@@ -413,6 +415,18 @@ ui_evclaim_t ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
 	}
 
 	return ui_unclaimed;
+}
+
+/** Paint push button control.
+ *
+ * @param arg Argument (ui_pbutton_t *)
+ * @return EOK on success or an error code
+ */
+errno_t ui_pbutton_ctl_paint(void *arg)
+{
+	ui_pbutton_t *pbutton = (ui_pbutton_t *) arg;
+
+	return ui_pbutton_paint(pbutton);
 }
 
 /** Handle push button control position event.

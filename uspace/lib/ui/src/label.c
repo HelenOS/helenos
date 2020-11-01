@@ -45,10 +45,12 @@
 #include "../private/label.h"
 #include "../private/resource.h"
 
+static errno_t ui_label_ctl_paint(void *);
 static ui_evclaim_t ui_label_ctl_pos_event(void *, pos_event_t *);
 
 /** Label control ops */
 ui_control_ops_t ui_label_ops = {
+	.paint = ui_label_ctl_paint,
 	.pos_event = ui_label_ctl_pos_event
 };
 
@@ -202,6 +204,18 @@ errno_t ui_label_paint(ui_label_t *label)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Paint lable control.
+ *
+ * @param arg Argument (ui_label_t *)
+ * @return EOK on success or an error code
+ */
+errno_t ui_label_ctl_paint(void *arg)
+{
+	ui_label_t *label = (ui_label_t *) arg;
+
+	return ui_label_paint(label);
 }
 
 /** Handle label control position event.

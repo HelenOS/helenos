@@ -43,6 +43,7 @@
 
 extern errno_t ui_control_new(ui_control_ops_t *, void *, ui_control_t **);
 extern void ui_control_delete(ui_control_t *);
+extern errno_t ui_control_paint(ui_control_t *);
 extern ui_evclaim_t ui_control_pos_event(ui_control_t *, pos_event_t *);
 
 #endif

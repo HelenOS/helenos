@@ -36,6 +36,7 @@
 #ifndef _UI_TYPES_CONTROL_H
 #define _UI_TYPES_CONTROL_H
 
+#include <errno.h>
 #include <io/pos_event.h>
 #include <types/ui/event.h>
 
@@ -44,6 +45,8 @@ typedef struct ui_control ui_control_t;
 
 /** UI control ops */
 typedef struct ui_control_ops {
+	/** Paint */
+	errno_t (*paint)(void *);
 	/** Position event */
 	ui_evclaim_t (*pos_event)(void *, pos_event_t *);
 } ui_control_ops_t;

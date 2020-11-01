@@ -243,21 +243,9 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_label_paint(demo.label);
+	rc = ui_fixed_paint(demo.fixed);
 	if (rc != EOK) {
-		printf("Error painting button.\n");
-		return rc;
-	}
-
-	rc = ui_pbutton_paint(demo.pb1);
-	if (rc != EOK) {
-		printf("Error painting button.\n");
-		return rc;
-	}
-
-	rc = ui_pbutton_paint(demo.pb2);
-	if (rc != EOK) {
-		printf("Error painting button.\n");
+		printf("Error painting UI controls.\n");
 		return rc;
 	}
 
