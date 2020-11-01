@@ -67,10 +67,21 @@ errno_t ui_fixed_create(ui_fixed_t **rfixed)
  */
 void ui_fixed_destroy(ui_fixed_t *fixed)
 {
+	ui_fixed_elem_t *elem;
+	ui_control_t *control;
+
 	if (fixed == NULL)
 		return;
 
-	assert(list_empty(&fixed->elem));
+	elem = ui_fixed_first(fixed);
+	while (elem != NULL) {
+		control = elem->control;
+		ui_fixed_remove(fixed, control);
+		ui_control_destroy(control);
+
+		elem = ui_fixed_first(fixed);
+	}
+
 	free(fixed);
 }
 

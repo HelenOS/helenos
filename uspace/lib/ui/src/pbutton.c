@@ -53,11 +53,13 @@ enum {
 	ui_pb_press_dy = 1
 };
 
+static void ui_pbutton_ctl_destroy(void *);
 static errno_t ui_pbutton_ctl_paint(void *);
 static ui_evclaim_t ui_pbutton_ctl_pos_event(void *, pos_event_t *);
 
 /** Push button control ops */
 ui_control_ops_t ui_pbutton_ops = {
+	.destroy = ui_pbutton_ctl_destroy,
 	.paint = ui_pbutton_ctl_paint,
 	.pos_event = ui_pbutton_ctl_pos_event
 };
@@ -415,6 +417,17 @@ ui_evclaim_t ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
 	}
 
 	return ui_unclaimed;
+}
+
+/** Destroy push button control.
+ *
+ * @param arg Argument (ui_pbutton_t *)
+ */
+void ui_pbutton_ctl_destroy(void *arg)
+{
+	ui_pbutton_t *pbutton = (ui_pbutton_t *) arg;
+
+	ui_pbutton_destroy(pbutton);
 }
 
 /** Paint push button control.

@@ -45,11 +45,13 @@
 #include "../private/label.h"
 #include "../private/resource.h"
 
+static void ui_label_ctl_destroy(void *);
 static errno_t ui_label_ctl_paint(void *);
 static ui_evclaim_t ui_label_ctl_pos_event(void *, pos_event_t *);
 
 /** Label control ops */
 ui_control_ops_t ui_label_ops = {
+	.destroy = ui_label_ctl_destroy,
 	.paint = ui_label_ctl_paint,
 	.pos_event = ui_label_ctl_pos_event
 };
@@ -206,7 +208,18 @@ error:
 	return rc;
 }
 
-/** Paint lable control.
+/** Destroy label control.
+ *
+ * @param arg Argument (ui_label_t *)
+ */
+void ui_label_ctl_destroy(void *arg)
+{
+	ui_label_t *label = (ui_label_t *) arg;
+
+	ui_label_destroy(label);
+}
+
+/** Paint label control.
  *
  * @param arg Argument (ui_label_t *)
  * @return EOK on success or an error code

@@ -45,6 +45,8 @@ typedef struct ui_control ui_control_t;
 
 /** UI control ops */
 typedef struct ui_control_ops {
+	/** Destroy control */
+	void (*destroy)(void *);
 	/** Paint */
 	errno_t (*paint)(void *);
 	/** Position event */

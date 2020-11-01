@@ -63,6 +63,8 @@ errno_t ui_control_new(ui_control_ops_t *ops, void *ext,
 
 /** Delete UI control.
  *
+ * Deletes the base control (not the extended data).
+ *
  * @param control UI control or @c NULL
  */
 void ui_control_delete(ui_control_t *control)
@@ -73,9 +75,21 @@ void ui_control_delete(ui_control_t *control)
 	free(control);
 }
 
+/** Destroy UI control.
+ *
+ * Run the virtual control destructor (destroy complete control including
+ * extended data).
+ *
+ * @param control Control
+ */
+void ui_control_destroy(ui_control_t *control)
+{
+	return control->ops->destroy(control->ext);
+}
+
 /** Paint UI control.
  *
- * @param control Push button
+ * @param control Control
  * @return EOK on success or an error code
  */
 errno_t ui_control_paint(ui_control_t *control)
@@ -85,7 +99,7 @@ errno_t ui_control_paint(ui_control_t *control)
 
 /** Deliver position event to UI control.
  *
- * @param control Push button
+ * @param control Control
  * @param pos_event Position event
  * @return @c ui_claimed iff the event is claimed
  */

@@ -37,10 +37,12 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(fixed);
 
+static void test_ctl_destroy(void *);
 static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
 
 static ui_control_ops_t test_ctl_ops = {
+	.destroy = test_ctl_destroy,
 	.paint = test_ctl_paint,
 	.pos_event = test_ctl_pos_event
 };
@@ -51,10 +53,10 @@ typedef struct {
 	ui_evclaim_t claim;
 	/** Result code to return */
 	errno_t rc;
-
+	/** @c true iff destroy was called */
+	bool destroy;
 	/** @c true iff paint was called */
 	bool paint;
-
 	/** @c true iff pos_event was called */
 	bool pos;
 	/** Position event that was sent */
@@ -112,6 +114,30 @@ PCUT_TEST(add_remove)
 	PCUT_ASSERT_NULL(e);
 
 	ui_fixed_destroy(fixed);
+	ui_control_delete(control);
+}
+
+/** ui_fixed_destroy() delivers destroy request to control */
+PCUT_TEST(destroy)
+{
+	ui_fixed_t *fixed = NULL;
+	ui_control_t *control;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_fixed_create(&fixed);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_control_new(&test_ctl_ops, (void *) &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_fixed_add(fixed, control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	resp.destroy = false;
+
+	ui_fixed_destroy(fixed);
+	PCUT_ASSERT_TRUE(resp.destroy);
 }
 
 /** ui_fixed_paint() delivers paint request to control */
@@ -145,7 +171,6 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_EQUALS(resp.rc, rc);
 	PCUT_ASSERT_TRUE(resp.paint);
 
-	ui_fixed_remove(fixed, control);
 	ui_fixed_destroy(fixed);
 }
 
@@ -185,8 +210,14 @@ PCUT_TEST(pos_event)
 	PCUT_ASSERT_INT_EQUALS(resp.pevent.hpos, event.hpos);
 	PCUT_ASSERT_INT_EQUALS(resp.pevent.vpos, event.vpos);
 
-	ui_fixed_remove(fixed, control);
 	ui_fixed_destroy(fixed);
+}
+
+static void test_ctl_destroy(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *) arg;
+
+	resp->destroy = true;
 }
 
 static errno_t test_ctl_paint(void *arg)

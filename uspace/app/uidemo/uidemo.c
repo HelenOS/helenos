@@ -251,13 +251,7 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_run(ui);
 
-	ui_fixed_remove(demo.fixed, ui_label_ctl(demo.label));
-	ui_fixed_remove(demo.fixed, ui_pbutton_ctl(demo.pb1));
-	ui_fixed_remove(demo.fixed, ui_pbutton_ctl(demo.pb2));
-
-	ui_pbutton_destroy(demo.pb1);
-	ui_pbutton_destroy(demo.pb2);
-
+	ui_fixed_destroy(demo.fixed);
 	ui_window_destroy(window);
 	ui_destroy(ui);
 

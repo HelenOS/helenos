@@ -20,7 +20,7 @@
  * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * DATA, OR PROFITS; OR BUSINESS INTvvhhzccgggrERRUPTION) HOWEVER CAUSED AND ON ANY
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -38,10 +38,12 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(control);
 
+static void test_ctl_destroy(void *);
 static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
 
 static ui_control_ops_t test_ctl_ops = {
+	.destroy = test_ctl_destroy,
 	.paint = test_ctl_paint,
 	.pos_event = test_ctl_pos_event
 };
@@ -52,6 +54,9 @@ typedef struct {
 	ui_evclaim_t claim;
 	/** Result code to return */
 	errno_t rc;
+
+	/** @c true iff destroy was called */
+	bool destroy;
 
 	/** @c true iff paint was called */
 	bool paint;
@@ -79,6 +84,24 @@ PCUT_TEST(new_delete)
 PCUT_TEST(delete_null)
 {
 	ui_control_delete(NULL);
+}
+
+/** Test sending destroy request to control */
+PCUT_TEST(destroy)
+{
+	ui_control_t *control = NULL;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	resp.rc = EOK;
+	resp.destroy = false;
+
+	ui_control_destroy(control);
+	PCUT_ASSERT_TRUE(resp.destroy);
 }
 
 /** Test sending paint request to control */
@@ -140,6 +163,13 @@ PCUT_TEST(pos_event)
 	PCUT_ASSERT_INT_EQUALS(resp.pevent.vpos, event.vpos);
 
 	ui_control_delete(control);
+}
+
+static void test_ctl_destroy(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *) arg;
+
+	resp->destroy = true;
 }
 
 static errno_t test_ctl_paint(void *arg)
