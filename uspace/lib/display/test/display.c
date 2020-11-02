@@ -37,6 +37,7 @@
 #include <ipcgfx/server.h>
 #include <loc.h>
 #include <pcut/pcut.h>
+#include "../private/display.h"
 
 PCUT_INIT;
 

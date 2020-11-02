@@ -37,6 +37,7 @@
 #include <loc.h>
 #include <mem.h>
 #include <stdlib.h>
+#include "../private/display.h"
 #include "../private/params.h"
 
 static errno_t display_callback_create(display_t *);
