@@ -36,6 +36,7 @@
 #ifndef _UI_TYPES_WINDOW_H
 #define _UI_TYPES_WINDOW_H
 
+#include <errno.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 
@@ -55,6 +56,7 @@ typedef struct ui_window_cb {
 	void (*close)(ui_window_t *, void *);
 	void (*focus)(ui_window_t *, void *);
 	void (*kbd)(ui_window_t *, void *, kbd_event_t *);
+	errno_t (*paint)(ui_window_t *, void *);
 	void (*pos)(ui_window_t *, void *, pos_event_t *);
 	void (*unfocus)(ui_window_t *, void *);
 } ui_window_cb_t;

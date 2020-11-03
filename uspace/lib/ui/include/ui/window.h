@@ -51,6 +51,8 @@ extern void ui_window_destroy(ui_window_t *);
 extern ui_resource_t *ui_window_get_res(ui_window_t *);
 extern gfx_context_t *ui_window_get_gc(ui_window_t *);
 extern void ui_window_get_app_rect(ui_window_t *, gfx_rect_t *);
+extern errno_t ui_window_paint(ui_window_t *);
+extern errno_t ui_window_def_paint(ui_window_t *);
 
 #endif
 

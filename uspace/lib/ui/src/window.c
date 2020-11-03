@@ -36,6 +36,7 @@
 #include <display.h>
 #include <errno.h>
 #include <gfx/context.h>
+#include <gfx/render.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <mem.h>
@@ -44,6 +45,7 @@
 #include <ui/wdecor.h>
 #include <ui/window.h>
 #include "../private/dummygc.h"
+#include "../private/resource.h"
 #include "../private/ui.h"
 #include "../private/wdecor.h"
 #include "../private/window.h"
@@ -204,12 +206,17 @@ void ui_window_get_app_rect(ui_window_t *window, gfx_rect_t *rect)
 	*rect = geom.app_area_rect;
 }
 
+errno_t ui_window_paint(ui_window_t *window)
+{
+	return ui_window_send_paint(window);
+}
+
 /** Handle window close event. */
 static void dwnd_close_event(void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
-	ui_window_close(window);
+	ui_window_send_close(window);
 }
 
 /** Handle window focus event. */
@@ -222,7 +229,7 @@ static void dwnd_focus_event(void *arg)
 		ui_wdecor_paint(window->wdecor);
 	}
 
-	ui_window_focus(window);
+	ui_window_send_focus(window);
 }
 
 /** Handle window keyboard event */
@@ -231,7 +238,7 @@ static void dwnd_kbd_event(void *arg, kbd_event_t *kbd_event)
 	ui_window_t *window = (ui_window_t *) arg;
 
 	(void) window;
-	ui_window_kbd(window, kbd_event);
+	ui_window_send_kbd(window, kbd_event);
 }
 
 /** Handle window position event */
@@ -244,7 +251,7 @@ static void dwnd_pos_event(void *arg, pos_event_t *event)
 		return;
 
 	ui_wdecor_pos_event(window->wdecor, event);
-	ui_window_pos(window, event);
+	ui_window_send_pos(window, event);
 }
 
 /** Handle window unfocus event. */
@@ -257,7 +264,7 @@ static void dwnd_unfocus_event(void *arg)
 		ui_wdecor_paint(window->wdecor);
 	}
 
-	ui_window_unfocus(window);
+	ui_window_send_unfocus(window);
 }
 
 /** Window decoration requested window closure.
@@ -269,7 +276,7 @@ static void wd_close(ui_wdecor_t *wdecor, void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
-	ui_window_close(window);
+	ui_window_send_close(window);
 }
 
 /** Window decoration requested window move.
@@ -289,7 +296,7 @@ static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
  *
  * @param window Window
  */
-void ui_window_close(ui_window_t *window)
+void ui_window_send_close(ui_window_t *window)
 {
 	if (window->cb != NULL && window->cb->close != NULL)
 		window->cb->close(window, window->arg);
@@ -299,7 +306,7 @@ void ui_window_close(ui_window_t *window)
  *
  * @param window Window
  */
-void ui_window_focus(ui_window_t *window)
+void ui_window_send_focus(ui_window_t *window)
 {
 	if (window->cb != NULL && window->cb->focus != NULL)
 		window->cb->focus(window, window->arg);
@@ -309,17 +316,29 @@ void ui_window_focus(ui_window_t *window)
  *
  * @param window Window
  */
-void ui_window_kbd(ui_window_t *window, kbd_event_t *kbd)
+void ui_window_send_kbd(ui_window_t *window, kbd_event_t *kbd)
 {
 	if (window->cb != NULL && window->cb->kbd != NULL)
 		window->cb->kbd(window, window->arg, kbd);
+}
+
+/** Send window paint event.
+ *
+ * @param window Window
+ */
+errno_t ui_window_send_paint(ui_window_t *window)
+{
+	if (window->cb != NULL && window->cb->paint != NULL)
+		return window->cb->paint(window, window->arg);
+	else
+		return ui_window_def_paint(window);
 }
 
 /** Send window position event.
  *
  * @param window Window
  */
-void ui_window_pos(ui_window_t *window, pos_event_t *pos)
+void ui_window_send_pos(ui_window_t *window, pos_event_t *pos)
 {
 	if (window->cb != NULL && window->cb->pos != NULL)
 		window->cb->pos(window, window->arg, pos);
@@ -329,10 +348,33 @@ void ui_window_pos(ui_window_t *window, pos_event_t *pos)
  *
  * @param window Window
  */
-void ui_window_unfocus(ui_window_t *window)
+void ui_window_send_unfocus(ui_window_t *window)
 {
 	if (window->cb != NULL && window->cb->unfocus != NULL)
 		window->cb->unfocus(window, window->arg);
+}
+
+/** Default window paint routine.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_def_paint(ui_window_t *window)
+{
+	gfx_rect_t app_rect;
+	errno_t rc;
+
+	rc = gfx_set_color(window->gc, window->res->wnd_face_color);
+	if (rc != EOK)
+		return rc;
+
+	ui_window_get_app_rect(window, &app_rect);
+
+	rc = gfx_fill_rect(window->gc, &app_rect);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 /** @}

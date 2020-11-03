@@ -32,9 +32,7 @@
 /** @file User interface demo
  */
 
-#include <gfx/color.h>
 #include <gfx/coord.h>
-#include <gfx/render.h>
 #include <io/pos_event.h>
 #include <stdio.h>
 #include <str.h>
@@ -49,10 +47,12 @@
 #include "uidemo.h"
 
 static void wnd_close(ui_window_t *, void *);
+static errno_t wnd_paint(ui_window_t *, void *);
 static void wnd_pos(ui_window_t *, void *, pos_event_t *pos);
 
 static ui_window_cb_t window_cb = {
 	.close = wnd_close,
+	.paint = wnd_paint,
 	.pos = wnd_pos
 };
 
@@ -72,6 +72,25 @@ static void wnd_close(ui_window_t *window, void *arg)
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
 	ui_quit(demo->ui);
+}
+
+/** Window paint request.
+ *
+ * @param window Window
+ * @param arg Argument (demo)
+ * @return EOK on success or an error code
+ */
+static errno_t wnd_paint(ui_window_t *window, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	errno_t rc;
+
+	/* Let window paint its background */
+	rc = ui_window_def_paint(window);
+	if (rc != EOK)
+		return rc;
+
+	return ui_fixed_paint(demo->fixed);
 }
 
 /** Window position event.
@@ -121,10 +140,7 @@ static errno_t ui_demo(const char *display_spec)
 	ui_window_t *window = NULL;
 	ui_demo_t demo;
 	gfx_rect_t rect;
-	gfx_rect_t app_rect;
-	gfx_color_t *color;
 	ui_resource_t *ui_res;
-	gfx_context_t *gc;
 	errno_t rc;
 
 	rc = ui_create(display_spec, &ui);
@@ -155,8 +171,6 @@ static errno_t ui_demo(const char *display_spec)
 	task_retval(0);
 
 	ui_res = ui_window_get_res(window);
-	gc = ui_window_get_gc(window);
-	ui_window_get_app_rect(window, &app_rect);
 
 	rc = ui_fixed_create(&demo.fixed);
 	if (rc != EOK) {
@@ -225,27 +239,9 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &color);
+	rc = ui_window_paint(window);
 	if (rc != EOK) {
-		printf("Error allocating color.\n");
-		return rc;
-	}
-
-	rc = gfx_set_color(gc, color);
-	if (rc != EOK) {
-		printf("Error setting color.\n");
-		return rc;
-	}
-
-	rc = gfx_fill_rect(gc, &app_rect);
-	if (rc != EOK) {
-		printf("Error filling background.\n");
-		return rc;
-	}
-
-	rc = ui_fixed_paint(demo.fixed);
-	if (rc != EOK) {
-		printf("Error painting UI controls.\n");
+		printf("Error painting window.\n");
 		return rc;
 	}
 

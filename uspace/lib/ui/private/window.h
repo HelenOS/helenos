@@ -37,6 +37,7 @@
 #ifndef _UI_PRIVATE_WINDOW_H
 #define _UI_PRIVATE_WINDOW_H
 
+#include <errno.h>
 #include <display.h>
 #include <gfx/context.h>
 #include <io/kbd_event.h>
@@ -63,11 +64,12 @@ struct ui_window {
 	struct ui_wdecor *wdecor;
 };
 
-extern void ui_window_close(ui_window_t *);
-extern void ui_window_focus(ui_window_t *);
-extern void ui_window_kbd(ui_window_t *, kbd_event_t *);
-extern void ui_window_pos(ui_window_t *, pos_event_t *);
-extern void ui_window_unfocus(ui_window_t *);
+extern void ui_window_send_close(ui_window_t *);
+extern void ui_window_send_focus(ui_window_t *);
+extern void ui_window_send_kbd(ui_window_t *, kbd_event_t *);
+extern errno_t ui_window_send_paint(ui_window_t *);
+extern void ui_window_send_pos(ui_window_t *, pos_event_t *);
+extern void ui_window_send_unfocus(ui_window_t *);
 
 #endif
 
