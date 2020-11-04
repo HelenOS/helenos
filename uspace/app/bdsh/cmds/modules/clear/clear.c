@@ -28,8 +28,7 @@ int cmd_clear(char **argv)
 	fflush(stdout);
 
 	/* Count the arguments */
-	for (argc = 0; argv[argc] != NULL; argc++)
-		;
+	for (argc = 0; argv[argc] != NULL; argc++);
 
 	// printf("%s %s\n", TEST_ANNOUNCE, cmdname);
 	// printf("%d arguments passed to %s", argc - 1, cmdname);

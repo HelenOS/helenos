@@ -64,6 +64,9 @@
 #include "cmp/entry.h"
 #include "alias/entry.h"
 #include "unalias/entry.h"
+#include "clear/entry.h"
+#include "basename/entry.h"
+#include "grep/entry.h"
 
 /*
  * Each .def function fills the module_t struct with the individual name, entry
@@ -91,6 +94,9 @@ module_t modules[] = {
 #include "cmp/cmp_def.inc"
 #include "alias/alias_def.inc"
 #include "unalias/unalias_def.inc"
+#include "clear/clear_def.inc"
+#include "basename/basename_def.inc"
+#include "grep/grep_def.inc"
 
 	{ NULL, NULL, NULL, NULL }
 };
