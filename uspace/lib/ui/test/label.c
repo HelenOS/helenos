@@ -33,46 +33,12 @@
 #include <stdbool.h>
 #include <ui/control.h>
 #include <ui/label.h>
-#include <ui/resource.h>
+#include <ui/ui.h>
 #include "../private/label.h"
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(label);
-
-static errno_t testgc_set_color(void *, gfx_color_t *);
-static errno_t testgc_fill_rect(void *, gfx_rect_t *);
-static errno_t testgc_bitmap_create(void *, gfx_bitmap_params_t *,
-    gfx_bitmap_alloc_t *, void **);
-static errno_t testgc_bitmap_destroy(void *);
-static errno_t testgc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
-static errno_t testgc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
-
-static gfx_context_ops_t ops = {
-	.set_color = testgc_set_color,
-	.fill_rect = testgc_fill_rect,
-	.bitmap_create = testgc_bitmap_create,
-	.bitmap_destroy = testgc_bitmap_destroy,
-	.bitmap_render = testgc_bitmap_render,
-	.bitmap_get_alloc = testgc_bitmap_get_alloc
-};
-
-typedef struct {
-	bool bm_created;
-	bool bm_destroyed;
-	gfx_bitmap_params_t bm_params;
-	void *bm_pixels;
-	gfx_rect_t bm_srect;
-	gfx_coord2_t bm_offs;
-	bool bm_rendered;
-	bool bm_got_alloc;
-} test_gc_t;
-
-typedef struct {
-	test_gc_t *tgc;
-	gfx_bitmap_alloc_t alloc;
-	bool myalloc;
-} testgc_bitmap_t;
 
 typedef struct {
 	bool clicked;
@@ -182,106 +148,20 @@ PCUT_TEST(set_text)
 PCUT_TEST(paint)
 {
 	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui;
 	ui_label_t *label;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
-
-	rc = ui_label_create(resource, "Hello", &label);
+	rc = ui_label_create(ui, "Hello", &label);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_label_paint(label);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_label_destroy(label);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-}
-
-static errno_t testgc_set_color(void *arg, gfx_color_t *color)
-{
-	(void) arg;
-	(void) color;
-	return EOK;
-}
-
-static errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
-{
-	(void) arg;
-	(void) rect;
-	return EOK;
-}
-
-static errno_t testgc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
-    gfx_bitmap_alloc_t *alloc, void **rbm)
-{
-	test_gc_t *tgc = (test_gc_t *) arg;
-	testgc_bitmap_t *tbm;
-
-	tbm = calloc(1, sizeof(testgc_bitmap_t));
-	if (tbm == NULL)
-		return ENOMEM;
-
-	if (alloc == NULL) {
-		tbm->alloc.pitch = (params->rect.p1.x - params->rect.p0.x) *
-		    sizeof(uint32_t);
-		tbm->alloc.off0 = 0;
-		tbm->alloc.pixels = calloc(sizeof(uint32_t),
-		    (params->rect.p1.x - params->rect.p0.x) *
-		    (params->rect.p1.y - params->rect.p0.y));
-		tbm->myalloc = true;
-		if (tbm->alloc.pixels == NULL) {
-			free(tbm);
-			return ENOMEM;
-		}
-	} else {
-		tbm->alloc = *alloc;
-	}
-
-	tbm->tgc = tgc;
-	tgc->bm_created = true;
-	tgc->bm_params = *params;
-	tgc->bm_pixels = tbm->alloc.pixels;
-	*rbm = (void *)tbm;
-	return EOK;
-}
-
-static errno_t testgc_bitmap_destroy(void *bm)
-{
-	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
-	if (tbm->myalloc)
-		free(tbm->alloc.pixels);
-	tbm->tgc->bm_destroyed = true;
-	free(tbm);
-	return EOK;
-}
-
-static errno_t testgc_bitmap_render(void *bm, gfx_rect_t *srect,
-    gfx_coord2_t *offs)
-{
-	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
-	tbm->tgc->bm_rendered = true;
-	tbm->tgc->bm_srect = *srect;
-	tbm->tgc->bm_offs = *offs;
-	return EOK;
-}
-
-static errno_t testgc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
-{
-	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
-	*alloc = tbm->alloc;
-	tbm->tgc->bm_got_alloc = true;
-	return EOK;
+	ui_destroy(ui);
 }
 
 PCUT_EXPORT(label);

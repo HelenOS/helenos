@@ -34,7 +34,6 @@
 #include <pcut/pcut.h>
 #include <stdbool.h>
 #include <ui/control.h>
-#include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "../private/window.h"
@@ -173,14 +172,13 @@ PCUT_TEST(add_remove)
 	ui_destroy(ui);
 }
 
-/** ui_window_get_res/gc/rect() return valid objects */
-PCUT_TEST(get_res_gc_rect)
+/** ui_window_get_gc/rect() return valid objects */
+PCUT_TEST(gc_rect)
 {
 	errno_t rc;
 	ui_t *ui = NULL;
 	ui_wnd_params_t params;
 	ui_window_t *window = NULL;
-	ui_resource_t *res;
 	gfx_context_t *gc;
 	gfx_rect_t rect;
 
@@ -193,9 +191,6 @@ PCUT_TEST(get_res_gc_rect)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
-
-	res = ui_window_get_res(window);
-	PCUT_ASSERT_NOT_NULL(res);
 
 	gc = ui_window_get_gc(window);
 	PCUT_ASSERT_NOT_NULL(gc);

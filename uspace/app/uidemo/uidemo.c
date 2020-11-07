@@ -98,7 +98,6 @@ static errno_t ui_demo(const char *display_spec)
 	ui_window_t *window = NULL;
 	ui_demo_t demo;
 	gfx_rect_t rect;
-	ui_resource_t *ui_res;
 	errno_t rc;
 
 	rc = ui_create(display_spec, &ui);
@@ -126,15 +125,13 @@ static errno_t ui_demo(const char *display_spec)
 	ui_window_set_cb(window, &window_cb, (void *) &demo);
 	demo.window = window;
 
-	ui_res = ui_window_get_res(window);
-
 	rc = ui_fixed_create(&demo.fixed);
 	if (rc != EOK) {
 		printf("Error creating fixed layout.\n");
 		return rc;
 	}
 
-	rc = ui_label_create(ui_res, "Hello there!", &demo.label);
+	rc = ui_label_create(ui, "Hello there!", &demo.label);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
 		return rc;
@@ -153,7 +150,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "Confirm", &demo.pb1);
+	rc = ui_pbutton_create(ui, "Confirm", &demo.pb1);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -175,7 +172,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "Cancel", &demo.pb2);
+	rc = ui_pbutton_create(ui, "Cancel", &demo.pb2);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;

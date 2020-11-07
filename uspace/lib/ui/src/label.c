@@ -44,6 +44,7 @@
 #include <ui/label.h>
 #include "../private/label.h"
 #include "../private/resource.h"
+#include "../private/ui.h"
 
 static void ui_label_ctl_destroy(void *);
 static errno_t ui_label_ctl_paint(void *);
@@ -63,7 +64,7 @@ ui_control_ops_t ui_label_ops = {
  * @param rlabel Place to store pointer to new label
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_label_create(ui_resource_t *resource, const char *text,
+errno_t ui_label_create(ui_t *ui, const char *text,
     ui_label_t **rlabel)
 {
 	ui_label_t *label;
@@ -86,7 +87,7 @@ errno_t ui_label_create(ui_resource_t *resource, const char *text,
 		return ENOMEM;
 	}
 
-	label->res = resource;
+	label->res = ui->resource;
 	label->halign = gfx_halign_left;
 	*rlabel = label;
 	return EOK;

@@ -56,7 +56,6 @@
 typedef struct {
 	ui_t *ui;
 	ui_window_t *window;
-	ui_resource_t *ui_res;
 	gfx_context_t *gc;
 
 	gfx_bitmap_t *bmp;
