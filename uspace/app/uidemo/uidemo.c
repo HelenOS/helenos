@@ -35,7 +35,6 @@
 #include <gfx/coord.h>
 #include <stdio.h>
 #include <str.h>
-#include <task.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/pbutton.h>
@@ -126,8 +125,6 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_window_set_cb(window, &window_cb, (void *) &demo);
 	demo.window = window;
-
-	task_retval(0);
 
 	ui_res = ui_window_get_res(window);
 

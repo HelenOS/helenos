@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <fibril.h>
 #include <stdlib.h>
+#include <task.h>
 #include <ui/ui.h>
 #include "../private/ui.h"
 
@@ -104,13 +105,15 @@ void ui_destroy(ui_t *ui)
 
 /** Execute user interface.
  *
- * This function returns once the application starts the termination
- * process by calling ui_quit(@a ui).
+ * Return task exit code of zero and block unitl the application starts
+ * the termination process by calling ui_quit(@a ui).
  *
  * @param ui User interface
  */
 void ui_run(ui_t *ui)
 {
+	task_retval(0);
+
 	while (!ui->quit)
 		fibril_usleep(100000);
 }
