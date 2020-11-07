@@ -31,6 +31,7 @@
 #include <mem.h>
 #include <pcut/pcut.h>
 #include <stdbool.h>
+#include <ui/control.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include "../private/pbutton.h"
@@ -103,6 +104,22 @@ PCUT_TEST(create_destroy)
 PCUT_TEST(destroy_null)
 {
 	ui_pbutton_destroy(NULL);
+}
+
+/** ui_pbutton_ctl() returns control that has a working virtual destructor */
+PCUT_TEST(ctl)
+{
+	ui_pbutton_t *pbutton;
+	ui_control_t *control;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	control = ui_pbutton_ctl(pbutton);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	ui_control_destroy(control);
 }
 
 /** Set button rectangle sets internal field */

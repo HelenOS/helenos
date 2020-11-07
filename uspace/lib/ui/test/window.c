@@ -33,6 +33,7 @@
 #include <mem.h>
 #include <pcut/pcut.h>
 #include <stdbool.h>
+#include <ui/control.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
@@ -61,6 +62,14 @@ static ui_window_cb_t test_window_cb = {
 static ui_window_cb_t dummy_window_cb = {
 };
 
+static errno_t test_ctl_paint(void *);
+static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
+
+static ui_control_ops_t test_ctl_ops = {
+	.paint = test_ctl_paint,
+	.pos_event = test_ctl_pos_event
+};
+
 typedef struct {
 	errno_t rc;
 	bool close;
@@ -72,6 +81,14 @@ typedef struct {
 	pos_event_t pos_event;
 	bool unfocus;
 } test_cb_resp_t;
+
+typedef struct {
+	errno_t rc;
+	ui_evclaim_t claim;
+	bool paint;
+	bool pos;
+	pos_event_t pos_event;
+} test_ctl_resp_t;
 
 /** Create and destroy window */
 PCUT_TEST(create_destroy)
@@ -99,6 +116,61 @@ PCUT_TEST(create_destroy)
 PCUT_TEST(destroy_null)
 {
 	ui_window_destroy(NULL);
+}
+
+/** ui_window_add()/ui_window_remove() ... */
+PCUT_TEST(add_remove)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_control_t *control = NULL;
+	test_ctl_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Control not called since it hasn't been added yet */
+	resp.rc = ENOMEM;
+	resp.paint = false;
+	rc = ui_window_def_paint(window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(resp.paint);
+
+	ui_window_add(window, control);
+
+	/* Now paint request should be delivered to control */
+	resp.rc = EOK;
+	resp.paint = false;
+	rc = ui_window_def_paint(window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(resp.paint);
+
+	ui_window_remove(window, control);
+
+	/*
+	 * After having removed the control the request should no longer
+	 * be delivered to it.
+	 */
+	resp.rc = ENOMEM;
+	resp.paint = false;
+	rc = ui_window_def_paint(window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(resp.paint);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_window_get_res/gc/rect() return valid objects */
@@ -165,6 +237,8 @@ PCUT_TEST(def_paint)
 	ui_t *ui = NULL;
 	ui_wnd_params_t params;
 	ui_window_t *window = NULL;
+	ui_control_t *control = NULL;
+	test_ctl_resp_t resp;
 
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -176,7 +250,77 @@ PCUT_TEST(def_paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	ui_window_def_paint(window);
+	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_window_add(window, control);
+
+	resp.rc = EOK;
+	resp.paint = false;
+	rc = ui_window_def_paint(window);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_TRUE(resp.paint);
+
+	resp.rc = ENOMEM;
+	resp.paint = false;
+	rc = ui_window_def_paint(window);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_TRUE(resp.paint);
+
+	PCUT_ASSERT_TRUE(resp.paint);
+
+	/* Need to remove first because we didn't implement the destructor */
+	ui_window_remove(window, control);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_window_def_pos() delivers position event to control in window */
+PCUT_TEST(def_pos)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_control_t *control = NULL;
+	test_ctl_resp_t resp;
+	pos_event_t event;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_window_add(window, control);
+
+	event.pos_id = 1;
+	event.type = POS_PRESS;
+	event.btn_num = 2;
+	event.hpos = 3;
+	event.vpos = 4;
+
+	resp.pos = false;
+	resp.claim = ui_claimed;
+
+	ui_window_def_pos(window, &event);
+
+	PCUT_ASSERT_TRUE(resp.pos);
+	PCUT_ASSERT_INT_EQUALS(event.pos_id, resp.pos_event.pos_id);
+	PCUT_ASSERT_INT_EQUALS(event.type, resp.pos_event.type);
+	PCUT_ASSERT_INT_EQUALS(event.btn_num, resp.pos_event.btn_num);
+	PCUT_ASSERT_INT_EQUALS(event.hpos, resp.pos_event.hpos);
+	PCUT_ASSERT_INT_EQUALS(event.vpos, resp.pos_event.vpos);
+
+	/* Need to remove first because we didn't implement the destructor */
+	ui_window_remove(window, control);
 
 	ui_window_destroy(window);
 	ui_destroy(ui);
@@ -467,6 +611,24 @@ static void test_window_unfocus(ui_window_t *window, void *arg)
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
 	resp->unfocus = true;
+}
+
+static errno_t test_ctl_paint(void *arg)
+{
+	test_ctl_resp_t *resp = (test_ctl_resp_t *) arg;
+
+	resp->paint = true;
+	return resp->rc;
+}
+
+static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)
+{
+	test_ctl_resp_t *resp = (test_ctl_resp_t *) arg;
+
+	resp->pos = true;
+	resp->pos_event = *event;
+
+	return resp->claim;
 }
 
 PCUT_EXPORT(window);

@@ -62,6 +62,8 @@ struct ui_window {
 	struct ui_resource *res;
 	/** Window decoration */
 	struct ui_wdecor *wdecor;
+	/** Top-level control in the application area */
+	struct ui_control *control;
 };
 
 extern void ui_window_send_close(ui_window_t *);

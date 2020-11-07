@@ -43,6 +43,17 @@
 #include "../private/control.h"
 #include "../private/fixed.h"
 
+static void ui_fixed_ctl_destroy(void *);
+static errno_t ui_fixed_ctl_paint(void *);
+static ui_evclaim_t ui_fixed_ctl_pos_event(void *, pos_event_t *);
+
+/** Push button control ops */
+ui_control_ops_t ui_fixed_ops = {
+	.destroy = ui_fixed_ctl_destroy,
+	.paint = ui_fixed_ctl_paint,
+	.pos_event = ui_fixed_ctl_pos_event
+};
+
 /** Create new fixed layout.
  *
  * @param rfixed Place to store pointer to new fixed layout
@@ -51,10 +62,17 @@
 errno_t ui_fixed_create(ui_fixed_t **rfixed)
 {
 	ui_fixed_t *fixed;
+	errno_t rc;
 
 	fixed = calloc(1, sizeof(ui_fixed_t));
 	if (fixed == NULL)
 		return ENOMEM;
+
+	rc = ui_control_new(&ui_fixed_ops, (void *) fixed, &fixed->control);
+	if (rc != EOK) {
+		free(fixed);
+		return rc;
+	}
 
 	list_initialize(&fixed->elem);
 	*rfixed = fixed;
@@ -82,7 +100,18 @@ void ui_fixed_destroy(ui_fixed_t *fixed)
 		elem = ui_fixed_first(fixed);
 	}
 
+	ui_control_delete(fixed->control);
 	free(fixed);
+}
+
+/** Get base control from fixed layout.
+ *
+ * @param fixed Fixed layout
+ * @return Control
+ */
+ui_control_t *ui_fixed_ctl(ui_fixed_t *fixed)
+{
+	return fixed->control;
 }
 
 /** Add control to fixed layout.
@@ -200,6 +229,42 @@ ui_evclaim_t ui_fixed_pos_event(ui_fixed_t *fixed, pos_event_t *event)
 	}
 
 	return ui_unclaimed;
+}
+
+/** Destroy fixed layout control.
+ *
+ * @param arg Argument (ui_fixed_t *)
+ */
+void ui_fixed_ctl_destroy(void *arg)
+{
+	ui_fixed_t *fixed = (ui_fixed_t *) arg;
+
+	ui_fixed_destroy(fixed);
+}
+
+/** Paint fixed layout control.
+ *
+ * @param arg Argument (ui_fixed_t *)
+ * @return EOK on success or an error code
+ */
+errno_t ui_fixed_ctl_paint(void *arg)
+{
+	ui_fixed_t *fixed = (ui_fixed_t *) arg;
+
+	return ui_fixed_paint(fixed);
+}
+
+/** Handle fixed layout control position event.
+ *
+ * @param arg Argument (ui_fixed_t *)
+ * @param pos_event Position event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_fixed_ctl_pos_event(void *arg, pos_event_t *event)
+{
+	ui_fixed_t *fixed = (ui_fixed_t *) arg;
+
+	return ui_fixed_pos_event(fixed, event);
 }
 
 /** @}

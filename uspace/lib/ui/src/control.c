@@ -80,10 +80,13 @@ void ui_control_delete(ui_control_t *control)
  * Run the virtual control destructor (destroy complete control including
  * extended data).
  *
- * @param control Control
+ * @param control Control or @c NULL
  */
 void ui_control_destroy(ui_control_t *control)
 {
+	if (control == NULL)
+		return;
+
 	return control->ops->destroy(control->ext);
 }
 

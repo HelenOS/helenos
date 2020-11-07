@@ -47,6 +47,8 @@
  * This is private to libui.
  */
 struct ui_fixed {
+	/** Base control object */
+	struct ui_control *control;
 	/** Layout elements (ui_fixed_elem_t) */
 	list_t elem;
 };

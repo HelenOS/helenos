@@ -31,6 +31,7 @@
 #include <mem.h>
 #include <pcut/pcut.h>
 #include <stdbool.h>
+#include <ui/control.h>
 #include <ui/label.h>
 #include <ui/resource.h>
 #include "../private/label.h"
@@ -94,6 +95,22 @@ PCUT_TEST(create_destroy)
 PCUT_TEST(destroy_null)
 {
 	ui_label_destroy(NULL);
+}
+
+/** ui_label_ctl() returns control that has a working virtual destructor */
+PCUT_TEST(ctl)
+{
+	ui_label_t *label;
+	ui_control_t *control;
+	errno_t rc;
+
+	rc = ui_label_create(NULL, "Hello", &label);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	control = ui_label_ctl(label);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	ui_control_destroy(control);
 }
 
 /** Set button rectangle sets internal field */

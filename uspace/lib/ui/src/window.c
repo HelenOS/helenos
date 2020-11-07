@@ -41,9 +41,11 @@
 #include <io/pos_event.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <ui/control.h>
 #include <ui/resource.h>
 #include <ui/wdecor.h>
 #include <ui/window.h>
+#include "../private/control.h"
 #include "../private/dummygc.h"
 #include "../private/resource.h"
 #include "../private/ui.h"
@@ -169,11 +171,43 @@ void ui_window_destroy(ui_window_t *window)
 	if (window == NULL)
 		return;
 
+	ui_control_destroy(window->control);
 	ui_wdecor_destroy(window->wdecor);
 	ui_resource_destroy(window->res);
 	gfx_context_delete(window->gc);
 	display_window_destroy(window->dwindow);
 	free(window);
+}
+
+/** Add control to window.
+ *
+ * Only one control can be added to a window. If more than one control
+ * is added, the results are undefined.
+ *
+ * @param fixed Fixed layout
+ * @param control Control
+ * @return EOK on success, ENOMEM if out of memory
+ */
+void ui_window_add(ui_window_t *window, ui_control_t *control)
+{
+	assert(window->control == NULL);
+
+	window->control = control;
+	control->elemp = (void *) window;
+}
+
+/** Remove control from window.
+ *
+ * @param window Window
+ * @param control Control
+ */
+void ui_window_remove(ui_window_t *window, ui_control_t *control)
+{
+	assert(window->control == control);
+	assert((ui_window_t *) control->elemp == window);
+
+	window->control = NULL;
+	control->elemp = NULL;
 }
 
 /** Set window callbacks.
@@ -342,6 +376,8 @@ void ui_window_send_pos(ui_window_t *window, pos_event_t *pos)
 {
 	if (window->cb != NULL && window->cb->pos != NULL)
 		window->cb->pos(window, window->arg, pos);
+	else
+		ui_window_def_pos(window, pos);
 }
 
 /** Send window unfocus event.
@@ -374,7 +410,21 @@ errno_t ui_window_def_paint(ui_window_t *window)
 	if (rc != EOK)
 		return rc;
 
+	if (window->control != NULL)
+		return ui_control_paint(window->control);
+
 	return EOK;
+}
+
+/** Default window position event routine.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+void ui_window_def_pos(ui_window_t *window, pos_event_t *pos)
+{
+	if (window->control != NULL)
+		ui_control_pos_event(window->control, pos);
 }
 
 /** @}

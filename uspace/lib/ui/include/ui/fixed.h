@@ -44,6 +44,7 @@
 
 extern errno_t ui_fixed_create(ui_fixed_t **);
 extern void ui_fixed_destroy(ui_fixed_t *);
+extern ui_control_t *ui_fixed_ctl(ui_fixed_t *);
 extern errno_t ui_fixed_add(ui_fixed_t *, ui_control_t *);
 extern void ui_fixed_remove(ui_fixed_t *, ui_control_t *);
 extern errno_t ui_fixed_paint(ui_fixed_t *);

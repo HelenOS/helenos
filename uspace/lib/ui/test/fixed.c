@@ -82,6 +82,22 @@ PCUT_TEST(destroy_null)
 	ui_fixed_destroy(NULL);
 }
 
+/** ui_fixed_ctl() returns control that has a working virtual destructor */
+PCUT_TEST(ctl)
+{
+	ui_fixed_t *fixed;
+	ui_control_t *control;
+	errno_t rc;
+
+	rc = ui_fixed_create(&fixed);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	control = ui_fixed_ctl(fixed);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	ui_control_destroy(control);
+}
+
 /** ui_fixed_add() / ui_fixed_remove() adds/removes control */
 PCUT_TEST(add_remove)
 {

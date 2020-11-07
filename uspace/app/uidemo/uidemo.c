@@ -33,7 +33,6 @@
  */
 
 #include <gfx/coord.h>
-#include <io/pos_event.h>
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
@@ -42,18 +41,13 @@
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
-#include <ui/wdecor.h>
 #include <ui/window.h>
 #include "uidemo.h"
 
 static void wnd_close(ui_window_t *, void *);
-static errno_t wnd_paint(ui_window_t *, void *);
-static void wnd_pos(ui_window_t *, void *, pos_event_t *pos);
 
 static ui_window_cb_t window_cb = {
-	.close = wnd_close,
-	.paint = wnd_paint,
-	.pos = wnd_pos
+	.close = wnd_close
 };
 
 static void pb_clicked(ui_pbutton_t *, void *);
@@ -72,41 +66,6 @@ static void wnd_close(ui_window_t *window, void *arg)
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
 	ui_quit(demo->ui);
-}
-
-/** Window paint request.
- *
- * @param window Window
- * @param arg Argument (demo)
- * @return EOK on success or an error code
- */
-static errno_t wnd_paint(ui_window_t *window, void *arg)
-{
-	ui_demo_t *demo = (ui_demo_t *) arg;
-	errno_t rc;
-
-	/* Let window paint its background */
-	rc = ui_window_def_paint(window);
-	if (rc != EOK)
-		return rc;
-
-	return ui_fixed_paint(demo->fixed);
-}
-
-/** Window position event.
- *
- * @param window Window
- * @param arg Argument (demo)
- */
-static void wnd_pos(ui_window_t *window, void *arg, pos_event_t *event)
-{
-	ui_demo_t *demo = (ui_demo_t *) arg;
-
-	/* Make sure we don't process events until fully initialized */
-	if (demo->fixed == NULL)
-		return;
-
-	ui_fixed_pos_event(demo->fixed, event);
 }
 
 /** Push button was clicked.
@@ -239,6 +198,8 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
+	ui_window_add(window, ui_fixed_ctl(demo.fixed));
+
 	rc = ui_window_paint(window);
 	if (rc != EOK) {
 		printf("Error painting window.\n");
@@ -247,7 +208,6 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_run(ui);
 
-	ui_fixed_destroy(demo.fixed);
 	ui_window_destroy(window);
 	ui_destroy(ui);
 
