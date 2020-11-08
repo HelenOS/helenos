@@ -46,7 +46,6 @@
 #include <ui/pbutton.h>
 #include "../private/pbutton.h"
 #include "../private/resource.h"
-#include "../private/ui.h"
 
 /** Caption movement when button is pressed down */
 enum {
@@ -72,7 +71,7 @@ ui_control_ops_t ui_pbutton_ops = {
  * @param rpbutton Place to store pointer to new push button
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_pbutton_create(ui_t *ui, const char *caption,
+errno_t ui_pbutton_create(ui_resource_t *resource, const char *caption,
     ui_pbutton_t **rpbutton)
 {
 	ui_pbutton_t *pbutton;
@@ -96,7 +95,7 @@ errno_t ui_pbutton_create(ui_t *ui, const char *caption,
 		return ENOMEM;
 	}
 
-	pbutton->res = ui->resource;
+	pbutton->res = resource;
 	*rpbutton = pbutton;
 	return EOK;
 }

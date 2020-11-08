@@ -45,7 +45,6 @@
 #include <ui/pbutton.h>
 #include <ui/wdecor.h>
 #include "../private/resource.h"
-#include "../private/ui.h"
 #include "../private/wdecor.h"
 
 static void ui_wdecor_btn_clicked(ui_pbutton_t *, void *);
@@ -61,7 +60,7 @@ static ui_pbutton_cb_t ui_wdecor_btn_close_cb = {
  * @param rwdecor Place to store pointer to new window decoration
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_wdecor_create(ui_t *ui, const char *caption,
+errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
     ui_wdecor_t **rwdecor)
 {
 	ui_wdecor_t *wdecor;
@@ -77,7 +76,7 @@ errno_t ui_wdecor_create(ui_t *ui, const char *caption,
 		return ENOMEM;
 	}
 
-	rc = ui_pbutton_create(ui, "X", &wdecor->btn_close);
+	rc = ui_pbutton_create(resource, "X", &wdecor->btn_close);
 	if (rc != EOK) {
 		free(wdecor->caption);
 		free(wdecor);
@@ -87,7 +86,7 @@ errno_t ui_wdecor_create(ui_t *ui, const char *caption,
 	ui_pbutton_set_cb(wdecor->btn_close, &ui_wdecor_btn_close_cb,
 	    (void *)wdecor);
 
-	wdecor->res = ui->resource;
+	wdecor->res = resource;
 	wdecor->active = true;
 	*rwdecor = wdecor;
 	return EOK;

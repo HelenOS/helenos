@@ -834,6 +834,7 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	}
 
 	term->gc = ui_window_get_gc(term->window);
+	term->ui_res = ui_window_get_res(term->window);
 
 	ui_window_set_cb(term->window, &terminal_window_cb, (void *) term);
 

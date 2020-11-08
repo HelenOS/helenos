@@ -41,9 +41,9 @@
 #include <gfx/text.h>
 #include <types/ui/control.h>
 #include <types/ui/label.h>
-#include <types/ui/ui.h>
+#include <types/ui/resource.h>
 
-extern errno_t ui_label_create(ui_t *, const char *,
+extern errno_t ui_label_create(ui_resource_t *, const char *,
     ui_label_t **);
 extern void ui_label_destroy(ui_label_t *);
 extern ui_control_t *ui_label_ctl(ui_label_t *);

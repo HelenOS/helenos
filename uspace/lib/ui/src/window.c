@@ -134,9 +134,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	ui->resource = res;
-
-	rc = ui_wdecor_create(ui, params->caption, &wdecor);
+	rc = ui_wdecor_create(res, params->caption, &wdecor);
 	if (rc != EOK)
 		goto error;
 
@@ -224,27 +222,16 @@ void ui_window_set_cb(ui_window_t *window, ui_window_cb_t *cb, void *arg)
 	window->arg = arg;
 }
 
-/** Get window GC.
- *
- * Return the grapic context of the window. It is relative to the upper-left
- * corner of the window.
- *
- * @param window Window
- * @return Graphic context
- */
+ui_resource_t *ui_window_get_res(ui_window_t *window)
+{
+	return window->res;
+}
+
 gfx_context_t *ui_window_get_gc(ui_window_t *window)
 {
 	return window->gc;
 }
 
-/** Get window application rectangle.
- *
- * Return the window's application rectangle. This is a rectangle covering
- * everything apart from the window frame and title bar.
- *
- * @param window Window
- * @param rect Place to store application rectangle
- */
 void ui_window_get_app_rect(ui_window_t *window, gfx_rect_t *rect)
 {
 	ui_wdecor_geom_t geom;
@@ -253,11 +240,6 @@ void ui_window_get_app_rect(ui_window_t *window, gfx_rect_t *rect)
 	*rect = geom.app_area_rect;
 }
 
-/** Paint window.
- *
- * @param window Window
- * @return EOK on success or an error code
- */
 errno_t ui_window_paint(ui_window_t *window)
 {
 	return ui_window_send_paint(window);

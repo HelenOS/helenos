@@ -40,10 +40,10 @@
 #include <gfx/coord.h>
 #include <io/pos_event.h>
 #include <stdbool.h>
-#include <types/ui/ui.h>
+#include <types/ui/resource.h>
 #include <types/ui/wdecor.h>
 
-extern errno_t ui_wdecor_create(ui_t *, const char *,
+extern errno_t ui_wdecor_create(ui_resource_t *, const char *,
     ui_wdecor_t **);
 extern void ui_wdecor_destroy(ui_wdecor_t *);
 extern void ui_wdecor_set_cb(ui_wdecor_t *, ui_wdecor_cb_t *, void *);

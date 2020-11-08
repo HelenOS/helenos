@@ -47,8 +47,6 @@
 struct ui {
 	/** Display */
 	display_t *display;
-	/** UI resource */
-	struct ui_resource *resource;
 	/** Output owned by UI, clean up when destroying UI */
 	bool myoutput;
 	/** @c true if terminating */
