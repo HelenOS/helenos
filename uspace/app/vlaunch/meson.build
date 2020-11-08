@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gui' ]
+deps = [ 'draw', 'ui' ]
 
 _images = files('gfx/helenos.tga')
 

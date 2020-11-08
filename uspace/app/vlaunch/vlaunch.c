@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -29,36 +30,83 @@
 /** @addtogroup vlaunch
  * @{
  */
-/** @file
+/** @file Launcher
  */
 
-#include <stdbool.h>
 #include <errno.h>
+#include <gfx/coord.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
-#include <task.h>
 #include <str_error.h>
-
-#include <window.h>
-#include <grid.h>
-#include <button.h>
-#include <label.h>
-#include <canvas.h>
+#include <task.h>
 
 #include <draw/surface.h>
 #include <draw/source.h>
 #include <draw/drawctx.h>
 #include <draw/codec.h>
 
+#include <ui/fixed.h>
+#include <ui/image.h>
+#include <ui/label.h>
+#include <ui/pbutton.h>
+#include <ui/resource.h>
+#include <ui/ui.h>
+#include <ui/window.h>
+
 #include "images.h"
+#include "vlaunch.h"
 
 #define NAME  "vlaunch"
 
-#define LOGO_WIDTH   196
-#define LOGO_HEIGHT  66
+static char *display_spec = UI_DISPLAY_DEFAULT;
 
-static char *display_svc = DISPLAY_DEFAULT;
+static void wnd_close(ui_window_t *, void *);
+
+static ui_window_cb_t window_cb = {
+	.close = wnd_close
+};
+
+static void pb_clicked(ui_pbutton_t *, void *);
+
+static ui_pbutton_cb_t pbutton_cb = {
+	.clicked = pb_clicked
+};
+
+static int app_launch(const char *);
+
+/** Window close button was clicked.
+ *
+ * @param window Window
+ * @param arg Argument (launcher)
+ */
+static void wnd_close(ui_window_t *window, void *arg)
+{
+	launcher_t *launcher = (launcher_t *) arg;
+
+	ui_quit(launcher->ui);
+}
+
+/** Push button was clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (launcher)
+ */
+static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	launcher_t *launcher = (launcher_t *) arg;
+
+	if (pbutton == launcher->pb1) {
+		app_launch("/app/terminal");
+	} else if (pbutton == launcher->pb2) {
+		app_launch("/app/vcalc");
+	} else if (pbutton == launcher->pb3) {
+		app_launch("/app/uidemo");
+	} else if (pbutton == launcher->pb4) {
+		app_launch("/app/vlaunch");
+	}
+}
 
 static int app_launch(const char *app)
 {
@@ -66,9 +114,9 @@ static int app_launch(const char *app)
 	task_id_t id;
 	task_wait_t wait;
 
-	if (display_svc != DISPLAY_DEFAULT) {
-		printf("%s: Spawning %s -d %s\n", NAME, app, display_svc);
-		rc = task_spawnl(&id, &wait, app, app, "-d", display_svc, NULL);
+	if (display_spec != UI_DISPLAY_DEFAULT) {
+		printf("%s: Spawning %s -d %s\n", NAME, app, display_spec);
+		rc = task_spawnl(&id, &wait, app, app, "-d", display_spec, NULL);
 	} else {
 		printf("%s: Spawning %s\n", NAME, app);
 		rc = task_spawnl(&id, &wait, app, app, NULL);
@@ -76,7 +124,7 @@ static int app_launch(const char *app)
 
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
-		    display_svc != DISPLAY_DEFAULT ? display_svc :
+		    display_spec != DISPLAY_DEFAULT ? display_spec :
 		    "<default>", str_error(rc));
 		return -1;
 	}
@@ -93,20 +141,27 @@ static int app_launch(const char *app)
 	return retval;
 }
 
-static void on_btn_click(widget_t *widget, void *data)
-{
-	const char *app = (const char *) widget_get_data(widget);
-	app_launch(app);
-}
-
 static void print_syntax(void)
 {
-	printf("Syntax: %s [-d <display>]\n", NAME);
+	printf("Syntax: %s [-d <display-spec>]\n", NAME);
 }
 
 int main(int argc, char *argv[])
 {
 	int i;
+	launcher_t launcher;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_resource_t *ui_res;
+	gfx_bitmap_params_t logo_params;
+	gfx_bitmap_t *logo_bmp;
+	gfx_bitmap_alloc_t alloc;
+	gfx_context_t *gc;
+	surface_coord_t w, h;
+	gfx_rect_t logo_rect;
+	gfx_rect_t rect;
+	errno_t rc;
 
 	i = 1;
 	while (i < argc) {
@@ -118,7 +173,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 
-			display_svc = argv[i++];
+			display_spec = argv[i++];
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -126,67 +181,194 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	surface_t *logo = decode_tga((void *) helenos_tga, helenos_tga_size, 0);
+	surface_t *logo = decode_tga((void *) helenos_tga, helenos_tga_size,
+	    SURFACE_FLAG_SHARED);
 	if (!logo) {
 		printf("Unable to decode logo.\n");
 		return 1;
 	}
 
-	window_t *main_window = window_open(display_svc, NULL,
-	    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, "vlaunch");
-	if (!main_window) {
-		printf("Cannot open main window.\n");
+	rc = ui_create(display_spec, &ui);
+	if (rc != EOK) {
+		printf("Error creating UI on display %s.\n", display_spec);
+		return rc;
+	}
+
+	ui_wnd_params_init(&params);
+	params.caption = "Launcher";
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 210;
+	params.rect.p1.y = 300;
+
+	memset((void *) &launcher, 0, sizeof(launcher));
+	launcher.ui = ui;
+
+	rc = ui_window_create(ui, &params, &window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		return rc;
+	}
+
+	ui_window_set_cb(window, &window_cb, (void *) &launcher);
+	launcher.window = window;
+
+	ui_res = ui_window_get_res(window);
+	gc = ui_window_get_gc(window);
+
+	surface_get_resolution(logo, &w, &h);
+	gfx_bitmap_params_init(&logo_params);
+	logo_params.rect.p1.x = w;
+	logo_params.rect.p1.y = h;
+	logo_rect = logo_params.rect;
+
+	alloc.pitch = sizeof(uint32_t) * w;
+	alloc.off0 = 0;
+	alloc.pixels = surface_direct_access(logo);
+
+	rc = gfx_bitmap_create(gc, &logo_params, &alloc, &logo_bmp);
+	if (rc  != EOK) {
+		printf("Error creating bitmap.\n");
 		return 1;
 	}
 
-	pixel_t grd_bg = PIXEL(255, 255, 255, 255);
-
-	pixel_t btn_bg = PIXEL(255, 255, 255, 255);
-	pixel_t btn_fg = PIXEL(255, 186, 186, 186);
-	pixel_t btn_text = PIXEL(255, 0, 0, 0);
-
-	pixel_t lbl_bg = PIXEL(255, 255, 255, 255);
-	pixel_t lbl_text = PIXEL(255, 0, 0, 0);
-
-	canvas_t *logo_canvas = create_canvas(NULL, NULL, LOGO_WIDTH, LOGO_HEIGHT,
-	    logo);
-	label_t *lbl_caption = create_label(NULL, NULL, "Launch application:",
-	    16, lbl_bg, lbl_text);
-	button_t *btn_vterm = create_button(NULL, "/app/vterm", "vterm",
-	    16, btn_bg, btn_fg, btn_text);
-	button_t *btn_vcalc = create_button(NULL, "/app/vcalc", "vcalc",
-	    16, btn_bg, btn_fg, btn_text);
-	button_t *btn_vdemo = create_button(NULL, "/app/vdemo", "vdemo",
-	    16, btn_bg, btn_fg, btn_text);
-	button_t *btn_vlaunch = create_button(NULL, "/app/vlaunch", "vlaunch",
-	    16, btn_bg, btn_fg, btn_text);
-	grid_t *grid = create_grid(window_root(main_window), NULL, 1, 6, grd_bg);
-
-	if ((!logo_canvas) || (!lbl_caption) || (!btn_vterm) ||
-	    (!btn_vcalc) || (!btn_vdemo) || (!btn_vlaunch) || (!grid)) {
-		window_close(main_window);
-		printf("Cannot create widgets.\n");
-		return 1;
+	rc = ui_fixed_create(&launcher.fixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		return rc;
 	}
 
-	sig_connect(&btn_vterm->clicked, &btn_vterm->widget, on_btn_click);
-	sig_connect(&btn_vcalc->clicked, &btn_vcalc->widget, on_btn_click);
-	sig_connect(&btn_vdemo->clicked, &btn_vdemo->widget, on_btn_click);
-	sig_connect(&btn_vlaunch->clicked, &btn_vlaunch->widget, on_btn_click);
+	rc = ui_image_create(ui_res, logo_bmp, &logo_rect, &launcher.image);
+	if (rc != EOK) {
+		printf("Error creating label.\n");
+		return rc;
+	}
 
-	grid->add(grid, &logo_canvas->widget, 0, 0, 1, 1);
-	grid->add(grid, &lbl_caption->widget, 0, 1, 1, 1);
-	grid->add(grid, &btn_vterm->widget, 0, 2, 1, 1);
-	grid->add(grid, &btn_vcalc->widget, 0, 3, 1, 1);
-	grid->add(grid, &btn_vdemo->widget, 0, 4, 1, 1);
-	grid->add(grid, &btn_vlaunch->widget, 0, 5, 1, 1);
+	rect.p0.x = 5;
+	rect.p0.y = 32;
+	rect.p1.x = 5 + w;
+	rect.p1.y = 32 + h;
+	ui_image_set_rect(launcher.image, &rect);
 
-	window_resize(main_window, 0, 0, 210, 164 + LOGO_HEIGHT,
-	    WINDOW_PLACEMENT_RIGHT | WINDOW_PLACEMENT_TOP);
-	window_exec(main_window);
+	rc = ui_fixed_add(launcher.fixed, ui_image_ctl(launcher.image));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+	rc = ui_label_create(ui_res, "Launch application", &launcher.label);
+	if (rc != EOK) {
+		printf("Error creating label.\n");
+		return rc;
+	}
 
-	task_retval(0);
-	async_manager();
+	rect.p0.x = 60;
+	rect.p0.y = 107;
+	rect.p1.x = 160;
+	rect.p1.y = 120;
+	ui_label_set_rect(launcher.label, &rect);
+	ui_label_set_halign(launcher.label, gfx_halign_center);
+
+	rc = ui_fixed_add(launcher.fixed, ui_label_ctl(launcher.label));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_pbutton_create(ui_res, "Terminal", &launcher.pb1);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_pbutton_set_cb(launcher.pb1, &pbutton_cb, (void *) &launcher);
+
+	rect.p0.x = 15;
+	rect.p0.y = 130;
+	rect.p1.x = 190;
+	rect.p1.y = 158;
+	ui_pbutton_set_rect(launcher.pb1, &rect);
+
+	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb1));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_pbutton_create(ui_res, "Calculator", &launcher.pb2);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_pbutton_set_cb(launcher.pb2, &pbutton_cb, (void *) &launcher);
+
+	rect.p0.x = 15;
+	rect.p0.y = 170;
+	rect.p1.x = 190;
+	rect.p1.y = 198;
+	ui_pbutton_set_rect(launcher.pb2, &rect);
+
+	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb2));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_pbutton_create(ui_res, "UI Demo", &launcher.pb3);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_pbutton_set_cb(launcher.pb3, &pbutton_cb, (void *) &launcher);
+
+	rect.p0.x = 15;
+	rect.p0.y = 210;
+	rect.p1.x = 190;
+	rect.p1.y = 238;
+	ui_pbutton_set_rect(launcher.pb3, &rect);
+
+	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb3));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_pbutton_create(ui_res, "Launcher", &launcher.pb4);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_pbutton_set_cb(launcher.pb4, &pbutton_cb, (void *) &launcher);
+
+	rect.p0.x = 15;
+	rect.p0.y = 250;
+	rect.p1.x = 190;
+	rect.p1.y = 278;
+	ui_pbutton_set_rect(launcher.pb4, &rect);
+
+	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb4));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	ui_window_add(window, ui_fixed_ctl(launcher.fixed));
+
+	(void) ui_res;
+	(void) app_launch;
+
+	rc = ui_window_paint(window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		return rc;
+	}
+
+	ui_run(ui);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
 
 	return 0;
 }
