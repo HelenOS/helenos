@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup vlaunch
+/** @addtogroup launcher
  * @{
  */
 /** @file Launcher
@@ -56,9 +56,9 @@
 #include <ui/window.h>
 
 #include "images.h"
-#include "vlaunch.h"
+#include "launcher.h"
 
-#define NAME  "vlaunch"
+#define NAME  "launcher"
 
 static char *display_spec = UI_DISPLAY_DEFAULT;
 
@@ -104,7 +104,7 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	} else if (pbutton == launcher->pb3) {
 		app_launch("/app/uidemo");
 	} else if (pbutton == launcher->pb4) {
-		app_launch("/app/vlaunch");
+		app_launch("/app/launcher");
 	}
 }
 

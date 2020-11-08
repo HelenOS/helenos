@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup vlaunch
+/** @addtogroup launcher
  * @{
  */
 /**
  * @file Launcher
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef LAUNCHER_H
+#define LAUNCHER_H
 
 #include <display.h>
 #include <ui/fixed.h>

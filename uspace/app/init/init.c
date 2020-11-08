@@ -471,7 +471,7 @@ int main(int argc, char *argv[])
 		rc = display_server();
 		if (rc == EOK) {
 			app_start("/app/barber");
-			app_start("/app/vlaunch");
+			app_start("/app/launcher");
 			app_start("/app/vterm");
 		}
 	}
