@@ -78,7 +78,7 @@ typedef struct {
 	bool clicked;
 } test_cb_resp_t;
 
-/** Create and destroy button */
+/** Create and destroy label */
 PCUT_TEST(create_destroy)
 {
 	ui_label_t *label = NULL;
@@ -113,7 +113,7 @@ PCUT_TEST(ctl)
 	ui_control_destroy(control);
 }
 
-/** Set button rectangle sets internal field */
+/** Set label rectangle sets internal field */
 PCUT_TEST(set_rect)
 {
 	ui_label_t *label;
@@ -137,7 +137,7 @@ PCUT_TEST(set_rect)
 	ui_label_destroy(label);
 }
 
-/** Set button text horizontal alignment sets internal field */
+/** Set label text horizontal alignment sets internal field */
 PCUT_TEST(set_halign)
 {
 	ui_label_t *label;
@@ -154,7 +154,7 @@ PCUT_TEST(set_halign)
 	ui_label_destroy(label);
 }
 
-/** Set button rectangle sets internal field */
+/** Set label rectangle sets internal field */
 PCUT_TEST(set_text)
 {
 	ui_label_t *label;
@@ -178,7 +178,7 @@ PCUT_TEST(set_text)
 	ui_label_destroy(label);
 }
 
-/** Paint button */
+/** Paint label */
 PCUT_TEST(paint)
 {
 	errno_t rc;

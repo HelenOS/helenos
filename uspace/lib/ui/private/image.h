@@ -26,19 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Image structure
+ *
+ */
 
-PCUT_INIT;
+#ifndef _UI_PRIVATE_IMAGE_H
+#define _UI_PRIVATE_IMAGE_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <gfx/bitmap.h>
+#include <gfx/coord.h>
 
-PCUT_MAIN();
+/** Actual structure of image.
+ *
+ * This is private to libui.
+ */
+struct ui_image {
+	/** Base control object */
+	struct ui_control *control;
+	/** UI resource */
+	struct ui_resource *res;
+	/** Image rectangle */
+	gfx_rect_t rect;
+	/** Bitmap */
+	gfx_bitmap_t *bitmap;
+	gfx_rect_t brect;
+};
+
+#endif
+
+/** @}
+ */

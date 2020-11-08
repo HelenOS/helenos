@@ -26,19 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Image
+ */
 
-PCUT_INIT;
+#ifndef _UI_IMAGE_H
+#define _UI_IMAGE_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <errno.h>
+#include <gfx/bitmap.h>
+#include <gfx/coord.h>
+#include <types/ui/control.h>
+#include <types/ui/image.h>
+#include <types/ui/resource.h>
 
-PCUT_MAIN();
+extern errno_t ui_image_create(ui_resource_t *, gfx_bitmap_t *, gfx_rect_t *,
+    ui_image_t **);
+extern void ui_image_destroy(ui_image_t *);
+extern ui_control_t *ui_image_ctl(ui_image_t *);
+extern void ui_image_set_rect(ui_image_t *, gfx_rect_t *);
+extern errno_t ui_image_paint(ui_image_t *);
+
+#endif
+
+/** @}
+ */

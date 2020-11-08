@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'display', 'ui' ]
+deps = [ 'ui' ]
 src = files(
 	'uidemo.c',
 )

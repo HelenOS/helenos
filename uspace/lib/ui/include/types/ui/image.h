@@ -26,19 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Image
+ */
 
-PCUT_INIT;
+#ifndef _UI_TYPES_IMAGE_H
+#define _UI_TYPES_IMAGE_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+struct ui_image;
+typedef struct ui_image ui_image_t;
 
-PCUT_MAIN();
+#endif
+
+/** @}
+ */
