@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012 Petr Koupy
+# Copyright (c) 2020 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,4 +27,4 @@
 #
 
 deps = [ 'ui' ]
-src = files('vcalc.c')
+src = files('calculator.c')

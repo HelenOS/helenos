@@ -100,7 +100,7 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	if (pbutton == launcher->pb1) {
 		app_launch("/app/terminal");
 	} else if (pbutton == launcher->pb2) {
-		app_launch("/app/vcalc");
+		app_launch("/app/calculator");
 	} else if (pbutton == launcher->pb3) {
 		app_launch("/app/uidemo");
 	} else if (pbutton == launcher->pb4) {

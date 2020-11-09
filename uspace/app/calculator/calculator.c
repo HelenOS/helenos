@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup vcalc
+/** @addtogroup calculator
  * @{
  */
 /** @file
@@ -47,7 +47,7 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 
-#define NAME  "vcalc"
+#define NAME  "calculator"
 
 #define NULL_DISPLAY  "0"
 
