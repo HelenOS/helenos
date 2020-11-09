@@ -86,6 +86,11 @@ struct ui_resource {
 	gfx_color_t *tbar_inact_bg_color;
 	/** Inactive titlebar text color */
 	gfx_color_t *tbar_inact_text_color;
+
+	/** Entry (text entry, checkbox, radio button) foreground color */
+	gfx_color_t *entry_fg_color;
+	/** Entry (text entry, checkbox, raido button) background color */
+	gfx_color_t *entry_bg_color;
 };
 
 #endif

@@ -26,20 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Text entry structure
+ *
+ */
 
-PCUT_INIT;
+#ifndef _UI_PRIVATE_ENTRY_H
+#define _UI_PRIVATE_ENTRY_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <gfx/coord.h>
+#include <gfx/text.h>
 
-PCUT_MAIN();
+/** Actual structure of text entry.
+ *
+ * This is private to libui.
+ */
+struct ui_entry {
+	/** Base control object */
+	struct ui_control *control;
+	/** UI resource */
+	struct ui_resource *res;
+	/** Entry rectangle */
+	gfx_rect_t rect;
+	/** Horizontal alignment */
+	gfx_halign_t halign;
+	/** Text */
+	char *text;
+};
+
+#endif
+
+/** @}
+ */

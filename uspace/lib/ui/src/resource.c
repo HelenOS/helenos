@@ -73,6 +73,8 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	gfx_color_t *tbar_inact_bg_color = NULL;
 	gfx_color_t *tbar_act_text_color = NULL;
 	gfx_color_t *tbar_inact_text_color = NULL;
+	gfx_color_t *entry_fg_color = NULL;
+	gfx_color_t *entry_bg_color = NULL;
 	errno_t rc;
 
 	resource = calloc(1, sizeof(ui_resource_t));
@@ -158,6 +160,14 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &entry_fg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &entry_bg_color);
+	if (rc != EOK)
+		goto error;
+
 	resource->gc = gc;
 	resource->tface = tface;
 	resource->font = font;
@@ -179,6 +189,9 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	resource->tbar_act_text_color = tbar_act_text_color;
 	resource->tbar_inact_bg_color = tbar_inact_bg_color;
 	resource->tbar_inact_text_color = tbar_inact_text_color;
+
+	resource->entry_fg_color = entry_fg_color;
+	resource->entry_bg_color = entry_bg_color;
 
 	*rresource = resource;
 	return EOK;
@@ -216,6 +229,11 @@ error:
 	if (tbar_inact_text_color != NULL)
 		gfx_color_delete(tbar_inact_text_color);
 
+	if (entry_fg_color != NULL)
+		gfx_color_delete(entry_fg_color);
+	if (entry_bg_color != NULL)
+		gfx_color_delete(entry_bg_color);
+
 	if (tface != NULL)
 		gfx_typeface_destroy(tface);
 	free(resource);
@@ -248,6 +266,9 @@ void ui_resource_destroy(ui_resource_t *resource)
 	gfx_color_delete(resource->tbar_act_text_color);
 	gfx_color_delete(resource->tbar_inact_bg_color);
 	gfx_color_delete(resource->tbar_inact_text_color);
+
+	gfx_color_delete(resource->entry_fg_color);
+	gfx_color_delete(resource->entry_bg_color);
 
 	gfx_font_close(resource->font);
 	gfx_typeface_destroy(resource->tface);

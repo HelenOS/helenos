@@ -26,20 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Text entry
+ */
 
-PCUT_INIT;
+#ifndef _UI_ENTRY_H
+#define _UI_ENTRY_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <errno.h>
+#include <gfx/coord.h>
+#include <gfx/text.h>
+#include <types/ui/control.h>
+#include <types/ui/entry.h>
+#include <types/ui/resource.h>
 
-PCUT_MAIN();
+extern errno_t ui_entry_create(ui_resource_t *, const char *,
+    ui_entry_t **);
+extern void ui_entry_destroy(ui_entry_t *);
+extern ui_control_t *ui_entry_ctl(ui_entry_t *);
+extern void ui_entry_set_rect(ui_entry_t *, gfx_rect_t *);
+extern void ui_entry_set_halign(ui_entry_t *, gfx_halign_t);
+extern errno_t ui_entry_set_text(ui_entry_t *, const char *);
+extern errno_t ui_entry_paint(ui_entry_t *);
+
+#endif
+
+/** @}
+ */

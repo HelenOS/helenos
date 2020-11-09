@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
-#include <ui/label.h>
+#include <ui/entry.h>
 #include <ui/fixed.h>
 #include <ui/pbutton.h>
 #include <ui/ui.h>
@@ -132,7 +132,7 @@ static void wnd_close(ui_window_t *window, void *arg)
 }
 
 static char *expr = NULL;
-static ui_label_t *display;
+static ui_entry_t *display;
 
 static bool is_digit(char c)
 {
@@ -349,11 +349,11 @@ static void evaluate(list_t *stack, int64_t *value, parser_state_t *state,
 static void display_update(void)
 {
 	if (expr != NULL)
-		(void) ui_label_set_text(display, (void *) expr);
+		(void) ui_entry_set_text(display, (void *) expr);
 	else
-		(void) ui_label_set_text(display, (void *) NULL_DISPLAY);
+		(void) ui_entry_set_text(display, (void *) NULL_DISPLAY);
 
-	ui_label_paint(display);
+	ui_entry_paint(display);
 }
 
 static void display_error(error_type_t error_type)
@@ -365,20 +365,20 @@ static void display_error(error_type_t error_type)
 
 	switch (error_type) {
 	case ERROR_SYNTAX:
-		(void) ui_label_set_text(display,
+		(void) ui_entry_set_text(display,
 		    (void *) SYNTAX_ERROR_DISPLAY);
 		break;
 	case ERROR_NUMERIC:
-		(void) ui_label_set_text(display,
+		(void) ui_entry_set_text(display,
 		    (void *) NUMERIC_ERROR_DISPLAY);
 		break;
 	default:
-		(void) ui_label_set_text(display,
+		(void) ui_entry_set_text(display,
 		    (void *) UNKNOWN_ERROR_DISPLAY);
 		break;
 	}
 
-	ui_label_paint(display);
+	ui_entry_paint(display);
 }
 
 static void calc_pb_clicked(ui_pbutton_t *pbutton, void *arg)
@@ -617,20 +617,20 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_label_create(ui_res, NULL_DISPLAY, &display);
+	rc = ui_entry_create(ui_res, NULL_DISPLAY, &display);
 	if (rc != EOK) {
-		printf("Error creating label.\n");
+		printf("Error creating text lentry.\n");
 		return rc;
 	}
 
 	rect.p0.x = 15;
-	rect.p0.y = 50;
+	rect.p0.y = 45;
 	rect.p1.x = 235;
 	rect.p1.y = 70;
-	ui_label_set_rect(display, &rect);
-	ui_label_set_halign(display, gfx_halign_right);
+	ui_entry_set_rect(display, &rect);
+	ui_entry_set_halign(display, gfx_halign_right);
 
-	rc = ui_fixed_add(fixed, ui_label_ctl(display));
+	rc = ui_fixed_add(fixed, ui_entry_ctl(display));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
