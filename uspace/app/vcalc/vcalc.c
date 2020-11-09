@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2016 Martin Decky
  * All rights reserved.
  *
@@ -35,26 +36,26 @@
  *
  */
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <io/pixel.h>
-#include <task.h>
-#include <window.h>
-#include <grid.h>
-#include <button.h>
-#include <label.h>
-#include <ctype.h>
-#include <stdlib.h>
 #include <str.h>
+#include <ui/label.h>
+#include <ui/fixed.h>
+#include <ui/pbutton.h>
+#include <ui/ui.h>
+#include <ui/window.h>
 
 #define NAME  "vcalc"
 
-#define NULL_DISPLAY  "."
+#define NULL_DISPLAY  "0"
 
-#define SYNTAX_ERROR_DISPLAY   "syntax error"
-#define NUMERIC_ERROR_DISPLAY  "numerical error"
-#define UNKNOWN_ERROR_DISPLAY  "unknown error"
+#define SYNTAX_ERROR_DISPLAY   "Syntax error"
+#define NUMERIC_ERROR_DISPLAY  "Numerical error"
+#define UNKNOWN_ERROR_DISPLAY  "Unknown error"
+
+#define EXPR_MAX_LEN 22
 
 typedef enum {
 	STATE_INITIAL = 0,
@@ -92,8 +93,46 @@ typedef struct {
 	} data;
 } stack_item_t;
 
+typedef struct {
+	ui_t *ui;
+} calc_t;
+
+static void calc_pb_clicked(ui_pbutton_t *, void *);
+static void calc_eval_clicked(ui_pbutton_t *, void *);
+static void calc_clear_clicked(ui_pbutton_t *, void *);
+
+static ui_pbutton_cb_t calc_pbutton_cb = {
+	.clicked = calc_pb_clicked
+};
+
+static ui_pbutton_cb_t calc_clear_cb = {
+	.clicked = calc_clear_clicked
+};
+
+static ui_pbutton_cb_t calc_eval_cb = {
+	.clicked = calc_eval_clicked
+};
+
+static void wnd_close(ui_window_t *, void *);
+
+static ui_window_cb_t window_cb = {
+	.close = wnd_close
+};
+
+/** Window close button was clicked.
+ *
+ * @param window Window
+ * @param arg Argument (calc_t *)
+ */
+static void wnd_close(ui_window_t *window, void *arg)
+{
+	calc_t *calc = (calc_t *) arg;
+
+	ui_quit(calc->ui);
+}
+
 static char *expr = NULL;
-static label_t *display;
+static ui_label_t *display;
 
 static bool is_digit(char c)
 {
@@ -310,9 +349,11 @@ static void evaluate(list_t *stack, int64_t *value, parser_state_t *state,
 static void display_update(void)
 {
 	if (expr != NULL)
-		display->rewrite(&display->widget, (void *) expr);
+		(void) ui_label_set_text(display, (void *) expr);
 	else
-		display->rewrite(&display->widget, (void *) NULL_DISPLAY);
+		(void) ui_label_set_text(display, (void *) NULL_DISPLAY);
+
+	ui_label_paint(display);
 }
 
 static void display_error(error_type_t error_type)
@@ -324,33 +365,42 @@ static void display_error(error_type_t error_type)
 
 	switch (error_type) {
 	case ERROR_SYNTAX:
-		display->rewrite(&display->widget, (void *) SYNTAX_ERROR_DISPLAY);
+		(void) ui_label_set_text(display,
+		    (void *) SYNTAX_ERROR_DISPLAY);
 		break;
 	case ERROR_NUMERIC:
-		display->rewrite(&display->widget, (void *) NUMERIC_ERROR_DISPLAY);
+		(void) ui_label_set_text(display,
+		    (void *) NUMERIC_ERROR_DISPLAY);
 		break;
 	default:
-		display->rewrite(&display->widget, (void *) UNKNOWN_ERROR_DISPLAY);
+		(void) ui_label_set_text(display,
+		    (void *) UNKNOWN_ERROR_DISPLAY);
+		break;
 	}
+
+	ui_label_paint(display);
 }
 
-static void on_btn_click(widget_t *widget, void *data)
+static void calc_pb_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	const char *subexpr = (const char *) widget_get_data(widget);
+	const char *subexpr = (const char *) arg;
 
 	if (expr != NULL) {
 		char *new_expr;
 
-		asprintf(&new_expr, "%s%s", expr, subexpr);
-		free(expr);
-		expr = new_expr;
-	} else
+		if (str_length(expr) < EXPR_MAX_LEN) {
+			asprintf(&new_expr, "%s%s", expr, subexpr);
+			free(expr);
+			expr = new_expr;
+		}
+	} else {
 		expr = str_dup(subexpr);
+	}
 
 	display_update();
 }
 
-static void on_c_click(widget_t *widget, void *data)
+static void calc_clear_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	if (expr != NULL) {
 		free(expr);
@@ -360,7 +410,7 @@ static void on_c_click(widget_t *widget, void *data)
 	display_update();
 }
 
-static void on_eval_click(widget_t *widget, void *data)
+static void calc_eval_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	if (expr == NULL)
 		return;
@@ -467,14 +517,56 @@ static void on_eval_click(widget_t *widget, void *data)
 	display_update();
 }
 
+static errno_t calc_button_create(ui_resource_t *ui_res, ui_fixed_t *fixed,
+    int x, int y, const char *text, ui_pbutton_cb_t *cb, void *arg,
+    ui_pbutton_t **rbutton)
+{
+	ui_pbutton_t *pb;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_pbutton_create(ui_res, text, &pb);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_pbutton_set_cb(pb, cb, arg);
+
+	rect.p0.x = 10 + 60 * x;
+	rect.p0.y = 90 + 45 * y;
+	rect.p1.x = 60 + 60 * x;
+	rect.p1.y = 125 + 45 * y;
+	ui_pbutton_set_rect(pb, &rect);
+
+	rc = ui_fixed_add(fixed, ui_pbutton_ctl(pb));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	if (rbutton != NULL)
+		*rbutton = pb;
+	return EOK;
+}
+
 static void print_syntax(void)
 {
-	printf("Syntax: %s [-d <display>]\n", NAME);
+	printf("Syntax: %s [-d <display-spec>]\n", NAME);
 }
 
 int main(int argc, char *argv[])
 {
-	const char *display_svc = DISPLAY_DEFAULT;
+	const char *display_spec = UI_DISPLAY_DEFAULT;
+	ui_t *ui;
+	ui_resource_t *ui_res;
+	ui_fixed_t *fixed;
+	ui_wnd_params_t params;
+	ui_window_t *window;
+	ui_pbutton_t *pb_eval;
+	gfx_rect_t rect;
+	calc_t calc;
+	errno_t rc;
 	int i;
 
 	i = 1;
@@ -487,7 +579,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 
-			display_svc = argv[i++];
+			display_spec = argv[i++];
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -495,115 +587,148 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	window_t *main_window = window_open(display_svc, NULL,
-	    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, NAME);
-	if (!main_window) {
-		printf("%s: Cannot open main window.\n", NAME);
-		return 2;
+	rc = ui_create(display_spec, &ui);
+	if (rc != EOK) {
+		printf("Error creating UI on display %s.\n", display_spec);
+		return rc;
 	}
 
-	pixel_t grd_bg = PIXEL(255, 240, 240, 240);
+	ui_wnd_params_init(&params);
+	params.caption = "Calculator";
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 250;
+	params.rect.p1.y = 270;
 
-	pixel_t btn_bg = PIXEL(255, 0, 0, 0);
-	pixel_t btn_fg = PIXEL(200, 200, 200, 200);
-
-	pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
-	pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
-
-	grid_t *grid = create_grid(window_root(main_window), NULL, 4, 5, grd_bg);
-
-	display = create_label(NULL, NULL, NULL_DISPLAY, 16, lbl_bg, lbl_fg);
-
-	button_t *btn_1 = create_button(NULL, "1", "1", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_2 = create_button(NULL, "2", "2", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_3 = create_button(NULL, "3", "3", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_4 = create_button(NULL, "4", "4", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_5 = create_button(NULL, "5", "5", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_6 = create_button(NULL, "6", "6", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_7 = create_button(NULL, "7", "7", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_8 = create_button(NULL, "8", "8", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_9 = create_button(NULL, "9", "9", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_0 = create_button(NULL, "0", "0", 16, btn_bg, btn_fg,
-	    lbl_fg);
-
-	button_t *btn_add = create_button(NULL, "+", "+", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_sub = create_button(NULL, "-", "-", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_mul = create_button(NULL, "*", "*", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_div = create_button(NULL, "/", "/", 16, btn_bg, btn_fg,
-	    lbl_fg);
-
-	button_t *btn_eval = create_button(NULL, NULL, "=", 16, btn_bg, btn_fg,
-	    lbl_fg);
-	button_t *btn_c = create_button(NULL, NULL, "C", 16, btn_bg, btn_fg,
-	    lbl_fg);
-
-	if ((!grid) || (!display) || (!btn_1) || (!btn_2) || (!btn_3) ||
-	    (!btn_4) || (!btn_5) || (!btn_6) || (!btn_7) || (!btn_8) ||
-	    (!btn_9) || (!btn_0) || (!btn_add) || (!btn_sub) || (!btn_mul) ||
-	    (!btn_div) || (!btn_eval) || (!btn_c)) {
-		window_close(main_window);
-		printf("%s: Cannot create widgets.\n", NAME);
-		return 3;
+	rc = ui_window_create(ui, &params, &window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		return rc;
 	}
 
-	sig_connect(&btn_1->clicked, &btn_1->widget, on_btn_click);
-	sig_connect(&btn_2->clicked, &btn_2->widget, on_btn_click);
-	sig_connect(&btn_3->clicked, &btn_3->widget, on_btn_click);
-	sig_connect(&btn_4->clicked, &btn_4->widget, on_btn_click);
-	sig_connect(&btn_5->clicked, &btn_5->widget, on_btn_click);
-	sig_connect(&btn_6->clicked, &btn_6->widget, on_btn_click);
-	sig_connect(&btn_7->clicked, &btn_7->widget, on_btn_click);
-	sig_connect(&btn_8->clicked, &btn_8->widget, on_btn_click);
-	sig_connect(&btn_9->clicked, &btn_9->widget, on_btn_click);
-	sig_connect(&btn_0->clicked, &btn_0->widget, on_btn_click);
+	ui_window_set_cb(window, &window_cb, (void *) &calc);
+	calc.ui = ui;
 
-	sig_connect(&btn_add->clicked, &btn_add->widget, on_btn_click);
-	sig_connect(&btn_sub->clicked, &btn_sub->widget, on_btn_click);
-	sig_connect(&btn_div->clicked, &btn_div->widget, on_btn_click);
-	sig_connect(&btn_mul->clicked, &btn_mul->widget, on_btn_click);
+	ui_res = ui_window_get_res(window);
 
-	sig_connect(&btn_eval->clicked, &btn_eval->widget, on_eval_click);
-	sig_connect(&btn_c->clicked, &btn_c->widget, on_c_click);
+	rc = ui_fixed_create(&fixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		return rc;
+	}
 
-	grid->add(grid, &display->widget, 0, 0, 4, 1);
+	rc = ui_label_create(ui_res, NULL_DISPLAY, &display);
+	if (rc != EOK) {
+		printf("Error creating label.\n");
+		return rc;
+	}
 
-	grid->add(grid, &btn_1->widget, 0, 1, 1, 1);
-	grid->add(grid, &btn_2->widget, 1, 1, 1, 1);
-	grid->add(grid, &btn_3->widget, 2, 1, 1, 1);
-	grid->add(grid, &btn_add->widget, 3, 1, 1, 1);
+	rect.p0.x = 15;
+	rect.p0.y = 50;
+	rect.p1.x = 235;
+	rect.p1.y = 70;
+	ui_label_set_rect(display, &rect);
+	ui_label_set_halign(display, gfx_halign_right);
 
-	grid->add(grid, &btn_4->widget, 0, 2, 1, 1);
-	grid->add(grid, &btn_5->widget, 1, 2, 1, 1);
-	grid->add(grid, &btn_6->widget, 2, 2, 1, 1);
-	grid->add(grid, &btn_sub->widget, 3, 2, 1, 1);
+	rc = ui_fixed_add(fixed, ui_label_ctl(display));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
 
-	grid->add(grid, &btn_7->widget, 0, 3, 1, 1);
-	grid->add(grid, &btn_8->widget, 1, 3, 1, 1);
-	grid->add(grid, &btn_9->widget, 2, 3, 1, 1);
-	grid->add(grid, &btn_mul->widget, 3, 3, 1, 1);
+	rc = calc_button_create(ui_res, fixed, 0, 0, "7", &calc_pbutton_cb,
+	    (void *) "7", NULL);
+	if (rc != EOK)
+		return rc;
 
-	grid->add(grid, &btn_c->widget, 0, 4, 1, 1);
-	grid->add(grid, &btn_0->widget, 1, 4, 1, 1);
-	grid->add(grid, &btn_eval->widget, 2, 4, 1, 1);
-	grid->add(grid, &btn_div->widget, 3, 4, 1, 1);
+	rc = calc_button_create(ui_res, fixed, 1, 0, "8", &calc_pbutton_cb,
+	    (void *) "8", NULL);
+	if (rc != EOK)
+		return rc;
 
-	window_resize(main_window, 0, 0, 400, 400, WINDOW_PLACEMENT_ANY);
-	window_exec(main_window);
+	rc = calc_button_create(ui_res, fixed, 2, 0, "9", &calc_pbutton_cb,
+	    (void *) "9", NULL);
+	if (rc != EOK)
+		return rc;
 
-	task_retval(0);
-	async_manager();
+	rc = calc_button_create(ui_res, fixed, 3, 0, "/", &calc_pbutton_cb,
+	    (void *) "/", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 0, 1, "4", &calc_pbutton_cb,
+	    (void *) "4", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 1, 1, "5", &calc_pbutton_cb,
+	    (void *) "5", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 2, 1, "6", &calc_pbutton_cb,
+	    (void *) "6", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 3, 1, "*", &calc_pbutton_cb,
+	    (void *) "*", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 0, 2, "1", &calc_pbutton_cb,
+	    (void *) "1", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 1, 2, "2", &calc_pbutton_cb,
+	    (void *) "2", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 2, 2, "3", &calc_pbutton_cb,
+	    (void *) "3", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 3, 2, "-", &calc_pbutton_cb,
+	    (void *) "-", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 0, 3, "0", &calc_pbutton_cb,
+	    (void *) "0", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 1, 3, "C", &calc_clear_cb,
+	    (void *) "C", NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 2, 3, "=", &calc_eval_cb,
+	    (void *) "=", &pb_eval);
+	if (rc != EOK)
+		return rc;
+
+	rc = calc_button_create(ui_res, fixed, 3, 3, "+", &calc_pbutton_cb,
+	    (void *) "+", NULL);
+	if (rc != EOK)
+		return rc;
+
+	ui_pbutton_set_default(pb_eval, true);
+
+	ui_window_add(window, ui_fixed_ctl(fixed));
+
+	rc = ui_window_paint(window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		return rc;
+	}
+
+	ui_run(ui);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 
 	return 0;
 }

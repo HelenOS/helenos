@@ -185,7 +185,7 @@ errno_t ui_label_paint(ui_label_t *label)
 		pos.x = (label->rect.p0.x + label->rect.p1.x) / 2;
 		break;
 	case gfx_halign_right:
-		pos.y = label->rect.p1.x;
+		pos.x = label->rect.p1.x;
 		break;
 	}
 
