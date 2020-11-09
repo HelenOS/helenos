@@ -37,6 +37,7 @@
  */
 
 #include <ctype.h>
+#include <io/kbd_event.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,6 +96,22 @@ typedef struct {
 
 typedef struct {
 	ui_t *ui;
+	ui_pbutton_t *btn_eval;
+	ui_pbutton_t *btn_clear;
+	ui_pbutton_t *btn_add;
+	ui_pbutton_t *btn_sub;
+	ui_pbutton_t *btn_mul;
+	ui_pbutton_t *btn_div;
+	ui_pbutton_t *btn_0;
+	ui_pbutton_t *btn_1;
+	ui_pbutton_t *btn_2;
+	ui_pbutton_t *btn_3;
+	ui_pbutton_t *btn_4;
+	ui_pbutton_t *btn_5;
+	ui_pbutton_t *btn_6;
+	ui_pbutton_t *btn_7;
+	ui_pbutton_t *btn_8;
+	ui_pbutton_t *btn_9;
 } calc_t;
 
 static void calc_pb_clicked(ui_pbutton_t *, void *);
@@ -114,12 +131,14 @@ static ui_pbutton_cb_t calc_eval_cb = {
 };
 
 static void wnd_close(ui_window_t *, void *);
+static void wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
 
 static ui_window_cb_t window_cb = {
-	.close = wnd_close
+	.close = wnd_close,
+	.kbd = wnd_kbd_event
 };
 
-/** Window close button was clicked.
+/** Window close request
  *
  * @param window Window
  * @param arg Argument (calc_t *)
@@ -129,6 +148,119 @@ static void wnd_close(ui_window_t *window, void *arg)
 	calc_t *calc = (calc_t *) arg;
 
 	ui_quit(calc->ui);
+}
+
+/** Window keyboard event
+ *
+ * @param window Window
+ * @param arg Argument (calc_t *)
+ * @param event Keyboard event
+ */
+static void wnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
+{
+	calc_t *calc = (calc_t *) arg;
+
+	switch (event->key) {
+	case KC_ENTER:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_eval);
+		else
+			ui_pbutton_release(calc->btn_eval);
+		break;
+	case KC_BACKSPACE:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_clear);
+		else
+			ui_pbutton_release(calc->btn_clear);
+		break;
+	case KC_MINUS:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_sub);
+		else
+			ui_pbutton_release(calc->btn_sub);
+		break;
+	case KC_EQUALS:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_add);
+		else
+			ui_pbutton_release(calc->btn_add);
+		break;
+	case KC_SLASH:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_div);
+		else
+			ui_pbutton_release(calc->btn_div);
+		break;
+	case KC_0:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_0);
+		else
+			ui_pbutton_release(calc->btn_0);
+		break;
+	case KC_1:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_1);
+		else
+			ui_pbutton_release(calc->btn_1);
+		break;
+	case KC_2:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_2);
+		else
+			ui_pbutton_release(calc->btn_2);
+		break;
+	case KC_3:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_3);
+		else
+			ui_pbutton_release(calc->btn_3);
+		break;
+	case KC_4:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_4);
+		else
+			ui_pbutton_release(calc->btn_4);
+		break;
+	case KC_5:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_5);
+		else
+			ui_pbutton_release(calc->btn_5);
+		break;
+	case KC_6:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_6);
+		else
+			ui_pbutton_release(calc->btn_6);
+		break;
+	case KC_7:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_7);
+		else
+			ui_pbutton_release(calc->btn_7);
+		break;
+	case KC_8:
+		if ((event->mods & KM_SHIFT) != 0) {
+			if (event->type == KEY_PRESS)
+				ui_pbutton_press(calc->btn_mul);
+			else
+				ui_pbutton_release(calc->btn_mul);
+		} else {
+			if (event->type == KEY_PRESS)
+				ui_pbutton_press(calc->btn_8);
+			else
+				ui_pbutton_release(calc->btn_8);
+		}
+		break;
+	case KC_9:
+		if (event->type == KEY_PRESS)
+			ui_pbutton_press(calc->btn_9);
+		else
+			ui_pbutton_release(calc->btn_9);
+		break;
+	default:
+		break;
+	}
 }
 
 static char *expr = NULL;
@@ -563,7 +695,6 @@ int main(int argc, char *argv[])
 	ui_fixed_t *fixed;
 	ui_wnd_params_t params;
 	ui_window_t *window;
-	ui_pbutton_t *pb_eval;
 	gfx_rect_t rect;
 	calc_t calc;
 	errno_t rc;
@@ -637,86 +768,86 @@ int main(int argc, char *argv[])
 	}
 
 	rc = calc_button_create(ui_res, fixed, 0, 0, "7", &calc_pbutton_cb,
-	    (void *) "7", NULL);
+	    (void *) "7", &calc.btn_7);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 1, 0, "8", &calc_pbutton_cb,
-	    (void *) "8", NULL);
+	    (void *) "8", &calc.btn_8);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 2, 0, "9", &calc_pbutton_cb,
-	    (void *) "9", NULL);
+	    (void *) "9", &calc.btn_9);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 3, 0, "/", &calc_pbutton_cb,
-	    (void *) "/", NULL);
+	    (void *) "/", &calc.btn_div);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 0, 1, "4", &calc_pbutton_cb,
-	    (void *) "4", NULL);
+	    (void *) "4", &calc.btn_4);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 1, 1, "5", &calc_pbutton_cb,
-	    (void *) "5", NULL);
+	    (void *) "5", &calc.btn_5);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 2, 1, "6", &calc_pbutton_cb,
-	    (void *) "6", NULL);
+	    (void *) "6", &calc.btn_6);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 3, 1, "*", &calc_pbutton_cb,
-	    (void *) "*", NULL);
+	    (void *) "*", &calc.btn_mul);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 0, 2, "1", &calc_pbutton_cb,
-	    (void *) "1", NULL);
+	    (void *) "1", &calc.btn_1);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 1, 2, "2", &calc_pbutton_cb,
-	    (void *) "2", NULL);
+	    (void *) "2", &calc.btn_2);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 2, 2, "3", &calc_pbutton_cb,
-	    (void *) "3", NULL);
+	    (void *) "3", &calc.btn_3);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 3, 2, "-", &calc_pbutton_cb,
-	    (void *) "-", NULL);
+	    (void *) "-", &calc.btn_sub);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 0, 3, "0", &calc_pbutton_cb,
-	    (void *) "0", NULL);
+	    (void *) "0", &calc.btn_0);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 1, 3, "C", &calc_clear_cb,
-	    (void *) "C", NULL);
+	    (void *) "C", &calc.btn_clear);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 2, 3, "=", &calc_eval_cb,
-	    (void *) "=", &pb_eval);
+	    (void *) "=", &calc.btn_eval);
 	if (rc != EOK)
 		return rc;
 
 	rc = calc_button_create(ui_res, fixed, 3, 3, "+", &calc_pbutton_cb,
-	    (void *) "+", NULL);
+	    (void *) "+", &calc.btn_add);
 	if (rc != EOK)
 		return rc;
 
-	ui_pbutton_set_default(pb_eval, true);
+	ui_pbutton_set_default(calc.btn_eval, true);
 
 	ui_window_add(window, ui_fixed_ctl(fixed));
 
