@@ -51,8 +51,8 @@
 #include "window.h"
 #include "terminal.h"
 
-#define NAME       "vterm"
-#define NAMESPACE  "vterm"
+#define NAME       "terminal"
+#define NAMESPACE  "terminal"
 
 #define LOCFS_MOUNT_POINT  "/loc"
 

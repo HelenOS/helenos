@@ -60,7 +60,7 @@ rd_essential = [
 if CONFIG_FB
 	rd_essential += [
 		'app/launcher',
-		'app/vterm',
+		'app/terminal',
 
 		'srv/hid/display',
 	]

@@ -470,9 +470,9 @@ int main(int argc, char *argv[])
 	if (!config_key_exists("console")) {
 		rc = display_server();
 		if (rc == EOK) {
-			app_start("/app/barber");
+			app_start("/app/terminal");
 			app_start("/app/launcher");
-			app_start("/app/vterm");
+			app_start("/app/barber");
 		}
 	}
 
