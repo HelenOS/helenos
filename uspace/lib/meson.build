@@ -99,8 +99,6 @@ libs = [
 
 	'gui',
 	'ui',
-
-	'guigfx',
 ]
 
 # Generated list of include directory paths
