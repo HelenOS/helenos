@@ -32,10 +32,7 @@
 /** @file Font editor
  */
 
-#include <canvas.h>
-#include <draw/surface.h>
 #include <fibril.h>
-#include <guigfx/canvas.h>
 #include <gfx/color.h>
 #include <gfx/font.h>
 #include <gfx/glyph.h>
@@ -46,8 +43,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
-#include <task.h>
-#include <window.h>
+#include <ui/ui.h>
+#include <ui/wdecor.h>
+#include <ui/window.h>
 #include "fontedit.h"
 
 enum {
@@ -57,6 +55,16 @@ enum {
 };
 
 static errno_t font_edit_paint(font_edit_t *);
+
+static void font_edit_close_event(ui_window_t *, void *);
+static void font_edit_kbd_event(ui_window_t *, void *, kbd_event_t *);
+static void font_edit_pos_event(ui_window_t *, void *, pos_event_t *);
+
+static ui_window_cb_t font_edit_window_cb = {
+	.close = font_edit_close_event,
+	.kbd = font_edit_kbd_event,
+	.pos = font_edit_pos_event
+};
 
 /** Clear screen.
  *
@@ -158,29 +166,51 @@ static void font_edit_adjust_leading(font_edit_t *fedit, gfx_coord_t change)
 	font_edit_paint(fedit);
 }
 
+/** Handle font editor close event.
+ *
+ * @param window Window
+ * @param arg Argument (font_edit_t *)
+ */
+static void font_edit_close_event(ui_window_t *window, void *arg)
+{
+	font_edit_t *fedit = (font_edit_t *) arg;
+
+	ui_quit(fedit->ui);
+}
+
 /** Handle font editor position event.
  *
- * @param widget Canvas widget
- * @param data Position event
+ * @param window Window
+ * @param arg Argument (font_edit_t *)
+ * @param event Position event
  */
-static void font_edit_pos_event(widget_t *widget, void *data)
+static void font_edit_pos_event(ui_window_t *window, void *arg,
+    pos_event_t *event)
 {
-	pos_event_t *event = (pos_event_t *) data;
-	font_edit_t *fedit;
+	font_edit_t *fedit = (font_edit_t *) arg;
+	gfx_coord2_t pos;
+	gfx_rect_t rect;
 	int x, y;
 
-	fedit = (font_edit_t *) widget_get_data(widget);
+	ui_window_get_app_rect(window, &rect);
 
-	if (event->type == POS_PRESS) {
-		x = gfx_coord_div_rneg((int)event->hpos - glyph_orig_x,
-		    glyph_scale);
-		y = gfx_coord_div_rneg((int)event->vpos - glyph_orig_y,
-		    glyph_scale);
+	pos.x = event->hpos;
+	pos.y = event->vpos;
 
-		printf("x=%d y=%d\n", x, y);
-		gfx_glyph_bmp_setpix(fedit->gbmp, x, y, fedit->pen_color);
-		font_edit_paint(fedit);
-	}
+	if (event->type != POS_PRESS)
+		return;
+
+	if (!gfx_pix_inside_rect(&pos, &rect))
+		return;
+
+	x = gfx_coord_div_rneg(pos.x - glyph_orig_x -
+	    rect.p0.x, glyph_scale);
+	y = gfx_coord_div_rneg(pos.y - glyph_orig_y -
+	    rect.p0.y, glyph_scale);
+
+	printf("x=%d y=%d\n", x, y);
+	gfx_glyph_bmp_setpix(fedit->gbmp, x, y, fedit->pen_color);
+	font_edit_paint(fedit);
 }
 
 /** Duplicate previously selected glyph to the current glyph.
@@ -370,15 +400,14 @@ error:
 
 /** Handle font editor keyboard event.
  *
- * @param widget Canvas widget
- * @param data Position event
+ * @param window Window
+ * @param arg Argument (font_edit_t *)
+ * @param event Keyboard event
  */
-static void font_edit_kbd_event(widget_t *widget, void *data)
+static void font_edit_kbd_event(ui_window_t *window, void *arg,
+    kbd_event_t *event)
 {
-	kbd_event_t *event = (kbd_event_t *) data;
-	font_edit_t *fedit;
-
-	fedit = (font_edit_t *) widget_get_data(widget);
+	font_edit_t *fedit = (font_edit_t *) arg;
 
 	if (event->type != KEY_PRESS)
 		return;
@@ -439,34 +468,46 @@ static errno_t font_edit_paint_preview_str(font_edit_t *fedit,
  */
 static errno_t font_edit_paint_preview(font_edit_t *fedit)
 {
+	gfx_color_t *color;
 	errno_t rc;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_set_color(fedit->gc, color);
+	if (rc != EOK)
+		goto error;
 
 	rc = font_edit_paint_preview_str(fedit, 20, 20,
 	    "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	rc = font_edit_paint_preview_str(fedit, 20, 40,
 	    "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG");
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	rc = font_edit_paint_preview_str(fedit, 20, 60,
 	    "abcdefghijklmnopqrstuvwxyz");
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	rc = font_edit_paint_preview_str(fedit, 20, 80,
 	    "the quick brown fox jumps over the lazy dog");
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	rc = font_edit_paint_preview_str(fedit, 20, 100,
 	    "0123456789,./<>?;'\\:\"|[]{}`~!@#$%^&*()-_=+");
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	return EOK;
+error:
+	gfx_color_delete(color);
+	return rc;
 }
 
 /** Paint glyph bitmap.
@@ -619,19 +660,21 @@ static errno_t font_edit_paint(font_edit_t *fedit)
 
 /** Create font editor.
  *
- * @param display_svc Display service
+ * @param display_spec Display specifier
  * @param fname Font file to open or @c NULL to create new font
  * @param rfedit Place to store pointer to new font editor
  * @return EOK on success or an error code
  */
-static errno_t font_edit_create(const char *display_svc, const char *fname,
+static errno_t font_edit_create(const char *display_spec, const char *fname,
     font_edit_t **rfedit)
 {
-	canvas_gc_t *cgc = NULL;
-	window_t *window = NULL;
-	pixel_t *pixbuf = NULL;
-	surface_t *surface = NULL;
-	canvas_t *canvas = NULL;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	gfx_rect_t rect;
+	gfx_rect_t wrect;
+	gfx_coord2_t off;
+	ui_window_t *window = NULL;
+	gfx_context_t *gc = NULL;
 	font_edit_t *fedit = NULL;
 	gfx_typeface_t *tface = NULL;
 	gfx_font_t *font = NULL;
@@ -642,7 +685,6 @@ static errno_t font_edit_create(const char *display_svc, const char *fname,
 	gfx_glyph_t *glyph;
 	gfx_glyph_bmp_t *bmp;
 	gfx_coord_t vw, vh;
-	gfx_context_t *gc;
 	errno_t rc;
 
 	fedit = calloc(1, sizeof(font_edit_t));
@@ -651,55 +693,46 @@ static errno_t font_edit_create(const char *display_svc, const char *fname,
 		goto error;
 	}
 
-	printf("Init canvas..\n");
+	printf("Init UI..\n");
 
-	window = window_open(display_svc, NULL,
-	    WINDOW_MAIN | WINDOW_DECORATED, "Font Editor");
-	if (window == NULL) {
-		printf("Error creating window.\n");
-		rc = ENOMEM;
+	rc = ui_create(display_spec, &ui);
+	if (rc != EOK) {
+		printf("Error initializing UI (%s)\n", display_spec);
 		goto error;
 	}
 
 	vw = 400;
 	vh = 300;
 
-	pixbuf = calloc(vw * vh, sizeof(pixel_t));
-	if (pixbuf == NULL) {
-		printf("Error allocating memory for pixel buffer.\n");
-		rc = ENOMEM;
-		goto error;
-	}
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = vw;
+	rect.p1.y = vh;
 
-	surface = surface_create(vw, vh, pixbuf, 0);
-	if (surface == NULL) {
-		printf("Error creating surface.\n");
-		rc = ENOMEM;
-		goto error;
-	}
+	ui_wnd_params_init(&params);
+	params.caption = "Font Editor";
 
-	/* Memory block pixbuf is now owned by surface */
-	pixbuf = NULL;
+	/*
+	 * Compute window rectangle such that application area corresponds
+	 * to rect
+	 */
+	ui_wdecor_rect_from_app(&rect, &wrect);
+	off = wrect.p0;
+	gfx_rect_rtranslate(&off, &wrect, &params.rect);
 
-	canvas = create_canvas(window_root(window), fedit, vw, vh,
-	    surface);
-	if (canvas == NULL) {
-		printf("Error creating canvas.\n");
-		rc = ENOMEM;
-		goto error;
-	}
-
-	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
-	window_exec(window);
-
-	printf("Create canvas GC\n");
-	rc = canvas_gc_create(canvas, surface, &cgc);
+	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
-		printf("Error creating canvas GC.\n");
+		printf("Error creating window.\n");
 		goto error;
 	}
 
-	gc = canvas_gc_get_ctx(cgc);
+	ui_window_set_cb(window, &font_edit_window_cb, (void *) fedit);
+
+	rc = ui_window_get_app_gc(window, &gc);
+	if (rc != EOK) {
+		printf("Error creating graphic context.\n");
+		goto error;
+	}
 
 	if (fname == NULL) {
 		rc = gfx_typeface_create(gc, &tface);
@@ -754,15 +787,11 @@ static errno_t font_edit_create(const char *display_svc, const char *fname,
 		goto error;
 	}
 
-	sig_connect(&canvas->position_event, &canvas->widget,
-	    font_edit_pos_event);
-	sig_connect(&canvas->keyboard_event, &canvas->widget,
-	    font_edit_kbd_event);
-
 	if (fname == NULL)
 		fname = "new.tpf";
 
-	fedit->cgc = cgc;
+	fedit->ui = ui;
+	fedit->window = window;
 	fedit->gc = gc;
 	fedit->width = vw;
 	fedit->height = vh;
@@ -789,26 +818,39 @@ error:
 		gfx_font_close(font);
 	if (tface != NULL)
 		gfx_typeface_destroy(tface);
-	if (surface != NULL)
-		surface_destroy(surface);
-	if (pixbuf != NULL)
-		free(pixbuf);
 	if (window != NULL)
-		window_close(window);
+		ui_window_destroy(window);
+	if (ui != NULL)
+		ui_destroy(ui);
 	if (fedit != NULL)
 		free(fedit);
 	return rc;
 }
 
+/** Destroy font editor.
+ *
+ * @param fedit Font editor
+ */
+static void font_edit_destroy(font_edit_t *fedit)
+{
+	gfx_glyph_bmp_close(fedit->gbmp);
+	gfx_glyph_destroy(fedit->glyph);
+	gfx_font_close(fedit->font);
+	gfx_typeface_destroy(fedit->typeface);
+	ui_window_destroy(fedit->window);
+	ui_destroy(fedit->ui);
+	free(fedit);
+}
+
 static void print_syntax(void)
 {
-	printf("Syntax: fontedit [-d <display>] [<file.tpf>]\n");
+	printf("Syntax: fontedit [-d <display-spec>] [<file.tpf>]\n");
 }
 
 int main(int argc, char *argv[])
 {
 	errno_t rc;
-	const char *display_svc = DISPLAY_DEFAULT;
+	const char *display_spec = UI_DISPLAY_DEFAULT;
 	const char *fname = NULL;
 	font_edit_t *fedit;
 	int i;
@@ -823,7 +865,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 
-			display_svc = argv[i++];
+			display_spec = argv[i++];
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -844,15 +886,17 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = font_edit_create(display_svc, fname, &fedit);
+	rc = font_edit_create(display_spec, fname, &fedit);
 	if (rc != EOK)
 		return 1;
 
 	(void) font_edit_paint(fedit);
 
-	task_retval(0);
-	async_manager();
+	ui_run(fedit->ui);
+	font_edit_destroy(fedit);
 
+	(void) font_edit_kbd_event;
+	(void) font_edit_pos_event;
 	return 0;
 }
 

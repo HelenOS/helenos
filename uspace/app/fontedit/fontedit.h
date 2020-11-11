@@ -39,12 +39,15 @@
 #include <gfx/glyph.h>
 #include <gfx/glyph_bmp.h>
 #include <gfx/typeface.h>
-#include <guigfx/canvas.h>
+#include <ui/ui.h>
+#include <ui/window.h>
 
 /** Font editor */
 typedef struct {
-	/** Canvas GC */
-	canvas_gc_t *cgc;
+	/** UI */
+	ui_t *ui;
+	/** Window */
+	ui_window_t *window;
 	/** Graphic context */
 	gfx_context_t *gc;
 	/** Window width */

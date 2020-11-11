@@ -58,6 +58,10 @@ struct ui_window {
 	display_window_t *dwindow;
 	/** Window GC */
 	gfx_context_t *gc;
+	/** Application area bitmap */
+	gfx_bitmap_t *app_bmp;
+	/** Application area GC */
+	gfx_context_t *app_gc;
 	/** UI resource. Ideally this would be in ui_t. */
 	struct ui_resource *res;
 	/** Window decoration */

@@ -28,6 +28,7 @@
 
 #include <gfx/context.h>
 #include <gfx/coord.h>
+#include <gfx/render.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <mem.h>
@@ -201,6 +202,40 @@ PCUT_TEST(get_res_gc_rect)
 	PCUT_ASSERT_NOT_NULL(gc);
 
 	ui_window_get_app_rect(window, &rect);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_window_get_app_gc() return valid GC */
+PCUT_TEST(get_app_gc)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	gfx_context_t *gc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 10;
+	params.rect.p0.y = 10;
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_window_get_app_gc(window, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	rc = gfx_fill_rect(gc, &params.rect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_window_destroy(window);
 	ui_destroy(ui);

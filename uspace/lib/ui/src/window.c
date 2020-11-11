@@ -35,11 +35,13 @@
 
 #include <display.h>
 #include <errno.h>
+#include <gfx/bitmap.h>
 #include <gfx/context.h>
 #include <gfx/render.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <mem.h>
+#include <memgfx/memgc.h>
 #include <stdlib.h>
 #include <ui/control.h>
 #include <ui/resource.h>
@@ -73,6 +75,8 @@ static ui_wdecor_cb_t wdecor_cb = {
 	.close = wd_close,
 	.move = wd_move
 };
+
+static void ui_window_app_update(void *, gfx_rect_t *);
 
 /** Initialize window parameters structure.
  *
@@ -222,16 +226,82 @@ void ui_window_set_cb(ui_window_t *window, ui_window_cb_t *cb, void *arg)
 	window->arg = arg;
 }
 
+/** Get UI resource from window.
+ *
+ * @param window Window
+ * @return UI resource
+ */
 ui_resource_t *ui_window_get_res(ui_window_t *window)
 {
 	return window->res;
 }
 
+/** Get window GC.
+ *
+ * @param window Window
+ * @return GC (relative to window)
+ */
 gfx_context_t *ui_window_get_gc(ui_window_t *window)
 {
 	return window->gc;
 }
 
+/** Get window application area GC
+ *
+ * @param window Window
+ * @param rgc Place to store GC (relative to application area)
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_get_app_gc(ui_window_t *window, gfx_context_t **rgc)
+{
+	gfx_bitmap_params_t params;
+	gfx_bitmap_alloc_t alloc;
+	gfx_rect_t rect;
+	mem_gc_t *memgc;
+	errno_t rc;
+
+	if (window->app_gc == NULL) {
+		assert(window->app_bmp == NULL);
+
+		gfx_bitmap_params_init(&params);
+
+		/*
+		 * The bitmap will have the same dimensions as the
+		 * application rectangle, but start at 0,0.
+		 */
+		ui_window_get_app_rect(window, &rect);
+		gfx_rect_rtranslate(&rect.p0, &rect, &params.rect);
+
+		rc = gfx_bitmap_create(window->gc, &params, NULL,
+		    &window->app_bmp);
+		if (rc != EOK)
+			return rc;
+
+		rc = gfx_bitmap_get_alloc(window->app_bmp, &alloc);
+		if (rc != EOK) {
+			gfx_bitmap_destroy(window->app_bmp);
+			return rc;
+		}
+
+		rc = mem_gc_create(&params.rect, &alloc, ui_window_app_update,
+		    (void *) window, &memgc);
+		if (rc != EOK) {
+			gfx_bitmap_destroy(window->app_bmp);
+			return rc;
+		}
+
+		window->app_gc = mem_gc_get_ctx(memgc);
+	}
+
+	*rgc = window->app_gc;
+	return EOK;
+}
+
+/** Get window application rectangle
+ *
+ * @param window Window
+ * @param rect Place to store application rectangle
+ */
 void ui_window_get_app_rect(ui_window_t *window, gfx_rect_t *rect)
 {
 	ui_wdecor_geom_t geom;
@@ -240,6 +310,11 @@ void ui_window_get_app_rect(ui_window_t *window, gfx_rect_t *rect)
 	*rect = geom.app_area_rect;
 }
 
+/** Paint window
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
 errno_t ui_window_paint(ui_window_t *window)
 {
 	return ui_window_send_paint(window);
@@ -425,6 +500,22 @@ void ui_window_def_pos(ui_window_t *window, pos_event_t *pos)
 {
 	if (window->control != NULL)
 		ui_control_pos_event(window->control, pos);
+}
+
+/** Application area update callback
+ *
+ * @param arg Argument (ui_window_t *)
+ * @param rect Rectangle to update
+ */
+static void ui_window_app_update(void *arg, gfx_rect_t *rect)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+	gfx_rect_t arect;
+
+	ui_window_get_app_rect(window, &arect);
+
+	/* Render bitmap rectangle inside the application area */
+	(void) gfx_bitmap_render(window->app_bmp, rect, &arect.p0);
 }
 
 /** @}

@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'gfxfont', 'display' ]
+deps = [ 'gfx', 'gfxfont', 'memgfx', 'display' ]
 src = files(
 	'src/control.c',
 	'src/dummygc.c',
