@@ -86,7 +86,6 @@ PCUT_TEST(ctl)
 /** Set image rectangle sets internal field */
 PCUT_TEST(set_rect)
 {
-
 	ui_image_t *image = NULL;
 	gfx_rect_t brect;
 	gfx_rect_t rect;
@@ -106,6 +105,51 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_INT_EQUALS(rect.p0.y, image->rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(rect.p1.x, image->rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(rect.p1.y, image->rect.p1.y);
+
+	ui_image_destroy(image);
+}
+
+/** Set image bitmap */
+PCUT_TEST(set_bmp)
+{
+	ui_image_t *image = NULL;
+	gfx_rect_t brect;
+	gfx_rect_t rect;
+	gfx_bitmap_t *bitmap;
+	gfx_bitmap_params_t params;
+	dummy_gc_t *dgc;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	rc = dummygc_create(&dgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = dummygc_get_ctx(dgc);
+
+	rc = ui_image_create(NULL, NULL, &brect, &image);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(image);
+
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+
+	ui_image_set_rect(image, &rect);
+	PCUT_ASSERT_INT_EQUALS(rect.p0.x, image->rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(rect.p0.y, image->rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(rect.p1.x, image->rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(rect.p1.y, image->rect.p1.y);
+
+	gfx_bitmap_params_init(&params);
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_image_set_bmp(image, bitmap, &brect);
+	PCUT_ASSERT_EQUALS(bitmap, image->bitmap);
+
+	rc = ui_image_paint(image);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_image_destroy(image);
 }
@@ -133,6 +177,13 @@ PCUT_TEST(paint)
 	rc = ui_image_create(NULL, bitmap, &brect, &image);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(image);
+
+	rc = ui_image_paint(image);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Check that we can paint image after setting bitmap to NULL */
+
+	ui_image_set_bmp(image, NULL, &brect);
 
 	rc = ui_image_paint(image);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);

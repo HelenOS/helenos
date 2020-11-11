@@ -133,6 +133,9 @@ errno_t ui_image_paint(ui_image_t *image)
 	gfx_rect_t srect;
 	gfx_coord2_t offs;
 
+	if (image->bitmap == NULL)
+		return EOK;
+
 	/*
 	 * UI image position does not depend on bitmap rectangle p0, so
 	 * we need to subtract it.
@@ -146,6 +149,23 @@ errno_t ui_image_paint(ui_image_t *image)
 	 */
 	gfx_rect_rtranslate(&offs, &image->rect, &srect);
 	return gfx_bitmap_render(image->bitmap, &srect, &offs);
+}
+
+/** Change image bitmap.
+ *
+ * Note that the caller must have saved the pointer to the previous bitmap
+ * in the image, because this causes it to be unlinked from the image and
+ * not destroyed (the ownership is transferred back to the caller).
+ *
+ * @param image Image
+ * @param bitmap New bitmap (ownership transferred to image) or @c NULL
+ * @param brect New bitmap rectangle
+ */
+void ui_image_set_bmp(ui_image_t *image, gfx_bitmap_t *bitmap,
+    gfx_rect_t *brect)
+{
+	image->bitmap = bitmap;
+	image->brect = *brect;
 }
 
 /** Destroy image control.
