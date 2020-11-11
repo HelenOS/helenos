@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'gfxfont', 'guigfx', 'congfx', 'ipcgfx', 'display' ]
+deps = [ 'gfx', 'gfxfont', 'ui', 'congfx', 'ipcgfx', 'display' ]
 src = files(
 	'gfxdemo.c',
 )
