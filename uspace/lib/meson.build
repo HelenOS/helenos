@@ -33,7 +33,6 @@ installed_libs = [
 	'c',
 	'math',
 	'display',
-	'gui',
 	'draw',
 	'softrend',
 	'posix',
@@ -43,6 +42,7 @@ installed_libs = [
 	'gfx',
 	'ipcgfx',
 	'display',
+	'ui',
 ]
 
 # IMPORTANT: Dependencies must be listed before libs that depend on them.
@@ -97,7 +97,6 @@ libs = [
 	'ddev',
 	'display',
 
-	'gui',
 	'ui',
 ]
 
