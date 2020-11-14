@@ -26,11 +26,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'math' ]
 src = files(
-	'compose.c',
-	'filter.c',
 	'pixconv.c',
-	'rectangle.c',
-	'transform.c',
 )

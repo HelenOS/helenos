@@ -31,13 +31,7 @@
  * @{
  */
 /**
- * @file
- */
-
-#include <byteorder.h>
-#include "pixconv.h"
-
-/** Pixel conversion and mask functions
+ * @file Pixel conversion and mask functions.
  *
  * These functions write an ARGB pixel value to a memory location
  * in a predefined format. The naming convention corresponds to
@@ -45,6 +39,9 @@
  * The functions use the so called network bit order (i.e. big endian)
  * with respect to their names.
  */
+
+#include <byteorder.h>
+#include "pixconv.h"
 
 void pixel2argb_8888(void *dst, pixel_t pix)
 {
