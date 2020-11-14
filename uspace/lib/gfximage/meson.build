@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'softrend' , 'compress' ]
+deps = [ 'gfx', 'pixconv' , 'compress' ]
 src = files(
 	'src/tga.c',
 	'src/tga_gz.c',
