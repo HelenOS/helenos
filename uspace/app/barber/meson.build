@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ui', 'draw', 'compress' ]
+deps = [ 'ui', 'gfximage', 'compress' ]
 
 _images = files(
 	'gfx/frame01.tga.gz',

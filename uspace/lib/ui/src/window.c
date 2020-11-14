@@ -214,6 +214,41 @@ void ui_window_remove(ui_window_t *window, ui_control_t *control)
 	control->elemp = NULL;
 }
 
+/** Resize/move window.
+ *
+ * Resize window to the dimensions of @a rect. If @a rect.p0 is not 0,0,
+ * the top-left corner of the window will move on the screen accordingly.
+ *
+ * @param window Window
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
+{
+	gfx_coord2_t offs;
+	gfx_rect_t nrect;
+	errno_t rc;
+
+	/*
+	 * Move rect so that p0=0,0 - keep window's coordinate system origin
+	 * locked to top-left corner of the window.
+	 */
+	offs = rect->p0;
+	gfx_rect_rtranslate(&offs, rect, &nrect);
+
+	/* dwindow can be NULL in case of unit tests */
+	if (window->dwindow != NULL) {
+		rc = display_window_resize(window->dwindow, &offs, &nrect);
+		if (rc != EOK)
+			return rc;
+	}
+
+	ui_wdecor_set_rect(window->wdecor, &nrect);
+	ui_wdecor_paint(window->wdecor);
+	return EOK;
+}
+
 /** Set window callbacks.
  *
  * @param window Window

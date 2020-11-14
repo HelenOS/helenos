@@ -35,18 +35,13 @@
 
 #include <errno.h>
 #include <gfx/coord.h>
+#include <gfximage/tga.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
 #include <task.h>
-
-#include <draw/surface.h>
-#include <draw/source.h>
-#include <draw/drawctx.h>
-#include <draw/codec.h>
-
 #include <ui/fixed.h>
 #include <ui/image.h>
 #include <ui/label.h>
@@ -156,11 +151,10 @@ int main(int argc, char *argv[])
 	ui_resource_t *ui_res;
 	gfx_bitmap_params_t logo_params;
 	gfx_bitmap_t *logo_bmp;
-	gfx_bitmap_alloc_t alloc;
 	gfx_context_t *gc;
-	surface_coord_t w, h;
 	gfx_rect_t logo_rect;
 	gfx_rect_t rect;
+	gfx_coord2_t off;
 	errno_t rc;
 
 	i = 1;
@@ -179,13 +173,6 @@ int main(int argc, char *argv[])
 			print_syntax();
 			return 1;
 		}
-	}
-
-	surface_t *logo = decode_tga((void *) helenos_tga, helenos_tga_size,
-	    SURFACE_FLAG_SHARED);
-	if (!logo) {
-		printf("Unable to decode logo.\n");
-		return 1;
 	}
 
 	rc = ui_create(display_spec, &ui);
@@ -216,21 +203,15 @@ int main(int argc, char *argv[])
 	ui_res = ui_window_get_res(window);
 	gc = ui_window_get_gc(window);
 
-	surface_get_resolution(logo, &w, &h);
-	gfx_bitmap_params_init(&logo_params);
-	logo_params.rect.p1.x = w;
-	logo_params.rect.p1.y = h;
-	logo_rect = logo_params.rect;
-
-	alloc.pitch = sizeof(uint32_t) * w;
-	alloc.off0 = 0;
-	alloc.pixels = surface_direct_access(logo);
-
-	rc = gfx_bitmap_create(gc, &logo_params, &alloc, &logo_bmp);
-	if (rc  != EOK) {
-		printf("Error creating bitmap.\n");
+	rc = decode_tga(gc, (void *) helenos_tga, helenos_tga_size,
+	    &logo_bmp, &logo_rect);
+	if (rc != EOK) {
+		printf("Unable to decode logo.\n");
 		return 1;
 	}
+
+	gfx_bitmap_params_init(&logo_params);
+	logo_params.rect = logo_rect;
 
 	rc = ui_fixed_create(&launcher.fixed);
 	if (rc != EOK) {
@@ -244,10 +225,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rect.p0.x = 5;
-	rect.p0.y = 32;
-	rect.p1.x = 5 + w;
-	rect.p1.y = 32 + h;
+	off.x = 5;
+	off.y = 32;
+	gfx_rect_translate(&off, &logo_rect, &rect);
 	ui_image_set_rect(launcher.image, &rect);
 
 	rc = ui_fixed_add(launcher.fixed, ui_image_ctl(launcher.image));

@@ -33,11 +33,10 @@
 /** @file
  */
 
-#include <draw/surface.h>
-#include <draw/codec.h>
 #include <device/led_dev.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <gfximage/tga_gz.h>
 #include <io/pixel.h>
 #include <loc.h>
 #include <stats.h>
@@ -93,7 +92,6 @@ static pixel_t led_colors[LED_COLORS] = {
 
 static fibril_timer_t *frame_timer = NULL;
 static ui_image_t *frame_img;
-static surface_t *frames[FRAMES];
 static gfx_bitmap_t *frame_bmp[FRAMES];
 
 static unsigned int frame = 0;
@@ -122,33 +120,18 @@ static void wnd_close(ui_window_t *window, void *arg)
 
 static bool decode_frames(gfx_context_t *gc)
 {
-	gfx_bitmap_alloc_t alloc;
-	surface_coord_t w, h;
-	gfx_bitmap_params_t params;
+	gfx_rect_t rect;
 	errno_t rc;
 
 	for (unsigned int i = 0; i < FRAMES; i++) {
-		frames[i] = decode_tga_gz(images[i].addr, images[i].size,
-		    SURFACE_FLAG_SHARED);
-		if (frames[i] == NULL) {
+		rc = decode_tga_gz(gc, images[i].addr, images[i].size,
+		    &frame_bmp[i], &rect);
+		if (rc != EOK) {
 			printf("Unable to decode frame %u.\n", i);
 			return false;
 		}
 
-		surface_get_resolution(frames[i], &w, &h);
-		gfx_bitmap_params_init(&params);
-		params.rect.p1.x = w;
-		params.rect.p1.y = h;
-
-		alloc.pitch = sizeof(uint32_t) * w;
-		alloc.off0 = 0;
-		alloc.pixels = surface_direct_access(frames[i]);
-
-		rc = gfx_bitmap_create(gc, &params, &alloc, &frame_bmp[i]);
-		if (rc != EOK) {
-			printf("Error creating bitmap.\n");
-			return false;
-		}
+		(void) rect;
 	}
 
 	return true;
@@ -161,9 +144,6 @@ static void destroy_frames(void)
 	for (i = 0; i < FRAMES; i++) {
 		gfx_bitmap_destroy(frame_bmp[i]);
 		frame_bmp[i] = NULL;
-
-		surface_destroy(frames[i]);
-		frames[i] = NULL;
 	}
 }
 

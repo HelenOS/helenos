@@ -174,6 +174,40 @@ PCUT_TEST(add_remove)
 	ui_destroy(ui);
 }
 
+/** ui_window_resize */
+PCUT_TEST(resize)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	gfx_rect_t nrect;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 1;
+	params.rect.p1.y = 1;
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	nrect.p0.x = -1;
+	nrect.p0.y = -1;
+	nrect.p1.x = 2;
+	nrect.p1.y = 2;
+	rc = ui_window_resize(window, &nrect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_window_get_res/gc/rect() return valid objects */
 PCUT_TEST(get_res_gc_rect)
 {

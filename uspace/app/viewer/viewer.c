@@ -33,9 +33,8 @@
 /** @file
  */
 
-#include <draw/surface.h>
-#include <draw/codec.h>
 #include <errno.h>
+#include <gfximage/tga.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,15 +56,15 @@ static size_t imgs_current = 0;
 static char **imgs;
 
 static ui_window_t *window;
-static surface_t *surface = NULL;
+static gfx_bitmap_t *bitmap = NULL;
 static ui_image_t *image = NULL;
 static gfx_context_t *window_gc;
 
-static surface_coord_t img_width;
-static surface_coord_t img_height;
+static gfx_rect_t img_rect;
 
-static bool img_load(const char *, surface_t **);
-static bool img_setup(gfx_context_t *, surface_t *);
+static bool img_load(gfx_context_t *gc, const char *, gfx_bitmap_t **,
+    gfx_rect_t *);
+static bool img_setup(gfx_context_t *, gfx_bitmap_t *, gfx_rect_t *);
 
 static void wnd_close(ui_window_t *, void *);
 static void wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
@@ -114,20 +113,22 @@ static void wnd_kbd_event(ui_window_t *window, void *arg,
 	}
 
 	if (update) {
-		surface_t *lsface;
+		gfx_bitmap_t *lbitmap;
+		gfx_rect_t lrect;
 
-		if (!img_load(imgs[imgs_current], &lsface)) {
+		if (!img_load(window_gc, imgs[imgs_current], &lbitmap, &lrect)) {
 			printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
 			exit(4);
 		}
-		if (!img_setup(window_gc, lsface)) {
+		if (!img_setup(window_gc, lbitmap, &lrect)) {
 			printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
 			exit(6);
 		}
 	}
 }
 
-static bool img_load(const char *fname, surface_t **p_local_surface)
+static bool img_load(gfx_context_t *gc, const char *fname,
+    gfx_bitmap_t **rbitmap, gfx_rect_t *rect)
 {
 	int fd;
 	errno_t rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
@@ -157,25 +158,20 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 
 	vfs_put(fd);
 
-	*p_local_surface = decode_tga(tga, stat.size, SURFACE_FLAG_SHARED);
-	if (*p_local_surface == NULL) {
+	rc = decode_tga(gc, tga, stat.size, rbitmap, rect);
+	if (rc != EOK) {
 		free(tga);
 		return false;
 	}
 
 	free(tga);
 
-	surface_get_resolution(*p_local_surface, &img_width, &img_height);
-
+	img_rect = *rect;
 	return true;
 }
 
-static bool img_setup(gfx_context_t *gc, surface_t *local_surface)
+static bool img_setup(gfx_context_t *gc, gfx_bitmap_t *bmp, gfx_rect_t *rect)
 {
-	surface_coord_t w, h;
-	gfx_bitmap_params_t params;
-	gfx_bitmap_alloc_t alloc;
-	gfx_bitmap_t *bmp;
 	gfx_rect_t arect;
 	gfx_rect_t irect;
 	ui_resource_t *ui_res;
@@ -183,33 +179,17 @@ static bool img_setup(gfx_context_t *gc, surface_t *local_surface)
 
 	ui_res = ui_window_get_res(window);
 
-	surface_get_resolution(local_surface, &w, &h);
-	gfx_bitmap_params_init(&params);
-	params.rect.p1.x = w;
-	params.rect.p1.y = h;
-
 	ui_window_get_app_rect(window, &arect);
-	gfx_rect_translate(&arect.p0, &params.rect, &irect);
-
-	alloc.pitch = sizeof(uint32_t) * w;
-	alloc.off0 = 0;
-	alloc.pixels = surface_direct_access(local_surface);
-
-	rc = gfx_bitmap_create(gc, &params, &alloc, &bmp);
-	if (rc != EOK) {
-		surface_destroy(local_surface);
-		return false;
-	}
+	gfx_rect_translate(&arect.p0, rect, &irect);
 
 	if (image != NULL) {
-		ui_image_set_bmp(image, bmp, &params.rect);
+		ui_image_set_bmp(image, bmp, rect);
 		(void) ui_image_paint(image);
 		ui_image_set_rect(image, &irect);
 	} else {
-		rc = ui_image_create(ui_res, bmp, &params.rect, &image);
+		rc = ui_image_create(ui_res, bmp, rect, &image);
 		if (rc != EOK) {
 			gfx_bitmap_destroy(bmp);
-			surface_destroy(local_surface);
 			return false;
 		}
 
@@ -217,10 +197,10 @@ static bool img_setup(gfx_context_t *gc, surface_t *local_surface)
 		ui_window_add(window, ui_image_ctl(image));
 	}
 
-	if (surface != NULL)
-		surface_destroy(surface);
+	if (bitmap != NULL)
+		gfx_bitmap_destroy(bitmap);
 
-	surface = local_surface;
+	bitmap = bmp;
 	return true;
 }
 
@@ -234,7 +214,8 @@ static void print_syntax(void)
 int main(int argc, char *argv[])
 {
 	const char *display_spec = DISPLAY_DEFAULT;
-	surface_t *lsface;
+	gfx_bitmap_t *lbitmap;
+	gfx_rect_t lrect;
 	bool fullscreen = false;
 	gfx_rect_t rect;
 	gfx_rect_t wrect;
@@ -286,11 +267,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (!img_load(imgs[imgs_current], &lsface)) {
-		printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
-		return 1;
-	}
-
 	// TODO Fullscreen mode
 	if (fullscreen) {
 		printf("Fullscreen mode not implemented.\n");
@@ -305,20 +281,16 @@ int main(int argc, char *argv[])
 
 	viewer.ui = ui;
 
-	rect.p0.x = 0;
-	rect.p0.y = 0;
-	rect.p1.x = img_width;
-	rect.p1.y = img_height;
-
+	/*
+	 * We don't know the image size yet, so create tiny window and resize
+	 * later.
+	 */
 	ui_wnd_params_init(&params);
 	params.caption = "Viewer";
-	/*
-	 * Compute window rectangle such that application area corresponds
-	 * to rect
-	 */
-	ui_wdecor_rect_from_app(&rect, &wrect);
-	off = wrect.p0;
-	gfx_rect_rtranslate(&off, &wrect, &params.rect);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 1;
+	params.rect.p1.y = 1;
 
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
@@ -330,7 +302,25 @@ int main(int argc, char *argv[])
 
 	ui_window_set_cb(window, &window_cb, (void *) &viewer);
 
-	if (!img_setup(window_gc, lsface)) {
+	if (!img_load(window_gc, imgs[imgs_current], &lbitmap, &lrect)) {
+		printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
+		return 1;
+	}
+
+	/*
+	 * Compute window rectangle such that application area corresponds
+	 * to rect
+	 */
+	ui_wdecor_rect_from_app(&lrect, &wrect);
+	off = wrect.p0;
+	gfx_rect_rtranslate(&off, &wrect, &rect);
+	rc = ui_window_resize(window, &rect);
+	if (rc != EOK) {
+		printf("Error resizing window.\n");
+		return 1;
+	}
+
+	if (!img_setup(window_gc, lbitmap, &lrect)) {
 		printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
 		return 1;
 	}
