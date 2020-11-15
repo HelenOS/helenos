@@ -49,7 +49,6 @@
 #include <gfx/bitmap.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
-#include <io/mode.h>
 #include <io/pixelmap.h>
 #include <ipcgfx/server.h>
 #include <mem.h>
