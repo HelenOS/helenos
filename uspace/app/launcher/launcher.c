@@ -183,6 +183,7 @@ int main(int argc, char *argv[])
 
 	ui_wnd_params_init(&params);
 	params.caption = "Launcher";
+	params.placement = ui_wnd_place_top_right;
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 210;

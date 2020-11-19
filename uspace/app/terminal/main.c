@@ -42,13 +42,17 @@
 /** Print syntax. */
 static void print_syntax(void)
 {
-	printf("Syntax: %s [-d <display-spec>]\n", NAME);
+	printf("Syntax: %s [<options>]\n", NAME);
+	printf("\t-d <display-spec> Use the specified display\n");
+	printf("\t-topleft]         Place window to the top-left corner of "
+	    "the screen\n");
 }
 
 int main(int argc, char *argv[])
 {
 	const char *display_spec = UI_DISPLAY_DEFAULT;
 	terminal_t *terminal = NULL;
+	terminal_flags_t flags = 0;
 	errno_t rc;
 	int i;
 
@@ -63,6 +67,9 @@ int main(int argc, char *argv[])
 			}
 
 			display_spec = argv[i++];
+		} else if (str_cmp(argv[i], "-topleft") == 0) {
+			++i;
+			flags |= tf_topleft;
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -75,7 +82,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = terminal_create(display_spec, 640, 480, &terminal);
+	rc = terminal_create(display_spec, 640, 480, flags, &terminal);
 	if (rc != EOK)
 		return 1;
 

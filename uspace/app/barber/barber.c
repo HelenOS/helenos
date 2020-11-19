@@ -361,6 +361,7 @@ int main(int argc, char *argv[])
 
 	ui_wnd_params_init(&params);
 	params.caption = "";
+	params.placement = ui_wnd_place_bottom_right;
 	/*
 	 * Compute window rectangle such that application area corresponds
 	 * to rect

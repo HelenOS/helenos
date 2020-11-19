@@ -53,6 +53,10 @@
 
 #define UTF8_CHAR_BUFFER_SIZE  (STR_BOUNDS(1) + 1)
 
+typedef enum {
+	tf_topleft = 1
+} terminal_flags_t;
+
 typedef struct {
 	ui_t *ui;
 	ui_window_t *window;
@@ -84,7 +88,8 @@ typedef struct {
 	con_srvs_t srvs;
 } terminal_t;
 
-extern errno_t terminal_create(const char *, sysarg_t, sysarg_t, terminal_t **);
+extern errno_t terminal_create(const char *, sysarg_t, sysarg_t,
+    terminal_flags_t, terminal_t **);
 extern void terminal_destroy(terminal_t *);
 
 #endif

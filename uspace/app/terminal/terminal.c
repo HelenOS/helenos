@@ -755,7 +755,7 @@ static void term_connection(ipc_call_t *icall, void *arg)
 }
 
 errno_t terminal_create(const char *display_spec, sysarg_t width,
-    sysarg_t height, terminal_t **rterm)
+    sysarg_t height, terminal_flags_t flags, terminal_t **rterm)
 {
 	terminal_t *term;
 	gfx_bitmap_params_t params;
@@ -810,6 +810,8 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 
 	ui_wnd_params_init(&wparams);
 	wparams.caption = "Terminal";
+	if ((flags & tf_topleft) != 0)
+		wparams.placement = ui_wnd_place_top_left;
 
 	/*
 	 * Compute window rectangle such that application area corresponds

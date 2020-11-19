@@ -43,12 +43,28 @@
 struct ui_window;
 typedef struct ui_window ui_window_t;
 
+/** Window placement hint */
+typedef enum {
+	/** Use default (automatic) placement */
+	ui_wnd_place_default = 0,
+	/** Place window to the top-left corner of the screen */
+	ui_wnd_place_top_left,
+	/** Place window to the top-right corner of the screen */
+	ui_wnd_place_top_right,
+	/** Place window to the bottom-left corner of the screen */
+	ui_wnd_place_bottom_left,
+	/** Place window to the bottom-right corner of the screen */
+	ui_wnd_place_bottom_right
+} ui_wnd_placement_t;
+
 /** Window parameters */
 typedef struct {
 	/** Window rectangle */
 	gfx_rect_t rect;
 	/** Window caption */
 	const char *caption;
+	/** Window placement */
+	ui_wnd_placement_t placement;
 } ui_wnd_params_t;
 
 /** Window callbacks */

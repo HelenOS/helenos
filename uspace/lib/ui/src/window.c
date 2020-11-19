@@ -101,6 +101,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
     ui_window_t **rwindow)
 {
 	ui_window_t *window;
+	display_info_t info;
+	gfx_coord2_t pos;
 	display_wnd_params_t dparams;
 	display_window_t *dwindow = NULL;
 	gfx_context_t *gc = NULL;
@@ -121,6 +123,40 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 		    (void *) window, &dwindow);
 		if (rc != EOK)
 			goto error;
+
+		if (params->placement != ui_wnd_place_default) {
+			rc = display_get_info(ui->display, &info);
+			if (rc != EOK)
+				goto error;
+
+			pos.x = 0;
+			pos.y = 0;
+
+			switch (params->placement) {
+			case ui_wnd_place_default:
+				assert(false);
+			case ui_wnd_place_top_left:
+				pos.x = info.rect.p0.x - params->rect.p0.x;
+				pos.y = info.rect.p0.y - params->rect.p0.y;
+				break;
+			case ui_wnd_place_top_right:
+				pos.x = info.rect.p1.x - params->rect.p1.x;
+				pos.y = info.rect.p0.y - params->rect.p0.y;
+				break;
+			case ui_wnd_place_bottom_left:
+				pos.x = info.rect.p0.x - params->rect.p0.x;
+				pos.y = info.rect.p1.y - params->rect.p1.y;
+				break;
+			case ui_wnd_place_bottom_right:
+				pos.x = info.rect.p1.x - params->rect.p1.x;
+				pos.y = info.rect.p1.y - params->rect.p1.y;
+				break;
+			}
+
+			rc = display_window_move(dwindow, &pos);
+			if (rc != EOK)
+				goto error;
+		}
 
 		rc = display_window_get_gc(dwindow, &gc);
 		if (rc != EOK)
