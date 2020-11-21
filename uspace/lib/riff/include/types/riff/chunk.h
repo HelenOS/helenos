@@ -53,6 +53,8 @@ typedef struct {
 /** RIFF reader */
 typedef struct {
 	FILE *f;
+	/** Current file position */
+	long pos;
 } riffr_t;
 
 /** RIFF chunk for reading */

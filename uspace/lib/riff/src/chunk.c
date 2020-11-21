@@ -212,6 +212,8 @@ errno_t riff_ropen(const char *fname, riff_rchunk_t *riffck, riffr_t **rrr)
 		goto error;
 	}
 
+	rr->pos = 0;
+
 	rr->f = fopen(fname, "rb");
 	if (rr->f == NULL) {
 		rc = EIO;
@@ -301,16 +303,9 @@ errno_t riff_read_uint32(riff_rchunk_t *rchunk, uint32_t *v)
 errno_t riff_rchunk_start(riff_rchunk_t *parent, riff_rchunk_t *rchunk)
 {
 	errno_t rc;
-	long pos;
-
-	pos = ftell(parent->riffr->f);
-	if (pos < 0) {
-		rc = EIO;
-		goto error;
-	}
 
 	rchunk->riffr = parent->riffr;
-	rchunk->ckstart = pos + 8;
+	rchunk->ckstart = parent->riffr->pos + 8;
 	rc = riff_read_uint32(parent, &rchunk->ckid);
 	if (rc != EOK)
 		goto error;
@@ -401,7 +396,6 @@ errno_t riff_rchunk_list_match(riff_rchunk_t *parent, riff_ltype_t ltype,
  */
 errno_t riff_rchunk_seek(riff_rchunk_t *rchunk, long offset, int whence)
 {
-	long pos;
 	long dest;
 	int rv;
 
@@ -413,10 +407,7 @@ errno_t riff_rchunk_seek(riff_rchunk_t *rchunk, long offset, int whence)
 		dest = rchunk->ckstart + rchunk->cksize + offset;
 		break;
 	case SEEK_CUR:
-		pos = ftell(rchunk->riffr->f);
-		if (pos < 0)
-			return EIO;
-		dest = pos + offset;
+		dest = rchunk->riffr->pos + offset;
 		break;
 	default:
 		return EINVAL;
@@ -431,6 +422,7 @@ errno_t riff_rchunk_seek(riff_rchunk_t *rchunk, long offset, int whence)
 	if (rv < 0)
 		return EIO;
 
+	rchunk->riffr->pos = dest;
 	return EOK;
 }
 
@@ -481,10 +473,29 @@ static long riff_rchunk_get_ndpos(riff_rchunk_t *rchunk)
 errno_t riff_rchunk_end(riff_rchunk_t *rchunk)
 {
 	long ckend;
+	uint8_t byte;
+	size_t nread;
+	errno_t rc;
 
 	ckend = riff_rchunk_get_ndpos(rchunk);
-	if (fseek(rchunk->riffr->f, ckend, SEEK_SET) < 0)
-		return EIO;
+	if (rchunk->riffr->pos < ckend &&
+	    ckend <= rchunk->riffr->pos + 512) {
+		/* (Buffered) reading is faster than seeking */
+		while (rchunk->riffr->pos < ckend) {
+			rc = riff_read(rchunk, &byte, sizeof(byte), &nread);
+			if (rc != EOK)
+				return rc;
+
+			if (nread != sizeof(byte))
+				return EIO;
+		}
+
+	} else if (rchunk->riffr->pos != ckend) {
+		/* Need to seek (backwards or too far) */
+		if (fseek(rchunk->riffr->f, ckend, SEEK_SET) < 0)
+			return EIO;
+		rchunk->riffr->pos = ckend;
+	}
 
 	return EOK;
 }
@@ -510,9 +521,7 @@ errno_t riff_read(riff_rchunk_t *rchunk, void *buf, size_t bytes,
 	long ckend;
 	long toread;
 
-	pos = ftell(rchunk->riffr->f);
-	if (pos < 0)
-		return EIO;
+	pos = rchunk->riffr->pos;
 
 	ckend = riff_rchunk_get_end(rchunk);
 	if (pos < rchunk->ckstart || pos > ckend)
@@ -528,6 +537,7 @@ errno_t riff_read(riff_rchunk_t *rchunk, void *buf, size_t bytes,
 	if (*nread == 0)
 		return EIO;
 
+	rchunk->riffr->pos += *nread;
 	return EOK;
 }
 
