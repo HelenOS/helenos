@@ -119,6 +119,9 @@ static errno_t demo_rects(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	int i, j;
 	errno_t rc;
 
+	if (quit)
+		return EOK;
+
 	rc = clear_scr(gc, w, h);
 	if (rc != EOK)
 		return rc;
@@ -275,6 +278,9 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	gfx_rect_t srect;
 	errno_t rc;
 
+	if (quit)
+		return EOK;
+
 	rc = clear_scr(gc, w, h);
 	if (rc != EOK)
 		return rc;
@@ -308,10 +314,11 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			fibril_usleep(250 * 1000);
 
 			if (quit)
-				break;
+				goto out;
 		}
 	}
 
+out:
 	gfx_bitmap_destroy(bitmap);
 
 	return EOK;
@@ -333,6 +340,9 @@ static errno_t demo_bitmap2(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	int i, j;
 	gfx_coord2_t offs;
 	errno_t rc;
+
+	if (quit)
+		return EOK;
 
 	rc = clear_scr(gc, w, h);
 	if (rc != EOK)
@@ -389,6 +399,9 @@ static errno_t demo_bitmap_kc(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	int i, j;
 	gfx_coord2_t offs;
 	errno_t rc;
+
+	if (quit)
+		return EOK;
 
 	rc = clear_scr(gc, w, h);
 	if (rc != EOK)
@@ -451,6 +464,9 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	gfx_text_fmt_t fmt;
 	int i;
 	errno_t rc;
+
+	if (quit)
+		return EOK;
 
 	rc = gfx_typeface_open(gc, "/data/font/helena.tpf", &tface);
 	if (rc != EOK) {
