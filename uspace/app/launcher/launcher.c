@@ -69,7 +69,7 @@ static ui_pbutton_cb_t pbutton_cb = {
 	.clicked = pb_clicked
 };
 
-static int app_launch(const char *);
+static int app_launch(const char *, const char *);
 
 /** Window close button was clicked.
  *
@@ -93,17 +93,17 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	launcher_t *launcher = (launcher_t *) arg;
 
 	if (pbutton == launcher->pb1) {
-		app_launch("/app/terminal");
+		app_launch("/app/terminal", NULL);
 	} else if (pbutton == launcher->pb2) {
-		app_launch("/app/calculator");
+		app_launch("/app/calculator", NULL);
 	} else if (pbutton == launcher->pb3) {
-		app_launch("/app/uidemo");
+		app_launch("/app/uidemo", NULL);
 	} else if (pbutton == launcher->pb4) {
-		app_launch("/app/launcher");
+		app_launch("/app/gfxdemo", "ui");
 	}
 }
 
-static int app_launch(const char *app)
+static int app_launch(const char *app, const char *arg)
 {
 	errno_t rc;
 	task_id_t id;
@@ -111,10 +111,11 @@ static int app_launch(const char *app)
 
 	if (display_spec != UI_DISPLAY_DEFAULT) {
 		printf("%s: Spawning %s -d %s\n", NAME, app, display_spec);
-		rc = task_spawnl(&id, &wait, app, app, "-d", display_spec, NULL);
+		rc = task_spawnl(&id, &wait, app, app, "-d", display_spec,
+		    arg, NULL);
 	} else {
 		printf("%s: Spawning %s\n", NAME, app);
-		rc = task_spawnl(&id, &wait, app, app, NULL);
+		rc = task_spawnl(&id, &wait, app, app, arg, NULL);
 	}
 
 	if (rc != EOK) {
@@ -315,7 +316,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "Launcher", &launcher.pb4);
+	rc = ui_pbutton_create(ui_res, "GFX Demo", &launcher.pb4);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
