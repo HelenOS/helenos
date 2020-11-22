@@ -227,16 +227,22 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	off.x = 5;
+	off.x = 6;
 	off.y = 32;
 	gfx_rect_translate(&off, &logo_rect, &rect);
+
+	/* Adjust for frame width (2 x 1 pixel) */
+	rect.p1.x += 2;
+	rect.p1.y += 2;
 	ui_image_set_rect(launcher.image, &rect);
+	ui_image_set_flags(launcher.image, ui_imgf_frame);
 
 	rc = ui_fixed_add(launcher.fixed, ui_image_ctl(launcher.image));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
 	}
+
 	rc = ui_label_create(ui_res, "Launch application", &launcher.label);
 	if (rc != EOK) {
 		printf("Error creating label.\n");

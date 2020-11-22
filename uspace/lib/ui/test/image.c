@@ -109,6 +109,25 @@ PCUT_TEST(set_rect)
 	ui_image_destroy(image);
 }
 
+/** Set image flags sets internal field */
+PCUT_TEST(set_flags)
+{
+	ui_image_t *image = NULL;
+	gfx_rect_t brect;
+	errno_t rc;
+
+	rc = ui_image_create(NULL, NULL, &brect, &image);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(image);
+
+	PCUT_ASSERT_INT_EQUALS(0, image->flags);
+
+	ui_image_set_flags(image, ui_imgf_frame);
+	PCUT_ASSERT_INT_EQUALS(ui_imgf_frame, image->flags);
+
+	ui_image_destroy(image);
+}
+
 /** Set image bitmap */
 PCUT_TEST(set_bmp)
 {

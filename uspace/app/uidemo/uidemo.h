@@ -37,6 +37,7 @@
 #define UIDEMO_H
 
 #include <display.h>
+#include <ui/entry.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/pbutton.h>
@@ -48,6 +49,8 @@ typedef struct {
 	ui_t *ui;
 	ui_window_t *window;
 	ui_fixed_t *fixed;
+	ui_entry_t *entry;
+	ui_image_t *image;
 	ui_label_t *label;
 	ui_pbutton_t *pb1;
 	ui_pbutton_t *pb2;

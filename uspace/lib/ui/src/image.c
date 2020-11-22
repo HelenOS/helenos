@@ -123,6 +123,16 @@ void ui_image_set_rect(ui_image_t *image, gfx_rect_t *rect)
 	image->rect = *rect;
 }
 
+/** Set image flags.
+ *
+ * @param image Image
+ * @param flags Flags
+ */
+void ui_image_set_flags(ui_image_t *image, ui_image_flags_t flags)
+{
+	image->flags = flags;
+}
+
 /** Paint image.
  *
  * @param image Image
@@ -130,25 +140,44 @@ void ui_image_set_rect(ui_image_t *image, gfx_rect_t *rect)
  */
 errno_t ui_image_paint(ui_image_t *image)
 {
+	gfx_rect_t irect;
 	gfx_rect_t srect;
 	gfx_coord2_t offs;
+	errno_t rc;
+
+	if ((image->flags & ui_imgf_frame) != 0) {
+		rc = ui_paint_bevel(image->res->gc, &image->rect,
+		    image->res->btn_frame_color, image->res->btn_frame_color,
+		    1, NULL);
+		if (rc != EOK)
+			return rc;
+	}
 
 	if (image->bitmap == NULL)
 		return EOK;
+
+	irect = image->rect;
+	if ((image->flags & ui_imgf_frame) != 0) {
+		irect.p0.x++;
+		irect.p0.y++;
+		irect.p1.x--;
+		irect.p1.y--;
+	}
 
 	/*
 	 * UI image position does not depend on bitmap rectangle p0, so
 	 * we need to subtract it.
 	 */
-	offs.x = image->rect.p0.x - image->brect.p0.x;
-	offs.y = image->rect.p0.y - image->brect.p0.y;
+	offs.x = irect.p0.x - image->brect.p0.x;
+	offs.y = irect.p0.y - image->brect.p0.y;
 
 	/*
-	 * Transalte image rectangle back to bitmap coordinate space.
+	 * Translate image rectangle back to bitmap coordinate space.
 	 * Thus the bitmap will be clipped to the image rectangle.
 	 */
-	gfx_rect_rtranslate(&offs, &image->rect, &srect);
+	gfx_rect_rtranslate(&offs, &irect, &srect);
 	return gfx_bitmap_render(image->bitmap, &srect, &offs);
+
 }
 
 /** Change image bitmap.

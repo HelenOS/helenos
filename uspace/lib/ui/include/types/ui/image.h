@@ -39,6 +39,12 @@
 struct ui_image;
 typedef struct ui_image ui_image_t;
 
+/** UI image flags */
+typedef enum {
+	/** Draw a frame around the image */
+	ui_imgf_frame = 0x1
+} ui_image_flags_t;
+
 #endif
 
 /** @}

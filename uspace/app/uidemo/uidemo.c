@@ -32,16 +32,22 @@
 /** @file User interface demo
  */
 
+#include <gfx/bitmap.h>
 #include <gfx/coord.h>
+#include <io/pixelmap.h>
 #include <stdio.h>
 #include <str.h>
+#include <ui/entry.h>
 #include <ui/fixed.h>
+#include <ui/image.h>
 #include <ui/label.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "uidemo.h"
+
+static errno_t bitmap_moire(gfx_bitmap_t *, gfx_coord_t, gfx_coord_t);
 
 static void wnd_close(ui_window_t *, void *);
 
@@ -78,15 +84,15 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	errno_t rc;
 
 	if (pbutton == demo->pb1) {
-		rc = ui_label_set_text(demo->label, "Confirmed");
+		rc = ui_entry_set_text(demo->entry, "OK pressed");
 		if (rc != EOK)
-			printf("Error changing label text.\n");
-		(void) ui_label_paint(demo->label);
+			printf("Error changing entry text.\n");
+		(void) ui_entry_paint(demo->entry);
 	} else {
-		rc = ui_label_set_text(demo->label, "Cancelled");
+		rc = ui_entry_set_text(demo->entry, "Cancel pressed");
 		if (rc != EOK)
-			printf("Error changing label text.\n");
-		(void) ui_label_paint(demo->label);
+			printf("Error changing entry text.\n");
+		(void) ui_entry_paint(demo->entry);
 	}
 }
 
@@ -98,7 +104,11 @@ static errno_t ui_demo(const char *display_spec)
 	ui_window_t *window = NULL;
 	ui_demo_t demo;
 	gfx_rect_t rect;
+	gfx_context_t *gc;
 	ui_resource_t *ui_res;
+	gfx_bitmap_params_t bparams;
+	gfx_bitmap_t *bitmap;
+	gfx_coord2_t off;
 	errno_t rc;
 
 	rc = ui_create(display_spec, &ui);
@@ -112,7 +122,7 @@ static errno_t ui_demo(const char *display_spec)
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 220;
-	params.rect.p1.y = 100;
+	params.rect.p1.y = 180;
 
 	memset((void *) &demo, 0, sizeof(demo));
 	demo.ui = ui;
@@ -127,6 +137,7 @@ static errno_t ui_demo(const char *display_spec)
 	demo.window = window;
 
 	ui_res = ui_window_get_res(window);
+	gc = ui_window_get_gc(window);
 
 	rc = ui_fixed_create(&demo.fixed);
 	if (rc != EOK) {
@@ -134,7 +145,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_label_create(ui_res, "Hello there!", &demo.label);
+	rc = ui_label_create(ui_res, "Text label", &demo.label);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
 		return rc;
@@ -153,7 +164,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "Confirm", &demo.pb1);
+	rc = ui_pbutton_create(ui_res, "OK", &demo.pb1);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -162,9 +173,9 @@ static errno_t ui_demo(const char *display_spec)
 	ui_pbutton_set_cb(demo.pb1, &pbutton_cb, (void *) &demo);
 
 	rect.p0.x = 15;
-	rect.p0.y = 60;
+	rect.p0.y = 70;
 	rect.p1.x = 105;
-	rect.p1.y = 88;
+	rect.p1.y = 98;
 	ui_pbutton_set_rect(demo.pb1, &rect);
 
 	ui_pbutton_set_default(demo.pb1, true);
@@ -184,12 +195,67 @@ static errno_t ui_demo(const char *display_spec)
 	ui_pbutton_set_cb(demo.pb2, &pbutton_cb, (void *) &demo);
 
 	rect.p0.x = 115;
-	rect.p0.y = 60;
+	rect.p0.y = 70;
 	rect.p1.x = 205;
-	rect.p1.y = 88;
+	rect.p1.y = 98;
 	ui_pbutton_set_rect(demo.pb2, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_pbutton_ctl(demo.pb2));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_entry_create(ui_res, "", &demo.entry);
+	if (rc != EOK) {
+		printf("Error creating entry.\n");
+		return rc;
+	}
+
+	rect.p0.x = 15;
+	rect.p0.y = 110;
+	rect.p1.x = 205;
+	rect.p1.y = 135;
+	ui_entry_set_rect(demo.entry, &rect);
+	ui_entry_set_halign(demo.entry, gfx_halign_center);
+
+	rc = ui_fixed_add(demo.fixed, ui_entry_ctl(demo.entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	gfx_bitmap_params_init(&bparams);
+	bparams.rect.p0.x = 0;
+	bparams.rect.p0.y = 0;
+	bparams.rect.p1.x = 188;
+	bparams.rect.p1.y = 24;
+
+	rc = gfx_bitmap_create(gc, &bparams, NULL, &bitmap);
+	if (rc != EOK)
+		return rc;
+
+	rc = bitmap_moire(bitmap, bparams.rect.p1.x, bparams.rect.p1.y);
+	if (rc != EOK)
+		return rc;
+
+	rc = ui_image_create(ui_res, bitmap, &params.rect, &demo.image);
+	if (rc != EOK) {
+		printf("Error creating label.\n");
+		return rc;
+	}
+
+	off.x = 15;
+	off.y = 145;
+	gfx_rect_translate(&off, &bparams.rect, &rect);
+
+	/* Adjust for frame width (2 x 1 pixel) */
+	rect.p1.x += 2;
+	rect.p1.y += 2;
+	ui_image_set_rect(demo.image, &rect);
+	ui_image_set_flags(demo.image, ui_imgf_frame);
+
+	rc = ui_fixed_add(demo.fixed, ui_image_ctl(demo.image));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -207,6 +273,41 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_window_destroy(window);
 	ui_destroy(ui);
+
+	return EOK;
+}
+
+/** Fill bitmap with moire pattern.
+ *
+ * @param bitmap Bitmap
+ * @param w Bitmap width
+ * @param h Bitmap height
+ * @return EOK on success or an error code
+ */
+static errno_t bitmap_moire(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
+{
+	int i, j;
+	int k;
+	pixelmap_t pixelmap;
+	gfx_bitmap_alloc_t alloc;
+	errno_t rc;
+
+	rc = gfx_bitmap_get_alloc(bitmap, &alloc);
+	if (rc != EOK)
+		return rc;
+
+	/* In absence of anything else, use pixelmap */
+	pixelmap.width = w;
+	pixelmap.height = h;
+	pixelmap.data = alloc.pixels;
+
+	for (i = 0; i < w; i++) {
+		for (j = 0; j < h; j++) {
+			k = i * i + j * j;
+			pixelmap_put_pixel(&pixelmap, i, j,
+			    PIXEL(255, k, k, 255 - k));
+		}
+	}
 
 	return EOK;
 }

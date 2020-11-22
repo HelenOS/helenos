@@ -51,8 +51,11 @@ struct ui_image {
 	struct ui_resource *res;
 	/** Image rectangle */
 	gfx_rect_t rect;
+	/** Flags */
+	ui_image_flags_t flags;
 	/** Bitmap */
 	gfx_bitmap_t *bitmap;
+	/** Bitmap rectangle */
 	gfx_rect_t brect;
 };
 
