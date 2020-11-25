@@ -89,6 +89,11 @@ void ds_seat_destroy(ds_seat_t *seat)
  */
 void ds_seat_set_focus(ds_seat_t *seat, ds_window_t *wnd)
 {
+	if (wnd == seat->focus) {
+		/* Focus is not changing */
+		return;
+	}
+
 	if (seat->focus != NULL)
 		ds_window_post_unfocus_event(seat->focus);
 
