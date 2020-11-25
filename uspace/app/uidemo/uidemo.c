@@ -119,6 +119,7 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_wnd_params_init(&params);
 	params.caption = "UI Demo";
+	params.style |= ui_wds_resizable;
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 220;

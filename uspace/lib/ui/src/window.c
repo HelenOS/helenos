@@ -58,6 +58,7 @@ static void dwnd_close_event(void *);
 static void dwnd_focus_event(void *);
 static void dwnd_kbd_event(void *, kbd_event_t *);
 static void dwnd_pos_event(void *, pos_event_t *);
+static void dwnd_resize_event(void *, gfx_rect_t *);
 static void dwnd_unfocus_event(void *);
 
 static display_wnd_cb_t dwnd_cb = {
@@ -65,15 +66,21 @@ static display_wnd_cb_t dwnd_cb = {
 	.focus_event = dwnd_focus_event,
 	.kbd_event = dwnd_kbd_event,
 	.pos_event = dwnd_pos_event,
+	.resize_event = dwnd_resize_event,
 	.unfocus_event = dwnd_unfocus_event
 };
 
 static void wd_close(ui_wdecor_t *, void *);
 static void wd_move(ui_wdecor_t *, void *, gfx_coord2_t *);
+static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
+    gfx_coord2_t *);
+static void wd_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t wdecor_cb = {
 	.close = wd_close,
-	.move = wd_move
+	.move = wd_move,
+	.resize = wd_resize,
+	.set_cursor = wd_set_cursor
 };
 
 static void ui_window_app_update(void *, gfx_rect_t *);
@@ -117,6 +124,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	display_wnd_params_init(&dparams);
 	dparams.rect = params->rect;
+	/* Only allow making the window larger */
+	gfx_rect_dims(&params->rect, &dparams.min_size);
 
 	if (ui->display != NULL) {
 		rc = display_window_create(ui->display, &dparams, &dwnd_cb,
@@ -174,7 +183,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_wdecor_create(res, params->caption, &wdecor);
+	rc = ui_wdecor_create(res, params->caption, params->style, &wdecor);
 	if (rc != EOK)
 		goto error;
 
@@ -184,9 +193,11 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	window->ui = ui;
 	window->dwindow = dwindow;
+	window->rect = params->rect;
 	window->gc = gc;
 	window->res = res;
 	window->wdecor = wdecor;
+	window->cursor = ui_curs_arrow;
 	*rwindow = window;
 	return EOK;
 error:
@@ -434,6 +445,22 @@ static void dwnd_pos_event(void *arg, pos_event_t *event)
 	ui_window_send_pos(window, event);
 }
 
+/** Handle window resize event */
+static void dwnd_resize_event(void *arg, gfx_rect_t *rect)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	/* Make sure we don't process events until fully initialized */
+	if (window->wdecor == NULL)
+		return;
+
+	if ((window->wdecor->style & ui_wds_resizable) == 0)
+		return;
+
+	(void) ui_window_resize(window, rect);
+	(void) ui_window_paint(window);
+}
+
 /** Handle window unfocus event. */
 static void dwnd_unfocus_event(void *arg)
 {
@@ -450,7 +477,7 @@ static void dwnd_unfocus_event(void *arg)
 /** Window decoration requested window closure.
  *
  * @param wdecor Window decoration
- * @param arg Argument (demo)
+ * @param arg Argument (window)
  */
 static void wd_close(ui_wdecor_t *wdecor, void *arg)
 {
@@ -462,7 +489,7 @@ static void wd_close(ui_wdecor_t *wdecor, void *arg)
 /** Window decoration requested window move.
  *
  * @param wdecor Window decoration
- * @param arg Argument (demo)
+ * @param arg Argument (window)
  * @param pos Position where the title bar was pressed
  */
 static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
@@ -470,6 +497,60 @@ static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
 	ui_window_t *window = (ui_window_t *) arg;
 
 	(void) display_window_move_req(window->dwindow, pos);
+}
+
+/** Window decoration requested window resize.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param rsztype Resize type
+ * @param pos Position where the button was pressed
+ */
+static void wd_resize(ui_wdecor_t *wdecor, void *arg,
+    ui_wdecor_rsztype_t rsztype, gfx_coord2_t *pos)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	(void) display_window_resize_req(window->dwindow, rsztype, pos);
+}
+
+/** Window decoration requested changing cursor.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param cursor Cursor to set
+ */
+static void wd_set_cursor(ui_wdecor_t *wdecor, void *arg,
+    ui_stock_cursor_t cursor)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+	display_stock_cursor_t dcursor;
+
+	if (cursor == window->cursor)
+		return;
+
+	dcursor = dcurs_arrow;
+
+	switch (cursor) {
+	case ui_curs_arrow:
+		dcursor = dcurs_arrow;
+		break;
+	case ui_curs_size_ud:
+		dcursor = dcurs_size_ud;
+		break;
+	case ui_curs_size_lr:
+		dcursor = dcurs_size_lr;
+		break;
+	case ui_curs_size_uldr:
+		dcursor = dcurs_size_uldr;
+		break;
+	case ui_curs_size_urdl:
+		dcursor = dcurs_size_urdl;
+		break;
+	}
+
+	(void) display_window_set_cursor(window->dwindow, dcursor);
+	window->cursor = cursor;
 }
 
 /** Send window close event.

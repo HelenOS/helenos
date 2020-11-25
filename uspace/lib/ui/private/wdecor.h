@@ -38,7 +38,9 @@
 #define _UI_PRIVATE_WDECOR_H
 
 #include <gfx/coord.h>
+#include <io/pos_event.h>
 #include <stdbool.h>
+#include <types/ui/cursor.h>
 #include <types/ui/wdecor.h>
 
 /** Actual structure of push button.
@@ -54,6 +56,8 @@ struct ui_wdecor {
 	void *arg;
 	/** Window decoration rectangle */
 	gfx_rect_t rect;
+	/** Style */
+	ui_wdecor_style_t style;
 	/** Caption */
 	char *caption;
 	/** Window is active */
@@ -79,7 +83,14 @@ typedef struct {
 
 extern void ui_wdecor_close(ui_wdecor_t *);
 extern void ui_wdecor_move(ui_wdecor_t *, gfx_coord2_t *);
+extern void ui_wdecor_resize(ui_wdecor_t *, ui_wdecor_rsztype_t,
+    gfx_coord2_t *);
+extern void ui_wdecor_set_cursor(ui_wdecor_t *, ui_stock_cursor_t);
 extern void ui_wdecor_get_geom(ui_wdecor_t *, ui_wdecor_geom_t *);
+extern void ui_wdecor_frame_pos_event(ui_wdecor_t *, pos_event_t *);
+extern ui_wdecor_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *,
+    gfx_coord2_t *);
+extern ui_stock_cursor_t ui_wdecor_cursor_from_rsztype(ui_wdecor_rsztype_t);
 
 #endif
 

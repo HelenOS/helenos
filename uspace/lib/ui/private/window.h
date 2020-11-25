@@ -58,6 +58,8 @@ struct ui_window {
 	display_window_t *dwindow;
 	/** Window GC */
 	gfx_context_t *gc;
+	/** Window rectangle */
+	gfx_rect_t rect;
 	/** Application area bitmap */
 	gfx_bitmap_t *app_bmp;
 	/** Application area GC */
@@ -68,6 +70,8 @@ struct ui_window {
 	struct ui_wdecor *wdecor;
 	/** Top-level control in the application area */
 	struct ui_control *control;
+	/** Current cursor */
+	ui_stock_cursor_t cursor;
 };
 
 extern void ui_window_send_close(ui_window_t *);

@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include <types/ui/wdecor.h>
 
 struct ui_window;
 typedef struct ui_window ui_window_t;
@@ -63,6 +64,8 @@ typedef struct {
 	gfx_rect_t rect;
 	/** Window caption */
 	const char *caption;
+	/** Window decoration style */
+	ui_wdecor_style_t style;
 	/** Window placement */
 	ui_wnd_placement_t placement;
 } ui_wnd_params_t;

@@ -33,6 +33,7 @@
  * @file Window decoration
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <gfx/color.h>
 #include <gfx/context.h>
@@ -53,15 +54,23 @@ static ui_pbutton_cb_t ui_wdecor_btn_close_cb = {
 	.clicked = ui_wdecor_btn_clicked
 };
 
+enum {
+	wdecor_corner_w = 24,
+	wdecor_corner_h = 24,
+	wdecor_edge_w = 4,
+	wdecor_edge_h = 4
+};
+
 /** Create new window decoration.
  *
  * @param resource UI resource
  * @param caption Window caption
+ * @param style Style
  * @param rwdecor Place to store pointer to new window decoration
  * @return EOK on success, ENOMEM if out of memory
  */
 errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
-    ui_wdecor_t **rwdecor)
+    ui_wdecor_style_t style, ui_wdecor_t **rwdecor)
 {
 	ui_wdecor_t *wdecor;
 	errno_t rc;
@@ -88,6 +97,7 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 
 	wdecor->res = resource;
 	wdecor->active = true;
+	wdecor->style = style;
 	*rwdecor = wdecor;
 	return EOK;
 }
@@ -243,6 +253,30 @@ void ui_wdecor_move(ui_wdecor_t *wdecor, gfx_coord2_t *pos)
 		wdecor->cb->move(wdecor, wdecor->arg, pos);
 }
 
+/** Send decoration resize event.
+ *
+ * @param wdecor Window decoration
+ * @param rsztype Resize type
+ * @param pos Position where the button was pressed
+ */
+void ui_wdecor_resize(ui_wdecor_t *wdecor, ui_wdecor_rsztype_t rsztype,
+    gfx_coord2_t *pos)
+{
+	if (wdecor->cb != NULL && wdecor->cb->resize != NULL)
+		wdecor->cb->resize(wdecor, wdecor->arg, rsztype, pos);
+}
+
+/** Send cursor change event.
+ *
+ * @param wdecor Window decoration
+ * @param cursor Cursor
+ */
+void ui_wdecor_set_cursor(ui_wdecor_t *wdecor, ui_stock_cursor_t cursor)
+{
+	if (wdecor->cb != NULL && wdecor->cb->set_cursor != NULL)
+		wdecor->cb->set_cursor(wdecor, wdecor->arg, cursor);
+}
+
 /** Get window decoration geometry.
  *
  * @param wdecor Window decoration
@@ -286,6 +320,140 @@ void ui_wdecor_rect_from_app(gfx_rect_t *app, gfx_rect_t *rect)
 	rect->p1.y = app->p1.y + 4;
 }
 
+/** Get resize type for pointer at the specified position.
+ *
+ * @param wdecor Window decoration
+ * @param pos Pointer position
+ * @return Resize type
+ */
+ui_wdecor_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *wdecor,
+    gfx_coord2_t *pos)
+{
+	bool eleft, eright;
+	bool etop, ebottom;
+	bool edge;
+	bool cleft, cright;
+	bool ctop, cbottom;
+
+	/* Window not resizable? */
+	if ((wdecor->style & ui_wds_resizable) == 0)
+		return ui_wr_none;
+
+	/* Position not inside window? */
+	if (!gfx_pix_inside_rect(pos, &wdecor->rect))
+		return ui_wr_none;
+
+	/* Position is within edge width from the outside */
+	eleft = (pos->x < wdecor->rect.p0.x + wdecor_edge_w);
+	eright = (pos->x >= wdecor->rect.p1.x - wdecor_edge_w);
+	etop = (pos->y < wdecor->rect.p0.y + wdecor_edge_h);
+	ebottom = (pos->y >= wdecor->rect.p1.y - wdecor_edge_h);
+
+	/* Position is on one of the four edges */
+	edge = eleft || eright || etop || ebottom;
+
+	/* Position is within resize-corner distance from the outside */
+	cleft = (pos->x < wdecor->rect.p0.x + wdecor_corner_w);
+	cright = (pos->x >= wdecor->rect.p1.x - wdecor_corner_w);
+	ctop = (pos->y < wdecor->rect.p0.y + wdecor_corner_h);
+	cbottom = (pos->y >= wdecor->rect.p1.y - wdecor_corner_h);
+
+	/* Top-left corner */
+	if (edge && cleft && ctop)
+		return ui_wr_top_left;
+
+	/* Top-right corner */
+	if (edge && cright && ctop)
+		return ui_wr_top_right;
+
+	/* Bottom-left corner */
+	if (edge && cleft && cbottom)
+		return ui_wr_bottom_left;
+
+	/* Bottom-right corner */
+	if (edge && cright && cbottom)
+		return ui_wr_bottom_right;
+
+	/* Left edge */
+	if (eleft)
+		return ui_wr_left;
+
+	/* Right edge */
+	if (eright)
+		return ui_wr_right;
+
+	/* Top edge */
+	if (etop)
+		return ui_wr_top;
+
+	/* Bottom edge */
+	if (ebottom)
+		return ui_wr_bottom;
+
+	return ui_wr_none;
+}
+
+/** Get stock cursor to use for the specified window resize type.
+ *
+ * The resize type must be valid, otherwise behavior is undefined.
+ *
+ * @param rsztype Resize type
+ * @return Cursor to use for this resize type
+ */
+ui_stock_cursor_t ui_wdecor_cursor_from_rsztype(ui_wdecor_rsztype_t rsztype)
+{
+	switch (rsztype) {
+	case ui_wr_none:
+		return ui_curs_arrow;
+
+	case ui_wr_top:
+	case ui_wr_bottom:
+		return ui_curs_size_ud;
+
+	case ui_wr_left:
+	case ui_wr_right:
+		return ui_curs_size_lr;
+
+	case ui_wr_top_left:
+	case ui_wr_bottom_right:
+		return ui_curs_size_uldr;
+
+	case ui_wr_top_right:
+	case ui_wr_bottom_left:
+		return ui_curs_size_urdl;
+
+	default:
+		assert(false);
+		return ui_curs_arrow;
+	}
+}
+
+/** Handle window frame position event.
+ *
+ * @param wdecor Window decoration
+ * @param pos_event Position event
+ */
+void ui_wdecor_frame_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
+{
+	gfx_coord2_t pos;
+	ui_wdecor_rsztype_t rsztype;
+	ui_stock_cursor_t cursor;
+
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+
+	/* Set appropriate resizing cursor, or set arrow cursor */
+
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	cursor = ui_wdecor_cursor_from_rsztype(rsztype);
+
+	ui_wdecor_set_cursor(wdecor, cursor);
+
+	/* Press on window border? */
+	if (rsztype != ui_wr_none && event->type == POS_PRESS)
+		ui_wdecor_resize(wdecor, rsztype, &pos);
+}
+
 /** Handle window decoration position event.
  *
  * @param wdecor Window decoration
@@ -305,6 +473,8 @@ void ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 	claim = ui_pbutton_pos_event(wdecor->btn_close, event);
 	if (claim == ui_claimed)
 		return;
+
+	ui_wdecor_frame_pos_event(wdecor, event);
 
 	if (event->type == POS_PRESS &&
 	    gfx_pix_inside_rect(&pos, &geom.title_bar_rect))

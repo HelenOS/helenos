@@ -29,29 +29,30 @@
 /** @addtogroup libui
  * @{
  */
-/**
- * @file Window decoration
+/** @file
  */
 
-#ifndef _UI_WDECOR_H
-#define _UI_WDECOR_H
+#ifndef _LIBUI_TYPES_CURSOR_H_
+#define _LIBUI_TYPES_CURSOR_H_
 
-#include <errno.h>
-#include <gfx/coord.h>
-#include <io/pos_event.h>
-#include <stdbool.h>
-#include <types/ui/resource.h>
-#include <types/ui/wdecor.h>
+/** Stock cursor types */
+typedef enum {
+	/** Standard arrow */
+	ui_curs_arrow,
+	/** Double arrow pointing up and down */
+	ui_curs_size_ud,
+	/** Double arrow pointing left and right */
+	ui_curs_size_lr,
+	/** Double arrow pointing up-left and down-right */
+	ui_curs_size_uldr,
+	/** Double arrow pointing up-right nad down-left */
+	ui_curs_size_urdl
+} ui_stock_cursor_t;
 
-extern errno_t ui_wdecor_create(ui_resource_t *, const char *,
-    ui_wdecor_style_t, ui_wdecor_t **);
-extern void ui_wdecor_destroy(ui_wdecor_t *);
-extern void ui_wdecor_set_cb(ui_wdecor_t *, ui_wdecor_cb_t *, void *);
-extern void ui_wdecor_set_rect(ui_wdecor_t *, gfx_rect_t *);
-extern void ui_wdecor_set_active(ui_wdecor_t *, bool);
-extern errno_t ui_wdecor_paint(ui_wdecor_t *);
-extern void ui_wdecor_pos_event(ui_wdecor_t *, pos_event_t *);
-extern void ui_wdecor_rect_from_app(gfx_rect_t *, gfx_rect_t *);
+enum {
+	/** Number of stock cursor types */
+	ui_curs_limit = ui_curs_size_urdl + 1
+};
 
 #endif
 

@@ -59,10 +59,15 @@ static gfx_context_ops_t ops = {
 
 static void test_wdecor_close(ui_wdecor_t *, void *);
 static void test_wdecor_move(ui_wdecor_t *, void *, gfx_coord2_t *);
+static void test_wdecor_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
+    gfx_coord2_t *);
+static void test_wdecor_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t test_wdecor_cb = {
 	.close = test_wdecor_close,
-	.move = test_wdecor_move
+	.move = test_wdecor_move,
+	.resize = test_wdecor_resize,
+	.set_cursor = test_wdecor_set_cursor
 };
 
 static ui_wdecor_cb_t dummy_wdecor_cb = {
@@ -89,6 +94,10 @@ typedef struct {
 	bool close;
 	bool move;
 	gfx_coord2_t pos;
+	bool resize;
+	ui_wdecor_rsztype_t rsztype;
+	bool set_cursor;
+	ui_stock_cursor_t cursor;
 } test_cb_resp_t;
 
 /** Create and destroy button */
@@ -97,7 +106,7 @@ PCUT_TEST(create_destroy)
 	ui_wdecor_t *wdecor = NULL;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wdecor);
 
@@ -117,7 +126,7 @@ PCUT_TEST(set_rect)
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 1;
@@ -140,7 +149,7 @@ PCUT_TEST(set_active)
 	ui_wdecor_t *wdecor;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_TRUE(wdecor->active);
@@ -171,7 +180,7 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_wdecor_create(resource, "Hello", &wdecor);
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_wdecor_paint(wdecor);
@@ -191,7 +200,7 @@ PCUT_TEST(close)
 	ui_wdecor_t *wdecor;
 	test_cb_resp_t resp;
 
-	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Close callback with no callbacks set */
@@ -218,7 +227,7 @@ PCUT_TEST(move)
 	test_cb_resp_t resp;
 	gfx_coord2_t pos;
 
-	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 3;
@@ -244,6 +253,75 @@ PCUT_TEST(move)
 	ui_wdecor_destroy(wdecor);
 }
 
+/** Test ui_wdecor_resize() */
+PCUT_TEST(resize)
+{
+	errno_t rc;
+	ui_wdecor_t *wdecor;
+	test_cb_resp_t resp;
+	ui_wdecor_rsztype_t rsztype;
+	gfx_coord2_t pos;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rsztype = ui_wr_bottom;
+	pos.x = 3;
+	pos.y = 4;
+
+	/* Resize callback with no callbacks set */
+	ui_wdecor_resize(wdecor, rsztype, &pos);
+
+	/* Resize callback with move callback not implemented */
+	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
+	ui_wdecor_resize(wdecor, rsztype, &pos);
+
+	/* Resize callback with real callback set */
+	resp.resize = false;
+	resp.rsztype = ui_wr_none;
+	resp.pos.x = 0;
+	resp.pos.y = 0;
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
+	ui_wdecor_resize(wdecor, rsztype, &pos);
+	PCUT_ASSERT_TRUE(resp.resize);
+	PCUT_ASSERT_INT_EQUALS(rsztype, resp.rsztype);
+	PCUT_ASSERT_INT_EQUALS(pos.x, resp.pos.x);
+	PCUT_ASSERT_INT_EQUALS(pos.y, resp.pos.y);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** Test ui_wdecor_set_cursor() */
+PCUT_TEST(set_cursor)
+{
+	errno_t rc;
+	ui_wdecor_t *wdecor;
+	test_cb_resp_t resp;
+	ui_stock_cursor_t cursor;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	cursor = ui_curs_size_uldr;
+
+	/* Set cursor callback with no callbacks set */
+	ui_wdecor_set_cursor(wdecor, cursor);
+
+	/* Set cursor callback with move callback not implemented */
+	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
+	ui_wdecor_set_cursor(wdecor, cursor);
+
+	/* Set cursor callback with real callback set */
+	resp.set_cursor = false;
+	resp.cursor = ui_curs_arrow;
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
+	ui_wdecor_set_cursor(wdecor, cursor);
+	PCUT_ASSERT_TRUE(resp.set_cursor);
+	PCUT_ASSERT_INT_EQUALS(cursor, resp.cursor);
+
+	ui_wdecor_destroy(wdecor);
+}
+
 /** Clicking the close button generates close callback */
 PCUT_TEST(close_btn_clicked)
 {
@@ -252,7 +330,7 @@ PCUT_TEST(close_btn_clicked)
 	test_cb_resp_t resp;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -281,7 +359,7 @@ PCUT_TEST(pos_event_move)
 	test_cb_resp_t resp;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -317,7 +395,7 @@ PCUT_TEST(get_geom)
 	ui_wdecor_geom_t geom;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -368,6 +446,183 @@ PCUT_TEST(rect_from_app)
 	PCUT_ASSERT_INT_EQUALS(20, rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(100, rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(200, rect.p1.y);
+}
+
+/** Test ui_wdecor_get_rsztype() */
+PCUT_TEST(get_rsztype)
+{
+	ui_wdecor_t *wdecor;
+	gfx_rect_t rect;
+	ui_wdecor_rsztype_t rsztype;
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_resizable, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+
+	/* Outside of the window */
+	pos.x = 0;
+	pos.y = -1;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
+
+	/* Middle of the window */
+	pos.x = 50;
+	pos.y = 100;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
+
+	/* Top-left corner, but not on edge */
+	pos.x = 20;
+	pos.y = 30;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
+
+	/* Top-left corner on top edge */
+	pos.x = 20;
+	pos.y = 20;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_top_left, rsztype);
+
+	/* Top-left corner on left edge */
+	pos.x = 10;
+	pos.y = 30;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_top_left, rsztype);
+
+	/* Top-right corner on top edge */
+	pos.x = 90;
+	pos.y = 20;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_top_right, rsztype);
+
+	/* Top-right corner on right edge */
+	pos.x = 99;
+	pos.y = 30;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_top_right, rsztype);
+
+	/* Top edge */
+	pos.x = 50;
+	pos.y = 20;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_top, rsztype);
+
+	/* Bottom edge */
+	pos.x = 50;
+	pos.y = 199;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_bottom, rsztype);
+
+	/* Left edge */
+	pos.x = 10;
+	pos.y = 100;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_left, rsztype);
+
+	/* Right edge */
+	pos.x = 99;
+	pos.y = 100;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_right, rsztype);
+
+	ui_wdecor_destroy(wdecor);
+
+	/* Non-resizable window */
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+
+	pos.x = 10;
+	pos.y = 20;
+	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
+	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** Test ui_wdecor_cursor_from_rsztype() */
+PCUT_TEST(cursor_from_rsztype)
+{
+	PCUT_ASSERT_EQUALS(ui_curs_arrow,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_none));
+	PCUT_ASSERT_EQUALS(ui_curs_size_ud,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_top));
+	PCUT_ASSERT_EQUALS(ui_curs_size_ud,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_bottom));
+	PCUT_ASSERT_EQUALS(ui_curs_size_lr,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_left));
+	PCUT_ASSERT_EQUALS(ui_curs_size_lr,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_right));
+	PCUT_ASSERT_EQUALS(ui_curs_size_uldr,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_top_left));
+	PCUT_ASSERT_EQUALS(ui_curs_size_uldr,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_bottom_right));
+	PCUT_ASSERT_EQUALS(ui_curs_size_urdl,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_top_right));
+	PCUT_ASSERT_EQUALS(ui_curs_size_urdl,
+	    ui_wdecor_cursor_from_rsztype(ui_wr_bottom_left));
+}
+
+/** Test ui_wdecor_frame_pos_event() */
+PCUT_TEST(frame_pos_event)
+{
+	ui_wdecor_t *wdecor;
+	gfx_rect_t rect;
+	test_cb_resp_t resp;
+	pos_event_t event;
+	errno_t rc;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_resizable, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
+
+	/* Release on window border should do nothing */
+	resp.resize = false;
+	event.type = POS_RELEASE;
+	event.hpos = 10;
+	event.vpos = 10;
+	ui_wdecor_frame_pos_event(wdecor, &event);
+	PCUT_ASSERT_FALSE(resp.resize);
+
+	/* Press in the middle of the window should do nothing */
+	resp.resize = false;
+	event.type = POS_PRESS;
+	event.hpos = 50;
+	event.vpos = 100;
+	ui_wdecor_frame_pos_event(wdecor, &event);
+	PCUT_ASSERT_FALSE(resp.resize);
+
+	/* Press on window border should cause resize to be called */
+	resp.resize = false;
+	event.type = POS_PRESS;
+	event.hpos = 10;
+	event.vpos = 20;
+	ui_wdecor_frame_pos_event(wdecor, &event);
+	PCUT_ASSERT_TRUE(resp.resize);
+
+	ui_wdecor_destroy(wdecor);
 }
 
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)
@@ -459,6 +714,25 @@ static void test_wdecor_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
 
 	resp->move = true;
 	resp->pos = *pos;
+}
+
+static void test_wdecor_resize(ui_wdecor_t *wdecor, void *arg,
+    ui_wdecor_rsztype_t rsztype, gfx_coord2_t *pos)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->resize = true;
+	resp->rsztype = rsztype;
+	resp->pos = *pos;
+}
+
+static void test_wdecor_set_cursor(ui_wdecor_t *wdecor, void *arg,
+    ui_stock_cursor_t cursor)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->set_cursor = true;
+	resp->cursor = cursor;
 }
 
 PCUT_EXPORT(wdecor);

@@ -37,14 +37,39 @@
 #define _UI_TYPES_WDECOR_H
 
 #include <gfx/coord.h>
+#include <types/ui/cursor.h>
 
 struct ui_wdecor;
 typedef struct ui_wdecor ui_wdecor_t;
+
+/** Window decoration style */
+typedef enum {
+	ui_wds_none = 0x0,
+	ui_wds_resizable = 0x1
+} ui_wdecor_style_t;
+
+/** Window resize type */
+typedef enum {
+	ui_wr_none = 0,
+
+	ui_wr_top = 0x1,
+	ui_wr_left = 0x2,
+	ui_wr_bottom = 0x4,
+	ui_wr_right = 0x8,
+
+	ui_wr_top_left = ui_wr_top | ui_wr_left,
+	ui_wr_bottom_left = ui_wr_bottom | ui_wr_left,
+	ui_wr_bottom_right = ui_wr_bottom | ui_wr_right,
+	ui_wr_top_right = ui_wr_top | ui_wr_right
+} ui_wdecor_rsztype_t;
 
 /** Window decoration callbacks */
 typedef struct ui_wdecor_cb {
 	void (*close)(ui_wdecor_t *, void *);
 	void (*move)(ui_wdecor_t *, void *, gfx_coord2_t *);
+	void (*resize)(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
+	    gfx_coord2_t *);
+	void (*set_cursor)(ui_wdecor_t *, void *, ui_stock_cursor_t);
 } ui_wdecor_cb_t;
 
 #endif
