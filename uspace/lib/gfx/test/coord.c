@@ -596,6 +596,45 @@ PCUT_TEST(rect_clip_rect_noclip)
 	PCUT_ASSERT_INT_EQUALS(rect.p1.y, dest.p1.y);
 }
 
+/** Center rectangle on rectangle */
+PCUT_TEST(rect_ctr_on_rect)
+{
+	gfx_rect_t a;
+	gfx_rect_t b;
+	gfx_rect_t dest;
+
+	/* Dimensions: 20 x 20 */
+	b.p0.x = 10;
+	b.p0.y = 20;
+	b.p1.x = 30;
+	b.p1.y = 40;
+
+	/* Dimensions: 20 x 20 */
+	a.p0.x = 100;
+	a.p0.y = 200;
+	a.p1.x = 120;
+	a.p1.y = 220;
+
+	/* Centering rectangle of same size should give us the same rectangle */
+	gfx_rect_ctr_on_rect(&a, &b, &dest);
+	PCUT_ASSERT_INT_EQUALS(b.p0.x, dest.p0.x);
+	PCUT_ASSERT_INT_EQUALS(b.p0.y, dest.p0.y);
+	PCUT_ASSERT_INT_EQUALS(b.p1.x, dest.p1.x);
+	PCUT_ASSERT_INT_EQUALS(b.p1.y, dest.p1.y);
+
+	/* Dimensions: 10 x 10 */
+	a.p0.x = 100;
+	a.p0.y = 200;
+	a.p1.x = 110;
+	a.p1.y = 210;
+
+	gfx_rect_ctr_on_rect(&a, &b, &dest);
+	PCUT_ASSERT_INT_EQUALS(15, dest.p0.x);
+	PCUT_ASSERT_INT_EQUALS(25, dest.p0.y);
+	PCUT_ASSERT_INT_EQUALS(25, dest.p1.x);
+	PCUT_ASSERT_INT_EQUALS(35, dest.p1.y);
+}
+
 /** Sort span points that are already sorted should produde indentical points */
 PCUT_TEST(rect_points_sort_sorted)
 {

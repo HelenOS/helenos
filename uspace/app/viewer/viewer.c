@@ -180,7 +180,9 @@ static bool img_setup(gfx_context_t *gc, gfx_bitmap_t *bmp, gfx_rect_t *rect)
 	ui_res = ui_window_get_res(window);
 
 	ui_window_get_app_rect(window, &arect);
-	gfx_rect_translate(&arect.p0, rect, &irect);
+
+	/* Center image on application area */
+	gfx_rect_ctr_on_rect(rect, &arect, &irect);
 
 	if (image != NULL) {
 		ui_image_set_bmp(image, bmp, rect);
@@ -238,6 +240,7 @@ int main(int argc, char *argv[])
 
 			display_spec = argv[i++];
 		} else if (str_cmp(argv[i], "-f") == 0) {
+			++i;
 			fullscreen = true;
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
@@ -267,12 +270,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	// TODO Fullscreen mode
-	if (fullscreen) {
-		printf("Fullscreen mode not implemented.\n");
-		return 1;
-	}
-
 	rc = ui_create(display_spec, &ui);
 	if (rc != EOK) {
 		printf("Error creating UI on display %s.\n", display_spec);
@@ -291,6 +288,11 @@ int main(int argc, char *argv[])
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 1;
 	params.rect.p1.y = 1;
+
+	if (fullscreen) {
+		params.style &= ~ui_wds_decorated;
+		params.placement = ui_wnd_place_full_screen;
+	}
 
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
@@ -311,13 +313,16 @@ int main(int argc, char *argv[])
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
 	 */
-	ui_wdecor_rect_from_app(&lrect, &wrect);
+	ui_wdecor_rect_from_app(params.style, &lrect, &wrect);
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &rect);
-	rc = ui_window_resize(window, &rect);
-	if (rc != EOK) {
-		printf("Error resizing window.\n");
-		return 1;
+
+	if (!fullscreen) {
+		rc = ui_window_resize(window, &rect);
+		if (rc != EOK) {
+			printf("Error resizing window.\n");
+			return 1;
+		}
 	}
 
 	if (!img_setup(window_gc, lbitmap, &lrect)) {

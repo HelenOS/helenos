@@ -55,7 +55,9 @@ typedef enum {
 	/** Place window to the bottom-left corner of the screen */
 	ui_wnd_place_bottom_left,
 	/** Place window to the bottom-right corner of the screen */
-	ui_wnd_place_bottom_right
+	ui_wnd_place_bottom_right,
+	/** Place window accross the entire screen */
+	ui_wnd_place_full_screen
 } ui_wnd_placement_t;
 
 /** Window parameters */

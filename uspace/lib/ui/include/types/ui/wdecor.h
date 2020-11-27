@@ -44,8 +44,18 @@ typedef struct ui_wdecor ui_wdecor_t;
 
 /** Window decoration style */
 typedef enum {
+	/** No style bits */
 	ui_wds_none = 0x0,
-	ui_wds_resizable = 0x1
+	/** Window has a frame */
+	ui_wds_frame = 0x1,
+	/** Window has a title bar */
+	ui_wds_titlebar = 0x2,
+	/** Window has a close button */
+	ui_wds_close_btn = 0x4,
+	/** Window is resizable */
+	ui_wds_resizable = 0x8,
+	/** Window is decorated (default decoration) */
+	ui_wds_decorated = ui_wds_frame | ui_wds_titlebar | ui_wds_close_btn
 } ui_wdecor_style_t;
 
 /** Window resize type */

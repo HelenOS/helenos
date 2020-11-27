@@ -172,62 +172,68 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	rect = wdecor->rect;
 	ui_wdecor_get_geom(wdecor, &geom);
 
-	rc = ui_paint_bevel(wdecor->res->gc, &rect,
-	    wdecor->res->wnd_frame_hi_color,
-	    wdecor->res->wnd_frame_sh_color, 1, &rect);
-	if (rc != EOK)
-		return rc;
+	if ((wdecor->style & ui_wds_frame) != 0) {
+		rc = ui_paint_bevel(wdecor->res->gc, &rect,
+		    wdecor->res->wnd_frame_hi_color,
+		    wdecor->res->wnd_frame_sh_color, 1, &rect);
+		if (rc != EOK)
+			return rc;
 
-	rc = ui_paint_bevel(wdecor->res->gc, &rect,
-	    wdecor->res->wnd_highlight_color,
-	    wdecor->res->wnd_shadow_color, 1, &rect);
-	if (rc != EOK)
-		return rc;
+		rc = ui_paint_bevel(wdecor->res->gc, &rect,
+		    wdecor->res->wnd_highlight_color,
+		    wdecor->res->wnd_shadow_color, 1, &rect);
+		if (rc != EOK)
+			return rc;
 
-	rc = ui_paint_bevel(wdecor->res->gc, &rect,
-	    wdecor->res->wnd_face_color,
-	    wdecor->res->wnd_face_color, 2, &rect);
-	if (rc != EOK)
-		return rc;
+		rc = ui_paint_bevel(wdecor->res->gc, &rect,
+		    wdecor->res->wnd_face_color,
+		    wdecor->res->wnd_face_color, 2, &rect);
+		if (rc != EOK)
+			return rc;
+	}
 
-	trect = geom.title_bar_rect;
+	if ((wdecor->style & ui_wds_titlebar) != 0) {
+		trect = geom.title_bar_rect;
 
-	rc = ui_paint_bevel(wdecor->res->gc, &trect,
-	    wdecor->res->wnd_shadow_color,
-	    wdecor->res->wnd_highlight_color, 1, &trect);
-	if (rc != EOK)
-		return rc;
+		rc = ui_paint_bevel(wdecor->res->gc, &trect,
+		    wdecor->res->wnd_shadow_color,
+		    wdecor->res->wnd_highlight_color, 1, &trect);
+		if (rc != EOK)
+			return rc;
 
-	rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
-	    wdecor->res->tbar_act_bg_color :
-	    wdecor->res->tbar_inact_bg_color);
-	if (rc != EOK)
-		return rc;
+		rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
+		    wdecor->res->tbar_act_bg_color :
+		    wdecor->res->tbar_inact_bg_color);
+		if (rc != EOK)
+			return rc;
 
-	rc = gfx_fill_rect(wdecor->res->gc, &trect);
-	if (rc != EOK)
-		return rc;
+		rc = gfx_fill_rect(wdecor->res->gc, &trect);
+		if (rc != EOK)
+			return rc;
 
-	gfx_text_fmt_init(&fmt);
-	fmt.halign = gfx_halign_center;
-	fmt.valign = gfx_valign_center;
+		gfx_text_fmt_init(&fmt);
+		fmt.halign = gfx_halign_center;
+		fmt.valign = gfx_valign_center;
 
-	pos.x = (trect.p0.x + trect.p1.x) / 2;
-	pos.y = (trect.p0.y + trect.p1.y) / 2;
+		pos.x = (trect.p0.x + trect.p1.x) / 2;
+		pos.y = (trect.p0.y + trect.p1.y) / 2;
 
-	rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
-	    wdecor->res->tbar_act_text_color :
-	    wdecor->res->tbar_inact_text_color);
-	if (rc != EOK)
-		return rc;
+		rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
+		    wdecor->res->tbar_act_text_color :
+		    wdecor->res->tbar_inact_text_color);
+		if (rc != EOK)
+			return rc;
 
-	rc = gfx_puttext(wdecor->res->font, &pos, &fmt, wdecor->caption);
-	if (rc != EOK)
-		return rc;
+		rc = gfx_puttext(wdecor->res->font, &pos, &fmt, wdecor->caption);
+		if (rc != EOK)
+			return rc;
 
-	rc = ui_pbutton_paint(wdecor->btn_close);
-	if (rc != EOK)
-		return rc;
+		if ((wdecor->style & ui_wds_close_btn) != 0) {
+			rc = ui_pbutton_paint(wdecor->btn_close);
+			if (rc != EOK)
+				return rc;
+		}
+	}
 
 	return EOK;
 }
@@ -284,23 +290,46 @@ void ui_wdecor_set_cursor(ui_wdecor_t *wdecor, ui_stock_cursor_t cursor)
  */
 void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 {
-	geom->interior_rect.p0.x = wdecor->rect.p0.x + 4;
-	geom->interior_rect.p0.y = wdecor->rect.p0.y + 4;
-	geom->interior_rect.p1.x = wdecor->rect.p1.x - 4;
-	geom->interior_rect.p1.y = wdecor->rect.p1.y - 4;
+	/* Does window have a frame? */
+	if ((wdecor->style & ui_wds_frame) != 0) {
+		geom->interior_rect.p0.x = wdecor->rect.p0.x + 4;
+		geom->interior_rect.p0.y = wdecor->rect.p0.y + 4;
+		geom->interior_rect.p1.x = wdecor->rect.p1.x - 4;
+		geom->interior_rect.p1.y = wdecor->rect.p1.y - 4;
+	} else {
+		geom->interior_rect = wdecor->rect;
+	}
 
-	geom->title_bar_rect.p0 = geom->interior_rect.p0;
-	geom->title_bar_rect.p1.x = geom->interior_rect.p1.x;
-	geom->title_bar_rect.p1.y = geom->interior_rect.p0.y + 22;
+	/* Does window have a title bar? */
+	if ((wdecor->style & ui_wds_titlebar) != 0) {
+		geom->title_bar_rect.p0 = geom->interior_rect.p0;
+		geom->title_bar_rect.p1.x = geom->interior_rect.p1.x;
+		geom->title_bar_rect.p1.y = geom->interior_rect.p0.y + 22;
 
-	geom->btn_close_rect.p0.x = geom->title_bar_rect.p1.x - 1 - 20;
-	geom->btn_close_rect.p0.y = geom->title_bar_rect.p0.y + 1;
-	geom->btn_close_rect.p1.x = geom->title_bar_rect.p1.x - 1;
-	geom->btn_close_rect.p1.y = geom->title_bar_rect.p0.y + 1 + 20;
+		geom->app_area_rect.p0.x = geom->interior_rect.p0.x;
+		geom->app_area_rect.p0.y = geom->title_bar_rect.p1.y;
+		geom->app_area_rect.p1 = geom->interior_rect.p1;
+	} else {
+		geom->title_bar_rect.p0.x = 0;
+		geom->title_bar_rect.p0.y = 0;
+		geom->title_bar_rect.p1.x = 0;
+		geom->title_bar_rect.p1.y = 0;
 
-	geom->app_area_rect.p0.x = geom->interior_rect.p0.x;
-	geom->app_area_rect.p0.y = geom->title_bar_rect.p1.y;
-	geom->app_area_rect.p1 = geom->interior_rect.p1;
+		geom->app_area_rect = geom->interior_rect;
+	}
+
+	/* Does window have a close button? */
+	if ((wdecor->style & ui_wds_close_btn) != 0) {
+		geom->btn_close_rect.p0.x = geom->title_bar_rect.p1.x - 1 - 20;
+		geom->btn_close_rect.p0.y = geom->title_bar_rect.p0.y + 1;
+		geom->btn_close_rect.p1.x = geom->title_bar_rect.p1.x - 1;
+		geom->btn_close_rect.p1.y = geom->title_bar_rect.p0.y + 1 + 20;
+	} else {
+		geom->btn_close_rect.p0.x = 0;
+		geom->btn_close_rect.p0.y = 0;
+		geom->btn_close_rect.p1.x = 0;
+		geom->btn_close_rect.p1.y = 0;
+	}
 }
 
 /** Get outer rectangle from application area rectangle.
@@ -309,15 +338,24 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
  * window decoration, since we need it in order to create the window
  * and its decoration.
  *
+ * @param style Decoration style
  * @param app Application area rectangle
  * @param rect Place to store (outer) window decoration rectangle
  */
-void ui_wdecor_rect_from_app(gfx_rect_t *app, gfx_rect_t *rect)
+void ui_wdecor_rect_from_app(ui_wdecor_style_t style, gfx_rect_t *app,
+    gfx_rect_t *rect)
 {
-	rect->p0.x = app->p0.x - 4;
-	rect->p0.y = app->p0.y - 22 - 4;
-	rect->p1.x = app->p1.x + 4;
-	rect->p1.y = app->p1.y + 4;
+	*rect = *app;
+
+	if ((style & ui_wds_frame) != 0) {
+		rect->p0.x -= wdecor_edge_w;
+		rect->p0.y -= wdecor_edge_h;
+		rect->p1.x += wdecor_edge_w;
+		rect->p1.y += wdecor_edge_h;
+	}
+
+	if ((style & ui_wds_titlebar) != 0)
+		rect->p0.y -= 22;
 }
 
 /** Get resize type for pointer at the specified position.
@@ -470,15 +508,19 @@ void ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 
 	ui_wdecor_get_geom(wdecor, &geom);
 
-	claim = ui_pbutton_pos_event(wdecor->btn_close, event);
-	if (claim == ui_claimed)
-		return;
+	if ((wdecor->style & ui_wds_close_btn) != 0) {
+		claim = ui_pbutton_pos_event(wdecor->btn_close, event);
+		if (claim == ui_claimed)
+			return;
+	}
 
 	ui_wdecor_frame_pos_event(wdecor, event);
 
-	if (event->type == POS_PRESS &&
-	    gfx_pix_inside_rect(&pos, &geom.title_bar_rect))
-		ui_wdecor_move(wdecor, &pos);
+	if ((wdecor->style & ui_wds_titlebar) != 0)  {
+		if (event->type == POS_PRESS &&
+		    gfx_pix_inside_rect(&pos, &geom.title_bar_rect))
+			ui_wdecor_move(wdecor, &pos);
+	}
 }
 
 /** Window decoration close button was clicked.

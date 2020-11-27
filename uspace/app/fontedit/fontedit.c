@@ -716,7 +716,7 @@ static errno_t font_edit_create(const char *display_spec, const char *fname,
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
 	 */
-	ui_wdecor_rect_from_app(&rect, &wrect);
+	ui_wdecor_rect_from_app(params.style, &rect, &wrect);
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &params.rect);
 

@@ -817,7 +817,7 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
 	 */
-	ui_wdecor_rect_from_app(&rect, &wrect);
+	ui_wdecor_rect_from_app(wparams.style, &rect, &wrect);
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &wparams.rect);
 

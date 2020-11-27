@@ -237,6 +237,30 @@ void gfx_rect_clip(gfx_rect_t *rect, gfx_rect_t *clip, gfx_rect_t *dest)
 	dest->p1.y = max(sclip.p0.y, min(srect.p1.y, sclip.p1.y));
 }
 
+/** Center rectangle on rectangle.
+ *
+ * Translate rectangle @a a so that its center coincides with the
+ * center of rectangle @a b, saving the result in @a dest.
+ *
+ * @param a Rectnagle to translate
+ * @param b Rectangle on which to center
+ * @param dest Place to store resulting rectangle
+ */
+void gfx_rect_ctr_on_rect(gfx_rect_t *a, gfx_rect_t *b, gfx_rect_t *dest)
+{
+	gfx_coord2_t adim;
+	gfx_coord2_t bdim;
+
+	gfx_rect_dims(a, &adim);
+	gfx_rect_dims(b, &bdim);
+
+	dest->p0.x = b->p0.x + bdim.x / 2 - adim.x / 2;
+	dest->p0.y = b->p0.y + bdim.y / 2 - adim.y / 2;
+
+	dest->p1.x = dest->p0.x + adim.x;
+	dest->p1.y = dest->p0.y + adim.y;
+}
+
 /** Sort points of a rectangle.
  *
  * Shuffle around coordinates of a rectangle so that p0.x < p1.x and

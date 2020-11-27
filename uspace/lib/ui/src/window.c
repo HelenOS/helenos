@@ -88,13 +88,18 @@ static void ui_window_app_update(void *, gfx_rect_t *);
 /** Initialize window parameters structure.
  *
  * Window parameters structure must always be initialized using this function
- * first.
+ * first. By default, the window will be decorated. To get a non-decorated
+ * window, one needs to clear ui_wds_decorated
+ * (e.g. params->style &= ~ui_wds_decorated).
  *
  * @param params Window parameters structure
  */
 void ui_wnd_params_init(ui_wnd_params_t *params)
 {
 	memset(params, 0, sizeof(ui_wnd_params_t));
+
+	/* Make window decorated by default. */
+	params->style = ui_wds_decorated;
 }
 
 /** Create new window.
@@ -110,6 +115,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	ui_window_t *window;
 	display_info_t info;
 	gfx_coord2_t pos;
+	gfx_coord2_t scr_dims;
 	display_wnd_params_t dparams;
 	display_window_t *dwindow = NULL;
 	gfx_context_t *gc = NULL;
@@ -128,16 +134,25 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	gfx_rect_dims(&params->rect, &dparams.min_size);
 
 	if (ui->display != NULL) {
+		if (params->placement != ui_wnd_place_default) {
+			rc = display_get_info(ui->display, &info);
+			if (rc != EOK)
+				goto error;
+		}
+
+		if (params->placement == ui_wnd_place_full_screen) {
+			/* Make window the size of the screen */
+			gfx_rect_dims(&info.rect, &scr_dims);
+			gfx_coord2_add(&dparams.rect.p0, &scr_dims,
+			    &dparams.rect.p1);
+		}
+
 		rc = display_window_create(ui->display, &dparams, &dwnd_cb,
 		    (void *) window, &dwindow);
 		if (rc != EOK)
 			goto error;
 
 		if (params->placement != ui_wnd_place_default) {
-			rc = display_get_info(ui->display, &info);
-			if (rc != EOK)
-				goto error;
-
 			pos.x = 0;
 			pos.y = 0;
 
@@ -145,6 +160,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 			case ui_wnd_place_default:
 				assert(false);
 			case ui_wnd_place_top_left:
+			case ui_wnd_place_full_screen:
 				pos.x = info.rect.p0.x - params->rect.p0.x;
 				pos.y = info.rect.p0.y - params->rect.p0.y;
 				break;
@@ -187,13 +203,13 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	ui_wdecor_set_rect(wdecor, &params->rect);
+	ui_wdecor_set_rect(wdecor, &dparams.rect);
 	ui_wdecor_set_cb(wdecor, &wdecor_cb, (void *) window);
 	ui_wdecor_paint(wdecor);
 
 	window->ui = ui;
 	window->dwindow = dwindow;
-	window->rect = params->rect;
+	window->rect = dparams.rect;
 	window->gc = gc;
 	window->res = res;
 	window->wdecor = wdecor;

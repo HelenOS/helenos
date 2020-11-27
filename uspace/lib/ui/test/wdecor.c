@@ -359,7 +359,7 @@ PCUT_TEST(pos_event_move)
 	test_cb_resp_t resp;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_decorated, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -387,8 +387,8 @@ PCUT_TEST(pos_event_move)
 	ui_wdecor_destroy(wdecor);
 }
 
-/** ui_wdecor_get_geom() produces the correct geometry */
-PCUT_TEST(get_geom)
+/** ui_wdecor_get_geom() with ui_wds_none produces the correct geometry */
+PCUT_TEST(get_geom_none)
 {
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
@@ -396,6 +396,133 @@ PCUT_TEST(get_geom)
 	errno_t rc;
 
 	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+	ui_wdecor_get_geom(wdecor, &geom);
+
+	PCUT_ASSERT_INT_EQUALS(10, geom.interior_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(20, geom.interior_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(100, geom.interior_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(200, geom.interior_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(10, geom.app_area_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(20, geom.app_area_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(100, geom.app_area_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(200, geom.app_area_rect.p1.y);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** ui_wdecor_get_geom() with ui_wds_frame produces the correct geometry */
+PCUT_TEST(get_geom_frame)
+{
+	ui_wdecor_t *wdecor;
+	gfx_rect_t rect;
+	ui_wdecor_geom_t geom;
+	errno_t rc;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_frame, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+	ui_wdecor_get_geom(wdecor, &geom);
+
+	PCUT_ASSERT_INT_EQUALS(14, geom.interior_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(24, geom.interior_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, geom.interior_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(196, geom.interior_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(14, geom.app_area_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(24, geom.app_area_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, geom.app_area_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(196, geom.app_area_rect.p1.y);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** ui_wdecor_get_geom() with ui_wds_frame | ui_wds_titlebar */
+PCUT_TEST(get_geom_frame_titlebar)
+{
+	ui_wdecor_t *wdecor;
+	gfx_rect_t rect;
+	ui_wdecor_geom_t geom;
+	errno_t rc;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_frame | ui_wds_titlebar,
+	    &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+	ui_wdecor_get_geom(wdecor, &geom);
+
+	PCUT_ASSERT_INT_EQUALS(14, geom.interior_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(24, geom.interior_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, geom.interior_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(196, geom.interior_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(14, geom.title_bar_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(24, geom.title_bar_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, geom.title_bar_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(46, geom.title_bar_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(14, geom.app_area_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(46, geom.app_area_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, geom.app_area_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(196, geom.app_area_rect.p1.y);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** ui_wdecor_get_geom() with ui_wds_decorated produces the correct geometry */
+PCUT_TEST(get_geom_decorated)
+{
+	ui_wdecor_t *wdecor;
+	gfx_rect_t rect;
+	ui_wdecor_geom_t geom;
+	errno_t rc;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_decorated, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -440,12 +567,27 @@ PCUT_TEST(rect_from_app)
 	arect.p1.x = 96;
 	arect.p1.y = 196;
 
-	ui_wdecor_rect_from_app(&arect, &rect);
+	ui_wdecor_rect_from_app(ui_wds_none, &arect, &rect);
+
+	PCUT_ASSERT_INT_EQUALS(14, rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(46, rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(96, rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(196, rect.p1.y);
+
+	ui_wdecor_rect_from_app(ui_wds_frame, &arect, &rect);
+
+	PCUT_ASSERT_INT_EQUALS(10, rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(42, rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(100, rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(200, rect.p1.y);
+
+	ui_wdecor_rect_from_app(ui_wds_decorated, &arect, &rect);
 
 	PCUT_ASSERT_INT_EQUALS(10, rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(20, rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(100, rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(200, rect.p1.y);
+
 }
 
 /** Test ui_wdecor_get_rsztype() */
