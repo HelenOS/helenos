@@ -44,13 +44,16 @@ EXPORT_LIBS=" \
 	uspace/lib/libcpp.a \
 	uspace/lib/libdisplay.a \
 	uspace/lib/libgfx.a \
+	uspace/lib/libgfxfont.a \
 	uspace/lib/libgfximage.a \
 	uspace/lib/libhound.a \
 	uspace/lib/libipcgfx.a \
 	uspace/lib/libmath.a \
+	uspace/lib/libmemgfx.a \
 	uspace/lib/libpcm.a \
 	uspace/lib/libpixconv.a \
 	uspace/lib/libposix.a \
+	uspace/lib/libriff.a \
 	uspace/lib/libui.a \
 "
 
