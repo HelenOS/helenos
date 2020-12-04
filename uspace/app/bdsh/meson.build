@@ -59,6 +59,7 @@ src = files(
 	'cmds/modules/unalias/unalias.c',
 	'cmds/modules/unmount/unmount.c',
 	'cmds/modules/basename/basename.c',
+	'cmds/modules/grep/grep.c',
 	'compl.c',
 	'errors.c',
 	'exec.c',
