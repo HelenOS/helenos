@@ -60,6 +60,7 @@ src = files(
 	'cmds/modules/unmount/unmount.c',
 	'cmds/modules/basename/basename.c',
 	'cmds/modules/grep/grep.c',
+	'cmds/modules/head/head.c',
 	'compl.c',
 	'errors.c',
 	'exec.c',
