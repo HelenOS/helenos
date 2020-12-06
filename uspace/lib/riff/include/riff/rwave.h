@@ -33,8 +33,8 @@
  * @file Waveform Audio File Format (WAVE).
  */
 
-#ifndef RIFF_WAVE_H
-#define RIFF_WAVE_H
+#ifndef RIFF_RWAVE_H
+#define RIFF_RWAVE_H
 
 #include <errno.h>
 #include <types/riff/rwave.h>
