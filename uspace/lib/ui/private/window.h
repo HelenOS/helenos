@@ -42,6 +42,7 @@
 #include <gfx/context.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include <memgfx/memgc.h>
 
 /** Actual structure of window.
  *
@@ -62,6 +63,8 @@ struct ui_window {
 	gfx_rect_t rect;
 	/** Application area bitmap */
 	gfx_bitmap_t *app_bmp;
+	/** Application area memory GC */
+	mem_gc_t *app_mgc;
 	/** Application area GC */
 	gfx_context_t *app_gc;
 	/** UI resource. Ideally this would be in ui_t. */

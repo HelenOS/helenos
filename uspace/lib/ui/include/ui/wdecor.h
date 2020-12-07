@@ -53,6 +53,8 @@ extern errno_t ui_wdecor_paint(ui_wdecor_t *);
 extern void ui_wdecor_pos_event(ui_wdecor_t *, pos_event_t *);
 extern void ui_wdecor_rect_from_app(ui_wdecor_style_t, gfx_rect_t *,
     gfx_rect_t *);
+extern void ui_wdecor_app_from_rect(ui_wdecor_style_t, gfx_rect_t *,
+    gfx_rect_t *);
 
 #endif
 

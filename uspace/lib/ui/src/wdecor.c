@@ -358,6 +358,32 @@ void ui_wdecor_rect_from_app(ui_wdecor_style_t style, gfx_rect_t *app,
 		rect->p0.y -= 22;
 }
 
+/** Application area rectangle from window rectangle.
+ *
+ * Note that this needs to work just based on a UI, without having an actual
+ * window decoration, since we need it in process of resizing the window,
+ * before it is actually resized.
+ *
+ * @param style Decoration style
+ * @param rect Window decoration rectangle
+ * @param app Place to store application area rectangle
+ */
+void ui_wdecor_app_from_rect(ui_wdecor_style_t style, gfx_rect_t *rect,
+    gfx_rect_t *app)
+{
+	*app = *rect;
+
+	if ((style & ui_wds_frame) != 0) {
+		app->p0.x += wdecor_edge_w;
+		app->p0.y += wdecor_edge_h;
+		app->p1.x -= wdecor_edge_w;
+		app->p1.y -= wdecor_edge_h;
+	}
+
+	if ((style & ui_wds_titlebar) != 0)
+		app->p0.y += 22;
+}
+
 /** Get resize type for pointer at the specified position.
  *
  * @param wdecor Window decoration

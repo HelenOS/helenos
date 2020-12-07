@@ -291,6 +291,10 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 {
 	gfx_coord2_t offs;
 	gfx_rect_t nrect;
+	gfx_rect_t arect;
+	gfx_bitmap_t *app_bmp = NULL;
+	gfx_bitmap_params_t params;
+	gfx_bitmap_alloc_t alloc;
 	errno_t rc;
 
 	/*
@@ -300,16 +304,50 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 	offs = rect->p0;
 	gfx_rect_rtranslate(&offs, rect, &nrect);
 
+	if (window->app_gc != NULL) {
+		assert(window->app_bmp != NULL);
+
+		gfx_bitmap_params_init(&params);
+
+		/*
+		 * The bitmap will have the same dimensions as the
+		 * application rectangle, but start at 0,0.
+		 */
+		ui_wdecor_app_from_rect(window->wdecor->style, &nrect, &arect);
+		gfx_rect_rtranslate(&arect.p0, &arect, &params.rect);
+
+		rc = gfx_bitmap_create(window->gc, &params, NULL,
+		    &app_bmp);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_bitmap_get_alloc(app_bmp, &alloc);
+		if (rc != EOK)
+			goto error;
+	}
+
 	/* dwindow can be NULL in case of unit tests */
 	if (window->dwindow != NULL) {
 		rc = display_window_resize(window->dwindow, &offs, &nrect);
 		if (rc != EOK)
-			return rc;
+			goto error;
 	}
 
 	ui_wdecor_set_rect(window->wdecor, &nrect);
 	ui_wdecor_paint(window->wdecor);
+
+	if (window->app_gc != NULL) {
+		mem_gc_retarget(window->app_mgc, &params.rect, &alloc);
+
+		gfx_bitmap_destroy(window->app_bmp);
+		window->app_bmp = app_bmp;
+	}
+
 	return EOK;
+error:
+	if (app_bmp != NULL)
+		gfx_bitmap_destroy(app_bmp);
+	return rc;
 }
 
 /** Set window callbacks.
@@ -388,6 +426,7 @@ errno_t ui_window_get_app_gc(ui_window_t *window, gfx_context_t **rgc)
 			return rc;
 		}
 
+		window->app_mgc = memgc;
 		window->app_gc = mem_gc_get_ctx(memgc);
 	}
 
