@@ -276,13 +276,13 @@ static errno_t display_server(void)
 	return srv_start(SRV_DISPLAY);
 }
 
-static int app_start(const char *app)
+static int app_start(const char *app, const char *arg)
 {
 	printf("%s: Spawning %s\n", NAME, app);
 
 	task_id_t id;
 	task_wait_t wait;
-	errno_t rc = task_spawnl(&id, &wait, app, app, NULL);
+	errno_t rc = task_spawnl(&id, &wait, app, app, arg, NULL);
 	if (rc != EOK) {
 		oom_check(rc, app);
 		printf("%s: Error spawning %s (%s)\n", NAME, app,
@@ -470,9 +470,9 @@ int main(int argc, char *argv[])
 	if (!config_key_exists("console")) {
 		rc = display_server();
 		if (rc == EOK) {
-			app_start("/app/barber");
-			app_start("/app/vlaunch");
-			app_start("/app/vterm");
+			app_start("/app/launcher", NULL);
+			app_start("/app/barber", NULL);
+			app_start("/app/terminal", "-topleft");
 		}
 	}
 

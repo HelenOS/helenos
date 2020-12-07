@@ -37,6 +37,7 @@
 #include <loc.h>
 #include <mem.h>
 #include <stdlib.h>
+#include "../private/display.h"
 #include "../private/params.h"
 
 static errno_t display_callback_create(display_t *);
@@ -197,7 +198,7 @@ errno_t display_window_create(display_t *display, display_wnd_params_t *params,
 
 /** Destroy display window.
  *
- * @param window Window
+ * @param window Window or @c NULL
  * @return EOK on success or an error code. In both cases @a window must
  *         not be accessed anymore
  */
@@ -205,6 +206,9 @@ errno_t display_window_destroy(display_window_t *window)
 {
 	async_exch_t *exch;
 	errno_t rc;
+
+	if (window == NULL)
+		return EOK;
 
 	exch = async_exchange_begin(window->display->sess);
 	rc = async_req_1_0(exch, DISPLAY_WINDOW_DESTROY, window->id);

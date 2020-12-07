@@ -206,7 +206,7 @@ errno_t console_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	errno_t rc;
 
 	/* Check that we support all requested flags */
-	if ((params->flags & ~bmpf_color_key) != 0)
+	if ((params->flags & ~(bmpf_color_key | bmpf_colorize)) != 0)
 		return ENOTSUP;
 
 	cbm = calloc(1, sizeof(console_gc_bitmap_t));
@@ -295,6 +295,7 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pixelmap.data = cbm->alloc.pixels;
 
 	if ((cbm->flags & bmpf_color_key) == 0) {
+		/* Simple copy */
 		for (y = crect.p0.y; y < crect.p1.y; y++) {
 			console_set_pos(cbm->cgc->con, crect.p0.x, y);
 
@@ -311,7 +312,8 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				console_flush(cbm->cgc->con);
 			}
 		}
-	} else {
+	} else if ((cbm->flags & bmpf_colorize) == 0) {
+		/* Color key */
 		for (y = crect.p0.y; y < crect.p1.y; y++) {
 			for (x = crect.p0.x; x < crect.p1.x; x++) {
 
@@ -319,6 +321,29 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				    x - offs.x - cbm->rect.p0.x,
 				    y - offs.y - cbm->rect.p0.y);
 				console_set_rgb_color(cbm->cgc->con, clr, clr);
+
+				if (clr != cbm->key_color) {
+					console_set_pos(cbm->cgc->con, x, y);
+					rv = fputc('X', cbm->cgc->fout);
+					if (rv < 0)
+						return EIO;
+
+					console_flush(cbm->cgc->con);
+				}
+
+			}
+		}
+	} else {
+		/* Color key & colorize */
+		console_set_rgb_color(cbm->cgc->con, cbm->cgc->clr,
+		    cbm->cgc->clr);
+
+		for (y = crect.p0.y; y < crect.p1.y; y++) {
+			for (x = crect.p0.x; x < crect.p1.x; x++) {
+
+				clr = pixelmap_get_pixel(&pixelmap,
+				    x - offs.x - cbm->rect.p0.x,
+				    y - offs.y - cbm->rect.p0.y);
 
 				if (clr != cbm->key_color) {
 					console_set_pos(cbm->cgc->con, x, y);

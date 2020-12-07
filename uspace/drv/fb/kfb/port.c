@@ -49,7 +49,6 @@
 #include <gfx/bitmap.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
-#include <io/mode.h>
 #include <io/pixelmap.h>
 #include <ipcgfx/server.h>
 #include <mem.h>
@@ -199,7 +198,7 @@ errno_t kfb_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	errno_t rc;
 
 	/* Check that we support all required flags */
-	if ((params->flags & ~bmpf_color_key) != 0)
+	if ((params->flags & ~(bmpf_color_key | bmpf_colorize)) != 0)
 		return ENOTSUP;
 
 	kfbbm = calloc(1, sizeof(kfb_bitmap_t));
@@ -306,6 +305,7 @@ static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	gfx_rect_clip(&srect, &skfbrect, &crect);
 
 	if ((kfbbm->flags & bmpf_color_key) != 0) {
+		/* Simple copy */
 		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
 			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
 				gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
@@ -318,7 +318,20 @@ static errno_t kfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				}
 			}
 		}
+	} else if ((kfbbm->flags & bmpf_colorize) != 0) {
+		/* Color key */
+		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+				gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);
+				gfx_coord2_add(&pos, &offs, &dp);
+
+				color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+				kfb->pixel2visual(kfb->addr +
+				    FB_POS(kfb, dp.x, dp.y), color);
+			}
+		}
 	} else {
+		/* Color key & colorize */
 		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
 			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
 				gfx_coord2_subtract(&pos, &kfbbm->rect.p0, &sp);

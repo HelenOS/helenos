@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -32,21 +33,21 @@
 /** @file
  */
 
-#include <stdbool.h>
+#include <device/led_dev.h>
 #include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <task.h>
+#include <fibril_synch.h>
+#include <gfximage/tga_gz.h>
+#include <io/pixel.h>
 #include <loc.h>
 #include <stats.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <str.h>
-#include <fibril_synch.h>
-#include <io/pixel.h>
-#include <device/led_dev.h>
-#include <window.h>
-#include <canvas.h>
-#include <draw/surface.h>
-#include <draw/codec.h>
+#include <ui/ui.h>
+#include <ui/wdecor.h>
+#include <ui/window.h>
+#include <ui/image.h>
 #include "images.h"
 
 #define NAME  "barber"
@@ -71,7 +72,9 @@ typedef struct {
 	async_sess_t *sess;
 } led_dev_t;
 
-static char *winreg = NULL;
+typedef struct {
+	ui_t *ui;
+} barber_t;
 
 static fibril_timer_t *led_timer = NULL;
 static list_t led_devs;
@@ -88,8 +91,8 @@ static pixel_t led_colors[LED_COLORS] = {
 };
 
 static fibril_timer_t *frame_timer = NULL;
-static canvas_t *frame_canvas;
-static surface_t *frames[FRAMES];
+static ui_image_t *frame_img;
+static gfx_bitmap_t *frame_bmp[FRAMES];
 
 static unsigned int frame = 0;
 static unsigned int fps = MIN_FPS;
@@ -97,17 +100,51 @@ static unsigned int fps = MIN_FPS;
 static void led_timer_callback(void *);
 static void frame_timer_callback(void *);
 
-static bool decode_frames(void)
+static void wnd_close(ui_window_t *, void *);
+
+static ui_window_cb_t window_cb = {
+	.close = wnd_close
+};
+
+/** Window close button was clicked.
+ *
+ * @param window Window
+ * @param arg Argument (launcher)
+ */
+static void wnd_close(ui_window_t *window, void *arg)
 {
+	barber_t *barber = (barber_t *) arg;
+
+	ui_quit(barber->ui);
+}
+
+static bool decode_frames(gfx_context_t *gc)
+{
+	gfx_rect_t rect;
+	errno_t rc;
+
 	for (unsigned int i = 0; i < FRAMES; i++) {
-		frames[i] = decode_tga_gz(images[i].addr, images[i].size, 0);
-		if (frames[i] == NULL) {
+		rc = decode_tga_gz(gc, images[i].addr, images[i].size,
+		    &frame_bmp[i], &rect);
+		if (rc != EOK) {
 			printf("Unable to decode frame %u.\n", i);
 			return false;
 		}
+
+		(void) rect;
 	}
 
 	return true;
+}
+
+static void destroy_frames(void)
+{
+	unsigned i;
+
+	for (i = 0; i < FRAMES; i++) {
+		gfx_bitmap_destroy(frame_bmp[i]);
+		frame_bmp[i] = NULL;
+	}
 }
 
 static void plan_led_timer(void)
@@ -191,13 +228,20 @@ static void led_timer_callback(void *data)
 static void frame_timer_callback(void *data)
 {
 	struct timespec prev;
+	gfx_rect_t rect;
 	getuptime(&prev);
 
 	frame++;
 	if (frame >= FRAMES)
 		frame = 0;
 
-	update_canvas(frame_canvas, frames[frame]);
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = FRAME_WIDTH;
+	rect.p1.y = FRAME_HEIGHT;
+
+	ui_image_set_bmp(frame_img, frame_bmp[frame], &rect);
+	(void) ui_image_paint(frame_img);
 
 	struct timespec cur;
 	getuptime(&cur);
@@ -254,7 +298,17 @@ static void print_syntax(void)
 
 int main(int argc, char *argv[])
 {
-	const char *display_svc = DISPLAY_DEFAULT;
+	const char *display_spec = UI_DISPLAY_DEFAULT;
+	barber_t barber;
+	ui_t *ui;
+	ui_wnd_params_t params;
+	ui_window_t *window;
+	ui_resource_t *ui_res;
+	gfx_rect_t rect;
+	gfx_rect_t wrect;
+	gfx_rect_t app_rect;
+	gfx_context_t *gc;
+	gfx_coord2_t off;
 	int i;
 
 	i = 1;
@@ -267,7 +321,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 
-			display_svc = argv[i++];
+			display_spec = argv[i++];
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -294,35 +348,73 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!decode_frames())
-		return 1;
-
-	winreg = argv[1];
-	window_t *main_window = window_open(display_svc, NULL,
-	    WINDOW_MAIN | WINDOW_DECORATED, "barber");
-	if (!main_window) {
-		printf("Cannot open main window.\n");
+	rc = ui_create(display_spec, &ui);
+	if (rc != EOK) {
+		printf("Error creating UI on display %s.\n", display_spec);
 		return 1;
 	}
 
-	frame_canvas = create_canvas(window_root(main_window), NULL,
-	    FRAME_WIDTH, FRAME_HEIGHT, frames[frame]);
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = FRAME_WIDTH;
+	rect.p1.y = FRAME_HEIGHT;
 
-	if (!frame_canvas) {
-		window_close(main_window);
-		printf("Cannot create widgets.\n");
+	ui_wnd_params_init(&params);
+	params.caption = "";
+	params.placement = ui_wnd_place_bottom_right;
+	/*
+	 * Compute window rectangle such that application area corresponds
+	 * to rect
+	 */
+	ui_wdecor_rect_from_app(params.style, &rect, &wrect);
+	off = wrect.p0;
+	gfx_rect_rtranslate(&off, &wrect, &params.rect);
+
+	barber.ui = ui;
+
+	rc = ui_window_create(ui, &params, &window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
 		return 1;
 	}
 
-	window_resize(main_window, 0, 0, FRAME_WIDTH + 8, FRAME_HEIGHT + 28,
-	    WINDOW_PLACEMENT_RIGHT | WINDOW_PLACEMENT_BOTTOM);
-	window_exec(main_window);
+	ui_res = ui_window_get_res(window);
+	gc = ui_window_get_gc(window);
+	ui_window_get_app_rect(window, &app_rect);
+	ui_window_set_cb(window, &window_cb, (void *) &barber);
+
+	if (!decode_frames(gc))
+		return 1;
+
+	rc = ui_image_create(ui_res, frame_bmp[frame], &rect,
+	    &frame_img);
+	if (rc != EOK) {
+		printf("Error creating UI.\n");
+		return 1;
+	}
+
+	ui_image_set_rect(frame_img, &app_rect);
+
+	ui_window_add(window, ui_image_ctl(frame_img));
+
+	rc = ui_window_paint(window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		return 1;
+	}
 
 	plan_led_timer();
 	plan_frame_timer(0);
 
-	task_retval(0);
-	async_manager();
+	ui_run(ui);
+
+	/* Unlink bitmap from image so it is not destroyed along with it */
+	ui_image_set_bmp(frame_img, NULL, &rect);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+
+	destroy_frames();
 
 	return 0;
 }

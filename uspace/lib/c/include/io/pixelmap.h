@@ -42,24 +42,6 @@
 #include <stddef.h>
 #include <io/pixel.h>
 
-/* Defines how a pixel outside of pixmap rectangle shall be treated */
-typedef enum {
-	/* Pixels outside of a pixmap are PIXEL(0, 0, 0, 0) */
-	PIXELMAP_EXTEND_TRANSPARENT_BLACK = 0,
-
-	/* The pixmap is repeated infinetely */
-	PIXELMAP_EXTEND_TILE,
-
-	/* If outside of a pixmap, return closest pixel from the edge */
-	PIXELMAP_EXTEND_SIDES,
-
-	/*
-	 * If outside of a pixmap, return closest pixel from the edge,
-	 * with alpha = 0
-	 */
-	PIXELMAP_EXTEND_TRANSPARENT_SIDES
-} pixelmap_extend_t;
-
 typedef struct {
 	sysarg_t width;
 	sysarg_t height;
@@ -103,46 +85,6 @@ static inline pixel_t pixelmap_get_pixel(
 	} else {
 		return 0;
 	}
-}
-
-static inline pixel_t pixelmap_get_extended_pixel(pixelmap_t *pixmap,
-    native_t x, native_t y, pixelmap_extend_t extend)
-{
-	bool transparent = false;
-	if (extend == PIXELMAP_EXTEND_TILE) {
-		x %= pixmap->width;
-		y %= pixmap->height;
-	} else if (extend == PIXELMAP_EXTEND_SIDES ||
-	    extend == PIXELMAP_EXTEND_TRANSPARENT_SIDES) {
-		bool transparent_outside =
-		    (extend == PIXELMAP_EXTEND_TRANSPARENT_SIDES);
-		if (x < 0) {
-			x = 0;
-			transparent = transparent_outside;
-		} else if (((sysarg_t) x) >= pixmap->width) {
-			x = pixmap->width - 1;
-			transparent = transparent_outside;
-		}
-
-		if (y < 0) {
-			y = 0;
-			transparent = transparent_outside;
-		} else if (((sysarg_t) y) >= pixmap->height) {
-			y = pixmap->height - 1;
-			transparent = transparent_outside;
-		}
-	}
-
-	if (x < 0 || ((sysarg_t) x) >= pixmap->width ||
-	    y < 0 || ((sysarg_t) y) >= pixmap->height)
-		return PIXEL(0, 0, 0, 0);
-
-	pixel_t pixel = pixelmap_get_pixel(pixmap, x, y);
-
-	if (transparent)
-		pixel = PIXEL(0, RED(pixel), GREEN(pixel), BLUE(pixel));
-
-	return pixel;
 }
 
 #endif

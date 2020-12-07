@@ -40,7 +40,7 @@
 /** Parameters for a new window.
  *
  * The window's dimensions are determined by the bounding rectangle,
- * the position of which does not relate to its positon on the display,
+ * the position of which does not relate to its position on the display,
  * it just determines which range of logical coordinates is used
  * by the window.
  */

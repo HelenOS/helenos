@@ -38,20 +38,23 @@ EXPORT_DIR="$1"
 # Only (re)build files we actually want to export.
 
 EXPORT_LIBS=" \
-	uspace/lib/libmath.a \
+	uspace/lib/c/libstartfiles.a \
 	uspace/lib/libclui.a \
+	uspace/lib/libc.a \
+	uspace/lib/libcpp.a \
 	uspace/lib/libdisplay.a \
 	uspace/lib/libgfx.a \
-	uspace/lib/libgui.a \
-	uspace/lib/libipcgfx.a \
-	uspace/lib/libdraw.a \
-	uspace/lib/libsoftrend.a \
+	uspace/lib/libgfxfont.a \
+	uspace/lib/libgfximage.a \
 	uspace/lib/libhound.a \
+	uspace/lib/libipcgfx.a \
+	uspace/lib/libmath.a \
+	uspace/lib/libmemgfx.a \
 	uspace/lib/libpcm.a \
-	uspace/lib/libcpp.a \
-	uspace/lib/libc.a \
-	uspace/lib/c/libstartfiles.a \
+	uspace/lib/libpixconv.a \
 	uspace/lib/libposix.a \
+	uspace/lib/libriff.a \
+	uspace/lib/libui.a \
 "
 
 EXPORT_CONFIGS=" \

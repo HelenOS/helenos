@@ -28,5 +28,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'ipcgfx', 'ddev', 'softrend' ]
+deps = [ 'gfx', 'ipcgfx', 'ddev', 'pixconv' ]
 src = files('amdm37x_dispc.c', 'main.c')

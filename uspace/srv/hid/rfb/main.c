@@ -195,7 +195,7 @@ errno_t rfb_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	errno_t rc;
 
 	/* Check that we support all required flags */
-	if ((params->flags & ~bmpf_color_key) != 0)
+	if ((params->flags & ~(bmpf_color_key | bmpf_colorize)) != 0)
 		return ENOTSUP;
 
 	rfbbm = calloc(1, sizeof(rfb_bitmap_t));
@@ -286,6 +286,7 @@ static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pbm.data = rfbbm->alloc.pixels;
 
 	if ((rfbbm->flags & bmpf_color_key) == 0) {
+		/* Simple copy */
 		for (y = srect.p0.y; y < srect.p1.y; y++) {
 			for (x = srect.p0.x; x < srect.p1.x; x++) {
 				color = pixelmap_get_pixel(&pbm, x, y);
@@ -293,13 +294,26 @@ static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				    x + offs.x, y + offs.y, color);
 			}
 		}
-	} else {
+	} else if ((rfbbm->flags & bmpf_colorize) == 0) {
+		/* Color key */
 		for (y = srect.p0.y; y < srect.p1.y; y++) {
 			for (x = srect.p0.x; x < srect.p1.x; x++) {
 				color = pixelmap_get_pixel(&pbm, x, y);
 				if (color != rfbbm->key_color) {
 					pixelmap_put_pixel(&rfbbm->rfb->rfb.framebuffer,
 					    x + offs.x, y + offs.y, color);
+				}
+			}
+		}
+	} else {
+		/* Color key & colorization */
+		for (y = srect.p0.y; y < srect.p1.y; y++) {
+			for (x = srect.p0.x; x < srect.p1.x; x++) {
+				color = pixelmap_get_pixel(&pbm, x, y);
+				if (color != rfbbm->key_color) {
+					pixelmap_put_pixel(&rfbbm->rfb->rfb.framebuffer,
+					    x + offs.x, y + offs.y,
+					    rfbbm->rfb->color);
 				}
 			}
 		}

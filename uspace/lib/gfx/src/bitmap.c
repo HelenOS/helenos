@@ -61,7 +61,7 @@ void gfx_bitmap_params_init(gfx_bitmap_params_t *params)
  * @param rbitmap Place to store pointer to new bitmap
  *
  * @return EOK on success, EINVAL if parameters are invald,
- *         ENOMEM if insufficient resources, EIO if grahic device connection
+ *         ENOMEM if insufficient resources, EIO if graphic device connection
  *         was lost
  */
 errno_t gfx_bitmap_create(gfx_context_t *gc, gfx_bitmap_params_t *params,
@@ -91,7 +91,7 @@ errno_t gfx_bitmap_create(gfx_context_t *gc, gfx_bitmap_params_t *params,
  *
  * @param bitmap Bitmap
  *
- * @return EOK on success, EIO if grahic device connection was lost
+ * @return EOK on success, EIO if graphic device connection was lost
  */
 errno_t gfx_bitmap_destroy(gfx_bitmap_t *bitmap)
 {
@@ -111,7 +111,7 @@ errno_t gfx_bitmap_destroy(gfx_bitmap_t *bitmap)
  * @param srect Source rectangle or @c NULL to render entire bitmap
  * @param offs Bitmap offset or @c NULL for zero offset
  *
- * @return EOK on success, EIO if grahic device connection was lost
+ * @return EOK on success, EIO if graphic device connection was lost
  */
 errno_t gfx_bitmap_render(gfx_bitmap_t *bitmap, gfx_rect_t *srect,
     gfx_coord2_t *offs)
@@ -124,7 +124,7 @@ errno_t gfx_bitmap_render(gfx_bitmap_t *bitmap, gfx_rect_t *srect,
  * @param bitmap Bitmap
  * @param alloc Allocation info structure to fill in
  *
- * @return EOK on success, EIO if grahic device connection was lost
+ * @return EOK on success, EIO if graphic device connection was lost
  */
 errno_t gfx_bitmap_get_alloc(gfx_bitmap_t *bitmap, gfx_bitmap_alloc_t *alloc)
 {

@@ -37,6 +37,8 @@
 #ifndef _GFX_PRIVATE_COLOR_H
 #define _GFX_PRIVATE_COLOR_H
 
+#include <stdint.h>
+
 /** Actual structure of graphics color.
  *
  * This is private to libgfx. It is not visible to clients nor backends.

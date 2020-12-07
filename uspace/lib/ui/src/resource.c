@@ -1,0 +1,279 @@
+/*
+ * Copyright (c) 2020 Jiri Svoboda
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file UI resources
+ */
+
+#include <errno.h>
+#include <gfx/color.h>
+#include <gfx/context.h>
+#include <gfx/font.h>
+#include <gfx/render.h>
+#include <gfx/typeface.h>
+#include <stdlib.h>
+#include <str.h>
+#include <ui/resource.h>
+#include "../private/resource.h"
+
+static const char *ui_typeface_path = "/data/font/helena.tpf";
+
+/** Create new UI resource.
+ *
+ * @param gc Graphic context
+ * @param rresource Place to store pointer to new UI resource
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
+{
+	ui_resource_t *resource;
+	gfx_typeface_t *tface = NULL;
+	gfx_font_t *font = NULL;
+	gfx_font_info_t *finfo;
+	gfx_color_t *btn_frame_color = NULL;
+	gfx_color_t *btn_face_color = NULL;
+	gfx_color_t *btn_text_color = NULL;
+	gfx_color_t *btn_highlight_color = NULL;
+	gfx_color_t *btn_shadow_color = NULL;
+	gfx_color_t *wnd_face_color = NULL;
+	gfx_color_t *wnd_text_color = NULL;
+	gfx_color_t *wnd_frame_hi_color = NULL;
+	gfx_color_t *wnd_frame_sh_color = NULL;
+	gfx_color_t *wnd_highlight_color = NULL;
+	gfx_color_t *wnd_shadow_color = NULL;
+	gfx_color_t *tbar_act_bg_color = NULL;
+	gfx_color_t *tbar_inact_bg_color = NULL;
+	gfx_color_t *tbar_act_text_color = NULL;
+	gfx_color_t *tbar_inact_text_color = NULL;
+	gfx_color_t *entry_fg_color = NULL;
+	gfx_color_t *entry_bg_color = NULL;
+	errno_t rc;
+
+	resource = calloc(1, sizeof(ui_resource_t));
+	if (resource == NULL)
+		return ENOMEM;
+
+	rc = gfx_typeface_open(gc, ui_typeface_path, &tface);
+	if (rc != EOK)
+		goto error;
+
+	finfo = gfx_typeface_first_font(tface);
+	if (finfo == NULL) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = gfx_font_open(finfo, &font);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &btn_frame_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &btn_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &btn_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+	    &btn_highlight_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &btn_shadow_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &wnd_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &wnd_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &wnd_frame_hi_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &wnd_frame_sh_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+	    &wnd_highlight_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &wnd_shadow_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x5858, 0x6a6a, 0xc4c4, &tbar_act_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+	    &tbar_act_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xdddd, 0xdddd, 0xdddd,
+	    &tbar_inact_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x5858, 0x5858, 0x5858,
+	    &tbar_inact_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &entry_fg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &entry_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	resource->gc = gc;
+	resource->tface = tface;
+	resource->font = font;
+
+	resource->btn_frame_color = btn_frame_color;
+	resource->btn_face_color = btn_face_color;
+	resource->btn_text_color = btn_text_color;
+	resource->btn_highlight_color = btn_highlight_color;
+	resource->btn_shadow_color = btn_shadow_color;
+
+	resource->wnd_face_color = wnd_face_color;
+	resource->wnd_text_color = wnd_text_color;
+	resource->wnd_frame_hi_color = wnd_frame_hi_color;
+	resource->wnd_frame_sh_color = wnd_frame_sh_color;
+	resource->wnd_highlight_color = wnd_highlight_color;
+	resource->wnd_shadow_color = wnd_shadow_color;
+
+	resource->tbar_act_bg_color = tbar_act_bg_color;
+	resource->tbar_act_text_color = tbar_act_text_color;
+	resource->tbar_inact_bg_color = tbar_inact_bg_color;
+	resource->tbar_inact_text_color = tbar_inact_text_color;
+
+	resource->entry_fg_color = entry_fg_color;
+	resource->entry_bg_color = entry_bg_color;
+
+	*rresource = resource;
+	return EOK;
+error:
+	if (btn_frame_color != NULL)
+		gfx_color_delete(btn_frame_color);
+	if (btn_face_color != NULL)
+		gfx_color_delete(btn_face_color);
+	if (btn_text_color != NULL)
+		gfx_color_delete(btn_text_color);
+	if (btn_highlight_color != NULL)
+		gfx_color_delete(btn_highlight_color);
+	if (btn_shadow_color != NULL)
+		gfx_color_delete(btn_shadow_color);
+
+	if (wnd_face_color != NULL)
+		gfx_color_delete(wnd_face_color);
+	if (wnd_text_color != NULL)
+		gfx_color_delete(wnd_text_color);
+	if (wnd_frame_hi_color != NULL)
+		gfx_color_delete(wnd_frame_hi_color);
+	if (wnd_frame_sh_color != NULL)
+		gfx_color_delete(wnd_frame_sh_color);
+	if (wnd_highlight_color != NULL)
+		gfx_color_delete(wnd_highlight_color);
+	if (wnd_shadow_color != NULL)
+		gfx_color_delete(wnd_shadow_color);
+
+	if (tbar_act_bg_color != NULL)
+		gfx_color_delete(tbar_act_bg_color);
+	if (tbar_act_text_color != NULL)
+		gfx_color_delete(tbar_act_text_color);
+	if (tbar_inact_bg_color != NULL)
+		gfx_color_delete(tbar_inact_bg_color);
+	if (tbar_inact_text_color != NULL)
+		gfx_color_delete(tbar_inact_text_color);
+
+	if (entry_fg_color != NULL)
+		gfx_color_delete(entry_fg_color);
+	if (entry_bg_color != NULL)
+		gfx_color_delete(entry_bg_color);
+
+	if (tface != NULL)
+		gfx_typeface_destroy(tface);
+	free(resource);
+	return rc;
+}
+
+/** Destroy UI resource.
+ *
+ * @param resource UI resource or @c NULL
+ */
+void ui_resource_destroy(ui_resource_t *resource)
+{
+	if (resource == NULL)
+		return;
+
+	gfx_color_delete(resource->btn_frame_color);
+	gfx_color_delete(resource->btn_face_color);
+	gfx_color_delete(resource->btn_text_color);
+	gfx_color_delete(resource->btn_highlight_color);
+	gfx_color_delete(resource->btn_shadow_color);
+
+	gfx_color_delete(resource->wnd_face_color);
+	gfx_color_delete(resource->wnd_text_color);
+	gfx_color_delete(resource->wnd_frame_hi_color);
+	gfx_color_delete(resource->wnd_frame_sh_color);
+	gfx_color_delete(resource->wnd_highlight_color);
+	gfx_color_delete(resource->wnd_shadow_color);
+
+	gfx_color_delete(resource->tbar_act_bg_color);
+	gfx_color_delete(resource->tbar_act_text_color);
+	gfx_color_delete(resource->tbar_inact_bg_color);
+	gfx_color_delete(resource->tbar_inact_text_color);
+
+	gfx_color_delete(resource->entry_fg_color);
+	gfx_color_delete(resource->entry_bg_color);
+
+	gfx_font_close(resource->font);
+	gfx_typeface_destroy(resource->tface);
+	free(resource);
+}
+
+/** @}
+ */

@@ -38,6 +38,27 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+/** Divide @a a by @a b and round towards negative numbers.
+ *
+ * Regular integer division always rounds towards zero. This is not useful
+ * e.g. for scaling down, where we always need to round towards negative
+ * numbers.
+ *
+ * @param a Dividend
+ * @param b Divisor
+ * @return Quotient
+ */
+gfx_coord_t gfx_coord_div_rneg(gfx_coord_t a, gfx_coord_t b)
+{
+	if ((a > 0 && b > 0) || (a < 0 && b < 0)) {
+		/* Result is non-negative, round towards zero */
+		return a / b;
+	} else {
+		/* Result is negative, round away from zero */
+		return (a - b + 1) / b;
+	}
+}
+
 /** Add two vectors.
  *
  * @param a First vector
@@ -214,6 +235,30 @@ void gfx_rect_clip(gfx_rect_t *rect, gfx_rect_t *clip, gfx_rect_t *dest)
 	dest->p0.y = min(max(srect.p0.y, sclip.p0.y), sclip.p1.y);
 	dest->p1.x = max(sclip.p0.x, min(srect.p1.x, sclip.p1.x));
 	dest->p1.y = max(sclip.p0.y, min(srect.p1.y, sclip.p1.y));
+}
+
+/** Center rectangle on rectangle.
+ *
+ * Translate rectangle @a a so that its center coincides with the
+ * center of rectangle @a b, saving the result in @a dest.
+ *
+ * @param a Rectnagle to translate
+ * @param b Rectangle on which to center
+ * @param dest Place to store resulting rectangle
+ */
+void gfx_rect_ctr_on_rect(gfx_rect_t *a, gfx_rect_t *b, gfx_rect_t *dest)
+{
+	gfx_coord2_t adim;
+	gfx_coord2_t bdim;
+
+	gfx_rect_dims(a, &adim);
+	gfx_rect_dims(b, &bdim);
+
+	dest->p0.x = b->p0.x + bdim.x / 2 - adim.x / 2;
+	dest->p0.y = b->p0.y + bdim.y / 2 - adim.y / 2;
+
+	dest->p1.x = dest->p0.x + adim.x;
+	dest->p1.y = dest->p0.y + adim.y;
 }
 
 /** Sort points of a rectangle.

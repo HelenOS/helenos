@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2015 Jiri Svoboda
+# Copyright (c) 2020 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,11 +43,11 @@ LIB_DIR="$EXPORT_DIR/lib"
 libmath_cflags="-I$INCLUDE_DIR/libmath"
 libmath_libs="$LIB_DIR/libmath.a"
 
-libgui_cflags="-I$INCLUDE_DIR/libgui -I$INCLUDE_DIR/libdisplay -I$INCLUDE_DIR/libgfx -I$INCLUDE_DIR/libipcgfx"
-libgui_libs="$LIB_DIR/libgui.a $LIB_DIR/libdisplay.a $LIB_DIR/libipcgfx.a $LIB_DIR/libgfx.a"
+libui_cflags="-I$INCLUDE_DIR/libui -I$INCLUDE_DIR/libdisplay -I$INCLUDE_DIR/libgfx -I$INCLUDE_DIR/libipcgfx"
+libui_libs="$LIB_DIR/libui.a $LIB_DIR/libdisplay.a $LIB_DIR/libipcgfx.a $LIB_DIR/libgfx.a $LIB_DIR/libgfxfont.a $LIB_DIR/libriff.a $LIB_DIR/libmemgfx.a"
 
-libdraw_cflags="-I$INCLUDE_DIR/libdraw"
-libdraw_libs="$LIB_DIR/libdraw.a $LIB_DIR/libsoftrend.a"
+libgfximage_cflags="-I$INCLUDE_DIR/libgfximage"
+libgfximage_libs="$LIB_DIR/libgfximage.a $LIB_DIR/libpixconv.a"
 
 libhound_cflags="-I$INCLUDE_DIR/libhound"
 libhound_libs="$LIB_DIR/libhound.a"
@@ -74,8 +74,8 @@ while [ ".$1" != . ] ; do
 	(.-*) echo "Uknwown option $1" >&2; exit 1;;
 	(.*)
 	    case "$1" in
-	    (libgui) ;;
-	    (libdraw) ;;
+	    (libui) ;;
+	    (libgfximage) ;;
 	    (libmath) ;;
 	    (libhound) ;;
 	    (libpcm) ;;

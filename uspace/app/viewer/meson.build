@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gui' ]
+deps = [ 'ui', 'gfximage', 'compress' ]
 src = files('viewer.c')
 
 if install_nonessential_data

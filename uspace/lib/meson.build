@@ -33,16 +33,16 @@ installed_libs = [
 	'c',
 	'math',
 	'display',
-	'gui',
-	'draw',
-	'softrend',
+	'pixconv',
 	'posix',
 	'clui',
 	'pcm',
 	'hound',
 	'gfx',
+	'gfximage',
 	'ipcgfx',
 	'display',
+	'ui',
 ]
 
 # IMPORTANT: Dependencies must be listed before libs that depend on them.
@@ -55,6 +55,7 @@ libs = [
 	'cpp',
 	'crypto',
 	'dltest',
+	'fbfont',
 	'fdisk',
 	'fmtutil',
 	'fs',
@@ -66,19 +67,21 @@ libs = [
 	'nettl',
 	'pcm',
 	'pcut',
+	'pixconv',
 	'posix',
+	'riff',
 	'scsi',
 	'sif',
-	'softrend',
 	'trackmod',
 	'untar',
 	'uri',
 
 	'bithenge',
 	'congfx',
-	'draw',
 	'drv',
 	'ext4',
+	'gfxfont',
+	'gfximage',
 	'hound',
 	'ipcgfx',
 	'memgfx',
@@ -94,9 +97,7 @@ libs = [
 	'ddev',
 	'display',
 
-	'gui',
-
-	'guigfx',
+	'ui',
 ]
 
 # Generated list of include directory paths

@@ -37,6 +37,7 @@
 #include <ipcgfx/server.h>
 #include <loc.h>
 #include <pcut/pcut.h>
+#include "../private/display.h"
 
 PCUT_INIT;
 
@@ -328,6 +329,12 @@ PCUT_TEST(window_destroy_failure)
 	display_close(disp);
 	rc = loc_service_unregister(sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** display_window_destroy() can handle NULL argument */
+PCUT_TEST(window_destroy_null)
+{
+	display_window_destroy(NULL);
 }
 
 /** display_window_move_req() with server returning error response works. */

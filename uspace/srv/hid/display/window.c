@@ -159,6 +159,7 @@ void ds_window_bring_to_top(ds_window_t *wnd)
 
 	ds_display_remove_window(wnd);
 	ds_display_add_window(disp, wnd);
+	(void) ds_display_paint(wnd->display, NULL);
 }
 
 /** Get generic graphic context from window.

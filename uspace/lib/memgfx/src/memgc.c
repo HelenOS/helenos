@@ -224,7 +224,8 @@ errno_t mem_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	errno_t rc;
 
 	/* Check that we support all requested flags */
-	if ((params->flags & ~(bmpf_color_key | bmpf_direct_output)) != 0)
+	if ((params->flags & ~(bmpf_color_key | bmpf_colorize |
+	    bmpf_direct_output)) != 0)
 		return ENOTSUP;
 
 	mbm = calloc(1, sizeof(mem_gc_bitmap_t));
@@ -366,6 +367,7 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	if ((mbm->flags & bmpf_direct_output) != 0) {
 		/* Nothing to do */
 	} else if ((mbm->flags & bmpf_color_key) == 0) {
+		/* Simple copy */
 		for (y = drect.p0.y; y < drect.p1.y; y++) {
 			for (x = drect.p0.x; x < drect.p1.x; x++) {
 				pixel = pixelmap_get_pixel(&smap,
@@ -374,7 +376,8 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				pixelmap_put_pixel(&dmap, x, y, pixel);
 			}
 		}
-	} else {
+	} else if ((mbm->flags & bmpf_colorize) == 0) {
+		/* Color key */
 		for (y = drect.p0.y; y < drect.p1.y; y++) {
 			for (x = drect.p0.x; x < drect.p1.x; x++) {
 				pixel = pixelmap_get_pixel(&smap,
@@ -382,6 +385,18 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				    y - mbm->rect.p0.y - offs.y);
 				if (pixel != mbm->key_color)
 					pixelmap_put_pixel(&dmap, x, y, pixel);
+			}
+		}
+	} else {
+		/* Color key & colorization */
+		for (y = drect.p0.y; y < drect.p1.y; y++) {
+			for (x = drect.p0.x; x < drect.p1.x; x++) {
+				pixel = pixelmap_get_pixel(&smap,
+				    x - mbm->rect.p0.x - offs.x,
+				    y - mbm->rect.p0.y - offs.y);
+				if (pixel != mbm->key_color)
+					pixelmap_put_pixel(&dmap, x, y,
+					    mbm->mgc->color);
 			}
 		}
 	}

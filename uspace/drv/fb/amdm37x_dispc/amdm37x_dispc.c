@@ -382,7 +382,7 @@ errno_t amdm37x_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 	errno_t rc;
 
 	/* Check that we support all required flags */
-	if ((params->flags & ~bmpf_color_key) != 0)
+	if ((params->flags & ~(bmpf_color_key | bmpf_colorize)) != 0)
 		return ENOTSUP;
 
 	dcbm = calloc(1, sizeof(amdm37x_bitmap_t));
@@ -391,6 +391,7 @@ errno_t amdm37x_gc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 
 	gfx_coord2_subtract(&params->rect.p1, &params->rect.p0, &dim);
 	dcbm->rect = params->rect;
+	dcbm->flags = params->flags;
 
 	if (alloc == NULL) {
 		dcbm->alloc.pitch = dim.x * sizeof(uint32_t);
@@ -486,15 +487,46 @@ static errno_t amdm37x_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	 */
 	gfx_rect_clip(&srect, &skfbrect, &crect);
 
-	// XXX bmpf_color_key
-	for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
-		for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
-			gfx_coord2_subtract(&pos, &dcbm->rect.p0, &sp);
-			gfx_coord2_add(&pos, &offs, &dp);
+	if ((dcbm->flags & bmpf_color_key) == 0) {
+		/* Simple copy */
+		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+				gfx_coord2_subtract(&pos, &dcbm->rect.p0, &sp);
+				gfx_coord2_add(&pos, &offs, &dp);
 
-			color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
-			dispc->active_fb.pixel2visual(dispc->fb_data +
-			    FB_POS(dispc, dp.x, dp.y), color);
+				color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+				dispc->active_fb.pixel2visual(dispc->fb_data +
+				    FB_POS(dispc, dp.x, dp.y), color);
+			}
+		}
+	} else if ((dcbm->flags & bmpf_colorize) == 0) {
+		/* Color key */
+		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+				gfx_coord2_subtract(&pos, &dcbm->rect.p0, &sp);
+				gfx_coord2_add(&pos, &offs, &dp);
+
+				color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+				if (color != dcbm->key_color) {
+					dispc->active_fb.pixel2visual(dispc->fb_data +
+					    FB_POS(dispc, dp.x, dp.y), color);
+				}
+			}
+		}
+	} else {
+		/* Color key & colorize */
+		for (pos.y = crect.p0.y; pos.y < crect.p1.y; pos.y++) {
+			for (pos.x = crect.p0.x; pos.x < crect.p1.x; pos.x++) {
+				gfx_coord2_subtract(&pos, &dcbm->rect.p0, &sp);
+				gfx_coord2_add(&pos, &offs, &dp);
+
+				color = pixelmap_get_pixel(&pbm, sp.x, sp.y);
+				if (color != dcbm->key_color) {
+					dispc->active_fb.pixel2visual(dispc->fb_data +
+					    FB_POS(dispc, dp.x, dp.y),
+					    dcbm->dispc->color);
+				}
+			}
 		}
 	}
 

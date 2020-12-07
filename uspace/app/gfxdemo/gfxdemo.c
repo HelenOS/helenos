@@ -32,22 +32,24 @@
 /** @file Graphic demo
  */
 
-#include <canvas.h>
 #include <congfx/console.h>
-#include <draw/surface.h>
 #include <display.h>
 #include <fibril.h>
-#include <guigfx/canvas.h>
 #include <gfx/bitmap.h>
 #include <gfx/color.h>
 #include <gfx/render.h>
+#include <gfx/font.h>
+#include <gfx/text.h>
+#include <gfx/typeface.h>
 #include <io/console.h>
 #include <io/pixelmap.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <str.h>
 #include <task.h>
-#include <window.h>
+#include <ui/ui.h>
+#include <ui/window.h>
+#include <ui/wdecor.h>
 
 static void wnd_close_event(void *);
 static void wnd_kbd_event(void *, kbd_event_t *);
@@ -55,6 +57,14 @@ static void wnd_kbd_event(void *, kbd_event_t *);
 static display_wnd_cb_t wnd_cb = {
 	.close_event = wnd_close_event,
 	.kbd_event = wnd_kbd_event
+};
+
+static void uiwnd_close_event(ui_window_t *, void *);
+static void uiwnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
+
+static ui_window_cb_t ui_window_cb = {
+	.close = uiwnd_close_event,
+	.kbd = uiwnd_kbd_event
 };
 
 static bool quit = false;
@@ -108,6 +118,9 @@ static errno_t demo_rects(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	gfx_rect_t rect;
 	int i, j;
 	errno_t rc;
+
+	if (quit)
+		return EOK;
 
 	rc = clear_scr(gc, w, h);
 	if (rc != EOK)
@@ -265,6 +278,9 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	gfx_rect_t srect;
 	errno_t rc;
 
+	if (quit)
+		return EOK;
+
 	rc = clear_scr(gc, w, h);
 	if (rc != EOK)
 		return rc;
@@ -298,10 +314,11 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			fibril_usleep(250 * 1000);
 
 			if (quit)
-				break;
+				goto out;
 		}
 	}
 
+out:
 	gfx_bitmap_destroy(bitmap);
 
 	return EOK;
@@ -323,6 +340,9 @@ static errno_t demo_bitmap2(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	int i, j;
 	gfx_coord2_t offs;
 	errno_t rc;
+
+	if (quit)
+		return EOK;
 
 	rc = clear_scr(gc, w, h);
 	if (rc != EOK)
@@ -365,6 +385,7 @@ error:
 	gfx_bitmap_destroy(bitmap);
 	return rc;
 }
+
 /** Run bitmap color key demo on a graphic context.
  *
  * @param gc Graphic context
@@ -378,6 +399,9 @@ static errno_t demo_bitmap_kc(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	int i, j;
 	gfx_coord2_t offs;
 	errno_t rc;
+
+	if (quit)
+		return EOK;
 
 	rc = clear_scr(gc, w, h);
 	if (rc != EOK)
@@ -423,6 +447,211 @@ error:
 	return rc;
 }
 
+/** Run text demo on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_color_t *color = NULL;
+	gfx_rect_t rect;
+	gfx_typeface_t *tface = NULL;
+	gfx_font_info_t *finfo;
+	gfx_font_t *font = NULL;
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	int i;
+	errno_t rc;
+
+	if (quit)
+		return EOK;
+
+	rc = gfx_typeface_open(gc, "/data/font/helena.tpf", &tface);
+	if (rc != EOK) {
+		printf("Error opening typeface\n");
+		goto error;
+	}
+
+	finfo = gfx_typeface_first_font(tface);
+	if (finfo == NULL) {
+		printf("Typeface contains no font.\n");
+		rc = ENOENT;
+		goto error;
+	}
+
+	rc = gfx_font_open(finfo, &font);
+	if (rc != EOK) {
+		printf("Error opening font.\n");
+		goto error;
+	}
+
+	rc = clear_scr(gc, w, h);
+	if (rc != EOK)
+		goto error;
+
+	/* Vertical bars */
+
+	for (i = 0; i < 20; i++) {
+		rc = gfx_color_new_rgb_i16(0, 0x8000 * i / 20,
+		    0x8000 * i / 20, &color);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_set_color(gc, color);
+		if (rc != EOK)
+			goto error;
+
+		rect.p0.x = w * i / 20;
+		rect.p0.y = 0;
+		rect.p1.x = w * (i + 1) / 20;
+		rect.p1.y = h;
+
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			goto error;
+
+		gfx_color_delete(color);
+	}
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0x8000, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = w / 20;
+	rect.p0.y = 2 * h / 15;
+	rect.p1.x = w - w / 20;
+	rect.p1.y = 5 * h / 15;
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		goto error;
+
+	gfx_text_fmt_init(&fmt);
+
+	pos.x = rect.p0.x;
+	pos.y = rect.p0.y;
+	rc = gfx_puttext(font, &pos, &fmt, "Top left");
+	if (rc != EOK) {
+		printf("Error rendering text.\n");
+		goto error;
+	}
+
+	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
+	pos.y = rect.p0.y;
+	fmt.halign = gfx_halign_center;
+	rc = gfx_puttext(font, &pos, &fmt, "Top center");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = rect.p1.x - 1;
+	pos.y = rect.p0.y;
+	fmt.halign = gfx_halign_right;
+	rc = gfx_puttext(font, &pos, &fmt, "Top right");
+	if (rc != EOK)
+		goto error;
+
+	fmt.valign = gfx_valign_center;
+
+	pos.x = rect.p0.x;
+	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
+	fmt.halign = gfx_halign_left;
+	rc = gfx_puttext(font, &pos, &fmt, "Center left");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
+	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
+	fmt.halign = gfx_halign_center;
+	rc = gfx_puttext(font, &pos, &fmt, "Center");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = rect.p1.x - 1;
+	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
+	fmt.halign = gfx_halign_right;
+	rc = gfx_puttext(font, &pos, &fmt, "Center right");
+	if (rc != EOK)
+		goto error;
+
+	fmt.valign = gfx_valign_bottom;
+
+	pos.x = rect.p0.x;
+	pos.y = rect.p1.y - 1;
+	fmt.halign = gfx_halign_left;
+	rc = gfx_puttext(font, &pos, &fmt, "Bottom left");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
+	pos.y = rect.p1.y - 1;
+	fmt.halign = gfx_halign_center;
+	rc = gfx_puttext(font, &pos, &fmt, "Bottom center");
+	if (rc != EOK)
+		goto error;
+
+	pos.x = rect.p1.x - 1;
+	pos.y = rect.p1.y - 1;
+	fmt.halign = gfx_halign_right;
+	rc = gfx_puttext(font, &pos, &fmt, "Bottom right");
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
+	gfx_text_fmt_init(&fmt);
+
+	for (i = 0; i < 8; i++) {
+		rc = gfx_color_new_rgb_i16((i & 4) ? 0xffff : 0,
+		    (i & 2) ? 0xffff : 0, (i & 1) ? 0xffff : 0, &color);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_set_color(gc, color);
+		if (rc != EOK)
+			goto error;
+
+		pos.x = w / 20;
+		pos.y = (7 + i) * h / 15;
+		rc = gfx_puttext(font, &pos, &fmt, "The quick brown fox jumps over the lazy dog.");
+		if (rc != EOK)
+			goto error;
+
+		gfx_color_delete(color);
+	}
+
+	for (i = 0; i < 10; i++) {
+		fibril_usleep(500 * 1000);
+		if (quit)
+			break;
+	}
+
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+	return EOK;
+error:
+	if (font != NULL)
+		gfx_font_close(font);
+	if (tface != NULL)
+		gfx_typeface_destroy(tface);
+	return rc;
+}
+
 /** Run demo loop on a graphic context.
  *
  * @param gc Graphic context
@@ -447,6 +676,10 @@ static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			return rc;
 
 		rc = demo_bitmap_kc(gc, w, h);
+		if (rc != EOK)
+			return rc;
+
+		rc = demo_text(gc, w, h);
 		if (rc != EOK)
 			return rc;
 	}
@@ -485,70 +718,72 @@ static errno_t demo_console(void)
 	return EOK;
 }
 
-/** Run demo on canvas. */
-static errno_t demo_canvas(const char *display_svc)
+/** Run demo on UI. */
+static errno_t demo_ui(const char *display_spec)
 {
-	canvas_gc_t *cgc = NULL;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
 	gfx_context_t *gc;
-	window_t *window = NULL;
-	pixel_t *pixbuf = NULL;
-	surface_t *surface = NULL;
-	canvas_t *canvas = NULL;
-	gfx_coord_t vw, vh;
+	gfx_rect_t rect;
+	gfx_rect_t wrect;
+	gfx_coord2_t off;
 	errno_t rc;
 
-	printf("Init canvas..\n");
+	printf("Init UI..\n");
 
-	window = window_open(display_svc, NULL,
-	    WINDOW_MAIN | WINDOW_DECORATED, "GFX Demo");
-	if (window == NULL) {
+	rc = ui_create(display_spec, &ui);
+	if (rc != EOK) {
+		printf("Error initializing UI (%s)\n", display_spec);
+		goto error;
+	}
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 400;
+	rect.p1.y = 300;
+
+	ui_wnd_params_init(&params);
+	params.caption = "GFX Demo";
+
+	/*
+	 * Compute window rectangle such that application area corresponds
+	 * to rect
+	 */
+	ui_wdecor_rect_from_app(params.style, &rect, &wrect);
+	off = wrect.p0;
+	gfx_rect_rtranslate(&off, &wrect, &params.rect);
+
+	rc = ui_window_create(ui, &params, &window);
+	if (rc != EOK) {
 		printf("Error creating window.\n");
-		return -1;
+		goto error;
 	}
 
-	vw = 400;
-	vh = 300;
+	ui_window_set_cb(window, &ui_window_cb, NULL);
 
-	pixbuf = calloc(vw * vh, sizeof(pixel_t));
-	if (pixbuf == NULL) {
-		printf("Error allocating memory for pixel buffer.\n");
-		return ENOMEM;
+	rc = ui_window_get_app_gc(window, &gc);
+	if (rc != EOK) {
+		printf("Error creating graphic context.\n");
+		goto error;
 	}
-
-	surface = surface_create(vw, vh, pixbuf, 0);
-	if (surface == NULL) {
-		printf("Error creating surface.\n");
-		return EIO;
-	}
-
-	canvas = create_canvas(window_root(window), NULL, vw, vh,
-	    surface);
-	if (canvas == NULL) {
-		printf("Error creating canvas.\n");
-		return EIO;
-	}
-
-	window_resize(window, 0, 0, vw + 10, vh + 30, WINDOW_PLACEMENT_ANY);
-	window_exec(window);
-
-	printf("Create canvas GC\n");
-	rc = canvas_gc_create(canvas, surface, &cgc);
-	if (rc != EOK)
-		return rc;
-
-	gc = canvas_gc_get_ctx(cgc);
 
 	task_retval(0);
 
-	rc = demo_loop(gc, 400, 300);
+	rc = demo_loop(gc, rect.p1.x, rect.p1.y);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	rc = canvas_gc_delete(cgc);
-	if (rc != EOK)
-		return rc;
+	ui_window_destroy(window);
+	ui_destroy(ui);
 
 	return EOK;
+error:
+	if (window != NULL)
+		ui_window_destroy(window);
+	if (ui != NULL)
+		ui_destroy(ui);
+	return rc;
 }
 
 /** Run demo on display server. */
@@ -615,6 +850,19 @@ static void wnd_kbd_event(void *arg, kbd_event_t *event)
 		quit = true;
 }
 
+static void uiwnd_close_event(ui_window_t *window, void *arg)
+{
+	printf("Close event\n");
+	quit = true;
+}
+
+static void uiwnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
+{
+	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
+	if (event->type == KEY_PRESS)
+		quit = true;
+}
+
 static void print_syntax(void)
 {
 	printf("Syntax: gfxdemo [-d <display>] {canvas|console|display}\n");
@@ -652,8 +900,8 @@ int main(int argc, char *argv[])
 		rc = demo_console();
 		if (rc != EOK)
 			return 1;
-	} else if (str_cmp(argv[i], "canvas") == 0) {
-		rc = demo_canvas(display_svc);
+	} else if (str_cmp(argv[i], "ui") == 0) {
+		rc = demo_ui(display_svc);
 		if (rc != EOK)
 			return 1;
 	} else {

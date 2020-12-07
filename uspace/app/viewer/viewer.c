@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2020 Jiri Svoboda
  * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
@@ -32,44 +33,62 @@
 /** @file
  */
 
+#include <errno.h>
+#include <gfximage/tga.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <vfs/vfs.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <window.h>
-#include <canvas.h>
-#include <draw/surface.h>
-#include <draw/codec.h>
-#include <task.h>
 #include <str.h>
+#include <ui/image.h>
+#include <ui/ui.h>
+#include <ui/wdecor.h>
+#include <ui/window.h>
+#include <vfs/vfs.h>
 
 #define NAME  "viewer"
 
-#define WINDOW_WIDTH   1024
-#define WINDOW_HEIGHT  768
-
-#define DECORATION_WIDTH	8
-#define DECORATION_HEIGHT	28
+typedef struct {
+	ui_t *ui;
+} viewer_t;
 
 static size_t imgs_count;
 static size_t imgs_current = 0;
 static char **imgs;
 
-static window_t *main_window;
-static surface_t *surface = NULL;
-static canvas_t *canvas = NULL;
+static ui_window_t *window;
+static gfx_bitmap_t *bitmap = NULL;
+static ui_image_t *image = NULL;
+static gfx_context_t *window_gc;
 
-static surface_coord_t img_width;
-static surface_coord_t img_height;
+static gfx_rect_t img_rect;
 
-static bool img_load(const char *, surface_t **);
-static bool img_setup(surface_t *);
+static bool img_load(gfx_context_t *gc, const char *, gfx_bitmap_t **,
+    gfx_rect_t *);
+static bool img_setup(gfx_context_t *, gfx_bitmap_t *, gfx_rect_t *);
 
-static void on_keyboard_event(widget_t *widget, void *data)
+static void wnd_close(ui_window_t *, void *);
+static void wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
+
+static ui_window_cb_t window_cb = {
+	.close = wnd_close,
+	.kbd = wnd_kbd_event
+};
+
+/** Window close request
+ *
+ * @param window Window
+ * @param arg Argument (calc_t *)
+ */
+static void wnd_close(ui_window_t *window, void *arg)
 {
-	kbd_event_t *event = (kbd_event_t *) data;
+	viewer_t *viewer = (viewer_t *) arg;
+
+	ui_quit(viewer->ui);
+}
+
+static void wnd_kbd_event(ui_window_t *window, void *arg,
+    kbd_event_t *event)
+{
 	bool update = false;
 
 	if ((event->type == KEY_PRESS) && (event->c == 'q'))
@@ -94,20 +113,22 @@ static void on_keyboard_event(widget_t *widget, void *data)
 	}
 
 	if (update) {
-		surface_t *lsface;
+		gfx_bitmap_t *lbitmap;
+		gfx_rect_t lrect;
 
-		if (!img_load(imgs[imgs_current], &lsface)) {
+		if (!img_load(window_gc, imgs[imgs_current], &lbitmap, &lrect)) {
 			printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
 			exit(4);
 		}
-		if (!img_setup(lsface)) {
+		if (!img_setup(window_gc, lbitmap, &lrect)) {
 			printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
 			exit(6);
 		}
 	}
 }
 
-static bool img_load(const char *fname, surface_t **p_local_surface)
+static bool img_load(gfx_context_t *gc, const char *fname,
+    gfx_bitmap_t **rbitmap, gfx_rect_t *rect)
 {
 	int fd;
 	errno_t rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
@@ -137,57 +158,74 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 
 	vfs_put(fd);
 
-	*p_local_surface = decode_tga(tga, stat.size, 0);
-	if (*p_local_surface == NULL) {
+	rc = decode_tga(gc, tga, stat.size, rbitmap, rect);
+	if (rc != EOK) {
 		free(tga);
 		return false;
 	}
 
 	free(tga);
 
-	surface_get_resolution(*p_local_surface, &img_width, &img_height);
-
+	img_rect = *rect;
 	return true;
 }
 
-static bool img_setup(surface_t *local_surface)
+static bool img_setup(gfx_context_t *gc, gfx_bitmap_t *bmp, gfx_rect_t *rect)
 {
-	if (canvas != NULL) {
-		if (!update_canvas(canvas, local_surface)) {
-			surface_destroy(local_surface);
-			return false;
-		}
+	gfx_rect_t arect;
+	gfx_rect_t irect;
+	ui_resource_t *ui_res;
+	errno_t rc;
+
+	ui_res = ui_window_get_res(window);
+
+	ui_window_get_app_rect(window, &arect);
+
+	/* Center image on application area */
+	gfx_rect_ctr_on_rect(rect, &arect, &irect);
+
+	if (image != NULL) {
+		ui_image_set_bmp(image, bmp, rect);
+		(void) ui_image_paint(image);
+		ui_image_set_rect(image, &irect);
 	} else {
-		canvas = create_canvas(window_root(main_window), NULL,
-		    img_width, img_height, local_surface);
-		if (canvas == NULL) {
-			surface_destroy(local_surface);
+		rc = ui_image_create(ui_res, bmp, rect, &image);
+		if (rc != EOK) {
+			gfx_bitmap_destroy(bmp);
 			return false;
 		}
 
-		sig_connect(&canvas->keyboard_event, NULL, on_keyboard_event);
+		ui_image_set_rect(image, &irect);
+		ui_window_add(window, ui_image_ctl(image));
 	}
 
-	if (surface != NULL)
-		surface_destroy(surface);
+	if (bitmap != NULL)
+		gfx_bitmap_destroy(bitmap);
 
-	surface = local_surface;
+	bitmap = bmp;
 	return true;
 }
 
 static void print_syntax(void)
 {
-	printf("Syntax: %s [-d <display>] <image-file>...\n", NAME);
+	printf("Syntax: %s [<options] <image-file>...\n", NAME);
+	printf("\t-d <display-spec> Use the specified display\n");
+	printf("\t-f                Full-screen mode\n");
 }
 
 int main(int argc, char *argv[])
 {
-	const char *display_svc = DISPLAY_DEFAULT;
-	window_flags_t flags;
-	surface_t *lsface;
-	bool fullscreen;
-	sysarg_t dwidth;
-	sysarg_t dheight;
+	const char *display_spec = DISPLAY_DEFAULT;
+	gfx_bitmap_t *lbitmap;
+	gfx_rect_t lrect;
+	bool fullscreen = false;
+	gfx_rect_t rect;
+	gfx_rect_t wrect;
+	gfx_coord2_t off;
+	ui_t *ui;
+	ui_wnd_params_t params;
+	viewer_t viewer;
+	errno_t rc;
 	int i;
 
 	i = 1;
@@ -200,7 +238,10 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 
-			display_svc = argv[i++];
+			display_spec = argv[i++];
+		} else if (str_cmp(argv[i], "-f") == 0) {
+			++i;
+			fullscreen = true;
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -218,7 +259,7 @@ int main(int argc, char *argv[])
 	imgs = calloc(imgs_count, sizeof(char *));
 	if (imgs == NULL) {
 		printf("Out of memory.\n");
-		return 2;
+		return 1;
 	}
 
 	for (int j = 0; j < argc - i; j++) {
@@ -229,43 +270,73 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (!img_load(imgs[imgs_current], &lsface)) {
+	rc = ui_create(display_spec, &ui);
+	if (rc != EOK) {
+		printf("Error creating UI on display %s.\n", display_spec);
+		return 1;
+	}
+
+	viewer.ui = ui;
+
+	/*
+	 * We don't know the image size yet, so create tiny window and resize
+	 * later.
+	 */
+	ui_wnd_params_init(&params);
+	params.caption = "Viewer";
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 1;
+	params.rect.p1.y = 1;
+
+	if (fullscreen) {
+		params.style &= ~ui_wds_decorated;
+		params.placement = ui_wnd_place_full_screen;
+	}
+
+	rc = ui_window_create(ui, &params, &window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		return 1;
+	}
+
+	window_gc = ui_window_get_gc(window);
+
+	ui_window_set_cb(window, &window_cb, (void *) &viewer);
+
+	if (!img_load(window_gc, imgs[imgs_current], &lbitmap, &lrect)) {
 		printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
-		return 4;
+		return 1;
 	}
 
-	fullscreen = ((img_width == WINDOW_WIDTH) &&
-	    (img_height == WINDOW_HEIGHT));
-
-	flags = WINDOW_MAIN;
-	if (!fullscreen)
-		flags |= WINDOW_DECORATED;
-
-	main_window = window_open(display_svc, NULL, flags, "viewer");
-	if (!main_window) {
-		printf("Cannot open main window.\n");
-		return 5;
-	}
-
-	if (!img_setup(lsface)) {
-		printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
-		return 6;
-	}
+	/*
+	 * Compute window rectangle such that application area corresponds
+	 * to rect
+	 */
+	ui_wdecor_rect_from_app(params.style, &lrect, &wrect);
+	off = wrect.p0;
+	gfx_rect_rtranslate(&off, &wrect, &rect);
 
 	if (!fullscreen) {
-		dwidth = DECORATION_WIDTH;
-		dheight = DECORATION_HEIGHT;
-	} else {
-		dwidth = 0;
-		dheight = 0;
+		rc = ui_window_resize(window, &rect);
+		if (rc != EOK) {
+			printf("Error resizing window.\n");
+			return 1;
+		}
 	}
 
-	window_resize(main_window, 0, 0, img_width + dwidth,
-	    img_height + dheight, WINDOW_PLACEMENT_ANY);
-	window_exec(main_window);
+	if (!img_setup(window_gc, lbitmap, &lrect)) {
+		printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
+		return 1;
+	}
 
-	task_retval(0);
-	async_manager();
+	rc = ui_window_paint(window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		return 1;
+	}
+
+	ui_run(ui);
 
 	return 0;
 }
