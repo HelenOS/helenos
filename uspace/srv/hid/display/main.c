@@ -187,7 +187,9 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 		/* Handle connection */
 		display_conn(icall, &srv);
 
+		ds_display_lock(disp);
 		ds_client_destroy(client);
+		ds_display_unlock(disp);
 	} else {
 		/* Window GC connection */
 
