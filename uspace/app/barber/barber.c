@@ -411,10 +411,10 @@ int main(int argc, char *argv[])
 	/* Unlink bitmap from image so it is not destroyed along with it */
 	ui_image_set_bmp(frame_img, NULL, &rect);
 
+	destroy_frames();
+
 	ui_window_destroy(window);
 	ui_destroy(ui);
-
-	destroy_frames();
 
 	return 0;
 }
