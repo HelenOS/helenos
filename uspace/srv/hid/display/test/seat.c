@@ -89,8 +89,8 @@ PCUT_TEST(set_focus)
 	ds_display_destroy(disp);
 }
 
-/** Evacuate focus. */
-PCUT_TEST(evac_focus)
+/** Evacuate focus when another window is available. */
+PCUT_TEST(evac_focus_two_windows)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
@@ -131,6 +131,143 @@ PCUT_TEST(evac_focus)
 
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Evacuate focus from the only existing window.
+ *
+ * After evacuating no window should be focused
+ */
+PCUT_TEST(evac_focus_one_window)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_seat_set_focus(seat, wnd);
+	PCUT_ASSERT_EQUALS(wnd, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
+
+	ds_seat_evac_focus(seat, wnd);
+	PCUT_ASSERT_NULL(seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Switch focus when another window is available. */
+PCUT_TEST(switch_focus_two_windows)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *w0;
+	ds_window_t *w1;
+	display_wnd_params_t params;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &params, &w0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_seat_set_focus(seat, w1);
+	PCUT_ASSERT_EQUALS(w1, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
+
+	ds_seat_switch_focus(seat);
+	PCUT_ASSERT_EQUALS(w0, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
+
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Switch focus with just one existing window.
+ *
+ * After switching the focus should remain with the same window.
+ */
+PCUT_TEST(switch_focus_one_window)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_seat_set_focus(seat, wnd);
+	PCUT_ASSERT_EQUALS(wnd, seat->focus);
+	PCUT_ASSERT_TRUE(called_cb);
+	called_cb = false;
+
+	ds_seat_switch_focus(seat);
+	PCUT_ASSERT_EQUALS(wnd, seat->focus);
+	PCUT_ASSERT_FALSE(called_cb);
+
+	ds_window_destroy(wnd);
 	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);

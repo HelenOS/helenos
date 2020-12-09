@@ -127,6 +127,27 @@ void ds_seat_evac_focus(ds_seat_t *seat, ds_window_t *wnd)
 	}
 }
 
+/** Switch focus to another window.
+ *
+ * @param seat Seat
+ * @param wnd Window to evacuate focus from
+ */
+void ds_seat_switch_focus(ds_seat_t *seat)
+{
+	ds_window_t *nwnd;
+
+	if (seat->focus != NULL)
+		nwnd = ds_display_prev_window(seat->focus);
+	else
+		nwnd = NULL;
+
+	if (nwnd == NULL)
+		nwnd = ds_display_last_window(seat->display);
+
+	if (nwnd != NULL)
+		ds_seat_set_focus(seat, nwnd);
+}
+
 /** Post keyboard event to the seat's focused window.
  *
  * @param seat Seat
@@ -142,7 +163,7 @@ errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
 	alt_or_shift = event->mods & (KM_SHIFT | KM_ALT);
 	if (event->type == KEY_PRESS && alt_or_shift && event->key == KC_TAB) {
 		/* On Alt-Tab or Shift-Tab, switch focus to next window */
-		ds_seat_evac_focus(seat, seat->focus);
+		ds_seat_switch_focus(seat);
 		return EOK;
 	}
 
@@ -388,8 +409,7 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	errno_t rc;
 
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
-
-	if (seat->focus != wnd) {
+	if (seat->focus != wnd && seat->focus != NULL) {
 		rc = ds_window_post_pos_event(seat->focus, event);
 		if (rc != EOK)
 			return rc;
