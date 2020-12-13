@@ -648,6 +648,8 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 		}
 
 		input_activate(input);
+		active = true;
+		cons_damage(active_console);
 	}
 
 	return true;
