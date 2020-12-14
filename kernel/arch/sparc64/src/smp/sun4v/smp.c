@@ -182,7 +182,7 @@ static void detect_execution_units(void)
 	__hypercall_fast_ret1(0, 0, 0, 0, 0, CPU_MYID, &myid);
 	md_node_t node = md_get_root();
 
-	/* walk through all the CPU nodes in the MD*/
+	/* walk through all the CPU nodes in the MD */
 	while (md_next_node(&node, "cpu")) {
 
 		uint64_t cpuid;

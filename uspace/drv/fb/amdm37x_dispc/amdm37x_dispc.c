@@ -165,7 +165,7 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	/* Disable all interrupts */
 	regs->irqenable = 0;
 
-	/* Pixel format specifics*/
+	/* Pixel format specifics */
 	uint32_t attrib_pixel_format = 0;
 	uint32_t control_data_lanes = 0;
 	switch (bpp) {

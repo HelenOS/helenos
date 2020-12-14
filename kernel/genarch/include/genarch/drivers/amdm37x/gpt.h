@@ -177,7 +177,7 @@ typedef struct {
 	/** Capture value 2 register */
 	const ioport32_t tcar2;
 
-	/* GPT1,2,10 only (used for 1ms time period generation)*/
+	/* GPT1,2,10 only (used for 1ms time period generation) */
 
 	/** Positive increment register */
 	ioport32_t tpir;

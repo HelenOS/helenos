@@ -73,7 +73,7 @@
 #define USB_HID_RESET_OFFSET	3
 
 #define USB_HID_INVALID                 -98
-/** Unknown tag was founded in report descriptor data*/
+/** Unknown tag was founded in report descriptor data */
 #define USB_HID_UNKNOWN_TAG		-99
 
 /**
@@ -244,7 +244,7 @@ errno_t usb_hid_report_append_fields(usb_hid_report_t *report,
 
 		field->item_flags = report_item->item_flags;
 
-		/* find the right report list*/
+		/* find the right report list */
 		usb_hid_report_description_t *report_des;
 		report_des = usb_hid_report_find_description(report,
 		    report_item->id, report_item->type);
@@ -351,12 +351,12 @@ errno_t usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 	list_t stack;
 	list_initialize(&stack);
 
-	/* parser structure initialization*/
+	/* parser structure initialization */
 	if (usb_hid_report_init(report) != EOK) {
 		return EINVAL;
 	}
 
-	/*report item initialization*/
+	/* report item initialization */
 	if (!(report_item = malloc(sizeof(usb_hid_report_item_t)))) {
 		return ENOMEM;
 	}

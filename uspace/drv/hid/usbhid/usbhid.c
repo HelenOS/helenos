@@ -341,7 +341,7 @@ static bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	    usb_debug_str_buffer(buffer, buffer_size, 0));
 
 	if (hid_dev->max_input_report_size >= buffer_size) {
-		/*! @todo This should probably be atomic. */
+		/* TODO This should probably be atomic. */
 		memcpy(hid_dev->input_report, buffer, buffer_size);
 		hid_dev->input_report_size = buffer_size;
 		usb_hid_new_report(hid_dev);

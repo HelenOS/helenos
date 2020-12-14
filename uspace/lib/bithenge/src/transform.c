@@ -43,7 +43,9 @@
 #include <bithenge/transform.h>
 #include "common.h"
 
-/***************** transform                                 *****************/
+/*
+ * transform
+ */
 
 /** Initialize a new transform.
  * @param[out] self Transform to initialize.
@@ -179,7 +181,9 @@ errno_t bithenge_transform_prefix_apply(bithenge_transform_t *self,
 	return rc;
 }
 
-/***************** scope                                     *****************/
+/*
+ * scope
+ */
 
 /** Create a transform scope. It must be dereferenced with @a
  * bithenge_scope_dec_ref after it is used. Takes ownership of nothing.
@@ -428,7 +432,9 @@ errno_t bithenge_scope_get_param(bithenge_scope_t *scope, int i,
 	}
 }
 
-/***************** barrier_transform                         *****************/
+/*
+ * barrier_transform
+ */
 
 typedef struct {
 	bithenge_transform_t base;
@@ -560,7 +566,9 @@ error:
 	return rc;
 }
 
-/***************** ascii                                     *****************/
+/*
+ * ascii
+ */
 
 static errno_t ascii_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_node_t *in, bithenge_node_t **out)
@@ -603,7 +611,9 @@ bithenge_transform_t bithenge_ascii_transform = {
 	&ascii_ops, 1, 0
 };
 
-/***************** bit                                       *****************/
+/*
+ * bit
+ */
 
 static errno_t bit_prefix_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
@@ -631,7 +641,9 @@ bithenge_transform_t bithenge_bit_transform = {
 	&bit_ops, 1, 0
 };
 
-/***************** bits_be, bits_le                          *****************/
+/*
+ * bits_be, bits_le
+ */
 
 typedef struct {
 	bithenge_blob_t base;
@@ -762,7 +774,9 @@ bithenge_transform_t bithenge_bits_le_transform = {
 	&bits_xe_ops, 1, 0
 };
 
-/***************** invalid                                   *****************/
+/*
+ * invalid
+ */
 
 static errno_t invalid_apply(bithenge_transform_t *self, bithenge_scope_t *scope,
     bithenge_node_t *in, bithenge_node_t **out)
@@ -780,7 +794,9 @@ bithenge_transform_t bithenge_invalid_transform = {
 	&invalid_ops, 1, 0
 };
 
-/***************** known_length                              *****************/
+/*
+ * known_length
+ */
 
 static errno_t known_length_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
@@ -933,7 +949,9 @@ MAKE_UINT_TRANSFORM(uint64le, uint64_t, uint64_t_le2host, prefix_length_8);
 MAKE_UINT_TRANSFORM(uint64be, uint64_t, uint64_t_be2host, prefix_length_8);
 /** @endcond */
 
-/***************** uint_be, uint_le                          *****************/
+/*
+ * uint_be, uint_le
+ */
 
 static errno_t uint_xe_prefix_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
@@ -1003,7 +1021,9 @@ bithenge_transform_t bithenge_uint_le_transform = {
 	&uint_xe_ops, 1, 1
 };
 
-/***************** zero_terminated                           *****************/
+/*
+ * zero_terminated
+ */
 
 static errno_t zero_terminated_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)

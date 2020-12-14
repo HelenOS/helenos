@@ -187,7 +187,7 @@ static void hc_interrupt(bus_t *bus, uint32_t status)
 		transfer_list_abort_all(&instance->transfers_bulk_full);
 
 		if (instance->hw_failures < UHCI_ALLOWED_HW_FAIL) {
-			/* reinitialize hw, this triggers virtual disconnect*/
+			/* reinitialize hw, this triggers virtual disconnect */
 			hc_init_hw(instance);
 		} else {
 			usb_log_fatal("Too many UHCI hardware failures!.");

@@ -94,7 +94,7 @@ static void virt_irq_exception(unsigned int exc_no, istate_t *istate)
 		irq->handler(irq);
 		irq_spinlock_unlock(&irq->lock, false);
 	} else {
-		/* Spurious interrupt.*/
+		/* Spurious interrupt. */
 		printf("cpu%d: spurious interrupt (inum=%u)\n", CPU->id, inum);
 	}
 

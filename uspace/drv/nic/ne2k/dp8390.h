@@ -229,7 +229,7 @@ typedef struct {
 	/** Parent session */
 	async_sess_t *parent_sess;
 	/* Device configuration */
-	void *base_port; /**< Port assigned from ISA configuration **/
+	void *base_port; /**< Port assigned from ISA configuration */
 	void *port;
 	void *data_port;
 	int irq;

@@ -371,7 +371,7 @@ enum rtl8139_bmcr {
 	BMCR_Spd_100   = (1 << 13),  /**< 100 MBit mode set, 10 MBit otherwise */
 	BMCR_AN_ENABLE = (1 << 12),  /**< Autonegotion enable */
 
-	/* 10,11 reserved*/
+	/* 10,11 reserved */
 
 	BMCR_AN_RESTART = (1 << 9),  /**< Restart autonegotion */
 	BMCR_DUPLEX     = (1 << 8)   /**< Duplex mode: 1=full duplex */

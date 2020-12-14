@@ -108,7 +108,7 @@ struct mfs_superblock {
 	 * and to detect on-disk endianness
 	 */
 	uint16_t	s_magic;
-	/* Flag used to detect FS errors*/
+	/* Flag used to detect FS errors */
 	uint16_t	s_state;
 	/* Total number of zones on the device (V2 only) */
 	uint32_t	s_nzones2;

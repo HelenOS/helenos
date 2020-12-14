@@ -45,7 +45,7 @@
  */
 #define MAX_DOUBLE_STR_BUF_SIZE  21
 
-/* Fwd decl.*/
+/* Fwd decl. */
 struct ieee_double_t_tag;
 
 extern int double_to_short_str(struct ieee_double_t_tag, char *, size_t, int *);

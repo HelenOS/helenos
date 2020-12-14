@@ -156,7 +156,7 @@ typedef struct ns8250 {
 	chardev_srvs_t cds;
 	/** Parent session */
 	async_sess_t *parent_sess;
-	/** I/O registers **/
+	/** I/O registers */
 	ns8250_regs_t *regs;
 	/** Are there any clients connected to the device? */
 	unsigned client_connections;

@@ -86,7 +86,7 @@ static void ohci_rh_hub_desc_init(ohci_rh_t *instance)
 	/* bHubContrCurrent, root hubs don't need no power. */
 	instance->hub_descriptor.header.max_current = 0;
 
-	/* Device Removable and some legacy 1.0 stuff*/
+	/* Device Removable and some legacy 1.0 stuff */
 	instance->hub_descriptor.rempow[0] =
 	    (port_desc >> RHDB_DR_SHIFT) & 0xff;
 	if (STATUS_BYTES(instance->port_count) == 1) {
@@ -138,7 +138,7 @@ errno_t ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs,
 	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
 	OHCI_CLR(regs->rh_desc_a, RHDA_PSM_FLAG);
 
-	/* Turn off power (hub driver will turn this back on)*/
+	/* Turn off power (hub driver will turn this back on) */
 	OHCI_WR(regs->rh_status, RHS_CLEAR_GLOBAL_POWER);
 
 	/* Set to global over-current */
@@ -347,7 +347,7 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	/* Enabled features to clear: see page 269 of USB specs */
 	switch (feature) {
-	case USB_HUB_FEATURE_PORT_POWER:          /*8*/
+	case USB_HUB_FEATURE_PORT_POWER:          /* 8 */
 		rhda = OHCI_RD(hub->registers->rh_desc_a);
 		/* No power switching */
 		if (rhda & RHDA_NPS_FLAG)
@@ -361,21 +361,21 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    RHPS_CLEAR_PORT_POWER);
 		return EOK;
-	case USB2_HUB_FEATURE_PORT_ENABLE:         /*1*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:         /* 1 */
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    RHPS_CLEAR_PORT_ENABLE);
 		return EOK;
 
-	case USB2_HUB_FEATURE_PORT_SUSPEND:        /*2*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND:        /* 2 */
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    RHPS_CLEAR_PORT_SUSPEND);
 		return EOK;
 
-	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
-	case USB2_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
-	case USB2_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
-	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
-	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
+	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /* 16 */
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:       /* 17 */
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:      /* 18 */
+	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /* 19 */
+	case USB_HUB_FEATURE_C_PORT_RESET:        /* 20 */
 		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
 		    "C_SUSPEND, C_OC or C_RESET on port %u.", port);
 		/* Bit offsets correspond to the feature number */
@@ -407,7 +407,7 @@ static errno_t req_set_port_feature(usbvirt_device_t *device,
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 
 	switch (feature) {
-	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
+	case USB_HUB_FEATURE_PORT_POWER:   /* 8 */
 		rhda = OHCI_RD(hub->registers->rh_desc_a);
 
 		/* No power switching */
@@ -421,9 +421,9 @@ static errno_t req_set_port_feature(usbvirt_device_t *device,
 		}
 		/* Fall through, for per port power */
 		/* Fallthrough */
-	case USB2_HUB_FEATURE_PORT_ENABLE:  /*1*/
-	case USB2_HUB_FEATURE_PORT_SUSPEND: /*2*/
-	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:  /* 1 */
+	case USB2_HUB_FEATURE_PORT_SUSPEND: /* 2 */
+	case USB_HUB_FEATURE_PORT_RESET:   /* 4 */
 		usb_log_debug2("Setting port POWER, ENABLE, SUSPEND or RESET "
 		    "on port %u.", port);
 		/* Bit offsets correspond to the feature number */

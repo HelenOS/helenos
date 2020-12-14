@@ -43,7 +43,7 @@
 #include "ohci_bus.h"
 #include "hw_struct/endpoint_descriptor.h"
 
-/** Structure maintains both OHCI queue and software list of active endpoints.*/
+/** Structure maintains both OHCI queue and software list of active endpoints. */
 typedef struct endpoint_list {
 	/** Guard against add/remove races */
 	fibril_mutex_t guard;

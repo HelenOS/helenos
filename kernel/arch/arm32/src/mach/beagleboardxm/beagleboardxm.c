@@ -157,7 +157,7 @@ static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 		irq->handler(irq);
 		spinlock_unlock(&irq->lock);
 	} else {
-		/* Spurious interrupt.*/
+		/* Spurious interrupt. */
 		printf("cpu%d: spurious interrupt (inum=%d)\n",
 		    CPU->id, inum);
 	}

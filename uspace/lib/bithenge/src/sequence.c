@@ -41,7 +41,9 @@
 #include <bithenge/tree.h>
 #include "common.h"
 
-/***************** seq_node                                  *****************/
+/*
+ * seq_node
+ */
 
 typedef struct {
 	bithenge_node_t base;
@@ -272,7 +274,9 @@ static errno_t seq_node_init(seq_node_t *self, const seq_node_ops_t *ops,
 	return EOK;
 }
 
-/***************** bithenge_new_struct                       *****************/
+/*
+ * bithenge_new_struct
+ */
 
 typedef struct {
 	bithenge_transform_t base;
@@ -625,7 +629,9 @@ error:
 	return rc;
 }
 
-/***************** bithenge_repeat_transform                 *****************/
+/*
+ * bithenge_repeat_transform
+ */
 
 /* TODO: ignore errors */
 
@@ -904,7 +910,9 @@ error:
 	return rc;
 }
 
-/***************** bithenge_do_while_transform               *****************/
+/*
+ * bithenge_do_while_transform
+ */
 
 typedef struct {
 	bithenge_transform_t base;

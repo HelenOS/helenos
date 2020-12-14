@@ -85,7 +85,7 @@ static void ehci_rh_hub_desc_init(ehci_rh_t *instance, unsigned hcs)
 	/* bHubContrCurrent, root hubs don't need no power. */
 	instance->hub_descriptor.header.max_current = 0;
 
-	/* Device removable and some legacy 1.0 stuff*/
+	/* Device removable and some legacy 1.0 stuff */
 	instance->hub_descriptor.rempow[0] = 0xff;
 	instance->hub_descriptor.rempow[1] = 0xff;
 	instance->hub_descriptor.rempow[2] = 0xff;
@@ -409,19 +409,19 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	/* Enabled features to clear: see page 269 of USB specs */
 	switch (feature) {
-	case USB_HUB_FEATURE_PORT_POWER:          /*8*/
+	case USB_HUB_FEATURE_PORT_POWER:          /* 8 */
 		usb_log_debug2("RH(%p-%u): Clear port power.", hub, port);
 		EHCI_CLR(hub->registers->portsc[port],
 		    USB_PORTSC_PORT_POWER_FLAG);
 		return EOK;
 
-	case USB2_HUB_FEATURE_PORT_ENABLE:         /*1*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:         /* 1 */
 		usb_log_debug2("RH(%p-%u): Clear port enable.", hub, port);
 		EHCI_CLR(hub->registers->portsc[port],
 		    USB_PORTSC_ENABLED_FLAG);
 		return EOK;
 
-	case USB2_HUB_FEATURE_PORT_SUSPEND:        /*2*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND:        /* 2 */
 		usb_log_debug2("RH(%p-%u): Clear port suspend.", hub, port);
 		/* If not in suspend it's noop */
 		if ((EHCI_RD(hub->registers->portsc[port]) &
@@ -433,30 +433,30 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 		//TODO: What if creating the delayed job fails?
 		return delayed_job(stop_resume, hub, port);
 
-	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
+	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /* 16 */
 		usb_log_debug2("RH(%p-%u): Clear port connection change.",
 		    hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_CONNECT_CH_FLAG);
 		return EOK;
-	case USB2_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:       /* 17 */
 		usb_log_debug2("RH(%p-%u): Clear port enable change.",
 		    hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_CONNECT_CH_FLAG);
 		return EOK;
-	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
+	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /* 19 */
 		usb_log_debug2("RH(%p-%u): Clear port OC change.",
 		    hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_OC_CHANGE_FLAG);
 		return EOK;
-	case USB2_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:      /* 18 */
 		usb_log_debug2("RH(%p-%u): Clear port suspend change.",
 		    hub, port);
 		hub->resume_flag[port] = false;
 		return EOK;
-	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
+	case USB_HUB_FEATURE_C_PORT_RESET:        /* 20 */
 		usb_log_debug2("RH(%p-%u): Clear port reset change.",
 		    hub, port);
 		hub->reset_flag[port] = false;
@@ -486,23 +486,23 @@ static errno_t req_set_port_feature(usbvirt_device_t *device,
 	TEST_SIZE_INIT(0, port, hub);
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	switch (feature) {
-	case USB2_HUB_FEATURE_PORT_ENABLE:  /*1*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:  /* 1 */
 		usb_log_debug2("RH(%p-%u): Set port enable.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_ENABLED_FLAG);
 		return EOK;
-	case USB2_HUB_FEATURE_PORT_SUSPEND: /*2*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND: /* 2 */
 		usb_log_debug2("RH(%p-%u): Set port suspend.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_SUSPEND_FLAG);
 		return EOK;
-	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
+	case USB_HUB_FEATURE_PORT_RESET:   /* 4 */
 		usb_log_debug2("RH(%p-%u): Set port reset.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_PORT_RESET_FLAG);
 		//TODO: What if creating the delayed job fails?
 		return delayed_job(stop_reset, hub, port);
-	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
+	case USB_HUB_FEATURE_PORT_POWER:   /* 8 */
 		usb_log_debug2("RH(%p-%u): Set port power.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_PORT_POWER_FLAG);

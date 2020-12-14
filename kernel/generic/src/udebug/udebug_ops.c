@@ -122,7 +122,7 @@ static errno_t _thread_op_begin(thread_t *thread, bool being_go)
 
 	/* Now verify that the thread belongs to the current task. */
 	if (thread->task != TASK) {
-		/* No such thread belonging this task*/
+		/* No such thread belonging this task */
 		mutex_unlock(&TASK->udebug.lock);
 		return ENOENT;
 	}

@@ -38,7 +38,7 @@
 #include <str.h>
 
 #define REMAINDER_STR_FMT " (%zu)..."
-/* string + terminator + number width (enough for 4GB)*/
+/* string + terminator + number width (enough for 4GB) */
 #define REMAINDER_STR_LEN (5 + 1 + 10)
 
 /** How many bytes to group together. */

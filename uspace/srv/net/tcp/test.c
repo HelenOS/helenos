@@ -81,7 +81,7 @@ static errno_t test_srv(void *arg)
 		fibril_usleep(1000 * 1000 * 2);
 	}
 
-	fibril_usleep(/*10**/1000 * 1000);
+	fibril_usleep(1000 * 1000);
 
 	printf("S: User close...\n");
 	tcp_uc_close(conn);
@@ -115,7 +115,7 @@ static errno_t test_cli(void *arg)
 	printf("C: User send...\n");
 	tcp_uc_send(conn, (void *)msg, str_size(msg), 0);
 
-	fibril_usleep(1000 * 1000 * 20/**20*2*/);
+	fibril_usleep(1000 * 1000 * 20);
 	printf("C: User close...\n");
 	tcp_uc_close(conn);
 

@@ -168,7 +168,9 @@ static bool _get_delimited(
 	}
 }
 
-/************** CHARACTER CLASSES ****************/
+/*
+ * CHARACTER CLASSES
+ */
 
 #define MAX_CLASS_OR_COLL_LEN 6
 
@@ -253,7 +255,9 @@ static int _match_char_class(const char **pattern, const char *str, int flags)
 	return _is_in_class(class, *str);
 }
 
-/************** END CHARACTER CLASSES ****************/
+/*
+ * END CHARACTER CLASSES
+ */
 
 /**
  * Reads the next collating element in the pattern, taking into account

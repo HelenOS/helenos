@@ -130,9 +130,9 @@ static void ahci_get_model_name(uint16_t *, char *);
 static fibril_mutex_t sata_devices_count_lock;
 static int sata_devices_count = 0;
 
-/*----------------------------------------------------------------------------*/
-/*-- AHCI Interface ----------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * AHCI Interface
+ */
 
 static ahci_iface_t ahci_interface = {
 	.get_sata_device_name = &get_sata_device_name,
@@ -297,9 +297,9 @@ static errno_t write_blocks(ddf_fun_t *fun, uint64_t blocknum,
 	return rc;
 }
 
-/*----------------------------------------------------------------------------*/
-/*-- AHCI Commands -----------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * AHCI Commands
+ */
 
 /** Wait for interrupt event.
  *
@@ -841,9 +841,9 @@ static errno_t ahci_wb_fpdma(sata_dev_t *sata, uintptr_t phys, uint64_t blocknum
 	return EOK;
 }
 
-/*----------------------------------------------------------------------------*/
-/*-- Interrupts handling -----------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * Interrupts handling
+ */
 
 static irq_pio_range_t ahci_ranges[] = {
 	{
@@ -918,9 +918,9 @@ static void ahci_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
 	}
 }
 
-/*----------------------------------------------------------------------------*/
-/*-- AHCI and SATA device creating and initializing routines -----------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * AHCI and SATA device creating and initializing routines
+ */
 
 /** Allocate SATA device structure with buffers for hardware.
  *
@@ -1272,9 +1272,9 @@ error:
 	return EINTR;
 }
 
-/*----------------------------------------------------------------------------*/
-/*-- Helpers and utilities ---------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * Helpers and utilities
+ */
 
 /** Convert SATA model name
  *
@@ -1312,9 +1312,9 @@ static void ahci_get_model_name(uint16_t *src, char *dst)
 	dst[pos] = '\0';
 }
 
-/*----------------------------------------------------------------------------*/
-/*-- AHCI Main routine -------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * AHCI Main routine
+ */
 
 int main(int argc, char *argv[])
 {

@@ -386,7 +386,7 @@ PCUT_TEST(rect_envelope_nonempty_a_inside_b)
 	PCUT_ASSERT_INT_EQUALS(8, e.p1.y);
 }
 
-/** Rectangle envelope, b is inside a*/
+/** Rectangle envelope, b is inside a */
 PCUT_TEST(rect_envelope_nonempty_b_inside_a)
 {
 	gfx_rect_t a;

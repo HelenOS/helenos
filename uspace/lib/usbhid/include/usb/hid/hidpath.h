@@ -82,7 +82,7 @@ typedef struct {
 	/** Usage of report item. Zero when usage can be changed. */
 	uint32_t usage;
 
-	/** Attribute of Collection tag in report descriptor*/
+	/** Attribute of Collection tag in report descriptor */
 	uint8_t flags;
 
 	/** Link to usb_hid_report_path_t.items list */

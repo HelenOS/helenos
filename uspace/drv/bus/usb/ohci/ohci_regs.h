@@ -260,9 +260,9 @@ do { \
 
 /** Number of downstream ports, max 15 */
 #define RHDA_NDS_MASK  (0xff)
-/** Power switching mode: 0-global, 1-per port*/
+/** Power switching mode: 0-global, 1-per port */
 #define RHDA_PSM_FLAG  (1 << 8)
-/** No power switch: 1-power on, 0-use PSM*/
+/** No power switch: 1-power on, 0-use PSM */
 #define RHDA_NPS_FLAG  (1 << 9)
 /** 1-Compound device, must be 0 */
 #define RHDA_DT_FLAG   (1 << 10)
@@ -316,7 +316,7 @@ do { \
  */
 #define RHS_LPSC_FLAG (1 << 16)
 #define RHS_SET_GLOBAL_POWER RHS_LPSC_FLAG /* synonym for the above */
-/** Over-current change indicator*/
+/** Over-current change indicator */
 #define RHS_OCIC_FLAG (1 << 17)
 #define RHS_CLEAR_DRWE (1 << 31)
 
@@ -326,7 +326,7 @@ do { \
  * ohci_regs_t.rh_port_status[x]
  */
 
-/** r: current connect status, w: 1-clear port enable, 0-N/S*/
+/** r: current connect status, w: 1-clear port enable, 0-N/S */
 #define RHPS_CCS_FLAG (1 << 0)
 #define RHPS_CLEAR_PORT_ENABLE RHPS_CCS_FLAG
 /** r: port enable status, w: 1-set port enable, 0-N/S */

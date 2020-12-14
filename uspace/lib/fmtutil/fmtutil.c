@@ -216,7 +216,7 @@ errno_t wrap(char32_t *wstr, size_t width, line_consumer_fn consumer, void *data
 			line_start = last_word_end = word_start;
 			line_len = 0;
 		}
-		/* Check if we need to force wrap of long word*/
+		/* Check if we need to force wrap of long word */
 		if (pos - word_start > width) {
 			consumer(wstr + word_start, width, last, data);
 			pos = line_start = last_word_end = word_start + width;

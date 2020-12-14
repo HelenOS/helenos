@@ -62,7 +62,7 @@ typedef struct ohci_endpoint {
 	/** Buffer to back ED + 2 TD */
 	dma_buffer_t dma_buffer;
 
-	/** Link in endpoint_list*/
+	/** Link in endpoint_list */
 	link_t eplist_link;
 	/** Link in pending_endpoints */
 	link_t pending_link;

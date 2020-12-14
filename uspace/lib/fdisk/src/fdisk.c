@@ -856,7 +856,7 @@ static errno_t fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
 		link = list_next(link, &dev->pri_idx);
 	}
 
-	if (nidx > 4 /* XXXX actual number of slots*/) {
+	if (nidx > 4 /* XXXX actual number of slots */) {
 		return ELIMIT;
 	}
 

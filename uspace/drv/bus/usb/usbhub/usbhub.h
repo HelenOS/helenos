@@ -60,7 +60,7 @@ struct usb_hub_dev {
 	usb_hub_port_t *ports;
 	/** Speed of the hub */
 	usb_speed_t speed;
-	/** Generic usb device data*/
+	/** Generic usb device data */
 	usb_device_t *usb_device;
 	/** Data polling handle. */
 	usb_polling_t polling;

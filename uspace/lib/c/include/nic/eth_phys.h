@@ -32,9 +32,9 @@
 
 #include <stdint.h>
 
-/*****************************************************/
-/* Definitions of possible supported physical layers */
-/*****************************************************/
+/*
+ * Definitions of possible supported physical layers
+ */
 
 /* Ethernet physical layers */
 #define ETH_OLD          0
@@ -107,9 +107,9 @@
 #define ETH_100GBASE_ER4     0x0040
 #define ETH_100GBASE_CR10    0x0080
 
-/******************************************/
-/* Auto-negotiation advertisement options */
-/******************************************/
+/*
+ * Auto-negotiation advertisement options
+ */
 
 #define ETH_AUTONEG_10BASE_T_HALF    UINT32_C(0x00000001)
 #define ETH_AUTONEG_10BASE_T_FULL    UINT32_C(0x00000002)

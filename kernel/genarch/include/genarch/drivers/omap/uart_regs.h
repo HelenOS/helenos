@@ -352,7 +352,7 @@ typedef struct {
 #define OMAP_UART_SSR_RX_CTS_WU_STS_FLAG   (1 << 1)
 #define OMAP_UART_SSR_DMA_COUNTER_RESET_FLAG   (1 << 2)
 
-	/** BOF Length register (IrDA only)*/
+	/** BOF Length register (IrDA only) */
 	ioport32_t eblr;
 #define OMAP_IRDA_EBLR_DISABLED   (0x00)
 #define OMAP_IRDA_EBLR_RX_STOP_BITS(bits)   (bits & 0xff)

@@ -258,7 +258,7 @@ void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t
 
 	switch (request->request) {
 		/* Clear Feature ENPOINT_STALL */
-	case USB_DEVREQ_CLEAR_FEATURE: /*resets only cleared ep */
+	case USB_DEVREQ_CLEAR_FEATURE: /* resets only cleared ep */
 		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
 		if ((request->request_type == 0x2) &&
 		    (request->value == USB_FEATURE_ENDPOINT_HALT)) {

@@ -68,7 +68,7 @@ union pstate_reg {
 		unsigned am : 1;	/**< 32-bit Address Mask. */
 		unsigned priv : 1;	/**< Privileged Mode. */
 		unsigned ie : 1;	/**< Interrupt Enable. */
-		unsigned ag : 1;	/**< Alternate Globals*/
+		unsigned ag : 1;	/**< Alternate Globals */
 	} __attribute__((packed));
 };
 typedef union pstate_reg pstate_reg_t;

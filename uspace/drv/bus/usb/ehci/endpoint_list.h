@@ -41,7 +41,7 @@
 #include "ehci_bus.h"
 #include "hw_struct/queue_head.h"
 
-/** Structure maintains both EHCI queue and software list of active endpoints.*/
+/** Structure maintains both EHCI queue and software list of active endpoints. */
 typedef struct endpoint_list {
 	/** Guard against add/remove races */
 	fibril_mutex_t guard;

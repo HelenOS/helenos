@@ -83,7 +83,7 @@ static size_t bandwidth_count_usb11(endpoint_t *ep)
 		 * CRC bytes, and a 3-byte interpacket delay)
 		 * see USB spec page 45-46.
 		 */
-		/* Speed penalty 8: low speed is 8-times slower*/
+		/* Speed penalty 8: low speed is 8-times slower */
 		return packet_count * (13 + max_packet_size) * 8;
 	case USB_SPEED_FULL:
 		/*

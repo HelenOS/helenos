@@ -144,7 +144,9 @@ typedef struct rtl8139_data {
 	rtl8139_version_id_t hw_version;
 } rtl8139_t;
 
-/* ***** Pointers casting - for both amd64 and ia32 ***** */
+/*
+ * Pointers casting - for both amd64 and ia32
+ */
 
 /** Cast pointer to uint32_t
  *

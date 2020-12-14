@@ -41,7 +41,7 @@ static const char *uuids[] = {
 	"4A0CE2A3-FD1C-4951-972E-AAA13A703078",
 	"69C7DB62-8309-4C58-831B-8C4E4161E8AC",
 
-	/* lower case*/
+	/* lower case */
 	"c511bf24-70cb-422e-933b-2a74ab699a56",
 	"7b1abd05-456f-4661-ab62-917685069343",
 	"5b00f76b-4a16-4dce-a1fc-b78c60324d89"

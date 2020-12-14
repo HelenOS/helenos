@@ -84,9 +84,9 @@ _NO_TRACE static void frame_initialize(frame_t *frame)
 	frame->parent = NULL;
 }
 
-/*******************/
-/* Zones functions */
-/*******************/
+/*
+ * Zones functions
+ */
 
 /** Insert-sort zone into zones list.
  *
@@ -340,9 +340,9 @@ _NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
 	return find_free_zone_all(count, flags, constraint, hint);
 }
 
-/******************/
-/* Zone functions */
-/******************/
+/*
+ * Zone functions
+ */
 
 /** Return frame from zone. */
 _NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t index)
@@ -780,9 +780,9 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 	return znum;
 }
 
-/*******************/
-/* Frame functions */
-/*******************/
+/*
+ * Frame functions
+ */
 
 /** Set parent of frame. */
 void frame_set_parent(pfn_t pfn, void *data, size_t hint)

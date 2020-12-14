@@ -197,7 +197,7 @@ static FIBRIL_MUTEX_INITIALIZE(guard);
 static dma_controller_t controller_8237 = {
 	.channels = {
 		/* The first chip 8-bit */
-		{ /* Channel 0 - Unusable*/
+		{ /* Channel 0 - Unusable */
 			.offset_reg_address = (uint8_t *) 0x00,
 			.size_reg_address = (uint8_t *) 0x01,
 			.page_reg_address = (uint8_t *) 0x87,

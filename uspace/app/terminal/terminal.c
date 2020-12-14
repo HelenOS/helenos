@@ -330,8 +330,8 @@ static void term_update(terminal_t *term)
 	pixelmap.data = alloc.pixels;
 
 	bool update = false;
-	sysarg_t sx = 0/*term->widget.hpos*/;
-	sysarg_t sy = 0/*term->widget.vpos*/;
+	sysarg_t sx = 0;
+	sysarg_t sy = 0;
 
 	if (term_update_scroll(term, &pixelmap, sx, sy)) {
 		update = true;

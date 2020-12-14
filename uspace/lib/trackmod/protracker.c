@@ -43,7 +43,7 @@
 #include "trackmod.h"
 #include "types/protracker.h"
 
-/** Sample tag decoding table entry*/
+/** Sample tag decoding table entry */
 typedef struct {
 	/** Tag */
 	const char *tag;

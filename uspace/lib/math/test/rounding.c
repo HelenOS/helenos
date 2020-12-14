@@ -265,7 +265,7 @@ static float float_arguments[FLOAT_CASES] = {
 
 	-0x1.fffffep100f,     /* large integer with full mantissa */
 
-	/* a few random numbers*/
+	/* a few random numbers */
 	3.5, -2.1, 100.0, 50.0, -1024.0, 0.0, 768.3156, 1080.499999, -600.0, 1.0
 };
 
@@ -475,7 +475,7 @@ static float float_identity[FLOAT_CASES] = {
 
 	-0x1.fffffep100f,   /* large integer with full mantissa */
 
-	/* a few random numbers*/
+	/* a few random numbers */
 	3.5, -2.1, 100.0, 50.0, -1024.0, 0.0, 768.3156, 1080.5, -600.0, 1.0
 };
 
@@ -685,7 +685,7 @@ static float float_results_trunc[FLOAT_CASES] = {
 
 	-0x1.fffffep100f,   /* large integer with full mantissa */
 
-	/* a few random numbers*/
+	/* a few random numbers */
 	3.0, -2.0, 100.0, 50.0, -1024.0, 0.0, 768.0, 1080.0, -600.0, 1.0
 };
 
@@ -895,7 +895,7 @@ static float float_results_round[FLOAT_CASES] = {
 
 	-0x1.fffffep100f,   /* large integer with full mantissa */
 
-	/* a few random numbers*/
+	/* a few random numbers */
 	4.0, -2.0, 100.0, 50.0, -1024.0, 0.0, 768.0, 1081.0, -600.0, 1.0
 };
 
@@ -1105,7 +1105,7 @@ static float float_results_nearbyint[FLOAT_CASES] = {
 
 	-0x1.fffffep100f,   /* large integer with full mantissa */
 
-	/* a few random numbers*/
+	/* a few random numbers */
 	4.0, -2.0, 100.0, 50.0, -1024.0, 0.0, 768.0, 1080.0, -600.0, 1.0
 };
 

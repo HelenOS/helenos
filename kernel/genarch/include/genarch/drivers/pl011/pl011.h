@@ -53,7 +53,7 @@ typedef struct {
 #define PL011_UART_DATA_OE_FLAG   (1 << 11)
 
 	union {
-		/* Same values that are in upper bits of data register*/
+		/* Same values that are in upper bits of data register */
 		const ioport32_t status;
 #define PL011_UART_STATUS_FE_FLAG   (1 << 0)
 #define PL011_UART_STATUS_PE_FLAG   (1 << 1)

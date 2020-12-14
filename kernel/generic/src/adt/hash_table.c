@@ -330,7 +330,7 @@ size_t hash_table_remove(hash_table_t *h, const void *key)
 	return removed;
 }
 
-/** Removes an item already present in the table. The item must be in the table.*/
+/** Removes an item already present in the table. The item must be in the table. */
 void hash_table_remove_item(hash_table_t *h, ht_link_t *item)
 {
 	assert(item);
@@ -392,7 +392,7 @@ static size_t round_up_size(size_t size)
 	return rounded_size;
 }
 
-/** Allocates and initializes the desired number of buckets. True if successful.*/
+/** Allocates and initializes the desired number of buckets. True if successful. */
 static bool alloc_table(size_t bucket_cnt, list_t **pbuckets)
 {
 	assert(pbuckets && HT_MIN_BUCKETS <= bucket_cnt);

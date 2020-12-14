@@ -316,7 +316,7 @@ PCUT_TEST(dec_unsigned_size)
 	PCUT_ASSERT_TRUE(szu == 42);
 }
 
-/** Decimal ptrdiff_t-sized unsigned int*/
+/** Decimal ptrdiff_t-sized unsigned int */
 PCUT_TEST(dec_unsigned_ptrdiff)
 {
 	int rc;

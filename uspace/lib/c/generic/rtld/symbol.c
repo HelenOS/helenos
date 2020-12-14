@@ -67,7 +67,7 @@ static elf_symbol_t *def_find_in_module(const char *name, module_t *m)
 	elf_symbol_t *sym_table;
 	elf_symbol_t *s, *sym;
 	elf_word nbucket;
-	/*elf_word nchain;*/
+	/* elf_word nchain; */
 	elf_word i;
 	char *s_name;
 	elf_word bucket;
@@ -76,7 +76,7 @@ static elf_symbol_t *def_find_in_module(const char *name, module_t *m)
 
 	sym_table = m->dyn.sym_tab;
 	nbucket = m->dyn.hash[0];
-	/*nchain = m->dyn.hash[1]; XXX Use to check HT range*/
+	/* nchain = m->dyn.hash[1]; XXX Use to check HT range */
 
 	bucket = elf_hash((unsigned char *)name) % nbucket;
 	i = m->dyn.hash[2 + bucket];

@@ -137,7 +137,7 @@ int ehci_transfer_batch_prepare(ehci_transfer_batch_t *ehci_batch)
 	ehci_batch->setup_buffer = ehci_batch->ehci_dma_buffer.virt + tds_size;
 	memcpy(ehci_batch->setup_buffer, ehci_batch->base.setup.buffer, setup_size);
 
-	/* Generic data already prepared*/
+	/* Generic data already prepared */
 	ehci_batch->data_buffer = ehci_batch->base.dma_buffer.virt;
 
 	if (!batch_setup[ehci_batch->base.ep->transfer_type])

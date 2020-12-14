@@ -481,7 +481,7 @@ static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	    usb_dev->descriptors.full_config_size, usb_dev->interface_no);
 
 	if (endpoints) {
-		/* Create and register other pipes than default control (EP 0)*/
+		/* Create and register other pipes than default control (EP 0) */
 		rc = usb_device_create_pipes(usb_dev, endpoints);
 		if (rc != EOK) {
 			usb_device_fini(usb_dev);

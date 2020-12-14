@@ -76,7 +76,7 @@ static void i8042_irq_handler(irq_t *irq)
 	}
 }
 
-/**< Clear input buffer. */
+/** Clear input buffer. */
 static void i8042_clear_buffer(i8042_t *dev)
 {
 	for (uint32_t i = 0; i < i8042_TIMEOUT; i++) {

@@ -136,7 +136,7 @@ static errno_t pkg_install(int argc, char *argv[])
 		printf("Out of memory.\n");
 		return ENOMEM;
 	}
-	/*XXX error cleanup */
+	/* XXX error cleanup */
 
 	printf("Downloading '%s'.\n", src_uri);
 

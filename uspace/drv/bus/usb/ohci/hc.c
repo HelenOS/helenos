@@ -191,7 +191,7 @@ errno_t hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 int hc_gone(hc_device_t *instance)
 {
 	assert(instance);
-	/* TODO: implement*/
+	/* TODO: implement */
 	return ENOTSUP;
 }
 
@@ -594,7 +594,7 @@ errno_t hc_init_memory(hc_t *instance)
 		return ret;
 	}
 
-	/*Init HCCA */
+	/* Init HCCA */
 	instance->hcca = hcca_get();
 	if (instance->hcca == NULL)
 		return ENOMEM;

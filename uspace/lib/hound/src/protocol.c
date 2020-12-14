@@ -393,7 +393,7 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 	void *source;
 	void *sink;
 
-	/* Accept connection if there is a valid iface*/
+	/* Accept connection if there is a valid iface */
 	if (server_iface) {
 		async_accept_0(icall);
 	} else {
@@ -546,7 +546,7 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 			/* read source name */
 			ret = async_data_write_accept(&source, true, 0, 0, 0,
 			    0);
-			/*read sink name */
+			/* read sink name */
 			if (ret == EOK)
 				ret = async_data_write_accept(&sink,
 				    true, 0, 0, 0, 0);
@@ -610,7 +610,7 @@ void hound_connection_handler(ipc_call_t *icall, void *arg)
 			break;
 		case IPC_M_HOUND_STREAM_EXIT:
 		case IPC_M_HOUND_STREAM_DRAIN:
-			/* Stream exit/drain is only allowed in stream context*/
+			/* Stream exit/drain is only allowed in stream context */
 			async_answer_0(&call, EINVAL);
 			break;
 		default:

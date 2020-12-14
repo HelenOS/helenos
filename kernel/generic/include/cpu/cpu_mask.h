@@ -58,7 +58,7 @@
 #define DEFINE_CPU_MASK(cpu_mask) \
 	cpu_mask_t *(cpu_mask) = (cpu_mask_t*) alloca(cpu_mask_size())
 
-/** If used with DEFINE_CPU_MASK, the mask is large enough for all detected cpus.*/
+/** If used with DEFINE_CPU_MASK, the mask is large enough for all detected cpus. */
 typedef struct cpu_mask {
 	unsigned int mask[1];
 } cpu_mask_t;

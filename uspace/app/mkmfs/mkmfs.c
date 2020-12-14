@@ -479,7 +479,7 @@ static errno_t init_superblock(struct mfs_sb_info *sb)
 		sb->max_file_size = (V1_NR_DIRECT_ZONES + ind + ind2) *
 		    MFS_BLOCKSIZE;
 	} else {
-		/*Valid for MFS V2/V3*/
+		/* Valid for MFS V2/V3 */
 		size_t ptrsize;
 		if (sb->fs_version == 2)
 			ptrsize = sizeof(uint16_t);

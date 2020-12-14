@@ -820,7 +820,7 @@ static void tcp_cb_conn(ipc_call_t *icall, void *arg)
 		async_get_call(&call);
 
 		if (!ipc_get_imethod(&call)) {
-			/* Hangup*/
+			/* Hangup */
 			async_answer_0(&call, EOK);
 			goto out;
 		}

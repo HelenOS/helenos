@@ -150,9 +150,9 @@ typedef struct {
 static unsigned int _slab_initialized = 0;
 #endif
 
-/**************************************/
-/* Slab allocation functions          */
-/**************************************/
+/*
+ * Slab allocation functions
+ */
 
 /** Allocate frames for slab space and initialize
  *
@@ -222,9 +222,9 @@ _NO_TRACE static slab_t *obj2slab(void *obj)
 	return (slab_t *) frame_get_parent(ADDR2PFN(KA2PA(obj)), 0);
 }
 
-/******************/
-/* Slab functions */
-/******************/
+/*
+ * Slab functions
+ */
 
 /** Return object to slab and call a destructor
  *
@@ -322,9 +322,9 @@ _NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 	return obj;
 }
 
-/****************************/
-/* CPU-Cache slab functions */
-/****************************/
+/*
+ * CPU-Cache slab functions
+ */
 
 /** Find a full magazine in cache, take it from list and return it
  *
@@ -530,9 +530,9 @@ _NO_TRACE static int magazine_obj_put(slab_cache_t *cache, void *obj)
 	return 0;
 }
 
-/************************/
-/* Slab cache functions */
-/************************/
+/*
+ * Slab cache functions
+ */
 
 /** Return number of objects that fit in certain cache size
  *

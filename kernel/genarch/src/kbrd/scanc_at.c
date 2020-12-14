@@ -105,7 +105,7 @@ char32_t sc_primary_map[] = {
 	U_SPECIAL, /* 0x63 */
 	U_SPECIAL, /* 0x64 */
 	U_SPECIAL, /* 0x65 */
-	'\b', /* 0x66  - backspace*/
+	'\b', /* 0x66  - backspace */
 	U_SPECIAL, /* 0x67 */
 	U_SPECIAL, /* 0x68 */
 	U_END_ARROW, /* 0x69 */
@@ -116,14 +116,14 @@ char32_t sc_primary_map[] = {
 	U_SPECIAL, /* 0x6e */
 	U_SPECIAL, /* 0x6f */
 	U_SPECIAL, /* 0x70 */
-	U_DELETE, /* 0x71 - Del*/
+	U_DELETE, /* 0x71 - Del */
 	U_DOWN_ARROW, /* 0x72 Down Arrow */
 	U_SPECIAL, /* 0x73 */
 	U_RIGHT_ARROW, /* 0x74  - Right Arrow */
 	U_UP_ARROW, /* 0x75  Up Arrow */
 	U_ESCAPE, /* 0x76 Esc */
-	U_SPECIAL, /* 0x77 - NumLock*/
-	U_SPECIAL, /* 0x78  F11*/
+	U_SPECIAL, /* 0x77 - NumLock */
+	U_SPECIAL, /* 0x78  F11 */
 	U_SPECIAL, /* 0x79 */
 	U_PAGE_DOWN, /* 0x7a */
 	U_SPECIAL, /* 0x7b */
@@ -201,7 +201,7 @@ char32_t sc_secondary_map[] = {
 	U_SPECIAL, /* 0x63 */
 	U_SPECIAL, /* 0x64 */
 	U_SPECIAL, /* 0x65 */
-	'\b', /* 0x66  - backspace*/
+	'\b', /* 0x66  - backspace */
 	U_SPECIAL, /* 0x67 */
 	U_SPECIAL, /* 0x68 */
 	U_END_ARROW, /* 0x69 */
@@ -212,14 +212,14 @@ char32_t sc_secondary_map[] = {
 	U_SPECIAL, /* 0x6e */
 	U_SPECIAL, /* 0x6f */
 	U_SPECIAL, /* 0x70 */
-	U_DELETE, /* 0x71 - Del*/
+	U_DELETE, /* 0x71 - Del */
 	U_DOWN_ARROW, /* 0x72 Down Arrow */
 	U_SPECIAL, /* 0x73 */
 	U_RIGHT_ARROW, /* 0x74  - Right Arrow */
 	U_UP_ARROW, /* 0x75  Up Arrow */
 	U_ESCAPE, /* 0x76 Esc */
-	U_SPECIAL, /* 0x77 - NumLock*/
-	U_SPECIAL, /* 0x78  F11*/
+	U_SPECIAL, /* 0x77 - NumLock */
+	U_SPECIAL, /* 0x78  F11 */
 	U_SPECIAL, /* 0x79 */
 	U_PAGE_DOWN, /* 0x7a */
 	U_SPECIAL, /* 0x7b */

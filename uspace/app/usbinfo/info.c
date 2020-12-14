@@ -297,7 +297,7 @@ static void find_string_indexes_callback(
 
 void dump_strings(usb_device_t *usb_dev)
 {
-	/* Find used indexes. Devices with more than 64 strings are very rare.*/
+	/* Find used indexes. Devices with more than 64 strings are very rare. */
 	uint64_t str_mask = 0;
 	find_string_indexes_callback(
 	    (const uint8_t *) &usb_device_descriptors(usb_dev)->device, 0,

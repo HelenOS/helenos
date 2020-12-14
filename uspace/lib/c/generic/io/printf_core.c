@@ -1150,7 +1150,7 @@ static int print_double_generic(double g, int precision, int width,
 			    flags | __PRINTF_FLAG_NOFRACZEROS, ps);
 		}
 	} else {
-		/* Convert to get the decimal exponent and digit count.*/
+		/* Convert to get the decimal exponent and digit count. */
 		len = double_to_short_str(val, buf, buf_size, &dec_exp);
 		assert(0 < len);
 

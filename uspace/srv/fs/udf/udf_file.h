@@ -177,7 +177,7 @@ typedef struct terminal_entry_descriptor {
 	udf_icbtag_t icbtag;
 } __attribute__((packed)) udf_terminal_entry_descriptor;
 
-/* Unallocated Space Entry format (ECMA 167 4/14.11)*/
+/* Unallocated Space Entry format (ECMA 167 4/14.11) */
 typedef struct udf_unallocated_space_entry_descriptor {
 	udf_descriptor_tag_t tag;
 	udf_icbtag_t icbtag;

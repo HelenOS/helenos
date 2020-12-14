@@ -66,7 +66,9 @@ static void expression_indestructible(bithenge_expression_t *self)
 	assert(false);
 }
 
-/***************** binary_expression                         *****************/
+/*
+ * binary_expression
+ */
 
 typedef struct {
 	bithenge_expression_t base;
@@ -280,7 +282,9 @@ error:
 	return rc;
 }
 
-/***************** in_node_expression                        *****************/
+/*
+ * in_node_expression
+ */
 
 static errno_t in_node_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
@@ -315,7 +319,9 @@ errno_t bithenge_in_node_expression(bithenge_expression_t **out)
 	return EOK;
 }
 
-/***************** current_node_expression                   *****************/
+/*
+ * current_node_expression
+ */
 
 static errno_t current_node_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
@@ -346,7 +352,9 @@ errno_t bithenge_current_node_expression(bithenge_expression_t **out)
 	return EOK;
 }
 
-/***************** param_expression                          *****************/
+/*
+ * param_expression
+ */
 
 typedef struct {
 	bithenge_expression_t base;
@@ -407,7 +415,9 @@ errno_t bithenge_param_expression(bithenge_expression_t **out, int index)
 	return EOK;
 }
 
-/***************** const_expression                          *****************/
+/*
+ * const_expression
+ */
 
 typedef struct {
 	bithenge_expression_t base;
@@ -477,7 +487,9 @@ error:
 	return rc;
 }
 
-/***************** scope_member_expression                   *****************/
+/*
+ * scope_member_expression
+ */
 
 typedef struct {
 	bithenge_expression_t base;
@@ -558,7 +570,9 @@ error:
 	return rc;
 }
 
-/***************** subblob_expression                        *****************/
+/*
+ * subblob_expression
+ */
 
 typedef struct {
 	bithenge_expression_t base;
@@ -684,7 +698,9 @@ error:
 	return rc;
 }
 
-/***************** param_wrapper                             *****************/
+/*
+ * param_wrapper
+ */
 
 typedef struct {
 	bithenge_transform_t base;
@@ -842,7 +858,9 @@ error:
 	return rc;
 }
 
-/***************** expression_transform           *****************/
+/*
+ * expression_transform
+ */
 
 /* Also used by inputless_transform. */
 typedef struct {
@@ -920,7 +938,9 @@ error:
 	return rc;
 }
 
-/***************** inputless_transform            *****************/
+/*
+ * inputless_transform
+ */
 
 static errno_t inputless_transform_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
@@ -976,7 +996,9 @@ error:
 	return rc;
 }
 
-/***************** concat_blob                    *****************/
+/*
+ * concat_blob
+ */
 
 typedef struct {
 	bithenge_blob_t base;

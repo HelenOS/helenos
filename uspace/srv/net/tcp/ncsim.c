@@ -80,7 +80,7 @@ void tcp_ncsim_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 	tcp_rqueue_insert_seg(&rident, seg);
 	return;
 
-	if (0 /*rand() % 4 == 3*/) {
+	if (0 /* rand() % 4 == 3 */) {
 		/* Drop segment */
 		log_msg(LOG_DEFAULT, LVL_ERROR, "NCSim dropping segment");
 		tcp_segment_delete(seg);

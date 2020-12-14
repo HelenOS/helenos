@@ -41,7 +41,9 @@
 #include <bithenge/tree.h>
 #include "common.h"
 
-/***************** compose_transform                         *****************/
+/*
+ * compose_transform
+ */
 
 typedef struct {
 	bithenge_transform_t base;
@@ -147,7 +149,9 @@ error:
 	return rc;
 }
 
-/***************** if_transform                              *****************/
+/*
+ * if_transform
+ */
 
 typedef struct {
 	bithenge_transform_t base;
@@ -259,7 +263,9 @@ error:
 	return rc;
 }
 
-/***************** partial_transform                         *****************/
+/*
+ * partial_transform
+ */
 
 typedef struct {
 	bithenge_transform_t base;

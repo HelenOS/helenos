@@ -119,7 +119,7 @@ static errno_t usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
 		return EINVAL;	// TODO: other error code
 	}
 
-	/*! @todo This should probably be somehow atomic. */
+	/* TODO This should probably be somehow atomic. */
 	memcpy(buffer, hid_dev->input_report,
 	    hid_dev->input_report_size);
 	*act_size = hid_dev->input_report_size;

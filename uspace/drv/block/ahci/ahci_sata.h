@@ -35,9 +35,9 @@
 
 #include <stdint.h>
 
-/*----------------------------------------------------------------------------*/
-/*-- SATA Buffer Lengths -----------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * SATA Buffer Lengths
+ */
 
 /** Default sector size in bytes. */
 #define SATA_DEFAULT_SECTOR_SIZE  512
@@ -48,9 +48,9 @@
 /** Size for indentify (packet) device buffer in bytes. */
 #define SATA_IDENTIFY_DEVICE_BUFFER_LENGTH  512
 
-/*----------------------------------------------------------------------------*/
-/*-- SATA Fis Frames ---------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * SATA Fis Frames
+ */
 
 /** Sata FIS Type number. */
 #define SATA_CMD_FIS_TYPE  0x27
@@ -129,9 +129,9 @@ typedef struct {
 	uint8_t reserved6;
 } sata_ncq_command_frame_t;
 
-/*----------------------------------------------------------------------------*/
-/*-- SATA Identify device ----------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*
+ * SATA Identify device
+ */
 
 /** Data returned from identify device and identify packet device command. */
 typedef struct {

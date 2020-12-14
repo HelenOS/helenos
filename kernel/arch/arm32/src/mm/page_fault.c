@@ -160,16 +160,16 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		pf_access_t access;
 	} ls_inst[] = {
 		/* Store word/byte */
-		{ 0x0e100000, 0x04000000, PF_ACCESS_WRITE }, /*STR(B) imm*/
-		{ 0x0e100010, 0x06000000, PF_ACCESS_WRITE }, /*STR(B) reg*/
+		{ 0x0e100000, 0x04000000, PF_ACCESS_WRITE }, /* STR(B) imm */
+		{ 0x0e100010, 0x06000000, PF_ACCESS_WRITE }, /* STR(B) reg */
 		/* Load word/byte */
-		{ 0x0e100000, 0x04100000, PF_ACCESS_READ }, /*LDR(B) imm*/
-		{ 0x0e100010, 0x06100000, PF_ACCESS_READ }, /*LDR(B) reg*/
+		{ 0x0e100000, 0x04100000, PF_ACCESS_READ }, /* LDR(B) imm */
+		{ 0x0e100010, 0x06100000, PF_ACCESS_READ }, /* LDR(B) reg */
 		/* Store half-word/dual  A5.2.8 */
-		{ 0x0e1000b0, 0x000000b0, PF_ACCESS_WRITE }, /*STRH imm reg*/
+		{ 0x0e1000b0, 0x000000b0, PF_ACCESS_WRITE }, /* STRH imm reg */
 		/* Load half-word/dual A5.2.8 */
-		{ 0x0e0000f0, 0x000000d0, PF_ACCESS_READ }, /*LDRH imm reg*/
-		{ 0x0e1000b0, 0x001000b0, PF_ACCESS_READ }, /*LDRH imm reg*/
+		{ 0x0e0000f0, 0x000000d0, PF_ACCESS_READ }, /* LDRH imm reg */
+		{ 0x0e1000b0, 0x001000b0, PF_ACCESS_READ }, /* LDRH imm reg */
 		/* Block data transfer, Store */
 		{ 0x0e100000, 0x08000000, PF_ACCESS_WRITE }, /* STM variants */
 		{ 0x0e100000, 0x08100000, PF_ACCESS_READ },  /* LDM variants */

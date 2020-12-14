@@ -210,7 +210,7 @@ typedef struct {
 	/** Length of usages array */
 	int usages_count;
 
-	/** Usage page*/
+	/** Usage page */
 	uint32_t usage_page;
 
 	/** Minimum valid usage index */
@@ -225,10 +225,10 @@ typedef struct {
 	/** Maximum valid logical value */
 	int32_t logical_maximum;
 
-	/** Length of the items in bits*/
+	/** Length of the items in bits */
 	int32_t size;
 
-	/** COunt of items*/
+	/** Count of items */
 	int32_t count;
 
 	/**  Bit offset of the item in report */
@@ -251,28 +251,28 @@ typedef struct {
 	/** The designator index */
 	uint32_t designator_index;
 
-	/** Minimum valid designator value*/
+	/** Minimum valid designator value */
 	uint32_t designator_minimum;
 
-	/** Maximum valid designator value*/
+	/** Maximum valid designator value */
 	uint32_t designator_maximum;
 
-	/** Minimal valid physical value*/
+	/** Minimal valid physical value */
 	int32_t physical_minimum;
 
 	/** Maximal valid physical value */
 	int32_t physical_maximum;
 
-	/** Items attributes*/
+	/** Items attributes */
 	uint8_t item_flags;
 
 	/** Report type */
 	usb_hid_report_type_t type;
 
-	/** current collection path*/
+	/** current collection path */
 	usb_hid_report_path_t *usage_path;
 
-	/** Unused*/
+	/** Unused */
 	link_t link;
 
 	int in_delimiter;

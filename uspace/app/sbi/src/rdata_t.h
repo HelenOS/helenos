@@ -136,7 +136,7 @@ typedef enum var_class {
 	/** Boolean */
 	vc_bool,
 
-	/** Character **/
+	/** Character */
 	vc_char,
 
 	/** Integer */

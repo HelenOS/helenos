@@ -247,7 +247,7 @@ enum {
 	SCTLR_HW_ACCESS_FLAG_EN_FLAG = 1 << 17,
 	SCTLR_WRITE_XN_EN_FLAG       = 1 << 19, /* Only if virt. supported */
 	SCTLR_USPCE_WRITE_XN_EN_FLAG = 1 << 20, /* Only if virt. supported */
-	SCTLR_FAST_IRQ_EN_FLAG       = 1 << 21, /* Disable impl. specific feat*/
+	SCTLR_FAST_IRQ_EN_FLAG       = 1 << 21, /* Disable impl. specific feat */
 	SCTLR_UNALIGNED_EN_FLAG      = 1 << 22, /* Must be 1 on armv7 */
 	SCTLR_EXTENDED_PT_EN_FLAG    = 1 << 23,
 	SCTLR_IRQ_VECTORS_EN_FLAG    = 1 << 24,
@@ -583,7 +583,7 @@ CONTROL_REG_GEN_WRITE(PMCNTENSET, c9, 0, c12, 1);
 CONTROL_REG_GEN_READ(PMCCNTR, c9, 0, c13, 0);
 CONTROL_REG_GEN_WRITE(PMCCNTR, c9, 0, c13, 0);
 
-/*c10 has tons of reserved too */
+/* c10 has tons of reserved too */
 CONTROL_REG_GEN_READ(PRRR, c10, 0, c2, 0); /* no PAE */
 CONTROL_REG_GEN_WRITE(PRRR, c10, 0, c2, 0); /* no PAE */
 CONTROL_REG_GEN_READ(MAIR0, c10, 0, c2, 0); /* PAE */

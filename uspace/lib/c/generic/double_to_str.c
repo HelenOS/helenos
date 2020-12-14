@@ -244,7 +244,7 @@ static void calc_scaled_bounds(ieee_double_t val, fp_num_t *scaled_upper_bound,
 	*scaled_upper_bound = upper_scaled;
 }
 
-/** Rounds the last digit of buf so that it is closest to the converted number.*/
+/** Rounds the last digit of buf so that it is closest to the converted number. */
 static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
     uint64_t digit_val_diff, char *buf, int len)
 {

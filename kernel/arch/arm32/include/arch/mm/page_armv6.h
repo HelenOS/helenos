@@ -283,7 +283,7 @@ _NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 
 	p->non_global = !(flags & PAGE_GLOBAL);
 
-	/* default access permission: kernel only*/
+	/* default access permission: kernel only */
 	p->access_permission_0 = PTE_AP0_USER_NO_KERNEL_FULL;
 
 	if (flags & PAGE_USER) {

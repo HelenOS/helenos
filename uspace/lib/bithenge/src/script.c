@@ -449,7 +449,9 @@ static bithenge_transform_t *parse_transform(state_t *state);
 static bithenge_transform_t *parse_struct(state_t *state);
 static bithenge_expression_t *parse_expression(state_t *state);
 
-/***************** Expressions                               *****************/
+/*
+ * Expressions
+ */
 
 /** @cond internal */
 typedef enum {

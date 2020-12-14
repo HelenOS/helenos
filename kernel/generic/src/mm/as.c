@@ -2056,7 +2056,7 @@ bool used_space_insert(used_space_t *used_space, uintptr_t page, size_t count)
 
 	/* Check if A is adjacent to the new interval */
 	adj_a = (a != NULL) && (a->page + P2SZ(a->count) == page);
-	/* Check if the new interval is adjacent to B*/
+	/* Check if the new interval is adjacent to B */
 	adj_b = (b != NULL) && page + P2SZ(count) == b->page;
 
 	if (adj_a && adj_b) {

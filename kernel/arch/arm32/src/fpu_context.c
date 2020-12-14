@@ -185,7 +185,7 @@ void fpu_setup(void)
 {
 	uint32_t mvfr0;
 
-	/* Enable coprocessor access*/
+	/* Enable coprocessor access */
 	fpu_enable_coprocessor_access();
 
 	/* Check if we succeeded */

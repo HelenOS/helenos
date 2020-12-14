@@ -76,13 +76,13 @@ typedef struct {
 
 /** i8042 Controller. */
 typedef struct i8042 {
-	/**< I/O registers. */
+	/** I/O registers. */
 	i8042_regs_t *regs;
 	/** Keyboard port */
 	i8042_port_t *kbd;
 	/** AUX port */
 	i8042_port_t *aux;
-	/** Prevents simultanous port writes.*/
+	/** Prevents simultanous port writes. */
 	fibril_mutex_t write_guard;
 } i8042_t;
 

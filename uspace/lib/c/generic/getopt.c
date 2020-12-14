@@ -55,7 +55,7 @@ char	*optarg;		/* argument associated with option */
 #define IGNORE_FIRST	(*options == '-' || *options == '+')
 #define PRINT_ERROR	((opterr) && ((*options != ':') \
 				      || (IGNORE_FIRST && options[1] != ':')))
-/*HelenOS Port - POSIXLY_CORRECT is always false */
+/* HelenOS Port - POSIXLY_CORRECT is always false */
 #define IS_POSIXLY_CORRECT 0
 #define PERMUTE         (!IS_POSIXLY_CORRECT && !IGNORE_FIRST)
 /* XXX: GNU ignores PC if *options == '-' */

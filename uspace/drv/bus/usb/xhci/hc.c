@@ -885,7 +885,7 @@ errno_t hc_address_device(xhci_device_t *dev)
 		return EINVAL;
 	}
 
-	/* Issue configure endpoint command (sec 4.3.5). */
+	/* Issue configure endpoint command (sec 4.3.5).  */
 	dma_buffer_t ictx_dma_buf;
 	if ((err = create_configure_ep_input_ctx(dev, &ictx_dma_buf)))
 		return err;
@@ -927,7 +927,7 @@ errno_t hc_configure_device(xhci_device_t *dev)
 	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	xhci_cmd_t cmd;
 
-	/* Issue configure endpoint command (sec 4.3.5). */
+	/* Issue configure endpoint command (sec 4.3.5).  */
 	dma_buffer_t ictx_dma_buf;
 	errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err != EOK)
@@ -956,7 +956,7 @@ errno_t hc_deconfigure_device(xhci_device_t *dev)
 	if (hc_is_broken(hc))
 		return EOK;
 
-	/* Issue configure endpoint command (sec 4.3.5) with the DC flag. */
+	/* Issue configure endpoint command (sec 4.3.5) with the DC flag.  */
 	xhci_cmd_init(&cmd, XHCI_CMD_CONFIGURE_ENDPOINT);
 	cmd.slot_id = dev->slot_id;
 	cmd.deconfigure = true;
@@ -980,7 +980,7 @@ errno_t hc_add_endpoint(xhci_endpoint_t *ep)
 	const unsigned dci = endpoint_dci(ep);
 	xhci_cmd_t cmd;
 
-	/* Issue configure endpoint command (sec 4.3.5). */
+	/* Issue configure endpoint command (sec 4.3.5).  */
 	dma_buffer_t ictx_dma_buf;
 	errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err != EOK)
@@ -1019,7 +1019,7 @@ errno_t hc_drop_endpoint(xhci_endpoint_t *ep)
 	if (hc_is_broken(hc))
 		return EOK;
 
-	/* Issue configure endpoint command (sec 4.3.5). */
+	/* Issue configure endpoint command (sec 4.3.5).  */
 	dma_buffer_t ictx_dma_buf;
 	errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err != EOK)
