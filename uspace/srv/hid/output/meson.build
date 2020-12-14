@@ -27,11 +27,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'drv' ]
+deps = [ 'drv', 'fbfont', 'pixconv', 'ddev' ]
 src = files(
 	'ctl/serial.c',
 	'port/ega.c',
 	'port/chardev.c',
+	'port/ddev.c',
 	'proto/vt100.c',
 	'output.c',
 )

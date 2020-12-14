@@ -40,6 +40,7 @@
 #include <config.h>
 #include "port/ega.h"
 #include "port/chardev.h"
+#include "port/ddev.h"
 #include "output.h"
 
 #define MAX_COLS  128
@@ -485,6 +486,14 @@ int main(int argc, char *argv[])
 
 	if (!config_key_exists("console")) {
 		ega_init();
+#if defined(CONFIG_FB) && !defined(CONFIG_WINSYS)
+		/*
+		 * NOTE: We don't have a good way of detecting the absence
+		 * of a KFB display device at run time because of the
+		 * asunchronous nature of device discovery
+		 */
+		output_ddev_init();
+#endif
 	}
 
 	chardev_init();
