@@ -515,6 +515,21 @@ static void fb_redraw(outdev_t *dev)
 	spinlock_unlock(&instance->lock);
 }
 
+/** Framebuffer was mapped or unmapped.
+ *
+ * @param arg Framebuffer instance
+ */
+static void fb_mapped_changed(void *arg)
+{
+	fb_instance_t *instance = (fb_instance_t *) arg;
+
+	if (!instance->parea.mapped) {
+		spinlock_lock(&instance->lock);
+		fb_redraw_internal(instance);
+		spinlock_unlock(&instance->lock);
+	}
+}
+
 /** Initialize framebuffer as a output character device
  *
  */
@@ -660,6 +675,8 @@ outdev_t *fb_init(fb_properties_t *props)
 	instance->parea.frames = SIZE2FRAMES(fbsize);
 	instance->parea.unpriv = false;
 	instance->parea.mapped = false;
+	instance->parea.mapped_changed = fb_mapped_changed;
+	instance->parea.arg = (void *) instance;
 	ddi_parea_register(&instance->parea);
 
 	if (!fb_exported) {

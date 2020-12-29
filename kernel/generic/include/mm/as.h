@@ -235,6 +235,7 @@ typedef union mem_backend_data {
 		uintptr_t base;
 		size_t frames;
 		bool anonymous;
+		struct parea *parea;
 	};
 
 	/** user_backend members */

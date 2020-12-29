@@ -106,6 +106,17 @@ void ddi_parea_register(parea_t *parea)
 	mutex_unlock(&pareas_lock);
 }
 
+/** Norify physical area has been unmapped.
+ *
+ * @param parea Physical area
+ */
+void ddi_parea_unmap_notify(parea_t *parea)
+{
+	parea->mapped = false;
+	if (parea->mapped_changed != NULL)
+		parea->mapped_changed(parea->arg);
+}
+
 /** Map piece of physical memory into virtual address space of current task.
  *
  * @param phys  Physical address of the starting frame.
@@ -203,6 +214,8 @@ _NO_TRACE static errno_t physmem_map(uintptr_t phys, size_t pages,
 	return ENOENT;
 
 map:
+	backend_data.parea = parea;
+
 	if (!as_area_create(TASK->as, flags, FRAMES2SIZE(pages),
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
 		/*

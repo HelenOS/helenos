@@ -37,6 +37,7 @@
  */
 
 #include <assert.h>
+#include <ddi/ddi.h>
 #include <typedefs.h>
 #include <mm/as.h>
 #include <mm/page.h>
@@ -100,10 +101,13 @@ void phys_share(as_area_t *area)
 void phys_destroy(as_area_t *area)
 {
 	/*
-	 * Nothing to do.
 	 * The anonymous frames, if any, are released in
 	 * phys_destroy_shared_data().
 	 */
+
+	/* Notify parea has been unmapped */
+	if (area->backend_data.parea != NULL)
+		ddi_parea_unmap_notify(area->backend_data.parea);
 }
 
 bool phys_is_resizable(as_area_t *area)

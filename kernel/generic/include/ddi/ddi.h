@@ -41,7 +41,7 @@
 #include <adt/odict.h>
 
 /** Structure representing contiguous physical memory area. */
-typedef struct {
+typedef struct parea {
 	/** Link to @c pareas ordered dictionary */
 	odlink_t lpareas;
 
@@ -53,11 +53,16 @@ typedef struct {
 	bool unpriv;
 	/** Indicate whether the area is actually mapped. */
 	bool mapped;
+	/** Called when @c mapped field has changed */
+	void (*mapped_changed)(void *);
+	/** Callback argument */
+	void *arg;
 } parea_t;
 
 extern void ddi_init(void);
 extern void ddi_parea_init(parea_t *);
 extern void ddi_parea_register(parea_t *);
+extern void ddi_parea_unmap_notify(parea_t *);
 
 extern void *pio_map(void *, size_t);
 extern void pio_unmap(void *, void *, size_t);

@@ -567,17 +567,35 @@ static void ega_putuchar(outdev_t *dev, char32_t ch)
 	irq_spinlock_unlock(&instance->lock, true);
 }
 
+static void ega_redraw_internal(ega_instance_t *instance)
+{
+	memcpy(instance->addr, instance->backbuf, EGA_VRAM_SIZE);
+	ega_move_cursor(instance);
+	ega_show_cursor(instance);
+}
+
 static void ega_redraw(outdev_t *dev)
 {
 	ega_instance_t *instance = (ega_instance_t *) dev->data;
 
 	irq_spinlock_lock(&instance->lock, true);
-
-	memcpy(instance->addr, instance->backbuf, EGA_VRAM_SIZE);
-	ega_move_cursor(instance);
-	ega_show_cursor(instance);
-
+	ega_redraw_internal(instance);
 	irq_spinlock_unlock(&instance->lock, true);
+}
+
+/** EGA was mapped or unmapped.
+ *
+ * @param arg EGA instance
+ */
+static void ega_mapped_changed(void *arg)
+{
+	ega_instance_t *instance = (ega_instance_t *) arg;
+
+	if (!instance->parea.mapped) {
+		irq_spinlock_lock(&instance->lock, true);
+		ega_redraw_internal(instance);
+		irq_spinlock_unlock(&instance->lock, true);
+	}
 }
 
 outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
@@ -620,6 +638,8 @@ outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 	instance->parea.frames = SIZE2FRAMES(EGA_VRAM_SIZE);
 	instance->parea.unpriv = false;
 	instance->parea.mapped = false;
+	instance->parea.mapped_changed = ega_mapped_changed;
+	instance->parea.arg = (void *) instance;
 	ddi_parea_register(&instance->parea);
 
 	/* Synchronize the back buffer and cursor position. */
