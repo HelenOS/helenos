@@ -31,6 +31,7 @@
 PCUT_INIT;
 
 PCUT_IMPORT(control);
+PCUT_IMPORT(checkbox);
 PCUT_IMPORT(entry);
 PCUT_IMPORT(fixed);
 PCUT_IMPORT(image);

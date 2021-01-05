@@ -28,6 +28,7 @@
 
 deps = [ 'gfx', 'gfxfont', 'memgfx', 'display' ]
 src = files(
+	'src/checkbox.c',
 	'src/control.c',
 	'src/dummygc.c',
 	'src/entry.c',
@@ -43,6 +44,7 @@ src = files(
 )
 
 test_src = files(
+	'test/checkbox.c',
 	'test/control.c',
 	'test/entry.c',
 	'test/fixed.c',

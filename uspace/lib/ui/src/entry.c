@@ -172,21 +172,12 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 {
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
-	gfx_rect_t frame;
 	gfx_rect_t inside;
 	errno_t rc;
 
 	/* Paint inset frame */
 
-	rc = ui_paint_bevel(entry->res->gc, &entry->rect,
-	    entry->res->wnd_shadow_color, entry->res->wnd_highlight_color,
-	    1, &frame);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_paint_bevel(entry->res->gc, &frame,
-	    entry->res->wnd_frame_sh_color, entry->res->wnd_frame_hi_color,
-	    1, &inside);
+	rc = ui_paint_inset_frame(entry->res, &entry->rect, &inside);
 	if (rc != EOK)
 		goto error;
 

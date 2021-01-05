@@ -61,6 +61,12 @@ static ui_pbutton_cb_t pbutton_cb = {
 	.clicked = pb_clicked
 };
 
+static void checkbox_switched(ui_checkbox_t *, void *, bool);
+
+static ui_checkbox_cb_t checkbox_cb = {
+	.switched = checkbox_switched
+};
+
 /** Window close button was clicked.
  *
  * @param window Window
@@ -96,6 +102,29 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	}
 }
 
+/** Check box was switched.
+ *
+ * @param checkbox Check box
+ * @param arg Argument (demo)
+ */
+static void checkbox_switched(ui_checkbox_t *checkbox, void *arg, bool enable)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	errno_t rc;
+
+	if (enable) {
+		rc = ui_entry_set_text(demo->entry, "Checked");
+		if (rc != EOK)
+			printf("Error changing entry text.\n");
+		(void) ui_entry_paint(demo->entry);
+	} else {
+		rc = ui_entry_set_text(demo->entry, "Unchecked");
+		if (rc != EOK)
+			printf("Error changing entry text.\n");
+		(void) ui_entry_paint(demo->entry);
+	}
+}
+
 /** Run UI demo on display server. */
 static errno_t ui_demo(const char *display_spec)
 {
@@ -123,7 +152,7 @@ static errno_t ui_demo(const char *display_spec)
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 220;
-	params.rect.p1.y = 180;
+	params.rect.p1.y = 220;
 
 	memset((void *) &demo, 0, sizeof(demo));
 	demo.ui = ui;
@@ -257,6 +286,26 @@ static errno_t ui_demo(const char *display_spec)
 	ui_image_set_flags(demo.image, ui_imgf_frame);
 
 	rc = ui_fixed_add(demo.fixed, ui_image_ctl(demo.image));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_checkbox_create(ui_res, "Check me", &demo.checkbox);
+	if (rc != EOK) {
+		printf("Error creating check box.\n");
+		return rc;
+	}
+
+	ui_checkbox_set_cb(demo.checkbox, &checkbox_cb, (void *) &demo);
+
+	rect.p0.x = 15;
+	rect.p0.y = 180;
+	rect.p1.x = 140;
+	rect.p1.y = 200;
+	ui_checkbox_set_rect(demo.checkbox, &rect);
+
+	rc = ui_fixed_add(demo.fixed, ui_checkbox_ctl(demo.checkbox));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;

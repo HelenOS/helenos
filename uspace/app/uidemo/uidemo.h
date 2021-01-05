@@ -37,6 +37,7 @@
 #define UIDEMO_H
 
 #include <display.h>
+#include <ui/checkbox.h>
 #include <ui/entry.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
@@ -54,6 +55,7 @@ typedef struct {
 	ui_label_t *label;
 	ui_pbutton_t *pb1;
 	ui_pbutton_t *pb2;
+	ui_checkbox_t *checkbox;
 } ui_demo_t;
 
 #endif

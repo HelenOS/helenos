@@ -30,20 +30,21 @@
  * @{
  */
 /**
- * @file Painting routines
+ * @file Check box
  */
 
-#ifndef _UI_PAINT_H
-#define _UI_PAINT_H
+#ifndef _UI_TYPES_CHECKBOX_H
+#define _UI_TYPES_CHECKBOX_H
 
-#include <errno.h>
-#include <gfx/color.h>
-#include <gfx/coord.h>
-#include <types/ui/resource.h>
+#include <stdbool.h>
 
-errno_t ui_paint_bevel(gfx_context_t *, gfx_rect_t *, gfx_color_t *,
-    gfx_color_t *, gfx_coord_t, gfx_rect_t *);
-errno_t ui_paint_inset_frame(ui_resource_t *, gfx_rect_t *, gfx_rect_t *);
+struct ui_checkbox;
+typedef struct ui_checkbox ui_checkbox_t;
+
+/** Check box callbacks */
+typedef struct ui_checkbox_cb {
+	void (*switched)(ui_checkbox_t *, void *, bool);
+} ui_checkbox_cb_t;
 
 #endif
 

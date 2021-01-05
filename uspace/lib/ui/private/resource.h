@@ -91,6 +91,8 @@ struct ui_resource {
 	gfx_color_t *entry_fg_color;
 	/** Entry (text entry, checkbox, raido button) background color */
 	gfx_color_t *entry_bg_color;
+	/** Entry (text entry, checkbox, raido button) active background color */
+	gfx_color_t *entry_act_bg_color;
 };
 
 #endif

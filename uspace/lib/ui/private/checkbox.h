@@ -30,20 +30,40 @@
  * @{
  */
 /**
- * @file Painting routines
+ * @file Check box structure
+ *
  */
 
-#ifndef _UI_PAINT_H
-#define _UI_PAINT_H
+#ifndef _UI_PRIVATE_CHECKBOX_H
+#define _UI_PRIVATE_CHECKBOX_H
 
-#include <errno.h>
-#include <gfx/color.h>
 #include <gfx/coord.h>
-#include <types/ui/resource.h>
+#include <stdbool.h>
 
-errno_t ui_paint_bevel(gfx_context_t *, gfx_rect_t *, gfx_color_t *,
-    gfx_color_t *, gfx_coord_t, gfx_rect_t *);
-errno_t ui_paint_inset_frame(ui_resource_t *, gfx_rect_t *, gfx_rect_t *);
+/** Actual structure of check box.
+ *
+ * This is private to libui.
+ */
+struct ui_checkbox {
+	/** Base control object */
+	struct ui_control *control;
+	/** UI resource */
+	struct ui_resource *res;
+	/** Callbacks */
+	struct ui_checkbox_cb *cb;
+	/** Callback argument */
+	void *arg;
+	/** Check box rectangle */
+	gfx_rect_t rect;
+	/** Caption */
+	const char *caption;
+	/** Check box is checked */
+	bool checked;
+	/** Check box is currently held down */
+	bool held;
+	/** Pointer is currently inside */
+	bool inside;
+};
 
 #endif
 

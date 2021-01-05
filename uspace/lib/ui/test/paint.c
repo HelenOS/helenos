@@ -32,6 +32,7 @@
 #include <pcut/pcut.h>
 #include <stdbool.h>
 #include <ui/paint.h>
+#include <ui/resource.h>
 
 PCUT_INIT;
 
@@ -102,6 +103,36 @@ PCUT_TEST(bevel)
 
 	gfx_color_delete(color2);
 	gfx_color_delete(color1);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint inset frame */
+PCUT_TEST(inset_frame)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	ui_resource_t *resource = NULL;
+	test_gc_t tgc;
+	gfx_rect_t rect;
+	gfx_rect_t inside;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	/* Paint inset frame with NULL 'inside' output parameter */
+	rc = ui_paint_inset_frame(resource, &rect, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Paint inset frame with valid 'inside' output parameter */
+	rc = ui_paint_inset_frame(resource, &rect, &inside);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
