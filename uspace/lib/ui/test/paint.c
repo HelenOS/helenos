@@ -133,6 +133,35 @@ PCUT_TEST(inset_frame)
 	rc = ui_paint_inset_frame(resource, &rect, &inside);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	ui_resource_destroy(resource);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint filled circle */
+PCUT_TEST(filled_circle)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	gfx_coord2_t center;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Paint filled circle / upper-left half */
+	rc = ui_paint_filled_circle(gc, &center, 10, ui_fcircle_upleft);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Paint filled circle / lower-right half */
+	rc = ui_paint_filled_circle(gc, &center, 10, ui_fcircle_lowright);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Paint entire filled circle */
+	rc = ui_paint_filled_circle(gc, &center, 10, ui_fcircle_entire);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }

@@ -235,7 +235,8 @@ PCUT_TEST(press_release)
 	test_gc_t tgc;
 	ui_resource_t *resource = NULL;
 	ui_rbutton_group_t *group = NULL;
-	ui_rbutton_t *rbutton;
+	ui_rbutton_t *rbutton1;
+	ui_rbutton_t *rbutton2;
 	test_cb_resp_t resp;
 
 	memset(&tgc, 0, sizeof(tgc));
@@ -250,29 +251,34 @@ PCUT_TEST(press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NULL(group->selected);
 
-	rc = ui_rbutton_create(group, "Hello", NULL, &rbutton);
+	rc = ui_rbutton_create(group, "One", NULL, &rbutton1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
+
+	rc = ui_rbutton_create(group, "Two", NULL, &rbutton2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
 	resp.selected = false;
 	ui_rbutton_group_set_cb(group, &test_rbutton_group_cb, &resp);
 
-	PCUT_ASSERT_FALSE(rbutton->held);
-	PCUT_ASSERT_FALSE(rbutton->inside);
+	PCUT_ASSERT_FALSE(rbutton2->held);
+	PCUT_ASSERT_FALSE(rbutton2->inside);
 
-	ui_rbutton_press(rbutton);
-	PCUT_ASSERT_TRUE(rbutton->held);
-	PCUT_ASSERT_TRUE(rbutton->inside);
+	ui_rbutton_press(rbutton2);
+	PCUT_ASSERT_TRUE(rbutton2->held);
+	PCUT_ASSERT_TRUE(rbutton2->inside);
 	PCUT_ASSERT_FALSE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
-	ui_rbutton_release(rbutton);
-	PCUT_ASSERT_FALSE(rbutton->held);
-	PCUT_ASSERT_TRUE(rbutton->inside);
+	ui_rbutton_release(rbutton2);
+	PCUT_ASSERT_FALSE(rbutton2->held);
+	PCUT_ASSERT_TRUE(rbutton2->inside);
 	PCUT_ASSERT_TRUE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton2);
 
-	ui_rbutton_destroy(rbutton);
+	ui_rbutton_destroy(rbutton1);
+	ui_rbutton_destroy(rbutton2);
 	ui_rbutton_group_destroy(group);
 	ui_resource_destroy(resource);
 
@@ -288,7 +294,8 @@ PCUT_TEST(press_leave_release)
 	test_gc_t tgc;
 	ui_resource_t *resource = NULL;
 	ui_rbutton_group_t *group = NULL;
-	ui_rbutton_t *rbutton;
+	ui_rbutton_t *rbutton1;
+	ui_rbutton_t *rbutton2;
 	test_cb_resp_t resp;
 
 	memset(&tgc, 0, sizeof(tgc));
@@ -301,35 +308,42 @@ PCUT_TEST(press_leave_release)
 
 	rc = ui_rbutton_group_create(resource, &group);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NULL(group->selected);
 
-	rc = ui_rbutton_create(group, "Hello", NULL, &rbutton);
+	rc = ui_rbutton_create(group, "One", NULL, &rbutton1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
+
+	rc = ui_rbutton_create(group, "Two", NULL, &rbutton2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
 	resp.selected = false;
 	ui_rbutton_group_set_cb(group, &test_rbutton_group_cb, &resp);
 
-	PCUT_ASSERT_FALSE(rbutton->held);
-	PCUT_ASSERT_FALSE(rbutton->inside);
+	PCUT_ASSERT_FALSE(rbutton2->held);
+	PCUT_ASSERT_FALSE(rbutton2->inside);
 
-	ui_rbutton_press(rbutton);
-	PCUT_ASSERT_TRUE(rbutton->held);
-	PCUT_ASSERT_TRUE(rbutton->inside);
+	ui_rbutton_press(rbutton2);
+	PCUT_ASSERT_TRUE(rbutton2->held);
+	PCUT_ASSERT_TRUE(rbutton2->inside);
 	PCUT_ASSERT_FALSE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
-	ui_rbutton_leave(rbutton);
-	PCUT_ASSERT_TRUE(rbutton->held);
-	PCUT_ASSERT_FALSE(rbutton->inside);
+	ui_rbutton_leave(rbutton2);
+	PCUT_ASSERT_TRUE(rbutton2->held);
+	PCUT_ASSERT_FALSE(rbutton2->inside);
 	PCUT_ASSERT_FALSE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
-	ui_rbutton_release(rbutton);
-	PCUT_ASSERT_FALSE(rbutton->held);
-	PCUT_ASSERT_FALSE(rbutton->inside);
+	ui_rbutton_release(rbutton2);
+	PCUT_ASSERT_FALSE(rbutton2->held);
+	PCUT_ASSERT_FALSE(rbutton2->inside);
 	PCUT_ASSERT_FALSE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
-	ui_rbutton_destroy(rbutton);
+	ui_rbutton_destroy(rbutton1);
+	ui_rbutton_destroy(rbutton2);
 	ui_rbutton_group_destroy(group);
 	ui_resource_destroy(resource);
 
@@ -345,7 +359,8 @@ PCUT_TEST(press_leave_enter_release)
 	test_gc_t tgc;
 	ui_resource_t *resource = NULL;
 	ui_rbutton_group_t *group = NULL;
-	ui_rbutton_t *rbutton;
+	ui_rbutton_t *rbutton1;
+	ui_rbutton_t *rbutton2;
 	test_cb_resp_t resp;
 
 	memset(&tgc, 0, sizeof(tgc));
@@ -358,42 +373,48 @@ PCUT_TEST(press_leave_enter_release)
 
 	rc = ui_rbutton_group_create(resource, &group);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NULL(group->selected);
 
-	rc = ui_rbutton_create(group, "Hello", NULL, &rbutton);
+	rc = ui_rbutton_create(group, "One", NULL, &rbutton1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
+
+	rc = ui_rbutton_create(group, "Two", NULL, &rbutton2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
 	resp.selected = false;
 	ui_rbutton_group_set_cb(group, &test_rbutton_group_cb, &resp);
 
-	PCUT_ASSERT_FALSE(rbutton->held);
-	PCUT_ASSERT_FALSE(rbutton->inside);
+	PCUT_ASSERT_FALSE(rbutton2->held);
+	PCUT_ASSERT_FALSE(rbutton2->inside);
 
-	ui_rbutton_press(rbutton);
-	PCUT_ASSERT_TRUE(rbutton->held);
-	PCUT_ASSERT_TRUE(rbutton->inside);
+	ui_rbutton_press(rbutton2);
+	PCUT_ASSERT_TRUE(rbutton2->held);
+	PCUT_ASSERT_TRUE(rbutton2->inside);
 	PCUT_ASSERT_FALSE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
-	ui_rbutton_leave(rbutton);
-	PCUT_ASSERT_TRUE(rbutton->held);
-	PCUT_ASSERT_FALSE(rbutton->inside);
+	ui_rbutton_leave(rbutton2);
+	PCUT_ASSERT_TRUE(rbutton2->held);
+	PCUT_ASSERT_FALSE(rbutton2->inside);
 	PCUT_ASSERT_FALSE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
-	ui_rbutton_enter(rbutton);
-	PCUT_ASSERT_TRUE(rbutton->held);
-	PCUT_ASSERT_TRUE(rbutton->inside);
+	ui_rbutton_enter(rbutton2);
+	PCUT_ASSERT_TRUE(rbutton2->held);
+	PCUT_ASSERT_TRUE(rbutton2->inside);
 	PCUT_ASSERT_FALSE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton1);
 
-	ui_rbutton_release(rbutton);
-	PCUT_ASSERT_FALSE(rbutton->held);
-	PCUT_ASSERT_TRUE(rbutton->inside);
+	ui_rbutton_release(rbutton2);
+	PCUT_ASSERT_FALSE(rbutton2->held);
+	PCUT_ASSERT_TRUE(rbutton2->inside);
 	PCUT_ASSERT_TRUE(resp.selected);
-	PCUT_ASSERT_EQUALS(group->selected, rbutton);
+	PCUT_ASSERT_EQUALS(group->selected, rbutton2);
 
-	ui_rbutton_destroy(rbutton);
+	ui_rbutton_destroy(rbutton1);
+	ui_rbutton_destroy(rbutton2);
 	ui_rbutton_group_destroy(group);
 	ui_resource_destroy(resource);
 
