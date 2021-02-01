@@ -280,7 +280,7 @@ errno_t ui_rbutton_paint(ui_rbutton_t *rbutton)
 
 	/* Label position */
 	pos.x = center.x + rbutton_oframe_r + rbutton_label_margin;
-	pos.y = (rbutton->rect.p0.y + rbutton->rect.p1.y) / 2;
+	pos.y = center.y;
 
 	gfx_text_fmt_init(&fmt);
 	fmt.halign = gfx_halign_left;
