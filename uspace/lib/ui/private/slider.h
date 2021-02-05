@@ -26,23 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Slider structure
+ *
+ */
 
-PCUT_INIT;
+#ifndef _UI_PRIVATE_SLIDER_H
+#define _UI_PRIVATE_SLIDER_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(checkbox);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(rbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(slider);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <gfx/coord.h>
+#include <stdbool.h>
 
-PCUT_MAIN();
+/** Actual structure of slider.
+ *
+ * This is private to libui.
+ */
+struct ui_slider {
+	/** Base control object */
+	struct ui_control *control;
+	/** UI resource */
+	struct ui_resource *res;
+	/** Callbacks */
+	struct ui_slider_cb *cb;
+	/** Callback argument */
+	void *arg;
+	/** Slider rectangle */
+	gfx_rect_t rect;
+	/** Slider is currently held down */
+	bool held;
+	/** Position where button was pressed */
+	gfx_coord2_t press_pos;
+	/** Last slider position */
+	gfx_coord_t last_pos;
+	/** Slider position */
+	gfx_coord_t pos;
+};
+
+#endif
+
+/** @}
+ */

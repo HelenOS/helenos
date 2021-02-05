@@ -36,6 +36,7 @@
 #include <gfx/coord.h>
 #include <io/pixelmap.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <str.h>
 #include <ui/entry.h>
 #include <ui/fixed.h>
@@ -71,6 +72,12 @@ static void rb_selected(ui_rbutton_group_t *, void *, void *);
 
 static ui_rbutton_group_cb_t rbutton_group_cb = {
 	.selected = rb_selected
+};
+
+static void slider_moved(ui_slider_t *, void *, gfx_coord_t);
+
+static ui_slider_cb_t slider_cb = {
+	.moved = slider_moved
 };
 
 /** Window close button was clicked.
@@ -149,6 +156,34 @@ static void rb_selected(ui_rbutton_group_t *rbgroup, void *garg, void *barg)
 	(void) ui_entry_paint(demo->entry);
 }
 
+/** Slider was moved.
+ *
+ * @param slider Slider
+ * @param arg Argument (demo)
+ * @param pos Position
+ */
+static void slider_moved(ui_slider_t *slider, void *arg, gfx_coord_t pos)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	char *str;
+	errno_t rc;
+	int rv;
+
+	rv = asprintf(&str, "Slider at %d of %d", (int) pos,
+	    ui_slider_length(slider));
+	if (rv < 0) {
+		printf("Out of memory.\n");
+		return;
+	}
+
+	rc = ui_entry_set_text(demo->entry, str);
+	if (rc != EOK)
+		printf("Error changing entry text.\n");
+	(void) ui_entry_paint(demo->entry);
+
+	free(str);
+}
+
 /** Run UI demo on display server. */
 static errno_t ui_demo(const char *display_spec)
 {
@@ -176,7 +211,7 @@ static errno_t ui_demo(const char *display_spec)
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 220;
-	params.rect.p1.y = 330;
+	params.rect.p1.y = 340;
 
 	memset((void *) &demo, 0, sizeof(demo));
 	demo.ui = ui;
@@ -396,6 +431,26 @@ static errno_t ui_demo(const char *display_spec)
 	ui_rbutton_set_rect(demo.rb3, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb3));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_slider_create(ui_res, "Slide!", &demo.slider);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_slider_set_cb(demo.slider, &slider_cb, (void *) &demo);
+
+	rect.p0.x = 15;
+	rect.p0.y = 300;
+	rect.p1.x = 130;
+	rect.p1.y = 320;
+	ui_slider_set_rect(demo.slider, &rect);
+
+	rc = ui_fixed_add(demo.fixed, ui_slider_ctl(demo.slider));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;

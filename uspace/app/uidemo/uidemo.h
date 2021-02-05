@@ -43,6 +43,7 @@
 #include <ui/label.h>
 #include <ui/pbutton.h>
 #include <ui/rbutton.h>
+#include <ui/slider.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 
@@ -61,6 +62,7 @@ typedef struct {
 	ui_rbutton_t *rb1;
 	ui_rbutton_t *rb2;
 	ui_rbutton_t *rb3;
+	ui_slider_t *slider;
 } ui_demo_t;
 
 #endif

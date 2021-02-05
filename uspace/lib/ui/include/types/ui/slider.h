@@ -26,23 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Slider
+ */
 
-PCUT_INIT;
+#ifndef _UI_TYPES_SLIDER_H
+#define _UI_TYPES_SLIDER_H
 
-PCUT_IMPORT(control);
-PCUT_IMPORT(checkbox);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(rbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(slider);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <gfx/coord.h>
 
-PCUT_MAIN();
+struct ui_slider;
+typedef struct ui_slider ui_slider_t;
+
+/** Slider callbacks */
+typedef struct ui_slider_cb {
+	void (*moved)(ui_slider_t *, void *, gfx_coord_t);
+} ui_slider_cb_t;
+
+#endif
+
+/** @}
+ */
