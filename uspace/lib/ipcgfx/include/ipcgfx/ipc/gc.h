@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,11 +40,12 @@
 typedef enum {
 	GC_SET_RGB_COLOR = IPC_FIRST_USER_METHOD,
 	GC_FILL_RECT,
+	GC_UPDATE,
 	GC_BITMAP_CREATE,
 	GC_BITMAP_CREATE_DOUTPUT,
 	GC_BITMAP_DESTROY,
 	GC_BITMAP_RENDER,
-	GC_BITMAP_GET_ALLOC
+	GC_BITMAP_GET_ALLOC,
 } gc_request_t;
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,8 @@ typedef struct {
 	errno_t (*set_color)(void *, gfx_color_t *);
 	/** Fill rectangle using the current drawing color */
 	errno_t (*fill_rect)(void *, gfx_rect_t *);
+	/** Update display */
+	errno_t (*update)(void *);
 	/** Create bitmap */
 	errno_t (*bitmap_create)(void *, gfx_bitmap_params_t *,
 	    gfx_bitmap_alloc_t *, void **);

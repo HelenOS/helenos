@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,7 +83,10 @@ static ui_wdecor_cb_t wdecor_cb = {
 	.set_cursor = wd_set_cursor
 };
 
-static void ui_window_app_update(void *, gfx_rect_t *);
+static void ui_window_invalidate(void *, gfx_rect_t *);
+static void ui_window_update(void *);
+static void ui_window_app_invalidate(void *, gfx_rect_t *);
+static void ui_window_app_update(void *);
 
 /** Initialize window parameters structure.
  *
@@ -122,6 +125,10 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	ui_resource_t *res = NULL;
 	ui_wdecor_t *wdecor = NULL;
 	dummy_gc_t *dgc = NULL;
+	gfx_bitmap_params_t bparams;
+	gfx_bitmap_alloc_t alloc;
+	gfx_bitmap_t *bmp = NULL;
+	mem_gc_t *memgc = NULL;
 	errno_t rc;
 
 	window = calloc(1, sizeof(ui_window_t));
@@ -195,7 +202,46 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 		gc = dummygc_get_ctx(dgc);
 	}
 
-	rc = ui_resource_create(gc, &res);
+#ifdef CONFIG_UI_CS_RENDER
+	/* Create window bitmap */
+	gfx_bitmap_params_init(&bparams);
+#ifndef CONFIG_WIN_DOUBLE_BUF
+	bparams.flags |= bmpf_direct_output;
+#endif
+
+	/* Move rectangle so that top-left corner is 0,0 */
+	gfx_rect_rtranslate(&params->rect.p0, &params->rect, &bparams.rect);
+
+	rc = gfx_bitmap_create(gc, &bparams, NULL, &bmp);
+	if (rc != EOK)
+		goto error;
+
+	/* Create memory GC */
+	rc = gfx_bitmap_get_alloc(bmp, &alloc);
+	if (rc != EOK) {
+		gfx_bitmap_destroy(window->app_bmp);
+		return rc;
+	}
+
+	rc = mem_gc_create(&bparams.rect, &alloc, ui_window_invalidate,
+	    ui_window_update, (void *) window, &memgc);
+	if (rc != EOK) {
+		gfx_bitmap_destroy(window->app_bmp);
+		return rc;
+	}
+
+	window->bmp = bmp;
+	window->mgc = memgc;
+	window->gc = mem_gc_get_ctx(memgc);
+	window->realgc = gc;
+#else
+	(void) ui_window_update;
+	(void) ui_window_invalidate;
+	(void) alloc;
+	(void) bparams;
+	window->gc = gc;
+#endif
+	rc = ui_resource_create(window->gc, &res);
 	if (rc != EOK)
 		goto error;
 
@@ -210,7 +256,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->ui = ui;
 	window->dwindow = dwindow;
 	window->rect = dparams.rect;
-	window->gc = gc;
+
 	window->res = res;
 	window->wdecor = wdecor;
 	window->cursor = ui_curs_arrow;
@@ -221,6 +267,10 @@ error:
 		ui_wdecor_destroy(wdecor);
 	if (res != NULL)
 		ui_resource_destroy(res);
+	if (memgc != NULL)
+		mem_gc_delete(memgc);
+	if (bmp != NULL)
+		gfx_bitmap_destroy(bmp);
 	if (dgc != NULL)
 		dummygc_destroy(dgc);
 	if (dwindow != NULL)
@@ -241,6 +291,16 @@ void ui_window_destroy(ui_window_t *window)
 	ui_control_destroy(window->control);
 	ui_wdecor_destroy(window->wdecor);
 	ui_resource_destroy(window->res);
+	if (0 && window->app_mgc != NULL)
+		mem_gc_delete(window->app_mgc);
+	if (0 && window->app_bmp != NULL)
+		gfx_bitmap_destroy(window->app_bmp);
+	if (window->mgc != NULL) {
+		mem_gc_delete(window->mgc);
+		window->gc = NULL;
+	}
+	if (window->bmp != NULL)
+		gfx_bitmap_destroy(window->bmp);
 	gfx_context_delete(window->gc);
 	display_window_destroy(window->dwindow);
 	free(window);
@@ -293,8 +353,11 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 	gfx_rect_t nrect;
 	gfx_rect_t arect;
 	gfx_bitmap_t *app_bmp = NULL;
-	gfx_bitmap_params_t params;
-	gfx_bitmap_alloc_t alloc;
+	gfx_bitmap_t *win_bmp = NULL;
+	gfx_bitmap_params_t app_params;
+	gfx_bitmap_params_t win_params;
+	gfx_bitmap_alloc_t app_alloc;
+	gfx_bitmap_alloc_t win_alloc;
 	errno_t rc;
 
 	/*
@@ -304,24 +367,47 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 	offs = rect->p0;
 	gfx_rect_rtranslate(&offs, rect, &nrect);
 
+	/* mgc != NULL iff client-side rendering */
+	if (window->mgc != NULL) {
+		/* Resize window bitmap */
+		assert(window->bmp != NULL);
+
+		gfx_bitmap_params_init(&win_params);
+#ifndef CONFIG_WIN_DOUBLE_BUF
+		win_params.flags |= bmpf_direct_output;
+#endif
+		win_params.rect = nrect;
+
+		rc = gfx_bitmap_create(window->realgc, &win_params, NULL,
+		    &win_bmp);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_bitmap_get_alloc(win_bmp, &win_alloc);
+		if (rc != EOK)
+			goto error;
+	}
+
+	/* Application area GC? */
 	if (window->app_gc != NULL) {
+		/* Resize application bitmap */
 		assert(window->app_bmp != NULL);
 
-		gfx_bitmap_params_init(&params);
+		gfx_bitmap_params_init(&app_params);
 
 		/*
 		 * The bitmap will have the same dimensions as the
 		 * application rectangle, but start at 0,0.
 		 */
 		ui_wdecor_app_from_rect(window->wdecor->style, &nrect, &arect);
-		gfx_rect_rtranslate(&arect.p0, &arect, &params.rect);
+		gfx_rect_rtranslate(&arect.p0, &arect, &app_params.rect);
 
-		rc = gfx_bitmap_create(window->gc, &params, NULL,
+		rc = gfx_bitmap_create(window->gc, &app_params, NULL,
 		    &app_bmp);
 		if (rc != EOK)
 			goto error;
 
-		rc = gfx_bitmap_get_alloc(app_bmp, &alloc);
+		rc = gfx_bitmap_get_alloc(app_bmp, &app_alloc);
 		if (rc != EOK)
 			goto error;
 	}
@@ -333,11 +419,21 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 			goto error;
 	}
 
+	/* CLient side rendering? */
+	if (window->mgc != NULL) {
+		mem_gc_retarget(window->mgc, &win_params.rect, &win_alloc);
+
+		gfx_bitmap_destroy(window->bmp);
+		window->bmp = win_bmp;
+	}
+
 	ui_wdecor_set_rect(window->wdecor, &nrect);
 	ui_wdecor_paint(window->wdecor);
+	gfx_update(window->gc);
 
+	/* Application area GC? */
 	if (window->app_gc != NULL) {
-		mem_gc_retarget(window->app_mgc, &params.rect, &alloc);
+		mem_gc_retarget(window->app_mgc, &app_params.rect, &app_alloc);
 
 		gfx_bitmap_destroy(window->app_bmp);
 		window->app_bmp = app_bmp;
@@ -347,6 +443,8 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 error:
 	if (app_bmp != NULL)
 		gfx_bitmap_destroy(app_bmp);
+	if (win_bmp != NULL)
+		gfx_bitmap_destroy(win_bmp);
 	return rc;
 }
 
@@ -419,8 +517,8 @@ errno_t ui_window_get_app_gc(ui_window_t *window, gfx_context_t **rgc)
 			return rc;
 		}
 
-		rc = mem_gc_create(&params.rect, &alloc, ui_window_app_update,
-		    (void *) window, &memgc);
+		rc = mem_gc_create(&params.rect, &alloc, ui_window_app_invalidate,
+		    ui_window_app_update, (void *) window, &memgc);
 		if (rc != EOK) {
 			gfx_bitmap_destroy(window->app_bmp);
 			return rc;
@@ -695,6 +793,10 @@ errno_t ui_window_def_paint(ui_window_t *window)
 	if (window->control != NULL)
 		return ui_control_paint(window->control);
 
+	rc = gfx_update(window->res->gc);
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
 }
 
@@ -709,12 +811,43 @@ void ui_window_def_pos(ui_window_t *window, pos_event_t *pos)
 		ui_control_pos_event(window->control, pos);
 }
 
-/** Application area update callback
+/** Window invalidate callback
  *
  * @param arg Argument (ui_window_t *)
  * @param rect Rectangle to update
  */
-static void ui_window_app_update(void *arg, gfx_rect_t *rect)
+static void ui_window_invalidate(void *arg, gfx_rect_t *rect)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+	gfx_rect_t env;
+
+	gfx_rect_envelope(&window->dirty_rect, rect, &env);
+	window->dirty_rect = env;
+}
+
+/** Window update callback
+ *
+ * @param arg Argument (ui_window_t *)
+ */
+static void ui_window_update(void *arg)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	if (!gfx_rect_is_empty(&window->dirty_rect))
+		(void) gfx_bitmap_render(window->bmp, &window->dirty_rect, NULL);
+
+	window->dirty_rect.p0.x = 0;
+	window->dirty_rect.p0.y = 0;
+	window->dirty_rect.p1.x = 0;
+	window->dirty_rect.p1.y = 0;
+}
+
+/** Application area invalidate callback
+ *
+ * @param arg Argument (ui_window_t *)
+ * @param rect Rectangle to update
+ */
+static void ui_window_app_invalidate(void *arg, gfx_rect_t *rect)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 	gfx_rect_t arect;
@@ -723,6 +856,26 @@ static void ui_window_app_update(void *arg, gfx_rect_t *rect)
 
 	/* Render bitmap rectangle inside the application area */
 	(void) gfx_bitmap_render(window->app_bmp, rect, &arect.p0);
+	/*
+	 * TODO Update applications to call gfx_update(), then
+	 * we can defer update to ui_window_app_update().
+	 */
+	(void) gfx_update(window->res->gc);
+}
+
+/** Application area update callback
+ *
+ * @param arg Argument (ui_window_t *)
+ */
+static void ui_window_app_update(void *arg)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	/*
+	 * Not used since display is updated immediately
+	 * in ui_window_app_invalidate
+	 */
+	(void) window;
 }
 
 /** @}

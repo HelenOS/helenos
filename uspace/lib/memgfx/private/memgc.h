@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,8 @@ struct mem_gc {
 	gfx_rect_t rect;
 	/** Allocation info */
 	gfx_bitmap_alloc_t alloc;
+	/** Invalidate callback */
+	mem_gc_invalidate_cb_t invalidate;
 	/** Update callback */
 	mem_gc_update_cb_t update;
 	/** Argument to callback */

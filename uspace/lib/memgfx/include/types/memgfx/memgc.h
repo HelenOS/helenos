@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,8 @@
 struct mem_gc;
 typedef struct mem_gc mem_gc_t;
 
-typedef void (*mem_gc_update_cb_t)(void *, gfx_rect_t *);
+typedef void (*mem_gc_invalidate_cb_t)(void *, gfx_rect_t *);
+typedef void (*mem_gc_update_cb_t)(void *);
 
 #endif
 

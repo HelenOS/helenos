@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,14 +41,17 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(memgfx);
 
-static void test_update_rect(void *arg, gfx_rect_t *rect);
+static void test_invalidate_rect(void *arg, gfx_rect_t *rect);
+static void test_update(void *arg);
 
 typedef struct {
+	/** True if invalidate was called */
+	bool invalidate_called;
+	/** Invalidate rectangle */
+	gfx_rect_t inv_rect;
 	/** True if update was called */
 	bool update_called;
-	/** Update rectangle */
-	gfx_rect_t rect;
-} test_update_t;
+} test_resp_t;
 
 /** Test creating and deleting a memory GC */
 PCUT_TEST(create_delete)
@@ -68,7 +71,7 @@ PCUT_TEST(create_delete)
 	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
 	PCUT_ASSERT_NOT_NULL(alloc.pixels);
 
-	rc = mem_gc_create(&rect, &alloc, NULL, NULL, &mgc);
+	rc = mem_gc_create(&rect, &alloc, NULL, NULL, NULL, &mgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	mem_gc_delete(mgc);
@@ -88,7 +91,7 @@ PCUT_TEST(fill_rect)
 	pixelmap_t pixelmap;
 	pixel_t pixel;
 	pixel_t expected;
-	test_update_t update;
+	test_resp_t resp;
 	errno_t rc;
 
 	/* Bounding rectangle for memory GC */
@@ -102,7 +105,8 @@ PCUT_TEST(fill_rect)
 	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
 	PCUT_ASSERT_NOT_NULL(alloc.pixels);
 
-	rc = mem_gc_create(&rect, &alloc, test_update_rect, &update, &mgc);
+	rc = mem_gc_create(&rect, &alloc, test_invalidate_rect,
+	    test_update, &resp, &mgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gc = mem_gc_get_ctx(mgc);
@@ -121,7 +125,7 @@ PCUT_TEST(fill_rect)
 	frect.p1.x = 5;
 	frect.p1.y = 5;
 
-	memset(&update, 0, sizeof(update));
+	memset(&resp, 0, sizeof(resp));
 
 	rc = gfx_fill_rect(gc, &frect);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -140,12 +144,12 @@ PCUT_TEST(fill_rect)
 		}
 	}
 
-	/* Check that the update rect is equal to the filled rect */
-	PCUT_ASSERT_TRUE(update.update_called);
-	PCUT_ASSERT_INT_EQUALS(frect.p0.x, update.rect.p0.x);
-	PCUT_ASSERT_INT_EQUALS(frect.p0.y, update.rect.p0.y);
-	PCUT_ASSERT_INT_EQUALS(frect.p1.x, update.rect.p1.x);
-	PCUT_ASSERT_INT_EQUALS(frect.p1.y, update.rect.p1.y);
+	/* Check that the invalidate rect is equal to the filled rect */
+	PCUT_ASSERT_TRUE(resp.invalidate_called);
+	PCUT_ASSERT_INT_EQUALS(frect.p0.x, resp.inv_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(frect.p0.y, resp.inv_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(frect.p1.x, resp.inv_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(frect.p1.y, resp.inv_rect.p1.y);
 
 	/* TODO: Check clipping once memgc can support pitch != width etc. */
 
@@ -168,7 +172,7 @@ PCUT_TEST(bitmap_render)
 	pixelmap_t dpmap;
 	pixel_t pixel;
 	pixel_t expected;
-	test_update_t update;
+	test_resp_t resp;
 	errno_t rc;
 
 	/* Bounding rectangle for memory GC */
@@ -182,7 +186,8 @@ PCUT_TEST(bitmap_render)
 	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
 	PCUT_ASSERT_NOT_NULL(alloc.pixels);
 
-	rc = mem_gc_create(&rect, &alloc, test_update_rect, &update, &mgc);
+	rc = mem_gc_create(&rect, &alloc, test_invalidate_rect,
+	    test_update, &resp, &mgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gc = mem_gc_get_ctx(mgc);
@@ -190,6 +195,7 @@ PCUT_TEST(bitmap_render)
 
 	/* Create bitmap */
 
+	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 6;
@@ -218,7 +224,7 @@ PCUT_TEST(bitmap_render)
 	dpmap.height = rect.p1.y - rect.p0.y;
 	dpmap.data = alloc.pixels;
 
-	memset(&update, 0, sizeof(update));
+	memset(&resp, 0, sizeof(resp));
 
 	/* Render the bitmap */
 	/* TODO Test rendering sub-rectangle */
@@ -236,12 +242,12 @@ PCUT_TEST(bitmap_render)
 		}
 	}
 
-	/* Check that the update rect is equal to the filled rect */
-	PCUT_ASSERT_TRUE(update.update_called);
-	PCUT_ASSERT_INT_EQUALS(params.rect.p0.x, update.rect.p0.x);
-	PCUT_ASSERT_INT_EQUALS(params.rect.p0.y, update.rect.p0.y);
-	PCUT_ASSERT_INT_EQUALS(params.rect.p1.x, update.rect.p1.x);
-	PCUT_ASSERT_INT_EQUALS(params.rect.p1.y, update.rect.p1.y);
+	/* Check that the invalidate rect is equal to the filled rect */
+	PCUT_ASSERT_TRUE(resp.invalidate_called);
+	PCUT_ASSERT_INT_EQUALS(params.rect.p0.x, resp.inv_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(params.rect.p0.y, resp.inv_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(params.rect.p1.x, resp.inv_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(params.rect.p1.y, resp.inv_rect.p1.y);
 
 	/* TODO: Check clipping once memgc can support pitch != width etc. */
 
@@ -249,13 +255,59 @@ PCUT_TEST(bitmap_render)
 	free(alloc.pixels);
 }
 
-/** Called by memory GC when a rectangle is updated. */
-static void test_update_rect(void *arg, gfx_rect_t *rect)
+/** Test gfx_update() on a memory GC */
+PCUT_TEST(gfx_update)
 {
-	test_update_t *update = (test_update_t *)arg;
+	mem_gc_t *mgc;
+	gfx_rect_t rect;
+	gfx_bitmap_alloc_t alloc;
+	gfx_context_t *gc;
+	test_resp_t resp;
+	errno_t rc;
 
-	update->update_called = true;
-	update->rect = *rect;
+	/* Bounding rectangle for memory GC */
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 10;
+
+	alloc.pitch = (rect.p1.x - rect.p0.x) * sizeof(uint32_t);
+	alloc.off0 = 0;
+	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
+	PCUT_ASSERT_NOT_NULL(alloc.pixels);
+
+	rc = mem_gc_create(&rect, &alloc, test_invalidate_rect,
+	    test_update, &resp, &mgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = mem_gc_get_ctx(mgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	memset(&resp, 0, sizeof(resp));
+	PCUT_ASSERT_FALSE(resp.update_called);
+
+	gfx_update(gc);
+	PCUT_ASSERT_TRUE(resp.update_called);
+
+	mem_gc_delete(mgc);
+	free(alloc.pixels);
+}
+
+/** Called by memory GC when a rectangle is modified. */
+static void test_invalidate_rect(void *arg, gfx_rect_t *rect)
+{
+	test_resp_t *resp = (test_resp_t *)arg;
+
+	resp->invalidate_called = true;
+	resp->inv_rect = *rect;
+}
+
+/** Called by memory GC when update is called. */
+static void test_update(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *)arg;
+
+	resp->update_called = true;
 }
 
 PCUT_EXPORT(memgfx);

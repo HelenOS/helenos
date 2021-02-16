@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,7 @@
 
 static errno_t mem_gc_set_color(void *, gfx_color_t *);
 static errno_t mem_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t mem_gc_update(void *);
 static errno_t mem_gc_bitmap_create(void *, gfx_bitmap_params_t *,
     gfx_bitmap_alloc_t *, void **);
 static errno_t mem_gc_bitmap_destroy(void *);
@@ -59,6 +60,7 @@ static void mem_gc_invalidate_rect(mem_gc_t *, gfx_rect_t *);
 gfx_context_ops_t mem_gc_ops = {
 	.set_color = mem_gc_set_color,
 	.fill_rect = mem_gc_fill_rect,
+	.update = mem_gc_update,
 	.bitmap_create = mem_gc_bitmap_create,
 	.bitmap_destroy = mem_gc_bitmap_destroy,
 	.bitmap_render = mem_gc_bitmap_render,
@@ -118,6 +120,20 @@ static errno_t mem_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	return EOK;
 }
 
+/** Update memory GC.
+ *
+ * @param arg Memory GC
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t mem_gc_update(void *arg)
+{
+	mem_gc_t *mgc = (mem_gc_t *) arg;
+
+	mgc->update(mgc->cb_arg);
+	return EOK;
+}
+
 /** Create memory GC.
  *
  * Create graphics context for rendering into a block of memory.
@@ -131,7 +147,8 @@ static errno_t mem_gc_fill_rect(void *arg, gfx_rect_t *rect)
  * @return EOK on success or an error code
  */
 errno_t mem_gc_create(gfx_rect_t *rect, gfx_bitmap_alloc_t *alloc,
-    mem_gc_update_cb_t update_cb, void *cb_arg, mem_gc_t **rgc)
+    mem_gc_invalidate_cb_t invalidate_cb, mem_gc_update_cb_t update_cb,
+    void *cb_arg, mem_gc_t **rgc)
 {
 	mem_gc_t *mgc = NULL;
 	gfx_context_t *gc = NULL;
@@ -151,6 +168,7 @@ errno_t mem_gc_create(gfx_rect_t *rect, gfx_bitmap_alloc_t *alloc,
 	mgc->rect = *rect;
 	mgc->alloc = *alloc;
 
+	mgc->invalidate = invalidate_cb;
 	mgc->update = update_cb;
 	mgc->cb_arg = cb_arg;
 
@@ -204,7 +222,7 @@ gfx_context_t *mem_gc_get_ctx(mem_gc_t *mgc)
 
 static void mem_gc_invalidate_rect(mem_gc_t *mgc, gfx_rect_t *rect)
 {
-	mgc->update(mgc->cb_arg, rect);
+	mgc->invalidate(mgc->cb_arg, rect);
 }
 
 /** Create bitmap in memory GC.

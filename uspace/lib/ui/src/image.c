@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
+#include <gfx/render.h>
 #include <gfx/text.h>
 #include <stdlib.h>
 #include <str.h>
@@ -176,8 +177,11 @@ errno_t ui_image_paint(ui_image_t *image)
 	 * Thus the bitmap will be clipped to the image rectangle.
 	 */
 	gfx_rect_rtranslate(&offs, &irect, &srect);
-	return gfx_bitmap_render(image->bitmap, &srect, &offs);
+	rc = gfx_bitmap_render(image->bitmap, &srect, &offs);
+	if (rc != EOK)
+		return rc;
 
+	return gfx_update(image->res->gc);
 }
 
 /** Change image bitmap.

@@ -48,7 +48,8 @@
 #include "seat.h"
 #include "window.h"
 
-static void ds_window_update_cb(void *, gfx_rect_t *);
+static void ds_window_invalidate_cb(void *, gfx_rect_t *);
+static void ds_window_update_cb(void *);
 static void ds_window_get_preview_rect(ds_window_t *, gfx_rect_t *);
 
 /** Create window.
@@ -105,8 +106,8 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		alloc.pixels = calloc(1, alloc.pitch * dims.y);
 	}
 
-	rc = mem_gc_create(&params->rect, &alloc, ds_window_update_cb,
-	    (void *)wnd, &wnd->mgc);
+	rc = mem_gc_create(&params->rect, &alloc, ds_window_invalidate_cb,
+	    ds_window_update_cb, (void *)wnd, &wnd->mgc);
 	if (rc != EOK)
 		goto error;
 
@@ -788,11 +789,11 @@ errno_t ds_window_set_cursor(ds_window_t *wnd, display_stock_cursor_t cursor)
 	}
 }
 
-/** Window memory GC update callback.
+/** Window memory GC invalidate callback.
  *
- * This is called by the window's memory GC when a rectangle us updated.
+ * This is called by the window's memory GC when a rectangle is modified.
  */
-static void ds_window_update_cb(void *arg, gfx_rect_t *rect)
+static void ds_window_invalidate_cb(void *arg, gfx_rect_t *rect)
 {
 	ds_window_t *wnd = (ds_window_t *)arg;
 	gfx_rect_t drect;
@@ -803,6 +804,17 @@ static void ds_window_update_cb(void *arg, gfx_rect_t *rect)
 	ds_display_lock(wnd->display);
 	(void) ds_display_paint(wnd->display, &drect);
 	ds_display_unlock(wnd->display);
+}
+
+/** Window memory GC update callback.
+ *
+ * This is called by the window's memory GC when it is to be updated.
+ */
+static void ds_window_update_cb(void *arg)
+{
+	ds_window_t *wnd = (ds_window_t *)arg;
+
+	(void) wnd;
 }
 
 /** @}

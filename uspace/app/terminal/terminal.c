@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -41,6 +41,7 @@
 #include <io/chargrid.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
+#include <gfx/render.h>
 #include <io/con_srv.h>
 #include <io/concaps.h>
 #include <io/console.h>
@@ -523,6 +524,7 @@ static errno_t term_write(con_srv_t *srv, void *data, size_t size, size_t *nwrit
 	while (off < size)
 		term_write_char(term, str_decode(data, &off, size));
 
+	gfx_update(term->gc);
 	*nwritten = size;
 	return EOK;
 }
@@ -532,6 +534,7 @@ static void term_sync(con_srv_t *srv)
 	terminal_t *term = srv_to_terminal(srv);
 
 	term_update(term);
+	gfx_update(term->gc);
 }
 
 static void term_clear(con_srv_t *srv)
@@ -543,6 +546,7 @@ static void term_clear(con_srv_t *srv)
 	fibril_mutex_unlock(&term->mtx);
 
 	term_update(term);
+	gfx_update(term->gc);
 }
 
 static void term_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
@@ -554,6 +558,7 @@ static void term_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 	fibril_mutex_unlock(&term->mtx);
 
 	term_update(term);
+	gfx_update(term->gc);
 }
 
 static errno_t term_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
@@ -625,6 +630,7 @@ static void term_set_cursor_visibility(con_srv_t *srv, bool visible)
 	fibril_mutex_unlock(&term->mtx);
 
 	term_update(term);
+	gfx_update(term->gc);
 }
 
 static errno_t term_get_event(con_srv_t *srv, cons_event_t *event)
@@ -687,6 +693,7 @@ static void terminal_focus_event(ui_window_t *window, void *arg)
 
 	term->is_focused = true;
 	term_update(term);
+	gfx_update(term->gc);
 }
 
 /** Handle window keyboard event */
@@ -730,6 +737,7 @@ static void terminal_unfocus_event(ui_window_t *window, void *arg)
 
 	term->is_focused = false;
 	term_update(term);
+	gfx_update(term->gc);
 }
 
 static void term_connection(ipc_call_t *icall, void *arg)

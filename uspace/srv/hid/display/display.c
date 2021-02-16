@@ -49,7 +49,8 @@
 #include "display.h"
 
 static gfx_context_t *ds_display_get_unbuf_gc(ds_display_t *);
-static void ds_display_update_cb(void *, gfx_rect_t *);
+static void ds_display_invalidate_cb(void *, gfx_rect_t *);
+static void ds_display_update_cb(void *);
 
 /** Create display.
  *
@@ -458,7 +459,8 @@ static errno_t ds_display_alloc_backbuf(ds_display_t *disp)
 		goto error;
 
 	rc = mem_gc_create(&disp->rect, &alloc,
-	    ds_display_update_cb, (void *) disp, &disp->bbgc);
+	    ds_display_invalidate_cb, ds_display_update_cb, (void *) disp,
+	    &disp->bbgc);
 	if (rc != EOK)
 		goto error;
 
@@ -731,7 +733,7 @@ errno_t ds_display_paint(ds_display_t *disp, gfx_rect_t *rect)
 	return ds_display_update(disp);
 }
 
-/** Display update callback.
+/** Display invalidate callback.
  *
  * Called by backbuffer memory GC when something is rendered into it.
  * Updates the display's dirty rectangle.
@@ -739,13 +741,24 @@ errno_t ds_display_paint(ds_display_t *disp, gfx_rect_t *rect)
  * @param arg Argument (display cast as void *)
  * @param rect Rectangle to update
  */
-static void ds_display_update_cb(void *arg, gfx_rect_t *rect)
+static void ds_display_invalidate_cb(void *arg, gfx_rect_t *rect)
 {
 	ds_display_t *disp = (ds_display_t *) arg;
 	gfx_rect_t env;
 
 	gfx_rect_envelope(&disp->dirty_rect, rect, &env);
 	disp->dirty_rect = env;
+}
+
+/** Display update callback.
+ *
+ * @param arg Argument (display cast as void *)
+ */
+static void ds_display_update_cb(void *arg)
+{
+	ds_display_t *disp = (ds_display_t *) arg;
+
+	(void) disp;
 }
 
 /** @}

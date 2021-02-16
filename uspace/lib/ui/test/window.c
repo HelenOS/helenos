@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -257,8 +257,8 @@ PCUT_TEST(get_app_gc)
 	params.caption = "Hello";
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
-	params.rect.p0.x = 10;
-	params.rect.p0.y = 10;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
 
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);

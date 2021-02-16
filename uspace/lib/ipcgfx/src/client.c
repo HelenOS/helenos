@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 
 static errno_t ipc_gc_set_color(void *, gfx_color_t *);
 static errno_t ipc_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t ipc_gc_update(void *);
 static errno_t ipc_gc_bitmap_create(void *, gfx_bitmap_params_t *,
     gfx_bitmap_alloc_t *, void **);
 static errno_t ipc_gc_bitmap_destroy(void *);
@@ -55,6 +56,7 @@ static errno_t ipc_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 gfx_context_ops_t ipc_gc_ops = {
 	.set_color = ipc_gc_set_color,
 	.fill_rect = ipc_gc_fill_rect,
+	.update = ipc_gc_update,
 	.bitmap_create = ipc_gc_bitmap_create,
 	.bitmap_destroy = ipc_gc_bitmap_destroy,
 	.bitmap_render = ipc_gc_bitmap_render,
@@ -102,6 +104,25 @@ static errno_t ipc_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	exch = async_exchange_begin(ipcgc->sess);
 	rc = async_req_4_0(exch, GC_FILL_RECT, rect->p0.x, rect->p0.y,
 	    rect->p1.x, rect->p1.y);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+/** Update display on IPC GC.
+ *
+ * @param arg IPC GC
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t ipc_gc_update(void *arg)
+{
+	ipc_gc_t *ipcgc = (ipc_gc_t *) arg;
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(ipcgc->sess);
+	rc = async_req_0_0(exch, GC_UPDATE);
 	async_exchange_end(exch);
 
 	return rc;

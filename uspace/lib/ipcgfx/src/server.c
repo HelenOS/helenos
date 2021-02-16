@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -82,6 +82,14 @@ static void gc_fill_rect_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
 	rect.p1.y = ipc_get_arg4(call);
 
 	rc = gfx_fill_rect(srvgc->gc, &rect);
+	async_answer_0(call, rc);
+}
+
+static void gc_update_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
+{
+	errno_t rc;
+
+	rc = gfx_update(srvgc->gc);
 	async_answer_0(call, rc);
 }
 
@@ -357,6 +365,9 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 			break;
 		case GC_FILL_RECT:
 			gc_fill_rect_srv(&srvgc, &call);
+			break;
+		case GC_UPDATE:
+			gc_update_srv(&srvgc, &call);
 			break;
 		case GC_BITMAP_CREATE:
 			gc_bitmap_create_srv(&srvgc, &call);

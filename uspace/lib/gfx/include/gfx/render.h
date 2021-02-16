@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 
 extern errno_t gfx_set_color(gfx_context_t *, gfx_color_t *);
 extern errno_t gfx_fill_rect(gfx_context_t *, gfx_rect_t *);
+extern errno_t gfx_update(gfx_context_t *);
 
 #endif
 

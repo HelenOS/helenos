@@ -291,6 +291,10 @@ errno_t ui_rbutton_paint(ui_rbutton_t *rbutton)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_update(rbutton->group->res->gc);
+	if (rc != EOK)
+		goto error;
+
 	return EOK;
 error:
 	return rc;

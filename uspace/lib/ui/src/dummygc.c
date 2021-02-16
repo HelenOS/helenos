@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -198,9 +198,23 @@ static errno_t dummygc_bitmap_render(void *bm, gfx_rect_t *srect,
     gfx_coord2_t *offs)
 {
 	dummygc_bitmap_t *tbm = (dummygc_bitmap_t *)bm;
+
 	tbm->dgc->bm_rendered = true;
-	tbm->dgc->bm_srect = *srect;
-	tbm->dgc->bm_offs = *offs;
+
+	tbm->dgc->bm_srect.p0.x = 0;
+	tbm->dgc->bm_srect.p0.y = 0;
+	tbm->dgc->bm_srect.p1.x = 0;
+	tbm->dgc->bm_srect.p1.y = 0;
+
+	tbm->dgc->bm_offs.x = 0;
+	tbm->dgc->bm_offs.y = 0;
+
+	if (srect != NULL)
+		tbm->dgc->bm_srect = *srect;
+
+	if (offs != NULL)
+		tbm->dgc->bm_offs = *offs;
+
 	return EOK;
 }
 

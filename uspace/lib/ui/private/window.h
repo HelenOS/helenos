@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,12 @@ struct ui_window {
 	display_window_t *dwindow;
 	/** Window GC */
 	gfx_context_t *gc;
+	/** Window bitmap (if client-side rendering) */
+	gfx_bitmap_t *bmp;
+	/** Window memory GC (if client-side rendering) */
+	mem_gc_t *mgc;
+	/** Real window GC (if client-side rendering) */
+	gfx_context_t *realgc;
 	/** Window rectangle */
 	gfx_rect_t rect;
 	/** Application area bitmap */
@@ -67,6 +73,8 @@ struct ui_window {
 	mem_gc_t *app_mgc;
 	/** Application area GC */
 	gfx_context_t *app_gc;
+	/** Dirty rectangle */
+	gfx_rect_t dirty_rect;
 	/** UI resource. Ideally this would be in ui_t. */
 	struct ui_resource *res;
 	/** Window decoration */

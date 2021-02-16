@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -302,6 +302,10 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 		if (rc != EOK)
 			goto error;
 	}
+
+	rc = gfx_update(pbutton->res->gc);
+	if (rc != EOK)
+		goto error;
 
 	return EOK;
 error:

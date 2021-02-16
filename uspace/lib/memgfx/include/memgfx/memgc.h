@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@
 extern gfx_context_ops_t mem_gc_ops;
 
 extern errno_t mem_gc_create(gfx_rect_t *, gfx_bitmap_alloc_t *,
-    mem_gc_update_cb_t, void *, mem_gc_t **);
+    mem_gc_invalidate_cb_t, mem_gc_update_cb_t, void *, mem_gc_t **);
 extern errno_t mem_gc_delete(mem_gc_t *);
 extern void mem_gc_retarget(mem_gc_t *, gfx_rect_t *, gfx_bitmap_alloc_t *);
 extern gfx_context_t *mem_gc_get_ctx(mem_gc_t *);

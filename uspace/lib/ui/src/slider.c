@@ -305,6 +305,10 @@ errno_t ui_slider_paint(ui_slider_t *slider)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_update(slider->res->gc);
+	if (rc != EOK)
+		goto error;
+
 	return EOK;
 error:
 	return rc;

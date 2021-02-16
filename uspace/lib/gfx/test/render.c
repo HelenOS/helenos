@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
 #include <gfx/render.h>
 #include <pcut/pcut.h>
 #include <mem.h>
+#include <stdbool.h>
 
 PCUT_INIT;
 
@@ -38,16 +39,19 @@ PCUT_TEST_SUITE(render);
 
 static errno_t testgc_set_color(void *, gfx_color_t *);
 static errno_t testgc_fill_rect(void *, gfx_rect_t *);
+static errno_t testgc_update(void *);
 
 static gfx_context_ops_t ops = {
 	.set_color = testgc_set_color,
-	.fill_rect = testgc_fill_rect
+	.fill_rect = testgc_fill_rect,
+	.update = testgc_update
 };
 
 /** Test graphics context data */
 typedef struct {
 	gfx_color_t *dclr;
 	gfx_rect_t *rect;
+	bool updated;
 } test_gc_t;
 
 PCUT_TEST(set_color)
@@ -106,6 +110,25 @@ PCUT_TEST(fill_rect)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+PCUT_TEST(update)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+
+	memset(&tgc, 0, sizeof(tgc));
+
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(tgc.updated);
+	gfx_update(gc);
+	PCUT_ASSERT_TRUE(tgc.updated);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)
 {
 	test_gc_t *tgc = (test_gc_t *) arg;
@@ -121,6 +144,14 @@ static errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
 
 	/* Technically we should copy the data */
 	tgc->rect = rect;
+	return EOK;
+}
+
+static errno_t testgc_update(void *arg)
+{
+	test_gc_t *tgc = (test_gc_t *) arg;
+
+	tgc->updated = true;
 	return EOK;
 }
 

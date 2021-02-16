@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,20 @@ errno_t gfx_set_color(gfx_context_t *gc, gfx_color_t *color)
 errno_t gfx_fill_rect(gfx_context_t *gc, gfx_rect_t *rect)
 {
 	return gc->ops->fill_rect(gc->arg, rect);
+}
+
+/** Update display.
+ *
+ * Finish any deferred rendering.
+ *
+ * @param gc Graphic context
+ *
+ * @return EOK on success, ENOMEM if insufficient resources,
+ *         EIO if grahic device connection was lost
+ */
+errno_t gfx_update(gfx_context_t *gc)
+{
+	return gc->ops->update(gc->arg);
 }
 
 /** @}

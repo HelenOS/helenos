@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -234,6 +234,10 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 				return rc;
 		}
 	}
+
+	rc = gfx_update(wdecor->res->gc);
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 }

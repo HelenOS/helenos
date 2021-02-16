@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -219,6 +219,10 @@ errno_t ui_checkbox_paint(ui_checkbox_t *checkbox)
 	fmt.valign = gfx_valign_center;
 
 	rc = gfx_puttext(checkbox->res->font, &pos, &fmt, checkbox->caption);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_update(checkbox->res->gc);
 	if (rc != EOK)
 		goto error;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -200,6 +200,10 @@ errno_t ui_label_paint(ui_label_t *label)
 		goto error;
 
 	rc = gfx_puttext(label->res->font, &pos, &fmt, label->text);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_update(label->res->gc);
 	if (rc != EOK)
 		goto error;
 
