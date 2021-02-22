@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
@@ -47,7 +48,10 @@ typedef enum {
 	CONSOLE_SET_STYLE,
 	CONSOLE_SET_COLOR,
 	CONSOLE_SET_RGB_COLOR,
-	CONSOLE_SET_CURSOR_VISIBILITY
+	CONSOLE_SET_CURSOR_VISIBILITY,
+	CONSOLE_MAP,
+	CONSOLE_UNMAP,
+	CONSOLE_UPDATE
 } console_request_t;
 
 #endif

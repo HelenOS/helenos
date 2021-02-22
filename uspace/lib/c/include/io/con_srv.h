@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #include <adt/list.h>
 #include <async.h>
 #include <fibril_synch.h>
+#include <io/charfield.h>
 #include <io/color.h>
 #include <io/concaps.h>
 #include <io/cons_event.h>
@@ -82,6 +83,9 @@ struct con_ops {
 	void (*set_rgb_color)(con_srv_t *, pixel_t, pixel_t);
 	void (*set_cursor_visibility)(con_srv_t *, bool);
 	errno_t (*get_event)(con_srv_t *, cons_event_t *);
+	errno_t (*map)(con_srv_t *, sysarg_t, sysarg_t, charfield_t **);
+	void (*unmap)(con_srv_t *);
+	void (*update)(con_srv_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
 };
 
 extern void con_srvs_init(con_srvs_t *);

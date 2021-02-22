@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
  * @file
  * @brief Console protocol server stub
  */
+#include <as.h>
 #include <errno.h>
 #include <io/cons_event.h>
 #include <ipc/console.h>
@@ -306,6 +307,84 @@ static void con_get_event_srv(con_srv_t *srv, ipc_call_t *icall)
 	    ipc_get_arg3(&result), ipc_get_arg4(&result), ipc_get_arg5(&result));
 }
 
+/** Create shared buffer for efficient rendering */
+static void con_map_srv(con_srv_t *srv, ipc_call_t *icall)
+{
+	errno_t rc;
+	charfield_t *buf;
+	sysarg_t cols, rows;
+	ipc_call_t call;
+	size_t size;
+
+	if (srv->srvs->ops->map == NULL || srv->srvs->ops->unmap == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	cols = ipc_get_arg1(icall);
+	rows = ipc_get_arg2(icall);
+
+	if (!async_share_in_receive(&call, &size)) {
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	/* Check size */
+	if (size != PAGES2SIZE(SIZE2PAGES(cols * rows * sizeof(charfield_t)))) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = srv->srvs->ops->map(srv, cols, rows, &buf);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	rc = async_share_in_finalize(&call, buf, AS_AREA_READ |
+	    AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	if (rc != EOK) {
+		srv->srvs->ops->unmap(srv);
+		async_answer_0(icall, EIO);
+		return;
+	}
+
+	async_answer_0(icall, EOK);
+}
+
+/** Delete shared buffer */
+static void con_unmap_srv(con_srv_t *srv, ipc_call_t *icall)
+{
+	if (srv->srvs->ops->unmap == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	srv->srvs->ops->unmap(srv);
+	async_answer_0(icall, EOK);
+}
+
+/** Update console area from shared buffer */
+static void con_update_srv(con_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t c0, r0, c1, r1;
+
+	c0 = ipc_get_arg1(icall);
+	r0 = ipc_get_arg2(icall);
+	c1 = ipc_get_arg3(icall);
+	r1 = ipc_get_arg4(icall);
+
+	if (srv->srvs->ops->update == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	srv->srvs->ops->update(srv, c0, r0, c1, r1);
+	async_answer_0(icall, EOK);
+}
+
 static con_srv_t *con_srv_create(con_srvs_t *srvs)
 {
 	con_srv_t *srv;
@@ -410,6 +489,15 @@ errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 			break;
 		case CONSOLE_GET_EVENT:
 			con_get_event_srv(srv, &call);
+			break;
+		case CONSOLE_MAP:
+			con_map_srv(srv, &call);
+			break;
+		case CONSOLE_UNMAP:
+			con_unmap_srv(srv, &call);
+			break;
+		case CONSOLE_UPDATE:
+			con_update_srv(srv, &call);
 			break;
 		default:
 			async_answer_0(&call, ENOTSUP);

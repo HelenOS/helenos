@@ -36,6 +36,7 @@
 
 #include <adt/list.h>
 #include <adt/prodcons.h>
+#include <as.h>
 #include <errno.h>
 #include <fbfont/font-8x16.h>
 #include <io/chargrid.h>
@@ -48,6 +49,7 @@
 #include <io/pixelmap.h>
 #include <task.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <ui/resource.h>
@@ -85,6 +87,10 @@ static void term_set_color(con_srv_t *, console_color_t, console_color_t,
 static void term_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void term_set_cursor_visibility(con_srv_t *, bool);
 static errno_t term_get_event(con_srv_t *, cons_event_t *);
+static errno_t term_map(con_srv_t *, sysarg_t, sysarg_t, charfield_t **);
+static void term_unmap(con_srv_t *);
+static void term_buf_update(con_srv_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
 
 static con_ops_t con_ops = {
 	.open = term_open,
@@ -101,7 +107,10 @@ static con_ops_t con_ops = {
 	.set_color = term_set_color,
 	.set_rgb_color = term_set_rgb_color,
 	.set_cursor_visibility = term_set_cursor_visibility,
-	.get_event = term_get_event
+	.get_event = term_get_event,
+	.map = term_map,
+	.unmap = term_unmap,
+	.update = term_buf_update
 };
 
 static void terminal_close_event(ui_window_t *, void *);
@@ -343,25 +352,25 @@ static void term_update(terminal_t *term)
 				    chargrid_charfield_at(term->frontbuf, x, y);
 				charfield_t *back_field =
 				    chargrid_charfield_at(term->backbuf, x, y);
-				bool update = false;
+				bool cupdate = false;
 
 				if ((front_field->flags & CHAR_FLAG_DIRTY) ==
 				    CHAR_FLAG_DIRTY) {
 					if (front_field->ch != back_field->ch) {
 						back_field->ch = front_field->ch;
-						update = true;
+						cupdate = true;
 					}
 
 					if (!attrs_same(front_field->attrs,
 					    back_field->attrs)) {
 						back_field->attrs = front_field->attrs;
-						update = true;
+						cupdate = true;
 					}
 
 					front_field->flags &= ~CHAR_FLAG_DIRTY;
 				}
 
-				if (update) {
+				if (cupdate) {
 					term_update_char(term, &pixelmap, sx, sy, x, y);
 					update = true;
 				}
@@ -642,6 +651,121 @@ static errno_t term_get_event(con_srv_t *srv, cons_event_t *event)
 	*event = *ev;
 	free(ev);
 	return EOK;
+}
+
+/** Create shared buffer for efficient rendering.
+ *
+ * @param srv Console server
+ * @param cols Number of columns in buffer
+ * @param rows Number of rows in buffer
+ * @param rbuf Place to store pointer to new sharable buffer
+ *
+ * @return EOK on sucess or an error code
+ */
+static errno_t term_map(con_srv_t *srv, sysarg_t cols, sysarg_t rows,
+    charfield_t **rbuf)
+{
+	terminal_t *term = srv_to_terminal(srv);
+	void *buf;
+
+	fibril_mutex_lock(&term->mtx);
+
+	if (term->ubuf != NULL) {
+		fibril_mutex_unlock(&term->mtx);
+		return EBUSY;
+	}
+
+	buf = as_area_create(AS_AREA_ANY, cols * rows * sizeof(charfield_t),
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
+	if (buf == AS_MAP_FAILED) {
+		fibril_mutex_unlock(&term->mtx);
+		return ENOMEM;
+	}
+
+	term->ucols = cols;
+	term->urows = rows;
+	term->ubuf = buf;
+	fibril_mutex_unlock(&term->mtx);
+
+	*rbuf = buf;
+	return EOK;
+}
+
+/** Delete shared buffer.
+ *
+ * @param srv Console server
+ */
+static void term_unmap(con_srv_t *srv)
+{
+	terminal_t *term = srv_to_terminal(srv);
+	void *buf;
+
+	fibril_mutex_lock(&term->mtx);
+
+	buf = term->ubuf;
+	term->ubuf = NULL;
+
+	if (buf != NULL)
+		as_area_destroy(buf);
+
+	fibril_mutex_unlock(&term->mtx);
+}
+
+/** Update area of terminal from shared buffer.
+ *
+ * @param srv Console server
+ * @param c0 Column coordinate of top-left corner (inclusive)
+ * @param r0 Row coordinate of top-left corner (inclusive)
+ * @param c1 Column coordinate of bottom-right corner (exclusive)
+ * @param r1 Row coordinate of bottom-right corner (exclusive)
+ */
+static void term_buf_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
+    sysarg_t c1, sysarg_t r1)
+{
+	terminal_t *term = srv_to_terminal(srv);
+	charfield_t *ch;
+	sysarg_t col, row;
+
+	fibril_mutex_lock(&term->mtx);
+
+	if (term->ubuf == NULL) {
+		fibril_mutex_unlock(&term->mtx);
+		return;
+	}
+
+	/* Make sure we have meaningful coordinates, within bounds */
+
+	if (c1 > term->ucols)
+		c1 = term->ucols;
+	if (c1 > term->cols)
+		c1 = term->cols;
+	if (c0 >= c1) {
+		fibril_mutex_unlock(&term->mtx);
+		return;
+	}
+	if (r1 > term->urows)
+		r1 = term->urows;
+	if (r1 > term->rows)
+		r1 = term->rows;
+	if (r0 >= r1) {
+		fibril_mutex_unlock(&term->mtx);
+		return;
+	}
+
+	/* Update front buffer from user buffer */
+
+	for (row = r0; row < r1; row++) {
+		for (col = c0; col < c1; col++) {
+			ch = chargrid_charfield_at(term->frontbuf, col, row);
+			*ch = term->ubuf[row * term->ucols + col];
+		}
+	}
+
+	fibril_mutex_unlock(&term->mtx);
+
+	/* Update terminal */
+	term_update(term);
+	gfx_update(term->gc);
 }
 
 static void deinit_terminal(terminal_t *term)

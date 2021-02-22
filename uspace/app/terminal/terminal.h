@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -83,6 +83,10 @@ typedef struct {
 	chargrid_t *frontbuf;
 	chargrid_t *backbuf;
 	sysarg_t top_row;
+
+	sysarg_t ucols;
+	sysarg_t urows;
+	charfield_t *ubuf;
 
 	service_id_t dsid;
 	con_srvs_t srvs;

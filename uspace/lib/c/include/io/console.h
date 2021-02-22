@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #define _LIBC_IO_CONSOLE_H_
 
 #include <time.h>
+#include <io/charfield.h>
 #include <io/concaps.h>
 #include <io/kbd_event.h>
 #include <io/cons_event.h>
@@ -85,6 +86,11 @@ extern errno_t console_get_color_cap(console_ctrl_t *, sysarg_t *);
 extern bool console_get_event(console_ctrl_t *, cons_event_t *);
 extern bool console_get_event_timeout(console_ctrl_t *, cons_event_t *,
     usec_t *);
+extern errno_t console_map(console_ctrl_t *, sysarg_t, sysarg_t,
+    charfield_t **);
+extern void console_unmap(console_ctrl_t *, charfield_t *);
+extern errno_t console_update(console_ctrl_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
 
 #endif
 

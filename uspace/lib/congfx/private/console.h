@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #define _CONGFX_PRIVATE_CONSOLE_H
 
 #include <gfx/context.h>
+#include <io/charfield.h>
 #include <io/console.h>
 #include <io/pixel.h>
 #include <stdio.h>
@@ -57,6 +58,8 @@ struct console_gc {
 	FILE *fout;
 	/** Current drawing color */
 	pixel_t clr;
+	/** Shared console buffer */
+	charfield_t *buf;
 };
 
 /** Bitmap in console GC */

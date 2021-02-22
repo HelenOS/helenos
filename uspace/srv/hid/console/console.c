@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -78,6 +79,10 @@ typedef struct {
 	sysarg_t rows;         /**< Number of rows */
 	console_caps_t ccaps;  /**< Console capabilities */
 
+	sysarg_t ucols;		/**< Number of columns in user buffer */
+	sysarg_t urows;		/**< Number of rows in user buffer */
+	charfield_t *ubuf;	/**< User buffer */
+
 	chargrid_t *frontbuf;    /**< Front buffer */
 	frontbuf_handle_t fbid;  /**< Front buffer handle */
 	con_srvs_t srvs;         /**< Console service setup */
@@ -134,6 +139,10 @@ static void cons_set_color(con_srv_t *, console_color_t, console_color_t,
 static void cons_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void cons_set_cursor_visibility(con_srv_t *, bool);
 static errno_t cons_get_event(con_srv_t *, cons_event_t *);
+static errno_t cons_map(con_srv_t *, sysarg_t, sysarg_t, charfield_t **);
+static void cons_unmap(con_srv_t *);
+static void cons_buf_update(con_srv_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
 
 static con_ops_t con_ops = {
 	.open = cons_open,
@@ -150,7 +159,10 @@ static con_ops_t con_ops = {
 	.set_color = cons_set_color,
 	.set_rgb_color = cons_set_rgb_color,
 	.set_cursor_visibility = cons_set_cursor_visibility,
-	.get_event = cons_get_event
+	.get_event = cons_get_event,
+	.map = cons_map,
+	.unmap = cons_unmap,
+	.update = cons_buf_update
 };
 
 static console_t *srv_to_console(con_srv_t *srv)
@@ -505,6 +517,120 @@ static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)
 
 	free(kevent);
 	return EOK;
+}
+
+/** Create shared buffer for efficient rendering.
+ *
+ * @param srv Console server
+ * @param cols Number of columns in buffer
+ * @param rows Number of rows in buffer
+ * @param rbuf Place to store pointer to new sharable buffer
+ *
+ * @return EOK on sucess or an error code
+ */
+static errno_t cons_map(con_srv_t *srv, sysarg_t cols, sysarg_t rows,
+    charfield_t **rbuf)
+{
+	console_t *cons = srv_to_console(srv);
+	void *buf;
+
+	fibril_mutex_lock(&cons->mtx);
+
+	if (cons->ubuf != NULL) {
+		fibril_mutex_unlock(&cons->mtx);
+		return EBUSY;
+	}
+
+	buf = as_area_create(AS_AREA_ANY, cols * rows * sizeof(charfield_t),
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
+	if (buf == AS_MAP_FAILED) {
+		fibril_mutex_unlock(&cons->mtx);
+		return ENOMEM;
+	}
+
+	cons->ucols = cols;
+	cons->urows = rows;
+	cons->ubuf = buf;
+	fibril_mutex_unlock(&cons->mtx);
+
+	*rbuf = buf;
+	return EOK;
+}
+
+/** Delete shared buffer.
+ *
+ * @param srv Console server
+ */
+static void cons_unmap(con_srv_t *srv)
+{
+	console_t *cons = srv_to_console(srv);
+	void *buf;
+
+	fibril_mutex_lock(&cons->mtx);
+
+	buf = cons->ubuf;
+	cons->ubuf = NULL;
+
+	if (buf != NULL)
+		as_area_destroy(buf);
+
+	fibril_mutex_unlock(&cons->mtx);
+}
+
+/** Update area of console from shared buffer.
+ *
+ * @param srv Console server
+ * @param c0 Column coordinate of top-left corner (inclusive)
+ * @param r0 Row coordinate of top-left corner (inclusive)
+ * @param c1 Column coordinate of bottom-right corner (exclusive)
+ * @param r1 Row coordinate of bottom-right corner (exclusive)
+ */
+static void cons_buf_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
+    sysarg_t c1, sysarg_t r1)
+{
+	console_t *cons = srv_to_console(srv);
+	charfield_t *ch;
+	sysarg_t col, row;
+
+	fibril_mutex_lock(&cons->mtx);
+
+	if (cons->ubuf == NULL) {
+		fibril_mutex_unlock(&cons->mtx);
+		return;
+	}
+
+	/* Make sure we have meaningful coordinates, within bounds */
+
+	if (c1 > cons->ucols)
+		c1 = cons->ucols;
+	if (c1 > cons->cols)
+		c1 = cons->cols;
+	if (c0 >= c1) {
+		fibril_mutex_unlock(&cons->mtx);
+		return;
+	}
+	if (r1 > cons->urows)
+		r1 = cons->urows;
+	if (r1 > cons->rows)
+		r1 = cons->rows;
+	if (r0 >= r1) {
+		fibril_mutex_unlock(&cons->mtx);
+		return;
+	}
+
+	/* Update front buffer from user buffer */
+
+	for (row = r0; row < r1; row++) {
+		for (col = c0; col < c1; col++) {
+			ch = chargrid_charfield_at(cons->frontbuf, col, row);
+			*ch = cons->ubuf[row * cons->ucols + col];
+		}
+	}
+
+	fibril_mutex_unlock(&cons->mtx);
+
+	/* Update console */
+	cons_update(cons);
 }
 
 static void client_connection(ipc_call_t *icall, void *arg)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,24 +91,30 @@ static errno_t console_gc_set_color(void *arg, gfx_color_t *color)
 static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	console_gc_t *cgc = (console_gc_t *) arg;
-	int rv;
 	gfx_coord_t x, y;
+	gfx_coord_t cols;
+	gfx_rect_t crect;
+	charfield_t ch;
 
-	// XXX We should handle p0.x > p1.x and p0.y > p1.y
+	/* Make sure rectangle is clipped and sorted */
+	gfx_rect_clip(rect, &cgc->rect, &crect);
 
-	console_set_rgb_color(cgc->con, cgc->clr, cgc->clr);
+	cols = cgc->rect.p1.x - cgc->rect.p0.x;
 
-	for (y = rect->p0.y; y < rect->p1.y; y++) {
-		console_set_pos(cgc->con, rect->p0.x, y);
+	ch.ch = 0;
+	ch.flags = CHAR_FLAG_DIRTY;
+	ch.attrs.type = CHAR_ATTR_RGB;
+	ch.attrs.val.rgb.fgcolor = cgc->clr;
+	ch.attrs.val.rgb.bgcolor = cgc->clr;
 
-		for (x = rect->p0.x; x < rect->p1.x; x++) {
-			rv = fputc('X', cgc->fout);
-			if (rv < 0)
-				return EIO;
+	for (y = crect.p0.y; y < crect.p1.y; y++) {
+		for (x = crect.p0.x; x < crect.p1.x; x++) {
+			cgc->buf[y * cols + x] = ch;
 		}
-
-		console_flush(cgc->con);
 	}
+
+	console_update(cgc->con, crect.p0.x, crect.p0.y,
+	    crect.p1.x, crect.p1.y);
 
 	return EOK;
 }
@@ -130,6 +136,7 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	gfx_context_t *gc = NULL;
 	sysarg_t rows;
 	sysarg_t cols;
+	charfield_t *buf;
 	errno_t rc;
 
 	cgc = calloc(1, sizeof(console_gc_t));
@@ -139,6 +146,10 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	}
 
 	rc = console_get_size(con, &cols, &rows);
+	if (rc != EOK)
+		goto error;
+
+	rc = console_map(con, cols, rows, &buf);
 	if (rc != EOK)
 		goto error;
 
@@ -153,6 +164,7 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	cgc->rect.p0.y = 0;
 	cgc->rect.p1.x = cols;
 	cgc->rect.p1.y = rows - 1; /* make sure we avoid bottom-right corner */
+	cgc->buf = buf;
 
 	*rgc = cgc;
 	return EOK;
@@ -267,13 +279,14 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 {
 	console_gc_bitmap_t *cbm = (console_gc_bitmap_t *)bm;
 	gfx_coord_t x, y;
-	int rv;
 	pixel_t clr;
+	charfield_t ch;
 	pixelmap_t pixelmap;
 	gfx_rect_t srect;
 	gfx_rect_t drect;
 	gfx_rect_t crect;
 	gfx_coord2_t offs;
+	gfx_coord_t cols;
 
 	if (srect0 != NULL)
 		srect = *srect0;
@@ -294,6 +307,8 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pixelmap.height = cbm->rect.p1.y = cbm->rect.p1.y;
 	pixelmap.data = cbm->alloc.pixels;
 
+	cols = cbm->cgc->rect.p1.x - cbm->cgc->rect.p0.x;
+
 	if ((cbm->flags & bmpf_color_key) == 0) {
 		/* Simple copy */
 		for (y = crect.p0.y; y < crect.p1.y; y++) {
@@ -303,13 +318,14 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				clr = pixelmap_get_pixel(&pixelmap,
 				    x - offs.x - cbm->rect.p0.x,
 				    y - offs.y - cbm->rect.p0.y);
-				console_set_rgb_color(cbm->cgc->con, clr, clr);
 
-				rv = fputc('X', cbm->cgc->fout);
-				if (rv < 0)
-					return EIO;
+				ch.ch = 0;
+				ch.flags = CHAR_FLAG_DIRTY;
+				ch.attrs.type = CHAR_ATTR_RGB;
+				ch.attrs.val.rgb.fgcolor = clr;
+				ch.attrs.val.rgb.bgcolor = clr;
 
-				console_flush(cbm->cgc->con);
+				cbm->cgc->buf[y * cols + x] = ch;
 			}
 		}
 	} else if ((cbm->flags & bmpf_colorize) == 0) {
@@ -320,43 +336,41 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				clr = pixelmap_get_pixel(&pixelmap,
 				    x - offs.x - cbm->rect.p0.x,
 				    y - offs.y - cbm->rect.p0.y);
-				console_set_rgb_color(cbm->cgc->con, clr, clr);
 
-				if (clr != cbm->key_color) {
-					console_set_pos(cbm->cgc->con, x, y);
-					rv = fputc('X', cbm->cgc->fout);
-					if (rv < 0)
-						return EIO;
+				ch.ch = 0;
+				ch.flags = CHAR_FLAG_DIRTY;
+				ch.attrs.type = CHAR_ATTR_RGB;
+				ch.attrs.val.rgb.fgcolor = clr;
+				ch.attrs.val.rgb.bgcolor = clr;
 
-					console_flush(cbm->cgc->con);
-				}
-
+				if (clr != cbm->key_color)
+					cbm->cgc->buf[y * cols + x] = ch;
 			}
 		}
 	} else {
 		/* Color key & colorize */
 		console_set_rgb_color(cbm->cgc->con, cbm->cgc->clr,
 		    cbm->cgc->clr);
+		ch.ch = 0;
+		ch.flags = CHAR_FLAG_DIRTY;
+		ch.attrs.type = CHAR_ATTR_RGB;
+		ch.attrs.val.rgb.fgcolor = cbm->cgc->clr;
+		ch.attrs.val.rgb.bgcolor = cbm->cgc->clr;
 
 		for (y = crect.p0.y; y < crect.p1.y; y++) {
 			for (x = crect.p0.x; x < crect.p1.x; x++) {
-
 				clr = pixelmap_get_pixel(&pixelmap,
 				    x - offs.x - cbm->rect.p0.x,
 				    y - offs.y - cbm->rect.p0.y);
 
-				if (clr != cbm->key_color) {
-					console_set_pos(cbm->cgc->con, x, y);
-					rv = fputc('X', cbm->cgc->fout);
-					if (rv < 0)
-						return EIO;
-
-					console_flush(cbm->cgc->con);
-				}
-
+				if (clr != cbm->key_color)
+					cbm->cgc->buf[y * cols + x] = ch;
 			}
 		}
 	}
+
+	console_update(cbm->cgc->con, crect.p0.x, crect.p0.y, crect.p1.x,
+	    crect.p1.y);
 
 	return EOK;
 }
