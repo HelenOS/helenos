@@ -882,7 +882,7 @@ static void uiwnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
 
 static void print_syntax(void)
 {
-	printf("Syntax: gfxdemo [-d <display>] {canvas|console|display}\n");
+	printf("Syntax: gfxdemo [-d <display>] {console|display|ui}\n");
 }
 
 int main(int argc, char *argv[])
