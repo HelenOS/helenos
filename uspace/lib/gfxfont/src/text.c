@@ -177,7 +177,7 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 			cpos.x -= width / 2;
 			break;
 		case gfx_halign_right:
-			cpos.x -= width;
+			cpos.x -= width - 1;
 			break;
 		default:
 			break;
