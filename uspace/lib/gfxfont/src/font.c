@@ -254,13 +254,7 @@ void gfx_font_close(gfx_font_t *font)
  */
 void gfx_font_get_metrics(gfx_font_t *font, gfx_font_metrics_t *metrics)
 {
-	if (font != NULL) {
-		*metrics = font->metrics;
-	} else {
-		metrics->ascent = 0;
-		metrics->descent = 0;
-		metrics->leading = 1;
-	}
+	*metrics = font->metrics;
 }
 
 /** Set font metrics.
