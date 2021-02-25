@@ -184,7 +184,7 @@ static errno_t bitmap_tartan(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 	for (i = 0; i < w; i++) {
 		for (j = 0; j < h; j++) {
 			pixelmap_put_pixel(&pixelmap, i, j,
-			    PIXEL(255, (i % 30) < 3 ? 255 : 0,
+			    PIXEL(0, (i % 30) < 3 ? 255 : 0,
 			    (j % 30) < 3 ? 255 : 0, i / 2));
 		}
 	}
@@ -220,7 +220,7 @@ static errno_t bitmap_moire(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 		for (j = 0; j < h; j++) {
 			k = i * i + j * j;
 			pixelmap_put_pixel(&pixelmap, i, j,
-			    PIXEL(255, k, k, k));
+			    PIXEL(0, k, k, k));
 		}
 	}
 
@@ -255,7 +255,7 @@ static errno_t bitmap_circle(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 		for (j = 0; j < h; j++) {
 			k = i * i + j * j;
 			pixelmap_put_pixel(&pixelmap, i, j,
-			    k < w * w / 2 ? PIXEL(255, 0, 255, 0) :
+			    k < w * w / 2 ? PIXEL(0, 0, 255, 0) :
 			    PIXEL(0, 255, 0, 255));
 		}
 	}
@@ -468,23 +468,40 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	if (quit)
 		return EOK;
 
-	rc = gfx_typeface_open(gc, "/data/font/helena.tpf", &tface);
-	if (rc != EOK) {
-		printf("Error opening typeface\n");
-		goto error;
-	}
+	/* XXX Crude way of detecting text mode */
+	if (w < 256) {
+		/* Create dummy font for text mode */
+		rc = gfx_typeface_create(gc, &tface);
+		if (rc != EOK) {
+			printf("Error creating typeface\n");
+			goto error;
+		}
 
-	finfo = gfx_typeface_first_font(tface);
-	if (finfo == NULL) {
-		printf("Typeface contains no font.\n");
-		rc = ENOENT;
-		goto error;
-	}
+		rc = gfx_font_create_textmode(tface, &font);
+		if (rc != EOK) {
+			printf("Error creating font\n");
+			goto error;
+		}
+	} else {
+		/* Load font */
+		rc = gfx_typeface_open(gc, "/data/font/helena.tpf", &tface);
+		if (rc != EOK) {
+			printf("Error opening typeface\n");
+			goto error;
+		}
 
-	rc = gfx_font_open(finfo, &font);
-	if (rc != EOK) {
-		printf("Error opening font.\n");
-		goto error;
+		finfo = gfx_typeface_first_font(tface);
+		if (finfo == NULL) {
+			printf("Typeface contains no font.\n");
+			rc = ENOENT;
+			goto error;
+		}
+
+		rc = gfx_font_open(finfo, &font);
+		if (rc != EOK) {
+			printf("Error opening font.\n");
+			goto error;
+		}
 	}
 
 	rc = clear_scr(gc, w, h);

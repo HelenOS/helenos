@@ -179,6 +179,32 @@ error:
 	return rc;
 }
 
+/** Create dummy font for printing text in text mode.
+ *
+ * @param tface Typeface
+ * @param rfont Place to store pointer to new font
+ *
+ * @return EOK on success, EINVAL if parameters are invald,
+ *         ENOMEM if insufficient resources, EIO if graphic device connection
+ *         was lost
+ */
+errno_t gfx_font_create_textmode(gfx_typeface_t *tface, gfx_font_t **rfont)
+{
+	gfx_font_props_t props;
+	gfx_font_metrics_t metrics;
+
+	gfx_font_props_init(&props);
+	props.size = 1;
+	props.flags = gff_text_mode;
+
+	gfx_font_metrics_init(&metrics);
+	metrics.ascent = 0;
+	metrics.descent = 0;
+	metrics.leading = 1;
+
+	return gfx_font_create(tface, &props, &metrics, rfont);
+}
+
 /** Open font.
  *
  * @param finfo Font info
@@ -228,7 +254,13 @@ void gfx_font_close(gfx_font_t *font)
  */
 void gfx_font_get_metrics(gfx_font_t *font, gfx_font_metrics_t *metrics)
 {
-	*metrics = font->metrics;
+	if (font != NULL) {
+		*metrics = font->metrics;
+	} else {
+		metrics->ascent = 0;
+		metrics->descent = 0;
+		metrics->leading = 1;
+	}
 }
 
 /** Set font metrics.

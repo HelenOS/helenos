@@ -97,6 +97,31 @@ PCUT_TEST(create_destroy)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Test creating and destroying text-mode font */
+PCUT_TEST(create_textmode_destroy)
+{
+	gfx_typeface_t *tface;
+	gfx_font_t *font;
+	gfx_context_t *gc;
+	test_gc_t tgc;
+	errno_t rc;
+
+	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_font_create_textmode(tface, &font);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Test gfx_font_get_metrics() */
 PCUT_TEST(get_metrics)
 {

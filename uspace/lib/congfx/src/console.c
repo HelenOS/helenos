@@ -101,10 +101,10 @@ static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
 
 	cols = cgc->rect.p1.x - cgc->rect.p0.x;
 
-	ch.ch = 0;
+	ch.ch = cgc->clr >> 24;
 	ch.flags = CHAR_FLAG_DIRTY;
 	ch.attrs.type = CHAR_ATTR_RGB;
-	ch.attrs.val.rgb.fgcolor = cgc->clr;
+	ch.attrs.val.rgb.fgcolor = cgc->clr ^ 0xffffff;
 	ch.attrs.val.rgb.bgcolor = cgc->clr;
 
 	for (y = crect.p0.y; y < crect.p1.y; y++) {
@@ -319,10 +319,10 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				    x - offs.x - cbm->rect.p0.x,
 				    y - offs.y - cbm->rect.p0.y);
 
-				ch.ch = 0;
+				ch.ch = clr >> 24;
 				ch.flags = CHAR_FLAG_DIRTY;
 				ch.attrs.type = CHAR_ATTR_RGB;
-				ch.attrs.val.rgb.fgcolor = clr;
+				ch.attrs.val.rgb.fgcolor = clr ^ 0xffffff;
 				ch.attrs.val.rgb.bgcolor = clr;
 
 				cbm->cgc->buf[y * cols + x] = ch;
@@ -337,10 +337,10 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				    x - offs.x - cbm->rect.p0.x,
 				    y - offs.y - cbm->rect.p0.y);
 
-				ch.ch = 0;
+				ch.ch = clr >> 24;
 				ch.flags = CHAR_FLAG_DIRTY;
 				ch.attrs.type = CHAR_ATTR_RGB;
-				ch.attrs.val.rgb.fgcolor = clr;
+				ch.attrs.val.rgb.fgcolor = clr ^ 0xffffff;
 				ch.attrs.val.rgb.bgcolor = clr;
 
 				if (clr != cbm->key_color)

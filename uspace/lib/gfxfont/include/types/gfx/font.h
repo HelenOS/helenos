@@ -51,7 +51,9 @@ typedef enum {
 	/** Italic */
 	gff_italic = 0x2,
 	/** Bold, italic */
-	gff_bold_italic = gff_bold | gff_italic
+	gff_bold_italic = gff_bold | gff_italic,
+	/** Text mode */
+	gff_text_mode = 0x4
 } gfx_font_flags_t;
 
 /** Font properties */

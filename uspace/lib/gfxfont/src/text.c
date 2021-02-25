@@ -34,10 +34,15 @@
  */
 
 #include <errno.h>
+#include <gfx/bitmap.h>
 #include <gfx/font.h>
 #include <gfx/glyph.h>
 #include <gfx/text.h>
+#include <io/pixelmap.h>
 #include <mem.h>
+#include <str.h>
+#include "../private/font.h"
+#include "../private/typeface.h"
 
 /** Initialize text formatting structure.
  *
@@ -66,6 +71,9 @@ gfx_coord_t gfx_text_width(gfx_font_t *font, const char *str)
 	gfx_coord_t width;
 	errno_t rc;
 
+	if ((font->finfo->props.flags & gff_text_mode) != 0)
+		return str_width(str);
+
 	width = 0;
 	cp = str;
 	while (*cp != '\0') {
@@ -82,6 +90,61 @@ gfx_coord_t gfx_text_width(gfx_font_t *font, const char *str)
 	}
 
 	return width;
+}
+
+/** Print string using text characters in text mode.
+ *
+ * @param font Font
+ * @param pos Position of top-left corner of text
+ * @param str String
+ * @return EOK on success or an error code
+ */
+static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
+    const char *str)
+{
+	gfx_context_t *gc = font->typeface->gc;
+	gfx_bitmap_params_t params;
+	gfx_bitmap_t *bitmap;
+	gfx_bitmap_alloc_t alloc;
+	pixelmap_t pmap;
+	gfx_coord_t x;
+	pixel_t pixel;
+	errno_t rc;
+
+	/*
+	 * NOTE: Creating and destroying bitmap each time is not probably
+	 * the most efficient way.
+	 */
+
+	gfx_bitmap_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = str_width(str);
+	params.rect.p1.y = 1;
+
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_bitmap_get_alloc(bitmap, &alloc);
+	if (rc != EOK) {
+		gfx_bitmap_destroy(bitmap);
+		return rc;
+	}
+
+	pmap.width = params.rect.p1.x;
+	pmap.height = 1;
+	pmap.data = alloc.pixels;
+
+	for (x = 0; x < params.rect.p1.x; x++) {
+		pixel = PIXEL(str[x], 0xff, 0xff, 0xff);
+		pixelmap_put_pixel(&pmap, x, 0, pixel);
+	}
+
+	rc = gfx_bitmap_render(bitmap, NULL, pos);
+
+	gfx_bitmap_destroy(bitmap);
+	return rc;
 }
 
 /** Render text.
@@ -139,6 +202,10 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 			break;
 		}
 	}
+
+	/* Text mode */
+	if ((font->finfo->props.flags & gff_text_mode) != 0)
+		return gfx_puttext_textmode(font, &cpos, str);
 
 	cp = str;
 	while (*cp != '\0') {

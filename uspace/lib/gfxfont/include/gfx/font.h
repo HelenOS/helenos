@@ -49,6 +49,7 @@ extern void gfx_font_props_init(gfx_font_props_t *);
 extern void gfx_font_get_props(gfx_font_info_t *, gfx_font_props_t *);
 extern errno_t gfx_font_create(gfx_typeface_t *, gfx_font_props_t *,
     gfx_font_metrics_t *, gfx_font_t **);
+extern errno_t gfx_font_create_textmode(gfx_typeface_t *, gfx_font_t **);
 extern errno_t gfx_font_open(gfx_font_info_t *, gfx_font_t **);
 extern void gfx_font_close(gfx_font_t *);
 extern void gfx_font_get_metrics(gfx_font_t *, gfx_font_metrics_t *);
