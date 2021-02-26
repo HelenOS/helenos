@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <gfx/color.h>
 #include <gfx/context.h>
 #include <gfx/font.h>
 #include <gfx/text.h>
@@ -109,12 +110,16 @@ PCUT_TEST(dummy_puttext)
 	gfx_typeface_t *tface;
 	gfx_font_t *font;
 	gfx_context_t *gc;
+	gfx_color_t *color;
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
 	test_gc_t tgc;
 	errno_t rc;
 
 	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = gfx_typeface_create(gc, &tface);
@@ -126,6 +131,7 @@ PCUT_TEST(dummy_puttext)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_text_fmt_init(&fmt);
+	fmt.color = color;
 	pos.x = 0;
 	pos.y = 0;
 
@@ -134,6 +140,7 @@ PCUT_TEST(dummy_puttext)
 
 	gfx_font_close(font);
 	gfx_typeface_destroy(tface);
+	gfx_color_delete(color);
 
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);

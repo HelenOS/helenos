@@ -191,13 +191,9 @@ errno_t ui_checkbox_paint(ui_checkbox_t *checkbox)
 		box_center.y = (box_inside.p0.y + box_inside.p1.y) / 2;
 
 		gfx_text_fmt_init(&fmt);
+		fmt.color = checkbox->res->entry_fg_color;
 		fmt.halign = gfx_halign_center;
 		fmt.valign = gfx_valign_center;
-
-		rc = gfx_set_color(checkbox->res->gc,
-		    checkbox->res->entry_fg_color);
-		if (rc != EOK)
-			goto error;
 
 		rc = gfx_puttext(checkbox->res->font, &box_center, &fmt, "X");
 		if (rc != EOK)
@@ -206,15 +202,11 @@ errno_t ui_checkbox_paint(ui_checkbox_t *checkbox)
 
 	/* Paint checkbox label */
 
-	rc = gfx_set_color(checkbox->res->gc, checkbox->res->wnd_text_color);
-	if (rc != EOK)
-		goto error;
-
-	/* Label position */
 	pos.x = box_rect.p1.x + checkbox_label_margin;
 	pos.y = (box_rect.p0.y + box_rect.p1.y) / 2;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.color = checkbox->res->wnd_text_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_center;
 

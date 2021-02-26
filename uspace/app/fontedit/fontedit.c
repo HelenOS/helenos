@@ -445,16 +445,18 @@ static void font_edit_gpix_to_disp(font_edit_t *fedit, int x, int y,
  *
  * @param fedit Font editor
  * @param x Starting X coordinate
- * @Param y Starting Y coordinate
+ * @param y Starting Y coordinate
+ * @param color Color
  * @param str String
  */
 static errno_t font_edit_paint_preview_str(font_edit_t *fedit,
-    gfx_coord_t x, gfx_coord_t y, const char *str)
+    gfx_coord_t x, gfx_coord_t y, gfx_color_t *color, const char *str)
 {
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.color = color;
 
 	pos.x = x;
 	pos.y = y;
@@ -479,27 +481,27 @@ static errno_t font_edit_paint_preview(font_edit_t *fedit)
 	if (rc != EOK)
 		goto error;
 
-	rc = font_edit_paint_preview_str(fedit, 20, 20,
+	rc = font_edit_paint_preview_str(fedit, 20, 20, color,
 	    "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 	if (rc != EOK)
 		goto error;
 
-	rc = font_edit_paint_preview_str(fedit, 20, 40,
+	rc = font_edit_paint_preview_str(fedit, 20, 40, color,
 	    "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG");
 	if (rc != EOK)
 		goto error;
 
-	rc = font_edit_paint_preview_str(fedit, 20, 60,
+	rc = font_edit_paint_preview_str(fedit, 20, 60, color,
 	    "abcdefghijklmnopqrstuvwxyz");
 	if (rc != EOK)
 		goto error;
 
-	rc = font_edit_paint_preview_str(fedit, 20, 80,
+	rc = font_edit_paint_preview_str(fedit, 20, 80, color,
 	    "the quick brown fox jumps over the lazy dog");
 	if (rc != EOK)
 		goto error;
 
-	rc = font_edit_paint_preview_str(fedit, 20, 100,
+	rc = font_edit_paint_preview_str(fedit, 20, 100, color,
 	    "0123456789,./<>?;'\\:\"|[]{}`~!@#$%^&*()-_=+");
 	if (rc != EOK)
 		goto error;

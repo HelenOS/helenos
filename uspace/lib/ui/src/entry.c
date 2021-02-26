@@ -207,12 +207,9 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	pos.y = inside.p0.y + ui_entry_vpad;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.color = entry->res->entry_fg_color;
 	fmt.halign = entry->halign;
 	fmt.valign = gfx_valign_top;
-
-	rc = gfx_set_color(entry->res->gc, entry->res->entry_fg_color);
-	if (rc != EOK)
-		goto error;
 
 	rc = gfx_puttext(entry->res->font, &pos, &fmt, entry->text);
 	if (rc != EOK)

@@ -192,12 +192,9 @@ errno_t ui_label_paint(ui_label_t *label)
 	pos.y = label->rect.p0.y;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.color = label->res->wnd_text_color;
 	fmt.halign = label->halign;
 	fmt.valign = gfx_valign_top;
-
-	rc = gfx_set_color(label->res->gc, label->res->wnd_text_color);
-	if (rc != EOK)
-		goto error;
 
 	rc = gfx_puttext(label->res->font, &pos, &fmt, label->text);
 	if (rc != EOK)

@@ -268,10 +268,6 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_text_color);
-	if (rc != EOK)
-		goto error;
-
 	/* Center of button rectangle */
 	pos.x = (rect.p0.x + rect.p1.x) / 2;
 	pos.y = (rect.p0.y + rect.p1.y) / 2;
@@ -282,6 +278,7 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	}
 
 	gfx_text_fmt_init(&fmt);
+	fmt.color = pbutton->res->btn_text_color;
 	fmt.halign = gfx_halign_center;
 	fmt.valign = gfx_valign_center;
 

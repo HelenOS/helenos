@@ -212,17 +212,14 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 			return rc;
 
 		gfx_text_fmt_init(&fmt);
+		fmt.color = wdecor->active ?
+		    wdecor->res->tbar_act_text_color :
+		    wdecor->res->tbar_inact_text_color;
 		fmt.halign = gfx_halign_center;
 		fmt.valign = gfx_valign_center;
 
 		pos.x = (trect.p0.x + trect.p1.x) / 2;
 		pos.y = (trect.p0.y + trect.p1.y) / 2;
-
-		rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
-		    wdecor->res->tbar_act_text_color :
-		    wdecor->res->tbar_inact_text_color);
-		if (rc != EOK)
-			return rc;
 
 		rc = gfx_puttext(wdecor->res->font, &pos, &fmt, wdecor->caption);
 		if (rc != EOK)

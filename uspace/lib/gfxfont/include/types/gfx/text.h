@@ -37,6 +37,7 @@
 #define _TYPES_GFX_TEXT_H
 
 #include <types/gfx/coord.h>
+#include <types/gfx/color.h>
 
 /** Text horizontal alignment */
 typedef enum {
@@ -64,6 +65,8 @@ typedef enum {
 
 /** Text formatting */
 typedef struct {
+	/** Text color */
+	gfx_color_t *color;
 	/** Horizontal alignment */
 	gfx_halign_t halign;
 	/** Justification width (for gfx_halign_justify) */

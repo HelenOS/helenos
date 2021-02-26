@@ -35,8 +35,10 @@
 
 #include <errno.h>
 #include <gfx/bitmap.h>
+#include <gfx/color.h>
 #include <gfx/font.h>
 #include <gfx/glyph.h>
+#include <gfx/render.h>
 #include <gfx/text.h>
 #include <io/pixelmap.h>
 #include <mem.h>
@@ -96,16 +98,18 @@ gfx_coord_t gfx_text_width(gfx_font_t *font, const char *str)
  *
  * @param font Font
  * @param pos Position of top-left corner of text
+ * @param color Text color
  * @param str String
  * @return EOK on success or an error code
  */
 static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
-    const char *str)
+    gfx_color_t *color, const char *str)
 {
 	gfx_context_t *gc = font->typeface->gc;
 	gfx_bitmap_params_t params;
 	gfx_bitmap_t *bitmap;
 	gfx_bitmap_alloc_t alloc;
+	uint16_t r, g, b;
 	pixelmap_t pmap;
 	gfx_coord_t x;
 	pixel_t pixel;
@@ -115,6 +119,16 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	 * NOTE: Creating and destroying bitmap each time is not probably
 	 * the most efficient way.
 	 */
+
+	gfx_color_get_rgb_i16(color, &r, &g, &b);
+
+	/*
+	 * We are setting the *background* color, the foreground color
+	 * will be set to its complement.
+	 */
+	r = 0xff ^ (r >> 8);
+	g = 0xff ^ (g >> 8);
+	b = 0xff ^ (b >> 8);
 
 	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
@@ -137,7 +151,7 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	pmap.data = alloc.pixels;
 
 	for (x = 0; x < params.rect.p1.x; x++) {
-		pixel = PIXEL(str[x], 0xff, 0xff, 0xff);
+		pixel = PIXEL(str[x], r, g, b);
 		pixelmap_put_pixel(&pmap, x, 0, pixel);
 	}
 
@@ -205,7 +219,11 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 
 	/* Text mode */
 	if ((font->finfo->props.flags & gff_text_mode) != 0)
-		return gfx_puttext_textmode(font, &cpos, str);
+		return gfx_puttext_textmode(font, &cpos, fmt->color, str);
+
+	rc = gfx_set_color(font->typeface->gc, fmt->color);
+	if (rc != EOK)
+		return rc;
 
 	cp = str;
 	while (*cp != '\0') {

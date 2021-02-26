@@ -273,16 +273,11 @@ errno_t ui_rbutton_paint(ui_rbutton_t *rbutton)
 
 	/* Paint rbutton label */
 
-	rc = gfx_set_color(rbutton->group->res->gc,
-	    rbutton->group->res->wnd_text_color);
-	if (rc != EOK)
-		goto error;
-
-	/* Label position */
 	pos.x = center.x + rbutton_oframe_r + rbutton_label_margin;
 	pos.y = center.y;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.color = rbutton->group->res->wnd_text_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_center;
 

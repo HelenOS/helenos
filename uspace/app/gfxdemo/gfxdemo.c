@@ -555,11 +555,8 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_set_color(gc, color);
-	if (rc != EOK)
-		goto error;
-
 	gfx_text_fmt_init(&fmt);
+	fmt.color = color;
 
 	pos.x = rect.p0.x;
 	pos.y = rect.p0.y;
@@ -639,9 +636,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		if (rc != EOK)
 			goto error;
 
-		rc = gfx_set_color(gc, color);
-		if (rc != EOK)
-			goto error;
+		fmt.color = color;
 
 		pos.x = w / 20;
 		pos.y = (7 + i) * h / 15;
