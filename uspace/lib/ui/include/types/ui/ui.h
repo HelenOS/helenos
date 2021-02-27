@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,16 @@ typedef struct ui ui_t;
 
 /** Use the default display service (argument to ui_create() */
 #define UI_DISPLAY_DEFAULT NULL
+
+/** Window system */
+typedef enum {
+	/** Unknown */
+	ui_ws_unknown,
+	/** Display service */
+	ui_ws_display,
+	/** Console */
+	ui_ws_console
+} ui_winsys_t;
 
 #endif
 

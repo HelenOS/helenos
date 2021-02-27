@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,9 +38,11 @@
 
 #include <display.h>
 #include <errno.h>
+#include <io/console.h>
 #include <types/ui/ui.h>
 
 extern errno_t ui_create(const char *, ui_t **);
+extern errno_t ui_create_cons(console_ctrl_t *, ui_t **);
 extern errno_t ui_create_disp(display_t *, ui_t **);
 extern void ui_destroy(ui_t *);
 extern void ui_quit(ui_t *);

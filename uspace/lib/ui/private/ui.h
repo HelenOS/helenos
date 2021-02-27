@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #define _UI_PRIVATE_UI_H
 
 #include <display.h>
+#include <io/console.h>
 #include <stdbool.h>
 
 /** Actual structure of user interface.
@@ -45,12 +46,16 @@
  * This is private to libui.
  */
 struct ui {
+	/** Console */
+	console_ctrl_t *console;
 	/** Display */
 	display_t *display;
 	/** Output owned by UI, clean up when destroying UI */
 	bool myoutput;
 	/** @c true if terminating */
 	bool quit;
+	/** Root window (in fullscreen/console mode) */
+	struct ui_window *root_wnd;
 };
 
 #endif

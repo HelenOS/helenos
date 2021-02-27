@@ -33,6 +33,7 @@
  * @file Window
  */
 
+#include <congfx/console.h>
 #include <display.h>
 #include <errno.h>
 #include <gfx/bitmap.h>
@@ -129,7 +130,11 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	gfx_bitmap_alloc_t alloc;
 	gfx_bitmap_t *bmp = NULL;
 	mem_gc_t *memgc = NULL;
+	console_gc_t *cgc;
 	errno_t rc;
+
+	if (ui->root_wnd != NULL)
+		return EEXIST;
 
 	window = calloc(1, sizeof(ui_window_t));
 	if (window == NULL)
@@ -193,6 +198,12 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 		rc = display_window_get_gc(dwindow, &gc);
 		if (rc != EOK)
 			goto error;
+	} else if (ui->console != NULL) {
+		rc = console_gc_create(ui->console, NULL, &cgc);
+		if (rc != EOK)
+			goto error;
+
+		gc = console_gc_get_ctx(cgc);
 	} else {
 		/* Needed for unit tests */
 		rc = dummygc_create(&dgc);
@@ -206,7 +217,9 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	/* Create window bitmap */
 	gfx_bitmap_params_init(&bparams);
 #ifndef CONFIG_WIN_DOUBLE_BUF
-	bparams.flags |= bmpf_direct_output;
+	/* Console does not support direct output */
+	if (ui->display != NULL)
+		bparams.flags |= bmpf_direct_output;
 #endif
 
 	/* Move rectangle so that top-left corner is 0,0 */
@@ -261,6 +274,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->wdecor = wdecor;
 	window->cursor = ui_curs_arrow;
 	*rwindow = window;
+
+	ui->root_wnd = window;
 	return EOK;
 error:
 	if (wdecor != NULL)
@@ -302,7 +317,8 @@ void ui_window_destroy(ui_window_t *window)
 	if (window->bmp != NULL)
 		gfx_bitmap_destroy(window->bmp);
 	gfx_context_delete(window->gc);
-	display_window_destroy(window->dwindow);
+	if (window->dwindow != NULL)
+		display_window_destroy(window->dwindow);
 	free(window);
 }
 
@@ -649,7 +665,8 @@ static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
-	(void) display_window_move_req(window->dwindow, pos);
+	if (window->dwindow != NULL)
+		(void) display_window_move_req(window->dwindow, pos);
 }
 
 /** Window decoration requested window resize.
@@ -664,7 +681,8 @@ static void wd_resize(ui_wdecor_t *wdecor, void *arg,
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
-	(void) display_window_resize_req(window->dwindow, rsztype, pos);
+	if (window->dwindow != NULL)
+		(void) display_window_resize_req(window->dwindow, rsztype, pos);
 }
 
 /** Window decoration requested changing cursor.
@@ -702,7 +720,8 @@ static void wd_set_cursor(ui_wdecor_t *wdecor, void *arg,
 		break;
 	}
 
-	(void) display_window_set_cursor(window->dwindow, dcursor);
+	if (window->dwindow != NULL)
+		(void) display_window_set_cursor(window->dwindow, dcursor);
 	window->cursor = cursor;
 }
 

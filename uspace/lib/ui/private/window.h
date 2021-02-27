@@ -43,6 +43,8 @@
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <memgfx/memgc.h>
+#include <types/ui/cursor.h>
+#include <types/ui/window.h>
 
 /** Actual structure of window.
  *

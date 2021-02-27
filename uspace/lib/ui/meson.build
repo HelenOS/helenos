@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'gfxfont', 'memgfx', 'display' ]
+deps = [ 'gfx', 'gfxfont', 'memgfx', 'display', 'congfx' ]
 src = files(
 	'src/checkbox.c',
 	'src/control.c',

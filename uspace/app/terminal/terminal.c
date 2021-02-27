@@ -842,7 +842,7 @@ static void terminal_pos_event(ui_window_t *window, void *arg, pos_event_t *even
 	sysarg_t sx = -term->off.x;
 	sysarg_t sy = -term->off.y;
 
-	if (event->type == POS_PRESS) {
+	if (event->type == POS_PRESS || event->type == POS_RELEASE) {
 		cevent.type = CEV_POS;
 		cevent.ev.pos.type = event->type;
 		cevent.ev.pos.pos_id = event->pos_id;
