@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <ui/control.h>
 #include <ui/resource.h>
+#include <ui/ui.h>
 #include <ui/wdecor.h>
 #include <ui/window.h>
 #include "../private/control.h"
@@ -254,7 +255,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	(void) bparams;
 	window->gc = gc;
 #endif
-	rc = ui_resource_create(window->gc, &res);
+	rc = ui_resource_create(window->gc, ui_is_textmode(ui), &res);
 	if (rc != EOK)
 		goto error;
 

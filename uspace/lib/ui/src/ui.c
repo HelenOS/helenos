@@ -253,5 +253,19 @@ void ui_quit(ui_t *ui)
 	ui->quit = true;
 }
 
+/** Determine if we are running in text mode.
+ *
+ * @param ui User interface
+ * @return @c true iff we are running in text mode
+ */
+bool ui_is_textmode(ui_t *ui)
+{
+	/*
+	 * XXX Currently console is always text and display is always
+	 * graphics, but this need not always be true.
+	 */
+	return (ui->console != NULL);
+}
+
 /** @}
  */

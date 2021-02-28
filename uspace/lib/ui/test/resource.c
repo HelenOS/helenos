@@ -79,7 +79,7 @@ PCUT_TEST(create_destroy)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, &resource);
+	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 

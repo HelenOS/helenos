@@ -49,10 +49,12 @@ static const char *ui_typeface_path = "/data/font/helena.tpf";
 /** Create new UI resource.
  *
  * @param gc Graphic context
+ * @param textmode @c true if running in text mode
  * @param rresource Place to store pointer to new UI resource
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
+errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
+    ui_resource_t **rresource)
 {
 	ui_resource_t *resource;
 	gfx_typeface_t *tface = NULL;
@@ -82,19 +84,30 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	if (resource == NULL)
 		return ENOMEM;
 
-	rc = gfx_typeface_open(gc, ui_typeface_path, &tface);
-	if (rc != EOK)
-		goto error;
+	if (textmode) {
+		/* Create dummy font for text mode */
+		rc = gfx_typeface_create(gc, &tface);
+		if (rc != EOK)
+			goto error;
 
-	finfo = gfx_typeface_first_font(tface);
-	if (finfo == NULL) {
-		rc = EIO;
-		goto error;
+		rc = gfx_font_create_textmode(tface, &font);
+		if (rc != EOK)
+			goto error;
+	} else {
+		rc = gfx_typeface_open(gc, ui_typeface_path, &tface);
+		if (rc != EOK)
+			goto error;
+
+		finfo = gfx_typeface_first_font(tface);
+		if (finfo == NULL) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = gfx_font_open(finfo, &font);
+		if (rc != EOK)
+			goto error;
 	}
-
-	rc = gfx_font_open(finfo, &font);
-	if (rc != EOK)
-		goto error;
 
 	rc = gfx_color_new_rgb_i16(0, 0, 0, &btn_frame_color);
 	if (rc != EOK)
@@ -176,6 +189,7 @@ errno_t ui_resource_create(gfx_context_t *gc, ui_resource_t **rresource)
 	resource->gc = gc;
 	resource->tface = tface;
 	resource->font = font;
+	resource->textmode = textmode;
 
 	resource->btn_frame_color = btn_frame_color;
 	resource->btn_face_color = btn_face_color;

@@ -45,6 +45,7 @@
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/entry.h>
+#include <ui/ui.h>
 #include "../private/entry.h"
 #include "../private/resource.h"
 
@@ -54,7 +55,9 @@ static ui_evclaim_t ui_entry_ctl_pos_event(void *, pos_event_t *);
 
 enum {
 	ui_entry_hpad = 4,
-	ui_entry_vpad = 4
+	ui_entry_vpad = 4,
+	ui_entry_hpad_text = 1,
+	ui_entry_vpad_text = 0
 };
 
 /** Text entry control ops */
@@ -172,8 +175,18 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 {
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
+	gfx_coord_t hpad;
+	gfx_coord_t vpad;
 	gfx_rect_t inside;
 	errno_t rc;
+
+	if (entry->res->textmode) {
+		hpad = ui_entry_hpad_text;
+		vpad = ui_entry_vpad_text;
+	} else {
+		hpad = ui_entry_hpad;
+		vpad = ui_entry_vpad;
+	}
 
 	/* Paint inset frame */
 
@@ -194,17 +207,17 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	switch (entry->halign) {
 	case gfx_halign_left:
 	case gfx_halign_justify:
-		pos.x = inside.p0.x + ui_entry_hpad;
+		pos.x = inside.p0.x + hpad;
 		break;
 	case gfx_halign_center:
 		pos.x = (inside.p0.x + inside.p1.x) / 2;
 		break;
 	case gfx_halign_right:
-		pos.x = inside.p1.x - ui_entry_hpad;
+		pos.x = inside.p1.x - hpad;
 		break;
 	}
 
-	pos.y = inside.p0.y + ui_entry_vpad;
+	pos.y = inside.p0.y + vpad;
 
 	gfx_text_fmt_init(&fmt);
 	fmt.color = entry->res->entry_fg_color;

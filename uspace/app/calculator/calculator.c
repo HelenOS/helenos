@@ -94,8 +94,17 @@ typedef struct {
 	} data;
 } stack_item_t;
 
+/** Dimensions. Most of this should not be needed with auto layout */
+typedef struct {
+	gfx_rect_t entry_rect;
+	gfx_coord2_t btn_orig;
+	gfx_coord2_t btn_stride;
+	gfx_coord2_t btn_dim;
+} calc_geom_t;
+
 typedef struct {
 	ui_t *ui;
+	ui_resource_t *ui_res;
 	ui_pbutton_t *btn_eval;
 	ui_pbutton_t *btn_clear;
 	ui_pbutton_t *btn_add;
@@ -112,6 +121,7 @@ typedef struct {
 	ui_pbutton_t *btn_7;
 	ui_pbutton_t *btn_8;
 	ui_pbutton_t *btn_9;
+	calc_geom_t geom;
 } calc_t;
 
 static void calc_pb_clicked(ui_pbutton_t *, void *);
@@ -649,7 +659,7 @@ static void calc_eval_clicked(ui_pbutton_t *pbutton, void *arg)
 	display_update();
 }
 
-static errno_t calc_button_create(ui_resource_t *ui_res, ui_fixed_t *fixed,
+static errno_t calc_button_create(calc_t *calc, ui_fixed_t *fixed,
     int x, int y, const char *text, ui_pbutton_cb_t *cb, void *arg,
     ui_pbutton_t **rbutton)
 {
@@ -657,7 +667,7 @@ static errno_t calc_button_create(ui_resource_t *ui_res, ui_fixed_t *fixed,
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = ui_pbutton_create(ui_res, text, &pb);
+	rc = ui_pbutton_create(calc->ui_res, text, &pb);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -665,10 +675,10 @@ static errno_t calc_button_create(ui_resource_t *ui_res, ui_fixed_t *fixed,
 
 	ui_pbutton_set_cb(pb, cb, arg);
 
-	rect.p0.x = 10 + 60 * x;
-	rect.p0.y = 90 + 45 * y;
-	rect.p1.x = 60 + 60 * x;
-	rect.p1.y = 125 + 45 * y;
+	rect.p0.x = calc->geom.btn_orig.x + calc->geom.btn_stride.x * x;
+	rect.p0.y = calc->geom.btn_orig.y + calc->geom.btn_stride.y * y;
+	rect.p1.x = rect.p0.x + calc->geom.btn_dim.x;
+	rect.p1.y = rect.p0.y + calc->geom.btn_dim.y;
 	ui_pbutton_set_rect(pb, &rect);
 
 	rc = ui_fixed_add(fixed, ui_pbutton_ctl(pb));
@@ -695,7 +705,6 @@ int main(int argc, char *argv[])
 	ui_fixed_t *fixed;
 	ui_wnd_params_t params;
 	ui_window_t *window;
-	gfx_rect_t rect;
 	calc_t calc;
 	errno_t rc;
 	int i;
@@ -731,6 +740,30 @@ int main(int argc, char *argv[])
 	params.rect.p1.x = 250;
 	params.rect.p1.y = 270;
 
+	if (ui_is_textmode(ui)) {
+		calc.geom.entry_rect.p0.x = 4;
+		calc.geom.entry_rect.p0.y = 2;
+		calc.geom.entry_rect.p1.x = 60;
+		calc.geom.entry_rect.p1.y = 4;
+		calc.geom.btn_orig.x = 4;
+		calc.geom.btn_orig.y = 4;
+		calc.geom.btn_dim.x = 12;
+		calc.geom.btn_dim.y = 7;
+		calc.geom.btn_stride.x = 15;
+		calc.geom.btn_stride.y = 6;
+	} else {
+		calc.geom.entry_rect.p0.x = 15;
+		calc.geom.entry_rect.p0.y = 45;
+		calc.geom.entry_rect.p1.x = 235;
+		calc.geom.entry_rect.p1.y = 70;
+		calc.geom.btn_orig.x = 10;
+		calc.geom.btn_orig.y = 90;
+		calc.geom.btn_dim.x = 50;
+		calc.geom.btn_dim.y = 35;
+		calc.geom.btn_stride.x = 60;
+		calc.geom.btn_stride.y = 45;
+	}
+
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
@@ -741,6 +774,7 @@ int main(int argc, char *argv[])
 	calc.ui = ui;
 
 	ui_res = ui_window_get_res(window);
+	calc.ui_res = ui_res;
 
 	rc = ui_fixed_create(&fixed);
 	if (rc != EOK) {
@@ -754,11 +788,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rect.p0.x = 15;
-	rect.p0.y = 45;
-	rect.p1.x = 235;
-	rect.p1.y = 70;
-	ui_entry_set_rect(display, &rect);
+	ui_entry_set_rect(display, &calc.geom.entry_rect);
 	ui_entry_set_halign(display, gfx_halign_right);
 
 	rc = ui_fixed_add(fixed, ui_entry_ctl(display));
@@ -767,82 +797,82 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = calc_button_create(ui_res, fixed, 0, 0, "7", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 0, 0, "7", &calc_pbutton_cb,
 	    (void *) "7", &calc.btn_7);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 1, 0, "8", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 1, 0, "8", &calc_pbutton_cb,
 	    (void *) "8", &calc.btn_8);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 2, 0, "9", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 2, 0, "9", &calc_pbutton_cb,
 	    (void *) "9", &calc.btn_9);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 3, 0, "/", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 3, 0, "/", &calc_pbutton_cb,
 	    (void *) "/", &calc.btn_div);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 0, 1, "4", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 0, 1, "4", &calc_pbutton_cb,
 	    (void *) "4", &calc.btn_4);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 1, 1, "5", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 1, 1, "5", &calc_pbutton_cb,
 	    (void *) "5", &calc.btn_5);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 2, 1, "6", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 2, 1, "6", &calc_pbutton_cb,
 	    (void *) "6", &calc.btn_6);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 3, 1, "*", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 3, 1, "*", &calc_pbutton_cb,
 	    (void *) "*", &calc.btn_mul);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 0, 2, "1", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 0, 2, "1", &calc_pbutton_cb,
 	    (void *) "1", &calc.btn_1);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 1, 2, "2", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 1, 2, "2", &calc_pbutton_cb,
 	    (void *) "2", &calc.btn_2);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 2, 2, "3", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 2, 2, "3", &calc_pbutton_cb,
 	    (void *) "3", &calc.btn_3);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 3, 2, "-", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 3, 2, "-", &calc_pbutton_cb,
 	    (void *) "-", &calc.btn_sub);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 0, 3, "0", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 0, 3, "0", &calc_pbutton_cb,
 	    (void *) "0", &calc.btn_0);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 1, 3, "C", &calc_clear_cb,
+	rc = calc_button_create(&calc, fixed, 1, 3, "C", &calc_clear_cb,
 	    (void *) "C", &calc.btn_clear);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 2, 3, "=", &calc_eval_cb,
+	rc = calc_button_create(&calc, fixed, 2, 3, "=", &calc_eval_cb,
 	    (void *) "=", &calc.btn_eval);
 	if (rc != EOK)
 		return rc;
 
-	rc = calc_button_create(ui_res, fixed, 3, 3, "+", &calc_pbutton_cb,
+	rc = calc_button_create(&calc, fixed, 3, 3, "+", &calc_pbutton_cb,
 	    (void *) "+", &calc.btn_add);
 	if (rc != EOK)
 		return rc;

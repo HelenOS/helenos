@@ -38,9 +38,10 @@
 
 #include <errno.h>
 #include <gfx/context.h>
+#include <stdbool.h>
 #include <types/ui/resource.h>
 
-extern errno_t ui_resource_create(gfx_context_t *, ui_resource_t **);
+extern errno_t ui_resource_create(gfx_context_t *, bool, ui_resource_t **);
 extern void ui_resource_destroy(ui_resource_t *);
 
 #endif

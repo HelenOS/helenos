@@ -177,7 +177,7 @@ PCUT_TEST(paint)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, &resource);
+	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
@@ -234,7 +234,7 @@ PCUT_TEST(press_release)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, &resource);
+	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
@@ -278,7 +278,7 @@ PCUT_TEST(press_leave_release)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, &resource);
+	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
@@ -327,7 +327,7 @@ PCUT_TEST(press_leave_enter_release)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, &resource);
+	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
@@ -383,7 +383,7 @@ PCUT_TEST(pos_event_press_release)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, &resource);
+	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
@@ -444,7 +444,7 @@ PCUT_TEST(pos_event_enter_leave)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, &resource);
+	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 

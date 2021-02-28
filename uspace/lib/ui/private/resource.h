@@ -41,6 +41,7 @@
 #include <gfx/context.h>
 #include <gfx/font.h>
 #include <gfx/typeface.h>
+#include <stdbool.h>
 
 /** Actual structure of UI resources.
  *
@@ -53,6 +54,8 @@ struct ui_resource {
 	gfx_typeface_t *tface;
 	/** Font */
 	gfx_font_t *font;
+	/** Text mode */
+	bool textmode;
 
 	/** Button frame color */
 	gfx_color_t *btn_frame_color;
