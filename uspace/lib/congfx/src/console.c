@@ -163,7 +163,7 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	cgc->rect.p0.x = 0;
 	cgc->rect.p0.y = 0;
 	cgc->rect.p1.x = cols;
-	cgc->rect.p1.y = rows - 1; /* make sure we avoid bottom-right corner */
+	cgc->rect.p1.y = rows;
 	cgc->buf = buf;
 
 	*rgc = cgc;
@@ -312,8 +312,6 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	if ((cbm->flags & bmpf_color_key) == 0) {
 		/* Simple copy */
 		for (y = crect.p0.y; y < crect.p1.y; y++) {
-			console_set_pos(cbm->cgc->con, crect.p0.x, y);
-
 			for (x = crect.p0.x; x < crect.p1.x; x++) {
 				clr = pixelmap_get_pixel(&pixelmap,
 				    x - offs.x - cbm->rect.p0.x,
@@ -349,8 +347,6 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		}
 	} else {
 		/* Color key & colorize */
-		console_set_rgb_color(cbm->cgc->con, cbm->cgc->clr,
-		    cbm->cgc->clr);
 		ch.ch = 0;
 		ch.flags = CHAR_FLAG_DIRTY;
 		ch.attrs.type = CHAR_ATTR_RGB;
