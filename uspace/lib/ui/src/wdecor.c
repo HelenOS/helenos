@@ -58,7 +58,11 @@ enum {
 	wdecor_corner_w = 24,
 	wdecor_corner_h = 24,
 	wdecor_edge_w = 4,
-	wdecor_edge_h = 4
+	wdecor_edge_h = 4,
+	wdecor_tbar_h = 22,
+	wdecor_tbar_h_text = 1,
+	wdecor_frame_w = 4,
+	wdecor_frame_w_text = 1
 };
 
 /** Create new window decoration.
@@ -179,27 +183,31 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		if (rc != EOK)
 			return rc;
 
-		rc = ui_paint_bevel(wdecor->res->gc, &rect,
-		    wdecor->res->wnd_highlight_color,
-		    wdecor->res->wnd_shadow_color, 1, &rect);
-		if (rc != EOK)
-			return rc;
+		if (wdecor->res->textmode == false) {
+			rc = ui_paint_bevel(wdecor->res->gc, &rect,
+			    wdecor->res->wnd_highlight_color,
+			    wdecor->res->wnd_shadow_color, 1, &rect);
+			if (rc != EOK)
+				return rc;
 
-		rc = ui_paint_bevel(wdecor->res->gc, &rect,
-		    wdecor->res->wnd_face_color,
-		    wdecor->res->wnd_face_color, 2, &rect);
-		if (rc != EOK)
-			return rc;
+			rc = ui_paint_bevel(wdecor->res->gc, &rect,
+			    wdecor->res->wnd_face_color,
+			    wdecor->res->wnd_face_color, 2, &rect);
+			if (rc != EOK)
+	        		return rc;
+	        }
 	}
 
 	if ((wdecor->style & ui_wds_titlebar) != 0) {
 		trect = geom.title_bar_rect;
 
-		rc = ui_paint_bevel(wdecor->res->gc, &trect,
-		    wdecor->res->wnd_shadow_color,
-		    wdecor->res->wnd_highlight_color, 1, &trect);
-		if (rc != EOK)
-			return rc;
+		if (wdecor->res->textmode == false) {
+			rc = ui_paint_bevel(wdecor->res->gc, &trect,
+			    wdecor->res->wnd_shadow_color,
+			    wdecor->res->wnd_highlight_color, 1, &trect);
+			if (rc != EOK)
+				return rc;
+		}
 
 		rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
 		    wdecor->res->tbar_act_bg_color :
@@ -291,21 +299,30 @@ void ui_wdecor_set_cursor(ui_wdecor_t *wdecor, ui_stock_cursor_t cursor)
  */
 void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 {
+	gfx_coord_t frame_w;
+	gfx_coord_t tbar_h;
+
 	/* Does window have a frame? */
 	if ((wdecor->style & ui_wds_frame) != 0) {
-		geom->interior_rect.p0.x = wdecor->rect.p0.x + 4;
-		geom->interior_rect.p0.y = wdecor->rect.p0.y + 4;
-		geom->interior_rect.p1.x = wdecor->rect.p1.x - 4;
-		geom->interior_rect.p1.y = wdecor->rect.p1.y - 4;
+		frame_w = wdecor->res->textmode ?
+		    wdecor_frame_w_text : wdecor_frame_w;
+
+		geom->interior_rect.p0.x = wdecor->rect.p0.x + frame_w;
+		geom->interior_rect.p0.y = wdecor->rect.p0.y + frame_w;
+		geom->interior_rect.p1.x = wdecor->rect.p1.x - frame_w;
+		geom->interior_rect.p1.y = wdecor->rect.p1.y - frame_w;
 	} else {
 		geom->interior_rect = wdecor->rect;
 	}
 
 	/* Does window have a title bar? */
 	if ((wdecor->style & ui_wds_titlebar) != 0) {
+		tbar_h = wdecor->res->textmode ?
+		    wdecor_tbar_h_text : wdecor_tbar_h;
+
 		geom->title_bar_rect.p0 = geom->interior_rect.p0;
 		geom->title_bar_rect.p1.x = geom->interior_rect.p1.x;
-		geom->title_bar_rect.p1.y = geom->interior_rect.p0.y + 22;
+		geom->title_bar_rect.p1.y = geom->interior_rect.p0.y + tbar_h;
 
 		geom->app_area_rect.p0.x = geom->interior_rect.p0.x;
 		geom->app_area_rect.p0.y = geom->title_bar_rect.p1.y;
@@ -321,10 +338,25 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 
 	/* Does window have a close button? */
 	if ((wdecor->style & ui_wds_close_btn) != 0) {
-		geom->btn_close_rect.p0.x = geom->title_bar_rect.p1.x - 1 - 20;
-		geom->btn_close_rect.p0.y = geom->title_bar_rect.p0.y + 1;
-		geom->btn_close_rect.p1.x = geom->title_bar_rect.p1.x - 1;
-		geom->btn_close_rect.p1.y = geom->title_bar_rect.p0.y + 1 + 20;
+		if (wdecor->res->textmode == false) {
+			geom->btn_close_rect.p0.x =
+			    geom->title_bar_rect.p1.x - 1 - 20;
+			geom->btn_close_rect.p0.y =
+			    geom->title_bar_rect.p0.y + 1;
+			geom->btn_close_rect.p1.x =
+			    geom->title_bar_rect.p1.x - 1;
+			geom->btn_close_rect.p1.y =
+			    geom->title_bar_rect.p0.y + 1 + 20;
+		} else {
+			geom->btn_close_rect.p0.x =
+			    geom->title_bar_rect.p1.x - 1 - 3;
+			geom->btn_close_rect.p0.y =
+			    geom->title_bar_rect.p0.y;
+			geom->btn_close_rect.p1.x =
+			    geom->title_bar_rect.p1.x - 1;
+			geom->btn_close_rect.p1.y =
+			    geom->title_bar_rect.p0.y + 1;
+		}
 	} else {
 		geom->btn_close_rect.p0.x = 0;
 		geom->btn_close_rect.p0.y = 0;

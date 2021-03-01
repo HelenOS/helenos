@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2016 Martin Decky
  * All rights reserved.
  *
@@ -737,21 +737,25 @@ int main(int argc, char *argv[])
 	params.caption = "Calculator";
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
-	params.rect.p1.x = 250;
-	params.rect.p1.y = 270;
 
 	if (ui_is_textmode(ui)) {
+		params.rect.p1.x = 38;
+		params.rect.p1.y = 18;
+
 		calc.geom.entry_rect.p0.x = 4;
-		calc.geom.entry_rect.p0.y = 2;
-		calc.geom.entry_rect.p1.x = 60;
+		calc.geom.entry_rect.p0.y = 3;
+		calc.geom.entry_rect.p1.x = 34;
 		calc.geom.entry_rect.p1.y = 4;
 		calc.geom.btn_orig.x = 4;
-		calc.geom.btn_orig.y = 4;
-		calc.geom.btn_dim.x = 12;
-		calc.geom.btn_dim.y = 7;
-		calc.geom.btn_stride.x = 15;
-		calc.geom.btn_stride.y = 6;
+		calc.geom.btn_orig.y = 5;
+		calc.geom.btn_dim.x = 6;
+		calc.geom.btn_dim.y = 2;
+		calc.geom.btn_stride.x = 8;
+		calc.geom.btn_stride.y = 3;
 	} else {
+		params.rect.p1.x = 250;
+		params.rect.p1.y = 270;
+
 		calc.geom.entry_rect.p0.x = 15;
 		calc.geom.entry_rect.p0.y = 45;
 		calc.geom.entry_rect.p1.x = 235;

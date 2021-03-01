@@ -238,12 +238,40 @@ static errno_t ui_pbutton_paint_inset(ui_pbutton_t *pbutton,
 	    pbutton->res->btn_face_color, 2, NULL);
 }
 
-/** Paint push button.
+/** Paint button text shadow.
  *
  * @param pbutton Push button
  * @return EOK on success or an error code
  */
-errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
+static errno_t ui_pbutton_paint_text_shadow(ui_pbutton_t *pbutton)
+{
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rect.p0.x = pbutton->rect.p0.x + 1;
+	rect.p0.y = pbutton->rect.p0.y + 1;
+	rect.p1.x = pbutton->rect.p1.x;
+	rect.p1.y = pbutton->rect.p1.y;
+
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_shadow_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(pbutton->res->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Paint push button in graphic mode.
+ *
+ * @param pbutton Push button
+ * @return EOK on success or an error code
+ */
+static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 {
 	gfx_coord2_t pos;
 	gfx_text_fmt_t fmt;
@@ -307,6 +335,83 @@ errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Paint push button in text mode.
+ *
+ * @param pbutton Push button
+ * @return EOK on success or an error code
+ */
+static errno_t ui_pbutton_paint_text(ui_pbutton_t *pbutton)
+{
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	gfx_rect_t rect;
+	bool depressed;
+	errno_t rc;
+
+	depressed = pbutton->held && pbutton->inside;
+
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->wnd_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(pbutton->res->gc, &pbutton->rect);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = pbutton->rect.p0.x + (depressed ? 1 : 0);
+	rect.p0.y = pbutton->rect.p0.y;
+	rect.p1.x = pbutton->rect.p1.x - 1 + (depressed ? 1 : 0);
+	rect.p1.y = pbutton->rect.p0.y + 1;
+
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_highlight_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(pbutton->res->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	/* Center of button rectangle */
+	pos.x = (rect.p0.x + rect.p1.x) / 2;
+	pos.y = (rect.p0.y + rect.p1.y) / 2;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.color = pbutton->res->btn_text_color;
+	fmt.halign = gfx_halign_center;
+	fmt.valign = gfx_valign_center;
+
+	rc = gfx_puttext(pbutton->res->font, &pos, &fmt, pbutton->caption);
+	if (rc != EOK)
+		goto error;
+
+	if (!depressed) {
+		rc = ui_pbutton_paint_text_shadow(pbutton);
+		if (rc != EOK)
+			goto error;
+	}
+
+	rc = gfx_update(pbutton->res->gc);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Paint push button.
+ *
+ * @param pbutton Push button
+ * @return EOK on success or an error code
+ */
+errno_t ui_pbutton_paint(ui_pbutton_t *pbutton)
+{
+	if (pbutton->res->textmode)
+		return ui_pbutton_paint_text(pbutton);
+	else
+		return ui_pbutton_paint_gfx(pbutton);
 }
 
 /** Press down button.

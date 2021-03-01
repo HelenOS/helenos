@@ -188,11 +188,14 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 		vpad = ui_entry_vpad;
 	}
 
-	/* Paint inset frame */
-
-	rc = ui_paint_inset_frame(entry->res, &entry->rect, &inside);
-	if (rc != EOK)
-		goto error;
+	if (entry->res->textmode == false) {
+		/* Paint inset frame */
+		rc = ui_paint_inset_frame(entry->res, &entry->rect, &inside);
+		if (rc != EOK)
+			goto error;
+	} else {
+		inside = entry->rect;
+	}
 
 	/* Paint entry background */
 
@@ -213,7 +216,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 		pos.x = (inside.p0.x + inside.p1.x) / 2;
 		break;
 	case gfx_halign_right:
-		pos.x = inside.p1.x - hpad;
+		pos.x = inside.p1.x - hpad - 1;
 		break;
 	}
 
