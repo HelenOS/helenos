@@ -194,8 +194,8 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 			    wdecor->res->wnd_face_color,
 			    wdecor->res->wnd_face_color, 2, &rect);
 			if (rc != EOK)
-	        		return rc;
-	        }
+				return rc;
+		}
 	}
 
 	if ((wdecor->style & ui_wds_titlebar) != 0) {
