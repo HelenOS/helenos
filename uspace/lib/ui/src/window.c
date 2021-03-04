@@ -131,7 +131,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	gfx_bitmap_alloc_t alloc;
 	gfx_bitmap_t *bmp = NULL;
 	mem_gc_t *memgc = NULL;
-	console_gc_t *cgc;
+	console_gc_t *cgc = NULL;
 	errno_t rc;
 
 	if (ui->root_wnd != NULL)
@@ -255,6 +255,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	(void) bparams;
 	window->gc = gc;
 #endif
+	window->cgc = cgc;
+
 	rc = ui_resource_create(window->gc, ui_is_textmode(ui), &res);
 	if (rc != EOK)
 		goto error;
@@ -289,6 +291,8 @@ error:
 		gfx_bitmap_destroy(bmp);
 	if (dgc != NULL)
 		dummygc_destroy(dgc);
+	if (cgc != NULL)
+		console_gc_delete(cgc);
 	if (dwindow != NULL)
 		display_window_destroy(dwindow);
 	free(window);
@@ -320,6 +324,8 @@ void ui_window_destroy(ui_window_t *window)
 	gfx_context_delete(window->gc);
 	if (window->dwindow != NULL)
 		display_window_destroy(window->dwindow);
+	if (window->cgc != NULL)
+		console_gc_delete(window->cgc);
 	free(window);
 }
 

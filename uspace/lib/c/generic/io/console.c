@@ -322,6 +322,10 @@ error:
  */
 void console_unmap(console_ctrl_t *ctrl, charfield_t *buf)
 {
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	(void) async_req_0_0(exch, CONSOLE_UNMAP);
+	async_exchange_end(exch);
+
 	as_area_destroy(buf);
 }
 

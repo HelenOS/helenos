@@ -38,6 +38,7 @@
 #define _UI_PRIVATE_WINDOW_H
 
 #include <errno.h>
+#include <congfx/console.h>
 #include <display.h>
 #include <gfx/context.h>
 #include <io/kbd_event.h>
@@ -59,6 +60,8 @@ struct ui_window {
 	void *arg;
 	/** Display window */
 	display_window_t *dwindow;
+	/** Console GC */
+	console_gc_t *cgc;
 	/** Window GC */
 	gfx_context_t *gc;
 	/** Window bitmap (if client-side rendering) */

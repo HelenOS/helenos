@@ -136,7 +136,7 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	gfx_context_t *gc = NULL;
 	sysarg_t rows;
 	sysarg_t cols;
-	charfield_t *buf;
+	charfield_t *buf = NULL;
 	errno_t rc;
 
 	cgc = calloc(1, sizeof(console_gc_t));
@@ -148,6 +148,8 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	rc = console_get_size(con, &cols, &rows);
 	if (rc != EOK)
 		goto error;
+
+	console_clear(con);
 
 	rc = console_map(con, cols, rows, &buf);
 	if (rc != EOK)
@@ -169,6 +171,8 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	*rgc = cgc;
 	return EOK;
 error:
+	if (buf != NULL)
+		console_unmap(cgc->con, buf);
 	if (cgc != NULL)
 		free(cgc);
 	gfx_context_delete(gc);
@@ -186,6 +190,9 @@ errno_t console_gc_delete(console_gc_t *cgc)
 	rc = gfx_context_delete(cgc->gc);
 	if (rc != EOK)
 		return rc;
+
+	console_clear(cgc->con);
+	console_unmap(cgc->con, cgc->buf);
 
 	free(cgc);
 	return EOK;
