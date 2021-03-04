@@ -129,7 +129,10 @@ int main(int argc, char *argv[])
 
 	done = false;
 	while (!done) {
-		console_get_event(con, &ev);
+		rc = console_get_event(con, &ev);
+		if (rc != EOK)
+			break;
+
 		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS)
 			key_handle(&ev.ev.key);
 	}

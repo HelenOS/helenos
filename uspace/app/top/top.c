@@ -582,6 +582,8 @@ int main(int argc, char *argv[])
 	data_t data;
 	data_t data_prev;
 	const char *ret = NULL;
+	errno_t rc;
+	int c;
 
 	screen_init();
 	printf("Reading initial data...\n");
@@ -594,9 +596,9 @@ int main(int argc, char *argv[])
 
 	/* And paint screen until death */
 	while (true) {
-		int c = tgetchar(UPDATE_INTERVAL);
+		rc = tgetchar(UPDATE_INTERVAL, &c);
 
-		if (c < 0) { /* timeout */
+		if (rc == ETIMEOUT) { /* timeout */
 			data_prev = data;
 			if ((ret = read_data(&data)) != NULL) {
 				free_data(&data_prev);
@@ -607,6 +609,9 @@ int main(int argc, char *argv[])
 			free_data(&data_prev);
 
 			c = -1;
+		} else if (rc != EOK) {
+			/* Error (e.g. communication with console lost) */
+			goto out;
 		}
 
 		if (screen_mode == SCREEN_HELP && c >= 0) {

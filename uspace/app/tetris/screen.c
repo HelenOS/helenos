@@ -53,6 +53,7 @@
  * Tetris screen control.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -339,12 +340,16 @@ void scr_msg(char *s, bool set)
 void tsleep(void)
 {
 	usec_t timeout = fallrate;
+	errno_t rc;
 
 	while (timeout > 0) {
 		cons_event_t event;
 
-		if (!console_get_event_timeout(console, &event, &timeout))
+		rc = console_get_event_timeout(console, &event, &timeout);
+		if (rc == ETIMEOUT)
 			break;
+		if (rc != EOK)
+			exit(1);
 	}
 }
 
@@ -353,6 +358,8 @@ void tsleep(void)
  */
 int tgetchar(void)
 {
+	errno_t rc;
+
 	/*
 	 * Reset timeleft to fallrate whenever it is not positive
 	 * and increase speed.
@@ -375,10 +382,13 @@ int tgetchar(void)
 	while (c == 0) {
 		cons_event_t event;
 
-		if (!console_get_event_timeout(console, &event, &timeleft)) {
+		rc = console_get_event_timeout(console, &event, &timeleft);
+		if (rc == ETIMEOUT) {
 			timeleft = 0;
 			return -1;
 		}
+		if (rc != EOK)
+			exit(1);
 
 		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
 			c = event.ev.key.c;
@@ -393,12 +403,16 @@ int tgetchar(void)
 int twait(void)
 {
 	char32_t c = 0;
+	errno_t rc;
 
 	while (c == 0) {
 		cons_event_t event;
 
-		if (!console_get_event(console, &event))
+		rc = console_get_event(console, &event);
+		if (rc == ETIMEOUT)
 			return -1;
+		if (rc != EOK)
+			exit(1);
 
 		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
 			c = event.ev.key.c;

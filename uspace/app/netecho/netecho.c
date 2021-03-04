@@ -120,6 +120,7 @@ static void print_syntax(void)
 static void netecho_interact(void)
 {
 	cons_event_t ev;
+	errno_t rc;
 
 	printf("Communication started. Press Ctrl-Q to quit.\n");
 
@@ -127,7 +128,10 @@ static void netecho_interact(void)
 
 	done = false;
 	while (!done) {
-		console_get_event(con, &ev);
+		rc = console_get_event(con, &ev);
+		if (rc != EOK)
+			break;
+
 		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS)
 			key_handle(&ev.ev.key);
 	}

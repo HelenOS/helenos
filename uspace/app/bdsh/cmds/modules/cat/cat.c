@@ -121,11 +121,12 @@ static void waitkey(void)
 {
 	cons_event_t ev;
 	kbd_event_t *kev;
+	errno_t rc;
 
 	while (true) {
-		if (!console_get_event(console, &ev)) {
+		rc = console_get_event(console, &ev);
+		if (rc != EOK)
 			return;
-		}
 		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
 			kev = &ev.ev.key;
 

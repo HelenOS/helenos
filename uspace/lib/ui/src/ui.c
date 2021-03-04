@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <fibril.h>
 #include <io/console.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <str.h>
 #include <task.h>
@@ -219,9 +220,9 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
  */
 void ui_run(ui_t *ui)
 {
-	bool have_event;
 	cons_event_t event;
 	usec_t timeout;
+	errno_t rc;
 
 	/* Only return command prompt if we are running in a separate window */
 	if (ui->display != NULL)
@@ -230,10 +231,16 @@ void ui_run(ui_t *ui)
 	while (!ui->quit) {
 		if (ui->console != NULL) {
 			timeout = 100000;
-			have_event = console_get_event_timeout(ui->console,
+			rc = console_get_event_timeout(ui->console,
 			    &event, &timeout);
-			if (have_event)
+
+			/* Do we actually have an event? */
+			if (rc == EOK) {
 				ui_cons_event_process(ui, &event);
+			} else if (rc != ETIMEOUT) {
+				/* Error, quit */
+				break;
+			}
 		} else {
 			fibril_usleep(100000);
 		}

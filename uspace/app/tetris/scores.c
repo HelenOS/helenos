@@ -125,6 +125,7 @@ void insertscore(int score, int level)
 	size_t off;
 	cons_event_t ev;
 	kbd_event_t *kev;
+	errno_t rc;
 
 	clear_screen();
 	moveto(10, 10);
@@ -140,7 +141,8 @@ void insertscore(int score, int level)
 
 	while (true) {
 		console_flush(console);
-		if (!console_get_event(console, &ev))
+		rc = console_get_event(console, &ev);
+		if (rc != EOK)
 			exit(1);
 
 		if (ev.type != CEV_KEY || ev.ev.key.type == KEY_RELEASE)

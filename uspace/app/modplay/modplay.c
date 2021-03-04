@@ -173,8 +173,12 @@ int main(int argc, char *argv[])
 
 	while (true) {
 		timeout = 0;
-		if (console_get_event_timeout(con, &event, &timeout))
+		rc = console_get_event_timeout(con, &event, &timeout);
+		if (rc == EOK)
 			modplay_event(&event);
+		else if (rc != ETIMEOUT)
+			break;
+
 		if (quit)
 			break;
 

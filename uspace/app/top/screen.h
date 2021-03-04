@@ -34,6 +34,7 @@
 #ifndef TOP_SCREEN_H_
 #define TOP_SCREEN_H_
 
+#include <errno.h>
 #include <io/console.h>
 #include <io/verify.h>
 #include "top.h"
@@ -46,7 +47,7 @@ extern void print_data(data_t *);
 extern void show_warning(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 
-extern int tgetchar(sec_t);
+extern errno_t tgetchar(sec_t, int *);
 
 #endif
 

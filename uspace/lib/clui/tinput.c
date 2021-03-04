@@ -873,6 +873,8 @@ static void tinput_pos(tinput_t *ti, pos_event_t *ev)
  */
 errno_t tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
 {
+	errno_t rc;
+
 	console_flush(ti->console);
 	if (console_get_size(ti->console, &ti->con_cols, &ti->con_rows) != EOK)
 		return EIO;
@@ -890,7 +892,8 @@ errno_t tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
 		console_flush(ti->console);
 
 		cons_event_t ev;
-		if (!console_get_event(ti->console, &ev))
+		rc = console_get_event(ti->console, &ev);
+		if (rc != EOK)
 			return EIO;
 
 		switch (ev.type) {

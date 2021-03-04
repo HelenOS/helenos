@@ -510,6 +510,7 @@ void thread_trace_start(uintptr_t thread_hash)
 static errno_t cev_fibril(void *arg)
 {
 	cons_event_t event;
+	errno_t rc;
 
 	(void) arg;
 
@@ -521,7 +522,8 @@ static errno_t cev_fibril(void *arg)
 			fibril_condvar_wait(&state_cv, &state_lock);
 		fibril_mutex_unlock(&state_lock);
 
-		if (!console_get_event(console, &event))
+		rc = console_get_event(console, &event);
+		if (rc != EOK)
 			return EINVAL;
 
 		if (event.type == CEV_KEY) {

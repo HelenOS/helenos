@@ -195,8 +195,12 @@ static errno_t input_fibril(void *arg)
 
 	while (true) {
 		cons_event_t ev;
-		if (!console_get_event(con, &ev))
+		errno_t rc;
+		rc = console_get_event(con, &ev);
+		if (rc != EOK) {
+			ping_signal_received(RECEIVED_INTERRUPT);
 			break;
+		}
 
 		if ((ev.type == CEV_KEY) && (ev.ev.key.type == KEY_PRESS) &&
 		    ((ev.ev.key.mods & (KM_ALT | KM_SHIFT)) == 0) &&

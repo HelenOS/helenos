@@ -173,8 +173,8 @@ static errno_t wait_for_quit_fibril(void *arg)
 
 	while (true) {
 		cons_event_t ev;
-		bool ok = console_get_event(con, &ev);
-		if (!ok) {
+		errno_t rc = console_get_event(con, &ev);
+		if (rc != EOK) {
 			printf("Connection with console broken: %s.\n",
 			    str_error(errno));
 			break;

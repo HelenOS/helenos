@@ -201,6 +201,8 @@ static int tetris_menu(int *level)
 	tetris_menu_draw(*level);
 	while (true) {
 		int i = getchar();
+		if (i < 0)
+			return 0;
 
 		switch (i) {
 		case 'p':

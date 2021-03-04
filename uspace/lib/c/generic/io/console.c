@@ -179,7 +179,13 @@ static errno_t console_ev_decode(ipc_call_t *call, cons_event_t *event)
 	return EOK;
 }
 
-bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
+/** Get console event.
+ *
+ * @param ctrl Console
+ * @param event Place to store event
+ * @return EOK on success, EIO on failure
+ */
+errno_t console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 {
 	if (ctrl->input_aid == 0) {
 		ipc_call_t result;
@@ -191,38 +197,40 @@ bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 		errno_t rc;
 		async_wait_for(aid, &rc);
 
-		if (rc != EOK) {
-			errno = rc;
-			return false;
-		}
+		if (rc != EOK)
+			return EIO;
 
 		rc = console_ev_decode(&result, event);
-		if (rc != EOK) {
-			errno = rc;
-			return false;
-		}
+		if (rc != EOK)
+			return EIO;
 	} else {
 		errno_t retval;
 		async_wait_for(ctrl->input_aid, &retval);
 
 		ctrl->input_aid = 0;
 
-		if (retval != EOK) {
-			errno = retval;
-			return false;
-		}
+		if (retval != EOK)
+			return EIO;
 
 		errno_t rc = console_ev_decode(&ctrl->input_call, event);
-		if (rc != EOK) {
-			errno = rc;
-			return false;
-		}
+		if (rc != EOK)
+			return EIO;
 	}
 
-	return true;
+	return EOK;
 }
 
-bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
+/** Get console event with timeout.
+ *
+ * @param ctrl Console
+ * @param event Place to store event
+ * @param timeout Pointer to timeout. This will be updated to reflect
+ *                the remaining time in case of timeout.
+ * @return EOK on success (event received), ETIMEOUT on time out,
+ *         EIO on I/O error (e.g. lost console connection), ENOMEM
+ *         if out of memory
+ */
+errno_t console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
     usec_t *timeout)
 {
 	struct timespec t0;
@@ -238,30 +246,27 @@ bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
 	errno_t retval;
 	errno_t rc = async_wait_timeout(ctrl->input_aid, &retval, *timeout);
 	if (rc != EOK) {
+		if (rc == ENOMEM)
+			return ENOMEM;
 		*timeout = 0;
-		errno = rc;
-		return false;
+		return ETIMEOUT;
 	}
 
 	ctrl->input_aid = 0;
 
-	if (retval != EOK) {
-		errno = retval;
-		return false;
-	}
+	if (retval != EOK)
+		return EIO;
 
 	rc = console_ev_decode(&ctrl->input_call, event);
-	if (rc != EOK) {
-		errno = rc;
-		return false;
-	}
+	if (rc != EOK)
+		return EIO;
 
 	/* Update timeout */
 	struct timespec t1;
 	getuptime(&t1);
 	*timeout -= NSEC2USEC(ts_sub_diff(&t1, &t0));
 
-	return true;
+	return EOK;
 }
 
 /** Create a shared buffer for fast rendering to the console.

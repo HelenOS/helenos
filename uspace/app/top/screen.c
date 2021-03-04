@@ -533,9 +533,14 @@ void show_warning(const char *fmt, ...)
 
 /** Get char with timeout
  *
+ * @param sec Timeout in seconds
+ * @param rch Place to store character on success
+ * @return EOK on success, ETIMEOUT on time out, EIO on other error
  */
-int tgetchar(sec_t sec)
+errno_t tgetchar(sec_t sec, int *rch)
 {
+	errno_t rc;
+
 	/*
 	 * Reset timeleft whenever it is not positive.
 	 */
@@ -547,7 +552,7 @@ int tgetchar(sec_t sec)
 	 * Wait to see if there is any input. If so, take it and
 	 * update timeleft so that the next call to tgetchar()
 	 * will not wait as long. If there is no input,
-	 * make timeleft zero and return -1.
+	 * make timeleft zero and return ETIMEOUT.
 	 */
 
 	char32_t c = 0;
@@ -556,17 +561,23 @@ int tgetchar(sec_t sec)
 		cons_event_t event;
 
 		warning_timeleft -= timeleft;
-		if (!console_get_event_timeout(console, &event, &timeleft)) {
+		rc = console_get_event_timeout(console, &event, &timeleft);
+		if (rc == ETIMEOUT) {
 			timeleft = 0;
-			return -1;
+			return ETIMEOUT;
 		}
+
+		if (rc != EOK)
+			return EIO;
+
 		warning_timeleft += timeleft;
 
 		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
 			c = event.ev.key.c;
 	}
 
-	return (int) c;
+	*rch = (int) c;
+	return EOK;
 }
 
 /** @}

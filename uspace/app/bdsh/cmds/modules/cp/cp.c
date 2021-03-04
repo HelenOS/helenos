@@ -145,6 +145,7 @@ static void merge_paths(char *path1, size_t path1_size, char *path2)
 static bool get_user_decision(bool bdefault, const char *message, ...)
 {
 	va_list args;
+	errno_t rc;
 
 	va_start(args, message);
 	vprintf(message, args);
@@ -153,7 +154,9 @@ static bool get_user_decision(bool bdefault, const char *message, ...)
 	while (true) {
 		cons_event_t ev;
 		console_flush(con);
-		console_get_event(con, &ev);
+		rc = console_get_event(con, &ev);
+		if (rc != EOK)
+			exit(1);
 		if (ev.type != CEV_KEY || ev.ev.key.type != KEY_PRESS ||
 		    (ev.ev.key.mods & (KM_CTRL | KM_ALT)) != 0) {
 			continue;

@@ -56,9 +56,14 @@ const char *test_starve_ipc(void)
 
 		cons_event_t ev;
 		usec_t timeout = 0;
-		bool has_event = console_get_event_timeout(console, &ev, &timeout);
-		if (has_event && ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
-			TPRINTF("Key %d pressed, terminating.\n", ev.ev.key.key);
+		errno_t rc = console_get_event_timeout(console, &ev, &timeout);
+		if (rc == EOK) {
+			if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
+				TPRINTF("Key %d pressed, terminating.\n", ev.ev.key.key);
+				break;
+			}
+		} else if (rc != ETIMEOUT) {
+			TPRINTF("Got rc=%d, terminating.\n", rc);
 			break;
 		}
 	}

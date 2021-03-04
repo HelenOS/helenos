@@ -250,7 +250,10 @@ int main(int argc, char *argv[])
 	done = false;
 
 	while (!done) {
-		console_get_event(con, &ev);
+		rc = console_get_event(con, &ev);
+		if (rc != EOK)
+			break;
+
 		pane.rflags = 0;
 
 		switch (ev.type) {
@@ -633,6 +636,7 @@ static char *prompt(char const *prompt, char const *init_value)
 	int max_len;
 	int nc;
 	bool done;
+	errno_t rc;
 
 	asprintf(&str, "%s: %s", prompt, init_value);
 	status_display(str);
@@ -647,7 +651,9 @@ static char *prompt(char const *prompt, char const *init_value)
 	done = false;
 
 	while (!done) {
-		console_get_event(con, &ev);
+		rc = console_get_event(con, &ev);
+		if (rc != EOK)
+			return NULL;
 
 		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
 			kev = &ev.ev.key;
