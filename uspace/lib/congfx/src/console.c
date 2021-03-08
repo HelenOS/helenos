@@ -49,6 +49,7 @@
 
 static errno_t console_gc_set_color(void *, gfx_color_t *);
 static errno_t console_gc_fill_rect(void *, gfx_rect_t *);
+static errno_t console_gc_update(void *);
 static errno_t console_gc_bitmap_create(void *, gfx_bitmap_params_t *,
     gfx_bitmap_alloc_t *, void **);
 static errno_t console_gc_bitmap_destroy(void *);
@@ -58,6 +59,7 @@ static errno_t console_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 gfx_context_ops_t console_gc_ops = {
 	.set_color = console_gc_set_color,
 	.fill_rect = console_gc_fill_rect,
+	.update = console_gc_update,
 	.bitmap_create = console_gc_bitmap_create,
 	.bitmap_destroy = console_gc_bitmap_destroy,
 	.bitmap_render = console_gc_bitmap_render,
@@ -116,6 +118,25 @@ static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	console_update(cgc->con, crect.p0.x, crect.p0.y,
 	    crect.p1.x, crect.p1.y);
 
+	return EOK;
+}
+
+/** Update console GC.
+ *
+ * @param arg Console GC
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t console_gc_update(void *arg)
+{
+	console_gc_t *cgc = (console_gc_t *) arg;
+
+	/*
+	 * XXX Before actually deferring update to here (and similarly other
+	 * GC implementations) need to make sure all consumers properly
+	 * call update.
+	 */
+	(void) cgc;
 	return EOK;
 }
 
