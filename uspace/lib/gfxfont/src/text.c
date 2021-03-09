@@ -136,6 +136,11 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	params.rect.p1.x = str_width(str);
 	params.rect.p1.y = 1;
 
+	if (params.rect.p1.x == 0) {
+		/* Nothing to do. Avoid creating bitmap of zero width. */
+		return EOK;
+	}
+
 	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
 	if (rc != EOK)
 		return rc;
