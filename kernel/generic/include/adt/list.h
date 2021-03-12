@@ -37,8 +37,11 @@
 #define KERN_LIST_H_
 
 #include <assert.h>
+#include <macros.h>
+#include <member.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <trace.h>
 
 /** Doubly linked list link. */
@@ -88,16 +91,16 @@ extern unsigned long list_count(const list_t *);
 	}
 
 #define list_get_instance(link, type, member) \
-	((type *) (((void *)(link)) - list_link_to_void(&(((type *) NULL)->member))))
+	member_to_inst(link, type, member)
 
 #define list_foreach(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = &((itype *) NULL)[1]) \
 		for (link_t *_link = (list).head.next; \
 		    iterator = list_get_instance(_link, itype, member), \
 		    _link != &(list).head; _link = _link->next)
 
 #define list_foreach_rev(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = &((itype *) NULL)[1]) \
 		for (link_t *_link = (list).head.prev; \
 		    iterator = list_get_instance(_link, itype, member), \
 		    _link != &(list).head; _link = _link->prev)
@@ -374,9 +377,9 @@ _NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
  * @return NULL if no n-th item found.
  *
  */
-static inline link_t *list_nth(const list_t *list, unsigned long n)
+static inline link_t *list_nth(const list_t *list, size_t n)
 {
-	unsigned long cnt = 0;
+	size_t cnt = 0;
 
 	link_t *link = list_first(list);
 	while (link != NULL) {
@@ -388,15 +391,6 @@ static inline link_t *list_nth(const list_t *list, unsigned long n)
 	}
 
 	return NULL;
-}
-
-/** Verify that argument type is a pointer to link_t (at compile time).
- *
- * This can be used to check argument type in a macro.
- */
-static inline const void *list_link_to_void(const link_t *link)
-{
-	return link;
 }
 
 /** Determine if link is used.

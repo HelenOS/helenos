@@ -37,6 +37,7 @@
 #define _LIBC_LIST_H_
 
 #include <assert.h>
+#include <member.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -84,16 +85,16 @@
 	}
 
 #define list_get_instance(link, type, member) \
-	((type *) (((void *)(link)) - list_link_to_void(&(((type *) NULL)->member))))
+	member_to_inst(link, type, member)
 
 #define list_foreach(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = &((itype *) NULL)[1]) \
 		for (link_t *_link = (list).head.next; \
 		    iterator = list_get_instance(_link, itype, member), \
 		    _link != &(list).head; _link = _link->next)
 
 #define list_foreach_rev(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) 1) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = &((itype *) NULL)[1]) \
 		for (link_t *_link = (list).head.prev; \
 		    iterator = list_get_instance(_link, itype, member), \
 		    _link != &(list).head; _link = _link->prev)
@@ -153,7 +154,7 @@ typedef struct {
 
 extern bool list_member(const link_t *, const list_t *);
 extern void list_splice(list_t *, link_t *);
-extern unsigned long list_count(const list_t *);
+extern size_t list_count(const list_t *);
 
 /** Returns true if the link is definitely part of a list. False if not sure. */
 static inline bool link_in_use(const link_t *link)
@@ -393,9 +394,9 @@ _NO_TRACE static inline void list_concat(list_t *list1, list_t *list2)
  * @return NULL if no n-th item found.
  *
  */
-static inline link_t *list_nth(const list_t *list, unsigned long n)
+static inline link_t *list_nth(const list_t *list, size_t n)
 {
-	unsigned long cnt = 0;
+	size_t cnt = 0;
 
 	link_t *link = list_first(list);
 	while (link != NULL) {

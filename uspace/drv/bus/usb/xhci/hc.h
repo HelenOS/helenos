@@ -37,6 +37,7 @@
 #define XHCI_HC_H
 
 #include <fibril_synch.h>
+#include <member.h>
 #include <usb/host/usb_transfer_batch.h>
 #include <usb/host/utility.h>
 #include "hw_struct/regs.h"

@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <stdbool.h>
 #include <macros.h>
+#include <member.h>
 
 /** Opaque hash table link type. */
 typedef struct ht_link {

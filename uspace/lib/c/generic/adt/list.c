@@ -40,6 +40,7 @@
 
 #include <adt/list.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /** Check for membership
  *
@@ -99,9 +100,9 @@ void list_splice(list_t *list, link_t *pos)
  * @param list		List to count.
  * @return		Number of items in the list.
  */
-unsigned long list_count(const list_t *list)
+size_t list_count(const list_t *list)
 {
-	unsigned long count = 0;
+	size_t count = 0;
 
 	link_t *link = list_first(list);
 	while (link != NULL) {

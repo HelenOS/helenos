@@ -34,12 +34,14 @@
  * @file
  * @brief Generic hash-set based database of addresses
  */
+
 #include "nic_addr_db.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <mem.h>
+#include <member.h>
 #include <adt/hash_table.h>
 #include <macros.h>
 #include <stdint.h>

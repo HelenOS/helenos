@@ -40,6 +40,7 @@
 #include <device/hw_res_parsed.h>
 #include <fibril.h>
 #include <macros.h>
+#include <member.h>
 #include <stdbool.h>
 #include <ddi.h>
 #include <usb/host/hcd.h>

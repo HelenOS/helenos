@@ -40,6 +40,7 @@
 #include <usbvirt/device.h>
 #include <async.h>
 #include <macros.h>
+#include <member.h>
 
 #include <usb/host/hcd.h>
 #include <usb/host/usb2_bus.h>

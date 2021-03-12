@@ -159,10 +159,6 @@ _NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
 		(seed); \
 	})
 
-#define member_to_inst(ptr_member, type, member_identif) \
-	((type *) (((void *) (ptr_member)) - \
-	    ((void *) &(((type *) 0)->member_identif))))
-
 /** Get the size of an array in array elements
  *
  * @param array Array to determine the size of

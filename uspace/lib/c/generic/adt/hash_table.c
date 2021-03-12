@@ -51,6 +51,7 @@
 #include <adt/hash_table.h>
 #include <adt/list.h>
 #include <assert.h>
+#include <member.h>
 #include <stdlib.h>
 #include <str.h>
 

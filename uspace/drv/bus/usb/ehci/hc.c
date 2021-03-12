@@ -357,7 +357,7 @@ void ehci_hc_interrupt(bus_t *bus_base, uint32_t status)
 	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
 		fibril_mutex_lock(&hc->guard);
 
-		usb_log_debug2("HC(%p): Scanning %lu pending endpoints", hc,
+		usb_log_debug2("HC(%p): Scanning %zu pending endpoints", hc,
 		    list_count(&hc->pending_endpoints));
 		list_foreach_safe(hc->pending_endpoints, current, next) {
 			ehci_endpoint_t *ep =

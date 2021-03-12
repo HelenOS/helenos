@@ -36,12 +36,13 @@
 #define _LIBC_ODICT_H_
 
 #include <errno.h>
+#include <member.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <types/adt/odict.h>
 
 #define odict_get_instance(odlink, type, member) \
-	((type *)( (void *)(odlink) - ((void *) &((type *) NULL)->member)))
+	member_to_inst(odlink, type, member)
 
 extern void odict_initialize(odict_t *, odgetkey_t, odcmp_t);
 extern void odict_finalize(odict_t *);
