@@ -392,13 +392,13 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 
 	/* mgc != NULL iff client-side rendering */
 	if (window->mgc != NULL) {
-		/* Resize window bitmap */
+#ifdef CONFIG_WIN_DOUBLE_BUF
+		/*
+		 * Create new window bitmap in advance. If direct mapping,
+		 * will need do it after resizing the window.
+		 */
 		assert(window->bmp != NULL);
-
 		gfx_bitmap_params_init(&win_params);
-#ifndef CONFIG_WIN_DOUBLE_BUF
-		win_params.flags |= bmpf_direct_output;
-#endif
 		win_params.rect = nrect;
 
 		rc = gfx_bitmap_create(window->realgc, &win_params, NULL,
@@ -409,6 +409,7 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 		rc = gfx_bitmap_get_alloc(win_bmp, &win_alloc);
 		if (rc != EOK)
 			goto error;
+#endif
 	}
 
 	/* Application area GC? */
@@ -442,8 +443,24 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 			goto error;
 	}
 
-	/* CLient side rendering? */
+	/* Client side rendering? */
 	if (window->mgc != NULL) {
+#ifndef CONFIG_WIN_DOUBLE_BUF
+		/* Window is resized, now we can map the window bitmap again */
+		gfx_bitmap_params_init(&win_params);
+		win_params.flags |= bmpf_direct_output;
+		win_params.rect = nrect;
+
+		rc = gfx_bitmap_create(window->realgc, &win_params, NULL,
+		    &win_bmp);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_bitmap_get_alloc(win_bmp, &win_alloc);
+		if (rc != EOK)
+			goto error;
+#endif
+
 		mem_gc_retarget(window->mgc, &win_params.rect, &win_alloc);
 
 		gfx_bitmap_destroy(window->bmp);
