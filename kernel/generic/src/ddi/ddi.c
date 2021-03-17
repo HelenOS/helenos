@@ -455,6 +455,7 @@ _NO_TRACE static errno_t dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	backend_data.base = *phys;
 	backend_data.frames = frames;
 	backend_data.anonymous = true;
+	backend_data.parea = NULL;
 
 	if (!as_area_create(TASK->as, map_flags, size,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
