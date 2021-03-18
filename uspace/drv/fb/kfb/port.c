@@ -449,7 +449,6 @@ errno_t port_init(ddf_dev_t *dev)
 		present = false;
 
 	if (!present) {
-		ddf_fun_destroy(fun);
 		rc = ENOENT;
 		goto error;
 	}
