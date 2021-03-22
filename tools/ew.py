@@ -138,7 +138,10 @@ def platform_to_qemu_options(platform, machine, processor):
 	if platform == 'amd64':
 		return 'system-x86_64', pc_options(64)
 	elif platform == 'arm32':
-		return 'system-arm', '-M integratorcp'
+		if machine == 'integratorcp':
+			return 'system-arm', '-M integratorcp'
+		elif machine == 'raspberrypi':
+			return 'system-arm', '-M raspi1ap'
 	elif platform == 'arm64':
 		# Search for the EDK2 firmware image
 		default_paths = (
@@ -298,6 +301,8 @@ def qemu_run(platform, machine, processor):
 		cmdline += ' -device scsi-cd,drive=cdrom'
 	elif cfg['image'] == 'image.boot':
 		cmdline += ' -kernel image.boot'
+	elif cfg['image'] == 'kernel.img@rpi':
+		cmdline += ' -bios boot/image.boot.bin'
 	else:
 		cmdline += ' ' + cfg['image']
 
@@ -338,7 +343,18 @@ emulators = {
 			'audio' : False,
 			'xhci' : False,
 			'tablet' : False
-		}
+		},
+		'raspberrypi' : {
+			'run' : qemu_run,
+			'image' : 'kernel.img@rpi',
+			'audio' : False,
+			'console' : True,
+			'hdd' : False,
+			'net' : False,
+			'tablet' : False,
+			'usb' : False,
+			'xhci' : False
+		},
 	},
 	'arm64' : {
 		'virt' : {
