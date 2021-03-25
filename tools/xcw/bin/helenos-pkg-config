@@ -43,8 +43,8 @@ LIB_DIR="$EXPORT_DIR/lib"
 libmath_cflags="-I$INCLUDE_DIR/libmath"
 libmath_libs="$LIB_DIR/libmath.a"
 
-libui_cflags="-I$INCLUDE_DIR/libui -I$INCLUDE_DIR/libdisplay -I$INCLUDE_DIR/libgfx -I$INCLUDE_DIR/libipcgfx"
-libui_libs="$LIB_DIR/libui.a $LIB_DIR/libdisplay.a $LIB_DIR/libipcgfx.a $LIB_DIR/libgfx.a $LIB_DIR/libgfxfont.a $LIB_DIR/libriff.a $LIB_DIR/libmemgfx.a"
+libui_cflags="-I$INCLUDE_DIR/libui -I$INCLUDE_DIR/libdisplay -I$INCLUDE_DIR/libgfx -I$INCLUDE_DIR/libipcgfx -I$INCLUDE_DIR/libcongfx"
+libui_libs="$LIB_DIR/libui.a $LIB_DIR/libdisplay.a $LIB_DIR/libipcgfx.a $LIB_DIR/libcongfx.a $LIB_DIR/libgfx.a $LIB_DIR/libgfxfont.a $LIB_DIR/libriff.a $LIB_DIR/libmemgfx.a"
 
 libgfximage_cflags="-I$INCLUDE_DIR/libgfximage"
 libgfximage_libs="$LIB_DIR/libgfximage.a $LIB_DIR/libpixconv.a"

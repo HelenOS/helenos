@@ -41,6 +41,7 @@ EXPORT_LIBS=" \
 	uspace/lib/c/libstartfiles.a \
 	uspace/lib/libclui.a \
 	uspace/lib/libc.a \
+	uspace/lib/libcongfx.a \
 	uspace/lib/libcpp.a \
 	uspace/lib/libdisplay.a \
 	uspace/lib/libgfx.a \

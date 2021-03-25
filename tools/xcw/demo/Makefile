@@ -49,9 +49,9 @@ CC = helenos-cc
 LD = helenos-ld
 INSTALL = install
 TEST = helenos-test
-CFLAGS = -std=gnu11 -Wall `helenos-pkg-config --cflags libui libdraw libmath` \
+CFLAGS = -std=gnu11 -Wall `helenos-pkg-config --cflags libui libgfximage` \
     -D_HELENOS_SOURCE
-LIBS = `helenos-pkg-config --libs libui libdraw libmath`
+LIBS = `helenos-pkg-config --libs libui libgfximage`
 PREFIX = `helenos-bld-config --install-dir`
 output = viewer
 objects = viewer.o

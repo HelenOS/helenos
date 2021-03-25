@@ -41,6 +41,7 @@ installed_libs = [
 	'gfx',
 	'gfximage',
 	'ipcgfx',
+	'congfx',
 	'display',
 	'ui',
 ]
