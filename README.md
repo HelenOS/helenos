@@ -75,7 +75,7 @@ The safest bet is installing both using `pip3` tool.
 
 ```sh
 $ pip3 install ninja
-$ pip3 install meson
+$ pip3 install meson==0.50.1
 ```
 
 Meson does not support in-tree builds, so you have to create a directory
