@@ -148,6 +148,36 @@ error:
 	return rc;
 }
 
+/** Paint outset frame.
+ *
+ * @param resource UI resource
+ * @param rect Rectangle to paint onto
+ * @param inside Place to store inside rectangle or @c NULL
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_outset_frame(ui_resource_t *resource, gfx_rect_t *rect,
+    gfx_rect_t *inside)
+{
+	gfx_rect_t frame;
+	errno_t rc;
+
+	rc = ui_paint_bevel(resource->gc, rect,
+	    resource->wnd_frame_hi_color, resource->wnd_frame_sh_color,
+	    1, &frame);
+	if (rc != EOK)
+		goto error;
+
+	rc = ui_paint_bevel(resource->gc, &frame,
+	    resource->wnd_highlight_color, resource->wnd_shadow_color,
+	    1, inside);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Paint filled circle vertical scanline.
  *
  * @param gc Graphic context

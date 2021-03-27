@@ -42,6 +42,9 @@
 #include <ui/fixed.h>
 #include <ui/image.h>
 #include <ui/label.h>
+#include <ui/menubar.h>
+#include <ui/menuentry.h>
+#include <ui/menu.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
@@ -79,6 +82,8 @@ static void slider_moved(ui_slider_t *, void *, gfx_coord_t);
 static ui_slider_cb_t slider_cb = {
 	.moved = slider_moved
 };
+
+static void uidemo_file_exit(ui_menu_entry_t *, void *);
 
 /** Window close button was clicked.
  *
@@ -184,6 +189,18 @@ static void slider_moved(ui_slider_t *slider, void *arg, gfx_coord_t pos)
 	free(str);
 }
 
+/** File/exit menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (demo)
+ */
+static void uidemo_file_exit(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	ui_quit(demo->ui);
+}
+
 /** Run UI demo on display server. */
 static errno_t ui_demo(const char *display_spec)
 {
@@ -197,6 +214,11 @@ static errno_t ui_demo(const char *display_spec)
 	gfx_bitmap_params_t bparams;
 	gfx_bitmap_t *bitmap;
 	gfx_coord2_t off;
+	ui_menu_entry_t *mfoo;
+	ui_menu_entry_t *mbar;
+	ui_menu_entry_t *mfoobar;
+	ui_menu_entry_t *mexit;
+	ui_menu_entry_t *mabout;
 	errno_t rc;
 
 	rc = ui_create(display_spec, &ui);
@@ -211,7 +233,7 @@ static errno_t ui_demo(const char *display_spec)
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 220;
-	params.rect.p1.y = 340;
+	params.rect.p1.y = 350;
 
 	memset((void *) &demo, 0, sizeof(demo));
 	demo.ui = ui;
@@ -234,6 +256,99 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
+	rc = ui_menu_bar_create(ui_res, &demo.mbar);
+	if (rc != EOK) {
+		printf("Error creating menu bar.\n");
+		return rc;
+	}
+
+	rc = ui_menu_create(demo.mbar, "File", &demo.mfile);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(demo.mfile, "Foo", &mfoo);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(demo.mfile, "Bar", &mbar);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(demo.mfile, "Foobar", &mfoobar);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(demo.mfile, "Exit", &mexit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mexit, uidemo_file_exit, (void *) &demo);
+
+	rc = ui_menu_create(demo.mbar, "Edit", &demo.medit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_create(demo.mbar, "Preferences", &demo.mpreferences);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_create(demo.mbar, "Help", &demo.mhelp);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(demo.mhelp, "About", &mabout);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rect.p0.x = 4;
+	rect.p0.y = 30;
+	rect.p1.x = 216;
+	rect.p1.y = 52;
+	ui_menu_bar_set_rect(demo.mbar, &rect);
+
+	rc = ui_fixed_add(demo.fixed, ui_menu_bar_ctl(demo.mbar));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_entry_create(ui_res, "", &demo.entry);
+	if (rc != EOK) {
+		printf("Error creating entry.\n");
+		return rc;
+	}
+
+	rect.p0.x = 15;
+	rect.p0.y = 53;
+	rect.p1.x = 205;
+	rect.p1.y = 78;
+	ui_entry_set_rect(demo.entry, &rect);
+	ui_entry_set_halign(demo.entry, gfx_halign_center);
+
+	rc = ui_fixed_add(demo.fixed, ui_entry_ctl(demo.entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
 	rc = ui_label_create(ui_res, "Text label", &demo.label);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
@@ -241,9 +356,9 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	rect.p0.x = 60;
-	rect.p0.y = 37;
+	rect.p0.y = 88;
 	rect.p1.x = 160;
-	rect.p1.y = 50;
+	rect.p1.y = 101;
 	ui_label_set_rect(demo.label, &rect);
 	ui_label_set_halign(demo.label, gfx_halign_center);
 
@@ -262,9 +377,9 @@ static errno_t ui_demo(const char *display_spec)
 	ui_pbutton_set_cb(demo.pb1, &pbutton_cb, (void *) &demo);
 
 	rect.p0.x = 15;
-	rect.p0.y = 70;
+	rect.p0.y = 111;
 	rect.p1.x = 105;
-	rect.p1.y = 98;
+	rect.p1.y = 139;
 	ui_pbutton_set_rect(demo.pb1, &rect);
 
 	ui_pbutton_set_default(demo.pb1, true);
@@ -284,31 +399,12 @@ static errno_t ui_demo(const char *display_spec)
 	ui_pbutton_set_cb(demo.pb2, &pbutton_cb, (void *) &demo);
 
 	rect.p0.x = 115;
-	rect.p0.y = 70;
+	rect.p0.y = 111;
 	rect.p1.x = 205;
-	rect.p1.y = 98;
+	rect.p1.y = 139;
 	ui_pbutton_set_rect(demo.pb2, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_pbutton_ctl(demo.pb2));
-	if (rc != EOK) {
-		printf("Error adding control to layout.\n");
-		return rc;
-	}
-
-	rc = ui_entry_create(ui_res, "", &demo.entry);
-	if (rc != EOK) {
-		printf("Error creating entry.\n");
-		return rc;
-	}
-
-	rect.p0.x = 15;
-	rect.p0.y = 110;
-	rect.p1.x = 205;
-	rect.p1.y = 135;
-	ui_entry_set_rect(demo.entry, &rect);
-	ui_entry_set_halign(demo.entry, gfx_halign_center);
-
-	rc = ui_fixed_add(demo.fixed, ui_entry_ctl(demo.entry));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -335,7 +431,7 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	off.x = 15;
-	off.y = 145;
+	off.y = 155;
 	gfx_rect_translate(&off, &bparams.rect, &rect);
 
 	/* Adjust for frame width (2 x 1 pixel) */
@@ -359,9 +455,9 @@ static errno_t ui_demo(const char *display_spec)
 	ui_checkbox_set_cb(demo.checkbox, &checkbox_cb, (void *) &demo);
 
 	rect.p0.x = 15;
-	rect.p0.y = 180;
+	rect.p0.y = 190;
 	rect.p1.x = 140;
-	rect.p1.y = 200;
+	rect.p1.y = 210;
 	ui_checkbox_set_rect(demo.checkbox, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_checkbox_ctl(demo.checkbox));
@@ -387,9 +483,9 @@ static errno_t ui_demo(const char *display_spec)
 	    (void *) &demo);
 
 	rect.p0.x = 15;
-	rect.p0.y = 210;
+	rect.p0.y = 220;
 	rect.p1.x = 140;
-	rect.p1.y = 230;
+	rect.p1.y = 240;
 	ui_rbutton_set_rect(demo.rb1, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb1));
@@ -406,9 +502,9 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	rect.p0.x = 15;
-	rect.p0.y = 240;
+	rect.p0.y = 250;
 	rect.p1.x = 140;
-	rect.p1.y = 260;
+	rect.p1.y = 270;
 	ui_rbutton_set_rect(demo.rb2, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb2));
@@ -425,9 +521,9 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	rect.p0.x = 15;
-	rect.p0.y = 270;
+	rect.p0.y = 280;
 	rect.p1.x = 140;
-	rect.p1.y = 290;
+	rect.p1.y = 300;
 	ui_rbutton_set_rect(demo.rb3, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb3));
@@ -445,9 +541,9 @@ static errno_t ui_demo(const char *display_spec)
 	ui_slider_set_cb(demo.slider, &slider_cb, (void *) &demo);
 
 	rect.p0.x = 15;
-	rect.p0.y = 300;
+	rect.p0.y = 310;
 	rect.p1.x = 130;
-	rect.p1.y = 320;
+	rect.p1.y = 330;
 	ui_slider_set_rect(demo.slider, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_slider_ctl(demo.slider));

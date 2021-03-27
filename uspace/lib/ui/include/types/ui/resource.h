@@ -39,6 +39,8 @@
 struct ui_resource;
 typedef struct ui_resource ui_resource_t;
 
+typedef void (*ui_expose_cb_t)(void *);
+
 #endif
 
 /** @}

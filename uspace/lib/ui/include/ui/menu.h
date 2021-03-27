@@ -30,26 +30,28 @@
  * @{
  */
 /**
- * @file Painting routines
+ * @file Menu
  */
 
-#ifndef _UI_PAINT_H
-#define _UI_PAINT_H
+#ifndef _UI_MENU_H
+#define _UI_MENU_H
 
 #include <errno.h>
-#include <gfx/color.h>
 #include <gfx/coord.h>
-#include <types/ui/paint.h>
-#include <types/ui/resource.h>
+#include <io/pos_event.h>
+#include <types/ui/menu.h>
+#include <types/ui/menubar.h>
+#include <types/ui/event.h>
 
-extern errno_t ui_paint_bevel(gfx_context_t *, gfx_rect_t *, gfx_color_t *,
-    gfx_color_t *, gfx_coord_t, gfx_rect_t *);
-extern errno_t ui_paint_inset_frame(ui_resource_t *, gfx_rect_t *,
-    gfx_rect_t *);
-extern errno_t ui_paint_outset_frame(ui_resource_t *, gfx_rect_t *,
-    gfx_rect_t *);
-extern errno_t ui_paint_filled_circle(gfx_context_t *, gfx_coord2_t *,
-    gfx_coord_t, ui_fcircle_part_t);
+extern errno_t ui_menu_create(ui_menu_bar_t *, const char *, ui_menu_t **);
+extern void ui_menu_destroy(ui_menu_t *);
+extern ui_menu_t *ui_menu_first(ui_menu_bar_t *);
+extern ui_menu_t *ui_menu_next(ui_menu_t *);
+extern const char *ui_menu_caption(ui_menu_t *);
+extern void ui_menu_get_rect(ui_menu_t *, gfx_coord2_t *, gfx_rect_t *);
+extern errno_t ui_menu_paint(ui_menu_t *, gfx_coord2_t *);
+extern errno_t ui_menu_unpaint(ui_menu_t *);
+extern void ui_menu_press(ui_menu_t *, gfx_coord2_t *, gfx_coord2_t *);
 
 #endif
 

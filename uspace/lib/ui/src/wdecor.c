@@ -177,16 +177,16 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	ui_wdecor_get_geom(wdecor, &geom);
 
 	if ((wdecor->style & ui_wds_frame) != 0) {
-		rc = ui_paint_bevel(wdecor->res->gc, &rect,
-		    wdecor->res->wnd_frame_hi_color,
-		    wdecor->res->wnd_frame_sh_color, 1, &rect);
-		if (rc != EOK)
-			return rc;
 
-		if (wdecor->res->textmode == false) {
+		if (wdecor->res->textmode != false) {
 			rc = ui_paint_bevel(wdecor->res->gc, &rect,
-			    wdecor->res->wnd_highlight_color,
-			    wdecor->res->wnd_shadow_color, 1, &rect);
+			    wdecor->res->wnd_frame_hi_color,
+			    wdecor->res->wnd_frame_sh_color, 1, &rect);
+			if (rc != EOK)
+				return rc;
+		} else {
+			rc = ui_paint_outset_frame(wdecor->res, &rect,
+			    &rect);
 			if (rc != EOK)
 				return rc;
 
