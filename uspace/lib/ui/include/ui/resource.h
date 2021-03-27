@@ -43,6 +43,9 @@
 
 extern errno_t ui_resource_create(gfx_context_t *, bool, ui_resource_t **);
 extern void ui_resource_destroy(ui_resource_t *);
+extern void ui_resource_set_expose_cb(ui_resource_t *, ui_expose_cb_t,
+    void *);
+extern void ui_resource_expose(ui_resource_t *);
 
 #endif
 

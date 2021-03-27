@@ -42,6 +42,7 @@
 #include <gfx/font.h>
 #include <gfx/typeface.h>
 #include <stdbool.h>
+#include <types/ui/resource.h>
 
 /** Actual structure of UI resources.
  *
@@ -72,6 +73,10 @@ struct ui_resource {
 	gfx_color_t *wnd_face_color;
 	/** Window text color */
 	gfx_color_t *wnd_text_color;
+	/** Window selected text color */
+	gfx_color_t *wnd_sel_text_color;
+	/** Window selected text background color */
+	gfx_color_t *wnd_sel_text_bg_color;
 	/** Window frame hightlight color */
 	gfx_color_t *wnd_frame_hi_color;
 	/** Window frame shadow color */
@@ -96,6 +101,11 @@ struct ui_resource {
 	gfx_color_t *entry_bg_color;
 	/** Entry (text entry, checkbox, raido button) active background color */
 	gfx_color_t *entry_act_bg_color;
+
+	/** Expose callback or @c NULL */
+	ui_expose_cb_t expose_cb;
+	/** Expose callback argument */
+	void *expose_arg;
 };
 
 #endif

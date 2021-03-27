@@ -67,6 +67,8 @@ errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
 	gfx_color_t *btn_shadow_color = NULL;
 	gfx_color_t *wnd_face_color = NULL;
 	gfx_color_t *wnd_text_color = NULL;
+	gfx_color_t *wnd_sel_text_color = NULL;
+	gfx_color_t *wnd_sel_text_bg_color = NULL;
 	gfx_color_t *wnd_frame_hi_color = NULL;
 	gfx_color_t *wnd_frame_sh_color = NULL;
 	gfx_color_t *wnd_highlight_color = NULL;
@@ -138,6 +140,15 @@ errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &wnd_sel_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x5858, 0x6a6a, 0xc4c4,
+	    &wnd_sel_text_bg_color);
+	if (rc != EOK)
+		goto error;
+
 	rc = gfx_color_new_rgb_i16(0x8888, 0x8888, 0x8888, &wnd_frame_hi_color);
 	if (rc != EOK)
 		goto error;
@@ -199,6 +210,8 @@ errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
 
 	resource->wnd_face_color = wnd_face_color;
 	resource->wnd_text_color = wnd_text_color;
+	resource->wnd_sel_text_color = wnd_sel_text_color;
+	resource->wnd_sel_text_bg_color = wnd_sel_text_bg_color;
 	resource->wnd_frame_hi_color = wnd_frame_hi_color;
 	resource->wnd_frame_sh_color = wnd_frame_sh_color;
 	resource->wnd_highlight_color = wnd_highlight_color;
@@ -231,6 +244,10 @@ error:
 		gfx_color_delete(wnd_face_color);
 	if (wnd_text_color != NULL)
 		gfx_color_delete(wnd_text_color);
+	if (wnd_sel_text_color != NULL)
+		gfx_color_delete(wnd_sel_text_color);
+	if (wnd_sel_text_bg_color != NULL)
+		gfx_color_delete(wnd_sel_text_bg_color);
 	if (wnd_frame_hi_color != NULL)
 		gfx_color_delete(wnd_frame_hi_color);
 	if (wnd_frame_sh_color != NULL)
@@ -279,6 +296,8 @@ void ui_resource_destroy(ui_resource_t *resource)
 
 	gfx_color_delete(resource->wnd_face_color);
 	gfx_color_delete(resource->wnd_text_color);
+	gfx_color_delete(resource->wnd_sel_text_color);
+	gfx_color_delete(resource->wnd_sel_text_bg_color);
 	gfx_color_delete(resource->wnd_frame_hi_color);
 	gfx_color_delete(resource->wnd_frame_sh_color);
 	gfx_color_delete(resource->wnd_highlight_color);
@@ -296,6 +315,34 @@ void ui_resource_destroy(ui_resource_t *resource)
 	gfx_font_close(resource->font);
 	gfx_typeface_destroy(resource->tface);
 	free(resource);
+}
+
+/** Set UI resource expose callback.
+ *
+ * @param resource Resource
+ * @param cb Callback
+ * @param arg Callback argument
+ */
+void ui_resource_set_expose_cb(ui_resource_t *resource,
+    ui_expose_cb_t cb, void *arg)
+{
+	resource->expose_cb = cb;
+	resource->expose_arg = arg;
+}
+
+/** Force UI repaint after an area has been exposed.
+ *
+ * This is called when a popup disappears, which could have exposed some
+ * other UI elements. It causes complete repaint of the UI.
+ *
+ * NOTE Ideally we could specify the exposed rectangle and then limit
+ * the repaint to just that. That would, however, require means of
+ * actually clipping the repaint operation.
+ */
+void ui_resource_expose(ui_resource_t *resource)
+{
+	if (resource->expose_cb != NULL)
+		resource->expose_cb(resource->expose_arg);
 }
 
 /** @}

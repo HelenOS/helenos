@@ -30,26 +30,37 @@
  * @{
  */
 /**
- * @file Painting routines
+ * @file Menu bar structure
+ *
  */
 
-#ifndef _UI_PAINT_H
-#define _UI_PAINT_H
+#ifndef _UI_PRIVATE_MENUBAR_H
+#define _UI_PRIVATE_MENUBAR_H
 
-#include <errno.h>
-#include <gfx/color.h>
+#include <adt/list.h>
 #include <gfx/coord.h>
-#include <types/ui/paint.h>
-#include <types/ui/resource.h>
+#include <types/ui/menubar.h>
 
-extern errno_t ui_paint_bevel(gfx_context_t *, gfx_rect_t *, gfx_color_t *,
-    gfx_color_t *, gfx_coord_t, gfx_rect_t *);
-extern errno_t ui_paint_inset_frame(ui_resource_t *, gfx_rect_t *,
-    gfx_rect_t *);
-extern errno_t ui_paint_outset_frame(ui_resource_t *, gfx_rect_t *,
-    gfx_rect_t *);
-extern errno_t ui_paint_filled_circle(gfx_context_t *, gfx_coord2_t *,
-    gfx_coord_t, ui_fcircle_part_t);
+/** Actual structure of menu bar.
+ *
+ * This is private to libui.
+ */
+struct ui_menu_bar {
+	/** Base control object */
+	struct ui_control *control;
+	/** UI resource */
+	struct ui_resource *res;
+	/** Menu bar rectangle */
+	gfx_rect_t rect;
+	/** Selected menu or @c NULL */
+	struct ui_menu *selected;
+	/** Position of selected entry */
+	gfx_coord2_t sel_pos;
+	/** List of menus (ui_menu_t) */
+	list_t menus;
+};
+
+extern void ui_menu_bar_select(ui_menu_bar_t *, gfx_coord2_t *, ui_menu_t *);
 
 #endif
 

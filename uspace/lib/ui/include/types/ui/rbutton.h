@@ -36,8 +36,6 @@
 #ifndef _UI_TYPES_RBUTTON_H
 #define _UI_TYPES_RBUTTON_H
 
-#include <stdbool.h>
-
 struct ui_rbutton_group;
 typedef struct ui_rbutton_group ui_rbutton_group_t;
 

@@ -30,26 +30,17 @@
  * @{
  */
 /**
- * @file Painting routines
+ * @file Menu entry
  */
 
-#ifndef _UI_PAINT_H
-#define _UI_PAINT_H
+#ifndef _UI_TYPES_MENUENTRY_H
+#define _UI_TYPES_MENUENTRY_H
 
-#include <errno.h>
-#include <gfx/color.h>
-#include <gfx/coord.h>
-#include <types/ui/paint.h>
-#include <types/ui/resource.h>
+struct ui_menu_entry;
+typedef struct ui_menu_entry ui_menu_entry_t;
 
-extern errno_t ui_paint_bevel(gfx_context_t *, gfx_rect_t *, gfx_color_t *,
-    gfx_color_t *, gfx_coord_t, gfx_rect_t *);
-extern errno_t ui_paint_inset_frame(ui_resource_t *, gfx_rect_t *,
-    gfx_rect_t *);
-extern errno_t ui_paint_outset_frame(ui_resource_t *, gfx_rect_t *,
-    gfx_rect_t *);
-extern errno_t ui_paint_filled_circle(gfx_context_t *, gfx_coord2_t *,
-    gfx_coord_t, ui_fcircle_part_t);
+/** Menu entry callback */
+typedef void (*ui_menu_entry_cb_t)(ui_menu_entry_t *, void *);
 
 #endif
 

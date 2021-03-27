@@ -89,6 +89,7 @@ static void ui_window_invalidate(void *, gfx_rect_t *);
 static void ui_window_update(void *);
 static void ui_window_app_invalidate(void *, gfx_rect_t *);
 static void ui_window_app_update(void *);
+static void ui_window_expose_cb(void *);
 
 /** Initialize window parameters structure.
  *
@@ -268,6 +269,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	ui_wdecor_set_rect(wdecor, &dparams.rect);
 	ui_wdecor_set_cb(wdecor, &wdecor_cb, (void *) window);
 	ui_wdecor_paint(wdecor);
+
+	ui_resource_set_expose_cb(res, ui_window_expose_cb, (void *) window);
 
 	window->ui = ui;
 	window->dwindow = dwindow;
@@ -919,6 +922,14 @@ static void ui_window_app_update(void *arg)
 	 * in ui_window_app_invalidate
 	 */
 	(void) window;
+}
+
+/** Window expose callback. */
+static void ui_window_expose_cb(void *arg)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	ui_window_paint(window);
 }
 
 /** @}
