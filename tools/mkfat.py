@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (c) 2008 Martin Decky
 # All rights reserved.
@@ -192,8 +192,8 @@ def fat_lchars(name):
 	filtered = False
 
 	for char in name.encode('ascii', 'replace').upper():
-		if char in lchars:
-			filtered_name += char
+		if chr(char) in lchars:
+			filtered_name += str.encode(chr(char))
 		else:
 			filtered_name += b'_'
 			filtered = True
