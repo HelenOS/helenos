@@ -266,10 +266,10 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, gfx_coord2_t *pos,
 /** Handle menu bar position event.
  *
  * @param mbar Menu bar
- * @param ppos Press position
+ * @param pos_event Position event
  * @return @c ui_claimed iff the event is claimed
  */
-static ui_evclaim_t ui_menu_bar_press(ui_menu_bar_t *mbar, gfx_coord2_t *ppos)
+ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 {
 	gfx_coord2_t pos;
 	gfx_coord2_t spos;
@@ -278,6 +278,11 @@ static ui_evclaim_t ui_menu_bar_press(ui_menu_bar_t *mbar, gfx_coord2_t *ppos)
 	const char *caption;
 	gfx_coord_t width;
 	gfx_coord_t hpad;
+	gfx_coord2_t ppos;
+	ui_evclaim_t claimed;
+
+	ppos.x = event->hpos;
+	ppos.y = event->vpos;
 
 	if (mbar->res->textmode) {
 		hpad = menubar_hpad_text;
@@ -297,7 +302,8 @@ static ui_evclaim_t ui_menu_bar_press(ui_menu_bar_t *mbar, gfx_coord2_t *ppos)
 		rect.p1.y = mbar->rect.p1.y;
 
 		/* Check if press is inside menu bar entry */
-		if (gfx_pix_inside_rect(ppos, &rect)) {
+		if (event->type == POS_PRESS &&
+		    gfx_pix_inside_rect(&ppos, &rect)) {
 			ui_menu_bar_select(mbar, &pos, menu);
 			return ui_claimed;
 		}
@@ -309,38 +315,13 @@ static ui_evclaim_t ui_menu_bar_press(ui_menu_bar_t *mbar, gfx_coord2_t *ppos)
 
 			ui_menu_get_rect(menu, &spos, &rect);
 
-			/* Check if press is inside open menu */
-			if (gfx_pix_inside_rect(ppos, &rect)) {
-				ui_menu_press(menu, &spos, ppos);
+			claimed = ui_menu_pos_event(menu, &spos, event);
+			if (claimed == ui_claimed)
 				return ui_claimed;
-			}
 		}
 
 		pos.x += width;
 		menu = ui_menu_next(menu);
-	}
-
-	return ui_unclaimed;
-}
-
-/** Handle menu bar position event.
- *
- * @param mbar Menu bar
- * @param pos_event Position event
- * @return @c ui_claimed iff the event is claimed
- */
-ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
-{
-	gfx_coord2_t pos;
-
-	pos.x = event->hpos;
-	pos.y = event->vpos;
-
-	switch (event->type) {
-	case POS_PRESS:
-		return ui_menu_bar_press(mbar, &pos);
-	default:
-		break;
 	}
 
 	return ui_unclaimed;

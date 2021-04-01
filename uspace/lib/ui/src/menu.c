@@ -291,25 +291,38 @@ errno_t ui_menu_unpaint(ui_menu_t *menu)
  *
  * @param menu Menu
  * @param spos Starting position (top-left corner)
- * @param ppos Press position
+ * @param event Position event
+ * @return ui_claimed iff the event was claimed
  */
-void ui_menu_press(ui_menu_t *menu, gfx_coord2_t *spos, gfx_coord2_t *ppos)
+ui_evclaim_t ui_menu_pos_event(ui_menu_t *menu, gfx_coord2_t *spos,
+    pos_event_t *event)
 {
 	ui_menu_geom_t geom;
 	ui_menu_entry_t *mentry;
 	gfx_coord2_t pos;
+	gfx_coord2_t epos;
+	ui_evclaim_t claimed;
 
 	ui_menu_get_geom(menu, spos, &geom);
+	epos.x = event->hpos;
+	epos.y = event->vpos;
 
 	pos = geom.entries_rect.p0;
 
 	mentry = ui_menu_entry_first(menu);
 	while (mentry != NULL) {
-		ui_menu_entry_press(mentry, &pos, ppos);
+		claimed = ui_menu_entry_pos_event(mentry, &pos, event);
+		if (claimed == ui_claimed)
+			return ui_claimed;
 
 		pos.y += ui_menu_entry_height(mentry);
 		mentry = ui_menu_entry_next(mentry);
 	}
+
+	if (gfx_pix_inside_rect(&epos, &geom.outer_rect))
+		return ui_claimed;
+
+	return ui_unclaimed;
 }
 
 /** @}
