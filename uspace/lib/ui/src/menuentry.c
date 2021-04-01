@@ -68,6 +68,7 @@ errno_t ui_menu_entry_create(ui_menu_t *menu, const char *caption,
     ui_menu_entry_t **rmentry)
 {
 	ui_menu_entry_t *mentry;
+	gfx_coord_t width;
 
 	mentry = calloc(1, sizeof(ui_menu_entry_t));
 	if (mentry == NULL)
@@ -81,6 +82,12 @@ errno_t ui_menu_entry_create(ui_menu_t *menu, const char *caption,
 
 	mentry->menu = menu;
 	list_append(&mentry->lentries, &menu->entries);
+
+	/* Update accumulated menu entry dimensions */
+	width = ui_menu_entry_width(mentry);
+	if (width > menu->max_w)
+		menu->max_w = width;
+	menu->total_h += ui_menu_entry_height(mentry);
 
 	*rmentry = mentry;
 	return EOK;
@@ -371,7 +378,6 @@ void ui_menu_entry_get_geom(ui_menu_entry_t *mentry, gfx_coord2_t *pos,
 	ui_resource_t *res;
 	gfx_coord_t hpad;
 	gfx_coord_t vpad;
-	const char *caption;
 	gfx_coord_t width;
 
 	res = mentry->menu->mbar->res;
@@ -384,8 +390,7 @@ void ui_menu_entry_get_geom(ui_menu_entry_t *mentry, gfx_coord2_t *pos,
 		vpad = menu_entry_vpad;
 	}
 
-	caption = mentry->caption;
-	width = gfx_text_width(res->font, caption) + 2 * hpad;
+	width = mentry->menu->max_w;
 	geom->text_pos.x = pos->x + hpad;
 	geom->text_pos.y = pos->y + vpad;
 

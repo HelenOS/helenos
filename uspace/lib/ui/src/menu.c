@@ -162,12 +162,9 @@ const char *ui_menu_caption(ui_menu_t *menu)
 void ui_menu_get_geom(ui_menu_t *menu, gfx_coord2_t *spos,
     ui_menu_geom_t *geom)
 {
-	ui_menu_entry_t *mentry;
 	gfx_coord2_t edim;
 	gfx_coord_t frame_w;
 	gfx_coord_t frame_h;
-	gfx_coord_t w;
-	gfx_coord_t h;
 
 	if (menu->mbar->res->textmode) {
 		frame_w = menu_frame_w_text;
@@ -177,20 +174,8 @@ void ui_menu_get_geom(ui_menu_t *menu, gfx_coord2_t *spos,
 		frame_h = menu_frame_h;
 	}
 
-	edim.x = 0;
-	edim.y = 0;
-
-	mentry = ui_menu_entry_first(menu);
-	while (mentry != NULL) {
-		w = ui_menu_entry_width(mentry);
-		h = ui_menu_entry_height(mentry);
-
-		if (w > edim.x)
-			edim.x = w;
-		edim.y += h;
-
-		mentry = ui_menu_entry_next(mentry);
-	}
+	edim.x = menu->max_w;
+	edim.y = menu->total_h;
 
 	geom->outer_rect.p0 = *spos;
 	geom->outer_rect.p1.x = spos->x + edim.x + 2 * frame_w;
