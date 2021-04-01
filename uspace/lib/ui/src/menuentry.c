@@ -216,7 +216,8 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 
 	caption = mentry->caption;
 
-	if (mentry == mentry->menu->selected) {
+	if ((mentry->held && mentry->inside) ||
+	    mentry == mentry->menu->selected) {
 		fmt.color = res->wnd_sel_text_color;
 		bg_color = res->wnd_sel_text_bg_color;
 	} else {
@@ -248,19 +249,30 @@ error:
 /** Handle button press in menu entry.
  *
  * @param mentry Menu entry
- * @param pos Position (top-left corner)
- * @param ppos Press position
+ * @param pos Menu entry position
  */
-void ui_menu_entry_press(ui_menu_entry_t *mentry, gfx_coord2_t *pos,
-    gfx_coord2_t *ppos)
+void ui_menu_entry_press(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 {
-	ui_menu_entry_geom_t geom;
+	if (mentry->held)
+		return;
 
-	ui_menu_entry_get_geom(mentry, pos, &geom);
+	mentry->inside = true;
+	mentry->held = true;
+	ui_menu_entry_paint(mentry, pos);
+}
 
-	if (gfx_pix_inside_rect(ppos, &geom.outer_rect)) {
-		/* Press inside menu entry */
+/** Handle button release in menu entry.
+ *
+ * @param mentry Menu entry
+ */
+void ui_menu_entry_release(ui_menu_entry_t *mentry)
+{
+	if (!mentry->held)
+		return;
 
+	mentry->held = false;
+
+	if (mentry->inside) {
 		/* Close menu */
 		ui_menu_bar_select(mentry->menu->mbar,
 		    &mentry->menu->mbar->sel_pos, NULL);
@@ -269,6 +281,82 @@ void ui_menu_entry_press(ui_menu_entry_t *mentry, gfx_coord2_t *pos,
 		if (mentry->cb != NULL)
 			mentry->cb(mentry, mentry->arg);
 	}
+}
+
+/** Pointer entered menu entry.
+ *
+ * @param mentry Menu entry
+ * @param pos Menu entry position
+ */
+void ui_menu_entry_enter(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
+{
+	if (mentry->inside)
+		return;
+
+	mentry->inside = true;
+	if (mentry->held)
+		(void) ui_menu_entry_paint(mentry, pos);
+}
+
+/** Pointer left menu entry.
+ *
+ * @param mentry Menu entry
+ * @param pos Menu entry position
+ */
+void ui_menu_entry_leave(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
+{
+	if (!mentry->inside)
+		return;
+
+	mentry->inside = false;
+	if (mentry->held)
+		(void) ui_menu_entry_paint(mentry, pos);
+}
+
+/** Handle menu entry position event.
+ *
+ * @param mentry Menu entry
+ * @param pos Menu entry position (top-left corner)
+ * @param pos_event Position event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_menu_entry_pos_event(ui_menu_entry_t *mentry,
+    gfx_coord2_t *pos, pos_event_t *event)
+{
+	ui_menu_entry_geom_t geom;
+	gfx_coord2_t ppos;
+	bool inside;
+
+	ppos.x = event->hpos;
+	ppos.y = event->vpos;
+
+	ui_menu_entry_get_geom(mentry, pos, &geom);
+	inside = gfx_pix_inside_rect(&ppos, &geom.outer_rect);
+
+	switch (event->type) {
+	case POS_PRESS:
+		if (inside) {
+			ui_menu_entry_press(mentry, pos);
+			return ui_claimed;
+		}
+		break;
+	case POS_RELEASE:
+		if (mentry->held) {
+			ui_menu_entry_release(mentry);
+			return ui_claimed;
+		}
+		break;
+	case POS_UPDATE:
+		if (inside && !mentry->inside) {
+			ui_menu_entry_enter(mentry, pos);
+			return ui_claimed;
+		} else if (!inside && mentry->inside) {
+			ui_menu_entry_leave(mentry, pos);
+		}
+		break;
+	}
+
+	return ui_unclaimed;
 }
 
 /** Get menu entry geometry.

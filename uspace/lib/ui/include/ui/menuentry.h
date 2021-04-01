@@ -52,8 +52,12 @@ extern ui_menu_entry_t *ui_menu_entry_next(ui_menu_entry_t *);
 extern gfx_coord_t ui_menu_entry_width(ui_menu_entry_t *);
 extern gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *);
 extern errno_t ui_menu_entry_paint(ui_menu_entry_t *, gfx_coord2_t *);
-extern void ui_menu_entry_press(ui_menu_entry_t *, gfx_coord2_t *,
-    gfx_coord2_t *);
+extern void ui_menu_entry_press(ui_menu_entry_t *, gfx_coord2_t *);
+extern void ui_menu_entry_release(ui_menu_entry_t *);
+extern void ui_menu_entry_enter(ui_menu_entry_t *, gfx_coord2_t *);
+extern void ui_menu_entry_leave(ui_menu_entry_t *, gfx_coord2_t *);
+extern ui_evclaim_t ui_menu_entry_pos_event(ui_menu_entry_t *, gfx_coord2_t *,
+    pos_event_t *);
 
 #endif
 

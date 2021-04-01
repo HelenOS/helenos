@@ -52,6 +52,10 @@ struct ui_menu_entry {
 	link_t lentries;
 	/** Callbacks */
 	ui_menu_entry_cb_t cb;
+	/** Menu entry is currently held down */
+	bool held;
+	/** Pointer is currently inside */
+	bool inside;
 	/** Callback argument */
 	void *arg;
 	/** Caption */
