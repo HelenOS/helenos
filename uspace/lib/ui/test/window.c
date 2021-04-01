@@ -65,10 +65,12 @@ static ui_window_cb_t dummy_window_cb = {
 
 static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
+static void test_ctl_unfocus(void *);
 
 static ui_control_ops_t test_ctl_ops = {
 	.paint = test_ctl_paint,
-	.pos_event = test_ctl_pos_event
+	.pos_event = test_ctl_pos_event,
+	.unfocus = test_ctl_unfocus
 };
 
 typedef struct {
@@ -89,6 +91,7 @@ typedef struct {
 	bool paint;
 	bool pos;
 	pos_event_t pos_event;
+	bool unfocus;
 } test_ctl_resp_t;
 
 /** Create and destroy window */
@@ -387,6 +390,42 @@ PCUT_TEST(def_pos)
 	PCUT_ASSERT_INT_EQUALS(event.btn_num, resp.pos_event.btn_num);
 	PCUT_ASSERT_INT_EQUALS(event.hpos, resp.pos_event.hpos);
 	PCUT_ASSERT_INT_EQUALS(event.vpos, resp.pos_event.vpos);
+
+	/* Need to remove first because we didn't implement the destructor */
+	ui_window_remove(window, control);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_window_def_unfocus() delivers unfocus event to control in window */
+PCUT_TEST(def_unfocus)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_control_t *control = NULL;
+	test_ctl_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_window_add(window, control);
+
+	resp.unfocus = false;
+
+	ui_window_def_unfocus(window);
+	PCUT_ASSERT_TRUE(resp.unfocus);
 
 	/* Need to remove first because we didn't implement the destructor */
 	ui_window_remove(window, control);
@@ -698,6 +737,13 @@ static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)
 	resp->pos_event = *event;
 
 	return resp->claim;
+}
+
+static void test_ctl_unfocus(void *arg)
+{
+	test_ctl_resp_t *resp = (test_ctl_resp_t *) arg;
+
+	resp->unfocus = true;
 }
 
 PCUT_EXPORT(window);

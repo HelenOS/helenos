@@ -40,11 +40,13 @@ PCUT_TEST_SUITE(fixed);
 static void test_ctl_destroy(void *);
 static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
+static void test_ctl_unfocus(void *);
 
 static ui_control_ops_t test_ctl_ops = {
 	.destroy = test_ctl_destroy,
 	.paint = test_ctl_paint,
-	.pos_event = test_ctl_pos_event
+	.pos_event = test_ctl_pos_event,
+	.unfocus = test_ctl_unfocus
 };
 
 /** Test response */
@@ -61,6 +63,8 @@ typedef struct {
 	bool pos;
 	/** Position event that was sent */
 	pos_event_t pevent;
+	/** @c true iff unfocus was called */
+	bool unfocus;
 } test_resp_t;
 
 /** Create and destroy button */
@@ -229,6 +233,31 @@ PCUT_TEST(pos_event)
 	ui_fixed_destroy(fixed);
 }
 
+/** ui_fixed_unfocus() delivers unfocus notification to control */
+PCUT_TEST(unfocus)
+{
+	ui_fixed_t *fixed = NULL;
+	ui_control_t *control;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_fixed_create(&fixed);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_control_new(&test_ctl_ops, (void *) &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_fixed_add(fixed, control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	resp.unfocus = false;
+
+	ui_fixed_unfocus(fixed);
+	PCUT_ASSERT_TRUE(resp.unfocus);
+
+	ui_fixed_destroy(fixed);
+}
+
 static void test_ctl_destroy(void *arg)
 {
 	test_resp_t *resp = (test_resp_t *) arg;
@@ -252,6 +281,13 @@ static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)
 	resp->pevent = *event;
 
 	return resp->claim;
+}
+
+static void test_ctl_unfocus(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *) arg;
+
+	resp->unfocus = true;
 }
 
 PCUT_EXPORT(fixed);

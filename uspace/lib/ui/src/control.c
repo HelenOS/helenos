@@ -111,5 +111,15 @@ ui_evclaim_t ui_control_pos_event(ui_control_t *control, pos_event_t *event)
 	return control->ops->pos_event(control->ext, event);
 }
 
+/** Inform UI control that window has been unfocused.
+ *
+ * @param control Control
+ */
+void ui_control_unfocus(ui_control_t *control)
+{
+	if (control->ops->unfocus != NULL)
+		control->ops->unfocus(control->ext);
+}
+
 /** @}
  */

@@ -41,11 +41,13 @@ PCUT_TEST_SUITE(control);
 static void test_ctl_destroy(void *);
 static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
+static void test_ctl_unfocus(void *);
 
 static ui_control_ops_t test_ctl_ops = {
 	.destroy = test_ctl_destroy,
 	.paint = test_ctl_paint,
-	.pos_event = test_ctl_pos_event
+	.pos_event = test_ctl_pos_event,
+	.unfocus = test_ctl_unfocus
 };
 
 /** Test response */
@@ -65,6 +67,9 @@ typedef struct {
 	bool pos;
 	/** Position event that was sent */
 	pos_event_t pevent;
+
+	/** @c true iff unfocus was called */
+	bool unfocus;
 } test_resp_t;
 
 /** Allocate and deallocate control */
@@ -165,6 +170,25 @@ PCUT_TEST(pos_event)
 	ui_control_delete(control);
 }
 
+/** Test sending unfocus to control */
+PCUT_TEST(unfocus)
+{
+	ui_control_t *control = NULL;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	resp.unfocus = false;
+
+	ui_control_unfocus(control);
+	PCUT_ASSERT_TRUE(resp.unfocus);
+
+	ui_control_delete(control);
+}
+
 static void test_ctl_destroy(void *arg)
 {
 	test_resp_t *resp = (test_resp_t *) arg;
@@ -188,6 +212,13 @@ static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)
 	resp->pevent = *event;
 
 	return resp->claim;
+}
+
+static void test_ctl_unfocus(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *) arg;
+
+	resp->unfocus = true;
 }
 
 PCUT_EXPORT(control);

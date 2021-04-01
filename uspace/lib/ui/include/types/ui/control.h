@@ -51,6 +51,8 @@ typedef struct ui_control_ops {
 	errno_t (*paint)(void *);
 	/** Position event */
 	ui_evclaim_t (*pos_event)(void *, pos_event_t *);
+	/** Unfocus */
+	void (*unfocus)(void *);
 } ui_control_ops_t;
 
 #endif
