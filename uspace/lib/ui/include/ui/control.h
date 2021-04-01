@@ -46,6 +46,7 @@ extern void ui_control_delete(ui_control_t *);
 extern void ui_control_destroy(ui_control_t *);
 extern errno_t ui_control_paint(ui_control_t *);
 extern ui_evclaim_t ui_control_pos_event(ui_control_t *, pos_event_t *);
+extern void ui_control_unfocus(ui_control_t *);
 
 #endif
 

@@ -60,6 +60,7 @@ extern void ui_window_get_app_rect(ui_window_t *, gfx_rect_t *);
 extern errno_t ui_window_paint(ui_window_t *);
 extern errno_t ui_window_def_paint(ui_window_t *);
 extern void ui_window_def_pos(ui_window_t *, pos_event_t *);
+extern void ui_window_def_unfocus(ui_window_t *);
 
 #endif
 

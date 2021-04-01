@@ -814,6 +814,8 @@ void ui_window_send_unfocus(ui_window_t *window)
 {
 	if (window->cb != NULL && window->cb->unfocus != NULL)
 		window->cb->unfocus(window, window->arg);
+	else
+		return ui_window_def_unfocus(window);
 }
 
 /** Default window paint routine.
@@ -849,12 +851,22 @@ errno_t ui_window_def_paint(ui_window_t *window)
 /** Default window position event routine.
  *
  * @param window Window
- * @return EOK on success or an error code
  */
 void ui_window_def_pos(ui_window_t *window, pos_event_t *pos)
 {
 	if (window->control != NULL)
 		ui_control_pos_event(window->control, pos);
+}
+
+/** Default window unfocus routine.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+void ui_window_def_unfocus(ui_window_t *window)
+{
+	if (window->control != NULL)
+		ui_control_unfocus(window->control);
 }
 
 /** Window invalidate callback

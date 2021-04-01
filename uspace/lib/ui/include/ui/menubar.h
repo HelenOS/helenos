@@ -51,6 +51,7 @@ extern ui_control_t *ui_menu_bar_ctl(ui_menu_bar_t *);
 extern void ui_menu_bar_set_rect(ui_menu_bar_t *, gfx_rect_t *);
 extern errno_t ui_menu_bar_paint(ui_menu_bar_t *);
 extern ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *, pos_event_t *);
+extern void ui_menu_bar_unfocus(ui_menu_bar_t *);
 
 #endif
 

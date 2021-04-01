@@ -46,12 +46,14 @@
 static void ui_fixed_ctl_destroy(void *);
 static errno_t ui_fixed_ctl_paint(void *);
 static ui_evclaim_t ui_fixed_ctl_pos_event(void *, pos_event_t *);
+static void ui_fixed_ctl_unfocus(void *);
 
 /** Push button control ops */
 ui_control_ops_t ui_fixed_ops = {
 	.destroy = ui_fixed_ctl_destroy,
 	.paint = ui_fixed_ctl_paint,
-	.pos_event = ui_fixed_ctl_pos_event
+	.pos_event = ui_fixed_ctl_pos_event,
+	.unfocus = ui_fixed_ctl_unfocus
 };
 
 /** Create new fixed layout.
@@ -231,6 +233,22 @@ ui_evclaim_t ui_fixed_pos_event(ui_fixed_t *fixed, pos_event_t *event)
 	return ui_unclaimed;
 }
 
+/** Handle fixed layout window unfocus notification.
+ *
+ * @param fixed Fixed layout
+ */
+void ui_fixed_unfocus(ui_fixed_t *fixed)
+{
+	ui_fixed_elem_t *elem;
+
+	elem = ui_fixed_first(fixed);
+	while (elem != NULL) {
+		ui_control_unfocus(elem->control);
+
+		elem = ui_fixed_next(elem);
+	}
+}
+
 /** Destroy fixed layout control.
  *
  * @param arg Argument (ui_fixed_t *)
@@ -265,6 +283,17 @@ ui_evclaim_t ui_fixed_ctl_pos_event(void *arg, pos_event_t *event)
 	ui_fixed_t *fixed = (ui_fixed_t *) arg;
 
 	return ui_fixed_pos_event(fixed, event);
+}
+
+/** Handle fixed layout control window unfocus notification.
+ *
+ * @param arg Argument (ui_fixed_t *)
+ */
+void ui_fixed_ctl_unfocus(void *arg)
+{
+	ui_fixed_t *fixed = (ui_fixed_t *) arg;
+
+	ui_fixed_unfocus(fixed);
 }
 
 /** @}
