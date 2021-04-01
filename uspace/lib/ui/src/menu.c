@@ -272,7 +272,7 @@ errno_t ui_menu_unpaint(ui_menu_t *menu)
 	return EOK;
 }
 
-/** Handle button press in menu.
+/** Handle position event in menu.
  *
  * @param menu Menu
  * @param spos Starting position (top-left corner)
@@ -304,8 +304,15 @@ ui_evclaim_t ui_menu_pos_event(ui_menu_t *menu, gfx_coord2_t *spos,
 		mentry = ui_menu_entry_next(mentry);
 	}
 
-	if (gfx_pix_inside_rect(&epos, &geom.outer_rect))
+	/* Event inside menu? */
+	if (gfx_pix_inside_rect(&epos, &geom.outer_rect)) {
+		/* Claim event */
 		return ui_claimed;
+	} else {
+		/* Press outside menu - close it */
+		if (event->type == POS_PRESS)
+			ui_menu_bar_select(menu->mbar, NULL, NULL);
+	}
 
 	return ui_unclaimed;
 }
