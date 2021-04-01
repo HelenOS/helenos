@@ -55,6 +55,10 @@ struct ui_menu {
 	bool open;
 	/** Selected menu entry or @c NULL */
 	struct ui_menu_entry *selected;
+	/** Maximum entry width */
+	gfx_coord_t max_w;
+	/** Total entry height */
+	gfx_coord_t total_h;
 	/** Menu entries (ui_menu_entry_t) */
 	list_t entries;
 };
