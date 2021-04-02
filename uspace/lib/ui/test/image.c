@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
 #include <stdbool.h>
 #include <ui/control.h>
 #include <ui/image.h>
+#include <ui/resource.h>
 #include <ui/ui.h>
 #include "../private/dummygc.h"
 #include "../private/image.h"
@@ -86,12 +87,24 @@ PCUT_TEST(ctl)
 /** Set image rectangle sets internal field */
 PCUT_TEST(set_rect)
 {
+	errno_t rc;
+	dummy_gc_t *dgc;
+	gfx_context_t *gc;
+	ui_resource_t *resource = NULL;
 	ui_image_t *image = NULL;
 	gfx_rect_t brect;
 	gfx_rect_t rect;
-	errno_t rc;
 
-	rc = ui_image_create(NULL, NULL, &brect, &image);
+	rc = dummygc_create(&dgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = dummygc_get_ctx(dgc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_image_create(resource, NULL, &brect, &image);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(image);
 
@@ -107,6 +120,8 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_INT_EQUALS(rect.p1.y, image->rect.p1.y);
 
 	ui_image_destroy(image);
+	ui_resource_destroy(resource);
+	dummygc_destroy(dgc);
 }
 
 /** Set image flags sets internal field */
@@ -138,6 +153,7 @@ PCUT_TEST(set_bmp)
 	gfx_bitmap_params_t params;
 	dummy_gc_t *dgc;
 	gfx_context_t *gc;
+	ui_resource_t *resource = NULL;
 	errno_t rc;
 
 	rc = dummygc_create(&dgc);
@@ -145,7 +161,11 @@ PCUT_TEST(set_bmp)
 
 	gc = dummygc_get_ctx(dgc);
 
-	rc = ui_image_create(NULL, NULL, &brect, &image);
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_image_create(resource, NULL, &brect, &image);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(image);
 
@@ -171,6 +191,8 @@ PCUT_TEST(set_bmp)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_image_destroy(image);
+	ui_resource_destroy(resource);
+	dummygc_destroy(dgc);
 }
 
 /** Paint image */
@@ -180,6 +202,7 @@ PCUT_TEST(paint)
 	gfx_context_t *gc;
 	gfx_bitmap_params_t params;
 	gfx_bitmap_t *bitmap;
+	ui_resource_t *resource = NULL;
 	ui_image_t *image = NULL;
 	gfx_rect_t brect;
 	errno_t rc;
@@ -189,11 +212,15 @@ PCUT_TEST(paint)
 
 	gc = dummygc_get_ctx(dgc);
 
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
 	gfx_bitmap_params_init(&params);
 	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_image_create(NULL, bitmap, &brect, &image);
+	rc = ui_image_create(resource, bitmap, &brect, &image);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(image);
 
@@ -208,6 +235,8 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_image_destroy(image);
+	ui_resource_destroy(resource);
+	dummygc_destroy(dgc);
 }
 
 PCUT_EXPORT(image);

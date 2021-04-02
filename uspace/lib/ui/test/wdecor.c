@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ PCUT_TEST_SUITE(wdecor);
 
 static errno_t testgc_set_color(void *, gfx_color_t *);
 static errno_t testgc_fill_rect(void *, gfx_rect_t *);
+static errno_t testgc_update(void *);
 static errno_t testgc_bitmap_create(void *, gfx_bitmap_params_t *,
     gfx_bitmap_alloc_t *, void **);
 static errno_t testgc_bitmap_destroy(void *);
@@ -51,6 +52,7 @@ static errno_t testgc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 static gfx_context_ops_t ops = {
 	.set_color = testgc_set_color,
 	.fill_rect = testgc_fill_rect,
+	.update = testgc_update,
 	.bitmap_create = testgc_bitmap_create,
 	.bitmap_destroy = testgc_bitmap_destroy,
 	.bitmap_render = testgc_bitmap_render,
@@ -353,13 +355,24 @@ PCUT_TEST(close_btn_clicked)
 /** Button press on title bar generates move callback */
 PCUT_TEST(pos_event_move)
 {
-	ui_wdecor_t *wdecor;
+	errno_t rc;
 	gfx_rect_t rect;
 	pos_event_t event;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
 	test_cb_resp_t resp;
-	errno_t rc;
+	ui_resource_t *resource = NULL;
+	ui_wdecor_t *wdecor;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_decorated, &wdecor);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -385,17 +398,32 @@ PCUT_TEST(pos_event_move)
 	PCUT_ASSERT_INT_EQUALS(event.vpos, resp.pos.y);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** ui_wdecor_get_geom() with ui_wds_none produces the correct geometry */
 PCUT_TEST(get_geom_none)
 {
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
 	ui_wdecor_geom_t geom;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -427,17 +455,32 @@ PCUT_TEST(get_geom_none)
 	PCUT_ASSERT_INT_EQUALS(200, geom.app_area_rect.p1.y);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** ui_wdecor_get_geom() with ui_wds_frame produces the correct geometry */
 PCUT_TEST(get_geom_frame)
 {
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
 	ui_wdecor_geom_t geom;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_frame, &wdecor);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_frame, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -469,17 +512,32 @@ PCUT_TEST(get_geom_frame)
 	PCUT_ASSERT_INT_EQUALS(196, geom.app_area_rect.p1.y);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** ui_wdecor_get_geom() with ui_wds_frame | ui_wds_titlebar */
 PCUT_TEST(get_geom_frame_titlebar)
 {
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
 	ui_wdecor_geom_t geom;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_frame | ui_wds_titlebar,
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_frame | ui_wds_titlebar,
 	    &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
@@ -512,17 +570,32 @@ PCUT_TEST(get_geom_frame_titlebar)
 	PCUT_ASSERT_INT_EQUALS(196, geom.app_area_rect.p1.y);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** ui_wdecor_get_geom() with ui_wds_decorated produces the correct geometry */
 PCUT_TEST(get_geom_decorated)
 {
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
 	ui_wdecor_geom_t geom;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_decorated, &wdecor);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -554,6 +627,10 @@ PCUT_TEST(get_geom_decorated)
 	PCUT_ASSERT_INT_EQUALS(196, geom.app_area_rect.p1.y);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** ui_wdecor_rect_from_app() correctly converts application to window rect */
@@ -778,6 +855,12 @@ static errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	(void) arg;
 	(void) rect;
+	return EOK;
+}
+
+static errno_t testgc_update(void *arg)
+{
+	(void) arg;
 	return EOK;
 }
 
