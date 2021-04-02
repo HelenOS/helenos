@@ -42,6 +42,7 @@ PCUT_TEST_SUITE(slider);
 
 static errno_t testgc_set_color(void *, gfx_color_t *);
 static errno_t testgc_fill_rect(void *, gfx_rect_t *);
+static errno_t testgc_update(void *);
 static errno_t testgc_bitmap_create(void *, gfx_bitmap_params_t *,
     gfx_bitmap_alloc_t *, void **);
 static errno_t testgc_bitmap_destroy(void *);
@@ -51,6 +52,7 @@ static errno_t testgc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 static gfx_context_ops_t ops = {
 	.set_color = testgc_set_color,
 	.fill_rect = testgc_fill_rect,
+	.update = testgc_update,
 	.bitmap_create = testgc_bitmap_create,
 	.bitmap_destroy = testgc_bitmap_destroy,
 	.bitmap_render = testgc_bitmap_render,
@@ -438,6 +440,12 @@ static errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	(void) arg;
 	(void) rect;
+	return EOK;
+}
+
+static errno_t testgc_update(void *arg)
+{
+	(void) arg;
 	return EOK;
 }
 
