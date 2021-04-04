@@ -36,6 +36,7 @@
  *
  */
 
+#include <clipboard.h>
 #include <ctype.h>
 #include <io/kbd_event.h>
 #include <stdbool.h>
@@ -44,6 +45,9 @@
 #include <str.h>
 #include <ui/entry.h>
 #include <ui/fixed.h>
+#include <ui/menubar.h>
+#include <ui/menu.h>
+#include <ui/menuentry.h>
 #include <ui/pbutton.h>
 #include <ui/ui.h>
 #include <ui/window.h>
@@ -96,6 +100,7 @@ typedef struct {
 
 /** Dimensions. Most of this should not be needed with auto layout */
 typedef struct {
+	gfx_rect_t menubar_rect;
 	gfx_rect_t entry_rect;
 	gfx_coord2_t btn_orig;
 	gfx_coord2_t btn_stride;
@@ -121,8 +126,15 @@ typedef struct {
 	ui_pbutton_t *btn_7;
 	ui_pbutton_t *btn_8;
 	ui_pbutton_t *btn_9;
+	ui_menu_bar_t *menubar;
 	calc_geom_t geom;
 } calc_t;
+
+static void display_update(void);
+
+static void calc_file_exit(ui_menu_entry_t *, void *);
+static void calc_edit_copy(ui_menu_entry_t *, void *);
+static void calc_edit_paste(ui_menu_entry_t *, void *);
 
 static void calc_pb_clicked(ui_pbutton_t *, void *);
 static void calc_eval_clicked(ui_pbutton_t *, void *);
@@ -148,6 +160,9 @@ static ui_window_cb_t window_cb = {
 	.kbd = wnd_kbd_event
 };
 
+static char *expr = NULL;
+static ui_entry_t *display;
+
 /** Window close request
  *
  * @param window Window
@@ -169,6 +184,19 @@ static void wnd_close(ui_window_t *window, void *arg)
 static void wnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
 {
 	calc_t *calc = (calc_t *) arg;
+
+	if (event->type == KEY_PRESS && (event->mods & KM_CTRL) != 0) {
+		switch (event->key) {
+		case KC_C:
+			calc_edit_copy(NULL, calc);
+			break;
+		case KC_V:
+			calc_edit_paste(NULL, calc);
+			break;
+		default:
+			break;
+		}
+	}
 
 	switch (event->key) {
 	case KC_ENTER:
@@ -273,8 +301,67 @@ static void wnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
 	}
 }
 
-static char *expr = NULL;
-static ui_entry_t *display;
+/** File / Exit menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (calc_t *)
+ */
+static void calc_file_exit(ui_menu_entry_t *mentry, void *arg)
+{
+	calc_t *calc = (calc_t *) arg;
+
+	ui_quit(calc->ui);
+}
+
+/** Edit / Copy menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (calc_t *)
+ */
+static void calc_edit_copy(ui_menu_entry_t *mentry, void *arg)
+{
+	const char *str;
+
+	(void) arg;
+	str = (expr != NULL) ? expr : NULL_DISPLAY;
+
+	(void) clipboard_put_str(str);
+}
+
+/** Edit / Paste menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (calc_t *)
+ */
+static void calc_edit_paste(ui_menu_entry_t *mentry, void *arg)
+{
+	char *str;
+	char *old;
+	char *cp;
+	errno_t rc;
+
+	(void) arg;
+
+	rc = clipboard_get_str(&str);
+	if (rc != EOK)
+		return;
+
+	/* Make sure string only contains allowed characters */
+	cp = str;
+	while (*cp != '\0') {
+		if (!isdigit(*cp) && *cp != '+' && *cp != '-' &&
+		    *cp != '*' && *cp != '/')
+			return;
+		++cp;
+	}
+
+	/* Update expression */
+	old = expr;
+	expr = str;
+	free(old);
+
+	display_update();
+}
 
 static bool is_digit(char c)
 {
@@ -705,6 +792,11 @@ int main(int argc, char *argv[])
 	ui_fixed_t *fixed;
 	ui_wnd_params_t params;
 	ui_window_t *window;
+	ui_menu_t *mfile;
+	ui_menu_entry_t *mexit;
+	ui_menu_t *medit;
+	ui_menu_entry_t *mcopy;
+	ui_menu_entry_t *mpaste;
 	calc_t calc;
 	errno_t rc;
 	int i;
@@ -740,14 +832,18 @@ int main(int argc, char *argv[])
 
 	if (ui_is_textmode(ui)) {
 		params.rect.p1.x = 38;
-		params.rect.p1.y = 18;
+		params.rect.p1.y = 19;
 
+		calc.geom.menubar_rect.p0.x = 1;
+		calc.geom.menubar_rect.p0.y = 2;
+		calc.geom.menubar_rect.p1.x = params.rect.p1.x - 1;
+		calc.geom.menubar_rect.p1.y = 3;
 		calc.geom.entry_rect.p0.x = 4;
-		calc.geom.entry_rect.p0.y = 3;
+		calc.geom.entry_rect.p0.y = 4;
 		calc.geom.entry_rect.p1.x = 34;
-		calc.geom.entry_rect.p1.y = 4;
+		calc.geom.entry_rect.p1.y = 5;
 		calc.geom.btn_orig.x = 4;
-		calc.geom.btn_orig.y = 5;
+		calc.geom.btn_orig.y = 6;
 		calc.geom.btn_dim.x = 6;
 		calc.geom.btn_dim.y = 2;
 		calc.geom.btn_stride.x = 8;
@@ -756,10 +852,14 @@ int main(int argc, char *argv[])
 		params.rect.p1.x = 250;
 		params.rect.p1.y = 270;
 
-		calc.geom.entry_rect.p0.x = 15;
-		calc.geom.entry_rect.p0.y = 45;
-		calc.geom.entry_rect.p1.x = 235;
-		calc.geom.entry_rect.p1.y = 70;
+		calc.geom.menubar_rect.p0.x = 4;
+		calc.geom.menubar_rect.p0.y = 30;
+		calc.geom.menubar_rect.p1.x = params.rect.p1.x - 4;
+		calc.geom.menubar_rect.p1.y = 52;
+		calc.geom.entry_rect.p0.x = 10;
+		calc.geom.entry_rect.p0.y = 45+6;
+		calc.geom.entry_rect.p1.x = 240;
+		calc.geom.entry_rect.p1.y = 70+6;
 		calc.geom.btn_orig.x = 10;
 		calc.geom.btn_orig.y = 90;
 		calc.geom.btn_dim.x = 50;
@@ -783,6 +883,56 @@ int main(int argc, char *argv[])
 	rc = ui_fixed_create(&fixed);
 	if (rc != EOK) {
 		printf("Error creating fixed layout.\n");
+		return rc;
+	}
+
+	rc = ui_menu_bar_create(ui_res, &calc.menubar);
+	if (rc != EOK) {
+		printf("Error creating menu bar.\n");
+		return rc;
+	}
+
+	rc = ui_menu_create(calc.menubar, "File", &mfile);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(mfile, "Exit", &mexit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mexit, calc_file_exit, (void *) &calc);
+
+	rc = ui_menu_create(calc.menubar, "Edit", &medit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(medit, "Copy", &mcopy);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mcopy, calc_edit_copy, (void *) &calc);
+
+	rc = ui_menu_entry_create(medit, "Paste", &mpaste);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mpaste, calc_edit_paste, (void *) &calc);
+
+	ui_menu_bar_set_rect(calc.menubar, &calc.geom.menubar_rect);
+
+	rc = ui_fixed_add(fixed, ui_menu_bar_ctl(calc.menubar));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
 		return rc;
 	}
 
