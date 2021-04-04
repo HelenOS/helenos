@@ -194,7 +194,7 @@ gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *mentry)
 	}
 
 	gfx_font_get_metrics(res->font, &metrics);
-	height = metrics.ascent + metrics.descent;
+	height = metrics.ascent + metrics.descent + 1;
 	return height + 2 * vpad;
 }
 
