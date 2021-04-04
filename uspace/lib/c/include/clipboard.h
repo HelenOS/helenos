@@ -35,6 +35,8 @@
 #ifndef _LIBC_CLIPBOARD_H_
 #define _LIBC_CLIPBOARD_H_
 
+#include <errno.h>
+
 extern errno_t clipboard_put_str(const char *);
 extern errno_t clipboard_get_str(char **);
 
