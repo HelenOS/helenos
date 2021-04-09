@@ -857,9 +857,9 @@ int main(int argc, char *argv[])
 		calc.geom.menubar_rect.p1.x = params.rect.p1.x - 4;
 		calc.geom.menubar_rect.p1.y = 52;
 		calc.geom.entry_rect.p0.x = 10;
-		calc.geom.entry_rect.p0.y = 45+6;
+		calc.geom.entry_rect.p0.y = 51;
 		calc.geom.entry_rect.p1.x = 240;
-		calc.geom.entry_rect.p1.y = 70+6;
+		calc.geom.entry_rect.p1.y = 76;
 		calc.geom.btn_orig.x = 10;
 		calc.geom.btn_orig.y = 90;
 		calc.geom.btn_dim.x = 50;
