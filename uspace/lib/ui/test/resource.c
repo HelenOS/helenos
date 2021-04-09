@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,8 @@ static errno_t testgc_bitmap_destroy(void *);
 static errno_t testgc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t testgc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
+static void test_expose(void *);
+
 static gfx_context_ops_t ops = {
 	.bitmap_create = testgc_bitmap_create,
 	.bitmap_destroy = testgc_bitmap_destroy,
@@ -66,6 +68,10 @@ typedef struct {
 	gfx_bitmap_alloc_t alloc;
 	bool myalloc;
 } testgc_bitmap_t;
+
+typedef struct {
+	bool expose;
+} test_resp_t;
 
 /** Create and destroy UI resource */
 PCUT_TEST(create_destroy)
@@ -96,6 +102,35 @@ PCUT_TEST(create_destroy)
 PCUT_TEST(destroy_null)
 {
 	ui_resource_destroy(NULL);
+}
+
+/** ui_resource_set_expose_cb() / ui_resource_expose() */
+PCUT_TEST(set_expose_cb_expose)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	test_resp_t resp;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	ui_resource_set_expose_cb(resource, test_expose, &resp);
+
+	resp.expose = false;
+	ui_resource_expose(resource);
+	PCUT_ASSERT_TRUE(resp.expose);
+
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 static errno_t testgc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
@@ -158,6 +193,13 @@ static errno_t testgc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 	*alloc = tbm->alloc;
 	tbm->tgc->bm_got_alloc = true;
 	return EOK;
+}
+
+static void test_expose(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *) arg;
+
+	resp->expose = true;
 }
 
 PCUT_EXPORT(resource);

@@ -285,9 +285,18 @@ void ui_menu_entry_release(ui_menu_entry_t *mentry)
 		    &mentry->menu->mbar->sel_pos, NULL);
 
 		/* Call back */
-		if (mentry->cb != NULL)
-			mentry->cb(mentry, mentry->arg);
+		ui_menu_entry_cb(mentry);
 	}
+}
+
+/** Call menu entry callback.
+ *
+ * @param mentry Menu entry
+ */
+void ui_menu_entry_cb(ui_menu_entry_t *mentry)
+{
+	if (mentry->cb != NULL)
+		mentry->cb(mentry, mentry->arg);
 }
 
 /** Pointer entered menu entry.

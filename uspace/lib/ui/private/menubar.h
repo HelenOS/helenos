@@ -39,6 +39,7 @@
 
 #include <adt/list.h>
 #include <gfx/coord.h>
+#include <types/ui/menu.h>
 #include <types/ui/menubar.h>
 
 /** Actual structure of menu bar.
