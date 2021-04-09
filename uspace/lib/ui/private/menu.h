@@ -38,7 +38,9 @@
 #define _UI_PRIVATE_MENU_H
 
 #include <adt/list.h>
+#include <gfx/coord.h>
 #include <stdbool.h>
+#include <types/ui/menu.h>
 
 /** Actual structure of menu.
  *

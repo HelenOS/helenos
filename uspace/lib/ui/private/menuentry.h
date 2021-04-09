@@ -75,6 +75,7 @@ typedef struct {
 
 extern void ui_menu_entry_get_geom(ui_menu_entry_t *, gfx_coord2_t *,
     ui_menu_entry_geom_t *);
+extern void ui_menu_entry_cb(ui_menu_entry_t *);
 
 #endif
 

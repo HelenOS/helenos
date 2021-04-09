@@ -42,10 +42,6 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(image);
 
-typedef struct {
-	bool clicked;
-} test_cb_resp_t;
-
 /** Create and destroy image */
 PCUT_TEST(create_destroy)
 {
