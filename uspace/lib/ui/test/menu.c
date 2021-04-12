@@ -204,7 +204,7 @@ PCUT_TEST(get_rect)
 
 	PCUT_ASSERT_INT_EQUALS(0, rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(0, rect.p0.y);
-	PCUT_ASSERT_INT_EQUALS(8, rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(16, rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(8, rect.p1.y);
 
 	ui_menu_bar_destroy(mbar);
@@ -419,11 +419,11 @@ PCUT_TEST(get_geom)
 
 	PCUT_ASSERT_INT_EQUALS(0, geom.outer_rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(0, geom.outer_rect.p0.y);
-	PCUT_ASSERT_INT_EQUALS(8, geom.outer_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(16, geom.outer_rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(8, geom.outer_rect.p1.y);
 	PCUT_ASSERT_INT_EQUALS(4, geom.entries_rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(4, geom.entries_rect.p0.y);
-	PCUT_ASSERT_INT_EQUALS(4, geom.entries_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(12, geom.entries_rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(4, geom.entries_rect.p1.y);
 
 	ui_menu_bar_destroy(mbar);

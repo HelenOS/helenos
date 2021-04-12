@@ -268,25 +268,25 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mfile, "Foo", &mfoo);
+	rc = ui_menu_entry_create(demo.mfile, "Foo", "Ctrl-Alt-Del", &mfoo);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mfile, "Bar", &mbar);
+	rc = ui_menu_entry_create(demo.mfile, "Bar", "", &mbar);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mfile, "Foobar", &mfoobar);
+	rc = ui_menu_entry_create(demo.mfile, "Foobar", "", &mfoobar);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mfile, "Exit", &mexit);
+	rc = ui_menu_entry_create(demo.mfile, "Exit", "Alt-F4", &mexit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -312,7 +312,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mhelp, "About", &mabout);
+	rc = ui_menu_entry_create(demo.mhelp, "About", "Ctrl-H, F1", &mabout);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

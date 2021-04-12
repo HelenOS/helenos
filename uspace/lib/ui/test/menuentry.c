@@ -98,7 +98,7 @@ PCUT_TEST(set_cb)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "Foo", &mentry);
+	rc = ui_menu_entry_create(menu, "Foo", "F1", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
@@ -143,11 +143,11 @@ PCUT_TEST(first_next)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "Foo", &entry1);
+	rc = ui_menu_entry_create(menu, "Foo", "F1", &entry1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(entry1);
 
-	rc = ui_menu_entry_create(menu, "Bar", &entry2);
+	rc = ui_menu_entry_create(menu, "Bar", "F2", &entry2);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(entry2);
 
@@ -165,8 +165,8 @@ PCUT_TEST(first_next)
 	dummygc_destroy(dgc);
 }
 
-/** ui_menu_entry_width() / ui_menu_entry_height() */
-PCUT_TEST(width_height)
+/** ui_menu_entry_widths() / ui_menu_entry_height() */
+PCUT_TEST(widths_height)
 {
 	dummy_gc_t *dgc;
 	gfx_context_t *gc;
@@ -174,6 +174,8 @@ PCUT_TEST(width_height)
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
+	gfx_coord_t caption_w;
+	gfx_coord_t shortcut_w;
 	gfx_coord_t width;
 	gfx_coord_t height;
 	errno_t rc;
@@ -195,12 +197,16 @@ PCUT_TEST(width_height)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "X", &mentry);
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
-	width = ui_menu_entry_width(mentry);
-	PCUT_ASSERT_INT_EQUALS(11 + 8, width);
+	ui_menu_entry_column_widths(mentry, &caption_w, &shortcut_w);
+	PCUT_ASSERT_INT_EQUALS(11, caption_w);
+	PCUT_ASSERT_INT_EQUALS(10, shortcut_w);
+
+	width = ui_menu_entry_calc_width(menu, caption_w, shortcut_w);
+	PCUT_ASSERT_INT_EQUALS(4 + 11 + 8 + 10 + 4, width);
 
 	height = ui_menu_entry_height(mentry);
 	PCUT_ASSERT_INT_EQUALS(13 + 8, height);
@@ -239,7 +245,7 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "Foo", &mentry);
+	rc = ui_menu_entry_create(menu, "Foo", "F1", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
@@ -283,7 +289,7 @@ PCUT_TEST(press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "X", &mentry);
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
@@ -336,7 +342,7 @@ PCUT_TEST(press_leave_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "X", &mentry);
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
@@ -394,7 +400,7 @@ PCUT_TEST(press_leave_enter_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "X", &mentry);
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
@@ -457,7 +463,7 @@ PCUT_TEST(pos_press_inside)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "X", &mentry);
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
@@ -507,7 +513,7 @@ PCUT_TEST(pos_press_outside)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "X", &mentry);
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
@@ -515,7 +521,7 @@ PCUT_TEST(pos_press_outside)
 	pos.y = 0;
 
 	event.type = POS_PRESS;
-	event.hpos = 20;
+	event.hpos = 40;
 	event.vpos = 20;
 
 	ui_menu_entry_pos_event(mentry, &pos, &event);
@@ -557,7 +563,7 @@ PCUT_TEST(pos_move_out)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "X", &mentry);
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 
@@ -568,7 +574,7 @@ PCUT_TEST(pos_move_out)
 	PCUT_ASSERT_TRUE(mentry->held);
 
 	event.type = POS_UPDATE;
-	event.hpos = 20;
+	event.hpos = 40;
 	event.vpos = 20;
 
 	ui_menu_entry_pos_event(mentry, &pos, &event);
@@ -610,7 +616,7 @@ PCUT_TEST(pos_move_in)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rc = ui_menu_entry_create(menu, "X", &mentry);
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mentry);
 

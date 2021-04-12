@@ -60,6 +60,8 @@ struct ui_menu_entry {
 	void *arg;
 	/** Caption */
 	char *caption;
+	/** Shortcut key(s) */
+	char *shortcut;
 };
 
 /** Menu entry geometry.
@@ -69,8 +71,10 @@ struct ui_menu_entry {
 typedef struct {
 	/** Outer rectangle */
 	gfx_rect_t outer_rect;
-	/** Text position */
-	gfx_coord2_t text_pos;
+	/** Caption position */
+	gfx_coord2_t caption_pos;
+	/** Shortcut position */
+	gfx_coord2_t shortcut_pos;
 } ui_menu_entry_geom_t;
 
 extern void ui_menu_entry_get_geom(ui_menu_entry_t *, gfx_coord2_t *,

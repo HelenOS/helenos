@@ -53,22 +53,26 @@
 enum {
 	menu_entry_hpad = 4,
 	menu_entry_vpad = 4,
+	menu_entry_column_pad = 8,
 	menu_entry_hpad_text = 1,
-	menu_entry_vpad_text = 0
+	menu_entry_vpad_text = 0,
+	menu_entry_column_pad_text = 2
 };
 
 /** Create new menu entry.
  *
  * @param menu Menu
  * @param caption Caption
+ * @param shortcut Shotcut key(s) or empty string
  * @param rmentry Place to store pointer to new menu entry
  * @return EOK on success, ENOMEM if out of memory
  */
 errno_t ui_menu_entry_create(ui_menu_t *menu, const char *caption,
-    ui_menu_entry_t **rmentry)
+    const char *shortcut, ui_menu_entry_t **rmentry)
 {
 	ui_menu_entry_t *mentry;
-	gfx_coord_t width;
+	gfx_coord_t caption_w;
+	gfx_coord_t shortcut_w;
 
 	mentry = calloc(1, sizeof(ui_menu_entry_t));
 	if (mentry == NULL)
@@ -80,13 +84,22 @@ errno_t ui_menu_entry_create(ui_menu_t *menu, const char *caption,
 		return ENOMEM;
 	}
 
+	mentry->shortcut = str_dup(shortcut);
+	if (mentry->caption == NULL) {
+		free(mentry->caption);
+		free(mentry);
+		return ENOMEM;
+	}
+
 	mentry->menu = menu;
 	list_append(&mentry->lentries, &menu->entries);
 
 	/* Update accumulated menu entry dimensions */
-	width = ui_menu_entry_width(mentry);
-	if (width > menu->max_w)
-		menu->max_w = width;
+	ui_menu_entry_column_widths(mentry, &caption_w, &shortcut_w);
+	if (caption_w > menu->max_caption_w)
+		menu->max_caption_w = caption_w;
+	if (shortcut_w > menu->max_shortcut_w)
+		menu->max_shortcut_w = shortcut_w;
 	menu->total_h += ui_menu_entry_height(mentry);
 
 	*rmentry = mentry;
@@ -155,22 +168,53 @@ ui_menu_entry_t *ui_menu_entry_next(ui_menu_entry_t *cur)
 /** Get width of menu entry.
  *
  * @param mentry Menu entry
- * @return Width in pixels
+ * @param caption_w Place to store caption width
+ * @param shortcut_w Place to store shortcut width
  */
-gfx_coord_t ui_menu_entry_width(ui_menu_entry_t *mentry)
+void ui_menu_entry_column_widths(ui_menu_entry_t *mentry,
+    gfx_coord_t *caption_w, gfx_coord_t *shortcut_w)
 {
 	ui_resource_t *res;
-	gfx_coord_t hpad;
 
 	res = mentry->menu->mbar->res;
 
-	if (res->textmode) {
+	*caption_w = gfx_text_width(res->font, mentry->caption);
+	*shortcut_w = gfx_text_width(res->font, mentry->shortcut);
+}
+
+/** Compute width of menu entry.
+ *
+ * @param menu Menu
+ * @param caption_w Widht of caption text
+ * @param shortcut_w Width of shortcut text
+ * @return Width in pixels
+ */
+gfx_coord_t ui_menu_entry_calc_width(ui_menu_t *menu, gfx_coord_t caption_w,
+    gfx_coord_t shortcut_w)
+{
+	ui_resource_t *res;
+	gfx_coord_t hpad;
+	gfx_coord_t width;
+
+	res = menu->mbar->res;
+
+	if (res->textmode)
 		hpad = menu_entry_hpad_text;
-	} else {
+	else
 		hpad = menu_entry_hpad;
+
+	width = caption_w + 2 * hpad;
+
+	if (shortcut_w != 0) {
+		if (res->textmode)
+			width += menu_entry_column_pad_text;
+		else
+			width += menu_entry_column_pad;
+
+		width += shortcut_w;
 	}
 
-	return gfx_text_width(res->font, mentry->caption) + 2 * hpad;
+	return width;
 }
 
 /** Get height of menu entry.
@@ -209,7 +253,6 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	ui_resource_t *res;
 	gfx_text_fmt_t fmt;
 	gfx_color_t *bg_color;
-	const char *caption;
 	ui_menu_entry_geom_t geom;
 	errno_t rc;
 
@@ -220,8 +263,6 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	gfx_text_fmt_init(&fmt);
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
-
-	caption = mentry->caption;
 
 	if ((mentry->held && mentry->inside) ||
 	    mentry == mentry->menu->selected) {
@@ -240,7 +281,13 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_puttext(res->font, &geom.text_pos, &fmt, caption);
+	rc = gfx_puttext(res->font, &geom.caption_pos, &fmt, mentry->caption);
+	if (rc != EOK)
+		goto error;
+
+	fmt.halign = gfx_halign_right;
+
+	rc = gfx_puttext(res->font, &geom.shortcut_pos, &fmt, mentry->shortcut);
 	if (rc != EOK)
 		goto error;
 
@@ -399,14 +446,20 @@ void ui_menu_entry_get_geom(ui_menu_entry_t *mentry, gfx_coord2_t *pos,
 		vpad = menu_entry_vpad;
 	}
 
-	width = mentry->menu->max_w;
-	geom->text_pos.x = pos->x + hpad;
-	geom->text_pos.y = pos->y + vpad;
+	/* Compute total width of menu entry */
+	width = ui_menu_entry_calc_width(mentry->menu,
+	    mentry->menu->max_caption_w, mentry->menu->max_shortcut_w);
 
 	geom->outer_rect.p0 = *pos;
 	geom->outer_rect.p1.x = geom->outer_rect.p0.x + width;
 	geom->outer_rect.p1.y = geom->outer_rect.p0.y +
 	    ui_menu_entry_height(mentry);
+
+	geom->caption_pos.x = pos->x + hpad;
+	geom->caption_pos.y = pos->y + vpad;
+
+	geom->shortcut_pos.x = geom->outer_rect.p1.x - hpad;
+	geom->shortcut_pos.y = pos->y + vpad;
 }
 
 /** @}

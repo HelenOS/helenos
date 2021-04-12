@@ -174,7 +174,8 @@ void ui_menu_get_geom(ui_menu_t *menu, gfx_coord2_t *spos,
 		frame_h = menu_frame_h;
 	}
 
-	edim.x = menu->max_w;
+	edim.x = ui_menu_entry_calc_width(menu, menu->max_caption_w,
+	    menu->max_shortcut_w);
 	edim.y = menu->total_h;
 
 	geom->outer_rect.p0 = *spos;
