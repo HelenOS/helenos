@@ -286,6 +286,12 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
+	rc = ui_menu_entry_sep_create(demo.mfile, &mexit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
 	rc = ui_menu_entry_create(demo.mfile, "Exit", "Alt-F4", &mexit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");

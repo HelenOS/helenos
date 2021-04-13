@@ -50,17 +50,82 @@ typedef struct {
 
 static void test_entry_cb(ui_menu_entry_t *, void *);
 
-/** Create and destroy menu bar */
+/** Create and destroy menu entry */
 PCUT_TEST(create_destroy)
 {
+	dummy_gc_t *dgc;
+	gfx_context_t *gc;
+	ui_resource_t *resource = NULL;
 	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	ui_menu_entry_t *mentry = NULL;
 	errno_t rc;
 
-	rc = ui_menu_bar_create(NULL, &mbar);
+	rc = dummygc_create(&dgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = dummygc_get_ctx(dgc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_menu_bar_create(resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	rc = ui_menu_entry_create(menu, "Foo", "F1", &mentry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry);
+
+	/* Just for sake of test. Menu entry is destroyed along with menu */
+	ui_menu_entry_destroy(mentry);
+
 	ui_menu_bar_destroy(mbar);
+	dummygc_destroy(dgc);
+}
+
+/** Create and destroy separator menu entry */
+PCUT_TEST(create_sep_destroy)
+{
+	dummy_gc_t *dgc;
+	gfx_context_t *gc;
+	ui_resource_t *resource = NULL;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	ui_menu_entry_t *mentry = NULL;
+	errno_t rc;
+
+	rc = dummygc_create(&dgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = dummygc_get_ctx(dgc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_menu_bar_create(resource, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	rc = ui_menu_entry_sep_create(menu, &mentry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry);
+
+	/* Just for sake of test. Menu entry is destroyed along with menu */
+	ui_menu_entry_destroy(mentry);
+
+	ui_menu_bar_destroy(mbar);
+	dummygc_destroy(dgc);
 }
 
 /** ui_menu_bar_destroy() can take NULL argument (no-op) */

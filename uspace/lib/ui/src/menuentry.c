@@ -54,9 +54,11 @@ enum {
 	menu_entry_hpad = 4,
 	menu_entry_vpad = 4,
 	menu_entry_column_pad = 8,
+	menu_entry_sep_height = 2,
 	menu_entry_hpad_text = 1,
 	menu_entry_vpad_text = 0,
-	menu_entry_column_pad_text = 2
+	menu_entry_column_pad_text = 2,
+	menu_entry_sep_height_text = 1
 };
 
 /** Create new menu entry.
@@ -100,6 +102,30 @@ errno_t ui_menu_entry_create(ui_menu_t *menu, const char *caption,
 		menu->max_caption_w = caption_w;
 	if (shortcut_w > menu->max_shortcut_w)
 		menu->max_shortcut_w = shortcut_w;
+	menu->total_h += ui_menu_entry_height(mentry);
+
+	*rmentry = mentry;
+	return EOK;
+}
+
+/** Create new separator menu entry.
+ *
+ * @param menu Menu
+ * @param rmentry Place to store pointer to new menu entry
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ui_menu_entry_sep_create(ui_menu_t *menu, ui_menu_entry_t **rmentry)
+{
+	ui_menu_entry_t *mentry;
+	errno_t rc;
+
+	rc = ui_menu_entry_create(menu, "", "", &mentry);
+	if (rc != EOK)
+		return rc;
+
+	/* Need to adjust menu height when changing to separator */
+	menu->total_h -= ui_menu_entry_height(mentry);
+	mentry->separator = true;
 	menu->total_h += ui_menu_entry_height(mentry);
 
 	*rmentry = mentry;
@@ -237,8 +263,18 @@ gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *mentry)
 		vpad = menu_entry_vpad;
 	}
 
-	gfx_font_get_metrics(res->font, &metrics);
-	height = metrics.ascent + metrics.descent + 1;
+	if (mentry->separator) {
+		/* Separator menu entry */
+		if (res->textmode)
+			height = menu_entry_sep_height_text;
+		else
+			height = menu_entry_sep_height;
+	} else {
+		/* Normal menu entry */
+		gfx_font_get_metrics(res->font, &metrics);
+		height = metrics.ascent + metrics.descent + 1;
+	}
+
 	return height + 2 * vpad;
 }
 
@@ -254,6 +290,7 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	gfx_text_fmt_t fmt;
 	gfx_color_t *bg_color;
 	ui_menu_entry_geom_t geom;
+	gfx_rect_t rect;
 	errno_t rc;
 
 	res = mentry->menu->mbar->res;
@@ -291,6 +328,16 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	if (rc != EOK)
 		goto error;
 
+	if (mentry->separator) {
+		rect.p0 = geom.caption_pos;
+		rect.p1.x = geom.shortcut_pos.x;
+		rect.p1.y = rect.p0.y + 2;
+		rc = ui_paint_bevel(res->gc, &rect, res->wnd_shadow_color,
+		    res->wnd_highlight_color, 1, NULL);
+		if (rc != EOK)
+			goto error;
+	}
+
 	rc = gfx_update(res->gc);
 	if (rc != EOK)
 		goto error;
@@ -308,6 +355,9 @@ error:
 void ui_menu_entry_press(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 {
 	if (mentry->held)
+		return;
+
+	if (mentry->separator)
 		return;
 
 	mentry->inside = true;

@@ -44,6 +44,7 @@
 
 extern errno_t ui_menu_entry_create(ui_menu_t *, const char *, const char *,
     ui_menu_entry_t **);
+extern errno_t ui_menu_entry_sep_create(ui_menu_t *, ui_menu_entry_t **);
 extern void ui_menu_entry_destroy(ui_menu_entry_t *);
 extern void ui_menu_entry_set_cb(ui_menu_entry_t *, ui_menu_entry_cb_t,
     void *);
