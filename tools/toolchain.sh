@@ -40,9 +40,10 @@ GCC_GIT="https://github.com/HelenOS/gcc.git"
 GCC_BRANCH="8_2_0-helenos"
 GCC_VERSION="8.2.0"
 
-BASEDIR="`pwd`"
+BASEDIR="$PWD"
 SRCDIR="$(readlink -f $(dirname "$0"))"
 
+SYSTEM_INSTALL=false
 REAL_INSTALL=true
 USE_HELENOS_TARGET=true
 
@@ -56,11 +57,11 @@ check_error() {
 }
 
 show_usage() {
-	echo "Cross-compiler toolchain build script"
+	echo "HelenOS cross-compiler toolchain build script"
 	echo
 	echo "Syntax:"
-	echo " $0 [--no-install] [--non-helenos-target] <platform>"
-	echo " $0 --test-version [<platform>]"
+	echo " $0 [--system-wide] [--no-install] [--non-helenos-target] <platform>"
+	echo " $0 [--system-wide] --test-version [<platform>]"
 	echo
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
@@ -78,44 +79,64 @@ show_usage() {
 	echo " parallel   same as 'all', but all in parallel"
 	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
-	echo "The toolchain is installed into directory specified by the"
-	echo "CROSS_PREFIX environment variable. If the variable is not"
-	echo "defined, /usr/local/cross/ is used as default."
+	echo "The toolchain target installation directory is determined by matching"
+	echo "the first of the following conditions:"
 	echo
-	echo "If --no-install is present, the toolchain still uses the"
-	echo "CROSS_PREFIX as the target directory but the installation"
-	echo "copies the files into PKG/ subdirectory without affecting"
-	echo "the actual root file system. That is only useful if you do"
-	echo "not want to run the script under the super user."
+	echo " (1) If the \$CROSS_PREFIX environment variable is set, then it is"
+	echo "     used as the target installation directory."
+	echo " (2) If the --system-wide option is used, then /opt/HelenOS/cross"
+	echo "     is used as the target installation directory. This usually"
+	echo "     requires running this script with super user privileges."
+	echo " (3) In other cases, \$XDG_DATA_HOME/HelenOS/cross is used as the"
+	echo "     target installation directory. If the \$XDG_DATA_HOME environment"
+	echo "     variable is not set, then the default value of \$HOME/.local/share"
+	echo "     is assumed."
 	echo
-	echo "The --non-helenos-target will build non-HelenOS-specific toolchain"
-	echo "(i.e. it will use *-linux-* triplet instead of *-helenos)."
+	echo "If the --no-install option is used, the toolchain still uses the"
+	echo "target installation directory as determined above, but the files"
+	echo "are actually copied into the PKG/ subdirectory during the installation"
+	echo "without affecting the actual target file system. This might be useful"
+	echo "when preparing a system-wide installation, but avoiding running this"
+	echo "script under the super user."
+	echo
+	echo "The --non-helenos-target option will build non-HelenOS-specific"
+	echo "toolchain (i.e. it will use *-linux-* triplet instead of *-helenos)."
 	echo "Using this toolchain for building HelenOS is not supported."
 	echo
+	echo "The --test-version mode tests the currently installed version of the"
+	echo "toolchain."
 
 	exit 3
 }
 
+set_cross_prefix() {
+	if [ -z "$CROSS_PREFIX" ] ; then
+		if $SYSTEM_INSTALL ; then
+			CROSS_PREFIX="/opt/HelenOS/cross"
+		else
+			if [ -z "$XDG_DATA_HOME" ] ; then
+				XDG_DATA_HOME="$HOME/.local/share"
+			fi
+			CROSS_PREFIX="$XDG_DATA_HOME/HelenOS/cross"
+		fi
+	fi
+}
+
 test_version() {
-	echo "Cross-compiler toolchain build script"
+	set_cross_prefix
+
+	echo "HelenOS cross-compiler toolchain build script"
 	echo
-	echo "Start testing the version of the installed software" 
+	echo "Testing the version of the installed software in $CROSS_PREFIX"
 	echo
-	
+
 	if [ -z "$1" ] || [ "$1" = "all" ] ; then
 		PLATFORMS='amd64 arm32 arm64 ia32 ia64 mips32 mips32eb ppc32 riscv64 sparc64'
 	else
 		PLATFORMS="$1"
 	fi
-	
-	
-	if [ -z "${CROSS_PREFIX}" ] ; then
-		CROSS_PREFIX="/usr/local/cross"
-	fi
 
-	for i in $PLATFORMS
-	do
-		PLATFORM="$i"
+	for PLATFORM in $PLATFORMS ; do
 		set_target_from_platform "$PLATFORM"
 		PREFIX="${CROSS_PREFIX}/bin/${HELENOS_TARGET}"
 
@@ -124,8 +145,6 @@ test_version() {
 		test_app_version "GCC" "gcc" "gcc version \([.0-9]*\)" "$GCC_VERSION"
 		test_app_version "GDB" "gdb" "GNU gdb (.*)[[:space:]]\+\([.0-9]*\)" "$GDB_VERSION"
 	done
-
-	exit
 }
 
 test_app_version() {
@@ -133,7 +152,6 @@ test_app_version() {
 	APPNAME="$2"
 	REGEX="$3"
 	INS_VERSION="$4"
-
 
 	APP="${PREFIX}-${APPNAME}"
 	if [ ! -e $APP ]; then
@@ -147,14 +165,12 @@ test_app_version() {
 		fi
 
 		if [ "$INS_VERSION" = "$VERSION" ]; then
-			echo "+ $PKGNAME is uptodate ($INS_VERSION)"
+			echo "+ $PKGNAME is up-to-date ($INS_VERSION)"
 		else
 			echo "- $PKGNAME ($VERSION) is outdated ($INS_VERSION)"
 		fi
 	fi
 }
-
-
 
 change_title() {
 	printf "\e]0;$1\a"
@@ -177,6 +193,13 @@ show_countdown() {
 }
 
 show_dependencies() {
+	set_cross_prefix
+
+	echo "HelenOS cross-compiler toolchain build script"
+	echo
+	echo "Installing software to $CROSS_PREFIX"
+	echo
+	echo
 	echo "IMPORTANT NOTICE:"
 	echo
 	echo "For a successful compilation and use of the cross-compiler"
@@ -254,6 +277,7 @@ prepare() {
 	cd "${BASEDIR}/downloads"
 	check_error $? "Change directory failed."
 
+	change_title "Downloading sources"
 	echo ">>> Downloading sources"
 	git clone --depth 1 -b "$BINUTILS_BRANCH" "$BINUTILS_GDB_GIT" "binutils-$BINUTILS_VERSION"
 	git clone --depth 1 -b "$GDB_BRANCH" "$BINUTILS_GDB_GIT" "gdb-$GDB_VERSION"
@@ -264,6 +288,7 @@ prepare() {
 	git -C "gdb-$GDB_VERSION" pull
 	git -C "gcc-$GCC_VERSION" pull
 
+	change_title "Downloading GCC prerequisites"
 	echo ">>> Downloading GCC prerequisites"
 	cd "gcc-${GCC_VERSION}"
 	./contrib/download_prerequisites
@@ -324,12 +349,11 @@ build_target() {
 	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
 	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
 
-	if [ -z "${CROSS_PREFIX}" ] ; then
-		CROSS_PREFIX="/usr/local/cross"
-	fi
+	# This sets the CROSS_PREFIX variable
+	set_cross_prefix
 
 	if [ -z "$JOBS" ] ; then
-		JOBS=`nproc`
+		JOBS="`nproc`"
 	fi
 
 	PREFIX="${CROSS_PREFIX}"
@@ -340,6 +364,7 @@ build_target() {
 	check_dirs "${PREFIX}" "${WORKDIR}"
 
 	if $USE_HELENOS_TARGET ; then
+		change_title "Creating build sysroot"
 		echo ">>> Creating build sysroot"
 		mkdir -p "${WORKDIR}/sysroot/include"
 		mkdir "${WORKDIR}/sysroot/lib"
@@ -354,6 +379,7 @@ build_target() {
 			${SRCDIR}/../uspace/lib/c/include/*
 		check_error $? "Failed to create build sysroot."
 	fi
+
 
 	echo ">>> Processing binutils (${PLATFORM})"
 	mkdir -p "${BINUTILSDIR}"
@@ -415,19 +441,19 @@ build_target() {
 	if $USE_HELENOS_TARGET ; then
 		PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libgcc -j$JOBS
 		check_error $? "Error compiling libgcc."
-		# TODO: needs some extra care
-		#PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libatomic -j$JOBS
-		#check_error $? "Error compiling libatomic."
-		#PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libstdc++-v3 -j$JOBS
-		#check_error $? "Error compiling libstdc++."
+		# TODO: libatomic and libstdc++ need some extra care
+		#    PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libatomic -j$JOBS
+		#    check_error $? "Error compiling libatomic."
+		#    PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libstdc++-v3 -j$JOBS
+		#    check_error $? "Error compiling libstdc++."
 	fi
 
 	change_title "GCC: install (${PLATFORM})"
 	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gcc "DESTDIR=${INSTALL_DIR}"
 	if $USE_HELENOS_TARGET ; then
 		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libgcc "DESTDIR=${INSTALL_DIR}"
-		#PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libatomic "DESTDIR=${INSTALL_DIR}"
-		#PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libstdc++-v3 "DESTDIR=${INSTALL_DIR}"
+		#    PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libatomic "DESTDIR=${INSTALL_DIR}"
+		#    PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libstdc++-v3 "DESTDIR=${INSTALL_DIR}"
 	fi
 	check_error $? "Error installing GCC."
 
@@ -462,7 +488,6 @@ build_target() {
 
 	if $REAL_INSTALL ; then
 		echo ">>> Moving to the destination directory."
-		echo cp -r -t "${PREFIX}" "${INSTALL_DIR}/${PREFIX}/"*
 		cp -r -t "${PREFIX}" "${INSTALL_DIR}/${PREFIX}/"*
 	fi
 
@@ -478,6 +503,10 @@ build_target() {
 
 while [ "$#" -gt 1 ] ; do
 	case "$1" in
+		--system-wide)
+			SYSTEM_INSTALL=true
+			shift
+			;;
 		--test-version)
 			test_version "$2"
 			exit
@@ -503,6 +532,7 @@ fi
 case "$1" in
 	--test-version)
 		test_version
+		exit
 		;;
 	amd64|arm32|arm64|ia32|ia64|mips32|mips32eb|ppc32|riscv64|sparc64)
 		prepare

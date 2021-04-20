@@ -39,7 +39,6 @@ SOURCE_DIR=`cd $SOURCE_DIR && echo $PWD`
 CONFIG_RULES="${SOURCE_DIR}/HelenOS.config"
 CONFIG_DEFAULTS="${SOURCE_DIR}/defaults"
 
-
 test "$#" -eq 1 && { test "$1" = "-h" || test "$1" = "--help"; }
 want_help="$?"
 
@@ -84,20 +83,22 @@ if [ -f build.ninja ]; then
 	exit 0
 fi
 
-if ! which meson; then
+if ! which meson >/dev/null 2>/dev/null; then
 	echo "Your system does not have Meson installed."
 	echo 'Please use `pip3 install meson`'
 	exit 1
 fi
 
-if ! which ninja; then
+if ! which ninja >/dev/null 2>/dev/null; then
 	echo "Your system does not have ninja installed."
 	echo 'Please use `pip3 install ninja`'
 	exit 1
 fi
 
 # Link tools directory for convenience.
-ln -s "${SOURCE_DIR}/tools" tools
+if [ ! -e tools ]; then
+	ln -s "${SOURCE_DIR}/tools" tools
+fi
 
 # Run HelenOS config tool.
 if [ "$#" -eq 1 ]; then
@@ -121,27 +122,43 @@ cross_def="${SOURCE_DIR}/meson/cross/${cross_target}"
 cc_arch=`sed -n "s:cc_arch = '\(.*\)':\1:p" "$cross_def"`
 
 compname="$cc_arch-helenos-gcc"
+unset compprefix
 
-if which "$compname"; then
+if which "$compname" >/dev/null 2>/dev/null; then
 	# Compiler is in PATH
 	compprefix="$cc_arch-helenos-"
 
 elif [ -n "$CROSS_PREFIX" ]; then
-	if ! which "$CROSS_PREFIX/bin/$compname"; then
+	if which "$CROSS_PREFIX/bin/$compname" >/dev/null 2>/dev/null; then
+		compprefix="$CROSS_PREFIX/bin/$cc_arch-helenos-"
+	fi
+
+	if [ -z "$compprefix" ]; then
 		echo "ERROR: \$CROSS_PREFIX defined but $compname is not present in $CROSS_PREFIX/bin."
 		echo "Run tools/toolchain.sh to build cross-compiling toolchain."
 		exit 1
 	fi
-
-	compprefix="$CROSS_PREFIX/bin/$cc_arch-helenos-"
 else
-	if ! which "/usr/local/cross/bin/$compname"; then
-		echo "ERROR: \$CROSS_PREFIX is not defined and $compname is not present in /usr/local/cross/bin."
+	if [ -z "$XDG_DATA_HOME" ]; then
+			XDG_DATA_HOME="$HOME/.local/share"
+	fi
+
+	if which "$XDG_DATA_HOME/HelenOS/cross/bin/$compname" >/dev/null 2>/dev/null; then
+		compprefix="$XDG_DATA_HOME/HelenOS/cross/bin/$cc_arch-helenos-"
+	elif which "/opt/HelenOS/cross/bin/$compname" >/dev/null 2>/dev/null; then
+		compprefix="/opt/HelenOS/cross/bin/$cc_arch-helenos-"
+	elif which "/usr/local/cross/bin/$compname" >/dev/null 2>/dev/null; then
+		compprefix="/usr/local/cross/bin/$cc_arch-helenos-"
+	fi
+
+	if [ -z "$compprefix" ]; then
+		echo "ERROR: \$CROSS_PREFIX is not defined and $compname is not present in any of the following standard locations."
+		echo " * $XDG_DATA_HOME/HelenOS/cross/bin"
+		echo " * /opt/HelenOS/cross/bin"
+		echo " * /usr/local/cross/bin"
 		echo "Run tools/toolchain.sh to build cross-compiling toolchain."
 		exit 1
 	fi
-
-	compprefix="/usr/local/cross/bin/$cc_arch-helenos-"
 fi
 
 sed "s:@COMPPREFIX@:$compprefix:g" "$cross_def" > crossfile || exit 1
