@@ -37,6 +37,7 @@
 #ifndef _UI_PRIVATE_UI_H
 #define _UI_PRIVATE_UI_H
 
+#include <adt/list.h>
 #include <display.h>
 #include <io/console.h>
 #include <stdbool.h>
@@ -48,14 +49,16 @@
 struct ui {
 	/** Console */
 	console_ctrl_t *console;
+	/** Console GC */
+	struct console_gc *cgc;
 	/** Display */
 	display_t *display;
 	/** Output owned by UI, clean up when destroying UI */
 	bool myoutput;
 	/** @c true if terminating */
 	bool quit;
-	/** Root window (in fullscreen/console mode) */
-	struct ui_window *root_wnd;
+	/** Windows (in stacking order, ui_window_t) */
+	list_t windows;
 };
 
 #endif

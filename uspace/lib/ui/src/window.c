@@ -132,11 +132,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	gfx_bitmap_alloc_t alloc;
 	gfx_bitmap_t *bmp = NULL;
 	mem_gc_t *memgc = NULL;
-	console_gc_t *cgc = NULL;
 	errno_t rc;
-
-	if (ui->root_wnd != NULL)
-		return EEXIST;
 
 	window = calloc(1, sizeof(ui_window_t));
 	if (window == NULL)
@@ -201,11 +197,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 		if (rc != EOK)
 			goto error;
 	} else if (ui->console != NULL) {
-		rc = console_gc_create(ui->console, NULL, &cgc);
-		if (rc != EOK)
-			goto error;
-
-		gc = console_gc_get_ctx(cgc);
+		gc = console_gc_get_ctx(ui->cgc);
 	} else {
 		/* Needed for unit tests */
 		rc = dummygc_create(&dgc);
@@ -256,7 +248,6 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	(void) bparams;
 	window->gc = gc;
 #endif
-	window->cgc = cgc;
 
 	rc = ui_resource_create(window->gc, ui_is_textmode(ui), &res);
 	if (rc != EOK)
@@ -281,7 +272,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->cursor = ui_curs_arrow;
 	*rwindow = window;
 
-	ui->root_wnd = window;
+	list_append(&window->lwindows, &ui->windows);
 	return EOK;
 error:
 	if (wdecor != NULL)
@@ -294,8 +285,6 @@ error:
 		gfx_bitmap_destroy(bmp);
 	if (dgc != NULL)
 		dummygc_destroy(dgc);
-	if (cgc != NULL)
-		console_gc_delete(cgc);
 	if (dwindow != NULL)
 		display_window_destroy(dwindow);
 	free(window);
@@ -308,9 +297,14 @@ error:
  */
 void ui_window_destroy(ui_window_t *window)
 {
+	ui_t *ui;
+
 	if (window == NULL)
 		return;
 
+	ui = window->ui;
+
+	list_remove(&window->lwindows);
 	ui_control_destroy(window->control);
 	ui_wdecor_destroy(window->wdecor);
 	ui_resource_destroy(window->res);
@@ -327,9 +321,13 @@ void ui_window_destroy(ui_window_t *window)
 	gfx_context_delete(window->gc);
 	if (window->dwindow != NULL)
 		display_window_destroy(window->dwindow);
-	if (window->cgc != NULL)
-		console_gc_delete(window->cgc);
+
 	free(window);
+
+	/* Need to repaint if windows are emulated */
+	if (ui_is_fullscreen(ui)) {
+		ui_paint(ui);
+	}
 }
 
 /** Add control to window.
@@ -361,6 +359,22 @@ void ui_window_remove(ui_window_t *window, ui_control_t *control)
 
 	window->control = NULL;
 	control->elemp = NULL;
+}
+
+/** Get active window (only valid in fullscreen mode).
+ *
+ * @param ui User interface
+ * @return Active window
+ */
+ui_window_t *ui_window_get_active(ui_t *ui)
+{
+	link_t *link;
+
+	link = list_last(&ui->windows);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ui_window_t, lwindows);
 }
 
 /** Resize/move window.

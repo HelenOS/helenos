@@ -177,6 +177,52 @@ PCUT_TEST(add_remove)
 	ui_destroy(ui);
 }
 
+/** ui_window_get_active */
+PCUT_TEST(get_active)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window1 = NULL;
+	ui_window_t *window2 = NULL;
+	ui_window_t *awnd;
+
+	rc = ui_create_cons(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	awnd = ui_window_get_active(ui);
+	PCUT_ASSERT_NULL(awnd);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window1);
+
+	awnd = ui_window_get_active(ui);
+	PCUT_ASSERT_EQUALS(window1, awnd);
+
+	rc = ui_window_create(ui, &params, &window2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window2);
+
+	awnd = ui_window_get_active(ui);
+	PCUT_ASSERT_EQUALS(window2, awnd);
+
+	ui_window_destroy(window2);
+
+	awnd = ui_window_get_active(ui);
+	PCUT_ASSERT_EQUALS(window1, awnd);
+
+	ui_window_destroy(window1);
+
+	awnd = ui_window_get_active(ui);
+	PCUT_ASSERT_NULL(awnd);
+
+	ui_destroy(ui);
+}
+
 /** ui_window_resize */
 PCUT_TEST(resize)
 {

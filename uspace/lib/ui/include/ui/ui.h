@@ -48,7 +48,9 @@ extern errno_t ui_create_disp(display_t *, ui_t **);
 extern void ui_destroy(ui_t *);
 extern void ui_quit(ui_t *);
 extern void ui_run(ui_t *);
+extern errno_t ui_paint(ui_t *);
 extern bool ui_is_textmode(ui_t *);
+extern bool ui_is_fullscreen(ui_t *);
 
 #endif
 

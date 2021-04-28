@@ -555,8 +555,9 @@ void ui_wdecor_frame_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
  *
  * @param wdecor Window decoration
  * @param pos_event Position event
+ * @return @c ui_claimed iff event was claimed
  */
-void ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
+ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 {
 	gfx_coord2_t pos;
 	ui_wdecor_geom_t geom;
@@ -570,16 +571,20 @@ void ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 	if ((wdecor->style & ui_wds_close_btn) != 0) {
 		claim = ui_pbutton_pos_event(wdecor->btn_close, event);
 		if (claim == ui_claimed)
-			return;
+			return ui_claimed;
 	}
 
 	ui_wdecor_frame_pos_event(wdecor, event);
 
-	if ((wdecor->style & ui_wds_titlebar) != 0)  {
+	if ((wdecor->style & ui_wds_titlebar) != 0) {
 		if (event->type == POS_PRESS &&
-		    gfx_pix_inside_rect(&pos, &geom.title_bar_rect))
+		    gfx_pix_inside_rect(&pos, &geom.title_bar_rect)) {
 			ui_wdecor_move(wdecor, &pos);
+			return ui_claimed;
+		}
 	}
+
+	return ui_unclaimed;
 }
 
 /** Window decoration close button was clicked.

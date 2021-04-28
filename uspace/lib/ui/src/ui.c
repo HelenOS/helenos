@@ -33,6 +33,7 @@
  * @file User interface
  */
 
+#include <adt/list.h>
 #include <ctype.h>
 #include <display.h>
 #include <errno.h>
@@ -44,6 +45,7 @@
 #include <task.h>
 #include <ui/ui.h>
 #include <ui/wdecor.h>
+#include <ui/window.h>
 #include "../private/window.h"
 #include "../private/ui.h"
 
@@ -103,6 +105,7 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 	errno_t rc;
 	display_t *display;
 	console_ctrl_t *console;
+	console_gc_t *cgc;
 	ui_winsys_t ws;
 	const char *osvc;
 	ui_t *ui;
@@ -130,6 +133,15 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 			console_done(console);
 			return rc;
 		}
+
+		rc = console_gc_create(console, NULL, &cgc);
+		if (rc != EOK) {
+			ui_destroy(ui);
+			console_done(console);
+			return rc;
+		}
+
+		ui->cgc = cgc;
 	} else {
 		return EINVAL;
 	}
@@ -153,6 +165,7 @@ errno_t ui_create_cons(console_ctrl_t *console, ui_t **rui)
 		return ENOMEM;
 
 	ui->console = console;
+	list_initialize(&ui->windows);
 	*rui = ui;
 	return EOK;
 }
@@ -172,6 +185,7 @@ errno_t ui_create_disp(display_t *disp, ui_t **rui)
 		return ENOMEM;
 
 	ui->display = disp;
+	list_initialize(&ui->windows);
 	*rui = ui;
 	return EOK;
 }
@@ -186,6 +200,8 @@ void ui_destroy(ui_t *ui)
 		return;
 
 	if (ui->myoutput) {
+		if (ui->cgc != NULL)
+			console_gc_delete(ui->cgc);
 		if (ui->console != NULL)
 			console_done(ui->console);
 		if (ui->display != NULL)
@@ -197,16 +213,22 @@ void ui_destroy(ui_t *ui)
 
 static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 {
-	if (ui->root_wnd == NULL)
+	ui_window_t *awnd;
+	ui_evclaim_t claim;
+
+	awnd = ui_window_get_active(ui);
+	if (awnd == NULL)
 		return;
 
 	switch (event->type) {
 	case CEV_KEY:
-		ui_window_send_kbd(ui->root_wnd, &event->ev.key);
+		ui_window_send_kbd(awnd, &event->ev.key);
 		break;
 	case CEV_POS:
-		ui_wdecor_pos_event(ui->root_wnd->wdecor, &event->ev.pos);
-		ui_window_send_pos(ui->root_wnd, &event->ev.pos);
+		claim = ui_wdecor_pos_event(awnd->wdecor, &event->ev.pos);
+		/* Note: If event is claimed, awnd might not be valid anymore */
+		if (claim == ui_unclaimed)
+			ui_window_send_pos(awnd, &event->ev.pos);
 		break;
 	}
 }
@@ -247,6 +269,30 @@ void ui_run(ui_t *ui)
 	}
 }
 
+/** Repaint UI (only used in fullscreen mode).
+ *
+ * This is used when an area is exposed in fullscreen mode.
+ *
+ * @param ui UI
+ * @return @c EOK on success or an error code
+ */
+errno_t ui_paint(ui_t *ui)
+{
+	errno_t rc;
+	ui_window_t *awnd;
+
+	/* XXX Should repaint all windows */
+	awnd = ui_window_get_active(ui);
+	if (awnd == NULL)
+		return EOK;
+
+	rc = ui_wdecor_paint(awnd->wdecor);
+	if (rc != EOK)
+		return rc;
+
+	return ui_window_paint(awnd);
+}
+
 /** Terminate user interface.
  *
  * Calling this function causes the user interface to terminate
@@ -272,6 +318,16 @@ bool ui_is_textmode(ui_t *ui)
 	 * graphics, but this need not always be true.
 	 */
 	return (ui->console != NULL);
+}
+
+/** Determine if we are emulating windows.
+ *
+ * @param ui User interface
+ * @return @c true iff we are running in text mode
+ */
+bool ui_is_fullscreen(ui_t *ui)
+{
+	return (ui->display == NULL);
 }
 
 /** @}

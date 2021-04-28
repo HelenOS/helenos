@@ -41,6 +41,7 @@
 #include <ui/msgdialog.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
+#include <ui/ui.h>
 #include <ui/window.h>
 #include "../private/msgdialog.h"
 
@@ -96,10 +97,19 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 
 	ui_wnd_params_init(&wparams);
 	wparams.caption = params->caption;
-	wparams.rect.p0.x = 0;
-	wparams.rect.p0.y = 0;
-	wparams.rect.p1.x = 200;
-	wparams.rect.p1.y = 110;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		wparams.rect.p0.x = 0;
+		wparams.rect.p0.y = 0;
+		wparams.rect.p1.x = 20;
+		wparams.rect.p1.y = 7;
+	} else {
+		wparams.rect.p0.x = 0;
+		wparams.rect.p0.y = 0;
+		wparams.rect.p1.x = 200;
+		wparams.rect.p1.y = 110;
+	}
 
 	rc = ui_window_create(ui, &wparams, &window);
 	if (rc != EOK)
@@ -117,10 +127,19 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	rect.p0.x = 10;
-	rect.p0.y = 35;
-	rect.p1.x = 190;
-	rect.p1.y = 50;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 3;
+		rect.p0.y = 2;
+		rect.p1.x = 17;
+		rect.p1.y = 3;
+	} else {
+		rect.p0.x = 10;
+		rect.p0.y = 35;
+		rect.p1.x = 190;
+		rect.p1.y = 50;
+	}
+
 	ui_label_set_rect(label, &rect);
 	ui_label_set_halign(label, gfx_halign_center);
 
@@ -136,10 +155,19 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 
 	ui_pbutton_set_cb(bok, &ui_msg_dialog_btn_cb, dialog);
 
-	rect.p0.x = 55;
-	rect.p0.y = 60;
-	rect.p1.x = 145;
-	rect.p1.y = 88;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 8;
+		rect.p0.y = 4;
+		rect.p1.x = 12;
+		rect.p1.y = 5;
+	} else {
+		rect.p0.x = 55;
+		rect.p0.y = 60;
+		rect.p1.x = 145;
+		rect.p1.y = 88;
+	}
+
 	ui_pbutton_set_rect(bok, &rect);
 
 	ui_pbutton_set_default(bok, true);

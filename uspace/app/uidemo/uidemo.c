@@ -45,6 +45,7 @@
 #include <ui/menubar.h>
 #include <ui/menuentry.h>
 #include <ui/menu.h>
+#include <ui/msgdialog.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
@@ -83,7 +84,16 @@ static ui_slider_cb_t slider_cb = {
 	.moved = slider_moved
 };
 
+static void uidemo_file_message(ui_menu_entry_t *, void *);
 static void uidemo_file_exit(ui_menu_entry_t *, void *);
+
+static void msg_dialog_button(ui_msg_dialog_t *, void *, unsigned);
+static void msg_dialog_close(ui_msg_dialog_t *, void *);
+
+static ui_msg_dialog_cb_t msg_dialog_cb = {
+	.button = msg_dialog_button,
+	.close = msg_dialog_close
+};
 
 /** Window close button was clicked.
  *
@@ -189,6 +199,32 @@ static void slider_moved(ui_slider_t *slider, void *arg, gfx_coord_t pos)
 	free(str);
 }
 
+/** File/message menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (demo)
+ */
+static void uidemo_file_message(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	ui_msg_dialog_params_t mdparams;
+	ui_msg_dialog_t *dialog;
+	errno_t rc;
+
+	ui_msg_dialog_params_init(&mdparams);
+	mdparams.caption = "Message For You";
+	mdparams.text = "Hello, world!";
+
+	rc = ui_msg_dialog_create(demo->ui, &mdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating message dialog.\n");
+		return;
+	}
+
+	ui_msg_dialog_set_cb(dialog, &msg_dialog_cb, &demo);
+
+}
+
 /** File/exit menu entry selected.
  *
  * @param mentry Menu entry
@@ -199,6 +235,34 @@ static void uidemo_file_exit(ui_menu_entry_t *mentry, void *arg)
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
 	ui_quit(demo->ui);
+}
+
+/** Message dialog button press.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param bnum Button number
+ */
+static void msg_dialog_button(ui_msg_dialog_t *dialog, void *arg,
+    unsigned bnum)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	(void) demo;
+	ui_msg_dialog_destroy(dialog);
+}
+
+/** Message dialog close request.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void msg_dialog_close(ui_msg_dialog_t *dialog, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	(void) demo;
+	ui_msg_dialog_destroy(dialog);
 }
 
 /** Run UI demo on display server. */
@@ -214,6 +278,7 @@ static errno_t ui_demo(const char *display_spec)
 	gfx_bitmap_params_t bparams;
 	gfx_bitmap_t *bitmap;
 	gfx_coord2_t off;
+	ui_menu_entry_t *mmsg;
 	ui_menu_entry_t *mfoo;
 	ui_menu_entry_t *mbar;
 	ui_menu_entry_t *mfoobar;
@@ -227,16 +292,25 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
+	memset((void *) &demo, 0, sizeof(demo));
+	demo.ui = ui;
+
 	ui_wnd_params_init(&params);
 	params.caption = "UI Demo";
 	params.style |= ui_wds_resizable;
-	params.rect.p0.x = 0;
-	params.rect.p0.y = 0;
-	params.rect.p1.x = 220;
-	params.rect.p1.y = 350;
 
-	memset((void *) &demo, 0, sizeof(demo));
-	demo.ui = ui;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		params.rect.p0.x = 0;
+		params.rect.p0.y = 0;
+		params.rect.p1.x = 80;
+		params.rect.p1.y = 25;
+	} else {
+		params.rect.p0.x = 0;
+		params.rect.p0.y = 0;
+		params.rect.p1.x = 220;
+		params.rect.p1.y = 350;
+	}
 
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
@@ -267,6 +341,14 @@ static errno_t ui_demo(const char *display_spec)
 		printf("Error creating menu.\n");
 		return rc;
 	}
+
+	rc = ui_menu_entry_create(demo.mfile, "Message", "", &mmsg);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mmsg, uidemo_file_message, (void *) &demo);
 
 	rc = ui_menu_entry_create(demo.mfile, "Foo", "Ctrl-Alt-Del", &mfoo);
 	if (rc != EOK) {
@@ -324,10 +406,18 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rect.p0.x = 4;
-	rect.p0.y = 30;
-	rect.p1.x = 216;
-	rect.p1.y = 52;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 1;
+		rect.p0.y = 2;
+		rect.p1.x = 79;
+		rect.p1.y = 3;
+	} else {
+		rect.p0.x = 4;
+		rect.p0.y = 30;
+		rect.p1.x = 216;
+		rect.p1.y = 52;
+	}
 	ui_menu_bar_set_rect(demo.mbar, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_menu_bar_ctl(demo.mbar));
