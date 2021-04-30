@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include "../private/dummygc.h"
 
+static errno_t dummygc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t dummygc_set_color(void *, gfx_color_t *);
 static errno_t dummygc_fill_rect(void *, gfx_rect_t *);
 static errno_t dummygc_update(void *);
@@ -51,6 +52,7 @@ static errno_t dummygc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 /** Dummy GC operations */
 gfx_context_ops_t dummygc_ops = {
+	.set_clip_rect = dummygc_set_clip_rect,
 	.set_color = dummygc_set_color,
 	.fill_rect = dummygc_fill_rect,
 	.update = dummygc_update,
@@ -104,6 +106,19 @@ void dummygc_destroy(dummy_gc_t *dgc)
 gfx_context_t *dummygc_get_ctx(dummy_gc_t *dgc)
 {
 	return dgc->gc;
+}
+
+/** Set clipping rectangle on dummy GC
+ *
+ * @param arg Argument (dummy_gc_t)
+ * @param rect Rectangle
+ * @return EOK on success or an error code
+ */
+static errno_t dummygc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	(void) arg;
+	(void) rect;
+	return EOK;
 }
 
 /** Set color on dummy GC

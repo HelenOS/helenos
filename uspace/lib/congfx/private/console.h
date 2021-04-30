@@ -54,6 +54,8 @@ struct console_gc {
 	console_ctrl_t *con;
 	/** Console bounding rectangle */
 	gfx_rect_t rect;
+	/** Clipping rectangle */
+	gfx_rect_t clip_rect;
 	/** File for printing characters */
 	FILE *fout;
 	/** Current drawing color */

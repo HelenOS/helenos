@@ -47,6 +47,7 @@
 #include "../private/console.h"
 #include "../private/color.h"
 
+static errno_t console_gc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t console_gc_set_color(void *, gfx_color_t *);
 static errno_t console_gc_fill_rect(void *, gfx_rect_t *);
 static errno_t console_gc_update(void *);
@@ -57,6 +58,7 @@ static errno_t console_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t console_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 gfx_context_ops_t console_gc_ops = {
+	.set_clip_rect = console_gc_set_clip_rect,
 	.set_color = console_gc_set_color,
 	.fill_rect = console_gc_fill_rect,
 	.update = console_gc_update,
@@ -65,6 +67,25 @@ gfx_context_ops_t console_gc_ops = {
 	.bitmap_render = console_gc_bitmap_render,
 	.bitmap_get_alloc = console_gc_bitmap_get_alloc
 };
+
+/** Set clipping rectangle on console GC.
+ *
+ * @param arg Console GC
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t console_gc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	console_gc_t *cgc = (console_gc_t *) arg;
+
+	if (rect != NULL)
+		gfx_rect_clip(rect, &cgc->rect, &cgc->clip_rect);
+	else
+		cgc->clip_rect = cgc->rect;
+
+	return EOK;
+}
 
 /** Set color on console GC.
  *
@@ -99,7 +120,7 @@ static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	charfield_t ch;
 
 	/* Make sure rectangle is clipped and sorted */
-	gfx_rect_clip(rect, &cgc->rect, &crect);
+	gfx_rect_clip(rect, &cgc->clip_rect, &crect);
 
 	cols = cgc->rect.p1.x - cgc->rect.p0.x;
 
@@ -187,6 +208,7 @@ errno_t console_gc_create(console_ctrl_t *con, FILE *fout,
 	cgc->rect.p0.y = 0;
 	cgc->rect.p1.x = cols;
 	cgc->rect.p1.y = rows;
+	cgc->clip_rect = cgc->rect;
 	cgc->buf = buf;
 
 	*rgc = cgc;
@@ -329,7 +351,7 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	}
 
 	gfx_rect_translate(&offs, &srect, &drect);
-	gfx_rect_clip(&drect, &cbm->cgc->rect, &crect);
+	gfx_rect_clip(&drect, &cbm->cgc->clip_rect, &crect);
 
 	pixelmap.width = cbm->rect.p1.x - cbm->rect.p0.x;
 	pixelmap.height = cbm->rect.p1.y = cbm->rect.p1.y;

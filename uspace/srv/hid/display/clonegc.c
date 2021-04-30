@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include "clonegc.h"
 
+static errno_t ds_clonegc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t ds_clonegc_set_color(void *, gfx_color_t *);
 static errno_t ds_clonegc_fill_rect(void *, gfx_rect_t *);
 static errno_t ds_clonegc_bitmap_create(void *, gfx_bitmap_params_t *,
@@ -64,6 +65,7 @@ static errno_t ds_clonegc_bitmap_add_output(ds_clonegc_bitmap_t *,
     ds_clonegc_output_t *);
 
 gfx_context_ops_t ds_clonegc_ops = {
+	.set_clip_rect = ds_clonegc_set_clip_rect,
 	.set_color = ds_clonegc_set_color,
 	.fill_rect = ds_clonegc_fill_rect,
 	.bitmap_create = ds_clonegc_bitmap_create,
@@ -71,6 +73,31 @@ gfx_context_ops_t ds_clonegc_ops = {
 	.bitmap_render = ds_clonegc_bitmap_render,
 	.bitmap_get_alloc = ds_clonegc_bitmap_get_alloc
 };
+
+/** Set clipping rectangle on clone GC.
+ *
+ * @param arg Clone GC
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t ds_clonegc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	ds_clonegc_t *cgc = (ds_clonegc_t *)arg;
+	ds_clonegc_output_t *output;
+	errno_t rc;
+
+	output = ds_clonegc_first_output(cgc);
+	while (output != NULL) {
+		rc = gfx_set_clip_rect(output->gc, rect);
+		if (rc != EOK)
+			return rc;
+
+		output = ds_clonegc_next_output(output);
+	}
+
+	return EOK;
+}
 
 /** Set color on clone GC.
  *

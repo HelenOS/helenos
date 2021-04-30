@@ -36,6 +36,19 @@
 #include <gfx/render.h>
 #include "../private/context.h"
 
+/** Set clipping rectangle.
+ *
+ * @param gc Graphic context
+ * @param rect Rectangle or @c NULL (no extra clipping)
+ *
+ * @return EOK on success, ENOMEM if insufficient resources,
+ *         EIO if grahic device connection was lost
+ */
+errno_t gfx_set_clip_rect(gfx_context_t *gc, gfx_rect_t *rect)
+{
+	return gc->ops->set_clip_rect(gc->arg, rect);
+}
+
 /** Set drawing color.
  *
  * @param gc Graphic context

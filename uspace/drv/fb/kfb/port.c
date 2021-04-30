@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2006 Jakub Vana
  * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2008 Martin Decky
@@ -68,6 +68,7 @@ typedef struct {
 
 	sysarg_t paddr;
 	gfx_rect_t rect;
+	gfx_rect_t clip_rect;
 	size_t offset;
 	size_t scanline;
 	visual_t visual;
@@ -96,6 +97,7 @@ typedef struct {
 static errno_t kfb_ddev_get_gc(void *, sysarg_t *, sysarg_t *);
 static errno_t kfb_ddev_get_info(void *, ddev_info_t *);
 
+static errno_t kfb_gc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t kfb_gc_set_color(void *, gfx_color_t *);
 static errno_t kfb_gc_fill_rect(void *, gfx_rect_t *);
 static errno_t kfb_gc_bitmap_create(void *, gfx_bitmap_params_t *,
@@ -110,6 +112,7 @@ static ddev_ops_t kfb_ddev_ops = {
 };
 
 static gfx_context_ops_t kfb_gc_ops = {
+	.set_clip_rect = kfb_gc_set_clip_rect,
 	.set_color = kfb_gc_set_color,
 	.fill_rect = kfb_gc_fill_rect,
 	.bitmap_create = kfb_gc_bitmap_create,
@@ -133,6 +136,25 @@ static errno_t kfb_ddev_get_info(void *arg, ddev_info_t *info)
 
 	ddev_info_init(info);
 	info->rect = kfb->rect;
+	return EOK;
+}
+
+/** Set clipping rectangle on KFB.
+ *
+ * @param arg KFB
+ * @param rect Rectangle or @c NULL
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t kfb_gc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	kfb_t *kfb = (kfb_t *) arg;
+
+	if (rect != NULL)
+		gfx_rect_clip(rect, &kfb->rect, &kfb->clip_rect);
+	else
+		kfb->clip_rect = kfb->rect;
+
 	return EOK;
 }
 
@@ -360,7 +382,6 @@ static errno_t kfb_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 	return EOK;
 }
 
-#include <stdio.h>
 static void kfb_client_conn(ipc_call_t *icall, void *arg)
 {
 	kfb_t *kfb;
@@ -370,11 +391,6 @@ static void kfb_client_conn(ipc_call_t *icall, void *arg)
 	errno_t rc;
 
 	kfb = (kfb_t *) ddf_fun_data_get((ddf_fun_t *) arg);
-
-	printf("kfb_client_conn arg2=%lu arg3=%lu arg4=%lu\n",
-	    (unsigned long) ipc_get_arg2(icall),
-	    (unsigned long) ipc_get_arg3(icall),
-	    (unsigned long) ipc_get_arg4(icall));
 
 	gc_id = ipc_get_arg3(icall);
 
@@ -499,6 +515,8 @@ errno_t port_init(ddf_dev_t *dev)
 	kfb->rect.p0.y = 0;
 	kfb->rect.p1.x = width;
 	kfb->rect.p1.y = height;
+
+	kfb->clip_rect = kfb->rect;
 
 	kfb->paddr = paddr;
 	kfb->offset = offset;

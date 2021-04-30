@@ -49,6 +49,7 @@ static const char *test_ipcgfx_svc = "test/ipcgfx";
 
 static void test_ipcgc_conn(ipc_call_t *, void *);
 
+static errno_t test_gc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t test_gc_set_color(void *, gfx_color_t *);
 static errno_t test_gc_fill_rect(void *, gfx_rect_t *);
 static errno_t test_gc_update(void *);
@@ -59,6 +60,7 @@ static errno_t test_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t test_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 static gfx_context_ops_t test_gc_ops = {
+	.set_clip_rect = test_gc_set_clip_rect,
 	.set_color = test_gc_set_color,
 	.fill_rect = test_gc_fill_rect,
 	.update = test_gc_update,
@@ -73,6 +75,10 @@ static gfx_context_ops_t test_gc_ops = {
  */
 typedef struct {
 	errno_t rc;
+
+	bool set_clip_rect_called;
+	bool do_clip;
+	gfx_rect_t set_clip_rect_rect;
 
 	bool set_color_called;
 	uint16_t set_color_r;
@@ -102,6 +108,150 @@ typedef struct {
 	test_response_t *resp;
 	gfx_bitmap_alloc_t alloc;
 } test_bitmap_t;
+
+/** gfx_set_clip_rect with server returning failure */
+PCUT_TEST(set_clip_rect_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	test_response_t resp;
+	gfx_context_t *gc;
+	gfx_rect_t rect;
+	async_sess_t *sess;
+	ipc_gc_t *ipcgc;
+
+	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_ipcgfx_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	sess = loc_service_connect(sid, INTERFACE_GC, 0);
+	PCUT_ASSERT_NOT_NULL(sess);
+
+	rc = ipc_gc_create(sess, &ipcgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = ipc_gc_get_ctx(ipcgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	resp.rc = ENOMEM;
+	resp.set_clip_rect_called = false;
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+	rc = gfx_set_clip_rect(gc, &rect);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_TRUE(resp.set_clip_rect_called);
+	PCUT_ASSERT_EQUALS(rect.p0.x, resp.set_clip_rect_rect.p0.x);
+	PCUT_ASSERT_EQUALS(rect.p0.y, resp.set_clip_rect_rect.p0.y);
+	PCUT_ASSERT_EQUALS(rect.p1.x, resp.set_clip_rect_rect.p1.x);
+	PCUT_ASSERT_EQUALS(rect.p1.y, resp.set_clip_rect_rect.p1.y);
+
+	ipc_gc_delete(ipcgc);
+	async_hangup(sess);
+
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** gfx_set_clip_rect with server returning success */
+PCUT_TEST(set_clip_rect_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	test_response_t resp;
+	gfx_context_t *gc;
+	gfx_rect_t rect;
+	async_sess_t *sess;
+	ipc_gc_t *ipcgc;
+
+	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_ipcgfx_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	sess = loc_service_connect(sid, INTERFACE_GC, 0);
+	PCUT_ASSERT_NOT_NULL(sess);
+
+	rc = ipc_gc_create(sess, &ipcgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = ipc_gc_get_ctx(ipcgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	resp.rc = EOK;
+	resp.set_clip_rect_called = false;
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+	rc = gfx_set_clip_rect(gc, &rect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(resp.set_clip_rect_called);
+	PCUT_ASSERT_TRUE(resp.do_clip);
+	PCUT_ASSERT_EQUALS(rect.p0.x, resp.set_clip_rect_rect.p0.x);
+	PCUT_ASSERT_EQUALS(rect.p0.y, resp.set_clip_rect_rect.p0.y);
+	PCUT_ASSERT_EQUALS(rect.p1.x, resp.set_clip_rect_rect.p1.x);
+	PCUT_ASSERT_EQUALS(rect.p1.y, resp.set_clip_rect_rect.p1.y);
+
+	ipc_gc_delete(ipcgc);
+	async_hangup(sess);
+
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** gfx_set_clip_rect with null rectangle, server returning success */
+PCUT_TEST(set_clip_rect_null_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	test_response_t resp;
+	gfx_context_t *gc;
+	async_sess_t *sess;
+	ipc_gc_t *ipcgc;
+
+	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_ipcgfx_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	sess = loc_service_connect(sid, INTERFACE_GC, 0);
+	PCUT_ASSERT_NOT_NULL(sess);
+
+	rc = ipc_gc_create(sess, &ipcgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = ipc_gc_get_ctx(ipcgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	resp.rc = EOK;
+	resp.set_clip_rect_called = false;
+
+	rc = gfx_set_clip_rect(gc, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(resp.set_clip_rect_called);
+	PCUT_ASSERT_FALSE(resp.do_clip);
+
+	ipc_gc_delete(ipcgc);
+	async_hangup(sess);
+
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
 
 /** gfx_set_color with server returning failure */
 PCUT_TEST(set_color_failure)
@@ -233,7 +383,7 @@ PCUT_TEST(fill_rect_failure)
 	PCUT_ASSERT_NOT_NULL(gc);
 
 	resp.rc = ENOMEM;
-	resp.set_color_called = false;
+	resp.fill_rect_called = false;
 	rect.p0.x = 1;
 	rect.p0.y = 2;
 	rect.p1.x = 3;
@@ -283,7 +433,7 @@ PCUT_TEST(fill_rect_success)
 	PCUT_ASSERT_NOT_NULL(gc);
 
 	resp.rc = EOK;
-	resp.set_color_called = false;
+	resp.fill_rect_called = false;
 	rect.p0.x = 1;
 	rect.p0.y = 2;
 	rect.p1.x = 3;
@@ -895,6 +1045,28 @@ static void test_ipcgc_conn(ipc_call_t *icall, void *arg)
 
 	/* Window GC connection */
 	gc_conn(icall, gc);
+}
+
+/** Set clipping rectangle in test GC.
+ *
+ * @param arg Test GC
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t test_gc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->set_clip_rect_called = true;
+	if (rect != NULL) {
+		resp->do_clip = true;
+		resp->set_clip_rect_rect = *rect;
+	} else {
+		resp->do_clip = false;
+	}
+
+	return resp->rc;
 }
 
 /** Set color in test GC.

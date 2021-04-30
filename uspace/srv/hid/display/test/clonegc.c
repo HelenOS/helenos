@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(clonegc);
 
+static errno_t testgc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t testgc_set_color(void *, gfx_color_t *);
 static errno_t testgc_fill_rect(void *, gfx_rect_t *);
 static errno_t testgc_bitmap_create(void *, gfx_bitmap_params_t *,
@@ -47,6 +48,7 @@ static errno_t testgc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t testgc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 static gfx_context_ops_t ops = {
+	.set_clip_rect = testgc_set_clip_rect,
 	.set_color = testgc_set_color,
 	.fill_rect = testgc_fill_rect,
 	.bitmap_create = testgc_bitmap_create,
@@ -58,6 +60,9 @@ static gfx_context_ops_t ops = {
 typedef struct {
 	/** Error code to return */
 	errno_t rc;
+
+	bool set_clip_rect_called;
+	gfx_rect_t *set_clip_rect_rect;
 
 	bool set_color_called;
 	gfx_color_t *set_color_color;
@@ -94,6 +99,76 @@ PCUT_TEST(create_delete)
 
 	rc = ds_clonegc_create(NULL, &cgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_clonegc_delete(cgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Set clipping rectangle with two output GCs */
+PCUT_TEST(set_clip_rect)
+{
+	ds_clonegc_t *cgc;
+	gfx_context_t *gc;
+	test_gc_t tgc1;
+	gfx_context_t *gc1;
+	test_gc_t tgc2;
+	gfx_context_t *gc2;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	/* Create clone GC */
+	rc = ds_clonegc_create(NULL, &cgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = ds_clonegc_get_ctx(cgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	/* Add two output GCs */
+
+	rc = gfx_context_new(&ops, &tgc1, &gc1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_clonegc_add_output(cgc, gc1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_context_new(&ops, &tgc2, &gc2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_clonegc_add_output(cgc, gc2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+
+	/* Set clipping rectangle returning error */
+
+	tgc1.set_clip_rect_called = false;
+	tgc2.set_clip_rect_called = false;
+	tgc1.rc = EINVAL;
+	tgc2.rc = EINVAL;
+
+	rc = gfx_set_clip_rect(gc, &rect);
+	PCUT_ASSERT_ERRNO_VAL(EINVAL, rc);
+
+	PCUT_ASSERT_TRUE(tgc1.set_clip_rect_called);
+	PCUT_ASSERT_EQUALS(&rect, tgc1.set_clip_rect_rect);
+	PCUT_ASSERT_FALSE(tgc2.set_clip_rect_called);
+
+	/* Set clipping rectangle returning success for all outputs */
+	tgc1.set_clip_rect_called = false;
+	tgc2.set_clip_rect_called = false;
+	tgc1.rc = EOK;
+	tgc2.rc = EOK;
+
+	rc = gfx_set_clip_rect(gc, &rect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_TRUE(tgc1.set_clip_rect_called);
+	PCUT_ASSERT_EQUALS(&rect, tgc1.set_clip_rect_rect);
+	PCUT_ASSERT_TRUE(tgc2.set_clip_rect_called);
+	PCUT_ASSERT_EQUALS(&rect, tgc2.set_clip_rect_rect);
 
 	rc = ds_clonegc_delete(cgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -625,6 +700,16 @@ PCUT_TEST(bitmap_addgc_caller_alloc)
 
 	rc = ds_clonegc_delete(cgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+static errno_t testgc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	test_gc_t *tgc = (test_gc_t *) arg;
+
+	tgc->set_clip_rect_called = true;
+	tgc->set_clip_rect_rect = rect;
+
+	return tgc->rc;
 }
 
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)

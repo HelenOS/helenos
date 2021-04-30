@@ -46,6 +46,8 @@
 
 /** Graphics context ops */
 typedef struct {
+	/** Set clipping rectangle */
+	errno_t (*set_clip_rect)(void *, gfx_rect_t *);
 	/** Set drawing color */
 	errno_t (*set_color)(void *, gfx_color_t *);
 	/** Fill rectangle using the current drawing color */

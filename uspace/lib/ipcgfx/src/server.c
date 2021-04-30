@@ -51,6 +51,28 @@
 
 static ipc_gc_srv_bitmap_t *gc_bitmap_lookup(ipc_gc_srv_t *, sysarg_t);
 
+static void gc_set_clip_rect_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
+{
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rect.p0.x = ipc_get_arg1(call);
+	rect.p0.y = ipc_get_arg2(call);
+	rect.p1.x = ipc_get_arg3(call);
+	rect.p1.y = ipc_get_arg4(call);
+
+	rc = gfx_set_clip_rect(srvgc->gc, &rect);
+	async_answer_0(call, rc);
+}
+
+static void gc_set_clip_rect_null_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
+{
+	errno_t rc;
+
+	rc = gfx_set_clip_rect(srvgc->gc, NULL);
+	async_answer_0(call, rc);
+}
+
 static void gc_set_rgb_color_srv(ipc_gc_srv_t *srvgc, ipc_call_t *call)
 {
 	uint16_t r, g, b;
@@ -360,6 +382,12 @@ errno_t gc_conn(ipc_call_t *icall, gfx_context_t *gc)
 		}
 
 		switch (method) {
+		case GC_SET_CLIP_RECT:
+			gc_set_clip_rect_srv(&srvgc, &call);
+			break;
+		case GC_SET_CLIP_RECT_NULL:
+			gc_set_clip_rect_null_srv(&srvgc, &call);
+			break;
 		case GC_SET_RGB_COLOR:
 			gc_set_rgb_color_srv(&srvgc, &call);
 			break;

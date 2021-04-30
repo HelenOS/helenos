@@ -48,6 +48,8 @@ struct mem_gc {
 	gfx_context_t *gc;
 	/** Bounding rectangle */
 	gfx_rect_t rect;
+	/** Clipping rectangle */
+	gfx_rect_t clip_rect;
 	/** Allocation info */
 	gfx_bitmap_alloc_t alloc;
 	/** Invalidate callback */

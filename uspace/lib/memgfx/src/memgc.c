@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include "../private/memgc.h"
 
+static errno_t mem_gc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t mem_gc_set_color(void *, gfx_color_t *);
 static errno_t mem_gc_fill_rect(void *, gfx_rect_t *);
 static errno_t mem_gc_update(void *);
@@ -58,6 +59,7 @@ static errno_t mem_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 static void mem_gc_invalidate_rect(mem_gc_t *, gfx_rect_t *);
 
 gfx_context_ops_t mem_gc_ops = {
+	.set_clip_rect = mem_gc_set_clip_rect,
 	.set_color = mem_gc_set_color,
 	.fill_rect = mem_gc_fill_rect,
 	.update = mem_gc_update,
@@ -66,6 +68,25 @@ gfx_context_ops_t mem_gc_ops = {
 	.bitmap_render = mem_gc_bitmap_render,
 	.bitmap_get_alloc = mem_gc_bitmap_get_alloc
 };
+
+/** Set clipping rectangle on memory GC.
+ *
+ * @param arg Memory GC
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t mem_gc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	mem_gc_t *mgc = (mem_gc_t *) arg;
+
+	if (rect != NULL)
+		gfx_rect_clip(rect, &mgc->rect, &mgc->clip_rect);
+	else
+		mgc->clip_rect = mgc->rect;
+
+	return EOK;
+}
 
 /** Set color on memory GC.
  *
@@ -101,7 +122,7 @@ static errno_t mem_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	pixelmap_t pixelmap;
 
 	/* Make sure we have a sorted, clipped rectangle */
-	gfx_rect_clip(rect, &mgc->rect, &crect);
+	gfx_rect_clip(rect, &mgc->clip_rect, &crect);
 
 	assert(mgc->rect.p0.x == 0);
 	assert(mgc->rect.p0.y == 0);
@@ -166,6 +187,7 @@ errno_t mem_gc_create(gfx_rect_t *rect, gfx_bitmap_alloc_t *alloc,
 
 	mgc->gc = gc;
 	mgc->rect = *rect;
+	mgc->clip_rect = *rect;
 	mgc->alloc = *alloc;
 
 	mgc->invalidate = invalidate_cb;
@@ -207,6 +229,7 @@ void mem_gc_retarget(mem_gc_t *mgc, gfx_rect_t *rect,
     gfx_bitmap_alloc_t *alloc)
 {
 	mgc->rect = *rect;
+	mgc->clip_rect = *rect;
 	mgc->alloc = *alloc;
 }
 
@@ -368,6 +391,8 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 
 	/* Destination rectangle */
 	gfx_rect_translate(&offs, &srect, &drect);
+
+	/* XXX Clip destination rectangle?! */
 
 	assert(mbm->alloc.pitch == (mbm->rect.p1.x - mbm->rect.p0.x) *
 	    (int)sizeof(uint32_t));

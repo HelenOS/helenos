@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
@@ -62,6 +62,7 @@ typedef struct {
 
 	pixel_t color;
 	gfx_rect_t rect;
+	gfx_rect_t clip_rect;
 	size_t size;
 	void *fb_data;
 } amdm37x_dispc_t;

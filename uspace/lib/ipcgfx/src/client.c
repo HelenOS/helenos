@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include "../private/client.h"
 
+static errno_t ipc_gc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t ipc_gc_set_color(void *, gfx_color_t *);
 static errno_t ipc_gc_fill_rect(void *, gfx_rect_t *);
 static errno_t ipc_gc_update(void *);
@@ -54,6 +55,7 @@ static errno_t ipc_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t ipc_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 gfx_context_ops_t ipc_gc_ops = {
+	.set_clip_rect = ipc_gc_set_clip_rect,
 	.set_color = ipc_gc_set_color,
 	.fill_rect = ipc_gc_fill_rect,
 	.update = ipc_gc_update,
@@ -62,6 +64,32 @@ gfx_context_ops_t ipc_gc_ops = {
 	.bitmap_render = ipc_gc_bitmap_render,
 	.bitmap_get_alloc = ipc_gc_bitmap_get_alloc
 };
+
+/** Set clipping rectangle on IPC GC.
+ *
+ * @param arg IPC GC
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t ipc_gc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	ipc_gc_t *ipcgc = (ipc_gc_t *) arg;
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(ipcgc->sess);
+	if (rect != NULL) {
+		rc = async_req_4_0(exch, GC_SET_CLIP_RECT, rect->p0.x, rect->p0.y,
+		    rect->p1.x, rect->p1.y);
+	} else {
+		rc = async_req_0_0(exch, GC_SET_CLIP_RECT_NULL);
+	}
+
+	async_exchange_end(exch);
+
+	return rc;
+}
 
 /** Set color on IPC GC.
  *

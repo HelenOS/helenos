@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(font);
 
+static errno_t testgc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t testgc_set_color(void *, gfx_color_t *);
 static errno_t testgc_fill_rect(void *, gfx_rect_t *);
 static errno_t testgc_bitmap_create(void *, gfx_bitmap_params_t *,
@@ -47,6 +48,7 @@ static errno_t testgc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t testgc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
 
 static gfx_context_ops_t test_ops = {
+	.set_clip_rect = testgc_set_clip_rect,
 	.set_color = testgc_set_color,
 	.fill_rect = testgc_fill_rect,
 	.bitmap_create = testgc_bitmap_create,
@@ -567,6 +569,11 @@ PCUT_TEST(bitmap_unpack)
 			PCUT_ASSERT_INT_EQUALS(epix, pixels[j * width + i]);
 		}
 	}
+}
+
+static errno_t testgc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	return EOK;
 }
 
 static errno_t testgc_set_color(void *arg, gfx_color_t *color)

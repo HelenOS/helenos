@@ -41,6 +41,7 @@
 #include <types/gfx/coord.h>
 #include <types/gfx/context.h>
 
+extern errno_t gfx_set_clip_rect(gfx_context_t *, gfx_rect_t *);
 extern errno_t gfx_set_color(gfx_context_t *, gfx_color_t *);
 extern errno_t gfx_fill_rect(gfx_context_t *, gfx_rect_t *);
 extern errno_t gfx_update(gfx_context_t *);

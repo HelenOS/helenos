@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
@@ -49,6 +50,7 @@
 static errno_t rfb_ddev_get_gc(void *, sysarg_t *, sysarg_t *);
 static errno_t rfb_ddev_get_info(void *, ddev_info_t *);
 
+static errno_t rfb_gc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t rfb_gc_set_color(void *, gfx_color_t *);
 static errno_t rfb_gc_fill_rect(void *, gfx_rect_t *);
 static errno_t rfb_gc_bitmap_create(void *, gfx_bitmap_params_t *,
@@ -65,6 +67,8 @@ static ddev_ops_t rfb_ddev_ops = {
 typedef struct {
 	rfb_t rfb;
 	pixel_t color;
+	gfx_rect_t rect;
+	gfx_rect_t clip_rect;
 } rfb_gc_t;
 
 typedef struct {
@@ -77,6 +81,7 @@ typedef struct {
 } rfb_bitmap_t;
 
 static gfx_context_ops_t rfb_gc_ops = {
+	.set_clip_rect = rfb_gc_set_clip_rect,
 	.set_color = rfb_gc_set_color,
 	.fill_rect = rfb_gc_fill_rect,
 	.bitmap_create = rfb_gc_bitmap_create,
@@ -133,6 +138,51 @@ static errno_t rfb_ddev_get_info(void *arg, ddev_info_t *info)
 	return EOK;
 }
 
+/** Create RFB GC.
+ *
+ * @param rrgb Place to store pointer to new RFB GC
+ * @return EOK on success, ENOMEM if out of memory
+ */
+static errno_t rgb_gc_create(rfb_gc_t **rrfb)
+{
+	rfb_gc_t *rfb;
+
+	rfb = calloc(1, sizeof(rfb_gc_t));
+	if (rfb == NULL)
+		return ENOMEM;
+
+	*rrfb = rfb;
+	return EOK;
+}
+
+/** Destroy RFB GC.
+ *
+ * @param rfb RFB GC
+ */
+static void rfb_gc_destroy(rfb_gc_t *rfb)
+{
+	free(rfb);
+}
+
+/** Set clipping rectangle on RFB.
+ *
+ * @param arg RFB
+ * @param rect Rectangle or @c NULL
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t rfb_gc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	rfb_gc_t *rfb = (rfb_gc_t *) arg;
+
+	if (rect != NULL)
+		gfx_rect_clip(rect, &rfb->rect, &rfb->clip_rect);
+	else
+		rfb->clip_rect = rfb->rect;
+
+	return EOK;
+}
+
 /** Set color on RFB.
  *
  * Set drawing color on RFB GC.
@@ -162,18 +212,19 @@ static errno_t rfb_gc_set_color(void *arg, gfx_color_t *color)
 static errno_t rfb_gc_fill_rect(void *arg, gfx_rect_t *rect)
 {
 	rfb_gc_t *rfb = (rfb_gc_t *) arg;
+	gfx_rect_t crect;
 	gfx_coord_t x, y;
 
-	// XXX We should handle p0.x > p1.x and p0.y > p1.y
+	gfx_rect_clip(rect, &rfb->clip_rect, &crect);
 
-	for (y = rect->p0.y; y < rect->p1.y; y++) {
-		for (x = rect->p0.x; x < rect->p1.x; x++) {
+	for (y = crect.p0.y; y < crect.p1.y; y++) {
+		for (x = crect.p0.x; x < crect.p1.x; x++) {
 			pixelmap_put_pixel(&rfb->rfb.framebuffer, x, y,
 			    rfb->color);
 		}
 	}
 
-	rfb_gc_invalidate_rect(rfb, rect);
+	rfb_gc_invalidate_rect(rfb, &crect);
 
 	return EOK;
 }
@@ -257,6 +308,7 @@ static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	rfb_bitmap_t *rfbbm = (rfb_bitmap_t *)bm;
 	gfx_rect_t srect;
 	gfx_rect_t drect;
+	gfx_rect_t crect;
 	gfx_coord2_t offs;
 	gfx_coord2_t bmdim;
 	gfx_coord2_t dim;
@@ -278,7 +330,8 @@ static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 
 	/* Destination rectangle */
 	gfx_rect_translate(&offs, &srect, &drect);
-	gfx_coord2_subtract(&drect.p1, &drect.p0, &dim);
+	gfx_rect_clip(&drect, &rfbbm->rfb->clip_rect, &crect);
+	gfx_coord2_subtract(&crect.p1, &crect.p0, &dim);
 	gfx_coord2_subtract(&rfbbm->rect.p1, &rfbbm->rect.p0, &bmdim);
 
 	pbm.width = bmdim.x;
@@ -319,7 +372,7 @@ static errno_t rfb_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		}
 	}
 
-	rfb_gc_invalidate_rect(rfbbm->rfb, &drect);
+	rfb_gc_invalidate_rect(rfbbm->rfb, &crect);
 
 	return EOK;
 }
@@ -345,6 +398,7 @@ static void syntax_print(void)
 static void client_connection(ipc_call_t *icall, void *arg)
 {
 	rfb_t *rfb = (rfb_t *) arg;
+	rfb_gc_t *rfbgc;
 	ddev_srv_t srv;
 	sysarg_t svc_id;
 	gfx_context_t *gc;
@@ -361,8 +415,21 @@ static void client_connection(ipc_call_t *icall, void *arg)
 		/* Handle connection */
 		ddev_conn(icall, &srv);
 	} else {
-		rc = gfx_context_new(&rfb_gc_ops, (void *) rfb, &gc);
+		rc = rgb_gc_create(&rfbgc);
 		if (rc != EOK) {
+			async_answer_0(icall, ENOMEM);
+			return;
+		}
+
+		rfbgc->rect.p0.x = 0;
+		rfbgc->rect.p0.y = 0;
+		rfbgc->rect.p1.x = rfb->width;
+		rfbgc->rect.p1.y = rfb->height;
+		rfbgc->clip_rect = rfbgc->rect;
+
+		rc = gfx_context_new(&rfb_gc_ops, (void *) rfbgc, &gc);
+		if (rc != EOK) {
+			rfb_gc_destroy(rfbgc);
 			async_answer_0(icall, ENOMEM);
 			return;
 		}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Jan Vesely
  * All rights reserved.
  *
@@ -66,6 +66,7 @@ static errno_t amdm37x_change_mode(amdm37x_dispc_t *, unsigned, unsigned,
 static errno_t amdm37x_ddev_get_gc(void *, sysarg_t *, sysarg_t *);
 static errno_t amdm37x_ddev_get_info(void *, ddev_info_t *);
 
+static errno_t amdm37x_gc_set_clip_rect(void *, gfx_rect_t *);
 static errno_t amdm37x_gc_set_color(void *, gfx_color_t *);
 static errno_t amdm37x_gc_fill_rect(void *, gfx_rect_t *);
 static errno_t amdm37x_gc_bitmap_create(void *, gfx_bitmap_params_t *,
@@ -80,6 +81,7 @@ ddev_ops_t amdm37x_ddev_ops = {
 };
 
 gfx_context_ops_t amdm37x_gc_ops = {
+	.set_clip_rect = amdm37x_gc_set_clip_rect,
 	.set_color = amdm37x_gc_set_color,
 	.fill_rect = amdm37x_gc_fill_rect,
 	.bitmap_create = amdm37x_gc_bitmap_create,
@@ -290,6 +292,7 @@ static errno_t amdm37x_change_mode(amdm37x_dispc_t *dispc, unsigned x,
 	dispc->rect.p0.y = 0;
 	dispc->rect.p1.x = x;
 	dispc->rect.p1.y = y;
+	dispc->clip_rect = dispc->rect;
 	dispc->size = size;
 
 	return EOK;
@@ -317,6 +320,25 @@ static errno_t amdm37x_ddev_get_info(void *arg, ddev_info_t *info)
 	info->rect.p0.y = 0;
 	info->rect.p1.x = dispc->active_fb.width;
 	info->rect.p1.y = dispc->active_fb.height;
+	return EOK;
+}
+
+/** Set clipping rectangle on AMDM37x display controller.
+ *
+ * @param arg AMDM37x display controller
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t amdm37x_gc_set_clip_rect(void *arg, gfx_rect_t *rect)
+{
+	amdm37x_dispc_t *dispc = (amdm37x_dispc_t *) arg;
+
+	if (rect != NULL)
+		gfx_rect_clip(rect, &dispc->rect, &dispc->clip_rect);
+	else
+		dispc->clip_rect = dispc->rect;
+
 	return EOK;
 }
 
@@ -353,7 +375,7 @@ static errno_t amdm37x_gc_fill_rect(void *arg, gfx_rect_t *rect)
 	gfx_coord_t x, y;
 
 	/* Make sure we have a sorted, clipped rectangle */
-	gfx_rect_clip(rect, &dispc->rect, &crect);
+	gfx_rect_clip(rect, &dispc->clip_rect, &crect);
 
 	for (y = crect.p0.y; y < crect.p1.y; y++) {
 		for (x = crect.p0.x; x < crect.p1.x; x++) {
@@ -478,8 +500,8 @@ static errno_t amdm37x_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	pbm.height = bmdim.y;
 	pbm.data = dcbm->alloc.pixels;
 
-	/* Transform AMDM37x bounding rectangle back to bitmap coordinate system */
-	gfx_rect_rtranslate(&offs, &dispc->rect, &skfbrect);
+	/* Transform AMDM37x clipping rectangle back to bitmap coordinate system */
+	gfx_rect_rtranslate(&offs, &dispc->clip_rect, &skfbrect);
 
 	/*
 	 * Make sure we have a sorted source rectangle, clipped so that
