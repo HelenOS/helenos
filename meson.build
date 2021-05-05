@@ -34,7 +34,7 @@
 project(
     'HelenOS',
     [ 'c', 'cpp' ],
-    default_options : ['buildtype=plain', 'c_std=gnu11', 'cpp_std=c++17', 'warning_level=3', 'werror=false', 'b_staticpic=false', 'prefix=/' ],
+    default_options : ['buildtype=plain', 'c_std=gnu11', 'cpp_std=c++17', 'warning_level=2', 'werror=false', 'b_staticpic=false', 'prefix=/' ],
     meson_version: '>=0.50.1',
 )
 
