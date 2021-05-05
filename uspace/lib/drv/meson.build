@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'pcm' ]
+deps = [ 'inet', 'pcm' ]
 private_includes += include_directories('generic/private')
 src = files(
 	'generic/driver.c',

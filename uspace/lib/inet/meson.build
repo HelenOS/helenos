@@ -26,10 +26,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'inet' ]
 src = files(
-	'dns_msg.c',
-	'dnsrsrv.c',
-	'query.c',
-	'transport.c',
+	'src/addr.c',
+	'src/dhcp.c',
+	'src/dnsr.c',
+	'src/endpoint.c',
+	'src/host.c',
+	'src/hostname.c',
+	'src/hostport.c',
+	'src/inet.c',
+	'src/inetcfg.c',
+	'src/inetping.c',
+	'src/iplink.c',
+	'src/iplink_srv.c',
+	'src/tcp.c',
+	'src/udp.c',
 )

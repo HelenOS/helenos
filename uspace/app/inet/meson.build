@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012 Jiri Svoboda
+# Copyright (c) 2021 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,4 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+deps = [ 'inet' ]
 src = files('inet.c')

@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2013 Martin Sucha
 # All rights reserved.
 #
@@ -26,6 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+deps = [ 'inet' ]
 src = files(
 	'src/http.c',
 	'src/headers.c',

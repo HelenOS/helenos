@@ -50,6 +50,8 @@ installed_libs = [
 libs = [
 	'c',
 
+	'inet',
+
 	'block',
 	'clui',
 	'compress',

@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2013 Martin Sucha
 # All rights reserved.
 #
@@ -26,5 +27,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ipcgfx', 'ddev' ]
+deps = [ 'inet', 'ipcgfx', 'ddev' ]
 src = files('main.c', 'rfb.c')
