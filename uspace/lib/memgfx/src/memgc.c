@@ -371,6 +371,7 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	mem_gc_bitmap_t *mbm = (mem_gc_bitmap_t *)bm;
 	gfx_rect_t srect;
 	gfx_rect_t drect;
+	gfx_rect_t crect;
 	gfx_coord2_t offs;
 	gfx_coord_t x, y;
 	pixelmap_t smap;
@@ -392,7 +393,8 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 	/* Destination rectangle */
 	gfx_rect_translate(&offs, &srect, &drect);
 
-	/* XXX Clip destination rectangle?! */
+	/* Clip destination rectangle */
+	gfx_rect_clip(&drect, &mbm->mgc->clip_rect, &crect);
 
 	assert(mbm->alloc.pitch == (mbm->rect.p1.x - mbm->rect.p0.x) *
 	    (int)sizeof(uint32_t));
@@ -411,8 +413,8 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		/* Nothing to do */
 	} else if ((mbm->flags & bmpf_color_key) == 0) {
 		/* Simple copy */
-		for (y = drect.p0.y; y < drect.p1.y; y++) {
-			for (x = drect.p0.x; x < drect.p1.x; x++) {
+		for (y = crect.p0.y; y < crect.p1.y; y++) {
+			for (x = crect.p0.x; x < crect.p1.x; x++) {
 				pixel = pixelmap_get_pixel(&smap,
 				    x - mbm->rect.p0.x - offs.x,
 				    y - mbm->rect.p0.y - offs.y);
@@ -421,8 +423,8 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		}
 	} else if ((mbm->flags & bmpf_colorize) == 0) {
 		/* Color key */
-		for (y = drect.p0.y; y < drect.p1.y; y++) {
-			for (x = drect.p0.x; x < drect.p1.x; x++) {
+		for (y = crect.p0.y; y < crect.p1.y; y++) {
+			for (x = crect.p0.x; x < crect.p1.x; x++) {
 				pixel = pixelmap_get_pixel(&smap,
 				    x - mbm->rect.p0.x - offs.x,
 				    y - mbm->rect.p0.y - offs.y);
@@ -432,8 +434,8 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		}
 	} else {
 		/* Color key & colorization */
-		for (y = drect.p0.y; y < drect.p1.y; y++) {
-			for (x = drect.p0.x; x < drect.p1.x; x++) {
+		for (y = crect.p0.y; y < crect.p1.y; y++) {
+			for (x = crect.p0.x; x < crect.p1.x; x++) {
 				pixel = pixelmap_get_pixel(&smap,
 				    x - mbm->rect.p0.x - offs.x,
 				    y - mbm->rect.p0.y - offs.y);
@@ -444,7 +446,7 @@ static errno_t mem_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		}
 	}
 
-	mem_gc_invalidate_rect(mbm->mgc, &drect);
+	mem_gc_invalidate_rect(mbm->mgc, &crect);
 	return EOK;
 }
 
