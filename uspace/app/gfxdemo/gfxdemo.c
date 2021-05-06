@@ -664,6 +664,109 @@ error:
 	return rc;
 }
 
+/** Run clipping demo on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_clip(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_bitmap_t *bitmap;
+	gfx_color_t *color;
+	gfx_bitmap_params_t params;
+	int i, j;
+	gfx_coord2_t offs;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	if (quit)
+		return EOK;
+
+	rc = clear_scr(gc, w, h);
+	if (rc != EOK)
+		return rc;
+
+	gfx_bitmap_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 40;
+	params.rect.p1.y = 20;
+
+	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
+	if (rc != EOK)
+		return rc;
+
+	rc = bitmap_moire(bitmap, 40, 20);
+	if (rc != EOK)
+		goto error;
+
+	for (j = 0; j < 10; j++) {
+		rect.p0.x = w / 8;
+		rect.p0.y = h / 8;
+		rect.p1.x = w * 7 / 8;
+		rect.p1.y = h * 3 / 8;
+
+		rc = gfx_set_clip_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+
+		rc = gfx_color_new_rgb_i16(rand() % 0x10000, rand() % 0x10000,
+		    rand() % 0x10000, &color);
+		if (rc != EOK)
+			return rc;
+
+		rc = gfx_set_color(gc, color);
+		if (rc != EOK)
+			return rc;
+
+		for (i = 0; i < 10; i++) {
+			rect.p0.x = rand() % (w - 1);
+			rect.p0.y = rand() % (h - 1);
+			rect.p1.x = rect.p0.x + rand() % (w - 1 - rect.p0.x);
+			rect.p1.y = rect.p0.y + rand() % (h - 1 - rect.p0.y);
+
+			rc = gfx_fill_rect(gc, &rect);
+			if (rc != EOK)
+				return rc;
+		}
+
+		gfx_color_delete(color);
+
+		rect.p0.x = w / 8;
+		rect.p0.y = h * 5 / 8;
+		rect.p1.x = w * 7 / 8;
+		rect.p1.y = h * 7 / 8;
+
+		rc = gfx_set_clip_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+
+		for (i = 0; i < 10; i++) {
+			offs.x = rand() % (w - 40);
+			offs.y = rand() % (h - 20);
+
+			rc = gfx_bitmap_render(bitmap, NULL, &offs);
+			if (rc != EOK)
+				goto error;
+		}
+
+		fibril_usleep(500 * 1000);
+
+		if (quit)
+			break;
+	}
+
+	(void) gfx_set_clip_rect(gc, NULL);
+	gfx_bitmap_destroy(bitmap);
+	return EOK;
+error:
+	(void) gfx_set_clip_rect(gc, NULL);
+	gfx_bitmap_destroy(bitmap);
+	return rc;
+}
+
+
 /** Run demo loop on a graphic context.
  *
  * @param gc Graphic context
@@ -692,6 +795,10 @@ static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			return rc;
 
 		rc = demo_text(gc, w, h);
+		if (rc != EOK)
+			return rc;
+
+		rc = demo_clip(gc, w, h);
 		if (rc != EOK)
 			return rc;
 	}
