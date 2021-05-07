@@ -766,7 +766,6 @@ error:
 	return rc;
 }
 
-
 /** Run demo loop on a graphic context.
  *
  * @param gc Graphic context
