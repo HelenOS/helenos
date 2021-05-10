@@ -604,9 +604,6 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 {
 	gfx_color_t *color = NULL;
 	gfx_rect_t rect;
-	gfx_typeface_t *tface = NULL;
-	gfx_font_info_t *finfo;
-	gfx_font_t *font = NULL;
 	gfx_coord2_t pos;
 	gfx_text_fmt_t fmt;
 	int i;
@@ -614,42 +611,6 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 	if (quit)
 		return EOK;
-
-	/* XXX Crude way of detecting text mode */
-	if (w < 256) {
-		/* Create dummy font for text mode */
-		rc = gfx_typeface_create(gc, &tface);
-		if (rc != EOK) {
-			printf("Error creating typeface\n");
-			goto error;
-		}
-
-		rc = gfx_font_create_textmode(tface, &font);
-		if (rc != EOK) {
-			printf("Error creating font\n");
-			goto error;
-		}
-	} else {
-		/* Load font */
-		rc = gfx_typeface_open(gc, "/data/font/helena.tpf", &tface);
-		if (rc != EOK) {
-			printf("Error opening typeface\n");
-			goto error;
-		}
-
-		finfo = gfx_typeface_first_font(tface);
-		if (finfo == NULL) {
-			printf("Typeface contains no font.\n");
-			rc = ENOENT;
-			goto error;
-		}
-
-		rc = gfx_font_open(finfo, &font);
-		if (rc != EOK) {
-			printf("Error opening font.\n");
-			goto error;
-		}
-	}
 
 	rc = demo_begin(gc, w, h, "Text rendering");
 	if (rc != EOK)
@@ -800,14 +761,8 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			break;
 	}
 
-	gfx_font_close(font);
-	gfx_typeface_destroy(tface);
 	return EOK;
 error:
-	if (font != NULL)
-		gfx_font_close(font);
-	if (tface != NULL)
-		gfx_typeface_destroy(tface);
 	return rc;
 }
 
