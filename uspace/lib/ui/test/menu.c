@@ -45,12 +45,6 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(menu);
 
-typedef struct {
-	bool expose;
-} test_resp_t;
-
-static void test_expose(void *);
-
 /** Create and destroy menu */
 PCUT_TEST(create_destroy)
 {
@@ -58,7 +52,7 @@ PCUT_TEST(create_destroy)
 	ui_menu_t *menu = NULL;
 	errno_t rc;
 
-	rc = ui_menu_bar_create(NULL, &mbar);
+	rc = ui_menu_bar_create(NULL, NULL, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_menu_create(mbar, "Test", &menu);
@@ -101,7 +95,7 @@ PCUT_TEST(first_next)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(NULL, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -147,7 +141,7 @@ PCUT_TEST(caption)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(NULL, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -187,7 +181,7 @@ PCUT_TEST(get_rect)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(NULL, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -217,9 +211,11 @@ PCUT_TEST(paint)
 {
 	dummy_gc_t *dgc;
 	gfx_context_t *gc;
+	ui_t *ui = NULL;
 	ui_resource_t *resource = NULL;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
+	gfx_rect_t prect;
 	gfx_coord2_t pos;
 	errno_t rc;
 
@@ -228,17 +224,29 @@ PCUT_TEST(paint)
 
 	gc = dummygc_get_ctx(dgc);
 
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(ui, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
 	rc = ui_menu_create(mbar, "Test", &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	/* Menu needs to be open to be able to paint it */
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
 	pos.y = 0;
@@ -247,46 +255,7 @@ PCUT_TEST(paint)
 
 	ui_menu_bar_destroy(mbar);
 	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
-}
-
-/** ui_menu_unpaint() calls expose callback */
-PCUT_TEST(unpaint)
-{
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
-	ui_menu_bar_t *mbar = NULL;
-	ui_menu_t *menu = NULL;
-	test_resp_t resp;
-	errno_t rc;
-
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
-
-	rc = ui_menu_bar_create(resource, &mbar);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(mbar);
-
-	rc = ui_menu_create(mbar, "Test", &menu);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(menu);
-
-	ui_resource_set_expose_cb(resource, test_expose, &resp);
-
-	resp.expose = false;
-	rc = ui_menu_unpaint(menu);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_TRUE(resp.expose);
-
-	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_destroy(ui);
 	dummygc_destroy(dgc);
 }
 
@@ -312,7 +281,7 @@ PCUT_TEST(pos_event_inside)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(NULL, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -327,57 +296,6 @@ PCUT_TEST(pos_event_inside)
 	event.vpos = 0;
 	claimed = ui_menu_pos_event(menu, &pos, &event);
 	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
-
-	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
-}
-
-/** ui_menu_pos_event() outside menu closes it */
-PCUT_TEST(pos_event_outside)
-{
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
-	ui_menu_bar_t *mbar = NULL;
-	ui_menu_t *menu = NULL;
-	ui_evclaim_t claimed;
-	gfx_coord2_t pos;
-	pos_event_t event;
-	errno_t rc;
-
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
-
-	rc = ui_menu_bar_create(resource, &mbar);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(mbar);
-
-	rc = ui_menu_create(mbar, "Test", &menu);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(menu);
-
-	pos.x = 0;
-	pos.y = 0;
-	ui_menu_bar_select(mbar, &pos, menu);
-	PCUT_ASSERT_EQUALS(menu, mbar->selected);
-
-	pos.x = 10;
-	pos.y = 0;
-	event.type = POS_PRESS;
-	event.hpos = 0;
-	event.vpos = 0;
-	claimed = ui_menu_pos_event(menu, &pos, &event);
-	PCUT_ASSERT_EQUALS(ui_unclaimed, claimed);
-
-	/* Press event outside menu should close it */
-	PCUT_ASSERT_NULL(mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
 	ui_resource_destroy(resource);
@@ -405,7 +323,7 @@ PCUT_TEST(get_geom)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(NULL, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -429,13 +347,6 @@ PCUT_TEST(get_geom)
 	ui_menu_bar_destroy(mbar);
 	ui_resource_destroy(resource);
 	dummygc_destroy(dgc);
-}
-
-static void test_expose(void *arg)
-{
-	test_resp_t *resp = (test_resp_t *) arg;
-
-	resp->expose = true;
 }
 
 PCUT_EXPORT(menu);

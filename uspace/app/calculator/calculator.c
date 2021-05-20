@@ -886,7 +886,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_menu_bar_create(ui_res, &calc.menubar);
+	rc = ui_menu_bar_create(ui, ui_res, &calc.menubar);
 	if (rc != EOK) {
 		printf("Error creating menu bar.\n");
 		return rc;

@@ -49,7 +49,7 @@ PCUT_TEST(create_destroy)
 	ui_menu_bar_t *mbar = NULL;
 	errno_t rc;
 
-	rc = ui_menu_bar_create(NULL, &mbar);
+	rc = ui_menu_bar_create(NULL, NULL, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -69,7 +69,7 @@ PCUT_TEST(ctl)
 	ui_control_t *control;
 	errno_t rc;
 
-	rc = ui_menu_bar_create(NULL, &mbar);
+	rc = ui_menu_bar_create(NULL, NULL, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -98,7 +98,7 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(NULL, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -136,7 +136,7 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(NULL, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -153,6 +153,7 @@ PCUT_TEST(pos_event_select)
 {
 	dummy_gc_t *dgc;
 	gfx_context_t *gc;
+	ui_t *ui = NULL;
 	ui_resource_t *resource = NULL;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
@@ -166,11 +167,14 @@ PCUT_TEST(pos_event_select)
 
 	gc = dummygc_get_ctx(dgc);
 
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(ui, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -196,106 +200,7 @@ PCUT_TEST(pos_event_select)
 
 	ui_menu_bar_destroy(mbar);
 	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
-}
-
-/** Position event is forwarded to menu */
-PCUT_TEST(pos_event_menu)
-{
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
-	ui_menu_bar_t *mbar = NULL;
-	ui_menu_t *menu = NULL;
-	ui_evclaim_t claimed;
-	pos_event_t event;
-	gfx_coord2_t pos;
-	gfx_rect_t rect;
-	errno_t rc;
-
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
-
-	rc = ui_menu_bar_create(resource, &mbar);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(mbar);
-
-	rect.p0.x = 0;
-	rect.p0.y = 0;
-	rect.p1.x = 50;
-	rect.p1.y = 25;
-	ui_menu_bar_set_rect(mbar, &rect);
-
-	rc = ui_menu_create(mbar, "Test", &menu);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(menu);
-
-	pos.x = 0;
-	pos.y = 0;
-	ui_menu_bar_select(mbar, &pos, menu);
-	PCUT_ASSERT_EQUALS(menu, mbar->selected);
-
-	event.type = POS_PRESS;
-	event.hpos = 4;
-	event.vpos = 30;
-	claimed = ui_menu_bar_pos_event(mbar, &event);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
-
-	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
-}
-
-/* Unfocusing window closes open menu */
-PCUT_TEST(unfocus)
-{
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
-	ui_menu_bar_t *mbar = NULL;
-	ui_menu_t *menu = NULL;
-	gfx_coord2_t pos;
-	errno_t rc;
-
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
-
-	rc = ui_menu_bar_create(resource, &mbar);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(mbar);
-
-	rc = ui_menu_create(mbar, "Test", &menu);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(menu);
-
-	/*
-	 * Position does not matter here. Probably should get rid of this
-	 * argument, storing the position in the menu itself.
-	 */
-	pos.x = 0;
-	pos.y = 0;
-	ui_menu_bar_select(mbar, &pos, menu);
-	PCUT_ASSERT_EQUALS(menu, mbar->selected);
-
-	/* This should unselect the menu */
-	ui_menu_bar_unfocus(mbar);
-	PCUT_ASSERT_NULL(mbar->selected);
-
-	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_destroy(ui);
 	dummygc_destroy(dgc);
 }
 
@@ -304,10 +209,11 @@ PCUT_TEST(select_same)
 {
 	dummy_gc_t *dgc;
 	gfx_context_t *gc;
+	ui_t *ui = NULL;
 	ui_resource_t *resource = NULL;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
-	gfx_coord2_t pos;
+	gfx_rect_t rect;
 	errno_t rc;
 
 	rc = dummygc_create(&dgc);
@@ -315,11 +221,14 @@ PCUT_TEST(select_same)
 
 	gc = dummygc_get_ctx(dgc);
 
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(ui, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -327,17 +236,20 @@ PCUT_TEST(select_same)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	pos.x = 0;
-	pos.y = 0;
-	ui_menu_bar_select(mbar, &pos, menu);
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 0;
+	rect.p1.y = 0;
+	ui_menu_bar_select(mbar, &rect, menu);
 	PCUT_ASSERT_EQUALS(menu, mbar->selected);
 
 	/* Selecting again should unselect the menu */
-	ui_menu_bar_select(mbar, &pos, menu);
+	ui_menu_bar_select(mbar, &rect, menu);
 	PCUT_ASSERT_NULL(mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
 	ui_resource_destroy(resource);
+	ui_destroy(ui);
 	dummygc_destroy(dgc);
 }
 
@@ -346,11 +258,12 @@ PCUT_TEST(select_different)
 {
 	dummy_gc_t *dgc;
 	gfx_context_t *gc;
+	ui_t *ui = NULL;
 	ui_resource_t *resource = NULL;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu1 = NULL;
 	ui_menu_t *menu2 = NULL;
-	gfx_coord2_t pos;
+	gfx_rect_t rect;
 	errno_t rc;
 
 	rc = dummygc_create(&dgc);
@@ -358,11 +271,14 @@ PCUT_TEST(select_different)
 
 	gc = dummygc_get_ctx(dgc);
 
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	rc = ui_resource_create(gc, false, &resource);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_menu_bar_create(resource, &mbar);
+	rc = ui_menu_bar_create(ui, resource, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -374,17 +290,20 @@ PCUT_TEST(select_different)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu2);
 
-	pos.x = 0;
-	pos.y = 0;
-	ui_menu_bar_select(mbar, &pos, menu1);
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 0;
+	rect.p1.y = 0;
+	ui_menu_bar_select(mbar, &rect, menu1);
 	PCUT_ASSERT_EQUALS(menu1, mbar->selected);
 
 	/* Selecting different menu should select it */
-	ui_menu_bar_select(mbar, &pos, menu2);
+	ui_menu_bar_select(mbar, &rect, menu2);
 	PCUT_ASSERT_EQUALS(menu2, mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
 	ui_resource_destroy(resource);
+	ui_destroy(ui);
 	dummygc_destroy(dgc);
 }
 

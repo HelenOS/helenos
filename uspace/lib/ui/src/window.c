@@ -335,7 +335,7 @@ void ui_window_destroy(ui_window_t *window)
  * Only one control can be added to a window. If more than one control
  * is added, the results are undefined.
  *
- * @param fixed Fixed layout
+ * @param window Window
  * @param control Control
  * @return EOK on success, ENOMEM if out of memory
  */
@@ -508,7 +508,7 @@ error:
 /** Set window callbacks.
  *
  * @param window Window
- * @param cb Window decoration callbacks
+ * @param cb Window callbacks
  * @param arg Callback argument
  */
 void ui_window_set_cb(ui_window_t *window, ui_window_cb_t *cb, void *arg)

@@ -49,19 +49,19 @@
 struct ui_menu_bar {
 	/** Base control object */
 	struct ui_control *control;
-	/** UI resource */
+	/** UI */
+	struct ui *ui;
+	/** UI resource (for window containing menu bar) */
 	struct ui_resource *res;
 	/** Menu bar rectangle */
 	gfx_rect_t rect;
 	/** Selected menu or @c NULL */
 	struct ui_menu *selected;
-	/** Position of selected entry */
-	gfx_coord2_t sel_pos;
 	/** List of menus (ui_menu_t) */
 	list_t menus;
 };
 
-extern void ui_menu_bar_select(ui_menu_bar_t *, gfx_coord2_t *, ui_menu_t *);
+extern void ui_menu_bar_select(ui_menu_bar_t *, gfx_rect_t *, ui_menu_t *);
 
 #endif
 

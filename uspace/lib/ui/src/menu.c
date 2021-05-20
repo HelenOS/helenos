@@ -44,6 +44,7 @@
 #include <str.h>
 #include <ui/control.h>
 #include <ui/paint.h>
+#include <ui/popup.h>
 #include <ui/menu.h>
 #include <ui/menuentry.h>
 #include <ui/resource.h>
@@ -56,6 +57,12 @@ enum {
 	menu_frame_h = 4,
 	menu_frame_w_text = 2,
 	menu_frame_h_text = 1
+};
+
+static void ui_menu_popup_pos(ui_popup_t *, void *, pos_event_t *);
+
+static ui_popup_cb_t ui_menu_popup_cb = {
+	.pos = ui_menu_popup_pos
 };
 
 /** Create new menu.
@@ -202,6 +209,58 @@ void ui_menu_get_rect(ui_menu_t *menu, gfx_coord2_t *spos, gfx_rect_t *rect)
 	*rect = geom.outer_rect;
 }
 
+/** Get UI resource from menu.
+ *
+ * @param menu Menu
+ * @return UI resource
+ */
+ui_resource_t *ui_menu_get_res(ui_menu_t *menu)
+{
+	return ui_popup_get_res(menu->popup);
+}
+
+/** Open menu.
+ *
+ * @param menu Menu
+ * @param prect Parent rectangle around which the menu should be placed
+ */
+errno_t ui_menu_open(ui_menu_t *menu, gfx_rect_t *prect)
+{
+	ui_popup_t *popup = NULL;
+	ui_popup_params_t params;
+	ui_menu_geom_t geom;
+	gfx_coord2_t mpos;
+	errno_t rc;
+
+	/* Determine menu dimensions */
+
+	mpos.x = 0;
+	mpos.y = 0;
+	ui_menu_get_geom(menu, &mpos, &geom);
+
+	ui_popup_params_init(&params);
+	params.rect = geom.outer_rect;
+
+	rc = ui_popup_create(menu->mbar->ui, &params, &popup);
+	if (rc != EOK)
+		return rc;
+
+	menu->popup = popup;
+	ui_popup_set_cb(popup, &ui_menu_popup_cb, menu);
+
+	return ui_menu_paint(menu, &mpos);
+}
+
+/** Close menu.
+ *
+ * @param menu Menu
+ */
+void ui_menu_close(ui_menu_t *menu)
+{
+	ui_popup_destroy(menu->popup);
+	menu->popup = NULL;
+}
+
 /** Paint menu.
  *
  * @param menu Menu
@@ -217,7 +276,7 @@ errno_t ui_menu_paint(ui_menu_t *menu, gfx_coord2_t *spos)
 	gfx_rect_t bg_rect;
 	errno_t rc;
 
-	res = menu->mbar->res;
+	res = ui_menu_get_res(menu);
 	ui_menu_get_geom(menu, spos, &geom);
 
 	/* Paint menu frame */
@@ -262,17 +321,6 @@ error:
 	return rc;
 }
 
-/** Unpaint menu.
- *
- * @param menu Menu
- * @return EOK on success or an error code
- */
-errno_t ui_menu_unpaint(ui_menu_t *menu)
-{
-	ui_resource_expose(menu->mbar->res);
-	return EOK;
-}
-
 /** Handle position event in menu.
  *
  * @param menu Menu
@@ -311,11 +359,27 @@ ui_evclaim_t ui_menu_pos_event(ui_menu_t *menu, gfx_coord2_t *spos,
 		return ui_claimed;
 	} else {
 		/* Press outside menu - close it */
-		if (event->type == POS_PRESS)
-			ui_menu_bar_select(menu->mbar, NULL, NULL);
+//		if (event->type == POS_PRESS)
+//			ui_menu_bar_select(menu->mbar, NULL, NULL);
 	}
 
 	return ui_unclaimed;
+}
+
+/** Handle position event in menu popup window.
+ *
+ * @param popup Menu popup window
+ * @param arg Argument (ui_menu_t *)
+ * @param event Position event
+ */
+static void ui_menu_popup_pos(ui_popup_t *popup, void *arg, pos_event_t *event)
+{
+	ui_menu_t *menu = (ui_menu_t *)arg;
+	gfx_coord2_t spos;
+
+	spos.x = 0;
+	spos.y = 0;
+	ui_menu_pos_event(menu, &spos, event);
 }
 
 /** @}
