@@ -202,6 +202,12 @@ void ui_menu_entry_column_widths(ui_menu_entry_t *mentry,
 {
 	ui_resource_t *res;
 
+	/*
+	 * This needs to work even if the menu is not open, so we cannot
+	 * use the menu's resource, which is only created after the menu
+	 * is open (and its window is created). Use the menu bar's
+	 * resource instead.
+	 */
 	res = mentry->menu->mbar->res;
 
 	*caption_w = gfx_text_width(res->font, mentry->caption);
@@ -222,6 +228,12 @@ gfx_coord_t ui_menu_entry_calc_width(ui_menu_t *menu, gfx_coord_t caption_w,
 	gfx_coord_t hpad;
 	gfx_coord_t width;
 
+	/*
+	 * This needs to work even if the menu is not open, so we cannot
+	 * use the menu's resource, which is only created after the menu
+	 * is open (and its window is created). Use the menu bar's
+	 * resource instead.
+	 */
 	res = menu->mbar->res;
 
 	if (res->textmode)
@@ -255,6 +267,12 @@ gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *mentry)
 	gfx_coord_t height;
 	gfx_coord_t vpad;
 
+	/*
+	 * This needs to work even if the menu is not open, so we cannot
+	 * use the menu's resource, which is only created after the menu
+	 * is open (and its window is created). Use the menu bar's
+	 * resource instead.
+	 */
 	res = mentry->menu->mbar->res;
 
 	if (res->textmode) {
@@ -293,7 +311,7 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	gfx_rect_t rect;
 	errno_t rc;
 
-	res = mentry->menu->mbar->res;
+	res = ui_menu_get_res(mentry->menu);
 
 	ui_menu_entry_get_geom(mentry, pos, &geom);
 
@@ -378,8 +396,7 @@ void ui_menu_entry_release(ui_menu_entry_t *mentry)
 
 	if (mentry->inside) {
 		/* Close menu */
-		ui_menu_bar_select(mentry->menu->mbar,
-		    &mentry->menu->mbar->sel_pos, NULL);
+		ui_menu_bar_select(mentry->menu->mbar, NULL, NULL);
 
 		/* Call back */
 		ui_menu_entry_cb(mentry);
@@ -486,7 +503,7 @@ void ui_menu_entry_get_geom(ui_menu_entry_t *mentry, gfx_coord2_t *pos,
 	gfx_coord_t vpad;
 	gfx_coord_t width;
 
-	res = mentry->menu->mbar->res;
+	res = ui_menu_get_res(mentry->menu);
 
 	if (res->textmode) {
 		hpad = menu_entry_hpad_text;

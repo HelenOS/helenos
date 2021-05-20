@@ -71,11 +71,13 @@ ui_control_ops_t ui_menu_bar_ops = {
 
 /** Create new menu bar.
  *
+ * @param ui UI
  * @param res UI resource
  * @param rmbar Place to store pointer to new menu bar
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_menu_bar_create(ui_resource_t *res, ui_menu_bar_t **rmbar)
+errno_t ui_menu_bar_create(ui_t *ui, ui_resource_t *res,
+    ui_menu_bar_t **rmbar)
 {
 	ui_menu_bar_t *mbar;
 	errno_t rc;
@@ -90,6 +92,7 @@ errno_t ui_menu_bar_create(ui_resource_t *res, ui_menu_bar_t **rmbar)
 		return rc;
 	}
 
+	mbar->ui = ui;
 	mbar->res = res;
 	list_initialize(&mbar->menus);
 	*rmbar = mbar;
@@ -231,13 +234,12 @@ error:
  * then select none.
  *
  * @param mbar Menu bar
- * @param pos Position (top-left corner) of menu bar entry
+ * @param rect Menu bar entry rectangle
  * @param menu Menu to select (or deselect if selected) or @c NULL
  */
-void ui_menu_bar_select(ui_menu_bar_t *mbar, gfx_coord2_t *pos,
+void ui_menu_bar_select(ui_menu_bar_t *mbar, gfx_rect_t *rect,
     ui_menu_t *menu)
 {
-	gfx_coord2_t spos;
 	ui_menu_t *old_menu;
 
 	old_menu = mbar->selected;
@@ -247,21 +249,14 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, gfx_coord2_t *pos,
 	else
 		mbar->selected = NULL;
 
-	/* Need to clear the menu has just been closed */
+	/* Close previously open menu */
 	if (old_menu != NULL)
-		(void) ui_menu_unpaint(old_menu);
+		(void) ui_menu_close(old_menu);
 
 	(void) ui_menu_bar_paint(mbar);
 
 	if (mbar->selected != NULL) {
-		/* Cache position of selected entry */
-		mbar->sel_pos = *pos;
-
-		/* Position menu under selected menu bar entry */
-		spos.x = pos->x;
-		spos.y = mbar->rect.p1.y;
-
-		(void) ui_menu_paint(mbar->selected, &spos);
+		(void) ui_menu_open(mbar->selected, rect);
 	}
 }
 
@@ -274,14 +269,12 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, gfx_coord2_t *pos,
 ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 {
 	gfx_coord2_t pos;
-	gfx_coord2_t spos;
 	gfx_rect_t rect;
 	ui_menu_t *menu;
 	const char *caption;
 	gfx_coord_t width;
 	gfx_coord_t hpad;
 	gfx_coord2_t ppos;
-	ui_evclaim_t claimed;
 
 	ppos.x = event->hpos;
 	ppos.y = event->vpos;
@@ -306,20 +299,8 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 		/* Check if press is inside menu bar entry */
 		if (event->type == POS_PRESS &&
 		    gfx_pix_inside_rect(&ppos, &rect)) {
-			ui_menu_bar_select(mbar, &pos, menu);
+			ui_menu_bar_select(mbar, &rect, menu);
 			return ui_claimed;
-		}
-
-		if (menu == mbar->selected) {
-			/* Open menu is positioned below menu bar entry */
-			spos.x = pos.x;
-			spos.y = mbar->rect.p1.y;
-
-			ui_menu_get_rect(menu, &spos, &rect);
-
-			claimed = ui_menu_pos_event(menu, &spos, event);
-			if (claimed == ui_claimed)
-				return ui_claimed;
 		}
 
 		pos.x += width;
@@ -335,7 +316,7 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
  */
 void ui_menu_bar_unfocus(ui_menu_bar_t *mbar)
 {
-	ui_menu_bar_select(mbar, NULL, NULL);
+//	ui_menu_bar_select(mbar, NULL, NULL);
 }
 
 /** Destroy menu bar control.

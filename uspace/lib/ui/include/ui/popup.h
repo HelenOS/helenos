@@ -30,57 +30,28 @@
  * @{
  */
 /**
- * @file Menu structure
- *
+ * @file Popup window
  */
 
-#ifndef _UI_PRIVATE_MENU_H
-#define _UI_PRIVATE_MENU_H
+#ifndef _UI_POPUP_H
+#define _UI_POPUP_H
 
-#include <adt/list.h>
-#include <gfx/coord.h>
-#include <stdbool.h>
-#include <types/ui/menu.h>
+#include <errno.h>
+#include <gfx/context.h>
+#include <types/ui/control.h>
+#include <types/ui/ui.h>
+#include <types/ui/popup.h>
 #include <types/ui/resource.h>
 
-/** Actual structure of menu.
- *
- * This is private to libui.
- */
-struct ui_menu {
-	/** Containing menu bar */
-	struct ui_menu_bar *mbar;
-	/** Link to @c bar->menus */
-	link_t lmenus;
-	/** Caption */
-	char *caption;
-	/** Popup window or @c NULL if menu is not currently open */
-	struct ui_popup *popup;
-	/** Selected menu entry or @c NULL */
-	struct ui_menu_entry *selected;
-	/** Maximum caption width */
-	gfx_coord_t max_caption_w;
-	/** Maximum shortcut width */
-	gfx_coord_t max_shortcut_w;
-	/** Total entry height */
-	gfx_coord_t total_h;
-	/** Menu entries (ui_menu_entry_t) */
-	list_t entries;
-};
-
-/** Menu geometry.
- *
- * Computed rectangles of menu elements.
- */
-typedef struct {
-	/** Outer rectangle */
-	gfx_rect_t outer_rect;
-	/** Entries rectangle */
-	gfx_rect_t entries_rect;
-} ui_menu_geom_t;
-
-extern void ui_menu_get_geom(ui_menu_t *, gfx_coord2_t *, ui_menu_geom_t *);
-extern ui_resource_t *ui_menu_get_res(ui_menu_t *);
+extern void ui_popup_params_init(ui_popup_params_t *);
+extern errno_t ui_popup_create(ui_t *, ui_popup_params_t *,
+    ui_popup_t **);
+extern void ui_popup_set_cb(ui_popup_t *, ui_popup_cb_t *, void *);
+extern void ui_popup_destroy(ui_popup_t *);
+extern void ui_popup_add(ui_popup_t *, ui_control_t *);
+extern void ui_popup_remove(ui_popup_t *, ui_control_t *);
+extern ui_resource_t *ui_popup_get_res(ui_popup_t *);
+extern gfx_context_t *ui_popup_get_gc(ui_popup_t *);
 
 #endif
 

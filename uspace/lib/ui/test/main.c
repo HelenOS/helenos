@@ -41,6 +41,7 @@ PCUT_IMPORT(menubar);
 PCUT_IMPORT(menuentry);
 PCUT_IMPORT(paint);
 PCUT_IMPORT(pbutton);
+PCUT_IMPORT(popup);
 PCUT_IMPORT(rbutton);
 PCUT_IMPORT(resource);
 PCUT_IMPORT(slider);

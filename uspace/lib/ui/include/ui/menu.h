@@ -49,8 +49,9 @@ extern ui_menu_t *ui_menu_first(ui_menu_bar_t *);
 extern ui_menu_t *ui_menu_next(ui_menu_t *);
 extern const char *ui_menu_caption(ui_menu_t *);
 extern void ui_menu_get_rect(ui_menu_t *, gfx_coord2_t *, gfx_rect_t *);
+extern errno_t ui_menu_open(ui_menu_t *, gfx_rect_t *);
+extern void ui_menu_close(ui_menu_t *);
 extern errno_t ui_menu_paint(ui_menu_t *, gfx_coord2_t *);
-extern errno_t ui_menu_unpaint(ui_menu_t *);
 extern ui_evclaim_t ui_menu_pos_event(ui_menu_t *, gfx_coord2_t *,
     pos_event_t *);
 
