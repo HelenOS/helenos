@@ -45,6 +45,7 @@
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/menuentry.h>
+#include <ui/window.h>
 #include "../private/menubar.h"
 #include "../private/menuentry.h"
 #include "../private/menu.h"
@@ -208,7 +209,7 @@ void ui_menu_entry_column_widths(ui_menu_entry_t *mentry,
 	 * is open (and its window is created). Use the menu bar's
 	 * resource instead.
 	 */
-	res = mentry->menu->mbar->res;
+	res = ui_window_get_res(mentry->menu->mbar->window);
 
 	*caption_w = gfx_text_width(res->font, mentry->caption);
 	*shortcut_w = gfx_text_width(res->font, mentry->shortcut);
@@ -234,7 +235,7 @@ gfx_coord_t ui_menu_entry_calc_width(ui_menu_t *menu, gfx_coord_t caption_w,
 	 * is open (and its window is created). Use the menu bar's
 	 * resource instead.
 	 */
-	res = menu->mbar->res;
+	res = ui_window_get_res(menu->mbar->window);
 
 	if (res->textmode)
 		hpad = menu_entry_hpad_text;
@@ -273,7 +274,7 @@ gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *mentry)
 	 * is open (and its window is created). Use the menu bar's
 	 * resource instead.
 	 */
-	res = mentry->menu->mbar->res;
+	res = ui_window_get_res(mentry->menu->mbar->window);
 
 	if (res->textmode) {
 		vpad = menu_entry_vpad_text;

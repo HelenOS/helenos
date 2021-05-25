@@ -48,6 +48,7 @@
 #include <ui/menu.h>
 #include <ui/menuentry.h>
 #include <ui/resource.h>
+#include <ui/window.h>
 #include "../private/menubar.h"
 #include "../private/menu.h"
 #include "../private/resource.h"
@@ -169,11 +170,14 @@ const char *ui_menu_caption(ui_menu_t *menu)
 void ui_menu_get_geom(ui_menu_t *menu, gfx_coord2_t *spos,
     ui_menu_geom_t *geom)
 {
+	ui_resource_t *res;
 	gfx_coord2_t edim;
 	gfx_coord_t frame_w;
 	gfx_coord_t frame_h;
 
-	if (menu->mbar->res->textmode) {
+	res = ui_window_get_res(menu->mbar->window);
+
+	if (res->textmode) {
 		frame_w = menu_frame_w_text;
 		frame_h = menu_frame_h_text;
 	} else {
@@ -241,7 +245,8 @@ errno_t ui_menu_open(ui_menu_t *menu, gfx_rect_t *prect)
 	ui_popup_params_init(&params);
 	params.rect = geom.outer_rect;
 
-	rc = ui_popup_create(menu->mbar->ui, &params, &popup);
+	rc = ui_popup_create(menu->mbar->ui, menu->mbar->window, &params,
+	    &popup);
 	if (rc != EOK)
 		return rc;
 

@@ -330,7 +330,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_bar_create(ui, ui_res, &demo.mbar);
+	rc = ui_menu_bar_create(ui, window, &demo.mbar);
 	if (rc != EOK) {
 		printf("Error creating menu bar.\n");
 		return rc;

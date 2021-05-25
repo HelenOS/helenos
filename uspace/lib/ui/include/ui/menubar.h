@@ -44,8 +44,9 @@
 #include <types/ui/event.h>
 #include <types/ui/resource.h>
 #include <types/ui/ui.h>
+#include <types/ui/window.h>
 
-extern errno_t ui_menu_bar_create(ui_t *, ui_resource_t *,
+extern errno_t ui_menu_bar_create(ui_t *, ui_window_t *,
     ui_menu_bar_t **);
 extern void ui_menu_bar_destroy(ui_menu_bar_t *);
 extern ui_control_t *ui_menu_bar_ctl(ui_menu_bar_t *);

@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <gfx/context.h>
 #include <gfx/coord.h>
 #include <mem.h>
 #include <pcut/pcut.h>
@@ -34,9 +33,8 @@
 #include <ui/control.h>
 #include <ui/menu.h>
 #include <ui/menubar.h>
-#include <ui/resource.h>
 #include <ui/ui.h>
-#include "../private/dummygc.h"
+#include <ui/window.h>
 #include "../private/menubar.h"
 
 PCUT_INIT;
@@ -83,22 +81,23 @@ PCUT_TEST(ctl)
 PCUT_TEST(set_rect)
 {
 	errno_t rc;
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	gfx_rect_t rect;
 
-	rc = dummygc_create(&dgc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gc = dummygc_get_ctx(dgc);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_resource_create(gc, false, &resource);
+	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_menu_bar_create(NULL, resource, &mbar);
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -114,29 +113,30 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_INT_EQUALS(rect.p1.y, mbar->rect.p1.y);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Paint menu bar */
 PCUT_TEST(paint)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gc = dummygc_get_ctx(dgc);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_resource_create(gc, false, &resource);
+	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_menu_bar_create(NULL, resource, &mbar);
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -144,17 +144,16 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Press event on menu bar entry selects menu */
 PCUT_TEST(pos_event_select)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_evclaim_t claimed;
@@ -162,19 +161,17 @@ PCUT_TEST(pos_event_select)
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -199,36 +196,32 @@ PCUT_TEST(pos_event_select)
 	PCUT_ASSERT_EQUALS(menu, mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Calling ui_menu_bar_select() with the same menu twice deselects it */
 PCUT_TEST(select_same)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -248,37 +241,33 @@ PCUT_TEST(select_same)
 	PCUT_ASSERT_NULL(mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Calling ui_menu_bar_select() with another menu selects it */
 PCUT_TEST(select_different)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu1 = NULL;
 	ui_menu_t *menu2 = NULL;
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -302,9 +291,8 @@ PCUT_TEST(select_different)
 	PCUT_ASSERT_EQUALS(menu2, mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 PCUT_EXPORT(menubar);

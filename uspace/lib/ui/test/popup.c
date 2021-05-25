@@ -105,7 +105,7 @@ PCUT_TEST(create_destroy)
 
 	ui_popup_params_init(&params);
 
-	rc = ui_popup_create(ui, &params, &popup);
+	rc = ui_popup_create(ui, NULL, &params, &popup);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(popup);
 
@@ -134,7 +134,7 @@ PCUT_TEST(add_remove)
 
 	ui_popup_params_init(&params);
 
-	rc = ui_popup_create(ui, &params, &popup);
+	rc = ui_popup_create(ui, NULL, &params, &popup);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(popup);
 
@@ -221,7 +221,7 @@ PCUT_TEST(send_pos)
 
 	ui_popup_params_init(&params);
 
-	rc = ui_popup_create(ui, &params, &popup);
+	rc = ui_popup_create(ui, NULL, &params, &popup);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(popup);
 
