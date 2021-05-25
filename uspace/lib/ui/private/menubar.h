@@ -51,8 +51,8 @@ struct ui_menu_bar {
 	struct ui_control *control;
 	/** UI */
 	struct ui *ui;
-	/** UI resource (for window containing menu bar) */
-	struct ui_resource *res;
+	/** UI window containing menu bar */
+	struct ui_window *window;
 	/** Menu bar rectangle */
 	gfx_rect_t rect;
 	/** Selected menu or @c NULL */

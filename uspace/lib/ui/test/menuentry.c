@@ -35,9 +35,8 @@
 #include <ui/menu.h>
 #include <ui/menubar.h>
 #include <ui/menuentry.h>
-#include <ui/resource.h>
 #include <ui/ui.h>
-#include "../private/dummygc.h"
+#include <ui/window.h>
 #include "../private/menuentry.h"
 
 PCUT_INIT;
@@ -53,24 +52,25 @@ static void test_entry_cb(ui_menu_entry_t *, void *);
 /** Create and destroy menu entry */
 PCUT_TEST(create_destroy)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gc = dummygc_get_ctx(dgc);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_resource_create(gc, false, &resource);
+	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_menu_bar_create(NULL, resource, &mbar);
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -86,30 +86,32 @@ PCUT_TEST(create_destroy)
 	ui_menu_entry_destroy(mentry);
 
 	ui_menu_bar_destroy(mbar);
-	dummygc_destroy(dgc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Create and destroy separator menu entry */
 PCUT_TEST(create_sep_destroy)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gc = dummygc_get_ctx(dgc);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_resource_create(gc, false, &resource);
+	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_menu_bar_create(NULL, resource, &mbar);
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -125,7 +127,8 @@ PCUT_TEST(create_sep_destroy)
 	ui_menu_entry_destroy(mentry);
 
 	ui_menu_bar_destroy(mbar);
-	dummygc_destroy(dgc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_menu_bar_destroy() can take NULL argument (no-op) */
@@ -137,25 +140,26 @@ PCUT_TEST(destroy_null)
 /** ui_menu_entry_set_cb() .. */
 PCUT_TEST(set_cb)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
 	test_resp_t resp;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gc = dummygc_get_ctx(dgc);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_resource_create(gc, false, &resource);
+	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_menu_bar_create(NULL, resource, &mbar);
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -174,16 +178,16 @@ PCUT_TEST(set_cb)
 	PCUT_ASSERT_TRUE(resp.activated);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_menu_entry_first() / ui_menu_entry_next() iterate over entries */
 PCUT_TEST(first_next)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *entry1 = NULL;
@@ -191,16 +195,17 @@ PCUT_TEST(first_next)
 	ui_menu_entry_t *e;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gc = dummygc_get_ctx(dgc);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_resource_create(gc, false, &resource);
+	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_menu_bar_create(NULL, resource, &mbar);
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -226,16 +231,16 @@ PCUT_TEST(first_next)
 	PCUT_ASSERT_NULL(e);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
-/** ui_menu_entry_widths() / ui_menu_entry_height() */
+/** ui_menu_entry_column_widths() / ui_menu_entry_height() */
 PCUT_TEST(widths_height)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -245,16 +250,17 @@ PCUT_TEST(widths_height)
 	gfx_coord_t height;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	gc = dummygc_get_ctx(dgc);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_resource_create(gc, false, &resource);
+	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_menu_bar_create(NULL, resource, &mbar);
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -277,17 +283,16 @@ PCUT_TEST(widths_height)
 	PCUT_ASSERT_INT_EQUALS(13 + 8, height);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
-	dummygc_destroy(dgc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Paint menu entry */
 PCUT_TEST(paint)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -295,19 +300,17 @@ PCUT_TEST(paint)
 	gfx_rect_t prect;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -333,18 +336,16 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Press and release activates menu entry */
 PCUT_TEST(press_release)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -353,19 +354,17 @@ PCUT_TEST(press_release)
 	test_resp_t resp;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -400,18 +399,16 @@ PCUT_TEST(press_release)
 	PCUT_ASSERT_TRUE(resp.activated);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Press, leave and release does not activate entry */
 PCUT_TEST(press_leave_release)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -420,19 +417,17 @@ PCUT_TEST(press_leave_release)
 	test_resp_t resp;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -472,18 +467,16 @@ PCUT_TEST(press_leave_release)
 	PCUT_ASSERT_FALSE(resp.activated);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Press, leave, enter and release activates menu entry */
 PCUT_TEST(press_leave_enter_release)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -492,19 +485,17 @@ PCUT_TEST(press_leave_enter_release)
 	test_resp_t resp;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -549,18 +540,16 @@ PCUT_TEST(press_leave_enter_release)
 	PCUT_ASSERT_TRUE(resp.activated);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Press event inside menu entry */
 PCUT_TEST(pos_press_inside)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -569,19 +558,17 @@ PCUT_TEST(pos_press_inside)
 	pos_event_t event;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -613,18 +600,16 @@ PCUT_TEST(pos_press_inside)
 	PCUT_ASSERT_TRUE(mentry->held);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Press event outside menu entry */
 PCUT_TEST(pos_press_outside)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -633,19 +618,17 @@ PCUT_TEST(pos_press_outside)
 	pos_event_t event;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -677,18 +660,16 @@ PCUT_TEST(pos_press_outside)
 	PCUT_ASSERT_FALSE(mentry->held);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Position event moving out of menu entry */
 PCUT_TEST(pos_move_out)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -697,19 +678,17 @@ PCUT_TEST(pos_move_out)
 	pos_event_t event;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -744,18 +723,16 @@ PCUT_TEST(pos_move_out)
 	PCUT_ASSERT_TRUE(mentry->held);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 /** Position event moving inside menu entry */
 PCUT_TEST(pos_move_in)
 {
-	dummy_gc_t *dgc;
-	gfx_context_t *gc;
 	ui_t *ui = NULL;
-	ui_resource_t *resource = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
 	ui_menu_entry_t *mentry = NULL;
@@ -764,19 +741,17 @@ PCUT_TEST(pos_move_in)
 	pos_event_t event;
 	errno_t rc;
 
-	rc = dummygc_create(&dgc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	gc = dummygc_get_ctx(dgc);
-
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_menu_bar_create(ui, resource, &mbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -808,9 +783,8 @@ PCUT_TEST(pos_move_in)
 	PCUT_ASSERT_FALSE(mentry->held);
 
 	ui_menu_bar_destroy(mbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
 	ui_destroy(ui);
-	dummygc_destroy(dgc);
 }
 
 static void test_entry_cb(ui_menu_entry_t *mentry, void *arg)

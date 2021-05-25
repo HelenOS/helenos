@@ -66,12 +66,13 @@ void ui_popup_params_init(ui_popup_params_t *params)
 /** Create new popup window.
  *
  * @param ui User interface
+ * @param parent Parent window
  * @param params Popup parameters
  * @param rpopup Place to store pointer to new popup window
  * @return EOK on success or an error code
  */
-errno_t ui_popup_create(ui_t *ui, ui_popup_params_t *params,
-    ui_popup_t **rpopup)
+errno_t ui_popup_create(ui_t *ui, ui_window_t *parent,
+    ui_popup_params_t *params, ui_popup_t **rpopup)
 {
 	ui_popup_t *popup;
 	ui_window_t *window = NULL;
@@ -92,6 +93,7 @@ errno_t ui_popup_create(ui_t *ui, ui_popup_params_t *params,
 		goto error;
 
 	popup->ui = ui;
+	popup->parent = parent;
 	popup->window = window;
 
 	ui_window_set_cb(window, &ui_popup_window_cb, popup);

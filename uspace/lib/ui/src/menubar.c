@@ -46,6 +46,7 @@
 #include <ui/paint.h>
 #include <ui/menu.h>
 #include <ui/menubar.h>
+#include <ui/window.h>
 #include "../private/menubar.h"
 #include "../private/resource.h"
 
@@ -72,12 +73,11 @@ ui_control_ops_t ui_menu_bar_ops = {
 /** Create new menu bar.
  *
  * @param ui UI
- * @param res UI resource
+ * @param window Window that will contain the menu bar
  * @param rmbar Place to store pointer to new menu bar
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_menu_bar_create(ui_t *ui, ui_resource_t *res,
-    ui_menu_bar_t **rmbar)
+errno_t ui_menu_bar_create(ui_t *ui, ui_window_t *window, ui_menu_bar_t **rmbar)
 {
 	ui_menu_bar_t *mbar;
 	errno_t rc;
@@ -93,7 +93,7 @@ errno_t ui_menu_bar_create(ui_t *ui, ui_resource_t *res,
 	}
 
 	mbar->ui = ui;
-	mbar->res = res;
+	mbar->window = window;
 	list_initialize(&mbar->menus);
 	*rmbar = mbar;
 	return EOK;
@@ -148,6 +148,7 @@ void ui_menu_bar_set_rect(ui_menu_bar_t *mbar, gfx_rect_t *rect)
  */
 errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 {
+	ui_resource_t *res;
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
 	gfx_coord2_t tpos;
@@ -160,17 +161,19 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 	gfx_coord_t vpad;
 	errno_t rc;
 
+	res = ui_window_get_res(mbar->window);
+
 	/* Paint menu bar background */
 
-	rc = gfx_set_color(mbar->res->gc, mbar->res->wnd_face_color);
+	rc = gfx_set_color(res->gc, res->wnd_face_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_fill_rect(mbar->res->gc, &mbar->rect);
+	rc = gfx_fill_rect(res->gc, &mbar->rect);
 	if (rc != EOK)
 		goto error;
 
-	if (mbar->res->textmode) {
+	if (res->textmode) {
 		hpad = menubar_hpad_text;
 		vpad = menubar_vpad_text;
 	} else {
@@ -187,7 +190,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 	menu = ui_menu_first(mbar);
 	while (menu != NULL) {
 		caption = ui_menu_caption(menu);
-		width = gfx_text_width(mbar->res->font, caption) + 2 * hpad;
+		width = gfx_text_width(res->font, caption) + 2 * hpad;
 		tpos.x = pos.x + hpad;
 		tpos.y = pos.y + vpad;
 
@@ -196,22 +199,22 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 		rect.p1.y = mbar->rect.p1.y;
 
 		if (menu == mbar->selected) {
-			fmt.color = mbar->res->wnd_sel_text_color;
-			bg_color = mbar->res->wnd_sel_text_bg_color;
+			fmt.color = res->wnd_sel_text_color;
+			bg_color = res->wnd_sel_text_bg_color;
 		} else {
-			fmt.color = mbar->res->wnd_text_color;
-			bg_color = mbar->res->wnd_face_color;
+			fmt.color = res->wnd_text_color;
+			bg_color = res->wnd_face_color;
 		}
 
-		rc = gfx_set_color(mbar->res->gc, bg_color);
+		rc = gfx_set_color(res->gc, bg_color);
 		if (rc != EOK)
 			goto error;
 
-		rc = gfx_fill_rect(mbar->res->gc, &rect);
+		rc = gfx_fill_rect(res->gc, &rect);
 		if (rc != EOK)
 			goto error;
 
-		rc = gfx_puttext(mbar->res->font, &tpos, &fmt, caption);
+		rc = gfx_puttext(res->font, &tpos, &fmt, caption);
 		if (rc != EOK)
 			goto error;
 
@@ -219,7 +222,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 		menu = ui_menu_next(menu);
 	}
 
-	rc = gfx_update(mbar->res->gc);
+	rc = gfx_update(res->gc);
 	if (rc != EOK)
 		goto error;
 
@@ -268,6 +271,7 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, gfx_rect_t *rect,
  */
 ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 {
+	ui_resource_t *res;
 	gfx_coord2_t pos;
 	gfx_rect_t rect;
 	ui_menu_t *menu;
@@ -276,10 +280,12 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 	gfx_coord_t hpad;
 	gfx_coord2_t ppos;
 
+	res = ui_window_get_res(mbar->window);
+
 	ppos.x = event->hpos;
 	ppos.y = event->vpos;
 
-	if (mbar->res->textmode) {
+	if (res->textmode) {
 		hpad = menubar_hpad_text;
 	} else {
 		hpad = menubar_hpad;
@@ -290,7 +296,7 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 	menu = ui_menu_first(mbar);
 	while (menu != NULL) {
 		caption = ui_menu_caption(menu);
-		width = gfx_text_width(mbar->res->font, caption) + 2 * hpad;
+		width = gfx_text_width(res->font, caption) + 2 * hpad;
 
 		rect.p0 = pos;
 		rect.p1.x = rect.p0.x + width;

@@ -42,9 +42,10 @@
 #include <types/ui/ui.h>
 #include <types/ui/popup.h>
 #include <types/ui/resource.h>
+#include <types/ui/window.h>
 
 extern void ui_popup_params_init(ui_popup_params_t *);
-extern errno_t ui_popup_create(ui_t *, ui_popup_params_t *,
+extern errno_t ui_popup_create(ui_t *, ui_window_t *, ui_popup_params_t *,
     ui_popup_t **);
 extern void ui_popup_set_cb(ui_popup_t *, ui_popup_cb_t *, void *);
 extern void ui_popup_destroy(ui_popup_t *);

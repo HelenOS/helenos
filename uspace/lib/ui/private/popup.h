@@ -51,6 +51,8 @@ struct ui_popup {
 	struct ui_popup_cb *cb;
 	/** Callback argument */
 	void *arg;
+	/** Parent window */
+	struct ui_window *parent;
 	/** Window */
 	struct ui_window *window;
 	/** Placement rectangle */
