@@ -77,16 +77,25 @@ errno_t ui_popup_create(ui_t *ui, ui_window_t *parent,
 	ui_popup_t *popup;
 	ui_window_t *window = NULL;
 	ui_wnd_params_t wparams;
+	gfx_coord2_t parent_pos;
 	errno_t rc;
 
 	popup = calloc(1, sizeof(ui_popup_t));
 	if (popup == NULL)
 		return ENOMEM;
 
+	rc = ui_window_get_pos(parent, &parent_pos);
+	if (rc != EOK)
+		goto error;
+
 	ui_wnd_params_init(&wparams);
 	wparams.rect = params->rect;
 	wparams.caption = "";
 	wparams.style &= ~ui_wds_decorated;
+	wparams.placement = ui_wnd_place_popup;
+
+	/* Compute position of parent rectangle relative to the screen */
+	gfx_rect_translate(&parent_pos, &params->place, &wparams.prect);
 
 	rc = ui_window_create(ui, &wparams, &window);
 	if (rc != EOK)

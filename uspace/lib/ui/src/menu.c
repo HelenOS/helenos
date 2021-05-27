@@ -244,6 +244,7 @@ errno_t ui_menu_open(ui_menu_t *menu, gfx_rect_t *prect)
 
 	ui_popup_params_init(&params);
 	params.rect = geom.outer_rect;
+	params.place = *prect;
 
 	rc = ui_popup_create(menu->mbar->ui, menu->mbar->window, &params,
 	    &popup);

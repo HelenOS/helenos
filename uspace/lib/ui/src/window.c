@@ -108,6 +108,52 @@ void ui_wnd_params_init(ui_wnd_params_t *params)
 	params->style = ui_wds_decorated;
 }
 
+static errno_t ui_window_place(ui_window_t *window, display_t *display,
+    display_info_t *info, ui_wnd_params_t *params)
+{
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	assert(params->placement != ui_wnd_place_default);
+
+	pos.x = 0;
+	pos.y = 0;
+	switch (params->placement) {
+	case ui_wnd_place_default:
+		assert(false);
+	case ui_wnd_place_top_left:
+	case ui_wnd_place_full_screen:
+		pos.x = info->rect.p0.x - params->rect.p0.x;
+		pos.y = info->rect.p0.y - params->rect.p0.y;
+		break;
+	case ui_wnd_place_top_right:
+		pos.x = info->rect.p1.x - params->rect.p1.x;
+		pos.y = info->rect.p0.y - params->rect.p0.y;
+		break;
+	case ui_wnd_place_bottom_left:
+		pos.x = info->rect.p0.x - params->rect.p0.x;
+		pos.y = info->rect.p1.y - params->rect.p1.y;
+		break;
+	case ui_wnd_place_bottom_right:
+		pos.x = info->rect.p1.x - params->rect.p1.x;
+		pos.y = info->rect.p1.y - params->rect.p1.y;
+		break;
+	case ui_wnd_place_popup:
+		/* Place popup window below parent rectangle */
+		pos.x = params->prect.p0.x;
+		pos.y = params->prect.p1.y;
+		break;
+	}
+
+	rc = display_window_move(window->dwindow, &pos);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Create new window.
  *
  * @param ui User interface
@@ -120,10 +166,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 {
 	ui_window_t *window;
 	display_info_t info;
-	gfx_coord2_t pos;
 	gfx_coord2_t scr_dims;
 	display_wnd_params_t dparams;
-	display_window_t *dwindow = NULL;
 	gfx_context_t *gc = NULL;
 	ui_resource_t *res = NULL;
 	ui_wdecor_t *wdecor = NULL;
@@ -158,42 +202,18 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 		}
 
 		rc = display_window_create(ui->display, &dparams, &dwnd_cb,
-		    (void *) window, &dwindow);
+		    (void *) window, &window->dwindow);
 		if (rc != EOK)
 			goto error;
 
 		if (params->placement != ui_wnd_place_default) {
-			pos.x = 0;
-			pos.y = 0;
-
-			switch (params->placement) {
-			case ui_wnd_place_default:
-				assert(false);
-			case ui_wnd_place_top_left:
-			case ui_wnd_place_full_screen:
-				pos.x = info.rect.p0.x - params->rect.p0.x;
-				pos.y = info.rect.p0.y - params->rect.p0.y;
-				break;
-			case ui_wnd_place_top_right:
-				pos.x = info.rect.p1.x - params->rect.p1.x;
-				pos.y = info.rect.p0.y - params->rect.p0.y;
-				break;
-			case ui_wnd_place_bottom_left:
-				pos.x = info.rect.p0.x - params->rect.p0.x;
-				pos.y = info.rect.p1.y - params->rect.p1.y;
-				break;
-			case ui_wnd_place_bottom_right:
-				pos.x = info.rect.p1.x - params->rect.p1.x;
-				pos.y = info.rect.p1.y - params->rect.p1.y;
-				break;
-			}
-
-			rc = display_window_move(dwindow, &pos);
+			rc = ui_window_place(window, ui->display, &info,
+			    params);
 			if (rc != EOK)
 				goto error;
 		}
 
-		rc = display_window_get_gc(dwindow, &gc);
+		rc = display_window_get_gc(window->dwindow, &gc);
 		if (rc != EOK)
 			goto error;
 	} else if (ui->console != NULL) {
@@ -264,7 +284,6 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	ui_resource_set_expose_cb(res, ui_window_expose_cb, (void *) window);
 
 	window->ui = ui;
-	window->dwindow = dwindow;
 	window->rect = dparams.rect;
 
 	window->res = res;
@@ -285,8 +304,6 @@ error:
 		gfx_bitmap_destroy(bmp);
 	if (dgc != NULL)
 		dummygc_destroy(dgc);
-	if (dwindow != NULL)
-		display_window_destroy(dwindow);
 	free(window);
 	return rc;
 }
@@ -535,6 +552,28 @@ ui_resource_t *ui_window_get_res(ui_window_t *window)
 gfx_context_t *ui_window_get_gc(ui_window_t *window)
 {
 	return window->gc;
+}
+
+/** Get window position.
+ *
+ * @param window Window
+ * @param pos Place to store position
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_get_pos(ui_window_t *window, gfx_coord2_t *pos)
+{
+	errno_t rc;
+
+	if (window->dwindow != NULL) {
+		rc = display_window_get_pos(window->dwindow, pos);
+		if (rc != EOK)
+			return rc;
+	} else {
+		pos->x = 0;
+		pos->y = 0;
+	}
+
+	return EOK;
 }
 
 /** Get window application area GC
