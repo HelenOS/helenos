@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ struct display_ops {
 	errno_t (*window_resize_req)(void *, sysarg_t, display_wnd_rsztype_t,
 	    gfx_coord2_t *);
 	errno_t (*window_move)(void *, sysarg_t, gfx_coord2_t *);
+	errno_t (*window_get_pos)(void *, sysarg_t, gfx_coord2_t *);
 	errno_t (*window_resize)(void *, sysarg_t, gfx_coord2_t *, gfx_rect_t *);
 	errno_t (*window_set_cursor)(void *, sysarg_t, display_stock_cursor_t);
 	errno_t (*get_event)(void *, sysarg_t *, display_wnd_ev_t *);

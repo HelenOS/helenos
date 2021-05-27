@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -655,6 +655,15 @@ void ds_window_move(ds_window_t *wnd, gfx_coord2_t *dpos)
 {
 	wnd->dpos = *dpos;
 	(void) ds_display_paint(wnd->display, NULL);
+}
+
+/** Get window position.
+ *
+ * @param wnd Window
+ */
+void ds_window_get_pos(ds_window_t *wnd, gfx_coord2_t *dpos)
+{
+	*dpos = wnd->dpos;
 }
 
 /** Start resizing a window, detected by client.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -305,6 +305,37 @@ errno_t display_window_move(display_window_t *window, gfx_coord2_t *dpos)
 	exch = async_exchange_begin(window->display->sess);
 	req = async_send_1(exch, DISPLAY_WINDOW_MOVE, window->id, &answer);
 	rc = async_data_write_start(exch, dpos, sizeof (gfx_coord2_t));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Get display window position.
+ *
+ * Get display window position on the display.
+ *
+ * @param window Window
+ * @param dpos Place to store position
+ * @return EOK on success or an error code
+ */
+errno_t display_window_get_pos(display_window_t *window, gfx_coord2_t *dpos)
+{
+	async_exch_t *exch;
+	aid_t req;
+	ipc_call_t answer;
+	errno_t rc;
+
+	exch = async_exchange_begin(window->display->sess);
+	req = async_send_1(exch, DISPLAY_WINDOW_GET_POS, window->id, &answer);
+	rc = async_data_read_start(exch, dpos, sizeof (gfx_coord2_t));
 	async_exchange_end(exch);
 	if (rc != EOK) {
 		async_forget(req);

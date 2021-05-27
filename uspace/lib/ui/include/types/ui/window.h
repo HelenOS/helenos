@@ -57,7 +57,9 @@ typedef enum {
 	/** Place window to the bottom-right corner of the screen */
 	ui_wnd_place_bottom_right,
 	/** Place window accross the entire screen */
-	ui_wnd_place_full_screen
+	ui_wnd_place_full_screen,
+	/** Place window as a popup window adjacent to rectangle */
+	ui_wnd_place_popup
 } ui_wnd_placement_t;
 
 /** Window parameters */
@@ -70,6 +72,8 @@ typedef struct {
 	ui_wdecor_style_t style;
 	/** Window placement */
 	ui_wnd_placement_t placement;
+	/** Parent rectangle for popup windows */
+	gfx_rect_t prect;
 } ui_wnd_params_t;
 
 /** Window callbacks */

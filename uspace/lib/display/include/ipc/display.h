@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@ typedef enum {
 	DISPLAY_WINDOW_DESTROY,
 	DISPLAY_WINDOW_MOVE,
 	DISPLAY_WINDOW_MOVE_REQ,
+	DISPLAY_WINDOW_GET_POS,
 	DISPLAY_WINDOW_RESIZE,
 	DISPLAY_WINDOW_RESIZE_REQ,
 	DISPLAY_WINDOW_SET_CURSOR,
