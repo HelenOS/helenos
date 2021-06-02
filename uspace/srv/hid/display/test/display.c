@@ -93,16 +93,21 @@ PCUT_TEST(display_find_window)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *w0;
 	ds_window_t *w1;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
+	bool called_cb = false;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -147,6 +152,7 @@ PCUT_TEST(display_find_window)
 
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -156,17 +162,22 @@ PCUT_TEST(display_window_by_pos)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *w0;
 	ds_window_t *w1;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	gfx_coord2_t pos;
+	bool called_cb = false;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_client_create(disp, &test_ds_client_cb, NULL, &client);
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -197,6 +208,7 @@ PCUT_TEST(display_window_by_pos)
 
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }

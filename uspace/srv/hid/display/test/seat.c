@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -125,7 +125,7 @@ PCUT_TEST(evac_focus_two_windows)
 	PCUT_ASSERT_TRUE(called_cb);
 	called_cb = false;
 
-	ds_seat_evac_focus(seat, w1);
+	ds_seat_evac_wnd_refs(seat, w1);
 	PCUT_ASSERT_EQUALS(w0, seat->focus);
 	PCUT_ASSERT_TRUE(called_cb);
 
@@ -171,9 +171,51 @@ PCUT_TEST(evac_focus_one_window)
 	PCUT_ASSERT_TRUE(called_cb);
 	called_cb = false;
 
-	ds_seat_evac_focus(seat, wnd);
+	ds_seat_evac_wnd_refs(seat, wnd);
 	PCUT_ASSERT_NULL(seat->focus);
 	PCUT_ASSERT_TRUE(called_cb);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Evacuate popup reference from window.
+ *
+ * After evacuating no window should be set as the popup
+ */
+PCUT_TEST(evac_popup)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+	params.flags |= wndf_popup;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_EQUALS(wnd, seat->popup);
+
+	ds_seat_evac_wnd_refs(seat, wnd);
+	PCUT_ASSERT_NULL(seat->popup);
 
 	ds_window_destroy(wnd);
 	ds_seat_destroy(seat);
@@ -435,7 +477,10 @@ PCUT_TEST(post_ptd_event_wnd_switch)
 	w1->dpos.x = 400;
 	w1->dpos.y = 400;
 
-	PCUT_ASSERT_FALSE(called_cb);
+	/* New window gets focused event */
+	PCUT_ASSERT_TRUE(called_cb);
+
+	called_cb = false;
 
 	ds_seat_set_focus(seat, w0);
 

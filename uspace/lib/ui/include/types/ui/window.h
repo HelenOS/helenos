@@ -62,6 +62,12 @@ typedef enum {
 	ui_wnd_place_popup
 } ui_wnd_placement_t;
 
+/** Window flags */
+typedef enum {
+	/** Popup window */
+	ui_wndf_popup = 0x1
+} ui_wnd_flags_t;
+
 /** Window parameters */
 typedef struct {
 	/** Window rectangle */
@@ -72,6 +78,8 @@ typedef struct {
 	ui_wdecor_style_t style;
 	/** Window placement */
 	ui_wnd_placement_t placement;
+	/** Window flags */
+	ui_wnd_flags_t flags;
 	/** Parent rectangle for popup windows */
 	gfx_rect_t prect;
 } ui_wnd_params_t;

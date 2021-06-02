@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,12 @@
 
 #include <gfx/coord.h>
 
+/** Window flags */
+typedef enum {
+	/** Popup window (capture events, no focus) */
+	wndf_popup = 0x1
+} display_wnd_flags_t;
+
 /** Parameters for a new window.
  *
  * The window's dimensions are determined by the bounding rectangle,
@@ -49,6 +55,8 @@ typedef struct {
 	gfx_rect_t rect;
 	/** Minimum size (when being resized) */
 	gfx_coord2_t min_size;
+	/** Flags */
+	display_wnd_flags_t flags;
 } display_wnd_params_t;
 
 #endif
