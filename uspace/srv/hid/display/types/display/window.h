@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <display/event.h>
+#include <display/wndparams.h>
 #include <display/wndresize.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
@@ -91,7 +92,8 @@ typedef struct ds_window {
 	pixel_t color;
 	/** Cursor set by client */
 	struct ds_cursor *cursor;
-
+	/** Window flags */
+	display_wnd_flags_t flags;
 	/** State */
 	ds_window_state_t state;
 	/** Original position before started to move or resize the window */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -114,7 +114,7 @@ void ds_client_remove_window(ds_window_t *wnd)
 	/* Make sure window is no longer focused in any seat */
 	seat = ds_display_first_seat(wnd->display);
 	while (seat != NULL) {
-		ds_seat_evac_focus(seat, wnd);
+		ds_seat_evac_wnd_refs(seat, wnd);
 		seat = ds_display_next_seat(seat);
 	}
 

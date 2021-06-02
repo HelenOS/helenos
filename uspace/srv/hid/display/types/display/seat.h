@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,8 @@ typedef struct ds_seat {
 	link_t lseats;
 	/** Window this seat is focused on */
 	struct ds_window *focus;
+	/** This seat's popup window */
+	struct ds_window *popup;
 	/** Cursor selected by client */
 	struct ds_cursor *client_cursor;
 	/** Cursor override for window management or @c NULL */

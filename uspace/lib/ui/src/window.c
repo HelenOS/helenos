@@ -187,6 +187,9 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	/* Only allow making the window larger */
 	gfx_rect_dims(&params->rect, &dparams.min_size);
 
+	if ((params->flags & ui_wndf_popup) != 0)
+		dparams.flags |= wndf_popup;
+
 	if (ui->display != NULL) {
 		if (params->placement != ui_wnd_place_default) {
 			rc = display_get_info(ui->display, &info);

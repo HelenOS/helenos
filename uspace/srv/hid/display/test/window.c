@@ -103,6 +103,7 @@ PCUT_TEST(window_get_ctx)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	gfx_context_t *gc;
@@ -112,6 +113,9 @@ PCUT_TEST(window_get_ctx)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -125,6 +129,7 @@ PCUT_TEST(window_get_ctx)
 	PCUT_ASSERT_NOT_NULL(gc);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -135,6 +140,7 @@ PCUT_TEST(window_post_kbd_event_alt_f4)
 	gfx_context_t *gc;
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	ds_window_t *rwindow;
 	display_wnd_ev_t revent;
@@ -151,11 +157,18 @@ PCUT_TEST(window_post_kbd_event_alt_f4)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
 	display_wnd_params_init(&params);
 	params.rect.p0.x = params.rect.p0.y = 0;
 	params.rect.p1.x = params.rect.p1.y = 1;
 
 	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* New window gets focused event */
+	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	event.type = KEY_PRESS;
@@ -173,6 +186,7 @@ PCUT_TEST(window_post_kbd_event_alt_f4)
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -183,6 +197,7 @@ PCUT_TEST(window_post_pos_event)
 	gfx_context_t *gc;
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	pos_event_t event;
@@ -195,6 +210,9 @@ PCUT_TEST(window_post_pos_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -241,6 +259,7 @@ PCUT_TEST(window_post_pos_event)
 	PCUT_ASSERT_INT_EQUALS(14, wnd->dpos.y);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -251,6 +270,7 @@ PCUT_TEST(window_move_req)
 	gfx_context_t *gc;
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	gfx_coord2_t pos;
@@ -263,6 +283,9 @@ PCUT_TEST(window_move_req)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -283,6 +306,7 @@ PCUT_TEST(window_move_req)
 	PCUT_ASSERT_INT_EQUALS(pos.y, wnd->orig_pos.y);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -339,6 +363,7 @@ PCUT_TEST(window_calc_resize)
 {
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	gfx_coord2_t dresize;
@@ -352,6 +377,9 @@ PCUT_TEST(window_calc_resize)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -596,6 +624,7 @@ PCUT_TEST(window_calc_resize)
 	PCUT_ASSERT_INT_EQUALS(31, nrect.p1.y);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
@@ -606,6 +635,7 @@ PCUT_TEST(window_set_cursor)
 	gfx_context_t *gc;
 	ds_display_t *disp;
 	ds_client_t *client;
+	ds_seat_t *seat;
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	errno_t rc;
@@ -617,6 +647,9 @@ PCUT_TEST(window_set_cursor)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -645,6 +678,7 @@ PCUT_TEST(window_set_cursor)
 	PCUT_ASSERT_EQUALS(wnd->display->cursor[dcurs_size_lr], wnd->cursor);
 
 	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }

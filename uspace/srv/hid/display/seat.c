@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,14 +105,25 @@ void ds_seat_set_focus(ds_seat_t *seat, ds_window_t *wnd)
 	}
 }
 
-/** Evacuate focus from window.
+/** Set seat popup window.
+ *
+ * @param seat Seat
+ * @param wnd Popup window
+ */
+void ds_seat_set_popup(ds_seat_t *seat, ds_window_t *wnd)
+{
+	seat->popup = wnd;
+}
+
+/** Evacuate seat references to window.
  *
  * If seat's focus is @a wnd, it will be set to a different window.
+ * If seat's popup window is @a wnd, it will be set to NULL.
  *
  * @param seat Seat
  * @param wnd Window to evacuate focus from
  */
-void ds_seat_evac_focus(ds_seat_t *seat, ds_window_t *wnd)
+void ds_seat_evac_wnd_refs(ds_seat_t *seat, ds_window_t *wnd)
 {
 	ds_window_t *nwnd;
 
@@ -125,6 +136,9 @@ void ds_seat_evac_focus(ds_seat_t *seat, ds_window_t *wnd)
 
 		ds_seat_set_focus(seat, nwnd);
 	}
+
+	if (seat->popup == wnd)
+		seat->popup = NULL;
 }
 
 /** Switch focus to another window.
@@ -167,7 +181,10 @@ errno_t ds_seat_post_kbd_event(ds_seat_t *seat, kbd_event_t *event)
 		return EOK;
 	}
 
-	dwindow = seat->focus;
+	dwindow = seat->popup;
+	if (dwindow == NULL)
+		dwindow = seat->focus;
+
 	if (dwindow == NULL)
 		return EOK;
 
@@ -327,7 +344,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 
 	/* Focus window on button press */
 	if (event->type == PTD_PRESS && event->btn_num == 1) {
-		if (wnd != NULL) {
+		if (wnd != NULL && (wnd->flags & wndf_popup) == 0) {
 			ds_seat_set_focus(seat, wnd);
 		}
 	}
@@ -409,6 +426,17 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	errno_t rc;
 
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
+	/*
+	 * Deliver event to popup window, unless the pointer is over
+	 * it (in which case it will be delivered to that window
+	 * below, anyway.
+	 */
+	if (seat->popup != wnd && seat->popup != NULL) {
+		rc = ds_window_post_pos_event(seat->popup, event);
+		if (rc != EOK)
+			return rc;
+	}
+
 	if (seat->focus != wnd && seat->focus != NULL) {
 		rc = ds_window_post_pos_event(seat->focus, event);
 		if (rc != EOK)
