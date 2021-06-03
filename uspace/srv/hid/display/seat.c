@@ -431,7 +431,7 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	 * it (in which case it will be delivered to that window
 	 * below, anyway.
 	 */
-	if (seat->popup != wnd && seat->popup != NULL) {
+	if (seat->popup != NULL) {
 		rc = ds_window_post_pos_event(seat->popup, event);
 		if (rc != EOK)
 			return rc;
@@ -451,9 +451,15 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 		/* Moving over a window */
 		ds_seat_set_client_cursor(seat, wnd->cursor);
 
-		rc = ds_window_post_pos_event(wnd, event);
-		if (rc != EOK)
-			return rc;
+		/*
+		 * Only deliver event if we didn't already deliver it
+		 * to the same window above.
+		 */
+		if (wnd != seat->popup) {
+			rc = ds_window_post_pos_event(wnd, event);
+			if (rc != EOK)
+				return rc;
+		}
 	} else {
 		/* Not over a window */
 		ds_seat_set_client_cursor(seat, seat->display->cursor[dcurs_arrow]);
