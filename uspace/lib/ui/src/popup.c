@@ -45,9 +45,11 @@
 #include <ui/window.h>
 #include "../private/popup.h"
 
+static void ui_popup_window_close(ui_window_t *, void *);
 static void ui_popup_window_pos(ui_window_t *, void *, pos_event_t *);
 
 static ui_window_cb_t ui_popup_window_cb = {
+	.close = ui_popup_window_close,
 	.pos = ui_popup_window_pos
 };
 
@@ -182,6 +184,19 @@ ui_resource_t *ui_popup_get_res(ui_popup_t *popup)
 gfx_context_t *ui_popup_get_gc(ui_popup_t *popup)
 {
 	return ui_window_get_gc(popup->window);
+}
+
+/** Handle close event in popup window.
+ *
+ * @param window Window
+ * @param arg Argument (ui_popup_t *)
+ */
+static void ui_popup_window_close(ui_window_t *window, void *arg)
+{
+	ui_popup_t *popup = (ui_popup_t *)arg;
+
+	if (popup->cb != NULL && popup->cb->close != NULL)
+		popup->cb->close(popup, popup->arg);
 }
 
 /** Handle position event in popup window.

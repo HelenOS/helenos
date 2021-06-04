@@ -60,14 +60,12 @@ enum {
 static void ui_menu_bar_ctl_destroy(void *);
 static errno_t ui_menu_bar_ctl_paint(void *);
 static ui_evclaim_t ui_menu_bar_ctl_pos_event(void *, pos_event_t *);
-static void ui_menu_bar_ctl_unfocus(void *);
 
 /** Menu bar control ops */
 ui_control_ops_t ui_menu_bar_ops = {
 	.destroy = ui_menu_bar_ctl_destroy,
 	.paint = ui_menu_bar_ctl_paint,
 	.pos_event = ui_menu_bar_ctl_pos_event,
-	.unfocus = ui_menu_bar_ctl_unfocus
 };
 
 /** Create new menu bar.
@@ -316,15 +314,6 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 	return ui_unclaimed;
 }
 
-/** Handle menu bar window unfocus notification.
- *
- * @param mbar Menu bar
- */
-void ui_menu_bar_unfocus(ui_menu_bar_t *mbar)
-{
-//	ui_menu_bar_select(mbar, NULL, NULL);
-}
-
 /** Destroy menu bar control.
  *
  * @param arg Argument (ui_menu_bar_t *)
@@ -359,17 +348,6 @@ ui_evclaim_t ui_menu_bar_ctl_pos_event(void *arg, pos_event_t *event)
 	ui_menu_bar_t *mbar = (ui_menu_bar_t *) arg;
 
 	return ui_menu_bar_pos_event(mbar, event);
-}
-
-/** Handle menu bar control window unfocus notification.
- *
- * @param arg Argument (ui_menu_bar_t *)
- */
-void ui_menu_bar_ctl_unfocus(void *arg)
-{
-	ui_menu_bar_t *mbar = (ui_menu_bar_t *) arg;
-
-	ui_menu_bar_unfocus(mbar);
 }
 
 /** @}
