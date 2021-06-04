@@ -60,14 +60,8 @@ static const char *ext(const char *s)
 static void basename(char *s)
 {
 	char *e = (char *) ext(s);
-	if (e != NULL && str_cmp(e, ".gz") == 0)
+	if ((e != NULL) && (str_cmp(e, ".gz") == 0))
 		*e = '\0';
-}
-
-static bool isgzip(const char *s)
-{
-	const char *e = ext(s);
-	return e != NULL && str_cmp(e, ".gz") == 0;
 }
 
 static bool overlaps(uint8_t *start1, uint8_t *end1,
@@ -81,19 +75,16 @@ static bool extract_component(uint8_t **cstart, uint8_t *cend,
     void (*clear_cache)(void *, size_t), task_t *task)
 {
 	const char *name;
-	const uint8_t *data;
 	size_t packed_size;
-	size_t unpacked_size;
 
 	if (!tar_info(*cstart, cend, &name, &packed_size))
 		return false;
 
-	data = *cstart + TAR_BLOCK_SIZE;
+	const uint8_t *data = *cstart + TAR_BLOCK_SIZE;
 	*cstart += TAR_BLOCK_SIZE + ALIGN_UP(packed_size, TAR_BLOCK_SIZE);
 
-	bool gz = isgzip(name);
-
-	unpacked_size = gz ? gzip_size(data, packed_size) : packed_size;
+	bool gz = gzip_check(data, packed_size);
+	size_t unpacked_size = gz ? gzip_size(data, packed_size) : packed_size;
 
 	/* Components must be page-aligned. */
 	uint8_t *new_ustart = (uint8_t *) ALIGN_UP((uintptr_t) ustart, PAGE_SIZE);
@@ -155,7 +146,7 @@ size_t payload_unpacked_size(void)
 
 	while (tar_info(start, payload_end, &name, &packed_size)) {
 		sz = ALIGN_UP(sz, PAGE_SIZE);
-		if (isgzip(name))
+		if (gzip_check(start + TAR_BLOCK_SIZE, packed_size))
 			sz += gzip_size(start + TAR_BLOCK_SIZE, packed_size);
 		else
 			sz += packed_size;

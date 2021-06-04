@@ -62,30 +62,61 @@ typedef struct {
 	uint32_t size;
 } __attribute__((packed)) gzip_footer_t;
 
-size_t gzip_size(const void *src, size_t srclen)
+/** Check GZIP signature
+ *
+ * Checks whether the source buffer start with a GZIP signature.
+ *
+ * @param[in] src    Source data buffer.
+ * @param[in] srclen Source buffer size (bytes).
+ *
+ * @return True if GZIP signature found.
+ * @return False if no GZIP signature found.
+ *
+ */
+bool gzip_check(const void *src, size_t srclen)
 {
+	if ((srclen < (sizeof(gzip_header_t) + sizeof(gzip_footer_t))))
+		return false;
+
 	gzip_header_t header;
-	gzip_footer_t footer;
-
-	if ((srclen < sizeof(header)) || (srclen < sizeof(footer)))
-		return 0;
-
 	memcpy(&header, src, sizeof(header));
-	memcpy(&footer, src + srclen - sizeof(footer), sizeof(footer));
 
 	if ((header.id1 != GZIP_ID1) ||
 	    (header.id2 != GZIP_ID2) ||
 	    (header.method != GZIP_METHOD_DEFLATE) ||
 	    ((header.flags & (~GZIP_FLAGS_MASK)) != 0))
+		return false;
+
+	return true;
+}
+
+/** Get uncompressed size
+ *
+ * Note that the uncompressed size is read from the GZIP footer
+ * (and not calculated by acutally decompressing the GZip archive).
+ * Thus the source of the GZip archive needs to be trusted.
+ *
+ * @param[in]  src    Source data buffer.
+ * @param[out] srclen Source buffer size (bytes).
+ *
+ * @return Uncompressed size.
+ *
+ */
+size_t gzip_size(const void *src, size_t srclen)
+{
+	if (!gzip_check(src, srclen))
 		return 0;
+
+	gzip_footer_t footer;
+	memcpy(&footer, src + srclen - sizeof(footer), sizeof(footer));
 
 	return uint32_t_le2host(footer.size);
 }
 
 /** Expand GZIP compressed data
  *
- * The routine allocates the output buffer based
- * on the size encoded in the input stream. This
+ * The routine compares the output buffer size with
+ * the size encoded in the input stream. This
  * effectively limits the size of the uncompressed
  * data to 4 GiB (expanding input streams that actually
  * encode more data will always fail).
@@ -107,22 +138,16 @@ size_t gzip_size(const void *src, size_t srclen)
  */
 int gzip_expand(const void *src, size_t srclen, void *dest, size_t destlen)
 {
-	gzip_header_t header;
-	gzip_footer_t footer;
-
-	if ((srclen < sizeof(header)) || (srclen < sizeof(footer)))
+	if (!gzip_check(src, srclen))
 		return EINVAL;
 
 	/* Decode header and footer */
 
+	gzip_header_t header;
 	memcpy(&header, src, sizeof(header));
-	memcpy(&footer, src + srclen - sizeof(footer), sizeof(footer));
 
-	if ((header.id1 != GZIP_ID1) ||
-	    (header.id2 != GZIP_ID2) ||
-	    (header.method != GZIP_METHOD_DEFLATE) ||
-	    ((header.flags & (~GZIP_FLAGS_MASK)) != 0))
-		return EINVAL;
+	gzip_footer_t footer;
+	memcpy(&footer, src + srclen - sizeof(footer), sizeof(footer));
 
 	if (destlen != uint32_t_le2host(footer.size))
 		return EINVAL;
