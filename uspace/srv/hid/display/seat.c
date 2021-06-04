@@ -103,6 +103,9 @@ void ds_seat_set_focus(ds_seat_t *seat, ds_window_t *wnd)
 		ds_window_post_focus_event(wnd);
 		ds_window_bring_to_top(wnd);
 	}
+
+	/* When focus changes, popup window should be closed */
+	ds_seat_set_popup(seat, NULL);
 }
 
 /** Set seat popup window.
@@ -112,6 +115,15 @@ void ds_seat_set_focus(ds_seat_t *seat, ds_window_t *wnd)
  */
 void ds_seat_set_popup(ds_seat_t *seat, ds_window_t *wnd)
 {
+	if (wnd == seat->popup)
+		return;
+
+	if (seat->popup != NULL) {
+		/* Window is no longer the popup window, send close request */
+		ds_client_post_close_event(seat->popup->client,
+		    seat->popup);
+	}
+
 	seat->popup = wnd;
 }
 
@@ -138,7 +150,7 @@ void ds_seat_evac_wnd_refs(ds_seat_t *seat, ds_window_t *wnd)
 	}
 
 	if (seat->popup == wnd)
-		seat->popup = NULL;
+		ds_seat_set_popup(seat, NULL);
 }
 
 /** Switch focus to another window.
@@ -426,11 +438,14 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	errno_t rc;
 
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
-	/*
-	 * Deliver event to popup window, unless the pointer is over
-	 * it (in which case it will be delivered to that window
-	 * below, anyway.
-	 */
+
+	/* Click outside popup window */
+	if (event->type == POS_PRESS && wnd != seat->popup) {
+		/* Close popup window */
+		ds_seat_set_popup(seat, NULL);
+	}
+
+	/* Deliver event to popup window. */
 	if (seat->popup != NULL) {
 		rc = ds_window_post_pos_event(seat->popup, event);
 		if (rc != EOK)

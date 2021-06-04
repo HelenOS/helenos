@@ -60,9 +60,11 @@ enum {
 	menu_frame_h_text = 1
 };
 
+static void ui_menu_popup_close(ui_popup_t *, void *);
 static void ui_menu_popup_pos(ui_popup_t *, void *, pos_event_t *);
 
 static ui_popup_cb_t ui_menu_popup_cb = {
+	.close = ui_menu_popup_close,
 	.pos = ui_menu_popup_pos
 };
 
@@ -365,11 +367,24 @@ ui_evclaim_t ui_menu_pos_event(ui_menu_t *menu, gfx_coord2_t *spos,
 		return ui_claimed;
 	} else {
 		/* Press outside menu - close it */
-//		if (event->type == POS_PRESS)
-//			ui_menu_bar_select(menu->mbar, NULL, NULL);
+		if (event->type == POS_PRESS)
+			ui_menu_bar_select(menu->mbar, NULL, NULL);
 	}
 
 	return ui_unclaimed;
+}
+
+/** Handle close event in menu popup window.
+ *
+ * @param popup Menu popup window
+ * @param arg Argument (ui_menu_t *)
+ */
+static void ui_menu_popup_close(ui_popup_t *popup, void *arg)
+{
+	ui_menu_t *menu = (ui_menu_t *)arg;
+
+	/* Close the menu */
+	ui_menu_bar_select(menu->mbar, NULL, NULL);
 }
 
 /** Handle position event in menu popup window.
