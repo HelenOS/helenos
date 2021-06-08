@@ -552,6 +552,51 @@ PCUT_TEST(client_get_post_unfocus_event)
 	ds_display_destroy(disp);
 }
 
+/** Test ds_client_purge_window_events() */
+PCUT_TEST(client_purge_window_events)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	ds_window_t *rwindow;
+	display_wnd_ev_t revent;
+	bool called_cb = NULL;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* New window gets focused event */
+	PCUT_ASSERT_TRUE(called_cb);
+
+	/* Purge it */
+	ds_client_purge_window_events(client, wnd);
+
+	/* The queue should be empty now */
+	rc = ds_client_get_event(client, &rwindow, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 /** Test client being destroyed while still having a window.
  *
  * This can happen if client forgets to destroy window or if the client
