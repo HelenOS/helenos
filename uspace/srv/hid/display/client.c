@@ -118,6 +118,9 @@ void ds_client_remove_window(ds_window_t *wnd)
 		seat = ds_display_next_seat(seat);
 	}
 
+	/* Make sure no event in the queue is referencing the window */
+	ds_client_purge_window_events(wnd->client, wnd);
+
 	list_remove(&wnd->lcwindows);
 	wnd->client = NULL;
 }
@@ -196,6 +199,30 @@ errno_t ds_client_get_event(ds_client_t *client, ds_window_t **ewindow,
 	*event = wevent->event;
 	free(wevent);
 	return EOK;
+}
+
+/** Purge events from client event queue referring to a window.
+ *
+ * @param client Client
+ * @param window Window
+ */
+void ds_client_purge_window_events(ds_client_t *client,
+    ds_window_t *window)
+{
+	link_t *cur;
+	link_t *next;
+	ds_window_ev_t *wevent;
+
+	cur = list_first(&client->events);
+	while (cur != NULL) {
+		next = list_next(cur, &client->events);
+		wevent = list_get_instance(cur, ds_window_ev_t, levents);
+
+		if (wevent->window == window)
+			list_remove(cur);
+
+		cur = next;
+	}
 }
 
 /** Post close event to the client's message queue.

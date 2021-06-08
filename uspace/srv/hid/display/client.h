@@ -52,6 +52,7 @@ extern ds_window_t *ds_client_first_window(ds_client_t *);
 extern ds_window_t *ds_client_next_window(ds_window_t *);
 extern errno_t ds_client_get_event(ds_client_t *, ds_window_t **,
     display_wnd_ev_t *);
+extern void ds_client_purge_window_events(ds_client_t *, ds_window_t *);
 extern errno_t ds_client_post_close_event(ds_client_t *, ds_window_t *);
 extern errno_t ds_client_post_focus_event(ds_client_t *, ds_window_t *);
 extern errno_t ds_client_post_kbd_event(ds_client_t *, ds_window_t *,
