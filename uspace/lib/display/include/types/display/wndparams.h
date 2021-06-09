@@ -40,7 +40,9 @@
 /** Window flags */
 typedef enum {
 	/** Popup window (capture events, no focus) */
-	wndf_popup = 0x1
+	wndf_popup = 0x1,
+	/** Set specific initial window position */
+	wndf_setpos = 0x2
 } display_wnd_flags_t;
 
 /** Parameters for a new window.
@@ -55,6 +57,8 @@ typedef struct {
 	gfx_rect_t rect;
 	/** Minimum size (when being resized) */
 	gfx_coord2_t min_size;
+	/** Initial position (if flag wndf_setpos is set) */
+	gfx_coord2_t pos;
 	/** Flags */
 	display_wnd_flags_t flags;
 } display_wnd_params_t;
