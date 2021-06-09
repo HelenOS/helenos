@@ -118,8 +118,14 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	wnd->cursor = wnd->display->cursor[dcurs_arrow];
 	wnd->flags = params->flags;
 
-	wnd->dpos.x = ((wnd->id - 1) & 1) * 400;
-	wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
+	if ((params->flags & wndf_setpos) != 0) {
+		/* Specific window position */
+		wnd->dpos = params->pos;
+	} else {
+		/* Automatic window placement */
+		wnd->dpos.x = ((wnd->id - 1) & 1) * 400;
+		wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
+	}
 
 	seat = ds_display_first_seat(client->display);
 

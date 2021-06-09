@@ -108,50 +108,50 @@ void ui_wnd_params_init(ui_wnd_params_t *params)
 	params->style = ui_wds_decorated;
 }
 
-static errno_t ui_window_place(ui_window_t *window, display_t *display,
-    display_info_t *info, ui_wnd_params_t *params)
+/** Compute where window should be placed on the screen.
+ *
+ * This only applies to windows that do not use default placement.
+ *
+ * @param window Window
+ * @param display Display
+ * @param info Display info
+ * @param params Window parameters
+ * @param pos Place to store position of top-left corner
+ */
+static void ui_window_place(ui_window_t *window, display_t *display,
+    display_info_t *info, ui_wnd_params_t *params, gfx_coord2_t *pos)
 {
-	gfx_coord2_t pos;
-	errno_t rc;
-
 	assert(params->placement != ui_wnd_place_default);
 
-	pos.x = 0;
-	pos.y = 0;
+	pos->x = 0;
+	pos->y = 0;
+
 	switch (params->placement) {
 	case ui_wnd_place_default:
 		assert(false);
 	case ui_wnd_place_top_left:
 	case ui_wnd_place_full_screen:
-		pos.x = info->rect.p0.x - params->rect.p0.x;
-		pos.y = info->rect.p0.y - params->rect.p0.y;
+		pos->x = info->rect.p0.x - params->rect.p0.x;
+		pos->y = info->rect.p0.y - params->rect.p0.y;
 		break;
 	case ui_wnd_place_top_right:
-		pos.x = info->rect.p1.x - params->rect.p1.x;
-		pos.y = info->rect.p0.y - params->rect.p0.y;
+		pos->x = info->rect.p1.x - params->rect.p1.x;
+		pos->y = info->rect.p0.y - params->rect.p0.y;
 		break;
 	case ui_wnd_place_bottom_left:
-		pos.x = info->rect.p0.x - params->rect.p0.x;
-		pos.y = info->rect.p1.y - params->rect.p1.y;
+		pos->x = info->rect.p0.x - params->rect.p0.x;
+		pos->y = info->rect.p1.y - params->rect.p1.y;
 		break;
 	case ui_wnd_place_bottom_right:
-		pos.x = info->rect.p1.x - params->rect.p1.x;
-		pos.y = info->rect.p1.y - params->rect.p1.y;
+		pos->x = info->rect.p1.x - params->rect.p1.x;
+		pos->y = info->rect.p1.y - params->rect.p1.y;
 		break;
 	case ui_wnd_place_popup:
 		/* Place popup window below parent rectangle */
-		pos.x = params->prect.p0.x;
-		pos.y = params->prect.p1.y;
+		pos->x = params->prect.p0.x;
+		pos->y = params->prect.p1.y;
 		break;
 	}
-
-	rc = display_window_move(window->dwindow, &pos);
-	if (rc != EOK)
-		goto error;
-
-	return EOK;
-error:
-	return rc;
 }
 
 /** Create new window.
@@ -204,17 +204,18 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 			    &dparams.rect.p1);
 		}
 
+		if (params->placement != ui_wnd_place_default) {
+			/* Set initial display window position */
+			ui_window_place(window, ui->display, &info,
+			    params, &dparams.pos);
+
+			dparams.flags |= wndf_setpos;
+		}
+
 		rc = display_window_create(ui->display, &dparams, &dwnd_cb,
 		    (void *) window, &window->dwindow);
 		if (rc != EOK)
 			goto error;
-
-		if (params->placement != ui_wnd_place_default) {
-			rc = ui_window_place(window, ui->display, &info,
-			    params);
-			if (rc != EOK)
-				goto error;
-		}
 
 		rc = display_window_get_gc(window->dwindow, &gc);
 		if (rc != EOK)
