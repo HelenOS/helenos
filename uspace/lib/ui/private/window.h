@@ -91,6 +91,7 @@ struct ui_window {
 	ui_stock_cursor_t cursor;
 };
 
+extern display_stock_cursor_t wnd_dcursor_from_cursor(ui_stock_cursor_t);
 extern void ui_window_send_close(ui_window_t *);
 extern void ui_window_send_focus(ui_window_t *);
 extern void ui_window_send_kbd(ui_window_t *, kbd_event_t *);

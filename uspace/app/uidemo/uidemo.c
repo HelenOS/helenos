@@ -426,7 +426,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_entry_create(ui_res, "", &demo.entry);
+	rc = ui_entry_create(window, "", &demo.entry);
 	if (rc != EOK) {
 		printf("Error creating entry.\n");
 		return rc;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,9 @@ typedef enum {
 	/** Double arrow pointing up-left and down-right */
 	ui_curs_size_uldr,
 	/** Double arrow pointing up-right nad down-left */
-	ui_curs_size_urdl
+	ui_curs_size_urdl,
+	/** I-beam (suggests editable text) */
+	ui_curs_ibeam
 } ui_stock_cursor_t;
 
 enum {

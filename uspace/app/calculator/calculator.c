@@ -936,7 +936,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_entry_create(ui_res, NULL_DISPLAY, &display);
+	rc = ui_entry_create(window, NULL_DISPLAY, &display);
 	if (rc != EOK) {
 		printf("Error creating text lentry.\n");
 		return rc;

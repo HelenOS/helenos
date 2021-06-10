@@ -46,6 +46,7 @@
 #include <ui/paint.h>
 #include <ui/entry.h>
 #include <ui/ui.h>
+#include <ui/window.h>
 #include "../private/entry.h"
 #include "../private/resource.h"
 
@@ -69,12 +70,12 @@ ui_control_ops_t ui_entry_ops = {
 
 /** Create new text entry.
  *
- * @param resource UI resource
+ * @param window UI window
  * @param text Text
  * @param rentry Place to store pointer to new text entry
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_entry_create(ui_resource_t *resource, const char *text,
+errno_t ui_entry_create(ui_window_t *window, const char *text,
     ui_entry_t **rentry)
 {
 	ui_entry_t *entry;
@@ -97,7 +98,7 @@ errno_t ui_entry_create(ui_resource_t *resource, const char *text,
 		return ENOMEM;
 	}
 
-	entry->res = resource;
+	entry->window = window;
 	entry->halign = gfx_halign_left;
 	*rentry = entry;
 	return EOK;
@@ -173,6 +174,7 @@ errno_t ui_entry_set_text(ui_entry_t *entry, const char *text)
  */
 errno_t ui_entry_paint(ui_entry_t *entry)
 {
+	ui_resource_t *res;
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
 	gfx_coord_t hpad;
@@ -180,7 +182,9 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	gfx_rect_t inside;
 	errno_t rc;
 
-	if (entry->res->textmode) {
+	res = ui_window_get_res(entry->window);
+
+	if (res->textmode) {
 		hpad = ui_entry_hpad_text;
 		vpad = ui_entry_vpad_text;
 	} else {
@@ -188,9 +192,9 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 		vpad = ui_entry_vpad;
 	}
 
-	if (entry->res->textmode == false) {
+	if (res->textmode == false) {
 		/* Paint inset frame */
-		rc = ui_paint_inset_frame(entry->res, &entry->rect, &inside);
+		rc = ui_paint_inset_frame(res, &entry->rect, &inside);
 		if (rc != EOK)
 			goto error;
 	} else {
@@ -199,11 +203,11 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 
 	/* Paint entry background */
 
-	rc = gfx_set_color(entry->res->gc, entry->res->entry_bg_color);
+	rc = gfx_set_color(res->gc, res->entry_bg_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_fill_rect(entry->res->gc, &inside);
+	rc = gfx_fill_rect(res->gc, &inside);
 	if (rc != EOK)
 		goto error;
 
@@ -223,15 +227,15 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	pos.y = inside.p0.y + vpad;
 
 	gfx_text_fmt_init(&fmt);
-	fmt.color = entry->res->entry_fg_color;
+	fmt.color = res->entry_fg_color;
 	fmt.halign = entry->halign;
 	fmt.valign = gfx_valign_top;
 
-	rc = gfx_puttext(entry->res->font, &pos, &fmt, entry->text);
+	rc = gfx_puttext(res->font, &pos, &fmt, entry->text);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_update(entry->res->gc);
+	rc = gfx_update(res->gc);
 	if (rc != EOK)
 		goto error;
 
@@ -272,8 +276,27 @@ errno_t ui_entry_ctl_paint(void *arg)
 ui_evclaim_t ui_entry_ctl_pos_event(void *arg, pos_event_t *event)
 {
 	ui_entry_t *entry = (ui_entry_t *) arg;
+	gfx_coord2_t pos;
 
-	(void) entry;
+	if (event->type == POS_UPDATE) {
+		pos.x = event->hpos;
+		pos.y = event->vpos;
+
+		if (gfx_pix_inside_rect(&pos, &entry->rect)) {
+			if (!entry->pointer_inside) {
+				ui_window_set_ctl_cursor(entry->window,
+				    ui_curs_ibeam);
+				entry->pointer_inside = true;
+			}
+		} else {
+			if (entry->pointer_inside) {
+				ui_window_set_ctl_cursor(entry->window,
+				    ui_curs_arrow);
+				entry->pointer_inside = false;
+			}
+		}
+	}
+
 	return ui_unclaimed;
 }
 

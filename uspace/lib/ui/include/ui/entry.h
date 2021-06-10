@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,9 +41,9 @@
 #include <gfx/text.h>
 #include <types/ui/control.h>
 #include <types/ui/entry.h>
-#include <types/ui/resource.h>
+#include <types/ui/window.h>
 
-extern errno_t ui_entry_create(ui_resource_t *, const char *,
+extern errno_t ui_entry_create(ui_window_t *, const char *,
     ui_entry_t **);
 extern void ui_entry_destroy(ui_entry_t *);
 extern ui_control_t *ui_entry_ctl(ui_entry_t *);

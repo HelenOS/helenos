@@ -290,6 +290,30 @@ PCUT_TEST(get_res_gc_rect)
 	ui_destroy(ui);
 }
 
+/** ui_window_set_ctl_cursor() */
+PCUT_TEST(set_ctl_cursor)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	ui_window_set_ctl_cursor(window, ui_curs_ibeam);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_window_get_app_gc() return valid GC */
 PCUT_TEST(get_app_gc)
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,12 +46,14 @@ typedef enum {
 	/** Double arrow pointing up-left and down-right */
 	dcurs_size_uldr,
 	/** Double arrow pointing up-right nad down-left */
-	dcurs_size_urdl
+	dcurs_size_urdl,
+	/** I-beam (suggests editable text) */
+	dcurs_ibeam
 } display_stock_cursor_t;
 
 enum {
 	/** Number of stock cursor types */
-	dcurs_limit = dcurs_size_urdl + 1
+	dcurs_limit = dcurs_ibeam + 1
 };
 
 #endif

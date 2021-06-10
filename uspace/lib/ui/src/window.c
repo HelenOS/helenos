@@ -645,6 +645,21 @@ void ui_window_get_app_rect(ui_window_t *window, gfx_rect_t *rect)
 	*rect = geom.app_area_rect;
 }
 
+/** Set cursor when pointer is hovering over a control.
+ *
+ * @param window Window
+ * @param cursor Cursor
+ */
+void ui_window_set_ctl_cursor(ui_window_t *window, ui_stock_cursor_t cursor)
+{
+	display_stock_cursor_t dcursor;
+
+	dcursor = wnd_dcursor_from_cursor(cursor);
+
+	if (window->dwindow != NULL)
+		(void) display_window_set_cursor(window->dwindow, dcursor);
+}
+
 /** Paint window
  *
  * @param window Window
@@ -769,20 +784,14 @@ static void wd_resize(ui_wdecor_t *wdecor, void *arg,
 		(void) display_window_resize_req(window->dwindow, rsztype, pos);
 }
 
-/** Window decoration requested changing cursor.
+/** Get display stock cursor from UI stock cursor.
  *
- * @param wdecor Window decoration
- * @param arg Argument (window)
- * @param cursor Cursor to set
+ * @param cursor UI stock cursor
+ * @return Display stock cursor
  */
-static void wd_set_cursor(ui_wdecor_t *wdecor, void *arg,
-    ui_stock_cursor_t cursor)
+display_stock_cursor_t wnd_dcursor_from_cursor(ui_stock_cursor_t cursor)
 {
-	ui_window_t *window = (ui_window_t *) arg;
 	display_stock_cursor_t dcursor;
-
-	if (cursor == window->cursor)
-		return;
 
 	dcursor = dcurs_arrow;
 
@@ -802,10 +811,34 @@ static void wd_set_cursor(ui_wdecor_t *wdecor, void *arg,
 	case ui_curs_size_urdl:
 		dcursor = dcurs_size_urdl;
 		break;
+	case ui_curs_ibeam:
+		dcursor = dcurs_ibeam;
+		break;
 	}
+
+	return dcursor;
+}
+
+/** Window decoration requested changing cursor.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param cursor Cursor to set
+ */
+static void wd_set_cursor(ui_wdecor_t *wdecor, void *arg,
+    ui_stock_cursor_t cursor)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+	display_stock_cursor_t dcursor;
+
+	if (cursor == window->cursor)
+		return;
+
+	dcursor = wnd_dcursor_from_cursor(cursor);
 
 	if (window->dwindow != NULL)
 		(void) display_window_set_cursor(window->dwindow, dcursor);
+
 	window->cursor = cursor;
 }
 

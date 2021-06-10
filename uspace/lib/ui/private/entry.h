@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,14 +47,16 @@
 struct ui_entry {
 	/** Base control object */
 	struct ui_control *control;
-	/** UI resource */
-	struct ui_resource *res;
+	/** UI window */
+	struct ui_window *window;
 	/** Entry rectangle */
 	gfx_rect_t rect;
 	/** Horizontal alignment */
 	gfx_halign_t halign;
 	/** Text */
 	char *text;
+	/** Pointer is currently inside */
+	bool pointer_inside;
 };
 
 #endif
