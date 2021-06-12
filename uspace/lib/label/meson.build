@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+deps = [ 'device' ]
 src = files(
 	'src/dummy.c',
 	'src/empty.c',

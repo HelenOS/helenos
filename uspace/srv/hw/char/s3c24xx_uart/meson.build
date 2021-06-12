@@ -27,4 +27,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+deps = [ 'device' ]
 src = files('s3c24xx_uart.c')

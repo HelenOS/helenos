@@ -52,6 +52,8 @@ libs = [
 
 	'inet',
 
+	'device',
+
 	'block',
 	'clui',
 	'compress',

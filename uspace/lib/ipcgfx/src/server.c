@@ -40,7 +40,6 @@
 #include <gfx/bitmap.h>
 #include <gfx/color.h>
 #include <gfx/render.h>
-#include <ipc/bd.h>
 #include <ipcgfx/ipc/gc.h>
 #include <ipcgfx/server.h>
 #include <stdint.h>

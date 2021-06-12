@@ -33,9 +33,11 @@
  * @file Storage capacity specification.
  */
 
+#include <assert.h>
 #include <capa.h>
 #include <errno.h>
 #include <imath.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <str.h>
 

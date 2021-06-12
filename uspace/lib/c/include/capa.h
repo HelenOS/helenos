@@ -36,12 +36,9 @@
 #ifndef _LIBC_CAPA_H_
 #define _LIBC_CAPA_H_
 
-#include <adt/list.h>
-#include <loc.h>
+#include <errno.h>
+#include <stddef.h>
 #include <stdint.h>
-#include <types/label.h>
-#include <types/vol.h>
-#include <vbd.h>
 
 /** Capacity unit */
 typedef enum {

@@ -26,5 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'clui', 'fdisk' ]
+deps = [ 'clui', 'device', 'fdisk' ]
 src = files('fdisk.c')
