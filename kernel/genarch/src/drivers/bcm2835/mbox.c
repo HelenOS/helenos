@@ -131,6 +131,11 @@ bool bcm2835_mbox_get_fb_size(uint32_t *w, uint32_t *h)
 {
 	bool r;
 	MBOX_BUFF_ALLOC(msg, mbox_getfbsize_buf_t);
+	bcm2835_mbox_t *mbox;
+
+	mbox = (void *) km_map(BCM2835_MBOX0_ADDR, sizeof(bcm2835_mbox_t),
+	    KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
+	assert(mbox);
 
 	msg->buf_hdr.size = sizeof(mbox_getfbsize_buf_t);
 	msg->buf_hdr.code = MBOX_PROP_CODE_REQ;
@@ -139,10 +144,9 @@ bool bcm2835_mbox_get_fb_size(uint32_t *w, uint32_t *h)
 	msg->tag_hdr.val_len  = 0;
 	msg->zero = 0;
 
-	mbox_write((bcm2835_mbox_t *)BCM2835_MBOX0_ADDR,
+	mbox_write(mbox,
 	    MBOX_CHAN_PROP_A2V, KA2VCA((uint32_t)msg));
-	mbox_read((bcm2835_mbox_t *)BCM2835_MBOX0_ADDR,
-	    MBOX_CHAN_PROP_A2V);
+	mbox_read(mbox, MBOX_CHAN_PROP_A2V);
 
 	r = msg->buf_hdr.code == MBOX_PROP_CODE_RESP_OK;
 	if (r) {
@@ -150,6 +154,7 @@ bool bcm2835_mbox_get_fb_size(uint32_t *w, uint32_t *h)
 		*w = msg->body.width;
 	}
 
+	km_unmap((uintptr_t) mbox, sizeof(bcm2835_mbox_t));
 	return r;
 }
 
