@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
+#include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <types/ui/control.h>
 #include <types/ui/ui.h>
@@ -61,6 +62,7 @@ extern errno_t ui_window_get_app_gc(ui_window_t *, gfx_context_t **);
 extern void ui_window_get_app_rect(ui_window_t *, gfx_rect_t *);
 extern void ui_window_set_ctl_cursor(ui_window_t *, ui_stock_cursor_t);
 extern errno_t ui_window_paint(ui_window_t *);
+extern void ui_window_def_kbd(ui_window_t *, kbd_event_t *);
 extern errno_t ui_window_def_paint(ui_window_t *);
 extern void ui_window_def_pos(ui_window_t *, pos_event_t *);
 extern void ui_window_def_unfocus(ui_window_t *);

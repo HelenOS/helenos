@@ -53,11 +53,19 @@ struct ui_entry {
 	gfx_rect_t rect;
 	/** Horizontal alignment */
 	gfx_halign_t halign;
+	/** Text entry is read-only */
+	bool read_only;
 	/** Text */
 	char *text;
 	/** Pointer is currently inside */
 	bool pointer_inside;
+	/** Entry is activated */
+	bool active;
 };
+
+extern errno_t ui_entry_insert_str(ui_entry_t *, const char *);
+extern void ui_entry_backspace(ui_entry_t *);
+extern ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *, kbd_event_t *);
 
 #endif
 

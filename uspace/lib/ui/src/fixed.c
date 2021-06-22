@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@
 
 static void ui_fixed_ctl_destroy(void *);
 static errno_t ui_fixed_ctl_paint(void *);
+static ui_evclaim_t ui_fixed_ctl_kbd_event(void *, kbd_event_t *);
 static ui_evclaim_t ui_fixed_ctl_pos_event(void *, pos_event_t *);
 static void ui_fixed_ctl_unfocus(void *);
 
@@ -52,6 +53,7 @@ static void ui_fixed_ctl_unfocus(void *);
 ui_control_ops_t ui_fixed_ops = {
 	.destroy = ui_fixed_ctl_destroy,
 	.paint = ui_fixed_ctl_paint,
+	.kbd_event = ui_fixed_ctl_kbd_event,
 	.pos_event = ui_fixed_ctl_pos_event,
 	.unfocus = ui_fixed_ctl_unfocus
 };
@@ -210,6 +212,29 @@ errno_t ui_fixed_paint(ui_fixed_t *fixed)
 	return EOK;
 }
 
+/** Handle fixed layout keyboard event.
+ *
+ * @param fixed Fixed layout
+ * @param kbd_event Keyboard event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_fixed_kbd_event(ui_fixed_t *fixed, kbd_event_t *event)
+{
+	ui_fixed_elem_t *elem;
+	ui_evclaim_t claimed;
+
+	elem = ui_fixed_first(fixed);
+	while (elem != NULL) {
+		claimed = ui_control_kbd_event(elem->control, event);
+		if (claimed == ui_claimed)
+			return ui_claimed;
+
+		elem = ui_fixed_next(elem);
+	}
+
+	return ui_unclaimed;
+}
+
 /** Handle fixed layout position event.
  *
  * @param fixed Fixed layout
@@ -270,6 +295,19 @@ errno_t ui_fixed_ctl_paint(void *arg)
 	ui_fixed_t *fixed = (ui_fixed_t *) arg;
 
 	return ui_fixed_paint(fixed);
+}
+
+/** Handle fixed layout control keyboard event.
+ *
+ * @param arg Argument (ui_fixed_t *)
+ * @param kbd_event Keyboard event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_fixed_ctl_kbd_event(void *arg, kbd_event_t *event)
+{
+	ui_fixed_t *fixed = (ui_fixed_t *) arg;
+
+	return ui_fixed_kbd_event(fixed, event);
 }
 
 /** Handle fixed layout control position event.

@@ -870,6 +870,8 @@ void ui_window_send_kbd(ui_window_t *window, kbd_event_t *kbd)
 {
 	if (window->cb != NULL && window->cb->kbd != NULL)
 		window->cb->kbd(window, window->arg, kbd);
+	else
+		return ui_window_def_kbd(window, kbd);
 }
 
 /** Send window paint event.
@@ -906,6 +908,16 @@ void ui_window_send_unfocus(ui_window_t *window)
 		window->cb->unfocus(window, window->arg);
 	else
 		return ui_window_def_unfocus(window);
+}
+
+/** Default window keyboard event routine.
+ *
+ * @param window Window
+ */
+void ui_window_def_kbd(ui_window_t *window, kbd_event_t *kbd)
+{
+	if (window->control != NULL)
+		ui_control_kbd_event(window->control, kbd);
 }
 
 /** Default window paint routine.

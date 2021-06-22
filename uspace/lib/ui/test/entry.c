@@ -118,6 +118,23 @@ PCUT_TEST(set_halign)
 	ui_entry_destroy(entry);
 }
 
+/** Set entry read only flag sets internal field */
+PCUT_TEST(set_read_only)
+{
+	ui_entry_t *entry;
+	errno_t rc;
+
+	rc = ui_entry_create(NULL, "Hello", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_entry_set_read_only(entry, true);
+	PCUT_ASSERT_TRUE(entry->read_only);
+	ui_entry_set_read_only(entry, false);
+	PCUT_ASSERT_FALSE(entry->read_only);
+
+	ui_entry_destroy(entry);
+}
+
 /** Set text entry rectangle sets internal field */
 PCUT_TEST(set_text)
 {
@@ -166,6 +183,86 @@ PCUT_TEST(paint)
 
 	rc = ui_entry_paint(entry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_entry_insert_str() inserts string at cursor. */
+PCUT_TEST(insert_str)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "A", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("A", entry->text);
+
+	rc = ui_entry_insert_str(entry, "B");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("AB", entry->text);
+
+	rc = ui_entry_insert_str(entry, "CD");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("ABCD", entry->text);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_entry_backspace() deletes character before cursor. */
+PCUT_TEST(backspace)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "ABC", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("ABC", entry->text);
+
+	ui_entry_backspace(entry);
+	PCUT_ASSERT_STR_EQUALS("AB", entry->text);
+
+	ui_entry_backspace(entry);
+	PCUT_ASSERT_STR_EQUALS("A", entry->text);
+
+	ui_entry_backspace(entry);
+	PCUT_ASSERT_STR_EQUALS("", entry->text);
+
+	ui_entry_backspace(entry);
+	PCUT_ASSERT_STR_EQUALS("", entry->text);
 
 	ui_entry_destroy(entry);
 	ui_window_destroy(window);

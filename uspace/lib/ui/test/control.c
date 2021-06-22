@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@
 
 #include <errno.h>
 #include <mem.h>
+#include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <pcut/pcut.h>
 #include <ui/control.h>
@@ -40,12 +41,14 @@ PCUT_TEST_SUITE(control);
 
 static void test_ctl_destroy(void *);
 static errno_t test_ctl_paint(void *);
+static ui_evclaim_t test_ctl_kbd_event(void *, kbd_event_t *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
 static void test_ctl_unfocus(void *);
 
 static ui_control_ops_t test_ctl_ops = {
 	.destroy = test_ctl_destroy,
 	.paint = test_ctl_paint,
+	.kbd_event = test_ctl_kbd_event,
 	.pos_event = test_ctl_pos_event,
 	.unfocus = test_ctl_unfocus
 };
@@ -62,6 +65,11 @@ typedef struct {
 
 	/** @c true iff paint was called */
 	bool paint;
+
+	/** @c true iff kbd_event was called */
+	bool kbd;
+	/** Keyboard event that was sent */
+	kbd_event_t kevent;
 
 	/** @c true iff pos_event was called */
 	bool pos;
@@ -137,6 +145,37 @@ PCUT_TEST(paint)
 	ui_control_delete(control);
 }
 
+/** Test sending keyboard event to control */
+PCUT_TEST(kbd_event)
+{
+	ui_control_t *control = NULL;
+	test_resp_t resp;
+	kbd_event_t event;
+	ui_evclaim_t claim;
+	errno_t rc;
+
+	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	resp.claim = ui_claimed;
+	resp.kbd = false;
+	event.type = KEY_PRESS;
+	event.key = KC_2;
+	event.mods = KM_LSHIFT;
+	event.c = '@';
+
+	claim = ui_control_kbd_event(control, &event);
+	PCUT_ASSERT_EQUALS(resp.claim, claim);
+	PCUT_ASSERT_TRUE(resp.kbd);
+	PCUT_ASSERT_EQUALS(resp.kevent.type, event.type);
+	PCUT_ASSERT_INT_EQUALS(resp.kevent.key, event.key);
+	PCUT_ASSERT_INT_EQUALS(resp.kevent.mods, event.mods);
+	PCUT_ASSERT_INT_EQUALS(resp.kevent.c, event.c);
+
+	ui_control_delete(control);
+}
+
 /** Test sending position event to control */
 PCUT_TEST(pos_event)
 {
@@ -202,6 +241,16 @@ static errno_t test_ctl_paint(void *arg)
 
 	resp->paint = true;
 	return resp->rc;
+}
+
+static ui_evclaim_t test_ctl_kbd_event(void *arg, kbd_event_t *event)
+{
+	test_resp_t *resp = (test_resp_t *) arg;
+
+	resp->kbd = true;
+	resp->kevent = *event;
+
+	return resp->claim;
 }
 
 static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)

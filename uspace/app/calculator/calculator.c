@@ -944,6 +944,7 @@ int main(int argc, char *argv[])
 
 	ui_entry_set_rect(display, &calc.geom.entry_rect);
 	ui_entry_set_halign(display, gfx_halign_right);
+	ui_entry_set_read_only(display, true);
 
 	rc = ui_fixed_add(fixed, ui_entry_ctl(display));
 	if (rc != EOK) {
