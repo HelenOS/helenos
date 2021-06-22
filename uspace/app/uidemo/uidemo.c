@@ -432,10 +432,19 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rect.p0.x = 15;
-	rect.p0.y = 53;
-	rect.p1.x = 205;
-	rect.p1.y = 78;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 20;
+		rect.p0.y = 4;
+		rect.p1.x = 60;
+		rect.p1.y = 5;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 53;
+		rect.p1.x = 205;
+		rect.p1.y = 78;
+	}
+
 	ui_entry_set_rect(demo.entry, &rect);
 	ui_entry_set_halign(demo.entry, gfx_halign_center);
 
@@ -451,10 +460,19 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rect.p0.x = 60;
-	rect.p0.y = 88;
-	rect.p1.x = 160;
-	rect.p1.y = 101;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 20;
+		rect.p0.y = 6;
+		rect.p1.x = 60;
+		rect.p1.y = 7;
+	} else {
+		rect.p0.x = 60;
+		rect.p0.y = 88;
+		rect.p1.x = 160;
+		rect.p1.y = 101;
+	}
+
 	ui_label_set_rect(demo.label, &rect);
 	ui_label_set_halign(demo.label, gfx_halign_center);
 
@@ -472,10 +490,19 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_pbutton_set_cb(demo.pb1, &pbutton_cb, (void *) &demo);
 
-	rect.p0.x = 15;
-	rect.p0.y = 111;
-	rect.p1.x = 105;
-	rect.p1.y = 139;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 20;
+		rect.p0.y = 8;
+		rect.p1.x = 30;
+		rect.p1.y = 9;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 111;
+		rect.p1.x = 105;
+		rect.p1.y = 139;
+	}
+
 	ui_pbutton_set_rect(demo.pb1, &rect);
 
 	ui_pbutton_set_default(demo.pb1, true);
@@ -494,10 +521,18 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_pbutton_set_cb(demo.pb2, &pbutton_cb, (void *) &demo);
 
-	rect.p0.x = 115;
-	rect.p0.y = 111;
-	rect.p1.x = 205;
-	rect.p1.y = 139;
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 50;
+		rect.p0.y = 8;
+		rect.p1.x = 60;
+		rect.p1.y = 9;
+	} else {
+		rect.p0.x = 115;
+		rect.p0.y = 111;
+		rect.p1.x = 205;
+		rect.p1.y = 139;
+	}
+
 	ui_pbutton_set_rect(demo.pb2, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_pbutton_ctl(demo.pb2));
