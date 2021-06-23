@@ -223,6 +223,8 @@ void amd64_post_smp_init(void)
 	    ns16550_init(NS16550_BASE, 0, IRQ_NS16550, NULL, NULL,
 	    ns16550_out_ptr);
 	if (ns16550_instance) {
+		ns16550_format_set(ns16550_instance, 38400,
+		    LCR_PARITY_NONE | LCR_STOP_BIT_TWO | LCR_WORD_LEN_8);
 #ifdef CONFIG_NS16550
 		srln_instance_t *srln_instance = srln_init();
 		if (srln_instance) {
