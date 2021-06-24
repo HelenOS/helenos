@@ -59,7 +59,10 @@ enum {
 	ui_entry_hpad = 4,
 	ui_entry_vpad = 4,
 	ui_entry_hpad_text = 1,
-	ui_entry_vpad_text = 0
+	ui_entry_vpad_text = 0,
+	ui_entry_cursor_overshoot = 1,
+	ui_entry_cursor_width = 2,
+	ui_entry_cursor_width_text = 1
 };
 
 /** Text entry control ops */
@@ -179,6 +182,40 @@ errno_t ui_entry_set_text(ui_entry_t *entry, const char *text)
 	return EOK;
 }
 
+static errno_t ui_entry_paint_cursor(ui_entry_t *entry, gfx_coord2_t *pos)
+{
+	ui_resource_t *res;
+	gfx_rect_t rect;
+	gfx_font_metrics_t metrics;
+	gfx_coord_t w;
+	errno_t rc;
+
+	res = ui_window_get_res(entry->window);
+
+	gfx_font_get_metrics(res->font, &metrics);
+
+	w = res->textmode ? ui_entry_cursor_width_text :
+	    ui_entry_cursor_width;
+
+	rect.p0.x = pos->x;
+	rect.p0.y = pos->y - ui_entry_cursor_overshoot;
+	rect.p1.x = pos->x + w;
+	rect.p1.y = pos->y + metrics.ascent + metrics.descent + 1 +
+	    ui_entry_cursor_overshoot;
+
+	rc = gfx_set_color(res->gc, res->entry_fg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(res->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Paint text entry.
  *
  * @param entry Text entry
@@ -260,7 +297,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 		/* Cursor */
 		pos.x += width;
 
-		rc = gfx_puttext(res->font, &pos, &fmt, "_");
+		rc = ui_entry_paint_cursor(entry, &pos);
 		if (rc != EOK) {
 			(void) gfx_set_clip_rect(res->gc, NULL);
 			goto error;
