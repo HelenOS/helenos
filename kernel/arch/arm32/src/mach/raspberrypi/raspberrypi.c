@@ -173,8 +173,15 @@ static void raspberrypi_frame_init(void)
 static void raspberrypi_output_init(void)
 {
 #ifdef CONFIG_FB
+	uint32_t width, height;
 	fb_properties_t prop;
-	if (bcm2835_fb_init(&prop)) {
+
+	if (!bcm2835_mbox_get_fb_size(&width, &height)) {
+		printf("mbox: could not get the framebuffer size\n");
+		width = 640;
+		height = 480;
+	}
+	if (bcm2835_fb_init(&prop, width, height)) {
 		outdev_t *fb_dev = fb_init(&prop);
 		if (fb_dev)
 			stdout_wire(fb_dev);

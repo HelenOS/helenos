@@ -67,6 +67,13 @@ enum {
 };
 
 enum {
+	MBOX_TAG_GET_PHYS_W_H	= 0x00040003,
+	MBOX_TAG_SET_PHYS_W_H	= 0x00048003,
+	MBOX_TAG_GET_VIRT_W_H	= 0x00040004,
+	MBOX_TAG_SET_VIRT_W_G	= 0x00048004
+};
+
+enum {
 	MBOX_PROP_CODE_REQ	= 0x00000000,
 	MBOX_PROP_CODE_RESP_OK	= 0x80000000,
 	MBOX_PROP_CODE_RESP_ERR	= 0x80000001
@@ -121,6 +128,16 @@ typedef struct {
 } mbox_getmem_buf_t;
 
 typedef struct {
+	mbox_prop_buf_hdr_t	buf_hdr;
+	mbox_tag_hdr_t		tag_hdr;
+	struct {
+		uint32_t	width;
+		uint32_t	height;
+	} body;
+	uint32_t zero;
+} mbox_getfbsize_buf_t;
+
+typedef struct {
 	ioport32_t width;
 	ioport32_t height;
 	ioport32_t virt_width;
@@ -134,7 +151,8 @@ typedef struct {
 } bcm2835_fb_desc_t;
 
 extern bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size);
-extern bool bcm2835_fb_init(fb_properties_t *prop);
+extern bool bcm2835_fb_init(fb_properties_t *prop, uint32_t width, uint32_t heigth);
+extern bool bcm2835_mbox_get_fb_size(uint32_t *h, uint32_t *w);
 
 #endif
 
