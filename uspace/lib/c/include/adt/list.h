@@ -88,13 +88,13 @@
 	member_to_inst(link, type, member)
 
 #define list_foreach(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator = &((itype *) NULL)[1]) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) sizeof(itype)) \
 		for (link_t *_link = (list).head.next; \
 		    iterator = list_get_instance(_link, itype, member), \
 		    _link != &(list).head; _link = _link->next)
 
 #define list_foreach_rev(list, member, itype, iterator) \
-	for (itype *iterator = NULL; iterator == NULL; iterator = &((itype *) NULL)[1]) \
+	for (itype *iterator = NULL; iterator == NULL; iterator = (itype *) sizeof(itype)) \
 		for (link_t *_link = (list).head.prev; \
 		    iterator = list_get_instance(_link, itype, member), \
 		    _link != &(list).head; _link = _link->prev)
