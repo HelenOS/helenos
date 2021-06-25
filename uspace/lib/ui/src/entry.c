@@ -182,6 +182,12 @@ errno_t ui_entry_set_text(ui_entry_t *entry, const char *text)
 	return EOK;
 }
 
+/** Paint cursor.
+ *
+ * @param entry Text entry
+ * @param pos Cursor position (top-left corner of next character)
+ * @return EOK on success or an error code
+ */
 static errno_t ui_entry_paint_cursor(ui_entry_t *entry, gfx_coord2_t *pos)
 {
 	ui_resource_t *res;
