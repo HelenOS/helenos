@@ -56,6 +56,9 @@ static errno_t console_gc_bitmap_create(void *, gfx_bitmap_params_t *,
 static errno_t console_gc_bitmap_destroy(void *);
 static errno_t console_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t console_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
+static errno_t console_gc_cursor_get_pos(void *, gfx_coord2_t *);
+static errno_t console_gc_cursor_set_pos(void *, gfx_coord2_t *);
+static errno_t console_gc_cursor_set_visible(void *, bool);
 
 gfx_context_ops_t console_gc_ops = {
 	.set_clip_rect = console_gc_set_clip_rect,
@@ -65,7 +68,10 @@ gfx_context_ops_t console_gc_ops = {
 	.bitmap_create = console_gc_bitmap_create,
 	.bitmap_destroy = console_gc_bitmap_destroy,
 	.bitmap_render = console_gc_bitmap_render,
-	.bitmap_get_alloc = console_gc_bitmap_get_alloc
+	.bitmap_get_alloc = console_gc_bitmap_get_alloc,
+	.cursor_get_pos = console_gc_cursor_get_pos,
+	.cursor_set_pos = console_gc_cursor_set_pos,
+	.cursor_set_visible = console_gc_cursor_set_visible
 };
 
 /** Set clipping rectangle on console GC.
@@ -431,6 +437,59 @@ static errno_t console_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 {
 	console_gc_bitmap_t *cbm = (console_gc_bitmap_t *)bm;
 	*alloc = cbm->alloc;
+	return EOK;
+}
+
+/** Get cursor position on console GC.
+ *
+ * @param arg Console GC
+ * @param pos Place to store position
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t console_gc_cursor_get_pos(void *arg, gfx_coord2_t *pos)
+{
+	console_gc_t *cgc = (console_gc_t *) arg;
+	sysarg_t col;
+	sysarg_t row;
+	errno_t rc;
+
+	rc = console_get_pos(cgc->con, &col, &row);
+	if (rc != EOK)
+		return rc;
+
+	pos->x = col;
+	pos->y = row;
+	return EOK;
+}
+
+/** Set cursor position on console GC.
+ *
+ * @param arg Console GC
+ * @param pos New cursor position
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t console_gc_cursor_set_pos(void *arg, gfx_coord2_t *pos)
+{
+	console_gc_t *cgc = (console_gc_t *) arg;
+
+	console_set_pos(cgc->con, pos->x, pos->y);
+	return EOK;
+}
+
+/** Set cursor visibility on console GC.
+ *
+ * @param arg Console GC
+ * @param visible @c true iff cursor should be made visible
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t console_gc_cursor_set_visible(void *arg, bool visible)
+{
+	console_gc_t *cgc = (console_gc_t *) arg;
+
+	console_cursor_visibility(cgc->con, visible);
 	return EOK;
 }
 

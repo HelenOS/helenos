@@ -127,6 +127,8 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 		if (console == NULL)
 			return EIO;
 
+		console_cursor_visibility(console, false);
+
 		/* ws == ui_ws_console */
 		rc = ui_create_cons(console, &ui);
 		if (rc != EOK) {
@@ -202,8 +204,10 @@ void ui_destroy(ui_t *ui)
 	if (ui->myoutput) {
 		if (ui->cgc != NULL)
 			console_gc_delete(ui->cgc);
-		if (ui->console != NULL)
+		if (ui->console != NULL) {
+			console_cursor_visibility(ui->console, true);
 			console_done(ui->console);
+		}
 		if (ui->display != NULL)
 			display_close(ui->display);
 	}

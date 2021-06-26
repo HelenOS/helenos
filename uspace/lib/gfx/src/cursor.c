@@ -30,49 +30,64 @@
  * @{
  */
 /**
- * @file Graphics context ops
- *
- * The ops structure describing an implementation of a graphics context.
+ * @file Hardware cursor control
  */
 
-#ifndef _GFX_TYPES_OPS_CONTEXT_H
-#define _GFX_TYPES_OPS_CONTEXT_H
-
 #include <errno.h>
-#include <types/gfx/bitmap.h>
-#include <types/gfx/color.h>
-#include <types/gfx/coord.h>
-#include <types/gfx/context.h>
+#include <gfx/context.h>
+#include <gfx/coord.h>
+#include <gfx/cursor.h>
+#include <gfx/render.h>
 #include <stdbool.h>
+#include "../private/context.h"
 
-/** Graphics context ops */
-typedef struct {
-	/** Set clipping rectangle */
-	errno_t (*set_clip_rect)(void *, gfx_rect_t *);
-	/** Set drawing color */
-	errno_t (*set_color)(void *, gfx_color_t *);
-	/** Fill rectangle using the current drawing color */
-	errno_t (*fill_rect)(void *, gfx_rect_t *);
-	/** Update display */
-	errno_t (*update)(void *);
-	/** Create bitmap */
-	errno_t (*bitmap_create)(void *, gfx_bitmap_params_t *,
-	    gfx_bitmap_alloc_t *, void **);
-	/** Destroy bitmap */
-	errno_t (*bitmap_destroy)(void *);
-	/** Render bitmap */
-	errno_t (*bitmap_render)(void *, gfx_rect_t *, gfx_coord2_t *);
-	/** Get bitmap allocation info */
-	errno_t (*bitmap_get_alloc)(void *, gfx_bitmap_alloc_t *);
-	/** Get hardware cursor position */
-	errno_t (*cursor_get_pos)(void *, gfx_coord2_t *);
-	/** Set hardware cursor position */
-	errno_t (*cursor_set_pos)(void *, gfx_coord2_t *);
-	/** Set hardware cursor visibility */
-	errno_t (*cursor_set_visible)(void *, bool);
-} gfx_context_ops_t;
+/** Get hardware cursor position.
+ *
+ * @param gc Graphic context
+ * @param pos Place to store cursor position
+ *
+ * @return EOK on success, ENOTSUP if not supported,
+ *         EIO if grahic device connection was lost
+ */
+errno_t gfx_cursor_get_pos(gfx_context_t *gc, gfx_coord2_t *pos)
+{
+	if (gc->ops->cursor_get_pos != NULL)
+		return gc->ops->cursor_get_pos(gc->arg, pos);
+	else
+		return ENOTSUP;
+}
 
-#endif
+/** Set hardware cursor position.
+ *
+ * @param gc Graphic context
+ * @param pos New cursor position
+ *
+ * @return EOK on success, ENOTSUP if not supported,
+ *         EIO if grahic device connection was lost
+ */
+errno_t gfx_cursor_set_pos(gfx_context_t *gc, gfx_coord2_t *pos)
+{
+	if (gc->ops->cursor_set_pos != NULL)
+		return gc->ops->cursor_set_pos(gc->arg, pos);
+	else
+		return ENOTSUP;
+}
+
+/** Set hardware cursor visibility.
+ *
+ * @param gc Graphic context
+ * @param visible @c true iff cursor should be made visible
+ *
+ * @return EOK on success, ENOTSUP if not supported,
+ *         EIO if grahic device connection was lost
+ */
+errno_t gfx_cursor_set_visible(gfx_context_t *gc, bool visible)
+{
+	if (gc->ops->cursor_set_visible != NULL)
+		return gc->ops->cursor_set_visible(gc->arg, visible);
+	else
+		return ENOTSUP;
+}
 
 /** @}
  */

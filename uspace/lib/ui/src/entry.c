@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <gfx/context.h>
+#include <gfx/cursor.h>
 #include <gfx/render.h>
 #include <gfx/text.h>
 #include <stdlib.h>
@@ -61,8 +62,7 @@ enum {
 	ui_entry_hpad_text = 1,
 	ui_entry_vpad_text = 0,
 	ui_entry_cursor_overshoot = 1,
-	ui_entry_cursor_width = 2,
-	ui_entry_cursor_width_text = 1
+	ui_entry_cursor_width = 2
 };
 
 /** Text entry control ops */
@@ -106,6 +106,7 @@ errno_t ui_entry_create(ui_window_t *window, const char *text,
 	entry->window = window;
 	entry->halign = gfx_halign_left;
 	*rentry = entry;
+
 	return EOK;
 }
 
@@ -193,19 +194,20 @@ static errno_t ui_entry_paint_cursor(ui_entry_t *entry, gfx_coord2_t *pos)
 	ui_resource_t *res;
 	gfx_rect_t rect;
 	gfx_font_metrics_t metrics;
-	gfx_coord_t w;
 	errno_t rc;
 
 	res = ui_window_get_res(entry->window);
 
-	gfx_font_get_metrics(res->font, &metrics);
+	if (res->textmode) {
+		rc = gfx_cursor_set_pos(res->gc, pos);
+		return rc;
+	}
 
-	w = res->textmode ? ui_entry_cursor_width_text :
-	    ui_entry_cursor_width;
+	gfx_font_get_metrics(res->font, &metrics);
 
 	rect.p0.x = pos->x;
 	rect.p0.y = pos->y - ui_entry_cursor_overshoot;
-	rect.p1.x = pos->x + w;
+	rect.p1.x = pos->x + ui_entry_cursor_width;
 	rect.p1.y = pos->y + metrics.ascent + metrics.descent + 1 +
 	    ui_entry_cursor_overshoot;
 
@@ -398,10 +400,8 @@ ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *entry, kbd_event_t *event)
 	if (event->key == KC_BACKSPACE)
 		ui_entry_backspace(entry);
 
-	if (event->key == KC_ESCAPE) {
-		entry->active = false;
-		(void) ui_entry_paint(entry);
-	}
+	if (event->key == KC_ESCAPE)
+		ui_entry_deactivate(entry);
 
 	return ui_claimed;
 }
@@ -474,17 +474,11 @@ ui_evclaim_t ui_entry_pos_event(ui_entry_t *entry, pos_event_t *event)
 		pos.y = event->vpos;
 
 		if (gfx_pix_inside_rect(&pos, &entry->rect)) {
-			if (!entry->active) {
-				entry->active = true;
-				(void) ui_entry_paint(entry);
-			}
+			ui_entry_activate(entry);
 
 			return ui_claimed;
 		} else {
-			if (entry->active) {
-				entry->active = false;
-				(void) ui_entry_paint(entry);
-			}
+			ui_entry_deactivate(entry);
 		}
 	}
 
@@ -515,6 +509,46 @@ static ui_evclaim_t ui_entry_ctl_pos_event(void *arg, pos_event_t *event)
 	ui_entry_t *entry = (ui_entry_t *) arg;
 
 	return ui_entry_pos_event(entry, event);
+}
+
+/** Activate text entry.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_activate(ui_entry_t *entry)
+{
+	ui_resource_t *res;
+
+	res = ui_window_get_res(entry->window);
+
+	if (entry->active)
+		return;
+
+	entry->active = true;
+	(void) ui_entry_paint(entry);
+
+	if (res->textmode)
+		gfx_cursor_set_visible(res->gc, true);
+}
+
+/** Deactivate text entry.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_deactivate(ui_entry_t *entry)
+{
+	ui_resource_t *res;
+
+	res = ui_window_get_res(entry->window);
+
+	if (!entry->active)
+		return;
+
+	entry->active = false;
+	(void) ui_entry_paint(entry);
+
+	if (res->textmode)
+		gfx_cursor_set_visible(res->gc, false);
 }
 
 /** @}

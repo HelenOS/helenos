@@ -26,14 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libgfx
+ * @{
+ */
+/**
+ * @file Hardware cursor control
+ */
 
-PCUT_INIT;
+#ifndef _GFX_CURSOR_H
+#define _GFX_CURSOR_H
 
-PCUT_IMPORT(bitmap);
-PCUT_IMPORT(color);
-PCUT_IMPORT(coord);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(render);
+#include <errno.h>
+#include <types/gfx/coord.h>
+#include <types/gfx/context.h>
+#include <stdbool.h>
 
-PCUT_MAIN();
+extern errno_t gfx_cursor_get_pos(gfx_context_t *, gfx_coord2_t *);
+extern errno_t gfx_cursor_set_pos(gfx_context_t *, gfx_coord2_t *);
+extern errno_t gfx_cursor_set_visible(gfx_context_t *, bool);
+
+#endif
+
+/** @}
+ */

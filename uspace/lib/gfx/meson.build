@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 Jiri Svoboda
+# Copyright (c) 2021 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ src = files(
 	'src/color.c',
 	'src/coord.c',
 	'src/context.c',
+	'src/cursor.c',
 	'src/render.c'
 )
 
@@ -38,6 +39,7 @@ test_src = files(
 	'test/bitmap.c',
 	'test/color.c',
 	'test/coord.c',
+	'test/cursor.c',
 	'test/main.c',
 	'test/render.c',
 )

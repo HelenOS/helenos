@@ -269,4 +269,39 @@ PCUT_TEST(backspace)
 	ui_destroy(ui);
 }
 
+/** ui_entry_activate() / ui_entry_deactivate() */
+PCUT_TEST(activate_deactivate)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "ABC", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(entry->active);
+
+	ui_entry_activate(entry);
+	PCUT_ASSERT_TRUE(entry->active);
+
+	ui_entry_deactivate(entry);
+	PCUT_ASSERT_FALSE(entry->active);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 PCUT_EXPORT(entry);
