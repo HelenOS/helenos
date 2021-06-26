@@ -52,6 +52,11 @@ static void ds_window_invalidate_cb(void *, gfx_rect_t *);
 static void ds_window_update_cb(void *);
 static void ds_window_get_preview_rect(ds_window_t *, gfx_rect_t *);
 
+static mem_gc_cb_t ds_window_mem_gc_cb = {
+	.invalidate = ds_window_invalidate_cb,
+	.update = ds_window_update_cb
+};
+
 /** Create window.
  *
  * Create graphics context for rendering into a window.
@@ -107,8 +112,8 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		alloc.pixels = calloc(1, alloc.pitch * dims.y);
 	}
 
-	rc = mem_gc_create(&params->rect, &alloc, ds_window_invalidate_cb,
-	    ds_window_update_cb, (void *)wnd, &wnd->mgc);
+	rc = mem_gc_create(&params->rect, &alloc, &ds_window_mem_gc_cb,
+	    (void *)wnd, &wnd->mgc);
 	if (rc != EOK)
 		goto error;
 

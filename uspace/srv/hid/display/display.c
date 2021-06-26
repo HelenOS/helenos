@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,11 @@
 static gfx_context_t *ds_display_get_unbuf_gc(ds_display_t *);
 static void ds_display_invalidate_cb(void *, gfx_rect_t *);
 static void ds_display_update_cb(void *);
+
+static mem_gc_cb_t ds_display_mem_gc_cb = {
+	.invalidate = ds_display_invalidate_cb,
+	.update = ds_display_update_cb
+};
 
 /** Create display.
  *
@@ -458,9 +463,8 @@ static errno_t ds_display_alloc_backbuf(ds_display_t *disp)
 	if (rc != EOK)
 		goto error;
 
-	rc = mem_gc_create(&disp->rect, &alloc,
-	    ds_display_invalidate_cb, ds_display_update_cb, (void *) disp,
-	    &disp->bbgc);
+	rc = mem_gc_create(&disp->rect, &alloc, &ds_display_mem_gc_cb,
+	    (void *) disp, &disp->bbgc);
 	if (rc != EOK)
 		goto error;
 

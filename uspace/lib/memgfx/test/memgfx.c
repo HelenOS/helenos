@@ -31,6 +31,7 @@
 #include <gfx/color.h>
 #include <gfx/coord.h>
 #include <gfx/context.h>
+#include <gfx/cursor.h>
 #include <gfx/render.h>
 #include <io/pixelmap.h>
 #include <mem.h>
@@ -43,14 +44,39 @@ PCUT_TEST_SUITE(memgfx);
 
 static void test_invalidate_rect(void *arg, gfx_rect_t *rect);
 static void test_update(void *arg);
+static errno_t test_cursor_get_pos(void *arg, gfx_coord2_t *);
+static errno_t test_cursor_set_pos(void *arg, gfx_coord2_t *);
+static errno_t test_cursor_set_visible(void *arg, bool);
+
+static mem_gc_cb_t test_mem_gc_cb = {
+	.invalidate = test_invalidate_rect,
+	.update = test_update,
+	.cursor_get_pos = test_cursor_get_pos,
+	.cursor_set_pos = test_cursor_set_pos,
+	.cursor_set_visible = test_cursor_set_visible
+};
 
 typedef struct {
+	/** Return code to return */
+	errno_t rc;
 	/** True if invalidate was called */
 	bool invalidate_called;
 	/** Invalidate rectangle */
 	gfx_rect_t inv_rect;
 	/** True if update was called */
 	bool update_called;
+	/** True if cursor_get_pos was called */
+	bool cursor_get_pos_called;
+	/** Position to return from cursor_get_pos */
+	gfx_coord2_t get_pos_pos;
+	/** True if cursor_set_pos was called */
+	bool cursor_set_pos_called;
+	/** Position passed to cursor_set_pos */
+	gfx_coord2_t set_pos_pos;
+	/** True if cursor_set_visible was called */
+	bool cursor_set_visible_called;
+	/** Value passed to cursor_set_visible */
+	bool set_visible_vis;
 } test_resp_t;
 
 /** Test creating and deleting a memory GC */
@@ -71,7 +97,7 @@ PCUT_TEST(create_delete)
 	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
 	PCUT_ASSERT_NOT_NULL(alloc.pixels);
 
-	rc = mem_gc_create(&rect, &alloc, NULL, NULL, NULL, &mgc);
+	rc = mem_gc_create(&rect, &alloc, NULL, NULL, &mgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	mem_gc_delete(mgc);
@@ -105,8 +131,7 @@ PCUT_TEST(fill_rect)
 	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
 	PCUT_ASSERT_NOT_NULL(alloc.pixels);
 
-	rc = mem_gc_create(&rect, &alloc, test_invalidate_rect,
-	    test_update, &resp, &mgc);
+	rc = mem_gc_create(&rect, &alloc, &test_mem_gc_cb, &resp, &mgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gc = mem_gc_get_ctx(mgc);
@@ -186,8 +211,7 @@ PCUT_TEST(bitmap_render)
 	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
 	PCUT_ASSERT_NOT_NULL(alloc.pixels);
 
-	rc = mem_gc_create(&rect, &alloc, test_invalidate_rect,
-	    test_update, &resp, &mgc);
+	rc = mem_gc_create(&rect, &alloc, &test_mem_gc_cb, &resp, &mgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gc = mem_gc_get_ctx(mgc);
@@ -276,8 +300,7 @@ PCUT_TEST(gfx_update)
 	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
 	PCUT_ASSERT_NOT_NULL(alloc.pixels);
 
-	rc = mem_gc_create(&rect, &alloc, test_invalidate_rect,
-	    test_update, &resp, &mgc);
+	rc = mem_gc_create(&rect, &alloc, &test_mem_gc_cb, &resp, &mgc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gc = mem_gc_get_ctx(mgc);
@@ -288,6 +311,137 @@ PCUT_TEST(gfx_update)
 
 	gfx_update(gc);
 	PCUT_ASSERT_TRUE(resp.update_called);
+
+	mem_gc_delete(mgc);
+	free(alloc.pixels);
+}
+
+/** Test gfx_cursor_get_pos() on a memory GC */
+PCUT_TEST(gfx_cursor_get_pos)
+{
+	mem_gc_t *mgc;
+	gfx_rect_t rect;
+	gfx_bitmap_alloc_t alloc;
+	gfx_coord2_t pos;
+	gfx_context_t *gc;
+	test_resp_t resp;
+	errno_t rc;
+
+	/* Bounding rectangle for memory GC */
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 10;
+
+	alloc.pitch = (rect.p1.x - rect.p0.x) * sizeof(uint32_t);
+	alloc.off0 = 0;
+	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
+	PCUT_ASSERT_NOT_NULL(alloc.pixels);
+
+	rc = mem_gc_create(&rect, &alloc, &test_mem_gc_cb, &resp, &mgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = mem_gc_get_ctx(mgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	memset(&resp, 0, sizeof(resp));
+	resp.rc = EOK;
+	resp.get_pos_pos.x = 1;
+	resp.get_pos_pos.y = 2;
+	PCUT_ASSERT_FALSE(resp.cursor_get_pos_called);
+
+	rc = gfx_cursor_get_pos(gc, &pos);
+	PCUT_ASSERT_TRUE(resp.cursor_get_pos_called);
+	PCUT_ASSERT_INT_EQUALS(resp.get_pos_pos.x, pos.x);
+	PCUT_ASSERT_INT_EQUALS(resp.get_pos_pos.y, pos.y);
+
+	mem_gc_delete(mgc);
+	free(alloc.pixels);
+}
+
+/** Test gfx_cursor_set_pos() on a memory GC */
+PCUT_TEST(gfx_cursor_set_pos)
+{
+	mem_gc_t *mgc;
+	gfx_rect_t rect;
+	gfx_bitmap_alloc_t alloc;
+	gfx_coord2_t pos;
+	gfx_context_t *gc;
+	test_resp_t resp;
+	errno_t rc;
+
+	/* Bounding rectangle for memory GC */
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 10;
+
+	alloc.pitch = (rect.p1.x - rect.p0.x) * sizeof(uint32_t);
+	alloc.off0 = 0;
+	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
+	PCUT_ASSERT_NOT_NULL(alloc.pixels);
+
+	rc = mem_gc_create(&rect, &alloc, &test_mem_gc_cb, &resp, &mgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = mem_gc_get_ctx(mgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	memset(&resp, 0, sizeof(resp));
+	resp.rc = EOK;
+	pos.x = 1;
+	pos.y = 2;
+	PCUT_ASSERT_FALSE(resp.cursor_set_pos_called);
+
+	rc = gfx_cursor_set_pos(gc, &pos);
+	PCUT_ASSERT_TRUE(resp.cursor_set_pos_called);
+	PCUT_ASSERT_INT_EQUALS(pos.x, resp.set_pos_pos.x);
+	PCUT_ASSERT_INT_EQUALS(pos.y, resp.set_pos_pos.y);
+
+	mem_gc_delete(mgc);
+	free(alloc.pixels);
+}
+
+/** Test gfx_cursor_set_visible() on a memory GC */
+PCUT_TEST(gfx_cursor_set_visible)
+{
+	mem_gc_t *mgc;
+	gfx_rect_t rect;
+	gfx_bitmap_alloc_t alloc;
+	gfx_context_t *gc;
+	test_resp_t resp;
+	errno_t rc;
+
+	/* Bounding rectangle for memory GC */
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 10;
+
+	alloc.pitch = (rect.p1.x - rect.p0.x) * sizeof(uint32_t);
+	alloc.off0 = 0;
+	alloc.pixels = calloc(1, alloc.pitch * (rect.p1.y - rect.p0.y));
+	PCUT_ASSERT_NOT_NULL(alloc.pixels);
+
+	rc = mem_gc_create(&rect, &alloc, &test_mem_gc_cb, &resp, &mgc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gc = mem_gc_get_ctx(mgc);
+	PCUT_ASSERT_NOT_NULL(gc);
+
+	memset(&resp, 0, sizeof(resp));
+	resp.rc = EOK;
+	PCUT_ASSERT_FALSE(resp.cursor_set_visible_called);
+
+	rc = gfx_cursor_set_visible(gc, true);
+	PCUT_ASSERT_TRUE(resp.cursor_set_visible_called);
+	PCUT_ASSERT_TRUE(resp.set_visible_vis);
+
+	resp.cursor_set_visible_called = false;
+
+	rc = gfx_cursor_set_visible(gc, false);
+	PCUT_ASSERT_TRUE(resp.cursor_set_visible_called);
+	PCUT_ASSERT_FALSE(resp.set_visible_vis);
 
 	mem_gc_delete(mgc);
 	free(alloc.pixels);
@@ -308,6 +462,36 @@ static void test_update(void *arg)
 	test_resp_t *resp = (test_resp_t *)arg;
 
 	resp->update_called = true;
+}
+
+/** Called by memory GC when cursor_get_pos is called. */
+static errno_t test_cursor_get_pos(void *arg, gfx_coord2_t *pos)
+{
+	test_resp_t *resp = (test_resp_t *)arg;
+
+	resp->cursor_get_pos_called = true;
+	*pos = resp->get_pos_pos;
+	return resp->rc;
+}
+
+/** Called by memory GC when cursor_set_pos is called. */
+static errno_t test_cursor_set_pos(void *arg, gfx_coord2_t *pos)
+{
+	test_resp_t *resp = (test_resp_t *)arg;
+
+	resp->cursor_set_pos_called = true;
+	resp->set_pos_pos = *pos;
+	return resp->rc;
+}
+
+/** Called by memory GC when cursor_set_visible is called. */
+static errno_t test_cursor_set_visible(void *arg, bool visible)
+{
+	test_resp_t *resp = (test_resp_t *)arg;
+
+	resp->cursor_set_visible_called = true;
+	resp->set_visible_vis = visible;
+	return resp->rc;
 }
 
 PCUT_EXPORT(memgfx);

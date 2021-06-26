@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
+#include <gfx/cursor.h>
 #include <gfx/render.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
@@ -87,8 +88,28 @@ static ui_wdecor_cb_t wdecor_cb = {
 
 static void ui_window_invalidate(void *, gfx_rect_t *);
 static void ui_window_update(void *);
+static errno_t ui_window_cursor_get_pos(void *, gfx_coord2_t *);
+static errno_t ui_window_cursor_set_pos(void *, gfx_coord2_t *);
+static errno_t ui_window_cursor_set_visible(void *, bool);
+
+/** Window memory GC callbacks */
+static mem_gc_cb_t ui_window_mem_gc_cb = {
+	.invalidate = ui_window_invalidate,
+	.update = ui_window_update,
+	.cursor_get_pos = ui_window_cursor_get_pos,
+	.cursor_set_pos = ui_window_cursor_set_pos,
+	.cursor_set_visible = ui_window_cursor_set_visible
+};
+
 static void ui_window_app_invalidate(void *, gfx_rect_t *);
 static void ui_window_app_update(void *);
+
+/** Application area memory GC callbacks */
+static mem_gc_cb_t ui_window_app_mem_gc_cb = {
+	.invalidate = ui_window_app_invalidate,
+	.update = ui_window_app_update
+};
+
 static void ui_window_expose_cb(void *);
 
 /** Initialize window parameters structure.
@@ -254,8 +275,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 		return rc;
 	}
 
-	rc = mem_gc_create(&bparams.rect, &alloc, ui_window_invalidate,
-	    ui_window_update, (void *) window, &memgc);
+	rc = mem_gc_create(&bparams.rect, &alloc, &ui_window_mem_gc_cb,
+	    (void *) window, &memgc);
 	if (rc != EOK) {
 		gfx_bitmap_destroy(window->app_bmp);
 		return rc;
@@ -266,8 +287,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->gc = mem_gc_get_ctx(memgc);
 	window->realgc = gc;
 #else
-	(void) ui_window_update;
-	(void) ui_window_invalidate;
+	(void) ui_window_mem_gc_cb;
 	(void) alloc;
 	(void) bparams;
 	window->gc = gc;
@@ -617,8 +637,8 @@ errno_t ui_window_get_app_gc(ui_window_t *window, gfx_context_t **rgc)
 			return rc;
 		}
 
-		rc = mem_gc_create(&params.rect, &alloc, ui_window_app_invalidate,
-		    ui_window_app_update, (void *) window, &memgc);
+		rc = mem_gc_create(&params.rect, &alloc,
+		    &ui_window_app_mem_gc_cb, (void *) window, &memgc);
 		if (rc != EOK) {
 			gfx_bitmap_destroy(window->app_bmp);
 			return rc;
@@ -1000,6 +1020,42 @@ static void ui_window_update(void *arg)
 	window->dirty_rect.p0.y = 0;
 	window->dirty_rect.p1.x = 0;
 	window->dirty_rect.p1.y = 0;
+}
+
+/** Window cursor get position callback
+ *
+ * @param arg Argument (ui_window_t *)
+ * @param pos Place to store position
+ */
+static errno_t ui_window_cursor_get_pos(void *arg, gfx_coord2_t *pos)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	return gfx_cursor_get_pos(window->realgc, pos);
+}
+
+/** Window cursor set position callback
+ *
+ * @param arg Argument (ui_window_t *)
+ * @param pos New position
+ */
+static errno_t ui_window_cursor_set_pos(void *arg, gfx_coord2_t *pos)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	return gfx_cursor_set_pos(window->realgc, pos);
+}
+
+/** Window cursor set visibility callback
+ *
+ * @param arg Argument (ui_window_t *)
+ * @param visible @c true iff cursor is to be made visible
+ */
+static errno_t ui_window_cursor_set_visible(void *arg, bool visible)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	return gfx_cursor_set_visible(window->realgc, visible);
 }
 
 /** Application area invalidate callback
