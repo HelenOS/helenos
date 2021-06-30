@@ -179,6 +179,7 @@ errno_t ui_entry_set_text(ui_entry_t *entry, const char *text)
 
 	free(entry->text);
 	entry->text = tcopy;
+	entry->pos = str_size(text);
 
 	return EOK;
 }
@@ -222,6 +223,28 @@ static errno_t ui_entry_paint_cursor(ui_entry_t *entry, gfx_coord2_t *pos)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Return width of text before cursor.
+ *
+ * @param entry Text entry
+ * @return Widht of text before cursor
+ */
+static gfx_coord_t ui_entry_lwidth(ui_entry_t *entry)
+{
+	ui_resource_t *res;
+	uint8_t tmp;
+	gfx_coord_t width;
+
+	res = ui_window_get_res(entry->window);
+
+	tmp = entry->text[entry->pos];
+
+	entry->text[entry->pos] = '\0';
+	width = gfx_text_width(res->font, entry->text);
+	entry->text[entry->pos] = tmp;
+
+	return width;
 }
 
 /** Paint text entry.
@@ -303,7 +326,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 
 	if (entry->active) {
 		/* Cursor */
-		pos.x += width;
+		pos.x += ui_entry_lwidth(entry);
 
 		rc = ui_entry_paint_cursor(entry, &pos);
 		if (rc != EOK) {
@@ -356,17 +379,32 @@ errno_t ui_entry_ctl_paint(void *arg)
  */
 errno_t ui_entry_insert_str(ui_entry_t *entry, const char *str)
 {
+	uint8_t tmp;
+	char *ltext = NULL;
 	char *newtext;
 	char *oldtext;
 	int rc;
 
-	rc = asprintf(&newtext, "%s%s", entry->text, str);
-	if (rc < 0)
+	tmp = entry->text[entry->pos];
+	entry->text[entry->pos] = '\0';
+	ltext = str_dup(entry->text);
+	if (ltext == NULL)
 		return ENOMEM;
+
+	entry->text[entry->pos] = tmp;
+
+	rc = asprintf(&newtext, "%s%s%s", ltext, str, entry->text + entry->pos);
+	if (rc < 0) {
+		free(ltext);
+		return ENOMEM;
+	}
 
 	oldtext = entry->text;
 	entry->text = newtext;
+	entry->pos += str_size(str);
 	free(oldtext);
+	free(ltext);
+
 	ui_entry_paint(entry);
 
 	return EOK;
@@ -380,10 +418,37 @@ void ui_entry_backspace(ui_entry_t *entry)
 {
 	size_t off;
 
-	off = str_size(entry->text);
+	if (entry->pos == 0)
+		return;
+
+	/* Find offset where character before cursor starts */
+	off = entry->pos;
 	(void) str_decode_reverse(entry->text, &off,
 	    str_size(entry->text));
-	entry->text[off] = '\0';
+
+	memmove(entry->text + off, entry->text + entry->pos,
+	    str_size(entry->text + entry->pos) + 1);
+	entry->pos = off;
+
+	ui_entry_paint(entry);
+}
+
+/** Delete character after cursor.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_delete(ui_entry_t *entry)
+{
+	size_t off;
+
+	/* Find offset where character after cursor end */
+	off = entry->pos;
+	(void) str_decode(entry->text, &off,
+	    str_size(entry->text));
+
+	memmove(entry->text + entry->pos, entry->text + off,
+	    str_size(entry->text + off) + 1);
+
 	ui_entry_paint(entry);
 }
 
@@ -397,11 +462,38 @@ ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *entry, kbd_event_t *event)
 {
 	assert(event->type == KEY_PRESS);
 
-	if (event->key == KC_BACKSPACE)
+	switch (event->key) {
+	case KC_BACKSPACE:
 		ui_entry_backspace(entry);
+		break;
 
-	if (event->key == KC_ESCAPE)
+	case KC_DELETE:
+		ui_entry_delete(entry);
+		break;
+
+	case KC_ESCAPE:
 		ui_entry_deactivate(entry);
+		break;
+
+	case KC_HOME:
+		ui_entry_seek_start(entry);
+		break;
+
+	case KC_END:
+		ui_entry_seek_end(entry);
+		break;
+
+	case KC_LEFT:
+		ui_entry_seek_prev_char(entry);
+		break;
+
+	case KC_RIGHT:
+		ui_entry_seek_next_char(entry);
+		break;
+
+	default:
+		break;
+	}
 
 	return ui_claimed;
 }
@@ -525,10 +617,61 @@ void ui_entry_activate(ui_entry_t *entry)
 		return;
 
 	entry->active = true;
+	entry->pos = str_size(entry->text);
 	(void) ui_entry_paint(entry);
 
 	if (res->textmode)
 		gfx_cursor_set_visible(res->gc, true);
+}
+
+/** Move text cursor to the beginning of text.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_seek_start(ui_entry_t *entry)
+{
+	entry->pos = 0;
+	(void) ui_entry_paint(entry);
+}
+
+/** Move text cursor to the end of text.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_seek_end(ui_entry_t *entry)
+{
+	entry->pos = str_size(entry->text);
+	(void) ui_entry_paint(entry);
+}
+
+/** Move text cursor one character backward.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_seek_prev_char(ui_entry_t *entry)
+{
+	size_t off;
+
+	off = entry->pos;
+	(void) str_decode_reverse(entry->text, &off,
+	    str_size(entry->text));
+	entry->pos = off;
+	(void) ui_entry_paint(entry);
+}
+
+/** Move text cursor one character forward.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_seek_next_char(ui_entry_t *entry)
+{
+	size_t off;
+
+	off = entry->pos;
+	(void) str_decode(entry->text, &off,
+	    str_size(entry->text));
+	entry->pos = off;
+	(void) ui_entry_paint(entry);
 }
 
 /** Deactivate text entry.

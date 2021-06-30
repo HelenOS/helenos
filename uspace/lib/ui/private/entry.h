@@ -57,6 +57,8 @@ struct ui_entry {
 	bool read_only;
 	/** Text */
 	char *text;
+	/** Cursor position in the text (offset in bytes) */
+	unsigned pos;
 	/** Pointer is currently inside */
 	bool pointer_inside;
 	/** Entry is activated */
@@ -64,7 +66,6 @@ struct ui_entry {
 };
 
 extern errno_t ui_entry_insert_str(ui_entry_t *, const char *);
-extern void ui_entry_backspace(ui_entry_t *);
 extern ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *, kbd_event_t *);
 extern void ui_entry_activate(ui_entry_t *);
 extern void ui_entry_deactivate(ui_entry_t *);
