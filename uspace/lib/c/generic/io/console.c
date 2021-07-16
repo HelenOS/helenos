@@ -289,8 +289,6 @@ errno_t console_map(console_ctrl_t *ctrl, sysarg_t cols, sysarg_t rows,
 
 	exch = async_exchange_begin(ctrl->output_sess);
 	req = async_send_2(exch, CONSOLE_MAP, cols, rows, &answer);
-	if (rc != EOK)
-		goto error;
 
 	asize = PAGES2SIZE(SIZE2PAGES(cols * rows * sizeof(charfield_t)));
 
