@@ -48,7 +48,7 @@
  * @param brcolor Bottom-right color
  * @param thickness Bevel thickness in pixels
  * @param inside Place to store rectangle of the interior or @c NULL
- * @reutrn EOK on success or an error code
+ * @return EOK on success or an error code
  */
 errno_t ui_paint_bevel(gfx_context_t *gc, gfx_rect_t *rect,
     gfx_color_t *tlcolor, gfx_color_t *brcolor, gfx_coord_t thickness,
@@ -106,16 +106,30 @@ errno_t ui_paint_bevel(gfx_context_t *gc, gfx_rect_t *rect,
 			goto error;
 	}
 
-	if (inside != NULL) {
-		inside->p0.x = rect->p0.x + thickness;
-		inside->p0.y = rect->p0.y + thickness;
-		inside->p1.x = rect->p1.x - thickness;
-		inside->p1.y = rect->p1.y - thickness;
-	}
+	if (inside != NULL)
+		ui_paint_get_bevel_inside(gc, rect, thickness, inside);
 
 	return EOK;
 error:
 	return rc;
+}
+
+/** Get bevel interior rectangle.
+ *
+ * Get the bevel interior rectangle without painting it.
+ *
+ * @param gc Graphic context
+ * @param rect Rectangle to paint into
+ * @param thickness Bevel thickness in pixels
+ * @param inside Place to store rectangle of the interior
+ */
+void ui_paint_get_bevel_inside(gfx_context_t *gc, gfx_rect_t *rect,
+    gfx_coord_t thickness, gfx_rect_t *inside)
+{
+	inside->p0.x = rect->p0.x + thickness;
+	inside->p0.y = rect->p0.y + thickness;
+	inside->p1.x = rect->p1.x - thickness;
+	inside->p1.y = rect->p1.y - thickness;
 }
 
 /** Paint inset frame.
@@ -146,6 +160,21 @@ errno_t ui_paint_inset_frame(ui_resource_t *resource, gfx_rect_t *rect,
 	return EOK;
 error:
 	return rc;
+}
+
+/** Get inset frame interior rectangle.
+ *
+ * This allows one to get the interior rectangle without actually painting
+ * the inset frame.
+ *
+ * @param resource UI resource
+ * @param rect Rectangle to paint onto
+ * @param inside Place to store inside rectangle or @c NULL
+ */
+void ui_paint_get_inset_frame_inside(ui_resource_t *resource, gfx_rect_t *rect,
+    gfx_rect_t *inside)
+{
+	ui_paint_get_bevel_inside(resource->gc, rect, 2, inside);
 }
 
 /** Paint outset frame.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -166,37 +166,33 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	return rc;
 }
 
-/** Render text.
+/** Get text starting position.
  *
  * @param font Font
  * @param pos Anchor position
  * @param fmt Text formatting
  * @param str String
+ * @param spos Place to store starting position
  * @return EOK on success or an error code
  */
-errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
-    gfx_text_fmt_t *fmt, const char *str)
+void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *spos)
 {
 	gfx_font_metrics_t fmetrics;
-	gfx_glyph_metrics_t gmetrics;
-	size_t stradv;
-	const char *cp;
-	gfx_glyph_t *glyph;
 	gfx_coord2_t cpos;
 	gfx_coord_t width;
-	errno_t rc;
 
-	cpos = *pos;
+	*spos = *pos;
 
 	/* Adjust position for horizontal alignment */
 	if (fmt->halign != gfx_halign_left) {
 		width = gfx_text_width(font, str);
 		switch (fmt->halign) {
 		case gfx_halign_center:
-			cpos.x -= width / 2;
+			spos->x -= width / 2;
 			break;
 		case gfx_halign_right:
-			cpos.x -= width - 1;
+			spos->x -= width - 1;
 			break;
 		default:
 			break;
@@ -209,10 +205,10 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 	if (fmt->valign != gfx_valign_baseline) {
 		switch (fmt->valign) {
 		case gfx_valign_top:
-			cpos.y += fmetrics.ascent;
+			spos->y += fmetrics.ascent;
 			break;
 		case gfx_valign_center:
-			cpos.y += fmetrics.ascent / 2;
+			spos->y += fmetrics.ascent / 2;
 			break;
 		case gfx_valign_bottom:
 			cpos.y -= fmetrics.descent;
@@ -221,6 +217,27 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 			break;
 		}
 	}
+}
+
+/** Render text.
+ *
+ * @param font Font
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String
+ * @return EOK on success or an error code
+ */
+errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str)
+{
+	gfx_glyph_metrics_t gmetrics;
+	size_t stradv;
+	const char *cp;
+	gfx_glyph_t *glyph;
+	gfx_coord2_t cpos;
+	errno_t rc;
+
+	gfx_text_start_pos(font, pos, fmt, str, &cpos);
 
 	/* Text mode */
 	if ((font->finfo->props.flags & gff_text_mode) != 0)
@@ -249,6 +266,70 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 	}
 
 	return EOK;
+}
+
+/** Find character position in string by X coordinate.
+ *
+ * @param font Font
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String
+ * @param fpos Position for which we need to find offset
+ *
+ * @return Byte offset in @a str of character corresponding to position
+ *         @a fpos. Note that the position is rounded, that is,
+ *         if it is before the center of character A, it will return
+ *         offset of A, if it is after the center of A, it will return
+ *         offset of the following character.
+ */
+size_t gfx_text_find_pos(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *fpos)
+{
+	gfx_glyph_metrics_t gmetrics;
+	size_t stradv;
+	const char *cp;
+	gfx_glyph_t *glyph;
+	gfx_coord2_t cpos;
+	size_t off;
+	size_t strsize;
+	errno_t rc;
+
+	gfx_text_start_pos(font, pos, fmt, str, &cpos);
+
+	/* Text mode */
+	if ((font->finfo->props.flags & gff_text_mode) != 0) {
+		off = 0;
+		strsize = str_size(str);
+		while (off < strsize) {
+			if (fpos->x <= cpos.x)
+				return off;
+			(void) str_decode(str, &off, strsize);
+			cpos.x++;
+		}
+
+		return off;
+	}
+
+	cp = str;
+	off = 0;
+	while (*cp != '\0') {
+		rc = gfx_font_search_glyph(font, cp, &glyph, &stradv);
+		if (rc != EOK) {
+			++cp;
+			continue;
+		}
+
+		gfx_glyph_get_metrics(glyph, &gmetrics);
+
+		if (fpos->x < cpos.x + gmetrics.advance / 2)
+			return off;
+
+		cp += stradv;
+		off += stradv;
+		cpos.x += gmetrics.advance;
+	}
+
+	return off;
 }
 
 /** @}

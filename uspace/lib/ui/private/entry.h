@@ -65,8 +65,21 @@ struct ui_entry {
 	bool active;
 };
 
+/** Text entry geometry.
+ *
+ * Computed geometry of text entry elements.
+ */
+typedef struct {
+	/** Interior rectangle */
+	gfx_rect_t interior_rect;
+	/** Text anchor position */
+	gfx_coord2_t text_pos;
+} ui_entry_geom_t;
+
 extern errno_t ui_entry_insert_str(ui_entry_t *, const char *);
 extern ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *, kbd_event_t *);
+extern void ui_entry_get_geom(ui_entry_t *, ui_entry_geom_t *);
+extern size_t ui_entry_find_pos(ui_entry_t *, gfx_coord2_t *);
 extern void ui_entry_activate(ui_entry_t *);
 extern void ui_entry_deactivate(ui_entry_t *);
 

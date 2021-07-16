@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,10 @@ extern void gfx_text_fmt_init(gfx_text_fmt_t *);
 extern gfx_coord_t gfx_text_width(gfx_font_t *, const char *);
 extern errno_t gfx_puttext(gfx_font_t *, gfx_coord2_t *, gfx_text_fmt_t *,
     const char *);
+extern void gfx_text_start_pos(gfx_font_t *, gfx_coord2_t *, gfx_text_fmt_t *,
+    const char *, gfx_coord2_t *);
+extern size_t gfx_text_find_pos(gfx_font_t *, gfx_coord2_t *, gfx_text_fmt_t *,
+    const char *, gfx_coord2_t *);
 
 #endif
 

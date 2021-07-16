@@ -95,6 +95,11 @@ PCUT_TEST(bevel)
 	rc = gfx_color_new_rgb_i16(4, 5, 6, &color2);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 30;
+	rect.p1.y = 40;
+
 	/* Paint bevel with NULL 'inside' output parameter */
 	rc = ui_paint_bevel(gc, &rect, color1, color2, 2, NULL);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -105,6 +110,34 @@ PCUT_TEST(bevel)
 
 	gfx_color_delete(color2);
 	gfx_color_delete(color1);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Get bevel inside */
+PCUT_TEST(get_bevel_inside)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	gfx_rect_t rect;
+	gfx_rect_t inside;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 30;
+	rect.p1.y = 40;
+
+	ui_paint_get_bevel_inside(gc, &rect, 2, &inside);
+	PCUT_ASSERT_INT_EQUALS(12, inside.p0.x);
+	PCUT_ASSERT_INT_EQUALS(22, inside.p0.y);
+	PCUT_ASSERT_INT_EQUALS(28, inside.p1.x);
+	PCUT_ASSERT_INT_EQUALS(38, inside.p1.y);
+
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
@@ -127,6 +160,11 @@ PCUT_TEST(inset_frame)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 30;
+	rect.p1.y = 40;
+
 	/* Paint inset frame with NULL 'inside' output parameter */
 	rc = ui_paint_inset_frame(resource, &rect, NULL);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -134,6 +172,40 @@ PCUT_TEST(inset_frame)
 	/* Paint inset frame with valid 'inside' output parameter */
 	rc = ui_paint_inset_frame(resource, &rect, &inside);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_resource_destroy(resource);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Get inset frame inside */
+PCUT_TEST(get_inset_frame_inside)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	ui_resource_t *resource = NULL;
+	test_gc_t tgc;
+	gfx_rect_t rect;
+	gfx_rect_t inside;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 30;
+	rect.p1.y = 40;
+
+	ui_paint_get_inset_frame_inside(resource, &rect, &inside);
+	PCUT_ASSERT_INT_EQUALS(12, inside.p0.x);
+	PCUT_ASSERT_INT_EQUALS(22, inside.p0.y);
+	PCUT_ASSERT_INT_EQUALS(28, inside.p1.x);
+	PCUT_ASSERT_INT_EQUALS(38, inside.p1.y);
 
 	ui_resource_destroy(resource);
 	rc = gfx_context_delete(gc);

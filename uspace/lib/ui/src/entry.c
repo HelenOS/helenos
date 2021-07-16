@@ -255,23 +255,15 @@ static gfx_coord_t ui_entry_lwidth(ui_entry_t *entry)
 errno_t ui_entry_paint(ui_entry_t *entry)
 {
 	ui_resource_t *res;
+	ui_entry_geom_t geom;
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
-	gfx_coord_t hpad;
-	gfx_coord_t vpad;
-	gfx_coord_t width;
 	gfx_rect_t inside;
 	errno_t rc;
 
 	res = ui_window_get_res(entry->window);
 
-	if (res->textmode) {
-		hpad = ui_entry_hpad_text;
-		vpad = ui_entry_vpad_text;
-	} else {
-		hpad = ui_entry_hpad;
-		vpad = ui_entry_vpad;
-	}
+	ui_entry_get_geom(entry, &geom);
 
 	if (res->textmode == false) {
 		/* Paint inset frame */
@@ -292,22 +284,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	if (rc != EOK)
 		goto error;
 
-	width = gfx_text_width(res->font, entry->text);
-
-	switch (entry->halign) {
-	case gfx_halign_left:
-	case gfx_halign_justify:
-		pos.x = inside.p0.x + hpad;
-		break;
-	case gfx_halign_center:
-		pos.x = (inside.p0.x + inside.p1.x) / 2 - width / 2;
-		break;
-	case gfx_halign_right:
-		pos.x = inside.p1.x - hpad - 1 - width;
-		break;
-	}
-
-	pos.y = inside.p0.y + vpad;
+	pos = geom.text_pos;
 
 	gfx_text_fmt_init(&fmt);
 	fmt.color = res->entry_fg_color;
@@ -346,6 +323,30 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Find position in text entry.
+ *
+ * @param entry Text entry
+ * @param fpos Position for which we need to find text offset
+ * @return Corresponding byte offset in entry text
+ */
+size_t ui_entry_find_pos(ui_entry_t *entry, gfx_coord2_t *fpos)
+{
+	ui_resource_t *res;
+	ui_entry_geom_t geom;
+	gfx_text_fmt_t fmt;
+
+	res = ui_window_get_res(entry->window);
+
+	ui_entry_get_geom(entry, &geom);
+
+	gfx_text_fmt_init(&fmt);
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	return gfx_text_find_pos(res->font, &geom.text_pos, &fmt,
+	    entry->text, fpos);
 }
 
 /** Destroy text entry control.
@@ -566,7 +567,11 @@ ui_evclaim_t ui_entry_pos_event(ui_entry_t *entry, pos_event_t *event)
 		pos.y = event->vpos;
 
 		if (gfx_pix_inside_rect(&pos, &entry->rect)) {
-			ui_entry_activate(entry);
+			entry->pos = ui_entry_find_pos(entry, &pos);
+			if (entry->active)
+				ui_entry_paint(entry);
+			else
+				ui_entry_activate(entry);
 
 			return ui_claimed;
 		} else {
@@ -603,6 +608,54 @@ static ui_evclaim_t ui_entry_ctl_pos_event(void *arg, pos_event_t *event)
 	return ui_entry_pos_event(entry, event);
 }
 
+/** Get text entry geometry.
+ *
+ * @param entry Text entry
+ * @param geom Structure to fill in with computed geometry
+ */
+void ui_entry_get_geom(ui_entry_t *entry, ui_entry_geom_t *geom)
+{
+	gfx_coord_t hpad;
+	gfx_coord_t vpad;
+	gfx_coord_t width;
+	ui_resource_t *res;
+
+	res = ui_window_get_res(entry->window);
+
+	if (res->textmode) {
+		hpad = ui_entry_hpad_text;
+		vpad = ui_entry_vpad_text;
+	} else {
+		hpad = ui_entry_hpad;
+		vpad = ui_entry_vpad;
+	}
+
+	if (res->textmode == false) {
+		ui_paint_get_inset_frame_inside(res, &entry->rect,
+		    &geom->interior_rect);
+	} else {
+		geom->interior_rect = entry->rect;
+	}
+
+	width = gfx_text_width(res->font, entry->text);
+
+	switch (entry->halign) {
+	case gfx_halign_left:
+	case gfx_halign_justify:
+		geom->text_pos.x = geom->interior_rect.p0.x + hpad;
+		break;
+	case gfx_halign_center:
+		geom->text_pos.x = (geom->interior_rect.p0.x +
+		    geom->interior_rect.p1.x) / 2 - width / 2;
+		break;
+	case gfx_halign_right:
+		geom->text_pos.x = geom->interior_rect.p1.x - hpad - 1 - width;
+		break;
+	}
+
+	geom->text_pos.y = geom->interior_rect.p0.y + vpad;
+}
+
 /** Activate text entry.
  *
  * @param entry Text entry
@@ -617,7 +670,6 @@ void ui_entry_activate(ui_entry_t *entry)
 		return;
 
 	entry->active = true;
-	entry->pos = str_size(entry->text);
 	(void) ui_entry_paint(entry);
 
 	if (res->textmode)
