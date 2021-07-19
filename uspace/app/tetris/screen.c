@@ -71,7 +71,8 @@ static cell curscreen[B_SIZE];  /* non-zero => standout (or otherwise marked) */
 static int curscore;
 static int isset;               /* true => terminal is in game mode */
 
-static bool use_color;          /* true => use colors */
+static bool use_rgb;          /* true => use RGB colors */
+static bool use_color;          /* true => use indexed colors */
 
 static const struct shape *lastshape;
 
@@ -91,9 +92,23 @@ static inline void putstr(const char *s)
 
 static void start_standout(uint32_t color)
 {
+	uint8_t bg;
+	uint8_t attr;
+
 	console_flush(console);
-	console_set_rgb_color(console, use_color ? color : 0x000000,
-	    0xffffff);
+	if (use_rgb) {
+		console_set_rgb_color(console, color, 0xffffff);
+	} else if (use_color) {
+		bg = 0x00;
+		attr = 0;
+		if ((color & 0xff0000) != 0)
+			bg |= 0x4;
+		if ((color & 0x00ff00) != 0)
+			bg |= 0x2;
+		if ((color & 0x0000ff) != 0)
+			bg |= 0x1;
+		console_set_color(console, bg, 0x00, attr);
+	}
 }
 
 static void resume_normal(void)
@@ -142,15 +157,19 @@ static errno_t get_display_size(winsize_t *ws)
 	return console_get_size(console, &ws->ws_col, &ws->ws_row);
 }
 
-static bool get_display_color_sup(void)
+static void get_display_color_sup(bool *rgb, bool *color)
 {
 	sysarg_t ccap;
 	errno_t rc = console_get_color_cap(console, &ccap);
 
-	if (rc != EOK)
-		return false;
+	if (rc != EOK) {
+		*rgb = false;
+		*color = false;
+		return;
+	}
 
-	return ((ccap & CONSOLE_CAP_RGB) == CONSOLE_CAP_RGB);
+	*rgb = ((ccap & CONSOLE_CAP_RGB) == CONSOLE_CAP_RGB);
+	*color = ((ccap & CONSOLE_CAP_INDEXED) == CONSOLE_CAP_INDEXED);
 }
 
 /*
@@ -168,7 +187,7 @@ void scr_set(void)
 		Cols = ws.ws_col;
 	}
 
-	use_color = get_display_color_sup();
+	get_display_color_sup(&use_rgb, &use_color);
 
 	if ((Rows < MINROWS) || (Cols < MINCOLS)) {
 		char smallscr[55];
