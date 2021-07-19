@@ -355,6 +355,98 @@ PCUT_TEST(text_find_pos_text)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** gfx_text_cont() produces correct continuation parameters */
+PCUT_TEST(text_cont)
+{
+	gfx_typeface_t *tface;
+	gfx_font_t *font;
+	gfx_context_t *gc;
+	gfx_color_t *color;
+	test_gc_t tgc;
+	gfx_text_fmt_t fmt;
+	gfx_coord2_t anchor;
+	gfx_coord2_t cpos;
+	gfx_text_fmt_t cfmt;
+	errno_t rc;
+
+	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_font_create_textmode(tface, &font);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	anchor.x = 10;
+	anchor.y = 20;
+	gfx_text_fmt_init(&fmt);
+	fmt.color = color;
+
+	gfx_text_cont(font, &anchor, &fmt, "Abc", &cpos, &cfmt);
+
+	PCUT_ASSERT_INT_EQUALS(13, cpos.x);
+	PCUT_ASSERT_INT_EQUALS(20, cpos.y);
+	PCUT_ASSERT_EQUALS(fmt.color, cfmt.color);
+	PCUT_ASSERT_EQUALS(gfx_halign_left, cfmt.halign);
+	PCUT_ASSERT_EQUALS(gfx_valign_baseline, cfmt.valign);
+
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+	gfx_color_delete(color);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** gfx_text_rect() computes bounding rectangle */
+PCUT_TEST(text_rect)
+{
+	gfx_typeface_t *tface;
+	gfx_font_t *font;
+	gfx_context_t *gc;
+	gfx_color_t *color;
+	test_gc_t tgc;
+	gfx_text_fmt_t fmt;
+	gfx_coord2_t anchor;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = gfx_context_new(&test_ops, (void *)&tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_typeface_create(gc, &tface);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_font_create_textmode(tface, &font);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &color);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	anchor.x = 10;
+	anchor.y = 20;
+	gfx_text_fmt_init(&fmt);
+	fmt.color = color;
+
+	gfx_text_rect(font, &anchor, &fmt, "Abc", &rect);
+
+	PCUT_ASSERT_INT_EQUALS(10, rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(20, rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(13, rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(21, rect.p1.y);
+
+	gfx_font_close(font);
+	gfx_typeface_destroy(tface);
+	gfx_color_delete(color);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 static errno_t testgc_set_clip_rect(void *arg, gfx_rect_t *rect)
 {
 	return EOK;

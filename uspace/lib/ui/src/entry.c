@@ -41,6 +41,7 @@
 #include <gfx/cursor.h>
 #include <gfx/render.h>
 #include <gfx/text.h>
+#include <macros.h>
 #include <stdlib.h>
 #include <str.h>
 #include <ui/control.h>
@@ -62,7 +63,9 @@ enum {
 	ui_entry_hpad_text = 1,
 	ui_entry_vpad_text = 0,
 	ui_entry_cursor_overshoot = 1,
-	ui_entry_cursor_width = 2
+	ui_entry_cursor_width = 2,
+	ui_entry_sel_hpad = 0,
+	ui_entry_sel_vpad = 2
 };
 
 /** Text entry control ops */
@@ -180,6 +183,7 @@ errno_t ui_entry_set_text(ui_entry_t *entry, const char *text)
 	free(entry->text);
 	entry->text = tcopy;
 	entry->pos = str_size(text);
+	entry->sel_start = entry->pos;
 
 	return EOK;
 }
@@ -258,7 +262,12 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	ui_entry_geom_t geom;
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
+	gfx_text_fmt_t cfmt;
+	gfx_coord2_t cpos;
 	gfx_rect_t inside;
+	unsigned off1, off2;
+	gfx_rect_t sel;
+	char c;
 	errno_t rc;
 
 	res = ui_window_get_res(entry->window);
@@ -295,7 +304,59 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	if (rc != EOK)
 		goto error;
 
+	off1 = min(entry->pos, entry->sel_start);
+	off2 = max(entry->pos, entry->sel_start);
+
+	/* Render initial segment before start of selection */
+	c = entry->text[off1];
+	entry->text[off1] = '\0';
+
 	rc = gfx_puttext(res->font, &pos, &fmt, entry->text);
+	if (rc != EOK) {
+		(void) gfx_set_clip_rect(res->gc, NULL);
+		goto error;
+	}
+
+	gfx_text_cont(res->font, &pos, &fmt, entry->text, &cpos, &cfmt);
+	entry->text[off1] = c;
+
+	/* Render selected text */
+
+	if (off1 != off2) {
+		c = entry->text[off2];
+		entry->text[off2] = '\0';
+		cfmt.color = res->entry_bg_color;
+
+		gfx_text_rect(res->font, &cpos, &cfmt, entry->text + off1, &sel);
+		sel.p0.x -= ui_entry_sel_hpad;
+		sel.p0.y -= ui_entry_sel_vpad;
+		sel.p1.x += ui_entry_sel_hpad;
+		sel.p1.y += ui_entry_sel_vpad;
+
+		rc = gfx_set_color(res->gc, res->entry_fg_color);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_fill_rect(res->gc, &sel);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_puttext(res->font, &cpos, &cfmt, entry->text + off1);
+		if (rc != EOK) {
+			(void) gfx_set_clip_rect(res->gc, NULL);
+			goto error;
+		}
+
+		gfx_text_cont(res->font, &cpos, &cfmt, entry->text + off1,
+		    &cpos, &cfmt);
+
+		entry->text[off2] = c;
+	}
+
+	/* Render trailing, non-selected text */
+	cfmt.color = res->entry_fg_color;
+
+	rc = gfx_puttext(res->font, &cpos, &cfmt, entry->text + off2);
 	if (rc != EOK) {
 		(void) gfx_set_clip_rect(res->gc, NULL);
 		goto error;
@@ -372,6 +433,26 @@ errno_t ui_entry_ctl_paint(void *arg)
 	return ui_entry_paint(entry);
 }
 
+/** Delete selected text.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_delete_sel(ui_entry_t *entry)
+{
+	size_t off1;
+	size_t off2;
+
+	off1 = min(entry->sel_start, entry->pos);
+	off2 = max(entry->sel_start, entry->pos);
+
+	memmove(entry->text + off1, entry->text + off2,
+	    str_size(entry->text + off2) + 1);
+
+	entry->pos = off1;
+	entry->sel_start = off1;
+	ui_entry_paint(entry);
+}
+
 /** Insert string at cursor position.
  *
  * @param entry Text entry
@@ -385,6 +466,10 @@ errno_t ui_entry_insert_str(ui_entry_t *entry, const char *str)
 	char *newtext;
 	char *oldtext;
 	int rc;
+
+	/* Do we have a selection? */
+	if (entry->sel_start != entry->pos)
+		ui_entry_delete_sel(entry);
 
 	tmp = entry->text[entry->pos];
 	entry->text[entry->pos] = '\0';
@@ -406,6 +491,7 @@ errno_t ui_entry_insert_str(ui_entry_t *entry, const char *str)
 	free(oldtext);
 	free(ltext);
 
+	entry->sel_start = entry->pos;
 	ui_entry_paint(entry);
 
 	return EOK;
@@ -419,6 +505,12 @@ void ui_entry_backspace(ui_entry_t *entry)
 {
 	size_t off;
 
+	/* Do we have a selection? */
+	if (entry->sel_start != entry->pos) {
+		ui_entry_delete_sel(entry);
+		return;
+	}
+
 	if (entry->pos == 0)
 		return;
 
@@ -430,6 +522,7 @@ void ui_entry_backspace(ui_entry_t *entry)
 	memmove(entry->text + off, entry->text + entry->pos,
 	    str_size(entry->text + entry->pos) + 1);
 	entry->pos = off;
+	entry->sel_start = off;
 
 	ui_entry_paint(entry);
 }
@@ -442,7 +535,13 @@ void ui_entry_delete(ui_entry_t *entry)
 {
 	size_t off;
 
-	/* Find offset where character after cursor end */
+	/* Do we have a selection? */
+	if (entry->sel_start != entry->pos) {
+		ui_entry_delete_sel(entry);
+		return;
+	}
+
+	/* Find offset where character after cursor ends */
 	off = entry->pos;
 	(void) str_decode(entry->text, &off,
 	    str_size(entry->text));
@@ -477,19 +576,53 @@ ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *entry, kbd_event_t *event)
 		break;
 
 	case KC_HOME:
-		ui_entry_seek_start(entry);
+		ui_entry_seek_start(entry, false);
 		break;
 
 	case KC_END:
-		ui_entry_seek_end(entry);
+		ui_entry_seek_end(entry, false);
 		break;
 
 	case KC_LEFT:
-		ui_entry_seek_prev_char(entry);
+		ui_entry_seek_prev_char(entry, false);
 		break;
 
 	case KC_RIGHT:
-		ui_entry_seek_next_char(entry);
+		ui_entry_seek_next_char(entry, false);
+		break;
+
+	default:
+		break;
+	}
+
+	return ui_claimed;
+}
+
+/** Handle text entry key press with shift modifier.
+ *
+ * @param entry Text entry
+ * @param kbd_event Keyboard event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_entry_key_press_shift(ui_entry_t *entry, kbd_event_t *event)
+{
+	assert(event->type == KEY_PRESS);
+
+	switch (event->key) {
+	case KC_HOME:
+		ui_entry_seek_start(entry, true);
+		break;
+
+	case KC_END:
+		ui_entry_seek_end(entry, true);
+		break;
+
+	case KC_LEFT:
+		ui_entry_seek_prev_char(entry, true);
+		break;
+
+	case KC_RIGHT:
+		ui_entry_seek_next_char(entry, true);
 		break;
 
 	default:
@@ -526,6 +659,11 @@ ui_evclaim_t ui_entry_kbd_event(ui_entry_t *entry, kbd_event_t *event)
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
 		return ui_entry_key_press_unmod(entry, event);
+
+	if (event->type == KEY_PRESS &&
+	    (event->mods & KM_SHIFT) != 0 &&
+	    (event->mods & (KM_CTRL | KM_ALT)) == 0)
+		return ui_entry_key_press_shift(entry, event);
 
 	return ui_claimed;
 }
@@ -568,6 +706,7 @@ ui_evclaim_t ui_entry_pos_event(ui_entry_t *entry, pos_event_t *event)
 
 		if (gfx_pix_inside_rect(&pos, &entry->rect)) {
 			entry->pos = ui_entry_find_pos(entry, &pos);
+			entry->sel_start = entry->pos;
 			if (entry->active)
 				ui_entry_paint(entry);
 			else
@@ -679,28 +818,37 @@ void ui_entry_activate(ui_entry_t *entry)
 /** Move text cursor to the beginning of text.
  *
  * @param entry Text entry
+ * @param shift @c true iff shift key is pressed
  */
-void ui_entry_seek_start(ui_entry_t *entry)
+void ui_entry_seek_start(ui_entry_t *entry, bool shift)
 {
 	entry->pos = 0;
+
+	if (!shift)
+		entry->sel_start = entry->pos;
 	(void) ui_entry_paint(entry);
 }
 
 /** Move text cursor to the end of text.
  *
  * @param entry Text entry
+ * @param shift @c true iff shift key is pressed
  */
-void ui_entry_seek_end(ui_entry_t *entry)
+void ui_entry_seek_end(ui_entry_t *entry, bool shift)
 {
 	entry->pos = str_size(entry->text);
+
+	if (!shift)
+		entry->sel_start = entry->pos;
 	(void) ui_entry_paint(entry);
 }
 
 /** Move text cursor one character backward.
  *
  * @param entry Text entry
+ * @param shift @c true iff shift key is pressed
  */
-void ui_entry_seek_prev_char(ui_entry_t *entry)
+void ui_entry_seek_prev_char(ui_entry_t *entry, bool shift)
 {
 	size_t off;
 
@@ -708,14 +856,18 @@ void ui_entry_seek_prev_char(ui_entry_t *entry)
 	(void) str_decode_reverse(entry->text, &off,
 	    str_size(entry->text));
 	entry->pos = off;
+
+	if (!shift)
+		entry->sel_start = entry->pos;
 	(void) ui_entry_paint(entry);
 }
 
 /** Move text cursor one character forward.
  *
  * @param entry Text entry
+ * @param shift @c true iff shift key is pressed
  */
-void ui_entry_seek_next_char(ui_entry_t *entry)
+void ui_entry_seek_next_char(ui_entry_t *entry, bool shift)
 {
 	size_t off;
 
@@ -723,6 +875,9 @@ void ui_entry_seek_next_char(ui_entry_t *entry)
 	(void) str_decode(entry->text, &off,
 	    str_size(entry->text));
 	entry->pos = off;
+
+	if (!shift)
+		entry->sel_start = entry->pos;
 	(void) ui_entry_paint(entry);
 }
 
@@ -740,6 +895,7 @@ void ui_entry_deactivate(ui_entry_t *entry)
 		return;
 
 	entry->active = false;
+	entry->sel_start = entry->pos;
 	(void) ui_entry_paint(entry);
 
 	if (res->textmode)

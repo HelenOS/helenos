@@ -49,6 +49,10 @@ extern void gfx_text_start_pos(gfx_font_t *, gfx_coord2_t *, gfx_text_fmt_t *,
     const char *, gfx_coord2_t *);
 extern size_t gfx_text_find_pos(gfx_font_t *, gfx_coord2_t *, gfx_text_fmt_t *,
     const char *, gfx_coord2_t *);
+extern void gfx_text_cont(gfx_font_t *, gfx_coord2_t *, gfx_text_fmt_t *,
+    const char *, gfx_coord2_t *, gfx_text_fmt_t *);
+extern void gfx_text_rect(gfx_font_t *, gfx_coord2_t *, gfx_text_fmt_t *,
+    const char *, gfx_rect_t *);
 
 #endif
 

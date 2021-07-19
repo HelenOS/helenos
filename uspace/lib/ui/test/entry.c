@@ -189,6 +189,47 @@ PCUT_TEST(paint)
 	ui_destroy(ui);
 }
 
+/** ui_entry_delete_sel() deletes selected text */
+PCUT_TEST(delete_sel)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "ABCDEF", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("ABCDEF", entry->text);
+
+	ui_entry_activate(entry);
+
+	/* Select all but first and last character */
+	ui_entry_seek_start(entry, false);
+	ui_entry_seek_next_char(entry, false);
+	ui_entry_seek_end(entry, true);
+	ui_entry_seek_prev_char(entry, true);
+
+	ui_entry_delete_sel(entry);
+
+	PCUT_ASSERT_STR_EQUALS("AF", entry->text);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_entry_insert_str() inserts string at cursor. */
 PCUT_TEST(insert_str)
 {
@@ -213,8 +254,8 @@ PCUT_TEST(insert_str)
 
 	PCUT_ASSERT_STR_EQUALS("A", entry->text);
 
-	/* This moves the cursor to the end of the text */
 	ui_entry_activate(entry);
+	ui_entry_seek_end(entry, false);
 
 	rc = ui_entry_insert_str(entry, "B");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -227,10 +268,52 @@ PCUT_TEST(insert_str)
 	PCUT_ASSERT_STR_EQUALS("ABEF", entry->text);
 
 	entry->pos = 2;
+	entry->sel_start = 2;
 	rc = ui_entry_insert_str(entry, "CD");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_STR_EQUALS("ABCDEF", entry->text);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_entry_insert_str() deletes selection before inserting string */
+PCUT_TEST(insert_str_with_sel)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "ABCDE", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("ABCDE", entry->text);
+
+	/* Select all but the first and last character */
+	ui_entry_activate(entry);
+	ui_entry_seek_start(entry, false);
+	ui_entry_seek_next_char(entry, false);
+	ui_entry_seek_end(entry, true);
+	ui_entry_seek_prev_char(entry, true);
+
+	rc = ui_entry_insert_str(entry, "123");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("A123E", entry->text);
 
 	ui_entry_destroy(entry);
 	ui_window_destroy(window);
@@ -261,6 +344,7 @@ PCUT_TEST(backspace)
 
 	PCUT_ASSERT_STR_EQUALS("ABCD", entry->text);
 	entry->pos = 3;
+	entry->sel_start = 3;
 
 	ui_entry_backspace(entry);
 	PCUT_ASSERT_STR_EQUALS("ABD", entry->text);
@@ -273,6 +357,46 @@ PCUT_TEST(backspace)
 
 	ui_entry_backspace(entry);
 	PCUT_ASSERT_STR_EQUALS("D", entry->text);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_entry_backspace() with selected text deletes selection. */
+PCUT_TEST(backspace_with_sel)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "ABCDE", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("ABCDE", entry->text);
+
+	/* Select all but the first and last character */
+	ui_entry_activate(entry);
+	ui_entry_seek_start(entry, false);
+	ui_entry_seek_next_char(entry, false);
+	ui_entry_seek_end(entry, true);
+	ui_entry_seek_prev_char(entry, true);
+
+	ui_entry_backspace(entry);
+
+	PCUT_ASSERT_STR_EQUALS("AE", entry->text);
 
 	ui_entry_destroy(entry);
 	ui_window_destroy(window);
@@ -303,6 +427,7 @@ PCUT_TEST(delete)
 
 	PCUT_ASSERT_STR_EQUALS("ABCD", entry->text);
 	entry->pos = 1;
+	entry->sel_start = 1;
 
 	ui_entry_delete(entry);
 	PCUT_ASSERT_STR_EQUALS("ACD", entry->text);
@@ -315,6 +440,46 @@ PCUT_TEST(delete)
 
 	ui_entry_delete(entry);
 	PCUT_ASSERT_STR_EQUALS("A", entry->text);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_entry_delete() with selected text deletes selection. */
+PCUT_TEST(delete_with_sel)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "ABCDE", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("ABCDE", entry->text);
+
+	/* Select all but the first and last character */
+	ui_entry_activate(entry);
+	ui_entry_seek_start(entry, false);
+	ui_entry_seek_next_char(entry, false);
+	ui_entry_seek_end(entry, true);
+	ui_entry_seek_prev_char(entry, true);
+
+	ui_entry_delete(entry);
+
+	PCUT_ASSERT_STR_EQUALS("AE", entry->text);
 
 	ui_entry_destroy(entry);
 	ui_window_destroy(window);
@@ -345,9 +510,15 @@ PCUT_TEST(seek_start)
 
 	PCUT_ASSERT_STR_EQUALS("ABCD", entry->text);
 	entry->pos = 2;
+	entry->sel_start = 2;
 
-	ui_entry_seek_start(entry);
+	ui_entry_seek_start(entry, true);
 	PCUT_ASSERT_INT_EQUALS(0, entry->pos);
+	PCUT_ASSERT_INT_EQUALS(2, entry->sel_start);
+
+	ui_entry_seek_start(entry, false);
+	PCUT_ASSERT_INT_EQUALS(0, entry->pos);
+	PCUT_ASSERT_INT_EQUALS(0, entry->sel_start);
 
 	ui_entry_destroy(entry);
 	ui_window_destroy(window);
@@ -378,9 +549,14 @@ PCUT_TEST(seek_end)
 
 	PCUT_ASSERT_STR_EQUALS("ABCD", entry->text);
 	entry->pos = 2;
+	entry->sel_start = 2;
 
-	ui_entry_seek_end(entry);
+	ui_entry_seek_end(entry, true);
 	PCUT_ASSERT_INT_EQUALS(4, entry->pos);
+	PCUT_ASSERT_INT_EQUALS(2, entry->sel_start);
+	ui_entry_seek_end(entry, false);
+	PCUT_ASSERT_INT_EQUALS(4, entry->pos);
+	PCUT_ASSERT_INT_EQUALS(4, entry->sel_start);
 
 	ui_entry_destroy(entry);
 	ui_window_destroy(window);
@@ -410,10 +586,16 @@ PCUT_TEST(seek_prev_char)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_STR_EQUALS("ABCD", entry->text);
-	entry->pos = 2;
+	entry->pos = 3;
+	entry->sel_start = 3;
 
-	ui_entry_seek_prev_char(entry);
+	ui_entry_seek_prev_char(entry, true);
+	PCUT_ASSERT_INT_EQUALS(2, entry->pos);
+	PCUT_ASSERT_INT_EQUALS(3, entry->sel_start);
+
+	ui_entry_seek_prev_char(entry, false);
 	PCUT_ASSERT_INT_EQUALS(1, entry->pos);
+	PCUT_ASSERT_INT_EQUALS(1, entry->sel_start);
 
 	ui_entry_destroy(entry);
 	ui_window_destroy(window);
@@ -443,10 +625,15 @@ PCUT_TEST(seek_next_char)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_STR_EQUALS("ABCD", entry->text);
-	entry->pos = 2;
+	entry->pos = 1;
+	entry->sel_start = 1;
 
-	ui_entry_seek_next_char(entry);
+	ui_entry_seek_next_char(entry, true);
+	PCUT_ASSERT_INT_EQUALS(2, entry->pos);
+	PCUT_ASSERT_INT_EQUALS(1, entry->sel_start);
+	ui_entry_seek_next_char(entry, false);
 	PCUT_ASSERT_INT_EQUALS(3, entry->pos);
+	PCUT_ASSERT_INT_EQUALS(3, entry->sel_start);
 
 	ui_entry_destroy(entry);
 	ui_window_destroy(window);

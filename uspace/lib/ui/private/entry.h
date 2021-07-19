@@ -59,6 +59,8 @@ struct ui_entry {
 	char *text;
 	/** Cursor position in the text (offset in bytes) */
 	unsigned pos;
+	/** Selection start position in text (offset in bytes) */
+	unsigned sel_start;
 	/** Pointer is currently inside */
 	bool pointer_inside;
 	/** Entry is activated */
@@ -77,9 +79,11 @@ typedef struct {
 } ui_entry_geom_t;
 
 extern errno_t ui_entry_insert_str(ui_entry_t *, const char *);
+extern ui_evclaim_t ui_entry_key_press_shift(ui_entry_t *, kbd_event_t *);
 extern ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *, kbd_event_t *);
 extern void ui_entry_get_geom(ui_entry_t *, ui_entry_geom_t *);
 extern size_t ui_entry_find_pos(ui_entry_t *, gfx_coord2_t *);
+extern void ui_entry_delete_sel(ui_entry_t *);
 extern void ui_entry_activate(ui_entry_t *);
 extern void ui_entry_deactivate(ui_entry_t *);
 

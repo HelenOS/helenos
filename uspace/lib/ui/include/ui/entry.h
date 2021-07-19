@@ -54,10 +54,10 @@ extern errno_t ui_entry_set_text(ui_entry_t *, const char *);
 extern errno_t ui_entry_paint(ui_entry_t *);
 extern void ui_entry_backspace(ui_entry_t *);
 extern void ui_entry_delete(ui_entry_t *);
-extern void ui_entry_seek_start(ui_entry_t *);
-extern void ui_entry_seek_end(ui_entry_t *);
-extern void ui_entry_seek_prev_char(ui_entry_t *);
-extern void ui_entry_seek_next_char(ui_entry_t *);
+extern void ui_entry_seek_start(ui_entry_t *, bool);
+extern void ui_entry_seek_end(ui_entry_t *, bool);
+extern void ui_entry_seek_prev_char(ui_entry_t *, bool);
+extern void ui_entry_seek_next_char(ui_entry_t *, bool);
 extern ui_evclaim_t ui_entry_kbd_event(ui_entry_t *, kbd_event_t *);
 extern ui_evclaim_t ui_entry_pos_event(ui_entry_t *, pos_event_t *);
 

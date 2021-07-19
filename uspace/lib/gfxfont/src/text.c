@@ -173,7 +173,6 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
  * @param fmt Text formatting
  * @param str String
  * @param spos Place to store starting position
- * @return EOK on success or an error code
  */
 void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
     gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *spos)
@@ -330,6 +329,64 @@ size_t gfx_text_find_pos(gfx_font_t *font, gfx_coord2_t *pos,
 	}
 
 	return off;
+}
+
+/** Get text continuation parameters.
+ *
+ * Return the anchor position and format needed to continue printing
+ * text after the specified string. It is allowed for the sources
+ * (@a pos, @a fmt) and destinations (@a cpos, @a cfmt) to point
+ * to the same objects, respectively.
+ *
+ * @param font Font
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String
+ * @param cpos Place to store anchor position for continuation
+ * @param cfmt Place to store format for continuation
+ */
+void gfx_text_cont(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *cpos,
+    gfx_text_fmt_t *cfmt)
+{
+	gfx_coord2_t spos;
+	gfx_text_fmt_t tfmt;
+
+	/* Continuation should start where the current string ends */
+	gfx_text_start_pos(font, pos, fmt, str, &spos);
+	cpos->x = spos.x + gfx_text_width(font, str);
+	cpos->y = spos.y;
+
+	/*
+	 * Formatting is the same, except the text should be aligned
+	 * so that it starts at the anchor point.
+	 */
+	tfmt = *fmt;
+	tfmt.halign = gfx_halign_left;
+	tfmt.valign = gfx_valign_baseline;
+
+	*cfmt = tfmt;
+}
+
+/** Get text bounding rectangle.
+ *
+ * @param font Font
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String
+ * @param rect Place to store bounding rectangle
+ */
+void gfx_text_rect(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str, gfx_rect_t *rect)
+{
+	gfx_coord2_t spos;
+
+	gfx_text_start_pos(font, pos, fmt, str, &spos);
+
+	rect->p0.x = spos.x;
+	rect->p0.y = spos.y - font->metrics.ascent;
+	rect->p1.x = spos.x + gfx_text_width(font, str);
+	rect->p1.y = spos.y + font->metrics.descent + 1;
 }
 
 /** @}
