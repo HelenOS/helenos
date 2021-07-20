@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <clipboard.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
 #include <mem.h>
@@ -486,6 +487,134 @@ PCUT_TEST(delete_with_sel)
 	ui_destroy(ui);
 }
 
+/** ui_entry_copy() copies selected text to clipboard. */
+PCUT_TEST(copy)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+	char *str;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "ABCDEF", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_entry_activate(entry);
+	ui_entry_seek_start(entry, false);
+	ui_entry_seek_next_char(entry, false);
+	ui_entry_seek_end(entry, true);
+	ui_entry_seek_prev_char(entry, true);
+
+	// FIXME: This is not safe unless we could create a private
+	// test clipboard
+
+	ui_entry_copy(entry);
+	rc = clipboard_get_str(&str);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS("BCDE", str);
+	PCUT_ASSERT_STR_EQUALS("ABCDEF", entry->text);
+	free(str);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_entry_cut() cuts selected text to clipboard. */
+PCUT_TEST(cut)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+	char *str;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "ABCDEF", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_entry_activate(entry);
+	ui_entry_seek_start(entry, false);
+	ui_entry_seek_next_char(entry, false);
+	ui_entry_seek_end(entry, true);
+	ui_entry_seek_prev_char(entry, true);
+
+	// FIXME: This is not safe unless we could create a private
+	// test clipboard
+
+	ui_entry_cut(entry);
+	rc = clipboard_get_str(&str);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS("BCDE", str);
+	PCUT_ASSERT_STR_EQUALS("AF", entry->text);
+	free(str);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_entry_paste() pastes text from clipboard. */
+PCUT_TEST(paste)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "AB", &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_entry_activate(entry);
+	ui_entry_seek_start(entry, false);
+	ui_entry_seek_next_char(entry, false);
+
+	// FIXME: This is not safe unless we could create a private
+	// test clipboard
+
+	rc = clipboard_put_str("123");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_entry_paste(entry);
+	PCUT_ASSERT_STR_EQUALS("A123B", entry->text);
+
+	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_entry_seek_start() moves cursor to beginning of text */
 PCUT_TEST(seek_start)
 {
@@ -505,10 +634,11 @@ PCUT_TEST(seek_start)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_entry_create(window, "ABCD", &entry);
+	rc = ui_entry_create(window, "ABCDEF", &entry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_STR_EQUALS("ABCD", entry->text);
+	ui_entry_activate(entry);
+
 	entry->pos = 2;
 	entry->sel_start = 2;
 

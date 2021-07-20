@@ -79,6 +79,7 @@ typedef struct {
 } ui_entry_geom_t;
 
 extern errno_t ui_entry_insert_str(ui_entry_t *, const char *);
+extern ui_evclaim_t ui_entry_key_press_ctrl(ui_entry_t *, kbd_event_t *);
 extern ui_evclaim_t ui_entry_key_press_shift(ui_entry_t *, kbd_event_t *);
 extern ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *, kbd_event_t *);
 extern void ui_entry_get_geom(ui_entry_t *, ui_entry_geom_t *);

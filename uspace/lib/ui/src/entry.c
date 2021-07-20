@@ -36,6 +36,7 @@
  * by its looks.
  */
 
+#include <clipboard.h>
 #include <errno.h>
 #include <gfx/context.h>
 #include <gfx/cursor.h>
@@ -552,6 +553,54 @@ void ui_entry_delete(ui_entry_t *entry)
 	ui_entry_paint(entry);
 }
 
+/** Copy selected text to clipboard.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_copy(ui_entry_t *entry)
+{
+	unsigned off1;
+	unsigned off2;
+	char c;
+
+	off1 = min(entry->pos, entry->sel_start);
+	off2 = max(entry->pos, entry->sel_start);
+
+	c = entry->text[off2];
+	entry->text[off2] = '\0';
+
+	(void) clipboard_put_str(entry->text + off1);
+
+	entry->text[off2] = c;
+}
+
+/** Cut selected text to clipboard.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_cut(ui_entry_t *entry)
+{
+	ui_entry_copy(entry);
+	ui_entry_delete_sel(entry);
+}
+
+/** Paste text from clipboard.
+ *
+ * @param entry Text entry
+ */
+void ui_entry_paste(ui_entry_t *entry)
+{
+	char *str;
+	errno_t rc;
+
+	rc = clipboard_get_str(&str);
+	if (rc != EOK)
+		return;
+
+	ui_entry_insert_str(entry, str);
+	free(str);
+}
+
 /** Handle text entry key press without modifiers.
  *
  * @param entry Text entry
@@ -632,6 +681,33 @@ ui_evclaim_t ui_entry_key_press_shift(ui_entry_t *entry, kbd_event_t *event)
 	return ui_claimed;
 }
 
+/** Handle text entry key press with control modifier.
+ *
+ * @param entry Text entry
+ * @param kbd_event Keyboard event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t ui_entry_key_press_ctrl(ui_entry_t *entry, kbd_event_t *event)
+{
+	assert(event->type == KEY_PRESS);
+
+	switch (event->key) {
+	case KC_C:
+		ui_entry_copy(entry);
+		break;
+	case KC_V:
+		ui_entry_paste(entry);
+		break;
+	case KC_X:
+		ui_entry_cut(entry);
+		break;
+	default:
+		break;
+	}
+
+	return ui_claimed;
+}
+
 /** Handle text entry keyboard event.
  *
  * @param entry Text entry
@@ -664,6 +740,11 @@ ui_evclaim_t ui_entry_kbd_event(ui_entry_t *entry, kbd_event_t *event)
 	    (event->mods & KM_SHIFT) != 0 &&
 	    (event->mods & (KM_CTRL | KM_ALT)) == 0)
 		return ui_entry_key_press_shift(entry, event);
+
+	if (event->type == KEY_PRESS &&
+	    (event->mods & KM_CTRL) != 0 &&
+	    (event->mods & (KM_ALT | KM_SHIFT)) == 0)
+		return ui_entry_key_press_ctrl(entry, event);
 
 	return ui_claimed;
 }
