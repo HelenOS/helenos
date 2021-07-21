@@ -67,6 +67,10 @@ struct ui_entry {
 	bool active;
 	/** Button is held down */
 	bool held;
+	/** Left shift is held down */
+	bool lshift_held;
+	/** Right shift is held down */
+	bool rshift_held;
 };
 
 /** Text entry geometry.

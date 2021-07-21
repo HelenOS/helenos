@@ -732,6 +732,22 @@ ui_evclaim_t ui_entry_kbd_event(ui_entry_t *entry, kbd_event_t *event)
 		}
 	}
 
+	/*
+	 * Need to keep track if any shift is held for the case
+	 * of selecting by shift-click. This could be simplified
+	 * if position events were decorated with modifier
+	 * state.
+	 */
+
+	if (event->type == KEY_PRESS && event->key == KC_LSHIFT)
+		entry->lshift_held = true;
+	if (event->type == KEY_RELEASE && event->key == KC_LSHIFT)
+		entry->lshift_held = false;
+	if (event->type == KEY_PRESS && event->key == KC_RSHIFT)
+		entry->rshift_held = true;
+	if (event->type == KEY_RELEASE && event->key == KC_RSHIFT)
+		entry->rshift_held = false;
+
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
 		return ui_entry_key_press_unmod(entry, event);
@@ -799,7 +815,11 @@ ui_evclaim_t ui_entry_pos_event(ui_entry_t *entry, pos_event_t *event)
 			/* Clicked inside - activate, set position */
 			entry->held = true;
 			entry->pos = ui_entry_find_pos(entry, &pos);
-			entry->sel_start = entry->pos;
+
+			/* Clear selection if no shift key is held */
+			if (!entry->lshift_held && !entry->rshift_held)
+				entry->sel_start = entry->pos;
+
 			if (entry->active)
 				ui_entry_paint(entry);
 			else
