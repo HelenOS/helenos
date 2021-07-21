@@ -766,6 +766,7 @@ ui_evclaim_t ui_entry_pos_event(ui_entry_t *entry, pos_event_t *event)
 		pos.x = event->hpos;
 		pos.y = event->vpos;
 
+		/* Change cursor shape when pointer is entering/leaving */
 		if (gfx_pix_inside_rect(&pos, &entry->rect)) {
 			if (!entry->pointer_inside) {
 				ui_window_set_ctl_cursor(entry->window,
@@ -779,6 +780,15 @@ ui_evclaim_t ui_entry_pos_event(ui_entry_t *entry, pos_event_t *event)
 				entry->pointer_inside = false;
 			}
 		}
+
+		if (entry->held) {
+			/*
+			 * Selecting using mouse drag: Change pos,
+			 * keep sel_start
+			 */
+			entry->pos = ui_entry_find_pos(entry, &pos);
+			ui_entry_paint(entry);
+		}
 	}
 
 	if (event->type == POS_PRESS) {
@@ -786,6 +796,8 @@ ui_evclaim_t ui_entry_pos_event(ui_entry_t *entry, pos_event_t *event)
 		pos.y = event->vpos;
 
 		if (gfx_pix_inside_rect(&pos, &entry->rect)) {
+			/* Clicked inside - activate, set position */
+			entry->held = true;
 			entry->pos = ui_entry_find_pos(entry, &pos);
 			entry->sel_start = entry->pos;
 			if (entry->active)
@@ -795,8 +807,13 @@ ui_evclaim_t ui_entry_pos_event(ui_entry_t *entry, pos_event_t *event)
 
 			return ui_claimed;
 		} else {
+			/* Clicked outside - deactivate */
 			ui_entry_deactivate(entry);
 		}
+	}
+
+	if (event->type == POS_RELEASE) {
+		entry->held = false;
 	}
 
 	return ui_unclaimed;

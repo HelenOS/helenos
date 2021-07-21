@@ -65,6 +65,8 @@ struct ui_entry {
 	bool pointer_inside;
 	/** Entry is activated */
 	bool active;
+	/** Button is held down */
+	bool held;
 };
 
 /** Text entry geometry.
