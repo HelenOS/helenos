@@ -95,6 +95,13 @@ static ui_msg_dialog_cb_t msg_dialog_cb = {
 	.close = msg_dialog_close
 };
 
+/** Horizontal alignment selected by each radio button */
+static const gfx_halign_t uidemo_halign[3] = {
+	gfx_halign_left,
+	gfx_halign_center,
+	gfx_halign_right
+};
+
 /** Window close button was clicked.
  *
  * @param window Window
@@ -138,19 +145,8 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 static void checkbox_switched(ui_checkbox_t *checkbox, void *arg, bool enable)
 {
 	ui_demo_t *demo = (ui_demo_t *) arg;
-	errno_t rc;
 
-	if (enable) {
-		rc = ui_entry_set_text(demo->entry, "Checked");
-		if (rc != EOK)
-			printf("Error changing entry text.\n");
-		(void) ui_entry_paint(demo->entry);
-	} else {
-		rc = ui_entry_set_text(demo->entry, "Unchecked");
-		if (rc != EOK)
-			printf("Error changing entry text.\n");
-		(void) ui_entry_paint(demo->entry);
-	}
+	ui_entry_set_read_only(demo->entry, enable);
 }
 
 /** Radio button was selected.
@@ -162,12 +158,9 @@ static void checkbox_switched(ui_checkbox_t *checkbox, void *arg, bool enable)
 static void rb_selected(ui_rbutton_group_t *rbgroup, void *garg, void *barg)
 {
 	ui_demo_t *demo = (ui_demo_t *) garg;
-	const char *text = (const char *) barg;
-	errno_t rc;
+	gfx_halign_t halign = *(gfx_halign_t *) barg;
 
-	rc = ui_entry_set_text(demo->entry, text);
-	if (rc != EOK)
-		printf("Error changing entry text.\n");
+	ui_entry_set_halign(demo->entry, halign);
 	(void) ui_entry_paint(demo->entry);
 }
 
@@ -577,7 +570,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_checkbox_create(ui_res, "Check me", &demo.checkbox);
+	rc = ui_checkbox_create(ui_res, "Read only", &demo.checkbox);
 	if (rc != EOK) {
 		printf("Error creating check box.\n");
 		return rc;
@@ -603,8 +596,8 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_rbutton_create(demo.rbgroup, "Option 1", (void *) "First",
-	    &demo.rb1);
+	rc = ui_rbutton_create(demo.rbgroup, "Left", (void *) &uidemo_halign[0],
+	    &demo.rbleft);
 	if (rc != EOK) {
 		printf("Error creating radio button.\n");
 		return rc;
@@ -617,16 +610,16 @@ static errno_t ui_demo(const char *display_spec)
 	rect.p0.y = 220;
 	rect.p1.x = 140;
 	rect.p1.y = 240;
-	ui_rbutton_set_rect(demo.rb1, &rect);
+	ui_rbutton_set_rect(demo.rbleft, &rect);
 
-	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb1));
+	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rbleft));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
 	}
 
-	rc = ui_rbutton_create(demo.rbgroup, "Option 2", (void *) "Second",
-	    &demo.rb2);
+	rc = ui_rbutton_create(demo.rbgroup, "Center", (void *) &uidemo_halign[1],
+	    &demo.rbcenter);
 	if (rc != EOK) {
 		printf("Error creating radio button.\n");
 		return rc;
@@ -636,16 +629,17 @@ static errno_t ui_demo(const char *display_spec)
 	rect.p0.y = 250;
 	rect.p1.x = 140;
 	rect.p1.y = 270;
-	ui_rbutton_set_rect(demo.rb2, &rect);
+	ui_rbutton_set_rect(demo.rbcenter, &rect);
+	ui_rbutton_select(demo.rbcenter);
 
-	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb2));
+	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rbcenter));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
 	}
 
-	rc = ui_rbutton_create(demo.rbgroup, "Option 3", (void *) "Third",
-	    &demo.rb3);
+	rc = ui_rbutton_create(demo.rbgroup, "Right", (void *) &uidemo_halign[2],
+	    &demo.rbright);
 	if (rc != EOK) {
 		printf("Error creating radio button.\n");
 		return rc;
@@ -655,9 +649,9 @@ static errno_t ui_demo(const char *display_spec)
 	rect.p0.y = 280;
 	rect.p1.x = 140;
 	rect.p1.y = 300;
-	ui_rbutton_set_rect(demo.rb3, &rect);
+	ui_rbutton_set_rect(demo.rbright, &rect);
 
-	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rb3));
+	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rbright));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;

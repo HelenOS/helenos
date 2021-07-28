@@ -315,8 +315,6 @@ void ui_rbutton_press(ui_rbutton_t *rbutton)
  */
 void ui_rbutton_release(ui_rbutton_t *rbutton)
 {
-	ui_rbutton_t *old_selected;
-
 	if (!rbutton->held)
 		return;
 
@@ -324,18 +322,7 @@ void ui_rbutton_release(ui_rbutton_t *rbutton)
 
 	if (rbutton->inside) {
 		/* Activate radio button */
-		old_selected = rbutton->group->selected;
-
-		if (old_selected != rbutton) {
-			rbutton->group->selected = rbutton;
-			ui_rbutton_paint(old_selected);
-		}
-
-		/* Repaint and notify */
-		(void) ui_rbutton_paint(rbutton);
-
-		if (old_selected != rbutton)
-			ui_rbutton_selected(rbutton);
+		ui_rbutton_select(rbutton);
 	}
 }
 
@@ -367,7 +354,29 @@ void ui_rbutton_leave(ui_rbutton_t *rbutton)
 		(void) ui_rbutton_paint(rbutton);
 }
 
-/** Button was selected.
+/** Select radio button.
+ *
+ * @param rbutton Radio button
+ */
+void ui_rbutton_select(ui_rbutton_t *rbutton)
+{
+	ui_rbutton_t *old_selected;
+
+	old_selected = rbutton->group->selected;
+
+	if (old_selected != rbutton) {
+		rbutton->group->selected = rbutton;
+		ui_rbutton_paint(old_selected);
+	}
+
+	/* Repaint and notify */
+	(void) ui_rbutton_paint(rbutton);
+
+	if (old_selected != rbutton)
+		ui_rbutton_selected(rbutton);
+}
+
+/** Notify that button was selected.
  *
  * @param rbutton Radio button
  */

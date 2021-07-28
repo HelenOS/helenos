@@ -60,6 +60,7 @@ extern void ui_rbutton_press(ui_rbutton_t *);
 extern void ui_rbutton_release(ui_rbutton_t *);
 extern void ui_rbutton_enter(ui_rbutton_t *);
 extern void ui_rbutton_leave(ui_rbutton_t *);
+extern void ui_rbutton_select(ui_rbutton_t *);
 extern void ui_rbutton_selected(ui_rbutton_t *);
 extern ui_evclaim_t ui_rbutton_pos_event(ui_rbutton_t *, pos_event_t *);
 
