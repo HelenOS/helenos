@@ -1090,7 +1090,7 @@ void ui_entry_scroll_update(ui_entry_t *entry, bool realign)
 	 * about the left edge of the cursor).
 	 */
 	if (x > geom.text_rect.p1.x)
-		entry->scroll_pos -= x + 2 - geom.text_rect.p1.x;
+		entry->scroll_pos -= x - geom.text_rect.p1.x;
 
 	width = gfx_text_width(res->font, entry->text);
 
