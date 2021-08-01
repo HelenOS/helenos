@@ -128,12 +128,10 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 		rc = ui_entry_set_text(demo->entry, "OK pressed");
 		if (rc != EOK)
 			printf("Error changing entry text.\n");
-		(void) ui_entry_paint(demo->entry);
 	} else {
 		rc = ui_entry_set_text(demo->entry, "Cancel pressed");
 		if (rc != EOK)
 			printf("Error changing entry text.\n");
-		(void) ui_entry_paint(demo->entry);
 	}
 }
 

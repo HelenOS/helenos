@@ -66,7 +66,9 @@ enum {
 	ui_entry_cursor_overshoot = 1,
 	ui_entry_cursor_width = 2,
 	ui_entry_sel_hpad = 0,
-	ui_entry_sel_vpad = 2
+	ui_entry_sel_vpad = 2,
+	/** Additional amount to scroll to the left after revealing cursor */
+	ui_entry_left_scroll_margin = 30
 };
 
 /** Text entry control ops */
@@ -155,6 +157,8 @@ void ui_entry_set_rect(ui_entry_t *entry, gfx_rect_t *rect)
 void ui_entry_set_halign(ui_entry_t *entry, gfx_halign_t halign)
 {
 	entry->halign = halign;
+	ui_entry_scroll_update(entry, true);
+	ui_entry_paint(entry);
 }
 
 /** Set text entry read-only flag.
@@ -185,6 +189,8 @@ errno_t ui_entry_set_text(ui_entry_t *entry, const char *text)
 	entry->text = tcopy;
 	entry->pos = str_size(text);
 	entry->sel_start = entry->pos;
+	ui_entry_scroll_update(entry, false);
+	ui_entry_paint(entry);
 
 	return EOK;
 }
@@ -451,6 +457,7 @@ void ui_entry_delete_sel(ui_entry_t *entry)
 
 	entry->pos = off1;
 	entry->sel_start = off1;
+	ui_entry_scroll_update(entry, false);
 	ui_entry_paint(entry);
 }
 
@@ -493,6 +500,7 @@ errno_t ui_entry_insert_str(ui_entry_t *entry, const char *str)
 	free(ltext);
 
 	entry->sel_start = entry->pos;
+	ui_entry_scroll_update(entry, false);
 	ui_entry_paint(entry);
 
 	return EOK;
@@ -525,6 +533,7 @@ void ui_entry_backspace(ui_entry_t *entry)
 	entry->pos = off;
 	entry->sel_start = off;
 
+	ui_entry_scroll_update(entry, false);
 	ui_entry_paint(entry);
 }
 
@@ -550,6 +559,7 @@ void ui_entry_delete(ui_entry_t *entry)
 	memmove(entry->text + entry->pos, entry->text + off,
 	    str_size(entry->text + off) + 1);
 
+	ui_entry_scroll_update(entry, false);
 	ui_entry_paint(entry);
 }
 
@@ -874,7 +884,6 @@ void ui_entry_get_geom(ui_entry_t *entry, ui_entry_geom_t *geom)
 {
 	gfx_coord_t hpad;
 	gfx_coord_t vpad;
-	gfx_coord_t width;
 	ui_resource_t *res;
 
 	res = ui_window_get_res(entry->window);
@@ -894,23 +903,28 @@ void ui_entry_get_geom(ui_entry_t *entry, ui_entry_geom_t *geom)
 		geom->interior_rect = entry->rect;
 	}
 
-	width = gfx_text_width(res->font, entry->text);
+	geom->text_rect.p0.x = geom->interior_rect.p0.x + hpad;
+	geom->text_rect.p0.y = geom->interior_rect.p0.y + vpad;
+	geom->text_rect.p1.x = geom->interior_rect.p1.x - hpad;
+	geom->text_rect.p1.y = geom->interior_rect.p1.y - vpad;
+
+	geom->text_pos.x = geom->interior_rect.p0.x + hpad +
+	    entry->scroll_pos;
+	geom->text_pos.y = geom->interior_rect.p0.y + vpad;
 
 	switch (entry->halign) {
 	case gfx_halign_left:
 	case gfx_halign_justify:
-		geom->text_pos.x = geom->interior_rect.p0.x + hpad;
+		geom->anchor_x = geom->text_rect.p0.x;
 		break;
 	case gfx_halign_center:
-		geom->text_pos.x = (geom->interior_rect.p0.x +
-		    geom->interior_rect.p1.x) / 2 - width / 2;
+		geom->anchor_x = (geom->text_rect.p0.x +
+		    geom->text_rect.p1.x) / 2;
 		break;
 	case gfx_halign_right:
-		geom->text_pos.x = geom->interior_rect.p1.x - hpad - 1 - width;
+		geom->anchor_x = geom->text_rect.p1.x;
 		break;
 	}
-
-	geom->text_pos.y = geom->interior_rect.p0.y + vpad;
 }
 
 /** Activate text entry.
@@ -944,6 +958,8 @@ void ui_entry_seek_start(ui_entry_t *entry, bool shift)
 
 	if (!shift)
 		entry->sel_start = entry->pos;
+
+	ui_entry_scroll_update(entry, false);
 	(void) ui_entry_paint(entry);
 }
 
@@ -958,6 +974,8 @@ void ui_entry_seek_end(ui_entry_t *entry, bool shift)
 
 	if (!shift)
 		entry->sel_start = entry->pos;
+
+	ui_entry_scroll_update(entry, false);
 	(void) ui_entry_paint(entry);
 }
 
@@ -977,6 +995,8 @@ void ui_entry_seek_prev_char(ui_entry_t *entry, bool shift)
 
 	if (!shift)
 		entry->sel_start = entry->pos;
+
+	ui_entry_scroll_update(entry, false);
 	(void) ui_entry_paint(entry);
 }
 
@@ -996,6 +1016,8 @@ void ui_entry_seek_next_char(ui_entry_t *entry, bool shift)
 
 	if (!shift)
 		entry->sel_start = entry->pos;
+
+	ui_entry_scroll_update(entry, false);
 	(void) ui_entry_paint(entry);
 }
 
@@ -1018,6 +1040,76 @@ void ui_entry_deactivate(ui_entry_t *entry)
 
 	if (res->textmode)
 		gfx_cursor_set_visible(res->gc, false);
+}
+
+/** Update text entry scroll position.
+ *
+ * @param entry Text entry
+ * @param realign @c true iff we should left-align short text.
+ *                This should be only used when changing text alignment,
+ *                because left-aligned text entries should not realign
+ *                the text to the left side under normal circumstances.
+ */
+void ui_entry_scroll_update(ui_entry_t *entry, bool realign)
+{
+	ui_entry_geom_t geom;
+	gfx_coord_t x;
+	gfx_coord_t width;
+	gfx_coord2_t tpos;
+	gfx_coord2_t anchor;
+	gfx_text_fmt_t fmt;
+	ui_resource_t *res;
+
+	res = ui_window_get_res(entry->window);
+
+	ui_entry_get_geom(entry, &geom);
+
+	/* Compute position where cursor is currently displayed at */
+	x = geom.text_pos.x + ui_entry_lwidth(entry);
+
+	/* Is cursor off to the left? */
+	if (x < geom.text_rect.p0.x) {
+		/*
+		 * Scroll to make cursor visible and put some space between it
+		 * and the left edge of the text rectangle.
+		 */
+		entry->scroll_pos += geom.text_rect.p0.x - x +
+		    ui_entry_left_scroll_margin;
+
+		/*
+		 * We don't want to scroll further than what's needed
+		 * to reveal the beginning of the text.
+		 */
+		if (entry->scroll_pos > 0)
+			entry->scroll_pos = 0;
+	}
+
+	/*
+	 * Is cursor off to the right? Note that the width of the cursor
+	 * is deliberately not taken into account (i.e. we only care
+	 * about the left edge of the cursor).
+	 */
+	if (x > geom.text_rect.p1.x)
+		entry->scroll_pos -= x + 2 - geom.text_rect.p1.x;
+
+	width = gfx_text_width(res->font, entry->text);
+
+	if (width < geom.text_rect.p1.x - geom.text_rect.p0.x &&
+	    (realign || entry->halign != gfx_halign_left)) {
+		/* Text fits inside entry, so we need to align it */
+		anchor.x = geom.anchor_x;
+		anchor.y = 0;
+		gfx_text_fmt_init(&fmt);
+		fmt.halign = entry->halign;
+		gfx_text_start_pos(res->font, &anchor, &fmt, entry->text,
+		    &tpos);
+		entry->scroll_pos = tpos.x - geom.text_rect.p0.x;
+	} else if (geom.text_pos.x + width < geom.text_rect.p1.x &&
+	    entry->halign != gfx_halign_left) {
+		/* Text is long, unused space on the right */
+		entry->scroll_pos += geom.text_rect.p1.x -
+		    geom.text_pos.x - width;
+	}
 }
 
 /** @}
