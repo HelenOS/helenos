@@ -158,6 +158,9 @@ _NO_TRACE static inline void set_ptl0_addr(pte_t *pt)
 	val |= TTBR_RGN_WBWA_CACHE | TTBR_C_FLAG;
 #endif
 	TTBR0_write(val);
+#if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
+	BPIALL_write(0);
+#endif
 }
 
 _NO_TRACE static inline void set_ptl1_addr(pte_t *pt, size_t i, uintptr_t address)

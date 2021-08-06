@@ -169,8 +169,6 @@ void cpu_arch_init(void)
 	 * this flag).
 	 */
 	control_reg |= SCTLR_CACHE_EN_FLAG;
-#endif
-#ifdef PROCESSOR_ARCH_armv7_a
 	/*
 	 * ICache coherency is elaborated on in barrier.h.
 	 * VIPT and PIPT caches need maintenance only on code modify,
