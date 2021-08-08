@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,10 +41,10 @@
 #include <inet/addr.h>
 #include "ethip.h"
 
-extern errno_t atrans_add(addr32_t, addr48_t);
+extern errno_t atrans_add(addr32_t, addr48_t *);
 extern errno_t atrans_remove(addr32_t);
-extern errno_t atrans_lookup(addr32_t, addr48_t);
-extern errno_t atrans_lookup_timeout(addr32_t, usec_t, addr48_t);
+extern errno_t atrans_lookup(addr32_t, addr48_t *);
+extern errno_t atrans_lookup_timeout(addr32_t, usec_t, addr48_t *);
 
 #endif
 

@@ -31,6 +31,7 @@ src = files(
 	'src/dhcp.c',
 	'src/dnsr.c',
 	'src/endpoint.c',
+	'src/eth_addr.c',
 	'src/host.c',
 	'src/hostname.c',
 	'src/hostport.c',

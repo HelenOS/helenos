@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -238,11 +238,11 @@ errno_t inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 		/*
 		 * Translate local destination IPv6 address.
 		 */
-		rc = ndp_translate(lsrc_v6, ldest_v6, ldest_mac, addr->ilink);
+		rc = ndp_translate(lsrc_v6, ldest_v6, &ldest_mac, addr->ilink);
 		if (rc != EOK)
 			return rc;
 
-		return inet_link_send_dgram6(addr->ilink, ldest_mac, dgram,
+		return inet_link_send_dgram6(addr->ilink, &ldest_mac, dgram,
 		    proto, ttl, df);
 	default:
 		assert(false);

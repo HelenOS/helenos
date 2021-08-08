@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -369,9 +369,9 @@ static errno_t link_list(void)
 
 		table_printf(table, "%02x:%02x:%02x:%02x:%02x:%02x\t"
 		    "%s\t" "%zu\n",
-		    linfo.mac_addr[0], linfo.mac_addr[1],
-		    linfo.mac_addr[2], linfo.mac_addr[3],
-		    linfo.mac_addr[4], linfo.mac_addr[5],
+		    linfo.mac_addr.b[0], linfo.mac_addr.b[1],
+		    linfo.mac_addr.b[2], linfo.mac_addr.b[3],
+		    linfo.mac_addr.b[4], linfo.mac_addr.b[5],
 		    linfo.name, linfo.def_mtu);
 
 		free(linfo.name);

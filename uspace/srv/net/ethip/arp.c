@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,15 +78,15 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Request/reply to my address");
 
 	(void) atrans_add(packet.sender_proto_addr,
-	    packet.sender_hw_addr);
+	    &packet.sender_hw_addr);
 
 	if (packet.opcode == aop_request) {
 		arp_eth_packet_t reply;
 
 		reply.opcode = aop_reply;
-		addr48(nic->mac_addr, reply.sender_hw_addr);
+		addr48(&nic->mac_addr, &reply.sender_hw_addr);
 		reply.sender_proto_addr = laddr_v4;
-		addr48(packet.sender_hw_addr, reply.target_hw_addr);
+		addr48(&packet.sender_hw_addr, &reply.target_hw_addr);
 		reply.target_proto_addr = packet.sender_proto_addr;
 
 		arp_send_packet(nic, &reply);
@@ -94,11 +94,11 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 }
 
 errno_t arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
-    addr48_t mac_addr)
+    addr48_t *mac_addr)
 {
 	/* Broadcast address */
 	if (ip_addr == addr32_broadcast_all_hosts) {
-		addr48(addr48_broadcast, mac_addr);
+		addr48(&addr48_broadcast, mac_addr);
 		return EOK;
 	}
 
@@ -109,9 +109,9 @@ errno_t arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
 	arp_eth_packet_t packet;
 
 	packet.opcode = aop_request;
-	addr48(nic->mac_addr, packet.sender_hw_addr);
+	addr48(&nic->mac_addr, &packet.sender_hw_addr);
 	packet.sender_proto_addr = src_addr;
-	addr48(addr48_broadcast, packet.target_hw_addr);
+	addr48(&addr48_broadcast, &packet.target_hw_addr);
 	packet.target_proto_addr = ip_addr;
 
 	rc = arp_send_packet(nic, &packet);
@@ -137,8 +137,8 @@ static errno_t arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet)
 	if (rc != EOK)
 		return rc;
 
-	addr48(packet->target_hw_addr, frame.dest);
-	addr48(packet->sender_hw_addr, frame.src);
+	addr48(&packet->target_hw_addr, &frame.dest);
+	addr48(&packet->sender_hw_addr, &frame.src);
 	frame.etype_len = ETYPE_ARP;
 	frame.data = pdata;
 	frame.size = psize;

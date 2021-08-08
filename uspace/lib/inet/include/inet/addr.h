@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,13 @@
 #include <stdint.h>
 
 typedef uint32_t addr32_t;
-typedef uint8_t addr48_t[6];
+
+#define ETH_ADDR_SIZE 6
+
+typedef struct {
+	uint8_t b[ETH_ADDR_SIZE];
+} addr48_t;
+
 typedef uint8_t addr128_t[16];
 
 typedef enum {
@@ -79,13 +85,13 @@ typedef struct {
 extern const addr32_t addr32_broadcast_all_hosts;
 extern const addr48_t addr48_broadcast;
 
-extern void addr48(const addr48_t, addr48_t);
+extern void addr48(const addr48_t *, addr48_t *);
 extern void addr128(const addr128_t, addr128_t);
 
-extern int addr48_compare(const addr48_t, const addr48_t);
+extern int addr48_compare(const addr48_t *, const addr48_t *);
 extern int addr128_compare(const addr128_t, const addr128_t);
 
-extern void addr48_solicited_node(const addr128_t, addr48_t);
+extern void addr48_solicited_node(const addr128_t, addr48_t *);
 
 extern void host2addr128_t_be(const addr128_t, addr128_t);
 extern void addr128_t_be2host(const addr128_t, addr128_t);

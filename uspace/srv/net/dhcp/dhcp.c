@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -160,7 +160,8 @@ static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 
-	addr48(dlink->link_info.mac_addr, hdr->chaddr);
+	memcpy(dlink->link_info.mac_addr.b, hdr->chaddr,
+	    sizeof(dlink->link_info.mac_addr.b));
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	opt[0] = opt_msg_type;
@@ -184,7 +185,7 @@ static errno_t dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 	hdr->ciaddr = host2uint32_t_be(offer->oaddr.addr);
-	addr48(dlink->link_info.mac_addr, hdr->chaddr);
+	memcpy(hdr->chaddr, dlink->link_info.mac_addr.b, 6);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	i = 0;

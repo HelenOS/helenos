@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Antonin Steinhauser
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ethip
+/** @addtogroup libc
  * @{
  */
 /**
@@ -34,35 +34,22 @@
  * @brief
  */
 
-#ifndef NDP_H_
-#define NDP_H_
+#include <inet/eth_addr.h>
+#include <mem.h>
 
-#include <inet/addr.h>
-#include "inetsrv.h"
-#include "icmpv6_std.h"
+void mac48_encode(addr48_t *addr, void *buf)
+{
+	uint8_t *bp = (uint8_t *)buf;
 
-typedef enum icmpv6_type ndp_opcode_t;
+	memcpy(bp, &addr->b[0], ETH_ADDR_SIZE);
+}
 
-/** NDP packet (for 48-bit MAC addresses)
- *
- * Internal representation
+void mac48_decode(const void *buf, addr48_t *addr)
+{
+	const uint8_t *bp = (uint8_t *)buf;
+
+	memcpy(&addr->b[0], bp, ETH_ADDR_SIZE);
+}
+
+/** @}
  */
-typedef struct {
-	/** Opcode */
-	ndp_opcode_t opcode;
-	/** Sender hardware address */
-	addr48_t sender_hw_addr;
-	/** Sender protocol address */
-	addr128_t sender_proto_addr;
-	/** Target hardware address */
-	addr48_t target_hw_addr;
-	/** Target protocol address */
-	addr128_t target_proto_addr;
-	/** Solicited IPv6 address */
-	addr128_t solicited_ip;
-} ndp_packet_t;
-
-extern errno_t ndp_received(inet_dgram_t *);
-extern errno_t ndp_translate(addr128_t, addr128_t, addr48_t *, inet_link_t *);
-
-#endif

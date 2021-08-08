@@ -108,7 +108,7 @@ static sysarg_t get_link_id(uint8_t *mac)
 		if (rc != EOK)
 			return -1;
 
-		if (mac_matches(mac, link_info.mac_addr))
+		if (mac_matches(mac, link_info.mac_addr.b))
 			return link_list[i];
 	}
 
@@ -228,7 +228,7 @@ errno_t ieee80211_disconnect(async_sess_t *dev_sess)
 		if (rc != EOK)
 			return rc;
 
-		if (mac_matches(wifi_mac.address, link_info.mac_addr)) {
+		if (mac_matches(wifi_mac.address, link_info.mac_addr.b)) {
 			if (str_test_prefix(addr_info.name, "dhcp")) {
 				rc = inetcfg_addr_delete(addr_list[i]);
 				if (rc != EOK)

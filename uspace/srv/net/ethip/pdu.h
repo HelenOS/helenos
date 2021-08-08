@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,8 @@ extern errno_t eth_pdu_encode(eth_frame_t *, void **, size_t *);
 extern errno_t eth_pdu_decode(void *, size_t, eth_frame_t *);
 extern errno_t arp_pdu_encode(arp_eth_packet_t *, void **, size_t *);
 extern errno_t arp_pdu_decode(void *, size_t, arp_eth_packet_t *);
+extern void mac48_encode(addr48_t *, void *);
+extern void mac48_decode(void *, addr48_t *);
 
 #endif
 

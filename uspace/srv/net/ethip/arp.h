@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@
 #include "ethip.h"
 
 extern void arp_received(ethip_nic_t *, eth_frame_t *);
-extern errno_t arp_translate(ethip_nic_t *, addr32_t, addr32_t, addr48_t);
+extern errno_t arp_translate(ethip_nic_t *, addr32_t, addr32_t, addr48_t *);
 
 #endif
 

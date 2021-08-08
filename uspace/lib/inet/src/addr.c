@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
@@ -71,9 +71,9 @@ static const inet_addr_t inet_addr_any_addr6 = {
 	.addr6 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-void addr48(const addr48_t src, addr48_t dst)
+void addr48(const addr48_t *src, addr48_t *dst)
 {
-	memcpy(dst, src, 6);
+	memcpy(dst, src, sizeof(addr48_t));
 }
 
 void addr128(const addr128_t src, addr128_t dst)
@@ -85,9 +85,9 @@ void addr128(const addr128_t src, addr128_t dst)
  *
  * @return Non-zero if equal, zero if not equal.
  */
-int addr48_compare(const addr48_t a, const addr48_t b)
+int addr48_compare(const addr48_t *a, const addr48_t *b)
 {
-	return memcmp(a, b, 6) == 0;
+	return memcmp(a->b, b->b, 6) == 0;
 }
 
 /** Compare addr128.
@@ -105,10 +105,10 @@ int addr128_compare(const addr128_t a, const addr128_t b)
  * @param mac Solicited MAC address to be assigned
  *
  */
-void addr48_solicited_node(const addr128_t ip, addr48_t mac)
+void addr48_solicited_node(const addr128_t ip, addr48_t *mac)
 {
-	memcpy(mac, inet_addr48_solicited_node, 3);
-	memcpy(mac + 3, ip + 13, 3);
+	memcpy(&mac->b[0], &inet_addr48_solicited_node.b[0], 3);
+	memcpy(&mac->b[3], ip + 13, 3);
 }
 
 void host2addr128_t_be(const addr128_t host, addr128_t be)

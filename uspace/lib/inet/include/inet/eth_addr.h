@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Antonin Steinhauser
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ethip
+/** @addtogroup inet
  * @{
  */
 /**
@@ -34,35 +34,16 @@
  * @brief
  */
 
-#ifndef NDP_H_
-#define NDP_H_
+#ifndef _LIBC_INET_ETH_ADDR_H_
+#define _LIBC_INET_ETH_ADDR_H_
 
+// XXX Move addr48 here
 #include <inet/addr.h>
-#include "inetsrv.h"
-#include "icmpv6_std.h"
 
-typedef enum icmpv6_type ndp_opcode_t;
-
-/** NDP packet (for 48-bit MAC addresses)
- *
- * Internal representation
- */
-typedef struct {
-	/** Opcode */
-	ndp_opcode_t opcode;
-	/** Sender hardware address */
-	addr48_t sender_hw_addr;
-	/** Sender protocol address */
-	addr128_t sender_proto_addr;
-	/** Target hardware address */
-	addr48_t target_hw_addr;
-	/** Target protocol address */
-	addr128_t target_proto_addr;
-	/** Solicited IPv6 address */
-	addr128_t solicited_ip;
-} ndp_packet_t;
-
-extern errno_t ndp_received(inet_dgram_t *);
-extern errno_t ndp_translate(addr128_t, addr128_t, addr48_t *, inet_link_t *);
+extern void mac48_encode(addr48_t *, void *);
+extern void mac48_decode(const void *, addr48_t *);
 
 #endif
+
+/** @}
+ */

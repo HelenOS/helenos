@@ -72,7 +72,7 @@ static inet_ntrans_t *ntrans_find(addr128_t ip_addr)
  * @return ENOMEM if not enough memory
  *
  */
-errno_t ntrans_add(addr128_t ip_addr, addr48_t mac_addr)
+errno_t ntrans_add(addr128_t ip_addr, addr48_t *mac_addr)
 {
 	inet_ntrans_t *ntrans;
 	inet_ntrans_t *prev;
@@ -82,7 +82,7 @@ errno_t ntrans_add(addr128_t ip_addr, addr48_t mac_addr)
 		return ENOMEM;
 
 	addr128(ip_addr, ntrans->ip_addr);
-	addr48(mac_addr, ntrans->mac_addr);
+	addr48(mac_addr, &ntrans->mac_addr);
 
 	fibril_mutex_lock(&ntrans_list_lock);
 	prev = ntrans_find(ip_addr);
@@ -133,7 +133,7 @@ errno_t ntrans_remove(addr128_t ip_addr)
  * @return ENOENT when no such address found
  *
  */
-errno_t ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
+errno_t ntrans_lookup(addr128_t ip_addr, addr48_t *mac_addr)
 {
 	fibril_mutex_lock(&ntrans_list_lock);
 	inet_ntrans_t *ntrans = ntrans_find(ip_addr);
@@ -143,7 +143,7 @@ errno_t ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
 	}
 
 	fibril_mutex_unlock(&ntrans_list_lock);
-	addr48(ntrans->mac_addr, mac_addr);
+	addr48(&ntrans->mac_addr, mac_addr);
 	return EOK;
 }
 

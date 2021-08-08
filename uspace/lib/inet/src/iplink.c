@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -174,7 +174,7 @@ errno_t iplink_get_mac48(iplink_t *iplink, addr48_t *mac)
 	return retval;
 }
 
-errno_t iplink_set_mac48(iplink_t *iplink, addr48_t mac)
+errno_t iplink_set_mac48(iplink_t *iplink, addr48_t *mac)
 {
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
 
@@ -273,7 +273,7 @@ static void iplink_ev_change_addr(iplink_t *iplink, ipc_call_t *icall)
 		return;
 	}
 
-	rc = iplink->ev_ops->change_addr(iplink, *addr);
+	rc = iplink->ev_ops->change_addr(iplink, addr);
 	free(addr);
 	async_answer_0(icall, EOK);
 }
