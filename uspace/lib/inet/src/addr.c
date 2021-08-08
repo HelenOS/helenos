@@ -54,9 +54,8 @@
 
 const addr32_t addr32_broadcast_all_hosts = 0xffffffff;
 
-static const eth_addr_t inet_eth_addr_solicited_node = {
-	0x33, 0x33, 0xff, 0, 0, 0
-};
+static eth_addr_t inet_eth_addr_solicited_node =
+    ETH_ADDR_INITIALIZER(0x33, 0x33, 0xff, 0, 0, 0);
 
 static const inet_addr_t inet_addr_any_addr = {
 	.version = ip_v4,
@@ -90,8 +89,12 @@ int addr128_compare(const addr128_t a, const addr128_t b)
  */
 void eth_addr_solicited_node(const addr128_t ip, eth_addr_t *mac)
 {
-	memcpy(&mac->b[0], &inet_eth_addr_solicited_node.b[0], 3);
-	memcpy(&mac->b[3], ip + 13, 3);
+	uint8_t b[6];
+	mac->a = inet_eth_addr_solicited_node.a;
+
+	eth_addr_encode(&inet_eth_addr_solicited_node, b);
+	memcpy(&b[3], ip + 13, 3);
+	eth_addr_decode(b, mac);
 }
 
 void host2addr128_t_be(const addr128_t host, addr128_t be)

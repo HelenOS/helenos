@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2015 Jan Kolarik
  * All rights reserved.
  *
@@ -83,21 +84,15 @@ errno_t ieee80211_get_scan_results(async_sess_t *dev_sess,
 	return rc;
 }
 
-static bool mac_matches(uint8_t *mac1, uint8_t *mac2)
-{
-	for (size_t i = 0; i < ETH_ADDR; i++) {
-		if (mac1[i] != mac2[i])
-			return false;
-	}
-
-	return true;
-}
-
+// XXX This is wrong. Wifi should not have anything to do with IP links
 static sysarg_t get_link_id(uint8_t *mac)
 {
 	sysarg_t *link_list;
 	inet_link_info_t link_info;
+	eth_addr_t eth_addr;
 	size_t count;
+
+	eth_addr_decode(mac, &eth_addr);
 
 	errno_t rc = inetcfg_get_link_list(&link_list, &count);
 	if (rc != EOK)
@@ -108,7 +103,7 @@ static sysarg_t get_link_id(uint8_t *mac)
 		if (rc != EOK)
 			return -1;
 
-		if (mac_matches(mac, link_info.mac_addr.b))
+		if (eth_addr_compare(&eth_addr, &link_info.mac_addr) == 0)
 			return link_list[i];
 	}
 
@@ -169,6 +164,8 @@ errno_t ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *passwo
 	if (rc != EOK)
 		return rc;
 
+	// XXX This is wrong. Wifi should not initiate DHCP
+
 	/* Send DHCP discover. */
 	nic_address_t wifi_mac;
 	rc = nic_get_address(dev_sess, &wifi_mac);
@@ -207,12 +204,17 @@ errno_t ieee80211_disconnect(async_sess_t *dev_sess)
 	if (rc != EOK)
 		return rc;
 
+	eth_addr_t eth_addr;
+	eth_addr_decode(wifi_mac.address, &eth_addr);
+
 	inet_link_info_t link_info;
 	inet_addr_info_t addr_info;
 	inet_sroute_info_t route_info;
 	sysarg_t *addr_list;
 	sysarg_t *route_list;
 	size_t count;
+
+	/// XXX This is wrong. Wifi should do nothing with DHCP
 
 	/* Remove previous DHCP address. */
 	rc = inetcfg_get_addr_list(&addr_list, &count);
@@ -228,7 +230,7 @@ errno_t ieee80211_disconnect(async_sess_t *dev_sess)
 		if (rc != EOK)
 			return rc;
 
-		if (mac_matches(wifi_mac.address, link_info.mac_addr.b)) {
+		if (eth_addr_compare(&eth_addr, &link_info.mac_addr) == 0) {
 			if (str_test_prefix(addr_info.name, "dhcp")) {
 				rc = inetcfg_addr_delete(addr_list[i]);
 				if (rc != EOK)

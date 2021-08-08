@@ -73,14 +73,17 @@ static addr128_t link_local_node_ip =
 static void inet_link_local_node_ip(eth_addr_t *mac_addr,
     addr128_t ip_addr)
 {
-	memcpy(ip_addr, link_local_node_ip, 16);
+	uint8_t b[ETH_ADDR_SIZE];
 
-	ip_addr[8] = mac_addr->b[0] ^ 0x02;
-	ip_addr[9] = mac_addr->b[1];
-	ip_addr[10] = mac_addr->b[2];
-	ip_addr[13] = mac_addr->b[3];
-	ip_addr[14] = mac_addr->b[4];
-	ip_addr[15] = mac_addr->b[5];
+	memcpy(ip_addr, link_local_node_ip, 16);
+	eth_addr_encode(mac_addr, b);
+
+	ip_addr[8] = b[0] ^ 0x02;
+	ip_addr[9] = b[1];
+	ip_addr[10] = b[2];
+	ip_addr[13] = b[3];
+	ip_addr[14] = b[4];
+	ip_addr[15] = b[5];
 }
 
 static errno_t inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t ver)
@@ -123,9 +126,11 @@ static errno_t inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver
 
 static errno_t inet_iplink_change_addr(iplink_t *iplink, eth_addr_t *mac)
 {
+	eth_addr_str_t saddr;
+
+	eth_addr_format(mac, &saddr);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_change_addr(): "
-	    "new addr=%02x:%02x:%02x:%02x:%02x:%02x",
-	    mac->b[0], mac->b[1], mac->b[2], mac->b[3], mac->b[4], mac->b[5]);
+	    "new addr=%s", saddr.str);
 
 	list_foreach(inet_links, link_list, inet_link_t, ilink) {
 		if (ilink->sess == iplink->sess)

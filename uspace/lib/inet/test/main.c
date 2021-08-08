@@ -26,71 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/**
- * @file
- * @brief
- */
+#include <pcut/pcut.h>
 
-#include <inet/eth_addr.h>
-#include <mem.h>
-#include <stdio.h>
+PCUT_INIT;
 
-const eth_addr_t eth_addr_broadcast =
-    ETH_ADDR_INITIALIZER(0xff, 0xff, 0xff, 0xff, 0xff, 0xff);
+PCUT_IMPORT(eth_addr);
 
-void eth_addr_encode(eth_addr_t *addr, void *buf)
-{
-	uint8_t *bp = (uint8_t *)buf;
-	uint64_t a;
-	int i;
-
-	a = addr->a;
-
-	for (i = 0; i < ETH_ADDR_SIZE; i++)
-		bp[i] = (a >> (40 - 8 * i)) & 0xff;
-}
-
-void eth_addr_decode(const void *buf, eth_addr_t *addr)
-{
-	const uint8_t *bp = (uint8_t *)buf;
-	uint64_t a;
-	int i;
-
-	a = 0;
-	for (i = 0; i < ETH_ADDR_SIZE; i++)
-		a |= (uint64_t)bp[i] << (40 - 8 * i);
-
-	addr->a = a;
-}
-
-/** Compare ethernet addresses.
- *
- * @return Non-zero if equal, zero if not equal.
- */
-int eth_addr_compare(const eth_addr_t *a, const eth_addr_t *b)
-{
-	if (a->a < b->a)
-		return -1;
-	else if (a->a == b->a)
-		return 0;
-	else
-		return 1;
-}
-
-void eth_addr_format(eth_addr_t *addr, eth_addr_str_t *saddr)
-{
-	int i;
-
-	snprintf(saddr->str, 3, "%02x",
-	    (unsigned)((addr->a >> 40) & 0xff));
-	for (i = 1; i < ETH_ADDR_SIZE; i++) {
-		snprintf(saddr->str + 2 + 3 * (i - 1), 4, ":%02x",
-		    (unsigned)((addr->a >> (40 - i * 8)) & 0xff));
-	}
-}
-
-/** @}
- */
+PCUT_MAIN();

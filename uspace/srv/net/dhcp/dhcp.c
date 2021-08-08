@@ -161,8 +161,7 @@ static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 
-	memcpy(dlink->link_info.mac_addr.b, hdr->chaddr,
-	    sizeof(dlink->link_info.mac_addr.b));
+	eth_addr_encode(&dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	opt[0] = opt_msg_type;
@@ -186,7 +185,7 @@ static errno_t dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 	hdr->ciaddr = host2uint32_t_be(offer->oaddr.addr);
-	memcpy(hdr->chaddr, dlink->link_info.mac_addr.b, 6);
+	eth_addr_encode(&dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	i = 0;

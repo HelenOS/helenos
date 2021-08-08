@@ -36,6 +36,7 @@
 
 #include <errno.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 #include <inet/inetcfg.h>
 #include <io/table.h>
 #include <loc.h>
@@ -339,6 +340,7 @@ static errno_t link_list(void)
 	sysarg_t *link_list = NULL;
 	inet_link_info_t linfo;
 	table_t *table = NULL;
+	eth_addr_str_t saddr;
 
 	size_t count;
 	size_t i;
@@ -367,12 +369,9 @@ static errno_t link_list(void)
 			continue;
 		}
 
-		table_printf(table, "%02x:%02x:%02x:%02x:%02x:%02x\t"
-		    "%s\t" "%zu\n",
-		    linfo.mac_addr.b[0], linfo.mac_addr.b[1],
-		    linfo.mac_addr.b[2], linfo.mac_addr.b[3],
-		    linfo.mac_addr.b[4], linfo.mac_addr.b[5],
-		    linfo.name, linfo.def_mtu);
+		eth_addr_format(&linfo.mac_addr, &saddr);
+		table_printf(table, "%s\t %s\t %zu\n", saddr.str, linfo.name,
+		    linfo.def_mtu);
 
 		free(linfo.name);
 

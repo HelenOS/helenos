@@ -43,3 +43,8 @@ src = files(
 	'src/tcp.c',
 	'src/udp.c',
 )
+
+test_src = files(
+	'test/eth_addr.c',
+	'test/main.c',
+)
