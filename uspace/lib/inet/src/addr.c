@@ -71,11 +71,6 @@ static const inet_addr_t inet_addr_any_addr6 = {
 	.addr6 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-void addr48(const addr48_t *src, addr48_t *dst)
-{
-	memcpy(dst, src, sizeof(addr48_t));
-}
-
 void addr128(const addr128_t src, addr128_t dst)
 {
 	memcpy(dst, src, 16);

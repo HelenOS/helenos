@@ -82,7 +82,7 @@ errno_t ntrans_add(addr128_t ip_addr, addr48_t *mac_addr)
 		return ENOMEM;
 
 	addr128(ip_addr, ntrans->ip_addr);
-	addr48(mac_addr, &ntrans->mac_addr);
+	ntrans->mac_addr = *mac_addr;
 
 	fibril_mutex_lock(&ntrans_list_lock);
 	prev = ntrans_find(ip_addr);
@@ -143,7 +143,7 @@ errno_t ntrans_lookup(addr128_t ip_addr, addr48_t *mac_addr)
 	}
 
 	fibril_mutex_unlock(&ntrans_list_lock);
-	addr48(&ntrans->mac_addr, mac_addr);
+	*mac_addr = ntrans->mac_addr;
 	return EOK;
 }
 

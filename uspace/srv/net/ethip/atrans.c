@@ -68,7 +68,7 @@ errno_t atrans_add(addr32_t ip_addr, addr48_t *mac_addr)
 		return ENOMEM;
 
 	atrans->ip_addr = ip_addr;
-	addr48(mac_addr, &atrans->mac_addr);
+	atrans->mac_addr = *mac_addr;
 
 	fibril_mutex_lock(&atrans_list_lock);
 	prev = atrans_find(ip_addr);
@@ -108,7 +108,7 @@ static errno_t atrans_lookup_locked(addr32_t ip_addr, addr48_t *mac_addr)
 	if (atrans == NULL)
 		return ENOENT;
 
-	addr48(&atrans->mac_addr, mac_addr);
+	*mac_addr = atrans->mac_addr;
 	return EOK;
 }
 

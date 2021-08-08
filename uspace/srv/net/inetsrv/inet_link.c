@@ -400,7 +400,7 @@ errno_t inet_link_send_dgram6(inet_link_t *ilink, addr48_t *ldest,
 		return EINVAL;
 
 	iplink_sdu6_t sdu6;
-	addr48(ldest, &sdu6.dest);
+	sdu6.dest = *ldest;
 
 	/*
 	 * Fill packet structure. Fragmentation is performed by

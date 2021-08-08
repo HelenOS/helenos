@@ -114,9 +114,9 @@ errno_t ndp_received(inet_dgram_t *dgram)
 			ndp_packet_t reply;
 
 			reply.opcode = ICMPV6_NEIGHBOUR_ADVERTISEMENT;
-			addr48(&laddr->ilink->mac, &reply.sender_hw_addr);
+			reply.sender_hw_addr = laddr->ilink->mac;
 			addr128(packet.target_proto_addr, reply.sender_proto_addr);
-			addr48(&packet.sender_hw_addr, &reply.target_hw_addr);
+			reply.target_hw_addr = packet.sender_hw_addr;
 			addr128(packet.sender_proto_addr, reply.target_proto_addr);
 
 			ndp_send_packet(laddr->ilink, &reply);
@@ -166,7 +166,7 @@ errno_t ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t *mac_addr,
 	ndp_packet_t packet;
 
 	packet.opcode = ICMPV6_NEIGHBOUR_SOLICITATION;
-	addr48(&ilink->mac, &packet.sender_hw_addr);
+	packet.sender_hw_addr = ilink->mac;
 	addr128(src_addr, packet.sender_proto_addr);
 	addr128(ip_addr, packet.solicited_ip);
 	addr48_solicited_node(ip_addr, &packet.target_hw_addr);

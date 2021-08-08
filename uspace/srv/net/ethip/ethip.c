@@ -183,7 +183,7 @@ static errno_t ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 		return rc;
 	}
 
-	addr48(&nic->mac_addr, &frame.src);
+	frame.src = nic->mac_addr;
 	frame.etype_len = ETYPE_IP;
 	frame.data = sdu->data;
 	frame.size = sdu->size;
@@ -207,8 +207,8 @@ static errno_t ethip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	eth_frame_t frame;
 
-	addr48(&sdu->dest, &frame.dest);
-	addr48(&nic->mac_addr, &frame.src);
+	frame.dest = sdu->dest;
+	frame.src = nic->mac_addr;
 	frame.etype_len = ETYPE_IPV6;
 	frame.data = sdu->data;
 	frame.size = sdu->size;
@@ -280,7 +280,7 @@ static errno_t ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_get_mac48()");
 
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
-	addr48(&nic->mac_addr, mac);
+	*mac = nic->mac_addr;
 
 	return EOK;
 }
@@ -290,7 +290,7 @@ static errno_t ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_set_mac48()");
 
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
-	addr48(mac, &nic->mac_addr);
+	nic->mac_addr = *mac;
 
 	return EOK;
 }
