@@ -49,16 +49,15 @@ const eth_addr_t eth_addr_broadcast =
  * @param addr Ethernet address
  * @param buf Buffer (ETH_ADDR_SIZE bytes in size) to store bytes
  */
-void eth_addr_encode(eth_addr_t *addr, void *buf)
+void eth_addr_encode(eth_addr_t *addr, uint8_t *buf)
 {
-	uint8_t *bp = (uint8_t *)buf;
 	uint64_t a;
 	int i;
 
 	a = addr->a;
 
 	for (i = 0; i < ETH_ADDR_SIZE; i++)
-		bp[i] = (a >> (40 - 8 * i)) & 0xff;
+		buf[i] = (a >> (40 - 8 * i)) & 0xff;
 }
 
 /** Decode Ethernet address from buffer.
@@ -69,15 +68,14 @@ void eth_addr_encode(eth_addr_t *addr, void *buf)
  * @param buf Buffer (ETH_ADDR_SIZE bytes in size)
  * @param addr Place to store Ethernet address
  */
-void eth_addr_decode(const void *buf, eth_addr_t *addr)
+void eth_addr_decode(const uint8_t *buf, eth_addr_t *addr)
 {
-	const uint8_t *bp = (uint8_t *)buf;
 	uint64_t a;
 	int i;
 
 	a = 0;
 	for (i = 0; i < ETH_ADDR_SIZE; i++)
-		a |= (uint64_t)bp[i] << (40 - 8 * i);
+		a |= (uint64_t)buf[i] << (40 - 8 * i);
 
 	addr->a = a;
 }

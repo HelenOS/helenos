@@ -73,8 +73,8 @@ typedef struct {
 
 extern const eth_addr_t eth_addr_broadcast;
 
-extern void eth_addr_encode(eth_addr_t *, void *);
-extern void eth_addr_decode(const void *, eth_addr_t *);
+extern void eth_addr_encode(eth_addr_t *, uint8_t *);
+extern void eth_addr_decode(const uint8_t *, eth_addr_t *);
 
 extern int eth_addr_compare(const eth_addr_t *, const eth_addr_t *);
 extern void eth_addr_format(eth_addr_t *, eth_addr_str_t *);
