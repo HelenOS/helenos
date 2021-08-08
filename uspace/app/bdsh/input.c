@@ -55,6 +55,8 @@
 #include "exec.h"
 #include "tok.h"
 
+#define MAX_PIPES 10U
+
 extern volatile unsigned int cli_quit;
 
 /** Text input field. */
@@ -91,7 +93,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 	errno_t rc = EOK;
 	tokenizer_t tok;
 	unsigned int i, pipe_count;
-	unsigned int pipe_pos[2];
+	unsigned int pipe_pos[MAX_PIPES];
 	char *redir_from = NULL;
 	char *redir_to = NULL;
 
@@ -152,7 +154,10 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 		default:
 			break;
 		}
-
+		if (pipe_count > MAX_PIPES) {
+			rc = ENOTSUP;
+			goto finit;
+		}
 	}
 
 	unsigned int cmd_token_start = 0;
