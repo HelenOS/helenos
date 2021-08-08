@@ -38,9 +38,17 @@
 #include <mem.h>
 #include <stdio.h>
 
+/** Ethernet broadcast address */
 const eth_addr_t eth_addr_broadcast =
     ETH_ADDR_INITIALIZER(0xff, 0xff, 0xff, 0xff, 0xff, 0xff);
 
+/** Encode Ethernet address to buffer.
+ *
+ * Encode Ethernet address as a sequence of ETH_ADDR_SIZE bytes into a buffer.
+ *
+ * @param addr Ethernet address
+ * @param buf Buffer (ETH_ADDR_SIZE bytes in size) to store bytes
+ */
 void eth_addr_encode(eth_addr_t *addr, void *buf)
 {
 	uint8_t *bp = (uint8_t *)buf;
@@ -53,6 +61,14 @@ void eth_addr_encode(eth_addr_t *addr, void *buf)
 		bp[i] = (a >> (40 - 8 * i)) & 0xff;
 }
 
+/** Decode Ethernet address from buffer.
+ *
+ * Decode Ethernet address from a buffer containing a sequence of
+ * ETH_ADDR_SIZE bytes.
+ *
+ * @param buf Buffer (ETH_ADDR_SIZE bytes in size)
+ * @param addr Place to store Ethernet address
+ */
 void eth_addr_decode(const void *buf, eth_addr_t *addr)
 {
 	const uint8_t *bp = (uint8_t *)buf;
@@ -66,9 +82,12 @@ void eth_addr_decode(const void *buf, eth_addr_t *addr)
 	addr->a = a;
 }
 
-/** Compare ethernet addresses.
+/** Compare Ethernet addresses.
  *
- * @return Non-zero if equal, zero if not equal.
+ * @param a First address
+ * @param b Second address,
+ * @return -1, 0, 1 iff @a a is less than, equal to or greater than @a b,
+ *         respectively.
  */
 int eth_addr_compare(const eth_addr_t *a, const eth_addr_t *b)
 {
@@ -80,6 +99,12 @@ int eth_addr_compare(const eth_addr_t *a, const eth_addr_t *b)
 		return 1;
 }
 
+/** Format Ethernet address as a string.
+ *
+ * @param addr Ethernet address
+ * @param saddr Structure for storing string representation
+ *        of @a addr. The caller can access it as @a saddr->str.
+ */
 void eth_addr_format(eth_addr_t *addr, eth_addr_str_t *saddr)
 {
 	int i;
