@@ -504,7 +504,7 @@ errno_t ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
 	}
 
 	message->length = 1;
-	mac48_encode(&ndp->sender_hw_addr, message->mac);
+	eth_addr_encode(&ndp->sender_hw_addr, message->mac);
 
 	icmpv6_phdr_t phdr;
 
@@ -552,7 +552,7 @@ errno_t ndp_pdu_decode(inet_dgram_t *dgram, ndp_packet_t *ndp)
 	ndp_message_t *message = (ndp_message_t *) (icmpv6 + 1);
 
 	addr128_t_be2host(message->target_address, ndp->target_proto_addr);
-	mac48_decode(message->mac, &ndp->sender_hw_addr);
+	eth_addr_decode(message->mac, &ndp->sender_hw_addr);
 
 	return EOK;
 }

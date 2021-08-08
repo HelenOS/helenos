@@ -35,9 +35,10 @@
  */
 
 #include <errno.h>
-#include <io/log.h>
 #include <inet/iplink_srv.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
+#include <io/log.h>
 #include <stdlib.h>
 #include "arp.h"
 #include "atrans.h"
@@ -94,11 +95,11 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 }
 
 errno_t arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
-    addr48_t *mac_addr)
+    eth_addr_t *mac_addr)
 {
 	/* Broadcast address */
 	if (ip_addr == addr32_broadcast_all_hosts) {
-		*mac_addr = addr48_broadcast;
+		*mac_addr = eth_addr_broadcast;
 		return EOK;
 	}
 
@@ -111,7 +112,7 @@ errno_t arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
 	packet.opcode = aop_request;
 	packet.sender_hw_addr = nic->mac_addr;
 	packet.sender_proto_addr = src_addr;
-	packet.target_hw_addr = addr48_broadcast;
+	packet.target_hw_addr = eth_addr_broadcast;
 	packet.target_proto_addr = ip_addr;
 
 	rc = arp_send_packet(nic, &packet);

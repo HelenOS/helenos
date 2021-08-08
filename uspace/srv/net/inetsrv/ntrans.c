@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Antonin Steinhauser
  * All rights reserved.
  *
@@ -37,6 +38,7 @@
 #include <adt/list.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink_srv.h>
 #include <stdlib.h>
 #include "ntrans.h"
@@ -72,7 +74,7 @@ static inet_ntrans_t *ntrans_find(addr128_t ip_addr)
  * @return ENOMEM if not enough memory
  *
  */
-errno_t ntrans_add(addr128_t ip_addr, addr48_t *mac_addr)
+errno_t ntrans_add(addr128_t ip_addr, eth_addr_t *mac_addr)
 {
 	inet_ntrans_t *ntrans;
 	inet_ntrans_t *prev;
@@ -133,7 +135,7 @@ errno_t ntrans_remove(addr128_t ip_addr)
  * @return ENOENT when no such address found
  *
  */
-errno_t ntrans_lookup(addr128_t ip_addr, addr48_t *mac_addr)
+errno_t ntrans_lookup(addr128_t ip_addr, eth_addr_t *mac_addr)
 {
 	fibril_mutex_lock(&ntrans_list_lock);
 	inet_ntrans_t *ntrans = ntrans_find(ip_addr);

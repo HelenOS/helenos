@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 #include <async.h>
 #include <assert.h>
 #include <errno.h>
+#include <inet/eth_addr.h>
 #include <inet/inetcfg.h>
 #include <ipc/inet.h>
 #include <ipc/services.h>
@@ -291,7 +292,7 @@ errno_t inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETCFG_LINK_GET, link_id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN, &dreply);
-	errno_t rc = async_data_read_start(exch, &linfo->mac_addr, sizeof(addr48_t));
+	errno_t rc = async_data_read_start(exch, &linfo->mac_addr, sizeof(eth_addr_t));
 	async_wait_for(dreq, &dretval);
 
 	async_exchange_end(exch);

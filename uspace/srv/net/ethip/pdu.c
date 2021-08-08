@@ -59,8 +59,8 @@ errno_t eth_pdu_encode(eth_frame_t *frame, void **rdata, size_t *rsize)
 		return ENOMEM;
 
 	hdr = (eth_header_t *)data;
-	mac48_encode(&frame->src, hdr->src);
-	mac48_encode(&frame->dest, hdr->dest);
+	eth_addr_encode(&frame->src, hdr->src);
+	eth_addr_encode(&frame->dest, hdr->dest);
 	hdr->etype_len = host2uint16_t_be(frame->etype_len);
 
 	memcpy((uint8_t *)data + sizeof(eth_header_t), frame->data,
@@ -92,8 +92,8 @@ errno_t eth_pdu_decode(void *data, size_t size, eth_frame_t *frame)
 	if (frame->data == NULL)
 		return ENOMEM;
 
-	mac48_decode(hdr->src, &frame->src);
-	mac48_decode(hdr->dest, &frame->dest);
+	eth_addr_decode(hdr->src, &frame->src);
+	eth_addr_decode(hdr->dest, &frame->dest);
 	frame->etype_len = uint16_t_be2host(hdr->etype_len);
 
 	memcpy(frame->data, (uint8_t *)data + sizeof(eth_header_t),
@@ -139,10 +139,10 @@ errno_t arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
 	pfmt->hw_addr_size = ETH_ADDR_SIZE;
 	pfmt->proto_addr_size = IPV4_ADDR_SIZE;
 	pfmt->opcode = host2uint16_t_be(fopcode);
-	mac48_encode(&packet->sender_hw_addr, pfmt->sender_hw_addr);
+	eth_addr_encode(&packet->sender_hw_addr, pfmt->sender_hw_addr);
 	pfmt->sender_proto_addr =
 	    host2uint32_t_be(packet->sender_proto_addr);
-	mac48_encode(&packet->target_hw_addr, pfmt->target_hw_addr);
+	eth_addr_encode(&packet->target_hw_addr, pfmt->target_hw_addr);
 	pfmt->target_proto_addr =
 	    host2uint32_t_be(packet->target_proto_addr);
 
@@ -202,10 +202,10 @@ errno_t arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 		return EINVAL;
 	}
 
-	mac48_decode(pfmt->sender_hw_addr, &packet->sender_hw_addr);
+	eth_addr_decode(pfmt->sender_hw_addr, &packet->sender_hw_addr);
 	packet->sender_proto_addr =
 	    uint32_t_be2host(pfmt->sender_proto_addr);
-	mac48_decode(pfmt->target_hw_addr, &packet->target_hw_addr);
+	eth_addr_decode(pfmt->target_hw_addr, &packet->target_hw_addr);
 	packet->target_proto_addr =
 	    uint32_t_be2host(pfmt->target_proto_addr);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "packet->tpa = %x\n", pfmt->target_proto_addr);

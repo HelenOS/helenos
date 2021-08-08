@@ -37,11 +37,20 @@
 #ifndef _LIBC_INET_ETH_ADDR_H_
 #define _LIBC_INET_ETH_ADDR_H_
 
-// XXX Move addr48 here
-#include <inet/addr.h>
+#include <stdint.h>
 
-extern void mac48_encode(addr48_t *, void *);
-extern void mac48_decode(const void *, addr48_t *);
+#define ETH_ADDR_SIZE 6
+
+typedef struct {
+	uint8_t b[ETH_ADDR_SIZE];
+} eth_addr_t;
+
+extern const eth_addr_t eth_addr_broadcast;
+
+extern void eth_addr_encode(eth_addr_t *, void *);
+extern void eth_addr_decode(const void *, eth_addr_t *);
+
+extern int eth_addr_compare(const eth_addr_t *, const eth_addr_t *);
 
 #endif
 

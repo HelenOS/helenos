@@ -34,15 +34,16 @@
  * @brief
  */
 
-#include <stdbool.h>
 #include <errno.h>
-#include <str_error.h>
 #include <fibril_synch.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink.h>
 #include <io/log.h>
 #include <loc.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
@@ -55,7 +56,7 @@ static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
 static uint16_t ip_ident = 0;
 
 static errno_t inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, ip_ver_t);
-static errno_t inet_iplink_change_addr(iplink_t *, addr48_t *);
+static errno_t inet_iplink_change_addr(iplink_t *, eth_addr_t *);
 static inet_link_t *inet_link_get_by_id_locked(sysarg_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
@@ -69,7 +70,7 @@ static FIBRIL_MUTEX_INITIALIZE(inet_links_lock);
 static addr128_t link_local_node_ip =
     { 0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0, 0 };
 
-static void inet_link_local_node_ip(addr48_t *mac_addr,
+static void inet_link_local_node_ip(eth_addr_t *mac_addr,
     addr128_t ip_addr)
 {
 	memcpy(ip_addr, link_local_node_ip, 16);
@@ -120,7 +121,7 @@ static errno_t inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver
 	return rc;
 }
 
-static errno_t inet_iplink_change_addr(iplink_t *iplink, addr48_t *mac)
+static errno_t inet_iplink_change_addr(iplink_t *iplink, eth_addr_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_change_addr(): "
 	    "new addr=%02x:%02x:%02x:%02x:%02x:%02x",
@@ -128,7 +129,7 @@ static errno_t inet_iplink_change_addr(iplink_t *iplink, addr48_t *mac)
 
 	list_foreach(inet_links, link_list, inet_link_t, ilink) {
 		if (ilink->sess == iplink->sess)
-			memcpy(&ilink->mac, mac, sizeof(addr48_t));
+			ilink->mac = *mac;
 	}
 
 	return EOK;
@@ -386,7 +387,7 @@ errno_t inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
  * @return ENOMEM when not enough memory to create the datagram
  *
  */
-errno_t inet_link_send_dgram6(inet_link_t *ilink, addr48_t *ldest,
+errno_t inet_link_send_dgram6(inet_link_t *ilink, eth_addr_t *ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	addr128_t src_v6;

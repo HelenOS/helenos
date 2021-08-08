@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 
 struct iplink_ev_ops;
 
@@ -61,7 +62,7 @@ typedef struct {
 /** IPv6 link Service Data Unit */
 typedef struct {
 	/** Local MAC destination address */
-	addr48_t dest;
+	eth_addr_t dest;
 	/** Serialized IP packet */
 	void *data;
 	/** Size of @c data in bytes */
@@ -78,7 +79,7 @@ typedef struct {
 
 typedef struct iplink_ev_ops {
 	errno_t (*recv)(iplink_t *, iplink_recv_sdu_t *, ip_ver_t);
-	errno_t (*change_addr)(iplink_t *, addr48_t *);
+	errno_t (*change_addr)(iplink_t *, eth_addr_t *);
 } iplink_ev_ops_t;
 
 extern errno_t iplink_open(async_sess_t *, iplink_ev_ops_t *, void *, iplink_t **);
@@ -88,8 +89,8 @@ extern errno_t iplink_send6(iplink_t *, iplink_sdu6_t *);
 extern errno_t iplink_addr_add(iplink_t *, inet_addr_t *);
 extern errno_t iplink_addr_remove(iplink_t *, inet_addr_t *);
 extern errno_t iplink_get_mtu(iplink_t *, size_t *);
-extern errno_t iplink_get_mac48(iplink_t *, addr48_t *);
-extern errno_t iplink_set_mac48(iplink_t *, addr48_t *);
+extern errno_t iplink_get_mac48(iplink_t *, eth_addr_t *);
+extern errno_t iplink_set_mac48(iplink_t *, eth_addr_t *);
 extern void *iplink_get_userptr(iplink_t *);
 
 #endif

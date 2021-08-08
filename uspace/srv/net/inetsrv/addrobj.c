@@ -37,6 +37,7 @@
 #include <bitops.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/eth_addr.h>
 #include <io/log.h>
 #include <ipc/loc.h>
 #include <stdlib.h>
@@ -228,7 +229,7 @@ errno_t inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 		return EINVAL;
 
 	errno_t rc;
-	addr48_t ldest_mac;
+	eth_addr_t ldest_mac;
 
 	switch (ldest_ver) {
 	case ip_v4:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <str_error.h>
 #include <inet/iplink_srv.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 #include <io/log.h>
 #include <loc.h>
 #include <stdio.h>
@@ -54,7 +55,7 @@ static errno_t loopip_close(iplink_srv_t *srv);
 static errno_t loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
 static errno_t loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
 static errno_t loopip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static errno_t loopip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
+static errno_t loopip_get_mac48(iplink_srv_t *srv, eth_addr_t *mac);
 static errno_t loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
 static errno_t loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
@@ -230,7 +231,7 @@ static errno_t loopip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-static errno_t loopip_get_mac48(iplink_srv_t *src, addr48_t *mac)
+static errno_t loopip_get_mac48(iplink_srv_t *src, eth_addr_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_get_mac48()");
 	return ENOTSUP;

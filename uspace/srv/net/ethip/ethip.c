@@ -38,6 +38,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink_srv.h>
 #include <io/log.h>
 #include <loc.h>
@@ -57,8 +58,8 @@ static errno_t ethip_close(iplink_srv_t *srv);
 static errno_t ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
 static errno_t ethip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
 static errno_t ethip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static errno_t ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
-static errno_t ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac);
+static errno_t ethip_get_mac48(iplink_srv_t *srv, eth_addr_t *mac);
+static errno_t ethip_set_mac48(iplink_srv_t *srv, eth_addr_t *mac);
 static errno_t ethip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
 static errno_t ethip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
@@ -275,7 +276,7 @@ static errno_t ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-static errno_t ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac)
+static errno_t ethip_get_mac48(iplink_srv_t *srv, eth_addr_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_get_mac48()");
 
@@ -285,7 +286,7 @@ static errno_t ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac)
 	return EOK;
 }
 
-static errno_t ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac)
+static errno_t ethip_set_mac48(iplink_srv_t *srv, eth_addr_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_set_mac48()");
 

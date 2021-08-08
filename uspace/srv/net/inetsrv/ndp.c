@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Antonin Steinhauser
  * All rights reserved.
  *
@@ -35,9 +36,10 @@
  */
 
 #include <errno.h>
+#include <inet/eth_addr.h>
+#include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <io/log.h>
 #include "ntrans.h"
 #include "addrobj.h"
 #include "pdu.h"
@@ -150,7 +152,7 @@ errno_t ndp_received(inet_dgram_t *dgram)
  * @return ENOENT when NDP translation failed
  *
  */
-errno_t ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t *mac_addr,
+errno_t ndp_translate(addr128_t src_addr, addr128_t ip_addr, eth_addr_t *mac_addr,
     inet_link_t *ilink)
 {
 	if (!ilink->mac_valid) {
@@ -169,7 +171,7 @@ errno_t ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t *mac_addr,
 	packet.sender_hw_addr = ilink->mac;
 	addr128(src_addr, packet.sender_proto_addr);
 	addr128(ip_addr, packet.solicited_ip);
-	addr48_solicited_node(ip_addr, &packet.target_hw_addr);
+	eth_addr_solicited_node(ip_addr, &packet.target_hw_addr);
 	ndp_solicited_node_ip(ip_addr, packet.target_proto_addr);
 
 	rc = ndp_send_packet(ilink, &packet);

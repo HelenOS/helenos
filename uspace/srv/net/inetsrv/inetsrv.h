@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <stdbool.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink.h>
 #include <ipc/loc.h>
 #include <stddef.h>
@@ -108,7 +109,7 @@ typedef struct {
 	async_sess_t *sess;
 	iplink_t *iplink;
 	size_t def_mtu;
-	addr48_t mac;
+	eth_addr_t mac;
 	bool mac_valid;
 } inet_link_t;
 

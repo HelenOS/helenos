@@ -37,18 +37,31 @@
 #include <inet/eth_addr.h>
 #include <mem.h>
 
-void mac48_encode(addr48_t *addr, void *buf)
+const eth_addr_t eth_addr_broadcast = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+};
+
+void eth_addr_encode(eth_addr_t *addr, void *buf)
 {
 	uint8_t *bp = (uint8_t *)buf;
 
 	memcpy(bp, &addr->b[0], ETH_ADDR_SIZE);
 }
 
-void mac48_decode(const void *buf, addr48_t *addr)
+void eth_addr_decode(const void *buf, eth_addr_t *addr)
 {
 	const uint8_t *bp = (uint8_t *)buf;
 
 	memcpy(&addr->b[0], bp, ETH_ADDR_SIZE);
+}
+
+/** Compare ethernet addresses.
+ *
+ * @return Non-zero if equal, zero if not equal.
+ */
+int eth_addr_compare(const eth_addr_t *a, const eth_addr_t *b)
+{
+	return memcmp(a->b, b->b, ETH_ADDR_SIZE) == 0;
 }
 
 /** @}

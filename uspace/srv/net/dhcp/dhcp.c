@@ -41,6 +41,7 @@
 #include <str_error.h>
 #include <fibril_synch.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 #include <inet/dnsr.h>
 #include <inet/inetcfg.h>
 #include <io/log.h>
@@ -156,7 +157,7 @@ static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 	memset(msgbuf, 0, MAX_MSG_SIZE);
 	hdr->op = op_bootrequest;
 	hdr->htype = 1; /* AHRD_ETHERNET */
-	hdr->hlen = sizeof(addr48_t);
+	hdr->hlen = ETH_ADDR_SIZE;
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 
