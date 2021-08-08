@@ -137,7 +137,45 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			if (rc != EOK) {
 				return rc;
 			}
-		} else if (next_char == '\'') {
+		} else if (next_char == '<') {
+			if (tok_pending_chars(tok)) {
+				rc = tok_push_token(tok);
+				if (rc != EOK) {
+					return rc;
+				}
+			}
+
+			tok_start_token(tok, TOKTYPE_RDIN);
+
+			rc = tok_push_char(tok, tok_get_char(tok));
+			if (rc != EOK) {
+				return rc;
+			}
+			tok_get_char(tok);
+			rc = tok_push_token(tok);
+			if (rc != EOK) {
+				return rc;
+			}
+		} else if (next_char == '>') {
+			if (tok_pending_chars(tok)) {
+				rc = tok_push_token(tok);
+				if (rc != EOK) {
+					return rc;
+				}
+			}
+
+			tok_start_token(tok, TOKTYPE_RDOU);
+
+			rc = tok_push_char(tok, tok_get_char(tok));
+			if (rc != EOK) {
+				return rc;
+			}
+			tok_get_char(tok);
+			rc = tok_push_token(tok);
+			if (rc != EOK) {
+				return rc;
+			}
+		}  else if (next_char == '\'') {
 			/*
 			 * A string starts with a quote (') and ends again with a quote.
 			 * A literal quote is written as ''
