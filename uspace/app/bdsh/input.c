@@ -69,7 +69,7 @@ typedef struct {
 	link_t alias_hup_link;
 	alias_t *alias;
 } alias_hup_t;
-#if 0
+
 static bool find_alias_hup(alias_t *alias, list_t *alias_hups)
 {
 	list_foreach(*alias_hups, alias_hup_link, alias_hup_t, link) {
@@ -80,7 +80,65 @@ static bool find_alias_hup(alias_t *alias, list_t *alias_hups)
 
 	return false;
 }
-#endif
+
+static errno_t find_alias(char **cmd, list_t *alias_hups, alias_t **data)
+{
+	errno_t rc = EOK;
+
+	/* test if the passed cmd is an alias */
+	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)cmd[0], NULL);
+	if (alias_link != NULL) {
+		*data = odict_get_instance(alias_link, alias_t, odict);
+		/* check if the alias already has been resolved once */
+		if (!find_alias_hup(*data, alias_hups)) {
+			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(alias_hup_t));
+			if (hup == NULL) {
+				cli_error(CL_EFAIL, "%s: cannot allocate alias structure\n", PACKAGE_NAME);
+				rc = ENOMEM;
+				goto exit;
+			}
+			hup->alias = *data;
+			list_append(&hup->alias_hup_link, alias_hups);
+		}
+	}
+
+exit:
+	return rc;
+}
+
+static errno_t replace_alias(token_t * tokens, unsigned int tokens_start, unsigned int tokens_len, alias_t *data, char **cmd, char **line)
+{
+	errno_t rc = EOK;
+	const size_t input_length = str_size(*line) - str_size(cmd[0]) + str_size(data->value) + 1;
+	*line = (char *)malloc(input_length);
+	if (*line == NULL) {
+		cli_error(CL_EFAIL, "%s: cannot allocate input structure\n", PACKAGE_NAME);
+		rc = ENOMEM;
+		goto exit;
+	}
+
+	*line[0] = '\0';
+
+	unsigned int cmd_replace_index = tokens_start;
+	for (unsigned int i = 0; i < tokens_len; i++) {
+		if (i == cmd_replace_index) {
+			/* if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol */
+			if (tokens[i].type == TOKTYPE_SPACE) {
+				tokens_start++;
+				str_append(*line, input_length, tokens[i].text);
+				continue;
+			}
+
+			str_append(*line, input_length, data->value);
+		} else {
+			str_append(*line, input_length, tokens[i].text);
+		}
+	}
+
+exit:
+	return rc;
+}
+
 /*
  * Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
@@ -208,6 +266,22 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 			goto finit;
 		}
 
+		alias_t *data = NULL;
+		rc = find_alias(cmd, alias_hups, &data);
+		if (rc != EOK) {
+			goto finit;
+		}
+
+		if (data != NULL) {
+			rc = replace_alias(tokens, cmd_token_start, tokens_length, data, cmd, &usr->line);
+			if (rc == EOK) {
+				/* reprocess input after string replace */
+				rc = process_input_nohup(usr, alias_hups, count_executed_hups + 1);
+			}
+			goto finit;
+		}
+
+
 		if (p < pipe_count - 1) {
 			new_iostate.stdout = to;
 		} else {
@@ -240,6 +314,21 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 	if (cmd[0] == NULL) {
 		printf("Command not found.\n");
 		rc = ENOTSUP;
+		goto finit;
+	}
+
+	alias_t *data = NULL;
+	rc = find_alias(cmd, alias_hups, &data);
+	if (rc != EOK) {
+		goto finit;
+	}
+
+	if (data != NULL) {
+		rc = replace_alias(tokens, cmd_token_start, tokens_length, data, cmd, &usr->line);
+		if (rc == EOK) {
+			/* reprocess input after string replace */
+			rc = process_input_nohup(usr, alias_hups, count_executed_hups + 1);
+		}
 		goto finit;
 	}
 
