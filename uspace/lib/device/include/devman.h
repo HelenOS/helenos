@@ -27,14 +27,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_DEVMAN_H_
-#define _LIBC_DEVMAN_H_
+#ifndef LIBDEVICE_DEVMAN_H
+#define LIBDEVICE_DEVMAN_H
 
 #include <ipc/devman.h>
 #include <ipc/loc.h>

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinet
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_INET_ADDR_H_
-#define _LIBC_INET_ADDR_H_
+#ifndef LIBINET_INET_ADDR_H
+#define LIBINET_INET_ADDR_H
 
 #include <errno.h>
 #include <inet/eth_addr.h>

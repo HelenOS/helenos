@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inet
+/** @addtogroup libinet
  * @{
  */
 /**
@@ -34,8 +34,8 @@
  * @brief
  */
 
-#ifndef _LIBC_INET_ETH_ADDR_H_
-#define _LIBC_INET_ETH_ADDR_H_
+#ifndef LIBINET_INET_ETH_ADDR_H
+#define LIBINET_INET_ETH_ADDR_H
 
 #include <stdint.h>
 

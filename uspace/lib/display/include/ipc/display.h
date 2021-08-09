@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef _LIBC_IPC_DISPLAY_H_
-#define _LIBC_IPC_DISPLAY_H_
+#ifndef LIBDISPLAY_IPC_DISPLAY_H
+#define LIBDISPLAY_IPC_DISPLAY_H
 
 #include <ipc/common.h>
 

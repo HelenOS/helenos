@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinet
  * @{
  */
 /**
@@ -34,8 +34,8 @@
  * @brief
  */
 
-#ifndef _LIBC_TYPES_INETPING_H_
-#define _LIBC_TYPES_INETPING_H_
+#ifndef LIBINET_TYPES_INETPING_H
+#define LIBINET_TYPES_INETPING_H
 
 #include <inet/addr.h>
 #include <stddef.h>

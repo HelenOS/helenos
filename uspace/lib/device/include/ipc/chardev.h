@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libdevice
  * @{
  */
 /** @file
  * @brief Character device interface.
  */
 
-#ifndef _LIBC_IPC_CHARDEV_H_
-#define _LIBC_IPC_CHARDEV_H_
+#ifndef LIBDEVICE_IPC_CHARDEV_H
+#define LIBDEVICE_IPC_CHARDEV_H
 
 #include <ipc/common.h>
 

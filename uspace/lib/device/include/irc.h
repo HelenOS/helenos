@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IRC_H_
-#define _LIBC_IRC_H_
+#ifndef LIBDEVICE_IRC_H
+#define LIBDEVICE_IRC_H
 
 extern errno_t irc_enable_interrupt(int);
 extern errno_t irc_disable_interrupt(int);

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdevice
  *  @{
  */
 
@@ -34,8 +34,8 @@
  *  IEEE 802.11 common definitions.
  */
 
-#ifndef _LIBC_IEEE80211_H_
-#define _LIBC_IEEE80211_H_
+#ifndef LIBDEVICE_IEEE80211_H
+#define LIBDEVICE_IEEE80211_H
 
 #include <adt/list.h>
 #include <nic/nic.h>
