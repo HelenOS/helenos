@@ -189,10 +189,20 @@ errno_t ui_entry_set_text(ui_entry_t *entry, const char *text)
 	entry->text = tcopy;
 	entry->pos = str_size(text);
 	entry->sel_start = entry->pos;
+
 	ui_entry_scroll_update(entry, false);
 	ui_entry_paint(entry);
 
 	return EOK;
+}
+
+/** Get entry text.
+ *
+ * @return Pointer to entry text.
+ */
+const char *ui_entry_get_text(ui_entry_t *entry)
+{
+	return entry->text;
 }
 
 /** Paint cursor.

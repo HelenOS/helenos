@@ -30,22 +30,35 @@
  * @{
  */
 /**
- * @file Message dialog
+ * @file File dialog
  */
 
-#ifndef _UI_MSGDIALOG_H
-#define _UI_MSGDIALOG_H
+#ifndef _UI_TYPES_FILEDIALOG_H
+#define _UI_TYPES_FILEDIALOG_H
 
 #include <errno.h>
-#include <types/ui/msgdialog.h>
-#include <types/ui/ui.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
+#include <types/ui/wdecor.h>
 
-extern void ui_msg_dialog_params_init(ui_msg_dialog_params_t *);
-extern errno_t ui_msg_dialog_create(ui_t *, ui_msg_dialog_params_t *,
-    ui_msg_dialog_t **);
-extern void ui_msg_dialog_set_cb(ui_msg_dialog_t *, ui_msg_dialog_cb_t *,
-    void *);
-extern void ui_msg_dialog_destroy(ui_msg_dialog_t *);
+struct ui_file_dialog;
+typedef struct ui_file_dialog ui_file_dialog_t;
+
+/** File dialog parameters */
+typedef struct {
+	/** Window caption */
+	const char *caption;
+} ui_file_dialog_params_t;
+
+/** File dialog callback */
+typedef struct ui_file_dialog_cb {
+	/** OK button was pressed */
+	void (*bok)(ui_file_dialog_t *, void *, const char *);
+	/** Cancel button was pressed */
+	void (*bcancel)(ui_file_dialog_t *, void *);
+	/** Window closure requested (e.g. via close button) */
+	void (*close)(ui_file_dialog_t *, void *);
+} ui_file_dialog_cb_t;
 
 #endif
 

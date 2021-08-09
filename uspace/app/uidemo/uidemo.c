@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <ui/entry.h>
+#include <ui/filedialog.h>
 #include <ui/fixed.h>
 #include <ui/image.h>
 #include <ui/label.h>
@@ -84,8 +85,19 @@ static ui_slider_cb_t slider_cb = {
 	.moved = slider_moved
 };
 
+static void uidemo_file_load(ui_menu_entry_t *, void *);
 static void uidemo_file_message(ui_menu_entry_t *, void *);
 static void uidemo_file_exit(ui_menu_entry_t *, void *);
+
+static void file_dialog_bok(ui_file_dialog_t *, void *, const char *);
+static void file_dialog_bcancel(ui_file_dialog_t *, void *);
+static void file_dialog_close(ui_file_dialog_t *, void *);
+
+static ui_file_dialog_cb_t file_dialog_cb = {
+	.bok = file_dialog_bok,
+	.bcancel = file_dialog_bcancel,
+	.close = file_dialog_close
+};
 
 static void msg_dialog_button(ui_msg_dialog_t *, void *, unsigned);
 static void msg_dialog_close(ui_msg_dialog_t *, void *);
@@ -190,6 +202,57 @@ static void slider_moved(ui_slider_t *slider, void *arg, gfx_coord_t pos)
 	free(str);
 }
 
+/** Display a message window.
+ *
+ * @param demo UI demo
+ * @param caption Window caption
+ * @param text Message text
+ */
+static void uidemo_show_message(ui_demo_t *demo, const char *caption,
+    const char *text)
+{
+	ui_msg_dialog_params_t mdparams;
+	ui_msg_dialog_t *dialog;
+	errno_t rc;
+
+	ui_msg_dialog_params_init(&mdparams);
+	mdparams.caption = caption;
+	mdparams.text = text;
+
+	rc = ui_msg_dialog_create(demo->ui, &mdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating message dialog.\n");
+		return;
+	}
+
+	ui_msg_dialog_set_cb(dialog, &msg_dialog_cb, &demo);
+}
+
+
+/** File/load menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (demo)
+ */
+static void uidemo_file_load(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	ui_file_dialog_params_t fdparams;
+	ui_file_dialog_t *dialog;
+	errno_t rc;
+
+	ui_file_dialog_params_init(&fdparams);
+	fdparams.caption = "Load File";
+
+	rc = ui_file_dialog_create(demo->ui, &fdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating message dialog.\n");
+		return;
+	}
+
+	ui_file_dialog_set_cb(dialog, &file_dialog_cb, demo);
+}
+
 /** File/message menu entry selected.
  *
  * @param mentry Menu entry
@@ -213,7 +276,6 @@ static void uidemo_file_message(ui_menu_entry_t *mentry, void *arg)
 	}
 
 	ui_msg_dialog_set_cb(dialog, &msg_dialog_cb, &demo);
-
 }
 
 /** File/exit menu entry selected.
@@ -226,6 +288,75 @@ static void uidemo_file_exit(ui_menu_entry_t *mentry, void *arg)
 	ui_demo_t *demo = (ui_demo_t *) arg;
 
 	ui_quit(demo->ui);
+}
+
+/** File dialog OK button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param fname File name
+ */
+static void file_dialog_bok(ui_file_dialog_t *dialog, void *arg,
+    const char *fname)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	char buf[128];
+	char *p;
+	FILE *f;
+
+	ui_file_dialog_destroy(dialog);
+
+	f = fopen(fname, "rt");
+	if (f == NULL) {
+		uidemo_show_message(demo, "Error", "Error opening file.");
+		return;
+	}
+
+	p = fgets(buf, sizeof(buf), f);
+	if (p == NULL) {
+		uidemo_show_message(demo, "Error", "Error reading file.");
+		fclose(f);
+		return;
+	}
+
+	/* Cut string off at the first non-printable character */
+	p = buf;
+	while (*p != '\0') {
+		if (*p < ' ') {
+			*p = '\0';
+			break;
+		}
+		++p;
+	}
+
+	ui_entry_set_text(demo->entry, buf);
+	fclose(f);
+}
+
+/** File dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void file_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	(void) demo;
+	ui_file_dialog_destroy(dialog);
+}
+
+/** Message dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void file_dialog_close(ui_file_dialog_t *dialog, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	(void) demo;
+	ui_file_dialog_destroy(dialog);
 }
 
 /** Message dialog button press.
@@ -270,6 +401,7 @@ static errno_t ui_demo(const char *display_spec)
 	gfx_bitmap_t *bitmap;
 	gfx_coord2_t off;
 	ui_menu_entry_t *mmsg;
+	ui_menu_entry_t *mload;
 	ui_menu_entry_t *mfoo;
 	ui_menu_entry_t *mbar;
 	ui_menu_entry_t *mfoobar;
@@ -340,6 +472,14 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	ui_menu_entry_set_cb(mmsg, uidemo_file_message, (void *) &demo);
+
+	rc = ui_menu_entry_create(demo.mfile, "Load", "", &mload);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mload, uidemo_file_load, (void *) &demo);
 
 	rc = ui_menu_entry_create(demo.mfile, "Foo", "Ctrl-Alt-Del", &mfoo);
 	if (rc != EOK) {

@@ -30,22 +30,31 @@
  * @{
  */
 /**
- * @file Message dialog
+ * @file File dialog structure
+ *
  */
 
-#ifndef _UI_MSGDIALOG_H
-#define _UI_MSGDIALOG_H
+#ifndef _UI_PRIVATE_FILEDIALOG_H
+#define _UI_PRIVATE_FILEDIALOG_H
 
-#include <errno.h>
-#include <types/ui/msgdialog.h>
-#include <types/ui/ui.h>
-
-extern void ui_msg_dialog_params_init(ui_msg_dialog_params_t *);
-extern errno_t ui_msg_dialog_create(ui_t *, ui_msg_dialog_params_t *,
-    ui_msg_dialog_t **);
-extern void ui_msg_dialog_set_cb(ui_msg_dialog_t *, ui_msg_dialog_cb_t *,
-    void *);
-extern void ui_msg_dialog_destroy(ui_msg_dialog_t *);
+/** Actual structure of file dialog.
+ *
+ * This is private to libui.
+ */
+struct ui_file_dialog {
+	/** Dialog window */
+	struct ui_window *window;
+	/** File name entry */
+	struct ui_entry *ename;
+	/** OK button */
+	struct ui_pbutton *bok;
+	/** Cancel button */
+	struct ui_pbutton *bcancel;
+	/** File dialog callbacks */
+	struct ui_file_dialog_cb *cb;
+	/** Callback argument */
+	void *arg;
+};
 
 #endif
 
