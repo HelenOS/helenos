@@ -163,58 +163,6 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 	unsigned int cmd_token_start = 0;
 	unsigned int cmd_token_end = cmd_argc;
 
-#if 0
-	/* test if the passed cmd is an alias */
-	odlink_t *alias_link = odict_find_eq(&alias_dict, (void *)cmd[0], NULL);
-	if (alias_link != NULL) {
-		alias_t *data = odict_get_instance(alias_link, alias_t, odict);
-		/* check if the alias already has been resolved once */
-		if (!find_alias_hup(data, alias_hups)) {
-			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(alias_hup_t));
-			if (hup == NULL) {
-				cli_error(CL_EFAIL, "%s: cannot allocate alias structure\n", PACKAGE_NAME);
-				rc = ENOMEM;
-				goto finit;
-			}
-
-			hup->alias = data;
-			list_append(&hup->alias_hup_link, alias_hups);
-
-			char *oldLine = usr->line;
-			const size_t input_length = str_size(usr->line) - str_size(cmd[0]) + str_size(data->value) + 1;
-			usr->line = (char *)malloc(input_length);
-			if (usr->line == NULL) {
-				cli_error(CL_EFAIL, "%s: cannot allocate input structure\n", PACKAGE_NAME);
-				rc = ENOMEM;
-				goto finit;
-			}
-
-			usr->line[0] = '\0';
-
-			unsigned int cmd_replace_index = cmd_token_start;
-			for (i = 0; i < tokens_length; i++) {
-				if (i == cmd_replace_index) {
-					/* if there is a pipe symbol than cmd_token_start will point at the SPACE after the pipe symbol */
-					if (tokens[i].type == TOKTYPE_SPACE) {
-						cmd_replace_index++;
-						str_append(usr->line, input_length, tokens[i].text);
-						continue;
-					}
-
-					str_append(usr->line, input_length, data->value);
-				} else {
-					str_append(usr->line, input_length, tokens[i].text);
-				}
-			}
-
-			/* reprocess input after string replace */
-			rc = process_input_nohup(usr, alias_hups, count_executed_hups + 1);
-			usr->line = oldLine;
-			goto finit;
-		}
-	}
-#endif
-
 	iostate_t new_iostate = {
 		.stdin = stdin,
 		.stdout = stdout,
