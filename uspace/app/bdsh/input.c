@@ -90,7 +90,7 @@ static errno_t find_alias(char **cmd, list_t *alias_hups, alias_t **data)
 	if (alias_link != NULL) {
 		*data = odict_get_instance(alias_link, alias_t, odict);
 		/* check if the alias already has been resolved once */
-		if (!find_alias_hup(*data, alias_hups)) {
+		if (! find_alias_hup(*data, alias_hups)) {
 			alias_hup_t *hup = (alias_hup_t *)calloc(1, sizeof(alias_hup_t));
 			if (hup == NULL) {
 				cli_error(CL_EFAIL, "%s: cannot allocate alias structure\n", PACKAGE_NAME);
@@ -110,14 +110,14 @@ static errno_t replace_alias(token_t * tokens, unsigned int tokens_start, unsign
 {
 	errno_t rc = EOK;
 	const size_t input_length = str_size(*line) - str_size(cmd[0]) + str_size(data->value) + 1;
-	*line = (char *)malloc(input_length);
-	if (*line == NULL) {
+	char *newline = (char *)malloc(input_length);
+	if (newline == NULL) {
 		cli_error(CL_EFAIL, "%s: cannot allocate input structure\n", PACKAGE_NAME);
 		rc = ENOMEM;
 		goto exit;
 	}
 
-	*line[0] = '\0';
+	newline[0] = '\0';
 
 	unsigned int cmd_replace_index = tokens_start;
 	for (unsigned int i = 0; i < tokens_len; i++) {
@@ -129,12 +129,13 @@ static errno_t replace_alias(token_t * tokens, unsigned int tokens_start, unsign
 				continue;
 			}
 
-			str_append(*line, input_length, data->value);
+			str_append(newline, input_length, data->value);
 		} else {
-			str_append(*line, input_length, tokens[i].text);
+			str_append(newline, input_length, tokens[i].text);
 		}
 	}
 
+	*line = newline;
 exit:
 	return rc;
 }
