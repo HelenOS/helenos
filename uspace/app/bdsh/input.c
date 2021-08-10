@@ -192,6 +192,8 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 	}
 
 	cmd_argc = tokens_length;
+	unsigned wait_from = 0;
+	unsigned wait_to = 0;
 	for (i = 0, pipe_count = 0; i < tokens_length; i++) {
 		switch (tokens[i].type) {
 		case  TOKTYPE_PIPE:
@@ -201,13 +203,24 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 			break;
 
 		case TOKTYPE_RDIN:
-			redir_from = tokens[i + 1].text;
+			wait_from = 1;
 			cmd_argc = i;
 			break;
 
 		case TOKTYPE_RDOU:
-			redir_to = tokens[i + 1].text;
+			wait_to = 1;
 			cmd_argc = i;
+			break;
+
+		case TOKTYPE_TEXT:
+			if (wait_from) {
+				redir_from = tokens[i].text;
+				wait_from = 0;
+			}
+			if (wait_to) {
+				redir_to = tokens[i].text;
+				wait_to = 0;
+			}
 			break;
 
 		default:

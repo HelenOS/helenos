@@ -151,7 +151,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			if (rc != EOK) {
 				return rc;
 			}
-			tok_get_char(tok);
+
 			rc = tok_push_token(tok);
 			if (rc != EOK) {
 				return rc;
@@ -170,7 +170,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			if (rc != EOK) {
 				return rc;
 			}
-			tok_get_char(tok);
+
 			rc = tok_push_token(tok);
 			if (rc != EOK) {
 				return rc;
