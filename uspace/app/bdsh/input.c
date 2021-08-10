@@ -250,7 +250,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 		new_iostate.stdout = to;
 	}
 
-	for (unsigned p = 0; p < pipe_count; p++) {
+	for (unsigned p = 0; p <= pipe_count; p++) {
 		/* Convert tokens of the command to string array */
 		unsigned int cmd_pos = 0;
 		for (i = cmd_token_start; i < cmd_token_end; i++) {
@@ -258,7 +258,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 				cmd[cmd_pos++] = tokens[i].text;
 			}
 		}
-		cmd[cmd_pos++] = NULL;
+		cmd[cmd_pos] = NULL;
 
 		if (cmd[0] == NULL) {
 			printf("Command not found.\n");
@@ -281,10 +281,11 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 			goto finit;
 		}
 
-
-		if (p < pipe_count - 1) {
+		if (p < pipe_count) {
 			new_iostate.stdout = to;
-		} else {
+		}
+		if (p && p == pipe_count) {
+			fseek(to, 0, SEEK_SET);
 			new_iostate.stdin = to;
 		}
 
@@ -301,47 +302,6 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 
 		cmd_token_start = cmd_token_end + 1;
 		cmd_token_end = (p < pipe_count - 1) ? pipe_pos[p + 1] : tokens_length;
-	}
-
-	unsigned int cmd_pos = 0;
-	for (i = cmd_token_start; i < cmd_token_end; i++) {
-		if (tokens[i].type != TOKTYPE_SPACE) {
-			cmd[cmd_pos++] = tokens[i].text;
-		}
-	}
-	cmd[cmd_pos++] = NULL;
-
-	if (cmd[0] == NULL) {
-		printf("Command not found.\n");
-		rc = ENOTSUP;
-		goto finit;
-	}
-
-	alias_t *data = NULL;
-	rc = find_alias(cmd, alias_hups, &data);
-	if (rc != EOK) {
-		goto finit;
-	}
-
-	if (data != NULL) {
-		rc = replace_alias(tokens, cmd_token_start, tokens_length, data, cmd, &usr->line);
-		if (rc == EOK) {
-			/* reprocess input after string replace */
-			rc = process_input_nohup(usr, alias_hups, count_executed_hups + 1);
-		}
-		goto finit;
-	}
-
-	if (pipe_count) {
-		fseek(to, 0, SEEK_SET);
-		new_iostate.stdin = to;
-	}
-
-
-	if (run_command(cmd, usr, &new_iostate) == 0) {
-		rc = EOK;
-	} else {
-		rc = EINVAL;
 	}
 
 finit_with_files:
