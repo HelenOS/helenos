@@ -226,10 +226,16 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 		default:
 			break;
 		}
+
 		if (pipe_count > MAX_PIPES) {
 			rc = ENOTSUP;
 			goto finit;
 		}
+	}
+
+	if (wait_from || wait_to) {
+		printf("Parse error near `\\n'\n");
+		goto finit;
 	}
 
 	unsigned int cmd_token_start = 0;
