@@ -329,7 +329,6 @@ errno_t ui_rbutton_paint_text(ui_rbutton_t *rbutton)
 
 	pos.x += 4;
 
-	gfx_text_fmt_init(&fmt);
 	fmt.color = rbutton->group->res->wnd_text_color;
 
 	rc = gfx_puttext(rbutton->group->res->font, &pos, &fmt,
