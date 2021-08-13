@@ -331,8 +331,6 @@ errno_t ui_rbutton_paint_text(ui_rbutton_t *rbutton)
 
 	gfx_text_fmt_init(&fmt);
 	fmt.color = rbutton->group->res->wnd_text_color;
-	fmt.halign = gfx_halign_left;
-	fmt.valign = gfx_valign_center;
 
 	rc = gfx_puttext(rbutton->group->res->font, &pos, &fmt,
 	    rbutton->caption);
