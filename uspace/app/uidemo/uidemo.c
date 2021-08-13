@@ -751,10 +751,18 @@ static errno_t ui_demo(const char *display_spec)
 	ui_rbutton_group_set_cb(demo.rbgroup, &rbutton_group_cb,
 	    (void *) &demo);
 
-	rect.p0.x = 15;
-	rect.p0.y = 220;
-	rect.p1.x = 140;
-	rect.p1.y = 240;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 20;
+		rect.p0.y = 14;
+		rect.p1.x = 40;
+		rect.p1.y = 15;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 220;
+		rect.p1.x = 140;
+		rect.p1.y = 240;
+	}
 	ui_rbutton_set_rect(demo.rbleft, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rbleft));
@@ -770,10 +778,18 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rect.p0.x = 15;
-	rect.p0.y = 250;
-	rect.p1.x = 140;
-	rect.p1.y = 270;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 20;
+		rect.p0.y = 15;
+		rect.p1.x = 40;
+		rect.p1.y = 16;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 250;
+		rect.p1.x = 140;
+		rect.p1.y = 270;
+	}
 	ui_rbutton_set_rect(demo.rbcenter, &rect);
 	ui_rbutton_select(demo.rbcenter);
 
@@ -790,10 +806,18 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rect.p0.x = 15;
-	rect.p0.y = 280;
-	rect.p1.x = 140;
-	rect.p1.y = 300;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 20;
+		rect.p0.y = 16;
+		rect.p1.x = 40;
+		rect.p1.y = 17;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 280;
+		rect.p1.x = 140;
+		rect.p1.y = 300;
+	}
 	ui_rbutton_set_rect(demo.rbright, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rbright));

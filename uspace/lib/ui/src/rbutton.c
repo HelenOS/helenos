@@ -185,12 +185,12 @@ void ui_rbutton_set_rect(ui_rbutton_t *rbutton, gfx_rect_t *rect)
 	rbutton->rect = *rect;
 }
 
-/** Paint radio button.
+/** Paint radio button in graphics mode.
  *
  * @param rbutton Radio button
  * @return EOK on success or an error code
  */
-errno_t ui_rbutton_paint(ui_rbutton_t *rbutton)
+errno_t ui_rbutton_paint_gfx(ui_rbutton_t *rbutton)
 {
 	gfx_coord2_t pos;
 	gfx_coord2_t center;
@@ -201,7 +201,7 @@ errno_t ui_rbutton_paint(ui_rbutton_t *rbutton)
 	center.x = rbutton->rect.p0.x + rbutton_oframe_r;
 	center.y = rbutton->rect.p0.y + rbutton_oframe_r;
 
-	/* Paint rbutton frame */
+	/* Paint radio button frame */
 
 	rc = gfx_set_color(rbutton->group->res->gc,
 	    rbutton->group->res->wnd_shadow_color);
@@ -243,7 +243,7 @@ errno_t ui_rbutton_paint(ui_rbutton_t *rbutton)
 	if (rc != EOK)
 		goto error;
 
-	/* Paint rbutton interior */
+	/* Paint radio button interior */
 	depressed = rbutton->held && rbutton->inside;
 
 	rc = gfx_set_color(rbutton->group->res->gc, depressed ?
@@ -293,6 +293,72 @@ errno_t ui_rbutton_paint(ui_rbutton_t *rbutton)
 	return EOK;
 error:
 	return rc;
+}
+
+/** Paint radio button in text mode.
+ *
+ * @param rbutton Radio button
+ * @return EOK on success or an error code
+ */
+errno_t ui_rbutton_paint_text(ui_rbutton_t *rbutton)
+{
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	bool depressed;
+	errno_t rc;
+
+	/* Paint radio button */
+
+	depressed = rbutton->held && rbutton->inside;
+
+	pos.x = rbutton->rect.p0.x;
+	pos.y = rbutton->rect.p0.y;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.color = depressed ? rbutton->group->res->entry_act_bg_color :
+	    rbutton->group->res->wnd_text_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	rc = gfx_puttext(rbutton->group->res->font, &pos, &fmt,
+	    rbutton->group->selected == rbutton ? "(*)" : "( )");
+	if (rc != EOK)
+		goto error;
+
+	/* Paint radio button label */
+
+	pos.x += 4;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.color = rbutton->group->res->wnd_text_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_center;
+
+	rc = gfx_puttext(rbutton->group->res->font, &pos, &fmt,
+	    rbutton->caption);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_update(rbutton->group->res->gc);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Paint radio button.
+ *
+ * @param rbutton Radio button
+ * @return EOK on success or an error code
+ */
+errno_t ui_rbutton_paint(ui_rbutton_t *rbutton)
+{
+	if (rbutton->group->res->textmode)
+		return ui_rbutton_paint_text(rbutton);
+	else
+		return ui_rbutton_paint_gfx(rbutton);
 }
 
 /** Press down button.

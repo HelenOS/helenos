@@ -165,8 +165,8 @@ PCUT_TEST(set_rect)
 	ui_rbutton_group_destroy(group);
 }
 
-/** Paint radio button */
-PCUT_TEST(paint)
+/** Paint radio button in graphics mode */
+PCUT_TEST(paint_gfx)
 {
 	errno_t rc;
 	gfx_context_t *gc = NULL;
@@ -189,7 +189,42 @@ PCUT_TEST(paint)
 	rc = ui_rbutton_create(group, "Hello", NULL, &rbutton);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_rbutton_paint(rbutton);
+	rc = ui_rbutton_paint_gfx(rbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_rbutton_destroy(rbutton);
+	ui_rbutton_group_destroy(group);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint radio button in text mode */
+PCUT_TEST(paint_text)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_rbutton_group_t *group = NULL;
+	ui_resource_t *resource = NULL;
+	ui_rbutton_t *rbutton;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_rbutton_group_create(resource, &group);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_rbutton_create(group, "Hello", NULL, &rbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_rbutton_paint_text(rbutton);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_rbutton_destroy(rbutton);
