@@ -834,10 +834,19 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_slider_set_cb(demo.slider, &slider_cb, (void *) &demo);
 
-	rect.p0.x = 15;
-	rect.p0.y = 310;
-	rect.p1.x = 130;
-	rect.p1.y = 330;
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 20;
+		rect.p0.y = 18;
+		rect.p1.x = 40;
+		rect.p1.y = 19;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 310;
+		rect.p1.x = 130;
+		rect.p1.y = 330;
+	}
+
 	ui_slider_set_rect(demo.slider, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_slider_ctl(demo.slider));

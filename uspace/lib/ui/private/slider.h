@@ -65,6 +65,9 @@ struct ui_slider {
 	gfx_coord_t pos;
 };
 
+extern errno_t ui_slider_paint_gfx(ui_slider_t *);
+extern errno_t ui_slider_paint_text(ui_slider_t *);
+
 #endif
 
 /** @}
