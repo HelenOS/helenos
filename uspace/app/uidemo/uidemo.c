@@ -672,10 +672,17 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	gfx_bitmap_params_init(&bparams);
-	bparams.rect.p0.x = 0;
-	bparams.rect.p0.y = 0;
-	bparams.rect.p1.x = 188;
-	bparams.rect.p1.y = 24;
+	if (ui_is_textmode(ui)) {
+		bparams.rect.p0.x = 0;
+		bparams.rect.p0.y = 0;
+		bparams.rect.p1.x = 40;
+		bparams.rect.p1.y = 2;
+	} else {
+		bparams.rect.p0.x = 0;
+		bparams.rect.p0.y = 0;
+		bparams.rect.p1.x = 188;
+		bparams.rect.p1.y = 24;
+	}
 
 	rc = gfx_bitmap_create(gc, &bparams, NULL, &bitmap);
 	if (rc != EOK)
@@ -691,15 +698,24 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	off.x = 15;
-	off.y = 155;
+	if (ui_is_textmode(ui)) {
+		off.x = 20;
+		off.y = 10;
+	} else {
+		off.x = 15;
+		off.y = 155;
+	}
+
 	gfx_rect_translate(&off, &bparams.rect, &rect);
 
 	/* Adjust for frame width (2 x 1 pixel) */
-	rect.p1.x += 2;
-	rect.p1.y += 2;
+	if (!ui_is_textmode(ui)) {
+		ui_image_set_flags(demo.image, ui_imgf_frame);
+		rect.p1.x += 2;
+		rect.p1.y += 2;
+	}
+
 	ui_image_set_rect(demo.image, &rect);
-	ui_image_set_flags(demo.image, ui_imgf_frame);
 
 	rc = ui_fixed_add(demo.fixed, ui_image_ctl(demo.image));
 	if (rc != EOK) {
@@ -718,15 +734,16 @@ static errno_t ui_demo(const char *display_spec)
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 20;
-		rect.p0.y = 12;
+		rect.p0.y = 13;
 		rect.p1.x = 40;
-		rect.p1.y = 13;
+		rect.p1.y = 14;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 190;
 		rect.p1.x = 140;
 		rect.p1.y = 210;
 	}
+
 	ui_checkbox_set_rect(demo.checkbox, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_checkbox_ctl(demo.checkbox));
@@ -754,9 +771,9 @@ static errno_t ui_demo(const char *display_spec)
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 20;
-		rect.p0.y = 14;
+		rect.p0.y = 15;
 		rect.p1.x = 40;
-		rect.p1.y = 15;
+		rect.p1.y = 16;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 220;
@@ -781,9 +798,9 @@ static errno_t ui_demo(const char *display_spec)
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 20;
-		rect.p0.y = 15;
+		rect.p0.y = 16;
 		rect.p1.x = 40;
-		rect.p1.y = 16;
+		rect.p1.y = 17;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 250;
@@ -809,9 +826,9 @@ static errno_t ui_demo(const char *display_spec)
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 20;
-		rect.p0.y = 16;
+		rect.p0.y = 17;
 		rect.p1.x = 40;
-		rect.p1.y = 17;
+		rect.p1.y = 18;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 280;
@@ -837,9 +854,9 @@ static errno_t ui_demo(const char *display_spec)
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 20;
-		rect.p0.y = 18;
+		rect.p0.y = 19;
 		rect.p1.x = 40;
-		rect.p1.y = 19;
+		rect.p1.y = 20;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 310;
@@ -899,7 +916,7 @@ static errno_t bitmap_moire(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 		for (j = 0; j < h; j++) {
 			k = i * i + j * j;
 			pixelmap_put_pixel(&pixelmap, i, j,
-			    PIXEL(255, k, k, 255 - k));
+			    PIXEL(0, k, k, 255 - k));
 		}
 	}
 
