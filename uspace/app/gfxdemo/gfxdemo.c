@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,6 +71,18 @@ static bool quit = false;
 static gfx_typeface_t *tface;
 static gfx_font_t *font;
 static gfx_coord_t vpad;
+
+/** Determine if we are running in text mode.
+ *
+ * @param w Screen width
+ * @param h Screen height
+ * @return @c true iff we are running in text mode
+ */
+static bool demo_is_text(gfx_coord_t w, gfx_coord_t h)
+{
+	// XXX Need a proper way to determine text mode
+	return w <= 80;
+}
 
 /** Clear screen.
  *
@@ -214,9 +226,15 @@ static errno_t demo_begin(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h,
 		return rc;
 
 	if (font != NULL) {
-		rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
-		if (rc != EOK)
-			goto error;
+		if (demo_is_text(w, h)) {
+			rc = gfx_color_new_ega(0x1e, &color);
+			if (rc != EOK)
+				goto error;
+		} else {
+			rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+			if (rc != EOK)
+				goto error;
+		}
 
 		gfx_text_fmt_init(&fmt);
 		fmt.color = color;
@@ -739,10 +757,16 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	gfx_text_fmt_init(&fmt);
 
 	for (i = 0; i < 8; i++) {
-		rc = gfx_color_new_rgb_i16((i & 4) ? 0xffff : 0,
-		    (i & 2) ? 0xffff : 0, (i & 1) ? 0xffff : 0, &color);
-		if (rc != EOK)
-			goto error;
+		if (demo_is_text(w, h)) {
+			rc = gfx_color_new_ega(i, &color);
+			if (rc != EOK)
+				goto error;
+		} else {
+			rc = gfx_color_new_rgb_i16((i & 4) ? 0xffff : 0,
+			    (i & 2) ? 0xffff : 0, (i & 1) ? 0xffff : 0, &color);
+			if (rc != EOK)
+				goto error;
+		}
 
 		fmt.color = color;
 

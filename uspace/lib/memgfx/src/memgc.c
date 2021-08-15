@@ -107,9 +107,11 @@ static errno_t mem_gc_set_color(void *arg, gfx_color_t *color)
 {
 	mem_gc_t *mgc = (mem_gc_t *) arg;
 	uint16_t r, g, b;
+	uint8_t attr;
 
 	gfx_color_get_rgb_i16(color, &r, &g, &b);
-	mgc->color = PIXEL(0, r >> 8, g >> 8, b >> 8);
+	gfx_color_get_ega(color, &attr);
+	mgc->color = PIXEL(attr, r >> 8, g >> 8, b >> 8);
 	return EOK;
 }
 

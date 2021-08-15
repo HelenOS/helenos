@@ -74,6 +74,43 @@ gfx_context_ops_t console_gc_ops = {
 	.cursor_set_visible = console_gc_cursor_set_visible
 };
 
+/** Convert pixel value to charfield.
+ *
+ * On the bottom of this function lies a big big hack. In the absence
+ * of support for different color formats (FIX ME!), here's a single
+ * format that can represent both 3x8bit RGB and 24-bit characters
+ * with 8-bit EGA attributes (i.e. we can specify the foreground and
+ * background colors individually).
+ *
+ * A    R   G   B
+ * 0    red grn blu  24-bit color
+ * attr c2  c1  c0   attribute + 24-bit character
+ */
+static void console_gc_pix_to_charfield(pixel_t clr, charfield_t *ch)
+{
+	uint8_t attr;
+
+	if ((clr >> 24) == 0) {
+		/* RGB (no text) */
+		ch->ch = 0;
+		ch->flags = CHAR_FLAG_DIRTY;
+		ch->attrs.type = CHAR_ATTR_RGB;
+		ch->attrs.val.rgb.fgcolor = clr ^ 0xffffff;
+		ch->attrs.val.rgb.bgcolor = clr;
+	} else {
+		/* EGA attributes (with text) */
+		attr = clr >> 24;
+		ch->ch = clr & 0xffffff;
+		ch->flags = CHAR_FLAG_DIRTY;
+		ch->attrs.type = CHAR_ATTR_INDEX;
+		ch->attrs.val.index.fgcolor = attr & 0x7;
+		ch->attrs.val.index.bgcolor = (attr >> 4) & 0x7;
+		ch->attrs.val.index.attr =
+		    ((attr & 0x8) ? CATTR_BRIGHT : 0) +
+		    ((attr & 0x80) ? CATTR_BLINK : 0);
+	}
+}
+
 /** Set clipping rectangle on console GC.
  *
  * @param arg Console GC
@@ -106,7 +143,7 @@ static errno_t console_gc_set_color(void *arg, gfx_color_t *color)
 {
 	console_gc_t *cgc = (console_gc_t *) arg;
 
-	cgc->clr = PIXEL(0, color->r >> 8, color->g >> 8, color->b >> 8);
+	cgc->clr = PIXEL(color->attr, color->r >> 8, color->g >> 8, color->b >> 8);
 	return EOK;
 }
 
@@ -130,11 +167,7 @@ static errno_t console_gc_fill_rect(void *arg, gfx_rect_t *rect)
 
 	cols = cgc->rect.p1.x - cgc->rect.p0.x;
 
-	ch.ch = cgc->clr >> 24;
-	ch.flags = CHAR_FLAG_DIRTY;
-	ch.attrs.type = CHAR_ATTR_RGB;
-	ch.attrs.val.rgb.fgcolor = cgc->clr ^ 0xffffff;
-	ch.attrs.val.rgb.bgcolor = cgc->clr;
+	console_gc_pix_to_charfield(cgc->clr, &ch);
 
 	for (y = crect.p0.y; y < crect.p1.y; y++) {
 		for (x = crect.p0.x; x < crect.p1.x; x++) {
@@ -373,12 +406,7 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				    x - offs.x - cbm->rect.p0.x,
 				    y - offs.y - cbm->rect.p0.y);
 
-				ch.ch = clr >> 24;
-				ch.flags = CHAR_FLAG_DIRTY;
-				ch.attrs.type = CHAR_ATTR_RGB;
-				ch.attrs.val.rgb.fgcolor = clr ^ 0xffffff;
-				ch.attrs.val.rgb.bgcolor = clr;
-
+				console_gc_pix_to_charfield(clr, &ch);
 				cbm->cgc->buf[y * cols + x] = ch;
 			}
 		}
@@ -391,11 +419,7 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 				    x - offs.x - cbm->rect.p0.x,
 				    y - offs.y - cbm->rect.p0.y);
 
-				ch.ch = clr >> 24;
-				ch.flags = CHAR_FLAG_DIRTY;
-				ch.attrs.type = CHAR_ATTR_RGB;
-				ch.attrs.val.rgb.fgcolor = clr ^ 0xffffff;
-				ch.attrs.val.rgb.bgcolor = clr;
+				console_gc_pix_to_charfield(clr, &ch);
 
 				if (clr != cbm->key_color)
 					cbm->cgc->buf[y * cols + x] = ch;
@@ -403,11 +427,7 @@ static errno_t console_gc_bitmap_render(void *bm, gfx_rect_t *srect0,
 		}
 	} else {
 		/* Color key & colorize */
-		ch.ch = 0;
-		ch.flags = CHAR_FLAG_DIRTY;
-		ch.attrs.type = CHAR_ATTR_RGB;
-		ch.attrs.val.rgb.fgcolor = cbm->cgc->clr;
-		ch.attrs.val.rgb.bgcolor = cbm->cgc->clr;
+		console_gc_pix_to_charfield(cbm->cgc->clr, &ch);
 
 		for (y = crect.p0.y; y < crect.p1.y; y++) {
 			for (x = crect.p0.x; x < crect.p1.x; x++) {

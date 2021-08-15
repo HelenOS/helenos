@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,7 @@ struct gfx_color {
 	uint16_t r;
 	uint16_t g;
 	uint16_t b;
+	uint8_t attr;
 };
 
 #endif

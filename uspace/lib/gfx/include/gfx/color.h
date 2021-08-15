@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,9 +42,11 @@
 
 extern errno_t gfx_color_new_rgb_i16(uint16_t, uint16_t,
     uint16_t, gfx_color_t **);
+extern errno_t gfx_color_new_ega(uint8_t, gfx_color_t **);
 extern void gfx_color_delete(gfx_color_t *);
 extern void gfx_color_get_rgb_i16(gfx_color_t *, uint16_t *, uint16_t *,
     uint16_t *);
+extern void gfx_color_get_ega(gfx_color_t *, uint8_t *);
 
 #endif
 

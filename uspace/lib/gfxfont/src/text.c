@@ -109,10 +109,12 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	gfx_bitmap_params_t params;
 	gfx_bitmap_t *bitmap;
 	gfx_bitmap_alloc_t alloc;
-	uint16_t r, g, b;
+	uint8_t attr;
 	pixelmap_t pmap;
 	gfx_coord_t x;
 	pixel_t pixel;
+	char32_t c;
+	size_t off;
 	errno_t rc;
 
 	/*
@@ -120,15 +122,7 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	 * the most efficient way.
 	 */
 
-	gfx_color_get_rgb_i16(color, &r, &g, &b);
-
-	/*
-	 * We are setting the *background* color, the foreground color
-	 * will be set to its complement.
-	 */
-	r = 0xff ^ (r >> 8);
-	g = 0xff ^ (g >> 8);
-	b = 0xff ^ (b >> 8);
+	gfx_color_get_ega(color, &attr);
 
 	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
@@ -155,8 +149,13 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	pmap.height = 1;
 	pmap.data = alloc.pixels;
 
+	off = 0;
 	for (x = 0; x < params.rect.p1.x; x++) {
-		pixel = PIXEL(str[x], r, g, b);
+		c = str_decode(str, &off, STR_NO_LIMIT);
+		pixel = PIXEL(attr,
+		    (c >> 16) & 0xff,
+		    (c >> 8) & 0xff,
+		    c & 0xff);
 		pixelmap_put_pixel(&pmap, x, 0, pixel);
 	}
 

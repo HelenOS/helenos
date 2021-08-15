@@ -365,7 +365,7 @@ static errno_t ui_pbutton_paint_text(ui_pbutton_t *pbutton)
 	rect.p1.x = pbutton->rect.p1.x - 1 + (depressed ? 1 : 0);
 	rect.p1.y = pbutton->rect.p0.y + 1;
 
-	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_highlight_color);
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_face_color);
 	if (rc != EOK)
 		goto error;
 

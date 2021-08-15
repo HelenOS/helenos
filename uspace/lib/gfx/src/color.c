@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,6 +68,28 @@ errno_t gfx_color_new_rgb_i16(uint16_t r, uint16_t g, uint16_t b,
 	return EOK;
 }
 
+/** Create new EGA color.
+ *
+ * @param attr EGA attributes
+ * @param rcolor Place to store pointer to new color
+ *
+ * @return EOK on success or an error code, ENOMEM if out of resources,
+ *         EIO if the graphic device connection was lost
+ */
+errno_t gfx_color_new_ega(uint8_t attr, gfx_color_t **rcolor)
+{
+	gfx_color_t *color;
+
+	color = calloc(1, sizeof(gfx_color_t));
+	if (color == NULL)
+		return ENOMEM;
+
+	color->attr = attr;
+
+	*rcolor = color;
+	return EOK;
+}
+
 /** Delete color.
  *
  * @param color Color
@@ -90,6 +112,16 @@ void gfx_color_get_rgb_i16(gfx_color_t *color, uint16_t *r, uint16_t *g,
 	*r = color->r;
 	*g = color->g;
 	*b = color->b;
+}
+
+/** Convert color to EGA attributes.
+ *
+ * @param color Color
+ * @param attr Place to store EGA attributes
+ */
+void gfx_color_get_ega(gfx_color_t *color, uint8_t *attr)
+{
+	*attr = color->attr;
 }
 
 /** @}
