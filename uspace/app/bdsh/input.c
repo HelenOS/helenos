@@ -106,7 +106,7 @@ exit:
 	return rc;
 }
 
-static errno_t replace_alias(token_t * tokens, unsigned int tokens_start, unsigned int tokens_len, alias_t *data, char **cmd, char **line)
+static errno_t replace_alias(token_t *tokens, unsigned int tokens_start, unsigned int tokens_len, alias_t *data, char **cmd, char **line)
 {
 	errno_t rc = EOK;
 	const size_t input_length = str_size(*line) - str_size(cmd[0]) + str_size(data->value) + 1;
