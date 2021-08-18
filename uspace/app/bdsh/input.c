@@ -199,7 +199,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 		case  TOKTYPE_PIPE:
 			pipe_pos[pipe_count++] = i;
 			cmd_argc = i;
-			redir_to = tmpnam(NULL);
+			redir_from = redir_to = tmpnam(NULL);
 			break;
 
 		case TOKTYPE_RDIN:
@@ -250,25 +250,6 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 	FILE *from = NULL;
 	FILE *to = NULL;
 
-	if (redir_from) {
-		from = fopen(redir_from, "r");
-		if (from == NULL) {
-			printf("Cannot open file %s\n", redir_from);
-			rc = errno;
-			goto finit_with_files;
-		}
-		new_iostate.stdin = from;
-	}
-
-	if (redir_to) {
-		to = fopen(redir_to, "w");
-		if (to == NULL) {
-			printf("Cannot open file %s\n", redir_to);
-			rc = errno;
-			goto finit_with_files;
-		}
-		new_iostate.stdout = to;
-	}
 
 	for (unsigned p = 0; p <= pipe_count; p++) {
 		/* Convert tokens of the command to string array */
@@ -301,12 +282,32 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 			goto finit;
 		}
 
-		if (p < pipe_count) {
-			new_iostate.stdout = to;
+		if (redir_to) {
+			if ((p < pipe_count) || (pipe_count == 0)) {
+				to = fopen(redir_to, "w");
+				if (to == NULL) {
+					printf(
+					    "Cannot open file %s redirect to\n",
+					    redir_to);
+					rc = errno;
+					goto finit_with_files;
+				}
+				new_iostate.stdout = to;
+			}
 		}
-		if (p && p == pipe_count) {
-			fseek(to, 0, SEEK_SET);
-			new_iostate.stdin = to;
+
+		if (redir_from) {
+			if ((p && p == pipe_count) || (pipe_count == 0)) {
+				from = fopen(redir_from, "r");
+				if (from == NULL) {
+					printf("Cannot open file %s redirect "
+					       "from\n",
+					    redir_from);
+					rc = errno;
+					goto finit_with_files;
+				}
+				new_iostate.stdin = from;
+			}
 		}
 
 		if (run_command(cmd, usr, &new_iostate) == 0) {
@@ -315,6 +316,14 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 			rc = EINVAL;
 		}
 
+		if (to) {
+			fclose(to);
+			to = NULL;
+		}
+		if (from) {
+			fclose(from);
+			from = NULL;
+		}
 		// Restore the Standard Input, Output and Error file descriptors
 		new_iostate.stdin = stdin;
 		new_iostate.stdout = stdout;
