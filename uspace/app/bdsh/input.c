@@ -199,7 +199,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 		case  TOKTYPE_PIPE:
 			pipe_pos[pipe_count++] = i;
 			cmd_argc = i;
-			redir_to = (char *)"/tmp/pipe";
+			redir_to = tmpnam(NULL);
 			break;
 
 		case TOKTYPE_RDIN:
