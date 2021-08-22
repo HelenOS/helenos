@@ -1,0 +1,88 @@
+#!/bin/sh
+
+#
+# Copyright (c) 2021 Martin Decky
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# - Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+# - Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+# - The name of the author may not be used to endorse or promote products
+#   derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+# This script allows to deploy HelenOS conveniently to the HiKey 960 board
+# using the fastboot protocol. The fastboot mechanism is provided as a part
+# of the default UEFI firmware on HiKey 960.
+#
+# The implementation of the fastboot mechanism on HiKey 960 has several
+# quirks and this script tries to accommodate for them:
+#
+# * The boot image must be compressed by GZip. Uncompressed boot images are
+#   rejected.
+#
+# * The compressed boot image must end with a device tree blob (even if
+#   the device tree is not actually processed). A missing device tree blob
+#   crashes the fastboot mechanism.
+#
+# * A RAM disk must be included in the final fastboot image. A missing RAM
+#   disk crashes the fastboot mechanism. We use a fake blob for that purpose.
+
+check_error() {
+	if [ "$1" -ne "0" ] ; then
+		echo
+		echo "Error: $2"
+
+		exit 1
+	fi
+}
+
+SCRIPT_DIR="$(readlink -f $(dirname "$0"))"
+
+if [ "$#" -lt "1" ] ; then
+	echo "Usage: $0 <image.boot>"
+	exit 2
+fi
+
+IMAGE="$1"
+IMAGE_GZ="${IMAGE}.gz"
+IMAGE_GZ_DTB="${IMAGE_GZ}+dtb"
+IMAGE_FASTBOOT="${IMAGE}.fastboot"
+
+if [ ! -f "${IMAGE}" ] ; then
+	echo "Error: ${IMAGE} is not a file"
+	exit 3
+fi
+
+# Compress the image
+gzip -c "${IMAGE}" > "${IMAGE_GZ}"
+check_error $? "Compressing ${IMAGE}"
+
+# Append the DTB
+cat "${IMAGE_GZ}" "${SCRIPT_DIR}/hi3660-hikey960.dtb" > "${IMAGE_GZ_DTB}"
+check_error $? "Appending DTB to ${IMAGE_GZ}"
+
+# Create the fastboot image with a fake "RAM disk"
+"${SCRIPT_DIR}/mkfastboot" --kernel ${IMAGE_GZ_DTB} --ramdisk "${SCRIPT_DIR}/hikey960.rd" --base 0x0 --tags-addr 0x07a00000 --kernel_offset 0x00080000 --ramdisk_offset 0x07c00000 --output "${IMAGE_FASTBOOT}"
+check_error $? "Converting ${IMAGE_GZ_DTB} to a fastboot image"
+
+# Deploy the fastboot image on a HiKey 960 board connected to the host machine
+fastboot boot "${IMAGE_FASTBOOT}"
+check_error $? "Deploying ${IMAGE_FASTBOOT}"
