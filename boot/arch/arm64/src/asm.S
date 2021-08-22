@@ -134,7 +134,15 @@ SYMBOL(start)
 	adrp x1, _DYNAMIC
 	add x1, x1, #:lo12:_DYNAMIC
 	bl self_relocate
-	cbnz x0, 0f
+	cbnz x0, __uefi_exit
+
+	/*
+	 * Flush the instruction cache of the relocated boot loader image.
+	 */
+	adr x0, msdos_stub
+	adrp x1, payload_end
+	sub x1, x1, x0
+	bl smc_coherence
 
 	/*
 	 * Pass the image handle (x0), a pointer to the UEFI system table (x1),
@@ -144,9 +152,9 @@ SYMBOL(start)
 	adr x2, msdos_stub
 	bl bootstrap
 
-0:
-	ldp x29, x30, [sp], #32
-	ret
+	__uefi_exit:
+		ldp x29, x30, [sp], #32
+		ret
 
 FUNCTION_BEGIN(halt)
 	.hidden halt
@@ -154,20 +162,150 @@ FUNCTION_BEGIN(halt)
 	b halt
 FUNCTION_END(halt)
 
+/** Flush instruction caches
+ *
+ * @param x0 Starting address of the flushing.
+ * @param x1 Number of bytes to flush.
+ *
+ */
+FUNCTION_BEGIN(smc_coherence)
+	.hidden smc_coherence
+
+	/* Initialize loop */
+	mov x9, x0
+	mov x10, xzr
+
+	__dc_loop:
+		/* Data or Unified Cache Line Clean */
+		dc cvau, x9
+		add x9, x9, #4
+		add x10, x10, #4
+		cmp x10, x1
+		blo __dc_loop
+
+	dsb ish
+
+	/* Initialize loop */
+	mov x9, x0
+	mov x10, xzr
+
+	__ic_loop:
+		/* Instruction Cache Line Invalidate */
+		ic ivau, x9
+		add x9, x9, #4
+		add x10, x10, #4
+		cmp x10, x1
+		blo __ic_loop
+
+	dsb ish
+	isb
+	ret
+FUNCTION_END(smc_coherence)
+
+/** Flush data caches
+ *
+ * @param x0 Starting address of the flushing.
+ * @param x1 Number of bytes to flush.
+ *
+ */
+FUNCTION_BEGIN(dcache_flush)
+	.hidden dcache_flush
+
+	mov x9, x0
+	mov x10, xzr
+
+	__dc_flush_loop:
+		/* Data or Unified Cache Line Clean */
+		dc cvau, x9
+		add x9, x9, #4
+		add x10, x10, #4
+		cmp x10, x1
+		blo __dc_flush_loop
+
+	dsb ish
+	isb
+	ret
+FUNCTION_END(dcache_flush)
+
+/** Kernel entry
+ *
+ * @param x0 Kernel entry point.
+ * @param x1 Pointer to the bootinfo structure.
+ *
+ */
 FUNCTION_BEGIN(jump_to_kernel)
 	.hidden jump_to_kernel
 
-	/*
-	 * Parameters:
-	 * x0 is kernel entry point.
-	 * x1 is pointer to the bootinfo structure.
-	 */
+	mrs x9, CurrentEL
+	lsr x9, x9, 2
 
-	/* Disable MMU (removes the identity mapping provided by UEFI). */
-	mrs x2, sctlr_el1
-	bic x2, x2, #SCTLR_M_FLAG
-	msr sctlr_el1, x2
-	isb
+	cmp x9, #3
+	b.eq __el3
 
-	br x0
+	cmp x9, #2
+	b.eq __el2
+
+	cmp x9, #1
+	b.eq __el1
+
+	b halt
+
+	__el3:
+		msr sctlr_el2, xzr
+		msr hcr_el2, xzr
+		isb
+
+		/* EL2 is AArch64, EL1 is Non-secure World */
+		mov x9, #(1 << 10)
+		orr x9, x9, #(1 << 0)
+		msr scr_el3, x9
+		isb
+
+		/* EL2h */
+		mov x9, #0x9
+		msr spsr_el3, x9
+		isb
+
+		adr x9, __el2
+		msr elr_el3, x9
+		isb
+
+		/* Switch to EL2 */
+		eret
+
+	__el2:
+		msr sctlr_el1, xzr
+		isb
+
+		/* EL1 is AArch64 */
+		mov x9, #(1 << 31)
+		msr hcr_el2, x9
+		isb
+
+		/* EL1h */
+		mov x9, #0x5
+		msr spsr_el2, x9
+		isb
+
+		adr x9, __el1
+		msr elr_el2, x9
+		isb
+
+		/* Switch to EL1 */
+		eret
+
+	__el1:
+		/* Do not trap on FPU instructions */
+		mrs x9, cpacr_el1
+		orr x9, x9, #(3 << 20)
+		msr cpacr_el1, x9
+		dmb ish
+
+		/* Disable MMU (removes the identity mapping provided by UEFI) */
+		mrs x9, sctlr_el1
+		bic x9, x9, #SCTLR_M_FLAG
+		msr sctlr_el1, x9
+		isb
+
+		br x0
 FUNCTION_END(jump_to_kernel)

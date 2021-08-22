@@ -115,7 +115,6 @@ efi_status_t bootstrap(void *efi_handle_in,
     efi_system_table_t *efi_system_table_in, void *load_address)
 {
 	efi_status_t status;
-	uint64_t current_el;
 	uint64_t memmap = 0;
 	sysarg_t memmap_size;
 	sysarg_t memmap_key;
@@ -142,15 +141,6 @@ efi_status_t bootstrap(void *efi_handle_in,
 	printf(" %p|%p: loader\n", load_address, load_address);
 	printf(" %p|%p: UEFI system table\n", efi_system_table_in,
 	    efi_system_table_in);
-
-	/* Validate the exception level. */
-	current_el = CurrentEL_read();
-	if (current_el != CURRENT_EL_EL1) {
-		printf("Error: Unexpected CurrentEL value %0#18" PRIx64 ".\n",
-		    current_el);
-		status = EFI_UNSUPPORTED;
-		goto fail;
-	}
 
 	/* Obtain memory map. */
 	status = efi_get_memory_map(efi_system_table, &memmap_size,
@@ -186,7 +176,7 @@ efi_status_t bootstrap(void *efi_handle_in,
 	}
 
 	/*
-	 * Check that everything is aligned on a 4kB boundary and the kernel can
+	 * Check that everything is aligned on a 4 KiB boundary and the kernel can
 	 * be placed by the decompression code at a correct address.
 	 */
 
@@ -198,11 +188,11 @@ efi_status_t bootstrap(void *efi_handle_in,
 	/*
 	 * Dynamically check the memory base. The condition should be always
 	 * true because UEFI guarantees each physical/virtual address in the
-	 * memory map is aligned on a 4kB boundary.
+	 * memory map is aligned on a 4 KiB boundary.
 	 */
 	if (!IS_ALIGNED(memory_base, PAGE_SIZE)) {
 		printf("Error: Start of usable RAM (%p) is not aligned on a "
-		    "4kB boundary.\n", (void *) memory_base);
+		    "4 KiB boundary.\n", (void *) memory_base);
 		status = EFI_UNSUPPORTED;
 		goto fail;
 	}
@@ -242,7 +232,7 @@ efi_status_t bootstrap(void *efi_handle_in,
 	uint8_t *ram_end = kernel_dest + component_pages * EFI_PAGE_SIZE;
 
 	extract_payload(&bootinfo->taskmap, kernel_dest, ram_end,
-	    (uintptr_t) kernel_dest, ensure_visibility);
+	    (uintptr_t) kernel_dest, smc_coherence);
 
 	/* Get final memory map. */
 	status = efi_get_memory_map(efi_system_table, &memmap_size,
@@ -299,6 +289,9 @@ efi_status_t bootstrap(void *efi_handle_in,
 		current_size = desc->pages * EFI_PAGE_SIZE;
 	}
 	bootinfo->memmap.cnt = cnt;
+
+	/* Flush the data cache containing bootinfo. */
+	dcache_flush(bootinfo, sizeof(*bootinfo));
 
 	uintptr_t entry = check_kernel_translated((void *) decompress_base,
 	    BOOT_OFFSET);
