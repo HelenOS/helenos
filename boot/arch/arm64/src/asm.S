@@ -32,6 +32,8 @@
 
 .section BOOTSTRAP
 
+#define DIRECTORY_ENTRIES 16
+
 /* MS-DOS stub */
 msdos_stub:
 	.ascii "MZ"                     /* MS-DOS signature */
@@ -50,8 +52,10 @@ pe_header:
 	.long 0                         /* Pointer to symbol table */
 	.long 0                         /* Number of symbols */
 	.short sec_table - opt_header   /* Size of optional header */
-	/* Characteristics = IMAGE_FILE_EXECUTABLE_IMAGE |
-	 *   IMAGE_FILE_LARGE_ADDRESS_AWARE */
+	/*
+	 * Characteristics = IMAGE_FILE_EXECUTABLE_IMAGE |
+	 *   IMAGE_FILE_LARGE_ADDRESS_AWARE
+	 */
 	.short 0x22
 
 	/* Optional header standard fields */
@@ -86,10 +90,11 @@ opt_header:
 	.quad 0                         /* Size of heap reserve */
 	.quad 0                         /* Size of heap commit */
 	.long 0                         /* Loader flags */
-	.long 0                         /* Number of RVA and sizes */
+	.long DIRECTORY_ENTRIES         /* Number of RVA and sizes */
+	.space DIRECTORY_ENTRIES * 8    /* Directory entries */
 
 sec_table:
-        .ascii ".text\x0\x0\x0"         /* Name */
+	.ascii ".text\x0\x0\x0"         /* Name */
 	.long payload_end - start       /* Virtual size */
 	.long start - msdos_stub        /* Virtual address */
 	.long payload_end - start       /* Size of raw data */
@@ -98,21 +103,23 @@ sec_table:
 	.long 0                         /* Pointer to line numbers */
 	.short 0                        /* Number of relocations */
 	.short 0                        /* Number of line numbers */
-	/* Characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE |
-	 *   IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE */
+	/*
+	 * Characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE |
+	 *   IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE
+	 */
 	.long 0xe0000020
 
+/** Boot loader entry point
+ *
+ * @param x0 UEFI image handle.
+ * @param x1 Pointer to the UEFI system table.
+ *
+ */
 SYMBOL(start)
 	.hidden start
 
 	/*
-	 * Parameters:
-	 * x0 is the image handle.
-	 * x1 is a pointer to the UEFI system table.
-	 */
-
-	/*
-	 * Stay on the UEFI stack. Its size is at least 128 kB, plenty for this
+	 * Stay on the UEFI stack. Its size is at least 128 KiB, plenty for this
 	 * boot loader.
 	 */
 	stp x29, x30, [sp, #-32]!
