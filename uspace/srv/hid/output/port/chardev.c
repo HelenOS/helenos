@@ -217,6 +217,8 @@ errno_t chardev_init(void)
 		/* OK */
 #elif defined(UARCH_arm64) && defined(MACHINE_virt)
 		/* OK */
+#elif defined(UARCH_arm64) && defined(MACHINE_hikey960)
+		/* OK */
 #else
 		return EOK;
 #endif

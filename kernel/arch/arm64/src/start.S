@@ -34,23 +34,42 @@
 
 .section K_TEXT_START, "ax"
 
-SYMBOL(kernel_image_start)
-	/*
-	 * Parameters:
-	 * x0 is kernel entry point (kernel_image_start).
-	 * x1 is pointer to the bootinfo structure.
-	 *
-	 * MMU must be disabled at this point.
-	 */
+.macro dcache_flush addr size temp0 temp1
+	mov \temp0, \addr
+	mov \temp1, xzr
 
+	0:
+		/* Data or Unified Cache Line Clean */
+		dc cvau, \temp0
+		add \temp0, \temp0, #4
+		add \temp1, \temp1, #4
+		cmp \temp1, \size
+		blo 0b
+
+	dsb ish
+	isb
+.endm
+
+/** Kernel entry
+ *
+ * MMU must be disabled at this point.
+ *
+ * @param x0 Kernel entry point (kernel_image_start).
+ * @param x1 Pointer to the bootinfo structure.
+ *
+ */
+SYMBOL(kernel_image_start)
 	/* Get address of the main memory and remember it. */
 	adrp x20, kernel_image_start - BOOT_OFFSET
 	adrp x2, physmem_base
-	/* add x2, x2, #:lo12:physmem_base */
 	str x20, [x2]
 
+	/* Flush the data cache of physmem_base. */
+	mov x28, #8
+	dcache_flush x2 x28 x29 x30
+
 	/*
-	 * Set up address translation that identity maps the gigabyte area that
+	 * Set up address translation that identity maps the 1 GiB area that
 	 * is holding the current execution page.
 	 */
 
@@ -75,7 +94,7 @@ SYMBOL(kernel_image_start)
 	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
 	mov x3, #( \
 	    1 << PTE_ACCESS_SHIFT | \
-	    MAIR_EL1_DEVICE_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
+	    MAIR_EL1_NORMAL_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
 	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
 	    1 << PTE_PRESENT_SHIFT)
 	lsr x4, x20, #FRAME_WIDTH
@@ -83,12 +102,13 @@ SYMBOL(kernel_image_start)
 	str x3, [x2]
 
 	/*
-	 * Set up address translation that maps the first gigabyte of the kernel
-	 * identity virtual address space to the first gigabyte of the physical
+	 * Set up address translation that maps the first 4 GiB of the kernel
+	 * identity virtual address space to the first 4 GiB of the physical
 	 * memory.
 	 */
 
 	mov x21, #KM_ARM64_IDENTITY_START
+	ldr x22, =(1024 * 1024 * 1024)
 
 	/* Prepare the level 0 page table. */
 	adrp x2, upper_page_table_level0
@@ -111,12 +131,80 @@ SYMBOL(kernel_image_start)
 	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
 	mov x3, #( \
 	    1 << PTE_ACCESS_SHIFT | \
-	    MAIR_EL1_DEVICE_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
+	    MAIR_EL1_NORMAL_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
 	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
 	    1 << PTE_PRESENT_SHIFT)
 	lsr x4, x20, #FRAME_WIDTH
 	orr x3, x3, x4, lsl #PTE_OUTPUT_ADDRESS_SHIFT
 	str x3, [x2]
+
+	/* 2nd GiB */
+	add x23, x20, x22
+	add x24, x21, x22
+
+	adrp x2, upper_page_table_level1
+	lsr x3, x24, #PTL1_VA_SHIFT
+	and x3, x3, #PTL1_VA_MASK
+	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
+	mov x3, #( \
+	    1 << PTE_ACCESS_SHIFT | \
+	    MAIR_EL1_NORMAL_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
+	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
+	    1 << PTE_PRESENT_SHIFT)
+	lsr x4, x23, #FRAME_WIDTH
+	orr x3, x3, x4, lsl #PTE_OUTPUT_ADDRESS_SHIFT
+	str x3, [x2]
+
+	/* 3rd GiB */
+	add x23, x23, x22
+	add x24, x24, x22
+
+	adrp x2, upper_page_table_level1
+	lsr x3, x24, #PTL1_VA_SHIFT
+	and x3, x3, #PTL1_VA_MASK
+	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
+	mov x3, #( \
+	    1 << PTE_ACCESS_SHIFT | \
+	    MAIR_EL1_NORMAL_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
+	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
+	    1 << PTE_PRESENT_SHIFT)
+	lsr x4, x23, #FRAME_WIDTH
+	orr x3, x3, x4, lsl #PTE_OUTPUT_ADDRESS_SHIFT
+	str x3, [x2]
+
+	/* 4th GiB */
+	add x23, x23, x22
+	add x24, x24, x22
+
+	adrp x2, upper_page_table_level1
+	lsr x3, x24, #PTL1_VA_SHIFT
+	and x3, x3, #PTL1_VA_MASK
+	add x2, x2, x3, lsl #PTL_ENTRY_SIZE_SHIFT
+	mov x3, #( \
+	    1 << PTE_ACCESS_SHIFT | \
+	    MAIR_EL1_DEVICE_MEMORY_INDEX << PTE_ATTR_INDEX_SHIFT | \
+	    PTE_L012_TYPE_BLOCK << PTE_TYPE_SHIFT | \
+	    1 << PTE_PRESENT_SHIFT)
+	lsr x4, x23, #FRAME_WIDTH
+	orr x3, x3, x4, lsl #PTE_OUTPUT_ADDRESS_SHIFT
+	str x3, [x2]
+
+	/* Flush the data cache of page tables. */
+	adrp x27, lower_page_table_level0
+	mov x28, #4096
+	dcache_flush x27 x28 x29 x30
+
+	adrp x27, lower_page_table_level1
+	mov x28, #4096
+	dcache_flush x27 x28 x29 x30
+
+	adrp x27, upper_page_table_level0
+	mov x28, #4096
+	dcache_flush x27 x28 x29 x30
+
+	adrp x27, upper_page_table_level1
+	mov x28, #4096
+	dcache_flush x27 x28 x29 x30
 
 	/* Make sure there are not any stale TLB entries. */
 	tlbi vmalle1is
@@ -270,10 +358,13 @@ SYMBOL(kernel_image_start)
 .align 12
 lower_page_table_level0:
 	.space 4096
+
 lower_page_table_level1:
 	.space 4096
+
 upper_page_table_level0:
 	.space 4096
+
 upper_page_table_level1:
 	.space 4096
 

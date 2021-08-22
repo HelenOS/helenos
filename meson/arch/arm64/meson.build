@@ -31,7 +31,6 @@ arch_kernel_c_args = arch_uspace_c_args + [ '-march=armv8-a+nofp+nosimd', '-mgen
 arch_kernel_link_args = [ '-nostdlib' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 
-
 # UEFI binaries should be relocatable, the EFI boot service LoadImage() will
 # rebase the boot file using the .reloc information in the image if it cannot
 # load the binary at its preferred address. The ARM64 port does not provide this
@@ -45,11 +44,18 @@ arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 arch_boot_c_args = arch_uspace_c_args + [ '-fpic', '-fvisibility=hidden', '-fno-function-sections' ]
 arch_boot_link_args = [ '-Wl,-shared', '-Wl,--no-gc-sections' ]
 
-
 if MACHINE == 'virt'
 	rd_essential += [
 		'drv/char/pl011',
 		'drv/intctl/gicv2',
 		'drv/platform/arm64virt',
+	]
+endif
+
+if MACHINE == 'hikey960'
+	rd_essential += [
+		'drv/char/pl011',
+		'drv/intctl/gicv2',
+		'drv/platform/hikey960',
 	]
 endif

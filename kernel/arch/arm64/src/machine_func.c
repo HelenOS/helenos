@@ -36,6 +36,7 @@
  */
 
 #include <arch/machine_func.h>
+#include <arch/mach/hikey960/hikey960.h>
 #include <arch/mach/virt/virt.h>
 
 /** Pointer to machine_ops structure being used. */
@@ -46,6 +47,8 @@ void machine_ops_init(void)
 {
 #if defined(MACHINE_virt)
 	machine_ops = &virt_machine_ops;
+#elif defined(MACHINE_hikey960)
+	machine_ops = &hikey960_machine_ops;
 #else
 #error Machine type not defined.
 #endif

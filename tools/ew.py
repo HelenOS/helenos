@@ -143,21 +143,22 @@ def platform_to_qemu_options(platform, machine, processor):
 		elif machine == 'raspberrypi':
 			return 'system-arm', '-M raspi1ap'
 	elif platform == 'arm64':
-		# Search for the EDK2 firmware image
-		default_paths = (
-			'/usr/local/qemu-efi-aarch64/QEMU_EFI.fd', # Custom
-			'/usr/share/edk2/aarch64/QEMU_EFI.fd',     # Fedora
-			'/usr/share/qemu-efi-aarch64/QEMU_EFI.fd', # Ubuntu
-		)
-		extra_info = ("Pre-compiled binary can be obtained from "
-		    "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/latest/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd.\n")
-		efi_path = find_firmware(
-		    "EDK2", 'EW_QEMU_EFI_AARCH64', default_paths, extra_info)
-		if efi_path is None:
-			raise Exception
+		if machine == 'virt':
+			# Search for the EDK2 firmware image
+			default_paths = (
+				'/usr/local/qemu-efi-aarch64/QEMU_EFI.fd', # Custom
+				'/usr/share/edk2/aarch64/QEMU_EFI.fd',     # Fedora
+				'/usr/share/qemu-efi-aarch64/QEMU_EFI.fd', # Ubuntu
+			)
+			extra_info = ("Pre-compiled binary can be obtained from "
+			    "http://snapshots.linaro.org/components/kernel/leg-virt-tianocore-edk2-upstream/latest/QEMU-AARCH64/RELEASE_GCC5/QEMU_EFI.fd.\n")
+			efi_path = find_firmware(
+			    "EDK2", 'EW_QEMU_EFI_AARCH64', default_paths, extra_info)
+			if efi_path is None:
+				raise Exception
 
-		return 'system-aarch64', \
-		    '-M virt -cpu cortex-a57 -m 1024 -bios %s' % efi_path
+			return 'system-aarch64', \
+			    '-M virt -cpu cortex-a57 -m 1024 -bios %s' % efi_path
 	elif platform == 'ia32':
 		return 'system-i386', pc_options(32)
 	elif platform == 'mips32':

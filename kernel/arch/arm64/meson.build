@@ -43,7 +43,6 @@ arch_src += files(
 	'src/mm/km.c',
 	'src/mm/page.c',
 	'src/mm/tlb.c',
-	'src/smc.c',
 	'src/smp/ipi.c',
 	'src/smp/smp.c',
 	'src/start.S',
@@ -51,6 +50,10 @@ arch_src += files(
 
 if MACHINE == 'virt'
 	arch_src += files('src/mach/virt/virt.c')
+endif
+
+if MACHINE == 'hikey960'
+	arch_src += files('src/mach/hikey960/hikey960.c')
 endif
 
 _check_headers = [

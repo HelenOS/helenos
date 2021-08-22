@@ -59,6 +59,44 @@ FUNCTION_BEGIN(early_putuchar)
 	ret
 FUNCTION_END(early_putuchar)
 
+/** Flush instruction caches
+ *
+ * @param x0 Starting address of the flushing.
+ * @param x1 Number of bytes to flush.
+ *
+ */
+FUNCTION_BEGIN(smc_coherence)
+	/* Initialize loop */
+	mov x9, x0
+	mov x10, xzr
+
+	__dc_loop:
+		/* Data or Unified Cache Line Clean */
+		dc cvau, x9
+		add x9, x9, #4
+		add x10, x10, #4
+		cmp x10, x1
+		blo __dc_loop
+
+	dsb ish
+
+	/* Initialize loop */
+	mov x9, x0
+	mov x10, xzr
+
+	__ic_loop:
+		/* Instruction Cache Line Invalidate */
+		ic ivau, x9
+		add x9, x9, #4
+		add x10, x10, #4
+		cmp x10, x1
+		blo __ic_loop
+
+	dsb ish
+	isb
+	ret
+FUNCTION_END(smc_coherence)
+
 /* Static checks for the istate_t save/load. */
 #if ISTATE_OFFSET_X0 + 8 != ISTATE_OFFSET_X1
 #error x0 and x1 are not successive in istate_t
