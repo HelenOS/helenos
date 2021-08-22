@@ -286,9 +286,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 			if ((p < pipe_count) || (pipe_count == 0)) {
 				to = fopen(redir_to, "w");
 				if (to == NULL) {
-					printf(
-					    "Cannot open file %s redirect to\n",
-					    redir_to);
+					printf("Cannot open file %s\n", redir_to);
 					rc = errno;
 					goto finit_with_files;
 				}
@@ -300,9 +298,7 @@ static errno_t process_input_nohup(cliuser_t *usr, list_t *alias_hups, size_t co
 			if ((p && p == pipe_count) || (pipe_count == 0)) {
 				from = fopen(redir_from, "r");
 				if (from == NULL) {
-					printf("Cannot open file %s redirect "
-					       "from\n",
-					    redir_from);
+					printf("Cannot open file %s\n", redir_from);
 					rc = errno;
 					goto finit_with_files;
 				}
