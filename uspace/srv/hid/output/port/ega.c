@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -30,6 +31,7 @@
  * @{
  */
 
+#include <codepage/cp437.h>
 #include <errno.h>
 #include <sysinfo.h>
 #include <align.h>
@@ -105,10 +107,10 @@ static uint8_t attrs_attr(char_attrs_t attrs)
 static void draw_char(charfield_t *field, sysarg_t col, sysarg_t row)
 {
 	uint8_t glyph;
+	errno_t rc;
 
-	if (ascii_check(field->ch))
-		glyph = field->ch;
-	else
+	rc = cp437_encode(field->ch, &glyph);
+	if (rc != EOK)
 		glyph = '?';
 
 	uint8_t attr = attrs_attr(field->attrs);

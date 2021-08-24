@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
@@ -26,6 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <codepage/cp437.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <uchar.h>
@@ -50,14 +52,24 @@ const char *test_print4(void)
 		TPRINTF("\n");
 	}
 
-	TPRINTF("\nExtended ASCII characters (128 - 255) using printf(\"%%lc\"):\n");
+	/*
+	 * Print entire code page 437 (in Unicode)
+	 *
+	 * The purpose of this test is to verify that the EGA display
+	 * driver can correctly map every code page 437 character back
+	 * from Unicode and display it.
+	 *
+	 * With a Unicode-capable display this will just give you a bit
+	 * of nostalgia.
+	 */
+	TPRINTF("\nCode page 437 characters (converted to Unicode):\n");
 
-	for (group = 4; group < 8; group++) {
+	for (group = 0; group < 8; group++) {
 		TPRINTF("%#x: ", group << 5);
 
 		uint8_t index;
 		for (index = 0; index < 32; index++)
-			TPRINTF("%lc", (wint_t) ((group << 5) + index));
+			TPRINTF("%lc", cp437_decode((group << 5) + index));
 
 		TPRINTF("\n");
 	}
