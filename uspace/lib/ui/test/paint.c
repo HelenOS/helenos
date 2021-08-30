@@ -276,6 +276,42 @@ PCUT_TEST(text_box)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Paint text horizontal brace */
+PCUT_TEST(text_hbrace)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	ui_resource_t *resource = NULL;
+	gfx_color_t *color = NULL;
+	test_gc_t tgc;
+	gfx_rect_t rect;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = gfx_color_new_rgb_i16(1, 2, 3, &color);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 30;
+	rect.p1.y = 40;
+
+	/* Paint text horizontal brace */
+	rc = ui_paint_text_hbrace(resource, &rect, ui_box_single,
+	    color);
+
+	gfx_color_delete(color);
+	ui_resource_destroy(resource);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 static errno_t testgc_set_clip_rect(void *arg, gfx_rect_t *rect)
 {
 	(void) arg;

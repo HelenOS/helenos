@@ -65,6 +65,13 @@ typedef struct {
 	const char *c[3][3];
 } ui_box_chars_t;
 
+/** Horizontal brace characters for a particular box style. */
+typedef struct {
+	const char *start;
+	const char *middle;
+	const char *end;
+} ui_brace_chars_t;
+
 /** Box style */
 typedef enum {
 	/** Single box */

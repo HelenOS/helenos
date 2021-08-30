@@ -61,6 +61,20 @@ static ui_box_chars_t double_box_chars = {
 	}
 };
 
+/** Single horizontal brace characters */
+static ui_brace_chars_t single_hbrace_chars = {
+	.start = "\u251c",
+	.middle = "\u2500",
+	.end = "\u2524"
+};
+
+/** Double horizontal brace characters */
+static ui_brace_chars_t double_hbrace_chars = {
+	.start = "\u2560",
+	.middle = "\u2550",
+	.end = "\u2563"
+};
+
 /** Paint bevel.
  *
  * @param gc Graphic context
@@ -449,6 +463,84 @@ errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
 
 	pos.x = rect->p0.x;
 	pos.y = rect->p1.y - 1;
+	rc = gfx_puttext(resource->font, &pos, &fmt, str);
+	if (rc != EOK)
+		goto error;
+
+	free(str);
+	return EOK;
+error:
+	if (str != NULL)
+		free(str);
+	return rc;
+}
+
+/** Paint a text horizontal brace.
+ *
+ * @param resource UI resource
+ * @param rect Rectangle inside which to paint the brace (height should
+ *             be 1).
+ * @param style Box style
+ * @param color Color
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_text_hbrace(ui_resource_t *resource, gfx_rect_t *rect,
+    ui_box_style_t style, gfx_color_t *color)
+{
+	errno_t rc;
+	gfx_text_fmt_t fmt;
+	gfx_rect_t srect;
+	gfx_coord2_t pos;
+	gfx_coord2_t dim;
+	size_t bufsz;
+	size_t off;
+	int i;
+	char *str = NULL;
+	ui_brace_chars_t *hbc = NULL;
+
+	gfx_rect_points_sort(rect, &srect);
+	gfx_rect_dims(&srect, &dim);
+
+	/* Is rectangle large enough to hold brace? */
+	if (dim.x < 2 || dim.y < 1)
+		return EOK;
+
+	switch (style) {
+	case ui_box_single:
+		hbc = &single_hbrace_chars;
+		break;
+	case ui_box_double:
+		hbc = &double_hbrace_chars;
+		break;
+	}
+
+	if (hbc == NULL)
+		return EINVAL;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.color = color;
+
+	bufsz = str_size(hbc->start) +
+	    str_size(hbc->middle) * (dim.x - 2) +
+	    str_size(hbc->end) + 1;
+
+	str = malloc(bufsz);
+	if (str == NULL)
+		return ENOMEM;
+
+	str_cpy(str, bufsz, hbc->start);
+	off = str_size(hbc->start);
+
+	for (i = 1; i < dim.x - 1; i++) {
+		str_cpy(str + off, bufsz - off, hbc->middle);
+		off += str_size(hbc->middle);
+	}
+
+	str_cpy(str + off, bufsz - off, hbc->end);
+	off += str_size(hbc->end);
+	str[off] = '\0';
+
+	pos = rect->p0;
 	rc = gfx_puttext(resource->font, &pos, &fmt, str);
 	if (rc != EOK)
 		goto error;
