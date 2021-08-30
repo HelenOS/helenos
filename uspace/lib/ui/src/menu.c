@@ -57,7 +57,8 @@ enum {
 	menu_frame_w = 4,
 	menu_frame_h = 4,
 	menu_frame_w_text = 2,
-	menu_frame_h_text = 1
+	menu_frame_h_text = 1,
+	menu_frame_h_margin_text = 1
 };
 
 static void ui_menu_popup_close(ui_popup_t *, void *);
@@ -275,11 +276,9 @@ void ui_menu_close(ui_menu_t *menu)
  * @param spos Starting position (top-left corner)
  * @return EOK on success or an error code
  */
-errno_t ui_menu_paint(ui_menu_t *menu, gfx_coord2_t *spos)
+errno_t ui_menu_paint_bg_gfx(ui_menu_t *menu, gfx_coord2_t *spos)
 {
 	ui_resource_t *res;
-	gfx_coord2_t pos;
-	ui_menu_entry_t *mentry;
 	ui_menu_geom_t geom;
 	gfx_rect_t bg_rect;
 	errno_t rc;
@@ -304,6 +303,77 @@ errno_t ui_menu_paint(ui_menu_t *menu, gfx_coord2_t *spos)
 		goto error;
 
 	rc = gfx_fill_rect(res->gc, &bg_rect);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Paint menu.
+ *
+ * @param menu Menu
+ * @param spos Starting position (top-left corner)
+ * @return EOK on success or an error code
+ */
+errno_t ui_menu_paint_bg_text(ui_menu_t *menu, gfx_coord2_t *spos)
+{
+	ui_resource_t *res;
+	ui_menu_geom_t geom;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	res = ui_menu_get_res(menu);
+	ui_menu_get_geom(menu, spos, &geom);
+
+	/* Paint menu background */
+
+	rc = gfx_set_color(res->gc, res->wnd_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(res->gc, &geom.outer_rect);
+	if (rc != EOK)
+		goto error;
+
+	/* Paint menu box */
+
+	rect = geom.outer_rect;
+	rect.p0.x += menu_frame_h_margin_text;
+	rect.p1.x -= menu_frame_h_margin_text;
+
+	rc = ui_paint_text_box(res, &rect, ui_box_single, res->wnd_face_color);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Paint menu.
+ *
+ * @param menu Menu
+ * @param spos Starting position (top-left corner)
+ * @return EOK on success or an error code
+ */
+errno_t ui_menu_paint(ui_menu_t *menu, gfx_coord2_t *spos)
+{
+	ui_resource_t *res;
+	gfx_coord2_t pos;
+	ui_menu_entry_t *mentry;
+	ui_menu_geom_t geom;
+	errno_t rc;
+
+	res = ui_menu_get_res(menu);
+	ui_menu_get_geom(menu, spos, &geom);
+
+	/* Paint menu frame and background */
+	if (res->textmode)
+		rc = ui_menu_paint_bg_text(menu, spos);
+	else
+		rc = ui_menu_paint_bg_gfx(menu, spos);
 	if (rc != EOK)
 		goto error;
 

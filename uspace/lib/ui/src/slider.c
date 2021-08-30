@@ -331,6 +331,8 @@ errno_t ui_slider_paint_text(ui_slider_t *slider)
 	gfx_text_fmt_t fmt;
 	gfx_coord_t w, i;
 	char *buf;
+	const char *gchar;
+	size_t gcharsz;
 	errno_t rc;
 
 	/* Paint slider groove */
@@ -343,13 +345,16 @@ errno_t ui_slider_paint_text(ui_slider_t *slider)
 	fmt.valign = gfx_valign_top;
 
 	w = slider->rect.p1.x - slider->rect.p0.x;
-	buf = malloc(w + 1);
+	gchar = "\u2550";
+	gcharsz = str_size(gchar);
+
+	buf = malloc(w * gcharsz + 1);
 	if (buf == NULL)
 		return ENOMEM;
 
 	for (i = 0; i < w; i++)
-		buf[i] = '=';
-	buf[w] = '\0';
+		str_cpy(buf + i * gcharsz, (w - i) * gcharsz + 1, gchar);
+	buf[w * gcharsz] = '\0';
 
 	rc = gfx_puttext(slider->res->font, &pos, &fmt, buf);
 	free(buf);

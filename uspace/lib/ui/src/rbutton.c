@@ -321,7 +321,7 @@ errno_t ui_rbutton_paint_text(ui_rbutton_t *rbutton)
 	fmt.valign = gfx_valign_top;
 
 	rc = gfx_puttext(rbutton->group->res->font, &pos, &fmt,
-	    rbutton->group->selected == rbutton ? "(*)" : "( )");
+	    rbutton->group->selected == rbutton ? "(\u2022)" : "( )");
 	if (rc != EOK)
 		goto error;
 

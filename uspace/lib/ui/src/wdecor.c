@@ -179,9 +179,8 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	if ((wdecor->style & ui_wds_frame) != 0) {
 
 		if (wdecor->res->textmode != false) {
-			rc = ui_paint_bevel(wdecor->res->gc, &rect,
-			    wdecor->res->wnd_frame_hi_color,
-			    wdecor->res->wnd_frame_sh_color, 1, &rect);
+			rc = ui_paint_text_box(wdecor->res, &rect,
+			    ui_box_double, wdecor->res->wnd_face_color);
 			if (rc != EOK)
 				return rc;
 		} else {
