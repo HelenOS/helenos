@@ -539,9 +539,9 @@ static errno_t ui_demo(const char *display_spec)
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 1;
-		rect.p0.y = 2;
+		rect.p0.y = 1;
 		rect.p1.x = 79;
-		rect.p1.y = 3;
+		rect.p1.y = 2;
 	} else {
 		rect.p0.x = 4;
 		rect.p0.y = 30;

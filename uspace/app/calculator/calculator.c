@@ -832,18 +832,18 @@ int main(int argc, char *argv[])
 
 	if (ui_is_textmode(ui)) {
 		params.rect.p1.x = 38;
-		params.rect.p1.y = 19;
+		params.rect.p1.y = 18;
 
 		calc.geom.menubar_rect.p0.x = 1;
-		calc.geom.menubar_rect.p0.y = 2;
+		calc.geom.menubar_rect.p0.y = 1;
 		calc.geom.menubar_rect.p1.x = params.rect.p1.x - 1;
-		calc.geom.menubar_rect.p1.y = 3;
+		calc.geom.menubar_rect.p1.y = 2;
 		calc.geom.entry_rect.p0.x = 4;
-		calc.geom.entry_rect.p0.y = 4;
+		calc.geom.entry_rect.p0.y = 3;
 		calc.geom.entry_rect.p1.x = 34;
-		calc.geom.entry_rect.p1.y = 5;
+		calc.geom.entry_rect.p1.y = 4;
 		calc.geom.btn_orig.x = 4;
-		calc.geom.btn_orig.y = 6;
+		calc.geom.btn_orig.y = 5;
 		calc.geom.btn_dim.x = 6;
 		calc.geom.btn_dim.y = 2;
 		calc.geom.btn_stride.x = 8;

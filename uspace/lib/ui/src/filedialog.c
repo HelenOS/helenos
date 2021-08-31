@@ -111,7 +111,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 40;
-		wparams.rect.p1.y = 10;
+		wparams.rect.p1.y = 9;
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
@@ -138,9 +138,9 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 3;
-		rect.p0.y = 3;
+		rect.p0.y = 2;
 		rect.p1.x = 17;
-		rect.p1.y = 4;
+		rect.p1.y = 3;
 	} else {
 		rect.p0.x = 10;
 		rect.p0.y = 35;
@@ -163,9 +163,9 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 3;
-		rect.p0.y = 5;
+		rect.p0.y = 4;
 		rect.p1.x = 37;
-		rect.p1.y = 6;
+		rect.p1.y = 5;
 	} else {
 		rect.p0.x = 10;
 		rect.p0.y = 55;
@@ -191,9 +191,9 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 10;
-		rect.p0.y = 7;
+		rect.p0.y = 6;
 		rect.p1.x = 20;
-		rect.p1.y = 8;
+		rect.p1.y = 7;
 	} else {
 		rect.p0.x = 55;
 		rect.p0.y = 90;
@@ -221,9 +221,9 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 22;
-		rect.p0.y = 7;
+		rect.p0.y = 6;
 		rect.p1.x = 32;
-		rect.p1.y = 8;
+		rect.p1.y = 7;
 	} else {
 		rect.p0.x = 155;
 		rect.p0.y = 90;

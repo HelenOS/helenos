@@ -367,11 +367,11 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_color_new_ega(0x1f, &tbar_act_bg_color);
+	rc = gfx_color_new_ega(0x70, &tbar_act_bg_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_color_new_ega(0x1e, &tbar_act_text_color);
+	rc = gfx_color_new_ega(0x70, &tbar_act_text_color);
 	if (rc != EOK)
 		goto error;
 
