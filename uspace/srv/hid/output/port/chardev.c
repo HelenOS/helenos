@@ -77,13 +77,27 @@ static void chardev_flush(void)
 	chardev_bused = 0;
 }
 
-static void chardev_putuchar(char32_t ch)
+static void chardev_putchar(char ch)
 {
 	if (chardev_bused == chardev_buf_size)
 		chardev_flush();
-	if (!ascii_check(ch))
-		ch = '?';
 	chardev_buf[chardev_bused++] = (uint8_t) ch;
+}
+
+static void chardev_putuchar(char32_t ch)
+{
+	char buf[STR_BOUNDS(1)];
+	size_t off;
+	size_t i;
+	errno_t rc;
+
+	off = 0;
+	rc = chr_encode(ch, buf, &off, sizeof(buf));
+	if (rc != EOK)
+		return;
+
+	for (i = 0; i < off; i++)
+		chardev_putchar(buf[i]);
 }
 
 static void chardev_control_puts(const char *str)
