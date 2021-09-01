@@ -38,6 +38,7 @@
 #define _UI_PRIVATE_UI_H
 
 #include <adt/list.h>
+#include <gfx/coord.h>
 #include <display.h>
 #include <io/console.h>
 #include <stdbool.h>
@@ -53,6 +54,8 @@ struct ui {
 	struct console_gc *cgc;
 	/** Display */
 	display_t *display;
+	/** UI rectangle (only used in fullscreen mode) */
+	gfx_rect_t rect;
 	/** Output owned by UI, clean up when destroying UI */
 	bool myoutput;
 	/** @c true if terminating */

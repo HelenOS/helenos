@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,9 @@ struct ui_resource {
 	gfx_font_t *font;
 	/** Text mode */
 	bool textmode;
+
+	/** UI background color */
+	gfx_color_t *ui_bg_color;
 
 	/** Button frame color */
 	gfx_color_t *btn_frame_color;

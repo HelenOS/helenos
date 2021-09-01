@@ -326,8 +326,7 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
-	    &btn_highlight_color);
+	rc = gfx_color_new_ega(0x20, &btn_highlight_color);
 	if (rc != EOK)
 		goto error;
 

@@ -38,6 +38,8 @@
 #include <display.h>
 #include <errno.h>
 #include <fibril.h>
+#include <gfx/color.h>
+#include <gfx/render.h>
 #include <io/console.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -108,6 +110,8 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 	console_gc_t *cgc;
 	ui_winsys_t ws;
 	const char *osvc;
+	sysarg_t cols;
+	sysarg_t rows;
 	ui_t *ui;
 
 	ui_ospec_parse(ospec, &ws, &osvc);
@@ -127,6 +131,12 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 		if (console == NULL)
 			return EIO;
 
+		rc = console_get_size(console, &cols, &rows);
+		if (rc != EOK) {
+			console_done(console);
+			return rc;
+		}
+
 		console_cursor_visibility(console, false);
 
 		/* ws == ui_ws_console */
@@ -144,6 +154,12 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 		}
 
 		ui->cgc = cgc;
+		ui->rect.p0.x = 0;
+		ui->rect.p0.y = 0;
+		ui->rect.p1.x = cols;
+		ui->rect.p1.y = rows;
+
+		(void) ui_paint(ui);
 	} else {
 		return EINVAL;
 	}
@@ -283,7 +299,29 @@ void ui_run(ui_t *ui)
 errno_t ui_paint(ui_t *ui)
 {
 	errno_t rc;
+	gfx_context_t *gc;
 	ui_window_t *awnd;
+	gfx_color_t *color = NULL;
+
+	gc = console_gc_get_ctx(ui->cgc);
+
+	rc = gfx_color_new_ega(0x11, &color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK) {
+		gfx_color_delete(color);
+		return rc;
+	}
+
+	rc = gfx_fill_rect(gc, &ui->rect);
+	if (rc != EOK) {
+		gfx_color_delete(color);
+		return rc;
+	}
+
+	gfx_color_delete(color);
 
 	/* XXX Should repaint all windows */
 	awnd = ui_window_get_active(ui);
