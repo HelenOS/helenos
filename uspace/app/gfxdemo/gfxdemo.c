@@ -677,9 +677,15 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 	gfx_color_delete(color);
 
-	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
-	if (rc != EOK)
-		goto error;
+	if (demo_is_text(w, h)) {
+		rc = gfx_color_new_ega(0x1f, &color);
+		if (rc != EOK)
+			goto error;
+	} else {
+		rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &color);
+		if (rc != EOK)
+			goto error;
+	}
 
 	gfx_text_fmt_init(&fmt);
 	fmt.color = color;
@@ -758,7 +764,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 	for (i = 0; i < 8; i++) {
 		if (demo_is_text(w, h)) {
-			rc = gfx_color_new_ega(i, &color);
+			rc = gfx_color_new_ega(i != 0 ? i : 0x10, &color);
 			if (rc != EOK)
 				goto error;
 		} else {
