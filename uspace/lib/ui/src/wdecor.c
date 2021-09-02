@@ -344,8 +344,8 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 		} else {
 			geom->title_bar_rect.p0 = geom->interior_rect.p0;
 			geom->title_bar_rect.p1.x = geom->interior_rect.p1.x;
-			geom->title_bar_rect.p1.y = geom->interior_rect.p0.y
-			    + wdecor_tbar_h;
+			geom->title_bar_rect.p1.y = geom->interior_rect.p0.y +
+			    wdecor_tbar_h;
 		}
 
 		geom->app_area_rect.p0.x = geom->interior_rect.p0.x;

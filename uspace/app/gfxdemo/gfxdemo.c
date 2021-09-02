@@ -705,7 +705,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	if (rc != EOK)
 		goto error;
 
-	pos.x = rect.p1.x - 1;
+	pos.x = rect.p1.x;
 	pos.y = rect.p0.y;
 	fmt.halign = gfx_halign_right;
 	rc = gfx_puttext(font, &pos, &fmt, "Top right");
@@ -728,7 +728,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	if (rc != EOK)
 		goto error;
 
-	pos.x = rect.p1.x - 1;
+	pos.x = rect.p1.x;
 	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
 	fmt.halign = gfx_halign_right;
 	rc = gfx_puttext(font, &pos, &fmt, "Center right");
@@ -745,14 +745,14 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		goto error;
 
 	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
-	pos.y = rect.p1.y - 1;
+	pos.y = rect.p1.y;
 	fmt.halign = gfx_halign_center;
 	rc = gfx_puttext(font, &pos, &fmt, "Bottom center");
 	if (rc != EOK)
 		goto error;
 
-	pos.x = rect.p1.x - 1;
-	pos.y = rect.p1.y - 1;
+	pos.x = rect.p1.x;
+	pos.y = rect.p1.y;
 	fmt.halign = gfx_halign_right;
 	rc = gfx_puttext(font, &pos, &fmt, "Bottom right");
 	if (rc != EOK)

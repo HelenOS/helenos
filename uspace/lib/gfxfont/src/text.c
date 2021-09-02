@@ -190,7 +190,7 @@ void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
 			spos->x -= width / 2;
 			break;
 		case gfx_halign_right:
-			spos->x -= width - 1;
+			spos->x -= width;
 			break;
 		default:
 			break;
@@ -209,7 +209,7 @@ void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
 			spos->y += fmetrics.ascent / 2;
 			break;
 		case gfx_valign_bottom:
-			cpos.y -= fmetrics.descent;
+			cpos.y -= fmetrics.descent + 1;
 			break;
 		default:
 			break;

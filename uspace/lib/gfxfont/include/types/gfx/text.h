@@ -41,11 +41,11 @@
 
 /** Text horizontal alignment */
 typedef enum {
-	/** Align text left */
+	/** Align text left (start at anchor point) */
 	gfx_halign_left,
-	/** Align text on the center */
+	/** Align text on the center (center around anchor point) */
 	gfx_halign_center,
-	/** Align text right */
+	/** Align text right (end just before anchor point) */
 	gfx_halign_right,
 	/** Justify text on both left and right edge */
 	gfx_halign_justify
@@ -53,11 +53,11 @@ typedef enum {
 
 /** Text vertical alignment */
 typedef enum {
-	/** Align top */
+	/** Align top (starts at anchor point) */
 	gfx_valign_top,
-	/** Align center */
+	/** Align center (centered around anchor point) */
 	gfx_valign_center,
-	/** Align bottom */
+	/** Align bottom (end just before anchor point) */
 	gfx_valign_bottom,
 	/** Align to baseline */
 	gfx_valign_baseline
