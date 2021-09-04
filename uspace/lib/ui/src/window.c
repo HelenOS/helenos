@@ -369,7 +369,6 @@ void ui_window_destroy(ui_window_t *window)
 	}
 	if (window->bmp != NULL)
 		gfx_bitmap_destroy(window->bmp);
-	gfx_context_delete(window->gc);
 	if (window->dwindow != NULL)
 		display_window_destroy(window->dwindow);
 
