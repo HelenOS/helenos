@@ -131,41 +131,49 @@ void ui_wnd_params_init(ui_wnd_params_t *params)
 
 /** Compute where window should be placed on the screen.
  *
- * This only applies to windows that do not use default placement.
+ * This only applies to windows that do not use default placement or
+ * if we are running in full-screen mode.
  *
  * @param window Window
- * @param display Display
- * @param info Display info
+ * @param drect Display rectangle
  * @param params Window parameters
  * @param pos Place to store position of top-left corner
  */
-static void ui_window_place(ui_window_t *window, display_t *display,
-    display_info_t *info, ui_wnd_params_t *params, gfx_coord2_t *pos)
+static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
+    ui_wnd_params_t *params, gfx_coord2_t *pos)
 {
-	assert(params->placement != ui_wnd_place_default);
+	gfx_coord2_t dims;
+
+	assert(params->placement != ui_wnd_place_default ||
+	    ui_is_fullscreen(window->ui));
 
 	pos->x = 0;
 	pos->y = 0;
 
 	switch (params->placement) {
 	case ui_wnd_place_default:
-		assert(false);
+		assert(ui_is_fullscreen(window->ui));
+		/* Center window */
+		gfx_rect_dims(&params->rect, &dims);
+		pos->x = (drect->p0.x + drect->p1.x) / 2 - dims.x / 2;
+		pos->y = (drect->p0.y + drect->p1.y) / 2 - dims.y / 2;
+		break;
 	case ui_wnd_place_top_left:
 	case ui_wnd_place_full_screen:
-		pos->x = info->rect.p0.x - params->rect.p0.x;
-		pos->y = info->rect.p0.y - params->rect.p0.y;
+		pos->x = drect->p0.x - params->rect.p0.x;
+		pos->y = drect->p0.y - params->rect.p0.y;
 		break;
 	case ui_wnd_place_top_right:
-		pos->x = info->rect.p1.x - params->rect.p1.x;
-		pos->y = info->rect.p0.y - params->rect.p0.y;
+		pos->x = drect->p1.x - params->rect.p1.x;
+		pos->y = drect->p0.y - params->rect.p0.y;
 		break;
 	case ui_wnd_place_bottom_left:
-		pos->x = info->rect.p0.x - params->rect.p0.x;
-		pos->y = info->rect.p1.y - params->rect.p1.y;
+		pos->x = drect->p0.x - params->rect.p0.x;
+		pos->y = drect->p1.y - params->rect.p1.y;
 		break;
 	case ui_wnd_place_bottom_right:
-		pos->x = info->rect.p1.x - params->rect.p1.x;
-		pos->y = info->rect.p1.y - params->rect.p1.y;
+		pos->x = drect->p1.x - params->rect.p1.x;
+		pos->y = drect->p1.y - params->rect.p1.y;
 		break;
 	case ui_wnd_place_popup:
 		/* Place popup window below parent rectangle */
@@ -203,6 +211,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	if (window == NULL)
 		return ENOMEM;
 
+	window->ui = ui;
+
 	display_wnd_params_init(&dparams);
 	dparams.rect = params->rect;
 	/* Only allow making the window larger */
@@ -227,8 +237,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 		if (params->placement != ui_wnd_place_default) {
 			/* Set initial display window position */
-			ui_window_place(window, ui->display, &info,
-			    params, &dparams.pos);
+			ui_window_place(window, &info.rect, params,
+			    &dparams.pos);
 
 			dparams.flags |= wndf_setpos;
 		}
@@ -292,6 +302,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	(void) bparams;
 	window->gc = gc;
 #endif
+	if (ui->display == NULL)
+		ui_window_place(window, &ui->rect, params, &window->dpos);
 
 	rc = ui_resource_create(window->gc, ui_is_textmode(ui), &res);
 	if (rc != EOK)
@@ -307,9 +319,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	ui_resource_set_expose_cb(res, ui_window_expose_cb, (void *) window);
 
-	window->ui = ui;
 	window->rect = dparams.rect;
-
 	window->res = res;
 	window->wdecor = wdecor;
 	window->cursor = ui_curs_arrow;
@@ -593,8 +603,7 @@ errno_t ui_window_get_pos(ui_window_t *window, gfx_coord2_t *pos)
 		if (rc != EOK)
 			return rc;
 	} else {
-		pos->x = 0;
-		pos->y = 0;
+		*pos = window->dpos;
 	}
 
 	return EOK;
@@ -1013,8 +1022,10 @@ static void ui_window_update(void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
-	if (!gfx_rect_is_empty(&window->dirty_rect))
-		(void) gfx_bitmap_render(window->bmp, &window->dirty_rect, NULL);
+	if (!gfx_rect_is_empty(&window->dirty_rect)) {
+		(void) gfx_bitmap_render(window->bmp, &window->dirty_rect,
+		    &window->dpos);
+	}
 
 	window->dirty_rect.p0.x = 0;
 	window->dirty_rect.p0.y = 0;
@@ -1030,8 +1041,16 @@ static void ui_window_update(void *arg)
 static errno_t ui_window_cursor_get_pos(void *arg, gfx_coord2_t *pos)
 {
 	ui_window_t *window = (ui_window_t *) arg;
+	gfx_coord2_t cpos;
+	errno_t rc;
 
-	return gfx_cursor_get_pos(window->realgc, pos);
+	rc = gfx_cursor_get_pos(window->realgc, &cpos);
+	if (rc != EOK)
+		return rc;
+
+	pos->x = cpos.x - window->dpos.x;
+	pos->y = cpos.y - window->dpos.y;
+	return EOK;
 }
 
 /** Window cursor set position callback
@@ -1042,8 +1061,12 @@ static errno_t ui_window_cursor_get_pos(void *arg, gfx_coord2_t *pos)
 static errno_t ui_window_cursor_set_pos(void *arg, gfx_coord2_t *pos)
 {
 	ui_window_t *window = (ui_window_t *) arg;
+	gfx_coord2_t cpos;
 
-	return gfx_cursor_set_pos(window->realgc, pos);
+	cpos.x = pos->x + window->dpos.x;
+	cpos.y = pos->y + window->dpos.y;
+
+	return gfx_cursor_set_pos(window->realgc, &cpos);
 }
 
 /** Window cursor set visibility callback

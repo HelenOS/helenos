@@ -235,6 +235,7 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 {
 	ui_window_t *awnd;
 	ui_evclaim_t claim;
+	pos_event_t pos;
 
 	awnd = ui_window_get_active(ui);
 	if (awnd == NULL)
@@ -245,10 +246,22 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 		ui_window_send_kbd(awnd, &event->ev.key);
 		break;
 	case CEV_POS:
-		claim = ui_wdecor_pos_event(awnd->wdecor, &event->ev.pos);
+		pos = event->ev.pos;
+#ifdef CONFIG_UI_CS_RENDER
+		/*
+		 * TODO Enable translation for server-side rendering
+		 * once we can translate rendering operations in this
+		 * case.
+		 */
+		pos.hpos -= awnd->dpos.x;
+		pos.vpos -= awnd->dpos.y;
+#endif
+
+		claim = ui_wdecor_pos_event(awnd->wdecor, &pos);
 		/* Note: If event is claimed, awnd might not be valid anymore */
 		if (claim == ui_unclaimed)
-			ui_window_send_pos(awnd, &event->ev.pos);
+			ui_window_send_pos(awnd, &pos);
+
 		break;
 	}
 }

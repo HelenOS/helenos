@@ -73,6 +73,8 @@ struct ui_window {
 	gfx_context_t *realgc;
 	/** Window rectangle */
 	gfx_rect_t rect;
+	/** Display position (if fullscreen mode) */
+	gfx_coord2_t dpos;
 	/** Application area bitmap */
 	gfx_bitmap_t *app_bmp;
 	/** Application area memory GC */
