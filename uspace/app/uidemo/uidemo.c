@@ -425,8 +425,8 @@ static errno_t ui_demo(const char *display_spec)
 	if (ui_is_textmode(ui)) {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
-		params.rect.p1.x = 80;
-		params.rect.p1.y = 25;
+		params.rect.p1.x = 44;
+		params.rect.p1.y = 21;
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
@@ -540,7 +540,7 @@ static errno_t ui_demo(const char *display_spec)
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 1;
 		rect.p0.y = 1;
-		rect.p1.x = 79;
+		rect.p1.x = 43;
 		rect.p1.y = 2;
 	} else {
 		rect.p0.x = 4;
@@ -564,10 +564,10 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
-		rect.p0.y = 4;
-		rect.p1.x = 60;
-		rect.p1.y = 5;
+		rect.p0.x = 2;
+		rect.p0.y = 3;
+		rect.p1.x = 42;
+		rect.p1.y = 4;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 53;
@@ -592,10 +592,10 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
-		rect.p0.y = 6;
-		rect.p1.x = 60;
-		rect.p1.y = 7;
+		rect.p0.x = 2;
+		rect.p0.y = 5;
+		rect.p1.x = 42;
+		rect.p1.y = 6;
 	} else {
 		rect.p0.x = 60;
 		rect.p0.y = 88;
@@ -622,10 +622,10 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
-		rect.p0.y = 8;
-		rect.p1.x = 30;
-		rect.p1.y = 9;
+		rect.p0.x = 2;
+		rect.p0.y = 7;
+		rect.p1.x = 12;
+		rect.p1.y = 8;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 111;
@@ -652,10 +652,10 @@ static errno_t ui_demo(const char *display_spec)
 	ui_pbutton_set_cb(demo.pb2, &pbutton_cb, (void *) &demo);
 
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 50;
-		rect.p0.y = 8;
-		rect.p1.x = 60;
-		rect.p1.y = 9;
+		rect.p0.x = 32;
+		rect.p0.y = 7;
+		rect.p1.x = 42;
+		rect.p1.y = 8;
 	} else {
 		rect.p0.x = 115;
 		rect.p0.y = 111;
@@ -699,8 +699,8 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	if (ui_is_textmode(ui)) {
-		off.x = 20;
-		off.y = 10;
+		off.x = 2;
+		off.y = 9;
 	} else {
 		off.x = 15;
 		off.y = 155;
@@ -733,10 +733,10 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
-		rect.p0.y = 13;
-		rect.p1.x = 40;
-		rect.p1.y = 14;
+		rect.p0.x = 2;
+		rect.p0.y = 12;
+		rect.p1.x = 12;
+		rect.p1.y = 13;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 190;
@@ -770,10 +770,10 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
-		rect.p0.y = 15;
-		rect.p1.x = 40;
-		rect.p1.y = 16;
+		rect.p0.x = 2;
+		rect.p0.y = 14;
+		rect.p1.x = 12;
+		rect.p1.y = 15;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 220;
@@ -797,10 +797,10 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
-		rect.p0.y = 16;
-		rect.p1.x = 40;
-		rect.p1.y = 17;
+		rect.p0.x = 2;
+		rect.p0.y = 15;
+		rect.p1.x = 12;
+		rect.p1.y = 16;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 250;
@@ -825,10 +825,10 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
-		rect.p0.y = 17;
-		rect.p1.x = 40;
-		rect.p1.y = 18;
+		rect.p0.x = 2;
+		rect.p0.y = 16;
+		rect.p1.x = 12;
+		rect.p1.y = 17;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 280;
@@ -853,10 +853,10 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 20;
-		rect.p0.y = 19;
-		rect.p1.x = 40;
-		rect.p1.y = 20;
+		rect.p0.x = 2;
+		rect.p0.y = 18;
+		rect.p1.x = 12;
+		rect.p1.y = 19;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 310;
