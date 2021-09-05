@@ -177,7 +177,6 @@ void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
     gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *spos)
 {
 	gfx_font_metrics_t fmetrics;
-	gfx_coord2_t cpos;
 	gfx_coord_t width;
 
 	*spos = *pos;
@@ -209,7 +208,7 @@ void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
 			spos->y += fmetrics.ascent / 2;
 			break;
 		case gfx_valign_bottom:
-			cpos.y -= fmetrics.descent + 1;
+			spos->y -= fmetrics.descent + 1;
 			break;
 		default:
 			break;

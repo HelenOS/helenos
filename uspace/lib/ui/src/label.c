@@ -135,6 +135,16 @@ void ui_label_set_halign(ui_label_t *label, gfx_halign_t halign)
 	label->halign = halign;
 }
 
+/** Set label vertical text alignment.
+ *
+ * @param label Label
+ * @param valign Vertical alignment
+ */
+void ui_label_set_valign(ui_label_t *label, gfx_valign_t valign)
+{
+	label->valign = valign;
+}
+
 /** Set label text.
  *
  * @param label Label
@@ -189,7 +199,19 @@ errno_t ui_label_paint(ui_label_t *label)
 		break;
 	}
 
-	pos.y = label->rect.p0.y;
+	switch (label->valign) {
+	case gfx_valign_top:
+		pos.y = label->rect.p0.y;
+		break;
+	case gfx_valign_center:
+		pos.y = (label->rect.p0.y + label->rect.p1.y) / 2;
+		break;
+	case gfx_valign_bottom:
+		pos.y = label->rect.p1.y;
+		break;
+	case gfx_valign_baseline:
+		return EINVAL;
+	}
 
 	gfx_text_fmt_init(&fmt);
 	fmt.color = label->res->wnd_text_color;

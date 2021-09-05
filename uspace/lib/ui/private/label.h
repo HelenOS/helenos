@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,8 @@ struct ui_label {
 	gfx_rect_t rect;
 	/** Horizontal alignment */
 	gfx_halign_t halign;
+	/** Vertical alignment */
+	gfx_valign_t valign;
 	/** Text */
 	char *text;
 };
