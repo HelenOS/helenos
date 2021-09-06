@@ -45,6 +45,7 @@
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <memgfx/memgc.h>
+#include <memgfx/xlategc.h>
 #include <types/ui/cursor.h>
 #include <types/ui/window.h>
 
@@ -69,6 +70,8 @@ struct ui_window {
 	gfx_bitmap_t *bmp;
 	/** Window memory GC (if client-side rendering) */
 	mem_gc_t *mgc;
+	/** Translating GC (if full screen & server-side rendering) */
+	xlate_gc_t *xgc;
 	/** Real window GC (if client-side rendering) */
 	gfx_context_t *realgc;
 	/** Window rectangle */

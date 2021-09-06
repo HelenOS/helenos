@@ -247,15 +247,9 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 		break;
 	case CEV_POS:
 		pos = event->ev.pos;
-#ifdef CONFIG_UI_CS_RENDER
-		/*
-		 * TODO Enable translation for server-side rendering
-		 * once we can translate rendering operations in this
-		 * case.
-		 */
+		/* Translate event to window-relative coordinates */
 		pos.hpos -= awnd->dpos.x;
 		pos.vpos -= awnd->dpos.y;
-#endif
 
 		claim = ui_wdecor_pos_event(awnd->wdecor, &pos);
 		/* Note: If event is claimed, awnd might not be valid anymore */

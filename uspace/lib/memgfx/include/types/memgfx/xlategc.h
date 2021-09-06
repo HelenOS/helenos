@@ -26,11 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libmemgfx
+ * @{
+ */
+/**
+ * @file Translating grapics context
+ */
 
-PCUT_INIT;
+#ifndef _MEMGFX_TYPES_XLATEGC_H
+#define _MEMGFX_TYPES_XLATEGC_H
 
-PCUT_IMPORT(memgfx);
-PCUT_IMPORT(xlategc);
+struct xlate_gc;
+typedef struct xlate_gc xlate_gc_t;
 
-PCUT_MAIN();
+#endif
+
+/** @}
+ */

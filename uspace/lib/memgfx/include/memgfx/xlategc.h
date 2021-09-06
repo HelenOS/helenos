@@ -26,11 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libmemgfx
+ * @{
+ */
+/**
+ * @file Translating graphics context
+ */
 
-PCUT_INIT;
+#ifndef _MEMGFX_XLATEGC_H
+#define _MEMGFX_XLATEGC_H
 
-PCUT_IMPORT(memgfx);
-PCUT_IMPORT(xlategc);
+#include <errno.h>
+#include <gfx/context.h>
+#include <gfx/coord.h>
+#include <types/memgfx/xlategc.h>
 
-PCUT_MAIN();
+extern gfx_context_ops_t xlate_gc_ops;
+
+extern errno_t xlate_gc_create(gfx_coord2_t *, gfx_context_t *, xlate_gc_t **);
+extern errno_t xlate_gc_delete(xlate_gc_t *);
+extern gfx_context_t *xlate_gc_get_ctx(xlate_gc_t *);
+extern void xlate_gc_set_off(xlate_gc_t *, gfx_coord2_t *);
+
+#endif
+
+/** @}
+ */

@@ -204,7 +204,9 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	gfx_bitmap_params_t bparams;
 	gfx_bitmap_alloc_t alloc;
 	gfx_bitmap_t *bmp = NULL;
+	gfx_coord2_t off;
 	mem_gc_t *memgc = NULL;
+	xlate_gc_t *xgc = NULL;
 	errno_t rc;
 
 	window = calloc(1, sizeof(ui_window_t));
@@ -296,14 +298,40 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->mgc = memgc;
 	window->gc = mem_gc_get_ctx(memgc);
 	window->realgc = gc;
+	(void) off;
 #else
+	/* Server-side rendering */
+
+	/* Full-screen mode? */
+	if (ui->display == NULL) {
+		/* Create translating GC to translate window contents */
+		off.x = 0;
+		off.y = 0;
+		rc = xlate_gc_create(&off, gc, &xgc);
+		if (rc != EOK)
+			goto error;
+
+		window->xgc = xgc;
+		window->gc = xlate_gc_get_ctx(xgc);
+		window->realgc = gc;
+	} else {
+		window->gc = gc;
+	}
+
 	(void) ui_window_mem_gc_cb;
 	(void) alloc;
 	(void) bparams;
-	window->gc = gc;
 #endif
-	if (ui->display == NULL)
+	if (ui->display == NULL) {
 		ui_window_place(window, &ui->rect, params, &window->dpos);
+		FILE *f = fopen("/tmp/x", "at");
+		fprintf(f, "xlate_gc_set_off: %d,%d\n",
+		    window->dpos.x, window->dpos.y);
+		fclose(f);
+
+		if (window->xgc != NULL)
+			xlate_gc_set_off(window->xgc, &window->dpos);
+	}
 
 	rc = ui_resource_create(window->gc, ui_is_textmode(ui), &res);
 	if (rc != EOK)
@@ -334,6 +362,8 @@ error:
 		ui_resource_destroy(res);
 	if (memgc != NULL)
 		mem_gc_delete(memgc);
+	if (xgc != NULL)
+		xlate_gc_delete(xgc);
 	if (bmp != NULL)
 		gfx_bitmap_destroy(bmp);
 	if (dgc != NULL)

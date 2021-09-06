@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libguigfx
+/** @addtogroup libmemgfx
  * @{
  */
 /**
@@ -62,7 +62,7 @@ struct mem_gc {
 
 /** Bitmap in memory GC */
 typedef struct {
-	/** Containing canvas GC */
+	/** Containing memory GC */
 	struct mem_gc *mgc;
 	/** Allocation info */
 	gfx_bitmap_alloc_t alloc;
