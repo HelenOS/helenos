@@ -151,7 +151,7 @@ static void print_usage(void)
 	printf("Usage: " NAME " [-b <block_size>] <image_file> <device_name>\n");
 }
 
-static errno_t compute_table_sizes()
+static void initialize_state()
 {
 	/* Computing sizes in bytes */
 	state.cluster_size = 1 << header.cluster_bits;
@@ -172,38 +172,7 @@ static errno_t compute_table_sizes()
 	else
 		state.num_blocks = (header.size / state.block_size);
 
-	return EOK;
-}
-
-static errno_t read_l1_table()
-{
-	/* Allocating memory for l1_table */
 	state.l1_table_offset = header.l1_table_offset;
-	state.l2_references = (uint64_t*)malloc(state.l1_size);
-
-	/* Reading all L2 table references from L1 table */
-	clearerr(img);
-	printf("READING 2,5\n");
-	if (fseek(img, state.l1_table_offset, SEEK_SET) < 0)
-		return EIO;
-
-	size_t n_rd = fread(state.l2_references, state.l1_size, 1, img);
-
-	if (n_rd < 1)
-		return EINVAL;
-
-	/* Clearing last bit in all references which tells us whether cluster is compressed */
-	for (uint64_t i = 0; i < state.l1_size / sizeof(uint64_t); i++) {
-		state.l2_references[i] = __builtin_bswap64(state.l2_references[i]);
-		if (state.l2_references[i] & QCOW_OFLAG_COMPRESSED) {
-			fprintf(stderr, "Compression is not supported!\n");
-			return ENOTSUP;
-		}
-	}
-
-	if (ferror(img))
-		return EIO;	/* Read error */
-	return EOK;
 }
 
 static errno_t qcow_bd_init(const char *fname)
@@ -221,22 +190,32 @@ static errno_t qcow_bd_init(const char *fname)
 
 	/* Try to open file */
 	img = fopen(fname, "rb+");
-	if (img == NULL)
+	if (img == NULL) {
+		fprintf(stderr, "File opening failed!\n");
 		return EINVAL;
+	}
 
 	if (fseek(img, 0, SEEK_END) != 0) {
+		fprintf(stderr, "Seeking end of file failed!\n");
 		fclose(img);
 		return EIO;
 	}
 
-	if (fseek(img, 0, SEEK_SET) < 0)
+	if (fseek(img, 0, SEEK_SET) < 0) {
+		fprintf(stderr, "Seeking file header failed!\n");
+		fclose(img);
 		return EIO;
+	}
 
 	/* Read the file header */
 	size_t n_rd = fread(&header, sizeof(header), 1, img);
 
-	if (n_rd < 1)
+	if (n_rd < 1) {
+		fprintf(stderr, "Reading file header failed!\n");
+		fclose(img);
 		return EINVAL;
+	}
+
 
 	/* Swap values to big-endian */
  	header.magic = __builtin_bswap32(header.magic);
@@ -248,28 +227,24 @@ static errno_t qcow_bd_init(const char *fname)
 	header.crypt_method = __builtin_bswap32(header.crypt_method);
 	header.l1_table_offset = __builtin_bswap64(header.l1_table_offset);
 
-	/* Verify all values from file header */
-	if (ferror(img))
+	if (ferror(img)) {
+		fclose(img);
 		return EIO;
-
-	if (header.magic == QCOW_MAGIC) {
-		errno_t error = compute_table_sizes();
-		if (error != EOK) {
-			return error;
-		}
-		error = read_l1_table();
-		if (error != EOK) {
-			return error;
-		}
 	}
 
+	/* Verify all values from file header */
+	if (header.magic == QCOW_MAGIC)
+		initialize_state();
+
 	if (header.version != QCOW_VERSION) {
-		fprintf(stderr, "Version: %d is not supported!\n", header.version);
+		fprintf(stderr, "Version QCOW%d is not supported!\n", header.version);
+		fclose(img);
 		return ENOTSUP;
 	}
 
 	if (header.crypt_method != QCOW_CRYPT_NONE) {
 		fprintf(stderr, "Encryption is not supported!\n");
+		fclose(img);
 		return ENOTSUP;
 	}
 
@@ -293,38 +268,59 @@ static errno_t qcow_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 /** Close device. */
 static errno_t qcow_bd_close(bd_srv_t *bd)
 {
-	free(state.l2_references);
 	fclose(img);
 	return EOK;
 }
 
 /** From the offset of the given block compute its offset which is relative from the start of qcow file. */
-static uint64_t get_block_offset(uint64_t offset, errno_t *error)
+static errno_t get_block_offset(uint64_t *offset)
 {
 	/* Compute l1 table index from the offset  */
 	uint64_t l1_table_index_bit_shift =  header.cluster_bits + header.l2_bits;
-	uint64_t l1_table_index = (offset & 0x7fffffffffffffffULL) >> l1_table_index_bit_shift;
+	uint64_t l1_table_index = (*offset & 0x7fffffffffffffffULL) >> l1_table_index_bit_shift;
 
 	/* Reading l2 reference from the l1 table */
-	uint64_t l2_table_reference = state.l2_references[l1_table_index];
+	if (fseek(img, state.l1_table_offset + l1_table_index * sizeof(uint64_t), SEEK_SET) < 0) {
+		fprintf(stderr, "Seeking l2 reference in l1 table failed!\n");
+		return EIO;
+	}
 
-	if (l2_table_reference == QCOW_UNALLOCATED_REFERENCE)
-		return QCOW_UNALLOCATED_REFERENCE;
+
+	uint64_t l2_table_reference;
+	size_t n_rd = fread(&l2_table_reference, sizeof(uint64_t), 1, img);
+
+	if (n_rd < 1) {
+		fprintf(stderr, "Reading l2 reference from l1 table failed!\n");
+		return EINVAL;
+	}
+
+	l2_table_reference = __builtin_bswap64(l2_table_reference);
+
+	if (l2_table_reference & QCOW_OFLAG_COMPRESSED) {
+		fprintf(stderr, "Compression is not supported!\n");
+		return ENOTSUP;
+	}
+
+	if (l2_table_reference == QCOW_UNALLOCATED_REFERENCE) {
+		*offset = QCOW_UNALLOCATED_REFERENCE;
+		return EOK;
+	}
+
 
 	/* Compute l2 table index from the offset  */
-	uint64_t l2_table_index = (offset >> header.cluster_bits) & (state.l2_size - 1);
+	uint64_t l2_table_index = (*offset >> header.cluster_bits) & (state.l2_size - 1);
 
 	/* Reading cluster reference from the l2 table */
-	if (fseek(img, l2_table_reference + l2_table_index * sizeof(uint64_t), SEEK_SET) < 0){
-		*error = EIO;
+	if (fseek(img, l2_table_reference + l2_table_index * sizeof(uint64_t), SEEK_SET) < 0) {
+		fprintf(stderr, "Seeking cluster reference in l2 table failed!\n");
 		return EIO;
 	}
 
 	uint64_t cluster_reference;
-	size_t n_rd = fread(&cluster_reference, sizeof(uint64_t), 1, img);
+	n_rd = fread(&cluster_reference, sizeof(uint64_t), 1, img);
 
 	if (n_rd < 1) {
-		*error = EINVAL;
+		fprintf(stderr, "Reading cluster reference from l2 table failed!\n");
 		return EINVAL;
 	}
 
@@ -332,26 +328,31 @@ static uint64_t get_block_offset(uint64_t offset, errno_t *error)
 
 	if (cluster_reference & QCOW_OFLAG_COMPRESSED) {
 		fprintf(stderr, "Compression is not supported!\n");
-		*error = ENOTSUP;
 		return ENOTSUP;
 	}
 
-	if (cluster_reference == QCOW_UNALLOCATED_REFERENCE)
-		return QCOW_UNALLOCATED_REFERENCE;
+	if (cluster_reference == QCOW_UNALLOCATED_REFERENCE) {
+		*offset = QCOW_UNALLOCATED_REFERENCE;
+		return EOK;
+	}
 
 	/* Compute cluster block offset from the offset  */
 	uint64_t cluster_block_bit_mask = ~(0xffffffffffffffffULL <<  header.cluster_bits);
-	uint64_t cluster_block_offset = offset & cluster_block_bit_mask;
+	uint64_t cluster_block_offset = *offset & cluster_block_bit_mask;
 
-	return cluster_reference + cluster_block_offset;
+	*offset = cluster_reference + cluster_block_offset;
+	return EOK;
 }
 
 /** Read blocks from the device. */
 static errno_t qcow_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
     size_t size)
 {
-	if (size < cnt * state.block_size)
+	if (size < cnt * state.block_size){
+		fprintf(stderr, "Error: trying to read block behind the file");
 		return EINVAL;
+	}
+
 
 	/* Check whether access is within device address bounds. */
 	if (ba + cnt > state.num_blocks) {
@@ -365,10 +366,13 @@ static errno_t qcow_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *
 
 	for (uint64_t i = 0; i < cnt; i++) {
 		/* Compute block offset which is relative from the start of qcow file */
-		errno_t error = EOK;
-		uint64_t block_offset = get_block_offset((ba + i) * state.block_size, &error);
-		if (error != EOK)
+		uint64_t block_offset = (ba + i) * state.block_size;
+		errno_t error = get_block_offset(&block_offset);
+		if (error != EOK) {
+			fibril_mutex_unlock(&dev_lock);
 			return error;
+		}
+
 
 		/* If there is empty reference then continue */
 		if (block_offset == QCOW_UNALLOCATED_REFERENCE)

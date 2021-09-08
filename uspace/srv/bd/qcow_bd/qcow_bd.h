@@ -82,7 +82,6 @@ typedef struct QcowState {
     uint64_t l2_size;
     uint64_t l1_size;
     uint64_t l1_table_offset;
-    uint64_t *l2_references;
 } QcowState;
 
 #endif
