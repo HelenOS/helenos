@@ -47,6 +47,7 @@ static QcowState state;
 static service_id_t service_id;
 static bd_srvs_t bd_srvs;
 static fibril_mutex_t dev_lock;
+static bool isLittleEndian();
 static void print_usage(void);
 static errno_t qcow_bd_init(const char *fname);
 static void qcow_bd_connection(ipc_call_t *icall, void *);
@@ -175,6 +176,12 @@ static void initialize_state()
 	state.l1_table_offset = header.l1_table_offset;
 }
 
+/* Return 0 for if this system uses big endian, 1 for little endian. */
+static bool isLittleEndian() {
+    volatile uint32_t i = 0x01234567;
+    return (*((uint8_t*)(&i))) == 0x67;
+}
+
 static errno_t qcow_bd_init(const char *fname)
 {
 	/* Register driver */
@@ -218,14 +225,16 @@ static errno_t qcow_bd_init(const char *fname)
 
 
 	/* Swap values to big-endian */
- 	header.magic = __builtin_bswap32(header.magic);
-	header.version = __builtin_bswap32(header.version);
-	header.backing_file_offset = __builtin_bswap64(header.backing_file_offset);
-	header.backing_file_size = __builtin_bswap32(header.backing_file_size);
-	header.mtime = __builtin_bswap32(header.mtime);
-	header.size = __builtin_bswap64(header.size);
-	header.crypt_method = __builtin_bswap32(header.crypt_method);
-	header.l1_table_offset = __builtin_bswap64(header.l1_table_offset);
+	if (isLittleEndian()) {
+		header.magic = __builtin_bswap32(header.magic);
+		header.version = __builtin_bswap32(header.version);
+		header.backing_file_offset = __builtin_bswap64(header.backing_file_offset);
+		header.backing_file_size = __builtin_bswap32(header.backing_file_size);
+		header.mtime = __builtin_bswap32(header.mtime);
+		header.size = __builtin_bswap64(header.size);
+		header.crypt_method = __builtin_bswap32(header.crypt_method);
+		header.l1_table_offset = __builtin_bswap64(header.l1_table_offset);
+	}
 
 	if (ferror(img)) {
 		fclose(img);
@@ -233,8 +242,13 @@ static errno_t qcow_bd_init(const char *fname)
 	}
 
 	/* Verify all values from file header */
-	if (header.magic == QCOW_MAGIC)
-		initialize_state();
+	if (header.magic != QCOW_MAGIC) {
+		fprintf(stderr, "File is not in QCOW format!\n");
+		fclose(img);
+		return ENOTSUP;
+	}
+
+	initialize_state();
 
 	if (header.version != QCOW_VERSION) {
 		fprintf(stderr, "Version QCOW%d is not supported!\n", header.version);
@@ -294,7 +308,8 @@ static errno_t get_block_offset(uint64_t *offset)
 		return EINVAL;
 	}
 
-	l2_table_reference = __builtin_bswap64(l2_table_reference);
+	if (isLittleEndian())
+		l2_table_reference = __builtin_bswap64(l2_table_reference);
 
 	if (l2_table_reference & QCOW_OFLAG_COMPRESSED) {
 		fprintf(stderr, "Compression is not supported!\n");
@@ -324,7 +339,8 @@ static errno_t get_block_offset(uint64_t *offset)
 		return EINVAL;
 	}
 
-	cluster_reference = __builtin_bswap64(cluster_reference);
+	if (isLittleEndian())
+		cluster_reference = __builtin_bswap64(cluster_reference);
 
 	if (cluster_reference & QCOW_OFLAG_COMPRESSED) {
 		fprintf(stderr, "Compression is not supported!\n");
