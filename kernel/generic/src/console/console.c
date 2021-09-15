@@ -378,7 +378,7 @@ void putuchar(const char32_t ch)
 		 *
 		 * The early_putuchar() function is used to output
 		 * the character for low-level debugging purposes.
-		 * Note that the early_putc() function might be
+		 * Note that the early_putuchar() function might be
 		 * a no-op on certain hardware configurations.
 		 */
 		early_putuchar(ch);

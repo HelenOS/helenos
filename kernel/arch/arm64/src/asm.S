@@ -55,10 +55,6 @@ FUNCTION_BEGIN(memcpy_to_uspace_failover_address)
 FUNCTION_END(memcpy_from_uspace_failover_address)
 FUNCTION_END(memcpy_to_uspace_failover_address)
 
-FUNCTION_BEGIN(early_putuchar)
-	ret
-FUNCTION_END(early_putuchar)
-
 /** Flush instruction caches
  *
  * @param x0 Starting address of the flushing.

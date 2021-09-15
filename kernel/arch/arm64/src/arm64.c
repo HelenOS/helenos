@@ -39,6 +39,7 @@
 #include <arch/asm.h>
 #include <arch/exception.h>
 #include <arch/machine_func.h>
+#include <console/console.h>
 #include <interrupt.h>
 #include <proc/scheduler.h>
 #include <syscall/syscall.h>
@@ -253,6 +254,16 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 /** Perform ARM64 specific tasks to initialize IRQ processing. */
 void irq_initialize_arch(irq_t *irq __attribute__((unused)))
 {
+}
+
+void early_putuchar(char32_t c)
+{
+#ifdef CONFIG_DEBUG_EARLY_PRINT
+	if (c == '\n')
+		machine_early_uart_output('\r');
+
+	machine_early_uart_output(c);
+#endif
 }
 
 /** @}

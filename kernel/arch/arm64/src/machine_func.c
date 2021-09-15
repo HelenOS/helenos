@@ -100,5 +100,12 @@ const char *machine_get_platform_name(void)
 	return machine_ops->machine_get_platform_name();
 }
 
+/** Early debugging output. */
+void machine_early_uart_output(char32_t c)
+{
+	if (machine_ops->machine_early_uart_output != NULL)
+		machine_ops->machine_early_uart_output(c);
+}
+
 /** @}
  */

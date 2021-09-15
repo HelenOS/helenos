@@ -121,6 +121,19 @@ static const char *hikey960_get_platform_name(void)
 	return "hikey960";
 }
 
+static void hikey960_early_uart_output(char32_t c)
+{
+	volatile uint32_t *uartdr = (volatile uint32_t *)
+	    PA2KA(HIKEY960_UART_ADDRESS);
+	volatile uint32_t *uartfr = (volatile uint32_t *)
+	    PA2KA(HIKEY960_UART_ADDRESS + 24);
+
+	while (*uartfr & 0x20U) {
+	}
+
+	*uartdr = c;
+}
+
 struct arm_machine_ops hikey960_machine_ops = {
 	hikey960_init,
 	hikey960_irq_exception,
@@ -128,7 +141,8 @@ struct arm_machine_ops hikey960_machine_ops = {
 	hikey960_input_init,
 	hikey960_enable_vtimer_irq,
 	hikey960_get_irq_count,
-	hikey960_get_platform_name
+	hikey960_get_platform_name,
+	hikey960_early_uart_output
 };
 
 /** @}

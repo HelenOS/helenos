@@ -452,7 +452,7 @@ interrupt_handlers:
  */
 FUNCTION_BEGIN(early_putuchar)
 
-#if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
+#if ((defined(CONFIG_DEBUG_EARLY_PRINT)) && (defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
 
 	/* Prologue, save preserved registers */
 	pushl %ebp
