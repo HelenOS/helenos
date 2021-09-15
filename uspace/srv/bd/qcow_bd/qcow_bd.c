@@ -323,8 +323,8 @@ static errno_t get_block_offset(uint64_t *offset)
 
 
 	/* Compute l2 table index from the offset  */
-	uint64_t l2_table_index = (*offset >> header.cluster_bits) & (state.l2_size - 1);
-
+	uint64_t l2_table_shift = (1 << header.l2_bits) - 1;
+	uint64_t l2_table_index = (*offset >> header.cluster_bits) & l2_table_shift;
 	/* Reading cluster reference from the l2 table */
 	if (fseek(img, l2_table_reference + l2_table_index * sizeof(uint64_t), SEEK_SET) < 0) {
 		fprintf(stderr, "Seeking cluster reference in l2 table failed!\n");
