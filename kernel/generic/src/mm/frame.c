@@ -518,6 +518,7 @@ _NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
 	 */
 
 	for (size_t i = 0; i < gap; i++) {
+		frame_initialize(&zones.info[z1].frames[old_z1->count + i]);
 		zone_mark_unavailable(&zones.info[z1], old_z1->count + i);
 	}
 }
