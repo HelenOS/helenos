@@ -104,6 +104,10 @@ struct ui_resource {
 	gfx_color_t *entry_bg_color;
 	/** Entry (text entry, checkbox, raido button) active background color */
 	gfx_color_t *entry_act_bg_color;
+	/** Entry selected text foreground color */
+	gfx_color_t *entry_sel_text_fg_color;
+	/** Entry selected text background color */
+	gfx_color_t *entry_sel_text_bg_color;
 
 	/** Expose callback or @c NULL */
 	ui_expose_cb_t expose_cb;

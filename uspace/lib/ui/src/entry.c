@@ -342,7 +342,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	if (off1 != off2) {
 		c = entry->text[off2];
 		entry->text[off2] = '\0';
-		cfmt.color = res->entry_bg_color;
+		cfmt.color = res->entry_sel_text_fg_color;
 
 		gfx_text_rect(res->font, &cpos, &cfmt, entry->text + off1, &sel);
 		sel.p0.x -= ui_entry_sel_hpad;
@@ -350,7 +350,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 		sel.p1.x += ui_entry_sel_hpad;
 		sel.p1.y += ui_entry_sel_vpad;
 
-		rc = gfx_set_color(res->gc, res->entry_fg_color);
+		rc = gfx_set_color(res->gc, res->entry_sel_text_bg_color);
 		if (rc != EOK)
 			goto error;
 
