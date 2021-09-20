@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
@@ -35,19 +35,22 @@
  * @file
  */
 
+#include <align.h>
+#include <clipboard.h>
+#include <errno.h>
+#include <io/kbd_event.h>
+#include <io/keycode.h>
+#include <io/pos_event.h>
+#include <io/style.h>
+#include <macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <vfs/vfs.h>
-#include <io/console.h>
-#include <io/style.h>
-#include <io/keycode.h>
-#include <errno.h>
-#include <align.h>
-#include <macros.h>
-#include <clipboard.h>
 #include <types/common.h>
+#include <ui/ui.h>
+#include <ui/window.h>
+#include <vfs/vfs.h>
 
 #include "sheet.h"
 #include "search.h"
@@ -93,6 +96,14 @@ typedef struct {
 	bool previous_search_reverse;
 } pane_t;
 
+/** Text editor */
+typedef struct {
+	/** User interface */
+	ui_t *ui;
+	/** Editor window */
+	ui_window_t *window;
+} edit_t;
+
 /** Document
  *
  * Associates a sheet with a file where it can be saved to.
@@ -102,7 +113,7 @@ typedef struct {
 	sheet_t *sh;
 } doc_t;
 
-static console_ctrl_t *con;
+static edit_t edit;
 static doc_t doc;
 static bool done;
 static pane_t pane;
@@ -184,17 +195,25 @@ static int spt_cmp(spt_t const *a, spt_t const *b);
 static int coord_cmp(coord_t const *a, coord_t const *b);
 
 static void status_display(char const *str);
+static errno_t edit_ui_create(edit_t *);
+static void edit_ui_destroy(edit_t *);
 
 int main(int argc, char *argv[])
 {
-	cons_event_t ev;
+//	cons_event_t ev;
 	bool new_file;
 	errno_t rc;
 
-	con = console_init(stdin, stdout);
-	console_clear(con);
+	(void) pos_handle;
+	(void) key_handle_press;
+	(void) pane_row_display;
 
-	console_get_size(con, &scr_columns, &scr_rows);
+//	con = console_init(stdin, stdout);
+//	console_clear(con);
+
+//	console_get_size(con, &scr_columns, &scr_rows);
+	scr_columns = 80;
+	scr_rows = 25;
 
 	pane.rows = scr_rows - 1;
 	pane.columns = scr_columns;
@@ -235,18 +254,28 @@ int main(int argc, char *argv[])
 	pt_get_sof(&sof);
 	caret_move(sof, true, true);
 
+	/* Create UI */
+	rc = edit_ui_create(&edit);
+	if (rc != EOK)
+		return 1;
+
 	/* Initial display */
 	cursor_visible = true;
+	rc = ui_window_paint(edit.window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		return rc;
+	}
 
 	cursor_hide();
-	console_clear(con);
+//	console_clear(con);
 	pane_text_display();
 	pane_status_display();
 	if (new_file && doc.file_name != NULL)
 		status_display("File not found. Starting empty file.");
 	pane_caret_display();
 	cursor_show();
-
+/*
 	done = false;
 
 	while (!done) {
@@ -267,7 +296,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 
-		/* Redraw as necessary. */
+		/ Redraw as necessary. /
 
 		cursor_hide();
 
@@ -284,8 +313,123 @@ int main(int argc, char *argv[])
 	}
 
 	console_clear(con);
+*/
 
+	ui_run(edit.ui);
+
+	edit_ui_destroy(&edit);
 	return 0;
+}
+
+/** Create text editor UI.
+ *
+ * @param edit Editor
+ * @return EOK on success or an error code
+ */
+static errno_t edit_ui_create(edit_t *edit)
+{
+	errno_t rc;
+	ui_wnd_params_t params;
+
+	rc = ui_create(UI_CONSOLE_DEFAULT, &edit->ui);
+	if (rc != EOK) {
+		printf("Error creating UI on display %s.\n",
+		    UI_CONSOLE_DEFAULT);
+		goto error;
+	}
+
+	ui_wnd_params_init(&params);
+	params.caption = "Text Editor";
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 38;
+	params.rect.p1.y = 18;
+
+	rc = ui_window_create(edit->ui, &params, &edit->window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		goto error;
+	}
+/*
+	ui_window_set_cb(window, &window_cb, (void *) &calc);
+	calc.ui = ui;
+
+	ui_res = ui_window_get_res(window);
+	calc.ui_res = ui_res;
+
+	rc = ui_fixed_create(&fixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		return rc;
+	}
+
+	rc = ui_menu_bar_create(ui, window, &calc.menubar);
+	if (rc != EOK) {
+		printf("Error creating menu bar.\n");
+		return rc;
+	}
+
+	rc = ui_menu_create(calc.menubar, "File", &mfile);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(mfile, "Exit", "Alt-F4", &mexit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mexit, calc_file_exit, (void *) &calc);
+
+	rc = ui_menu_create(calc.menubar, "Edit", &medit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(medit, "Copy", "Ctrl-C", &mcopy);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mcopy, calc_edit_copy, (void *) &calc);
+
+	rc = ui_menu_entry_create(medit, "Paste", "Ctrl-V", &mpaste);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mpaste, calc_edit_paste, (void *) &calc);
+
+	ui_menu_bar_set_rect(calc.menubar, &calc.geom.menubar_rect);
+
+	rc = ui_fixed_add(fixed, ui_menu_bar_ctl(calc.menubar));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+*/
+	return EOK;
+error:
+	if (edit->window != NULL)
+		ui_window_destroy(edit->window);
+	if (edit->ui != NULL)
+		ui_destroy(edit->ui);
+	return rc;
+}
+
+/** Destroy text editor UI.
+ *
+ * @param edit Editor
+ */
+static void edit_ui_destroy(edit_t *edit)
+{
+	ui_window_destroy(edit->window);
+	ui_destroy(edit->ui);
 }
 
 /* Handle key press. */
@@ -321,7 +465,7 @@ static void cursor_hide(void)
 static void cursor_setvis(bool visible)
 {
 	if (cursor_visible != visible) {
-		console_cursor_visibility(con, visible);
+//		console_cursor_visibility(con, visible);
 		cursor_visible = visible;
 	}
 }
@@ -629,68 +773,7 @@ static void file_save_as(void)
 /** Ask for a string. */
 static char *prompt(char const *prompt, char const *init_value)
 {
-	cons_event_t ev;
-	kbd_event_t *kev;
-	char *str;
-	char32_t buffer[INFNAME_MAX_LEN + 1];
-	int max_len;
-	int nc;
-	bool done;
-	errno_t rc;
-
-	asprintf(&str, "%s: %s", prompt, init_value);
-	status_display(str);
-	console_set_pos(con, 1 + str_length(str), scr_rows - 1);
-	free(str);
-
-	console_set_style(con, STYLE_INVERTED);
-
-	max_len = min(INFNAME_MAX_LEN, scr_columns - 4 - str_length(prompt));
-	str_to_wstr(buffer, max_len + 1, init_value);
-	nc = wstr_length(buffer);
-	done = false;
-
-	while (!done) {
-		rc = console_get_event(con, &ev);
-		if (rc != EOK)
-			return NULL;
-
-		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
-			kev = &ev.ev.key;
-
-			/* Handle key press. */
-			if ((kev->mods & (KM_CTRL | KM_ALT)) == 0) {
-				switch (kev->key) {
-				case KC_ESCAPE:
-					return NULL;
-				case KC_BACKSPACE:
-					if (nc > 0) {
-						putchar('\b');
-						console_flush(con);
-						--nc;
-					}
-					break;
-				case KC_ENTER:
-					done = true;
-					break;
-				default:
-					if (kev->c >= 32 && nc < max_len) {
-						putuchar(kev->c);
-						console_flush(con);
-						buffer[nc++] = kev->c;
-					}
-					break;
-				}
-			}
-		}
-	}
-
-	buffer[nc] = '\0';
-	str = wstr_to_astr(buffer);
-
-	console_set_style(con, STYLE_NORMAL);
-
-	return str;
+	return str_dup("42");
 }
 
 /** Insert file at caret position.
@@ -816,7 +899,7 @@ static void pane_text_display(void)
 
 	/* Draw rows from the sheet. */
 
-	console_set_pos(con, 0, 0);
+//	console_set_pos(con, 0, 0);
 	pane_row_range_display(0, rows);
 
 	/* Clear the remaining rows if file is short. */
@@ -824,10 +907,10 @@ static void pane_text_display(void)
 	int i;
 	sysarg_t j;
 	for (i = rows; i < pane.rows; ++i) {
-		console_set_pos(con, 0, i);
+//		console_set_pos(con, 0, i);
 		for (j = 0; j < scr_columns; ++j)
 			putchar(' ');
-		console_flush(con);
+//		console_flush(con);
 	}
 
 	pane.rflags |= (REDRAW_STATUS | REDRAW_CARET);
@@ -876,7 +959,7 @@ static void pane_row_range_display(int r0, int r1)
 
 	/* Draw rows from the sheet. */
 
-	console_set_pos(con, 0, 0);
+//	console_set_pos(con, 0, 0);
 	for (i = r0; i < r1; ++i) {
 		/* Starting point for row display */
 		rbc.row = pane.sh_row + i;
@@ -895,26 +978,26 @@ static void pane_row_range_display(int r0, int r1)
 
 		if (coord_cmp(&csel_start, &rbc) <= 0 &&
 		    coord_cmp(&rbc, &csel_end) < 0) {
-			console_flush(con);
-			console_set_style(con, STYLE_SELECTED);
-			console_flush(con);
+//			console_flush(con);
+//			console_set_style(con, STYLE_SELECTED);
+//			console_flush(con);
 		}
 
-		console_set_pos(con, 0, i);
+//		console_set_pos(con, 0, i);
 		size = str_size(row_buf);
 		pos = 0;
 		s_column = pane.sh_column;
 		while (pos < size) {
 			if ((csel_start.row == rbc.row) && (csel_start.column == s_column)) {
-				console_flush(con);
-				console_set_style(con, STYLE_SELECTED);
-				console_flush(con);
+//				console_flush(con);
+//				console_set_style(con, STYLE_SELECTED);
+//				console_flush(con);
 			}
 
 			if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
-				console_flush(con);
-				console_set_style(con, STYLE_NORMAL);
-				console_flush(con);
+//				console_flush(con);
+//				console_set_style(con, STYLE_NORMAL);
+//				console_flush(con);
 			}
 
 			c = str_decode(row_buf, &pos, size);
@@ -932,9 +1015,9 @@ static void pane_row_range_display(int r0, int r1)
 		}
 
 		if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
-			console_flush(con);
-			console_set_style(con, STYLE_NORMAL);
-			console_flush(con);
+//			console_flush(con);
+//			console_set_style(con, STYLE_NORMAL);
+//			console_flush(con);
 		}
 
 		/* Fill until the end of display area. */
@@ -946,8 +1029,8 @@ static void pane_row_range_display(int r0, int r1)
 
 		for (j = 0; j < fill; ++j)
 			putchar(' ');
-		console_flush(con);
-		console_set_style(con, STYLE_NORMAL);
+//		console_flush(con);
+//		console_set_style(con, STYLE_NORMAL);
 	}
 
 	pane.rflags |= REDRAW_CARET;
@@ -986,8 +1069,8 @@ static void pane_status_display(void)
 	if (fname == NULL)
 		return;
 
-	console_set_pos(con, 0, scr_rows - 1);
-	console_set_style(con, STYLE_INVERTED);
+//	console_set_pos(con, 0, scr_rows - 1);
+//	console_set_style(con, STYLE_INVERTED);
 
 	/*
 	 * Make sure the status fits on the screen. This loop should
@@ -1040,8 +1123,8 @@ finish:
 	/* Fill the rest of the line */
 	pos = scr_columns - 1 - n;
 	printf("%*s", pos, "");
-	console_flush(con);
-	console_set_style(con, STYLE_NORMAL);
+//	console_flush(con);
+//	console_set_style(con, STYLE_NORMAL);
 
 	pane.rflags |= REDRAW_CARET;
 }
@@ -1055,8 +1138,8 @@ static void pane_caret_display(void)
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 
 	spt_get_coord(&caret_pt, &coord);
-	console_set_pos(con, coord.column - pane.sh_column,
-	    coord.row - pane.sh_row);
+//	console_set_pos(con, coord.column - pane.sh_column,
+//	    coord.row - pane.sh_row);
 }
 
 /** Insert a character at caret position. */
@@ -1718,13 +1801,13 @@ static int coord_cmp(coord_t const *a, coord_t const *b)
 /** Display text in the status line. */
 static void status_display(char const *str)
 {
-	console_set_pos(con, 0, scr_rows - 1);
-	console_set_style(con, STYLE_INVERTED);
+//	console_set_pos(con, 0, scr_rows - 1);
+//	console_set_style(con, STYLE_INVERTED);
 
 	int pos = -(scr_columns - 3);
 	printf(" %*s ", pos, str);
-	console_flush(con);
-	console_set_style(con, STYLE_NORMAL);
+//	console_flush(con);
+//	console_set_style(con, STYLE_NORMAL);
 
 	pane.rflags |= REDRAW_CARET;
 }

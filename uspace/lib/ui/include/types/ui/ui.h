@@ -41,8 +41,10 @@
 struct ui;
 typedef struct ui ui_t;
 
-/** Use the default display service (argument to ui_create() */
+/** Use the default display service (argument to ui_create()) */
 #define UI_DISPLAY_DEFAULT NULL
+/** Use the default console service (argument to ui_create()) */
+#define UI_CONSOLE_DEFAULT "cons@"
 
 /** Window system */
 typedef enum {
