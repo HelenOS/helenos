@@ -48,6 +48,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <types/common.h>
+#include <ui/fixed.h>
+#include <ui/menu.h>
+#include <ui/menubar.h>
+#include <ui/menuentry.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include <vfs/vfs.h>
@@ -102,6 +106,10 @@ typedef struct {
 	ui_t *ui;
 	/** Editor window */
 	ui_window_t *window;
+	/** UI resource */
+	ui_resource_t *ui_res;
+	/** Menu bar */
+	ui_menu_bar_t *menubar;
 } edit_t;
 
 /** Document
@@ -198,18 +206,25 @@ static void status_display(char const *str);
 static errno_t edit_ui_create(edit_t *);
 static void edit_ui_destroy(edit_t *);
 
+static void edit_wnd_close(ui_window_t *, void *);
+static void edit_wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
+
+static ui_window_cb_t edit_window_cb = {
+	.close = edit_wnd_close,
+	.kbd = edit_wnd_kbd_event
+};
+
+static void edit_file_exit(ui_menu_entry_t *, void *);
+static void edit_edit_copy(ui_menu_entry_t *, void *);
+static void edit_edit_paste(ui_menu_entry_t *, void *);
+
 int main(int argc, char *argv[])
 {
-//	cons_event_t ev;
 	bool new_file;
 	errno_t rc;
 
 	(void) pos_handle;
-	(void) key_handle_press;
 	(void) pane_row_display;
-
-//	con = console_init(stdin, stdout);
-//	console_clear(con);
 
 //	console_get_size(con, &scr_columns, &scr_rows);
 	scr_columns = 80;
@@ -330,6 +345,14 @@ static errno_t edit_ui_create(edit_t *edit)
 {
 	errno_t rc;
 	ui_wnd_params_t params;
+	ui_fixed_t *fixed = NULL;
+	ui_menu_t *mfile = NULL;
+	ui_menu_t *medit = NULL;
+	ui_menu_entry_t *mexit = NULL;
+	ui_menu_entry_t *mcopy = NULL;
+	ui_menu_entry_t *mpaste = NULL;
+	gfx_rect_t arect;
+	gfx_rect_t rect;
 
 	rc = ui_create(UI_CONSOLE_DEFAULT, &edit->ui);
 	if (rc != EOK) {
@@ -342,20 +365,18 @@ static errno_t edit_ui_create(edit_t *edit)
 	params.caption = "Text Editor";
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
-	params.rect.p1.x = 38;
-	params.rect.p1.y = 18;
+	params.rect.p1.x = 80;
+	params.rect.p1.y = 25;
 
 	rc = ui_window_create(edit->ui, &params, &edit->window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		goto error;
 	}
-/*
-	ui_window_set_cb(window, &window_cb, (void *) &calc);
-	calc.ui = ui;
 
-	ui_res = ui_window_get_res(window);
-	calc.ui_res = ui_res;
+	ui_window_set_cb(edit->window, &edit_window_cb, (void *) edit);
+
+	edit->ui_res = ui_window_get_res(edit->window);
 
 	rc = ui_fixed_create(&fixed);
 	if (rc != EOK) {
@@ -363,13 +384,13 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_bar_create(ui, window, &calc.menubar);
+	rc = ui_menu_bar_create(edit->ui, edit->window, &edit->menubar);
 	if (rc != EOK) {
 		printf("Error creating menu bar.\n");
 		return rc;
 	}
 
-	rc = ui_menu_create(calc.menubar, "File", &mfile);
+	rc = ui_menu_create(edit->menubar, "File", &mfile);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -381,9 +402,9 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	ui_menu_entry_set_cb(mexit, calc_file_exit, (void *) &calc);
+	ui_menu_entry_set_cb(mexit, edit_file_exit, (void *) edit);
 
-	rc = ui_menu_create(calc.menubar, "Edit", &medit);
+	rc = ui_menu_create(edit->menubar, "Edit", &medit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -395,7 +416,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	ui_menu_entry_set_cb(mcopy, calc_edit_copy, (void *) &calc);
+	ui_menu_entry_set_cb(mcopy, edit_edit_copy, (void *) edit);
 
 	rc = ui_menu_entry_create(medit, "Paste", "Ctrl-V", &mpaste);
 	if (rc != EOK) {
@@ -403,16 +424,22 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	ui_menu_entry_set_cb(mpaste, calc_edit_paste, (void *) &calc);
+	ui_menu_entry_set_cb(mpaste, edit_edit_paste, (void *) edit);
 
-	ui_menu_bar_set_rect(calc.menubar, &calc.geom.menubar_rect);
+	ui_window_get_app_rect(edit->window, &arect);
 
-	rc = ui_fixed_add(fixed, ui_menu_bar_ctl(calc.menubar));
+	rect.p0 = arect.p0;
+	rect.p1.x = arect.p1.x;
+	rect.p1.y = arect.p0.y + 1;
+	ui_menu_bar_set_rect(edit->menubar, &rect);
+
+	rc = ui_fixed_add(fixed, ui_menu_bar_ctl(edit->menubar));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
 	}
-*/
+
+	ui_window_add(edit->window, ui_fixed_ctl(fixed));
 	return EOK;
 error:
 	if (edit->window != NULL)
@@ -1810,6 +1837,63 @@ static void status_display(char const *str)
 //	console_set_style(con, STYLE_NORMAL);
 
 	pane.rflags |= REDRAW_CARET;
+}
+
+/** Window close request
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ */
+static void edit_wnd_close(ui_window_t *window, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	ui_quit(edit->ui);
+}
+
+/** Window keyboard event
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ * @param event Keyboard event
+ */
+static void edit_wnd_kbd_event(ui_window_t *window, void *arg,
+    kbd_event_t *event)
+{
+	if (event->type == KEY_PRESS)
+		key_handle_press(event);
+}
+
+/** File / Exit menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_file_exit(ui_menu_entry_t *mentry, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	ui_quit(edit->ui);
+}
+
+/** Edit / Copy menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_copy(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+}
+
+/** Edit / Paste menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_paste(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
 }
 
 /** @}
