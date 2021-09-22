@@ -39,7 +39,9 @@
 #include <clipboard.h>
 #include <errno.h>
 #include <gfx/color.h>
+#include <gfx/font.h>
 #include <gfx/render.h>
+#include <gfx/text.h>
 #include <io/kbd_event.h>
 #include <io/keycode.h>
 #include <io/pos_event.h>
@@ -55,6 +57,7 @@
 #include <ui/menu.h>
 #include <ui/menubar.h>
 #include <ui/menuentry.h>
+#include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include <vfs/vfs.h>
@@ -72,7 +75,8 @@ enum redraw_flags {
 /** Pane
  *
  * A rectangular area of the screen used to edit a document. Different
- * panes can be possibly used to edit the same document.
+ * panes can be possibly used to edit the same document. This is a custom
+ * UI control.
  */
 typedef struct {
 	/** Base control object */
@@ -86,6 +90,9 @@ typedef struct {
 
 	/** Pane rectangle */
 	gfx_rect_t rect;
+
+	/** Pane color */
+	gfx_color_t *color;
 
 	/* Pane dimensions */
 	int rows, columns;
@@ -177,9 +184,9 @@ static char *prompt(char const *prompt, char const *init_value);
 static errno_t pane_init(ui_window_t *, pane_t *);
 static void pane_fini(pane_t *);
 static ui_control_t *pane_ctl(pane_t *);
-static void pane_text_display(void);
+static errno_t pane_text_display(pane_t *);
 static void pane_row_display(void);
-static void pane_row_range_display(int r0, int r1);
+static errno_t pane_row_range_display(pane_t *, int r0, int r1);
 static void pane_status_display(void);
 static void pane_caret_display(void);
 
@@ -314,7 +321,7 @@ int main(int argc, char *argv[])
 
 	cursor_hide();
 //	console_clear(con);
-	pane_text_display();
+	pane_text_display(&pane);
 	pane_status_display();
 	if (new_file && doc.file_name != NULL)
 		status_display("File not found. Starting empty file.");
@@ -346,7 +353,7 @@ int main(int argc, char *argv[])
 		cursor_hide();
 
 		if (pane.rflags & REDRAW_TEXT)
-			pane_text_display();
+			pane_text_display(&pane);
 		if (pane.rflags & REDRAW_ROW)
 			pane_row_display();
 		if (pane.rflags & REDRAW_STATUS)
@@ -497,7 +504,6 @@ error:
  */
 static void edit_ui_destroy(edit_t *edit)
 {
-	pane_fini(&pane);
 	ui_window_destroy(edit->window);
 	ui_destroy(edit->ui);
 }
@@ -977,6 +983,12 @@ static errno_t pane_init(ui_window_t *window, pane_t *pane)
 	if (rc != EOK)
 		return rc;
 
+	rc = gfx_color_new_ega(0x07, &pane->color);
+	if (rc != EOK) {
+		ui_control_delete(pane->control);
+		return rc;
+	}
+
 	pane->res = ui_window_get_res(window);
 	pane->window = window;
 
@@ -985,6 +997,9 @@ static errno_t pane_init(ui_window_t *window, pane_t *pane)
 	pane->rect.p0.y = arect.p0.y + 1;
 	pane->rect.p1.x = arect.p1.x;
 	pane->rect.p1.y = arect.p1.y - 1;
+
+	pane->columns = pane->rect.p1.x - pane->rect.p0.x;
+	pane->rows = pane->rect.p1.y - pane->rect.p0.y;
 
 	return EOK;
 }
@@ -997,6 +1012,8 @@ static errno_t pane_init(ui_window_t *window, pane_t *pane)
  */
 static void pane_fini(pane_t *pane)
 {
+	gfx_color_delete(pane->color);
+	pane->color = NULL;
 	ui_control_delete(pane->control);
 	pane->control = NULL;
 }
@@ -1011,31 +1028,48 @@ static ui_control_t *pane_ctl(pane_t *pane)
 	return pane->control;
 }
 
-static void pane_text_display(void)
+/** Display pane text.
+ *
+ * @param pane Pane
+ * @return EOK on success or an error code
+ */
+static errno_t pane_text_display(pane_t *pane)
 {
+	gfx_rect_t rect;
+	gfx_context_t *gc;
+	errno_t rc;
 	int sh_rows, rows;
 
 	sheet_get_num_rows(doc.sh, &sh_rows);
-	rows = min(sh_rows - pane.sh_row + 1, pane.rows);
+	rows = min(sh_rows - pane->sh_row + 1, pane->rows);
 
 	/* Draw rows from the sheet. */
 
-//	console_set_pos(con, 0, 0);
-	pane_row_range_display(0, rows);
+	rc = pane_row_range_display(pane, 0, rows);
+	if (rc != EOK)
+		return rc;
 
 	/* Clear the remaining rows if file is short. */
 
-	int i;
-	sysarg_t j;
-	for (i = rows; i < pane.rows; ++i) {
-//		console_set_pos(con, 0, i);
-		for (j = 0; j < scr_columns; ++j)
-			putchar(' ');
-//		console_flush(con);
-	}
+	gc = ui_window_get_gc(pane->window);
 
-	pane.rflags |= (REDRAW_STATUS | REDRAW_CARET);
-	pane.rflags &= ~REDRAW_ROW;
+	rc = gfx_set_color(gc, pane->color);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = pane->rect.p0.x;
+	rect.p0.y = pane->rect.p0.y + rows;
+	rect.p1.x = pane->rect.p1.x;
+	rect.p1.y = pane->rect.p1.y;
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	pane->rflags &= ~REDRAW_ROW;
+	return EOK;
+error:
+	return rc;
 }
 
 /** Display just the row where the caret is. */
@@ -1049,27 +1083,47 @@ static void pane_row_display(void)
 	spt_get_coord(&caret_pt, &coord);
 
 	ridx = coord.row - pane.sh_row;
-	pane_row_range_display(ridx, ridx + 1);
+	(void) pane_row_range_display(&pane, ridx, ridx + 1);
 	pane.rflags |= (REDRAW_STATUS | REDRAW_CARET);
 }
 
-static void pane_row_range_display(int r0, int r1)
+/** Display a range of rows of text.
+ *
+ * @param r0 Start row (inclusive)
+ * @param r1 End row (exclusive)
+ * @return EOk on success or an error code
+ */
+static errno_t pane_row_range_display(pane_t *pane, int r0, int r1)
 {
-	int i, j, fill;
+	int i, fill;
 	spt_t rb, re, dep, pt;
 	coord_t rbc, rec;
 	char row_buf[ROW_BUF_SIZE];
+	char cbuf[STR_BOUNDS(1) + 1];
 	char32_t c;
 	size_t pos, size;
+	size_t cpos;
 	int s_column;
 	coord_t csel_start, csel_end, ctmp;
+	gfx_font_t *font;
+	gfx_context_t *gc;
+	gfx_text_fmt_t fmt;
+	gfx_coord2_t tpos;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	font = ui_resource_get_font(edit.ui_res);
+	gc = ui_window_get_gc(edit.window);
+
+	gfx_text_fmt_init(&fmt);
+	fmt.color = pane->color;
 
 	/* Determine selection start and end. */
 
-	tag_get_pt(&pane.sel_start, &pt);
+	tag_get_pt(&pane->sel_start, &pt);
 	spt_get_coord(&pt, &csel_start);
 
-	tag_get_pt(&pane.caret_pos, &pt);
+	tag_get_pt(&pane->caret_pos, &pt);
 	spt_get_coord(&pt, &csel_end);
 
 	if (coord_cmp(&csel_start, &csel_end) > 0) {
@@ -1082,14 +1136,17 @@ static void pane_row_range_display(int r0, int r1)
 
 //	console_set_pos(con, 0, 0);
 	for (i = r0; i < r1; ++i) {
+		tpos.x = pane->rect.p0.x;
+		tpos.y = pane->rect.p0.y + i;
+
 		/* Starting point for row display */
-		rbc.row = pane.sh_row + i;
-		rbc.column = pane.sh_column;
+		rbc.row = pane->sh_row + i;
+		rbc.column = pane->sh_column;
 		sheet_get_cell_pt(doc.sh, &rbc, dir_before, &rb);
 
 		/* Ending point for row display */
-		rec.row = pane.sh_row + i;
-		rec.column = pane.sh_column + pane.columns;
+		rec.row = pane->sh_row + i;
+		rec.column = pane->sh_column + pane->columns;
 		sheet_get_cell_pt(doc.sh, &rec, dir_before, &re);
 
 		/* Copy the text of the row to the buffer. */
@@ -1107,7 +1164,7 @@ static void pane_row_range_display(int r0, int r1)
 //		console_set_pos(con, 0, i);
 		size = str_size(row_buf);
 		pos = 0;
-		s_column = pane.sh_column;
+		s_column = pane->sh_column;
 		while (pos < size) {
 			if ((csel_start.row == rbc.row) && (csel_start.column == s_column)) {
 //				console_flush(con);
@@ -1123,15 +1180,36 @@ static void pane_row_range_display(int r0, int r1)
 
 			c = str_decode(row_buf, &pos, size);
 			if (c != '\t') {
-				printf("%lc", (wint_t) c);
+				cpos = 0;
+				rc = chr_encode(c, cbuf, &cpos, sizeof(cbuf));
+				if (rc != EOK)
+					return rc;
+
+				rc = gfx_puttext(font, &tpos, &fmt, cbuf);
+				if (rc != EOK)
+					return rc;
+
 				s_column += 1;
+				tpos.x++;
 			} else {
 				fill = 1 + ALIGN_UP(s_column, TAB_WIDTH) -
 				    s_column;
 
-				for (j = 0; j < fill; ++j)
-					putchar(' ');
+				rc = gfx_set_color(gc, fmt.color);
+				if (rc != EOK)
+					return rc;
+
+				rect.p0.x = tpos.x;
+				rect.p0.y = tpos.y;
+				rect.p1.x = tpos.x + fill;
+				rect.p1.y = tpos.y + 1;
+
+				rc = gfx_fill_rect(gc, &rect);
+				if (rc != EOK)
+					return rc;
+
 				s_column += fill;
+				tpos.x += fill;
 			}
 		}
 
@@ -1143,18 +1221,21 @@ static void pane_row_range_display(int r0, int r1)
 
 		/* Fill until the end of display area. */
 
-		if ((unsigned)s_column - 1 < scr_columns)
-			fill = scr_columns - (s_column - 1);
-		else
-			fill = 0;
+		rc = gfx_set_color(gc, fmt.color);
+		if (rc != EOK)
+			return rc;
 
-		for (j = 0; j < fill; ++j)
-			putchar(' ');
-//		console_flush(con);
-//		console_set_style(con, STYLE_NORMAL);
+		rect.p0.x = tpos.x;
+		rect.p0.y = tpos.y;
+		rect.p1.x = pane->rect.p1.x;
+		rect.p1.y = tpos.y + 1;
+
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
 	}
 
-	pane.rflags |= REDRAW_CARET;
+	return EOK;
 }
 
 /** Display pane status in the status line. */
@@ -1281,21 +1362,12 @@ static void pane_ctl_destroy(void *arg)
 static errno_t pane_ctl_paint(void *arg)
 {
 	pane_t *pane = (pane_t *)arg;
-	gfx_color_t *color = NULL;
 	gfx_context_t *gc;
 	errno_t rc;
 
 	gc = ui_window_get_gc(pane->window);
 
-	rc = gfx_color_new_ega(0x01, &color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_set_color(gc, color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_fill_rect(gc, &pane->rect);
+	rc = pane_text_display(pane);
 	if (rc != EOK)
 		goto error;
 
@@ -1303,11 +1375,7 @@ static errno_t pane_ctl_paint(void *arg)
 	if (rc != EOK)
 		goto error;
 
-	gfx_color_delete(color);
-	return EOK;
 error:
-	if (color != NULL)
-		gfx_color_delete(color);
 	return rc;
 }
 

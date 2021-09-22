@@ -593,5 +593,15 @@ void ui_resource_expose(ui_resource_t *resource)
 		resource->expose_cb(resource->expose_arg);
 }
 
+/** Get the UI font.
+ *
+ * @param resource UI resource
+ * @return UI font
+ */
+gfx_font_t *ui_resource_get_font(ui_resource_t *resource)
+{
+	return resource->font;
+}
+
 /** @}
  */
