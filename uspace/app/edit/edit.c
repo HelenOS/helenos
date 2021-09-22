@@ -38,6 +38,8 @@
 #include <align.h>
 #include <clipboard.h>
 #include <errno.h>
+#include <gfx/color.h>
+#include <gfx/render.h>
 #include <io/kbd_event.h>
 #include <io/keycode.h>
 #include <io/pos_event.h>
@@ -48,6 +50,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <types/common.h>
+#include <ui/control.h>
 #include <ui/fixed.h>
 #include <ui/menu.h>
 #include <ui/menubar.h>
@@ -72,6 +75,18 @@ enum redraw_flags {
  * panes can be possibly used to edit the same document.
  */
 typedef struct {
+	/** Base control object */
+	struct ui_control *control;
+
+	/** Containing window */
+	ui_window_t *window;
+
+	/** UI resource */
+	struct ui_resource *res;
+
+	/** Pane rectangle */
+	gfx_rect_t rect;
+
 	/* Pane dimensions */
 	int rows, columns;
 
@@ -159,6 +174,9 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos);
 
 static char *prompt(char const *prompt, char const *init_value);
 
+static errno_t pane_init(ui_window_t *, pane_t *);
+static void pane_fini(pane_t *);
+static ui_control_t *pane_ctl(pane_t *);
 static void pane_text_display(void);
 static void pane_row_display(void);
 static void pane_row_range_display(int r0, int r1);
@@ -217,6 +235,18 @@ static ui_window_cb_t edit_window_cb = {
 static void edit_file_exit(ui_menu_entry_t *, void *);
 static void edit_edit_copy(ui_menu_entry_t *, void *);
 static void edit_edit_paste(ui_menu_entry_t *, void *);
+
+static void pane_ctl_destroy(void *);
+static errno_t pane_ctl_paint(void *);
+static ui_evclaim_t pane_ctl_pos_event(void *, pos_event_t *);
+
+/** Pabe control ops */
+ui_control_ops_t pane_ctl_ops = {
+	.destroy = pane_ctl_destroy,
+	.paint = pane_ctl_paint,
+	.pos_event = pane_ctl_pos_event
+};
+
 
 int main(int argc, char *argv[])
 {
@@ -439,6 +469,18 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
+	rc = pane_init(edit->window, &pane);
+	if (rc != EOK) {
+		printf("Error initializing pane.\n");
+		return rc;
+	}
+
+	rc = ui_fixed_add(fixed, pane_ctl(&pane));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
 	ui_window_add(edit->window, ui_fixed_ctl(fixed));
 	return EOK;
 error:
@@ -455,6 +497,7 @@ error:
  */
 static void edit_ui_destroy(edit_t *edit)
 {
+	pane_fini(&pane);
 	ui_window_destroy(edit->window);
 	ui_destroy(edit->ui);
 }
@@ -917,6 +960,57 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 	return buf;
 }
 
+/** Initialize pane.
+ *
+ * TODO: Replace with pane_create() that allocates the pane.
+ *
+ * @param window Editor window
+ * @param pane Pane
+ * @return EOK on success or an error code
+ */
+static errno_t pane_init(ui_window_t *window, pane_t *pane)
+{
+	errno_t rc;
+	gfx_rect_t arect;
+
+	rc = ui_control_new(&pane_ctl_ops, (void *) pane, &pane->control);
+	if (rc != EOK)
+		return rc;
+
+	pane->res = ui_window_get_res(window);
+	pane->window = window;
+
+	ui_window_get_app_rect(window, &arect);
+	pane->rect.p0.x = arect.p0.x;
+	pane->rect.p0.y = arect.p0.y + 1;
+	pane->rect.p1.x = arect.p1.x;
+	pane->rect.p1.y = arect.p1.y - 1;
+
+	return EOK;
+}
+
+/** Finalize pane.
+ *
+ * TODO: Replace with pane_destroy() that deallocates the pane.
+ *
+ * @param pane Pane
+ */
+static void pane_fini(pane_t *pane)
+{
+	ui_control_delete(pane->control);
+	pane->control = NULL;
+}
+
+/** Return base control object for a pane.
+ *
+ * @param pane Pane
+ * @return Base UI cntrol
+ */
+static ui_control_t *pane_ctl(pane_t *pane)
+{
+	return pane->control;
+}
+
 static void pane_text_display(void)
 {
 	int sh_rows, rows;
@@ -1167,6 +1261,64 @@ static void pane_caret_display(void)
 	spt_get_coord(&caret_pt, &coord);
 //	console_set_pos(con, coord.column - pane.sh_column,
 //	    coord.row - pane.sh_row);
+}
+
+/** Destroy pane control.
+ *
+ * @param arg Argument (pane_t *)
+ */
+static void pane_ctl_destroy(void *arg)
+{
+	pane_t *pane = (pane_t *)arg;
+
+	pane_fini(pane);
+}
+
+/** Paint pane control.
+ *
+ * @param arg Argument (pane_t *)
+ */
+static errno_t pane_ctl_paint(void *arg)
+{
+	pane_t *pane = (pane_t *)arg;
+	gfx_color_t *color = NULL;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	gc = ui_window_get_gc(pane->window);
+
+	rc = gfx_color_new_ega(0x01, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(gc, &pane->rect);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_update(gc);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+	return EOK;
+error:
+	if (color != NULL)
+		gfx_color_delete(color);
+	return rc;
+}
+
+/** Handle pane control position event.
+ *
+ * @param arg Argument (pane_t *)
+ * @param event Position event
+ */
+static ui_evclaim_t pane_ctl_pos_event(void *arg, pos_event_t *event)
+{
+	return ui_unclaimed;
 }
 
 /** Insert a character at caret position. */
