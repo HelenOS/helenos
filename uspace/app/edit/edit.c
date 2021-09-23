@@ -95,6 +95,9 @@ typedef struct {
 	/** Pane color */
 	gfx_color_t *color;
 
+	/** Selection color */
+	gfx_color_t *sel_color;
+
 	/* Pane dimensions */
 	int rows, columns;
 
@@ -924,15 +927,21 @@ static errno_t pane_init(ui_window_t *window, pane_t *pane)
 	errno_t rc;
 	gfx_rect_t arect;
 
+	pane->control = NULL;
+	pane->color = NULL;
+	pane->sel_color = NULL;
+
 	rc = ui_control_new(&pane_ctl_ops, (void *) pane, &pane->control);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	rc = gfx_color_new_ega(0x07, &pane->color);
-	if (rc != EOK) {
-		ui_control_delete(pane->control);
-		return rc;
-	}
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x1e, &pane->sel_color);
+	if (rc != EOK)
+		goto error;
 
 	pane->res = ui_window_get_res(window);
 	pane->window = window;
@@ -947,6 +956,18 @@ static errno_t pane_init(ui_window_t *window, pane_t *pane)
 	pane->rows = pane->rect.p1.y - pane->rect.p0.y;
 
 	return EOK;
+error:
+	if (pane->control != NULL) {
+		ui_control_delete(pane->control);
+		pane->control = NULL;
+	}
+
+	if (pane->color != NULL) {
+		gfx_color_delete(pane->color);
+		pane->color = NULL;
+	}
+
+	return rc;
 }
 
 /** Finalize pane.
@@ -959,6 +980,8 @@ static void pane_fini(pane_t *pane)
 {
 	gfx_color_delete(pane->color);
 	pane->color = NULL;
+	gfx_color_delete(pane->sel_color);
+	pane->sel_color = NULL;
 	ui_control_delete(pane->control);
 	pane->control = NULL;
 }
@@ -1107,7 +1130,6 @@ static errno_t pane_row_range_display(pane_t *pane, int r0, int r1)
 
 	/* Draw rows from the sheet. */
 
-//	console_set_pos(con, 0, 0);
 	for (i = r0; i < r1; ++i) {
 		tpos.x = pane->rect.p0.x;
 		tpos.y = pane->rect.p0.y + i;
@@ -1129,27 +1151,18 @@ static errno_t pane_row_range_display(pane_t *pane, int r0, int r1)
 
 		if (coord_cmp(&csel_start, &rbc) <= 0 &&
 		    coord_cmp(&rbc, &csel_end) < 0) {
-//			console_flush(con);
-//			console_set_style(con, STYLE_SELECTED);
-//			console_flush(con);
+			fmt.color = pane->sel_color;
 		}
 
-//		console_set_pos(con, 0, i);
 		size = str_size(row_buf);
 		pos = 0;
 		s_column = pane->sh_column;
 		while (pos < size) {
-			if ((csel_start.row == rbc.row) && (csel_start.column == s_column)) {
-//				console_flush(con);
-//				console_set_style(con, STYLE_SELECTED);
-//				console_flush(con);
-			}
+			if ((csel_start.row == rbc.row) && (csel_start.column == s_column))
+				fmt.color = pane->sel_color;
 
-			if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
-//				console_flush(con);
-//				console_set_style(con, STYLE_NORMAL);
-//				console_flush(con);
-			}
+			if ((csel_end.row == rbc.row) && (csel_end.column == s_column))
+				fmt.color = pane->color;
 
 			c = str_decode(row_buf, &pos, size);
 			if (c != '\t') {
@@ -1186,11 +1199,8 @@ static errno_t pane_row_range_display(pane_t *pane, int r0, int r1)
 			}
 		}
 
-		if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
-//			console_flush(con);
-//			console_set_style(con, STYLE_NORMAL);
-//			console_flush(con);
-		}
+		if ((csel_end.row == rbc.row) && (csel_end.column == s_column))
+			fmt.color = pane->color;
 
 		/* Fill until the end of display area. */
 
