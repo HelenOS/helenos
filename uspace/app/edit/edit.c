@@ -39,6 +39,7 @@
 #include <clipboard.h>
 #include <errno.h>
 #include <gfx/color.h>
+#include <gfx/cursor.h>
 #include <gfx/font.h>
 #include <gfx/render.h>
 #include <gfx/text.h>
@@ -147,7 +148,6 @@ static edit_t edit;
 static doc_t doc;
 static bool done;
 static pane_t pane;
-static bool cursor_visible;
 
 static sysarg_t scr_rows;
 static sysarg_t scr_columns;
@@ -159,8 +159,6 @@ static sysarg_t scr_columns;
 /** Maximum filename length that can be entered. */
 #define INFNAME_MAX_LEN 128
 
-static void cursor_show(void);
-static void cursor_hide(void);
 static void cursor_setvis(bool visible);
 
 static void key_handle_press(kbd_event_t *ev);
@@ -184,11 +182,12 @@ static char *prompt(char const *prompt, char const *init_value);
 static errno_t pane_init(ui_window_t *, pane_t *);
 static void pane_fini(pane_t *);
 static ui_control_t *pane_ctl(pane_t *);
+static errno_t pane_update(pane_t *);
 static errno_t pane_text_display(pane_t *);
 static void pane_row_display(void);
 static errno_t pane_row_range_display(pane_t *, int r0, int r1);
 static void pane_status_display(void);
-static void pane_caret_display(void);
+static void pane_caret_display(pane_t *);
 
 static void insert_char(char32_t c);
 static void delete_char_before(void);
@@ -312,60 +311,17 @@ int main(int argc, char *argv[])
 		return 1;
 
 	/* Initial display */
-	cursor_visible = true;
 	rc = ui_window_paint(edit.window);
 	if (rc != EOK) {
 		printf("Error painting window.\n");
 		return rc;
 	}
 
-	cursor_hide();
-//	console_clear(con);
-	pane_text_display(&pane);
 	pane_status_display();
 	if (new_file && doc.file_name != NULL)
 		status_display("File not found. Starting empty file.");
-	pane_caret_display();
-	cursor_show();
-/*
-	done = false;
-
-	while (!done) {
-		rc = console_get_event(con, &ev);
-		if (rc != EOK)
-			break;
-
-		pane.rflags = 0;
-
-		switch (ev.type) {
-		case CEV_KEY:
-			pane.keymod = ev.ev.key.mods;
-			if (ev.ev.key.type == KEY_PRESS)
-				key_handle_press(&ev.ev.key);
-			break;
-		case CEV_POS:
-			pos_handle(&ev.ev.pos);
-			break;
-		}
-
-		/ Redraw as necessary. /
-
-		cursor_hide();
-
-		if (pane.rflags & REDRAW_TEXT)
-			pane_text_display(&pane);
-		if (pane.rflags & REDRAW_ROW)
-			pane_row_display();
-		if (pane.rflags & REDRAW_STATUS)
-			pane_status_display();
-		if (pane.rflags & REDRAW_CARET)
-			pane_caret_display();
-
-		cursor_show();
-	}
-
-	console_clear(con);
-*/
+	pane_caret_display(&pane);
+	cursor_setvis(true);
 
 	ui_run(edit.ui);
 
@@ -528,22 +484,11 @@ static void key_handle_press(kbd_event_t *ev)
 	}
 }
 
-static void cursor_show(void)
-{
-	cursor_setvis(true);
-}
-
-static void cursor_hide(void)
-{
-	cursor_setvis(false);
-}
-
 static void cursor_setvis(bool visible)
 {
-	if (cursor_visible != visible) {
-//		console_cursor_visibility(con, visible);
-		cursor_visible = visible;
-	}
+	gfx_context_t *gc = ui_window_get_gc(edit.window);
+
+	(void) gfx_cursor_set_visible(gc, visible);
 }
 
 /** Handle key without modifier. */
@@ -1028,6 +973,34 @@ static ui_control_t *pane_ctl(pane_t *pane)
 	return pane->control;
 }
 
+/** Repaint parts of pane that need updating.
+ *
+ * @param pane Pane
+ * @return EOK on succes or an error code
+ */
+static errno_t pane_update(pane_t *pane)
+{
+	errno_t rc;
+
+	if (pane->rflags & REDRAW_TEXT) {
+		rc = pane_text_display(pane);
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (pane->rflags & REDRAW_ROW)
+		pane_row_display();
+
+	if (pane->rflags & REDRAW_STATUS)
+		pane_status_display();
+
+	if (pane->rflags & REDRAW_CARET)
+		pane_caret_display(pane);
+
+	return EOK;
+}
+
+
 /** Display pane text.
  *
  * @param pane Pane
@@ -1331,17 +1304,26 @@ finish:
 	pane.rflags |= REDRAW_CARET;
 }
 
-/** Set cursor to reflect position of the caret. */
-static void pane_caret_display(void)
+/** Set cursor to reflect position of the caret.
+ *
+ * @param pane Pane
+ */
+static void pane_caret_display(pane_t *pane)
 {
 	spt_t caret_pt;
 	coord_t coord;
+	gfx_coord2_t pos;
+	gfx_context_t *gc;
 
-	tag_get_pt(&pane.caret_pos, &caret_pt);
+	tag_get_pt(&pane->caret_pos, &caret_pt);
 
 	spt_get_coord(&caret_pt, &coord);
-//	console_set_pos(con, coord.column - pane.sh_column,
-//	    coord.row - pane.sh_row);
+
+	gc = ui_window_get_gc(edit.window);
+	pos.x = pane->rect.p0.x + coord.column - pane->sh_column;
+	pos.y = pane->rect.p0.y + coord.row - pane->sh_row;
+
+	(void) gfx_cursor_set_pos(gc, &pos);
 }
 
 /** Destroy pane control.
@@ -2080,8 +2062,11 @@ static void edit_wnd_close(ui_window_t *window, void *arg)
 static void edit_wnd_kbd_event(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
-	if (event->type == KEY_PRESS)
+	if (event->type == KEY_PRESS) {
 		key_handle_press(event);
+		(void) pane_update(&pane);
+		(void) gfx_update(ui_window_get_gc(window));
+	}
 }
 
 /** File / Exit menu entry selected.
