@@ -55,6 +55,7 @@
 #include <types/common.h>
 #include <ui/control.h>
 #include <ui/fixed.h>
+#include <ui/label.h>
 #include <ui/menu.h>
 #include <ui/menubar.h>
 #include <ui/menuentry.h>
@@ -136,6 +137,8 @@ typedef struct {
 	ui_resource_t *ui_res;
 	/** Menu bar */
 	ui_menu_bar_t *menubar;
+	/** Status bar */
+	ui_label_t *status;
 } edit_t;
 
 /** Document
@@ -189,7 +192,7 @@ static errno_t pane_update(pane_t *);
 static errno_t pane_text_display(pane_t *);
 static void pane_row_display(void);
 static errno_t pane_row_range_display(pane_t *, int r0, int r1);
-static void pane_status_display(void);
+static void pane_status_display(pane_t *);
 static void pane_caret_display(pane_t *);
 
 static void insert_char(char32_t c);
@@ -320,7 +323,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	pane_status_display();
+	pane_status_display(&pane);
 	if (new_file && doc.file_name != NULL)
 		status_display("File not found. Starting empty file.");
 	pane_caret_display(&pane);
@@ -442,6 +445,23 @@ static errno_t edit_ui_create(edit_t *edit)
 	}
 
 	rc = ui_fixed_add(fixed, pane_ctl(&pane));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_label_create(edit->ui_res, "", &edit->status);
+	if (rc != EOK) {
+		printf("Error creating menu bar.\n");
+		return rc;
+	}
+
+	rect.p0.x = arect.p0.x;
+	rect.p0.y = arect.p1.y - 1;
+	rect.p1 = arect.p1;
+	ui_label_set_rect(edit->status, &rect);
+
+	rc = ui_fixed_add(fixed, ui_label_ctl(edit->status));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -1015,7 +1035,7 @@ static errno_t pane_update(pane_t *pane)
 		pane_row_display();
 
 	if (pane->rflags & REDRAW_STATUS)
-		pane_status_display();
+		pane_status_display(pane);
 
 	if (pane->rflags & REDRAW_CARET)
 		pane_caret_display(pane);
@@ -1221,8 +1241,11 @@ static errno_t pane_row_range_display(pane_t *pane, int r0, int r1)
 	return EOK;
 }
 
-/** Display pane status in the status line. */
-static void pane_status_display(void)
+/** Display pane status in the status line.
+ *
+ * @param pane Pane
+ */
+static void pane_status_display(pane_t *pane)
 {
 	spt_t caret_pt;
 	coord_t coord;
@@ -1231,11 +1254,10 @@ static void pane_status_display(void)
 	char *p;
 	char *text;
 	size_t n;
-	int pos;
 	size_t nextra;
 	size_t fnw;
 
-	tag_get_pt(&pane.caret_pos, &caret_pt);
+	tag_get_pt(&pane->caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
 
 	sheet_get_num_rows(doc.sh, &last_row);
@@ -1254,15 +1276,12 @@ static void pane_status_display(void)
 	if (fname == NULL)
 		return;
 
-//	console_set_pos(con, 0, scr_rows - 1);
-//	console_set_style(con, STYLE_INVERTED);
-
 	/*
 	 * Make sure the status fits on the screen. This loop should
 	 * be executed at most twice.
 	 */
 	while (true) {
-		int rc = asprintf(&text, " %d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+		int rc = asprintf(&text, "%d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
 		    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
 		if (rc < 0) {
 			n = 0;
@@ -1283,8 +1302,10 @@ static void pane_status_display(void)
 		 * If reducing file name to two characters '..' won't help,
 		 * just give up and print a blank status.
 		 */
-		if (nextra > fnw - 2)
+		if (nextra > fnw - 2) {
+			text[0] = '\0';
 			goto finish;
+		}
 
 		/* Compute position where we overwrite with '..\0' */
 		if (fnw >= nextra + 2) {
@@ -1301,17 +1322,11 @@ static void pane_status_display(void)
 		free(text);
 	}
 
-	printf("%s", text);
+finish:
+	(void) ui_label_set_text(edit.status, text);
+	(void) ui_label_paint(edit.status);
 	free(text);
 	free(fname);
-finish:
-	/* Fill the rest of the line */
-	pos = scr_columns - 1 - n;
-	printf("%*s", pos, "");
-//	console_flush(con);
-//	console_set_style(con, STYLE_NORMAL);
-
-	pane.rflags |= REDRAW_CARET;
 }
 
 /** Set cursor to reflect position of the caret.
@@ -2040,15 +2055,8 @@ static int coord_cmp(coord_t const *a, coord_t const *b)
 /** Display text in the status line. */
 static void status_display(char const *str)
 {
-//	console_set_pos(con, 0, scr_rows - 1);
-//	console_set_style(con, STYLE_INVERTED);
-
-	int pos = -(scr_columns - 3);
-	printf(" %*s ", pos, str);
-//	console_flush(con);
-//	console_set_style(con, STYLE_NORMAL);
-
-	pane.rflags |= REDRAW_CARET;
+	(void) ui_label_set_text(edit.status, str);
+	(void) ui_label_paint(edit.status);
 }
 
 /** Window close request
