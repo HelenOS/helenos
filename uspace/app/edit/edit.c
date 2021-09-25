@@ -54,6 +54,7 @@
 #include <stdbool.h>
 #include <types/common.h>
 #include <ui/control.h>
+#include <ui/filedialog.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/menu.h>
@@ -254,6 +255,16 @@ ui_control_ops_t pane_ctl_ops = {
 	.destroy = pane_ctl_destroy,
 	.paint = pane_ctl_paint,
 	.pos_event = pane_ctl_pos_event
+};
+
+static void save_as_dialog_bok(ui_file_dialog_t *, void *, const char *);
+static void save_as_dialog_bcancel(ui_file_dialog_t *, void *);
+static void save_as_dialog_close(ui_file_dialog_t *, void *);
+
+static ui_file_dialog_cb_t save_as_dialog_cb = {
+	.bok = save_as_dialog_bok,
+	.bcancel = save_as_dialog_bcancel,
+	.close = save_as_dialog_close
 };
 
 
@@ -782,25 +793,25 @@ static errno_t file_save(char const *fname)
 	return rc;
 }
 
-/** Change document name and save. */
+/** Open Save As dialog. */
 static void file_save_as(void)
 {
-	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
-	char *fname;
+//	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	ui_file_dialog_params_t fdparams;
+	ui_file_dialog_t *dialog;
+	errno_t rc;
 
-	fname = prompt("Save As", old_fname);
-	if (fname == NULL) {
-		status_display("Save cancelled.");
+	ui_file_dialog_params_init(&fdparams);
+	fdparams.caption = "Save As";
+	// TODO: Set initial file name to old_fname
+
+	rc = ui_file_dialog_create(edit.ui, &fdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating message dialog.\n");
 		return;
 	}
 
-	errno_t rc = file_save(fname);
-	if (rc != EOK)
-		return;
-
-	if (doc.file_name != NULL)
-		free(doc.file_name);
-	doc.file_name = fname;
+	ui_file_dialog_set_cb(dialog, &save_as_dialog_cb, &edit);
 }
 
 /** Ask for a string. */
@@ -2108,6 +2119,62 @@ static void edit_edit_copy(ui_menu_entry_t *mentry, void *arg)
 static void edit_edit_paste(ui_menu_entry_t *mentry, void *arg)
 {
 	(void) arg;
+}
+
+/** Save As dialog OK button press.
+ *
+ * @param dialog Save As dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param fname File name
+ */
+static void save_as_dialog_bok(ui_file_dialog_t *dialog, void *arg,
+    const char *fname)
+{
+	char *cname;
+	errno_t rc;
+
+	ui_file_dialog_destroy(dialog);
+
+	cname = str_dup(fname);
+	if (cname == NULL) {
+		printf("Out of memory.\n");
+		return;
+	}
+
+	rc = file_save(fname);
+	if (rc != EOK)
+		return;
+
+	if (doc.file_name != NULL)
+		free(doc.file_name);
+	doc.file_name = cname;
+
+}
+
+/** Save As dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void save_as_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	ui_file_dialog_destroy(dialog);
+}
+
+/** Save As dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void save_as_dialog_close(ui_file_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	ui_file_dialog_destroy(dialog);
 }
 
 /** @}
