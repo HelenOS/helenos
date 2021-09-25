@@ -263,7 +263,6 @@ int main(int argc, char *argv[])
 	errno_t rc;
 
 	(void) pos_handle;
-	(void) pane_row_display;
 
 	pane.sh_row = 1;
 	pane.sh_column = 1;
@@ -1030,6 +1029,8 @@ static errno_t pane_update(pane_t *pane)
 	if (pane->rflags & REDRAW_CARET)
 		pane_caret_display(pane);
 
+	pane->rflags &= ~(REDRAW_TEXT | REDRAW_ROW | REDRAW_STATUS |
+	    REDRAW_CARET);
 	return EOK;
 }
 
