@@ -155,9 +155,6 @@ static doc_t doc;
 static bool done;
 static pane_t pane;
 
-static sysarg_t scr_rows;
-static sysarg_t scr_columns;
-
 #define ROW_BUF_SIZE 4096
 #define BUF_SIZE 64
 #define TAB_WIDTH 8
@@ -268,12 +265,6 @@ int main(int argc, char *argv[])
 	(void) pos_handle;
 	(void) pane_row_display;
 
-//	console_get_size(con, &scr_columns, &scr_rows);
-	scr_columns = 80;
-	scr_rows = 25;
-
-	pane.rows = scr_rows - 1;
-	pane.columns = scr_columns;
 	pane.sh_row = 1;
 	pane.sh_column = 1;
 
@@ -309,12 +300,13 @@ int main(int argc, char *argv[])
 
 	/* Move to beginning of file. */
 	pt_get_sof(&sof);
-	caret_move(sof, true, true);
 
 	/* Create UI */
 	rc = edit_ui_create(&edit);
 	if (rc != EOK)
 		return 1;
+
+	caret_move(sof, true, true);
 
 	/* Initial display */
 	rc = ui_window_paint(edit.window);
@@ -362,10 +354,8 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_wnd_params_init(&params);
 	params.caption = "Text Editor";
-	params.rect.p0.x = 0;
-	params.rect.p0.y = 0;
-	params.rect.p1.x = 80;
-	params.rect.p1.y = 25;
+	params.style &= ~ui_wds_decorated;
+	params.placement = ui_wnd_place_full_screen;
 
 	rc = ui_window_create(edit->ui, &params, &edit->window);
 	if (rc != EOK) {
@@ -1290,11 +1280,11 @@ static void pane_status_display(pane_t *pane)
 
 		/* If it already fits, we're done */
 		n = str_width(text);
-		if (n <= scr_columns - 2)
+		if ((int)n <= pane->columns - 2)
 			break;
 
 		/* Compute number of excess characters */
-		nextra = n - (scr_columns - 2);
+		nextra = n - (pane->columns - 2);
 		/** With of the file name part */
 		fnw = str_width(fname);
 

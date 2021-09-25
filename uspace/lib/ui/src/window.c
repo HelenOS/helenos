@@ -255,6 +255,13 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 			goto error;
 	} else if (ui->console != NULL) {
 		gc = console_gc_get_ctx(ui->cgc);
+
+		if (params->placement == ui_wnd_place_full_screen) {
+			/* Make window the size of the screen */
+			gfx_rect_dims(&ui->rect, &scr_dims);
+			gfx_coord2_add(&dparams.rect.p0, &scr_dims,
+			    &dparams.rect.p1);
+		}
 	} else {
 		/* Needed for unit tests */
 		rc = dummygc_create(&dgc);
@@ -274,7 +281,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 #endif
 
 	/* Move rectangle so that top-left corner is 0,0 */
-	gfx_rect_rtranslate(&params->rect.p0, &params->rect, &bparams.rect);
+	gfx_rect_rtranslate(&dparams.rect.p0, &dparams.rect, &bparams.rect);
 
 	rc = gfx_bitmap_create(gc, &bparams, NULL, &bmp);
 	if (rc != EOK)
