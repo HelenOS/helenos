@@ -60,6 +60,7 @@
 #include <ui/menu.h>
 #include <ui/menubar.h>
 #include <ui/menuentry.h>
+#include <ui/promptdialog.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
@@ -267,6 +268,15 @@ static ui_file_dialog_cb_t save_as_dialog_cb = {
 	.close = save_as_dialog_close
 };
 
+static void go_to_line_dialog_bok(ui_prompt_dialog_t *, void *, const char *);
+static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *, void *);
+static void go_to_line_dialog_close(ui_prompt_dialog_t *, void *);
+
+static ui_prompt_dialog_cb_t go_to_line_dialog_cb = {
+	.bok = go_to_line_dialog_bok,
+	.bcancel = go_to_line_dialog_bcancel,
+	.close =  go_to_line_dialog_close
+};
 
 int main(int argc, char *argv[])
 {
@@ -1045,7 +1055,6 @@ static errno_t pane_update(pane_t *pane)
 	return EOK;
 }
 
-
 /** Display pane text.
  *
  * @param pane Pane
@@ -1608,24 +1617,21 @@ static void caret_move_word_right(bool select)
 /** Ask for line and go to it. */
 static void caret_go_to_line_ask(void)
 {
-	char *sline;
+	ui_prompt_dialog_params_t pdparams;
+	ui_prompt_dialog_t *dialog;
+	errno_t rc;
 
-	sline = prompt("Go to line", "");
-	if (sline == NULL) {
-		status_display("Go to line cancelled.");
+	ui_prompt_dialog_params_init(&pdparams);
+	pdparams.caption = "Go To Line";
+	pdparams.prompt = "Line Number";
+
+	rc = ui_prompt_dialog_create(edit.ui, &pdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating prompt dialog.\n");
 		return;
 	}
 
-	char *endptr;
-	int line = strtol(sline, &endptr, 10);
-	if (*endptr != '\0') {
-		free(sline);
-		status_display("Invalid number entered.");
-		return;
-	}
-	free(sline);
-
-	caret_move_absolute(line, pane.ideal_column, dir_before, false);
+	ui_prompt_dialog_set_cb(dialog, &go_to_line_dialog_cb, &edit);
 }
 
 /* Search operations */
@@ -2130,10 +2136,16 @@ static void edit_edit_paste(ui_menu_entry_t *mentry, void *arg)
 static void save_as_dialog_bok(ui_file_dialog_t *dialog, void *arg,
     const char *fname)
 {
+	edit_t *edit = (edit_t *)arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
 	char *cname;
 	errno_t rc;
 
 	ui_file_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
 
 	cname = str_dup(fname);
 	if (cname == NULL) {
@@ -2159,9 +2171,13 @@ static void save_as_dialog_bok(ui_file_dialog_t *dialog, void *arg,
 static void save_as_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *)arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
-	(void)edit;
 	ui_file_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
 }
 
 /** Save As dialog close request.
@@ -2172,9 +2188,75 @@ static void save_as_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
 static void save_as_dialog_close(ui_file_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *)arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
-	(void)edit;
 	ui_file_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Go To Line dialog OK button press.
+ *
+ * @param dialog Go To Line dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param text Submitted text
+ */
+static void go_to_line_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
+    const char *text)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+	char *endptr;
+	int line;
+
+	ui_prompt_dialog_destroy(dialog);
+	line = strtol(text, &endptr, 10);
+	if (*endptr != '\0') {
+		status_display("Invalid number entered.");
+		return;
+	}
+
+	caret_move_absolute(line, pane.ideal_column, dir_before, false);
+	// TODO Smarter cursor management
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+	(void) gfx_update(gc);
+}
+
+/** Go To Line dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_prompt_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Go To Line dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void go_to_line_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_prompt_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
 }
 
 /** @}
