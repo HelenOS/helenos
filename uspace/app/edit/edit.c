@@ -302,8 +302,6 @@ int main(int argc, char *argv[])
 	bool new_file;
 	errno_t rc;
 
-	(void) pos_handle;
-
 	pane.sh_row = 1;
 	pane.sh_column = 1;
 
@@ -809,13 +807,14 @@ static void pos_handle(pos_event_t *ev)
 	bool select;
 
 	if (ev->type == POS_PRESS && ev->vpos < (unsigned)pane.rows) {
-		bc.row = pane.sh_row + ev->vpos;
-		bc.column = pane.sh_column + ev->hpos;
+		bc.row = pane.sh_row + ev->vpos - pane.rect.p0.y;
+		bc.column = pane.sh_column + ev->hpos - pane.rect.p0.x;
 		sheet_get_cell_pt(doc.sh, &bc, dir_before, &pt);
 
 		select = (pane.keymod & KM_SHIFT) != 0;
 
 		caret_move(pt, select, true);
+		pane_update(&pane);
 	}
 }
 
@@ -1520,7 +1519,17 @@ error:
  */
 static ui_evclaim_t pane_ctl_pos_event(void *arg, pos_event_t *event)
 {
-	return ui_unclaimed;
+	gfx_coord2_t pos;
+
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+
+	if (!gfx_pix_inside_rect(&pos, &pane.rect))
+		return ui_unclaimed;
+
+	pos_handle(event);
+	(void) gfx_update(ui_window_get_gc(edit.window));
+	return ui_claimed;
 }
 
 /** Insert a character at caret position. */
@@ -2218,6 +2227,8 @@ static void edit_wnd_close(ui_window_t *window, void *arg)
 static void edit_wnd_kbd_event(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
+	pane.keymod = event->mods;
+
 	if (event->type == KEY_PRESS) {
 		key_handle_press(event);
 		(void) pane_update(&pane);
