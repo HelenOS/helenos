@@ -179,6 +179,8 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
+	ui_entry_activate(entry);
+
 	dialog->ename = entry;
 	entry = NULL;
 
