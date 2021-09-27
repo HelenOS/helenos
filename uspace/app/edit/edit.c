@@ -125,6 +125,7 @@ typedef struct {
 	 */
 	int ideal_column;
 
+	bool search_reverse;
 	char *previous_search;
 	bool previous_search_reverse;
 } pane_t;
@@ -181,8 +182,6 @@ static errno_t file_insert(char *fname);
 static errno_t file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
 static char *range_get_str(spt_t const *spos, spt_t const *epos);
-
-static char *prompt(char const *prompt, char const *init_value);
 
 static errno_t pane_init(ui_window_t *, pane_t *);
 static void pane_fini(pane_t *);
@@ -276,6 +275,16 @@ static ui_prompt_dialog_cb_t go_to_line_dialog_cb = {
 	.bok = go_to_line_dialog_bok,
 	.bcancel = go_to_line_dialog_bcancel,
 	.close =  go_to_line_dialog_close
+};
+
+static void search_dialog_bok(ui_prompt_dialog_t *, void *, const char *);
+static void search_dialog_bcancel(ui_prompt_dialog_t *, void *);
+static void search_dialog_close(ui_prompt_dialog_t *, void *);
+
+static ui_prompt_dialog_cb_t search_dialog_cb = {
+	.bok = search_dialog_bok,
+	.bcancel = search_dialog_bcancel,
+	.close =  search_dialog_close
 };
 
 int main(int argc, char *argv[])
@@ -822,12 +831,6 @@ static void file_save_as(void)
 	}
 
 	ui_file_dialog_set_cb(dialog, &save_as_dialog_cb, &edit);
-}
-
-/** Ask for a string. */
-static char *prompt(char const *prompt, char const *init_value)
-{
-	return str_dup("42");
 }
 
 /** Insert file at caret position.
@@ -1688,28 +1691,26 @@ static search_ops_t search_spt_reverse_ops = {
 /** Ask for line and go to it. */
 static void search_prompt(bool reverse)
 {
-	char *pattern;
+	ui_prompt_dialog_params_t pdparams;
+	ui_prompt_dialog_t *dialog;
+	errno_t rc;
 
-	const char *prompt_text = "Find next";
-	if (reverse)
-		prompt_text = "Find previous";
+	ui_prompt_dialog_params_init(&pdparams);
+	pdparams.caption = reverse ? "Reverse Search" : "Search";
+	pdparams.prompt = "Search text";
 
-	const char *default_value = "";
-	if (pane.previous_search)
-		default_value = pane.previous_search;
+//	const char *default_value = "";
+//	if (pane.previous_search)
+//		default_value = pane.previous_search;
 
-	pattern = prompt(prompt_text, default_value);
-	if (pattern == NULL) {
-		status_display("Search cancelled.");
+	rc = ui_prompt_dialog_create(edit.ui, &pdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating prompt dialog.\n");
 		return;
 	}
 
-	if (pane.previous_search)
-		free(pane.previous_search);
-	pane.previous_search = pattern;
-	pane.previous_search_reverse = reverse;
-
-	search(pattern, reverse);
+	ui_prompt_dialog_set_cb(dialog, &search_dialog_cb, &edit);
+	pane.search_reverse = reverse;
 }
 
 static void search_repeat(void)
@@ -2248,6 +2249,76 @@ static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
  * @param arg Argument (ui_demo_t *)
  */
 static void go_to_line_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_prompt_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Search dialog OK button press.
+ *
+ * @param dialog Search dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param text Submitted text
+ */
+static void search_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
+    const char *text)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+	char *pattern;
+	bool reverse;
+
+	ui_prompt_dialog_destroy(dialog);
+
+	/* Abort if search phrase is empty */
+	if (text[0] == '\0')
+		return;
+
+	pattern = str_dup(text);
+	reverse = pane.search_reverse;
+
+	if (pane.previous_search)
+		free(pane.previous_search);
+	pane.previous_search = pattern;
+	pane.previous_search_reverse = reverse;
+
+	search(pattern, reverse);
+
+	// TODO Smarter cursor management
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+	(void) gfx_update(gc);
+}
+
+/** Search dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void search_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_prompt_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Search dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void search_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
 	gfx_context_t *gc = ui_window_get_gc(edit->window);
