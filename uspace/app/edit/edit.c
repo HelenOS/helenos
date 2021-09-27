@@ -155,7 +155,6 @@ typedef struct {
 
 static edit_t edit;
 static doc_t doc;
-static bool done;
 static pane_t pane;
 
 #define ROW_BUF_SIZE 4096
@@ -606,7 +605,7 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 	spt_t pt;
 	switch (ev->key) {
 	case KC_Q:
-		done = true;
+		ui_quit(edit.ui);
 		break;
 	case KC_S:
 		if (doc.file_name != NULL)
