@@ -209,6 +209,8 @@ static void selection_sel_range(spt_t pa, spt_t pb);
 static void selection_get_points(spt_t *pa, spt_t *pb);
 static void selection_delete(void);
 static void selection_copy(void);
+static void edit_cut(void);
+static void edit_paste(void);
 static void insert_clipboard_data(void);
 
 static void search(char *pattern, bool reverse);
@@ -241,9 +243,18 @@ static ui_window_cb_t edit_window_cb = {
 	.kbd = edit_wnd_kbd_event
 };
 
+static void edit_file_save(ui_menu_entry_t *, void *);
+static void edit_file_save_as(ui_menu_entry_t *, void *);
 static void edit_file_exit(ui_menu_entry_t *, void *);
+static void edit_edit_cut(ui_menu_entry_t *, void *);
 static void edit_edit_copy(ui_menu_entry_t *, void *);
 static void edit_edit_paste(ui_menu_entry_t *, void *);
+static void edit_edit_delete(ui_menu_entry_t *, void *);
+static void edit_edit_select_all(ui_menu_entry_t *, void *);
+static void edit_search_find(ui_menu_entry_t *, void *);
+static void edit_search_reverse_find(ui_menu_entry_t *, void *);
+static void edit_search_find_next(ui_menu_entry_t *, void *);
+static void edit_search_go_to_line(ui_menu_entry_t *, void *);
 
 static void pane_ctl_destroy(void *);
 static errno_t pane_ctl_paint(void *);
@@ -367,9 +378,22 @@ static errno_t edit_ui_create(edit_t *edit)
 	ui_fixed_t *fixed = NULL;
 	ui_menu_t *mfile = NULL;
 	ui_menu_t *medit = NULL;
+	ui_menu_entry_t *msave = NULL;
+	ui_menu_entry_t *msaveas = NULL;
+	ui_menu_entry_t *mfsep = NULL;
 	ui_menu_entry_t *mexit = NULL;
+	ui_menu_entry_t *mcut = NULL;
 	ui_menu_entry_t *mcopy = NULL;
 	ui_menu_entry_t *mpaste = NULL;
+	ui_menu_entry_t *mdelete = NULL;
+	ui_menu_entry_t *mesep = NULL;
+	ui_menu_entry_t *mselall = NULL;
+	ui_menu_t *msearch = NULL;
+	ui_menu_entry_t *mfind = NULL;
+	ui_menu_entry_t *mfindr = NULL;
+	ui_menu_entry_t *mfindn = NULL;
+	ui_menu_entry_t *mssep = NULL;
+	ui_menu_entry_t *mgoto = NULL;
 	gfx_rect_t arect;
 	gfx_rect_t rect;
 
@@ -413,7 +437,29 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(mfile, "Exit", "Alt-F4", &mexit);
+	rc = ui_menu_entry_create(mfile, "Save", "Ctrl-S", &msave);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(msave, edit_file_save, (void *) edit);
+
+	rc = ui_menu_entry_create(mfile, "Save As", "Ctrl-E", &msaveas);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(msaveas, edit_file_save_as, (void *) edit);
+
+	rc = ui_menu_entry_sep_create(mfile, &mfsep);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(mfile, "Exit", "Ctrl-Q", &mexit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -426,6 +472,14 @@ static errno_t edit_ui_create(edit_t *edit)
 		printf("Error creating menu.\n");
 		return rc;
 	}
+
+	rc = ui_menu_entry_create(medit, "Cut", "Ctrl-X", &mcut);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mcut, edit_edit_cut, (void *) edit);
 
 	rc = ui_menu_entry_create(medit, "Copy", "Ctrl-C", &mcopy);
 	if (rc != EOK) {
@@ -442,6 +496,72 @@ static errno_t edit_ui_create(edit_t *edit)
 	}
 
 	ui_menu_entry_set_cb(mpaste, edit_edit_paste, (void *) edit);
+
+	rc = ui_menu_entry_create(medit, "Delete", "Del", &mdelete);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mdelete, edit_edit_delete, (void *) edit);
+
+	rc = ui_menu_entry_sep_create(medit, &mesep);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(medit, "Select All", "Ctrl-A", &mselall);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mselall, edit_edit_select_all, (void *) edit);
+
+	rc = ui_menu_create(edit->menubar, "Search", &msearch);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(msearch, "Find", "Ctrl-F", &mfind);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mfind, edit_search_find, (void *) edit);
+
+	rc = ui_menu_entry_create(msearch, "Reverse Find", "Ctrl-Shift-F", &mfindr);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mfindr, edit_search_reverse_find, (void *) edit);
+
+	rc = ui_menu_entry_create(msearch, "Find Next", "Ctrl-N", &mfindn);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mfindn, edit_search_find_next, (void *) edit);
+
+	rc = ui_menu_entry_sep_create(msearch, &mssep);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(msearch, "Go To Line", "Ctrl-L", &mgoto);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mgoto, edit_search_go_to_line, (void *) edit);
 
 	ui_window_get_app_rect(edit->window, &arect);
 
@@ -620,16 +740,10 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 		selection_copy();
 		break;
 	case KC_V:
-		selection_delete();
-		insert_clipboard_data();
-		pane.rflags |= REDRAW_TEXT;
-		caret_update();
+		edit_paste();
 		break;
 	case KC_X:
-		selection_copy();
-		selection_delete();
-		pane.rflags |= REDRAW_TEXT;
-		caret_update();
+		edit_cut();
 		break;
 	case KC_A:
 		selection_sel_all();
@@ -1859,6 +1973,22 @@ static void selection_copy(void)
 	free(str);
 }
 
+static void edit_paste(void)
+{
+	selection_delete();
+	insert_clipboard_data();
+	pane.rflags |= (REDRAW_TEXT | REDRAW_CARET);
+	pane_update(&pane);
+}
+
+static void edit_cut(void)
+{
+	selection_copy();
+	selection_delete();
+	pane.rflags |= (REDRAW_TEXT | REDRAW_CARET);
+	pane_update(&pane);
+}
+
 static void insert_clipboard_data(void)
 {
 	char *str;
@@ -2095,6 +2225,36 @@ static void edit_wnd_kbd_event(ui_window_t *window, void *arg,
 	}
 }
 
+/** File / Save menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_file_save(ui_menu_entry_t *mentry, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	(void)edit;
+
+	if (doc.file_name != NULL)
+		file_save(doc.file_name);
+	else
+		file_save_as();
+}
+
+/** File / Save As menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_file_save_as(ui_menu_entry_t *mentry, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	(void)edit;
+	file_save_as();
+}
+
 /** File / Exit menu entry selected.
  *
  * @param mentry Menu entry
@@ -2107,6 +2267,18 @@ static void edit_file_exit(ui_menu_entry_t *mentry, void *arg)
 	ui_quit(edit->ui);
 }
 
+/** Edit / Cut menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_cut(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	edit_cut();
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
 /** Edit / Copy menu entry selected.
  *
  * @param mentry Menu entry
@@ -2115,6 +2287,7 @@ static void edit_file_exit(ui_menu_entry_t *mentry, void *arg)
 static void edit_edit_copy(ui_menu_entry_t *mentry, void *arg)
 {
 	(void) arg;
+	selection_copy();
 }
 
 /** Edit / Paste menu entry selected.
@@ -2125,6 +2298,86 @@ static void edit_edit_copy(ui_menu_entry_t *mentry, void *arg)
 static void edit_edit_paste(ui_menu_entry_t *mentry, void *arg)
 {
 	(void) arg;
+	edit_paste();
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Edit / Delete menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_delete(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+
+	if (selection_active())
+		selection_delete();
+
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Edit / Select All menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_select_all(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+
+	selection_sel_all();
+	pane.rflags |= (REDRAW_CARET | REDRAW_TEXT | REDRAW_STATUS);
+	pane_update(&pane);
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Search / Find menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_search_find(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	search_prompt(false);
+}
+
+/** Search / Reverse Find menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_search_reverse_find(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	search_prompt(true);
+}
+
+/** Search / Find Next menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_search_find_next(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	search_repeat();
+	(void) pane_update(&pane);
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Search / Go To Line menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_search_go_to_line(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	caret_go_to_line_ask();
 }
 
 /** Save As dialog OK button press.
