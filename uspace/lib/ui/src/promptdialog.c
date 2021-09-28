@@ -75,6 +75,7 @@ ui_pbutton_cb_t ui_prompt_dialog_bcancel_cb = {
 void ui_prompt_dialog_params_init(ui_prompt_dialog_params_t *params)
 {
 	memset(params, 0, sizeof(ui_prompt_dialog_params_t));
+	params->itext = "";
 }
 
 /** Create new prompt dialog.
@@ -158,7 +159,7 @@ errno_t ui_prompt_dialog_create(ui_t *ui, ui_prompt_dialog_params_t *params,
 
 	label = NULL;
 
-	rc = ui_entry_create(window, "", &entry);
+	rc = ui_entry_create(window, params->itext, &entry);
 	if (rc != EOK)
 		goto error;
 
@@ -182,6 +183,10 @@ errno_t ui_prompt_dialog_create(ui_t *ui, ui_prompt_dialog_params_t *params,
 		goto error;
 
 	ui_entry_activate(entry);
+
+	/* Select all */
+	ui_entry_seek_start(entry, false);
+	ui_entry_seek_end(entry, true);
 
 	dialog->ename = entry;
 	entry = NULL;

@@ -50,6 +50,8 @@ typedef struct {
 	const char *caption;
 	/** Prompt text */
 	const char *prompt;
+	/** Initial entry text */
+	const char *itext;
 } ui_prompt_dialog_params_t;
 
 /** Prompt dialog callback */

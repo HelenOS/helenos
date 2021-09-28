@@ -927,14 +927,14 @@ static errno_t file_save(char const *fname)
 /** Open Save As dialog. */
 static void file_save_as(void)
 {
-//	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
 	ui_file_dialog_params_t fdparams;
 	ui_file_dialog_t *dialog;
 	errno_t rc;
 
 	ui_file_dialog_params_init(&fdparams);
 	fdparams.caption = "Save As";
-	// TODO: Set initial file name to old_fname
+	fdparams.ifname = old_fname;
 
 	rc = ui_file_dialog_create(edit.ui, &fdparams, &dialog);
 	if (rc != EOK) {
@@ -1820,10 +1820,10 @@ static void search_prompt(bool reverse)
 	ui_prompt_dialog_params_init(&pdparams);
 	pdparams.caption = reverse ? "Reverse Search" : "Search";
 	pdparams.prompt = "Search text";
+	pdparams.itext = "";
 
-//	const char *default_value = "";
-//	if (pane.previous_search)
-//		default_value = pane.previous_search;
+	if (pane.previous_search)
+		pdparams.itext = pane.previous_search;
 
 	rc = ui_prompt_dialog_create(edit.ui, &pdparams, &dialog);
 	if (rc != EOK) {

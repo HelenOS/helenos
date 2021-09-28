@@ -48,6 +48,8 @@ typedef struct ui_file_dialog ui_file_dialog_t;
 typedef struct {
 	/** Window caption */
 	const char *caption;
+	/** Initial file name */
+	const char *ifname;
 } ui_file_dialog_params_t;
 
 /** File dialog callback */
