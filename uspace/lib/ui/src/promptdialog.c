@@ -47,9 +47,11 @@
 #include "../private/promptdialog.h"
 
 static void ui_prompt_dialog_wnd_close(ui_window_t *, void *);
+static void ui_prompt_dialog_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
 ui_window_cb_t ui_prompt_dialog_wnd_cb = {
-	.close = ui_prompt_dialog_wnd_close
+	.close = ui_prompt_dialog_wnd_close,
+	.kbd = ui_prompt_dialog_wnd_kbd
 };
 
 static void ui_prompt_dialog_bok_clicked(ui_pbutton_t *, void *);
@@ -307,6 +309,39 @@ static void ui_prompt_dialog_wnd_close(ui_window_t *window, void *arg)
 
 	if (dialog->cb != NULL && dialog->cb->close != NULL)
 		dialog->cb->close(dialog, dialog->arg);
+}
+
+/** Prompt dialog window keyboard event handler.
+ *
+ * @param window Window
+ * @param arg Argument (ui_prompt_dialog_t *)
+ * @param event Keyboard event
+ */
+static void ui_prompt_dialog_wnd_kbd(ui_window_t *window, void *arg,
+    kbd_event_t *event)
+{
+	ui_prompt_dialog_t *dialog = (ui_prompt_dialog_t *) arg;
+	const char *fname;
+
+	if (event->type == KEY_PRESS &&
+	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
+		if (event->key == KC_ENTER) {
+			/* Confirm */
+			if (dialog->cb != NULL && dialog->cb->bok != NULL) {
+				fname = ui_entry_get_text(dialog->ename);
+				dialog->cb->bok(dialog, dialog->arg, fname);
+				return;
+			}
+		} else if (event->key == KC_ESCAPE) {
+			/* Cancel */
+			if (dialog->cb != NULL && dialog->cb->bcancel != NULL) {
+				dialog->cb->bcancel(dialog, dialog->arg);
+				return;
+			}
+		}
+	}
+
+	ui_window_def_kbd(window, event);
 }
 
 /** Prompt dialog OK button click handler.
