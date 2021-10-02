@@ -331,10 +331,6 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 #endif
 	if (ui->display == NULL) {
 		ui_window_place(window, &ui->rect, params, &window->dpos);
-		FILE *f = fopen("/tmp/x", "at");
-		fprintf(f, "xlate_gc_set_off: %d,%d\n",
-		    window->dpos.x, window->dpos.y);
-		fclose(f);
 
 		if (window->xgc != NULL)
 			xlate_gc_set_off(window->xgc, &window->dpos);
