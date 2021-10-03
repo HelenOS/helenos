@@ -54,8 +54,8 @@
 /** Parse output specification.
  *
  * Output specification has the form <proto>@<service> where proto is
- * eiher 'disp' for display service or 'cons' for console. Service
- * is a location ID service name (e.g. hid/display).
+ * eiher 'disp' for display service, 'cons' for console, 'null'
+ * for dummy output. Service is a location ID service name (e.g. hid/display).
  *
  * @param ospec Output specification
  * @param ws Place to store window system type (protocol)
@@ -81,6 +81,8 @@ static void ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
 			*ws = ui_ws_display;
 		} else if (str_lcmp(ospec, "cons@", str_length("cons@")) == 0) {
 			*ws = ui_ws_console;
+		} else if (str_lcmp(ospec, "null@", str_length("null@")) == 0) {
+			*ws = ui_ws_null;
 		} else {
 			*ws = ui_ws_unknown;
 		}
@@ -98,7 +100,9 @@ static void ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
 /** Create new user interface.
  *
  * @param ospec Output specification or @c UI_DISPLAY_DEFAULT to use
- *              the default output
+ *              the default display service, UI_CONSOLE_DEFAULT to use
+ *		the default console service, UI_DISPLAY_NULL to use
+ *		dummy output.
  * @param rui Place to store pointer to new UI
  * @return EOK on success or an error code
  */
@@ -160,6 +164,10 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 		ui->rect.p1.y = rows;
 
 		(void) ui_paint(ui);
+	} else if (ws == ui_ws_null) {
+		rc = ui_create_disp(NULL, &ui);
+		if (rc != EOK)
+			return rc;
 	} else {
 		return EINVAL;
 	}

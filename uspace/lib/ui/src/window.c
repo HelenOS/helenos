@@ -600,6 +600,16 @@ void ui_window_set_cb(ui_window_t *window, ui_window_cb_t *cb, void *arg)
 	window->arg = arg;
 }
 
+/** Get window's containing UI.
+ *
+ * @param window Window
+ * @return Containing UI
+ */
+ui_t *ui_window_get_ui(ui_window_t *window)
+{
+	return window->ui;
+}
+
 /** Get UI resource from window.
  *
  * @param window Window

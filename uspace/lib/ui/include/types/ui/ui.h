@@ -45,6 +45,8 @@ typedef struct ui ui_t;
 #define UI_DISPLAY_DEFAULT NULL
 /** Use the default console service (argument to ui_create()) */
 #define UI_CONSOLE_DEFAULT "cons@"
+/** Use dummy output (argument to ui_create()) */
+#define UI_DISPLAY_NULL "null@"
 
 /** Window system */
 typedef enum {
@@ -53,7 +55,9 @@ typedef enum {
 	/** Display service */
 	ui_ws_display,
 	/** Console */
-	ui_ws_console
+	ui_ws_console,
+	/** Dummy output */
+	ui_ws_null
 } ui_winsys_t;
 
 #endif
