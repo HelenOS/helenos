@@ -28,5 +28,6 @@
 
 deps = [ 'ui' ]
 src = files(
+	'menu.c',
 	'nav.c',
 )
