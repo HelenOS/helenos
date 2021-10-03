@@ -36,6 +36,7 @@
 #ifndef NAV_H
 #define NAV_H
 
+#include <errno.h>
 #include <display.h>
 #include <ui/fixed.h>
 #include <ui/ui.h>
@@ -52,6 +53,11 @@ typedef struct navigator {
 	/** Menu */
 	struct nav_menu *menu;
 } navigator_t;
+
+extern errno_t navigator_create(const char *, navigator_t **);
+extern void navigator_destroy(navigator_t *);
+extern errno_t navigator_run(const char *);
+
 
 #endif
 

@@ -29,34 +29,41 @@
 /** @addtogroup nav
  * @{
  */
-/**
- * @file Navigator menu
+/** @file Navigator panel.
+ *
+ * Displays a file listing.
  */
 
-#ifndef MENU_H
-#define MENU_H
-
 #include <errno.h>
-#include <ui/control.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/menuentry.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <stdlib.h>
+#include "panel.h"
 #include "nav.h"
 
-/** Navigator menu */
-typedef struct nav_menu {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_menu_bar_t *menubar;
-} nav_menu_t;
+/** Create panel.
+ *
+ * @param rpanel Place to store pointer to new panel
+ * @return EOK on success or an error code
+ */
+errno_t panel_create(panel_t **rpanel)
+{
+	panel_t *panel;
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
+	panel = calloc(1, sizeof(panel_t));
+	if (panel == NULL)
+		return ENOMEM;
 
-#endif
+	*rpanel = panel;
+	return EOK;
+}
+
+/** Destroy panel.
+ *
+ * @param panel Panel
+ */
+void panel_destroy(panel_t *panel)
+{
+	free(panel);
+}
 
 /** @}
  */

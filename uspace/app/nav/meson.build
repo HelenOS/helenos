@@ -28,6 +28,18 @@
 
 deps = [ 'ui' ]
 src = files(
+	'main.c',
 	'menu.c',
 	'nav.c',
+	'panel.c',
+)
+
+test_src = files(
+	'menu.c',
+	'nav.c',
+	'panel.c',
+	'test/main.c',
+	'test/menu.c',
+	'test/nav.c',
+	'test/panel.c',
 )

@@ -26,37 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nav
- * @{
- */
-/**
- * @file Navigator menu
- */
+#include <pcut/pcut.h>
 
-#ifndef MENU_H
-#define MENU_H
+PCUT_INIT;
 
-#include <errno.h>
-#include <ui/control.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/menuentry.h>
-#include <ui/ui.h>
-#include <ui/window.h>
-#include "nav.h"
+PCUT_IMPORT(menu);
+PCUT_IMPORT(nav);
+PCUT_IMPORT(panel);
 
-/** Navigator menu */
-typedef struct nav_menu {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_menu_bar_t *menubar;
-} nav_menu_t;
-
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
-
-#endif
-
-/** @}
- */
+PCUT_MAIN();
