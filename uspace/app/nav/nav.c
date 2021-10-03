@@ -36,13 +36,17 @@
 
 #include <gfx/coord.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <str.h>
 #include <ui/fixed.h>
-#include <ui/label.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
+#include "menu.h"
 #include "nav.h"
+
+static errno_t navigator_create(const char *, navigator_t **);
+static void navigator_destroy(navigator_t *);
 
 static void wnd_close(ui_window_t *, void *);
 
@@ -62,93 +66,97 @@ static void wnd_close(ui_window_t *window, void *arg)
 	ui_quit(navigator->ui);
 }
 
-/** Run navigator on the specified display. */
-static errno_t navigator_run(const char *display_spec)
+/** Create navigator.
+ *
+ * @param display_spec Display specification
+ * @param rnavigator Place to store pointer to new navigator
+ * @return EOK on success or ane error code
+ */
+static errno_t navigator_create(const char *display_spec,
+    navigator_t **rnavigator)
 {
-	ui_t *ui = NULL;
+	navigator_t *navigator;
 	ui_wnd_params_t params;
-	ui_window_t *window = NULL;
-	navigator_t navigator;
-	gfx_rect_t rect;
-	ui_resource_t *ui_res;
 	errno_t rc;
 
-	rc = ui_create(display_spec, &ui);
+	navigator = calloc(1, sizeof(navigator_t));
+	if (navigator == NULL)
+		return ENOMEM;
+
+	rc = ui_create(display_spec, &navigator->ui);
 	if (rc != EOK) {
 		printf("Error creating UI on display %s.\n", display_spec);
-		return rc;
+		goto error;
 	}
 
 	ui_wnd_params_init(&params);
 	params.caption = "Navigator";
-	if (ui_is_textmode(ui)) {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 24;
-		params.rect.p1.y = 5;
-	} else {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 200;
-		params.rect.p1.y = 60;
-	}
+	params.style &= ~ui_wds_decorated;
+	params.placement = ui_wnd_place_full_screen;
 
-	memset((void *) &navigator, 0, sizeof(navigator));
-	navigator.ui = ui;
-
-	rc = ui_window_create(ui, &params, &window);
+	rc = ui_window_create(navigator->ui, &params, &navigator->window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
-		return rc;
+		goto error;
 	}
 
-	ui_window_set_cb(window, &window_cb, (void *) &navigator);
-	navigator.window = window;
+	ui_window_set_cb(navigator->window, &window_cb, (void *) navigator);
 
-	ui_res = ui_window_get_res(window);
-
-	rc = ui_fixed_create(&navigator.fixed);
+	rc = ui_fixed_create(&navigator->fixed);
 	if (rc != EOK) {
 		printf("Error creating fixed layout.\n");
-		return rc;
+		goto error;
 	}
 
-	rc = ui_label_create(ui_res, "Hello!", &navigator.label);
-	if (rc != EOK) {
-		printf("Error creating label.\n");
-		return rc;
-	}
+	ui_window_add(navigator->window, ui_fixed_ctl(navigator->fixed));
 
-	ui_window_get_app_rect(window, &rect);
-	ui_label_set_rect(navigator.label, &rect);
-	ui_label_set_halign(navigator.label, gfx_halign_center);
-	ui_label_set_valign(navigator.label, gfx_valign_center);
+	rc = nav_menu_create(navigator, &navigator->menu);
+	if (rc != EOK)
+		goto error;
 
-	rc = ui_fixed_add(navigator.fixed, ui_label_ctl(navigator.label));
-	if (rc != EOK) {
-		printf("Error adding control to layout.\n");
-		return rc;
-	}
-
-	ui_window_add(window, ui_fixed_ctl(navigator.fixed));
-
-	rc = ui_window_paint(window);
+	rc = ui_window_paint(navigator->window);
 	if (rc != EOK) {
 		printf("Error painting window.\n");
-		return rc;
+		goto error;
 	}
 
-	ui_run(ui);
+	*rnavigator = navigator;
+	return EOK;
+error:
+	navigator_destroy(navigator);
+	return rc;
+}
 
-	ui_window_destroy(window);
-	ui_destroy(ui);
+static void navigator_destroy(navigator_t *navigator)
+{
+	if (navigator->menu != NULL)
+		nav_menu_destroy(navigator->menu);
+	if (navigator->window != NULL)
+		ui_window_destroy(navigator->window);
+	if (navigator->ui != NULL)
+		ui_destroy(navigator->ui);
+	free(navigator);
+}
 
+/** Run navigator on the specified display. */
+static errno_t navigator_run(const char *display_spec)
+{
+	navigator_t *navigator;
+	errno_t rc;
+
+	rc = navigator_create(display_spec, &navigator);
+	if (rc != EOK)
+		return rc;
+
+	ui_run(navigator->ui);
+
+	navigator_destroy(navigator);
 	return EOK;
 }
 
 static void print_syntax(void)
 {
-	printf("Syntax: navigator [-d <display-spec>]\n");
+	printf("Syntax: nav [-d <display-spec>]\n");
 }
 
 int main(int argc, char *argv[])
