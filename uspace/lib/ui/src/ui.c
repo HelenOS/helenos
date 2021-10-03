@@ -310,6 +310,10 @@ errno_t ui_paint(ui_t *ui)
 	ui_window_t *awnd;
 	gfx_color_t *color = NULL;
 
+	/* In case of null output */
+	if (ui->cgc == NULL)
+		return EOK;
+
 	gc = console_gc_get_ctx(ui->cgc);
 
 	rc = gfx_color_new_ega(0x11, &color);
