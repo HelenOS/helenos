@@ -46,11 +46,11 @@ static void nav_file_exit(ui_menu_entry_t *, void *);
 
 /** Create navigator menu.
  *
- * @param navigator Navigator
+ * @param window Navigator window
  * @param rmenu Place to store pointer to new menu
  * @return EOK on success or an error code
  */
-errno_t nav_menu_create(navigator_t *navigator, nav_menu_t **rmenu)
+errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 {
 	nav_menu_t *menu;
 	ui_menu_t *mfile;
@@ -63,7 +63,10 @@ errno_t nav_menu_create(navigator_t *navigator, nav_menu_t **rmenu)
 	if (menu == NULL)
 		return ENOMEM;
 
-	rc = ui_menu_bar_create(navigator->ui, navigator->window,
+	menu->window = window;
+	menu->ui = ui_window_get_ui(window);
+
+	rc = ui_menu_bar_create(menu->ui, menu->window,
 	    &menu->menubar);
 	if (rc != EOK)
 		goto error;
@@ -76,20 +79,15 @@ errno_t nav_menu_create(navigator_t *navigator, nav_menu_t **rmenu)
 	if (rc != EOK)
 		goto error;
 
-	ui_menu_entry_set_cb(mexit, nav_file_exit, (void *) navigator);
+	ui_menu_entry_set_cb(mexit, nav_file_exit, (void *) menu);
 
-	ui_window_get_app_rect(navigator->window, &arect);
+	ui_window_get_app_rect(menu->window, &arect);
 
 	rect.p0 = arect.p0;
 	rect.p1.x = arect.p1.x;
 	rect.p1.y = arect.p0.y + 1;
 	ui_menu_bar_set_rect(menu->menubar, &rect);
 
-	rc = ui_fixed_add(navigator->fixed, ui_menu_bar_ctl(menu->menubar));
-	if (rc != EOK)
-		goto error;
-
-	menu->navigator = navigator;
 	*rmenu = menu;
 	return EOK;
 error:
@@ -103,13 +101,20 @@ error:
  */
 void nav_menu_destroy(nav_menu_t *menu)
 {
-	if (menu->menubar != NULL) {
-		ui_fixed_remove(menu->navigator->fixed,
-		    ui_menu_bar_ctl(menu->menubar));
+	if (menu->menubar != NULL)
 		ui_menu_bar_destroy(menu->menubar);
-	}
 
 	free(menu);
+}
+
+/** Return base UI control for the menu bar.
+ *
+ * @param menu Navigator menu
+ * @return UI control
+ */
+ui_control_t *nav_menu_ctl(nav_menu_t *menu)
+{
+	return ui_menu_bar_ctl(menu->menubar);
 }
 
 /** File / Exit menu entry selected.

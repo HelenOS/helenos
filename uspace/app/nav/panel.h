@@ -30,31 +30,36 @@
  * @{
  */
 /**
- * @file Navigator menu
+ * @file Navigator panel
  */
 
-#ifndef MENU_H
-#define MENU_H
+#ifndef PANEL_H
+#define PANEL_H
 
 #include <errno.h>
+#include <gfx/color.h>
+#include <gfx/coord.h>
 #include <ui/control.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/menuentry.h>
-#include <ui/ui.h>
-#include <ui/window.h>
 #include "nav.h"
+#include "panel.h"
 
-/** Navigator menu */
-typedef struct nav_menu {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_menu_bar_t *menubar;
-} nav_menu_t;
+/** Navigator panel
+ *
+ * This is a custom UI control.
+ */
+typedef struct {
+	/** Base control object */
+	struct ui_control *control;
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
+	/** Panel rectangle */
+	gfx_rect_t rect;
+
+	/** Panel color */
+	gfx_color_t *color;
+} panel_t;
+
+extern errno_t panel_create(panel_t **);
+extern void panel_destroy(panel_t *);
 
 #endif
 

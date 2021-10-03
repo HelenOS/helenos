@@ -29,34 +29,56 @@
 /** @addtogroup nav
  * @{
  */
-/**
- * @file Navigator menu
+/** @file Navigator main.
+ *
+ * HelenOS file manager.
  */
 
-#ifndef MENU_H
-#define MENU_H
-
-#include <errno.h>
-#include <ui/control.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/menuentry.h>
+#include <stdio.h>
+#include <str.h>
 #include <ui/ui.h>
-#include <ui/window.h>
 #include "nav.h"
 
-/** Navigator menu */
-typedef struct nav_menu {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_menu_bar_t *menubar;
-} nav_menu_t;
+static void print_syntax(void)
+{
+	printf("Syntax: nav [-d <display-spec>]\n");
+}
 
-extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
-extern void nav_menu_destroy(nav_menu_t *);
-extern ui_control_t *nav_menu_ctl(nav_menu_t *);
+int main(int argc, char *argv[])
+{
+	const char *display_spec = UI_CONSOLE_DEFAULT;
+	errno_t rc;
+	int i;
 
-#endif
+	i = 1;
+	while (i < argc && argv[i][0] == '-') {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_spec = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
+	}
+
+	if (i < argc) {
+		print_syntax();
+		return 1;
+	}
+
+	rc = navigator_run(display_spec);
+	if (rc != EOK)
+		return 1;
+
+	return 0;
+}
 
 /** @}
  */

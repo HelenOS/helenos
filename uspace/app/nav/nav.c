@@ -45,9 +45,6 @@
 #include "menu.h"
 #include "nav.h"
 
-static errno_t navigator_create(const char *, navigator_t **);
-static void navigator_destroy(navigator_t *);
-
 static void wnd_close(ui_window_t *, void *);
 
 static ui_window_cb_t window_cb = {
@@ -72,7 +69,7 @@ static void wnd_close(ui_window_t *window, void *arg)
  * @param rnavigator Place to store pointer to new navigator
  * @return EOK on success or ane error code
  */
-static errno_t navigator_create(const char *display_spec,
+errno_t navigator_create(const char *display_spec,
     navigator_t **rnavigator)
 {
 	navigator_t *navigator;
@@ -110,9 +107,15 @@ static errno_t navigator_create(const char *display_spec,
 
 	ui_window_add(navigator->window, ui_fixed_ctl(navigator->fixed));
 
-	rc = nav_menu_create(navigator, &navigator->menu);
+	rc = nav_menu_create(navigator->window, &navigator->menu);
 	if (rc != EOK)
 		goto error;
+
+	rc = ui_fixed_add(navigator->fixed, nav_menu_ctl(navigator->menu));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
 
 	rc = ui_window_paint(navigator->window);
 	if (rc != EOK) {
@@ -127,8 +130,10 @@ error:
 	return rc;
 }
 
-static void navigator_destroy(navigator_t *navigator)
+void navigator_destroy(navigator_t *navigator)
 {
+	ui_fixed_remove(navigator->fixed, nav_menu_ctl(navigator->menu));
+
 	if (navigator->menu != NULL)
 		nav_menu_destroy(navigator->menu);
 	if (navigator->window != NULL)
@@ -139,7 +144,7 @@ static void navigator_destroy(navigator_t *navigator)
 }
 
 /** Run navigator on the specified display. */
-static errno_t navigator_run(const char *display_spec)
+errno_t navigator_run(const char *display_spec)
 {
 	navigator_t *navigator;
 	errno_t rc;
@@ -152,47 +157,6 @@ static errno_t navigator_run(const char *display_spec)
 
 	navigator_destroy(navigator);
 	return EOK;
-}
-
-static void print_syntax(void)
-{
-	printf("Syntax: nav [-d <display-spec>]\n");
-}
-
-int main(int argc, char *argv[])
-{
-	const char *display_spec = UI_CONSOLE_DEFAULT;
-	errno_t rc;
-	int i;
-
-	i = 1;
-	while (i < argc && argv[i][0] == '-') {
-		if (str_cmp(argv[i], "-d") == 0) {
-			++i;
-			if (i >= argc) {
-				printf("Argument missing.\n");
-				print_syntax();
-				return 1;
-			}
-
-			display_spec = argv[i++];
-		} else {
-			printf("Invalid option '%s'.\n", argv[i]);
-			print_syntax();
-			return 1;
-		}
-	}
-
-	if (i < argc) {
-		print_syntax();
-		return 1;
-	}
-
-	rc = navigator_run(display_spec);
-	if (rc != EOK)
-		return 1;
-
-	return 0;
 }
 
 /** @}
