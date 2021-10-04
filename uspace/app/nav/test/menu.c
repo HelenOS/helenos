@@ -56,6 +56,8 @@ PCUT_TEST(create_destroy)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	nav_menu_destroy(menu);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 PCUT_EXPORT(menu);

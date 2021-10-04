@@ -44,6 +44,7 @@
 #include <ui/window.h>
 #include "menu.h"
 #include "nav.h"
+#include "panel.h"
 
 static void wnd_close(ui_window_t *, void *);
 
@@ -74,6 +75,8 @@ errno_t navigator_create(const char *display_spec,
 {
 	navigator_t *navigator;
 	ui_wnd_params_t params;
+	gfx_rect_t rect;
+	unsigned i;
 	errno_t rc;
 
 	navigator = calloc(1, sizeof(navigator_t));
@@ -117,6 +120,25 @@ errno_t navigator_create(const char *display_spec,
 		return rc;
 	}
 
+	for (i = 0; i < 2; i++) {
+		rc = panel_create(navigator->window, &navigator->panel[i]);
+		if (rc != EOK)
+			goto error;
+
+		rect.p0.x = 40 * i;
+		rect.p0.y = 1;
+		rect.p1.x = 40 * (i + 1);
+		rect.p1.y = 24;
+		panel_set_rect(navigator->panel[i], &rect);
+
+		rc = ui_fixed_add(navigator->fixed,
+		    panel_ctl(navigator->panel[i]));
+		if (rc != EOK) {
+			printf("Error adding control to layout.\n");
+			return rc;
+		}
+	}
+
 	rc = ui_window_paint(navigator->window);
 	if (rc != EOK) {
 		printf("Error painting window.\n");
@@ -132,6 +154,14 @@ error:
 
 void navigator_destroy(navigator_t *navigator)
 {
+	unsigned i;
+
+	for (i = 0; i < 2; i++) {
+		ui_fixed_remove(navigator->fixed,
+		    panel_ctl(navigator->panel[i]));
+		panel_destroy(navigator->panel[i]);
+	}
+
 	ui_fixed_remove(navigator->fixed, nav_menu_ctl(navigator->menu));
 
 	if (navigator->menu != NULL)

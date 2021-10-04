@@ -52,12 +52,13 @@ typedef struct navigator {
 	ui_fixed_t *fixed;
 	/** Menu */
 	struct nav_menu *menu;
+	/** Panels */
+	struct panel *panel[2];
 } navigator_t;
 
 extern errno_t navigator_create(const char *, navigator_t **);
 extern void navigator_destroy(navigator_t *);
 extern errno_t navigator_run(const char *);
-
 
 #endif
 
