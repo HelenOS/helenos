@@ -35,25 +35,57 @@
  */
 
 #include <errno.h>
+#include <gfx/render.h>
 #include <stdlib.h>
+#include <ui/control.h>
+#include <ui/paint.h>
 #include "panel.h"
 #include "nav.h"
 
+static void panel_ctl_destroy(void *);
+static errno_t panel_ctl_paint(void *);
+static ui_evclaim_t panel_ctl_pos_event(void *, pos_event_t *);
+
+/** Panel control ops */
+ui_control_ops_t panel_ctl_ops = {
+	.destroy = panel_ctl_destroy,
+	.paint = panel_ctl_paint,
+	.pos_event = panel_ctl_pos_event
+};
+
 /** Create panel.
  *
+ * @param window Containing window
  * @param rpanel Place to store pointer to new panel
  * @return EOK on success or an error code
  */
-errno_t panel_create(panel_t **rpanel)
+errno_t panel_create(ui_window_t *window, panel_t **rpanel)
 {
 	panel_t *panel;
+	errno_t rc;
 
 	panel = calloc(1, sizeof(panel_t));
 	if (panel == NULL)
 		return ENOMEM;
 
+	rc = ui_control_new(&panel_ctl_ops, (void *)panel,
+	    &panel->control);
+	if (rc != EOK) {
+		free(panel);
+		return rc;
+	}
+
+	rc = gfx_color_new_ega(0x07, &panel->color);
+	if (rc != EOK)
+		goto error;
+
+	panel->window = window;
 	*rpanel = panel;
 	return EOK;
+error:
+	ui_control_delete(panel->control);
+	free(panel);
+	return rc;
 }
 
 /** Destroy panel.
@@ -62,8 +94,107 @@ errno_t panel_create(panel_t **rpanel)
  */
 void panel_destroy(panel_t *panel)
 {
+	ui_control_delete(panel->control);
 	free(panel);
 }
+
+/** Paint panel.
+ *
+ * @param panel Panel
+ */
+errno_t panel_paint(panel_t *panel)
+{
+	gfx_context_t *gc = ui_window_get_gc(panel->window);
+	ui_resource_t *res = ui_window_get_res(panel->window);
+	errno_t rc;
+
+	rc = gfx_set_color(gc, panel->color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_fill_rect(gc, &panel->rect);
+	if (rc != EOK)
+		return rc;
+
+	rc = ui_paint_text_box(res, &panel->rect, ui_box_single,
+	    panel->color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_update(gc);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Handle panel position event.
+ *
+ * @param panel Panel
+ * @param event Position event
+ * @return ui_claimed iff event was claimed
+ */
+ui_evclaim_t panel_pos_event(panel_t *panel, pos_event_t *event)
+{
+	return ui_unclaimed;
+}
+
+/** Get base control for panel.
+ *
+ * @param panel Panel
+ * @return Base UI control
+ */
+ui_control_t *panel_ctl(panel_t *panel)
+{
+	return panel->control;
+}
+
+/** Set panel rectangle.
+ *
+ * @param panel Panel
+ * @param rect Rectangle
+ */
+void panel_set_rect(panel_t *panel, gfx_rect_t *rect)
+{
+	panel->rect = *rect;
+}
+
+/** Destroy panel control.
+ *
+ * @param arg Argument (panel_t *)
+ */
+void panel_ctl_destroy(void *arg)
+{
+	panel_t *panel = (panel_t *) arg;
+
+	panel_destroy(panel);
+}
+
+/** Paint panel control.
+ *
+ * @param arg Argument (panel_t *)
+ * @return EOK on success or an error code
+ */
+errno_t panel_ctl_paint(void *arg)
+{
+	panel_t *panel = (panel_t *) arg;
+
+	return panel_paint(panel);
+}
+
+/** Handle panel control position event.
+ *
+ * @param arg Argument (panel_t *)
+ * @param pos_event Position event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t panel_ctl_pos_event(void *arg, pos_event_t *event)
+{
+	panel_t *panel = (panel_t *) arg;
+
+	return panel_pos_event(panel, event);
+}
+
 
 /** @}
  */

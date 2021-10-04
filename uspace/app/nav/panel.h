@@ -39,7 +39,9 @@
 #include <errno.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
+#include <io/pos_event.h>
 #include <ui/control.h>
+#include <ui/window.h>
 #include "nav.h"
 #include "panel.h"
 
@@ -47,9 +49,12 @@
  *
  * This is a custom UI control.
  */
-typedef struct {
+typedef struct panel {
 	/** Base control object */
 	struct ui_control *control;
+
+	/** Containing window */
+	ui_window_t *window;
 
 	/** Panel rectangle */
 	gfx_rect_t rect;
@@ -58,8 +63,12 @@ typedef struct {
 	gfx_color_t *color;
 } panel_t;
 
-extern errno_t panel_create(panel_t **);
+extern errno_t panel_create(ui_window_t *, panel_t **);
 extern void panel_destroy(panel_t *);
+extern errno_t panel_paint(panel_t *);
+extern ui_evclaim_t panel_pos_event(panel_t *, pos_event_t *);
+extern ui_control_t *panel_ctl(panel_t *);
+extern void panel_set_rect(panel_t *, gfx_rect_t *);
 
 #endif
 
