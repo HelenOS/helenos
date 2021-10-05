@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <gfx/render.h>
 #include <stdlib.h>
+#include <str.h>
 #include <ui/control.h>
 #include <ui/paint.h>
 #include "panel.h"
@@ -80,6 +81,7 @@ errno_t panel_create(ui_window_t *window, panel_t **rpanel)
 		goto error;
 
 	panel->window = window;
+	list_initialize(&panel->entries);
 	*rpanel = panel;
 	return EOK;
 error:
@@ -94,6 +96,14 @@ error:
  */
 void panel_destroy(panel_t *panel)
 {
+	panel_entry_t *entry;
+
+	entry = panel_first(panel);
+	while (entry != NULL) {
+		panel_entry_delete(entry);
+		entry = panel_first(panel);
+	}
+
 	ui_control_delete(panel->control);
 	free(panel);
 }
@@ -195,6 +205,76 @@ ui_evclaim_t panel_ctl_pos_event(void *arg, pos_event_t *event)
 	return panel_pos_event(panel, event);
 }
 
+/** Append new panel entry.
+ *
+ * @param panel Panel
+ * @param name File name
+ * @param size File size;
+ * @return EOK on success or an error code
+ */
+errno_t panel_entry_append(panel_t *panel, const char *name, uint64_t size)
+{
+	panel_entry_t *entry;
+
+	entry = calloc(1, sizeof(panel_entry_t));
+	if (entry == NULL)
+		return ENOMEM;
+
+	entry->panel = panel;
+	entry->name = str_dup(name);
+	if (entry->name == NULL) {
+		free(entry);
+		return ENOMEM;
+	}
+
+	entry->size = size;
+	link_initialize(&entry->lentries);
+	list_append(&entry->lentries, &panel->entries);
+	return EOK;
+}
+
+/** Delete panel entry.
+ *
+ * @param entry Panel entry
+ */
+void panel_entry_delete(panel_entry_t *entry)
+{
+	list_remove(&entry->lentries);
+	free(entry->name);
+	free(entry);
+}
+
+/** Return first panel entry.
+ *
+ * @panel Panel
+ * @return First panel entry or @c NULL if there are no entries
+ */
+panel_entry_t *panel_first(panel_t *panel)
+{
+	link_t *link;
+
+	link = list_first(&panel->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, panel_entry_t, lentries);
+}
+
+/** Return next panel entry.
+ *
+ * @param cur Current entry
+ * @return Next entry or @c NULL if @a cur is the last entry
+ */
+panel_entry_t *panel_next(panel_entry_t *cur)
+{
+	link_t *link;
+
+	link = list_next(&cur->lentries, &cur->panel->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, panel_entry_t, lentries);
+}
 
 /** @}
  */

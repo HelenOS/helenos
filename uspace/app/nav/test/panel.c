@@ -46,7 +46,6 @@ PCUT_TEST(create_destroy)
 	panel_destroy(panel);
 }
 
-
 /** Test panel_paint() */
 PCUT_TEST(paint)
 {
@@ -137,6 +136,132 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_INT_EQUALS(rect.p0.y, panel->rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(rect.p1.x, panel->rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(rect.p1.y, panel->rect.p1.y);
+
+	panel_destroy(panel);
+}
+
+/** panel_entry_append() appends new entry */
+PCUT_TEST(entry_append)
+{
+	panel_t *panel;
+	errno_t rc;
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(1, list_count(&panel->entries));
+
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, list_count(&panel->entries));
+
+	panel_destroy(panel);
+}
+
+/** panel_entry_delete() deletes entry */
+PCUT_TEST(entry_delete)
+{
+	panel_t *panel;
+	panel_entry_t *entry;
+	errno_t rc;
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, list_count(&panel->entries));
+
+	entry = panel_first(panel);
+	panel_entry_delete(entry);
+
+	PCUT_ASSERT_INT_EQUALS(1, list_count(&panel->entries));
+
+	entry = panel_first(panel);
+	panel_entry_delete(entry);
+
+	PCUT_ASSERT_INT_EQUALS(0, list_count(&panel->entries));
+
+	panel_destroy(panel);
+}
+
+/** panel_first() returns valid entry or @c NULL as appropriate */
+PCUT_TEST(first)
+{
+	panel_t *panel;
+	panel_entry_t *entry;
+	errno_t rc;
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	entry = panel_first(panel);
+	PCUT_ASSERT_NULL(entry);
+
+	/* Add one entry */
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Now try getting it */
+	entry = panel_first(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("a", entry->name);
+	PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	/* Add another entry */
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* We should still get the first entry */
+	entry = panel_first(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("a", entry->name);
+	PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	panel_destroy(panel);
+}
+
+/** panel_next() returns the next entry or @c NULL as appropriate */
+PCUT_TEST(next)
+{
+	panel_t *panel;
+	panel_entry_t *entry;
+	errno_t rc;
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Add one entry */
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Now try getting its successor */
+	entry = panel_first(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+
+	entry = panel_next(entry);
+	PCUT_ASSERT_NULL(entry);
+
+	/* Add another entry */
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Try getting the successor of first entry again */
+	entry = panel_first(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+
+	entry = panel_next(entry);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("b", entry->name);
+	PCUT_ASSERT_INT_EQUALS(2, entry->size);
 
 	panel_destroy(panel);
 }
