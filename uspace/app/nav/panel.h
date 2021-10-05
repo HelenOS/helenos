@@ -36,12 +36,14 @@
 #ifndef PANEL_H
 #define PANEL_H
 
+#include <adt/list.h>
 #include <errno.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
 #include <io/pos_event.h>
 #include <ui/control.h>
 #include <ui/window.h>
+#include <stdint.h>
 #include "nav.h"
 #include "panel.h"
 
@@ -61,7 +63,22 @@ typedef struct panel {
 
 	/** Panel color */
 	gfx_color_t *color;
+
+	/** Panel entries (list of panel_entry_t) */
+	list_t entries;
 } panel_t;
+
+/** Panel entry */
+typedef struct {
+	/** Containing panel */
+	panel_t *panel;
+	/** Link to @c panel->entries */
+	link_t lentries;
+	/** File name */
+	char *name;
+	/** File size */
+	uint64_t size;
+} panel_entry_t;
 
 extern errno_t panel_create(ui_window_t *, panel_t **);
 extern void panel_destroy(panel_t *);
@@ -69,6 +86,10 @@ extern errno_t panel_paint(panel_t *);
 extern ui_evclaim_t panel_pos_event(panel_t *, pos_event_t *);
 extern ui_control_t *panel_ctl(panel_t *);
 extern void panel_set_rect(panel_t *, gfx_rect_t *);
+extern errno_t panel_entry_append(panel_t *, const char *, uint64_t);
+extern void panel_entry_delete(panel_entry_t *);
+extern panel_entry_t *panel_first(panel_t *);
+extern panel_entry_t *panel_next(panel_entry_t *);
 
 #endif
 
