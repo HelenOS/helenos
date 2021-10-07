@@ -34,12 +34,15 @@
  * Displays a file listing.
  */
 
+#include <dirent.h>
 #include <errno.h>
 #include <gfx/render.h>
+#include <gfx/text.h>
 #include <stdlib.h>
 #include <str.h>
 #include <ui/control.h>
 #include <ui/paint.h>
+#include <ui/resource.h>
 #include "panel.h"
 #include "nav.h"
 
@@ -80,11 +83,19 @@ errno_t panel_create(ui_window_t *window, panel_t **rpanel)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_ega(0x30, &panel->curs_color);
+	if (rc != EOK)
+		goto error;
+
 	panel->window = window;
 	list_initialize(&panel->entries);
 	*rpanel = panel;
 	return EOK;
 error:
+	if (panel->color != NULL)
+		gfx_color_delete(panel->color);
+	if (panel->curs_color != NULL)
+		gfx_color_delete(panel->curs_color);
 	ui_control_delete(panel->control);
 	free(panel);
 	return rc;
@@ -96,14 +107,9 @@ error:
  */
 void panel_destroy(panel_t *panel)
 {
-	panel_entry_t *entry;
-
-	entry = panel_first(panel);
-	while (entry != NULL) {
-		panel_entry_delete(entry);
-		entry = panel_first(panel);
-	}
-
+	gfx_color_delete(panel->color);
+	gfx_color_delete(panel->curs_color);
+	panel_clear_entries(panel);
 	ui_control_delete(panel->control);
 	free(panel);
 }
@@ -116,7 +122,14 @@ errno_t panel_paint(panel_t *panel)
 {
 	gfx_context_t *gc = ui_window_get_gc(panel->window);
 	ui_resource_t *res = ui_window_get_res(panel->window);
+	gfx_font_t *font = ui_resource_get_font(res);
+	gfx_text_fmt_t fmt;
+	panel_entry_t *entry;
+	gfx_coord2_t pos;
+	gfx_rect_t rect;
 	errno_t rc;
+
+	gfx_text_fmt_init(&fmt);
 
 	rc = gfx_set_color(gc, panel->color);
 	if (rc != EOK)
@@ -130,6 +143,38 @@ errno_t panel_paint(panel_t *panel)
 	    panel->color);
 	if (rc != EOK)
 		return rc;
+
+	pos.x = panel->rect.p0.x + 1;
+	pos.y = panel->rect.p0.y + 1;
+
+	entry = panel->page;
+	while (entry != NULL && pos.y < panel->rect.p1.y - 1) {
+		if (entry == panel->cursor) {
+			/* Draw cursor background */
+			rect.p0 = pos;
+			rect.p1.x = panel->rect.p1.x - 1;
+			rect.p1.y = rect.p0.y + 1;
+
+			rc = gfx_set_color(gc, panel->curs_color);
+			if (rc != EOK)
+				return rc;
+
+			rc = gfx_fill_rect(gc, &rect);
+			if (rc != EOK)
+				return rc;
+
+			fmt.color = panel->curs_color;
+		} else {
+			fmt.color = panel->color;
+		}
+
+		rc = gfx_puttext(font, &pos, &fmt, entry->name);
+		if (rc != EOK)
+			return rc;
+
+		pos.y++;
+		entry = panel_next(entry);
+	}
 
 	rc = gfx_update(gc);
 	if (rc != EOK)
@@ -239,9 +284,63 @@ errno_t panel_entry_append(panel_t *panel, const char *name, uint64_t size)
  */
 void panel_entry_delete(panel_entry_t *entry)
 {
+	if (entry->panel->cursor == entry)
+		entry->panel->cursor = NULL;
+	if (entry->panel->page == entry)
+		entry->panel->page = NULL;
+
 	list_remove(&entry->lentries);
 	free(entry->name);
 	free(entry);
+}
+
+/** Clear panel entry list.
+ *
+ * @param panel Panel
+ */
+void panel_clear_entries(panel_t *panel)
+{
+	panel_entry_t *entry;
+
+	entry = panel_first(panel);
+	while (entry != NULL) {
+		panel_entry_delete(entry);
+		entry = panel_first(panel);
+	}
+}
+
+/** Read directory into panel entry list.
+ *
+ * @param panel Panel
+ * @param dirname Directory path
+ * @return EOK on success or an error code
+ */
+errno_t panel_read_dir(panel_t *panel, const char *dirname)
+{
+	DIR *dir;
+	struct dirent *dirent;
+	errno_t rc;
+
+	dir = opendir(dirname);
+	if (dir == NULL)
+		return errno;
+
+	dirent = readdir(dir);
+	while (dirent != NULL) {
+		rc = panel_entry_append(panel, dirent->d_name, 1);
+		if (rc != EOK)
+			goto error;
+		dirent = readdir(dir);
+	}
+
+	closedir(dir);
+
+	panel->cursor = panel_first(panel);
+	panel->page = panel_first(panel);
+	return EOK;
+error:
+	closedir(dir);
+	return rc;
 }
 
 /** Return first panel entry.

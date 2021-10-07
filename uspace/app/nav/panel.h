@@ -47,6 +47,18 @@
 #include "nav.h"
 #include "panel.h"
 
+/** Panel entry */
+typedef struct {
+	/** Containing panel */
+	struct panel *panel;
+	/** Link to @c panel->entries */
+	link_t lentries;
+	/** File name */
+	char *name;
+	/** File size */
+	uint64_t size;
+} panel_entry_t;
+
 /** Navigator panel
  *
  * This is a custom UI control.
@@ -64,21 +76,18 @@ typedef struct panel {
 	/** Panel color */
 	gfx_color_t *color;
 
+	/** Panel cursor color */
+	gfx_color_t *curs_color;
+
 	/** Panel entries (list of panel_entry_t) */
 	list_t entries;
-} panel_t;
 
-/** Panel entry */
-typedef struct {
-	/** Containing panel */
-	panel_t *panel;
-	/** Link to @c panel->entries */
-	link_t lentries;
-	/** File name */
-	char *name;
-	/** File size */
-	uint64_t size;
-} panel_entry_t;
+	/** First entry of current page */
+	panel_entry_t *page;
+
+	/** Cursor position */
+	panel_entry_t *cursor;
+} panel_t;
 
 extern errno_t panel_create(ui_window_t *, panel_t **);
 extern void panel_destroy(panel_t *);
@@ -88,6 +97,8 @@ extern ui_control_t *panel_ctl(panel_t *);
 extern void panel_set_rect(panel_t *, gfx_rect_t *);
 extern errno_t panel_entry_append(panel_t *, const char *, uint64_t);
 extern void panel_entry_delete(panel_entry_t *);
+extern void panel_clear_entries(panel_t *);
+extern errno_t panel_read_dir(panel_t *, const char *);
 extern panel_entry_t *panel_first(panel_t *);
 extern panel_entry_t *panel_next(panel_entry_t *);
 
