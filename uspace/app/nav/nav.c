@@ -47,9 +47,11 @@
 #include "panel.h"
 
 static void wnd_close(ui_window_t *, void *);
+static void wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
 static ui_window_cb_t window_cb = {
-	.close = wnd_close
+	.close = wnd_close,
+	.kbd = wnd_kbd
 };
 
 /** Window close button was clicked.
@@ -62,6 +64,27 @@ static void wnd_close(ui_window_t *window, void *arg)
 	navigator_t *navigator = (navigator_t *) arg;
 
 	ui_quit(navigator->ui);
+}
+
+/** Window keyboard event handler.
+ *
+ * @param window Window
+ * @param arg Argument (navigator)
+ * @param event Keyboard event
+ */
+static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
+{
+	navigator_t *navigator = (navigator_t *) arg;
+
+	if (event->type == KEY_PRESS &&
+	    ((event->mods & KM_ALT) == 0) &&
+	    ((event->mods & KM_SHIFT) == 0) &&
+	    (event->mods & KM_CTRL) != 0) {
+		if (event->key == KC_Q)
+			ui_quit(navigator->ui);
+	}
+
+	ui_window_def_kbd(window, event);
 }
 
 /** Create navigator.
