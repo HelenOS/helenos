@@ -37,6 +37,7 @@
 #define _GFX_TEXT_H
 
 #include <errno.h>
+#include <stddef.h>
 #include <types/gfx/coord.h>
 #include <types/gfx/font.h>
 #include <types/gfx/text.h>

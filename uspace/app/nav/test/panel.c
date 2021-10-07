@@ -28,6 +28,8 @@
 
 #include <errno.h>
 #include <pcut/pcut.h>
+#include <stdio.h>
+#include <vfs/vfs.h>
 #include "../panel.h"
 
 PCUT_INIT;
@@ -191,6 +193,84 @@ PCUT_TEST(entry_delete)
 	PCUT_ASSERT_INT_EQUALS(0, list_count(&panel->entries));
 
 	panel_destroy(panel);
+}
+
+/** panel_clear_entries() removes all entries from panel */
+PCUT_TEST(clear_entries)
+{
+	panel_t *panel;
+	errno_t rc;
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, list_count(&panel->entries));
+
+	panel_clear_entries(panel);
+	PCUT_ASSERT_INT_EQUALS(0, list_count(&panel->entries));
+
+	panel_destroy(panel);
+}
+
+/** panel_read_dir() reads the contents of a directory */
+PCUT_TEST(read_dir)
+{
+	panel_t *panel;
+	panel_entry_t *entry;
+	char buf[L_tmpnam];
+	char *fname;
+	char *p;
+	errno_t rc;
+	FILE *f;
+	int rv;
+
+	/* Create name for temporary directory */
+	p = tmpnam(buf);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Create temporary directory */
+	rc = vfs_link_path(p, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rv = asprintf(&fname, "%s/%s", p, "a");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	f = fopen(fname, "wb");
+	PCUT_ASSERT_NOT_NULL(f);
+
+	rv = fprintf(f, "X");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	rv = fclose(f);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_read_dir(panel, p);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(1, list_count(&panel->entries));
+
+	entry = panel_first(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("a", entry->name);
+	// PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	panel_destroy(panel);
+
+	rv = remove(fname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(p);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+	free(fname);
 }
 
 /** panel_first() returns valid entry or @c NULL as appropriate */

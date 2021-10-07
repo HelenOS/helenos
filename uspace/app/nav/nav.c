@@ -135,7 +135,13 @@ errno_t navigator_create(const char *display_spec,
 		    panel_ctl(navigator->panel[i]));
 		if (rc != EOK) {
 			printf("Error adding control to layout.\n");
-			return rc;
+			goto error;
+		}
+
+		rc = panel_read_dir(navigator->panel[i], ".");
+		if (rc != EOK) {
+			printf("Error reading directory.\n");
+			goto error;
 		}
 	}
 
