@@ -107,6 +107,7 @@ extern ui_evclaim_t panel_kbd_event(panel_t *, kbd_event_t *);
 extern ui_evclaim_t panel_pos_event(panel_t *, pos_event_t *);
 extern ui_control_t *panel_ctl(panel_t *);
 extern void panel_set_rect(panel_t *, gfx_rect_t *);
+extern unsigned panel_page_size(panel_t *);
 extern errno_t panel_entry_append(panel_t *, const char *, uint64_t);
 extern void panel_entry_delete(panel_entry_t *);
 extern void panel_clear_entries(panel_t *);
@@ -120,6 +121,8 @@ extern void panel_cursor_up(panel_t *);
 extern void panel_cursor_down(panel_t *);
 extern void panel_cursor_top(panel_t *);
 extern void panel_cursor_bottom(panel_t *);
+extern void panel_page_up(panel_t *);
+extern void panel_page_down(panel_t *);
 
 #endif
 
