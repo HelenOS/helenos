@@ -31,6 +31,7 @@
 #include <io/pos_event.h>
 #include <pcut/pcut.h>
 #include <stdio.h>
+#include <ui/ui.h>
 #include <vfs/vfs.h>
 #include "../panel.h"
 

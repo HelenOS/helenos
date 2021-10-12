@@ -30,18 +30,22 @@
  * @{
  */
 /**
- * @file Navigator
+ * @file Navigator menu types
  */
 
-#ifndef NAV_H
-#define NAV_H
+#ifndef TYPES_MENU_H
+#define TYPES_MENU_H
 
-#include <errno.h>
-#include "types/nav.h"
+#include <ui/menubar.h>
+#include <ui/ui.h>
+#include <ui/window.h>
 
-extern errno_t navigator_create(const char *, navigator_t **);
-extern void navigator_destroy(navigator_t *);
-extern errno_t navigator_run(const char *);
+/** Navigator menu */
+typedef struct nav_menu {
+	ui_t *ui;
+	ui_window_t *window;
+	ui_menu_bar_t *menubar;
+} nav_menu_t;
 
 #endif
 

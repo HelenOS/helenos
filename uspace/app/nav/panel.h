@@ -36,68 +36,13 @@
 #ifndef PANEL_H
 #define PANEL_H
 
-#include <adt/list.h>
 #include <errno.h>
-#include <gfx/color.h>
 #include <gfx/coord.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <ui/control.h>
 #include <ui/window.h>
-#include <stdint.h>
-#include "nav.h"
-#include "panel.h"
-
-/** Panel entry */
-typedef struct {
-	/** Containing panel */
-	struct panel *panel;
-	/** Link to @c panel->entries */
-	link_t lentries;
-	/** File name */
-	char *name;
-	/** File size */
-	uint64_t size;
-} panel_entry_t;
-
-/** Navigator panel
- *
- * This is a custom UI control.
- */
-typedef struct panel {
-	/** Base control object */
-	struct ui_control *control;
-
-	/** Containing window */
-	ui_window_t *window;
-
-	/** Panel rectangle */
-	gfx_rect_t rect;
-
-	/** Panel color */
-	gfx_color_t *color;
-
-	/** Panel cursor color */
-	gfx_color_t *curs_color;
-
-	/** Panel entries (list of panel_entry_t) */
-	list_t entries;
-
-	/** Number of entries */
-	size_t entries_cnt;
-
-	/** First entry of current page */
-	panel_entry_t *page;
-
-	/** Index of first entry of current page */
-	size_t page_idx;
-
-	/** Cursor position */
-	panel_entry_t *cursor;
-
-	/** Index of entry under cursor */
-	size_t cursor_idx;
-} panel_t;
+#include "types/panel.h"
 
 extern errno_t panel_create(ui_window_t *, panel_t **);
 extern void panel_destroy(panel_t *);
