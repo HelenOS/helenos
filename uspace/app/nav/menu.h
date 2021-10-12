@@ -37,20 +37,8 @@
 #define MENU_H
 
 #include <errno.h>
-#include <ui/control.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/menuentry.h>
-#include <ui/ui.h>
 #include <ui/window.h>
-#include "nav.h"
-
-/** Navigator menu */
-typedef struct nav_menu {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_menu_bar_t *menubar;
-} nav_menu_t;
+#include "types/menu.h"
 
 extern errno_t nav_menu_create(ui_window_t *, nav_menu_t **);
 extern void nav_menu_destroy(nav_menu_t *);
