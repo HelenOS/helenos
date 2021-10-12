@@ -136,8 +136,7 @@ errno_t panel_entry_paint(panel_entry_t *entry, size_t entry_idx)
 	errno_t rc;
 
 	gfx_text_fmt_init(&fmt);
-
-	rows = panel->rect.p1.y - panel->rect.p0.y - 2;
+	rows = panel_page_size(panel);
 
 	/* Do not display entry outside of current page */
 	if (entry_idx < panel->page_idx ||
@@ -200,7 +199,7 @@ errno_t panel_paint(panel_t *panel)
 	if (rc != EOK)
 		return rc;
 
-	lines = panel->rect.p1.y - panel->rect.p0.y - 2;
+	lines = panel_page_size(panel);
 	i = 0;
 
 	entry = panel->page;
@@ -243,6 +242,12 @@ ui_evclaim_t panel_kbd_event(panel_t *panel, kbd_event_t *event)
 			case KC_END:
 				panel_cursor_bottom(panel);
 				break;
+			case KC_PAGE_UP:
+				panel_page_up(panel);
+				break;
+			case KC_PAGE_DOWN:
+				panel_page_down(panel);
+				break;
 			default:
 				break;
 			}
@@ -281,6 +286,16 @@ ui_control_t *panel_ctl(panel_t *panel)
 void panel_set_rect(panel_t *panel, gfx_rect_t *rect)
 {
 	panel->rect = *rect;
+}
+
+/** Get panel page size.
+ *
+ * @param panel Panel
+ * @return Number of entries that fit in panel at the same time.
+ */
+unsigned panel_page_size(panel_t *panel)
+{
+	return panel->rect.p1.y - panel->rect.p0.y - 2;
 }
 
 /** Destroy panel control.
@@ -493,6 +508,12 @@ panel_entry_t *panel_prev(panel_entry_t *cur)
 	return list_get_instance(link, panel_entry_t, lentries);
 }
 
+/** Move cursor to a new position, possibly scrolling.
+ *
+ * @param panel Panel
+ * @param entry New entry under cursor
+ * @param entry_idx Index of new entry under cursor
+ */
 void panel_cursor_move(panel_t *panel, panel_entry_t *entry, size_t entry_idx)
 {
 	gfx_context_t *gc = ui_window_get_gc(panel->window);
@@ -502,7 +523,7 @@ void panel_cursor_move(panel_t *panel, panel_entry_t *entry, size_t entry_idx)
 	panel_entry_t *e;
 	size_t i;
 
-	rows = panel->rect.p1.y - panel->rect.p0.y - 2;
+	rows = panel_page_size(panel);
 
 	old_cursor = panel->cursor;
 	old_idx = panel->cursor_idx;
@@ -601,6 +622,111 @@ void panel_cursor_top(panel_t *panel)
 void panel_cursor_bottom(panel_t *panel)
 {
 	panel_cursor_move(panel, panel_last(panel), panel->entries_cnt - 1);
+}
+
+/** Move one page up.
+ *
+ * @param panel Panel
+ */
+void panel_page_up(panel_t *panel)
+{
+	gfx_context_t *gc = ui_window_get_gc(panel->window);
+	panel_entry_t *old_page;
+	panel_entry_t *old_cursor;
+	size_t old_idx;
+	size_t rows;
+	panel_entry_t *entry;
+	size_t i;
+
+	rows = panel_page_size(panel);
+
+	old_page = panel->page;
+	old_cursor = panel->cursor;
+	old_idx = panel->cursor_idx;
+
+	/* Move page by rows entries up (if possible) */
+	for (i = 0; i < rows; i++) {
+		entry = panel_prev(panel->page);
+		if (entry != NULL) {
+			panel->page = entry;
+			--panel->page_idx;
+		}
+	}
+
+	/* Move cursor by rows entries up (if possible) */
+
+	for (i = 0; i < rows; i++) {
+		entry = panel_prev(panel->cursor);
+		if (entry != NULL) {
+			panel->cursor = entry;
+			--panel->cursor_idx;
+		}
+	}
+
+	if (panel->page != old_page) {
+		/* We have scrolled. Need to repaint all entries */
+		(void) panel_paint(panel);
+	} else if (panel->cursor != old_cursor) {
+		/* No scrolling, but cursor has moved */
+		panel_entry_paint(old_cursor, old_idx);
+		panel_entry_paint(panel->cursor, panel->cursor_idx);
+
+		(void) gfx_update(gc);
+	}
+}
+
+/** Move one page down.
+ *
+ * @param panel Panel
+ */
+void panel_page_down(panel_t *panel)
+{
+	gfx_context_t *gc = ui_window_get_gc(panel->window);
+	panel_entry_t *old_page;
+	panel_entry_t *old_cursor;
+	size_t old_idx;
+	size_t max_idx;
+	size_t rows;
+	panel_entry_t *entry;
+	size_t i;
+
+	rows = panel_page_size(panel);
+
+	old_page = panel->page;
+	old_cursor = panel->cursor;
+	old_idx = panel->cursor_idx;
+	max_idx = panel->entries_cnt - rows;
+
+	/* Move page by rows entries down (if possible) */
+	for (i = 0; i < rows; i++) {
+		entry = panel_next(panel->page);
+		/* Do not scroll that results in a short page */
+		if (entry != NULL && panel->page_idx < max_idx) {
+			panel->page = entry;
+			++panel->page_idx;
+		}
+	}
+
+	/* Move cursor by rows entries down (if possible) */
+
+	for (i = 0; i < rows; i++) {
+		entry = panel_next(panel->cursor);
+		if (entry != NULL) {
+			panel->cursor = entry;
+			++panel->cursor_idx;
+		}
+	}
+
+	if (panel->page != old_page) {
+		/* We have scrolled. Need to repaint all entries */
+		(void) panel_paint(panel);
+	} else if (panel->cursor != old_cursor) {
+		/* No scrolling, but cursor has moved */
+		panel_entry_paint(old_cursor, old_idx);
+		panel_entry_paint(panel->cursor, panel->cursor_idx);
+
+		(void) gfx_update(gc);
+	}
 }
 
 /** @}
