@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
+#include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <ui/control.h>
 #include <ui/window.h>
@@ -82,16 +83,27 @@ typedef struct panel {
 	/** Panel entries (list of panel_entry_t) */
 	list_t entries;
 
+	/** Number of entries */
+	size_t entries_cnt;
+
 	/** First entry of current page */
 	panel_entry_t *page;
 
+	/** Index of first entry of current page */
+	size_t page_idx;
+
 	/** Cursor position */
 	panel_entry_t *cursor;
+
+	/** Index of entry under cursor */
+	size_t cursor_idx;
 } panel_t;
 
 extern errno_t panel_create(ui_window_t *, panel_t **);
 extern void panel_destroy(panel_t *);
+extern errno_t panel_entry_paint(panel_entry_t *, size_t);
 extern errno_t panel_paint(panel_t *);
+extern ui_evclaim_t panel_kbd_event(panel_t *, kbd_event_t *);
 extern ui_evclaim_t panel_pos_event(panel_t *, pos_event_t *);
 extern ui_control_t *panel_ctl(panel_t *);
 extern void panel_set_rect(panel_t *, gfx_rect_t *);
@@ -100,7 +112,14 @@ extern void panel_entry_delete(panel_entry_t *);
 extern void panel_clear_entries(panel_t *);
 extern errno_t panel_read_dir(panel_t *, const char *);
 extern panel_entry_t *panel_first(panel_t *);
+extern panel_entry_t *panel_last(panel_t *);
 extern panel_entry_t *panel_next(panel_entry_t *);
+extern panel_entry_t *panel_prev(panel_entry_t *);
+extern void panel_cursor_move(panel_t *, panel_entry_t *, size_t);
+extern void panel_cursor_up(panel_t *);
+extern void panel_cursor_down(panel_t *);
+extern void panel_cursor_top(panel_t *);
+extern void panel_cursor_bottom(panel_t *);
 
 #endif
 

@@ -48,12 +48,14 @@
 
 static void panel_ctl_destroy(void *);
 static errno_t panel_ctl_paint(void *);
+static ui_evclaim_t panel_ctl_kbd_event(void *, kbd_event_t *);
 static ui_evclaim_t panel_ctl_pos_event(void *, pos_event_t *);
 
 /** Panel control ops */
 ui_control_ops_t panel_ctl_ops = {
 	.destroy = panel_ctl_destroy,
 	.paint = panel_ctl_paint,
+	.kbd_event = panel_ctl_kbd_event,
 	.pos_event = panel_ctl_pos_event
 };
 
@@ -89,6 +91,7 @@ errno_t panel_create(ui_window_t *window, panel_t **rpanel)
 
 	panel->window = window;
 	list_initialize(&panel->entries);
+	panel->entries_cnt = 0;
 	*rpanel = panel;
 	return EOK;
 error:
@@ -114,6 +117,61 @@ void panel_destroy(panel_t *panel)
 	free(panel);
 }
 
+/** Paint panel entry.
+ *
+ * @param entry Panel entry
+ * @param entry_idx Entry index (within list of entries)
+ * @return EOK on success or an error code
+ */
+errno_t panel_entry_paint(panel_entry_t *entry, size_t entry_idx)
+{
+	panel_t *panel = entry->panel;
+	gfx_context_t *gc = ui_window_get_gc(panel->window);
+	ui_resource_t *res = ui_window_get_res(panel->window);
+	gfx_font_t *font = ui_resource_get_font(res);
+	gfx_text_fmt_t fmt;
+	gfx_coord2_t pos;
+	gfx_rect_t rect;
+	size_t rows;
+	errno_t rc;
+
+	gfx_text_fmt_init(&fmt);
+
+	rows = panel->rect.p1.y - panel->rect.p0.y - 2;
+
+	/* Do not display entry outside of current page */
+	if (entry_idx < panel->page_idx ||
+	    entry_idx >= panel->page_idx + rows)
+		return EOK;
+
+	pos.x = panel->rect.p0.x + 1;
+	pos.y = panel->rect.p0.y + 1 + entry_idx - panel->page_idx;
+
+	if (entry == panel->cursor)
+		fmt.color = panel->curs_color;
+	else
+		fmt.color = panel->color;
+
+	/* Draw entry background */
+	rect.p0 = pos;
+	rect.p1.x = panel->rect.p1.x - 1;
+	rect.p1.y = rect.p0.y + 1;
+
+	rc = gfx_set_color(gc, fmt.color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_puttext(font, &pos, &fmt, entry->name);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Paint panel.
  *
  * @param panel Panel
@@ -122,11 +180,9 @@ errno_t panel_paint(panel_t *panel)
 {
 	gfx_context_t *gc = ui_window_get_gc(panel->window);
 	ui_resource_t *res = ui_window_get_res(panel->window);
-	gfx_font_t *font = ui_resource_get_font(res);
 	gfx_text_fmt_t fmt;
 	panel_entry_t *entry;
-	gfx_coord2_t pos;
-	gfx_rect_t rect;
+	int i, lines;
 	errno_t rc;
 
 	gfx_text_fmt_init(&fmt);
@@ -144,35 +200,16 @@ errno_t panel_paint(panel_t *panel)
 	if (rc != EOK)
 		return rc;
 
-	pos.x = panel->rect.p0.x + 1;
-	pos.y = panel->rect.p0.y + 1;
+	lines = panel->rect.p1.y - panel->rect.p0.y - 2;
+	i = 0;
 
 	entry = panel->page;
-	while (entry != NULL && pos.y < panel->rect.p1.y - 1) {
-		if (entry == panel->cursor) {
-			/* Draw cursor background */
-			rect.p0 = pos;
-			rect.p1.x = panel->rect.p1.x - 1;
-			rect.p1.y = rect.p0.y + 1;
-
-			rc = gfx_set_color(gc, panel->curs_color);
-			if (rc != EOK)
-				return rc;
-
-			rc = gfx_fill_rect(gc, &rect);
-			if (rc != EOK)
-				return rc;
-
-			fmt.color = panel->curs_color;
-		} else {
-			fmt.color = panel->color;
-		}
-
-		rc = gfx_puttext(font, &pos, &fmt, entry->name);
+	while (entry != NULL && i < lines) {
+		rc = panel_entry_paint(entry, panel->page_idx + i);
 		if (rc != EOK)
 			return rc;
 
-		pos.y++;
+		++i;
 		entry = panel_next(entry);
 	}
 
@@ -181,6 +218,38 @@ errno_t panel_paint(panel_t *panel)
 		return rc;
 
 	return EOK;
+}
+
+/** Handle panel keyboard event.
+ *
+ * @param panel Panel
+ * @param event Keyboard event
+ * @return ui_claimed iff event was claimed
+ */
+ui_evclaim_t panel_kbd_event(panel_t *panel, kbd_event_t *event)
+{
+	if (event->type == KEY_PRESS) {
+		if ((event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
+			switch (event->key) {
+			case KC_UP:
+				panel_cursor_up(panel);
+				break;
+			case KC_DOWN:
+				panel_cursor_down(panel);
+				break;
+			case KC_HOME:
+				panel_cursor_top(panel);
+				break;
+			case KC_END:
+				panel_cursor_bottom(panel);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	return ui_unclaimed;
 }
 
 /** Handle panel position event.
@@ -237,6 +306,19 @@ errno_t panel_ctl_paint(void *arg)
 	return panel_paint(panel);
 }
 
+/** Handle panel control keyboard event.
+ *
+ * @param arg Argument (panel_t *)
+ * @param kbd_event Keyboard event
+ * @return @c ui_claimed iff the event is claimed
+ */
+ui_evclaim_t panel_ctl_kbd_event(void *arg, kbd_event_t *event)
+{
+	panel_t *panel = (panel_t *) arg;
+
+	return panel_kbd_event(panel, event);
+}
+
 /** Handle panel control position event.
  *
  * @param arg Argument (panel_t *)
@@ -275,6 +357,7 @@ errno_t panel_entry_append(panel_t *panel, const char *name, uint64_t size)
 	entry->size = size;
 	link_initialize(&entry->lentries);
 	list_append(&entry->lentries, &panel->entries);
+	++panel->entries_cnt;
 	return EOK;
 }
 
@@ -290,6 +373,7 @@ void panel_entry_delete(panel_entry_t *entry)
 		entry->panel->page = NULL;
 
 	list_remove(&entry->lentries);
+	--entry->panel->entries_cnt;
 	free(entry->name);
 	free(entry);
 }
@@ -336,7 +420,9 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	closedir(dir);
 
 	panel->cursor = panel_first(panel);
+	panel->cursor_idx = 0;
 	panel->page = panel_first(panel);
+	panel->page_idx = 0;
 	return EOK;
 error:
 	closedir(dir);
@@ -359,6 +445,22 @@ panel_entry_t *panel_first(panel_t *panel)
 	return list_get_instance(link, panel_entry_t, lentries);
 }
 
+/** Return last panel entry.
+ *
+ * @panel Panel
+ * @return Last panel entry or @c NULL if there are no entries
+ */
+panel_entry_t *panel_last(panel_t *panel)
+{
+	link_t *link;
+
+	link = list_last(&panel->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, panel_entry_t, lentries);
+}
+
 /** Return next panel entry.
  *
  * @param cur Current entry
@@ -373,6 +475,132 @@ panel_entry_t *panel_next(panel_entry_t *cur)
 		return NULL;
 
 	return list_get_instance(link, panel_entry_t, lentries);
+}
+
+/** Return previous panel entry.
+ *
+ * @param cur Current entry
+ * @return Previous entry or @c NULL if @a cur is the first entry
+ */
+panel_entry_t *panel_prev(panel_entry_t *cur)
+{
+	link_t *link;
+
+	link = list_prev(&cur->lentries, &cur->panel->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, panel_entry_t, lentries);
+}
+
+void panel_cursor_move(panel_t *panel, panel_entry_t *entry, size_t entry_idx)
+{
+	gfx_context_t *gc = ui_window_get_gc(panel->window);
+	panel_entry_t *old_cursor;
+	size_t old_idx;
+	size_t rows;
+	panel_entry_t *e;
+	size_t i;
+
+	rows = panel->rect.p1.y - panel->rect.p0.y - 2;
+
+	old_cursor = panel->cursor;
+	old_idx = panel->cursor_idx;
+
+	panel->cursor = entry;
+	panel->cursor_idx = entry_idx;
+
+	if (entry_idx >= panel->page_idx &&
+	    entry_idx < panel->page_idx + rows) {
+		/*
+		 * If cursor is still on the current page, we're not
+		 * scrolling. Just unpaint old cursor and paint new
+		 * cursor.
+		 */
+		panel_entry_paint(old_cursor, old_idx);
+		panel_entry_paint(panel->cursor, panel->cursor_idx);
+
+		(void) gfx_update(gc);
+	} else {
+		/*
+		 * Need to scroll and update all rows.
+		 */
+
+		/* Scrolling up */
+		if (entry_idx < panel->page_idx) {
+			panel->page = entry;
+			panel->page_idx = entry_idx;
+		}
+
+		/* Scrolling down */
+		if (entry_idx >= panel->page_idx + rows) {
+			if (entry_idx >= rows) {
+				panel->page_idx = entry_idx - rows + 1;
+				/* Find first page entry (go back rows - 1) */
+				e = entry;
+				for (i = 0; i < rows - 1; i++) {
+					e = panel_prev(e);
+				}
+
+				/* Should be valid */
+				assert(e != NULL);
+				panel->page = e;
+			} else {
+				panel->page = panel_first(panel);
+				panel->page_idx = 0;
+			}
+		}
+
+		(void) panel_paint(panel);
+	}
+}
+
+/** Move cursor one entry up.
+ *
+ * @param panel Panel
+ */
+void panel_cursor_up(panel_t *panel)
+{
+	panel_entry_t *prev;
+	size_t prev_idx;
+
+	prev = panel_prev(panel->cursor);
+	prev_idx = panel->cursor_idx - 1;
+	if (prev != NULL)
+		panel_cursor_move(panel, prev, prev_idx);
+}
+
+/** Move cursor one entry down.
+ *
+ * @param panel Panel
+ */
+void panel_cursor_down(panel_t *panel)
+{
+	panel_entry_t *next;
+	size_t next_idx;
+
+	next = panel_next(panel->cursor);
+	next_idx = panel->cursor_idx + 1;
+	if (next != NULL)
+		panel_cursor_move(panel, next, next_idx);
+}
+
+/** Move cursor to top.
+ *
+ * @param panel Panel
+ */
+void panel_cursor_top(panel_t *panel)
+{
+	panel_cursor_move(panel, panel_first(panel), 0);
+}
+
+/** Move cursor to bottom.
+ *
+ * @param panel Panel
+ */
+void panel_cursor_bottom(panel_t *panel)
+{
+	panel_cursor_move(panel, panel_last(panel), panel->entries_cnt - 1);
 }
 
 /** @}

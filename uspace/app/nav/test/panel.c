@@ -27,6 +27,8 @@
  */
 
 #include <errno.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 #include <pcut/pcut.h>
 #include <stdio.h>
 #include <vfs/vfs.h>
@@ -46,6 +48,38 @@ PCUT_TEST(create_destroy)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	panel_destroy(panel);
+}
+
+/** Test panel_entry_paint() */
+PCUT_TEST(entry_paint)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	panel_t *panel;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_paint(panel_first(panel), 0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Test panel_paint() */
@@ -93,6 +127,32 @@ PCUT_TEST(ctl)
 	panel_destroy(panel);
 }
 
+/** Test panel_kbd_event() */
+PCUT_TEST(kbd_event)
+{
+	panel_t *panel;
+	ui_control_t *control;
+	ui_evclaim_t claimed;
+	kbd_event_t event;
+	errno_t rc;
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	control = panel_ctl(panel);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	event.type = KEY_PRESS;
+	event.key = KC_ENTER;
+	event.mods = 0;
+	event.c = '\0';
+
+	claimed = panel_kbd_event(panel, &event);
+	PCUT_ASSERT_EQUALS(ui_unclaimed, claimed);
+
+	panel_destroy(panel);
+}
+
 /** Test panel_pos_event() */
 PCUT_TEST(pos_event)
 {
@@ -107,6 +167,12 @@ PCUT_TEST(pos_event)
 
 	control = panel_ctl(panel);
 	PCUT_ASSERT_NOT_NULL(control);
+
+	event.pos_id = 0;
+	event.type = POS_PRESS;
+	event.btn_num = 1;
+	event.hpos = 0;
+	event.vpos = 0;
 
 	claimed = panel_pos_event(panel, &event);
 	PCUT_ASSERT_EQUALS(ui_unclaimed, claimed);
@@ -309,6 +375,42 @@ PCUT_TEST(first)
 	panel_destroy(panel);
 }
 
+/** panel_last() returns valid entry or @c NULL as appropriate */
+PCUT_TEST(last)
+{
+	panel_t *panel;
+	panel_entry_t *entry;
+	errno_t rc;
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	entry = panel_last(panel);
+	PCUT_ASSERT_NULL(entry);
+
+	/* Add one entry */
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Now try getting it */
+	entry = panel_last(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("a", entry->name);
+	PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	/* Add another entry */
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* We should get new entry now */
+	entry = panel_last(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("b", entry->name);
+	PCUT_ASSERT_INT_EQUALS(2, entry->size);
+
+	panel_destroy(panel);
+}
+
 /** panel_next() returns the next entry or @c NULL as appropriate */
 PCUT_TEST(next)
 {
@@ -344,6 +446,327 @@ PCUT_TEST(next)
 	PCUT_ASSERT_INT_EQUALS(2, entry->size);
 
 	panel_destroy(panel);
+}
+
+/** panel_prev() returns the previous entry or @c NULL as appropriate */
+PCUT_TEST(prev)
+{
+	panel_t *panel;
+	panel_entry_t *entry;
+	errno_t rc;
+
+	rc = panel_create(NULL, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Add one entry */
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Now try getting its predecessor */
+	entry = panel_last(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+
+	entry = panel_prev(entry);
+	PCUT_ASSERT_NULL(entry);
+
+	/* Add another entry */
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Try getting the predecessor of the new entry */
+	entry = panel_last(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+
+	entry = panel_prev(entry);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("a", entry->name);
+	PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	panel_destroy(panel);
+}
+
+/** panel_cursor_move() ... */
+PCUT_TEST(cursor_move)
+{
+}
+
+/** panel_cursor_up() moves cursor one entry up */
+PCUT_TEST(cursor_up)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	panel_t *panel;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 4; // XXX Assuming this makes page size 2
+	panel_set_rect(panel, &rect);
+
+	/* Add tree entries (more than page size, which is 2) */
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "c", 3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Cursor to the last entry and page start to the next-to-last entry */
+	panel->cursor = panel_last(panel);
+	panel->cursor_idx = 2;
+	panel->page = panel_prev(panel->cursor);
+	panel->page_idx = 1;
+
+	/* Move cursor one entry up */
+	panel_cursor_up(panel);
+
+	/* Cursor and page start should now both be at the second entry */
+	PCUT_ASSERT_STR_EQUALS("b", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(2, panel->cursor->size);
+	PCUT_ASSERT_INT_EQUALS(1, panel->cursor_idx);
+	PCUT_ASSERT_EQUALS(panel->cursor, panel->page);
+	PCUT_ASSERT_INT_EQUALS(1, panel->page_idx);
+
+	/* Move cursor one entry up. This should scroll up. */
+	panel_cursor_up(panel);
+
+	/* Cursor and page start should now both be at the first entry */
+	PCUT_ASSERT_STR_EQUALS("a", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(1, panel->cursor->size);
+	PCUT_ASSERT_INT_EQUALS(0, panel->cursor_idx);
+	PCUT_ASSERT_EQUALS(panel->cursor, panel->page);
+	PCUT_ASSERT_INT_EQUALS(0, panel->page_idx);
+
+	/* Moving further up should do nothing (we are at the top). */
+	panel_cursor_up(panel);
+
+	/* Cursor and page start should still be at the first entry */
+	PCUT_ASSERT_STR_EQUALS("a", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(1, panel->cursor->size);
+	PCUT_ASSERT_INT_EQUALS(0, panel->cursor_idx);
+	PCUT_ASSERT_EQUALS(panel->cursor, panel->page);
+	PCUT_ASSERT_INT_EQUALS(0, panel->page_idx);
+
+	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** panel_cursor_down() moves cursor one entry down */
+PCUT_TEST(cursor_down)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	panel_t *panel;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 4; // XXX Assuming this makes page size 2
+	panel_set_rect(panel, &rect);
+
+	/* Add tree entries (more than page size, which is 2) */
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "c", 3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Cursor and page start to the first entry */
+	panel->cursor = panel_first(panel);
+	panel->cursor_idx = 0;
+	panel->page = panel->cursor;
+	panel->page_idx = 0;
+
+	/* Move cursor one entry down */
+	panel_cursor_down(panel);
+
+	/* Cursor should now be at the second entry, page stays the same */
+	PCUT_ASSERT_STR_EQUALS("b", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(2, panel->cursor->size);
+	PCUT_ASSERT_INT_EQUALS(1, panel->cursor_idx);
+	PCUT_ASSERT_EQUALS(panel_first(panel), panel->page);
+	PCUT_ASSERT_INT_EQUALS(0, panel->page_idx);
+
+	/* Move cursor one entry down. This should scroll down. */
+	panel_cursor_down(panel);
+
+	/* Cursor should now be at the third and page at the second entry. */
+	PCUT_ASSERT_STR_EQUALS("c", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(3, panel->cursor->size);
+	PCUT_ASSERT_INT_EQUALS(2, panel->cursor_idx);
+	PCUT_ASSERT_STR_EQUALS("b", panel->page->name);
+	PCUT_ASSERT_INT_EQUALS(2, panel->page->size);
+	PCUT_ASSERT_INT_EQUALS(1, panel->page_idx);
+
+	/* Moving further down should do nothing (we are at the bottom). */
+	panel_cursor_down(panel);
+
+	/* Cursor should still be at the third and page at the second entry. */
+	PCUT_ASSERT_STR_EQUALS("c", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(3, panel->cursor->size);
+	PCUT_ASSERT_INT_EQUALS(2, panel->cursor_idx);
+	PCUT_ASSERT_STR_EQUALS("b", panel->page->name);
+	PCUT_ASSERT_INT_EQUALS(2, panel->page->size);
+	PCUT_ASSERT_INT_EQUALS(1, panel->page_idx);
+
+	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** panel_cursor_top() moves cursor to the first entry */
+PCUT_TEST(cursor_top)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	panel_t *panel;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 4; // XXX Assuming this makes page size 2
+	panel_set_rect(panel, &rect);
+
+	/* Add tree entries (more than page size, which is 2) */
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "c", 3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Cursor to the last entry and page start to the next-to-last entry */
+	panel->cursor = panel_last(panel);
+	panel->cursor_idx = 2;
+	panel->page = panel_prev(panel->cursor);
+	panel->page_idx = 1;
+
+	/* Move cursor to the top. This should scroll up. */
+	panel_cursor_top(panel);
+
+	/* Cursor and page start should now both be at the first entry */
+	PCUT_ASSERT_STR_EQUALS("a", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(1, panel->cursor->size);
+	PCUT_ASSERT_INT_EQUALS(0, panel->cursor_idx);
+	PCUT_ASSERT_EQUALS(panel->cursor, panel->page);
+	PCUT_ASSERT_INT_EQUALS(0, panel->page_idx);
+
+	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** panel_cursor_bottom() moves cursor to the last entry */
+PCUT_TEST(cursor_bottom)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	panel_t *panel;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 4; // XXX Assuming this makes page size 2
+	panel_set_rect(panel, &rect);
+
+	/* Add tree entries (more than page size, which is 2) */
+	rc = panel_entry_append(panel, "a", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "b", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "c", 3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Cursor and page start to the first entry */
+	panel->cursor = panel_first(panel);
+	panel->cursor_idx = 0;
+	panel->page = panel->cursor;
+	panel->page_idx = 0;
+
+	/* Move cursor to the bottom. This should scroll down. */
+	panel_cursor_bottom(panel);
+
+	/* Cursor should now be at the third and page at the second entry. */
+	PCUT_ASSERT_STR_EQUALS("c", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(3, panel->cursor->size);
+	PCUT_ASSERT_INT_EQUALS(2, panel->cursor_idx);
+	PCUT_ASSERT_STR_EQUALS("b", panel->page->name);
+	PCUT_ASSERT_INT_EQUALS(2, panel->page->size);
+	PCUT_ASSERT_INT_EQUALS(1, panel->page_idx);
+
+	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 PCUT_EXPORT(panel);
