@@ -45,7 +45,7 @@ PCUT_TEST(create_destroy)
 	panel_t *panel;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	panel_destroy(panel);
@@ -69,7 +69,7 @@ PCUT_TEST(entry_paint)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_create(window, &panel);
+	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = panel_entry_append(panel, "a", 1);
@@ -101,7 +101,7 @@ PCUT_TEST(paint)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_create(window, &panel);
+	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = panel_paint(panel);
@@ -119,7 +119,7 @@ PCUT_TEST(ctl)
 	ui_control_t *control;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	control = panel_ctl(panel);
@@ -132,16 +132,29 @@ PCUT_TEST(ctl)
 PCUT_TEST(kbd_event)
 {
 	panel_t *panel;
-	ui_control_t *control;
 	ui_evclaim_t claimed;
 	kbd_event_t event;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	/* Active panel should claim events */
+
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	control = panel_ctl(panel);
-	PCUT_ASSERT_NOT_NULL(control);
+	event.type = KEY_PRESS;
+	event.key = KC_ENTER;
+	event.mods = 0;
+	event.c = '\0';
+
+	claimed = panel_kbd_event(panel, &event);
+	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
+
+	panel_destroy(panel);
+
+	/* Inactive panel should not claim events */
+
+	rc = panel_create(NULL, false, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	event.type = KEY_PRESS;
 	event.key = KC_ENTER;
@@ -158,16 +171,12 @@ PCUT_TEST(kbd_event)
 PCUT_TEST(pos_event)
 {
 	panel_t *panel;
-	ui_control_t *control;
 	ui_evclaim_t claimed;
 	pos_event_t event;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	control = panel_ctl(panel);
-	PCUT_ASSERT_NOT_NULL(control);
 
 	event.pos_id = 0;
 	event.type = POS_PRESS;
@@ -185,15 +194,11 @@ PCUT_TEST(pos_event)
 PCUT_TEST(set_rect)
 {
 	panel_t *panel;
-	ui_control_t *control;
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	control = panel_ctl(panel);
-	PCUT_ASSERT_NOT_NULL(control);
 
 	rect.p0.x = 1;
 	rect.p0.y = 2;
@@ -213,15 +218,11 @@ PCUT_TEST(set_rect)
 PCUT_TEST(page_size)
 {
 	panel_t *panel;
-	ui_control_t *control;
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	control = panel_ctl(panel);
-	PCUT_ASSERT_NOT_NULL(control);
 
 	rect.p0.x = 10;
 	rect.p0.y = 20;
@@ -236,13 +237,90 @@ PCUT_TEST(page_size)
 	panel_destroy(panel);
 }
 
+/** panel_is_active() returns panel activity state */
+PCUT_TEST(is_active)
+{
+	panel_t *panel;
+	errno_t rc;
+
+	rc = panel_create(NULL, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(panel_is_active(panel));
+	panel_destroy(panel);
+
+	rc = panel_create(NULL, false, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_FALSE(panel_is_active(panel));
+	panel_destroy(panel);
+}
+
+/** panel_activate() activates panel */
+PCUT_TEST(activate)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	panel_t *panel;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, false, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(panel_is_active(panel));
+	panel_activate(panel);
+	PCUT_ASSERT_TRUE(panel_is_active(panel));
+
+	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** panel_deactivate() deactivates panel */
+PCUT_TEST(deactivate)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	panel_t *panel;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_TRUE(panel_is_active(panel));
+	panel_deactivate(panel);
+	PCUT_ASSERT_FALSE(panel_is_active(panel));
+
+	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** panel_entry_append() appends new entry */
 PCUT_TEST(entry_append)
 {
 	panel_t *panel;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = panel_entry_append(panel, "a", 1);
@@ -265,7 +343,7 @@ PCUT_TEST(entry_delete)
 	panel_entry_t *entry;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = panel_entry_append(panel, "a", 1);
@@ -295,7 +373,7 @@ PCUT_TEST(clear_entries)
 	panel_t *panel;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = panel_entry_append(panel, "a", 1);
@@ -344,7 +422,7 @@ PCUT_TEST(read_dir)
 	rv = fclose(f);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = panel_read_dir(panel, p);
@@ -374,7 +452,7 @@ PCUT_TEST(first)
 	panel_entry_t *entry;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	entry = panel_first(panel);
@@ -410,7 +488,7 @@ PCUT_TEST(last)
 	panel_entry_t *entry;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	entry = panel_last(panel);
@@ -446,7 +524,7 @@ PCUT_TEST(next)
 	panel_entry_t *entry;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Add one entry */
@@ -483,7 +561,7 @@ PCUT_TEST(prev)
 	panel_entry_t *entry;
 	errno_t rc;
 
-	rc = panel_create(NULL, &panel);
+	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Add one entry */
@@ -537,7 +615,7 @@ PCUT_TEST(cursor_up)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_create(window, &panel);
+	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 0;
@@ -618,7 +696,7 @@ PCUT_TEST(cursor_down)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_create(window, &panel);
+	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 0;
@@ -701,7 +779,7 @@ PCUT_TEST(cursor_top)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_create(window, &panel);
+	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 0;
@@ -762,7 +840,7 @@ PCUT_TEST(cursor_bottom)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_create(window, &panel);
+	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 0;
@@ -824,7 +902,7 @@ PCUT_TEST(page_up)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_create(window, &panel);
+	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 0;
@@ -912,7 +990,7 @@ PCUT_TEST(page_down)
 	rc = ui_window_create(ui, &params, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_create(window, &panel);
+	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 0;

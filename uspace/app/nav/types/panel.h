@@ -74,6 +74,9 @@ typedef struct panel {
 	/** Panel cursor color */
 	gfx_color_t *curs_color;
 
+	/** Active border color */
+	gfx_color_t *act_border_color;
+
 	/** Panel entries (list of panel_entry_t) */
 	list_t entries;
 
@@ -91,6 +94,9 @@ typedef struct panel {
 
 	/** Index of entry under cursor */
 	size_t cursor_idx;
+
+	/** @c true iff the panel is active */
+	bool active;
 } panel_t;
 
 #endif

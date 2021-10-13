@@ -80,8 +80,24 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 	    ((event->mods & KM_ALT) == 0) &&
 	    ((event->mods & KM_SHIFT) == 0) &&
 	    (event->mods & KM_CTRL) != 0) {
-		if (event->key == KC_Q)
+		switch (event->key) {
+		case KC_Q:
 			ui_quit(navigator->ui);
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (event->type == KEY_PRESS &&
+	    ((event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)) {
+		switch (event->key) {
+		case KC_TAB:
+			navigator_switch_panel(navigator);
+			break;
+		default:
+			break;
+		}
 	}
 
 	ui_window_def_kbd(window, event);
@@ -144,7 +160,8 @@ errno_t navigator_create(const char *display_spec,
 	}
 
 	for (i = 0; i < 2; i++) {
-		rc = panel_create(navigator->window, &navigator->panel[i]);
+		rc = panel_create(navigator->window, i == 0,
+		    &navigator->panel[i]);
 		if (rc != EOK)
 			goto error;
 
@@ -216,6 +233,42 @@ errno_t navigator_run(const char *display_spec)
 
 	navigator_destroy(navigator);
 	return EOK;
+}
+
+/** Get the currently active navigator panel.
+ *
+ * @param navigator Navigator
+ * @return Currently active panel
+ */
+panel_t *navigator_get_active_panel(navigator_t *navigator)
+{
+	int i;
+
+	for (i = 0; i < navigator_panels; i++) {
+		if (panel_is_active(navigator->panel[i]))
+			return navigator->panel[i];
+	}
+
+	/* This should not happen */
+	assert(false);
+	return NULL;
+}
+
+/** Switch to another navigator panel.
+ *
+ * Changes the currently active navigator panel to the next panel.
+ *
+ * @param navigator Navigator
+ */
+void navigator_switch_panel(navigator_t *navigator)
+{
+	if (panel_is_active(navigator->panel[0])) {
+		panel_deactivate(navigator->panel[0]);
+		panel_activate(navigator->panel[1]);
+	} else {
+		panel_deactivate(navigator->panel[1]);
+		panel_activate(navigator->panel[0]);
+	}
 }
 
 /** @}
