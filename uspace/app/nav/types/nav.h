@@ -40,6 +40,10 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 
+enum {
+	navigator_panels = 2
+};
+
 /** Navigator */
 typedef struct navigator {
 	/** User interface */
@@ -51,7 +55,7 @@ typedef struct navigator {
 	/** Menu */
 	struct nav_menu *menu;
 	/** Panels */
-	struct panel *panel[2];
+	struct panel *panel[navigator_panels];
 } navigator_t;
 
 #endif

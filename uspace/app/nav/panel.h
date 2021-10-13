@@ -42,9 +42,10 @@
 #include <io/pos_event.h>
 #include <ui/control.h>
 #include <ui/window.h>
+#include <stdbool.h>
 #include "types/panel.h"
 
-extern errno_t panel_create(ui_window_t *, panel_t **);
+extern errno_t panel_create(ui_window_t *, bool, panel_t **);
 extern void panel_destroy(panel_t *);
 extern errno_t panel_entry_paint(panel_entry_t *, size_t);
 extern errno_t panel_paint(panel_t *);
@@ -53,6 +54,9 @@ extern ui_evclaim_t panel_pos_event(panel_t *, pos_event_t *);
 extern ui_control_t *panel_ctl(panel_t *);
 extern void panel_set_rect(panel_t *, gfx_rect_t *);
 extern unsigned panel_page_size(panel_t *);
+extern bool panel_is_active(panel_t *);
+extern void panel_activate(panel_t *);
+extern void panel_deactivate(panel_t *);
 extern errno_t panel_entry_append(panel_t *, const char *, uint64_t);
 extern void panel_entry_delete(panel_entry_t *);
 extern void panel_clear_entries(panel_t *);

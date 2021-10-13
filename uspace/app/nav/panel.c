@@ -62,10 +62,11 @@ ui_control_ops_t panel_ctl_ops = {
 /** Create panel.
  *
  * @param window Containing window
+ * @param active @c true iff panel should be active
  * @param rpanel Place to store pointer to new panel
  * @return EOK on success or an error code
  */
-errno_t panel_create(ui_window_t *window, panel_t **rpanel)
+errno_t panel_create(ui_window_t *window, bool active, panel_t **rpanel)
 {
 	panel_t *panel;
 	errno_t rc;
@@ -89,9 +90,14 @@ errno_t panel_create(ui_window_t *window, panel_t **rpanel)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_ega(0x0f, &panel->act_border_color);
+	if (rc != EOK)
+		goto error;
+
 	panel->window = window;
 	list_initialize(&panel->entries);
 	panel->entries_cnt = 0;
+	panel->active = active;
 	*rpanel = panel;
 	return EOK;
 error:
@@ -112,6 +118,7 @@ void panel_destroy(panel_t *panel)
 {
 	gfx_color_delete(panel->color);
 	gfx_color_delete(panel->curs_color);
+	gfx_color_delete(panel->act_border_color);
 	panel_clear_entries(panel);
 	ui_control_delete(panel->control);
 	free(panel);
@@ -146,7 +153,7 @@ errno_t panel_entry_paint(panel_entry_t *entry, size_t entry_idx)
 	pos.x = panel->rect.p0.x + 1;
 	pos.y = panel->rect.p0.y + 1 + entry_idx - panel->page_idx;
 
-	if (entry == panel->cursor)
+	if (entry == panel->cursor && panel->active)
 		fmt.color = panel->curs_color;
 	else
 		fmt.color = panel->color;
@@ -181,6 +188,8 @@ errno_t panel_paint(panel_t *panel)
 	ui_resource_t *res = ui_window_get_res(panel->window);
 	gfx_text_fmt_t fmt;
 	panel_entry_t *entry;
+	ui_box_style_t bstyle;
+	gfx_color_t *bcolor;
 	int i, lines;
 	errno_t rc;
 
@@ -194,8 +203,15 @@ errno_t panel_paint(panel_t *panel)
 	if (rc != EOK)
 		return rc;
 
-	rc = ui_paint_text_box(res, &panel->rect, ui_box_single,
-	    panel->color);
+	if (panel->active) {
+		bstyle = ui_box_double;
+		bcolor = panel->act_border_color;
+	} else {
+		bstyle = ui_box_single;
+		bcolor = panel->color;
+	}
+
+	rc = ui_paint_text_box(res, &panel->rect, bstyle, bcolor);
 	if (rc != EOK)
 		return rc;
 
@@ -227,6 +243,9 @@ errno_t panel_paint(panel_t *panel)
  */
 ui_evclaim_t panel_kbd_event(panel_t *panel, kbd_event_t *event)
 {
+	if (!panel->active)
+		return ui_unclaimed;
+
 	if (event->type == KEY_PRESS) {
 		if ((event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
 			switch (event->key) {
@@ -254,7 +273,7 @@ ui_evclaim_t panel_kbd_event(panel_t *panel, kbd_event_t *event)
 		}
 	}
 
-	return ui_unclaimed;
+	return ui_claimed;
 }
 
 /** Handle panel position event.
@@ -296,6 +315,36 @@ void panel_set_rect(panel_t *panel, gfx_rect_t *rect)
 unsigned panel_page_size(panel_t *panel)
 {
 	return panel->rect.p1.y - panel->rect.p0.y - 2;
+}
+
+/** Determine if panel is active.
+ *
+ * @param panel Panel
+ * @return @c true iff panel is active
+ */
+bool panel_is_active(panel_t *panel)
+{
+	return panel->active;
+}
+
+/** Activate panel.
+ *
+ * @param panel Panel
+ */
+void panel_activate(panel_t *panel)
+{
+	panel->active = true;
+	(void) panel_paint(panel);
+}
+
+/** Deactivate panel.
+ *
+ * @param panel Panel
+ */
+void panel_deactivate(panel_t *panel)
+{
+	panel->active = false;
+	(void) panel_paint(panel);
 }
 
 /** Destroy panel control.
