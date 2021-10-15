@@ -445,6 +445,80 @@ PCUT_TEST(read_dir)
 	free(fname);
 }
 
+/** panel_sort() sorts panel entries */
+PCUT_TEST(sort)
+{
+	panel_t *panel;
+	panel_entry_t *entry;
+	errno_t rc;
+
+	rc = panel_create(NULL, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "b", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "c", 3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "a", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_sort(panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	entry = panel_first(panel);
+	PCUT_ASSERT_STR_EQUALS("a", entry->name);
+	PCUT_ASSERT_INT_EQUALS(2, entry->size);
+
+	entry = panel_next(entry);
+	PCUT_ASSERT_STR_EQUALS("b", entry->name);
+	PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	entry = panel_next(entry);
+	PCUT_ASSERT_STR_EQUALS("c", entry->name);
+	PCUT_ASSERT_INT_EQUALS(3, entry->size);
+
+	panel_destroy(panel);
+}
+
+/** panel_entry_ptr_cmp compares two indirectly referenced entries */
+PCUT_TEST(entry_ptr_cmp)
+{
+	panel_t *panel;
+	panel_entry_t *a, *b;
+	int rel;
+	errno_t rc;
+
+	rc = panel_create(NULL, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "a", 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_entry_append(panel, "b", 1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	a = panel_first(panel);
+	PCUT_ASSERT_NOT_NULL(a);
+	b = panel_next(a);
+	PCUT_ASSERT_NOT_NULL(b);
+
+	/* a < b */
+	rel = panel_entry_ptr_cmp(&a, &b);
+	PCUT_ASSERT_TRUE(rel < 0);
+
+	/* b > a */
+	rel = panel_entry_ptr_cmp(&b, &a);
+	PCUT_ASSERT_TRUE(rel > 0);
+
+	/* a == a */
+	rel = panel_entry_ptr_cmp(&a, &a);
+	PCUT_ASSERT_INT_EQUALS(0, rel);
+
+	panel_destroy(panel);
+}
+
 /** panel_first() returns valid entry or @c NULL as appropriate */
 PCUT_TEST(first)
 {
