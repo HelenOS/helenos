@@ -57,7 +57,7 @@ extern unsigned panel_page_size(panel_t *);
 extern bool panel_is_active(panel_t *);
 extern void panel_activate(panel_t *);
 extern void panel_deactivate(panel_t *);
-extern errno_t panel_entry_append(panel_t *, const char *, uint64_t);
+extern errno_t panel_entry_append(panel_t *, const char *, uint64_t, bool);
 extern void panel_entry_delete(panel_entry_t *);
 extern void panel_clear_entries(panel_t *);
 extern errno_t panel_read_dir(panel_t *, const char *);
