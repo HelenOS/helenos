@@ -43,6 +43,7 @@
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/resource.h>
+#include <vfs/vfs.h>
 #include <qsort.h>
 #include "panel.h"
 #include "nav.h"
@@ -95,6 +96,10 @@ errno_t panel_create(ui_window_t *window, bool active, panel_t **rpanel)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_ega(0x0f, &panel->dir_color);
+	if (rc != EOK)
+		goto error;
+
 	panel->window = window;
 	list_initialize(&panel->entries);
 	panel->entries_cnt = 0;
@@ -106,6 +111,10 @@ error:
 		gfx_color_delete(panel->color);
 	if (panel->curs_color != NULL)
 		gfx_color_delete(panel->curs_color);
+	if (panel->act_border_color != NULL)
+		gfx_color_delete(panel->act_border_color);
+	if (panel->dir_color != NULL)
+		gfx_color_delete(panel->dir_color);
 	ui_control_delete(panel->control);
 	free(panel);
 	return rc;
@@ -120,6 +129,7 @@ void panel_destroy(panel_t *panel)
 	gfx_color_delete(panel->color);
 	gfx_color_delete(panel->curs_color);
 	gfx_color_delete(panel->act_border_color);
+	gfx_color_delete(panel->dir_color);
 	panel_clear_entries(panel);
 	ui_control_delete(panel->control);
 	free(panel);
@@ -156,6 +166,8 @@ errno_t panel_entry_paint(panel_entry_t *entry, size_t entry_idx)
 
 	if (entry == panel->cursor && panel->active)
 		fmt.color = panel->curs_color;
+	else if (entry->isdir)
+		fmt.color = panel->dir_color;
 	else
 		fmt.color = panel->color;
 
@@ -401,10 +413,12 @@ ui_evclaim_t panel_ctl_pos_event(void *arg, pos_event_t *event)
  *
  * @param panel Panel
  * @param name File name
- * @param size File size;
+ * @param size File size
+ * @param isdir @c true iff the entry is a directory
  * @return EOK on success or an error code
  */
-errno_t panel_entry_append(panel_t *panel, const char *name, uint64_t size)
+errno_t panel_entry_append(panel_t *panel, const char *name, uint64_t size,
+    bool isdir)
 {
 	panel_entry_t *entry;
 
@@ -420,6 +434,7 @@ errno_t panel_entry_append(panel_t *panel, const char *name, uint64_t size)
 	}
 
 	entry->size = size;
+	entry->isdir = isdir;
 	link_initialize(&entry->lentries);
 	list_append(&entry->lentries, &panel->entries);
 	++panel->entries_cnt;
@@ -468,6 +483,7 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 {
 	DIR *dir;
 	struct dirent *dirent;
+	vfs_stat_t finfo;
 	errno_t rc;
 
 	dir = opendir(dirname);
@@ -476,9 +492,15 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 
 	dirent = readdir(dir);
 	while (dirent != NULL) {
-		rc = panel_entry_append(panel, dirent->d_name, 1);
+		rc = vfs_stat_path(dirent->d_name, &finfo);
 		if (rc != EOK)
 			goto error;
+
+		rc = panel_entry_append(panel, dirent->d_name, 1,
+		    finfo.is_directory);
+		if (rc != EOK)
+			goto error;
+
 		dirent = readdir(dir);
 	}
 
@@ -552,6 +574,12 @@ int panel_entry_ptr_cmp(const void *pa, const void *pb)
 {
 	panel_entry_t *a = *(panel_entry_t **)pa;
 	panel_entry_t *b = *(panel_entry_t **)pb;
+	int dcmp;
+
+	/* Sort directories first */
+	dcmp = b->isdir - a->isdir;
+	if (dcmp != 0)
+		return dcmp;
 
 	return str_cmp(a->name, b->name);
 }

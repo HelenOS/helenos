@@ -52,6 +52,8 @@ typedef struct {
 	char *name;
 	/** File size */
 	uint64_t size;
+	/** @c true iff entry is a directory */
+	bool isdir;
 } panel_entry_t;
 
 /** Navigator panel
@@ -76,6 +78,9 @@ typedef struct panel {
 
 	/** Active border color */
 	gfx_color_t *act_border_color;
+
+	/** Directory-type entry color */
+	gfx_color_t *dir_color;
 
 	/** Panel entries (list of panel_entry_t) */
 	list_t entries;
