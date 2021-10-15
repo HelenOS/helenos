@@ -43,6 +43,7 @@
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/resource.h>
+#include <qsort.h>
 #include "panel.h"
 #include "nav.h"
 
@@ -483,6 +484,10 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 
 	closedir(dir);
 
+	rc = panel_sort(panel);
+	if (rc != EOK)
+		goto error;
+
 	panel->cursor = panel_first(panel);
 	panel->cursor_idx = 0;
 	panel->page = panel_first(panel);
@@ -491,6 +496,64 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 error:
 	closedir(dir);
 	return rc;
+}
+
+/** Sort panel entries.
+ *
+ * @param panel Panel
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t panel_sort(panel_t *panel)
+{
+	panel_entry_t **emap;
+	panel_entry_t *entry;
+	size_t i;
+
+	/* Create an array to hold pointer to each entry */
+	emap = calloc(panel->entries_cnt, sizeof(panel_entry_t *));
+	if (emap == NULL)
+		return ENOMEM;
+
+	/* Write entry pointers to array */
+	entry = panel_first(panel);
+	i = 0;
+	while (entry != NULL) {
+		assert(i < panel->entries_cnt);
+		emap[i++] = entry;
+		entry = panel_next(entry);
+	}
+
+	/* Sort the array of pointers */
+	qsort(emap, panel->entries_cnt, sizeof(panel_entry_t *),
+	    panel_entry_ptr_cmp);
+
+	/* Unlink entries from entry list */
+	entry = panel_first(panel);
+	while (entry != NULL) {
+		list_remove(&entry->lentries);
+		entry = panel_first(panel);
+	}
+
+	/* Add entries back to entry list sorted */
+	for (i = 0; i < panel->entries_cnt; i++)
+		list_append(&emap[i]->lentries, &panel->entries);
+
+	free(emap);
+	return EOK;
+}
+
+/** Compare two panel entries indirectly referenced by pointers.
+ *
+ * @param pa Pointer to pointer to first entry
+ * @param pb Pointer to pointer to second entry
+ * @return <0, =0, >=0 if pa < b, pa == pb, pa > pb, resp.
+ */
+int panel_entry_ptr_cmp(const void *pa, const void *pb)
+{
+	panel_entry_t *a = *(panel_entry_t **)pa;
+	panel_entry_t *b = *(panel_entry_t **)pb;
+
+	return str_cmp(a->name, b->name);
 }
 
 /** Return first panel entry.

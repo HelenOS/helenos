@@ -61,6 +61,8 @@ extern errno_t panel_entry_append(panel_t *, const char *, uint64_t);
 extern void panel_entry_delete(panel_entry_t *);
 extern void panel_clear_entries(panel_t *);
 extern errno_t panel_read_dir(panel_t *, const char *);
+extern errno_t panel_sort(panel_t *);
+extern int panel_entry_ptr_cmp(const void *, const void *);
 extern panel_entry_t *panel_first(panel_t *);
 extern panel_entry_t *panel_last(panel_t *);
 extern panel_entry_t *panel_next(panel_entry_t *);
