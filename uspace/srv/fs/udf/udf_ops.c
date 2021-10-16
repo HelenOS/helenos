@@ -103,10 +103,6 @@ static errno_t udf_root_get(fs_node_t **rfn, service_id_t service_id)
 
 static service_id_t udf_service_get(fs_node_t *node)
 {
-	udf_node_t *udfn = UDF_NODE(node);
-	if (udfn)
-		return udfn->instance->service_id;
-
 	return 0;
 }
 

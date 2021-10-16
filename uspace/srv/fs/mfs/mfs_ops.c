@@ -391,8 +391,7 @@ mfs_unmounted(service_id_t service_id)
 service_id_t
 mfs_service_get(fs_node_t *fsnode)
 {
-	struct mfs_node *node = fsnode->data;
-	return node->instance->service_id;
+	return 0;
 }
 
 static errno_t

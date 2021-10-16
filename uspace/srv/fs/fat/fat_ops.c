@@ -838,7 +838,7 @@ bool fat_is_file(fs_node_t *fn)
 
 service_id_t fat_service_get(fs_node_t *fn)
 {
-	return FAT_NODE(fn)->idx->service_id;
+	return 0;
 }
 
 errno_t fat_size_block(service_id_t service_id, uint32_t *size)
