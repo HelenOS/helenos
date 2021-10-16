@@ -100,6 +100,10 @@ errno_t panel_create(ui_window_t *window, bool active, panel_t **rpanel)
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_ega(0x0a, &panel->svc_color);
+	if (rc != EOK)
+		goto error;
+
 	panel->window = window;
 	list_initialize(&panel->entries);
 	panel->entries_cnt = 0;
@@ -115,6 +119,8 @@ error:
 		gfx_color_delete(panel->act_border_color);
 	if (panel->dir_color != NULL)
 		gfx_color_delete(panel->dir_color);
+	if (panel->svc_color != NULL)
+		gfx_color_delete(panel->svc_color);
 	ui_control_delete(panel->control);
 	free(panel);
 	return rc;
@@ -130,6 +136,7 @@ void panel_destroy(panel_t *panel)
 	gfx_color_delete(panel->curs_color);
 	gfx_color_delete(panel->act_border_color);
 	gfx_color_delete(panel->dir_color);
+	gfx_color_delete(panel->svc_color);
 	panel_clear_entries(panel);
 	ui_control_delete(panel->control);
 	free(panel);
@@ -168,6 +175,8 @@ errno_t panel_entry_paint(panel_entry_t *entry, size_t entry_idx)
 		fmt.color = panel->curs_color;
 	else if (entry->isdir)
 		fmt.color = panel->dir_color;
+	else if (entry->svc != 0)
+		fmt.color = panel->svc_color;
 	else
 		fmt.color = panel->color;
 
@@ -374,6 +383,15 @@ void panel_deactivate(panel_t *panel)
 	(void) panel_paint(panel);
 }
 
+/** Initialize panel entry attributes.
+ *
+ * @param attr Attributes
+ */
+void panel_entry_attr_init(panel_entry_attr_t *attr)
+{
+	memset(attr, 0, sizeof(*attr));
+}
+
 /** Destroy panel control.
  *
  * @param arg Argument (panel_t *)
@@ -426,13 +444,10 @@ ui_evclaim_t panel_ctl_pos_event(void *arg, pos_event_t *event)
 /** Append new panel entry.
  *
  * @param panel Panel
- * @param name File name
- * @param size File size
- * @param isdir @c true iff the entry is a directory
+ * @param attr Entry attributes
  * @return EOK on success or an error code
  */
-errno_t panel_entry_append(panel_t *panel, const char *name, uint64_t size,
-    bool isdir)
+errno_t panel_entry_append(panel_t *panel, panel_entry_attr_t *attr)
 {
 	panel_entry_t *entry;
 
@@ -441,14 +456,15 @@ errno_t panel_entry_append(panel_t *panel, const char *name, uint64_t size,
 		return ENOMEM;
 
 	entry->panel = panel;
-	entry->name = str_dup(name);
+	entry->name = str_dup(attr->name);
 	if (entry->name == NULL) {
 		free(entry);
 		return ENOMEM;
 	}
 
-	entry->size = size;
-	entry->isdir = isdir;
+	entry->size = attr->size;
+	entry->isdir = attr->isdir;
+	entry->svc = attr->svc;
 	link_initialize(&entry->lentries);
 	list_append(&entry->lentries, &panel->entries);
 	++panel->entries_cnt;
@@ -468,7 +484,7 @@ void panel_entry_delete(panel_entry_t *entry)
 
 	list_remove(&entry->lentries);
 	--entry->panel->entries_cnt;
-	free(entry->name);
+	free((char *) entry->name);
 	free(entry);
 }
 
@@ -500,6 +516,7 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	vfs_stat_t finfo;
 	char newdir[256];
 	char *ndir = NULL;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = vfs_cwd_set(dirname);
@@ -522,7 +539,11 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 
 	if (str_cmp(ndir, "/") != 0) {
 		/* Need to add a synthetic up-dir entry */
-		rc = panel_entry_append(panel, "..", 0, true);
+		panel_entry_attr_init(&attr);
+		attr.name = "..";
+		attr.isdir = true;
+
+		rc = panel_entry_append(panel, &attr);
 		if (rc != EOK)
 			goto error;
 	}
@@ -536,8 +557,13 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 			continue;
 		}
 
-		rc = panel_entry_append(panel, dirent->d_name, finfo.size,
-		    finfo.is_directory);
+		panel_entry_attr_init(&attr);
+		attr.name = dirent->d_name;
+		attr.size = finfo.size;
+		attr.isdir = finfo.is_directory;
+		attr.svc = finfo.service;
+
+		rc = panel_entry_append(panel, &attr);
 		if (rc != EOK)
 			goto error;
 
