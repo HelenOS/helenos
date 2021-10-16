@@ -142,7 +142,7 @@ PCUT_TEST(kbd_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	event.type = KEY_PRESS;
-	event.key = KC_ENTER;
+	event.key = KC_ESCAPE;
 	event.mods = 0;
 	event.c = '\0';
 
@@ -157,7 +157,7 @@ PCUT_TEST(kbd_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	event.type = KEY_PRESS;
-	event.key = KC_ENTER;
+	event.key = KC_ESCAPE;
 	event.mods = 0;
 	event.c = '\0';
 
@@ -276,7 +276,8 @@ PCUT_TEST(activate)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(panel_is_active(panel));
-	panel_activate(panel);
+	rc = panel_activate(panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_TRUE(panel_is_active(panel));
 
 	panel_destroy(panel);
@@ -428,12 +429,16 @@ PCUT_TEST(read_dir)
 	rc = panel_read_dir(panel, p);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_INT_EQUALS(1, list_count(&panel->entries));
+	PCUT_ASSERT_INT_EQUALS(2, list_count(&panel->entries));
 
 	entry = panel_first(panel);
 	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("..", entry->name);
+
+	entry = panel_next(entry);
+	PCUT_ASSERT_NOT_NULL(entry);
 	PCUT_ASSERT_STR_EQUALS("a", entry->name);
-	// PCUT_ASSERT_INT_EQUALS(1, entry->size);
+	PCUT_ASSERT_INT_EQUALS(1, entry->size);
 
 	panel_destroy(panel);
 
@@ -1133,6 +1138,80 @@ PCUT_TEST(page_down)
 	panel_destroy(panel);
 	ui_window_destroy(window);
 	ui_destroy(ui);
+}
+
+/** panel_open() opens a directory entry */
+PCUT_TEST(open)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	panel_t *panel;
+	panel_entry_t *entry;
+	char buf[L_tmpnam];
+	char *sdname;
+	char *p;
+	errno_t rc;
+	int rv;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Create name for temporary directory */
+	p = tmpnam(buf);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Create temporary directory */
+	rc = vfs_link_path(p, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rv = asprintf(&sdname, "%s/%s", p, "a");
+	PCUT_ASSERT_TRUE(rv >= 0);
+
+	/* Create sub-directory */
+	rc = vfs_link_path(sdname, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_read_dir(panel, p);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS(p, panel->dir);
+
+	PCUT_ASSERT_INT_EQUALS(2, list_count(&panel->entries));
+
+	entry = panel_first(panel);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("..", entry->name);
+
+	entry = panel_next(entry);
+	PCUT_ASSERT_NOT_NULL(entry);
+	PCUT_ASSERT_STR_EQUALS("a", entry->name);
+	PCUT_ASSERT_TRUE(entry->isdir);
+
+	rc = panel_open(panel, entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS(sdname, panel->dir);
+
+	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+
+	rv = remove(sdname);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(p);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	free(sdname);
 }
 
 PCUT_EXPORT(panel);
