@@ -58,6 +58,7 @@ PCUT_TEST(entry_paint)
 	ui_window_t *window;
 	ui_wnd_params_t params;
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = ui_create_disp(NULL, &ui);
@@ -72,7 +73,11 @@ PCUT_TEST(entry_paint)
 	rc = panel_create(window, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "a", 1, false);
+	panel_entry_attr_init(&attr);
+	attr.name = "a";
+	attr.size = 1;
+
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = panel_entry_paint(panel_first(panel), 0);
@@ -319,17 +324,24 @@ PCUT_TEST(deactivate)
 PCUT_TEST(entry_append)
 {
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "a", 1, false);
+	panel_entry_attr_init(&attr);
+
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_INT_EQUALS(1, list_count(&panel->entries));
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_INT_EQUALS(2, list_count(&panel->entries));
@@ -342,15 +354,20 @@ PCUT_TEST(entry_delete)
 {
 	panel_t *panel;
 	panel_entry_t *entry;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "a", 1, false);
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_INT_EQUALS(2, list_count(&panel->entries));
@@ -372,15 +389,21 @@ PCUT_TEST(entry_delete)
 PCUT_TEST(clear_entries)
 {
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "a", 1, false);
+	panel_entry_attr_init(&attr);
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "a";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_INT_EQUALS(2, list_count(&panel->entries));
@@ -455,18 +478,27 @@ PCUT_TEST(sort)
 {
 	panel_t *panel;
 	panel_entry_t *entry;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 1, false);
+	panel_entry_attr_init(&attr);
+
+	attr.name = "b";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "c", 3, false);
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "a", 2, false);
+	attr.name = "a";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = panel_sort(panel);
@@ -492,16 +524,23 @@ PCUT_TEST(entry_ptr_cmp)
 {
 	panel_t *panel;
 	panel_entry_t *a, *b;
+	panel_entry_attr_t attr;
 	int rel;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "a", 2, false);
+	panel_entry_attr_init(&attr);
+
+	attr.name = "a";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 1, false);
+	attr.name = "b";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	a = panel_first(panel);
@@ -529,16 +568,21 @@ PCUT_TEST(first)
 {
 	panel_t *panel;
 	panel_entry_t *entry;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	panel_entry_attr_init(&attr);
+
 	entry = panel_first(panel);
 	PCUT_ASSERT_NULL(entry);
 
 	/* Add one entry */
-	rc = panel_entry_append(panel, "a", 1, false);
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Now try getting it */
@@ -548,7 +592,9 @@ PCUT_TEST(first)
 	PCUT_ASSERT_INT_EQUALS(1, entry->size);
 
 	/* Add another entry */
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size= 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* We should still get the first entry */
@@ -565,16 +611,21 @@ PCUT_TEST(last)
 {
 	panel_t *panel;
 	panel_entry_t *entry;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	panel_entry_attr_init(&attr);
+
 	entry = panel_last(panel);
 	PCUT_ASSERT_NULL(entry);
 
 	/* Add one entry */
-	rc = panel_entry_append(panel, "a", 1, false);
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Now try getting it */
@@ -584,12 +635,16 @@ PCUT_TEST(last)
 	PCUT_ASSERT_INT_EQUALS(1, entry->size);
 
 	/* Add another entry */
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* We should get new entry now */
 	entry = panel_last(panel);
 	PCUT_ASSERT_NOT_NULL(entry);
+	attr.name = "b";
+	attr.size = 2;
 	PCUT_ASSERT_STR_EQUALS("b", entry->name);
 	PCUT_ASSERT_INT_EQUALS(2, entry->size);
 
@@ -601,13 +656,18 @@ PCUT_TEST(next)
 {
 	panel_t *panel;
 	panel_entry_t *entry;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	panel_entry_attr_init(&attr);
+
 	/* Add one entry */
-	rc = panel_entry_append(panel, "a", 1, false);
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Now try getting its successor */
@@ -618,7 +678,9 @@ PCUT_TEST(next)
 	PCUT_ASSERT_NULL(entry);
 
 	/* Add another entry */
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Try getting the successor of first entry again */
@@ -638,13 +700,18 @@ PCUT_TEST(prev)
 {
 	panel_t *panel;
 	panel_entry_t *entry;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	panel_entry_attr_init(&attr);
+
 	/* Add one entry */
-	rc = panel_entry_append(panel, "a", 1, false);
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Now try getting its predecessor */
@@ -655,7 +722,9 @@ PCUT_TEST(prev)
 	PCUT_ASSERT_NULL(entry);
 
 	/* Add another entry */
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Try getting the predecessor of the new entry */
@@ -682,6 +751,7 @@ PCUT_TEST(cursor_up)
 	ui_window_t *window;
 	ui_wnd_params_t params;
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	gfx_rect_t rect;
 	errno_t rc;
 
@@ -706,13 +776,22 @@ PCUT_TEST(cursor_up)
 	PCUT_ASSERT_INT_EQUALS(2, panel_page_size(panel));
 
 	/* Add tree entries (more than page size, which is 2) */
-	rc = panel_entry_append(panel, "a", 1, false);
+
+	panel_entry_attr_init(&attr);
+
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "c", 3, false);
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Cursor to the last entry and page start to the next-to-last entry */
@@ -763,6 +842,7 @@ PCUT_TEST(cursor_down)
 	ui_window_t *window;
 	ui_wnd_params_t params;
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	gfx_rect_t rect;
 	errno_t rc;
 
@@ -787,13 +867,22 @@ PCUT_TEST(cursor_down)
 	PCUT_ASSERT_INT_EQUALS(2, panel_page_size(panel));
 
 	/* Add tree entries (more than page size, which is 2) */
-	rc = panel_entry_append(panel, "a", 1, false);
+
+	panel_entry_attr_init(&attr);
+
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "c", 3, false);
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Cursor and page start to the first entry */
@@ -846,6 +935,7 @@ PCUT_TEST(cursor_top)
 	ui_window_t *window;
 	ui_wnd_params_t params;
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	gfx_rect_t rect;
 	errno_t rc;
 
@@ -870,13 +960,22 @@ PCUT_TEST(cursor_top)
 	PCUT_ASSERT_INT_EQUALS(2, panel_page_size(panel));
 
 	/* Add tree entries (more than page size, which is 2) */
-	rc = panel_entry_append(panel, "a", 1, false);
+
+	panel_entry_attr_init(&attr);
+
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "c", 3, false);
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Cursor to the last entry and page start to the next-to-last entry */
@@ -907,6 +1006,7 @@ PCUT_TEST(cursor_bottom)
 	ui_window_t *window;
 	ui_wnd_params_t params;
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	gfx_rect_t rect;
 	errno_t rc;
 
@@ -931,13 +1031,22 @@ PCUT_TEST(cursor_bottom)
 	PCUT_ASSERT_INT_EQUALS(2, panel_page_size(panel));
 
 	/* Add tree entries (more than page size, which is 2) */
-	rc = panel_entry_append(panel, "a", 1, false);
+
+	panel_entry_attr_init(&attr);
+
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "c", 3, false);
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Cursor and page start to the first entry */
@@ -969,6 +1078,7 @@ PCUT_TEST(page_up)
 	ui_window_t *window;
 	ui_wnd_params_t params;
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	gfx_rect_t rect;
 	errno_t rc;
 
@@ -993,19 +1103,32 @@ PCUT_TEST(page_up)
 	PCUT_ASSERT_INT_EQUALS(2, panel_page_size(panel));
 
 	/* Add five entries (2 full pages, one partial) */
-	rc = panel_entry_append(panel, "a", 1, false);
+
+	panel_entry_attr_init(&attr);
+
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "c", 3, false);
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "d", 4, false);
+	attr.name = "d";
+	attr.size = 4;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "e", 5, false);
+	attr.name = "e";
+	attr.size = 5;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Cursor to the last entry and page start to the next-to-last entry */
@@ -1057,6 +1180,7 @@ PCUT_TEST(page_down)
 	ui_window_t *window;
 	ui_wnd_params_t params;
 	panel_t *panel;
+	panel_entry_attr_t attr;
 	gfx_rect_t rect;
 	errno_t rc;
 
@@ -1081,19 +1205,32 @@ PCUT_TEST(page_down)
 	PCUT_ASSERT_INT_EQUALS(2, panel_page_size(panel));
 
 	/* Add five entries (2 full pages, one partial) */
-	rc = panel_entry_append(panel, "a", 1, false);
+
+	panel_entry_attr_init(&attr);
+
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "b", 2, false);
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "c", 3, false);
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "d", 4, false);
+	attr.name = "d";
+	attr.size = 4;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = panel_entry_append(panel, "e", 5, false);
+	attr.name = "e";
+	attr.size = 5;
+	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Cursor and page to the first entry */

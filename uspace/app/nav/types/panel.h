@@ -39,8 +39,21 @@
 #include <adt/list.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
+#include <ipc/loc.h>
 #include <ui/window.h>
 #include <stdint.h>
+
+/** Panel entry attributes */
+typedef struct {
+	/** File name */
+	const char *name;
+	/** File size */
+	uint64_t size;
+	/** @c true iff entry is a directory */
+	bool isdir;
+	/** Service number for service special entries */
+	service_id_t svc;
+} panel_entry_attr_t;
 
 /** Panel entry */
 typedef struct {
@@ -54,6 +67,8 @@ typedef struct {
 	uint64_t size;
 	/** @c true iff entry is a directory */
 	bool isdir;
+	/** Service number for service special entries */
+	service_id_t svc;
 } panel_entry_t;
 
 /** Navigator panel
@@ -81,6 +96,9 @@ typedef struct panel {
 
 	/** Directory-type entry color */
 	gfx_color_t *dir_color;
+
+	/** Service-type entry color */
+	gfx_color_t *svc_color;
 
 	/** Panel entries (list of panel_entry_t) */
 	list_t entries;
