@@ -76,6 +76,8 @@ extern void panel_cursor_bottom(panel_t *);
 extern void panel_page_up(panel_t *);
 extern void panel_page_down(panel_t *);
 extern errno_t panel_open(panel_t *, panel_entry_t *);
+extern errno_t panel_open_dir(panel_t *, panel_entry_t *);
+extern errno_t panel_open_file(panel_t *, panel_entry_t *);
 
 #endif
 
