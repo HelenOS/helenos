@@ -262,12 +262,18 @@ panel_t *navigator_get_active_panel(navigator_t *navigator)
  */
 void navigator_switch_panel(navigator_t *navigator)
 {
+	errno_t rc;
+
 	if (panel_is_active(navigator->panel[0])) {
+		rc = panel_activate(navigator->panel[1]);
+		if (rc != EOK)
+			return;
 		panel_deactivate(navigator->panel[0]);
-		panel_activate(navigator->panel[1]);
 	} else {
+		rc = panel_activate(navigator->panel[0]);
+		if (rc != EOK)
+			return;
 		panel_deactivate(navigator->panel[1]);
-		panel_activate(navigator->panel[0]);
 	}
 }
 

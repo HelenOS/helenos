@@ -102,6 +102,9 @@ typedef struct panel {
 
 	/** @c true iff the panel is active */
 	bool active;
+
+	/** Directory */
+	char *dir;
 } panel_t;
 
 #endif

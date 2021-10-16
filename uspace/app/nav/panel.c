@@ -280,6 +280,9 @@ ui_evclaim_t panel_kbd_event(panel_t *panel, kbd_event_t *event)
 			case KC_PAGE_DOWN:
 				panel_page_down(panel);
 				break;
+			case KC_ENTER:
+				panel_open(panel, panel->cursor);
+				break;
 			default:
 				break;
 			}
@@ -343,11 +346,22 @@ bool panel_is_active(panel_t *panel)
 /** Activate panel.
  *
  * @param panel Panel
+ *
+ * @return EOK on success or an error code
  */
-void panel_activate(panel_t *panel)
+errno_t panel_activate(panel_t *panel)
 {
+	errno_t rc;
+
+	if (panel->dir != NULL) {
+		rc = vfs_cwd_set(panel->dir);
+		if (rc != EOK)
+			return rc;
+	}
+
 	panel->active = true;
 	(void) panel_paint(panel);
+	return EOK;
 }
 
 /** Deactivate panel.
@@ -484,19 +498,45 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	DIR *dir;
 	struct dirent *dirent;
 	vfs_stat_t finfo;
+	char newdir[256];
+	char *ndir = NULL;
 	errno_t rc;
 
-	dir = opendir(dirname);
-	if (dir == NULL)
-		return errno;
+	rc = vfs_cwd_set(dirname);
+	if (rc != EOK)
+		return rc;
+
+	rc = vfs_cwd_get(newdir, sizeof(newdir));
+	if (rc != EOK)
+		return rc;
+
+	ndir = str_dup(newdir);
+	if (ndir == NULL)
+		return ENOMEM;
+
+	dir = opendir(".");
+	if (dir == NULL) {
+		rc = errno;
+		goto error;
+	}
+
+	if (str_cmp(ndir, "/") != 0) {
+		/* Need to add a synthetic up-dir entry */
+		rc = panel_entry_append(panel, "..", 0, true);
+		if (rc != EOK)
+			goto error;
+	}
 
 	dirent = readdir(dir);
 	while (dirent != NULL) {
 		rc = vfs_stat_path(dirent->d_name, &finfo);
-		if (rc != EOK)
-			goto error;
+		if (rc != EOK) {
+			/* Possibly a stale entry */
+			dirent = readdir(dir);
+			continue;
+		}
 
-		rc = panel_entry_append(panel, dirent->d_name, 1,
+		rc = panel_entry_append(panel, dirent->d_name, finfo.size,
 		    finfo.is_directory);
 		if (rc != EOK)
 			goto error;
@@ -514,9 +554,15 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	panel->cursor_idx = 0;
 	panel->page = panel_first(panel);
 	panel->page_idx = 0;
+	free(panel->dir);
+	panel->dir = ndir;
 	return EOK;
 error:
-	closedir(dir);
+	(void) vfs_cwd_set(panel->dir);
+	if (ndir != NULL)
+		free(ndir);
+	if (dir != NULL)
+		closedir(dir);
 	return rc;
 }
 
@@ -867,6 +913,43 @@ void panel_page_down(panel_t *panel)
 
 		(void) gfx_update(gc);
 	}
+}
+
+/** Open panel entry.
+ *
+ * Perform Open action on a panel entry (e.g. switch to a subdirectory).
+ *
+ * @param panel Panel
+ * @param entry Panel entry
+ *
+ * @return EOK on success or an error code
+ */
+errno_t panel_open(panel_t *panel, panel_entry_t *entry)
+{
+	gfx_context_t *gc = ui_window_get_gc(panel->window);
+	char *dirname;
+	errno_t rc;
+
+	if (!entry->isdir)
+		return EOK;
+
+	dirname = str_dup(entry->name);
+	panel_clear_entries(panel);
+
+	rc = panel_read_dir(panel, dirname);
+	if (rc != EOK) {
+		free(dirname);
+		return rc;
+	}
+
+	rc = panel_paint(panel);
+	if (rc != EOK) {
+		free(dirname);
+		return rc;
+	}
+
+	free(dirname);
+	return gfx_update(gc);
 }
 
 /** @}

@@ -55,7 +55,7 @@ extern ui_control_t *panel_ctl(panel_t *);
 extern void panel_set_rect(panel_t *, gfx_rect_t *);
 extern unsigned panel_page_size(panel_t *);
 extern bool panel_is_active(panel_t *);
-extern void panel_activate(panel_t *);
+extern errno_t panel_activate(panel_t *);
 extern void panel_deactivate(panel_t *);
 extern errno_t panel_entry_append(panel_t *, const char *, uint64_t, bool);
 extern void panel_entry_delete(panel_entry_t *);
@@ -74,6 +74,7 @@ extern void panel_cursor_top(panel_t *);
 extern void panel_cursor_bottom(panel_t *);
 extern void panel_page_up(panel_t *);
 extern void panel_page_down(panel_t *);
+extern errno_t panel_open(panel_t *, panel_entry_t *);
 
 #endif
 
