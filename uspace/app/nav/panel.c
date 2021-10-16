@@ -40,6 +40,7 @@
 #include <gfx/text.h>
 #include <stdlib.h>
 #include <str.h>
+#include <task.h>
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/resource.h>
@@ -952,30 +953,75 @@ void panel_page_down(panel_t *panel)
  */
 errno_t panel_open(panel_t *panel, panel_entry_t *entry)
 {
+	if (entry->isdir)
+		return panel_open_dir(panel, entry);
+	else if (entry->svc == 0)
+		return panel_open_file(panel, entry);
+	else
+		return EOK;
+}
+
+/** Open panel directory entry.
+ *
+ * Perform Open action on a directory entry (i.e. switch to the directory).
+ *
+ * @param panel Panel
+ * @param entry Panel entry (which is a directory)
+ *
+ * @return EOK on success or an error code
+ */
+errno_t panel_open_dir(panel_t *panel, panel_entry_t *entry)
+{
 	gfx_context_t *gc = ui_window_get_gc(panel->window);
-	char *dirname;
 	errno_t rc;
 
-	if (!entry->isdir)
-		return EOK;
+	assert(entry->isdir);
 
-	dirname = str_dup(entry->name);
 	panel_clear_entries(panel);
 
-	rc = panel_read_dir(panel, dirname);
-	if (rc != EOK) {
-		free(dirname);
+	rc = panel_read_dir(panel, entry->name);
+	if (rc != EOK)
 		return rc;
-	}
 
 	rc = panel_paint(panel);
-	if (rc != EOK) {
-		free(dirname);
+	if (rc != EOK)
 		return rc;
-	}
 
-	free(dirname);
 	return gfx_update(gc);
+}
+
+/** Open panel file entry.
+ *
+ * Perform Open action on a file entry (i.e. try running it).
+ *
+ * @param panel Panel
+ * @param entry Panel entry (which is a file)
+ *
+ * @return EOK on success or an error code
+ */
+errno_t panel_open_file(panel_t *panel, panel_entry_t *entry)
+{
+	task_id_t id;
+	task_wait_t wait;
+	task_exit_t texit;
+	int retval;
+	errno_t rc;
+
+	/* It's not a directory */
+	assert(!entry->isdir);
+	/* It's not a service-special file */
+	assert(entry->svc == 0);
+
+	rc = task_spawnl(&id, &wait, entry->name, entry->name, NULL);
+	if (rc != EOK)
+		return rc;
+
+	rc = task_wait(&wait, &texit, &retval);
+	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL))
+		return rc;
+
+	(void) ui_paint(ui_window_get_ui(panel->window));
+	return EOK;
 }
 
 /** @}
