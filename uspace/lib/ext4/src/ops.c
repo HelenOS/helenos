@@ -809,17 +809,16 @@ bool ext4_is_file(fs_node_t *fn)
 	    EXT4_INODE_MODE_FILE);
 }
 
-/** Extract device identifier from node.
+/** Get service ID for a service-special file.
  *
  * @param node Node to extract id from
  *
- * @return id of device, where is the filesystem
+ * @return Service ID for a service-special file, zero for a regular file.
  *
  */
 service_id_t ext4_service_get(fs_node_t *fn)
 {
-	ext4_node_t *enode = EXT4_NODE(fn);
-	return enode->instance->service_id;
+	return 0;
 }
 
 errno_t ext4_size_block(service_id_t service_id, uint32_t *size)
