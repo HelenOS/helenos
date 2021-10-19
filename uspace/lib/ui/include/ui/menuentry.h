@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <gfx/coord.h>
+#include <io/pos_event.h>
 #include <types/ui/menu.h>
 #include <types/ui/menuentry.h>
 #include <types/ui/event.h>
