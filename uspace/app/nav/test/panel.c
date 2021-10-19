@@ -470,7 +470,81 @@ PCUT_TEST(read_dir)
 
 	rv = remove(p);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
+
 	free(fname);
+}
+
+/** When moving to parent directory from a subdir, we seek to the
+ * coresponding entry
+ */
+PCUT_TEST(read_dir_up)
+{
+	panel_t *panel;
+	char buf[L_tmpnam];
+	char *subdir_a;
+	char *subdir_b;
+	char *subdir_c;
+	char *p;
+	errno_t rc;
+	int rv;
+
+	/* Create name for temporary directory */
+	p = tmpnam(buf);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	/* Create temporary directory */
+	rc = vfs_link_path(p, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Create some subdirectories */
+
+	rv = asprintf(&subdir_a, "%s/%s", p, "a");
+	PCUT_ASSERT_TRUE(rv >= 0);
+	rc = vfs_link_path(subdir_a, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rv = asprintf(&subdir_b, "%s/%s", p, "b");
+	PCUT_ASSERT_TRUE(rv >= 0);
+	rc = vfs_link_path(subdir_b, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rv = asprintf(&subdir_c, "%s/%s", p, "c");
+	PCUT_ASSERT_TRUE(rv >= 0);
+	rc = vfs_link_path(subdir_c, KIND_DIRECTORY, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(NULL, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Start in subdirectory "b" */
+	rc = panel_read_dir(panel, subdir_b);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Now go up (into p) */
+
+	rc = panel_read_dir(panel, "..");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_NOT_NULL(panel->cursor);
+	PCUT_ASSERT_STR_EQUALS("b", panel->cursor->name);
+
+	panel_destroy(panel);
+
+	rv = remove(subdir_a);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(subdir_b);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(subdir_c);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	rv = remove(p);
+	PCUT_ASSERT_INT_EQUALS(0, rv);
+
+	free(subdir_a);
+	free(subdir_b);
+	free(subdir_c);
 }
 
 /** panel_sort() sorts panel entries */
@@ -593,7 +667,7 @@ PCUT_TEST(first)
 
 	/* Add another entry */
 	attr.name = "b";
-	attr.size= 2;
+	attr.size = 2;
 	rc = panel_entry_append(panel, &attr);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
