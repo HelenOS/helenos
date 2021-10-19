@@ -518,6 +518,11 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	char newdir[256];
 	char *ndir = NULL;
 	panel_entry_attr_t attr;
+	panel_entry_t *next;
+	panel_entry_t *prev;
+	char *olddn;
+	size_t pg_size;
+	size_t i;
 	errno_t rc;
 
 	rc = vfs_cwd_set(dirname);
@@ -581,8 +586,42 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	panel->cursor_idx = 0;
 	panel->page = panel_first(panel);
 	panel->page_idx = 0;
+
+	/* Moving up? */
+	if (str_cmp(dirname, "..") == 0) {
+		/* Get the last component of old path */
+		olddn = str_rchr(panel->dir, '/');
+		if (olddn != NULL && *olddn != '\0') {
+			/* Find corresponding entry */
+			++olddn;
+			next = panel_next(panel->cursor);
+			while (next != NULL && str_cmp(next->name, olddn) <= 0 &&
+			    next->isdir) {
+				panel->cursor = next;
+				++panel->cursor_idx;
+				next = panel_next(panel->cursor);
+			}
+
+			/* Move page so that cursor is in the center */
+			panel->page = panel->cursor;
+			panel->page_idx = panel->cursor_idx;
+
+			pg_size = panel_page_size(panel);
+
+			for (i = 0; i < pg_size / 2; i++) {
+				prev = panel_prev(panel->page);
+				if (prev == NULL)
+					break;
+
+				panel->page = prev;
+				--panel->page_idx;
+			}
+		}
+	}
+
 	free(panel->dir);
 	panel->dir = ndir;
+
 	return EOK;
 error:
 	(void) vfs_cwd_set(panel->dir);
@@ -973,15 +1012,28 @@ errno_t panel_open(panel_t *panel, panel_entry_t *entry)
 errno_t panel_open_dir(panel_t *panel, panel_entry_t *entry)
 {
 	gfx_context_t *gc = ui_window_get_gc(panel->window);
+	char *dirname;
 	errno_t rc;
 
 	assert(entry->isdir);
 
+	/*
+	 * Need to copy out name before we free the entry below
+	 * via panel_clear_entries().
+	 */
+	dirname = str_dup(entry->name);
+	if (dirname == NULL)
+		return ENOMEM;
+
 	panel_clear_entries(panel);
 
-	rc = panel_read_dir(panel, entry->name);
-	if (rc != EOK)
+	rc = panel_read_dir(panel, dirname);
+	if (rc != EOK) {
+		free(dirname);
 		return rc;
+	}
+
+	free(dirname);
 
 	rc = panel_paint(panel);
 	if (rc != EOK)
