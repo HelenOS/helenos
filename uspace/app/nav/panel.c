@@ -522,6 +522,7 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 	panel_entry_t *prev;
 	char *olddn;
 	size_t pg_size;
+	size_t max_idx;
 	size_t i;
 	errno_t rc;
 
@@ -609,6 +610,21 @@ errno_t panel_read_dir(panel_t *panel, const char *dirname)
 			pg_size = panel_page_size(panel);
 
 			for (i = 0; i < pg_size / 2; i++) {
+				prev = panel_prev(panel->page);
+				if (prev == NULL)
+					break;
+
+				panel->page = prev;
+				--panel->page_idx;
+			}
+
+			/* Make sure page is not beyond the end if possible */
+			if (panel->entries_cnt > pg_size)
+				max_idx = panel->entries_cnt - pg_size;
+			else
+				max_idx = 0;
+
+			while (panel->page_idx > 0 && panel->page_idx > max_idx) {
 				prev = panel_prev(panel->page);
 				if (prev == NULL)
 					break;
@@ -947,7 +963,11 @@ void panel_page_down(panel_t *panel)
 	old_page = panel->page;
 	old_cursor = panel->cursor;
 	old_idx = panel->cursor_idx;
-	max_idx = panel->entries_cnt - rows;
+
+	if (panel->entries_cnt > rows)
+		max_idx = panel->entries_cnt - rows;
+	else
+		max_idx = 0;
 
 	/* Move page by rows entries down (if possible) */
 	for (i = 0; i < rows; i++) {
