@@ -42,8 +42,6 @@
 #include "menu.h"
 #include "nav.h"
 
-static void nav_file_exit(ui_menu_entry_t *, void *);
-
 /** Create navigator menu.
  *
  * @param window Navigator window
@@ -54,6 +52,8 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 {
 	nav_menu_t *menu;
 	ui_menu_t *mfile;
+	ui_menu_entry_t *mopen;
+	ui_menu_entry_t *mfsep;
 	ui_menu_entry_t *mexit;
 	gfx_rect_t arect;
 	gfx_rect_t rect;
@@ -75,11 +75,21 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	if (rc != EOK)
 		goto error;
 
+	rc = ui_menu_entry_create(mfile, "Open", "Enter", &mopen);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(mopen, nav_menu_file_open, (void *) menu);
+
+	rc = ui_menu_entry_sep_create(mfile, &mfsep);
+	if (rc != EOK)
+		goto error;
+
 	rc = ui_menu_entry_create(mfile, "Exit", "Ctrl-Q", &mexit);
 	if (rc != EOK)
 		goto error;
 
-	ui_menu_entry_set_cb(mexit, nav_file_exit, (void *) menu);
+	ui_menu_entry_set_cb(mexit, nav_menu_file_exit, (void *) menu);
 
 	ui_window_get_app_rect(menu->window, &arect);
 
@@ -93,6 +103,18 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 error:
 	nav_menu_destroy(menu);
 	return rc;
+}
+
+/** Set navigator menu callbacks.
+ *
+ * @param menu Menu
+ * @param cb Callbacks
+ * @param arg Argument to callback functions
+ */
+void nav_menu_set_cb(nav_menu_t *menu, nav_menu_cb_t *cb, void *arg)
+{
+	menu->cb = cb;
+	menu->cb_arg = arg;
 }
 
 /** Destroy navigator menu.
@@ -117,16 +139,30 @@ ui_control_t *nav_menu_ctl(nav_menu_t *menu)
 	return ui_menu_bar_ctl(menu->menubar);
 }
 
+/** File / Open menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (navigator_t *)
+ */
+void nav_menu_file_open(ui_menu_entry_t *mentry, void *arg)
+{
+	nav_menu_t *menu = (nav_menu_t *)arg;
+
+	if (menu->cb != NULL && menu->cb->file_open != NULL)
+		menu->cb->file_open(menu->cb_arg);
+}
+
 /** File / Exit menu entry selected.
  *
  * @param mentry Menu entry
  * @param arg Argument (navigator_t *)
  */
-static void nav_file_exit(ui_menu_entry_t *mentry, void *arg)
+void nav_menu_file_exit(ui_menu_entry_t *mentry, void *arg)
 {
-	navigator_t *navigator = (navigator_t *) arg;
+	nav_menu_t *menu = (nav_menu_t *)arg;
 
-	ui_quit(navigator->ui);
+	if (menu->cb != NULL && menu->cb->file_exit != NULL)
+		menu->cb->file_exit(menu->cb_arg);
 }
 
 /** @}

@@ -54,6 +54,14 @@ static ui_window_cb_t window_cb = {
 	.kbd = wnd_kbd
 };
 
+static void navigator_file_open(void *);
+static void navigator_file_exit(void *);
+
+static nav_menu_cb_t navigator_menu_cb = {
+	.file_open = navigator_file_open,
+	.file_exit = navigator_file_exit
+};
+
 /** Window close button was clicked.
  *
  * @param window Window
@@ -152,6 +160,9 @@ errno_t navigator_create(const char *display_spec,
 	rc = nav_menu_create(navigator->window, &navigator->menu);
 	if (rc != EOK)
 		goto error;
+
+	nav_menu_set_cb(navigator->menu, &navigator_menu_cb,
+	    (void *)navigator);
 
 	rc = ui_fixed_add(navigator->fixed, nav_menu_ctl(navigator->menu));
 	if (rc != EOK) {
@@ -275,6 +286,24 @@ void navigator_switch_panel(navigator_t *navigator)
 			return;
 		panel_deactivate(navigator->panel[1]);
 	}
+}
+
+/** File / Open menu entry selected */
+static void navigator_file_open(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+	panel_t *panel;
+
+	panel = navigator_get_active_panel(navigator);
+	panel_open(panel, panel->cursor);
+}
+
+/** File / Exit menu entry selected */
+static void navigator_file_exit(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	ui_quit(navigator->ui);
 }
 
 /** @}
