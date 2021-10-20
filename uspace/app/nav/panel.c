@@ -1078,22 +1078,39 @@ errno_t panel_open_file(panel_t *panel, panel_entry_t *entry)
 	task_exit_t texit;
 	int retval;
 	errno_t rc;
+	ui_t *ui;
 
 	/* It's not a directory */
 	assert(!entry->isdir);
 	/* It's not a service-special file */
 	assert(entry->svc == 0);
 
-	rc = task_spawnl(&id, &wait, entry->name, entry->name, NULL);
+	ui = ui_window_get_ui(panel->window);
+
+	/* Free up and clean console for the child task. */
+	rc = ui_suspend(ui);
 	if (rc != EOK)
 		return rc;
 
+	rc = task_spawnl(&id, &wait, entry->name, entry->name, NULL);
+	if (rc != EOK)
+		goto error;
+
 	rc = task_wait(&wait, &texit, &retval);
 	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL))
+		goto error;
+
+	/* Resume UI operation */
+	rc = ui_resume(ui);
+	if (rc != EOK)
 		return rc;
 
 	(void) ui_paint(ui_window_get_ui(panel->window));
 	return EOK;
+error:
+	(void) ui_resume(ui);
+	(void) ui_paint(ui_window_get_ui(panel->window));
+	return rc;
 }
 
 /** @}

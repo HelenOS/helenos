@@ -51,6 +51,8 @@ extern void ui_run(ui_t *);
 extern errno_t ui_paint(ui_t *);
 extern bool ui_is_textmode(ui_t *);
 extern bool ui_is_fullscreen(ui_t *);
+extern errno_t ui_suspend(ui_t *);
+extern errno_t ui_resume(ui_t *);
 
 #endif
 
