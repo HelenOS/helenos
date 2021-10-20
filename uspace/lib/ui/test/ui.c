@@ -68,6 +68,24 @@ PCUT_TEST(destroy_null)
 	ui_destroy(NULL);
 }
 
+/** ui_suspend() / ui_resume() do nothing if we don't have a console */
+PCUT_TEST(suspend_resume)
+{
+	ui_t *ui = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(ui);
+
+	rc = ui_suspend(ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	rc = ui_resume(ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_destroy(ui);
+}
+
 /** ui_run() / ui_quit() */
 PCUT_TEST(run_quit)
 {

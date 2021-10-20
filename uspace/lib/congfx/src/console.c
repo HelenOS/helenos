@@ -280,6 +280,39 @@ errno_t console_gc_delete(console_gc_t *cgc)
 	return EOK;
 }
 
+/** Free up console for other users, suspending GC operation.
+ *
+ * @param cgc Console GC
+ * @return EOK on success or an error code
+ */
+errno_t console_gc_suspend(console_gc_t *cgc)
+{
+	console_unmap(cgc->con, cgc->buf);
+	cgc->buf = NULL;
+
+	console_clear(cgc->con);
+	console_cursor_visibility(cgc->con, true);
+	return EOK;
+}
+
+/** Resume GC operation after suspend.
+ *
+ * @param cgc Console GC
+ * @return EOK on success or an error code
+ */ 
+errno_t console_gc_resume(console_gc_t *cgc)
+{
+	errno_t rc;
+
+	console_clear(cgc->con);
+
+	rc = console_map(cgc->con, cgc->rect.p1.x, cgc->rect.p1.y, &cgc->buf);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Get generic graphic context from console GC.
  *
  * @param cgc Console GC

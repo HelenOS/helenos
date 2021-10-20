@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <fibril.h>
 #include <gfx/color.h>
+#include <gfx/cursor.h>
 #include <gfx/render.h>
 #include <io/console.h>
 #include <stdbool.h>
@@ -352,6 +353,47 @@ errno_t ui_paint(ui_t *ui)
 		return rc;
 
 	return ui_window_paint(awnd);
+}
+
+/** Free up console for other users.
+ *
+ * Release console resources for another application (that the current
+ * task is starting). After the other application finishes, resume
+ * operation with ui_resume(). No calls to UI must happen inbetween
+ * and no events must be processed (i.e. the calling function must not
+ * return control to UI.
+ *
+ * @param ui UI
+ * @return EOK on success or an error code
+ */
+errno_t ui_suspend(ui_t *ui)
+{
+	if (ui->cgc == NULL)
+		return EOK;
+
+	return console_gc_suspend(ui->cgc);
+}
+
+/** Resume suspended UI.
+ *
+ * Reclaim console resources (after child application has finished running)
+ * and restore UI operation previously suspended by calling ui_suspend().
+ *
+ * @param ui UI
+ * @return EOK on success or an error code
+ */
+errno_t ui_resume(ui_t *ui)
+{
+	errno_t rc;
+
+	if (ui->cgc == NULL)
+		return EOK;
+
+	rc = console_gc_resume(ui->cgc);
+	if (rc != EOK)
+		return rc;
+
+	return gfx_cursor_set_visible(console_gc_get_ctx(ui->cgc), false);
 }
 
 /** Terminate user interface.

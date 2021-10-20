@@ -46,6 +46,8 @@ extern gfx_context_ops_t console_gc_ops;
 
 extern errno_t console_gc_create(console_ctrl_t *, FILE *, console_gc_t **);
 extern errno_t console_gc_delete(console_gc_t *);
+extern errno_t console_gc_suspend(console_gc_t *);
+extern errno_t console_gc_resume(console_gc_t *);
 extern gfx_context_t *console_gc_get_ctx(console_gc_t *);
 
 #endif
