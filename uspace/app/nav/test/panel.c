@@ -39,6 +39,18 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(panel);
 
+/** Test response */
+typedef struct {
+	bool activate_req;
+	panel_t *activate_req_panel;
+} test_resp_t;
+
+static void test_panel_activate_req(void *, panel_t *);
+
+static panel_cb_t test_cb = {
+	.activate_req = test_panel_activate_req
+};
+
 /** Create and destroy panel. */
 PCUT_TEST(create_destroy)
 {
@@ -47,6 +59,23 @@ PCUT_TEST(create_destroy)
 
 	rc = panel_create(NULL, true, &panel);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	panel_destroy(panel);
+}
+
+/** panel_set_cb() sets callback */
+PCUT_TEST(set_cb)
+{
+	panel_t *panel;
+	errno_t rc;
+	test_resp_t resp;
+
+	rc = panel_create(NULL, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	panel_set_cb(panel, &test_cb, &resp);
+	PCUT_ASSERT_EQUALS(&test_cb, panel->cb);
+	PCUT_ASSERT_EQUALS(&resp, panel->cb_arg);
 
 	panel_destroy(panel);
 }
@@ -1423,6 +1452,36 @@ PCUT_TEST(open)
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 
 	free(sdname);
+}
+
+/** panel_activate_req() sends activation request */
+PCUT_TEST(activate_req)
+{
+	panel_t *panel;
+	errno_t rc;
+	test_resp_t resp;
+
+	rc = panel_create(NULL, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	panel_set_cb(panel, &test_cb, &resp);
+
+	resp.activate_req = false;
+	resp.activate_req_panel = NULL;
+
+	panel_activate_req(panel);
+	PCUT_ASSERT_TRUE(resp.activate_req);
+	PCUT_ASSERT_EQUALS(panel, resp.activate_req_panel);
+
+	panel_destroy(panel);
+}
+
+static void test_panel_activate_req(void *arg, panel_t *panel)
+{
+	test_resp_t *resp = (test_resp_t *)arg;
+
+	resp->activate_req = true;
+	resp->activate_req_panel = panel;
 }
 
 PCUT_EXPORT(panel);

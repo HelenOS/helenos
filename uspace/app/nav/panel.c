@@ -143,6 +143,18 @@ void panel_destroy(panel_t *panel)
 	free(panel);
 }
 
+/** Set panel callbacks.
+ *
+ * @param panel Panel
+ * @param cb Callbacks
+ * @param arg Argument to callback functions
+ */
+void panel_set_cb(panel_t *panel, panel_cb_t *cb, void *arg)
+{
+	panel->cb = cb;
+	panel->cb_arg = arg;
+}
+
 /** Paint panel entry.
  *
  * @param entry Panel entry
@@ -310,7 +322,18 @@ ui_evclaim_t panel_kbd_event(panel_t *panel, kbd_event_t *event)
  */
 ui_evclaim_t panel_pos_event(panel_t *panel, pos_event_t *event)
 {
-	return ui_unclaimed;
+	gfx_coord2_t pos;
+
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+	if (!gfx_pix_inside_rect(&pos, &panel->rect))
+		return ui_unclaimed;
+
+	if (!panel->active) {
+		panel_activate_req(panel);
+	}
+
+	return ui_claimed;
 }
 
 /** Get base control for panel.
@@ -1111,6 +1134,18 @@ error:
 	(void) ui_resume(ui);
 	(void) ui_paint(ui_window_get_ui(panel->window));
 	return rc;
+}
+
+/** Request panel activation.
+ *
+ * Call back to request panel activation.
+ *
+ * @param panel Panel
+ */
+void panel_activate_req(panel_t *panel)
+{
+	if (panel->cb != NULL && panel->cb->activate_req != NULL)
+		panel->cb->activate_req(panel->cb_arg, panel);
 }
 
 /** @}

@@ -62,6 +62,12 @@ static nav_menu_cb_t navigator_menu_cb = {
 	.file_exit = navigator_file_exit
 };
 
+static void navigator_panel_activate_req(void *, panel_t *);
+
+static panel_cb_t navigator_panel_cb = {
+	.activate_req = navigator_panel_activate_req
+};
+
 /** Window close button was clicked.
  *
  * @param window Window
@@ -181,6 +187,9 @@ errno_t navigator_create(const char *display_spec,
 		rect.p1.x = 40 * (i + 1);
 		rect.p1.y = 24;
 		panel_set_rect(navigator->panel[i], &rect);
+
+		panel_set_cb(navigator->panel[i], &navigator_panel_cb,
+		    navigator);
 
 		rc = ui_fixed_add(navigator->fixed,
 		    panel_ctl(navigator->panel[i]));
@@ -304,6 +313,19 @@ static void navigator_file_exit(void *arg)
 	navigator_t *navigator = (navigator_t *)arg;
 
 	ui_quit(navigator->ui);
+}
+
+/** Panel callback requesting panel activation.
+ *
+ * @param arg Argument (navigator_t *)
+ * @param panel Panel
+ */
+void navigator_panel_activate_req(void *arg, panel_t *panel)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	if (!panel_is_active(panel))
+		navigator_switch_panel(navigator);
 }
 
 /** @}
