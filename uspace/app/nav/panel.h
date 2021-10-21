@@ -47,6 +47,7 @@
 
 extern errno_t panel_create(ui_window_t *, bool, panel_t **);
 extern void panel_destroy(panel_t *);
+extern void panel_set_cb(panel_t *, panel_cb_t *, void *);
 extern errno_t panel_entry_paint(panel_entry_t *, size_t);
 extern errno_t panel_paint(panel_t *);
 extern ui_evclaim_t panel_kbd_event(panel_t *, kbd_event_t *);
@@ -78,6 +79,8 @@ extern void panel_page_down(panel_t *);
 extern errno_t panel_open(panel_t *, panel_entry_t *);
 extern errno_t panel_open_dir(panel_t *, panel_entry_t *);
 extern errno_t panel_open_file(panel_t *, panel_entry_t *);
+extern void panel_activate_req(panel_t *);
+
 
 #endif
 

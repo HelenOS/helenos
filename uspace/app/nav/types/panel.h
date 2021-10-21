@@ -82,6 +82,12 @@ typedef struct panel {
 	/** Containing window */
 	ui_window_t *window;
 
+	/** Callbacks */
+	struct panel_cb *cb;
+
+	/** Callback argument */
+	void *cb_arg;
+
 	/** Panel rectangle */
 	gfx_rect_t rect;
 
@@ -124,6 +130,12 @@ typedef struct panel {
 	/** Directory */
 	char *dir;
 } panel_t;
+
+/** Panel callbacks */
+typedef struct panel_cb {
+	/** Request panel activation */
+	void (*activate_req)(void *, panel_t *);
+} panel_cb_t;
 
 #endif
 
