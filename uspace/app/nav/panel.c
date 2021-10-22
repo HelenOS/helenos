@@ -323,14 +323,36 @@ ui_evclaim_t panel_kbd_event(panel_t *panel, kbd_event_t *event)
 ui_evclaim_t panel_pos_event(panel_t *panel, pos_event_t *event)
 {
 	gfx_coord2_t pos;
+	gfx_rect_t irect;
+	panel_entry_t *entry;
+	size_t entry_idx;
+	int n;
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 	if (!gfx_pix_inside_rect(&pos, &panel->rect))
 		return ui_unclaimed;
 
-	if (!panel->active) {
+	if (!panel->active && event->type == POS_PRESS)
 		panel_activate_req(panel);
+
+	if (event->type == POS_PRESS) {
+		irect.p0.x = panel->rect.p0.x + 1;
+		irect.p0.y = panel->rect.p0.y + 1;
+		irect.p1.x = panel->rect.p1.x - 1;
+		irect.p1.y = panel->rect.p1.y - 1;
+
+		/* Did we click on one of the entries? */
+		if (gfx_pix_inside_rect(&pos, &irect)) {
+			/* Index within page */
+			n = pos.y - irect.p0.y;
+
+			/* Entry and its index within entire listing */
+			entry = panel_page_nth_entry(panel, n, &entry_idx);
+
+			/* Move to the entry found */
+			panel_cursor_move(panel, entry, entry_idx);
+		}
 	}
 
 	return ui_claimed;
@@ -797,6 +819,39 @@ panel_entry_t *panel_prev(panel_entry_t *cur)
 		return NULL;
 
 	return list_get_instance(link, panel_entry_t, lentries);
+}
+
+/** Find the n-th entry of the current panel page.
+ *
+ * If the page is short and has less than n+1 entries, return the last entry.
+ *
+ * @param panel Panel
+ * @param n Which entry to get (starting from 0)
+ * @param ridx Place to store index (within listing) of the entry
+ * @return n-th entry of the page
+ */
+panel_entry_t *panel_page_nth_entry(panel_t *panel, size_t n, size_t *ridx)
+{
+	panel_entry_t *entry;
+	panel_entry_t *next;
+	size_t i;
+	size_t idx;
+
+	assert(n < panel_page_size(panel));
+
+	entry = panel->page;
+	idx = panel->page_idx;
+	for (i = 0; i < n; i++) {
+		next = panel_next(entry);
+		if (next == NULL)
+			break;
+
+		entry = next;
+		++idx;
+	}
+
+	*ridx = idx;
+	return entry;
 }
 
 /** Move cursor to a new position, possibly scrolling.

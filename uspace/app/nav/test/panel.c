@@ -204,24 +204,83 @@ PCUT_TEST(kbd_event)
 /** Test panel_pos_event() */
 PCUT_TEST(pos_event)
 {
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
 	panel_t *panel;
 	ui_evclaim_t claimed;
 	pos_event_t event;
+	gfx_rect_t rect;
+	panel_entry_attr_t attr;
 	errno_t rc;
 
-	rc = panel_create(NULL, true, &panel);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = panel_create(window, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 10;
+	rect.p1.y = 10;
+	panel_set_rect(panel, &rect);
+
+	panel_entry_attr_init(&attr);
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	panel->cursor = panel_first(panel);
+	panel->cursor_idx = 0;
+	panel->page = panel_first(panel);
+	panel->page_idx = 0;
 
 	event.pos_id = 0;
 	event.type = POS_PRESS;
 	event.btn_num = 1;
-	event.hpos = 0;
-	event.vpos = 0;
+
+	/* Clicking on the middle entry should select it */
+	event.hpos = 1;
+	event.vpos = 2;
 
 	claimed = panel_pos_event(panel, &event);
-	PCUT_ASSERT_EQUALS(ui_unclaimed, claimed);
+	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
+
+	PCUT_ASSERT_NOT_NULL(panel->cursor);
+	PCUT_ASSERT_STR_EQUALS("b", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(2, panel->cursor->size);
+
+	/* Clicking below the last entry should select it */
+	event.hpos = 1;
+	event.vpos = 4;
+	claimed = panel_pos_event(panel, &event);
+	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
+
+	PCUT_ASSERT_NOT_NULL(panel->cursor);
+	PCUT_ASSERT_STR_EQUALS("c", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(3, panel->cursor->size);
 
 	panel_destroy(panel);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** panel_set_rect() sets internal field */
@@ -838,6 +897,58 @@ PCUT_TEST(prev)
 	PCUT_ASSERT_NOT_NULL(entry);
 	PCUT_ASSERT_STR_EQUALS("a", entry->name);
 	PCUT_ASSERT_INT_EQUALS(1, entry->size);
+
+	panel_destroy(panel);
+}
+
+/** panel_page_nth_entry() .. */
+PCUT_TEST(page_nth_entry)
+{
+	panel_t *panel;
+	panel_entry_t *entry;
+	panel_entry_attr_t attr;
+	size_t idx;
+	errno_t rc;
+
+	rc = panel_create(NULL, true, &panel);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	panel_entry_attr_init(&attr);
+
+	/* Add some entries */
+	attr.name = "a";
+	attr.size = 1;
+	rc = panel_entry_append(panel, &attr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.name = "b";
+	attr.size = 2;
+	rc = panel_entry_append(panel, &attr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.name = "c";
+	attr.size = 3;
+	rc = panel_entry_append(panel, &attr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	panel->page = panel_next(panel_first(panel));
+	panel->page_idx = 1;
+
+	entry = panel_page_nth_entry(panel, 0, &idx);
+	PCUT_ASSERT_STR_EQUALS("b", entry->name);
+	PCUT_ASSERT_INT_EQUALS(1, idx);
+
+	entry = panel_page_nth_entry(panel, 1, &idx);
+	PCUT_ASSERT_STR_EQUALS("c", entry->name);
+	PCUT_ASSERT_INT_EQUALS(2, idx);
+
+	entry = panel_page_nth_entry(panel, 2, &idx);
+	PCUT_ASSERT_STR_EQUALS("c", entry->name);
+	PCUT_ASSERT_INT_EQUALS(2, idx);
+
+	entry = panel_page_nth_entry(panel, 3, &idx);
+	PCUT_ASSERT_STR_EQUALS("c", entry->name);
+	PCUT_ASSERT_INT_EQUALS(2, idx);
 
 	panel_destroy(panel);
 }

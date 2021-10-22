@@ -69,6 +69,7 @@ extern panel_entry_t *panel_first(panel_t *);
 extern panel_entry_t *panel_last(panel_t *);
 extern panel_entry_t *panel_next(panel_entry_t *);
 extern panel_entry_t *panel_prev(panel_entry_t *);
+extern panel_entry_t *panel_page_nth_entry(panel_t *, size_t, size_t *);
 extern void panel_cursor_move(panel_t *, panel_entry_t *, size_t);
 extern void panel_cursor_up(panel_t *);
 extern void panel_cursor_down(panel_t *);
