@@ -278,6 +278,16 @@ PCUT_TEST(pos_event)
 	PCUT_ASSERT_STR_EQUALS("c", panel->cursor->name);
 	PCUT_ASSERT_INT_EQUALS(3, panel->cursor->size);
 
+	/* Clicking on the top edge should do a page-up */
+	event.hpos = 1;
+	event.vpos = 0;
+	claimed = panel_pos_event(panel, &event);
+	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
+
+	PCUT_ASSERT_NOT_NULL(panel->cursor);
+	PCUT_ASSERT_STR_EQUALS("a", panel->cursor->name);
+	PCUT_ASSERT_INT_EQUALS(1, panel->cursor->size);
+
 	panel_destroy(panel);
 	ui_window_destroy(window);
 	ui_destroy(ui);
