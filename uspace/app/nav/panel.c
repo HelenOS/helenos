@@ -206,11 +206,25 @@ errno_t panel_entry_paint(panel_entry_t *entry, size_t entry_idx)
 	if (rc != EOK)
 		return rc;
 
-	rc = gfx_puttext(font, &pos, &fmt, entry->name);
+	/*
+	 * Make sure name does not overflow the entry rectangle.
+	 *
+	 * XXX We probably want to measure the text width, and,
+	 * if it's too long, use gfx_text_find_pos() to find where
+	 * it should be cut off (and append some sort of overflow
+	 * marker.
+	 */
+	rc = gfx_set_clip_rect(gc, &rect);
 	if (rc != EOK)
 		return rc;
 
-	return EOK;
+	rc = gfx_puttext(font, &pos, &fmt, entry->name);
+	if (rc != EOK) {
+		(void) gfx_set_clip_rect(gc, NULL);
+		return rc;
+	}
+
+	return gfx_set_clip_rect(gc, NULL);
 }
 
 /** Paint panel.
