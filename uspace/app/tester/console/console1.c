@@ -105,7 +105,7 @@ const char *test_console1(void)
 			putchar('X');
 		}
 		console_flush(console);
-		console_set_color(console, COLOR_WHITE, COLOR_BLACK, 0);
+		console_set_style(console, STYLE_NORMAL);
 		putchar('\n');
 
 		for (i = 0; i < 255; i += 16) {
@@ -114,7 +114,7 @@ const char *test_console1(void)
 			putchar('X');
 		}
 		console_flush(console);
-		console_set_color(console, COLOR_WHITE, COLOR_BLACK, 0);
+		console_set_style(console, STYLE_NORMAL);
 		putchar('\n');
 
 		for (i = 0; i < 255; i += 16) {

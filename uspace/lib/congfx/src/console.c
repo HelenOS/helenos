@@ -299,7 +299,7 @@ errno_t console_gc_suspend(console_gc_t *cgc)
  *
  * @param cgc Console GC
  * @return EOK on success or an error code
- */ 
+ */
 errno_t console_gc_resume(console_gc_t *cgc)
 {
 	errno_t rc;

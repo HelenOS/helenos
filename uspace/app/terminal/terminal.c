@@ -140,21 +140,21 @@ static void getterm(const char *svc, const char *app)
 
 static pixel_t color_table[16] = {
 	[COLOR_BLACK]       = PIXEL(255, 0, 0, 0),
-	[COLOR_BLUE]        = PIXEL(255, 0, 0, 240),
-	[COLOR_GREEN]       = PIXEL(255, 0, 240, 0),
-	[COLOR_CYAN]        = PIXEL(255, 0, 240, 240),
-	[COLOR_RED]         = PIXEL(255, 240, 0, 0),
-	[COLOR_MAGENTA]     = PIXEL(255, 240, 0, 240),
-	[COLOR_YELLOW]      = PIXEL(255, 240, 240, 0),
-	[COLOR_WHITE]       = PIXEL(255, 240, 240, 240),
+	[COLOR_BLUE]        = PIXEL(255, 0, 0, 170),
+	[COLOR_GREEN]       = PIXEL(255, 0, 170, 0),
+	[COLOR_CYAN]        = PIXEL(255, 0, 170, 170),
+	[COLOR_RED]         = PIXEL(255, 170, 0, 0),
+	[COLOR_MAGENTA]     = PIXEL(255, 170, 0, 170),
+	[COLOR_YELLOW]      = PIXEL(255, 170, 85, 0),
+	[COLOR_WHITE]       = PIXEL(255, 170, 170, 170),
 
-	[COLOR_BLACK + 8]   = PIXEL(255, 0, 0, 0),
-	[COLOR_BLUE + 8]    = PIXEL(255, 0, 0, 255),
-	[COLOR_GREEN + 8]   = PIXEL(255, 0, 255, 0),
-	[COLOR_CYAN + 8]    = PIXEL(255, 0, 255, 255),
-	[COLOR_RED + 8]     = PIXEL(255, 255, 0, 0),
-	[COLOR_MAGENTA + 8] = PIXEL(255, 255, 0, 255),
-	[COLOR_YELLOW + 8]  = PIXEL(255, 255, 255, 0),
+	[COLOR_BLACK + 8]   = PIXEL(255, 85, 85, 85),
+	[COLOR_BLUE + 8]    = PIXEL(255, 85, 85, 255),
+	[COLOR_GREEN + 8]   = PIXEL(255, 85, 255, 85),
+	[COLOR_CYAN + 8]    = PIXEL(255, 85, 255, 255),
+	[COLOR_RED + 8]     = PIXEL(255, 255, 85, 85),
+	[COLOR_MAGENTA + 8] = PIXEL(255, 255, 85, 255),
+	[COLOR_YELLOW + 8]  = PIXEL(255, 255, 255, 85),
 	[COLOR_WHITE + 8]   = PIXEL(255, 255, 255, 255),
 };
 
@@ -164,26 +164,25 @@ static inline void attrs_rgb(char_attrs_t attrs, pixel_t *bgcolor, pixel_t *fgco
 	case CHAR_ATTR_STYLE:
 		switch (attrs.val.style) {
 		case STYLE_NORMAL:
-			*bgcolor = color_table[COLOR_WHITE];
+			*bgcolor = color_table[COLOR_WHITE + 8];
 			*fgcolor = color_table[COLOR_BLACK];
 			break;
 		case STYLE_EMPHASIS:
-			*bgcolor = color_table[COLOR_WHITE];
-			*fgcolor = color_table[COLOR_RED];
+			*bgcolor = color_table[COLOR_WHITE + 8];
+			*fgcolor = color_table[COLOR_RED + 8];
 			break;
 		case STYLE_INVERTED:
 			*bgcolor = color_table[COLOR_BLACK];
-			*fgcolor = color_table[COLOR_WHITE];
+			*fgcolor = color_table[COLOR_WHITE + 8];
 			break;
 		case STYLE_SELECTED:
-			*bgcolor = color_table[COLOR_RED];
-			*fgcolor = color_table[COLOR_WHITE];
+			*bgcolor = color_table[COLOR_RED + 8];
+			*fgcolor = color_table[COLOR_WHITE + 8];
 			break;
 		}
 		break;
 	case CHAR_ATTR_INDEX:
-		*bgcolor = color_table[(attrs.val.index.bgcolor & 7) |
-		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
+		*bgcolor = color_table[(attrs.val.index.bgcolor & 7)];
 		*fgcolor = color_table[(attrs.val.index.fgcolor & 7) |
 		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
 		break;
