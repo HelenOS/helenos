@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_TYPES_LABEL_H_
-#define _LIBC_TYPES_LABEL_H_
+#ifndef LIBDEVICE_TYPES_LABEL_H
+#define LIBDEVICE_TYPES_LABEL_H
 
 #include <types/uuid.h>
 

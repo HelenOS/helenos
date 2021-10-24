@@ -56,6 +56,9 @@ static errno_t mem_gc_bitmap_create(void *, gfx_bitmap_params_t *,
 static errno_t mem_gc_bitmap_destroy(void *);
 static errno_t mem_gc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
 static errno_t mem_gc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
+static errno_t mem_gc_cursor_get_pos(void *, gfx_coord2_t *);
+static errno_t mem_gc_cursor_set_pos(void *, gfx_coord2_t *);
+static errno_t mem_gc_cursor_set_visible(void *, bool);
 static void mem_gc_invalidate_rect(mem_gc_t *, gfx_rect_t *);
 
 gfx_context_ops_t mem_gc_ops = {
@@ -66,7 +69,10 @@ gfx_context_ops_t mem_gc_ops = {
 	.bitmap_create = mem_gc_bitmap_create,
 	.bitmap_destroy = mem_gc_bitmap_destroy,
 	.bitmap_render = mem_gc_bitmap_render,
-	.bitmap_get_alloc = mem_gc_bitmap_get_alloc
+	.bitmap_get_alloc = mem_gc_bitmap_get_alloc,
+	.cursor_get_pos = mem_gc_cursor_get_pos,
+	.cursor_set_pos = mem_gc_cursor_set_pos,
+	.cursor_set_visible = mem_gc_cursor_set_visible
 };
 
 /** Set clipping rectangle on memory GC.
@@ -101,9 +107,11 @@ static errno_t mem_gc_set_color(void *arg, gfx_color_t *color)
 {
 	mem_gc_t *mgc = (mem_gc_t *) arg;
 	uint16_t r, g, b;
+	uint8_t attr;
 
 	gfx_color_get_rgb_i16(color, &r, &g, &b);
-	mgc->color = PIXEL(0, r >> 8, g >> 8, b >> 8);
+	gfx_color_get_ega(color, &attr);
+	mgc->color = PIXEL(attr, r >> 8, g >> 8, b >> 8);
 	return EOK;
 }
 
@@ -151,7 +159,7 @@ static errno_t mem_gc_update(void *arg)
 {
 	mem_gc_t *mgc = (mem_gc_t *) arg;
 
-	mgc->update(mgc->cb_arg);
+	mgc->cb->update(mgc->cb_arg);
 	return EOK;
 }
 
@@ -161,15 +169,14 @@ static errno_t mem_gc_update(void *arg)
  *
  * @param rect Bounding rectangle
  * @param alloc Allocation info
- * @param update_cb Function called to update a rectangle
- * @param cb_arg Argument to callback function
+ * @param cb Pointer to memory GC callbacks
+ * @param cb_arg Argument to callback functions
  * @param rgc Place to store pointer to new memory GC
  *
  * @return EOK on success or an error code
  */
 errno_t mem_gc_create(gfx_rect_t *rect, gfx_bitmap_alloc_t *alloc,
-    mem_gc_invalidate_cb_t invalidate_cb, mem_gc_update_cb_t update_cb,
-    void *cb_arg, mem_gc_t **rgc)
+    mem_gc_cb_t *cb, void *cb_arg, mem_gc_t **rgc)
 {
 	mem_gc_t *mgc = NULL;
 	gfx_context_t *gc = NULL;
@@ -190,8 +197,7 @@ errno_t mem_gc_create(gfx_rect_t *rect, gfx_bitmap_alloc_t *alloc,
 	mgc->clip_rect = *rect;
 	mgc->alloc = *alloc;
 
-	mgc->invalidate = invalidate_cb;
-	mgc->update = update_cb;
+	mgc->cb = cb;
 	mgc->cb_arg = cb_arg;
 
 	*rgc = mgc;
@@ -245,7 +251,7 @@ gfx_context_t *mem_gc_get_ctx(mem_gc_t *mgc)
 
 static void mem_gc_invalidate_rect(mem_gc_t *mgc, gfx_rect_t *rect)
 {
-	mgc->invalidate(mgc->cb_arg, rect);
+	mgc->cb->invalidate(mgc->cb_arg, rect);
 }
 
 /** Create bitmap in memory GC.
@@ -461,6 +467,57 @@ static errno_t mem_gc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 	mem_gc_bitmap_t *mbm = (mem_gc_bitmap_t *)bm;
 	*alloc = mbm->alloc;
 	return EOK;
+}
+
+/** Get cursor position on memory GC.
+ *
+ * @param arg Memory GC
+ * @param pos Place to store position
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t mem_gc_cursor_get_pos(void *arg, gfx_coord2_t *pos)
+{
+	mem_gc_t *mgc = (mem_gc_t *) arg;
+
+	if (mgc->cb->cursor_get_pos != NULL)
+		return mgc->cb->cursor_get_pos(mgc->cb_arg, pos);
+	else
+		return ENOTSUP;
+}
+
+/** Set cursor position on memory GC.
+ *
+ * @param arg Memory GC
+ * @param pos New position
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t mem_gc_cursor_set_pos(void *arg, gfx_coord2_t *pos)
+{
+	mem_gc_t *mgc = (mem_gc_t *) arg;
+
+	if (mgc->cb->cursor_set_pos != NULL)
+		return mgc->cb->cursor_set_pos(mgc->cb_arg, pos);
+	else
+		return ENOTSUP;
+}
+
+/** Set cursor visibility on memory GC.
+ *
+ * @param arg Memory GC
+ * @param visible @c true iff cursor should be made visible
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t mem_gc_cursor_set_visible(void *arg, bool visible)
+{
+	mem_gc_t *mgc = (mem_gc_t *) arg;
+
+	if (mgc->cb->cursor_set_visible != NULL)
+		return mgc->cb->cursor_set_visible(mgc->cb_arg, visible);
+	else
+		return ENOTSUP;
 }
 
 /** @}

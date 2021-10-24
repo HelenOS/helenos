@@ -28,9 +28,16 @@
 
 BUILD = true
 
-POST_OUTPUT = 'image.iso'
-POSTBUILD = 'grub'
-GRUB_LOADER = 'chainloader'
+if MACHINE == 'virt'
+	POST_OUTPUT = 'image.iso'
+	POSTBUILD = 'grub'
+	GRUB_LOADER = 'chainloader'
+endif
+
+if MACHINE == 'hikey960'
+	POSTBUILD = 'raw'
+	POST_OUTPUT = 'image.boot'
+endif
 
 # Request binary output. The ARM64 port manually prepares the .text
 # section to look as a PE file than can be loaded on EFI systems.

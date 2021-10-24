@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
+#include <gfx/cursor.h>
 #include <gfx/render.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
@@ -87,8 +88,28 @@ static ui_wdecor_cb_t wdecor_cb = {
 
 static void ui_window_invalidate(void *, gfx_rect_t *);
 static void ui_window_update(void *);
+static errno_t ui_window_cursor_get_pos(void *, gfx_coord2_t *);
+static errno_t ui_window_cursor_set_pos(void *, gfx_coord2_t *);
+static errno_t ui_window_cursor_set_visible(void *, bool);
+
+/** Window memory GC callbacks */
+static mem_gc_cb_t ui_window_mem_gc_cb = {
+	.invalidate = ui_window_invalidate,
+	.update = ui_window_update,
+	.cursor_get_pos = ui_window_cursor_get_pos,
+	.cursor_set_pos = ui_window_cursor_set_pos,
+	.cursor_set_visible = ui_window_cursor_set_visible
+};
+
 static void ui_window_app_invalidate(void *, gfx_rect_t *);
 static void ui_window_app_update(void *);
+
+/** Application area memory GC callbacks */
+static mem_gc_cb_t ui_window_app_mem_gc_cb = {
+	.invalidate = ui_window_app_invalidate,
+	.update = ui_window_app_update
+};
+
 static void ui_window_expose_cb(void *);
 
 /** Initialize window parameters structure.
@@ -110,41 +131,49 @@ void ui_wnd_params_init(ui_wnd_params_t *params)
 
 /** Compute where window should be placed on the screen.
  *
- * This only applies to windows that do not use default placement.
+ * This only applies to windows that do not use default placement or
+ * if we are running in full-screen mode.
  *
  * @param window Window
- * @param display Display
- * @param info Display info
+ * @param drect Display rectangle
  * @param params Window parameters
  * @param pos Place to store position of top-left corner
  */
-static void ui_window_place(ui_window_t *window, display_t *display,
-    display_info_t *info, ui_wnd_params_t *params, gfx_coord2_t *pos)
+static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
+    ui_wnd_params_t *params, gfx_coord2_t *pos)
 {
-	assert(params->placement != ui_wnd_place_default);
+	gfx_coord2_t dims;
+
+	assert(params->placement != ui_wnd_place_default ||
+	    ui_is_fullscreen(window->ui));
 
 	pos->x = 0;
 	pos->y = 0;
 
 	switch (params->placement) {
 	case ui_wnd_place_default:
-		assert(false);
+		assert(ui_is_fullscreen(window->ui));
+		/* Center window */
+		gfx_rect_dims(&params->rect, &dims);
+		pos->x = (drect->p0.x + drect->p1.x) / 2 - dims.x / 2;
+		pos->y = (drect->p0.y + drect->p1.y) / 2 - dims.y / 2;
+		break;
 	case ui_wnd_place_top_left:
 	case ui_wnd_place_full_screen:
-		pos->x = info->rect.p0.x - params->rect.p0.x;
-		pos->y = info->rect.p0.y - params->rect.p0.y;
+		pos->x = drect->p0.x - params->rect.p0.x;
+		pos->y = drect->p0.y - params->rect.p0.y;
 		break;
 	case ui_wnd_place_top_right:
-		pos->x = info->rect.p1.x - params->rect.p1.x;
-		pos->y = info->rect.p0.y - params->rect.p0.y;
+		pos->x = drect->p1.x - params->rect.p1.x;
+		pos->y = drect->p0.y - params->rect.p0.y;
 		break;
 	case ui_wnd_place_bottom_left:
-		pos->x = info->rect.p0.x - params->rect.p0.x;
-		pos->y = info->rect.p1.y - params->rect.p1.y;
+		pos->x = drect->p0.x - params->rect.p0.x;
+		pos->y = drect->p1.y - params->rect.p1.y;
 		break;
 	case ui_wnd_place_bottom_right:
-		pos->x = info->rect.p1.x - params->rect.p1.x;
-		pos->y = info->rect.p1.y - params->rect.p1.y;
+		pos->x = drect->p1.x - params->rect.p1.x;
+		pos->y = drect->p1.y - params->rect.p1.y;
 		break;
 	case ui_wnd_place_popup:
 		/* Place popup window below parent rectangle */
@@ -175,12 +204,16 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	gfx_bitmap_params_t bparams;
 	gfx_bitmap_alloc_t alloc;
 	gfx_bitmap_t *bmp = NULL;
+	gfx_coord2_t off;
 	mem_gc_t *memgc = NULL;
+	xlate_gc_t *xgc = NULL;
 	errno_t rc;
 
 	window = calloc(1, sizeof(ui_window_t));
 	if (window == NULL)
 		return ENOMEM;
+
+	window->ui = ui;
 
 	display_wnd_params_init(&dparams);
 	dparams.rect = params->rect;
@@ -206,8 +239,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 		if (params->placement != ui_wnd_place_default) {
 			/* Set initial display window position */
-			ui_window_place(window, ui->display, &info,
-			    params, &dparams.pos);
+			ui_window_place(window, &info.rect, params,
+			    &dparams.pos);
 
 			dparams.flags |= wndf_setpos;
 		}
@@ -222,6 +255,13 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 			goto error;
 	} else if (ui->console != NULL) {
 		gc = console_gc_get_ctx(ui->cgc);
+
+		if (params->placement == ui_wnd_place_full_screen) {
+			/* Make window the size of the screen */
+			gfx_rect_dims(&ui->rect, &scr_dims);
+			gfx_coord2_add(&dparams.rect.p0, &scr_dims,
+			    &dparams.rect.p1);
+		}
 	} else {
 		/* Needed for unit tests */
 		rc = dummygc_create(&dgc);
@@ -241,7 +281,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 #endif
 
 	/* Move rectangle so that top-left corner is 0,0 */
-	gfx_rect_rtranslate(&params->rect.p0, &params->rect, &bparams.rect);
+	gfx_rect_rtranslate(&dparams.rect.p0, &dparams.rect, &bparams.rect);
 
 	rc = gfx_bitmap_create(gc, &bparams, NULL, &bmp);
 	if (rc != EOK)
@@ -254,8 +294,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 		return rc;
 	}
 
-	rc = mem_gc_create(&bparams.rect, &alloc, ui_window_invalidate,
-	    ui_window_update, (void *) window, &memgc);
+	rc = mem_gc_create(&bparams.rect, &alloc, &ui_window_mem_gc_cb,
+	    (void *) window, &memgc);
 	if (rc != EOK) {
 		gfx_bitmap_destroy(window->app_bmp);
 		return rc;
@@ -265,13 +305,36 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->mgc = memgc;
 	window->gc = mem_gc_get_ctx(memgc);
 	window->realgc = gc;
+	(void) off;
 #else
-	(void) ui_window_update;
-	(void) ui_window_invalidate;
+	/* Server-side rendering */
+
+	/* Full-screen mode? */
+	if (ui->display == NULL) {
+		/* Create translating GC to translate window contents */
+		off.x = 0;
+		off.y = 0;
+		rc = xlate_gc_create(&off, gc, &xgc);
+		if (rc != EOK)
+			goto error;
+
+		window->xgc = xgc;
+		window->gc = xlate_gc_get_ctx(xgc);
+		window->realgc = gc;
+	} else {
+		window->gc = gc;
+	}
+
+	(void) ui_window_mem_gc_cb;
 	(void) alloc;
 	(void) bparams;
-	window->gc = gc;
 #endif
+	if (ui->display == NULL) {
+		ui_window_place(window, &ui->rect, params, &window->dpos);
+
+		if (window->xgc != NULL)
+			xlate_gc_set_off(window->xgc, &window->dpos);
+	}
 
 	rc = ui_resource_create(window->gc, ui_is_textmode(ui), &res);
 	if (rc != EOK)
@@ -287,9 +350,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	ui_resource_set_expose_cb(res, ui_window_expose_cb, (void *) window);
 
-	window->ui = ui;
 	window->rect = dparams.rect;
-
 	window->res = res;
 	window->wdecor = wdecor;
 	window->cursor = ui_curs_arrow;
@@ -304,6 +365,8 @@ error:
 		ui_resource_destroy(res);
 	if (memgc != NULL)
 		mem_gc_delete(memgc);
+	if (xgc != NULL)
+		xlate_gc_delete(xgc);
 	if (bmp != NULL)
 		gfx_bitmap_destroy(bmp);
 	if (dgc != NULL)
@@ -339,7 +402,6 @@ void ui_window_destroy(ui_window_t *window)
 	}
 	if (window->bmp != NULL)
 		gfx_bitmap_destroy(window->bmp);
-	gfx_context_delete(window->gc);
 	if (window->dwindow != NULL)
 		display_window_destroy(window->dwindow);
 
@@ -538,6 +600,16 @@ void ui_window_set_cb(ui_window_t *window, ui_window_cb_t *cb, void *arg)
 	window->arg = arg;
 }
 
+/** Get window's containing UI.
+ *
+ * @param window Window
+ * @return Containing UI
+ */
+ui_t *ui_window_get_ui(ui_window_t *window)
+{
+	return window->ui;
+}
+
 /** Get UI resource from window.
  *
  * @param window Window
@@ -573,8 +645,7 @@ errno_t ui_window_get_pos(ui_window_t *window, gfx_coord2_t *pos)
 		if (rc != EOK)
 			return rc;
 	} else {
-		pos->x = 0;
-		pos->y = 0;
+		*pos = window->dpos;
 	}
 
 	return EOK;
@@ -617,8 +688,8 @@ errno_t ui_window_get_app_gc(ui_window_t *window, gfx_context_t **rgc)
 			return rc;
 		}
 
-		rc = mem_gc_create(&params.rect, &alloc, ui_window_app_invalidate,
-		    ui_window_app_update, (void *) window, &memgc);
+		rc = mem_gc_create(&params.rect, &alloc,
+		    &ui_window_app_mem_gc_cb, (void *) window, &memgc);
 		if (rc != EOK) {
 			gfx_bitmap_destroy(window->app_bmp);
 			return rc;
@@ -870,6 +941,8 @@ void ui_window_send_kbd(ui_window_t *window, kbd_event_t *kbd)
 {
 	if (window->cb != NULL && window->cb->kbd != NULL)
 		window->cb->kbd(window, window->arg, kbd);
+	else
+		return ui_window_def_kbd(window, kbd);
 }
 
 /** Send window paint event.
@@ -906,6 +979,16 @@ void ui_window_send_unfocus(ui_window_t *window)
 		window->cb->unfocus(window, window->arg);
 	else
 		return ui_window_def_unfocus(window);
+}
+
+/** Default window keyboard event routine.
+ *
+ * @param window Window
+ */
+void ui_window_def_kbd(ui_window_t *window, kbd_event_t *kbd)
+{
+	if (window->control != NULL)
+		ui_control_kbd_event(window->control, kbd);
 }
 
 /** Default window paint routine.
@@ -981,13 +1064,63 @@ static void ui_window_update(void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
-	if (!gfx_rect_is_empty(&window->dirty_rect))
-		(void) gfx_bitmap_render(window->bmp, &window->dirty_rect, NULL);
+	if (!gfx_rect_is_empty(&window->dirty_rect)) {
+		(void) gfx_bitmap_render(window->bmp, &window->dirty_rect,
+		    &window->dpos);
+	}
 
 	window->dirty_rect.p0.x = 0;
 	window->dirty_rect.p0.y = 0;
 	window->dirty_rect.p1.x = 0;
 	window->dirty_rect.p1.y = 0;
+}
+
+/** Window cursor get position callback
+ *
+ * @param arg Argument (ui_window_t *)
+ * @param pos Place to store position
+ */
+static errno_t ui_window_cursor_get_pos(void *arg, gfx_coord2_t *pos)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+	gfx_coord2_t cpos;
+	errno_t rc;
+
+	rc = gfx_cursor_get_pos(window->realgc, &cpos);
+	if (rc != EOK)
+		return rc;
+
+	pos->x = cpos.x - window->dpos.x;
+	pos->y = cpos.y - window->dpos.y;
+	return EOK;
+}
+
+/** Window cursor set position callback
+ *
+ * @param arg Argument (ui_window_t *)
+ * @param pos New position
+ */
+static errno_t ui_window_cursor_set_pos(void *arg, gfx_coord2_t *pos)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+	gfx_coord2_t cpos;
+
+	cpos.x = pos->x + window->dpos.x;
+	cpos.y = pos->y + window->dpos.y;
+
+	return gfx_cursor_set_pos(window->realgc, &cpos);
+}
+
+/** Window cursor set visibility callback
+ *
+ * @param arg Argument (ui_window_t *)
+ * @param visible @c true iff cursor is to be made visible
+ */
+static errno_t ui_window_cursor_set_visible(void *arg, bool visible)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	return gfx_cursor_set_visible(window->realgc, visible);
 }
 
 /** Application area invalidate callback

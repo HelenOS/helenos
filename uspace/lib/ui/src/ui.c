@@ -38,6 +38,8 @@
 #include <display.h>
 #include <errno.h>
 #include <fibril.h>
+#include <gfx/color.h>
+#include <gfx/render.h>
 #include <io/console.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -52,8 +54,8 @@
 /** Parse output specification.
  *
  * Output specification has the form <proto>@<service> where proto is
- * eiher 'disp' for display service or 'cons' for console. Service
- * is a location ID service name (e.g. hid/display).
+ * eiher 'disp' for display service, 'cons' for console, 'null'
+ * for dummy output. Service is a location ID service name (e.g. hid/display).
  *
  * @param ospec Output specification
  * @param ws Place to store window system type (protocol)
@@ -79,6 +81,8 @@ static void ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
 			*ws = ui_ws_display;
 		} else if (str_lcmp(ospec, "cons@", str_length("cons@")) == 0) {
 			*ws = ui_ws_console;
+		} else if (str_lcmp(ospec, "null@", str_length("null@")) == 0) {
+			*ws = ui_ws_null;
 		} else {
 			*ws = ui_ws_unknown;
 		}
@@ -96,7 +100,9 @@ static void ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
 /** Create new user interface.
  *
  * @param ospec Output specification or @c UI_DISPLAY_DEFAULT to use
- *              the default output
+ *              the default display service, UI_CONSOLE_DEFAULT to use
+ *		the default console service, UI_DISPLAY_NULL to use
+ *		dummy output.
  * @param rui Place to store pointer to new UI
  * @return EOK on success or an error code
  */
@@ -108,6 +114,8 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 	console_gc_t *cgc;
 	ui_winsys_t ws;
 	const char *osvc;
+	sysarg_t cols;
+	sysarg_t rows;
 	ui_t *ui;
 
 	ui_ospec_parse(ospec, &ws, &osvc);
@@ -127,6 +135,14 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 		if (console == NULL)
 			return EIO;
 
+		rc = console_get_size(console, &cols, &rows);
+		if (rc != EOK) {
+			console_done(console);
+			return rc;
+		}
+
+		console_cursor_visibility(console, false);
+
 		/* ws == ui_ws_console */
 		rc = ui_create_cons(console, &ui);
 		if (rc != EOK) {
@@ -142,6 +158,16 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 		}
 
 		ui->cgc = cgc;
+		ui->rect.p0.x = 0;
+		ui->rect.p0.y = 0;
+		ui->rect.p1.x = cols;
+		ui->rect.p1.y = rows;
+
+		(void) ui_paint(ui);
+	} else if (ws == ui_ws_null) {
+		rc = ui_create_disp(NULL, &ui);
+		if (rc != EOK)
+			return rc;
 	} else {
 		return EINVAL;
 	}
@@ -202,8 +228,10 @@ void ui_destroy(ui_t *ui)
 	if (ui->myoutput) {
 		if (ui->cgc != NULL)
 			console_gc_delete(ui->cgc);
-		if (ui->console != NULL)
+		if (ui->console != NULL) {
+			console_cursor_visibility(ui->console, true);
 			console_done(ui->console);
+		}
 		if (ui->display != NULL)
 			display_close(ui->display);
 	}
@@ -215,6 +243,7 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 {
 	ui_window_t *awnd;
 	ui_evclaim_t claim;
+	pos_event_t pos;
 
 	awnd = ui_window_get_active(ui);
 	if (awnd == NULL)
@@ -225,10 +254,16 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 		ui_window_send_kbd(awnd, &event->ev.key);
 		break;
 	case CEV_POS:
-		claim = ui_wdecor_pos_event(awnd->wdecor, &event->ev.pos);
+		pos = event->ev.pos;
+		/* Translate event to window-relative coordinates */
+		pos.hpos -= awnd->dpos.x;
+		pos.vpos -= awnd->dpos.y;
+
+		claim = ui_wdecor_pos_event(awnd->wdecor, &pos);
 		/* Note: If event is claimed, awnd might not be valid anymore */
 		if (claim == ui_unclaimed)
-			ui_window_send_pos(awnd, &event->ev.pos);
+			ui_window_send_pos(awnd, &pos);
+
 		break;
 	}
 }
@@ -279,7 +314,33 @@ void ui_run(ui_t *ui)
 errno_t ui_paint(ui_t *ui)
 {
 	errno_t rc;
+	gfx_context_t *gc;
 	ui_window_t *awnd;
+	gfx_color_t *color = NULL;
+
+	/* In case of null output */
+	if (ui->cgc == NULL)
+		return EOK;
+
+	gc = console_gc_get_ctx(ui->cgc);
+
+	rc = gfx_color_new_ega(0x11, &color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK) {
+		gfx_color_delete(color);
+		return rc;
+	}
+
+	rc = gfx_fill_rect(gc, &ui->rect);
+	if (rc != EOK) {
+		gfx_color_delete(color);
+		return rc;
+	}
+
+	gfx_color_delete(color);
 
 	/* XXX Should repaint all windows */
 	awnd = ui_window_get_active(ui);

@@ -49,6 +49,7 @@ struct arm_machine_ops {
 	inr_t (*machine_enable_vtimer_irq)(void);
 	size_t (*machine_get_irq_count)(void);
 	const char *(*machine_get_platform_name)(void);
+	void (*machine_early_uart_output)(char32_t);
 };
 
 extern void machine_ops_init(void);
@@ -59,6 +60,7 @@ extern void machine_input_init(void);
 extern inr_t machine_enable_vtimer_irq(void);
 extern size_t machine_get_irq_count(void);
 extern const char *machine_get_platform_name(void);
+extern void machine_early_uart_output(char32_t);
 
 #endif
 

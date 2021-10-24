@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinet
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_TYPES_INET_H_
-#define _LIBC_TYPES_INET_H_
+#ifndef LIBINET_TYPES_INET_H
+#define LIBINET_TYPES_INET_H
 
 #include <inet/addr.h>
 #include <ipc/loc.h>

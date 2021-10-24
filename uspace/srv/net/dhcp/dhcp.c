@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@
 #include <str_error.h>
 #include <fibril_synch.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 #include <inet/dnsr.h>
 #include <inet/inetcfg.h>
 #include <io/log.h>
@@ -156,11 +157,11 @@ static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 	memset(msgbuf, 0, MAX_MSG_SIZE);
 	hdr->op = op_bootrequest;
 	hdr->htype = 1; /* AHRD_ETHERNET */
-	hdr->hlen = sizeof(addr48_t);
+	hdr->hlen = ETH_ADDR_SIZE;
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 
-	addr48(dlink->link_info.mac_addr, hdr->chaddr);
+	eth_addr_encode(&dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	opt[0] = opt_msg_type;
@@ -184,7 +185,7 @@ static errno_t dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
 	hdr->ciaddr = host2uint32_t_be(offer->oaddr.addr);
-	addr48(dlink->link_info.mac_addr, hdr->chaddr);
+	eth_addr_encode(&dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
 	i = 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,7 @@ extern void ui_label_destroy(ui_label_t *);
 extern ui_control_t *ui_label_ctl(ui_label_t *);
 extern void ui_label_set_rect(ui_label_t *, gfx_rect_t *);
 extern void ui_label_set_halign(ui_label_t *, gfx_halign_t);
+extern void ui_label_set_valign(ui_label_t *, gfx_valign_t);
 extern errno_t ui_label_set_text(ui_label_t *, const char *);
 extern errno_t ui_label_paint(ui_label_t *);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
@@ -35,19 +35,36 @@
  * @file
  */
 
+#include <align.h>
+#include <clipboard.h>
+#include <errno.h>
+#include <gfx/color.h>
+#include <gfx/cursor.h>
+#include <gfx/font.h>
+#include <gfx/render.h>
+#include <gfx/text.h>
+#include <io/kbd_event.h>
+#include <io/keycode.h>
+#include <io/pos_event.h>
+#include <io/style.h>
+#include <macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <vfs/vfs.h>
-#include <io/console.h>
-#include <io/style.h>
-#include <io/keycode.h>
-#include <errno.h>
-#include <align.h>
-#include <macros.h>
-#include <clipboard.h>
 #include <types/common.h>
+#include <ui/control.h>
+#include <ui/filedialog.h>
+#include <ui/fixed.h>
+#include <ui/label.h>
+#include <ui/menu.h>
+#include <ui/menubar.h>
+#include <ui/menuentry.h>
+#include <ui/promptdialog.h>
+#include <ui/resource.h>
+#include <ui/ui.h>
+#include <ui/window.h>
+#include <vfs/vfs.h>
 
 #include "sheet.h"
 #include "search.h"
@@ -62,9 +79,28 @@ enum redraw_flags {
 /** Pane
  *
  * A rectangular area of the screen used to edit a document. Different
- * panes can be possibly used to edit the same document.
+ * panes can be possibly used to edit the same document. This is a custom
+ * UI control.
  */
 typedef struct {
+	/** Base control object */
+	struct ui_control *control;
+
+	/** Containing window */
+	ui_window_t *window;
+
+	/** UI resource */
+	struct ui_resource *res;
+
+	/** Pane rectangle */
+	gfx_rect_t rect;
+
+	/** Pane color */
+	gfx_color_t *color;
+
+	/** Selection color */
+	gfx_color_t *sel_color;
+
 	/* Pane dimensions */
 	int rows, columns;
 
@@ -89,9 +125,24 @@ typedef struct {
 	 */
 	int ideal_column;
 
+	bool search_reverse;
 	char *previous_search;
 	bool previous_search_reverse;
 } pane_t;
+
+/** Text editor */
+typedef struct {
+	/** User interface */
+	ui_t *ui;
+	/** Editor window */
+	ui_window_t *window;
+	/** UI resource */
+	ui_resource_t *ui_res;
+	/** Menu bar */
+	ui_menu_bar_t *menubar;
+	/** Status bar */
+	ui_label_t *status;
+} edit_t;
 
 /** Document
  *
@@ -102,14 +153,9 @@ typedef struct {
 	sheet_t *sh;
 } doc_t;
 
-static console_ctrl_t *con;
+static edit_t edit;
 static doc_t doc;
-static bool done;
 static pane_t pane;
-static bool cursor_visible;
-
-static sysarg_t scr_rows;
-static sysarg_t scr_columns;
 
 #define ROW_BUF_SIZE 4096
 #define BUF_SIZE 64
@@ -118,8 +164,6 @@ static sysarg_t scr_columns;
 /** Maximum filename length that can be entered. */
 #define INFNAME_MAX_LEN 128
 
-static void cursor_show(void);
-static void cursor_hide(void);
 static void cursor_setvis(bool visible);
 
 static void key_handle_press(kbd_event_t *ev);
@@ -138,13 +182,15 @@ static errno_t file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
 static char *range_get_str(spt_t const *spos, spt_t const *epos);
 
-static char *prompt(char const *prompt, char const *init_value);
-
-static void pane_text_display(void);
+static errno_t pane_init(ui_window_t *, pane_t *);
+static void pane_fini(pane_t *);
+static ui_control_t *pane_ctl(pane_t *);
+static errno_t pane_update(pane_t *);
+static errno_t pane_text_display(pane_t *);
 static void pane_row_display(void);
-static void pane_row_range_display(int r0, int r1);
-static void pane_status_display(void);
-static void pane_caret_display(void);
+static errno_t pane_row_range_display(pane_t *, int r0, int r1);
+static void pane_status_display(pane_t *);
+static void pane_caret_display(pane_t *);
 
 static void insert_char(char32_t c);
 static void delete_char_before(void);
@@ -163,6 +209,8 @@ static void selection_sel_range(spt_t pa, spt_t pb);
 static void selection_get_points(spt_t *pa, spt_t *pb);
 static void selection_delete(void);
 static void selection_copy(void);
+static void edit_cut(void);
+static void edit_paste(void);
 static void insert_clipboard_data(void);
 
 static void search(char *pattern, bool reverse);
@@ -184,20 +232,76 @@ static int spt_cmp(spt_t const *a, spt_t const *b);
 static int coord_cmp(coord_t const *a, coord_t const *b);
 
 static void status_display(char const *str);
+static errno_t edit_ui_create(edit_t *);
+static void edit_ui_destroy(edit_t *);
+
+static void edit_wnd_close(ui_window_t *, void *);
+static void edit_wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
+
+static ui_window_cb_t edit_window_cb = {
+	.close = edit_wnd_close,
+	.kbd = edit_wnd_kbd_event
+};
+
+static void edit_file_save(ui_menu_entry_t *, void *);
+static void edit_file_save_as(ui_menu_entry_t *, void *);
+static void edit_file_exit(ui_menu_entry_t *, void *);
+static void edit_edit_cut(ui_menu_entry_t *, void *);
+static void edit_edit_copy(ui_menu_entry_t *, void *);
+static void edit_edit_paste(ui_menu_entry_t *, void *);
+static void edit_edit_delete(ui_menu_entry_t *, void *);
+static void edit_edit_select_all(ui_menu_entry_t *, void *);
+static void edit_search_find(ui_menu_entry_t *, void *);
+static void edit_search_reverse_find(ui_menu_entry_t *, void *);
+static void edit_search_find_next(ui_menu_entry_t *, void *);
+static void edit_search_go_to_line(ui_menu_entry_t *, void *);
+
+static void pane_ctl_destroy(void *);
+static errno_t pane_ctl_paint(void *);
+static ui_evclaim_t pane_ctl_pos_event(void *, pos_event_t *);
+
+/** Pabe control ops */
+ui_control_ops_t pane_ctl_ops = {
+	.destroy = pane_ctl_destroy,
+	.paint = pane_ctl_paint,
+	.pos_event = pane_ctl_pos_event
+};
+
+static void save_as_dialog_bok(ui_file_dialog_t *, void *, const char *);
+static void save_as_dialog_bcancel(ui_file_dialog_t *, void *);
+static void save_as_dialog_close(ui_file_dialog_t *, void *);
+
+static ui_file_dialog_cb_t save_as_dialog_cb = {
+	.bok = save_as_dialog_bok,
+	.bcancel = save_as_dialog_bcancel,
+	.close = save_as_dialog_close
+};
+
+static void go_to_line_dialog_bok(ui_prompt_dialog_t *, void *, const char *);
+static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *, void *);
+static void go_to_line_dialog_close(ui_prompt_dialog_t *, void *);
+
+static ui_prompt_dialog_cb_t go_to_line_dialog_cb = {
+	.bok = go_to_line_dialog_bok,
+	.bcancel = go_to_line_dialog_bcancel,
+	.close =  go_to_line_dialog_close
+};
+
+static void search_dialog_bok(ui_prompt_dialog_t *, void *, const char *);
+static void search_dialog_bcancel(ui_prompt_dialog_t *, void *);
+static void search_dialog_close(ui_prompt_dialog_t *, void *);
+
+static ui_prompt_dialog_cb_t search_dialog_cb = {
+	.bok = search_dialog_bok,
+	.bcancel = search_dialog_bcancel,
+	.close =  search_dialog_close
+};
 
 int main(int argc, char *argv[])
 {
-	cons_event_t ev;
 	bool new_file;
 	errno_t rc;
 
-	con = console_init(stdin, stdout);
-	console_clear(con);
-
-	console_get_size(con, &scr_columns, &scr_rows);
-
-	pane.rows = scr_rows - 1;
-	pane.columns = scr_columns;
 	pane.sh_row = 1;
 	pane.sh_column = 1;
 
@@ -233,59 +337,290 @@ int main(int argc, char *argv[])
 
 	/* Move to beginning of file. */
 	pt_get_sof(&sof);
+
+	/* Create UI */
+	rc = edit_ui_create(&edit);
+	if (rc != EOK)
+		return 1;
+
 	caret_move(sof, true, true);
 
 	/* Initial display */
-	cursor_visible = true;
-
-	cursor_hide();
-	console_clear(con);
-	pane_text_display();
-	pane_status_display();
-	if (new_file && doc.file_name != NULL)
-		status_display("File not found. Starting empty file.");
-	pane_caret_display();
-	cursor_show();
-
-	done = false;
-
-	while (!done) {
-		rc = console_get_event(con, &ev);
-		if (rc != EOK)
-			break;
-
-		pane.rflags = 0;
-
-		switch (ev.type) {
-		case CEV_KEY:
-			pane.keymod = ev.ev.key.mods;
-			if (ev.ev.key.type == KEY_PRESS)
-				key_handle_press(&ev.ev.key);
-			break;
-		case CEV_POS:
-			pos_handle(&ev.ev.pos);
-			break;
-		}
-
-		/* Redraw as necessary. */
-
-		cursor_hide();
-
-		if (pane.rflags & REDRAW_TEXT)
-			pane_text_display();
-		if (pane.rflags & REDRAW_ROW)
-			pane_row_display();
-		if (pane.rflags & REDRAW_STATUS)
-			pane_status_display();
-		if (pane.rflags & REDRAW_CARET)
-			pane_caret_display();
-
-		cursor_show();
+	rc = ui_window_paint(edit.window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		return rc;
 	}
 
-	console_clear(con);
+	pane_status_display(&pane);
+	if (new_file && doc.file_name != NULL)
+		status_display("File not found. Starting empty file.");
+	pane_caret_display(&pane);
+	cursor_setvis(true);
 
+	ui_run(edit.ui);
+
+	edit_ui_destroy(&edit);
 	return 0;
+}
+
+/** Create text editor UI.
+ *
+ * @param edit Editor
+ * @return EOK on success or an error code
+ */
+static errno_t edit_ui_create(edit_t *edit)
+{
+	errno_t rc;
+	ui_wnd_params_t params;
+	ui_fixed_t *fixed = NULL;
+	ui_menu_t *mfile = NULL;
+	ui_menu_t *medit = NULL;
+	ui_menu_entry_t *msave = NULL;
+	ui_menu_entry_t *msaveas = NULL;
+	ui_menu_entry_t *mfsep = NULL;
+	ui_menu_entry_t *mexit = NULL;
+	ui_menu_entry_t *mcut = NULL;
+	ui_menu_entry_t *mcopy = NULL;
+	ui_menu_entry_t *mpaste = NULL;
+	ui_menu_entry_t *mdelete = NULL;
+	ui_menu_entry_t *mesep = NULL;
+	ui_menu_entry_t *mselall = NULL;
+	ui_menu_t *msearch = NULL;
+	ui_menu_entry_t *mfind = NULL;
+	ui_menu_entry_t *mfindr = NULL;
+	ui_menu_entry_t *mfindn = NULL;
+	ui_menu_entry_t *mssep = NULL;
+	ui_menu_entry_t *mgoto = NULL;
+	gfx_rect_t arect;
+	gfx_rect_t rect;
+
+	rc = ui_create(UI_CONSOLE_DEFAULT, &edit->ui);
+	if (rc != EOK) {
+		printf("Error creating UI on display %s.\n",
+		    UI_CONSOLE_DEFAULT);
+		goto error;
+	}
+
+	ui_wnd_params_init(&params);
+	params.caption = "Text Editor";
+	params.style &= ~ui_wds_decorated;
+	params.placement = ui_wnd_place_full_screen;
+
+	rc = ui_window_create(edit->ui, &params, &edit->window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		goto error;
+	}
+
+	ui_window_set_cb(edit->window, &edit_window_cb, (void *) edit);
+
+	edit->ui_res = ui_window_get_res(edit->window);
+
+	rc = ui_fixed_create(&fixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		return rc;
+	}
+
+	rc = ui_menu_bar_create(edit->ui, edit->window, &edit->menubar);
+	if (rc != EOK) {
+		printf("Error creating menu bar.\n");
+		return rc;
+	}
+
+	rc = ui_menu_create(edit->menubar, "File", &mfile);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(mfile, "Save", "Ctrl-S", &msave);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(msave, edit_file_save, (void *) edit);
+
+	rc = ui_menu_entry_create(mfile, "Save As", "Ctrl-E", &msaveas);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(msaveas, edit_file_save_as, (void *) edit);
+
+	rc = ui_menu_entry_sep_create(mfile, &mfsep);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(mfile, "Exit", "Ctrl-Q", &mexit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mexit, edit_file_exit, (void *) edit);
+
+	rc = ui_menu_create(edit->menubar, "Edit", &medit);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(medit, "Cut", "Ctrl-X", &mcut);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mcut, edit_edit_cut, (void *) edit);
+
+	rc = ui_menu_entry_create(medit, "Copy", "Ctrl-C", &mcopy);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mcopy, edit_edit_copy, (void *) edit);
+
+	rc = ui_menu_entry_create(medit, "Paste", "Ctrl-V", &mpaste);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mpaste, edit_edit_paste, (void *) edit);
+
+	rc = ui_menu_entry_create(medit, "Delete", "Del", &mdelete);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mdelete, edit_edit_delete, (void *) edit);
+
+	rc = ui_menu_entry_sep_create(medit, &mesep);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(medit, "Select All", "Ctrl-A", &mselall);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mselall, edit_edit_select_all, (void *) edit);
+
+	rc = ui_menu_create(edit->menubar, "Search", &msearch);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(msearch, "Find", "Ctrl-F", &mfind);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mfind, edit_search_find, (void *) edit);
+
+	rc = ui_menu_entry_create(msearch, "Reverse Find", "Ctrl-Shift-F", &mfindr);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mfindr, edit_search_reverse_find, (void *) edit);
+
+	rc = ui_menu_entry_create(msearch, "Find Next", "Ctrl-N", &mfindn);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mfindn, edit_search_find_next, (void *) edit);
+
+	rc = ui_menu_entry_sep_create(msearch, &mssep);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	rc = ui_menu_entry_create(msearch, "Go To Line", "Ctrl-L", &mgoto);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mgoto, edit_search_go_to_line, (void *) edit);
+
+	ui_window_get_app_rect(edit->window, &arect);
+
+	rect.p0 = arect.p0;
+	rect.p1.x = arect.p1.x;
+	rect.p1.y = arect.p0.y + 1;
+	ui_menu_bar_set_rect(edit->menubar, &rect);
+
+	rc = ui_fixed_add(fixed, ui_menu_bar_ctl(edit->menubar));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = pane_init(edit->window, &pane);
+	if (rc != EOK) {
+		printf("Error initializing pane.\n");
+		return rc;
+	}
+
+	rc = ui_fixed_add(fixed, pane_ctl(&pane));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_label_create(edit->ui_res, "", &edit->status);
+	if (rc != EOK) {
+		printf("Error creating menu bar.\n");
+		return rc;
+	}
+
+	rect.p0.x = arect.p0.x;
+	rect.p0.y = arect.p1.y - 1;
+	rect.p1 = arect.p1;
+	ui_label_set_rect(edit->status, &rect);
+
+	rc = ui_fixed_add(fixed, ui_label_ctl(edit->status));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	ui_window_add(edit->window, ui_fixed_ctl(fixed));
+	return EOK;
+error:
+	if (edit->window != NULL)
+		ui_window_destroy(edit->window);
+	if (edit->ui != NULL)
+		ui_destroy(edit->ui);
+	return rc;
+}
+
+/** Destroy text editor UI.
+ *
+ * @param edit Editor
+ */
+static void edit_ui_destroy(edit_t *edit)
+{
+	ui_window_destroy(edit->window);
+	ui_destroy(edit->ui);
 }
 
 /* Handle key press. */
@@ -308,22 +643,11 @@ static void key_handle_press(kbd_event_t *ev)
 	}
 }
 
-static void cursor_show(void)
-{
-	cursor_setvis(true);
-}
-
-static void cursor_hide(void)
-{
-	cursor_setvis(false);
-}
-
 static void cursor_setvis(bool visible)
 {
-	if (cursor_visible != visible) {
-		console_cursor_visibility(con, visible);
-		cursor_visible = visible;
-	}
+	gfx_context_t *gc = ui_window_get_gc(edit.window);
+
+	(void) gfx_cursor_set_visible(gc, visible);
 }
 
 /** Handle key without modifier. */
@@ -399,7 +723,7 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 	spt_t pt;
 	switch (ev->key) {
 	case KC_Q:
-		done = true;
+		ui_quit(edit.ui);
 		break;
 	case KC_S:
 		if (doc.file_name != NULL)
@@ -414,16 +738,10 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 		selection_copy();
 		break;
 	case KC_V:
-		selection_delete();
-		insert_clipboard_data();
-		pane.rflags |= REDRAW_TEXT;
-		caret_update();
+		edit_paste();
 		break;
 	case KC_X:
-		selection_copy();
-		selection_delete();
-		pane.rflags |= REDRAW_TEXT;
-		caret_update();
+		edit_cut();
 		break;
 	case KC_A:
 		selection_sel_all();
@@ -489,13 +807,14 @@ static void pos_handle(pos_event_t *ev)
 	bool select;
 
 	if (ev->type == POS_PRESS && ev->vpos < (unsigned)pane.rows) {
-		bc.row = pane.sh_row + ev->vpos;
-		bc.column = pane.sh_column + ev->hpos;
+		bc.row = pane.sh_row + ev->vpos - pane.rect.p0.y;
+		bc.column = pane.sh_column + ev->hpos - pane.rect.p0.x;
 		sheet_get_cell_pt(doc.sh, &bc, dir_before, &pt);
 
 		select = (pane.keymod & KM_SHIFT) != 0;
 
 		caret_move(pt, select, true);
+		pane_update(&pane);
 	}
 }
 
@@ -605,92 +924,25 @@ static errno_t file_save(char const *fname)
 	return rc;
 }
 
-/** Change document name and save. */
+/** Open Save As dialog. */
 static void file_save_as(void)
 {
 	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
-	char *fname;
-
-	fname = prompt("Save As", old_fname);
-	if (fname == NULL) {
-		status_display("Save cancelled.");
-		return;
-	}
-
-	errno_t rc = file_save(fname);
-	if (rc != EOK)
-		return;
-
-	if (doc.file_name != NULL)
-		free(doc.file_name);
-	doc.file_name = fname;
-}
-
-/** Ask for a string. */
-static char *prompt(char const *prompt, char const *init_value)
-{
-	cons_event_t ev;
-	kbd_event_t *kev;
-	char *str;
-	char32_t buffer[INFNAME_MAX_LEN + 1];
-	int max_len;
-	int nc;
-	bool done;
+	ui_file_dialog_params_t fdparams;
+	ui_file_dialog_t *dialog;
 	errno_t rc;
 
-	asprintf(&str, "%s: %s", prompt, init_value);
-	status_display(str);
-	console_set_pos(con, 1 + str_length(str), scr_rows - 1);
-	free(str);
+	ui_file_dialog_params_init(&fdparams);
+	fdparams.caption = "Save As";
+	fdparams.ifname = old_fname;
 
-	console_set_style(con, STYLE_INVERTED);
-
-	max_len = min(INFNAME_MAX_LEN, scr_columns - 4 - str_length(prompt));
-	str_to_wstr(buffer, max_len + 1, init_value);
-	nc = wstr_length(buffer);
-	done = false;
-
-	while (!done) {
-		rc = console_get_event(con, &ev);
-		if (rc != EOK)
-			return NULL;
-
-		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
-			kev = &ev.ev.key;
-
-			/* Handle key press. */
-			if ((kev->mods & (KM_CTRL | KM_ALT)) == 0) {
-				switch (kev->key) {
-				case KC_ESCAPE:
-					return NULL;
-				case KC_BACKSPACE:
-					if (nc > 0) {
-						putchar('\b');
-						console_flush(con);
-						--nc;
-					}
-					break;
-				case KC_ENTER:
-					done = true;
-					break;
-				default:
-					if (kev->c >= 32 && nc < max_len) {
-						putuchar(kev->c);
-						console_flush(con);
-						buffer[nc++] = kev->c;
-					}
-					break;
-				}
-			}
-		}
+	rc = ui_file_dialog_create(edit.ui, &fdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating message dialog.\n");
+		return;
 	}
 
-	buffer[nc] = '\0';
-	str = wstr_to_astr(buffer);
-
-	console_set_style(con, STYLE_NORMAL);
-
-	return str;
+	ui_file_dialog_set_cb(dialog, &save_as_dialog_cb, &edit);
 }
 
 /** Insert file at caret position.
@@ -807,31 +1059,159 @@ static char *range_get_str(spt_t const *spos, spt_t const *epos)
 	return buf;
 }
 
-static void pane_text_display(void)
+/** Initialize pane.
+ *
+ * TODO: Replace with pane_create() that allocates the pane.
+ *
+ * @param window Editor window
+ * @param pane Pane
+ * @return EOK on success or an error code
+ */
+static errno_t pane_init(ui_window_t *window, pane_t *pane)
 {
+	errno_t rc;
+	gfx_rect_t arect;
+
+	pane->control = NULL;
+	pane->color = NULL;
+	pane->sel_color = NULL;
+
+	rc = ui_control_new(&pane_ctl_ops, (void *) pane, &pane->control);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x07, &pane->color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x1e, &pane->sel_color);
+	if (rc != EOK)
+		goto error;
+
+	pane->res = ui_window_get_res(window);
+	pane->window = window;
+
+	ui_window_get_app_rect(window, &arect);
+	pane->rect.p0.x = arect.p0.x;
+	pane->rect.p0.y = arect.p0.y + 1;
+	pane->rect.p1.x = arect.p1.x;
+	pane->rect.p1.y = arect.p1.y - 1;
+
+	pane->columns = pane->rect.p1.x - pane->rect.p0.x;
+	pane->rows = pane->rect.p1.y - pane->rect.p0.y;
+
+	return EOK;
+error:
+	if (pane->control != NULL) {
+		ui_control_delete(pane->control);
+		pane->control = NULL;
+	}
+
+	if (pane->color != NULL) {
+		gfx_color_delete(pane->color);
+		pane->color = NULL;
+	}
+
+	return rc;
+}
+
+/** Finalize pane.
+ *
+ * TODO: Replace with pane_destroy() that deallocates the pane.
+ *
+ * @param pane Pane
+ */
+static void pane_fini(pane_t *pane)
+{
+	gfx_color_delete(pane->color);
+	pane->color = NULL;
+	gfx_color_delete(pane->sel_color);
+	pane->sel_color = NULL;
+	ui_control_delete(pane->control);
+	pane->control = NULL;
+}
+
+/** Return base control object for a pane.
+ *
+ * @param pane Pane
+ * @return Base UI cntrol
+ */
+static ui_control_t *pane_ctl(pane_t *pane)
+{
+	return pane->control;
+}
+
+/** Repaint parts of pane that need updating.
+ *
+ * @param pane Pane
+ * @return EOK on succes or an error code
+ */
+static errno_t pane_update(pane_t *pane)
+{
+	errno_t rc;
+
+	if (pane->rflags & REDRAW_TEXT) {
+		rc = pane_text_display(pane);
+		if (rc != EOK)
+			return rc;
+	}
+
+	if (pane->rflags & REDRAW_ROW)
+		pane_row_display();
+
+	if (pane->rflags & REDRAW_STATUS)
+		pane_status_display(pane);
+
+	if (pane->rflags & REDRAW_CARET)
+		pane_caret_display(pane);
+
+	pane->rflags &= ~(REDRAW_TEXT | REDRAW_ROW | REDRAW_STATUS |
+	    REDRAW_CARET);
+	return EOK;
+}
+
+/** Display pane text.
+ *
+ * @param pane Pane
+ * @return EOK on success or an error code
+ */
+static errno_t pane_text_display(pane_t *pane)
+{
+	gfx_rect_t rect;
+	gfx_context_t *gc;
+	errno_t rc;
 	int sh_rows, rows;
 
 	sheet_get_num_rows(doc.sh, &sh_rows);
-	rows = min(sh_rows - pane.sh_row + 1, pane.rows);
+	rows = min(sh_rows - pane->sh_row + 1, pane->rows);
 
 	/* Draw rows from the sheet. */
 
-	console_set_pos(con, 0, 0);
-	pane_row_range_display(0, rows);
+	rc = pane_row_range_display(pane, 0, rows);
+	if (rc != EOK)
+		return rc;
 
 	/* Clear the remaining rows if file is short. */
 
-	int i;
-	sysarg_t j;
-	for (i = rows; i < pane.rows; ++i) {
-		console_set_pos(con, 0, i);
-		for (j = 0; j < scr_columns; ++j)
-			putchar(' ');
-		console_flush(con);
-	}
+	gc = ui_window_get_gc(pane->window);
 
-	pane.rflags |= (REDRAW_STATUS | REDRAW_CARET);
-	pane.rflags &= ~REDRAW_ROW;
+	rc = gfx_set_color(gc, pane->color);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = pane->rect.p0.x;
+	rect.p0.y = pane->rect.p0.y + rows;
+	rect.p1.x = pane->rect.p1.x;
+	rect.p1.y = pane->rect.p1.y;
+
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	pane->rflags &= ~REDRAW_ROW;
+	return EOK;
+error:
+	return rc;
 }
 
 /** Display just the row where the caret is. */
@@ -845,27 +1225,47 @@ static void pane_row_display(void)
 	spt_get_coord(&caret_pt, &coord);
 
 	ridx = coord.row - pane.sh_row;
-	pane_row_range_display(ridx, ridx + 1);
+	(void) pane_row_range_display(&pane, ridx, ridx + 1);
 	pane.rflags |= (REDRAW_STATUS | REDRAW_CARET);
 }
 
-static void pane_row_range_display(int r0, int r1)
+/** Display a range of rows of text.
+ *
+ * @param r0 Start row (inclusive)
+ * @param r1 End row (exclusive)
+ * @return EOk on success or an error code
+ */
+static errno_t pane_row_range_display(pane_t *pane, int r0, int r1)
 {
-	int i, j, fill;
+	int i, fill;
 	spt_t rb, re, dep, pt;
 	coord_t rbc, rec;
 	char row_buf[ROW_BUF_SIZE];
+	char cbuf[STR_BOUNDS(1) + 1];
 	char32_t c;
 	size_t pos, size;
+	size_t cpos;
 	int s_column;
 	coord_t csel_start, csel_end, ctmp;
+	gfx_font_t *font;
+	gfx_context_t *gc;
+	gfx_text_fmt_t fmt;
+	gfx_coord2_t tpos;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	font = ui_resource_get_font(edit.ui_res);
+	gc = ui_window_get_gc(edit.window);
+
+	gfx_text_fmt_init(&fmt);
+	fmt.color = pane->color;
 
 	/* Determine selection start and end. */
 
-	tag_get_pt(&pane.sel_start, &pt);
+	tag_get_pt(&pane->sel_start, &pt);
 	spt_get_coord(&pt, &csel_start);
 
-	tag_get_pt(&pane.caret_pos, &pt);
+	tag_get_pt(&pane->caret_pos, &pt);
 	spt_get_coord(&pt, &csel_end);
 
 	if (coord_cmp(&csel_start, &csel_end) > 0) {
@@ -876,16 +1276,18 @@ static void pane_row_range_display(int r0, int r1)
 
 	/* Draw rows from the sheet. */
 
-	console_set_pos(con, 0, 0);
 	for (i = r0; i < r1; ++i) {
+		tpos.x = pane->rect.p0.x;
+		tpos.y = pane->rect.p0.y + i;
+
 		/* Starting point for row display */
-		rbc.row = pane.sh_row + i;
-		rbc.column = pane.sh_column;
+		rbc.row = pane->sh_row + i;
+		rbc.column = pane->sh_column;
 		sheet_get_cell_pt(doc.sh, &rbc, dir_before, &rb);
 
 		/* Ending point for row display */
-		rec.row = pane.sh_row + i;
-		rec.column = pane.sh_column + pane.columns;
+		rec.row = pane->sh_row + i;
+		rec.column = pane->sh_column + pane->columns;
 		sheet_get_cell_pt(doc.sh, &rec, dir_before, &re);
 
 		/* Copy the text of the row to the buffer. */
@@ -895,66 +1297,81 @@ static void pane_row_range_display(int r0, int r1)
 
 		if (coord_cmp(&csel_start, &rbc) <= 0 &&
 		    coord_cmp(&rbc, &csel_end) < 0) {
-			console_flush(con);
-			console_set_style(con, STYLE_SELECTED);
-			console_flush(con);
+			fmt.color = pane->sel_color;
 		}
 
-		console_set_pos(con, 0, i);
 		size = str_size(row_buf);
 		pos = 0;
-		s_column = pane.sh_column;
+		s_column = pane->sh_column;
 		while (pos < size) {
-			if ((csel_start.row == rbc.row) && (csel_start.column == s_column)) {
-				console_flush(con);
-				console_set_style(con, STYLE_SELECTED);
-				console_flush(con);
-			}
+			if ((csel_start.row == rbc.row) && (csel_start.column == s_column))
+				fmt.color = pane->sel_color;
 
-			if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
-				console_flush(con);
-				console_set_style(con, STYLE_NORMAL);
-				console_flush(con);
-			}
+			if ((csel_end.row == rbc.row) && (csel_end.column == s_column))
+				fmt.color = pane->color;
 
 			c = str_decode(row_buf, &pos, size);
 			if (c != '\t') {
-				printf("%lc", (wint_t) c);
+				cpos = 0;
+				rc = chr_encode(c, cbuf, &cpos, sizeof(cbuf));
+				if (rc != EOK)
+					return rc;
+
+				rc = gfx_puttext(font, &tpos, &fmt, cbuf);
+				if (rc != EOK)
+					return rc;
+
 				s_column += 1;
+				tpos.x++;
 			} else {
 				fill = 1 + ALIGN_UP(s_column, TAB_WIDTH) -
 				    s_column;
 
-				for (j = 0; j < fill; ++j)
-					putchar(' ');
+				rc = gfx_set_color(gc, fmt.color);
+				if (rc != EOK)
+					return rc;
+
+				rect.p0.x = tpos.x;
+				rect.p0.y = tpos.y;
+				rect.p1.x = tpos.x + fill;
+				rect.p1.y = tpos.y + 1;
+
+				rc = gfx_fill_rect(gc, &rect);
+				if (rc != EOK)
+					return rc;
+
 				s_column += fill;
+				tpos.x += fill;
 			}
 		}
 
-		if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
-			console_flush(con);
-			console_set_style(con, STYLE_NORMAL);
-			console_flush(con);
-		}
+		if ((csel_end.row == rbc.row) && (csel_end.column == s_column))
+			fmt.color = pane->color;
 
 		/* Fill until the end of display area. */
 
-		if ((unsigned)s_column - 1 < scr_columns)
-			fill = scr_columns - (s_column - 1);
-		else
-			fill = 0;
+		rc = gfx_set_color(gc, fmt.color);
+		if (rc != EOK)
+			return rc;
 
-		for (j = 0; j < fill; ++j)
-			putchar(' ');
-		console_flush(con);
-		console_set_style(con, STYLE_NORMAL);
+		rect.p0.x = tpos.x;
+		rect.p0.y = tpos.y;
+		rect.p1.x = pane->rect.p1.x;
+		rect.p1.y = tpos.y + 1;
+
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
 	}
 
-	pane.rflags |= REDRAW_CARET;
+	return EOK;
 }
 
-/** Display pane status in the status line. */
-static void pane_status_display(void)
+/** Display pane status in the status line.
+ *
+ * @param pane Pane
+ */
+static void pane_status_display(pane_t *pane)
 {
 	spt_t caret_pt;
 	coord_t coord;
@@ -963,11 +1380,10 @@ static void pane_status_display(void)
 	char *p;
 	char *text;
 	size_t n;
-	int pos;
 	size_t nextra;
 	size_t fnw;
 
-	tag_get_pt(&pane.caret_pos, &caret_pt);
+	tag_get_pt(&pane->caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
 
 	sheet_get_num_rows(doc.sh, &last_row);
@@ -986,15 +1402,12 @@ static void pane_status_display(void)
 	if (fname == NULL)
 		return;
 
-	console_set_pos(con, 0, scr_rows - 1);
-	console_set_style(con, STYLE_INVERTED);
-
 	/*
 	 * Make sure the status fits on the screen. This loop should
 	 * be executed at most twice.
 	 */
 	while (true) {
-		int rc = asprintf(&text, " %d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+		int rc = asprintf(&text, "%d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
 		    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
 		if (rc < 0) {
 			n = 0;
@@ -1003,11 +1416,11 @@ static void pane_status_display(void)
 
 		/* If it already fits, we're done */
 		n = str_width(text);
-		if (n <= scr_columns - 2)
+		if ((int)n <= pane->columns - 2)
 			break;
 
 		/* Compute number of excess characters */
-		nextra = n - (scr_columns - 2);
+		nextra = n - (pane->columns - 2);
 		/** With of the file name part */
 		fnw = str_width(fname);
 
@@ -1015,8 +1428,10 @@ static void pane_status_display(void)
 		 * If reducing file name to two characters '..' won't help,
 		 * just give up and print a blank status.
 		 */
-		if (nextra > fnw - 2)
+		if (nextra > fnw - 2) {
+			text[0] = '\0';
 			goto finish;
+		}
 
 		/* Compute position where we overwrite with '..\0' */
 		if (fnw >= nextra + 2) {
@@ -1033,30 +1448,88 @@ static void pane_status_display(void)
 		free(text);
 	}
 
-	printf("%s", text);
+finish:
+	(void) ui_label_set_text(edit.status, text);
+	(void) ui_label_paint(edit.status);
 	free(text);
 	free(fname);
-finish:
-	/* Fill the rest of the line */
-	pos = scr_columns - 1 - n;
-	printf("%*s", pos, "");
-	console_flush(con);
-	console_set_style(con, STYLE_NORMAL);
-
-	pane.rflags |= REDRAW_CARET;
 }
 
-/** Set cursor to reflect position of the caret. */
-static void pane_caret_display(void)
+/** Set cursor to reflect position of the caret.
+ *
+ * @param pane Pane
+ */
+static void pane_caret_display(pane_t *pane)
 {
 	spt_t caret_pt;
 	coord_t coord;
+	gfx_coord2_t pos;
+	gfx_context_t *gc;
 
-	tag_get_pt(&pane.caret_pos, &caret_pt);
+	tag_get_pt(&pane->caret_pos, &caret_pt);
 
 	spt_get_coord(&caret_pt, &coord);
-	console_set_pos(con, coord.column - pane.sh_column,
-	    coord.row - pane.sh_row);
+
+	gc = ui_window_get_gc(edit.window);
+	pos.x = pane->rect.p0.x + coord.column - pane->sh_column;
+	pos.y = pane->rect.p0.y + coord.row - pane->sh_row;
+
+	(void) gfx_cursor_set_pos(gc, &pos);
+}
+
+/** Destroy pane control.
+ *
+ * @param arg Argument (pane_t *)
+ */
+static void pane_ctl_destroy(void *arg)
+{
+	pane_t *pane = (pane_t *)arg;
+
+	pane_fini(pane);
+}
+
+/** Paint pane control.
+ *
+ * @param arg Argument (pane_t *)
+ */
+static errno_t pane_ctl_paint(void *arg)
+{
+	pane_t *pane = (pane_t *)arg;
+	gfx_context_t *gc;
+	errno_t rc;
+
+	gc = ui_window_get_gc(pane->window);
+
+	rc = pane_text_display(pane);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_update(gc);
+	if (rc != EOK)
+		goto error;
+
+error:
+	return rc;
+}
+
+/** Handle pane control position event.
+ *
+ * @param arg Argument (pane_t *)
+ * @param event Position event
+ */
+static ui_evclaim_t pane_ctl_pos_event(void *arg, pos_event_t *event)
+{
+	gfx_coord2_t pos;
+
+	pos.x = event->hpos;
+	pos.y = event->vpos;
+
+	if (!gfx_pix_inside_rect(&pos, &pane.rect))
+		return ui_unclaimed;
+
+	pos_handle(event);
+	(void) gfx_update(ui_window_get_gc(edit.window));
+	return ui_claimed;
 }
 
 /** Insert a character at caret position. */
@@ -1269,24 +1742,21 @@ static void caret_move_word_right(bool select)
 /** Ask for line and go to it. */
 static void caret_go_to_line_ask(void)
 {
-	char *sline;
+	ui_prompt_dialog_params_t pdparams;
+	ui_prompt_dialog_t *dialog;
+	errno_t rc;
 
-	sline = prompt("Go to line", "");
-	if (sline == NULL) {
-		status_display("Go to line cancelled.");
+	ui_prompt_dialog_params_init(&pdparams);
+	pdparams.caption = "Go To Line";
+	pdparams.prompt = "Line Number";
+
+	rc = ui_prompt_dialog_create(edit.ui, &pdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating prompt dialog.\n");
 		return;
 	}
 
-	char *endptr;
-	int line = strtol(sline, &endptr, 10);
-	if (*endptr != '\0') {
-		free(sline);
-		status_display("Invalid number entered.");
-		return;
-	}
-	free(sline);
-
-	caret_move_absolute(line, pane.ideal_column, dir_before, false);
+	ui_prompt_dialog_set_cb(dialog, &go_to_line_dialog_cb, &edit);
 }
 
 /* Search operations */
@@ -1343,28 +1813,26 @@ static search_ops_t search_spt_reverse_ops = {
 /** Ask for line and go to it. */
 static void search_prompt(bool reverse)
 {
-	char *pattern;
+	ui_prompt_dialog_params_t pdparams;
+	ui_prompt_dialog_t *dialog;
+	errno_t rc;
 
-	const char *prompt_text = "Find next";
-	if (reverse)
-		prompt_text = "Find previous";
+	ui_prompt_dialog_params_init(&pdparams);
+	pdparams.caption = reverse ? "Reverse Search" : "Search";
+	pdparams.prompt = "Search text";
+	pdparams.itext = "";
 
-	const char *default_value = "";
 	if (pane.previous_search)
-		default_value = pane.previous_search;
+		pdparams.itext = pane.previous_search;
 
-	pattern = prompt(prompt_text, default_value);
-	if (pattern == NULL) {
-		status_display("Search cancelled.");
+	rc = ui_prompt_dialog_create(edit.ui, &pdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating prompt dialog.\n");
 		return;
 	}
 
-	if (pane.previous_search)
-		free(pane.previous_search);
-	pane.previous_search = pattern;
-	pane.previous_search_reverse = reverse;
-
-	search(pattern, reverse);
+	ui_prompt_dialog_set_cb(dialog, &search_dialog_cb, &edit);
+	pane.search_reverse = reverse;
 }
 
 static void search_repeat(void)
@@ -1512,6 +1980,22 @@ static void selection_copy(void)
 		status_display("Copying to clipboard failed!");
 	}
 	free(str);
+}
+
+static void edit_paste(void)
+{
+	selection_delete();
+	insert_clipboard_data();
+	pane.rflags |= (REDRAW_TEXT | REDRAW_CARET);
+	pane_update(&pane);
+}
+
+static void edit_cut(void)
+{
+	selection_copy();
+	selection_delete();
+	pane.rflags |= (REDRAW_TEXT | REDRAW_CARET);
+	pane_update(&pane);
 }
 
 static void insert_clipboard_data(void)
@@ -1718,15 +2202,395 @@ static int coord_cmp(coord_t const *a, coord_t const *b)
 /** Display text in the status line. */
 static void status_display(char const *str)
 {
-	console_set_pos(con, 0, scr_rows - 1);
-	console_set_style(con, STYLE_INVERTED);
+	(void) ui_label_set_text(edit.status, str);
+	(void) ui_label_paint(edit.status);
+}
 
-	int pos = -(scr_columns - 3);
-	printf(" %*s ", pos, str);
-	console_flush(con);
-	console_set_style(con, STYLE_NORMAL);
+/** Window close request
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ */
+static void edit_wnd_close(ui_window_t *window, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	ui_quit(edit->ui);
+}
+
+/** Window keyboard event
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ * @param event Keyboard event
+ */
+static void edit_wnd_kbd_event(ui_window_t *window, void *arg,
+    kbd_event_t *event)
+{
+	pane.keymod = event->mods;
+
+	if (event->type == KEY_PRESS) {
+		key_handle_press(event);
+		(void) pane_update(&pane);
+		(void) gfx_update(ui_window_get_gc(window));
+	}
+}
+
+/** File / Save menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_file_save(ui_menu_entry_t *mentry, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	(void)edit;
+
+	if (doc.file_name != NULL)
+		file_save(doc.file_name);
+	else
+		file_save_as();
+}
+
+/** File / Save As menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_file_save_as(ui_menu_entry_t *mentry, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	(void)edit;
+	file_save_as();
+}
+
+/** File / Exit menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_file_exit(ui_menu_entry_t *mentry, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	ui_quit(edit->ui);
+}
+
+/** Edit / Cut menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_cut(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	edit_cut();
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Edit / Copy menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_copy(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	selection_copy();
+}
+
+/** Edit / Paste menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_paste(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	edit_paste();
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Edit / Delete menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_delete(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+
+	if (selection_active())
+		selection_delete();
 
 	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Edit / Select All menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_edit_select_all(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+
+	selection_sel_all();
+	pane.rflags |= (REDRAW_CARET | REDRAW_TEXT | REDRAW_STATUS);
+	pane_update(&pane);
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Search / Find menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_search_find(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	search_prompt(false);
+}
+
+/** Search / Reverse Find menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_search_reverse_find(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	search_prompt(true);
+}
+
+/** Search / Find Next menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_search_find_next(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	search_repeat();
+	(void) pane_update(&pane);
+	(void) gfx_update(ui_window_get_gc(edit.window));
+}
+
+/** Search / Go To Line menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_search_go_to_line(ui_menu_entry_t *mentry, void *arg)
+{
+	(void) arg;
+	caret_go_to_line_ask();
+}
+
+/** Save As dialog OK button press.
+ *
+ * @param dialog Save As dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param fname File name
+ */
+static void save_as_dialog_bok(ui_file_dialog_t *dialog, void *arg,
+    const char *fname)
+{
+	edit_t *edit = (edit_t *)arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+	char *cname;
+	errno_t rc;
+
+	ui_file_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+
+	cname = str_dup(fname);
+	if (cname == NULL) {
+		printf("Out of memory.\n");
+		return;
+	}
+
+	rc = file_save(fname);
+	if (rc != EOK)
+		return;
+
+	if (doc.file_name != NULL)
+		free(doc.file_name);
+	doc.file_name = cname;
+
+}
+
+/** Save As dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void save_as_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_file_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Save As dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void save_as_dialog_close(ui_file_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_file_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Go To Line dialog OK button press.
+ *
+ * @param dialog Go To Line dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param text Submitted text
+ */
+static void go_to_line_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
+    const char *text)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+	char *endptr;
+	int line;
+
+	ui_prompt_dialog_destroy(dialog);
+	line = strtol(text, &endptr, 10);
+	if (*endptr != '\0') {
+		status_display("Invalid number entered.");
+		return;
+	}
+
+	caret_move_absolute(line, pane.ideal_column, dir_before, false);
+	// TODO Smarter cursor management
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+	(void) gfx_update(gc);
+}
+
+/** Go To Line dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_prompt_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Go To Line dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void go_to_line_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_prompt_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Search dialog OK button press.
+ *
+ * @param dialog Search dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param text Submitted text
+ */
+static void search_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
+    const char *text)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+	char *pattern;
+	bool reverse;
+
+	ui_prompt_dialog_destroy(dialog);
+
+	/* Abort if search phrase is empty */
+	if (text[0] == '\0')
+		return;
+
+	pattern = str_dup(text);
+	reverse = pane.search_reverse;
+
+	if (pane.previous_search)
+		free(pane.previous_search);
+	pane.previous_search = pattern;
+	pane.previous_search_reverse = reverse;
+
+	search(pattern, reverse);
+
+	// TODO Smarter cursor management
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+	(void) gfx_update(gc);
+}
+
+/** Search dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void search_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_prompt_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
+}
+
+/** Search dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void search_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+	gfx_context_t *gc = ui_window_get_gc(edit->window);
+
+	ui_prompt_dialog_destroy(dialog);
+	// TODO Smarter cursor management
+	pane.rflags |= REDRAW_CARET;
+	(void) pane_update(&pane);
+	gfx_cursor_set_visible(gc, true);
 }
 
 /** @}

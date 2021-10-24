@@ -64,7 +64,8 @@
 #define ISTATE_OFFSET_X28    0x100
 #define ISTATE_OFFSET_X29    0x108
 #define ISTATE_OFFSET_X30    0x110
-#define ISTATE_SIZE          0x118
+#define ISTATE_OFFSET_PAD0   0x118
+#define ISTATE_SIZE          0x120
 
 #ifndef __ASSEMBLER__
 
@@ -108,7 +109,16 @@ typedef struct istate {
 	uint64_t x29;
 	/* Link Register. */
 	uint64_t x30;
+
+	/*
+	 * ARM64 mandates that the stack pointer is always aligned to
+	 * a 16-byte boundary. To satisfy this condition, the size of
+	 * this data structure needs to be also a multiple of 16 bytes.
+	 * This is the reason for this padding.
+	 */
+	uint64_t pad0;
 } istate_t;
 
 #endif
+
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Petr Pavlu
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arch/barrier.h>
-#include <barrier.h>
+/** @addtogroup libcodepage
+ * @{
+ */
+/**
+ * @file Code page 437
+ */
 
-void smc_coherence(void *a, size_t l)
-{
-	ensure_visibility(a, l);
-}
+#ifndef _CODEPAGE_CP437_H
+#define _CODEPAGE_CP437_H
+
+#include <errno.h>
+#include <stdint.h>
+#include <str.h>
+
+extern char32_t cp437_decode(uint8_t);
+extern errno_t cp437_encode(char32_t, uint8_t *);
+
+#endif
+
+/** @}
+ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,10 +79,17 @@ static errno_t hello(const char *display_spec)
 
 	ui_wnd_params_init(&params);
 	params.caption = "Hello World";
-	params.rect.p0.x = 0;
-	params.rect.p0.y = 0;
-	params.rect.p1.x = 200;
-	params.rect.p1.y = 60;
+	if (ui_is_textmode(ui)) {
+		params.rect.p0.x = 0;
+		params.rect.p0.y = 0;
+		params.rect.p1.x = 24;
+		params.rect.p1.y = 5;
+	} else {
+		params.rect.p0.x = 0;
+		params.rect.p0.y = 0;
+		params.rect.p1.x = 200;
+		params.rect.p1.y = 60;
+	}
 
 	memset((void *) &hello, 0, sizeof(hello));
 	hello.ui = ui;
@@ -110,12 +117,10 @@ static errno_t hello(const char *display_spec)
 		return rc;
 	}
 
-	rect.p0.x = 10;
-	rect.p0.y = 35;
-	rect.p1.x = 190;
-	rect.p1.y = 50;
+	ui_window_get_app_rect(window, &rect);
 	ui_label_set_rect(hello.label, &rect);
 	ui_label_set_halign(hello.label, gfx_halign_center);
+	ui_label_set_valign(hello.label, gfx_valign_center);
 
 	rc = ui_fixed_add(hello.fixed, ui_label_ctl(hello.label));
 	if (rc != EOK) {

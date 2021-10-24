@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,16 +36,17 @@
 
 #include <adt/list.h>
 #include <async.h>
-#include <stdbool.h>
 #include <errno.h>
-#include <str_error.h>
 #include <fibril_synch.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink_srv.h>
 #include <io/log.h>
 #include <loc.h>
-#include <nic_iface.h>
-#include <stdlib.h>
 #include <mem.h>
+#include <nic_iface.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <str_error.h>
 #include "ethip.h"
 #include "ethip_nic.h"
 #include "pdu.h"
@@ -192,7 +193,7 @@ static errno_t ethip_nic_open(service_id_t sid)
 		goto error;
 	}
 
-	addr48(nic_address.address, nic->mac_addr);
+	eth_addr_decode(nic_address.address, &nic->mac_addr);
 
 	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
 	if (rc != EOK) {
@@ -398,25 +399,28 @@ static errno_t ethip_nic_setup_multicast(ethip_nic_t *nic)
 
 		assert(i < count);
 
-		addr48_t mac;
-		addr48_solicited_node(v6, mac);
+		eth_addr_t mac;
+		eth_addr_solicited_node(v6, &mac);
 
 		/* Avoid duplicate addresses in the list */
 
 		bool found = false;
 
 		for (size_t j = 0; j < i; j++) {
-			if (addr48_compare(mac_list[j].address, mac)) {
+			eth_addr_t mac_entry;
+			eth_addr_decode(mac_list[j].address, &mac_entry);
+			if (eth_addr_compare(&mac_entry, &mac)) {
 				found = true;
 				break;
 			}
 		}
 
 		if (!found) {
-			addr48(mac, mac_list[i].address);
+			eth_addr_encode(&mac, mac_list[i].address);
 			i++;
-		} else
+		} else {
 			count--;
+		}
 	}
 
 	/* Setup the multicast MAC list */

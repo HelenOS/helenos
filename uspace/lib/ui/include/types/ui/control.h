@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #define _UI_TYPES_CONTROL_H
 
 #include <errno.h>
+#include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <types/ui/event.h>
 
@@ -49,6 +50,8 @@ typedef struct ui_control_ops {
 	void (*destroy)(void *);
 	/** Paint */
 	errno_t (*paint)(void *);
+	/** Keyboard event */
+	ui_evclaim_t (*kbd_event)(void *, kbd_event_t *);
 	/** Position event */
 	ui_evclaim_t (*pos_event)(void *, pos_event_t *);
 	/** Unfocus */

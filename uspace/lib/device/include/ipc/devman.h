@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef _LIBC_IPC_DEVMAN_H_
-#define _LIBC_IPC_DEVMAN_H_
+#ifndef LIBDEVICE_IPC_DEVMAN_H
+#define LIBDEVICE_IPC_DEVMAN_H
 
 #include <ipc/common.h>
 #include <adt/list.h>

@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libdevice
  * @{
  */
 
-#ifndef _LIBC_IPC_VOL_H_
-#define _LIBC_IPC_VOL_H_
+#ifndef LIBDEVICE_IPC_VOL_H
+#define LIBDEVICE_IPC_VOL_H
 
 #include <ipc/common.h>
 

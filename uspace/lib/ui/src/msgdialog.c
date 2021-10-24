@@ -102,7 +102,7 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	if (ui_is_textmode(ui)) {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
-		wparams.rect.p1.x = 20;
+		wparams.rect.p1.x = 40;
 		wparams.rect.p1.y = 7;
 	} else {
 		wparams.rect.p0.x = 0;
@@ -176,6 +176,7 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
+	dialog->bok = bok;
 	bok = NULL;
 
 	ui_window_add(window, ui_fixed_ctl(fixed));
@@ -186,10 +187,11 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 		goto error;
 
 	dialog->window = window;
-	dialog->bok = bok;
 	*rdialog = dialog;
 	return EOK;
 error:
+	if (bok != NULL)
+		ui_pbutton_destroy(bok);
 	if (label != NULL)
 		ui_label_destroy(label);
 	if (fixed != NULL)

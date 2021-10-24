@@ -46,14 +46,13 @@
 
 static const char *ui_typeface_path = "/data/font/helena.tpf";
 
-/** Create new UI resource.
+/** Create new UI resource in graphics mode.
  *
  * @param gc Graphic context
- * @param textmode @c true if running in text mode
  * @param rresource Place to store pointer to new UI resource
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
+static errno_t ui_resource_create_gfx(gfx_context_t *gc,
     ui_resource_t **rresource)
 {
 	ui_resource_t *resource;
@@ -80,36 +79,27 @@ errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
 	gfx_color_t *entry_fg_color = NULL;
 	gfx_color_t *entry_bg_color = NULL;
 	gfx_color_t *entry_act_bg_color = NULL;
+	gfx_color_t *entry_sel_text_fg_color = NULL;
+	gfx_color_t *entry_sel_text_bg_color = NULL;
 	errno_t rc;
 
 	resource = calloc(1, sizeof(ui_resource_t));
 	if (resource == NULL)
 		return ENOMEM;
 
-	if (textmode) {
-		/* Create dummy font for text mode */
-		rc = gfx_typeface_create(gc, &tface);
-		if (rc != EOK)
-			goto error;
+	rc = gfx_typeface_open(gc, ui_typeface_path, &tface);
+	if (rc != EOK)
+		goto error;
 
-		rc = gfx_font_create_textmode(tface, &font);
-		if (rc != EOK)
-			goto error;
-	} else {
-		rc = gfx_typeface_open(gc, ui_typeface_path, &tface);
-		if (rc != EOK)
-			goto error;
-
-		finfo = gfx_typeface_first_font(tface);
-		if (finfo == NULL) {
-			rc = EIO;
-			goto error;
-		}
-
-		rc = gfx_font_open(finfo, &font);
-		if (rc != EOK)
-			goto error;
+	finfo = gfx_typeface_first_font(tface);
+	if (finfo == NULL) {
+		rc = EIO;
+		goto error;
 	}
+
+	rc = gfx_font_open(finfo, &font);
+	if (rc != EOK)
+		goto error;
 
 	rc = gfx_color_new_rgb_i16(0, 0, 0, &btn_frame_color);
 	if (rc != EOK)
@@ -197,10 +187,19 @@ errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+	    &entry_sel_text_fg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0, 0, 0xffff, &entry_sel_text_bg_color);
+	if (rc != EOK)
+		goto error;
+
 	resource->gc = gc;
 	resource->tface = tface;
 	resource->font = font;
-	resource->textmode = textmode;
+	resource->textmode = false;
 
 	resource->btn_frame_color = btn_frame_color;
 	resource->btn_face_color = btn_face_color;
@@ -225,6 +224,233 @@ errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
 	resource->entry_fg_color = entry_fg_color;
 	resource->entry_bg_color = entry_bg_color;
 	resource->entry_act_bg_color = entry_act_bg_color;
+	resource->entry_sel_text_fg_color = entry_sel_text_fg_color;
+	resource->entry_sel_text_bg_color = entry_sel_text_bg_color;
+
+	*rresource = resource;
+	return EOK;
+error:
+	if (btn_frame_color != NULL)
+		gfx_color_delete(btn_frame_color);
+	if (btn_face_color != NULL)
+		gfx_color_delete(btn_face_color);
+	if (btn_text_color != NULL)
+		gfx_color_delete(btn_text_color);
+	if (btn_highlight_color != NULL)
+		gfx_color_delete(btn_highlight_color);
+	if (btn_shadow_color != NULL)
+		gfx_color_delete(btn_shadow_color);
+
+	if (wnd_face_color != NULL)
+		gfx_color_delete(wnd_face_color);
+	if (wnd_text_color != NULL)
+		gfx_color_delete(wnd_text_color);
+	if (wnd_sel_text_color != NULL)
+		gfx_color_delete(wnd_sel_text_color);
+	if (wnd_sel_text_bg_color != NULL)
+		gfx_color_delete(wnd_sel_text_bg_color);
+	if (wnd_frame_hi_color != NULL)
+		gfx_color_delete(wnd_frame_hi_color);
+	if (wnd_frame_sh_color != NULL)
+		gfx_color_delete(wnd_frame_sh_color);
+	if (wnd_highlight_color != NULL)
+		gfx_color_delete(wnd_highlight_color);
+	if (wnd_shadow_color != NULL)
+		gfx_color_delete(wnd_shadow_color);
+
+	if (tbar_act_bg_color != NULL)
+		gfx_color_delete(tbar_act_bg_color);
+	if (tbar_act_text_color != NULL)
+		gfx_color_delete(tbar_act_text_color);
+	if (tbar_inact_bg_color != NULL)
+		gfx_color_delete(tbar_inact_bg_color);
+	if (tbar_inact_text_color != NULL)
+		gfx_color_delete(tbar_inact_text_color);
+
+	if (entry_fg_color != NULL)
+		gfx_color_delete(entry_fg_color);
+	if (entry_bg_color != NULL)
+		gfx_color_delete(entry_bg_color);
+	if (entry_sel_text_fg_color != NULL)
+		gfx_color_delete(entry_sel_text_fg_color);
+	if (entry_sel_text_bg_color != NULL)
+		gfx_color_delete(entry_sel_text_bg_color);
+	if (entry_act_bg_color != NULL)
+		gfx_color_delete(entry_act_bg_color);
+
+	if (tface != NULL)
+		gfx_typeface_destroy(tface);
+	free(resource);
+	return rc;
+}
+
+/** Create new UI resource in text mode.
+ *
+ * @param gc Graphic context
+ * @param rresource Place to store pointer to new UI resource
+ * @return EOK on success, ENOMEM if out of memory
+ */
+static errno_t ui_resource_create_text(gfx_context_t *gc,
+    ui_resource_t **rresource)
+{
+	ui_resource_t *resource;
+	gfx_typeface_t *tface = NULL;
+	gfx_font_t *font = NULL;
+	gfx_color_t *btn_frame_color = NULL;
+	gfx_color_t *btn_face_color = NULL;
+	gfx_color_t *btn_text_color = NULL;
+	gfx_color_t *btn_highlight_color = NULL;
+	gfx_color_t *btn_shadow_color = NULL;
+	gfx_color_t *wnd_face_color = NULL;
+	gfx_color_t *wnd_text_color = NULL;
+	gfx_color_t *wnd_sel_text_color = NULL;
+	gfx_color_t *wnd_sel_text_bg_color = NULL;
+	gfx_color_t *wnd_frame_hi_color = NULL;
+	gfx_color_t *wnd_frame_sh_color = NULL;
+	gfx_color_t *wnd_highlight_color = NULL;
+	gfx_color_t *wnd_shadow_color = NULL;
+	gfx_color_t *tbar_act_bg_color = NULL;
+	gfx_color_t *tbar_inact_bg_color = NULL;
+	gfx_color_t *tbar_act_text_color = NULL;
+	gfx_color_t *tbar_inact_text_color = NULL;
+	gfx_color_t *entry_fg_color = NULL;
+	gfx_color_t *entry_bg_color = NULL;
+	gfx_color_t *entry_sel_text_fg_color = NULL;
+	gfx_color_t *entry_sel_text_bg_color = NULL;
+	gfx_color_t *entry_act_bg_color = NULL;
+	errno_t rc;
+
+	resource = calloc(1, sizeof(ui_resource_t));
+	if (resource == NULL)
+		return ENOMEM;
+
+	/* Create dummy font for text mode */
+	rc = gfx_typeface_create(gc, &tface);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_font_create_textmode(tface, &font);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x07, &btn_frame_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x20, &btn_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x20, &btn_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x20, &btn_highlight_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x01, &btn_shadow_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x70, &wnd_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x70, &wnd_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x07, &wnd_sel_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x07, &wnd_sel_text_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x70, &wnd_frame_hi_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x01, &wnd_frame_sh_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x70, &wnd_highlight_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x01, &wnd_shadow_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x70, &tbar_act_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x70, &tbar_act_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x07, &tbar_inact_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x07, &tbar_inact_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x1b, &entry_fg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x1b, &entry_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x20, &entry_sel_text_fg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x20, &entry_sel_text_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x37, &entry_act_bg_color);
+	if (rc != EOK)
+		goto error;
+
+	resource->gc = gc;
+	resource->tface = tface;
+	resource->font = font;
+	resource->textmode = true;
+
+	resource->btn_frame_color = btn_frame_color;
+	resource->btn_face_color = btn_face_color;
+	resource->btn_text_color = btn_text_color;
+	resource->btn_highlight_color = btn_highlight_color;
+	resource->btn_shadow_color = btn_shadow_color;
+
+	resource->wnd_face_color = wnd_face_color;
+	resource->wnd_text_color = wnd_text_color;
+	resource->wnd_sel_text_color = wnd_sel_text_color;
+	resource->wnd_sel_text_bg_color = wnd_sel_text_bg_color;
+	resource->wnd_frame_hi_color = wnd_frame_hi_color;
+	resource->wnd_frame_sh_color = wnd_frame_sh_color;
+	resource->wnd_highlight_color = wnd_highlight_color;
+	resource->wnd_shadow_color = wnd_shadow_color;
+
+	resource->tbar_act_bg_color = tbar_act_bg_color;
+	resource->tbar_act_text_color = tbar_act_text_color;
+	resource->tbar_inact_bg_color = tbar_inact_bg_color;
+	resource->tbar_inact_text_color = tbar_inact_text_color;
+
+	resource->entry_fg_color = entry_fg_color;
+	resource->entry_bg_color = entry_bg_color;
+	resource->entry_act_bg_color = entry_act_bg_color;
+	resource->entry_sel_text_fg_color = entry_sel_text_fg_color;
+	resource->entry_sel_text_bg_color = entry_sel_text_bg_color;
 
 	*rresource = resource;
 	return EOK;
@@ -272,11 +498,31 @@ error:
 		gfx_color_delete(entry_bg_color);
 	if (entry_act_bg_color != NULL)
 		gfx_color_delete(entry_act_bg_color);
+	if (entry_sel_text_fg_color != NULL)
+		gfx_color_delete(entry_sel_text_fg_color);
+	if (entry_sel_text_bg_color != NULL)
+		gfx_color_delete(entry_sel_text_bg_color);
 
 	if (tface != NULL)
 		gfx_typeface_destroy(tface);
 	free(resource);
 	return rc;
+}
+
+/** Create new UI resource.
+ *
+ * @param gc Graphic context
+ * @param textmode @c true if running in text mode
+ * @param rresource Place to store pointer to new UI resource
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ui_resource_create(gfx_context_t *gc, bool textmode,
+    ui_resource_t **rresource)
+{
+	if (textmode)
+		return ui_resource_create_text(gc, rresource);
+	else
+		return ui_resource_create_gfx(gc, rresource);
 }
 
 /** Destroy UI resource.
@@ -311,6 +557,8 @@ void ui_resource_destroy(ui_resource_t *resource)
 	gfx_color_delete(resource->entry_fg_color);
 	gfx_color_delete(resource->entry_bg_color);
 	gfx_color_delete(resource->entry_act_bg_color);
+	gfx_color_delete(resource->entry_sel_text_fg_color);
+	gfx_color_delete(resource->entry_sel_text_bg_color);
 
 	gfx_font_close(resource->font);
 	gfx_typeface_destroy(resource->tface);
@@ -343,6 +591,16 @@ void ui_resource_expose(ui_resource_t *resource)
 {
 	if (resource->expose_cb != NULL)
 		resource->expose_cb(resource->expose_arg);
+}
+
+/** Get the UI font.
+ *
+ * @param resource UI resource
+ * @return UI font
+ */
+gfx_font_t *ui_resource_get_font(ui_resource_t *resource)
+{
+	return resource->font;
 }
 
 /** @}

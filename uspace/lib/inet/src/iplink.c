@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinet
  * @{
  */
 /**
@@ -37,8 +37,9 @@
 #include <async.h>
 #include <assert.h>
 #include <errno.h>
-#include <inet/iplink.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
+#include <inet/iplink.h>
 #include <ipc/iplink.h>
 #include <ipc/services.h>
 #include <loc.h>
@@ -114,7 +115,7 @@ errno_t iplink_send6(iplink_t *iplink, iplink_sdu6_t *sdu)
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, IPLINK_SEND6, &answer);
 
-	errno_t rc = async_data_write_start(exch, &sdu->dest, sizeof(addr48_t));
+	errno_t rc = async_data_write_start(exch, &sdu->dest, sizeof(eth_addr_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -152,14 +153,14 @@ errno_t iplink_get_mtu(iplink_t *iplink, size_t *rmtu)
 	return EOK;
 }
 
-errno_t iplink_get_mac48(iplink_t *iplink, addr48_t *mac)
+errno_t iplink_get_mac48(iplink_t *iplink, eth_addr_t *mac)
 {
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, IPLINK_GET_MAC48, &answer);
 
-	errno_t rc = async_data_read_start(exch, mac, sizeof(addr48_t));
+	errno_t rc = async_data_read_start(exch, mac, sizeof(eth_addr_t));
 
 	loc_exchange_end(exch);
 
@@ -174,14 +175,14 @@ errno_t iplink_get_mac48(iplink_t *iplink, addr48_t *mac)
 	return retval;
 }
 
-errno_t iplink_set_mac48(iplink_t *iplink, addr48_t mac)
+errno_t iplink_set_mac48(iplink_t *iplink, eth_addr_t *mac)
 {
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, IPLINK_GET_MAC48, &answer);
 
-	errno_t rc = async_data_read_start(exch, mac, sizeof(addr48_t));
+	errno_t rc = async_data_read_start(exch, mac, sizeof(eth_addr_t));
 
 	loc_exchange_end(exch);
 
@@ -263,17 +264,17 @@ static void iplink_ev_recv(iplink_t *iplink, ipc_call_t *icall)
 
 static void iplink_ev_change_addr(iplink_t *iplink, ipc_call_t *icall)
 {
-	addr48_t *addr;
+	eth_addr_t *addr;
 	size_t size;
 
 	errno_t rc = async_data_write_accept((void **) &addr, false,
-	    sizeof(addr48_t), sizeof(addr48_t), 0, &size);
+	    sizeof(eth_addr_t), sizeof(eth_addr_t), 0, &size);
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
 		return;
 	}
 
-	rc = iplink->ev_ops->change_addr(iplink, *addr);
+	rc = iplink->ev_ops->change_addr(iplink, addr);
 	free(addr);
 	async_answer_0(icall, EOK);
 }

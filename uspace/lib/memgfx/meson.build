@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020 Jiri Svoboda
+# Copyright (c) 2021 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,10 +28,12 @@
 
 deps = [ 'gfx' ]
 src = files(
-	'src/memgc.c'
+	'src/memgc.c',
+	'src/xlategc.c'
 )
 
 test_src = files(
 	'test/main.c',
 	'test/memgfx.c',
+	'test/xlategc.c'
 )

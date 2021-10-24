@@ -60,7 +60,6 @@ enum {
 	wdecor_edge_w = 4,
 	wdecor_edge_h = 4,
 	wdecor_tbar_h = 22,
-	wdecor_tbar_h_text = 1,
 	wdecor_frame_w = 4,
 	wdecor_frame_w_text = 1
 };
@@ -169,6 +168,7 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	errno_t rc;
 	gfx_rect_t rect;
 	gfx_rect_t trect;
+	gfx_rect_t text_rect;
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
 	ui_wdecor_geom_t geom;
@@ -179,9 +179,8 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	if ((wdecor->style & ui_wds_frame) != 0) {
 
 		if (wdecor->res->textmode != false) {
-			rc = ui_paint_bevel(wdecor->res->gc, &rect,
-			    wdecor->res->wnd_frame_hi_color,
-			    wdecor->res->wnd_frame_sh_color, 1, &rect);
+			rc = ui_paint_text_box(wdecor->res, &rect,
+			    ui_box_double, wdecor->res->wnd_face_color);
 			if (rc != EOK)
 				return rc;
 		} else {
@@ -207,17 +206,17 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 			    wdecor->res->wnd_highlight_color, 1, &trect);
 			if (rc != EOK)
 				return rc;
+
+			rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
+			    wdecor->res->tbar_act_bg_color :
+			    wdecor->res->tbar_inact_bg_color);
+			if (rc != EOK)
+				return rc;
+
+			rc = gfx_fill_rect(wdecor->res->gc, &trect);
+			if (rc != EOK)
+				return rc;
 		}
-
-		rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
-		    wdecor->res->tbar_act_bg_color :
-		    wdecor->res->tbar_inact_bg_color);
-		if (rc != EOK)
-			return rc;
-
-		rc = gfx_fill_rect(wdecor->res->gc, &trect);
-		if (rc != EOK)
-			return rc;
 
 		gfx_text_fmt_init(&fmt);
 		fmt.color = wdecor->active ?
@@ -228,6 +227,28 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 
 		pos.x = (trect.p0.x + trect.p1.x) / 2;
 		pos.y = (trect.p0.y + trect.p1.y) / 2;
+
+		if (wdecor->res->textmode) {
+			/* Make space around caption text */
+			gfx_text_rect(wdecor->res->font, &pos, &fmt,
+			    wdecor->caption, &text_rect);
+
+			/* Only make space if caption is non-empty */
+			if (text_rect.p0.x < text_rect.p1.x) {
+				text_rect.p0.x -= 1;
+				text_rect.p1.x += 1;
+			}
+
+			rc = gfx_set_color(wdecor->res->gc, wdecor->active ?
+			    wdecor->res->tbar_act_bg_color :
+			    wdecor->res->tbar_inact_bg_color);
+			if (rc != EOK)
+				return rc;
+
+			rc = gfx_fill_rect(wdecor->res->gc, &text_rect);
+			if (rc != EOK)
+				return rc;
+		}
 
 		rc = gfx_puttext(wdecor->res->font, &pos, &fmt, wdecor->caption);
 		if (rc != EOK)
@@ -300,7 +321,6 @@ void ui_wdecor_set_cursor(ui_wdecor_t *wdecor, ui_stock_cursor_t cursor)
 void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 {
 	gfx_coord_t frame_w;
-	gfx_coord_t tbar_h;
 
 	/* Does window have a frame? */
 	if ((wdecor->style & ui_wds_frame) != 0) {
@@ -317,12 +337,16 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 
 	/* Does window have a title bar? */
 	if ((wdecor->style & ui_wds_titlebar) != 0) {
-		tbar_h = wdecor->res->textmode ?
-		    wdecor_tbar_h_text : wdecor_tbar_h;
-
-		geom->title_bar_rect.p0 = geom->interior_rect.p0;
-		geom->title_bar_rect.p1.x = geom->interior_rect.p1.x;
-		geom->title_bar_rect.p1.y = geom->interior_rect.p0.y + tbar_h;
+		if (wdecor->res->textmode) {
+			geom->title_bar_rect.p0 = wdecor->rect.p0;
+			geom->title_bar_rect.p1.x = wdecor->rect.p1.x;
+			geom->title_bar_rect.p1.y = wdecor->rect.p0.y + 1;
+		} else {
+			geom->title_bar_rect.p0 = geom->interior_rect.p0;
+			geom->title_bar_rect.p1.x = geom->interior_rect.p1.x;
+			geom->title_bar_rect.p1.y = geom->interior_rect.p0.y +
+			    wdecor_tbar_h;
+		}
 
 		geom->app_area_rect.p0.x = geom->interior_rect.p0.x;
 		geom->app_area_rect.p0.y = geom->title_bar_rect.p1.y;

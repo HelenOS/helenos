@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,8 +39,9 @@
 
 #include <adt/list.h>
 #include <async.h>
-#include <inet/iplink_srv.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
+#include <inet/iplink_srv.h>
 #include <loc.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -60,7 +61,7 @@ typedef struct ethip_nic {
 	service_id_t iplink_sid;
 
 	/** MAC address */
-	addr48_t mac_addr;
+	eth_addr_t mac_addr;
 
 	/**
 	 * List of IP addresses configured on this link
@@ -72,9 +73,9 @@ typedef struct ethip_nic {
 /** Ethernet frame */
 typedef struct {
 	/** Destination Address */
-	addr48_t dest;
+	eth_addr_t dest;
 	/** Source Address */
-	addr48_t src;
+	eth_addr_t src;
 	/** Ethertype or Length */
 	uint16_t etype_len;
 	/** Payload */
@@ -99,11 +100,11 @@ typedef struct {
 	/** Opcode */
 	arp_opcode_t opcode;
 	/** Sender hardware address */
-	addr48_t sender_hw_addr;
+	eth_addr_t sender_hw_addr;
 	/** Sender protocol address */
 	addr32_t sender_proto_addr;
 	/** Target hardware address */
-	addr48_t target_hw_addr;
+	eth_addr_t target_hw_addr;
 	/** Target protocol address */
 	addr32_t target_proto_addr;
 } arp_eth_packet_t;
@@ -112,7 +113,7 @@ typedef struct {
 typedef struct {
 	link_t atrans_list;
 	addr32_t ip_addr;
-	addr48_t mac_addr;
+	eth_addr_t mac_addr;
 } ethip_atrans_t;
 
 extern errno_t ethip_iplink_init(ethip_nic_t *);

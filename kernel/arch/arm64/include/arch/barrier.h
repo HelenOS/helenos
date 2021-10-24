@@ -36,46 +36,6 @@
 #ifndef KERN_arm64_BARRIER_H_
 #define KERN_arm64_BARRIER_H_
 
-#include <stddef.h>
-
-#define COHERENCE_INVAL_MIN  4
-
-/** Ensure visibility of instruction updates for a multiprocessor.
- *
- * @param addr Address of the first instruction.
- * @param size Size of the instruction block (in bytes).
- */
-static inline void ensure_visibility(void *addr, size_t len)
-{
-	size_t i;
-
-	/*
-	 * Clean to Point of Unification to make the new instructions visible to
-	 * the instruction cache.
-	 */
-	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
-		asm volatile (
-		    "dc cvau, %[addr]\n"
-		    : : [addr] "r" ((char *) addr + i)
-		);
-
-	/* Ensure completion on all PEs. */
-	asm volatile ("dsb ish" ::: "memory");
-
-	/* Ensure instruction cache/branch predictor discards stale data. */
-	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
-		asm volatile (
-		    "ic ivau, %[addr]\n"
-		    : : [addr] "r" ((char *) addr + i)
-		);
-
-	/* Ensure completion on all PEs. */
-	asm volatile ("dsb ish" ::: "memory");
-
-	/* Synchronize context on this PE. */
-	asm volatile ("isb");
-}
-
 #endif
 
 /** @}

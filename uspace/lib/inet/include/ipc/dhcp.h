@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libinet
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IPC_DHCP_H_
-#define _LIBC_IPC_DHCP_H_
+#ifndef LIBINET_IPC_DHCP_H
+#define LIBINET_IPC_DHCP_H
 
 #include <ipc/common.h>
 

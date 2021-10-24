@@ -107,7 +107,7 @@ PCUT_TEST(button_cb)
 	/* Button callback with no callbacks set */
 	ui_pbutton_clicked(dialog->bok);
 
-	/* Button callback with unfocus callback not implemented */
+	/* Button callback with callback not implemented */
 	ui_msg_dialog_set_cb(dialog, &dummy_msg_dialog_cb, NULL);
 	ui_pbutton_clicked(dialog->bok);
 

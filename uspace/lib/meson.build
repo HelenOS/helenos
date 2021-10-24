@@ -56,6 +56,7 @@ libs = [
 
 	'block',
 	'clui',
+	'codepage',
 	'compress',
 	'cpp',
 	'crypto',

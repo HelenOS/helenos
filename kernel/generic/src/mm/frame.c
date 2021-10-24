@@ -369,6 +369,7 @@ _NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
     pfn_t constraint)
 {
 	assert(zone->flags & ZONE_AVAILABLE);
+	assert(zone->free_count >= count);
 
 	/* Allocate frames from zone */
 	size_t index = (size_t) -1;
@@ -409,10 +410,11 @@ _NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 	assert(zone->flags & ZONE_AVAILABLE);
 
 	frame_t *frame = zone_get_frame(zone, index);
-
 	assert(frame->refcount > 0);
 
 	if (!--frame->refcount) {
+		assert(zone->busy_count > 0);
+
 		bitmap_set(&zone->bitmap, index, 0);
 
 		/* Update zone information. */
@@ -431,14 +433,32 @@ _NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
 	assert(zone->flags & ZONE_AVAILABLE);
 
 	frame_t *frame = zone_get_frame(zone, index);
+	assert(frame->refcount <= 1);
+
 	if (frame->refcount > 0)
 		return;
+
+	assert(zone->free_count > 0);
 
 	frame->refcount = 1;
 	bitmap_set_range(&zone->bitmap, index, 1);
 
 	zone->free_count--;
 	reserve_force_alloc(1);
+}
+
+/** Mark frame in zone available to allocation. */
+_NO_TRACE static void zone_mark_available(zone_t *zone, size_t index)
+{
+	assert(zone->flags & ZONE_AVAILABLE);
+
+	frame_t *frame = zone_get_frame(zone, index);
+	assert(frame->refcount == 1);
+
+	frame->refcount = 0;
+	bitmap_set_range(&zone->bitmap, index, 0);
+
+	zone->free_count++;
 }
 
 /** Merge two zones.
@@ -464,6 +484,7 @@ _NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
 
 	/* Difference between zone bases */
 	pfn_t base_diff = zones.info[z2].base - zones.info[z1].base;
+	pfn_t gap = base_diff - zones.info[z1].count;
 
 	zones.info[z1].count = base_diff + zones.info[z2].count;
 	zones.info[z1].free_count += zones.info[z2].free_count;
@@ -491,6 +512,15 @@ _NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
 		zones.info[z1].frames[base_diff + i] =
 		    zones.info[z2].frames[i];
 	}
+
+	/*
+	 * Mark the gap between the original zones as unavailable.
+	 */
+
+	for (size_t i = 0; i < gap; i++) {
+		frame_initialize(&zones.info[z1].frames[old_z1->count + i]);
+		zone_mark_unavailable(&zones.info[z1], old_z1->count + i);
+	}
 }
 
 /** Return old configuration frames into the zone.
@@ -517,7 +547,7 @@ _NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 		return;
 
 	for (size_t i = 0; i < cframes; i++)
-		(void) zone_frame_free(&zones.info[znum],
+		zone_mark_available(&zones.info[znum],
 		    pfn - zones.info[znum].base + i);
 }
 

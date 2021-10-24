@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Antonin Steinhauser
  * All rights reserved.
  *
@@ -38,6 +39,7 @@
 #define NDP_H_
 
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 #include "inetsrv.h"
 #include "icmpv6_std.h"
 
@@ -51,11 +53,11 @@ typedef struct {
 	/** Opcode */
 	ndp_opcode_t opcode;
 	/** Sender hardware address */
-	addr48_t sender_hw_addr;
+	eth_addr_t sender_hw_addr;
 	/** Sender protocol address */
 	addr128_t sender_proto_addr;
 	/** Target hardware address */
-	addr48_t target_hw_addr;
+	eth_addr_t target_hw_addr;
 	/** Target protocol address */
 	addr128_t target_proto_addr;
 	/** Solicited IPv6 address */
@@ -63,6 +65,6 @@ typedef struct {
 } ndp_packet_t;
 
 extern errno_t ndp_received(inet_dgram_t *);
-extern errno_t ndp_translate(addr128_t, addr128_t, addr48_t, inet_link_t *);
+extern errno_t ndp_translate(addr128_t, addr128_t, eth_addr_t *, inet_link_t *);
 
 #endif

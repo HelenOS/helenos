@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libguigfx
+/** @addtogroup libmemgfx
  * @{
  */
 /**
@@ -52,11 +52,9 @@ struct mem_gc {
 	gfx_rect_t clip_rect;
 	/** Allocation info */
 	gfx_bitmap_alloc_t alloc;
-	/** Invalidate callback */
-	mem_gc_invalidate_cb_t invalidate;
-	/** Update callback */
-	mem_gc_update_cb_t update;
-	/** Argument to callback */
+	/** Callbacks */
+	mem_gc_cb_t *cb;
+	/** Argument to callbacks */
 	void *cb_arg;
 	/** Current drawing color */
 	pixel_t color;
@@ -64,7 +62,7 @@ struct mem_gc {
 
 /** Bitmap in memory GC */
 typedef struct {
-	/** Containing canvas GC */
+	/** Containing memory GC */
 	struct mem_gc *mgc;
 	/** Allocation info */
 	gfx_bitmap_alloc_t alloc;

@@ -43,6 +43,7 @@
 #include <types/gfx/color.h>
 #include <types/gfx/coord.h>
 #include <types/gfx/context.h>
+#include <stdbool.h>
 
 /** Graphics context ops */
 typedef struct {
@@ -63,6 +64,12 @@ typedef struct {
 	errno_t (*bitmap_render)(void *, gfx_rect_t *, gfx_coord2_t *);
 	/** Get bitmap allocation info */
 	errno_t (*bitmap_get_alloc)(void *, gfx_bitmap_alloc_t *);
+	/** Get hardware cursor position */
+	errno_t (*cursor_get_pos)(void *, gfx_coord2_t *);
+	/** Set hardware cursor position */
+	errno_t (*cursor_set_pos)(void *, gfx_coord2_t *);
+	/** Set hardware cursor visibility */
+	errno_t (*cursor_set_visible)(void *, bool);
 } gfx_context_ops_t;
 
 #endif

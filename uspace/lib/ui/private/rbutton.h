@@ -76,6 +76,9 @@ struct ui_rbutton {
 	bool inside;
 };
 
+extern errno_t ui_rbutton_paint_gfx(ui_rbutton_t *);
+extern errno_t ui_rbutton_paint_text(ui_rbutton_t *);
+
 #endif
 
 /** @}

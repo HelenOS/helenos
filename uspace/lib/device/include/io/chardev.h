@@ -26,12 +26,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 
-#ifndef _LIBC_IO_CHARDEV_H_
-#define _LIBC_IO_CHARDEV_H_
+#ifndef LIBDEVICE_IO_CHARDEV_H
+#define LIBDEVICE_IO_CHARDEV_H
 
 #include <async.h>
 #include <stddef.h>

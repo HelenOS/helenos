@@ -35,8 +35,8 @@
  * @brief QEMU virt platform driver.
  */
 
-#ifndef KERN_arm64_virt_H_
-#define KERN_arm64_virt_H_
+#ifndef KERN_arm64_mach_virt_H_
+#define KERN_arm64_mach_virt_H_
 
 #include <arch/machine_func.h>
 

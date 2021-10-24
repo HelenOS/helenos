@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinet
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_TYPES_INETCFG_H_
-#define _LIBC_TYPES_INETCFG_H_
+#ifndef LIBINET_TYPES_INETCFG_H
+#define LIBINET_TYPES_INETCFG_H
 
+#include <inet/eth_addr.h>
 #include <inet/inet.h>
 #include <stddef.h>
 
@@ -55,7 +56,7 @@ typedef struct {
 	/** Default MTU */
 	size_t def_mtu;
 	/** Link layer address */
-	addr48_t mac_addr;
+	eth_addr_t mac_addr;
 } inet_link_info_t;
 
 /** Static route info */

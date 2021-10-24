@@ -200,7 +200,7 @@ foreach tst : bin_targets
 		c_args: arch_uspace_c_args + tst.get('c_args'),
 		cpp_args: arch_uspace_c_args + tst.get('c_args'),
 		link_args: arch_uspace_c_args + arch_uspace_link_args + _ldargs,
-		implicit_include_directories: false,
+		implicit_include_directories: true,
 		build_by_default: true,
 	)
 

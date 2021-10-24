@@ -66,9 +66,9 @@ typedef struct {
 	ui_pbutton_t *pb2;
 	ui_checkbox_t *checkbox;
 	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rb1;
-	ui_rbutton_t *rb2;
-	ui_rbutton_t *rb3;
+	ui_rbutton_t *rbleft;
+	ui_rbutton_t *rbcenter;
+	ui_rbutton_t *rbright;
 	ui_slider_t *slider;
 } ui_demo_t;
 

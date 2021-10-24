@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #include <bitops.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/eth_addr.h>
 #include <io/log.h>
 #include <ipc/loc.h>
 #include <stdlib.h>
@@ -228,7 +229,7 @@ errno_t inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 		return EINVAL;
 
 	errno_t rc;
-	addr48_t ldest_mac;
+	eth_addr_t ldest_mac;
 
 	switch (ldest_ver) {
 	case ip_v4:
@@ -238,11 +239,11 @@ errno_t inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
 		/*
 		 * Translate local destination IPv6 address.
 		 */
-		rc = ndp_translate(lsrc_v6, ldest_v6, ldest_mac, addr->ilink);
+		rc = ndp_translate(lsrc_v6, ldest_v6, &ldest_mac, addr->ilink);
 		if (rc != EOK)
 			return rc;
 
-		return inet_link_send_dgram6(addr->ilink, ldest_mac, dgram,
+		return inet_link_send_dgram6(addr->ilink, &ldest_mac, dgram,
 		    proto, ttl, df);
 	default:
 		assert(false);

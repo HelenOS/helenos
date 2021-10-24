@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,9 @@ struct ui_checkbox {
 	/** Pointer is currently inside */
 	bool inside;
 };
+
+extern errno_t ui_checkbox_paint_gfx(ui_checkbox_t *);
+extern errno_t ui_checkbox_paint_text(ui_checkbox_t *);
 
 #endif
 

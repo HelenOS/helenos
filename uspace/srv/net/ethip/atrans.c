@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #include <adt/list.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink_srv.h>
 #include <stdlib.h>
 
@@ -58,7 +59,7 @@ static ethip_atrans_t *atrans_find(addr32_t ip_addr)
 	return NULL;
 }
 
-errno_t atrans_add(addr32_t ip_addr, addr48_t mac_addr)
+errno_t atrans_add(addr32_t ip_addr, eth_addr_t *mac_addr)
 {
 	ethip_atrans_t *atrans;
 	ethip_atrans_t *prev;
@@ -68,7 +69,7 @@ errno_t atrans_add(addr32_t ip_addr, addr48_t mac_addr)
 		return ENOMEM;
 
 	atrans->ip_addr = ip_addr;
-	addr48(mac_addr, atrans->mac_addr);
+	atrans->mac_addr = *mac_addr;
 
 	fibril_mutex_lock(&atrans_list_lock);
 	prev = atrans_find(ip_addr);
@@ -102,17 +103,17 @@ errno_t atrans_remove(addr32_t ip_addr)
 	return EOK;
 }
 
-static errno_t atrans_lookup_locked(addr32_t ip_addr, addr48_t mac_addr)
+static errno_t atrans_lookup_locked(addr32_t ip_addr, eth_addr_t *mac_addr)
 {
 	ethip_atrans_t *atrans = atrans_find(ip_addr);
 	if (atrans == NULL)
 		return ENOENT;
 
-	addr48(atrans->mac_addr, mac_addr);
+	*mac_addr = atrans->mac_addr;
 	return EOK;
 }
 
-errno_t atrans_lookup(addr32_t ip_addr, addr48_t mac_addr)
+errno_t atrans_lookup(addr32_t ip_addr, eth_addr_t *mac_addr)
 {
 	errno_t rc;
 
@@ -134,7 +135,7 @@ static void atrans_lookup_timeout_handler(void *arg)
 }
 
 errno_t atrans_lookup_timeout(addr32_t ip_addr, usec_t timeout,
-    addr48_t mac_addr)
+    eth_addr_t *mac_addr)
 {
 	fibril_timer_t *t;
 	bool timedout;

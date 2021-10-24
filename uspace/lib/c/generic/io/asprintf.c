@@ -88,7 +88,7 @@ int vasprintf(char **strp, const char *fmt, va_list args)
 	int ret = vsnprintf(NULL, 0, fmt, args2);
 	va_end(args2);
 
-	if (ret > 0) {
+	if (ret >= 0) {
 		*strp = malloc(ret + 1);
 		if (*strp == NULL)
 			return -1;

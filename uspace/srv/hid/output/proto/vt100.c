@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -64,7 +65,7 @@ typedef enum {
 
 static sgr_color_index_t color_map[] = {
 	[COLOR_BLACK]   = CI_BLACK,
-	[COLOR_BLUE]    = CI_RED,
+	[COLOR_BLUE]    = CI_BLUE,
 	[COLOR_GREEN]   = CI_GREEN,
 	[COLOR_CYAN]    = CI_CYAN,
 	[COLOR_RED]     = CI_RED,

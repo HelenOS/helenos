@@ -37,6 +37,7 @@
 #include <gfx/color.h>
 #include <gfx/context.h>
 #include <gfx/render.h>
+#include <gfx/text.h>
 #include <io/pos_event.h>
 #include <stdlib.h>
 #include <str.h>
@@ -56,6 +57,8 @@ enum {
 	ui_slider_btn_w = 15,
 	/** Slider button height */
 	ui_slider_btn_h = 23,
+	/** Slider button width in text mode */
+	ui_slider_btn_w_text = 3,
 	/** Slider button frame thickness */
 	ui_slider_btn_frame_thickness = 1,
 	/** Slider button bevel width */
@@ -250,17 +253,20 @@ static void ui_slider_btn_rect(ui_slider_t *slider, gfx_rect_t *rect)
 gfx_coord_t ui_slider_length(ui_slider_t *slider)
 {
 	gfx_coord2_t dims;
+	gfx_coord_t w;
 
 	gfx_rect_dims(&slider->rect, &dims);
-	return dims.x - ui_slider_btn_w;
+	w = slider->res->textmode ? ui_slider_btn_w_text :
+	    ui_slider_btn_w;
+	return dims.x - w;
 }
 
-/** Paint slider.
+/** Paint slider in graphics mode.
  *
  * @param slider Slider
  * @return EOK on success or an error code
  */
-errno_t ui_slider_paint(ui_slider_t *slider)
+errno_t ui_slider_paint_gfx(ui_slider_t *slider)
 {
 	gfx_coord2_t pos;
 	gfx_coord_t length;
@@ -314,6 +320,78 @@ error:
 	return rc;
 }
 
+/** Paint slider in text mode.
+ *
+ * @param slider Slider
+ * @return EOK on success or an error code
+ */
+errno_t ui_slider_paint_text(ui_slider_t *slider)
+{
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	gfx_coord_t w, i;
+	char *buf;
+	const char *gchar;
+	size_t gcharsz;
+	errno_t rc;
+
+	/* Paint slider groove */
+
+	pos = slider->rect.p0;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.color = slider->res->wnd_text_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	w = slider->rect.p1.x - slider->rect.p0.x;
+	gchar = "\u2550";
+	gcharsz = str_size(gchar);
+
+	buf = malloc(w * gcharsz + 1);
+	if (buf == NULL)
+		return ENOMEM;
+
+	for (i = 0; i < w; i++)
+		str_cpy(buf + i * gcharsz, (w - i) * gcharsz + 1, gchar);
+	buf[w * gcharsz] = '\0';
+
+	rc = gfx_puttext(slider->res->font, &pos, &fmt, buf);
+	free(buf);
+	if (rc != EOK)
+		goto error;
+
+	/* Paint slider button */
+
+	pos.x += slider->pos;
+
+	rc = gfx_puttext(slider->res->font, &pos, &fmt,
+	    "[O]");
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_update(slider->res->gc);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Paint slider.
+ *
+ * @param slider Slider
+ * @return EOK on success or an error code
+ */
+errno_t ui_slider_paint(ui_slider_t *slider)
+{
+	if (slider->res->textmode)
+		return ui_slider_paint_text(slider);
+	else
+		return ui_slider_paint_gfx(slider);
+}
+
 /** Clear slider button.
  *
  * @param slider Slider
@@ -323,6 +401,10 @@ errno_t ui_slider_btn_clear(ui_slider_t *slider)
 {
 	gfx_rect_t rect;
 	errno_t rc;
+
+	/* No need to clear button in text mode */
+	if (slider->res->textmode)
+		return EOK;
 
 	ui_slider_btn_rect(slider, &rect);
 

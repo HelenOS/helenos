@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 
@@ -35,8 +35,8 @@
  * NIC interface definitions.
  */
 
-#ifndef _LIBC_NIC_H_
-#define _LIBC_NIC_H_
+#ifndef LIBDEVICE_NIC_H
+#define LIBDEVICE_NIC_H
 
 #include <nic/eth_phys.h>
 #include <stdbool.h>
@@ -268,7 +268,7 @@ typedef struct nic_device_info {
 
 	/** The mask of all modes which the device can advertise
 	 *
-	 *  see ETH_AUTONEG_ macros in nic/eth_phys.h of libc
+	 *  see ETH_AUTONEG_ macros in nic/eth_phys.h of libdevice
 	 */
 	uint32_t autoneg_support;
 } nic_device_info_t;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/eth_addr.h>
 #include <io/log.h>
 #include <macros.h>
 #include <mem.h>
@@ -503,7 +504,7 @@ errno_t ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
 	}
 
 	message->length = 1;
-	addr48(ndp->sender_hw_addr, message->mac);
+	eth_addr_encode(&ndp->sender_hw_addr, message->mac);
 
 	icmpv6_phdr_t phdr;
 
@@ -551,7 +552,7 @@ errno_t ndp_pdu_decode(inet_dgram_t *dgram, ndp_packet_t *ndp)
 	ndp_message_t *message = (ndp_message_t *) (icmpv6 + 1);
 
 	addr128_t_be2host(message->target_address, ndp->target_proto_addr);
-	addr48(message->mac, ndp->sender_hw_addr);
+	eth_addr_decode(message->mac, &ndp->sender_hw_addr);
 
 	return EOK;
 }

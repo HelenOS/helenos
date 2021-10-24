@@ -48,6 +48,38 @@ typedef enum {
 	    ui_fcircle_lowright
 } ui_fcircle_part_t;
 
+/** Box characters for a particular box style.
+ *
+ * The first coordinate selects top, center, bottom,
+ * the second coordinate selects left, center, right.
+ * The top/bottom, left/right characters correpsond to corners,
+ * the characters with one center coordinate correspond to edges:
+ *
+ *    0   1   2
+ * 0 '+' '-' '+'
+ * 1 ' |' ' ' '|'
+ * 2 '+' '-' '+'
+ *
+ */
+typedef struct {
+	const char *c[3][3];
+} ui_box_chars_t;
+
+/** Horizontal brace characters for a particular box style. */
+typedef struct {
+	const char *start;
+	const char *middle;
+	const char *end;
+} ui_brace_chars_t;
+
+/** Box style */
+typedef enum {
+	/** Single box */
+	ui_box_single,
+	/** Double box */
+	ui_box_double
+} ui_box_style_t;
+
 #endif
 
 /** @}

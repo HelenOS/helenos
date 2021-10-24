@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@
 #define ETHIP_STD_H_
 
 #include <stdint.h>
-#include <inet/addr.h>
 
 #define ETH_ADDR_SIZE       6
 #define IPV4_ADDR_SIZE      4
@@ -47,9 +46,9 @@
 /** Ethernet frame header */
 typedef struct {
 	/** Destination Address */
-	addr48_t dest;
+	uint8_t dest[ETH_ADDR_SIZE];
 	/** Source Address */
-	addr48_t src;
+	uint8_t src[ETH_ADDR_SIZE];
 	/** Ethertype or Length */
 	uint16_t etype_len;
 } eth_header_t;
@@ -67,13 +66,13 @@ typedef struct {
 	/** Opcode */
 	uint16_t opcode;
 	/** Sender hardware address */
-	addr48_t sender_hw_addr;
+	uint8_t sender_hw_addr[ETH_ADDR_SIZE];
 	/** Sender protocol address */
-	addr32_t sender_proto_addr;
+	uint32_t sender_proto_addr;
 	/** Target hardware address */
-	addr48_t target_hw_addr;
+	uint8_t target_hw_addr[ETH_ADDR_SIZE];
 	/** Target protocol address */
-	addr32_t target_proto_addr;
+	uint32_t target_proto_addr;
 } __attribute__((packed)) arp_eth_packet_fmt_t;
 
 enum arp_opcode_fmt {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -176,9 +176,9 @@ static errno_t inetcfg_link_get(sysarg_t link_id, inet_link_info_t *linfo)
 	linfo->name = str_dup(ilink->svc_name);
 	linfo->def_mtu = ilink->def_mtu;
 	if (ilink->mac_valid) {
-		addr48(ilink->mac, linfo->mac_addr);
+		linfo->mac_addr = ilink->mac;
 	} else {
-		memset(linfo->mac_addr, 0, sizeof(linfo->mac_addr));
+		memset(&linfo->mac_addr, 0, sizeof(linfo->mac_addr));
 	}
 
 	return EOK;

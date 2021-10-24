@@ -62,7 +62,7 @@
 
 typedef struct {
 	atomic_flag refcnt;      /**< Connection reference count */
-	prodcons_t input_pc;  /**< Incoming keyboard events */
+	prodcons_t input_pc;  /**< Incoming console events */
 
 	/**
 	 * Not yet sent bytes of last char event.
@@ -98,6 +98,16 @@ static async_sess_t *output_sess;
 /** Output dimensions */
 static sysarg_t cols;
 static sysarg_t rows;
+
+/** Mouse pointer X coordinate */
+static int pointer_x;
+/** Mouse pointer Y coordinate */
+static int pointer_y;
+/** Character under mouse cursor */
+static charfield_t pointer_bg;
+
+static int mouse_scale_x = 4;
+static int mouse_scale_y = 8;
 
 /** Array of data for virtual consoles */
 static console_t consoles[CONSOLE_COUNT];
@@ -165,6 +175,9 @@ static con_ops_t con_ops = {
 	.update = cons_buf_update
 };
 
+static void pointer_draw(void);
+static void pointer_undraw(void);
+
 static console_t *srv_to_console(con_srv_t *srv)
 {
 	return srv->srvs->sarg;
@@ -230,6 +243,7 @@ static void cons_switch(unsigned int index)
 	console_t *cons = &consoles[index];
 
 	fibril_mutex_lock(&switch_mtx);
+	pointer_undraw();
 
 	if (cons == active_console) {
 		fibril_mutex_unlock(&switch_mtx);
@@ -238,9 +252,87 @@ static void cons_switch(unsigned int index)
 
 	active_console = cons;
 
+	pointer_draw();
 	fibril_mutex_unlock(&switch_mtx);
 
 	cons_damage(cons);
+}
+
+/** Draw mouse pointer. */
+static void pointer_draw(void)
+{
+	charfield_t *ch;
+	int col, row;
+
+	/* Downscale coordinates to text resolution */
+	col = pointer_x / mouse_scale_x;
+	row = pointer_y / mouse_scale_y;
+
+	/* Make sure they are in range */
+	if (col < 0 || row < 0 || col >= (int)cols || row >= (int)rows)
+		return;
+
+	ch = chargrid_charfield_at(active_console->frontbuf, col, row);
+
+	/*
+	 * Store background attributes for undrawing the pointer.
+	 * This is necessary as styles cannot be inverted with
+	 * round trip (unlike RGB or INDEX)
+	 */
+	pointer_bg = *ch;
+
+	/* In general the color should be a one's complement of the background */
+	if (ch->attrs.type == CHAR_ATTR_INDEX) {
+		ch->attrs.val.index.bgcolor ^= 0xf;
+		ch->attrs.val.index.fgcolor ^= 0xf;
+	} else if (ch->attrs.type == CHAR_ATTR_RGB) {
+		ch->attrs.val.rgb.fgcolor ^= 0xffffff;
+		ch->attrs.val.rgb.bgcolor ^= 0xffffff;
+	} else if (ch->attrs.type == CHAR_ATTR_STYLE) {
+		/* Don't have a proper inverse for each style */
+		if (ch->attrs.val.style == STYLE_INVERTED)
+			ch->attrs.val.style = STYLE_NORMAL;
+		else
+			ch->attrs.val.style = STYLE_INVERTED;
+	}
+
+	/* Make sure the cell gets updated */
+	ch->flags |= CHAR_FLAG_DIRTY;
+}
+
+/** Undraw mouse pointer. */
+static void pointer_undraw(void)
+{
+	charfield_t *ch;
+	int col, row;
+
+	col = pointer_x / mouse_scale_x;
+	row = pointer_y / mouse_scale_y;
+	if (col < 0 || row < 0 || col >= (int)cols || row >= (int)rows)
+		return;
+
+	ch = chargrid_charfield_at(active_console->frontbuf, col, row);
+	*ch = pointer_bg;
+	ch->flags |= CHAR_FLAG_DIRTY;
+}
+
+/** Queue console event.
+ *
+ * @param cons Console
+ * @param ev Console event
+ */
+static void console_queue_cons_event(console_t *cons, cons_event_t *ev)
+{
+	/* Got key press/release event */
+	cons_event_t *event =
+	    (cons_event_t *) malloc(sizeof(cons_event_t));
+	if (event == NULL)
+		return;
+
+	*event = *ev;
+	link_initialize(&event->link);
+
+	prodcons_produce(&cons->input_pc, &event->link);
 }
 
 static errno_t input_ev_active(input_t *input)
@@ -263,43 +355,87 @@ static errno_t input_ev_deactive(input_t *input)
 static errno_t input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key,
     keymod_t mods, char32_t c)
 {
+	cons_event_t event;
+
 	if ((key >= KC_F1) && (key <= KC_F1 + CONSOLE_COUNT) &&
 	    ((mods & KM_CTRL) == 0)) {
 		cons_switch(key - KC_F1);
 	} else {
 		/* Got key press/release event */
-		kbd_event_t *event =
-		    (kbd_event_t *) malloc(sizeof(kbd_event_t));
-		if (event == NULL) {
-			return ENOMEM;
-		}
+		event.type = CEV_KEY;
 
-		link_initialize(&event->link);
-		event->type = type;
-		event->key = key;
-		event->mods = mods;
-		event->c = c;
+		event.ev.key.type = type;
+		event.ev.key.key = key;
+		event.ev.key.mods = mods;
+		event.ev.key.c = c;
 
-		prodcons_produce(&active_console->input_pc,
-		    &event->link);
+		console_queue_cons_event(active_console, &event);
 	}
 
 	return EOK;
 }
 
+/** Update pointer position.
+ *
+ * @param new_x New X coordinate (in pixels)
+ * @param new_y New Y coordinate (in pixels)
+ */
+static void pointer_update(int new_x, int new_y)
+{
+	bool upd_pointer;
+
+	/* Make sure coordinates are in range */
+
+	if (new_x < 0)
+		new_x = 0;
+	if (new_x >= (int)cols * mouse_scale_x)
+		new_x = cols * mouse_scale_x - 1;
+	if (new_y < 0)
+		new_y = 0;
+	if (new_y >= (int)rows * mouse_scale_y)
+		new_y = rows * mouse_scale_y - 1;
+
+	/* Determine if pointer moved to a different character cell */
+	upd_pointer = (new_x / mouse_scale_x != pointer_x / mouse_scale_x) ||
+	    (new_y / mouse_scale_y != pointer_y / mouse_scale_y);
+
+	if (upd_pointer)
+		pointer_undraw();
+
+	/* Store new pointer position */
+	pointer_x = new_x;
+	pointer_y = new_y;
+
+	if (upd_pointer) {
+		pointer_draw();
+		cons_update(active_console);
+	}
+}
+
 static errno_t input_ev_move(input_t *input, int dx, int dy)
 {
+	pointer_update(pointer_x + dx, pointer_y + dy);
 	return EOK;
 }
 
 static errno_t input_ev_abs_move(input_t *input, unsigned x, unsigned y,
     unsigned max_x, unsigned max_y)
 {
+	pointer_update(mouse_scale_x * cols * x / max_x, mouse_scale_y * rows * y / max_y);
 	return EOK;
 }
 
 static errno_t input_ev_button(input_t *input, int bnum, int bpress)
 {
+	cons_event_t event;
+
+	event.type = CEV_POS;
+	event.ev.pos.type = bpress ? POS_PRESS : POS_RELEASE;
+	event.ev.pos.btn_num = bnum;
+	event.ev.pos.hpos = pointer_x / mouse_scale_x;
+	event.ev.pos.vpos = pointer_y / mouse_scale_y;
+
+	console_queue_cons_event(active_console, &event);
 	return EOK;
 }
 
@@ -309,6 +445,7 @@ static void cons_write_char(console_t *cons, char32_t ch)
 	sysarg_t updated = 0;
 
 	fibril_mutex_lock(&cons->mtx);
+	pointer_undraw();
 
 	switch (ch) {
 	case '\n':
@@ -326,6 +463,7 @@ static void cons_write_char(console_t *cons, char32_t ch)
 		updated = chargrid_putuchar(cons->frontbuf, ch, true);
 	}
 
+	pointer_draw();
 	fibril_mutex_unlock(&cons->mtx);
 
 	if (updated > 1)
@@ -335,7 +473,9 @@ static void cons_write_char(console_t *cons, char32_t ch)
 static void cons_set_cursor_vis(console_t *cons, bool visible)
 {
 	fibril_mutex_lock(&cons->mtx);
+	pointer_undraw();
 	chargrid_set_cursor_visibility(cons->frontbuf, visible);
+	pointer_draw();
 	fibril_mutex_unlock(&cons->mtx);
 
 	cons_update_cursor(cons);
@@ -378,11 +518,13 @@ static errno_t cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 		/* Still not enough? Then get another key from the queue. */
 		if (pos < size) {
 			link_t *link = prodcons_consume(&cons->input_pc);
-			kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
+			cons_event_t *event = list_get_instance(link,
+			    cons_event_t, link);
 
 			/* Accept key presses of printable chars only. */
-			if ((event->type == KEY_PRESS) && (event->c != 0)) {
-				char32_t tmp[2] = { event->c, 0 };
+			if (event->type == CEV_KEY && event->ev.key.type == KEY_PRESS &&
+			    (event->ev.key.c != 0)) {
+				char32_t tmp[2] = { event->ev.key.c, 0 };
 				wstr_to_str(cons->char_remains, UTF8_CHAR_BUFFER_SIZE, tmp);
 				cons->char_remains_len = str_size(cons->char_remains);
 			}
@@ -419,7 +561,9 @@ static void cons_clear(con_srv_t *srv)
 	console_t *cons = srv_to_console(srv);
 
 	fibril_mutex_lock(&cons->mtx);
+	pointer_undraw();
 	chargrid_clear(cons->frontbuf);
+	pointer_draw();
 	fibril_mutex_unlock(&cons->mtx);
 
 	cons_update(cons);
@@ -430,7 +574,9 @@ static void cons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 	console_t *cons = srv_to_console(srv);
 
 	fibril_mutex_lock(&cons->mtx);
+	pointer_undraw();
 	chargrid_set_cursor(cons->frontbuf, col, row);
+	pointer_draw();
 	fibril_mutex_unlock(&cons->mtx);
 
 	cons_update_cursor(cons);
@@ -510,12 +656,10 @@ static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	console_t *cons = srv_to_console(srv);
 	link_t *link = prodcons_consume(&cons->input_pc);
-	kbd_event_t *kevent = list_get_instance(link, kbd_event_t, link);
+	cons_event_t *cevent = list_get_instance(link, cons_event_t, link);
 
-	event->type = CEV_KEY;
-	event->ev.key = *kevent;
-
-	free(kevent);
+	*event = *cevent;
+	free(cevent);
 	return EOK;
 }
 
@@ -620,6 +764,8 @@ static void cons_buf_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 
 	/* Update front buffer from user buffer */
 
+	pointer_undraw();
+
 	for (row = r0; row < r1; row++) {
 		for (col = c0; col < c1; col++) {
 			ch = chargrid_charfield_at(cons->frontbuf, col, row);
@@ -627,6 +773,7 @@ static void cons_buf_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 		}
 	}
 
+	pointer_draw();
 	fibril_mutex_unlock(&cons->mtx);
 
 	/* Update console */

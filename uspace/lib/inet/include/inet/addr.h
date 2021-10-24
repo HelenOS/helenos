@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinet
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_INET_ADDR_H_
-#define _LIBC_INET_ADDR_H_
+#ifndef LIBINET_INET_ADDR_H
+#define LIBINET_INET_ADDR_H
 
 #include <errno.h>
+#include <inet/eth_addr.h>
 #include <stdint.h>
 
 typedef uint32_t addr32_t;
-typedef uint8_t addr48_t[6];
+
 typedef uint8_t addr128_t[16];
 
 typedef enum {
@@ -77,15 +78,11 @@ typedef struct {
 } inet_naddr_t;
 
 extern const addr32_t addr32_broadcast_all_hosts;
-extern const addr48_t addr48_broadcast;
 
-extern void addr48(const addr48_t, addr48_t);
 extern void addr128(const addr128_t, addr128_t);
 
-extern int addr48_compare(const addr48_t, const addr48_t);
 extern int addr128_compare(const addr128_t, const addr128_t);
-
-extern void addr48_solicited_node(const addr128_t, addr48_t);
+extern void eth_addr_solicited_node(const addr128_t, eth_addr_t *);
 
 extern void host2addr128_t_be(const addr128_t, addr128_t);
 extern void addr128_t_be2host(const addr128_t, addr128_t);

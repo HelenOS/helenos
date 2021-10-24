@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Antonin Steinhauser
  * All rights reserved.
  *
@@ -35,9 +36,10 @@
  */
 
 #include <errno.h>
+#include <inet/eth_addr.h>
+#include <io/log.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <io/log.h>
 #include "ntrans.h"
 #include "addrobj.h"
 #include "pdu.h"
@@ -68,7 +70,7 @@ static errno_t ndp_send_packet(inet_link_t *link, ndp_packet_t *packet)
 	inet_dgram_t dgram;
 	ndp_pdu_encode(packet, &dgram);
 
-	inet_link_send_dgram6(link, packet->target_hw_addr, &dgram,
+	inet_link_send_dgram6(link, &packet->target_hw_addr, &dgram,
 	    IP_PROTO_ICMPV6, INET6_HOP_LIMIT_MAX, 0);
 
 	free(dgram.data);
@@ -107,16 +109,16 @@ errno_t ndp_received(inet_dgram_t *dgram)
 		laddr = inet_addrobj_find(&target, iaf_addr);
 		if (laddr != NULL) {
 			rc = ntrans_add(packet.sender_proto_addr,
-			    packet.sender_hw_addr);
+			    &packet.sender_hw_addr);
 			if (rc != EOK)
 				return rc;
 
 			ndp_packet_t reply;
 
 			reply.opcode = ICMPV6_NEIGHBOUR_ADVERTISEMENT;
-			addr48(laddr->ilink->mac, reply.sender_hw_addr);
+			reply.sender_hw_addr = laddr->ilink->mac;
 			addr128(packet.target_proto_addr, reply.sender_proto_addr);
-			addr48(packet.sender_hw_addr, reply.target_hw_addr);
+			reply.target_hw_addr = packet.sender_hw_addr;
 			addr128(packet.sender_proto_addr, reply.target_proto_addr);
 
 			ndp_send_packet(laddr->ilink, &reply);
@@ -127,7 +129,7 @@ errno_t ndp_received(inet_dgram_t *dgram)
 		laddr = inet_addrobj_find(&dgram->dest, iaf_addr);
 		if (laddr != NULL)
 			return ntrans_add(packet.sender_proto_addr,
-			    packet.sender_hw_addr);
+			    &packet.sender_hw_addr);
 
 		break;
 	case ICMPV6_ROUTER_ADVERTISEMENT:
@@ -150,7 +152,7 @@ errno_t ndp_received(inet_dgram_t *dgram)
  * @return ENOENT when NDP translation failed
  *
  */
-errno_t ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t mac_addr,
+errno_t ndp_translate(addr128_t src_addr, addr128_t ip_addr, eth_addr_t *mac_addr,
     inet_link_t *ilink)
 {
 	if (!ilink->mac_valid) {
@@ -166,10 +168,10 @@ errno_t ndp_translate(addr128_t src_addr, addr128_t ip_addr, addr48_t mac_addr,
 	ndp_packet_t packet;
 
 	packet.opcode = ICMPV6_NEIGHBOUR_SOLICITATION;
-	addr48(ilink->mac, packet.sender_hw_addr);
+	packet.sender_hw_addr = ilink->mac;
 	addr128(src_addr, packet.sender_proto_addr);
 	addr128(ip_addr, packet.solicited_ip);
-	addr48_solicited_node(ip_addr, packet.target_hw_addr);
+	eth_addr_solicited_node(ip_addr, &packet.target_hw_addr);
 	ndp_solicited_node_ip(ip_addr, packet.target_proto_addr);
 
 	rc = ndp_send_packet(ilink, &packet);

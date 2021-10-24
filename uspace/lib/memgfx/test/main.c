@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,5 +31,6 @@
 PCUT_INIT;
 
 PCUT_IMPORT(memgfx);
+PCUT_IMPORT(xlategc);
 
 PCUT_MAIN();

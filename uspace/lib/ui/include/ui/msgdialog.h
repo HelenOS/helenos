@@ -30,11 +30,11 @@
  * @{
  */
 /**
- * @file Message Dialog
+ * @file Message dialog
  */
 
-#ifndef _UI_MSG_DIALOG_H
-#define _UI_MSG_DIALOG_H
+#ifndef _UI_MSGDIALOG_H
+#define _UI_MSGDIALOG_H
 
 #include <errno.h>
 #include <types/ui/msgdialog.h>

@@ -81,6 +81,8 @@ typedef struct {
 
 extern void ui_menu_get_geom(ui_menu_t *, gfx_coord2_t *, ui_menu_geom_t *);
 extern ui_resource_t *ui_menu_get_res(ui_menu_t *);
+extern errno_t ui_menu_paint_bg_gfx(ui_menu_t *, gfx_coord2_t *);
+extern errno_t ui_menu_paint_bg_text(ui_menu_t *, gfx_coord2_t *);
 
 #endif
 

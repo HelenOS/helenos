@@ -208,6 +208,104 @@ PCUT_TEST(get_rect)
 	ui_destroy(ui);
 }
 
+/** Paint background in graphics mode */
+PCUT_TEST(paint_bg_gfx)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	gfx_rect_t prect;
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	/* Menu needs to be open to be able to paint it */
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	pos.x = 0;
+	pos.y = 0;
+	rc = ui_menu_paint_bg_gfx(menu, &pos);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** Paint background in text mode */
+PCUT_TEST(paint_bg_text)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	gfx_rect_t prect;
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	/* Menu needs to be open to be able to paint it */
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	pos.x = 0;
+	pos.y = 0;
+	rc = ui_menu_paint_bg_text(menu, &pos);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** Paint menu */
 PCUT_TEST(paint)
 {

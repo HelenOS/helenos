@@ -77,6 +77,7 @@ drvs = [
 	'nic/virtio-net',
 	'platform/amdm37x',
 	'platform/arm64virt',
+	'platform/hikey960',
 	'platform/icp',
 	'platform/mac',
 	'platform/malta',

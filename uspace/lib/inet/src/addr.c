@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinet
  * @{
  */
 /** @file Internet address parsing and formatting.
@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -53,13 +54,8 @@
 
 const addr32_t addr32_broadcast_all_hosts = 0xffffffff;
 
-const addr48_t addr48_broadcast = {
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff
-};
-
-static const addr48_t inet_addr48_solicited_node = {
-	0x33, 0x33, 0xff, 0, 0, 0
-};
+static eth_addr_t inet_eth_addr_solicited_node =
+    ETH_ADDR_INITIALIZER(0x33, 0x33, 0xff, 0, 0, 0);
 
 static const inet_addr_t inet_addr_any_addr = {
 	.version = ip_v4,
@@ -71,23 +67,9 @@ static const inet_addr_t inet_addr_any_addr6 = {
 	.addr6 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-void addr48(const addr48_t src, addr48_t dst)
-{
-	memcpy(dst, src, 6);
-}
-
 void addr128(const addr128_t src, addr128_t dst)
 {
 	memcpy(dst, src, 16);
-}
-
-/** Compare addr48.
- *
- * @return Non-zero if equal, zero if not equal.
- */
-int addr48_compare(const addr48_t a, const addr48_t b)
-{
-	return memcmp(a, b, 6) == 0;
 }
 
 /** Compare addr128.
@@ -105,10 +87,14 @@ int addr128_compare(const addr128_t a, const addr128_t b)
  * @param mac Solicited MAC address to be assigned
  *
  */
-void addr48_solicited_node(const addr128_t ip, addr48_t mac)
+void eth_addr_solicited_node(const addr128_t ip, eth_addr_t *mac)
 {
-	memcpy(mac, inet_addr48_solicited_node, 3);
-	memcpy(mac + 3, ip + 13, 3);
+	uint8_t b[6];
+	mac->a = inet_eth_addr_solicited_node.a;
+
+	eth_addr_encode(&inet_eth_addr_solicited_node, b);
+	memcpy(&b[3], ip + 13, 3);
+	eth_addr_decode(b, mac);
 }
 
 void host2addr128_t_be(const addr128_t host, addr128_t be)

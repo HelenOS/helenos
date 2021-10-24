@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_VOL_H_
-#define _LIBC_VOL_H_
+#ifndef LIBDEVICE_VOL_H
+#define LIBDEVICE_VOL_H
 
 #include <async.h>
 #include <errno.h>

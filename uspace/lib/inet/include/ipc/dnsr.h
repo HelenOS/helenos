@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libinet
  * @{
  */
 
-#ifndef _LIBC_IPC_DNSR_H_
-#define _LIBC_IPC_DNSR_H_
+#ifndef LIBINET_IPC_DNSR_H
+#define LIBINET_IPC_DNSR_H
 
 #include <ipc/common.h>
 

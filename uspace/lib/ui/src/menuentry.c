@@ -348,13 +348,24 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 		goto error;
 
 	if (mentry->separator) {
-		rect.p0 = geom.caption_pos;
-		rect.p1.x = geom.shortcut_pos.x;
-		rect.p1.y = rect.p0.y + 2;
-		rc = ui_paint_bevel(res->gc, &rect, res->wnd_shadow_color,
-		    res->wnd_highlight_color, 1, NULL);
-		if (rc != EOK)
-			goto error;
+		if (res->textmode) {
+			rect = geom.outer_rect;
+			rect.p0.x -= 1;
+			rect.p1.x += 1;
+
+			rc = ui_paint_text_hbrace(res, &rect, ui_box_single,
+			    res->wnd_face_color);
+			if (rc != EOK)
+				goto error;
+		} else {
+			rect.p0 = geom.caption_pos;
+			rect.p1.x = geom.shortcut_pos.x;
+			rect.p1.y = rect.p0.y + 2;
+			rc = ui_paint_bevel(res->gc, &rect, res->wnd_shadow_color,
+			    res->wnd_highlight_color, 1, NULL);
+			if (rc != EOK)
+				goto error;
+		}
 	}
 
 	rc = gfx_update(res->gc);

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_PCI_H_
-#define _LIBC_PCI_H_
+#ifndef LIBDEVICE_PCI_H
+#define LIBDEVICE_PCI_H
 
 #include <errno.h>
 #include <ipc/devman.h>

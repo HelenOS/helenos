@@ -1,7 +1,7 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jan Vesely
- * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,10 @@
 
 #define NAME  "i8042"
 
-#define BUFFER_SIZE  12
+/** Buffer needs to be large enough for rate at which keyboard or mouse
+ * produces data (mouse produces data at faster rate).
+ */
+#define BUFFER_SIZE  64
 
 /** i8042 HW I/O interface */
 typedef struct {

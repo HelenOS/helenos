@@ -25,12 +25,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 
-#ifndef _LIBC_TYPES_IO_CHARDEV_H_
-#define _LIBC_TYPES_IO_CHARDEV_H_
+#ifndef LIBDEVICE_TYPES_IO_CHARDEV_H
+#define LIBDEVICE_TYPES_IO_CHARDEV_H
 
 /** Chardev read/write operation flags */
 typedef enum {

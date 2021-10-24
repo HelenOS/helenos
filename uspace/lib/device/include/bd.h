@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdevice
  * @{
  */
 /** @file Block device client interface
  */
 
-#ifndef _LIBC_BD_H_
-#define _LIBC_BD_H_
+#ifndef LIBDEVICE_BD_H
+#define LIBDEVICE_BD_H
 
 #include <async.h>
 #include <offset.h>

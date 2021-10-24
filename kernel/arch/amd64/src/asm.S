@@ -410,6 +410,8 @@ bad_rip_msg:
  */
 FUNCTION_BEGIN(early_putuchar)
 
+#if (defined(CONFIG_DEBUG_EARLY_PRINT))
+
 #if (defined(CONFIG_L4RE_UVMM_EARLY_PRINT))
 	xorl %eax, %eax  /* RAX==0: uvmm's print hypercall */
 	mov %rdi, %rcx   /* RCX:    printed character */
@@ -539,6 +541,8 @@ FUNCTION_BEGIN(early_putuchar)
 	/* Epilogue, restore preserved registers */
 	popq %rbx
 	leave
+
+#endif
 
 #endif
 

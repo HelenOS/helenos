@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,9 @@ struct ui_resource {
 	/** Text mode */
 	bool textmode;
 
+	/** UI background color */
+	gfx_color_t *ui_bg_color;
+
 	/** Button frame color */
 	gfx_color_t *btn_frame_color;
 	/** Button face color */
@@ -101,6 +104,10 @@ struct ui_resource {
 	gfx_color_t *entry_bg_color;
 	/** Entry (text entry, checkbox, raido button) active background color */
 	gfx_color_t *entry_act_bg_color;
+	/** Entry selected text foreground color */
+	gfx_color_t *entry_sel_text_fg_color;
+	/** Entry selected text background color */
+	gfx_color_t *entry_sel_text_bg_color;
 
 	/** Expose callback or @c NULL */
 	ui_expose_cb_t expose_cb;

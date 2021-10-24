@@ -129,6 +129,22 @@ For additional information about running HelenOS, see
 [UsersGuide/RunningInVirtualBox](http://www.helenos.org/wiki/UsersGuide/RunningInVirtualBox) or
 see the files in tools/conf.
 
+## Contributing
+
+There is a whole section of our wiki devoted to
+[how to contribute to HelenOS](http://www.helenos.org/wiki/HowToContribute).
+But to highlight the most important points, you should subscribe to
+our mailing list and if you have an idea for contributing, discuss it
+with us first so that we can agree upon the design.
+
+Especially if you are a first time contributor, blindingly shooting
+a pull request may result in it being closed on the grounds that it
+does not fit well within the grand scheme of things. That would not
+be efficient use of time.
+
+Communicating early and often is the key to successful acceptance of
+your patch/PR.
+
 ## License
 
 HelenOS is open source, free software. Its source code is available under

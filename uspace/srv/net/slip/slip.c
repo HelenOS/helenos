@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2013 Jakub Jermar
  * All rights reserved.
  *
@@ -39,6 +40,7 @@
 #include <stdlib.h>
 #include <loc.h>
 #include <inet/addr.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink_srv.h>
 #include <io/chardev.h>
 #include <io/log.h>
@@ -61,7 +63,7 @@ static errno_t slip_close(iplink_srv_t *);
 static errno_t slip_send(iplink_srv_t *, iplink_sdu_t *);
 static errno_t slip_send6(iplink_srv_t *, iplink_sdu6_t *);
 static errno_t slip_get_mtu(iplink_srv_t *, size_t *);
-static errno_t slip_get_mac48(iplink_srv_t *, addr48_t *);
+static errno_t slip_get_mac48(iplink_srv_t *, eth_addr_t *);
 static errno_t slip_addr_add(iplink_srv_t *, inet_addr_t *);
 static errno_t slip_addr_remove(iplink_srv_t *, inet_addr_t *);
 
@@ -175,7 +177,7 @@ errno_t slip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-errno_t slip_get_mac48(iplink_srv_t *src, addr48_t *mac)
+errno_t slip_get_mac48(iplink_srv_t *src, eth_addr_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_get_mac48()");
 	return ENOTSUP;

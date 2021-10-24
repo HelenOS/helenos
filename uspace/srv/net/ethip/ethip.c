@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink_srv.h>
 #include <io/log.h>
 #include <loc.h>
@@ -57,8 +58,8 @@ static errno_t ethip_close(iplink_srv_t *srv);
 static errno_t ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
 static errno_t ethip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
 static errno_t ethip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static errno_t ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
-static errno_t ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac);
+static errno_t ethip_get_mac48(iplink_srv_t *srv, eth_addr_t *mac);
+static errno_t ethip_set_mac48(iplink_srv_t *srv, eth_addr_t *mac);
 static errno_t ethip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
 static errno_t ethip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
@@ -176,14 +177,14 @@ static errno_t ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	eth_frame_t frame;
 
-	errno_t rc = arp_translate(nic, sdu->src, sdu->dest, frame.dest);
+	errno_t rc = arp_translate(nic, sdu->src, sdu->dest, &frame.dest);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed to look up IPv4 address 0x%"
 		    PRIx32, sdu->dest);
 		return rc;
 	}
 
-	addr48(nic->mac_addr, frame.src);
+	frame.src = nic->mac_addr;
 	frame.etype_len = ETYPE_IP;
 	frame.data = sdu->data;
 	frame.size = sdu->size;
@@ -207,8 +208,8 @@ static errno_t ethip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	eth_frame_t frame;
 
-	addr48(sdu->dest, frame.dest);
-	addr48(nic->mac_addr, frame.src);
+	frame.dest = sdu->dest;
+	frame.src = nic->mac_addr;
 	frame.etype_len = ETYPE_IPV6;
 	frame.data = sdu->data;
 	frame.size = sdu->size;
@@ -275,22 +276,22 @@ static errno_t ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 	return EOK;
 }
 
-static errno_t ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac)
+static errno_t ethip_get_mac48(iplink_srv_t *srv, eth_addr_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_get_mac48()");
 
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
-	addr48(nic->mac_addr, *mac);
+	*mac = nic->mac_addr;
 
 	return EOK;
 }
 
-static errno_t ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac)
+static errno_t ethip_set_mac48(iplink_srv_t *srv, eth_addr_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_set_mac48()");
 
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
-	addr48(*mac, nic->mac_addr);
+	nic->mac_addr = *mac;
 
 	return EOK;
 }

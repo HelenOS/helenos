@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,15 +34,16 @@
  * @brief
  */
 
-#include <stdbool.h>
 #include <errno.h>
-#include <str_error.h>
 #include <fibril_synch.h>
+#include <inet/eth_addr.h>
 #include <inet/iplink.h>
 #include <io/log.h>
 #include <loc.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include "addrobj.h"
 #include "inetsrv.h"
 #include "inet_link.h"
@@ -55,7 +56,7 @@ static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
 static uint16_t ip_ident = 0;
 
 static errno_t inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, ip_ver_t);
-static errno_t inet_iplink_change_addr(iplink_t *, addr48_t);
+static errno_t inet_iplink_change_addr(iplink_t *, eth_addr_t *);
 static inet_link_t *inet_link_get_by_id_locked(sysarg_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
@@ -69,17 +70,20 @@ static FIBRIL_MUTEX_INITIALIZE(inet_links_lock);
 static addr128_t link_local_node_ip =
     { 0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0, 0 };
 
-static void inet_link_local_node_ip(addr48_t mac_addr,
+static void inet_link_local_node_ip(eth_addr_t *mac_addr,
     addr128_t ip_addr)
 {
-	memcpy(ip_addr, link_local_node_ip, 16);
+	uint8_t b[ETH_ADDR_SIZE];
 
-	ip_addr[8] = mac_addr[0] ^ 0x02;
-	ip_addr[9] = mac_addr[1];
-	ip_addr[10] = mac_addr[2];
-	ip_addr[13] = mac_addr[3];
-	ip_addr[14] = mac_addr[4];
-	ip_addr[15] = mac_addr[5];
+	memcpy(ip_addr, link_local_node_ip, 16);
+	eth_addr_encode(mac_addr, b);
+
+	ip_addr[8] = b[0] ^ 0x02;
+	ip_addr[9] = b[1];
+	ip_addr[10] = b[2];
+	ip_addr[13] = b[3];
+	ip_addr[14] = b[4];
+	ip_addr[15] = b[5];
 }
 
 static errno_t inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t ver)
@@ -120,15 +124,17 @@ static errno_t inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver
 	return rc;
 }
 
-static errno_t inet_iplink_change_addr(iplink_t *iplink, addr48_t mac)
+static errno_t inet_iplink_change_addr(iplink_t *iplink, eth_addr_t *mac)
 {
+	eth_addr_str_t saddr;
+
+	eth_addr_format(mac, &saddr);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_change_addr(): "
-	    "new addr=%02x:%02x:%02x:%02x:%02x:%02x",
-	    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	    "new addr=%s", saddr.str);
 
 	list_foreach(inet_links, link_list, inet_link_t, ilink) {
 		if (ilink->sess == iplink->sess)
-			memcpy(&ilink->mac, mac, sizeof(addr48_t));
+			ilink->mac = *mac;
 	}
 
 	return EOK;
@@ -260,7 +266,7 @@ errno_t inet_link_open(service_id_t sid)
 		addr6 = inet_addrobj_new();
 
 		addr128_t link_local;
-		inet_link_local_node_ip(ilink->mac, link_local);
+		inet_link_local_node_ip(&ilink->mac, link_local);
 
 		inet_naddr_set6(link_local, 64, &addr6->naddr);
 	}
@@ -386,7 +392,7 @@ errno_t inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
  * @return ENOMEM when not enough memory to create the datagram
  *
  */
-errno_t inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
+errno_t inet_link_send_dgram6(inet_link_t *ilink, eth_addr_t *ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	addr128_t src_v6;
@@ -400,7 +406,7 @@ errno_t inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
 		return EINVAL;
 
 	iplink_sdu6_t sdu6;
-	addr48(ldest, sdu6.dest);
+	sdu6.dest = *ldest;
 
 	/*
 	 * Fill packet structure. Fragmentation is performed by

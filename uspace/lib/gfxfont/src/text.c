@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -109,10 +109,12 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	gfx_bitmap_params_t params;
 	gfx_bitmap_t *bitmap;
 	gfx_bitmap_alloc_t alloc;
-	uint16_t r, g, b;
+	uint8_t attr;
 	pixelmap_t pmap;
 	gfx_coord_t x;
 	pixel_t pixel;
+	char32_t c;
+	size_t off;
 	errno_t rc;
 
 	/*
@@ -120,15 +122,7 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	 * the most efficient way.
 	 */
 
-	gfx_color_get_rgb_i16(color, &r, &g, &b);
-
-	/*
-	 * We are setting the *background* color, the foreground color
-	 * will be set to its complement.
-	 */
-	r = 0xff ^ (r >> 8);
-	g = 0xff ^ (g >> 8);
-	b = 0xff ^ (b >> 8);
+	gfx_color_get_ega(color, &attr);
 
 	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
@@ -155,8 +149,13 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	pmap.height = 1;
 	pmap.data = alloc.pixels;
 
+	off = 0;
 	for (x = 0; x < params.rect.p1.x; x++) {
-		pixel = PIXEL(str[x], r, g, b);
+		c = str_decode(str, &off, STR_NO_LIMIT);
+		pixel = PIXEL(attr,
+		    (c >> 16) & 0xff,
+		    (c >> 8) & 0xff,
+		    c & 0xff);
 		pixelmap_put_pixel(&pmap, x, 0, pixel);
 	}
 
@@ -164,6 +163,57 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 
 	gfx_bitmap_destroy(bitmap);
 	return rc;
+}
+
+/** Get text starting position.
+ *
+ * @param font Font
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String
+ * @param spos Place to store starting position
+ */
+void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *spos)
+{
+	gfx_font_metrics_t fmetrics;
+	gfx_coord_t width;
+
+	*spos = *pos;
+
+	/* Adjust position for horizontal alignment */
+	if (fmt->halign != gfx_halign_left) {
+		width = gfx_text_width(font, str);
+		switch (fmt->halign) {
+		case gfx_halign_center:
+			spos->x -= width / 2;
+			break;
+		case gfx_halign_right:
+			spos->x -= width;
+			break;
+		default:
+			break;
+		}
+	}
+
+	/* Adjust position for vertical alignment */
+	gfx_font_get_metrics(font, &fmetrics);
+
+	if (fmt->valign != gfx_valign_baseline) {
+		switch (fmt->valign) {
+		case gfx_valign_top:
+			spos->y += fmetrics.ascent;
+			break;
+		case gfx_valign_center:
+			spos->y += fmetrics.ascent / 2;
+			break;
+		case gfx_valign_bottom:
+			spos->y -= fmetrics.descent + 1;
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 /** Render text.
@@ -177,50 +227,14 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
     gfx_text_fmt_t *fmt, const char *str)
 {
-	gfx_font_metrics_t fmetrics;
 	gfx_glyph_metrics_t gmetrics;
 	size_t stradv;
 	const char *cp;
 	gfx_glyph_t *glyph;
 	gfx_coord2_t cpos;
-	gfx_coord_t width;
 	errno_t rc;
 
-	cpos = *pos;
-
-	/* Adjust position for horizontal alignment */
-	if (fmt->halign != gfx_halign_left) {
-		width = gfx_text_width(font, str);
-		switch (fmt->halign) {
-		case gfx_halign_center:
-			cpos.x -= width / 2;
-			break;
-		case gfx_halign_right:
-			cpos.x -= width - 1;
-			break;
-		default:
-			break;
-		}
-	}
-
-	/* Adjust position for vertical alignment */
-	gfx_font_get_metrics(font, &fmetrics);
-
-	if (fmt->valign != gfx_valign_baseline) {
-		switch (fmt->valign) {
-		case gfx_valign_top:
-			cpos.y += fmetrics.ascent;
-			break;
-		case gfx_valign_center:
-			cpos.y += fmetrics.ascent / 2;
-			break;
-		case gfx_valign_bottom:
-			cpos.y -= fmetrics.descent;
-			break;
-		default:
-			break;
-		}
-	}
+	gfx_text_start_pos(font, pos, fmt, str, &cpos);
 
 	/* Text mode */
 	if ((font->finfo->props.flags & gff_text_mode) != 0)
@@ -249,6 +263,128 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 	}
 
 	return EOK;
+}
+
+/** Find character position in string by X coordinate.
+ *
+ * @param font Font
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String
+ * @param fpos Position for which we need to find offset
+ *
+ * @return Byte offset in @a str of character corresponding to position
+ *         @a fpos. Note that the position is rounded, that is,
+ *         if it is before the center of character A, it will return
+ *         offset of A, if it is after the center of A, it will return
+ *         offset of the following character.
+ */
+size_t gfx_text_find_pos(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *fpos)
+{
+	gfx_glyph_metrics_t gmetrics;
+	size_t stradv;
+	const char *cp;
+	gfx_glyph_t *glyph;
+	gfx_coord2_t cpos;
+	size_t off;
+	size_t strsize;
+	errno_t rc;
+
+	gfx_text_start_pos(font, pos, fmt, str, &cpos);
+
+	/* Text mode */
+	if ((font->finfo->props.flags & gff_text_mode) != 0) {
+		off = 0;
+		strsize = str_size(str);
+		while (off < strsize) {
+			if (fpos->x <= cpos.x)
+				return off;
+			(void) str_decode(str, &off, strsize);
+			cpos.x++;
+		}
+
+		return off;
+	}
+
+	cp = str;
+	off = 0;
+	while (*cp != '\0') {
+		rc = gfx_font_search_glyph(font, cp, &glyph, &stradv);
+		if (rc != EOK) {
+			++cp;
+			continue;
+		}
+
+		gfx_glyph_get_metrics(glyph, &gmetrics);
+
+		if (fpos->x < cpos.x + gmetrics.advance / 2)
+			return off;
+
+		cp += stradv;
+		off += stradv;
+		cpos.x += gmetrics.advance;
+	}
+
+	return off;
+}
+
+/** Get text continuation parameters.
+ *
+ * Return the anchor position and format needed to continue printing
+ * text after the specified string. It is allowed for the sources
+ * (@a pos, @a fmt) and destinations (@a cpos, @a cfmt) to point
+ * to the same objects, respectively.
+ *
+ * @param font Font
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String
+ * @param cpos Place to store anchor position for continuation
+ * @param cfmt Place to store format for continuation
+ */
+void gfx_text_cont(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *cpos,
+    gfx_text_fmt_t *cfmt)
+{
+	gfx_coord2_t spos;
+	gfx_text_fmt_t tfmt;
+
+	/* Continuation should start where the current string ends */
+	gfx_text_start_pos(font, pos, fmt, str, &spos);
+	cpos->x = spos.x + gfx_text_width(font, str);
+	cpos->y = spos.y;
+
+	/*
+	 * Formatting is the same, except the text should be aligned
+	 * so that it starts at the anchor point.
+	 */
+	tfmt = *fmt;
+	tfmt.halign = gfx_halign_left;
+	tfmt.valign = gfx_valign_baseline;
+
+	*cfmt = tfmt;
+}
+
+/** Get text bounding rectangle.
+ *
+ * @param font Font
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String
+ * @param rect Place to store bounding rectangle
+ */
+void gfx_text_rect(gfx_font_t *font, gfx_coord2_t *pos,
+    gfx_text_fmt_t *fmt, const char *str, gfx_rect_t *rect)
+{
+	gfx_coord2_t spos;
+
+	gfx_text_start_pos(font, pos, fmt, str, &spos);
+
+	rect->p0.x = spos.x;
+	rect->p0.y = spos.y - font->metrics.ascent;
+	rect->p1.x = spos.x + gfx_text_width(font, str);
+	rect->p1.y = spos.y + font->metrics.descent + 1;
 }
 
 /** @}
