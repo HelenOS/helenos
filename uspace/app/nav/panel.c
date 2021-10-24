@@ -352,6 +352,12 @@ ui_evclaim_t panel_pos_event(panel_t *panel, pos_event_t *event)
 
 			/* Move to the entry found */
 			panel_cursor_move(panel, entry, entry_idx);
+		} else {
+			/* It's in the border. Top or bottom half? */
+			if (pos.y >= (irect.p0.y + irect.p1.y) / 2)
+				panel_page_down(panel);
+			else
+				panel_page_up(panel);
 		}
 	}
 
