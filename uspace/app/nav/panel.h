@@ -82,7 +82,6 @@ extern errno_t panel_open_dir(panel_t *, panel_entry_t *);
 extern errno_t panel_open_file(panel_t *, panel_entry_t *);
 extern void panel_activate_req(panel_t *);
 
-
 #endif
 
 /** @}

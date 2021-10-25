@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,8 @@ typedef enum {
 	INPUT_EVENT_KEY,
 	INPUT_EVENT_MOVE,
 	INPUT_EVENT_ABS_MOVE,
-	INPUT_EVENT_BUTTON
+	INPUT_EVENT_BUTTON,
+	INPUT_EVENT_DCLICK
 } input_notif_t;
 
 #endif

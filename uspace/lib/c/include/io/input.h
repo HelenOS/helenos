@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,7 @@ typedef struct input_ev_ops {
 	errno_t (*move)(input_t *, int, int);
 	errno_t (*abs_move)(input_t *, unsigned, unsigned, unsigned, unsigned);
 	errno_t (*button)(input_t *, int, int);
+	errno_t (*dclick)(input_t *, int);
 } input_ev_ops_t;
 
 extern errno_t input_open(async_sess_t *, input_ev_ops_t *, void *, input_t **);

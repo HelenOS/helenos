@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -42,15 +43,25 @@
 #include <ipc/mouseev.h>
 #include <loc.h>
 #include <stdlib.h>
+#include <time.h>
 #include "../mouse.h"
 #include "../mouse_port.h"
 #include "../mouse_proto.h"
 #include "../input.h"
 
+enum {
+	/** Default double-click speed in milliseconds */
+	dclick_delay_ms = 500
+};
+
 /** Mousedev softstate */
 typedef struct {
 	/** Link to generic mouse device */
 	mouse_dev_t *mouse_dev;
+	/** Button number of last button pressed (or -1 if none) */
+	int press_bnum;
+	/** Time at which button was last pressed */
+	struct timespec press_time;
 } mousedev_t;
 
 static mousedev_t *mousedev_new(mouse_dev_t *mdev)
@@ -60,6 +71,7 @@ static mousedev_t *mousedev_new(mouse_dev_t *mdev)
 		return NULL;
 
 	mousedev->mouse_dev = mdev;
+	mousedev->press_bnum = -1;
 
 	return mousedev;
 }
@@ -67,6 +79,30 @@ static mousedev_t *mousedev_new(mouse_dev_t *mdev)
 static void mousedev_destroy(mousedev_t *mousedev)
 {
 	free(mousedev);
+}
+
+static void mousedev_press(mousedev_t *mousedev, int bnum)
+{
+	struct timespec now;
+	nsec_t ms_delay;
+
+	getuptime(&now);
+
+	/* Same button was pressed previously */
+	if (mousedev->press_bnum == bnum) {
+		/* Compute milliseconds since previous press */
+		ms_delay = ts_sub_diff(&now, &mousedev->press_time) / 1000000;
+
+		if (ms_delay <= dclick_delay_ms) {
+			mouse_push_event_dclick(mousedev->mouse_dev, bnum);
+			mousedev->press_bnum = -1;
+			return;
+		}
+	}
+
+	/* Record which button was last pressed and at what time */
+	mousedev->press_bnum = bnum;
+	mousedev->press_time = now;
 }
 
 static void mousedev_callback_conn(ipc_call_t *icall, void *arg)
@@ -102,6 +138,8 @@ static void mousedev_callback_conn(ipc_call_t *icall, void *arg)
 		case MOUSEEV_BUTTON_EVENT:
 			mouse_push_event_button(mousedev->mouse_dev,
 			    ipc_get_arg1(&call), ipc_get_arg2(&call));
+			if (ipc_get_arg2(&call) != 0)
+				mousedev_press(mousedev, ipc_get_arg1(&call));
 			retval = EOK;
 			break;
 		default:

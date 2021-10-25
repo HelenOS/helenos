@@ -361,10 +361,23 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		}
 	}
 
-	if (event->type == PTD_PRESS || event->type == PTD_RELEASE) {
+	if (event->type == PTD_PRESS || event->type == PTD_RELEASE ||
+	    event->type == PTD_DCLICK) {
 		pevent.pos_id = 0;
-		pevent.type = (event->type == PTD_PRESS) ?
-		    POS_PRESS : POS_RELEASE;
+		switch (event->type) {
+		case PTD_PRESS:
+			pevent.type = POS_PRESS;
+			break;
+		case PTD_RELEASE:
+			pevent.type = POS_RELEASE;
+			break;
+		case PTD_DCLICK:
+			pevent.type = POS_DCLICK;
+			break;
+		default:
+			assert(false);
+		}
+
 		pevent.btn_num = event->btn_num;
 		pevent.hpos = seat->pntpos.x;
 		pevent.vpos = seat->pntpos.y;

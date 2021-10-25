@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -163,6 +163,17 @@ static void input_ev_button(input_t *input, ipc_call_t *call)
 	async_answer_0(call, rc);
 }
 
+static void input_ev_dclick(input_t *input, ipc_call_t *call)
+{
+	int bnum;
+	errno_t rc;
+
+	bnum = ipc_get_arg1(call);
+
+	rc = input->ev_ops->dclick(input, bnum);
+	async_answer_0(call, rc);
+}
+
 static void input_cb_conn(ipc_call_t *icall, void *arg)
 {
 	input_t *input = (input_t *) arg;
@@ -194,6 +205,9 @@ static void input_cb_conn(ipc_call_t *icall, void *arg)
 			break;
 		case INPUT_EVENT_BUTTON:
 			input_ev_button(input, &call);
+			break;
+		case INPUT_EVENT_DCLICK:
+			input_ev_dclick(input, &call);
 			break;
 		default:
 			async_answer_0(&call, ENOTSUP);

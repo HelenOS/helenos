@@ -350,12 +350,12 @@ ui_evclaim_t panel_pos_event(panel_t *panel, pos_event_t *event)
 	if (!panel->active && event->type == POS_PRESS)
 		panel_activate_req(panel);
 
-	if (event->type == POS_PRESS) {
-		irect.p0.x = panel->rect.p0.x + 1;
-		irect.p0.y = panel->rect.p0.y + 1;
-		irect.p1.x = panel->rect.p1.x - 1;
-		irect.p1.y = panel->rect.p1.y - 1;
+	irect.p0.x = panel->rect.p0.x + 1;
+	irect.p0.y = panel->rect.p0.y + 1;
+	irect.p1.x = panel->rect.p1.x - 1;
+	irect.p1.y = panel->rect.p1.y - 1;
 
+	if (event->type == POS_PRESS || event->type == POS_DCLICK) {
 		/* Did we click on one of the entries? */
 		if (gfx_pix_inside_rect(&pos, &irect)) {
 			/* Index within page */
@@ -364,14 +364,22 @@ ui_evclaim_t panel_pos_event(panel_t *panel, pos_event_t *event)
 			/* Entry and its index within entire listing */
 			entry = panel_page_nth_entry(panel, n, &entry_idx);
 
-			/* Move to the entry found */
-			panel_cursor_move(panel, entry, entry_idx);
+			if (event->type == POS_PRESS) {
+				/* Move to the entry found */
+				panel_cursor_move(panel, entry, entry_idx);
+			} else {
+				/* event->type == POS_DCLICK */
+				panel_open(panel, entry);
+			}
 		} else {
-			/* It's in the border. Top or bottom half? */
-			if (pos.y >= (irect.p0.y + irect.p1.y) / 2)
-				panel_page_down(panel);
-			else
-				panel_page_up(panel);
+			/* It's in the border. */
+			if (event->type == POS_PRESS) {
+				/* Top or bottom half? */
+				if (pos.y >= (irect.p0.y + irect.p1.y) / 2)
+					panel_page_down(panel);
+				else
+					panel_page_up(panel);
+			}
 		}
 	}
 

@@ -396,6 +396,8 @@ ui_evclaim_t ui_checkbox_pos_event(ui_checkbox_t *checkbox, pos_event_t *event)
 			ui_checkbox_leave(checkbox);
 		}
 		break;
+	case POS_DCLICK:
+		break;
 	}
 
 	return ui_unclaimed;

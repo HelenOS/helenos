@@ -521,6 +521,8 @@ ui_evclaim_t ui_slider_pos_event(ui_slider_t *slider, pos_event_t *event)
 	case POS_UPDATE:
 		ui_slider_update(slider, &pos);
 		break;
+	case POS_DCLICK:
+		break;
 	}
 
 	return ui_unclaimed;

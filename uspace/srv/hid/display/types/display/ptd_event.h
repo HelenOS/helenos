@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,8 @@ typedef enum {
 	PTD_MOVE,
 	PTD_ABS_MOVE,
 	PTD_PRESS,
-	PTD_RELEASE
+	PTD_RELEASE,
+	PTD_DCLICK
 } ptd_event_type_t;
 
 /** Pointing device event */

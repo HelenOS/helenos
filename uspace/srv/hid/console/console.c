@@ -123,6 +123,7 @@ static errno_t input_ev_key(input_t *, kbd_event_type_t, keycode_t, keymod_t, ch
 static errno_t input_ev_move(input_t *, int, int);
 static errno_t input_ev_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
 static errno_t input_ev_button(input_t *, int, int);
+static errno_t input_ev_dclick(input_t *, int);
 
 static input_ev_ops_t input_ev_ops = {
 	.active = input_ev_active,
@@ -130,7 +131,8 @@ static input_ev_ops_t input_ev_ops = {
 	.key = input_ev_key,
 	.move = input_ev_move,
 	.abs_move = input_ev_abs_move,
-	.button = input_ev_button
+	.button = input_ev_button,
+	.dclick = input_ev_dclick
 };
 
 static errno_t cons_open(con_srvs_t *, con_srv_t *);
@@ -431,6 +433,20 @@ static errno_t input_ev_button(input_t *input, int bnum, int bpress)
 
 	event.type = CEV_POS;
 	event.ev.pos.type = bpress ? POS_PRESS : POS_RELEASE;
+	event.ev.pos.btn_num = bnum;
+	event.ev.pos.hpos = pointer_x / mouse_scale_x;
+	event.ev.pos.vpos = pointer_y / mouse_scale_y;
+
+	console_queue_cons_event(active_console, &event);
+	return EOK;
+}
+
+static errno_t input_ev_dclick(input_t *input, int bnum)
+{
+	cons_event_t event;
+
+	event.type = CEV_POS;
+	event.ev.pos.type = POS_DCLICK;
 	event.ev.pos.btn_num = bnum;
 	event.ev.pos.hpos = pointer_x / mouse_scale_x;
 	event.ev.pos.vpos = pointer_y / mouse_scale_y;

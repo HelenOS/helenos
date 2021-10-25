@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,7 @@ extern void mouse_push_event_move(mouse_dev_t *, int, int, int);
 extern void mouse_push_event_abs_move(mouse_dev_t *, unsigned int, unsigned int,
     unsigned int, unsigned int);
 extern void mouse_push_event_button(mouse_dev_t *, int, int);
+extern void mouse_push_event_dclick(mouse_dev_t *, int);
 
 #endif
 

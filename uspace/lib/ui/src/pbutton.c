@@ -520,6 +520,8 @@ ui_evclaim_t ui_pbutton_pos_event(ui_pbutton_t *pbutton, pos_event_t *event)
 			ui_pbutton_leave(pbutton);
 		}
 		break;
+	case POS_DCLICK:
+		break;
 	}
 
 	return ui_unclaimed;

@@ -496,6 +496,8 @@ ui_evclaim_t ui_menu_entry_pos_event(ui_menu_entry_t *mentry,
 			ui_menu_entry_leave(mentry, pos);
 		}
 		break;
+	case POS_DCLICK:
+		break;
 	}
 
 	return ui_unclaimed;

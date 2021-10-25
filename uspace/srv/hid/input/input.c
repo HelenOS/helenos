@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -310,7 +310,19 @@ void mouse_push_event_button(mouse_dev_t *mdev, int bnum, int press)
 	}
 }
 
-/** Arbitrate client actiovation */
+/** Mouse button has been double-clicked. */
+void mouse_push_event_dclick(mouse_dev_t *mdev, int bnum)
+{
+	list_foreach(clients, link, client_t, client) {
+		if (client->active) {
+			async_exch_t *exch = async_exchange_begin(client->sess);
+			async_msg_1(exch, INPUT_EVENT_DCLICK, bnum);
+			async_exchange_end(exch);
+		}
+	}
+}
+
+/** Arbitrate client activation */
 static void client_arbitration(void)
 {
 	/* Mutual exclusion of active clients */

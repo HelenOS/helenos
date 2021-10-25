@@ -129,6 +129,8 @@ errno_t navigator_create(const char *display_spec,
 	navigator_t *navigator;
 	ui_wnd_params_t params;
 	gfx_rect_t rect;
+	gfx_rect_t arect;
+	gfx_coord_t pw;
 	unsigned i;
 	errno_t rc;
 
@@ -154,6 +156,7 @@ errno_t navigator_create(const char *display_spec,
 	}
 
 	ui_window_set_cb(navigator->window, &window_cb, (void *) navigator);
+	ui_window_get_app_rect(navigator->window, &arect);
 
 	rc = ui_fixed_create(&navigator->fixed);
 	if (rc != EOK) {
@@ -176,16 +179,19 @@ errno_t navigator_create(const char *display_spec,
 		return rc;
 	}
 
+	/* Panel width */
+	pw = (arect.p1.x - arect.p0.x) / 2;
+
 	for (i = 0; i < 2; i++) {
 		rc = panel_create(navigator->window, i == 0,
 		    &navigator->panel[i]);
 		if (rc != EOK)
 			goto error;
 
-		rect.p0.x = 40 * i;
-		rect.p0.y = 1;
-		rect.p1.x = 40 * (i + 1);
-		rect.p1.y = 24;
+		rect.p0.x = arect.p0.x + pw * i;
+		rect.p0.y = arect.p0.y + 1;
+		rect.p1.x = arect.p0.x + pw * (i + 1);
+		rect.p1.y = arect.p1.y - 1;
 		panel_set_rect(navigator->panel[i], &rect);
 
 		panel_set_cb(navigator->panel[i], &navigator_panel_cb,
