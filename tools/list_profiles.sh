@@ -1,6 +1,7 @@
 #!/bin/sh
 
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -38,5 +39,18 @@ SOURCE_DIR=`cd $SOURCE_DIR && cd .. && echo $PWD`
 
 CONFIG_DEFAULTS="${SOURCE_DIR}/defaults"
 
-# Find all the leaf subdirectories in the defaults directory.
-find ${CONFIG_DEFAULTS} -type d -links 2 -printf "%P\n" | sort
+# Find the leaf subdirectories in the defaults directory.
+level1dirs=`ls "$CONFIG_DEFAULTS"`
+for dname in $level1dirs; do
+	l2dirs=`ls "$CONFIG_DEFAULTS"/"$dname"`
+	havel2=
+	for dn in $l2dirs; do
+		if [ -d "$CONFIG_DEFAULTS/$dname/$dn" ]; then
+			echo "$dname/$dn"
+			havel2=true
+		fi
+	done
+	if [ -z "$havel2" ]; then
+		echo "$dname"
+	fi
+done
