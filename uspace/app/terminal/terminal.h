@@ -93,7 +93,7 @@ typedef struct {
 } terminal_t;
 
 extern errno_t terminal_create(const char *, sysarg_t, sysarg_t,
-    terminal_flags_t, terminal_t **);
+    terminal_flags_t, const char *, terminal_t **);
 extern void terminal_destroy(terminal_t *);
 
 #endif

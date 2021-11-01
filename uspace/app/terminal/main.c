@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ static void print_syntax(void)
 {
 	printf("Syntax: %s [<options>]\n", NAME);
 	printf("\t-d <display-spec> Use the specified display\n");
+	printf("\t-c <command>      Run command instead of shell\n");
 	printf("\t-topleft]         Place window to the top-left corner of "
 	    "the screen\n");
 }
@@ -51,6 +52,7 @@ static void print_syntax(void)
 int main(int argc, char *argv[])
 {
 	const char *display_spec = UI_DISPLAY_DEFAULT;
+	const char *command = "/app/bdsh";
 	terminal_t *terminal = NULL;
 	terminal_flags_t flags = 0;
 	errno_t rc;
@@ -67,6 +69,15 @@ int main(int argc, char *argv[])
 			}
 
 			display_spec = argv[i++];
+		} else if (str_cmp(argv[i], "-c") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			command = argv[i++];
 		} else if (str_cmp(argv[i], "-topleft") == 0) {
 			++i;
 			flags |= tf_topleft;
@@ -82,7 +93,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = terminal_create(display_spec, 640, 480, flags, &terminal);
+	rc = terminal_create(display_spec, 640, 480, flags, command, &terminal);
 	if (rc != EOK)
 		return 1;
 

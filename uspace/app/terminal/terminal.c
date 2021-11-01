@@ -887,7 +887,8 @@ static void term_connection(ipc_call_t *icall, void *arg)
 }
 
 errno_t terminal_create(const char *display_spec, sysarg_t width,
-    sysarg_t height, terminal_flags_t flags, terminal_t **rterm)
+    sysarg_t height, terminal_flags_t flags, const char *command,
+    terminal_t **rterm)
 {
 	terminal_t *term;
 	gfx_bitmap_params_t params;
@@ -1012,7 +1013,7 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	}
 
 	list_append(&term->link, &terms);
-	getterm(vc, "/app/bdsh");
+	getterm(vc, command);
 
 	term->is_focused = true;
 
