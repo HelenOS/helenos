@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <fbfont/font-8x16.h>
 #include <io/chargrid.h>
+#include <fibril.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
 #include <gfx/render.h>
@@ -127,14 +128,16 @@ static ui_window_cb_t terminal_window_cb = {
 	.unfocus = terminal_unfocus_event
 };
 
+static errno_t terminal_wait_fibril(void *);
+
 static terminal_t *srv_to_terminal(con_srv_t *srv)
 {
 	return srv->srvs->sarg;
 }
 
-static void getterm(const char *svc, const char *app)
+static errno_t getterm(task_wait_t *wait, const char *svc, const char *app)
 {
-	task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
+	return task_spawnl(NULL, wait, APP_GETTERM, APP_GETTERM, svc,
 	    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
 }
 
@@ -803,10 +806,7 @@ static void terminal_close_event(ui_window_t *window, void *arg)
 {
 	terminal_t *term = (terminal_t *) arg;
 
-	(void) term;
-
-	// XXX This is not really a clean way of terminating
-	exit(0);
+	ui_quit(term->ui);
 }
 
 /** Handle window focus event. */
@@ -1013,7 +1013,15 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	}
 
 	list_append(&term->link, &terms);
-	getterm(vc, command);
+	rc = getterm(&term->wait, vc, command);
+	if (rc != EOK)
+		goto error;
+
+	term->wfid = fibril_create(terminal_wait_fibril, term);
+	if (term->wfid == 0)
+		goto error;
+
+	fibril_add_ready(term->wfid);
 
 	term->is_focused = true;
 
@@ -1037,6 +1045,21 @@ error:
 		chargrid_destroy(term->backbuf);
 	free(term);
 	return rc;
+}
+
+static errno_t terminal_wait_fibril(void *arg)
+{
+	terminal_t *term = (terminal_t *)arg;
+	task_exit_t texit;
+	int retval;
+
+	/*
+	 * XXX There is no way to break the sleep if the task does not
+	 * exit.
+	 */
+	(void) task_wait(&term->wait, &texit, &retval);
+	ui_quit(term->ui);
+	return EOK;
 }
 
 /** @}

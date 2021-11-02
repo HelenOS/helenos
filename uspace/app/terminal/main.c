@@ -32,9 +32,8 @@
 /** @file
  */
 
-#include <stdio.h>
-#include <task.h>
 #include <ui/ui.h>
+#include <stdio.h>
 #include "terminal.h"
 
 #define NAME  "terminal"
@@ -97,8 +96,9 @@ int main(int argc, char *argv[])
 	if (rc != EOK)
 		return 1;
 
-	task_retval(0);
-	async_manager();
+	ui_run(terminal->ui);
+
+	terminal_destroy(terminal);
 	return 0;
 }
 

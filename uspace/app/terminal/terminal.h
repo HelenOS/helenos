@@ -37,7 +37,9 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
+#include <adt/prodcons.h>
 #include <errno.h>
+#include <fibril.h>
 #include <fibril_synch.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
@@ -45,9 +47,9 @@
 #include <io/chargrid.h>
 #include <io/con_srv.h>
 #include <loc.h>
-#include <adt/prodcons.h>
 #include <stdatomic.h>
 #include <str.h>
+#include <task.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 
@@ -90,6 +92,9 @@ typedef struct {
 
 	service_id_t dsid;
 	con_srvs_t srvs;
+
+	task_wait_t wait;
+	fid_t wfid;
 } terminal_t;
 
 extern errno_t terminal_create(const char *, sysarg_t, sysarg_t,
