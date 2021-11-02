@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,7 @@ extern void ui_wdecor_destroy(ui_wdecor_t *);
 extern void ui_wdecor_set_cb(ui_wdecor_t *, ui_wdecor_cb_t *, void *);
 extern void ui_wdecor_set_rect(ui_wdecor_t *, gfx_rect_t *);
 extern void ui_wdecor_set_active(ui_wdecor_t *, bool);
+extern errno_t ui_wdecor_set_caption(ui_wdecor_t *, const char *);
 extern errno_t ui_wdecor_paint(ui_wdecor_t *);
 extern ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *, pos_event_t *);
 extern void ui_wdecor_rect_from_app(ui_wdecor_style_t, gfx_rect_t *,

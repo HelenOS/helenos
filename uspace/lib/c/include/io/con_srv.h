@@ -50,6 +50,8 @@
 
 typedef struct con_ops con_ops_t;
 
+#define CON_CAPTION_MAXLEN 255
+
 /** Service setup (per sevice) */
 typedef struct {
 	con_ops_t *ops;
@@ -82,6 +84,7 @@ struct con_ops {
 	    console_color_attr_t);
 	void (*set_rgb_color)(con_srv_t *, pixel_t, pixel_t);
 	void (*set_cursor_visibility)(con_srv_t *, bool);
+	errno_t (*set_caption)(con_srv_t *, const char *);
 	errno_t (*get_event)(con_srv_t *, cons_event_t *);
 	errno_t (*map)(con_srv_t *, sysarg_t, sysarg_t, charfield_t **);
 	void (*unmap)(con_srv_t *);

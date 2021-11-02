@@ -87,6 +87,7 @@ static void term_set_color(con_srv_t *, console_color_t, console_color_t,
     console_color_attr_t);
 static void term_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void term_set_cursor_visibility(con_srv_t *, bool);
+static errno_t term_set_caption(con_srv_t *, const char *);
 static errno_t term_get_event(con_srv_t *, cons_event_t *);
 static errno_t term_map(con_srv_t *, sysarg_t, sysarg_t, charfield_t **);
 static void term_unmap(con_srv_t *);
@@ -108,6 +109,7 @@ static con_ops_t con_ops = {
 	.set_color = term_set_color,
 	.set_rgb_color = term_set_rgb_color,
 	.set_cursor_visibility = term_set_cursor_visibility,
+	.set_caption = term_set_caption,
 	.get_event = term_get_event,
 	.map = term_map,
 	.unmap = term_unmap,
@@ -642,6 +644,26 @@ static void term_set_cursor_visibility(con_srv_t *srv, bool visible)
 
 	term_update(term);
 	gfx_update(term->gc);
+}
+
+static errno_t term_set_caption(con_srv_t *srv, const char *caption)
+{
+	terminal_t *term = srv_to_terminal(srv);
+	const char *cap;
+
+	fibril_mutex_lock(&term->mtx);
+
+	if (str_size(caption) > 0)
+		cap = caption;
+	else
+		cap = "Terminal";
+
+	ui_window_set_caption(term->window, cap);
+	fibril_mutex_unlock(&term->mtx);
+
+	term_update(term);
+	gfx_update(term->gc);
+	return EOK;
 }
 
 static errno_t term_get_event(con_srv_t *srv, cons_event_t *event)

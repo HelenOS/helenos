@@ -158,6 +158,28 @@ void ui_wdecor_set_active(ui_wdecor_t *wdecor, bool active)
 	wdecor->active = active;
 }
 
+/** Change caption.
+ *
+ * @param wdecor Window decoration
+ * @param caption New caption
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ui_wdecor_set_caption(ui_wdecor_t *wdecor, const char *caption)
+{
+	char *cdup;
+
+	cdup = str_dup(caption);
+	if (cdup == NULL)
+		return ENOMEM;
+
+	free(wdecor->caption);
+	wdecor->caption = cdup;
+
+	ui_wdecor_paint(wdecor);
+	return EOK;
+}
+
 /** Paint window decoration.
  *
  * @param wdecor Window decoration

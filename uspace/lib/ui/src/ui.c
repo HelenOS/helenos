@@ -49,6 +49,7 @@
 #include <ui/ui.h>
 #include <ui/wdecor.h>
 #include <ui/window.h>
+#include "../private/wdecor.h"
 #include "../private/window.h"
 #include "../private/ui.h"
 
@@ -371,6 +372,7 @@ errno_t ui_suspend(ui_t *ui)
 	if (ui->cgc == NULL)
 		return EOK;
 
+	(void) console_set_caption(ui->console, "");
 	return console_gc_suspend(ui->cgc);
 }
 
@@ -385,6 +387,7 @@ errno_t ui_suspend(ui_t *ui)
 errno_t ui_resume(ui_t *ui)
 {
 	errno_t rc;
+	ui_window_t *awnd;
 
 	if (ui->cgc == NULL)
 		return EOK;
@@ -392,6 +395,10 @@ errno_t ui_resume(ui_t *ui)
 	rc = console_gc_resume(ui->cgc);
 	if (rc != EOK)
 		return rc;
+
+	awnd = ui_window_get_active(ui);
+	if (awnd != NULL)
+		(void) console_set_caption(ui->console, awnd->wdecor->caption);
 
 	return gfx_cursor_set_visible(console_gc_get_ctx(ui->cgc), false);
 }

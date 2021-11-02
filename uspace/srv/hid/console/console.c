@@ -150,6 +150,7 @@ static void cons_set_color(con_srv_t *, console_color_t, console_color_t,
     console_color_attr_t);
 static void cons_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void cons_set_cursor_visibility(con_srv_t *, bool);
+static errno_t cons_set_caption(con_srv_t *, const char *);
 static errno_t cons_get_event(con_srv_t *, cons_event_t *);
 static errno_t cons_map(con_srv_t *, sysarg_t, sysarg_t, charfield_t **);
 static void cons_unmap(con_srv_t *);
@@ -171,6 +172,7 @@ static con_ops_t con_ops = {
 	.set_color = cons_set_color,
 	.set_rgb_color = cons_set_rgb_color,
 	.set_cursor_visibility = cons_set_cursor_visibility,
+	.set_caption = cons_set_caption,
 	.get_event = cons_get_event,
 	.map = cons_map,
 	.unmap = cons_unmap,
@@ -666,6 +668,15 @@ static void cons_set_cursor_visibility(con_srv_t *srv, bool visible)
 	console_t *cons = srv_to_console(srv);
 
 	cons_set_cursor_vis(cons, visible);
+}
+
+static errno_t cons_set_caption(con_srv_t *srv, const char *caption)
+{
+	console_t *cons = srv_to_console(srv);
+
+	(void) cons;
+	(void) caption;
+	return EOK;
 }
 
 static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)

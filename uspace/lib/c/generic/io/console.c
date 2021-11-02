@@ -39,6 +39,7 @@
 #include <async.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <str.h>
 #include <vfs/vfs_sess.h>
 #include <io/console.h>
 #include <ipc/console.h>
@@ -127,6 +128,32 @@ void console_cursor_visibility(console_ctrl_t *ctrl, bool show)
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
 	async_req_1_0(exch, CONSOLE_SET_CURSOR_VISIBILITY, (show != false));
 	async_exchange_end(exch);
+}
+
+/** Set console caption.
+ *
+ * Set caption text for the console (if the console suports captions).
+ *
+ * @param ctrl Console
+ * @param caption Caption text
+ * @return EOK on success or an error code
+ */
+errno_t console_set_caption(console_ctrl_t *ctrl, const char *caption)
+{
+	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, CONSOLE_SET_CAPTION, &answer);
+	errno_t retval = async_data_write_start(exch, caption, str_size(caption));
+
+	if (retval != EOK) {
+		async_forget(req);
+		async_exchange_end(exch);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+	async_exchange_end(exch);
+	return EOK;
 }
 
 errno_t console_get_color_cap(console_ctrl_t *ctrl, sysarg_t *ccap)

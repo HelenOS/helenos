@@ -280,6 +280,28 @@ static void con_set_cursor_visibility_srv(con_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, EOK);
 }
 
+static void con_set_caption_srv(con_srv_t *srv, ipc_call_t *icall)
+{
+	char *caption;
+	errno_t rc;
+
+	rc = async_data_write_accept((void **) &caption, true, 0,
+	    CON_CAPTION_MAXLEN, 0, NULL);
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	if (srv->srvs->ops->set_caption == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	srv->srvs->ops->set_caption(srv, caption);
+	free(caption);
+	async_answer_0(icall, EOK);
+}
+
 static void con_get_event_srv(con_srv_t *srv, ipc_call_t *icall)
 {
 	errno_t rc;
@@ -486,6 +508,9 @@ errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 			break;
 		case CONSOLE_SET_CURSOR_VISIBILITY:
 			con_set_cursor_visibility_srv(srv, &call);
+			break;
+		case CONSOLE_SET_CAPTION:
+			con_set_caption_srv(srv, &call);
 			break;
 		case CONSOLE_GET_EVENT:
 			con_get_event_srv(srv, &call);

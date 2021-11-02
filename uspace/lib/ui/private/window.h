@@ -94,6 +94,8 @@ struct ui_window {
 	struct ui_control *control;
 	/** Current cursor */
 	ui_stock_cursor_t cursor;
+	/** Window placement */
+	ui_wnd_placement_t placement;
 };
 
 extern display_stock_cursor_t wnd_dcursor_from_cursor(ui_stock_cursor_t);

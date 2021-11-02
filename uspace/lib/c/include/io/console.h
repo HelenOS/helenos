@@ -82,6 +82,7 @@ extern void console_set_color(console_ctrl_t *, uint8_t, uint8_t, uint8_t);
 extern void console_set_rgb_color(console_ctrl_t *, uint32_t, uint32_t);
 
 extern void console_cursor_visibility(console_ctrl_t *, bool);
+extern errno_t console_set_caption(console_ctrl_t *, const char *);
 extern errno_t console_get_color_cap(console_ctrl_t *, sysarg_t *);
 extern errno_t console_get_event(console_ctrl_t *, cons_event_t *);
 extern errno_t console_get_event_timeout(console_ctrl_t *, cons_event_t *,

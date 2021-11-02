@@ -261,6 +261,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 			gfx_rect_dims(&ui->rect, &scr_dims);
 			gfx_coord2_add(&dparams.rect.p0, &scr_dims,
 			    &dparams.rect.p1);
+			(void) console_set_caption(ui->console,
+			    params->caption);
 		}
 	} else {
 		/* Needed for unit tests */
@@ -354,6 +356,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->res = res;
 	window->wdecor = wdecor;
 	window->cursor = ui_curs_arrow;
+	window->placement = params->placement;
 	*rwindow = window;
 
 	list_append(&window->lwindows, &ui->windows);
@@ -410,6 +413,11 @@ void ui_window_destroy(ui_window_t *window)
 	/* Need to repaint if windows are emulated */
 	if (ui_is_fullscreen(ui)) {
 		ui_paint(ui);
+	}
+
+	if (ui->console != NULL &&
+	    window->placement == ui_wnd_place_full_screen) {
+		(void) console_set_caption(ui->console, "");
 	}
 }
 
@@ -598,6 +606,18 @@ void ui_window_set_cb(ui_window_t *window, ui_window_cb_t *cb, void *arg)
 {
 	window->cb = cb;
 	window->arg = arg;
+}
+
+/** Change window caption.
+ *
+ * @param window Window
+ * @param caption New caption
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_set_caption(ui_window_t *window, const char *caption)
+{
+	return ui_wdecor_set_caption(window->wdecor, caption);
 }
 
 /** Get window's containing UI.

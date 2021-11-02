@@ -50,6 +50,7 @@ extern void ui_wnd_params_init(ui_wnd_params_t *);
 extern errno_t ui_window_create(ui_t *, ui_wnd_params_t *,
     ui_window_t **);
 extern void ui_window_set_cb(ui_window_t *, ui_window_cb_t *, void *);
+extern errno_t ui_window_set_caption(ui_window_t *, const char *);
 extern void ui_window_destroy(ui_window_t *);
 extern void ui_window_add(ui_window_t *, ui_control_t *);
 extern void ui_window_remove(ui_window_t *, ui_control_t *);
