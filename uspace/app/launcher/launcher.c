@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -69,7 +69,7 @@ static ui_pbutton_cb_t pbutton_cb = {
 	.clicked = pb_clicked
 };
 
-static int app_launch(const char *, const char *);
+static int app_launchl(const char *, ...);
 
 /** Window close button was clicked.
  *
@@ -93,40 +93,73 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	launcher_t *launcher = (launcher_t *) arg;
 
 	if (pbutton == launcher->pb1) {
-		app_launch("/app/terminal", NULL);
+		app_launchl("/app/terminal", "-c", "/app/nav", NULL);
 	} else if (pbutton == launcher->pb2) {
-		app_launch("/app/calculator", NULL);
+		app_launchl("/app/terminal", NULL);
 	} else if (pbutton == launcher->pb3) {
-		app_launch("/app/uidemo", NULL);
+		app_launchl("/app/calculator", NULL);
 	} else if (pbutton == launcher->pb4) {
-		app_launch("/app/gfxdemo", "ui");
+		app_launchl("/app/uidemo", NULL);
+	} else if (pbutton == launcher->pb5) {
+		app_launchl("/app/gfxdemo", "ui", NULL);
 	}
 }
 
-static int app_launch(const char *app, const char *arg)
+static int app_launchl(const char *app, ...)
 {
 	errno_t rc;
 	task_id_t id;
 	task_wait_t wait;
+	va_list ap;
+	const char *arg;
+	const char **argv;
+	const char **argp;
+	int cnt = 0;
+	int i;
 
-	if (display_spec != UI_DISPLAY_DEFAULT) {
-		printf("%s: Spawning %s -d %s\n", NAME, app, display_spec);
-		rc = task_spawnl(&id, &wait, app, app, "-d", display_spec,
-		    arg, NULL);
-	} else {
-		printf("%s: Spawning %s\n", NAME, app);
-		rc = task_spawnl(&id, &wait, app, app, arg, NULL);
-	}
+	va_start(ap, app);
+	do {
+		arg = va_arg(ap, const char *);
+		cnt++;
+	} while (arg != NULL);
+	va_end(ap);
 
-	if (rc != EOK) {
-		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
-		    display_spec != DISPLAY_DEFAULT ? display_spec :
-		    "<default>", str_error(rc));
+	argv = calloc(cnt + 4, sizeof(const char *));
+	if (argv == NULL)
 		return -1;
-	}
 
 	task_exit_t texit;
 	int retval;
+
+	argp = argv;
+	*argp++ = app;
+
+	if (display_spec != UI_DISPLAY_DEFAULT) {
+		*argp++ = "-d";
+		*argp++ = display_spec;
+	}
+
+	va_start(ap, app);
+	do {
+		arg = va_arg(ap, const char *);
+		*argp++ = arg;
+	} while (arg != NULL);
+	va_end(ap);
+
+	*argp++ = NULL;
+
+	printf("%s: Spawning %s", NAME, app);
+	for (i = 0; argv[i] != NULL; i++) {
+		printf(" %s", argv[i]);
+	}
+	printf("\n");
+
+	rc = task_spawnv(&id, &wait, app, argv);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s (%s)\n", NAME, app, str_error(rc));
+		return -1;
+	}
+
 	rc = task_wait(&wait, &texit, &retval);
 	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL)) {
 		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
@@ -188,7 +221,7 @@ int main(int argc, char *argv[])
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 210;
-	params.rect.p1.y = 300;
+	params.rect.p1.y = 310;
 
 	memset((void *) &launcher, 0, sizeof(launcher));
 	launcher.ui = ui;
@@ -262,7 +295,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "Terminal", &launcher.pb1);
+	/* Navigator */
+
+	rc = ui_pbutton_create(ui_res, "Navigator", &launcher.pb1);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -273,7 +308,7 @@ int main(int argc, char *argv[])
 	rect.p0.x = 15;
 	rect.p0.y = 130;
 	rect.p1.x = 190;
-	rect.p1.y = 158;
+	rect.p1.y = rect.p0.y + 28;
 	ui_pbutton_set_rect(launcher.pb1, &rect);
 
 	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb1));
@@ -282,7 +317,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "Calculator", &launcher.pb2);
+	/* Terminal */
+
+	rc = ui_pbutton_create(ui_res, "Terminal", &launcher.pb2);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -291,9 +328,9 @@ int main(int argc, char *argv[])
 	ui_pbutton_set_cb(launcher.pb2, &pbutton_cb, (void *) &launcher);
 
 	rect.p0.x = 15;
-	rect.p0.y = 170;
+	rect.p0.y = 130 + 35;
 	rect.p1.x = 190;
-	rect.p1.y = 198;
+	rect.p1.y = rect.p0.y + 28;
 	ui_pbutton_set_rect(launcher.pb2, &rect);
 
 	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb2));
@@ -302,7 +339,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "UI Demo", &launcher.pb3);
+	/* Calculator */
+
+	rc = ui_pbutton_create(ui_res, "Calculator", &launcher.pb3);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -311,9 +350,9 @@ int main(int argc, char *argv[])
 	ui_pbutton_set_cb(launcher.pb3, &pbutton_cb, (void *) &launcher);
 
 	rect.p0.x = 15;
-	rect.p0.y = 210;
+	rect.p0.y = 130 + 2 * 35;
 	rect.p1.x = 190;
-	rect.p1.y = 238;
+	rect.p1.y = rect.p0.y + 28;
 	ui_pbutton_set_rect(launcher.pb3, &rect);
 
 	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb3));
@@ -322,7 +361,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_pbutton_create(ui_res, "GFX Demo", &launcher.pb4);
+	/* UI Demo */
+
+	rc = ui_pbutton_create(ui_res, "UI Demo", &launcher.pb4);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -331,9 +372,9 @@ int main(int argc, char *argv[])
 	ui_pbutton_set_cb(launcher.pb4, &pbutton_cb, (void *) &launcher);
 
 	rect.p0.x = 15;
-	rect.p0.y = 250;
+	rect.p0.y = 130 + 3 * 35;
 	rect.p1.x = 190;
-	rect.p1.y = 278;
+	rect.p1.y = rect.p0.y + 28;
 	ui_pbutton_set_rect(launcher.pb4, &rect);
 
 	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb4));
@@ -342,10 +383,29 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	ui_window_add(window, ui_fixed_ctl(launcher.fixed));
+	/* GFX Demo */
 
-	(void) ui_res;
-	(void) app_launch;
+	rc = ui_pbutton_create(ui_res, "GFX Demo", &launcher.pb5);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_pbutton_set_cb(launcher.pb5, &pbutton_cb, (void *) &launcher);
+
+	rect.p0.x = 15;
+	rect.p0.y = 130 + 4 * 35;
+	rect.p1.x = 190;
+	rect.p1.y = rect.p0.y + 28;
+	ui_pbutton_set_rect(launcher.pb5, &rect);
+
+	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb5));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	ui_window_add(window, ui_fixed_ctl(launcher.fixed));
 
 	rc = ui_window_paint(window);
 	if (rc != EOK) {

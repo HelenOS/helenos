@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,7 @@ typedef struct {
 	ui_pbutton_t *pb2;
 	ui_pbutton_t *pb3;
 	ui_pbutton_t *pb4;
+	ui_pbutton_t *pb5;
 } launcher_t;
 
 #endif
