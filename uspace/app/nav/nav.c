@@ -229,15 +229,19 @@ void navigator_destroy(navigator_t *navigator)
 	unsigned i;
 
 	for (i = 0; i < 2; i++) {
-		ui_fixed_remove(navigator->fixed,
-		    panel_ctl(navigator->panel[i]));
-		panel_destroy(navigator->panel[i]);
+		if (navigator->panel[i] != NULL) {
+			ui_fixed_remove(navigator->fixed,
+			    panel_ctl(navigator->panel[i]));
+			panel_destroy(navigator->panel[i]);
+		}
 	}
 
-	ui_fixed_remove(navigator->fixed, nav_menu_ctl(navigator->menu));
 
-	if (navigator->menu != NULL)
+	if (navigator->menu != NULL) {
+		ui_fixed_remove(navigator->fixed, nav_menu_ctl(navigator->menu));
 		nav_menu_destroy(navigator->menu);
+	}
+
 	if (navigator->window != NULL)
 		ui_window_destroy(navigator->window);
 	if (navigator->ui != NULL)
