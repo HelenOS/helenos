@@ -95,12 +95,14 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	if (pbutton == launcher->pb1) {
 		app_launchl("/app/terminal", "-c", "/app/nav", NULL);
 	} else if (pbutton == launcher->pb2) {
-		app_launchl("/app/terminal", NULL);
+		app_launchl("/app/terminal", "-c", "/app/edit", NULL);
 	} else if (pbutton == launcher->pb3) {
-		app_launchl("/app/calculator", NULL);
+		app_launchl("/app/terminal", NULL);
 	} else if (pbutton == launcher->pb4) {
-		app_launchl("/app/uidemo", NULL);
+		app_launchl("/app/calculator", NULL);
 	} else if (pbutton == launcher->pb5) {
+		app_launchl("/app/uidemo", NULL);
+	} else if (pbutton == launcher->pb6) {
 		app_launchl("/app/gfxdemo", "ui", NULL);
 	}
 }
@@ -221,7 +223,7 @@ int main(int argc, char *argv[])
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 210;
-	params.rect.p1.y = 310;
+	params.rect.p1.y = 345;
 
 	memset((void *) &launcher, 0, sizeof(launcher));
 	launcher.ui = ui;
@@ -317,9 +319,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	/* Terminal */
+	/* Text Editor */
 
-	rc = ui_pbutton_create(ui_res, "Terminal", &launcher.pb2);
+	rc = ui_pbutton_create(ui_res, "Text Editor", &launcher.pb2);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -339,9 +341,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	/* Calculator */
+	/* Terminal */
 
-	rc = ui_pbutton_create(ui_res, "Calculator", &launcher.pb3);
+	rc = ui_pbutton_create(ui_res, "Terminal", &launcher.pb3);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -361,9 +363,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	/* UI Demo */
+	/* Calculator */
 
-	rc = ui_pbutton_create(ui_res, "UI Demo", &launcher.pb4);
+	rc = ui_pbutton_create(ui_res, "Calculator", &launcher.pb4);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -383,9 +385,9 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	/* GFX Demo */
+	/* UI Demo */
 
-	rc = ui_pbutton_create(ui_res, "GFX Demo", &launcher.pb5);
+	rc = ui_pbutton_create(ui_res, "UI Demo", &launcher.pb5);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
@@ -400,6 +402,28 @@ int main(int argc, char *argv[])
 	ui_pbutton_set_rect(launcher.pb5, &rect);
 
 	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb5));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	/* GFX Demo */
+
+	rc = ui_pbutton_create(ui_res, "GFX Demo", &launcher.pb6);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_pbutton_set_cb(launcher.pb6, &pbutton_cb, (void *) &launcher);
+
+	rect.p0.x = 15;
+	rect.p0.y = 130 + 5 * 35;
+	rect.p1.x = 190;
+	rect.p1.y = rect.p0.y + 28;
+	ui_pbutton_set_rect(launcher.pb6, &rect);
+
+	rc = ui_fixed_add(launcher.fixed, ui_pbutton_ctl(launcher.pb6));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;

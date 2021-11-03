@@ -56,6 +56,7 @@ typedef struct {
 	ui_pbutton_t *pb3;
 	ui_pbutton_t *pb4;
 	ui_pbutton_t *pb5;
+	ui_pbutton_t *pb6;
 } launcher_t;
 
 #endif
