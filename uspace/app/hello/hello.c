@@ -151,7 +151,7 @@ static void print_syntax(void)
 
 int main(int argc, char *argv[])
 {
-	const char *display_spec = UI_DISPLAY_DEFAULT;
+	const char *display_spec = UI_ANY_DEFAULT;
 	errno_t rc;
 	int i;
 

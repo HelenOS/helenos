@@ -55,7 +55,7 @@
 
 #define NAME  "launcher"
 
-static char *display_spec = UI_DISPLAY_DEFAULT;
+static const char *display_spec = UI_DISPLAY_DEFAULT;
 
 static void wnd_close(ui_window_t *, void *);
 
@@ -136,7 +136,7 @@ static int app_launchl(const char *app, ...)
 	argp = argv;
 	*argp++ = app;
 
-	if (display_spec != UI_DISPLAY_DEFAULT) {
+	if (str_cmp(display_spec, UI_DISPLAY_DEFAULT) != 0) {
 		*argp++ = "-d";
 		*argp++ = display_spec;
 	}

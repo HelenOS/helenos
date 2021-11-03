@@ -67,14 +67,14 @@ errno_t display_open(const char *dsname, display_t **rdisplay)
 	if (dsname == NULL)
 		dsname = SERVICE_NAME_DISPLAY;
 
-	rc = loc_service_get_id(dsname, &display_svc, IPC_FLAG_BLOCKING);
+	rc = loc_service_get_id(dsname, &display_svc, 0);
 	if (rc != EOK) {
 		free(display);
 		return ENOENT;
 	}
 
 	display->sess = loc_service_connect(display_svc, INTERFACE_DISPLAY,
-	    IPC_FLAG_BLOCKING);
+	    0);
 	if (display->sess == NULL) {
 		free(display);
 		return ENOENT;

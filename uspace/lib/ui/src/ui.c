@@ -68,12 +68,6 @@ static void ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
 {
 	const char *cp;
 
-	if (ospec == UI_DISPLAY_DEFAULT) {
-		*ws = ui_ws_display;
-		*osvc = DISPLAY_DEFAULT;
-		return;
-	}
-
 	cp = ospec;
 	while (isalpha(*cp))
 		++cp;
@@ -85,6 +79,8 @@ static void ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
 			*ws = ui_ws_console;
 		} else if (str_lcmp(ospec, "null@", str_length("null@")) == 0) {
 			*ws = ui_ws_null;
+		} else if (str_lcmp(ospec, "@", str_length("@")) == 0) {
+			*ws = ui_ws_any;
 		} else {
 			*ws = ui_ws_unknown;
 		}
@@ -122,25 +118,33 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 
 	ui_ospec_parse(ospec, &ws, &osvc);
 
-	if (ws == ui_ws_display) {
-		rc = display_open(osvc, &display);
+	if (ws == ui_ws_display || ws == ui_ws_any) {
+		rc = display_open(osvc != NULL ? osvc : DISPLAY_DEFAULT,
+		    &display);
 		if (rc != EOK)
-			return rc;
+			goto disp_fail;
 
 		rc = ui_create_disp(display, &ui);
 		if (rc != EOK) {
 			display_close(display);
-			return rc;
+			goto disp_fail;
 		}
-	} else if (ws == ui_ws_console) {
+
+		ui->myoutput = true;
+		*rui = ui;
+		return EOK;
+	}
+
+disp_fail:
+	if (ws == ui_ws_console || ws == ui_ws_any) {
 		console = console_init(stdin, stdout);
 		if (console == NULL)
-			return EIO;
+			goto cons_fail;
 
 		rc = console_get_size(console, &cols, &rows);
 		if (rc != EOK) {
 			console_done(console);
-			return rc;
+			goto cons_fail;
 		}
 
 		console_cursor_visibility(console, false);
@@ -149,14 +153,14 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 		rc = ui_create_cons(console, &ui);
 		if (rc != EOK) {
 			console_done(console);
-			return rc;
+			goto cons_fail;
 		}
 
 		rc = console_gc_create(console, NULL, &cgc);
 		if (rc != EOK) {
 			ui_destroy(ui);
 			console_done(console);
-			return rc;
+			goto cons_fail;
 		}
 
 		ui->cgc = cgc;
@@ -166,17 +170,23 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 		ui->rect.p1.y = rows;
 
 		(void) ui_paint(ui);
-	} else if (ws == ui_ws_null) {
+		ui->myoutput = true;
+		*rui = ui;
+		return EOK;
+	}
+
+cons_fail:
+	if (ws == ui_ws_null) {
 		rc = ui_create_disp(NULL, &ui);
 		if (rc != EOK)
 			return rc;
-	} else {
-		return EINVAL;
+
+		ui->myoutput = true;
+		*rui = ui;
+		return EOK;
 	}
 
-	ui->myoutput = true;
-	*rui = ui;
-	return EOK;
+	return EINVAL;
 }
 
 /** Create new user interface using console service.
