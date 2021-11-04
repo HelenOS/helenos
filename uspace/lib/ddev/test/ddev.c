@@ -121,8 +121,7 @@ PCUT_TEST(dev_get_gc_failure)
 	gc = NULL;
 	resp.rc = ENOMEM;
 	rc = ddev_get_gc(ddev, &gc);
-	/* async_connect_me_to() does not return specific error */
-	PCUT_ASSERT_ERRNO_VAL(EIO, rc);
+	PCUT_ASSERT_ERRNO_VAL(ENOMEM, rc);
 	PCUT_ASSERT_NULL(gc);
 
 	ddev_close(ddev);
