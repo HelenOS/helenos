@@ -398,9 +398,38 @@ errno_t ui_resume(ui_t *ui)
 {
 	errno_t rc;
 	ui_window_t *awnd;
+	sysarg_t col;
+	sysarg_t row;
+	cons_event_t ev;
 
 	if (ui->cgc == NULL)
 		return EOK;
+
+	rc = console_get_pos(ui->console, &col, &row);
+	if (rc != EOK)
+		return rc;
+
+	/*
+	 * Here's a little heuristic to help determine if we need
+	 * to pause before returning to the UI. If we are in the
+	 * top-left corner, chances are the screen is empty and
+	 * there is no need to pause.
+	 */
+	if (col != 0 || row != 0) {
+		printf("Press any key or button to continue...\n");
+
+		while (true) {
+			rc = console_get_event(ui->console, &ev);
+			if (rc != EOK)
+				return EIO;
+
+			if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS)
+				break;
+
+			if (ev.type == CEV_POS && ev.ev.pos.type == POS_PRESS)
+				break;
+		}
+	}
 
 	rc = console_gc_resume(ui->cgc);
 	if (rc != EOK)
