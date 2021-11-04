@@ -236,7 +236,6 @@ void navigator_destroy(navigator_t *navigator)
 		}
 	}
 
-
 	if (navigator->menu != NULL) {
 		ui_fixed_remove(navigator->fixed, nav_menu_ctl(navigator->menu));
 		nav_menu_destroy(navigator->menu);
