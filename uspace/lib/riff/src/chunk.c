@@ -145,6 +145,8 @@ errno_t riff_wchunk_end(riffw_t *rw, riff_wchunk_t *wchunk)
 {
 	long pos;
 	long cksize;
+	uint8_t pad;
+	size_t nw;
 	errno_t rc;
 
 	pos = ftell(rw->f);
@@ -152,8 +154,13 @@ errno_t riff_wchunk_end(riffw_t *rw, riff_wchunk_t *wchunk)
 		return EIO;
 
 	cksize = pos - wchunk->ckstart;
-	if (pos % 2 != 0)
+	if (pos % 2 != 0) {
 		++pos;
+		pad = 0;
+		nw = fwrite(&pad, 1, sizeof(pad), rw->f);
+		if (nw != sizeof(pad))
+			return EIO;
+	}
 
 	if (fseek(rw->f, wchunk->ckstart - 4, SEEK_SET) < 0)
 		return EIO;
@@ -475,25 +482,24 @@ errno_t riff_rchunk_end(riff_rchunk_t *rchunk)
 	long ckend;
 	uint8_t byte;
 	size_t nread;
-	errno_t rc;
 
 	ckend = riff_rchunk_get_ndpos(rchunk);
 	if (rchunk->riffr->pos < ckend &&
 	    ckend <= rchunk->riffr->pos + 512) {
 		/* (Buffered) reading is faster than seeking */
 		while (rchunk->riffr->pos < ckend) {
-			rc = riff_read(rchunk, &byte, sizeof(byte), &nread);
-			if (rc != EOK)
-				return rc;
-
+			nread = fread(&byte, 1, sizeof(byte), rchunk->riffr->f);
 			if (nread != sizeof(byte))
 				return EIO;
+
+			rchunk->riffr->pos += sizeof(byte);
 		}
 
 	} else if (rchunk->riffr->pos != ckend) {
 		/* Need to seek (backwards or too far) */
 		if (fseek(rchunk->riffr->f, ckend, SEEK_SET) < 0)
 			return EIO;
+
 		rchunk->riffr->pos = ckend;
 	}
 
