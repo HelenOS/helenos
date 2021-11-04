@@ -97,19 +97,29 @@ PCUT_TEST(create_destroy)
 {
 	errno_t rc;
 	ui_t *ui = NULL;
+	ui_wnd_params_t wparams;
+	ui_window_t *window = NULL;
 	ui_popup_params_t params;
 	ui_popup_t *popup = NULL;
 
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	ui_wnd_params_init(&wparams);
+	wparams.caption = "Hello";
+
+	rc = ui_window_create(ui, &wparams, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
 	ui_popup_params_init(&params);
 
-	rc = ui_popup_create(ui, NULL, &params, &popup);
+	rc = ui_popup_create(ui, window, &params, &popup);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(popup);
 
 	ui_popup_destroy(popup);
+	ui_window_destroy(window);
 	ui_destroy(ui);
 }
 
@@ -124,6 +134,8 @@ PCUT_TEST(add_remove)
 {
 	errno_t rc;
 	ui_t *ui = NULL;
+	ui_wnd_params_t wparams;
+	ui_window_t *window = NULL;
 	ui_popup_params_t params;
 	ui_popup_t *popup = NULL;
 	ui_control_t *control = NULL;
@@ -132,9 +144,16 @@ PCUT_TEST(add_remove)
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	ui_wnd_params_init(&wparams);
+	wparams.caption = "Hello";
+
+	rc = ui_window_create(ui, &wparams, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
 	ui_popup_params_init(&params);
 
-	rc = ui_popup_create(ui, NULL, &params, &popup);
+	rc = ui_popup_create(ui, window, &params, &popup);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(popup);
 
@@ -170,6 +189,7 @@ PCUT_TEST(add_remove)
 	PCUT_ASSERT_FALSE(resp.paint);
 
 	ui_popup_destroy(popup);
+	ui_window_destroy(window);
 	ui_destroy(ui);
 }
 
@@ -178,30 +198,36 @@ PCUT_TEST(get_res_gc)
 {
 	errno_t rc;
 	ui_t *ui = NULL;
-	ui_wnd_params_t params;
+	ui_wnd_params_t wparams;
 	ui_window_t *window = NULL;
+	ui_popup_params_t params;
+	ui_popup_t *popup = NULL;
 	ui_resource_t *res;
 	gfx_context_t *gc;
-	gfx_rect_t rect;
 
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	ui_wnd_params_init(&params);
-	params.caption = "Hello";
+	ui_wnd_params_init(&wparams);
+	wparams.caption = "Hello";
 
-	rc = ui_window_create(ui, &params, &window);
+	rc = ui_window_create(ui, &wparams, &window);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	res = ui_window_get_res(window);
+	ui_popup_params_init(&params);
+
+	rc = ui_popup_create(ui, window, &params, &popup);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(popup);
+
+	res = ui_popup_get_res(popup);
 	PCUT_ASSERT_NOT_NULL(res);
 
-	gc = ui_window_get_gc(window);
+	gc = ui_popup_get_gc(popup);
 	PCUT_ASSERT_NOT_NULL(gc);
 
-	ui_window_get_app_rect(window, &rect);
-
+	ui_popup_destroy(popup);
 	ui_window_destroy(window);
 	ui_destroy(ui);
 }
@@ -211,6 +237,8 @@ PCUT_TEST(send_pos)
 {
 	errno_t rc;
 	ui_t *ui = NULL;
+	ui_wnd_params_t wparams;
+	ui_window_t *window = NULL;
 	ui_popup_params_t params;
 	ui_popup_t *popup = NULL;
 	pos_event_t pos_event;
@@ -219,9 +247,16 @@ PCUT_TEST(send_pos)
 	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	ui_wnd_params_init(&wparams);
+	wparams.caption = "Hello";
+
+	rc = ui_window_create(ui, &wparams, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
 	ui_popup_params_init(&params);
 
-	rc = ui_popup_create(ui, NULL, &params, &popup);
+	rc = ui_popup_create(ui, window, &params, &popup);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(popup);
 
@@ -250,6 +285,7 @@ PCUT_TEST(send_pos)
 	PCUT_ASSERT_INT_EQUALS(pos_event.vpos, resp.pos_event.vpos);
 
 	ui_popup_destroy(popup);
+	ui_window_destroy(window);
 	ui_destroy(ui);
 }
 

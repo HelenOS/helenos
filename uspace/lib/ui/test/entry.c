@@ -105,10 +105,23 @@ PCUT_TEST(set_rect)
 /** Set entry text horizontal alignment sets internal field */
 PCUT_TEST(set_halign)
 {
-	ui_entry_t *entry;
 	errno_t rc;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_entry_t *entry;
 
-	rc = ui_entry_create(NULL, "Hello", &entry);
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_entry_create(window, "Hello", &entry);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_entry_set_halign(entry, gfx_halign_left);
@@ -117,6 +130,8 @@ PCUT_TEST(set_halign)
 	PCUT_ASSERT_EQUALS(gfx_halign_center, entry->halign);
 
 	ui_entry_destroy(entry);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Set entry read only flag sets internal field */
