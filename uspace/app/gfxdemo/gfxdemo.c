@@ -1128,6 +1128,7 @@ int main(int argc, char *argv[])
 {
 	errno_t rc;
 	const char *display_svc = DISPLAY_DEFAULT;
+	const char *ui_display_spec = UI_DISPLAY_DEFAULT;
 	int i;
 
 	i = 1;
@@ -1140,7 +1141,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 
-			display_svc = argv[i++];
+			display_svc = ui_display_spec = argv[i++];
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -1157,7 +1158,7 @@ int main(int argc, char *argv[])
 		if (rc != EOK)
 			return 1;
 	} else if (str_cmp(argv[i], "ui") == 0) {
-		rc = demo_ui(display_svc);
+		rc = demo_ui(ui_display_spec);
 		if (rc != EOK)
 			return 1;
 	} else {
