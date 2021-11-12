@@ -216,7 +216,7 @@ errno_t ui_label_paint(ui_label_t *label)
 	gfx_text_fmt_init(&fmt);
 	fmt.color = label->res->wnd_text_color;
 	fmt.halign = label->halign;
-	fmt.valign = gfx_valign_top;
+	fmt.valign = label->valign;
 
 	rc = gfx_puttext(label->res->font, &pos, &fmt, label->text);
 	if (rc != EOK)
