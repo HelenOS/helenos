@@ -130,21 +130,25 @@ static void help_survival(void)
 	print_wrapped_console(
 	    "Don't panic!\n\n"
 
-	    "This is Bdsh, the Brain dead shell, currently "
-	    "the primary user interface to HelenOS. Bdsh allows you to enter "
+	    "This is Bdsh, the Brain dead shell, the HelenOS "
+	    "command-line interface. Bdsh allows you to enter "
 	    "commands and supports history (Up, Down arrow keys), "
 	    "line editing (Left Arrow, Right Arrow, Home, End, Backspace), "
 	    "selection (Shift + movement keys), copy and paste (Ctrl-C, "
-	    "Ctrl-V), similar to common desktop environments.\n\n"
+	    "Ctrl-V). You can also click your mouse within the input line "
+	    "to seek and use your mouse wheel to scroll through history.\n\n"
 
 	    "The most basic filesystem commands are Bdsh builtins. Type "
 	    "'help commands' [Enter] to see the list of Bdsh builtin commands. "
-	    "Other commands are external executables located in the /app and "
-	    "/srv directories. Type 'ls /app' [Enter] and 'ls /srv' [Enter] "
-	    "to see their list. You can execute an external command simply "
-	    "by entering its name (e.g. type 'tetris' [Enter]).\n\n"
+	    "Other commands are external executables located in the /app "
+	    "directory. Type 'ls /app' [Enter] to see their list. "
+	    "You can execute an external command simply "
+	    "by entering its name. E.g., type 'nav' [Enter] to start "
+	    "Navigator, HelenOS interactive file manager).\n\n"
 
-	    "HelenOS has virtual consoles (VCs). You can switch between "
+	    "If you are not running in GUI mode, (where you can start "
+	    "multiple Terminal windows,) HelenOS console supports "
+	    "virtual consoles (VCs). You can switch between "
 	    "these using the F1-F11 keys.\n\n"
 
 	    "This is but a small glimpse of what you can do with HelenOS. "
