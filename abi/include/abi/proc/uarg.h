@@ -38,7 +38,7 @@
 #include <stddef.h>
 #include <_bits/native.h>
 
-typedef void (*uspace_thread_function_t)(void *);
+typedef void (uspace_thread_function_t)(void *);
 
 /** Structure passed to uinit kernel thread as argument. */
 typedef struct uspace_arg {
