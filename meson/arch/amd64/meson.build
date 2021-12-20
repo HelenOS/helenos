@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -48,14 +49,17 @@ endif
 arch_kernel_link_args = [ '-Wl,-z,max-page-size=0x1000', '-nostdlib', '-Wl,--no-gc-sections' ]
 arch_uspace_link_args = [ '-Wl,-z,max-page-size=0x1000', '-nostdlib', '-lgcc' ]
 
-
+# Binaries to be included in a barebone build
 rd_essential += [
 	'app/edit',
 	'app/mixerctl',
 	'app/wavplay',
 
 	'srv/audio/hound',
+]
 
+# Drivers to be included in a barebone build
+rd_essential_drv += [
 	'drv/intctl/apic',
 	'drv/intctl/i8259',
 	'drv/platform/pc',
@@ -66,4 +70,41 @@ rd_essential += [
 	'drv/char/i8042',
 	'drv/hid/ps2mouse',
 	'drv/hid/xtkbd',
+]
+
+# Drivers to be included in a regular build
+rd_drv += [
+	'drv/audio/hdaudio',
+	'drv/audio/sb16',
+	'drv/block/ahci',
+	'drv/block/ata_bd',
+	'drv/block/usbmast',
+	'drv/block/virtio-blk',
+	'drv/bus/isa',
+	'drv/bus/pci/pciintel',
+	'drv/bus/usb/ehci',
+	'drv/bus/usb/ohci',
+	'drv/bus/usb/uhci',
+	'drv/bus/usb/usbdiag',
+	'drv/bus/usb/usbflbk',
+	'drv/bus/usb/usbhub',
+	'drv/bus/usb/usbmid',
+	'drv/bus/usb/vhc',
+	'drv/bus/usb/xhci',
+	'drv/char/i8042',
+	'drv/char/ns8250',
+	'drv/char/pc-lpt',
+	'drv/hid/ps2mouse',
+	'drv/hid/xtkbd',
+	'drv/hid/usbhid',
+	'drv/intctl/apic',
+	'drv/intctl/i8259',
+	'drv/nic/ar9271',
+	'drv/nic/e1k',
+	'drv/nic/ne2k',
+	'drv/nic/rtl8139',
+	'drv/nic/rtl8169',
+	'drv/nic/virtio-net',
+	'drv/platform/pc',
+	'drv/time/cmos-rtc',
 ]

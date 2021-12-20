@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -40,7 +41,7 @@ arch_boot_link_args = []
 
 
 if MACHINE == 'i460GX'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/platform/pc',
 		'drv/bus/pci/pciintel',
 		'drv/bus/isa',
@@ -49,9 +50,11 @@ if MACHINE == 'i460GX'
 	]
 
 elif MACHINE == 'ski'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/char/ski-con',
 		'drv/platform/ski',
 	]
 
 endif
+
+rd_drv += rd_essential_drv

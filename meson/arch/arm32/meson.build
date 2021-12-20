@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -54,7 +55,7 @@ arch_boot_c_args = arch_kernel_c_args
 arch_boot_link_args = arch_kernel_link_args
 
 
-rd_essential += [
+rd_essential_drv += [
 	'drv/bus/usb/ehci',
 	'drv/bus/usb/ohci',
 	'drv/bus/usb/usbdiag',
@@ -72,13 +73,13 @@ if MACHINE == 'gta02'
 	]
 
 elif MACHINE == 'beagleboardxm' or MACHINE == 'beaglebone'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/platform/amdm37x',
 		'drv/fb/amdm37x_dispc',
 	]
 
 elif MACHINE == 'integratorcp'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/char/pl050',
 		'drv/hid/atkbd',
 		'drv/hid/ps2mouse',
@@ -86,3 +87,5 @@ elif MACHINE == 'integratorcp'
 		'drv/platform/icp',
 	]
 endif
+
+rd_drv += rd_essential_drv

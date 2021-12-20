@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -65,7 +66,7 @@ uspace_as_prolog = '.module softfloat;.abicalls;'
 
 
 if MACHINE == 'bmalta' or MACHINE == 'lmalta'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/platform/malta',
 		'drv/intctl/i8259',
 		'drv/block/ata_bd',
@@ -78,10 +79,12 @@ if MACHINE == 'bmalta' or MACHINE == 'lmalta'
 	]
 
 elif MACHINE == 'msim'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/platform/msim',
 		'drv/block/ddisk',
 		'drv/char/msim-con',
 	]
 
 endif
+
+rd_drv += rd_essential_drv

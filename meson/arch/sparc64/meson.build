@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -76,12 +77,12 @@ endif
 
 
 if PROCESSOR == 'sun4v'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/platform/sun4v',
 		'drv/char/sun4v-con',
 	]
 else
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/platform/sun4u',
 		'drv/bus/pci/pciintel',
 		'drv/bus/isa',
@@ -89,3 +90,5 @@ else
 		'drv/char/ns8250',
 	]
 endif
+
+rd_drv += rd_essential_drv

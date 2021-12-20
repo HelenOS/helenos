@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2015 Petr Pavlu
 # All rights reserved.
 #
@@ -45,7 +46,7 @@ arch_boot_c_args = arch_uspace_c_args + [ '-fpic', '-fvisibility=hidden', '-fno-
 arch_boot_link_args = [ '-Wl,-shared', '-Wl,--no-gc-sections' ]
 
 if MACHINE == 'virt'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/char/pl011',
 		'drv/intctl/gicv2',
 		'drv/platform/arm64virt',
@@ -53,9 +54,11 @@ if MACHINE == 'virt'
 endif
 
 if MACHINE == 'hikey960'
-	rd_essential += [
+	rd_essential_drv += [
 		'drv/char/pl011',
 		'drv/intctl/gicv2',
 		'drv/platform/hikey960',
 	]
 endif
+
+rd_drv += rd_essential_drv

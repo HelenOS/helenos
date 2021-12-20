@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -38,7 +39,7 @@ arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
 arch_boot_link_args = []
 
 
-rd_essential += [
+rd_essential_drv += [
 	'drv/platform/mac',
 	'drv/bus/adb/cuda_adb',
 	'drv/bus/pci/pciintel',
@@ -53,3 +54,5 @@ rd_essential += [
 	'drv/hid/adb-mouse',
 	'drv/hid/usbhid',
 ]
+
+rd_drv += rd_essential_drv

@@ -57,6 +57,12 @@ foreach srv : srvs
 	}
 endforeach
 
+if CONFIG_BAREBONE
+	drv_list = rd_essential_drv
+else
+	drv_list = rd_drv
+endif
+
 foreach drv : drvs
 	_basename = run_command(basename, drv, check: true).stdout().strip()
 	_dirname = run_command(dirname, drv, check: true).stdout().strip()
@@ -67,7 +73,7 @@ foreach drv : drvs
 	}
 
 	# Install driver metadata.
-	if not CONFIG_BAREBONE or rd_essential.contains('drv' / drv)
+	if drv_list.contains('drv' / drv)
 		_src = meson.current_source_dir() / 'drv' / drv / _basename + '.ma'
 		_dstdir = 'drv' / _basename
 		install_files += [[ _dstdir, _src, _basename + '.ma' ]]
@@ -92,7 +98,18 @@ foreach appdirs : dirs
 	dir = appdirs.get('subdir')
 	installdir = appdirs.get('installdir')
 
-	install = not CONFIG_BAREBONE or rd_essential.contains(dir)
+	is_drv = (dir.split('/')[0] == 'drv')
+
+	if is_drv
+		# Drivers are installed based on rd_[essential_]drv list
+		install = drv_list.contains(dir)
+	else
+		#
+		# Servers and applications are installed all or
+		# based on rd_essential in case of barebone build
+		#
+		install = not CONFIG_BAREBONE or rd_essential.contains(dir)
+	endif
 
 	if install
 		# Install data files, if any.
@@ -128,7 +145,6 @@ foreach appdirs : dirs
 
 	# Binaries in the 'drv' subdirectory link libdrv by default.
 
-	is_drv = (dir.split('/')[0] == 'drv')
 
 	if is_drv
 		deps += [ 'drv' ]

@@ -51,11 +51,15 @@ rd_essential = [
 	'srv/hid/input',
 	'srv/hid/output',
 	'srv/klog',
+]
 
+rd_essential_drv = [
 	'drv/root/root',
 	'drv/root/virt',
 	'drv/fb/kfb',
 ]
+
+rd_drv = rd_essential_drv
 
 if CONFIG_FB
 	rd_essential += [

@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2021 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -35,3 +36,5 @@ arch_boot_link_args = []
 
 rd_essential += [
 ]
+
+rd_drv += rd_essential_drv
