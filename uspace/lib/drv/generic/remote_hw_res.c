@@ -102,7 +102,7 @@ static void remote_hw_res_clear_interrupt(ddf_fun_t *fun, void *ops,
 	}
 
 	const int irq = DEV_IPC_GET_ARG1(*call);
-	const errno_t ret = hw_res_ops->enable_interrupt(fun, irq);
+	const errno_t ret = hw_res_ops->clear_interrupt(fun, irq);
 	async_answer_0(call, ret);
 }
 
