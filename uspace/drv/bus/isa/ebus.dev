@@ -2,3 +2,9 @@ com1:
 	match 100 isa/ns8250
 	irq 2027
 	io_range 3f8 8
+
+i8042:
+	match 100 isa/i8042
+	irq 2025
+	irq 2026
+	io_range 060 5

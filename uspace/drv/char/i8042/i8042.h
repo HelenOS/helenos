@@ -75,6 +75,8 @@ typedef struct {
 	fibril_mutex_t buf_lock;
 	/** Signal new data in buffer */
 	fibril_condvar_t buf_cv;
+	/** Interrupt number */
+	int irq;
 } i8042_port_t;
 
 /** i8042 Controller. */

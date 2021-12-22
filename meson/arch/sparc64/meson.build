@@ -75,7 +75,6 @@ else
 	arch_uspace_link_args += [ '-Wl,-z,max-page-size=0x4000' ]
 endif
 
-
 if PROCESSOR == 'sun4v'
 	rd_essential_drv += [
 		'drv/platform/sun4v',
@@ -88,6 +87,9 @@ else
 		'drv/bus/isa',
 		'drv/intctl/obio',
 		'drv/char/ns8250',
+		'drv/char/i8042',
+		'drv/hid/ps2mouse',
+		'drv/hid/xtkbd',
 	]
 endif
 

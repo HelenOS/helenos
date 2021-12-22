@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2017 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -145,6 +145,9 @@ static void i8042_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 
 	fibril_mutex_unlock(&port->buf_lock);
 	fibril_condvar_broadcast(&port->buf_cv);
+
+	async_sess_t *parent_sess = ddf_dev_parent_sess_get(dev);
+	hw_res_clear_interrupt(parent_sess, port->irq);
 }
 
 /** Initialize i8042 driver structure.
@@ -201,6 +204,7 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	chardev_srvs_init(&dev->kbd->cds);
 	dev->kbd->cds.ops = &i8042_chardev_ops;
 	dev->kbd->cds.sarg = dev->kbd;
+	dev->kbd->irq = irq_kbd;
 	fibril_mutex_initialize(&dev->kbd->buf_lock);
 	fibril_condvar_initialize(&dev->kbd->buf_cv);
 
@@ -225,6 +229,7 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	chardev_srvs_init(&dev->aux->cds);
 	dev->aux->cds.ops = &i8042_chardev_ops;
 	dev->aux->cds.sarg = dev->aux;
+	dev->aux->irq = irq_mouse;
 	fibril_mutex_initialize(&dev->aux->buf_lock);
 	fibril_condvar_initialize(&dev->aux->buf_cv);
 
