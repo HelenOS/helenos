@@ -235,6 +235,59 @@ PCUT_TEST(first_next)
 	ui_destroy(ui);
 }
 
+/** ui_menu_entry_last() / ui_menu_entry_prev() iterate over entries in reverse */
+PCUT_TEST(last_prev)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	ui_menu_entry_t *entry1 = NULL;
+	ui_menu_entry_t *entry2 = NULL;
+	ui_menu_entry_t *e;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	rc = ui_menu_entry_create(menu, "Foo", "F1", &entry1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(entry1);
+
+	rc = ui_menu_entry_create(menu, "Bar", "F2", &entry2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(entry2);
+
+	e = ui_menu_entry_last(menu);
+	PCUT_ASSERT_EQUALS(entry2, e);
+
+	e = ui_menu_entry_prev(e);
+	PCUT_ASSERT_EQUALS(entry1, e);
+
+	e = ui_menu_entry_prev(e);
+	PCUT_ASSERT_NULL(e);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_menu_entry_column_widths() / ui_menu_entry_height() */
 PCUT_TEST(widths_height)
 {
@@ -334,6 +387,60 @@ PCUT_TEST(paint)
 	pos.y = 0;
 	rc = ui_menu_entry_paint(mentry, &pos);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_entry_selectable() returns correct value based on entry type */
+PCUT_TEST(selectable)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	ui_menu_entry_t *mentry = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	/* Selectable entry */
+
+	rc = ui_menu_entry_create(menu, "Foo", "F1", &mentry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry);
+
+	PCUT_ASSERT_TRUE(ui_menu_entry_selectable(mentry));
+
+	ui_menu_entry_destroy(mentry);
+
+	/* Non-selectable separator entry */
+
+	rc = ui_menu_entry_sep_create(menu, &mentry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry);
+
+	PCUT_ASSERT_FALSE(ui_menu_entry_selectable(mentry));
+
+	ui_menu_entry_destroy(mentry);
 
 	ui_menu_bar_destroy(mbar);
 	ui_window_destroy(window);
@@ -537,6 +644,63 @@ PCUT_TEST(press_leave_enter_release)
 
 	ui_menu_entry_release(mentry);
 	PCUT_ASSERT_FALSE(mentry->held);
+	PCUT_ASSERT_TRUE(resp.activated);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_entry_activate() activates menu entry */
+PCUT_TEST(activate)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	ui_menu_entry_t *mentry = NULL;
+	gfx_rect_t prect;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	rc = ui_menu_entry_create(menu, "X", "Y", &mentry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry);
+
+	ui_menu_entry_set_cb(mentry, test_entry_cb, &resp);
+	resp.activated = false;
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(resp.activated);
+	ui_menu_entry_activate(mentry);
+
+	ui_menu_entry_release(mentry);
 	PCUT_ASSERT_TRUE(resp.activated);
 
 	ui_menu_bar_destroy(mbar);

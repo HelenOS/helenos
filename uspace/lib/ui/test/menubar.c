@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -148,6 +148,54 @@ PCUT_TEST(paint)
 	ui_destroy(ui);
 }
 
+/** Deliver menu bar keyboard event */
+PCUT_TEST(kbd_event)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	ui_evclaim_t claimed;
+	kbd_event_t event;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 50;
+	rect.p1.y = 25;
+	ui_menu_bar_set_rect(mbar, &rect);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	event.type = KEY_PRESS;
+	event.key = KC_ESCAPE;
+	claimed = ui_menu_kbd_pos_event(mbar, &event);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** Press event on menu bar entry selects menu */
 PCUT_TEST(pos_event_select)
 {
@@ -208,7 +256,6 @@ PCUT_TEST(select_same)
 	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
-	gfx_rect_t rect;
 	errno_t rc;
 
 	rc = ui_create_disp(NULL, &ui);
@@ -229,15 +276,11 @@ PCUT_TEST(select_same)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	rect.p0.x = 0;
-	rect.p0.y = 0;
-	rect.p1.x = 0;
-	rect.p1.y = 0;
-	ui_menu_bar_select(mbar, &rect, menu);
+	ui_menu_bar_select(mbar, menu, true);
 	PCUT_ASSERT_EQUALS(menu, mbar->selected);
 
 	/* Selecting again should unselect the menu */
-	ui_menu_bar_select(mbar, &rect, menu);
+	ui_menu_bar_select(mbar, menu, true);
 	PCUT_ASSERT_NULL(mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
@@ -254,7 +297,6 @@ PCUT_TEST(select_different)
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu1 = NULL;
 	ui_menu_t *menu2 = NULL;
-	gfx_rect_t rect;
 	errno_t rc;
 
 	rc = ui_create_disp(NULL, &ui);
@@ -279,16 +321,51 @@ PCUT_TEST(select_different)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu2);
 
-	rect.p0.x = 0;
-	rect.p0.y = 0;
-	rect.p1.x = 0;
-	rect.p1.y = 0;
-	ui_menu_bar_select(mbar, &rect, menu1);
+	ui_menu_bar_select(mbar, menu1, true);
 	PCUT_ASSERT_EQUALS(menu1, mbar->selected);
 
 	/* Selecting different menu should select it */
-	ui_menu_bar_select(mbar, &rect, menu2);
+	ui_menu_bar_select(mbar, menu2, true);
 	PCUT_ASSERT_EQUALS(menu2, mbar->selected);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_bar_activate() activates/deactivates menu bar */
+PCUT_TEST(activate_deactivate)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	ui_menu_bar_activate(mbar);
+	PCUT_ASSERT_EQUALS(menu, mbar->selected);
+
+	ui_menu_bar_deactivate(mbar);
+	PCUT_ASSERT_NULL(mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
 	ui_window_destroy(window);

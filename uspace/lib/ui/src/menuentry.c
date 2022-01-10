@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@
 #include <str.h>
 #include <ui/control.h>
 #include <ui/paint.h>
+#include <ui/menubar.h>
 #include <ui/menuentry.h>
 #include <ui/window.h>
 #include "../private/menubar.h"
@@ -176,6 +177,22 @@ ui_menu_entry_t *ui_menu_entry_first(ui_menu_t *menu)
 	return list_get_instance(link, ui_menu_entry_t, lentries);
 }
 
+/** Get last menu entry in menu.
+ *
+ * @param menu Menu
+ * @return Last menu entry or @c NULL if there is none
+ */
+ui_menu_entry_t *ui_menu_entry_last(ui_menu_t *menu)
+{
+	link_t *link;
+
+	link = list_last(&menu->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ui_menu_entry_t, lentries);
+}
+
 /** Get next menu entry in menu.
  *
  * @param cur Current menu entry
@@ -186,6 +203,22 @@ ui_menu_entry_t *ui_menu_entry_next(ui_menu_entry_t *cur)
 	link_t *link;
 
 	link = list_next(&cur->lentries, &cur->menu->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ui_menu_entry_t, lentries);
+}
+
+/** Get previous menu entry in menu.
+ *
+ * @param cur Current menu entry
+ * @return Next menu entry or @c NULL if @a cur is the last one
+ */
+ui_menu_entry_t *ui_menu_entry_prev(ui_menu_entry_t *cur)
+{
+	link_t *link;
+
+	link = list_prev(&cur->lentries, &cur->menu->entries);
 	if (link == NULL)
 		return NULL;
 
@@ -377,6 +410,15 @@ error:
 	return rc;
 }
 
+/** Determine if entry is selectable.
+ *
+ * @return @c true iff entry is selectable
+ */
+bool ui_menu_entry_selectable(ui_menu_entry_t *mentry)
+{
+	return !mentry->separator;
+}
+
 /** Handle button press in menu entry.
  *
  * @param mentry Menu entry
@@ -406,13 +448,20 @@ void ui_menu_entry_release(ui_menu_entry_t *mentry)
 
 	mentry->held = false;
 
-	if (mentry->inside) {
-		/* Close menu */
-		ui_menu_bar_select(mentry->menu->mbar, NULL, NULL);
+	ui_menu_entry_activate(mentry);
+}
 
-		/* Call back */
-		ui_menu_entry_cb(mentry);
-	}
+/** Activate menu entry.
+ *
+ * @param mentry Menu entry
+ */
+void ui_menu_entry_activate(ui_menu_entry_t *mentry)
+{
+	/* Deactivate menu bar, close menu */
+	ui_menu_bar_deactivate(mentry->menu->mbar);
+
+	/* Call back */
+	ui_menu_entry_cb(mentry);
 }
 
 /** Call menu entry callback.

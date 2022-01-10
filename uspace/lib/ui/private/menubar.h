@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 
 #include <adt/list.h>
 #include <gfx/coord.h>
+#include <stdbool.h>
 #include <types/ui/menu.h>
 #include <types/ui/menubar.h>
 
@@ -55,13 +56,19 @@ struct ui_menu_bar {
 	struct ui_window *window;
 	/** Menu bar rectangle */
 	gfx_rect_t rect;
+	/** Menu bar is active */
+	bool active;
 	/** Selected menu or @c NULL */
 	struct ui_menu *selected;
 	/** List of menus (ui_menu_t) */
 	list_t menus;
 };
 
-extern void ui_menu_bar_select(ui_menu_bar_t *, gfx_rect_t *, ui_menu_t *);
+extern void ui_menu_bar_select(ui_menu_bar_t *, ui_menu_t *, bool);
+extern void ui_menu_bar_left(ui_menu_bar_t *);
+extern void ui_menu_bar_right(ui_menu_bar_t *);
+extern ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *, kbd_event_t *);
+extern void ui_menu_bar_entry_rect(ui_menu_bar_t *, ui_menu_t *, gfx_rect_t *);
 
 #endif
 

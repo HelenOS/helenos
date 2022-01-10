@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@
 
 #include <errno.h>
 #include <gfx/context.h>
-//#include <io/kbd_event.h>
+#include <io/kbd_event.h>
 #include <io/pos_event.h>
 #include <mem.h>
 #include <stdlib.h>
@@ -46,10 +46,12 @@
 #include "../private/popup.h"
 
 static void ui_popup_window_close(ui_window_t *, void *);
+static void ui_popup_window_kbd(ui_window_t *, void *, kbd_event_t *);
 static void ui_popup_window_pos(ui_window_t *, void *, pos_event_t *);
 
 static ui_window_cb_t ui_popup_window_cb = {
 	.close = ui_popup_window_close,
+	.kbd = ui_popup_window_kbd,
 	.pos = ui_popup_window_pos
 };
 
@@ -197,6 +199,21 @@ static void ui_popup_window_close(ui_window_t *window, void *arg)
 
 	if (popup->cb != NULL && popup->cb->close != NULL)
 		popup->cb->close(popup, popup->arg);
+}
+
+/** Handle keyboard event in popup window.
+ *
+ * @param window Window
+ * @param arg Argument (ui_popup_t *)
+ * @param event Keyboard event
+ */
+static void ui_popup_window_kbd(ui_window_t *window, void *arg,
+    kbd_event_t *event)
+{
+	ui_popup_t *popup = (ui_popup_t *)arg;
+
+	if (popup->cb != NULL && popup->cb->kbd != NULL)
+		popup->cb->kbd(popup, popup->arg, event);
 }
 
 /** Handle position event in popup window.

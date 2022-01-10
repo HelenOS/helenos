@@ -35,6 +35,7 @@
 #include <ui/control.h>
 #include <ui/menu.h>
 #include <ui/menubar.h>
+#include <ui/menuentry.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "../private/menu.h"
@@ -114,6 +115,54 @@ PCUT_TEST(first_next)
 	PCUT_ASSERT_EQUALS(menu2, m);
 
 	m = ui_menu_next(m);
+	PCUT_ASSERT_NULL(m);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_last() / ui_menu_prev() iterate over menus in reverse */
+PCUT_TEST(last_prev)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu1 = NULL;
+	ui_menu_t *menu2 = NULL;
+	ui_menu_t *m;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test 1", &menu1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu1);
+
+	rc = ui_menu_create(mbar, "Test 1", &menu2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu2);
+
+	m = ui_menu_last(mbar);
+	PCUT_ASSERT_EQUALS(menu2, m);
+
+	m = ui_menu_prev(m);
+	PCUT_ASSERT_EQUALS(menu1, m);
+
+	m = ui_menu_prev(m);
 	PCUT_ASSERT_NULL(m);
 
 	ui_menu_bar_destroy(mbar);
@@ -202,6 +251,105 @@ PCUT_TEST(get_rect)
 	PCUT_ASSERT_INT_EQUALS(0, rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(16, rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(8, rect.p1.y);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** Open and close menu with ui_menu_open() / ui_menu_close() */
+PCUT_TEST(open_close)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	gfx_rect_t prect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	/* Open and close */
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_menu_close(menu);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_is_open() correctly returns menu state */
+PCUT_TEST(is_open)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	gfx_rect_t prect;
+	bool open;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	open = ui_menu_is_open(menu);
+	PCUT_ASSERT_FALSE(open);
+
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	open = ui_menu_is_open(menu);
+	PCUT_ASSERT_TRUE(open);
+
+	ui_menu_close(menu);
+
+	open = ui_menu_is_open(menu);
+	PCUT_ASSERT_FALSE(open);
 
 	ui_menu_bar_destroy(mbar);
 	ui_window_destroy(window);
@@ -349,6 +497,238 @@ PCUT_TEST(paint)
 	pos.y = 0;
 	rc = ui_menu_paint(menu, &pos);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_up() with empty menu does nothing */
+PCUT_TEST(up_empty)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	gfx_rect_t prect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	/* Menu needs to be open to be able to move around it */
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_menu_up(menu);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_up() moves one entry up, skips separators, wraps around */
+PCUT_TEST(up)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	ui_menu_entry_t *mentry1 = NULL;
+	ui_menu_entry_t *mentry2 = NULL;
+	ui_menu_entry_t *mentry3 = NULL;
+	gfx_rect_t prect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	rc = ui_menu_entry_create(menu, "Foo", "F1", &mentry1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry1);
+
+	rc = ui_menu_entry_sep_create(menu, &mentry2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry2);
+
+	rc = ui_menu_entry_create(menu, "Bar", "F2", &mentry3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry3);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	/* Menu needs to be open to be able to move around it */
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* When menu is open, the first entry is selected */
+	PCUT_ASSERT_EQUALS(mentry1, menu->selected);
+
+	ui_menu_up(menu);
+
+	/* Now we've wrapped around to the last entry */
+	PCUT_ASSERT_EQUALS(mentry3, menu->selected);
+
+	ui_menu_up(menu);
+
+	/* mentry2 is a separator and was skipped */
+	PCUT_ASSERT_EQUALS(mentry1, menu->selected);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_down() with empty menu does nothing */
+PCUT_TEST(down_empty)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	gfx_rect_t prect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	/* Menu needs to be open to be able to move around it */
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_menu_down(menu);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_down() moves one entry down, skips separators, wraps around */
+PCUT_TEST(down)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	ui_menu_entry_t *mentry1 = NULL;
+	ui_menu_entry_t *mentry2 = NULL;
+	ui_menu_entry_t *mentry3 = NULL;
+	gfx_rect_t prect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_create(mbar, "Test", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	rc = ui_menu_entry_create(menu, "Foo", "F1", &mentry1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry1);
+
+	rc = ui_menu_entry_sep_create(menu, &mentry2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry2);
+
+	rc = ui_menu_entry_create(menu, "Bar", "F2", &mentry3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mentry3);
+
+	prect.p0.x = 0;
+	prect.p0.y = 0;
+	prect.p1.x = 0;
+	prect.p1.y = 0;
+
+	/* Menu needs to be open to be able to move around it */
+	rc = ui_menu_open(menu, &prect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* When menu is open, the first entry is selected */
+	PCUT_ASSERT_EQUALS(mentry1, menu->selected);
+
+	ui_menu_down(menu);
+
+	/* mentry2 is a separator and was skipped */
+	PCUT_ASSERT_EQUALS(mentry3, menu->selected);
+
+	ui_menu_up(menu);
+
+	/* Now we've wrapped around to the first entry */
+	PCUT_ASSERT_EQUALS(mentry1, menu->selected);
 
 	ui_menu_bar_destroy(mbar);
 	ui_window_destroy(window);
