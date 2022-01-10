@@ -187,7 +187,7 @@ PCUT_TEST(kbd_event)
 
 	event.type = KEY_PRESS;
 	event.key = KC_ESCAPE;
-	claimed = ui_menu_kbd_pos_event(mbar, &event);
+	claimed = ui_menu_bar_kbd_event(mbar, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
 

@@ -962,7 +962,7 @@ void ui_window_send_kbd(ui_window_t *window, kbd_event_t *kbd)
 	if (window->cb != NULL && window->cb->kbd != NULL)
 		window->cb->kbd(window, window->arg, kbd);
 	else
-		return ui_window_def_kbd(window, kbd);
+		ui_window_def_kbd(window, kbd);
 }
 
 /** Send window paint event.
@@ -1004,11 +1004,14 @@ void ui_window_send_unfocus(ui_window_t *window)
 /** Default window keyboard event routine.
  *
  * @param window Window
+ * @return ui_claimed iff event was claimed
  */
-void ui_window_def_kbd(ui_window_t *window, kbd_event_t *kbd)
+ui_evclaim_t ui_window_def_kbd(ui_window_t *window, kbd_event_t *kbd)
 {
 	if (window->control != NULL)
-		ui_control_kbd_event(window->control, kbd);
+		return ui_control_kbd_event(window->control, kbd);
+
+	return ui_unclaimed;
 }
 
 /** Default window paint routine.

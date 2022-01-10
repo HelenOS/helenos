@@ -185,6 +185,9 @@ static void wnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
 {
 	calc_t *calc = (calc_t *) arg;
 
+	if (ui_window_def_kbd(window, event) == ui_claimed)
+		return;
+
 	if (event->type == KEY_PRESS && (event->mods & KM_CTRL) != 0) {
 		switch (event->key) {
 		case KC_C:

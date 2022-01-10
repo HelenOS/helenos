@@ -65,6 +65,7 @@ enum {
 static void ui_menu_popup_close(ui_popup_t *, void *);
 static void ui_menu_popup_kbd(ui_popup_t *, void *, kbd_event_t *);
 static void ui_menu_popup_pos(ui_popup_t *, void *, pos_event_t *);
+static void ui_menu_key_press_unmod(ui_menu_t *, kbd_event_t *);
 
 static ui_popup_cb_t ui_menu_popup_cb = {
 	.close = ui_menu_popup_close,
@@ -492,17 +493,20 @@ ui_evclaim_t ui_menu_pos_event(ui_menu_t *menu, gfx_coord2_t *spos,
 	return ui_unclaimed;
 }
 
-/** Handle close event in menu popup window.
+/** Handle keyboard event in menu.
  *
- * @param popup Menu popup window
- * @param arg Argument (ui_menu_t *)
+ * @param menu Menu
+ * @param event Keyboard event
+ * @return ui_claimed iff the event was claimed
  */
-static void ui_menu_popup_close(ui_popup_t *popup, void *arg)
+ui_evclaim_t ui_menu_kbd_event(ui_menu_t *menu, kbd_event_t *event)
 {
-	ui_menu_t *menu = (ui_menu_t *)arg;
+	if (event->type == KEY_PRESS && (event->mods &
+	    (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
+		ui_menu_key_press_unmod(menu, event);
+	}
 
-	/* Deactivate menu bar, close menu */
-	ui_menu_bar_deactivate(menu->mbar);
+	return ui_claimed;
 }
 
 /** Move one entry up.
@@ -611,6 +615,19 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 	}
 }
 
+/** Handle close event in menu popup window.
+ *
+ * @param popup Menu popup window
+ * @param arg Argument (ui_menu_t *)
+ */
+static void ui_menu_popup_close(ui_popup_t *popup, void *arg)
+{
+	ui_menu_t *menu = (ui_menu_t *)arg;
+
+	/* Deactivate menu bar, close menu */
+	ui_menu_bar_deactivate(menu->mbar);
+}
+
 /** Handle keyboard event in menu popup window.
  *
  * @param popup Menu popup window
@@ -621,10 +638,7 @@ static void ui_menu_popup_kbd(ui_popup_t *popup, void *arg, kbd_event_t *event)
 {
 	ui_menu_t *menu = (ui_menu_t *)arg;
 
-	if (event->type == KEY_PRESS && (event->mods &
-	    (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
-		ui_menu_key_press_unmod(menu, event);
-	}
+	ui_menu_kbd_event(menu, event);
 }
 
 /** Handle position event in menu popup window.

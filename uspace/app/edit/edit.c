@@ -2229,6 +2229,9 @@ static void edit_wnd_kbd_event(ui_window_t *window, void *arg,
 {
 	pane.keymod = event->mods;
 
+	if (ui_window_def_kbd(window, event) == ui_claimed)
+		return;
+
 	if (event->type == KEY_PRESS) {
 		key_handle_press(event);
 		(void) pane_update(&pane);

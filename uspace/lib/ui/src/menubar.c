@@ -370,11 +370,13 @@ ui_evclaim_t ui_menu_bar_kbd_event(ui_menu_bar_t *mbar, kbd_event_t *event)
 {
 	if (event->type == KEY_PRESS && (event->mods &
 	    (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
-		ui_menu_bar_key_press_unmod(mbar, event);
-		return ui_claimed;
+		return ui_menu_bar_key_press_unmod(mbar, event);
 	}
 
-	return ui_claimed;
+	if (mbar->active)
+		return ui_claimed;
+
+	return ui_unclaimed;
 }
 
 /** Handle menu bar position event.
