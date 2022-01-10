@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
@@ -1407,8 +1407,8 @@ static void pane_status_display(pane_t *pane)
 	 * be executed at most twice.
 	 */
 	while (true) {
-		int rc = asprintf(&text, "%d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
-		    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
+		int rc = asprintf(&text, "%d, %d (%d): File '%s'. Ctrl-Q Quit  "
+		    "F10 Menu", coord.row, coord.column, last_row, fname);
 		if (rc < 0) {
 			n = 0;
 			goto finish;
