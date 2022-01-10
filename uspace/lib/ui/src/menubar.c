@@ -294,7 +294,8 @@ void ui_menu_bar_left(ui_menu_bar_t *mbar)
 	if (nmenu == NULL)
 		nmenu = ui_menu_last(mbar);
 
-	ui_menu_bar_select(mbar, nmenu, false);
+	if (nmenu != mbar->selected)
+		ui_menu_bar_select(mbar, nmenu, false);
 }
 
 /** Move one entry right.
@@ -315,7 +316,8 @@ void ui_menu_bar_right(ui_menu_bar_t *mbar)
 	if (nmenu == NULL)
 		nmenu = ui_menu_first(mbar);
 
-	ui_menu_bar_select(mbar, nmenu, false);
+	if (nmenu != mbar->selected)
+		ui_menu_bar_select(mbar, nmenu, false);
 }
 
 /** Handle menu bar key press without modifiers.
