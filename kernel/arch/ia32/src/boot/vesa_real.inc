@@ -20,7 +20,7 @@
 
 #define VESA_END_OF_MODES  0xffff
 
-#define VESA_OK  0x4f
+#define VESA_OK  0x004f
 
 #define VESA_GET_INFO       0x4f00
 #define VESA_GET_MODE_INFO  0x4f01
@@ -179,7 +179,7 @@ vesa_init_real2:
 	int $0x10
 
 	pop %di
-	cmp $VESA_OK, %al
+	cmp $VESA_OK, %ax
 	jnz no_mode
 
 	mov 2 + VESA_MODE_LIST_PTR_OFFSET(%di), %si
@@ -206,7 +206,7 @@ vesa_init_real2:
 		pop %si
 		pop %di
 		pop %cx
-		cmp $VESA_OK, %al
+		cmp $VESA_OK, %ax
 		jne no_mode
 
 		/*
@@ -253,7 +253,7 @@ vesa_init_real2:
 		int $0x10
 
 		pop %di
-		cmp $VESA_OK, %al
+		cmp $VESA_OK, %ax
 		jnz no_mode
 
 		/* Set 3:2:3 VGA palette */
@@ -372,7 +372,7 @@ vesa_init_real2:
 
 		pop %cx
 		pop %di
-		cmp $VESA_OK, %al
+		cmp $VESA_OK, %ax
 		jnz text_mode
 		jz set_mode  /* force relative jump */
 
