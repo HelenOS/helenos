@@ -363,7 +363,30 @@ vesa_init_real2:
 	no_mode:
 
 		/* No prefered mode found */
+		push %di
+		mov $e_vesa_init - vesa_init, %di
+		mov 2 + VESA_MODE_LIST_PTR_OFFSET(%di), %si
+		mov %si, %gs
+		mov VESA_MODE_LIST_PTR_OFFSET(%di), %si
+		pop %di
 
+		/* Check if list of supported modes contains fallback mode */
+	find_fallback_mode:
+
+		mov %gs:(%si), %cx
+
+		cmp $0x111, %cx
+		je fallback_mode_listed
+
+		cmp $VESA_END_OF_MODES, %cx
+		je text_mode
+
+		inc %si
+		inc %si
+		jmp find_fallback_mode /* 16-bit relative jump */
+
+	fallback_mode_listed:
+		/* Make sure fallback mode is really supported */
 		mov $0x111, %cx
 		push %di
 		push %cx
@@ -374,7 +397,13 @@ vesa_init_real2:
 		pop %di
 		cmp $VESA_OK, %ax
 		jnz text_mode
-		jz set_mode  /* force relative jump */
+
+		/* Verify mode attributes */
+		and $0x99, %ax
+		cmp $0x99, %ax
+		jne text_mode
+
+		jmp set_mode  /* 16-bit relative jump */
 
 	text_mode:
 
