@@ -43,9 +43,6 @@
 #include "port/ddev.h"
 #include "output.h"
 
-#define MAX_COLS  128
-#define MAX_ROWS  128
-
 typedef struct {
 	link_t link;
 
@@ -114,12 +111,20 @@ static void srv_claim(ipc_call_t *icall)
 
 static void srv_get_dimensions(ipc_call_t *icall)
 {
-	sysarg_t cols = MAX_COLS;
-	sysarg_t rows = MAX_ROWS;
+	sysarg_t cols = 0;
+	sysarg_t rows = 0;
+	bool first;
 
+	first = true;
 	list_foreach(outdevs, link, outdev_t, dev) {
-		cols = min(cols, dev->cols);
-		rows = min(rows, dev->rows);
+		if (first) {
+			cols = dev->cols;
+			rows = dev->rows;
+			first = false;
+		} else {
+			cols = min(cols, dev->cols);
+			rows = min(rows, dev->rows);
+		}
 	}
 
 	async_answer_2(icall, EOK, cols, rows);
