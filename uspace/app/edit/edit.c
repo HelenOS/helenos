@@ -977,7 +977,7 @@ static errno_t file_insert(char *fname)
 			break;
 
 		bcnt -= off;
-		memcpy(buf, buf + off, bcnt);
+		memmove(buf, buf + off, bcnt);
 
 		insert_char(c);
 	}
