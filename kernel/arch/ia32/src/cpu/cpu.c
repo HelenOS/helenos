@@ -70,12 +70,12 @@ static const char *vendor_str[] = {
 
 void fpu_disable(void)
 {
-	write_cr0(read_cr0() & ~CR0_TS);
+	write_cr0(read_cr0() | CR0_TS);
 }
 
 void fpu_enable(void)
 {
-	write_cr0(read_cr0() | CR0_TS);
+	write_cr0(read_cr0() & ~CR0_TS);
 }
 
 void cpu_arch_init(void)
