@@ -35,8 +35,7 @@ endif
 
 
 arch_uspace_c_args = [
-	# FIXME: enabling -march for uspace makes malloc tests crash. Investigate.
-	# _march,
+	_march,
 	'-D__LE__',
 	'-mno-tls-direct-seg-refs',
 	'-fno-omit-frame-pointer',
