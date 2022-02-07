@@ -171,10 +171,15 @@ static void tinput_position_caret(tinput_t *ti)
 	tinput_console_set_lpos(ti, ti->text_coord + ti->pos);
 }
 
-/** Update text_coord, prompt_coord in case the screen could have scrolled. */
-static void tinput_update_origin(tinput_t *ti)
+/** Update text_coord, prompt_coord in case the screen would scroll
+ * due to @a end_coord being beyond the end of the screen
+ *
+ * @param ti Text input
+ * @param end_coord Linear screen coordinate to which the cursor would
+ *                  be moved if the screen would not have scrolled
+ */
+static void tinput_update_origin_coord(tinput_t *ti, unsigned end_coord)
 {
-	unsigned end_coord = ti->text_coord + ti->nc;
 	unsigned end_row = LIN_TO_ROW(ti, end_coord);
 
 	unsigned scroll_rows;
@@ -185,6 +190,13 @@ static void tinput_update_origin(tinput_t *ti)
 		ti->text_coord -= ti->con_cols * scroll_rows;
 		ti->prompt_coord -= ti->con_cols * scroll_rows;
 	}
+}
+
+/** Update text_coord, prompt_coord in case the screen could have scrolled. */
+static void tinput_update_origin(tinput_t *ti)
+{
+	/* Account for scrolling until the end of the input text */
+	tinput_update_origin_coord(ti, ti->text_coord + ti->nc);
 }
 
 static void tinput_jump_after(tinput_t *ti)
@@ -202,10 +214,18 @@ static errno_t tinput_display(tinput_t *ti)
 		return EIO;
 
 	ti->prompt_coord = row0 * ti->con_cols + col0;
-	ti->text_coord = ti->prompt_coord + str_length(ti->prompt);
-
+	ti->text_coord = ti->prompt_coord;
 	tinput_display_prompt(ti);
+
+	/* The screen might have scrolled after priting the prompt */
+	tinput_update_origin_coord(ti, ti->prompt_coord + str_width(ti->prompt));
+
+	ti->text_coord = ti->prompt_coord + str_length(ti->prompt);
 	tinput_display_tail(ti, 0, 0);
+
+	/* The screen might have scrolled after priting the text */
+	tinput_update_origin(ti);
+
 	tinput_position_caret(ti);
 
 	return EOK;
