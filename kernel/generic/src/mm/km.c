@@ -170,7 +170,7 @@ static void km_unmap_aligned(uintptr_t vaddr, size_t size)
 	for (offs = 0; offs < size; offs += PAGE_SIZE)
 		page_mapping_remove(AS_KERNEL, vaddr + offs);
 
-	tlb_invalidate_asid(ASID_KERNEL);
+	tlb_invalidate_pages(ASID_KERNEL, vaddr, size >> PAGE_WIDTH);
 
 	as_invalidate_translation_cache(AS_KERNEL, 0, -1);
 	tlb_shootdown_finalize(ipl);
@@ -202,7 +202,7 @@ uintptr_t km_map(uintptr_t paddr, size_t size, size_t align, unsigned int flags)
 /** Unmap a piece of virtual address space.
  *
  * @param vaddr		Virtual address to be unmapped. May be unaligned, but
- *			it must a value previously returned by km_map().
+ *			it must be a value previously returned by km_map().
  * @param size		Size of area starting at vaddr to be unmapped.
  */
 void km_unmap(uintptr_t vaddr, size_t size)
