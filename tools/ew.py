@@ -172,7 +172,10 @@ def platform_to_qemu_options(platform, machine, processor):
 		if machine != 'generic':
 			raise Exception
 		if processor == 'us':
-			return 'system-sparc64', '-M sun4u'
+			cmdline = '-M sun4u'
+			if is_override('nographic'):
+			    cmdline += ' --prom-env boot-args="console=devices/\\hw\\pci0\\01:01.0\\com1\\a"'
+			return 'system-sparc64', cmdline
 
 		# processor = 'sun4v'
 		opensparc_bins = find_firmware(
@@ -409,6 +412,7 @@ emulators = {
 				'run' : qemu_run,
 				'image' : 'image.iso',
 				'audio' : False,
+				'console' : is_override('nographic'),
 				'net' : False,
 				'usb' : False,
 				'xhci' : False,
