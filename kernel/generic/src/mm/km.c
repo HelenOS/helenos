@@ -165,12 +165,13 @@ static void km_unmap_aligned(uintptr_t vaddr, size_t size)
 
 	page_table_lock(AS_KERNEL, true);
 
-	ipl = tlb_shootdown_start(TLB_INVL_ASID, ASID_KERNEL, 0, 0);
+	size_t pages = size >> PAGE_WIDTH;
+	ipl = tlb_shootdown_start(TLB_INVL_PAGES, ASID_KERNEL, vaddr, pages);
 
 	for (offs = 0; offs < size; offs += PAGE_SIZE)
 		page_mapping_remove(AS_KERNEL, vaddr + offs);
 
-	tlb_invalidate_pages(ASID_KERNEL, vaddr, size >> PAGE_WIDTH);
+	tlb_invalidate_pages(ASID_KERNEL, vaddr, pages);
 
 	as_invalidate_translation_cache(AS_KERNEL, 0, -1);
 	tlb_shootdown_finalize(ipl);
