@@ -287,6 +287,7 @@ def qemu_run(platform, machine, processor):
 
 	if (is_override('nographic')):
 		cmdline += ' -nographic'
+		console = True
 
 	if (not console and (not is_override('nographic')) and not is_override('noserial')):
 		cmdline += ' -serial stdio'
@@ -412,7 +413,7 @@ emulators = {
 				'run' : qemu_run,
 				'image' : 'image.iso',
 				'audio' : False,
-				'console' : is_override('nographic'),
+				'console' : False,
 				'net' : False,
 				'usb' : False,
 				'xhci' : False,
