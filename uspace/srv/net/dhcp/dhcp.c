@@ -184,7 +184,6 @@ static errno_t dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
 	hdr->hlen = 6;
 	hdr->xid = host2uint32_t_be(42);
 	hdr->flags = flag_broadcast;
-	hdr->ciaddr = host2uint32_t_be(offer->oaddr.addr);
 	eth_addr_encode(&dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
