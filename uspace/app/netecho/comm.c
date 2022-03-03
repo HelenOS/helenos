@@ -51,7 +51,6 @@
 
 static udp_t *udp;
 static udp_assoc_t *assoc;
-static inet_ep_t remote;
 
 #define RECV_BUF_SIZE 1024
 static uint8_t recv_buf[RECV_BUF_SIZE];
@@ -184,7 +183,7 @@ void comm_close(void)
 
 errno_t comm_send(void *data, size_t size)
 {
-	errno_t rc = udp_assoc_send_msg(assoc, &remote, data, size);
+	errno_t rc = udp_assoc_send_msg(assoc, NULL, data, size);
 	if (rc != EOK)
 		return EIO;
 

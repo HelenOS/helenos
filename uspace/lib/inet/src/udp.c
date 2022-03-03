@@ -255,9 +255,16 @@ errno_t udp_assoc_send_msg(udp_assoc_t *assoc, inet_ep_t *dest, void *data,
     size_t bytes)
 {
 	async_exch_t *exch;
+	inet_ep_t ddest;
 
 	exch = async_exchange_begin(assoc->udp->sess);
 	aid_t req = async_send_1(exch, UDP_ASSOC_SEND_MSG, assoc->id, NULL);
+
+	/* If dest is null, use default destination */
+	if (dest == NULL) {
+		inet_ep_init(&ddest);
+		dest = &ddest;
+	}
 
 	errno_t rc = async_data_write_start(exch, (void *)dest,
 	    sizeof(inet_ep_t));

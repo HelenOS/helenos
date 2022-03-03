@@ -249,13 +249,14 @@ PCUT_TEST(send_explicit_dest)
 	udp_assoc_delete(assoc);
 }
 
-/** Sending message with destination set in association and NULL destination
- * argument
+/** Sending message with destination set in association and inet_addr_any /
+ * inet_port_any destination argument
  */
-PCUT_TEST(send_assoc_null_dest)
+PCUT_TEST(send_assoc_any_dest)
 {
 	udp_assoc_t *assoc;
 	inet_ep2_t epp;
+	inet_ep_t ep;
 	errno_t rc;
 	udp_msg_t *msg;
 	const char *msgstr = "Hello";
@@ -271,6 +272,8 @@ PCUT_TEST(send_assoc_null_dest)
 	inet_addr(&epp.local.addr, 127, 0, 0, 1);
 	epp.local.port = 1;
 
+	inet_ep_init(&ep);
+
 	assoc = udp_assoc_new(&epp, &test_assoc_cb, NULL);
 	PCUT_ASSERT_NOT_NULL(assoc);
 
@@ -280,7 +283,7 @@ PCUT_TEST(send_assoc_null_dest)
 	sent_epp = NULL;
 	sent_msg = NULL;
 
-	rc = udp_assoc_send(assoc, NULL, msg);
+	rc = udp_assoc_send(assoc, &ep, msg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(msg, sent_msg);
 	PCUT_ASSERT_TRUE(inet_addr_compare(&epp.remote.addr, &sent_epp->remote.addr));
@@ -310,8 +313,6 @@ PCUT_TEST(send_assoc_unset_dest)
 	msg->data = str_dup(msgstr);
 
 	inet_ep2_init(&epp);
-	inet_addr(&epp.remote.addr, 127, 0, 0, 1);
-	epp.remote.port = 42;
 	inet_addr(&epp.local.addr, 127, 0, 0, 1);
 	epp.local.port = 1;
 	inet_ep_init(&dest);

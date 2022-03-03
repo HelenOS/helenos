@@ -242,7 +242,8 @@ void udp_assoc_set_iplink(udp_assoc_t *assoc, service_id_t iplink)
 /** Send message to association.
  *
  * @param assoc		Association
- * @param remote	Remote endpoint or NULL not to override @a assoc
+ * @param remote	Remote endpoint or inet_addr_any/inet_port_any
+ *			not to override association's remote endpoint
  * @param msg		Message
  *
  * @return		EOK on success
@@ -260,7 +261,8 @@ errno_t udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 
 	/* @a remote can be used to override the remote endpoint */
 	epp = assoc->ident;
-	if (remote != NULL)
+	if (!inet_addr_is_any(&remote->addr) &&
+	    remote->port != inet_port_any)
 		epp.remote = *remote;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send - check addr any");
