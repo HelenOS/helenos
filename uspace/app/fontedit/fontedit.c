@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -166,6 +166,40 @@ static void font_edit_adjust_leading(font_edit_t *fedit, gfx_coord_t change)
 	font_edit_paint(fedit);
 }
 
+/** Adjust font underline Y0.
+ *
+ * @param fedit Font editor
+ */
+static void font_edit_adjust_underline_y0(font_edit_t *fedit,
+    gfx_coord_t change)
+{
+	gfx_font_metrics_t fmetrics;
+
+	gfx_font_get_metrics(fedit->font, &fmetrics);
+	fmetrics.underline_y0 += change;
+	(void) gfx_font_set_metrics(fedit->font, &fmetrics);
+
+	printf("New underline Y0: %d\n", fmetrics.underline_y0);
+	font_edit_paint(fedit);
+}
+
+/** Adjust font underline Y1.
+ *
+ * @param fedit Font editor
+ */
+static void font_edit_adjust_underline_y1(font_edit_t *fedit,
+    gfx_coord_t change)
+{
+	gfx_font_metrics_t fmetrics;
+
+	gfx_font_get_metrics(fedit->font, &fmetrics);
+	fmetrics.underline_y1 += change;
+	(void) gfx_font_set_metrics(fedit->font, &fmetrics);
+
+	printf("New underline Y1: %d\n", fmetrics.underline_y1);
+	font_edit_paint(fedit);
+}
+
 /** Handle font editor close event.
  *
  * @param window Window
@@ -312,6 +346,18 @@ static void font_edit_ctrl_key(font_edit_t *fedit, kbd_event_t *event)
 		break;
 	case KC_0:
 		font_edit_adjust_leading(fedit, +1);
+		break;
+	case KC_U:
+		font_edit_adjust_underline_y0(fedit, -1);
+		break;
+	case KC_I:
+		font_edit_adjust_underline_y0(fedit, +1);
+		break;
+	case KC_O:
+		font_edit_adjust_underline_y1(fedit, -1);
+		break;
+	case KC_P:
+		font_edit_adjust_underline_y1(fedit, +1);
 		break;
 	case KC_X:
 		(void) gfx_glyph_bmp_clear(fedit->gbmp);
@@ -520,6 +566,7 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 {
 	gfx_color_t *color = NULL;
 	gfx_rect_t rect;
+	gfx_rect_t rect2;
 	gfx_rect_t grect;
 	gfx_font_metrics_t fmetrics;
 	gfx_glyph_metrics_t gmetrics;
@@ -563,6 +610,26 @@ static errno_t font_edit_paint_gbmp(font_edit_t *fedit)
 	font_edit_gpix_to_disp(fedit, 0, fmetrics.descent +
 	    fmetrics.leading, &rect);
 	rect.p1.x += 100;
+
+	rc = gfx_fill_rect(fedit->gc, &rect);
+	if (rc != EOK)
+		goto error;
+
+	gfx_color_delete(color);
+
+	/* Display underline */
+
+	rc = gfx_color_new_rgb_i16(0x4000, 0x4000, 0, &color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_set_color(fedit->gc, color);
+	if (rc != EOK)
+		goto error;
+
+	font_edit_gpix_to_disp(fedit, 0, fmetrics.underline_y0, &rect);
+	font_edit_gpix_to_disp(fedit, 10, fmetrics.underline_y1, &rect2);
+	rect.p1 = rect2.p0;
 
 	rc = gfx_fill_rect(fedit->gc, &rect);
 	if (rc != EOK)

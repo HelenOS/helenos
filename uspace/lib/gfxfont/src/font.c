@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -545,6 +545,8 @@ static errno_t gfx_font_metrics_load(riff_rchunk_t *parent,
 	metrics->ascent = uint16_t_le2host(tmetrics.ascent);
 	metrics->descent = uint16_t_le2host(tmetrics.descent);
 	metrics->leading = uint16_t_le2host(tmetrics.leading);
+	metrics->underline_y0 = uint16_t_le2host(tmetrics.underline_y0);
+	metrics->underline_y1 = uint16_t_le2host(tmetrics.underline_y1);
 	return EOK;
 }
 
@@ -564,6 +566,8 @@ static errno_t gfx_font_metrics_save(gfx_font_metrics_t *metrics,
 	tmetrics.ascent = host2uint16_t_le(metrics->ascent);
 	tmetrics.descent = host2uint16_t_le(metrics->descent);
 	tmetrics.leading = host2uint16_t_le(metrics->leading);
+	tmetrics.underline_y0 = host2uint16_t_le(metrics->underline_y0);
+	tmetrics.underline_y1 = host2uint16_t_le(metrics->underline_y1);
 
 	rc = riff_wchunk_start(riffw, CKID_fmtr, &mtrck);
 	if (rc != EOK)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -228,22 +228,26 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
     gfx_text_fmt_t *fmt, const char *str)
 {
 	gfx_glyph_metrics_t gmetrics;
+	gfx_font_metrics_t fmetrics;
 	size_t stradv;
 	const char *cp;
 	gfx_glyph_t *glyph;
 	gfx_coord2_t cpos;
+	gfx_coord2_t spos;
+	gfx_rect_t rect;
 	errno_t rc;
 
-	gfx_text_start_pos(font, pos, fmt, str, &cpos);
+	gfx_text_start_pos(font, pos, fmt, str, &spos);
 
 	/* Text mode */
 	if ((font->finfo->props.flags & gff_text_mode) != 0)
-		return gfx_puttext_textmode(font, &cpos, fmt->color, str);
+		return gfx_puttext_textmode(font, &spos, fmt->color, str);
 
 	rc = gfx_set_color(font->typeface->gc, fmt->color);
 	if (rc != EOK)
 		return rc;
 
+	cpos = spos;
 	cp = str;
 	while (*cp != '\0') {
 		rc = gfx_font_search_glyph(font, cp, &glyph, &stradv);
@@ -260,6 +264,20 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 
 		cp += stradv;
 		cpos.x += gmetrics.advance;
+	}
+
+	/* Text underlining */
+	if (fmt->underline) {
+		gfx_font_get_metrics(font, &fmetrics);
+
+		rect.p0.x = spos.x;
+		rect.p0.y = spos.y + fmetrics.underline_y0;
+		rect.p1.x = cpos.x;
+		rect.p1.y = spos.y + fmetrics.underline_y1;
+
+		rc = gfx_fill_rect(font->typeface->gc, &rect);
+		if (rc != EOK)
+			return rc;
 	}
 
 	return EOK;

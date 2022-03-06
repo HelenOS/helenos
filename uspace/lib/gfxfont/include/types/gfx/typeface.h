@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,10 @@ typedef struct {
 	gfx_coord_t descent;
 	/** Leading */
 	gfx_coord_t leading;
+	/** Underline start Y coordinate (inclusive) */
+	gfx_coord_t underline_y0;
+	/** Underline end Y coordinate (exclusive) */
+	gfx_coord_t underline_y1;
 } gfx_font_metrics_t;
 
 /** Text metrics */

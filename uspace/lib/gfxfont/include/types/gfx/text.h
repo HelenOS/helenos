@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #ifndef _TYPES_GFX_TEXT_H
 #define _TYPES_GFX_TEXT_H
 
+#include <stdbool.h>
 #include <types/gfx/coord.h>
 #include <types/gfx/color.h>
 
@@ -73,6 +74,8 @@ typedef struct {
 	gfx_coord_t justify_width;
 	/** Vertical alignment */
 	gfx_valign_t valign;
+	/** Underline */
+	bool underline;
 } gfx_text_fmt_t;
 
 #endif

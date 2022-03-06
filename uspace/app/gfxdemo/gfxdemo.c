@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -775,6 +775,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		}
 
 		fmt.color = color;
+		fmt.underline = !fmt.underline;
 
 		pos.x = w / 20;
 		pos.y = (6 + i) * h / 15;

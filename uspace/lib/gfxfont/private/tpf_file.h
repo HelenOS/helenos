@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,6 +75,8 @@ typedef struct {
 	uint16_t ascent;
 	uint16_t descent;
 	uint16_t leading;
+	int16_t underline_y0;
+	int16_t underline_y1;
 } tpf_font_metrics_t;
 
 /** TPF glyph metrics */
