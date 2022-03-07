@@ -191,11 +191,12 @@ errno_t ui_checkbox_paint_gfx(ui_checkbox_t *checkbox)
 		box_center.y = (box_inside.p0.y + box_inside.p1.y) / 2;
 
 		gfx_text_fmt_init(&fmt);
+		fmt.font = checkbox->res->font;
 		fmt.color = checkbox->res->entry_fg_color;
 		fmt.halign = gfx_halign_center;
 		fmt.valign = gfx_valign_center;
 
-		rc = gfx_puttext(checkbox->res->font, &box_center, &fmt, "X");
+		rc = gfx_puttext(&box_center, &fmt, "X");
 		if (rc != EOK)
 			goto error;
 	}
@@ -206,11 +207,12 @@ errno_t ui_checkbox_paint_gfx(ui_checkbox_t *checkbox)
 	pos.y = (box_rect.p0.y + box_rect.p1.y) / 2;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = checkbox->res->font;
 	fmt.color = checkbox->res->wnd_text_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_center;
 
-	rc = gfx_puttext(checkbox->res->font, &pos, &fmt, checkbox->caption);
+	rc = gfx_puttext(&pos, &fmt, checkbox->caption);
 	if (rc != EOK)
 		goto error;
 
@@ -243,13 +245,13 @@ errno_t ui_checkbox_paint_text(ui_checkbox_t *checkbox)
 	pos.y = checkbox->rect.p0.y;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = checkbox->res->font;
 	fmt.color = depressed ? checkbox->res->entry_act_bg_color :
 	    checkbox->res->wnd_text_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
-	rc = gfx_puttext(checkbox->res->font, &pos, &fmt,
-	    checkbox->checked ? "[X]" : "[ ]");
+	rc = gfx_puttext(&pos, &fmt, checkbox->checked ? "[X]" : "[ ]");
 	if (rc != EOK)
 		goto error;
 
@@ -258,7 +260,7 @@ errno_t ui_checkbox_paint_text(ui_checkbox_t *checkbox)
 	pos.x += 4;
 	fmt.color = checkbox->res->wnd_text_color;
 
-	rc = gfx_puttext(checkbox->res->font, &pos, &fmt, checkbox->caption);
+	rc = gfx_puttext(&pos, &fmt, checkbox->caption);
 	if (rc != EOK)
 		goto error;
 

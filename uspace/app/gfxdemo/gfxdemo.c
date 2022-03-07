@@ -237,13 +237,14 @@ static errno_t demo_begin(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h,
 		}
 
 		gfx_text_fmt_init(&fmt);
+		fmt.font = font;
 		fmt.color = color;
 		fmt.halign = gfx_halign_center;
 		fmt.valign = gfx_valign_bottom;
 
 		pos.x = w / 2;
 		pos.y = h - 1;
-		rc = gfx_puttext(font, &pos, &fmt, text);
+		rc = gfx_puttext(&pos, &fmt, text);
 		if (rc != EOK) {
 			printf("Error rendering text.\n");
 			gfx_color_delete(color);
@@ -688,11 +689,12 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	}
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 	fmt.color = color;
 
 	pos.x = rect.p0.x;
 	pos.y = rect.p0.y;
-	rc = gfx_puttext(font, &pos, &fmt, "Top left");
+	rc = gfx_puttext(&pos, &fmt, "Top left");
 	if (rc != EOK) {
 		printf("Error rendering text.\n");
 		goto error;
@@ -701,14 +703,14 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
 	pos.y = rect.p0.y;
 	fmt.halign = gfx_halign_center;
-	rc = gfx_puttext(font, &pos, &fmt, "Top center");
+	rc = gfx_puttext(&pos, &fmt, "Top center");
 	if (rc != EOK)
 		goto error;
 
 	pos.x = rect.p1.x;
 	pos.y = rect.p0.y;
 	fmt.halign = gfx_halign_right;
-	rc = gfx_puttext(font, &pos, &fmt, "Top right");
+	rc = gfx_puttext(&pos, &fmt, "Top right");
 	if (rc != EOK)
 		goto error;
 
@@ -717,21 +719,21 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	pos.x = rect.p0.x;
 	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
 	fmt.halign = gfx_halign_left;
-	rc = gfx_puttext(font, &pos, &fmt, "Center left");
+	rc = gfx_puttext(&pos, &fmt, "Center left");
 	if (rc != EOK)
 		goto error;
 
 	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
 	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
 	fmt.halign = gfx_halign_center;
-	rc = gfx_puttext(font, &pos, &fmt, "Center");
+	rc = gfx_puttext(&pos, &fmt, "Center");
 	if (rc != EOK)
 		goto error;
 
 	pos.x = rect.p1.x;
 	pos.y = (rect.p0.y + rect.p1.y - 1) / 2;
 	fmt.halign = gfx_halign_right;
-	rc = gfx_puttext(font, &pos, &fmt, "Center right");
+	rc = gfx_puttext(&pos, &fmt, "Center right");
 	if (rc != EOK)
 		goto error;
 
@@ -740,27 +742,28 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	pos.x = rect.p0.x;
 	pos.y = rect.p1.y - 1;
 	fmt.halign = gfx_halign_left;
-	rc = gfx_puttext(font, &pos, &fmt, "Bottom left");
+	rc = gfx_puttext(&pos, &fmt, "Bottom left");
 	if (rc != EOK)
 		goto error;
 
 	pos.x = (rect.p0.x + rect.p1.x - 1) / 2;
 	pos.y = rect.p1.y;
 	fmt.halign = gfx_halign_center;
-	rc = gfx_puttext(font, &pos, &fmt, "Bottom center");
+	rc = gfx_puttext(&pos, &fmt, "Bottom center");
 	if (rc != EOK)
 		goto error;
 
 	pos.x = rect.p1.x;
 	pos.y = rect.p1.y;
 	fmt.halign = gfx_halign_right;
-	rc = gfx_puttext(font, &pos, &fmt, "Bottom right");
+	rc = gfx_puttext(&pos, &fmt, "Bottom right");
 	if (rc != EOK)
 		goto error;
 
 	gfx_color_delete(color);
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 
 	for (i = 0; i < 8; i++) {
 		if (demo_is_text(w, h)) {
@@ -779,7 +782,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 		pos.x = w / 20;
 		pos.y = (6 + i) * h / 15;
-		rc = gfx_puttext(font, &pos, &fmt, "The quick brown fox jumps over the lazy dog.");
+		rc = gfx_puttext(&pos, &fmt, "The quick brown fox jumps over the lazy dog.");
 		if (rc != EOK)
 			goto error;
 

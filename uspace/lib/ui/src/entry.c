@@ -313,6 +313,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	pos = geom.text_pos;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = res->font;
 	fmt.color = res->entry_fg_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
@@ -328,13 +329,13 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	c = entry->text[off1];
 	entry->text[off1] = '\0';
 
-	rc = gfx_puttext(res->font, &pos, &fmt, entry->text);
+	rc = gfx_puttext(&pos, &fmt, entry->text);
 	if (rc != EOK) {
 		(void) gfx_set_clip_rect(res->gc, NULL);
 		goto error;
 	}
 
-	gfx_text_cont(res->font, &pos, &fmt, entry->text, &cpos, &cfmt);
+	gfx_text_cont(&pos, &fmt, entry->text, &cpos, &cfmt);
 	entry->text[off1] = c;
 
 	/* Render selected text */
@@ -344,7 +345,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 		entry->text[off2] = '\0';
 		cfmt.color = res->entry_sel_text_fg_color;
 
-		gfx_text_rect(res->font, &cpos, &cfmt, entry->text + off1, &sel);
+		gfx_text_rect(&cpos, &cfmt, entry->text + off1, &sel);
 		sel.p0.x -= ui_entry_sel_hpad;
 		sel.p0.y -= ui_entry_sel_vpad;
 		sel.p1.x += ui_entry_sel_hpad;
@@ -358,14 +359,13 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 		if (rc != EOK)
 			goto error;
 
-		rc = gfx_puttext(res->font, &cpos, &cfmt, entry->text + off1);
+		rc = gfx_puttext(&cpos, &cfmt, entry->text + off1);
 		if (rc != EOK) {
 			(void) gfx_set_clip_rect(res->gc, NULL);
 			goto error;
 		}
 
-		gfx_text_cont(res->font, &cpos, &cfmt, entry->text + off1,
-		    &cpos, &cfmt);
+		gfx_text_cont(&cpos, &cfmt, entry->text + off1, &cpos, &cfmt);
 
 		entry->text[off2] = c;
 	}
@@ -373,7 +373,7 @@ errno_t ui_entry_paint(ui_entry_t *entry)
 	/* Render trailing, non-selected text */
 	cfmt.color = res->entry_fg_color;
 
-	rc = gfx_puttext(res->font, &cpos, &cfmt, entry->text + off2);
+	rc = gfx_puttext(&cpos, &cfmt, entry->text + off2);
 	if (rc != EOK) {
 		(void) gfx_set_clip_rect(res->gc, NULL);
 		goto error;
@@ -420,11 +420,11 @@ size_t ui_entry_find_pos(ui_entry_t *entry, gfx_coord2_t *fpos)
 	ui_entry_get_geom(entry, &geom);
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = res->font;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
-	return gfx_text_find_pos(res->font, &geom.text_pos, &fmt,
-	    entry->text, fpos);
+	return gfx_text_find_pos(&geom.text_pos, &fmt, entry->text, fpos);
 }
 
 /** Destroy text entry control.
@@ -1110,9 +1110,9 @@ void ui_entry_scroll_update(ui_entry_t *entry, bool realign)
 		anchor.x = geom.anchor_x;
 		anchor.y = 0;
 		gfx_text_fmt_init(&fmt);
+		fmt.font = res->font;
 		fmt.halign = entry->halign;
-		gfx_text_start_pos(res->font, &anchor, &fmt, entry->text,
-		    &tpos);
+		gfx_text_start_pos(&anchor, &fmt, entry->text, &tpos);
 		entry->scroll_pos = tpos.x - geom.text_rect.p0.x;
 	} else if (geom.text_pos.x + width < geom.text_rect.p1.x &&
 	    entry->halign != gfx_halign_left) {

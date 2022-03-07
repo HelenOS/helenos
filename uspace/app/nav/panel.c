@@ -174,6 +174,7 @@ errno_t panel_entry_paint(panel_entry_t *entry, size_t entry_idx)
 	errno_t rc;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 	rows = panel_page_size(panel);
 
 	/* Do not display entry outside of current page */
@@ -218,7 +219,7 @@ errno_t panel_entry_paint(panel_entry_t *entry, size_t entry_idx)
 	if (rc != EOK)
 		return rc;
 
-	rc = gfx_puttext(font, &pos, &fmt, entry->name);
+	rc = gfx_puttext(&pos, &fmt, entry->name);
 	if (rc != EOK) {
 		(void) gfx_set_clip_rect(gc, NULL);
 		return rc;
@@ -235,14 +236,11 @@ errno_t panel_paint(panel_t *panel)
 {
 	gfx_context_t *gc = ui_window_get_gc(panel->window);
 	ui_resource_t *res = ui_window_get_res(panel->window);
-	gfx_text_fmt_t fmt;
 	panel_entry_t *entry;
 	ui_box_style_t bstyle;
 	gfx_color_t *bcolor;
 	int i, lines;
 	errno_t rc;
-
-	gfx_text_fmt_init(&fmt);
 
 	rc = gfx_set_color(gc, panel->color);
 	if (rc != EOK)

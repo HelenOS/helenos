@@ -66,6 +66,8 @@ typedef enum {
 
 /** Text formatting */
 typedef struct {
+	/** Text font */
+	struct gfx_font *font;
 	/** Text color */
 	gfx_color_t *color;
 	/** Horizontal alignment */

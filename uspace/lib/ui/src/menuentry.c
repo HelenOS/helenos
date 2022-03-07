@@ -350,6 +350,7 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	ui_menu_entry_get_geom(mentry, pos, &geom);
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = res->font;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
@@ -370,13 +371,13 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_puttext(res->font, &geom.caption_pos, &fmt, mentry->caption);
+	rc = gfx_puttext(&geom.caption_pos, &fmt, mentry->caption);
 	if (rc != EOK)
 		goto error;
 
 	fmt.halign = gfx_halign_right;
 
-	rc = gfx_puttext(res->font, &geom.shortcut_pos, &fmt, mentry->shortcut);
+	rc = gfx_puttext(&geom.shortcut_pos, &fmt, mentry->shortcut);
 	if (rc != EOK)
 		goto error;
 

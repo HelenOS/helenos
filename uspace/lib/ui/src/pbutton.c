@@ -306,11 +306,12 @@ static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 	}
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = pbutton->res->font;
 	fmt.color = pbutton->res->btn_text_color;
 	fmt.halign = gfx_halign_center;
 	fmt.valign = gfx_valign_center;
 
-	rc = gfx_puttext(pbutton->res->font, &pos, &fmt, pbutton->caption);
+	rc = gfx_puttext(&pos, &fmt, pbutton->caption);
 	if (rc != EOK)
 		goto error;
 
@@ -378,11 +379,12 @@ static errno_t ui_pbutton_paint_text(ui_pbutton_t *pbutton)
 	pos.y = (rect.p0.y + rect.p1.y) / 2;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = pbutton->res->font;
 	fmt.color = pbutton->res->btn_text_color;
 	fmt.halign = gfx_halign_center;
 	fmt.valign = gfx_valign_center;
 
-	rc = gfx_puttext(pbutton->res->font, &pos, &fmt, pbutton->caption);
+	rc = gfx_puttext(&pos, &fmt, pbutton->caption);
 	if (rc != EOK)
 		goto error;
 

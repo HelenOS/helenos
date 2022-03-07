@@ -214,11 +214,12 @@ errno_t ui_label_paint(ui_label_t *label)
 	}
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = label->res->font;
 	fmt.color = label->res->wnd_text_color;
 	fmt.halign = label->halign;
 	fmt.valign = label->valign;
 
-	rc = gfx_puttext(label->res->font, &pos, &fmt, label->text);
+	rc = gfx_puttext(&pos, &fmt, label->text);
 	if (rc != EOK)
 		goto error;
 

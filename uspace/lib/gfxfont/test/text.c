@@ -134,11 +134,12 @@ PCUT_TEST(dummy_puttext)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 	fmt.color = color;
 	pos.x = 0;
 	pos.y = 0;
 
-	rc = gfx_puttext(font, &pos, &fmt, "Hello world!");
+	rc = gfx_puttext(&pos, &fmt, "Hello world!");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_font_close(font);
@@ -180,11 +181,12 @@ PCUT_TEST(text_start_pos)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 	fmt.color = color;
 	pos.x = 0;
 	pos.y = 0;
 
-	rc = gfx_puttext(font, &pos, &fmt, "Hello world!");
+	rc = gfx_puttext(&pos, &fmt, "Hello world!");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_font_close(font);
@@ -244,42 +246,43 @@ PCUT_TEST(text_find_pos)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 	anchor.x = 10;
 	anchor.y = 0;
 
 	fpos.x = 9;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Aii", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Aii", &fpos);
 	PCUT_ASSERT_INT_EQUALS(0, off);
 
 	fpos.x = 10;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Aii", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Aii", &fpos);
 	PCUT_ASSERT_INT_EQUALS(0, off);
 
 	fpos.x = 11;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Aii", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Aii", &fpos);
 	PCUT_ASSERT_INT_EQUALS(0, off);
 
 	fpos.x = 19;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Aii", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Aii", &fpos);
 	PCUT_ASSERT_INT_EQUALS(1, off);
 
 	fpos.x = 20;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Aii", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Aii", &fpos);
 	PCUT_ASSERT_INT_EQUALS(2, off);
 
 	fpos.x = 21;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Aii", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Aii", &fpos);
 	PCUT_ASSERT_INT_EQUALS(3, off);
 
 	fpos.x = 22;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Aii", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Aii", &fpos);
 	PCUT_ASSERT_INT_EQUALS(3, off);
 
 	gfx_glyph_destroy(glyph1);
@@ -317,35 +320,36 @@ PCUT_TEST(text_find_pos_text)
 	anchor.x = 10;
 	anchor.y = 0;
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 
 	fpos.x = 9;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Abc", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Abc", &fpos);
 	PCUT_ASSERT_INT_EQUALS(0, off);
 
 	fpos.x = 10;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Abc", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Abc", &fpos);
 	PCUT_ASSERT_INT_EQUALS(0, off);
 
 	fpos.x = 11;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Abc", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Abc", &fpos);
 	PCUT_ASSERT_INT_EQUALS(1, off);
 
 	fpos.x = 12;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Abc", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Abc", &fpos);
 	PCUT_ASSERT_INT_EQUALS(2, off);
 
 	fpos.x = 13;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Abc", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Abc", &fpos);
 	PCUT_ASSERT_INT_EQUALS(3, off);
 
 	fpos.x = 14;
 	fpos.y = 0;
-	off = gfx_text_find_pos(font, &anchor, &fmt, "Abc", &fpos);
+	off = gfx_text_find_pos(&anchor, &fmt, "Abc", &fpos);
 	PCUT_ASSERT_INT_EQUALS(3, off);
 
 	gfx_font_close(font);
@@ -384,9 +388,10 @@ PCUT_TEST(text_cont)
 	anchor.x = 10;
 	anchor.y = 20;
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 	fmt.color = color;
 
-	gfx_text_cont(font, &anchor, &fmt, "Abc", &cpos, &cfmt);
+	gfx_text_cont(&anchor, &fmt, "Abc", &cpos, &cfmt);
 
 	PCUT_ASSERT_INT_EQUALS(13, cpos.x);
 	PCUT_ASSERT_INT_EQUALS(20, cpos.y);
@@ -430,9 +435,10 @@ PCUT_TEST(text_rect)
 	anchor.x = 10;
 	anchor.y = 20;
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 	fmt.color = color;
 
-	gfx_text_rect(font, &anchor, &fmt, "Abc", &rect);
+	gfx_text_rect(&anchor, &fmt, "Abc", &rect);
 
 	PCUT_ASSERT_INT_EQUALS(10, rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(20, rect.p0.y);

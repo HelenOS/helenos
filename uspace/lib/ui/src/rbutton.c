@@ -277,12 +277,12 @@ errno_t ui_rbutton_paint_gfx(ui_rbutton_t *rbutton)
 	pos.y = center.y;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = rbutton->group->res->font;
 	fmt.color = rbutton->group->res->wnd_text_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_center;
 
-	rc = gfx_puttext(rbutton->group->res->font, &pos, &fmt,
-	    rbutton->caption);
+	rc = gfx_puttext(&pos, &fmt, rbutton->caption);
 	if (rc != EOK)
 		goto error;
 
@@ -315,13 +315,14 @@ errno_t ui_rbutton_paint_text(ui_rbutton_t *rbutton)
 	pos.y = rbutton->rect.p0.y;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = rbutton->group->res->font;
 	fmt.color = depressed ? rbutton->group->res->entry_act_bg_color :
 	    rbutton->group->res->wnd_text_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
-	rc = gfx_puttext(rbutton->group->res->font, &pos, &fmt,
-	    rbutton->group->selected == rbutton ? "(\u2022)" : "( )");
+	rc = gfx_puttext(&pos, &fmt, rbutton->group->selected == rbutton ?
+	    "(\u2022)" : "( )");
 	if (rc != EOK)
 		goto error;
 
@@ -331,8 +332,7 @@ errno_t ui_rbutton_paint_text(ui_rbutton_t *rbutton)
 
 	fmt.color = rbutton->group->res->wnd_text_color;
 
-	rc = gfx_puttext(rbutton->group->res->font, &pos, &fmt,
-	    rbutton->caption);
+	rc = gfx_puttext(&pos, &fmt, rbutton->caption);
 	if (rc != EOK)
 		goto error;
 

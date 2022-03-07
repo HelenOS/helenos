@@ -340,6 +340,7 @@ errno_t ui_slider_paint_text(ui_slider_t *slider)
 	pos = slider->rect.p0;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = slider->res->font;
 	fmt.color = slider->res->wnd_text_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
@@ -356,7 +357,7 @@ errno_t ui_slider_paint_text(ui_slider_t *slider)
 		str_cpy(buf + i * gcharsz, (w - i) * gcharsz + 1, gchar);
 	buf[w * gcharsz] = '\0';
 
-	rc = gfx_puttext(slider->res->font, &pos, &fmt, buf);
+	rc = gfx_puttext(&pos, &fmt, buf);
 	free(buf);
 	if (rc != EOK)
 		goto error;
@@ -365,8 +366,7 @@ errno_t ui_slider_paint_text(ui_slider_t *slider)
 
 	pos.x += slider->pos;
 
-	rc = gfx_puttext(slider->res->font, &pos, &fmt,
-	    "[O]");
+	rc = gfx_puttext(&pos, &fmt, "[O]");
 	if (rc != EOK)
 		goto error;
 

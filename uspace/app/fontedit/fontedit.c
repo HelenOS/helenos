@@ -502,12 +502,13 @@ static errno_t font_edit_paint_preview_str(font_edit_t *fedit,
 	gfx_coord2_t pos;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = fedit->font;
 	fmt.color = color;
 
 	pos.x = x;
 	pos.y = y;
 
-	return gfx_puttext(fedit->font, &pos, &fmt, str);
+	return gfx_puttext(&pos, &fmt, str);
 }
 
 /** Paint font preview.

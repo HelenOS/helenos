@@ -401,6 +401,7 @@ errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
 		return EINVAL;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = resource->font;
 	fmt.color = color;
 
 	bufsz = str_size(boxc->c[0][0]) +
@@ -426,7 +427,7 @@ errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
 	str[off] = '\0';
 
 	pos = rect->p0;
-	rc = gfx_puttext(resource->font, &pos, &fmt, str);
+	rc = gfx_puttext(&pos, &fmt, str);
 	if (rc != EOK)
 		goto error;
 
@@ -435,14 +436,12 @@ errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
 		pos.y = y;
 
 		pos.x = rect->p0.x;
-		rc = gfx_puttext(resource->font, &pos, &fmt,
-		    boxc->c[1][0]);
+		rc = gfx_puttext(&pos, &fmt, boxc->c[1][0]);
 		if (rc != EOK)
 			goto error;
 
 		pos.x = rect->p1.x - 1;
-		rc = gfx_puttext(resource->font, &pos, &fmt,
-		    boxc->c[1][2]);
+		rc = gfx_puttext(&pos, &fmt, boxc->c[1][2]);
 		if (rc != EOK)
 			goto error;
 	}
@@ -463,7 +462,7 @@ errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
 
 	pos.x = rect->p0.x;
 	pos.y = rect->p1.y - 1;
-	rc = gfx_puttext(resource->font, &pos, &fmt, str);
+	rc = gfx_puttext(&pos, &fmt, str);
 	if (rc != EOK)
 		goto error;
 
@@ -518,6 +517,7 @@ errno_t ui_paint_text_hbrace(ui_resource_t *resource, gfx_rect_t *rect,
 		return EINVAL;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = resource->font;
 	fmt.color = color;
 
 	bufsz = str_size(hbc->start) +
@@ -541,7 +541,7 @@ errno_t ui_paint_text_hbrace(ui_resource_t *resource, gfx_rect_t *rect,
 	str[off] = '\0';
 
 	pos = rect->p0;
-	rc = gfx_puttext(resource->font, &pos, &fmt, str);
+	rc = gfx_puttext(&pos, &fmt, str);
 	if (rc != EOK)
 		goto error;
 

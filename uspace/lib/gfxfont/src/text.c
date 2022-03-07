@@ -167,14 +167,13 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 
 /** Get text starting position.
  *
- * @param font Font
  * @param pos Anchor position
  * @param fmt Text formatting
  * @param str String
  * @param spos Place to store starting position
  */
-void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
-    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *spos)
+void gfx_text_start_pos(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
+    const char *str, gfx_coord2_t *spos)
 {
 	gfx_font_metrics_t fmetrics;
 	gfx_coord_t width;
@@ -183,7 +182,7 @@ void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
 
 	/* Adjust position for horizontal alignment */
 	if (fmt->halign != gfx_halign_left) {
-		width = gfx_text_width(font, str);
+		width = gfx_text_width(fmt->font, str);
 		switch (fmt->halign) {
 		case gfx_halign_center:
 			spos->x -= width / 2;
@@ -197,7 +196,7 @@ void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
 	}
 
 	/* Adjust position for vertical alignment */
-	gfx_font_get_metrics(font, &fmetrics);
+	gfx_font_get_metrics(fmt->font, &fmetrics);
 
 	if (fmt->valign != gfx_valign_baseline) {
 		switch (fmt->valign) {
@@ -218,14 +217,12 @@ void gfx_text_start_pos(gfx_font_t *font, gfx_coord2_t *pos,
 
 /** Render text.
  *
- * @param font Font
  * @param pos Anchor position
  * @param fmt Text formatting
  * @param str String
  * @return EOK on success or an error code
  */
-errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
-    gfx_text_fmt_t *fmt, const char *str)
+errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 {
 	gfx_glyph_metrics_t gmetrics;
 	gfx_font_metrics_t fmetrics;
@@ -237,20 +234,20 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 	gfx_rect_t rect;
 	errno_t rc;
 
-	gfx_text_start_pos(font, pos, fmt, str, &spos);
+	gfx_text_start_pos(pos, fmt, str, &spos);
 
 	/* Text mode */
-	if ((font->finfo->props.flags & gff_text_mode) != 0)
-		return gfx_puttext_textmode(font, &spos, fmt->color, str);
+	if ((fmt->font->finfo->props.flags & gff_text_mode) != 0)
+		return gfx_puttext_textmode(fmt->font, &spos, fmt->color, str);
 
-	rc = gfx_set_color(font->typeface->gc, fmt->color);
+	rc = gfx_set_color(fmt->font->typeface->gc, fmt->color);
 	if (rc != EOK)
 		return rc;
 
 	cpos = spos;
 	cp = str;
 	while (*cp != '\0') {
-		rc = gfx_font_search_glyph(font, cp, &glyph, &stradv);
+		rc = gfx_font_search_glyph(fmt->font, cp, &glyph, &stradv);
 		if (rc != EOK) {
 			++cp;
 			continue;
@@ -268,14 +265,14 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 
 	/* Text underlining */
 	if (fmt->underline) {
-		gfx_font_get_metrics(font, &fmetrics);
+		gfx_font_get_metrics(fmt->font, &fmetrics);
 
 		rect.p0.x = spos.x;
 		rect.p0.y = spos.y + fmetrics.underline_y0;
 		rect.p1.x = cpos.x;
 		rect.p1.y = spos.y + fmetrics.underline_y1;
 
-		rc = gfx_fill_rect(font->typeface->gc, &rect);
+		rc = gfx_fill_rect(fmt->font->typeface->gc, &rect);
 		if (rc != EOK)
 			return rc;
 	}
@@ -285,7 +282,6 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
 
 /** Find character position in string by X coordinate.
  *
- * @param font Font
  * @param pos Anchor position
  * @param fmt Text formatting
  * @param str String
@@ -297,8 +293,8 @@ errno_t gfx_puttext(gfx_font_t *font, gfx_coord2_t *pos,
  *         offset of A, if it is after the center of A, it will return
  *         offset of the following character.
  */
-size_t gfx_text_find_pos(gfx_font_t *font, gfx_coord2_t *pos,
-    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *fpos)
+size_t gfx_text_find_pos(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
+    const char *str, gfx_coord2_t *fpos)
 {
 	gfx_glyph_metrics_t gmetrics;
 	size_t stradv;
@@ -309,10 +305,10 @@ size_t gfx_text_find_pos(gfx_font_t *font, gfx_coord2_t *pos,
 	size_t strsize;
 	errno_t rc;
 
-	gfx_text_start_pos(font, pos, fmt, str, &cpos);
+	gfx_text_start_pos(pos, fmt, str, &cpos);
 
 	/* Text mode */
-	if ((font->finfo->props.flags & gff_text_mode) != 0) {
+	if ((fmt->font->finfo->props.flags & gff_text_mode) != 0) {
 		off = 0;
 		strsize = str_size(str);
 		while (off < strsize) {
@@ -328,7 +324,7 @@ size_t gfx_text_find_pos(gfx_font_t *font, gfx_coord2_t *pos,
 	cp = str;
 	off = 0;
 	while (*cp != '\0') {
-		rc = gfx_font_search_glyph(font, cp, &glyph, &stradv);
+		rc = gfx_font_search_glyph(fmt->font, cp, &glyph, &stradv);
 		if (rc != EOK) {
 			++cp;
 			continue;
@@ -354,23 +350,21 @@ size_t gfx_text_find_pos(gfx_font_t *font, gfx_coord2_t *pos,
  * (@a pos, @a fmt) and destinations (@a cpos, @a cfmt) to point
  * to the same objects, respectively.
  *
- * @param font Font
  * @param pos Anchor position
  * @param fmt Text formatting
  * @param str String
  * @param cpos Place to store anchor position for continuation
  * @param cfmt Place to store format for continuation
  */
-void gfx_text_cont(gfx_font_t *font, gfx_coord2_t *pos,
-    gfx_text_fmt_t *fmt, const char *str, gfx_coord2_t *cpos,
-    gfx_text_fmt_t *cfmt)
+void gfx_text_cont(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str,
+    gfx_coord2_t *cpos, gfx_text_fmt_t *cfmt)
 {
 	gfx_coord2_t spos;
 	gfx_text_fmt_t tfmt;
 
 	/* Continuation should start where the current string ends */
-	gfx_text_start_pos(font, pos, fmt, str, &spos);
-	cpos->x = spos.x + gfx_text_width(font, str);
+	gfx_text_start_pos(pos, fmt, str, &spos);
+	cpos->x = spos.x + gfx_text_width(fmt->font, str);
 	cpos->y = spos.y;
 
 	/*
@@ -386,23 +380,22 @@ void gfx_text_cont(gfx_font_t *font, gfx_coord2_t *pos,
 
 /** Get text bounding rectangle.
  *
- * @param font Font
  * @param pos Anchor position
  * @param fmt Text formatting
  * @param str String
  * @param rect Place to store bounding rectangle
  */
-void gfx_text_rect(gfx_font_t *font, gfx_coord2_t *pos,
-    gfx_text_fmt_t *fmt, const char *str, gfx_rect_t *rect)
+void gfx_text_rect(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str,
+    gfx_rect_t *rect)
 {
 	gfx_coord2_t spos;
 
-	gfx_text_start_pos(font, pos, fmt, str, &spos);
+	gfx_text_start_pos(pos, fmt, str, &spos);
 
 	rect->p0.x = spos.x;
-	rect->p0.y = spos.y - font->metrics.ascent;
-	rect->p1.x = spos.x + gfx_text_width(font, str);
-	rect->p1.y = spos.y + font->metrics.descent + 1;
+	rect->p0.y = spos.y - fmt->font->metrics.ascent;
+	rect->p1.x = spos.x + gfx_text_width(fmt->font, str);
+	rect->p1.y = spos.y +  fmt->font->metrics.descent + 1;
 }
 
 /** @}

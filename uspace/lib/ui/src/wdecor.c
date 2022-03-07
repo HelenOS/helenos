@@ -241,6 +241,7 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		}
 
 		gfx_text_fmt_init(&fmt);
+		fmt.font = wdecor->res->font;
 		fmt.color = wdecor->active ?
 		    wdecor->res->tbar_act_text_color :
 		    wdecor->res->tbar_inact_text_color;
@@ -252,8 +253,7 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 
 		if (wdecor->res->textmode) {
 			/* Make space around caption text */
-			gfx_text_rect(wdecor->res->font, &pos, &fmt,
-			    wdecor->caption, &text_rect);
+			gfx_text_rect(&pos, &fmt, wdecor->caption, &text_rect);
 
 			/* Only make space if caption is non-empty */
 			if (text_rect.p0.x < text_rect.p1.x) {
@@ -272,7 +272,7 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 				return rc;
 		}
 
-		rc = gfx_puttext(wdecor->res->font, &pos, &fmt, wdecor->caption);
+		rc = gfx_puttext(&pos, &fmt, wdecor->caption);
 		if (rc != EOK)
 			return rc;
 

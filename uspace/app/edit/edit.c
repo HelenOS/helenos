@@ -1258,6 +1258,7 @@ static errno_t pane_row_range_display(pane_t *pane, int r0, int r1)
 	gc = ui_window_get_gc(edit.window);
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = font;
 	fmt.color = pane->color;
 
 	/* Determine selection start and end. */
@@ -1317,7 +1318,7 @@ static errno_t pane_row_range_display(pane_t *pane, int r0, int r1)
 				if (rc != EOK)
 					return rc;
 
-				rc = gfx_puttext(font, &tpos, &fmt, cbuf);
+				rc = gfx_puttext(&tpos, &fmt, cbuf);
 				if (rc != EOK)
 					return rc;
 

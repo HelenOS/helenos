@@ -184,6 +184,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 	pos = mbar->rect.p0;
 
 	gfx_text_fmt_init(&fmt);
+	fmt.font = res->font;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
@@ -214,7 +215,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 		if (rc != EOK)
 			goto error;
 
-		rc = gfx_puttext(res->font, &tpos, &fmt, caption);
+		rc = gfx_puttext(&tpos, &fmt, caption);
 		if (rc != EOK)
 			goto error;
 
