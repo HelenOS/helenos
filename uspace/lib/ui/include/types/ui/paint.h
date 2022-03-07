@@ -36,6 +36,9 @@
 #ifndef _UI_TYPES_PAINT_H
 #define _UI_TYPES_PAINT_H
 
+#include <gfx/color.h>
+#include <gfx/font.h>
+
 /** Filled circle parts */
 typedef enum {
 	/** Upper-left half */
@@ -79,6 +82,22 @@ typedef enum {
 	/** Double box */
 	ui_box_double
 } ui_box_style_t;
+
+/** UI text formatting */
+typedef struct {
+	/** Text font */
+	gfx_font_t *font;
+	/** Standard color */
+	gfx_color_t *color;
+	/** Highlight color */
+	gfx_color_t *hgl_color;
+	/** Horizontal alignment */
+	gfx_halign_t halign;
+	/** Justification width (for gfx_halign_justify) */
+	gfx_coord_t justify_width;
+	/** Vertical alignment */
+	gfx_valign_t valign;
+} ui_text_fmt_t;
 
 #endif
 

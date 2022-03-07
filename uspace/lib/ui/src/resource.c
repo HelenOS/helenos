@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,9 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 	gfx_color_t *btn_shadow_color = NULL;
 	gfx_color_t *wnd_face_color = NULL;
 	gfx_color_t *wnd_text_color = NULL;
+	gfx_color_t *wnd_text_hgl_color = NULL;
 	gfx_color_t *wnd_sel_text_color = NULL;
+	gfx_color_t *wnd_sel_text_hgl_color = NULL;
 	gfx_color_t *wnd_sel_text_bg_color = NULL;
 	gfx_color_t *wnd_frame_hi_color = NULL;
 	gfx_color_t *wnd_frame_sh_color = NULL;
@@ -130,7 +132,16 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_rgb_i16(0, 0, 0, &wnd_text_hgl_color);
+	if (rc != EOK)
+		goto error;
+
 	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff, &wnd_sel_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+	    &wnd_sel_text_hgl_color);
 	if (rc != EOK)
 		goto error;
 
@@ -209,7 +220,9 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 
 	resource->wnd_face_color = wnd_face_color;
 	resource->wnd_text_color = wnd_text_color;
+	resource->wnd_text_hgl_color = wnd_text_hgl_color;
 	resource->wnd_sel_text_color = wnd_sel_text_color;
+	resource->wnd_sel_text_hgl_color = wnd_sel_text_hgl_color;
 	resource->wnd_sel_text_bg_color = wnd_sel_text_bg_color;
 	resource->wnd_frame_hi_color = wnd_frame_hi_color;
 	resource->wnd_frame_sh_color = wnd_frame_sh_color;
@@ -245,8 +258,12 @@ error:
 		gfx_color_delete(wnd_face_color);
 	if (wnd_text_color != NULL)
 		gfx_color_delete(wnd_text_color);
+	if (wnd_text_hgl_color != NULL)
+		gfx_color_delete(wnd_text_hgl_color);
 	if (wnd_sel_text_color != NULL)
 		gfx_color_delete(wnd_sel_text_color);
+	if (wnd_sel_text_hgl_color != NULL)
+		gfx_color_delete(wnd_sel_text_hgl_color);
 	if (wnd_sel_text_bg_color != NULL)
 		gfx_color_delete(wnd_sel_text_bg_color);
 	if (wnd_frame_hi_color != NULL)
@@ -303,7 +320,9 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	gfx_color_t *btn_shadow_color = NULL;
 	gfx_color_t *wnd_face_color = NULL;
 	gfx_color_t *wnd_text_color = NULL;
+	gfx_color_t *wnd_text_hgl_color = NULL;
 	gfx_color_t *wnd_sel_text_color = NULL;
+	gfx_color_t *wnd_sel_text_hgl_color = NULL;
 	gfx_color_t *wnd_sel_text_bg_color = NULL;
 	gfx_color_t *wnd_frame_hi_color = NULL;
 	gfx_color_t *wnd_frame_sh_color = NULL;
@@ -361,7 +380,15 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_ega(0x74, &wnd_text_hgl_color);
+	if (rc != EOK)
+		goto error;
+
 	rc = gfx_color_new_ega(0x07, &wnd_sel_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x04, &wnd_sel_text_hgl_color);
 	if (rc != EOK)
 		goto error;
 
@@ -434,7 +461,9 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 
 	resource->wnd_face_color = wnd_face_color;
 	resource->wnd_text_color = wnd_text_color;
+	resource->wnd_text_hgl_color = wnd_text_hgl_color;
 	resource->wnd_sel_text_color = wnd_sel_text_color;
+	resource->wnd_sel_text_hgl_color = wnd_sel_text_hgl_color;
 	resource->wnd_sel_text_bg_color = wnd_sel_text_bg_color;
 	resource->wnd_frame_hi_color = wnd_frame_hi_color;
 	resource->wnd_frame_sh_color = wnd_frame_sh_color;
@@ -470,8 +499,12 @@ error:
 		gfx_color_delete(wnd_face_color);
 	if (wnd_text_color != NULL)
 		gfx_color_delete(wnd_text_color);
+	if (wnd_text_hgl_color != NULL)
+		gfx_color_delete(wnd_text_hgl_color);
 	if (wnd_sel_text_color != NULL)
 		gfx_color_delete(wnd_sel_text_color);
+	if (wnd_sel_text_hgl_color != NULL)
+		gfx_color_delete(wnd_sel_text_hgl_color);
 	if (wnd_sel_text_bg_color != NULL)
 		gfx_color_delete(wnd_sel_text_bg_color);
 	if (wnd_frame_hi_color != NULL)

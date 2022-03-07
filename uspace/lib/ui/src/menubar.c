@@ -149,7 +149,7 @@ void ui_menu_bar_set_rect(ui_menu_bar_t *mbar, gfx_rect_t *rect)
 errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 {
 	ui_resource_t *res;
-	gfx_text_fmt_t fmt;
+	ui_text_fmt_t fmt;
 	gfx_coord2_t pos;
 	gfx_coord2_t tpos;
 	gfx_rect_t rect;
@@ -183,7 +183,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 
 	pos = mbar->rect.p0;
 
-	gfx_text_fmt_init(&fmt);
+	ui_text_fmt_init(&fmt);
 	fmt.font = res->font;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
@@ -191,7 +191,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 	menu = ui_menu_first(mbar);
 	while (menu != NULL) {
 		caption = ui_menu_caption(menu);
-		width = gfx_text_width(res->font, caption) + 2 * hpad;
+		width = ui_text_width(res->font, caption) + 2 * hpad;
 		tpos.x = pos.x + hpad;
 		tpos.y = pos.y + vpad;
 
@@ -201,9 +201,11 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 
 		if (menu == mbar->selected) {
 			fmt.color = res->wnd_sel_text_color;
+			fmt.hgl_color = res->wnd_sel_text_hgl_color;
 			bg_color = res->wnd_sel_text_bg_color;
 		} else {
 			fmt.color = res->wnd_text_color;
+			fmt.hgl_color = res->wnd_text_hgl_color;
 			bg_color = res->wnd_face_color;
 		}
 
@@ -215,7 +217,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 		if (rc != EOK)
 			goto error;
 
-		rc = gfx_puttext(&tpos, &fmt, caption);
+		rc = ui_paint_text(&tpos, &fmt, caption);
 		if (rc != EOK)
 			goto error;
 
@@ -415,7 +417,7 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 	menu = ui_menu_first(mbar);
 	while (menu != NULL) {
 		caption = ui_menu_caption(menu);
-		width = gfx_text_width(res->font, caption) + 2 * hpad;
+		width = ui_text_width(res->font, caption) + 2 * hpad;
 
 		rect.p0 = pos;
 		rect.p1.x = rect.p0.x + width;
@@ -466,7 +468,7 @@ void ui_menu_bar_entry_rect(ui_menu_bar_t *mbar, ui_menu_t *menu,
 	cur = ui_menu_first(mbar);
 	while (cur != NULL) {
 		caption = ui_menu_caption(cur);
-		width = gfx_text_width(res->font, caption) + 2 * hpad;
+		width = ui_text_width(res->font, caption) + 2 * hpad;
 
 		rect.p0 = pos;
 		rect.p1.x = rect.p0.x + width;

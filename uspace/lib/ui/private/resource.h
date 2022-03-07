@@ -76,8 +76,12 @@ struct ui_resource {
 	gfx_color_t *wnd_face_color;
 	/** Window text color */
 	gfx_color_t *wnd_text_color;
+	/** Window text highlight color */
+	gfx_color_t *wnd_text_hgl_color;
 	/** Window selected text color */
 	gfx_color_t *wnd_sel_text_color;
+	/** Window selected text highlight color */
+	gfx_color_t *wnd_sel_text_hgl_color;
 	/** Window selected text background color */
 	gfx_color_t *wnd_sel_text_bg_color;
 	/** Window frame hightlight color */

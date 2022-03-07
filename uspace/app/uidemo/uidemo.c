@@ -538,7 +538,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_create(demo.mbar, "File", &demo.mfile);
+	rc = ui_menu_create(demo.mbar, "~F~ile", &demo.mfile);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -592,7 +592,7 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_menu_entry_set_cb(mexit, uidemo_file_exit, (void *) &demo);
 
-	rc = ui_menu_create(demo.mbar, "Edit", &demo.medit);
+	rc = ui_menu_create(demo.mbar, "~E~dit", &demo.medit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -606,13 +606,13 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_menu_entry_set_cb(mmodify, uidemo_edit_modify, (void *) &demo);
 
-	rc = ui_menu_create(demo.mbar, "Preferences", &demo.mpreferences);
+	rc = ui_menu_create(demo.mbar, "~P~references", &demo.mpreferences);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
 	}
 
-	rc = ui_menu_create(demo.mbar, "Help", &demo.mhelp);
+	rc = ui_menu_create(demo.mbar, "~H~elp", &demo.mhelp);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

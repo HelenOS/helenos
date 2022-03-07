@@ -553,5 +553,152 @@ error:
 	return rc;
 }
 
+/** Initialize UI text formatting structure.
+ *
+ * UI text formatting structure must always be initialized using this function
+ * first.
+ *
+ * @param fmt UI text formatting structure
+ */
+void ui_text_fmt_init(ui_text_fmt_t *fmt)
+{
+	memset(fmt, 0, sizeof(ui_text_fmt_t));
+}
+
+/** Process text with '~' markup.
+ *
+ * Parse text with tilde markup into a list of strings. @a *rbuf is set
+ * to point to a newly allocated buffer containing consecutive null-terminated
+ * strings.
+ *
+ * Each part between two '~' becomes one string. '~~' is translated into
+ * a literal '~' character. @a *endptr is set to point to the first character
+ * beyond the end of the list.
+ *
+ * @param str String with tilde markup
+ * @param rbuf Place to store pointer to newly allocated buffer.
+ * @param endptr Place to store end pointer (just after last character)
+ * @return EOK on success or an error code
+ */
+static int ui_text_process(const char *str, char **rbuf, char **endptr)
+{
+	const char *sp;
+	char *dp;
+	char *buf;
+
+	buf = malloc(str_size(str) + 1);
+	if (buf == NULL)
+		return ENOMEM;
+
+	/* Break down string into list of (non)highlighted parts */
+	sp = str;
+	dp = buf;
+	while (*sp != '\0') {
+		if (*sp == '~') {
+			if (sp[1] == '~') {
+				sp += 2;
+				*dp++ = '~';
+			} else {
+				++sp;
+				*dp++ = '\0';
+			}
+		} else {
+			*dp++ = *sp++;
+		}
+	}
+
+	*dp++ = '\0';
+	*rbuf = buf;
+	*endptr = dp;
+
+	return EOK;
+}
+
+/** Compute UI text width.
+ *
+ * @param font Font
+ * @param str String
+ * @return Text width
+ */
+gfx_coord_t ui_text_width(gfx_font_t *font, const char *str)
+{
+	gfx_coord_t w;
+	gfx_coord_t tw;
+	const char *sp;
+
+	/* Text including tildes */
+	w = gfx_text_width(font, str);
+	tw = gfx_text_width(font, "~");
+
+	/* Subtract width of singular tildes */
+	sp = str;
+	while (*sp != '\0') {
+		if (*sp == '~' && sp[1] != '~')
+			w -= tw;
+		++sp;
+	}
+
+	return w;
+}
+
+/** Paint text (with highlighting markup).
+ *
+ * Paint some text with highlighted sections enclosed with tilde characters
+ * ('~'). A literal tilde can be printed with "~~". Text can be highlighted
+ * with an underline or different color, based on display capabilities.
+ *
+ * @param pos Anchor position
+ * @param fmt Text formatting
+ * @param str String containing '~' markup
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_text(gfx_coord2_t *pos, ui_text_fmt_t *fmt, const char *str)
+{
+	gfx_coord2_t tpos;
+	gfx_text_fmt_t tfmt;
+	char *buf;
+	char *endptr;
+	const char *sp;
+	errno_t rc;
+
+	/* Break down string into list of (non)highlighted parts */
+	rc = ui_text_process(str, &buf, &endptr);
+	if (rc != EOK)
+		return rc;
+
+	gfx_text_fmt_init(&tfmt);
+	tfmt.font = fmt->font;
+	tfmt.color = fmt->color;
+	tfmt.halign = fmt->halign;
+	tfmt.justify_width = fmt->justify_width;
+	tfmt.valign = fmt->valign;
+	tfmt.underline = false;
+
+	tpos = *pos;
+	sp = buf;
+	while (sp != endptr) {
+		/* Print the current string */
+		rc = gfx_puttext(&tpos, &tfmt, sp);
+		if (rc != EOK)
+			goto error;
+
+		gfx_text_cont(&tpos, &tfmt, sp, &tpos, &tfmt);
+		tfmt.underline = !tfmt.underline;
+		tfmt.color = tfmt.underline ? fmt->hgl_color : fmt->color;
+
+		/* Skip to the next string */
+		while (*sp != '\0')
+			++sp;
+		++sp;
+	}
+
+	free(buf);
+	return EOK;
+error:
+	free(buf);
+	return rc;
+}
+
 /** @}
  */
