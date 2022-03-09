@@ -26,30 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Accelerator processing
+ */
 
-PCUT_INIT;
+#ifndef _UI_ACCEL_H
+#define _UI_ACCEL_H
 
-PCUT_IMPORT(accel);
-PCUT_IMPORT(control);
-PCUT_IMPORT(checkbox);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(file_dialog);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(menu);
-PCUT_IMPORT(menubar);
-PCUT_IMPORT(menuentry);
-PCUT_IMPORT(msg_dialog);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(popup);
-PCUT_IMPORT(rbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(slider);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+#include <errno.h>
+#include <uchar.h>
 
-PCUT_MAIN();
+extern errno_t ui_accel_process(const char *, char **, char **);
+extern char32_t ui_accel_get(const char *);
+
+#endif
+
+/** @}
+ */

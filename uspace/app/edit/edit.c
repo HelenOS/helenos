@@ -429,7 +429,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_create(edit->menubar, "File", &mfile);
+	rc = ui_menu_create(edit->menubar, "~F~ile", &mfile);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -465,7 +465,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mexit, edit_file_exit, (void *) edit);
 
-	rc = ui_menu_create(edit->menubar, "Edit", &medit);
+	rc = ui_menu_create(edit->menubar, "~E~dit", &medit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -517,7 +517,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mselall, edit_edit_select_all, (void *) edit);
 
-	rc = ui_menu_create(edit->menubar, "Search", &msearch);
+	rc = ui_menu_create(edit->menubar, "~S~earch", &msearch);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

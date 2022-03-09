@@ -42,6 +42,8 @@
 #include <io/pos_event.h>
 #include <stdlib.h>
 #include <str.h>
+#include <uchar.h>
+#include <ui/accel.h>
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/popup.h>
@@ -250,6 +252,17 @@ void ui_menu_get_rect(ui_menu_t *menu, gfx_coord2_t *spos, gfx_rect_t *rect)
 
 	ui_menu_get_geom(menu, spos, &geom);
 	*rect = geom.outer_rect;
+}
+
+/** Get menu accelerator character.
+ *
+ * @param menu Menu
+ * @return Accelerator character (lowercase) or the null character if
+ *         the menu has no accelerator.
+ */
+char32_t ui_menu_get_accel(ui_menu_t *menu)
+{
+	return ui_accel_get(menu->caption);
 }
 
 /** Get UI resource from menu.

@@ -251,10 +251,7 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_t *menu, bool openup)
 
 	old_menu = mbar->selected;
 
-	if (mbar->selected != menu)
-		mbar->selected = menu;
-	else
-		mbar->selected = NULL;
+	mbar->selected = menu;
 
 	/* Close previously open menu */
 	if (old_menu != NULL && ui_menu_is_open(old_menu)) {
@@ -332,6 +329,8 @@ void ui_menu_bar_right(ui_menu_bar_t *mbar)
 ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *mbar, kbd_event_t *event)
 {
 	gfx_rect_t rect;
+	ui_menu_t *menu;
+	char32_t maccel;
 
 	if (event->key == KC_F10) {
 		ui_menu_bar_activate(mbar);
@@ -360,6 +359,21 @@ ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *mbar, kbd_event_t *event
 		}
 
 		return ui_claimed;
+	}
+
+	if (event->c != '\0' && !ui_menu_is_open(mbar->selected)) {
+		/* Check if it is an accelerator. */
+
+		menu = ui_menu_first(mbar);
+		while (menu != NULL) {
+			maccel = ui_menu_get_accel(menu);
+			if (event->c == maccel) {
+				ui_menu_bar_select(mbar, menu, true);
+				return ui_claimed;
+			}
+
+			menu = ui_menu_next(menu);
+		}
 	}
 
 	return ui_claimed;
@@ -427,7 +441,13 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 		if (event->type == POS_PRESS &&
 		    gfx_pix_inside_rect(&ppos, &rect)) {
 			mbar->active = true;
-			ui_menu_bar_select(mbar, menu, true);
+
+			/* Open the menu, close if already open. */
+			if (menu == mbar->selected)
+				ui_menu_bar_select(mbar, NULL, false);
+			else
+				ui_menu_bar_select(mbar, menu, true);
+
 			return ui_claimed;
 		}
 

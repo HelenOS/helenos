@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * Copyright (c) 2016 Martin Decky
  * All rights reserved.
  *
@@ -895,7 +895,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_menu_create(calc.menubar, "File", &mfile);
+	rc = ui_menu_create(calc.menubar, "~F~ile", &mfile);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -909,7 +909,7 @@ int main(int argc, char *argv[])
 
 	ui_menu_entry_set_cb(mexit, calc_file_exit, (void *) &calc);
 
-	rc = ui_menu_create(calc.menubar, "Edit", &medit);
+	rc = ui_menu_create(calc.menubar, "~E~dit", &medit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

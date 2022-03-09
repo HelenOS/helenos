@@ -186,7 +186,8 @@ PCUT_TEST(kbd_event)
 	PCUT_ASSERT_NOT_NULL(menu);
 
 	event.type = KEY_PRESS;
-	event.key = KC_ESCAPE;
+	event.key = KC_F10;
+	event.mods = 0;
 	claimed = ui_menu_bar_kbd_event(mbar, &event);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
@@ -242,46 +243,6 @@ PCUT_TEST(pos_event_select)
 
 	/* Clicking the menu bar entry should select menu */
 	PCUT_ASSERT_EQUALS(menu, mbar->selected);
-
-	ui_menu_bar_destroy(mbar);
-	ui_window_destroy(window);
-	ui_destroy(ui);
-}
-
-/** Calling ui_menu_bar_select() with the same menu twice deselects it */
-PCUT_TEST(select_same)
-{
-	ui_t *ui = NULL;
-	ui_window_t *window = NULL;
-	ui_wnd_params_t params;
-	ui_menu_bar_t *mbar = NULL;
-	ui_menu_t *menu = NULL;
-	errno_t rc;
-
-	rc = ui_create_disp(NULL, &ui);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	ui_wnd_params_init(&params);
-	params.caption = "Hello";
-
-	rc = ui_window_create(ui, &params, &window);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(window);
-
-	rc = ui_menu_bar_create(ui, window, &mbar);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(mbar);
-
-	rc = ui_menu_create(mbar, "Test", &menu);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(menu);
-
-	ui_menu_bar_select(mbar, menu, true);
-	PCUT_ASSERT_EQUALS(menu, mbar->selected);
-
-	/* Selecting again should unselect the menu */
-	ui_menu_bar_select(mbar, menu, true);
-	PCUT_ASSERT_NULL(mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
 	ui_window_destroy(window);

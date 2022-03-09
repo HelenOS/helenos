@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #include <gfx/context.h>
 #include <gfx/render.h>
 #include <gfx/text.h>
+#include <ui/accel.h>
 #include <ui/paint.h>
 #include <stdlib.h>
 #include <str.h>
@@ -565,55 +566,6 @@ void ui_text_fmt_init(ui_text_fmt_t *fmt)
 	memset(fmt, 0, sizeof(ui_text_fmt_t));
 }
 
-/** Process text with '~' markup.
- *
- * Parse text with tilde markup into a list of strings. @a *rbuf is set
- * to point to a newly allocated buffer containing consecutive null-terminated
- * strings.
- *
- * Each part between two '~' becomes one string. '~~' is translated into
- * a literal '~' character. @a *endptr is set to point to the first character
- * beyond the end of the list.
- *
- * @param str String with tilde markup
- * @param rbuf Place to store pointer to newly allocated buffer.
- * @param endptr Place to store end pointer (just after last character)
- * @return EOK on success or an error code
- */
-static int ui_text_process(const char *str, char **rbuf, char **endptr)
-{
-	const char *sp;
-	char *dp;
-	char *buf;
-
-	buf = malloc(str_size(str) + 1);
-	if (buf == NULL)
-		return ENOMEM;
-
-	/* Break down string into list of (non)highlighted parts */
-	sp = str;
-	dp = buf;
-	while (*sp != '\0') {
-		if (*sp == '~') {
-			if (sp[1] == '~') {
-				sp += 2;
-				*dp++ = '~';
-			} else {
-				++sp;
-				*dp++ = '\0';
-			}
-		} else {
-			*dp++ = *sp++;
-		}
-	}
-
-	*dp++ = '\0';
-	*rbuf = buf;
-	*endptr = dp;
-
-	return EOK;
-}
-
 /** Compute UI text width.
  *
  * @param font Font
@@ -663,7 +615,7 @@ errno_t ui_paint_text(gfx_coord2_t *pos, ui_text_fmt_t *fmt, const char *str)
 	errno_t rc;
 
 	/* Break down string into list of (non)highlighted parts */
-	rc = ui_text_process(str, &buf, &endptr);
+	rc = ui_accel_process(str, &buf, &endptr);
 	if (rc != EOK)
 		return rc;
 

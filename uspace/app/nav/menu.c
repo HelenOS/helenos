@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_menu_create(menu->menubar, "File", &mfile);
+	rc = ui_menu_create(menu->menubar, "~F~ile", &mfile);
 	if (rc != EOK)
 		goto error;
 
