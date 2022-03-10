@@ -75,7 +75,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_menu_entry_create(mfile, "Open", "Enter", &mopen);
+	rc = ui_menu_entry_create(mfile, "~O~pen", "Enter", &mopen);
 	if (rc != EOK)
 		goto error;
 
@@ -85,7 +85,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_menu_entry_create(mfile, "Exit", "Ctrl-Q", &mexit);
+	rc = ui_menu_entry_create(mfile, "E~x~it", "Ctrl-Q", &mexit);
 	if (rc != EOK)
 		goto error;
 
