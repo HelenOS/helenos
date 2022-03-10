@@ -603,6 +603,9 @@ void ui_menu_down(ui_menu_t *menu)
  */
 static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 {
+	ui_menu_entry_t *mentry;
+	char32_t c;
+
 	switch (event->key) {
 	case KC_ESCAPE:
 		ui_menu_bar_deactivate(menu->mbar);
@@ -624,6 +627,17 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 			ui_menu_entry_activate(menu->selected);
 		break;
 	default:
+		if (event->c != '\0') {
+			mentry = ui_menu_entry_first(menu);
+			while (mentry != NULL) {
+				c = ui_menu_entry_get_accel(mentry);
+				if (c == event->c && menu->selected != NULL) {
+					ui_menu_entry_activate(mentry);
+					break;
+				}
+				mentry = ui_menu_entry_next(mentry);
+			}
+		}
 		break;
 	}
 }

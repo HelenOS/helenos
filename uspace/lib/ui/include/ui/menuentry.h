@@ -59,6 +59,7 @@ extern gfx_coord_t ui_menu_entry_calc_width(ui_menu_t *,
 extern void ui_menu_entry_column_widths(ui_menu_entry_t *,
     gfx_coord_t *, gfx_coord_t *);
 extern gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *);
+extern char32_t ui_menu_entry_get_accel(ui_menu_entry_t *);
 extern errno_t ui_menu_entry_paint(ui_menu_entry_t *, gfx_coord2_t *);
 extern bool ui_menu_entry_selectable(ui_menu_entry_t *);
 extern void ui_menu_entry_press(ui_menu_entry_t *, gfx_coord2_t *);

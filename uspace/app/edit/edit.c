@@ -435,7 +435,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(mfile, "Save", "Ctrl-S", &msave);
+	rc = ui_menu_entry_create(mfile, "~S~ave", "Ctrl-S", &msave);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -443,7 +443,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(msave, edit_file_save, (void *) edit);
 
-	rc = ui_menu_entry_create(mfile, "Save As", "Ctrl-E", &msaveas);
+	rc = ui_menu_entry_create(mfile, "Save ~A~s", "Ctrl-E", &msaveas);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -457,7 +457,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(mfile, "Exit", "Ctrl-Q", &mexit);
+	rc = ui_menu_entry_create(mfile, "E~x~it", "Ctrl-Q", &mexit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -471,7 +471,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(medit, "Cut", "Ctrl-X", &mcut);
+	rc = ui_menu_entry_create(medit, "Cu~t~", "Ctrl-X", &mcut);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -479,7 +479,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mcut, edit_edit_cut, (void *) edit);
 
-	rc = ui_menu_entry_create(medit, "Copy", "Ctrl-C", &mcopy);
+	rc = ui_menu_entry_create(medit, "~C~opy", "Ctrl-C", &mcopy);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -487,7 +487,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mcopy, edit_edit_copy, (void *) edit);
 
-	rc = ui_menu_entry_create(medit, "Paste", "Ctrl-V", &mpaste);
+	rc = ui_menu_entry_create(medit, "~P~aste", "Ctrl-V", &mpaste);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -495,7 +495,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mpaste, edit_edit_paste, (void *) edit);
 
-	rc = ui_menu_entry_create(medit, "Delete", "Del", &mdelete);
+	rc = ui_menu_entry_create(medit, "~D~elete", "Del", &mdelete);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -509,7 +509,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(medit, "Select All", "Ctrl-A", &mselall);
+	rc = ui_menu_entry_create(medit, "Select ~A~ll", "Ctrl-A", &mselall);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -523,7 +523,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(msearch, "Find", "Ctrl-F", &mfind);
+	rc = ui_menu_entry_create(msearch, "~F~ind", "Ctrl-F", &mfind);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -531,7 +531,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mfind, edit_search_find, (void *) edit);
 
-	rc = ui_menu_entry_create(msearch, "Reverse Find", "Ctrl-Shift-F", &mfindr);
+	rc = ui_menu_entry_create(msearch, "~R~everse Find", "Ctrl-Shift-F", &mfindr);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -539,7 +539,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mfindr, edit_search_reverse_find, (void *) edit);
 
-	rc = ui_menu_entry_create(msearch, "Find Next", "Ctrl-N", &mfindn);
+	rc = ui_menu_entry_create(msearch, "Find ~N~ext", "Ctrl-N", &mfindn);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -553,7 +553,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(msearch, "Go To Line", "Ctrl-L", &mgoto);
+	rc = ui_menu_entry_create(msearch, "Go To ~L~ine", "Ctrl-L", &mgoto);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -544,7 +544,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mfile, "Message", "", &mmsg);
+	rc = ui_menu_entry_create(demo.mfile, "~M~essage", "", &mmsg);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -552,7 +552,7 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_menu_entry_set_cb(mmsg, uidemo_file_message, (void *) &demo);
 
-	rc = ui_menu_entry_create(demo.mfile, "Load", "", &mload);
+	rc = ui_menu_entry_create(demo.mfile, "~L~oad", "", &mload);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -560,19 +560,19 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_menu_entry_set_cb(mload, uidemo_file_load, (void *) &demo);
 
-	rc = ui_menu_entry_create(demo.mfile, "Foo", "Ctrl-Alt-Del", &mfoo);
+	rc = ui_menu_entry_create(demo.mfile, "~F~oo", "Ctrl-Alt-Del", &mfoo);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mfile, "Bar", "", &mbar);
+	rc = ui_menu_entry_create(demo.mfile, "~B~ar", "", &mbar);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mfile, "Foobar", "", &mfoobar);
+	rc = ui_menu_entry_create(demo.mfile, "F~o~obar", "", &mfoobar);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -584,7 +584,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mfile, "Exit", "Alt-F4", &mexit);
+	rc = ui_menu_entry_create(demo.mfile, "E~x~it", "Alt-F4", &mexit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -598,7 +598,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.medit, "Modify", "", &mmodify);
+	rc = ui_menu_entry_create(demo.medit, "~M~odify", "", &mmodify);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -618,7 +618,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(demo.mhelp, "About", "Ctrl-H, F1", &mabout);
+	rc = ui_menu_entry_create(demo.mhelp, "~A~bout", "Ctrl-H, F1", &mabout);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

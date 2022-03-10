@@ -901,7 +901,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(mfile, "Exit", "Alt-F4", &mexit);
+	rc = ui_menu_entry_create(mfile, "E~x~it", "Alt-F4", &mexit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -915,7 +915,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_menu_entry_create(medit, "Copy", "Ctrl-C", &mcopy);
+	rc = ui_menu_entry_create(medit, "~C~opy", "Ctrl-C", &mcopy);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -923,7 +923,7 @@ int main(int argc, char *argv[])
 
 	ui_menu_entry_set_cb(mcopy, calc_edit_copy, (void *) &calc);
 
-	rc = ui_menu_entry_create(medit, "Paste", "Ctrl-V", &mpaste);
+	rc = ui_menu_entry_create(medit, "~P~aste", "Ctrl-V", &mpaste);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

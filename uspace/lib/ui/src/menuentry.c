@@ -42,6 +42,7 @@
 #include <io/pos_event.h>
 #include <stdlib.h>
 #include <str.h>
+#include <ui/accel.h>
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/menubar.h>
@@ -244,8 +245,8 @@ void ui_menu_entry_column_widths(ui_menu_entry_t *mentry,
 	 */
 	res = ui_window_get_res(mentry->menu->mbar->window);
 
-	*caption_w = gfx_text_width(res->font, mentry->caption);
-	*shortcut_w = gfx_text_width(res->font, mentry->shortcut);
+	*caption_w = ui_text_width(res->font, mentry->caption);
+	*shortcut_w = ui_text_width(res->font, mentry->shortcut);
 }
 
 /** Compute width of menu entry.
@@ -330,6 +331,17 @@ gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *mentry)
 	return height + 2 * vpad;
 }
 
+/** Get menu entry accelerator character.
+ *
+ * @param mentry Menu entry
+ * @return Accelerator character (lowercase) or the null character if
+ *         the menu entry has no accelerator.
+ */
+char32_t ui_menu_entry_get_accel(ui_menu_entry_t *mentry)
+{
+	return ui_accel_get(mentry->caption);
+}
+
 /** Paint menu entry.
  *
  * @param mentry Menu entry
@@ -339,7 +351,7 @@ gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *mentry)
 errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 {
 	ui_resource_t *res;
-	gfx_text_fmt_t fmt;
+	ui_text_fmt_t fmt;
 	gfx_color_t *bg_color;
 	ui_menu_entry_geom_t geom;
 	gfx_rect_t rect;
@@ -349,7 +361,7 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 
 	ui_menu_entry_get_geom(mentry, pos, &geom);
 
-	gfx_text_fmt_init(&fmt);
+	ui_text_fmt_init(&fmt);
 	fmt.font = res->font;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
@@ -357,9 +369,11 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	if ((mentry->held && mentry->inside) ||
 	    mentry == mentry->menu->selected) {
 		fmt.color = res->wnd_sel_text_color;
+		fmt.hgl_color = res->wnd_sel_text_hgl_color;
 		bg_color = res->wnd_sel_text_bg_color;
 	} else {
 		fmt.color = res->wnd_text_color;
+		fmt.hgl_color = res->wnd_text_hgl_color;
 		bg_color = res->wnd_face_color;
 	}
 
@@ -371,13 +385,13 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_puttext(&geom.caption_pos, &fmt, mentry->caption);
+	rc = ui_paint_text(&geom.caption_pos, &fmt, mentry->caption);
 	if (rc != EOK)
 		goto error;
 
 	fmt.halign = gfx_halign_right;
 
-	rc = gfx_puttext(&geom.shortcut_pos, &fmt, mentry->shortcut);
+	rc = ui_paint_text(&geom.shortcut_pos, &fmt, mentry->shortcut);
 	if (rc != EOK)
 		goto error;
 
