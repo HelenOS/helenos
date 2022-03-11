@@ -197,6 +197,52 @@ PCUT_TEST(kbd_event)
 	ui_destroy(ui);
 }
 
+/** ui_menu_bar_press_accel() opens the corresponding menu */
+PCUT_TEST(press_accel)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_t *menu = NULL;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rect.p0.x = 0;
+	rect.p0.y = 0;
+	rect.p1.x = 50;
+	rect.p1.y = 25;
+	ui_menu_bar_set_rect(mbar, &rect);
+
+	rc = ui_menu_create(mbar, "~T~est", &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(menu);
+
+	PCUT_ASSERT_FALSE(ui_menu_is_open(menu));
+
+	ui_menu_bar_press_accel(mbar, 't');
+
+	PCUT_ASSERT_TRUE(ui_menu_is_open(menu));
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** Press event on menu bar entry selects menu */
 PCUT_TEST(pos_event_select)
 {

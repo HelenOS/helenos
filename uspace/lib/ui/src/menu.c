@@ -519,6 +519,10 @@ ui_evclaim_t ui_menu_kbd_event(ui_menu_t *menu, kbd_event_t *event)
 		ui_menu_key_press_unmod(menu, event);
 	}
 
+	if (event->type == KEY_PRESS && (event->mods & KM_ALT) != 0 &&
+	    (event->mods & (KM_CTRL | KM_SHIFT)) == 0 && event->c != '\0')
+		ui_menu_bar_press_accel(menu->mbar, event->c);
+
 	return ui_claimed;
 }
 

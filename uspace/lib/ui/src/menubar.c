@@ -329,8 +329,6 @@ void ui_menu_bar_right(ui_menu_bar_t *mbar)
 ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *mbar, kbd_event_t *event)
 {
 	gfx_rect_t rect;
-	ui_menu_t *menu;
-	char32_t maccel;
 
 	if (event->key == KC_F10) {
 		ui_menu_bar_activate(mbar);
@@ -363,17 +361,7 @@ ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *mbar, kbd_event_t *event
 
 	if (event->c != '\0' && !ui_menu_is_open(mbar->selected)) {
 		/* Check if it is an accelerator. */
-
-		menu = ui_menu_first(mbar);
-		while (menu != NULL) {
-			maccel = ui_menu_get_accel(menu);
-			if (event->c == maccel) {
-				ui_menu_bar_select(mbar, menu, true);
-				return ui_claimed;
-			}
-
-			menu = ui_menu_next(menu);
-		}
+		ui_menu_bar_press_accel(mbar, event->c);
 	}
 
 	return ui_claimed;
@@ -387,6 +375,12 @@ ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *mbar, kbd_event_t *event
  */
 ui_evclaim_t ui_menu_bar_kbd_event(ui_menu_bar_t *mbar, kbd_event_t *event)
 {
+	if ((event->mods & KM_ALT) != 0 &&
+	    (event->mods & (KM_CTRL | KM_SHIFT)) == 0 && event->c != '\0') {
+		/* Check if it is an accelerator. */
+		ui_menu_bar_press_accel(mbar, event->c);
+	}
+
 	if (event->type == KEY_PRESS && (event->mods &
 	    (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
 		return ui_menu_bar_key_press_unmod(mbar, event);
@@ -396,6 +390,30 @@ ui_evclaim_t ui_menu_bar_kbd_event(ui_menu_bar_t *mbar, kbd_event_t *event)
 		return ui_claimed;
 
 	return ui_unclaimed;
+}
+
+/** Accelerator key press.
+ *
+ * If @a c matches an accelerator key, open the respective menu.
+ *
+ * @param mbar Menu bar
+ * @param c Character
+ */
+void ui_menu_bar_press_accel(ui_menu_bar_t *mbar, char32_t c)
+{
+	ui_menu_t *menu;
+	char32_t maccel;
+
+	menu = ui_menu_first(mbar);
+	while (menu != NULL) {
+		maccel = ui_menu_get_accel(menu);
+		if (c == maccel) {
+			ui_menu_bar_select(mbar, menu, true);
+			return;
+		}
+
+		menu = ui_menu_next(menu);
+	}
 }
 
 /** Handle menu bar position event.
