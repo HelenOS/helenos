@@ -222,9 +222,6 @@ static void fr_azerty_destroy (layout_t *s)
 
 static char32_t fr_azerty_parse_ev (layout_t *s, kbd_event_t *e)
 {
-	if ((e->mods & (KM_CTRL | KM_ALT)))
-		return 0; // Produce no characters when Ctrl or Alt is pressed
-
 	char32_t c = translate (e->key, map_neutral, sizeof (map_neutral) / sizeof (char32_t));
 	if (c)
 		return c;

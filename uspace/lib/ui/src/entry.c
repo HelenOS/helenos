@@ -663,7 +663,6 @@ ui_evclaim_t ui_entry_key_press_unmod(ui_entry_t *entry, kbd_event_t *event)
 	default:
 		break;
 	}
-
 	return ui_claimed;
 }
 
@@ -743,15 +742,6 @@ ui_evclaim_t ui_entry_kbd_event(ui_entry_t *entry, kbd_event_t *event)
 	if (!entry->active)
 		return ui_unclaimed;
 
-	if (event->type == KEY_PRESS && event->c >= ' ') {
-		off = 0;
-		rc = chr_encode(event->c, buf, &off, sizeof(buf));
-		if (rc == EOK) {
-			buf[off] = '\0';
-			(void) ui_entry_insert_str(entry, buf);
-		}
-	}
-
 	/*
 	 * Need to keep track if any shift is held for the case
 	 * of selecting by shift-click. This could be simplified
@@ -767,6 +757,16 @@ ui_evclaim_t ui_entry_kbd_event(ui_entry_t *entry, kbd_event_t *event)
 		entry->rshift_held = true;
 	if (event->type == KEY_RELEASE && event->key == KC_RSHIFT)
 		entry->rshift_held = false;
+
+	if (event->type == KEY_PRESS &&
+	    (event->mods & (KM_CTRL | KM_ALT)) == 0 && event->c >= ' ') {
+		off = 0;
+		rc = chr_encode(event->c, buf, &off, sizeof(buf));
+		if (rc == EOK) {
+			buf[off] = '\0';
+			(void) ui_entry_insert_str(entry, buf);
+		}
+	}
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)

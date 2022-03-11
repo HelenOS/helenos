@@ -215,10 +215,6 @@ static char32_t ar_parse_ev(layout_t *state, kbd_event_t *ev)
 {
 	char32_t c;
 
-	/* Produce no characters when Ctrl or Alt is pressed. */
-	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
-		return 0;
-
 	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(char32_t));
 	if (c != 0)
 		return c;

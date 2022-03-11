@@ -856,7 +856,7 @@ static void tinput_key_press(tinput_t *ti, kbd_event_t *kev)
 	if ((kev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
 		tinput_key_unmod(ti, kev);
 
-	if (kev->c >= ' ') {
+	if (((kev->mods & (KM_CTRL | KM_ALT)) == 0) && kev->c >= ' ') {
 		tinput_sel_delete(ti);
 		tinput_insert_char(ti, kev->c);
 	}

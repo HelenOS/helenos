@@ -148,6 +148,9 @@ void insertscore(int score, int level)
 		if (ev.type != CEV_KEY || ev.ev.key.type == KEY_RELEASE)
 			continue;
 
+		if ((ev.ev.key.mods & (KM_CTRL | KM_ALT)) != 0)
+			continue;
+
 		kev = &ev.ev.key;
 
 		if (kev->key == KC_ENTER || kev->key == KC_NENTER)

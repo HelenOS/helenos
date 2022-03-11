@@ -321,10 +321,6 @@ static char32_t parse_ms_start(layout_cz_t *cz_state, kbd_event_t *ev)
 {
 	char32_t c;
 
-	/* Produce no characters when Ctrl or Alt is pressed. */
-	if ((ev->mods & (KM_CTRL | KM_ALT)) != 0)
-		return 0;
-
 	if (ev->key == KC_EQUALS) {
 		if ((ev->mods & KM_SHIFT) != 0)
 			cz_state->mstate = ms_hacek;
