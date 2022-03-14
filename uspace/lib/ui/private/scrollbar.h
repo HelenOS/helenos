@@ -26,53 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Scrollbar structure
+ *
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PRIVATE_SCROLLBAR_H
+#define _UI_PRIVATE_SCROLLBAR_H
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <gfx/coord.h>
+#include <stdbool.h>
 
-/** User interface demo */
+/** Actual structure of scrollbar.
+ *
+ * This is private to libui.
+ */
+struct ui_scrollbar {
+	/** Base control object */
+	struct ui_control *control;
+	/** UI resource */
+	struct ui_resource *res;
+	/** Callbacks */
+	struct ui_scrollbar_cb *cb;
+	/** Callback argument */
+	void *arg;
+	/** Scrollbar rectangle */
+	gfx_rect_t rect;
+	/** Thumb length */
+	gfx_coord_t thumb_len;
+	/** Up button */
+	struct ui_pbutton *btn_up;
+	/** Down button */
+	struct ui_pbutton *btn_down;
+	/** Thumb is currently held down */
+	bool held;
+	/** Position where thumb was pressed */
+	gfx_coord2_t press_pos;
+	/** Last thumb position */
+	gfx_coord_t last_pos;
+	/** Thumb position */
+	gfx_coord_t pos;
+};
+
+/** Scrollbar geometry.
+ *
+ * Computed rectangles of scrollbar elements.
+ */
 typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *scrollbar;
-} ui_demo_t;
+	/** Up button rectangle */
+	gfx_rect_t up_btn_rect;
+	/** Through rectangle */
+	gfx_rect_t through_rect;
+	/** Thumb rectangle */
+	gfx_rect_t thumb_rect;
+	/** Down button rectangle */
+	gfx_rect_t down_btn_rect;
+} ui_scrollbar_geom_t;
+
+extern errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *);
+extern errno_t ui_scrollbar_paint_text(ui_scrollbar_t *);
+extern errno_t ui_scrollbar_thumb_clear(ui_scrollbar_t *);
+extern void ui_scrollbar_get_geom(ui_scrollbar_t *, ui_scrollbar_geom_t *);
 
 #endif
 

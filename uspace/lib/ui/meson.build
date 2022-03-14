@@ -47,6 +47,7 @@ src = files(
 	'src/promptdialog.c',
 	'src/rbutton.c',
 	'src/resource.c',
+	'src/scrollbar.c',
 	'src/slider.c',
 	'src/ui.c',
 	'src/wdecor.c',

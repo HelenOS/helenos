@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,8 @@ enum {
 	ui_slider_btn_h = 23,
 	/** Slider button width in text mode */
 	ui_slider_btn_w_text = 3,
+	/** Slider button height in text mode */
+	ui_slider_btn_h_text = 1,
 	/** Slider button frame thickness */
 	ui_slider_btn_frame_thickness = 1,
 	/** Slider button bevel width */
@@ -241,8 +243,14 @@ static void ui_slider_btn_rect(ui_slider_t *slider, gfx_rect_t *rect)
 
 	rect->p0.x = pos.x;
 	rect->p0.y = pos.y;
-	rect->p1.x = pos.x + ui_slider_btn_w;
-	rect->p1.y = pos.y + ui_slider_btn_h;
+
+	if (slider->res->textmode) {
+		rect->p1.x = pos.x + ui_slider_btn_w_text;
+		rect->p1.y = pos.y + ui_slider_btn_h_text;
+	} else {
+		rect->p1.x = pos.x + ui_slider_btn_w;
+		rect->p1.y = pos.y + ui_slider_btn_h;
+	}
 }
 
 /** Determine slider length.

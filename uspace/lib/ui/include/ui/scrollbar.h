@@ -26,53 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Scrollbar
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_SCROLLBAR_H
+#define _UI_SCROLLBAR_H
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <errno.h>
+#include <gfx/coord.h>
+#include <io/pos_event.h>
+#include <stdbool.h>
+#include <types/ui/control.h>
+#include <types/ui/event.h>
+#include <types/ui/resource.h>
+#include <types/ui/scrollbar.h>
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *scrollbar;
-} ui_demo_t;
+extern errno_t ui_scrollbar_create(ui_resource_t *, ui_scrollbar_t **);
+extern void ui_scrollbar_destroy(ui_scrollbar_t *);
+extern ui_control_t *ui_scrollbar_ctl(ui_scrollbar_t *);
+extern void ui_scrollbar_set_cb(ui_scrollbar_t *, ui_scrollbar_cb_t *, void *);
+extern void ui_scrollbar_set_rect(ui_scrollbar_t *, gfx_rect_t *);
+extern errno_t ui_scrollbar_paint(ui_scrollbar_t *);
+extern gfx_coord_t ui_scrollbar_through_length(ui_scrollbar_t *);
+extern gfx_coord_t ui_scrollbar_move_length(ui_scrollbar_t *);
+extern gfx_coord_t ui_scrollbar_get_pos(ui_scrollbar_t *);
+extern void ui_scrollbar_set_thumb_length(ui_scrollbar_t *, gfx_coord_t);
+extern void ui_scrollbar_set_pos(ui_scrollbar_t *, gfx_coord_t);
+extern void ui_scrollbar_press(ui_scrollbar_t *, gfx_coord2_t *);
+extern void ui_scrollbar_release(ui_scrollbar_t *, gfx_coord2_t *);
+extern void ui_scrollbar_update(ui_scrollbar_t *, gfx_coord2_t *);
+extern void ui_scrollbar_up(ui_scrollbar_t *);
+extern void ui_scrollbar_down(ui_scrollbar_t *);
+extern void ui_scrollbar_moved(ui_scrollbar_t *, gfx_coord_t);
+extern ui_evclaim_t ui_scrollbar_pos_event(ui_scrollbar_t *, pos_event_t *);
 
 #endif
 

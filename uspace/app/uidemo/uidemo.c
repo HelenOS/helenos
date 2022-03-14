@@ -86,6 +86,16 @@ static ui_slider_cb_t slider_cb = {
 	.moved = slider_moved
 };
 
+static void scrollbar_up(ui_scrollbar_t *, void *);
+static void scrollbar_down(ui_scrollbar_t *, void *);
+static void scrollbar_moved(ui_scrollbar_t *, void *, gfx_coord_t);
+
+static ui_scrollbar_cb_t scrollbar_cb = {
+	.up = scrollbar_up,
+	.down = scrollbar_down,
+	.moved = scrollbar_moved
+};
+
 static void uidemo_file_load(ui_menu_entry_t *, void *);
 static void uidemo_file_message(ui_menu_entry_t *, void *);
 static void uidemo_file_exit(ui_menu_entry_t *, void *);
@@ -201,6 +211,101 @@ static void slider_moved(ui_slider_t *slider, void *arg, gfx_coord_t pos)
 
 	rv = asprintf(&str, "Slider at %d of %d", (int) pos,
 	    ui_slider_length(slider));
+	if (rv < 0) {
+		printf("Out of memory.\n");
+		return;
+	}
+
+	rc = ui_entry_set_text(demo->entry, str);
+	if (rc != EOK)
+		printf("Error changing entry text.\n");
+	(void) ui_entry_paint(demo->entry);
+
+	free(str);
+}
+
+/** Scrollbar up button pressed.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (demo)
+ */
+static void scrollbar_up(ui_scrollbar_t *scrollbar, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	gfx_coord_t pos;
+	char *str;
+	errno_t rc;
+	int rv;
+
+	pos = ui_scrollbar_get_pos(scrollbar);
+	ui_scrollbar_set_pos(scrollbar, pos - 1);
+
+	pos = ui_scrollbar_get_pos(scrollbar);
+
+	rv = asprintf(&str, "Scrollbar: %d of %d", (int) pos,
+	    ui_scrollbar_move_length(scrollbar));
+	if (rv < 0) {
+		printf("Out of memory.\n");
+		return;
+	}
+
+	rc = ui_entry_set_text(demo->entry, str);
+	if (rc != EOK)
+		printf("Error changing entry text.\n");
+	(void) ui_entry_paint(demo->entry);
+
+	free(str);
+}
+
+/** Scrollbar down button pressed.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (demo)
+ */
+static void scrollbar_down(ui_scrollbar_t *scrollbar, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	gfx_coord_t pos;
+	char *str;
+	errno_t rc;
+	int rv;
+
+	pos = ui_scrollbar_get_pos(scrollbar);
+	ui_scrollbar_set_pos(scrollbar, pos + 1);
+
+	pos = ui_scrollbar_get_pos(scrollbar);
+
+	rv = asprintf(&str, "Scrollbar: %d of %d", (int) pos,
+	    ui_scrollbar_move_length(scrollbar));
+	if (rv < 0) {
+		printf("Out of memory.\n");
+		return;
+	}
+
+	rc = ui_entry_set_text(demo->entry, str);
+	if (rc != EOK)
+		printf("Error changing entry text.\n");
+	(void) ui_entry_paint(demo->entry);
+
+	free(str);
+}
+
+/** Scrollbar was moved.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (demo)
+ * @param pos Position
+ */
+static void scrollbar_moved(ui_scrollbar_t *scrollbar, void *arg,
+    gfx_coord_t pos)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	char *str;
+	errno_t rc;
+	int rv;
+
+	rv = asprintf(&str, "Scrollbar: %d of %d", (int) pos,
+	    ui_scrollbar_move_length(scrollbar));
 	if (rv < 0) {
 		printf("Out of memory.\n");
 		return;
@@ -506,12 +611,12 @@ static errno_t ui_demo(const char *display_spec)
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 44;
-		params.rect.p1.y = 21;
+		params.rect.p1.y = 23;
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 220;
-		params.rect.p1.y = 350;
+		params.rect.p1.y = 370;
 	}
 
 	rc = ui_window_create(ui, &params, &window);
@@ -955,6 +1060,38 @@ static errno_t ui_demo(const char *display_spec)
 	ui_slider_set_rect(demo.slider, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_slider_ctl(demo.slider));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_scrollbar_create(ui_res, &demo.scrollbar);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_scrollbar_set_cb(demo.scrollbar, &scrollbar_cb, (void *) &demo);
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 2;
+		rect.p0.y = 20;
+		rect.p1.x = 12;
+		rect.p1.y = 21;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 340;
+		rect.p1.x = 210;
+		rect.p1.y = 362;
+	}
+
+	ui_scrollbar_set_rect(demo.scrollbar, &rect);
+
+	ui_scrollbar_set_thumb_length(demo.scrollbar,
+	    ui_scrollbar_through_length(demo.scrollbar) / 4);
+
+	rc = ui_fixed_add(demo.fixed, ui_scrollbar_ctl(demo.scrollbar));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
