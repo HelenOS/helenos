@@ -98,7 +98,7 @@ PCUT_TEST(create_destroy)
 	ui_slider_t *slider = NULL;
 	errno_t rc;
 
-	rc = ui_slider_create(NULL, "Hello", &slider);
+	rc = ui_slider_create(NULL, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(slider);
 
@@ -118,7 +118,7 @@ PCUT_TEST(ctl)
 	ui_control_t *control;
 	errno_t rc;
 
-	rc = ui_slider_create(NULL, "Hello", &slider);
+	rc = ui_slider_create(NULL, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	control = ui_slider_ctl(slider);
@@ -134,7 +134,7 @@ PCUT_TEST(set_rect)
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = ui_slider_create(NULL, "Hello", &slider);
+	rc = ui_slider_create(NULL, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 1;
@@ -168,7 +168,7 @@ PCUT_TEST(paint_gfx)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_slider_create(resource, "Hello", &slider);
+	rc = ui_slider_create(resource, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_slider_paint_gfx(slider);
@@ -198,7 +198,7 @@ PCUT_TEST(paint_text)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_slider_create(resource, "Hello", &slider);
+	rc = ui_slider_create(resource, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_slider_paint_text(slider);
@@ -218,7 +218,7 @@ PCUT_TEST(moved)
 	ui_slider_t *slider;
 	test_cb_resp_t resp;
 
-	rc = ui_slider_create(NULL, "Hello", &slider);
+	rc = ui_slider_create(NULL, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Moved with no callbacks set */
@@ -259,7 +259,7 @@ PCUT_TEST(press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_slider_create(resource, "Hello", &slider);
+	rc = ui_slider_create(resource, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -315,7 +315,7 @@ PCUT_TEST(press_uodate_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_slider_create(resource, "Hello", &slider);
+	rc = ui_slider_create(resource, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -379,7 +379,7 @@ PCUT_TEST(pos_event_press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_slider_create(resource, "Hello", &slider);
+	rc = ui_slider_create(resource, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(slider->held);
@@ -440,7 +440,7 @@ PCUT_TEST(length)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_slider_create(resource, "Hello", &slider);
+	rc = ui_slider_create(resource, &slider);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(slider->held);

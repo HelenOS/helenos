@@ -1036,7 +1036,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_slider_create(ui_res, "Slide!", &demo.slider);
+	rc = ui_slider_create(ui_res, &demo.slider);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;

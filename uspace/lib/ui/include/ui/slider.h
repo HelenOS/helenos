@@ -45,8 +45,7 @@
 #include <types/ui/resource.h>
 #include <types/ui/slider.h>
 
-extern errno_t ui_slider_create(ui_resource_t *, const char *,
-    ui_slider_t **);
+extern errno_t ui_slider_create(ui_resource_t *, ui_slider_t **);
 extern void ui_slider_destroy(ui_slider_t *);
 extern ui_control_t *ui_slider_ctl(ui_slider_t *);
 extern void ui_slider_set_cb(ui_slider_t *, ui_slider_cb_t *, void *);

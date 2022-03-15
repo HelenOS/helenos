@@ -87,12 +87,10 @@ ui_control_ops_t ui_slider_ops = {
 /** Create new slider.
  *
  * @param resource UI resource
- * @param caption Caption
  * @param rslider Place to store pointer to new slider
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_slider_create(ui_resource_t *resource, const char *caption,
-    ui_slider_t **rslider)
+errno_t ui_slider_create(ui_resource_t *resource, ui_slider_t **rslider)
 {
 	ui_slider_t *slider;
 	errno_t rc;
