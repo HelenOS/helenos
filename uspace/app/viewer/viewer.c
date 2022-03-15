@@ -215,7 +215,7 @@ static void print_syntax(void)
 
 int main(int argc, char *argv[])
 {
-	const char *display_spec = DISPLAY_DEFAULT;
+	const char *display_spec = UI_DISPLAY_DEFAULT;
 	gfx_bitmap_t *lbitmap;
 	gfx_rect_t lrect;
 	bool fullscreen = false;
