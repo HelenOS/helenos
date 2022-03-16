@@ -74,6 +74,7 @@ test_src = files(
 	'test/promptdialog.c',
 	'test/rbutton.c',
 	'test/resource.c',
+	'test/scrollbar.c',
 	'test/slider.c',
 	'test/ui.c',
 	'test/wdecor.c',

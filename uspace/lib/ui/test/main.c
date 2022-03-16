@@ -47,6 +47,7 @@ PCUT_IMPORT(pbutton);
 PCUT_IMPORT(popup);
 PCUT_IMPORT(rbutton);
 PCUT_IMPORT(resource);
+PCUT_IMPORT(scrollbar);
 PCUT_IMPORT(slider);
 PCUT_IMPORT(ui);
 PCUT_IMPORT(wdecor);

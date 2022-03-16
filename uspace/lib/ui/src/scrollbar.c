@@ -48,11 +48,6 @@
 #include "../private/resource.h"
 #include "../private/scrollbar.h"
 
-/*
- * The kind reader will appreciate that scrollbar thumb dimensions 23:15
- * are chosen such that, after subtracting the frame width (2 times 1),
- * we get 21:13, which is a good approximation of the golden ratio.
- */
 enum {
 	/** Scrollbar button width */
 	ui_scrollbar_btn_len = 20,
@@ -470,6 +465,10 @@ errno_t ui_scrollbar_paint_text(ui_scrollbar_t *scrollbar)
 
 	w = scrollbar->rect.p1.x - scrollbar->rect.p0.x -
 	    2 * ui_scrollbar_btn_len_text;
+	assert(w >= 0);
+	if (w < 0)
+		return EINVAL;
+
 	gchar = "\u2592";
 	gcharsz = str_size(gchar);
 

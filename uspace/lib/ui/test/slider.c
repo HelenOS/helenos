@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -224,7 +224,7 @@ PCUT_TEST(moved)
 	/* Moved with no callbacks set */
 	ui_slider_moved(slider, 42);
 
-	/* Moved with callback not implementing clicked */
+	/* Moved with callback not implementing moved */
 	ui_slider_set_cb(slider, &dummy_slider_cb, NULL);
 	ui_slider_moved(slider, 42);
 
