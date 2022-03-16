@@ -463,7 +463,8 @@ void ui_menu_entry_release(ui_menu_entry_t *mentry)
 
 	mentry->held = false;
 
-	ui_menu_entry_activate(mentry);
+	if (mentry->inside)
+		ui_menu_entry_activate(mentry);
 }
 
 /** Activate menu entry.
