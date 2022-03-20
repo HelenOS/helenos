@@ -551,7 +551,7 @@ PCUT_TEST(thumb_press_release)
 }
 
 /** Press, update and release scrollbar */
-PCUT_TEST(press_uodate_release)
+PCUT_TEST(thumb_press_update_release)
 {
 	errno_t rc;
 	gfx_context_t *gc = NULL;
@@ -606,6 +606,110 @@ PCUT_TEST(press_uodate_release)
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 	PCUT_ASSERT_TRUE(resp.moved);
 	PCUT_ASSERT_INT_EQUALS(20, scrollbar->pos);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Press and release up through */
+PCUT_TEST(up_through_press_release)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	gfx_coord2_t pos;
+	gfx_rect_t rect;
+	ui_scrollbar_t *scrollbar;
+	test_cb_resp_t resp;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_scrollbar_create(resource, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 110;
+	rect.p1.y = 120;
+	ui_scrollbar_set_rect(scrollbar, &rect);
+
+	resp.page_up = false;
+	ui_scrollbar_set_cb(scrollbar, &test_scrollbar_cb, &resp);
+
+	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+
+	ui_scrollbar_up_through_press(scrollbar);
+	PCUT_ASSERT_TRUE(scrollbar->up_through_held);
+	PCUT_ASSERT_TRUE(resp.page_up);
+
+	/* Position does not matter here */
+	pos.x = 11;
+	pos.y = 22;
+
+	ui_scrollbar_release(scrollbar, &pos);
+	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Press and release down through */
+PCUT_TEST(down_through_press_release)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	gfx_coord2_t pos;
+	gfx_rect_t rect;
+	ui_scrollbar_t *scrollbar;
+	test_cb_resp_t resp;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_scrollbar_create(resource, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 110;
+	rect.p1.y = 120;
+	ui_scrollbar_set_rect(scrollbar, &rect);
+
+	resp.page_down = false;
+	ui_scrollbar_set_cb(scrollbar, &test_scrollbar_cb, &resp);
+
+	PCUT_ASSERT_FALSE(scrollbar->down_through_held);
+
+	ui_scrollbar_down_through_press(scrollbar);
+	PCUT_ASSERT_TRUE(scrollbar->down_through_held);
+	PCUT_ASSERT_TRUE(resp.page_down);
+
+	/* Position does not matter here */
+	pos.x = 11;
+	pos.y = 22;
+
+	ui_scrollbar_release(scrollbar, &pos);
+	PCUT_ASSERT_FALSE(scrollbar->down_through_held);
 
 	ui_scrollbar_destroy(scrollbar);
 	ui_resource_destroy(resource);
@@ -920,6 +1024,117 @@ PCUT_TEST(pos_event_press_release_up_btn)
 	event.vpos = 20;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
 	PCUT_ASSERT_TRUE(scrollbar->btn_up->held);
+	PCUT_ASSERT_EQUALS(ui_claimed, claim);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ui_scrollbar_pos_event() detects up through press/release */
+PCUT_TEST(pos_event_press_release_up_through)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_scrollbar_t *scrollbar;
+	ui_evclaim_t claim;
+	pos_event_t event;
+	gfx_rect_t rect;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_scrollbar_create(resource, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+
+	rect.p0.x = 20;
+	rect.p0.y = 10;
+	rect.p1.x = 100;
+	rect.p1.y = 30;
+	ui_scrollbar_set_rect(scrollbar, &rect);
+
+	/* Need to move thumb so that up through can be accessed */
+	ui_scrollbar_set_pos(scrollbar, 42);
+
+	/* Press inside up through is claimed and depresses it */
+	event.type = POS_PRESS;
+	event.hpos = 50;
+	event.vpos = 20;
+	claim = ui_scrollbar_pos_event(scrollbar, &event);
+	PCUT_ASSERT_TRUE(scrollbar->up_through_held);
+	PCUT_ASSERT_EQUALS(ui_claimed, claim);
+
+	/* Release outside (or anywhere) is claimed and relases up through */
+	event.type = POS_RELEASE;
+	event.hpos = 41;
+	event.vpos = 32;
+	claim = ui_scrollbar_pos_event(scrollbar, &event);
+	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+	PCUT_ASSERT_EQUALS(ui_claimed, claim);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ui_scrollbar_pos_event() detects down through press/release */
+PCUT_TEST(pos_event_press_release_down_through)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_scrollbar_t *scrollbar;
+	ui_evclaim_t claim;
+	pos_event_t event;
+	gfx_rect_t rect;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_scrollbar_create(resource, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+
+	rect.p0.x = 20;
+	rect.p0.y = 10;
+	rect.p1.x = 100;
+	rect.p1.y = 30;
+	ui_scrollbar_set_rect(scrollbar, &rect);
+
+	/* Press inside down through is claimed and depresses it */
+	event.type = POS_PRESS;
+	event.hpos = 70;
+	event.vpos = 20;
+	claim = ui_scrollbar_pos_event(scrollbar, &event);
+	PCUT_ASSERT_TRUE(scrollbar->down_through_held);
+	PCUT_ASSERT_EQUALS(ui_claimed, claim);
+
+	/* Release outside (or anywhere) is claimed and relases up through */
+	event.type = POS_RELEASE;
+	event.hpos = 41;
+	event.vpos = 32;
+	claim = ui_scrollbar_pos_event(scrollbar, &event);
+	PCUT_ASSERT_FALSE(scrollbar->down_through_held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
