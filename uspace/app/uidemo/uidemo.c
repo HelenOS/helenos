@@ -88,11 +88,15 @@ static ui_slider_cb_t slider_cb = {
 
 static void scrollbar_up(ui_scrollbar_t *, void *);
 static void scrollbar_down(ui_scrollbar_t *, void *);
+static void scrollbar_page_up(ui_scrollbar_t *, void *);
+static void scrollbar_page_down(ui_scrollbar_t *, void *);
 static void scrollbar_moved(ui_scrollbar_t *, void *, gfx_coord_t);
 
 static ui_scrollbar_cb_t scrollbar_cb = {
 	.up = scrollbar_up,
 	.down = scrollbar_down,
+	.page_up = scrollbar_page_up,
+	.page_down = scrollbar_page_down,
 	.moved = scrollbar_moved
 };
 
@@ -231,30 +235,13 @@ static void slider_moved(ui_slider_t *slider, void *arg, gfx_coord_t pos)
  */
 static void scrollbar_up(ui_scrollbar_t *scrollbar, void *arg)
 {
-	ui_demo_t *demo = (ui_demo_t *) arg;
 	gfx_coord_t pos;
-	char *str;
-	errno_t rc;
-	int rv;
 
 	pos = ui_scrollbar_get_pos(scrollbar);
 	ui_scrollbar_set_pos(scrollbar, pos - 1);
 
 	pos = ui_scrollbar_get_pos(scrollbar);
-
-	rv = asprintf(&str, "Scrollbar: %d of %d", (int) pos,
-	    ui_scrollbar_move_length(scrollbar));
-	if (rv < 0) {
-		printf("Out of memory.\n");
-		return;
-	}
-
-	rc = ui_entry_set_text(demo->entry, str);
-	if (rc != EOK)
-		printf("Error changing entry text.\n");
-	(void) ui_entry_paint(demo->entry);
-
-	free(str);
+	scrollbar_moved(scrollbar, arg, pos);
 }
 
 /** Scrollbar down button pressed.
@@ -264,30 +251,47 @@ static void scrollbar_up(ui_scrollbar_t *scrollbar, void *arg)
  */
 static void scrollbar_down(ui_scrollbar_t *scrollbar, void *arg)
 {
-	ui_demo_t *demo = (ui_demo_t *) arg;
 	gfx_coord_t pos;
-	char *str;
-	errno_t rc;
-	int rv;
 
 	pos = ui_scrollbar_get_pos(scrollbar);
 	ui_scrollbar_set_pos(scrollbar, pos + 1);
 
 	pos = ui_scrollbar_get_pos(scrollbar);
+	scrollbar_moved(scrollbar, arg, pos);
+}
 
-	rv = asprintf(&str, "Scrollbar: %d of %d", (int) pos,
-	    ui_scrollbar_move_length(scrollbar));
-	if (rv < 0) {
-		printf("Out of memory.\n");
-		return;
-	}
+/** Scrollbar page up event.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (demo)
+ */
+static void scrollbar_page_up(ui_scrollbar_t *scrollbar, void *arg)
+{
+	gfx_coord_t pos;
 
-	rc = ui_entry_set_text(demo->entry, str);
-	if (rc != EOK)
-		printf("Error changing entry text.\n");
-	(void) ui_entry_paint(demo->entry);
+	pos = ui_scrollbar_get_pos(scrollbar);
+	ui_scrollbar_set_pos(scrollbar, pos -
+	    ui_scrollbar_through_length(scrollbar) / 4);
 
-	free(str);
+	pos = ui_scrollbar_get_pos(scrollbar);
+	scrollbar_moved(scrollbar, arg, pos);
+}
+
+/** Scrollbar page down event.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (demo)
+ */
+static void scrollbar_page_down(ui_scrollbar_t *scrollbar, void *arg)
+{
+	gfx_coord_t pos;
+
+	pos = ui_scrollbar_get_pos(scrollbar);
+	ui_scrollbar_set_pos(scrollbar, pos +
+	    ui_scrollbar_through_length(scrollbar) / 4);
+
+	pos = ui_scrollbar_get_pos(scrollbar);
+	scrollbar_moved(scrollbar, arg, pos);
 }
 
 /** Scrollbar was moved.

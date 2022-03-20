@@ -56,11 +56,15 @@ extern gfx_coord_t ui_scrollbar_move_length(ui_scrollbar_t *);
 extern gfx_coord_t ui_scrollbar_get_pos(ui_scrollbar_t *);
 extern void ui_scrollbar_set_thumb_length(ui_scrollbar_t *, gfx_coord_t);
 extern void ui_scrollbar_set_pos(ui_scrollbar_t *, gfx_coord_t);
-extern void ui_scrollbar_press(ui_scrollbar_t *, gfx_coord2_t *);
+extern void ui_scrollbar_thumb_press(ui_scrollbar_t *, gfx_coord2_t *);
+extern void ui_scrollbar_up_through_press(ui_scrollbar_t *);
+extern void ui_scrollbar_down_through_press(ui_scrollbar_t *);
 extern void ui_scrollbar_release(ui_scrollbar_t *, gfx_coord2_t *);
 extern void ui_scrollbar_update(ui_scrollbar_t *, gfx_coord2_t *);
 extern void ui_scrollbar_up(ui_scrollbar_t *);
 extern void ui_scrollbar_down(ui_scrollbar_t *);
+extern void ui_scrollbar_page_up(ui_scrollbar_t *);
+extern void ui_scrollbar_page_down(ui_scrollbar_t *);
 extern void ui_scrollbar_moved(ui_scrollbar_t *, gfx_coord_t);
 extern ui_evclaim_t ui_scrollbar_pos_event(ui_scrollbar_t *, pos_event_t *);
 

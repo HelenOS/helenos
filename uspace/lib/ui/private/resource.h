@@ -115,6 +115,8 @@ struct ui_resource {
 
 	/** Scrollbar through color */
 	gfx_color_t *sbar_through_color;
+	/** Scrollbar active through color */
+	gfx_color_t *sbar_act_through_color;
 
 	/** Expose callback or @c NULL */
 	ui_expose_cb_t expose_cb;

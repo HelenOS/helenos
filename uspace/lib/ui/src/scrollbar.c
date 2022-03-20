@@ -31,6 +31,29 @@
  */
 /**
  * @file Scrollbar
+ *
+ * Anatomy of a horizontal scrollbar:
+ *
+ *       Up                Down
+ *      through           through
+ * +---+------+--------+---------+---+
+ * | < |      |   |||  |         | > |
+ * +---+------+--------+---------+---+
+ *  Up           Thumb           Down
+ * button                       button
+ *
+ *     +-------- Through --------+
+ *
+ * Scrollbar uses the same terminology whether it is running in horizontal
+ * or vertical mode, in horizontal mode up means left, down means right
+ * (i.e. lower and higher coordinates, respectively).
+ *
+ * The thumb can be dragged to a specific position, resulting in a move
+ * event. The up/down buttons generate up/down events. Pressing a mouse
+ * button on the up/down through generates page up / page down events.
+ *
+ * TODO: Up/down buttons/throughs should be equipped with an autorepeat
+ * mechanism: after an initial delay, start repeating at a preset rate.
  */
 
 #include <errno.h>
@@ -390,14 +413,28 @@ errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *scrollbar)
 	if (rc != EOK)
 		goto error;
 
-	/* Paint scrollbar through */
-
+	/* Paint scrollbar up through */
 	rc = gfx_set_color(scrollbar->res->gc,
+	    scrollbar->up_through_held ?
+	    scrollbar->res->sbar_act_through_color :
 	    scrollbar->res->sbar_through_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_fill_rect(scrollbar->res->gc, &geom.through_rect);
+	rc = gfx_fill_rect(scrollbar->res->gc, &geom.up_through_rect);
+	if (rc != EOK)
+		goto error;
+
+	/* Paint scrollbar down through */
+
+	rc = gfx_set_color(scrollbar->res->gc,
+	    scrollbar->down_through_held ?
+	    scrollbar->res->sbar_act_through_color :
+	    scrollbar->res->sbar_through_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_fill_rect(scrollbar->res->gc, &geom.down_through_rect);
 	if (rc != EOK)
 		goto error;
 
@@ -581,6 +618,16 @@ void ui_scrollbar_get_geom(ui_scrollbar_t *scrollbar, ui_scrollbar_geom_t *geom)
 	geom->thumb_rect.p1.x = geom->thumb_rect.p0.x + scrollbar->thumb_len;
 	geom->thumb_rect.p1.y = orect.p1.y;
 
+	/* Up through */
+	geom->up_through_rect.p0 = geom->through_rect.p0;
+	geom->up_through_rect.p1.x = geom->thumb_rect.p0.x;
+	geom->up_through_rect.p1.y = geom->through_rect.p1.y;
+
+	/* Down through */
+	geom->down_through_rect.p0.x = geom->thumb_rect.p1.x;
+	geom->down_through_rect.p0.y = geom->through_rect.p0.y;
+	geom->down_through_rect.p1 = geom->through_rect.p1;
+
 	/* Down button */
 	geom->down_btn_rect.p0.x = geom->through_rect.p1.x;
 	geom->down_btn_rect.p0.y = orect.p0.y;
@@ -617,21 +664,51 @@ error:
 	return rc;
 }
 
-/** Press down scrollbar.
+/** Press down scrollbar thumb.
  *
  * @param scrollbar Scrollbar
  * @param pos Pointer position
  */
-void ui_scrollbar_press(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
+void ui_scrollbar_thumb_press(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
 {
-	if (scrollbar->held)
+	if (scrollbar->thumb_held)
 		return;
 
-	scrollbar->held = true;
+	scrollbar->thumb_held = true;
 	scrollbar->press_pos = *pos;
 	scrollbar->last_pos = scrollbar->pos;
 
 	(void) ui_scrollbar_paint(scrollbar);
+}
+
+/** Press down scrollbar up through.
+ *
+ * @param scrollbar Scrollbar
+ */
+void ui_scrollbar_up_through_press(ui_scrollbar_t *scrollbar)
+{
+	if (scrollbar->up_through_held)
+		return;
+
+	scrollbar->up_through_held = true;
+	(void) ui_scrollbar_paint(scrollbar);
+
+	ui_scrollbar_page_up(scrollbar);
+}
+
+/** Press down scrollbar down through.
+ *
+ * @param scrollbar Scrollbar
+ */
+void ui_scrollbar_down_through_press(ui_scrollbar_t *scrollbar)
+{
+	if (scrollbar->down_through_held)
+		return;
+
+	scrollbar->down_through_held = true;
+	(void) ui_scrollbar_paint(scrollbar);
+
+	ui_scrollbar_page_down(scrollbar);
 }
 
 /** Release scrollbar.
@@ -641,11 +718,16 @@ void ui_scrollbar_press(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
  */
 void ui_scrollbar_release(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
 {
-	if (!scrollbar->held)
-		return;
+	if (scrollbar->thumb_held) {
+		ui_scrollbar_update(scrollbar, pos);
+		scrollbar->thumb_held = false;
+	}
 
-	ui_scrollbar_update(scrollbar, pos);
-	scrollbar->held = false;
+	if (scrollbar->up_through_held || scrollbar->down_through_held) {
+		scrollbar->up_through_held = false;
+		scrollbar->down_through_held = false;
+		(void) ui_scrollbar_paint(scrollbar);
+	}
 }
 
 /** Pointer moved.
@@ -657,7 +739,7 @@ void ui_scrollbar_update(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
 {
 	gfx_coord_t spos;
 
-	if (scrollbar->held) {
+	if (scrollbar->thumb_held) {
 		spos = scrollbar->last_pos + pos->x - scrollbar->press_pos.x;
 		ui_scrollbar_set_pos(scrollbar, spos);
 	}
@@ -679,8 +761,28 @@ void ui_scrollbar_up(ui_scrollbar_t *scrollbar)
  */
 void ui_scrollbar_down(ui_scrollbar_t *scrollbar)
 {
-	if (scrollbar->cb != NULL && scrollbar->cb->up != NULL)
+	if (scrollbar->cb != NULL && scrollbar->cb->down != NULL)
 		scrollbar->cb->down(scrollbar, scrollbar->arg);
+}
+
+/** Scrollbar up through was pressed.
+ *
+ * @param scrollbar Scrollbar
+ */
+void ui_scrollbar_page_up(ui_scrollbar_t *scrollbar)
+{
+	if (scrollbar->cb != NULL && scrollbar->cb->page_up != NULL)
+		scrollbar->cb->page_up(scrollbar, scrollbar->arg);
+}
+
+/** Scrollbar down through was pressed.
+ *
+ * @param scrollbar Scrollbar
+ */
+void ui_scrollbar_page_down(ui_scrollbar_t *scrollbar)
+{
+	if (scrollbar->cb != NULL && scrollbar->cb->page_down != NULL)
+		scrollbar->cb->page_down(scrollbar, scrollbar->arg);
 }
 
 /** Scrollbar was moved.
@@ -702,8 +804,10 @@ void ui_scrollbar_moved(ui_scrollbar_t *scrollbar, gfx_coord_t pos)
 ui_evclaim_t ui_scrollbar_pos_event(ui_scrollbar_t *scrollbar, pos_event_t *event)
 {
 	gfx_coord2_t pos;
-	gfx_rect_t rect;
 	ui_evclaim_t claimed;
+	ui_scrollbar_geom_t geom;
+
+	ui_scrollbar_get_geom(scrollbar, &geom);
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
@@ -718,15 +822,22 @@ ui_evclaim_t ui_scrollbar_pos_event(ui_scrollbar_t *scrollbar, pos_event_t *even
 
 	switch (event->type) {
 	case POS_PRESS:
-		ui_scrollbar_thumb_rect(scrollbar, &rect);
-		if (gfx_pix_inside_rect(&pos, &rect)) {
-			ui_scrollbar_press(scrollbar, &pos);
-			scrollbar->press_pos = pos;
+		if (gfx_pix_inside_rect(&pos, &geom.thumb_rect)) {
+			ui_scrollbar_thumb_press(scrollbar, &pos);
+			return ui_claimed;
+		}
+		if (gfx_pix_inside_rect(&pos, &geom.up_through_rect)) {
+			ui_scrollbar_up_through_press(scrollbar);
+			return ui_claimed;
+		}
+		if (gfx_pix_inside_rect(&pos, &geom.down_through_rect)) {
+			ui_scrollbar_down_through_press(scrollbar);
 			return ui_claimed;
 		}
 		break;
 	case POS_RELEASE:
-		if (scrollbar->held) {
+		if (scrollbar->thumb_held || scrollbar->up_through_held ||
+		    scrollbar->down_through_held) {
 			ui_scrollbar_release(scrollbar, &pos);
 			return ui_claimed;
 		}

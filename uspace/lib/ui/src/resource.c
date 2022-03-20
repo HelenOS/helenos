@@ -84,6 +84,7 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 	gfx_color_t *entry_sel_text_fg_color = NULL;
 	gfx_color_t *entry_sel_text_bg_color = NULL;
 	gfx_color_t *sbar_through_color = NULL;
+	gfx_color_t *sbar_act_through_color = NULL;
 	errno_t rc;
 
 	resource = calloc(1, sizeof(ui_resource_t));
@@ -213,6 +214,11 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_rgb_i16(0x5858, 0x5858, 0x5858,
+	    &sbar_act_through_color);
+	if (rc != EOK)
+		goto error;
+
 	resource->gc = gc;
 	resource->tface = tface;
 	resource->font = font;
@@ -247,6 +253,7 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 	resource->entry_sel_text_bg_color = entry_sel_text_bg_color;
 
 	resource->sbar_through_color = sbar_through_color;
+	resource->sbar_act_through_color = sbar_act_through_color;
 
 	*rresource = resource;
 	return EOK;
@@ -305,6 +312,8 @@ error:
 
 	if (sbar_through_color != NULL)
 		gfx_color_delete(sbar_through_color);
+	if (sbar_act_through_color != NULL)
+		gfx_color_delete(sbar_act_through_color);
 
 	if (tface != NULL)
 		gfx_typeface_destroy(tface);
@@ -349,6 +358,7 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	gfx_color_t *entry_sel_text_bg_color = NULL;
 	gfx_color_t *entry_act_bg_color = NULL;
 	gfx_color_t *sbar_through_color = NULL;
+	gfx_color_t *sbar_act_through_color = NULL;
 	errno_t rc;
 
 	resource = calloc(1, sizeof(ui_resource_t));
@@ -464,6 +474,10 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	if (rc != EOK)
 		goto error;
 
+	rc = gfx_color_new_ega(0x07, &sbar_act_through_color);
+	if (rc != EOK)
+		goto error;
+
 	resource->gc = gc;
 	resource->tface = tface;
 	resource->font = font;
@@ -498,6 +512,7 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	resource->entry_sel_text_bg_color = entry_sel_text_bg_color;
 
 	resource->sbar_through_color = sbar_through_color;
+	resource->sbar_act_through_color = sbar_act_through_color;
 
 	*rresource = resource;
 	return EOK;
@@ -555,6 +570,8 @@ error:
 		gfx_color_delete(entry_sel_text_bg_color);
 	if (sbar_through_color != NULL)
 		gfx_color_delete(sbar_through_color);
+	if (sbar_act_through_color != NULL)
+		gfx_color_delete(sbar_act_through_color);
 
 	if (tface != NULL)
 		gfx_typeface_destroy(tface);
@@ -614,6 +631,7 @@ void ui_resource_destroy(ui_resource_t *resource)
 	gfx_color_delete(resource->entry_sel_text_bg_color);
 
 	gfx_color_delete(resource->sbar_through_color);
+	gfx_color_delete(resource->sbar_act_through_color);
 
 	gfx_font_close(resource->font);
 	gfx_typeface_destroy(resource->tface);

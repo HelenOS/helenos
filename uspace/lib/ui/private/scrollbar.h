@@ -62,7 +62,11 @@ struct ui_scrollbar {
 	/** Down button */
 	struct ui_pbutton *btn_down;
 	/** Thumb is currently held down */
-	bool held;
+	bool thumb_held;
+	/** Up through is currently held down */
+	bool up_through_held;
+	/** Down through is currently held down */
+	bool down_through_held;
 	/** Position where thumb was pressed */
 	gfx_coord2_t press_pos;
 	/** Last thumb position */
@@ -80,8 +84,12 @@ typedef struct {
 	gfx_rect_t up_btn_rect;
 	/** Through rectangle */
 	gfx_rect_t through_rect;
+	/** Up through rectangle */
+	gfx_rect_t up_through_rect;
 	/** Thumb rectangle */
 	gfx_rect_t thumb_rect;
+	/** Down through rectangle */
+	gfx_rect_t down_through_rect;
 	/** Down button rectangle */
 	gfx_rect_t down_btn_rect;
 } ui_scrollbar_geom_t;

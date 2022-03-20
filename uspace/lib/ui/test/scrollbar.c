@@ -64,11 +64,15 @@ static gfx_context_ops_t ops = {
 
 static void test_scrollbar_up(ui_scrollbar_t *, void *);
 static void test_scrollbar_down(ui_scrollbar_t *, void *);
+static void test_scrollbar_page_up(ui_scrollbar_t *, void *);
+static void test_scrollbar_page_down(ui_scrollbar_t *, void *);
 static void test_scrollbar_moved(ui_scrollbar_t *, void *, gfx_coord_t);
 
 static ui_scrollbar_cb_t test_scrollbar_cb = {
 	.up = test_scrollbar_up,
 	.down = test_scrollbar_down,
+	.page_up = test_scrollbar_page_up,
+	.page_down = test_scrollbar_page_down,
 	.moved = test_scrollbar_moved
 };
 
@@ -95,6 +99,8 @@ typedef struct {
 typedef struct {
 	bool up;
 	bool down;
+	bool page_up;
+	bool page_down;
 	bool moved;
 	gfx_coord_t pos;
 } test_cb_resp_t;
@@ -294,7 +300,7 @@ PCUT_TEST(through_length)
 	rc = ui_scrollbar_create(resource, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	rect.p0.x = 10;
 	rect.p0.y = 20;
@@ -336,7 +342,7 @@ PCUT_TEST(move_length)
 	rc = ui_scrollbar_create(resource, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	rect.p0.x = 10;
 	rect.p0.y = 20;
@@ -378,7 +384,7 @@ PCUT_TEST(get_pos)
 	rc = ui_scrollbar_create(resource, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	rect.p0.x = 10;
 	rect.p0.y = 20;
@@ -418,7 +424,7 @@ PCUT_TEST(set_thumb_length)
 	rc = ui_scrollbar_create(resource, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	rect.p0.x = 10;
 	rect.p0.y = 20;
@@ -458,7 +464,7 @@ PCUT_TEST(set_pos)
 	rc = ui_scrollbar_create(resource, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	rect.p0.x = 10;
 	rect.p0.y = 20;
@@ -488,8 +494,8 @@ PCUT_TEST(set_pos)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
-/** Press and release scrollbar */
-PCUT_TEST(press_release)
+/** Press and release scrollbar thumb */
+PCUT_TEST(thumb_press_release)
 {
 	errno_t rc;
 	gfx_context_t *gc = NULL;
@@ -520,20 +526,20 @@ PCUT_TEST(press_release)
 	resp.moved = false;
 	ui_scrollbar_set_cb(scrollbar, &test_scrollbar_cb, &resp);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	pos.x = 11;
 	pos.y = 22;
 
-	ui_scrollbar_press(scrollbar, &pos);
-	PCUT_ASSERT_TRUE(scrollbar->held);
+	ui_scrollbar_thumb_press(scrollbar, &pos);
+	PCUT_ASSERT_TRUE(scrollbar->thumb_held);
 	PCUT_ASSERT_FALSE(resp.moved);
 
 	pos.x = 21;
 	pos.y = 32;
 
 	ui_scrollbar_release(scrollbar, &pos);
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 	PCUT_ASSERT_TRUE(resp.moved);
 	PCUT_ASSERT_INT_EQUALS(10, scrollbar->pos);
 
@@ -576,20 +582,20 @@ PCUT_TEST(press_uodate_release)
 	resp.moved = false;
 	ui_scrollbar_set_cb(scrollbar, &test_scrollbar_cb, &resp);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	pos.x = 11;
 	pos.y = 22;
 
-	ui_scrollbar_press(scrollbar, &pos);
-	PCUT_ASSERT_TRUE(scrollbar->held);
+	ui_scrollbar_thumb_press(scrollbar, &pos);
+	PCUT_ASSERT_TRUE(scrollbar->thumb_held);
 	PCUT_ASSERT_FALSE(resp.moved);
 
 	pos.x = 21;
 	pos.y = 32;
 
 	ui_scrollbar_update(scrollbar, &pos);
-	PCUT_ASSERT_TRUE(scrollbar->held);
+	PCUT_ASSERT_TRUE(scrollbar->thumb_held);
 	PCUT_ASSERT_TRUE(resp.moved);
 	PCUT_ASSERT_INT_EQUALS(10, scrollbar->pos);
 
@@ -597,7 +603,7 @@ PCUT_TEST(press_uodate_release)
 	pos.y = 42;
 
 	ui_scrollbar_release(scrollbar, &pos);
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 	PCUT_ASSERT_TRUE(resp.moved);
 	PCUT_ASSERT_INT_EQUALS(20, scrollbar->pos);
 
@@ -690,6 +696,88 @@ PCUT_TEST(down)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** ui_scrollbar_page_up() delivers page up event */
+PCUT_TEST(page_up)
+{
+	ui_scrollbar_t *scrollbar;
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	test_cb_resp_t resp;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_scrollbar_create(resource, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Page up with no callbacks set */
+	ui_scrollbar_page_up(scrollbar);
+
+	/* Pge up with callback not implementing page up */
+	ui_scrollbar_set_cb(scrollbar, &dummy_scrollbar_cb, NULL);
+	ui_scrollbar_page_up(scrollbar);
+
+	/* Page up with real callback set */
+	resp.page_up = false;
+	ui_scrollbar_set_cb(scrollbar, &test_scrollbar_cb, &resp);
+	ui_scrollbar_page_up(scrollbar);
+	PCUT_ASSERT_TRUE(resp.page_up);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ui_scrollbar_page_down() delivers page down event */
+PCUT_TEST(page_down)
+{
+	ui_scrollbar_t *scrollbar;
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	test_cb_resp_t resp;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_scrollbar_create(resource, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Page down with no callbacks set */
+	ui_scrollbar_page_down(scrollbar);
+
+	/* Page down with callback not implementing page down */
+	ui_scrollbar_set_cb(scrollbar, &dummy_scrollbar_cb, NULL);
+	ui_scrollbar_page_down(scrollbar);
+
+	/* Page down with real callback set */
+	resp.page_down = false;
+	ui_scrollbar_set_cb(scrollbar, &test_scrollbar_cb, &resp);
+	ui_scrollbar_page_down(scrollbar);
+	PCUT_ASSERT_TRUE(resp.page_down);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** ui_scrollbar_moved() delivers moved event */
 PCUT_TEST(moved)
 {
@@ -756,7 +844,7 @@ PCUT_TEST(pos_event_press_release_thumb)
 	rc = ui_scrollbar_create(resource, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	rect.p0.x = 20;
 	rect.p0.y = 10;
@@ -769,7 +857,7 @@ PCUT_TEST(pos_event_press_release_thumb)
 	event.hpos = 1;
 	event.vpos = 2;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 	PCUT_ASSERT_EQUALS(ui_unclaimed, claim);
 
 	/* Press inside thumb is claimed and depresses it */
@@ -777,7 +865,7 @@ PCUT_TEST(pos_event_press_release_thumb)
 	event.hpos = 50;
 	event.vpos = 20;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_TRUE(scrollbar->held);
+	PCUT_ASSERT_TRUE(scrollbar->thumb_held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	/* Release outside (or anywhere) is claimed and relases thumb */
@@ -785,7 +873,7 @@ PCUT_TEST(pos_event_press_release_thumb)
 	event.hpos = 41;
 	event.vpos = 32;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
@@ -818,7 +906,7 @@ PCUT_TEST(pos_event_press_release_up_btn)
 	rc = ui_scrollbar_create(resource, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	rect.p0.x = 20;
 	rect.p0.y = 10;
@@ -864,7 +952,7 @@ PCUT_TEST(pos_event_press_relese_down_btn)
 	rc = ui_scrollbar_create(resource, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->held);
+	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
 
 	rect.p0.x = 20;
 	rect.p0.y = 10;
@@ -991,6 +1079,20 @@ static void test_scrollbar_down(ui_scrollbar_t *scrollbar, void *arg)
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
 	resp->down = true;
+}
+
+static void test_scrollbar_page_up(ui_scrollbar_t *scrollbar, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->page_up = true;
+}
+
+static void test_scrollbar_page_down(ui_scrollbar_t *scrollbar, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->page_down = true;
 }
 
 static void test_scrollbar_moved(ui_scrollbar_t *scrollbar, void *arg, gfx_coord_t pos)
