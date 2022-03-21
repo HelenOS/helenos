@@ -58,9 +58,9 @@ struct ui_scrollbar {
 	/** Thumb length */
 	gfx_coord_t thumb_len;
 	/** Up button */
-	struct ui_pbutton *btn_up;
+	struct ui_pbutton *up_btn;
 	/** Down button */
-	struct ui_pbutton *btn_down;
+	struct ui_pbutton *down_btn;
 	/** Thumb is currently held down */
 	bool thumb_held;
 	/** Up through is currently held down */

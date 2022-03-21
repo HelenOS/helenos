@@ -62,9 +62,13 @@ static gfx_context_ops_t ops = {
 };
 
 static void test_pbutton_clicked(ui_pbutton_t *, void *);
+static void test_pbutton_down(ui_pbutton_t *, void *);
+static void test_pbutton_up(ui_pbutton_t *, void *);
 
 static ui_pbutton_cb_t test_pbutton_cb = {
-	.clicked = test_pbutton_clicked
+	.clicked = test_pbutton_clicked,
+	.down = test_pbutton_down,
+	.up = test_pbutton_up
 };
 
 static ui_pbutton_cb_t dummy_pbutton_cb = {
@@ -89,6 +93,8 @@ typedef struct {
 
 typedef struct {
 	bool clicked;
+	bool down;
+	bool up;
 } test_cb_resp_t;
 
 /** Create and destroy button */
@@ -224,6 +230,58 @@ PCUT_TEST(clicked)
 	ui_pbutton_destroy(pbutton);
 }
 
+/** Test ui_pbutton_down() */
+PCUT_TEST(down)
+{
+	errno_t rc;
+	ui_pbutton_t *pbutton;
+	test_cb_resp_t resp;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Down with no callbacks set */
+	ui_pbutton_clicked(pbutton);
+
+	/* Down with callback not implementing down */
+	ui_pbutton_set_cb(pbutton, &dummy_pbutton_cb, NULL);
+	ui_pbutton_down(pbutton);
+
+	/* Down with real callback set */
+	resp.down = false;
+	ui_pbutton_set_cb(pbutton, &test_pbutton_cb, &resp);
+	ui_pbutton_down(pbutton);
+	PCUT_ASSERT_TRUE(resp.down);
+
+	ui_pbutton_destroy(pbutton);
+}
+
+/** Test ui_pbutton_up() */
+PCUT_TEST(up)
+{
+	errno_t rc;
+	ui_pbutton_t *pbutton;
+	test_cb_resp_t resp;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Up with no callbacks set */
+	ui_pbutton_clicked(pbutton);
+
+	/* Up with callback not implementing up */
+	ui_pbutton_set_cb(pbutton, &dummy_pbutton_cb, NULL);
+	ui_pbutton_up(pbutton);
+
+	/* Up with real callback set */
+	resp.up = false;
+	ui_pbutton_set_cb(pbutton, &test_pbutton_cb, &resp);
+	ui_pbutton_up(pbutton);
+	PCUT_ASSERT_TRUE(resp.up);
+
+	ui_pbutton_destroy(pbutton);
+}
+
 /** Press and release button */
 PCUT_TEST(press_release)
 {
@@ -246,6 +304,8 @@ PCUT_TEST(press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	resp.clicked = false;
+	resp.down = false;
+	resp.up = false;
 	ui_pbutton_set_cb(pbutton, &test_pbutton_cb, &resp);
 
 	PCUT_ASSERT_FALSE(pbutton->held);
@@ -254,11 +314,14 @@ PCUT_TEST(press_release)
 	ui_pbutton_press(pbutton);
 	PCUT_ASSERT_TRUE(pbutton->held);
 	PCUT_ASSERT_TRUE(pbutton->inside);
+	PCUT_ASSERT_TRUE(resp.down);
+	PCUT_ASSERT_FALSE(resp.up);
 	PCUT_ASSERT_FALSE(resp.clicked);
 
 	ui_pbutton_release(pbutton);
 	PCUT_ASSERT_FALSE(pbutton->held);
 	PCUT_ASSERT_TRUE(pbutton->inside);
+	PCUT_ASSERT_TRUE(resp.up);
 	PCUT_ASSERT_TRUE(resp.clicked);
 
 	ui_pbutton_destroy(pbutton);
@@ -585,6 +648,20 @@ static void test_pbutton_clicked(ui_pbutton_t *pbutton, void *arg)
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
 	resp->clicked = true;
+}
+
+static void test_pbutton_down(ui_pbutton_t *pbutton, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->down = true;
+}
+
+static void test_pbutton_up(ui_pbutton_t *pbutton, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->up = true;
 }
 
 PCUT_EXPORT(pbutton);

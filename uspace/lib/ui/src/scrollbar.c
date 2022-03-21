@@ -90,18 +90,18 @@ enum {
 	ui_scrollbar_min_thumb_len_text = 1,
 };
 
-static void ui_scrollbar_btn_up_clicked(ui_pbutton_t *, void *);
-static void ui_scrollbar_btn_down_clicked(ui_pbutton_t *, void *);
+static void ui_scrollbar_up_btn_down(ui_pbutton_t *, void *);
+static void ui_scrollbar_down_btn_down(ui_pbutton_t *, void *);
 static void ui_scrollbar_ctl_destroy(void *);
 static errno_t ui_scrollbar_ctl_paint(void *);
 static ui_evclaim_t ui_scrollbar_ctl_pos_event(void *, pos_event_t *);
 
-ui_pbutton_cb_t ui_scrollbar_btn_up_cb = {
-	.clicked = ui_scrollbar_btn_up_clicked
+ui_pbutton_cb_t ui_scrollbar_up_btn_cb = {
+	.down = ui_scrollbar_up_btn_down
 };
 
-ui_pbutton_cb_t ui_scrollbar_btn_down_cb = {
-	.clicked = ui_scrollbar_btn_down_clicked
+ui_pbutton_cb_t ui_scrollbar_down_btn_cb = {
+	.down = ui_scrollbar_down_btn_down
 };
 
 /** Scrollbar control ops */
@@ -135,19 +135,19 @@ errno_t ui_scrollbar_create(ui_resource_t *resource,
 	}
 
 	rc = ui_pbutton_create(resource, resource->textmode ? "\u25c4" : "<",
-	    &scrollbar->btn_up);
+	    &scrollbar->up_btn);
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(scrollbar->btn_up, &ui_scrollbar_btn_up_cb,
+	ui_pbutton_set_cb(scrollbar->up_btn, &ui_scrollbar_up_btn_cb,
 	    (void *) scrollbar);
 
 	rc = ui_pbutton_create(resource, resource->textmode ? "\u25ba" : ">",
-	    &scrollbar->btn_down);
+	    &scrollbar->down_btn);
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(scrollbar->btn_down, &ui_scrollbar_btn_down_cb,
+	ui_pbutton_set_cb(scrollbar->down_btn, &ui_scrollbar_down_btn_cb,
 	    (void *) scrollbar);
 
 	scrollbar->thumb_len = resource->textmode ?
@@ -171,8 +171,8 @@ void ui_scrollbar_destroy(ui_scrollbar_t *scrollbar)
 	if (scrollbar == NULL)
 		return;
 
-	ui_pbutton_destroy(scrollbar->btn_up);
-	ui_pbutton_destroy(scrollbar->btn_down);
+	ui_pbutton_destroy(scrollbar->up_btn);
+	ui_pbutton_destroy(scrollbar->down_btn);
 	ui_control_delete(scrollbar->control);
 	free(scrollbar);
 }
@@ -211,8 +211,8 @@ void ui_scrollbar_set_rect(ui_scrollbar_t *scrollbar, gfx_rect_t *rect)
 	scrollbar->rect = *rect;
 
 	ui_scrollbar_get_geom(scrollbar, &geom);
-	ui_pbutton_set_rect(scrollbar->btn_up, &geom.up_btn_rect);
-	ui_pbutton_set_rect(scrollbar->btn_down, &geom.down_btn_rect);
+	ui_pbutton_set_rect(scrollbar->up_btn, &geom.up_btn_rect);
+	ui_pbutton_set_rect(scrollbar->down_btn, &geom.down_btn_rect);
 }
 
 /** Paint outer thumb frame.
@@ -457,11 +457,11 @@ errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *scrollbar)
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_pbutton_paint(scrollbar->btn_up);
+	rc = ui_pbutton_paint(scrollbar->up_btn);
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_pbutton_paint(scrollbar->btn_down);
+	rc = ui_pbutton_paint(scrollbar->down_btn);
 	if (rc != EOK)
 		goto error;
 
@@ -543,11 +543,11 @@ errno_t ui_scrollbar_paint_text(ui_scrollbar_t *scrollbar)
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_pbutton_paint(scrollbar->btn_up);
+	rc = ui_pbutton_paint(scrollbar->up_btn);
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_pbutton_paint(scrollbar->btn_down);
+	rc = ui_pbutton_paint(scrollbar->down_btn);
 	if (rc != EOK)
 		goto error;
 
@@ -812,11 +812,11 @@ ui_evclaim_t ui_scrollbar_pos_event(ui_scrollbar_t *scrollbar, pos_event_t *even
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 
-	claimed = ui_pbutton_pos_event(scrollbar->btn_up, event);
+	claimed = ui_pbutton_pos_event(scrollbar->up_btn, event);
 	if (claimed == ui_claimed)
 		return ui_claimed;
 
-	claimed = ui_pbutton_pos_event(scrollbar->btn_down, event);
+	claimed = ui_pbutton_pos_event(scrollbar->down_btn, event);
 	if (claimed == ui_claimed)
 		return ui_claimed;
 
@@ -852,24 +852,24 @@ ui_evclaim_t ui_scrollbar_pos_event(ui_scrollbar_t *scrollbar, pos_event_t *even
 	return ui_unclaimed;
 }
 
-/** Scrollbar up button clicked.
+/** Scrollbar up button pressed.
  *
  * @param pbutton Up button
  * @param arg Argument (ui_scrollbar_t *)
  */
-static void ui_scrollbar_btn_up_clicked(ui_pbutton_t *pbutton, void *arg)
+static void ui_scrollbar_up_btn_down(ui_pbutton_t *pbutton, void *arg)
 {
 	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
 
 	ui_scrollbar_up(scrollbar);
 }
 
-/** Scrollbar down button clicked.
+/** Scrollbar down button pressed.
  *
  * @param pbutton Down button
  * @param arg Argument (ui_scrollbar_t *)
  */
-static void ui_scrollbar_btn_down_clicked(ui_pbutton_t *pbutton, void *arg)
+static void ui_scrollbar_down_btn_down(ui_pbutton_t *pbutton, void *arg)
 {
 	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
 

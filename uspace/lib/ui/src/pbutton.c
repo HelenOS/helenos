@@ -428,6 +428,7 @@ void ui_pbutton_press(ui_pbutton_t *pbutton)
 	pbutton->inside = true;
 	pbutton->held = true;
 	(void) ui_pbutton_paint(pbutton);
+	ui_pbutton_down(pbutton);
 }
 
 /** Release button.
@@ -445,6 +446,8 @@ void ui_pbutton_release(ui_pbutton_t *pbutton)
 		(void) ui_pbutton_paint(pbutton);
 		ui_pbutton_clicked(pbutton);
 	}
+
+	ui_pbutton_up(pbutton);
 }
 
 /** Pointer entered button.
@@ -475,7 +478,7 @@ void ui_pbutton_leave(ui_pbutton_t *pbutton)
 		(void) ui_pbutton_paint(pbutton);
 }
 
-/** Button was clicked.
+/** Send button clicked event.
  *
  * @param pbutton Push button
  */
@@ -483,6 +486,26 @@ void ui_pbutton_clicked(ui_pbutton_t *pbutton)
 {
 	if (pbutton->cb != NULL && pbutton->cb->clicked != NULL)
 		pbutton->cb->clicked(pbutton, pbutton->arg);
+}
+
+/** Send button down event.
+ *
+ * @param pbutton Push button
+ */
+void ui_pbutton_down(ui_pbutton_t *pbutton)
+{
+	if (pbutton->cb != NULL && pbutton->cb->down != NULL)
+		pbutton->cb->down(pbutton, pbutton->arg);
+}
+
+/** Send button up event.
+ *
+ * @param pbutton Push button
+ */
+void ui_pbutton_up(ui_pbutton_t *pbutton)
+{
+	if (pbutton->cb != NULL && pbutton->cb->up != NULL)
+		pbutton->cb->up(pbutton, pbutton->arg);
 }
 
 /** Handle push button position event.

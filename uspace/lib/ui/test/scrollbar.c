@@ -1023,7 +1023,7 @@ PCUT_TEST(pos_event_press_release_up_btn)
 	event.hpos = 30;
 	event.vpos = 20;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_TRUE(scrollbar->btn_up->held);
+	PCUT_ASSERT_TRUE(scrollbar->up_btn->held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
@@ -1180,7 +1180,7 @@ PCUT_TEST(pos_event_press_relese_down_btn)
 	event.hpos = 90;
 	event.vpos = 20;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_TRUE(scrollbar->btn_down->held);
+	PCUT_ASSERT_TRUE(scrollbar->down_btn->held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);

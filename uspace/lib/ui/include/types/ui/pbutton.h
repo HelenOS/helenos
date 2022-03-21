@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,8 @@ typedef struct ui_pbutton ui_pbutton_t;
 /** Push button callbacks */
 typedef struct ui_pbutton_cb {
 	void (*clicked)(ui_pbutton_t *, void *);
+	void (*down)(ui_pbutton_t *, void *);
+	void (*up)(ui_pbutton_t *, void *);
 } ui_pbutton_cb_t;
 
 #endif

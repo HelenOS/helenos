@@ -58,6 +58,8 @@ extern void ui_pbutton_release(ui_pbutton_t *);
 extern void ui_pbutton_enter(ui_pbutton_t *);
 extern void ui_pbutton_leave(ui_pbutton_t *);
 extern void ui_pbutton_clicked(ui_pbutton_t *);
+extern void ui_pbutton_down(ui_pbutton_t *);
+extern void ui_pbutton_up(ui_pbutton_t *);
 extern ui_evclaim_t ui_pbutton_pos_event(ui_pbutton_t *, pos_event_t *);
 
 #endif
