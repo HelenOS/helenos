@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #include <display.h>
 #include <errno.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <gfx/color.h>
 #include <gfx/cursor.h>
 #include <gfx/render.h>
@@ -46,6 +47,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <task.h>
+#include <ui/clickmatic.h>
 #include <ui/ui.h>
 #include <ui/wdecor.h>
 #include <ui/window.h>
@@ -197,13 +199,21 @@ cons_fail:
 errno_t ui_create_cons(console_ctrl_t *console, ui_t **rui)
 {
 	ui_t *ui;
+	errno_t rc;
 
 	ui = calloc(1, sizeof(ui_t));
 	if (ui == NULL)
 		return ENOMEM;
 
+	rc = ui_clickmatic_create(ui, &ui->clickmatic);
+	if (rc != EOK) {
+		free(ui);
+		return rc;
+	}
+
 	ui->console = console;
 	list_initialize(&ui->windows);
+	fibril_mutex_initialize(&ui->lock);
 	*rui = ui;
 	return EOK;
 }
@@ -217,13 +227,21 @@ errno_t ui_create_cons(console_ctrl_t *console, ui_t **rui)
 errno_t ui_create_disp(display_t *disp, ui_t **rui)
 {
 	ui_t *ui;
+	errno_t rc;
 
 	ui = calloc(1, sizeof(ui_t));
 	if (ui == NULL)
 		return ENOMEM;
 
+	rc = ui_clickmatic_create(ui, &ui->clickmatic);
+	if (rc != EOK) {
+		free(ui);
+		return rc;
+	}
+
 	ui->display = disp;
 	list_initialize(&ui->windows);
+	fibril_mutex_initialize(&ui->lock);
 	*rui = ui;
 	return EOK;
 }
@@ -442,6 +460,32 @@ errno_t ui_resume(ui_t *ui)
 	return gfx_cursor_set_visible(console_gc_get_ctx(ui->cgc), false);
 }
 
+/** Lock UI.
+ *
+ * Block UI from calling window callbacks. @c ui_lock() and @c ui_unlock()
+ * must be used when accessing UI resources from a fibril (as opposed to
+ * from a window callback).
+ *
+ * @param ui UI
+ */
+void ui_lock(ui_t *ui)
+{
+	fibril_mutex_lock(&ui->lock);
+}
+
+/** Unlock UI.
+ *
+ * Allow UI to call window callbacks. @c ui_lock() and @c ui_unlock()
+ * must be used when accessing window resources from a fibril (as opposed to
+ * from a window callback).
+ *
+ * @param ui UI
+ */
+void ui_unlock(ui_t *ui)
+{
+	fibril_mutex_unlock(&ui->lock);
+}
+
 /** Terminate user interface.
  *
  * Calling this function causes the user interface to terminate
@@ -477,6 +521,16 @@ bool ui_is_textmode(ui_t *ui)
 bool ui_is_fullscreen(ui_t *ui)
 {
 	return (ui->display == NULL);
+}
+
+/** Get clickmatic from UI.
+ *
+ * @pararm ui UI
+ * @return Clickmatic
+ */
+ui_clickmatic_t *ui_get_clickmatic(ui_t *ui)
+{
+	return ui->clickmatic;
 }
 
 /** @}

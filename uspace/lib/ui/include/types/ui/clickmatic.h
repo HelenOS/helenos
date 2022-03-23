@@ -26,32 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup libui
+ * @{
+ */
+/**
+ * @file Clickmatic
+ */
 
-PCUT_INIT;
+#ifndef _UI_TYPES_CLICKMATIC_H
+#define _UI_TYPES_CLICKMATIC_H
 
-PCUT_IMPORT(accel);
-PCUT_IMPORT(control);
-PCUT_IMPORT(checkbox);
-PCUT_IMPORT(clickmatic);
-PCUT_IMPORT(entry);
-PCUT_IMPORT(file_dialog);
-PCUT_IMPORT(fixed);
-PCUT_IMPORT(image);
-PCUT_IMPORT(label);
-PCUT_IMPORT(menu);
-PCUT_IMPORT(menubar);
-PCUT_IMPORT(menuentry);
-PCUT_IMPORT(msg_dialog);
-PCUT_IMPORT(paint);
-PCUT_IMPORT(pbutton);
-PCUT_IMPORT(popup);
-PCUT_IMPORT(rbutton);
-PCUT_IMPORT(resource);
-PCUT_IMPORT(scrollbar);
-PCUT_IMPORT(slider);
-PCUT_IMPORT(ui);
-PCUT_IMPORT(wdecor);
-PCUT_IMPORT(window);
+struct ui_clickmatic;
+typedef struct ui_clickmatic ui_clickmatic_t;
 
-PCUT_MAIN();
+/** Clickmatic callbacks */
+typedef struct ui_clickmatic_cb {
+	void (*clicked)(ui_clickmatic_t *, void *);
+} ui_clickmatic_cb_t;
+
+#endif
+
+/** @}
+ */

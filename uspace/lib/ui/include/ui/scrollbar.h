@@ -42,10 +42,11 @@
 #include <stdbool.h>
 #include <types/ui/control.h>
 #include <types/ui/event.h>
-#include <types/ui/resource.h>
 #include <types/ui/scrollbar.h>
+#include <types/ui/ui.h>
+#include <types/ui/window.h>
 
-extern errno_t ui_scrollbar_create(ui_resource_t *, ui_scrollbar_t **);
+extern errno_t ui_scrollbar_create(ui_t *, ui_window_t *, ui_scrollbar_t **);
 extern void ui_scrollbar_destroy(ui_scrollbar_t *);
 extern ui_control_t *ui_scrollbar_ctl(ui_scrollbar_t *);
 extern void ui_scrollbar_set_cb(ui_scrollbar_t *, ui_scrollbar_cb_t *, void *);
@@ -61,6 +62,7 @@ extern void ui_scrollbar_up_through_press(ui_scrollbar_t *);
 extern void ui_scrollbar_down_through_press(ui_scrollbar_t *);
 extern void ui_scrollbar_release(ui_scrollbar_t *, gfx_coord2_t *);
 extern void ui_scrollbar_update(ui_scrollbar_t *, gfx_coord2_t *);
+extern void ui_scrollbar_throughs_update(ui_scrollbar_t *, gfx_coord2_t *);
 extern void ui_scrollbar_up(ui_scrollbar_t *);
 extern void ui_scrollbar_down(ui_scrollbar_t *);
 extern void ui_scrollbar_page_up(ui_scrollbar_t *);

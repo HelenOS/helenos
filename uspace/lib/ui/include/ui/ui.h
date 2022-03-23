@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <io/console.h>
 #include <stdbool.h>
+#include <types/ui/clickmatic.h>
 #include <types/ui/ui.h>
 
 extern errno_t ui_create(const char *, ui_t **);
@@ -53,6 +54,9 @@ extern bool ui_is_textmode(ui_t *);
 extern bool ui_is_fullscreen(ui_t *);
 extern errno_t ui_suspend(ui_t *);
 extern errno_t ui_resume(ui_t *);
+extern void ui_lock(ui_t *);
+extern void ui_unlock(ui_t *);
+extern ui_clickmatic_t *ui_get_clickmatic(ui_t *);
 
 #endif
 

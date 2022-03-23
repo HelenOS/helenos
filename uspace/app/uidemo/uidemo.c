@@ -1069,7 +1069,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_scrollbar_create(ui_res, &demo.scrollbar);
+	rc = ui_scrollbar_create(ui, window, &demo.scrollbar);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;

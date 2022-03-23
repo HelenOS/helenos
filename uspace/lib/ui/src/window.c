@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -765,8 +765,11 @@ errno_t ui_window_paint(ui_window_t *window)
 static void dwnd_close_event(void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
+	ui_t *ui = window->ui;
 
+	ui_lock(ui);
 	ui_window_send_close(window);
+	ui_unlock(ui);
 }
 
 /** Handle window focus event. */
@@ -774,12 +777,15 @@ static void dwnd_focus_event(void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
+	ui_lock(window->ui);
+
 	if (window->wdecor != NULL) {
 		ui_wdecor_set_active(window->wdecor, true);
 		ui_wdecor_paint(window->wdecor);
 	}
 
 	ui_window_send_focus(window);
+	ui_unlock(window->ui);
 }
 
 /** Handle window keyboard event */
@@ -787,8 +793,9 @@ static void dwnd_kbd_event(void *arg, kbd_event_t *kbd_event)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
-	(void) window;
+	ui_lock(window->ui);
 	ui_window_send_kbd(window, kbd_event);
+	ui_unlock(window->ui);
 }
 
 /** Handle window position event */
@@ -800,8 +807,10 @@ static void dwnd_pos_event(void *arg, pos_event_t *event)
 	if (window->wdecor == NULL)
 		return;
 
+	ui_lock(window->ui);
 	ui_wdecor_pos_event(window->wdecor, event);
 	ui_window_send_pos(window, event);
+	ui_unlock(window->ui);
 }
 
 /** Handle window resize event */
@@ -816,8 +825,10 @@ static void dwnd_resize_event(void *arg, gfx_rect_t *rect)
 	if ((window->wdecor->style & ui_wds_resizable) == 0)
 		return;
 
+	ui_lock(window->ui);
 	(void) ui_window_resize(window, rect);
 	(void) ui_window_paint(window);
+	ui_unlock(window->ui);
 }
 
 /** Handle window unfocus event. */
@@ -825,12 +836,15 @@ static void dwnd_unfocus_event(void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
+	ui_lock(window->ui);
+
 	if (window->wdecor != NULL) {
 		ui_wdecor_set_active(window->wdecor, false);
 		ui_wdecor_paint(window->wdecor);
 	}
 
 	ui_window_send_unfocus(window);
+	ui_unlock(window->ui);
 }
 
 /** Window decoration requested window closure.

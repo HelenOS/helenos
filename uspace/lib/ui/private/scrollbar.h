@@ -47,8 +47,10 @@
 struct ui_scrollbar {
 	/** Base control object */
 	struct ui_control *control;
-	/** UI resource */
-	struct ui_resource *res;
+	/** UI */
+	struct ui *ui;
+	/** UI window containing scrollbar */
+	struct ui_window *window;
 	/** Callbacks */
 	struct ui_scrollbar_cb *cb;
 	/** Callback argument */
@@ -65,14 +67,20 @@ struct ui_scrollbar {
 	bool thumb_held;
 	/** Up through is currently held down */
 	bool up_through_held;
+	/** Pointer is inside up through */
+	bool up_through_inside;
 	/** Down through is currently held down */
 	bool down_through_held;
+	/** Pointer is inside down through */
+	bool down_through_inside;
 	/** Position where thumb was pressed */
 	gfx_coord2_t press_pos;
 	/** Last thumb position */
 	gfx_coord_t last_pos;
 	/** Thumb position */
 	gfx_coord_t pos;
+	/** Last cursor position (when through is held) */
+	gfx_coord2_t last_curs_pos;
 };
 
 /** Scrollbar geometry.
@@ -96,7 +104,6 @@ typedef struct {
 
 extern errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *);
 extern errno_t ui_scrollbar_paint_text(ui_scrollbar_t *);
-extern errno_t ui_scrollbar_thumb_clear(ui_scrollbar_t *);
 extern void ui_scrollbar_get_geom(ui_scrollbar_t *, ui_scrollbar_geom_t *);
 
 #endif

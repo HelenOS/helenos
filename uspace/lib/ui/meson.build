@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Jiri Svoboda
+# Copyright (c) 2022 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ deps = [ 'gfx', 'gfxfont', 'memgfx', 'display', 'congfx' ]
 src = files(
 	'src/accel.c',
 	'src/checkbox.c',
+	'src/clickmatic.c',
 	'src/control.c',
 	'src/dummygc.c',
 	'src/entry.c',
@@ -57,6 +58,7 @@ src = files(
 test_src = files(
 	'test/accel.c',
 	'test/checkbox.c',
+	'test/clickmatic.c',
 	'test/control.c',
 	'test/entry.c',
 	'test/filedialog.c',

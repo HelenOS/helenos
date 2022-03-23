@@ -52,8 +52,8 @@
  * event. The up/down buttons generate up/down events. Pressing a mouse
  * button on the up/down through generates page up / page down events.
  *
- * TODO: Up/down buttons/throughs should be equipped with an autorepeat
- * mechanism: after an initial delay, start repeating at a preset rate.
+ * Pressing and holding down mouse button on up / down button or up / down
+ * through will auto-scroll (using clickmatic).
  */
 
 #include <errno.h>
@@ -64,10 +64,14 @@
 #include <io/pos_event.h>
 #include <stdlib.h>
 #include <str.h>
+#include <ui/clickmatic.h>
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/pbutton.h>
 #include <ui/scrollbar.h>
+#include <ui/ui.h>
+#include <ui/window.h>
+#include "../private/pbutton.h"
 #include "../private/resource.h"
 #include "../private/scrollbar.h"
 
@@ -91,37 +95,70 @@ enum {
 };
 
 static void ui_scrollbar_up_btn_down(ui_pbutton_t *, void *);
+static void ui_scrollbar_up_btn_up(ui_pbutton_t *, void *);
 static void ui_scrollbar_down_btn_down(ui_pbutton_t *, void *);
+static void ui_scrollbar_down_btn_up(ui_pbutton_t *, void *);
 static void ui_scrollbar_ctl_destroy(void *);
 static errno_t ui_scrollbar_ctl_paint(void *);
 static ui_evclaim_t ui_scrollbar_ctl_pos_event(void *, pos_event_t *);
 
-ui_pbutton_cb_t ui_scrollbar_up_btn_cb = {
-	.down = ui_scrollbar_up_btn_down
+static ui_pbutton_cb_t ui_scrollbar_up_btn_cb = {
+	.down = ui_scrollbar_up_btn_down,
+	.up = ui_scrollbar_up_btn_up
 };
 
-ui_pbutton_cb_t ui_scrollbar_down_btn_cb = {
-	.down = ui_scrollbar_down_btn_down
+static ui_pbutton_cb_t ui_scrollbar_down_btn_cb = {
+	.down = ui_scrollbar_down_btn_down,
+	.up = ui_scrollbar_down_btn_up
 };
 
 /** Scrollbar control ops */
-ui_control_ops_t ui_scrollbar_ops = {
+static ui_control_ops_t ui_scrollbar_ops = {
 	.destroy = ui_scrollbar_ctl_destroy,
 	.paint = ui_scrollbar_ctl_paint,
 	.pos_event = ui_scrollbar_ctl_pos_event
 };
 
+static void ui_scrollbar_cm_up(ui_clickmatic_t *, void *);
+static void ui_scrollbar_cm_down(ui_clickmatic_t *, void *);
+static void ui_scrollbar_cm_page_up(ui_clickmatic_t *, void *);
+static void ui_scrollbar_cm_page_down(ui_clickmatic_t *, void *);
+
+/** Scrollbar clickmatic up callbacks */
+ui_clickmatic_cb_t ui_scrollbar_clickmatic_up_cb = {
+	.clicked = ui_scrollbar_cm_up
+};
+
+/** Scrollbar clickmatic down callbacks */
+ui_clickmatic_cb_t ui_scrollbar_clickmatic_down_cb = {
+	.clicked = ui_scrollbar_cm_down
+};
+
+/** Scrollbar clickmatic page up callbacks */
+ui_clickmatic_cb_t ui_scrollbar_clickmatic_page_up_cb = {
+	.clicked = ui_scrollbar_cm_page_up
+};
+
+/** Scrollbar clickmatic page down callbacks */
+ui_clickmatic_cb_t ui_scrollbar_clickmatic_page_down_cb = {
+	.clicked = ui_scrollbar_cm_page_down
+};
+
 /** Create new scrollbar.
  *
- * @param resource UI resource
+ * @param ui UI
+ * @param window Window containing scrollbar
  * @param rscrollbar Place to store pointer to new scrollbar
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_scrollbar_create(ui_resource_t *resource,
+errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
     ui_scrollbar_t **rscrollbar)
 {
 	ui_scrollbar_t *scrollbar;
+	ui_resource_t *resource;
 	errno_t rc;
+
+	resource = ui_window_get_res(window);
 
 	scrollbar = calloc(1, sizeof(ui_scrollbar_t));
 	if (scrollbar == NULL)
@@ -154,7 +191,8 @@ errno_t ui_scrollbar_create(ui_resource_t *resource,
 	    ui_scrollbar_def_thumb_len_text :
 	    ui_scrollbar_def_thumb_len;
 
-	scrollbar->res = resource;
+	scrollbar->ui = ui;
+	scrollbar->window = window;
 	*rscrollbar = scrollbar;
 	return EOK;
 error:
@@ -282,21 +320,11 @@ error:
 static errno_t ui_scrollbar_paint_outset(ui_scrollbar_t *scrollbar,
     gfx_rect_t *rect, gfx_rect_t *inside)
 {
-	return ui_paint_bevel(scrollbar->res->gc, rect,
-	    scrollbar->res->btn_highlight_color,
-	    scrollbar->res->btn_shadow_color, ui_scrollbar_thumb_bevel_width, inside);
-}
+	ui_resource_t *resource = ui_window_get_res(scrollbar->window);
 
-/** Determine scrollbar thumb rectagle.
- *
- * @param scrollbar Scrollbar
- */
-static void ui_scrollbar_thumb_rect(ui_scrollbar_t *scrollbar, gfx_rect_t *rect)
-{
-	ui_scrollbar_geom_t geom;
-
-	ui_scrollbar_get_geom(scrollbar, &geom);
-	*rect = geom.thumb_rect;
+	return ui_paint_bevel(resource->gc, rect,
+	    resource->btn_highlight_color,
+	    resource->btn_shadow_color, ui_scrollbar_thumb_bevel_width, inside);
 }
 
 /** Determine scrollbar through length.
@@ -309,11 +337,14 @@ static void ui_scrollbar_thumb_rect(ui_scrollbar_t *scrollbar, gfx_rect_t *rect)
  */
 gfx_coord_t ui_scrollbar_through_length(ui_scrollbar_t *scrollbar)
 {
+	ui_resource_t *resource;
 	gfx_coord2_t dims;
 	gfx_coord_t w;
 
+	resource = ui_window_get_res(scrollbar->window);
+
 	gfx_rect_dims(&scrollbar->rect, &dims);
-	w = scrollbar->res->textmode ? ui_scrollbar_btn_len_text :
+	w = resource->textmode ? ui_scrollbar_btn_len_text :
 	    ui_scrollbar_btn_len;
 	return dims.x - 2 * w;
 }
@@ -338,10 +369,13 @@ gfx_coord_t ui_scrollbar_move_length(ui_scrollbar_t *scrollbar)
  */
 void ui_scrollbar_set_thumb_length(ui_scrollbar_t *scrollbar, gfx_coord_t len)
 {
+	ui_resource_t *resource;
 	gfx_coord_t min_len;
 	gfx_coord_t max_len;
 
-	min_len = scrollbar->res->textmode ?
+	resource = ui_window_get_res(scrollbar->window);
+
+	min_len = resource->textmode ?
 	    ui_scrollbar_min_thumb_len_text :
 	    ui_scrollbar_min_thumb_len;
 
@@ -352,7 +386,6 @@ void ui_scrollbar_set_thumb_length(ui_scrollbar_t *scrollbar, gfx_coord_t len)
 		len = max_len;
 
 	if (len != scrollbar->thumb_len) {
-		(void) ui_scrollbar_thumb_clear(scrollbar);
 		scrollbar->thumb_len = len;
 		(void) ui_scrollbar_paint(scrollbar);
 	}
@@ -386,9 +419,10 @@ void ui_scrollbar_set_pos(ui_scrollbar_t *scrollbar, gfx_coord_t pos)
 		pos = length;
 
 	if (pos != scrollbar->pos) {
-		(void) ui_scrollbar_thumb_clear(scrollbar);
 		scrollbar->pos = pos;
 		(void) ui_scrollbar_paint(scrollbar);
+		ui_scrollbar_throughs_update(scrollbar,
+		    &scrollbar->last_curs_pos);
 		ui_scrollbar_moved(scrollbar, pos);
 	}
 }
@@ -400,47 +434,50 @@ void ui_scrollbar_set_pos(ui_scrollbar_t *scrollbar, gfx_coord_t pos)
  */
 errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *scrollbar)
 {
+	ui_resource_t *resource;
 	ui_scrollbar_geom_t geom;
 	gfx_rect_t brect;
 	gfx_rect_t irect;
 	errno_t rc;
 
+	resource = ui_window_get_res(scrollbar->window);
+
 	ui_scrollbar_get_geom(scrollbar, &geom);
 
 	/* Paint scrollbar frame */
 
-	rc = ui_paint_inset_frame(scrollbar->res, &scrollbar->rect, NULL);
+	rc = ui_paint_inset_frame(resource, &scrollbar->rect, NULL);
 	if (rc != EOK)
 		goto error;
 
 	/* Paint scrollbar up through */
-	rc = gfx_set_color(scrollbar->res->gc,
-	    scrollbar->up_through_held ?
-	    scrollbar->res->sbar_act_through_color :
-	    scrollbar->res->sbar_through_color);
+	rc = gfx_set_color(resource->gc,
+	    scrollbar->up_through_held && scrollbar->up_through_inside ?
+	    resource->sbar_act_through_color :
+	    resource->sbar_through_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_fill_rect(scrollbar->res->gc, &geom.up_through_rect);
+	rc = gfx_fill_rect(resource->gc, &geom.up_through_rect);
 	if (rc != EOK)
 		goto error;
 
 	/* Paint scrollbar down through */
 
-	rc = gfx_set_color(scrollbar->res->gc,
-	    scrollbar->down_through_held ?
-	    scrollbar->res->sbar_act_through_color :
-	    scrollbar->res->sbar_through_color);
+	rc = gfx_set_color(resource->gc,
+	    scrollbar->down_through_held && scrollbar->down_through_inside ?
+	    resource->sbar_act_through_color :
+	    resource->sbar_through_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_fill_rect(scrollbar->res->gc, &geom.down_through_rect);
+	rc = gfx_fill_rect(resource->gc, &geom.down_through_rect);
 	if (rc != EOK)
 		goto error;
 
 	/* Paint scrollbar thumb */
 
-	rc = ui_scrollbar_paint_thumb_frame(scrollbar->res, &geom.thumb_rect,
+	rc = ui_scrollbar_paint_thumb_frame(resource, &geom.thumb_rect,
 	    ui_scrollbar_thumb_frame_thickness, &brect);
 	if (rc != EOK)
 		goto error;
@@ -449,11 +486,11 @@ errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *scrollbar)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_set_color(scrollbar->res->gc, scrollbar->res->btn_face_color);
+	rc = gfx_set_color(resource->gc, resource->btn_face_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_fill_rect(scrollbar->res->gc, &irect);
+	rc = gfx_fill_rect(resource->gc, &irect);
 	if (rc != EOK)
 		goto error;
 
@@ -465,7 +502,7 @@ errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *scrollbar)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_update(scrollbar->res->gc);
+	rc = gfx_update(resource->gc);
 	if (rc != EOK)
 		goto error;
 
@@ -481,6 +518,7 @@ error:
  */
 errno_t ui_scrollbar_paint_text(ui_scrollbar_t *scrollbar)
 {
+	ui_resource_t *resource;
 	gfx_coord2_t pos;
 	gfx_text_fmt_t fmt;
 	gfx_coord_t w, i;
@@ -489,14 +527,16 @@ errno_t ui_scrollbar_paint_text(ui_scrollbar_t *scrollbar)
 	size_t gcharsz;
 	errno_t rc;
 
+	resource = ui_window_get_res(scrollbar->window);
+
 	/* Paint scrollbar through */
 
 	pos = scrollbar->rect.p0;
 	pos.x += ui_scrollbar_btn_len_text;
 
 	gfx_text_fmt_init(&fmt);
-	fmt.font = scrollbar->res->font;
-	fmt.color = scrollbar->res->sbar_through_color;
+	fmt.font = resource->font;
+	fmt.color = resource->sbar_through_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
@@ -551,7 +591,7 @@ errno_t ui_scrollbar_paint_text(ui_scrollbar_t *scrollbar)
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_update(scrollbar->res->gc);
+	rc = gfx_update(resource->gc);
 	if (rc != EOK)
 		goto error;
 
@@ -567,7 +607,9 @@ error:
  */
 errno_t ui_scrollbar_paint(ui_scrollbar_t *scrollbar)
 {
-	if (scrollbar->res->textmode)
+	ui_resource_t *resource = ui_window_get_res(scrollbar->window);
+
+	if (resource->textmode)
 		return ui_scrollbar_paint_text(scrollbar);
 	else
 		return ui_scrollbar_paint_gfx(scrollbar);
@@ -580,23 +622,26 @@ errno_t ui_scrollbar_paint(ui_scrollbar_t *scrollbar)
  */
 void ui_scrollbar_get_geom(ui_scrollbar_t *scrollbar, ui_scrollbar_geom_t *geom)
 {
+	ui_resource_t *resource;
 	gfx_coord_t btn_len;
 	gfx_rect_t orect;
 	gfx_rect_t irect;
 
-	if (scrollbar->res->textmode) {
+	resource = ui_window_get_res(scrollbar->window);
+
+	if (resource->textmode) {
 		btn_len = ui_scrollbar_btn_len_text;
 	} else {
 		btn_len = ui_scrollbar_btn_len;
 	}
 
-	if (scrollbar->res->textmode) {
+	if (resource->textmode) {
 		irect = scrollbar->rect;
 		orect = scrollbar->rect;
 	} else {
-		ui_paint_get_inset_frame_inside(scrollbar->res,
+		ui_paint_get_inset_frame_inside(resource,
 		    &scrollbar->rect, &irect);
-		ui_paint_get_bevel_inside(scrollbar->res->gc,
+		ui_paint_get_bevel_inside(resource->gc,
 		    &scrollbar->rect, 1, &orect);
 	}
 
@@ -635,35 +680,6 @@ void ui_scrollbar_get_geom(ui_scrollbar_t *scrollbar, ui_scrollbar_geom_t *geom)
 	geom->down_btn_rect.p1.y = orect.p1.y;
 }
 
-/** Clear scrollbar thumb.
- *
- * @param scrollbar Scrollbar
- * @return EOK on success or an error code
- */
-errno_t ui_scrollbar_thumb_clear(ui_scrollbar_t *scrollbar)
-{
-	gfx_rect_t rect;
-	errno_t rc;
-
-	/* No need to clear thumb in text mode */
-	if (scrollbar->res->textmode)
-		return EOK;
-
-	ui_scrollbar_thumb_rect(scrollbar, &rect);
-
-	rc = gfx_set_color(scrollbar->res->gc, scrollbar->res->wnd_face_color);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_fill_rect(scrollbar->res->gc, &rect);
-	if (rc != EOK)
-		goto error;
-
-	return EOK;
-error:
-	return rc;
-}
-
 /** Press down scrollbar thumb.
  *
  * @param scrollbar Scrollbar
@@ -687,13 +703,14 @@ void ui_scrollbar_thumb_press(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
  */
 void ui_scrollbar_up_through_press(ui_scrollbar_t *scrollbar)
 {
-	if (scrollbar->up_through_held)
-		return;
+	ui_clickmatic_t *clickmatic = ui_get_clickmatic(scrollbar->ui);
 
 	scrollbar->up_through_held = true;
-	(void) ui_scrollbar_paint(scrollbar);
+	scrollbar->up_through_inside = true;
 
-	ui_scrollbar_page_up(scrollbar);
+	ui_clickmatic_set_cb(clickmatic, &ui_scrollbar_clickmatic_page_up_cb,
+	    (void *) scrollbar);
+	ui_clickmatic_press(clickmatic);
 }
 
 /** Press down scrollbar down through.
@@ -702,13 +719,14 @@ void ui_scrollbar_up_through_press(ui_scrollbar_t *scrollbar)
  */
 void ui_scrollbar_down_through_press(ui_scrollbar_t *scrollbar)
 {
-	if (scrollbar->down_through_held)
-		return;
+	ui_clickmatic_t *clickmatic = ui_get_clickmatic(scrollbar->ui);
 
 	scrollbar->down_through_held = true;
-	(void) ui_scrollbar_paint(scrollbar);
+	scrollbar->down_through_inside = true;
 
-	ui_scrollbar_page_down(scrollbar);
+	ui_clickmatic_set_cb(clickmatic, &ui_scrollbar_clickmatic_page_down_cb,
+	    (void *) scrollbar);
+	ui_clickmatic_press(clickmatic);
 }
 
 /** Release scrollbar.
@@ -718,14 +736,55 @@ void ui_scrollbar_down_through_press(ui_scrollbar_t *scrollbar)
  */
 void ui_scrollbar_release(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
 {
+	ui_clickmatic_t *clickmatic;
+
 	if (scrollbar->thumb_held) {
 		ui_scrollbar_update(scrollbar, pos);
 		scrollbar->thumb_held = false;
 	}
 
 	if (scrollbar->up_through_held || scrollbar->down_through_held) {
+		clickmatic = ui_get_clickmatic(scrollbar->ui);
+		ui_clickmatic_release(clickmatic);
+		ui_clickmatic_set_cb(clickmatic, NULL, NULL);
+
 		scrollbar->up_through_held = false;
 		scrollbar->down_through_held = false;
+		(void) ui_scrollbar_paint(scrollbar);
+	}
+}
+
+/** Update state of scrollbar throuhgs.
+ *
+ * Update state of scrollbar throughs after mouse cursor or thumb has moved.
+ *
+ * @param scrollbar Scrollbar
+ * @param pos Mouse cursor position
+ */
+void ui_scrollbar_throughs_update(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
+{
+	ui_scrollbar_geom_t geom;
+	bool inside_up;
+	bool inside_down;
+
+	ui_scrollbar_get_geom(scrollbar, &geom);
+
+	inside_up = gfx_pix_inside_rect(pos, &geom.up_through_rect);
+	inside_down = gfx_pix_inside_rect(pos, &geom.down_through_rect);
+
+	if (inside_up && !scrollbar->up_through_inside) {
+		scrollbar->up_through_inside = true;
+		(void) ui_scrollbar_paint(scrollbar);
+	} else if (!inside_up && scrollbar->up_through_inside) {
+		scrollbar->up_through_inside = false;
+		(void) ui_scrollbar_paint(scrollbar);
+	}
+
+	if (inside_down && !scrollbar->down_through_inside) {
+		scrollbar->down_through_inside = true;
+		(void) ui_scrollbar_paint(scrollbar);
+	} else if (!inside_down && scrollbar->down_through_inside) {
+		scrollbar->down_through_inside = false;
 		(void) ui_scrollbar_paint(scrollbar);
 	}
 }
@@ -743,6 +802,8 @@ void ui_scrollbar_update(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
 		spos = scrollbar->last_pos + pos->x - scrollbar->press_pos.x;
 		ui_scrollbar_set_pos(scrollbar, spos);
 	}
+
+	ui_scrollbar_throughs_update(scrollbar, pos);
 }
 
 /** Scrollbar up button was pressed.
@@ -844,6 +905,7 @@ ui_evclaim_t ui_scrollbar_pos_event(ui_scrollbar_t *scrollbar, pos_event_t *even
 		break;
 	case POS_UPDATE:
 		ui_scrollbar_update(scrollbar, &pos);
+		scrollbar->last_curs_pos = pos;
 		break;
 	case POS_DCLICK:
 		break;
@@ -860,8 +922,25 @@ ui_evclaim_t ui_scrollbar_pos_event(ui_scrollbar_t *scrollbar, pos_event_t *even
 static void ui_scrollbar_up_btn_down(ui_pbutton_t *pbutton, void *arg)
 {
 	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+	ui_clickmatic_t *clickmatic = ui_get_clickmatic(scrollbar->ui);
 
-	ui_scrollbar_up(scrollbar);
+	ui_clickmatic_set_cb(clickmatic, &ui_scrollbar_clickmatic_up_cb,
+	    (void *) scrollbar);
+	ui_clickmatic_press(clickmatic);
+}
+
+/** Scrollbar up button released.
+ *
+ * @param pbutton Up button
+ * @param arg Argument (ui_scrollbar_t *)
+ */
+static void ui_scrollbar_up_btn_up(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+	ui_clickmatic_t *clickmatic = ui_get_clickmatic(scrollbar->ui);
+
+	ui_clickmatic_release(clickmatic);
+	ui_clickmatic_set_cb(clickmatic, NULL, NULL);
 }
 
 /** Scrollbar down button pressed.
@@ -872,8 +951,25 @@ static void ui_scrollbar_up_btn_down(ui_pbutton_t *pbutton, void *arg)
 static void ui_scrollbar_down_btn_down(ui_pbutton_t *pbutton, void *arg)
 {
 	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+	ui_clickmatic_t *clickmatic = ui_get_clickmatic(scrollbar->ui);
 
-	ui_scrollbar_down(scrollbar);
+	ui_clickmatic_set_cb(clickmatic, &ui_scrollbar_clickmatic_down_cb,
+	    (void *) scrollbar);
+	ui_clickmatic_press(clickmatic);
+}
+
+/** Scrollbar down button released.
+ *
+ * @param pbutton Down button
+ * @param arg Argument (ui_scrollbar_t *)
+ */
+static void ui_scrollbar_down_btn_up(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+	ui_clickmatic_t *clickmatic = ui_get_clickmatic(scrollbar->ui);
+
+	ui_clickmatic_release(clickmatic);
+	ui_clickmatic_set_cb(clickmatic, NULL, NULL);
 }
 
 /** Destroy scrollbar control.
@@ -907,9 +1003,61 @@ errno_t ui_scrollbar_ctl_paint(void *arg)
  */
 ui_evclaim_t ui_scrollbar_ctl_pos_event(void *arg, pos_event_t *event)
 {
-	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *) arg;
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
 
 	return ui_scrollbar_pos_event(scrollbar, event);
+}
+
+/** Scrollbar clickmatic up button click event.
+ *
+ * @param clickmatic Clickmatic
+ * @param arg Argument (ui_scrollbar_t *)
+ */
+static void ui_scrollbar_cm_up(ui_clickmatic_t *clickmatic, void *arg)
+{
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+
+	if (scrollbar->up_btn->inside)
+		ui_scrollbar_up(scrollbar);
+}
+
+/** Scrollbar clickmatic down button click event.
+ *
+ * @param clickmatic Clickmatic
+ * @param arg Argument (ui_scrollbar_t *)
+ */
+static void ui_scrollbar_cm_down(ui_clickmatic_t *clickmatic, void *arg)
+{
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+
+	if (scrollbar->down_btn->inside)
+		ui_scrollbar_down(scrollbar);
+}
+
+/** Scrollbar clickmatic up through click event.
+ *
+ * @param clickmatic Clickmatic
+ * @param arg Argument (ui_scrollbar_t *)
+ */
+static void ui_scrollbar_cm_page_up(ui_clickmatic_t *clickmatic, void *arg)
+{
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+
+	if (scrollbar->up_through_inside)
+		ui_scrollbar_page_up(scrollbar);
+}
+
+/** Scrollbar clickmatic down through click event.
+ *
+ * @param clickmatic Clickmatic
+ * @param arg Argument (ui_scrollbar_t *)
+ */
+static void ui_scrollbar_cm_page_down(ui_clickmatic_t *clickmatic, void *arg)
+{
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+
+	if (scrollbar->down_through_inside)
+		ui_scrollbar_page_down(scrollbar);
 }
 
 /** @}

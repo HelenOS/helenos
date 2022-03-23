@@ -34,33 +34,14 @@
 #include <ui/control.h>
 #include <ui/scrollbar.h>
 #include <ui/resource.h>
+#include <ui/ui.h>
+#include <ui/window.h>
 #include "../private/pbutton.h"
 #include "../private/scrollbar.h"
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(scrollbar);
-
-static errno_t testgc_set_clip_rect(void *, gfx_rect_t *);
-static errno_t testgc_set_color(void *, gfx_color_t *);
-static errno_t testgc_fill_rect(void *, gfx_rect_t *);
-static errno_t testgc_update(void *);
-static errno_t testgc_bitmap_create(void *, gfx_bitmap_params_t *,
-    gfx_bitmap_alloc_t *, void **);
-static errno_t testgc_bitmap_destroy(void *);
-static errno_t testgc_bitmap_render(void *, gfx_rect_t *, gfx_coord2_t *);
-static errno_t testgc_bitmap_get_alloc(void *, gfx_bitmap_alloc_t *);
-
-static gfx_context_ops_t ops = {
-	.set_clip_rect = testgc_set_clip_rect,
-	.set_color = testgc_set_color,
-	.fill_rect = testgc_fill_rect,
-	.update = testgc_update,
-	.bitmap_create = testgc_bitmap_create,
-	.bitmap_destroy = testgc_bitmap_destroy,
-	.bitmap_render = testgc_bitmap_render,
-	.bitmap_get_alloc = testgc_bitmap_get_alloc
-};
 
 static void test_scrollbar_up(ui_scrollbar_t *, void *);
 static void test_scrollbar_down(ui_scrollbar_t *, void *);
@@ -80,23 +61,6 @@ static ui_scrollbar_cb_t dummy_scrollbar_cb = {
 };
 
 typedef struct {
-	bool bm_created;
-	bool bm_destroyed;
-	gfx_bitmap_params_t bm_params;
-	void *bm_pixels;
-	gfx_rect_t bm_srect;
-	gfx_coord2_t bm_offs;
-	bool bm_rendered;
-	bool bm_got_alloc;
-} test_gc_t;
-
-typedef struct {
-	test_gc_t *tgc;
-	gfx_bitmap_alloc_t alloc;
-	bool myalloc;
-} testgc_bitmap_t;
-
-typedef struct {
 	bool up;
 	bool down;
 	bool page_up;
@@ -108,29 +72,29 @@ typedef struct {
 /** Create and destroy scrollbar */
 PCUT_TEST(create_destroy)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar = NULL;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(scrollbar);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_destroy() can take NULL argument (no-op) */
@@ -142,22 +106,24 @@ PCUT_TEST(destroy_null)
 /** ui_scrollbar_ctl() returns control that has a working virtual destructor */
 PCUT_TEST(ctl)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar = NULL;
 	ui_control_t *control;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(scrollbar);
 
@@ -165,31 +131,31 @@ PCUT_TEST(ctl)
 	PCUT_ASSERT_NOT_NULL(control);
 
 	ui_control_destroy(control);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Set scrollbar rectangle sets internal field */
 PCUT_TEST(set_rect)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar = NULL;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(scrollbar);
 
@@ -205,61 +171,61 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_INT_EQUALS(rect.p1.y, scrollbar->rect.p1.y);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Paint scrollbar in graphics mode */
 PCUT_TEST(paint_gfx)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_scrollbar_paint_gfx(scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Paint scrollbar in text mode */
 PCUT_TEST(paint_text)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, true, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 1;
@@ -272,32 +238,73 @@ PCUT_TEST(paint_text)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
 
-	rc = gfx_context_delete(gc);
+/** ui_scrollbar_get_geom() returns scrollbar geometry */
+PCUT_TEST(get_geom)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_scrollbar_t *scrollbar;
+	ui_scrollbar_geom_t geom;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 10;
+	rect.p1.x = 100;
+	rect.p1.y = 30;
+	ui_scrollbar_set_rect(scrollbar, &rect);
+
+	ui_scrollbar_get_geom(scrollbar, &geom);
+	PCUT_ASSERT_INT_EQUALS(11, geom.up_btn_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(11, geom.up_btn_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(99, geom.down_btn_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(29, geom.down_btn_rect.p1.y);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_through_length() gives correct scrollbar through length */
 PCUT_TEST(through_length)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	gfx_coord_t length;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -314,32 +321,32 @@ PCUT_TEST(through_length)
 	PCUT_ASSERT_INT_EQUALS(110 - 10 - 2 * 20, length);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_move_length() gives correct scrollbar move length */
 PCUT_TEST(move_length)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	gfx_coord_t length;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -356,32 +363,32 @@ PCUT_TEST(move_length)
 	PCUT_ASSERT_INT_EQUALS(110 - 10 - 2 * 20 - 20, length);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_get_pos() returns scrollbar position */
 PCUT_TEST(get_pos)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	gfx_coord_t pos;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -397,31 +404,31 @@ PCUT_TEST(get_pos)
 	PCUT_ASSERT_INT_EQUALS(42, pos);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_set_thumb_length() sets thumb length */
 PCUT_TEST(set_thumb_length)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -436,32 +443,32 @@ PCUT_TEST(set_thumb_length)
 	PCUT_ASSERT_INT_EQUALS(42, scrollbar->thumb_len);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_set_pos() sets thumb position */
 PCUT_TEST(set_pos)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	gfx_coord_t pos;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -488,33 +495,33 @@ PCUT_TEST(set_pos)
 	PCUT_ASSERT_INT_EQUALS(40, pos);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Press and release scrollbar thumb */
 PCUT_TEST(thumb_press_release)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	gfx_coord2_t pos;
 	gfx_rect_t rect;
 	ui_scrollbar_t *scrollbar;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -544,33 +551,33 @@ PCUT_TEST(thumb_press_release)
 	PCUT_ASSERT_INT_EQUALS(10, scrollbar->pos);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Press, update and release scrollbar */
 PCUT_TEST(thumb_press_update_release)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	gfx_coord2_t pos;
 	gfx_rect_t rect;
 	ui_scrollbar_t *scrollbar;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -608,33 +615,33 @@ PCUT_TEST(thumb_press_update_release)
 	PCUT_ASSERT_INT_EQUALS(20, scrollbar->pos);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Press and release up through */
 PCUT_TEST(up_through_press_release)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	gfx_coord2_t pos;
 	gfx_rect_t rect;
 	ui_scrollbar_t *scrollbar;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -660,33 +667,33 @@ PCUT_TEST(up_through_press_release)
 	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Press and release down through */
 PCUT_TEST(down_through_press_release)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	gfx_coord2_t pos;
 	gfx_rect_t rect;
 	ui_scrollbar_t *scrollbar;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -712,31 +719,74 @@ PCUT_TEST(down_through_press_release)
 	PCUT_ASSERT_FALSE(scrollbar->down_through_held);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
 
-	rc = gfx_context_delete(gc);
+/** Updating state of throughs when cursor or thumb moves */
+PCUT_TEST(throughs_update)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	gfx_coord2_t pos;
+	gfx_rect_t rect;
+	ui_scrollbar_t *scrollbar;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 110;
+	rect.p1.y = 120;
+	ui_scrollbar_set_rect(scrollbar, &rect);
+
+	PCUT_ASSERT_FALSE(scrollbar->down_through_inside);
+
+	pos.x = 60;
+	pos.y = 22;
+
+	ui_scrollbar_throughs_update(scrollbar, &pos);
+	PCUT_ASSERT_TRUE(scrollbar->down_through_inside);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_up() delivers up event */
 PCUT_TEST(up)
 {
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Up with no callbacks set */
@@ -753,31 +803,31 @@ PCUT_TEST(up)
 	PCUT_ASSERT_TRUE(resp.up);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_down() delivers down event */
 PCUT_TEST(down)
 {
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Down with no callbacks set */
@@ -794,31 +844,31 @@ PCUT_TEST(down)
 	PCUT_ASSERT_TRUE(resp.down);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_page_up() delivers page up event */
 PCUT_TEST(page_up)
 {
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Page up with no callbacks set */
@@ -835,31 +885,31 @@ PCUT_TEST(page_up)
 	PCUT_ASSERT_TRUE(resp.page_up);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_page_down() delivers page down event */
 PCUT_TEST(page_down)
 {
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Page down with no callbacks set */
@@ -876,31 +926,31 @@ PCUT_TEST(page_down)
 	PCUT_ASSERT_TRUE(resp.page_down);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_moved() delivers moved event */
 PCUT_TEST(moved)
 {
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
 	test_cb_resp_t resp;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Moved with no callbacks set */
@@ -919,33 +969,33 @@ PCUT_TEST(moved)
 	PCUT_ASSERT_INT_EQUALS(42, resp.pos);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_pos_event() detects thumb press/release */
 PCUT_TEST(pos_event_press_release_thumb)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	ui_evclaim_t claim;
 	pos_event_t event;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -981,33 +1031,33 @@ PCUT_TEST(pos_event_press_release_thumb)
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_pos_event() detects up button press/release */
 PCUT_TEST(pos_event_press_release_up_btn)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	ui_evclaim_t claim;
 	pos_event_t event;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -1027,33 +1077,33 @@ PCUT_TEST(pos_event_press_release_up_btn)
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_pos_event() detects up through press/release */
 PCUT_TEST(pos_event_press_release_up_through)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	ui_evclaim_t claim;
 	pos_event_t event;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
@@ -1084,33 +1134,33 @@ PCUT_TEST(pos_event_press_release_up_through)
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_pos_event() detects down through press/release */
 PCUT_TEST(pos_event_press_release_down_through)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	ui_evclaim_t claim;
 	pos_event_t event;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
@@ -1138,33 +1188,33 @@ PCUT_TEST(pos_event_press_release_down_through)
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_scrollbar_pos_event() detects down button press/release */
 PCUT_TEST(pos_event_press_relese_down_btn)
 {
-	errno_t rc;
-	gfx_context_t *gc = NULL;
-	test_gc_t tgc;
-	ui_resource_t *resource = NULL;
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_scrollbar_t *scrollbar;
 	ui_evclaim_t claim;
 	pos_event_t event;
 	gfx_rect_t rect;
+	errno_t rc;
 
-	memset(&tgc, 0, sizeof(tgc));
-	rc = gfx_context_new(&ops, &tgc, &gc);
+	rc = ui_create_disp(NULL, &ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ui_resource_create(gc, false, &resource);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(resource);
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
 
-	rc = ui_scrollbar_create(resource, &scrollbar);
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -1184,102 +1234,8 @@ PCUT_TEST(pos_event_press_relese_down_btn)
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
-	ui_resource_destroy(resource);
-
-	rc = gfx_context_delete(gc);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-}
-
-static errno_t testgc_set_clip_rect(void *arg, gfx_rect_t *rect)
-{
-	(void) arg;
-	(void) rect;
-	return EOK;
-}
-
-static errno_t testgc_set_color(void *arg, gfx_color_t *color)
-{
-	(void) arg;
-	(void) color;
-	return EOK;
-}
-
-static errno_t testgc_fill_rect(void *arg, gfx_rect_t *rect)
-{
-	(void) arg;
-	(void) rect;
-	return EOK;
-}
-
-static errno_t testgc_update(void *arg)
-{
-	(void) arg;
-	return EOK;
-}
-
-static errno_t testgc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
-    gfx_bitmap_alloc_t *alloc, void **rbm)
-{
-	test_gc_t *tgc = (test_gc_t *) arg;
-	testgc_bitmap_t *tbm;
-
-	tbm = calloc(1, sizeof(testgc_bitmap_t));
-	if (tbm == NULL)
-		return ENOMEM;
-
-	if (alloc == NULL) {
-		tbm->alloc.pitch = (params->rect.p1.x - params->rect.p0.x) *
-		    sizeof(uint32_t);
-		tbm->alloc.off0 = 0;
-		tbm->alloc.pixels = calloc(sizeof(uint32_t),
-		    (params->rect.p1.x - params->rect.p0.x) *
-		    (params->rect.p1.y - params->rect.p0.y));
-		tbm->myalloc = true;
-		if (tbm->alloc.pixels == NULL) {
-			free(tbm);
-			return ENOMEM;
-		}
-	} else {
-		tbm->alloc = *alloc;
-	}
-
-	tbm->tgc = tgc;
-	tgc->bm_created = true;
-	tgc->bm_params = *params;
-	tgc->bm_pixels = tbm->alloc.pixels;
-	*rbm = (void *)tbm;
-	return EOK;
-}
-
-static errno_t testgc_bitmap_destroy(void *bm)
-{
-	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
-	if (tbm->myalloc)
-		free(tbm->alloc.pixels);
-	tbm->tgc->bm_destroyed = true;
-	free(tbm);
-	return EOK;
-}
-
-static errno_t testgc_bitmap_render(void *bm, gfx_rect_t *srect,
-    gfx_coord2_t *offs)
-{
-	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
-
-	tbm->tgc->bm_rendered = true;
-	if (srect != NULL)
-		tbm->tgc->bm_srect = *srect;
-	if (offs != NULL)
-		tbm->tgc->bm_offs = *offs;
-	return EOK;
-}
-
-static errno_t testgc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
-{
-	testgc_bitmap_t *tbm = (testgc_bitmap_t *)bm;
-	*alloc = tbm->alloc;
-	tbm->tgc->bm_got_alloc = true;
-	return EOK;
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 static void test_scrollbar_up(ui_scrollbar_t *scrollbar, void *arg)

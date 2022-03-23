@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <gfx/coord.h>
 #include <display.h>
+#include <fibril_synch.h>
 #include <io/console.h>
 #include <stdbool.h>
 
@@ -62,6 +63,10 @@ struct ui {
 	bool quit;
 	/** Windows (in stacking order, ui_window_t) */
 	list_t windows;
+	/** UI lock */
+	fibril_mutex_t lock;
+	/** Clickmatic */
+	struct ui_clickmatic *clickmatic;
 };
 
 #endif
