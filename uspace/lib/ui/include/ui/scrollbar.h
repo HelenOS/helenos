@@ -46,7 +46,8 @@
 #include <types/ui/ui.h>
 #include <types/ui/window.h>
 
-extern errno_t ui_scrollbar_create(ui_t *, ui_window_t *, ui_scrollbar_t **);
+extern errno_t ui_scrollbar_create(ui_t *, ui_window_t *, ui_scrollbar_dir_t,
+    ui_scrollbar_t **);
 extern void ui_scrollbar_destroy(ui_scrollbar_t *);
 extern ui_control_t *ui_scrollbar_ctl(ui_scrollbar_t *);
 extern void ui_scrollbar_set_cb(ui_scrollbar_t *, ui_scrollbar_cb_t *, void *);

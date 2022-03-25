@@ -88,7 +88,7 @@ PCUT_TEST(create_destroy)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(scrollbar);
 
@@ -123,7 +123,7 @@ PCUT_TEST(ctl)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(scrollbar);
 
@@ -155,7 +155,7 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(scrollbar);
 
@@ -194,7 +194,7 @@ PCUT_TEST(paint_gfx)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_scrollbar_paint_gfx(scrollbar);
@@ -205,8 +205,8 @@ PCUT_TEST(paint_gfx)
 	ui_destroy(ui);
 }
 
-/** Paint scrollbar in text mode */
-PCUT_TEST(paint_text)
+/** Paint horizontal scrollbar in text mode */
+PCUT_TEST(paint_text_horiz)
 {
 	ui_t *ui = NULL;
 	ui_window_t *window = NULL;
@@ -225,7 +225,7 @@ PCUT_TEST(paint_text)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 1;
@@ -234,7 +234,44 @@ PCUT_TEST(paint_text)
 	rect.p1.y = 2;
 	ui_scrollbar_set_rect(scrollbar, &rect);
 
-	rc = ui_scrollbar_paint_text(scrollbar);
+	rc = ui_scrollbar_paint_text_horiz(scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_scrollbar_destroy(scrollbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** Paint vertical scrollbar in text mode */
+PCUT_TEST(paint_text_vert)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_scrollbar_t *scrollbar;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_scrollbar_create(ui, window, ui_sbd_vert, &scrollbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 1;
+	rect.p0.y = 1;
+	rect.p1.x = 2;
+	rect.p1.y = 10;
+	ui_scrollbar_set_rect(scrollbar, &rect);
+
+	rc = ui_scrollbar_paint_text_vert(scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_scrollbar_destroy(scrollbar);
@@ -263,7 +300,7 @@ PCUT_TEST(get_geom)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -304,7 +341,7 @@ PCUT_TEST(through_length)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -346,7 +383,7 @@ PCUT_TEST(move_length)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -388,7 +425,7 @@ PCUT_TEST(get_pos)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -428,7 +465,7 @@ PCUT_TEST(set_thumb_length)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -468,7 +505,7 @@ PCUT_TEST(set_pos)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -521,7 +558,7 @@ PCUT_TEST(thumb_press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -577,7 +614,7 @@ PCUT_TEST(thumb_press_update_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -641,7 +678,7 @@ PCUT_TEST(up_through_press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -693,7 +730,7 @@ PCUT_TEST(down_through_press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -744,7 +781,7 @@ PCUT_TEST(throughs_update)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -786,7 +823,7 @@ PCUT_TEST(up)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Up with no callbacks set */
@@ -827,7 +864,7 @@ PCUT_TEST(down)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Down with no callbacks set */
@@ -868,7 +905,7 @@ PCUT_TEST(page_up)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Page up with no callbacks set */
@@ -909,7 +946,7 @@ PCUT_TEST(page_down)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Page down with no callbacks set */
@@ -950,7 +987,7 @@ PCUT_TEST(moved)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Moved with no callbacks set */
@@ -995,7 +1032,7 @@ PCUT_TEST(pos_event_press_release_thumb)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -1057,7 +1094,7 @@ PCUT_TEST(pos_event_press_release_up_btn)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);
@@ -1103,7 +1140,7 @@ PCUT_TEST(pos_event_press_release_up_through)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
@@ -1160,7 +1197,7 @@ PCUT_TEST(pos_event_press_release_down_through)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
@@ -1214,7 +1251,7 @@ PCUT_TEST(pos_event_press_relese_down_btn)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	rc = ui_scrollbar_create(ui, window, &scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(scrollbar->thumb_held);

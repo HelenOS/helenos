@@ -39,6 +39,7 @@
 
 #include <gfx/coord.h>
 #include <stdbool.h>
+#include <types/ui/scrollbar.h>
 
 /** Actual structure of scrollbar.
  *
@@ -57,6 +58,8 @@ struct ui_scrollbar {
 	void *arg;
 	/** Scrollbar rectangle */
 	gfx_rect_t rect;
+	/** Scrollbar direction */
+	ui_scrollbar_dir_t dir;
 	/** Thumb length */
 	gfx_coord_t thumb_len;
 	/** Up button */
@@ -103,7 +106,8 @@ typedef struct {
 } ui_scrollbar_geom_t;
 
 extern errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *);
-extern errno_t ui_scrollbar_paint_text(ui_scrollbar_t *);
+extern errno_t ui_scrollbar_paint_text_horiz(ui_scrollbar_t *);
+extern errno_t ui_scrollbar_paint_text_vert(ui_scrollbar_t *);
 extern void ui_scrollbar_get_geom(ui_scrollbar_t *, ui_scrollbar_geom_t *);
 
 #endif

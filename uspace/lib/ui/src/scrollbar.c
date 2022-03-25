@@ -148,14 +148,17 @@ ui_clickmatic_cb_t ui_scrollbar_clickmatic_page_down_cb = {
  *
  * @param ui UI
  * @param window Window containing scrollbar
+ * @param dir Scrollbar direction
  * @param rscrollbar Place to store pointer to new scrollbar
  * @return EOK on success, ENOMEM if out of memory
  */
 errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
-    ui_scrollbar_t **rscrollbar)
+    ui_scrollbar_dir_t dir, ui_scrollbar_t **rscrollbar)
 {
 	ui_scrollbar_t *scrollbar;
 	ui_resource_t *resource;
+	const char *up_text;
+	const char *down_text;
 	errno_t rc;
 
 	resource = ui_window_get_res(window);
@@ -171,16 +174,22 @@ errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
 		return rc;
 	}
 
-	rc = ui_pbutton_create(resource, resource->textmode ? "\u25c4" : "<",
-	    &scrollbar->up_btn);
+	if (dir == ui_sbd_horiz) {
+		up_text = resource->textmode ? "\u25c4" : "<";
+		down_text = resource->textmode ? "\u25ba" : ">";
+	} else {
+		up_text = resource->textmode ? "\u25b2" : "^";
+		down_text = resource->textmode ? "\u25bc" : "v";
+	}
+
+	rc = ui_pbutton_create(resource, up_text, &scrollbar->up_btn);
 	if (rc != EOK)
 		goto error;
 
 	ui_pbutton_set_cb(scrollbar->up_btn, &ui_scrollbar_up_btn_cb,
 	    (void *) scrollbar);
 
-	rc = ui_pbutton_create(resource, resource->textmode ? "\u25ba" : ">",
-	    &scrollbar->down_btn);
+	rc = ui_pbutton_create(resource, down_text, &scrollbar->down_btn);
 	if (rc != EOK)
 		goto error;
 
@@ -193,6 +202,7 @@ errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
 
 	scrollbar->ui = ui;
 	scrollbar->window = window;
+	scrollbar->dir = dir;
 	*rscrollbar = scrollbar;
 	return EOK;
 error:
@@ -339,14 +349,19 @@ gfx_coord_t ui_scrollbar_through_length(ui_scrollbar_t *scrollbar)
 {
 	ui_resource_t *resource;
 	gfx_coord2_t dims;
-	gfx_coord_t w;
+	gfx_coord_t len;
+	gfx_coord_t sblen;
 
 	resource = ui_window_get_res(scrollbar->window);
 
 	gfx_rect_dims(&scrollbar->rect, &dims);
-	w = resource->textmode ? ui_scrollbar_btn_len_text :
+	sblen = scrollbar->dir == ui_sbd_horiz ?
+	    dims.x : dims.y;
+
+	len = resource->textmode ? ui_scrollbar_btn_len_text :
 	    ui_scrollbar_btn_len;
-	return dims.x - 2 * w;
+
+	return sblen - 2 * len;
 }
 
 /** Determine scrollbar move length.
@@ -476,7 +491,6 @@ errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *scrollbar)
 		goto error;
 
 	/* Paint scrollbar thumb */
-
 	rc = ui_scrollbar_paint_thumb_frame(resource, &geom.thumb_rect,
 	    ui_scrollbar_thumb_frame_thickness, &brect);
 	if (rc != EOK)
@@ -511,12 +525,12 @@ error:
 	return rc;
 }
 
-/** Paint scrollbar in text mode.
+/** Paint horizontal scrollbar in text mode.
  *
  * @param scrollbar Scrollbar
  * @return EOK on success or an error code
  */
-errno_t ui_scrollbar_paint_text(ui_scrollbar_t *scrollbar)
+errno_t ui_scrollbar_paint_text_horiz(ui_scrollbar_t *scrollbar)
 {
 	ui_resource_t *resource;
 	gfx_coord2_t pos;
@@ -600,6 +614,65 @@ error:
 	return rc;
 }
 
+/** Paint vertical scrollbar in text mode.
+ *
+ * @param scrollbar Scrollbar
+ * @return EOK on success or an error code
+ */
+errno_t ui_scrollbar_paint_text_vert(ui_scrollbar_t *scrollbar)
+{
+	ui_resource_t *resource;
+	ui_scrollbar_geom_t geom;
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	errno_t rc;
+
+	resource = ui_window_get_res(scrollbar->window);
+	ui_scrollbar_get_geom(scrollbar, &geom);
+
+	/* Paint scrollbar through */
+
+	gfx_text_fmt_init(&fmt);
+	fmt.font = resource->font;
+	fmt.color = resource->sbar_through_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	pos.x = scrollbar->rect.p0.x;
+	for (pos.y = geom.through_rect.p0.y; pos.y < geom.through_rect.p1.y;
+	    pos.y++) {
+		rc = gfx_puttext(&pos, &fmt, "\u2592");
+		if (rc != EOK)
+			goto error;
+	}
+
+	/* Paint scrollbar thumb */
+
+	pos.x = geom.thumb_rect.p0.x;
+	for (pos.y = geom.thumb_rect.p0.y; pos.y < geom.thumb_rect.p1.y;
+	    pos.y++) {
+		rc = gfx_puttext(&pos, &fmt, "\u25a0");
+		if (rc != EOK)
+			goto error;
+	}
+
+	rc = ui_pbutton_paint(scrollbar->up_btn);
+	if (rc != EOK)
+		goto error;
+
+	rc = ui_pbutton_paint(scrollbar->down_btn);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_update(resource->gc);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Paint scrollbar.
  *
  * @param scrollbar Scrollbar
@@ -609,10 +682,14 @@ errno_t ui_scrollbar_paint(ui_scrollbar_t *scrollbar)
 {
 	ui_resource_t *resource = ui_window_get_res(scrollbar->window);
 
-	if (resource->textmode)
-		return ui_scrollbar_paint_text(scrollbar);
-	else
+	if (resource->textmode) {
+		if (scrollbar->dir == ui_sbd_horiz)
+			return ui_scrollbar_paint_text_horiz(scrollbar);
+		else
+			return ui_scrollbar_paint_text_vert(scrollbar);
+	} else {
 		return ui_scrollbar_paint_gfx(scrollbar);
+	}
 }
 
 /** Get scrollbar geometry.
@@ -645,39 +722,79 @@ void ui_scrollbar_get_geom(ui_scrollbar_t *scrollbar, ui_scrollbar_geom_t *geom)
 		    &scrollbar->rect, 1, &orect);
 	}
 
-	/* Up button */
-	geom->up_btn_rect.p0.x = orect.p0.x;
-	geom->up_btn_rect.p0.y = orect.p0.y;
-	geom->up_btn_rect.p1.x = orect.p0.x + btn_len;
-	geom->up_btn_rect.p1.y = orect.p1.y;
+	if (scrollbar->dir == ui_sbd_horiz) {
+		/* Up button */
+		geom->up_btn_rect.p0.x = orect.p0.x;
+		geom->up_btn_rect.p0.y = orect.p0.y;
+		geom->up_btn_rect.p1.x = orect.p0.x + btn_len;
+		geom->up_btn_rect.p1.y = orect.p1.y;
 
-	/* Through */
-	geom->through_rect.p0.x = geom->up_btn_rect.p1.x;
-	geom->through_rect.p0.y = irect.p0.y;
-	geom->through_rect.p1.x = orect.p1.x - btn_len;
-	geom->through_rect.p1.y = irect.p1.y;
+		/* Through */
+		geom->through_rect.p0.x = geom->up_btn_rect.p1.x;
+		geom->through_rect.p0.y = irect.p0.y;
+		geom->through_rect.p1.x = orect.p1.x - btn_len;
+		geom->through_rect.p1.y = irect.p1.y;
 
-	/* Thumb */
-	geom->thumb_rect.p0.x = geom->up_btn_rect.p1.x + scrollbar->pos;
-	geom->thumb_rect.p0.y = orect.p0.y;
-	geom->thumb_rect.p1.x = geom->thumb_rect.p0.x + scrollbar->thumb_len;
-	geom->thumb_rect.p1.y = orect.p1.y;
+		/* Thumb */
+		geom->thumb_rect.p0.x = geom->up_btn_rect.p1.x +
+		    scrollbar->pos;
+		geom->thumb_rect.p0.y = orect.p0.y;
+		geom->thumb_rect.p1.x = geom->thumb_rect.p0.x +
+		    scrollbar->thumb_len;
+		geom->thumb_rect.p1.y = orect.p1.y;
 
-	/* Up through */
-	geom->up_through_rect.p0 = geom->through_rect.p0;
-	geom->up_through_rect.p1.x = geom->thumb_rect.p0.x;
-	geom->up_through_rect.p1.y = geom->through_rect.p1.y;
+		/* Up through */
+		geom->up_through_rect.p0 = geom->through_rect.p0;
+		geom->up_through_rect.p1.x = geom->thumb_rect.p0.x;
+		geom->up_through_rect.p1.y = geom->through_rect.p1.y;
 
-	/* Down through */
-	geom->down_through_rect.p0.x = geom->thumb_rect.p1.x;
-	geom->down_through_rect.p0.y = geom->through_rect.p0.y;
-	geom->down_through_rect.p1 = geom->through_rect.p1;
+		/* Down through */
+		geom->down_through_rect.p0.x = geom->thumb_rect.p1.x;
+		geom->down_through_rect.p0.y = geom->through_rect.p0.y;
+		geom->down_through_rect.p1 = geom->through_rect.p1;
 
-	/* Down button */
-	geom->down_btn_rect.p0.x = geom->through_rect.p1.x;
-	geom->down_btn_rect.p0.y = orect.p0.y;
-	geom->down_btn_rect.p1.x = orect.p1.x;
-	geom->down_btn_rect.p1.y = orect.p1.y;
+		/* Down button */
+		geom->down_btn_rect.p0.x = geom->through_rect.p1.x;
+		geom->down_btn_rect.p0.y = orect.p0.y;
+		geom->down_btn_rect.p1.x = orect.p1.x;
+		geom->down_btn_rect.p1.y = orect.p1.y;
+	} else {
+		/* Up button */
+		geom->up_btn_rect.p0.x = orect.p0.x;
+		geom->up_btn_rect.p0.y = orect.p0.y;
+		geom->up_btn_rect.p1.x = orect.p1.x;
+		geom->up_btn_rect.p1.y = orect.p0.y + btn_len;
+
+		/* Through */
+		geom->through_rect.p0.x = irect.p0.x;
+		geom->through_rect.p0.y = geom->up_btn_rect.p1.y;
+		geom->through_rect.p1.x = irect.p1.x;
+		geom->through_rect.p1.y = orect.p1.y - btn_len;
+
+		/* Thumb */
+		geom->thumb_rect.p0.x = orect.p0.x;
+		geom->thumb_rect.p0.y = geom->up_btn_rect.p1.y +
+		    scrollbar->pos;
+		geom->thumb_rect.p1.x = orect.p1.x;
+		geom->thumb_rect.p1.y = geom->thumb_rect.p0.y +
+		    scrollbar->thumb_len;
+
+		/* Up through */
+		geom->up_through_rect.p0 = geom->through_rect.p0;
+		geom->up_through_rect.p1.x = geom->through_rect.p1.x;
+		geom->up_through_rect.p1.y = geom->thumb_rect.p0.y;
+
+		/* Down through */
+		geom->down_through_rect.p0.x = geom->through_rect.p0.x;
+		geom->down_through_rect.p0.y = geom->thumb_rect.p1.y;
+		geom->down_through_rect.p1 = geom->through_rect.p1;
+
+		/* Down button */
+		geom->down_btn_rect.p0.x = orect.p0.x;
+		geom->down_btn_rect.p0.y = geom->through_rect.p1.y;
+		geom->down_btn_rect.p1.x = orect.p1.x;
+		geom->down_btn_rect.p1.y = orect.p1.y;
+	}
 }
 
 /** Press down scrollbar thumb.
@@ -789,7 +906,7 @@ void ui_scrollbar_throughs_update(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
 	}
 }
 
-/** Pointer moved.
+/** Scrollbar handler for pointer movement.
  *
  * @param scrollbar Scrollbar
  * @param pos New pointer position
@@ -799,7 +916,11 @@ void ui_scrollbar_update(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
 	gfx_coord_t spos;
 
 	if (scrollbar->thumb_held) {
-		spos = scrollbar->last_pos + pos->x - scrollbar->press_pos.x;
+		if (scrollbar->dir == ui_sbd_horiz)
+			spos = scrollbar->last_pos + pos->x - scrollbar->press_pos.x;
+		else
+			spos = scrollbar->last_pos + pos->y - scrollbar->press_pos.y;
+
 		ui_scrollbar_set_pos(scrollbar, spos);
 	}
 

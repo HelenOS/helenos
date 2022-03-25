@@ -71,7 +71,8 @@ typedef struct {
 	ui_rbutton_t *rbcenter;
 	ui_rbutton_t *rbright;
 	ui_slider_t *slider;
-	ui_scrollbar_t *scrollbar;
+	ui_scrollbar_t *hscrollbar;
+	ui_scrollbar_t *vscrollbar;
 } ui_demo_t;
 
 #endif

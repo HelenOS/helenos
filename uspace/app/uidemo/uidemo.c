@@ -619,7 +619,7 @@ static errno_t ui_demo(const char *display_spec)
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
-		params.rect.p1.x = 220;
+		params.rect.p1.x = 250;
 		params.rect.p1.y = 370;
 	}
 
@@ -763,7 +763,7 @@ static errno_t ui_demo(const char *display_spec)
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 2;
 		rect.p0.y = 3;
-		rect.p1.x = 42;
+		rect.p1.x = 39;
 		rect.p1.y = 4;
 	} else {
 		rect.p0.x = 15;
@@ -849,9 +849,9 @@ static errno_t ui_demo(const char *display_spec)
 	ui_pbutton_set_cb(demo.pb2, &pbutton_cb, (void *) &demo);
 
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 32;
+		rect.p0.x = 29;
 		rect.p0.y = 7;
-		rect.p1.x = 42;
+		rect.p1.x = 39;
 		rect.p1.y = 8;
 	} else {
 		rect.p0.x = 115;
@@ -872,7 +872,7 @@ static errno_t ui_demo(const char *display_spec)
 	if (ui_is_textmode(ui)) {
 		bparams.rect.p0.x = 0;
 		bparams.rect.p0.y = 0;
-		bparams.rect.p1.x = 40;
+		bparams.rect.p1.x = 37;
 		bparams.rect.p1.y = 2;
 	} else {
 		bparams.rect.p0.x = 0;
@@ -1052,7 +1052,7 @@ static errno_t ui_demo(const char *display_spec)
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 2;
 		rect.p0.y = 18;
-		rect.p1.x = 12;
+		rect.p1.x = 28;
 		rect.p1.y = 19;
 	} else {
 		rect.p0.x = 15;
@@ -1069,33 +1069,65 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_scrollbar_create(ui, window, &demo.scrollbar);
+	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &demo.hscrollbar);
 	if (rc != EOK) {
 		printf("Error creating button.\n");
 		return rc;
 	}
 
-	ui_scrollbar_set_cb(demo.scrollbar, &scrollbar_cb, (void *) &demo);
+	ui_scrollbar_set_cb(demo.hscrollbar, &scrollbar_cb, (void *) &demo);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 2;
 		rect.p0.y = 20;
-		rect.p1.x = 12;
+		rect.p1.x = 40;
 		rect.p1.y = 21;
 	} else {
 		rect.p0.x = 15;
 		rect.p0.y = 340;
-		rect.p1.x = 210;
+		rect.p1.x = 220;
 		rect.p1.y = 362;
 	}
 
-	ui_scrollbar_set_rect(demo.scrollbar, &rect);
+	ui_scrollbar_set_rect(demo.hscrollbar, &rect);
 
-	ui_scrollbar_set_thumb_length(demo.scrollbar,
-	    ui_scrollbar_through_length(demo.scrollbar) / 4);
+	ui_scrollbar_set_thumb_length(demo.hscrollbar,
+	    ui_scrollbar_through_length(demo.hscrollbar) / 4);
 
-	rc = ui_fixed_add(demo.fixed, ui_scrollbar_ctl(demo.scrollbar));
+	rc = ui_fixed_add(demo.fixed, ui_scrollbar_ctl(demo.hscrollbar));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_scrollbar_create(ui, window, ui_sbd_vert, &demo.vscrollbar);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		return rc;
+	}
+
+	ui_scrollbar_set_cb(demo.vscrollbar, &scrollbar_cb, (void *) &demo);
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 40;
+		rect.p0.y = 3;
+		rect.p1.x = 41;
+		rect.p1.y = 20;
+	} else {
+		rect.p0.x = 220;
+		rect.p0.y = 53;
+		rect.p1.x = 242;
+		rect.p1.y = 340;
+	}
+
+	ui_scrollbar_set_rect(demo.vscrollbar, &rect);
+
+	ui_scrollbar_set_thumb_length(demo.vscrollbar,
+	    ui_scrollbar_through_length(demo.vscrollbar) / 4);
+
+	rc = ui_fixed_add(demo.fixed, ui_scrollbar_ctl(demo.vscrollbar));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;

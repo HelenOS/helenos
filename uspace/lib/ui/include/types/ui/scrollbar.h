@@ -41,6 +41,14 @@
 struct ui_scrollbar;
 typedef struct ui_scrollbar ui_scrollbar_t;
 
+/** Scrollbar direction */
+typedef enum {
+	/** Horizontal */
+	ui_sbd_horiz,
+	/** Vertical */
+	ui_sbd_vert
+} ui_scrollbar_dir_t;
+
 /** Scrollbar callbacks */
 typedef struct ui_scrollbar_cb {
 	void (*up)(ui_scrollbar_t *, void *);
