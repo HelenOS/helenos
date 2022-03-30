@@ -525,106 +525,15 @@ error:
 	return rc;
 }
 
-/** Paint horizontal scrollbar in text mode.
+/** Paint scrollbar in text mode.
  *
  * @param scrollbar Scrollbar
  * @return EOK on success or an error code
  */
-errno_t ui_scrollbar_paint_text_horiz(ui_scrollbar_t *scrollbar)
-{
-	ui_resource_t *resource;
-	gfx_coord2_t pos;
-	gfx_text_fmt_t fmt;
-	gfx_coord_t w, i;
-	char *buf;
-	const char *gchar;
-	size_t gcharsz;
-	errno_t rc;
-
-	resource = ui_window_get_res(scrollbar->window);
-
-	/* Paint scrollbar through */
-
-	pos = scrollbar->rect.p0;
-	pos.x += ui_scrollbar_btn_len_text;
-
-	gfx_text_fmt_init(&fmt);
-	fmt.font = resource->font;
-	fmt.color = resource->sbar_through_color;
-	fmt.halign = gfx_halign_left;
-	fmt.valign = gfx_valign_top;
-
-	w = scrollbar->rect.p1.x - scrollbar->rect.p0.x -
-	    2 * ui_scrollbar_btn_len_text;
-	assert(w >= 0);
-	if (w < 0)
-		return EINVAL;
-
-	gchar = "\u2592";
-	gcharsz = str_size(gchar);
-
-	buf = malloc(w * gcharsz + 1);
-	if (buf == NULL)
-		return ENOMEM;
-
-	for (i = 0; i < w; i++)
-		str_cpy(buf + i * gcharsz, (w - i) * gcharsz + 1, gchar);
-	buf[w * gcharsz] = '\0';
-
-	rc = gfx_puttext(&pos, &fmt, buf);
-	free(buf);
-	if (rc != EOK)
-		goto error;
-
-	/* Paint scrollbar thumb */
-
-	pos.x += scrollbar->pos;
-
-	gchar = "\u25a0";
-	gcharsz = str_size(gchar);
-	w = scrollbar->thumb_len;
-
-	buf = malloc(w * gcharsz + 1);
-	if (buf == NULL)
-		return ENOMEM;
-
-	for (i = 0; i < w; i++)
-		str_cpy(buf + i * gcharsz, (w - i) * gcharsz + 1, gchar);
-	buf[w * gcharsz] = '\0';
-
-	rc = gfx_puttext(&pos, &fmt, buf);
-	free(buf);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_pbutton_paint(scrollbar->up_btn);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_pbutton_paint(scrollbar->down_btn);
-	if (rc != EOK)
-		goto error;
-
-	rc = gfx_update(resource->gc);
-	if (rc != EOK)
-		goto error;
-
-	return EOK;
-error:
-	return rc;
-}
-
-/** Paint vertical scrollbar in text mode.
- *
- * @param scrollbar Scrollbar
- * @return EOK on success or an error code
- */
-errno_t ui_scrollbar_paint_text_vert(ui_scrollbar_t *scrollbar)
+errno_t ui_scrollbar_paint_text(ui_scrollbar_t *scrollbar)
 {
 	ui_resource_t *resource;
 	ui_scrollbar_geom_t geom;
-	gfx_coord2_t pos;
-	gfx_text_fmt_t fmt;
 	errno_t rc;
 
 	resource = ui_window_get_res(scrollbar->window);
@@ -632,29 +541,19 @@ errno_t ui_scrollbar_paint_text_vert(ui_scrollbar_t *scrollbar)
 
 	/* Paint scrollbar through */
 
-	gfx_text_fmt_init(&fmt);
-	fmt.font = resource->font;
-	fmt.color = resource->sbar_through_color;
-	fmt.halign = gfx_halign_left;
-	fmt.valign = gfx_valign_top;
-
-	pos.x = scrollbar->rect.p0.x;
-	for (pos.y = geom.through_rect.p0.y; pos.y < geom.through_rect.p1.y;
-	    pos.y++) {
-		rc = gfx_puttext(&pos, &fmt, "\u2592");
-		if (rc != EOK)
-			goto error;
-	}
+	rc = ui_paint_text_rect(resource, &geom.through_rect,
+	    resource->sbar_through_color, "\u2592");
+	if (rc != EOK)
+		goto error;
 
 	/* Paint scrollbar thumb */
 
-	pos.x = geom.thumb_rect.p0.x;
-	for (pos.y = geom.thumb_rect.p0.y; pos.y < geom.thumb_rect.p1.y;
-	    pos.y++) {
-		rc = gfx_puttext(&pos, &fmt, "\u25a0");
-		if (rc != EOK)
-			goto error;
-	}
+	rc = ui_paint_text_rect(resource, &geom.thumb_rect,
+	    resource->sbar_through_color, "\u25a0");
+	if (rc != EOK)
+		goto error;
+
+	/* Paint buttons */
 
 	rc = ui_pbutton_paint(scrollbar->up_btn);
 	if (rc != EOK)
@@ -683,10 +582,7 @@ errno_t ui_scrollbar_paint(ui_scrollbar_t *scrollbar)
 	ui_resource_t *resource = ui_window_get_res(scrollbar->window);
 
 	if (resource->textmode) {
-		if (scrollbar->dir == ui_sbd_horiz)
-			return ui_scrollbar_paint_text_horiz(scrollbar);
-		else
-			return ui_scrollbar_paint_text_vert(scrollbar);
+		return ui_scrollbar_paint_text(scrollbar);
 	} else {
 		return ui_scrollbar_paint_gfx(scrollbar);
 	}

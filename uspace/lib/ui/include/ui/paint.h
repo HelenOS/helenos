@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,8 @@ extern errno_t ui_paint_text_box(ui_resource_t *, gfx_rect_t *,
     ui_box_style_t, gfx_color_t *);
 extern errno_t ui_paint_text_hbrace(ui_resource_t *, gfx_rect_t *,
     ui_box_style_t, gfx_color_t *);
+extern errno_t ui_paint_text_rect(ui_resource_t *, gfx_rect_t *, gfx_color_t *,
+    const char *);
 extern void ui_text_fmt_init(ui_text_fmt_t *);
 extern gfx_coord_t ui_text_width(gfx_font_t *, const char *);
 extern errno_t ui_paint_text(gfx_coord2_t *, ui_text_fmt_t *, const char *);

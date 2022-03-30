@@ -554,6 +554,61 @@ error:
 	return rc;
 }
 
+/** Fill rectangle with text character.
+ *
+ * @param resource UI resource
+ * @param rect Rectangle
+ * @param color Color
+ * @param gchar Character to fill with
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_text_rect(ui_resource_t *resource, gfx_rect_t *rect,
+    gfx_color_t *color, const char *gchar)
+{
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	gfx_rect_t srect;
+	gfx_coord_t w, i;
+	char *buf;
+	size_t gcharsz;
+	errno_t rc;
+
+	gfx_rect_points_sort(rect, &srect);
+
+	gfx_text_fmt_init(&fmt);
+	fmt.font = resource->font;
+	fmt.color = color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	w = srect.p1.x - srect.p0.x;
+	if (w == 0)
+		return EOK;
+
+	gcharsz = str_size(gchar);
+
+	buf = malloc(w * gcharsz + 1);
+	if (buf == NULL)
+		return ENOMEM;
+
+	for (i = 0; i < w; i++)
+		str_cpy(buf + i * gcharsz, (w - i) * gcharsz + 1, gchar);
+	buf[w * gcharsz] = '\0';
+
+	pos.x = srect.p0.x;
+	for (pos.y = srect.p0.y; pos.y < srect.p1.y; pos.y++) {
+		rc = gfx_puttext(&pos, &fmt, buf);
+		if (rc != EOK)
+			goto error;
+	}
+
+	free(buf);
+	return EOK;
+error:
+	free(buf);
+	return rc;
+}
+
 /** Initialize UI text formatting structure.
  *
  * UI text formatting structure must always be initialized using this function

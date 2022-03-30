@@ -106,8 +106,7 @@ typedef struct {
 } ui_scrollbar_geom_t;
 
 extern errno_t ui_scrollbar_paint_gfx(ui_scrollbar_t *);
-extern errno_t ui_scrollbar_paint_text_horiz(ui_scrollbar_t *);
-extern errno_t ui_scrollbar_paint_text_vert(ui_scrollbar_t *);
+extern errno_t ui_scrollbar_paint_text(ui_scrollbar_t *);
 extern void ui_scrollbar_get_geom(ui_scrollbar_t *, ui_scrollbar_geom_t *);
 
 #endif
