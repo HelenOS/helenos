@@ -77,7 +77,7 @@
 
 enum {
 	/** Scrollbar button width */
-	ui_scrollbar_btn_len = 20,
+	ui_scrollbar_btn_len = 21,
 	/** Scrollbar button width in text mode */
 	ui_scrollbar_btn_len_text = 1,
 	/** Scrollbar thumb frame thickness */
@@ -85,7 +85,7 @@ enum {
 	/** Scrollbar thumb bevel width */
 	ui_scrollbar_thumb_bevel_width = 2,
 	/** Scrollbar default thumb length */
-	ui_scrollbar_def_thumb_len = 20,
+	ui_scrollbar_def_thumb_len = 21,
 	/** Scrollbar default thumb length in text mode */
 	ui_scrollbar_def_thumb_len_text = 1,
 	/** Scrollbar minimum thumb length */
@@ -96,6 +96,10 @@ enum {
 
 static void ui_scrollbar_up_btn_down(ui_pbutton_t *, void *);
 static void ui_scrollbar_up_btn_up(ui_pbutton_t *, void *);
+static errno_t ui_scrollbar_up_btn_decor_paint(ui_pbutton_t *, void *,
+    gfx_coord2_t *);
+static errno_t ui_scrollbar_down_btn_decor_paint(ui_pbutton_t *, void *,
+    gfx_coord2_t *);
 static void ui_scrollbar_down_btn_down(ui_pbutton_t *, void *);
 static void ui_scrollbar_down_btn_up(ui_pbutton_t *, void *);
 static void ui_scrollbar_ctl_destroy(void *);
@@ -107,9 +111,17 @@ static ui_pbutton_cb_t ui_scrollbar_up_btn_cb = {
 	.up = ui_scrollbar_up_btn_up
 };
 
+static ui_pbutton_decor_ops_t ui_scrollbar_up_btn_decor_ops = {
+	.paint = ui_scrollbar_up_btn_decor_paint
+};
+
 static ui_pbutton_cb_t ui_scrollbar_down_btn_cb = {
 	.down = ui_scrollbar_down_btn_down,
 	.up = ui_scrollbar_down_btn_up
+};
+
+static ui_pbutton_decor_ops_t ui_scrollbar_down_btn_decor_ops = {
+	.paint = ui_scrollbar_down_btn_decor_paint
 };
 
 /** Scrollbar control ops */
@@ -187,7 +199,10 @@ errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
 		goto error;
 
 	ui_pbutton_set_cb(scrollbar->up_btn, &ui_scrollbar_up_btn_cb,
-	    (void *) scrollbar);
+	    scrollbar);
+
+	ui_pbutton_set_decor_ops(scrollbar->up_btn,
+	    &ui_scrollbar_up_btn_decor_ops, (void *) scrollbar);
 
 	rc = ui_pbutton_create(resource, down_text, &scrollbar->down_btn);
 	if (rc != EOK)
@@ -195,6 +210,9 @@ errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
 
 	ui_pbutton_set_cb(scrollbar->down_btn, &ui_scrollbar_down_btn_cb,
 	    (void *) scrollbar);
+
+	ui_pbutton_set_decor_ops(scrollbar->down_btn,
+	    &ui_scrollbar_down_btn_decor_ops, (void *) scrollbar);
 
 	scrollbar->thumb_len = resource->textmode ?
 	    ui_scrollbar_def_thumb_len_text :
@@ -958,6 +976,50 @@ static void ui_scrollbar_up_btn_up(ui_pbutton_t *pbutton, void *arg)
 
 	ui_clickmatic_release(clickmatic);
 	ui_clickmatic_set_cb(clickmatic, NULL, NULL);
+}
+
+/** Paint up button decoration.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (ui_scrollbar_t *)
+ * @param pos Center position
+ */
+static errno_t ui_scrollbar_up_btn_decor_paint(ui_pbutton_t *pbutton,
+    void *arg, gfx_coord2_t *pos)
+{
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+	errno_t rc;
+
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_text_color);
+	if (rc != EOK)
+		return rc;
+
+	if (scrollbar->dir == ui_sbd_horiz)
+		return ui_paint_left_triangle(pbutton->res->gc, pos, 5);
+	else
+		return ui_paint_up_triangle(pbutton->res->gc, pos, 5);
+}
+
+/** Paint down button decoration.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (ui_scrollbar_t *)
+ * @param pos Center position
+ */
+static errno_t ui_scrollbar_down_btn_decor_paint(ui_pbutton_t *pbutton,
+    void *arg, gfx_coord2_t *pos)
+{
+	ui_scrollbar_t *scrollbar = (ui_scrollbar_t *)arg;
+	errno_t rc;
+
+	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_text_color);
+	if (rc != EOK)
+		return rc;
+
+	if (scrollbar->dir == ui_sbd_horiz)
+		return ui_paint_right_triangle(pbutton->res->gc, pos, 5);
+	else
+		return ui_paint_down_triangle(pbutton->res->gc, pos, 5);
 }
 
 /** Scrollbar down button pressed.

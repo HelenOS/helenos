@@ -318,7 +318,7 @@ PCUT_TEST(through_length)
 	length = ui_scrollbar_through_length(scrollbar);
 
 	/* Total length minus buttons */
-	PCUT_ASSERT_INT_EQUALS(110 - 10 - 2 * 20, length);
+	PCUT_ASSERT_INT_EQUALS(110 - 10 - 2 * 21, length);
 
 	ui_scrollbar_destroy(scrollbar);
 	ui_window_destroy(window);
@@ -360,7 +360,7 @@ PCUT_TEST(move_length)
 	length = ui_scrollbar_move_length(scrollbar);
 
 	/* Total length minus buttons minus default thumb length */
-	PCUT_ASSERT_INT_EQUALS(110 - 10 - 2 * 20 - 20, length);
+	PCUT_ASSERT_INT_EQUALS(110 - 10 - 2 * 21 - 21, length);
 
 	ui_scrollbar_destroy(scrollbar);
 	ui_window_destroy(window);
@@ -491,8 +491,8 @@ PCUT_TEST(set_pos)
 
 	ui_scrollbar_set_pos(scrollbar, 42);
 	pos = ui_scrollbar_get_pos(scrollbar);
-	/* The value is clipped to the maximum possible position (40) */
-	PCUT_ASSERT_INT_EQUALS(40, pos);
+	/* The value is clipped to the maximum possible position (37) */
+	PCUT_ASSERT_INT_EQUALS(37, pos);
 
 	ui_scrollbar_destroy(scrollbar);
 	ui_window_destroy(window);

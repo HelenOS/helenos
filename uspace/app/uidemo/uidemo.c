@@ -1087,7 +1087,7 @@ static errno_t ui_demo(const char *display_spec)
 		rect.p0.x = 15;
 		rect.p0.y = 340;
 		rect.p1.x = 220;
-		rect.p1.y = 362;
+		rect.p1.y = 363;
 	}
 
 	ui_scrollbar_set_rect(demo.hscrollbar, &rect);
@@ -1118,7 +1118,7 @@ static errno_t ui_demo(const char *display_spec)
 	} else {
 		rect.p0.x = 220;
 		rect.p0.y = 53;
-		rect.p1.x = 242;
+		rect.p1.x = 243;
 		rect.p1.y = 340;
 	}
 

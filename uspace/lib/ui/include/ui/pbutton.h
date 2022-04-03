@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,8 @@ extern errno_t ui_pbutton_create(ui_resource_t *, const char *,
 extern void ui_pbutton_destroy(ui_pbutton_t *);
 extern ui_control_t *ui_pbutton_ctl(ui_pbutton_t *);
 extern void ui_pbutton_set_cb(ui_pbutton_t *, ui_pbutton_cb_t *, void *);
+extern void ui_pbutton_set_decor_ops(ui_pbutton_t *, ui_pbutton_decor_ops_t *,
+    void *);
 extern void ui_pbutton_set_rect(ui_pbutton_t *, gfx_rect_t *);
 extern void ui_pbutton_set_default(ui_pbutton_t *, bool);
 extern errno_t ui_pbutton_paint(ui_pbutton_t *);

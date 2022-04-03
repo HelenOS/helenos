@@ -359,6 +359,110 @@ errno_t ui_paint_filled_circle(gfx_context_t *gc, gfx_coord2_t *center,
 	return EOK;
 }
 
+/** Paint upward pointing triangle.
+ *
+ * @param gc Graphic context
+ * @param pos Center position
+ * @param n Length of triangle side
+ */
+errno_t ui_paint_up_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
+    gfx_coord_t n)
+{
+	gfx_coord_t i;
+	errno_t rc;
+	gfx_rect_t rect;
+
+	for (i = 0; i < n; i++) {
+		rect.p0.x = pos->x - i;
+		rect.p0.y = pos->y - n / 2 + i;
+		rect.p1.x = pos->x + i + 1;
+		rect.p1.y = pos->y - n / 2 + i + 1;
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+/** Paint downward pointing triangle.
+ *
+ * @param gc Graphic context
+ * @param pos Center position
+ * @param n Length of triangle side
+ */
+errno_t ui_paint_down_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
+    gfx_coord_t n)
+{
+	gfx_coord_t i;
+	errno_t rc;
+	gfx_rect_t rect;
+
+	for (i = 0; i < n; i++) {
+		rect.p0.x = pos->x - i;
+		rect.p0.y = pos->y + n / 2 - i;
+		rect.p1.x = pos->x + i + 1;
+		rect.p1.y = pos->y + n / 2 - i + 1;
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+/** Paint left pointing triangle.
+ *
+ * @param gc Graphic context
+ * @param pos Center position
+ * @param n Length of triangle side
+ */
+errno_t ui_paint_left_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
+    gfx_coord_t n)
+{
+	gfx_coord_t i;
+	errno_t rc;
+	gfx_rect_t rect;
+
+	for (i = 0; i < n; i++) {
+		rect.p0.x = pos->x - n / 2 + i;
+		rect.p0.y = pos->y - i;
+		rect.p1.x = pos->x - n / 2 + i + 1;
+		rect.p1.y = pos->y + i + 1;
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+/** Paint right pointing triangle.
+ *
+ * @param gc Graphic context
+ * @param pos Center position
+ * @param n Length of triangle side
+ */
+errno_t ui_paint_right_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
+    gfx_coord_t n)
+{
+	gfx_coord_t i;
+	errno_t rc;
+	gfx_rect_t rect;
+
+	for (i = 0; i < n; i++) {
+		rect.p0.x = pos->x + n / 2 - i;
+		rect.p0.y = pos->y - i;
+		rect.p1.x = pos->x + n / 2 - i + 1;
+		rect.p1.y = pos->y + i + 1;
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
 /** Paint a text box.
  *
  * @param resource UI resource

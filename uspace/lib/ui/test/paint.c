@@ -224,6 +224,9 @@ PCUT_TEST(filled_circle)
 	rc = gfx_context_new(&ops, &tgc, &gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	center.x = 0;
+	center.y = 0;
+
 	/* Paint filled circle / upper-left half */
 	rc = ui_paint_filled_circle(gc, &center, 10, ui_fcircle_upleft);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -234,6 +237,94 @@ PCUT_TEST(filled_circle)
 
 	/* Paint entire filled circle */
 	rc = ui_paint_filled_circle(gc, &center, 10, ui_fcircle_entire);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint up pointing triangle */
+PCUT_TEST(up_triangle)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	gfx_coord2_t center;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	center.x = 0;
+	center.y = 0;
+
+	rc = ui_paint_up_triangle(gc, &center, 5);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint down pointing triangle */
+PCUT_TEST(down_triangle)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	gfx_coord2_t center;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	center.x = 0;
+	center.y = 0;
+
+	rc = ui_paint_down_triangle(gc, &center, 5);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint left pointing triangle */
+PCUT_TEST(left_triangle)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	gfx_coord2_t center;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	center.x = 0;
+	center.y = 0;
+
+	rc = ui_paint_left_triangle(gc, &center, 5);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint right pointing triangle */
+PCUT_TEST(right_triangle)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	gfx_coord2_t center;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	center.x = 0;
+	center.y = 0;
+
+	rc = ui_paint_right_triangle(gc, &center, 5);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = gfx_context_delete(gc);

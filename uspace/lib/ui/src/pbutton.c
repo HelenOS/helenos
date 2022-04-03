@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,9 @@
  */
 /**
  * @file Push button
+ *
+ * Push button either uses text as decoration, or it can use a caller-provided
+ * function to paint the decoration.
  */
 
 #include <errno.h>
@@ -133,6 +136,19 @@ void ui_pbutton_set_cb(ui_pbutton_t *pbutton, ui_pbutton_cb_t *cb, void *arg)
 {
 	pbutton->cb = cb;
 	pbutton->arg = arg;
+}
+
+/** Set push button decoration ops.
+ *
+ * @param pbutton Push button
+ * @param ops Push button decoration callbacks
+ * @param arg Decoration ops argument
+ */
+void ui_pbutton_set_decor_ops(ui_pbutton_t *pbutton,
+    ui_pbutton_decor_ops_t *ops, void *arg)
+{
+	pbutton->decor_ops = ops;
+	pbutton->decor_arg = arg;
 }
 
 /** Set button rectangle.
@@ -305,15 +321,24 @@ static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 		pos.y += ui_pb_press_dy;
 	}
 
-	gfx_text_fmt_init(&fmt);
-	fmt.font = pbutton->res->font;
-	fmt.color = pbutton->res->btn_text_color;
-	fmt.halign = gfx_halign_center;
-	fmt.valign = gfx_valign_center;
+	if (pbutton->decor_ops != NULL && pbutton->decor_ops->paint != NULL) {
+		/* Custom decoration */
+		rc = pbutton->decor_ops->paint(pbutton, pbutton->decor_arg,
+		    &pos);
+		if (rc != EOK)
+			goto error;
+	} else {
+		/* Text decoration */
+		gfx_text_fmt_init(&fmt);
+		fmt.font = pbutton->res->font;
+		fmt.color = pbutton->res->btn_text_color;
+		fmt.halign = gfx_halign_center;
+		fmt.valign = gfx_valign_center;
 
-	rc = gfx_puttext(&pos, &fmt, pbutton->caption);
-	if (rc != EOK)
-		goto error;
+		rc = gfx_puttext(&pos, &fmt, pbutton->caption);
+		if (rc != EOK)
+			goto error;
+	}
 
 	rc = ui_pbutton_paint_frame(pbutton);
 	if (rc != EOK)

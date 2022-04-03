@@ -36,6 +36,9 @@
 #ifndef _UI_TYPES_PBUTTON_H
 #define _UI_TYPES_PBUTTON_H
 
+#include <errno.h>
+#include <gfx/coord.h>
+
 struct ui_pbutton;
 typedef struct ui_pbutton ui_pbutton_t;
 
@@ -45,6 +48,11 @@ typedef struct ui_pbutton_cb {
 	void (*down)(ui_pbutton_t *, void *);
 	void (*up)(ui_pbutton_t *, void *);
 } ui_pbutton_cb_t;
+
+/** Push button decoration ops */
+typedef struct ui_pbutton_decor_ops {
+	errno_t (*paint)(ui_pbutton_t *, void *, gfx_coord2_t *);
+} ui_pbutton_decor_ops_t;
 
 #endif
 

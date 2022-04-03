@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,10 @@ struct ui_pbutton {
 	struct ui_pbutton_cb *cb;
 	/** Callback argument */
 	void *arg;
+	/** Custom decoration ops or @c NULL */
+	struct ui_pbutton_decor_ops *decor_ops;
+	/** Decoration argument */
+	void *decor_arg;
 	/** Push button rectangle */
 	gfx_rect_t rect;
 	/** Caption */
