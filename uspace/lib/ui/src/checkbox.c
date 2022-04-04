@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,9 @@ enum {
 	checkbox_box_w = 16,
 	checkbox_box_h = 16,
 	checkbox_label_margin = 8,
+	checkbox_cross_n = 5,
+	checkbox_cross_w = 2,
+	checkbox_cross_h = 2
 };
 
 static void ui_checkbox_ctl_destroy(void *);
@@ -187,16 +190,16 @@ errno_t ui_checkbox_paint_gfx(ui_checkbox_t *checkbox)
 	/* Paint cross mark */
 
 	if (checkbox->checked) {
-		box_center.x = (box_inside.p0.x + box_inside.p1.x) / 2;
-		box_center.y = (box_inside.p0.y + box_inside.p1.y) / 2;
+		rc = gfx_set_color(checkbox->res->gc,
+		    checkbox->res->entry_fg_color);
+		if (rc != EOK)
+			goto error;
 
-		gfx_text_fmt_init(&fmt);
-		fmt.font = checkbox->res->font;
-		fmt.color = checkbox->res->entry_fg_color;
-		fmt.halign = gfx_halign_center;
-		fmt.valign = gfx_valign_center;
+		box_center.x = (box_inside.p0.x + box_inside.p1.x) / 2 - 1;
+		box_center.y = (box_inside.p0.y + box_inside.p1.y) / 2 - 1;
 
-		rc = gfx_puttext(&box_center, &fmt, "X");
+		rc = ui_paint_cross(checkbox->res->gc, &box_center,
+		    checkbox_cross_n, checkbox_cross_w, checkbox_cross_h);
 		if (rc != EOK)
 			goto error;
 	}

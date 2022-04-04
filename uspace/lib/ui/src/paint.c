@@ -364,6 +364,7 @@ errno_t ui_paint_filled_circle(gfx_context_t *gc, gfx_coord2_t *center,
  * @param gc Graphic context
  * @param pos Center position
  * @param n Length of triangle side
+ * @return EOK on success or an error code
  */
 errno_t ui_paint_up_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
     gfx_coord_t n)
@@ -390,6 +391,7 @@ errno_t ui_paint_up_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
  * @param gc Graphic context
  * @param pos Center position
  * @param n Length of triangle side
+ * @return EOK on success or an error code
  */
 errno_t ui_paint_down_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
     gfx_coord_t n)
@@ -416,6 +418,7 @@ errno_t ui_paint_down_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
  * @param gc Graphic context
  * @param pos Center position
  * @param n Length of triangle side
+ * @return EOK on success or an error code
  */
 errno_t ui_paint_left_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
     gfx_coord_t n)
@@ -442,6 +445,7 @@ errno_t ui_paint_left_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
  * @param gc Graphic context
  * @param pos Center position
  * @param n Length of triangle side
+ * @return EOK on success or an error code
  */
 errno_t ui_paint_right_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
     gfx_coord_t n)
@@ -455,6 +459,67 @@ errno_t ui_paint_right_triangle(gfx_context_t *gc, gfx_coord2_t *pos,
 		rect.p0.y = pos->y - i;
 		rect.p1.x = pos->x + n / 2 - i + 1;
 		rect.p1.y = pos->y + i + 1;
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
+/** Paint diagonal cross (X).
+ *
+ * @param gc Graphic context
+ * @param pos Center position
+ * @param n Length of each leg
+ * @param w Pen width
+ * @param h Pen height
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_cross(gfx_context_t *gc, gfx_coord2_t *pos,
+    gfx_coord_t n, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_coord_t i;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rect.p0.x = pos->x;
+	rect.p0.y = pos->y;
+	rect.p1.x = pos->x + w;
+	rect.p1.y = pos->y + h;
+	rc = gfx_fill_rect(gc, &rect);
+	if (rc != EOK)
+		return rc;
+
+	for (i = 1; i < n; i++) {
+		rect.p0.x = pos->x - i;
+		rect.p0.y = pos->y - i;
+		rect.p1.x = pos->x - i + w;
+		rect.p1.y = pos->y - i + h;
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+
+		rect.p0.x = pos->x - i;
+		rect.p0.y = pos->y + i;
+		rect.p1.x = pos->x - i + w;
+		rect.p1.y = pos->y + i + h;
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+
+		rect.p0.x = pos->x + i;
+		rect.p0.y = pos->y - i;
+		rect.p1.x = pos->x + i + w;
+		rect.p1.y = pos->y - i + h;
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			return rc;
+
+		rect.p0.x = pos->x + i;
+		rect.p0.y = pos->y + i;
+		rect.p1.x = pos->x + i + w;
+		rect.p1.y = pos->y + i + h;
 		rc = gfx_fill_rect(gc, &rect);
 		if (rc != EOK)
 			return rc;

@@ -331,6 +331,28 @@ PCUT_TEST(right_triangle)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Paint diagonal cross (X) */
+PCUT_TEST(cross)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	gfx_coord2_t center;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	center.x = 0;
+	center.y = 0;
+
+	rc = ui_paint_cross(gc, &center, 5, 1, 2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Paint text box */
 PCUT_TEST(text_box)
 {

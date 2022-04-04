@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,9 +49,15 @@
 #include "../private/wdecor.h"
 
 static void ui_wdecor_btn_clicked(ui_pbutton_t *, void *);
+static errno_t ui_wdecor_btn_close_paint(ui_pbutton_t *, void *,
+    gfx_coord2_t *);
 
 static ui_pbutton_cb_t ui_wdecor_btn_close_cb = {
 	.clicked = ui_wdecor_btn_clicked
+};
+
+static ui_pbutton_decor_ops_t ui_wdecor_btn_close_decor_ops = {
+	.paint = ui_wdecor_btn_close_paint
 };
 
 enum {
@@ -61,7 +67,10 @@ enum {
 	wdecor_edge_h = 4,
 	wdecor_tbar_h = 22,
 	wdecor_frame_w = 4,
-	wdecor_frame_w_text = 1
+	wdecor_frame_w_text = 1,
+	wdecor_close_cross_n = 5,
+	wdecor_close_cross_w = 2,
+	wdecor_close_cross_h = 1
 };
 
 /** Create new window decoration.
@@ -97,6 +106,9 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 
 	ui_pbutton_set_cb(wdecor->btn_close, &ui_wdecor_btn_close_cb,
 	    (void *)wdecor);
+
+	ui_pbutton_set_decor_ops(wdecor->btn_close,
+	    &ui_wdecor_btn_close_decor_ops, (void *)wdecor);
 
 	wdecor->res = resource;
 	wdecor->active = true;
@@ -644,6 +656,29 @@ static void ui_wdecor_btn_clicked(ui_pbutton_t *pbutton, void *arg)
 
 	(void) pbutton;
 	ui_wdecor_close(wdecor);
+}
+
+/** Paint close button decoration.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (ui_wdecor_t *)
+ * @param pos Center position
+ */
+static errno_t ui_wdecor_btn_close_paint(ui_pbutton_t *pbutton,
+    void *arg, gfx_coord2_t *pos)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
+	gfx_coord2_t p;
+	errno_t rc;
+
+	rc = gfx_set_color(wdecor->res->gc, wdecor->res->btn_text_color);
+	if (rc != EOK)
+		return rc;
+
+	p.x = pos->x - 1;
+	p.y = pos->y - 1;
+	return ui_paint_cross(wdecor->res->gc, &p, wdecor_close_cross_n,
+	    wdecor_close_cross_w, wdecor_close_cross_h);
 }
 
 /** @}
