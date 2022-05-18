@@ -586,13 +586,13 @@ errno_t ui_window_size_change(ui_window_t *window, gfx_rect_t *rect,
 		if (rc != EOK)
 			goto error;
 #endif
-
 		mem_gc_retarget(window->mgc, &win_params.rect, &win_alloc);
 
 		gfx_bitmap_destroy(window->bmp);
 		window->bmp = win_bmp;
 	}
 
+	window->rect = nrect;
 	ui_wdecor_set_rect(window->wdecor, &nrect);
 	ui_wdecor_paint(window->wdecor);
 	gfx_update(window->gc);
