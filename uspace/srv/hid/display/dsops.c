@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,10 +48,13 @@ static errno_t disp_window_destroy(void *, sysarg_t);
 static errno_t disp_window_move_req(void *, sysarg_t, gfx_coord2_t *);
 static errno_t disp_window_move(void *, sysarg_t, gfx_coord2_t *);
 static errno_t disp_window_get_pos(void *, sysarg_t, gfx_coord2_t *);
+static errno_t disp_window_get_max_rect(void *, sysarg_t, gfx_rect_t *);
 static errno_t disp_window_resize_req(void *, sysarg_t,
     display_wnd_rsztype_t, gfx_coord2_t *);
 static errno_t disp_window_resize(void *, sysarg_t, gfx_coord2_t *,
     gfx_rect_t *);
+static errno_t disp_window_maximize(void *, sysarg_t);
+static errno_t disp_window_unmaximize(void *, sysarg_t);
 static errno_t disp_window_set_cursor(void *, sysarg_t, display_stock_cursor_t);
 static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
 static errno_t disp_get_info(void *, display_info_t *);
@@ -62,8 +65,11 @@ display_ops_t display_srv_ops = {
 	.window_move_req = disp_window_move_req,
 	.window_move = disp_window_move,
 	.window_get_pos = disp_window_get_pos,
+	.window_get_max_rect = disp_window_get_max_rect,
 	.window_resize_req = disp_window_resize_req,
 	.window_resize = disp_window_resize,
+	.window_maximize = disp_window_maximize,
+	.window_unmaximize = disp_window_unmaximize,
 	.window_set_cursor = disp_window_set_cursor,
 	.get_event = disp_get_event,
 	.get_info = disp_get_info
@@ -174,6 +180,26 @@ static errno_t disp_window_get_pos(void *arg, sysarg_t wnd_id,
 	return EOK;
 }
 
+static errno_t disp_window_get_max_rect(void *arg, sysarg_t wnd_id,
+    gfx_rect_t *rect)
+{
+	ds_client_t *client = (ds_client_t *) arg;
+	ds_window_t *wnd;
+
+	ds_display_lock(client->display);
+
+	wnd = ds_client_find_window(client, wnd_id);
+	if (wnd == NULL) {
+		ds_display_unlock(client->display);
+		return ENOENT;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_get_max_rect()");
+	ds_window_get_max_rect(wnd, rect);
+	ds_display_unlock(client->display);
+	return EOK;
+}
+
 static errno_t disp_window_resize_req(void *arg, sysarg_t wnd_id,
     display_wnd_rsztype_t rsztype, gfx_coord2_t *pos)
 {
@@ -214,6 +240,46 @@ static errno_t disp_window_resize(void *arg, sysarg_t wnd_id,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_resize()");
 	rc = ds_window_resize(wnd, offs, nbound);
+	ds_display_unlock(client->display);
+	return rc;
+}
+
+static errno_t disp_window_maximize(void *arg, sysarg_t wnd_id)
+{
+	ds_client_t *client = (ds_client_t *) arg;
+	ds_window_t *wnd;
+	errno_t rc;
+
+	ds_display_lock(client->display);
+
+	wnd = ds_client_find_window(client, wnd_id);
+	if (wnd == NULL) {
+		ds_display_unlock(client->display);
+		return ENOENT;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_maximize()");
+	rc = ds_window_maximize(wnd);
+	ds_display_unlock(client->display);
+	return rc;
+}
+
+static errno_t disp_window_unmaximize(void *arg, sysarg_t wnd_id)
+{
+	ds_client_t *client = (ds_client_t *) arg;
+	ds_window_t *wnd;
+	errno_t rc;
+
+	ds_display_lock(client->display);
+
+	wnd = ds_client_find_window(client, wnd_id);
+	if (wnd == NULL) {
+		ds_display_unlock(client->display);
+		return ENOENT;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_unmaximize()");
+	rc = ds_window_unmaximize(wnd);
 	ds_display_unlock(client->display);
 	return rc;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,6 +76,8 @@ struct ui_window {
 	gfx_context_t *realgc;
 	/** Window rectangle */
 	gfx_rect_t rect;
+	/** Normal window rectangle (when not maximized) */
+	gfx_rect_t normal_rect;
 	/** Display position (if fullscreen mode) */
 	gfx_coord2_t dpos;
 	/** Application area bitmap */
@@ -98,13 +100,27 @@ struct ui_window {
 	ui_wnd_placement_t placement;
 };
 
+/** Size change operation */
+typedef enum {
+	/** Resize window */
+	ui_wsc_resize,
+	/** Maximize window */
+	ui_wsc_maximize,
+	/** Unmaximize window */
+	ui_wsc_unmaximize
+} ui_wnd_sc_op_t;
+
 extern display_stock_cursor_t wnd_dcursor_from_cursor(ui_stock_cursor_t);
+extern void ui_window_send_maximize(ui_window_t *);
+extern void ui_window_send_unmaximize(ui_window_t *);
 extern void ui_window_send_close(ui_window_t *);
 extern void ui_window_send_focus(ui_window_t *);
 extern void ui_window_send_kbd(ui_window_t *, kbd_event_t *);
 extern errno_t ui_window_send_paint(ui_window_t *);
 extern void ui_window_send_pos(ui_window_t *, pos_event_t *);
 extern void ui_window_send_unfocus(ui_window_t *);
+extern errno_t ui_window_size_change(ui_window_t *, gfx_rect_t *,
+    ui_wnd_sc_op_t);
 
 #endif
 

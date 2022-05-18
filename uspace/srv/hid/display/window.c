@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -579,6 +579,8 @@ errno_t ds_window_post_kbd_event(ds_window_t *wnd, kbd_event_t *event)
  *
  * @param wnd Window
  * @param event Position event
+ *
+ * @return EOK on success or an error code
  */
 errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 {
@@ -596,7 +598,8 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
 	inside = gfx_pix_inside_rect(&pos, &drect);
 
-	if (event->type == POS_PRESS && event->btn_num == 2 && inside) {
+	if (event->type == POS_PRESS && event->btn_num == 2 && inside &&
+	    (wnd->flags & wndf_maximized) == 0) {
 		ds_window_start_move(wnd, &pos);
 		return EOK;
 	}
@@ -636,6 +639,7 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 /** Post focus event to window.
  *
  * @param wnd Window
+ * @return EOK on success or an error code
  */
 errno_t ds_window_post_focus_event(ds_window_t *wnd)
 {
@@ -647,6 +651,7 @@ errno_t ds_window_post_focus_event(ds_window_t *wnd)
 /** Post unfocus event to window.
  *
  * @param wnd Window
+ * @return EOK on success or an error code
  */
 errno_t ds_window_post_unfocus_event(ds_window_t *wnd)
 {
@@ -692,6 +697,15 @@ void ds_window_get_pos(ds_window_t *wnd, gfx_coord2_t *dpos)
 	*dpos = wnd->dpos;
 }
 
+/** Get maximized window rectangle.
+ *
+ * @param wnd Window
+ */
+void ds_window_get_max_rect(ds_window_t *wnd, gfx_rect_t *rect)
+{
+	*rect = wnd->display->rect;
+}
+
 /** Start resizing a window, detected by client.
  *
  * @param wnd Window
@@ -715,6 +729,7 @@ void ds_window_resize_req(ds_window_t *wnd, display_wnd_rsztype_t rsztype,
 /** Resize window.
  *
  * @param wnd Window
+ * @return EOK on success or an error code
  */
 errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
     gfx_rect_t *nrect)
@@ -766,6 +781,77 @@ errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
 	wnd->rect = *nrect;
 
 	(void) ds_display_paint(wnd->display, NULL);
+	return EOK;
+}
+
+/** Maximize window.
+ *
+ * @param wnd Window
+ * @return EOK on success or an error code
+ */
+errno_t ds_window_maximize(ds_window_t *wnd)
+{
+	gfx_coord2_t old_dpos;
+	gfx_rect_t old_rect;
+	gfx_coord2_t offs;
+	gfx_rect_t max_rect;
+	gfx_rect_t nrect;
+	errno_t rc;
+
+	/* If already maximized, do nothing and return success. */
+	if ((wnd->flags & wndf_maximized) != 0)
+		return EOK;
+
+	/* Remember the old window rectangle and display position */
+	old_rect = wnd->rect;
+	old_dpos = wnd->dpos;
+
+	ds_window_get_max_rect(wnd, &max_rect);
+
+	/* Keep window contents on the same position on the screen */
+	offs.x = max_rect.p0.x - wnd->dpos.x;
+	offs.y = max_rect.p0.y - wnd->dpos.y;
+
+	/* Maximized window's coordinates will start at 0,0 */
+	gfx_rect_rtranslate(&max_rect.p0, &max_rect, &nrect);
+
+	rc = ds_window_resize(wnd, &offs, &nrect);
+	if (rc != EOK)
+		return rc;
+
+	/* Set window flags, remember normal rectangle */
+	wnd->flags |= wndf_maximized;
+	wnd->normal_rect = old_rect;
+	wnd->normal_dpos = old_dpos;
+
+	return EOK;
+}
+
+/** Unmaximize window.
+ *
+ * @param wnd Window
+ * @return EOK on success or an error code
+ */
+errno_t ds_window_unmaximize(ds_window_t *wnd)
+{
+	gfx_coord2_t offs;
+	errno_t rc;
+
+	/* If not maximized, do nothing and return success. */
+	if ((wnd->flags & wndf_maximized) == 0)
+		return EOK;
+
+	/* Keep window contents on the same position on the screen */
+	offs.x = wnd->normal_dpos.x - wnd->dpos.x;
+	offs.y = wnd->normal_dpos.y - wnd->dpos.y;
+
+	rc = ds_window_resize(wnd, &offs, &wnd->normal_rect);
+	if (rc != EOK)
+		return rc;
+
+	/* Set window flags, remember normal rectangle */
+	wnd->flags &= ~wndf_maximized;
+
 	return EOK;
 }
 

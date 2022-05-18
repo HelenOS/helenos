@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,6 +78,10 @@ typedef struct ds_window {
 	gfx_rect_t preview_rect;
 	/** Minimum size */
 	gfx_coord2_t min_size;
+	/** Normal rectangle (when not maximized or minimized) */
+	gfx_rect_t normal_rect;
+	/** Normal display position (when not maximized or minimized) */
+	gfx_coord2_t normal_dpos;
 	/** Window ID */
 	ds_wnd_id_t id;
 	/** Memory GC */

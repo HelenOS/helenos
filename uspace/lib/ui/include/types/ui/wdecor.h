@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,10 +50,12 @@ typedef enum {
 	ui_wds_frame = 0x1,
 	/** Window has a title bar */
 	ui_wds_titlebar = 0x2,
+	/** Window has a maximize button */
+	ui_wds_maximize_btn = 0x4,
 	/** Window has a close button */
-	ui_wds_close_btn = 0x4,
+	ui_wds_close_btn = 0x8,
 	/** Window is resizable */
-	ui_wds_resizable = 0x8,
+	ui_wds_resizable = 0x10,
 	/** Window is decorated (default decoration) */
 	ui_wds_decorated = ui_wds_frame | ui_wds_titlebar | ui_wds_close_btn
 } ui_wdecor_style_t;
@@ -75,6 +77,8 @@ typedef enum {
 
 /** Window decoration callbacks */
 typedef struct ui_wdecor_cb {
+	void (*maximize)(ui_wdecor_t *, void *);
+	void (*unmaximize)(ui_wdecor_t *, void *);
 	void (*close)(ui_wdecor_t *, void *);
 	void (*move)(ui_wdecor_t *, void *, gfx_coord2_t *);
 	void (*resize)(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,

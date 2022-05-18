@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,10 @@ struct ui_wdecor {
 	char *caption;
 	/** Window is active */
 	bool active;
+	/** Window is maximized */
+	bool maximized;
+	/** Maximize button */
+	struct ui_pbutton *btn_max;
 	/** Close button */
 	struct ui_pbutton *btn_close;
 };
@@ -75,12 +79,16 @@ typedef struct {
 	gfx_rect_t interior_rect;
 	/** Title bar rectangle */
 	gfx_rect_t title_bar_rect;
+	/** Maximize button rectangle */
+	gfx_rect_t btn_max_rect;
 	/** Close button rectangle */
 	gfx_rect_t btn_close_rect;
 	/** Application area rectangle */
 	gfx_rect_t app_area_rect;
 } ui_wdecor_geom_t;
 
+extern void ui_wdecor_maximize(ui_wdecor_t *);
+extern void ui_wdecor_unmaximize(ui_wdecor_t *);
 extern void ui_wdecor_close(ui_wdecor_t *);
 extern void ui_wdecor_move(ui_wdecor_t *, gfx_coord2_t *);
 extern void ui_wdecor_resize(ui_wdecor_t *, ui_wdecor_rsztype_t,

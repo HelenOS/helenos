@@ -608,7 +608,7 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_wnd_params_init(&params);
 	params.caption = "UI Demo";
-	params.style |= ui_wds_resizable;
+	params.style |= ui_wds_maximize_btn | ui_wds_resizable;
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {

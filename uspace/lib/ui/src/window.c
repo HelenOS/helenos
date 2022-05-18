@@ -73,6 +73,8 @@ static display_wnd_cb_t dwnd_cb = {
 	.unfocus_event = dwnd_unfocus_event
 };
 
+static void wd_maximize(ui_wdecor_t *, void *);
+static void wd_unmaximize(ui_wdecor_t *, void *);
 static void wd_close(ui_wdecor_t *, void *);
 static void wd_move(ui_wdecor_t *, void *, gfx_coord2_t *);
 static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
@@ -80,6 +82,8 @@ static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
 static void wd_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t wdecor_cb = {
+	.maximize = wd_maximize,
+	.unmaximize = wd_unmaximize,
 	.close = wd_close,
 	.move = wd_move,
 	.resize = wd_resize,
@@ -468,17 +472,16 @@ ui_window_t *ui_window_get_active(ui_t *ui)
 	return list_get_instance(link, ui_window_t, lwindows);
 }
 
-/** Resize/move window.
- *
- * Resize window to the dimensions of @a rect. If @a rect.p0 is not 0,0,
- * the top-left corner of the window will move on the screen accordingly.
+/** Resize or (un)maximize window.
  *
  * @param window Window
  * @param rect Rectangle
+ * @param scop Size change operation
  *
  * @return EOK on success or an error code
  */
-errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
+errno_t ui_window_size_change(ui_window_t *window, gfx_rect_t *rect,
+    ui_wnd_sc_op_t scop)
 {
 	gfx_coord2_t offs;
 	gfx_rect_t nrect;
@@ -544,11 +547,26 @@ errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
 			goto error;
 	}
 
-	/* dwindow can be NULL in case of unit tests */
+	/* dwindow can be NULL in case of unit tests or fullscreen mode */
 	if (window->dwindow != NULL) {
-		rc = display_window_resize(window->dwindow, &offs, &nrect);
-		if (rc != EOK)
-			goto error;
+		switch (scop) {
+		case ui_wsc_resize:
+			rc = display_window_resize(window->dwindow, &offs,
+			    &nrect);
+			if (rc != EOK)
+				goto error;
+			break;
+		case ui_wsc_maximize:
+			rc = display_window_maximize(window->dwindow);
+			if (rc != EOK)
+				goto error;
+			break;
+		case ui_wsc_unmaximize:
+			rc = display_window_unmaximize(window->dwindow);
+			if (rc != EOK)
+				goto error;
+			break;
+		}
 	}
 
 	/* Client side rendering? */
@@ -594,6 +612,21 @@ error:
 	if (win_bmp != NULL)
 		gfx_bitmap_destroy(win_bmp);
 	return rc;
+}
+
+/** Resize/move window.
+ *
+ * Resize window to the dimensions of @a rect. If @a rect.p0 is not 0,0,
+ * the top-left corner of the window will move on the screen accordingly.
+ *
+ * @param window Window
+ * @param rect Rectangle
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_resize(ui_window_t *window, gfx_rect_t *rect)
+{
+	return ui_window_size_change(window, rect, ui_wsc_resize);
 }
 
 /** Set window callbacks.
@@ -847,6 +880,30 @@ static void dwnd_unfocus_event(void *arg)
 	ui_unlock(window->ui);
 }
 
+/** Window decoration requested window maximization.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ */
+static void wd_maximize(ui_wdecor_t *wdecor, void *arg)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	ui_window_send_maximize(window);
+}
+
+/** Window decoration requested window unmaximization.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ */
+static void wd_unmaximize(ui_wdecor_t *wdecor, void *arg)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	ui_window_send_unmaximize(window);
+}
+
 /** Window decoration requested window closure.
  *
  * @param wdecor Window decoration
@@ -947,6 +1004,30 @@ static void wd_set_cursor(ui_wdecor_t *wdecor, void *arg,
 	window->cursor = cursor;
 }
 
+/** Send window maximize event.
+ *
+ * @param window Window
+ */
+void ui_window_send_maximize(ui_window_t *window)
+{
+	if (window->cb != NULL && window->cb->maximize != NULL)
+		window->cb->maximize(window, window->arg);
+	else
+		ui_window_def_maximize(window);
+}
+
+/** Send window unmaximize event.
+ *
+ * @param window Window
+ */
+void ui_window_send_unmaximize(ui_window_t *window)
+{
+	if (window->cb != NULL && window->cb->unmaximize != NULL)
+		window->cb->unmaximize(window, window->arg);
+	else
+		ui_window_def_unmaximize(window);
+}
+
 /** Send window close event.
  *
  * @param window Window
@@ -1013,6 +1094,63 @@ void ui_window_send_unfocus(ui_window_t *window)
 		window->cb->unfocus(window, window->arg);
 	else
 		return ui_window_def_unfocus(window);
+}
+
+/** Default window maximize routine.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_def_maximize(ui_window_t *window)
+{
+	errno_t rc;
+	gfx_rect_t old_rect;
+	gfx_rect_t rect;
+
+	old_rect = window->rect;
+
+	if (window->dwindow != NULL) {
+		rc = display_window_get_max_rect(window->dwindow, &rect);
+		if (rc != EOK)
+			return rc;
+	} else {
+		rect = window->ui->rect;
+	}
+
+	ui_wdecor_set_maximized(window->wdecor, true);
+
+	rc = ui_window_size_change(window, &rect, ui_wsc_maximize);
+	if (rc != EOK) {
+		ui_wdecor_set_maximized(window->wdecor, false);
+		return rc;
+	}
+
+	window->normal_rect = old_rect;
+	(void) ui_window_paint(window);
+	return EOK;
+}
+
+/** Default window unmaximize routine.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_def_unmaximize(ui_window_t *window)
+{
+	errno_t rc;
+
+	ui_wdecor_set_maximized(window->wdecor, false);
+
+	rc = ui_window_size_change(window, &window->normal_rect,
+	    ui_wsc_unmaximize);
+	if (rc != EOK) {
+		ui_wdecor_set_maximized(window->wdecor, true);
+		printf("ui_window_size_change->error\n");
+		return rc;
+	}
+
+	(void) ui_window_paint(window);
+	return EOK;
 }
 
 /** Default window keyboard event routine.

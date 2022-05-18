@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,10 @@ struct display_ops {
 	    gfx_coord2_t *);
 	errno_t (*window_move)(void *, sysarg_t, gfx_coord2_t *);
 	errno_t (*window_get_pos)(void *, sysarg_t, gfx_coord2_t *);
+	errno_t (*window_get_max_rect)(void *, sysarg_t, gfx_rect_t *);
 	errno_t (*window_resize)(void *, sysarg_t, gfx_coord2_t *, gfx_rect_t *);
+	errno_t (*window_maximize)(void *, sysarg_t);
+	errno_t (*window_unmaximize)(void *, sysarg_t);
 	errno_t (*window_set_cursor)(void *, sysarg_t, display_stock_cursor_t);
 	errno_t (*get_event)(void *, sysarg_t *, display_wnd_ev_t *);
 	errno_t (*get_info)(void *, display_info_t *);

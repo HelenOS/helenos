@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -349,6 +349,38 @@ errno_t display_window_get_pos(display_window_t *window, gfx_coord2_t *dpos)
 	return EOK;
 }
 
+/** Get display window maximized rectangle.
+ *
+ * Get the rectangle to which a window would be maximized.
+ *
+ * @param window Window
+ * @param rect Place to store maximized rectangle
+ * @return EOK on success or an error code
+ */
+errno_t display_window_get_max_rect(display_window_t *window, gfx_rect_t *rect)
+{
+	async_exch_t *exch;
+	aid_t req;
+	ipc_call_t answer;
+	errno_t rc;
+
+	exch = async_exchange_begin(window->display->sess);
+	req = async_send_1(exch, DISPLAY_WINDOW_GET_MAX_RECT, window->id,
+	    &answer);
+	rc = async_data_read_start(exch, rect, sizeof (gfx_rect_t));
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Request a window resize.
  *
  * Request the display service to initiate a user window resize operation
@@ -452,6 +484,40 @@ errno_t display_window_resize(display_window_t *window, gfx_coord2_t *offs,
 		return rc;
 
 	return EOK;
+}
+
+/** Maximize window.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+errno_t display_window_maximize(display_window_t *window)
+{
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(window->display->sess);
+	rc = async_req_1_0(exch, DISPLAY_WINDOW_MAXIMIZE, window->id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+/** Unmaximize window.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+errno_t display_window_unmaximize(display_window_t *window)
+{
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(window->display->sess);
+	rc = async_req_1_0(exch, DISPLAY_WINDOW_UNMAXIMIZE, window->id);
+	async_exchange_end(exch);
+
+	return rc;
 }
 
 /** Set window cursor.

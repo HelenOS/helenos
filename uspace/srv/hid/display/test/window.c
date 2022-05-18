@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,6 +91,173 @@ PCUT_TEST(window_resize)
 
 	PCUT_ASSERT_INT_EQUALS(98, wnd->dpos.x);
 	PCUT_ASSERT_INT_EQUALS(97, wnd->dpos.y);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_window_get_pos(). */
+PCUT_TEST(get_pos)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	gfx_coord2_t pos;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd->dpos.x = 100;
+	wnd->dpos.y = 100;
+
+	ds_window_get_pos(wnd, &pos);
+
+	PCUT_ASSERT_INT_EQUALS(100, pos.x);
+	PCUT_ASSERT_INT_EQUALS(100, pos.y);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_window_get_max_rect(). */
+PCUT_TEST(get_max_rect)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd->dpos.x = 100;
+	wnd->dpos.y = 100;
+
+	ds_window_get_max_rect(wnd, &rect);
+
+	PCUT_ASSERT_INT_EQUALS(disp->rect.p0.x, rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(disp->rect.p0.y, rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(disp->rect.p1.x, rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(disp->rect.p1.y, rect.p1.y);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_window_maximize(). */
+PCUT_TEST(window_maximize)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd->dpos.x = 100;
+	wnd->dpos.y = 100;
+
+	rc = ds_window_maximize(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(wndf_maximized, wnd->flags & wndf_maximized);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_window_unmaximize(). */
+PCUT_TEST(window_unmaximize)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd->dpos.x = 100;
+	wnd->dpos.y = 100;
+
+	rc = ds_window_maximize(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_unmaximize(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(0, wnd->flags & wndf_maximized);
 
 	ds_window_destroy(wnd);
 	ds_seat_destroy(seat);

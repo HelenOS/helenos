@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,9 +63,12 @@ extern errno_t ds_window_post_unfocus_event(ds_window_t *);
 extern void ds_window_move_req(ds_window_t *, gfx_coord2_t *);
 extern void ds_window_move(ds_window_t *, gfx_coord2_t *);
 extern void ds_window_get_pos(ds_window_t *, gfx_coord2_t *);
+extern void ds_window_get_max_rect(ds_window_t *, gfx_rect_t *);
 extern void ds_window_resize_req(ds_window_t *, display_wnd_rsztype_t,
     gfx_coord2_t *);
 extern errno_t ds_window_resize(ds_window_t *, gfx_coord2_t *, gfx_rect_t *);
+extern errno_t ds_window_maximize(ds_window_t *);
+extern errno_t ds_window_unmaximize(ds_window_t *);
 extern void ds_window_calc_resize(ds_window_t *, gfx_coord2_t *,
     gfx_rect_t *);
 extern errno_t ds_window_set_cursor(ds_window_t *, display_stock_cursor_t);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,9 @@ typedef enum {
 	/** Popup window (capture events, no focus) */
 	wndf_popup = 0x1,
 	/** Set specific initial window position */
-	wndf_setpos = 0x2
+	wndf_setpos = 0x2,
+	/** Window is maximized */
+	wndf_maximized = 0x4
 } display_wnd_flags_t;
 
 /** Parameters for a new window.

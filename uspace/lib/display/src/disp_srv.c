@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -229,6 +229,50 @@ static void display_window_get_pos_srv(display_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, EOK);
 }
 
+static void display_window_get_max_rect_srv(display_srv_t *srv,
+    ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	ipc_call_t call;
+	gfx_rect_t rect;
+	size_t size;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+
+	if (srv->ops->window_get_max_rect == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	rc = srv->ops->window_get_max_rect(srv->arg, wnd_id, &rect);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	if (size != sizeof(gfx_rect_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_read_finalize(&call, &rect, size);
+	if (rc != EOK) {
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	async_answer_0(icall, EOK);
+}
+
 static void display_window_resize_req_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
@@ -305,6 +349,38 @@ static void display_window_resize_srv(display_srv_t *srv, ipc_call_t *icall)
 
 	rc = srv->ops->window_resize(srv->arg, wnd_id, &wresize.offs,
 	    &wresize.nrect);
+	async_answer_0(icall, rc);
+}
+
+static void display_window_maximize_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+
+	if (srv->ops->window_maximize == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->window_maximize(srv->arg, wnd_id);
+	async_answer_0(icall, rc);
+}
+
+static void display_window_unmaximize_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+
+	if (srv->ops->window_unmaximize == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->window_unmaximize(srv->arg, wnd_id);
 	async_answer_0(icall, rc);
 }
 
@@ -444,11 +520,20 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 		case DISPLAY_WINDOW_GET_POS:
 			display_window_get_pos_srv(srv, &call);
 			break;
+		case DISPLAY_WINDOW_GET_MAX_RECT:
+			display_window_get_max_rect_srv(srv, &call);
+			break;
 		case DISPLAY_WINDOW_RESIZE_REQ:
 			display_window_resize_req_srv(srv, &call);
 			break;
 		case DISPLAY_WINDOW_RESIZE:
 			display_window_resize_srv(srv, &call);
+			break;
+		case DISPLAY_WINDOW_MAXIMIZE:
+			display_window_maximize_srv(srv, &call);
+			break;
+		case DISPLAY_WINDOW_UNMAXIMIZE:
+			display_window_unmaximize_srv(srv, &call);
 			break;
 		case DISPLAY_WINDOW_SET_CURSOR:
 			display_window_set_cursor_srv(srv, &call);

@@ -528,6 +528,80 @@ errno_t ui_paint_cross(gfx_context_t *gc, gfx_coord2_t *pos,
 	return EOK;
 }
 
+/** Paint maximize icon.
+ *
+ * @param resource UI resource
+ * @param pos Center position
+ * @param w Icon width
+ * @param h Icon height
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_maxicon(ui_resource_t *resource, gfx_coord2_t *pos,
+    gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = gfx_set_color(resource->gc, resource->btn_text_color);
+	if (rc != EOK)
+		return rc;
+
+	rect.p0.x = pos->x - w / 2;
+	rect.p0.y = pos->y - h / 2;
+	rect.p1.x = rect.p0.x + w;
+	rect.p1.y = rect.p0.y + h;
+	rc = gfx_fill_rect(resource->gc, &rect);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_set_color(resource->gc, resource->btn_face_color);
+	if (rc != EOK)
+		return rc;
+
+	rect.p0.x += 1;
+	rect.p0.y += 2;
+	rect.p1.x -= 1;
+	rect.p1.y -= 1;
+	rc = gfx_fill_rect(resource->gc, &rect);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Paint unmaximize icon.
+ *
+ * Unmaximize icon consists of two overlapping window icons.
+ *
+ * @param resource UI resource
+ * @param pos Center position
+ * @param w Window icon width
+ * @param h Window icon height
+ * @param dw Horizontal distance between window icon centers
+ * @param dh Vertical distance between window icon centers
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_unmaxicon(ui_resource_t *resource, gfx_coord2_t *pos,
+    gfx_coord_t w, gfx_coord_t h, gfx_coord_t dw, gfx_coord_t dh)
+{
+	gfx_coord2_t p;
+	errno_t rc;
+
+	p.x = pos->x + dw / 2;
+	p.y = pos->y - dh / 2;
+	rc = ui_paint_maxicon(resource, &p, w, h);
+	if (rc != EOK)
+		return rc;
+
+	p.x = pos->x - dw / 2;
+	p.y = pos->y + dh / 2;
+	rc = ui_paint_maxicon(resource, &p, w, h);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Paint a text box.
  *
  * @param resource UI resource

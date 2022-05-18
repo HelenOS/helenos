@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,6 +86,8 @@ typedef struct {
 
 /** Window callbacks */
 typedef struct ui_window_cb {
+	void (*maximize)(ui_window_t *, void *);
+	void (*unmaximize)(ui_window_t *, void *);
 	void (*close)(ui_window_t *, void *);
 	void (*focus)(ui_window_t *, void *);
 	void (*kbd)(ui_window_t *, void *, kbd_event_t *);

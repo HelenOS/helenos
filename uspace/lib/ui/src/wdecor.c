@@ -48,12 +48,24 @@
 #include "../private/resource.h"
 #include "../private/wdecor.h"
 
-static void ui_wdecor_btn_clicked(ui_pbutton_t *, void *);
+static void ui_wdecor_btn_max_clicked(ui_pbutton_t *, void *);
+static errno_t ui_wdecor_btn_max_paint(ui_pbutton_t *, void *,
+    gfx_coord2_t *);
+
+static void ui_wdecor_btn_close_clicked(ui_pbutton_t *, void *);
 static errno_t ui_wdecor_btn_close_paint(ui_pbutton_t *, void *,
     gfx_coord2_t *);
 
+static ui_pbutton_cb_t ui_wdecor_btn_max_cb = {
+	.clicked = ui_wdecor_btn_max_clicked
+};
+
+static ui_pbutton_decor_ops_t ui_wdecor_btn_max_decor_ops = {
+	.paint = ui_wdecor_btn_max_paint
+};
+
 static ui_pbutton_cb_t ui_wdecor_btn_close_cb = {
-	.clicked = ui_wdecor_btn_clicked
+	.clicked = ui_wdecor_btn_close_clicked
 };
 
 static ui_pbutton_decor_ops_t ui_wdecor_btn_close_decor_ops = {
@@ -61,16 +73,38 @@ static ui_pbutton_decor_ops_t ui_wdecor_btn_close_decor_ops = {
 };
 
 enum {
+	/** Width of corner drag area */
 	wdecor_corner_w = 24,
+	/** Height of corner drag area */
 	wdecor_corner_h = 24,
+	/** Window resizing edge witdth */
 	wdecor_edge_w = 4,
+	/** Window resizing edge height */
 	wdecor_edge_h = 4,
+	/** Title bar height */
 	wdecor_tbar_h = 22,
+	/** Window width */
 	wdecor_frame_w = 4,
+	/** Window frame width in text mode */
 	wdecor_frame_w_text = 1,
+	/** Close button cross leg length */
 	wdecor_close_cross_n = 5,
+	/** Close button cross pen width */
 	wdecor_close_cross_w = 2,
-	wdecor_close_cross_h = 1
+	/** Close button cross pen height */
+	wdecor_close_cross_h = 1,
+	/** Maximize icon width */
+	wdecor_max_w = 10,
+	/** Maximize icon height */
+	wdecor_max_h = 10,
+	/** Unmaximize icon window width */
+	wdecor_unmax_w = 8,
+	/** Unmaximize icon window height */
+	wdecor_unmax_h = 8,
+	/** Unmaximize icon window horizontal distance */
+	wdecor_unmax_dw = 4,
+	/** Unmaximize icon window vertical distance */
+	wdecor_unmax_dh = 4
 };
 
 /** Create new window decoration.
@@ -97,18 +131,33 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 		return ENOMEM;
 	}
 
-	rc = ui_pbutton_create(resource, "X", &wdecor->btn_close);
-	if (rc != EOK) {
-		free(wdecor->caption);
-		free(wdecor);
-		return rc;
+	if ((style & ui_wds_maximize_btn) != 0) {
+		rc = ui_pbutton_create(resource, "^", &wdecor->btn_max);
+		if (rc != EOK) {
+			ui_wdecor_destroy(wdecor);
+			return rc;
+		}
+
+		ui_pbutton_set_cb(wdecor->btn_max, &ui_wdecor_btn_max_cb,
+		    (void *)wdecor);
+
+		ui_pbutton_set_decor_ops(wdecor->btn_max,
+		    &ui_wdecor_btn_max_decor_ops, (void *)wdecor);
 	}
 
-	ui_pbutton_set_cb(wdecor->btn_close, &ui_wdecor_btn_close_cb,
-	    (void *)wdecor);
+	if ((style & ui_wds_close_btn) != 0) {
+		rc = ui_pbutton_create(resource, "X", &wdecor->btn_close);
+		if (rc != EOK) {
+			ui_wdecor_destroy(wdecor);
+			return rc;
+		}
 
-	ui_pbutton_set_decor_ops(wdecor->btn_close,
-	    &ui_wdecor_btn_close_decor_ops, (void *)wdecor);
+		ui_pbutton_set_cb(wdecor->btn_close, &ui_wdecor_btn_close_cb,
+		    (void *)wdecor);
+
+		ui_pbutton_set_decor_ops(wdecor->btn_close,
+		    &ui_wdecor_btn_close_decor_ops, (void *)wdecor);
+	}
 
 	wdecor->res = resource;
 	wdecor->active = true;
@@ -126,6 +175,7 @@ void ui_wdecor_destroy(ui_wdecor_t *wdecor)
 	if (wdecor == NULL)
 		return;
 
+	ui_pbutton_destroy(wdecor->btn_max);
 	ui_pbutton_destroy(wdecor->btn_close);
 	free(wdecor->caption);
 	free(wdecor);
@@ -155,7 +205,11 @@ void ui_wdecor_set_rect(ui_wdecor_t *wdecor, gfx_rect_t *rect)
 	wdecor->rect = *rect;
 
 	ui_wdecor_get_geom(wdecor, &geom);
-	ui_pbutton_set_rect(wdecor->btn_close, &geom.btn_close_rect);
+
+	if (wdecor->btn_max != NULL)
+		ui_pbutton_set_rect(wdecor->btn_max, &geom.btn_max_rect);
+	if (wdecor->btn_close != NULL)
+		ui_pbutton_set_rect(wdecor->btn_close, &geom.btn_close_rect);
 }
 
 /** Set active flag.
@@ -168,6 +222,18 @@ void ui_wdecor_set_rect(ui_wdecor_t *wdecor, gfx_rect_t *rect)
 void ui_wdecor_set_active(ui_wdecor_t *wdecor, bool active)
 {
 	wdecor->active = active;
+}
+
+/** Set maximized flag.
+ *
+ * Active window is the one receiving keyboard events.
+ *
+ * @param wdecor Window decoration
+ * @param maximized @c true iff window is maximized
+ */
+void ui_wdecor_set_maximized(ui_wdecor_t *wdecor, bool maximized)
+{
+	wdecor->maximized = maximized;
 }
 
 /** Change caption.
@@ -288,7 +354,13 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		if (rc != EOK)
 			return rc;
 
-		if ((wdecor->style & ui_wds_close_btn) != 0) {
+		if (wdecor->btn_max != NULL) {
+			rc = ui_pbutton_paint(wdecor->btn_max);
+			if (rc != EOK)
+				return rc;
+		}
+
+		if (wdecor->btn_close != NULL) {
 			rc = ui_pbutton_paint(wdecor->btn_close);
 			if (rc != EOK)
 				return rc;
@@ -300,6 +372,26 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		return rc;
 
 	return EOK;
+}
+
+/** Send decoration maximize event.
+ *
+ * @param wdecor Window decoration
+ */
+void ui_wdecor_maximize(ui_wdecor_t *wdecor)
+{
+	if (wdecor->cb != NULL && wdecor->cb->maximize != NULL)
+		wdecor->cb->maximize(wdecor, wdecor->arg);
+}
+
+/** Send decoration unmaximize event.
+ *
+ * @param wdecor Window decoration
+ */
+void ui_wdecor_unmaximize(ui_wdecor_t *wdecor)
+{
+	if (wdecor->cb != NULL && wdecor->cb->unmaximize != NULL)
+		wdecor->cb->unmaximize(wdecor, wdecor->arg);
 }
 
 /** Send decoration close event.
@@ -355,6 +447,8 @@ void ui_wdecor_set_cursor(ui_wdecor_t *wdecor, ui_stock_cursor_t cursor)
 void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 {
 	gfx_coord_t frame_w;
+	gfx_coord_t btn_x;
+	gfx_coord_t btn_y;
 
 	/* Does window have a frame? */
 	if ((wdecor->style & ui_wds_frame) != 0) {
@@ -375,16 +469,23 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 			geom->title_bar_rect.p0 = wdecor->rect.p0;
 			geom->title_bar_rect.p1.x = wdecor->rect.p1.x;
 			geom->title_bar_rect.p1.y = wdecor->rect.p0.y + 1;
+
+			btn_x = geom->title_bar_rect.p1.x - 1;
+			btn_y = geom->title_bar_rect.p0.y;
 		} else {
 			geom->title_bar_rect.p0 = geom->interior_rect.p0;
 			geom->title_bar_rect.p1.x = geom->interior_rect.p1.x;
 			geom->title_bar_rect.p1.y = geom->interior_rect.p0.y +
 			    wdecor_tbar_h;
+
+			btn_x = geom->title_bar_rect.p1.x - 1;
+			btn_y = geom->title_bar_rect.p0.y + 1;
 		}
 
 		geom->app_area_rect.p0.x = geom->interior_rect.p0.x;
 		geom->app_area_rect.p0.y = geom->title_bar_rect.p1.y;
 		geom->app_area_rect.p1 = geom->interior_rect.p1;
+
 	} else {
 		geom->title_bar_rect.p0.x = 0;
 		geom->title_bar_rect.p0.y = 0;
@@ -392,34 +493,52 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 		geom->title_bar_rect.p1.y = 0;
 
 		geom->app_area_rect = geom->interior_rect;
+		btn_x = 0;
+		btn_y = 0;
 	}
 
 	/* Does window have a close button? */
 	if ((wdecor->style & ui_wds_close_btn) != 0) {
 		if (wdecor->res->textmode == false) {
-			geom->btn_close_rect.p0.x =
-			    geom->title_bar_rect.p1.x - 1 - 20;
-			geom->btn_close_rect.p0.y =
-			    geom->title_bar_rect.p0.y + 1;
-			geom->btn_close_rect.p1.x =
-			    geom->title_bar_rect.p1.x - 1;
-			geom->btn_close_rect.p1.y =
-			    geom->title_bar_rect.p0.y + 1 + 20;
+			geom->btn_close_rect.p0.x = btn_x - 20;
+			geom->btn_close_rect.p0.y = btn_y;
+			geom->btn_close_rect.p1.x = btn_x;
+			geom->btn_close_rect.p1.y = btn_y + 20;
+
+			btn_x -= 20;
 		} else {
-			geom->btn_close_rect.p0.x =
-			    geom->title_bar_rect.p1.x - 1 - 3;
-			geom->btn_close_rect.p0.y =
-			    geom->title_bar_rect.p0.y;
-			geom->btn_close_rect.p1.x =
-			    geom->title_bar_rect.p1.x - 1;
-			geom->btn_close_rect.p1.y =
-			    geom->title_bar_rect.p0.y + 1;
+			geom->btn_close_rect.p0.x = btn_x - 3;
+			geom->btn_close_rect.p0.y = btn_y;
+			geom->btn_close_rect.p1.x = btn_x;
+			geom->btn_close_rect.p1.y = btn_y + 1;
+
+			btn_x -= 3;
 		}
 	} else {
 		geom->btn_close_rect.p0.x = 0;
 		geom->btn_close_rect.p0.y = 0;
 		geom->btn_close_rect.p1.x = 0;
 		geom->btn_close_rect.p1.y = 0;
+	}
+
+	/* Does window have a (un)maximize button? */
+	if ((wdecor->style & ui_wds_maximize_btn) != 0) {
+		if (wdecor->res->textmode == false) {
+			geom->btn_max_rect.p0.x = btn_x - 20;
+			geom->btn_max_rect.p0.y = btn_y;
+			geom->btn_max_rect.p1.x = btn_x;
+			geom->btn_max_rect.p1.y = btn_y + 20;
+		} else {
+			geom->btn_max_rect.p0.x = btn_x - 3;
+			geom->btn_max_rect.p0.y = btn_y;
+			geom->btn_max_rect.p1.x = btn_x;
+			geom->btn_max_rect.p1.y = btn_y + 1;
+		}
+	} else {
+		geom->btn_max_rect.p0.x = 0;
+		geom->btn_max_rect.p0.y = 0;
+		geom->btn_max_rect.p1.x = 0;
+		geom->btn_max_rect.p1.y = 0;
 	}
 }
 
@@ -492,6 +611,10 @@ ui_wdecor_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *wdecor,
 
 	/* Window not resizable? */
 	if ((wdecor->style & ui_wds_resizable) == 0)
+		return ui_wr_none;
+
+	/* Window is maximized? */
+	if (wdecor->maximized)
 		return ui_wr_none;
 
 	/* Position not inside window? */
@@ -626,7 +749,13 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 
 	ui_wdecor_get_geom(wdecor, &geom);
 
-	if ((wdecor->style & ui_wds_close_btn) != 0) {
+	if (wdecor->btn_max != NULL) {
+		claim = ui_pbutton_pos_event(wdecor->btn_max, event);
+		if (claim == ui_claimed)
+			return ui_claimed;
+	}
+
+	if (wdecor->btn_close != NULL) {
 		claim = ui_pbutton_pos_event(wdecor->btn_close, event);
 		if (claim == ui_claimed)
 			return ui_claimed;
@@ -634,7 +763,7 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 
 	ui_wdecor_frame_pos_event(wdecor, event);
 
-	if ((wdecor->style & ui_wds_titlebar) != 0) {
+	if ((wdecor->style & ui_wds_titlebar) != 0 && !wdecor->maximized) {
 		if (event->type == POS_PRESS &&
 		    gfx_pix_inside_rect(&pos, &geom.title_bar_rect)) {
 			ui_wdecor_move(wdecor, &pos);
@@ -645,12 +774,52 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 	return ui_unclaimed;
 }
 
+/** Window decoration (un)maximize button was clicked.
+ *
+ * @param pbutton Close button
+ * @param arg Argument (ui_wdecor_t)
+ */
+static void ui_wdecor_btn_max_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *) arg;
+
+	(void) pbutton;
+
+	if (wdecor->maximized)
+		ui_wdecor_unmaximize(wdecor);
+	else
+		ui_wdecor_maximize(wdecor);
+}
+
+/** Paint (un)maximize button decoration.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (ui_wdecor_t *)
+ * @param pos Center position
+ */
+static errno_t ui_wdecor_btn_max_paint(ui_pbutton_t *pbutton,
+    void *arg, gfx_coord2_t *pos)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
+	errno_t rc;
+
+	if (wdecor->maximized) {
+		rc = ui_paint_unmaxicon(wdecor->res, pos, wdecor_unmax_w,
+		    wdecor_unmax_h, wdecor_unmax_dw, wdecor_unmax_dh);
+	} else {
+		rc = ui_paint_maxicon(wdecor->res, pos, wdecor_max_w,
+		    wdecor_max_h);
+	}
+
+	return rc;
+}
+
 /** Window decoration close button was clicked.
  *
  * @param pbutton Close button
  * @param arg Argument (ui_wdecor_t)
  */
-static void ui_wdecor_btn_clicked(ui_pbutton_t *pbutton, void *arg)
+static void ui_wdecor_btn_close_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	ui_wdecor_t *wdecor = (ui_wdecor_t *) arg;
 
