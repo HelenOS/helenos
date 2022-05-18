@@ -849,7 +849,7 @@ errno_t ds_window_unmaximize(ds_window_t *wnd)
 	if (rc != EOK)
 		return rc;
 
-	/* Set window flags, remember normal rectangle */
+	/* Clear maximized flag */
 	wnd->flags &= ~wndf_maximized;
 
 	return EOK;
