@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -130,6 +130,21 @@ PCUT_TEST(ctl)
 	PCUT_ASSERT_NOT_NULL(control);
 
 	ui_control_destroy(control);
+}
+
+/** Set flags sets internal field */
+PCUT_TEST(set_flags)
+{
+	ui_pbutton_t *pbutton;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_pbutton_set_flags(pbutton, ui_pbf_no_text_depress);
+	PCUT_ASSERT_INT_EQUALS(ui_pbf_no_text_depress, pbutton->flags);
+
+	ui_pbutton_destroy(pbutton);
 }
 
 /** Set button rectangle sets internal field */

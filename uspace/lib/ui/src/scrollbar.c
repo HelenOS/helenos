@@ -204,6 +204,8 @@ errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
 	ui_pbutton_set_decor_ops(scrollbar->up_btn,
 	    &ui_scrollbar_up_btn_decor_ops, (void *) scrollbar);
 
+	ui_pbutton_set_flags(scrollbar->up_btn, ui_pbf_no_text_depress);
+
 	rc = ui_pbutton_create(resource, down_text, &scrollbar->down_btn);
 	if (rc != EOK)
 		goto error;
@@ -213,6 +215,8 @@ errno_t ui_scrollbar_create(ui_t *ui, ui_window_t *window,
 
 	ui_pbutton_set_decor_ops(scrollbar->down_btn,
 	    &ui_scrollbar_down_btn_decor_ops, (void *) scrollbar);
+
+	ui_pbutton_set_flags(scrollbar->down_btn, ui_pbf_no_text_depress);
 
 	scrollbar->thumb_len = resource->textmode ?
 	    ui_scrollbar_def_thumb_len_text :

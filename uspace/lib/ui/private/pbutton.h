@@ -39,6 +39,7 @@
 
 #include <gfx/coord.h>
 #include <stdbool.h>
+#include <types/ui/pbutton.h>
 
 /** Actual structure of push button.
  *
@@ -67,6 +68,8 @@ struct ui_pbutton {
 	bool held;
 	/** Pointer is currently inside */
 	bool inside;
+	/** Push button flags */
+	ui_pbutton_flags_t flags;
 };
 
 #endif

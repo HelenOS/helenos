@@ -151,6 +151,16 @@ void ui_pbutton_set_decor_ops(ui_pbutton_t *pbutton,
 	pbutton->decor_arg = arg;
 }
 
+/** Set push button flag.s
+ *
+ * @param pbutton Push button
+ * @param flags Flags
+ */
+void ui_pbutton_set_flags(ui_pbutton_t *pbutton, ui_pbutton_flags_t flags)
+{
+	pbutton->flags = flags;
+}
+
 /** Set button rectangle.
  *
  * @param pbutton Button
@@ -376,7 +386,10 @@ static errno_t ui_pbutton_paint_text(ui_pbutton_t *pbutton)
 	bool depressed;
 	errno_t rc;
 
-	depressed = pbutton->held && pbutton->inside;
+	if ((pbutton->flags & ui_pbf_no_text_depress) == 0)
+		depressed = pbutton->held && pbutton->inside;
+	else
+		depressed = false;
 
 	rc = gfx_set_color(pbutton->res->gc, pbutton->res->wnd_face_color);
 	if (rc != EOK)

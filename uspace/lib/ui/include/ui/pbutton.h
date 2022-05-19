@@ -52,6 +52,7 @@ extern ui_control_t *ui_pbutton_ctl(ui_pbutton_t *);
 extern void ui_pbutton_set_cb(ui_pbutton_t *, ui_pbutton_cb_t *, void *);
 extern void ui_pbutton_set_decor_ops(ui_pbutton_t *, ui_pbutton_decor_ops_t *,
     void *);
+extern void ui_pbutton_set_flags(ui_pbutton_t *, ui_pbutton_flags_t);
 extern void ui_pbutton_set_rect(ui_pbutton_t *, gfx_rect_t *);
 extern void ui_pbutton_set_default(ui_pbutton_t *, bool);
 extern errno_t ui_pbutton_paint(ui_pbutton_t *);

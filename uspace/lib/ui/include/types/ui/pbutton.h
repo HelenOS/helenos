@@ -42,6 +42,12 @@
 struct ui_pbutton;
 typedef struct ui_pbutton ui_pbutton_t;
 
+/** UI push button flags */
+typedef enum {
+	/** Do not depress the button in text mode */
+	ui_pbf_no_text_depress = 0x1
+} ui_pbutton_flags_t;
+
 /** Push button callbacks */
 typedef struct ui_pbutton_cb {
 	void (*clicked)(ui_pbutton_t *, void *);
