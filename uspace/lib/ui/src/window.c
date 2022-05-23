@@ -399,9 +399,9 @@ void ui_window_destroy(ui_window_t *window)
 	ui_control_destroy(window->control);
 	ui_wdecor_destroy(window->wdecor);
 	ui_resource_destroy(window->res);
-	if (0 && window->app_mgc != NULL)
+	if (window->app_mgc != NULL)
 		mem_gc_delete(window->app_mgc);
-	if (0 && window->app_bmp != NULL)
+	if (window->app_bmp != NULL)
 		gfx_bitmap_destroy(window->app_bmp);
 	if (window->mgc != NULL) {
 		mem_gc_delete(window->mgc);
@@ -412,8 +412,6 @@ void ui_window_destroy(ui_window_t *window)
 	if (window->dwindow != NULL)
 		display_window_destroy(window->dwindow);
 
-	free(window);
-
 	/* Need to repaint if windows are emulated */
 	if (ui_is_fullscreen(ui)) {
 		ui_paint(ui);
@@ -423,6 +421,8 @@ void ui_window_destroy(ui_window_t *window)
 	    window->placement == ui_wnd_place_full_screen) {
 		(void) console_set_caption(ui->console, "");
 	}
+
+	free(window);
 }
 
 /** Add control to window.
@@ -809,8 +809,9 @@ static void dwnd_close_event(void *arg)
 static void dwnd_focus_event(void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
+	ui_t *ui = window->ui;
 
-	ui_lock(window->ui);
+	ui_lock(ui);
 
 	if (window->wdecor != NULL) {
 		ui_wdecor_set_active(window->wdecor, true);
@@ -818,38 +819,48 @@ static void dwnd_focus_event(void *arg)
 	}
 
 	ui_window_send_focus(window);
-	ui_unlock(window->ui);
+	ui_unlock(ui);
 }
 
 /** Handle window keyboard event */
 static void dwnd_kbd_event(void *arg, kbd_event_t *kbd_event)
 {
 	ui_window_t *window = (ui_window_t *) arg;
+	ui_t *ui = window->ui;
 
-	ui_lock(window->ui);
+	ui_lock(ui);
 	ui_window_send_kbd(window, kbd_event);
-	ui_unlock(window->ui);
+	ui_unlock(ui);
 }
 
 /** Handle window position event */
 static void dwnd_pos_event(void *arg, pos_event_t *event)
 {
 	ui_window_t *window = (ui_window_t *) arg;
+	ui_t *ui = window->ui;
+	ui_evclaim_t claim;
 
 	/* Make sure we don't process events until fully initialized */
 	if (window->wdecor == NULL)
 		return;
 
-	ui_lock(window->ui);
-	ui_wdecor_pos_event(window->wdecor, event);
+	ui_lock(ui);
+
+	claim = ui_wdecor_pos_event(window->wdecor, event);
+	if (claim == ui_claimed) {
+		ui_unlock(ui);
+		return;
+	}
+
 	ui_window_send_pos(window, event);
-	ui_unlock(window->ui);
+	ui_unlock(ui);
 }
 
 /** Handle window resize event */
 static void dwnd_resize_event(void *arg, gfx_rect_t *rect)
 {
 	ui_window_t *window = (ui_window_t *) arg;
+	ui_t *ui = window->ui;
 
 	/* Make sure we don't process events until fully initialized */
 	if (window->wdecor == NULL)
@@ -858,18 +869,19 @@ static void dwnd_resize_event(void *arg, gfx_rect_t *rect)
 	if ((window->wdecor->style & ui_wds_resizable) == 0)
 		return;
 
-	ui_lock(window->ui);
+	ui_lock(ui);
 	(void) ui_window_resize(window, rect);
 	(void) ui_window_paint(window);
-	ui_unlock(window->ui);
+	ui_unlock(ui);
 }
 
 /** Handle window unfocus event. */
 static void dwnd_unfocus_event(void *arg)
 {
 	ui_window_t *window = (ui_window_t *) arg;
+	ui_t *ui = window->ui;
 
-	ui_lock(window->ui);
+	ui_lock(ui);
 
 	if (window->wdecor != NULL) {
 		ui_wdecor_set_active(window->wdecor, false);
@@ -877,7 +889,7 @@ static void dwnd_unfocus_event(void *arg)
 	}
 
 	ui_window_send_unfocus(window);
-	ui_unlock(window->ui);
+	ui_unlock(ui);
 }
 
 /** Window decoration requested window maximization.
