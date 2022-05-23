@@ -145,6 +145,10 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	return EOK;
 error:
 	if (wnd != NULL) {
+		ds_client_remove_window(wnd);
+		ds_display_remove_window(wnd);
+		if (wnd->mgc != NULL)
+			mem_gc_delete(wnd->mgc);
 		if (wnd->bitmap != NULL)
 			gfx_bitmap_destroy(wnd->bitmap);
 		free(wnd);
