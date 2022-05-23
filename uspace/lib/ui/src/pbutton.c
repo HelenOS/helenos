@@ -479,13 +479,12 @@ void ui_pbutton_release(ui_pbutton_t *pbutton)
 		return;
 
 	pbutton->held = false;
+	ui_pbutton_up(pbutton);
 
 	if (pbutton->inside) {
 		(void) ui_pbutton_paint(pbutton);
 		ui_pbutton_clicked(pbutton);
 	}
-
-	ui_pbutton_up(pbutton);
 }
 
 /** Pointer entered button.
