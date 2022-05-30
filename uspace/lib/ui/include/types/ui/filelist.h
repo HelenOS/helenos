@@ -30,33 +30,28 @@
  * @{
  */
 /**
- * @file File dialog structure
- *
+ * @file File list
  */
 
-#ifndef _UI_PRIVATE_FILEDIALOG_H
-#define _UI_PRIVATE_FILEDIALOG_H
+#ifndef _UI_TYPES_FILELIST_H
+#define _UI_TYPES_FILELIST_H
 
-/** Actual structure of file dialog.
- *
- * This is private to libui.
- */
-struct ui_file_dialog {
-	/** Dialog window */
-	struct ui_window *window;
-	/** File name entry */
-	struct ui_entry *ename;
-	/** File list */
-	struct ui_file_list *flist;
-	/** OK button */
-	struct ui_pbutton *bok;
-	/** Cancel button */
-	struct ui_pbutton *bcancel;
-	/** File dialog callbacks */
-	struct ui_file_dialog_cb *cb;
-	/** Callback argument */
-	void *arg;
-};
+struct ui_file_list;
+typedef struct ui_file_list ui_file_list_t;
+
+struct ui_file_list_entry;
+typedef struct ui_file_list_entry ui_file_list_entry_t;
+
+struct ui_file_list_entry_attr;
+typedef struct ui_file_list_entry_attr ui_file_list_entry_attr_t;
+
+/** File list callbacks */
+typedef struct ui_file_list_cb {
+	/** Request file list activation */
+	void (*activate_req)(ui_file_list_t *, void *);
+	/** File was selected */
+	void (*selected)(ui_file_list_t *, void *, const char *);
+} ui_file_list_cb_t;
 
 #endif
 

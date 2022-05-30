@@ -30,33 +30,29 @@
  * @{
  */
 /**
- * @file File dialog structure
- *
+ * @file File list
  */
 
-#ifndef _UI_PRIVATE_FILEDIALOG_H
-#define _UI_PRIVATE_FILEDIALOG_H
+#ifndef _UI_FILELIST_H
+#define _UI_FILELIST_H
 
-/** Actual structure of file dialog.
- *
- * This is private to libui.
- */
-struct ui_file_dialog {
-	/** Dialog window */
-	struct ui_window *window;
-	/** File name entry */
-	struct ui_entry *ename;
-	/** File list */
-	struct ui_file_list *flist;
-	/** OK button */
-	struct ui_pbutton *bok;
-	/** Cancel button */
-	struct ui_pbutton *bcancel;
-	/** File dialog callbacks */
-	struct ui_file_dialog_cb *cb;
-	/** Callback argument */
-	void *arg;
-};
+#include <errno.h>
+#include <gfx/coord.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
+#include <ui/control.h>
+#include <ui/window.h>
+#include <stdbool.h>
+#include <types/ui/filelist.h>
+
+extern errno_t ui_file_list_create(ui_window_t *, bool, ui_file_list_t **);
+extern void ui_file_list_destroy(ui_file_list_t *);
+extern ui_control_t *ui_file_list_ctl(ui_file_list_t *);
+extern void ui_file_list_set_cb(ui_file_list_t *, ui_file_list_cb_t *, void *);
+extern void ui_file_list_set_rect(ui_file_list_t *, gfx_rect_t *);
+extern errno_t ui_file_list_read_dir(ui_file_list_t *, const char *);
+extern errno_t ui_file_list_activate(ui_file_list_t *);
+extern void ui_file_list_deactivate(ui_file_list_t *);
 
 #endif
 

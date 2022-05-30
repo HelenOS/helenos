@@ -36,6 +36,7 @@ PCUT_IMPORT(checkbox);
 PCUT_IMPORT(clickmatic);
 PCUT_IMPORT(entry);
 PCUT_IMPORT(file_dialog);
+PCUT_IMPORT(file_list);
 PCUT_IMPORT(fixed);
 PCUT_IMPORT(image);
 PCUT_IMPORT(label);
@@ -53,5 +54,4 @@ PCUT_IMPORT(slider);
 PCUT_IMPORT(ui);
 PCUT_IMPORT(wdecor);
 PCUT_IMPORT(window);
-
 PCUT_MAIN();

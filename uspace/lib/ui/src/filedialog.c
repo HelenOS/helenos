@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/filedialog.h>
+#include <ui/filelist.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
@@ -52,6 +53,15 @@ static void ui_file_dialog_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 ui_window_cb_t ui_file_dialog_wnd_cb = {
 	.close = ui_file_dialog_wnd_close,
 	.kbd = ui_file_dialog_wnd_kbd
+};
+
+static void ui_file_dialog_flist_activate_req(ui_file_list_t *, void *);
+static void ui_file_dialog_flist_selected(ui_file_list_t *, void *,
+    const char *);
+
+ui_file_list_cb_t ui_file_dialog_flist_cb = {
+	.activate_req = ui_file_dialog_flist_activate_req,
+	.selected = ui_file_dialog_flist_selected
 };
 
 static void ui_file_dialog_bok_clicked(ui_pbutton_t *, void *);
@@ -95,6 +105,7 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	ui_fixed_t *fixed = NULL;
 	ui_label_t *label = NULL;
 	ui_entry_t *entry = NULL;
+	ui_file_list_t *flist = NULL;
 	ui_pbutton_t *bok = NULL;
 	ui_pbutton_t *bcancel = NULL;
 	gfx_rect_t rect;
@@ -114,12 +125,12 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 40;
-		wparams.rect.p1.y = 9;
+		wparams.rect.p1.y = 20;
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 300;
-		wparams.rect.p1.y = 135;
+		wparams.rect.p1.y = 335;
 	}
 
 	rc = ui_window_create(ui, &wparams, &window);
@@ -166,9 +177,9 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 3;
-		rect.p0.y = 4;
+		rect.p0.y = 3;
 		rect.p1.x = 37;
-		rect.p1.y = 5;
+		rect.p1.y = 4;
 	} else {
 		rect.p0.x = 10;
 		rect.p0.y = 55;
@@ -191,6 +202,67 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	dialog->ename = entry;
 	entry = NULL;
 
+	/* Files label */
+	rc = ui_label_create(ui_res, "Files:", &label);
+	if (rc != EOK)
+		goto error;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 3;
+		rect.p0.y = 5;
+		rect.p1.x = 17;
+		rect.p1.y = 6;
+	} else {
+		rect.p0.x = 10;
+		rect.p0.y = 90;
+		rect.p1.x = 190;
+		rect.p1.y = 105;
+	}
+
+	ui_label_set_rect(label, &rect);
+
+	rc = ui_fixed_add(fixed, ui_label_ctl(label));
+	if (rc != EOK)
+		goto error;
+
+	label = NULL;
+
+	/* File list */
+
+	rc = ui_file_list_create(window, false, &flist);
+	if (rc != EOK)
+		goto error;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 3;
+		rect.p0.y = 6;
+		rect.p1.x = 37;
+		rect.p1.y = 16;
+	} else {
+		rect.p0.x = 10;
+		rect.p0.y = 110;
+		rect.p1.x = 290;
+		rect.p1.y = 280;
+	}
+
+	ui_file_list_set_rect(flist, &rect);
+	ui_file_list_set_cb(flist, &ui_file_dialog_flist_cb, dialog);
+
+	rc = ui_fixed_add(fixed, ui_file_list_ctl(flist));
+	if (rc != EOK)
+		goto error;
+
+	dialog->flist = flist;
+	flist = NULL;
+
+	rc = ui_file_list_read_dir(dialog->flist, ".");
+	if (rc != EOK)
+		goto error;
+
+	/* OK button */
+
 	rc = ui_pbutton_create(ui_res, "OK", &bok);
 	if (rc != EOK)
 		goto error;
@@ -200,14 +272,14 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 10;
-		rect.p0.y = 6;
+		rect.p0.y = 17;
 		rect.p1.x = 20;
-		rect.p1.y = 7;
+		rect.p1.y = 18;
 	} else {
 		rect.p0.x = 55;
-		rect.p0.y = 90;
+		rect.p0.y = 290;
 		rect.p1.x = 145;
-		rect.p1.y = 118;
+		rect.p1.y = 318;
 	}
 
 	ui_pbutton_set_rect(bok, &rect);
@@ -221,6 +293,8 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	dialog->bok = bok;
 	bok = NULL;
 
+	/* Cancel button */
+
 	rc = ui_pbutton_create(ui_res, "Cancel", &bcancel);
 	if (rc != EOK)
 		goto error;
@@ -230,14 +304,14 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 22;
-		rect.p0.y = 6;
+		rect.p0.y = 17;
 		rect.p1.x = 32;
-		rect.p1.y = 7;
+		rect.p1.y = 18;
 	} else {
 		rect.p0.x = 155;
-		rect.p0.y = 90;
+		rect.p0.y = 290;
 		rect.p1.x = 245;
-		rect.p1.y = 118;
+		rect.p1.y = 318;
 	}
 
 	ui_pbutton_set_rect(bcancel, &rect);
@@ -262,6 +336,8 @@ errno_t ui_file_dialog_create(ui_t *ui, ui_file_dialog_params_t *params,
 error:
 	if (entry != NULL)
 		ui_entry_destroy(entry);
+	if (flist != NULL)
+		ui_file_list_destroy(flist);
 	if (bok != NULL)
 		ui_pbutton_destroy(bok);
 	if (bcancel != NULL)
@@ -327,6 +403,11 @@ static void ui_file_dialog_wnd_kbd(ui_window_t *window, void *arg,
 {
 	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
 	const char *fname;
+	ui_evclaim_t claim;
+
+	claim = ui_window_def_kbd(window, event);
+	if (claim == ui_claimed)
+		return;
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
@@ -346,7 +427,22 @@ static void ui_file_dialog_wnd_kbd(ui_window_t *window, void *arg,
 		}
 	}
 
-	ui_window_def_kbd(window, event);
+}
+
+static void ui_file_dialog_flist_activate_req(ui_file_list_t *flist, void *arg)
+{
+	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
+
+	ui_file_list_activate(dialog->flist);
+	ui_entry_deactivate(dialog->ename);
+}
+
+static void ui_file_dialog_flist_selected(ui_file_list_t *flist, void *arg,
+    const char *fname)
+{
+	ui_file_dialog_t *dialog = (ui_file_dialog_t *) arg;
+
+	dialog->cb->bok(dialog, dialog->arg, fname);
 }
 
 /** File dialog OK button click handler.
