@@ -184,6 +184,7 @@ errno_t ui_file_list_entry_paint(ui_file_list_entry_t *entry, size_t entry_idx)
 	gfx_coord2_t pos;
 	gfx_rect_t rect;
 	gfx_rect_t lrect;
+	gfx_rect_t crect;
 	gfx_color_t *bgcolor;
 	char *caption;
 	gfx_coord_t hpad, vpad;
@@ -197,7 +198,7 @@ errno_t ui_file_list_entry_paint(ui_file_list_entry_t *entry, size_t entry_idx)
 
 	gfx_text_fmt_init(&fmt);
 	fmt.font = font;
-	rows = ui_file_list_page_size(flist);
+	rows = ui_file_list_page_size(flist) + 1;
 
 	/* Do not display entry outside of current page */
 	if (entry_idx < flist->page_idx ||
@@ -244,11 +245,14 @@ errno_t ui_file_list_entry_paint(ui_file_list_entry_t *entry, size_t entry_idx)
 	rect.p1.x = lrect.p1.x;
 	rect.p1.y = rect.p0.y + line_height;
 
+	/* Clip to file list interior */
+	gfx_rect_clip(&rect, &lrect, &crect);
+
 	rc = gfx_set_color(gc, bgcolor);
 	if (rc != EOK)
 		return rc;
 
-	rc = gfx_fill_rect(gc, &rect);
+	rc = gfx_fill_rect(gc, &crect);
 	if (rc != EOK)
 		return rc;
 
@@ -260,7 +264,7 @@ errno_t ui_file_list_entry_paint(ui_file_list_entry_t *entry, size_t entry_idx)
 	 * it should be cut off (and append some sort of overflow
 	 * marker.
 	 */
-	rc = gfx_set_clip_rect(gc, &rect);
+	rc = gfx_set_clip_rect(gc, &crect);
 	if (rc != EOK)
 		return rc;
 
@@ -324,7 +328,7 @@ errno_t ui_file_list_paint(ui_file_list_t *flist)
 			return rc;
 	}
 
-	lines = ui_file_list_page_size(flist);
+	lines = ui_file_list_page_size(flist) + 1;
 	i = 0;
 
 	entry = flist->page;
@@ -476,9 +480,11 @@ void ui_file_list_set_rect(ui_file_list_t *flist, gfx_rect_t *rect)
 unsigned ui_file_list_page_size(ui_file_list_t *flist)
 {
 	gfx_coord_t line_height;
+	gfx_rect_t irect;
 
 	line_height = ui_file_list_entry_height(flist);
-	return (flist->rect.p1.y - flist->rect.p0.y) / line_height;
+	ui_file_list_inside_rect(flist, &irect);
+	return (irect.p1.y - irect.p0.y) / line_height;
 }
 
 void ui_file_list_inside_rect(ui_file_list_t *flist, gfx_rect_t *irect)
@@ -942,7 +948,7 @@ ui_file_list_entry_t *ui_file_list_page_nth_entry(ui_file_list_t *flist,
 	size_t i;
 	size_t idx;
 
-	assert(n < ui_file_list_page_size(flist));
+	assert(n <= ui_file_list_page_size(flist));
 
 	entry = flist->page;
 	if (entry == NULL)
