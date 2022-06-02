@@ -282,16 +282,6 @@ PCUT_TEST(pos_event)
 	PCUT_ASSERT_STR_EQUALS("b", flist->cursor->name);
 	PCUT_ASSERT_INT_EQUALS(2, flist->cursor->size);
 
-	/* Clicking below the last entry should select it */
-	event.hpos = 20;
-	event.vpos = 200;
-	claimed = ui_file_list_pos_event(flist, &event);
-	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
-
-	PCUT_ASSERT_NOT_NULL(flist->cursor);
-	PCUT_ASSERT_STR_EQUALS("c", flist->cursor->name);
-	PCUT_ASSERT_INT_EQUALS(3, flist->cursor->size);
-
 	/* Clicking on the top edge should do a page-up */
 	event.hpos = 20;
 	event.vpos = 20;
@@ -1013,20 +1003,17 @@ PCUT_TEST(page_nth_entry)
 	ui_file_list_set_rect(flist, &rect);
 
 	entry = ui_file_list_page_nth_entry(flist, 0, &idx);
+	PCUT_ASSERT_NOT_NULL(entry);
 	PCUT_ASSERT_STR_EQUALS("b", entry->name);
 	PCUT_ASSERT_INT_EQUALS(1, idx);
 
 	entry = ui_file_list_page_nth_entry(flist, 1, &idx);
+	PCUT_ASSERT_NOT_NULL(entry);
 	PCUT_ASSERT_STR_EQUALS("c", entry->name);
 	PCUT_ASSERT_INT_EQUALS(2, idx);
 
 	entry = ui_file_list_page_nth_entry(flist, 2, &idx);
-	PCUT_ASSERT_STR_EQUALS("c", entry->name);
-	PCUT_ASSERT_INT_EQUALS(2, idx);
-
-	entry = ui_file_list_page_nth_entry(flist, 3, &idx);
-	PCUT_ASSERT_STR_EQUALS("c", entry->name);
-	PCUT_ASSERT_INT_EQUALS(2, idx);
+	PCUT_ASSERT_NULL(entry);
 
 	ui_file_list_destroy(flist);
 	ui_window_destroy(window);

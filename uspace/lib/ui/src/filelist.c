@@ -933,8 +933,6 @@ ui_file_list_entry_t *ui_file_list_prev(ui_file_list_entry_t *cur)
 
 /** Find the n-th entry of the current file list page.
  *
- * If the page is short and has less than n+1 entries, return the last entry.
- *
  * @param flist File list
  * @param n Which entry to get (starting from 0)
  * @param ridx Place to store index (within listing) of the entry
@@ -944,7 +942,6 @@ ui_file_list_entry_t *ui_file_list_page_nth_entry(ui_file_list_t *flist,
     size_t n, size_t *ridx)
 {
 	ui_file_list_entry_t *entry;
-	ui_file_list_entry_t *next;
 	size_t i;
 	size_t idx;
 
@@ -956,11 +953,10 @@ ui_file_list_entry_t *ui_file_list_page_nth_entry(ui_file_list_t *flist,
 
 	idx = flist->page_idx;
 	for (i = 0; i < n; i++) {
-		next = ui_file_list_next(entry);
-		if (next == NULL)
-			break;
+		entry = ui_file_list_next(entry);
+		if (entry == NULL)
+			return NULL;
 
-		entry = next;
 		++idx;
 	}
 
