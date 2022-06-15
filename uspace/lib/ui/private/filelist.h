@@ -92,6 +92,9 @@ typedef struct ui_file_list {
 	/** File list rectangle */
 	gfx_rect_t rect;
 
+	/** Scrollbar */
+	struct ui_scrollbar *scrollbar;
+
 	/** Directory-type entry color */
 	gfx_color_t *dir_color;
 
@@ -130,6 +133,9 @@ extern ui_evclaim_t ui_file_list_kbd_event(ui_file_list_t *, kbd_event_t *);
 extern ui_evclaim_t ui_file_list_pos_event(ui_file_list_t *, pos_event_t *);
 extern unsigned ui_file_list_page_size(ui_file_list_t *);
 extern void ui_file_list_inside_rect(ui_file_list_t *, gfx_rect_t *);
+extern void ui_file_list_scrollbar_rect(ui_file_list_t *, gfx_rect_t *);
+extern gfx_coord_t ui_file_list_scrollbar_pos(ui_file_list_t *);
+extern void ui_file_list_scrollbar_update(ui_file_list_t *);
 extern bool ui_file_list_is_active(ui_file_list_t *);
 extern void ui_file_list_entry_delete(ui_file_list_entry_t *);
 extern void ui_file_list_clear_entries(ui_file_list_t *);
@@ -152,6 +158,11 @@ extern void ui_file_list_cursor_top(ui_file_list_t *);
 extern void ui_file_list_cursor_bottom(ui_file_list_t *);
 extern void ui_file_list_page_up(ui_file_list_t *);
 extern void ui_file_list_page_down(ui_file_list_t *);
+extern void ui_file_list_scroll_up(ui_file_list_t *);
+extern void ui_file_list_scroll_down(ui_file_list_t *);
+extern void ui_file_list_scroll_page_up(ui_file_list_t *);
+extern void ui_file_list_scroll_page_down(ui_file_list_t *);
+extern void ui_file_list_scroll_pos(ui_file_list_t *, size_t);
 extern errno_t ui_file_list_open(ui_file_list_t *, ui_file_list_entry_t *);
 extern errno_t ui_file_list_open_dir(ui_file_list_t *, ui_file_list_entry_t *);
 extern errno_t ui_file_list_open_file(ui_file_list_t *, ui_file_list_entry_t *);

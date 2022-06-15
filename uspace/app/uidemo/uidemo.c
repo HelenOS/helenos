@@ -1071,7 +1071,7 @@ static errno_t ui_demo(const char *display_spec)
 
 	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &demo.hscrollbar);
 	if (rc != EOK) {
-		printf("Error creating button.\n");
+		printf("Error creating scrollbar.\n");
 		return rc;
 	}
 

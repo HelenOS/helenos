@@ -44,6 +44,7 @@
 #include <ui/filelist.h>
 #include <ui/paint.h>
 #include <ui/resource.h>
+#include <ui/scrollbar.h>
 #include <vfs/vfs.h>
 #include <qsort.h>
 #include "../private/filelist.h"
@@ -67,6 +68,21 @@ enum {
 	file_list_entry_vpad = 2,
 	file_list_entry_hpad_text = 1,
 	file_list_entry_vpad_text = 0,
+};
+
+static void ui_file_list_scrollbar_up(ui_scrollbar_t *, void *);
+static void ui_file_list_scrollbar_down(ui_scrollbar_t *, void *);
+static void ui_file_list_scrollbar_page_up(ui_scrollbar_t *, void *);
+static void ui_file_list_scrollbar_page_down(ui_scrollbar_t *, void *);
+static void ui_file_list_scrollbar_moved(ui_scrollbar_t *, void *, gfx_coord_t);
+
+/** File list scrollbar callbacks */
+static ui_scrollbar_cb_t ui_file_list_scrollbar_cb = {
+	.up = ui_file_list_scrollbar_up,
+	.down = ui_file_list_scrollbar_down,
+	.page_up = ui_file_list_scrollbar_page_up,
+	.page_down = ui_file_list_scrollbar_page_down,
+	.moved = ui_file_list_scrollbar_moved
 };
 
 /** Create file list.
@@ -100,6 +116,14 @@ errno_t ui_file_list_create(ui_window_t *window, bool active,
 	rc = gfx_color_new_ega(0x0a, &flist->svc_color);
 	if (rc != EOK)
 		goto error;
+
+	rc = ui_scrollbar_create(ui_window_get_ui(window), window,
+	    ui_sbd_vert, &flist->scrollbar);
+	if (rc != EOK)
+		goto error;
+
+	ui_scrollbar_set_cb(flist->scrollbar, &ui_file_list_scrollbar_cb,
+	    (void *) flist);
 
 	flist->window = window;
 	list_initialize(&flist->entries);
@@ -341,6 +365,10 @@ errno_t ui_file_list_paint(ui_file_list_t *flist)
 		entry = ui_file_list_next(entry);
 	}
 
+	rc = ui_scrollbar_paint(flist->scrollbar);
+	if (rc != EOK)
+		return rc;
+
 	rc = gfx_update(gc);
 	if (rc != EOK)
 		return rc;
@@ -405,7 +433,12 @@ ui_evclaim_t ui_file_list_pos_event(ui_file_list_t *flist, pos_event_t *event)
 	ui_file_list_entry_t *entry;
 	gfx_coord_t line_height;
 	size_t entry_idx;
+	ui_evclaim_t claim;
 	int n;
+
+	claim = ui_scrollbar_pos_event(flist->scrollbar, event);
+	if (claim == ui_claimed)
+		return ui_claimed;
 
 	line_height = ui_file_list_entry_height(flist);
 
@@ -469,7 +502,12 @@ ui_control_t *ui_file_list_ctl(ui_file_list_t *flist)
  */
 void ui_file_list_set_rect(ui_file_list_t *flist, gfx_rect_t *rect)
 {
+	gfx_rect_t srect;
+
 	flist->rect = *rect;
+
+	ui_file_list_scrollbar_rect(flist, &srect);
+	ui_scrollbar_set_rect(flist->scrollbar, &srect);
 }
 
 /** Get file list page size.
@@ -487,15 +525,91 @@ unsigned ui_file_list_page_size(ui_file_list_t *flist)
 	return (irect.p1.y - irect.p0.y) / line_height;
 }
 
+/** Get file list interior rectangle.
+ *
+ * @param flist File list
+ * @param irect Place to store interior rectangle
+ */
 void ui_file_list_inside_rect(ui_file_list_t *flist, gfx_rect_t *irect)
 {
 	ui_resource_t *res = ui_window_get_res(flist->window);
+	gfx_rect_t rect;
+	gfx_coord_t width;
 
 	if (res->textmode) {
-		*irect = flist->rect;
+		rect = flist->rect;
 	} else {
-		ui_paint_get_inset_frame_inside(res, &flist->rect, irect);
+		ui_paint_get_inset_frame_inside(res, &flist->rect, &rect);
 	}
+
+	if (res->textmode) {
+		width = 1;
+	} else {
+		width = 23;
+	}
+
+	irect->p0 = rect.p0;
+	irect->p1.x = rect.p1.x - width;
+	irect->p1.y = rect.p1.y;
+}
+
+/** Get file list scrollbar rectangle.
+ *
+ * @param flist File list
+ * @param irect Place to store interior rectangle
+ */
+void ui_file_list_scrollbar_rect(ui_file_list_t *flist, gfx_rect_t *srect)
+{
+	ui_resource_t *res = ui_window_get_res(flist->window);
+	gfx_rect_t rect;
+	gfx_coord_t width;
+
+	if (res->textmode) {
+		rect = flist->rect;
+	} else {
+		ui_paint_get_inset_frame_inside(res, &flist->rect, &rect);
+	}
+
+	if (res->textmode) {
+		width = 1;
+	} else {
+		width = 23;
+	}
+
+	srect->p0.x = rect.p1.x - width;
+	srect->p0.y = rect.p0.y;
+	srect->p1 = rect.p1;
+}
+
+/** Compute new position for file list scrollbar thumb.
+ *
+ * @param flist File list
+ * @return New position
+ */
+gfx_coord_t ui_file_list_scrollbar_pos(ui_file_list_t *flist)
+{
+	size_t entries;
+	size_t pglen;
+	size_t sbar_len;
+
+	entries = list_count(&flist->entries);
+	pglen = ui_file_list_page_size(flist);
+	sbar_len = ui_scrollbar_move_length(flist->scrollbar);
+
+	if (entries > pglen)
+		return sbar_len * flist->page_idx / (entries - pglen);
+	else
+		return 0;
+}
+
+/** Update file list scrollbar position.
+ *
+ * @param flist File list
+ */
+void ui_file_list_scrollbar_update(ui_file_list_t *flist)
+{
+	ui_scrollbar_set_pos(flist->scrollbar,
+	    ui_file_list_scrollbar_pos(flist));
 }
 
 /** Determine if file list is active.
@@ -1029,6 +1143,7 @@ void ui_file_list_cursor_move(ui_file_list_t *flist,
 			}
 		}
 
+		ui_file_list_scrollbar_update(flist);
 		(void) ui_file_list_paint(flist);
 	}
 }
@@ -1082,7 +1197,7 @@ void ui_file_list_cursor_bottom(ui_file_list_t *flist)
 	    flist->entries_cnt - 1);
 }
 
-/** Move one page up.
+/** Move cursor one page up.
  *
  * @param flist File list
  */
@@ -1123,6 +1238,7 @@ void ui_file_list_page_up(ui_file_list_t *flist)
 
 	if (flist->page != old_page) {
 		/* We have scrolled. Need to repaint all entries */
+		ui_file_list_scrollbar_update(flist);
 		(void) ui_file_list_paint(flist);
 	} else if (flist->cursor != old_cursor) {
 		/* No scrolling, but cursor has moved */
@@ -1133,7 +1249,7 @@ void ui_file_list_page_up(ui_file_list_t *flist)
 	}
 }
 
-/** Move one page down.
+/** Move cursor one page down.
  *
  * @param flist File list
  */
@@ -1181,6 +1297,7 @@ void ui_file_list_page_down(ui_file_list_t *flist)
 
 	if (flist->page != old_page) {
 		/* We have scrolled. Need to repaint all entries */
+		ui_file_list_scrollbar_update(flist);
 		(void) ui_file_list_paint(flist);
 	} else if (flist->cursor != old_cursor) {
 		/* No scrolling, but cursor has moved */
@@ -1189,6 +1306,143 @@ void ui_file_list_page_down(ui_file_list_t *flist)
 
 		(void) gfx_update(gc);
 	}
+}
+
+/** Scroll one entry up.
+ *
+ * @param flist File list
+ */
+void ui_file_list_scroll_up(ui_file_list_t *flist)
+{
+	ui_file_list_entry_t *prev;
+
+	prev = ui_file_list_prev(flist->page);
+	if (prev == NULL)
+		return;
+
+	flist->page = prev;
+	assert(flist->page_idx > 0);
+	--flist->page_idx;
+
+	ui_file_list_scrollbar_update(flist);
+	(void) ui_file_list_paint(flist);
+}
+
+/** Scroll one entry down.
+ *
+ * @param flist File list
+ */
+void ui_file_list_scroll_down(ui_file_list_t *flist)
+{
+	ui_file_list_entry_t *next;
+	ui_file_list_entry_t *pgend;
+	size_t i;
+	size_t rows;
+
+	next = ui_file_list_next(flist->page);
+	if (next == NULL)
+		return;
+
+	rows = ui_file_list_page_size(flist);
+
+	/* Find last page entry */
+	pgend = flist->page;
+	for (i = 0; i < rows && pgend != NULL; i++) {
+		pgend = ui_file_list_next(pgend);
+	}
+
+	/* Scroll down by one entry, if the page remains full */
+	if (pgend != NULL) {
+		flist->page = next;
+		++flist->page_idx;
+	}
+
+	ui_file_list_scrollbar_update(flist);
+	(void) ui_file_list_paint(flist);
+}
+
+/** Scroll one page up.
+ *
+ * @param flist File list
+ */
+void ui_file_list_scroll_page_up(ui_file_list_t *flist)
+{
+	ui_file_list_entry_t *prev;
+	size_t i;
+	size_t rows;
+
+	prev = ui_file_list_prev(flist->page);
+	if (prev == NULL)
+		return;
+
+	rows = ui_file_list_page_size(flist);
+
+	for (i = 0; i < rows && prev != NULL; i++) {
+		flist->page = prev;
+		assert(flist->page_idx > 0);
+		--flist->page_idx;
+		prev = ui_file_list_prev(prev);
+	}
+
+	ui_file_list_scrollbar_update(flist);
+	(void) ui_file_list_paint(flist);
+}
+
+/** Scroll one page down.
+ *
+ * @param flist File list
+ */
+void ui_file_list_scroll_page_down(ui_file_list_t *flist)
+{
+	ui_file_list_entry_t *next;
+	ui_file_list_entry_t *pgend;
+	size_t i;
+	size_t rows;
+
+	next = ui_file_list_next(flist->page);
+	if (next == NULL)
+		return;
+
+	rows = ui_file_list_page_size(flist);
+
+	/* Find last page entry */
+	pgend = flist->page;
+	for (i = 0; i < rows && pgend != NULL; i++) {
+		pgend = ui_file_list_next(pgend);
+	}
+
+	/* Scroll by up to 'rows' entries, keeping the page full */
+	for (i = 0; i < rows && pgend != NULL; i++) {
+		flist->page = next;
+		++flist->page_idx;
+		next = ui_file_list_next(next);
+		pgend = ui_file_list_next(pgend);
+	}
+
+	ui_file_list_scrollbar_update(flist);
+	(void) ui_file_list_paint(flist);
+}
+
+/** Scroll to a specific entry
+ *
+ * @param flist File list
+ * @param page_idx New index of first entry on the page
+ */
+void ui_file_list_scroll_pos(ui_file_list_t *flist, size_t page_idx)
+{
+	ui_file_list_entry_t *entry;
+	size_t i;
+
+	entry = ui_file_list_first(flist);
+	for (i = 0; i < page_idx; i++) {
+		entry = ui_file_list_next(entry);
+		assert(entry != NULL);
+	}
+
+	flist->page = entry;
+	flist->page_idx = page_idx;
+
+	(void) ui_file_list_paint(flist);
 }
 
 /** Open file list entry.
@@ -1290,6 +1544,77 @@ void ui_file_list_selected(ui_file_list_t *flist, const char *fname)
 {
 	if (flist->cb != NULL && flist->cb->selected != NULL)
 		flist->cb->selected(flist, flist->cb_arg, fname);
+}
+
+/** File list scrollbar up button pressed.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (ui_file_list_t *)
+ */
+static void ui_file_list_scrollbar_up(ui_scrollbar_t *scrollbar, void *arg)
+{
+	ui_file_list_t *flist = (ui_file_list_t *)arg;
+	ui_file_list_scroll_up(flist);
+}
+
+/** File list scrollbar down button pressed.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (ui_file_list_t *)
+ */
+static void ui_file_list_scrollbar_down(ui_scrollbar_t *scrollbar, void *arg)
+{
+	ui_file_list_t *flist = (ui_file_list_t *)arg;
+	ui_file_list_scroll_down(flist);
+}
+
+/** File list scrollbar page up pressed.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (ui_file_list_t *)
+ */
+static void ui_file_list_scrollbar_page_up(ui_scrollbar_t *scrollbar, void *arg)
+{
+	ui_file_list_t *flist = (ui_file_list_t *)arg;
+	ui_file_list_scroll_page_up(flist);
+}
+
+/** File list scrollbar page down pressed.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (ui_file_list_t *)
+ */
+static void ui_file_list_scrollbar_page_down(ui_scrollbar_t *scrollbar,
+    void *arg)
+{
+	ui_file_list_t *flist = (ui_file_list_t *)arg;
+	ui_file_list_scroll_page_down(flist);
+}
+
+/** File list scrollbar moved.
+ *
+ * @param scrollbar Scrollbar
+ * @param arg Argument (ui_file_list_t *)
+ */
+static void ui_file_list_scrollbar_moved(ui_scrollbar_t *scrollbar, void *arg,
+    gfx_coord_t pos)
+{
+	ui_file_list_t *flist = (ui_file_list_t *)arg;
+	size_t entries;
+	size_t pglen;
+	size_t sbar_len;
+	size_t pgstart;
+
+	entries = list_count(&flist->entries);
+	pglen = ui_file_list_page_size(flist);
+	sbar_len = ui_scrollbar_move_length(flist->scrollbar);
+
+	if (entries > pglen)
+		pgstart = (entries - pglen) * pos / (sbar_len - 1);
+	else
+		pgstart = 0;
+
+	ui_file_list_scroll_pos(flist, pgstart);
 }
 
 /** @}
