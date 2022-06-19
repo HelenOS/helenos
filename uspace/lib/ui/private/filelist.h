@@ -163,7 +163,6 @@ extern void ui_file_list_scroll_down(ui_file_list_t *);
 extern void ui_file_list_scroll_page_up(ui_file_list_t *);
 extern void ui_file_list_scroll_page_down(ui_file_list_t *);
 extern void ui_file_list_scroll_pos(ui_file_list_t *, size_t);
-extern errno_t ui_file_list_open(ui_file_list_t *, ui_file_list_entry_t *);
 extern errno_t ui_file_list_open_dir(ui_file_list_t *, ui_file_list_entry_t *);
 extern errno_t ui_file_list_open_file(ui_file_list_t *, ui_file_list_entry_t *);
 extern void ui_file_list_activate_req(ui_file_list_t *);

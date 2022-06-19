@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,38 +48,15 @@
 extern errno_t panel_create(ui_window_t *, bool, panel_t **);
 extern void panel_destroy(panel_t *);
 extern void panel_set_cb(panel_t *, panel_cb_t *, void *);
-extern errno_t panel_entry_paint(panel_entry_t *, size_t);
 extern errno_t panel_paint(panel_t *);
 extern ui_evclaim_t panel_kbd_event(panel_t *, kbd_event_t *);
 extern ui_evclaim_t panel_pos_event(panel_t *, pos_event_t *);
 extern ui_control_t *panel_ctl(panel_t *);
 extern void panel_set_rect(panel_t *, gfx_rect_t *);
-extern unsigned panel_page_size(panel_t *);
 extern bool panel_is_active(panel_t *);
 extern errno_t panel_activate(panel_t *);
 extern void panel_deactivate(panel_t *);
-extern void panel_entry_attr_init(panel_entry_attr_t *);
-extern errno_t panel_entry_append(panel_t *, panel_entry_attr_t *);
-extern void panel_entry_delete(panel_entry_t *);
-extern void panel_clear_entries(panel_t *);
 extern errno_t panel_read_dir(panel_t *, const char *);
-extern errno_t panel_sort(panel_t *);
-extern int panel_entry_ptr_cmp(const void *, const void *);
-extern panel_entry_t *panel_first(panel_t *);
-extern panel_entry_t *panel_last(panel_t *);
-extern panel_entry_t *panel_next(panel_entry_t *);
-extern panel_entry_t *panel_prev(panel_entry_t *);
-extern panel_entry_t *panel_page_nth_entry(panel_t *, size_t, size_t *);
-extern void panel_cursor_move(panel_t *, panel_entry_t *, size_t);
-extern void panel_cursor_up(panel_t *);
-extern void panel_cursor_down(panel_t *);
-extern void panel_cursor_top(panel_t *);
-extern void panel_cursor_bottom(panel_t *);
-extern void panel_page_up(panel_t *);
-extern void panel_page_down(panel_t *);
-extern errno_t panel_open(panel_t *, panel_entry_t *);
-extern errno_t panel_open_dir(panel_t *, panel_entry_t *);
-extern errno_t panel_open_file(panel_t *, panel_entry_t *);
 extern void panel_activate_req(panel_t *);
 
 #endif

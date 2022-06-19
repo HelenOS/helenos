@@ -1078,6 +1078,16 @@ ui_file_list_entry_t *ui_file_list_page_nth_entry(ui_file_list_t *flist,
 	return entry;
 }
 
+/** Get entry under cursor.
+ *
+ * @param flist File list
+ * @return Current cursor
+ */
+ui_file_list_entry_t *ui_file_list_get_cursor(ui_file_list_t *flist)
+{
+	return flist->cursor;
+}
+
 /** Move cursor to a new position, possibly scrolling.
  *
  * @param flist File list

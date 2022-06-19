@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,40 +36,11 @@
 #ifndef TYPES_PANEL_H
 #define TYPES_PANEL_H
 
-#include <adt/list.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
-#include <ipc/loc.h>
+#include <ui/filelist.h>
 #include <ui/window.h>
 #include <stdint.h>
-
-/** Panel entry attributes */
-typedef struct {
-	/** File name */
-	const char *name;
-	/** File size */
-	uint64_t size;
-	/** @c true iff entry is a directory */
-	bool isdir;
-	/** Service number for service special entries */
-	service_id_t svc;
-} panel_entry_attr_t;
-
-/** Panel entry */
-typedef struct {
-	/** Containing panel */
-	struct panel *panel;
-	/** Link to @c panel->entries */
-	link_t lentries;
-	/** File name */
-	char *name;
-	/** File size */
-	uint64_t size;
-	/** @c true iff entry is a directory */
-	bool isdir;
-	/** Service number for service special entries */
-	service_id_t svc;
-} panel_entry_t;
 
 /** Navigator panel
  *
@@ -94,41 +65,14 @@ typedef struct panel {
 	/** Panel color */
 	gfx_color_t *color;
 
-	/** Panel cursor color */
-	gfx_color_t *curs_color;
-
 	/** Active border color */
 	gfx_color_t *act_border_color;
-
-	/** Directory-type entry color */
-	gfx_color_t *dir_color;
-
-	/** Service-type entry color */
-	gfx_color_t *svc_color;
-
-	/** Panel entries (list of panel_entry_t) */
-	list_t entries;
-
-	/** Number of entries */
-	size_t entries_cnt;
-
-	/** First entry of current page */
-	panel_entry_t *page;
-
-	/** Index of first entry of current page */
-	size_t page_idx;
-
-	/** Cursor position */
-	panel_entry_t *cursor;
-
-	/** Index of entry under cursor */
-	size_t cursor_idx;
 
 	/** @c true iff the panel is active */
 	bool active;
 
-	/** Directory */
-	char *dir;
+	/** File list */
+	ui_file_list_t *flist;
 } panel_t;
 
 /** Panel callbacks */

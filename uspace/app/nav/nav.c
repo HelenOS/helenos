@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <ui/fixed.h>
+#include <ui/filelist.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
@@ -313,7 +314,7 @@ static void navigator_file_open(void *arg)
 	panel_t *panel;
 
 	panel = navigator_get_active_panel(navigator);
-	panel_open(panel, panel->cursor);
+	ui_file_list_open(panel->flist, ui_file_list_get_cursor(panel->flist));
 }
 
 /** File / Exit menu entry selected */
