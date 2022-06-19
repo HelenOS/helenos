@@ -450,19 +450,19 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_color_new_ega(0x1b, &entry_fg_color);
+	rc = gfx_color_new_ega(0x07, &entry_fg_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_color_new_ega(0x1b, &entry_bg_color);
+	rc = gfx_color_new_ega(0x07, &entry_bg_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_color_new_ega(0x20, &entry_sel_text_fg_color);
+	rc = gfx_color_new_ega(0x1e, &entry_sel_text_fg_color);
 	if (rc != EOK)
 		goto error;
 
-	rc = gfx_color_new_ega(0x20, &entry_sel_text_bg_color);
+	rc = gfx_color_new_ega(0x1e, &entry_sel_text_bg_color);
 	if (rc != EOK)
 		goto error;
 
