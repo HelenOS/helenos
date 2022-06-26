@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2022 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
- * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -197,6 +197,29 @@ static void push_event(async_sess_t *sess, kbd_event_type_t type,
 	async_exchange_end(exch);
 }
 
+/** Get one scancode byte from the keyboard.
+ *
+ * @param kbd Keyboard
+ * @param code Place to store scancode byte
+ * @return EOK on success or an error code
+ */
+static errno_t xtkbd_get_code(xt_kbd_t *kbd, uint8_t *code)
+{
+	errno_t rc;
+	size_t nread;
+
+	*code = 0;
+	rc = chardev_read(kbd->chardev, code, 1, &nread, chardev_f_none);
+	if (rc != EOK) {
+		ddf_msg(LVL_WARN, "Error reading from keyboard device.");
+		return EIO;
+	}
+
+	ddf_msg(LVL_DEBUG, "Read scancode: 0x%02hhx", *code);
+
+	return EOK;
+}
+
 /** Get data and parse scancodes.
  *
  * @param arg Pointer to xt_kbd_t structure.
@@ -207,7 +230,6 @@ static void push_event(async_sess_t *sess, kbd_event_type_t type,
 static errno_t polling(void *arg)
 {
 	xt_kbd_t *kbd = arg;
-	size_t nread;
 	errno_t rc;
 
 	while (true) {
@@ -215,7 +237,7 @@ static errno_t polling(void *arg)
 		size_t map_size = sizeof(scanmap_simple) / sizeof(unsigned int);
 
 		uint8_t code = 0;
-		rc = chardev_read(kbd->chardev, &code, 1, &nread, chardev_f_none);
+		rc = xtkbd_get_code(kbd, &code);
 		if (rc != EOK)
 			return EIO;
 
@@ -228,24 +250,21 @@ static errno_t polling(void *arg)
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(unsigned int);
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread,
-			    chardev_f_none);
+			rc = xtkbd_get_code(kbd, &code);
 			if (rc != EOK)
 				return EIO;
 
 			/* Handle really special keys */
 
 			if (code == 0x2a) {  /* Print Screen */
-				rc = chardev_read(kbd->chardev, &code, 1, &nread,
-				    chardev_f_none);
+				rc = xtkbd_get_code(kbd, &code);
 				if (rc != EOK)
 					return EIO;
 
 				if (code != 0xe0)
 					continue;
 
-				rc = chardev_read(kbd->chardev, &code, 1, &nread,
-				    chardev_f_none);
+				rc = xtkbd_get_code(kbd, &code);
 				if (rc != EOK)
 					return EIO;
 
@@ -256,16 +275,14 @@ static errno_t polling(void *arg)
 			}
 
 			if (code == 0x46) {  /* Break */
-				rc = chardev_read(kbd->chardev, &code, 1, &nread,
-				    chardev_f_none);
+				rc = xtkbd_get_code(kbd, &code);
 				if (rc != EOK)
 					return EIO;
 
 				if (code != 0xe0)
 					continue;
 
-				rc = chardev_read(kbd->chardev, &code, 1, &nread,
-				    chardev_f_none);
+				rc = xtkbd_get_code(kbd, &code);
 				if (rc != EOK)
 					return EIO;
 
@@ -278,40 +295,35 @@ static errno_t polling(void *arg)
 
 		/* Extended special set */
 		if (code == KBD_SCANCODE_SET_EXTENDED_SPECIAL) {
-			rc = chardev_read(kbd->chardev, &code, 1, &nread,
-			    chardev_f_none);
+			rc = xtkbd_get_code(kbd, &code);
 			if (rc != EOK)
 				return EIO;
 
 			if (code != 0x1d)
 				continue;
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread,
-			    chardev_f_none);
+			rc = xtkbd_get_code(kbd, &code);
 			if (rc != EOK)
 				return EIO;
 
 			if (code != 0x45)
 				continue;
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread,
-			    chardev_f_none);
+			rc = xtkbd_get_code(kbd, &code);
 			if (rc != EOK)
 				return EIO;
 
 			if (code != 0xe1)
 				continue;
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread,
-			    chardev_f_none);
+			rc = xtkbd_get_code(kbd, &code);
 			if (rc != EOK)
 				return EIO;
 
 			if (code != 0x9d)
 				continue;
 
-			rc = chardev_read(kbd->chardev, &code, 1, &nread,
-			    chardev_f_none);
+			rc = xtkbd_get_code(kbd, &code);
 			if (rc != EOK)
 				return EIO;
 
