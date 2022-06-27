@@ -131,6 +131,7 @@ static const unsigned int scanmap_simple[] = {
 	[0x57] = KC_F11,
 	[0x58] = KC_F12,
 
+	[0x54] = KC_SYSREQ,
 	[0x46] = KC_SCROLL_LOCK,
 
 	[0x1c] = KC_ENTER,
@@ -162,7 +163,8 @@ static const unsigned int scanmap_e0[] = {
 	[0x38] = KC_RALT,
 	[0x1d] = KC_RCTRL,
 
-	[0x37] = KC_SYSREQ,
+	[0x37] = KC_PRTSCR,
+	[0x46] = KC_PAUSE,
 
 	[0x52] = KC_INSERT,
 	[0x47] = KC_HOME,
@@ -229,14 +231,16 @@ static errno_t xtkbd_get_code(xt_kbd_t *kbd, uint8_t *code)
  */
 static errno_t polling(void *arg)
 {
+	kbd_event_type_t evtype;
+	unsigned int key;
+	size_t map_size;
 	xt_kbd_t *kbd = arg;
+	uint8_t code;
+	uint8_t xcode1;
+	uint8_t xcode2;
 	errno_t rc;
 
 	while (true) {
-		const unsigned int *map = scanmap_simple;
-		size_t map_size = sizeof(scanmap_simple) / sizeof(unsigned int);
-
-		uint8_t code = 0;
 		rc = xtkbd_get_code(kbd, &code);
 		if (rc != EOK)
 			return EIO;
@@ -247,101 +251,61 @@ static errno_t polling(void *arg)
 
 		/* Extended set */
 		if (code == KBD_SCANCODE_SET_EXTENDED) {
-			map = scanmap_e0;
+			rc = xtkbd_get_code(kbd, &xcode1);
+			if (rc != EOK)
+				return EIO;
+
+			if ((xcode1 & 0x7f) == 0x2a)  /* Fake shift */
+				continue;
+
+			/* Bit 7 indicates press/release */
+			evtype = (xcode1 & 0x80) ? KEY_RELEASE : KEY_PRESS;
+
 			map_size = sizeof(scanmap_e0) / sizeof(unsigned int);
+			key = (xcode1 & 0x7f) < map_size ?
+			    scanmap_e0[xcode1 & 0x7f] : 0;
 
-			rc = xtkbd_get_code(kbd, &code);
-			if (rc != EOK)
-				return EIO;
-
-			/* Handle really special keys */
-
-			if (code == 0x2a) {  /* Print Screen */
-				rc = xtkbd_get_code(kbd, &code);
-				if (rc != EOK)
-					return EIO;
-
-				if (code != 0xe0)
-					continue;
-
-				rc = xtkbd_get_code(kbd, &code);
-				if (rc != EOK)
-					return EIO;
-
-				if (code == 0x37)
-					push_event(kbd->client_sess, KEY_PRESS, KC_PRTSCR);
-
-				continue;
-			}
-
-			if (code == 0x46) {  /* Break */
-				rc = xtkbd_get_code(kbd, &code);
-				if (rc != EOK)
-					return EIO;
-
-				if (code != 0xe0)
-					continue;
-
-				rc = xtkbd_get_code(kbd, &code);
-				if (rc != EOK)
-					return EIO;
-
-				if (code == 0xc6)
-					push_event(kbd->client_sess, KEY_PRESS, KC_BREAK);
-
-				continue;
-			}
-		}
-
-		/* Extended special set */
-		if (code == KBD_SCANCODE_SET_EXTENDED_SPECIAL) {
-			rc = xtkbd_get_code(kbd, &code);
-			if (rc != EOK)
-				return EIO;
-
-			if (code != 0x1d)
-				continue;
-
-			rc = xtkbd_get_code(kbd, &code);
-			if (rc != EOK)
-				return EIO;
-
-			if (code != 0x45)
-				continue;
-
-			rc = xtkbd_get_code(kbd, &code);
-			if (rc != EOK)
-				return EIO;
-
-			if (code != 0xe1)
-				continue;
-
-			rc = xtkbd_get_code(kbd, &code);
-			if (rc != EOK)
-				return EIO;
-
-			if (code != 0x9d)
-				continue;
-
-			rc = xtkbd_get_code(kbd, &code);
-			if (rc != EOK)
-				return EIO;
-
-			if (code == 0xc5)
-				push_event(kbd->client_sess, KEY_PRESS, KC_PAUSE);
+			if (key != 0)
+				push_event(kbd->client_sess, evtype, key);
+			else
+				ddf_msg(LVL_WARN, "Unknown scancode: e0 %hhx", xcode1);
 
 			continue;
 		}
 
-		/* Bit 7 indicates press/release */
-		const kbd_event_type_t type =
-		    (code & 0x80) ? KEY_RELEASE : KEY_PRESS;
-		code &= ~0x80;
+		/* Extended special set */
+		if (code == KBD_SCANCODE_SET_EXTENDED_SPECIAL) {
+			rc = xtkbd_get_code(kbd, &xcode1);
+			if (rc != EOK)
+				return EIO;
 
-		const unsigned int key = (code < map_size) ? map[code] : 0;
+			rc = xtkbd_get_code(kbd, &xcode2);
+			if (rc != EOK)
+				return EIO;
+
+			if ((xcode1 & 0x80) == (xcode2 & 0x80) &&
+			    (xcode1 & 0x7f) == 0x1d && (xcode2 & 0x7f) == 0x45) {
+				/* Pause */
+				evtype = (xcode1 & 0x80) ? KEY_RELEASE :
+				    KEY_PRESS;
+				push_event(kbd->client_sess, evtype, KC_PAUSE);
+				continue;
+			}
+
+			ddf_msg(LVL_WARN, "Unknown scancode: e1 %hhx %hhx",
+			    xcode1, xcode2);
+			continue;
+		}
+
+		/* Bit 7 indicates press/release */
+		evtype = (code & 0x80) ? KEY_RELEASE : KEY_PRESS;
+
+		map_size = sizeof(scanmap_simple) / sizeof(unsigned int);
+		key = (code & 0x7f) < map_size ?
+		    scanmap_simple[code & 0x7f] : 0;
 
 		if (key != 0)
-			push_event(kbd->client_sess, type, key);
+			push_event(kbd->client_sess, evtype, key);
 		else
 			ddf_msg(LVL_WARN, "Unknown scancode: %hhx", code);
 	}
