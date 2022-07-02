@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -669,8 +669,30 @@ static void hda_ctl_process_rirb(hda_ctl_t *ctl)
 	}
 }
 
+static void hda_ctl_check_fifo_error(hda_ctl_t *ctl)
+{
+	int i;
+	uint8_t sts;
+
+	/*
+	 * XXX Ideally the interrupt handler would tell us which stream
+	 * has the error.
+	 */
+
+	for (i = 0; i < 30; i++) {
+		sts = hda_reg8_read(&ctl->hda->regs->sdesc[i].sts);
+		if ((sts & BIT_V(uint8_t, sdsts_fifoe)) != 0 && (sts & 0x80) == 0) {
+			ddf_msg(LVL_WARN, "sts[%d] = 0x%hhx\n", i, sts);
+			hda_reg8_write(&ctl->hda->regs->sdesc[i].sts,
+			    BIT_V(uint8_t, sdsts_fifoe));
+		}
+	}
+}
+
 void hda_ctl_interrupt(hda_ctl_t *ctl)
 {
+	ddf_msg(LVL_DEBUG, "hda_ctl_interrupt");
+	hda_ctl_check_fifo_error(ctl);
 	hda_ctl_process_rirb(ctl);
 }
 

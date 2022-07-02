@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -165,8 +165,11 @@ static void hda_stream_desc_configure(hda_stream_t *stream)
 	uint8_t ctl1;
 	uint8_t ctl3;
 
+	/* Stream ID */
 	ctl3 = (stream->sid << 4);
-	ctl1 = 0x4;
+
+	/* Interrupt on buffer completion */
+	ctl1 = BIT_V(uint8_t, sdctl1_ioce);
 
 	sdregs = &stream->hda->regs->sdesc[stream->sdid];
 	hda_reg8_write(&sdregs->ctl3, ctl3);

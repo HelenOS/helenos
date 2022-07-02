@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -511,6 +511,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 	codec->hda = hda;
 	codec->address = address;
 	codec->in_aw = -1;
+	codec->out_aw = -1;
 
 	rc = hda_get_subnc(codec, 0, &sfg, &nfg);
 	if (rc != EOK)
@@ -583,8 +584,6 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 				if (rc != EOK)
 					goto error;
 			} else if (awtype == awt_audio_output) {
-				codec->out_aw_list[codec->out_aw_num++] = aw;
-
 				rc = hda_get_supp_rates(codec, aw, &rates);
 				if (rc != EOK)
 					goto error;
@@ -593,8 +592,20 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 				if (rc != EOK)
 					goto error;
 
-				ddf_msg(LVL_DEBUG, "Output widget %d: rates=0x%x formats=0x%x",
+				if (rates != 0 && formats != 0 &&
+				    codec->out_aw < 0) {
+					ddf_msg(LVL_DEBUG, "Selected output "
+					    "widget %d\n", aw);
+					codec->out_aw = aw;
+				} else {
+					ddf_msg(LVL_DEBUG, "Ignoring output "
+					    "widget %d\n", aw);
+				}
+
+				ddf_msg(LVL_NOTE, "Output widget %d: rates=0x%x formats=0x%x",
 				    aw, rates, formats);
+				codec->out_aw_rates = rates;
+				codec->out_aw_formats = formats;
 			} else if (awtype == awt_audio_input) {
 				if (codec->in_aw < 0) {
 					ddf_msg(LVL_DEBUG, "Selected input "
@@ -615,6 +626,8 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 
 				ddf_msg(LVL_DEBUG, "Input widget %d: rates=0x%x formats=0x%x",
 				    aw, rates, formats);
+				codec->in_aw_rates = rates;
+				codec->in_aw_formats = formats;
 			}
 
 			if ((awcaps & BIT_V(uint32_t, awc_out_amp_present)) != 0)
@@ -643,24 +656,18 @@ void hda_codec_fini(hda_codec_t *codec)
 errno_t hda_out_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
 {
 	errno_t rc;
-	int out_aw;
-	int i;
 
-	for (i = 0; i < codec->out_aw_num; i++) {
-		out_aw = codec->out_aw_list[i];
+	/* Configure converter */
+	ddf_msg(LVL_DEBUG, "Configure output converter format / %d",
+	    codec->out_aw);
+	rc = hda_set_converter_fmt(codec, codec->out_aw, stream->fmt);
+	if (rc != EOK)
+		goto error;
 
-		/* Configure converter */
-
-		ddf_msg(LVL_DEBUG, "Configure output converter format");
-		rc = hda_set_converter_fmt(codec, out_aw, stream->fmt);
-		if (rc != EOK)
-			goto error;
-
-		ddf_msg(LVL_DEBUG, "Configure output converter stream, channel");
-		rc = hda_set_converter_ctl(codec, out_aw, stream->sid, 0);
-		if (rc != EOK)
-			goto error;
-	}
+	ddf_msg(LVL_DEBUG, "Configure output converter stream, channel");
+	rc = hda_set_converter_ctl(codec, codec->out_aw, stream->sid, 0);
+	if (rc != EOK)
+		goto error;
 
 	return EOK;
 error:

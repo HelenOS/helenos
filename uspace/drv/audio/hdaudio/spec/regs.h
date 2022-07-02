@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -164,6 +164,7 @@ typedef struct {
 	uint32_t sdlpiba[64];
 } hda_regs_t;
 
+/** Stream Descriptor Control bits */
 typedef enum {
 	/** Descriptor Error Interrupt Enable */
 	sdctl1_deie = 4,
@@ -176,6 +177,18 @@ typedef enum {
 	/** Stream Reset */
 	sdctl1_srst = 0
 } hda_sdesc_ctl1_bits;
+
+/** Stream Descriptor Status bits */
+typedef enum {
+	/** FIFO Ready */
+	sdctl1_fifordy = 3,
+	/** Descriptor Error */
+	sdsts_dese = 2,
+	/** FIFO Error */
+	sdsts_fifoe = 1,
+	/** Buffer Completion Interrupt Status */
+	sdsts_bcis = 2
+} hda_sdesc_sts_bits;
 
 typedef enum {
 	/** Number of Output Streams Supported (H) */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -131,7 +131,7 @@ static errno_t hda_test_format(ddf_fun_t *fun, unsigned *channels,
 	ddf_msg(LVL_DEBUG, "hda_test_format(%u, %u, %d)\n",
 	    *channels, *rate, *format);
 
-	if (*channels != 1) {
+	if (*channels != 2) {
 		*channels = 2;
 		rc = ELIMIT;
 	}

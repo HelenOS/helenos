@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,15 +38,17 @@
 #include "hdaudio.h"
 #include "stream.h"
 
-#define MAX_OUT_AW 256
-
 typedef struct hda_codec {
 	hda_t *hda;
 	uint8_t address;
-	uint8_t out_aw_list[MAX_OUT_AW];
+	int out_aw;
+	uint32_t out_aw_rates;
+	uint32_t out_aw_formats;
 	int out_aw_num;
 	int out_aw_sel;
 	int in_aw;
+	uint32_t in_aw_rates;
+	uint32_t in_aw_formats;
 } hda_codec_t;
 
 extern hda_codec_t *hda_codec_init(hda_t *, uint8_t);

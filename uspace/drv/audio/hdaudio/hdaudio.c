@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -139,7 +139,7 @@ irq_cmd_t hdaudio_irq_commands_sdesc[] = {
 	{
 		.cmd = CMD_PIO_WRITE_8,
 		.addr = NULL, /* sdesc[x].sts */
-		.value = 0x4 /* XXX sdesc.sts.BCIS */
+		.value = BIT_V(uint8_t, sdsts_bcis)
 	},
 	/* 4 */
 	{
