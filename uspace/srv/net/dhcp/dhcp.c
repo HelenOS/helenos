@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 #include <inet/inetcfg.h>
 #include <io/log.h>
 #include <loc.h>
+#include <rndgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -94,6 +95,8 @@ typedef struct {
 	inet_addr_t router;
 	/** DNS server */
 	inet_addr_t dns_server;
+	/** Transaction ID */
+	uint32_t xid;
 } dhcp_offer_t;
 
 typedef struct {
@@ -113,6 +116,8 @@ typedef struct {
 	dhcp_state_t state;
 	/** Last received offer */
 	dhcp_offer_t offer;
+	/** Random number generator */
+	rndgen_t *rndgen;
 } dhcp_link_t;
 
 static void dhcpsrv_recv(void *, void *, size_t);
@@ -153,13 +158,19 @@ static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 {
 	dhcp_hdr_t *hdr = (dhcp_hdr_t *)msgbuf;
 	uint8_t *opt = msgbuf + sizeof(dhcp_hdr_t);
+	uint32_t xid;
+	errno_t rc;
+
+	rc = rndgen_uint32(dlink->rndgen, &xid);
+	if (rc != EOK)
+		return rc;
 
 	memset(msgbuf, 0, MAX_MSG_SIZE);
 	hdr->op = op_bootrequest;
 	hdr->htype = 1; /* AHRD_ETHERNET */
 	hdr->hlen = ETH_ADDR_SIZE;
-	hdr->xid = host2uint32_t_be(42);
-	hdr->flags = flag_broadcast;
+	hdr->xid = host2uint32_t_be(xid);
+	hdr->flags = host2uint16_t_be(flag_broadcast);
 
 	eth_addr_encode(&dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
@@ -167,6 +178,7 @@ static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 	opt[0] = opt_msg_type;
 	opt[1] = 1;
 	opt[2] = msg_dhcpdiscover;
+
 	opt[3] = opt_end;
 
 	return dhcp_send(&dlink->dt, msgbuf, sizeof(dhcp_hdr_t) + 4);
@@ -182,8 +194,8 @@ static errno_t dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
 	hdr->op = op_bootrequest;
 	hdr->htype = 1; /* AHRD_ETHERNET */
 	hdr->hlen = 6;
-	hdr->xid = host2uint32_t_be(42);
-	hdr->flags = flag_broadcast;
+	hdr->xid = host2uint32_t_be(offer->xid);
+	hdr->flags = host2uint16_t_be(flag_broadcast);
 	eth_addr_encode(&dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
@@ -256,6 +268,7 @@ static errno_t dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	free(saddr);
 
 	inet_naddr_set(yiaddr.addr, 0, &offer->oaddr);
+	offer->xid = uint32_t_be2host(hdr->xid);
 
 	msgb = (uint8_t *)msg;
 
@@ -455,6 +468,10 @@ errno_t dhcpsrv_link_add(service_id_t link_id)
 	if (dlink == NULL)
 		return ENOMEM;
 
+	rc = rndgen_create(&dlink->rndgen);
+	if (rc != EOK)
+		goto error;
+
 	dlink->link_id = link_id;
 	dlink->timeout = fibril_timer_create(NULL);
 	if (dlink->timeout == NULL) {
@@ -492,6 +509,8 @@ errno_t dhcpsrv_link_add(service_id_t link_id)
 
 	return EOK;
 error:
+	if (dlink != NULL && dlink->rndgen != NULL)
+		rndgen_destroy(dlink->rndgen);
 	if (dlink != NULL && dlink->timeout != NULL)
 		fibril_timer_destroy(dlink->timeout);
 	free(dlink);

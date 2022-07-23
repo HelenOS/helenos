@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,7 @@ enum dhcp_op {
 
 /** Values for dhcp_hdr_t.flags */
 enum dhcp_flags {
-	flag_broadcast = 0x80
+	flag_broadcast = 0x8000
 };
 
 /** Magic cookie signalling the start of DHCP options field */
