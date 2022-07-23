@@ -109,6 +109,8 @@ enum dhcp_option_code {
 	opt_msg_type = 53,
 	/** Server identifier */
 	opt_server_id = 54,
+	/** Parameter request list */
+	opt_param_req_list = 55,
 	/** End */
 	opt_end = 255
 };

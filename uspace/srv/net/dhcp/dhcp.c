@@ -160,6 +160,7 @@ static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 	uint8_t *opt = msgbuf + sizeof(dhcp_hdr_t);
 	uint32_t xid;
 	errno_t rc;
+	size_t i;
 
 	rc = rndgen_uint32(dlink->rndgen, &xid);
 	if (rc != EOK)
@@ -175,13 +176,21 @@ static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 	eth_addr_encode(&dlink->link_info.mac_addr, hdr->chaddr);
 	hdr->opt_magic = host2uint32_t_be(dhcp_opt_magic);
 
-	opt[0] = opt_msg_type;
-	opt[1] = 1;
-	opt[2] = msg_dhcpdiscover;
+	i = 0;
 
-	opt[3] = opt_end;
+	opt[i++] = opt_msg_type;
+	opt[i++] = 1;
+	opt[i++] = msg_dhcpdiscover;
 
-	return dhcp_send(&dlink->dt, msgbuf, sizeof(dhcp_hdr_t) + 4);
+	opt[i++] = opt_param_req_list;
+	opt[i++] = 3;
+	opt[i++] = 1; /* subnet mask */
+	opt[i++] = 6; /* DNS server */
+	opt[i++] = 3; /* router */
+
+	opt[i++] = opt_end;
+
+	return dhcp_send(&dlink->dt, msgbuf, sizeof(dhcp_hdr_t) + i);
 }
 
 static errno_t dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
