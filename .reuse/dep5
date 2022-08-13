@@ -32,10 +32,36 @@ Files: uspace/drv/*.ma
 Copyright: 2022 HelenOS Project
 License: CC0-1.0
 
-Files: defaults/*.config meson/cross/*
+Files: */_link.ld.in
 Copyright: 2022 HelenOS Project
 License: CC0-1.0
+
+Files: defaults/*.config defaults/*/output meson/cross/*
+Copyright: 2022 HelenOS Project
+License: CC0-1.0
+
+Files: uspace/dist/src/c/demos/*/build uspace/dist/src/c/demos/*/clean
+Copyright: 2022 HelenOS Project
+License: CC0-1.0
+
+Files: */.gitignore
+Copyright: 2022 HelenOS Project
+License: CC0-1.0
+
+# Other files I'm too lazy to handle individually
+
+Files: uspace/dist/src/bithenge/*.out uspace/dist/src/bithenge/*.dat uspace/dist/src/bithenge/*.bh
+Copyright: 2022 HelenOS Project
+License: BSD-3-Clause
 
 Files: uspace/app/barber/gfx/*.tga.gz
 Copyright: 2014 Martin Decky
 License: BSD-3-Clause
+
+Files: contrib/arch/*
+Copyright: 2009 Martin Decky
+License: BSD-3-Clause
+
+Files: */README */README */AUTHORS */TODO */NOTE
+Copyright: 2022 HelenOS Project
+License: CC-BY-4.0

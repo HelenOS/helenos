@@ -1,5 +1,9 @@
 # Architecture Description Language syntax highlighting rules
-#  by Martin Decky <martin@decky.cz>
+#
+# SPDX-FileCopyrightText: 2009 Martin Decky <martin@decky.cz>
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
 
 context default
 	keyword whole interface yellow

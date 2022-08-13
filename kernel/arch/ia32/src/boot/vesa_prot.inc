@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022 HelenOS Project
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #ifdef CONFIG_FB
 
 #define MBINFO_BIT_CMDLINE      2
