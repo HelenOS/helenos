@@ -1,4 +1,9 @@
 #!/bin/sh
+#
+# SPDX-FileCopyrightText: 2022 HelenOS Project
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
 
 [ -z "$CROSS_HELENOS_PREFIX" ] && CROSS_HELENOS_PREFIX="/usr/local/cross-helenos"
 

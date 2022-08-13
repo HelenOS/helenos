@@ -1,3 +1,8 @@
+#
+# SPDX-FileCopyrightText: 2019 Jiří Zárevúcky
+#
+# SPDX-License-Identifier: CC0-1.0
+#
 # Generated from config.mk.in using Meson. Do not modify.
 # Do not forget to set HELENOS_EXPORT_ROOT when using the file.
 HELENOS_OVERLAY_PATH="@HELENOS_OVERLAY_PATH@"

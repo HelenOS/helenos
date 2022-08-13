@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+#
+# SPDX-FileCopyrightText: 2022 HelenOS Project
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
 """
 Decode 32-bit address into PTE components
 """

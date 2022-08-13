@@ -1,4 +1,9 @@
 #!/bin/sh
+#
+# SPDX-FileCopyrightText: 2019 Jiří Zárevúcky
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
 
 if [ "$#" -ge 1 ]; then
 	DESTDIR="$1"

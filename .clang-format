@@ -1,3 +1,8 @@
+#
+# SPDX-FileCopyrightText: 2022 HelenOS Project
+# SPDX-License-Identifier: CC0-1.0
+#
+#
 # This format definition attempts to be as close to the style of existing
 # HelenOS code as possible. However, there are several significant issues:
 #

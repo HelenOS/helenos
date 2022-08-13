@@ -36,15 +36,15 @@ Files: */_link.ld.in
 Copyright: 2022 HelenOS Project
 License: CC0-1.0
 
-Files: defaults/*.config defaults/*/output meson/cross/*
+Files: defaults/*.config defaults/*/output meson/cross/* tools/conf/msim.conf tools/conf/ski.conf meson/part/extra_targets/doxygen.cfg.diff tools/grub/load.cfg
 Copyright: 2022 HelenOS Project
 License: CC0-1.0
 
-Files: uspace/dist/src/c/demos/*/build uspace/dist/src/c/demos/*/clean
+Files: uspace/dist/src/c/demos/*/build uspace/dist/src/c/demos/*/clean uspace/app/bdsh/demo.txt uspace/dist/data/web/*.html uspace/dist/src/bithenge/test.bdsh
 Copyright: 2022 HelenOS Project
 License: CC0-1.0
 
-Files: */.gitignore
+Files: .gitignore .travis.yml */.gitignore
 Copyright: 2022 HelenOS Project
 License: CC0-1.0
 
@@ -62,6 +62,6 @@ Files: contrib/arch/*
 Copyright: 2009 Martin Decky
 License: BSD-3-Clause
 
-Files: */README */README */AUTHORS */TODO */NOTE
+Files: */readme */README */AUTHORS */TODO */NOTE kernel/doc/mm kernel/doc/synchronization tools/checkers/howto.txt
 Copyright: 2022 HelenOS Project
 License: CC-BY-4.0
