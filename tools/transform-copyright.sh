@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# git grep -l --null -F " * All rights reserved." -- '*.c' '*.h' '*.S' '*.cpp' '*.hpp' | xargs -L1 -0 tools/transform-copyright.sh
+# git grep -l --null -F " * All rights preserved." -- '*.c' '*.h' '*.S' '*.cpp' '*.hpp' | xargs -L1 -0 tools/transform-copyright.sh
 
 FILENAME="$1"
 
