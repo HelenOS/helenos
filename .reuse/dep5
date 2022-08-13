@@ -3,9 +3,16 @@ Upstream-Name: HelenOS
 Upstream-Contact: Jakub Jermář <jakub@jermar.eu>
 Source: helenos.org
 
-# Directories with grub artifacts
+# Directories with bootloader artifacts
 
 Files: boot/grub/*
 Copyright: 2007 Free Software Foundation, Inc. <http://fsf.org/>
 License: GPL-3.0-only
 
+Files: boot/silo/*
+Copyright: 1989, 1991 Free Software Foundation, Inc. <http://fsf.org/>
+License: GPL-2.0-only
+
+Files: boot/yaboot/*
+Copyright: 2000-2003 Ethan Benson
+License: GPL-2.0-only

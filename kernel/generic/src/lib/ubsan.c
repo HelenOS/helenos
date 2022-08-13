@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: BSD-2-Clause
 /*
- * Copyright (c) 2016, Linaro Limited
+ * SPDX-FileCopyrightText: 2016 Linaro Limited
+ * SPDX-FileCopyrightText: 2018 Jiří Zárevúcky
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
  */
-
-/* Modified for HelenOS use by Jiří Zárevúcky. */
 
 #include <stdbool.h>
 #include <stdint.h>

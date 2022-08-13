@@ -1,6 +1,6 @@
 /*
+ * SPDX-FileCopyrightText: 1995 Micro Design International, Inc.
  * SPDX-FileCopyrightText: 2012 Julia Medvedeva
- * Copyright 1995 Micro Design International, Inc.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */

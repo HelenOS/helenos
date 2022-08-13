@@ -1,8 +1,9 @@
 /* Default linker script, for normal executables */
-/* Copyright (C) 2014-2018 Free Software Foundation, Inc.
-   Copying and distribution of this script, with or without modification,
-   are permitted in any medium without royalty provided the copyright
-   notice and this notice are preserved.  */
+/*
+ * SPDX-FileCopyrightText: 2014-2018 Free Software Foundation, Inc.
+ * SPDX-License-Identifier: FSFAP
+ */
+
 OUTPUT_FORMAT("elf64-ia64-little", "elf64-ia64-little",
 	      "elf64-ia64-little")
 OUTPUT_ARCH(ia64)

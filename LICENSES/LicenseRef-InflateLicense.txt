@@ -1,5 +1,5 @@
 This is the original copyright/license notice of code
-included in boot/generic/src/inflate.c
+included in boot/generic/src/inflate.c and uspace/lib/compress/inflate.c
 
   Copyright (C) 2002-2010 Mark Adler, all rights reserved
   version 2.1, 4 Apr 2010
