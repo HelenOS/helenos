@@ -1,4 +1,5 @@
-#!/usr/bin/awk -f
+#!/usr/bin/perl -w
+
 #
 # All rights reserved.
 #

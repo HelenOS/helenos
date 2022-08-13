@@ -6,11 +6,11 @@ FILENAME="$1"
 
 grep -F '# Copyright' $FILENAME > $FILENAME.copyright__
 grep -v -F '# Copyright' $FILENAME > $FILENAME.nocopyright__
-head -n 27 $FILENAME.nocopyright__ > $FILENAME.license__
+head -n 28 $FILENAME.nocopyright__ > $FILENAME.license__
 
 if diff -q $FILENAME.license__ license_text_tmp.txt; then
-	tail -n +28 $FILENAME.nocopyright__ > $FILENAME.nolicense__
-	echo '#!/usr/bin/awk -f' > $FILENAME
+	tail -n +29 $FILENAME.nocopyright__ > $FILENAME.nolicense__
+	echo '#!/usr/bin/perl -w' > $FILENAME
 	echo "#" >> $FILENAME
 	sed 's/Copyright (c)/SPDX-FileCopyrightText:/g' $FILENAME.copyright__ >> $FILENAME
 	echo "#" >> $FILENAME
