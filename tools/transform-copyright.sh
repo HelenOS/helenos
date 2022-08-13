@@ -1,17 +1,17 @@
 #!/bin/sh
 
-# git grep -l --null "^# Copyright\b" -- '*.S' | xargs -r -L1 -0 tools/transform-copyright.sh
+# git grep -l --null -F " * All rights reserved." -- '*.c' '*.h' '*.S' '*.cpp' '*.hpp' | xargs -L1 -0 tools/transform-copyright.sh
 
 FILENAME="$1"
 
-grep -F '# Copyright' $FILENAME > $FILENAME.copyright__
-grep -v -F '# Copyright' $FILENAME > $FILENAME.nocopyright__
+grep -F ' * Copyright' $FILENAME > $FILENAME.copyright__
+grep -v -F ' * Copyright' $FILENAME > $FILENAME.nocopyright__
 head -n 26 $FILENAME.nocopyright__ > $FILENAME.license__
 
 if diff -q $FILENAME.license__ license_text_tmp.txt; then
 	tail -n +27 $FILENAME.nocopyright__ > $FILENAME.nolicense__
 	echo "/*" > $FILENAME
-	sed 's/\# Copyright (c)/ * SPDX-FileCopyrightText:/g' $FILENAME.copyright__ >> $FILENAME
+	sed 's/Copyright (c)/SPDX-FileCopyrightText:/g' $FILENAME.copyright__ >> $FILENAME
 	echo " *" >> $FILENAME
 	echo " * SPDX-License-Identifier: BSD-3-Clause" >> $FILENAME
 	echo " */" >> $FILENAME
