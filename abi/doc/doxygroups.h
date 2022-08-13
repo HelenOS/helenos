@@ -1,3 +1,7 @@
+/*
+ * SPDX-FileCopyrightText: 2022 HelenOS Project
+ * SPDX-License-Identifier: CC0-1.0
+ */
 /* Definitions of modules and its relations for generating Doxygen documentation */
 
 /** @defgroup abi abi
