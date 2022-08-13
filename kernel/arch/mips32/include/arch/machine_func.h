@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2007 Michal Kebrt
  * Copyright (c) 2009 Vineeth Pillai
- * Copyrithg (c) 2012 Jakub Jermar
+ * Copyright (c) 2012 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
