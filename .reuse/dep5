@@ -3,8 +3,9 @@ Upstream-Name: HelenOS
 Upstream-Contact: Jakub Jermář <jakub@jermar.eu>
 Source: helenos.org
 
-# Sample paragraph, commented out:
-#
-# Files: src/*
-# Copyright: $YEAR $NAME <$CONTACT>
-# License: ...
+# Directories with grub artifacts
+
+Files: boot/grub/*
+Copyright: 2007 Free Software Foundation, Inc. <http://fsf.org/>
+License: GPL-3.0-only
+
