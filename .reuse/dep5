@@ -20,7 +20,11 @@ License: GPL-2.0-only
 
 # Some basic licensing information for files that are too trivial to be copyrightable
 
-Files: uspace/lib/pcut/tests/*.expected uspace/app/tester/*.def
+Files: uspace/lib/pcut/tests/*.expected uspace/app/tester/*.def kernel/test/*.def
+Copyright: 2022 HelenOS Project
+License: CC0-1.0
+
+Files: uspace/app/bdsh/cmds/*.inc
 Copyright: 2022 HelenOS Project
 License: CC0-1.0
 
@@ -28,4 +32,10 @@ Files: uspace/drv/*.ma
 Copyright: 2022 HelenOS Project
 License: CC0-1.0
 
+Files: defaults/*.config meson/cross/*
+Copyright: 2022 HelenOS Project
+License: CC0-1.0
 
+Files: uspace/app/barber/gfx/*.tga.gz
+Copyright: 2014 Martin Decky
+License: BSD-3-Clause
