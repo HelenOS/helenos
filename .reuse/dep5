@@ -16,3 +16,16 @@ License: GPL-2.0-only
 Files: boot/yaboot/*
 Copyright: 2000-2003 Ethan Benson
 License: GPL-2.0-only
+
+
+# Some basic licensing information for files that are too trivial to be copyrightable
+
+Files: uspace/lib/pcut/tests/*.expected uspace/app/tester/*.def
+Copyright: 2022 HelenOS Project
+License: CC0-1.0
+
+Files: uspace/drv/*.ma
+Copyright: 2022 HelenOS Project
+License: CC0-1.0
+
+

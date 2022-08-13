@@ -1,4 +1,10 @@
 /* Generated file. Edit errno.in instead. */
+/*
+ * SPDX-FileCopyrightText: 2022 HelenOS Project
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #define EOK             __errno_t(      0)
 #define ENOENT          __errno_t(      1)
 #define ENOMEM          __errno_t(      2)

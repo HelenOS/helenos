@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022 HelenOS Project
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include <pcut/pcut.h>
 #include "../hw_struct/regs.h"
 
