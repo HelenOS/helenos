@@ -538,9 +538,7 @@ restart:
 
 	scheduler();
 
-	/* Not reached */
-	while (true)
-		;
+	panic("should never be reached");
 }
 
 /** Interrupts an existing thread so that it may exit as soon as possible.
