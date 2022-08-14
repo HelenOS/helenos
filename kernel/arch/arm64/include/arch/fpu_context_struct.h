@@ -41,7 +41,7 @@
 
 /** ARM64 FPU context. */
 typedef struct fpu_context {
-	uint128_t vregs[32];
+	_Alignas(16) uint128_t vregs[32];
 	uint32_t fpcr;
 	uint32_t fpsr;
 } fpu_context_t;

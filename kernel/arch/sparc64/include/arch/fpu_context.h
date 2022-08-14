@@ -37,11 +37,9 @@
 
 #include <stdint.h>
 
-#define FPU_CONTEXT_ALIGN	8
-
 typedef struct {
-	uint64_t	d[32];
-	uint64_t	fsr;
+	_Alignas(8) uint64_t d[32];
+	uint64_t fsr;
 } fpu_context_t;
 
 #endif

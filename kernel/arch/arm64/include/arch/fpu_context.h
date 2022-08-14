@@ -38,8 +38,6 @@
 
 #include <arch/fpu_context_struct.h>
 
-#define FPU_CONTEXT_ALIGN  16
-
 #endif
 
 /** @}

@@ -101,10 +101,6 @@ static thread_id_t last_tid = 0;
 
 static slab_cache_t *thread_cache;
 
-#ifdef CONFIG_FPU
-slab_cache_t *fpu_context_cache;
-#endif
-
 static void *threads_getkey(odlink_t *);
 static int threads_cmp(void *, void *);
 
@@ -164,13 +160,6 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 	/* call the architecture-specific part of the constructor */
 	thr_constructor_arch(thread);
 
-#ifdef CONFIG_FPU
-	thread->saved_fpu_context = slab_alloc(fpu_context_cache,
-	    FRAME_ATOMIC | kmflags);
-	if (!thread->saved_fpu_context)
-		return ENOMEM;
-#endif /* CONFIG_FPU */
-
 	/*
 	 * Allocate the kernel stack from the low-memory to prevent an infinite
 	 * nesting of TLB-misses when accessing the stack from the part of the
@@ -197,13 +186,8 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 
 	uintptr_t stack_phys =
 	    frame_alloc(STACK_FRAMES, kmflags, STACK_SIZE - 1);
-	if (!stack_phys) {
-#ifdef CONFIG_FPU
-		assert(thread->saved_fpu_context);
-		slab_free(fpu_context_cache, thread->saved_fpu_context);
-#endif
+	if (!stack_phys)
 		return ENOMEM;
-	}
 
 	thread->kstack = (uint8_t *) PA2KA(stack_phys);
 
@@ -224,11 +208,6 @@ static size_t thr_destructor(void *obj)
 
 	frame_free(KA2PA(thread->kstack), STACK_FRAMES);
 
-#ifdef CONFIG_FPU
-	assert(thread->saved_fpu_context);
-	slab_free(fpu_context_cache, thread->saved_fpu_context);
-#endif
-
 	return STACK_FRAMES;  /* number of frames freed */
 }
 
@@ -242,13 +221,8 @@ void thread_init(void)
 	THREAD = NULL;
 
 	atomic_store(&nrdy, 0);
-	thread_cache = slab_cache_create("thread_t", sizeof(thread_t), 0,
+	thread_cache = slab_cache_create("thread_t", sizeof(thread_t), _Alignof(thread_t),
 	    thr_constructor, thr_destructor, 0);
-
-#ifdef CONFIG_FPU
-	fpu_context_cache = slab_cache_create("fpu_context_t",
-	    sizeof(fpu_context_t), FPU_CONTEXT_ALIGN, NULL, NULL, 0);
-#endif
 
 	odict_initialize(&threads, threads_getkey, threads_cmp);
 }

@@ -37,10 +37,8 @@
 
 #include <stdint.h>
 
-#define FPU_CONTEXT_ALIGN  16
-
 typedef struct {
-	uint8_t fpu[512];  /* FXSAVE & FXRSTOR storage area */
+	_Alignas(16) uint8_t fpu[512];  /* FXSAVE & FXRSTOR storage area */
 } fpu_context_t;
 
 extern void fpu_fxsr(void);

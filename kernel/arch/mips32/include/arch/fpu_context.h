@@ -38,8 +38,6 @@
 #include <typedefs.h>
 #include <arch/fpu_context_struct.h>
 
-#define FPU_CONTEXT_ALIGN    sizeof(sysarg_t)
-
 #endif
 
 /** @}

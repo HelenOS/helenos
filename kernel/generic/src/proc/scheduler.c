@@ -96,7 +96,7 @@ static void before_thread_runs(void)
 #elif defined CONFIG_FPU
 	fpu_enable();
 	if (THREAD->fpu_context_exists)
-		fpu_context_restore(THREAD->saved_fpu_context);
+		fpu_context_restore(&THREAD->fpu_context);
 	else {
 		fpu_init();
 		THREAD->fpu_context_exists = true;
@@ -139,7 +139,7 @@ void scheduler_fpu_lazy_request(void)
 	/* Save old context */
 	if (CPU->fpu_owner != NULL) {
 		irq_spinlock_lock(&CPU->fpu_owner->lock, false);
-		fpu_context_save(CPU->fpu_owner->saved_fpu_context);
+		fpu_context_save(&CPU->fpu_owner->fpu_context);
 
 		/* Don't prevent migration */
 		CPU->fpu_owner->fpu_context_engaged = false;
@@ -149,7 +149,7 @@ void scheduler_fpu_lazy_request(void)
 
 	irq_spinlock_lock(&THREAD->lock, false);
 	if (THREAD->fpu_context_exists) {
-		fpu_context_restore(THREAD->saved_fpu_context);
+		fpu_context_restore(&THREAD->fpu_context);
 	} else {
 		fpu_init();
 		THREAD->fpu_context_exists = true;
@@ -324,7 +324,7 @@ void scheduler(void)
 		THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 
 #if (defined CONFIG_FPU) && (!defined CONFIG_FPU_LAZY)
-		fpu_context_save(THREAD->saved_fpu_context);
+		fpu_context_save(&THREAD->fpu_context);
 #endif
 		if (!context_save(&THREAD->saved_context)) {
 			/*

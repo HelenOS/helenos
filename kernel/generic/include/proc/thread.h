@@ -150,7 +150,9 @@ typedef struct thread {
 	/** Link used in the joiner_head list. */
 	link_t joiner_link;
 
-	fpu_context_t *saved_fpu_context;
+#ifdef CONFIG_FPU
+	fpu_context_t fpu_context;
+#endif
 	bool fpu_context_exists;
 
 	/*

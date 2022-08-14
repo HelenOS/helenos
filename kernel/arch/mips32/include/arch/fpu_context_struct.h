@@ -41,7 +41,7 @@
 #include <typedefs.h>
 
 typedef struct fpu_context {
-	sysarg_t dregs[32];
+	_Alignas(sizeof(sysarg_t)) sysarg_t dregs[32];
 	sysarg_t cregs[32];
 } fpu_context_t;
 

@@ -69,7 +69,7 @@
 #include <typedefs.h>
 
 typedef struct fpu_context {
-	uint64_t fr0;
+	_Alignas(8) uint64_t fr0;
 	uint64_t fr1;
 	uint64_t fr2;
 	uint64_t fr3;

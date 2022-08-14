@@ -35,8 +35,6 @@
 #ifndef KERN_ppc32_FPU_CONTEXT_H_
 #define KERN_ppc32_FPU_CONTEXT_H_
 
-#define FPU_CONTEXT_ALIGN	8
-
 #include <arch/fpu_context_struct.h>
 
 #endif
