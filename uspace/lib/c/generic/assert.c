@@ -45,8 +45,8 @@ void __helenos_assert_quick_abort(const char *cond, const char *file, unsigned i
 	/*
 	 * Send the message safely to kio. Nested asserts should not occur.
 	 */
-	kio_printf("Assertion failed (%s) in task %ld, file \"%s\", line %u.\n",
-	    cond, (long) task_get_id(), file, line);
+	kio_printf("Assertion failed (%s) in task %" PRIu64 ", file \"%s\", line %u.\n",
+	    cond, task_get_id(), file, line);
 
 	stacktrace_kio_print();
 
@@ -59,8 +59,8 @@ void __helenos_assert_abort(const char *cond, const char *file, unsigned int lin
 	/*
 	 * Send the message safely to kio. Nested asserts should not occur.
 	 */
-	kio_printf("Assertion failed (%s) in task %ld, file \"%s\", line %u.\n",
-	    cond, (long) task_get_id(), file, line);
+	kio_printf("Assertion failed (%s) in task %" PRIu64 ", file \"%s\", line %u.\n",
+	    cond, task_get_id(), file, line);
 
 	stacktrace_kio_print();
 
@@ -76,8 +76,8 @@ void __helenos_assert_abort(const char *cond, const char *file, unsigned int lin
 	 * the stack trace. These operations can theoretically trigger nested
 	 * assertions.
 	 */
-	kio_printf("Assertion failed (%s) in task %ld, file \"%s\", line %u.\n",
-	    cond, (long) task_get_id(), file, line);
+	kio_printf("Assertion failed (%s) in task %" PRIu64 ", file \"%s\", line %u.\n",
+	    cond, task_get_id(), file, line);
 	stacktrace_print();
 
 	abort();
