@@ -44,7 +44,7 @@ typedef void (*timeout_handler_t)(void *arg);
 typedef struct {
 	IRQ_SPINLOCK_DECLARE(lock);
 
-	/** Link to the list of active timeouts on CURRENT->cpu */
+	/** Link to the list of active timeouts on timeout->cpu */
 	link_t link;
 	/** Timeout will be activated when current clock tick reaches this value. */
 	uint64_t deadline;
@@ -60,7 +60,6 @@ typedef struct {
 
 extern void timeout_init(void);
 extern void timeout_initialize(timeout_t *);
-extern void timeout_reinitialize(timeout_t *);
 extern void timeout_register(timeout_t *, uint64_t, timeout_handler_t, void *);
 extern bool timeout_unregister(timeout_t *);
 

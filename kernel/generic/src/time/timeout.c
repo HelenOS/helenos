@@ -56,22 +56,6 @@ void timeout_init(void)
 	list_initialize(&CPU->timeout_active_list);
 }
 
-/** Reinitialize timeout
- *
- * Initialize all members except the lock.
- *
- * @param timeout Timeout to be initialized.
- *
- */
-void timeout_reinitialize(timeout_t *timeout)
-{
-	timeout->cpu = NULL;
-	timeout->deadline = 0;
-	timeout->handler = NULL;
-	timeout->arg = NULL;
-	link_initialize(&timeout->link);
-}
-
 /** Initialize timeout
  *
  * Initialize all members including the lock.
@@ -82,7 +66,8 @@ void timeout_reinitialize(timeout_t *timeout)
 void timeout_initialize(timeout_t *timeout)
 {
 	irq_spinlock_initialize(&timeout->lock, "timeout_t_lock");
-	timeout_reinitialize(timeout);
+	link_initialize(&timeout->link);
+	timeout->cpu = NULL;
 }
 
 /** Register timeout
@@ -102,9 +87,6 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 {
 	irq_spinlock_lock(&CPU->timeoutlock, true);
 	irq_spinlock_lock(&timeout->lock, false);
-
-	if (timeout->cpu)
-		panic("Unexpected: timeout->cpu != 0.");
 
 	timeout->cpu = CPU;
 	timeout->deadline = CPU->current_clock_tick + us2ticks(time);
@@ -151,41 +133,17 @@ void timeout_register(timeout_t *timeout, uint64_t time,
  */
 bool timeout_unregister(timeout_t *timeout)
 {
-	DEADLOCK_PROBE_INIT(p_tolock);
+	assert(timeout->cpu);
 
-grab_locks:
-	irq_spinlock_lock(&timeout->lock, true);
-	if (!timeout->cpu) {
-		irq_spinlock_unlock(&timeout->lock, true);
-		return false;
+	irq_spinlock_lock(&timeout->cpu->timeoutlock, true);
+
+	bool success = link_in_use(&timeout->link);
+	if (success) {
+		list_remove(&timeout->link);
 	}
 
-	if (!irq_spinlock_trylock(&timeout->cpu->timeoutlock)) {
-		irq_spinlock_unlock(&timeout->lock, true);
-		DEADLOCK_PROBE(p_tolock, DEADLOCK_THRESHOLD);
-		goto grab_locks;
-	}
-
-	/*
-	 * Now we know for sure that timeout hasn't been activated yet
-	 * and is lurking in timeout->cpu->timeout_active_list.
-	 */
-
-	link_t *cur = list_next(&timeout->link,
-	    &timeout->cpu->timeout_active_list);
-	if (cur != NULL) {
-		timeout_t *tmp = list_get_instance(cur, timeout_t, link);
-		irq_spinlock_lock(&tmp->lock, false);
-		irq_spinlock_unlock(&tmp->lock, false);
-	}
-
-	list_remove(&timeout->link);
-	irq_spinlock_unlock(&timeout->cpu->timeoutlock, false);
-
-	timeout_reinitialize(timeout);
-	irq_spinlock_unlock(&timeout->lock, true);
-
-	return true;
+	irq_spinlock_unlock(&timeout->cpu->timeoutlock, true);
+	return success;
 }
 
 /** @}

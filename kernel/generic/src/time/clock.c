@@ -171,7 +171,6 @@ void clock(void)
 			list_remove(cur);
 			timeout_handler_t handler = timeout->handler;
 			void *arg = timeout->arg;
-			timeout_reinitialize(timeout);
 
 			irq_spinlock_unlock(&timeout->lock, false);
 			irq_spinlock_unlock(&CPU->timeoutlock, false);
