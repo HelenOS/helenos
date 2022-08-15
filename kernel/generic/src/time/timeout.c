@@ -65,7 +65,6 @@ void timeout_init(void)
  */
 void timeout_initialize(timeout_t *timeout)
 {
-	irq_spinlock_initialize(&timeout->lock, "timeout_t_lock");
 	link_initialize(&timeout->link);
 	timeout->cpu = NULL;
 }
@@ -86,7 +85,6 @@ void timeout_register(timeout_t *timeout, uint64_t time,
     timeout_handler_t handler, void *arg)
 {
 	irq_spinlock_lock(&CPU->timeoutlock, true);
-	irq_spinlock_lock(&timeout->lock, false);
 
 	timeout->cpu = CPU;
 	timeout->deadline = CPU->current_clock_tick + us2ticks(time);
@@ -102,14 +100,10 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 	for (cur = list_first(&CPU->timeout_active_list);
 	    cur != NULL; cur = list_next(cur, &CPU->timeout_active_list)) {
 		target = list_get_instance(cur, timeout_t, link);
-		irq_spinlock_lock(&target->lock, false);
 
-		if (timeout->deadline < target->deadline) {
-			irq_spinlock_unlock(&target->lock, false);
+		if (timeout->deadline < target->deadline)
 			break;
-		}
 
-		irq_spinlock_unlock(&target->lock, false);
 		prev = cur;
 	}
 
@@ -118,7 +112,6 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 	else
 		list_insert_after(&timeout->link, prev);
 
-	irq_spinlock_unlock(&timeout->lock, false);
 	irq_spinlock_unlock(&CPU->timeoutlock, true);
 }
 

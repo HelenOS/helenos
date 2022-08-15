@@ -162,9 +162,7 @@ void clock(void)
 			timeout_t *timeout = list_get_instance(cur, timeout_t,
 			    link);
 
-			irq_spinlock_lock(&timeout->lock, false);
 			if (current_clock_tick <= timeout->deadline) {
-				irq_spinlock_unlock(&timeout->lock, false);
 				break;
 			}
 
@@ -172,7 +170,6 @@ void clock(void)
 			timeout_handler_t handler = timeout->handler;
 			void *arg = timeout->arg;
 
-			irq_spinlock_unlock(&timeout->lock, false);
 			irq_spinlock_unlock(&CPU->timeoutlock, false);
 
 			handler(arg);
