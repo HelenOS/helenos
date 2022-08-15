@@ -518,9 +518,9 @@ void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 
 loop:
 	if (list_empty(&wq->sleepers)) {
-		wq->missed_wakeups++;
-		if ((count) && (mode == WAKEUP_ALL))
-			wq->missed_wakeups--;
+		if (mode != WAKEUP_ALL) {
+			wq->missed_wakeups++;
+		}
 
 		return;
 	}
