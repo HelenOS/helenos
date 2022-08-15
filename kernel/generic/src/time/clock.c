@@ -137,6 +137,8 @@ static void cpu_update_accounting(void)
 void clock(void)
 {
 	size_t missed_clock_ticks = CPU->missed_clock_ticks;
+	CPU->missed_clock_ticks = 0;
+
 	CPU->current_clock_tick += missed_clock_ticks + 1;
 	uint64_t current_clock_tick = CPU->current_clock_tick;
 	clock_update_counters(current_clock_tick);
@@ -149,37 +151,29 @@ void clock(void)
 	 * run all expired timeouts as you visit them.
 	 *
 	 */
-	size_t i;
-	for (i = 0; i <= missed_clock_ticks; i++) {
-		/* Update counters and accounting */
 
-		cpu_update_accounting();
+	irq_spinlock_lock(&CPU->timeoutlock, false);
 
-		irq_spinlock_lock(&CPU->timeoutlock, false);
+	link_t *cur;
+	while ((cur = list_first(&CPU->timeout_active_list)) != NULL) {
+		timeout_t *timeout = list_get_instance(cur, timeout_t, link);
 
-		link_t *cur;
-		while ((cur = list_first(&CPU->timeout_active_list)) != NULL) {
-			timeout_t *timeout = list_get_instance(cur, timeout_t,
-			    link);
-
-			if (current_clock_tick <= timeout->deadline) {
-				break;
-			}
-
-			list_remove(cur);
-			timeout_handler_t handler = timeout->handler;
-			void *arg = timeout->arg;
-
-			irq_spinlock_unlock(&CPU->timeoutlock, false);
-
-			handler(arg);
-
-			irq_spinlock_lock(&CPU->timeoutlock, false);
+		if (current_clock_tick <= timeout->deadline) {
+			break;
 		}
 
+		list_remove(cur);
+		timeout_handler_t handler = timeout->handler;
+		void *arg = timeout->arg;
+
 		irq_spinlock_unlock(&CPU->timeoutlock, false);
+
+		handler(arg);
+
+		irq_spinlock_lock(&CPU->timeoutlock, false);
 	}
-	CPU->missed_clock_ticks = 0;
+
+	irq_spinlock_unlock(&CPU->timeoutlock, false);
 
 	/*
 	 * Do CPU usage accounting and find out whether to preempt THREAD.
