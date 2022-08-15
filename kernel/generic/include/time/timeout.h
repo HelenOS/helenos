@@ -46,8 +46,8 @@ typedef struct {
 
 	/** Link to the list of active timeouts on CURRENT->cpu */
 	link_t link;
-	/** Timeout will be activated in this amount of clock() ticks. */
-	uint64_t ticks;
+	/** Timeout will be activated when current clock tick reaches this value. */
+	uint64_t deadline;
 	/** Function that will be called on timeout activation. */
 	timeout_handler_t handler;
 	/** Argument to be passed to handler() function. */

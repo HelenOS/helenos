@@ -163,7 +163,7 @@ void clock(void)
 			    link);
 
 			irq_spinlock_lock(&timeout->lock, false);
-			if (timeout->ticks-- != 0) {
+			if (current_clock_tick <= timeout->deadline) {
 				irq_spinlock_unlock(&timeout->lock, false);
 				break;
 			}

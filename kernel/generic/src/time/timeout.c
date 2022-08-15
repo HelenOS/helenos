@@ -66,7 +66,7 @@ void timeout_init(void)
 void timeout_reinitialize(timeout_t *timeout)
 {
 	timeout->cpu = NULL;
-	timeout->ticks = 0;
+	timeout->deadline = 0;
 	timeout->handler = NULL;
 	timeout->arg = NULL;
 	link_initialize(&timeout->link);
@@ -107,15 +107,13 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 		panic("Unexpected: timeout->cpu != 0.");
 
 	timeout->cpu = CPU;
-	timeout->ticks = us2ticks(time);
-
+	timeout->deadline = CPU->current_clock_tick + us2ticks(time);
 	timeout->handler = handler;
 	timeout->arg = arg;
 
 	/*
-	 * Insert timeout into the active timeouts list according to timeout->ticks.
+	 * Insert timeout into the active timeouts list according to timeout->deadline.
 	 */
-	uint64_t sum = 0;
 	timeout_t *target = NULL;
 	link_t *cur, *prev;
 	prev = NULL;
@@ -124,12 +122,11 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 		target = list_get_instance(cur, timeout_t, link);
 		irq_spinlock_lock(&target->lock, false);
 
-		if (timeout->ticks < sum + target->ticks) {
+		if (timeout->deadline < target->deadline) {
 			irq_spinlock_unlock(&target->lock, false);
 			break;
 		}
 
-		sum += target->ticks;
 		irq_spinlock_unlock(&target->lock, false);
 		prev = cur;
 	}
@@ -138,21 +135,6 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 		list_prepend(&timeout->link, &CPU->timeout_active_list);
 	else
 		list_insert_after(&timeout->link, prev);
-
-	/*
-	 * Adjust timeout->ticks according to ticks
-	 * accumulated in target's predecessors.
-	 */
-	timeout->ticks -= sum;
-
-	/*
-	 * Decrease ticks of timeout's immediate succesor by timeout->ticks.
-	 */
-	if (cur != NULL) {
-		irq_spinlock_lock(&target->lock, false);
-		target->ticks -= timeout->ticks;
-		irq_spinlock_unlock(&target->lock, false);
-	}
 
 	irq_spinlock_unlock(&timeout->lock, false);
 	irq_spinlock_unlock(&CPU->timeoutlock, true);
@@ -194,7 +176,6 @@ grab_locks:
 	if (cur != NULL) {
 		timeout_t *tmp = list_get_instance(cur, timeout_t, link);
 		irq_spinlock_lock(&tmp->lock, false);
-		tmp->ticks += timeout->ticks;
 		irq_spinlock_unlock(&tmp->lock, false);
 	}
 
