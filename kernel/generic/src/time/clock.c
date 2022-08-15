@@ -64,13 +64,6 @@ uptime_t *uptime;
 /** Physical memory area of the real time clock */
 static parea_t clock_parea;
 
-/** Fragment of second
- *
- * For updating  seconds correctly.
- *
- */
-static sysarg_t secfrag = 0;
-
 /** Initialize realtime clock counter
  *
  * The applications (and sometimes kernel) need to access accurate
@@ -108,22 +101,20 @@ void clock_counter_init(void)
 /** Update public counters
  *
  * Update it only on first processor
- * TODO: Do we really need so many write barriers?
- *
  */
-static void clock_update_counters(void)
+static void clock_update_counters(uint64_t current_tick)
 {
 	if (CPU->id == 0) {
-		secfrag += 1000000 / HZ;
-		if (secfrag >= 1000000) {
-			secfrag -= 1000000;
-			uptime->seconds1++;
-			write_barrier();
-			uptime->useconds = secfrag;
-			write_barrier();
-			uptime->seconds2 = uptime->seconds1;
-		} else
-			uptime->useconds += 1000000 / HZ;
+		uint64_t usec = (1000000 / HZ) * current_tick;
+
+		sysarg_t secs = usec / 1000000;
+		sysarg_t usecs = usec % 1000000;
+
+		uptime->seconds1 = secs;
+		write_barrier();
+		uptime->useconds = usecs;
+		write_barrier();
+		uptime->seconds2 = secs;
 	}
 }
 
@@ -146,6 +137,9 @@ static void cpu_update_accounting(void)
 void clock(void)
 {
 	size_t missed_clock_ticks = CPU->missed_clock_ticks;
+	CPU->current_clock_tick += missed_clock_ticks + 1;
+	uint64_t current_clock_tick = CPU->current_clock_tick;
+	clock_update_counters(current_clock_tick);
 
 	/* Account CPU usage */
 	cpu_update_accounting();
@@ -158,7 +152,7 @@ void clock(void)
 	size_t i;
 	for (i = 0; i <= missed_clock_ticks; i++) {
 		/* Update counters and accounting */
-		clock_update_counters();
+
 		cpu_update_accounting();
 
 		irq_spinlock_lock(&CPU->timeoutlock, false);

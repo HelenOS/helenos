@@ -73,6 +73,8 @@ typedef struct cpu {
 	 */
 	size_t missed_clock_ticks;
 
+	uint64_t current_clock_tick;
+
 	/**
 	 * Processor cycle accounting.
 	 */
