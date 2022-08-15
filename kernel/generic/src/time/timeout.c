@@ -86,31 +86,28 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 {
 	irq_spinlock_lock(&CPU->timeoutlock, true);
 
+	assert(!link_in_use(&timeout->link));
+
 	timeout->cpu = CPU;
 	timeout->deadline = CPU->current_clock_tick + us2ticks(time);
 	timeout->handler = handler;
 	timeout->arg = arg;
 
-	/*
-	 * Insert timeout into the active timeouts list according to timeout->deadline.
-	 */
-	timeout_t *target = NULL;
-	link_t *cur, *prev;
-	prev = NULL;
-	for (cur = list_first(&CPU->timeout_active_list);
-	    cur != NULL; cur = list_next(cur, &CPU->timeout_active_list)) {
-		target = list_get_instance(cur, timeout_t, link);
+	/* Insert timeout into the active timeouts list according to timeout->deadline. */
 
-		if (timeout->deadline < target->deadline)
-			break;
+	link_t *last = list_last(&CPU->timeout_active_list);
+	if (last == NULL || timeout->deadline >= list_get_instance(last, timeout_t, link)->deadline) {
+		list_append(&timeout->link, &CPU->timeout_active_list);
+	} else {
+		for (link_t *cur = list_first(&CPU->timeout_active_list); cur != NULL;
+		    cur = list_next(cur, &CPU->timeout_active_list)) {
 
-		prev = cur;
+			if (timeout->deadline < list_get_instance(cur, timeout_t, link)->deadline) {
+				list_insert_before(&timeout->link, cur);
+				break;
+			}
+		}
 	}
-
-	if (prev == NULL)
-		list_prepend(&timeout->link, &CPU->timeout_active_list);
-	else
-		list_insert_after(&timeout->link, prev);
 
 	irq_spinlock_unlock(&CPU->timeoutlock, true);
 }
