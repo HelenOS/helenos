@@ -106,7 +106,7 @@ const char *test_semaphore1(void)
 		TPRINTF("ok\n");
 
 		thread_sleep(1);
-		waitq_wakeup(&can_start, WAKEUP_ALL);
+		waitq_wake_all(&can_start);
 
 		while ((items_consumed != consumers) || (items_produced != producers)) {
 			TPRINTF("%zu consumers remaining, %zu producers remaining\n",

@@ -41,11 +41,14 @@
 
 typedef void (*timeout_handler_t)(void *arg);
 
+typedef uint64_t deadline_t;
+#define DEADLINE_NEVER ((deadline_t) UINT64_MAX)
+
 typedef struct {
 	/** Link to the list of active timeouts on timeout->cpu */
 	link_t link;
 	/** Timeout will be activated when current clock tick reaches this value. */
-	uint64_t deadline;
+	deadline_t deadline;
 	/** Function that will be called on timeout activation. */
 	timeout_handler_t handler;
 	/** Argument to be passed to handler() function. */
@@ -58,9 +61,12 @@ typedef struct {
 
 #define us2ticks(us)  ((uint64_t) (((uint32_t) (us) / (1000000 / HZ))))
 
+extern deadline_t timeout_deadline_in_usec(uint32_t us);
+
 extern void timeout_init(void);
 extern void timeout_initialize(timeout_t *);
 extern void timeout_register(timeout_t *, uint64_t, timeout_handler_t, void *);
+extern void timeout_register_deadline(timeout_t *, deadline_t, timeout_handler_t, void *);
 extern bool timeout_unregister(timeout_t *);
 
 #endif

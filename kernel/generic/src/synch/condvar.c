@@ -57,7 +57,7 @@ void condvar_initialize(condvar_t *cv)
  */
 void condvar_signal(condvar_t *cv)
 {
-	waitq_wakeup(&cv->wq, WAKEUP_FIRST);
+	waitq_signal(&cv->wq);
 }
 
 /** Signal the condition has become true to all waiting threads by waking
@@ -67,7 +67,7 @@ void condvar_signal(condvar_t *cv)
  */
 void condvar_broadcast(condvar_t *cv)
 {
-	waitq_wakeup(&cv->wq, WAKEUP_ALL);
+	waitq_wake_all(&cv->wq);
 }
 
 /** Wait for the condition becoming true.
@@ -80,43 +80,27 @@ void condvar_broadcast(condvar_t *cv)
  */
 errno_t condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec)
 {
-	errno_t rc;
-	ipl_t ipl;
-	bool blocked;
+	wait_guard_t guard = waitq_sleep_prepare(&cv->wq);
 
-	ipl = waitq_sleep_prepare(&cv->wq);
 	/* Unlock only after the waitq is locked so we don't miss a wakeup. */
 	mutex_unlock(mtx);
 
-	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
-	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, SYNCH_FLAGS_NON_BLOCKING, &blocked);
-	assert(blocked || rc != EOK);
+	errno_t rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, SYNCH_FLAGS_NON_BLOCKING, guard);
 
-	waitq_sleep_finish(&cv->wq, blocked, ipl);
-	/* Lock only after releasing the waitq to avoid a possible deadlock. */
 	mutex_lock(mtx);
-
 	return rc;
 }
 
 errno_t condvar_wait(condvar_t *cv, mutex_t *mtx)
 {
-	errno_t rc;
-	ipl_t ipl;
-	bool blocked;
+	wait_guard_t guard = waitq_sleep_prepare(&cv->wq);
 
-	ipl = waitq_sleep_prepare(&cv->wq);
 	/* Unlock only after the waitq is locked so we don't miss a wakeup. */
 	mutex_unlock(mtx);
 
-	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
-	rc = waitq_sleep_unsafe(&cv->wq, &blocked);
-	assert(blocked || rc != EOK);
+	errno_t rc = waitq_sleep_unsafe(&cv->wq, guard);
 
-	waitq_sleep_finish(&cv->wq, blocked, ipl);
-	/* Lock only after releasing the waitq to avoid a possible deadlock. */
 	mutex_lock(mtx);
-
 	return rc;
 }
 
@@ -141,23 +125,14 @@ errno_t condvar_wait(condvar_t *cv, mutex_t *mtx)
 errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
     uint32_t usec, int flags)
 {
-	errno_t rc;
-	ipl_t ipl;
-	bool blocked;
-
-	ipl = waitq_sleep_prepare(&cv->wq);
+	wait_guard_t guard = waitq_sleep_prepare(&cv->wq);
 
 	/* Unlock only after the waitq is locked so we don't miss a wakeup. */
 	spinlock_unlock(lock);
 
-	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
-	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, flags, &blocked);
-	assert(blocked || rc != EOK);
+	errno_t rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, flags, guard);
 
-	waitq_sleep_finish(&cv->wq, blocked, ipl);
-	/* Lock only after releasing the waitq to avoid a possible deadlock. */
 	spinlock_lock(lock);
-
 	return rc;
 }
 

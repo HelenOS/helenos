@@ -68,6 +68,7 @@
 #include <syscall/copy.h>
 #include <errno.h>
 #include <debug.h>
+#include <halt.h>
 
 /** Thread states */
 const char *thread_states[] = {
@@ -78,6 +79,12 @@ const char *thread_states[] = {
 	"Entering",
 	"Exiting",
 	"Lingering"
+};
+
+enum sleep_state {
+	SLEEP_INITIAL,
+	SLEEP_ASLEEP,
+	SLEEP_WOKE,
 };
 
 /** Lock protecting the @c threads ordered dictionary .
@@ -364,14 +371,14 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->nomigrate = 0;
 	thread->state = Entering;
 
-	thread->sleep_interruptible = false;
-	thread->sleep_composable = false;
-	thread->sleep_queue = NULL;
+	atomic_init(&thread->sleep_queue, NULL);
 
 	thread->in_copy_from_uspace = false;
 	thread->in_copy_to_uspace = false;
 
 	thread->interrupted = false;
+	atomic_init(&thread->sleep_state, SLEEP_INITIAL);
+
 	waitq_initialize(&thread->join_wq);
 
 	thread->task = task;
@@ -544,21 +551,146 @@ void thread_exit(void)
  *
  * @param thread A valid thread object.
  */
-void thread_interrupt(thread_t *thread, bool irq_dis)
+void thread_interrupt(thread_t *thread)
+{
+	assert(thread != NULL);
+	thread->interrupted = true;
+	thread_wakeup(thread);
+}
+
+/** Prepare for putting the thread to sleep.
+ *
+ * @returns whether the thread is currently terminating. If THREAD_OK
+ * is returned, the thread is guaranteed to be woken up instantly if the thread
+ * is terminated at any time between this function's return and
+ * thread_wait_finish(). If THREAD_TERMINATING is returned, the thread can still
+ * go to sleep, but doing so will delay termination.
+ */
+thread_termination_state_t thread_wait_start(void)
+{
+	assert(THREAD != NULL);
+
+	/*
+	 * This is an exchange rather than a store so that we can use the acquire
+	 * semantics, which is needed to ensure that code after this operation sees
+	 * memory ops made before thread_wakeup() in other thread, if that wakeup
+	 * was reset by this operation.
+	 *
+	 * In particular, we need this to ensure we can't miss the thread being
+	 * terminated concurrently with a synchronization primitive preparing to
+	 * sleep.
+	 */
+	(void) atomic_exchange_explicit(&THREAD->sleep_state, SLEEP_INITIAL,
+	    memory_order_acquire);
+
+	return THREAD->interrupted ? THREAD_TERMINATING : THREAD_OK;
+}
+
+static void thread_wait_internal(void)
+{
+	assert(THREAD != NULL);
+
+	ipl_t ipl = interrupts_disable();
+
+	if (atomic_load(&haltstate))
+		halt();
+
+	/*
+	 * Lock here to prevent a race between entering the scheduler and another
+	 * thread rescheduling this thread.
+	 */
+	irq_spinlock_lock(&THREAD->lock, false);
+
+	int expected = SLEEP_INITIAL;
+
+	/* Only set SLEEP_ASLEEP in sleep pad if it's still in initial state */
+	if (atomic_compare_exchange_strong_explicit(&THREAD->sleep_state, &expected,
+	    SLEEP_ASLEEP, memory_order_acq_rel, memory_order_acquire)) {
+		THREAD->state = Sleeping;
+		scheduler_locked(ipl);
+	} else {
+		assert(expected == SLEEP_WOKE);
+		/* Return immediately. */
+		irq_spinlock_unlock(&THREAD->lock, false);
+		interrupts_restore(ipl);
+	}
+}
+
+static void thread_wait_timeout_callback(void *arg)
+{
+	thread_wakeup(arg);
+}
+
+/**
+ * Suspends this thread's execution until thread_wakeup() is called on it,
+ * or deadline is reached.
+ *
+ * The way this would normally be used is that the current thread call
+ * thread_wait_start(), and if interruption has not been signaled, stores
+ * a reference to itself in a synchronized structure (such as waitq).
+ * After that, it releases any spinlocks it might hold and calls this function.
+ *
+ * The thread doing the wakeup will acquire the thread's reference from said
+ * synchronized structure and calls thread_wakeup() on it.
+ *
+ * Notably, there can be more than one thread performing wakeup.
+ * The number of performed calls to thread_wakeup(), or their relative
+ * ordering with thread_wait_finish(), does not matter. However, calls to
+ * thread_wakeup() are expected to be synchronized with thread_wait_start()
+ * with which they are associated, otherwise wakeups may be missed.
+ * However, the operation of thread_wakeup() is defined at any time,
+ * synchronization notwithstanding (in the sense of C un/defined behavior),
+ * and is in fact used to interrupt waiting threads by external events.
+ * The waiting thread must operate correctly in face of spurious wakeups,
+ * and clean up its reference in the synchronization structure if necessary.
+ *
+ * Returns THREAD_WAIT_TIMEOUT if timeout fired, which is a necessary condition
+ * for it to have been waken up by the timeout, but the caller must assume
+ * that proper wakeups, timeouts and interrupts may occur concurrently, so
+ * the fact timeout has been registered does not necessarily mean the thread
+ * has not been woken up or interrupted.
+ */
+thread_wait_result_t thread_wait_finish(deadline_t deadline)
+{
+	assert(THREAD != NULL);
+
+	timeout_t timeout;
+
+	if (deadline != DEADLINE_NEVER) {
+		/* Extra check to avoid setting up a deadline if we don't need to. */
+		if (atomic_load_explicit(&THREAD->sleep_state, memory_order_acquire) !=
+		    SLEEP_INITIAL)
+			return THREAD_WAIT_SUCCESS;
+
+		timeout_initialize(&timeout);
+		timeout_register_deadline(&timeout, deadline,
+		    thread_wait_timeout_callback, THREAD);
+	}
+
+	thread_wait_internal();
+
+	if (deadline != DEADLINE_NEVER && !timeout_unregister(&timeout)) {
+		return THREAD_WAIT_TIMEOUT;
+	} else {
+		return THREAD_WAIT_SUCCESS;
+	}
+}
+
+void thread_wakeup(thread_t *thread)
 {
 	assert(thread != NULL);
 
-	irq_spinlock_lock(&thread->lock, irq_dis);
+	int state = atomic_exchange_explicit(&thread->sleep_state, SLEEP_WOKE,
+	    memory_order_release);
 
-	thread->interrupted = true;
-	bool sleeping = (thread->state == Sleeping);
-
-	irq_spinlock_unlock(&thread->lock, irq_dis);
-
-	if (sleeping)
-		waitq_interrupt_sleep(thread);
-
-	thread_put(thread);
+	if (state == SLEEP_ASLEEP) {
+		/*
+		 * Only one thread gets to do this.
+		 * The reference consumed here is the reference implicitly passed to
+		 * the waking thread by the sleeper in thread_wait_finish().
+		 */
+		thread_ready(thread);
+	}
 }
 
 /** Prevent the current thread from being migrated to another processor. */
@@ -627,8 +759,7 @@ errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 	if (state == Exiting) {
 		return EOK;
 	} else {
-		return waitq_sleep_timeout(&thread->join_wq, usec,
-		    SYNCH_FLAGS_NON_BLOCKING, NULL);
+		return _waitq_sleep_timeout(&thread->join_wq, usec, flags);
 	}
 }
 
@@ -645,7 +776,7 @@ void thread_usleep(uint32_t usec)
 
 	waitq_initialize(&wq);
 
-	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING, NULL);
+	(void) waitq_sleep_timeout(&wq, usec);
 }
 
 static void thread_print(thread_t *thread, bool additional)
@@ -889,7 +1020,7 @@ void thread_stack_trace(thread_id_t thread_id)
 	irq_spinlock_unlock(&thread->lock, true);
 
 	if (sleeping)
-		waitq_interrupt_sleep(thread);
+		thread_wakeup(thread);
 
 	thread_put(thread);
 }

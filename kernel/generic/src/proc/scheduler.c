@@ -299,6 +299,20 @@ static void relink_rq(int start)
 	irq_spinlock_unlock(&CPU->lock, false);
 }
 
+void scheduler(void)
+{
+	ipl_t ipl = interrupts_disable();
+
+	if (atomic_load(&haltstate))
+		halt();
+
+	if (THREAD) {
+		irq_spinlock_lock(&THREAD->lock, false);
+	}
+
+	scheduler_locked(ipl);
+}
+
 /** The scheduler
  *
  * The thread scheduling procedure.
@@ -306,20 +320,11 @@ static void relink_rq(int start)
  * scheduler_separated_stack().
  *
  */
-void scheduler(void)
+void scheduler_locked(ipl_t ipl)
 {
-	volatile ipl_t ipl;
-
 	assert(CPU != NULL);
 
-	ipl = interrupts_disable();
-
-	if (atomic_load(&haltstate))
-		halt();
-
 	if (THREAD) {
-		irq_spinlock_lock(&THREAD->lock, false);
-
 		/* Update thread kernel accounting */
 		THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 
@@ -418,7 +423,7 @@ void scheduler_separated_stack(void)
 
 		case Exiting:
 			irq_spinlock_unlock(&THREAD->lock, false);
-			waitq_wakeup(&THREAD->join_wq, WAKEUP_CLOSE);
+			waitq_close(&THREAD->join_wq);
 
 			/*
 			 * Release the reference CPU has for the thread.
@@ -433,14 +438,6 @@ void scheduler_separated_stack(void)
 			 * Prefer the thread after it's woken up.
 			 */
 			THREAD->priority = -1;
-
-			/*
-			 * We need to release wq->lock which we locked in
-			 * waitq_sleep(). Address of wq->lock is kept in
-			 * THREAD->sleep_queue.
-			 */
-			irq_spinlock_unlock(&THREAD->sleep_queue->lock, false);
-
 			irq_spinlock_unlock(&THREAD->lock, false);
 			break;
 

@@ -56,6 +56,7 @@ extern void scheduler_init(void);
 
 extern void scheduler_fpu_lazy_request(void);
 extern void scheduler(void);
+extern void scheduler_locked(ipl_t);
 extern void kcpulb(void *arg);
 
 extern void sched_print_list(void);

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2022 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,9 +60,6 @@
 #include <arch/cycle.h>
 #include <mem.h>
 
-static void waitq_sleep_timed_out(void *);
-static void waitq_complete_wakeup(waitq_t *);
-
 /** Initialize wait queue
  *
  * Initialize wait queue.
@@ -76,119 +74,14 @@ void waitq_initialize(waitq_t *wq)
 	list_initialize(&wq->sleepers);
 }
 
+/**
+ * Initialize wait queue with an initial number of queued wakeups
+ * (or a wakeup debt if negative).
+ */
 void waitq_initialize_with_count(waitq_t *wq, int count)
 {
-	memsetb(wq, sizeof(*wq), 0);
-	irq_spinlock_initialize(&wq->lock, "wq.lock");
-	list_initialize(&wq->sleepers);
-	wq->missed_wakeups = count;
-}
-
-/** Handle timeout during waitq_sleep_timeout() call
- *
- * This routine is called when waitq_sleep_timeout() times out.
- * Interrupts are disabled.
- *
- * It is supposed to try to remove 'its' thread from the wait queue;
- * it can eventually fail to achieve this goal when these two events
- * overlap. In that case it behaves just as though there was no
- * timeout at all.
- *
- * @param data Pointer to the thread that called waitq_sleep_timeout().
- *
- */
-void waitq_sleep_timed_out(void *data)
-{
-	thread_t *thread = (thread_t *) data;
-	bool do_wakeup = false;
-	DEADLOCK_PROBE_INIT(p_wqlock);
-
-	irq_spinlock_lock(&threads_lock, false);
-
-grab_locks:
-	irq_spinlock_lock(&thread->lock, false);
-
-	waitq_t *wq;
-	if ((wq = thread->sleep_queue)) {  /* Assignment */
-		if (!irq_spinlock_trylock(&wq->lock)) {
-			irq_spinlock_unlock(&thread->lock, false);
-			DEADLOCK_PROBE(p_wqlock, DEADLOCK_THRESHOLD);
-			/* Avoid deadlock */
-			goto grab_locks;
-		}
-
-		list_remove(&thread->wq_link);
-		thread->saved_context = thread->sleep_timeout_context;
-		do_wakeup = true;
-		if (thread->sleep_composable)
-			wq->ignore_wakeups++;
-		thread->sleep_queue = NULL;
-		irq_spinlock_unlock(&wq->lock, false);
-	}
-
-	irq_spinlock_unlock(&thread->lock, false);
-
-	if (do_wakeup)
-		thread_ready(thread);
-
-	irq_spinlock_unlock(&threads_lock, false);
-}
-
-/** Interrupt sleeping thread.
- *
- * This routine attempts to interrupt a thread from its sleep in
- * a waitqueue. If the thread is not found sleeping, no action
- * is taken.
- *
- * The threads_lock must be already held and interrupts must be
- * disabled upon calling this function.
- *
- * @param thread Thread to be interrupted.
- *
- */
-void waitq_interrupt_sleep(thread_t *thread)
-{
-	bool do_wakeup = false;
-	DEADLOCK_PROBE_INIT(p_wqlock);
-
-	/*
-	 * The thread is quaranteed to exist because
-	 * threads_lock is held.
-	 */
-
-grab_locks:
-	irq_spinlock_lock(&thread->lock, false);
-
-	waitq_t *wq;
-	if ((wq = thread->sleep_queue)) {  /* Assignment */
-		if (!(thread->sleep_interruptible)) {
-			/*
-			 * The sleep cannot be interrupted.
-			 */
-			irq_spinlock_unlock(&thread->lock, false);
-			return;
-		}
-
-		if (!irq_spinlock_trylock(&wq->lock)) {
-			/* Avoid deadlock */
-			irq_spinlock_unlock(&thread->lock, false);
-			DEADLOCK_PROBE(p_wqlock, DEADLOCK_THRESHOLD);
-			goto grab_locks;
-		}
-
-		list_remove(&thread->wq_link);
-		thread->saved_context = thread->sleep_interruption_context;
-		if (thread->sleep_composable)
-			wq->ignore_wakeups++;
-		do_wakeup = true;
-		thread->sleep_queue = NULL;
-		irq_spinlock_unlock(&wq->lock, false);
-	}
-
-	irq_spinlock_unlock(&thread->lock, false);
-
-	if (do_wakeup)
-		thread_ready(thread);
+	waitq_initialize(wq);
+	wq->wakeup_balance = count;
 }
 
 #define PARAM_NON_BLOCKING(flags, usec) \
@@ -196,26 +89,24 @@ grab_locks:
 
 errno_t waitq_sleep(waitq_t *wq)
 {
-	return waitq_sleep_timeout(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, NULL);
+	return _waitq_sleep_timeout(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+}
+
+errno_t waitq_sleep_timeout(waitq_t *wq, uint32_t usec)
+{
+	return _waitq_sleep_timeout(wq, usec, SYNCH_FLAGS_NON_BLOCKING);
 }
 
 /** Sleep until either wakeup, timeout or interruption occurs
  *
- * This is a sleep implementation which allows itself to time out or to be
- * interrupted from the sleep, restoring a failover context.
- *
  * Sleepers are organised in a FIFO fashion in a structure called wait queue.
  *
- * This function is really basic in that other functions as waitq_sleep()
- * and all the *_timeout() functions use it.
+ * Other functions as waitq_sleep() and all the *_timeout() functions are
+ * implemented using this function.
  *
  * @param wq    Pointer to wait queue.
  * @param usec  Timeout in microseconds.
  * @param flags Specify mode of the sleep.
- *
- * @param[out] blocked  On return, regardless of the return code,
- *                      `*blocked` is set to `true` iff the thread went to
- *                      sleep.
  *
  * The sleep can be interrupted only if the
  * SYNCH_FLAGS_INTERRUPTIBLE bit is specified in flags.
@@ -230,31 +121,17 @@ errno_t waitq_sleep(waitq_t *wq)
  * If usec is zero and the SYNCH_FLAGS_NON_BLOCKING bit is set in flags, the
  * call will immediately return, reporting either success or failure.
  *
- * @return EAGAIN, meaning that the sleep failed because it was requested
- *                 as SYNCH_FLAGS_NON_BLOCKING, but there was no pending wakeup.
- * @return ETIMEOUT, meaning that the sleep timed out.
- * @return EINTR, meaning that somebody interrupted the sleeping
- *         thread. Check the value of `*blocked` to see if the thread slept,
- *         or if a pending interrupt forced it to return immediately.
+ * @return ETIMEOUT, meaning that the sleep timed out, or a nonblocking call
+ *                   returned unsuccessfully.
+ * @return EINTR, meaning that somebody interrupted the sleeping thread.
  * @return EOK, meaning that none of the above conditions occured, and the
- *              thread was woken up successfuly by `waitq_wakeup()`. Check
- *              the value of `*blocked` to see if the thread slept or if
- *              the wakeup was already pending.
+ *              thread was woken up successfuly by `waitq_wake_*()`.
  *
  */
-errno_t waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
+errno_t _waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags)
 {
 	assert((!PREEMPTION_DISABLED) || (PARAM_NON_BLOCKING(flags, usec)));
-
-	ipl_t ipl = waitq_sleep_prepare(wq);
-	bool nblocked;
-	errno_t rc = waitq_sleep_timeout_unsafe(wq, usec, flags, &nblocked);
-	waitq_sleep_finish(wq, nblocked, ipl);
-
-	if (blocked != NULL) {
-		*blocked = nblocked;
-	}
-	return rc;
+	return waitq_sleep_timeout_unsafe(wq, usec, flags, waitq_sleep_prepare(wq));
 }
 
 /** Prepare to sleep in a waitq.
@@ -267,57 +144,24 @@ errno_t waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags, bool
  * @return Interrupt level as it existed on entry to this function.
  *
  */
-ipl_t waitq_sleep_prepare(waitq_t *wq)
+wait_guard_t waitq_sleep_prepare(waitq_t *wq)
 {
 	ipl_t ipl = interrupts_disable();
 	irq_spinlock_lock(&wq->lock, false);
-	return ipl;
+	return (wait_guard_t) {
+		.ipl = ipl,
+	};
 }
 
-/** Finish waiting in a wait queue.
- *
- * This function restores interrupts to the state that existed prior
- * to the call to waitq_sleep_prepare(). If necessary, the wait queue
- * lock is released.
- *
- * @param wq       Wait queue.
- * @param blocked  Out parameter of waitq_sleep_timeout_unsafe().
- * @param ipl      Interrupt level returned by waitq_sleep_prepare().
- *
- */
-void waitq_sleep_finish(waitq_t *wq, bool blocked, ipl_t ipl)
+errno_t waitq_sleep_unsafe(waitq_t *wq, wait_guard_t guard)
 {
-	if (blocked) {
-		/*
-		 * Wait for a waitq_wakeup() or waitq_unsleep() to complete
-		 * before returning from waitq_sleep() to the caller. Otherwise
-		 * the caller might expect that the wait queue is no longer used
-		 * and deallocate it (although the wakeup on a another cpu has
-		 * not yet completed and is using the wait queue).
-		 *
-		 * Note that we have to do this for EOK and EINTR, but not
-		 * necessarily for ETIMEOUT where the timeout handler stops
-		 * using the waitq before waking us up. To be on the safe side,
-		 * ensure the waitq is not in use anymore in this case as well.
-		 */
-		waitq_complete_wakeup(wq);
-	} else {
-		irq_spinlock_unlock(&wq->lock, false);
-	}
-
-	interrupts_restore(ipl);
-}
-
-errno_t waitq_sleep_unsafe(waitq_t *wq, bool *blocked)
-{
-	return waitq_sleep_timeout_unsafe(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, blocked);
+	return waitq_sleep_timeout_unsafe(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, guard);
 }
 
 /** Internal implementation of waitq_sleep_timeout().
  *
  * This function implements logic of sleeping in a wait queue.
- * This call must be preceded by a call to waitq_sleep_prepare()
- * and followed by a call to waitq_sleep_finish().
+ * This call must be preceded by a call to waitq_sleep_prepare().
  *
  * @param wq    See waitq_sleep_timeout().
  * @param usec  See waitq_sleep_timeout().
@@ -328,231 +172,177 @@ errno_t waitq_sleep_unsafe(waitq_t *wq, bool *blocked)
  * @return See waitq_sleep_timeout().
  *
  */
-errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
+errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags, wait_guard_t guard)
 {
-	*blocked = false;
+	errno_t rc;
+
+	/*
+	 * If true, and this thread's sleep returns without a wakeup
+	 * (timed out or interrupted), waitq ignores the next wakeup.
+	 * This is necessary for futex to be able to handle those conditions.
+	 */
+	bool sleep_composable = (flags & SYNCH_FLAGS_FUTEX);
+	bool interruptible = (flags & SYNCH_FLAGS_INTERRUPTIBLE);
+
+	if (wq->closed) {
+		rc = EOK;
+		goto exit;
+	}
 
 	/* Checks whether to go to sleep at all */
-	if (wq->missed_wakeups) {
-		wq->missed_wakeups--;
-		return EOK;
-	} else {
-		if (PARAM_NON_BLOCKING(flags, usec)) {
-			/* Return immediately instead of going to sleep */
-			return EAGAIN;
-		}
+	if (wq->wakeup_balance > 0) {
+		wq->wakeup_balance--;
+
+		rc = EOK;
+		goto exit;
 	}
+
+	if (PARAM_NON_BLOCKING(flags, usec)) {
+		/* Return immediately instead of going to sleep */
+		rc = ETIMEOUT;
+		goto exit;
+	}
+
+	/* Just for debugging output. */
+	atomic_store_explicit(&THREAD->sleep_queue, wq, memory_order_relaxed);
 
 	/*
-	 * Now we are firmly decided to go to sleep.
-	 *
+	 * This thread_t field is synchronized exclusively via
+	 * waitq lock of the waitq currently listing it.
 	 */
-	irq_spinlock_lock(&THREAD->lock, false);
-
-	timeout_t timeout;
-	timeout_initialize(&timeout);
-
-	THREAD->sleep_composable = (flags & SYNCH_FLAGS_FUTEX);
-
-	if (flags & SYNCH_FLAGS_INTERRUPTIBLE) {
-		/*
-		 * If the thread was already interrupted,
-		 * don't go to sleep at all.
-		 */
-		if (THREAD->interrupted) {
-			irq_spinlock_unlock(&THREAD->lock, false);
-			return EINTR;
-		}
-
-		/*
-		 * Set context that will be restored if the sleep
-		 * of this thread is ever interrupted.
-		 */
-		THREAD->sleep_interruptible = true;
-		if (!context_save(&THREAD->sleep_interruption_context)) {
-			/* Short emulation of scheduler() return code. */
-			THREAD->last_cycle = get_cycle();
-			irq_spinlock_unlock(&THREAD->lock, false);
-			if (usec) {
-				timeout_unregister(&timeout);
-			}
-			return EINTR;
-		}
-	} else
-		THREAD->sleep_interruptible = false;
-
-	if (usec) {
-		/* We use the timeout variant. */
-		if (!context_save(&THREAD->sleep_timeout_context)) {
-			/* Short emulation of scheduler() return code. */
-			THREAD->last_cycle = get_cycle();
-			irq_spinlock_unlock(&THREAD->lock, false);
-			return ETIMEOUT;
-		}
-
-		timeout_register(&timeout, (uint64_t) usec, waitq_sleep_timed_out, THREAD);
-	}
-
 	list_append(&THREAD->wq_link, &wq->sleepers);
 
-	/*
-	 * Suspend execution.
-	 *
-	 */
-	THREAD->state = Sleeping;
-	THREAD->sleep_queue = wq;
+	/* Needs to be run when interrupts are still disabled. */
+	deadline_t deadline = usec > 0 ?
+	    timeout_deadline_in_usec(usec) : DEADLINE_NEVER;
 
-	/*
-	 * Must be before entry to scheduler, because there are multiple
-	 * return vectors.
-	 */
-	*blocked = true;
+	while (true) {
+		bool terminating = (thread_wait_start() == THREAD_TERMINATING);
+		if (terminating && interruptible) {
+			rc = EINTR;
+			goto exit;
+		}
 
-	irq_spinlock_unlock(&THREAD->lock, false);
+		irq_spinlock_unlock(&wq->lock, false);
 
-	/* wq->lock is released in scheduler_separated_stack() */
-	scheduler();
+		bool timed_out = (thread_wait_finish(deadline) == THREAD_WAIT_TIMEOUT);
 
-	if (usec) {
-		timeout_unregister(&timeout);
+		/*
+		 * We always need to re-lock the WQ, since concurrently running
+		 * waitq_wakeup() may still not have exitted.
+		 * If we didn't always do this, we'd risk waitq_wakeup() that woke us
+		 * up still running on another CPU even after this function returns,
+		 * and that would be an issue if the waitq is allocated locally to
+		 * wait for a one-off asynchronous event. We'd need more external
+		 * synchronization in that case, and that would be a pain.
+		 *
+		 * On the plus side, always regaining a lock simplifies cleanup.
+		 */
+		irq_spinlock_lock(&wq->lock, false);
+
+		if (!link_in_use(&THREAD->wq_link)) {
+			/*
+			 * We were woken up by the desired event. Return success,
+			 * regardless of any concurrent timeout or interruption.
+			 */
+			rc = EOK;
+			goto exit;
+		}
+
+		if (timed_out) {
+			rc = ETIMEOUT;
+			goto exit;
+		}
+
+		/* Interrupted for some other reason. */
 	}
 
-	return EOK;
+exit:
+	if (THREAD)
+		list_remove(&THREAD->wq_link);
+
+	if (rc != EOK && sleep_composable)
+		wq->wakeup_balance--;
+
+	if (THREAD)
+		atomic_store_explicit(&THREAD->sleep_queue, NULL, memory_order_relaxed);
+
+	irq_spinlock_unlock(&wq->lock, false);
+	interrupts_restore(guard.ipl);
+	return rc;
 }
 
-/** Wake up first thread sleeping in a wait queue
- *
- * Wake up first thread sleeping in a wait queue. This is the SMP- and IRQ-safe
- * wrapper meant for general use.
- *
- * Besides its 'normal' wakeup operation, it attempts to unregister possible
- * timeout.
- *
- * @param wq   Pointer to wait queue.
- * @param mode Wakeup mode.
- *
+static void _wake_one(waitq_t *wq)
+{
+	/* Pop one thread from the queue and wake it up. */
+	thread_t *thread = list_get_instance(list_first(&wq->sleepers), thread_t, wq_link);
+	list_remove(&thread->wq_link);
+	thread_wakeup(thread);
+}
+
+/**
+ * Meant for implementing condvar signal.
+ * Always wakes one thread if there are any sleeping,
+ * has no effect if no threads are waiting for wakeup.
  */
-void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
+void waitq_signal(waitq_t *wq)
 {
 	irq_spinlock_lock(&wq->lock, true);
-	_waitq_wakeup_unsafe(wq, mode);
+
+	if (!list_empty(&wq->sleepers))
+		_wake_one(wq);
+
 	irq_spinlock_unlock(&wq->lock, true);
 }
 
-/** If there is a wakeup in progress actively waits for it to complete.
- *
- * The function returns once the concurrently running waitq_wakeup()
- * exits. It returns immediately if there are no concurrent wakeups
- * at the time.
- *
- * Interrupts must be disabled.
- *
- * Example usage:
- * @code
- * void callback(waitq *wq)
- * {
- *     // Do something and notify wait_for_completion() that we're done.
- *     waitq_wakeup(wq);
- * }
- * void wait_for_completion(void)
- * {
- *     waitq wg;
- *     waitq_initialize(&wq);
- *     // Run callback() in the background, pass it wq.
- *     do_asynchronously(callback, &wq);
- *     // Wait for callback() to complete its work.
- *     waitq_sleep(&wq);
- *     // callback() completed its work, but it may still be accessing
- *     // wq in waitq_wakeup(). Therefore it is not yet safe to return
- *     // from waitq_sleep() or it would clobber up our stack (where wq
- *     // is stored). waitq_sleep() ensures the wait queue is no longer
- *     // in use by invoking waitq_complete_wakeup() internally.
- *
- *     // waitq_sleep() returned, it is safe to free wq.
- * }
- * @endcode
- *
- * @param wq  Pointer to a wait queue.
+/**
+ * Wakes up one thread sleeping on this waitq.
+ * If there are no threads waiting, saves the wakeup so that the next sleep
+ * returns immediately. If a previous failure in sleep created a wakeup debt
+ * (see SYNCH_FLAGS_FUTEX) this debt is annulled and no thread is woken up.
  */
-static void waitq_complete_wakeup(waitq_t *wq)
+void waitq_wake_one(waitq_t *wq)
 {
-	assert(interrupts_disabled());
+	irq_spinlock_lock(&wq->lock, true);
 
-	irq_spinlock_lock(&wq->lock, false);
-	irq_spinlock_unlock(&wq->lock, false);
+	if (!wq->closed) {
+		if (wq->wakeup_balance < 0 || list_empty(&wq->sleepers))
+			wq->wakeup_balance++;
+		else
+			_wake_one(wq);
+	}
+
+	irq_spinlock_unlock(&wq->lock, true);
 }
 
-/** Internal SMP- and IRQ-unsafe version of waitq_wakeup()
- *
- * This is the internal SMP- and IRQ-unsafe version of waitq_wakeup(). It
- * assumes wq->lock is already locked and interrupts are already disabled.
- *
- * @param wq   Pointer to wait queue.
- * @param mode If mode is WAKEUP_FIRST, then the longest waiting
- *             thread, if any, is woken up. If mode is WAKEUP_ALL, then
- *             all waiting threads, if any, are woken up. If there are
- *             no waiting threads to be woken up, the missed wakeup is
- *             recorded in the wait queue.
- *
- */
-void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
+static void _wake_all(waitq_t *wq)
 {
-	size_t count = 0;
+	while (!list_empty(&wq->sleepers))
+		_wake_one(wq);
+}
 
-	assert(interrupts_disabled());
-	assert(irq_spinlock_locked(&wq->lock));
+/**
+ * Wakes up all threads currently waiting on this waitq
+ * and makes all future sleeps return instantly.
+ */
+void waitq_close(waitq_t *wq)
+{
+	irq_spinlock_lock(&wq->lock, true);
+	wq->wakeup_balance = 0;
+	wq->closed = true;
+	_wake_all(wq);
+	irq_spinlock_unlock(&wq->lock, true);
+}
 
-	if (wq->ignore_wakeups > 0) {
-		if (mode == WAKEUP_FIRST) {
-			wq->ignore_wakeups--;
-			return;
-		}
-		wq->ignore_wakeups = 0;
-	}
-
-loop:
-	if (list_empty(&wq->sleepers)) {
-		if (mode == WAKEUP_CLOSE) {
-			// FIXME: this can technically fail if we get two billion sleeps after the wakeup call.
-			wq->missed_wakeups = INT_MAX;
-		} else if (mode != WAKEUP_ALL) {
-			wq->missed_wakeups++;
-		}
-
-		return;
-	}
-
-	count++;
-	thread_t *thread = list_get_instance(list_first(&wq->sleepers),
-	    thread_t, wq_link);
-
-	/*
-	 * Lock the thread prior to removing it from the wq.
-	 * This is not necessary because of mutual exclusion
-	 * (the link belongs to the wait queue), but because
-	 * of synchronization with waitq_sleep_timed_out()
-	 * and thread_interrupt_sleep().
-	 *
-	 * In order for these two functions to work, the following
-	 * invariant must hold:
-	 *
-	 * thread->sleep_queue != NULL <=> thread sleeps in a wait queue
-	 *
-	 * For an observer who locks the thread, the invariant
-	 * holds only when the lock is held prior to removing
-	 * it from the wait queue.
-	 *
-	 */
-	irq_spinlock_lock(&thread->lock, false);
-	list_remove(&thread->wq_link);
-
-	thread->sleep_queue = NULL;
-	irq_spinlock_unlock(&thread->lock, false);
-
-	thread_ready(thread);
-
-	if (mode == WAKEUP_ALL)
-		goto loop;
+/**
+ * Wakes up all threads currently waiting on this waitq
+ */
+void waitq_wake_all(waitq_t *wq)
+{
+	irq_spinlock_lock(&wq->lock, true);
+	wq->wakeup_balance = 0;
+	_wake_all(wq);
+	irq_spinlock_unlock(&wq->lock, true);
 }
 
 /** @}

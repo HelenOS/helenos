@@ -428,7 +428,7 @@ static void send_call(irq_t *irq, call_t *call)
 	list_append(&call->ab_link, &irq->notif_cfg.answerbox->irq_notifs);
 	irq_spinlock_unlock(&irq->notif_cfg.answerbox->irq_lock, false);
 
-	waitq_wakeup(&irq->notif_cfg.answerbox->wq, WAKEUP_FIRST);
+	waitq_wake_one(&irq->notif_cfg.answerbox->wq);
 }
 
 /** Apply the top-half IRQ code to find out whether to accept the IRQ or not.

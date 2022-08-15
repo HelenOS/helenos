@@ -168,8 +168,7 @@ static errno_t event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2
 				irq_spinlock_unlock(&event->answerbox->irq_lock,
 				    true);
 
-				waitq_wakeup(&event->answerbox->wq,
-				    WAKEUP_FIRST);
+				waitq_wake_one(&event->answerbox->wq);
 
 				if (mask)
 					event->masked = true;

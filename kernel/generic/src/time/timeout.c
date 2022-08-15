@@ -70,28 +70,23 @@ void timeout_initialize(timeout_t *timeout)
 	timeout->cpu = NULL;
 }
 
-/** Register timeout
- *
- * Insert timeout handler f (with argument arg)
- * to timeout list and make it execute in
- * time microseconds (or slightly more).
- *
- * @param timeout Timeout structure.
- * @param time    Number of usec in the future to execute the handler.
- * @param handler Timeout handler function.
- * @param arg     Timeout handler argument.
- *
- */
-void timeout_register(timeout_t *timeout, uint64_t time,
+/* Only call when interrupts are disabled. */
+deadline_t timeout_deadline_in_usec(uint32_t usec)
+{
+	if (usec == 0)
+		return 0;
+
+	return CPU->current_clock_tick + us2ticks(usec);
+}
+
+static void timeout_register_deadline_locked(timeout_t *timeout, deadline_t deadline,
     timeout_handler_t handler, void *arg)
 {
-	irq_spinlock_lock(&CPU->timeoutlock, true);
-
 	assert(!link_in_use(&timeout->link));
 
 	*timeout = (timeout_t) {
 		.cpu = CPU,
-		.deadline = CPU->current_clock_tick + us2ticks(time),
+		.deadline = deadline,
 		.handler = handler,
 		.arg = arg,
 		.finished = ATOMIC_VAR_INIT(false),
@@ -112,7 +107,33 @@ void timeout_register(timeout_t *timeout, uint64_t time,
 			}
 		}
 	}
+}
 
+/** Register timeout
+ *
+ * Insert timeout handler f (with argument arg)
+ * to timeout list and make it execute in
+ * time microseconds (or slightly more).
+ *
+ * @param timeout Timeout structure.
+ * @param time    Number of usec in the future to execute the handler.
+ * @param handler Timeout handler function.
+ * @param arg     Timeout handler argument.
+ *
+ */
+void timeout_register(timeout_t *timeout, uint64_t time,
+    timeout_handler_t handler, void *arg)
+{
+	irq_spinlock_lock(&CPU->timeoutlock, true);
+	timeout_register_deadline_locked(timeout, timeout_deadline_in_usec(time), handler, arg);
+	irq_spinlock_unlock(&CPU->timeoutlock, true);
+}
+
+void timeout_register_deadline(timeout_t *timeout, deadline_t deadline,
+    timeout_handler_t handler, void *arg)
+{
+	irq_spinlock_lock(&CPU->timeoutlock, true);
+	timeout_register_deadline_locked(timeout, deadline, handler, arg);
 	irq_spinlock_unlock(&CPU->timeoutlock, true);
 }
 

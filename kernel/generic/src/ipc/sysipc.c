@@ -870,7 +870,7 @@ error:
  */
 sys_errno_t sys_ipc_poke(void)
 {
-	waitq_wakeup(&TASK->answerbox.wq, WAKEUP_FIRST);
+	waitq_wake_one(&TASK->answerbox.wq);
 	return EOK;
 }
 

@@ -78,12 +78,18 @@ typedef struct thread {
 	/** Link to @c threads ordered dictionary. */
 	odlink_t lthreads;
 
+	/** Tracking variable for thread_wait/thread_wakeup */
+	atomic_int sleep_state;
+
 	/**
 	 * If true, the thread is terminating.
 	 * It will not go to sleep in interruptible synchronization functions
 	 * and will call thread_exit() before returning to userspace.
 	 */
 	volatile bool interrupted;
+
+	/** Wait queue in which this thread sleeps. Used for debug printouts. */
+	_Atomic(waitq_t *) sleep_queue;
 
 	/** Waitq for thread_join_timeout(). */
 	waitq_t join_wq;
@@ -107,31 +113,6 @@ typedef struct thread {
 	 */
 	context_t saved_context;
 	ipl_t saved_ipl;
-
-	/**
-	 * From here, the stored timeout context
-	 * is restored when sleep times out.
-	 */
-	context_t sleep_timeout_context;
-
-	/**
-	 * From here, the stored interruption context
-	 * is restored when sleep is interrupted.
-	 */
-	context_t sleep_interruption_context;
-
-	/** If true, the thread can be interrupted from sleep. */
-	bool sleep_interruptible;
-
-	/**
-	 * If true, and this thread's sleep returns without a wakeup
-	 * (timed out or interrupted), waitq ignores the next wakeup.
-	 * This is necessary for futex to be able to handle those conditions.
-	 */
-	bool sleep_composable;
-
-	/** Wait queue in which this thread sleeps. */
-	waitq_t *sleep_queue;
 
 	/**
 	 * True if this thread is executing copy_from_uspace().
@@ -215,7 +196,21 @@ extern void thread_wire(thread_t *, cpu_t *);
 extern void thread_attach(thread_t *, task_t *);
 extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
-extern void thread_interrupt(thread_t *, bool);
+extern void thread_interrupt(thread_t *);
+
+typedef enum {
+	THREAD_OK,
+	THREAD_TERMINATING,
+} thread_termination_state_t;
+
+typedef enum {
+	THREAD_WAIT_SUCCESS,
+	THREAD_WAIT_TIMEOUT,
+} thread_wait_result_t;
+
+extern thread_termination_state_t thread_wait_start(void);
+extern thread_wait_result_t thread_wait_finish(deadline_t);
+extern void thread_wakeup(thread_t *);
 
 static inline thread_t *thread_ref(thread_t *thread)
 {

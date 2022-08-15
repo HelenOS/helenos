@@ -98,7 +98,7 @@ const char *test_semaphore2(void)
 	}
 
 	thread_usleep(20000);
-	waitq_wakeup(&can_start, WAKEUP_ALL);
+	waitq_wake_all(&can_start);
 
 	return NULL;
 }

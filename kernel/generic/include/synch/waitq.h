@@ -40,12 +40,6 @@
 #include <abi/synch.h>
 #include <adt/list.h>
 
-typedef enum {
-	WAKEUP_FIRST = 0,
-	WAKEUP_ALL,
-	WAKEUP_CLOSE,
-} wakeup_mode_t;
-
 /** Wait queue structure.
  *
  */
@@ -57,31 +51,36 @@ typedef struct waitq {
 	IRQ_SPINLOCK_DECLARE(lock);
 
 	/**
-	 * Number of waitq_wakeup() calls that didn't find a thread to wake up.
-	 *
+	 * If negative, number of wakeups that are to be ignored (necessary for futex operation).
+	 * If positive, number of wakeups that weren't able to wake a thread.
 	 */
-	int missed_wakeups;
-
-	/** Number of wakeups that need to be ignored due to futex timeout. */
-	int ignore_wakeups;
+	int wakeup_balance;
 
 	/** List of sleeping threads for which there was no missed_wakeup. */
 	list_t sleepers;
+
+	bool closed;
 } waitq_t;
+
+typedef struct wait_guard {
+	ipl_t ipl;
+} wait_guard_t;
 
 struct thread;
 
 extern void waitq_initialize(waitq_t *);
 extern void waitq_initialize_with_count(waitq_t *, int);
 extern errno_t waitq_sleep(waitq_t *);
-extern errno_t waitq_sleep_timeout(waitq_t *, uint32_t, unsigned int, bool *);
-extern ipl_t waitq_sleep_prepare(waitq_t *);
-extern errno_t waitq_sleep_unsafe(waitq_t *, bool *);
-extern errno_t waitq_sleep_timeout_unsafe(waitq_t *, uint32_t, unsigned int, bool *);
-extern void waitq_sleep_finish(waitq_t *, bool, ipl_t);
-extern void waitq_wakeup(waitq_t *, wakeup_mode_t);
-extern void _waitq_wakeup_unsafe(waitq_t *, wakeup_mode_t);
-extern void waitq_interrupt_sleep(struct thread *);
+extern errno_t _waitq_sleep_timeout(waitq_t *, uint32_t, unsigned int);
+extern errno_t waitq_sleep_timeout(waitq_t *, uint32_t);
+extern wait_guard_t waitq_sleep_prepare(waitq_t *);
+extern errno_t waitq_sleep_unsafe(waitq_t *, wait_guard_t);
+extern errno_t waitq_sleep_timeout_unsafe(waitq_t *, uint32_t, unsigned int, wait_guard_t);
+
+extern void waitq_wake_one(waitq_t *);
+extern void waitq_wake_all(waitq_t *);
+extern void waitq_signal(waitq_t *);
+extern void waitq_close(waitq_t *);
 
 #endif
 

@@ -437,10 +437,10 @@ errno_t udebug_task_cleanup(struct task *task)
 
 				/*
 				 * thread's lock must not be held when calling
-				 * waitq_wakeup.
+				 * waitq_close.
 				 *
 				 */
-				waitq_wakeup(&thread->udebug.go_wq, WAKEUP_ALL);
+				waitq_close(&thread->udebug.go_wq);
 			}
 
 			mutex_unlock(&thread->udebug.lock);
