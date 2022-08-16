@@ -96,8 +96,6 @@ void waitq_sleep_timed_out(void *data)
 	DEADLOCK_PROBE_INIT(p_wqlock);
 
 	irq_spinlock_lock(&threads_lock, false);
-	if (!thread_exists(thread))
-		goto out;
 
 grab_locks:
 	irq_spinlock_lock(&thread->lock, false);
@@ -125,7 +123,6 @@ grab_locks:
 	if (do_wakeup)
 		thread_ready(thread);
 
-out:
 	irq_spinlock_unlock(&threads_lock, false);
 }
 
