@@ -120,10 +120,6 @@ typedef struct thread {
 
 	/** Wait queue in which this thread sleeps. */
 	waitq_t *sleep_queue;
-	/** Timeout used for timeoutable sleeping.  */
-	timeout_t sleep_timeout;
-	/** Flag signalling sleep timeout in progress. */
-	volatile bool timeout_pending;
 
 	/**
 	 * True if this thread is executing copy_from_uspace().

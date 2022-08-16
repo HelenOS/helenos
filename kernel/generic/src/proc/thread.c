@@ -359,11 +359,9 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->nomigrate = 0;
 	thread->state = Entering;
 
-	timeout_initialize(&thread->sleep_timeout);
 	thread->sleep_interruptible = false;
 	thread->sleep_composable = false;
 	thread->sleep_queue = NULL;
-	thread->timeout_pending = false;
 
 	thread->in_copy_from_uspace = false;
 	thread->in_copy_to_uspace = false;
@@ -499,14 +497,7 @@ void thread_exit(void)
 		}
 	}
 
-restart:
 	irq_spinlock_lock(&THREAD->lock, true);
-	if (THREAD->timeout_pending) {
-		/* Busy waiting for timeouts in progress */
-		irq_spinlock_unlock(&THREAD->lock, true);
-		goto restart;
-	}
-
 	THREAD->state = Exiting;
 	irq_spinlock_unlock(&THREAD->lock, true);
 

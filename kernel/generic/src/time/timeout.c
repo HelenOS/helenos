@@ -127,6 +127,10 @@ void timeout_register(timeout_t *timeout, uint64_t time,
  */
 bool timeout_unregister(timeout_t *timeout)
 {
+	if (atomic_load_explicit(&timeout->finished, memory_order_acquire))
+		/* The timeout fired and finished already, no need to check the list. */
+		return false;
+
 	assert(timeout->cpu);
 
 	irq_spinlock_lock(&timeout->cpu->timeoutlock, true);

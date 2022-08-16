@@ -120,7 +120,6 @@ grab_locks:
 		irq_spinlock_unlock(&wq->lock, false);
 	}
 
-	thread->timeout_pending = false;
 	irq_spinlock_unlock(&thread->lock, false);
 
 	if (do_wakeup)
@@ -171,10 +170,6 @@ grab_locks:
 			DEADLOCK_PROBE(p_wqlock, DEADLOCK_THRESHOLD);
 			goto grab_locks;
 		}
-
-		if ((thread->timeout_pending) &&
-		    (timeout_unregister(&thread->sleep_timeout)))
-			thread->timeout_pending = false;
 
 		list_remove(&thread->wq_link);
 		thread->saved_context = thread->sleep_interruption_context;
@@ -269,31 +264,7 @@ errno_t waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags, bool
  */
 ipl_t waitq_sleep_prepare(waitq_t *wq)
 {
-	ipl_t ipl;
-
-restart:
-	ipl = interrupts_disable();
-
-	if (THREAD) {  /* Needed during system initiailzation */
-		/*
-		 * Busy waiting for a delayed timeout.
-		 * This is an important fix for the race condition between
-		 * a delayed timeout and a next call to waitq_sleep_timeout().
-		 * Simply, the thread is not allowed to go to sleep if
-		 * there are timeouts in progress.
-		 *
-		 */
-		irq_spinlock_lock(&THREAD->lock, false);
-
-		if (THREAD->timeout_pending) {
-			irq_spinlock_unlock(&THREAD->lock, false);
-			interrupts_restore(ipl);
-			goto restart;
-		}
-
-		irq_spinlock_unlock(&THREAD->lock, false);
-	}
-
+	ipl_t ipl = interrupts_disable();
 	irq_spinlock_lock(&wq->lock, false);
 	return ipl;
 }
@@ -373,6 +344,9 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 	 */
 	irq_spinlock_lock(&THREAD->lock, false);
 
+	timeout_t timeout;
+	timeout_initialize(&timeout);
+
 	THREAD->sleep_composable = (flags & SYNCH_FLAGS_FUTEX);
 
 	if (flags & SYNCH_FLAGS_INTERRUPTIBLE) {
@@ -394,6 +368,9 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 			/* Short emulation of scheduler() return code. */
 			THREAD->last_cycle = get_cycle();
 			irq_spinlock_unlock(&THREAD->lock, false);
+			if (usec) {
+				timeout_unregister(&timeout);
+			}
 			return EINTR;
 		}
 	} else
@@ -408,9 +385,7 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 			return ETIMEOUT;
 		}
 
-		THREAD->timeout_pending = true;
-		timeout_register(&THREAD->sleep_timeout, (uint64_t) usec,
-		    waitq_sleep_timed_out, THREAD);
+		timeout_register(&timeout, (uint64_t) usec, waitq_sleep_timed_out, THREAD);
 	}
 
 	list_append(&THREAD->wq_link, &wq->sleepers);
@@ -432,6 +407,10 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 
 	/* wq->lock is released in scheduler_separated_stack() */
 	scheduler();
+
+	if (usec) {
+		timeout_unregister(&timeout);
+	}
 
 	return EOK;
 }
@@ -558,10 +537,6 @@ loop:
 	 */
 	irq_spinlock_lock(&thread->lock, false);
 	list_remove(&thread->wq_link);
-
-	if ((thread->timeout_pending) &&
-	    (timeout_unregister(&thread->sleep_timeout)))
-		thread->timeout_pending = false;
 
 	thread->sleep_queue = NULL;
 	irq_spinlock_unlock(&thread->lock, false);
