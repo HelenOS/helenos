@@ -75,6 +75,7 @@ typedef struct cpu {
 
 	/** Can only be accessed when interrupts are disabled. */
 	uint64_t current_clock_tick;
+	uint64_t preempt_deadline;  /* < when should the currently running thread be preempted */
 
 	/**
 	 * Processor cycle accounting.

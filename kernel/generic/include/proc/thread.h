@@ -176,9 +176,6 @@ typedef struct thread {
 	/** Thread is executed in user space. */
 	bool uspace;
 
-	/** Ticks before preemption. */
-	uint64_t ticks;
-
 	/** Thread accounting. */
 	uint64_t ucycles;
 	uint64_t kcycles;

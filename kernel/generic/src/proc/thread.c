@@ -371,7 +371,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 
 	thread->thread_code = func;
 	thread->thread_arg = arg;
-	thread->ticks = -1;
 	thread->ucycles = 0;
 	thread->kcycles = 0;
 	thread->uncounted =

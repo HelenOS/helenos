@@ -235,8 +235,13 @@ loop:
 		irq_spinlock_pass(&(CPU->rq[i].lock), &thread->lock);
 
 		thread->cpu = CPU;
-		thread->ticks = us2ticks((i + 1) * 10000);
 		thread->priority = i;  /* Correct rq index */
+
+		/* Time allocation in microseconds. */
+		uint64_t time_to_run = (i + 1) * 10000;
+
+		/* This is safe because interrupts are disabled. */
+		CPU->preempt_deadline = CPU->current_clock_tick + us2ticks(time_to_run);
 
 		/*
 		 * Clear the stolen flag so that it can be migrated

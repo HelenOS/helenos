@@ -183,22 +183,11 @@ void clock(void)
 	 */
 
 	if (THREAD) {
-		uint64_t ticks;
-
 		irq_spinlock_lock(&CPU->lock, false);
 		CPU->needs_relink += 1 + missed_clock_ticks;
 		irq_spinlock_unlock(&CPU->lock, false);
 
-		irq_spinlock_lock(&THREAD->lock, false);
-		if ((ticks = THREAD->ticks)) {
-			if (ticks >= 1 + missed_clock_ticks)
-				THREAD->ticks -= 1 + missed_clock_ticks;
-			else
-				THREAD->ticks = 0;
-		}
-		irq_spinlock_unlock(&THREAD->lock, false);
-
-		if (ticks == 0 && PREEMPTION_ENABLED) {
+		if (current_clock_tick >= CPU->preempt_deadline && PREEMPTION_ENABLED) {
 			scheduler();
 #ifdef CONFIG_UDEBUG
 			/*
