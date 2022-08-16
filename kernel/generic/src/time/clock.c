@@ -183,10 +183,6 @@ void clock(void)
 	 */
 
 	if (THREAD) {
-		irq_spinlock_lock(&CPU->lock, false);
-		CPU->needs_relink += 1 + missed_clock_ticks;
-		irq_spinlock_unlock(&CPU->lock, false);
-
 		if (current_clock_tick >= CPU->preempt_deadline && PREEMPTION_ENABLED) {
 			scheduler();
 #ifdef CONFIG_UDEBUG

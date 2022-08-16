@@ -59,7 +59,6 @@ typedef struct cpu {
 
 	atomic_size_t nrdy;
 	runq_t rq[RQ_COUNT];
-	volatile size_t needs_relink;
 
 	IRQ_SPINLOCK_DECLARE(timeoutlock);
 	list_t timeout_active_list;
@@ -73,9 +72,10 @@ typedef struct cpu {
 	 */
 	size_t missed_clock_ticks;
 
-	/** Can only be accessed when interrupts are disabled. */
+	/** Can only be accessed by the CPU represented by this structure when interrupts are disabled. */
 	uint64_t current_clock_tick;
 	uint64_t preempt_deadline;  /* < when should the currently running thread be preempted */
+	uint64_t relink_deadline;
 
 	/**
 	 * Processor cycle accounting.
