@@ -38,8 +38,7 @@
 #define CONTEXT_OFFSET_R14  0x30
 #define CONTEXT_OFFSET_R15  0x38
 #define CONTEXT_OFFSET_TP   0x40
-#define CONTEXT_OFFSET_IPL  0x48
-#define CONTEXT_SIZE        0x50
+#define CONTEXT_SIZE        0x48
 
 #ifndef __ASSEMBLER__
 
@@ -59,7 +58,6 @@ typedef struct context {
 	uint64_t r14;
 	uint64_t r15;
 	uint64_t tp;
-	ipl_t ipl;
 } context_t;
 
 #endif

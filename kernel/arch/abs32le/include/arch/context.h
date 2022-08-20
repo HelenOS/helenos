@@ -48,7 +48,6 @@
 typedef struct {
 	uintptr_t sp;
 	uintptr_t pc;
-	ipl_t ipl;
 } context_t;
 
 #endif

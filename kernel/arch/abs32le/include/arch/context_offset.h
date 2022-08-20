@@ -36,7 +36,6 @@
 #define KERN_abs32le_CONTEXT_OFFSET_H_
 
 #define OFFSET_PC  0x00
-#define OFFSET_IPL 0x04
 
 #endif
 

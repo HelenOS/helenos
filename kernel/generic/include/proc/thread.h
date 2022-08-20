@@ -94,6 +94,7 @@ typedef struct thread {
 	 * when the thread is scheduled.
 	 */
 	context_t saved_context;
+	ipl_t saved_ipl;
 
 	/**
 	 * From here, the stored timeout context

@@ -364,7 +364,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	current_initialize((current_t *) thread->kstack);
 
 	ipl_t ipl = interrupts_disable();
-	thread->saved_context.ipl = interrupts_read();
+	thread->saved_ipl = interrupts_read();
 	interrupts_restore(ipl);
 
 	str_cpy(thread->name, THREAD_NAME_BUFLEN, name);

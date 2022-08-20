@@ -36,8 +36,7 @@
 #define CONTEXT_OFFSET_EDI  0x10
 #define CONTEXT_OFFSET_EBP  0x14
 #define CONTEXT_OFFSET_TP   0x18
-#define CONTEXT_OFFSET_IPL  0x1c
-#define CONTEXT_SIZE        0x20
+#define CONTEXT_SIZE        0x1c
 
 #ifndef __ASSEMBLER__
 
@@ -52,7 +51,6 @@ typedef struct context {
 	uint32_t edi;
 	uint32_t ebp;
 	uint32_t tp;
-	ipl_t ipl;
 } context_t;
 
 #endif

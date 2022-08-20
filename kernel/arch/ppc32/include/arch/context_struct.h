@@ -52,8 +52,7 @@
 #define CONTEXT_OFFSET_R30  0x50
 #define CONTEXT_OFFSET_R31  0x54
 #define CONTEXT_OFFSET_CR   0x58
-#define CONTEXT_OFFSET_IPL  0x5c
-#define CONTEXT_SIZE        0x60
+#define CONTEXT_SIZE        0x5c
 
 #ifndef __ASSEMBLER__
 
@@ -83,7 +82,6 @@ typedef struct context {
 	uint32_t r30;
 	uint32_t r31;
 	uint32_t cr;
-	ipl_t ipl;
 } context_t;
 
 #endif

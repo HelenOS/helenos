@@ -335,7 +335,7 @@ void scheduler(void)
 			THREAD->last_cycle = get_cycle();
 
 			irq_spinlock_unlock(&THREAD->lock, false);
-			interrupts_restore(THREAD->saved_context.ipl);
+			interrupts_restore(THREAD->saved_ipl);
 
 			return;
 		}
@@ -346,7 +346,7 @@ void scheduler(void)
 		 * interrupts_disable()'d code (e.g. waitq_sleep_timeout()).
 		 *
 		 */
-		THREAD->saved_context.ipl = ipl;
+		THREAD->saved_ipl = ipl;
 	}
 
 	/*

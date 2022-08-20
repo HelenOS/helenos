@@ -71,8 +71,7 @@
 #define CONTEXT_OFFSET_F29             0x1c0
 #define CONTEXT_OFFSET_F30             0x1d0
 #define CONTEXT_OFFSET_F31             0x1e0
-#define CONTEXT_OFFSET_IPL             0x1f0
-#define CONTEXT_SIZE                   0x200
+#define CONTEXT_SIZE                   0x1f0
 
 #ifndef __ASSEMBLER__
 
@@ -135,8 +134,6 @@ typedef struct context {
 	uint128_t f29;
 	uint128_t f30;
 	uint128_t f31;
-
-	ipl_t ipl;
 } context_t;
 
 #endif /* __ASSEMBLER__ */
