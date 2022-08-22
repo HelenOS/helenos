@@ -642,7 +642,7 @@ errno_t ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	uint16_t block_count = ext4_extent_get_block_count(path_ptr->extent);
 
 	uint16_t delete_count = block_count -
-	    (ext4_extent_get_start(path_ptr->extent) - first_fblock);
+	    (first_fblock - ext4_extent_get_start(path_ptr->extent));
 
 	/* Release all blocks */
 	rc = ext4_balloc_free_blocks(inode_ref, first_fblock, delete_count);
