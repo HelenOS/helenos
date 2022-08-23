@@ -3,6 +3,7 @@
 /doxygen/html
 /doxygen/latex
 /tools/*.pyc
+/tools/__pycache__
 tags
 tools/sycek/
 tools/xcw/demo/viewer
