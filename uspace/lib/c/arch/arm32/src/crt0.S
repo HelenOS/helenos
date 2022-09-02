@@ -39,6 +39,7 @@
 #
 SYMBOL(_start)
 	# Store the RAS page address into the ras_page variable
+	// FIXME: This only works for not-PIC executables.
 	ldr r0, =ras_page
 	str r2, [r0]
 

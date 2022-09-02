@@ -29,7 +29,7 @@
 
 arch_src += files(
 	'src/atomic.c',
-	'src/entryjmp.S',
+	'src/entryjmp.c',
 	'src/thread_entry.S',
 	'src/syscall.c',
 	'src/fibril.S',

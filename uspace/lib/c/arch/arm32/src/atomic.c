@@ -33,6 +33,7 @@
  */
 
 #include <stdbool.h>
+#include "ras_page.h"
 
 volatile unsigned *ras_page;
 

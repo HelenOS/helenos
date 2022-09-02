@@ -126,16 +126,6 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 		}
 
 		switch (rel_type) {
-		case R_ARM_ABS32:
-			DPRINTF("ignore R_ARM_ABS32\n");
-			/*
-			 * Not sure why we get these static relocations, but
-			 * attempting to process them will crash the
-			 * loader. If we ignore them, everything
-			 * seems to work.
-			 */
-			break;
-
 		case R_ARM_TLS_DTPMOD32:
 			DPRINTF("fixup R_ARM_TLS_DTPMOD32\n");
 			*r_ptr = dest->id;
@@ -188,7 +178,8 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 
 		case R_ARM_GLOB_DAT:
 		case R_ARM_JUMP_SLOT:
-			DPRINTF("fixup R_ARM_GLOB_DAT/JUMP_SLOT (S)\n");
+		case R_ARM_ABS32:
+			DPRINTF("fixup R_ARM_GLOB_DAT/JUMP_SLOT/ABS32 (S)\n");
 			*r_ptr = sym_addr;
 			break;
 
