@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
@@ -63,6 +64,7 @@ errno_t audio_sink_init(audio_sink_t *sink, const char *name, void *private_data
 	if (!name)
 		return EINVAL;
 	link_initialize(&sink->link);
+	fibril_mutex_initialize(&sink->lock);
 	list_initialize(&sink->connections);
 	sink->name = str_dup(name);
 	if (!sink->name)
@@ -138,6 +140,7 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void *dest, size_t size)
 	assert(dest);
 
 	pcm_format_silence(dest, size, &sink->format);
+	fibril_mutex_lock(&sink->lock);
 	list_foreach(sink->connections, sink_link, connection_t, conn) {
 		const errno_t ret = connection_add_source_data(
 		    conn, dest, size, sink->format);
@@ -146,6 +149,7 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void *dest, size_t size)
 			    connection_source_name(conn), str_error(ret));
 		}
 	}
+	fibril_mutex_unlock(&sink->lock);
 }
 
 /**

@@ -60,7 +60,9 @@ connection_t *connection_create(audio_source_t *source, audio_sink_t *sink)
 		conn->sink = sink;
 		conn->source = source;
 		list_append(&conn->source_link, &source->connections);
+		fibril_mutex_lock(&sink->lock);
 		list_append(&conn->sink_link, &sink->connections);
+		fibril_mutex_unlock(&sink->lock);
 		audio_sink_set_format(sink, audio_source_format(source));
 		if (source->connection_change)
 			source->connection_change(source, true);
@@ -82,7 +84,9 @@ void connection_destroy(connection_t *connection)
 	assert(connection);
 	assert(!link_in_use(&connection->hound_link));
 	list_remove(&connection->source_link);
+	fibril_mutex_lock(&connection->sink->lock);
 	list_remove(&connection->sink_link);
+	fibril_mutex_unlock(&connection->sink->lock);
 	if (connection->sink && connection->sink->connection_change)
 		connection->sink->connection_change(connection->sink, false);
 	if (connection->source && connection->source->connection_change)

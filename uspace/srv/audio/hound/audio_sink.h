@@ -40,6 +40,7 @@
 #include <async.h>
 #include <stdbool.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <pcm/format.h>
 
 #include "audio_source.h"
@@ -50,6 +51,8 @@ typedef struct audio_sink audio_sink_t;
 struct audio_sink {
 	/** Link in hound's sink list */
 	link_t link;
+	/** Protect sink including list of connections */
+	fibril_mutex_t lock;
 	/** List of all related connections */
 	list_t connections;
 	/** Sink's name */

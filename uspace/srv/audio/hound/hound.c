@@ -125,6 +125,7 @@ static void hound_remove_sink_internal(hound_t *hound, audio_sink_t *sink)
 	assert(sink);
 	assert(fibril_mutex_is_locked(&hound->list_guard));
 	log_verbose("Removing sink '%s'.", sink->name);
+	fibril_mutex_lock(&sink->lock);
 	if (!list_empty(&sink->connections))
 		log_warning("Removing sink '%s' while still connected.", sink->name);
 	while (!list_empty(&sink->connections)) {
@@ -134,6 +135,7 @@ static void hound_remove_sink_internal(hound_t *hound, audio_sink_t *sink)
 		connection_destroy(conn);
 	}
 	list_remove(&sink->link);
+	fibril_mutex_unlock(&sink->lock);
 }
 
 /**
