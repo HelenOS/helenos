@@ -1,0 +1,167 @@
+/*
+ * Copyright (c) 2022 Jiri Svoboda
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup taskbar
+ * @{
+ */
+/** @file Task Bar
+ */
+
+#include <gfx/coord.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <str.h>
+#include <ui/fixed.h>
+#include <ui/label.h>
+#include <ui/resource.h>
+#include <ui/ui.h>
+#include <ui/window.h>
+#include "taskbar.h"
+
+static void wnd_close(ui_window_t *, void *);
+
+static ui_window_cb_t window_cb = {
+	.close = wnd_close
+};
+
+/** Window close button was clicked.
+ *
+ * @param window Window
+ * @param arg Argument (taskbar)
+ */
+static void wnd_close(ui_window_t *window, void *arg)
+{
+	taskbar_t *taskbar = (taskbar_t *) arg;
+
+	ui_quit(taskbar->ui);
+}
+
+/** Create task bar.
+ *
+ * @param display_spec Display specification
+ * @param rtaskbar Place to store pointer to new task bar
+ * @return @c EOK on success or an error coe
+ */
+errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
+{
+	ui_wnd_params_t params;
+	taskbar_t *taskbar = NULL;
+	gfx_rect_t rect;
+	ui_resource_t *ui_res;
+	errno_t rc;
+
+	taskbar = calloc(1, sizeof(taskbar_t));
+	if (taskbar == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = ui_create(display_spec, &taskbar->ui);
+	if (rc != EOK) {
+		printf("Error creating UI on display %s.\n", display_spec);
+		goto error;
+	}
+
+	ui_wnd_params_init(&params);
+	params.caption = "Task Bar";
+	params.placement = ui_wnd_place_bottom_left;
+	params.style &= ~ui_wds_titlebar;
+
+	if (ui_is_textmode(taskbar->ui)) {
+		params.rect.p0.x = 0;
+		params.rect.p0.y = 0;
+		params.rect.p1.x = 24;
+		params.rect.p1.y = 5;
+	} else {
+		params.rect.p0.x = 0;
+		params.rect.p0.y = 0;
+		params.rect.p1.x = 1024;
+		params.rect.p1.y = 32;
+	}
+
+	rc = ui_window_create(taskbar->ui, &params, &taskbar->window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		goto error;
+	}
+
+	ui_window_set_cb(taskbar->window, &window_cb, (void *) &taskbar);
+	ui_res = ui_window_get_res(taskbar->window);
+
+	rc = ui_fixed_create(&taskbar->fixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		goto error;
+	}
+
+	rc = ui_label_create(ui_res, "Task bar!", &taskbar->label);
+	if (rc != EOK) {
+		printf("Error creating label.\n");
+		goto error;
+	}
+
+	ui_window_get_app_rect(taskbar->window, &rect);
+	ui_label_set_rect(taskbar->label, &rect);
+	ui_label_set_halign(taskbar->label, gfx_halign_center);
+	ui_label_set_valign(taskbar->label, gfx_valign_center);
+
+	rc = ui_fixed_add(taskbar->fixed, ui_label_ctl(taskbar->label));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		ui_label_destroy(taskbar->label);
+		goto error;
+	}
+
+	ui_window_add(taskbar->window, ui_fixed_ctl(taskbar->fixed));
+
+	rc = ui_window_paint(taskbar->window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		goto error;
+	}
+
+	*rtaskbar = taskbar;
+	return EOK;
+error:
+	if (taskbar->window != NULL)
+		ui_window_destroy(taskbar->window);
+	if (taskbar->ui != NULL)
+		ui_destroy(taskbar->ui);
+	return rc;
+
+}
+
+/** Destroy task bar. */
+void taskbar_destroy(taskbar_t *taskbar)
+{
+	ui_window_destroy(taskbar->window);
+	ui_destroy(taskbar->ui);
+}
+
+/** @}
+ */
