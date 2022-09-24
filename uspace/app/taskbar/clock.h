@@ -30,30 +30,28 @@
  * @{
  */
 /**
- * @file Task Bar types
+ * @file Task bar clock
  */
 
-#ifndef TYPES_TASKBAR_H
-#define TYPES_TASKBAR_H
+#ifndef CLOCK_H
+#define CLOCK_H
 
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/ui.h>
+#include <errno.h>
+#include <gfx/coord.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
+#include <ui/control.h>
 #include <ui/window.h>
-#include "clock.h"
+#include <stdbool.h>
+#include "types/clock.h"
 
-/** Task bar */
-typedef struct {
-	/** User interface */
-	ui_t *ui;
-	/** Taskbar window */
-	ui_window_t *window;
-	/** Fixed layout */
-	ui_fixed_t *fixed;
-	ui_label_t *label;
-	/** Clock */
-	taskbar_clock_t *clock;
-} taskbar_t;
+extern errno_t taskbar_clock_create(ui_window_t *, taskbar_clock_t **);
+extern void taskbar_clock_destroy(taskbar_clock_t *);
+extern errno_t taskbar_clock_paint(taskbar_clock_t *);
+extern ui_evclaim_t taskbar_clock_kbd_event(taskbar_clock_t *, kbd_event_t *);
+extern ui_evclaim_t taskbar_clock_pos_event(taskbar_clock_t *, pos_event_t *);
+extern ui_control_t *taskbar_clock_ctl(taskbar_clock_t *);
+extern void taskbar_clock_set_rect(taskbar_clock_t *, gfx_rect_t *);
 
 #endif
 

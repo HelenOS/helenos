@@ -676,5 +676,25 @@ gfx_font_t *ui_resource_get_font(ui_resource_t *resource)
 	return resource->font;
 }
 
+/** Get the UI window face color.
+ *
+ * @param resource UI resource
+ * @return UI window face color
+ */
+gfx_color_t *ui_resource_get_wnd_face_color(ui_resource_t *resource)
+{
+	return resource->wnd_face_color;
+}
+
+/** Get the UI window text color.
+ *
+ * @param resource UI resource
+ * @return UI window text color
+ */
+gfx_color_t *ui_resource_get_wnd_text_color(ui_resource_t *resource)
+{
+	return resource->wnd_text_color;
+}
+
 /** @}
  */

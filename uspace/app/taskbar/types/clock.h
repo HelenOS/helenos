@@ -30,30 +30,33 @@
  * @{
  */
 /**
- * @file Task Bar types
+ * @file Task bar clock
  */
 
-#ifndef TYPES_TASKBAR_H
-#define TYPES_TASKBAR_H
+#ifndef TYPES_CLOCK_H
+#define TYPES_CLOCK_H
 
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/ui.h>
+#include <fibril_synch.h>
+#include <gfx/coord.h>
 #include <ui/window.h>
-#include "clock.h"
 
-/** Task bar */
-typedef struct {
-	/** User interface */
-	ui_t *ui;
-	/** Taskbar window */
+/** Task bar clock
+ *
+ * This is a custom UI control.
+ */
+typedef struct taskbar_clock {
+	/** Base control object */
+	struct ui_control *control;
+
+	/** Containing window */
 	ui_window_t *window;
-	/** Fixed layout */
-	ui_fixed_t *fixed;
-	ui_label_t *label;
-	/** Clock */
-	taskbar_clock_t *clock;
-} taskbar_t;
+
+	/** Clock rectangle */
+	gfx_rect_t rect;
+
+	/** Clock update timer */
+	fibril_timer_t *timer;
+} taskbar_clock_t;
 
 #endif
 

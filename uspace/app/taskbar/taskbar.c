@@ -41,6 +41,7 @@
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
+#include "clock.h"
 #include "taskbar.h"
 
 static void wnd_close(ui_window_t *, void *);
@@ -95,8 +96,9 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 	if (ui_is_textmode(taskbar->ui)) {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
-		params.rect.p1.x = 24;
-		params.rect.p1.y = 5;
+		params.rect.p1.x = 80;
+		params.rect.p1.y = 1;
+		params.style &= ~ui_wds_frame;
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
@@ -137,6 +139,23 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 		goto error;
 	}
 
+	rc = taskbar_clock_create(taskbar->window, &taskbar->clock);
+	if (rc != EOK)
+		goto error;
+
+	rect.p0.x = 1024 - 80;
+	rect.p0.y = 4;
+	rect.p1.x = 1024 - 4;
+	rect.p1.y = 32 - 4;
+	taskbar_clock_set_rect(taskbar->clock, &rect);
+
+	rc = ui_fixed_add(taskbar->fixed, taskbar_clock_ctl(taskbar->clock));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		taskbar_clock_destroy(taskbar->clock);
+		goto error;
+	}
+
 	ui_window_add(taskbar->window, ui_fixed_ctl(taskbar->fixed));
 
 	rc = ui_window_paint(taskbar->window);
@@ -148,6 +167,8 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 	*rtaskbar = taskbar;
 	return EOK;
 error:
+	if (taskbar->clock != NULL)
+		taskbar_clock_destroy(taskbar->clock);
 	if (taskbar->window != NULL)
 		ui_window_destroy(taskbar->window);
 	if (taskbar->ui != NULL)
@@ -159,6 +180,7 @@ error:
 /** Destroy task bar. */
 void taskbar_destroy(taskbar_t *taskbar)
 {
+	taskbar_clock_destroy(taskbar->clock);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);
 }

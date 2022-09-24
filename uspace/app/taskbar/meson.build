@@ -28,6 +28,7 @@
 
 deps = [ 'ui' ]
 src = files(
+	'clock.c',
 	'main.c',
 	'taskbar.c',
 )
