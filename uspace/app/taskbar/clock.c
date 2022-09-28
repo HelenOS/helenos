@@ -43,6 +43,7 @@
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/resource.h>
+#include <ui/ui.h>
 #include "clock.h"
 
 static void taskbar_clock_ctl_destroy(void *);
@@ -134,22 +135,27 @@ errno_t taskbar_clock_paint(taskbar_clock_t *clock)
 {
 	gfx_context_t *gc = ui_window_get_gc(clock->window);
 	ui_resource_t *res = ui_window_get_res(clock->window);
+	ui_t *ui = ui_window_get_ui(clock->window);
 	char buf[10];
 	gfx_text_fmt_t fmt;
 	gfx_coord2_t pos;
 	gfx_rect_t irect;
 	errno_t rc;
 
-	/* Fill background */
-
-	rc = ui_paint_inset_frame(res, &clock->rect, &irect);
-	if (rc != EOK)
-		goto error;
+	if (!ui_is_textmode(ui)) {
+		/* Paint frame */
+		rc = ui_paint_inset_frame(res, &clock->rect, &irect);
+		if (rc != EOK)
+			goto error;
+	} else {
+		irect = clock->rect;
+	}
 
 	rc = gfx_set_color(gc, ui_resource_get_wnd_face_color(res));
 	if (rc != EOK)
 		goto error;
 
+	/* Fill background */
 	rc = gfx_fill_rect(gc, &irect);
 	if (rc != EOK)
 		goto error;

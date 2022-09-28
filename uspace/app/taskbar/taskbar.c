@@ -72,6 +72,7 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 {
 	ui_wnd_params_t params;
 	taskbar_t *taskbar = NULL;
+	gfx_rect_t scr_rect;
 	gfx_rect_t rect;
 	ui_resource_t *ui_res;
 	errno_t rc;
@@ -88,21 +89,25 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 		goto error;
 	}
 
+	rc = ui_get_rect(taskbar->ui, &scr_rect);
+	if (rc != EOK) {
+		printf("Error getting screen dimensions.\n");
+		goto error;
+	}
+
 	ui_wnd_params_init(&params);
 	params.caption = "Task Bar";
 	params.placement = ui_wnd_place_bottom_left;
 	params.style &= ~ui_wds_titlebar;
 
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = scr_rect.p1.x - scr_rect.p0.x;
+
 	if (ui_is_textmode(taskbar->ui)) {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 80;
 		params.rect.p1.y = 1;
 		params.style &= ~ui_wds_frame;
 	} else {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 1024;
 		params.rect.p1.y = 32;
 	}
 
@@ -143,10 +148,18 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 	if (rc != EOK)
 		goto error;
 
-	rect.p0.x = 1024 - 80;
-	rect.p0.y = 4;
-	rect.p1.x = 1024 - 4;
-	rect.p1.y = 32 - 4;
+	if (ui_is_textmode(taskbar->ui)) {
+		rect.p0.x = params.rect.p1.x - 10;
+		rect.p0.y = 0;
+		rect.p1.x = params.rect.p1.x;
+		rect.p1.y = 1;
+	} else {
+		rect.p0.x = params.rect.p1.x - 80;
+		rect.p0.y = 4;
+		rect.p1.x = params.rect.p1.x - 4;
+		rect.p1.y = 32 - 4;
+	}
+
 	taskbar_clock_set_rect(taskbar->clock, &rect);
 
 	rc = ui_fixed_add(taskbar->fixed, taskbar_clock_ctl(taskbar->clock));

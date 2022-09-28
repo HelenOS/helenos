@@ -168,6 +168,24 @@ PCUT_TEST(is_fullscreen)
 	ui_destroy(ui);
 }
 
+/** ui_is_get_rect() */
+PCUT_TEST(get_rect)
+{
+	ui_t *ui = NULL;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(ui);
+
+	/* This won't work without a display service */
+	rc = ui_get_rect(ui, &rect);
+	PCUT_ASSERT_ERRNO_VAL(ENOTSUP, rc);
+
+	ui_destroy(ui);
+}
+
 /** ui_lock(), ui_unlock() */
 PCUT_TEST(lock_unlock)
 {

@@ -523,6 +523,39 @@ bool ui_is_fullscreen(ui_t *ui)
 	return (ui->display == NULL);
 }
 
+/** Get UI screen rectangle.
+ *
+ * @param ui User interface
+ * @param rect Place to store bounding rectangle
+ */
+errno_t ui_get_rect(ui_t *ui, gfx_rect_t *rect)
+{
+	display_info_t info;
+	sysarg_t cols, rows;
+	errno_t rc;
+
+	if (ui->display != NULL) {
+		rc = display_get_info(ui->display, &info);
+		if (rc != EOK)
+			return rc;
+
+		*rect = info.rect;
+	} else if (ui->console != NULL) {
+		rc = console_get_size(ui->console, &cols, &rows);
+		if (rc != EOK)
+			return rc;
+
+		rect->p0.x = 0;
+		rect->p0.y = 0;
+		rect->p1.x = cols;
+		rect->p1.y = rows;
+	} else {
+		return ENOTSUP;
+	}
+
+	return EOK;
+}
+
 /** Get clickmatic from UI.
  *
  * @pararm ui UI
