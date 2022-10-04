@@ -32,3 +32,11 @@ src = files(
 	'main.c',
 	'taskbar.c',
 )
+
+test_src = files(
+	'clock.c',
+	'taskbar.c',
+	'test/clock.c',
+	'test/main.c',
+	'test/taskbar.c',
+)

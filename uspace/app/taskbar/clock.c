@@ -88,6 +88,8 @@ errno_t taskbar_clock_create(ui_window_t *window, taskbar_clock_t **rclock)
 		goto error;
 	}
 
+	fibril_mutex_initialize(&clock->lock);
+	fibril_condvar_initialize(&clock->timer_done_cv);
 	fibril_timer_set(clock->timer, 1000000, taskbar_clock_timer, clock);
 
 	clock->window = window;
@@ -105,6 +107,25 @@ error:
  */
 void taskbar_clock_destroy(taskbar_clock_t *clock)
 {
+	/*
+	 * Signal to the timer that we are cleaning up. If the timer handler
+	 * misses it and sets the timer again, we will clear that active
+	 * timer and be done (and if we were even slower and the timer
+	 * fired again, it's the same situation as before.
+	 */
+	fibril_mutex_lock(&clock->lock);
+	clock->timer_cleanup = true;
+	fibril_mutex_unlock(&clock->lock);
+
+	/* If we catch the timer while it's active, there's nothing to do. */
+	if (fibril_timer_clear(clock->timer) != fts_active) {
+		/* Need to wait for timer handler to finish */
+		fibril_mutex_lock(&clock->lock);
+		while (clock->timer_done == false)
+			fibril_condvar_wait(&clock->timer_done_cv, &clock->lock);
+		fibril_mutex_unlock(&clock->lock);
+	}
+
 	fibril_timer_destroy(clock->timer);
 	ui_control_delete(clock->control);
 	free(clock);
@@ -301,8 +322,19 @@ static void taskbar_clock_timer(void *arg)
 {
 	taskbar_clock_t *clock = (taskbar_clock_t *) arg;
 
+	fibril_mutex_lock(&clock->lock);
 	(void) taskbar_clock_paint(clock);
-	fibril_timer_set(clock->timer, 1000000, taskbar_clock_timer, clock);
+
+	if (!clock->timer_cleanup) {
+		fibril_timer_set(clock->timer, 1000000, taskbar_clock_timer,
+		    clock);
+	} else {
+		/* Acknowledge timer cleanup */
+		clock->timer_done = true;
+		fibril_condvar_signal(&clock->timer_done_cv);
+	}
+
+	fibril_mutex_unlock(&clock->lock);
 }
 
 /** @}

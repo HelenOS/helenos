@@ -91,8 +91,16 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 
 	rc = ui_get_rect(taskbar->ui, &scr_rect);
 	if (rc != EOK) {
-		printf("Error getting screen dimensions.\n");
-		goto error;
+		if (str_cmp(display_spec, UI_DISPLAY_NULL) != 0) {
+			printf("Error getting screen dimensions.\n");
+			goto error;
+		}
+
+		/* For the sake of unit tests */
+		scr_rect.p0.x = 0;
+		scr_rect.p0.y = 0;
+		scr_rect.p1.x = 100;
+		scr_rect.p1.y = 100;
 	}
 
 	ui_wnd_params_init(&params);
@@ -193,6 +201,7 @@ error:
 /** Destroy task bar. */
 void taskbar_destroy(taskbar_t *taskbar)
 {
+	ui_fixed_remove(taskbar->fixed,  taskbar_clock_ctl(taskbar->clock));
 	taskbar_clock_destroy(taskbar->clock);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);

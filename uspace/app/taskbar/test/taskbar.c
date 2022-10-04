@@ -26,51 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup taskbar
- * @{
- */
-/**
- * @file Task bar clock
- */
+#include <errno.h>
+#include <pcut/pcut.h>
+#include "../taskbar.h"
 
-#ifndef TYPES_CLOCK_H
-#define TYPES_CLOCK_H
+PCUT_INIT;
 
-#include <fibril_synch.h>
-#include <gfx/coord.h>
-#include <ui/window.h>
+PCUT_TEST_SUITE(taskbar);
 
-/** Task bar clock
- *
- * This is a custom UI control.
- */
-typedef struct taskbar_clock {
-	/** Base control object */
-	struct ui_control *control;
+/* Test creating and destroying taskbar */
+PCUT_TEST(create_destroy)
+{
+	errno_t rc;
+	taskbar_t *taskbar;
 
-	/** Containing window */
-	ui_window_t *window;
+	rc = taskbar_create(UI_DISPLAY_NULL, &taskbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	/** Clock rectangle */
-	gfx_rect_t rect;
+	taskbar_destroy(taskbar);
+}
 
-	/** Clock lock */
-	fibril_mutex_t lock;
-
-	/** Clock update timer */
-	fibril_timer_t *timer;
-
-	/** Signal to timer that we are cleaning up */
-	bool timer_cleanup;
-
-	/** Signal to maih thread that timer is done */
-	bool timer_done;
-
-	/** Timer done condition variable */
-	fibril_condvar_t timer_done_cv;
-} taskbar_clock_t;
-
-#endif
-
-/** @}
- */
+PCUT_EXPORT(taskbar);
