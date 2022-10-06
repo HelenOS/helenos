@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,8 +39,8 @@
 #include <errno.h>
 #include "types/taskbar.h"
 
-errno_t taskbar_create(const char *display_spec, taskbar_t **);
-void taskbar_destroy(taskbar_t *);
+extern errno_t taskbar_create(const char *display_spec, taskbar_t **);
+extern void taskbar_destroy(taskbar_t *);
 
 #endif
 

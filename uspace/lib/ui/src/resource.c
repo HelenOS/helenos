@@ -676,6 +676,16 @@ gfx_font_t *ui_resource_get_font(ui_resource_t *resource)
 	return resource->font;
 }
 
+/** Determine if resource is textmode.
+ *
+ * @param resource UI resource
+ * @return @c true iff resource is textmode
+ */
+bool ui_resource_is_textmode(ui_resource_t *resource)
+{
+	return resource->textmode;
+}
+
 /** Get the UI window face color.
  *
  * @param resource UI resource

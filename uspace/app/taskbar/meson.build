@@ -31,12 +31,15 @@ src = files(
 	'clock.c',
 	'main.c',
 	'taskbar.c',
+	'wndlist.c',
 )
 
 test_src = files(
 	'clock.c',
 	'taskbar.c',
+	'wndlist.c',
 	'test/clock.c',
 	'test/main.c',
 	'test/taskbar.c',
+	'test/wndlist.c',
 )

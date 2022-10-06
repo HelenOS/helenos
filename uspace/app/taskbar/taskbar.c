@@ -43,6 +43,7 @@
 #include <ui/window.h>
 #include "clock.h"
 #include "taskbar.h"
+#include "wndlist.h"
 
 static void wnd_close(ui_window_t *, void *);
 
@@ -134,21 +135,38 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 		goto error;
 	}
 
-	rc = ui_label_create(ui_res, "Task bar!", &taskbar->label);
+	rc = ui_label_create(ui_res, "HelenOS", &taskbar->label);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
 		goto error;
 	}
 
 	ui_window_get_app_rect(taskbar->window, &rect);
+	if (ui_is_textmode(taskbar->ui)) {
+		rect.p0.x += 1;
+	} else {
+		rect.p0.x += 10;
+	}
 	ui_label_set_rect(taskbar->label, &rect);
-	ui_label_set_halign(taskbar->label, gfx_halign_center);
+	ui_label_set_halign(taskbar->label, gfx_halign_left);
 	ui_label_set_valign(taskbar->label, gfx_valign_center);
 
 	rc = ui_fixed_add(taskbar->fixed, ui_label_ctl(taskbar->label));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		ui_label_destroy(taskbar->label);
+		goto error;
+	}
+
+	rc = wndlist_create(ui_res, taskbar->fixed, &taskbar->wndlist);
+	if (rc != EOK) {
+		printf("Error creating window list.\n");
+		goto error;
+	}
+
+	rc = wndlist_append(taskbar->wndlist, "Text Editor");
+	if (rc != EOK) {
+		printf("Error adding window list entry.\n");
 		goto error;
 	}
 
@@ -190,6 +208,8 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 error:
 	if (taskbar->clock != NULL)
 		taskbar_clock_destroy(taskbar->clock);
+	if (taskbar->wndlist != NULL)
+		wndlist_destroy(taskbar->wndlist);
 	if (taskbar->window != NULL)
 		ui_window_destroy(taskbar->window);
 	if (taskbar->ui != NULL)

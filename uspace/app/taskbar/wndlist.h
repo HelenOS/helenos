@@ -30,33 +30,20 @@
  * @{
  */
 /**
- * @file Task Bar types
+ * @file Task bar window list
  */
 
-#ifndef TYPES_TASKBAR_H
-#define TYPES_TASKBAR_H
+#ifndef WNDLIST_H
+#define WNDLIST_H
 
+#include <errno.h>
 #include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/ui.h>
-#include <ui/window.h>
-#include "clock.h"
-#include "wndlist.h"
+#include <ui/resource.h>
+#include "types/wndlist.h"
 
-/** Task bar */
-typedef struct taskbar {
-	/** User interface */
-	ui_t *ui;
-	/** Taskbar window */
-	ui_window_t *window;
-	/** Fixed layout */
-	ui_fixed_t *fixed;
-	ui_label_t *label;
-	/** Window list */
-	wndlist_t *wndlist;
-	/** Clock */
-	taskbar_clock_t *clock;
-} taskbar_t;
+extern errno_t wndlist_create(ui_resource_t *, ui_fixed_t *, wndlist_t **);
+extern void wndlist_destroy(wndlist_t *);
+extern errno_t wndlist_append(wndlist_t *, const char *);
 
 #endif
 

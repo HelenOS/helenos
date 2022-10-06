@@ -26,39 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup taskbar
- * @{
- */
-/**
- * @file Task Bar types
- */
-
-#ifndef TYPES_TASKBAR_H
-#define TYPES_TASKBAR_H
-
+#include <errno.h>
+#include <pcut/pcut.h>
 #include <ui/fixed.h>
-#include <ui/label.h>
 #include <ui/ui.h>
 #include <ui/window.h>
-#include "clock.h"
-#include "wndlist.h"
+#include "../wndlist.h"
 
-/** Task bar */
-typedef struct taskbar {
-	/** User interface */
-	ui_t *ui;
-	/** Taskbar window */
-	ui_window_t *window;
-	/** Fixed layout */
-	ui_fixed_t *fixed;
-	ui_label_t *label;
-	/** Window list */
+PCUT_INIT;
+
+PCUT_TEST_SUITE(taskbar);
+
+/* Test creating and destroying window list */
+PCUT_TEST(create_destroy)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_fixed_t *fixed = NULL;
+	ui_resource_t *res;
 	wndlist_t *wndlist;
-	/** Clock */
-	taskbar_clock_t *clock;
-} taskbar_t;
 
-#endif
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-/** @}
- */
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	res = ui_window_get_res(window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_fixed_create(&fixed);
+	ui_window_add(window, ui_fixed_ctl(fixed));
+
+	rc = wndlist_create(res, fixed, &wndlist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wndlist_destroy(wndlist);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(wndlist);

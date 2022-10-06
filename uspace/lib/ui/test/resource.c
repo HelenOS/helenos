@@ -133,6 +133,112 @@ PCUT_TEST(set_expose_cb_expose)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** ui_resource_get_font() returns the font */
+PCUT_TEST(get_font)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	gfx_font_t *font;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	font = ui_resource_get_font(resource);
+	PCUT_ASSERT_EQUALS(resource->font, font);
+
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ui_resource_is_textmode() returns the textmode flag */
+PCUT_TEST(is_textmode)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	/* To make sure let's test both true and false case */
+	resource->textmode = true;
+	PCUT_ASSERT_TRUE(ui_resource_is_textmode(resource));
+	resource->textmode = false;
+	PCUT_ASSERT_FALSE(ui_resource_is_textmode(resource));
+
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ui_resource_get_wnd_face_color() returns window face color */
+PCUT_TEST(get_wnd_face_color)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	gfx_color_t *color;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	color = ui_resource_get_wnd_face_color(resource);
+	PCUT_ASSERT_EQUALS(resource->wnd_face_color, color);
+
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** ui_resource_get_wnd_text_color() returns window text color */
+PCUT_TEST(get_wnd_text_color)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	gfx_color_t *color;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	color = ui_resource_get_wnd_text_color(resource);
+	PCUT_ASSERT_EQUALS(resource->wnd_text_color, color);
+
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 static errno_t testgc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
     gfx_bitmap_alloc_t *alloc, void **rbm)
 {

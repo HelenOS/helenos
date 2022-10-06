@@ -32,5 +32,6 @@ PCUT_INIT;
 
 PCUT_IMPORT(clock);
 PCUT_IMPORT(taskbar);
+PCUT_IMPORT(wndlist);
 
 PCUT_MAIN();

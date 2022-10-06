@@ -49,6 +49,7 @@ extern void ui_resource_set_expose_cb(ui_resource_t *, ui_expose_cb_t,
     void *);
 extern void ui_resource_expose(ui_resource_t *);
 extern gfx_font_t *ui_resource_get_font(ui_resource_t *);
+extern bool ui_resource_is_textmode(ui_resource_t *);
 extern gfx_color_t *ui_resource_get_wnd_face_color(ui_resource_t *);
 extern gfx_color_t *ui_resource_get_wnd_text_color(ui_resource_t *);
 

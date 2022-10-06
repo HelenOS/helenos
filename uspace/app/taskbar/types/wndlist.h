@@ -30,33 +30,45 @@
  * @{
  */
 /**
- * @file Task Bar types
+ * @file Task bar window list
  */
 
-#ifndef TYPES_TASKBAR_H
-#define TYPES_TASKBAR_H
+#ifndef TYPES_WNDLIST_H
+#define TYPES_WNDLIST_H
 
+#include <adt/list.h>
+#include <gfx/coord.h>
+#include <ui/pbutton.h>
 #include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/ui.h>
-#include <ui/window.h>
-#include "clock.h"
-#include "wndlist.h"
+#include <ui/resource.h>
 
-/** Task bar */
-typedef struct taskbar {
-	/** User interface */
-	ui_t *ui;
-	/** Taskbar window */
-	ui_window_t *window;
-	/** Fixed layout */
+/** Taskbar window list entry */
+typedef struct {
+	/** Containing window list */
+	struct wndlist *wndlist;
+	/** Link to wndlist->entries */
+	link_t lentries;
+	/** Window button */
+	ui_pbutton_t *button;
+} wndlist_entry_t;
+
+/** Task bar window list */
+typedef struct wndlist {
+	/** Base control object */
+	struct ui_control *control;
+
+	/** UI resource */
+	ui_resource_t *res;
+
+	/** Layout to which we add window buttoons */
 	ui_fixed_t *fixed;
-	ui_label_t *label;
-	/** Window list */
-	wndlist_t *wndlist;
-	/** Clock */
-	taskbar_clock_t *clock;
-} taskbar_t;
+
+	/** Window list rectangle */
+	gfx_rect_t rect;
+
+	/** Window list entries (of wndlist_entry_t) */
+	list_t entries;
+} wndlist_t;
 
 #endif
 
