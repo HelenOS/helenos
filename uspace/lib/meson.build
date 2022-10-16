@@ -102,6 +102,7 @@ libs = [
 	'ieee80211',
 	'ddev',
 	'display',
+	'wndmgt',
 
 	'ui',
 ]
