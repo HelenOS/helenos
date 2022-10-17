@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <task.h>
+#include <wndmgt_srv.h>
 #include "client.h"
 #include "display.h"
 #include "dsops.h"
@@ -54,9 +55,12 @@
 #include "output.h"
 #include "seat.h"
 #include "window.h"
+#include "wmops.h"
 
 static void display_client_conn(ipc_call_t *, void *);
 static void display_client_ev_pending(void *);
+static void display_gc_conn(ipc_call_t *, void *);
+static void display_wndmgt_conn(ipc_call_t *, void *);
 
 #ifdef CONFIG_DISP_DOUBLE_BUF
 /*
@@ -89,6 +93,9 @@ static errno_t display_srv_init(ds_output_t **routput)
 	ds_seat_t *seat = NULL;
 	ds_output_t *output = NULL;
 	gfx_context_t *gc = NULL;
+	port_id_t disp_port;
+	port_id_t gc_port;
+	port_id_t wm_port;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_srv_init()");
@@ -114,7 +121,19 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK)
 		goto error;
 
-	async_set_fallback_port_handler(display_client_conn, disp);
+	rc = async_create_port(INTERFACE_DISPLAY, display_client_conn, disp,
+	    &disp_port);
+	if (rc != EOK)
+		goto error;
+
+	rc = async_create_port(INTERFACE_GC, display_gc_conn, disp, &gc_port);
+	if (rc != EOK)
+		goto error;
+
+	rc = async_create_port(INTERFACE_WNDMGT, display_wndmgt_conn, disp,
+	    &wm_port);
+	if (rc != EOK)
+		goto error;
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
@@ -134,6 +153,9 @@ static errno_t display_srv_init(ds_output_t **routput)
 	*routput = output;
 	return EOK;
 error:
+	// XXX destroy disp_port
+	// XXX destroy gc_port
+	// XXX destroy wm_port
 #if 0
 	if (disp->input != NULL)
 		ds_input_close(disp);
@@ -153,23 +175,16 @@ error:
 static void display_client_conn(ipc_call_t *icall, void *arg)
 {
 	display_srv_t srv;
-	sysarg_t wnd_id;
 	sysarg_t svc_id;
 	ds_client_t *client = NULL;
-	ds_window_t *wnd;
 	ds_display_t *disp = (ds_display_t *) arg;
-	gfx_context_t *gc;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_client_conn arg1=%zu arg2=%zu arg3=%zu arg4=%zu.",
 	    ipc_get_arg1(icall), ipc_get_arg2(icall), ipc_get_arg3(icall),
 	    ipc_get_arg4(icall));
 
-	(void) icall;
-	(void) arg;
-
 	svc_id = ipc_get_arg2(icall);
-	wnd_id = ipc_get_arg3(icall);
 
 	if (svc_id != 0) {
 		/* Create client object */
@@ -190,22 +205,51 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 		ds_display_lock(disp);
 		ds_client_destroy(client);
 		ds_display_unlock(disp);
-	} else {
-		/* Window GC connection */
-
-		wnd = ds_display_find_window(disp, wnd_id);
-		if (wnd == NULL) {
-			async_answer_0(icall, ENOENT);
-			return;
-		}
-
-		/*
-		 * XXX We need a way to make sure that the connection does
-		 * not stay active after the window had been destroyed
-		 */
-		gc = ds_window_get_ctx(wnd);
-		gc_conn(icall, gc);
 	}
+}
+
+/** Handle GC connection to display server */
+static void display_gc_conn(ipc_call_t *icall, void *arg)
+{
+	sysarg_t wnd_id;
+	ds_window_t *wnd;
+	ds_display_t *disp = (ds_display_t *) arg;
+	gfx_context_t *gc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_gc_conn arg1=%zu arg2=%zu arg3=%zu arg4=%zu.",
+	    ipc_get_arg1(icall), ipc_get_arg2(icall), ipc_get_arg3(icall),
+	    ipc_get_arg4(icall));
+
+	wnd_id = ipc_get_arg3(icall);
+
+	/* Window GC connection */
+
+	wnd = ds_display_find_window(disp, wnd_id);
+	if (wnd == NULL) {
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	/*
+	 * XXX We need a way to make sure that the connection does
+	 * not stay active after the window had been destroyed
+	 */
+	gc = ds_window_get_ctx(wnd);
+	gc_conn(icall, gc);
+}
+
+/** Handle window management connection to display server */
+static void display_wndmgt_conn(ipc_call_t *icall, void *arg)
+{
+	wndmgt_srv_t srv;
+
+	/* Set up protocol structure */
+	wndmgt_srv_initialize(&srv);
+	srv.ops = &wndmgt_srv_ops;
+	srv.arg = NULL; // XXX
+
+	/* Handle connection */
+	wndmgt_conn(icall, &srv);
 }
 
 int main(int argc, char *argv[])

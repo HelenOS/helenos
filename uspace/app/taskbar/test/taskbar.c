@@ -40,7 +40,7 @@ PCUT_TEST(create_destroy)
 	errno_t rc;
 	taskbar_t *taskbar;
 
-	rc = taskbar_create(UI_DISPLAY_NULL, &taskbar);
+	rc = taskbar_create(UI_DISPLAY_NULL, NULL, &taskbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	taskbar_destroy(taskbar);

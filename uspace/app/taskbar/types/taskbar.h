@@ -56,6 +56,8 @@ typedef struct taskbar {
 	wndlist_t *wndlist;
 	/** Clock */
 	taskbar_clock_t *clock;
+	/** Window management service */
+	wndmgt_t *wndmgt;
 } taskbar_t;
 
 #endif

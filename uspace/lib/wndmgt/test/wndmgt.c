@@ -33,6 +33,7 @@
 #include <fibril_synch.h>
 #include <loc.h>
 #include <pcut/pcut.h>
+#include <str.h>
 #include "../private/wndmgt.h"
 
 PCUT_INIT;
@@ -80,6 +81,7 @@ typedef struct {
 	wndmgt_window_list_t *get_window_list_rlist;
 
 	bool get_window_info_called;
+	sysarg_t get_window_info_wnd_id;
 	wndmgt_window_info_t *get_window_info_rinfo;
 
 	bool activate_window_called;
@@ -126,6 +128,168 @@ PCUT_TEST(open_close)
 	rc = loc_service_unregister(sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
+
+/** wndmgt_get_window_list() with server returning error response works */
+PCUT_TEST(get_window_list_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	wndmgt_t *wndmgt = NULL;
+	wndmgt_window_list_t *list;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_wndmgt_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_wndmgt_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wndmgt);
+
+	resp.rc = ENOMEM;
+	resp.get_window_list_called = false;
+
+	rc = wndmgt_get_window_list(wndmgt, &list);
+	PCUT_ASSERT_TRUE(resp.get_window_list_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	wndmgt_close(wndmgt);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** wndmgt_get_window_list() with server returning success response works */
+PCUT_TEST(get_window_list_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	wndmgt_t *wndmgt = NULL;
+	wndmgt_window_list_t *list;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_wndmgt_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_wndmgt_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wndmgt);
+
+	resp.rc = EOK;
+	resp.get_window_list_called = false;
+	resp.get_window_list_rlist = calloc(1, sizeof(wndmgt_window_list_t));
+	PCUT_ASSERT_NOT_NULL(resp.get_window_list_rlist);
+	resp.get_window_list_rlist->nwindows = 2;
+	resp.get_window_list_rlist->windows = calloc(2, sizeof(sysarg_t));
+	PCUT_ASSERT_NOT_NULL(resp.get_window_list_rlist->windows);
+	resp.get_window_list_rlist->windows[0] = 42;
+	resp.get_window_list_rlist->windows[1] = 43;
+
+	rc = wndmgt_get_window_list(wndmgt, &list);
+	PCUT_ASSERT_TRUE(resp.get_window_list_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, list->nwindows);
+	PCUT_ASSERT_INT_EQUALS(42, list->windows[0]);
+	PCUT_ASSERT_INT_EQUALS(43, list->windows[1]);
+
+	wndmgt_free_window_list(list);
+	wndmgt_close(wndmgt);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** wndmgt_get_window_infp() with server returning error response works */
+PCUT_TEST(get_window_info_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	wndmgt_t *wndmgt = NULL;
+	sysarg_t wnd_id;
+	wndmgt_window_info_t *info;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_wndmgt_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_wndmgt_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wndmgt);
+
+	resp.rc = ENOMEM;
+	resp.get_window_info_called = false;
+	wnd_id = 1;
+
+	rc = wndmgt_get_window_info(wndmgt, wnd_id, &info);
+	PCUT_ASSERT_TRUE(resp.get_window_info_called);
+	PCUT_ASSERT_INT_EQUALS(wnd_id, resp.get_window_info_wnd_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	wndmgt_close(wndmgt);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** wndmgt_get_window_info() with server returning success response works */
+PCUT_TEST(get_window_info_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	wndmgt_t *wndmgt = NULL;
+	sysarg_t wnd_id;
+	wndmgt_window_info_t *info;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_wndmgt_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_wndmgt_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wndmgt);
+
+	resp.rc = EOK;
+	resp.get_window_info_called = false;
+	resp.get_window_info_rinfo = calloc(1, sizeof(wndmgt_window_info_t));
+	PCUT_ASSERT_NOT_NULL(resp.get_window_info_rinfo);
+	resp.get_window_info_rinfo->caption = str_dup("Hello");
+	PCUT_ASSERT_NOT_NULL(resp.get_window_info_rinfo->caption);
+	wnd_id = 1;
+
+	rc = wndmgt_get_window_info(wndmgt, wnd_id, &info);
+	PCUT_ASSERT_TRUE(resp.get_window_info_called);
+	PCUT_ASSERT_INT_EQUALS(wnd_id, resp.get_window_info_wnd_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	PCUT_ASSERT_STR_EQUALS("Hello", info->caption);
+
+	wndmgt_free_window_info(info);
+	wndmgt_close(wndmgt);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** wndmgt_activate_window() with server returning error response works */
 PCUT_TEST(activate_window_failure)
 {
@@ -198,8 +362,80 @@ PCUT_TEST(activate_window_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** wndmgt_close_window() with server returning error response works */
+PCUT_TEST(close_window_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	wndmgt_t *wndmgt = NULL;
+	sysarg_t wnd_id;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_wndmgt_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_wndmgt_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wndmgt);
+
+	wnd_id = 42;
+	resp.rc = ENOMEM;
+	resp.close_window_called = false;
+
+	rc = wndmgt_close_window(wndmgt, wnd_id);
+	PCUT_ASSERT_TRUE(resp.close_window_called);
+	PCUT_ASSERT_INT_EQUALS(wnd_id, resp.close_window_wnd_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	wndmgt_close(wndmgt);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** wndmgt_close_window() with server returning success response works */
+PCUT_TEST(close_window_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	wndmgt_t *wndmgt = NULL;
+	sysarg_t wnd_id;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_wndmgt_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_wndmgt_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wndmgt);
+
+	wnd_id = 42;
+	resp.rc = EOK;
+	resp.close_window_called = false;
+
+	rc = wndmgt_close_window(wndmgt, wnd_id);
+	PCUT_ASSERT_TRUE(resp.close_window_called);
+	PCUT_ASSERT_INT_EQUALS(wnd_id, resp.close_window_wnd_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	wndmgt_close(wndmgt);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Window added event can be delivered from server to client callback function */
-PCUT_TEST(window_added_event_deliver)
+PCUT_TEST(window_added_deliver)
 {
 	errno_t rc;
 	service_id_t sid;
@@ -246,7 +482,7 @@ PCUT_TEST(window_added_event_deliver)
 }
 
 /** Window removed event can be delivered from server to client callback function */
-PCUT_TEST(window_removed_event_deliver)
+PCUT_TEST(window_removed_deliver)
 {
 	errno_t rc;
 	service_id_t sid;
@@ -340,10 +576,11 @@ static errno_t test_get_window_list(void *arg, wndmgt_window_list_t **rlist)
 {
 	test_response_t *resp = (test_response_t *) arg;
 
+	resp->get_window_list_called = true;
+
 	if (resp->rc != EOK)
 		return resp->rc;
 
-	resp->get_window_list_called = true;
 	*rlist = resp->get_window_list_rlist;
 	return EOK;
 }
@@ -353,10 +590,12 @@ static errno_t test_get_window_info(void *arg, sysarg_t wnd_id,
 {
 	test_response_t *resp = (test_response_t *) arg;
 
+	resp->get_window_info_called = true;
+	resp->get_window_info_wnd_id = wnd_id;
+
 	if (resp->rc != EOK)
 		return resp->rc;
 
-	resp->get_window_info_called = true;
 	*rinfo = resp->get_window_info_rinfo;
 	return EOK;
 }

@@ -26,22 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup taskbar
+/** @addtogroup display
  * @{
  */
 /**
- * @file Task Bar
+ * @file Window management ops implementation
  */
 
-#ifndef TASKBAR_H
-#define TASKBAR_H
+#ifndef WMOPS_H
+#define WMOPS_H
 
-#include <errno.h>
-#include <wndmgt.h>
-#include "types/taskbar.h"
+#include <wndmgt_srv.h>
 
-extern errno_t taskbar_create(const char *, const char *, taskbar_t **);
-extern void taskbar_destroy(taskbar_t *);
+extern wndmgt_ops_t wndmgt_srv_ops;
 
 #endif
 

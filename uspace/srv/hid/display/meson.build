@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 Jiri Svoboda
+# Copyright (c) 2022 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ipcgfx', 'memgfx', 'display', 'ddev' ]
+deps = [ 'ipcgfx', 'memgfx', 'display', 'ddev', 'wndmgt' ]
 
 src = files(
 	'client.c',
@@ -41,6 +41,7 @@ src = files(
 	'output.c',
 	'seat.c',
 	'window.c',
+	'wmops.c',
 )
 
 test_src = files(

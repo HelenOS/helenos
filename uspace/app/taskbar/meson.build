@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ui' ]
+deps = [ 'ui', 'wndmgt' ]
 src = files(
 	'clock.c',
 	'main.c',

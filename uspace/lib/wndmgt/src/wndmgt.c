@@ -168,7 +168,7 @@ errno_t wndmgt_get_window_list(wndmgt_t *wndmgt, wndmgt_window_list_t **rlist)
 	rc = async_data_read_start(exch, &nwindows, sizeof (nwindows));
 	if (rc != EOK) {
 		async_exchange_end(exch);
-		async_forget(req);
+		async_wait_for(req, &rc);
 		return rc;
 	}
 
@@ -237,7 +237,7 @@ errno_t wndmgt_get_window_info(wndmgt_t *wndmgt, sysarg_t wnd_id,
 	rc = async_data_read_start(exch, &capsize, sizeof (capsize));
 	if (rc != EOK) {
 		async_exchange_end(exch);
-		async_forget(req);
+		async_wait_for(req, &rc);
 		return rc;
 	}
 

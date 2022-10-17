@@ -41,6 +41,7 @@
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
+#include <wndmgt.h>
 #include "clock.h"
 #include "taskbar.h"
 #include "wndlist.h"
@@ -66,10 +67,12 @@ static void wnd_close(ui_window_t *window, void *arg)
 /** Create task bar.
  *
  * @param display_spec Display specification
+ * @param wndmgt_svc Window management service (or WNDMGT_DEFAULT)
  * @param rtaskbar Place to store pointer to new task bar
  * @return @c EOK on success or an error coe
  */
-errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
+errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
+    taskbar_t **rtaskbar)
 {
 	ui_wnd_params_t params;
 	taskbar_t *taskbar = NULL;
@@ -82,6 +85,12 @@ errno_t taskbar_create(const char *display_spec, taskbar_t **rtaskbar)
 	if (taskbar == NULL) {
 		rc = ENOMEM;
 		goto error;
+	}
+
+	if (wndmgt_svc != NULL) {
+		rc = wndmgt_open(wndmgt_svc, NULL, NULL, &taskbar->wndmgt);
+		if (rc != EOK)
+			goto error;
 	}
 
 	rc = ui_create(display_spec, &taskbar->ui);
@@ -214,6 +223,8 @@ error:
 		ui_window_destroy(taskbar->window);
 	if (taskbar->ui != NULL)
 		ui_destroy(taskbar->ui);
+	if (taskbar->wndmgt != NULL)
+		wndmgt_close(taskbar->wndmgt);
 	return rc;
 
 }
@@ -225,6 +236,8 @@ void taskbar_destroy(taskbar_t *taskbar)
 	taskbar_clock_destroy(taskbar->clock);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);
+	if (taskbar->wndmgt != NULL)
+		wndmgt_close(taskbar->wndmgt);
 }
 
 /** @}

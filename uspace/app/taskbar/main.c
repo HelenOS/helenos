@@ -45,6 +45,7 @@ static void print_syntax(void)
 int main(int argc, char *argv[])
 {
 	const char *display_spec = UI_ANY_DEFAULT;
+	const char *wndmgt_svc = WNDMGT_DEFAULT;
 	taskbar_t *taskbar;
 	errno_t rc;
 	int i;
@@ -60,6 +61,15 @@ int main(int argc, char *argv[])
 			}
 
 			display_spec = argv[i++];
+		} else if (str_cmp(argv[i], "-w") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			wndmgt_svc = argv[i++];
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -72,7 +82,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	rc = taskbar_create(display_spec, &taskbar);
+	rc = taskbar_create(display_spec, wndmgt_svc, &taskbar);
 	if (rc != EOK)
 		return 1;
 
