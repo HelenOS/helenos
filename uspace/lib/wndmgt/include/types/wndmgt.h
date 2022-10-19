@@ -35,10 +35,11 @@
 #ifndef _LIBWNDMGT_TYPES_WNDMGT_H_
 #define _LIBWNDMGT_TYPES_WNDMGT_H_
 
+#include <ipc/services.h>
 #include <types/common.h>
 
 /** Use the default window management service (argument to wndmgt_open() */
-#define WNDMGT_DEFAULT NULL
+#define WNDMGT_DEFAULT SERVICE_NAME_WNDMGT
 
 struct wndmgt;
 

@@ -34,15 +34,11 @@
  */
 
 #include <errno.h>
-//#include <io/log.h>
+#include <io/log.h>
 #include <stdlib.h>
 #include <str.h>
 #include <wndmgt_srv.h>
-//#include "client.h"
-//#include "display.h"
-//#include "dsops.h"
-//#include "seat.h"
-//#include "window.h"
+#include "display.h"
 
 static errno_t dispwm_get_window_list(void *, wndmgt_window_list_t **);
 static errno_t dispwm_get_window_info(void *, sysarg_t, wndmgt_window_info_t **);
@@ -61,20 +57,38 @@ wndmgt_ops_t wndmgt_srv_ops = {
 static errno_t dispwm_get_window_list(void *arg, wndmgt_window_list_t **rlist)
 {
 	wndmgt_window_list_t *list;
+	ds_display_t *disp = (ds_display_t *)arg;
+	ds_window_t *wnd;
+	unsigned i;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_get_window_list()");
 
 	list = calloc(1, sizeof(wndmgt_window_list_t));
 	if (list == NULL)
 		return ENOMEM;
 
-	list->nwindows = 2;
-	list->windows = calloc(2, sizeof(sysarg_t));
+	/* Count the number of windows */
+	list->nwindows = 0;
+	wnd = ds_display_first_window(disp);
+	while (wnd != NULL) {
+		++list->nwindows;
+		wnd = ds_display_next_window(wnd);
+	}
+
+	/* Allocate array for window IDs */
+	list->windows = calloc(list->nwindows, sizeof(sysarg_t));
 	if (list->windows == NULL) {
 		free(list);
 		return ENOMEM;
 	}
 
-	list->windows[0] = 1;
-	list->windows[1] = 2;
+	/* Fill in window IDs */
+	i = 0;
+	wnd = ds_display_first_window(disp);
+	while (wnd != NULL) {
+		list->windows[i++] = wnd->id;
+		wnd = ds_display_next_window(wnd);
+	}
 
 	*rlist = list;
 	return EOK;
@@ -83,6 +97,7 @@ static errno_t dispwm_get_window_list(void *arg, wndmgt_window_list_t **rlist)
 static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
     wndmgt_window_info_t **rinfo)
 {
+
 /*	ds_client_t *client = (ds_client_t *) arg;
 	ds_window_t *wnd;
 
@@ -100,6 +115,8 @@ static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
 	return EOK;*/
 	wndmgt_window_info_t *info;
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_get_window_info()");
+
 	info = calloc(1, sizeof(wndmgt_window_info_t));
 	if (info == NULL)
 		return ENOMEM;
@@ -116,6 +133,7 @@ static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
 
 static errno_t dispwm_activate_window(void *arg, sysarg_t wnd_id)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_activate_window()");
 	(void)arg;
 	(void)wnd_id;
 	return EOK;
@@ -123,6 +141,7 @@ static errno_t dispwm_activate_window(void *arg, sysarg_t wnd_id)
 
 static errno_t dispwm_close_window(void *arg, sysarg_t wnd_id)
 {
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_close_window()");
 	(void)arg;
 	(void)wnd_id;
 	return EOK;

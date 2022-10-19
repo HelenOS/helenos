@@ -41,6 +41,7 @@
 #include <ui/pbutton.h>
 #include <ui/fixed.h>
 #include <ui/resource.h>
+#include <wndmgt.h>
 
 /** Taskbar window list entry */
 typedef struct {
@@ -68,6 +69,9 @@ typedef struct wndlist {
 
 	/** Window list entries (of wndlist_entry_t) */
 	list_t entries;
+
+	/** Window management service */
+	wndmgt_t *wndmgt;
 } wndlist_t;
 
 #endif

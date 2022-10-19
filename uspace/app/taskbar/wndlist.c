@@ -48,6 +48,7 @@
  *
  * @param res UI resource
  * @param fixed Fixed layout to which buttons will be added
+ * @param wndmgt Window management service
  * @param rwndlist Place to store pointer to new window list
  * @return @c EOK on success or an error code
  */
@@ -70,7 +71,46 @@ errno_t wndlist_create(ui_resource_t *res, ui_fixed_t *fixed,
 	return EOK;
 error:
 	return rc;
+}
 
+/** Attach window management service to window list.
+ *
+ * @param wndlist Window list
+ * @param rwndlist Place to store pointer to new window list
+ * @return @c EOK on success or an error code
+ */
+errno_t wndlist_attach_wm(wndlist_t *wndlist, wndmgt_t *wndmgt)
+{
+	errno_t rc;
+	wndmgt_window_list_t *wlist = NULL;
+	wndmgt_window_info_t *winfo = NULL;
+	sysarg_t i;
+
+	rc = wndmgt_get_window_list(wndmgt, &wlist);
+	if (rc != EOK)
+		goto error;
+
+	for (i = 0; i < wlist->nwindows; i++) {
+		rc = wndmgt_get_window_info(wndmgt, wlist->windows[i],
+		    &winfo);
+		if (rc != EOK)
+			goto error;
+
+		rc = wndlist_append(wndlist, winfo->caption);
+		if (rc != EOK) {
+			wndmgt_free_window_info(winfo);
+			goto error;
+		}
+
+		wndmgt_free_window_info(winfo);
+	}
+
+	wndlist->wndmgt = wndmgt;
+	return EOK;
+error:
+	if (wlist != NULL)
+		wndmgt_free_window_list(wlist);
+	return rc;
 }
 
 /** Destroy task bar window list. */
@@ -89,7 +129,11 @@ errno_t wndlist_append(wndlist_t *wndlist, const char *caption)
 {
 	wndlist_entry_t *entry = NULL;
 	gfx_rect_t rect;
+	size_t nentries;
 	errno_t rc;
+
+	/* Number of existing entries */
+	nentries = list_count(&wndlist->entries);
 
 	entry = calloc(1, sizeof(wndlist_entry_t));
 	if (entry == NULL) {
@@ -102,14 +146,14 @@ errno_t wndlist_append(wndlist_t *wndlist, const char *caption)
 		goto error;
 
 	if (ui_resource_is_textmode(wndlist->res)) {
-		rect.p0.x = 9;
+		rect.p0.x = 17 * nentries + 9;
 		rect.p0.y = 0;
-		rect.p1.x = 25;
+		rect.p1.x = 17 * nentries + 25;
 		rect.p1.y = 1;
 	} else {
-		rect.p0.x = 90;
+		rect.p0.x = 145 * nentries + 90;
 		rect.p0.y = 3;
-		rect.p1.x = 230;
+		rect.p1.x = 145 * nentries + 230;
 		rect.p1.y = 29;
 	}
 

@@ -173,9 +173,9 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	rc = wndlist_append(taskbar->wndlist, "Text Editor");
+	rc = wndlist_attach_wm(taskbar->wndlist, taskbar->wndmgt);
 	if (rc != EOK) {
-		printf("Error adding window list entry.\n");
+		printf("Error attaching window management service.\n");
 		goto error;
 	}
 

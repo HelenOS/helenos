@@ -241,12 +241,13 @@ static void display_gc_conn(ipc_call_t *icall, void *arg)
 /** Handle window management connection to display server */
 static void display_wndmgt_conn(ipc_call_t *icall, void *arg)
 {
+	ds_display_t *disp = (ds_display_t *) arg;
 	wndmgt_srv_t srv;
 
 	/* Set up protocol structure */
 	wndmgt_srv_initialize(&srv);
 	srv.ops = &wndmgt_srv_ops;
-	srv.arg = NULL; // XXX
+	srv.arg = disp;
 
 	/* Handle connection */
 	wndmgt_conn(icall, &srv);

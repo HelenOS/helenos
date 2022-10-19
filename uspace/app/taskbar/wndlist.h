@@ -39,9 +39,11 @@
 #include <errno.h>
 #include <ui/fixed.h>
 #include <ui/resource.h>
+#include <wndmgt.h>
 #include "types/wndlist.h"
 
 extern errno_t wndlist_create(ui_resource_t *, ui_fixed_t *, wndlist_t **);
+extern errno_t wndlist_attach_wm(wndlist_t *, wndmgt_t *);
 extern void wndlist_destroy(wndlist_t *);
 extern errno_t wndlist_append(wndlist_t *, const char *);
 
