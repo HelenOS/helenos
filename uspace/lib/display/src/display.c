@@ -37,6 +37,7 @@
 #include <loc.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <str.h>
 #include "../private/display.h"
 #include "../private/params.h"
 
@@ -146,6 +147,7 @@ void display_close(display_t *display)
 void display_wnd_params_init(display_wnd_params_t *params)
 {
 	memset(params, 0, sizeof(*params));
+	params->caption = "";
 }
 
 /** Create a display window.
@@ -161,10 +163,18 @@ errno_t display_window_create(display_t *display, display_wnd_params_t *params,
     display_wnd_cb_t *cb, void *cb_arg, display_window_t **rwindow)
 {
 	display_window_t *window;
+	display_wnd_params_enc_t eparams;
 	async_exch_t *exch;
 	aid_t req;
 	ipc_call_t answer;
 	errno_t rc;
+
+	/* Encode the parameters for transport */
+	eparams.rect = params->rect;
+	eparams.caption_size = str_size(params->caption);
+	eparams.min_size = params->min_size;
+	eparams.pos = params->pos;
+	eparams.flags = params->flags;
 
 	window = calloc(1, sizeof(display_window_t));
 	if (window == NULL)
@@ -172,7 +182,20 @@ errno_t display_window_create(display_t *display, display_wnd_params_t *params,
 
 	exch = async_exchange_begin(display->sess);
 	req = async_send_0(exch, DISPLAY_WINDOW_CREATE, &answer);
-	rc = async_data_write_start(exch, params, sizeof (display_wnd_params_t));
+
+	/* Write fixed fields */
+	rc = async_data_write_start(exch, &eparams,
+	    sizeof (display_wnd_params_enc_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		free(window);
+		return rc;
+	}
+
+	/* Write caption */
+	rc = async_data_write_start(exch, params->caption,
+	    eparams.caption_size);
 	async_exchange_end(exch);
 	if (rc != EOK) {
 		async_forget(req);
@@ -539,6 +562,39 @@ errno_t display_window_set_cursor(display_window_t *window,
 	rc = async_req_2_0(exch, DISPLAY_WINDOW_SET_CURSOR, window->id,
 	    cursor);
 	async_exchange_end(exch);
+	return rc;
+}
+
+/** Set display window caption.
+ *
+ * @param window Window
+ * @param caption New caption
+ * @return EOK on success or an error code
+ */
+errno_t display_window_set_caption(display_window_t *window,
+    const char *caption)
+{
+	async_exch_t *exch;
+	aid_t req;
+	ipc_call_t answer;
+	size_t cap_size;
+	errno_t rc;
+
+	cap_size = str_size(caption);
+
+	exch = async_exchange_begin(window->display->sess);
+	req = async_send_1(exch, DISPLAY_WINDOW_SET_CAPTION, window->id,
+	    &answer);
+
+	/* Write caption */
+	rc = async_data_write_start(exch, caption, cap_size);
+	async_exchange_end(exch);
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
 	return rc;
 }
 

@@ -66,6 +66,7 @@ struct display_ops {
 	errno_t (*window_maximize)(void *, sysarg_t);
 	errno_t (*window_unmaximize)(void *, sysarg_t);
 	errno_t (*window_set_cursor)(void *, sysarg_t, display_stock_cursor_t);
+	errno_t (*window_set_caption)(void *, sysarg_t, const char *);
 	errno_t (*get_event)(void *, sysarg_t *, display_wnd_ev_t *);
 	errno_t (*get_info)(void *, display_info_t *);
 };

@@ -43,6 +43,7 @@
 #include <macros.h>
 #include <memgfx/memgc.h>
 #include <stdlib.h>
+#include <str.h>
 #include "client.h"
 #include "display.h"
 #include "seat.h"
@@ -80,6 +81,12 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 
 	wnd = calloc(1, sizeof(ds_window_t));
 	if (wnd == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	wnd->caption = str_dup(params->caption);
+	if (wnd->caption == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
@@ -151,6 +158,8 @@ error:
 			mem_gc_delete(wnd->mgc);
 		if (wnd->bitmap != NULL)
 			gfx_bitmap_destroy(wnd->bitmap);
+		if (wnd->caption != NULL)
+			free(wnd->caption);
 		free(wnd);
 	}
 
@@ -175,6 +184,7 @@ void ds_window_destroy(ds_window_t *wnd)
 	if (wnd->bitmap != NULL)
 		gfx_bitmap_destroy(wnd->bitmap);
 
+	free(wnd->caption);
 	free(wnd);
 
 	(void) ds_display_paint(disp, NULL);
@@ -901,6 +911,7 @@ void ds_window_calc_resize(ds_window_t *wnd, gfx_coord2_t *dresize,
 /** Set window cursor.
  *
  * @param wnd Window
+ * @param cursor New cursor
  * @return EOK on success, EINVAL if @a cursor is invalid
  */
 errno_t ds_window_set_cursor(ds_window_t *wnd, display_stock_cursor_t cursor)
@@ -912,6 +923,27 @@ errno_t ds_window_set_cursor(ds_window_t *wnd, display_stock_cursor_t cursor)
 	} else {
 		return EINVAL;
 	}
+}
+
+/** Set window caption.
+ *
+ * @param wnd Window
+ * @param caption New caption
+ *
+ * @return EOK on success, EINVAL if @a cursor is invalid
+ */
+errno_t ds_window_set_caption(ds_window_t *wnd, const char *caption)
+{
+	char *dcaption;
+
+	dcaption = str_dup(caption);
+	if (dcaption == NULL)
+		return ENOMEM;
+
+	free(wnd->caption);
+	wnd->caption = dcaption;
+
+	return EOK;
 }
 
 /** Window memory GC invalidate callback.

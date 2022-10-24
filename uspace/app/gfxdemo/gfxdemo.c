@@ -1068,6 +1068,7 @@ static errno_t demo_display(const char *display_svc)
 	params.rect.p0.y = 0;
 	params.rect.p1.x = 400;
 	params.rect.p1.y = 300;
+	params.caption = "GFX Demo";
 
 	rc = display_window_create(display, &params, &wnd_cb, NULL, &window);
 	if (rc != EOK) {

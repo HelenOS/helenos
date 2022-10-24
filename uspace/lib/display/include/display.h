@@ -65,6 +65,7 @@ extern errno_t display_window_maximize(display_window_t *);
 extern errno_t display_window_unmaximize(display_window_t *);
 extern errno_t display_window_set_cursor(display_window_t *,
     display_stock_cursor_t);
+extern errno_t display_window_set_caption(display_window_t *, const char *);
 
 #endif
 

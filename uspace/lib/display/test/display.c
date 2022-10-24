@@ -37,6 +37,7 @@
 #include <ipcgfx/server.h>
 #include <loc.h>
 #include <pcut/pcut.h>
+#include <str.h>
 #include "../private/display.h"
 
 PCUT_INIT;
@@ -67,6 +68,7 @@ static errno_t test_window_resize(void *, sysarg_t, gfx_coord2_t *,
 static errno_t test_window_maximize(void *, sysarg_t);
 static errno_t test_window_unmaximize(void *, sysarg_t);
 static errno_t test_window_set_cursor(void *, sysarg_t, display_stock_cursor_t);
+static errno_t test_window_set_caption(void *, sysarg_t, const char *);
 static errno_t test_get_event(void *, sysarg_t *, display_wnd_ev_t *);
 static errno_t test_get_info(void *, display_info_t *);
 
@@ -84,6 +86,7 @@ static display_ops_t test_display_srv_ops = {
 	.window_maximize = test_window_maximize,
 	.window_unmaximize = test_window_unmaximize,
 	.window_set_cursor = test_window_set_cursor,
+	.window_set_caption = test_window_set_caption,
 	.get_event = test_get_event,
 	.get_info = test_get_info
 };
@@ -147,6 +150,10 @@ typedef struct {
 	bool window_set_cursor_called;
 	sysarg_t set_cursor_wnd_id;
 	display_stock_cursor_t set_cursor_cursor;
+
+	bool window_set_caption_called;
+	sysarg_t set_caption_wnd_id;
+	char *set_caption_caption;
 
 	bool get_event_called;
 
@@ -1245,6 +1252,114 @@ PCUT_TEST(window_set_cursor_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** display_window_set_caption() with server returning error response works. */
+PCUT_TEST(window_set_caption_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_wnd_params_t params;
+	display_window_t *wnd;
+	const char *caption;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = EOK;
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	caption = "Hello";
+
+	resp.rc = EIO;
+	resp.window_set_caption_called = false;
+
+	rc = display_window_set_caption(wnd, caption);
+	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.set_caption_wnd_id);
+	PCUT_ASSERT_TRUE(resp.window_set_caption_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_INT_EQUALS(0, str_cmp(caption, resp.set_caption_caption));
+
+	//free(resp.set_caption_caption);
+	display_window_destroy(wnd);
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** display_window_set_caption() with server returning success response works. */
+PCUT_TEST(window_set_caption_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_wnd_params_t params;
+	display_window_t *wnd;
+	const char *caption;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = EOK;
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	caption = "Hello";
+
+	resp.rc = EOK;
+	resp.window_set_caption_called = false;
+
+	rc = display_window_set_caption(wnd, caption);
+	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.set_caption_wnd_id);
+	PCUT_ASSERT_TRUE(resp.window_set_caption_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+	PCUT_ASSERT_INT_EQUALS(0, str_cmp(caption, resp.set_caption_caption));
+
+	//free(resp.set_caption_caption);
+	display_window_destroy(wnd);
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** display_window_get_gc with server returning failure */
 PCUT_TEST(window_get_gc_failure)
 {
@@ -2013,6 +2128,18 @@ static errno_t test_window_set_cursor(void *arg, sysarg_t wnd_id,
 	resp->window_set_cursor_called = true;
 	resp->set_cursor_wnd_id = wnd_id;
 	resp->set_cursor_cursor = cursor;
+
+	return resp->rc;
+}
+
+static errno_t test_window_set_caption(void *arg, sysarg_t wnd_id,
+    const char *caption)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->window_set_caption_called = true;
+	resp->set_caption_wnd_id = wnd_id;
+	resp->set_caption_caption = str_dup(caption);
 
 	return resp->rc;
 }

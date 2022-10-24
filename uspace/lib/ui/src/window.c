@@ -221,6 +221,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	display_wnd_params_init(&dparams);
 	dparams.rect = params->rect;
+	dparams.caption = params->caption;
 	/* Only allow making the window larger */
 	gfx_rect_dims(&params->rect, &dparams.min_size);
 
@@ -650,6 +651,23 @@ void ui_window_set_cb(ui_window_t *window, ui_window_cb_t *cb, void *arg)
  */
 errno_t ui_window_set_caption(ui_window_t *window, const char *caption)
 {
+	errno_t rc;
+
+	/* Set console caption if fullscreen window on console */
+	if (window->ui->console != NULL && window->placement ==
+	    ui_wnd_place_full_screen) {
+		rc = console_set_caption(window->ui->console, caption);
+		if (rc != EOK)
+			return rc;
+	}
+
+	/* Set display window caption if running on display service */
+	if (window->dwindow != NULL) {
+		rc = display_window_set_caption(window->dwindow, caption);
+		if (rc != EOK)
+			return rc;
+	}
+
 	return ui_wdecor_set_caption(window->wdecor, caption);
 }
 

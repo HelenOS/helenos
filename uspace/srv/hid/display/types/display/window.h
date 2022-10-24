@@ -104,6 +104,8 @@ typedef struct ds_window {
 	gfx_coord2_t orig_pos;
 	/** Window resize type (if state is dsw_resizing) */
 	display_wnd_rsztype_t rsztype;
+	/** Window caption */
+	char *caption;
 } ds_window_t;
 
 /** Window event queue entry */

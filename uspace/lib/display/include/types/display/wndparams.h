@@ -57,6 +57,8 @@ typedef enum {
 typedef struct {
 	/** Bounding rectangle */
 	gfx_rect_t rect;
+	/** Window caption */
+	const char *caption;
 	/** Minimum size (when being resized) */
 	gfx_coord2_t min_size;
 	/** Initial position (if flag wndf_setpos is set) */

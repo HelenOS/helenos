@@ -72,6 +72,7 @@ extern errno_t ds_window_unmaximize(ds_window_t *);
 extern void ds_window_calc_resize(ds_window_t *, gfx_coord2_t *,
     gfx_rect_t *);
 extern errno_t ds_window_set_cursor(ds_window_t *, display_stock_cursor_t);
+extern errno_t ds_window_set_caption(ds_window_t *, const char *);
 
 #endif
 

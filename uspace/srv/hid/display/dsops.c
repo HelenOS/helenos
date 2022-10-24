@@ -56,6 +56,7 @@ static errno_t disp_window_resize(void *, sysarg_t, gfx_coord2_t *,
 static errno_t disp_window_maximize(void *, sysarg_t);
 static errno_t disp_window_unmaximize(void *, sysarg_t);
 static errno_t disp_window_set_cursor(void *, sysarg_t, display_stock_cursor_t);
+static errno_t disp_window_set_caption(void *, sysarg_t, const char *);
 static errno_t disp_get_event(void *, sysarg_t *, display_wnd_ev_t *);
 static errno_t disp_get_info(void *, display_info_t *);
 
@@ -71,6 +72,7 @@ display_ops_t display_srv_ops = {
 	.window_maximize = disp_window_maximize,
 	.window_unmaximize = disp_window_unmaximize,
 	.window_set_cursor = disp_window_set_cursor,
+	.window_set_caption = disp_window_set_caption,
 	.get_event = disp_get_event,
 	.get_info = disp_get_info
 };
@@ -301,6 +303,27 @@ static errno_t disp_window_set_cursor(void *arg, sysarg_t wnd_id,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_set_cursor()");
 	rc = ds_window_set_cursor(wnd, cursor);
+	ds_display_unlock(client->display);
+	return rc;
+}
+
+static errno_t disp_window_set_caption(void *arg, sysarg_t wnd_id,
+    const char *caption)
+{
+	ds_client_t *client = (ds_client_t *) arg;
+	ds_window_t *wnd;
+	errno_t rc;
+
+	ds_display_lock(client->display);
+
+	wnd = ds_client_find_window(client, wnd_id);
+	if (wnd == NULL) {
+		ds_display_unlock(client->display);
+		return ENOENT;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_set_caption()");
+	rc = ds_window_set_caption(wnd, caption);
 	ds_display_unlock(client->display);
 	return rc;
 }

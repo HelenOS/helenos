@@ -62,7 +62,9 @@ static void display_window_create_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
 	ipc_call_t call;
+	display_wnd_params_enc_t eparams;
 	display_wnd_params_t params;
+	char *caption;
 	size_t size;
 	errno_t rc;
 
@@ -72,23 +74,59 @@ static void display_window_create_srv(display_srv_t *srv, ipc_call_t *icall)
 		return;
 	}
 
-	if (size != sizeof(display_wnd_params_t)) {
+	if (size != sizeof(display_wnd_params_enc_t)) {
 		async_answer_0(&call, EINVAL);
 		async_answer_0(icall, EINVAL);
 		return;
 	}
 
-	rc = async_data_write_finalize(&call, &params, size);
+	rc = async_data_write_finalize(&call, &eparams, size);
 	if (rc != EOK) {
 		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
 		return;
 	}
 
+	caption = calloc(eparams.caption_size + 1, 1);
+	if (caption == NULL) {
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	if (!async_data_write_receive(&call, &size)) {
+		free(caption);
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != eparams.caption_size) {
+		free(caption);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, caption, eparams.caption_size);
+	if (rc != EOK) {
+		free(caption);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
 	if (srv->ops->window_create == NULL) {
+		free(caption);
 		async_answer_0(icall, ENOTSUP);
 		return;
 	}
+
+	/* Decode the parameters from transport */
+	params.rect = eparams.rect;
+	params.caption = caption;
+	params.min_size = eparams.min_size;
+	params.pos = eparams.pos;
+	params.flags = eparams.flags;
 
 	rc = srv->ops->window_create(srv->arg, &params, &wnd_id);
 	async_answer_1(icall, rc, wnd_id);
@@ -402,6 +440,49 @@ static void display_window_set_cursor_srv(display_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void display_window_set_caption_srv(display_srv_t *srv,
+    ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	ipc_call_t call;
+	char *caption;
+	size_t size;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	caption = calloc(size + 1, 1);
+	if (caption == NULL) {
+		async_answer_0(&call, ENOMEM);
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, caption, size);
+	if (rc != EOK) {
+		free(caption);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	if (srv->ops->window_set_caption == NULL) {
+		free(caption);
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->window_set_caption(srv->arg, wnd_id, caption);
+	async_answer_0(icall, rc);
+	free(caption);
+}
+
 static void display_get_event_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
@@ -537,6 +618,9 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		case DISPLAY_WINDOW_SET_CURSOR:
 			display_window_set_cursor_srv(srv, &call);
+			break;
+		case DISPLAY_WINDOW_SET_CAPTION:
+			display_window_set_caption_srv(srv, &call);
 			break;
 		case DISPLAY_GET_EVENT:
 			display_get_event_srv(srv, &call);

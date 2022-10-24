@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,23 @@ typedef struct {
 	/** New bounding rectangle */
 	gfx_rect_t nrect;
 } display_wnd_resize_t;
+
+/** Display window parameters encoded for transport
+ *
+ * This omits variable-length fields (window caption).
+ */
+typedef struct {
+	/** Bounding rectangle */
+	gfx_rect_t rect;
+	/** Window caption size in bytes */
+	size_t caption_size;
+	/** Minimum size (when being resized) */
+	gfx_coord2_t min_size;
+	/** Initial position (if flag wndf_setpos is set) */
+	gfx_coord2_t pos;
+	/** Flags */
+	display_wnd_flags_t flags;
+} display_wnd_params_enc_t;
 
 #endif
 

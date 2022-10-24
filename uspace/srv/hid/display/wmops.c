@@ -97,31 +97,21 @@ static errno_t dispwm_get_window_list(void *arg, wndmgt_window_list_t **rlist)
 static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
     wndmgt_window_info_t **rinfo)
 {
-
-/*	ds_client_t *client = (ds_client_t *) arg;
+	ds_display_t *disp = (ds_display_t *)arg;
 	ds_window_t *wnd;
-
-	ds_display_lock(client->display);
-
-	wnd = ds_client_find_window(client, wnd_id);
-	if (wnd == NULL) {
-		ds_display_unlock(client->display);
-		return ENOENT;
-	}
-
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_get_pos()");
-	ds_window_get_pos(wnd, pos);
-	ds_display_unlock(client->display);
-	return EOK;*/
 	wndmgt_window_info_t *info;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_get_window_info()");
+
+	wnd = ds_display_find_window(disp, wnd_id);
+	if (wnd == NULL)
+		return ENOENT;
 
 	info = calloc(1, sizeof(wndmgt_window_info_t));
 	if (info == NULL)
 		return ENOMEM;
 
-	info->caption = str_dup("Hello");
+	info->caption = str_dup(wnd->caption);
 	if (info->caption == NULL) {
 		free(info);
 		return ENOMEM;
