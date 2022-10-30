@@ -41,6 +41,7 @@ src = files(
 	'output.c',
 	'seat.c',
 	'window.c',
+	'wmclient.c',
 	'wmops.c',
 )
 
@@ -53,6 +54,7 @@ test_src = files(
 	'display.c',
 	'seat.c',
 	'window.c',
+	'wmclient.c',
 	'test/client.c',
 	'test/clonegc.c',
 	'test/cursor.c',
@@ -60,4 +62,5 @@ test_src = files(
 	'test/main.c',
 	'test/seat.c',
 	'test/window.c',
+	'test/wmclient.c',
 )

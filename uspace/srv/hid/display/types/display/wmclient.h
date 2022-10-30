@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Display server WM client type
+ */
 
-PCUT_INIT;
+#ifndef TYPES_DISPLAY_WMCLIENT_H
+#define TYPES_DISPLAY_WMCLIENT_H
 
-PCUT_IMPORT(client);
-PCUT_IMPORT(clonegc);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(display);
-PCUT_IMPORT(seat);
-PCUT_IMPORT(window);
-PCUT_IMPORT(wmclient);
+#include <adt/list.h>
+#include <wndmgt.h>
 
-PCUT_MAIN();
+/** Display server WM client callbacks */
+typedef struct {
+	void (*ev_pending)(void *);
+} ds_wmclient_cb_t;
+
+/** Display server WM client */
+typedef struct ds_wmclient {
+	/** Parent display */
+	struct ds_display *display;
+	/** Callbacks */
+	ds_wmclient_cb_t *cb;
+	/** Callback argument */
+	void *cb_arg;
+	/** Link to @c display->wmclients */
+	link_t lwmclients;
+	/** Event queue (of ds_window_ev_t) */
+	list_t events;
+} ds_wmclient_t;
+
+/** WM client event queue entry */
+typedef struct {
+	/** Link to event queue */
+	link_t levents;
+	/** WM client to which the event is delivered */
+	ds_wmclient_t *wmclient;
+	/** Event */
+	wndmgt_ev_t event;
+} ds_wmclient_ev_t;
+
+#endif
+
+/** @}
+ */

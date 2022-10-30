@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 #include "../display.h"
 #include "../seat.h"
 #include "../window.h"
+#include "../wmclient.h"
 
 PCUT_INIT;
 
@@ -46,7 +47,19 @@ static ds_client_cb_t test_ds_client_cb = {
 	.ev_pending = test_ds_ev_pending
 };
 
+static void test_ds_wmev_pending(void *);
+
+static ds_wmclient_cb_t test_ds_wmclient_cb = {
+	.ev_pending = test_ds_wmev_pending
+};
+
 static void test_ds_ev_pending(void *arg)
+{
+	bool *called_cb = (bool *) arg;
+	*called_cb = true;
+}
+
+static void test_ds_wmev_pending(void *arg)
 {
 	bool *called_cb = (bool *) arg;
 	*called_cb = true;
@@ -85,6 +98,30 @@ PCUT_TEST(display_client)
 	PCUT_ASSERT_NULL(c1);
 
 	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Basic WM client operation. */
+PCUT_TEST(display_wmclient)
+{
+	ds_display_t *disp;
+	ds_wmclient_t *wmclient;
+	ds_wmclient_t *c0, *c1;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_wmclient_create(disp, &test_ds_wmclient_cb, NULL, &wmclient);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	c0 = ds_display_first_wmclient(disp);
+	PCUT_ASSERT_EQUALS(c0, wmclient);
+
+	c1 = ds_display_next_wmclient(c0);
+	PCUT_ASSERT_NULL(c1);
+
+	ds_wmclient_destroy(wmclient);
 	ds_display_destroy(disp);
 }
 
@@ -149,6 +186,48 @@ PCUT_TEST(display_find_window)
 
 	wnd = ds_display_find_window(disp, w0->id + 1);
 	PCUT_ASSERT_NULL(wnd);
+
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_display_window_to_top() */
+PCUT_TEST(display_window_to_top)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *w0;
+	ds_window_t *w1;
+	display_wnd_params_t params;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 100;
+
+	rc = ds_window_create(client, &params, &w0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &params, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_EQUALS(w1, ds_display_first_window(disp));
+	ds_display_window_to_top(w0);
+	PCUT_ASSERT_EQUALS(w0, ds_display_first_window(disp));
 
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);

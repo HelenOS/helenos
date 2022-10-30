@@ -180,7 +180,7 @@ ds_window_t *ds_client_next_window(ds_window_t *wnd)
  * @param client Client
  * @param ewindow Place to store pointer to window receiving the event
  * @param event Place to store event
- * @return Graphic context
+ * @return EOK on success, ENOENT if event queue is empty
  */
 errno_t ds_client_get_event(ds_client_t *client, ds_window_t **ewindow,
     display_wnd_ev_t *event)

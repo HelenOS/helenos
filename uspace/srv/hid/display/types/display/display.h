@@ -61,6 +61,8 @@ typedef struct ds_display {
 	fibril_mutex_t lock;
 	/** Clients (of ds_client_t) */
 	list_t clients;
+	/** WM clients (of ds_wmclient_t) */
+	list_t wmclients;
 
 	/** Next ID to assign to a window.
 	 *

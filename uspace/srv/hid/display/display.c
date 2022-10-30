@@ -44,9 +44,10 @@
 #include "clonegc.h"
 #include "cursimg.h"
 #include "cursor.h"
+#include "display.h"
 #include "seat.h"
 #include "window.h"
-#include "display.h"
+#include "wmclient.h"
 
 static gfx_context_t *ds_display_get_unbuf_gc(ds_display_t *);
 static void ds_display_invalidate_cb(void *, gfx_rect_t *);
@@ -95,6 +96,7 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_flags_t flags,
 
 	fibril_mutex_initialize(&disp->lock);
 	list_initialize(&disp->clients);
+	list_initialize(&disp->wmclients);
 	disp->next_wnd_id = 1;
 	list_initialize(&disp->ddevs);
 	list_initialize(&disp->seats);
@@ -114,6 +116,7 @@ error:
 void ds_display_destroy(ds_display_t *disp)
 {
 	assert(list_empty(&disp->clients));
+	assert(list_empty(&disp->wmclients));
 	assert(list_empty(&disp->seats));
 	/* XXX destroy cursors */
 	gfx_color_delete(disp->bg_color);
@@ -204,6 +207,61 @@ ds_client_t *ds_display_next_client(ds_client_t *client)
 	return list_get_instance(link, ds_client_t, lclients);
 }
 
+/** Add WM client to display.
+ *
+ * @param disp Display
+ * @param wmclient WM client
+ */
+void ds_display_add_wmclient(ds_display_t *disp, ds_wmclient_t *wmclient)
+{
+	assert(wmclient->display == NULL);
+	assert(!link_used(&wmclient->lwmclients));
+
+	wmclient->display = disp;
+	list_append(&wmclient->lwmclients, &disp->wmclients);
+}
+
+/** Remove WM client from display.
+ *
+ * @param wmclient WM client
+ */
+void ds_display_remove_wmclient(ds_wmclient_t *wmclient)
+{
+	list_remove(&wmclient->lwmclients);
+	wmclient->display = NULL;
+}
+
+/** Get first WM client in display.
+ *
+ * @param disp Display
+ * @return First WM client or @c NULL if there is none
+ */
+ds_wmclient_t *ds_display_first_wmclient(ds_display_t *disp)
+{
+	link_t *link = list_first(&disp->wmclients);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_wmclient_t, lwmclients);
+}
+
+/** Get next WM client in display.
+ *
+ * @param wmclient Current WM client
+ * @return Next WM client or @c NULL if there is none
+ */
+ds_wmclient_t *ds_display_next_wmclient(ds_wmclient_t *wmclient)
+{
+	link_t *link = list_next(&wmclient->lwmclients,
+	    &wmclient->display->wmclients);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_wmclient_t, lwmclients);
+}
+
 /** Find window in all clients by ID.
  *
  * XXX This is just a hack needed to match GC connection to a window,
@@ -261,11 +319,20 @@ ds_window_t *ds_display_window_by_pos(ds_display_t *display, gfx_coord2_t *pos)
  */
 void ds_display_add_window(ds_display_t *display, ds_window_t *wnd)
 {
+	ds_wmclient_t *wmclient;
+
 	assert(wnd->display == NULL);
 	assert(!link_used(&wnd->ldwindows));
 
 	wnd->display = display;
 	list_prepend(&wnd->ldwindows, &display->windows);
+
+	/* Notify window managers about the new window */
+	wmclient = ds_display_first_wmclient(display);
+	while (wmclient != NULL) {
+		ds_wmclient_post_wnd_added_event(wmclient, wnd->id);
+		wmclient = ds_display_next_wmclient(wmclient);
+	}
 }
 
 /** Remove window from display.
@@ -274,8 +341,34 @@ void ds_display_add_window(ds_display_t *display, ds_window_t *wnd)
  */
 void ds_display_remove_window(ds_window_t *wnd)
 {
+	ds_wmclient_t *wmclient;
+	ds_display_t *display;
+
+	display = wnd->display;
+
 	list_remove(&wnd->ldwindows);
 	wnd->display = NULL;
+
+	/* Notify window managers about the removed window */
+	wmclient = ds_display_first_wmclient(display);
+	while (wmclient != NULL) {
+		ds_wmclient_post_wnd_removed_event(wmclient, wnd->id);
+		wmclient = ds_display_next_wmclient(wmclient);
+	}
+}
+
+/** Move window to top.
+ *
+ * @param display Display
+ * @param wnd Window
+ */
+void ds_display_window_to_top(ds_window_t *wnd)
+{
+	assert(wnd->display != NULL);
+	assert(link_used(&wnd->ldwindows));
+
+	list_remove(&wnd->ldwindows);
+	list_prepend(&wnd->ldwindows, &wnd->display->windows);
 }
 
 /** Get first window in display.

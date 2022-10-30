@@ -52,6 +52,14 @@ static ui_window_cb_t window_cb = {
 	.close = wnd_close
 };
 
+static void taskbar_wm_window_added(void *, sysarg_t);
+static void taskbar_wm_window_removed(void *, sysarg_t);
+
+static wndmgt_cb_t taskbar_wndmgt_cb = {
+	.window_added = taskbar_wm_window_added,
+	.window_removed = taskbar_wm_window_removed
+};
+
 /** Window close button was clicked.
  *
  * @param window Window
@@ -88,7 +96,8 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 
 	if (wndmgt_svc != NULL) {
-		rc = wndmgt_open(wndmgt_svc, NULL, NULL, &taskbar->wndmgt);
+		rc = wndmgt_open(wndmgt_svc, &taskbar_wndmgt_cb,
+		    (void *)taskbar, &taskbar->wndmgt);
 		if (rc != EOK)
 			goto error;
 	}
@@ -238,6 +247,32 @@ void taskbar_destroy(taskbar_t *taskbar)
 	ui_destroy(taskbar->ui);
 	if (taskbar->wndmgt != NULL)
 		wndmgt_close(taskbar->wndmgt);
+}
+
+/** Handle WM window added event.
+ *
+ * @param arg Argument (taskbar_t *)
+ * @param wnd_id Window ID
+ */
+static void taskbar_wm_window_added(void *arg, sysarg_t wnd_id)
+{
+	taskbar_t *taskbar = (taskbar_t *)arg;
+
+	printf("wm_window_added: taskbar=%p wnd_id=%zu\n",
+	    (void *)taskbar, wnd_id);
+}
+
+/** Handle WM window removed event.
+ *
+ * @param arg Argument (taskbar_t *)
+ * @param wnd_id Window ID
+ */
+static void taskbar_wm_window_removed(void *arg, sysarg_t wnd_id)
+{
+	taskbar_t *taskbar = (taskbar_t *)arg;
+
+	printf("wm_window_removed: taskbar=%p wnd_id=%zu\n",
+	    (void *)taskbar, wnd_id);
 }
 
 /** @}

@@ -50,6 +50,84 @@ static gfx_context_ops_t dummy_ops = {
 	.fill_rect = dummy_fill_rect
 };
 
+/** Test creating and destroying window */
+PCUT_TEST(create_destroy)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_window_bring_to_top() brings window to top */
+PCUT_TEST(bring_to_top)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *w1;
+	ds_window_t *w2;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &params, &w2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* w2 should be on the top */
+	PCUT_ASSERT_EQUALS(w2, ds_display_first_window(disp));
+
+	/* Bring w1 to top */
+	ds_window_bring_to_top(w1);
+
+	/* Now w1 should be on the top */
+	PCUT_ASSERT_EQUALS(w1, ds_display_first_window(disp));
+
+	ds_window_destroy(w1);
+	ds_window_destroy(w2);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 /** Test ds_window_resize(). */
 PCUT_TEST(window_resize)
 {

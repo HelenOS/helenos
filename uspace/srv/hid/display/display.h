@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,7 @@
 #include "types/display/display.h"
 #include "types/display/ptd_event.h"
 #include "types/display/seat.h"
+#include "types/display/wmclient.h"
 
 extern errno_t ds_display_create(gfx_context_t *, ds_display_flags_t,
     ds_display_t **);
@@ -58,10 +59,15 @@ extern void ds_display_add_client(ds_display_t *, ds_client_t *);
 extern void ds_display_remove_client(ds_client_t *);
 extern ds_client_t *ds_display_first_client(ds_display_t *);
 extern ds_client_t *ds_display_next_client(ds_client_t *);
+extern void ds_display_add_wmclient(ds_display_t *, ds_wmclient_t *);
+extern void ds_display_remove_wmclient(ds_wmclient_t *);
+extern ds_wmclient_t *ds_display_first_wmclient(ds_display_t *);
+extern ds_wmclient_t *ds_display_next_wmclient(ds_wmclient_t *);
 extern ds_window_t *ds_display_find_window(ds_display_t *, ds_wnd_id_t);
 extern ds_window_t *ds_display_window_by_pos(ds_display_t *, gfx_coord2_t *);
 extern void ds_display_add_window(ds_display_t *, ds_window_t *);
 extern void ds_display_remove_window(ds_window_t *);
+extern void ds_display_window_to_top(ds_window_t *);
 extern ds_window_t *ds_display_first_window(ds_display_t *);
 extern ds_window_t *ds_display_last_window(ds_display_t *);
 extern ds_window_t *ds_display_next_window(ds_window_t *);

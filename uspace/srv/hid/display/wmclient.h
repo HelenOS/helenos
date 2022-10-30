@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Display server WM client
+ */
 
-PCUT_INIT;
+#ifndef WMCLIENT_H
+#define WMCLIENT_H
 
-PCUT_IMPORT(client);
-PCUT_IMPORT(clonegc);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(display);
-PCUT_IMPORT(seat);
-PCUT_IMPORT(window);
-PCUT_IMPORT(wmclient);
+#include <errno.h>
+#include <wndmgt.h>
+#include "types/display/display.h"
+#include "types/display/wmclient.h"
 
-PCUT_MAIN();
+extern errno_t ds_wmclient_create(ds_display_t *, ds_wmclient_cb_t *, void *,
+    ds_wmclient_t **);
+extern void ds_wmclient_destroy(ds_wmclient_t *);
+extern errno_t ds_wmclient_get_event(ds_wmclient_t *,  wndmgt_ev_t *);
+extern errno_t ds_wmclient_post_wnd_added_event(ds_wmclient_t *, sysarg_t);
+extern errno_t ds_wmclient_post_wnd_removed_event(ds_wmclient_t *, sysarg_t);
+extern void ds_wmclient_purge_events(ds_wmclient_t *);
+
+#endif
+
+/** @}
+ */

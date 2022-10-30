@@ -55,10 +55,12 @@
 #include "output.h"
 #include "seat.h"
 #include "window.h"
+#include "wmclient.h"
 #include "wmops.h"
 
 static void display_client_conn(ipc_call_t *, void *);
 static void display_client_ev_pending(void *);
+static void display_wmclient_ev_pending(void *);
 static void display_gc_conn(ipc_call_t *, void *);
 static void display_wndmgt_conn(ipc_call_t *, void *);
 
@@ -79,11 +81,22 @@ static ds_client_cb_t display_client_cb = {
 	.ev_pending = display_client_ev_pending
 };
 
+static ds_wmclient_cb_t display_wmclient_cb = {
+	.ev_pending = display_wmclient_ev_pending
+};
+
 static void display_client_ev_pending(void *arg)
 {
 	display_srv_t *srv = (display_srv_t *) arg;
 
 	display_srv_ev_pending(srv);
+}
+
+static void display_wmclient_ev_pending(void *arg)
+{
+	wndmgt_srv_t *srv = (wndmgt_srv_t *) arg;
+
+	wndmgt_srv_ev_pending(srv);
 }
 
 /** Initialize display server */
@@ -188,7 +201,9 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 
 	if (svc_id != 0) {
 		/* Create client object */
+		ds_display_lock(disp);
 		rc = ds_client_create(disp, &display_client_cb, &srv, &client);
+		ds_display_unlock(disp);
 		if (rc != EOK) {
 			async_answer_0(icall, ENOMEM);
 			return;
@@ -242,15 +257,30 @@ static void display_gc_conn(ipc_call_t *icall, void *arg)
 static void display_wndmgt_conn(ipc_call_t *icall, void *arg)
 {
 	ds_display_t *disp = (ds_display_t *) arg;
+	errno_t rc;
 	wndmgt_srv_t srv;
+	ds_wmclient_t *wmclient = NULL;
+
+	/* Create WM client object */
+	ds_display_lock(disp);
+	rc = ds_wmclient_create(disp, &display_wmclient_cb, &srv, &wmclient);
+	ds_display_unlock(disp);
+	if (rc != EOK) {
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
 
 	/* Set up protocol structure */
 	wndmgt_srv_initialize(&srv);
 	srv.ops = &wndmgt_srv_ops;
-	srv.arg = disp;
+	srv.arg = wmclient;
 
 	/* Handle connection */
 	wndmgt_conn(icall, &srv);
+
+	ds_display_lock(disp);
+	ds_wmclient_destroy(wmclient);
+	ds_display_unlock(disp);
 }
 
 int main(int argc, char *argv[])

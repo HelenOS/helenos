@@ -196,10 +196,7 @@ void ds_window_destroy(ds_window_t *wnd)
  */
 void ds_window_bring_to_top(ds_window_t *wnd)
 {
-	ds_display_t *disp = wnd->display;
-
-	ds_display_remove_window(wnd);
-	ds_display_add_window(disp, wnd);
+	ds_display_window_to_top(wnd);
 	(void) ds_display_paint(wnd->display, NULL);
 }
 

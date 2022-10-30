@@ -39,6 +39,7 @@
 #include <str.h>
 #include <wndmgt_srv.h>
 #include "display.h"
+#include "wmclient.h"
 
 static errno_t dispwm_get_window_list(void *, wndmgt_window_list_t **);
 static errno_t dispwm_get_window_info(void *, sysarg_t, wndmgt_window_info_t **);
@@ -54,10 +55,16 @@ wndmgt_ops_t wndmgt_srv_ops = {
 	.get_event = dispwm_get_event,
 };
 
+/** Get window list.
+ *
+ * @param arg Argument (WM client)
+ * @param rlist Place to store pointer to new list
+ * @return EOK on success or an error code
+ */
 static errno_t dispwm_get_window_list(void *arg, wndmgt_window_list_t **rlist)
 {
+	ds_wmclient_t *wmclient = (ds_wmclient_t *)arg;
 	wndmgt_window_list_t *list;
-	ds_display_t *disp = (ds_display_t *)arg;
 	ds_window_t *wnd;
 	unsigned i;
 
@@ -67,9 +74,11 @@ static errno_t dispwm_get_window_list(void *arg, wndmgt_window_list_t **rlist)
 	if (list == NULL)
 		return ENOMEM;
 
+	ds_display_lock(wmclient->display);
+
 	/* Count the number of windows */
 	list->nwindows = 0;
-	wnd = ds_display_first_window(disp);
+	wnd = ds_display_first_window(wmclient->display);
 	while (wnd != NULL) {
 		++list->nwindows;
 		wnd = ds_display_next_window(wnd);
@@ -78,49 +87,71 @@ static errno_t dispwm_get_window_list(void *arg, wndmgt_window_list_t **rlist)
 	/* Allocate array for window IDs */
 	list->windows = calloc(list->nwindows, sizeof(sysarg_t));
 	if (list->windows == NULL) {
+		ds_display_unlock(wmclient->display);
 		free(list);
 		return ENOMEM;
 	}
 
 	/* Fill in window IDs */
 	i = 0;
-	wnd = ds_display_first_window(disp);
+	wnd = ds_display_first_window(wmclient->display);
 	while (wnd != NULL) {
 		list->windows[i++] = wnd->id;
 		wnd = ds_display_next_window(wnd);
 	}
 
+	ds_display_unlock(wmclient->display);
 	*rlist = list;
 	return EOK;
 }
 
+/** Get window information.
+ *
+ * @param arg Argument (WM client)
+ * @param wnd_id Window ID
+ * @param rinfo Place to store pointer to new window information structure
+ * @return EOK on success or an error code
+ */
 static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
     wndmgt_window_info_t **rinfo)
 {
-	ds_display_t *disp = (ds_display_t *)arg;
+	ds_wmclient_t *wmclient = (ds_wmclient_t *)arg;
 	ds_window_t *wnd;
 	wndmgt_window_info_t *info;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_get_window_info()");
 
-	wnd = ds_display_find_window(disp, wnd_id);
-	if (wnd == NULL)
+	ds_display_lock(wmclient->display);
+	wnd = ds_display_find_window(wmclient->display, wnd_id);
+	if (wnd == NULL) {
+		ds_display_unlock(wmclient->display);
 		return ENOENT;
+	}
 
 	info = calloc(1, sizeof(wndmgt_window_info_t));
-	if (info == NULL)
+	if (info == NULL) {
+		ds_display_unlock(wmclient->display);
 		return ENOMEM;
+	}
 
 	info->caption = str_dup(wnd->caption);
 	if (info->caption == NULL) {
+		ds_display_unlock(wmclient->display);
 		free(info);
 		return ENOMEM;
 	}
 
+	ds_display_unlock(wmclient->display);
 	*rinfo = info;
 	return EOK;
 }
 
+/** Activate window.
+ *
+ * @param arg Argument (WM client)
+ * @param wnd_id Window ID
+ * @return EOK on success or an error code
+ */
 static errno_t dispwm_activate_window(void *arg, sysarg_t wnd_id)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_activate_window()");
@@ -129,6 +160,12 @@ static errno_t dispwm_activate_window(void *arg, sysarg_t wnd_id)
 	return EOK;
 }
 
+/** Close window.
+ *
+ * @param arg Argument (WM client)
+ * @param wnd_id Window ID
+ * @return EOK on success or an error code
+ */
 static errno_t dispwm_close_window(void *arg, sysarg_t wnd_id)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_close_window()");
@@ -137,9 +174,23 @@ static errno_t dispwm_close_window(void *arg, sysarg_t wnd_id)
 	return EOK;
 }
 
+/** Get window management event.
+ *
+ * @param arg Argument (WM client)
+ * @param ev Place to store event
+ * @return EOK on success, ENOENT if there are no events
+ */
 static errno_t dispwm_get_event(void *arg, wndmgt_ev_t *ev)
 {
-	return ENOTSUP;
+	ds_wmclient_t *wmclient = (ds_wmclient_t *)arg;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_get_event()");
+
+	ds_display_lock(wmclient->display);
+	rc = ds_wmclient_get_event(wmclient, ev);
+	ds_display_unlock(wmclient->display);
+	return rc;
 }
 
 /** @}
