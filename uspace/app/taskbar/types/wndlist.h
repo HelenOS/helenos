@@ -40,7 +40,7 @@
 #include <gfx/coord.h>
 #include <ui/pbutton.h>
 #include <ui/fixed.h>
-#include <ui/resource.h>
+#include <ui/window.h>
 #include <wndmgt.h>
 
 /** Taskbar window list entry */
@@ -49,6 +49,8 @@ typedef struct {
 	struct wndlist *wndlist;
 	/** Link to wndlist->entries */
 	link_t lentries;
+	/** Window ID */
+	sysarg_t wnd_id;
 	/** Window button */
 	ui_pbutton_t *button;
 } wndlist_entry_t;
@@ -58,8 +60,8 @@ typedef struct wndlist {
 	/** Base control object */
 	struct ui_control *control;
 
-	/** UI resource */
-	ui_resource_t *res;
+	/** Containing window */
+	ui_window_t *window;
 
 	/** Layout to which we add window buttoons */
 	ui_fixed_t *fixed;

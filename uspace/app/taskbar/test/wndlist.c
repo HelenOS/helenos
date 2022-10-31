@@ -45,7 +45,6 @@ PCUT_TEST(create_destroy)
 	ui_wnd_params_t params;
 	ui_window_t *window = NULL;
 	ui_fixed_t *fixed = NULL;
-	ui_resource_t *res;
 	wndlist_t *wndlist;
 
 	rc = ui_create_disp(NULL, &ui);
@@ -58,13 +57,10 @@ PCUT_TEST(create_destroy)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	res = ui_window_get_res(window);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
 	rc = ui_fixed_create(&fixed);
 	ui_window_add(window, ui_fixed_ctl(fixed));
 
-	rc = wndlist_create(res, fixed, &wndlist);
+	rc = wndlist_create(window, fixed, &wndlist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	wndlist_destroy(wndlist);

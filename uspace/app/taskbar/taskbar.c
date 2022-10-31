@@ -52,14 +52,6 @@ static ui_window_cb_t window_cb = {
 	.close = wnd_close
 };
 
-static void taskbar_wm_window_added(void *, sysarg_t);
-static void taskbar_wm_window_removed(void *, sysarg_t);
-
-static wndmgt_cb_t taskbar_wndmgt_cb = {
-	.window_added = taskbar_wm_window_added,
-	.window_removed = taskbar_wm_window_removed
-};
-
 /** Window close button was clicked.
  *
  * @param window Window
@@ -93,13 +85,6 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	if (taskbar == NULL) {
 		rc = ENOMEM;
 		goto error;
-	}
-
-	if (wndmgt_svc != NULL) {
-		rc = wndmgt_open(wndmgt_svc, &taskbar_wndmgt_cb,
-		    (void *)taskbar, &taskbar->wndmgt);
-		if (rc != EOK)
-			goto error;
 	}
 
 	rc = ui_create(display_spec, &taskbar->ui);
@@ -176,13 +161,13 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	rc = wndlist_create(ui_res, taskbar->fixed, &taskbar->wndlist);
+	rc = wndlist_create(taskbar->window, taskbar->fixed, &taskbar->wndlist);
 	if (rc != EOK) {
 		printf("Error creating window list.\n");
 		goto error;
 	}
 
-	rc = wndlist_attach_wm(taskbar->wndlist, taskbar->wndmgt);
+	rc = wndlist_open_wm(taskbar->wndlist, wndmgt_svc);
 	if (rc != EOK) {
 		printf("Error attaching window management service.\n");
 		goto error;
@@ -232,8 +217,6 @@ error:
 		ui_window_destroy(taskbar->window);
 	if (taskbar->ui != NULL)
 		ui_destroy(taskbar->ui);
-	if (taskbar->wndmgt != NULL)
-		wndmgt_close(taskbar->wndmgt);
 	return rc;
 
 }
@@ -245,34 +228,6 @@ void taskbar_destroy(taskbar_t *taskbar)
 	taskbar_clock_destroy(taskbar->clock);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);
-	if (taskbar->wndmgt != NULL)
-		wndmgt_close(taskbar->wndmgt);
-}
-
-/** Handle WM window added event.
- *
- * @param arg Argument (taskbar_t *)
- * @param wnd_id Window ID
- */
-static void taskbar_wm_window_added(void *arg, sysarg_t wnd_id)
-{
-	taskbar_t *taskbar = (taskbar_t *)arg;
-
-	printf("wm_window_added: taskbar=%p wnd_id=%zu\n",
-	    (void *)taskbar, wnd_id);
-}
-
-/** Handle WM window removed event.
- *
- * @param arg Argument (taskbar_t *)
- * @param wnd_id Window ID
- */
-static void taskbar_wm_window_removed(void *arg, sysarg_t wnd_id)
-{
-	taskbar_t *taskbar = (taskbar_t *)arg;
-
-	printf("wm_window_removed: taskbar=%p wnd_id=%zu\n",
-	    (void *)taskbar, wnd_id);
 }
 
 /** @}

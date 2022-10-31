@@ -37,15 +37,22 @@
 #define WNDLIST_H
 
 #include <errno.h>
+#include <stdbool.h>
 #include <ui/fixed.h>
-#include <ui/resource.h>
+#include <ui/window.h>
 #include <wndmgt.h>
 #include "types/wndlist.h"
 
-extern errno_t wndlist_create(ui_resource_t *, ui_fixed_t *, wndlist_t **);
-extern errno_t wndlist_attach_wm(wndlist_t *, wndmgt_t *);
+extern errno_t wndlist_create(ui_window_t *, ui_fixed_t *, wndlist_t **);
+extern errno_t wndlist_open_wm(wndlist_t *, const char *);
 extern void wndlist_destroy(wndlist_t *);
-extern errno_t wndlist_append(wndlist_t *, const char *);
+extern errno_t wndlist_append(wndlist_t *, sysarg_t, const char *, bool);
+extern errno_t wndlist_remove(wndlist_t *, wndlist_entry_t *, bool);
+extern void wndlist_set_entry_rect(wndlist_t *, wndlist_entry_t *);
+extern wndlist_entry_t *wndlist_entry_by_id(wndlist_t *, sysarg_t);
+extern wndlist_entry_t *wndlist_first(wndlist_t *);
+extern wndlist_entry_t *wndlist_next(wndlist_entry_t *);
+extern errno_t wndlist_repaint(wndlist_t *);
 
 #endif
 
