@@ -44,10 +44,12 @@
 #include <memgfx/memgc.h>
 #include <stdlib.h>
 #include <str.h>
+#include <wndmgt.h>
 #include "client.h"
 #include "display.h"
 #include "seat.h"
 #include "window.h"
+#include "wmclient.h"
 
 static void ds_window_invalidate_cb(void *, gfx_rect_t *);
 static void ds_window_update_cb(void *);
@@ -932,6 +934,7 @@ errno_t ds_window_set_cursor(ds_window_t *wnd, display_stock_cursor_t cursor)
 errno_t ds_window_set_caption(ds_window_t *wnd, const char *caption)
 {
 	char *dcaption;
+	ds_wmclient_t *wmclient;
 
 	dcaption = str_dup(caption);
 	if (dcaption == NULL)
@@ -939,6 +942,13 @@ errno_t ds_window_set_caption(ds_window_t *wnd, const char *caption)
 
 	free(wnd->caption);
 	wnd->caption = dcaption;
+
+	/* Notify window managers about window information change */
+	wmclient = ds_display_first_wmclient(wnd->display);
+	while (wmclient != NULL) {
+		ds_wmclient_post_wnd_changed_event(wmclient, wnd->id);
+		wmclient = ds_display_next_wmclient(wmclient);
+	}
 
 	return EOK;
 }

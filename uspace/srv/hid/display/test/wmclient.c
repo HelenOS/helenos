@@ -106,6 +106,84 @@ PCUT_TEST(client_get_post_wnd_added_event)
 	ds_display_destroy(disp);
 }
 
+/** Test ds_wmclient_get_event(), ds_wmclient_post_wnd_removed_event(). */
+PCUT_TEST(client_get_post_wnd_removed_event)
+{
+	ds_display_t *disp;
+	ds_wmclient_t *wmclient;
+	wndmgt_ev_t revent;
+	bool called_cb = NULL;
+	sysarg_t wnd_id;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_wmclient_create(disp, &test_ds_wmclient_cb, &called_cb,
+	    &wmclient);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	called_cb = false;
+	wnd_id = 42;
+
+	rc = ds_wmclient_get_event(wmclient, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	rc = ds_wmclient_post_wnd_removed_event(wmclient, wnd_id);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(called_cb);
+
+	rc = ds_wmclient_get_event(wmclient, &revent);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(wnd_id, revent.wnd_id);
+	PCUT_ASSERT_EQUALS(wmev_window_removed, revent.etype);
+
+	rc = ds_wmclient_get_event(wmclient, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	ds_wmclient_destroy(wmclient);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_wmclient_get_event(), ds_wmclient_post_wnd_changed_event(). */
+PCUT_TEST(client_get_post_wnd_changed_event)
+{
+	ds_display_t *disp;
+	ds_wmclient_t *wmclient;
+	wndmgt_ev_t revent;
+	bool called_cb = NULL;
+	sysarg_t wnd_id;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_wmclient_create(disp, &test_ds_wmclient_cb, &called_cb,
+	    &wmclient);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	called_cb = false;
+	wnd_id = 42;
+
+	rc = ds_wmclient_get_event(wmclient, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	rc = ds_wmclient_post_wnd_changed_event(wmclient, wnd_id);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_TRUE(called_cb);
+
+	rc = ds_wmclient_get_event(wmclient, &revent);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_EQUALS(wnd_id, revent.wnd_id);
+	PCUT_ASSERT_EQUALS(wmev_window_changed, revent.etype);
+
+	rc = ds_wmclient_get_event(wmclient, &revent);
+	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
+
+	ds_wmclient_destroy(wmclient);
+	ds_display_destroy(disp);
+}
+
 /** Test ds_wmclient_purge_events() */
 PCUT_TEST(purge_events)
 {

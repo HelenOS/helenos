@@ -61,7 +61,7 @@ struct ui_pbutton {
 	/** Push button rectangle */
 	gfx_rect_t rect;
 	/** Caption */
-	const char *caption;
+	char *caption;
 	/** Button is selected as default */
 	bool isdefault;
 	/** Button is currently held down */

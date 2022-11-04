@@ -113,6 +113,7 @@ void ui_pbutton_destroy(ui_pbutton_t *pbutton)
 		return;
 
 	ui_control_delete(pbutton->control);
+	free(pbutton->caption);
 	free(pbutton);
 }
 
@@ -182,6 +183,25 @@ void ui_pbutton_set_rect(ui_pbutton_t *pbutton, gfx_rect_t *rect)
 void ui_pbutton_set_default(ui_pbutton_t *pbutton, bool isdefault)
 {
 	pbutton->isdefault = isdefault;
+}
+
+/** Set push button caption.
+ *
+ * @param pbutton Button
+ * @param caption New caption
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ui_pbutton_set_caption(ui_pbutton_t *pbutton, const char *caption)
+{
+	char *dcaption;
+
+	dcaption = str_dup(caption);
+	if (dcaption == NULL)
+		return ENOMEM;
+
+	free(pbutton->caption);
+	pbutton->caption = dcaption;
+	return EOK;
 }
 
 /** Paint outer button frame.

@@ -189,6 +189,25 @@ PCUT_TEST(set_default)
 	ui_pbutton_destroy(pbutton);
 }
 
+/** Set caption sets internal field */
+PCUT_TEST(set_caption)
+{
+	ui_pbutton_t *pbutton;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("Hello", pbutton->caption);
+
+	rc = ui_pbutton_set_caption(pbutton, "World");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_STR_EQUALS("World", pbutton->caption);
+
+	ui_pbutton_destroy(pbutton);
+}
+
 /** Paint button */
 PCUT_TEST(paint)
 {

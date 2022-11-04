@@ -47,6 +47,7 @@ extern void ds_wmclient_destroy(ds_wmclient_t *);
 extern errno_t ds_wmclient_get_event(ds_wmclient_t *,  wndmgt_ev_t *);
 extern errno_t ds_wmclient_post_wnd_added_event(ds_wmclient_t *, sysarg_t);
 extern errno_t ds_wmclient_post_wnd_removed_event(ds_wmclient_t *, sysarg_t);
+extern errno_t ds_wmclient_post_wnd_changed_event(ds_wmclient_t *, sysarg_t);
 extern void ds_wmclient_purge_events(ds_wmclient_t *);
 
 #endif

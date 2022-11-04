@@ -386,6 +386,13 @@ static void wndmgt_ev_pending(wndmgt_t *wndmgt, ipc_call_t *icall)
 				    event.wnd_id);
 			}
 			break;
+		case wmev_window_changed:
+			if (wndmgt->cb != NULL &&
+			    wndmgt->cb->window_changed != NULL) {
+				wndmgt->cb->window_changed(wndmgt->cb_arg,
+				    event.wnd_id);
+			}
+			break;
 		}
 	}
 

@@ -53,6 +53,7 @@ static errno_t test_get_event(void *, wndmgt_ev_t *);
 
 static void test_window_added(void *, sysarg_t);
 static void test_window_removed(void *, sysarg_t);
+static void test_window_changed(void *, sysarg_t);
 
 static wndmgt_ops_t test_wndmgt_srv_ops = {
 	.get_window_list = test_get_window_list,
@@ -64,7 +65,8 @@ static wndmgt_ops_t test_wndmgt_srv_ops = {
 
 static wndmgt_cb_t test_wndmgt_cb = {
 	.window_added = test_window_added,
-	.window_removed = test_window_removed
+	.window_removed = test_window_removed,
+	.window_changed = test_window_changed
 };
 
 /** Describes to the server how to respond to our request and pass tracking
@@ -97,6 +99,9 @@ typedef struct {
 
 	bool window_removed_called;
 	sysarg_t window_removed_wnd_id;
+
+	bool window_changed_called;
+	sysarg_t window_changed_wnd_id;
 
 	fibril_condvar_t event_cv;
 	fibril_mutex_t event_lock;
@@ -528,6 +533,53 @@ PCUT_TEST(window_removed_deliver)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Window changed event can be delivered from server to client callback function */
+PCUT_TEST(window_changed_deliver)
+{
+	errno_t rc;
+	service_id_t sid;
+	wndmgt_t *wndmgt = NULL;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_wndmgt_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_wndmgt_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = wndmgt_open(test_wndmgt_svc, &test_wndmgt_cb, &resp, &wndmgt);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wndmgt);
+	PCUT_ASSERT_NOT_NULL(resp.srv);
+
+	resp.event_cnt = 1;
+	resp.event.etype = wmev_window_changed;
+	resp.event.wnd_id = 42;
+	resp.window_changed_called = false;
+	fibril_mutex_initialize(&resp.event_lock);
+	fibril_condvar_initialize(&resp.event_cv);
+	wndmgt_srv_ev_pending(resp.srv);
+
+	/* Wait for the event handler to be called. */
+	fibril_mutex_lock(&resp.event_lock);
+	while (!resp.window_changed_called) {
+		fibril_condvar_wait(&resp.event_cv, &resp.event_lock);
+	}
+	fibril_mutex_unlock(&resp.event_lock);
+
+	/* Verify that the event was delivered correctly */
+	PCUT_ASSERT_INT_EQUALS(resp.event.etype,
+	    resp.revent.etype);
+
+	wndmgt_close(wndmgt);
+
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Test window management service connection. */
 static void test_wndmgt_conn(ipc_call_t *icall, void *arg)
 {
@@ -568,6 +620,19 @@ static void test_window_removed(void *arg, sysarg_t wnd_id)
 	fibril_mutex_lock(&resp->event_lock);
 	resp->window_removed_called = true;
 	resp->window_removed_wnd_id = wnd_id;
+	fibril_condvar_broadcast(&resp->event_cv);
+	fibril_mutex_unlock(&resp->event_lock);
+}
+
+static void test_window_changed(void *arg, sysarg_t wnd_id)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->revent.etype = wmev_window_changed;
+
+	fibril_mutex_lock(&resp->event_lock);
+	resp->window_changed_called = true;
+	resp->window_changed_wnd_id = wnd_id;
 	fibril_condvar_broadcast(&resp->event_cv);
 	fibril_mutex_unlock(&resp->event_lock);
 }

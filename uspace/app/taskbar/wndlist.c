@@ -47,10 +47,12 @@
 
 static void wndlist_wm_window_added(void *, sysarg_t);
 static void wndlist_wm_window_removed(void *, sysarg_t);
+static void wndlist_wm_window_changed(void *, sysarg_t);
 
 static wndmgt_cb_t wndlist_wndmgt_cb = {
 	.window_added = wndlist_wm_window_added,
-	.window_removed = wndlist_wm_window_removed
+	.window_removed = wndlist_wm_window_removed,
+	.window_changed = wndlist_wm_window_changed
 };
 
 /** Create task bar window list.
@@ -236,6 +238,29 @@ errno_t wndlist_remove(wndlist_t *wndlist, wndlist_entry_t *entry,
 	return wndlist_repaint(wndlist);
 }
 
+/** Update window list entry.
+ *
+ * @param wndlist Window list
+ * @param entry Window list entry
+ * @return @c EOK on success or an error code
+ */
+errno_t wndlist_update(wndlist_t *wndlist, wndlist_entry_t *entry,
+    const char *caption)
+{
+	errno_t rc;
+	assert(entry->wndlist == wndlist);
+
+	rc = ui_pbutton_set_caption(entry->button, caption);
+	if (rc != EOK)
+		return rc;
+
+	rc = ui_pbutton_paint(entry->button);
+	if (rc != EOK)
+		return rc;
+
+	return wndlist_repaint(wndlist);
+}
+
 /** Compute and set window list entry rectangle.
  *
  * Compute rectangle for window list entry and set it.
@@ -322,6 +347,33 @@ static void wndlist_wm_window_removed(void *arg, sysarg_t wnd_id)
 		return;
 
 	(void) wndlist_remove(wndlist, entry, true);
+}
+
+/** Handle WM window changed event.
+ *
+ * @param arg Argument (wndlist_t *)
+ * @param wnd_id Window ID
+ */
+static void wndlist_wm_window_changed(void *arg, sysarg_t wnd_id)
+{
+	wndlist_t *wndlist = (wndlist_t *)arg;
+	wndmgt_window_info_t *winfo = NULL;
+	wndlist_entry_t *entry;
+	errno_t rc;
+
+	printf("wm_window_changed: wndlist=%p wnd_id=%zu\n",
+	    (void *)wndlist, wnd_id);
+
+	entry = wndlist_entry_by_id(wndlist, wnd_id);
+	if (entry == NULL)
+		return;
+
+	rc = wndmgt_get_window_info(wndlist->wndmgt, wnd_id, &winfo);
+	if (rc != EOK)
+		return;
+
+	(void) wndlist_update(wndlist, entry, winfo->caption);
+	wndmgt_free_window_info(winfo);
 }
 
 /** Find window list entry by ID.

@@ -183,5 +183,34 @@ errno_t ds_wmclient_post_wnd_removed_event(ds_wmclient_t *wmclient,
 	return EOK;
 }
 
+/** Post window changed event to the WM client's message queue.
+ *
+ * @param wmclient WM client
+ * @param wnd_id Window ID of the added window
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_wmclient_post_wnd_changed_event(ds_wmclient_t *wmclient,
+    sysarg_t wnd_id)
+{
+	ds_wmclient_ev_t *wevent;
+
+	wevent = calloc(1, sizeof(ds_wmclient_ev_t));
+	if (wevent == NULL)
+		return ENOMEM;
+
+	wevent->wmclient = wmclient;
+	wevent->event.etype = wmev_window_changed;
+	wevent->event.wnd_id = wnd_id;
+	list_append(&wevent->levents, &wmclient->events);
+
+	/* Notify the client */
+	// TODO Do not send more than once until client drains the queue
+	if (wmclient->cb != NULL && wmclient->cb->ev_pending != NULL)
+		wmclient->cb->ev_pending(wmclient->cb_arg);
+
+	return EOK;
+}
+
 /** @}
  */

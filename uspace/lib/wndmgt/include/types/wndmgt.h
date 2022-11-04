@@ -52,6 +52,8 @@ typedef struct {
 	void (*window_added)(void *, sysarg_t);
 	/** Window removed */
 	void (*window_removed)(void *, sysarg_t);
+	/** Window changed */
+	void (*window_changed)(void *, sysarg_t);
 } wndmgt_cb_t;
 
 /** Window management event type */
@@ -59,7 +61,9 @@ typedef enum {
 	/** Window added */
 	wmev_window_added,
 	/** Window removed */
-	wmev_window_removed
+	wmev_window_removed,
+	/** Window changed */
+	wmev_window_changed
 } wndmgt_ev_type_t;
 
 /** Window management event */
