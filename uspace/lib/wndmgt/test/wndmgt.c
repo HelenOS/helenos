@@ -47,7 +47,7 @@ static void test_wndmgt_conn(ipc_call_t *, void *);
 
 static errno_t test_get_window_list(void *, wndmgt_window_list_t **);
 static errno_t test_get_window_info(void *, sysarg_t, wndmgt_window_info_t **);
-static errno_t test_activate_window(void *, sysarg_t);
+static errno_t test_activate_window(void *, sysarg_t, sysarg_t);
 static errno_t test_close_window(void *, sysarg_t);
 static errno_t test_get_event(void *, wndmgt_ev_t *);
 
@@ -87,6 +87,7 @@ typedef struct {
 	wndmgt_window_info_t *get_window_info_rinfo;
 
 	bool activate_window_called;
+	sysarg_t activate_window_seat_id;
 	sysarg_t activate_window_wnd_id;
 
 	bool close_window_called;
@@ -301,6 +302,7 @@ PCUT_TEST(activate_window_failure)
 	errno_t rc;
 	service_id_t sid;
 	wndmgt_t *wndmgt = NULL;
+	sysarg_t seat_id;
 	sysarg_t wnd_id;
 	test_response_t resp;
 
@@ -317,12 +319,14 @@ PCUT_TEST(activate_window_failure)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wndmgt);
 
+	seat_id = 13;
 	wnd_id = 42;
 	resp.rc = ENOMEM;
 	resp.activate_window_called = false;
 
-	rc = wndmgt_activate_window(wndmgt, wnd_id);
+	rc = wndmgt_activate_window(wndmgt, seat_id, wnd_id);
 	PCUT_ASSERT_TRUE(resp.activate_window_called);
+	PCUT_ASSERT_INT_EQUALS(seat_id, resp.activate_window_seat_id);
 	PCUT_ASSERT_INT_EQUALS(wnd_id, resp.activate_window_wnd_id);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
@@ -337,6 +341,7 @@ PCUT_TEST(activate_window_success)
 	errno_t rc;
 	service_id_t sid;
 	wndmgt_t *wndmgt = NULL;
+	sysarg_t seat_id;
 	sysarg_t wnd_id;
 	test_response_t resp;
 
@@ -353,12 +358,14 @@ PCUT_TEST(activate_window_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(wndmgt);
 
+	seat_id = 13;
 	wnd_id = 42;
 	resp.rc = EOK;
 	resp.activate_window_called = false;
 
-	rc = wndmgt_activate_window(wndmgt, wnd_id);
+	rc = wndmgt_activate_window(wndmgt, seat_id, wnd_id);
 	PCUT_ASSERT_TRUE(resp.activate_window_called);
+	PCUT_ASSERT_INT_EQUALS(seat_id, resp.activate_window_seat_id);
 	PCUT_ASSERT_INT_EQUALS(wnd_id, resp.activate_window_wnd_id);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
@@ -665,11 +672,13 @@ static errno_t test_get_window_info(void *arg, sysarg_t wnd_id,
 	return EOK;
 }
 
-static errno_t test_activate_window(void *arg, sysarg_t wnd_id)
+static errno_t test_activate_window(void *arg, sysarg_t seat_id,
+    sysarg_t wnd_id)
 {
 	test_response_t *resp = (test_response_t *) arg;
 
 	resp->activate_window_called = true;
+	resp->activate_window_seat_id = seat_id;
 	resp->activate_window_wnd_id = wnd_id;
 	return resp->rc;
 }

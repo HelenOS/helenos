@@ -203,17 +203,19 @@ static void wndmgt_get_window_info_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 static void wndmgt_activate_window_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 {
+	sysarg_t seat_id;
 	sysarg_t wnd_id;
 	errno_t rc;
 
-	wnd_id = ipc_get_arg1(icall);
+	seat_id = ipc_get_arg1(icall);
+	wnd_id = ipc_get_arg2(icall);
 
 	if (srv->ops->activate_window == NULL) {
 		async_answer_0(icall, ENOTSUP);
 		return;
 	}
 
-	rc = srv->ops->activate_window(srv->arg, wnd_id);
+	rc = srv->ops->activate_window(srv->arg, seat_id, wnd_id);
 	async_answer_0(icall, rc);
 }
 

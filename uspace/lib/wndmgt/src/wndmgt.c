@@ -286,16 +286,19 @@ void wndmgt_free_window_info(wndmgt_window_info_t *info)
 /** Activate window.
  *
  * @param wndmgt Window management session
+ * @param seat_id Seat ID
  * @param wnd_id Window ID
  * @return EOK on success or an error code
  */
-errno_t wndmgt_activate_window(wndmgt_t *wndmgt, sysarg_t wnd_id)
+errno_t wndmgt_activate_window(wndmgt_t *wndmgt, sysarg_t seat_id,
+    sysarg_t wnd_id)
 {
 	async_exch_t *exch;
 	errno_t rc;
 
 	exch = async_exchange_begin(wndmgt->sess);
-	rc = async_req_1_0(exch, WNDMGT_ACTIVATE_WINDOW, wnd_id);
+	rc = async_req_2_0(exch, WNDMGT_ACTIVATE_WINDOW, seat_id,
+	    wnd_id);
 
 	async_exchange_end(exch);
 	return rc;

@@ -49,10 +49,18 @@ static void wndlist_wm_window_added(void *, sysarg_t);
 static void wndlist_wm_window_removed(void *, sysarg_t);
 static void wndlist_wm_window_changed(void *, sysarg_t);
 
+/** Window list WM callbacks */
 static wndmgt_cb_t wndlist_wndmgt_cb = {
 	.window_added = wndlist_wm_window_added,
 	.window_removed = wndlist_wm_window_removed,
 	.window_changed = wndlist_wm_window_changed
+};
+
+static void wndlist_button_clicked(ui_pbutton_t *, void *);
+
+/** Window list button callbacks */
+static ui_pbutton_cb_t wndlist_button_cb = {
+	.clicked = wndlist_button_clicked
 };
 
 /** Create task bar window list.
@@ -185,6 +193,9 @@ errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
 
 	/* Set the button rectangle */
 	wndlist_set_entry_rect(wndlist, entry);
+
+	/* Set button callbacks */
+	ui_pbutton_set_cb(entry->button, &wndlist_button_cb, (void *)entry);
 
 	rc = ui_fixed_add(wndlist->fixed, ui_pbutton_ctl(entry->button));
 	if (rc != EOK)
@@ -339,9 +350,6 @@ static void wndlist_wm_window_removed(void *arg, sysarg_t wnd_id)
 	wndlist_t *wndlist = (wndlist_t *)arg;
 	wndlist_entry_t *entry;
 
-	printf("wm_window_removed: wndlist=%p wnd_id=%zu\n",
-	    (void *)wndlist, wnd_id);
-
 	entry = wndlist_entry_by_id(wndlist, wnd_id);
 	if (entry == NULL)
 		return;
@@ -360,9 +368,6 @@ static void wndlist_wm_window_changed(void *arg, sysarg_t wnd_id)
 	wndmgt_window_info_t *winfo = NULL;
 	wndlist_entry_t *entry;
 	errno_t rc;
-
-	printf("wm_window_changed: wndlist=%p wnd_id=%zu\n",
-	    (void *)wndlist, wnd_id);
 
 	entry = wndlist_entry_by_id(wndlist, wnd_id);
 	if (entry == NULL)
@@ -437,6 +442,22 @@ wndlist_entry_t *wndlist_next(wndlist_entry_t *cur)
 errno_t wndlist_repaint(wndlist_t *wndlist)
 {
 	return ui_window_paint(wndlist->window);
+}
+
+/** Window button was clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (wdnlist_entry_t *)
+ */
+static void wndlist_button_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	wndlist_entry_t *entry = (wndlist_entry_t *)arg;
+	sysarg_t seat_id;
+
+	seat_id = 0; // TODO Multi-seat
+
+	(void) wndmgt_activate_window(entry->wndlist->wndmgt,
+	    seat_id, entry->wnd_id);
 }
 
 /** @}

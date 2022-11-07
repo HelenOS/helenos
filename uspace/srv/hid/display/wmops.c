@@ -39,11 +39,12 @@
 #include <str.h>
 #include <wndmgt_srv.h>
 #include "display.h"
+#include "seat.h"
 #include "wmclient.h"
 
 static errno_t dispwm_get_window_list(void *, wndmgt_window_list_t **);
 static errno_t dispwm_get_window_info(void *, sysarg_t, wndmgt_window_info_t **);
-static errno_t dispwm_activate_window(void *, sysarg_t);
+static errno_t dispwm_activate_window(void *, sysarg_t, sysarg_t);
 static errno_t dispwm_close_window(void *, sysarg_t);
 static errno_t dispwm_get_event(void *, wndmgt_ev_t *);
 
@@ -149,14 +150,34 @@ static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
 /** Activate window.
  *
  * @param arg Argument (WM client)
+ * @param seat_id Seat ID
  * @param wnd_id Window ID
  * @return EOK on success or an error code
  */
-static errno_t dispwm_activate_window(void *arg, sysarg_t wnd_id)
+static errno_t dispwm_activate_window(void *arg, sysarg_t seat_id,
+    sysarg_t wnd_id)
 {
+	ds_wmclient_t *wmclient = (ds_wmclient_t *)arg;
+	ds_window_t *wnd;
+	ds_seat_t *seat;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispwm_activate_window()");
-	(void)arg;
-	(void)wnd_id;
+
+	ds_display_lock(wmclient->display);
+	wnd = ds_display_find_window(wmclient->display, wnd_id);
+	if (wnd == NULL) {
+		ds_display_unlock(wmclient->display);
+		return ENOENT;
+	}
+
+	// TODO Multi-seat
+	(void) seat_id;
+	seat = ds_display_first_seat(wnd->display);
+
+	/* Switch focus */
+	ds_seat_set_focus(seat, wnd);
+
+	ds_display_unlock(wmclient->display);
 	return EOK;
 }
 
