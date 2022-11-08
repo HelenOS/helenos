@@ -304,9 +304,9 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 		rect.p1.y = 1;
 	} else {
 		rect.p0.x = 145 * idx + 90;
-		rect.p0.y = 3;
+		rect.p0.y = 4;
 		rect.p1.x = 145 * idx + 230;
-		rect.p1.y = 29;
+		rect.p1.y = 28;
 	}
 
 	ui_pbutton_set_rect(entry->button, &rect);
