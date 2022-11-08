@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,11 +49,13 @@ typedef struct {
 typedef struct input_ev_ops {
 	errno_t (*active)(input_t *);
 	errno_t (*deactive)(input_t *);
-	errno_t (*key)(input_t *, kbd_event_type_t, keycode_t, keymod_t, char32_t);
-	errno_t (*move)(input_t *, int, int);
-	errno_t (*abs_move)(input_t *, unsigned, unsigned, unsigned, unsigned);
-	errno_t (*button)(input_t *, int, int);
-	errno_t (*dclick)(input_t *, int);
+	errno_t (*key)(input_t *, unsigned, kbd_event_type_t, keycode_t,
+	    keymod_t, char32_t);
+	errno_t (*move)(input_t *, unsigned, int, int);
+	errno_t (*abs_move)(input_t *, unsigned, unsigned, unsigned, unsigned,
+	    unsigned);
+	errno_t (*button)(input_t *, unsigned, int, int);
+	errno_t (*dclick)(input_t *, unsigned, int);
 } input_ev_ops_t;
 
 extern errno_t input_open(async_sess_t *, input_ev_ops_t *, void *, input_t **);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,72 +105,82 @@ static void input_ev_deactive(input_t *input, ipc_call_t *call)
 
 static void input_ev_key(input_t *input, ipc_call_t *call)
 {
+	unsigned kbd_id;
 	kbd_event_type_t type;
 	keycode_t key;
 	keymod_t mods;
 	char32_t c;
 	errno_t rc;
 
-	type = ipc_get_arg1(call);
-	key = ipc_get_arg2(call);
-	mods = ipc_get_arg3(call);
-	c = ipc_get_arg4(call);
+	kbd_id = ipc_get_arg1(call);
+	type = ipc_get_arg2(call);
+	key = ipc_get_arg3(call);
+	mods = ipc_get_arg4(call);
+	c = ipc_get_arg5(call);
 
-	rc = input->ev_ops->key(input, type, key, mods, c);
+	rc = input->ev_ops->key(input, kbd_id, type, key, mods, c);
 	async_answer_0(call, rc);
 }
 
 static void input_ev_move(input_t *input, ipc_call_t *call)
 {
+	unsigned pos_id;
 	int dx;
 	int dy;
 	errno_t rc;
 
-	dx = ipc_get_arg1(call);
-	dy = ipc_get_arg2(call);
+	pos_id = ipc_get_arg1(call);
+	dx = ipc_get_arg2(call);
+	dy = ipc_get_arg3(call);
 
-	rc = input->ev_ops->move(input, dx, dy);
+	rc = input->ev_ops->move(input, pos_id, dx, dy);
 	async_answer_0(call, rc);
 }
 
 static void input_ev_abs_move(input_t *input, ipc_call_t *call)
 {
+	unsigned pos_id;
 	unsigned x;
 	unsigned y;
 	unsigned max_x;
 	unsigned max_y;
 	errno_t rc;
 
-	x = ipc_get_arg1(call);
-	y = ipc_get_arg2(call);
-	max_x = ipc_get_arg3(call);
-	max_y = ipc_get_arg4(call);
+	pos_id = ipc_get_arg1(call);
+	x = ipc_get_arg2(call);
+	y = ipc_get_arg3(call);
+	max_x = ipc_get_arg4(call);
+	max_y = ipc_get_arg5(call);
 
-	rc = input->ev_ops->abs_move(input, x, y, max_x, max_y);
+	rc = input->ev_ops->abs_move(input, pos_id, x, y, max_x, max_y);
 	async_answer_0(call, rc);
 }
 
 static void input_ev_button(input_t *input, ipc_call_t *call)
 {
+	unsigned pos_id;
 	int bnum;
 	int press;
 	errno_t rc;
 
-	bnum = ipc_get_arg1(call);
-	press = ipc_get_arg2(call);
+	pos_id = ipc_get_arg1(call);
+	bnum = ipc_get_arg2(call);
+	press = ipc_get_arg3(call);
 
-	rc = input->ev_ops->button(input, bnum, press);
+	rc = input->ev_ops->button(input, pos_id, bnum, press);
 	async_answer_0(call, rc);
 }
 
 static void input_ev_dclick(input_t *input, ipc_call_t *call)
 {
+	unsigned pos_id;
 	int bnum;
 	errno_t rc;
 
-	bnum = ipc_get_arg1(call);
+	pos_id = ipc_get_arg1(call);
+	bnum = ipc_get_arg2(call);
 
-	rc = input->ev_ops->dclick(input, bnum);
+	rc = input->ev_ops->dclick(input, pos_id, bnum);
 	async_answer_0(call, rc);
 }
 

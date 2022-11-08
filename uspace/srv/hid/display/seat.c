@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -363,7 +363,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 
 	if (event->type == PTD_PRESS || event->type == PTD_RELEASE ||
 	    event->type == PTD_DCLICK) {
-		pevent.pos_id = 0;
+		pevent.pos_id = event->pos_id;
 		switch (event->type) {
 		case PTD_PRESS:
 			pevent.type = POS_PRESS;
@@ -394,7 +394,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		ds_seat_get_pointer_rect(seat, &old_rect);
 		seat->pntpos = npos;
 
-		pevent.pos_id = 0;
+		pevent.pos_id = event->pos_id;
 		pevent.type = POS_UPDATE;
 		pevent.btn_num = 0;
 		pevent.hpos = seat->pntpos.x;
@@ -422,7 +422,7 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 		ds_seat_get_pointer_rect(seat, &old_rect);
 		seat->pntpos = npos;
 
-		pevent.pos_id = 0;
+		pevent.pos_id = event->pos_id;
 		pevent.type = POS_UPDATE;
 		pevent.btn_num = 0;
 		pevent.hpos = seat->pntpos.x;

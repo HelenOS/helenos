@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,9 @@ typedef enum {
 
 /** Pointing device event */
 typedef struct {
+	/** Positioning device ID */
+	unsigned pos_id;
+	/** PTD event type */
 	ptd_event_type_t type;
 	/** Button number for PTD_PRESS or PTD_RELEASE */
 	int btn_num;

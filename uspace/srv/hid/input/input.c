@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
@@ -252,7 +252,8 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	list_foreach(clients, link, client_t, client) {
 		if (client->active) {
 			async_exch_t *exch = async_exchange_begin(client->sess);
-			async_msg_4(exch, INPUT_EVENT_KEY, ev.type, ev.key, ev.mods, ev.c);
+			async_msg_5(exch, INPUT_EVENT_KEY, kdev->svc_id,
+			    ev.type, ev.key, ev.mods, ev.c);
 			async_exchange_end(exch);
 		}
 	}
@@ -266,16 +267,20 @@ void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy, int dz)
 			async_exch_t *exch = async_exchange_begin(client->sess);
 
 			if ((dx) || (dy))
-				async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
+				async_msg_3(exch, INPUT_EVENT_MOVE,
+				    mdev->svc_id, dx, dy);
 
 			if (dz) {
 				// TODO: Implement proper wheel support
 				keycode_t code = dz > 0 ? KC_UP : KC_DOWN;
 
 				for (unsigned int i = 0; i < 3; i++)
-					async_msg_4(exch, INPUT_EVENT_KEY, KEY_PRESS, code, 0, 0);
+					async_msg_5(exch, INPUT_EVENT_KEY,
+					    0 /* XXX kbd_id */,
+					    KEY_PRESS, code, 0, 0);
 
-				async_msg_4(exch, INPUT_EVENT_KEY, KEY_RELEASE, code, 0, 0);
+				async_msg_5(exch, INPUT_EVENT_KEY, KEY_RELEASE,
+				    0 /* XXX kbd_id */, code, 0, 0);
 			}
 
 			async_exchange_end(exch);
@@ -291,7 +296,8 @@ void mouse_push_event_abs_move(mouse_dev_t *mdev, unsigned int x, unsigned int y
 		if (client->active) {
 			if ((max_x) && (max_y)) {
 				async_exch_t *exch = async_exchange_begin(client->sess);
-				async_msg_4(exch, INPUT_EVENT_ABS_MOVE, x, y, max_x, max_y);
+				async_msg_5(exch, INPUT_EVENT_ABS_MOVE,
+				    mdev->svc_id, x, y, max_x, max_y);
 				async_exchange_end(exch);
 			}
 		}
@@ -304,7 +310,8 @@ void mouse_push_event_button(mouse_dev_t *mdev, int bnum, int press)
 	list_foreach(clients, link, client_t, client) {
 		if (client->active) {
 			async_exch_t *exch = async_exchange_begin(client->sess);
-			async_msg_2(exch, INPUT_EVENT_BUTTON, bnum, press);
+			async_msg_3(exch, INPUT_EVENT_BUTTON, mdev->svc_id,
+			    bnum, press);
 			async_exchange_end(exch);
 		}
 	}
@@ -316,7 +323,8 @@ void mouse_push_event_dclick(mouse_dev_t *mdev, int bnum)
 	list_foreach(clients, link, client_t, client) {
 		if (client->active) {
 			async_exch_t *exch = async_exchange_begin(client->sess);
-			async_msg_1(exch, INPUT_EVENT_DCLICK, bnum);
+			async_msg_2(exch, INPUT_EVENT_DCLICK, mdev->svc_id,
+			    bnum);
 			async_exchange_end(exch);
 		}
 	}

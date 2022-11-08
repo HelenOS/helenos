@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,13 @@
 
 static errno_t ds_input_ev_active(input_t *);
 static errno_t ds_input_ev_deactive(input_t *);
-static errno_t ds_input_ev_key(input_t *, kbd_event_type_t, keycode_t, keymod_t, char32_t);
-static errno_t ds_input_ev_move(input_t *, int, int);
-static errno_t ds_input_ev_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
-static errno_t ds_input_ev_button(input_t *, int, int);
-static errno_t ds_input_ev_dclick(input_t *, int);
+static errno_t ds_input_ev_key(input_t *, unsigned, kbd_event_type_t, keycode_t,
+    keymod_t, char32_t);
+static errno_t ds_input_ev_move(input_t *, unsigned, int, int);
+static errno_t ds_input_ev_abs_move(input_t *, unsigned, unsigned, unsigned,
+    unsigned, unsigned);
+static errno_t ds_input_ev_button(input_t *, unsigned, int, int);
+static errno_t ds_input_ev_dclick(input_t *, unsigned, int);
 
 static input_ev_ops_t ds_input_ev_ops = {
 	.active = ds_input_ev_active,
@@ -70,12 +72,14 @@ static errno_t ds_input_ev_deactive(input_t *input)
 	return EOK;
 }
 
-static errno_t ds_input_ev_key(input_t *input, kbd_event_type_t type,
-    keycode_t key, keymod_t mods, char32_t c)
+static errno_t ds_input_ev_key(input_t *input, unsigned kbd_id,
+    kbd_event_type_t type, keycode_t key, keymod_t mods, char32_t c)
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	kbd_event_t event;
 	errno_t rc;
+
+	(void)kbd_id;
 
 	event.type = type;
 	event.key = key;
@@ -88,12 +92,13 @@ static errno_t ds_input_ev_key(input_t *input, kbd_event_type_t type,
 	return rc;
 }
 
-static errno_t ds_input_ev_move(input_t *input, int dx, int dy)
+static errno_t ds_input_ev_move(input_t *input, unsigned pos_id, int dx, int dy)
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
 	errno_t rc;
 
+	event.pos_id = pos_id;
 	event.type = PTD_MOVE;
 	event.dmove.x = dx;
 	event.dmove.y = dy;
@@ -104,13 +109,14 @@ static errno_t ds_input_ev_move(input_t *input, int dx, int dy)
 	return rc;
 }
 
-static errno_t ds_input_ev_abs_move(input_t *input, unsigned x, unsigned y,
-    unsigned max_x, unsigned max_y)
+static errno_t ds_input_ev_abs_move(input_t *input, unsigned pos_id, unsigned x,
+    unsigned y, unsigned max_x, unsigned max_y)
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
 	errno_t rc;
 
+	event.pos_id = pos_id;
 	event.type = PTD_ABS_MOVE;
 	event.apos.x = x;
 	event.apos.y = y;
@@ -125,12 +131,14 @@ static errno_t ds_input_ev_abs_move(input_t *input, unsigned x, unsigned y,
 	return rc;
 }
 
-static errno_t ds_input_ev_button(input_t *input, int bnum, int bpress)
+static errno_t ds_input_ev_button(input_t *input, unsigned pos_id, int bnum,
+    int bpress)
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
 	errno_t rc;
 
+	event.pos_id = pos_id;
 	event.type = bpress ? PTD_PRESS : PTD_RELEASE;
 	event.btn_num = bnum;
 	event.dmove.x = 0;
@@ -142,12 +150,13 @@ static errno_t ds_input_ev_button(input_t *input, int bnum, int bpress)
 	return rc;
 }
 
-static errno_t ds_input_ev_dclick(input_t *input, int bnum)
+static errno_t ds_input_ev_dclick(input_t *input, unsigned pos_id, int bnum)
 {
 	ds_display_t *disp = (ds_display_t *) input->user;
 	ptd_event_t event;
 	errno_t rc;
 
+	event.pos_id = pos_id;
 	event.type = PTD_DCLICK;
 	event.btn_num = bnum;
 	event.dmove.x = 0;
