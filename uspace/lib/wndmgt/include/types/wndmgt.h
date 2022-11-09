@@ -86,6 +86,8 @@ typedef struct {
 typedef struct {
 	/** Window caption */
 	char *caption;
+	/** Window flags */
+	unsigned flags;
 } wndmgt_window_info_t;
 
 #endif

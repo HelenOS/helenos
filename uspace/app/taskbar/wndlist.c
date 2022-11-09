@@ -120,11 +120,13 @@ errno_t wndlist_open_wm(wndlist_t *wndlist, const char *wndmgt_svc)
 		if (rc != EOK)
 			goto error;
 
-		rc = wndlist_append(wndlist, wlist->windows[i], winfo->caption,
-		    false);
-		if (rc != EOK) {
-			wndmgt_free_window_info(winfo);
-			goto error;
+		if ((winfo->flags & wndf_popup) == 0) {
+			rc = wndlist_append(wndlist, wlist->windows[i],
+			    winfo->caption, false);
+			if (rc != EOK) {
+				wndmgt_free_window_info(winfo);
+				goto error;
+			}
 		}
 
 		wndmgt_free_window_info(winfo);
@@ -327,10 +329,12 @@ static void wndlist_wm_window_added(void *arg, sysarg_t wnd_id)
 	if (rc != EOK)
 		goto error;
 
-	rc = wndlist_append(wndlist, wnd_id, winfo->caption, true);
-	if (rc != EOK) {
-		wndmgt_free_window_info(winfo);
-		goto error;
+	if ((winfo->flags & wndf_popup) == 0) {
+		rc = wndlist_append(wndlist, wnd_id, winfo->caption, true);
+		if (rc != EOK) {
+			wndmgt_free_window_info(winfo);
+			goto error;
+		}
 	}
 
 	wndmgt_free_window_info(winfo);

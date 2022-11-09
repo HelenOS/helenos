@@ -142,6 +142,8 @@ static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
 		return ENOMEM;
 	}
 
+	info->flags = wnd->flags;
+
 	ds_display_unlock(wmclient->display);
 	*rinfo = info;
 	return EOK;

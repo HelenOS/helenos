@@ -280,6 +280,7 @@ PCUT_TEST(get_window_info_success)
 	resp.get_window_info_rinfo = calloc(1, sizeof(wndmgt_window_info_t));
 	PCUT_ASSERT_NOT_NULL(resp.get_window_info_rinfo);
 	resp.get_window_info_rinfo->caption = str_dup("Hello");
+	resp.get_window_info_rinfo->flags = 42;
 	PCUT_ASSERT_NOT_NULL(resp.get_window_info_rinfo->caption);
 	wnd_id = 1;
 
@@ -289,6 +290,7 @@ PCUT_TEST(get_window_info_success)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	PCUT_ASSERT_STR_EQUALS("Hello", info->caption);
+	PCUT_ASSERT_INT_EQUALS(42, info->flags);
 
 	wndmgt_free_window_info(info);
 	wndmgt_close(wndmgt);
