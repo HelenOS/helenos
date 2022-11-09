@@ -150,11 +150,11 @@ static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
 /** Activate window.
  *
  * @param arg Argument (WM client)
- * @param seat_id Seat ID
+ * @param dev_id Input device ID
  * @param wnd_id Window ID
  * @return EOK on success or an error code
  */
-static errno_t dispwm_activate_window(void *arg, sysarg_t seat_id,
+static errno_t dispwm_activate_window(void *arg, sysarg_t dev_id,
     sysarg_t wnd_id)
 {
 	ds_wmclient_t *wmclient = (ds_wmclient_t *)arg;
@@ -171,7 +171,7 @@ static errno_t dispwm_activate_window(void *arg, sysarg_t seat_id,
 	}
 
 	// TODO Multi-seat
-	(void) seat_id;
+	(void) dev_id;
 	seat = ds_display_first_seat(wnd->display);
 
 	/* Switch focus */

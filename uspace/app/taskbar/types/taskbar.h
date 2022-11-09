@@ -36,6 +36,7 @@
 #ifndef TYPES_TASKBAR_H
 #define TYPES_TASKBAR_H
 
+#include <types/common.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/ui.h>

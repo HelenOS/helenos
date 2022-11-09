@@ -33,6 +33,7 @@
  */
 
 #include <gfx/coord.h>
+#include <io/pos_event.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -46,10 +47,12 @@
 #include "taskbar.h"
 #include "wndlist.h"
 
-static void wnd_close(ui_window_t *, void *);
+static void taskbar_wnd_close(ui_window_t *, void *);
+static void taskbar_wnd_pos(ui_window_t *, void *, pos_event_t *);
 
 static ui_window_cb_t window_cb = {
-	.close = wnd_close
+	.close = taskbar_wnd_close,
+	.pos = taskbar_wnd_pos
 };
 
 /** Window close button was clicked.
@@ -57,11 +60,27 @@ static ui_window_cb_t window_cb = {
  * @param window Window
  * @param arg Argument (taskbar)
  */
-static void wnd_close(ui_window_t *window, void *arg)
+static void taskbar_wnd_close(ui_window_t *window, void *arg)
 {
 	taskbar_t *taskbar = (taskbar_t *) arg;
 
 	ui_quit(taskbar->ui);
+}
+
+/** Window received position event.
+ *
+ * @param window Window
+ * @param arg Argument (taskbar)
+ * @param event Position event
+ */
+static void taskbar_wnd_pos(ui_window_t *window, void *arg, pos_event_t *event)
+{
+	taskbar_t *taskbar = (taskbar_t *) arg;
+
+	/* Remember ID of device that sent the last event */
+	taskbar->wndlist->ev_pos_id = event->pos_id;
+
+	ui_window_def_pos(window, event);
 }
 
 /** Create task bar.
@@ -129,7 +148,7 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	ui_window_set_cb(taskbar->window, &window_cb, (void *) &taskbar);
+	ui_window_set_cb(taskbar->window, &window_cb, (void *)taskbar);
 	ui_res = ui_window_get_res(taskbar->window);
 
 	rc = ui_fixed_create(&taskbar->fixed);

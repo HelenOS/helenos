@@ -74,6 +74,9 @@ typedef struct wndlist {
 
 	/** Window management service */
 	wndmgt_t *wndmgt;
+
+	/** Position ID of last position event */
+	sysarg_t ev_pos_id;
 } wndlist_t;
 
 #endif

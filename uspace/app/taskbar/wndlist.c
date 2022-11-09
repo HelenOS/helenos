@@ -447,17 +447,18 @@ errno_t wndlist_repaint(wndlist_t *wndlist)
 /** Window button was clicked.
  *
  * @param pbutton Push button
- * @param arg Argument (wdnlist_entry_t *)
+ * @param arg Argument (wndlist_entry_t *)
  */
 static void wndlist_button_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	wndlist_entry_t *entry = (wndlist_entry_t *)arg;
-	sysarg_t seat_id;
+	sysarg_t dev_id;
 
-	seat_id = 0; // TODO Multi-seat
+	/* ID of device that clicked the button */
+	dev_id = entry->wndlist->ev_pos_id;
 
 	(void) wndmgt_activate_window(entry->wndlist->wndmgt,
-	    seat_id, entry->wnd_id);
+	    dev_id, entry->wnd_id);
 }
 
 /** @}
