@@ -26,45 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup display
  * @{
  */
-/** @file
+/**
+ * @file Display server input device type
  */
 
-#ifndef _LIBC_IO_KBD_EVENT_H_
-#define _LIBC_IO_KBD_EVENT_H_
+#ifndef TYPES_DISPLAY_IDEV_H
+#define TYPES_DISPLAY_IDEV_H
 
-#include <adt/list.h>
-#include <inttypes.h>
-#include <io/keycode.h>
 #include <types/common.h>
 
-typedef enum {
-	KEY_PRESS,
-	KEY_RELEASE
-} kbd_event_type_t;
-
-/** Console event structure. */
-typedef struct {
-	/** List handle */
-	link_t link;
-
-	/** Keyboard device ID */
-	sysarg_t kbd_id;
-
-	/** Press or release event. */
-	kbd_event_type_t type;
-
-	/** Keycode of the key that was pressed or released. */
-	keycode_t key;
-
-	/** Bitmask of modifiers held. */
-	keymod_t mods;
-
-	/** The character that was generated or '\0' for none. */
-	char32_t c;
-} kbd_event_t;
+typedef sysarg_t ds_idev_id_t;
 
 #endif
 

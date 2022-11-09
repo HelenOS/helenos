@@ -141,6 +141,7 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
 	}
 
+	// TODO Multi-seat: which seat should own the new window?
 	seat = ds_display_first_seat(client->display);
 
 	if ((params->flags & wndf_popup) != 0)
@@ -504,7 +505,7 @@ static void ds_window_start_resize(ds_window_t *wnd,
 	wnd->rsztype = rsztype;
 	wnd->preview_rect = wnd->rect;
 
-	// XXX Need client to tell us which seat started the resize!
+	// TODO Multi-seat: need client to tell us which seat started the resize!
 	seat = ds_display_first_seat(wnd->display);
 	ctype = display_cursor_from_wrsz(rsztype);
 	ds_seat_set_wm_cursor(seat, wnd->display->cursor[ctype]);
@@ -535,7 +536,7 @@ static void ds_window_finish_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	wnd->state = dsw_idle;
 	ds_client_post_resize_event(wnd->client, wnd, &nrect);
 
-	// XXX Need to know which seat started the resize!
+	// TODO Multi-seat: Need to know which seat started the resize!
 	seat = ds_display_first_seat(wnd->display);
 	ds_seat_set_wm_cursor(seat, NULL);
 

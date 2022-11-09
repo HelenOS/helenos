@@ -79,8 +79,7 @@ static errno_t ds_input_ev_key(input_t *input, unsigned kbd_id,
 	kbd_event_t event;
 	errno_t rc;
 
-	(void)kbd_id;
-
+	event.kbd_id = kbd_id;
 	event.type = type;
 	event.key = key;
 	event.mods = mods;

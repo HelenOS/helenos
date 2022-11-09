@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -444,8 +444,8 @@ errno_t ds_display_post_kbd_event(ds_display_t *display, kbd_event_t *event)
 {
 	ds_seat_t *seat;
 
-	// TODO Determine which seat the event belongs to
-	seat = ds_display_first_seat(display);
+	/* Determine which seat the event belongs to */
+	seat = ds_display_seat_by_idev(display, event->kbd_id);
 	if (seat == NULL)
 		return EOK;
 
@@ -461,8 +461,8 @@ errno_t ds_display_post_ptd_event(ds_display_t *display, ptd_event_t *event)
 {
 	ds_seat_t *seat;
 
-	// TODO Determine which seat the event belongs to
-	seat = ds_display_first_seat(display);
+	/* Determine which seat the event belongs to */
+	seat = ds_display_seat_by_idev(display, event->pos_id);
 	if (seat == NULL)
 		return EOK;
 
@@ -521,6 +521,20 @@ ds_seat_t *ds_display_next_seat(ds_seat_t *seat)
 		return NULL;
 
 	return list_get_instance(link, ds_seat_t, lseats);
+}
+
+/** Get seat which owns the specified input device.
+ *
+ * @param disp Display
+ * @param idev_id Input device ID
+ * @return Seat which owns device with ID @a idev_id or @c NULL if not found
+ */
+ds_seat_t *ds_display_seat_by_idev(ds_display_t *disp, ds_idev_id_t idev_id)
+{
+	// TODO Multi-seat
+	(void) idev_id;
+
+	return ds_display_first_seat(disp);
 }
 
 /** Allocate back buffer for display.

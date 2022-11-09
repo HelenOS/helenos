@@ -316,6 +316,12 @@ PCUT_TEST(display_seat)
 	ds_display_destroy(disp);
 }
 
+/** ds_display_seat_by_idev() returns the correct seat. */
+PCUT_TEST(display_seat_by_idev)
+{
+	// XXX TODO
+}
+
 /** Test ds_display_post_kbd_event() delivers event to client callback.
  */
 PCUT_TEST(display_post_kbd_event)

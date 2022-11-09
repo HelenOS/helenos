@@ -170,9 +170,12 @@ static errno_t dispwm_activate_window(void *arg, sysarg_t dev_id,
 		return ENOENT;
 	}
 
-	// TODO Multi-seat
-	(void) dev_id;
-	seat = ds_display_first_seat(wnd->display);
+	/* Determine which seat's focus should be changed */
+	seat = ds_display_seat_by_idev(wnd->display, dev_id);
+	if (seat == NULL) {
+		ds_display_unlock(wmclient->display);
+		return ENOENT;
+	}
 
 	/* Switch focus */
 	ds_seat_set_focus(seat, wnd);
