@@ -129,7 +129,12 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	ui_wnd_params_init(&params);
 	params.caption = "Task Bar";
 	params.placement = ui_wnd_place_bottom_left;
+
+	/* Window has no titlebar */
 	params.style &= ~ui_wds_titlebar;
+
+	/* Prevent taskbar window from being listed in taskbar */
+	params.flags |= ui_wndf_system;
 
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;

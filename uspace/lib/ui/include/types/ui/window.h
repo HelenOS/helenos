@@ -65,7 +65,9 @@ typedef enum {
 /** Window flags */
 typedef enum {
 	/** Popup window */
-	ui_wndf_popup = 0x1
+	ui_wndf_popup = 0x1,
+	/** Special system window */
+	ui_wndf_system = 0x2
 } ui_wnd_flags_t;
 
 /** Window parameters */
