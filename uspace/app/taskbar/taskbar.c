@@ -191,6 +191,19 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
+	if (ui_is_textmode(taskbar->ui)) {
+		rect.p0.x = params.rect.p0.x + 9;
+		rect.p0.y = 0;
+		rect.p1.x = params.rect.p1.x - 10;
+		rect.p1.y = 1;
+	} else {
+		rect.p0.x = params.rect.p0.x + 90;
+		rect.p0.y = 4;
+		rect.p1.x = params.rect.p1.x - 84;
+		rect.p1.y = 32 - 4;
+	}
+	wndlist_set_rect(taskbar->wndlist, &rect);
+
 	rc = wndlist_open_wm(taskbar->wndlist, wndmgt_svc);
 	if (rc != EOK) {
 		printf("Error attaching window management service.\n");
@@ -248,7 +261,7 @@ error:
 /** Destroy task bar. */
 void taskbar_destroy(taskbar_t *taskbar)
 {
-	ui_fixed_remove(taskbar->fixed,  taskbar_clock_ctl(taskbar->clock));
+	ui_fixed_remove(taskbar->fixed, taskbar_clock_ctl(taskbar->clock));
 	taskbar_clock_destroy(taskbar->clock);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);

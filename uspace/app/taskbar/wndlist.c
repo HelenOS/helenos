@@ -63,6 +63,17 @@ static ui_pbutton_cb_t wndlist_button_cb = {
 	.clicked = wndlist_button_clicked
 };
 
+enum {
+	/** X distance between left edges of two consecutive buttons */
+	wndlist_button_pitch = 145,
+	/** X distance between left edges of two consecutive buttons (text) */
+	wndlist_button_pitch_text = 17,
+	/** Padding between buttons */
+	wndlist_button_pad = 5,
+	/** Padding between buttons (text) */
+	wndlist_button_pad_text = 1
+};
+
 /** Create task bar window list.
  *
  * @param window Containing window
@@ -90,6 +101,16 @@ errno_t wndlist_create(ui_window_t *window, ui_fixed_t *fixed,
 	return EOK;
 error:
 	return rc;
+}
+
+/** Set window list rectangle.
+ *
+ * @param wndlist Window list
+ * @param rect Rectangle
+ */
+void wndlist_set_rect(wndlist_t *wndlist, gfx_rect_t *rect)
+{
+	wndlist->rect = *rect;
 }
 
 /** Attach window management service to window list.
@@ -286,6 +307,8 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	wndlist_entry_t *e;
 	gfx_rect_t rect;
 	ui_resource_t *res;
+	gfx_coord_t pitch;
+	gfx_coord_t pad;
 	size_t idx;
 
 	/* Determine entry index */
@@ -300,15 +323,25 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	res = ui_window_get_res(wndlist->window);
 
 	if (ui_resource_is_textmode(res)) {
-		rect.p0.x = 17 * idx + 9;
-		rect.p0.y = 0;
-		rect.p1.x = 17 * idx + 25;
-		rect.p1.y = 1;
+		pitch = wndlist_button_pitch_text;
+		pad = wndlist_button_pad_text;
 	} else {
-		rect.p0.x = 145 * idx + 90;
-		rect.p0.y = 4;
-		rect.p1.x = 145 * idx + 230;
-		rect.p1.y = 28;
+		pitch = wndlist_button_pitch;
+		pad = wndlist_button_pad;
+	}
+
+	rect.p0.x = wndlist->rect.p0.x + pitch * idx;
+	rect.p0.y = wndlist->rect.p0.y;
+	rect.p1.x = wndlist->rect.p0.x + pitch * (idx + 1) - pad;
+	rect.p1.y = wndlist->rect.p1.y;
+
+	/* Entry does not fit? */
+	if (rect.p1.x > wndlist->rect.p1.x) {
+		/* Make entry invisible */
+		rect.p0.x = 0;
+		rect.p0.y = 0;
+		rect.p1.x = 0;
+		rect.p1.y = 0;
 	}
 
 	ui_pbutton_set_rect(entry->button, &rect);

@@ -85,6 +85,49 @@ PCUT_TEST(create_destroy)
 	ui_destroy(ui);
 }
 
+/* Test setting window list rectangle */
+PCUT_TEST(set_rect)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_fixed_t *fixed = NULL;
+	gfx_rect_t rect;
+	wndlist_t *wndlist;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_fixed_create(&fixed);
+	ui_window_add(window, ui_fixed_ctl(fixed));
+
+	rc = wndlist_create(window, fixed, &wndlist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 1;
+	rect.p0.y = 2;
+	rect.p1.x = 3;
+	rect.p1.y = 4;
+	wndlist_set_rect(wndlist, &rect);
+	PCUT_ASSERT_INT_EQUALS(1, wndlist->rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(2, wndlist->rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(3, wndlist->rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(4, wndlist->rect.p1.y);
+
+	wndlist_destroy(wndlist);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** Test opening WM service */
 PCUT_TEST(open_wm)
 {

@@ -37,6 +37,7 @@
 #define WNDLIST_H
 
 #include <errno.h>
+#include <gfx/coord.h>
 #include <stdbool.h>
 #include <ui/fixed.h>
 #include <ui/window.h>
@@ -44,6 +45,7 @@
 #include "types/wndlist.h"
 
 extern errno_t wndlist_create(ui_window_t *, ui_fixed_t *, wndlist_t **);
+extern void wndlist_set_rect(wndlist_t *, gfx_rect_t *);
 extern errno_t wndlist_open_wm(wndlist_t *, const char *);
 extern void wndlist_destroy(wndlist_t *);
 extern errno_t wndlist_append(wndlist_t *, sysarg_t, const char *, bool);
