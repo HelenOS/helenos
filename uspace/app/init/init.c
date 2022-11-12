@@ -476,7 +476,7 @@ int main(int argc, char *argv[])
 		rc = display_server();
 		if (rc == EOK) {
 			app_start("/app/launcher", NULL);
-			app_start("/app/barber", NULL);
+			app_start("/app/taskbar", NULL);
 			app_start("/app/terminal", "-topleft");
 		}
 	}
