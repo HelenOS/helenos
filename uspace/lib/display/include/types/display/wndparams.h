@@ -41,12 +41,14 @@
 typedef enum {
 	/** Popup window (capture events, no focus) */
 	wndf_popup = 0x1,
+	/** Topmost window */
+	wndf_topmost = 0x2,
 	/** Set specific initial window position */
-	wndf_setpos = 0x2,
+	wndf_setpos = 0x4,
 	/** Window is maximized */
-	wndf_maximized = 0x4,
+	wndf_maximized = 0x8,
 	/** Special system window */
-	wndf_system = 0x8
+	wndf_system = 0x10
 } display_wnd_flags_t;
 
 /** Parameters for a new window.

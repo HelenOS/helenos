@@ -133,6 +133,9 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	/* Window has no titlebar */
 	params.style &= ~ui_wds_titlebar;
 
+	/* Window is not obscured by other windows */
+	params.flags |= ui_wndf_topmost;
+
 	/* Prevent taskbar window from being listed in taskbar */
 	params.flags |= ui_wndf_system;
 

@@ -194,6 +194,80 @@ PCUT_TEST(display_find_window)
 	ds_display_destroy(disp);
 }
 
+/** Test ds_display_enlist_window() */
+PCUT_TEST(display_enlist_window)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *w0;
+	ds_window_t *w1;
+	ds_window_t *w2;
+	ds_window_t *w3;
+	ds_window_t *w;
+	display_wnd_params_t params;
+	bool called_cb = false;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 100;
+
+	/* Regular windows */
+
+	rc = ds_window_create(client, &params, &w0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &params, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Topmost windows */
+
+	params.flags |= wndf_topmost;
+
+	rc = ds_window_create(client, &params, &w2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_create(client, &params, &w3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Delist w1 and w2 */
+	list_remove(&w1->ldwindows);
+	list_remove(&w2->ldwindows);
+
+	/* Enlist the windows back and check their order */
+	ds_display_enlist_window(disp, w1);
+	ds_display_enlist_window(disp, w2);
+
+	w = ds_display_first_window(disp);
+	PCUT_ASSERT_EQUALS(w2, w);
+	w = ds_display_next_window(w);
+	PCUT_ASSERT_EQUALS(w3, w);
+	w = ds_display_next_window(w);
+	PCUT_ASSERT_EQUALS(w1, w);
+	w = ds_display_next_window(w);
+	PCUT_ASSERT_EQUALS(w0, w);
+	w = ds_display_next_window(w);
+	PCUT_ASSERT_EQUALS(NULL, w);
+
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
+	ds_window_destroy(w2);
+	ds_window_destroy(w3);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 /** Test ds_display_window_to_top() */
 PCUT_TEST(display_window_to_top)
 {

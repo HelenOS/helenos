@@ -312,6 +312,38 @@ ds_window_t *ds_display_window_by_pos(ds_display_t *display, gfx_coord2_t *pos)
 	return NULL;
 }
 
+/** Add window to window list.
+ *
+ * Topmost windows are enlisted before any other window. Non-topmost
+ * windows are enlisted before any other non-topmost window.
+ *
+ * @param display Display
+ * @param wnd Window
+ */
+void ds_display_enlist_window(ds_display_t *display, ds_window_t *wnd)
+{
+	ds_window_t *w;
+
+	assert(wnd->display == display);
+	assert(!link_used(&wnd->ldwindows));
+
+	if ((wnd->flags & wndf_topmost) == 0) {
+		/* Find the first non-topmost window */
+		w = ds_display_first_window(display);
+		while (w != NULL && (w->flags & wndf_topmost) != 0)
+			w = ds_display_next_window(w);
+
+		if (w != NULL)
+			list_insert_before(&wnd->ldwindows, &w->ldwindows);
+		else
+			list_append(&wnd->ldwindows, &display->windows);
+	} else {
+		/* Insert at the beginning */
+		list_prepend(&wnd->ldwindows, &display->windows);
+	}
+
+}
+
 /** Add window to display.
  *
  * @param display Display
@@ -325,7 +357,7 @@ void ds_display_add_window(ds_display_t *display, ds_window_t *wnd)
 	assert(!link_used(&wnd->ldwindows));
 
 	wnd->display = display;
-	list_prepend(&wnd->ldwindows, &display->windows);
+	ds_display_enlist_window(display, wnd);
 
 	/* Notify window managers about the new window */
 	wmclient = ds_display_first_wmclient(display);
@@ -368,7 +400,7 @@ void ds_display_window_to_top(ds_window_t *wnd)
 	assert(link_used(&wnd->ldwindows));
 
 	list_remove(&wnd->ldwindows);
-	list_prepend(&wnd->ldwindows, &wnd->display->windows);
+	ds_display_enlist_window(wnd->display, wnd);
 }
 
 /** Get first window in display.

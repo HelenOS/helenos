@@ -66,6 +66,7 @@ extern ds_wmclient_t *ds_display_first_wmclient(ds_display_t *);
 extern ds_wmclient_t *ds_display_next_wmclient(ds_wmclient_t *);
 extern ds_window_t *ds_display_find_window(ds_display_t *, ds_wnd_id_t);
 extern ds_window_t *ds_display_window_by_pos(ds_display_t *, gfx_coord2_t *);
+extern void ds_display_enlist_window(ds_display_t *, ds_window_t *);
 extern void ds_display_add_window(ds_display_t *, ds_window_t *);
 extern void ds_display_remove_window(ds_window_t *);
 extern void ds_display_window_to_top(ds_window_t *);

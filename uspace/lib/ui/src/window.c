@@ -227,6 +227,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	if ((params->flags & ui_wndf_popup) != 0)
 		dparams.flags |= wndf_popup;
+	if ((params->flags & ui_wndf_topmost) != 0)
+		dparams.flags |= wndf_topmost;
 	if ((params->flags & ui_wndf_system) != 0)
 		dparams.flags |= wndf_system;
 
