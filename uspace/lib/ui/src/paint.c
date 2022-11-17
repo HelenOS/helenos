@@ -921,7 +921,7 @@ errno_t ui_paint_text(gfx_coord2_t *pos, ui_text_fmt_t *fmt, const char *str)
 	tfmt.font = fmt->font;
 	tfmt.color = fmt->color;
 	tfmt.halign = fmt->halign;
-	tfmt.justify_width = fmt->justify_width;
+	tfmt.width = fmt->width;
 	tfmt.valign = fmt->valign;
 	tfmt.underline = false;
 

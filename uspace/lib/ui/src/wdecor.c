@@ -87,6 +87,10 @@ enum {
 	wdecor_frame_w = 4,
 	/** Window frame width in text mode */
 	wdecor_frame_w_text = 1,
+	/** Window caption horizontal margin */
+	wdecor_cap_hmargin = 4,
+	/** Window caption horizontal margin in text mode */
+	wdecor_cap_hmargin_text = 1,
 	/** Close button cross leg length */
 	wdecor_close_cross_n = 5,
 	/** Close button cross pen width */
@@ -325,9 +329,12 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		    wdecor->res->tbar_inact_text_color;
 		fmt.halign = gfx_halign_center;
 		fmt.valign = gfx_valign_center;
+		fmt.abbreviate = true;
+		fmt.width = geom.caption_rect.p1.x -
+		    geom.caption_rect.p0.x;
 
-		pos.x = (trect.p0.x + trect.p1.x) / 2;
-		pos.y = (trect.p0.y + trect.p1.y) / 2;
+		pos.x = (geom.caption_rect.p0.x + geom.caption_rect.p1.x) / 2;
+		pos.y = (geom.caption_rect.p0.y + geom.caption_rect.p1.y) / 2;
 
 		if (wdecor->res->textmode) {
 			/* Make space around caption text */
@@ -449,6 +456,7 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 	gfx_coord_t frame_w;
 	gfx_coord_t btn_x;
 	gfx_coord_t btn_y;
+	gfx_coord_t cap_hmargin;
 
 	/* Does window have a frame? */
 	if ((wdecor->style & ui_wds_frame) != 0) {
@@ -528,11 +536,15 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 			geom->btn_max_rect.p0.y = btn_y;
 			geom->btn_max_rect.p1.x = btn_x;
 			geom->btn_max_rect.p1.y = btn_y + 20;
+
+			btn_x -= 20;
 		} else {
 			geom->btn_max_rect.p0.x = btn_x - 3;
 			geom->btn_max_rect.p0.y = btn_y;
 			geom->btn_max_rect.p1.x = btn_x;
 			geom->btn_max_rect.p1.y = btn_y + 1;
+
+			btn_x -= 3;
 		}
 	} else {
 		geom->btn_max_rect.p0.x = 0;
@@ -540,6 +552,17 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 		geom->btn_max_rect.p1.x = 0;
 		geom->btn_max_rect.p1.y = 0;
 	}
+
+	if (wdecor->res->textmode == false)
+		cap_hmargin = wdecor_cap_hmargin;
+	else
+		cap_hmargin = wdecor_cap_hmargin_text;
+
+	geom->caption_rect.p0.x = geom->title_bar_rect.p0.x +
+	    cap_hmargin;
+	geom->caption_rect.p0.y = geom->title_bar_rect.p0.y;
+	geom->caption_rect.p1.x = btn_x - cap_hmargin;
+	geom->caption_rect.p1.y = geom->title_bar_rect.p1.y;
 }
 
 /** Get outer rectangle from application area rectangle.

@@ -72,10 +72,12 @@ typedef struct {
 	gfx_color_t *color;
 	/** Horizontal alignment */
 	gfx_halign_t halign;
-	/** Justification width (for gfx_halign_justify) */
-	gfx_coord_t justify_width;
+	/** Width available for the text */
+	gfx_coord_t width;
 	/** Vertical alignment */
 	gfx_valign_t valign;
+	/** Abbreviate the text with ellipsis if it does not fit @c width */
+	bool abbreviate;
 	/** Underline */
 	bool underline;
 } gfx_text_fmt_t;

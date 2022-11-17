@@ -93,8 +93,8 @@ typedef struct {
 	gfx_color_t *hgl_color;
 	/** Horizontal alignment */
 	gfx_halign_t halign;
-	/** Justification width (for gfx_halign_justify) */
-	gfx_coord_t justify_width;
+	/** Width available for the text */
+	gfx_coord_t width;
 	/** Vertical alignment */
 	gfx_valign_t valign;
 } ui_text_fmt_t;

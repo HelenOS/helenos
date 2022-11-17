@@ -79,6 +79,8 @@ typedef struct {
 	gfx_rect_t interior_rect;
 	/** Title bar rectangle */
 	gfx_rect_t title_bar_rect;
+	/** Window caption rectangle */
+	gfx_rect_t caption_rect;
 	/** Maximize button rectangle */
 	gfx_rect_t btn_max_rect;
 	/** Close button rectangle */

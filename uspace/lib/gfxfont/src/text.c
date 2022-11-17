@@ -182,7 +182,11 @@ void gfx_text_start_pos(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
 
 	/* Adjust position for horizontal alignment */
 	if (fmt->halign != gfx_halign_left) {
+		/* Compute text width */
 		width = gfx_text_width(fmt->font, str);
+		if (fmt->abbreviate && width > fmt->width)
+			width = fmt->width;
+
 		switch (fmt->halign) {
 		case gfx_halign_center:
 			spos->x -= width / 2;
@@ -232,6 +236,9 @@ errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 	gfx_coord2_t cpos;
 	gfx_coord2_t spos;
 	gfx_rect_t rect;
+	gfx_coord_t width;
+	gfx_coord_t rmargin;
+	bool ellipsis;
 	errno_t rc;
 
 	gfx_text_start_pos(pos, fmt, str, &spos);
@@ -244,6 +251,17 @@ errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 	if (rc != EOK)
 		return rc;
 
+	width = gfx_text_width(fmt->font, str);
+
+	if (fmt->abbreviate && width > fmt->width) {
+		/* Need to append ellipsis */
+		ellipsis = true;
+		rmargin = spos.x + fmt->width - gfx_text_width(fmt->font, "...");
+	} else {
+		ellipsis = false;
+		rmargin = spos.x + width;
+	}
+
 	cpos = spos;
 	cp = str;
 	while (*cp != '\0') {
@@ -254,6 +272,10 @@ errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 		}
 
 		gfx_glyph_get_metrics(glyph, &gmetrics);
+
+		/* Stop if we would run over the right margin */
+		if (fmt->abbreviate && cpos.x + gmetrics.advance > rmargin)
+			break;
 
 		rc = gfx_glyph_render(glyph, &cpos);
 		if (rc != EOK)
@@ -273,6 +295,31 @@ errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 		rect.p1.y = spos.y + fmetrics.underline_y1;
 
 		rc = gfx_fill_rect(fmt->font->typeface->gc, &rect);
+		if (rc != EOK)
+			return rc;
+	}
+
+	/* Render ellipsis, if required */
+	if (ellipsis) {
+		rc = gfx_font_search_glyph(fmt->font, ".", &glyph, &stradv);
+		if (rc != EOK)
+			return EOK;
+
+		gfx_glyph_get_metrics(glyph, &gmetrics);
+
+		rc = gfx_glyph_render(glyph, &cpos);
+		if (rc != EOK)
+			return rc;
+
+		cpos.x += gmetrics.advance;
+
+		rc = gfx_glyph_render(glyph, &cpos);
+		if (rc != EOK)
+			return rc;
+
+		cpos.x += gmetrics.advance;
+
+		rc = gfx_glyph_render(glyph, &cpos);
 		if (rc != EOK)
 			return rc;
 	}
@@ -375,6 +422,9 @@ void gfx_text_cont(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str,
 	tfmt.halign = gfx_halign_left;
 	tfmt.valign = gfx_valign_baseline;
 
+	/* Remaining available width */
+	tfmt.width = fmt->width - (cpos->x - spos.x);
+
 	*cfmt = tfmt;
 }
 
@@ -389,12 +439,16 @@ void gfx_text_rect(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str,
     gfx_rect_t *rect)
 {
 	gfx_coord2_t spos;
+	gfx_coord_t width;
 
 	gfx_text_start_pos(pos, fmt, str, &spos);
+	width = gfx_text_width(fmt->font, str);
+	if (fmt->abbreviate && width > fmt->width)
+		width = fmt->width;
 
 	rect->p0.x = spos.x;
 	rect->p0.y = spos.y - fmt->font->metrics.ascent;
-	rect->p1.x = spos.x + gfx_text_width(fmt->font, str);
+	rect->p1.x = spos.x + width;
 	rect->p1.y = spos.y +  fmt->font->metrics.descent + 1;
 }
 

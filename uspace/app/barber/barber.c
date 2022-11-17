@@ -360,7 +360,7 @@ int main(int argc, char *argv[])
 	rect.p1.y = FRAME_HEIGHT;
 
 	ui_wnd_params_init(&params);
-	params.caption = "";
+	params.caption = "Barber Pole";
 	params.placement = ui_wnd_place_bottom_right;
 	/*
 	 * Compute window rectangle such that application area corresponds
