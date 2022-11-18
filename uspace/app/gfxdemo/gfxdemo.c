@@ -243,7 +243,7 @@ static errno_t demo_begin(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h,
 		fmt.valign = gfx_valign_bottom;
 
 		pos.x = w / 2;
-		pos.y = h - 1;
+		pos.y = h;
 		rc = gfx_puttext(&pos, &fmt, text);
 		if (rc != EOK) {
 			printf("Error rendering text.\n");
@@ -800,6 +800,87 @@ error:
 	return rc;
 }
 
+/** Run text abbreviation demo on a graphic context.
+ *
+ * @param gc Graphic context
+ * @param w Width
+ * @param h Height
+ */
+static errno_t demo_text_abbr(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_color_t *color = NULL;
+	gfx_rect_t rect;
+	gfx_coord2_t pos;
+	gfx_text_fmt_t fmt;
+	int i;
+	errno_t rc;
+
+	if (quit)
+		return EOK;
+
+	rc = demo_begin(gc, w, h, "Text abbreviation");
+	if (rc != EOK)
+		goto error;
+
+	for (i = 0; i < 11; i++) {
+
+		rc = gfx_color_new_rgb_i16(0, 0, 0x8000, &color);
+		if (rc != EOK)
+			goto error;
+
+		rc = gfx_set_color(gc, color);
+		if (rc != EOK)
+			goto error;
+
+		rect.p0.x = w / 20;
+		rect.p0.y = (2 + 2 * i) * h / 25;
+		rect.p1.x = w - w / 20 - w * i / 12;
+		rect.p1.y = (3 + 2 * i) * h / 25;
+
+		rc = gfx_fill_rect(gc, &rect);
+		if (rc != EOK)
+			goto error;
+
+		gfx_color_delete(color);
+
+		if (demo_is_text(w, h)) {
+			rc = gfx_color_new_ega(0x1f, &color);
+			if (rc != EOK)
+				goto error;
+		} else {
+			rc = gfx_color_new_rgb_i16(0xffff, 0xffff, 0xffff,
+			    &color);
+			if (rc != EOK)
+				goto error;
+		}
+
+		gfx_text_fmt_init(&fmt);
+		fmt.font = font;
+		fmt.color = color;
+		fmt.abbreviate = true;
+		fmt.width = rect.p1.x - rect.p0.x;
+
+		pos.x = rect.p0.x;
+		pos.y = rect.p0.y;
+		rc = gfx_puttext(&pos, &fmt,
+		    "The quick brow fox jumps over the lazy dog!");
+		if (rc != EOK) {
+			printf("Error rendering text.\n");
+			goto error;
+		}
+	}
+
+	for (i = 0; i < 10; i++) {
+		fibril_usleep(500 * 1000);
+		if (quit)
+			break;
+	}
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Run clipping demo on a graphic context.
  *
  * @param gc Graphic context
@@ -932,6 +1013,10 @@ static errno_t demo_loop(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			goto error;
 
 		rc = demo_text(gc, w, h);
+		if (rc != EOK)
+			goto error;
+
+		rc = demo_text_abbr(gc, w, h);
 		if (rc != EOK)
 			goto error;
 
