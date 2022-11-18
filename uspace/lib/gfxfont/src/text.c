@@ -96,38 +96,53 @@ gfx_coord_t gfx_text_width(gfx_font_t *font, const char *str)
 
 /** Print string using text characters in text mode.
  *
- * @param font Font
  * @param pos Position of top-left corner of text
- * @param color Text color
+ * @param fmt Formatting
  * @param str String
  * @return EOK on success or an error code
  */
-static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
-    gfx_color_t *color, const char *str)
+static errno_t gfx_puttext_textmode(gfx_coord2_t *pos, gfx_text_fmt_t *fmt,
+    const char *str)
 {
-	gfx_context_t *gc = font->typeface->gc;
+	gfx_context_t *gc = fmt->font->typeface->gc;
 	gfx_bitmap_params_t params;
 	gfx_bitmap_t *bitmap;
 	gfx_bitmap_alloc_t alloc;
+	gfx_coord_t width;
 	uint8_t attr;
 	pixelmap_t pmap;
 	gfx_coord_t x;
+	gfx_coord_t rmargin;
 	pixel_t pixel;
 	char32_t c;
 	size_t off;
+	bool ellipsis;
 	errno_t rc;
+
+	width = str_width(str);
+	if (fmt->abbreviate && width > fmt->width) {
+		ellipsis = true;
+		width = fmt->width;
+		if (width > 3)
+			rmargin = width - 3;
+		else
+			rmargin = width;
+	} else {
+		ellipsis = false;
+		rmargin = width;
+	}
 
 	/*
 	 * NOTE: Creating and destroying bitmap each time is not probably
 	 * the most efficient way.
 	 */
 
-	gfx_color_get_ega(color, &attr);
+	gfx_color_get_ega(fmt->color, &attr);
 
 	gfx_bitmap_params_init(&params);
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
-	params.rect.p1.x = str_width(str);
+	params.rect.p1.x = width;
 	params.rect.p1.y = 1;
 
 	if (params.rect.p1.x == 0) {
@@ -150,13 +165,24 @@ static errno_t gfx_puttext_textmode(gfx_font_t *font, gfx_coord2_t *pos,
 	pmap.data = alloc.pixels;
 
 	off = 0;
-	for (x = 0; x < params.rect.p1.x; x++) {
+	for (x = 0; x < rmargin; x++) {
 		c = str_decode(str, &off, STR_NO_LIMIT);
 		pixel = PIXEL(attr,
 		    (c >> 16) & 0xff,
 		    (c >> 8) & 0xff,
 		    c & 0xff);
 		pixelmap_put_pixel(&pmap, x, 0, pixel);
+	}
+
+	if (ellipsis) {
+		for (x = rmargin; x < params.rect.p1.x; x++) {
+			c = '.';
+			pixel = PIXEL(attr,
+			    (c >> 16) & 0xff,
+			    (c >> 8) & 0xff,
+			    c & 0xff);
+			pixelmap_put_pixel(&pmap, x, 0, pixel);
+		}
 	}
 
 	rc = gfx_bitmap_render(bitmap, NULL, pos);
@@ -245,7 +271,7 @@ errno_t gfx_puttext(gfx_coord2_t *pos, gfx_text_fmt_t *fmt, const char *str)
 
 	/* Text mode */
 	if ((fmt->font->finfo->props.flags & gff_text_mode) != 0)
-		return gfx_puttext_textmode(fmt->font, &spos, fmt->color, str);
+		return gfx_puttext_textmode(&spos, fmt, str);
 
 	rc = gfx_set_color(fmt->font->typeface->gc, fmt->color);
 	if (rc != EOK)
