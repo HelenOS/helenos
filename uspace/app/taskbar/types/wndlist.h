@@ -38,6 +38,7 @@
 
 #include <adt/list.h>
 #include <gfx/coord.h>
+#include <stdbool.h>
 #include <ui/pbutton.h>
 #include <ui/fixed.h>
 #include <ui/window.h>
@@ -51,6 +52,8 @@ typedef struct {
 	link_t lentries;
 	/** Window ID */
 	sysarg_t wnd_id;
+	/** Entry is visible */
+	bool visible;
 	/** Window button */
 	ui_pbutton_t *button;
 } wndlist_entry_t;

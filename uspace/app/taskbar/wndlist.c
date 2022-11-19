@@ -214,17 +214,15 @@ errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
 	entry->wndlist = wndlist;
 	list_append(&entry->lentries, &wndlist->entries);
 
-	/* Set the button rectangle */
+	entry->visible = false;
+
+	/* Set the button rectangle and add it to layout, if applicable */
 	wndlist_set_entry_rect(wndlist, entry);
 
 	/* Set button callbacks */
 	ui_pbutton_set_cb(entry->button, &wndlist_button_cb, (void *)entry);
 
-	rc = ui_fixed_add(wndlist->fixed, ui_pbutton_ctl(entry->button));
-	if (rc != EOK)
-		goto error;
-
-	if (paint) {
+	if (paint && entry->visible) {
 		rc = ui_pbutton_paint(entry->button);
 		if (rc != EOK)
 			goto error;
@@ -338,10 +336,18 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	/* Entry does not fit? */
 	if (rect.p1.x > wndlist->rect.p1.x) {
 		/* Make entry invisible */
-		rect.p0.x = 0;
-		rect.p0.y = 0;
-		rect.p1.x = 0;
-		rect.p1.y = 0;
+		if (entry->visible) {
+			ui_fixed_remove(wndlist->fixed,
+			    ui_pbutton_ctl(entry->button));
+			entry->visible = false;
+		}
+	} else {
+		/* Make entry visible */
+		if (!entry->visible) {
+			ui_fixed_add(wndlist->fixed,
+			    ui_pbutton_ctl(entry->button));
+			entry->visible = true;
+		}
 	}
 
 	ui_pbutton_set_rect(entry->button, &rect);

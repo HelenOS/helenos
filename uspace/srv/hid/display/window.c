@@ -468,8 +468,7 @@ static void ds_window_update_move(ds_window_t *wnd, gfx_coord2_t *pos)
 	gfx_coord2_t nwpos;
 	gfx_rect_t old_rect;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG2
-	, "ds_window_update_move (%d, %d)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "ds_window_update_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
 	assert(wnd->state == dsw_moving);
