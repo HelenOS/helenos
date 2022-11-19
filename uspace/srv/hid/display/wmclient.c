@@ -134,8 +134,8 @@ errno_t ds_wmclient_post_wnd_added_event(ds_wmclient_t *wmclient,
 {
 	ds_wmclient_ev_t *wevent;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "post wnd added event wmclient=%p\n",
-	    (void *)wmclient);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "wmclient_pos_wnd_added_event "
+	    "wmclient=%p wnd_id=%zu\n", (void *)wmclient, wnd_id);
 
 	wevent = calloc(1, sizeof(ds_wmclient_ev_t));
 	if (wevent == NULL)
@@ -166,6 +166,9 @@ errno_t ds_wmclient_post_wnd_removed_event(ds_wmclient_t *wmclient,
 {
 	ds_wmclient_ev_t *wevent;
 
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "wmclient_pos_wnd_removed_event "
+	    "wmclient=%p wnd_id=%zu\n", (void *)wmclient, wnd_id);
+
 	wevent = calloc(1, sizeof(ds_wmclient_ev_t));
 	if (wevent == NULL)
 		return ENOMEM;
@@ -194,6 +197,9 @@ errno_t ds_wmclient_post_wnd_changed_event(ds_wmclient_t *wmclient,
     sysarg_t wnd_id)
 {
 	ds_wmclient_ev_t *wevent;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "wmclient_pos_wnd_changed_event "
+	    "wmclient=%p wnd_id=%zu\n", (void *)wmclient, wnd_id);
 
 	wevent = calloc(1, sizeof(ds_wmclient_ev_t));
 	if (wevent == NULL)

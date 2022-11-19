@@ -335,7 +335,7 @@ static errno_t disp_get_event(void *arg, sysarg_t *wnd_id,
 	ds_window_t *wnd;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_get_event()");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "disp_window_get_event()");
 
 	ds_display_lock(client->display);
 

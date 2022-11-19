@@ -225,7 +225,7 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
 	gfx_rect_t *brect;
 	gfx_rect_t crect;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_paint");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "ds_window_paint");
 
 	if (rect != NULL) {
 		gfx_rect_rtranslate(&wnd->dpos, rect, &srect);
@@ -370,7 +370,7 @@ static errno_t ds_window_repaint_preview(ds_window_t *wnd, gfx_rect_t *old_rect)
 	bool oldr;
 	bool newr;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_repaint_preview");
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "ds_window_repaint_preview");
 
 	/*
 	 * Get current preview rectangle. If the window is not being resized/moved,
@@ -468,7 +468,8 @@ static void ds_window_update_move(ds_window_t *wnd, gfx_coord2_t *pos)
 	gfx_coord2_t nwpos;
 	gfx_rect_t old_rect;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_move (%d, %d)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG2
+	, "ds_window_update_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
 	assert(wnd->state == dsw_moving);
@@ -554,7 +555,7 @@ static void ds_window_update_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	gfx_rect_t nrect;
 	gfx_rect_t old_rect;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_update_resize (%d, %d)",
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "ds_window_update_resize (%d, %d)",
 	    (int) pos->x, (int) pos->y);
 
 	assert(wnd->state == dsw_resizing);
@@ -603,7 +604,7 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 	gfx_rect_t drect;
 	bool inside;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG,
+	log_msg(LOG_DEFAULT, LVL_DEBUG2,
 	    "ds_window_post_pos_event type=%d pos=%d,%d", event->type,
 	    (int) event->hpos, (int) event->vpos);
 
