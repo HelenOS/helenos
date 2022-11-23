@@ -53,7 +53,9 @@
 /** Caption movement when button is pressed down */
 enum {
 	ui_pb_press_dx = 1,
-	ui_pb_press_dy = 1
+	ui_pb_press_dy = 1,
+	ui_pb_pad_x = 2,
+	ui_pb_pad_x_text = 1
 };
 
 static void ui_pbutton_ctl_destroy(void *);
@@ -322,6 +324,7 @@ static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 	gfx_coord2_t pos;
 	gfx_text_fmt_t fmt;
 	gfx_rect_t rect;
+	gfx_rect_t irect;
 	gfx_coord_t thickness;
 	bool depressed;
 	errno_t rc;
@@ -359,11 +362,14 @@ static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 			goto error;
 	} else {
 		/* Text decoration */
+		ui_paint_get_inset_frame_inside(pbutton->res, &rect, &irect);
 		gfx_text_fmt_init(&fmt);
 		fmt.font = pbutton->res->font;
 		fmt.color = pbutton->res->btn_text_color;
 		fmt.halign = gfx_halign_center;
 		fmt.valign = gfx_valign_center;
+		fmt.abbreviate = true;
+		fmt.width = irect.p1.x - irect.p0.x - 2 * ui_pb_pad_x;
 
 		rc = gfx_puttext(&pos, &fmt, pbutton->caption);
 		if (rc != EOK)
@@ -441,6 +447,8 @@ static errno_t ui_pbutton_paint_text(ui_pbutton_t *pbutton)
 	fmt.color = pbutton->res->btn_text_color;
 	fmt.halign = gfx_halign_center;
 	fmt.valign = gfx_valign_center;
+	fmt.abbreviate = true;
+	fmt.width = rect.p1.x - rect.p0.x - 2 * ui_pb_pad_x_text;
 
 	rc = gfx_puttext(&pos, &fmt, pbutton->caption);
 	if (rc != EOK)

@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <gfx/coord.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <ui/fixed.h>
 #include <ui/window.h>
 #include <wndmgt.h>
@@ -55,6 +56,7 @@ extern void wndlist_set_entry_rect(wndlist_t *, wndlist_entry_t *);
 extern wndlist_entry_t *wndlist_entry_by_id(wndlist_t *, sysarg_t);
 extern wndlist_entry_t *wndlist_first(wndlist_t *);
 extern wndlist_entry_t *wndlist_next(wndlist_entry_t *);
+extern size_t wndlist_count(wndlist_t *);
 extern errno_t wndlist_repaint(wndlist_t *);
 
 #endif

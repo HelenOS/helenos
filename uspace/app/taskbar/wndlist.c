@@ -34,6 +34,7 @@
 
 #include <gfx/coord.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -64,10 +65,14 @@ static ui_pbutton_cb_t wndlist_button_cb = {
 };
 
 enum {
-	/** X distance between left edges of two consecutive buttons */
-	wndlist_button_pitch = 145,
-	/** X distance between left edges of two consecutive buttons (text) */
-	wndlist_button_pitch_text = 17,
+	/** Min. X distance between left edges of two consecutive buttons */
+	wndlist_button_pitch_min = 85,
+	/** Max. X distance between left edges of two consecutive buttons (text) */
+	wndlist_button_pitch_min_text = 10,
+	/** Min. X distance between left edges of two consecutive buttons */
+	wndlist_button_pitch_max = 165,
+	/** Max. X distance between left edges of two consecutive buttons (text) */
+	wndlist_button_pitch_max_text = 17,
 	/** Padding between buttons */
 	wndlist_button_pad = 5,
 	/** Padding between buttons (text) */
@@ -196,6 +201,7 @@ errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
 {
 	wndlist_entry_t *entry = NULL;
 	ui_resource_t *res;
+	wndlist_entry_t *e;
 	errno_t rc;
 
 	entry = calloc(1, sizeof(wndlist_entry_t));
@@ -216,17 +222,21 @@ errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
 
 	entry->visible = false;
 
-	/* Set the button rectangle and add it to layout, if applicable */
-	wndlist_set_entry_rect(wndlist, entry);
+	/*
+	 * Update rectangles for all entries, including @a entry, adding
+	 * it to the layout, if applicable.
+	 */
+	e = wndlist_first(wndlist);
+	while (e != NULL) {
+		wndlist_set_entry_rect(wndlist, e);
+		e = wndlist_next(e);
+	}
 
 	/* Set button callbacks */
 	ui_pbutton_set_cb(entry->button, &wndlist_button_cb, (void *)entry);
 
-	if (paint && entry->visible) {
-		rc = ui_pbutton_paint(entry->button);
-		if (rc != EOK)
-			goto error;
-	}
+	if (paint)
+		return wndlist_repaint(wndlist);
 
 	return EOK;
 error:
@@ -248,20 +258,20 @@ error:
 errno_t wndlist_remove(wndlist_t *wndlist, wndlist_entry_t *entry,
     bool paint)
 {
-	wndlist_entry_t *next;
+	wndlist_entry_t *e;
 	assert(entry->wndlist == wndlist);
 
-	next = wndlist_next(entry);
-
-	ui_fixed_remove(wndlist->fixed, ui_pbutton_ctl(entry->button));
+	if (entry->visible)
+		ui_fixed_remove(wndlist->fixed, ui_pbutton_ctl(entry->button));
 	ui_pbutton_destroy(entry->button);
 	list_remove(&entry->lentries);
 	free(entry);
 
-	/* Update positions of the remaining entries */
-	while (next != NULL) {
-		wndlist_set_entry_rect(wndlist, next);
-		next = wndlist_next(next);
+	/* Update positions of the all entries */
+	e = wndlist_first(wndlist);
+	while (e != NULL) {
+		wndlist_set_entry_rect(wndlist, e);
+		e = wndlist_next(e);
 	}
 
 	if (!paint)
@@ -306,8 +316,11 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	gfx_rect_t rect;
 	ui_resource_t *res;
 	gfx_coord_t pitch;
+	gfx_coord_t pitch_max;
+	gfx_coord_t pitch_min;
 	gfx_coord_t pad;
 	size_t idx;
+	size_t nbuttons;
 
 	/* Determine entry index */
 	idx = 0;
@@ -321,12 +334,22 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	res = ui_window_get_res(wndlist->window);
 
 	if (ui_resource_is_textmode(res)) {
-		pitch = wndlist_button_pitch_text;
+		pitch_max = wndlist_button_pitch_max_text;
+		pitch_min = wndlist_button_pitch_min_text;
 		pad = wndlist_button_pad_text;
 	} else {
-		pitch = wndlist_button_pitch;
+		pitch_max = wndlist_button_pitch_max;
+		pitch_min = wndlist_button_pitch_min;
 		pad = wndlist_button_pad;
 	}
+
+	/* Compute pitch that fits all buttons perfectly */
+	nbuttons = wndlist_count(wndlist);
+	pitch = (wndlist->rect.p1.x - wndlist->rect.p0.x + pad) / nbuttons;
+	if (pitch < pitch_min)
+		pitch = pitch_min;
+	if (pitch > pitch_max)
+		pitch = pitch_max;
 
 	rect.p0.x = wndlist->rect.p0.x + pitch * idx;
 	rect.p0.y = wndlist->rect.p0.y;
@@ -475,6 +498,16 @@ wndlist_entry_t *wndlist_next(wndlist_entry_t *cur)
 		return NULL;
 
 	return list_get_instance(link, wndlist_entry_t, lentries);
+}
+
+/** Get number of window list entries.
+ *
+ * @param wndlist Window list
+ * @return Number of entries
+ */
+size_t wndlist_count(wndlist_t *wndlist)
+{
+	return list_count(&wndlist->entries);
 }
 
 /** Repaint window list.
