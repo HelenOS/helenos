@@ -449,6 +449,8 @@ static errno_t ui_pbutton_paint_text(ui_pbutton_t *pbutton)
 	fmt.valign = gfx_valign_center;
 	fmt.abbreviate = true;
 	fmt.width = rect.p1.x - rect.p0.x - 2 * ui_pb_pad_x_text;
+	if (fmt.width < 1)
+		fmt.width = 1;
 
 	rc = gfx_puttext(&pos, &fmt, pbutton->caption);
 	if (rc != EOK)
