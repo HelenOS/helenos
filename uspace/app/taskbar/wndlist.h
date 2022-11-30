@@ -51,13 +51,16 @@ extern errno_t wndlist_open_wm(wndlist_t *, const char *);
 extern void wndlist_destroy(wndlist_t *);
 extern errno_t wndlist_append(wndlist_t *, sysarg_t, const char *, bool);
 extern errno_t wndlist_remove(wndlist_t *, wndlist_entry_t *, bool);
+extern bool wndlist_update_pitch(wndlist_t *);
 extern errno_t wndlist_update(wndlist_t *, wndlist_entry_t *, const char *);
 extern void wndlist_set_entry_rect(wndlist_t *, wndlist_entry_t *);
 extern wndlist_entry_t *wndlist_entry_by_id(wndlist_t *, sysarg_t);
 extern wndlist_entry_t *wndlist_first(wndlist_t *);
+extern wndlist_entry_t *wndlist_last(wndlist_t *);
 extern wndlist_entry_t *wndlist_next(wndlist_entry_t *);
 extern size_t wndlist_count(wndlist_t *);
 extern errno_t wndlist_repaint(wndlist_t *);
+extern errno_t wndlist_unpaint_entry(wndlist_entry_t *);
 
 #endif
 

@@ -33,6 +33,7 @@
  */
 
 #include <gfx/coord.h>
+#include <gfx/render.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -90,6 +91,7 @@ enum {
 errno_t wndlist_create(ui_window_t *window, ui_fixed_t *fixed,
     wndlist_t **rwndlist)
 {
+	ui_resource_t *res = ui_window_get_res(window);
 	wndlist_t *wndlist = NULL;
 	errno_t rc;
 
@@ -102,6 +104,12 @@ errno_t wndlist_create(ui_window_t *window, ui_fixed_t *fixed,
 	wndlist->window = window;
 	wndlist->fixed = fixed;
 	list_initialize(&wndlist->entries);
+
+	if (ui_resource_is_textmode(res))
+		wndlist->pitch = wndlist_button_pitch_max_text;
+	else
+		wndlist->pitch = wndlist_button_pitch_max;
+
 	*rwndlist = wndlist;
 	return EOK;
 error:
@@ -222,21 +230,27 @@ errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
 
 	entry->visible = false;
 
-	/*
-	 * Update rectangles for all entries, including @a entry, adding
-	 * it to the layout, if applicable.
-	 */
-	e = wndlist_first(wndlist);
-	while (e != NULL) {
-		wndlist_set_entry_rect(wndlist, e);
-		e = wndlist_next(e);
-	}
-
 	/* Set button callbacks */
 	ui_pbutton_set_cb(entry->button, &wndlist_button_cb, (void *)entry);
 
-	if (paint)
-		return wndlist_repaint(wndlist);
+	if (wndlist_update_pitch(wndlist)) {
+		/*
+		 * Update rectangles for all entries, including @a entry, adding
+		 * it to the layout, if applicable.
+		 */
+		e = wndlist_first(wndlist);
+		while (e != NULL) {
+			wndlist_set_entry_rect(wndlist, e);
+			e = wndlist_next(e);
+		}
+
+		if (paint)
+			return wndlist_repaint(wndlist);
+	} else {
+		wndlist_set_entry_rect(wndlist, entry);
+		if (paint)
+			return ui_pbutton_paint(entry->button);
+	}
 
 	return EOK;
 error:
@@ -259,25 +273,108 @@ errno_t wndlist_remove(wndlist_t *wndlist, wndlist_entry_t *entry,
     bool paint)
 {
 	wndlist_entry_t *e;
+	wndlist_entry_t *next;
+	wndlist_entry_t *last;
+	errno_t rc = EOK;
+
 	assert(entry->wndlist == wndlist);
+	next = wndlist_next(entry);
+
+	/* Remember last entry */
+	last = wndlist_last(wndlist);
 
 	if (entry->visible)
 		ui_fixed_remove(wndlist->fixed, ui_pbutton_ctl(entry->button));
-	ui_pbutton_destroy(entry->button);
 	list_remove(&entry->lentries);
-	free(entry);
 
-	/* Update positions of the all entries */
-	e = wndlist_first(wndlist);
-	while (e != NULL) {
-		wndlist_set_entry_rect(wndlist, e);
-		e = wndlist_next(e);
+	if (wndlist_update_pitch(wndlist)) {
+		/*
+		 * Update rectangles for all entries.
+		 */
+		e = wndlist_first(wndlist);
+		while (e != NULL) {
+			wndlist_set_entry_rect(wndlist, e);
+			e = wndlist_next(e);
+		}
+
+		if (paint)
+			rc = wndlist_repaint(wndlist);
+	} else {
+		/* Unpaint the last entry */
+		if (paint)
+			rc = wndlist_unpaint_entry(last);
+
+		/*
+		 * Update rectangles for entries to the right
+		 */
+
+		e = NULL;
+		while (next != NULL) {
+			e = next;
+
+			wndlist_set_entry_rect(wndlist, e);
+			if (paint) {
+				rc = ui_pbutton_paint(e->button);
+				if (rc != EOK)
+					return rc;
+			}
+
+			next = wndlist_next(e);
+		}
 	}
 
-	if (!paint)
-		return EOK;
+	ui_pbutton_destroy(entry->button);
+	free(entry);
+	return rc;
+}
 
-	return wndlist_repaint(wndlist);
+/** Update button pitch.
+ *
+ * Recalculatebutton pitch @c wndlist->pitch based on current number
+ * of buttons.
+ *
+ * @param wndlist Window list
+ * @return @c true iff pitch changed
+ */
+bool wndlist_update_pitch(wndlist_t *wndlist)
+{
+	ui_resource_t *res;
+	size_t nbuttons;
+	gfx_coord_t pitch;
+	gfx_coord_t pitch_max;
+	gfx_coord_t pitch_min;
+	gfx_coord_t pad;
+
+	res = ui_window_get_res(wndlist->window);
+
+	if (ui_resource_is_textmode(res)) {
+		pitch_max = wndlist_button_pitch_max_text;
+		pitch_min = wndlist_button_pitch_min_text;
+		pad = wndlist_button_pad_text;
+	} else {
+		pitch_max = wndlist_button_pitch_max;
+		pitch_min = wndlist_button_pitch_min;
+		pad = wndlist_button_pad;
+	}
+
+	/* Compute pitch that fits all buttons perfectly */
+	nbuttons = wndlist_count(wndlist);
+	if (nbuttons > 0)
+		pitch = (wndlist->rect.p1.x - wndlist->rect.p0.x + pad) / nbuttons;
+	else
+		pitch = pitch_min;
+
+	if (pitch < pitch_min)
+		pitch = pitch_min;
+	if (pitch > pitch_max)
+		pitch = pitch_max;
+
+	/* Did the pitch change? */
+	if (pitch == wndlist->pitch)
+		return false;
+
+	wndlist->pitch = pitch;
+	return true;
 }
 
 /** Update window list entry.
@@ -316,11 +413,8 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	gfx_rect_t rect;
 	ui_resource_t *res;
 	gfx_coord_t pitch;
-	gfx_coord_t pitch_max;
-	gfx_coord_t pitch_min;
 	gfx_coord_t pad;
 	size_t idx;
-	size_t nbuttons;
 
 	/* Determine entry index */
 	idx = 0;
@@ -334,22 +428,12 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	res = ui_window_get_res(wndlist->window);
 
 	if (ui_resource_is_textmode(res)) {
-		pitch_max = wndlist_button_pitch_max_text;
-		pitch_min = wndlist_button_pitch_min_text;
 		pad = wndlist_button_pad_text;
 	} else {
-		pitch_max = wndlist_button_pitch_max;
-		pitch_min = wndlist_button_pitch_min;
 		pad = wndlist_button_pad;
 	}
 
-	/* Compute pitch that fits all buttons perfectly */
-	nbuttons = wndlist_count(wndlist);
-	pitch = (wndlist->rect.p1.x - wndlist->rect.p0.x + pad) / nbuttons;
-	if (pitch < pitch_min)
-		pitch = pitch_min;
-	if (pitch > pitch_max)
-		pitch = pitch_max;
+	pitch = wndlist->pitch;
 
 	rect.p0.x = wndlist->rect.p0.x + pitch * idx;
 	rect.p0.y = wndlist->rect.p0.y;
@@ -374,6 +458,36 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	}
 
 	ui_pbutton_set_rect(entry->button, &rect);
+	entry->rect = rect;
+}
+
+/** Compute and set window list entry rectangle.
+ *
+ * Compute rectangle for window list entry and set it.
+ *
+ * @param entry Window list entry
+ * @return EOK on success or an error code
+ */
+errno_t wndlist_unpaint_entry(wndlist_entry_t *entry)
+{
+	errno_t rc;
+	gfx_context_t *gc;
+	ui_resource_t *res;
+	gfx_color_t *color;
+
+	gc = ui_window_get_gc(entry->wndlist->window);
+	res = ui_window_get_res(entry->wndlist->window);
+	color = ui_resource_get_wnd_face_color(res);
+
+	rc = gfx_set_color(gc, color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_fill_rect(gc, &entry->rect);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 /** Handle WM window added event.
@@ -478,6 +592,22 @@ wndlist_entry_t *wndlist_first(wndlist_t *wndlist)
 	link_t *link;
 
 	link = list_first(&wndlist->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, wndlist_entry_t, lentries);
+}
+
+/** Get last window list entry.
+ *
+ * @param wndlist Window list
+ * @return Last entry or @c NULL if the list is empty
+ */
+wndlist_entry_t *wndlist_last(wndlist_t *wndlist)
+{
+	link_t *link;
+
+	link = list_last(&wndlist->entries);
 	if (link == NULL)
 		return NULL;
 

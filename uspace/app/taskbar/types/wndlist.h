@@ -56,6 +56,8 @@ typedef struct {
 	bool visible;
 	/** Window button */
 	ui_pbutton_t *button;
+	/** Window button rectangle */
+	gfx_rect_t rect;
 } wndlist_entry_t;
 
 /** Task bar window list */
@@ -74,6 +76,9 @@ typedef struct wndlist {
 
 	/** Window list entries (of wndlist_entry_t) */
 	list_t entries;
+
+	/** Current button pitch */
+	gfx_coord_t pitch;
 
 	/** Window management service */
 	wndmgt_t *wndmgt;
