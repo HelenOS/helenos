@@ -48,7 +48,9 @@ typedef enum {
 	/** Window is maximized */
 	wndf_maximized = 0x8,
 	/** Special system window */
-	wndf_system = 0x10
+	wndf_system = 0x10,
+	/** Maximized windows should avoid this window */
+	wndf_avoid = 0x20
 } display_wnd_flags_t;
 
 /** Parameters for a new window.

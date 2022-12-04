@@ -149,6 +149,9 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	else
 		ds_seat_set_focus(seat, wnd);
 
+	if ((params->flags & wndf_avoid) != 0)
+		ds_display_update_max_rect(wnd->display);
+
 	(void) ds_display_paint(wnd->display, NULL);
 
 	*rgc = wnd;
@@ -181,6 +184,9 @@ void ds_window_destroy(ds_window_t *wnd)
 
 	ds_client_remove_window(wnd);
 	ds_display_remove_window(wnd);
+
+	if ((wnd->flags & wndf_avoid) != 0)
+		ds_display_update_max_rect(disp);
 
 	mem_gc_delete(wnd->mgc);
 
@@ -717,7 +723,7 @@ void ds_window_get_pos(ds_window_t *wnd, gfx_coord2_t *dpos)
  */
 void ds_window_get_max_rect(ds_window_t *wnd, gfx_rect_t *rect)
 {
-	*rect = wnd->display->rect;
+	*rect = wnd->display->max_rect;
 }
 
 /** Start resizing a window, detected by client.
@@ -793,6 +799,9 @@ errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
 
 	wnd->dpos = ndpos;
 	wnd->rect = *nrect;
+
+	if ((wnd->flags & wndf_avoid) != 0)
+		ds_display_update_max_rect(wnd->display);
 
 	(void) ds_display_paint(wnd->display, NULL);
 	return EOK;

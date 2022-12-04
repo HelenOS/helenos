@@ -231,6 +231,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 		dparams.flags |= wndf_topmost;
 	if ((params->flags & ui_wndf_system) != 0)
 		dparams.flags |= wndf_system;
+	if ((params->flags & ui_wndf_avoid) != 0)
+		dparams.flags |= wndf_avoid;
 
 	if (ui->display != NULL) {
 		if (params->placement != ui_wnd_place_default) {

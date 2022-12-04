@@ -87,6 +87,8 @@ extern ds_ddev_t *ds_display_first_ddev(ds_display_t *);
 extern ds_ddev_t *ds_display_next_ddev(ds_ddev_t *);
 extern void ds_display_add_cursor(ds_display_t *, ds_cursor_t *);
 extern void ds_display_remove_cursor(ds_cursor_t *);
+extern void ds_display_update_max_rect(ds_display_t *);
+extern void ds_display_crop_max_rect(gfx_rect_t *, gfx_rect_t *);
 extern gfx_context_t *ds_display_get_gc(ds_display_t *);
 extern errno_t ds_display_paint_bg(ds_display_t *, gfx_rect_t *);
 extern errno_t ds_display_paint(ds_display_t *, gfx_rect_t *);

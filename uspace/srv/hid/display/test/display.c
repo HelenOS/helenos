@@ -600,4 +600,170 @@ PCUT_TEST(display_post_ptd_event_wnd_switch)
 	ds_display_destroy(disp);
 }
 
+/** ds_display_update_max_rect() updates maximization rectangle */
+PCUT_TEST(display_update_max_rect)
+{
+	ds_display_t *disp;
+	ds_seat_t *seat;
+	ds_client_t *client;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/*
+	 * We need to set display dimensions Here we do it directly
+	 * instead of adding a display device.
+	 */
+	disp->rect.p0.x = 0;
+	disp->rect.p0.y = 0;
+	disp->rect.p1.x = 500;
+	disp->rect.p1.y = 500;
+
+	/* Set maximize rectangle as well */
+	disp->max_rect = disp->rect;
+
+	/* A panel-like window at the bottom */
+	display_wnd_params_init(&params);
+	params.flags |= wndf_setpos;
+	params.pos.x = 0;
+	params.pos.y = 450;
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 500;
+	params.rect.p1.y = 50;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/*
+	 * At this point the maximize rect should be unaltered because
+	 * the avoid flag has not been set.
+	 */
+	PCUT_ASSERT_INT_EQUALS(0, disp->max_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, disp->max_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(500, disp->max_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(500, disp->max_rect.p1.y);
+
+	wnd->flags |= wndf_avoid;
+
+	/* Update maximize rectangle */
+	ds_display_update_max_rect(disp);
+
+	/* Verify maximize rectangle */
+	PCUT_ASSERT_INT_EQUALS(0, disp->max_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, disp->max_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(500, disp->max_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(450, disp->max_rect.p1.y);
+
+	ds_window_destroy(wnd);
+	ds_client_destroy(client);
+	ds_seat_destroy(seat);
+	ds_display_destroy(disp);
+}
+
+/** Cropping maximization rectangle from the top */
+PCUT_TEST(display_crop_max_rect_top)
+{
+	gfx_rect_t arect;
+	gfx_rect_t mrect;
+
+	arect.p0.x = 10;
+	arect.p0.y = 20;
+	arect.p1.x = 30;
+	arect.p1.y = 5;
+
+	mrect.p0.x = 10;
+	mrect.p0.y = 20;
+	mrect.p1.x = 30;
+	mrect.p1.y = 40;
+
+	ds_display_crop_max_rect(&arect, &mrect);
+
+	PCUT_ASSERT_INT_EQUALS(10, mrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(5, mrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(30, mrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(40, mrect.p1.y);
+}
+
+/** Cropping maximization rectangle from the bottom */
+PCUT_TEST(display_crop_max_rect_bottom)
+{
+	gfx_rect_t arect;
+	gfx_rect_t mrect;
+
+	arect.p0.x = 10;
+	arect.p0.y = 35;
+	arect.p1.x = 30;
+	arect.p1.y = 40;
+
+	mrect.p0.x = 10;
+	mrect.p0.y = 20;
+	mrect.p1.x = 30;
+	mrect.p1.y = 40;
+
+	ds_display_crop_max_rect(&arect, &mrect);
+
+	PCUT_ASSERT_INT_EQUALS(10, mrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(20, mrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(30, mrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(35, mrect.p1.y);
+}
+
+/** Cropping maximization rectangle from the left */
+PCUT_TEST(display_crop_max_rect_left)
+{
+	gfx_rect_t arect;
+	gfx_rect_t mrect;
+
+	arect.p0.x = 10;
+	arect.p0.y = 20;
+	arect.p1.x = 15;
+	arect.p1.y = 40;
+
+	mrect.p0.x = 10;
+	mrect.p0.y = 20;
+	mrect.p1.x = 30;
+	mrect.p1.y = 40;
+
+	ds_display_crop_max_rect(&arect, &mrect);
+
+	PCUT_ASSERT_INT_EQUALS(15, mrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(20, mrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(30, mrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(40, mrect.p1.y);
+}
+
+/** Cropping maximization rectangle from the right */
+PCUT_TEST(display_crop_max_rect_right)
+{
+	gfx_rect_t arect;
+	gfx_rect_t mrect;
+
+	arect.p0.x = 25;
+	arect.p0.y = 20;
+	arect.p1.x = 30;
+	arect.p1.y = 40;
+
+	mrect.p0.x = 10;
+	mrect.p0.y = 20;
+	mrect.p1.x = 30;
+	mrect.p1.y = 40;
+
+	ds_display_crop_max_rect(&arect, &mrect);
+
+	PCUT_ASSERT_INT_EQUALS(10, mrect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(20, mrect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(25, mrect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(40, mrect.p1.y);
+}
+
 PCUT_EXPORT(display);

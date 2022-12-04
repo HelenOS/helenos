@@ -664,6 +664,8 @@ errno_t ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
 			goto error;
 	}
 
+	ds_display_update_max_rect(disp);
+
 	return EOK;
 error:
 	disp->rect.p0.x = 0;
@@ -736,6 +738,71 @@ void ds_display_remove_cursor(ds_cursor_t *cursor)
 {
 	list_remove(&cursor->ldisplay);
 	cursor->display = NULL;
+}
+
+/** Update display maximize rectangle.
+ *
+ * Recalculate the maximize rectangle (the rectangle used for maximized
+ * windows).
+ *
+ * @param display Display
+ */
+void ds_display_update_max_rect(ds_display_t *display)
+{
+	ds_window_t *wnd;
+	gfx_rect_t max_rect;
+	gfx_rect_t drect;
+
+	/* Start with the entire display */
+	max_rect = display->rect;
+
+	wnd = ds_display_first_window(display);
+	while (wnd != NULL) {
+		/* Should maximized windows avoid this window? */
+		if ((wnd->flags & wndf_avoid) != 0) {
+			/* Window bounding rectangle on display */
+			gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
+
+			/* Crop maximized rectangle */
+			ds_display_crop_max_rect(&drect, &max_rect);
+		}
+
+		wnd = ds_display_next_window(wnd);
+	}
+
+	/* Update the maximize rectangle */
+	display->max_rect = max_rect;
+}
+
+/** Crop maximize rectangle.
+ *
+ * Use the avoid rectangle @a arect to crop off maximization rectangle
+ * @a mrect. If @a arect covers the top, bottom, left or right part
+ * of @a mrect, it will be cropped off. Otherwise there will be
+ * no effect.
+ *
+ * @param arect Avoid rectangle
+ * @param mrect Maximize rectangle to be modified
+ */
+void ds_display_crop_max_rect(gfx_rect_t *arect, gfx_rect_t *mrect)
+{
+	if (arect->p0.x == mrect->p0.x && arect->p0.y == mrect->p0.y &&
+	    arect->p1.x == mrect->p1.x) {
+		/* Cropp off top part */
+		mrect->p0.y = arect->p1.y;
+	} else if (arect->p0.x == mrect->p0.x && arect->p1.x == mrect->p1.x &&
+	    arect->p1.y == mrect->p1.y) {
+		/* Cropp off bottom part */
+		mrect->p1.y = arect->p0.y;
+	} else if (arect->p0.x == mrect->p0.x && arect->p0.y == mrect->p0.y &&
+	    arect->p1.y == mrect->p1.y) {
+		/* Cropp off left part */
+		mrect->p0.x = arect->p1.x;
+	} else if (arect->p0.y == mrect->p0.y && arect->p1.x == mrect->p1.x &&
+	    arect->p1.y == mrect->p1.y) {
+		/* Cropp off right part */
+		mrect->p1.x = arect->p0.x;
+	}
 }
 
 /** Get unbuffered GC.

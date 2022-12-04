@@ -139,6 +139,9 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	/* Prevent taskbar window from being listed in taskbar */
 	params.flags |= ui_wndf_system;
 
+	/* Make maximized windows avoid taskbar */
+	params.flags |= ui_wndf_avoid;
+
 	params.rect.p0.x = 0;
 	params.rect.p0.y = 0;
 	params.rect.p1.x = scr_rect.p1.x - scr_rect.p0.x;

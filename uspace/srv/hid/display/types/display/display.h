@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -95,6 +95,9 @@ typedef struct ds_display {
 
 	/** Bounding rectangle */
 	gfx_rect_t rect;
+
+	/** Maximize rectangle */
+	gfx_rect_t max_rect;
 
 	/** Backbuffer bitmap or @c NULL if not double-buffering */
 	gfx_bitmap_t *backbuf;

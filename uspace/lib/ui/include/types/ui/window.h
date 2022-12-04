@@ -69,7 +69,9 @@ typedef enum {
 	/** Topmost window */
 	ui_wndf_topmost = 0x2,
 	/** Special system window */
-	ui_wndf_system = 0x4
+	ui_wndf_system = 0x4,
+	/** Maximized windows should avoid this window */
+	ui_wndf_avoid = 0x8
 } ui_wnd_flags_t;
 
 /** Window parameters */
