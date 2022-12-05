@@ -839,7 +839,7 @@ void ui_scrollbar_update(ui_scrollbar_t *scrollbar, gfx_coord2_t *pos)
 			spos = scrollbar->last_pos + pos->y - scrollbar->press_pos.y;
 
 		ui_scrollbar_set_pos(scrollbar, spos);
-		ui_scrollbar_moved(scrollbar, spos);
+		ui_scrollbar_moved(scrollbar, scrollbar->pos);
 	}
 
 	ui_scrollbar_throughs_update(scrollbar, pos);
