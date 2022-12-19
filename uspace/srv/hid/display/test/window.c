@@ -260,6 +260,81 @@ PCUT_TEST(get_max_rect)
 	ds_display_destroy(disp);
 }
 
+/** Test ds_window_minimize(). */
+PCUT_TEST(window_minimize)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_minimize(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(wndf_minimized, wnd->flags & wndf_minimized);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_window_unminimize(). */
+PCUT_TEST(window_unminimize)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.flags |= wndf_minimized;
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_window_unminimize(wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(0, wnd->flags & wndf_minimized);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
 /** Test ds_window_maximize(). */
 PCUT_TEST(window_maximize)
 {
@@ -372,6 +447,44 @@ PCUT_TEST(window_get_ctx)
 
 	gc = ds_window_get_ctx(wnd);
 	PCUT_ASSERT_NOT_NULL(gc);
+
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Test ds_window_is_visible() */
+PCUT_TEST(is_visible)
+{
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 10;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_TRUE(ds_window_is_visible(wnd));
+
+	wnd->flags |= wndf_minimized;
+
+	PCUT_ASSERT_FALSE(ds_window_is_visible(wnd));
 
 	ds_window_destroy(wnd);
 	ds_seat_destroy(seat);

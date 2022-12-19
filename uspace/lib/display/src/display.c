@@ -509,6 +509,23 @@ errno_t display_window_resize(display_window_t *window, gfx_coord2_t *offs,
 	return EOK;
 }
 
+/** Minimize window.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+errno_t display_window_minimize(display_window_t *window)
+{
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(window->display->sess);
+	rc = async_req_1_0(exch, DISPLAY_WINDOW_MINIMIZE, window->id);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
 /** Maximize window.
  *
  * @param window Window

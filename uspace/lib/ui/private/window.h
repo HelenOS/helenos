@@ -111,6 +111,7 @@ typedef enum {
 } ui_wnd_sc_op_t;
 
 extern display_stock_cursor_t wnd_dcursor_from_cursor(ui_stock_cursor_t);
+extern void ui_window_send_minimize(ui_window_t *);
 extern void ui_window_send_maximize(ui_window_t *);
 extern void ui_window_send_unmaximize(ui_window_t *);
 extern void ui_window_send_close(ui_window_t *);

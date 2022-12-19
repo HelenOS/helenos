@@ -65,6 +65,7 @@ static errno_t test_window_resize_req(void *, sysarg_t, display_wnd_rsztype_t,
     gfx_coord2_t *);
 static errno_t test_window_resize(void *, sysarg_t, gfx_coord2_t *,
     gfx_rect_t *);
+static errno_t test_window_minimize(void *, sysarg_t);
 static errno_t test_window_maximize(void *, sysarg_t);
 static errno_t test_window_unmaximize(void *, sysarg_t);
 static errno_t test_window_set_cursor(void *, sysarg_t, display_stock_cursor_t);
@@ -83,6 +84,7 @@ static display_ops_t test_display_srv_ops = {
 	.window_get_max_rect = test_window_get_max_rect,
 	.window_resize_req = test_window_resize_req,
 	.window_resize = test_window_resize,
+	.window_minimize = test_window_minimize,
 	.window_maximize = test_window_maximize,
 	.window_unmaximize = test_window_unmaximize,
 	.window_set_cursor = test_window_set_cursor,
@@ -144,6 +146,7 @@ typedef struct {
 	gfx_rect_t resize_nbound;
 	sysarg_t resize_wnd_id;
 
+	bool window_minimize_called;
 	bool window_maximize_called;
 	bool window_unmaximize_called;
 
@@ -1049,6 +1052,102 @@ PCUT_TEST(window_resize_success)
 	PCUT_ASSERT_INT_EQUALS(nrect.p0.y, resp.resize_nbound.p0.y);
 	PCUT_ASSERT_INT_EQUALS(nrect.p1.x, resp.resize_nbound.p1.x);
 	PCUT_ASSERT_INT_EQUALS(nrect.p1.y, resp.resize_nbound.p1.y);
+
+	display_window_destroy(wnd);
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** display_window_minimize() with server returning error response works. */
+PCUT_TEST(window_minimize_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_wnd_params_t params;
+	display_window_t *wnd;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = EOK;
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	resp.rc = EIO;
+	resp.window_minimize_called = false;
+
+	rc = display_window_minimize(wnd);
+	PCUT_ASSERT_TRUE(resp.window_minimize_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	display_window_destroy(wnd);
+	display_close(disp);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** display_window_minimize() with server returning success response works. */
+PCUT_TEST(window_minimize_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	display_t *disp = NULL;
+	display_wnd_params_t params;
+	display_window_t *wnd;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_display_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_display_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_display_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = display_open(test_display_svc, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(disp);
+
+	resp.rc = EOK;
+	display_wnd_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p0.x = 100;
+	params.rect.p0.y = 100;
+
+	rc = display_window_create(disp, &params, &test_display_wnd_cb,
+	    (void *) &resp, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(wnd);
+
+	resp.rc = EOK;
+	resp.window_minimize_called = false;
+
+	rc = display_window_minimize(wnd);
+	PCUT_ASSERT_TRUE(resp.window_minimize_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	display_window_destroy(wnd);
 	display_close(disp);
@@ -2099,6 +2198,15 @@ static errno_t test_window_resize(void *arg, sysarg_t wnd_id,
 	resp->resize_wnd_id = wnd_id;
 	resp->resize_offs = *offs;
 	resp->resize_nbound = *nrect;
+	return resp->rc;
+}
+
+static errno_t test_window_minimize(void *arg, sysarg_t wnd_id)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->window_minimize_called = true;
+	resp->resize_wnd_id = wnd_id;
 	return resp->rc;
 }
 

@@ -390,6 +390,22 @@ static void display_window_resize_srv(display_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void display_window_minimize_srv(display_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t wnd_id;
+	errno_t rc;
+
+	wnd_id = ipc_get_arg1(icall);
+
+	if (srv->ops->window_minimize == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->window_minimize(srv->arg, wnd_id);
+	async_answer_0(icall, rc);
+}
+
 static void display_window_maximize_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
@@ -609,6 +625,9 @@ void display_conn(ipc_call_t *icall, display_srv_t *srv)
 			break;
 		case DISPLAY_WINDOW_RESIZE:
 			display_window_resize_srv(srv, &call);
+			break;
+		case DISPLAY_WINDOW_MINIMIZE:
+			display_window_minimize_srv(srv, &call);
 			break;
 		case DISPLAY_WINDOW_MAXIMIZE:
 			display_window_maximize_srv(srv, &call);

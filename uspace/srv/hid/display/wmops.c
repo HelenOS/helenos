@@ -40,6 +40,7 @@
 #include <wndmgt_srv.h>
 #include "display.h"
 #include "seat.h"
+#include "window.h"
 #include "wmclient.h"
 
 static errno_t dispwm_get_window_list(void *, wndmgt_window_list_t **);

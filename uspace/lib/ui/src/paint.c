@@ -528,6 +528,35 @@ errno_t ui_paint_cross(gfx_context_t *gc, gfx_coord2_t *pos,
 	return EOK;
 }
 
+/** Paint minimize icon.
+ *
+ * @param resource UI resource
+ * @param pos Center position
+ * @param w Icon width
+ * @param h Icon height
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_minicon(ui_resource_t *resource, gfx_coord2_t *pos,
+    gfx_coord_t w, gfx_coord_t h)
+{
+	gfx_rect_t rect;
+	errno_t rc;
+
+	rc = gfx_set_color(resource->gc, resource->btn_text_color);
+	if (rc != EOK)
+		return rc;
+
+	rect.p0.x = pos->x - w / 2;
+	rect.p0.y = pos->y + h / 2 - 2;
+	rect.p1.x = rect.p0.x + w;
+	rect.p1.y = rect.p0.y + 2;
+	rc = gfx_fill_rect(resource->gc, &rect);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Paint maximize icon.
  *
  * @param resource UI resource

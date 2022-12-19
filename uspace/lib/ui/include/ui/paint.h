@@ -64,6 +64,8 @@ extern errno_t ui_paint_right_triangle(gfx_context_t *, gfx_coord2_t *,
     gfx_coord_t);
 extern errno_t ui_paint_cross(gfx_context_t *, gfx_coord2_t *, gfx_coord_t,
     gfx_coord_t, gfx_coord_t);
+extern errno_t ui_paint_minicon(ui_resource_t *, gfx_coord2_t *, gfx_coord_t,
+    gfx_coord_t);
 extern errno_t ui_paint_maxicon(ui_resource_t *, gfx_coord2_t *, gfx_coord_t,
     gfx_coord_t);
 extern errno_t ui_paint_unmaxicon(ui_resource_t *, gfx_coord2_t *, gfx_coord_t,

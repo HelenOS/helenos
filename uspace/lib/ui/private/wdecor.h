@@ -64,6 +64,8 @@ struct ui_wdecor {
 	bool active;
 	/** Window is maximized */
 	bool maximized;
+	/** Minimize button */
+	struct ui_pbutton *btn_min;
 	/** Maximize button */
 	struct ui_pbutton *btn_max;
 	/** Close button */
@@ -81,6 +83,8 @@ typedef struct {
 	gfx_rect_t title_bar_rect;
 	/** Window caption rectangle */
 	gfx_rect_t caption_rect;
+	/** Minimize button rectangle */
+	gfx_rect_t btn_min_rect;
 	/** Maximize button rectangle */
 	gfx_rect_t btn_max_rect;
 	/** Close button rectangle */
@@ -89,6 +93,7 @@ typedef struct {
 	gfx_rect_t app_area_rect;
 } ui_wdecor_geom_t;
 
+extern void ui_wdecor_minimize(ui_wdecor_t *);
 extern void ui_wdecor_maximize(ui_wdecor_t *);
 extern void ui_wdecor_unmaximize(ui_wdecor_t *);
 extern void ui_wdecor_close(ui_wdecor_t *);

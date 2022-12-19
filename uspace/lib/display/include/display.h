@@ -61,6 +61,7 @@ extern errno_t display_window_get_pos(display_window_t *, gfx_coord2_t *);
 extern errno_t display_window_get_max_rect(display_window_t *, gfx_rect_t *);
 extern errno_t display_window_resize(display_window_t *,
     gfx_coord2_t *, gfx_rect_t *);
+extern errno_t display_window_minimize(display_window_t *);
 extern errno_t display_window_maximize(display_window_t *);
 extern errno_t display_window_unmaximize(display_window_t *);
 extern errno_t display_window_set_cursor(display_window_t *,

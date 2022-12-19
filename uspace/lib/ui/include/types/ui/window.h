@@ -92,6 +92,7 @@ typedef struct {
 
 /** Window callbacks */
 typedef struct ui_window_cb {
+	void (*minimize)(ui_window_t *, void *);
 	void (*maximize)(ui_window_t *, void *);
 	void (*unmaximize)(ui_window_t *, void *);
 	void (*close)(ui_window_t *, void *);

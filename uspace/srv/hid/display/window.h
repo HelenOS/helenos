@@ -40,6 +40,7 @@
 #include <display/wndresize.h>
 #include <errno.h>
 #include <io/pos_event.h>
+#include <stdbool.h>
 #include <types/gfx/context.h>
 #include <types/gfx/coord.h>
 #include <types/gfx/ops/context.h>
@@ -54,6 +55,7 @@ extern errno_t ds_window_create(ds_client_t *, display_wnd_params_t *,
 extern void ds_window_destroy(ds_window_t *);
 extern void ds_window_bring_to_top(ds_window_t *);
 extern gfx_context_t *ds_window_get_ctx(ds_window_t *);
+extern bool ds_window_is_visible(ds_window_t *);
 extern errno_t ds_window_paint(ds_window_t *, gfx_rect_t *);
 errno_t ds_window_paint_preview(ds_window_t *, gfx_rect_t *);
 extern errno_t ds_window_post_kbd_event(ds_window_t *, kbd_event_t *);
@@ -67,6 +69,8 @@ extern void ds_window_get_max_rect(ds_window_t *, gfx_rect_t *);
 extern void ds_window_resize_req(ds_window_t *, display_wnd_rsztype_t,
     gfx_coord2_t *);
 extern errno_t ds_window_resize(ds_window_t *, gfx_coord2_t *, gfx_rect_t *);
+extern errno_t ds_window_minimize(ds_window_t *);
+extern errno_t ds_window_unminimize(ds_window_t *);
 extern errno_t ds_window_maximize(ds_window_t *);
 extern errno_t ds_window_unmaximize(ds_window_t *);
 extern void ds_window_calc_resize(ds_window_t *, gfx_coord2_t *,

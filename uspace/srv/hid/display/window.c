@@ -219,6 +219,16 @@ gfx_context_t *ds_window_get_ctx(ds_window_t *wnd)
 	return wnd->gc;
 }
 
+/** Determine if window is visible.
+ *
+ * @param wnd Window
+ * @return @c true iff window is visible
+ */
+bool ds_window_is_visible(ds_window_t *wnd)
+{
+	return (wnd->flags & wndf_minimized) == 0;
+}
+
 /** Paint a window using its backing bitmap.
  *
  * @param wnd Window to paint
@@ -232,6 +242,10 @@ errno_t ds_window_paint(ds_window_t *wnd, gfx_rect_t *rect)
 	gfx_rect_t crect;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "ds_window_paint");
+
+	/* Skip painting the window if not visible */
+	if (!ds_window_is_visible(wnd))
+		return EOK;
 
 	if (rect != NULL) {
 		gfx_rect_rtranslate(&wnd->dpos, rect, &srect);
@@ -803,6 +817,38 @@ errno_t ds_window_resize(ds_window_t *wnd, gfx_coord2_t *offs,
 	if ((wnd->flags & wndf_avoid) != 0)
 		ds_display_update_max_rect(wnd->display);
 
+	(void) ds_display_paint(wnd->display, NULL);
+	return EOK;
+}
+
+/** Minimize window.
+ *
+ * @param wnd Window
+ * @return EOK on success or an error code
+ */
+errno_t ds_window_minimize(ds_window_t *wnd)
+{
+	/* If already minimized, do nothing and return success. */
+	if ((wnd->flags & wndf_minimized) != 0)
+		return EOK;
+
+	wnd->flags |= wndf_minimized;
+	(void) ds_display_paint(wnd->display, NULL);
+	return EOK;
+}
+
+/** Unminimize window.
+ *
+ * @param wnd Window
+ * @return EOK on success or an error code
+ */
+errno_t ds_window_unminimize(ds_window_t *wnd)
+{
+	/* If not minimized, do nothing and return success. */
+	if ((wnd->flags & wndf_minimized) == 0)
+		return EOK;
+
+	wnd->flags &= ~wndf_minimized;
 	(void) ds_display_paint(wnd->display, NULL);
 	return EOK;
 }

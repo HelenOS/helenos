@@ -73,6 +73,7 @@ static display_wnd_cb_t dwnd_cb = {
 	.unfocus_event = dwnd_unfocus_event
 };
 
+static void wd_minimize(ui_wdecor_t *, void *);
 static void wd_maximize(ui_wdecor_t *, void *);
 static void wd_unmaximize(ui_wdecor_t *, void *);
 static void wd_close(ui_wdecor_t *, void *);
@@ -82,6 +83,7 @@ static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
 static void wd_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t wdecor_cb = {
+	.minimize = wd_minimize,
 	.maximize = wd_maximize,
 	.unmaximize = wd_unmaximize,
 	.close = wd_close,
@@ -916,6 +918,18 @@ static void dwnd_unfocus_event(void *arg)
 	ui_unlock(ui);
 }
 
+/** Window decoration requested window minimization.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ */
+static void wd_minimize(ui_wdecor_t *wdecor, void *arg)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	ui_window_send_minimize(window);
+}
+
 /** Window decoration requested window maximization.
  *
  * @param wdecor Window decoration
@@ -1040,6 +1054,18 @@ static void wd_set_cursor(ui_wdecor_t *wdecor, void *arg,
 	window->cursor = cursor;
 }
 
+/** Send window minimize event.
+ *
+ * @param window Window
+ */
+void ui_window_send_minimize(ui_window_t *window)
+{
+	if (window->cb != NULL && window->cb->maximize != NULL)
+		window->cb->minimize(window, window->arg);
+	else
+		ui_window_def_minimize(window);
+}
+
 /** Send window maximize event.
  *
  * @param window Window
@@ -1130,6 +1156,26 @@ void ui_window_send_unfocus(ui_window_t *window)
 		window->cb->unfocus(window, window->arg);
 	else
 		return ui_window_def_unfocus(window);
+}
+
+/** Default window minimize routine.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_def_minimize(ui_window_t *window)
+{
+	errno_t rc;
+
+	if (window->dwindow != NULL) {
+		rc = display_window_minimize(window->dwindow);
+		if (rc != EOK)
+			goto error;
+	}
+
+	return EOK;
+error:
+	return rc;
 }
 
 /** Default window maximize routine.

@@ -64,6 +64,7 @@ extern errno_t ui_window_get_app_gc(ui_window_t *, gfx_context_t **);
 extern void ui_window_get_app_rect(ui_window_t *, gfx_rect_t *);
 extern void ui_window_set_ctl_cursor(ui_window_t *, ui_stock_cursor_t);
 extern errno_t ui_window_paint(ui_window_t *);
+extern errno_t ui_window_def_minimize(ui_window_t *);
 extern errno_t ui_window_def_maximize(ui_window_t *);
 extern errno_t ui_window_def_unmaximize(ui_window_t *);
 extern ui_evclaim_t ui_window_def_kbd(ui_window_t *, kbd_event_t *);

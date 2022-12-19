@@ -303,7 +303,8 @@ ds_window_t *ds_display_window_by_pos(ds_display_t *display, gfx_coord2_t *pos)
 		/* Window bounding rectangle on display */
 		gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
 
-		if (gfx_pix_inside_rect(pos, &drect))
+		if (gfx_pix_inside_rect(pos, &drect) &&
+		    ds_window_is_visible(wnd))
 			return wnd;
 
 		wnd = ds_display_next_window(wnd);

@@ -48,6 +48,10 @@
 #include "../private/resource.h"
 #include "../private/wdecor.h"
 
+static void ui_wdecor_btn_min_clicked(ui_pbutton_t *, void *);
+static errno_t ui_wdecor_btn_min_paint(ui_pbutton_t *, void *,
+    gfx_coord2_t *);
+
 static void ui_wdecor_btn_max_clicked(ui_pbutton_t *, void *);
 static errno_t ui_wdecor_btn_max_paint(ui_pbutton_t *, void *,
     gfx_coord2_t *);
@@ -55,6 +59,14 @@ static errno_t ui_wdecor_btn_max_paint(ui_pbutton_t *, void *,
 static void ui_wdecor_btn_close_clicked(ui_pbutton_t *, void *);
 static errno_t ui_wdecor_btn_close_paint(ui_pbutton_t *, void *,
     gfx_coord2_t *);
+
+static ui_pbutton_cb_t ui_wdecor_btn_min_cb = {
+	.clicked = ui_wdecor_btn_min_clicked
+};
+
+static ui_pbutton_decor_ops_t ui_wdecor_btn_min_decor_ops = {
+	.paint = ui_wdecor_btn_min_paint
+};
 
 static ui_pbutton_cb_t ui_wdecor_btn_max_cb = {
 	.clicked = ui_wdecor_btn_max_clicked
@@ -97,6 +109,10 @@ enum {
 	wdecor_close_cross_w = 2,
 	/** Close button cross pen height */
 	wdecor_close_cross_h = 1,
+	/** Minimize icon width */
+	wdecor_min_w = 10,
+	/** Minimize icon height */
+	wdecor_min_h = 10,
 	/** Maximize icon width */
 	wdecor_max_w = 10,
 	/** Maximize icon height */
@@ -133,6 +149,20 @@ errno_t ui_wdecor_create(ui_resource_t *resource, const char *caption,
 	if (wdecor->caption == NULL) {
 		free(wdecor);
 		return ENOMEM;
+	}
+
+	if ((style & ui_wds_minimize_btn) != 0) {
+		rc = ui_pbutton_create(resource, "_", &wdecor->btn_min);
+		if (rc != EOK) {
+			ui_wdecor_destroy(wdecor);
+			return rc;
+		}
+
+		ui_pbutton_set_cb(wdecor->btn_min, &ui_wdecor_btn_min_cb,
+		    (void *)wdecor);
+
+		ui_pbutton_set_decor_ops(wdecor->btn_min,
+		    &ui_wdecor_btn_min_decor_ops, (void *)wdecor);
 	}
 
 	if ((style & ui_wds_maximize_btn) != 0) {
@@ -179,6 +209,7 @@ void ui_wdecor_destroy(ui_wdecor_t *wdecor)
 	if (wdecor == NULL)
 		return;
 
+	ui_pbutton_destroy(wdecor->btn_min);
 	ui_pbutton_destroy(wdecor->btn_max);
 	ui_pbutton_destroy(wdecor->btn_close);
 	free(wdecor->caption);
@@ -210,6 +241,8 @@ void ui_wdecor_set_rect(ui_wdecor_t *wdecor, gfx_rect_t *rect)
 
 	ui_wdecor_get_geom(wdecor, &geom);
 
+	if (wdecor->btn_min != NULL)
+		ui_pbutton_set_rect(wdecor->btn_min, &geom.btn_min_rect);
 	if (wdecor->btn_max != NULL)
 		ui_pbutton_set_rect(wdecor->btn_max, &geom.btn_max_rect);
 	if (wdecor->btn_close != NULL)
@@ -361,6 +394,12 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		if (rc != EOK)
 			return rc;
 
+		if (wdecor->btn_min != NULL) {
+			rc = ui_pbutton_paint(wdecor->btn_min);
+			if (rc != EOK)
+				return rc;
+		}
+
 		if (wdecor->btn_max != NULL) {
 			rc = ui_pbutton_paint(wdecor->btn_max);
 			if (rc != EOK)
@@ -379,6 +418,16 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		return rc;
 
 	return EOK;
+}
+
+/** Send decoration minimize event.
+ *
+ * @param wdecor Window decoration
+ */
+void ui_wdecor_minimize(ui_wdecor_t *wdecor)
+{
+	if (wdecor->cb != NULL && wdecor->cb->minimize != NULL)
+		wdecor->cb->minimize(wdecor, wdecor->arg);
 }
 
 /** Send decoration maximize event.
@@ -551,6 +600,30 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 		geom->btn_max_rect.p0.y = 0;
 		geom->btn_max_rect.p1.x = 0;
 		geom->btn_max_rect.p1.y = 0;
+	}
+
+	/* Does window have a minimize button? */
+	if ((wdecor->style & ui_wds_minimize_btn) != 0) {
+		if (wdecor->res->textmode == false) {
+			geom->btn_min_rect.p0.x = btn_x - 20;
+			geom->btn_min_rect.p0.y = btn_y;
+			geom->btn_min_rect.p1.x = btn_x;
+			geom->btn_min_rect.p1.y = btn_y + 20;
+
+			btn_x -= 20;
+		} else {
+			geom->btn_min_rect.p0.x = btn_x - 3;
+			geom->btn_min_rect.p0.y = btn_y;
+			geom->btn_min_rect.p1.x = btn_x;
+			geom->btn_min_rect.p1.y = btn_y + 1;
+
+			btn_x -= 3;
+		}
+	} else {
+		geom->btn_min_rect.p0.x = 0;
+		geom->btn_min_rect.p0.y = 0;
+		geom->btn_min_rect.p1.x = 0;
+		geom->btn_min_rect.p1.y = 0;
 	}
 
 	if (wdecor->res->textmode == false)
@@ -772,6 +845,12 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 
 	ui_wdecor_get_geom(wdecor, &geom);
 
+	if (wdecor->btn_min != NULL) {
+		claim = ui_pbutton_pos_event(wdecor->btn_min, event);
+		if (claim == ui_claimed)
+			return ui_claimed;
+	}
+
 	if (wdecor->btn_max != NULL) {
 		claim = ui_pbutton_pos_event(wdecor->btn_max, event);
 		if (claim == ui_claimed)
@@ -797,9 +876,23 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 	return ui_unclaimed;
 }
 
+/** Window decoration minimize button was clicked.
+ *
+ * @param pbutton Minimize button
+ * @param arg Argument (ui_wdecor_t)
+ */
+static void ui_wdecor_btn_min_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *) arg;
+
+	(void) pbutton;
+
+	ui_wdecor_minimize(wdecor);
+}
+
 /** Window decoration (un)maximize button was clicked.
  *
- * @param pbutton Close button
+ * @param pbutton (Un)maximize button
  * @param arg Argument (ui_wdecor_t)
  */
 static void ui_wdecor_btn_max_clicked(ui_pbutton_t *pbutton, void *arg)
@@ -812,6 +905,24 @@ static void ui_wdecor_btn_max_clicked(ui_pbutton_t *pbutton, void *arg)
 		ui_wdecor_unmaximize(wdecor);
 	else
 		ui_wdecor_maximize(wdecor);
+}
+
+/** Paint minimize button decoration.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (ui_wdecor_t *)
+ * @param pos Center position
+ */
+static errno_t ui_wdecor_btn_min_paint(ui_pbutton_t *pbutton,
+    void *arg, gfx_coord2_t *pos)
+{
+	ui_wdecor_t *wdecor = (ui_wdecor_t *)arg;
+	errno_t rc;
+
+	rc = ui_paint_minicon(wdecor->res, pos, wdecor_min_w,
+	    wdecor_min_h);
+
+	return rc;
 }
 
 /** Paint (un)maximize button decoration.

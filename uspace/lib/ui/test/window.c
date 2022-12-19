@@ -44,6 +44,7 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(window);
 
+static void test_window_minimize(ui_window_t *, void *);
 static void test_window_maximize(ui_window_t *, void *);
 static void test_window_unmaximize(ui_window_t *, void *);
 static void test_window_close(ui_window_t *, void *);
@@ -54,6 +55,7 @@ static void test_window_pos(ui_window_t *, void *, pos_event_t *);
 static void test_window_unfocus(ui_window_t *, void *);
 
 static ui_window_cb_t test_window_cb = {
+	.minimize = test_window_minimize,
 	.maximize = test_window_maximize,
 	.unmaximize = test_window_unmaximize,
 	.close = test_window_close,
@@ -79,6 +81,7 @@ static ui_control_ops_t test_ctl_ops = {
 
 typedef struct {
 	errno_t rc;
+	bool minimize;
 	bool maximize;
 	bool unmaximize;
 	bool close;
@@ -536,6 +539,42 @@ PCUT_TEST(def_unfocus)
 	ui_destroy(ui);
 }
 
+/** ui_window_send_minimize() calls minimize callback set via ui_window_set_cb() */
+PCUT_TEST(send_minimize)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	test_cb_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	/* Minimize callback with no callbacks set */
+	ui_window_send_minimize(window);
+
+	/* Minimize callback with minimize callback not implemented */
+	ui_window_set_cb(window, &dummy_window_cb, NULL);
+	ui_window_send_minimize(window);
+
+	/* Minimize callback with real callback set */
+	resp.minimize = false;
+	ui_window_set_cb(window, &test_window_cb, &resp);
+	ui_window_send_minimize(window);
+	PCUT_ASSERT_TRUE(resp.minimize);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_window_send_maximize() calls maximize callback set via ui_window_set_cb() */
 PCUT_TEST(send_maximize)
 {
@@ -846,6 +885,13 @@ PCUT_TEST(send_unfocus)
 
 	ui_window_destroy(window);
 	ui_destroy(ui);
+}
+
+static void test_window_minimize(ui_window_t *window, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->minimize = true;
 }
 
 static void test_window_maximize(ui_window_t *window, void *arg)

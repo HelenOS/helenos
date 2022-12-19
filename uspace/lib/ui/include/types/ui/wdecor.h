@@ -50,12 +50,14 @@ typedef enum {
 	ui_wds_frame = 0x1,
 	/** Window has a title bar */
 	ui_wds_titlebar = 0x2,
+	/** Window has a minimize button */
+	ui_wds_minimize_btn = 0x4,
 	/** Window has a maximize button */
-	ui_wds_maximize_btn = 0x4,
+	ui_wds_maximize_btn = 0x8,
 	/** Window has a close button */
-	ui_wds_close_btn = 0x8,
+	ui_wds_close_btn = 0x10,
 	/** Window is resizable */
-	ui_wds_resizable = 0x10,
+	ui_wds_resizable = 0x20,
 	/** Window is decorated (default decoration) */
 	ui_wds_decorated = ui_wds_frame | ui_wds_titlebar | ui_wds_close_btn
 } ui_wdecor_style_t;
@@ -77,6 +79,7 @@ typedef enum {
 
 /** Window decoration callbacks */
 typedef struct ui_wdecor_cb {
+	void (*minimize)(ui_wdecor_t *, void *);
 	void (*maximize)(ui_wdecor_t *, void *);
 	void (*unmaximize)(ui_wdecor_t *, void *);
 	void (*close)(ui_wdecor_t *, void *);

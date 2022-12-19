@@ -45,12 +45,14 @@ typedef enum {
 	wndf_topmost = 0x2,
 	/** Set specific initial window position */
 	wndf_setpos = 0x4,
+	/** Window is minimized */
+	wndf_minimized = 0x8,
 	/** Window is maximized */
-	wndf_maximized = 0x8,
+	wndf_maximized = 0x10,
 	/** Special system window */
-	wndf_system = 0x10,
+	wndf_system = 0x20,
 	/** Maximized windows should avoid this window */
-	wndf_avoid = 0x20
+	wndf_avoid = 0x40
 } display_wnd_flags_t;
 
 /** Parameters for a new window.

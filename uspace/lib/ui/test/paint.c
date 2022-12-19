@@ -353,6 +353,34 @@ PCUT_TEST(cross)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** Paint mimimize icon */
+PCUT_TEST(minicon)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	ui_resource_t *resource = NULL;
+	test_gc_t tgc;
+	gfx_coord2_t center;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	center.x = 0;
+	center.y = 0;
+
+	rc = ui_paint_minicon(resource, &center, 8, 6);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_resource_destroy(resource);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Paint maximize icon */
 PCUT_TEST(maxicon)
 {

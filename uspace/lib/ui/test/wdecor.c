@@ -61,6 +61,7 @@ static gfx_context_ops_t ops = {
 	.bitmap_get_alloc = testgc_bitmap_get_alloc
 };
 
+static void test_wdecor_minimize(ui_wdecor_t *, void *);
 static void test_wdecor_maximize(ui_wdecor_t *, void *);
 static void test_wdecor_unmaximize(ui_wdecor_t *, void *);
 static void test_wdecor_close(ui_wdecor_t *, void *);
@@ -70,6 +71,7 @@ static void test_wdecor_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
 static void test_wdecor_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t test_wdecor_cb = {
+	.minimize = test_wdecor_minimize,
 	.maximize = test_wdecor_maximize,
 	.unmaximize = test_wdecor_unmaximize,
 	.close = test_wdecor_close,
@@ -99,6 +101,7 @@ typedef struct {
 } testgc_bitmap_t;
 
 typedef struct {
+	bool minimize;
 	bool maximize;
 	bool unmaximize;
 	bool close;
@@ -221,6 +224,32 @@ PCUT_TEST(paint)
 
 	rc = gfx_context_delete(gc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Test ui_wdecor_minimize() */
+PCUT_TEST(minimize)
+{
+	errno_t rc;
+	ui_wdecor_t *wdecor;
+	test_cb_resp_t resp;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Minimize callback with no callbacks set */
+	ui_wdecor_minimize(wdecor);
+
+	/* Minimize callback with minimize callback not implemented */
+	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
+	ui_wdecor_minimize(wdecor);
+
+	/* Minimize callback with real callback set */
+	resp.minimize = false;
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
+	ui_wdecor_minimize(wdecor);
+	PCUT_ASSERT_TRUE(resp.minimize);
+
+	ui_wdecor_destroy(wdecor);
 }
 
 /** Test ui_wdecor_maximize() */
@@ -1011,6 +1040,13 @@ static errno_t testgc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 	*alloc = tbm->alloc;
 	tbm->tgc->bm_got_alloc = true;
 	return EOK;
+}
+
+static void test_wdecor_minimize(ui_wdecor_t *wdecor, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->minimize = true;
 }
 
 static void test_wdecor_maximize(ui_wdecor_t *wdecor, void *arg)
