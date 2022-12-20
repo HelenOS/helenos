@@ -643,9 +643,12 @@ error:
 errno_t ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
 {
 	errno_t rc;
+	gfx_rect_t old_disp_rect;
 
 	assert(ddev->display == NULL);
 	assert(!link_used(&ddev->lddevs));
+
+	old_disp_rect = disp->rect;
 
 	ddev->display = disp;
 	list_append(&ddev->lddevs, &disp->ddevs);
@@ -657,16 +660,14 @@ errno_t ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
 
 		/* Create cloning GC */
 		rc = ds_clonegc_create(ddev->gc, &disp->fbgc);
-		if (rc != EOK) {
-			// XXX Remove output
-			return ENOMEM;
-		}
+		if (rc != EOK)
+			goto error;
 
 		/* Allocate backbuffer */
 		rc = ds_display_alloc_backbuf(disp);
 		if (rc != EOK) {
-			// XXX Remove output
-			// XXX Delete clone GC
+			ds_clonegc_delete(disp->fbgc);
+			disp->fbgc = NULL;
 			goto error;
 		}
 	} else {
@@ -680,10 +681,7 @@ errno_t ds_display_add_ddev(ds_display_t *disp, ds_ddev_t *ddev)
 
 	return EOK;
 error:
-	disp->rect.p0.x = 0;
-	disp->rect.p0.y = 0;
-	disp->rect.p1.x = 0;
-	disp->rect.p1.y = 0;
+	disp->rect = old_disp_rect;
 	list_remove(&ddev->lddevs);
 	return rc;
 }
