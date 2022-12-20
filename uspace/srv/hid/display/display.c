@@ -115,10 +115,21 @@ error:
  */
 void ds_display_destroy(ds_display_t *disp)
 {
+	int i;
+
 	assert(list_empty(&disp->clients));
 	assert(list_empty(&disp->wmclients));
 	assert(list_empty(&disp->seats));
-	/* XXX destroy cursors */
+	assert(list_empty(&disp->ddevs));
+	assert(list_empty(&disp->seats));
+	assert(list_empty(&disp->windows));
+
+	/* Destroy cursors */
+	for (i = 0; i < dcurs_limit; i++) {
+		ds_cursor_destroy(disp->cursor[i]);
+		disp->cursor[i] = NULL;
+	}
+
 	gfx_color_delete(disp->bg_color);
 	free(disp);
 }

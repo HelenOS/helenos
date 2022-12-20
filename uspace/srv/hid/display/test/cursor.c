@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,6 +116,7 @@ PCUT_TEST(cursor_paint_render)
 
 	PCUT_ASSERT_TRUE(resp.render_called);
 
+	ds_ddev_close(ddev);
 	ds_cursor_destroy(cursor);
 	ds_display_destroy(disp);
 }
@@ -166,6 +167,7 @@ PCUT_TEST(cursor_paint_norender)
 	/* Rendering should have been optimized out */
 	PCUT_ASSERT_FALSE(resp.render_called);
 
+	ds_ddev_close(ddev);
 	ds_cursor_destroy(cursor);
 	ds_display_destroy(disp);
 }
