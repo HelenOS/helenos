@@ -59,7 +59,8 @@ typedef enum {
 	/** Window is resizable */
 	ui_wds_resizable = 0x20,
 	/** Window is decorated (default decoration) */
-	ui_wds_decorated = ui_wds_frame | ui_wds_titlebar | ui_wds_close_btn
+	ui_wds_decorated = ui_wds_frame | ui_wds_titlebar |
+	    ui_wds_minimize_btn | ui_wds_close_btn
 } ui_wdecor_style_t;
 
 /** Window resize type */
