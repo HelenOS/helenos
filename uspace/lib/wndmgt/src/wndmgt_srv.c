@@ -71,7 +71,6 @@ static void wndmgt_get_window_list_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 	rc = srv->ops->get_window_list(srv->arg, &list);
 	if (rc != EOK) {
-		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
 		return;
 	}
@@ -80,6 +79,7 @@ static void wndmgt_get_window_list_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 	if (!async_data_read_receive(&call, &size)) {
 		wndmgt_free_window_list(list);
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
@@ -103,6 +103,7 @@ static void wndmgt_get_window_list_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 	if (!async_data_read_receive(&call, &size)) {
 		wndmgt_free_window_list(list);
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
@@ -144,7 +145,6 @@ static void wndmgt_get_window_info_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 	rc = srv->ops->get_window_info(srv->arg, wnd_id, &info);
 	if (rc != EOK) {
-		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
 		return;
 	}
@@ -153,6 +153,7 @@ static void wndmgt_get_window_info_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 	if (!async_data_read_receive(&call, &size)) {
 		wndmgt_free_window_info(info);
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
@@ -178,6 +179,7 @@ static void wndmgt_get_window_info_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 	if (!async_data_read_receive(&call, &size)) {
 		wndmgt_free_window_info(info);
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
@@ -255,20 +257,21 @@ static void wndmgt_get_event_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 	/* Transfer event data */
 	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(event)) {
-		async_answer_0(icall, EREFUSED);
 		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
 	rc = async_data_read_finalize(&call, &event, sizeof(event));
 	if (rc != EOK) {
-		async_answer_0(icall, rc);
 		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
