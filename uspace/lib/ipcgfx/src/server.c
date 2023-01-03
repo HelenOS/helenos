@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -150,18 +150,21 @@ static void gc_bitmap_create_srv(ipc_gc_srv_t *srvgc, ipc_call_t *icall)
 	gfx_coord2_subtract(&params.rect.p1, &params.rect.p0, &dim);
 
 	if (!async_share_out_receive(&call, &size, &flags)) {
+		async_answer_0(&call, EINVAL);
 		async_answer_0(icall, EINVAL);
 		return;
 	}
 
 	/* Check size */
 	if (size != PAGES2SIZE(SIZE2PAGES(dim.x * dim.y * sizeof(uint32_t)))) {
+		async_answer_0(&call, EINVAL);
 		async_answer_0(icall, EINVAL);
 		return;
 	}
 
 	rc = async_share_out_finalize(&call, &pixels);
 	if (rc != EOK || pixels == AS_MAP_FAILED) {
+		async_answer_0(&call, ENOMEM);
 		async_answer_0(icall, ENOMEM);
 		return;
 	}

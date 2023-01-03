@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -240,6 +240,7 @@ static void display_window_get_pos_srv(display_srv_t *srv, ipc_call_t *icall)
 	}
 
 	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
@@ -284,6 +285,7 @@ static void display_window_get_max_rect_srv(display_srv_t *srv,
 	}
 
 	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
@@ -520,6 +522,7 @@ static void display_get_event_srv(display_srv_t *srv, ipc_call_t *icall)
 
 	/* Transfer event data */
 	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}
@@ -554,6 +557,7 @@ static void display_get_info_srv(display_srv_t *srv, ipc_call_t *icall)
 
 	/* Transfer information */
 	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
 		return;
 	}

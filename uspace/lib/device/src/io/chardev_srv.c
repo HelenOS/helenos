@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@ static void chardev_read_srv(chardev_srv_t *srv, ipc_call_t *icall)
 
 	ipc_call_t call;
 	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EINVAL);
 		async_answer_0(icall, EINVAL);
 		return;
 	}

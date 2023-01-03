@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
@@ -58,6 +59,7 @@ static void ipc_get_name(usbvirt_device_t *dev, ipc_call_t *icall)
 	ipc_call_t call;
 	size_t accepted_size;
 	if (!async_data_read_receive(&call, &accepted_size)) {
+		async_answer_0(&call, EINVAL);
 		async_answer_0(icall, EINVAL);
 		return;
 	}
@@ -93,6 +95,7 @@ static void ipc_control_read(usbvirt_device_t *dev, ipc_call_t *icall)
 
 	ipc_call_t data;
 	if (!async_data_read_receive(&data, &data_len)) {
+		async_answer_0(&data, EPARTY);
 		async_answer_0(icall, EPARTY);
 		free(setup_packet);
 		return;
@@ -100,6 +103,7 @@ static void ipc_control_read(usbvirt_device_t *dev, ipc_call_t *icall)
 
 	void *buffer = malloc(data_len);
 	if (buffer == NULL) {
+		async_answer_0(&data, EPARTY);
 		async_answer_0(icall, ENOMEM);
 		free(setup_packet);
 		return;
@@ -183,12 +187,14 @@ static void ipc_data_in(usbvirt_device_t *dev,
 	size_t data_len = 0;
 	ipc_call_t data;
 	if (!async_data_read_receive(&data, &data_len)) {
+		async_answer_0(&data, EPARTY);
 		async_answer_0(icall, EPARTY);
 		return;
 	}
 
 	void *buffer = malloc(data_len);
 	if (buffer == NULL) {
+		async_answer_0(&data, EPARTY);
 		async_answer_0(icall, ENOMEM);
 		return;
 	}

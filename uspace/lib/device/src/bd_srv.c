@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,7 @@ static void bd_read_blocks_srv(bd_srv_t *srv, ipc_call_t *call)
 
 	ipc_call_t rcall;
 	if (!async_data_read_receive(&rcall, &size)) {
+		async_answer_0(&rcall, EINVAL);
 		async_answer_0(call, EINVAL);
 		return;
 	}
@@ -98,6 +99,7 @@ static void bd_read_toc_srv(bd_srv_t *srv, ipc_call_t *call)
 
 	ipc_call_t rcall;
 	if (!async_data_read_receive(&rcall, &size)) {
+		async_answer_0(&rcall, EINVAL);
 		async_answer_0(call, EINVAL);
 		return;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,6 +100,7 @@ static void ddev_get_info_srv(ddev_srv_t *srv, ipc_call_t *icall)
 
 	rc = async_data_read_finalize(&call, &info, sizeof(ddev_info_t));
 	if (rc != EOK) {
+		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
 		return;
 	}

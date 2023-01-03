@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,8 +73,11 @@ static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_call_t *icall)
 	}
 
 	rc = async_data_read_finalize(&call, &mac, size);
-	if (rc != EOK)
+	if (rc != EOK) {
 		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
 
 	async_answer_0(icall, rc);
 }
@@ -93,13 +96,17 @@ static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_call_t *icall)
 
 	rc = srv->ops->set_mac48(srv, &mac);
 	if (rc != EOK) {
+		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
 		return;
 	}
 
 	rc = async_data_read_finalize(&call, &mac, sizeof(eth_addr_t));
-	if (rc != EOK)
+	if (rc != EOK) {
 		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
 
 	async_answer_0(icall, rc);
 }
@@ -108,6 +115,7 @@ static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
 	ipc_call_t call;
 	size_t size;
+
 	if (!async_data_write_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
@@ -125,6 +133,7 @@ static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_call_t *icall)
 	if (rc != EOK) {
 		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
+		return;
 	}
 
 	rc = srv->ops->addr_add(srv, &addr);
@@ -135,6 +144,7 @@ static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
 	ipc_call_t call;
 	size_t size;
+
 	if (!async_data_write_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
@@ -152,6 +162,7 @@ static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_call_t *icall)
 	if (rc != EOK) {
 		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
+		return;
 	}
 
 	rc = srv->ops->addr_remove(srv, &addr);
@@ -180,9 +191,9 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_call_t *icall)
 static void iplink_send6_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
 	iplink_sdu6_t sdu;
-
 	ipc_call_t call;
 	size_t size;
+
 	if (!async_data_write_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
 		async_answer_0(icall, EREFUSED);
