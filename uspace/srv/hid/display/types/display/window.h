@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -106,6 +106,8 @@ typedef struct ds_window {
 	display_wnd_rsztype_t rsztype;
 	/** Window caption */
 	char *caption;
+	/** Number of foci */
+	unsigned nfocus;
 } ds_window_t;
 
 /** Window event queue entry */

@@ -199,7 +199,7 @@ static void wndmgt_get_window_info_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 		return;
 	}
 
-	async_answer_1(icall, EOK, info->flags);
+	async_answer_2(icall, EOK, info->flags, info->nfocus);
 	wndmgt_free_window_info(info);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,10 +49,12 @@ extern errno_t wndlist_create(ui_window_t *, ui_fixed_t *, wndlist_t **);
 extern void wndlist_set_rect(wndlist_t *, gfx_rect_t *);
 extern errno_t wndlist_open_wm(wndlist_t *, const char *);
 extern void wndlist_destroy(wndlist_t *);
-extern errno_t wndlist_append(wndlist_t *, sysarg_t, const char *, bool);
+extern errno_t wndlist_append(wndlist_t *, sysarg_t, const char *, bool,
+    bool);
 extern errno_t wndlist_remove(wndlist_t *, wndlist_entry_t *, bool);
 extern bool wndlist_update_pitch(wndlist_t *);
-extern errno_t wndlist_update(wndlist_t *, wndlist_entry_t *, const char *);
+extern errno_t wndlist_update(wndlist_t *, wndlist_entry_t *, const char *,
+    bool);
 extern void wndlist_set_entry_rect(wndlist_t *, wndlist_entry_t *);
 extern wndlist_entry_t *wndlist_entry_by_id(wndlist_t *, sysarg_t);
 extern wndlist_entry_t *wndlist_first(wndlist_t *);

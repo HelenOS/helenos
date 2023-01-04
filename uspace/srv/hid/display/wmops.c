@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -144,6 +144,7 @@ static errno_t dispwm_get_window_info(void *arg, sysarg_t wnd_id,
 	}
 
 	info->flags = wnd->flags;
+	info->nfocus = wnd->nfocus;
 
 	ds_display_unlock(wmclient->display);
 	*rinfo = info;

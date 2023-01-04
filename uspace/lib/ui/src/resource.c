@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,7 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 	gfx_font_info_t *finfo;
 	gfx_color_t *btn_frame_color = NULL;
 	gfx_color_t *btn_face_color = NULL;
+	gfx_color_t *btn_face_lit_color = NULL;
 	gfx_color_t *btn_text_color = NULL;
 	gfx_color_t *btn_highlight_color = NULL;
 	gfx_color_t *btn_shadow_color = NULL;
@@ -110,6 +111,10 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 		goto error;
 
 	rc = gfx_color_new_rgb_i16(0xc8c8, 0xc8c8, 0xc8c8, &btn_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0xe8e8, 0xe8e8, 0xe8e8, &btn_face_lit_color);
 	if (rc != EOK)
 		goto error;
 
@@ -226,6 +231,7 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 
 	resource->btn_frame_color = btn_frame_color;
 	resource->btn_face_color = btn_face_color;
+	resource->btn_face_lit_color = btn_face_lit_color;
 	resource->btn_text_color = btn_text_color;
 	resource->btn_highlight_color = btn_highlight_color;
 	resource->btn_shadow_color = btn_shadow_color;
@@ -262,6 +268,8 @@ error:
 		gfx_color_delete(btn_frame_color);
 	if (btn_face_color != NULL)
 		gfx_color_delete(btn_face_color);
+	if (btn_face_lit_color != NULL)
+		gfx_color_delete(btn_face_lit_color);
 	if (btn_text_color != NULL)
 		gfx_color_delete(btn_text_color);
 	if (btn_highlight_color != NULL)
@@ -335,6 +343,7 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	gfx_font_t *font = NULL;
 	gfx_color_t *btn_frame_color = NULL;
 	gfx_color_t *btn_face_color = NULL;
+	gfx_color_t *btn_face_lit_color = NULL;
 	gfx_color_t *btn_text_color = NULL;
 	gfx_color_t *btn_highlight_color = NULL;
 	gfx_color_t *btn_shadow_color = NULL;
@@ -379,6 +388,10 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 		goto error;
 
 	rc = gfx_color_new_ega(0x20, &btn_face_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x30, &btn_face_lit_color);
 	if (rc != EOK)
 		goto error;
 
@@ -485,6 +498,7 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 
 	resource->btn_frame_color = btn_frame_color;
 	resource->btn_face_color = btn_face_color;
+	resource->btn_face_lit_color = btn_face_lit_color;
 	resource->btn_text_color = btn_text_color;
 	resource->btn_highlight_color = btn_highlight_color;
 	resource->btn_shadow_color = btn_shadow_color;
@@ -521,6 +535,8 @@ error:
 		gfx_color_delete(btn_frame_color);
 	if (btn_face_color != NULL)
 		gfx_color_delete(btn_face_color);
+	if (btn_face_lit_color != NULL)
+		gfx_color_delete(btn_face_lit_color);
 	if (btn_text_color != NULL)
 		gfx_color_delete(btn_text_color);
 	if (btn_highlight_color != NULL)
@@ -606,6 +622,7 @@ void ui_resource_destroy(ui_resource_t *resource)
 
 	gfx_color_delete(resource->btn_frame_color);
 	gfx_color_delete(resource->btn_face_color);
+	gfx_color_delete(resource->btn_face_lit_color);
 	gfx_color_delete(resource->btn_text_color);
 	gfx_color_delete(resource->btn_highlight_color);
 	gfx_color_delete(resource->btn_shadow_color);

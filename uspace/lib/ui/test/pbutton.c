@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -185,6 +185,42 @@ PCUT_TEST(set_default)
 
 	ui_pbutton_set_default(pbutton, false);
 	PCUT_ASSERT_FALSE(pbutton->isdefault);
+
+	ui_pbutton_destroy(pbutton);
+}
+
+/** Get light gets internal field */
+PCUT_TEST(get_light)
+{
+	ui_pbutton_t *pbutton;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	pbutton->light = true;
+	PCUT_ASSERT_TRUE(ui_pbutton_get_light(pbutton));
+
+	pbutton->light = false;
+	PCUT_ASSERT_FALSE(ui_pbutton_get_light(pbutton));
+
+	ui_pbutton_destroy(pbutton);
+}
+
+/** Set light sets internal field */
+PCUT_TEST(set_light)
+{
+	ui_pbutton_t *pbutton;
+	errno_t rc;
+
+	rc = ui_pbutton_create(NULL, "Hello", &pbutton);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_pbutton_set_light(pbutton, true);
+	PCUT_ASSERT_TRUE(pbutton->light);
+
+	ui_pbutton_set_light(pbutton, false);
+	PCUT_ASSERT_FALSE(pbutton->light);
 
 	ui_pbutton_destroy(pbutton);
 }

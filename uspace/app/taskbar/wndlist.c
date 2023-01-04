@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -156,7 +156,7 @@ errno_t wndlist_open_wm(wndlist_t *wndlist, const char *wndmgt_svc)
 
 		if ((winfo->flags & (wndf_popup | wndf_system)) == 0) {
 			rc = wndlist_append(wndlist, wlist->windows[i],
-			    winfo->caption, false);
+			    winfo->caption, winfo->nfocus != 0, false);
 			if (rc != EOK) {
 				wndmgt_free_window_info(winfo);
 				goto error;
@@ -201,11 +201,12 @@ void wndlist_destroy(wndlist_t *wndlist)
  * @param wndlist Window list
  * @param wnd_id Window ID
  * @param caption Entry caption
+ * @param active @c true iff window is active
  * @param paint @c true to paint immediately
  * @return @c EOK on success or an error code
  */
 errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
-    const char *caption, bool paint)
+    const char *caption, bool active, bool paint)
 {
 	wndlist_entry_t *entry = NULL;
 	ui_resource_t *res;
@@ -229,6 +230,8 @@ errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
 	list_append(&entry->lentries, &wndlist->entries);
 
 	entry->visible = false;
+
+	ui_pbutton_set_light(entry->button, active);
 
 	/* Set button callbacks */
 	ui_pbutton_set_cb(entry->button, &wndlist_button_cb, (void *)entry);
@@ -381,10 +384,11 @@ bool wndlist_update_pitch(wndlist_t *wndlist)
  *
  * @param wndlist Window list
  * @param entry Window list entry
+ * @param active @c true iff the window is active
  * @return @c EOK on success or an error code
  */
 errno_t wndlist_update(wndlist_t *wndlist, wndlist_entry_t *entry,
-    const char *caption)
+    const char *caption, bool active)
 {
 	errno_t rc;
 	assert(entry->wndlist == wndlist);
@@ -392,6 +396,8 @@ errno_t wndlist_update(wndlist_t *wndlist, wndlist_entry_t *entry,
 	rc = ui_pbutton_set_caption(entry->button, caption);
 	if (rc != EOK)
 		return rc;
+
+	ui_pbutton_set_light(entry->button, active);
 
 	rc = ui_pbutton_paint(entry->button);
 	if (rc != EOK)
@@ -506,7 +512,8 @@ static void wndlist_wm_window_added(void *arg, sysarg_t wnd_id)
 		goto error;
 
 	if ((winfo->flags & (wndf_popup | wndf_system)) == 0) {
-		rc = wndlist_append(wndlist, wnd_id, winfo->caption, true);
+		rc = wndlist_append(wndlist, wnd_id, winfo->caption,
+		    winfo->nfocus != 0, true);
 		if (rc != EOK) {
 			wndmgt_free_window_info(winfo);
 			goto error;
@@ -557,7 +564,8 @@ static void wndlist_wm_window_changed(void *arg, sysarg_t wnd_id)
 	if (rc != EOK)
 		return;
 
-	(void) wndlist_update(wndlist, entry, winfo->caption);
+	(void) wndlist_update(wndlist, entry, winfo->caption,
+	    winfo->nfocus != 0);
 	wndmgt_free_window_info(winfo);
 }
 

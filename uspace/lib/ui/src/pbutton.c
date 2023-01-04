@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -187,6 +187,26 @@ void ui_pbutton_set_default(ui_pbutton_t *pbutton, bool isdefault)
 	pbutton->isdefault = isdefault;
 }
 
+/** Get button light status.
+ *
+ * @param pbutton Button
+ * @return @c true iff light is on
+ */
+bool ui_pbutton_get_light(ui_pbutton_t *pbutton)
+{
+	return pbutton->light;
+}
+
+/** Turn button light on or off.
+ *
+ * @param pbutton Button
+ * @param light @c true iff button should be lit
+ */
+void ui_pbutton_set_light(ui_pbutton_t *pbutton, bool light)
+{
+	pbutton->light = light;
+}
+
 /** Set push button caption.
  *
  * @param pbutton Button
@@ -326,6 +346,7 @@ static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 	gfx_rect_t rect;
 	gfx_rect_t irect;
 	gfx_coord_t thickness;
+	gfx_color_t *color;
 	bool depressed;
 	errno_t rc;
 
@@ -337,7 +358,10 @@ static errno_t ui_pbutton_paint_gfx(ui_pbutton_t *pbutton)
 	rect.p1.x = pbutton->rect.p1.x - thickness;
 	rect.p1.y = pbutton->rect.p1.y - thickness;
 
-	rc = gfx_set_color(pbutton->res->gc, pbutton->res->btn_face_color);
+	color = pbutton->light ? pbutton->res->btn_face_lit_color :
+	    pbutton->res->btn_face_color;
+
+	rc = gfx_set_color(pbutton->res->gc, color);
 	if (rc != EOK)
 		goto error;
 

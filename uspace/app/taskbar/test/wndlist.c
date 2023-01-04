@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -207,12 +207,13 @@ PCUT_TEST(append)
 	rc = wndlist_create(window, fixed, &wndlist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 123, "Foo", true);
+	rc = wndlist_append(wndlist, 123, "Foo", true, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	entry = wndlist_first(wndlist);
 	PCUT_ASSERT_INT_EQUALS(123, entry->wnd_id);
 	PCUT_ASSERT_NOT_NULL(entry->button);
+	PCUT_ASSERT_TRUE(ui_pbutton_get_light(entry->button));
 
 	wndlist_destroy(wndlist);
 
@@ -247,10 +248,10 @@ PCUT_TEST(remove)
 	rc = wndlist_create(window, fixed, &wndlist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 1, "Foo", true);
+	rc = wndlist_append(wndlist, 1, "Foo", true, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 2, "Bar", true);
+	rc = wndlist_append(wndlist, 2, "Bar", false, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	entry = wndlist_first(wndlist);
@@ -261,6 +262,54 @@ PCUT_TEST(remove)
 
 	entry = wndlist_first(wndlist);
 	PCUT_ASSERT_INT_EQUALS(2, entry->wnd_id);
+
+	wndlist_destroy(wndlist);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** Test updating entry */
+PCUT_TEST(update)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_fixed_t *fixed = NULL;
+	wndlist_t *wndlist;
+	wndlist_entry_t *entry;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_fixed_create(&fixed);
+	ui_window_add(window, ui_fixed_ctl(fixed));
+
+	rc = wndlist_create(window, fixed, &wndlist);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = wndlist_append(wndlist, 1, "Foo", true, true);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	entry = wndlist_first(wndlist);
+	PCUT_ASSERT_INT_EQUALS(1, entry->wnd_id);
+	PCUT_ASSERT_NOT_NULL(entry->button);
+	PCUT_ASSERT_TRUE(ui_pbutton_get_light(entry->button));
+
+	rc = wndlist_update(wndlist, entry, "Bar", false);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(1, entry->wnd_id);
+	PCUT_ASSERT_NOT_NULL(entry->button);
+	PCUT_ASSERT_FALSE(ui_pbutton_get_light(entry->button));
 
 	wndlist_destroy(wndlist);
 
@@ -295,7 +344,7 @@ PCUT_TEST(set_entry_rect)
 	rc = wndlist_create(window, fixed, &wndlist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 123, "Foo", true);
+	rc = wndlist_append(wndlist, 123, "Foo", true, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	entry = wndlist_first(wndlist);
@@ -336,10 +385,10 @@ PCUT_TEST(entry_by_id)
 	rc = wndlist_create(window, fixed, &wndlist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 1, "Foo", true);
+	rc = wndlist_append(wndlist, 1, "Foo", true, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 2, "Bar", true);
+	rc = wndlist_append(wndlist, 2, "Bar", false, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	entry = wndlist_entry_by_id(wndlist, 1);
@@ -383,10 +432,10 @@ PCUT_TEST(first_next)
 	rc = wndlist_create(window, fixed, &wndlist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 1, "Foo", true);
+	rc = wndlist_append(wndlist, 1, "Foo", true, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 2, "Bar", true);
+	rc = wndlist_append(wndlist, 2, "Bar", false, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	entry = wndlist_first(wndlist);
@@ -433,10 +482,10 @@ PCUT_TEST(last)
 	rc = wndlist_create(window, fixed, &wndlist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 1, "Foo", true);
+	rc = wndlist_append(wndlist, 1, "Foo", true, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 2, "Bar", true);
+	rc = wndlist_append(wndlist, 2, "Bar", false, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	entry = wndlist_last(wndlist);
@@ -479,13 +528,13 @@ PCUT_TEST(count)
 	count = wndlist_count(wndlist);
 	PCUT_ASSERT_INT_EQUALS(0, count);
 
-	rc = wndlist_append(wndlist, 1, "Foo", true);
+	rc = wndlist_append(wndlist, 1, "Foo", true, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	count = wndlist_count(wndlist);
 	PCUT_ASSERT_INT_EQUALS(1, count);
 
-	rc = wndlist_append(wndlist, 2, "Bar", true);
+	rc = wndlist_append(wndlist, 2, "Bar", false, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	count = wndlist_count(wndlist);
@@ -523,10 +572,10 @@ PCUT_TEST(repaint)
 	rc = wndlist_create(window, fixed, &wndlist);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 1, "Foo", true);
+	rc = wndlist_append(wndlist, 1, "Foo", true, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = wndlist_append(wndlist, 2, "Bar", true);
+	rc = wndlist_append(wndlist, 2, "Bar", false, true);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndlist_repaint(wndlist);

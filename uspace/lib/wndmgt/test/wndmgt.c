@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -281,6 +281,7 @@ PCUT_TEST(get_window_info_success)
 	PCUT_ASSERT_NOT_NULL(resp.get_window_info_rinfo);
 	resp.get_window_info_rinfo->caption = str_dup("Hello");
 	resp.get_window_info_rinfo->flags = 42;
+	resp.get_window_info_rinfo->nfocus = 123;
 	PCUT_ASSERT_NOT_NULL(resp.get_window_info_rinfo->caption);
 	wnd_id = 1;
 
@@ -291,6 +292,7 @@ PCUT_TEST(get_window_info_success)
 
 	PCUT_ASSERT_STR_EQUALS("Hello", info->caption);
 	PCUT_ASSERT_INT_EQUALS(42, info->flags);
+	PCUT_ASSERT_INT_EQUALS(123, info->nfocus);
 
 	wndmgt_free_window_info(info);
 	wndmgt_close(wndmgt);

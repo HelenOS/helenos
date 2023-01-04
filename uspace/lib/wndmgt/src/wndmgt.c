@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -270,6 +270,7 @@ errno_t wndmgt_get_window_info(wndmgt_t *wndmgt, sysarg_t wnd_id,
 
 	info->caption = caption;
 	info->flags = ipc_get_arg1(&answer);
+	info->nfocus = ipc_get_arg2(&answer);
 	*rinfo = info;
 	return EOK;
 }

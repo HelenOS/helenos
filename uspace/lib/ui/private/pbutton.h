@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,8 @@ struct ui_pbutton {
 	char *caption;
 	/** Button is selected as default */
 	bool isdefault;
+	/** Button light is on */
+	bool light;
 	/** Button is currently held down */
 	bool held;
 	/** Pointer is currently inside */

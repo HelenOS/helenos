@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,8 @@ struct ui_resource {
 	gfx_color_t *btn_frame_color;
 	/** Button face color */
 	gfx_color_t *btn_face_color;
+	/** Lit button face color */
+	gfx_color_t *btn_face_lit_color;
 	/** Button text color */
 	gfx_color_t *btn_text_color;
 	/** Button highlight color */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -88,6 +88,8 @@ typedef struct {
 	char *caption;
 	/** Window flags */
 	unsigned flags;
+	/** Number of foci on this window */
+	unsigned nfocus;
 } wndmgt_window_info_t;
 
 #endif

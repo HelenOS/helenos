@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -677,9 +677,26 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
  */
 errno_t ds_window_post_focus_event(ds_window_t *wnd)
 {
+	errno_t rc;
+	ds_wmclient_t *wmclient;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_focus_event");
 
-	return ds_client_post_focus_event(wnd->client, wnd);
+	rc = ds_client_post_focus_event(wnd->client, wnd);
+	if (rc != EOK)
+		return rc;
+
+	/* Increase focus counter */
+	++wnd->nfocus;
+
+	/* Notify window managers about window information change */
+	wmclient = ds_display_first_wmclient(wnd->display);
+	while (wmclient != NULL) {
+		ds_wmclient_post_wnd_changed_event(wmclient, wnd->id);
+		wmclient = ds_display_next_wmclient(wmclient);
+	}
+
+	return EOK;
 }
 
 /** Post unfocus event to window.
@@ -689,9 +706,26 @@ errno_t ds_window_post_focus_event(ds_window_t *wnd)
  */
 errno_t ds_window_post_unfocus_event(ds_window_t *wnd)
 {
+	errno_t rc;
+	ds_wmclient_t *wmclient;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_unfocus_event");
 
-	return ds_client_post_unfocus_event(wnd->client, wnd);
+	rc = ds_client_post_unfocus_event(wnd->client, wnd);
+	if (rc != EOK)
+		return rc;
+
+	/* Decrease focus counter */
+	--wnd->nfocus;
+
+	/* Notify window managers about window information change */
+	wmclient = ds_display_first_wmclient(wnd->display);
+	while (wmclient != NULL) {
+		ds_wmclient_post_wnd_changed_event(wmclient, wnd->id);
+		wmclient = ds_display_next_wmclient(wmclient);
+	}
+
+	return EOK;
 }
 
 /** Start moving a window, detected by client.
