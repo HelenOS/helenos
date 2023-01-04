@@ -288,6 +288,7 @@ errno_t wndlist_remove(wndlist_t *wndlist, wndlist_entry_t *entry,
 
 	if (entry->visible)
 		ui_fixed_remove(wndlist->fixed, ui_pbutton_ctl(entry->button));
+
 	list_remove(&entry->lentries);
 
 	if (wndlist_update_pitch(wndlist)) {
@@ -490,6 +491,10 @@ errno_t wndlist_unpaint_entry(wndlist_entry_t *entry)
 		return rc;
 
 	rc = gfx_fill_rect(gc, &entry->rect);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_update(gc);
 	if (rc != EOK)
 		return rc;
 
