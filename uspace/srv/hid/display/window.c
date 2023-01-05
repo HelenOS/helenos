@@ -182,6 +182,8 @@ void ds_window_destroy(ds_window_t *wnd)
 
 	disp = wnd->display;
 
+	ds_window_unfocus(wnd);
+
 	ds_client_remove_window(wnd);
 	ds_display_remove_window(wnd);
 

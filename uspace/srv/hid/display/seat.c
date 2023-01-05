@@ -137,7 +137,7 @@ void ds_seat_set_popup(ds_seat_t *seat, ds_window_t *wnd)
 
 /** Evacuate seat references to window.
  *
- * If seat's focus is @a wnd, it will be set to a different window.
+ * If seat's focus is @a wnd, it will be set to NULL.
  * If seat's popup window is @a wnd, it will be set to NULL.
  *
  * @param seat Seat
@@ -145,17 +145,8 @@ void ds_seat_set_popup(ds_seat_t *seat, ds_window_t *wnd)
  */
 void ds_seat_evac_wnd_refs(ds_seat_t *seat, ds_window_t *wnd)
 {
-	ds_window_t *nwnd;
-
-	if (seat->focus == wnd) {
-		nwnd = ds_display_prev_window(wnd);
-		if (nwnd == NULL)
-			nwnd = ds_display_last_window(wnd->display);
-		if (nwnd == wnd)
-			nwnd = NULL;
-
-		ds_seat_set_focus(seat, nwnd);
-	}
+	if (seat->focus == wnd)
+		ds_seat_set_focus(seat, NULL);
 
 	if (seat->popup == wnd)
 		ds_seat_set_popup(seat, NULL);
