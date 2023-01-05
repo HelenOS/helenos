@@ -187,14 +187,10 @@ void ds_seat_switch_focus(ds_seat_t *seat)
 {
 	ds_window_t *nwnd;
 
-	if (seat->focus != NULL)
-		nwnd = ds_display_prev_window(seat->focus);
-	else
-		nwnd = NULL;
+	/* Find alternate window that is not a system window */
+	nwnd = ds_window_find_alt(seat->focus, ~wndf_system);
 
-	if (nwnd == NULL)
-		nwnd = ds_display_last_window(seat->display);
-
+	/* Only switch focus if there is another window */
 	if (nwnd != NULL)
 		ds_seat_set_focus(seat, nwnd);
 }
