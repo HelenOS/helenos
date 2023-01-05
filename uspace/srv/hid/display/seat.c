@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -141,7 +141,7 @@ void ds_seat_set_popup(ds_seat_t *seat, ds_window_t *wnd)
  * If seat's popup window is @a wnd, it will be set to NULL.
  *
  * @param seat Seat
- * @param wnd Window to evacuate focus from
+ * @param wnd Window to evacuate references from
  */
 void ds_seat_evac_wnd_refs(ds_seat_t *seat, ds_window_t *wnd)
 {
@@ -159,6 +159,32 @@ void ds_seat_evac_wnd_refs(ds_seat_t *seat, ds_window_t *wnd)
 
 	if (seat->popup == wnd)
 		ds_seat_set_popup(seat, NULL);
+}
+
+/** Unfocus window.
+ *
+ * If seat's focus is @a wnd, it will be set to a different window
+ * that is not minimized, preferably not a system window.
+ *
+ * @param seat Seat
+ * @param wnd Window to remove focus from
+ */
+void ds_seat_unfocus_wnd(ds_seat_t *seat, ds_window_t *wnd)
+{
+	ds_window_t *nwnd;
+
+	if (seat->focus != wnd)
+		return;
+
+	/* Find alternate window that is neither system nor minimized */
+	nwnd = ds_window_find_alt(wnd, ~(wndf_minimized | wndf_system));
+
+	if (nwnd == NULL) {
+		/* Find alternate window that is not minimized */
+		nwnd = ds_window_find_alt(wnd, ~wndf_minimized);
+	}
+
+	ds_seat_set_focus(seat, nwnd);
 }
 
 /** Switch focus to another window.

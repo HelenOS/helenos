@@ -66,12 +66,12 @@ static mem_gc_cb_t ds_window_mem_gc_cb = {
  *
  * @param client Client owning the window
  * @param params Window parameters
- * @param rgc Place to store pointer to new GC.
+ * @param rwnd Place to store pointer to new window.
  *
  * @return EOK on success or an error code
  */
 errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
-    ds_window_t **rgc)
+    ds_window_t **rwnd)
 {
 	ds_window_t *wnd = NULL;
 	ds_seat_t *seat;
@@ -154,7 +154,7 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 
 	(void) ds_display_paint(wnd->display, NULL);
 
-	*rgc = wnd;
+	*rwnd = wnd;
 	return EOK;
 error:
 	if (wnd != NULL) {
@@ -866,6 +866,8 @@ errno_t ds_window_minimize(ds_window_t *wnd)
 	if ((wnd->flags & wndf_minimized) != 0)
 		return EOK;
 
+	ds_window_unfocus(wnd);
+
 	wnd->flags |= wndf_minimized;
 	(void) ds_display_paint(wnd->display, NULL);
 	return EOK;
@@ -1041,6 +1043,63 @@ errno_t ds_window_set_caption(ds_window_t *wnd, const char *caption)
 	}
 
 	return EOK;
+}
+
+/** Find alternate window with the allowed flags.
+ *
+ * An alternate window is a *different* window that is preferably previous
+ * in the display order and only has the @a allowed flags.
+ *
+ * @param wnd Window
+ * @param allowed_flags Bitmask of flags that the window is allowed to have
+ *
+ * @return Alternate window matching the criteria or @c NULL if there is none
+ */
+ds_window_t *ds_window_find_alt(ds_window_t *wnd,
+    display_wnd_flags_t allowed_flags)
+{
+	ds_window_t *nwnd;
+
+	/* Try preceding windows in display order */
+	nwnd = ds_display_prev_window(wnd);
+	while (nwnd != NULL && (nwnd->flags & ~allowed_flags) != 0) {
+		nwnd = ds_display_prev_window(nwnd);
+	}
+
+	/* Do we already have a matching window? */
+	if (nwnd != NULL && (nwnd->flags & ~allowed_flags) == 0) {
+		return nwnd;
+	}
+
+	/* Try succeeding windows in display order */
+	nwnd = ds_display_last_window(wnd->display);
+	while (nwnd != NULL && nwnd != wnd &&
+	    (nwnd->flags & ~allowed_flags) != 0) {
+		nwnd = ds_display_prev_window(nwnd);
+	}
+
+	if (nwnd == wnd)
+		return NULL;
+
+	return nwnd;
+}
+
+/** Remove focus from window.
+ *
+ * Used to switch focus to another window when closing or minimizing window.
+ *
+ * @param wnd Window
+ */
+void ds_window_unfocus(ds_window_t *wnd)
+{
+	ds_seat_t *seat;
+
+	/* Make sure window is no longer focused in any seat */
+	seat = ds_display_first_seat(wnd->display);
+	while (seat != NULL) {
+		ds_seat_unfocus_wnd(seat, wnd);
+		seat = ds_display_next_seat(seat);
+	}
 }
 
 /** Window memory GC invalidate callback.
