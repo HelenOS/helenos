@@ -228,7 +228,7 @@ static void wndmgt_close_window_srv(wndmgt_srv_t *srv, ipc_call_t *icall)
 
 	wnd_id = ipc_get_arg1(icall);
 
-	if (srv->ops->activate_window == NULL) {
+	if (srv->ops->close_window == NULL) {
 		async_answer_0(icall, ENOTSUP);
 		return;
 	}
