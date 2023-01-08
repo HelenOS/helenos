@@ -101,6 +101,7 @@ libs = [
 
 	'ieee80211',
 	'ddev',
+	'dispcfg',
 	'display',
 	'wndmgt',
 

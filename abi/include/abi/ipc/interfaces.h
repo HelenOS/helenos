@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -185,6 +186,10 @@ typedef enum {
 	    FOURCC_COMPACT('p', 'c', 'i', ' ') | IFACE_EXCHANGE_SERIALIZE,
 	INTERFACE_DDEV =
 	    FOURCC_COMPACT('d', 'd', 'e', 'v') | IFACE_EXCHANGE_SERIALIZE,
+	INTERFACE_DISPCFG =
+	    FOURCC_COMPACT('d', 'c', 'f', 'g') | IFACE_EXCHANGE_SERIALIZE,
+	INTERFACE_DISPCFG_CB =
+	    FOURCC_COMPACT('d', 'c', 'f', 'g') | IFACE_EXCHANGE_SERIALIZE | IFACE_MOD_CALLBACK,
 	INTERFACE_DISPLAY =
 	    FOURCC_COMPACT('d', 's', 'p', 'l') | IFACE_EXCHANGE_SERIALIZE,
 	INTERFACE_DISPLAY_CB =

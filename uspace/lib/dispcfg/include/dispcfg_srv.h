@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,45 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libdispcfg
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
+/** @file
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#ifndef _LIBDISPCFG_DISPCFG_SRV_H_
+#define _LIBDISPCFG_DISPCFG_SRV_H_
 
-#include <abi/fourcc.h>
+#include <async.h>
+#include <errno.h>
+#include "types/dispcfg.h"
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+typedef struct dispcfg_ops dispcfg_ops_t;
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPCFG  "hid/display"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_WNDMGT   "hid/display"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
+/** Display configuration server structure (per client session) */
+typedef struct {
+	async_sess_t *client_sess;
+	dispcfg_ops_t *ops;
+	void *arg;
+} dispcfg_srv_t;
+
+struct dispcfg_ops {
+	errno_t (*get_seat_list)(void *, dispcfg_seat_list_t **);
+	errno_t (*get_seat_info)(void *, sysarg_t, dispcfg_seat_info_t **);
+	errno_t (*seat_create)(void *, const char *, sysarg_t *);
+	errno_t (*seat_delete)(void *, sysarg_t);
+	errno_t (*get_event)(void *, dispcfg_ev_t *);
+};
+
+extern void dispcfg_conn(ipc_call_t *, dispcfg_srv_t *);
+extern void dispcfg_srv_initialize(dispcfg_srv_t *);
+extern void dispcfg_srv_ev_pending(dispcfg_srv_t *);
 
 #endif
 

@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2006 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,45 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libdispcfg
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
+/** @file
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#ifndef _LIBDISPCFG_TYPES_DISPCFG_H_
+#define _LIBDISPCFG_TYPES_DISPCFG_H_
 
-#include <abi/fourcc.h>
+#include <ipc/services.h>
+#include <types/common.h>
 
+/** Use the default display configuration service (argument to dispcfg_open() */
+#define DISPCFG_DEFAULT SERVICE_NAME_DISPCFG
+
+struct dispcfg;
+
+/** Display configuration session */
+typedef struct dispcfg dispcfg_t;
+
+/** Display configuration callbacks */
+typedef struct {
+	/** Seat added */
+	void (*seat_added)(void *, sysarg_t);
+	/** Seat removed */
+	void (*seat_removed)(void *, sysarg_t);
+} dispcfg_cb_t;
+
+/** Display configuration event type */
 typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+	/** Seat added */
+	dcev_seat_added,
+	/** Seat removed */
+	dcev_seat_removed,
+} dispcfg_ev_type_t;
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPCFG  "hid/display"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_WNDMGT   "hid/display"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
+/** Display configuration event */
+typedef struct {
+	/** Event type */
+	dispcfg_ev_type_t etype;
+	/** Seat ID */
+	sysarg_t seat_id;
+} dispcfg_ev_t;
+
+/** Seat list */
+typedef struct {
+	/** Number of seats */
+	size_t nseats;
+	/** ID for each seat */
+	sysarg_t *seats;
+} dispcfg_seat_list_t;
+
+/** Seat information */
+typedef struct {
+	/** Seat name */
+	char *name;
+} dispcfg_seat_info_t;
 
 #endif
 
