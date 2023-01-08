@@ -73,6 +73,9 @@ typedef struct cpu {
 	 */
 	size_t missed_clock_ticks;
 
+	/** Can only be accessed when interrupts are disabled. */
+	uint64_t current_clock_tick;
+
 	/**
 	 * Processor cycle accounting.
 	 */
