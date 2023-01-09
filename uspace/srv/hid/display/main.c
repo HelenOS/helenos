@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 
 #include <async.h>
 #include <disp_srv.h>
+#include <dispcfg_srv.h>
 #include <errno.h>
 #include <gfx/context.h>
 #include <str_error.h>
@@ -47,6 +48,8 @@
 #include <stdio.h>
 #include <task.h>
 #include <wndmgt_srv.h>
+#include "cfgclient.h"
+#include "cfgops.h"
 #include "client.h"
 #include "display.h"
 #include "dsops.h"
@@ -61,8 +64,10 @@
 static void display_client_conn(ipc_call_t *, void *);
 static void display_client_ev_pending(void *);
 static void display_wmclient_ev_pending(void *);
+static void display_cfgclient_ev_pending(void *);
 static void display_gc_conn(ipc_call_t *, void *);
 static void display_wndmgt_conn(ipc_call_t *, void *);
+static void display_dispcfg_conn(ipc_call_t *, void *);
 
 #ifdef CONFIG_DISP_DOUBLE_BUF
 /*
@@ -85,6 +90,10 @@ static ds_wmclient_cb_t display_wmclient_cb = {
 	.ev_pending = display_wmclient_ev_pending
 };
 
+static ds_cfgclient_cb_t display_cfgclient_cb = {
+	.ev_pending = display_cfgclient_ev_pending
+};
+
 static void display_client_ev_pending(void *arg)
 {
 	display_srv_t *srv = (display_srv_t *) arg;
@@ -99,6 +108,13 @@ static void display_wmclient_ev_pending(void *arg)
 	wndmgt_srv_ev_pending(srv);
 }
 
+static void display_cfgclient_ev_pending(void *arg)
+{
+	dispcfg_srv_t *srv = (dispcfg_srv_t *) arg;
+
+	dispcfg_srv_ev_pending(srv);
+}
+
 /** Initialize display server */
 static errno_t display_srv_init(ds_output_t **routput)
 {
@@ -109,6 +125,7 @@ static errno_t display_srv_init(ds_output_t **routput)
 	port_id_t disp_port;
 	port_id_t gc_port;
 	port_id_t wm_port;
+	port_id_t dc_port;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_srv_init()");
@@ -117,7 +134,7 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK)
 		goto error;
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	if (rc != EOK)
 		goto error;
 
@@ -148,6 +165,11 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK)
 		goto error;
 
+	rc = async_create_port(INTERFACE_DISPCFG, display_dispcfg_conn, disp,
+	    &dc_port);
+	if (rc != EOK)
+		goto error;
+
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
@@ -169,6 +191,7 @@ error:
 	// XXX destroy disp_port
 	// XXX destroy gc_port
 	// XXX destroy wm_port
+	// XXX destroy dc_port
 #if 0
 	if (disp->input != NULL)
 		ds_input_close(disp);
@@ -280,6 +303,36 @@ static void display_wndmgt_conn(ipc_call_t *icall, void *arg)
 
 	ds_display_lock(disp);
 	ds_wmclient_destroy(wmclient);
+	ds_display_unlock(disp);
+}
+
+/** Handle configuration connection to display server */
+static void display_dispcfg_conn(ipc_call_t *icall, void *arg)
+{
+	ds_display_t *disp = (ds_display_t *) arg;
+	errno_t rc;
+	dispcfg_srv_t srv;
+	ds_cfgclient_t *cfgclient = NULL;
+
+	/* Create CFG client object */
+	ds_display_lock(disp);
+	rc = ds_cfgclient_create(disp, &display_cfgclient_cb, &srv, &cfgclient);
+	ds_display_unlock(disp);
+	if (rc != EOK) {
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	/* Set up protocol structure */
+	dispcfg_srv_initialize(&srv);
+	srv.ops = &dispcfg_srv_ops;
+	srv.arg = cfgclient;
+
+	/* Handle connection */
+	dispcfg_conn(icall, &srv);
+
+	ds_display_lock(disp);
+	ds_cfgclient_destroy(cfgclient);
 	ds_display_unlock(disp);
 }
 

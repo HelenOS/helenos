@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@
 #include <types/display/cursor.h>
 #include "cursor.h"
 #include "clonegc.h"
+#include "seat.h"
 #include "window.h"
 
 /** Display flags */
@@ -63,6 +64,8 @@ typedef struct ds_display {
 	list_t clients;
 	/** WM clients (of ds_wmclient_t) */
 	list_t wmclients;
+	/** CFG clients (of ds_cfgclient_t) */
+	list_t cfgclients;
 
 	/** Next ID to assign to a window.
 	 *
@@ -72,6 +75,8 @@ typedef struct ds_display {
 	 * space should be per client.
 	 */
 	ds_wnd_id_t next_wnd_id;
+	/** Next ID to assign to a seat */
+	ds_seat_id_t next_seat_id;
 	/** Input service */
 	input_t *input;
 

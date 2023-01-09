@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022 Jiri Svoboda
+# Copyright (c) 2023 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ipcgfx', 'memgfx', 'display', 'ddev', 'wndmgt' ]
+deps = [ 'ipcgfx', 'memgfx', 'display', 'ddev', 'dispcfg', 'wndmgt' ]
 
 src = files(
+	'cfgclient.c',
+	'cfgops.c',
 	'client.c',
 	'clonegc.c',
 	'cursor.c',
@@ -46,6 +48,7 @@ src = files(
 )
 
 test_src = files(
+	'cfgclient.c',
 	'client.c',
 	'clonegc.c',
 	'cursimg.c',
@@ -55,6 +58,7 @@ test_src = files(
 	'seat.c',
 	'window.c',
 	'wmclient.c',
+	'test/cfgclient.c',
 	'test/client.c',
 	'test/clonegc.c',
 	'test/cursor.c',

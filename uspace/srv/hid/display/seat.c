@@ -38,6 +38,7 @@
 #include <gfx/color.h>
 #include <gfx/render.h>
 #include <stdlib.h>
+#include <str.h>
 #include "client.h"
 #include "cursor.h"
 #include "display.h"
@@ -50,16 +51,32 @@ static errno_t ds_seat_repaint_pointer(ds_seat_t *, gfx_rect_t *);
 /** Create seat.
  *
  * @param display Parent display
+ * @param name Seat name
  * @param rseat Place to store pointer to new seat.
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ds_seat_create(ds_display_t *display, ds_seat_t **rseat)
+errno_t ds_seat_create(ds_display_t *display, const char *name,
+    ds_seat_t **rseat)
 {
 	ds_seat_t *seat;
+	ds_seat_t *s0;
+
+	s0 = ds_display_first_seat(display);
+	while (s0 != NULL) {
+		if (str_cmp(s0->name, name) == 0)
+			return EEXIST;
+		s0 = ds_display_next_seat(s0);
+	}
 
 	seat = calloc(1, sizeof(ds_seat_t));
 	if (seat == NULL)
 		return ENOMEM;
+
+	seat->name = str_dup(name);
+	if (seat->name == NULL) {
+		free(seat);
+		return ENOMEM;
+	}
 
 	ds_display_add_seat(display, seat);
 	seat->pntpos.x = 0;
@@ -79,6 +96,7 @@ errno_t ds_seat_create(ds_display_t *display, ds_seat_t **rseat)
 void ds_seat_destroy(ds_seat_t *seat)
 {
 	ds_display_remove_seat(seat);
+	free(seat->name);
 	free(seat);
 }
 

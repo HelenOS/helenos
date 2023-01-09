@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,12 +39,18 @@
 #include <adt/list.h>
 #include <gfx/coord.h>
 
+typedef sysarg_t ds_seat_id_t;
+
 /** Display server seat */
 typedef struct ds_seat {
 	/** Containing display */
 	struct ds_display *display;
 	/** Link to display->seats */
 	link_t lseats;
+	/** Seat ID */
+	ds_seat_id_t id;
+	/** Seat name */
+	char *name;
 	/** Window this seat is focused on */
 	struct ds_window *focus;
 	/** This seat's popup window */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
 #include <pcut/pcut.h>
 #include <str.h>
 
+#include "../cfgclient.h"
 #include "../client.h"
 #include "../display.h"
 #include "../seat.h"
@@ -53,6 +54,12 @@ static ds_wmclient_cb_t test_ds_wmclient_cb = {
 	.ev_pending = test_ds_wmev_pending
 };
 
+static void test_ds_cfgev_pending(void *);
+
+static ds_cfgclient_cb_t test_ds_cfgclient_cb = {
+	.ev_pending = test_ds_cfgev_pending
+};
+
 static void test_ds_ev_pending(void *arg)
 {
 	bool *called_cb = (bool *) arg;
@@ -60,6 +67,12 @@ static void test_ds_ev_pending(void *arg)
 }
 
 static void test_ds_wmev_pending(void *arg)
+{
+	bool *called_cb = (bool *) arg;
+	*called_cb = true;
+}
+
+static void test_ds_cfgev_pending(void *arg)
 {
 	bool *called_cb = (bool *) arg;
 	*called_cb = true;
@@ -125,6 +138,23 @@ PCUT_TEST(display_wmclient)
 	ds_display_destroy(disp);
 }
 
+/** Basic CFG client operation. */
+PCUT_TEST(display_cfgclient)
+{
+	ds_display_t *disp;
+	ds_cfgclient_t *cfgclient;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_cfgclient_create(disp, &test_ds_cfgclient_cb, NULL, &cfgclient);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_cfgclient_destroy(cfgclient);
+	ds_display_destroy(disp);
+}
+
 /** Test ds_display_find_window(). */
 PCUT_TEST(display_find_window)
 {
@@ -144,7 +174,7 @@ PCUT_TEST(display_find_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -215,7 +245,7 @@ PCUT_TEST(display_enlist_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -286,7 +316,7 @@ PCUT_TEST(display_window_to_top)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -330,7 +360,7 @@ PCUT_TEST(display_window_by_pos)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -371,13 +401,13 @@ PCUT_TEST(display_seat)
 {
 	ds_display_t *disp;
 	ds_seat_t *seat;
-	ds_seat_t *s0, *s1;
+	ds_seat_t *s0, *s1, *s2;
 	errno_t rc;
 
 	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	s0 = ds_display_first_seat(disp);
@@ -385,6 +415,9 @@ PCUT_TEST(display_seat)
 
 	s1 = ds_display_next_seat(s0);
 	PCUT_ASSERT_NULL(s1);
+
+	s2 = ds_display_find_seat(disp, seat->id);
+	PCUT_ASSERT_EQUALS(s2, seat);
 
 	ds_seat_destroy(seat);
 	ds_display_destroy(disp);
@@ -412,7 +445,7 @@ PCUT_TEST(display_post_kbd_event)
 	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -460,7 +493,7 @@ PCUT_TEST(display_post_kbd_event_alt_tab)
 	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -528,7 +561,7 @@ PCUT_TEST(display_post_ptd_event_wnd_switch)
 	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -613,7 +646,7 @@ PCUT_TEST(display_update_max_rect)
 	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, NULL, NULL, &client);

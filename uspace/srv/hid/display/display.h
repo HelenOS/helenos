@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@
 #include <gfx/context.h>
 #include <gfx/coord.h>
 #include <io/kbd_event.h>
+#include "types/display/cfgclient.h"
 #include "types/display/client.h"
 #include "types/display/cursor.h"
 #include "types/display/ddev.h"
@@ -62,6 +63,8 @@ extern ds_client_t *ds_display_first_client(ds_display_t *);
 extern ds_client_t *ds_display_next_client(ds_client_t *);
 extern void ds_display_add_wmclient(ds_display_t *, ds_wmclient_t *);
 extern void ds_display_remove_wmclient(ds_wmclient_t *);
+extern void ds_display_add_cfgclient(ds_display_t *, ds_cfgclient_t *);
+extern void ds_display_remove_cfgclient(ds_cfgclient_t *);
 extern ds_wmclient_t *ds_display_first_wmclient(ds_display_t *);
 extern ds_wmclient_t *ds_display_next_wmclient(ds_wmclient_t *);
 extern ds_window_t *ds_display_find_window(ds_display_t *, ds_wnd_id_t);
@@ -80,6 +83,7 @@ extern void ds_display_add_seat(ds_display_t *, ds_seat_t *);
 extern void ds_display_remove_seat(ds_seat_t *);
 extern ds_seat_t *ds_display_first_seat(ds_display_t *);
 extern ds_seat_t *ds_display_next_seat(ds_seat_t *);
+extern ds_seat_t *ds_display_find_seat(ds_display_t *, ds_seat_id_t);
 extern ds_seat_t *ds_display_seat_by_idev(ds_display_t *, ds_idev_id_t);
 extern errno_t ds_display_add_ddev(ds_display_t *, ds_ddev_t *);
 extern void ds_display_remove_ddev(ds_ddev_t *);

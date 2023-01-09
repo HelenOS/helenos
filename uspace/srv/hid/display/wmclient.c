@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 
 #include <adt/list.h>
 #include <errno.h>
+#include <io/log.h>
 #include <stdlib.h>
 #include "display.h"
 #include "window.h"
@@ -121,7 +122,7 @@ void ds_wmclient_purge_events(ds_wmclient_t *wmclient)
 		cur = next;
 	}
 }
-#include <io/log.h>
+
 /** Post window added event to the WM client's message queue.
  *
  * @param wmclient WM client

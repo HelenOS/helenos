@@ -66,7 +66,7 @@ PCUT_TEST(create_destroy)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -99,7 +99,7 @@ PCUT_TEST(bring_to_top)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -146,7 +146,7 @@ PCUT_TEST(window_resize)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -193,7 +193,7 @@ PCUT_TEST(get_pos)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -234,7 +234,7 @@ PCUT_TEST(get_max_rect)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -276,7 +276,7 @@ PCUT_TEST(window_minimize)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -313,7 +313,7 @@ PCUT_TEST(window_unminimize)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -351,7 +351,7 @@ PCUT_TEST(window_maximize)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -391,7 +391,7 @@ PCUT_TEST(window_unmaximize)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -435,7 +435,7 @@ PCUT_TEST(window_get_ctx)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -470,7 +470,7 @@ PCUT_TEST(is_visible)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -515,7 +515,7 @@ PCUT_TEST(window_post_kbd_event_alt_f4)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -570,7 +570,7 @@ PCUT_TEST(window_post_pos_event)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -642,7 +642,7 @@ PCUT_TEST(window_post_focus_event)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -681,7 +681,7 @@ PCUT_TEST(window_post_unfocus_event)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -721,7 +721,7 @@ PCUT_TEST(window_move_req)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -768,7 +768,7 @@ PCUT_TEST(window_resize_req)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -815,7 +815,7 @@ PCUT_TEST(window_calc_resize)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -1085,7 +1085,7 @@ PCUT_TEST(window_set_cursor)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -1139,7 +1139,7 @@ PCUT_TEST(window_set_caption)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -1184,7 +1184,7 @@ PCUT_TEST(window_find_alt)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -1240,7 +1240,7 @@ PCUT_TEST(window_unfocus)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);

@@ -26,17 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Display server CFG client
+ */
 
-PCUT_INIT;
+#ifndef CFGCLIENT_H
+#define CFGCLIENT_H
 
-PCUT_IMPORT(cfgclient);
-PCUT_IMPORT(client);
-PCUT_IMPORT(clonegc);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(display);
-PCUT_IMPORT(seat);
-PCUT_IMPORT(window);
-PCUT_IMPORT(wmclient);
+#include <errno.h>
+#include <dispcfg.h>
+#include "types/display/display.h"
+#include "types/display/cfgclient.h"
 
-PCUT_MAIN();
+extern errno_t ds_cfgclient_create(ds_display_t *, ds_cfgclient_cb_t *, void *,
+    ds_cfgclient_t **);
+extern void ds_cfgclient_destroy(ds_cfgclient_t *);
+extern errno_t ds_cfgclient_get_event(ds_cfgclient_t *, dispcfg_ev_t *);
+extern errno_t ds_cfgclient_post_seat_added_event(ds_cfgclient_t *, sysarg_t);
+extern errno_t ds_cfgclient_post_seat_removed_event(ds_cfgclient_t *, sysarg_t);
+extern void ds_cfgclient_purge_events(ds_cfgclient_t *);
+
+#endif
+
+/** @}
+ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -97,6 +97,7 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_flags_t flags,
 	fibril_mutex_initialize(&disp->lock);
 	list_initialize(&disp->clients);
 	list_initialize(&disp->wmclients);
+	list_initialize(&disp->cfgclients);
 	disp->next_wnd_id = 1;
 	list_initialize(&disp->ddevs);
 	list_initialize(&disp->seats);
@@ -119,6 +120,7 @@ void ds_display_destroy(ds_display_t *disp)
 
 	assert(list_empty(&disp->clients));
 	assert(list_empty(&disp->wmclients));
+	assert(list_empty(&disp->cfgclients));
 	assert(list_empty(&disp->seats));
 	assert(list_empty(&disp->ddevs));
 	assert(list_empty(&disp->seats));
@@ -240,6 +242,30 @@ void ds_display_remove_wmclient(ds_wmclient_t *wmclient)
 {
 	list_remove(&wmclient->lwmclients);
 	wmclient->display = NULL;
+}
+
+/** Add CFG client to display.
+ *
+ * @param disp Display
+ * @param cfgclient CFG client
+ */
+void ds_display_add_cfgclient(ds_display_t *disp, ds_cfgclient_t *cfgclient)
+{
+	assert(cfgclient->display == NULL);
+	assert(!link_used(&cfgclient->lcfgclients));
+
+	cfgclient->display = disp;
+	list_append(&cfgclient->lcfgclients, &disp->cfgclients);
+}
+
+/** Remove CFG client from display.
+ *
+ * @param cfgclient CFG client
+ */
+void ds_display_remove_cfgclient(ds_cfgclient_t *cfgclient)
+{
+	list_remove(&cfgclient->lcfgclients);
+	cfgclient->display = NULL;
 }
 
 /** Get first WM client in display.
@@ -524,6 +550,7 @@ void ds_display_add_seat(ds_display_t *disp, ds_seat_t *seat)
 	assert(!link_used(&seat->lseats));
 
 	seat->display = disp;
+	seat->id = disp->next_seat_id++;
 	list_append(&seat->lseats, &disp->seats);
 }
 
@@ -565,6 +592,26 @@ ds_seat_t *ds_display_next_seat(ds_seat_t *seat)
 		return NULL;
 
 	return list_get_instance(link, ds_seat_t, lseats);
+}
+
+/** Find seat by ID.
+ *
+ * @param display Display
+ * @param id Seat ID
+ */
+ds_seat_t *ds_display_find_seat(ds_display_t *display, ds_seat_id_t id)
+{
+	ds_seat_t *seat;
+
+	seat = ds_display_first_seat(display);
+	while (seat != NULL) {
+		if (seat->id == id)
+			return seat;
+
+		seat = ds_display_next_seat(seat);
+	}
+
+	return NULL;
 }
 
 /** Get seat which owns the specified input device.

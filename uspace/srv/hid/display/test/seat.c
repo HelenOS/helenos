@@ -69,7 +69,7 @@ PCUT_TEST(set_focus)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -109,7 +109,7 @@ PCUT_TEST(evac_focus_one_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -154,7 +154,7 @@ PCUT_TEST(evac_popup)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -195,7 +195,7 @@ PCUT_TEST(unfocus_wnd_three_windows)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -244,7 +244,7 @@ PCUT_TEST(unfocus_wnd_two_windows_one_sys)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -294,7 +294,7 @@ PCUT_TEST(unfocus_wnd_one_window_one_sys)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -340,7 +340,7 @@ PCUT_TEST(unfocus_wnd_one_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -381,7 +381,7 @@ PCUT_TEST(switch_focus_two_windows)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -430,7 +430,7 @@ PCUT_TEST(switch_focus_one_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -474,7 +474,7 @@ PCUT_TEST(post_kbd_event_alt_tab)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -527,7 +527,7 @@ PCUT_TEST(post_kbd_event_regular)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -591,7 +591,7 @@ PCUT_TEST(post_ptd_event_wnd_switch)
 	rc = ds_display_create(NULL, df_none, &disp);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
@@ -687,7 +687,7 @@ PCUT_TEST(set_wm_cursor)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ds_seat_set_wm_cursor(seat, disp->cursor[dcurs_size_ud]);

@@ -26,17 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Display configuration ops implementation
+ */
 
-PCUT_INIT;
+#ifndef CFGOPS_H
+#define CFGOPS_H
 
-PCUT_IMPORT(cfgclient);
-PCUT_IMPORT(client);
-PCUT_IMPORT(clonegc);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(display);
-PCUT_IMPORT(seat);
-PCUT_IMPORT(window);
-PCUT_IMPORT(wmclient);
+#include <dispcfg_srv.h>
 
-PCUT_MAIN();
+extern dispcfg_ops_t dispcfg_srv_ops;
+
+#endif
+
+/** @}
+ */

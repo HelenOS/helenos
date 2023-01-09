@@ -26,17 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Display server CFG client type
+ */
 
-PCUT_INIT;
+#ifndef TYPES_DISPLAY_CFGCLIENT_H
+#define TYPES_DISPLAY_CFGCLIENT_H
 
-PCUT_IMPORT(cfgclient);
-PCUT_IMPORT(client);
-PCUT_IMPORT(clonegc);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(display);
-PCUT_IMPORT(seat);
-PCUT_IMPORT(window);
-PCUT_IMPORT(wmclient);
+#include <adt/list.h>
+#include <dispcfg.h>
 
-PCUT_MAIN();
+/** Display server CFG client callbacks */
+typedef struct {
+	void (*ev_pending)(void *);
+} ds_cfgclient_cb_t;
+
+/** Display server WM client */
+typedef struct ds_cfgclient {
+	/** Parent display */
+	struct ds_display *display;
+	/** Callbacks */
+	ds_cfgclient_cb_t *cb;
+	/** Callback argument */
+	void *cb_arg;
+	/** Link to @c display->cfgclients */
+	link_t lcfgclients;
+	/** Event queue (of ds_window_ev_t) */
+	list_t events;
+} ds_cfgclient_t;
+
+/** WM client event queue entry */
+typedef struct {
+	/** Link to event queue */
+	link_t levents;
+	/** WM client to which the event is delivered */
+	ds_cfgclient_t *cfgclient;
+	/** Event */
+	dispcfg_ev_t event;
+} ds_cfgclient_ev_t;
+
+#endif
+
+/** @}
+ */

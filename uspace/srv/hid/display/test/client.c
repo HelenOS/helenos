@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -92,7 +92,7 @@ PCUT_TEST(client_find_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -143,7 +143,7 @@ PCUT_TEST(client_first_next_window)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -191,7 +191,7 @@ PCUT_TEST(client_get_post_close_event)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -249,7 +249,7 @@ PCUT_TEST(client_get_post_focus_event)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -308,7 +308,7 @@ PCUT_TEST(client_get_post_kbd_event)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -376,7 +376,7 @@ PCUT_TEST(client_get_post_pos_event)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -444,7 +444,7 @@ PCUT_TEST(client_get_post_resize_event)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -513,7 +513,7 @@ PCUT_TEST(client_get_post_unfocus_event)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -571,7 +571,7 @@ PCUT_TEST(client_purge_window_events)
 	rc = ds_client_create(disp, &test_ds_client_cb, &called_cb, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
@@ -617,7 +617,7 @@ PCUT_TEST(client_leftover_window)
 	rc = ds_client_create(disp, NULL, NULL, &client);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = ds_seat_create(disp, &seat);
+	rc = ds_seat_create(disp, "Alice", &seat);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_wnd_params_init(&params);
