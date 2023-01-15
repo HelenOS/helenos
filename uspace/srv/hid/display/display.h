@@ -47,6 +47,7 @@
 #include "types/display/ddev.h"
 #include "types/display/display.h"
 #include "types/display/idev.h"
+#include "types/display/idevcfg.h"
 #include "types/display/ptd_event.h"
 #include "types/display/seat.h"
 #include "types/display/wmclient.h"
@@ -89,6 +90,10 @@ extern errno_t ds_display_add_ddev(ds_display_t *, ds_ddev_t *);
 extern void ds_display_remove_ddev(ds_ddev_t *);
 extern ds_ddev_t *ds_display_first_ddev(ds_display_t *);
 extern ds_ddev_t *ds_display_next_ddev(ds_ddev_t *);
+extern void ds_display_add_idevcfg(ds_display_t *, ds_idevcfg_t *);
+extern void ds_display_remove_idevcfg(ds_idevcfg_t *);
+extern ds_idevcfg_t *ds_display_first_idevcfg(ds_display_t *);
+extern ds_idevcfg_t *ds_display_next_idevcfg(ds_idevcfg_t *);
 extern void ds_display_add_cursor(ds_display_t *, ds_cursor_t *);
 extern void ds_display_remove_cursor(ds_cursor_t *);
 extern void ds_display_update_max_rect(ds_display_t *);

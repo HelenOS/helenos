@@ -258,6 +258,40 @@ static void dispcfg_seat_delete_srv(dispcfg_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void dispcfg_dev_assign_srv(dispcfg_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t svc_id;
+	sysarg_t seat_id;
+	errno_t rc;
+
+	svc_id = ipc_get_arg1(icall);
+	seat_id = ipc_get_arg2(icall);
+
+	if (srv->ops->dev_assign == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->dev_assign(srv->arg, svc_id, seat_id);
+	async_answer_0(icall, rc);
+}
+
+static void dispcfg_dev_unassign_srv(dispcfg_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t svc_id;
+	errno_t rc;
+
+	svc_id = ipc_get_arg1(icall);
+
+	if (srv->ops->dev_unassign == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->dev_unassign(srv->arg, svc_id);
+	async_answer_0(icall, rc);
+}
+
 static void dispcfg_get_event_srv(dispcfg_srv_t *srv, ipc_call_t *icall)
 {
 	dispcfg_ev_t event;
@@ -331,6 +365,12 @@ void dispcfg_conn(ipc_call_t *icall, dispcfg_srv_t *srv)
 			break;
 		case DISPCFG_SEAT_DELETE:
 			dispcfg_seat_delete_srv(srv, &call);
+			break;
+		case DISPCFG_DEV_ASSIGN:
+			dispcfg_dev_assign_srv(srv, &call);
+			break;
+		case DISPCFG_DEV_UNASSIGN:
+			dispcfg_dev_unassign_srv(srv, &call);
 			break;
 		case DISPCFG_GET_EVENT:
 			dispcfg_get_event_srv(srv, &call);

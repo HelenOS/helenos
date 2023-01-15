@@ -26,32 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libwndmgt
+/** @addtogroup display
  * @{
  */
-/** @file
+/**
+ * @file Display server input device configuration
  */
 
-#ifndef _LIBDISPCFG_DISPCFG_H_
-#define _LIBDISPCFG_DISPCFG_H_
-
+#include <adt/list.h>
 #include <errno.h>
-#include <types/common.h>
-#include "types/dispcfg.h"
+#include <io/log.h>
+#include <loc.h>
+#include <stdlib.h>
+#include "display.h"
+#include "idevcfg.h"
 
-extern errno_t dispcfg_open(const char *, dispcfg_cb_t *, void *, dispcfg_t **);
-extern void dispcfg_close(dispcfg_t *);
-extern errno_t dispcfg_get_seat_list(dispcfg_t *, dispcfg_seat_list_t **);
-extern void dispcfg_free_seat_list(dispcfg_seat_list_t *);
-extern errno_t dispcfg_get_seat_info(dispcfg_t *, sysarg_t,
-    dispcfg_seat_info_t **);
-extern void dispcfg_free_seat_info(dispcfg_seat_info_t *);
-extern errno_t dispcfg_seat_create(dispcfg_t *, const char *, sysarg_t *);
-extern errno_t dispcfg_seat_delete(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_dev_assign(dispcfg_t *, sysarg_t, sysarg_t);
-extern errno_t dispcfg_dev_unassign(dispcfg_t *, sysarg_t);
+/** Create input device configuration entry.
+ *
+ * @param display Parent display
+ * @param svc_id Device service ID
+ * @param seat Seat to which device is assigned
+ * @param ridevcfg Place to store pointer to new input device configuration
+ *                 entry
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ds_idevcfg_create(ds_display_t *display, service_id_t svc_id,
+    ds_seat_t *seat, ds_idevcfg_t **ridevcfg)
+{
+	ds_idevcfg_t *idevcfg;
 
-#endif
+	idevcfg = calloc(1, sizeof(ds_idevcfg_t));
+	if (idevcfg == NULL)
+		return ENOMEM;
+
+	idevcfg->svc_id = svc_id;
+	idevcfg->seat = seat;
+
+	ds_display_add_idevcfg(display, idevcfg);
+	*ridevcfg = idevcfg;
+	return EOK;
+}
+
+/** Destroy input device configuration entry.
+ *
+ * @param ddev Display device
+ */
+void ds_idevcfg_destroy(ds_idevcfg_t *idevcfg)
+{
+	ds_display_remove_idevcfg(idevcfg);
+	free(idevcfg);
+}
 
 /** @}
  */

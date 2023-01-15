@@ -53,6 +53,8 @@ struct dispcfg_ops {
 	errno_t (*get_seat_info)(void *, sysarg_t, dispcfg_seat_info_t **);
 	errno_t (*seat_create)(void *, const char *, sysarg_t *);
 	errno_t (*seat_delete)(void *, sysarg_t);
+	errno_t (*dev_assign)(void *, sysarg_t, sysarg_t);
+	errno_t (*dev_unassign)(void *, sysarg_t);
 	errno_t (*get_event)(void *, dispcfg_ev_t *);
 };
 

@@ -34,6 +34,7 @@
 #include "../cfgclient.h"
 #include "../client.h"
 #include "../display.h"
+#include "../idevcfg.h"
 #include "../seat.h"
 #include "../window.h"
 #include "../wmclient.h"
@@ -393,6 +394,29 @@ PCUT_TEST(display_window_by_pos)
 	ds_window_destroy(w1);
 	ds_seat_destroy(seat);
 	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** Basic idevcfg operation */
+PCUT_TEST(display_idevcfg)
+{
+	ds_display_t *disp;
+	ds_seat_t *seat;
+	ds_idevcfg_t *idevcfg;
+	errno_t rc;
+
+	rc = ds_display_create(NULL, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, "Alice", &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_idevcfg_create(disp, 42, seat, &idevcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ds_idevcfg_destroy(idevcfg);
+
+	ds_seat_destroy(seat);
 	ds_display_destroy(disp);
 }
 

@@ -339,6 +339,46 @@ errno_t dispcfg_seat_delete(dispcfg_t *dispcfg, sysarg_t seat_id)
 	return rc;
 }
 
+/** Assign device to seat.
+ *
+ * @param dispcfg Display configuration
+ * @param svc_id Device service ID
+ * @param seat_id Seat ID
+ * @return EOK on success or an error code
+ */
+errno_t dispcfg_dev_assign(dispcfg_t *dispcfg, sysarg_t svc_id,
+    sysarg_t seat_id)
+{
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(dispcfg->sess);
+	rc = async_req_2_0(exch, DISPCFG_DEV_ASSIGN, svc_id, seat_id);
+
+	async_exchange_end(exch);
+	return rc;
+}
+
+/** Unassign device from any specific seat.
+ *
+ * The device will fall back to the default seat.
+ *
+ * @param dispcfg Display configuration
+ * @param svc_id Device service ID
+ * @return EOK on success or an error code
+ */
+errno_t dispcfg_dev_unassign(dispcfg_t *dispcfg, sysarg_t svc_id)
+{
+	async_exch_t *exch;
+	errno_t rc;
+
+	exch = async_exchange_begin(dispcfg->sess);
+	rc = async_req_1_0(exch, DISPCFG_DEV_UNASSIGN, svc_id);
+
+	async_exchange_end(exch);
+	return rc;
+}
+
 /** Get display configuration event.
  *
  * @param dispcfg Display configuration

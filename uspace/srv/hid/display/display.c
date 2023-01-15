@@ -100,6 +100,7 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_flags_t flags,
 	list_initialize(&disp->cfgclients);
 	disp->next_wnd_id = 1;
 	list_initialize(&disp->ddevs);
+	list_initialize(&disp->idevcfgs);
 	list_initialize(&disp->seats);
 	list_initialize(&disp->windows);
 	disp->flags = flags;
@@ -123,6 +124,7 @@ void ds_display_destroy(ds_display_t *disp)
 	assert(list_empty(&disp->cfgclients));
 	assert(list_empty(&disp->seats));
 	assert(list_empty(&disp->ddevs));
+	assert(list_empty(&disp->idevcfgs));
 	assert(list_empty(&disp->seats));
 	assert(list_empty(&disp->windows));
 
@@ -622,9 +624,21 @@ ds_seat_t *ds_display_find_seat(ds_display_t *display, ds_seat_id_t id)
  */
 ds_seat_t *ds_display_seat_by_idev(ds_display_t *disp, ds_idev_id_t idev_id)
 {
-	// TODO Multi-seat
-	(void) idev_id;
+	ds_idevcfg_t *idevcfg;
 
+	/*
+	 * Find input device configuration entry that maps this input device
+	 * to a seat.
+	 */
+	idevcfg = ds_display_first_idevcfg(disp);
+	while (idevcfg != NULL) {
+		if (idevcfg->svc_id == idev_id)
+			return idevcfg->seat;
+
+		idevcfg = ds_display_next_idevcfg(idevcfg);
+	}
+
+	/* If none was found, return the default seat */
 	return ds_display_first_seat(disp);
 }
 
@@ -771,6 +785,60 @@ ds_ddev_t *ds_display_next_ddev(ds_ddev_t *ddev)
 		return NULL;
 
 	return list_get_instance(link, ds_ddev_t, lddevs);
+}
+
+/** Add input device configuration entry to display.
+ *
+ * @param disp Display
+ * @param idevcfg Input device configuration
+ */
+void ds_display_add_idevcfg(ds_display_t *disp, ds_idevcfg_t *idevcfg)
+{
+	assert(idevcfg->display == NULL);
+	assert(!link_used(&idevcfg->lidevcfgs));
+
+	idevcfg->display = disp;
+	list_append(&idevcfg->lidevcfgs, &disp->idevcfgs);
+}
+
+/** Remove input device configuration entry from display.
+ *
+ * @param idevcfg Input device configuration entry
+ */
+void ds_display_remove_idevcfg(ds_idevcfg_t *idevcfg)
+{
+	list_remove(&idevcfg->lidevcfgs);
+	idevcfg->display = NULL;
+}
+
+/** Get first input device configuration entry in display.
+ *
+ * @param disp Display
+ * @return First input device configuration entry or @c NULL if there is none
+ */
+ds_idevcfg_t *ds_display_first_idevcfg(ds_display_t *disp)
+{
+	link_t *link = list_first(&disp->idevcfgs);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_idevcfg_t, lidevcfgs);
+}
+
+/** Get next input device configuration entry in display.
+ *
+ * @param idevcfg Current input device configuration entry
+ * @return Next input device configuration entry or @c NULL if there is none
+ */
+ds_idevcfg_t *ds_display_next_idevcfg(ds_idevcfg_t *idevcfg)
+{
+	link_t *link = list_next(&idevcfg->lidevcfgs, &idevcfg->display->idevcfgs);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_idevcfg_t, lidevcfgs);
 }
 
 /** Add cursor to display.

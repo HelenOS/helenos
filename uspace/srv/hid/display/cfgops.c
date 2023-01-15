@@ -39,6 +39,7 @@
 #include <str.h>
 #include <dispcfg_srv.h>
 #include "display.h"
+#include "idevcfg.h"
 #include "seat.h"
 #include "cfgclient.h"
 
@@ -46,6 +47,8 @@ static errno_t dispc_get_seat_list(void *, dispcfg_seat_list_t **);
 static errno_t dispc_get_seat_info(void *, sysarg_t, dispcfg_seat_info_t **);
 static errno_t dispc_seat_create(void *, const char *, sysarg_t *);
 static errno_t dispc_seat_delete(void *, sysarg_t);
+static errno_t dispc_dev_assign(void *, sysarg_t, sysarg_t);
+static errno_t dispc_dev_unassign(void *, sysarg_t);
 static errno_t dispc_get_event(void *, dispcfg_ev_t *);
 
 dispcfg_ops_t dispcfg_srv_ops = {
@@ -53,6 +56,8 @@ dispcfg_ops_t dispcfg_srv_ops = {
 	.get_seat_info = dispc_get_seat_info,
 	.seat_create = dispc_seat_create,
 	.seat_delete = dispc_seat_delete,
+	.dev_assign = dispc_dev_assign,
+	.dev_unassign = dispc_dev_unassign,
 	.get_event = dispc_get_event,
 };
 
@@ -202,6 +207,75 @@ static errno_t dispc_seat_delete(void *arg, sysarg_t seat_id)
 	ds_seat_destroy(seat);
 
 	(void) ds_display_paint(cfgclient->display, NULL);
+	ds_display_unlock(cfgclient->display);
+	return EOK;
+}
+
+/** Assign device to seat.
+ *
+ * @param arg Argument (CFG client)
+ * @param svc_id Device service ID
+ * @param seat_id Seat ID
+ * @return EOK on success or an error code
+ */
+static errno_t dispc_dev_assign(void *arg, sysarg_t svc_id, sysarg_t seat_id)
+{
+	ds_cfgclient_t *cfgclient = (ds_cfgclient_t *)arg;
+	ds_seat_t *seat;
+	ds_idevcfg_t *idevcfg;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispcfg_dev_assign()");
+
+	ds_display_lock(cfgclient->display);
+	seat = ds_display_find_seat(cfgclient->display, seat_id);
+	if (seat == NULL) {
+		ds_display_unlock(cfgclient->display);
+		return ENOENT;
+	}
+
+	rc = ds_idevcfg_create(cfgclient->display, svc_id, seat, &idevcfg);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		ds_display_unlock(cfgclient->display);
+		return ENOMEM;
+	}
+
+	(void)idevcfg;
+
+	ds_display_unlock(cfgclient->display);
+	return EOK;
+}
+
+/** Unassign device from any seat.
+ *
+ * @param arg Argument (CFG client)
+ * @param svc_id Device service ID
+ * @return EOK on success or an error code
+ */
+static errno_t dispc_dev_unassign(void *arg, sysarg_t svc_id)
+{
+	ds_cfgclient_t *cfgclient = (ds_cfgclient_t *)arg;
+	ds_idevcfg_t *idevcfg;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispcfg_dev_unassign()");
+
+	ds_display_lock(cfgclient->display);
+
+	idevcfg = ds_display_first_idevcfg(cfgclient->display);
+	while (idevcfg != NULL) {
+		if (idevcfg->svc_id == svc_id)
+			break;
+
+		idevcfg = ds_display_next_idevcfg(idevcfg);
+	}
+
+	if (idevcfg == NULL) {
+		ds_display_unlock(cfgclient->display);
+		return ENOENT;
+	}
+
+	ds_idevcfg_destroy(idevcfg);
 	ds_display_unlock(cfgclient->display);
 	return EOK;
 }

@@ -49,6 +49,8 @@ static errno_t test_get_seat_list(void *, dispcfg_seat_list_t **);
 static errno_t test_get_seat_info(void *, sysarg_t, dispcfg_seat_info_t **);
 static errno_t test_seat_create(void *, const char *, sysarg_t *);
 static errno_t test_seat_delete(void *, sysarg_t);
+static errno_t test_dev_assign(void *, sysarg_t, sysarg_t);
+static errno_t test_dev_unassign(void *, sysarg_t);
 static errno_t test_get_event(void *, dispcfg_ev_t *);
 
 static void test_seat_added(void *, sysarg_t);
@@ -59,6 +61,8 @@ static dispcfg_ops_t test_dispcfg_srv_ops = {
 	.get_seat_info = test_get_seat_info,
 	.seat_create = test_seat_create,
 	.seat_delete = test_seat_delete,
+	.dev_assign = test_dev_assign,
+	.dev_unassign = test_dev_unassign,
 	.get_event = test_get_event
 };
 
@@ -90,6 +94,13 @@ typedef struct {
 
 	bool seat_delete_called;
 	sysarg_t seat_delete_seat_id;
+
+	bool dev_assign_called;
+	sysarg_t dev_assign_svc_id;
+	sysarg_t dev_assign_seat_id;
+
+	bool dev_unassign_called;
+	sysarg_t dev_unassign_svc_id;
 
 	bool get_event_called;
 
@@ -442,6 +453,156 @@ PCUT_TEST(seat_delete_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** dispcfg_dev_assign() with server returning error response works */
+PCUT_TEST(dev_assign_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	dispcfg_t *dispcfg = NULL;
+	sysarg_t svc_id;
+	sysarg_t seat_id;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_dispcfg_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_dispcfg_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dispcfg);
+
+	svc_id = 12;
+	seat_id = 13;
+	resp.rc = ENOMEM;
+	resp.dev_assign_called = false;
+
+	rc = dispcfg_dev_assign(dispcfg, svc_id, seat_id);
+	PCUT_ASSERT_TRUE(resp.dev_assign_called);
+	PCUT_ASSERT_INT_EQUALS(svc_id, resp.dev_assign_svc_id);
+	PCUT_ASSERT_INT_EQUALS(seat_id, resp.dev_assign_seat_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	dispcfg_close(dispcfg);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** dispcfg_dev_assign() with server returning success response works */
+PCUT_TEST(dev_assign_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	dispcfg_t *dispcfg = NULL;
+	sysarg_t svc_id;
+	sysarg_t seat_id;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_dispcfg_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_dispcfg_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dispcfg);
+
+	svc_id = 12;
+	seat_id = 13;
+	resp.rc = EOK;
+	resp.dev_assign_called = false;
+
+	rc = dispcfg_dev_assign(dispcfg, svc_id, seat_id);
+	PCUT_ASSERT_TRUE(resp.dev_assign_called);
+	PCUT_ASSERT_INT_EQUALS(svc_id, resp.dev_assign_svc_id);
+	PCUT_ASSERT_INT_EQUALS(seat_id, resp.dev_assign_seat_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	dispcfg_close(dispcfg);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** dispcfg_dev_unassign() with server returning error response works */
+PCUT_TEST(dev_unassign_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	dispcfg_t *dispcfg = NULL;
+	sysarg_t svc_id;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_dispcfg_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_dispcfg_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dispcfg);
+
+	svc_id = 12;
+	resp.rc = ENOMEM;
+	resp.dev_unassign_called = false;
+
+	rc = dispcfg_dev_unassign(dispcfg, svc_id);
+	PCUT_ASSERT_TRUE(resp.dev_unassign_called);
+	PCUT_ASSERT_INT_EQUALS(svc_id, resp.dev_unassign_svc_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	dispcfg_close(dispcfg);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** dispcfg_dev_unassign() with server returning success response works */
+PCUT_TEST(dev_unassign_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	dispcfg_t *dispcfg = NULL;
+	sysarg_t svc_id;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_dispcfg_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_dispcfg_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dispcfg);
+
+	svc_id = 12;
+	resp.rc = EOK;
+	resp.dev_unassign_called = false;
+
+	rc = dispcfg_dev_unassign(dispcfg, svc_id);
+	PCUT_ASSERT_TRUE(resp.dev_unassign_called);
+	PCUT_ASSERT_INT_EQUALS(svc_id, resp.dev_unassign_svc_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	dispcfg_close(dispcfg);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Window added event can be delivered from server to client callback function */
 PCUT_TEST(seat_added_deliver)
 {
@@ -624,6 +785,25 @@ static errno_t test_seat_delete(void *arg, sysarg_t seat_id)
 
 	resp->seat_delete_called = true;
 	resp->seat_delete_seat_id = seat_id;
+	return resp->rc;
+}
+
+static errno_t test_dev_assign(void *arg, sysarg_t svc_id, sysarg_t seat_id)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->dev_assign_called = true;
+	resp->dev_assign_svc_id = svc_id;
+	resp->dev_assign_seat_id = seat_id;
+	return resp->rc;
+}
+
+static errno_t test_dev_unassign(void *arg, sysarg_t svc_id)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->dev_unassign_called = true;
+	resp->dev_unassign_svc_id = svc_id;
 	return resp->rc;
 }
 

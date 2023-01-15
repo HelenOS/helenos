@@ -53,6 +53,8 @@ static void print_syntax(void)
 	printf("  %s list-seat\n", NAME);
 	printf("  %s create-seat <name>\n", NAME);
 	printf("  %s delete-seat <name>\n", NAME);
+	printf("  %s assign-dev <device> <seat>\n", NAME);
+	printf("  %s unassign-dev <device>\n", NAME);
 }
 
 /** Find seat by name.
@@ -272,6 +274,124 @@ out:
 	return rc;
 }
 
+/** Assign device subcommand.
+ *
+ * @param dcfg_svc Display configuration service name
+ * @param argc Number of arguments
+ * @param argv Arguments
+ * @return EOK on success or an erro code
+ */
+static errno_t dev_assign(const char *dcfg_svc, int argc, char *argv[])
+{
+	dispcfg_t *dispcfg;
+	char *dev_name;
+	service_id_t svc_id;
+	char *seat_name;
+	sysarg_t seat_id;
+	errno_t rc;
+
+	if (argc < 2) {
+		printf(NAME ": Missing arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	if (argc > 2) {
+		printf(NAME ": Too many arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	dev_name = argv[0];
+	seat_name = argv[1];
+
+	rc = loc_service_get_id(dev_name, &svc_id, 0);
+	if (rc != EOK) {
+		printf(NAME ": Device service '%s' not found.\n",
+		    dev_name);
+		return ENOENT;
+	}
+
+	rc = dispcfg_open(dcfg_svc, NULL, NULL, &dispcfg);
+	if (rc != EOK) {
+		printf(NAME ": Failed connecting to display configuration "
+		    "service: %s.\n", str_error(rc));
+		return rc;
+	}
+
+	rc = seat_find_by_name(dispcfg, seat_name, &seat_id);
+	if (rc != EOK) {
+		printf(NAME ": Seat '%s' not found.\n", seat_name);
+		dispcfg_close(dispcfg);
+		return ENOENT;
+	}
+
+	rc = dispcfg_dev_assign(dispcfg, svc_id, seat_id);
+	if (rc != EOK) {
+		printf(NAME ": Failed assigning device '%s' to seat '%s': "
+		    "%s\n", dev_name, seat_name, str_error(rc));
+		dispcfg_close(dispcfg);
+		return EIO;
+	}
+
+	dispcfg_close(dispcfg);
+	return EOK;
+}
+
+/** Unassign device subcommand.
+ *
+ * @param dcfg_svc Display configuration service name
+ * @param argc Number of arguments
+ * @param argv Arguments
+ * @return EOK on success or an erro code
+ */
+static errno_t dev_unassign(const char *dcfg_svc, int argc, char *argv[])
+{
+	dispcfg_t *dispcfg;
+	char *dev_name;
+	service_id_t svc_id;
+	errno_t rc;
+
+	if (argc < 1) {
+		printf(NAME ": Missing arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	if (argc > 1) {
+		printf(NAME ": Too many arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	dev_name = argv[0];
+
+	rc = loc_service_get_id(dev_name, &svc_id, 0);
+	if (rc != EOK) {
+		printf(NAME ": Device service '%s' not found.\n",
+		    dev_name);
+		return ENOENT;
+	}
+
+	rc = dispcfg_open(dcfg_svc, NULL, NULL, &dispcfg);
+	if (rc != EOK) {
+		printf(NAME ": Failed connecting to display configuration "
+		    "service: %s.\n", str_error(rc));
+		return rc;
+	}
+
+	rc = dispcfg_dev_unassign(dispcfg, svc_id);
+	if (rc != EOK) {
+		printf(NAME ": Failed unassigning device '%s': %s\n",
+		    dev_name, str_error(rc));
+		dispcfg_close(dispcfg);
+		return EIO;
+	}
+
+	dispcfg_close(dispcfg);
+	return EOK;
+}
+
 int main(int argc, char *argv[])
 {
 	const char *dispcfg_svc = DISPCFG_DEFAULT;
@@ -292,6 +412,14 @@ int main(int argc, char *argv[])
 			return 1;
 	} else if (str_cmp(argv[1], "delete-seat") == 0) {
 		rc = delete_seat(dispcfg_svc, argc - 2, argv + 2);
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "assign-dev") == 0) {
+		rc = dev_assign(dispcfg_svc, argc - 2, argv + 2);
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "unassign-dev") == 0) {
+		rc = dev_unassign(dispcfg_svc, argc - 2, argv + 2);
 		if (rc != EOK)
 			return 1;
 	} else {

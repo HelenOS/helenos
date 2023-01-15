@@ -89,6 +89,9 @@ typedef struct ds_display {
 	/** Display devices (of ds_ddev_t) */
 	list_t ddevs;
 
+	/** Input device configuration entries (of ds_idevcfg_t) */
+	list_t idevcfgs;
+
 	/** Background color */
 	gfx_color_t *bg_color;
 
