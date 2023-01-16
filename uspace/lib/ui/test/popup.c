@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ static ui_popup_cb_t dummy_popup_cb = {
 
 static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
-static void test_ctl_unfocus(void *);
+static void test_ctl_unfocus(void *, unsigned);
 
 static ui_control_ops_t test_ctl_ops = {
 	.paint = test_ctl_paint,
@@ -90,6 +90,7 @@ typedef struct {
 	bool pos;
 	pos_event_t pos_event;
 	bool unfocus;
+	unsigned unfocus_nfocus;
 } test_ctl_resp_t;
 
 /** Create and destroy popup window */
@@ -340,11 +341,12 @@ static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)
 	return resp->claim;
 }
 
-static void test_ctl_unfocus(void *arg)
+static void test_ctl_unfocus(void *arg, unsigned nfocus)
 {
 	test_ctl_resp_t *resp = (test_ctl_resp_t *) arg;
 
 	resp->unfocus = true;
+	resp->unfocus_nfocus = nfocus;
 }
 
 PCUT_EXPORT(popup);

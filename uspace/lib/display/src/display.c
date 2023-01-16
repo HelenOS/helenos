@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -715,7 +715,8 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 			break;
 		case wev_focus:
 			if (window->cb != NULL && window->cb->focus_event != NULL) {
-				window->cb->focus_event(window->cb_arg);
+				window->cb->focus_event(window->cb_arg,
+				    event.ev.focus.nfocus);
 			}
 			break;
 		case wev_kbd:
@@ -738,7 +739,8 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 			break;
 		case wev_unfocus:
 			if (window->cb != NULL && window->cb->unfocus_event != NULL) {
-				window->cb->unfocus_event(window->cb_arg);
+				window->cb->unfocus_event(window->cb_arg,
+				    event.ev.unfocus.nfocus);
 			}
 			break;
 		}

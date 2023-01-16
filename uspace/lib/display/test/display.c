@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,10 +50,10 @@ static const char *test_display_svc = "test/display";
 static void test_display_conn(ipc_call_t *, void *);
 
 static void test_close_event(void *);
-static void test_focus_event(void *);
+static void test_focus_event(void *, unsigned);
 static void test_kbd_event(void *, kbd_event_t *);
 static void test_pos_event(void *, pos_event_t *);
-static void test_unfocus_event(void *);
+static void test_unfocus_event(void *, unsigned);
 
 static errno_t test_window_create(void *, display_wnd_params_t *, sysarg_t *);
 static errno_t test_window_destroy(void *, sysarg_t);
@@ -165,6 +165,7 @@ typedef struct {
 
 	bool set_color_called;
 	bool close_event_called;
+
 	bool focus_event_called;
 	bool kbd_event_called;
 	bool pos_event_called;
@@ -1676,6 +1677,7 @@ PCUT_TEST(focus_event_deliver)
 
 	resp.event_cnt = 1;
 	resp.event.etype = wev_focus;
+	resp.event.ev.focus.nfocus = 42;
 	resp.wnd_id = wnd->id;
 	resp.focus_event_called = false;
 	fibril_mutex_initialize(&resp.event_lock);
@@ -1692,6 +1694,8 @@ PCUT_TEST(focus_event_deliver)
 	/* Verify that the event was delivered correctly */
 	PCUT_ASSERT_INT_EQUALS(resp.event.etype,
 	    resp.revent.etype);
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.focus.nfocus,
+	    resp.revent.ev.focus.nfocus);
 
 	rc = display_window_destroy(wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -1895,6 +1899,7 @@ PCUT_TEST(unfocus_event_deliver)
 
 	resp.event_cnt = 1;
 	resp.event.etype = wev_unfocus;
+	resp.event.ev.unfocus.nfocus = 42;
 	resp.wnd_id = wnd->id;
 	resp.unfocus_event_called = false;
 	fibril_mutex_initialize(&resp.event_lock);
@@ -1911,6 +1916,8 @@ PCUT_TEST(unfocus_event_deliver)
 	/* Verify that the event was delivered correctly */
 	PCUT_ASSERT_INT_EQUALS(resp.event.etype,
 	    resp.revent.etype);
+	PCUT_ASSERT_INT_EQUALS(resp.event.ev.focus.nfocus,
+	    resp.revent.ev.focus.nfocus);
 
 	rc = display_window_destroy(wnd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -2056,11 +2063,12 @@ static void test_close_event(void *arg)
 	fibril_mutex_unlock(&resp->event_lock);
 }
 
-static void test_focus_event(void *arg)
+static void test_focus_event(void *arg, unsigned nfocus)
 {
 	test_response_t *resp = (test_response_t *) arg;
 
 	resp->revent.etype = wev_focus;
+	resp->revent.ev.focus.nfocus = nfocus;
 
 	fibril_mutex_lock(&resp->event_lock);
 	resp->focus_event_called = true;
@@ -2094,11 +2102,12 @@ static void test_pos_event(void *arg, pos_event_t *event)
 	fibril_mutex_unlock(&resp->event_lock);
 }
 
-static void test_unfocus_event(void *arg)
+static void test_unfocus_event(void *arg, unsigned nfocus)
 {
 	test_response_t *resp = (test_response_t *) arg;
 
 	resp->revent.etype = wev_unfocus;
+	resp->revent.ev.unfocus.nfocus = nfocus;
 
 	fibril_mutex_lock(&resp->event_lock);
 	resp->unfocus_event_called = true;

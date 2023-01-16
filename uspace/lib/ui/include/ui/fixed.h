@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ extern void ui_fixed_remove(ui_fixed_t *, ui_control_t *);
 extern errno_t ui_fixed_paint(ui_fixed_t *);
 extern ui_evclaim_t ui_fixed_kbd_event(ui_fixed_t *, kbd_event_t *);
 extern ui_evclaim_t ui_fixed_pos_event(ui_fixed_t *, pos_event_t *);
-extern void ui_fixed_unfocus(ui_fixed_t *);
+extern void ui_fixed_unfocus(ui_fixed_t *, unsigned);
 
 #endif
 

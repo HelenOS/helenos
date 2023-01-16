@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -96,11 +96,11 @@ typedef struct ui_window_cb {
 	void (*maximize)(ui_window_t *, void *);
 	void (*unmaximize)(ui_window_t *, void *);
 	void (*close)(ui_window_t *, void *);
-	void (*focus)(ui_window_t *, void *);
+	void (*focus)(ui_window_t *, void *, unsigned);
 	void (*kbd)(ui_window_t *, void *, kbd_event_t *);
 	errno_t (*paint)(ui_window_t *, void *);
 	void (*pos)(ui_window_t *, void *, pos_event_t *);
-	void (*unfocus)(ui_window_t *, void *);
+	void (*unfocus)(ui_window_t *, void *, unsigned);
 } ui_window_cb_t;
 
 #endif

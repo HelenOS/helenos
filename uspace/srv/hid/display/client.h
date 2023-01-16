@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,14 +54,16 @@ extern errno_t ds_client_get_event(ds_client_t *, ds_window_t **,
     display_wnd_ev_t *);
 extern void ds_client_purge_window_events(ds_client_t *, ds_window_t *);
 extern errno_t ds_client_post_close_event(ds_client_t *, ds_window_t *);
-extern errno_t ds_client_post_focus_event(ds_client_t *, ds_window_t *);
+extern errno_t ds_client_post_focus_event(ds_client_t *, ds_window_t *,
+    display_wnd_focus_ev_t *);
 extern errno_t ds_client_post_kbd_event(ds_client_t *, ds_window_t *,
     kbd_event_t *);
 extern errno_t ds_client_post_pos_event(ds_client_t *, ds_window_t *,
     pos_event_t *);
 extern errno_t ds_client_post_resize_event(ds_client_t *, ds_window_t *,
     gfx_rect_t *);
-extern errno_t ds_client_post_unfocus_event(ds_client_t *, ds_window_t *);
+extern errno_t ds_client_post_unfocus_event(ds_client_t *, ds_window_t *,
+    display_wnd_unfocus_ev_t *);
 
 #endif
 

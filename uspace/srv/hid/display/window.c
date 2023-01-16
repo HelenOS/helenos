@@ -679,17 +679,19 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
  */
 errno_t ds_window_post_focus_event(ds_window_t *wnd)
 {
+	display_wnd_focus_ev_t efocus;
 	errno_t rc;
 	ds_wmclient_t *wmclient;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_focus_event");
 
-	rc = ds_client_post_focus_event(wnd->client, wnd);
-	if (rc != EOK)
-		return rc;
-
 	/* Increase focus counter */
 	++wnd->nfocus;
+	efocus.nfocus = wnd->nfocus;
+
+	rc = ds_client_post_focus_event(wnd->client, wnd, &efocus);
+	if (rc != EOK)
+		return rc;
 
 	/* Notify window managers about window information change */
 	wmclient = ds_display_first_wmclient(wnd->display);
@@ -708,17 +710,19 @@ errno_t ds_window_post_focus_event(ds_window_t *wnd)
  */
 errno_t ds_window_post_unfocus_event(ds_window_t *wnd)
 {
+	display_wnd_unfocus_ev_t eunfocus;
 	errno_t rc;
 	ds_wmclient_t *wmclient;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_post_unfocus_event");
 
-	rc = ds_client_post_unfocus_event(wnd->client, wnd);
-	if (rc != EOK)
-		return rc;
-
 	/* Decrease focus counter */
 	--wnd->nfocus;
+	eunfocus.nfocus = wnd->nfocus;
+
+	rc = ds_client_post_unfocus_event(wnd->client, wnd, &eunfocus);
+	if (rc != EOK)
+		return rc;
 
 	/* Notify window managers about window information change */
 	wmclient = ds_display_first_wmclient(wnd->display);

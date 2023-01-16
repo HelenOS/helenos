@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,11 +129,12 @@ ui_evclaim_t ui_control_pos_event(ui_control_t *control, pos_event_t *event)
 /** Inform UI control that window has been unfocused.
  *
  * @param control Control
+ * @param nfocus Number of remaining foci
  */
-void ui_control_unfocus(ui_control_t *control)
+void ui_control_unfocus(ui_control_t *control, unsigned nfocus)
 {
 	if (control->ops->unfocus != NULL)
-		control->ops->unfocus(control->ext);
+		control->ops->unfocus(control->ext, nfocus);
 }
 
 /** @}

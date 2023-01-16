@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -117,10 +117,10 @@ static con_ops_t con_ops = {
 };
 
 static void terminal_close_event(ui_window_t *, void *);
-static void terminal_focus_event(ui_window_t *, void *);
+static void terminal_focus_event(ui_window_t *, void *, unsigned);
 static void terminal_kbd_event(ui_window_t *, void *, kbd_event_t *);
 static void terminal_pos_event(ui_window_t *, void *, pos_event_t *);
-static void terminal_unfocus_event(ui_window_t *, void *);
+static void terminal_unfocus_event(ui_window_t *, void *, unsigned);
 
 static ui_window_cb_t terminal_window_cb = {
 	.close = terminal_close_event,
@@ -832,10 +832,12 @@ static void terminal_close_event(ui_window_t *window, void *arg)
 }
 
 /** Handle window focus event. */
-static void terminal_focus_event(ui_window_t *window, void *arg)
+static void terminal_focus_event(ui_window_t *window, void *arg,
+    unsigned nfocus)
 {
 	terminal_t *term = (terminal_t *) arg;
 
+	(void)nfocus;
 	term->is_focused = true;
 	term_update(term);
 	gfx_update(term->gc);
@@ -877,13 +879,16 @@ static void terminal_pos_event(ui_window_t *window, void *arg, pos_event_t *even
 }
 
 /** Handle window unfocus event. */
-static void terminal_unfocus_event(ui_window_t *window, void *arg)
+static void terminal_unfocus_event(ui_window_t *window, void *arg,
+    unsigned nfocus)
 {
 	terminal_t *term = (terminal_t *) arg;
 
-	term->is_focused = false;
-	term_update(term);
-	gfx_update(term->gc);
+	if (nfocus == 0) {
+		term->is_focused = false;
+		term_update(term);
+		gfx_update(term->gc);
+	}
 }
 
 static void term_connection(ipc_call_t *icall, void *arg)

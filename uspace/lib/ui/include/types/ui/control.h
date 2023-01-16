@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ typedef struct ui_control_ops {
 	/** Position event */
 	ui_evclaim_t (*pos_event)(void *, pos_event_t *);
 	/** Unfocus */
-	void (*unfocus)(void *);
+	void (*unfocus)(void *, unsigned);
 } ui_control_ops_t;
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ static void test_ctl_destroy(void *);
 static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_kbd_event(void *, kbd_event_t *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
-static void test_ctl_unfocus(void *);
+static void test_ctl_unfocus(void *, unsigned);
 
 static ui_control_ops_t test_ctl_ops = {
 	.destroy = test_ctl_destroy,
@@ -78,6 +78,8 @@ typedef struct {
 
 	/** @c true iff unfocus was called */
 	bool unfocus;
+	/** Number of remaining foci that was sent */
+	unsigned unfocus_nfocus;
 } test_resp_t;
 
 /** Allocate and deallocate control */
@@ -222,8 +224,9 @@ PCUT_TEST(unfocus)
 
 	resp.unfocus = false;
 
-	ui_control_unfocus(control);
+	ui_control_unfocus(control, 42);
 	PCUT_ASSERT_TRUE(resp.unfocus);
+	PCUT_ASSERT_INT_EQUALS(42, resp.unfocus_nfocus);
 
 	ui_control_delete(control);
 }
@@ -263,11 +266,12 @@ static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)
 	return resp->claim;
 }
 
-static void test_ctl_unfocus(void *arg)
+static void test_ctl_unfocus(void *arg, unsigned nfocus)
 {
 	test_resp_t *resp = (test_resp_t *) arg;
 
 	resp->unfocus = true;
+	resp->unfocus_nfocus = nfocus;
 }
 
 PCUT_EXPORT(control);

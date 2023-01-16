@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,11 +58,11 @@
 #include "../private/window.h"
 
 static void dwnd_close_event(void *);
-static void dwnd_focus_event(void *);
+static void dwnd_focus_event(void *, unsigned);
 static void dwnd_kbd_event(void *, kbd_event_t *);
 static void dwnd_pos_event(void *, pos_event_t *);
 static void dwnd_resize_event(void *, gfx_rect_t *);
-static void dwnd_unfocus_event(void *);
+static void dwnd_unfocus_event(void *, unsigned);
 
 static display_wnd_cb_t dwnd_cb = {
 	.close_event = dwnd_close_event,
@@ -832,19 +832,20 @@ static void dwnd_close_event(void *arg)
 }
 
 /** Handle window focus event. */
-static void dwnd_focus_event(void *arg)
+static void dwnd_focus_event(void *arg, unsigned nfocus)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 	ui_t *ui = window->ui;
 
 	ui_lock(ui);
+	(void)nfocus;
 
 	if (window->wdecor != NULL) {
 		ui_wdecor_set_active(window->wdecor, true);
 		ui_wdecor_paint(window->wdecor);
 	}
 
-	ui_window_send_focus(window);
+	ui_window_send_focus(window, nfocus);
 	ui_unlock(ui);
 }
 
@@ -902,19 +903,19 @@ static void dwnd_resize_event(void *arg, gfx_rect_t *rect)
 }
 
 /** Handle window unfocus event. */
-static void dwnd_unfocus_event(void *arg)
+static void dwnd_unfocus_event(void *arg, unsigned nfocus)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 	ui_t *ui = window->ui;
 
 	ui_lock(ui);
 
-	if (window->wdecor != NULL) {
+	if (window->wdecor != NULL && nfocus == 0) {
 		ui_wdecor_set_active(window->wdecor, false);
 		ui_wdecor_paint(window->wdecor);
 	}
 
-	ui_window_send_unfocus(window);
+	ui_window_send_unfocus(window, nfocus);
 	ui_unlock(ui);
 }
 
@@ -1103,11 +1104,12 @@ void ui_window_send_close(ui_window_t *window)
 /** Send window focus event.
  *
  * @param window Window
+ * @param nfocus New number of foci
  */
-void ui_window_send_focus(ui_window_t *window)
+void ui_window_send_focus(ui_window_t *window, unsigned nfocus)
 {
 	if (window->cb != NULL && window->cb->focus != NULL)
-		window->cb->focus(window, window->arg);
+		window->cb->focus(window, window->arg, nfocus);
 }
 
 /** Send window keyboard event.
@@ -1149,13 +1151,14 @@ void ui_window_send_pos(ui_window_t *window, pos_event_t *pos)
 /** Send window unfocus event.
  *
  * @param window Window
+ * @param nfocus Number of remaining foci
  */
-void ui_window_send_unfocus(ui_window_t *window)
+void ui_window_send_unfocus(ui_window_t *window, unsigned nfocus)
 {
 	if (window->cb != NULL && window->cb->unfocus != NULL)
-		window->cb->unfocus(window, window->arg);
+		window->cb->unfocus(window, window->arg, nfocus);
 	else
-		return ui_window_def_unfocus(window);
+		return ui_window_def_unfocus(window, nfocus);
 }
 
 /** Default window minimize routine.
@@ -1291,12 +1294,13 @@ void ui_window_def_pos(ui_window_t *window, pos_event_t *pos)
 /** Default window unfocus routine.
  *
  * @param window Window
+ * @param nfocus Number of remaining foci
  * @return EOK on success or an error code
  */
-void ui_window_def_unfocus(ui_window_t *window)
+void ui_window_def_unfocus(ui_window_t *window, unsigned nfocus)
 {
 	if (window->control != NULL)
-		ui_control_unfocus(window->control);
+		ui_control_unfocus(window->control, nfocus);
 }
 
 /** Window invalidate callback

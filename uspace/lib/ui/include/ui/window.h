@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@ extern errno_t ui_window_def_unmaximize(ui_window_t *);
 extern ui_evclaim_t ui_window_def_kbd(ui_window_t *, kbd_event_t *);
 extern errno_t ui_window_def_paint(ui_window_t *);
 extern void ui_window_def_pos(ui_window_t *, pos_event_t *);
-extern void ui_window_def_unfocus(ui_window_t *);
+extern void ui_window_def_unfocus(ui_window_t *, unsigned);
 
 #endif
 

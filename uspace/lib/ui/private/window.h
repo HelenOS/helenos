@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -115,11 +115,11 @@ extern void ui_window_send_minimize(ui_window_t *);
 extern void ui_window_send_maximize(ui_window_t *);
 extern void ui_window_send_unmaximize(ui_window_t *);
 extern void ui_window_send_close(ui_window_t *);
-extern void ui_window_send_focus(ui_window_t *);
+extern void ui_window_send_focus(ui_window_t *, unsigned);
 extern void ui_window_send_kbd(ui_window_t *, kbd_event_t *);
 extern errno_t ui_window_send_paint(ui_window_t *);
 extern void ui_window_send_pos(ui_window_t *, pos_event_t *);
-extern void ui_window_send_unfocus(ui_window_t *);
+extern void ui_window_send_unfocus(ui_window_t *, unsigned);
 extern errno_t ui_window_size_change(ui_window_t *, gfx_rect_t *,
     ui_wnd_sc_op_t);
 

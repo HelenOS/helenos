@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,22 +55,38 @@ typedef enum {
 	wev_unfocus
 } display_wnd_ev_type_t;
 
+/** Display window focus event */
+typedef struct {
+	/** New number of foci */
+	unsigned nfocus;
+} display_wnd_focus_ev_t;
+
 /** Display window resize event */
 typedef struct {
 	gfx_rect_t rect;
 } display_wnd_resize_ev_t;
+
+/** Display window unfocus event */
+typedef struct {
+	/** Number of remaining foci */
+	unsigned nfocus;
+} display_wnd_unfocus_ev_t;
 
 /** Display window event */
 typedef struct {
 	/** Event type */
 	display_wnd_ev_type_t etype;
 	union {
+		/** Focus event data */
+		display_wnd_focus_ev_t focus;
 		/** Keyboard event data */
 		kbd_event_t kbd;
 		/** Position event data */
 		pos_event_t pos;
 		/** Resize event data */
 		display_wnd_resize_ev_t resize;
+		/** Unfocus event data */
+		display_wnd_unfocus_ev_t unfocus;
 	} ev;
 } display_wnd_ev_t;
 

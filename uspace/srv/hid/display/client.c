@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -256,10 +256,12 @@ errno_t ds_client_post_close_event(ds_client_t *client, ds_window_t *ewindow)
  *
  * @param client Client
  * @param ewindow Window that the message is targetted to
+ * @param event Focus event data
  *
  * @return EOK on success or an error code
  */
-errno_t ds_client_post_focus_event(ds_client_t *client, ds_window_t *ewindow)
+errno_t ds_client_post_focus_event(ds_client_t *client, ds_window_t *ewindow,
+    display_wnd_focus_ev_t *event)
 {
 	ds_window_ev_t *wevent;
 
@@ -269,6 +271,7 @@ errno_t ds_client_post_focus_event(ds_client_t *client, ds_window_t *ewindow)
 
 	wevent->window = ewindow;
 	wevent->event.etype = wev_focus;
+	wevent->event.ev.focus = *event;
 	list_append(&wevent->levents, &client->events);
 
 	/* Notify the client */
@@ -372,10 +375,12 @@ errno_t ds_client_post_resize_event(ds_client_t *client, ds_window_t *ewindow,
  *
  * @param client Client
  * @param ewindow Window that the message is targetted to
+ * @param event Unfocus event data
  *
  * @return EOK on success or an error code
  */
-errno_t ds_client_post_unfocus_event(ds_client_t *client, ds_window_t *ewindow)
+errno_t ds_client_post_unfocus_event(ds_client_t *client, ds_window_t *ewindow,
+    display_wnd_unfocus_ev_t *event)
 {
 	ds_window_ev_t *wevent;
 
@@ -385,6 +390,7 @@ errno_t ds_client_post_unfocus_event(ds_client_t *client, ds_window_t *ewindow)
 
 	wevent->window = ewindow;
 	wevent->event.etype = wev_unfocus;
+	wevent->event.ev.unfocus = *event;
 	list_append(&wevent->levents, &client->events);
 
 	/* Notify the client */

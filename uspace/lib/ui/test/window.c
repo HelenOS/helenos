@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,11 +48,11 @@ static void test_window_minimize(ui_window_t *, void *);
 static void test_window_maximize(ui_window_t *, void *);
 static void test_window_unmaximize(ui_window_t *, void *);
 static void test_window_close(ui_window_t *, void *);
-static void test_window_focus(ui_window_t *, void *);
+static void test_window_focus(ui_window_t *, void *, unsigned);
 static void test_window_kbd(ui_window_t *, void *, kbd_event_t *);
 static errno_t test_window_paint(ui_window_t *, void *);
 static void test_window_pos(ui_window_t *, void *, pos_event_t *);
-static void test_window_unfocus(ui_window_t *, void *);
+static void test_window_unfocus(ui_window_t *, void *, unsigned);
 
 static ui_window_cb_t test_window_cb = {
 	.minimize = test_window_minimize,
@@ -71,7 +71,7 @@ static ui_window_cb_t dummy_window_cb = {
 
 static errno_t test_ctl_paint(void *);
 static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
-static void test_ctl_unfocus(void *);
+static void test_ctl_unfocus(void *, unsigned);
 
 static ui_control_ops_t test_ctl_ops = {
 	.paint = test_ctl_paint,
@@ -86,12 +86,14 @@ typedef struct {
 	bool unmaximize;
 	bool close;
 	bool focus;
+	unsigned focus_nfocus;
 	bool kbd;
 	kbd_event_t kbd_event;
 	bool paint;
 	bool pos;
 	pos_event_t pos_event;
 	bool unfocus;
+	unsigned unfocus_nfocus;
 } test_cb_resp_t;
 
 typedef struct {
@@ -101,6 +103,7 @@ typedef struct {
 	bool pos;
 	pos_event_t pos_event;
 	bool unfocus;
+	unsigned unfocus_nfocus;
 } test_ctl_resp_t;
 
 /** Create and destroy window */
@@ -529,8 +532,9 @@ PCUT_TEST(def_unfocus)
 
 	resp.unfocus = false;
 
-	ui_window_def_unfocus(window);
+	ui_window_def_unfocus(window, 42);
 	PCUT_ASSERT_TRUE(resp.unfocus);
+	PCUT_ASSERT_INT_EQUALS(42, resp.unfocus_nfocus);
 
 	/* Need to remove first because we didn't implement the destructor */
 	ui_window_remove(window, control);
@@ -703,17 +707,18 @@ PCUT_TEST(send_focus)
 	PCUT_ASSERT_NOT_NULL(window);
 
 	/* Focus callback with no callbacks set */
-	ui_window_send_focus(window);
+	ui_window_send_focus(window, 42);
 
 	/* Focus callback with focus callback not implemented */
 	ui_window_set_cb(window, &dummy_window_cb, NULL);
-	ui_window_send_focus(window);
+	ui_window_send_focus(window, 42);
 
 	/* Focus callback with real callback set */
 	resp.focus = false;
 	ui_window_set_cb(window, &test_window_cb, &resp);
-	ui_window_send_focus(window);
+	ui_window_send_focus(window, 42);
 	PCUT_ASSERT_TRUE(resp.focus);
+	PCUT_ASSERT_INT_EQUALS(42, resp.focus_nfocus);
 
 	ui_window_destroy(window);
 	ui_destroy(ui);
@@ -871,17 +876,18 @@ PCUT_TEST(send_unfocus)
 	PCUT_ASSERT_NOT_NULL(window);
 
 	/* Unfocus callback with no callbacks set */
-	ui_window_send_unfocus(window);
+	ui_window_send_unfocus(window, 42);
 
 	/* Unfocus callback with unfocus callback not implemented */
 	ui_window_set_cb(window, &dummy_window_cb, NULL);
-	ui_window_send_unfocus(window);
+	ui_window_send_unfocus(window, 42);
 
 	/* Unfocus callback with real callback set */
 	resp.close = false;
 	ui_window_set_cb(window, &test_window_cb, &resp);
-	ui_window_send_unfocus(window);
+	ui_window_send_unfocus(window, 42);
 	PCUT_ASSERT_TRUE(resp.unfocus);
+	PCUT_ASSERT_INT_EQUALS(42, resp.unfocus_nfocus);
 
 	ui_window_destroy(window);
 	ui_destroy(ui);
@@ -915,11 +921,12 @@ static void test_window_close(ui_window_t *window, void *arg)
 	resp->close = true;
 }
 
-static void test_window_focus(ui_window_t *window, void *arg)
+static void test_window_focus(ui_window_t *window, void *arg, unsigned nfocus)
 {
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
 	resp->focus = true;
+	resp->focus_nfocus = nfocus;
 }
 
 static void test_window_kbd(ui_window_t *window, void *arg,
@@ -948,11 +955,12 @@ static void test_window_pos(ui_window_t *window, void *arg,
 	resp->pos_event = *event;
 }
 
-static void test_window_unfocus(ui_window_t *window, void *arg)
+static void test_window_unfocus(ui_window_t *window, void *arg, unsigned nfocus)
 {
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
 	resp->unfocus = true;
+	resp->unfocus_nfocus = nfocus;
 }
 
 static errno_t test_ctl_paint(void *arg)
@@ -973,11 +981,12 @@ static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)
 	return resp->claim;
 }
 
-static void test_ctl_unfocus(void *arg)
+static void test_ctl_unfocus(void *arg, unsigned nfocus)
 {
 	test_ctl_resp_t *resp = (test_ctl_resp_t *) arg;
 
 	resp->unfocus = true;
+	resp->unfocus_nfocus = nfocus;
 }
 
 PCUT_EXPORT(window);

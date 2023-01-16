@@ -239,6 +239,7 @@ PCUT_TEST(client_get_post_focus_event)
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	ds_window_t *rwindow;
+	display_wnd_focus_ev_t efocus;
 	display_wnd_ev_t revent;
 	bool called_cb = NULL;
 	errno_t rc;
@@ -270,7 +271,9 @@ PCUT_TEST(client_get_post_focus_event)
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
-	rc = ds_client_post_focus_event(client, wnd);
+	efocus.nfocus = 42;
+
+	rc = ds_client_post_focus_event(client, wnd, &efocus);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_TRUE(called_cb);
 
@@ -278,6 +281,7 @@ PCUT_TEST(client_get_post_focus_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(wnd, rwindow);
 	PCUT_ASSERT_EQUALS(wev_focus, revent.etype);
+	PCUT_ASSERT_INT_EQUALS(efocus.nfocus, revent.ev.focus.nfocus);
 
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
@@ -503,6 +507,7 @@ PCUT_TEST(client_get_post_unfocus_event)
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	ds_window_t *rwindow;
+	display_wnd_unfocus_ev_t eunfocus;
 	display_wnd_ev_t revent;
 	bool called_cb = NULL;
 	errno_t rc;
@@ -534,7 +539,9 @@ PCUT_TEST(client_get_post_unfocus_event)
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);
 
-	rc = ds_client_post_unfocus_event(client, wnd);
+	eunfocus.nfocus = 42;
+
+	rc = ds_client_post_unfocus_event(client, wnd, &eunfocus);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_TRUE(called_cb);
 
@@ -542,6 +549,7 @@ PCUT_TEST(client_get_post_unfocus_event)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(wnd, rwindow);
 	PCUT_ASSERT_EQUALS(wev_unfocus, revent.etype);
+	PCUT_ASSERT_INT_EQUALS(eunfocus.nfocus, revent.ev.unfocus.nfocus);
 
 	rc = ds_client_get_event(client, &rwindow, &revent);
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, rc);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ static void ui_fixed_ctl_destroy(void *);
 static errno_t ui_fixed_ctl_paint(void *);
 static ui_evclaim_t ui_fixed_ctl_kbd_event(void *, kbd_event_t *);
 static ui_evclaim_t ui_fixed_ctl_pos_event(void *, pos_event_t *);
-static void ui_fixed_ctl_unfocus(void *);
+static void ui_fixed_ctl_unfocus(void *, unsigned);
 
 /** Push button control ops */
 ui_control_ops_t ui_fixed_ops = {
@@ -261,14 +261,15 @@ ui_evclaim_t ui_fixed_pos_event(ui_fixed_t *fixed, pos_event_t *event)
 /** Handle fixed layout window unfocus notification.
  *
  * @param fixed Fixed layout
+ * @param nfocus Number of remaining foci
  */
-void ui_fixed_unfocus(ui_fixed_t *fixed)
+void ui_fixed_unfocus(ui_fixed_t *fixed, unsigned nfocus)
 {
 	ui_fixed_elem_t *elem;
 
 	elem = ui_fixed_first(fixed);
 	while (elem != NULL) {
-		ui_control_unfocus(elem->control);
+		ui_control_unfocus(elem->control, nfocus);
 
 		elem = ui_fixed_next(elem);
 	}
@@ -326,12 +327,13 @@ ui_evclaim_t ui_fixed_ctl_pos_event(void *arg, pos_event_t *event)
 /** Handle fixed layout control window unfocus notification.
  *
  * @param arg Argument (ui_fixed_t *)
+ * @param nfocus Number of remaining foci
  */
-void ui_fixed_ctl_unfocus(void *arg)
+void ui_fixed_ctl_unfocus(void *arg, unsigned nfocus)
 {
 	ui_fixed_t *fixed = (ui_fixed_t *) arg;
 
-	ui_fixed_unfocus(fixed);
+	ui_fixed_unfocus(fixed, nfocus);
 }
 
 /** @}

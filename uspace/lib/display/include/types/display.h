@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,7 @@ typedef struct {
 	/** Close event */
 	void (*close_event)(void *);
 	/** Focus event */
-	void (*focus_event)(void *);
+	void (*focus_event)(void *, unsigned);
 	/** Keyboard event */
 	void (*kbd_event)(void *, kbd_event_t *);
 	/** Position event */
@@ -67,7 +67,7 @@ typedef struct {
 	/** Resize event */
 	void (*resize_event)(void *, gfx_rect_t *);
 	/** Unfocus event */
-	void (*unfocus_event)(void *);
+	void (*unfocus_event)(void *, unsigned);
 } display_wnd_cb_t;
 
 #endif
