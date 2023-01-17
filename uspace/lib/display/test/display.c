@@ -62,7 +62,7 @@ static errno_t test_window_move(void *, sysarg_t, gfx_coord2_t *);
 static errno_t test_window_get_pos(void *, sysarg_t, gfx_coord2_t *);
 static errno_t test_window_get_max_rect(void *, sysarg_t, gfx_rect_t *);
 static errno_t test_window_resize_req(void *, sysarg_t, display_wnd_rsztype_t,
-    gfx_coord2_t *);
+    gfx_coord2_t *, sysarg_t);
 static errno_t test_window_resize(void *, sysarg_t, gfx_coord2_t *,
     gfx_rect_t *);
 static errno_t test_window_minimize(void *, sysarg_t);
@@ -140,6 +140,7 @@ typedef struct {
 	sysarg_t resize_req_wnd_id;
 	display_wnd_rsztype_t resize_req_rsztype;
 	gfx_coord2_t resize_req_pos;
+	sysarg_t resize_req_pos_id;
 
 	bool window_resize_called;
 	gfx_coord2_t resize_offs;
@@ -830,6 +831,7 @@ PCUT_TEST(window_resize_req_failure)
 	test_response_t resp;
 	display_wnd_rsztype_t rsztype;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
@@ -862,14 +864,16 @@ PCUT_TEST(window_resize_req_failure)
 	rsztype = display_wr_top_right;
 	pos.x = 42;
 	pos.y = 43;
+	pos_id = 44;
 
-	rc = display_window_resize_req(wnd, rsztype, &pos);
+	rc = display_window_resize_req(wnd, rsztype, &pos, pos_id);
 	PCUT_ASSERT_TRUE(resp.window_resize_req_called);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 	PCUT_ASSERT_INT_EQUALS(rsztype, resp.resize_req_rsztype);
 	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.resize_req_wnd_id);
 	PCUT_ASSERT_INT_EQUALS(pos.x, resp.resize_req_pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, resp.resize_req_pos.y);
+	PCUT_ASSERT_INT_EQUALS(pos_id, resp.resize_req_pos_id);
 
 	display_window_destroy(wnd);
 	display_close(disp);
@@ -888,6 +892,7 @@ PCUT_TEST(window_resize_req_success)
 	test_response_t resp;
 	display_wnd_rsztype_t rsztype;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
@@ -920,14 +925,16 @@ PCUT_TEST(window_resize_req_success)
 	rsztype = display_wr_top_right;
 	pos.x = 42;
 	pos.y = 43;
+	pos_id = 44;
 
-	rc = display_window_resize_req(wnd, rsztype, &pos);
+	rc = display_window_resize_req(wnd, rsztype, &pos, pos_id);
 	PCUT_ASSERT_TRUE(resp.window_resize_req_called);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 	PCUT_ASSERT_INT_EQUALS(rsztype, resp.resize_req_rsztype);
 	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.resize_req_wnd_id);
 	PCUT_ASSERT_INT_EQUALS(pos.x, resp.resize_req_pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, resp.resize_req_pos.y);
+	PCUT_ASSERT_INT_EQUALS(pos_id, resp.resize_req_pos_id);
 
 	display_window_destroy(wnd);
 	display_close(disp);
@@ -2187,7 +2194,7 @@ static errno_t test_window_get_max_rect(void *arg, sysarg_t wnd_id,
 }
 
 static errno_t test_window_resize_req(void *arg, sysarg_t wnd_id,
-    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos)
+    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	test_response_t *resp = (test_response_t *) arg;
 
@@ -2195,6 +2202,7 @@ static errno_t test_window_resize_req(void *arg, sysarg_t wnd_id,
 	resp->resize_req_rsztype = rsztype;
 	resp->resize_req_wnd_id = wnd_id;
 	resp->resize_req_pos = *pos;
+	resp->resize_req_pos_id = pos_id;
 	return resp->rc;
 }
 

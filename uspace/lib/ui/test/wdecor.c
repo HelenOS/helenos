@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,7 +67,7 @@ static void test_wdecor_unmaximize(ui_wdecor_t *, void *);
 static void test_wdecor_close(ui_wdecor_t *, void *);
 static void test_wdecor_move(ui_wdecor_t *, void *, gfx_coord2_t *);
 static void test_wdecor_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
-    gfx_coord2_t *);
+    gfx_coord2_t *, sysarg_t);
 static void test_wdecor_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t test_wdecor_cb = {
@@ -107,6 +107,7 @@ typedef struct {
 	bool close;
 	bool move;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 	bool resize;
 	ui_wdecor_rsztype_t rsztype;
 	bool set_cursor;
@@ -372,6 +373,7 @@ PCUT_TEST(resize)
 	test_cb_resp_t resp;
 	ui_wdecor_rsztype_t rsztype;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 
 	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -379,13 +381,14 @@ PCUT_TEST(resize)
 	rsztype = ui_wr_bottom;
 	pos.x = 3;
 	pos.y = 4;
+	pos_id = 5;
 
 	/* Resize callback with no callbacks set */
-	ui_wdecor_resize(wdecor, rsztype, &pos);
+	ui_wdecor_resize(wdecor, rsztype, &pos, pos_id);
 
 	/* Resize callback with move callback not implemented */
 	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
-	ui_wdecor_resize(wdecor, rsztype, &pos);
+	ui_wdecor_resize(wdecor, rsztype, &pos, pos_id);
 
 	/* Resize callback with real callback set */
 	resp.resize = false;
@@ -393,11 +396,12 @@ PCUT_TEST(resize)
 	resp.pos.x = 0;
 	resp.pos.y = 0;
 	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
-	ui_wdecor_resize(wdecor, rsztype, &pos);
+	ui_wdecor_resize(wdecor, rsztype, &pos, pos_id);
 	PCUT_ASSERT_TRUE(resp.resize);
 	PCUT_ASSERT_INT_EQUALS(rsztype, resp.rsztype);
 	PCUT_ASSERT_INT_EQUALS(pos.x, resp.pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, resp.pos.y);
+	PCUT_ASSERT_INT_EQUALS(pos_id, resp.pos_id);
 
 	ui_wdecor_destroy(wdecor);
 }
@@ -1079,13 +1083,14 @@ static void test_wdecor_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
 }
 
 static void test_wdecor_resize(ui_wdecor_t *wdecor, void *arg,
-    ui_wdecor_rsztype_t rsztype, gfx_coord2_t *pos)
+    ui_wdecor_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
 	resp->resize = true;
 	resp->rsztype = rsztype;
 	resp->pos = *pos;
+	resp->pos_id = pos_id;
 }
 
 static void test_wdecor_set_cursor(ui_wdecor_t *wdecor, void *arg,

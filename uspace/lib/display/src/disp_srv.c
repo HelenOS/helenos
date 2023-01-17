@@ -319,11 +319,13 @@ static void display_window_resize_req_srv(display_srv_t *srv, ipc_call_t *icall)
 	ipc_call_t call;
 	display_wnd_rsztype_t rsztype;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 	size_t size;
 	errno_t rc;
 
 	wnd_id = ipc_get_arg1(icall);
 	rsztype = (display_wnd_rsztype_t) ipc_get_arg2(icall);
+	pos_id = ipc_get_arg3(icall);
 
 	if (!async_data_write_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
@@ -349,7 +351,8 @@ static void display_window_resize_req_srv(display_srv_t *srv, ipc_call_t *icall)
 		return;
 	}
 
-	rc = srv->ops->window_resize_req(srv->arg, wnd_id, rsztype, &pos);
+	rc = srv->ops->window_resize_req(srv->arg, wnd_id, rsztype, &pos,
+	    pos_id);
 	async_answer_0(icall, rc);
 }
 

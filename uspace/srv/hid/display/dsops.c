@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ static errno_t disp_window_move(void *, sysarg_t, gfx_coord2_t *);
 static errno_t disp_window_get_pos(void *, sysarg_t, gfx_coord2_t *);
 static errno_t disp_window_get_max_rect(void *, sysarg_t, gfx_rect_t *);
 static errno_t disp_window_resize_req(void *, sysarg_t,
-    display_wnd_rsztype_t, gfx_coord2_t *);
+    display_wnd_rsztype_t, gfx_coord2_t *, sysarg_t);
 static errno_t disp_window_resize(void *, sysarg_t, gfx_coord2_t *,
     gfx_rect_t *);
 static errno_t disp_window_minimize(void *, sysarg_t);
@@ -205,7 +205,7 @@ static errno_t disp_window_get_max_rect(void *arg, sysarg_t wnd_id,
 }
 
 static errno_t disp_window_resize_req(void *arg, sysarg_t wnd_id,
-    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos)
+    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	ds_client_t *client = (ds_client_t *) arg;
 	ds_window_t *wnd;
@@ -222,7 +222,7 @@ static errno_t disp_window_resize_req(void *arg, sysarg_t wnd_id,
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_resize_req()");
-	ds_window_resize_req(wnd, rsztype, pos);
+	ds_window_resize_req(wnd, rsztype, pos, pos_id);
 	ds_display_unlock(client->display);
 	return EOK;
 }

@@ -757,6 +757,7 @@ PCUT_TEST(window_resize_req)
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 	errno_t rc;
 
 	rc = gfx_context_new(&dummy_ops, NULL, &gc);
@@ -782,7 +783,8 @@ PCUT_TEST(window_resize_req)
 
 	pos.x = 42;
 	pos.y = 43;
-	ds_window_resize_req(wnd, display_wr_top_right, &pos);
+	pos_id = 44;
+	ds_window_resize_req(wnd, display_wr_top_right, &pos, pos_id);
 
 	PCUT_ASSERT_INT_EQUALS(dsw_resizing, wnd->state);
 	PCUT_ASSERT_INT_EQUALS(display_wr_top_right, wnd->rsztype);

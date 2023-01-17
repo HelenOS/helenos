@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ extern errno_t display_window_destroy(display_window_t *);
 extern errno_t display_window_get_gc(display_window_t *, gfx_context_t **);
 extern errno_t display_window_move_req(display_window_t *, gfx_coord2_t *);
 extern errno_t display_window_resize_req(display_window_t *,
-    display_wnd_rsztype_t, gfx_coord2_t *);
+    display_wnd_rsztype_t, gfx_coord2_t *, sysarg_t);
 extern errno_t display_window_move(display_window_t *, gfx_coord2_t *);
 extern errno_t display_window_get_pos(display_window_t *, gfx_coord2_t *);
 extern errno_t display_window_get_max_rect(display_window_t *, gfx_rect_t *);

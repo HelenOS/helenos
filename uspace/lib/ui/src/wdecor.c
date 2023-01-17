@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -476,12 +476,13 @@ void ui_wdecor_move(ui_wdecor_t *wdecor, gfx_coord2_t *pos)
  * @param wdecor Window decoration
  * @param rsztype Resize type
  * @param pos Position where the button was pressed
+ * @param pos_id Positioning device ID
  */
 void ui_wdecor_resize(ui_wdecor_t *wdecor, ui_wdecor_rsztype_t rsztype,
-    gfx_coord2_t *pos)
+    gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	if (wdecor->cb != NULL && wdecor->cb->resize != NULL)
-		wdecor->cb->resize(wdecor, wdecor->arg, rsztype, pos);
+		wdecor->cb->resize(wdecor, wdecor->arg, rsztype, pos, pos_id);
 }
 
 /** Send cursor change event.
@@ -825,7 +826,7 @@ void ui_wdecor_frame_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 
 	/* Press on window border? */
 	if (rsztype != ui_wr_none && event->type == POS_PRESS)
-		ui_wdecor_resize(wdecor, rsztype, &pos);
+		ui_wdecor_resize(wdecor, rsztype, &pos, event->pos_id);
 }
 
 /** Handle window decoration position event.

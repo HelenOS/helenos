@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -99,7 +99,7 @@ extern void ui_wdecor_unmaximize(ui_wdecor_t *);
 extern void ui_wdecor_close(ui_wdecor_t *);
 extern void ui_wdecor_move(ui_wdecor_t *, gfx_coord2_t *);
 extern void ui_wdecor_resize(ui_wdecor_t *, ui_wdecor_rsztype_t,
-    gfx_coord2_t *);
+    gfx_coord2_t *, sysarg_t);
 extern void ui_wdecor_set_cursor(ui_wdecor_t *, ui_stock_cursor_t);
 extern void ui_wdecor_get_geom(ui_wdecor_t *, ui_wdecor_geom_t *);
 extern void ui_wdecor_frame_pos_event(ui_wdecor_t *, pos_event_t *);

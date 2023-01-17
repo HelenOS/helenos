@@ -509,9 +509,10 @@ static void ds_window_update_move(ds_window_t *wnd, gfx_coord2_t *pos)
  * @param wnd Window
  * @param rsztype Resize type (which part of window is being dragged)
  * @param pos Position where mouse button was pressed
+ * @param pos_id Positioning device ID
  */
 static void ds_window_start_resize(ds_window_t *wnd,
-    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos)
+    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	ds_seat_t *seat;
 	display_stock_cursor_t ctype;
@@ -522,13 +523,17 @@ static void ds_window_start_resize(ds_window_t *wnd,
 	if (wnd->state != dsw_idle)
 		return;
 
+	/* Determine which seat started the resize */
+	seat = ds_display_seat_by_idev(wnd->display, pos_id);
+	if (seat == NULL)
+		return;
+
 	wnd->orig_pos = *pos;
+	wnd->orig_pos_id = pos_id;
 	wnd->state = dsw_resizing;
 	wnd->rsztype = rsztype;
 	wnd->preview_rect = wnd->rect;
 
-	// TODO Multi-seat: need client to tell us which seat started the resize!
-	seat = ds_display_first_seat(wnd->display);
 	ctype = display_cursor_from_wrsz(rsztype);
 	ds_seat_set_wm_cursor(seat, wnd->display->cursor[ctype]);
 
@@ -558,9 +563,10 @@ static void ds_window_finish_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	wnd->state = dsw_idle;
 	ds_client_post_resize_event(wnd->client, wnd, &nrect);
 
-	// TODO Multi-seat: Need to know which seat started the resize!
-	seat = ds_display_first_seat(wnd->display);
-	ds_seat_set_wm_cursor(seat, NULL);
+	/* Determine which seat started the resize */
+	seat = ds_display_seat_by_idev(wnd->display, wnd->orig_pos_id);
+	if (seat != NULL)
+		ds_seat_set_wm_cursor(seat, NULL);
 
 	(void) ds_display_paint(wnd->display, NULL);
 }
@@ -786,18 +792,19 @@ void ds_window_get_max_rect(ds_window_t *wnd, gfx_rect_t *rect)
  * @param rsztype Resize type (which part of window is being dragged)
  * @param pos Position where the pointer was when the resize started
  *            relative to the window
+ * @param pos_id Positioning device ID
  * @param event Button press event
  */
 void ds_window_resize_req(ds_window_t *wnd, display_wnd_rsztype_t rsztype,
-    gfx_coord2_t *pos)
+    gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	gfx_coord2_t orig_pos;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_resize_req (%d, %d, %d)",
-	    (int) rsztype, (int) pos->x, (int) pos->y);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_resize_req (%d, %d, %d, %d)",
+	    (int)rsztype, (int)pos->x, (int)pos->y, (int)pos_id);
 
 	gfx_coord2_add(&wnd->dpos, pos, &orig_pos);
-	ds_window_start_resize(wnd, rsztype, &orig_pos);
+	ds_window_start_resize(wnd, rsztype, &orig_pos, pos_id);
 }
 
 /** Resize window.

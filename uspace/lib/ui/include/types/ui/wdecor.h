@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,7 @@ typedef struct ui_wdecor_cb {
 	void (*close)(ui_wdecor_t *, void *);
 	void (*move)(ui_wdecor_t *, void *, gfx_coord2_t *);
 	void (*resize)(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
-	    gfx_coord2_t *);
+	    gfx_coord2_t *, sysarg_t);
 	void (*set_cursor)(ui_wdecor_t *, void *, ui_stock_cursor_t);
 } ui_wdecor_cb_t;
 

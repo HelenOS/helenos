@@ -79,7 +79,7 @@ static void wd_unmaximize(ui_wdecor_t *, void *);
 static void wd_close(ui_wdecor_t *, void *);
 static void wd_move(ui_wdecor_t *, void *, gfx_coord2_t *);
 static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
-    gfx_coord2_t *);
+    gfx_coord2_t *, sysarg_t);
 static void wd_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t wdecor_cb = {
@@ -987,14 +987,17 @@ static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
  * @param arg Argument (window)
  * @param rsztype Resize type
  * @param pos Position where the button was pressed
+ * @param pos_id Positioning device ID
  */
 static void wd_resize(ui_wdecor_t *wdecor, void *arg,
-    ui_wdecor_rsztype_t rsztype, gfx_coord2_t *pos)
+    ui_wdecor_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
-	if (window->dwindow != NULL)
-		(void) display_window_resize_req(window->dwindow, rsztype, pos);
+	if (window->dwindow != NULL) {
+		(void) display_window_resize_req(window->dwindow, rsztype,
+		    pos, pos_id);
+	}
 }
 
 /** Get display stock cursor from UI stock cursor.
