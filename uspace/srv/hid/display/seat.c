@@ -107,6 +107,10 @@ void ds_seat_destroy(ds_seat_t *seat)
 		idevcfg = ds_seat_first_idevcfg(seat);
 	}
 
+	/* Remove this seat's focus */
+	if (seat->focus != NULL)
+		ds_window_post_unfocus_event(seat->focus);
+
 	ds_display_remove_seat(seat);
 
 	free(seat->name);
