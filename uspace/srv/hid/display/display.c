@@ -795,10 +795,10 @@ ds_ddev_t *ds_display_next_ddev(ds_ddev_t *ddev)
 void ds_display_add_idevcfg(ds_display_t *disp, ds_idevcfg_t *idevcfg)
 {
 	assert(idevcfg->display == NULL);
-	assert(!link_used(&idevcfg->lidevcfgs));
+	assert(!link_used(&idevcfg->ldispidcfgs));
 
 	idevcfg->display = disp;
-	list_append(&idevcfg->lidevcfgs, &disp->idevcfgs);
+	list_append(&idevcfg->ldispidcfgs, &disp->idevcfgs);
 }
 
 /** Remove input device configuration entry from display.
@@ -807,7 +807,7 @@ void ds_display_add_idevcfg(ds_display_t *disp, ds_idevcfg_t *idevcfg)
  */
 void ds_display_remove_idevcfg(ds_idevcfg_t *idevcfg)
 {
-	list_remove(&idevcfg->lidevcfgs);
+	list_remove(&idevcfg->ldispidcfgs);
 	idevcfg->display = NULL;
 }
 
@@ -823,7 +823,7 @@ ds_idevcfg_t *ds_display_first_idevcfg(ds_display_t *disp)
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, ds_idevcfg_t, lidevcfgs);
+	return list_get_instance(link, ds_idevcfg_t, ldispidcfgs);
 }
 
 /** Get next input device configuration entry in display.
@@ -833,12 +833,12 @@ ds_idevcfg_t *ds_display_first_idevcfg(ds_display_t *disp)
  */
 ds_idevcfg_t *ds_display_next_idevcfg(ds_idevcfg_t *idevcfg)
 {
-	link_t *link = list_next(&idevcfg->lidevcfgs, &idevcfg->display->idevcfgs);
+	link_t *link = list_next(&idevcfg->ldispidcfgs, &idevcfg->display->idevcfgs);
 
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, ds_idevcfg_t, lidevcfgs);
+	return list_get_instance(link, ds_idevcfg_t, ldispidcfgs);
 }
 
 /** Add cursor to display.

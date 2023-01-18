@@ -57,6 +57,10 @@ extern errno_t ds_seat_post_ptd_event(ds_seat_t *, ptd_event_t *);
 extern errno_t ds_seat_post_pos_event(ds_seat_t *, pos_event_t *);
 extern void ds_seat_set_wm_cursor(ds_seat_t *, ds_cursor_t *);
 extern errno_t ds_seat_paint_pointer(ds_seat_t *, gfx_rect_t *);
+extern void ds_seat_add_idevcfg(ds_seat_t *, ds_idevcfg_t *);
+extern void ds_seat_remove_idevcfg(ds_idevcfg_t *);
+extern ds_idevcfg_t *ds_seat_first_idevcfg(ds_seat_t *);
+extern ds_idevcfg_t *ds_seat_next_idevcfg(ds_idevcfg_t *);
 
 #endif
 

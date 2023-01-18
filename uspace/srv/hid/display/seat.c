@@ -42,6 +42,7 @@
 #include "client.h"
 #include "cursor.h"
 #include "display.h"
+#include "idevcfg.h"
 #include "seat.h"
 #include "window.h"
 
@@ -78,6 +79,8 @@ errno_t ds_seat_create(ds_display_t *display, const char *name,
 		return ENOMEM;
 	}
 
+	list_initialize(&seat->idevcfgs);
+
 	ds_display_add_seat(display, seat);
 	seat->pntpos.x = 0;
 	seat->pntpos.y = 0;
@@ -95,7 +98,17 @@ errno_t ds_seat_create(ds_display_t *display, const char *name,
  */
 void ds_seat_destroy(ds_seat_t *seat)
 {
+	ds_idevcfg_t *idevcfg;
+
+	/* Remove all input device configuration entries pointing to this seat */
+	idevcfg = ds_seat_first_idevcfg(seat);
+	while (idevcfg != NULL) {
+		ds_idevcfg_destroy(idevcfg);
+		idevcfg = ds_seat_first_idevcfg(seat);
+	}
+
 	ds_display_remove_seat(seat);
+
 	free(seat->name);
 	free(seat);
 }
@@ -546,6 +559,60 @@ errno_t ds_seat_paint_pointer(ds_seat_t *seat, gfx_rect_t *rect)
 
 	cursor = ds_seat_get_cursor(seat);
 	return ds_cursor_paint(cursor, &seat->pntpos, rect);
+}
+
+/** Add input device configuration entry to seat.
+ *
+ * @param seat Seat
+ * @param idevcfg Input device configuration
+ */
+void ds_seat_add_idevcfg(ds_seat_t *seat, ds_idevcfg_t *idevcfg)
+{
+	assert(idevcfg->seat == NULL);
+	assert(!link_used(&idevcfg->lseatidcfgs));
+
+	idevcfg->seat = seat;
+	list_append(&idevcfg->lseatidcfgs, &seat->idevcfgs);
+}
+
+/** Remove input device configuration entry from seat.
+ *
+ * @param idevcfg Input device configuration entry
+ */
+void ds_seat_remove_idevcfg(ds_idevcfg_t *idevcfg)
+{
+	list_remove(&idevcfg->lseatidcfgs);
+	idevcfg->seat = NULL;
+}
+
+/** Get first input device configuration entry in seat.
+ *
+ * @param disp Display
+ * @return First input device configuration entry or @c NULL if there is none
+ */
+ds_idevcfg_t *ds_seat_first_idevcfg(ds_seat_t *seat)
+{
+	link_t *link = list_first(&seat->idevcfgs);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_idevcfg_t, lseatidcfgs);
+}
+
+/** Get next input device configuration entry in seat.
+ *
+ * @param idevcfg Current input device configuration entry
+ * @return Next input device configuration entry or @c NULL if there is none
+ */
+ds_idevcfg_t *ds_seat_next_idevcfg(ds_idevcfg_t *idevcfg)
+{
+	link_t *link = list_next(&idevcfg->lseatidcfgs, &idevcfg->seat->idevcfgs);
+
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, ds_idevcfg_t, lseatidcfgs);
 }
 
 /** @}

@@ -44,7 +44,9 @@ typedef struct ds_idevcfg {
 	/** Parent display */
 	struct ds_display *display;
 	/** Link to display->idevcfgs */
-	link_t lidevcfgs;
+	link_t ldispidcfgs;
+	/** Link to seat->idevcfgs */
+	link_t lseatidcfgs;
 	/** Service ID */
 	service_id_t svc_id;
 	/** Seat to which this device is assigned */

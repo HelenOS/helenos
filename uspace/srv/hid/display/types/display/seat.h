@@ -51,6 +51,8 @@ typedef struct ds_seat {
 	ds_seat_id_t id;
 	/** Seat name */
 	char *name;
+	/** Input device configurations mapping to this seat */
+	list_t idevcfgs;
 	/** Window this seat is focused on */
 	struct ds_window *focus;
 	/** This seat's popup window */

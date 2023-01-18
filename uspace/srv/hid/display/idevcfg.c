@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include "display.h"
 #include "idevcfg.h"
+#include "seat.h"
 
 /** Create input device configuration entry.
  *
@@ -60,7 +61,7 @@ errno_t ds_idevcfg_create(ds_display_t *display, service_id_t svc_id,
 		return ENOMEM;
 
 	idevcfg->svc_id = svc_id;
-	idevcfg->seat = seat;
+	ds_seat_add_idevcfg(seat, idevcfg);
 
 	ds_display_add_idevcfg(display, idevcfg);
 	*ridevcfg = idevcfg;
@@ -74,6 +75,7 @@ errno_t ds_idevcfg_create(ds_display_t *display, service_id_t svc_id,
 void ds_idevcfg_destroy(ds_idevcfg_t *idevcfg)
 {
 	ds_display_remove_idevcfg(idevcfg);
+	ds_seat_remove_idevcfg(idevcfg);
 	free(idevcfg);
 }
 
