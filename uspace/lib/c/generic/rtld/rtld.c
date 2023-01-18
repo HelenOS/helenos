@@ -186,7 +186,9 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 
 		assert(((uintptr_t) dtv[m->id]) % m->tls_align == 0);
 
-		memcpy(dtv[m->id], m->tdata, m->tdata_size);
+		if (m->tdata)
+			memcpy(dtv[m->id], m->tdata, m->tdata_size);
+
 		memset(dtv[m->id] + m->tdata_size, 0, m->tbss_size);
 	}
 
