@@ -100,6 +100,7 @@ generic_src += files(
 	'src/smp/ipi.c',
 	'src/smp/smp.c',
 	'src/synch/condvar.c',
+	'src/synch/irq_spinlock.c',
 	'src/synch/mutex.c',
 	'src/synch/semaphore.c',
 	'src/synch/smc.c',
