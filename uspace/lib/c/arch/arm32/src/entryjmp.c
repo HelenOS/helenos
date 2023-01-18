@@ -32,12 +32,12 @@
 void entry_point_jmp(void *entry_point, void *pcb)
 {
 	asm volatile (
-		"mov r1, %0 \n"
-		"mov r2, %1 \n"
-		"mov r15, %2 \n"
-		:
-		: "r"(pcb), "r"(ras_page), "r"(entry_point)
-		: "r1", "r2"
+	    "mov r1, %0 \n"
+	    "mov r2, %1 \n"
+	    "mov r15, %2 \n"
+	    :
+	    : "r" (pcb), "r" (ras_page), "r" (entry_point)
+	    : "r1", "r2"
 	);
 
 	__builtin_unreachable();
