@@ -93,9 +93,9 @@ static irq_ownership_t raspberrypi_timer_irq_claim(irq_t *irq)
 static void raspberrypi_timer_irq_handler(irq_t *irq)
 {
 	bcm2835_timer_irq_ack(raspi.timer);
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 }
 
 static void raspberrypi_init(void)
@@ -158,7 +158,7 @@ static void raspberrypi_irq_exception(unsigned int exc_no, istate_t *istate)
 	if (irq) {
 		/* The IRQ handler was found. */
 		irq->handler(irq);
-		spinlock_unlock(&irq->lock);
+		irq_spinlock_unlock(&irq->lock, false);
 	} else {
 		/* Spurious interrupt. */
 		printf("cpu%d: spurious interrupt (inum=%d)\n", CPU->id, inum);

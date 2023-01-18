@@ -145,7 +145,7 @@ static void gta02_irq_exception(unsigned int exc_no, istate_t *istate)
 	if (irq) {
 		/* The IRQ handler was found. */
 		irq->handler(irq);
-		spinlock_unlock(&irq->lock);
+		irq_spinlock_unlock(&irq->lock, false);
 	} else {
 		/* Spurious interrupt. */
 		log(LF_ARCH, LVL_DEBUG, "cpu%d: spurious interrupt (inum=%d)",
@@ -257,9 +257,9 @@ static void gta02_timer_irq_handler(irq_t *irq)
 	 * We are holding a lock which prevents preemption.
 	 * Release the lock, call clock() and reacquire the lock again.
 	 */
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 }
 
 static void gta02_timer_start(void)

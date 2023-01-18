@@ -196,9 +196,9 @@ static void icp_timer_irq_handler(irq_t *irq)
 	 * Release the lock, call clock() and reacquire the lock again.
 	 */
 
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 
 }
 
@@ -267,7 +267,7 @@ void icp_irq_exception(unsigned int exc_no, istate_t *istate)
 			if (irq) {
 				/* The IRQ handler was found. */
 				irq->handler(irq);
-				spinlock_unlock(&irq->lock);
+				irq_spinlock_unlock(&irq->lock, false);
 			} else {
 				/* Spurious interrupt. */
 				log(LF_ARCH, LVL_DEBUG,

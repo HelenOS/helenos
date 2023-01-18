@@ -116,9 +116,9 @@ static irq_ownership_t bbone_timer_irq_claim(irq_t *irq)
 static void bbone_timer_irq_handler(irq_t *irq)
 {
 	am335x_timer_intr_ack(&bbone.timer);
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 }
 
 static void bbone_timer_irq_start(void)
@@ -183,7 +183,7 @@ static void bbone_irq_exception(unsigned int exc_no, istate_t *istate)
 	if (irq) {
 		/* The IRQ handler was found. */
 		irq->handler(irq);
-		spinlock_unlock(&irq->lock);
+		irq_spinlock_unlock(&irq->lock, false);
 	} else {
 		printf("Spurious interrupt\n");
 	}
