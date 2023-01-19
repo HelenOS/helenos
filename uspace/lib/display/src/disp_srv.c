@@ -151,12 +151,14 @@ static void display_window_destroy_srv(display_srv_t *srv, ipc_call_t *icall)
 static void display_window_move_req_srv(display_srv_t *srv, ipc_call_t *icall)
 {
 	sysarg_t wnd_id;
+	sysarg_t pos_id;
 	ipc_call_t call;
 	gfx_coord2_t pos;
 	size_t size;
 	errno_t rc;
 
 	wnd_id = ipc_get_arg1(icall);
+	pos_id = ipc_get_arg2(icall);
 
 	if (!async_data_write_receive(&call, &size)) {
 		async_answer_0(&call, EREFUSED);
@@ -182,7 +184,7 @@ static void display_window_move_req_srv(display_srv_t *srv, ipc_call_t *icall)
 		return;
 	}
 
-	rc = srv->ops->window_move_req(srv->arg, wnd_id, &pos);
+	rc = srv->ops->window_move_req(srv->arg, wnd_id, &pos, pos_id);
 	async_answer_0(icall, rc);
 }
 

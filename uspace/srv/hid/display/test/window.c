@@ -710,6 +710,7 @@ PCUT_TEST(window_move_req)
 	ds_window_t *wnd;
 	display_wnd_params_t params;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 	errno_t rc;
 
 	rc = gfx_context_new(&dummy_ops, NULL, &gc);
@@ -735,11 +736,13 @@ PCUT_TEST(window_move_req)
 
 	pos.x = 42;
 	pos.y = 43;
-	ds_window_move_req(wnd, &pos);
+	pos_id = 44;
+	ds_window_move_req(wnd, &pos, pos_id);
 
 	PCUT_ASSERT_INT_EQUALS(dsw_moving, wnd->state);
 	PCUT_ASSERT_INT_EQUALS(pos.x, wnd->orig_pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, wnd->orig_pos.y);
+	PCUT_ASSERT_INT_EQUALS(pos_id, wnd->orig_pos_id);
 
 	ds_window_destroy(wnd);
 	ds_seat_destroy(seat);
@@ -790,6 +793,7 @@ PCUT_TEST(window_resize_req)
 	PCUT_ASSERT_INT_EQUALS(display_wr_top_right, wnd->rsztype);
 	PCUT_ASSERT_INT_EQUALS(pos.x, wnd->orig_pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, wnd->orig_pos.y);
+	PCUT_ASSERT_INT_EQUALS(pos_id, wnd->orig_pos_id);
 
 	ds_window_destroy(wnd);
 	ds_seat_destroy(seat);

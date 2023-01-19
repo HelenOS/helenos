@@ -65,7 +65,7 @@ static void test_wdecor_minimize(ui_wdecor_t *, void *);
 static void test_wdecor_maximize(ui_wdecor_t *, void *);
 static void test_wdecor_unmaximize(ui_wdecor_t *, void *);
 static void test_wdecor_close(ui_wdecor_t *, void *);
-static void test_wdecor_move(ui_wdecor_t *, void *, gfx_coord2_t *);
+static void test_wdecor_move(ui_wdecor_t *, void *, gfx_coord2_t *, sysarg_t);
 static void test_wdecor_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
     gfx_coord2_t *, sysarg_t);
 static void test_wdecor_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
@@ -338,29 +338,33 @@ PCUT_TEST(move)
 	ui_wdecor_t *wdecor;
 	test_cb_resp_t resp;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 
 	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 3;
 	pos.y = 4;
+	pos_id = 5;
 
 	/* Move callback with no callbacks set */
-	ui_wdecor_move(wdecor, &pos);
+	ui_wdecor_move(wdecor, &pos, pos_id);
 
 	/* Move callback with move callback not implemented */
 	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
-	ui_wdecor_move(wdecor, &pos);
+	ui_wdecor_move(wdecor, &pos, pos_id);
 
 	/* Move callback with real callback set */
 	resp.move = false;
 	resp.pos.x = 0;
 	resp.pos.y = 0;
+	resp.pos_id = 0;
 	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
-	ui_wdecor_move(wdecor, &pos);
+	ui_wdecor_move(wdecor, &pos, pos_id);
 	PCUT_ASSERT_TRUE(resp.move);
 	PCUT_ASSERT_INT_EQUALS(pos.x, resp.pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, resp.pos.y);
+	PCUT_ASSERT_INT_EQUALS(pos_id, resp.pos_id);
 
 	ui_wdecor_destroy(wdecor);
 }
@@ -1074,12 +1078,14 @@ static void test_wdecor_close(ui_wdecor_t *wdecor, void *arg)
 	resp->close = true;
 }
 
-static void test_wdecor_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
+static void test_wdecor_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos,
+    sysarg_t pos_id)
 {
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
 	resp->move = true;
 	resp->pos = *pos;
+	resp->pos_id = pos_id;
 }
 
 static void test_wdecor_resize(ui_wdecor_t *wdecor, void *arg,

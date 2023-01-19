@@ -45,7 +45,8 @@
 
 static errno_t disp_window_create(void *, display_wnd_params_t *, sysarg_t *);
 static errno_t disp_window_destroy(void *, sysarg_t);
-static errno_t disp_window_move_req(void *, sysarg_t, gfx_coord2_t *);
+static errno_t disp_window_move_req(void *, sysarg_t, gfx_coord2_t *,
+    sysarg_t);
 static errno_t disp_window_move(void *, sysarg_t, gfx_coord2_t *);
 static errno_t disp_window_get_pos(void *, sysarg_t, gfx_coord2_t *);
 static errno_t disp_window_get_max_rect(void *, sysarg_t, gfx_rect_t *);
@@ -126,7 +127,7 @@ static errno_t disp_window_destroy(void *arg, sysarg_t wnd_id)
 }
 
 static errno_t disp_window_move_req(void *arg, sysarg_t wnd_id,
-    gfx_coord2_t *pos)
+    gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	ds_client_t *client = (ds_client_t *) arg;
 	ds_window_t *wnd;
@@ -140,7 +141,7 @@ static errno_t disp_window_move_req(void *arg, sysarg_t wnd_id,
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "disp_window_move_req()");
-	ds_window_move_req(wnd, pos);
+	ds_window_move_req(wnd, pos, pos_id);
 	ds_display_unlock(client->display);
 	return EOK;
 }

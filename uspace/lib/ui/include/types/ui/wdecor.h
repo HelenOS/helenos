@@ -84,7 +84,7 @@ typedef struct ui_wdecor_cb {
 	void (*maximize)(ui_wdecor_t *, void *);
 	void (*unmaximize)(ui_wdecor_t *, void *);
 	void (*close)(ui_wdecor_t *, void *);
-	void (*move)(ui_wdecor_t *, void *, gfx_coord2_t *);
+	void (*move)(ui_wdecor_t *, void *, gfx_coord2_t *, sysarg_t);
 	void (*resize)(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
 	    gfx_coord2_t *, sysarg_t);
 	void (*set_cursor)(ui_wdecor_t *, void *, ui_stock_cursor_t);

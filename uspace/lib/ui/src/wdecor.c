@@ -464,11 +464,12 @@ void ui_wdecor_close(ui_wdecor_t *wdecor)
  *
  * @param wdecor Window decoration
  * @param pos Position where the title bar was pressed
+ * @param pos_id Positioning device ID
  */
-void ui_wdecor_move(ui_wdecor_t *wdecor, gfx_coord2_t *pos)
+void ui_wdecor_move(ui_wdecor_t *wdecor, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	if (wdecor->cb != NULL && wdecor->cb->move != NULL)
-		wdecor->cb->move(wdecor, wdecor->arg, pos);
+		wdecor->cb->move(wdecor, wdecor->arg, pos, pos_id);
 }
 
 /** Send decoration resize event.
@@ -811,11 +812,13 @@ ui_stock_cursor_t ui_wdecor_cursor_from_rsztype(ui_wdecor_rsztype_t rsztype)
 void ui_wdecor_frame_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 {
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 	ui_wdecor_rsztype_t rsztype;
 	ui_stock_cursor_t cursor;
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
+	pos_id = event->pos_id;
 
 	/* Set appropriate resizing cursor, or set arrow cursor */
 
@@ -826,7 +829,7 @@ void ui_wdecor_frame_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 
 	/* Press on window border? */
 	if (rsztype != ui_wr_none && event->type == POS_PRESS)
-		ui_wdecor_resize(wdecor, rsztype, &pos, event->pos_id);
+		ui_wdecor_resize(wdecor, rsztype, &pos, pos_id);
 }
 
 /** Handle window decoration position event.
@@ -838,11 +841,13 @@ void ui_wdecor_frame_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 {
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 	ui_wdecor_geom_t geom;
 	ui_evclaim_t claim;
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
+	pos_id = event->pos_id;
 
 	ui_wdecor_get_geom(wdecor, &geom);
 
@@ -869,7 +874,7 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 	if ((wdecor->style & ui_wds_titlebar) != 0 && !wdecor->maximized) {
 		if (event->type == POS_PRESS &&
 		    gfx_pix_inside_rect(&pos, &geom.title_bar_rect)) {
-			ui_wdecor_move(wdecor, &pos);
+			ui_wdecor_move(wdecor, &pos, pos_id);
 			return ui_claimed;
 		}
 	}

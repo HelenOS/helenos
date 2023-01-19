@@ -77,7 +77,7 @@ static void wd_minimize(ui_wdecor_t *, void *);
 static void wd_maximize(ui_wdecor_t *, void *);
 static void wd_unmaximize(ui_wdecor_t *, void *);
 static void wd_close(ui_wdecor_t *, void *);
-static void wd_move(ui_wdecor_t *, void *, gfx_coord2_t *);
+static void wd_move(ui_wdecor_t *, void *, gfx_coord2_t *, sysarg_t);
 static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
     gfx_coord2_t *, sysarg_t);
 static void wd_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
@@ -972,13 +972,15 @@ static void wd_close(ui_wdecor_t *wdecor, void *arg)
  * @param wdecor Window decoration
  * @param arg Argument (window)
  * @param pos Position where the title bar was pressed
+ * @param pos_id Positioning device ID
  */
-static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos)
+static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos,
+    sysarg_t pos_id)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
 	if (window->dwindow != NULL)
-		(void) display_window_move_req(window->dwindow, pos);
+		(void) display_window_move_req(window->dwindow, pos, pos_id);
 }
 
 /** Window decoration requested window resize.

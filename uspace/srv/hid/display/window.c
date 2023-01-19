@@ -436,8 +436,10 @@ static errno_t ds_window_repaint_preview(ds_window_t *wnd, gfx_rect_t *old_rect)
  *
  * @param wnd Window
  * @param pos Position where mouse button was pressed
+ * @param pos_id Positioning device ID
  */
-static void ds_window_start_move(ds_window_t *wnd, gfx_coord2_t *pos)
+static void ds_window_start_move(ds_window_t *wnd, gfx_coord2_t *pos,
+    sysarg_t pos_id)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ds_window_start_move (%d, %d)",
 	    (int) pos->x, (int) pos->y);
@@ -446,6 +448,7 @@ static void ds_window_start_move(ds_window_t *wnd, gfx_coord2_t *pos)
 		return;
 
 	wnd->orig_pos = *pos;
+	wnd->orig_pos_id = pos_id;
 	wnd->state = dsw_moving;
 	wnd->preview_pos = wnd->dpos;
 
@@ -475,6 +478,7 @@ static void ds_window_finish_move(ds_window_t *wnd, gfx_coord2_t *pos)
 
 	wnd->dpos = nwpos;
 	wnd->state = dsw_idle;
+	wnd->orig_pos_id = 0;
 
 	(void) ds_display_paint(wnd->display, NULL);
 }
@@ -568,6 +572,8 @@ static void ds_window_finish_resize(ds_window_t *wnd, gfx_coord2_t *pos)
 	if (seat != NULL)
 		ds_seat_set_wm_cursor(seat, NULL);
 
+	wnd->orig_pos_id = 0;
+
 	(void) ds_display_paint(wnd->display, NULL);
 }
 
@@ -628,6 +634,7 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 {
 	pos_event_t tevent;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 	gfx_rect_t drect;
 	bool inside;
 
@@ -637,12 +644,13 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
+	pos_id = event->pos_id;
 	gfx_rect_translate(&wnd->dpos, &wnd->rect, &drect);
 	inside = gfx_pix_inside_rect(&pos, &drect);
 
 	if (event->type == POS_PRESS && event->btn_num == 2 && inside &&
 	    (wnd->flags & wndf_maximized) == 0) {
-		ds_window_start_move(wnd, &pos);
+		ds_window_start_move(wnd, &pos, pos_id);
 		return EOK;
 	}
 
@@ -745,9 +753,10 @@ errno_t ds_window_post_unfocus_event(ds_window_t *wnd)
  * @param wnd Window
  * @param pos Position where the pointer was when the move started
  *            relative to the window
+ * @param pos_id Positioning device ID
  * @param event Button press event
  */
-void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *pos)
+void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	gfx_coord2_t orig_pos;
 
@@ -755,7 +764,7 @@ void ds_window_move_req(ds_window_t *wnd, gfx_coord2_t *pos)
 	    (int) pos->x, (int) pos->y);
 
 	gfx_coord2_add(&wnd->dpos, pos, &orig_pos);
-	ds_window_start_move(wnd, &orig_pos);
+	ds_window_start_move(wnd, &orig_pos, pos_id);
 }
 
 /** Move window.

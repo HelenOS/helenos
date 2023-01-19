@@ -102,7 +102,7 @@ typedef struct ds_window {
 	ds_window_state_t state;
 	/** Original position before started to move or resize the window */
 	gfx_coord2_t orig_pos;
-	/** Positioning device that started the resize */
+	/** Positioning device that started the move or resize */
 	sysarg_t orig_pos_id;
 	/** Window resize type (if state is dsw_resizing) */
 	display_wnd_rsztype_t rsztype;

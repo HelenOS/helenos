@@ -283,9 +283,11 @@ errno_t display_window_get_gc(display_window_t *window, gfx_context_t **rgc)
  *
  * @param window Window
  * @param pos Position in the window where the button was pressed
+ * @param pos_id Positioning device ID
  * @return EOK on success or an error code
  */
-errno_t display_window_move_req(display_window_t *window, gfx_coord2_t *pos)
+errno_t display_window_move_req(display_window_t *window, gfx_coord2_t *pos,
+    sysarg_t pos_id)
 {
 	async_exch_t *exch;
 	aid_t req;
@@ -293,7 +295,8 @@ errno_t display_window_move_req(display_window_t *window, gfx_coord2_t *pos)
 	errno_t rc;
 
 	exch = async_exchange_begin(window->display->sess);
-	req = async_send_1(exch, DISPLAY_WINDOW_MOVE_REQ, window->id, &answer);
+	req = async_send_2(exch, DISPLAY_WINDOW_MOVE_REQ, window->id,
+	    pos_id, &answer);
 	rc = async_data_write_start(exch, (void *)pos, sizeof (gfx_coord2_t));
 	async_exchange_end(exch);
 	if (rc != EOK) {

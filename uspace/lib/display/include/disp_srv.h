@@ -56,7 +56,8 @@ typedef struct {
 struct display_ops {
 	errno_t (*window_create)(void *, display_wnd_params_t *, sysarg_t *);
 	errno_t (*window_destroy)(void *, sysarg_t);
-	errno_t (*window_move_req)(void *, sysarg_t, gfx_coord2_t *);
+	errno_t (*window_move_req)(void *, sysarg_t, gfx_coord2_t *,
+	    sysarg_t);
 	errno_t (*window_resize_req)(void *, sysarg_t, display_wnd_rsztype_t,
 	    gfx_coord2_t *, sysarg_t);
 	errno_t (*window_move)(void *, sysarg_t, gfx_coord2_t *);

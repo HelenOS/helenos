@@ -97,7 +97,7 @@ extern void ui_wdecor_minimize(ui_wdecor_t *);
 extern void ui_wdecor_maximize(ui_wdecor_t *);
 extern void ui_wdecor_unmaximize(ui_wdecor_t *);
 extern void ui_wdecor_close(ui_wdecor_t *);
-extern void ui_wdecor_move(ui_wdecor_t *, gfx_coord2_t *);
+extern void ui_wdecor_move(ui_wdecor_t *, gfx_coord2_t *, sysarg_t);
 extern void ui_wdecor_resize(ui_wdecor_t *, ui_wdecor_rsztype_t,
     gfx_coord2_t *, sysarg_t);
 extern void ui_wdecor_set_cursor(ui_wdecor_t *, ui_stock_cursor_t);

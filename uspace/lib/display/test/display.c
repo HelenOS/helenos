@@ -57,7 +57,7 @@ static void test_unfocus_event(void *, unsigned);
 
 static errno_t test_window_create(void *, display_wnd_params_t *, sysarg_t *);
 static errno_t test_window_destroy(void *, sysarg_t);
-static errno_t test_window_move_req(void *, sysarg_t, gfx_coord2_t *);
+static errno_t test_window_move_req(void *, sysarg_t, gfx_coord2_t *, sysarg_t);
 static errno_t test_window_move(void *, sysarg_t, gfx_coord2_t *);
 static errno_t test_window_get_pos(void *, sysarg_t, gfx_coord2_t *);
 static errno_t test_window_get_max_rect(void *, sysarg_t, gfx_rect_t *);
@@ -123,6 +123,7 @@ typedef struct {
 	bool window_move_req_called;
 	sysarg_t move_req_wnd_id;
 	gfx_coord2_t move_req_pos;
+	sysarg_t move_req_pos_id;
 
 	bool window_move_called;
 	sysarg_t move_wnd_id;
@@ -378,6 +379,7 @@ PCUT_TEST(window_move_req_failure)
 	display_window_t *wnd;
 	test_response_t resp;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
@@ -409,13 +411,15 @@ PCUT_TEST(window_move_req_failure)
 
 	pos.x = 42;
 	pos.y = 43;
+	pos_id = 44;
 
-	rc = display_window_move_req(wnd, &pos);
+	rc = display_window_move_req(wnd, &pos, pos_id);
 	PCUT_ASSERT_TRUE(resp.window_move_req_called);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.move_req_wnd_id);
 	PCUT_ASSERT_INT_EQUALS(pos.x, resp.move_req_pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, resp.move_req_pos.y);
+	PCUT_ASSERT_INT_EQUALS(pos_id, resp.move_req_pos_id);
 
 	display_window_destroy(wnd);
 	display_close(disp);
@@ -433,6 +437,7 @@ PCUT_TEST(window_move_req_success)
 	display_window_t *wnd;
 	test_response_t resp;
 	gfx_coord2_t pos;
+	sysarg_t pos_id;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
@@ -464,13 +469,15 @@ PCUT_TEST(window_move_req_success)
 
 	pos.x = 42;
 	pos.y = 43;
+	pos_id = 44;
 
-	rc = display_window_move_req(wnd, &pos);
+	rc = display_window_move_req(wnd, &pos, pos_id);
 	PCUT_ASSERT_TRUE(resp.window_move_req_called);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 	PCUT_ASSERT_INT_EQUALS(wnd->id, resp.move_req_wnd_id);
 	PCUT_ASSERT_INT_EQUALS(pos.x, resp.move_req_pos.x);
 	PCUT_ASSERT_INT_EQUALS(pos.y, resp.move_req_pos.y);
+	PCUT_ASSERT_INT_EQUALS(pos_id, resp.move_req_pos_id);
 
 	display_window_destroy(wnd);
 	display_close(disp);
@@ -2146,13 +2153,14 @@ static errno_t test_window_destroy(void *arg, sysarg_t wnd_id)
 }
 
 static errno_t test_window_move_req(void *arg, sysarg_t wnd_id,
-    gfx_coord2_t *pos)
+    gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	test_response_t *resp = (test_response_t *) arg;
 
 	resp->window_move_req_called = true;
 	resp->move_req_wnd_id = wnd_id;
 	resp->move_req_pos = *pos;
+	resp->move_req_pos_id = pos_id;
 	return resp->rc;
 }
 
