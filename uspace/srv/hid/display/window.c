@@ -655,24 +655,30 @@ errno_t ds_window_post_pos_event(ds_window_t *wnd, pos_event_t *event)
 	}
 
 	if (event->type == POS_RELEASE) {
-		if (wnd->state == dsw_moving) {
+		/* Finish move/resize if they were started by the same seat */
+		if (wnd->state == dsw_moving &&
+		    ds_window_orig_seat(wnd, pos_id)) {
 			ds_window_finish_move(wnd, &pos);
 			return EOK;
 		}
 
-		if (wnd->state == dsw_resizing) {
+		if (wnd->state == dsw_resizing &&
+		    ds_window_orig_seat(wnd, pos_id)) {
 			ds_window_finish_resize(wnd, &pos);
 			return EOK;
 		}
 	}
 
 	if (event->type == POS_UPDATE) {
-		if (wnd->state == dsw_moving) {
+		/* Update move/resize if they were started by the same seat */
+		if (wnd->state == dsw_moving &&
+		    ds_window_orig_seat(wnd, pos_id)) {
 			ds_window_update_move(wnd, &pos);
 			return EOK;
 		}
 
-		if (wnd->state == dsw_resizing) {
+		if (wnd->state == dsw_resizing &&
+		    ds_window_orig_seat(wnd, pos_id)) {
 			ds_window_update_resize(wnd, &pos);
 			return EOK;
 		}
@@ -1122,6 +1128,35 @@ void ds_window_unfocus(ds_window_t *wnd)
 		ds_seat_unfocus_wnd(seat, wnd);
 		seat = ds_display_next_seat(seat);
 	}
+}
+
+/** Determine if input device belongs to the same seat as the original device.
+ *
+ * Compare the seat ownning @a idev_id with the seat owning @a wnd->orig_pos_id
+ * (the device that started the window move or resize).
+ *
+ * This is used to make sure that, when two seats focus the same window,
+ * only devices owned by the seat that started the resize or move can
+ * affect it. Otherwise moving the other pointer(s) would disrupt the
+ * resize or move operation.
+ *
+ * @param wnd Window (that is currently being resized or moved)
+ * @param idev_id Input device ID
+ * @return @c true iff idev_id is owned by the same seat as the input
+ *         device that started the resize or move
+ */
+bool ds_window_orig_seat(ds_window_t *wnd, sysarg_t idev_id)
+{
+	ds_seat_t *orig_seat;
+	ds_seat_t *seat;
+
+	/* Window must be in state such that wnd->orig_pos_id is valid */
+	assert(wnd->state == dsw_moving || wnd->state == dsw_resizing);
+
+	orig_seat = ds_display_seat_by_idev(wnd->display, wnd->orig_pos_id);
+	seat = ds_display_seat_by_idev(wnd->display, idev_id);
+
+	return seat == orig_seat;
 }
 
 /** Window memory GC invalidate callback.

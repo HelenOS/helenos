@@ -35,6 +35,7 @@
 
 #include "../client.h"
 #include "../display.h"
+#include "../idevcfg.h"
 #include "../seat.h"
 #include "../window.h"
 
@@ -1268,6 +1269,68 @@ PCUT_TEST(window_unfocus)
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);
 	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** ds_window_orig_seat() correctly compares seats */
+PCUT_TEST(window_orig_seat)
+{
+	gfx_context_t *gc;
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat0;
+	ds_seat_t *seat1;
+	sysarg_t devid0;
+	sysarg_t devid1;
+	ds_idevcfg_t *cfg0;
+	ds_idevcfg_t *cfg1;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = gfx_context_new(&dummy_ops, NULL, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_display_create(gc, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, "Alice", &seat0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, "Bob", &seat1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &wnd);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	devid0 = 42;
+	devid1 = 43;
+
+	rc = ds_idevcfg_create(disp, devid0, seat0, &cfg0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_idevcfg_create(disp, devid1, seat1, &cfg1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd->state = dsw_moving;
+	wnd->orig_pos_id = devid0;
+
+	PCUT_ASSERT_TRUE(ds_window_orig_seat(wnd, devid0));
+	PCUT_ASSERT_FALSE(ds_window_orig_seat(wnd, devid1));
+
+	ds_idevcfg_destroy(cfg0);
+	ds_idevcfg_destroy(cfg1);
+	ds_window_destroy(wnd);
+	ds_seat_destroy(seat0);
+	ds_seat_destroy(seat1);
 	ds_client_destroy(client);
 	ds_display_destroy(disp);
 }
