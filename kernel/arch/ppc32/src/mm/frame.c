@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <arch/asm.h>
 #include <arch/boot/boot.h>
 #include <arch/mm/frame.h>
 #include <mm/frame.h>

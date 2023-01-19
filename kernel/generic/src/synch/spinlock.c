@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2023 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,8 +47,6 @@
 #include <stacktrace.h>
 #include <cpu.h>
 
-#ifdef CONFIG_SMP
-
 /** Initialize spinlock
  *
  * @param sl Pointer to spinlock_t structure.
@@ -55,30 +54,29 @@
  */
 void spinlock_initialize(spinlock_t *lock, const char *name)
 {
+#ifdef CONFIG_SMP
 	atomic_flag_clear_explicit(&lock->flag, memory_order_relaxed);
 #ifdef CONFIG_DEBUG_SPINLOCK
 	lock->name = name;
 #endif
+#endif
 }
 
-#ifdef CONFIG_DEBUG_SPINLOCK
-
 /** Lock spinlock
- *
- * Lock spinlock.
- * This version has limitted ability to report
- * possible occurence of deadlock.
  *
  * @param lock Pointer to spinlock_t structure.
  *
  */
-void spinlock_lock_debug(spinlock_t *lock)
+void spinlock_lock(spinlock_t *lock)
 {
-	size_t i = 0;
-	bool deadlock_reported = false;
-
 	preemption_disable();
+
+#ifdef CONFIG_SMP
+	bool deadlock_reported = false;
+	size_t i = 0;
+
 	while (atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire)) {
+#ifdef CONFIG_DEBUG_SPINLOCK
 		/*
 		 * We need to be careful about particular locks
 		 * which are directly used to report deadlocks
@@ -110,47 +108,58 @@ void spinlock_lock_debug(spinlock_t *lock)
 			i = 0;
 			deadlock_reported = true;
 		}
+#endif
 	}
+
+	/* Avoid compiler warning with debug disabled. */
+	(void) i;
 
 	if (deadlock_reported)
 		printf("cpu%u: not deadlocked\n", CPU->id);
+
+#endif
 }
 
 /** Unlock spinlock
  *
- * Unlock spinlock.
- *
  * @param sl Pointer to spinlock_t structure.
  */
-void spinlock_unlock_debug(spinlock_t *lock)
+void spinlock_unlock(spinlock_t *lock)
 {
+#ifdef CONFIG_SMP
+#ifdef CONFIG_DEBUG_SPINLOCK
 	ASSERT_SPINLOCK(spinlock_locked(lock), lock);
+#endif
 
 	atomic_flag_clear_explicit(&lock->flag, memory_order_release);
+#endif
+
 	preemption_enable();
 }
 
-#endif
-
-/** Lock spinlock conditionally
- *
+/**
  * Lock spinlock conditionally. If the spinlock is not available
  * at the moment, signal failure.
  *
  * @param lock Pointer to spinlock_t structure.
  *
- * @return Zero on failure, non-zero otherwise.
+ * @return true on success.
  *
  */
 bool spinlock_trylock(spinlock_t *lock)
 {
 	preemption_disable();
+
+#ifdef CONFIG_SMP
 	bool ret = !atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire);
 
 	if (!ret)
 		preemption_enable();
 
 	return ret;
+#else
+	return true;
+#endif
 }
 
 /** Find out whether the spinlock is currently locked.
@@ -160,6 +169,7 @@ bool spinlock_trylock(spinlock_t *lock)
  */
 bool spinlock_locked(spinlock_t *lock)
 {
+#ifdef CONFIG_SMP
 	// NOTE: Atomic flag doesn't support simple atomic read (by design),
 	//       so instead we test_and_set and then clear if necessary.
 	//       This function is only used inside assert, so we don't need
@@ -169,9 +179,10 @@ bool spinlock_locked(spinlock_t *lock)
 	if (!ret)
 		atomic_flag_clear_explicit(&lock->flag, memory_order_relaxed);
 	return ret;
-}
-
+#else
+	return true;
 #endif
+}
 
 /** @}
  */

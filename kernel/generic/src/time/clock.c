@@ -58,6 +58,7 @@
 #include <mm/frame.h>
 #include <ddi/ddi.h>
 #include <arch/cycle.h>
+#include <preemption.h>
 
 /* Pointer to variable with uptime */
 uptime_t *uptime;

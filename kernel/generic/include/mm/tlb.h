@@ -35,6 +35,7 @@
 #ifndef KERN_TLB_H_
 #define KERN_TLB_H_
 
+#include <arch/asm.h>
 #include <arch/mm/asid.h>
 #include <typedefs.h>
 

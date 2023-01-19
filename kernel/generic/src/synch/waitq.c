@@ -47,6 +47,7 @@
 #include <errno.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
+#include <preemption.h>
 #include <proc/thread.h>
 #include <proc/scheduler.h>
 #include <arch/asm.h>

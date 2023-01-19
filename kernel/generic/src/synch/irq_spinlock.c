@@ -35,6 +35,7 @@
  * @brief IRQ Spinlocks.
  */
 
+#include <arch/asm.h>
 #include <synch/spinlock.h>
 
 /** Initialize interrupts-disabled spinlock
