@@ -123,9 +123,12 @@ extern void spinlock_unlock(spinlock_t *);
 extern bool spinlock_locked(spinlock_t *);
 
 typedef struct {
-	spinlock_t lock;         /**< Spinlock */
-	bool guard;              /**< Flag whether ipl is valid */
-	ipl_t ipl;               /**< Original interrupt level */
+	spinlock_t lock;              /**< Spinlock */
+	bool guard;                   /**< Flag whether ipl is valid */
+	ipl_t ipl;                    /**< Original interrupt level */
+#ifdef CONFIG_DEBUG_SPINLOCK
+	_Atomic(struct cpu *) owner;  /**< Which cpu currently owns this lock */
+#endif
 } irq_spinlock_t;
 
 #define IRQ_SPINLOCK_DECLARE(lock_name)  irq_spinlock_t lock_name

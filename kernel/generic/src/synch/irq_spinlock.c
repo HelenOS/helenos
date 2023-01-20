@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2023 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,57 @@
 #include <arch/asm.h>
 #include <synch/spinlock.h>
 
+#include <cpu.h>
+
+#ifdef CONFIG_DEBUG_SPINLOCK
+
+#define CPU_OWNER ((CPU == NULL) ? (cpu_t *) UINTPTR_MAX : CPU)
+
+static inline bool owned_by_me(irq_spinlock_t *lock)
+{
+	return atomic_load_explicit(&lock->owner, memory_order_relaxed) == CPU_OWNER;
+}
+
+static inline bool not_owned_by_me(irq_spinlock_t *lock)
+{
+	return !owned_by_me(lock);
+}
+
+static inline void claim(irq_spinlock_t *lock)
+{
+	cpu_t *cpu = CPU_OWNER;
+	atomic_store_explicit(&lock->owner, cpu, memory_order_relaxed);
+	CURRENT->mutex_locks++;
+}
+
+static inline void unclaim(irq_spinlock_t *lock)
+{
+	CURRENT->mutex_locks--;
+	atomic_store_explicit(&lock->owner, NULL, memory_order_relaxed);
+}
+
+#else
+
+static inline bool owned_by_me(irq_spinlock_t *lock)
+{
+	return true;
+}
+
+static inline bool not_owned_by_me(irq_spinlock_t *lock)
+{
+	return true;
+}
+
+static inline void claim(irq_spinlock_t *lock)
+{
+}
+
+static inline void unclaim(irq_spinlock_t *lock)
+{
+}
+
+#endif
+
 /** Initialize interrupts-disabled spinlock
  *
  * @param lock IRQ spinlock to be initialized.
@@ -46,9 +98,7 @@
  */
 void irq_spinlock_initialize(irq_spinlock_t *lock, const char *name)
 {
-	spinlock_initialize(&(lock->lock), name);
-	lock->guard = false;
-	lock->ipl = 0;
+	*lock = (irq_spinlock_t) IRQ_SPINLOCK_INITIALIZER(name);
 }
 
 /** Lock interrupts-disabled spinlock
@@ -62,6 +112,8 @@ void irq_spinlock_initialize(irq_spinlock_t *lock, const char *name)
  */
 void irq_spinlock_lock(irq_spinlock_t *lock, bool irq_dis)
 {
+	ASSERT_IRQ_SPINLOCK(not_owned_by_me(lock), lock);
+
 	if (irq_dis) {
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&(lock->lock));
@@ -74,6 +126,8 @@ void irq_spinlock_lock(irq_spinlock_t *lock, bool irq_dis)
 		spinlock_lock(&(lock->lock));
 		ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
 	}
+
+	claim(lock);
 }
 
 /** Unlock interrupts-disabled spinlock
@@ -88,6 +142,9 @@ void irq_spinlock_lock(irq_spinlock_t *lock, bool irq_dis)
 void irq_spinlock_unlock(irq_spinlock_t *lock, bool irq_res)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
+	ASSERT_IRQ_SPINLOCK(owned_by_me(lock), lock);
+
+	unclaim(lock);
 
 	if (irq_res) {
 		ASSERT_IRQ_SPINLOCK(lock->guard, lock);
@@ -118,6 +175,8 @@ bool irq_spinlock_trylock(irq_spinlock_t *lock)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
 	bool ret = spinlock_trylock(&(lock->lock));
+	if (ret)
+		claim(lock);
 
 	ASSERT_IRQ_SPINLOCK((!ret) || (!lock->guard), lock);
 	return ret;
@@ -137,14 +196,20 @@ bool irq_spinlock_trylock(irq_spinlock_t *lock)
 void irq_spinlock_pass(irq_spinlock_t *unlock, irq_spinlock_t *lock)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), unlock);
+	ASSERT_IRQ_SPINLOCK(owned_by_me(unlock), unlock);
+	ASSERT_IRQ_SPINLOCK(not_owned_by_me(lock), lock);
 
 	/* Pass guard from unlock to lock */
 	bool guard = unlock->guard;
 	ipl_t ipl = unlock->ipl;
 	unlock->guard = false;
 
+	unclaim(unlock);
+
 	spinlock_unlock(&(unlock->lock));
 	spinlock_lock(&(lock->lock));
+
+	claim(lock);
 
 	ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
 
@@ -168,6 +233,8 @@ void irq_spinlock_pass(irq_spinlock_t *unlock, irq_spinlock_t *lock)
 void irq_spinlock_exchange(irq_spinlock_t *unlock, irq_spinlock_t *lock)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), unlock);
+	ASSERT_IRQ_SPINLOCK(owned_by_me(unlock), unlock);
+	ASSERT_IRQ_SPINLOCK(not_owned_by_me(lock), lock);
 
 	spinlock_lock(&(lock->lock));
 	ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
@@ -179,6 +246,9 @@ void irq_spinlock_exchange(irq_spinlock_t *unlock, irq_spinlock_t *lock)
 		unlock->guard = false;
 	}
 
+	claim(lock);
+	unclaim(unlock);
+
 	spinlock_unlock(&(unlock->lock));
 }
 
@@ -187,9 +257,9 @@ void irq_spinlock_exchange(irq_spinlock_t *unlock, irq_spinlock_t *lock)
  * @param lock		IRQ spinlock.
  * @return		True if the IRQ spinlock is locked, false otherwise.
  */
-bool irq_spinlock_locked(irq_spinlock_t *ilock)
+bool irq_spinlock_locked(irq_spinlock_t *lock)
 {
-	return spinlock_locked(&ilock->lock);
+	return owned_by_me(lock) && spinlock_locked(&lock->lock);
 }
 
 /** @}

@@ -74,6 +74,7 @@ struct as;
  */
 typedef struct {
 	size_t preemption;      /**< Preemption disabled counter and flag. */
+	size_t mutex_locks;
 	struct thread *thread;  /**< Current thread. */
 	struct task *task;      /**< Current task. */
 	struct cpu *cpu;        /**< Executing CPU. */
