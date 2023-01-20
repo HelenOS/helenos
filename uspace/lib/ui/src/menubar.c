@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -242,8 +242,10 @@ error:
  * @param mbar Menu bar
  * @param menu Menu to select (or deselect if selected) or @c NULL
  * @param openup Open menu even if not currently open
+ * @param idev_id Input device ID associated with the selecting seat
  */
-void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_t *menu, bool openup)
+void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_t *menu, bool openup,
+    sysarg_t idev_id)
 {
 	ui_menu_t *old_menu;
 	gfx_rect_t rect;
@@ -271,7 +273,7 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_t *menu, bool openup)
 			 * the old menu was open or @a openup was
 			 * specified.
 			 */
-			(void) ui_menu_open(mbar->selected, &rect);
+			(void) ui_menu_open(mbar->selected, &rect, idev_id);
 		}
 	}
 }
@@ -282,8 +284,9 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_t *menu, bool openup)
  * as well. If we are already at the first entry, we wrap around.
  *
  * @param mbar Menu bar
+ * @param idev_id Input device ID
  */
-void ui_menu_bar_left(ui_menu_bar_t *mbar)
+void ui_menu_bar_left(ui_menu_bar_t *mbar, sysarg_t idev_id)
 {
 	ui_menu_t *nmenu;
 
@@ -295,7 +298,7 @@ void ui_menu_bar_left(ui_menu_bar_t *mbar)
 		nmenu = ui_menu_last(mbar);
 
 	if (nmenu != mbar->selected)
-		ui_menu_bar_select(mbar, nmenu, false);
+		ui_menu_bar_select(mbar, nmenu, false, idev_id);
 }
 
 /** Move one entry right.
@@ -304,8 +307,9 @@ void ui_menu_bar_left(ui_menu_bar_t *mbar)
  * as well. If we are already at the last entry, we wrap around.
  *
  * @param mbar Menu bar
+ * @param idev_id Input device ID
  */
-void ui_menu_bar_right(ui_menu_bar_t *mbar)
+void ui_menu_bar_right(ui_menu_bar_t *mbar, sysarg_t idev_id)
 {
 	ui_menu_t *nmenu;
 
@@ -317,7 +321,7 @@ void ui_menu_bar_right(ui_menu_bar_t *mbar)
 		nmenu = ui_menu_first(mbar);
 
 	if (nmenu != mbar->selected)
-		ui_menu_bar_select(mbar, nmenu, false);
+		ui_menu_bar_select(mbar, nmenu, false, idev_id);
 }
 
 /** Handle menu bar key press without modifiers.
@@ -344,16 +348,16 @@ ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *mbar, kbd_event_t *event
 	}
 
 	if (event->key == KC_LEFT)
-		ui_menu_bar_left(mbar);
+		ui_menu_bar_left(mbar, event->kbd_id);
 
 	if (event->key == KC_RIGHT)
-		ui_menu_bar_right(mbar);
+		ui_menu_bar_right(mbar, event->kbd_id);
 
 	if (event->key == KC_ENTER || event->key == KC_DOWN) {
 		if (mbar->selected != NULL && !ui_menu_is_open(mbar->selected)) {
 			ui_menu_bar_entry_rect(mbar, mbar->selected,
 			    &rect);
-			ui_menu_open(mbar->selected, &rect);
+			ui_menu_open(mbar->selected, &rect, event->kbd_id);
 		}
 
 		return ui_claimed;
@@ -361,7 +365,7 @@ ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *mbar, kbd_event_t *event
 
 	if (event->c != '\0' && !ui_menu_is_open(mbar->selected)) {
 		/* Check if it is an accelerator. */
-		ui_menu_bar_press_accel(mbar, event->c);
+		ui_menu_bar_press_accel(mbar, event->c, event->kbd_id);
 	}
 
 	return ui_claimed;
@@ -378,7 +382,7 @@ ui_evclaim_t ui_menu_bar_kbd_event(ui_menu_bar_t *mbar, kbd_event_t *event)
 	if ((event->mods & KM_ALT) != 0 &&
 	    (event->mods & (KM_CTRL | KM_SHIFT)) == 0 && event->c != '\0') {
 		/* Check if it is an accelerator. */
-		ui_menu_bar_press_accel(mbar, event->c);
+		ui_menu_bar_press_accel(mbar, event->c, event->kbd_id);
 	}
 
 	if (event->type == KEY_PRESS && (event->mods &
@@ -398,8 +402,9 @@ ui_evclaim_t ui_menu_bar_kbd_event(ui_menu_bar_t *mbar, kbd_event_t *event)
  *
  * @param mbar Menu bar
  * @param c Character
+ * @param kbd_id Keyboard ID
  */
-void ui_menu_bar_press_accel(ui_menu_bar_t *mbar, char32_t c)
+void ui_menu_bar_press_accel(ui_menu_bar_t *mbar, char32_t c, sysarg_t kbd_id)
 {
 	ui_menu_t *menu;
 	char32_t maccel;
@@ -408,7 +413,7 @@ void ui_menu_bar_press_accel(ui_menu_bar_t *mbar, char32_t c)
 	while (menu != NULL) {
 		maccel = ui_menu_get_accel(menu);
 		if (c == maccel) {
-			ui_menu_bar_select(mbar, menu, true);
+			ui_menu_bar_select(mbar, menu, true, kbd_id);
 			return;
 		}
 
@@ -432,6 +437,7 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 	gfx_coord_t width;
 	gfx_coord_t hpad;
 	gfx_coord2_t ppos;
+	sysarg_t pos_id;
 
 	res = ui_window_get_res(mbar->window);
 
@@ -445,6 +451,7 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 	}
 
 	pos = mbar->rect.p0;
+	pos_id = event->pos_id;
 
 	menu = ui_menu_first(mbar);
 	while (menu != NULL) {
@@ -462,9 +469,9 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 
 			/* Open the menu, close if already open. */
 			if (menu == mbar->selected)
-				ui_menu_bar_select(mbar, NULL, false);
+				ui_menu_bar_select(mbar, NULL, false, pos_id);
 			else
-				ui_menu_bar_select(mbar, menu, true);
+				ui_menu_bar_select(mbar, menu, true, pos_id);
 
 			return ui_claimed;
 		}
@@ -543,7 +550,7 @@ void ui_menu_bar_activate(ui_menu_bar_t *mbar)
 
 void ui_menu_bar_deactivate(ui_menu_bar_t *mbar)
 {
-	ui_menu_bar_select(mbar, NULL, false);
+	ui_menu_bar_select(mbar, NULL, false, 0);
 	mbar->active = false;
 }
 

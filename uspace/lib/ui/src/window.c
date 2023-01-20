@@ -226,6 +226,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	dparams.caption = params->caption;
 	/* Only allow making the window larger */
 	gfx_rect_dims(&params->rect, &dparams.min_size);
+	dparams.idev_id = params->idev_id;
 
 	if ((params->flags & ui_wndf_popup) != 0)
 		dparams.flags |= wndf_popup;

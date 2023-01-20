@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -98,6 +98,7 @@ errno_t ui_popup_create(ui_t *ui, ui_window_t *parent,
 	wparams.style &= ~ui_wds_decorated;
 	wparams.placement = ui_wnd_place_popup;
 	wparams.flags |= ui_wndf_popup;
+	wparams.idev_id = params->idev_id;
 
 	/* Compute position of parent rectangle relative to the screen */
 	gfx_rect_translate(&parent_pos, &params->place, &wparams.prect);

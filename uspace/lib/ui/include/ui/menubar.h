@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <gfx/coord.h>
 #include <io/pos_event.h>
+#include <types/common.h>
 #include <types/ui/menubar.h>
 #include <types/ui/control.h>
 #include <types/ui/event.h>
@@ -55,7 +56,7 @@ extern void ui_menu_bar_set_rect(ui_menu_bar_t *, gfx_rect_t *);
 extern errno_t ui_menu_bar_paint(ui_menu_bar_t *);
 extern ui_evclaim_t ui_menu_bar_kbd_event(ui_menu_bar_t *, kbd_event_t *);
 extern ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *, pos_event_t *);
-extern void ui_menu_bar_press_accel(ui_menu_bar_t *, char32_t);
+extern void ui_menu_bar_press_accel(ui_menu_bar_t *, char32_t, sysarg_t);
 extern void ui_menu_bar_unfocus(ui_menu_bar_t *);
 extern void ui_menu_bar_activate(ui_menu_bar_t *);
 extern void ui_menu_bar_deactivate(ui_menu_bar_t *);

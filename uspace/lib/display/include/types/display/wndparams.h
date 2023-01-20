@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,6 +73,8 @@ typedef struct {
 	gfx_coord2_t pos;
 	/** Flags */
 	display_wnd_flags_t flags;
+	/** Input device ID associated with window's seat (or zero) */
+	sysarg_t idev_id;
 } display_wnd_params_t;
 
 #endif

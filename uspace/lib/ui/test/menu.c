@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -292,7 +292,7 @@ PCUT_TEST(open_close)
 	prect.p1.y = 0;
 
 	/* Open and close */
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_menu_close(menu);
@@ -340,7 +340,7 @@ PCUT_TEST(is_open)
 	open = ui_menu_is_open(menu);
 	PCUT_ASSERT_FALSE(open);
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	open = ui_menu_is_open(menu);
@@ -392,7 +392,7 @@ PCUT_TEST(paint_bg_gfx)
 	prect.p1.y = 0;
 
 	/* Menu needs to be open to be able to paint it */
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -441,7 +441,7 @@ PCUT_TEST(paint_bg_text)
 	prect.p1.y = 0;
 
 	/* Menu needs to be open to be able to paint it */
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -490,7 +490,7 @@ PCUT_TEST(paint)
 	prect.p1.y = 0;
 
 	/* Menu needs to be open to be able to paint it */
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -538,7 +538,7 @@ PCUT_TEST(up_empty)
 	prect.p1.y = 0;
 
 	/* Menu needs to be open to be able to move around it */
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_menu_up(menu);
@@ -598,7 +598,7 @@ PCUT_TEST(up)
 	prect.p1.y = 0;
 
 	/* Menu needs to be open to be able to move around it */
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* When menu is open, the first entry is selected */
@@ -654,7 +654,7 @@ PCUT_TEST(down_empty)
 	prect.p1.y = 0;
 
 	/* Menu needs to be open to be able to move around it */
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	ui_menu_down(menu);
@@ -714,7 +714,7 @@ PCUT_TEST(down)
 	prect.p1.y = 0;
 
 	/* Menu needs to be open to be able to move around it */
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* When menu is open, the first entry is selected */

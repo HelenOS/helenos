@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include <types/common.h>
 
 struct ui_popup;
 typedef struct ui_popup ui_popup_t;
@@ -49,6 +50,8 @@ typedef struct {
 	gfx_rect_t rect;
 	/** Placement rectangle close to which popup should be placed */
 	gfx_rect_t place;
+	/** Input device ID associated with the popup's seat */
+	sysarg_t idev_id;
 } ui_popup_params_t;
 
 /** Popup callbacks */

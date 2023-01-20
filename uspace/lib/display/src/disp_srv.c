@@ -127,6 +127,7 @@ static void display_window_create_srv(display_srv_t *srv, ipc_call_t *icall)
 	params.min_size = eparams.min_size;
 	params.pos = eparams.pos;
 	params.flags = eparams.flags;
+	params.idev_id = eparams.idev_id;
 
 	rc = srv->ops->window_create(srv->arg, &params, &wnd_id);
 	async_answer_1(icall, rc, wnd_id);

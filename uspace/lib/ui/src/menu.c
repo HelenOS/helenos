@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -279,8 +279,9 @@ ui_resource_t *ui_menu_get_res(ui_menu_t *menu)
  *
  * @param menu Menu
  * @param prect Parent rectangle around which the menu should be placed
+ * @param idev_id Input device associated with the menu's seat
  */
-errno_t ui_menu_open(ui_menu_t *menu, gfx_rect_t *prect)
+errno_t ui_menu_open(ui_menu_t *menu, gfx_rect_t *prect, sysarg_t idev_id)
 {
 	ui_popup_t *popup = NULL;
 	ui_popup_params_t params;
@@ -300,6 +301,7 @@ errno_t ui_menu_open(ui_menu_t *menu, gfx_rect_t *prect)
 	ui_popup_params_init(&params);
 	params.rect = geom.outer_rect;
 	params.place = *prect;
+	params.idev_id = idev_id;
 
 	rc = ui_popup_create(menu->mbar->ui, menu->mbar->window, &params,
 	    &popup);
@@ -521,7 +523,7 @@ ui_evclaim_t ui_menu_kbd_event(ui_menu_t *menu, kbd_event_t *event)
 
 	if (event->type == KEY_PRESS && (event->mods & KM_ALT) != 0 &&
 	    (event->mods & (KM_CTRL | KM_SHIFT)) == 0 && event->c != '\0')
-		ui_menu_bar_press_accel(menu->mbar, event->c);
+		ui_menu_bar_press_accel(menu->mbar, event->c, event->kbd_id);
 
 	return ui_claimed;
 }
@@ -615,10 +617,10 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 		ui_menu_bar_deactivate(menu->mbar);
 		break;
 	case KC_LEFT:
-		ui_menu_bar_left(menu->mbar);
+		ui_menu_bar_left(menu->mbar, event->kbd_id);
 		break;
 	case KC_RIGHT:
-		ui_menu_bar_right(menu->mbar);
+		ui_menu_bar_right(menu->mbar, event->kbd_id);
 		break;
 	case KC_UP:
 		ui_menu_up(menu);

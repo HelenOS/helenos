@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -380,7 +380,7 @@ PCUT_TEST(paint)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -491,7 +491,7 @@ PCUT_TEST(press_release)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -554,7 +554,7 @@ PCUT_TEST(press_leave_release)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -622,7 +622,7 @@ PCUT_TEST(press_leave_enter_release)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -694,7 +694,7 @@ PCUT_TEST(activate)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(resp.activated);
@@ -749,7 +749,7 @@ PCUT_TEST(pos_press_inside)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -809,7 +809,7 @@ PCUT_TEST(pos_press_outside)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -869,7 +869,7 @@ PCUT_TEST(pos_move_out)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	pos.x = 0;
@@ -932,7 +932,7 @@ PCUT_TEST(pos_move_in)
 	prect.p1.x = 0;
 	prect.p1.y = 0;
 
-	rc = ui_menu_open(menu, &prect);
+	rc = ui_menu_open(menu, &prect, 0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	event.type = POS_UPDATE;

@@ -596,6 +596,17 @@ ds_seat_t *ds_display_next_seat(ds_seat_t *seat)
 	return list_get_instance(link, ds_seat_t, lseats);
 }
 
+/** Get default seat in display.
+ *
+ * @param disp Display
+ * @return First seat or @c NULL if there is none
+ */
+ds_seat_t *ds_display_default_seat(ds_display_t *disp)
+{
+	/* XXX Probably not the best solution */
+	return ds_display_first_seat(disp);
+}
+
 /** Find seat by ID.
  *
  * @param display Display
@@ -639,7 +650,7 @@ ds_seat_t *ds_display_seat_by_idev(ds_display_t *disp, ds_idev_id_t idev_id)
 	}
 
 	/* If none was found, return the default seat */
-	return ds_display_first_seat(disp);
+	return ds_display_default_seat(disp);
 }
 
 /** Allocate back buffer for display.

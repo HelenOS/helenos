@@ -175,6 +175,7 @@ errno_t display_window_create(display_t *display, display_wnd_params_t *params,
 	eparams.min_size = params->min_size;
 	eparams.pos = params->pos;
 	eparams.flags = params->flags;
+	eparams.idev_id = params->idev_id;
 
 	window = calloc(1, sizeof(display_window_t));
 	if (window == NULL)

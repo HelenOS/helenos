@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -234,7 +234,7 @@ PCUT_TEST(press_accel)
 
 	PCUT_ASSERT_FALSE(ui_menu_is_open(menu));
 
-	ui_menu_bar_press_accel(mbar, 't');
+	ui_menu_bar_press_accel(mbar, 't', 0);
 
 	PCUT_ASSERT_TRUE(ui_menu_is_open(menu));
 
@@ -328,11 +328,11 @@ PCUT_TEST(select_different)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu2);
 
-	ui_menu_bar_select(mbar, menu1, true);
+	ui_menu_bar_select(mbar, menu1, true, 0);
 	PCUT_ASSERT_EQUALS(menu1, mbar->selected);
 
 	/* Selecting different menu should select it */
-	ui_menu_bar_select(mbar, menu2, true);
+	ui_menu_bar_select(mbar, menu2, true, 0);
 	PCUT_ASSERT_EQUALS(menu2, mbar->selected);
 
 	ui_menu_bar_destroy(mbar);

@@ -87,6 +87,7 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		goto error;
 	}
 
+	/* Caption */
 	wnd->caption = str_dup(params->caption);
 	if (wnd->caption == NULL) {
 		rc = ENOMEM;
@@ -98,6 +99,8 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 
 	gfx_bitmap_params_init(&bparams);
 	bparams.rect = params->rect;
+
+	/* Allocate window bitmap */
 
 	dgc = ds_display_get_gc(wnd->display);
 	if (dgc != NULL) {
@@ -141,14 +144,19 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		wnd->dpos.y = ((wnd->id - 1) & 2) / 2 * 300;
 	}
 
-	// TODO Multi-seat: which seat should own the new window?
-	seat = ds_display_first_seat(client->display);
+	/* Determine which seat should own the window */
+	if (params->idev_id != 0)
+		seat = ds_display_seat_by_idev(wnd->display, params->idev_id);
+	else
+		seat = ds_display_default_seat(wnd->display);
 
+	/* Is this a popup window? */
 	if ((params->flags & wndf_popup) != 0)
 		ds_seat_set_popup(seat, wnd);
 	else
 		ds_seat_set_focus(seat, wnd);
 
+	/* Is this window a panel? */
 	if ((params->flags & wndf_avoid) != 0)
 		ds_display_update_max_rect(wnd->display);
 

@@ -88,6 +88,8 @@ typedef struct {
 	ui_wnd_flags_t flags;
 	/** Parent rectangle for popup windows */
 	gfx_rect_t prect;
+	/** Input device associated with the window's seat */
+	sysarg_t idev_id;
 } ui_wnd_params_t;
 
 /** Window callbacks */

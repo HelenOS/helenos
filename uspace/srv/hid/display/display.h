@@ -84,6 +84,7 @@ extern void ds_display_add_seat(ds_display_t *, ds_seat_t *);
 extern void ds_display_remove_seat(ds_seat_t *);
 extern ds_seat_t *ds_display_first_seat(ds_display_t *);
 extern ds_seat_t *ds_display_next_seat(ds_seat_t *);
+extern ds_seat_t *ds_display_default_seat(ds_display_t *);
 extern ds_seat_t *ds_display_find_seat(ds_display_t *, ds_seat_id_t);
 extern ds_seat_t *ds_display_seat_by_idev(ds_display_t *, ds_idev_id_t);
 extern errno_t ds_display_add_ddev(ds_display_t *, ds_ddev_t *);
