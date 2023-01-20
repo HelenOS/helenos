@@ -36,6 +36,7 @@
  * @brief Spinlocks.
  */
 
+#include <arch/asm.h>
 #include <synch/spinlock.h>
 #include <atomic.h>
 #include <barrier.h>
@@ -46,6 +47,10 @@
 #include <symtab.h>
 #include <stacktrace.h>
 #include <cpu.h>
+
+#ifndef ARCH_SPIN_HINT
+#define ARCH_SPIN_HINT() ((void)0)
+#endif
 
 /** Initialize spinlock
  *
@@ -76,6 +81,8 @@ void spinlock_lock(spinlock_t *lock)
 	size_t i = 0;
 
 	while (atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire)) {
+		ARCH_SPIN_HINT();
+
 #ifdef CONFIG_DEBUG_SPINLOCK
 		/*
 		 * We need to be careful about particular locks

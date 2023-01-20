@@ -60,6 +60,8 @@ _NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 		;
 }
 
+#define ARCH_SPIN_HINT() asm volatile ("yield")
+
 /** Output byte to port.
  *
  * @param port Port to write to.

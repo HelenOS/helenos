@@ -64,6 +64,10 @@ _NO_TRACE static inline void cpu_sleep(void)
 #endif
 }
 
+#ifdef PROCESSOR_ARCH_armv7_a
+#define ARCH_SPIN_HINT() asm volatile ("yield")
+#endif
+
 _NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;
