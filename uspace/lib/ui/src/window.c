@@ -226,7 +226,16 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	dparams.caption = params->caption;
 	/* Only allow making the window larger */
 	gfx_rect_dims(&params->rect, &dparams.min_size);
-	dparams.idev_id = params->idev_id;
+
+	/*
+	 * If idev_id is not specified, use the UI default (probably
+	 * obtained from display specification. This creates the
+	 * main window in the seat specified on the command line.
+	 */
+	if (params->idev_id != 0)
+		dparams.idev_id = params->idev_id;
+	else
+		dparams.idev_id = ui->idev_id;
 
 	if ((params->flags & ui_wndf_popup) != 0)
 		dparams.flags |= wndf_popup;

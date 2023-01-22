@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <task.h>
+#include <types/common.h>
 #include <ui/clickmatic.h>
 #include <ui/ui.h>
 #include <ui/wdecor.h>
@@ -64,16 +65,26 @@
  * @param ospec Output specification
  * @param ws Place to store window system type (protocol)
  * @param osvc Place to store pointer to output service name
+ * @param ridev_id Place to store input device ID
+ * @return EOK on success, EINVAL if syntax is invalid, ENOMEM if out of
+ *         memory
  */
-static void ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
-    const char **osvc)
+static errno_t ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
+    char **osvc, sysarg_t *ridev_id)
 {
 	const char *cp;
+	const char *qm;
+	const char *endptr;
+	uint64_t idev_id;
+	errno_t rc;
+
+	*ridev_id = 0;
 
 	cp = ospec;
 	while (isalpha(*cp))
 		++cp;
 
+	/* Window system / protocol */
 	if (*cp == '@') {
 		if (str_lcmp(ospec, "disp@", str_length("disp@")) == 0) {
 			*ws = ui_ws_display;
@@ -87,14 +98,50 @@ static void ui_ospec_parse(const char *ospec, ui_winsys_t *ws,
 			*ws = ui_ws_unknown;
 		}
 
-		if (cp[1] != '\0')
-			*osvc = cp + 1;
-		else
-			*osvc = NULL;
+		++cp;
 	} else {
 		*ws = ui_ws_display;
-		*osvc = ospec;
 	}
+
+	/* Output service is the part before question mark */
+	qm = str_chr(cp, '?');
+	if (qm != NULL) {
+		*osvc = str_ndup(cp, qm - cp);
+	} else {
+		/* No question mark */
+		*osvc = str_dup(cp);
+	}
+
+	if (*osvc == NULL)
+		return ENOMEM;
+
+	if (qm != NULL) {
+		/* The part after the question mark */
+		cp = qm + 1;
+
+		/* Input device ID parameter */
+		if (str_lcmp(cp, "idev=", str_length("idev=")) == 0) {
+			cp += str_length("idev=");
+
+			rc = str_uint64_t(cp, &endptr, 10, false, &idev_id);
+			if (rc != EOK)
+				goto error;
+
+			*ridev_id = idev_id;
+			cp = endptr;
+		}
+	}
+
+	if (*cp != '\0') {
+		rc = EINVAL;
+		goto error;
+	}
+
+	return EOK;
+error:
+	free(*osvc);
+	*osvc = NULL;
+	return rc;
 }
 
 /** Create new user interface.
@@ -113,16 +160,19 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 	console_ctrl_t *console;
 	console_gc_t *cgc;
 	ui_winsys_t ws;
-	const char *osvc;
+	char *osvc;
 	sysarg_t cols;
 	sysarg_t rows;
+	sysarg_t idev_id;
 	ui_t *ui;
 
-	ui_ospec_parse(ospec, &ws, &osvc);
+	rc = ui_ospec_parse(ospec, &ws, &osvc, &idev_id);
+	if (rc != EOK)
+		return rc;
 
 	if (ws == ui_ws_display || ws == ui_ws_any) {
-		rc = display_open(osvc != NULL ? osvc : DISPLAY_DEFAULT,
-		    &display);
+		rc = display_open((str_cmp(osvc, "") != 0) ? osvc :
+		    DISPLAY_DEFAULT, &display);
 		if (rc != EOK)
 			goto disp_fail;
 
@@ -132,7 +182,9 @@ errno_t ui_create(const char *ospec, ui_t **rui)
 			goto disp_fail;
 		}
 
+		free(osvc);
 		ui->myoutput = true;
+		ui->idev_id = idev_id;
 		*rui = ui;
 		return EOK;
 	}
@@ -165,6 +217,8 @@ disp_fail:
 			goto cons_fail;
 		}
 
+		free(osvc);
+
 		ui->cgc = cgc;
 		ui->rect.p0.x = 0;
 		ui->rect.p0.y = 0;
@@ -179,6 +233,7 @@ disp_fail:
 
 cons_fail:
 	if (ws == ui_ws_null) {
+		free(osvc);
 		rc = ui_create_disp(NULL, &ui);
 		if (rc != EOK)
 			return rc;
@@ -188,6 +243,7 @@ cons_fail:
 		return EOK;
 	}
 
+	free(osvc);
 	return EINVAL;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 #include <fibril_synch.h>
 #include <io/console.h>
 #include <stdbool.h>
+#include <types/common.h>
 
 /** Actual structure of user interface.
  *
@@ -67,6 +68,8 @@ struct ui {
 	fibril_mutex_t lock;
 	/** Clickmatic */
 	struct ui_clickmatic *clickmatic;
+	/** Default input device ID used to determine new window's seat */
+	sysarg_t idev_id;
 };
 
 #endif

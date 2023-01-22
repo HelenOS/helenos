@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -58,9 +58,11 @@
 static const char *display_spec = UI_DISPLAY_DEFAULT;
 
 static void wnd_close(ui_window_t *, void *);
+static void wnd_pos(ui_window_t *, void *, pos_event_t *);
 
 static ui_window_cb_t window_cb = {
-	.close = wnd_close
+	.close = wnd_close,
+	.pos = wnd_pos
 };
 
 static void pb_clicked(ui_pbutton_t *, void *);
@@ -69,7 +71,7 @@ static ui_pbutton_cb_t pbutton_cb = {
 	.clicked = pb_clicked
 };
 
-static int app_launchl(const char *, ...);
+static int app_launchl(launcher_t *, const char *, ...);
 
 /** Window close button was clicked.
  *
@@ -83,6 +85,22 @@ static void wnd_close(ui_window_t *window, void *arg)
 	ui_quit(launcher->ui);
 }
 
+/** Window received position event.
+ *
+ * @param window Window
+ * @param arg Argument (launcher)
+ * @param event Position event
+ */
+static void wnd_pos(ui_window_t *window, void *arg, pos_event_t *event)
+{
+	launcher_t *launcher = (launcher_t *) arg;
+
+	/* Remember ID of device that sent the last event */
+	launcher->ev_pos_id = event->pos_id;
+
+	ui_window_def_pos(window, event);
+}
+
 /** Push button was clicked.
  *
  * @param pbutton Push button
@@ -93,21 +111,21 @@ static void pb_clicked(ui_pbutton_t *pbutton, void *arg)
 	launcher_t *launcher = (launcher_t *) arg;
 
 	if (pbutton == launcher->pb1) {
-		app_launchl("/app/terminal", "-c", "/app/nav", NULL);
+		app_launchl(launcher, "/app/terminal", "-c", "/app/nav", NULL);
 	} else if (pbutton == launcher->pb2) {
-		app_launchl("/app/terminal", "-c", "/app/edit", NULL);
+		app_launchl(launcher, "/app/terminal", "-c", "/app/edit", NULL);
 	} else if (pbutton == launcher->pb3) {
-		app_launchl("/app/terminal", NULL);
+		app_launchl(launcher, "/app/terminal", NULL);
 	} else if (pbutton == launcher->pb4) {
-		app_launchl("/app/calculator", NULL);
+		app_launchl(launcher, "/app/calculator", NULL);
 	} else if (pbutton == launcher->pb5) {
-		app_launchl("/app/uidemo", NULL);
+		app_launchl(launcher, "/app/uidemo", NULL);
 	} else if (pbutton == launcher->pb6) {
-		app_launchl("/app/gfxdemo", "ui", NULL);
+		app_launchl(launcher, "/app/gfxdemo", "ui", NULL);
 	}
 }
 
-static int app_launchl(const char *app, ...)
+static int app_launchl(launcher_t *launcher, const char *app, ...)
 {
 	errno_t rc;
 	task_id_t id;
@@ -116,8 +134,10 @@ static int app_launchl(const char *app, ...)
 	const char *arg;
 	const char **argv;
 	const char **argp;
+	char *dspec;
 	int cnt = 0;
 	int i;
+	int rv;
 
 	va_start(ap, app);
 	do {
@@ -136,10 +156,16 @@ static int app_launchl(const char *app, ...)
 	argp = argv;
 	*argp++ = app;
 
-	if (str_cmp(display_spec, UI_DISPLAY_DEFAULT) != 0) {
-		*argp++ = "-d";
-		*argp++ = display_spec;
+	rv = asprintf(&dspec, "%s?idev=%zu", display_spec,
+	    (size_t)launcher->ev_pos_id);
+	if (rv < 0) {
+		printf("Out of memory.\n");
+		return -1;
 	}
+
+	/* TODO Might be omitted if default display AND only one seat */
+	*argp++ = "-d";
+	*argp++ = dspec;
 
 	va_start(ap, app);
 	do {
@@ -191,6 +217,8 @@ int main(int argc, char *argv[])
 	gfx_rect_t logo_rect;
 	gfx_rect_t rect;
 	gfx_coord2_t off;
+	const char *dspec = UI_DISPLAY_DEFAULT;
+	char *qmark;
 	errno_t rc;
 
 	i = 1;
@@ -203,7 +231,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 
-			display_spec = argv[i++];
+			dspec = argv[i++];
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -211,7 +239,18 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	rc = ui_create(display_spec, &ui);
+	display_spec = str_dup(dspec);
+	if (display_spec == NULL) {
+		printf("Out of memory.\n");
+		return 1;
+	}
+
+	/* Remove additional arguments */
+	qmark = str_chr(display_spec, '?');
+	if (qmark != NULL)
+		*qmark = '\0';
+
+	rc = ui_create(dspec, &ui);
 	if (rc != EOK) {
 		printf("Error creating UI on display %s.\n", display_spec);
 		return rc;
