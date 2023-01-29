@@ -92,18 +92,13 @@
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
-	((pte_t *) ((((uint64_t) ((pte_t *) (ptl0))[(i)].addr_12_31) << 12) | \
-	    (((uint64_t) ((pte_t *) (ptl0))[(i)].addr_32_62) << 32)))
+	((pte_t *) (((uint64_t) ((pte_t *) (ptl0))[(i)].addr_12_51) << 12))
 #define GET_PTL2_ADDRESS_ARCH(ptl1, i) \
-	((pte_t *) ((((uint64_t) ((pte_t *) (ptl1))[(i)].addr_12_31) << 12) | \
-	    (((uint64_t) ((pte_t *) (ptl1))[(i)].addr_32_62) << 32)))
+	((pte_t *) (((uint64_t) ((pte_t *) (ptl1))[(i)].addr_12_51) << 12))
 #define GET_PTL3_ADDRESS_ARCH(ptl2, i) \
-	((pte_t *) ((((uint64_t) ((pte_t *) (ptl2))[(i)].addr_12_31) << 12) | \
-	    (((uint64_t) ((pte_t *) (ptl2))[(i)].addr_32_62) << 32)))
+	((pte_t *) (((uint64_t) ((pte_t *) (ptl2))[(i)].addr_12_51) << 12))
 #define GET_FRAME_ADDRESS_ARCH(ptl3, i) \
-	((uintptr_t *) \
-	    ((((uint64_t) ((pte_t *) (ptl3))[(i)].addr_12_31) << 12) | \
-	    (((uint64_t) ((pte_t *) (ptl3))[(i)].addr_32_62) << 32)))
+	((uintptr_t *) (((uint64_t) ((pte_t *) (ptl3))[(i)].addr_12_51) << 12))
 
 /* Set PTE address accessors for each level. */
 #define SET_PTL0_ADDRESS_ARCH(ptl0) \
@@ -153,8 +148,7 @@
 #define PTE_PRESENT_ARCH(p) \
 	((p)->present != 0)
 #define PTE_GET_FRAME_ARCH(p) \
-	((((uintptr_t) (p)->addr_12_31) << 12) | \
-	    ((uintptr_t) (p)->addr_32_62 << 32))
+	(((uintptr_t) (p)->addr_12_51) << 12)
 #define PTE_WRITABLE_ARCH(p) \
 	((p)->writeable != 0)
 #define PTE_EXECUTABLE_ARCH(p) \
@@ -201,8 +195,8 @@ typedef struct {
 	unsigned int global : 1;
 	unsigned int soft_valid : 1;  /**< Valid content even if present bit is cleared. */
 	unsigned int avl : 2;
-	unsigned int addr_12_31 : 20;
-	unsigned int addr_32_62 : 31;
+	unsigned long addr_12_51 : 40;
+	unsigned int reserved : 11;
 	unsigned int no_execute : 1;
 } __attribute__((packed)) pte_t;
 
@@ -223,8 +217,7 @@ _NO_TRACE static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 {
 	pte_t *p = &pt[i];
 
-	p->addr_12_31 = (a >> 12) & UINT32_C(0xfffff);
-	p->addr_32_62 = a >> 32;
+	p->addr_12_51 = (a >> 12) & UINT64_C(0xffffffffff);
 }
 
 _NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
