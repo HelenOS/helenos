@@ -58,6 +58,8 @@ _NO_TRACE static inline void __attribute__((noreturn)) cpu_halt(void)
 	}
 }
 
+#define ARCH_SPIN_HINT() asm volatile ("pause\n")
+
 /** Byte from port
  *
  * Get byte from port

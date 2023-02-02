@@ -63,6 +63,8 @@ _NO_TRACE static inline void cpu_sleep(void)
 	);
 }
 
+#define ARCH_SPIN_HINT() asm volatile ("pause\n")
+
 #define GEN_READ_REG(reg) _NO_TRACE static inline sysarg_t read_ ##reg (void) \
 	{ \
 		sysarg_t res; \

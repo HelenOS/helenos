@@ -40,6 +40,7 @@
 #include <macros.h>
 #include <str.h>
 #include <mem.h>
+#include <preemption.h>
 #include <userspace.h>
 #include <stdbool.h>
 #include <syscall/syscall.h>
