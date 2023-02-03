@@ -48,10 +48,6 @@
 #include <stacktrace.h>
 #include <cpu.h>
 
-#ifndef ARCH_SPIN_HINT
-#define ARCH_SPIN_HINT() ((void)0)
-#endif
-
 /** Initialize spinlock
  *
  * @param sl Pointer to spinlock_t structure.
@@ -81,7 +77,7 @@ void spinlock_lock(spinlock_t *lock)
 	size_t i = 0;
 
 	while (atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire)) {
-		ARCH_SPIN_HINT();
+		cpu_spin_hint();
 
 #ifdef CONFIG_DEBUG_SPINLOCK
 		/*

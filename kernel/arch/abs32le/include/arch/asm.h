@@ -66,6 +66,15 @@ _NO_TRACE static inline void cpu_sleep(void)
 	 */
 }
 
+_NO_TRACE static inline void cpu_spin_hint(void)
+{
+	/*
+	 * Some ISAs have a special instruction for the body of a busy wait loop,
+	 * such as in spinlock and the like. Using it allows the CPU to optimize
+	 * its operation. For an example, see the "pause" instruction on x86.
+	 */
+}
+
 _NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
 }

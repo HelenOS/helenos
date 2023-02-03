@@ -60,7 +60,10 @@ _NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 		;
 }
 
-#define ARCH_SPIN_HINT() asm volatile ("yield")
+_NO_TRACE static inline void cpu_spin_hint(void)
+{
+	asm volatile ("yield");
+}
 
 /** Output byte to port.
  *

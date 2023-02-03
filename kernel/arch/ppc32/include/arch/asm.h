@@ -41,6 +41,10 @@
 #include <arch/mm/asid.h>
 #include <trace.h>
 
+_NO_TRACE static inline void cpu_spin_hint(void)
+{
+}
+
 _NO_TRACE static inline uint32_t msr_read(void)
 {
 	uint32_t msr;

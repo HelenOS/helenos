@@ -44,6 +44,10 @@ _NO_TRACE static inline void cpu_sleep(void)
 	asm volatile ("wait");
 }
 
+_NO_TRACE static inline void cpu_spin_hint(void)
+{
+}
+
 _NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;

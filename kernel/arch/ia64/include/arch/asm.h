@@ -43,6 +43,10 @@
 
 #define IO_SPACE_BOUNDARY       ((void *) (64 * 1024))
 
+_NO_TRACE static inline void cpu_spin_hint(void)
+{
+}
+
 /** Map the I/O port address to a legacy I/O address. */
 _NO_TRACE static inline uintptr_t p2a(volatile void *p)
 {
