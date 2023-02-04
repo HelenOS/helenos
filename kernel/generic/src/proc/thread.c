@@ -718,28 +718,14 @@ static void thread_print(thread_t *thread, bool additional)
 	else
 		name = thread->name;
 
-#ifdef __32_BITS__
 	if (additional)
-		printf("%-8" PRIu64 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
+		printf("%-8" PRIu64 " %p %p %9" PRIu64 "%c %9" PRIu64 "%c ",
 		    thread->tid, thread->thread_code, thread->kstack,
 		    ucycles, usuffix, kcycles, ksuffix);
 	else
-		printf("%-8" PRIu64 " %-14s %10p %-8s %10p %-5" PRIu32 "\n",
+		printf("%-8" PRIu64 " %-14s %p %-8s %p %-5" PRIu32 "\n",
 		    thread->tid, name, thread, thread_states[thread->state],
 		    thread->task, thread->task->container);
-#endif
-
-#ifdef __64_BITS__
-	if (additional)
-		printf("%-8" PRIu64 " %18p %18p\n"
-		    "         %9" PRIu64 "%c %9" PRIu64 "%c ",
-		    thread->tid, thread->thread_code, thread->kstack,
-		    ucycles, usuffix, kcycles, ksuffix);
-	else
-		printf("%-8" PRIu64 " %-14s %18p %-8s %18p %-5" PRIu32 "\n",
-		    thread->tid, name, thread, thread_states[thread->state],
-		    thread->task, thread->task->container);
-#endif
 
 	if (additional) {
 		if (thread->cpu)
@@ -748,13 +734,7 @@ static void thread_print(thread_t *thread, bool additional)
 			printf("none ");
 
 		if (thread->state == Sleeping) {
-#ifdef __32_BITS__
-			printf(" %10p", thread->sleep_queue);
-#endif
-
-#ifdef __64_BITS__
-			printf(" %18p", thread->sleep_queue);
-#endif
+			printf(" %p", thread->sleep_queue);
 		}
 
 		printf("\n");
@@ -773,23 +753,21 @@ void thread_print_list(bool additional)
 	/* Messing with thread structures, avoid deadlock */
 	irq_spinlock_lock(&threads_lock, true);
 
-#ifdef __32_BITS__
-	if (additional)
-		printf("[id    ] [code    ] [stack   ] [ucycles ] [kcycles ]"
-		    " [cpu] [waitqueue]\n");
-	else
-		printf("[id    ] [name        ] [address ] [state ] [task    ]"
-		    " [ctn]\n");
-#endif
-
-#ifdef __64_BITS__
-	if (additional) {
-		printf("[id    ] [code            ] [stack           ]\n"
-		    "         [ucycles ] [kcycles ] [cpu] [waitqueue       ]\n");
-	} else
-		printf("[id    ] [name        ] [address         ] [state ]"
-		    " [task            ] [ctn]\n");
-#endif
+	if (sizeof(void *) <= 4) {
+		if (additional)
+			printf("[id    ] [code    ] [stack   ] [ucycles ] [kcycles ]"
+			    " [cpu] [waitqueue]\n");
+		else
+			printf("[id    ] [name        ] [address ] [state ] [task    ]"
+			    " [ctn]\n");
+	} else {
+		if (additional) {
+			printf("[id    ] [code            ] [stack           ] [ucycles ] [kcycles ]"
+			    " [cpu] [waitqueue       ]\n");
+		} else
+			printf("[id    ] [name        ] [address         ] [state ]"
+			    " [task            ] [ctn]\n");
+	}
 
 	thread = thread_first();
 	while (thread != NULL) {
