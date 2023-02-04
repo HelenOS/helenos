@@ -54,6 +54,7 @@
 void current_initialize(current_t *the)
 {
 	the->preemption = 0;
+	the->mutex_locks = 0;
 	the->cpu = NULL;
 	the->thread = NULL;
 	the->task = NULL;
