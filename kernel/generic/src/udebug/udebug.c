@@ -93,12 +93,7 @@ void udebug_thread_initialize(udebug_thread_t *ut)
  */
 static void udebug_wait_for_go(waitq_t *wq)
 {
-	ipl_t ipl = waitq_sleep_prepare(wq);
-
-	wq->missed_wakeups = 0;  /* Enforce blocking. */
-	bool blocked;
-	(void) waitq_sleep_timeout_unsafe(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, &blocked);
-	waitq_sleep_finish(wq, blocked, ipl);
+	waitq_sleep(wq);
 }
 
 /** Start of stoppable section.
@@ -445,7 +440,7 @@ errno_t udebug_task_cleanup(struct task *task)
 				 * waitq_wakeup.
 				 *
 				 */
-				waitq_wakeup(&thread->udebug.go_wq, WAKEUP_FIRST);
+				waitq_wakeup(&thread->udebug.go_wq, WAKEUP_ALL);
 			}
 
 			mutex_unlock(&thread->udebug.lock);

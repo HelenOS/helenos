@@ -280,7 +280,7 @@ errno_t udebug_go(thread_t *thread, call_t *call)
 	 * Neither thread's lock nor threads_lock may be held during wakeup.
 	 *
 	 */
-	waitq_wakeup(&thread->udebug.go_wq, WAKEUP_FIRST);
+	waitq_wakeup(&thread->udebug.go_wq, WAKEUP_ALL);
 
 	_thread_op_end(thread);
 
