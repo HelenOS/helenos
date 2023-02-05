@@ -122,7 +122,7 @@ static bool interface_key_equal(const void *key, const ht_link_t *item)
 }
 
 /** Operations for the port hash table. */
-static hash_table_ops_t interface_hash_table_ops = {
+static const hash_table_ops_t interface_hash_table_ops = {
 	.hash = interface_hash,
 	.key_hash = interface_key_hash,
 	.key_equal = interface_key_equal,
@@ -150,7 +150,7 @@ static bool port_key_equal(const void *key, const ht_link_t *item)
 }
 
 /** Operations for the port hash table. */
-static hash_table_ops_t port_hash_table_ops = {
+static const hash_table_ops_t port_hash_table_ops = {
 	.hash = port_hash,
 	.key_hash = port_key_hash,
 	.key_equal = port_key_equal,

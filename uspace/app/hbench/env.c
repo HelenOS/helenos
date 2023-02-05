@@ -80,7 +80,7 @@ static void param_remove(ht_link_t *item)
 	free(param->value);
 }
 
-static hash_table_ops_t param_hash_table_ops = {
+static const hash_table_ops_t param_hash_table_ops = {
 	.hash = param_hash,
 	.key_hash = param_key_hash,
 	.key_equal = param_key_equal,

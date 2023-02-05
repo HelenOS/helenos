@@ -77,7 +77,7 @@ static bool udf_idx_key_equal(const void *k, const ht_link_t *item)
 	    (key->index == node->index);
 }
 
-static hash_table_ops_t udf_idx_ops = {
+static const hash_table_ops_t udf_idx_ops = {
 	.hash = udf_idx_hash,
 	.key_hash = udf_idx_key_hash,
 	.key_equal = udf_idx_key_equal,

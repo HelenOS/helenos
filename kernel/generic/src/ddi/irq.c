@@ -76,7 +76,7 @@ static size_t irq_ht_key_hash(const void *);
 static bool irq_ht_equal(const ht_link_t *, const ht_link_t *);
 static bool irq_ht_key_equal(const void *, const ht_link_t *);
 
-static hash_table_ops_t irq_ht_ops = {
+static const hash_table_ops_t irq_ht_ops = {
 	.hash = irq_ht_hash,
 	.key_hash = irq_ht_key_hash,
 	.equal = irq_ht_equal,

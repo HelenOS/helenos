@@ -101,7 +101,7 @@ static void nic_addr_removed(ht_link_t *item)
 	free(entry);
 }
 
-static hash_table_ops_t set_ops = {
+static const hash_table_ops_t set_ops = {
 	.hash = nic_addr_hash,
 	.key_hash = nic_addr_key_hash,
 	.key_equal = nic_addr_key_equal,

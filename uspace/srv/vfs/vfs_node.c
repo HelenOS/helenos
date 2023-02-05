@@ -65,7 +65,7 @@ static bool nodes_key_equal(const void *, const ht_link_t *);
 static vfs_triplet_t node_triplet(vfs_node_t *node);
 
 /** VFS node hash table operations. */
-hash_table_ops_t nodes_ops = {
+const hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
 	.key_hash = nodes_key_hash,
 	.key_equal = nodes_key_equal,

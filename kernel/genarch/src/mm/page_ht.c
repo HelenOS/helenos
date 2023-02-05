@@ -81,7 +81,7 @@ IRQ_SPINLOCK_STATIC_INITIALIZE(page_ht_lock);
 hash_table_t page_ht;
 
 /** Hash table operations for page hash table. */
-hash_table_ops_t ht_ops = {
+const hash_table_ops_t ht_ops = {
 	.hash = ht_hash,
 	.key_hash = ht_key_hash,
 	.key_equal = ht_key_equal,
@@ -89,7 +89,7 @@ hash_table_ops_t ht_ops = {
 };
 
 /** Page mapping operations for page hash table architectures. */
-page_mapping_operations_t ht_mapping_operations = {
+const page_mapping_operations_t ht_mapping_operations = {
 	.mapping_insert = ht_mapping_insert,
 	.mapping_remove = ht_mapping_remove,
 	.mapping_find = ht_mapping_find,

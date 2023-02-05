@@ -80,7 +80,7 @@ static bool used_key_equal(const void *key, const ht_link_t *item)
 	return seg->base == *base;
 }
 
-static hash_table_ops_t used_ops = {
+static const hash_table_ops_t used_ops = {
 	.hash = used_hash,
 	.key_hash = used_key_hash,
 	.key_equal = used_key_equal

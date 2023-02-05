@@ -85,7 +85,7 @@
  * Each architecture decides what functions will be used to carry out
  * address space operations such as creating or locking page tables.
  */
-as_operations_t *as_operations = NULL;
+const as_operations_t *as_operations = NULL;
 
 /** Cache for as_t objects */
 static slab_cache_t *as_cache;

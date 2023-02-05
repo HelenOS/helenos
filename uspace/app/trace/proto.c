@@ -75,7 +75,7 @@ static bool srv_proto_key_equal(const void *key, const ht_link_t *item)
 	return sp->srv == *n;
 }
 
-static hash_table_ops_t srv_proto_ops = {
+static const hash_table_ops_t srv_proto_ops = {
 	.hash = srv_proto_hash,
 	.key_hash = srv_proto_key_hash,
 	.key_equal = srv_proto_key_equal,
@@ -102,7 +102,7 @@ static bool method_oper_key_equal(const void *key, const ht_link_t *item)
 	return mo->method == *n;
 }
 
-static hash_table_ops_t method_oper_ops = {
+static const hash_table_ops_t method_oper_ops = {
 	.hash = method_oper_hash,
 	.key_hash = method_oper_key_hash,
 	.key_equal = method_oper_key_equal,

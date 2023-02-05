@@ -124,7 +124,7 @@ static bool caps_key_equal(const void *key, const ht_link_t *item)
 	return *handle == cap->handle;
 }
 
-static hash_table_ops_t caps_ops = {
+static const hash_table_ops_t caps_ops = {
 	.hash = caps_hash,
 	.key_hash = caps_key_hash,
 	.key_equal = caps_key_equal

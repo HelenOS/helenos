@@ -52,7 +52,7 @@ typedef struct {
 	void (*mapping_make_global)(uintptr_t, size_t);
 } page_mapping_operations_t;
 
-extern page_mapping_operations_t *page_mapping_operations;
+extern const page_mapping_operations_t *page_mapping_operations;
 
 extern void page_init(void);
 extern void page_table_lock(as_t *, bool);

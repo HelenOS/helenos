@@ -57,7 +57,7 @@ static bool pt_mapping_find(as_t *, uintptr_t, bool, pte_t *pte);
 static void pt_mapping_update(as_t *, uintptr_t, bool, pte_t *pte);
 static void pt_mapping_make_global(uintptr_t, size_t);
 
-page_mapping_operations_t pt_mapping_operations = {
+const page_mapping_operations_t pt_mapping_operations = {
 	.mapping_insert = pt_mapping_insert,
 	.mapping_remove = pt_mapping_remove,
 	.mapping_find = pt_mapping_find,

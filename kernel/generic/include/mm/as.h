@@ -306,7 +306,7 @@ typedef struct mem_backend {
 
 extern as_t *AS_KERNEL;
 
-extern as_operations_t *as_operations;
+extern const as_operations_t *as_operations;
 extern list_t inactive_as_with_asid_list;
 
 extern void as_init(void);

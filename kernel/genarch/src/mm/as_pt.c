@@ -53,7 +53,7 @@ static void pt_lock(as_t *, bool);
 static void pt_unlock(as_t *, bool);
 static bool pt_locked(as_t *);
 
-as_operations_t as_pt_operations = {
+const as_operations_t as_pt_operations = {
 	.page_table_create = ptl0_create,
 	.page_table_destroy = ptl0_destroy,
 	.page_table_lock = pt_lock,

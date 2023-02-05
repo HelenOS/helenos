@@ -72,7 +72,7 @@ typedef struct {
 
 /** Hash table structure. */
 typedef struct {
-	hash_table_ops_t *op;
+	const hash_table_ops_t *op;
 	list_t *bucket;
 	size_t bucket_cnt;
 	size_t full_item_cnt;
@@ -85,7 +85,7 @@ typedef struct {
 	member_to_inst((item), type, member)
 
 extern bool hash_table_create(hash_table_t *, size_t, size_t,
-    hash_table_ops_t *);
+    const hash_table_ops_t *);
 extern void hash_table_destroy(hash_table_t *);
 
 extern bool hash_table_empty(hash_table_t *);

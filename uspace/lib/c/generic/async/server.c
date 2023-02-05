@@ -249,7 +249,7 @@ static bool client_key_equal(const void *key, const ht_link_t *item)
 }
 
 /** Operations for the client hash table. */
-static hash_table_ops_t client_hash_table_ops = {
+static const hash_table_ops_t client_hash_table_ops = {
 	.hash = client_hash,
 	.key_hash = client_key_hash,
 	.key_equal = client_key_equal,
@@ -510,7 +510,7 @@ static bool notification_key_equal(const void *key, const ht_link_t *item)
 }
 
 /** Operations for the notification hash table. */
-static hash_table_ops_t notification_hash_table_ops = {
+static const hash_table_ops_t notification_hash_table_ops = {
 	.hash = notification_hash,
 	.key_hash = notification_key_hash,
 	.key_equal = notification_key_equal,

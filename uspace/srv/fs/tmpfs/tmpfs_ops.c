@@ -188,7 +188,7 @@ static void nodes_remove_callback(ht_link_t *item)
 }
 
 /** TMPFS nodes hash table operations. */
-hash_table_ops_t nodes_ops = {
+const hash_table_ops_t nodes_ops = {
 	.hash = nodes_hash,
 	.key_hash = nodes_key_hash,
 	.key_equal = nodes_key_equal,

@@ -56,12 +56,12 @@
 #define PTE_WRITABLE(pte)    ((pte)->w != 0)
 #define PTE_EXECUTABLE(pte)  ((pte)->x != 0)
 
-extern as_operations_t as_ht_operations;
-extern page_mapping_operations_t ht_mapping_operations;
+extern const as_operations_t as_ht_operations;
+extern const page_mapping_operations_t ht_mapping_operations;
 
 extern slab_cache_t *pte_cache;
 extern hash_table_t page_ht;
-extern hash_table_ops_t ht_ops;
+extern const hash_table_ops_t ht_ops;
 
 #endif
 

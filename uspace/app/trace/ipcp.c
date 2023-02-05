@@ -91,7 +91,7 @@ static bool pending_call_key_equal(const void *key, const ht_link_t *item)
 	return *chandle == hs->call_handle;
 }
 
-static hash_table_ops_t pending_call_ops = {
+static const hash_table_ops_t pending_call_ops = {
 	.hash = pending_call_hash,
 	.key_hash = pending_call_key_hash,
 	.key_equal = pending_call_key_equal,

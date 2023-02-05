@@ -94,7 +94,7 @@ static void services_remove_callback(ht_link_t *item)
 	free(hash_table_get_inst(item, service_t, link));
 }
 
-static hash_table_ops_t services_ops = {
+static const hash_table_ops_t services_ops = {
 	.hash = services_hash,
 	.key_hash = services_key_hash,
 	.key_equal = services_key_equal,

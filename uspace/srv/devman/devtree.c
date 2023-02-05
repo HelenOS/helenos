@@ -92,7 +92,7 @@ static bool loc_functions_key_equal(const void *key, const ht_link_t *item)
 	return fun->service_id == *service_id;
 }
 
-static hash_table_ops_t devman_devices_ops = {
+static const hash_table_ops_t devman_devices_ops = {
 	.hash = devman_devices_hash,
 	.key_hash = handle_key_hash,
 	.key_equal = devman_devices_key_equal,
@@ -100,7 +100,7 @@ static hash_table_ops_t devman_devices_ops = {
 	.remove_callback = NULL
 };
 
-static hash_table_ops_t devman_functions_ops = {
+static const hash_table_ops_t devman_functions_ops = {
 	.hash = devman_functions_hash,
 	.key_hash = handle_key_hash,
 	.key_equal = devman_functions_key_equal,
@@ -108,7 +108,7 @@ static hash_table_ops_t devman_functions_ops = {
 	.remove_callback = NULL
 };
 
-static hash_table_ops_t loc_devices_ops = {
+static const hash_table_ops_t loc_devices_ops = {
 	.hash = loc_functions_hash,
 	.key_hash = service_id_key_hash,
 	.key_equal = loc_functions_key_equal,

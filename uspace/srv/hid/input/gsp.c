@@ -83,7 +83,7 @@ static bool trans_key_equal(const void *key, const ht_link_t *item)
 	return trans_key->input == t->input && trans_key->old_state == t->old_state;
 }
 
-static hash_table_ops_t trans_ops = {
+static const hash_table_ops_t trans_ops = {
 	.hash = trans_hash,
 	.key_hash = trans_key_hash,
 	.key_equal = trans_key_equal,

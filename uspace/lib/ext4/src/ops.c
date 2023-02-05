@@ -121,7 +121,7 @@ static bool open_nodes_key_equal(const void *key_arg, const ht_link_t *item)
 	    key->index == enode->inode_ref->index;
 }
 
-static hash_table_ops_t open_nodes_ops = {
+static const hash_table_ops_t open_nodes_ops = {
 	.hash = open_nodes_hash,
 	.key_hash = open_nodes_key_hash,
 	.key_equal = open_nodes_key_equal,

@@ -148,7 +148,7 @@ static bool pos_key_equal(const void *key, const ht_link_t *item)
 	    pos->pfc == fidx->pfc;
 }
 
-static hash_table_ops_t uph_ops = {
+static const hash_table_ops_t uph_ops = {
 	.hash = pos_hash,
 	.key_hash = pos_key_hash,
 	.key_equal = pos_key_equal,
@@ -194,7 +194,7 @@ static void idx_remove_callback(ht_link_t *item)
 	free(fidx);
 }
 
-static hash_table_ops_t uih_ops = {
+static const hash_table_ops_t uih_ops = {
 	.hash = idx_hash,
 	.key_hash = idx_key_hash,
 	.key_equal = idx_key_equal,

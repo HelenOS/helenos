@@ -52,7 +52,7 @@ static void ht_lock(as_t *, bool);
 static void ht_unlock(as_t *, bool);
 static bool ht_locked(as_t *);
 
-as_operations_t as_ht_operations = {
+const as_operations_t as_ht_operations = {
 	.page_table_create = ht_create,
 	.page_table_destroy = ht_destroy,
 	.page_table_lock = ht_lock,

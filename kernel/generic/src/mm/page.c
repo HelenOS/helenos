@@ -75,7 +75,7 @@
 #include <align.h>
 
 /** Virtual operations for page subsystem. */
-page_mapping_operations_t *page_mapping_operations = NULL;
+const page_mapping_operations_t *page_mapping_operations = NULL;
 
 void page_init(void)
 {

@@ -259,7 +259,7 @@ static bool cache_key_equal(const void *key, const ht_link_t *item)
 	return b->lba == *lba;
 }
 
-static hash_table_ops_t cache_ops = {
+static const hash_table_ops_t cache_ops = {
 	.hash = cache_hash,
 	.key_hash = cache_key_hash,
 	.key_equal = cache_key_equal,

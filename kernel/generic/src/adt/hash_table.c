@@ -89,7 +89,7 @@ static void nop_remove_callback(ht_link_t *item)
  *
  */
 bool hash_table_create(hash_table_t *h, size_t init_size, size_t max_load,
-    hash_table_ops_t *op)
+    const hash_table_ops_t *op)
 {
 	assert(h);
 	assert(op && op->hash && op->key_hash && op->key_equal);
@@ -108,10 +108,6 @@ bool hash_table_create(hash_table_t *h, size_t init_size, size_t max_load,
 	h->op = op;
 	h->full_item_cnt = h->max_load * h->bucket_cnt;
 	h->apply_ongoing = false;
-
-	if (h->op->remove_callback == NULL) {
-		h->op->remove_callback = nop_remove_callback;
-	}
 
 	return true;
 }
@@ -171,13 +167,15 @@ static void clear_items(hash_table_t *h)
 	if (h->item_cnt == 0)
 		return;
 
+	void (*remove_cb)(ht_link_t *) = h->op->remove_callback ? h->op->remove_callback : nop_remove_callback;
+
 	for (size_t idx = 0; idx < h->bucket_cnt; ++idx) {
 		list_foreach_safe(h->bucket[idx], cur, next) {
 			assert(cur);
 			ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
 
 			list_remove(cur);
-			h->op->remove_callback(cur_link);
+			remove_cb(cur_link);
 		}
 	}
 
@@ -320,7 +318,9 @@ size_t hash_table_remove(hash_table_t *h, const void *key)
 		if (h->op->key_equal(key, cur_link)) {
 			++removed;
 			list_remove(cur);
-			h->op->remove_callback(cur_link);
+
+			if (h->op->remove_callback)
+				h->op->remove_callback(cur_link);
 		}
 	}
 
@@ -339,7 +339,9 @@ void hash_table_remove_item(hash_table_t *h, ht_link_t *item)
 
 	list_remove(&item->link);
 	--h->item_cnt;
-	h->op->remove_callback(item);
+
+	if (h->op->remove_callback)
+		h->op->remove_callback(item);
 	shrink_if_needed(h);
 }
 

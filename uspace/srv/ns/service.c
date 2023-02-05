@@ -111,7 +111,7 @@ static bool iface_key_equal(const void *key, const ht_link_t *item)
 }
 
 /** Operations for service hash table. */
-static hash_table_ops_t service_hash_table_ops = {
+static const hash_table_ops_t service_hash_table_ops = {
 	.hash = service_hash,
 	.key_hash = service_key_hash,
 	.key_equal = service_key_equal,
@@ -120,7 +120,7 @@ static hash_table_ops_t service_hash_table_ops = {
 };
 
 /** Operations for interface hash table. */
-static hash_table_ops_t iface_hash_table_ops = {
+static const hash_table_ops_t iface_hash_table_ops = {
 	.hash = iface_hash,
 	.key_hash = iface_key_hash,
 	.key_equal = iface_key_equal,
