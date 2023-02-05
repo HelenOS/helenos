@@ -58,7 +58,7 @@ typedef struct {
 extern void mutex_initialize(mutex_t *, mutex_type_t);
 extern bool mutex_locked(mutex_t *);
 extern errno_t mutex_trylock(mutex_t *);
-extern errno_t mutex_lock(mutex_t *);
+extern void mutex_lock(mutex_t *);
 extern errno_t mutex_lock_timeout(mutex_t *, uint32_t);
 extern void mutex_unlock(mutex_t *);
 

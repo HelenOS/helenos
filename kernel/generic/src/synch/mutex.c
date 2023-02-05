@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2023 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,78 +73,84 @@ bool mutex_locked(mutex_t *mtx)
 	return rc != EOK;
 }
 
-#define MUTEX_DEADLOCK_THRESHOLD	100000000
+static void mutex_lock_active(mutex_t *mtx)
+{
+	assert((mtx->type == MUTEX_ACTIVE) || !THREAD);
+
+	const unsigned deadlock_treshold = 100000000;
+	unsigned int cnt = 0;
+	bool deadlock_reported = false;
+
+	while (semaphore_trydown(&mtx->sem) != EOK) {
+		if (cnt++ > deadlock_treshold) {
+			printf("cpu%u: looping on active mutex %p\n", CPU->id, mtx);
+			stack_trace();
+			cnt = 0;
+			deadlock_reported = true;
+		}
+	}
+
+	if (deadlock_reported)
+		printf("cpu%u: not deadlocked\n", CPU->id);
+}
 
 /** Acquire mutex.
  *
- * Timeout mode and non-blocking mode can be requested.
+ * This operation is uninterruptible and cannot fail.
+ */
+void mutex_lock(mutex_t *mtx)
+{
+	if (mtx->type == MUTEX_RECURSIVE && mtx->owner == THREAD) {
+		assert(THREAD);
+		mtx->nesting++;
+		return;
+	}
+
+	if (mtx->type == MUTEX_ACTIVE || !THREAD) {
+		mutex_lock_active(mtx);
+		return;
+	}
+
+	semaphore_down(&mtx->sem);
+	mtx->owner = THREAD;
+	mtx->nesting = 1;
+}
+
+/** Acquire mutex with timeout.
  *
  * @param mtx    Mutex.
  * @param usec   Timeout in microseconds.
- * @param flags  Specify mode of operation.
  *
- * For exact description of possible combinations of usec and flags, see
- * comment for waitq_sleep_timeout().
- *
- * @return See comment for waitq_sleep_timeout().
- *
+ * @return EOK if lock was successfully acquired, something else otherwise.
  */
-static errno_t _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
+errno_t mutex_lock_timeout(mutex_t *mtx, uint32_t usec)
 {
-	errno_t rc;
-
-	if (mtx->type == MUTEX_PASSIVE && THREAD) {
-		rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
-	} else if (mtx->type == MUTEX_RECURSIVE) {
+	if (usec != 0) {
+		assert(mtx->type != MUTEX_ACTIVE);
 		assert(THREAD);
-
-		if (mtx->owner == THREAD) {
-			mtx->nesting++;
-			return EOK;
-		} else {
-			rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
-			if (rc == EOK) {
-				mtx->owner = THREAD;
-				mtx->nesting = 1;
-			}
-		}
-	} else {
-		assert((mtx->type == MUTEX_ACTIVE) || !THREAD);
-		assert(usec == SYNCH_NO_TIMEOUT);
-		assert(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
-
-		unsigned int cnt = 0;
-		bool deadlock_reported = false;
-		do {
-			if (cnt++ > MUTEX_DEADLOCK_THRESHOLD) {
-				printf("cpu%u: looping on active mutex %p\n",
-				    CPU->id, mtx);
-				stack_trace();
-				cnt = 0;
-				deadlock_reported = true;
-			}
-			rc = semaphore_trydown(&mtx->sem);
-		} while (rc != EOK && !(flags & SYNCH_FLAGS_NON_BLOCKING));
-		if (deadlock_reported)
-			printf("cpu%u: not deadlocked\n", CPU->id);
 	}
 
+	if (mtx->type == MUTEX_RECURSIVE && mtx->owner == THREAD) {
+		assert(THREAD);
+		mtx->nesting++;
+		return EOK;
+	}
+
+	errno_t rc = semaphore_down_timeout(&mtx->sem, usec);
+	if (rc == EOK) {
+		mtx->owner = THREAD;
+		mtx->nesting = 1;
+	}
 	return rc;
 }
 
+/** Attempt to acquire mutex without blocking.
+ *
+ * @return EOK if lock was successfully acquired, something else otherwise.
+ */
 errno_t mutex_trylock(mutex_t *mtx)
 {
-	return _mutex_lock_timeout(mtx, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
-}
-
-errno_t mutex_lock(mutex_t *mtx)
-{
-	return _mutex_lock_timeout(mtx, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
-}
-
-errno_t mutex_lock_timeout(mutex_t *mtx, uint32_t usec)
-{
-	return _mutex_lock_timeout(mtx, usec, SYNCH_FLAGS_NON_BLOCKING);
+	return mutex_lock_timeout(mtx, 0);
 }
 
 /** Release mutex.

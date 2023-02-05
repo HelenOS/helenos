@@ -54,16 +54,9 @@ void semaphore_initialize(semaphore_t *sem, int val)
 	waitq_initialize_with_count(&sem->wq, val);
 }
 
-errno_t _semaphore_down_timeout(semaphore_t *sem, uint32_t usec, unsigned flags)
-{
-	errno_t rc = waitq_sleep_timeout(&sem->wq, usec, flags, NULL);
-	assert(rc == EOK || rc == ETIMEOUT || rc == EAGAIN);
-	return rc;
-}
-
 errno_t semaphore_trydown(semaphore_t *sem)
 {
-	return _semaphore_down_timeout(sem, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
+	return semaphore_down_timeout(sem, 0);
 }
 
 /** Semaphore down with timeout
@@ -76,7 +69,9 @@ errno_t semaphore_trydown(semaphore_t *sem)
  */
 errno_t semaphore_down_timeout(semaphore_t *sem, uint32_t usec)
 {
-	return _semaphore_down_timeout(sem, usec, SYNCH_FLAGS_NON_BLOCKING);
+	errno_t rc = waitq_sleep_timeout(&sem->wq, usec, SYNCH_FLAGS_NON_BLOCKING, NULL);
+	assert(rc == EOK || rc == ETIMEOUT || rc == EAGAIN);
+	return rc;
 }
 
 void semaphore_down(semaphore_t *sem)
