@@ -346,7 +346,7 @@ restart:
 		if (cap->kobject->type == type) {
 			/* Hand over cap's reference to kobj */
 			kobj = cap->kobject;
-			if (!mutex_trylock(&kobj->caps_list_lock)) {
+			if (mutex_trylock(&kobj->caps_list_lock) != EOK) {
 				mutex_unlock(&task->cap_info->lock);
 				kobj = NULL;
 				goto restart;
