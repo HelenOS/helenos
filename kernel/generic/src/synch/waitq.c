@@ -194,6 +194,11 @@ grab_locks:
 #define PARAM_NON_BLOCKING(flags, usec) \
 	(((flags) & SYNCH_FLAGS_NON_BLOCKING) && ((usec) == 0))
 
+errno_t waitq_sleep(waitq_t *wq)
+{
+	return waitq_sleep_timeout(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, NULL);
+}
+
 /** Sleep until either wakeup, timeout or interruption occurs
  *
  * This is a sleep implementation which allows itself to time out or to be
@@ -325,6 +330,11 @@ void waitq_sleep_finish(waitq_t *wq, bool blocked, ipl_t ipl)
 	}
 
 	interrupts_restore(ipl);
+}
+
+errno_t waitq_sleep_unsafe(waitq_t *wq, bool *blocked)
+{
+	return waitq_sleep_timeout_unsafe(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, blocked);
 }
 
 /** Internal implementation of waitq_sleep_timeout().

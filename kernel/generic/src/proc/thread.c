@@ -628,6 +628,11 @@ void thread_sleep(uint32_t sec)
 	}
 }
 
+errno_t thread_join(thread_t *thread)
+{
+	return thread_join_timeout(thread, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+}
+
 /** Wait for another thread to exit.
  *
  * @param thread Thread to join on exit.

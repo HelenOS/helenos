@@ -68,14 +68,13 @@ typedef struct waitq {
 	list_t sleepers;
 } waitq_t;
 
-#define waitq_sleep(wq) \
-	waitq_sleep_timeout((wq), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, NULL)
-
 struct thread;
 
 extern void waitq_initialize(waitq_t *);
+extern errno_t waitq_sleep(waitq_t *);
 extern errno_t waitq_sleep_timeout(waitq_t *, uint32_t, unsigned int, bool *);
 extern ipl_t waitq_sleep_prepare(waitq_t *);
+extern errno_t waitq_sleep_unsafe(waitq_t *, bool *);
 extern errno_t waitq_sleep_timeout_unsafe(waitq_t *, uint32_t, unsigned int, bool *);
 extern void waitq_sleep_finish(waitq_t *, bool, ipl_t);
 extern void waitq_wakeup(waitq_t *, wakeup_mode_t);

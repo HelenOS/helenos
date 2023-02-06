@@ -44,21 +44,11 @@ typedef struct {
 	waitq_t wq;
 } semaphore_t;
 
-#define semaphore_down(s) \
-	_semaphore_down_timeout((s), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-
-#define semaphore_trydown(s) \
-	_semaphore_down_timeout((s), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING)
-
-#define semaphore_down_timeout(s, usec) \
-	_semaphore_down_timeout((s), (usec), SYNCH_FLAGS_NONE)
-
-#define semaphore_down_interruptable(s) \
-	(_semaphore_down_timeout((s), SYNCH_NO_TIMEOUT, \
-		SYNCH_FLAGS_INTERRUPTIBLE) != EINTR)
-
 extern void semaphore_initialize(semaphore_t *, int);
-extern errno_t _semaphore_down_timeout(semaphore_t *, uint32_t, unsigned int);
+extern errno_t _semaphore_down_timeout(semaphore_t *, uint32_t, unsigned);
+extern errno_t semaphore_down_timeout(semaphore_t *, uint32_t);
+extern errno_t semaphore_trydown(semaphore_t *);
+extern void semaphore_down(semaphore_t *);
 extern void semaphore_up(semaphore_t *);
 extern int semaphore_count_get(semaphore_t *);
 

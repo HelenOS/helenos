@@ -55,18 +55,11 @@ typedef struct {
 	unsigned nesting;
 } mutex_t;
 
-#define mutex_lock(mtx) \
-	_mutex_lock_timeout((mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-
-#define mutex_trylock(mtx) \
-	_mutex_lock_timeout((mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING)
-
-#define mutex_lock_timeout(mtx, usec) \
-	_mutex_lock_timeout((mtx), (usec), SYNCH_FLAGS_NON_BLOCKING)
-
 extern void mutex_initialize(mutex_t *, mutex_type_t);
 extern bool mutex_locked(mutex_t *);
-extern errno_t _mutex_lock_timeout(mutex_t *, uint32_t, unsigned int);
+extern errno_t mutex_trylock(mutex_t *);
+extern errno_t mutex_lock(mutex_t *);
+extern errno_t mutex_lock_timeout(mutex_t *, uint32_t);
 extern void mutex_unlock(mutex_t *);
 
 #endif

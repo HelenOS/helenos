@@ -84,7 +84,7 @@ bool mutex_locked(mutex_t *mtx)
  * @return See comment for waitq_sleep_timeout().
  *
  */
-errno_t _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
+static errno_t _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 {
 	errno_t rc;
 
@@ -125,6 +125,21 @@ errno_t _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 	}
 
 	return rc;
+}
+
+errno_t mutex_trylock(mutex_t *mtx)
+{
+	return _mutex_lock_timeout(mtx, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
+}
+
+errno_t mutex_lock(mutex_t *mtx)
+{
+	return _mutex_lock_timeout(mtx, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+}
+
+errno_t mutex_lock_timeout(mutex_t *mtx, uint32_t usec)
+{
+	return _mutex_lock_timeout(mtx, usec, SYNCH_FLAGS_NON_BLOCKING);
 }
 
 /** Release mutex.

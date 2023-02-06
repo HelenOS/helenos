@@ -52,27 +52,39 @@
 void semaphore_initialize(semaphore_t *sem, int val)
 {
 	waitq_initialize(&sem->wq);
-	waitq_count_set(&sem->wq, val);
+	if (val != 0)
+		waitq_count_set(&sem->wq, val);
 }
 
-/** Semaphore down
- *
- * Semaphore down.
- * Conditional mode and mode with timeout can be requested.
+errno_t _semaphore_down_timeout(semaphore_t *sem, uint32_t usec, unsigned flags)
+{
+	errno_t rc = waitq_sleep_timeout(&sem->wq, usec, flags, NULL);
+	assert(rc == EOK || rc == ETIMEOUT || rc == EAGAIN);
+	return rc;
+}
+
+errno_t semaphore_trydown(semaphore_t *sem)
+{
+	return _semaphore_down_timeout(sem, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
+}
+
+/** Semaphore down with timeout
  *
  * @param sem   Semaphore.
  * @param usec  Timeout in microseconds.
- * @param flags Select mode of operation.
- *
- * For exact description of possible combinations of
- * usec and flags, see comment for waitq_sleep_timeout().
  *
  * @return See comment for waitq_sleep_timeout().
  *
  */
-errno_t _semaphore_down_timeout(semaphore_t *sem, uint32_t usec, unsigned int flags)
+errno_t semaphore_down_timeout(semaphore_t *sem, uint32_t usec)
 {
-	return waitq_sleep_timeout(&sem->wq, usec, flags, NULL);
+	return _semaphore_down_timeout(sem, usec, SYNCH_FLAGS_NON_BLOCKING);
+}
+
+void semaphore_down(semaphore_t *sem)
+{
+	errno_t rc = waitq_sleep(&sem->wq);
+	assert(rc == EOK);
 }
 
 /** Semaphore up

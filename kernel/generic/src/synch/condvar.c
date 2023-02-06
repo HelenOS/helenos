@@ -75,16 +75,10 @@ void condvar_broadcast(condvar_t *cv)
  * @param cv		Condition variable.
  * @param mtx		Mutex.
  * @param usec		Timeout value in microseconds.
- * @param flags		Select mode of operation.
- *
- * For exact description of meaning of possible combinations of usec and flags,
- * see comment for waitq_sleep_timeout().  Note that when
- * SYNCH_FLAGS_NON_BLOCKING is specified here, EAGAIN is always
- * returned.
  *
  * @return		See comment for waitq_sleep_timeout().
  */
-errno_t _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int flags)
+errno_t condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec)
 {
 	errno_t rc;
 	ipl_t ipl;
@@ -95,7 +89,28 @@ errno_t _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int fl
 	mutex_unlock(mtx);
 
 	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
-	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, flags, &blocked);
+	rc = waitq_sleep_timeout_unsafe(&cv->wq, usec, SYNCH_FLAGS_NON_BLOCKING, &blocked);
+	assert(blocked || rc != EOK);
+
+	waitq_sleep_finish(&cv->wq, blocked, ipl);
+	/* Lock only after releasing the waitq to avoid a possible deadlock. */
+	mutex_lock(mtx);
+
+	return rc;
+}
+
+errno_t condvar_wait(condvar_t *cv, mutex_t *mtx)
+{
+	errno_t rc;
+	ipl_t ipl;
+	bool blocked;
+
+	ipl = waitq_sleep_prepare(&cv->wq);
+	/* Unlock only after the waitq is locked so we don't miss a wakeup. */
+	mutex_unlock(mtx);
+
+	cv->wq.missed_wakeups = 0;	/* Enforce blocking. */
+	rc = waitq_sleep_unsafe(&cv->wq, &blocked);
 	assert(blocked || rc != EOK);
 
 	waitq_sleep_finish(&cv->wq, blocked, ipl);

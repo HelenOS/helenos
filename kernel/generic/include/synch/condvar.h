@@ -45,11 +45,6 @@ typedef struct {
 	waitq_t wq;
 } condvar_t;
 
-#define condvar_wait(cv, mtx) \
-	_condvar_wait_timeout((cv), (mtx), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-#define condvar_wait_timeout(cv, mtx, usec) \
-	_condvar_wait_timeout((cv), (mtx), (usec), SYNCH_FLAGS_NONE)
-
 #ifdef CONFIG_SMP
 #define _condvar_wait_timeout_spinlock(cv, lock, usec, flags) \
 	_condvar_wait_timeout_spinlock_impl((cv), (lock), (usec), (flags))
@@ -61,8 +56,10 @@ typedef struct {
 extern void condvar_initialize(condvar_t *cv);
 extern void condvar_signal(condvar_t *cv);
 extern void condvar_broadcast(condvar_t *cv);
-extern errno_t _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec,
-    int flags);
+
+extern errno_t condvar_wait(condvar_t *cv, mutex_t *mtx);
+extern errno_t condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec);
+
 extern errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
     uint32_t usec, int flags);
 extern errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv,
