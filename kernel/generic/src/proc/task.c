@@ -535,18 +535,7 @@ static void task_kill_internal(task_t *task)
 	 */
 
 	list_foreach(task->threads, th_link, thread_t, thread) {
-		bool sleeping = false;
-
-		irq_spinlock_lock(&thread->lock, false);
-
-		thread->interrupted = true;
-		if (thread->state == Sleeping)
-			sleeping = true;
-
-		irq_spinlock_unlock(&thread->lock, false);
-
-		if (sleeping)
-			waitq_interrupt_sleep(thread);
+		thread_interrupt(thread, false);
 	}
 
 	irq_spinlock_unlock(&threads_lock, false);

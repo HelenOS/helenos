@@ -529,38 +529,19 @@ restart:
  * @param thread A valid thread object. The caller must guarantee it
  *               will remain valid until thread_interrupt() exits.
  */
-void thread_interrupt(thread_t *thread)
+void thread_interrupt(thread_t *thread, bool irq_dis)
 {
 	assert(thread != NULL);
 
-	irq_spinlock_lock(&thread->lock, true);
+	irq_spinlock_lock(&thread->lock, irq_dis);
 
 	thread->interrupted = true;
 	bool sleeping = (thread->state == Sleeping);
 
-	irq_spinlock_unlock(&thread->lock, true);
+	irq_spinlock_unlock(&thread->lock, irq_dis);
 
 	if (sleeping)
 		waitq_interrupt_sleep(thread);
-}
-
-/** Returns true if the thread was interrupted.
- *
- * @param thread A valid thread object. User must guarantee it will
- *               be alive during the entire call.
- * @return true if the thread was already interrupted via thread_interrupt().
- */
-bool thread_interrupted(thread_t *thread)
-{
-	assert(thread != NULL);
-
-	bool interrupted;
-
-	irq_spinlock_lock(&thread->lock, true);
-	interrupted = thread->interrupted;
-	irq_spinlock_unlock(&thread->lock, true);
-
-	return interrupted;
 }
 
 /** Prevent the current thread from being migrated to another processor. */
