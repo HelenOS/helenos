@@ -88,6 +88,7 @@ typedef struct task {
 	/** Number of references (i.e. threads). */
 	atomic_size_t refcount;
 	/** Number of threads that haven't exited yet. */
+	// TODO: remove
 	atomic_size_t lifecount;
 
 	/** Task permissions. */

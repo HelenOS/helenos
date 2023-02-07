@@ -397,18 +397,34 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
  *
  * Detach thread from all queues, cpus etc. and destroy it.
  *
- * @param thread  Thread to be destroyed.
- * @param irq_res Indicate whether it should unlock thread->lock
- *                in interrupts-restore mode.
+ * @param obj  Thread to be destroyed.
  *
  */
 static void thread_destroy(void *obj)
 {
 	thread_t *thread = (thread_t *) obj;
 
-	irq_spinlock_lock(&thread->lock, true);
-	assert((thread->state == Exiting) || (thread->state == Lingering));
+	assert_link_not_used(&thread->rq_link);
+	assert_link_not_used(&thread->wq_link);
+
 	assert(thread->task);
+
+	ipl_t ipl = interrupts_disable();
+
+	/* Remove thread from task's list. */
+	irq_spinlock_lock(&thread->task->lock, false);
+	list_remove(&thread->th_link);
+	irq_spinlock_unlock(&thread->task->lock, false);
+
+	/* Remove thread from global list. */
+	irq_spinlock_lock(&threads_lock, false);
+	odict_remove(&thread->lthreads);
+	irq_spinlock_unlock(&threads_lock, false);
+
+	/* Clear cpu->fpu_owner if set to this thread. */
+	irq_spinlock_lock(&thread->lock, false);
+
+	assert((thread->state == Exiting) || (thread->state == Lingering));
 	assert(thread->cpu);
 
 	irq_spinlock_lock(&thread->cpu->lock, false);
@@ -416,22 +432,16 @@ static void thread_destroy(void *obj)
 		thread->cpu->fpu_owner = NULL;
 	irq_spinlock_unlock(&thread->cpu->lock, false);
 
-	irq_spinlock_pass(&thread->lock, &threads_lock);
+	irq_spinlock_unlock(&thread->lock, false);
 
-	odict_remove(&thread->lthreads);
-
-	irq_spinlock_pass(&threads_lock, &thread->task->lock);
-
-	/*
-	 * Detach from the containing task.
-	 */
-	list_remove(&thread->th_link);
-	irq_spinlock_unlock(&thread->task->lock, true);
+	interrupts_restore(ipl);
 
 	/*
 	 * Drop the reference to the containing task.
 	 */
 	task_release(thread->task);
+	thread->task = NULL;
+
 	slab_free(thread_cache, thread);
 }
 
