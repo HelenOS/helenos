@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -631,16 +631,19 @@ errno_t ui_paint_unmaxicon(ui_resource_t *resource, gfx_coord2_t *pos,
 	return EOK;
 }
 
-/** Paint a text box.
+/** Paint a custom text box.
+ *
+ * Paint a text box using user-provided box chars.
  *
  * @param resource UI resource
  * @param rect Rectangle inside which to paint the box
  * @param style Box style
+ * @param boxc Box characters
  * @param color Color
  * @return EOK on success or an error code
  */
-errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
-    ui_box_style_t style, gfx_color_t *color)
+errno_t ui_paint_text_box_custom(ui_resource_t *resource, gfx_rect_t *rect,
+    ui_box_chars_t *boxc, gfx_color_t *color)
 {
 	errno_t rc;
 	gfx_text_fmt_t fmt;
@@ -652,7 +655,6 @@ errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
 	int i;
 	gfx_coord_t y;
 	char *str = NULL;
-	ui_box_chars_t *boxc = NULL;
 
 	gfx_rect_points_sort(rect, &srect);
 	gfx_rect_dims(&srect, &dim);
@@ -660,18 +662,6 @@ errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
 	/* Is rectangle large enough to hold box? */
 	if (dim.x < 2 || dim.y < 2)
 		return EOK;
-
-	switch (style) {
-	case ui_box_single:
-		boxc = &single_box_chars;
-		break;
-	case ui_box_double:
-		boxc = &double_box_chars;
-		break;
-	}
-
-	if (boxc == NULL)
-		return EINVAL;
 
 	gfx_text_fmt_init(&fmt);
 	fmt.font = resource->font;
@@ -745,6 +735,36 @@ error:
 	if (str != NULL)
 		free(str);
 	return rc;
+}
+
+/** Paint a text box.
+ *
+ * Paint a text box with the specified style.
+ *
+ * @param resource UI resource
+ * @param rect Rectangle inside which to paint the box
+ * @param style Box style
+ * @param color Color
+ * @return EOK on success or an error code
+ */
+errno_t ui_paint_text_box(ui_resource_t *resource, gfx_rect_t *rect,
+    ui_box_style_t style, gfx_color_t *color)
+{
+	ui_box_chars_t *boxc = NULL;
+
+	switch (style) {
+	case ui_box_single:
+		boxc = &single_box_chars;
+		break;
+	case ui_box_double:
+		boxc = &double_box_chars;
+		break;
+	}
+
+	if (boxc == NULL)
+		return EINVAL;
+
+	return ui_paint_text_box_custom(resource, rect, boxc, color);
 }
 
 /** Paint a text horizontal brace.

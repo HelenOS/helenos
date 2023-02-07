@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,8 @@
 #include <ui/pbutton.h>
 #include <ui/promptdialog.h>
 #include <ui/resource.h>
+#include <ui/tab.h>
+#include <ui/tabset.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "uidemo.h"
@@ -614,13 +616,13 @@ static errno_t ui_demo(const char *display_spec)
 	if (ui_is_textmode(ui)) {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
-		params.rect.p1.x = 44;
-		params.rect.p1.y = 23;
+		params.rect.p1.x = 46;
+		params.rect.p1.y = 25;
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
-		params.rect.p1.x = 250;
-		params.rect.p1.y = 370;
+		params.rect.p1.x = 255;
+		params.rect.p1.y = 410;
 	}
 
 	rc = ui_window_create(ui, &params, &window);
@@ -742,14 +744,60 @@ static errno_t ui_demo(const char *display_spec)
 	} else {
 		rect.p0.x = 4;
 		rect.p0.y = 30;
-		rect.p1.x = 216;
+		rect.p1.x = 251;
 		rect.p1.y = 52;
 	}
+
 	ui_menu_bar_set_rect(demo.mbar, &rect);
 
 	rc = ui_fixed_add(demo.fixed, ui_menu_bar_ctl(demo.mbar));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_tab_set_create(ui_res, &demo.tabset);
+	if (rc != EOK) {
+		printf("Error creating tab set.\n");
+		return rc;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 2;
+		rect.p0.y = 2;
+		rect.p1.x = 44;
+		rect.p1.y = 24;
+	} else {
+		rect.p0.x = 8;
+		rect.p0.y = 53;
+		rect.p1.x = 250;
+		rect.p1.y = 405;
+	}
+
+	ui_tab_set_set_rect(demo.tabset, &rect);
+
+	rc = ui_tab_create(demo.tabset, "Basic", &demo.tbasic);
+	if (rc != EOK) {
+		printf("Error creating tab.\n");
+		return rc;
+	}
+
+	rc = ui_tab_create(demo.tabset, "Lists", &demo.tlists);
+	if (rc != EOK) {
+		printf("Error creating tab.\n");
+		return rc;
+	}
+
+	rc = ui_fixed_add(demo.fixed, ui_tab_set_ctl(demo.tabset));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	rc = ui_fixed_create(&demo.bfixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
 		return rc;
 	}
 
@@ -761,21 +809,21 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 3;
-		rect.p1.x = 39;
-		rect.p1.y = 4;
+		rect.p0.x = 4;
+		rect.p0.y = 5;
+		rect.p1.x = 41;
+		rect.p1.y = 6;
 	} else {
 		rect.p0.x = 15;
-		rect.p0.y = 53;
+		rect.p0.y = 88;
 		rect.p1.x = 205;
-		rect.p1.y = 78;
+		rect.p1.y = 113;
 	}
 
 	ui_entry_set_rect(demo.entry, &rect);
 	ui_entry_set_halign(demo.entry, gfx_halign_center);
 
-	rc = ui_fixed_add(demo.fixed, ui_entry_ctl(demo.entry));
+	rc = ui_fixed_add(demo.bfixed, ui_entry_ctl(demo.entry));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -789,21 +837,21 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 5;
-		rect.p1.x = 42;
-		rect.p1.y = 6;
+		rect.p0.x = 4;
+		rect.p0.y = 7;
+		rect.p1.x = 41;
+		rect.p1.y = 8;
 	} else {
 		rect.p0.x = 60;
-		rect.p0.y = 88;
+		rect.p0.y = 123;
 		rect.p1.x = 160;
-		rect.p1.y = 101;
+		rect.p1.y = 136;
 	}
 
 	ui_label_set_rect(demo.label, &rect);
 	ui_label_set_halign(demo.label, gfx_halign_center);
 
-	rc = ui_fixed_add(demo.fixed, ui_label_ctl(demo.label));
+	rc = ui_fixed_add(demo.bfixed, ui_label_ctl(demo.label));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -819,22 +867,22 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 7;
-		rect.p1.x = 12;
-		rect.p1.y = 8;
+		rect.p0.x = 4;
+		rect.p0.y = 9;
+		rect.p1.x = 15;
+		rect.p1.y = 10;
 	} else {
 		rect.p0.x = 15;
-		rect.p0.y = 111;
+		rect.p0.y = 146;
 		rect.p1.x = 105;
-		rect.p1.y = 139;
+		rect.p1.y = 174;
 	}
 
 	ui_pbutton_set_rect(demo.pb1, &rect);
 
 	ui_pbutton_set_default(demo.pb1, true);
 
-	rc = ui_fixed_add(demo.fixed, ui_pbutton_ctl(demo.pb1));
+	rc = ui_fixed_add(demo.bfixed, ui_pbutton_ctl(demo.pb1));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -849,20 +897,20 @@ static errno_t ui_demo(const char *display_spec)
 	ui_pbutton_set_cb(demo.pb2, &pbutton_cb, (void *) &demo);
 
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 29;
-		rect.p0.y = 7;
-		rect.p1.x = 39;
-		rect.p1.y = 8;
+		rect.p0.x = 30;
+		rect.p0.y = 9;
+		rect.p1.x = 41;
+		rect.p1.y = 10;
 	} else {
 		rect.p0.x = 115;
-		rect.p0.y = 111;
+		rect.p0.y = 146;
 		rect.p1.x = 205;
-		rect.p1.y = 139;
+		rect.p1.y = 174;
 	}
 
 	ui_pbutton_set_rect(demo.pb2, &rect);
 
-	rc = ui_fixed_add(demo.fixed, ui_pbutton_ctl(demo.pb2));
+	rc = ui_fixed_add(demo.bfixed, ui_pbutton_ctl(demo.pb2));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -896,11 +944,11 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	if (ui_is_textmode(ui)) {
-		off.x = 2;
-		off.y = 9;
+		off.x = 4;
+		off.y = 11;
 	} else {
 		off.x = 15;
-		off.y = 155;
+		off.y = 190;
 	}
 
 	gfx_rect_translate(&off, &bparams.rect, &rect);
@@ -914,7 +962,7 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_image_set_rect(demo.image, &rect);
 
-	rc = ui_fixed_add(demo.fixed, ui_image_ctl(demo.image));
+	rc = ui_fixed_add(demo.bfixed, ui_image_ctl(demo.image));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -930,20 +978,20 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 12;
-		rect.p1.x = 12;
-		rect.p1.y = 13;
+		rect.p0.x = 4;
+		rect.p0.y = 14;
+		rect.p1.x = 14;
+		rect.p1.y = 15;
 	} else {
 		rect.p0.x = 15;
-		rect.p0.y = 190;
+		rect.p0.y = 225;
 		rect.p1.x = 140;
-		rect.p1.y = 210;
+		rect.p1.y = 245;
 	}
 
 	ui_checkbox_set_rect(demo.checkbox, &rect);
 
-	rc = ui_fixed_add(demo.fixed, ui_checkbox_ctl(demo.checkbox));
+	rc = ui_fixed_add(demo.bfixed, ui_checkbox_ctl(demo.checkbox));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -967,19 +1015,19 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 14;
-		rect.p1.x = 12;
-		rect.p1.y = 15;
+		rect.p0.x = 4;
+		rect.p0.y = 16;
+		rect.p1.x = 14;
+		rect.p1.y = 17;
 	} else {
 		rect.p0.x = 15;
-		rect.p0.y = 220;
+		rect.p0.y = 255;
 		rect.p1.x = 140;
-		rect.p1.y = 240;
+		rect.p1.y = 275;
 	}
 	ui_rbutton_set_rect(demo.rbleft, &rect);
 
-	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rbleft));
+	rc = ui_fixed_add(demo.bfixed, ui_rbutton_ctl(demo.rbleft));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -994,20 +1042,20 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 15;
-		rect.p1.x = 12;
-		rect.p1.y = 16;
+		rect.p0.x = 4;
+		rect.p0.y = 17;
+		rect.p1.x = 14;
+		rect.p1.y = 18;
 	} else {
 		rect.p0.x = 15;
-		rect.p0.y = 250;
+		rect.p0.y = 285;
 		rect.p1.x = 140;
-		rect.p1.y = 270;
+		rect.p1.y = 305;
 	}
 	ui_rbutton_set_rect(demo.rbcenter, &rect);
 	ui_rbutton_select(demo.rbcenter);
 
-	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rbcenter));
+	rc = ui_fixed_add(demo.bfixed, ui_rbutton_ctl(demo.rbcenter));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -1022,19 +1070,19 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 16;
-		rect.p1.x = 12;
-		rect.p1.y = 17;
+		rect.p0.x = 4;
+		rect.p0.y = 18;
+		rect.p1.x = 14;
+		rect.p1.y = 19;
 	} else {
 		rect.p0.x = 15;
-		rect.p0.y = 280;
+		rect.p0.y = 315;
 		rect.p1.x = 140;
-		rect.p1.y = 300;
+		rect.p1.y = 335;
 	}
 	ui_rbutton_set_rect(demo.rbright, &rect);
 
-	rc = ui_fixed_add(demo.fixed, ui_rbutton_ctl(demo.rbright));
+	rc = ui_fixed_add(demo.bfixed, ui_rbutton_ctl(demo.rbright));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -1050,20 +1098,20 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 18;
-		rect.p1.x = 28;
-		rect.p1.y = 19;
+		rect.p0.x = 4;
+		rect.p0.y = 20;
+		rect.p1.x = 32;
+		rect.p1.y = 21;
 	} else {
 		rect.p0.x = 15;
-		rect.p0.y = 310;
+		rect.p0.y = 345;
 		rect.p1.x = 130;
-		rect.p1.y = 330;
+		rect.p1.y = 365;
 	}
 
 	ui_slider_set_rect(demo.slider, &rect);
 
-	rc = ui_fixed_add(demo.fixed, ui_slider_ctl(demo.slider));
+	rc = ui_fixed_add(demo.bfixed, ui_slider_ctl(demo.slider));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -1079,15 +1127,15 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 2;
-		rect.p0.y = 20;
-		rect.p1.x = 40;
-		rect.p1.y = 21;
+		rect.p0.x = 4;
+		rect.p0.y = 22;
+		rect.p1.x = 42;
+		rect.p1.y = 23;
 	} else {
 		rect.p0.x = 15;
-		rect.p0.y = 340;
+		rect.p0.y = 375;
 		rect.p1.x = 220;
-		rect.p1.y = 363;
+		rect.p1.y = 398;
 	}
 
 	ui_scrollbar_set_rect(demo.hscrollbar, &rect);
@@ -1095,7 +1143,7 @@ static errno_t ui_demo(const char *display_spec)
 	ui_scrollbar_set_thumb_length(demo.hscrollbar,
 	    ui_scrollbar_through_length(demo.hscrollbar) / 4);
 
-	rc = ui_fixed_add(demo.fixed, ui_scrollbar_ctl(demo.hscrollbar));
+	rc = ui_fixed_add(demo.bfixed, ui_scrollbar_ctl(demo.hscrollbar));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
@@ -1111,15 +1159,15 @@ static errno_t ui_demo(const char *display_spec)
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
-		rect.p0.x = 40;
-		rect.p0.y = 3;
-		rect.p1.x = 41;
-		rect.p1.y = 20;
+		rect.p0.x = 42;
+		rect.p0.y = 5;
+		rect.p1.x = 43;
+		rect.p1.y = 22;
 	} else {
 		rect.p0.x = 220;
-		rect.p0.y = 53;
+		rect.p0.y = 88;
 		rect.p1.x = 243;
-		rect.p1.y = 340;
+		rect.p1.y = 375;
 	}
 
 	ui_scrollbar_set_rect(demo.vscrollbar, &rect);
@@ -1127,11 +1175,13 @@ static errno_t ui_demo(const char *display_spec)
 	ui_scrollbar_set_thumb_length(demo.vscrollbar,
 	    ui_scrollbar_through_length(demo.vscrollbar) / 4);
 
-	rc = ui_fixed_add(demo.fixed, ui_scrollbar_ctl(demo.vscrollbar));
+	rc = ui_fixed_add(demo.bfixed, ui_scrollbar_ctl(demo.vscrollbar));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
 		return rc;
 	}
+
+	ui_tab_add(demo.tbasic, ui_fixed_ctl(demo.bfixed));
 
 	ui_window_add(window, ui_fixed_ctl(demo.fixed));
 

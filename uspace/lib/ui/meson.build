@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022 Jiri Svoboda
+# Copyright (c) 2023 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,9 @@ src = files(
 	'src/resource.c',
 	'src/scrollbar.c',
 	'src/slider.c',
+	'src/tab.c',
+	'src/tabset.c',
+	'src/testctl.c',
 	'src/ui.c',
 	'src/wdecor.c',
 	'src/window.c',
@@ -80,6 +83,9 @@ test_src = files(
 	'test/resource.c',
 	'test/scrollbar.c',
 	'test/slider.c',
+	'test/tab.c',
+	'test/tabset.c',
+	'test/testctl.c',
 	'test/ui.c',
 	'test/wdecor.c',
 	'test/window.c',

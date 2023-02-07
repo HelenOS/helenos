@@ -26,60 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Test control
+ *
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PRIVATE_TESTCTL_H
+#define _UI_PRIVATE_TESTCTL_H
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/tab.h>
-#include <ui/tabset.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <types/ui/testctl.h>
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_fixed_t *bfixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_tab_set_t *tabset;
-	ui_tab_t *tbasic;
-	ui_tab_t *tlists;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *hscrollbar;
-	ui_scrollbar_t *vscrollbar;
-} ui_demo_t;
+/** Actual structure of test control.
+ *
+ * This is private to libui.
+ */
+struct ui_test_ctl {
+	/** Base control object */
+	struct ui_control *control;
+	/** Test response structure */
+	ui_tc_resp_t *resp;
+};
+
+extern ui_control_ops_t ui_test_ctl_ops;
 
 #endif
 

@@ -32,55 +32,14 @@
 #include <io/pos_event.h>
 #include <pcut/pcut.h>
 #include <ui/control.h>
+#include <ui/testctl.h>
 #include <stdbool.h>
 #include <types/ui/event.h>
+#include "../private/testctl.h"
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(control);
-
-static void test_ctl_destroy(void *);
-static errno_t test_ctl_paint(void *);
-static ui_evclaim_t test_ctl_kbd_event(void *, kbd_event_t *);
-static ui_evclaim_t test_ctl_pos_event(void *, pos_event_t *);
-static void test_ctl_unfocus(void *, unsigned);
-
-static ui_control_ops_t test_ctl_ops = {
-	.destroy = test_ctl_destroy,
-	.paint = test_ctl_paint,
-	.kbd_event = test_ctl_kbd_event,
-	.pos_event = test_ctl_pos_event,
-	.unfocus = test_ctl_unfocus
-};
-
-/** Test response */
-typedef struct {
-	/** Claim to return */
-	ui_evclaim_t claim;
-	/** Result code to return */
-	errno_t rc;
-
-	/** @c true iff destroy was called */
-	bool destroy;
-
-	/** @c true iff paint was called */
-	bool paint;
-
-	/** @c true iff kbd_event was called */
-	bool kbd;
-	/** Keyboard event that was sent */
-	kbd_event_t kevent;
-
-	/** @c true iff pos_event was called */
-	bool pos;
-	/** Position event that was sent */
-	pos_event_t pevent;
-
-	/** @c true iff unfocus was called */
-	bool unfocus;
-	/** Number of remaining foci that was sent */
-	unsigned unfocus_nfocus;
-} test_resp_t;
 
 /** Allocate and deallocate control */
 PCUT_TEST(new_delete)
@@ -88,7 +47,7 @@ PCUT_TEST(new_delete)
 	ui_control_t *control = NULL;
 	errno_t rc;
 
-	rc = ui_control_new(&test_ctl_ops, NULL, &control);
+	rc = ui_control_new(&ui_test_ctl_ops, NULL, &control);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(control);
 
@@ -104,61 +63,61 @@ PCUT_TEST(delete_null)
 /** Test sending destroy request to control */
 PCUT_TEST(destroy)
 {
-	ui_control_t *control = NULL;
-	test_resp_t resp;
+	ui_test_ctl_t *testctl = NULL;
+	ui_tc_resp_t resp;
 	errno_t rc;
 
-	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	rc = ui_test_ctl_create(&resp, &testctl);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(control);
+	PCUT_ASSERT_NOT_NULL(testctl);
 
 	resp.rc = EOK;
 	resp.destroy = false;
 
-	ui_control_destroy(control);
+	ui_control_destroy(ui_test_ctl_ctl(testctl));
 	PCUT_ASSERT_TRUE(resp.destroy);
 }
 
 /** Test sending paint request to control */
 PCUT_TEST(paint)
 {
-	ui_control_t *control = NULL;
-	test_resp_t resp;
+	ui_test_ctl_t *testctl = NULL;
+	ui_tc_resp_t resp;
 	errno_t rc;
 
-	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	rc = ui_test_ctl_create(&resp, &testctl);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(control);
+	PCUT_ASSERT_NOT_NULL(testctl);
 
 	resp.rc = EOK;
 	resp.paint = false;
 
-	rc = ui_control_paint(control);
+	rc = ui_control_paint(ui_test_ctl_ctl(testctl));
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 	PCUT_ASSERT_TRUE(resp.paint);
 
 	resp.rc = EINVAL;
 	resp.paint = false;
 
-	rc = ui_control_paint(control);
+	rc = ui_control_paint(ui_test_ctl_ctl(testctl));
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 	PCUT_ASSERT_TRUE(resp.paint);
 
-	ui_control_delete(control);
+	ui_test_ctl_destroy(testctl);
 }
 
 /** Test sending keyboard event to control */
 PCUT_TEST(kbd_event)
 {
-	ui_control_t *control = NULL;
-	test_resp_t resp;
+	ui_test_ctl_t *testctl = NULL;
+	ui_tc_resp_t resp;
 	kbd_event_t event;
 	ui_evclaim_t claim;
 	errno_t rc;
 
-	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	rc = ui_test_ctl_create(&resp, &testctl);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(control);
+	PCUT_ASSERT_NOT_NULL(testctl);
 
 	resp.claim = ui_claimed;
 	resp.kbd = false;
@@ -167,7 +126,7 @@ PCUT_TEST(kbd_event)
 	event.mods = KM_LSHIFT;
 	event.c = '@';
 
-	claim = ui_control_kbd_event(control, &event);
+	claim = ui_control_kbd_event(ui_test_ctl_ctl(testctl), &event);
 	PCUT_ASSERT_EQUALS(resp.claim, claim);
 	PCUT_ASSERT_TRUE(resp.kbd);
 	PCUT_ASSERT_EQUALS(resp.kevent.type, event.type);
@@ -175,21 +134,21 @@ PCUT_TEST(kbd_event)
 	PCUT_ASSERT_INT_EQUALS(resp.kevent.mods, event.mods);
 	PCUT_ASSERT_INT_EQUALS(resp.kevent.c, event.c);
 
-	ui_control_delete(control);
+	ui_test_ctl_destroy(testctl);
 }
 
 /** Test sending position event to control */
 PCUT_TEST(pos_event)
 {
-	ui_control_t *control = NULL;
-	test_resp_t resp;
+	ui_test_ctl_t *testctl = NULL;
+	ui_tc_resp_t resp;
 	pos_event_t event;
 	ui_evclaim_t claim;
 	errno_t rc;
 
-	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	rc = ui_test_ctl_create(&resp, &testctl);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(control);
+	PCUT_ASSERT_NOT_NULL(testctl);
 
 	resp.claim = ui_claimed;
 	resp.pos = false;
@@ -199,7 +158,7 @@ PCUT_TEST(pos_event)
 	event.hpos = 3;
 	event.vpos = 4;
 
-	claim = ui_control_pos_event(control, &event);
+	claim = ui_control_pos_event(ui_test_ctl_ctl(testctl), &event);
 	PCUT_ASSERT_EQUALS(resp.claim, claim);
 	PCUT_ASSERT_TRUE(resp.pos);
 	PCUT_ASSERT_INT_EQUALS(resp.pevent.pos_id, event.pos_id);
@@ -208,70 +167,27 @@ PCUT_TEST(pos_event)
 	PCUT_ASSERT_INT_EQUALS(resp.pevent.hpos, event.hpos);
 	PCUT_ASSERT_INT_EQUALS(resp.pevent.vpos, event.vpos);
 
-	ui_control_delete(control);
+	ui_test_ctl_destroy(testctl);
 }
 
 /** Test sending unfocus to control */
 PCUT_TEST(unfocus)
 {
-	ui_control_t *control = NULL;
-	test_resp_t resp;
+	ui_test_ctl_t *testctl = NULL;
+	ui_tc_resp_t resp;
 	errno_t rc;
 
-	rc = ui_control_new(&test_ctl_ops, &resp, &control);
+	rc = ui_test_ctl_create(&resp, &testctl);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(control);
+	PCUT_ASSERT_NOT_NULL(testctl);
 
 	resp.unfocus = false;
 
-	ui_control_unfocus(control, 42);
+	ui_control_unfocus(ui_test_ctl_ctl(testctl), 42);
 	PCUT_ASSERT_TRUE(resp.unfocus);
 	PCUT_ASSERT_INT_EQUALS(42, resp.unfocus_nfocus);
 
-	ui_control_delete(control);
-}
-
-static void test_ctl_destroy(void *arg)
-{
-	test_resp_t *resp = (test_resp_t *) arg;
-
-	resp->destroy = true;
-}
-
-static errno_t test_ctl_paint(void *arg)
-{
-	test_resp_t *resp = (test_resp_t *) arg;
-
-	resp->paint = true;
-	return resp->rc;
-}
-
-static ui_evclaim_t test_ctl_kbd_event(void *arg, kbd_event_t *event)
-{
-	test_resp_t *resp = (test_resp_t *) arg;
-
-	resp->kbd = true;
-	resp->kevent = *event;
-
-	return resp->claim;
-}
-
-static ui_evclaim_t test_ctl_pos_event(void *arg, pos_event_t *event)
-{
-	test_resp_t *resp = (test_resp_t *) arg;
-
-	resp->pos = true;
-	resp->pevent = *event;
-
-	return resp->claim;
-}
-
-static void test_ctl_unfocus(void *arg, unsigned nfocus)
-{
-	test_resp_t *resp = (test_resp_t *) arg;
-
-	resp->unfocus = true;
-	resp->unfocus_nfocus = nfocus;
+	ui_test_ctl_destroy(testctl);
 }
 
 PCUT_EXPORT(control);

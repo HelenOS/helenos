@@ -26,60 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Tab structure
+ *
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PRIVATE_TAB_H
+#define _UI_PRIVATE_TAB_H
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/tab.h>
-#include <ui/tabset.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <adt/list.h>
+#include <gfx/coord.h>
+#include <stdbool.h>
+#include <types/ui/tab.h>
+#include <types/ui/resource.h>
 
-/** User interface demo */
+/** Actual structure of tab.
+ *
+ * This is private to libui.
+ */
+struct ui_tab {
+	/** Containing tab set */
+	struct ui_tab_set *tabset;
+	/** Link to @c tabset->tabs */
+	link_t ltabs;
+	/** Caption */
+	char *caption;
+	/** X offset of the handle */
+	gfx_coord_t xoff;
+	/** Tab content */
+	struct ui_control *content;
+};
+
+/** Tab geometry.
+ *
+ * Computed rectangles of tab elements.
+ */
 typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_fixed_t *bfixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_tab_set_t *tabset;
-	ui_tab_t *tbasic;
-	ui_tab_t *tlists;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *hscrollbar;
-	ui_scrollbar_t *vscrollbar;
-} ui_demo_t;
+	/** Tab handle */
+	gfx_rect_t handle;
+	/** Tab handle area including pull-up area */
+	gfx_rect_t handle_area;
+	/** Tab body */
+	gfx_rect_t body;
+	/** Text position */
+	gfx_coord2_t text_pos;
+} ui_tab_geom_t;
+
+extern gfx_coord_t ui_tab_handle_width(ui_tab_t *);
+extern gfx_coord_t ui_tab_handle_height(ui_tab_t *);
+extern void ui_tab_get_geom(ui_tab_t *, ui_tab_geom_t *);
+extern errno_t ui_tab_paint_handle_frame(gfx_context_t *, gfx_rect_t *,
+    gfx_coord_t, gfx_color_t *, gfx_color_t *, bool, gfx_rect_t *);
+extern errno_t ui_tab_paint_body_frame(ui_tab_t *);
+extern errno_t ui_tab_paint_frame(ui_tab_t *);
+extern ui_resource_t *ui_tab_get_res(ui_tab_t *);
 
 #endif
 

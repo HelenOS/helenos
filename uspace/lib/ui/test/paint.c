@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,6 +73,15 @@ typedef struct {
 	gfx_bitmap_alloc_t alloc;
 	bool myalloc;
 } testgc_bitmap_t;
+
+/** Test box characters */
+static ui_box_chars_t test_box_chars = {
+	{
+		{ "A", "B", "C" },
+		{ "D", " ", "E" },
+		{ "F", "G", "H" }
+	}
+};
 
 /** Paint bevel */
 PCUT_TEST(bevel)
@@ -465,6 +474,42 @@ PCUT_TEST(text_box)
 
 	/* Paint text box */
 	rc = ui_paint_text_box(resource, &rect, ui_box_single, color);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	gfx_color_delete(color);
+	ui_resource_destroy(resource);
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint custom text box */
+PCUT_TEST(text_box_custom)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	ui_resource_t *resource = NULL;
+	gfx_color_t *color = NULL;
+	test_gc_t tgc;
+	gfx_rect_t rect;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = gfx_color_new_rgb_i16(1, 2, 3, &color);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 30;
+	rect.p1.y = 40;
+
+	/* Paint text box */
+	rc = ui_paint_text_box_custom(resource, &rect, &test_box_chars, color);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	gfx_color_delete(color);

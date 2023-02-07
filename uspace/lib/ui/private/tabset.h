@@ -26,60 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Tab set structure
+ *
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PRIVATE_TABSET_H
+#define _UI_PRIVATE_TABSET_H
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/tab.h>
-#include <ui/tabset.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <adt/list.h>
+#include <gfx/coord.h>
+#include <stdbool.h>
+#include <types/common.h>
+#include <types/ui/tab.h>
+#include <types/ui/tabset.h>
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_fixed_t *bfixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_tab_set_t *tabset;
-	ui_tab_t *tbasic;
-	ui_tab_t *tlists;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *hscrollbar;
-	ui_scrollbar_t *vscrollbar;
-} ui_demo_t;
+/** Actual structure of tab set.
+ *
+ * This is private to libui.
+ */
+struct ui_tab_set {
+	/** Base control object */
+	struct ui_control *control;
+	/** UI reource */
+	struct ui_resource *res;
+	/** Tab set rectangle */
+	gfx_rect_t rect;
+	/** Selected tab */
+	struct ui_tab *selected;
+	/** List of tabs (ui_tab_t) */
+	list_t tabs;
+};
+
+extern void ui_tab_set_select(ui_tab_set_t *, ui_tab_t *);
 
 #endif
 

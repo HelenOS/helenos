@@ -26,62 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
- * @{
- */
-/**
- * @file User interface demo
- */
+#include <pcut/pcut.h>
+#include <ui/control.h>
+#include <ui/testctl.h>
+#include "../private/testctl.h"
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+PCUT_INIT;
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/tab.h>
-#include <ui/tabset.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+PCUT_TEST_SUITE(testctl);
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_fixed_t *bfixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_tab_set_t *tabset;
-	ui_tab_t *tbasic;
-	ui_tab_t *tlists;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *hscrollbar;
-	ui_scrollbar_t *vscrollbar;
-} ui_demo_t;
+/** Create and destroy test control */
+PCUT_TEST(create_destroy)
+{
+	ui_test_ctl_t *testctl = NULL;
+	ui_tc_resp_t resp;
+	errno_t rc;
 
-#endif
+	rc = ui_test_ctl_create(&resp, &testctl);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(testctl);
 
-/** @}
- */
+	ui_test_ctl_destroy(testctl);
+}
+
+/** ui_test_ctl_destroy() can take NULL argument (no-op) */
+PCUT_TEST(destroy_null)
+{
+	ui_test_ctl_destroy(NULL);
+}
+
+/** ui_test_ctl_ctl() returns control that has a working virtual destructor */
+PCUT_TEST(ctl)
+{
+	ui_control_t *control;
+	ui_test_ctl_t *testctl;
+	errno_t rc;
+	ui_tc_resp_t resp;
+
+	rc = ui_test_ctl_create(&resp, &testctl);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	control = ui_test_ctl_ctl(testctl);
+	PCUT_ASSERT_NOT_NULL(control);
+
+	ui_control_destroy(control);
+}
+
+PCUT_EXPORT(testctl);

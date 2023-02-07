@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,9 @@ PCUT_IMPORT(rbutton);
 PCUT_IMPORT(resource);
 PCUT_IMPORT(scrollbar);
 PCUT_IMPORT(slider);
+PCUT_IMPORT(tab);
+PCUT_IMPORT(tabset);
+PCUT_IMPORT(testctl);
 PCUT_IMPORT(ui);
 PCUT_IMPORT(wdecor);
 PCUT_IMPORT(window);

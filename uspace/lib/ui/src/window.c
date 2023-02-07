@@ -451,7 +451,6 @@ void ui_window_destroy(ui_window_t *window)
  *
  * @param window Window
  * @param control Control
- * @return EOK on success, ENOMEM if out of memory
  */
 void ui_window_add(ui_window_t *window, ui_control_t *control)
 {

@@ -136,11 +136,22 @@ PCUT_TEST(destroy_null)
 /** Set window decoration rectangle sets internal field */
 PCUT_TEST(set_rect)
 {
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 1;
@@ -155,6 +166,10 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_INT_EQUALS(rect.p1.y, wdecor->rect.p1.y);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** Set window decoration active sets internal field */
@@ -444,12 +459,23 @@ PCUT_TEST(set_cursor)
 /** Clicking the close button generates close callback */
 PCUT_TEST(close_btn_clicked)
 {
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
 	test_cb_resp_t resp;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -467,6 +493,10 @@ PCUT_TEST(close_btn_clicked)
 	PCUT_ASSERT_TRUE(resp.close);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** Button press on title bar generates move callback */
@@ -787,13 +817,24 @@ PCUT_TEST(rect_from_app)
 /** Test ui_wdecor_get_rsztype() */
 PCUT_TEST(get_rsztype)
 {
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
 	ui_wdecor_rsztype_t rsztype;
 	gfx_coord2_t pos;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_resizable, &wdecor);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_resizable, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -873,7 +914,7 @@ PCUT_TEST(get_rsztype)
 
 	/* Non-resizable window */
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -889,6 +930,10 @@ PCUT_TEST(get_rsztype)
 	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** Test ui_wdecor_cursor_from_rsztype() */
@@ -917,13 +962,24 @@ PCUT_TEST(cursor_from_rsztype)
 /** Test ui_wdecor_frame_pos_event() */
 PCUT_TEST(frame_pos_event)
 {
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
 	test_cb_resp_t resp;
 	pos_event_t event;
 	errno_t rc;
 
-	rc = ui_wdecor_create(NULL, "Hello", ui_wds_resizable, &wdecor);
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_resizable, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rect.p0.x = 10;
@@ -959,6 +1015,10 @@ PCUT_TEST(frame_pos_event)
 	PCUT_ASSERT_TRUE(resp.resize);
 
 	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 static errno_t testgc_set_clip_rect(void *arg, gfx_rect_t *rect)
