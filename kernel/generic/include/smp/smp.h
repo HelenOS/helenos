@@ -35,9 +35,9 @@
 #ifndef KERN_SMP_H_
 #define KERN_SMP_H_
 
-#include <synch/waitq.h>
+#include <synch/semaphore.h>
 
-extern waitq_t ap_completion_wq;
+extern semaphore_t ap_completion_semaphore;
 
 #ifdef CONFIG_SMP
 

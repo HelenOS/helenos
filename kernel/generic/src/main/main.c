@@ -382,7 +382,7 @@ void main_ap_separated_stack(void)
 	 */
 	timeout_init();
 
-	waitq_wakeup(&ap_completion_wq, WAKEUP_FIRST);
+	semaphore_up(&ap_completion_semaphore);
 	scheduler();
 	/* not reached */
 }

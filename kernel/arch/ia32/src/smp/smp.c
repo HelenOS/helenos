@@ -177,8 +177,7 @@ void kmp(void *arg __attribute__((unused)))
 			 * the time. After it comes completely up, it is
 			 * supposed to wake us up.
 			 */
-			if (waitq_sleep_timeout(&ap_completion_wq, 1000000,
-			    SYNCH_FLAGS_NONE, NULL) == ETIMEOUT) {
+			if (semaphore_down_timeout(&ap_completion_semaphore, 1000000) != EOK) {
 				log(LF_ARCH, LVL_NOTE, "%s: waiting for cpu%u "
 				    "(APIC ID = %d) timed out", __FUNCTION__,
 				    i, ops->cpu_apic_id(i));

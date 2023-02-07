@@ -51,7 +51,7 @@ void indev_initialize(const char *name, indev_t *indev,
     indev_operations_t *op)
 {
 	indev->name = name;
-	waitq_initialize(&indev->wq);
+	semaphore_initialize(&indev->wq, 0);
 	irq_spinlock_initialize(&indev->lock, "chardev.indev.lock");
 	indev->counter = 0;
 	indev->index = 0;
@@ -80,7 +80,7 @@ void indev_push_character(indev_t *indev, char32_t ch)
 
 	/* Index modulo size of buffer */
 	indev->index = indev->index % INDEV_BUFLEN;
-	waitq_wakeup(&indev->wq, WAKEUP_FIRST);
+	semaphore_up(&indev->wq);
 	irq_spinlock_unlock(&indev->lock, true);
 }
 
@@ -114,7 +114,7 @@ char32_t indev_pop_character(indev_t *indev)
 		cpu_halt();
 	}
 
-	waitq_sleep(&indev->wq);
+	semaphore_down(&indev->wq);
 	irq_spinlock_lock(&indev->lock, true);
 	char32_t ch = indev->buffer[(indev->index - indev->counter) %
 	    INDEV_BUFLEN];

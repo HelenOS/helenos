@@ -38,7 +38,7 @@
 
 #ifdef CONFIG_SMP
 
-waitq_t ap_completion_wq;
+semaphore_t ap_completion_semaphore;
 
 #endif /* CONFIG_SMP */
 

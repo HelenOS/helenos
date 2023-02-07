@@ -38,7 +38,7 @@
 #include <adt/list.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <synch/waitq.h>
+#include <synch/semaphore.h>
 #include <synch/spinlock.h>
 
 #define INDEV_BUFLEN  512
@@ -63,7 +63,7 @@ typedef struct {
 /** Character input device. */
 typedef struct indev {
 	const char *name;
-	waitq_t wq;
+	semaphore_t wq;
 
 	/** Protects everything below. */
 	IRQ_SPINLOCK_DECLARE(lock);
