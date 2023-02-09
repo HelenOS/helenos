@@ -65,7 +65,11 @@ void mutex_initialize(mutex_t *mtx, mutex_type_t type)
  */
 bool mutex_locked(mutex_t *mtx)
 {
-	return semaphore_count_get(&mtx->sem) <= 0;
+	bool success = semaphore_trydown(&mtx->sem);
+	if (success) {
+		semaphore_up(&mtx->sem);
+	}
+	return !success;
 }
 
 #define MUTEX_DEADLOCK_THRESHOLD	100000000

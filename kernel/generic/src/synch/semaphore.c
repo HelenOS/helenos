@@ -51,9 +51,7 @@
  */
 void semaphore_initialize(semaphore_t *sem, int val)
 {
-	waitq_initialize(&sem->wq);
-	if (val != 0)
-		waitq_count_set(&sem->wq, val);
+	waitq_initialize_with_count(&sem->wq, val);
 }
 
 errno_t _semaphore_down_timeout(semaphore_t *sem, uint32_t usec, unsigned flags)
@@ -97,17 +95,6 @@ void semaphore_down(semaphore_t *sem)
 void semaphore_up(semaphore_t *sem)
 {
 	waitq_wakeup(&sem->wq, WAKEUP_FIRST);
-}
-
-/** Get the semaphore counter value.
- *
- * @param sem		Semaphore.
- * @return		The number of threads that can down the semaphore
- * 			without blocking.
- */
-int semaphore_count_get(semaphore_t *sem)
-{
-	return waitq_count_get(&sem->wq);
 }
 
 /** @}

@@ -50,7 +50,6 @@ extern errno_t semaphore_down_timeout(semaphore_t *, uint32_t);
 extern errno_t semaphore_trydown(semaphore_t *);
 extern void semaphore_down(semaphore_t *);
 extern void semaphore_up(semaphore_t *);
-extern int semaphore_count_get(semaphore_t *);
 
 #endif
 

@@ -76,6 +76,14 @@ void waitq_initialize(waitq_t *wq)
 	list_initialize(&wq->sleepers);
 }
 
+void waitq_initialize_with_count(waitq_t *wq, int count)
+{
+	memsetb(wq, sizeof(*wq), 0);
+	irq_spinlock_initialize(&wq->lock, "wq.lock");
+	list_initialize(&wq->sleepers);
+	wq->missed_wakeups = count;
+}
+
 /** Handle timeout during waitq_sleep_timeout() call
  *
  * This routine is called when waitq_sleep_timeout() times out.
@@ -542,34 +550,6 @@ loop:
 
 	if (mode == WAKEUP_ALL)
 		goto loop;
-}
-
-/** Get the missed wakeups count.
- *
- * @param wq	Pointer to wait queue.
- * @return	The wait queue's missed_wakeups count.
- */
-int waitq_count_get(waitq_t *wq)
-{
-	int cnt;
-
-	irq_spinlock_lock(&wq->lock, true);
-	cnt = wq->missed_wakeups;
-	irq_spinlock_unlock(&wq->lock, true);
-
-	return cnt;
-}
-
-/** Set the missed wakeups count.
- *
- * @param wq	Pointer to wait queue.
- * @param val	New value of the missed_wakeups count.
- */
-void waitq_count_set(waitq_t *wq, int val)
-{
-	irq_spinlock_lock(&wq->lock, true);
-	wq->missed_wakeups = val;
-	irq_spinlock_unlock(&wq->lock, true);
 }
 
 /** @}
