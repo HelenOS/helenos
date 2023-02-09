@@ -167,10 +167,14 @@ void clock(void)
 		list_remove(cur);
 		timeout_handler_t handler = timeout->handler;
 		void *arg = timeout->arg;
+		atomic_bool *finished = &timeout->finished;
 
 		irq_spinlock_unlock(&CPU->timeoutlock, false);
 
 		handler(arg);
+
+		/* Signal that the handler is finished. */
+		atomic_store_explicit(finished, true, memory_order_release);
 
 		irq_spinlock_lock(&CPU->timeoutlock, false);
 	}

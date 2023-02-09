@@ -52,6 +52,8 @@ typedef struct {
 	void *arg;
 	/** On which processor is this timeout registered. */
 	cpu_t *cpu;
+	/** Used to synchronize with the handler callback. */
+	atomic_bool finished;
 } timeout_t;
 
 #define us2ticks(us)  ((uint64_t) (((uint32_t) (us) / (1000000 / HZ))))
