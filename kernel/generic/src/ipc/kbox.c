@@ -89,7 +89,7 @@ void ipc_kbox_cleanup(void)
 	if (have_kb_thread) {
 		LOG("Join kb.thread.");
 		thread_join(TASK->kb.thread);
-		thread_detach(TASK->kb.thread);
+		thread_put(TASK->kb.thread);
 		LOG("...join done.");
 		TASK->kb.thread = NULL;
 	}
@@ -135,8 +135,8 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 
 		/* Only detach kbox thread unless already terminating. */
 		if (TASK->kb.finished == false) {
-			/* Detach kbox thread so it gets freed from memory. */
-			thread_detach(TASK->kb.thread);
+			/* Release kbox thread so it gets freed from memory. */
+			thread_put(TASK->kb.thread);
 			TASK->kb.thread = NULL;
 		}
 
@@ -246,7 +246,7 @@ errno_t ipc_connect_kbox(task_id_t taskid, cap_phone_handle_t *out_phone)
 			return ENOMEM;
 		}
 
-		task->kb.thread = kb_thread;
+		task->kb.thread = thread_ref(kb_thread);
 		thread_ready(kb_thread);
 	}
 

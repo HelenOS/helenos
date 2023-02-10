@@ -60,8 +60,6 @@ static void consumer(void *arg)
 	errno_t rc;
 	int to;
 
-	thread_detach(THREAD);
-
 	waitq_sleep(&can_start);
 
 	to = random(20000);

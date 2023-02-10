@@ -388,7 +388,6 @@ void scheduler(void)
  */
 void scheduler_separated_stack(void)
 {
-	DEADLOCK_PROBE_INIT(p_joinwq);
 	task_t *old_task = TASK;
 	as_t *old_as = AS;
 
@@ -418,32 +417,15 @@ void scheduler_separated_stack(void)
 			break;
 
 		case Exiting:
-		repeat:
-			if (THREAD->detached) {
-				thread_destroy(THREAD, false);
-			} else {
-				/*
-				 * The thread structure is kept allocated until
-				 * somebody calls thread_detach() on it.
-				 */
-				if (!irq_spinlock_trylock(&THREAD->join_wq.lock)) {
-					/*
-					 * Avoid deadlock.
-					 */
-					irq_spinlock_unlock(&THREAD->lock, false);
-					delay(HZ);
-					irq_spinlock_lock(&THREAD->lock, false);
-					DEADLOCK_PROBE(p_joinwq,
-					    DEADLOCK_THRESHOLD);
-					goto repeat;
-				}
-				_waitq_wakeup_unsafe(&THREAD->join_wq,
-				    WAKEUP_FIRST);
-				irq_spinlock_unlock(&THREAD->join_wq.lock, false);
+			irq_spinlock_unlock(&THREAD->lock, false);
+			waitq_wakeup(&THREAD->join_wq, WAKEUP_CLOSE);
 
-				THREAD->state = Lingering;
-				irq_spinlock_unlock(&THREAD->lock, false);
-			}
+			/*
+			 * Release the reference CPU has for the thread.
+			 * If there are no other references (e.g. threads calling join),
+			 * the thread structure is deallocated.
+			 */
+			thread_put(THREAD);
 			break;
 
 		case Sleeping:
@@ -555,11 +537,6 @@ void kcpulb(void *arg)
 {
 	size_t average;
 	size_t rdy;
-
-	/*
-	 * Detach kcpulb as nobody will call thread_join_timeout() on it.
-	 */
-	thread_detach(THREAD);
 
 loop:
 	/*

@@ -101,11 +101,6 @@ void kinit(void *arg)
 {
 	thread_t *thread;
 
-	/*
-	 * Detach kinit as nobody will call thread_join_timeout() on it.
-	 */
-	thread_detach(THREAD);
-
 	interrupts_disable();
 
 #ifdef CONFIG_SMP
@@ -124,9 +119,9 @@ void kinit(void *arg)
 			panic("Unable to create kmp thread.");
 
 		thread_wire(thread, &cpus[0]);
-		thread_ready(thread);
+		thread_ready(thread_ref(thread));
 		thread_join(thread);
-		thread_detach(thread);
+		thread_put(thread);
 
 		/*
 		 * For each CPU, create its load balancing thread.

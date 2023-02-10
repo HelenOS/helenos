@@ -127,8 +127,6 @@ static void slabtest(void *data)
 	int offs = (int) (sysarg_t) data;
 	int i, j;
 
-	thread_detach(THREAD);
-
 	TPRINTF("Starting thread #%" PRIu64 "...\n", THREAD->tid);
 
 	for (j = 0; j < 10; j++) {

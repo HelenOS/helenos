@@ -75,6 +75,26 @@ static inline void refcount_up(atomic_refcount_t *rc)
 	(void) old;
 }
 
+/**
+ * Try to upgrade a weak reference.
+ * Naturally, this is contingent on another form of synchronization being used
+ * to ensure that the object continues to exist while the weak reference is in
+ * use.
+ */
+static inline bool refcount_try_up(atomic_refcount_t *rc)
+{
+	int cnt = atomic_load_explicit(&rc->__cnt, memory_order_relaxed);
+
+	while (cnt >= 0) {
+		if (atomic_compare_exchange_weak_explicit(&rc->__cnt, &cnt, cnt + 1,
+		    memory_order_relaxed, memory_order_relaxed)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static inline bool refcount_unique(atomic_refcount_t *rc)
 {
 	int val = atomic_load_explicit(&rc->__cnt, memory_order_acquire);

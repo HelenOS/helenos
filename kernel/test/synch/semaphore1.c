@@ -45,8 +45,6 @@ static atomic_size_t items_consumed;
 
 static void producer(void *arg)
 {
-	thread_detach(THREAD);
-
 	waitq_sleep(&can_start);
 
 	semaphore_down(&sem);
@@ -57,8 +55,6 @@ static void producer(void *arg)
 
 static void consumer(void *arg)
 {
-	thread_detach(THREAD);
-
 	waitq_sleep(&can_start);
 
 	semaphore_down(&sem);

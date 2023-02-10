@@ -41,8 +41,6 @@ static atomic_size_t threads_finished;
 
 static void threadtest(void *data)
 {
-	thread_detach(THREAD);
-
 	while (atomic_load(&finish)) {
 		TPRINTF("%" PRIu64 " ", THREAD->tid);
 		thread_usleep(100000);

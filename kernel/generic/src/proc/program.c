@@ -203,6 +203,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 void program_ready(program_t *prg)
 {
 	thread_ready(prg->main_thread);
+	prg->main_thread = NULL;
 }
 
 /** Syscall for creating a new loader instance from userspace.

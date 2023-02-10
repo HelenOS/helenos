@@ -992,9 +992,9 @@ int cmd_mcall0(cmd_arg_t *argv)
 		    (void *) argv, TASK, THREAD_FLAG_NONE, "call0"))) {
 			printf("cpu%u: ", i);
 			thread_wire(thread, &cpus[i]);
-			thread_ready(thread);
+			thread_ready(thread_ref(thread));
 			thread_join(thread);
-			thread_detach(thread);
+			thread_put(thread);
 		} else
 			printf("Unable to create thread for cpu%u\n", i);
 	}

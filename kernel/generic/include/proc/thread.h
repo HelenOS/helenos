@@ -69,6 +69,8 @@ typedef enum {
 
 /** Thread structure. There is one per thread. */
 typedef struct thread {
+	atomic_refcount_t refcount;
+
 	link_t rq_link;  /**< Run queue link. */
 	link_t wq_link;  /**< Wait queue link. */
 	link_t th_link;  /**< Links to threads within containing task. */
@@ -76,9 +78,19 @@ typedef struct thread {
 	/** Link to @c threads ordered dictionary. */
 	odlink_t lthreads;
 
+	/**
+	 * If true, the thread is terminating.
+	 * It will not go to sleep in interruptible synchronization functions
+	 * and will call thread_exit() before returning to userspace.
+	 */
+	volatile bool interrupted;
+
+	/** Waitq for thread_join_timeout(). */
+	waitq_t join_wq;
+
 	/** Lock protecting thread structure.
 	 *
-	 * Protects the whole thread structure except list links above.
+	 * Protects the whole thread structure except fields listed above.
 	 */
 	IRQ_SPINLOCK_DECLARE(lock);
 
@@ -132,19 +144,6 @@ typedef struct thread {
 	 * False otherwise.
 	 */
 	bool in_copy_to_uspace;
-
-	/**
-	 * If true, the thread will not go to sleep at all and will call
-	 * thread_exit() before returning to userspace.
-	 */
-	bool interrupted;
-
-	/** If true, thread_join_timeout() cannot be used on this thread. */
-	bool detached;
-	/** Waitq for thread_join_timeout(). */
-	waitq_t join_wq;
-	/** Link used in the joiner_head list. */
-	link_t joiner_link;
 
 #ifdef CONFIG_FPU
 	fpu_context_t fpu_context;
@@ -218,6 +217,22 @@ extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
 extern void thread_interrupt(thread_t *, bool);
 
+static inline thread_t *thread_ref(thread_t *thread)
+{
+	refcount_up(&thread->refcount);
+	return thread;
+}
+
+static inline thread_t *thread_try_ref(thread_t *thread)
+{
+	if (refcount_try_up(&thread->refcount))
+		return thread;
+	else
+		return NULL;
+}
+
+extern void thread_put(thread_t *);
+
 #ifndef thread_create_arch
 extern errno_t thread_create_arch(thread_t *, thread_flags_t);
 #endif
@@ -235,16 +250,14 @@ extern void thread_usleep(uint32_t);
 
 extern errno_t thread_join(thread_t *);
 extern errno_t thread_join_timeout(thread_t *, uint32_t, unsigned int);
-extern void thread_detach(thread_t *);
 
 extern void thread_print_list(bool);
-extern void thread_destroy(thread_t *, bool);
 extern thread_t *thread_find_by_id(thread_id_t);
 extern size_t thread_count(void);
 extern thread_t *thread_first(void);
 extern thread_t *thread_next(thread_t *);
 extern void thread_update_accounting(bool);
-extern bool thread_exists(thread_t *);
+extern thread_t *thread_try_get(thread_t *);
 
 extern void thread_migration_disable(void);
 extern void thread_migration_enable(void);

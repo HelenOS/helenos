@@ -59,8 +59,6 @@ static void falloc(void *arg)
 		return;
 	}
 
-	thread_detach(THREAD);
-
 	for (unsigned int run = 0; run < THREAD_RUNS; run++) {
 		for (size_t count = 1; count <= MAX_FRAMES; count++) {
 			size_t bytes = FRAMES2SIZE(count);

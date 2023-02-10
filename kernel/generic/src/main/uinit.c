@@ -55,16 +55,6 @@
  */
 void uinit(void *arg)
 {
-	/*
-	 * So far, we don't have a use for joining userspace threads so we
-	 * immediately detach each uinit thread. If joining of userspace threads
-	 * is required, some userspace API based on the kernel mechanism will
-	 * have to be implemented. Moreover, garbage collecting of threads that
-	 * didn't detach themselves and nobody else joined them will have to be
-	 * deployed for the event of forceful task termination.
-	 */
-	thread_detach(THREAD);
-
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
