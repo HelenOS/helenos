@@ -55,8 +55,6 @@ typedef struct cpu {
 	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
 	size_t tlb_messages_count;
 
-	context_t saved_context;
-
 	atomic_size_t nrdy;
 	runq_t rq[RQ_COUNT];
 
