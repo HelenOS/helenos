@@ -116,11 +116,43 @@ typedef struct spinlock {
 #define SPINLOCK_STATIC_INITIALIZE(lock_name) \
 	SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, #lock_name)
 
+#ifdef CONFIG_SMP
+
 extern void spinlock_initialize(spinlock_t *, const char *);
 extern bool spinlock_trylock(spinlock_t *);
 extern void spinlock_lock(spinlock_t *);
 extern void spinlock_unlock(spinlock_t *);
 extern bool spinlock_locked(spinlock_t *);
+
+#else
+
+#include <preemption.h>
+
+static inline void spinlock_initialize(spinlock_t *l, const char *name)
+{
+}
+
+static inline bool spinlock_trylock(spinlock_t *l)
+{
+	return true;
+}
+
+static inline void spinlock_lock(spinlock_t *l)
+{
+	preemption_disable();
+}
+
+static inline void spinlock_unlock(spinlock_t *l)
+{
+	preemption_enable();
+}
+
+static inline bool spinlock_locked(spinlock_t *l)
+{
+	return true;
+}
+
+#endif
 
 typedef struct {
 	spinlock_t lock;              /**< Spinlock */

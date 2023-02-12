@@ -36,6 +36,8 @@
  * @brief Spinlocks.
  */
 
+#ifdef CONFIG_SMP
+
 #include <arch/asm.h>
 #include <synch/spinlock.h>
 #include <atomic.h>
@@ -55,11 +57,9 @@
  */
 void spinlock_initialize(spinlock_t *lock, const char *name)
 {
-#ifdef CONFIG_SMP
 	atomic_flag_clear_explicit(&lock->flag, memory_order_relaxed);
 #ifdef CONFIG_DEBUG_SPINLOCK
 	lock->name = name;
-#endif
 #endif
 }
 
@@ -72,7 +72,6 @@ void spinlock_lock(spinlock_t *lock)
 {
 	preemption_disable();
 
-#ifdef CONFIG_SMP
 	bool deadlock_reported = false;
 	size_t i = 0;
 
@@ -119,8 +118,6 @@ void spinlock_lock(spinlock_t *lock)
 
 	if (deadlock_reported)
 		printf("cpu%u: not deadlocked\n", CPU->id);
-
-#endif
 }
 
 /** Unlock spinlock
@@ -129,14 +126,11 @@ void spinlock_lock(spinlock_t *lock)
  */
 void spinlock_unlock(spinlock_t *lock)
 {
-#ifdef CONFIG_SMP
 #ifdef CONFIG_DEBUG_SPINLOCK
 	ASSERT_SPINLOCK(spinlock_locked(lock), lock);
 #endif
 
 	atomic_flag_clear_explicit(&lock->flag, memory_order_release);
-#endif
-
 	preemption_enable();
 }
 
@@ -153,16 +147,12 @@ bool spinlock_trylock(spinlock_t *lock)
 {
 	preemption_disable();
 
-#ifdef CONFIG_SMP
 	bool ret = !atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire);
 
 	if (!ret)
 		preemption_enable();
 
 	return ret;
-#else
-	return true;
-#endif
 }
 
 /** Find out whether the spinlock is currently locked.
@@ -172,7 +162,6 @@ bool spinlock_trylock(spinlock_t *lock)
  */
 bool spinlock_locked(spinlock_t *lock)
 {
-#ifdef CONFIG_SMP
 	// NOTE: Atomic flag doesn't support simple atomic read (by design),
 	//       so instead we test_and_set and then clear if necessary.
 	//       This function is only used inside assert, so we don't need
@@ -182,10 +171,9 @@ bool spinlock_locked(spinlock_t *lock)
 	if (!ret)
 		atomic_flag_clear_explicit(&lock->flag, memory_order_relaxed);
 	return ret;
-#else
-	return true;
-#endif
 }
+
+#endif  /* CONFIG_SMP */
 
 /** @}
  */
