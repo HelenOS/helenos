@@ -74,8 +74,8 @@ jump_to_kernel:
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
-	movl $KA2PA(ctx), %eax          /* KA2PA((uintptr_t) &ctx) */
-	movl CONTEXT_OFFSET_SP(%eax), %esp
+	movl $KA2PA(bootstrap_stack_top), %eax   /* KA2PA((uintptr_t) &bootstrap_stack_top) */
+	movl (%eax), %esp
 	leal KA2PA(0)(%esp), %esp       /* KA2PA(ctx.sp) */
 
 	/*

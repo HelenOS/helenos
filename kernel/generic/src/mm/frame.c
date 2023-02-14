@@ -751,10 +751,6 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 				    KA2PA(config.base), config.kernel_size))
 					continue;
 
-				if (overlaps(addr, PFN2ADDR(confcount),
-				    KA2PA(config.stack_base), config.stack_size))
-					continue;
-
 				bool overlap = false;
 				for (size_t i = 0; i < init.cnt; i++) {
 					if (overlaps(addr, PFN2ADDR(confcount),
@@ -1120,8 +1116,6 @@ void frame_init(void)
 	if (config.cpu_active == 1) {
 		frame_mark_unavailable(ADDR2PFN(KA2PA(config.base)),
 		    SIZE2FRAMES(config.kernel_size));
-		frame_mark_unavailable(ADDR2PFN(KA2PA(config.stack_base)),
-		    SIZE2FRAMES(config.stack_size));
 
 		for (size_t i = 0; i < init.cnt; i++)
 			frame_mark_unavailable(ADDR2PFN(init.tasks[i].paddr),

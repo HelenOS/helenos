@@ -136,6 +136,12 @@ context_t ctx;
 /** Lowest safe stack virtual address. */
 uintptr_t stack_safe = 0;
 
+// NOTE: All kernel stacks must be aligned to STACK_SIZE, see CURRENT.
+const size_t bootstrap_stack_size = STACK_SIZE;
+_Alignas(STACK_SIZE) uint8_t bootstrap_stack[STACK_SIZE];
+/* Just a convenient value for some assembly code. */
+const uint8_t *bootstrap_stack_top = bootstrap_stack + STACK_SIZE;
+
 /*
  * These two functions prevent stack from underflowing during the
  * kernel boot phase when SP is set to the very top of the reserved
@@ -169,40 +175,9 @@ _NO_TRACE void main_bsp(void)
 	config.kernel_size =
 	    ALIGN_UP((uintptr_t) kdata_end - config.base, PAGE_SIZE);
 
-	/*
-	 * NOTE: All kernel stacks must be aligned to STACK_SIZE,
-	 *       see CURRENT.
-	 */
-
-	/* Place the stack after the kernel, init and ballocs. */
-	config.stack_base =
-	    ALIGN_UP(config.base + config.kernel_size, STACK_SIZE);
-	config.stack_size = STACK_SIZE;
-
-	/* Avoid placing stack on top of init */
-	size_t i;
-	for (i = 0; i < init.cnt; i++) {
-		uintptr_t p = init.tasks[i].paddr + init.tasks[i].size;
-		uintptr_t bottom = PA2KA(ALIGN_UP(p, STACK_SIZE));
-
-		if (config.stack_base < bottom)
-			config.stack_base = bottom;
-	}
-
-	/* Avoid placing stack on top of boot allocations. */
-	if (ballocs.size) {
-		uintptr_t bottom =
-		    ALIGN_UP(ballocs.base + ballocs.size, STACK_SIZE);
-		if (config.stack_base < bottom)
-			config.stack_base = bottom;
-	}
-
-	if (config.stack_base < stack_safe)
-		config.stack_base = ALIGN_UP(stack_safe, STACK_SIZE);
-
 	context_save(&ctx);
 	context_set(&ctx, FADDR(main_bsp_separated_stack),
-	    config.stack_base, STACK_SIZE);
+	    bootstrap_stack, bootstrap_stack_size);
 	context_restore(&ctx);
 	/* not reached */
 }

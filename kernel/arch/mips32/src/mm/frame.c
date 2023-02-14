@@ -112,11 +112,6 @@ static bool frame_safe(pfn_t frame)
 	    KA2PA(config.base), config.kernel_size))
 		return false;
 
-	/* Kernel stack */
-	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
-	    KA2PA(config.stack_base), config.stack_size))
-		return false;
-
 	/* Init tasks */
 	bool safe = true;
 	size_t i;

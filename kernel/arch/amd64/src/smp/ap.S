@@ -97,9 +97,10 @@ jump_to_kernel:
 
 .code64
 start64:
-	movabsq $ctx, %rsp
-	movq CONTEXT_OFFSET_SP(%rsp), %rsp
+	movabsq $bootstrap_stack_top, %rsp
+	movq (%rsp), %rsp
 
+	pushq $0
 	pushq $0
 	movq %rsp, %rbp
 

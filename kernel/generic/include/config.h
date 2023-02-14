@@ -86,11 +86,6 @@ typedef struct {
 	/** Size of memory in bytes taken by kernel and stack. */
 	size_t kernel_size;
 
-	/** Base adddress of initial stack. */
-	uintptr_t stack_base;
-	/** Size of initial stack. */
-	size_t stack_size;
-
 	bool identity_configured;
 	/** Base address of the kernel identity mapped memory. */
 	uintptr_t identity_base;

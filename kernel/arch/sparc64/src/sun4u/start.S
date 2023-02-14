@@ -355,8 +355,7 @@ SYMBOL(kernel_image_start)
 	 * The AP is expected to use the stack saved
 	 * in the ctx global variable.
 	 */
-	set ctx, %g1
-	add %g1, CONTEXT_OFFSET_SP, %g1
+	set bootstrap_stack_top, %g1
 	ldx [%g1], %o6
 
 	/*
