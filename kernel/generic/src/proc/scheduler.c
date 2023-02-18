@@ -442,6 +442,8 @@ void scheduler_separated_stack(void)
 		/* Must be run after the switch to scheduler stack */
 		after_thread_ran();
 
+		int expected;
+
 		switch (THREAD->state) {
 		case Running:
 			irq_spinlock_unlock(&THREAD->lock, false);
@@ -461,11 +463,23 @@ void scheduler_separated_stack(void)
 			break;
 
 		case Sleeping:
-			/*
-			 * Prefer the thread after it's woken up.
-			 */
-			THREAD->priority = -1;
-			irq_spinlock_unlock(&THREAD->lock, false);
+			expected = SLEEP_INITIAL;
+
+			/* Only set SLEEP_ASLEEP in sleep pad if it's still in initial state */
+			if (atomic_compare_exchange_strong_explicit(&THREAD->sleep_state,
+			    &expected, SLEEP_ASLEEP,
+			    memory_order_acq_rel, memory_order_acquire)) {
+
+				/* Prefer the thread after it's woken up. */
+				THREAD->priority = -1;
+				irq_spinlock_unlock(&THREAD->lock, false);
+			} else {
+				assert(expected == SLEEP_WOKE);
+				/* The thread has already been woken up, requeue immediately. */
+				irq_spinlock_unlock(&THREAD->lock, false);
+				thread_ready(THREAD);
+			}
+
 			break;
 
 		default:

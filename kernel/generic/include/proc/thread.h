@@ -189,6 +189,12 @@ extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
 extern void thread_interrupt(thread_t *);
 
+enum sleep_state {
+	SLEEP_INITIAL,
+	SLEEP_ASLEEP,
+	SLEEP_WOKE,
+};
+
 typedef enum {
 	THREAD_OK,
 	THREAD_TERMINATING,
