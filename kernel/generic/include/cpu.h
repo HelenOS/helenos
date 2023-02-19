@@ -75,6 +75,8 @@ typedef struct cpu_local {
 	uint64_t last_cycle;
 
 	context_t scheduler_context;
+
+	state_t exiting_state;
 } cpu_local_t;
 
 /** CPU structure.

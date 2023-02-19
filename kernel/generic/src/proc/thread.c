@@ -121,7 +121,6 @@ static void cushion(void)
 	void *arg = THREAD->thread_arg;
 
 	/* This is where each thread wakes up after its creation */
-	irq_spinlock_unlock(&THREAD->lock, false);
 	interrupts_enable();
 
 	f(arg);

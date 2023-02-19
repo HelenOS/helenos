@@ -360,6 +360,8 @@ static void prepare_to_run_thread(int rq_index)
 
 	/* Save current CPU cycle */
 	THREAD->last_cycle = get_cycle();
+
+	irq_spinlock_unlock(&THREAD->lock, false);
 }
 
 static void cleanup_after_thread(thread_t *thread, state_t out_state)
@@ -439,17 +441,16 @@ void scheduler_enter(state_t new_state)
 		THREAD->priority = -1;
 	}
 
-	/*
-	 * Through the 'CURRENT' structure, we keep track of THREAD, TASK, CPU, AS
-	 * and preemption counter. At this point CURRENT could be coming either
-	 * from THREAD's or CPU's stack.
-	 *
-	 */
+	irq_spinlock_unlock(&THREAD->lock, false);
+
+	CPU_LOCAL->exiting_state = new_state;
 
 	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
 	context_swap(&THREAD->saved_context, &CPU_LOCAL->scheduler_context);
 
-	irq_spinlock_unlock(&THREAD->lock, false);
+	assert(CURRENT->mutex_locks == 0);
+	assert(interrupts_disabled());
+
 	interrupts_restore(ipl);
 }
 
@@ -475,7 +476,6 @@ void scheduler_run(void)
 
 		int rq_index;
 		THREAD = find_best_thread(&rq_index);
-
 		prepare_to_run_thread(rq_index);
 
 		/*
@@ -487,17 +487,13 @@ void scheduler_run(void)
 		/* Switch to thread context. */
 		context_swap(&CPU_LOCAL->scheduler_context, &THREAD->saved_context);
 
-		/* Back from the thread. */
-
+		/* Back from another thread. */
 		assert(CPU != NULL);
 		assert(THREAD != NULL);
-		assert(irq_spinlock_locked(&THREAD->lock));
+		assert(CURRENT->mutex_locks == 0);
 		assert(interrupts_disabled());
 
-		state_t state = THREAD->state;
-		irq_spinlock_unlock(&THREAD->lock, false);
-
-		cleanup_after_thread(THREAD, state);
+		cleanup_after_thread(THREAD, CPU_LOCAL->exiting_state);
 
 		/*
 		 * Necessary because we're allowing interrupts in find_best_thread(),
