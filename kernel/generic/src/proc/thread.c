@@ -134,22 +134,6 @@ static void cushion(void)
 
 	f(arg);
 
-	/* Accumulate accounting to the task */
-	irq_spinlock_lock(&THREAD->lock, true);
-	if (!THREAD->uncounted) {
-		thread_update_accounting(true);
-		uint64_t ucycles = THREAD->ucycles;
-		THREAD->ucycles = 0;
-		uint64_t kcycles = THREAD->kcycles;
-		THREAD->kcycles = 0;
-
-		irq_spinlock_pass(&THREAD->lock, &TASK->lock);
-		TASK->ucycles += ucycles;
-		TASK->kcycles += kcycles;
-		irq_spinlock_unlock(&TASK->lock, true);
-	} else
-		irq_spinlock_unlock(&THREAD->lock, true);
-
 	thread_exit();
 
 	/* Not reached */
@@ -418,28 +402,36 @@ static void thread_destroy(void *obj)
 
 	ipl_t ipl = interrupts_disable();
 
-	/* Remove thread from task's list. */
-	irq_spinlock_lock(&thread->task->lock, false);
-	list_remove(&thread->th_link);
-	irq_spinlock_unlock(&thread->task->lock, false);
-
 	/* Remove thread from global list. */
 	irq_spinlock_lock(&threads_lock, false);
 	odict_remove(&thread->lthreads);
 	irq_spinlock_unlock(&threads_lock, false);
 
-	/* Clear cpu->fpu_owner if set to this thread. */
-	irq_spinlock_lock(&thread->lock, false);
+	/* Remove thread from task's list and accumulate accounting. */
+	irq_spinlock_lock(&thread->task->lock, false);
+
+	list_remove(&thread->th_link);
+
+	/*
+	 * No other CPU has access to this thread anymore, so we don't need
+	 * thread->lock for accessing thread's fields after this point.
+	 */
+
+	if (!thread->uncounted) {
+		thread->task->ucycles += thread->ucycles;
+		thread->task->kcycles += thread->kcycles;
+	}
+
+	irq_spinlock_unlock(&thread->task->lock, false);
 
 	assert((thread->state == Exiting) || (thread->state == Lingering));
 	assert(thread->cpu);
 
+	/* Clear cpu->fpu_owner if set to this thread. */
 	irq_spinlock_lock(&thread->cpu->lock, false);
 	if (thread->cpu->fpu_owner == thread)
 		thread->cpu->fpu_owner = NULL;
 	irq_spinlock_unlock(&thread->cpu->lock, false);
-
-	irq_spinlock_unlock(&thread->lock, false);
 
 	interrupts_restore(ipl);
 
