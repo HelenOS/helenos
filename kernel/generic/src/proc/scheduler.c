@@ -424,6 +424,17 @@ void scheduler_enter(state_t new_state)
 	if (atomic_load(&haltstate))
 		halt();
 
+	/* Check if we have a thread to switch to. */
+
+	int rq_index;
+	thread_t *new_thread = try_find_thread(&rq_index);
+
+	if (new_thread == NULL && new_state == Running) {
+		/* No other thread to run, but we still have work to do here. */
+		interrupts_restore(ipl);
+		return;
+	}
+
 	irq_spinlock_lock(&THREAD->lock, false);
 	THREAD->state = new_state;
 
@@ -445,11 +456,32 @@ void scheduler_enter(state_t new_state)
 
 	CPU_LOCAL->exiting_state = new_state;
 
-	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
-	context_swap(&THREAD->saved_context, &CPU_LOCAL->scheduler_context);
+	if (new_thread) {
+		thread_t *old_thread = THREAD;
+		CPU_LOCAL->prev_thread = old_thread;
+		THREAD = new_thread;
+		/* No waiting necessary, we can switch to the new thread directly. */
+		prepare_to_run_thread(rq_index);
+
+		current_copy(CURRENT, (current_t *) new_thread->kstack);
+		context_swap(&old_thread->saved_context, &new_thread->saved_context);
+	} else {
+		/*
+		 * A new thread isn't immediately available, switch to a separate
+		 * stack to sleep or do other idle stuff.
+		 */
+		current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
+		context_swap(&THREAD->saved_context, &CPU_LOCAL->scheduler_context);
+	}
 
 	assert(CURRENT->mutex_locks == 0);
 	assert(interrupts_disabled());
+
+	/* Check if we need to clean up after another thread. */
+	if (CPU_LOCAL->prev_thread) {
+		cleanup_after_thread(CPU_LOCAL->prev_thread, CPU_LOCAL->exiting_state);
+		CPU_LOCAL->prev_thread = NULL;
+	}
 
 	interrupts_restore(ipl);
 }
@@ -503,6 +535,35 @@ void scheduler_run(void)
 	}
 
 	halt();
+}
+
+/** Thread wrapper.
+ *
+ * This wrapper is provided to ensure that a starting thread properly handles
+ * everything it needs to do when first scheduled, and when it exits.
+ */
+void thread_main_func(void)
+{
+	assert(interrupts_disabled());
+
+	void (*f)(void *) = THREAD->thread_code;
+	void *arg = THREAD->thread_arg;
+
+	/* This is where each thread wakes up after its creation */
+
+	/* Check if we need to clean up after another thread. */
+	if (CPU_LOCAL->prev_thread) {
+		cleanup_after_thread(CPU_LOCAL->prev_thread, CPU_LOCAL->exiting_state);
+		CPU_LOCAL->prev_thread = NULL;
+	}
+
+	interrupts_enable();
+
+	f(arg);
+
+	thread_exit();
+
+	/* Not reached */
 }
 
 #ifdef CONFIG_SMP

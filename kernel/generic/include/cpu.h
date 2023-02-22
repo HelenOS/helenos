@@ -76,6 +76,7 @@ typedef struct cpu_local {
 
 	context_t scheduler_context;
 
+	struct thread *prev_thread;
 	state_t exiting_state;
 } cpu_local_t;
 

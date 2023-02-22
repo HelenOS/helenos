@@ -63,6 +63,8 @@ extern void sched_print_list(void);
 extern void scheduler_run(void) __attribute__((noreturn));
 extern void scheduler_enter(state_t);
 
+extern void thread_main_func(void);
+
 /*
  * To be defined by architectures.
  */

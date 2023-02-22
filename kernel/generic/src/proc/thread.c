@@ -107,29 +107,6 @@ static slab_cache_t *thread_cache;
 static void *threads_getkey(odlink_t *);
 static int threads_cmp(void *, void *);
 
-/** Thread wrapper.
- *
- * This wrapper is provided to ensure that every thread makes a call to
- * thread_exit() when its implementing function returns.
- *
- * interrupts_disable() is assumed.
- *
- */
-static void cushion(void)
-{
-	void (*f)(void *) = THREAD->thread_code;
-	void *arg = THREAD->thread_arg;
-
-	/* This is where each thread wakes up after its creation */
-	interrupts_enable();
-
-	f(arg);
-
-	thread_exit();
-
-	/* Not reached */
-}
-
 /** Initialization and allocation for thread_t structure
  *
  */
@@ -308,7 +285,8 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->tid = ++last_tid;
 	irq_spinlock_unlock(&tidlock, true);
 
-	context_create(&thread->saved_context, cushion, thread->kstack, STACK_SIZE);
+	context_create(&thread->saved_context, thread_main_func,
+	    thread->kstack, STACK_SIZE);
 
 	current_initialize((current_t *) thread->kstack);
 
