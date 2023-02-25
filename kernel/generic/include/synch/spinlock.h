@@ -134,6 +134,7 @@ static inline void spinlock_initialize(spinlock_t *l, const char *name)
 
 static inline bool spinlock_trylock(spinlock_t *l)
 {
+	preemption_disable();
 	return true;
 }
 
