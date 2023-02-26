@@ -42,8 +42,6 @@ extern uint8_t kernel_load_address[];
 /* Address of the end of kernel. */
 extern uint8_t kdata_end[];
 
-extern uintptr_t stack_safe;
-
 extern void main_bsp(void);
 extern void main_ap(void);
 

@@ -131,16 +131,14 @@ ballocs_t ballocs = {
 	.size = 0
 };
 
-context_t ctx;
-
-/** Lowest safe stack virtual address. */
-uintptr_t stack_safe = 0;
+static context_t ctx;
 
 // NOTE: All kernel stacks must be aligned to STACK_SIZE, see CURRENT.
-const size_t bootstrap_stack_size = STACK_SIZE;
-_Alignas(STACK_SIZE) uint8_t bootstrap_stack[STACK_SIZE];
+static const size_t bootstrap_stack_size = STACK_SIZE;
+static _Alignas(STACK_SIZE) uint8_t bootstrap_stack[STACK_SIZE];
+
 /* Just a convenient value for some assembly code. */
-const uint8_t *bootstrap_stack_top = bootstrap_stack + STACK_SIZE;
+uint8_t *const bootstrap_stack_top = bootstrap_stack + STACK_SIZE;
 
 /*
  * These two functions prevent stack from underflowing during the
