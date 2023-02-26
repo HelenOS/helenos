@@ -472,6 +472,18 @@ extern void asm_delay_loop(uint32_t t);
 extern void switch_to_userspace(uintptr_t, uintptr_t, uintptr_t, uintptr_t,
     uint64_t, uint64_t);
 
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep(void)
+{
+	// FIXME: do this properly
+	interrupts_enable();
+	cpu_sleep();
+	interrupts_disable();
+}
+
 #endif
 
 /** @}

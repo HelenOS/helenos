@@ -88,6 +88,18 @@ extern void interrupts_restore(ipl_t);
 extern ipl_t interrupts_read(void);
 extern bool interrupts_disabled(void);
 
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep(void)
+{
+	// FIXME: do this atomically
+	interrupts_enable();
+	cpu_sleep();
+	interrupts_disable();
+}
+
 #endif
 
 /** @}

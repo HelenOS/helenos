@@ -64,6 +64,18 @@ _NO_TRACE static inline void cpu_sleep(void)
 #endif
 }
 
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep(void)
+{
+	// FIXME: do this atomically
+	interrupts_enable();
+	cpu_sleep();
+	interrupts_disable();
+}
+
 _NO_TRACE static inline void cpu_spin_hint(void)
 {
 #ifdef PROCESSOR_ARCH_armv7_a

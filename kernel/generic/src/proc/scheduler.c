@@ -186,7 +186,6 @@ static thread_t *find_best_thread(void)
 	assert(CPU != NULL);
 
 loop:
-
 	if (atomic_load(&CPU->nrdy) == 0) {
 		/*
 		 * For there was nothing to run, the CPU goes to sleep
@@ -196,15 +195,16 @@ loop:
 		irq_spinlock_lock(&CPU->lock, false);
 		CPU->idle = true;
 		irq_spinlock_unlock(&CPU->lock, false);
-		interrupts_enable();
 
 		/*
-		 * An interrupt might occur right now and wake up a thread.
-		 * In such case, the CPU will continue to go to sleep
-		 * even though there is a runnable thread.
+		 * Go to sleep with interrupts enabled.
+		 * Ideally, this should be atomic, but this is not guaranteed on
+		 * all platforms yet, so it is possible we will go sleep when
+		 * a thread has just become available.
 		 */
-		cpu_sleep();
-		interrupts_disable();
+		cpu_interruptible_sleep();
+
+		/* Interrupts are disabled again. */
 		goto loop;
 	}
 

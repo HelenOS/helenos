@@ -53,6 +53,18 @@ _NO_TRACE static inline void cpu_sleep(void)
 	asm volatile ("wfe");
 }
 
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep(void)
+{
+	// FIXME: do this atomically
+	interrupts_enable();
+	cpu_sleep();
+	interrupts_disable();
+}
+
 /** Halts CPU. */
 _NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 {

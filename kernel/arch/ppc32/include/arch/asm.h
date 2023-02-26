@@ -166,8 +166,15 @@ _NO_TRACE static inline bool interrupts_disabled(void)
 	return ((msr_read() & MSR_EE) == 0);
 }
 
-_NO_TRACE static inline void cpu_sleep(void)
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep(void)
 {
+	// FIXME: do this properly
+	interrupts_enable();
+	interrupts_disable();
 }
 
 _NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)

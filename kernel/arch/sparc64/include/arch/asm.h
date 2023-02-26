@@ -538,6 +538,18 @@ extern void write_to_ig_g6(uint64_t val);
 
 extern void switch_to_userspace(uint64_t pc, uint64_t sp, uint64_t uarg);
 
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep(void)
+{
+	// FIXME: do this atomically
+	interrupts_enable();
+	cpu_sleep();
+	interrupts_disable();
+}
+
 #endif
 
 /** @}

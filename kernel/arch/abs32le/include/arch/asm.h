@@ -196,6 +196,17 @@ _NO_TRACE static inline bool interrupts_disabled(void)
 	return false;
 }
 
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep(void)
+{
+	interrupts_enable();
+	cpu_sleep();
+	interrupts_disable();
+}
+
 #endif
 
 /** @}

@@ -42,10 +42,20 @@
 
 #define IO_SPACE_BOUNDARY	((void *) (64 * 1024))
 
-_NO_TRACE static inline void cpu_sleep(void)
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep()
 {
+	/*
+	 * On x86, "sti" enables interrupts after the next instruction.
+	 * Therefore, this sequence is guaranteed to be atomic.
+	 */
 	asm volatile (
+	    "sti\n"
 	    "hlt\n"
+	    "cli\n"
 	);
 }
 

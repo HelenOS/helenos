@@ -56,10 +56,16 @@ _NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 	}
 }
 
-_NO_TRACE static inline void cpu_sleep(void)
+/** Enables interrupts and blocks until an interrupt arrives,
+ * atomically if possible on target architecture.
+ * Disables interrupts again before returning to caller.
+ */
+_NO_TRACE static inline void cpu_interruptible_sleep(void)
 {
 	asm volatile (
+	    "sti\n"
 	    "hlt\n"
+	    "cli\n"
 	);
 }
 
