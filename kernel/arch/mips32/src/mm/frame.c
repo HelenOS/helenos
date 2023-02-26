@@ -112,6 +112,11 @@ static bool frame_safe(pfn_t frame)
 	    KA2PA(config.base), config.kernel_size))
 		return false;
 
+	/* Boot allocations */
+	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
+	    KA2PA(ballocs.base), ballocs.size))
+		return false;
+
 	/* Init tasks */
 	bool safe = true;
 	size_t i;

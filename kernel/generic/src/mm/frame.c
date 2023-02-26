@@ -751,6 +751,10 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 				    KA2PA(config.base), config.kernel_size))
 					continue;
 
+				if (overlaps(addr, PFN2ADDR(confcount),
+				    KA2PA(ballocs.base), ballocs.size))
+					continue;
+
 				bool overlap = false;
 				for (size_t i = 0; i < init.cnt; i++) {
 					if (overlaps(addr, PFN2ADDR(confcount),
