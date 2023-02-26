@@ -274,26 +274,35 @@ static void relink_rq(int start)
 
 	CPU->relink_deadline = CPU->current_clock_tick + NEEDS_RELINK_MAX;
 
+	/* Temporary cache for lists we are moving. */
 	list_t list;
 	list_initialize(&list);
 
+	size_t n = 0;
+
 	irq_spinlock_lock(&CPU->lock, false);
 
-	for (int i = start; i < RQ_COUNT - 1; i++) {
-		/* Remember and empty rq[i + 1] */
-
-		irq_spinlock_lock(&CPU->rq[i + 1].lock, false);
-		list_concat(&list, &CPU->rq[i + 1].rq);
-		size_t n = CPU->rq[i + 1].n;
-		CPU->rq[i + 1].n = 0;
-		irq_spinlock_unlock(&CPU->rq[i + 1].lock, false);
-
-		/* Append rq[i + 1] to rq[i] */
-
+	/* Move every list (except the one with highest priority) one level up. */
+	for (int i = RQ_COUNT - 1; i > start; i--) {
 		irq_spinlock_lock(&CPU->rq[i].lock, false);
-		list_concat(&CPU->rq[i].rq, &list);
-		CPU->rq[i].n += n;
+
+		/* Swap lists. */
+		list_swap(&CPU->rq[i].rq, &list);
+
+		/* Swap number of items. */
+		size_t tmpn = CPU->rq[i].n;
+		CPU->rq[i].n = n;
+		n = tmpn;
+
 		irq_spinlock_unlock(&CPU->rq[i].lock, false);
+	}
+
+	/* Append the contents of rq[start + 1]  to rq[start]. */
+	if (n != 0) {
+		irq_spinlock_lock(&CPU->rq[start].lock, false);
+		list_concat(&CPU->rq[start].rq, &list);
+		CPU->rq[start].n += n;
+		irq_spinlock_unlock(&CPU->rq[start].lock, false);
 	}
 
 	irq_spinlock_unlock(&CPU->lock, false);
