@@ -69,12 +69,6 @@ static void scheduler_separated_stack(void);
 
 atomic_size_t nrdy;  /**< Number of ready threads in the system. */
 
-/** Carry out actions before new task runs. */
-static void before_task_runs(void)
-{
-	before_task_runs_arch();
-}
-
 /** Take actions before new thread runs.
  *
  * Perform actions that need to be
@@ -256,6 +250,29 @@ loop:
 	goto loop;
 }
 
+static void switch_task(task_t *task)
+{
+	/* If the task stays the same, a lot of work is avoided. */
+	if (TASK == task)
+		return;
+
+	as_t *old_as = AS;
+	as_t *new_as = task->as;
+
+	/* It is possible for two tasks to share one address space. */
+	if (old_as != new_as)
+		as_switch(old_as, new_as);
+
+	if (TASK)
+		task_release(TASK);
+
+	TASK = task;
+
+	task_hold(TASK);
+
+	before_task_runs_arch();
+}
+
 /** Prevent rq starvation
  *
  * Prevent low priority threads from starving in rq's.
@@ -402,23 +419,9 @@ void scheduler_locked(ipl_t ipl)
  */
 void scheduler_separated_stack(void)
 {
-	task_t *old_task = TASK;
-	as_t *old_as = AS;
-
 	assert((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
 	assert(CPU != NULL);
 	assert(interrupts_disabled());
-
-	/*
-	 * Hold the current task and the address space to prevent their
-	 * possible destruction should thread_destroy() be called on this or any
-	 * other processor while the scheduler is still using them.
-	 */
-	if (old_task)
-		task_hold(old_task);
-
-	if (old_as)
-		as_hold(old_as);
 
 	if (THREAD) {
 		/* Must be run after the switch to scheduler stack */
@@ -470,34 +473,7 @@ void scheduler_separated_stack(void)
 
 	relink_rq(priority);
 
-	/*
-	 * If both the old and the new task are the same,
-	 * lots of work is avoided.
-	 */
-	if (TASK != THREAD->task) {
-		as_t *new_as = THREAD->task->as;
-
-		/*
-		 * Note that it is possible for two tasks
-		 * to share one address space.
-		 */
-		if (old_as != new_as) {
-			/*
-			 * Both tasks and address spaces are different.
-			 * Replace the old one with the new one.
-			 */
-			as_switch(old_as, new_as);
-		}
-
-		TASK = THREAD->task;
-		before_task_runs();
-	}
-
-	if (old_task)
-		task_release(old_task);
-
-	if (old_as)
-		as_release(old_as);
+	switch_task(THREAD->task);
 
 	irq_spinlock_lock(&THREAD->lock, false);
 	THREAD->state = Running;

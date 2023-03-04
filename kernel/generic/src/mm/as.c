@@ -1687,7 +1687,12 @@ retry:
 
 	spinlock_unlock(&asidlock);
 
+	if (AS)
+		as_release(AS);
+
 	AS = new_as;
+
+	as_hold(AS);
 }
 
 /** Compute flags for virtual address translation subsytem.
