@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,11 +59,13 @@ static ui_control_ops_t panel_ctl_ops = {
 	.pos_event = panel_ctl_pos_event
 };
 
+static void panel_flist_activate_req(ui_file_list_t *, void *);
 static void panel_flist_selected(ui_file_list_t *, void *, const char *);
 
 /** Panel file list callbacks */
 static ui_file_list_cb_t panel_flist_cb = {
-	.selected = panel_flist_selected
+	.activate_req = panel_flist_activate_req,
+	.selected = panel_flist_selected,
 };
 
 /** Create panel.
@@ -215,17 +217,22 @@ ui_evclaim_t panel_pos_event(panel_t *panel, pos_event_t *event)
 {
 	gfx_coord2_t pos;
 	ui_control_t *ctl;
+	ui_evclaim_t claim;
 
 	pos.x = event->hpos;
 	pos.y = event->vpos;
 	if (!gfx_pix_inside_rect(&pos, &panel->rect))
 		return ui_unclaimed;
 
+	ctl = ui_file_list_ctl(panel->flist);
+	claim = ui_control_pos_event(ctl, event);
+	if (claim == ui_claimed)
+		return ui_claimed;
+
 	if (!panel->active && event->type == POS_PRESS)
 		panel_activate_req(panel);
 
-	ctl = ui_file_list_ctl(panel->flist);
-	return ui_control_pos_event(ctl, event);
+	return ui_claimed;
 }
 
 /** Get base control for panel.
@@ -413,6 +420,18 @@ error:
 	(void) ui_resume(ui);
 	(void) ui_paint(ui_window_get_ui(panel->window));
 	return rc;
+}
+
+/** File list in panel requests activation.
+ *
+ * @param flist File list
+ * @param arg Argument (panel_t *)
+ */
+static void panel_flist_activate_req(ui_file_list_t *flist, void *arg)
+{
+	panel_t *panel = (panel_t *)arg;
+
+	panel_activate_req(panel);
 }
 
 /** File in panel file list was selected.

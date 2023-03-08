@@ -43,6 +43,7 @@
 #include <ui/fixed.h>
 #include <ui/image.h>
 #include <ui/label.h>
+#include <ui/list.h>
 #include <ui/menubar.h>
 #include <ui/menuentry.h>
 #include <ui/menu.h>
@@ -597,6 +598,7 @@ static errno_t ui_demo(const char *display_spec)
 	ui_menu_entry_t *mexit;
 	ui_menu_entry_t *mmodify;
 	ui_menu_entry_t *mabout;
+	ui_list_entry_attr_t eattr;
 	errno_t rc;
 
 	rc = ui_create(display_spec, &ui);
@@ -1182,6 +1184,85 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	ui_tab_add(demo.tbasic, ui_fixed_ctl(demo.bfixed));
+
+	rc = ui_fixed_create(&demo.lfixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		return rc;
+	}
+
+	rc = ui_list_create(window, false, &demo.list);
+	if (rc != EOK) {
+		printf("Error creating list.\n");
+		return rc;
+	}
+
+	ui_list_entry_attr_init(&eattr);
+
+	eattr.caption = "One";
+	rc = ui_list_entry_append(demo.list, &eattr, NULL);
+	if (rc != EOK) {
+		printf("Error adding list entry.\n");
+		return rc;
+	}
+
+	eattr.caption = "Two";
+	rc = ui_list_entry_append(demo.list, &eattr, NULL);
+	if (rc != EOK) {
+		printf("Error adding list entry.\n");
+		return rc;
+	}
+
+	eattr.caption = "Three";
+	rc = ui_list_entry_append(demo.list, &eattr, NULL);
+	if (rc != EOK) {
+		printf("Error adding list entry.\n");
+		return rc;
+	}
+
+	eattr.caption = "Four";
+	rc = ui_list_entry_append(demo.list, &eattr, NULL);
+	if (rc != EOK) {
+		printf("Error adding list entry.\n");
+		return rc;
+	}
+
+	eattr.caption = "Five";
+	rc = ui_list_entry_append(demo.list, &eattr, NULL);
+	if (rc != EOK) {
+		printf("Error adding list entry.\n");
+		return rc;
+	}
+
+	eattr.caption = "Six";
+	rc = ui_list_entry_append(demo.list, &eattr, NULL);
+	if (rc != EOK) {
+		printf("Error adding list entry.\n");
+		return rc;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 4;
+		rect.p0.y = 5;
+		rect.p1.x = 41;
+		rect.p1.y = 10;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 88;
+		rect.p1.x = 245;
+		rect.p1.y = 173;
+	}
+
+	ui_list_set_rect(demo.list, &rect);
+
+	rc = ui_fixed_add(demo.lfixed, ui_list_ctl(demo.list));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	ui_tab_add(demo.tlists, ui_fixed_ctl(demo.lfixed));
 
 	ui_window_add(window, ui_fixed_ctl(demo.fixed));
 

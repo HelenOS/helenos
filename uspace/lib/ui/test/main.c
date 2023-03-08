@@ -40,6 +40,7 @@ PCUT_IMPORT(file_list);
 PCUT_IMPORT(fixed);
 PCUT_IMPORT(image);
 PCUT_IMPORT(label);
+PCUT_IMPORT(list);
 PCUT_IMPORT(menu);
 PCUT_IMPORT(menubar);
 PCUT_IMPORT(menuentry);

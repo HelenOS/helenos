@@ -26,63 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file List
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_LIST_H
+#define _UI_LIST_H
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/list.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/tab.h>
-#include <ui/tabset.h>
-#include <ui/ui.h>
+#include <errno.h>
+#include <gfx/coord.h>
+#include <ui/control.h>
 #include <ui/window.h>
+#include <stdbool.h>
+#include <types/ui/list.h>
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_fixed_t *bfixed;
-	ui_fixed_t *lfixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_tab_set_t *tabset;
-	ui_tab_t *tbasic;
-	ui_tab_t *tlists;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *hscrollbar;
-	ui_scrollbar_t *vscrollbar;
-	ui_list_t *list;
-} ui_demo_t;
+extern errno_t ui_list_create(ui_window_t *, bool, ui_list_t **);
+extern void ui_list_destroy(ui_list_t *);
+extern ui_control_t *ui_list_ctl(ui_list_t *);
+extern void ui_list_set_cb(ui_list_t *, ui_list_cb_t *, void *);
+extern void ui_list_set_rect(ui_list_t *, gfx_rect_t *);
+extern errno_t ui_list_activate(ui_list_t *);
+extern void ui_list_deactivate(ui_list_t *);
+extern ui_list_entry_t *ui_list_get_cursor(ui_list_t *);
+extern void ui_list_entry_attr_init(ui_list_entry_attr_t *);
+extern errno_t ui_list_entry_append(ui_list_t *,
+    ui_list_entry_attr_t *, ui_list_entry_t **);
+extern void ui_list_entry_delete(ui_list_entry_t *);
+extern void *ui_list_entry_get_arg(ui_list_entry_t *);
+extern size_t ui_list_entries_cnt(ui_list_t *);
+extern errno_t ui_list_sort(ui_list_t *);
+extern void ui_list_cursor_center(ui_list_t *, ui_list_entry_t *);
+extern ui_list_entry_t *ui_list_first(ui_list_t *);
+extern ui_list_entry_t *ui_list_last(ui_list_t *);
+extern ui_list_entry_t *ui_list_next(ui_list_entry_t *);
+extern ui_list_entry_t *ui_list_prev(ui_list_entry_t *);
+extern bool ui_list_is_active(ui_list_t *);
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,6 @@
 
 #include <errno.h>
 #include <gfx/coord.h>
-#include <io/kbd_event.h>
-#include <io/pos_event.h>
 #include <ui/control.h>
 #include <ui/window.h>
 #include <stdbool.h>

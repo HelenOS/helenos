@@ -26,63 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file List control
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_TYPES_LIST_H
+#define _UI_TYPES_LIST_H
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/list.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/tab.h>
-#include <ui/tabset.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <gfx/color.h>
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_fixed_t *bfixed;
-	ui_fixed_t *lfixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_tab_set_t *tabset;
-	ui_tab_t *tbasic;
-	ui_tab_t *tlists;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *hscrollbar;
-	ui_scrollbar_t *vscrollbar;
-	ui_list_t *list;
-} ui_demo_t;
+struct ui_list;
+typedef struct ui_list ui_list_t;
+
+struct ui_list_entry;
+typedef struct ui_list_entry ui_list_entry_t;
+
+/** List entry attributes */
+typedef struct ui_list_entry_attr {
+	/** Entry caption */
+	const char *caption;
+	/** User argument */
+	void *arg;
+	/** Entry color or @c NULL to use default color */
+	gfx_color_t *color;
+	/** Entry background color or @c NULL to use default color */
+	gfx_color_t *bgcolor;
+} ui_list_entry_attr_t;
+
+/** List callbacks */
+typedef struct ui_list_cb {
+	/** Request list activation */
+	void (*activate_req)(ui_list_t *, void *);
+	/** Entry was selected */
+	void (*selected)(ui_list_entry_t *, void *);
+	/** Compare two entries (for sorting) */
+	int (*compare)(ui_list_entry_t *, ui_list_entry_t *);
+} ui_list_cb_t;
 
 #endif
 
