@@ -98,20 +98,6 @@ static void before_thread_runs(void)
 #endif
 }
 
-/** Take actions after THREAD had run.
- *
- * Perform actions that need to be
- * taken after the running thread
- * had been preempted by the scheduler.
- *
- * THREAD->lock is locked on entry
- *
- */
-static void after_thread_ran(void)
-{
-	after_thread_ran_arch();
-}
-
 #ifdef CONFIG_FPU_LAZY
 void scheduler_fpu_lazy_request(void)
 {
@@ -375,6 +361,53 @@ void scheduler(void)
 	scheduler_locked(ipl);
 }
 
+static void cleanup_after_thread(thread_t *thread, state_t out_state)
+{
+	assert(CURRENT->mutex_locks == 0);
+	assert(interrupts_disabled());
+
+	int expected;
+
+	switch (out_state) {
+	case Running:
+		thread_ready(thread);
+		break;
+
+	case Exiting:
+		waitq_close(&thread->join_wq);
+
+		/*
+		 * Release the reference CPU has for the thread.
+		 * If there are no other references (e.g. threads calling join),
+		 * the thread structure is deallocated.
+		 */
+		thread_put(thread);
+		break;
+
+	case Sleeping:
+		expected = SLEEP_INITIAL;
+
+		/* Only set SLEEP_ASLEEP in sleep pad if it's still in initial state */
+		if (!atomic_compare_exchange_strong_explicit(&thread->sleep_state,
+		    &expected, SLEEP_ASLEEP,
+		    memory_order_acq_rel, memory_order_acquire)) {
+
+			assert(expected == SLEEP_WOKE);
+			/* The thread has already been woken up, requeue immediately. */
+			thread_ready(thread);
+		}
+		break;
+
+	default:
+		/*
+		 * Entering state is unexpected.
+		 */
+		panic("tid%" PRIu64 ": unexpected state %s.",
+		    thread->tid, thread_states[thread->state]);
+		break;
+	}
+}
+
 /** The scheduler
  *
  * The thread scheduling procedure.
@@ -459,57 +492,18 @@ void scheduler_separated_stack(void)
 	assert(interrupts_disabled());
 
 	if (THREAD) {
-		/* Must be run after the switch to scheduler stack */
-		after_thread_ran();
+		after_thread_ran_arch();
 
-		int expected;
+		state_t state = THREAD->state;
 
-		switch (THREAD->state) {
-		case Running:
-			irq_spinlock_unlock(&THREAD->lock, false);
-			thread_ready(THREAD);
-			break;
-
-		case Exiting:
-			irq_spinlock_unlock(&THREAD->lock, false);
-			waitq_close(&THREAD->join_wq);
-
-			/*
-			 * Release the reference CPU has for the thread.
-			 * If there are no other references (e.g. threads calling join),
-			 * the thread structure is deallocated.
-			 */
-			thread_put(THREAD);
-			break;
-
-		case Sleeping:
-			expected = SLEEP_INITIAL;
-
-			/* Only set SLEEP_ASLEEP in sleep pad if it's still in initial state */
-			if (atomic_compare_exchange_strong_explicit(&THREAD->sleep_state,
-			    &expected, SLEEP_ASLEEP,
-			    memory_order_acq_rel, memory_order_acquire)) {
-
-				/* Prefer the thread after it's woken up. */
-				THREAD->priority = -1;
-				irq_spinlock_unlock(&THREAD->lock, false);
-			} else {
-				assert(expected == SLEEP_WOKE);
-				/* The thread has already been woken up, requeue immediately. */
-				irq_spinlock_unlock(&THREAD->lock, false);
-				thread_ready(THREAD);
-			}
-
-			break;
-
-		default:
-			/*
-			 * Entering state is unexpected.
-			 */
-			panic("tid%" PRIu64 ": unexpected state %s.",
-			    THREAD->tid, thread_states[THREAD->state]);
-			break;
+		if (state == Sleeping) {
+			/* Prefer the thread after it's woken up. */
+			THREAD->priority = -1;
 		}
+
+		irq_spinlock_unlock(&THREAD->lock, false);
+
+		cleanup_after_thread(THREAD, state);
 
 		THREAD = NULL;
 	}
