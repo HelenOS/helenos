@@ -120,7 +120,6 @@ static void cushion(void)
 {
 	void (*f)(void *) = THREAD->thread_code;
 	void *arg = THREAD->thread_arg;
-	THREAD->last_cycle = get_cycle();
 
 	/* This is where each thread wakes up after its creation */
 	irq_spinlock_unlock(&THREAD->lock, false);

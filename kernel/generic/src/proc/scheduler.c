@@ -66,37 +66,8 @@
 #include <stacktrace.h>
 
 static void scheduler_separated_stack(void);
-static void fpu_restore(void);
 
 atomic_size_t nrdy;  /**< Number of ready threads in the system. */
-
-/** Take actions before new thread runs.
- *
- * Perform actions that need to be
- * taken before the newly selected
- * thread is passed control.
- *
- * THREAD->lock is locked on entry
- *
- */
-static void before_thread_runs(void)
-{
-	before_thread_runs_arch();
-
-	fpu_restore();
-
-#ifdef CONFIG_UDEBUG
-	if (THREAD->btrace) {
-		istate_t *istate = THREAD->udebug.uspace_state;
-		if (istate != NULL) {
-			printf("Thread %" PRIu64 " stack trace:\n", THREAD->tid);
-			stack_trace_istate(istate);
-		}
-
-		THREAD->btrace = false;
-	}
-#endif
-}
 
 #ifdef CONFIG_FPU_LAZY
 void scheduler_fpu_lazy_request(void)
@@ -173,24 +144,7 @@ static thread_t *try_find_thread(int *rq_index)
 		    list_first(&CPU->rq[i].rq), thread_t, rq_link);
 		list_remove(&thread->rq_link);
 
-		irq_spinlock_pass(&(CPU->rq[i].lock), &thread->lock);
-
-		thread->cpu = CPU;
-		thread->priority = i;  /* Correct rq index */
-
-		/* Time allocation in microseconds. */
-		uint64_t time_to_run = (i + 1) * 10000;
-
-		/* This is safe because interrupts are disabled. */
-		CPU_LOCAL->preempt_deadline =
-		    CPU_LOCAL->current_clock_tick + us2ticks(time_to_run);
-
-		/*
-		 * Clear the stolen flag so that it can be migrated
-		 * when load balancing needs emerge.
-		 */
-		thread->stolen = false;
-		irq_spinlock_unlock(&thread->lock, false);
+		irq_spinlock_unlock(&(CPU->rq[i].lock), false);
 
 		*rq_index = i;
 		return thread;
@@ -361,6 +315,67 @@ void scheduler(void)
 	scheduler_locked(ipl);
 }
 
+/** Things to do before we switch to THREAD context.
+ */
+static void prepare_to_run_thread(int rq_index)
+{
+	relink_rq(rq_index);
+
+	switch_task(THREAD->task);
+
+	irq_spinlock_lock(&THREAD->lock, false);
+	THREAD->state = Running;
+	THREAD->cpu = CPU;
+	THREAD->priority = rq_index;  /* Correct rq index */
+
+	/*
+	 * Clear the stolen flag so that it can be migrated
+	 * when load balancing needs emerge.
+	 */
+	THREAD->stolen = false;
+
+#ifdef SCHEDULER_VERBOSE
+	log(LF_OTHER, LVL_DEBUG,
+	    "cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64
+	    ", nrdy=%zu)", CPU->id, THREAD->tid, THREAD->priority,
+	    THREAD->ticks, atomic_load(&CPU->nrdy));
+#endif
+
+	/*
+	 * Some architectures provide late kernel PA2KA(identity)
+	 * mapping in a page fault handler. However, the page fault
+	 * handler uses the kernel stack of the running thread and
+	 * therefore cannot be used to map it. The kernel stack, if
+	 * necessary, is to be mapped in before_thread_runs(). This
+	 * function must be executed before the switch to the new stack.
+	 */
+	before_thread_runs_arch();
+
+#ifdef CONFIG_UDEBUG
+	if (THREAD->btrace) {
+		istate_t *istate = THREAD->udebug.uspace_state;
+		if (istate != NULL) {
+			printf("Thread %" PRIu64 " stack trace:\n", THREAD->tid);
+			stack_trace_istate(istate);
+		}
+
+		THREAD->btrace = false;
+	}
+#endif
+
+	fpu_restore();
+
+	/* Time allocation in microseconds. */
+	uint64_t time_to_run = (rq_index + 1) * 10000;
+
+	/* Set the time of next preemption. */
+	CPU_LOCAL->preempt_deadline =
+	    CPU_LOCAL->current_clock_tick + us2ticks(time_to_run);
+
+	/* Save current CPU cycle */
+	THREAD->last_cycle = get_cycle();
+}
+
 static void cleanup_after_thread(thread_t *thread, state_t out_state)
 {
 	assert(CURRENT->mutex_locks == 0);
@@ -429,9 +444,6 @@ void scheduler_locked(ipl_t ipl)
 			/*
 			 * This is the place where threads leave scheduler();
 			 */
-
-			/* Save current CPU cycle */
-			THREAD->last_cycle = get_cycle();
 
 			irq_spinlock_unlock(&THREAD->lock, false);
 			interrupts_restore(THREAD->saved_ipl);
@@ -511,29 +523,7 @@ void scheduler_separated_stack(void)
 	int rq_index;
 	THREAD = find_best_thread(&rq_index);
 
-	relink_rq(rq_index);
-
-	switch_task(THREAD->task);
-
-	irq_spinlock_lock(&THREAD->lock, false);
-	THREAD->state = Running;
-
-#ifdef SCHEDULER_VERBOSE
-	log(LF_OTHER, LVL_DEBUG,
-	    "cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64
-	    ", nrdy=%zu)", CPU->id, THREAD->tid, THREAD->priority,
-	    THREAD->ticks, atomic_load(&CPU->nrdy));
-#endif
-
-	/*
-	 * Some architectures provide late kernel PA2KA(identity)
-	 * mapping in a page fault handler. However, the page fault
-	 * handler uses the kernel stack of the running thread and
-	 * therefore cannot be used to map it. The kernel stack, if
-	 * necessary, is to be mapped in before_thread_runs(). This
-	 * function must be executed before the switch to the new stack.
-	 */
-	before_thread_runs();
+	prepare_to_run_thread(rq_index);
 
 	/*
 	 * Copy the knowledge of CPU, TASK, THREAD and preemption counter to
