@@ -448,6 +448,13 @@ void scheduler_enter(state_t new_state)
 	/* Update thread kernel accounting */
 	THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 
+	after_thread_ran_arch();
+
+	if (new_state == Sleeping) {
+		/* Prefer the thread after it's woken up. */
+		THREAD->priority = -1;
+	}
+
 	if (!context_save(&THREAD->saved_context)) {
 		/*
 		 * This is the place where threads leave scheduler();
@@ -505,15 +512,7 @@ void scheduler_separated_stack(void)
 		halt();
 
 	if (THREAD) {
-		after_thread_ran_arch();
-
 		state_t state = THREAD->state;
-
-		if (state == Sleeping) {
-			/* Prefer the thread after it's woken up. */
-			THREAD->priority = -1;
-		}
-
 		irq_spinlock_unlock(&THREAD->lock, false);
 
 		cleanup_after_thread(THREAD, state);
