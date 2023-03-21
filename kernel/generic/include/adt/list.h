@@ -314,6 +314,9 @@ static inline link_t *list_prev(const link_t *link, const list_t *list)
  */
 _NO_TRACE static inline void headless_list_split_or_concat(link_t *part1, link_t *part2)
 {
+	if (part1 == NULL || part2 == NULL)
+		return;
+
 	part1->prev->next = part2;
 	part2->prev->next = part1;
 
@@ -351,6 +354,25 @@ _NO_TRACE static inline void headless_list_split(link_t *part1, link_t *part2)
 _NO_TRACE static inline void headless_list_concat(link_t *part1, link_t *part2)
 {
 	headless_list_split_or_concat(part1, part2);
+}
+
+/** Swap the contents of two lists.
+ *
+ * @param list1
+ * @param list2
+ */
+static inline void list_swap(list_t *list1, list_t *list2)
+{
+	link_t *first1 = list_first(list1);
+	link_t *first2 = list_first(list2);
+
+	/* Detach both lists from their heads. */
+	headless_list_split(&list1->head, first1);
+	headless_list_split(&list2->head, first2);
+
+	/* Attach both lists to their new heads. */
+	headless_list_concat(&list1->head, first2);
+	headless_list_concat(&list2->head, first1);
 }
 
 /** Concatenate two lists
