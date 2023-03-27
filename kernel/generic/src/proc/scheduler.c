@@ -501,6 +501,69 @@ void scheduler_separated_stack(void)
 }
 
 #ifdef CONFIG_SMP
+
+static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
+{
+	runq_t *old_rq = &old_cpu->rq[i];
+	runq_t *new_rq = &CPU->rq[i];
+
+	irq_spinlock_lock(&old_rq->lock, true);
+
+	/* Search rq from the back */
+	list_foreach_rev(old_rq->rq, rq_link, thread_t, thread) {
+
+		irq_spinlock_lock(&thread->lock, false);
+
+		/*
+		 * Do not steal CPU-wired threads, threads
+		 * already stolen, threads for which migration
+		 * was temporarily disabled or threads whose
+		 * FPU context is still in the CPU.
+		 */
+		if (thread->stolen || thread->nomigrate || thread->fpu_context_engaged) {
+			irq_spinlock_unlock(&thread->lock, false);
+			continue;
+		}
+
+		thread->stolen = true;
+		thread->cpu = CPU;
+
+		irq_spinlock_unlock(&thread->lock, false);
+
+		/*
+		 * Ready thread on local CPU
+		 */
+
+#ifdef KCPULB_VERBOSE
+		log(LF_OTHER, LVL_DEBUG,
+		    "kcpulb%u: TID %" PRIu64 " -> cpu%u, "
+		    "nrdy=%ld, avg=%ld", CPU->id, thread->tid,
+		    CPU->id, atomic_load(&CPU->nrdy),
+		    atomic_load(&nrdy) / config.cpu_active);
+#endif
+
+		/* Remove thread from ready queue. */
+		old_rq->n--;
+		list_remove(&thread->rq_link);
+
+		irq_spinlock_pass(&old_rq->lock, &new_rq->lock);
+
+		/* Append thread to local queue. */
+		list_append(&thread->rq_link, &new_rq->rq);
+		new_rq->n++;
+
+		irq_spinlock_unlock(&new_rq->lock, true);
+
+		atomic_dec(&old_cpu->nrdy);
+		atomic_inc(&CPU->nrdy);
+
+		return thread;
+	}
+
+	irq_spinlock_unlock(&old_rq->lock, true);
+	return NULL;
+}
+
 /** Load balancing thread
  *
  * SMP load balancing thread, supervising thread supplies
@@ -540,12 +603,11 @@ not_satisfied:
 	 * queues on all CPU's last.
 	 */
 	size_t acpu;
-	size_t acpu_bias = 0;
 	int rq;
 
 	for (rq = RQ_COUNT - 1; rq >= 0; rq--) {
 		for (acpu = 0; acpu < config.cpu_active; acpu++) {
-			cpu_t *cpu = &cpus[(acpu + acpu_bias) % config.cpu_active];
+			cpu_t *cpu = &cpus[acpu];
 
 			/*
 			 * Not interested in ourselves.
@@ -559,89 +621,8 @@ not_satisfied:
 			if (atomic_load(&cpu->nrdy) <= average)
 				continue;
 
-			irq_spinlock_lock(&(cpu->rq[rq].lock), true);
-			if (cpu->rq[rq].n == 0) {
-				irq_spinlock_unlock(&(cpu->rq[rq].lock), true);
-				continue;
-			}
-
-			thread_t *thread = NULL;
-
-			/* Search rq from the back */
-			link_t *link = list_last(&cpu->rq[rq].rq);
-
-			while (link != NULL) {
-				thread = (thread_t *) list_get_instance(link,
-				    thread_t, rq_link);
-
-				/*
-				 * Do not steal CPU-wired threads, threads
-				 * already stolen, threads for which migration
-				 * was temporarily disabled or threads whose
-				 * FPU context is still in the CPU.
-				 */
-				irq_spinlock_lock(&thread->lock, false);
-
-				if ((!thread->stolen) &&
-				    (!thread->nomigrate) &&
-				    (!thread->fpu_context_engaged)) {
-					/*
-					 * Remove thread from ready queue.
-					 */
-					irq_spinlock_unlock(&thread->lock,
-					    false);
-
-					atomic_dec(&cpu->nrdy);
-					atomic_dec(&nrdy);
-
-					cpu->rq[rq].n--;
-					list_remove(&thread->rq_link);
-
-					break;
-				}
-
-				irq_spinlock_unlock(&thread->lock, false);
-
-				link = list_prev(link, &cpu->rq[rq].rq);
-				thread = NULL;
-			}
-
-			if (thread) {
-				/*
-				 * Ready thread on local CPU
-				 */
-
-				irq_spinlock_pass(&(cpu->rq[rq].lock),
-				    &thread->lock);
-
-#ifdef KCPULB_VERBOSE
-				log(LF_OTHER, LVL_DEBUG,
-				    "kcpulb%u: TID %" PRIu64 " -> cpu%u, "
-				    "nrdy=%ld, avg=%ld", CPU->id, thread->tid,
-				    CPU->id, atomic_load(&CPU->nrdy),
-				    atomic_load(&nrdy) / config.cpu_active);
-#endif
-
-				thread->stolen = true;
-				thread->state = Entering;
-
-				irq_spinlock_unlock(&thread->lock, true);
-				thread_ready(thread);
-
-				if (--count == 0)
-					goto satisfied;
-
-				/*
-				 * We are not satisfied yet, focus on another
-				 * CPU next time.
-				 *
-				 */
-				acpu_bias++;
-
-				continue;
-			} else
-				irq_spinlock_unlock(&(cpu->rq[rq].lock), true);
-
+			if (steal_thread_from(cpu, rq) && --count == 0)
+				goto satisfied;
 		}
 	}
 

@@ -258,21 +258,8 @@ void thread_ready(thread_t *thread)
 	int i = (thread->priority < RQ_COUNT - 1) ?
 	    ++thread->priority : thread->priority;
 
-	cpu_t *cpu;
-	if (thread->nomigrate || thread->fpu_context_engaged) {
-		/* Cannot ready to another CPU */
-		assert(thread->cpu != NULL);
-		cpu = thread->cpu;
-	} else if (thread->stolen) {
-		/* Ready to the stealing CPU */
-		cpu = CPU;
-	} else if (thread->cpu) {
-		/* Prefer the CPU on which the thread ran last */
-		assert(thread->cpu != NULL);
-		cpu = thread->cpu;
-	} else {
-		cpu = CPU;
-	}
+	/* Prefer the CPU on which the thread ran last */
+	cpu_t *cpu = thread->cpu ? thread->cpu : CPU;
 
 	thread->state = Ready;
 
