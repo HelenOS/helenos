@@ -209,44 +209,7 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
 void thread_start(thread_t *thread)
 {
 	assert(thread->state == Entering);
-	thread_ready(thread_ref(thread));
-}
-
-/** Make thread ready
- *
- * Switch thread to the ready state. Consumes reference passed by the caller.
- *
- * @param thread Thread to make ready.
- *
- */
-void thread_ready(thread_t *thread)
-{
-	// TODO: move this to scheduler.c
-	irq_spinlock_lock(&thread->lock, true);
-
-	assert(thread->state != Ready);
-
-	int i = (thread->priority < RQ_COUNT - 1) ?
-	    ++thread->priority : thread->priority;
-
-	/* Prefer the CPU on which the thread ran last */
-	cpu_t *cpu = thread->cpu ? thread->cpu : CPU;
-
-	thread->state = Ready;
-
-	irq_spinlock_pass(&thread->lock, &(cpu->rq[i].lock));
-
-	/*
-	 * Append thread to respective ready queue
-	 * on respective processor.
-	 */
-
-	list_append(&thread->rq_link, &cpu->rq[i].rq);
-	cpu->rq[i].n++;
-	irq_spinlock_unlock(&(cpu->rq[i].lock), true);
-
-	atomic_inc(&nrdy);
-	atomic_inc(&cpu->nrdy);
+	thread_requeue_sleeping(thread_ref(thread));
 }
 
 /** Create new thread
@@ -612,7 +575,7 @@ void thread_wakeup(thread_t *thread)
 		 * The reference consumed here is the reference implicitly passed to
 		 * the waking thread by the sleeper in thread_wait_finish().
 		 */
-		thread_ready(thread);
+		thread_requeue_sleeping(thread);
 	}
 }
 
@@ -1063,7 +1026,8 @@ sys_errno_t sys_thread_create(uspace_ptr_uspace_arg_t uspace_uarg, uspace_ptr_ch
 #else
 		thread_attach(thread, TASK);
 #endif
-		thread_ready(thread);
+		thread_start(thread);
+		thread_put(thread);
 
 		return 0;
 	} else

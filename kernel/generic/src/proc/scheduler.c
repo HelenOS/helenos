@@ -310,8 +310,9 @@ static void prepare_to_run_thread(int rq_index)
 	switch_task(THREAD->task);
 
 	irq_spinlock_lock(&THREAD->lock, false);
+	assert(THREAD->cpu == CPU);
+
 	THREAD->state = Running;
-	THREAD->cpu = CPU;
 	THREAD->priority = rq_index;  /* Correct rq index */
 
 	/*
@@ -364,6 +365,63 @@ static void prepare_to_run_thread(int rq_index)
 	irq_spinlock_unlock(&THREAD->lock, false);
 }
 
+static void add_to_rq(thread_t *thread, cpu_t *cpu, int i)
+{
+	/* Add to the appropriate runqueue. */
+	runq_t *rq = &cpu->rq[i];
+
+	irq_spinlock_lock(&rq->lock, false);
+	list_append(&thread->rq_link, &rq->rq);
+	rq->n++;
+	irq_spinlock_unlock(&rq->lock, false);
+
+	atomic_inc(&nrdy);
+	atomic_inc(&cpu->nrdy);
+}
+
+/** Requeue a thread that was just preempted on this CPU.
+ */
+static void thread_requeue_preempted(thread_t *thread)
+{
+	irq_spinlock_lock(&thread->lock, false);
+
+	assert(thread->state == Running);
+	assert(thread->cpu == CPU);
+
+	int i = (thread->priority < RQ_COUNT - 1) ?
+	    ++thread->priority : thread->priority;
+
+	thread->state = Ready;
+
+	irq_spinlock_unlock(&thread->lock, false);
+
+	add_to_rq(thread, CPU, i);
+}
+
+void thread_requeue_sleeping(thread_t *thread)
+{
+	ipl_t ipl = interrupts_disable();
+
+	irq_spinlock_lock(&thread->lock, false);
+
+	assert(thread->state == Sleeping || thread->state == Entering);
+
+	thread->priority = 0;
+	thread->state = Ready;
+
+	/* Prefer the CPU on which the thread ran last */
+	if (!thread->cpu)
+		thread->cpu = CPU;
+
+	cpu_t *cpu = thread->cpu;
+
+	irq_spinlock_unlock(&thread->lock, false);
+
+	add_to_rq(thread, cpu, 0);
+
+	interrupts_restore(ipl);
+}
+
 static void cleanup_after_thread(thread_t *thread, state_t out_state)
 {
 	assert(CURRENT->mutex_locks == 0);
@@ -373,7 +431,7 @@ static void cleanup_after_thread(thread_t *thread, state_t out_state)
 
 	switch (out_state) {
 	case Running:
-		thread_ready(thread);
+		thread_requeue_preempted(thread);
 		break;
 
 	case Exiting:
@@ -397,7 +455,7 @@ static void cleanup_after_thread(thread_t *thread, state_t out_state)
 
 			assert(expected == SLEEP_WOKE);
 			/* The thread has already been woken up, requeue immediately. */
-			thread_ready(thread);
+			thread_requeue_sleeping(thread);
 		}
 		break;
 
@@ -446,11 +504,6 @@ void scheduler_enter(state_t new_state)
 	 * covered by context_save()/context_restore().
 	 */
 	after_thread_ran_arch();
-
-	if (new_state == Sleeping) {
-		/* Prefer the thread after it's woken up. */
-		THREAD->priority = -1;
-	}
 
 	irq_spinlock_unlock(&THREAD->lock, false);
 

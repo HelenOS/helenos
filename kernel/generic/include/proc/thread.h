@@ -185,7 +185,7 @@ extern thread_t *thread_create(void (*)(void *), void *, task_t *,
 extern void thread_wire(thread_t *, cpu_t *);
 extern void thread_attach(thread_t *, task_t *);
 extern void thread_start(thread_t *);
-extern void thread_ready(thread_t *);
+extern void thread_requeue_sleeping(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
 extern void thread_interrupt(thread_t *);
 
