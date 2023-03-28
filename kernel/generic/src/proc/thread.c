@@ -354,7 +354,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->task = task;
 
 	thread->fpu_context_exists = false;
-	thread->fpu_context_engaged = false;
 
 	odlink_initialize(&thread->lthreads);
 

@@ -96,8 +96,10 @@ typedef struct cpu {
 
 	cpu_arch_t arch;
 
+#ifdef CONFIG_FPU_LAZY
 	IRQ_SPINLOCK_DECLARE(fpu_lock);
 	struct thread *fpu_owner;
+#endif
 
 	/**
 	 * Stack used by scheduler when there is no running thread.

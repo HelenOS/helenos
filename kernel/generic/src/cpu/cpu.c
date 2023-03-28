@@ -83,7 +83,9 @@ void cpu_init(void)
 			cpus[i].stack = (uint8_t *) PA2KA(stack_phys);
 			cpus[i].id = i;
 
+#ifdef CONFIG_FPU_LAZY
 			irq_spinlock_initialize(&cpus[i].fpu_lock, "cpus[].fpu_lock");
+#endif
 			irq_spinlock_initialize(&cpus[i].tlb_lock, "cpus[].tlb_lock");
 
 			for (unsigned int j = 0; j < RQ_COUNT; j++) {

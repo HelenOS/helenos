@@ -131,13 +131,6 @@ typedef struct thread {
 #endif
 	bool fpu_context_exists;
 
-	/*
-	 * Defined only if thread doesn't run.
-	 * It means that fpu context is in CPU that last time executes this
-	 * thread. This disables migration.
-	 */
-	bool fpu_context_engaged;
-
 	/* The thread will not be migrated if nomigrate is non-zero. */
 	unsigned int nomigrate;
 
