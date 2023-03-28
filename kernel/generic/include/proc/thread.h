@@ -98,12 +98,6 @@ typedef struct thread {
 	atomic_time_stat_t ucycles;
 	atomic_time_stat_t kcycles;
 
-	/** Lock protecting thread structure.
-	 *
-	 * Protects the whole thread structure except fields listed above.
-	 */
-	IRQ_SPINLOCK_DECLARE(lock);
-
 	/** Architecture-specific data. */
 	thread_arch_t arch;
 

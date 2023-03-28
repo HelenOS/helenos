@@ -114,7 +114,6 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 {
 	thread_t *thread = (thread_t *) obj;
 
-	irq_spinlock_initialize(&thread->lock, "thread_t_lock");
 	link_initialize(&thread->rq_link);
 	link_initialize(&thread->wq_link);
 	link_initialize(&thread->th_link);
@@ -196,10 +195,10 @@ void thread_init(void)
  */
 void thread_wire(thread_t *thread, cpu_t *cpu)
 {
-	irq_spinlock_lock(&thread->lock, true);
+	ipl_t ipl = interrupts_disable();
 	atomic_set_unordered(&thread->cpu, cpu);
 	thread->nomigrate++;
-	irq_spinlock_unlock(&thread->lock, true);
+	interrupts_restore(ipl);
 }
 
 /** Start a thread that wasn't started yet since it was created.
@@ -578,19 +577,26 @@ void thread_wakeup(thread_t *thread)
 /** Prevent the current thread from being migrated to another processor. */
 void thread_migration_disable(void)
 {
-	assert(THREAD);
+	ipl_t ipl = interrupts_disable();
 
+	assert(THREAD);
 	THREAD->nomigrate++;
+
+	interrupts_restore(ipl);
 }
 
 /** Allow the current thread to be migrated to another processor. */
 void thread_migration_enable(void)
 {
+	ipl_t ipl = interrupts_disable();
+
 	assert(THREAD);
 	assert(THREAD->nomigrate > 0);
 
 	if (THREAD->nomigrate > 0)
 		THREAD->nomigrate--;
+
+	interrupts_restore(ipl);
 }
 
 /** Thread sleep

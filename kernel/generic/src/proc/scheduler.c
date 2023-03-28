@@ -309,7 +309,6 @@ static void prepare_to_run_thread(int rq_index)
 
 	switch_task(THREAD->task);
 
-	irq_spinlock_lock(&THREAD->lock, false);
 	assert(atomic_get_unordered(&THREAD->cpu) == CPU);
 
 	atomic_set_unordered(&THREAD->state, Running);
@@ -363,8 +362,6 @@ static void prepare_to_run_thread(int rq_index)
 
 	/* Save current CPU cycle */
 	THREAD->last_cycle = get_cycle();
-
-	irq_spinlock_unlock(&THREAD->lock, false);
 }
 
 static void add_to_rq(thread_t *thread, cpu_t *cpu, int i)
@@ -385,8 +382,6 @@ static void add_to_rq(thread_t *thread, cpu_t *cpu, int i)
  */
 static void thread_requeue_preempted(thread_t *thread)
 {
-	irq_spinlock_lock(&thread->lock, false);
-
 	assert(atomic_get_unordered(&thread->state) == Running);
 	assert(atomic_get_unordered(&thread->cpu) == CPU);
 
@@ -399,16 +394,12 @@ static void thread_requeue_preempted(thread_t *thread)
 
 	atomic_set_unordered(&thread->state, Ready);
 
-	irq_spinlock_unlock(&thread->lock, false);
-
 	add_to_rq(thread, CPU, prio);
 }
 
 void thread_requeue_sleeping(thread_t *thread)
 {
 	ipl_t ipl = interrupts_disable();
-
-	irq_spinlock_lock(&thread->lock, false);
 
 	assert(atomic_get_unordered(&thread->state) == Sleeping || atomic_get_unordered(&thread->state) == Entering);
 
@@ -422,8 +413,6 @@ void thread_requeue_sleeping(thread_t *thread)
 		cpu = CPU;
 		atomic_set_unordered(&thread->cpu, CPU);
 	}
-
-	irq_spinlock_unlock(&thread->lock, false);
 
 	add_to_rq(thread, cpu, 0);
 
@@ -499,8 +488,6 @@ void scheduler_enter(state_t new_state)
 		return;
 	}
 
-	irq_spinlock_lock(&THREAD->lock, false);
-
 	atomic_set_unordered(&THREAD->state, new_state);
 
 	/* Update thread kernel accounting */
@@ -513,8 +500,6 @@ void scheduler_enter(state_t new_state)
 	 * covered by context_save()/context_restore().
 	 */
 	after_thread_ran_arch();
-
-	irq_spinlock_unlock(&THREAD->lock, false);
 
 	CPU_LOCAL->exiting_state = new_state;
 
@@ -649,24 +634,18 @@ static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
 	/* Search rq from the back */
 	list_foreach_rev(old_rq->rq, rq_link, thread_t, thread) {
 
-		irq_spinlock_lock(&thread->lock, false);
-
 		/*
 		 * Do not steal CPU-wired threads, threads
 		 * already stolen, threads for which migration
 		 * was temporarily disabled or threads whose
 		 * FPU context is still in the CPU.
 		 */
-		if (thread->stolen || thread->nomigrate ||
-		    thread == fpu_owner) {
-			irq_spinlock_unlock(&thread->lock, false);
+		if (thread->stolen || thread->nomigrate || thread == fpu_owner) {
 			continue;
 		}
 
 		thread->stolen = true;
 		atomic_set_unordered(&thread->cpu, CPU);
-
-		irq_spinlock_unlock(&thread->lock, false);
 
 		/*
 		 * Ready thread on local CPU
