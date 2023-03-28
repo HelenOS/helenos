@@ -588,7 +588,7 @@ not_satisfied:
 				 */
 				irq_spinlock_lock(&thread->lock, false);
 
-				if ((!thread->wired) && (!thread->stolen) &&
+				if ((!thread->stolen) &&
 				    (!thread->nomigrate) &&
 				    (!thread->fpu_context_engaged)) {
 					/*

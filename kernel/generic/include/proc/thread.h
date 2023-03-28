@@ -148,8 +148,6 @@ typedef struct thread {
 	cpu_t *cpu;
 	/** Containing task. */
 	task_t *task;
-	/** Thread is wired to CPU. */
-	bool wired;
 	/** Thread was migrated to another CPU and has not run yet. */
 	bool stolen;
 	/** Thread is executed in user space. */

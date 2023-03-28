@@ -230,7 +230,7 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
 {
 	irq_spinlock_lock(&thread->lock, true);
 	thread->cpu = cpu;
-	thread->wired = true;
+	thread->nomigrate++;
 	irq_spinlock_unlock(&thread->lock, true);
 }
 
@@ -259,7 +259,7 @@ void thread_ready(thread_t *thread)
 	    ++thread->priority : thread->priority;
 
 	cpu_t *cpu;
-	if (thread->wired || thread->nomigrate || thread->fpu_context_engaged) {
+	if (thread->nomigrate || thread->fpu_context_engaged) {
 		/* Cannot ready to another CPU */
 		assert(thread->cpu != NULL);
 		cpu = thread->cpu;
@@ -347,7 +347,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	    ((flags & THREAD_FLAG_UNCOUNTED) == THREAD_FLAG_UNCOUNTED);
 	thread->priority = -1;          /* Start in rq[0] */
 	thread->cpu = NULL;
-	thread->wired = false;
 	thread->stolen = false;
 	thread->uspace =
 	    ((flags & THREAD_FLAG_USPACE) == THREAD_FLAG_USPACE);
