@@ -506,7 +506,7 @@ void scheduler_enter(state_t new_state)
 	atomic_set_unordered(&THREAD->state, new_state);
 
 	/* Update thread kernel accounting */
-	THREAD->kcycles += get_cycle() - THREAD->last_cycle;
+	atomic_time_increment(&THREAD->kcycles, get_cycle() - THREAD->last_cycle);
 
 	/*
 	 * On Sparc, this saves some extra userspace state that's not

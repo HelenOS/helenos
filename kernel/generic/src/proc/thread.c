@@ -257,8 +257,8 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 
 	thread->thread_code = func;
 	thread->thread_arg = arg;
-	thread->ucycles = 0;
-	thread->kcycles = 0;
+	thread->ucycles = ATOMIC_TIME_INITIALIZER();
+	thread->kcycles = ATOMIC_TIME_INITIALIZER();
 	thread->uncounted =
 	    ((flags & THREAD_FLAG_UNCOUNTED) == THREAD_FLAG_UNCOUNTED);
 	atomic_init(&thread->priority, -1);          /* Start in rq[0] */
@@ -332,8 +332,8 @@ static void thread_destroy(void *obj)
 	 */
 
 	if (!thread->uncounted) {
-		thread->task->ucycles += thread->ucycles;
-		thread->task->kcycles += thread->kcycles;
+		thread->task->ucycles += atomic_time_read(&thread->ucycles);
+		thread->task->kcycles += atomic_time_read(&thread->kcycles);
 	}
 
 	irq_spinlock_unlock(&thread->task->lock, false);
@@ -681,8 +681,8 @@ static void thread_print(thread_t *thread, bool additional)
 {
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
-	order_suffix(thread->ucycles, &ucycles, &usuffix);
-	order_suffix(thread->kcycles, &kcycles, &ksuffix);
+	order_suffix(atomic_time_read(&thread->ucycles), &ucycles, &usuffix);
+	order_suffix(atomic_time_read(&thread->kcycles), &kcycles, &ksuffix);
 
 	state_t state = atomic_get_unordered(&thread->state);
 
@@ -787,15 +787,14 @@ thread_t *thread_try_get(thread_t *thread)
  */
 void thread_update_accounting(bool user)
 {
+	assert(interrupts_disabled());
+
 	uint64_t time = get_cycle();
 
-	assert(interrupts_disabled());
-	assert(irq_spinlock_locked(&THREAD->lock));
-
 	if (user)
-		THREAD->ucycles += time - THREAD->last_cycle;
+		atomic_time_increment(&THREAD->ucycles, time - THREAD->last_cycle);
 	else
-		THREAD->kcycles += time - THREAD->last_cycle;
+		atomic_time_increment(&THREAD->kcycles, time - THREAD->last_cycle);
 
 	THREAD->last_cycle = time;
 }

@@ -146,8 +146,8 @@ typedef struct thread {
 	bool uspace;
 
 	/** Thread accounting. */
-	uint64_t ucycles;
-	uint64_t kcycles;
+	atomic_time_stat_t ucycles;
+	atomic_time_stat_t kcycles;
 	/** Last sampled cycle. */
 	uint64_t last_cycle;
 	/** Thread doesn't affect accumulated accounting. */
