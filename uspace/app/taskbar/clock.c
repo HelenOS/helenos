@@ -60,6 +60,54 @@ static ui_control_ops_t taskbar_clock_ctl_ops = {
 	.pos_event = taskbar_clock_ctl_pos_event
 };
 
+ClockFormat function_clock_format = american_clock_format;
+
+usec_t clock_refresh_seconds = 5 * 1000 * 1000;
+bool use_seconds = false;
+bool italian_format = true;
+
+void american_clock_format(struct tm time, char *buf, size_t bsize)
+{
+	if(time.tm_hour == 0)
+		snprintf(buf, bsize, "%02d:%02d PM", time.tm_hour, time.tm_min);
+	else if(time.tm_hour > 12)
+		snprintf(buf, bsize, "%02d:%02d PM", time.tm_hour % 12, time.tm_min);
+	else
+		snprintf(buf, bsize, "%02d:%02d AM", time.tm_hour, time.tm_min);
+}
+
+void american_seconds_clock_format(struct tm time, char *buf, size_t bsize)
+{
+	if(time.tm_hour == 0)
+		snprintf(buf, bsize, "%02d:%02d:%02d PM", time.tm_hour, time.tm_min, time.tm_sec);
+	else if(time.tm_hour > 12)
+		snprintf(buf, bsize, "%02d:%02d:%02d PM", time.tm_hour % 12, time.tm_min, time.tm_sec);
+	else
+		snprintf(buf, bsize, "%02d:%02d:%02d AM", time.tm_hour, time.tm_min, time.tm_sec);
+}
+
+void italian_clock_format(struct tm time, char *buf, size_t bsize)
+{
+	snprintf(buf, bsize, "%02d:%02d", time.tm_hour, time.tm_min);
+}
+
+void italian_seconds_clock_format(struct tm time, char *buf, size_t bsize)
+{
+	snprintf(buf, bsize, "%02d:%02d:%02d", time.tm_hour, time.tm_min, time.tm_sec);
+}
+
+void set_clock_format(void)
+{
+	if(italian_format)
+	{
+		function_clock_format = (use_seconds) ? italian_seconds_clock_format : italian_clock_format;
+	}
+	else
+	{
+		function_clock_format = (use_seconds) ? american_seconds_clock_format : american_clock_format;
+	}
+}
+
 /** Create task bar clock.
  *
  * @param window Containing window
@@ -70,6 +118,8 @@ errno_t taskbar_clock_create(ui_window_t *window, taskbar_clock_t **rclock)
 {
 	taskbar_clock_t *clock;
 	errno_t rc;
+	
+	set_clock_format();
 
 	clock = calloc(1, sizeof(taskbar_clock_t));
 	if (clock == NULL)
@@ -90,7 +140,7 @@ errno_t taskbar_clock_create(ui_window_t *window, taskbar_clock_t **rclock)
 
 	fibril_mutex_initialize(&clock->lock);
 	fibril_condvar_initialize(&clock->timer_done_cv);
-	fibril_timer_set(clock->timer, 1000000, taskbar_clock_timer, clock);
+	fibril_timer_set(clock->timer, clock_refresh_seconds, taskbar_clock_timer, clock);
 
 	clock->window = window;
 	*rclock = clock;
@@ -135,16 +185,16 @@ static errno_t taskbar_clock_get_text(taskbar_clock_t *clock, char *buf,
     size_t bsize)
 {
 	struct timespec ts;
-	struct tm tm;
+	struct tm time;
 	errno_t rc;
 
 	getrealtime(&ts);
-	rc = time_utc2tm(ts.tv_sec, &tm);
+	rc = time_utc2tm(ts.tv_sec, &time);
 	if (rc != EOK)
 		return rc;
 
-	snprintf(buf, bsize, "%02d:%02d:%02d", tm.tm_hour, tm.tm_min,
-	    tm.tm_sec);
+	function_clock_format(time, buf, bsize);
+	
 	return EOK;
 }
 
@@ -326,7 +376,7 @@ static void taskbar_clock_timer(void *arg)
 	(void) taskbar_clock_paint(clock);
 
 	if (!clock->timer_cleanup) {
-		fibril_timer_set(clock->timer, 1000000, taskbar_clock_timer,
+		fibril_timer_set(clock->timer, clock_refresh_seconds, taskbar_clock_timer,
 		    clock);
 	} else {
 		/* Acknowledge timer cleanup */

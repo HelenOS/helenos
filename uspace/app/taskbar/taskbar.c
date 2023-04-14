@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/resource.h>
@@ -46,6 +47,14 @@
 #include "clock.h"
 #include "taskbar.h"
 #include "wndlist.h"
+#include <task.h>
+
+#define NAME  "taskbar"
+
+static const char *display_spec = UI_DISPLAY_DEFAULT;
+
+bool TaskLauncherIsOpen = false;
+task_id_t TaskLauncherid;
 
 static void taskbar_wnd_close(ui_window_t *, void *);
 static void taskbar_wnd_pos(ui_window_t *, void *, pos_event_t *);
@@ -54,6 +63,14 @@ static ui_window_cb_t window_cb = {
 	.close = taskbar_wnd_close,
 	.pos = taskbar_wnd_pos
 };
+
+static void buttonApps_clicked(ui_pbutton_t *, void *);
+
+static ui_pbutton_cb_t buttonApps_cb = {
+	.clicked = buttonApps_clicked
+};
+
+static int app_launchl(const char *, ...);
 
 /** Window close button was clicked.
  *
@@ -128,7 +145,7 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 
 	ui_wnd_params_init(&params);
 	params.caption = "Task Bar";
-	params.placement = ui_wnd_place_bottom_left;
+	params.placement = ui_wnd_place_bottom_left_absolute;
 
 	/* Window has no titlebar */
 	params.style &= ~ui_wds_titlebar;
@@ -168,26 +185,29 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	rc = ui_label_create(ui_res, "HelenOS", &taskbar->label);
+	rc = ui_pbutton_create(ui_res, "Apps", &taskbar->buttonApps);
 	if (rc != EOK) {
-		printf("Error creating label.\n");
+		printf("Error creating Application Menu.\n");
 		goto error;
 	}
+	
+	ui_pbutton_set_cb(taskbar->buttonApps, &buttonApps_cb, NULL);
 
 	ui_window_get_app_rect(taskbar->window, &rect);
 	if (ui_is_textmode(taskbar->ui)) {
 		rect.p0.x += 1;
+		rect.p1.x = rect.p0.x + 71;
 	} else {
 		rect.p0.x += 10;
+		rect.p1.x = rect.p0.x +70;
 	}
-	ui_label_set_rect(taskbar->label, &rect);
-	ui_label_set_halign(taskbar->label, gfx_halign_left);
-	ui_label_set_valign(taskbar->label, gfx_valign_center);
+	ui_pbutton_set_rect(taskbar->buttonApps, &rect);
+	ui_pbutton_set_default(taskbar->buttonApps, true);
 
-	rc = ui_fixed_add(taskbar->fixed, ui_label_ctl(taskbar->label));
+	rc = ui_fixed_add(taskbar->fixed, ui_pbutton_ctl(taskbar->buttonApps));
 	if (rc != EOK) {
-		printf("Error adding control to layout.\n");
-		ui_label_destroy(taskbar->label);
+		printf("Error adding Application Menu control to layout.\n");
+		ui_pbutton_destroy(taskbar->buttonApps);
 		goto error;
 	}
 
@@ -271,6 +291,114 @@ void taskbar_destroy(taskbar_t *taskbar)
 	taskbar_clock_destroy(taskbar->clock);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);
+}
+
+/** Application Menu was clicked.
+ *
+ * @param pbutton Application Menu button
+ * @param arg Argument
+ */
+static void buttonApps_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	//taskbar_t *taskbar = (taskbar_t *) arg;
+	
+	if(!TaskLauncherIsOpen)
+	{
+		if(app_launchl("/app/appslauncher", NULL) == EOK)
+		{
+			/*if(ui_pbutton_set_caption(pbutton, "Close") != EOK)
+				printf("Error changing entry text.\n");
+			ui_pbutton_paint(pbutton);*/
+		}
+		else
+		{
+			printf("Can't open launcher.\n");
+			//return;
+		}
+	}
+	else
+	{
+		if (task_kill(TaskLauncherid) == EOK)
+		{
+			/*if(ui_pbutton_set_caption(pbutton, "Apps") != EOK)
+				printf("Error changing entry text.\n");
+			ui_pbutton_paint(pbutton);*/
+		}
+		else
+		{
+			printf("Can't kill launcher.\n");
+		}
+	}
+	
+	TaskLauncherIsOpen = !TaskLauncherIsOpen;
+}
+
+static int app_launchl(const char *app, ...)
+{
+	errno_t rc;
+	task_id_t id;
+	task_wait_t wait;
+	va_list ap;
+	const char *arg;
+	const char **argv;
+	const char **argp;
+	int cnt = 0;
+	int i;
+
+	va_start(ap, app);
+	do {
+		arg = va_arg(ap, const char *);
+		cnt++;
+	} while (arg != NULL);
+	va_end(ap);
+
+	argv = calloc(cnt + 4, sizeof(const char *));
+	if (argv == NULL)
+		return -1;
+
+	task_exit_t texit;
+	int retval;
+
+	argp = argv;
+	*argp++ = app;
+
+	if (str_cmp(display_spec, UI_DISPLAY_DEFAULT) != 0) {
+		*argp++ = "-d";
+		*argp++ = display_spec;
+	}
+
+	va_start(ap, app);
+	do {
+		arg = va_arg(ap, const char *);
+		*argp++ = arg;
+	} while (arg != NULL);
+	va_end(ap);
+
+	*argp++ = NULL;
+
+	printf("%s: Spawning %s", NAME, app);
+	for (i = 0; argv[i] != NULL; i++) {
+		printf(" %s", argv[i]);
+	}
+	printf("\n");
+
+	rc = task_spawnv(&id, &wait, app, argv);
+	if (rc != EOK) {
+		TaskLauncherid = -1;
+		printf("%s: Error spawning %s (%s)\n", NAME, app, str_error(rc));
+		return -1;
+	}
+	
+	TaskLauncherid = id;
+
+	rc = task_wait(&wait, &texit, &retval);
+	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL)) {
+		printf("%s: Error retrieving retval from %s (%s)\n", NAME,
+		    app, str_error(rc));
+		return -1;
+	}
+
+	return retval;
 }
 
 /** @}

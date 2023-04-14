@@ -53,6 +53,14 @@ extern ui_evclaim_t taskbar_clock_pos_event(taskbar_clock_t *, pos_event_t *);
 extern ui_control_t *taskbar_clock_ctl(taskbar_clock_t *);
 extern void taskbar_clock_set_rect(taskbar_clock_t *, gfx_rect_t *);
 
+void american_clock_format(struct tm time, char *buf, size_t bsize);
+void american_seconds_clock_format(struct tm time, char *buf, size_t bsize);
+void italian_clock_format(struct tm time, char *buf, size_t bsize);
+void italian_seconds_clock_format(struct tm time, char *buf, size_t bsize);
+void set_clock_format(void);
+
+typedef void (*ClockFormat)(struct tm, char *, size_t);
+
 #endif
 
 /** @}

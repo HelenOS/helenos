@@ -38,7 +38,7 @@
 
 #include <types/common.h>
 #include <ui/fixed.h>
-#include <ui/label.h>
+#include <ui/pbutton.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "clock.h"
@@ -52,7 +52,8 @@ typedef struct taskbar {
 	ui_window_t *window;
 	/** Fixed layout */
 	ui_fixed_t *fixed;
-	ui_label_t *label;
+	/** Taskbar Application Menu */
+	ui_pbutton_t *buttonApps;
 	/** Window list */
 	wndlist_t *wndlist;
 	/** Clock */
