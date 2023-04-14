@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2023 SimonJRiddix
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -156,6 +157,8 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
 	pos->x = 0;
 	pos->y = 0;
 
+	int taskbar_height = 32;
+
 	switch (params->placement) {
 	case ui_wnd_place_default:
 		assert(ui_is_fullscreen(window->ui));
@@ -175,9 +178,17 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
 		break;
 	case ui_wnd_place_bottom_left:
 		pos->x = drect->p0.x - params->rect.p0.x;
-		pos->y = drect->p1.y - params->rect.p1.y;
+		pos->y = drect->p1.y - params->rect.p1.y - taskbar_height;
 		break;
 	case ui_wnd_place_bottom_right:
+		pos->x = drect->p1.x - params->rect.p1.x;
+		pos->y = drect->p1.y - params->rect.p1.y - taskbar_height;
+		break;
+	case ui_wnd_place_bottom_left_absolute:
+		pos->x = drect->p0.x - params->rect.p0.x;
+		pos->y = drect->p1.y - params->rect.p1.y;
+		break;
+	case ui_wnd_place_bottom_right_absolute:
 		pos->x = drect->p1.x - params->rect.p1.x;
 		pos->y = drect->p1.y - params->rect.p1.y;
 		break;
