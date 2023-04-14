@@ -56,6 +56,7 @@ apps = [
 	'killall',
 	'kio',
 	'launcher',
+    'appslauncher',
 	'loc',
 	'logset',
 	'lprint',
