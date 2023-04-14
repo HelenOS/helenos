@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2023 SimonJRiddix
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,10 +53,14 @@ typedef enum {
 	ui_wnd_place_top_left,
 	/** Place window to the top-right corner of the screen */
 	ui_wnd_place_top_right,
-	/** Place window to the bottom-left corner of the screen */
+	/** Place window to the bottom-left corner of the screen on top of taskbar */
 	ui_wnd_place_bottom_left,
-	/** Place window to the bottom-right corner of the screen */
+	/** Place window to the bottom-right corner of the screen on top of taskbar */
 	ui_wnd_place_bottom_right,
+	/** Place window to the bottom-left corner of the screen */
+	ui_wnd_place_bottom_left_absolute,
+	/** Place window to the bottom-right corner of the screen */
+	ui_wnd_place_bottom_right_absolute,
 	/** Place window accross the entire screen */
 	ui_wnd_place_full_screen,
 	/** Place window as a popup window adjacent to rectangle */
