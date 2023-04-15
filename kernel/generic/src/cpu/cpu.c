@@ -102,8 +102,8 @@ void cpu_init(void)
 
 	CPU->idle = false;
 	CPU->last_cycle = get_cycle();
-	CPU->idle_cycles = 0;
-	CPU->busy_cycles = 0;
+	CPU->idle_cycles = ATOMIC_TIME_INITIALIZER();
+	CPU->busy_cycles = ATOMIC_TIME_INITIALIZER();
 
 	cpu_identify();
 	cpu_arch_init();

@@ -80,8 +80,8 @@ typedef struct cpu {
 	 */
 	bool idle;
 	uint64_t last_cycle;
-	uint64_t idle_cycles;
-	uint64_t busy_cycles;
+	atomic_time_stat_t idle_cycles;
+	atomic_time_stat_t busy_cycles;
 
 	/**
 	 * Processor ID assigned by kernel.
