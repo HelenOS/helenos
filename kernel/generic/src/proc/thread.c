@@ -313,10 +313,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 
 	current_initialize((current_t *) thread->kstack);
 
-	ipl_t ipl = interrupts_disable();
-	thread->saved_ipl = interrupts_read();
-	interrupts_restore(ipl);
-
 	str_cpy(thread->name, THREAD_NAME_BUFLEN, name);
 
 	thread->thread_code = func;
@@ -517,13 +513,8 @@ void thread_exit(void)
 		}
 	}
 
-	irq_spinlock_lock(&THREAD->lock, true);
-	THREAD->state = Exiting;
-	irq_spinlock_unlock(&THREAD->lock, true);
-
-	scheduler();
-
-	panic("should never be reached");
+	scheduler_enter(Exiting);
+	unreachable();
 }
 
 /** Interrupts an existing thread so that it may exit as soon as possible.
@@ -622,10 +613,7 @@ thread_wait_result_t thread_wait_finish(deadline_t deadline)
 		    thread_wait_timeout_callback, THREAD);
 	}
 
-	ipl_t ipl = interrupts_disable();
-	irq_spinlock_lock(&THREAD->lock, false);
-	THREAD->state = Sleeping;
-	scheduler_locked(ipl);
+	scheduler_enter(Sleeping);
 
 	if (deadline != DEADLINE_NEVER && !timeout_unregister(&timeout)) {
 		return THREAD_WAIT_TIMEOUT;
@@ -735,6 +723,13 @@ void thread_usleep(uint32_t usec)
 	waitq_initialize(&wq);
 
 	(void) waitq_sleep_timeout(&wq, usec);
+}
+
+/** Allow other threads to run. */
+void thread_yield(void)
+{
+	assert(THREAD != NULL);
+	scheduler_enter(Running);
 }
 
 static void thread_print(thread_t *thread, bool additional)

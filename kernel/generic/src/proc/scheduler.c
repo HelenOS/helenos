@@ -301,18 +301,21 @@ static void fpu_restore(void)
 #endif
 }
 
-void scheduler(void)
+void scheduler_run(void)
 {
-	ipl_t ipl = interrupts_disable();
+	assert(interrupts_disabled());
+	assert(THREAD == NULL);
+	assert(CPU != NULL);
 
-	if (atomic_load(&haltstate))
-		halt();
+	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
 
-	if (THREAD) {
-		irq_spinlock_lock(&THREAD->lock, false);
-	}
+	context_t ctx;
+	context_save(&ctx);
+	context_set(&ctx, FADDR(scheduler_separated_stack),
+	    (uintptr_t) CPU_LOCAL->stack, STACK_SIZE);
+	context_restore(&ctx);
 
-	scheduler_locked(ipl);
+	unreachable();
 }
 
 /** Things to do before we switch to THREAD context.
@@ -430,34 +433,29 @@ static void cleanup_after_thread(thread_t *thread, state_t out_state)
  * scheduler_separated_stack().
  *
  */
-void scheduler_locked(ipl_t ipl)
+void scheduler_enter(state_t new_state)
 {
+	ipl_t ipl = interrupts_disable();
+
 	assert(CPU != NULL);
+	assert(THREAD != NULL);
 
-	if (THREAD) {
-		/* Update thread kernel accounting */
-		THREAD->kcycles += get_cycle() - THREAD->last_cycle;
+	fpu_cleanup();
 
-		fpu_cleanup();
+	irq_spinlock_lock(&THREAD->lock, false);
+	THREAD->state = new_state;
 
-		if (!context_save(&THREAD->saved_context)) {
-			/*
-			 * This is the place where threads leave scheduler();
-			 */
+	/* Update thread kernel accounting */
+	THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 
-			irq_spinlock_unlock(&THREAD->lock, false);
-			interrupts_restore(THREAD->saved_ipl);
-
-			return;
-		}
-
+	if (!context_save(&THREAD->saved_context)) {
 		/*
-		 * Interrupt priority level of preempted thread is recorded
-		 * here to facilitate scheduler() invocations from
-		 * interrupts_disable()'d code (e.g. waitq_sleep_timeout()).
-		 *
+		 * This is the place where threads leave scheduler();
 		 */
-		THREAD->saved_ipl = ipl;
+
+		irq_spinlock_unlock(&THREAD->lock, false);
+		interrupts_restore(ipl);
+		return;
 	}
 
 	/*
@@ -502,6 +500,9 @@ void scheduler_separated_stack(void)
 	assert((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
 	assert(CPU != NULL);
 	assert(interrupts_disabled());
+
+	if (atomic_load(&haltstate))
+		halt();
 
 	if (THREAD) {
 		after_thread_ran_arch();
@@ -677,7 +678,7 @@ not_satisfied:
 		 * Be a little bit light-weight and let migrated threads run.
 		 *
 		 */
-		scheduler();
+		thread_yield();
 	} else {
 		/*
 		 * We failed to migrate a single thread.
