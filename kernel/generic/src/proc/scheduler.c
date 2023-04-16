@@ -128,7 +128,7 @@ static void after_thread_ran(void)
 void scheduler_fpu_lazy_request(void)
 {
 	fpu_enable();
-	irq_spinlock_lock(&CPU->lock, false);
+	irq_spinlock_lock(&CPU->fpu_lock, false);
 
 	/* Save old context */
 	if (CPU->fpu_owner != NULL) {
@@ -153,7 +153,7 @@ void scheduler_fpu_lazy_request(void)
 	THREAD->fpu_context_engaged = true;
 	irq_spinlock_unlock(&THREAD->lock, false);
 
-	irq_spinlock_unlock(&CPU->lock, false);
+	irq_spinlock_unlock(&CPU->fpu_lock, false);
 }
 #endif /* CONFIG_FPU_LAZY */
 
@@ -186,9 +186,7 @@ loop:
 		 * until a hardware interrupt or an IPI comes.
 		 * This improves energy saving and hyperthreading.
 		 */
-		irq_spinlock_lock(&CPU->lock, false);
 		CPU->idle = true;
-		irq_spinlock_unlock(&CPU->lock, false);
 
 		/*
 		 * Go to sleep with interrupts enabled.
@@ -297,8 +295,6 @@ static void relink_rq(int start)
 
 	size_t n = 0;
 
-	irq_spinlock_lock(&CPU->lock, false);
-
 	/* Move every list (except the one with highest priority) one level up. */
 	for (int i = RQ_COUNT - 1; i > start; i--) {
 		irq_spinlock_lock(&CPU->rq[i].lock, false);
@@ -321,8 +317,6 @@ static void relink_rq(int start)
 		CPU->rq[start].n += n;
 		irq_spinlock_unlock(&CPU->rq[start].lock, false);
 	}
-
-	irq_spinlock_unlock(&CPU->lock, false);
 }
 
 void scheduler(void)
@@ -683,8 +677,6 @@ void sched_print_list(void)
 		if (!cpus[cpu].active)
 			continue;
 
-		irq_spinlock_lock(&cpus[cpu].lock, true);
-
 		/* Technically a data race, but we don't really care in this case. */
 		int needs_relink = cpus[cpu].relink_deadline - cpus[cpu].current_clock_tick;
 
@@ -710,8 +702,6 @@ void sched_print_list(void)
 
 			irq_spinlock_unlock(&(cpus[cpu].rq[i].lock), false);
 		}
-
-		irq_spinlock_unlock(&cpus[cpu].lock, true);
 	}
 }
 

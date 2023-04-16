@@ -94,7 +94,7 @@ ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 
 		cpu_t *cpu = &cpus[i];
 
-		irq_spinlock_lock(&cpu->lock, false);
+		irq_spinlock_lock(&cpu->tlb_lock, false);
 		if (cpu->tlb_messages_count == TLB_MESSAGE_QUEUE_LEN) {
 			/*
 			 * The message queue is full.
@@ -115,7 +115,7 @@ ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 			cpu->tlb_messages[idx].page = page;
 			cpu->tlb_messages[idx].count = count;
 		}
-		irq_spinlock_unlock(&cpu->lock, false);
+		irq_spinlock_unlock(&cpu->tlb_lock, false);
 	}
 
 	tlb_shootdown_ipi_send();
@@ -157,7 +157,7 @@ void tlb_shootdown_ipi_recv(void)
 	irq_spinlock_lock(&tlblock, false);
 	irq_spinlock_unlock(&tlblock, false);
 
-	irq_spinlock_lock(&CPU->lock, false);
+	irq_spinlock_lock(&CPU->tlb_lock, false);
 	assert(CPU->tlb_messages_count <= TLB_MESSAGE_QUEUE_LEN);
 
 	size_t i;
@@ -188,7 +188,7 @@ void tlb_shootdown_ipi_recv(void)
 	}
 
 	CPU->tlb_messages_count = 0;
-	irq_spinlock_unlock(&CPU->lock, false);
+	irq_spinlock_unlock(&CPU->tlb_lock, false);
 	CPU->tlb_active = true;
 }
 

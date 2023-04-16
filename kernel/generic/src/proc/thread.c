@@ -424,13 +424,16 @@ static void thread_destroy(void *obj)
 	irq_spinlock_unlock(&thread->task->lock, false);
 
 	assert((thread->state == Exiting) || (thread->state == Lingering));
-	assert(thread->cpu);
 
 	/* Clear cpu->fpu_owner if set to this thread. */
-	irq_spinlock_lock(&thread->cpu->lock, false);
-	if (thread->cpu->fpu_owner == thread)
-		thread->cpu->fpu_owner = NULL;
-	irq_spinlock_unlock(&thread->cpu->lock, false);
+#ifdef CONFIG_FPU_LAZY
+	if (thread->cpu) {
+		irq_spinlock_lock(&thread->cpu->fpu_lock, false);
+		if (thread->cpu->fpu_owner == thread)
+			thread->cpu->fpu_owner = NULL;
+		irq_spinlock_unlock(&thread->cpu->fpu_lock, false);
+	}
+#endif
 
 	interrupts_restore(ipl);
 

@@ -118,16 +118,12 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
 
 	size_t i;
 	for (i = 0; i < config.cpu_count; i++) {
-		irq_spinlock_lock(&cpus[i].lock, true);
-
 		stats_cpus[i].id = cpus[i].id;
 		stats_cpus[i].active = cpus[i].active;
 		stats_cpus[i].frequency_mhz = cpus[i].frequency_mhz;
 
 		stats_cpus[i].busy_cycles = atomic_time_read(&cpus[i].busy_cycles);
 		stats_cpus[i].idle_cycles = atomic_time_read(&cpus[i].idle_cycles);
-
-		irq_spinlock_unlock(&cpus[i].lock, true);
 	}
 
 	return ((void *) stats_cpus);

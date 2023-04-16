@@ -50,7 +50,7 @@
  * There is one structure like this for every processor.
  */
 typedef struct cpu {
-	IRQ_SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(tlb_lock);
 
 	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
 	size_t tlb_messages_count;
@@ -96,6 +96,7 @@ typedef struct cpu {
 
 	cpu_arch_t arch;
 
+	IRQ_SPINLOCK_DECLARE(fpu_lock);
 	struct thread *fpu_owner;
 
 	/**
