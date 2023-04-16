@@ -245,6 +245,7 @@ void thread_start(thread_t *thread)
  */
 void thread_ready(thread_t *thread)
 {
+	// TODO: move this to scheduler.c
 	irq_spinlock_lock(&thread->lock, true);
 
 	assert(thread->state != Ready);

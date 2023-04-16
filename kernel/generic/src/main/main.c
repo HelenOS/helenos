@@ -286,7 +286,8 @@ void main_bsp_separated_stack(void)
 	 * This call to scheduler_run() will return to kinit,
 	 * starting the thread of kernel threads.
 	 */
-	scheduler_run();
+	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
+	context_replace(scheduler_run, CPU_LOCAL->stack, STACK_SIZE);
 	/* not reached */
 }
 
@@ -326,13 +327,12 @@ void main_ap(void)
 	calibrate_delay_loop();
 	ARCH_OP(post_cpu_init);
 
-	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
-
 	/*
 	 * If we woke kmp up before we left the kernel stack, we could
 	 * collide with another CPU coming up. To prevent this, we
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
+	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
 	context_replace(main_ap_separated_stack, CPU_LOCAL->stack, STACK_SIZE);
 	/* not reached */
 }
