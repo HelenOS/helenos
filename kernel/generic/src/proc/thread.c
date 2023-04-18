@@ -414,9 +414,21 @@ static void thread_destroy(void *obj)
 	/* Clear cpu->fpu_owner if set to this thread. */
 #ifdef CONFIG_FPU_LAZY
 	if (thread->cpu) {
+		/*
+		 * We need to lock for this because the old CPU can concurrently try
+		 * to dump this thread's FPU state, in which case we need to wait for
+		 * it to finish. An atomic compare-and-swap wouldn't be enough.
+		 */
 		irq_spinlock_lock(&thread->cpu->fpu_lock, false);
-		if (thread->cpu->fpu_owner == thread)
-			thread->cpu->fpu_owner = NULL;
+
+		thread_t *owner = atomic_load_explicit(&thread->cpu->fpu_owner,
+		    memory_order_relaxed);
+
+		if (owner == thread) {
+			atomic_store_explicit(&thread->cpu->fpu_owner, NULL,
+			    memory_order_relaxed);
+		}
+
 		irq_spinlock_unlock(&thread->cpu->fpu_lock, false);
 	}
 #endif

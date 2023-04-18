@@ -98,7 +98,6 @@ void cpu_arch_init(void)
 	CPU->arch.tss = tss_p;
 	CPU->arch.tss->iomap_base = &CPU->arch.tss->iomap[0] -
 	    ((uint8_t *) CPU->arch.tss);
-	CPU->fpu_owner = NULL;
 }
 
 void cpu_identify(void)

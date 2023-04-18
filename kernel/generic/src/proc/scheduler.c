@@ -83,14 +83,17 @@ static void before_thread_runs(void)
 	before_thread_runs_arch();
 
 #ifdef CONFIG_FPU_LAZY
-	irq_spinlock_lock(&CPU->fpu_lock, true);
+	/*
+	 * The only concurrent modification possible for fpu_owner here is
+	 * another thread changing it from itself to NULL in its destructor.
+	 */
+	thread_t *owner = atomic_load_explicit(&CPU->fpu_owner,
+	    memory_order_relaxed);
 
-	if (THREAD == CPU->fpu_owner)
+	if (THREAD == owner)
 		fpu_enable();
 	else
 		fpu_disable();
-
-	irq_spinlock_unlock(&CPU->fpu_lock, true);
 #elif defined CONFIG_FPU
 	fpu_enable();
 	if (THREAD->fpu_context_exists)
@@ -132,13 +135,18 @@ static void after_thread_ran(void)
 void scheduler_fpu_lazy_request(void)
 {
 	fpu_enable();
+
+	/* We need this lock to ensure synchronization with thread destructor. */
 	irq_spinlock_lock(&CPU->fpu_lock, false);
 
 	/* Save old context */
-	if (CPU->fpu_owner != NULL) {
-		fpu_context_save(&CPU->fpu_owner->fpu_context);
-		CPU->fpu_owner = NULL;
+	thread_t *owner = atomic_load_explicit(&CPU->fpu_owner, memory_order_relaxed);
+	if (owner != NULL) {
+		fpu_context_save(&owner->fpu_context);
+		atomic_store_explicit(&CPU->fpu_owner, NULL, memory_order_relaxed);
 	}
+
+	irq_spinlock_unlock(&CPU->fpu_lock, false);
 
 	if (THREAD->fpu_context_exists) {
 		fpu_context_restore(&THREAD->fpu_context);
@@ -147,9 +155,7 @@ void scheduler_fpu_lazy_request(void)
 		THREAD->fpu_context_exists = true;
 	}
 
-	CPU->fpu_owner = THREAD;
-
-	irq_spinlock_unlock(&CPU->fpu_lock, false);
+	atomic_store_explicit(&CPU->fpu_owner, THREAD, memory_order_relaxed);
 }
 #endif /* CONFIG_FPU_LAZY */
 
@@ -498,30 +504,6 @@ void scheduler_separated_stack(void)
 
 #ifdef CONFIG_SMP
 
-static inline void fpu_owner_lock(cpu_t *cpu)
-{
-#ifdef CONFIG_FPU_LAZY
-	irq_spinlock_lock(&cpu->fpu_lock, false);
-#endif
-}
-
-static inline void fpu_owner_unlock(cpu_t *cpu)
-{
-#ifdef CONFIG_FPU_LAZY
-	irq_spinlock_unlock(&cpu->fpu_lock, false);
-#endif
-}
-
-static inline thread_t *fpu_owner(cpu_t *cpu)
-{
-#ifdef CONFIG_FPU_LAZY
-	assert(irq_spinlock_locked(&cpu->fpu_lock));
-	return cpu->fpu_owner;
-#else
-	return NULL;
-#endif
-}
-
 static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
 {
 	runq_t *old_rq = &old_cpu->rq[i];
@@ -529,8 +511,14 @@ static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
 
 	ipl_t ipl = interrupts_disable();
 
-	fpu_owner_lock(old_cpu);
 	irq_spinlock_lock(&old_rq->lock, false);
+
+	/*
+	 * If fpu_owner is any thread in the list, its store is seen here thanks to
+	 * the runqueue lock.
+	 */
+	thread_t *fpu_owner = atomic_load_explicit(&old_cpu->fpu_owner,
+	    memory_order_relaxed);
 
 	/* Search rq from the back */
 	list_foreach_rev(old_rq->rq, rq_link, thread_t, thread) {
@@ -544,12 +532,10 @@ static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
 		 * FPU context is still in the CPU.
 		 */
 		if (thread->stolen || thread->nomigrate ||
-		    thread == fpu_owner(old_cpu)) {
+		    thread == fpu_owner) {
 			irq_spinlock_unlock(&thread->lock, false);
 			continue;
 		}
-
-		fpu_owner_unlock(old_cpu);
 
 		thread->stolen = true;
 		thread->cpu = CPU;
@@ -586,7 +572,6 @@ static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
 	}
 
 	irq_spinlock_unlock(&old_rq->lock, false);
-	fpu_owner_unlock(old_cpu);
 	interrupts_restore(ipl);
 	return NULL;
 }
