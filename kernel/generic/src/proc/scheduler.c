@@ -177,35 +177,15 @@ void scheduler_init(void)
  * @return Thread to be scheduled.
  *
  */
-static thread_t *find_best_thread(int *rq_index)
+static thread_t *try_find_thread(int *rq_index)
 {
+	assert(interrupts_disabled());
 	assert(CPU != NULL);
 
-loop:
-	if (atomic_load(&CPU->nrdy) == 0) {
-		/*
-		 * For there was nothing to run, the CPU goes to sleep
-		 * until a hardware interrupt or an IPI comes.
-		 * This improves energy saving and hyperthreading.
-		 */
-		CPU->idle = true;
+	if (atomic_load(&CPU->nrdy) == 0)
+		return NULL;
 
-		/*
-		 * Go to sleep with interrupts enabled.
-		 * Ideally, this should be atomic, but this is not guaranteed on
-		 * all platforms yet, so it is possible we will go sleep when
-		 * a thread has just become available.
-		 */
-		cpu_interruptible_sleep();
-
-		/* Interrupts are disabled again. */
-		goto loop;
-	}
-
-	assert(!CPU->idle);
-
-	unsigned int i;
-	for (i = 0; i < RQ_COUNT; i++) {
+	for (int i = 0; i < RQ_COUNT; i++) {
 		irq_spinlock_lock(&(CPU->rq[i].lock), false);
 		if (CPU->rq[i].n == 0) {
 			/*
@@ -248,7 +228,44 @@ loop:
 		return thread;
 	}
 
-	goto loop;
+	return NULL;
+}
+
+/** Get thread to be scheduled
+ *
+ * Get the optimal thread to be scheduled
+ * according to thread accounting and scheduler
+ * policy.
+ *
+ * @return Thread to be scheduled.
+ *
+ */
+static thread_t *find_best_thread(int *rq_index)
+{
+	assert(interrupts_disabled());
+	assert(CPU != NULL);
+
+	while (true) {
+		thread_t *thread = try_find_thread(rq_index);
+
+		if (thread != NULL)
+			return thread;
+
+		/*
+		 * For there was nothing to run, the CPU goes to sleep
+		 * until a hardware interrupt or an IPI comes.
+		 * This improves energy saving and hyperthreading.
+		 */
+		CPU->idle = true;
+
+		/*
+		 * Go to sleep with interrupts enabled.
+		 * Ideally, this should be atomic, but this is not guaranteed on
+		 * all platforms yet, so it is possible we will go sleep when
+		 * a thread has just become available.
+		 */
+		cpu_interruptible_sleep();
+	}
 }
 
 static void switch_task(task_t *task)
