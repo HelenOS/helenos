@@ -53,6 +53,7 @@ extern void ui_entry_set_read_only(ui_entry_t *, bool);
 extern errno_t ui_entry_set_text(ui_entry_t *, const char *);
 extern const char *ui_entry_get_text(ui_entry_t *);
 extern errno_t ui_entry_paint(ui_entry_t *);
+extern errno_t ui_entry_insert_str(ui_entry_t *, const char *);
 extern void ui_entry_activate(ui_entry_t *);
 extern void ui_entry_deactivate(ui_entry_t *);
 extern void ui_entry_backspace(ui_entry_t *);

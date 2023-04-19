@@ -51,6 +51,7 @@ static errno_t test_seat_create(void *, const char *, sysarg_t *);
 static errno_t test_seat_delete(void *, sysarg_t);
 static errno_t test_dev_assign(void *, sysarg_t, sysarg_t);
 static errno_t test_dev_unassign(void *, sysarg_t);
+static errno_t test_get_asgn_dev_list(void *, sysarg_t, dispcfg_dev_list_t **);
 static errno_t test_get_event(void *, dispcfg_ev_t *);
 
 static void test_seat_added(void *, sysarg_t);
@@ -63,6 +64,7 @@ static dispcfg_ops_t test_dispcfg_srv_ops = {
 	.seat_delete = test_seat_delete,
 	.dev_assign = test_dev_assign,
 	.dev_unassign = test_dev_unassign,
+	.get_asgn_dev_list = test_get_asgn_dev_list,
 	.get_event = test_get_event
 };
 
@@ -101,6 +103,10 @@ typedef struct {
 
 	bool dev_unassign_called;
 	sysarg_t dev_unassign_svc_id;
+
+	bool get_asgn_dev_list_called;
+	sysarg_t get_asgn_dev_list_seat_id;
+	dispcfg_dev_list_t *get_asgn_dev_list_rlist;
 
 	bool get_event_called;
 
@@ -603,6 +609,92 @@ PCUT_TEST(dev_unassign_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
+/** dispcfg_get_asgn_dev_list() with server returning error response works */
+PCUT_TEST(get_asgn_dev_list_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	dispcfg_t *dispcfg = NULL;
+	dispcfg_dev_list_t *list;
+	sysarg_t seat_id;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_dispcfg_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_dispcfg_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dispcfg);
+
+	resp.rc = ENOMEM;
+	resp.get_asgn_dev_list_called = false;
+	seat_id = 42;
+
+	rc = dispcfg_get_asgn_dev_list(dispcfg, seat_id, &list);
+	PCUT_ASSERT_TRUE(resp.get_asgn_dev_list_called);
+	PCUT_ASSERT_INT_EQUALS(seat_id, resp.get_asgn_dev_list_seat_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	dispcfg_close(dispcfg);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** dispcfg_get_asgn_dev_list() with server returning success response works */
+PCUT_TEST(get_asgn_dev_list_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	dispcfg_t *dispcfg = NULL;
+	dispcfg_dev_list_t *list;
+	sysarg_t seat_id;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_dispcfg_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_dispcfg_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dispcfg);
+
+	resp.rc = EOK;
+	resp.get_asgn_dev_list_called = false;
+	resp.get_asgn_dev_list_rlist = calloc(1, sizeof(dispcfg_dev_list_t));
+	PCUT_ASSERT_NOT_NULL(resp.get_asgn_dev_list_rlist);
+	resp.get_asgn_dev_list_rlist->ndevs = 2;
+	resp.get_asgn_dev_list_rlist->devs = calloc(2, sizeof(sysarg_t));
+	PCUT_ASSERT_NOT_NULL(resp.get_asgn_dev_list_rlist->devs);
+	resp.get_asgn_dev_list_rlist->devs[0] = 11;
+	resp.get_asgn_dev_list_rlist->devs[1] = 12;
+	seat_id = 42;
+
+	rc = dispcfg_get_asgn_dev_list(dispcfg, seat_id, &list);
+	PCUT_ASSERT_TRUE(resp.get_asgn_dev_list_called);
+	PCUT_ASSERT_INT_EQUALS(seat_id, resp.get_asgn_dev_list_seat_id);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	PCUT_ASSERT_INT_EQUALS(2, list->ndevs);
+	PCUT_ASSERT_INT_EQUALS(11, list->devs[0]);
+	PCUT_ASSERT_INT_EQUALS(12, list->devs[1]);
+
+	dispcfg_free_dev_list(list);
+	dispcfg_close(dispcfg);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
 /** Window added event can be delivered from server to client callback function */
 PCUT_TEST(seat_added_deliver)
 {
@@ -805,6 +897,21 @@ static errno_t test_dev_unassign(void *arg, sysarg_t svc_id)
 	resp->dev_unassign_called = true;
 	resp->dev_unassign_svc_id = svc_id;
 	return resp->rc;
+}
+
+static errno_t test_get_asgn_dev_list(void *arg, sysarg_t seat_id,
+    dispcfg_dev_list_t **rlist)
+{
+	test_response_t *resp = (test_response_t *) arg;
+
+	resp->get_asgn_dev_list_called = true;
+	resp->get_asgn_dev_list_seat_id = seat_id;
+
+	if (resp->rc != EOK)
+		return resp->rc;
+
+	*rlist = resp->get_asgn_dev_list_rlist;
+	return EOK;
 }
 
 static errno_t test_get_event(void *arg, dispcfg_ev_t *event)

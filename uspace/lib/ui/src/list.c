@@ -150,6 +150,16 @@ void ui_list_set_cb(ui_list_t *list, ui_list_cb_t *cb, void *arg)
 	list->cb_arg = arg;
 }
 
+/** Get UI list callback argument.
+ *
+ * @param list UI list
+ * @return Callback argument
+ */
+void *ui_list_get_cb_arg(ui_list_t *list)
+{
+	return list->cb_arg;
+}
+
 /** Get height of list entry.
  *
  * @param list UI list
@@ -700,11 +710,13 @@ errno_t ui_list_entry_append(ui_list_t *list, ui_list_entry_attr_t *attr,
 	return EOK;
 }
 
-/** Delete UI list entry.
+/** Destroy UI list entry.
+ *
+ * This is the quick way, but does not update cursor or page position.
  *
  * @param entry UI list entry
  */
-void ui_list_entry_delete(ui_list_entry_t *entry)
+void ui_list_entry_destroy(ui_list_entry_t *entry)
 {
 	if (entry->list->cursor == entry)
 		entry->list->cursor = NULL;
@@ -717,6 +729,27 @@ void ui_list_entry_delete(ui_list_entry_t *entry)
 	free(entry);
 }
 
+/** Delete UI list entry.
+ *
+ * If required, update cursor and page position and repaint.
+ *
+ * @param entry UI list entry
+ */
+void ui_list_entry_delete(ui_list_entry_t *entry)
+{
+	/* Try to make sure entry does not disappear between cursor and page */
+	if (entry->list->cursor == entry)
+		ui_list_cursor_up(entry->list);
+	if (entry->list->cursor == entry)
+		ui_list_cursor_down(entry->list);
+	if (entry->list->page == entry)
+		ui_list_scroll_up(entry->list);
+	if (entry->list->page == entry)
+		ui_list_scroll_down(entry->list);
+
+	ui_list_entry_destroy(entry);
+}
+
 /** Get entry argument.
  *
  * @param entry UI list entry
@@ -725,6 +758,16 @@ void ui_list_entry_delete(ui_list_entry_t *entry)
 void *ui_list_entry_get_arg(ui_list_entry_t *entry)
 {
 	return entry->arg;
+}
+
+/** Get containing list.
+ *
+ * @param entry UI list entry
+ * @return Containing list
+ */
+ui_list_t *ui_list_entry_get_list(ui_list_entry_t *entry)
+{
+	return entry->list;
 }
 
 /** Clear UI list entry list.
@@ -737,7 +780,7 @@ void ui_list_clear_entries(ui_list_t *list)
 
 	entry = ui_list_first(list);
 	while (entry != NULL) {
-		ui_list_entry_delete(entry);
+		ui_list_entry_destroy(entry);
 		entry = ui_list_first(list);
 	}
 }
@@ -859,6 +902,21 @@ ui_list_entry_t *ui_list_get_cursor(ui_list_t *list)
 	return list->cursor;
 }
 
+/** Set new cursor position.
+ *
+ * O(N) in list size, use with caution.
+ *
+ * @param list UI list
+ * @param entry New cursor position
+ */
+void ui_list_set_cursor(ui_list_t *list, ui_list_entry_t *entry)
+{
+	size_t idx;
+
+	idx = ui_list_entry_get_idx(entry);
+	ui_list_cursor_move(list, entry, idx);
+}
+
 /** Move cursor to a new position, possibly scrolling.
  *
  * @param list UI list
@@ -911,7 +969,7 @@ void ui_list_cursor_move(ui_list_t *list,
 				list->page_idx = entry_idx - rows + 1;
 				/* Find first page entry (go back rows - 1) */
 				e = entry;
-				for (i = 0; i < rows - 1; i++) {
+				for (i = 0; i + 1 < rows; i++) {
 					e = ui_list_prev(e);
 				}
 
@@ -1097,6 +1155,9 @@ void ui_list_scroll_up(ui_list_t *list)
 {
 	ui_list_entry_t *prev;
 
+	if (list->page == NULL)
+		return;
+
 	prev = ui_list_prev(list->page);
 	if (prev == NULL)
 		return;
@@ -1119,6 +1180,9 @@ void ui_list_scroll_down(ui_list_t *list)
 	ui_list_entry_t *pgend;
 	size_t i;
 	size_t rows;
+
+	if (list->page == NULL)
+		return;
 
 	next = ui_list_next(list->page);
 	if (next == NULL)

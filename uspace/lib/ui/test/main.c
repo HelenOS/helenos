@@ -51,6 +51,7 @@ PCUT_IMPORT(popup);
 PCUT_IMPORT(rbutton);
 PCUT_IMPORT(resource);
 PCUT_IMPORT(scrollbar);
+PCUT_IMPORT(select_dialog);
 PCUT_IMPORT(slider);
 PCUT_IMPORT(tab);
 PCUT_IMPORT(tabset);
@@ -58,4 +59,5 @@ PCUT_IMPORT(testctl);
 PCUT_IMPORT(ui);
 PCUT_IMPORT(wdecor);
 PCUT_IMPORT(window);
+
 PCUT_MAIN();

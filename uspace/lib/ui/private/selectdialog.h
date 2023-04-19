@@ -26,33 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libwndmgt
+/** @addtogroup libui
  * @{
  */
-/** @file
+/**
+ * @file Select dialog structure
+ *
  */
 
-#ifndef _LIBDISPCFG_DISPCFG_H_
-#define _LIBDISPCFG_DISPCFG_H_
+#ifndef _UI_PRIVATE_SELECTDIALOG_H
+#define _UI_PRIVATE_SELECTDIALOG_H
 
-#include <errno.h>
-#include <types/common.h>
-#include "types/dispcfg.h"
-
-extern errno_t dispcfg_open(const char *, dispcfg_cb_t *, void *, dispcfg_t **);
-extern void dispcfg_close(dispcfg_t *);
-extern errno_t dispcfg_get_seat_list(dispcfg_t *, dispcfg_seat_list_t **);
-extern void dispcfg_free_seat_list(dispcfg_seat_list_t *);
-extern errno_t dispcfg_get_seat_info(dispcfg_t *, sysarg_t,
-    dispcfg_seat_info_t **);
-extern void dispcfg_free_seat_info(dispcfg_seat_info_t *);
-extern errno_t dispcfg_seat_create(dispcfg_t *, const char *, sysarg_t *);
-extern errno_t dispcfg_seat_delete(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_dev_assign(dispcfg_t *, sysarg_t, sysarg_t);
-extern errno_t dispcfg_dev_unassign(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_get_asgn_dev_list(dispcfg_t *, sysarg_t,
-    dispcfg_dev_list_t **);
-extern void dispcfg_free_dev_list(dispcfg_dev_list_t *);
+/** Actual structure of select dialog.
+ *
+ * This is private to libui.
+ */
+struct ui_select_dialog {
+	/** Dialog window */
+	struct ui_window *window;
+	/** List */
+	struct ui_list *list;
+	/** OK button */
+	struct ui_pbutton *bok;
+	/** Cancel button */
+	struct ui_pbutton *bcancel;
+	/** Select dialog callbacks */
+	struct ui_select_dialog_cb *cb;
+	/** Callback argument */
+	void *arg;
+};
 
 #endif
 

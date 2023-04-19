@@ -26,71 +26,79 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdispcfg
+/** @addtogroup display-cfg
  * @{
  */
-/** @file
+/**
+ * @file Seat configuration tab
  */
 
-#ifndef _LIBDISPCFG_TYPES_DISPCFG_H_
-#define _LIBDISPCFG_TYPES_DISPCFG_H_
+#ifndef TYPES_SEATS_H
+#define TYPES_SEATS_H
 
-#include <ipc/services.h>
+#include <loc.h>
 #include <types/common.h>
+#include <ui/fixed.h>
+#include <ui/label.h>
+#include <ui/list.h>
+#include <ui/pbutton.h>
+#include <ui/promptdialog.h>
+#include <ui/selectdialog.h>
+#include <ui/tab.h>
 
-/** Use the default display configuration service (argument to dispcfg_open() */
-#define DISPCFG_DEFAULT SERVICE_NAME_DISPCFG
+/** Seat configuration tab */
+typedef struct dcfg_seats {
+	/** Containing display configuration */
+	struct display_cfg *dcfg;
+	/** UI tab */
+	ui_tab_t *tab;
+	/** Fixed layout */
+	ui_fixed_t *fixed;
+	/** 'Configured seats' label */
+	ui_label_t *seats_label;
+	/** List of configured seats */
+	ui_list_t *seat_list;
+	/** Add seat button */
+	ui_pbutton_t *add_seat;
+	/** Remove seat button */
+	ui_pbutton_t *remove_seat;
+	/** Add seat dialog */
+	ui_prompt_dialog_t *add_seat_dlg;
+	/** 'Devices assigned to xxx' label */
+	ui_label_t *devices_label;
+	/** List of assigned devices */
+	ui_list_t *device_list;
+	/** Add device button */
+	ui_pbutton_t *add_device;
+	/** Remove device button */
+	ui_pbutton_t *remove_device;
+	/** Add device dialog */
+	ui_select_dialog_t *add_device_dlg;
+} dcfg_seats_t;
 
-struct dispcfg;
-
-/** Display configuration session */
-typedef struct dispcfg dispcfg_t;
-
-/** Display configuration callbacks */
+/** Entry in seat list */
 typedef struct {
-	/** Seat added */
-	void (*seat_added)(void *, sysarg_t);
-	/** Seat removed */
-	void (*seat_removed)(void *, sysarg_t);
-} dispcfg_cb_t;
-
-/** Display configuration event type */
-typedef enum {
-	/** Seat added */
-	dcev_seat_added,
-	/** Seat removed */
-	dcev_seat_removed,
-} dispcfg_ev_type_t;
-
-/** Display configuration event */
-typedef struct {
-	/** Event type */
-	dispcfg_ev_type_t etype;
+	/** Containing seat configuration tab */
+	struct dcfg_seats *seats;
+	/** List entry */
+	ui_list_entry_t *lentry;
 	/** Seat ID */
 	sysarg_t seat_id;
-} dispcfg_ev_t;
-
-/** Seat list */
-typedef struct {
-	/** Number of seats */
-	size_t nseats;
-	/** ID for each seat */
-	sysarg_t *seats;
-} dispcfg_seat_list_t;
-
-/** Seat information */
-typedef struct {
 	/** Seat name */
 	char *name;
-} dispcfg_seat_info_t;
+} dcfg_seats_entry_t;
 
-/** Assigned device list */
+/** Entry in device list */
 typedef struct {
-	/** Number of devices */
-	size_t ndevs;
-	/** ID for each device */
-	sysarg_t *devs;
-} dispcfg_dev_list_t;
+	/** Containing seat configuration tab */
+	struct dcfg_seats *seats;
+	/** List entry */
+	ui_list_entry_t *lentry;
+	/** Service ID */
+	service_id_t svc_id;
+	/** Device name */
+	char *name;
+} dcfg_devices_entry_t;
 
 #endif
 

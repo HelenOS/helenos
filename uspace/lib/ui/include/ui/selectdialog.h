@@ -26,33 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libwndmgt
+/** @addtogroup libui
  * @{
  */
-/** @file
+/**
+ * @file Select dialog
  */
 
-#ifndef _LIBDISPCFG_DISPCFG_H_
-#define _LIBDISPCFG_DISPCFG_H_
+#ifndef _UI_SELECTDIALOG_H
+#define _UI_SELECTDIALOG_H
 
 #include <errno.h>
-#include <types/common.h>
-#include "types/dispcfg.h"
+#include <types/ui/list.h>
+#include <types/ui/selectdialog.h>
+#include <types/ui/ui.h>
 
-extern errno_t dispcfg_open(const char *, dispcfg_cb_t *, void *, dispcfg_t **);
-extern void dispcfg_close(dispcfg_t *);
-extern errno_t dispcfg_get_seat_list(dispcfg_t *, dispcfg_seat_list_t **);
-extern void dispcfg_free_seat_list(dispcfg_seat_list_t *);
-extern errno_t dispcfg_get_seat_info(dispcfg_t *, sysarg_t,
-    dispcfg_seat_info_t **);
-extern void dispcfg_free_seat_info(dispcfg_seat_info_t *);
-extern errno_t dispcfg_seat_create(dispcfg_t *, const char *, sysarg_t *);
-extern errno_t dispcfg_seat_delete(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_dev_assign(dispcfg_t *, sysarg_t, sysarg_t);
-extern errno_t dispcfg_dev_unassign(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_get_asgn_dev_list(dispcfg_t *, sysarg_t,
-    dispcfg_dev_list_t **);
-extern void dispcfg_free_dev_list(dispcfg_dev_list_t *);
+extern void ui_select_dialog_params_init(ui_select_dialog_params_t *);
+extern errno_t ui_select_dialog_create(ui_t *, ui_select_dialog_params_t *,
+    ui_select_dialog_t **);
+extern void ui_select_dialog_set_cb(ui_select_dialog_t *, ui_select_dialog_cb_t *,
+    void *);
+extern void ui_select_dialog_destroy(ui_select_dialog_t *);
+extern errno_t ui_select_dialog_append(ui_select_dialog_t *,
+    ui_list_entry_attr_t *);
+extern errno_t ui_select_dialog_paint(ui_select_dialog_t *);
 
 #endif
 

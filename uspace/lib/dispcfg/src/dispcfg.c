@@ -205,7 +205,7 @@ errno_t dispcfg_get_seat_list(dispcfg_t *dispcfg, dispcfg_seat_list_t **rlist)
 
 /** Free seat list.
  *
- * @param list Display configuration list
+ * @param list Seat list
  */
 void dispcfg_free_seat_list(dispcfg_seat_list_t *list)
 {
@@ -276,7 +276,7 @@ errno_t dispcfg_get_seat_info(dispcfg_t *dispcfg, sysarg_t seat_id,
 
 /** Free seat information.
  *
- * @param info Display configuration information
+ * @param info Seat information
  */
 void dispcfg_free_seat_info(dispcfg_seat_info_t *info)
 {
@@ -377,6 +377,75 @@ errno_t dispcfg_dev_unassign(dispcfg_t *dispcfg, sysarg_t svc_id)
 
 	async_exchange_end(exch);
 	return rc;
+}
+
+/** Get list of devices assigned to a seat.
+ *
+ * @param dispcfg Display configuration
+ * @param seat_id Seat ID
+ * @param rlist Place to store pointer to new device list structure
+ * @return EOK on success or an error code
+ */
+errno_t dispcfg_get_asgn_dev_list(dispcfg_t *dispcfg, sysarg_t seat_id,
+    dispcfg_dev_list_t **rlist)
+{
+	async_exch_t *exch;
+	aid_t req;
+	ipc_call_t answer;
+	dispcfg_dev_list_t *list;
+	sysarg_t ndevs;
+	sysarg_t *devs;
+	errno_t rc;
+
+	exch = async_exchange_begin(dispcfg->sess);
+	req = async_send_1(exch, DISPCFG_GET_ASGN_DEV_LIST, seat_id, &answer);
+
+	/* Receive device list length */
+	rc = async_data_read_start(exch, &ndevs, sizeof (ndevs));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_wait_for(req, &rc);
+		return rc;
+	}
+
+	devs = calloc(ndevs, sizeof(sysarg_t));
+	if (devs == NULL) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return ENOMEM;
+	}
+
+	/* Receive device list */
+	rc = async_data_read_start(exch, devs, ndevs * sizeof (sysarg_t));
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
+	list = calloc(1, sizeof(dispcfg_dev_list_t));
+	if (list == NULL)
+		return ENOMEM;
+
+	list->ndevs = ndevs;
+	list->devs = devs;
+	*rlist = list;
+	return EOK;
+}
+
+/** Free device list.
+ *
+ * @param list Device list
+ */
+void dispcfg_free_dev_list(dispcfg_dev_list_t *list)
+{
+	free(list->devs);
+	free(list);
 }
 
 /** Get display configuration event.

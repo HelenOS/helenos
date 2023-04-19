@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,77 +30,82 @@
  * @{
  */
 /**
- * @file Prompt dialog
+ * @file Select dialog
  */
 
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
-#include <ui/entry.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
-#include <ui/promptdialog.h>
+#include <ui/list.h>
+#include <ui/selectdialog.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
-#include "../private/promptdialog.h"
+#include "../private/selectdialog.h"
 
-static void ui_prompt_dialog_wnd_close(ui_window_t *, void *);
-static void ui_prompt_dialog_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
+static void ui_select_dialog_wnd_close(ui_window_t *, void *);
+static void ui_select_dialog_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
-ui_window_cb_t ui_prompt_dialog_wnd_cb = {
-	.close = ui_prompt_dialog_wnd_close,
-	.kbd = ui_prompt_dialog_wnd_kbd
+ui_window_cb_t ui_select_dialog_wnd_cb = {
+	.close = ui_select_dialog_wnd_close,
+	.kbd = ui_select_dialog_wnd_kbd
 };
 
-static void ui_prompt_dialog_bok_clicked(ui_pbutton_t *, void *);
-static void ui_prompt_dialog_bcancel_clicked(ui_pbutton_t *, void *);
+static void ui_select_dialog_bok_clicked(ui_pbutton_t *, void *);
+static void ui_select_dialog_bcancel_clicked(ui_pbutton_t *, void *);
 
-ui_pbutton_cb_t ui_prompt_dialog_bok_cb = {
-	.clicked = ui_prompt_dialog_bok_clicked
+ui_pbutton_cb_t ui_select_dialog_bok_cb = {
+	.clicked = ui_select_dialog_bok_clicked
 };
 
-ui_pbutton_cb_t ui_prompt_dialog_bcancel_cb = {
-	.clicked = ui_prompt_dialog_bcancel_clicked
+ui_pbutton_cb_t ui_select_dialog_bcancel_cb = {
+	.clicked = ui_select_dialog_bcancel_clicked
 };
 
-/** Initialize prompt dialog parameters structure.
+static void ui_select_dialog_list_selected(ui_list_entry_t *, void *);
+
+ui_list_cb_t ui_select_dialog_list_cb = {
+	.selected = ui_select_dialog_list_selected
+};
+
+/** Initialize select dialog parameters structure.
  *
- * Prompt dialog parameters structure must always be initialized using
+ * Select dialog parameters structure must always be initialized using
  * this function first.
  *
- * @param params Prompt dialog parameters structure
+ * @param params Select dialog parameters structure
  */
-void ui_prompt_dialog_params_init(ui_prompt_dialog_params_t *params)
+void ui_select_dialog_params_init(ui_select_dialog_params_t *params)
 {
-	memset(params, 0, sizeof(ui_prompt_dialog_params_t));
-	params->itext = "";
+	memset(params, 0, sizeof(ui_select_dialog_params_t));
 }
 
-/** Create new prompt dialog.
+/** Create new select dialog.
  *
  * @param ui User interface
- * @param params Prompt dialog parameters
+ * @param params Select dialog parameters
  * @param rdialog Place to store pointer to new dialog
  * @return EOK on success or an error code
  */
-errno_t ui_prompt_dialog_create(ui_t *ui, ui_prompt_dialog_params_t *params,
-    ui_prompt_dialog_t **rdialog)
+errno_t ui_select_dialog_create(ui_t *ui, ui_select_dialog_params_t *params,
+    ui_select_dialog_t **rdialog)
 {
 	errno_t rc;
-	ui_prompt_dialog_t *dialog;
+	ui_select_dialog_t *dialog;
 	ui_window_t *window = NULL;
 	ui_wnd_params_t wparams;
 	ui_fixed_t *fixed = NULL;
 	ui_label_t *label = NULL;
-	ui_entry_t *entry = NULL;
+	ui_list_t *list = NULL;
 	ui_pbutton_t *bok = NULL;
 	ui_pbutton_t *bcancel = NULL;
 	gfx_rect_t rect;
 	ui_resource_t *ui_res;
 
-	dialog = calloc(1, sizeof(ui_prompt_dialog_t));
+	dialog = calloc(1, sizeof(ui_select_dialog_t));
 	if (dialog == NULL) {
 		rc = ENOMEM;
 		goto error;
@@ -114,19 +119,19 @@ errno_t ui_prompt_dialog_create(ui_t *ui, ui_prompt_dialog_params_t *params,
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 40;
-		wparams.rect.p1.y = 9;
+		wparams.rect.p1.y = 19;
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
 		wparams.rect.p1.x = 300;
-		wparams.rect.p1.y = 135;
+		wparams.rect.p1.y = 235;
 	}
 
 	rc = ui_window_create(ui, &wparams, &window);
 	if (rc != EOK)
 		goto error;
 
-	ui_window_set_cb(window, &ui_prompt_dialog_wnd_cb, dialog);
+	ui_window_set_cb(window, &ui_select_dialog_wnd_cb, dialog);
 
 	ui_res = ui_window_get_res(window);
 
@@ -159,55 +164,51 @@ errno_t ui_prompt_dialog_create(ui_t *ui, ui_prompt_dialog_params_t *params,
 
 	label = NULL;
 
-	rc = ui_entry_create(window, params->itext, &entry);
+	rc = ui_list_create(window, true, &list);
 	if (rc != EOK)
 		goto error;
+
+	ui_list_set_cb(list, &ui_select_dialog_list_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 3;
 		rect.p0.y = 4;
 		rect.p1.x = 37;
-		rect.p1.y = 5;
+		rect.p1.y = 15;
 	} else {
 		rect.p0.x = 10;
 		rect.p0.y = 55;
 		rect.p1.x = 290;
-		rect.p1.y = 80;
+		rect.p1.y = 180;
 	}
 
-	ui_entry_set_rect(entry, &rect);
+	ui_list_set_rect(list, &rect);
 
-	rc = ui_fixed_add(fixed, ui_entry_ctl(entry));
+	rc = ui_fixed_add(fixed, ui_list_ctl(list));
 	if (rc != EOK)
 		goto error;
 
-	ui_entry_activate(entry);
-
-	/* Select all */
-	ui_entry_seek_start(entry, false);
-	ui_entry_seek_end(entry, true);
-
-	dialog->ename = entry;
-	entry = NULL;
+	dialog->list = list;
+	list = NULL;
 
 	rc = ui_pbutton_create(ui_res, "OK", &bok);
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(bok, &ui_prompt_dialog_bok_cb, dialog);
+	ui_pbutton_set_cb(bok, &ui_select_dialog_bok_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 10;
-		rect.p0.y = 6;
+		rect.p0.y = 16;
 		rect.p1.x = 20;
-		rect.p1.y = 7;
+		rect.p1.y = 17;
 	} else {
 		rect.p0.x = 55;
-		rect.p0.y = 90;
+		rect.p0.y = 190;
 		rect.p1.x = 145;
-		rect.p1.y = 118;
+		rect.p1.y = 218;
 	}
 
 	ui_pbutton_set_rect(bok, &rect);
@@ -225,19 +226,19 @@ errno_t ui_prompt_dialog_create(ui_t *ui, ui_prompt_dialog_params_t *params,
 	if (rc != EOK)
 		goto error;
 
-	ui_pbutton_set_cb(bcancel, &ui_prompt_dialog_bcancel_cb, dialog);
+	ui_pbutton_set_cb(bcancel, &ui_select_dialog_bcancel_cb, dialog);
 
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 22;
-		rect.p0.y = 6;
+		rect.p0.y = 16;
 		rect.p1.x = 32;
-		rect.p1.y = 7;
+		rect.p1.y = 17;
 	} else {
 		rect.p0.x = 155;
-		rect.p0.y = 90;
+		rect.p0.y = 190;
 		rect.p1.x = 245;
-		rect.p1.y = 118;
+		rect.p1.y = 218;
 	}
 
 	ui_pbutton_set_rect(bcancel, &rect);
@@ -260,8 +261,8 @@ errno_t ui_prompt_dialog_create(ui_t *ui, ui_prompt_dialog_params_t *params,
 	*rdialog = dialog;
 	return EOK;
 error:
-	if (entry != NULL)
-		ui_entry_destroy(entry);
+	if (list != NULL)
+		ui_list_destroy(list);
 	if (bok != NULL)
 		ui_pbutton_destroy(bok);
 	if (bcancel != NULL)
@@ -277,11 +278,11 @@ error:
 	return rc;
 }
 
-/** Destroy prompt dialog.
+/** Destroy select dialog.
  *
- * @param dialog Prompt dialog or @c NULL
+ * @param dialog Select dialog or @c NULL
  */
-void ui_prompt_dialog_destroy(ui_prompt_dialog_t *dialog)
+void ui_select_dialog_destroy(ui_select_dialog_t *dialog)
 {
 	if (dialog == NULL)
 		return;
@@ -292,49 +293,75 @@ void ui_prompt_dialog_destroy(ui_prompt_dialog_t *dialog)
 
 /** Set mesage dialog callback.
  *
- * @param dialog Prompt dialog
- * @param cb Prompt dialog callbacks
+ * @param dialog Select dialog
+ * @param cb Select dialog callbacks
  * @param arg Callback argument
  */
-void ui_prompt_dialog_set_cb(ui_prompt_dialog_t *dialog, ui_prompt_dialog_cb_t *cb,
+void ui_select_dialog_set_cb(ui_select_dialog_t *dialog, ui_select_dialog_cb_t *cb,
     void *arg)
 {
 	dialog->cb = cb;
 	dialog->arg = arg;
 }
 
-/** Prompt dialog window close handler.
+/** Append new entry to select dialog.
+ *
+ * @param dialog Select dialog
+ * @param attr List entry attributes
+ * @return EOK on success or an error code
+ */
+errno_t ui_select_dialog_append(ui_select_dialog_t *dialog,
+    ui_list_entry_attr_t *attr)
+{
+	return ui_list_entry_append(dialog->list, attr, NULL);
+}
+
+/** Paint select dialog.
+ *
+ * This needs to be called after appending entries.
+ *
+ * @param dialog Select dialog
+ * @return EOK on success or an error code
+ */
+errno_t ui_select_dialog_paint(ui_select_dialog_t *dialog)
+{
+	return ui_window_paint(dialog->window);
+}
+
+/** Select dialog window close handler.
  *
  * @param window Window
- * @param arg Argument (ui_prompt_dialog_t *)
+ * @param arg Argument (ui_select_dialog_t *)
  */
-static void ui_prompt_dialog_wnd_close(ui_window_t *window, void *arg)
+static void ui_select_dialog_wnd_close(ui_window_t *window, void *arg)
 {
-	ui_prompt_dialog_t *dialog = (ui_prompt_dialog_t *) arg;
+	ui_select_dialog_t *dialog = (ui_select_dialog_t *) arg;
 
 	if (dialog->cb != NULL && dialog->cb->close != NULL)
 		dialog->cb->close(dialog, dialog->arg);
 }
 
-/** Prompt dialog window keyboard event handler.
+/** Select dialog window keyboard event handler.
  *
  * @param window Window
- * @param arg Argument (ui_prompt_dialog_t *)
+ * @param arg Argument (ui_select_dialog_t *)
  * @param event Keyboard event
  */
-static void ui_prompt_dialog_wnd_kbd(ui_window_t *window, void *arg,
+static void ui_select_dialog_wnd_kbd(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
-	ui_prompt_dialog_t *dialog = (ui_prompt_dialog_t *) arg;
-	const char *text;
+	ui_select_dialog_t *dialog = (ui_select_dialog_t *) arg;
+	ui_list_entry_t *entry;
+	void *earg;
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
 		if (event->key == KC_ENTER) {
 			/* Confirm */
 			if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-				text = ui_entry_get_text(dialog->ename);
-				dialog->cb->bok(dialog, dialog->arg, text);
+				entry = ui_list_get_cursor(dialog->list);
+				earg = ui_list_entry_get_arg(entry);
+				dialog->cb->bok(dialog, dialog->arg, earg);
 				return;
 			}
 		} else if (event->key == KC_ESCAPE) {
@@ -349,33 +376,56 @@ static void ui_prompt_dialog_wnd_kbd(ui_window_t *window, void *arg,
 	ui_window_def_kbd(window, event);
 }
 
-/** Prompt dialog OK button click handler.
+/** Select dialog OK button click handler.
  *
  * @param pbutton Push button
- * @param arg Argument (ui_prompt_dialog_t *)
+ * @param arg Argument (ui_select_dialog_t *)
  */
-static void ui_prompt_dialog_bok_clicked(ui_pbutton_t *pbutton, void *arg)
+static void ui_select_dialog_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	ui_prompt_dialog_t *dialog = (ui_prompt_dialog_t *) arg;
-	const char *text;
+	ui_select_dialog_t *dialog = (ui_select_dialog_t *) arg;
+	ui_list_entry_t *entry;
+	void *earg;
 
 	if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-		text = ui_entry_get_text(dialog->ename);
-		dialog->cb->bok(dialog, dialog->arg, text);
+		entry = ui_list_get_cursor(dialog->list);
+		if (entry != NULL)
+			earg = ui_list_entry_get_arg(entry);
+		else
+			earg = NULL;
+
+		dialog->cb->bok(dialog, dialog->arg, earg);
 	}
 }
 
-/** Prompt dialog cancel button click handler.
+/** Select dialog cancel button click handler.
  *
  * @param pbutton Push button
- * @param arg Argument (ui_prompt_dialog_t *)
+ * @param arg Argument (ui_select_dialog_t *)
  */
-static void ui_prompt_dialog_bcancel_clicked(ui_pbutton_t *pbutton, void *arg)
+static void ui_select_dialog_bcancel_clicked(ui_pbutton_t *pbutton, void *arg)
 {
-	ui_prompt_dialog_t *dialog = (ui_prompt_dialog_t *) arg;
+	ui_select_dialog_t *dialog = (ui_select_dialog_t *) arg;
 
 	if (dialog->cb != NULL && dialog->cb->bcancel != NULL)
 		dialog->cb->bcancel(dialog, dialog->arg);
+}
+
+/** Select dialog list entry selection handler.
+ *
+ * @param entry UI list entry
+ * @param arg Entry argument
+ */
+static void ui_select_dialog_list_selected(ui_list_entry_t *entry, void *arg)
+{
+	ui_list_t *list;
+	ui_select_dialog_t *dialog;
+
+	list = ui_list_entry_get_list(entry);
+	dialog = (ui_select_dialog_t *)ui_list_get_cb_arg(list);
+
+	if (dialog->cb != NULL && dialog->cb->bok != NULL)
+		dialog->cb->bok(dialog, dialog->arg, arg);
 }
 
 /** @}

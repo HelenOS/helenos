@@ -118,6 +118,11 @@ PCUT_TEST(set_cb)
 	ui_destroy(ui);
 }
 
+//XXX
+PCUT_TEST(get_cb_arg)
+{
+}
+
 /** ui_list_entry_height() gives the correct height */
 PCUT_TEST(entry_height)
 {
@@ -750,6 +755,11 @@ PCUT_TEST(get_cursor)
 	ui_destroy(ui);
 }
 
+//XXX TODO
+PCUT_TEST(set_cursor)
+{
+}
+
 /** ui_list_entry_attr_init() initializes entry attribute structure */
 PCUT_TEST(entry_attr_init)
 {
@@ -901,6 +911,11 @@ PCUT_TEST(entry_get_arg)
 	ui_list_destroy(list);
 	ui_window_destroy(window);
 	ui_destroy(ui);
+}
+
+//XXX
+PCUT_TEST(entry_get_list)
+{
 }
 
 /** ui_list_entries_cnt() returns the number of entries */

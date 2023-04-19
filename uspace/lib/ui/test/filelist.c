@@ -349,8 +349,8 @@ PCUT_TEST(entry_append)
 	ui_destroy(ui);
 }
 
-/** ui_file_list_entry_delete() deletes entry */
-PCUT_TEST(entry_delete)
+/** ui_file_list_entry_destroy() destroys entry */
+PCUT_TEST(entry_destroy)
 {
 	ui_t *ui;
 	ui_window_t *window;
@@ -385,12 +385,12 @@ PCUT_TEST(entry_delete)
 	PCUT_ASSERT_INT_EQUALS(2, ui_list_entries_cnt(flist->list));
 
 	entry = ui_file_list_first(flist);
-	ui_file_list_entry_delete(entry);
+	ui_file_list_entry_destroy(entry);
 
 	PCUT_ASSERT_INT_EQUALS(1, ui_list_entries_cnt(flist->list));
 
 	entry = ui_file_list_first(flist);
-	ui_file_list_entry_delete(entry);
+	ui_file_list_entry_destroy(entry);
 
 	PCUT_ASSERT_INT_EQUALS(0, ui_list_entries_cnt(flist->list));
 

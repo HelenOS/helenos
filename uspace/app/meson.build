@@ -39,6 +39,7 @@ apps = [
 	'devctl',
 	'df',
 	'disp',
+	'display-cfg',
 	'dnscfg',
 	'dnsres',
 	'download',

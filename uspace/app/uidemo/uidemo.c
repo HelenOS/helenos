@@ -51,6 +51,7 @@
 #include <ui/pbutton.h>
 #include <ui/promptdialog.h>
 #include <ui/resource.h>
+#include <ui/selectdialog.h>
 #include <ui/tab.h>
 #include <ui/tabset.h>
 #include <ui/ui.h>
@@ -107,6 +108,7 @@ static void uidemo_file_load(ui_menu_entry_t *, void *);
 static void uidemo_file_message(ui_menu_entry_t *, void *);
 static void uidemo_file_exit(ui_menu_entry_t *, void *);
 static void uidemo_edit_modify(ui_menu_entry_t *, void *);
+static void uidemo_edit_insert_character(ui_menu_entry_t *, void *);
 
 static void file_dialog_bok(ui_file_dialog_t *, void *, const char *);
 static void file_dialog_bcancel(ui_file_dialog_t *, void *);
@@ -126,6 +128,16 @@ static ui_prompt_dialog_cb_t prompt_dialog_cb = {
 	.bok = prompt_dialog_bok,
 	.bcancel = prompt_dialog_bcancel,
 	.close = prompt_dialog_close
+};
+
+static void select_dialog_bok(ui_select_dialog_t *, void *, void *);
+static void select_dialog_bcancel(ui_select_dialog_t *, void *);
+static void select_dialog_close(ui_select_dialog_t *, void *);
+
+static ui_select_dialog_cb_t select_dialog_cb = {
+	.bok = select_dialog_bok,
+	.bcancel = select_dialog_bcancel,
+	.close = select_dialog_close
 };
 
 static void msg_dialog_button(ui_msg_dialog_t *, void *, unsigned);
@@ -431,11 +443,66 @@ static void uidemo_edit_modify(ui_menu_entry_t *mentry, void *arg)
 
 	rc = ui_prompt_dialog_create(demo->ui, &pdparams, &dialog);
 	if (rc != EOK) {
-		printf("Error creating message dialog.\n");
+		printf("Error creating prompt dialog.\n");
 		return;
 	}
 
 	ui_prompt_dialog_set_cb(dialog, &prompt_dialog_cb, demo);
+}
+
+/** Edit / Insert Character menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (demo)
+ */
+static void uidemo_edit_insert_character(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	ui_select_dialog_params_t sdparams;
+	ui_select_dialog_t *dialog;
+	ui_list_entry_attr_t attr;
+	errno_t rc;
+
+	ui_select_dialog_params_init(&sdparams);
+	sdparams.caption = "Insert Character";
+	sdparams.prompt = "Select character to insert";
+
+	rc = ui_select_dialog_create(demo->ui, &sdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating select dialog.\n");
+		return;
+	}
+
+	ui_list_entry_attr_init(&attr);
+	attr.caption = "Dollar sign ($)";
+	attr.arg = (void *)'$';
+	rc = ui_select_dialog_append(dialog, &attr);
+	if (rc != EOK) {
+		printf("Error appending entry to list.\n");
+		return;
+	}
+
+	ui_list_entry_attr_init(&attr);
+	attr.caption = "Hash sign (#)";
+	attr.arg = (void *)'#';
+	rc = ui_select_dialog_append(dialog, &attr);
+	if (rc != EOK) {
+		printf("Error appending entry to list.\n");
+		return;
+	}
+
+	ui_list_entry_attr_init(&attr);
+	attr.caption = "Question mark (?)";
+	attr.arg = (void *)'?';
+	rc = ui_select_dialog_append(dialog, &attr);
+	if (rc != EOK) {
+		printf("Error appending entry to list.\n");
+		return;
+	}
+
+	ui_select_dialog_set_cb(dialog, &select_dialog_cb, demo);
+
+	(void) ui_select_dialog_paint(dialog);
 }
 
 /** File dialog OK button press.
@@ -524,7 +591,7 @@ static void prompt_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 
 /** Prompt dialog cancel button press.
  *
- * @param dialog File dialog
+ * @param dialog Prompt dialog
  * @param arg Argument (ui_demo_t *)
  */
 static void prompt_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
@@ -537,7 +604,7 @@ static void prompt_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 
 /** Prompt dialog close request.
  *
- * @param dialog File dialog
+ * @param dialog Prompt dialog
  * @param arg Argument (ui_demo_t *)
  */
 static void prompt_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
@@ -546,6 +613,50 @@ static void prompt_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
 
 	(void) demo;
 	ui_prompt_dialog_destroy(dialog);
+}
+
+/** Select dialog OK button press.
+ *
+ * @param dialog Select dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param text Submitted text
+ */
+static void select_dialog_bok(ui_select_dialog_t *dialog, void *arg,
+    void *earg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	char str[2];
+
+	ui_select_dialog_destroy(dialog);
+	str[0] = (char)(intptr_t)earg;
+	str[1] = '\0';
+	(void) ui_entry_insert_str(demo->entry, str);
+}
+
+/** Select dialog cancel button press.
+ *
+ * @param dialog Select dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void select_dialog_bcancel(ui_select_dialog_t *dialog, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	(void) demo;
+	ui_select_dialog_destroy(dialog);
+}
+
+/** Select dialog close request.
+ *
+ * @param dialog Select dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void select_dialog_close(ui_select_dialog_t *dialog, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	(void) demo;
+	ui_select_dialog_destroy(dialog);
 }
 
 /** Message dialog button press.
@@ -597,6 +708,7 @@ static errno_t ui_demo(const char *display_spec)
 	ui_menu_entry_t *msep;
 	ui_menu_entry_t *mexit;
 	ui_menu_entry_t *mmodify;
+	ui_menu_entry_t *minsert_char;
 	ui_menu_entry_t *mabout;
 	ui_list_entry_attr_t eattr;
 	errno_t rc;
@@ -718,6 +830,16 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	ui_menu_entry_set_cb(mmodify, uidemo_edit_modify, (void *) &demo);
+
+	rc = ui_menu_entry_create(demo.medit, "~I~nsert Character",
+	    "", &minsert_char);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(minsert_char, uidemo_edit_insert_character,
+	    (void *) &demo);
 
 	rc = ui_menu_create(demo.mbar, "~P~references", &demo.mpreferences);
 	if (rc != EOK) {

@@ -102,7 +102,7 @@ typedef struct ui_file_list {
 } ui_file_list_t;
 
 extern bool ui_file_list_is_active(ui_file_list_t *);
-extern void ui_file_list_entry_delete(ui_file_list_entry_t *);
+extern void ui_file_list_entry_destroy(ui_file_list_entry_t *);
 extern void ui_file_list_clear_entries(ui_file_list_t *);
 extern errno_t ui_file_list_sort(ui_file_list_t *);
 extern int ui_file_list_entry_ptr_cmp(const void *, const void *);

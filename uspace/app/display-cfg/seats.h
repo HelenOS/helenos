@@ -26,33 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libwndmgt
+/** @addtogroup display-cfg
  * @{
  */
-/** @file
+/**
+ * @file Seat configuration tab
  */
 
-#ifndef _LIBDISPCFG_DISPCFG_H_
-#define _LIBDISPCFG_DISPCFG_H_
+#ifndef SEATS_H
+#define SEATS_H
 
-#include <errno.h>
-#include <types/common.h>
-#include "types/dispcfg.h"
+#include "types/display-cfg.h"
+#include "types/seats.h"
 
-extern errno_t dispcfg_open(const char *, dispcfg_cb_t *, void *, dispcfg_t **);
-extern void dispcfg_close(dispcfg_t *);
-extern errno_t dispcfg_get_seat_list(dispcfg_t *, dispcfg_seat_list_t **);
-extern void dispcfg_free_seat_list(dispcfg_seat_list_t *);
-extern errno_t dispcfg_get_seat_info(dispcfg_t *, sysarg_t,
-    dispcfg_seat_info_t **);
-extern void dispcfg_free_seat_info(dispcfg_seat_info_t *);
-extern errno_t dispcfg_seat_create(dispcfg_t *, const char *, sysarg_t *);
-extern errno_t dispcfg_seat_delete(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_dev_assign(dispcfg_t *, sysarg_t, sysarg_t);
-extern errno_t dispcfg_dev_unassign(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_get_asgn_dev_list(dispcfg_t *, sysarg_t,
-    dispcfg_dev_list_t **);
-extern void dispcfg_free_dev_list(dispcfg_dev_list_t *);
+extern errno_t dcfg_seats_create(display_cfg_t *, dcfg_seats_t **);
+extern void dcfg_seats_destroy(dcfg_seats_t *);
 
 #endif
 
