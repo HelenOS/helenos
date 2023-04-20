@@ -41,6 +41,10 @@
 
 extern errno_t dcfg_seats_create(display_cfg_t *, dcfg_seats_t **);
 extern void dcfg_seats_destroy(dcfg_seats_t *);
+extern errno_t dcfg_seats_insert(dcfg_seats_t *, const char *, sysarg_t,
+    dcfg_seats_entry_t **);
+extern errno_t dcfg_devices_insert(dcfg_seats_t *, const char *,
+    service_id_t);
 
 #endif
 

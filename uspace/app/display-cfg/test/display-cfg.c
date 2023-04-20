@@ -28,12 +28,23 @@
 
 #include <errno.h>
 #include <pcut/pcut.h>
+#include <ui/ui.h>
 #include "../display-cfg.h"
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(display_cfg);
 
-//XXX TODO
+/** Test display_cfg_create() and display_cfg_destroy() */
+PCUT_TEST(create_destroy)
+{
+	display_cfg_t *dcfg;
+	errno_t rc;
+
+	rc = display_cfg_create(UI_DISPLAY_NULL, &dcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_cfg_destroy(dcfg);
+}
 
 PCUT_EXPORT(display_cfg);

@@ -29,10 +29,13 @@
 deps = [ 'dispcfg', 'ui' ]
 src = files(
 	'display-cfg.c',
+	'main.c',
 	'seats.c'
 )
 
 test_src = files(
+	'display-cfg.c',
+	'seats.c',
 	'test/display-cfg.c',
 	'test/main.c',
 	'test/seats.c'

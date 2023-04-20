@@ -35,7 +35,6 @@
 #include <gfx/coord.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <str.h>
 #include <ui/fixed.h>
 #include <ui/resource.h>
 #include <ui/tabset.h>
@@ -68,8 +67,7 @@ static void wnd_close(ui_window_t *window, void *arg)
  * @param rdcfg Place to store pointer to new display configuration
  * @return EOK on success or an error code
  */
-static errno_t display_cfg_create(const char *display_spec,
-    display_cfg_t **rdcfg)
+errno_t display_cfg_create(const char *display_spec, display_cfg_t **rdcfg)
 {
 	ui_t *ui = NULL;
 	ui_wnd_params_t params;
@@ -178,55 +176,10 @@ error:
  *
  * @param dcfg Display configuration dialog
  */
-static void display_cfg_destroy(display_cfg_t *dcfg)
+void display_cfg_destroy(display_cfg_t *dcfg)
 {
 	ui_window_destroy(dcfg->window);
 	ui_destroy(dcfg->ui);
-}
-
-static void print_syntax(void)
-{
-	printf("Syntax: display-cfg [-d <display-spec>]\n");
-}
-
-int main(int argc, char *argv[])
-{
-	const char *display_spec = UI_ANY_DEFAULT;
-	display_cfg_t *dcfg;
-	errno_t rc;
-	int i;
-
-	i = 1;
-	while (i < argc && argv[i][0] == '-') {
-		if (str_cmp(argv[i], "-d") == 0) {
-			++i;
-			if (i >= argc) {
-				printf("Argument missing.\n");
-				print_syntax();
-				return 1;
-			}
-
-			display_spec = argv[i++];
-		} else {
-			printf("Invalid option '%s'.\n", argv[i]);
-			print_syntax();
-			return 1;
-		}
-	}
-
-	if (i < argc) {
-		print_syntax();
-		return 1;
-	}
-
-	rc = display_cfg_create(display_spec, &dcfg);
-	if (rc != EOK)
-		return 1;
-
-	ui_run(dcfg->ui);
-	display_cfg_destroy(dcfg);
-
-	return 0;
 }
 
 /** @}

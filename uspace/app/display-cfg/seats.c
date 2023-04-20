@@ -440,11 +440,6 @@ void dcfg_seats_destroy(dcfg_seats_t *seats)
 	dcfg_seats_entry_t *entry;
 	dcfg_devices_entry_t *dentry;
 
-	ui_pbutton_destroy(seats->add_device);
-	ui_pbutton_destroy(seats->remove_device);
-
-	ui_label_destroy(seats->devices_label);
-
 	lentry = ui_list_first(seats->device_list);
 	while (lentry != NULL) {
 		dentry = (dcfg_devices_entry_t *)ui_list_entry_get_arg(lentry);
@@ -453,10 +448,6 @@ void dcfg_seats_destroy(dcfg_seats_t *seats)
 		ui_list_entry_delete(lentry);
 		lentry = ui_list_first(seats->device_list);
 	}
-	ui_list_destroy(seats->device_list);
-
-	ui_pbutton_destroy(seats->add_seat);
-	ui_pbutton_destroy(seats->remove_seat);
 
 	lentry = ui_list_first(seats->seat_list);
 	while (lentry != NULL) {
@@ -467,9 +458,8 @@ void dcfg_seats_destroy(dcfg_seats_t *seats)
 		lentry = ui_list_first(seats->seat_list);
 	}
 
-	ui_label_destroy(seats->seats_label);
-	ui_list_destroy(seats->seat_list);
-	ui_fixed_destroy(seats->fixed);
+	/* This will automatically destroy all controls in the tab */
+	ui_tab_destroy(seats->tab);
 	free(seats);
 }
 
@@ -481,7 +471,7 @@ void dcfg_seats_destroy(dcfg_seats_t *seats)
  * @param rentry Place to store pointer to new entry or NULL
  * @return EOK on success or an error code
  */
-static errno_t dcfg_seats_insert(dcfg_seats_t *seats, const char *name,
+errno_t dcfg_seats_insert(dcfg_seats_t *seats, const char *name,
     sysarg_t seat_id, dcfg_seats_entry_t **rentry)
 {
 	dcfg_seats_entry_t *entry;
@@ -563,7 +553,7 @@ error:
  * @param svc_id Service ID
  * @return EOK on success or an error code
  */
-static errno_t dcfg_devices_insert(dcfg_seats_t *seats, const char *name,
+errno_t dcfg_devices_insert(dcfg_seats_t *seats, const char *name,
     service_id_t svc_id)
 {
 	dcfg_devices_entry_t *entry;
