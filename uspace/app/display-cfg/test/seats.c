@@ -26,14 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <async.h>
+#include <dispcfg.h>
+#include <dispcfg_srv.h>
 #include <errno.h>
 #include <pcut/pcut.h>
+#include <testdc.h>
 #include "../display-cfg.h"
 #include "../seats.h"
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(seats);
+
+static const char *test_dispcfg_server = "test-dispcfg";
+static const char *test_dispcfg_svc = "test/dispcfg";
 
 /** Test dcfg_seats_create() and dcfg_seats_destroy() */
 PCUT_TEST(create_destroy)
@@ -80,6 +87,27 @@ PCUT_TEST(seats_insert)
 //??? Requires us to create a test display config service
 PCUT_TEST(seats_list_populate)
 {
+	errno_t rc;
+	service_id_t sid;
+	dispcfg_t *dispcfg = NULL;
+	test_response_t resp;
+
+	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_dispcfg_server);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(test_dispcfg_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dispcfg);
+
+	dispcfg_close(dispcfg);
+	rc = loc_service_unregister(sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
 /** dcfg_devices_insert() inserts an entry into the device list */

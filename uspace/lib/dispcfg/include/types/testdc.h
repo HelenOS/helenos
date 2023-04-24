@@ -29,30 +29,68 @@
 /** @addtogroup libdispcfg
  * @{
  */
-/** @file
+/** @file Display configuration test service types
  */
 
-#ifndef _LIBDISPCFG_DISPCFG_H_
-#define _LIBDISPCFG_DISPCFG_H_
+#ifndef _LIBDISPCFG_TYPES_TESTDC_H_
+#define _LIBDISPCFG_TYPES_TESTDC_H_
 
 #include <errno.h>
+#include <fibril_synch.h>
+#include <stdbool.h>
 #include <types/common.h>
-#include "types/dispcfg.h"
+#include <types/dispcfg.h>
 
-extern errno_t dispcfg_open(const char *, dispcfg_cb_t *, void *, dispcfg_t **);
-extern void dispcfg_close(dispcfg_t *);
-extern errno_t dispcfg_get_seat_list(dispcfg_t *, dispcfg_seat_list_t **);
-extern void dispcfg_free_seat_list(dispcfg_seat_list_t *);
-extern errno_t dispcfg_get_seat_info(dispcfg_t *, sysarg_t,
-    dispcfg_seat_info_t **);
-extern void dispcfg_free_seat_info(dispcfg_seat_info_t *);
-extern errno_t dispcfg_seat_create(dispcfg_t *, const char *, sysarg_t *);
-extern errno_t dispcfg_seat_delete(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_dev_assign(dispcfg_t *, sysarg_t, sysarg_t);
-extern errno_t dispcfg_dev_unassign(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_get_asgn_dev_list(dispcfg_t *, sysarg_t,
-    dispcfg_dev_list_t **);
-extern void dispcfg_free_dev_list(dispcfg_dev_list_t *);
+/** Describes to the server how to respond to our request and pass tracking
+ * data back to the client.
+ */
+typedef struct {
+	errno_t rc;
+	sysarg_t seat_id;
+	dispcfg_ev_t event;
+	dispcfg_ev_t revent;
+	int event_cnt;
+
+	bool get_seat_list_called;
+	dispcfg_seat_list_t *get_seat_list_rlist;
+
+	bool get_seat_info_called;
+	sysarg_t get_seat_info_seat_id;
+	dispcfg_seat_info_t *get_seat_info_rinfo;
+
+	bool seat_create_called;
+	char *seat_create_name;
+	sysarg_t seat_create_seat_id;
+
+	bool seat_delete_called;
+	sysarg_t seat_delete_seat_id;
+
+	bool dev_assign_called;
+	sysarg_t dev_assign_svc_id;
+	sysarg_t dev_assign_seat_id;
+
+	bool dev_unassign_called;
+	sysarg_t dev_unassign_svc_id;
+
+	bool get_asgn_dev_list_called;
+	sysarg_t get_asgn_dev_list_seat_id;
+	dispcfg_dev_list_t *get_asgn_dev_list_rlist;
+
+	bool get_event_called;
+
+	bool seat_added_called;
+	sysarg_t seat_added_seat_id;
+
+	bool seat_removed_called;
+	sysarg_t seat_removed_seat_id;
+
+	bool seat_changed_called;
+	sysarg_t seat_changed_seat_id;
+
+	fibril_condvar_t event_cv;
+	fibril_mutex_t event_lock;
+	dispcfg_srv_t *srv;
+} test_response_t;
 
 #endif
 

@@ -26,35 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdispcfg
+/** @addtogroup display-cfg
  * @{
  */
-/** @file
+/** @file Display configuration utility (UI) main
  */
 
-#ifndef _LIBDISPCFG_DISPCFG_H_
-#define _LIBDISPCFG_DISPCFG_H_
+#include <stdio.h>
+#include <str.h>
+#include <ui/ui.h>
+#include "display-cfg.h"
 
-#include <errno.h>
-#include <types/common.h>
-#include "types/dispcfg.h"
+static void print_syntax(void)
+{
+	printf("Syntax: display-cfg [-d <display-spec>]\n");
+}
 
-extern errno_t dispcfg_open(const char *, dispcfg_cb_t *, void *, dispcfg_t **);
-extern void dispcfg_close(dispcfg_t *);
-extern errno_t dispcfg_get_seat_list(dispcfg_t *, dispcfg_seat_list_t **);
-extern void dispcfg_free_seat_list(dispcfg_seat_list_t *);
-extern errno_t dispcfg_get_seat_info(dispcfg_t *, sysarg_t,
-    dispcfg_seat_info_t **);
-extern void dispcfg_free_seat_info(dispcfg_seat_info_t *);
-extern errno_t dispcfg_seat_create(dispcfg_t *, const char *, sysarg_t *);
-extern errno_t dispcfg_seat_delete(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_dev_assign(dispcfg_t *, sysarg_t, sysarg_t);
-extern errno_t dispcfg_dev_unassign(dispcfg_t *, sysarg_t);
-extern errno_t dispcfg_get_asgn_dev_list(dispcfg_t *, sysarg_t,
-    dispcfg_dev_list_t **);
-extern void dispcfg_free_dev_list(dispcfg_dev_list_t *);
+int main(int argc, char *argv[])
+{
+	const char *display_spec = UI_ANY_DEFAULT;
+	display_cfg_t *dcfg;
+	errno_t rc;
+	int i;
 
-#endif
+	i = 1;
+	while (i < argc && argv[i][0] == '-') {
+		if (str_cmp(argv[i], "-d") == 0) {
+			++i;
+			if (i >= argc) {
+				printf("Argument missing.\n");
+				print_syntax();
+				return 1;
+			}
+
+			display_spec = argv[i++];
+		} else {
+			printf("Invalid option '%s'.\n", argv[i]);
+			print_syntax();
+			return 1;
+		}
+	}
+
+	if (i < argc) {
+		print_syntax();
+		return 1;
+	}
+
+	rc = display_cfg_create(display_spec, &dcfg);
+	if (rc != EOK)
+		return 1;
+
+	ui_run(dcfg->ui);
+	display_cfg_destroy(dcfg);
+
+	return 0;
+}
 
 /** @}
  */

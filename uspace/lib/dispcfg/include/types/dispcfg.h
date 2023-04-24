@@ -29,7 +29,7 @@
 /** @addtogroup libdispcfg
  * @{
  */
-/** @file
+/** @file Display configuration protocol types
  */
 
 #ifndef _LIBDISPCFG_TYPES_DISPCFG_H_

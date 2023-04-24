@@ -29,9 +29,10 @@
 src = files(
 	'src/dispcfg.c',
 	'src/dispcfg_srv.c',
+	'src/testdc.c'
 )
 
 test_src = files(
 	'test/main.c',
-	'test/dispcfg.c',
+	'test/dispcfg.c'
 )
