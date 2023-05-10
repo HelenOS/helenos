@@ -28,13 +28,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-VERSION=6.2.0
+VERSION=8.0.0
 BASENAME=qemu-${VERSION}
 BASENAME_MASTER=qemu-master
 TARBALL=${BASENAME}.tar.bz2
 SOURCEDIR=${BASENAME}
 URL=https://download.qemu.org/${TARBALL}
-REPO=git://git.qemu.org/qemu.git
+REPO=git@github.com:qemu/qemu.git
 
 OPENSPARC_TARBALL="OpenSPARCT1_Arch.1.5.tar.bz2"
 OPENSPARC_URL="http://download.oracle.com/technetwork/systems/opensparc/${OPENSPARC_TARBALL}"

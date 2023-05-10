@@ -421,7 +421,10 @@ emulators = {
 			},
 			'sun4v' : {
 				'run' : qemu_run,
-				'image' : '-drive if=pflash,readonly=on,file=image.iso',
+				# QEMU 8.0.0 ignores the 'file' argument and instead uses 'id',
+				# which defaults to 'pflash0', but can be changed to the same value
+				# as 'file'
+				'image' : '-drive if=pflash,id=image.iso,readonly=on,file=image.iso',
 				'audio' : False,
 				'console' : True,
 				'net' : False,
