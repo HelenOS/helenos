@@ -76,6 +76,14 @@ int main(int argc, char *argv[])
 	if (rc != EOK)
 		return 1;
 
+	rc = display_cfg_open(dcfg, DISPCFG_DEFAULT);
+	if (rc != EOK)
+		return 1;
+
+	rc = display_cfg_populate(dcfg);
+	if (rc != EOK)
+		return 1;
+
 	ui_run(dcfg->ui);
 	display_cfg_destroy(dcfg);
 

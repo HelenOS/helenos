@@ -39,6 +39,8 @@
 #include "types/display-cfg.h"
 
 extern errno_t display_cfg_create(const char *, display_cfg_t **);
+extern errno_t display_cfg_open(display_cfg_t *, const char *);
+extern errno_t display_cfg_populate(display_cfg_t *);
 extern void display_cfg_destroy(display_cfg_t *);
 
 #endif

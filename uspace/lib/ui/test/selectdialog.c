@@ -309,6 +309,44 @@ PCUT_TEST(paint)
 	ui_destroy(ui);
 }
 
+/** ui_select_dialog_list() returns the UI list */
+PCUT_TEST(list)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_select_dialog_params_t params;
+	ui_select_dialog_t *dialog = NULL;
+	ui_list_t *list;
+	ui_list_entry_attr_t attr;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_select_dialog_params_init(&params);
+	params.caption = "Select one";
+	params.prompt = "Please select";
+
+	rc = ui_select_dialog_create(ui, &params, &dialog);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(dialog);
+
+	list = ui_select_dialog_list(dialog);
+	PCUT_ASSERT_NOT_NULL(list);
+
+	PCUT_ASSERT_INT_EQUALS(0, ui_list_entries_cnt(list));
+
+	/* Add one entry */
+	ui_list_entry_attr_init(&attr);
+	attr.caption = "Entry";
+	rc = ui_select_dialog_append(dialog, &attr);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_INT_EQUALS(1, ui_list_entries_cnt(list));
+
+	ui_select_dialog_destroy(dialog);
+	ui_destroy(ui);
+}
+
 static void test_dialog_bok(ui_select_dialog_t *dialog, void *arg,
     void *earg)
 {

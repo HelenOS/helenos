@@ -31,6 +31,7 @@
 #include <dispcfg_srv.h>
 #include <errno.h>
 #include <pcut/pcut.h>
+#include <str.h>
 #include <testdc.h>
 #include "../display-cfg.h"
 #include "../seats.h"
@@ -84,12 +85,13 @@ PCUT_TEST(seats_insert)
 	display_cfg_destroy(dcfg);
 }
 
-//??? Requires us to create a test display config service
+/** dcfg_seats_list_populate() populates seat list */
 PCUT_TEST(seats_list_populate)
 {
+	display_cfg_t *dcfg;
+	dcfg_seats_t *seats;
 	errno_t rc;
 	service_id_t sid;
-	dispcfg_t *dispcfg = NULL;
 	test_response_t resp;
 
 	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
@@ -101,13 +103,37 @@ PCUT_TEST(seats_list_populate)
 	rc = loc_service_register(test_dispcfg_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = dispcfg_open(test_dispcfg_svc, NULL, NULL, &dispcfg);
+	rc = display_cfg_create(UI_DISPLAY_NULL, &dcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(dispcfg);
 
-	dispcfg_close(dispcfg);
-	rc = loc_service_unregister(sid);
+	rc = display_cfg_open(dcfg, test_dispcfg_svc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dcfg_seats_create(dcfg, &seats);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/*
+	 * dcfg_seat_list_populate() calls dispcfg_get_seat_list()
+	 * and dispcfg_get_seat_info()
+	 */
+	resp.rc = EOK;
+	resp.get_seat_list_rlist = calloc(1, sizeof(dispcfg_seat_list_t));
+	PCUT_ASSERT_NOT_NULL(resp.get_seat_list_rlist);
+	resp.get_seat_list_rlist->nseats = 1;
+	resp.get_seat_list_rlist->seats = calloc(1, sizeof(sysarg_t));
+	PCUT_ASSERT_NOT_NULL(resp.get_seat_list_rlist->seats);
+	resp.get_seat_list_rlist->seats[0] = 42;
+
+	resp.get_seat_info_rinfo = calloc(1, sizeof(dispcfg_seat_info_t));
+	PCUT_ASSERT_NOT_NULL(resp.get_seat_info_rinfo);
+	resp.get_seat_info_rinfo->name = str_dup("Alice");
+	PCUT_ASSERT_NOT_NULL(resp.get_seat_info_rinfo->name);
+
+	rc = dcfg_seats_list_populate(seats);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	dcfg_seats_destroy(seats);
+	display_cfg_destroy(dcfg);
 }
 
 /** dcfg_devices_insert() inserts an entry into the device list */
@@ -140,8 +166,44 @@ PCUT_TEST(devices_insert)
 	display_cfg_destroy(dcfg);
 }
 
+/** dcfg_avail_devices_insert() inserts entry into available devices list */
 PCUT_TEST(avail_devices_insert)
 {
+	display_cfg_t *dcfg;
+	dcfg_seats_t *seats;
+	ui_list_entry_t *lentry;
+	dcfg_devices_entry_t *entry;
+	ui_select_dialog_t *dialog;
+	ui_select_dialog_params_t sdparams;
+	errno_t rc;
+
+	rc = display_cfg_create(UI_DISPLAY_NULL, &dcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dcfg_seats_create(dcfg, &seats);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_select_dialog_params_init(&sdparams);
+	sdparams.caption = "Dialog";
+	sdparams.prompt = "Select";
+
+	rc = ui_select_dialog_create(seats->dcfg->ui, &sdparams, &dialog);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = dcfg_avail_devices_insert(seats, dialog, "mydevice", 42);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	lentry = ui_list_first(ui_select_dialog_list(dialog));
+	PCUT_ASSERT_NOT_NULL(lentry);
+	entry = (dcfg_devices_entry_t *)ui_list_entry_get_arg(lentry);
+	PCUT_ASSERT_NOT_NULL(entry);
+
+	PCUT_ASSERT_STR_EQUALS("mydevice", entry->name);
+	PCUT_ASSERT_INT_EQUALS(42, entry->svc_id);
+
+	ui_select_dialog_destroy(dialog);
+	dcfg_seats_destroy(seats);
+	display_cfg_destroy(dcfg);
 }
 
 PCUT_TEST(asgn_dev_list_populate)

@@ -64,6 +64,7 @@ static void wnd_close(ui_window_t *window, void *arg)
 /** Create display configuration dialog.
  *
  * @param display_spec Display specification
+ * @param dcfg_svc Display configuration service name or DISPCFG_DEFAULT
  * @param rdcfg Place to store pointer to new display configuration
  * @return EOK on success or an error code
  */
@@ -81,12 +82,6 @@ errno_t display_cfg_create(const char *display_spec, display_cfg_t **rdcfg)
 	if (dcfg == NULL) {
 		printf("Out of memory.\n");
 		return ENOMEM;
-	}
-
-	rc = dispcfg_open(DISPCFG_DEFAULT, NULL, NULL, &dcfg->dispcfg);
-	if (rc != EOK) {
-		printf("Error opening display configuration service.\n");
-		goto error;
 	}
 
 	rc = ui_create(display_spec, &ui);
@@ -149,12 +144,6 @@ errno_t display_cfg_create(const char *display_spec, display_cfg_t **rdcfg)
 
 	ui_window_add(window, ui_fixed_ctl(dcfg->fixed));
 
-	rc = ui_window_paint(window);
-	if (rc != EOK) {
-		printf("Error painting window.\n");
-		return rc;
-	}
-
 	*rdcfg = dcfg;
 	return EOK;
 error:
@@ -166,10 +155,51 @@ error:
 		ui_fixed_destroy(dcfg->fixed);
 	if (dcfg->ui != NULL)
 		ui_destroy(ui);
-	if (dcfg->dispcfg != NULL)
-		dispcfg_close(dcfg->dispcfg);
 	free(dcfg);
 	return rc;
+}
+
+/** Open display configuration service.
+ *
+ * @param dcfg Display configuration dialog
+ * @param dcfg_svc Display configuration service name or DISPCFG_DEFAULT
+ * @return EOK on success or an error code
+ */
+errno_t display_cfg_open(display_cfg_t *dcfg, const char *dcfg_svc)
+{
+	errno_t rc;
+
+	rc = dispcfg_open(dcfg_svc, NULL, NULL, &dcfg->dispcfg);
+	if (rc != EOK) {
+		printf("Error opening display configuration service.\n");
+		goto error;
+	}
+
+	return EOK;
+error:
+	return rc;
+}
+
+/** Populate display configuration from isplay configuration service.
+ *
+ * @param dcfg Display configuration dialog
+ * @return EOK on success or an error code
+ */
+errno_t display_cfg_populate(display_cfg_t *dcfg)
+{
+	errno_t rc;
+
+	rc = dcfg_seats_populate(dcfg->seats);
+	if (rc != EOK)
+		return rc;
+
+	rc = ui_window_paint(dcfg->window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		return rc;
+	}
+
+	return EOK;
 }
 
 /** Destroy display configuration dialog.
@@ -178,6 +208,8 @@ error:
  */
 void display_cfg_destroy(display_cfg_t *dcfg)
 {
+	if (dcfg->dispcfg != NULL)
+		dispcfg_close(dcfg->dispcfg);
 	ui_window_destroy(dcfg->window);
 	ui_destroy(dcfg->ui);
 }

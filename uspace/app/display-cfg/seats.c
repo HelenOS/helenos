@@ -49,7 +49,6 @@
 #include "display-cfg.h"
 #include "seats.h"
 
-static errno_t dcfg_seats_list_populate(dcfg_seats_t *);
 static errno_t dcfg_seats_asgn_dev_list_populate(dcfg_seats_t *);
 static errno_t dcfg_seats_avail_dev_list_populate(dcfg_seats_t *,
     ui_select_dialog_t *);
@@ -117,11 +116,8 @@ errno_t dcfg_seats_create(display_cfg_t *dcfg, dcfg_seats_t **rseats)
 {
 	ui_resource_t *ui_res;
 	dcfg_seats_t *seats;
-	dcfg_seats_entry_t *entry;
 	gfx_rect_t rect;
-	char *caption = NULL;
 	errno_t rc;
-	int rv;
 
 	ui_res = ui_window_get_res(dcfg->window);
 
@@ -203,10 +199,6 @@ errno_t dcfg_seats_create(display_cfg_t *dcfg, dcfg_seats_t **rseats)
 
 	ui_list_set_cb(seats->seat_list, &dcfg_seats_list_cb, (void *)seats);
 
-	rc = dcfg_seats_list_populate(seats);
-	if (rc != EOK)
-		goto error;
-
 	/* 'Add...' seat button */
 
 	rc = ui_pbutton_create(ui_res, "Add...", &seats->add_seat);
@@ -271,21 +263,12 @@ errno_t dcfg_seats_create(display_cfg_t *dcfg, dcfg_seats_t **rseats)
 
 	/* 'Devices assigned to seat 'xxx':' label */
 
-	entry = dcfg_seats_get_selected(seats);
-	rv = asprintf(&caption, "Devices assigned to seat '%s':", entry->name);
-	if (rv < 0) {
-		rc = ENOMEM;
-		goto error;
-	}
-
-	rc = ui_label_create(ui_res, caption, &seats->devices_label);
+	rc = ui_label_create(ui_res, "Devices assigned to seat 'xxx':",
+	    &seats->devices_label);
 	if (rc != EOK) {
 		printf("Error creating label.\n");
 		goto error;
 	}
-
-	free(caption);
-	caption = NULL;
 
 	if (ui_resource_is_textmode(ui_res)) {
 		rect.p0.x = 4;
@@ -399,10 +382,6 @@ errno_t dcfg_seats_create(display_cfg_t *dcfg, dcfg_seats_t **rseats)
 
 	ui_tab_add(seats->tab, ui_fixed_ctl(seats->fixed));
 
-	rc = dcfg_seats_asgn_dev_list_populate(seats);
-	if (rc != EOK)
-		goto error;
-
 	*rseats = seats;
 	return EOK;
 error:
@@ -410,8 +389,6 @@ error:
 		ui_pbutton_destroy(seats->remove_device);
 	if (seats->add_device != NULL)
 		ui_pbutton_destroy(seats->add_device);
-	if (caption != NULL)
-		free(caption);
 	if (seats->devices_label != NULL)
 		ui_label_destroy(seats->devices_label);
 	if (seats->device_list != NULL)
@@ -428,6 +405,31 @@ error:
 		ui_fixed_destroy(seats->fixed);
 	free(dcfg);
 	return rc;
+}
+
+/** Populate seats tab with display configuration service data
+ *
+ * @param dcfg Display configuration dialog
+ * @param rseats Place to store pointer to new seat configuration tab
+ * @return EOK on success or an error code
+ */
+errno_t dcfg_seats_populate(dcfg_seats_t *seats)
+{
+	dcfg_seats_entry_t *entry;
+	errno_t rc;
+
+	printf("seats list populate\n");
+	rc = dcfg_seats_list_populate(seats);
+	if (rc != EOK)
+		return rc;
+
+	/*
+	 * Update "Devices assigned to seat 'xxx'" label and populate
+	 * assigned devices list.
+	 */
+	entry = dcfg_seats_get_selected(seats);
+	dcfg_seats_list_selected(entry->lentry, (void *)entry);
+	return EOK;
 }
 
 /** Destroy display configuration dialog.
@@ -510,7 +512,7 @@ errno_t dcfg_seats_insert(dcfg_seats_t *seats, const char *name,
  * @param seats Seat configuration tab
  * @return EOK on success or an error code
  */
-static errno_t dcfg_seats_list_populate(dcfg_seats_t *seats)
+errno_t dcfg_seats_list_populate(dcfg_seats_t *seats)
 {
 	size_t i;
 	dispcfg_seat_list_t *seat_list = NULL;
@@ -593,7 +595,7 @@ errno_t dcfg_devices_insert(dcfg_seats_t *seats, const char *name,
  * @param svc_id Service ID
  * @return EOK on success or an error code
  */
-static errno_t dcfg_avail_devices_insert(dcfg_seats_t *seats,
+errno_t dcfg_avail_devices_insert(dcfg_seats_t *seats,
     ui_select_dialog_t *dialog, const char *name, service_id_t svc_id)
 {
 	dcfg_devices_entry_t *entry;

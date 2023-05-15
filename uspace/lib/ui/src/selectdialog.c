@@ -328,6 +328,16 @@ errno_t ui_select_dialog_paint(ui_select_dialog_t *dialog)
 	return ui_window_paint(dialog->window);
 }
 
+/** Get the entry list from select dialog.
+ *
+ * @param dialog Select dialog
+ * @return UI list
+ */
+ui_list_t *ui_select_dialog_list(ui_select_dialog_t *dialog)
+{
+	return dialog->list;
+}
+
 /** Select dialog window close handler.
  *
  * @param window Window

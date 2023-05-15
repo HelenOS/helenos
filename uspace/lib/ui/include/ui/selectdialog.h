@@ -50,6 +50,7 @@ extern void ui_select_dialog_destroy(ui_select_dialog_t *);
 extern errno_t ui_select_dialog_append(ui_select_dialog_t *,
     ui_list_entry_attr_t *);
 extern errno_t ui_select_dialog_paint(ui_select_dialog_t *);
+extern ui_list_t *ui_select_dialog_list(ui_select_dialog_t *);
 
 #endif
 

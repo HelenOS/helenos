@@ -40,11 +40,15 @@
 #include "types/seats.h"
 
 extern errno_t dcfg_seats_create(display_cfg_t *, dcfg_seats_t **);
+extern errno_t dcfg_seats_populate(dcfg_seats_t *);
 extern void dcfg_seats_destroy(dcfg_seats_t *);
 extern errno_t dcfg_seats_insert(dcfg_seats_t *, const char *, sysarg_t,
     dcfg_seats_entry_t **);
 extern errno_t dcfg_devices_insert(dcfg_seats_t *, const char *,
     service_id_t);
+extern errno_t dcfg_avail_devices_insert(dcfg_seats_t *seats,
+    ui_select_dialog_t *dialog, const char *name, service_id_t svc_id);
+extern errno_t dcfg_seats_list_populate(dcfg_seats_t *);
 
 #endif
 
