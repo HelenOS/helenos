@@ -60,6 +60,16 @@
 
 #endif  /* __cplusplus */
 
+/*
+ * __CONSTEXPR for headers shared by C and C++. Headers that are purely for
+ * C++ sources should use constexpr directly.
+ */
+#ifdef __cplusplus
+#define __CONSTEXPR constexpr
+#else
+#define __CONSTEXPR
+#endif
+
 #endif
 
 /** @}
