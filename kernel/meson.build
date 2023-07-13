@@ -100,6 +100,14 @@ endif
 
 kernel_c_args = arch_kernel_c_args + kernel_defs + [
 	'-ffreestanding',
+	# When accessing specific memory addresses that are below normal page size,
+	# the compiler may assume that we actually dereferenced NULL pointer and
+	# warns us about that. But in kernel we often need to access these
+	# addresses directly hence we need to ignore these warnings.
+	#
+	# TODO: might make more sense to disable this selectively in specific
+	# files (or better yet, for specific lines).
+	'--param=min-pagesize=0',
 	# TODO: remove this flag
 	cc.get_supported_arguments([ '-Wno-cast-function-type' ]),
 ]
