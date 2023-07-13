@@ -37,7 +37,14 @@
 
 #include <stdint.h>
 
+/*
+ * char8_t became part of C++ with C++20.
+ * It is part of C23 hence we define it for C compilations only.
+ */
+#ifndef __cplusplus
 typedef uint8_t char8_t;
+#endif
+
 typedef uint32_t char32_t;
 
 #endif
