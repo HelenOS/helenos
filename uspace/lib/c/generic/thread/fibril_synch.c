@@ -161,13 +161,6 @@ static void check_for_deadlock(fibril_owner_info_t *oi)
 	check_fibril_for_deadlock(oi, fibril_self());
 }
 
-void fibril_mutex_initialize(fibril_mutex_t *fm)
-{
-	fm->oi.owned_by = NULL;
-	fm->counter = 1;
-	list_initialize(&fm->waiters);
-}
-
 void fibril_mutex_lock(fibril_mutex_t *fm)
 {
 	fibril_t *f = (fibril_t *) fibril_get_id();
