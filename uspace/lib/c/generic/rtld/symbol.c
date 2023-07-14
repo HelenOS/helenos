@@ -134,10 +134,21 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
 	/* Mark all vertices (modules) as unvisited */
 	modules_untag(start->rtld);
 
-	/* Insert root (the program) into the queue and tag it */
+	/*
+	 * Insert root (the program) into the queue and tag it.
+	 *
+	 * We disable the dangling-pointer warning because the compiler incorrectly
+	 * assumes that we leak local address (queue) to a parent scope (to start
+	 * argument). However, we always empty the list so the pointer cannot
+	 * actually escape. Probably the compiler can never statically analyze that
+	 * correctly.
+	 */
 	list_initialize(&queue);
 	start->bfs_tag = true;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-pointer"
 	list_append(&start->queue_link, &queue);
+#pragma GCC diagnostic pop
 
 	/* If the symbol is found, it will be stored in 'sym' */
 	sym = NULL;
