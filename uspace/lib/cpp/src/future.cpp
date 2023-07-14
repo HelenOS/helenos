@@ -83,6 +83,15 @@ namespace std
 
     const char* future_error::what() const noexcept
     {
-        return code().message().c_str();
+        /*
+         * FIXME
+         * Following code would be optimal but the message string is
+         * actually destroyed before the function returns so we would
+         * be returning a dangling pointer. No simple fix available, hence
+         * we use the ugly hack.
+         */
+        //return code().message().c_str();
+#define QUOTE_ARG(arg) #arg
+        return "future_error, see " __FILE__ ":" QUOTE_ARG(__LINE__);
     }
 }
