@@ -29,6 +29,8 @@
 
 #include "../tester.h"
 
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 const char *test_fault1(void)
 {
 	((int *)(0))[1] = 0;
