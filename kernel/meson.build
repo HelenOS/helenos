@@ -86,6 +86,9 @@ kernel_ldscript = custom_target('_link.ld',
 
 kernel_link_args = arch_kernel_link_args + [
 	'-Wl,--nmagic',
+	# The kernel is built as ELF but then copied as a blob of bytes and
+	# the permissions are not relevant anyway (needed for binutils 2.39+).
+	'-Wl,--no-warn-rwx-segments',
 	'-T', meson.current_build_dir() / '_link.ld',
 ]
 
