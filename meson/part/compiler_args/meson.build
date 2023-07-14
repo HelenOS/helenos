@@ -127,3 +127,16 @@ foreach lang : [ 'c', 'cpp' ]
 	add_project_arguments(extra_cflags, language : [ lang ])
 	add_project_link_arguments(extra_cflags, language : [ lang ])
 endforeach
+
+# This flag is needed at several places, hence we define it here.
+#
+# For backwards compatibility we try to detect --no-warn-rwx-segments.
+# However, the autodetection done by Meson also results in
+# "cannot find entry symbol _start; defaulting to 00000000004000b0"
+# thus the option is never supported alone. So when detecting we also
+# specify --entry=main so that the stub source provided by Meson is build
+# correctly.
+ldflags_ignore_rwx_segments = []
+if cc.has_link_argument('-Wl,--no-warn-rwx-segments,--entry=main')
+    ldflags_ignore_rwx_segments += ['-Wl,--no-warn-rwx-segments']
+endif

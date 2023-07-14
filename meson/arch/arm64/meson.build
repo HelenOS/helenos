@@ -47,7 +47,7 @@ arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 # processor is in the execution mode that has unaligned access enabled. The
 # -mstrict-align option is therefore not needed.
 arch_boot_c_args = arch_uspace_c_args + [ '-fpic', '-fvisibility=hidden', '-fno-function-sections' ]
-arch_boot_link_args = [ '-Wl,-shared', '-Wl,--no-gc-sections' ]
+arch_boot_link_args = [ '-Wl,-shared', '-Wl,--no-gc-sections' ] + ldflags_ignore_rwx_segments
 
 if MACHINE == 'virt'
 	rd_essential_drv += [
