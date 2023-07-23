@@ -1109,14 +1109,22 @@ namespace std
                                  InputIterator2 first2,
                                  InputIterator2 last2)
     {
+        while ((first1 != last1) && (first2 != last2))
+        {
+            if (*first1 < *first2)
+                return true;
+            if (*first2 < *first1)
+                return false;
+
+            ++first1;
+            ++first2;
+        }
+
         /**
-         * *first1 and *first2 can have different types
-         * so we use a transparent comparator.
+         * Up until now they are same, so we have to check
+         * if we reached the end on one.
          */
-        return lexicographical_compare(
-            first1, last1, first2, last2,
-            less<void>{}
-        );
+        return (first1 == last1) && (first2 != last2);
     }
 
     template<class InputIterator1, class InputIterator2, class Compare>
