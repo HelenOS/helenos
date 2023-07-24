@@ -798,7 +798,11 @@ PCUT_TEST(strndup_empty_eq)
 /** strndup function with non-empty string of length below limit */
 PCUT_TEST(strndup_nonempty_short)
 {
+#pragma GCC diagnostic push
+	// Intentionally checking it works with _longer_ size than actual
+#pragma GCC diagnostic ignored "-Wstringop-overread"
 	char *d = strndup("abc", 5);
+#pragma GCC diagnostic pop
 	PCUT_ASSERT_NOT_NULL(d);
 	PCUT_ASSERT_TRUE(d[0] == 'a');
 	PCUT_ASSERT_TRUE(d[1] == 'b');
