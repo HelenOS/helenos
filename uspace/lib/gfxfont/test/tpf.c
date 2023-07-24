@@ -117,7 +117,7 @@ PCUT_TEST(save_load)
 
 	gfx_font_props_init(&props);
 	props.size = test_font_size;
-	props.flags = test_font_flags;
+	props.flags = (gfx_font_flags_t) test_font_flags;
 
 	gfx_font_metrics_init(&metrics);
 	metrics.ascent = test_font_ascent;
