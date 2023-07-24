@@ -40,7 +40,16 @@
 #include <types/common.h>
 #include "vt100.h"
 
-#define MAX_CONTROL  20
+/** Buffer size when creating actual VT100 commands.
+ *
+ * This is absurdly large but since we accept numbers via sysarg_t,
+ * we make it big enough for the largest value to be on the safe side
+ * (and to silence compiler too).
+ *
+ * TODO: find out if VT100 has some hard limits or perhaps simply cut-out
+ * values larger than 16 bits or something.
+ */
+#define MAX_CONTROL 64
 
 typedef enum {
 	CI_BLACK   = 0,
