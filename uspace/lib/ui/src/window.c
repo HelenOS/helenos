@@ -1006,7 +1006,8 @@ static void wd_resize(ui_wdecor_t *wdecor, void *arg,
 	ui_window_t *window = (ui_window_t *) arg;
 
 	if (window->dwindow != NULL) {
-		(void) display_window_resize_req(window->dwindow, rsztype,
+		(void) display_window_resize_req(window->dwindow,
+		    (display_wnd_rsztype_t) rsztype, // Same constants in the enums
 		    pos, pos_id);
 	}
 }
