@@ -37,6 +37,7 @@
  *
  */
 #pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic ignored "-Wformat-overflow"
 
 #include <stdio.h>
 #include <stddef.h>
