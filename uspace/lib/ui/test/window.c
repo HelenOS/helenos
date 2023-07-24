@@ -744,7 +744,7 @@ PCUT_TEST(send_kbd)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(window);
 
-	kbd_event.type = POS_PRESS;
+	kbd_event.type = KEY_PRESS;
 	kbd_event.key = KC_X;
 	kbd_event.mods = 0;
 	kbd_event.c = 'x';
