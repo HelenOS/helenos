@@ -140,7 +140,7 @@ typedef struct ext4_superblock {
 	uint32_t backup_bgs[2];             /* Block groups containing superblock backups (if SPARSE_SUPER2) */
 	uint32_t encrypt_algos;             /* Encrypt algorithm in use */
 	uint32_t padding[105];              /* Padding to the end of the block */
-} __attribute__((packed)) ext4_superblock_t;
+} __attribute__((packed))  __attribute__((aligned(4))) ext4_superblock_t;
 
 #define EXT4_GOOD_OLD_REV 0
 #define EXT4_DYNAMIC_REV 1
@@ -344,7 +344,7 @@ typedef struct ext4_inode {
 	uint32_t crtime;        /* File creation time */
 	uint32_t crtime_extra;  /* Extra file creation time (nsec << 2 | epoch) */
 	uint32_t version_hi;    /* High 32 bits for 64-bit version */
-} __attribute__((packed)) ext4_inode_t;
+} __attribute__((packed)) __attribute__((aligned(4))) ext4_inode_t;
 
 #define EXT4_INODE_MODE_FIFO       0x1000
 #define EXT4_INODE_MODE_CHARDEV    0x2000

@@ -106,7 +106,7 @@ typedef struct xhci_endpoint_ctx {
 #define XHCI_EP_MAX_ESIT_PAYLOAD_LO(ctx) XHCI_DWORD_EXTRACT((ctx).data3, 31, 16)
 #define XHCI_EP_MAX_ESIT_PAYLOAD_HI(ctx) XHCI_DWORD_EXTRACT((ctx).data[0], 31, 24)
 
-} __attribute__((packed)) xhci_ep_ctx_t;
+} __attribute__((packed)) __attribute__((aligned(8))) xhci_ep_ctx_t;
 
 enum {
 	EP_STATE_DISABLED = 0,
@@ -164,7 +164,7 @@ typedef struct xhci_slot_ctx {
 #define XHCI_SLOT_DEVICE_ADDRESS(ctx)   XHCI_DWORD_EXTRACT((ctx).data[3],  7,  0)
 #define XHCI_SLOT_STATE(ctx)            XHCI_DWORD_EXTRACT((ctx).data[3], 31, 27)
 
-} __attribute__((packed)) xhci_slot_ctx_t;
+} __attribute__((packed)) __attribute__((aligned(4))) xhci_slot_ctx_t;
 
 enum {
 	SLOT_STATE_DISABLED = 0,
@@ -221,7 +221,7 @@ typedef struct xhci_stream_ctx {
 	xhci_qword_set_bits(&(ctx).data[0], val, 3, 1)
 #define XHCI_STREAM_DEQ_PTR_SET(ctx, val) \
 	xhci_qword_set_bits(&(ctx).data[0], (val >> 4), 63, 4)
-} __attribute__((packed)) xhci_stream_ctx_t;
+} __attribute__((packed)) __attribute__((aligned(8))) xhci_stream_ctx_t;
 
 /**
  * Input control context: section 6.2.5.1
