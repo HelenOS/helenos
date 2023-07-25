@@ -232,7 +232,7 @@ namespace std::aux
 
             void swap(rbtree& other)
                 noexcept(allocator_traits<allocator_type>::is_always_equal::value &&
-                         noexcept(swap(declval<KeyComp&>(), declval<KeyComp&>())))
+                         noexcept(std::swap(declval<KeyComp&>(), declval<KeyComp&>())))
             {
                 std::swap(root_, other.root_);
                 std::swap(size_, other.size_);

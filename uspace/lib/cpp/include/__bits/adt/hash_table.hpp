@@ -251,8 +251,8 @@ namespace std::aux
 
             void swap(hash_table& other)
                 noexcept(allocator_traits<allocator_type>::is_always_equal::value &&
-                         noexcept(swap(declval<Hasher&>(), declval<Hasher&>())) &&
-                         noexcept(swap(declval<KeyEq&>(), declval<KeyEq&>())))
+                         noexcept(std::swap(declval<Hasher&>(), declval<Hasher&>())) &&
+                         noexcept(std::swap(declval<KeyEq&>(), declval<KeyEq&>())))
             {
                 std::swap(table_, other.table_);
                 std::swap(bucket_count_, other.bucket_count_);
