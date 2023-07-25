@@ -413,12 +413,6 @@ build_target() {
 	cd "${GCCDIR}"
 	check_error $? "Change directory failed."
 
-	if $USE_HELENOS_TARGET ; then
-		SYSROOT=--with-sysroot --with-build-sysroot="${WORKDIR}/sysroot"
-	else
-		SYSROOT=--without-headers
-	fi
-
 	change_title "GCC: configure (${PLATFORM})"
 	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gcc-${GCC_VERSION}/configure" \
 		"--target=${TARGET}" \
@@ -431,7 +425,7 @@ build_target() {
 		--enable-lto \
 		--disable-shared \
 		--disable-werror \
-		$SYSROOT
+		--without-headers
 	check_error $? "Error configuring GCC."
 
 	change_title "GCC: make (${PLATFORM})"
