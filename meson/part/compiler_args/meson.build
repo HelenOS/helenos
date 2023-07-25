@@ -109,6 +109,7 @@ endif
 
 extra_cppflags = extra_common_flags + [
 	'-fno-exceptions',
+	'-Wno-misleading-indentation',
 	'-frtti',
 ]
 
