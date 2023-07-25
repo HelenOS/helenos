@@ -520,7 +520,7 @@ namespace std
             }
 
             basic_string(size_type n, value_type c, const allocator_type& alloc = allocator_type{})
-                : data_{}, size_{n}, capacity_{n}, allocator_{alloc}
+                : data_{}, size_{n}, capacity_{n + 1}, allocator_{alloc}
             {
                 data_ = allocator_.allocate(capacity_);
                 for (size_type i = 0; i < size_; ++i)
@@ -907,7 +907,7 @@ namespace std
             basic_string& assign(const value_type* str, size_type n)
             {
                 // TODO: if (n > max_size()) throw length_error.
-                resize_without_copy_(n);
+                resize_without_copy_(n + 1);
                 traits_type::copy(begin(), str, n);
                 size_ = n;
                 ensure_null_terminator_();
