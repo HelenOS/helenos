@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-arch_uspace_c_args = [ '-D__LE__', '-fno-omit-frame-pointer' ]
+arch_uspace_c_args = [ '-D__LE__', '-fno-omit-frame-pointer', '-mno-outline-atomics' ]
 arch_kernel_c_args = arch_uspace_c_args + [ '-march=armv8-a+nofp+nosimd', '-mgeneral-regs-only' ]
 arch_kernel_link_args = [ '-nostdlib' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
@@ -44,6 +44,7 @@ arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 # -mstrict-align option is therefore not needed.
 arch_boot_c_args = arch_uspace_c_args + [ '-fpic', '-fvisibility=hidden', '-fno-function-sections' ]
 arch_boot_link_args = [ '-Wl,-shared', '-Wl,--no-gc-sections' ]
+arch_boot_link_args += ['-Wl,--no-warn-rwx-segments']
 
 if MACHINE == 'virt'
 	rd_essential_drv += [
