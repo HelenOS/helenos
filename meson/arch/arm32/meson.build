@@ -44,7 +44,8 @@ arch_uspace_c_args = [
 if CONFIG_FPU
 	# This is necessary for kernel too, to allow vmsr insn and fpexc manipulation.
 	# Use vfp32 to allow context save/restore of d16-d31 regs.
-	arch_uspace_c_args += [ '-mfloat-abi=hard' ]
+	# Need to use softfp because our libgcc.a uses it too
+	arch_uspace_c_args += [ '-mfloat-abi=softfp' ]
 endif
 
 arch_kernel_c_args = arch_uspace_c_args + [ '-mno-unaligned-access', '-mfpu=vfpv3' ]
