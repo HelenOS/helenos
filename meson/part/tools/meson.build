@@ -60,11 +60,17 @@ if debug_shell_scripts
 	sh += '-x'
 endif
 
+# On some distributions (e.g. Arch Linux), genisoimage is actually a symbolic
+# link to mkisofs. However, they do not accept exactly the same options.
+# Thus we check if genisoimage is a symbolic link to mkisofs and if it is so,
+# we switch to mkisofs as that is the native application available.
+fs = import('fs')
 genisoimage = find_program('genisoimage', required: false)
-if genisoimage.found()
+_mkisofs = find_program('mkisofs', required: false)
+if genisoimage.found() and not (fs.is_symlink(genisoimage.full_path()) and _mkisofs.found() and fs.is_samepath(genisoimage.full_path(), _mkisofs.full_path()))
 	genisoimage_type = 'genisoimage'
 else
-	genisoimage = find_program('mkisofs', required: false)
+	genisoimage = _mkisofs
 	if genisoimage.found()
 		genisoimage_type = 'mkisofs'
 	else
