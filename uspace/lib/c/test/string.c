@@ -800,7 +800,9 @@ PCUT_TEST(strndup_nonempty_short)
 {
 #pragma GCC diagnostic push
 	// Intentionally checking it works with _longer_ size than actual
+#if defined(__GNUC__) && (__GNUC__ >= 11)
 #pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
 	char *d = strndup("abc", 5);
 #pragma GCC diagnostic pop
 	PCUT_ASSERT_NOT_NULL(d);

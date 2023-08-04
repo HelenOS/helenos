@@ -146,7 +146,9 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
 	list_initialize(&queue);
 	start->bfs_tag = true;
 #pragma GCC diagnostic push
+#if defined(__GNUC__) && (__GNUC__ >= 12)
 #pragma GCC diagnostic ignored "-Wdangling-pointer"
+#endif
 	list_append(&start->queue_link, &queue);
 #pragma GCC diagnostic pop
 

@@ -1111,7 +1111,9 @@ PCUT_TEST(window_set_cursor)
 	// Check that invalid cursors cannot be set: ignore enum conversions
 	// as we are out-of-bounds
 #pragma GCC diagnostic push
+#if defined(__GNUC__) && (__GNUC__ >= 10)
 #pragma GCC diagnostic ignored "-Wenum-conversion"
+#endif
 	rc = ds_window_set_cursor(wnd, dcurs_limit);
 	PCUT_ASSERT_ERRNO_VAL(EINVAL, rc);
 	PCUT_ASSERT_EQUALS(wnd->display->cursor[dcurs_arrow], wnd->cursor);
