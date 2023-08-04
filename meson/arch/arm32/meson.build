@@ -44,11 +44,12 @@ arch_uspace_c_args = [
 if CONFIG_FPU
 	# This is necessary for kernel too, to allow vmsr insn and fpexc manipulation.
 	# Use vfp32 to allow context save/restore of d16-d31 regs.
-	# Need to use softfp because our libgcc.a uses it too
-	arch_uspace_c_args += [ '-mfloat-abi=softfp' ]
+	# Need to use soft because our libgcc.a uses it too
+	arch_uspace_c_args += [ '-mfloat-abi=soft' ]
 endif
 
 arch_kernel_c_args = arch_uspace_c_args + [ '-mno-unaligned-access', '-mfpu=vfpv3' ]
+arch_kernel_c_args += cc.get_supported_arguments(['-mgeneral-regs-only' ])
 arch_kernel_link_args = [ '-nostdlib', '-Wl,-z,max-page-size=0x1000' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
 
