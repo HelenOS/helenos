@@ -33,7 +33,7 @@ run_target('config',
 		'-c', 'cd $1 && $2 $3 $4 $5',
 		'--',
 		meson.build_root(),
-		config_py.path(),
+		config_py.full_path(),
 		meson.source_root() / 'HelenOS.config',
 		meson.source_root() / 'defaults',
 		'--mask-platform',
@@ -50,7 +50,7 @@ if false
 			'-c', 'cd $1 && $2 $3 $4 random',
 			'--',
 			meson.build_root(),
-			config_py.path(),
+			config_py.full_path(),
 			meson.source_root() / 'HelenOS.config',
 			meson.source_root() / 'defaults',
 		]
@@ -76,7 +76,7 @@ if doxygen.found()
 		'-c', 'cd $1 && $2 $3',
 		'--',
 		meson.source_root() / 'doxygen',
-		doxygen.path(),
+		doxygen.full_path(),
 		_dox_cfg,
 	])
 endif
