@@ -230,7 +230,7 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	size_t buffer_size = header_size + command_length;
 	void *buffer = malloc(buffer_size);
 	if (buffer == NULL) {
-		usb_log_error("Failed to allocated WMI message buffer (out of memory).\n");
+		usb_log_error("Failed to allocate WMI message buffer (out of memory).\n");
 		return ENOMEM;
 	}
 
