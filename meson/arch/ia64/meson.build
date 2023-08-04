@@ -37,7 +37,7 @@ arch_boot_c_args = [ '-D__LE__', '-fno-unwind-tables', '-mfixed-range=f32-f127',
 
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 arch_kernel_link_args = [ '-nostdlib', '-Wl,-EL' ]
-arch_boot_link_args = ['-Wl,--no-warn-rwx-segments']
+arch_boot_link_args = ldflags_ignore_rwx_segments
 
 
 if MACHINE == 'i460GX'
