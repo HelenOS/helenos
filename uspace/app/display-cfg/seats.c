@@ -418,7 +418,6 @@ errno_t dcfg_seats_populate(dcfg_seats_t *seats)
 	dcfg_seats_entry_t *entry;
 	errno_t rc;
 
-	printf("seats list populate\n");
 	rc = dcfg_seats_list_populate(seats);
 	if (rc != EOK)
 		return rc;
@@ -923,6 +922,13 @@ static void dcfg_remove_seat_clicked(ui_pbutton_t *pbutton, void *arg)
 
 	rc = dispcfg_seat_delete(seats->dcfg->dispcfg, entry->seat_id);
 	if (rc != EOK) {
+		/*
+		 * EBUSY is returned when we attempt to delete the last
+		 * seat. No need to complain about it.
+		 */
+		if (rc == EBUSY)
+			return;
+
 		printf("Error removing seat '%s'.\n", entry->name);
 		return;
 	}
