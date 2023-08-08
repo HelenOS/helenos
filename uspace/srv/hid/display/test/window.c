@@ -1168,8 +1168,8 @@ PCUT_TEST(window_set_caption)
 	ds_display_destroy(disp);
 }
 
-/** ds_window_find_alt() finds alternate window by flags */
-PCUT_TEST(window_find_alt)
+/** ds_window_find_next() finds next window by flags */
+PCUT_TEST(window_find_next)
 {
 	gfx_context_t *gc;
 	ds_display_t *disp;
@@ -1209,13 +1209,71 @@ PCUT_TEST(window_find_alt)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	w2->flags |= wndf_system;
 
-	wnd = ds_window_find_alt(w0, wndf_minimized);
+	wnd = ds_window_find_next(w0, wndf_minimized);
 	PCUT_ASSERT_EQUALS(w1, wnd);
 
-	wnd = ds_window_find_alt(w0, wndf_system);
+	wnd = ds_window_find_next(w0, wndf_system);
 	PCUT_ASSERT_EQUALS(w2, wnd);
 
-	wnd = ds_window_find_alt(w0, wndf_maximized);
+	wnd = ds_window_find_next(w0, wndf_maximized);
+	PCUT_ASSERT_NULL(wnd);
+
+	ds_window_destroy(w0);
+	ds_window_destroy(w1);
+	ds_window_destroy(w2);
+	ds_seat_destroy(seat);
+	ds_client_destroy(client);
+	ds_display_destroy(disp);
+}
+
+/** ds_window_find_prev() finds previous window by flags */
+PCUT_TEST(window_find_prev)
+{
+	gfx_context_t *gc;
+	ds_display_t *disp;
+	ds_client_t *client;
+	ds_seat_t *seat;
+	ds_window_t *w0;
+	ds_window_t *w1;
+	ds_window_t *w2;
+	ds_window_t *wnd;
+	display_wnd_params_t params;
+	errno_t rc;
+
+	rc = gfx_context_new(&dummy_ops, NULL, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_display_create(gc, df_none, &disp);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_client_create(disp, NULL, NULL, &client);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ds_seat_create(disp, "Alice", &seat);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	display_wnd_params_init(&params);
+	params.rect.p0.x = params.rect.p0.y = 0;
+	params.rect.p1.x = params.rect.p1.y = 1;
+
+	rc = ds_window_create(client, &params, &w2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	w2->flags |= wndf_system;
+
+	rc = ds_window_create(client, &params, &w1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	w1->flags |= wndf_minimized;
+
+	rc = ds_window_create(client, &params, &w0);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	wnd = ds_window_find_prev(w0, wndf_minimized);
+	PCUT_ASSERT_EQUALS(w1, wnd);
+
+	wnd = ds_window_find_prev(w0, wndf_system);
+	PCUT_ASSERT_EQUALS(w2, wnd);
+
+	wnd = ds_window_find_prev(w0, wndf_maximized);
 	PCUT_ASSERT_NULL(wnd);
 
 	ds_window_destroy(w0);

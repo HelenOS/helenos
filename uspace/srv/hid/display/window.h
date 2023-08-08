@@ -77,7 +77,8 @@ extern void ds_window_calc_resize(ds_window_t *, gfx_coord2_t *,
     gfx_rect_t *);
 extern errno_t ds_window_set_cursor(ds_window_t *, display_stock_cursor_t);
 extern errno_t ds_window_set_caption(ds_window_t *, const char *);
-extern ds_window_t *ds_window_find_alt(ds_window_t *, display_wnd_flags_t);
+extern ds_window_t *ds_window_find_next(ds_window_t *, display_wnd_flags_t);
+extern ds_window_t *ds_window_find_prev(ds_window_t *, display_wnd_flags_t);
 extern void ds_window_unfocus(ds_window_t *);
 extern bool ds_window_orig_seat(ds_window_t *, sysarg_t);
 

@@ -203,11 +203,11 @@ void ds_seat_unfocus_wnd(ds_seat_t *seat, ds_window_t *wnd)
 		return;
 
 	/* Find alternate window that is neither system nor minimized */
-	nwnd = ds_window_find_alt(wnd, ~(wndf_minimized | wndf_system));
+	nwnd = ds_window_find_prev(wnd, ~(wndf_minimized | wndf_system));
 
 	if (nwnd == NULL) {
 		/* Find alternate window that is not minimized */
-		nwnd = ds_window_find_alt(wnd, ~wndf_minimized);
+		nwnd = ds_window_find_prev(wnd, ~wndf_minimized);
 	}
 
 	ds_seat_set_focus(seat, nwnd);
@@ -223,7 +223,7 @@ void ds_seat_switch_focus(ds_seat_t *seat)
 	ds_window_t *nwnd;
 
 	/* Find alternate window that is not a system window */
-	nwnd = ds_window_find_alt(seat->focus, ~wndf_system);
+	nwnd = ds_window_find_next(seat->focus, ~wndf_system);
 
 	/* Only switch focus if there is another window */
 	if (nwnd != NULL)
