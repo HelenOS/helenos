@@ -87,6 +87,7 @@ errno_t ds_seat_create(ds_display_t *display, const char *name,
 
 	seat->client_cursor = display->cursor[dcurs_arrow];
 	seat->wm_cursor = NULL;
+	seat->focus = ds_display_first_window(display);
 
 	*rseat = seat;
 	return EOK;
@@ -222,8 +223,13 @@ void ds_seat_switch_focus(ds_seat_t *seat)
 {
 	ds_window_t *nwnd;
 
-	/* Find alternate window that is not a system window */
-	nwnd = ds_window_find_next(seat->focus, ~wndf_system);
+	if (seat->focus != NULL) {
+		/* Find alternate window that is not a system window */
+		nwnd = ds_window_find_next(seat->focus, ~wndf_system);
+	} else {
+		/* Currently no focus. Focus topmost window. */
+		nwnd = ds_display_first_window(seat->display);
+	}
 
 	/* Only switch focus if there is another window */
 	if (nwnd != NULL)
