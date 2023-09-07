@@ -44,9 +44,10 @@
 #include <ui/image.h>
 #include <ui/label.h>
 #include <ui/list.h>
-#include <ui/menubar.h>
-#include <ui/menuentry.h>
 #include <ui/menu.h>
+#include <ui/menubar.h>
+#include <ui/menudd.h>
+#include <ui/menuentry.h>
 #include <ui/msgdialog.h>
 #include <ui/pbutton.h>
 #include <ui/promptdialog.h>
@@ -763,7 +764,7 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
-	rc = ui_menu_create(demo.mbar, "~F~ile", &demo.mfile);
+	rc = ui_menu_dd_create(demo.mbar, "~F~ile", NULL, &demo.mfile);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -817,7 +818,7 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_menu_entry_set_cb(mexit, uidemo_file_exit, (void *) &demo);
 
-	rc = ui_menu_create(demo.mbar, "~E~dit", &demo.medit);
+	rc = ui_menu_dd_create(demo.mbar, "~E~dit", NULL, &demo.medit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -841,13 +842,14 @@ static errno_t ui_demo(const char *display_spec)
 	ui_menu_entry_set_cb(minsert_char, uidemo_edit_insert_character,
 	    (void *) &demo);
 
-	rc = ui_menu_create(demo.mbar, "~P~references", &demo.mpreferences);
+	rc = ui_menu_dd_create(demo.mbar, "~P~references", NULL,
+	    &demo.mpreferences);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
 	}
 
-	rc = ui_menu_create(demo.mbar, "~H~elp", &demo.mhelp);
+	rc = ui_menu_dd_create(demo.mbar, "~H~elp", NULL, &demo.mhelp);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

@@ -33,31 +33,11 @@
  * @file Menu
  */
 
-#ifndef _UI_MENU_H
-#define _UI_MENU_H
+#ifndef _UI_TYPES_MENUDD_H
+#define _UI_TYPES_MENUDD_H
 
-#include <errno.h>
-#include <gfx/coord.h>
-#include <io/kbd_event.h>
-#include <io/pos_event.h>
-#include <stdbool.h>
-#include <types/common.h>
-#include <types/ui/event.h>
-#include <types/ui/menu.h>
-#include <types/ui/menubar.h>
-#include <types/ui/window.h>
-#include <uchar.h>
-
-extern errno_t ui_menu_create(ui_window_t *, ui_menu_t **);
-extern void ui_menu_destroy(ui_menu_t *);
-extern void ui_menu_set_cb(ui_menu_t *, ui_menu_cb_t *, void *);
-extern errno_t ui_menu_open(ui_menu_t *, gfx_rect_t *, sysarg_t);
-extern void ui_menu_close(ui_menu_t *);
-extern bool ui_menu_is_open(ui_menu_t *);
-extern errno_t ui_menu_paint(ui_menu_t *, gfx_coord2_t *);
-extern ui_evclaim_t ui_menu_kbd_event(ui_menu_t *, kbd_event_t *);
-extern ui_evclaim_t ui_menu_pos_event(ui_menu_t *, gfx_coord2_t *,
-    pos_event_t *);
+struct ui_menu_dd;
+typedef struct ui_menu_dd ui_menu_dd_t;
 
 #endif
 

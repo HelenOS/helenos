@@ -44,8 +44,8 @@
 #include <str.h>
 #include <ui/control.h>
 #include <ui/paint.h>
-#include <ui/menu.h>
 #include <ui/menubar.h>
+#include <ui/menudd.h>
 #include <ui/window.h>
 #include "../private/menubar.h"
 #include "../private/resource.h"
@@ -94,7 +94,7 @@ errno_t ui_menu_bar_create(ui_t *ui, ui_window_t *window, ui_menu_bar_t **rmbar)
 
 	mbar->ui = ui;
 	mbar->window = window;
-	list_initialize(&mbar->menus);
+	list_initialize(&mbar->menudds);
 	*rmbar = mbar;
 	return EOK;
 }
@@ -105,16 +105,16 @@ errno_t ui_menu_bar_create(ui_t *ui, ui_window_t *window, ui_menu_bar_t **rmbar)
  */
 void ui_menu_bar_destroy(ui_menu_bar_t *mbar)
 {
-	ui_menu_t *menu;
+	ui_menu_dd_t *mdd;
 
 	if (mbar == NULL)
 		return;
 
-	/* Destroy menus */
-	menu = ui_menu_first(mbar);
-	while (menu != NULL) {
-		ui_menu_destroy(menu);
-		menu = ui_menu_first(mbar);
+	/* Destroy menu drop-downs */
+	mdd = ui_menu_dd_first(mbar);
+	while (mdd != NULL) {
+		ui_menu_dd_destroy(mdd);
+		mdd = ui_menu_dd_first(mbar);
 	}
 
 	ui_control_delete(mbar->control);
@@ -154,7 +154,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 	gfx_coord2_t tpos;
 	gfx_rect_t rect;
 	gfx_color_t *bg_color;
-	ui_menu_t *menu;
+	ui_menu_dd_t *mdd;
 	const char *caption;
 	gfx_coord_t width;
 	gfx_coord_t hpad;
@@ -188,9 +188,9 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
-	menu = ui_menu_first(mbar);
-	while (menu != NULL) {
-		caption = ui_menu_caption(menu);
+	mdd = ui_menu_dd_first(mbar);
+	while (mdd != NULL) {
+		caption = ui_menu_dd_caption(mdd);
 		width = ui_text_width(res->font, caption) + 2 * hpad;
 		tpos.x = pos.x + hpad;
 		tpos.y = pos.y + vpad;
@@ -199,7 +199,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 		rect.p1.x = rect.p0.x + width;
 		rect.p1.y = mbar->rect.p1.y;
 
-		if (menu == mbar->selected) {
+		if (mdd == mbar->selected) {
 			fmt.color = res->wnd_sel_text_color;
 			fmt.hgl_color = res->wnd_sel_text_hgl_color;
 			bg_color = res->wnd_sel_text_bg_color;
@@ -222,7 +222,7 @@ errno_t ui_menu_bar_paint(ui_menu_bar_t *mbar)
 			goto error;
 
 		pos.x += width;
-		menu = ui_menu_next(menu);
+		mdd = ui_menu_dd_next(mdd);
 	}
 
 	rc = gfx_update(res->gc);
@@ -240,25 +240,25 @@ error:
  * then select none.
  *
  * @param mbar Menu bar
- * @param menu Menu to select (or deselect if selected) or @c NULL
+ * @param mdd Menu drop-down to select (or deselect if selected) or @c NULL
  * @param openup Open menu even if not currently open
  * @param idev_id Input device ID associated with the selecting seat
  */
-void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_t *menu, bool openup,
+void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_dd_t *mdd, bool openup,
     sysarg_t idev_id)
 {
-	ui_menu_t *old_menu;
+	ui_menu_dd_t *old_mdd;
 	gfx_rect_t rect;
 	bool was_open;
 
-	old_menu = mbar->selected;
+	old_mdd = mbar->selected;
 
-	mbar->selected = menu;
+	mbar->selected = mdd;
 
-	/* Close previously open menu */
-	if (old_menu != NULL && ui_menu_is_open(old_menu)) {
+	/* Close previously open menu drop-down */
+	if (old_mdd != NULL && ui_menu_dd_is_open(old_mdd)) {
 		was_open = true;
-		(void) ui_menu_close(old_menu);
+		(void) ui_menu_dd_close(old_mdd);
 	} else {
 		was_open = false;
 	}
@@ -269,11 +269,11 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_t *menu, bool openup,
 		ui_menu_bar_entry_rect(mbar, mbar->selected, &rect);
 		if (openup || was_open) {
 			/*
-			 * Open the newly selected menu if either
-			 * the old menu was open or @a openup was
+			 * Open the newly selected menu drop-down if either
+			 * the old menu drop-down was open or @a openup was
 			 * specified.
 			 */
-			(void) ui_menu_open(mbar->selected, &rect, idev_id);
+			(void) ui_menu_dd_open(mbar->selected, &rect, idev_id);
 		}
 	}
 }
@@ -288,17 +288,17 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_t *menu, bool openup,
  */
 void ui_menu_bar_left(ui_menu_bar_t *mbar, sysarg_t idev_id)
 {
-	ui_menu_t *nmenu;
+	ui_menu_dd_t *nmdd;
 
 	if (mbar->selected == NULL)
 		return;
 
-	nmenu = ui_menu_prev(mbar->selected);
-	if (nmenu == NULL)
-		nmenu = ui_menu_last(mbar);
+	nmdd = ui_menu_dd_prev(mbar->selected);
+	if (nmdd == NULL)
+		nmdd = ui_menu_dd_last(mbar);
 
-	if (nmenu != mbar->selected)
-		ui_menu_bar_select(mbar, nmenu, false, idev_id);
+	if (nmdd != mbar->selected)
+		ui_menu_bar_select(mbar, nmdd, false, idev_id);
 }
 
 /** Move one entry right.
@@ -311,17 +311,17 @@ void ui_menu_bar_left(ui_menu_bar_t *mbar, sysarg_t idev_id)
  */
 void ui_menu_bar_right(ui_menu_bar_t *mbar, sysarg_t idev_id)
 {
-	ui_menu_t *nmenu;
+	ui_menu_dd_t *nmdd;
 
 	if (mbar->selected == NULL)
 		return;
 
-	nmenu = ui_menu_next(mbar->selected);
-	if (nmenu == NULL)
-		nmenu = ui_menu_first(mbar);
+	nmdd = ui_menu_dd_next(mbar->selected);
+	if (nmdd == NULL)
+		nmdd = ui_menu_dd_first(mbar);
 
-	if (nmenu != mbar->selected)
-		ui_menu_bar_select(mbar, nmenu, false, idev_id);
+	if (nmdd != mbar->selected)
+		ui_menu_bar_select(mbar, nmdd, false, idev_id);
 }
 
 /** Handle menu bar key press without modifiers.
@@ -354,16 +354,17 @@ ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *mbar, kbd_event_t *event
 		ui_menu_bar_right(mbar, event->kbd_id);
 
 	if (event->key == KC_ENTER || event->key == KC_DOWN) {
-		if (mbar->selected != NULL && !ui_menu_is_open(mbar->selected)) {
+		if (mbar->selected != NULL &&
+		    !ui_menu_dd_is_open(mbar->selected)) {
 			ui_menu_bar_entry_rect(mbar, mbar->selected,
 			    &rect);
-			ui_menu_open(mbar->selected, &rect, event->kbd_id);
+			ui_menu_dd_open(mbar->selected, &rect, event->kbd_id);
 		}
 
 		return ui_claimed;
 	}
 
-	if (event->c != '\0' && !ui_menu_is_open(mbar->selected)) {
+	if (event->c != '\0' && !ui_menu_dd_is_open(mbar->selected)) {
 		/* Check if it is an accelerator. */
 		ui_menu_bar_press_accel(mbar, event->c, event->kbd_id);
 	}
@@ -406,18 +407,18 @@ ui_evclaim_t ui_menu_bar_kbd_event(ui_menu_bar_t *mbar, kbd_event_t *event)
  */
 void ui_menu_bar_press_accel(ui_menu_bar_t *mbar, char32_t c, sysarg_t kbd_id)
 {
-	ui_menu_t *menu;
+	ui_menu_dd_t *mdd;
 	char32_t maccel;
 
-	menu = ui_menu_first(mbar);
-	while (menu != NULL) {
-		maccel = ui_menu_get_accel(menu);
+	mdd = ui_menu_dd_first(mbar);
+	while (mdd != NULL) {
+		maccel = ui_menu_dd_get_accel(mdd);
 		if (c == maccel) {
-			ui_menu_bar_select(mbar, menu, true, kbd_id);
+			ui_menu_bar_select(mbar, mdd, true, kbd_id);
 			return;
 		}
 
-		menu = ui_menu_next(menu);
+		mdd = ui_menu_dd_next(mdd);
 	}
 }
 
@@ -432,7 +433,7 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 	ui_resource_t *res;
 	gfx_coord2_t pos;
 	gfx_rect_t rect;
-	ui_menu_t *menu;
+	ui_menu_dd_t *mdd;
 	const char *caption;
 	gfx_coord_t width;
 	gfx_coord_t hpad;
@@ -453,9 +454,9 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 	pos = mbar->rect.p0;
 	pos_id = event->pos_id;
 
-	menu = ui_menu_first(mbar);
-	while (menu != NULL) {
-		caption = ui_menu_caption(menu);
+	mdd = ui_menu_dd_first(mbar);
+	while (mdd != NULL) {
+		caption = ui_menu_dd_caption(mdd);
 		width = ui_text_width(res->font, caption) + 2 * hpad;
 
 		rect.p0 = pos;
@@ -468,16 +469,16 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 			mbar->active = true;
 
 			/* Open the menu, close if already open. */
-			if (menu == mbar->selected)
+			if (mdd == mbar->selected)
 				ui_menu_bar_select(mbar, NULL, false, pos_id);
 			else
-				ui_menu_bar_select(mbar, menu, true, pos_id);
+				ui_menu_bar_select(mbar, mdd, true, pos_id);
 
 			return ui_claimed;
 		}
 
 		pos.x += width;
-		menu = ui_menu_next(menu);
+		mdd = ui_menu_dd_next(mdd);
 	}
 
 	return ui_unclaimed;
@@ -486,16 +487,16 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 /** Handle menu bar position event.
  *
  * @param mbar Menu bar
- * @param menu Menu whose entry's rectangle is to be returned
+ * @param mdd Menu drop-down whose entry's rectangle is to be returned
  * @param rrect Place to store entry rectangle
  */
-void ui_menu_bar_entry_rect(ui_menu_bar_t *mbar, ui_menu_t *menu,
+void ui_menu_bar_entry_rect(ui_menu_bar_t *mbar, ui_menu_dd_t *mdd,
     gfx_rect_t *rrect)
 {
 	ui_resource_t *res;
 	gfx_coord2_t pos;
 	gfx_rect_t rect;
-	ui_menu_t *cur;
+	ui_menu_dd_t *cur;
 	const char *caption;
 	gfx_coord_t width;
 	gfx_coord_t hpad;
@@ -510,22 +511,22 @@ void ui_menu_bar_entry_rect(ui_menu_bar_t *mbar, ui_menu_t *menu,
 
 	pos = mbar->rect.p0;
 
-	cur = ui_menu_first(mbar);
+	cur = ui_menu_dd_first(mbar);
 	while (cur != NULL) {
-		caption = ui_menu_caption(cur);
+		caption = ui_menu_dd_caption(cur);
 		width = ui_text_width(res->font, caption) + 2 * hpad;
 
 		rect.p0 = pos;
 		rect.p1.x = rect.p0.x + width;
 		rect.p1.y = mbar->rect.p1.y;
 
-		if (cur == menu) {
+		if (cur == mdd) {
 			*rrect = rect;
 			return;
 		}
 
 		pos.x += width;
-		cur = ui_menu_next(cur);
+		cur = ui_menu_dd_next(cur);
 	}
 
 	/* We should never get here */
@@ -543,7 +544,7 @@ void ui_menu_bar_activate(ui_menu_bar_t *mbar)
 
 	mbar->active = true;
 	if (mbar->selected == NULL)
-		mbar->selected = ui_menu_first(mbar);
+		mbar->selected = ui_menu_dd_first(mbar);
 
 	(void) ui_menu_bar_paint(mbar);
 }
