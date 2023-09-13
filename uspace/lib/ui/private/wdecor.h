@@ -40,6 +40,7 @@
 #include <gfx/coord.h>
 #include <io/pos_event.h>
 #include <stdbool.h>
+#include <types/common.h>
 #include <types/ui/cursor.h>
 #include <types/ui/wdecor.h>
 
@@ -93,6 +94,7 @@ typedef struct {
 	gfx_rect_t app_area_rect;
 } ui_wdecor_geom_t;
 
+extern void ui_wdecor_sysmenu(ui_wdecor_t *, sysarg_t);
 extern void ui_wdecor_minimize(ui_wdecor_t *);
 extern void ui_wdecor_maximize(ui_wdecor_t *);
 extern void ui_wdecor_unmaximize(ui_wdecor_t *);

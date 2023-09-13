@@ -420,6 +420,17 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	return EOK;
 }
 
+/** Send decoration sysmenu event.
+ *
+ * @param wdecor Window decoration
+ * @param idev_id Input device ID
+ */
+void ui_wdecor_sysmenu(ui_wdecor_t *wdecor, sysarg_t idev_id)
+{
+	if (wdecor->cb != NULL && wdecor->cb->sysmenu != NULL)
+		wdecor->cb->sysmenu(wdecor, wdecor->arg, idev_id);
+}
+
 /** Send decoration minimize event.
  *
  * @param wdecor Window decoration
@@ -802,6 +813,25 @@ ui_stock_cursor_t ui_wdecor_cursor_from_rsztype(ui_wdecor_rsztype_t rsztype)
 		assert(false);
 		return ui_curs_arrow;
 	}
+}
+
+/** Handle window decoration keyboard event.
+ *
+ * @param wdecor Window decoration
+ * @param kbd_event Keyboard event
+ * @return @c ui_claimed iff event was claimed
+ */
+ui_evclaim_t ui_wdecor_kbd_event(ui_wdecor_t *wdecor, kbd_event_t *event)
+{
+	(void)wdecor;
+
+	if (event->type == KEY_PRESS && (event->mods & (KM_CTRL | KM_ALT |
+	    KM_SHIFT)) == 0) {
+		if (event->key == KC_F9)
+			ui_wdecor_sysmenu(wdecor, event->kbd_id);
+	}
+
+	return ui_unclaimed;
 }
 
 /** Handle window frame position event.
