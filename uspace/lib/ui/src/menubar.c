@@ -34,6 +34,7 @@
  */
 
 #include <adt/list.h>
+#include <ctype.h>
 #include <errno.h>
 #include <gfx/color.h>
 #include <gfx/context.h>
@@ -413,7 +414,7 @@ void ui_menu_bar_press_accel(ui_menu_bar_t *mbar, char32_t c, sysarg_t kbd_id)
 	mdd = ui_menu_dd_first(mbar);
 	while (mdd != NULL) {
 		maccel = ui_menu_dd_get_accel(mdd);
-		if (c == maccel) {
+		if ((char32_t)tolower(c) == maccel) {
 			ui_menu_bar_select(mbar, mdd, true, kbd_id);
 			return;
 		}

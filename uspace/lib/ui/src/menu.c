@@ -34,6 +34,7 @@
  */
 
 #include <adt/list.h>
+#include <ctype.h>
 #include <errno.h>
 #include <gfx/color.h>
 #include <gfx/context.h>
@@ -540,7 +541,8 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 			mentry = ui_menu_entry_first(menu);
 			while (mentry != NULL) {
 				c = ui_menu_entry_get_accel(mentry);
-				if (c == event->c && menu->selected != NULL) {
+				if (c == (char32_t)tolower(event->c) &&
+				    menu->selected != NULL) {
 					ui_menu_entry_activate(mentry);
 					break;
 				}
