@@ -95,6 +95,12 @@ struct ui_window {
 	struct ui_wdecor *wdecor;
 	/** System menu */
 	struct ui_menu *sysmenu;
+	/** System menu restore entry */
+	struct ui_menu_entry *sysmenu_restore;
+	/** System menu minimize entry */
+	struct ui_menu_entry *sysmenu_minimize;
+	/** System menu maximize entry */
+	struct ui_menu_entry *sysmenu_maximize;
 	/** Top-level control in the application area */
 	struct ui_control *control;
 	/** Current cursor */

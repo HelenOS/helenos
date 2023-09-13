@@ -108,6 +108,9 @@ static ui_menu_cb_t wnd_sysmenu_cb = {
 	.press_accel = wnd_sysmenu_press_accel
 };
 
+static void wnd_sysmenu_erestore(ui_menu_entry_t *, void *);
+static void wnd_sysmenu_eminimize(ui_menu_entry_t *, void *);
+static void wnd_sysmenu_emaximize(ui_menu_entry_t *, void *);
 static void wnd_sysmenu_eclose(ui_menu_entry_t *, void *);
 
 static void ui_window_invalidate(void *, gfx_rect_t *);
@@ -205,6 +208,80 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
 		pos->y = params->prect.p1.y;
 		break;
 	}
+}
+
+/** Create window's system menu.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+static errno_t ui_window_sysmenu_create(ui_window_t *window)
+{
+	errno_t rc;
+	ui_menu_entry_t *mrestore;
+	ui_menu_entry_t *mmin;
+	ui_menu_entry_t *mmax;
+	ui_menu_entry_t *msep;
+	ui_menu_entry_t *mclose;
+
+	rc = ui_menu_create(window, &window->sysmenu);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_set_cb(window->sysmenu, &wnd_sysmenu_cb, (void *)window);
+
+	rc = ui_menu_entry_create(window->sysmenu, "~R~estore",
+	    "", &mrestore);
+	if (rc != EOK)
+		goto error;
+
+	if (!window->wdecor->maximized)
+		ui_menu_entry_set_disabled(mrestore, true);
+
+	ui_menu_entry_set_cb(mrestore, wnd_sysmenu_erestore, (void *)window);
+
+	rc = ui_menu_entry_create(window->sysmenu, "Mi~n~imize",
+	    "", &mmin);
+	if (rc != EOK)
+		goto error;
+
+	if ((window->wdecor->style & ui_wds_minimize_btn) == 0)
+		ui_menu_entry_set_disabled(mmin, true);
+
+	ui_menu_entry_set_cb(mmin, wnd_sysmenu_eminimize, (void *)window);
+
+	rc = ui_menu_entry_create(window->sysmenu, "Ma~x~imize",
+	    "", &mmax);
+	if (rc != EOK)
+		goto error;
+
+	if ((window->wdecor->style & ui_wds_maximize_btn) == 0 ||
+	    window->wdecor->maximized)
+		ui_menu_entry_set_disabled(mmax, true);
+
+	ui_menu_entry_set_cb(mmax, wnd_sysmenu_emaximize, (void *)window);
+
+	rc = ui_menu_entry_sep_create(window->sysmenu, &msep);
+	if (rc != EOK)
+		goto error;
+
+	rc = ui_menu_entry_create(window->sysmenu, "~C~lose", "Alt-F4",
+	    &mclose);
+	if (rc != EOK)
+		goto error;
+
+	if ((window->wdecor->style & ui_wds_close_btn) == 0)
+		ui_menu_entry_set_disabled(mclose, true);
+
+	ui_menu_entry_set_cb(mclose, wnd_sysmenu_eclose, (void *)window);
+
+	window->sysmenu_restore = mrestore;
+	window->sysmenu_minimize = mmin;
+	window->sysmenu_maximize = mmax;
+
+	return EOK;
+error:
+	return rc;
 }
 
 /** Create new window.
@@ -398,6 +475,11 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->wdecor = wdecor;
 	window->cursor = ui_curs_arrow;
 	window->placement = params->placement;
+
+	rc = ui_window_sysmenu_create(window);
+	if (rc != EOK)
+		goto error;
+
 	*rwindow = window;
 
 	list_append(&window->lwindows, &ui->windows);
@@ -1229,25 +1311,7 @@ void ui_window_send_unfocus(ui_window_t *window, unsigned nfocus)
 errno_t ui_window_def_sysmenu(ui_window_t *window, sysarg_t idev_id)
 {
 	errno_t rc;
-	ui_menu_entry_t *mclose;
 	ui_wdecor_geom_t geom;
-
-	if (window->sysmenu == NULL) {
-		rc = ui_menu_create(window, &window->sysmenu);
-		if (rc != EOK)
-			goto error;
-
-		ui_menu_set_cb(window->sysmenu, &wnd_sysmenu_cb,
-		    (void *)window);
-
-		rc = ui_menu_entry_create(window->sysmenu, "~C~lose", "Alt-F4",
-		    &mclose);
-		if (rc != EOK)
-			goto error;
-
-		ui_menu_entry_set_cb(mclose, wnd_sysmenu_eclose,
-		    (void *)window);
-	}
 
 	if (ui_menu_is_open(window->sysmenu)) {
 		ui_menu_close(window->sysmenu);
@@ -1307,6 +1371,8 @@ errno_t ui_window_def_maximize(ui_window_t *window)
 	}
 
 	ui_wdecor_set_maximized(window->wdecor, true);
+	ui_menu_entry_set_disabled(window->sysmenu_restore, false);
+	ui_menu_entry_set_disabled(window->sysmenu_maximize, true);
 
 	rc = ui_window_size_change(window, &rect, ui_wsc_maximize);
 	if (rc != EOK) {
@@ -1329,6 +1395,8 @@ errno_t ui_window_def_unmaximize(ui_window_t *window)
 	errno_t rc;
 
 	ui_wdecor_set_maximized(window->wdecor, false);
+	ui_menu_entry_set_disabled(window->sysmenu_restore, true);
+	ui_menu_entry_set_disabled(window->sysmenu_maximize, false);
 
 	rc = ui_window_size_change(window, &window->normal_rect,
 	    ui_wsc_unmaximize);
@@ -1451,6 +1519,42 @@ static void wnd_sysmenu_close_req(ui_menu_t *sysmenu, void *arg)
 	(void)arg;
 
 	ui_menu_close(sysmenu);
+}
+
+/** Handle system menu Restore entry activation.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (ui_window_t *)
+ */
+static void wnd_sysmenu_erestore(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	ui_window_send_unmaximize(window);
+}
+
+/** Handle system menu Minimize entry activation.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (ui_window_t *)
+ */
+static void wnd_sysmenu_eminimize(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	ui_window_send_minimize(window);
+}
+
+/** Handle system menu Maximize entry activation.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (ui_window_t *)
+ */
+static void wnd_sysmenu_emaximize(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	ui_window_send_maximize(window);
 }
 
 /** Handle system menu Close entry activation.
