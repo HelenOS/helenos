@@ -78,6 +78,8 @@ struct ui_resource {
 	gfx_color_t *wnd_face_color;
 	/** Window text color */
 	gfx_color_t *wnd_text_color;
+	/** Disabled text color */
+	gfx_color_t *wnd_dis_text_color;
 	/** Window text highlight color */
 	gfx_color_t *wnd_text_hgl_color;
 	/** Window selected text color */

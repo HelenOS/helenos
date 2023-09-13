@@ -67,6 +67,7 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 	gfx_color_t *btn_shadow_color = NULL;
 	gfx_color_t *wnd_face_color = NULL;
 	gfx_color_t *wnd_text_color = NULL;
+	gfx_color_t *wnd_dis_text_color = NULL;
 	gfx_color_t *wnd_text_hgl_color = NULL;
 	gfx_color_t *wnd_sel_text_color = NULL;
 	gfx_color_t *wnd_sel_text_hgl_color = NULL;
@@ -136,6 +137,10 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 		goto error;
 
 	rc = gfx_color_new_rgb_i16(0, 0, 0, &wnd_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_rgb_i16(0x9696, 0x9696, 0x9696, &wnd_dis_text_color);
 	if (rc != EOK)
 		goto error;
 
@@ -238,6 +243,7 @@ static errno_t ui_resource_create_gfx(gfx_context_t *gc,
 
 	resource->wnd_face_color = wnd_face_color;
 	resource->wnd_text_color = wnd_text_color;
+	resource->wnd_dis_text_color = wnd_dis_text_color;
 	resource->wnd_text_hgl_color = wnd_text_hgl_color;
 	resource->wnd_sel_text_color = wnd_sel_text_color;
 	resource->wnd_sel_text_hgl_color = wnd_sel_text_hgl_color;
@@ -281,6 +287,8 @@ error:
 		gfx_color_delete(wnd_face_color);
 	if (wnd_text_color != NULL)
 		gfx_color_delete(wnd_text_color);
+	if (wnd_dis_text_color != NULL)
+		gfx_color_delete(wnd_dis_text_color);
 	if (wnd_text_hgl_color != NULL)
 		gfx_color_delete(wnd_text_hgl_color);
 	if (wnd_sel_text_color != NULL)
@@ -349,6 +357,7 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 	gfx_color_t *btn_shadow_color = NULL;
 	gfx_color_t *wnd_face_color = NULL;
 	gfx_color_t *wnd_text_color = NULL;
+	gfx_color_t *wnd_dis_text_color = NULL;
 	gfx_color_t *wnd_text_hgl_color = NULL;
 	gfx_color_t *wnd_sel_text_color = NULL;
 	gfx_color_t *wnd_sel_text_hgl_color = NULL;
@@ -412,6 +421,10 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 		goto error;
 
 	rc = gfx_color_new_ega(0x70, &wnd_text_color);
+	if (rc != EOK)
+		goto error;
+
+	rc = gfx_color_new_ega(0x78, &wnd_dis_text_color);
 	if (rc != EOK)
 		goto error;
 
@@ -505,6 +518,7 @@ static errno_t ui_resource_create_text(gfx_context_t *gc,
 
 	resource->wnd_face_color = wnd_face_color;
 	resource->wnd_text_color = wnd_text_color;
+	resource->wnd_dis_text_color = wnd_dis_text_color;
 	resource->wnd_text_hgl_color = wnd_text_hgl_color;
 	resource->wnd_sel_text_color = wnd_sel_text_color;
 	resource->wnd_sel_text_hgl_color = wnd_sel_text_hgl_color;
@@ -548,6 +562,8 @@ error:
 		gfx_color_delete(wnd_face_color);
 	if (wnd_text_color != NULL)
 		gfx_color_delete(wnd_text_color);
+	if (wnd_dis_text_color != NULL)
+		gfx_color_delete(wnd_dis_text_color);
 	if (wnd_text_hgl_color != NULL)
 		gfx_color_delete(wnd_text_hgl_color);
 	if (wnd_sel_text_color != NULL)
@@ -629,6 +645,7 @@ void ui_resource_destroy(ui_resource_t *resource)
 
 	gfx_color_delete(resource->wnd_face_color);
 	gfx_color_delete(resource->wnd_text_color);
+	gfx_color_delete(resource->wnd_dis_text_color);
 	gfx_color_delete(resource->wnd_sel_text_color);
 	gfx_color_delete(resource->wnd_sel_text_bg_color);
 	gfx_color_delete(resource->wnd_frame_hi_color);

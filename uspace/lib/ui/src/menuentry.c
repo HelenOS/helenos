@@ -162,6 +162,26 @@ void ui_menu_entry_set_cb(ui_menu_entry_t *mentry, ui_menu_entry_cb_t cb,
 	mentry->arg = arg;
 }
 
+/** Set menu entry disabled flag.
+ *
+ * @param mentry Menu entry
+ * @param disabled @c true iff entry is to be disabled, @c false otherwise
+ */
+void ui_menu_entry_set_disabled(ui_menu_entry_t *mentry, bool disabled)
+{
+	mentry->disabled = disabled;
+}
+
+/** Get menu entry disabled flag.
+ *
+ * @param mentry Menu entry
+ * @return disabled @c true iff entry is disabled, @c false otherwise
+ */
+bool ui_menu_entry_is_disabled(ui_menu_entry_t *mentry)
+{
+	return mentry->disabled;
+}
+
 /** Get first menu entry in menu.
  *
  * @param menu Menu
@@ -371,6 +391,10 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 		fmt.color = res->wnd_sel_text_color;
 		fmt.hgl_color = res->wnd_sel_text_hgl_color;
 		bg_color = res->wnd_sel_text_bg_color;
+	} else if (mentry->disabled) {
+		fmt.color = res->wnd_dis_text_color;
+		fmt.hgl_color = res->wnd_dis_text_color;
+		bg_color = res->wnd_face_color;
 	} else {
 		fmt.color = res->wnd_text_color;
 		fmt.hgl_color = res->wnd_text_hgl_color;

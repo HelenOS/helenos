@@ -804,6 +804,8 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
+	ui_menu_entry_set_disabled(mfoobar, true);
+
 	rc = ui_menu_entry_sep_create(demo.mfile, &msep);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");

@@ -533,7 +533,8 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 		ui_menu_down(menu);
 		break;
 	case KC_ENTER:
-		if (menu->selected != NULL)
+		if (menu->selected != NULL &&
+		    !ui_menu_entry_is_disabled(menu->selected))
 			ui_menu_entry_activate(menu->selected);
 		break;
 	default:
@@ -542,7 +543,7 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 			while (mentry != NULL) {
 				c = ui_menu_entry_get_accel(mentry);
 				if (c == (char32_t)tolower(event->c) &&
-				    menu->selected != NULL) {
+				    !ui_menu_entry_is_disabled(mentry)) {
 					ui_menu_entry_activate(mentry);
 					break;
 				}
