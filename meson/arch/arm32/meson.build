@@ -46,8 +46,10 @@ arch_kernel_c_args += cc.get_supported_arguments(['-mgeneral-regs-only' ])
 arch_kernel_link_args = [ '-nostdlib', '-Wl,-z,max-page-size=0x1000' ]
 
 if CONFIG_FPU
-    # Need to use soft because our libgcc.a uses it too
-    arch_uspace_c_args += [ '-mfloat-abi=soft' ]
+    # Need to use softfp because our libgcc.a uses it too
+    # softfp - generate code with soft-float calling conventions but allow use
+    # of "hard" float instructions
+    arch_uspace_c_args += [ '-mfloat-abi=softfp' ]
 endif
 arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
 
