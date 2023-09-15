@@ -468,7 +468,7 @@ void ui_menu_entry_press(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	if (mentry->held)
 		return;
 
-	if (mentry->separator)
+	if (mentry->separator || mentry->disabled)
 		return;
 
 	mentry->inside = true;
