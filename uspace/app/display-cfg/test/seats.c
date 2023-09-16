@@ -93,14 +93,15 @@ PCUT_TEST(seats_list_populate)
 	errno_t rc;
 	service_id_t sid;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_dispcfg_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_dispcfg_server);
+	rc = loc_server_register(test_dispcfg_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_dispcfg_svc, &sid);
+	rc = loc_service_register(srv, test_dispcfg_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_cfg_create(UI_DISPLAY_NULL, &dcfg);
@@ -134,6 +135,10 @@ PCUT_TEST(seats_list_populate)
 
 	dcfg_seats_destroy(seats);
 	display_cfg_destroy(dcfg);
+
+	rc = loc_service_unregister(srv, sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** dcfg_devices_insert() inserts an entry into the device list */

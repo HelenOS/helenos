@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@
 static size_t block_size;
 static aoff64_t num_blocks;
 static FILE *img;
+static loc_srv_t *srv;
 
 static service_id_t service_id;
 static bd_srvs_t bd_srvs;
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
 	if (file_bd_init(image_name) != EOK)
 		return -1;
 
-	rc = loc_service_register(device_name, &service_id);
+	rc = loc_service_register(srv, device_name, &service_id);
 	if (rc != EOK) {
 		printf("%s: Unable to register device '%s': %s.\n",
 		    NAME, device_name, str_error(rc));
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
 		return rc;
 	}
 
-	rc = loc_service_add_to_cat(service_id, disk_cat);
+	rc = loc_service_add_to_cat(srv, service_id, disk_cat);
 	if (rc != EOK) {
 		printf("%s: Failed adding %s to category: %s",
 		    NAME, device_name, str_error(rc));
@@ -175,25 +176,27 @@ static errno_t file_bd_init(const char *fname)
 	bd_srvs.ops = &file_bd_ops;
 
 	async_set_fallback_port_handler(file_bd_connection, NULL);
-	errno_t rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
 
 	img = fopen(fname, "rb+");
-	if (img == NULL)
-		return EINVAL;
+	if (img == NULL) {
+		rc = EINVAL;
+		goto error;
+	}
 
 	if (fseek(img, 0, SEEK_END) != 0) {
-		fclose(img);
-		return EIO;
+		rc = EIO;
+		goto error;
 	}
 
 	off64_t img_size = ftell(img);
 	if (img_size < 0) {
-		fclose(img);
-		return EIO;
+		rc = EIO;
+		goto error;
 	}
 
 	num_blocks = img_size / block_size;
@@ -201,6 +204,18 @@ static errno_t file_bd_init(const char *fname)
 	fibril_mutex_initialize(&dev_lock);
 
 	return EOK;
+error:
+	if (img != NULL) {
+		fclose(img);
+		img = NULL;
+	}
+
+	if (srv != NULL) {
+		loc_server_unregister(srv);
+		srv = NULL;
+	}
+
+	return rc;
 }
 
 static void file_bd_connection(ipc_call_t *icall, void *arg)

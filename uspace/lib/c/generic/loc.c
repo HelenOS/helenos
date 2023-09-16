@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2007 Josef Cejka
- * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -238,10 +238,25 @@ void loc_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-/** Register new server with loc. */
-errno_t loc_server_register(const char *name)
+/** Register new server with loc.
+ *
+ * XXX Proper impementation - currently cannot actually call
+ * this function more than once.
+ *
+ * @param name Server name
+ * @param rsrv Place to store new server object on success
+ * @return EOK on succes or an error code
+ */
+errno_t loc_server_register(const char *name, loc_srv_t **rsrv)
 {
-	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
+	async_exch_t *exch;
+	loc_srv_t *srv;
+
+	srv = calloc(1, sizeof(loc_srv_t));
+	if (srv == NULL)
+		return ENOMEM;
+
+	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
 
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVER_REGISTER, 0, 0, &answer);
@@ -250,6 +265,7 @@ errno_t loc_server_register(const char *name)
 	if (retval != EOK) {
 		async_forget(req);
 		loc_exchange_end(exch);
+		free(srv);
 		return retval;
 	}
 
@@ -263,18 +279,41 @@ errno_t loc_server_register(const char *name)
 	async_wait_for(req, &retval);
 	loc_exchange_end(exch);
 
+	if (retval != EOK) {
+		free(srv);
+		return retval;
+	}
+
+	*rsrv = srv;
 	return retval;
+}
+
+/** Unregister server from loc.
+ *
+ * Unregister server and free server object.
+ *
+ * XXX Proper implementation
+ *
+ * @param srv Server object
+ */
+void loc_server_unregister(loc_srv_t *srv)
+{
+	free(srv);
 }
 
 /** Register new service.
  *
- * @param      fqsn  Fully qualified service name
- * @param[out] sid   Service ID of new service
+ * @param srv Server object
+ * @param fqsn Fully qualified service name
+ * @param sid  Service ID of new service
  *
  */
-errno_t loc_service_register(const char *fqsn, service_id_t *sid)
+errno_t loc_service_register(loc_srv_t *srv, const char *fqsn,
+    service_id_t *sid)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
+
+	(void)srv;
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOC_SERVICE_REGISTER, &answer);
@@ -309,12 +348,15 @@ errno_t loc_service_register(const char *fqsn, service_id_t *sid)
 
 /** Unregister service.
  *
- * @param sid	Service ID
+ * @param srv Server object
+ * @param sid Service ID
  */
-errno_t loc_service_unregister(service_id_t sid)
+errno_t loc_service_unregister(loc_srv_t *srv, service_id_t sid)
 {
 	async_exch_t *exch;
 	errno_t retval;
+
+	(void)srv;
 
 	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
 	retval = async_req_1_0(exch, LOC_SERVICE_UNREGISTER, sid);
@@ -610,11 +652,14 @@ static size_t loc_count_namespaces_internal(async_exch_t *exch)
 
 /** Add service to category.
  *
- * @param svc_id	Service ID
- * @param cat_id	Category ID
- * @return		EOK on success or an error code
+ * @param srv    Server object
+ * @param svc_id Service ID
+ * @param cat_id Category ID
+ *
+ * @return EOK on success or an error code
  */
-errno_t loc_service_add_to_cat(service_id_t svc_id, service_id_t cat_id)
+errno_t loc_service_add_to_cat(loc_srv_t *srv, service_id_t svc_id,
+    service_id_t cat_id)
 {
 	async_exch_t *exch;
 	errno_t retval;

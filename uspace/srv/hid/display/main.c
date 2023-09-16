@@ -126,6 +126,8 @@ static errno_t display_srv_init(ds_output_t **routput)
 	port_id_t gc_port;
 	port_id_t wm_port;
 	port_id_t dc_port;
+	loc_srv_t *srv = NULL;
+	service_id_t sid = 0;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "display_srv_init()");
@@ -170,15 +172,14 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK)
 		goto error;
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		rc = EEXIST;
 		goto error;
 	}
 
-	service_id_t sid;
-	rc = loc_service_register(SERVICE_NAME_DISPLAY, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_DISPLAY, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		rc = EEXIST;
@@ -188,6 +189,10 @@ static errno_t display_srv_init(ds_output_t **routput)
 	*routput = output;
 	return EOK;
 error:
+	if (sid != 0)
+		loc_service_unregister(srv, sid);
+	if (srv != NULL)
+		loc_server_unregister(srv);
 	// XXX destroy disp_port
 	// XXX destroy gc_port
 	// XXX destroy wm_port

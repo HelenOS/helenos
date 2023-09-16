@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2013 Jakub Jermar
  * All rights reserved.
  *
@@ -306,6 +306,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 	chardev_t *chardev_in = NULL;
 	chardev_t *chardev_out = NULL;
 	fid_t fid;
+	loc_srv_t *srv;
 	errno_t rc;
 
 	iplink_srv_init(&slip_iplink);
@@ -313,7 +314,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 
 	async_set_fallback_port_handler(slip_client_conn, NULL);
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed registering server.");
@@ -322,6 +323,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 
 	rc = loc_service_get_id(svcstr, &svcid, 0);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed getting ID for service %s", svcstr);
 		return rc;
@@ -329,6 +331,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 
 	rc = loc_category_get_id(CAT_IPLINK, &iplinkcid, 0);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to get category ID for %s",
 		    CAT_IPLINK);
@@ -341,6 +344,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 	 */
 	sess_out = loc_service_connect(svcid, INTERFACE_DDF, 0);
 	if (!sess_out) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to connect to service %s (ID=%d)",
 		    svcstr, (int) svcid);
@@ -349,6 +353,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 
 	rc = chardev_open(sess_out, &chardev_out);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed opening character device.");
 		return ENOENT;
@@ -372,7 +377,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 		return ENOENT;
 	}
 
-	rc = loc_service_register(linkstr, &linksid);
+	rc = loc_service_register(srv, linkstr, &linksid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to register service %s",
@@ -380,8 +385,9 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 		goto fail;
 	}
 
-	rc = loc_service_add_to_cat(linksid, iplinkcid);
+	rc = loc_service_add_to_cat(srv, linksid, iplinkcid);
 	if (rc != EOK) {
+		loc_service_unregister(srv, linksid);
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Failed to add service %d (%s) to category %d (%s).",
 		    (int) linksid, linkstr, (int) iplinkcid, CAT_IPLINK);
@@ -400,6 +406,7 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 	return EOK;
 
 fail:
+	loc_server_unregister(srv);
 	chardev_close(chardev_out);
 	if (sess_out)
 		async_hangup(sess_out);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -221,6 +221,7 @@ static void ipc_test_connection(ipc_call_t *icall, void *arg)
 int main(int argc, char *argv[])
 {
 	errno_t rc;
+	loc_srv_t *srv;
 
 	printf("%s: IPC test service\n", NAME);
 	async_set_fallback_port_handler(ipc_test_connection, NULL);
@@ -231,15 +232,16 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server. (%s)\n",
 		    str_error(rc));
 		return rc;
 	}
 
-	rc = loc_service_register(SERVICE_NAME_IPC_TEST, &svc_id);
+	rc = loc_service_register(srv, SERVICE_NAME_IPC_TEST, &svc_id);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service. (%s)\n",
 		    str_error(rc));
 		return rc;

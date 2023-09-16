@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1241,17 +1241,19 @@ errno_t tcp_service_init(void)
 {
 	errno_t rc;
 	service_id_t sid;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(tcp_client_conn, NULL);
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return EIO;
 	}
 
-	rc = loc_service_register(SERVICE_NAME_TCP, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_TCP, &sid);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service.");
 		return EIO;
 	}

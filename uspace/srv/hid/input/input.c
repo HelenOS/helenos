@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
@@ -877,6 +877,7 @@ static void usage(char *name)
 int main(int argc, char **argv)
 {
 	errno_t rc;
+	loc_srv_t *srv;
 
 	if (argc < 2) {
 		usage(argv[0]);
@@ -900,14 +901,14 @@ int main(int argc, char **argv)
 	async_set_client_data_destructor(client_data_destroy);
 	async_set_fallback_port_handler(client_connection, NULL);
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Unable to register server\n", NAME);
 		return rc;
 	}
 
 	service_id_t service_id;
-	rc = loc_service_register(argv[1], &service_id);
+	rc = loc_service_register(srv, argv[1], &service_id);
 	if (rc != EOK) {
 		printf("%s: Unable to register service %s\n", NAME, argv[1]);
 		return rc;

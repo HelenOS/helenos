@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,7 @@ static void ncs_client_conn(ipc_call_t *icall, void *arg);
 static errno_t ncs_init(void)
 {
 	service_id_t sid;
+	loc_srv_t *srv;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ncs_init()");
@@ -78,21 +79,25 @@ static errno_t ncs_init(void)
 
 	async_set_fallback_port_handler(ncs_client_conn, NULL);
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		return EEXIST;
 	}
 
-	rc = loc_service_register(SERVICE_NAME_NETCONF, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_NETCONF, &sid);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		return EEXIST;
 	}
 
 	rc = ncs_link_discovery_start();
-	if (rc != EOK)
+	if (rc != EOK) {
+		loc_service_unregister(srv, sid);
+		loc_server_unregister(srv);
 		return EEXIST;
+	}
 
 	return EOK;
 }

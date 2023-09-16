@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -36,6 +37,7 @@
 #include "devman.h"
 #include "fun.h"
 #include "loc.h"
+#include "main.h"
 
 /** Create loc path and name for the function. */
 void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
@@ -58,7 +60,7 @@ void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 		return;
 	}
 
-	loc_service_register(loc_pathname, &fun->service_id);
+	loc_service_register(devman_srv, loc_pathname, &fun->service_id);
 
 	tree_add_loc_function(tree, fun);
 
@@ -68,7 +70,7 @@ void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 
 errno_t loc_unregister_tree_function(fun_node_t *fun, dev_tree_t *tree)
 {
-	errno_t rc = loc_service_unregister(fun->service_id);
+	errno_t rc = loc_service_unregister(devman_srv, fun->service_id);
 	tree_rem_loc_function(tree, fun);
 	return rc;
 }

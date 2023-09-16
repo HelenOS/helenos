@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,24 +79,34 @@ static chardev_ops_t s3c24xx_uart_chardev_ops = {
 
 int main(int argc, char *argv[])
 {
+	loc_srv_t *srv;
+
 	printf("%s: S3C24xx on-chip UART driver\n", NAME);
 
 	async_set_fallback_port_handler(s3c24xx_uart_connection, uart);
-	errno_t rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Unable to register server.\n", NAME);
 		return rc;
 	}
 
 	uart = malloc(sizeof(s3c24xx_uart_t));
-	if (uart == NULL)
+	if (uart == NULL) {
+		loc_server_unregister(srv);
 		return -1;
+	}
 
-	if (s3c24xx_uart_init(uart) != EOK)
+	if (s3c24xx_uart_init(uart) != EOK) {
+		free(uart);
+		loc_server_unregister(srv);
 		return -1;
+	}
 
-	rc = loc_service_register(NAMESPACE "/" NAME, &uart->service_id);
+	rc = loc_service_register(srv, NAMESPACE "/" NAME, &uart->service_id);
 	if (rc != EOK) {
+		// XXX s3c24xx_uart_fini(uart);
+		free(uart);
+		loc_server_unregister(srv);
 		printf(NAME ": Unable to register device %s.\n",
 		    NAMESPACE "/" NAME);
 		return -1;

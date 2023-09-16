@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
@@ -56,6 +57,7 @@
 /** Maximum number of disks handled */
 #define MAXDISKS  256
 
+static loc_srv_t *srv;
 static sata_bd_dev_t disk[MAXDISKS];
 static int disk_count;
 
@@ -248,7 +250,7 @@ int main(int argc, char **argv)
 	category_id_t disk_cat;
 
 	async_set_fallback_port_handler(sata_bd_connection, NULL);
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register driver: %s.\n", str_error(rc));
 		return rc;
@@ -269,13 +271,13 @@ int main(int argc, char **argv)
 	for (int i = 0; i < disk_count; i++) {
 		char name[1024];
 		snprintf(name, 1024, "%s/%s", NAMESPACE, disk[i].dev_name);
-		rc = loc_service_register(name, &disk[i].service_id);
+		rc = loc_service_register(srv, name, &disk[i].service_id);
 		if (rc != EOK) {
 			printf(NAME ": Unable to register device %s: %s\n", name, str_error(rc));
 			return rc;
 		}
 
-		rc = loc_service_add_to_cat(disk[i].service_id, disk_cat);
+		rc = loc_service_add_to_cat(srv, disk[i].service_id, disk_cat);
 		if (rc != EOK) {
 			printf("%s: Failed adding %s to category: %s.",
 			    NAME, disk[i].dev_name, str_error(rc));

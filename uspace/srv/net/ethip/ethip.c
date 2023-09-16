@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,11 +77,13 @@ static iplink_ops_t ethip_iplink_ops = {
 	.addr_remove = ethip_addr_remove
 };
 
+static loc_srv_t *ethip_srv;
+
 static errno_t ethip_init(void)
 {
 	async_set_fallback_port_handler(ethip_client_conn, NULL);
 
-	errno_t rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME, &ethip_srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
@@ -114,7 +116,7 @@ errno_t ethip_iplink_init(ethip_nic_t *nic)
 		goto error;
 	}
 
-	rc = loc_service_register(svc_name, &sid);
+	rc = loc_service_register(ethip_srv, svc_name, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.", svc_name);
 		goto error;
@@ -128,7 +130,7 @@ errno_t ethip_iplink_init(ethip_nic_t *nic)
 		goto error;
 	}
 
-	rc = loc_service_add_to_cat(sid, iplink_cat);
+	rc = loc_service_add_to_cat(ethip_srv, sid, iplink_cat);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.", svc_name);
 		goto error;

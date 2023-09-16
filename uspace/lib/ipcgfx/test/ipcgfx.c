@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -119,14 +119,15 @@ PCUT_TEST(set_clip_rect_failure)
 	gfx_rect_t rect;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -155,8 +156,9 @@ PCUT_TEST(set_clip_rect_failure)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_set_clip_rect with server returning success */
@@ -169,14 +171,15 @@ PCUT_TEST(set_clip_rect_success)
 	gfx_rect_t rect;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -206,8 +209,9 @@ PCUT_TEST(set_clip_rect_success)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_set_clip_rect with null rectangle, server returning success */
@@ -219,14 +223,15 @@ PCUT_TEST(set_clip_rect_null_success)
 	gfx_context_t *gc;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -249,8 +254,9 @@ PCUT_TEST(set_clip_rect_null_success)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_set_color with server returning failure */
@@ -263,14 +269,15 @@ PCUT_TEST(set_color_failure)
 	gfx_color_t *color;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -299,8 +306,9 @@ PCUT_TEST(set_color_failure)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_set_color with server returning success */
@@ -313,14 +321,15 @@ PCUT_TEST(set_color_success)
 	gfx_color_t *color;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -349,8 +358,9 @@ PCUT_TEST(set_color_success)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_fill_rect with server returning failure */
@@ -363,14 +373,15 @@ PCUT_TEST(fill_rect_failure)
 	gfx_rect_t rect;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -399,8 +410,9 @@ PCUT_TEST(fill_rect_failure)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_fill_rect with server returning success */
@@ -413,14 +425,15 @@ PCUT_TEST(fill_rect_success)
 	gfx_rect_t rect;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -449,8 +462,9 @@ PCUT_TEST(fill_rect_success)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_update with server returning failure */
@@ -462,14 +476,15 @@ PCUT_TEST(update_failure)
 	gfx_context_t *gc;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -490,8 +505,9 @@ PCUT_TEST(update_failure)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_update with server returning success */
@@ -503,14 +519,15 @@ PCUT_TEST(update_success)
 	gfx_context_t *gc;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -531,8 +548,9 @@ PCUT_TEST(update_success)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_bitmap_create with server returning failure */
@@ -546,14 +564,15 @@ PCUT_TEST(bitmap_create_failure)
 	gfx_bitmap_t *bitmap;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -590,8 +609,9 @@ PCUT_TEST(bitmap_create_failure)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_bitmap_create and gfx_bitmap_destroy with server returning success */
@@ -605,14 +625,15 @@ PCUT_TEST(bitmap_create_destroy_success)
 	gfx_bitmap_t *bitmap;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -654,8 +675,9 @@ PCUT_TEST(bitmap_create_destroy_success)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_bitmap_destroy with server returning failure */
@@ -669,14 +691,15 @@ PCUT_TEST(bitmap_destroy_failure)
 	gfx_bitmap_t *bitmap;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -707,8 +730,9 @@ PCUT_TEST(bitmap_destroy_failure)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_bitmap_create direct output bitmap with server returning failure */
@@ -722,14 +746,15 @@ PCUT_TEST(bitmap_create_dout_failure)
 	gfx_bitmap_t *bitmap;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -767,8 +792,9 @@ PCUT_TEST(bitmap_create_dout_failure)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_bitmap_create direct output bitmap with server returning success */
@@ -782,14 +808,15 @@ PCUT_TEST(bitmap_create_dout_success)
 	gfx_bitmap_t *bitmap;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -832,8 +859,9 @@ PCUT_TEST(bitmap_create_dout_success)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_bitmap_render with server returning failure */
@@ -849,14 +877,15 @@ PCUT_TEST(bitmap_render_failure)
 	gfx_coord2_t offs;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -900,8 +929,9 @@ PCUT_TEST(bitmap_render_failure)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_bitmap_render with server returning success */
@@ -917,14 +947,15 @@ PCUT_TEST(bitmap_render_success)
 	gfx_coord2_t offs;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -968,8 +999,9 @@ PCUT_TEST(bitmap_render_success)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** gfx_bitmap_get_alloc - server is not currently involved */
@@ -984,14 +1016,15 @@ PCUT_TEST(bitmap_get_alloc)
 	gfx_bitmap_alloc_t alloc;
 	async_sess_t *sess;
 	ipc_gc_t *ipcgc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ipcgc_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ipcgfx_server);
+	rc = loc_server_register(test_ipcgfx_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ipcgfx_svc, &sid);
+	rc = loc_service_register(srv, test_ipcgfx_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	sess = loc_service_connect(sid, INTERFACE_GC, 0);
@@ -1028,8 +1061,9 @@ PCUT_TEST(bitmap_get_alloc)
 	ipc_gc_delete(ipcgc);
 	async_hangup(sess);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 static void test_ipcgc_conn(ipc_call_t *icall, void *arg)

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -108,6 +109,8 @@ static tcp_listen_cb_t listen_cb = {
 static tcp_cb_t conn_cb = {
 	.connected = NULL
 };
+
+static loc_srv_t *remcons_srv;
 
 static telnet_user_t *srv_to_user(con_srv_t *srv)
 {
@@ -300,7 +303,8 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 
 	telnet_user_add(user);
 
-	errno_t rc = loc_service_register(user->service_name, &user->service_id);
+	errno_t rc = loc_service_register(remcons_srv, user->service_name,
+	    &user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user, "Unable to register %s with loc: %s.",
 		    user->service_name, str_error(rc));
@@ -331,7 +335,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	}
 	fibril_mutex_unlock(&user->guard);
 
-	rc = loc_service_unregister(user->service_id);
+	rc = loc_service_unregister(remcons_srv, user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user,
 		    "Unable to unregister %s from loc: %s (ignored).",
@@ -350,7 +354,7 @@ int main(int argc, char *argv[])
 	inet_ep_t ep;
 
 	async_set_fallback_port_handler(client_connection, NULL);
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &remcons_srv);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to register server\n", NAME);
 		return rc;

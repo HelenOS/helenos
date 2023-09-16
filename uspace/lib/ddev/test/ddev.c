@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,14 +77,15 @@ PCUT_TEST(open_close)
 	service_id_t sid;
 	ddev_t *ddev = NULL;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ddev_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ddev_server);
+	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -92,8 +93,9 @@ PCUT_TEST(open_close)
 	PCUT_ASSERT_NOT_NULL(ddev);
 
 	ddev_close(ddev);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** ddev_get_gc with server returning failure */
@@ -104,14 +106,15 @@ PCUT_TEST(dev_get_gc_failure)
 	ddev_t *ddev = NULL;
 	test_response_t resp;
 	gfx_context_t *gc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ddev_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ddev_server);
+	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -125,8 +128,9 @@ PCUT_TEST(dev_get_gc_failure)
 	PCUT_ASSERT_NULL(gc);
 
 	ddev_close(ddev);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** ddev_get_gc with server returning success */
@@ -138,14 +142,15 @@ PCUT_TEST(dev_get_gc_success)
 	test_response_t resp;
 	gfx_context_t *gc;
 	gfx_color_t *color;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ddev_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ddev_server);
+	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -169,8 +174,9 @@ PCUT_TEST(dev_get_gc_success)
 	gfx_color_delete(color);
 
 	ddev_close(ddev);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** ddev_get_info with server returning failure */
@@ -181,14 +187,15 @@ PCUT_TEST(dev_get_info_failure)
 	ddev_t *ddev = NULL;
 	test_response_t resp;
 	ddev_info_t info;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ddev_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ddev_server);
+	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -200,8 +207,9 @@ PCUT_TEST(dev_get_info_failure)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	ddev_close(ddev);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** ddev_get_info with server returning success */
@@ -212,14 +220,15 @@ PCUT_TEST(dev_get_info_success)
 	ddev_t *ddev = NULL;
 	test_response_t resp;
 	ddev_info_t info;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_ddev_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_ddev_server);
+	rc = loc_server_register(test_ddev_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_ddev_svc, &sid);
+	rc = loc_service_register(srv, test_ddev_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ddev_open(test_ddev_svc, &ddev);
@@ -243,8 +252,9 @@ PCUT_TEST(dev_get_info_success)
 	PCUT_ASSERT_INT_EQUALS(resp.info.rect.p1.y, info.rect.p1.y);
 
 	ddev_close(ddev);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Test display device connection.

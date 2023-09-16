@@ -116,14 +116,15 @@ PCUT_TEST(open_close)
 	service_id_t sid;
 	wndmgt_t *wndmgt = NULL;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -131,8 +132,9 @@ PCUT_TEST(open_close)
 	PCUT_ASSERT_NOT_NULL(wndmgt);
 
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** wndmgt_get_window_list() with server returning error response works */
@@ -143,14 +145,15 @@ PCUT_TEST(get_window_list_failure)
 	wndmgt_t *wndmgt = NULL;
 	wndmgt_window_list_t *list;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -165,8 +168,9 @@ PCUT_TEST(get_window_list_failure)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** wndmgt_get_window_list() with server returning success response works */
@@ -177,14 +181,15 @@ PCUT_TEST(get_window_list_success)
 	wndmgt_t *wndmgt = NULL;
 	wndmgt_window_list_t *list;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -211,8 +216,9 @@ PCUT_TEST(get_window_list_success)
 
 	wndmgt_free_window_list(list);
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** wndmgt_get_window_infp() with server returning error response works */
@@ -224,14 +230,15 @@ PCUT_TEST(get_window_info_failure)
 	sysarg_t wnd_id;
 	wndmgt_window_info_t *info;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -248,8 +255,9 @@ PCUT_TEST(get_window_info_failure)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** wndmgt_get_window_info() with server returning success response works */
@@ -261,14 +269,15 @@ PCUT_TEST(get_window_info_success)
 	sysarg_t wnd_id;
 	wndmgt_window_info_t *info;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -296,8 +305,9 @@ PCUT_TEST(get_window_info_success)
 
 	wndmgt_free_window_info(info);
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** wndmgt_activate_window() with server returning error response works */
@@ -309,14 +319,15 @@ PCUT_TEST(activate_window_failure)
 	sysarg_t seat_id;
 	sysarg_t wnd_id;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -335,8 +346,9 @@ PCUT_TEST(activate_window_failure)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** wndmgt_activate_window() with server returning success response works */
@@ -348,14 +360,15 @@ PCUT_TEST(activate_window_success)
 	sysarg_t seat_id;
 	sysarg_t wnd_id;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -374,8 +387,9 @@ PCUT_TEST(activate_window_success)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** wndmgt_close_window() with server returning error response works */
@@ -386,14 +400,15 @@ PCUT_TEST(close_window_failure)
 	wndmgt_t *wndmgt = NULL;
 	sysarg_t wnd_id;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -410,8 +425,9 @@ PCUT_TEST(close_window_failure)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** wndmgt_close_window() with server returning success response works */
@@ -422,14 +438,15 @@ PCUT_TEST(close_window_success)
 	wndmgt_t *wndmgt = NULL;
 	sysarg_t wnd_id;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, NULL, NULL, &wndmgt);
@@ -446,8 +463,9 @@ PCUT_TEST(close_window_success)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	wndmgt_close(wndmgt);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Window added event can be delivered from server to client callback function */
@@ -457,14 +475,15 @@ PCUT_TEST(window_added_deliver)
 	service_id_t sid;
 	wndmgt_t *wndmgt = NULL;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, &test_wndmgt_cb, &resp, &wndmgt);
@@ -493,8 +512,9 @@ PCUT_TEST(window_added_deliver)
 
 	wndmgt_close(wndmgt);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Window removed event can be delivered from server to client callback function */
@@ -504,14 +524,15 @@ PCUT_TEST(window_removed_deliver)
 	service_id_t sid;
 	wndmgt_t *wndmgt = NULL;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, &test_wndmgt_cb, &resp, &wndmgt);
@@ -540,8 +561,9 @@ PCUT_TEST(window_removed_deliver)
 
 	wndmgt_close(wndmgt);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Window changed event can be delivered from server to client callback function */
@@ -551,14 +573,15 @@ PCUT_TEST(window_changed_deliver)
 	service_id_t sid;
 	wndmgt_t *wndmgt = NULL;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_wndmgt_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = wndmgt_open(test_wndmgt_svc, &test_wndmgt_cb, &resp, &wndmgt);
@@ -587,8 +610,9 @@ PCUT_TEST(window_changed_deliver)
 
 	wndmgt_close(wndmgt);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Test window management service connection. */

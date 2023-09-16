@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -359,7 +360,7 @@ static void devman_add_function_to_cat(ipc_call_t *call)
 
 	rc = loc_category_get_id(cat_name, &cat_id, IPC_FLAG_BLOCKING);
 	if (rc == EOK)
-		rc = loc_service_add_to_cat(fun->service_id, cat_id);
+		rc = loc_service_add_to_cat(devman_srv, fun->service_id, cat_id);
 	if (rc == EOK) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Function `%s' added to category `%s'.",
 		    fun->pathname, cat_name);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,10 +33,12 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
+#include <loc.h>
 #include "devman.h"
 
 extern driver_list_t drivers_list;
 extern dev_tree_t device_tree;
+extern loc_srv_t *devman_srv;
 
 #endif
 
