@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2023 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -185,6 +186,7 @@ test_src = files(
 	'test/imath.c',
 	'test/inttypes.c',
 	'test/io/table.c',
+	'test/loc.c',
 	'test/main.c',
 	'test/mem.c',
 	'test/perf.c',

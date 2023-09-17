@@ -42,8 +42,8 @@
 
 typedef void (*loc_cat_change_cb_t)(void *);
 
-extern async_exch_t *loc_exchange_begin_blocking(iface_t);
-extern async_exch_t *loc_exchange_begin(iface_t);
+extern async_exch_t *loc_exchange_begin_blocking(void);
+extern async_exch_t *loc_exchange_begin(void);
 extern void loc_exchange_end(async_exch_t *);
 
 extern errno_t loc_server_register(const char *, loc_srv_t **);

@@ -38,10 +38,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-static FIBRIL_MUTEX_INITIALIZE(loc_supp_block_mutex);
 static FIBRIL_MUTEX_INITIALIZE(loc_cons_block_mutex);
-
-static FIBRIL_MUTEX_INITIALIZE(loc_supplier_mutex);
 static FIBRIL_MUTEX_INITIALIZE(loc_consumer_mutex);
 
 static FIBRIL_MUTEX_INITIALIZE(loc_callback_mutex);
@@ -49,10 +46,7 @@ static bool loc_callback_created = false;
 static loc_cat_change_cb_t cat_change_cb = NULL;
 static void *cat_change_arg = NULL;
 
-static async_sess_t *loc_supp_block_sess = NULL;
 static async_sess_t *loc_cons_block_sess = NULL;
-
-static async_sess_t *loc_supplier_sess = NULL;
 static async_sess_t *loc_consumer_sess = NULL;
 
 static void loc_cb_conn(ipc_call_t *icall, void *arg)
@@ -107,7 +101,7 @@ static errno_t loc_callback_create(void)
 {
 	if (!loc_callback_created) {
 		async_exch_t *exch =
-		    loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+		    loc_exchange_begin_blocking();
 
 		ipc_call_t answer;
 		aid_t req = async_send_0(exch, LOC_CALLBACK_CREATE, &answer);
@@ -134,98 +128,51 @@ static errno_t loc_callback_create(void)
 
 /** Start an async exchange on the loc session (blocking).
  *
- * @param iface Location service interface to choose
- *
  * @return New exchange.
  *
  */
-async_exch_t *loc_exchange_begin_blocking(iface_t iface)
+async_exch_t *loc_exchange_begin_blocking(void)
 {
-	switch (iface) {
-	case INTERFACE_LOC_SUPPLIER:
-		fibril_mutex_lock(&loc_supp_block_mutex);
+	fibril_mutex_lock(&loc_cons_block_mutex);
 
-		while (loc_supp_block_sess == NULL) {
-			clone_session(&loc_supplier_mutex, loc_supplier_sess,
-			    &loc_supp_block_sess);
+	while (loc_cons_block_sess == NULL) {
+		clone_session(&loc_consumer_mutex, loc_consumer_sess,
+		    &loc_cons_block_sess);
 
-			if (loc_supp_block_sess == NULL)
-				loc_supp_block_sess =
-				    service_connect_blocking(SERVICE_LOC,
-				    INTERFACE_LOC_SUPPLIER, 0, NULL);
-		}
-
-		fibril_mutex_unlock(&loc_supp_block_mutex);
-
-		clone_session(&loc_supplier_mutex, loc_supp_block_sess,
-		    &loc_supplier_sess);
-
-		return async_exchange_begin(loc_supp_block_sess);
-	case INTERFACE_LOC_CONSUMER:
-		fibril_mutex_lock(&loc_cons_block_mutex);
-
-		while (loc_cons_block_sess == NULL) {
-			clone_session(&loc_consumer_mutex, loc_consumer_sess,
-			    &loc_cons_block_sess);
-
-			if (loc_cons_block_sess == NULL)
-				loc_cons_block_sess =
-				    service_connect_blocking(SERVICE_LOC,
-				    INTERFACE_LOC_CONSUMER, 0, NULL);
-		}
-
-		fibril_mutex_unlock(&loc_cons_block_mutex);
-
-		clone_session(&loc_consumer_mutex, loc_cons_block_sess,
-		    &loc_consumer_sess);
-
-		return async_exchange_begin(loc_cons_block_sess);
-	default:
-		return NULL;
+		if (loc_cons_block_sess == NULL)
+			loc_cons_block_sess =
+			    service_connect_blocking(SERVICE_LOC,
+			    INTERFACE_LOC_CONSUMER, 0, NULL);
 	}
+
+	fibril_mutex_unlock(&loc_cons_block_mutex);
+
+	clone_session(&loc_consumer_mutex, loc_cons_block_sess,
+	    &loc_consumer_sess);
+
+	return async_exchange_begin(loc_cons_block_sess);
 }
 
 /** Start an async exchange on the loc session.
  *
- * @param iface Location service interface to choose
- *
  * @return New exchange.
  *
  */
-async_exch_t *loc_exchange_begin(iface_t iface)
+async_exch_t *loc_exchange_begin(void)
 {
-	switch (iface) {
-	case INTERFACE_LOC_SUPPLIER:
-		fibril_mutex_lock(&loc_supplier_mutex);
+	fibril_mutex_lock(&loc_consumer_mutex);
 
-		if (loc_supplier_sess == NULL)
-			loc_supplier_sess =
-			    service_connect(SERVICE_LOC,
-			    INTERFACE_LOC_SUPPLIER, 0, NULL);
+	if (loc_consumer_sess == NULL)
+		loc_consumer_sess =
+		    service_connect(SERVICE_LOC,
+		    INTERFACE_LOC_CONSUMER, 0, NULL);
 
-		fibril_mutex_unlock(&loc_supplier_mutex);
+	fibril_mutex_unlock(&loc_consumer_mutex);
 
-		if (loc_supplier_sess == NULL)
-			return NULL;
-
-		return async_exchange_begin(loc_supplier_sess);
-	case INTERFACE_LOC_CONSUMER:
-		fibril_mutex_lock(&loc_consumer_mutex);
-
-		if (loc_consumer_sess == NULL)
-			loc_consumer_sess =
-			    service_connect(SERVICE_LOC,
-			    INTERFACE_LOC_CONSUMER, 0, NULL);
-
-		fibril_mutex_unlock(&loc_consumer_mutex);
-
-		if (loc_consumer_sess == NULL)
-			return NULL;
-
-		return async_exchange_begin(loc_consumer_sess);
-	default:
+	if (loc_consumer_sess == NULL)
 		return NULL;
-	}
+
+	return async_exchange_begin(loc_consumer_sess);
 }
 
 /** Finish an async exchange on the loc session.
@@ -240,9 +187,6 @@ void loc_exchange_end(async_exch_t *exch)
 
 /** Register new server with loc.
  *
- * XXX Proper impementation - currently cannot actually call
- * this function more than once.
- *
  * @param name Server name
  * @param rsrv Place to store new server object on success
  * @return EOK on succes or an error code
@@ -256,7 +200,14 @@ errno_t loc_server_register(const char *name, loc_srv_t **rsrv)
 	if (srv == NULL)
 		return ENOMEM;
 
-	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
+	srv->sess = service_connect_blocking(SERVICE_LOC,
+	    INTERFACE_LOC_SUPPLIER, 0, NULL);
+	if (srv->sess == NULL) {
+		free(srv);
+		return ENOMEM;
+	}
+
+	exch = async_exchange_begin(srv->sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVER_REGISTER, 0, 0, &answer);
@@ -264,7 +215,8 @@ errno_t loc_server_register(const char *name, loc_srv_t **rsrv)
 
 	if (retval != EOK) {
 		async_forget(req);
-		loc_exchange_end(exch);
+		async_exchange_end(exch);
+		async_hangup(srv->sess);
 		free(srv);
 		return retval;
 	}
@@ -277,9 +229,10 @@ errno_t loc_server_register(const char *name, loc_srv_t **rsrv)
 	 * certain circumstances.
 	 */
 	async_wait_for(req, &retval);
-	loc_exchange_end(exch);
+	async_exchange_end(exch);
 
 	if (retval != EOK) {
+		async_hangup(srv->sess);
 		free(srv);
 		return retval;
 	}
@@ -292,12 +245,11 @@ errno_t loc_server_register(const char *name, loc_srv_t **rsrv)
  *
  * Unregister server and free server object.
  *
- * XXX Proper implementation
- *
  * @param srv Server object
  */
 void loc_server_unregister(loc_srv_t *srv)
 {
+	async_hangup(srv->sess);
 	free(srv);
 }
 
@@ -311,17 +263,14 @@ void loc_server_unregister(loc_srv_t *srv)
 errno_t loc_service_register(loc_srv_t *srv, const char *fqsn,
     service_id_t *sid)
 {
-	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
-
-	(void)srv;
-
+	async_exch_t *exch = async_exchange_begin(srv->sess);
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOC_SERVICE_REGISTER, &answer);
 	errno_t retval = async_data_write_start(exch, fqsn, str_size(fqsn));
 
 	if (retval != EOK) {
 		async_forget(req);
-		loc_exchange_end(exch);
+		async_exchange_end(exch);
 		return retval;
 	}
 
@@ -331,7 +280,7 @@ errno_t loc_service_register(loc_srv_t *srv, const char *fqsn,
 	 * certain circumstances.
 	 */
 	async_wait_for(req, &retval);
-	loc_exchange_end(exch);
+	async_exchange_end(exch);
 
 	if (retval != EOK) {
 		if (sid != NULL)
@@ -356,11 +305,9 @@ errno_t loc_service_unregister(loc_srv_t *srv, service_id_t sid)
 	async_exch_t *exch;
 	errno_t retval;
 
-	(void)srv;
-
-	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
+	exch = async_exchange_begin(srv->sess);
 	retval = async_req_1_0(exch, LOC_SERVICE_UNREGISTER, sid);
-	loc_exchange_end(exch);
+	async_exchange_end(exch);
 
 	return (errno_t)retval;
 }
@@ -371,9 +318,9 @@ errno_t loc_service_get_id(const char *fqdn, service_id_t *handle,
 	async_exch_t *exch;
 
 	if (flags & IPC_FLAG_BLOCKING)
-		exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+		exch = loc_exchange_begin_blocking();
 	else {
-		exch = loc_exchange_begin(INTERFACE_LOC_CONSUMER);
+		exch = loc_exchange_begin();
 		if (exch == NULL)
 			return errno;
 	}
@@ -424,7 +371,7 @@ static errno_t loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 	errno_t dretval;
 
 	*name = NULL;
-	exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+	exch = loc_exchange_begin_blocking();
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, id, &answer);
@@ -504,9 +451,9 @@ errno_t loc_namespace_get_id(const char *name, service_id_t *handle,
 	async_exch_t *exch;
 
 	if (flags & IPC_FLAG_BLOCKING)
-		exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+		exch = loc_exchange_begin_blocking();
 	else {
-		exch = loc_exchange_begin(INTERFACE_LOC_CONSUMER);
+		exch = loc_exchange_begin();
 		if (exch == NULL)
 			return errno;
 	}
@@ -553,9 +500,9 @@ errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
 	async_exch_t *exch;
 
 	if (flags & IPC_FLAG_BLOCKING)
-		exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+		exch = loc_exchange_begin_blocking();
 	else {
-		exch = loc_exchange_begin(INTERFACE_LOC_CONSUMER);
+		exch = loc_exchange_begin();
 		if (exch == NULL)
 			return errno;
 	}
@@ -589,7 +536,7 @@ errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
 
 loc_object_type_t loc_id_probe(service_id_t handle)
 {
-	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+	async_exch_t *exch = loc_exchange_begin_blocking();
 
 	sysarg_t type;
 	errno_t retval = async_req_1_1(exch, LOC_ID_PROBE, handle, &type);
@@ -620,7 +567,7 @@ async_sess_t *loc_service_connect(service_id_t handle, iface_t iface,
  */
 int loc_null_create(void)
 {
-	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+	async_exch_t *exch = loc_exchange_begin_blocking();
 
 	sysarg_t null_id;
 	errno_t retval = async_req_0_1(exch, LOC_NULL_CREATE, &null_id);
@@ -635,7 +582,7 @@ int loc_null_create(void)
 
 void loc_null_destroy(int null_id)
 {
-	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+	async_exch_t *exch = loc_exchange_begin_blocking();
 	async_req_1_0(exch, LOC_NULL_DESTROY, (sysarg_t) null_id);
 	loc_exchange_end(exch);
 }
@@ -664,9 +611,9 @@ errno_t loc_service_add_to_cat(loc_srv_t *srv, service_id_t svc_id,
 	async_exch_t *exch;
 	errno_t retval;
 
-	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
+	exch = async_exchange_begin(srv->sess);
 	retval = async_req_2_0(exch, LOC_SERVICE_ADD_TO_CAT, svc_id, cat_id);
-	loc_exchange_end(exch);
+	async_exchange_end(exch);
 
 	return retval;
 }
@@ -685,7 +632,7 @@ static size_t loc_count_services_internal(async_exch_t *exch,
 
 size_t loc_count_namespaces(void)
 {
-	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+	async_exch_t *exch = loc_exchange_begin_blocking();
 	size_t size = loc_count_namespaces_internal(exch);
 	loc_exchange_end(exch);
 
@@ -694,7 +641,7 @@ size_t loc_count_namespaces(void)
 
 size_t loc_count_services(service_id_t ns_handle)
 {
-	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+	async_exch_t *exch = loc_exchange_begin_blocking();
 	size_t size = loc_count_services_internal(exch, ns_handle);
 	loc_exchange_end(exch);
 
@@ -705,7 +652,7 @@ size_t loc_get_namespaces(loc_sdesc_t **data)
 {
 	/* Loop until read is succesful */
 	while (true) {
-		async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+		async_exch_t *exch = loc_exchange_begin_blocking();
 		size_t count = loc_count_namespaces_internal(exch);
 		loc_exchange_end(exch);
 
@@ -716,7 +663,7 @@ size_t loc_get_namespaces(loc_sdesc_t **data)
 		if (devs == NULL)
 			return 0;
 
-		exch = loc_exchange_begin(INTERFACE_LOC_CONSUMER);
+		exch = loc_exchange_begin();
 
 		ipc_call_t answer;
 		aid_t req = async_send_0(exch, LOC_GET_NAMESPACES, &answer);
@@ -754,7 +701,7 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 {
 	/* Loop until read is succesful */
 	while (true) {
-		async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+		async_exch_t *exch = loc_exchange_begin_blocking();
 		size_t count = loc_count_services_internal(exch, ns_handle);
 		loc_exchange_end(exch);
 
@@ -765,7 +712,7 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 		if (devs == NULL)
 			return 0;
 
-		exch = loc_exchange_begin(INTERFACE_LOC_CONSUMER);
+		exch = loc_exchange_begin();
 
 		ipc_call_t answer;
 		aid_t req = async_send_1(exch, LOC_GET_SERVICES, ns_handle, &answer);
@@ -802,7 +749,7 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 static errno_t loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
     sysarg_t *id_buf, size_t buf_size, size_t *act_size)
 {
-	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
+	async_exch_t *exch = loc_exchange_begin_blocking();
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, arg1, &answer);

@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,35 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
+#include <errno.h>
+#include <loc.h>
 #include <pcut/pcut.h>
 
 PCUT_INIT;
 
-PCUT_IMPORT(capa);
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(double_to_str);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(getopt);
-PCUT_IMPORT(gsort);
-PCUT_IMPORT(ieee_double);
-PCUT_IMPORT(imath);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(loc);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(strtol);
-PCUT_IMPORT(table);
-PCUT_IMPORT(uuid);
+PCUT_TEST_SUITE(loc);
 
-PCUT_MAIN();
+/** loc_server_register() can be called multiple times */
+PCUT_TEST(server_register)
+{
+	errno_t rc;
+	loc_srv_t *sa, *sb;
+	service_id_t svca, svcb;
+	char *na, *nb;
+	char *sna, *snb;
+
+	rc = loc_server_register("test-a", &sa);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_server_register("test-b", &sb);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	// XXX Without a unique name this is not reentrant
+	rc = loc_service_register(sa, "test/libc-service-a", &svca);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	// XXX Without a unique name this is not reentrant
+	rc = loc_service_register(sb, "test/libc-service-b", &svcb);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_get_name(svca, &na);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS("test/libc-service-a", na);
+
+	rc = loc_service_get_server_name(svca, &sna);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS("test-a", sna);
+
+	rc = loc_service_get_name(svcb, &nb);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS("test/libc-service-b", nb);
+
+	rc = loc_service_get_server_name(svcb, &snb);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS("test-b", snb);
+
+	rc = loc_service_unregister(sa, svca);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	rc = loc_service_unregister(sb, svcb);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	loc_server_unregister(sa);
+	loc_server_unregister(sb);
+}
+
+PCUT_EXPORT(loc);

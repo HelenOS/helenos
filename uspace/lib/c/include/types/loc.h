@@ -35,9 +35,11 @@
 #ifndef _LIBC_TYPES_LOC_H_
 #define _LIBC_TYPES_LOC_H_
 
+#include <async.h>
+
 /** Server register with location service */
 typedef struct {
-	int dummy;
+	async_sess_t *sess;
 } loc_srv_t;
 
 #endif
