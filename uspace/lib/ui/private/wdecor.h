@@ -65,6 +65,8 @@ struct ui_wdecor {
 	bool active;
 	/** Window is maximized */
 	bool maximized;
+	/** System menu handle is active */
+	bool sysmenu_hdl_active;
 	/** Minimize button */
 	struct ui_pbutton *btn_min;
 	/** Maximize button */
@@ -82,6 +84,8 @@ typedef struct {
 	gfx_rect_t interior_rect;
 	/** Title bar rectangle */
 	gfx_rect_t title_bar_rect;
+	/** System menu handle rectangle */
+	gfx_rect_t sysmenu_hdl_rect;
 	/** Window caption rectangle */
 	gfx_rect_t caption_rect;
 	/** Minimize button rectangle */
@@ -104,6 +108,9 @@ extern void ui_wdecor_resize(ui_wdecor_t *, ui_wdecor_rsztype_t,
     gfx_coord2_t *, sysarg_t);
 extern void ui_wdecor_set_cursor(ui_wdecor_t *, ui_stock_cursor_t);
 extern void ui_wdecor_get_geom(ui_wdecor_t *, ui_wdecor_geom_t *);
+extern errno_t ui_wdecor_sysmenu_hdl_paint_gfx(ui_wdecor_t *, gfx_rect_t *);
+extern errno_t ui_wdecor_sysmenu_hdl_paint_text(ui_wdecor_t *, gfx_rect_t *);
+extern errno_t ui_wdecor_sysmenu_hdl_paint(ui_wdecor_t *, gfx_rect_t *);
 extern void ui_wdecor_frame_pos_event(ui_wdecor_t *, pos_event_t *);
 extern ui_wdecor_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *,
     gfx_coord2_t *);

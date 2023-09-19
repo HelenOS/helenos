@@ -103,6 +103,14 @@ enum {
 	wdecor_cap_hmargin = 4,
 	/** Window caption horizontal margin in text mode */
 	wdecor_cap_hmargin_text = 1,
+	/** System menu handle width */
+	wdecor_sysmenu_hdl_w = 20,
+	/** System menu handle height */
+	wdecor_sysmenu_hdl_h = 20,
+	/** System menu handle width in text mode */
+	wdecor_sysmenu_hdl_w_text = 3,
+	/** System menu handle height in text mode */
+	wdecor_sysmenu_hdl_h_text = 1,
 	/** Close button cross leg length */
 	wdecor_close_cross_n = 5,
 	/** Close button cross pen width */
@@ -295,6 +303,110 @@ errno_t ui_wdecor_set_caption(ui_wdecor_t *wdecor, const char *caption)
 	return EOK;
 }
 
+/** Paint system menu handle in graphics mode.
+ *
+ * @param wdecor Window decoration
+ * @param rect System menu handle rectangle
+ * @return EOK on success or an error code
+ */
+errno_t ui_wdecor_sysmenu_hdl_paint_gfx(ui_wdecor_t *wdecor, gfx_rect_t *rect)
+{
+	errno_t rc;
+	gfx_rect_t mrect;
+	gfx_rect_t inside;
+	gfx_coord2_t center;
+
+	rc = gfx_set_color(wdecor->res->gc, wdecor->sysmenu_hdl_active ?
+	    wdecor->res->btn_shadow_color : wdecor->res->btn_face_color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_fill_rect(wdecor->res->gc, rect);
+	if (rc != EOK)
+		return rc;
+
+	center.x = (rect->p0.x + rect->p1.x) / 2;
+	center.y = (rect->p0.y + rect->p1.y) / 2;
+	mrect.p0.x = center.x - 7;
+	mrect.p0.y = center.y - 1;
+	mrect.p1.x = center.x + 7;
+	mrect.p1.y = center.y + 1 + 1;
+
+	/* XXX Not really a bevel, just a frame */
+	rc = ui_paint_bevel(wdecor->res->gc, &mrect,
+	    wdecor->res->btn_text_color, wdecor->res->btn_text_color, 1,
+	    &inside);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_set_color(wdecor->res->gc, wdecor->res->btn_highlight_color);
+	if (rc != EOK)
+		return rc;
+
+	rc = gfx_fill_rect(wdecor->res->gc, &inside);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Paint system menu handle in text mode.
+ *
+ * @param wdecor Window decoration
+ * @param rect System menu handle rectangle
+ * @return EOK on success or an error code
+ */
+errno_t ui_wdecor_sysmenu_hdl_paint_text(ui_wdecor_t *wdecor, gfx_rect_t *rect)
+{
+	errno_t rc;
+	gfx_text_fmt_t fmt;
+
+	gfx_text_fmt_init(&fmt);
+	fmt.font = wdecor->res->font;
+	fmt.color = wdecor->res->tbar_act_text_color;
+	fmt.halign = gfx_halign_left;
+	fmt.valign = gfx_valign_top;
+
+	rc = gfx_puttext(&rect->p0, &fmt, "[\u2261]");
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Paint system menu handle.
+ *
+ * @param wdecor Window decoration
+ * @param rect System menu handle rectangle
+ * @return EOK on success or an error code
+ */
+errno_t ui_wdecor_sysmenu_hdl_paint(ui_wdecor_t *wdecor, gfx_rect_t *rect)
+{
+	errno_t rc;
+
+	if (wdecor->res->textmode)
+		rc = ui_wdecor_sysmenu_hdl_paint_text(wdecor, rect);
+	else
+		rc = ui_wdecor_sysmenu_hdl_paint_gfx(wdecor, rect);
+
+	return rc;
+}
+
+/** Set system menu handle active flag.
+ *
+ * @param wdecor Window decoration
+ * @param active @c true iff handle should be active
+ */
+void ui_wdecor_sysmenu_hdl_set_active(ui_wdecor_t *wdecor, bool active)
+{
+	ui_wdecor_geom_t geom;
+
+	wdecor->sysmenu_hdl_active = active;
+
+	ui_wdecor_get_geom(wdecor, &geom);
+	(void) ui_wdecor_sysmenu_hdl_paint(wdecor, &geom.sysmenu_hdl_rect);
+}
+
 /** Paint window decoration.
  *
  * @param wdecor Window decoration
@@ -393,6 +505,13 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 		rc = gfx_puttext(&pos, &fmt, wdecor->caption);
 		if (rc != EOK)
 			return rc;
+
+		if ((wdecor->style & ui_wds_sysmenu_hdl) != 0) {
+			rc = ui_wdecor_sysmenu_hdl_paint(wdecor,
+			    &geom.sysmenu_hdl_rect);
+			if (rc != EOK)
+				return rc;
+		}
 
 		if (wdecor->btn_min != NULL) {
 			rc = ui_pbutton_paint(wdecor->btn_min);
@@ -519,6 +638,11 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 	gfx_coord_t btn_x;
 	gfx_coord_t btn_y;
 	gfx_coord_t cap_hmargin;
+	gfx_coord_t cap_x;
+	gfx_coord_t hdl_x_off;
+	gfx_coord_t hdl_y_off;
+	gfx_coord_t hdl_w;
+	gfx_coord_t hdl_h;
 
 	/* Does window have a frame? */
 	if ((wdecor->style & ui_wds_frame) != 0) {
@@ -565,6 +689,37 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 		geom->app_area_rect = geom->interior_rect;
 		btn_x = 0;
 		btn_y = 0;
+	}
+
+	/* Does window have a sysmenu handle? */
+	if ((wdecor->style & ui_wds_sysmenu_hdl) != 0) {
+		if (wdecor->res->textmode) {
+			hdl_x_off = 2;
+			hdl_y_off = 0;
+			hdl_w = wdecor_sysmenu_hdl_w_text;
+			hdl_h = wdecor_sysmenu_hdl_h_text;
+		} else {
+			hdl_x_off = 1;
+			hdl_y_off = 1;
+			hdl_w = wdecor_sysmenu_hdl_w;
+			hdl_h = wdecor_sysmenu_hdl_h;
+		}
+
+		geom->sysmenu_hdl_rect.p0.x = geom->title_bar_rect.p0.x +
+		    hdl_x_off;
+		geom->sysmenu_hdl_rect.p0.y = geom->title_bar_rect.p0.y +
+		    hdl_y_off;
+		geom->sysmenu_hdl_rect.p1.x = geom->sysmenu_hdl_rect.p0.x +
+		    hdl_w;
+		geom->sysmenu_hdl_rect.p1.y = geom->sysmenu_hdl_rect.p0.y +
+		    hdl_h;
+		cap_x = hdl_w;
+	} else {
+		geom->sysmenu_hdl_rect.p0.x = 0;
+		geom->sysmenu_hdl_rect.p0.y = 0;
+		geom->sysmenu_hdl_rect.p1.x = 0;
+		geom->sysmenu_hdl_rect.p1.y = 0;
+		cap_x = 0;
 	}
 
 	/* Does window have a close button? */
@@ -639,16 +794,23 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
 		geom->btn_min_rect.p1.y = 0;
 	}
 
-	if (wdecor->res->textmode == false)
-		cap_hmargin = wdecor_cap_hmargin;
-	else
-		cap_hmargin = wdecor_cap_hmargin_text;
+	if ((wdecor->style & ui_wds_titlebar) != 0) {
+		if (wdecor->res->textmode == false)
+			cap_hmargin = wdecor_cap_hmargin;
+		else
+			cap_hmargin = wdecor_cap_hmargin_text;
 
-	geom->caption_rect.p0.x = geom->title_bar_rect.p0.x +
-	    cap_hmargin;
-	geom->caption_rect.p0.y = geom->title_bar_rect.p0.y;
-	geom->caption_rect.p1.x = btn_x - cap_hmargin;
-	geom->caption_rect.p1.y = geom->title_bar_rect.p1.y;
+		geom->caption_rect.p0.x = geom->title_bar_rect.p0.x +
+		    cap_hmargin + cap_x;
+		geom->caption_rect.p0.y = geom->title_bar_rect.p0.y;
+		geom->caption_rect.p1.x = btn_x - cap_hmargin;
+		geom->caption_rect.p1.y = geom->title_bar_rect.p1.y;
+	} else {
+		geom->caption_rect.p0.x = 0;
+		geom->caption_rect.p0.y = 0;
+		geom->caption_rect.p1.x = 0;
+		geom->caption_rect.p1.y = 0;
+	}
 }
 
 /** Get outer rectangle from application area rectangle.
@@ -827,8 +989,10 @@ ui_evclaim_t ui_wdecor_kbd_event(ui_wdecor_t *wdecor, kbd_event_t *event)
 
 	if (event->type == KEY_PRESS && (event->mods & (KM_CTRL | KM_ALT |
 	    KM_SHIFT)) == 0) {
-		if (event->key == KC_F9)
+		if (event->key == KC_F9) {
+			ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
 			ui_wdecor_sysmenu(wdecor, event->kbd_id);
+		}
 	}
 
 	return ui_unclaimed;
@@ -880,6 +1044,15 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 	pos_id = event->pos_id;
 
 	ui_wdecor_get_geom(wdecor, &geom);
+
+	if ((wdecor->style & ui_wds_sysmenu_hdl) != 0) {
+		if (event->type == POS_PRESS &&
+		    gfx_pix_inside_rect(&pos, &geom.sysmenu_hdl_rect)) {
+			ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
+			ui_wdecor_sysmenu(wdecor, event->pos_id);
+			return ui_claimed;
+		}
+	}
 
 	if (wdecor->btn_min != NULL) {
 		claim = ui_pbutton_pos_event(wdecor->btn_min, event);

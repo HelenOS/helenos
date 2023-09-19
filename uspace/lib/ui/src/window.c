@@ -1516,8 +1516,9 @@ static void wnd_sysmenu_right(ui_menu_t *sysmenu, void *arg, sysarg_t idev_id)
  */
 static void wnd_sysmenu_close_req(ui_menu_t *sysmenu, void *arg)
 {
-	(void)arg;
+	ui_window_t *window = (ui_window_t *)arg;
 
+	ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
 	ui_menu_close(sysmenu);
 }
 

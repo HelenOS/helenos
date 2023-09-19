@@ -118,7 +118,7 @@ typedef struct {
 	ui_stock_cursor_t cursor;
 } test_cb_resp_t;
 
-/** Create and destroy button */
+/** Create and destroy window decoration */
 PCUT_TEST(create_destroy)
 {
 	ui_wdecor_t *wdecor = NULL;
@@ -216,7 +216,72 @@ PCUT_TEST(set_maximized)
 	ui_wdecor_destroy(wdecor);
 }
 
-/** Paint button */
+/** Setting system menu handle as active/inactive */
+PCUT_TEST(sysmenu_hdl_set_active)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_wdecor_t *wdecor;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(wdecor->sysmenu_hdl_active);
+	ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
+	PCUT_ASSERT_TRUE(wdecor->sysmenu_hdl_active);
+	ui_wdecor_sysmenu_hdl_set_active(wdecor, false);
+	PCUT_ASSERT_FALSE(wdecor->sysmenu_hdl_active);
+
+	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint system menu handle */
+PCUT_TEST(sysmenu_hdl_paint)
+{
+	errno_t rc;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	ui_resource_t *resource = NULL;
+	ui_wdecor_t *wdecor;
+	ui_wdecor_geom_t geom;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wdecor_get_geom(wdecor, &geom);
+	rc = ui_wdecor_sysmenu_hdl_paint(wdecor, &geom.sysmenu_hdl_rect);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Paint window decoration */
 PCUT_TEST(paint)
 {
 	errno_t rc;
@@ -233,7 +298,7 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(resource);
 
-	rc = ui_wdecor_create(resource, "Hello", ui_wds_none, &wdecor);
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_wdecor_paint(wdecor);
@@ -675,6 +740,26 @@ PCUT_TEST(get_geom_none)
 	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p1.y);
 
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.caption_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.caption_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.caption_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.caption_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p1.y);
+
 	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p1.x);
@@ -731,6 +816,26 @@ PCUT_TEST(get_geom_frame)
 	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(0, geom.title_bar_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.caption_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.caption_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.caption_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.caption_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p1.y);
 
 	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.y);
@@ -790,6 +895,26 @@ PCUT_TEST(get_geom_frame_titlebar)
 	PCUT_ASSERT_INT_EQUALS(96, geom.title_bar_rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(46, geom.title_bar_rect.p1.y);
 
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.sysmenu_hdl_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(18, geom.caption_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(24, geom.caption_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(91, geom.caption_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(46, geom.caption_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_min_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p1.y);
+
 	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(0, geom.btn_close_rect.p1.x);
@@ -846,6 +971,27 @@ PCUT_TEST(get_geom_decorated)
 	PCUT_ASSERT_INT_EQUALS(24, geom.title_bar_rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(96, geom.title_bar_rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(46, geom.title_bar_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(15, geom.sysmenu_hdl_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(25, geom.sysmenu_hdl_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(35, geom.sysmenu_hdl_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(45, geom.sysmenu_hdl_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(38, geom.caption_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(24, geom.caption_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(51, geom.caption_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(46, geom.caption_rect.p1.y);
+
+	PCUT_ASSERT_INT_EQUALS(55, geom.btn_min_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(25, geom.btn_min_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(75, geom.btn_min_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(45, geom.btn_min_rect.p1.y);
+
+	/* Maximize button is not in ui_wds_decorated */
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p0.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p0.y);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p1.x);
+	PCUT_ASSERT_INT_EQUALS(0, geom.btn_max_rect.p1.y);
 
 	PCUT_ASSERT_INT_EQUALS(75, geom.btn_close_rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(25, geom.btn_close_rect.p0.y);
