@@ -83,7 +83,10 @@ typedef enum {
 
 /** Window decoration callbacks */
 typedef struct ui_wdecor_cb {
-	void (*sysmenu)(ui_wdecor_t *, void *, sysarg_t);
+	void (*sysmenu_open)(ui_wdecor_t *, void *, sysarg_t);
+	void (*sysmenu_left)(ui_wdecor_t *, void *, sysarg_t);
+	void (*sysmenu_right)(ui_wdecor_t *, void *, sysarg_t);
+	void (*sysmenu_accel)(ui_wdecor_t *, void *, char32_t, sysarg_t);
 	void (*minimize)(ui_wdecor_t *, void *);
 	void (*maximize)(ui_wdecor_t *, void *);
 	void (*unmaximize)(ui_wdecor_t *, void *);

@@ -47,9 +47,12 @@
 #include <ui/paint.h>
 #include <ui/menubar.h>
 #include <ui/menudd.h>
+#include <ui/wdecor.h>
 #include <ui/window.h>
 #include "../private/menubar.h"
 #include "../private/resource.h"
+#include "../private/wdecor.h"
+#include "../private/window.h"
 
 enum {
 	menubar_hpad = 4,
@@ -96,6 +99,10 @@ errno_t ui_menu_bar_create(ui_t *ui, ui_window_t *window, ui_menu_bar_t **rmbar)
 	mbar->ui = ui;
 	mbar->window = window;
 	list_initialize(&mbar->menudds);
+
+	if (window->mbar == NULL)
+		window->mbar = mbar;
+
 	*rmbar = mbar;
 	return EOK;
 }
@@ -110,6 +117,9 @@ void ui_menu_bar_destroy(ui_menu_bar_t *mbar)
 
 	if (mbar == NULL)
 		return;
+
+	if (mbar->window->mbar == mbar)
+		mbar->window->mbar = NULL;
 
 	/* Destroy menu drop-downs */
 	mdd = ui_menu_dd_first(mbar);
@@ -276,7 +286,41 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_dd_t *mdd, bool openup,
 			 */
 			(void) ui_menu_dd_open(mbar->selected, &rect, idev_id);
 		}
+
+		mbar->active = true;
+	} else {
+		mbar->active = false;
 	}
+}
+
+void ui_menu_bar_select_first(ui_menu_bar_t *mbar, bool openup,
+    sysarg_t idev_id)
+{
+	ui_menu_dd_t *mdd;
+
+	mdd = ui_menu_dd_first(mbar);
+	ui_menu_bar_select(mbar, mdd, openup, idev_id);
+}
+
+void ui_menu_bar_select_last(ui_menu_bar_t *mbar, bool openup,
+    sysarg_t idev_id)
+{
+	ui_menu_dd_t *mdd;
+
+	mdd = ui_menu_dd_last(mbar);
+	ui_menu_bar_select(mbar, mdd, openup, idev_id);
+}
+
+void ui_menu_bar_select_sysmenu(ui_menu_bar_t *mbar, sysarg_t idev_id)
+{
+	bool was_open;
+
+	ui_wdecor_sysmenu_hdl_set_active(mbar->window->wdecor, true);
+	was_open = mbar->selected != NULL &&
+	    ui_menu_dd_is_open(mbar->selected);
+
+	if (was_open)
+		ui_window_send_sysmenu(mbar->window, idev_id);
 }
 
 /** Move one entry left.
@@ -295,8 +339,13 @@ void ui_menu_bar_left(ui_menu_bar_t *mbar, sysarg_t idev_id)
 		return;
 
 	nmdd = ui_menu_dd_prev(mbar->selected);
-	if (nmdd == NULL)
-		nmdd = ui_menu_dd_last(mbar);
+	if (nmdd == NULL) {
+		if ((mbar->window->wdecor->style & ui_wds_sysmenu_hdl) != 0) {
+			ui_menu_bar_select_sysmenu(mbar, idev_id);
+		} else {
+			nmdd = ui_menu_dd_last(mbar);
+		}
+	}
 
 	if (nmdd != mbar->selected)
 		ui_menu_bar_select(mbar, nmdd, false, idev_id);
@@ -318,8 +367,13 @@ void ui_menu_bar_right(ui_menu_bar_t *mbar, sysarg_t idev_id)
 		return;
 
 	nmdd = ui_menu_dd_next(mbar->selected);
-	if (nmdd == NULL)
-		nmdd = ui_menu_dd_first(mbar);
+	if (nmdd == NULL) {
+		if ((mbar->window->wdecor->style & ui_wds_sysmenu_hdl) != 0) {
+			ui_menu_bar_select_sysmenu(mbar, idev_id);
+		} else {
+			nmdd = ui_menu_dd_first(mbar);
+		}
+	}
 
 	if (nmdd != mbar->selected)
 		ui_menu_bar_select(mbar, nmdd, false, idev_id);
@@ -550,10 +604,13 @@ void ui_menu_bar_activate(ui_menu_bar_t *mbar)
 	(void) ui_menu_bar_paint(mbar);
 }
 
+/** Deactivate menu bar.
+ *
+ * @param mbar Menu bar
+ */
 void ui_menu_bar_deactivate(ui_menu_bar_t *mbar)
 {
 	ui_menu_bar_select(mbar, NULL, false, 0);
-	mbar->active = false;
 }
 
 /** Destroy menu bar control.

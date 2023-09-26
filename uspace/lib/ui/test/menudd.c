@@ -47,12 +47,25 @@ PCUT_TEST_SUITE(menudd);
 /** Create and destroy menu drop-down */
 PCUT_TEST(create_destroy)
 {
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_dd_t *mdd = NULL;
 	ui_menu_t *menu = NULL;
 	errno_t rc;
 
-	rc = ui_menu_bar_create(NULL, NULL, &mbar);
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = ui_menu_dd_create(mbar, "Test", &mdd, &menu);
@@ -67,6 +80,8 @@ PCUT_TEST(create_destroy)
 	 */
 	ui_menu_dd_destroy(mdd);
 	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_menu_dd_destroy() can take NULL argument (no-op) */

@@ -405,6 +405,7 @@ void ui_wdecor_sysmenu_hdl_set_active(ui_wdecor_t *wdecor, bool active)
 
 	ui_wdecor_get_geom(wdecor, &geom);
 	(void) ui_wdecor_sysmenu_hdl_paint(wdecor, &geom.sysmenu_hdl_rect);
+	(void) gfx_update(wdecor->res->gc);
 }
 
 /** Paint window decoration.
@@ -539,15 +540,49 @@ errno_t ui_wdecor_paint(ui_wdecor_t *wdecor)
 	return EOK;
 }
 
-/** Send decoration sysmenu event.
+/** Send decoration sysmenu open event.
  *
  * @param wdecor Window decoration
  * @param idev_id Input device ID
  */
-void ui_wdecor_sysmenu(ui_wdecor_t *wdecor, sysarg_t idev_id)
+void ui_wdecor_sysmenu_open(ui_wdecor_t *wdecor, sysarg_t idev_id)
 {
-	if (wdecor->cb != NULL && wdecor->cb->sysmenu != NULL)
-		wdecor->cb->sysmenu(wdecor, wdecor->arg, idev_id);
+	if (wdecor->cb != NULL && wdecor->cb->sysmenu_open != NULL)
+		wdecor->cb->sysmenu_open(wdecor, wdecor->arg, idev_id);
+}
+
+/** Send decoration sysmenu left event.
+ *
+ * @param wdecor Window decoration
+ * @param idev_id Input device ID
+ */
+void ui_wdecor_sysmenu_left(ui_wdecor_t *wdecor, sysarg_t idev_id)
+{
+	if (wdecor->cb != NULL && wdecor->cb->sysmenu_left != NULL)
+		wdecor->cb->sysmenu_left(wdecor, wdecor->arg, idev_id);
+}
+
+/** Send decoration sysmenu right event.
+ *
+ * @param wdecor Window decoration
+ * @param idev_id Input device ID
+ */
+void ui_wdecor_sysmenu_right(ui_wdecor_t *wdecor, sysarg_t idev_id)
+{
+	if (wdecor->cb != NULL && wdecor->cb->sysmenu_right != NULL)
+		wdecor->cb->sysmenu_right(wdecor, wdecor->arg, idev_id);
+}
+
+/** Send decoration sysmenu accelerator event.
+ *
+ * @param wdecor Window decoration
+ * @param c Accelerator character
+ * @param idev_id Input device ID
+ */
+void ui_wdecor_sysmenu_accel(ui_wdecor_t *wdecor, char32_t c, sysarg_t idev_id)
+{
+	if (wdecor->cb != NULL && wdecor->cb->sysmenu_right != NULL)
+		wdecor->cb->sysmenu_accel(wdecor, wdecor->arg, c, idev_id);
 }
 
 /** Send decoration minimize event.
@@ -985,13 +1020,39 @@ ui_stock_cursor_t ui_wdecor_cursor_from_rsztype(ui_wdecor_rsztype_t rsztype)
  */
 ui_evclaim_t ui_wdecor_kbd_event(ui_wdecor_t *wdecor, kbd_event_t *event)
 {
-	(void)wdecor;
-
 	if (event->type == KEY_PRESS && (event->mods & (KM_CTRL | KM_ALT |
 	    KM_SHIFT)) == 0) {
-		if (event->key == KC_F9) {
+		if (event->key == KC_F10) {
 			ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
-			ui_wdecor_sysmenu(wdecor, event->kbd_id);
+			ui_wdecor_sysmenu_open(wdecor, event->kbd_id);
+			return ui_claimed;
+		}
+	}
+
+	/* System menu handle events (if active) */
+	if (event->type == KEY_PRESS && (event->mods & (KM_CTRL | KM_ALT |
+	    KM_SHIFT)) == 0 && wdecor->sysmenu_hdl_active) {
+		switch (event->key) {
+		case KC_ESCAPE:
+			ui_wdecor_sysmenu_hdl_set_active(wdecor, false);
+			return ui_claimed;
+		case KC_LEFT:
+			ui_wdecor_sysmenu_left(wdecor, event->kbd_id);
+			return ui_claimed;
+		case KC_RIGHT:
+			ui_wdecor_sysmenu_right(wdecor, event->kbd_id);
+			return ui_claimed;
+		case KC_DOWN:
+			ui_wdecor_sysmenu_open(wdecor, event->kbd_id);
+			return ui_claimed;
+		default:
+			break;
+		}
+
+		if (event->c != '\0') {
+			/* Could be an accelerator key */
+			ui_wdecor_sysmenu_accel(wdecor, event->c,
+			    event->kbd_id);
 		}
 	}
 
@@ -1049,7 +1110,7 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 		if (event->type == POS_PRESS &&
 		    gfx_pix_inside_rect(&pos, &geom.sysmenu_hdl_rect)) {
 			ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
-			ui_wdecor_sysmenu(wdecor, event->pos_id);
+			ui_wdecor_sysmenu_open(wdecor, event->pos_id);
 			return ui_claimed;
 		}
 	}

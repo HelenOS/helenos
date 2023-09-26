@@ -46,6 +46,7 @@
 #include <memgfx/memgc.h>
 #include <stdlib.h>
 #include <ui/control.h>
+#include <ui/menubar.h>
 #include <ui/menu.h>
 #include <ui/menuentry.h>
 #include <ui/resource.h>
@@ -75,7 +76,10 @@ static display_wnd_cb_t dwnd_cb = {
 	.unfocus_event = dwnd_unfocus_event
 };
 
-static void wd_sysmenu(ui_wdecor_t *, void *, sysarg_t);
+static void wd_sysmenu_open(ui_wdecor_t *, void *, sysarg_t);
+static void wd_sysmenu_left(ui_wdecor_t *, void *, sysarg_t);
+static void wd_sysmenu_right(ui_wdecor_t *, void *, sysarg_t);
+static void wd_sysmenu_accel(ui_wdecor_t *, void *, char32_t, sysarg_t);
 static void wd_minimize(ui_wdecor_t *, void *);
 static void wd_maximize(ui_wdecor_t *, void *);
 static void wd_unmaximize(ui_wdecor_t *, void *);
@@ -86,7 +90,10 @@ static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
 static void wd_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t wdecor_cb = {
-	.sysmenu = wd_sysmenu,
+	.sysmenu_open = wd_sysmenu_open,
+	.sysmenu_left = wd_sysmenu_left,
+	.sysmenu_right = wd_sysmenu_right,
+	.sysmenu_accel = wd_sysmenu_accel,
 	.minimize = wd_minimize,
 	.maximize = wd_maximize,
 	.unmaximize = wd_unmaximize,
@@ -1035,11 +1042,61 @@ static void dwnd_unfocus_event(void *arg, unsigned nfocus)
  * @param arg Argument (window)
  * @param idev_id Input device ID
  */
-static void wd_sysmenu(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
+static void wd_sysmenu_open(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
 	ui_window_send_sysmenu(window, idev_id);
+}
+
+/** Window decoration requested moving left from system menu handle.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param idev_id Input device ID
+ */
+static void wd_sysmenu_left(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	if (window->mbar != NULL) {
+		ui_menu_bar_select_last(window->mbar, false, idev_id);
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+	}
+}
+
+/** Window decoration requested moving right from system menu handle.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param idev_id Input device ID
+ */
+static void wd_sysmenu_right(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	if (window->mbar != NULL) {
+		ui_menu_bar_select_first(window->mbar, false, idev_id);
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+	}
+}
+
+/** Window decoration detected accelerator press from system menu handle.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param c Accelerator key
+ * @param idev_id Input device ID
+ */
+static void wd_sysmenu_accel(ui_wdecor_t *wdecor, void *arg, char32_t c,
+    sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	if (window->mbar != NULL) {
+		ui_menu_bar_press_accel(window->mbar, c, idev_id);
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+	}
 }
 
 /** Window decoration requested window minimization.
@@ -1490,9 +1547,12 @@ void ui_window_def_unfocus(ui_window_t *window, unsigned nfocus)
  */
 static void wnd_sysmenu_left(ui_menu_t *sysmenu, void *arg, sysarg_t idev_id)
 {
+	ui_window_t *window = (ui_window_t *)arg;
+
 	(void)sysmenu;
-	(void)arg;
-	(void)idev_id;
+
+	if (window->mbar != NULL)
+		ui_menu_bar_select_last(window->mbar, true, idev_id);
 }
 
 /** Handle system menu right event.
@@ -1503,9 +1563,12 @@ static void wnd_sysmenu_left(ui_menu_t *sysmenu, void *arg, sysarg_t idev_id)
  */
 static void wnd_sysmenu_right(ui_menu_t *sysmenu, void *arg, sysarg_t idev_id)
 {
+	ui_window_t *window = (ui_window_t *)arg;
+
 	(void)sysmenu;
-	(void)arg;
-	(void)idev_id;
+
+	if (window->mbar != NULL)
+		ui_menu_bar_select_first(window->mbar, true, idev_id);
 }
 
 /** Handle system menu close request event.

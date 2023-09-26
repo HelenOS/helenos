@@ -101,6 +101,8 @@ struct ui_window {
 	struct ui_menu_entry *sysmenu_minimize;
 	/** System menu maximize entry */
 	struct ui_menu_entry *sysmenu_maximize;
+	/** Menu bar */
+	struct ui_menu_bar *mbar;
 	/** Top-level control in the application area */
 	struct ui_control *control;
 	/** Current cursor */

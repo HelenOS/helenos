@@ -61,7 +61,11 @@ static gfx_context_ops_t ops = {
 	.bitmap_get_alloc = testgc_bitmap_get_alloc
 };
 
-static void test_wdecor_sysmenu(ui_wdecor_t *, void *, sysarg_t);
+static void test_wdecor_sysmenu_open(ui_wdecor_t *, void *, sysarg_t);
+static void test_wdecor_sysmenu_left(ui_wdecor_t *, void *, sysarg_t);
+static void test_wdecor_sysmenu_right(ui_wdecor_t *, void *, sysarg_t);
+static void test_wdecor_sysmenu_accel(ui_wdecor_t *, void *, char32_t,
+    sysarg_t);
 static void test_wdecor_minimize(ui_wdecor_t *, void *);
 static void test_wdecor_maximize(ui_wdecor_t *, void *);
 static void test_wdecor_unmaximize(ui_wdecor_t *, void *);
@@ -72,7 +76,10 @@ static void test_wdecor_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
 static void test_wdecor_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t test_wdecor_cb = {
-	.sysmenu = test_wdecor_sysmenu,
+	.sysmenu_open = test_wdecor_sysmenu_open,
+	.sysmenu_left = test_wdecor_sysmenu_left,
+	.sysmenu_right = test_wdecor_sysmenu_right,
+	.sysmenu_accel = test_wdecor_sysmenu_accel,
 	.minimize = test_wdecor_minimize,
 	.maximize = test_wdecor_maximize,
 	.unmaximize = test_wdecor_unmaximize,
@@ -103,7 +110,10 @@ typedef struct {
 } testgc_bitmap_t;
 
 typedef struct {
-	bool sysmenu;
+	bool sysmenu_open;
+	bool sysmenu_left;
+	bool sysmenu_right;
+	bool sysmenu_accel;
 	bool minimize;
 	bool maximize;
 	bool unmaximize;
@@ -112,6 +122,7 @@ typedef struct {
 	gfx_coord2_t pos;
 	sysarg_t pos_id;
 	sysarg_t idev_id;
+	char32_t accel;
 	bool resize;
 	ui_wdecor_rsztype_t rsztype;
 	bool set_cursor;
@@ -311,8 +322,8 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
-/** Test ui_wdecor_sysmenu() */
-PCUT_TEST(sysmenu)
+/** Test ui_wdecor_sysmenu_open() */
+PCUT_TEST(sysmenu_open)
 {
 	errno_t rc;
 	ui_wdecor_t *wdecor;
@@ -321,19 +332,104 @@ PCUT_TEST(sysmenu)
 	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	/* Sysmenu callback with no callbacks set */
-	ui_wdecor_sysmenu(wdecor, 42);
+	/* Sysmenu open callback with no callbacks set */
+	ui_wdecor_sysmenu_open(wdecor, 42);
 
-	/* Sysmenu callback with sysmenu callback not implemented */
+	/* Sysmenu open callback with sysmenu callback not implemented */
 	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
-	ui_wdecor_sysmenu(wdecor, 42);
+	ui_wdecor_sysmenu_open(wdecor, 42);
 
-	/* Sysmenu callback with real callback set */
-	resp.sysmenu = false;
+	/* Sysmenu open callback with real callback set */
+	resp.sysmenu_open = false;
 	resp.idev_id = 0;
 	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
-	ui_wdecor_sysmenu(wdecor, 42);
-	PCUT_ASSERT_TRUE(resp.sysmenu);
+	ui_wdecor_sysmenu_open(wdecor, 42);
+	PCUT_ASSERT_TRUE(resp.sysmenu_open);
+	PCUT_ASSERT_INT_EQUALS(42, resp.idev_id);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** Test ui_wdecor_sysmenu_left() */
+PCUT_TEST(sysmenu_left)
+{
+	errno_t rc;
+	ui_wdecor_t *wdecor;
+	test_cb_resp_t resp;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Sysmenu left callback with no callbacks set */
+	ui_wdecor_sysmenu_left(wdecor, 42);
+
+	/* Sysmenu left callback with sysmenu callback not implemented */
+	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
+	ui_wdecor_sysmenu_left(wdecor, 42);
+
+	/* Sysmenu left callback with real callback set */
+	resp.sysmenu_left = false;
+	resp.idev_id = 0;
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
+	ui_wdecor_sysmenu_left(wdecor, 42);
+	PCUT_ASSERT_TRUE(resp.sysmenu_left);
+	PCUT_ASSERT_INT_EQUALS(42, resp.idev_id);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** Test ui_wdecor_sysmenu_right() */
+PCUT_TEST(sysmenu_right)
+{
+	errno_t rc;
+	ui_wdecor_t *wdecor;
+	test_cb_resp_t resp;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Sysmenu right callback with no callbacks set */
+	ui_wdecor_sysmenu_right(wdecor, 42);
+
+	/* Sysmenu right callback with sysmenu callback not implemented */
+	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
+	ui_wdecor_sysmenu_right(wdecor, 42);
+
+	/* Sysmenu right callback with real callback set */
+	resp.sysmenu_right = false;
+	resp.idev_id = 0;
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
+	ui_wdecor_sysmenu_right(wdecor, 42);
+	PCUT_ASSERT_TRUE(resp.sysmenu_right);
+	PCUT_ASSERT_INT_EQUALS(42, resp.idev_id);
+
+	ui_wdecor_destroy(wdecor);
+}
+
+/** Test ui_wdecor_sysmenu_accel() */
+PCUT_TEST(sysmenu_accel)
+{
+	errno_t rc;
+	ui_wdecor_t *wdecor;
+	test_cb_resp_t resp;
+
+	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Sysmenu accelerator callback with no callbacks set */
+	ui_wdecor_sysmenu_accel(wdecor, 'a', 42);
+
+	/* Sysmenu accelerator callback with sysmenu callback not implemented */
+	ui_wdecor_set_cb(wdecor, &dummy_wdecor_cb, NULL);
+	ui_wdecor_sysmenu_accel(wdecor, 'a', 42);
+
+	/* Sysmenu accelerator callback with real callback set */
+	resp.sysmenu_accel = false;
+	resp.idev_id = 0;
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
+	ui_wdecor_sysmenu_accel(wdecor, 'a', 42);
+	PCUT_ASSERT_TRUE(resp.sysmenu_accel);
+	PCUT_ASSERT_INT_EQUALS('a', resp.accel);
 	PCUT_ASSERT_INT_EQUALS(42, resp.idev_id);
 
 	ui_wdecor_destroy(wdecor);
@@ -648,8 +744,12 @@ PCUT_TEST(pos_event_move)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 }
 
-/** Pressing F9 generates sysmenu event */
-PCUT_TEST(kbd_f9_sysmenu)
+/** Pressing F10 generates sysmenu event.
+ *
+ * Note that in a window with menu bar the menu bar would claim F10
+ * so it would never be delivered to window decoration.
+ */
+PCUT_TEST(kbd_f10_sysmenu)
 {
 	errno_t rc;
 	gfx_rect_t rect;
@@ -680,17 +780,225 @@ PCUT_TEST(kbd_f9_sysmenu)
 
 	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, (void *) &resp);
 
-	resp.move = false;
-	resp.pos.x = 0;
-	resp.pos.y = 0;
+	resp.sysmenu_open = false;
 
 	event.type = KEY_PRESS;
 	event.mods = 0;
-	event.key = KC_F9;
+	event.key = KC_F10;
 	event.kbd_id = 42;
 	ui_wdecor_kbd_event(wdecor, &event);
 
-	PCUT_ASSERT_TRUE(resp.sysmenu);
+	PCUT_ASSERT_TRUE(resp.sysmenu_open);
+	PCUT_ASSERT_INT_EQUALS(event.kbd_id, resp.idev_id);
+
+	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Down key with active sysmenu handle generates sysmenu open event */
+PCUT_TEST(kbd_down_sysmenu)
+{
+	errno_t rc;
+	gfx_rect_t rect;
+	kbd_event_t event;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	test_cb_resp_t resp;
+	ui_resource_t *resource = NULL;
+	ui_wdecor_t *wdecor;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, (void *) &resp);
+
+	ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
+
+	resp.sysmenu_open = false;
+
+	event.type = KEY_PRESS;
+	event.mods = 0;
+	event.key = KC_DOWN;
+	event.kbd_id = 42;
+	ui_wdecor_kbd_event(wdecor, &event);
+
+	PCUT_ASSERT_TRUE(resp.sysmenu_open);
+	PCUT_ASSERT_INT_EQUALS(event.kbd_id, resp.idev_id);
+
+	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Left key with active sysmenu handle generates sysmenu left event */
+PCUT_TEST(kbd_left_sysmenu)
+{
+	errno_t rc;
+	gfx_rect_t rect;
+	kbd_event_t event;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	test_cb_resp_t resp;
+	ui_resource_t *resource = NULL;
+	ui_wdecor_t *wdecor;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, (void *) &resp);
+
+	ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
+
+	resp.sysmenu_left = false;
+
+	event.type = KEY_PRESS;
+	event.mods = 0;
+	event.key = KC_LEFT;
+	event.kbd_id = 42;
+	ui_wdecor_kbd_event(wdecor, &event);
+
+	PCUT_ASSERT_TRUE(resp.sysmenu_left);
+	PCUT_ASSERT_INT_EQUALS(event.kbd_id, resp.idev_id);
+
+	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Right key with active sysmenu handle generates sysmenu right event */
+PCUT_TEST(kbd_right_sysmenu)
+{
+	errno_t rc;
+	gfx_rect_t rect;
+	kbd_event_t event;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	test_cb_resp_t resp;
+	ui_resource_t *resource = NULL;
+	ui_wdecor_t *wdecor;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, (void *) &resp);
+
+	ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
+
+	resp.sysmenu_right = false;
+
+	event.type = KEY_PRESS;
+	event.mods = 0;
+	event.key = KC_RIGHT;
+	event.kbd_id = 42;
+	ui_wdecor_kbd_event(wdecor, &event);
+
+	PCUT_ASSERT_TRUE(resp.sysmenu_right);
+	PCUT_ASSERT_INT_EQUALS(event.kbd_id, resp.idev_id);
+
+	ui_wdecor_destroy(wdecor);
+	ui_resource_destroy(resource);
+
+	rc = gfx_context_delete(gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+}
+
+/** Character key with active sysmenu handle generates sysmenu accel event */
+PCUT_TEST(kbd_accel_sysmenu)
+{
+	errno_t rc;
+	gfx_rect_t rect;
+	kbd_event_t event;
+	gfx_context_t *gc = NULL;
+	test_gc_t tgc;
+	test_cb_resp_t resp;
+	ui_resource_t *resource = NULL;
+	ui_wdecor_t *wdecor;
+
+	memset(&tgc, 0, sizeof(tgc));
+	rc = gfx_context_new(&ops, &tgc, &gc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_resource_create(gc, false, &resource);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(resource);
+
+	rc = ui_wdecor_create(resource, "Hello", ui_wds_decorated, &wdecor);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rect.p0.x = 10;
+	rect.p0.y = 20;
+	rect.p1.x = 100;
+	rect.p1.y = 200;
+
+	ui_wdecor_set_rect(wdecor, &rect);
+
+	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, (void *) &resp);
+
+	ui_wdecor_sysmenu_hdl_set_active(wdecor, true);
+
+	resp.sysmenu_accel = false;
+
+	event.type = KEY_PRESS;
+	event.mods = 0;
+	event.key = KC_A;
+	event.c = 'a';
+	event.kbd_id = 42;
+	ui_wdecor_kbd_event(wdecor, &event);
+
+	PCUT_ASSERT_TRUE(resp.sysmenu_accel);
+	PCUT_ASSERT_INT_EQUALS(event.c, resp.accel);
 	PCUT_ASSERT_INT_EQUALS(event.kbd_id, resp.idev_id);
 
 	ui_wdecor_destroy(wdecor);
@@ -1340,12 +1648,40 @@ static errno_t testgc_bitmap_get_alloc(void *bm, gfx_bitmap_alloc_t *alloc)
 	return EOK;
 }
 
-static void test_wdecor_sysmenu(ui_wdecor_t *wdecor, void *arg,
+static void test_wdecor_sysmenu_open(ui_wdecor_t *wdecor, void *arg,
     sysarg_t idev_id)
 {
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 
-	resp->sysmenu = true;
+	resp->sysmenu_open = true;
+	resp->idev_id = idev_id;
+}
+
+static void test_wdecor_sysmenu_left(ui_wdecor_t *wdecor, void *arg,
+    sysarg_t idev_id)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->sysmenu_left = true;
+	resp->idev_id = idev_id;
+}
+
+static void test_wdecor_sysmenu_right(ui_wdecor_t *wdecor, void *arg,
+    sysarg_t idev_id)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->sysmenu_right = true;
+	resp->idev_id = idev_id;
+}
+
+static void test_wdecor_sysmenu_accel(ui_wdecor_t *wdecor, void *arg,
+    char32_t accel, sysarg_t idev_id)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->sysmenu_accel = true;
+	resp->accel = accel;
 	resp->idev_id = idev_id;
 }
 

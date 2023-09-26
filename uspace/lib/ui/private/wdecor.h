@@ -98,7 +98,10 @@ typedef struct {
 	gfx_rect_t app_area_rect;
 } ui_wdecor_geom_t;
 
-extern void ui_wdecor_sysmenu(ui_wdecor_t *, sysarg_t);
+extern void ui_wdecor_sysmenu_open(ui_wdecor_t *, sysarg_t);
+extern void ui_wdecor_sysmenu_left(ui_wdecor_t *, sysarg_t);
+extern void ui_wdecor_sysmenu_right(ui_wdecor_t *, sysarg_t);
+extern void ui_wdecor_sysmenu_accel(ui_wdecor_t *, char32_t, sysarg_t);
 extern void ui_wdecor_minimize(ui_wdecor_t *);
 extern void ui_wdecor_maximize(ui_wdecor_t *);
 extern void ui_wdecor_unmaximize(ui_wdecor_t *);
