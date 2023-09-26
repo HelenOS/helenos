@@ -361,9 +361,14 @@ errno_t ui_wdecor_sysmenu_hdl_paint_text(ui_wdecor_t *wdecor, gfx_rect_t *rect)
 	errno_t rc;
 	gfx_text_fmt_t fmt;
 
+	rc = gfx_set_color(wdecor->res->gc, wdecor->sysmenu_hdl_active ?
+	    wdecor->res->btn_shadow_color : wdecor->res->btn_face_color);
+
 	gfx_text_fmt_init(&fmt);
 	fmt.font = wdecor->res->font;
-	fmt.color = wdecor->res->tbar_act_text_color;
+	fmt.color = wdecor->sysmenu_hdl_active ?
+	    wdecor->res->wnd_sel_text_color :
+	    wdecor->res->tbar_act_text_color;
 	fmt.halign = gfx_halign_left;
 	fmt.valign = gfx_valign_top;
 
