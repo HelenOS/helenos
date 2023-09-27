@@ -1060,8 +1060,9 @@ static void wd_sysmenu_left(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
 	ui_window_t *window = (ui_window_t *) arg;
 
 	if (window->mbar != NULL) {
-		ui_menu_bar_select_last(window->mbar, false, idev_id);
 		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(window->sysmenu);
+		ui_menu_bar_select_last(window->mbar, false, idev_id);
 	}
 }
 
@@ -1076,8 +1077,9 @@ static void wd_sysmenu_right(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
 	ui_window_t *window = (ui_window_t *) arg;
 
 	if (window->mbar != NULL) {
-		ui_menu_bar_select_first(window->mbar, false, idev_id);
 		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(window->sysmenu);
+		ui_menu_bar_select_first(window->mbar, false, idev_id);
 	}
 }
 
@@ -1094,8 +1096,9 @@ static void wd_sysmenu_accel(ui_wdecor_t *wdecor, void *arg, char32_t c,
 	ui_window_t *window = (ui_window_t *) arg;
 
 	if (window->mbar != NULL) {
-		ui_menu_bar_press_accel(window->mbar, c, idev_id);
 		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(window->sysmenu);
+		ui_menu_bar_press_accel(window->mbar, c, idev_id);
 	}
 }
 
@@ -1549,10 +1552,11 @@ static void wnd_sysmenu_left(ui_menu_t *sysmenu, void *arg, sysarg_t idev_id)
 {
 	ui_window_t *window = (ui_window_t *)arg;
 
-	(void)sysmenu;
-
-	if (window->mbar != NULL)
+	if (window->mbar != NULL) {
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(sysmenu);
 		ui_menu_bar_select_last(window->mbar, true, idev_id);
+	}
 }
 
 /** Handle system menu right event.
@@ -1565,10 +1569,11 @@ static void wnd_sysmenu_right(ui_menu_t *sysmenu, void *arg, sysarg_t idev_id)
 {
 	ui_window_t *window = (ui_window_t *)arg;
 
-	(void)sysmenu;
-
-	if (window->mbar != NULL)
+	if (window->mbar != NULL) {
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(sysmenu);
 		ui_menu_bar_select_first(window->mbar, true, idev_id);
+	}
 }
 
 /** Handle system menu close request event.

@@ -293,6 +293,12 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_dd_t *mdd, bool openup,
 	}
 }
 
+/** Select first drop-down.
+ *
+ * @param mbar Menu bar
+ * @param openup @c true to open drop-down if it was not open
+ * @param idev_id Input device ID
+ */
 void ui_menu_bar_select_first(ui_menu_bar_t *mbar, bool openup,
     sysarg_t idev_id)
 {
@@ -302,6 +308,12 @@ void ui_menu_bar_select_first(ui_menu_bar_t *mbar, bool openup,
 	ui_menu_bar_select(mbar, mdd, openup, idev_id);
 }
 
+/** Select last drop-down.
+ *
+ * @param mbar Menu bar
+ * @param openup @c true to open drop-down if it was not open
+ * @param idev_id Input device ID
+ */
 void ui_menu_bar_select_last(ui_menu_bar_t *mbar, bool openup,
     sysarg_t idev_id)
 {
@@ -311,15 +323,18 @@ void ui_menu_bar_select_last(ui_menu_bar_t *mbar, bool openup,
 	ui_menu_bar_select(mbar, mdd, openup, idev_id);
 }
 
-void ui_menu_bar_select_sysmenu(ui_menu_bar_t *mbar, sysarg_t idev_id)
+/** Select system menu.
+ *
+ * @param mbar Menu bar
+ * @param openup @c true to open drop-down if it was not open
+ * @param idev_id Input device ID
+ */
+void ui_menu_bar_select_sysmenu(ui_menu_bar_t *mbar, bool openup,
+    sysarg_t idev_id)
 {
-	bool was_open;
-
 	ui_wdecor_sysmenu_hdl_set_active(mbar->window->wdecor, true);
-	was_open = mbar->selected != NULL &&
-	    ui_menu_dd_is_open(mbar->selected);
 
-	if (was_open)
+	if (openup)
 		ui_window_send_sysmenu(mbar->window, idev_id);
 }
 
@@ -334,6 +349,8 @@ void ui_menu_bar_select_sysmenu(ui_menu_bar_t *mbar, sysarg_t idev_id)
 void ui_menu_bar_left(ui_menu_bar_t *mbar, sysarg_t idev_id)
 {
 	ui_menu_dd_t *nmdd;
+	bool sel_sysmenu = false;
+	bool was_open;
 
 	if (mbar->selected == NULL)
 		return;
@@ -341,14 +358,24 @@ void ui_menu_bar_left(ui_menu_bar_t *mbar, sysarg_t idev_id)
 	nmdd = ui_menu_dd_prev(mbar->selected);
 	if (nmdd == NULL) {
 		if ((mbar->window->wdecor->style & ui_wds_sysmenu_hdl) != 0) {
-			ui_menu_bar_select_sysmenu(mbar, idev_id);
+			sel_sysmenu = true;
 		} else {
 			nmdd = ui_menu_dd_last(mbar);
 		}
 	}
 
+	was_open = mbar->selected != NULL &&
+	    ui_menu_dd_is_open(mbar->selected);
+
 	if (nmdd != mbar->selected)
 		ui_menu_bar_select(mbar, nmdd, false, idev_id);
+
+	/*
+	 * Only open sysmenu *after* closing the previous menu, avoid
+	 * having multiple popup windows at the same time.
+	 */
+	if (sel_sysmenu)
+		ui_menu_bar_select_sysmenu(mbar, was_open, idev_id);
 }
 
 /** Move one entry right.
@@ -362,6 +389,8 @@ void ui_menu_bar_left(ui_menu_bar_t *mbar, sysarg_t idev_id)
 void ui_menu_bar_right(ui_menu_bar_t *mbar, sysarg_t idev_id)
 {
 	ui_menu_dd_t *nmdd;
+	bool sel_sysmenu = false;
+	bool was_open;
 
 	if (mbar->selected == NULL)
 		return;
@@ -369,14 +398,24 @@ void ui_menu_bar_right(ui_menu_bar_t *mbar, sysarg_t idev_id)
 	nmdd = ui_menu_dd_next(mbar->selected);
 	if (nmdd == NULL) {
 		if ((mbar->window->wdecor->style & ui_wds_sysmenu_hdl) != 0) {
-			ui_menu_bar_select_sysmenu(mbar, idev_id);
+			sel_sysmenu = true;
 		} else {
 			nmdd = ui_menu_dd_first(mbar);
 		}
 	}
 
+	was_open = mbar->selected != NULL &&
+	    ui_menu_dd_is_open(mbar->selected);
+
 	if (nmdd != mbar->selected)
 		ui_menu_bar_select(mbar, nmdd, false, idev_id);
+
+	/*
+	 * Only open sysmenu *after* closing the previous menu, avoid
+	 * having multiple popup windows at the same time.
+	 */
+	if (sel_sysmenu)
+		ui_menu_bar_select_sysmenu(mbar, was_open, idev_id);
 }
 
 /** Handle menu bar key press without modifiers.

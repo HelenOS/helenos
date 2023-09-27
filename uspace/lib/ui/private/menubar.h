@@ -66,7 +66,7 @@ struct ui_menu_bar {
 };
 
 extern void ui_menu_bar_select(ui_menu_bar_t *, ui_menu_dd_t *, bool, sysarg_t);
-extern void ui_menu_bar_select_sysmenu(ui_menu_bar_t *, sysarg_t);
+extern void ui_menu_bar_select_sysmenu(ui_menu_bar_t *, bool, sysarg_t);
 extern void ui_menu_bar_left(ui_menu_bar_t *, sysarg_t);
 extern void ui_menu_bar_right(ui_menu_bar_t *, sysarg_t);
 extern ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *, kbd_event_t *);

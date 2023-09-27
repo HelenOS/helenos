@@ -452,7 +452,7 @@ PCUT_TEST(select_sysmenu)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mdd2);
 
-	ui_menu_bar_select_sysmenu(mbar, 0);
+	ui_menu_bar_select_sysmenu(mbar, false, 0);
 	PCUT_ASSERT_TRUE(window->wdecor->sysmenu_hdl_active);
 
 	ui_menu_bar_destroy(mbar);
