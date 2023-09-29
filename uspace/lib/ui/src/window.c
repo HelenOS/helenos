@@ -177,6 +177,8 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
     ui_wnd_params_t *params, gfx_coord2_t *pos)
 {
 	gfx_coord2_t dims;
+	gfx_coord2_t below_pos;
+	gfx_rect_t below_rect;
 
 	assert(params->placement != ui_wnd_place_default ||
 	    ui_is_fullscreen(window->ui));
@@ -210,9 +212,22 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
 		pos->y = drect->p1.y - params->rect.p1.y;
 		break;
 	case ui_wnd_place_popup:
-		/* Place popup window below parent rectangle */
-		pos->x = params->prect.p0.x;
-		pos->y = params->prect.p1.y;
+		/* Compute rectangle when placed below */
+		below_pos.x = params->prect.p0.x;
+		below_pos.y = params->prect.p1.y;
+		gfx_rect_translate(&below_pos, &params->rect, &below_rect);
+
+		/* Does below_rect fit within the display? */
+		if (gfx_rect_is_inside(&below_rect, drect)) {
+			/* Place popup window below parent rectangle */
+			pos->x = params->prect.p0.x - params->rect.p0.x;
+			pos->y = params->prect.p1.y - params->rect.p0.y;
+		} else {
+			/* Place popup window above parent rectangle */
+			pos->x = params->prect.p0.x;
+			pos->y = params->prect.p0.y -
+			    (params->rect.p1.y - params->rect.p0.y);
+		}
 		break;
 	}
 }
