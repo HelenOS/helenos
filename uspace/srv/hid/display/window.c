@@ -94,6 +94,8 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		goto error;
 	}
 
+	wnd->flags = params->flags;
+
 	ds_client_add_window(client, wnd);
 	ds_display_add_window(client->display, wnd);
 
@@ -133,7 +135,6 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	wnd->min_size = params->min_size;
 	wnd->gc = mem_gc_get_ctx(wnd->mgc);
 	wnd->cursor = wnd->display->cursor[dcurs_arrow];
-	wnd->flags = params->flags;
 
 	if ((params->flags & wndf_setpos) != 0) {
 		/* Specific window position */

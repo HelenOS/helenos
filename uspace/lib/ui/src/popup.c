@@ -97,7 +97,7 @@ errno_t ui_popup_create(ui_t *ui, ui_window_t *parent,
 	wparams.caption = "";
 	wparams.style &= ~ui_wds_decorated;
 	wparams.placement = ui_wnd_place_popup;
-	wparams.flags |= ui_wndf_popup;
+	wparams.flags |= ui_wndf_popup | ui_wndf_topmost;
 	wparams.idev_id = params->idev_id;
 
 	/* Compute position of parent rectangle relative to the screen */
