@@ -44,7 +44,6 @@
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
-#include "clock.h"
 #include "wndlist.h"
 
 static void wndlist_wm_window_added(void *, sysarg_t);
@@ -84,7 +83,6 @@ enum {
  *
  * @param window Containing window
  * @param fixed Fixed layout to which buttons will be added
- * @param wndmgt Window management service
  * @param rwndlist Place to store pointer to new window list
  * @return @c EOK on success or an error code
  */
@@ -177,7 +175,10 @@ error:
 	return rc;
 }
 
-/** Destroy task bar window list. */
+/** Destroy task bar window list.
+ *
+ * @param wndlist Window list
+ */
 void wndlist_destroy(wndlist_t *wndlist)
 {
 	wndlist_entry_t *entry;
@@ -468,9 +469,7 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	entry->rect = rect;
 }
 
-/** Compute and set window list entry rectangle.
- *
- * Compute rectangle for window list entry and set it.
+/** Unpaint window list entry.
  *
  * @param entry Window list entry
  * @return EOK on success or an error code

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,13 +38,13 @@
 #include <stdlib.h>
 #include <str.h>
 #include <ui/fixed.h>
-#include <ui/label.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include <wndmgt.h>
 #include "clock.h"
 #include "taskbar.h"
+#include "tbsmenu.h"
 #include "wndlist.h"
 
 static void taskbar_wnd_close(ui_window_t *, void *);
@@ -97,7 +97,6 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	taskbar_t *taskbar = NULL;
 	gfx_rect_t scr_rect;
 	gfx_rect_t rect;
-	ui_resource_t *ui_res;
 	errno_t rc;
 
 	taskbar = calloc(1, sizeof(taskbar_t));
@@ -160,7 +159,6 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 
 	ui_window_set_cb(taskbar->window, &window_cb, (void *)taskbar);
-	ui_res = ui_window_get_res(taskbar->window);
 
 	rc = ui_fixed_create(&taskbar->fixed);
 	if (rc != EOK) {
@@ -168,28 +166,25 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	rc = ui_label_create(ui_res, "HelenOS", &taskbar->label);
+	rc = tbsmenu_create(taskbar->window, taskbar->fixed, &taskbar->tbsmenu);
 	if (rc != EOK) {
-		printf("Error creating label.\n");
+		printf("Error creating start menu.\n");
 		goto error;
 	}
 
-	ui_window_get_app_rect(taskbar->window, &rect);
 	if (ui_is_textmode(taskbar->ui)) {
-		rect.p0.x += 1;
+		rect.p0.x = params.rect.p0.x + 1;
+		rect.p0.y = 0;
+		rect.p1.x = params.rect.p0.x + 9;
+		rect.p1.y = 1;
 	} else {
-		rect.p0.x += 10;
+		rect.p0.x = params.rect.p0.x + 5;
+		rect.p0.y = 4;
+		rect.p1.x = params.rect.p0.x + 84;
+		rect.p1.y = 32 - 4;
 	}
-	ui_label_set_rect(taskbar->label, &rect);
-	ui_label_set_halign(taskbar->label, gfx_halign_left);
-	ui_label_set_valign(taskbar->label, gfx_valign_center);
 
-	rc = ui_fixed_add(taskbar->fixed, ui_label_ctl(taskbar->label));
-	if (rc != EOK) {
-		printf("Error adding control to layout.\n");
-		ui_label_destroy(taskbar->label);
-		goto error;
-	}
+	tbsmenu_set_rect(taskbar->tbsmenu, &rect);
 
 	rc = wndlist_create(taskbar->window, taskbar->fixed, &taskbar->wndlist);
 	if (rc != EOK) {
@@ -198,7 +193,7 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 
 	if (ui_is_textmode(taskbar->ui)) {
-		rect.p0.x = params.rect.p0.x + 9;
+		rect.p0.x = params.rect.p0.x + 10;
 		rect.p0.y = 0;
 		rect.p1.x = params.rect.p1.x - 10;
 		rect.p1.y = 1;
@@ -256,6 +251,8 @@ error:
 		taskbar_clock_destroy(taskbar->clock);
 	if (taskbar->wndlist != NULL)
 		wndlist_destroy(taskbar->wndlist);
+	if (taskbar->tbsmenu != NULL)
+		tbsmenu_destroy(taskbar->tbsmenu);
 	if (taskbar->window != NULL)
 		ui_window_destroy(taskbar->window);
 	if (taskbar->ui != NULL)
@@ -269,6 +266,8 @@ void taskbar_destroy(taskbar_t *taskbar)
 {
 	ui_fixed_remove(taskbar->fixed, taskbar_clock_ctl(taskbar->clock));
 	taskbar_clock_destroy(taskbar->clock);
+	wndlist_destroy(taskbar->wndlist);
+	tbsmenu_destroy(taskbar->tbsmenu);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);
 }

@@ -26,13 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <pcut/pcut.h>
+#include <ui/fixed.h>
+#include <ui/ui.h>
+#include <ui/window.h>
+#include "../tbsmenu.h"
 
 PCUT_INIT;
 
-PCUT_IMPORT(clock);
-PCUT_IMPORT(taskbar);
-PCUT_IMPORT(tbsmenu);
-PCUT_IMPORT(wndlist);
+PCUT_TEST_SUITE(tbsmenu);
 
-PCUT_MAIN();
+/* Test creating and destroying taskbar start menu */
+PCUT_TEST(create_destroy)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_fixed_t *fixed = NULL;
+	tbsmenu_t *tbsmenu = NULL;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_fixed_create(&fixed);
+	ui_window_add(window, ui_fixed_ctl(fixed));
+
+	rc = tbsmenu_create(window, fixed, &tbsmenu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	tbsmenu_destroy(tbsmenu);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+PCUT_EXPORT(tbsmenu);

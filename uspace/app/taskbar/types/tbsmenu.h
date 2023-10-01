@@ -26,13 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup taskbar
+ * @{
+ */
+/**
+ * @file Task bar start menu
+ */
 
-PCUT_INIT;
+#ifndef TYPES_TBSMENU_H
+#define TYPES_TBSMENU_H
 
-PCUT_IMPORT(clock);
-PCUT_IMPORT(taskbar);
-PCUT_IMPORT(tbsmenu);
-PCUT_IMPORT(wndlist);
+#include <adt/list.h>
+#include <gfx/coord.h>
+#include <stdbool.h>
+#include <ui/pbutton.h>
+#include <ui/fixed.h>
+#include <ui/menu.h>
+#include <ui/window.h>
 
-PCUT_MAIN();
+/** Taskbar window list entry */
+typedef struct {
+	/** Containing start menu */
+	struct tbsmenu *tbsmenu;
+	/** Link to tbsmenu->entries */
+	link_t lentries;
+} tbsmenu_entry_t;
+
+/** Task bar start menu */
+typedef struct tbsmenu {
+	/** Containing window */
+	ui_window_t *window;
+
+	/** Layout to which we add start button */
+	ui_fixed_t *fixed;
+
+	/** Start button rectangle */
+	gfx_rect_t rect;
+
+	/** Start button */
+	ui_pbutton_t *sbutton;
+
+	/** Start menu */
+	ui_menu_t *smenu;
+
+	/** Start menu entries (of tbsmenu_entry_t) */
+	list_t entries;
+
+	// TODO libstartmenu instance
+
+	/** Position ID of last position event */
+	sysarg_t ev_pos_id;
+} tbsmenu_t;
+
+#endif
+
+/** @}
+ */

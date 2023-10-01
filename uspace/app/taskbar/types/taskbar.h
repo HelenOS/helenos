@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "clock.h"
+#include "tbsmenu.h"
 #include "wndlist.h"
 
 /** Task bar */
@@ -52,7 +53,8 @@ typedef struct taskbar {
 	ui_window_t *window;
 	/** Fixed layout */
 	ui_fixed_t *fixed;
-	ui_label_t *label;
+	/** Start menu */
+	tbsmenu_t *tbsmenu;
 	/** Window list */
 	wndlist_t *wndlist;
 	/** Clock */
