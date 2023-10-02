@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 
 /** Correspondence between modifers and the modifier keycodes. */
 static unsigned int mods_keys[][2] = {
+	{ KM_LALT, KC_LALT },
 	{ KM_LSHIFT, KC_LSHIFT },
 	{ KM_LCTRL, KC_LCTRL },
 	{ 0, 0 }
