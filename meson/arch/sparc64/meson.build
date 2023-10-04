@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Jiri Svoboda
+# Copyright (c) 2023 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -74,6 +74,10 @@ if PROCESSOR == 'sun4v'
 else
 	arch_uspace_link_args += [ '-Wl,-z,max-page-size=0x4000' ]
 endif
+
+rd_essential += [
+	'app/ofw'
+]
 
 if PROCESSOR == 'sun4v'
 	rd_essential_drv += [

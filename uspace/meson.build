@@ -92,6 +92,7 @@ foreach appdirs : dirs
 	link_args = []
 	language = 'c'
 	installed_data = []
+	platform_specific = false
 
 	subdir(appdirs.get('subdir'))
 
@@ -105,10 +106,12 @@ foreach appdirs : dirs
 		install = drv_list.contains(dir)
 	else
 		#
-		# Servers and applications are installed all or
-		# based on rd_essential in case of barebone build
+		# Servers and applications are installed all (unless
+		# platform-specific) or based on rd_essential in case
+		# of barebone build or platform-specific
 		#
-		install = not CONFIG_BAREBONE or rd_essential.contains(dir)
+		install = (not CONFIG_BAREBONE and not platform_specific) \
+		    or rd_essential.contains(dir)
 	endif
 
 	if install

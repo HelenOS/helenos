@@ -54,7 +54,6 @@ arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
 arch_boot_c_args = arch_kernel_c_args
 arch_boot_link_args = arch_kernel_link_args
 
-
 rd_essential_drv += [
 	'drv/bus/usb/ehci',
 	'drv/bus/usb/ohci',
