@@ -26,27 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'startmenu', 'ui', 'wndmgt' ]
+deps = [ 'sif' ]
 src = files(
-	'clock.c',
-	'main.c',
-	'taskbar.c',
-	'tbsmenu.c',
-	'wndlist.c',
+	'src/startmenu.c',
 )
 
 test_src = files(
-	'clock.c',
-	'taskbar.c',
-	'tbsmenu.c',
-	'wndlist.c',
-	'test/clock.c',
 	'test/main.c',
-	'test/taskbar.c',
-	'test/tbsmenu.c',
-	'test/wndlist.c',
+	'test/startmenu.c',
 )
-
-if install_nonessential_data
-	installed_data += { 'name': 'startmenu.sif', 'dir': '/cfg' }
-endif

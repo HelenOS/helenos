@@ -33,6 +33,7 @@
  */
 
 #include <gfx/coord.h>
+#include <startmenu/startmenu.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -70,7 +71,6 @@ errno_t tbsmenu_create(ui_window_t *window, ui_fixed_t *fixed,
 {
 	ui_resource_t *res = ui_window_get_res(window);
 	tbsmenu_t *tbsmenu = NULL;
-	ui_menu_entry_t *tentry;
 	errno_t rc;
 
 	tbsmenu = calloc(1, sizeof(tbsmenu_t));
@@ -96,30 +96,6 @@ errno_t tbsmenu_create(ui_window_t *window, ui_fixed_t *fixed,
 
 	ui_menu_set_cb(tbsmenu->smenu, &tbsmenu_smenu_cb, (void *)tbsmenu);
 
-	rc = ui_menu_entry_create(tbsmenu->smenu, "~N~avigator", "", &tentry);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_menu_entry_create(tbsmenu->smenu, "Text ~E~ditor", "", &tentry);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_menu_entry_create(tbsmenu->smenu, "~T~erminal", "", &tentry);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_menu_entry_create(tbsmenu->smenu, "~C~alculator", "", &tentry);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_menu_entry_create(tbsmenu->smenu, "~U~I Demo", "", &tentry);
-	if (rc != EOK)
-		goto error;
-
-	rc = ui_menu_entry_create(tbsmenu->smenu, "~G~FX Demo", "", &tentry);
-	if (rc != EOK)
-		goto error;
-
 	tbsmenu->window = window;
 	tbsmenu->fixed = fixed;
 	list_initialize(&tbsmenu->entries);
@@ -134,9 +110,50 @@ error:
 	return rc;
 }
 
-/** Set window list rectangle.
+/** Load start menu from repository.
  *
- * @param tbsmenu Window list
+ * @param tbsmenu Start menu
+ * @param Repository path
+ * @return EOK on success or an error code
+ */
+errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
+{
+	ui_menu_entry_t *tentry;
+	startmenu_t *smenu = NULL;
+	startmenu_entry_t *sme;
+	const char *caption;
+	const char *cmd;
+	errno_t rc;
+
+	rc = startmenu_open(repopath, &smenu);
+	if (rc != EOK)
+		goto error;
+
+	sme = startmenu_first(smenu);
+	while (sme != NULL) {
+		caption = startmenu_entry_get_caption(sme);
+		cmd = startmenu_entry_get_cmd(sme);
+
+		rc = ui_menu_entry_create(tbsmenu->smenu, caption, "", &tentry);
+		if (rc != EOK)
+			goto error;
+
+		(void)cmd;
+
+		sme = startmenu_next(sme);
+	}
+
+	startmenu_close(smenu);
+	return EOK;
+error:
+	if (smenu != NULL)
+		startmenu_close(smenu);
+	return rc;
+}
+
+/** Set start menu rectangle.
+ *
+ * @param tbsmenu Start menu
  * @param rect Rectangle
  */
 void tbsmenu_set_rect(tbsmenu_t *tbsmenu, gfx_rect_t *rect)
@@ -169,11 +186,11 @@ void tbsmenu_destroy(tbsmenu_t *tbsmenu)
 	free(tbsmenu);
 }
 
-/** Remove entry from window list.
+/** Remove entry from strat menu.
  *
- * @param tbsmenu Window list
- * @param entry Window list entry
- * @param paint @c true to repaint window list
+ * @param tbsmenu Start menu
+ * @param entry Start menu entry
+ * @param paint @c true to repaint start menu
  * @return @c EOK on success or an error code
  */
 errno_t tbsmenu_remove(tbsmenu_t *tbsmenu, tbsmenu_entry_t *entry,

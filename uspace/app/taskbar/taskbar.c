@@ -172,6 +172,13 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
+	rc = tbsmenu_load(taskbar->tbsmenu, "/cfg/startmenu.sif");
+	if (rc != EOK) {
+		printf("Error loading start menu from '%s'.\n",
+		    "/cfg/startmenu.sif");
+		goto error;
+	}
+
 	if (ui_is_textmode(taskbar->ui)) {
 		rect.p0.x = params.rect.p0.x + 1;
 		rect.p0.y = 0;

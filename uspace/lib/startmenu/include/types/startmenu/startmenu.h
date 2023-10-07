@@ -26,34 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup taskbar
+/** @addtogroup libstartmenu
  * @{
  */
 /**
- * @file Task bar start menu
+ * @file Start menu
  */
 
-#ifndef TBSMENU_H
-#define TBSMENU_H
+#ifndef _STARTMENU_TYPES_STARTMENU_H
+#define _STARTMENU_TYPES_STARTMENU_H
 
-#include <errno.h>
-#include <gfx/coord.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <ui/fixed.h>
-#include <ui/window.h>
-#include <wndmgt.h>
-#include "types/tbsmenu.h"
+struct startmenu;
+typedef struct startmenu startmenu_t;
 
-extern errno_t tbsmenu_create(ui_window_t *, ui_fixed_t *, tbsmenu_t **);
-extern errno_t tbsmenu_load(tbsmenu_t *, const char *);
-extern void tbsmenu_set_rect(tbsmenu_t *, gfx_rect_t *);
-extern void tbsmenu_destroy(tbsmenu_t *);
-extern errno_t tbsmenu_remove(tbsmenu_t *, tbsmenu_entry_t *, bool);
-extern tbsmenu_entry_t *tbsmenu_first(tbsmenu_t *);
-extern tbsmenu_entry_t *tbsmenu_last(tbsmenu_t *);
-extern tbsmenu_entry_t *tbsmenu_next(tbsmenu_entry_t *);
-extern size_t tbsmenu_count(tbsmenu_t *);
+struct startmenu_entry;
+typedef struct startmenu_entry startmenu_entry_t;
 
 #endif
 
