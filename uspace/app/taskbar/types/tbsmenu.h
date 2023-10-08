@@ -42,6 +42,7 @@
 #include <ui/pbutton.h>
 #include <ui/fixed.h>
 #include <ui/menu.h>
+#include <ui/menuentry.h>
 #include <ui/window.h>
 
 /** Taskbar window list entry */
@@ -50,6 +51,12 @@ typedef struct {
 	struct tbsmenu *tbsmenu;
 	/** Link to tbsmenu->entries */
 	link_t lentries;
+	/** Menu entry */
+	ui_menu_entry_t *mentry;
+	/** Caption */
+	char *caption;
+	/** Command to run */
+	char *cmd;
 } tbsmenu_entry_t;
 
 /** Task bar start menu */
@@ -77,6 +84,14 @@ typedef struct tbsmenu {
 	/** Position ID of last position event */
 	sysarg_t ev_pos_id;
 } tbsmenu_t;
+
+/** Command split into individual parts */
+typedef struct {
+	/** Buffer holding broken down command */
+	char *buf;
+	/** NULL-terminated array of string pointers */
+	char **argv;
+} tbsmenu_cmd_t;
 
 #endif
 

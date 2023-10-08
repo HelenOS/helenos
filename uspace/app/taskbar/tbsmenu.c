@@ -37,6 +37,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <str.h>
+#include <task.h>
 #include <ui/fixed.h>
 #include <ui/menu.h>
 #include <ui/menuentry.h>
@@ -58,6 +60,9 @@ static void tbsmenu_button_clicked(ui_pbutton_t *, void *);
 static ui_pbutton_cb_t tbsmenu_button_cb = {
 	.clicked = tbsmenu_button_clicked
 };
+
+static void tbsmenu_smenu_entry_cb(ui_menu_entry_t *, void *);
+static errno_t tbsmenu_entry_start(tbsmenu_entry_t *);
 
 /** Create task bar start menu.
  *
@@ -118,7 +123,7 @@ error:
  */
 errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 {
-	ui_menu_entry_t *tentry;
+	tbsmenu_entry_t *tentry;
 	startmenu_t *smenu = NULL;
 	startmenu_entry_t *sme;
 	const char *caption;
@@ -134,11 +139,11 @@ errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 		caption = startmenu_entry_get_caption(sme);
 		cmd = startmenu_entry_get_cmd(sme);
 
-		rc = ui_menu_entry_create(tbsmenu->smenu, caption, "", &tentry);
+		rc = tbsmenu_add(tbsmenu, caption, cmd, &tentry);
 		if (rc != EOK)
 			goto error;
 
-		(void)cmd;
+		(void)tentry;
 
 		sme = startmenu_next(sme);
 	}
@@ -170,12 +175,10 @@ void tbsmenu_destroy(tbsmenu_t *tbsmenu)
 {
 	tbsmenu_entry_t *entry;
 
-	// TODO Close libstartmenu
-
 	/* Destroy entries */
 	entry = tbsmenu_first(tbsmenu);
 	while (entry != NULL) {
-		(void)tbsmenu_remove(tbsmenu, entry, false);
+		tbsmenu_remove(tbsmenu, entry, false);
 		entry = tbsmenu_first(tbsmenu);
 	}
 
@@ -186,25 +189,73 @@ void tbsmenu_destroy(tbsmenu_t *tbsmenu)
 	free(tbsmenu);
 }
 
-/** Remove entry from strat menu.
+/** Add entry to start menu.
+ *
+ * @param tbsmenu Start menu
+ * @param caption Caption
+ * @param cmd Command to run
+ * @param entry Start menu entry
+ * @return @c EOK on success or an error code
+ */
+errno_t tbsmenu_add(tbsmenu_t *tbsmenu, const char *caption,
+    const char *cmd, tbsmenu_entry_t **rentry)
+{
+	errno_t rc;
+	tbsmenu_entry_t *entry;
+
+	entry = calloc(1, sizeof(tbsmenu_entry_t));
+	if (entry == NULL)
+		return ENOMEM;
+
+	entry->caption = str_dup(caption);
+	if (entry->caption == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	entry->cmd = str_dup(cmd);
+	if (entry->cmd == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = ui_menu_entry_create(tbsmenu->smenu, caption, "", &entry->mentry);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(entry->mentry, tbsmenu_smenu_entry_cb,
+	    (void *)entry);
+
+	entry->tbsmenu = tbsmenu;
+	list_append(&entry->lentries, &tbsmenu->entries);
+	*rentry = entry;
+	return EOK;
+error:
+	if (entry->caption != NULL)
+		free(entry->caption);
+	if (entry->cmd != NULL)
+		free(entry->cmd);
+	free(entry);
+	return rc;
+}
+
+/** Remove entry from start menu.
  *
  * @param tbsmenu Start menu
  * @param entry Start menu entry
  * @param paint @c true to repaint start menu
- * @return @c EOK on success or an error code
  */
-errno_t tbsmenu_remove(tbsmenu_t *tbsmenu, tbsmenu_entry_t *entry,
+void tbsmenu_remove(tbsmenu_t *tbsmenu, tbsmenu_entry_t *entry,
     bool paint)
 {
-	errno_t rc = EOK;
-
 	assert(entry->tbsmenu == tbsmenu);
 
 	list_remove(&entry->lentries);
 
-	// TODO Destroy menu entry
+	ui_menu_entry_destroy(entry->mentry);
+	free(entry->caption);
+	free(entry->cmd);
 	free(entry);
-	return rc;
 }
 
 /** Handle start menu close request.
@@ -219,6 +270,18 @@ static void tbsmenu_smenu_close_req(ui_menu_t *menu, void *arg)
 
 	(void)tbsmenu;
 	ui_menu_close(menu);
+}
+
+/** Start menu entry was activated.
+ *
+ * @param smentry Start menu entry
+ * @param arg Argument (tbsmenu_entry_t *)
+ */
+static void tbsmenu_smenu_entry_cb(ui_menu_entry_t *smentry, void *arg)
+{
+	tbsmenu_entry_t *entry = (tbsmenu_entry_t *)arg;
+
+	(void)tbsmenu_entry_start(entry);
 }
 
 /** Get first start menu entry.
@@ -296,6 +359,121 @@ static void tbsmenu_button_clicked(ui_pbutton_t *pbutton, void *arg)
 		/* menu is open */
 		ui_menu_close(tbsmenu->smenu);
 	}
+}
+
+/** Split command string into individual parts.
+ *
+ * Command arguments are separated by spaces. There is no way
+ * to provide an argument containing spaces.
+ *
+ * @param str Command with arguments separated by spaces
+ * @param cmd Command structure to fill in
+ * @return EOK on success or an error code
+ */
+static errno_t tbsmenu_cmd_split(const char *str, tbsmenu_cmd_t *cmd)
+{
+	char *arg;
+	char *next;
+	size_t cnt;
+
+	cmd->buf = str_dup(str);
+	if (cmd->buf == NULL)
+		return ENOMEM;
+
+	/* Count the entries */
+	cnt = 0;
+	arg = str_tok(cmd->buf, " ", &next);
+	while (arg != NULL) {
+		++cnt;
+		arg = str_tok(next, " ", &next);
+	}
+
+	/* Need to copy again as buf was mangled */
+	free(cmd->buf);
+	cmd->buf = str_dup(str);
+	if (cmd->buf == NULL)
+		return ENOMEM;
+
+	cmd->argv = calloc(cnt + 1, sizeof(char *));
+	if (cmd->argv == NULL) {
+		free(cmd->buf);
+		return ENOMEM;
+	}
+
+	/* Fill in pointers */
+	cnt = 0;
+	arg = str_tok(cmd->buf, " ", &next);
+	while (arg != NULL) {
+		cmd->argv[cnt++] = arg;
+		arg = str_tok(next, " ", &next);
+	}
+
+	return EOK;
+}
+
+/** Free command structure.
+ *
+ * @param cmd Command
+ */
+static void tbsmenu_cmd_fini(tbsmenu_cmd_t *cmd)
+{
+	free(cmd->argv);
+	free(cmd->buf);
+}
+
+/** Execute start menu entry.
+ *
+ * @param entry Start menu entry
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t tbsmenu_entry_start(tbsmenu_entry_t *entry)
+{
+	task_id_t id;
+	task_wait_t wait;
+	task_exit_t texit;
+	tbsmenu_cmd_t cmd;
+	int retval;
+	bool suspended;
+	errno_t rc;
+	ui_t *ui;
+
+	ui = ui_window_get_ui(entry->tbsmenu->window);
+	suspended = false;
+
+	rc = tbsmenu_cmd_split(entry->cmd, &cmd);
+	if (rc != EOK)
+		return rc;
+
+	/* Free up and clean console for the child task. */
+	rc = ui_suspend(ui);
+	if (rc != EOK)
+		goto error;
+
+	suspended = true;
+
+	rc = task_spawnv(&id, &wait, cmd.argv[0], (const char *const *)
+	    cmd.argv);
+	if (rc != EOK)
+		goto error;
+
+	rc = task_wait(&wait, &texit, &retval);
+	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL))
+		goto error;
+
+	/* Resume UI operation */
+	rc = ui_resume(ui);
+	if (rc != EOK)
+		goto error;
+
+	(void) ui_paint(ui);
+	return EOK;
+error:
+	tbsmenu_cmd_fini(&cmd);
+	if (suspended)
+		(void) ui_resume(ui);
+	(void) ui_paint(ui);
+	return rc;
 }
 
 /** @}
