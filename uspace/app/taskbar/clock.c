@@ -321,9 +321,14 @@ ui_evclaim_t taskbar_clock_ctl_pos_event(void *arg, pos_event_t *event)
 static void taskbar_clock_timer(void *arg)
 {
 	taskbar_clock_t *clock = (taskbar_clock_t *) arg;
+	ui_t *ui;
+
+	ui = ui_window_get_ui(clock->window);
+	ui_lock(ui);
 
 	fibril_mutex_lock(&clock->lock);
-	(void) taskbar_clock_paint(clock);
+	if (!ui_is_suspended(ui_window_get_ui(clock->window)))
+		(void) taskbar_clock_paint(clock);
 
 	if (!clock->timer_cleanup) {
 		fibril_timer_set(clock->timer, 1000000, taskbar_clock_timer,
@@ -335,6 +340,7 @@ static void taskbar_clock_timer(void *arg)
 	}
 
 	fibril_mutex_unlock(&clock->lock);
+	ui_unlock(ui);
 }
 
 /** @}

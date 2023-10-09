@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,9 @@ PCUT_TEST(destroy_null)
 	ui_destroy(NULL);
 }
 
-/** ui_suspend() / ui_resume() do nothing if we don't have a console */
+/** ui_suspend() / ui_resume() do nothing if we don't have a console,
+ * ui_is_suspended() returns suspend status
+ */
 PCUT_TEST(suspend_resume)
 {
 	ui_t *ui = NULL;
@@ -78,10 +80,17 @@ PCUT_TEST(suspend_resume)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(ui);
 
+	PCUT_ASSERT_FALSE(ui_is_suspended(ui));
+
 	rc = ui_suspend(ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_TRUE(ui_is_suspended(ui));
+
 	rc = ui_resume(ui);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(ui_is_suspended(ui));
 
 	ui_destroy(ui);
 }

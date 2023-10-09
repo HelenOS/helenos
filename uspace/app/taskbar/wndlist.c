@@ -253,7 +253,7 @@ errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
 	} else {
 		wndlist_set_entry_rect(wndlist, entry);
 		if (paint)
-			return ui_pbutton_paint(entry->button);
+			return wndlist_paint_entry(entry);
 	}
 
 	return EOK;
@@ -319,7 +319,7 @@ errno_t wndlist_remove(wndlist_t *wndlist, wndlist_entry_t *entry,
 
 			wndlist_set_entry_rect(wndlist, e);
 			if (paint) {
-				rc = ui_pbutton_paint(e->button);
+				rc = wndlist_paint_entry(e);
 				if (rc != EOK)
 					return rc;
 			}
@@ -401,11 +401,11 @@ errno_t wndlist_update(wndlist_t *wndlist, wndlist_entry_t *entry,
 
 	ui_pbutton_set_light(entry->button, active);
 
-	rc = ui_pbutton_paint(entry->button);
+	rc = wndlist_paint_entry(entry);
 	if (rc != EOK)
 		return rc;
 
-	return wndlist_repaint(wndlist);
+	return EOK;
 }
 
 /** Compute and set window list entry rectangle.
@@ -469,6 +469,22 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 	entry->rect = rect;
 }
 
+/** Paint window list entry.
+ *
+ * @param entry Window list entry
+ * @return EOK on success or an error code
+ */
+errno_t wndlist_paint_entry(wndlist_entry_t *entry)
+{
+	ui_t *ui;
+
+	ui = ui_window_get_ui(entry->wndlist->window);
+	if (ui_is_suspended(ui))
+		return EOK;
+
+	return ui_pbutton_paint(entry->button);
+}
+
 /** Unpaint window list entry.
  *
  * @param entry Window list entry
@@ -477,13 +493,18 @@ void wndlist_set_entry_rect(wndlist_t *wndlist, wndlist_entry_t *entry)
 errno_t wndlist_unpaint_entry(wndlist_entry_t *entry)
 {
 	errno_t rc;
+	ui_t *ui;
 	gfx_context_t *gc;
 	ui_resource_t *res;
 	gfx_color_t *color;
 
+	ui = ui_window_get_ui(entry->wndlist->window);
 	gc = ui_window_get_gc(entry->wndlist->window);
 	res = ui_window_get_res(entry->wndlist->window);
 	color = ui_resource_get_wnd_face_color(res);
+
+	if (ui_is_suspended(ui))
+		return EOK;
 
 	rc = gfx_set_color(gc, color);
 	if (rc != EOK)
@@ -509,7 +530,11 @@ static void wndlist_wm_window_added(void *arg, sysarg_t wnd_id)
 {
 	wndlist_t *wndlist = (wndlist_t *)arg;
 	wndmgt_window_info_t *winfo = NULL;
+	ui_t *ui;
 	errno_t rc;
+
+	ui = ui_window_get_ui(wndlist->window);
+	ui_lock(ui);
 
 	rc = wndmgt_get_window_info(wndlist->wndmgt, wnd_id, &winfo);
 	if (rc != EOK)
@@ -525,10 +550,12 @@ static void wndlist_wm_window_added(void *arg, sysarg_t wnd_id)
 	}
 
 	wndmgt_free_window_info(winfo);
+	ui_unlock(ui);
 	return;
 error:
 	if (winfo != NULL)
 		wndmgt_free_window_info(winfo);
+	ui_unlock(ui);
 }
 
 /** Handle WM window removed event.
@@ -540,12 +567,19 @@ static void wndlist_wm_window_removed(void *arg, sysarg_t wnd_id)
 {
 	wndlist_t *wndlist = (wndlist_t *)arg;
 	wndlist_entry_t *entry;
+	ui_t *ui;
+
+	ui = ui_window_get_ui(wndlist->window);
+	ui_lock(ui);
 
 	entry = wndlist_entry_by_id(wndlist, wnd_id);
-	if (entry == NULL)
+	if (entry == NULL) {
+		ui_unlock(ui);
 		return;
+	}
 
 	(void) wndlist_remove(wndlist, entry, true);
+	ui_unlock(ui);
 }
 
 /** Handle WM window changed event.
@@ -558,19 +592,28 @@ static void wndlist_wm_window_changed(void *arg, sysarg_t wnd_id)
 	wndlist_t *wndlist = (wndlist_t *)arg;
 	wndmgt_window_info_t *winfo = NULL;
 	wndlist_entry_t *entry;
+	ui_t *ui;
 	errno_t rc;
 
+	ui = ui_window_get_ui(wndlist->window);
+	ui_lock(ui);
+
 	entry = wndlist_entry_by_id(wndlist, wnd_id);
-	if (entry == NULL)
+	if (entry == NULL) {
+		ui_unlock(ui);
 		return;
+	}
 
 	rc = wndmgt_get_window_info(wndlist->wndmgt, wnd_id, &winfo);
-	if (rc != EOK)
+	if (rc != EOK) {
+		ui_unlock(ui);
 		return;
+	}
 
 	(void) wndlist_update(wndlist, entry, winfo->caption,
 	    winfo->nfocus != 0);
 	wndmgt_free_window_info(winfo);
+	ui_unlock(ui);
 }
 
 /** Find window list entry by ID.
@@ -659,6 +702,9 @@ size_t wndlist_count(wndlist_t *wndlist)
  */
 errno_t wndlist_repaint(wndlist_t *wndlist)
 {
+	if (ui_is_suspended(ui_window_get_ui(wndlist->window)))
+		return EOK;
+
 	return ui_window_paint(wndlist->window);
 }
 
