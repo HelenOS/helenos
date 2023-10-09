@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1040,12 +1040,10 @@ static errno_t demo_console(void)
 	gfx_context_t *gc;
 	errno_t rc;
 
-	printf("Init console..\n");
 	con = console_init(stdin, stdout);
 	if (con == NULL)
 		return EIO;
 
-	printf("Create console GC\n");
 	rc = console_gc_create(con, stdout, &cgc);
 	if (rc != EOK)
 		return rc;
@@ -1074,8 +1072,6 @@ static errno_t demo_ui(const char *display_spec)
 	gfx_rect_t wrect;
 	gfx_coord2_t off;
 	errno_t rc;
-
-	printf("Init UI..\n");
 
 	rc = ui_create(display_spec, &ui);
 	if (rc != EOK) {
@@ -1140,8 +1136,6 @@ static errno_t demo_display(const char *display_svc)
 	display_window_t *window = NULL;
 	errno_t rc;
 
-	printf("Init display..\n");
-
 	rc = display_open(display_svc, &display);
 	if (rc != EOK) {
 		printf("Error opening display.\n");
@@ -1185,26 +1179,22 @@ static errno_t demo_display(const char *display_svc)
 
 static void wnd_close_event(void *arg)
 {
-	printf("Close event\n");
 	quit = true;
 }
 
 static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
-	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
 	if (event->type == KEY_PRESS)
 		quit = true;
 }
 
 static void uiwnd_close_event(ui_window_t *window, void *arg)
 {
-	printf("Close event\n");
 	quit = true;
 }
 
 static void uiwnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
 {
-	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
 	if (event->type == KEY_PRESS)
 		quit = true;
 }
