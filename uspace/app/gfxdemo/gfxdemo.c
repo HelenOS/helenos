@@ -1070,11 +1070,16 @@ static errno_t demo_console(void)
 {
 	console_gc_t *cgc = NULL;
 	gfx_context_t *gc;
+	sysarg_t cols, rows;
 	errno_t rc;
 
 	con = console_init(stdin, stdout);
 	if (con == NULL)
 		return EIO;
+
+	rc = console_get_size(con, &cols, &rows);
+	if (rc != EOK)
+		return rc;
 
 	rc = console_gc_create(con, stdout, &cgc);
 	if (rc != EOK)
@@ -1082,7 +1087,7 @@ static errno_t demo_console(void)
 
 	gc = console_gc_get_ctx(cgc);
 
-	rc = demo_loop(gc, 80, 25);
+	rc = demo_loop(gc, cols, rows);
 	if (rc != EOK)
 		return rc;
 
