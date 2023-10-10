@@ -1108,11 +1108,19 @@ static errno_t demo_ui(const char *display_spec)
 	gfx_rect_t rect;
 	gfx_rect_t wrect;
 	gfx_coord2_t off;
+	gfx_rect_t ui_rect;
+	gfx_coord2_t dims;
 	errno_t rc;
 
 	rc = ui_create(display_spec, &ui);
 	if (rc != EOK) {
 		printf("Error initializing UI (%s)\n", display_spec);
+		goto error;
+	}
+
+	rc = ui_get_rect(ui, &ui_rect);
+	if (rc != EOK) {
+		printf("Error getting display size.\n");
 		goto error;
 	}
 
@@ -1132,6 +1140,14 @@ static errno_t demo_ui(const char *display_spec)
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &params.rect);
 
+	gfx_rect_dims(&ui_rect, &dims);
+
+	/* Make sure window is not larger than the entire screen */
+	if (params.rect.p1.x > dims.x)
+		params.rect.p1.x = dims.x;
+	if (params.rect.p1.y > dims.y)
+		params.rect.p1.y = dims.y;
+
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
@@ -1146,9 +1162,13 @@ static errno_t demo_ui(const char *display_spec)
 		goto error;
 	}
 
-	task_retval(0);
+	ui_window_get_app_rect(window, &rect);
+	gfx_rect_dims(&rect, &dims);
 
-	rc = demo_loop(gc, rect.p1.x, rect.p1.y);
+	if (!ui_is_fullscreen(ui))
+		task_retval(0);
+
+	rc = demo_loop(gc, dims.x, dims.y);
 	if (rc != EOK)
 		goto error;
 
