@@ -1204,10 +1204,31 @@ static void wnd_close_event(void *arg)
 	demo_quit();
 }
 
+static void demo_kbd_event(kbd_event_t *event)
+{
+	if (event->type == KEY_PRESS) {
+		/* Ctrl-Q */
+		if ((event->mods & KM_CTRL) != 0 &&
+		    (event->mods & KM_ALT) == 0 &&
+		    (event->mods & KM_SHIFT) == 0 &&
+		    event->key == KC_Q) {
+			demo_quit();
+		}
+
+		/* Escape */
+		if ((event->mods & KM_CTRL) == 0 &&
+		    (event->mods & KM_ALT) == 0 &&
+		    (event->mods & KM_SHIFT) == 0 &&
+		    event->key == KC_ESCAPE) {
+			demo_quit();
+		}
+	}
+}
+
 static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
-	if (event->type == KEY_PRESS)
-		demo_quit();
+	(void)arg;
+	demo_kbd_event(event);
 }
 
 static void uiwnd_close_event(ui_window_t *window, void *arg)
@@ -1217,8 +1238,9 @@ static void uiwnd_close_event(ui_window_t *window, void *arg)
 
 static void uiwnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
 {
-	if (event->type == KEY_PRESS)
-		demo_quit();
+	(void)window;
+	(void)arg;
+	demo_kbd_event(event);
 }
 
 static void print_syntax(void)
