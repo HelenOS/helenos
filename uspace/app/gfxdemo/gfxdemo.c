@@ -68,6 +68,8 @@ static ui_window_cb_t ui_window_cb = {
 };
 
 static bool quit = false;
+static FIBRIL_MUTEX_INITIALIZE(quit_lock);
+static FIBRIL_CONDVAR_INITIALIZE(quit_cv);
 static gfx_typeface_t *tface;
 static gfx_font_t *font;
 static gfx_coord_t vpad;
@@ -82,6 +84,22 @@ static bool demo_is_text(gfx_coord_t w, gfx_coord_t h)
 {
 	// XXX Need a proper way to determine text mode
 	return w <= 80;
+}
+
+/** Sleep until timeout or quit request.
+ *
+ * @param msec Number of microseconds to sleep for
+ */
+static void demo_msleep(unsigned msec)
+{
+	fibril_mutex_lock(&quit_lock);
+
+	if (!quit) {
+		(void) fibril_condvar_wait_timeout(&quit_cv, &quit_lock,
+		    (usec_t)msec * 1000);
+	}
+
+	fibril_mutex_unlock(&quit_lock);
 }
 
 /** Clear screen.
@@ -315,8 +333,7 @@ static errno_t demo_rects(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 		gfx_color_delete(color);
 
-		fibril_usleep(500 * 1000);
-
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -477,8 +494,8 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			rc = gfx_bitmap_render(bitmap, &srect, &offs);
 			if (rc != EOK)
 				goto error;
-			fibril_usleep(250 * 1000);
 
+			demo_msleep(250);
 			if (quit)
 				goto out;
 		}
@@ -538,8 +555,7 @@ static errno_t demo_bitmap2(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 				goto error;
 		}
 
-		fibril_usleep(500 * 1000);
-
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -599,8 +615,7 @@ static errno_t demo_bitmap_kc(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 				goto error;
 		}
 
-		fibril_usleep(500 * 1000);
-
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -790,7 +805,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	}
 
 	for (i = 0; i < 10; i++) {
-		fibril_usleep(500 * 1000);
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -871,7 +886,7 @@ static errno_t demo_text_abbr(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	}
 
 	for (i = 0; i < 10; i++) {
-		fibril_usleep(500 * 1000);
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -968,8 +983,7 @@ static errno_t demo_clip(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 				goto error;
 		}
 
-		fibril_usleep(500 * 1000);
-
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -1177,26 +1191,34 @@ static errno_t demo_display(const char *display_svc)
 	return EOK;
 }
 
+static void demo_quit(void)
+{
+	fibril_mutex_lock(&quit_lock);
+	quit = true;
+	fibril_mutex_unlock(&quit_lock);
+	fibril_condvar_broadcast(&quit_cv);
+}
+
 static void wnd_close_event(void *arg)
 {
-	quit = true;
+	demo_quit();
 }
 
 static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
 	if (event->type == KEY_PRESS)
-		quit = true;
+		demo_quit();
 }
 
 static void uiwnd_close_event(ui_window_t *window, void *arg)
 {
-	quit = true;
+	demo_quit();
 }
 
 static void uiwnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
 {
 	if (event->type == KEY_PRESS)
-		quit = true;
+		demo_quit();
 }
 
 static void print_syntax(void)
