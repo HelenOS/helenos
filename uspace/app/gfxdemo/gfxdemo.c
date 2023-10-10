@@ -67,12 +67,15 @@ static ui_window_cb_t ui_window_cb = {
 	.kbd = uiwnd_kbd_event
 };
 
+static void demo_kbd_event(kbd_event_t *);
+
 static bool quit = false;
 static FIBRIL_MUTEX_INITIALIZE(quit_lock);
 static FIBRIL_CONDVAR_INITIALIZE(quit_cv);
 static gfx_typeface_t *tface;
 static gfx_font_t *font;
 static gfx_coord_t vpad;
+static console_ctrl_t *con = NULL;
 
 /** Determine if we are running in text mode.
  *
@@ -92,13 +95,29 @@ static bool demo_is_text(gfx_coord_t w, gfx_coord_t h)
  */
 static void demo_msleep(unsigned msec)
 {
+	errno_t rc;
+	usec_t usec;
+	cons_event_t cevent;
+
 	fibril_mutex_lock(&quit_lock);
-
 	if (!quit) {
-		(void) fibril_condvar_wait_timeout(&quit_cv, &quit_lock,
-		    (usec_t)msec * 1000);
+		if (con != NULL) {
+			usec = (usec_t)msec * 1000;
+			while (usec > 0 && !quit) {
+				rc = console_get_event_timeout(con, &cevent, &usec);
+				if (rc == EOK) {
+					if (cevent.type == CEV_KEY) {
+						fibril_mutex_unlock(&quit_lock);
+						demo_kbd_event(&cevent.ev.key);
+						fibril_mutex_lock(&quit_lock);
+					}
+				}
+			}
+		} else {
+			(void) fibril_condvar_wait_timeout(&quit_cv, &quit_lock,
+			    (usec_t)msec * 1000);
+		}
 	}
-
 	fibril_mutex_unlock(&quit_lock);
 }
 
@@ -1049,7 +1068,6 @@ error:
 /** Run demo on console. */
 static errno_t demo_console(void)
 {
-	console_ctrl_t *con = NULL;
 	console_gc_t *cgc = NULL;
 	gfx_context_t *gc;
 	errno_t rc;
