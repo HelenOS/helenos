@@ -240,8 +240,12 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 	wndlist_set_rect(taskbar->wndlist, &rect);
 
+	/*
+	 * We may not be able to open WM service if display server is not
+	 * running. That's okay, there simply are no windows to manage.
+	 */
 	rc = wndlist_open_wm(taskbar->wndlist, wndmgt_svc);
-	if (rc != EOK) {
+	if (rc != EOK && rc != ENOENT) {
 		printf("Error attaching window management service.\n");
 		goto error;
 	}
