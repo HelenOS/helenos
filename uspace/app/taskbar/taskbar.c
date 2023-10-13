@@ -188,8 +188,6 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	ui_window_set_cb(taskbar->window, &window_cb, (void *)taskbar);
-
 	rc = ui_fixed_create(&taskbar->fixed);
 	if (rc != EOK) {
 		printf("Error creating fixed layout.\n");
@@ -274,6 +272,7 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 
 	ui_window_add(taskbar->window, ui_fixed_ctl(taskbar->fixed));
+	ui_window_set_cb(taskbar->window, &window_cb, (void *)taskbar);
 
 	rc = ui_window_paint(taskbar->window);
 	if (rc != EOK) {
