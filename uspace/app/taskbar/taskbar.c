@@ -48,10 +48,12 @@
 #include "wndlist.h"
 
 static void taskbar_wnd_close(ui_window_t *, void *);
+static void taskbar_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 static void taskbar_wnd_pos(ui_window_t *, void *, pos_event_t *);
 
 static ui_window_cb_t window_cb = {
 	.close = taskbar_wnd_close,
+	.kbd = taskbar_wnd_kbd,
 	.pos = taskbar_wnd_pos
 };
 
@@ -67,6 +69,33 @@ static void taskbar_wnd_close(ui_window_t *window, void *arg)
 	ui_quit(taskbar->ui);
 }
 
+/** Window received keyboard event.
+ *
+ * @param window Window
+ * @param arg Argument (taskbar)
+ * @param event Keyboard event
+ */
+static void taskbar_wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
+{
+	taskbar_t *taskbar = (taskbar_t *) arg;
+	ui_evclaim_t claim;
+
+	/* Remember ID of device that sent the last event */
+	taskbar->wndlist->ev_idev_id = event->kbd_id;
+	taskbar->tbsmenu->ev_idev_id = event->kbd_id;
+
+	claim = ui_window_def_kbd(window, event);
+	if (claim == ui_claimed)
+		return;
+
+	if (event->type == KEY_PRESS && (event->mods & KM_CTRL) == 0 &&
+	    (event->mods & KM_ALT) == 0 && (event->mods & KM_SHIFT) == 0 &&
+	    event->key == KC_ENTER) {
+		if (!tbsmenu_is_open(taskbar->tbsmenu))
+			tbsmenu_open(taskbar->tbsmenu);
+	}
+}
+
 /** Window received position event.
  *
  * @param window Window
@@ -78,7 +107,8 @@ static void taskbar_wnd_pos(ui_window_t *window, void *arg, pos_event_t *event)
 	taskbar_t *taskbar = (taskbar_t *) arg;
 
 	/* Remember ID of device that sent the last event */
-	taskbar->wndlist->ev_pos_id = event->pos_id;
+	taskbar->wndlist->ev_idev_id = event->pos_id;
+	taskbar->tbsmenu->ev_idev_id = event->pos_id;
 
 	ui_window_def_pos(window, event);
 }

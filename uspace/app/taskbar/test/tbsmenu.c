@@ -68,4 +68,41 @@ PCUT_TEST(create_destroy)
 	ui_destroy(ui);
 }
 
+/** Test tbsmenu_open/close/is_open() */
+PCUT_TEST(open_close_is_open)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	ui_fixed_t *fixed = NULL;
+	tbsmenu_t *tbsmenu = NULL;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_fixed_create(&fixed);
+	ui_window_add(window, ui_fixed_ctl(fixed));
+
+	rc = tbsmenu_create(window, fixed, &tbsmenu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_FALSE(tbsmenu_is_open(tbsmenu));
+	tbsmenu_open(tbsmenu);
+	PCUT_ASSERT_TRUE(tbsmenu_is_open(tbsmenu));
+	tbsmenu_close(tbsmenu);
+	PCUT_ASSERT_FALSE(tbsmenu_is_open(tbsmenu));
+
+	tbsmenu_destroy(tbsmenu);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 PCUT_EXPORT(tbsmenu);

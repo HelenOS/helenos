@@ -79,10 +79,8 @@ typedef struct tbsmenu {
 	/** Start menu entries (of tbsmenu_entry_t) */
 	list_t entries;
 
-	// TODO libstartmenu instance
-
-	/** Position ID of last position event */
-	sysarg_t ev_pos_id;
+	/** Device ID of last input event */
+	sysarg_t ev_idev_id;
 } tbsmenu_t;
 
 /** Command split into individual parts */

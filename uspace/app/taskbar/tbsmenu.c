@@ -91,6 +91,8 @@ errno_t tbsmenu_create(ui_window_t *window, ui_fixed_t *fixed,
 	ui_pbutton_set_cb(tbsmenu->sbutton, &tbsmenu_button_cb,
 	    (void *)tbsmenu);
 
+	ui_pbutton_set_default(tbsmenu->sbutton, true);
+
 	rc = ui_fixed_add(fixed, ui_pbutton_ctl(tbsmenu->sbutton));
 	if (rc != EOK)
 		goto error;
@@ -165,6 +167,35 @@ void tbsmenu_set_rect(tbsmenu_t *tbsmenu, gfx_rect_t *rect)
 {
 	tbsmenu->rect = *rect;
 	ui_pbutton_set_rect(tbsmenu->sbutton, rect);
+}
+
+/** Open taskbar start menu.
+ *
+ * @param tbsmenu Start menu
+ */
+void tbsmenu_open(tbsmenu_t *tbsmenu)
+{
+	(void) ui_menu_open(tbsmenu->smenu, &tbsmenu->rect,
+	    tbsmenu->ev_idev_id);
+}
+
+/** Close taskbar start menu.
+ *
+ * @param tbsmenu Start menu
+ */
+void tbsmenu_close(tbsmenu_t *tbsmenu)
+{
+	ui_menu_close(tbsmenu->smenu);
+}
+
+/** Determine if taskbar start menu is open.
+ *
+ * @param tbsmenu Start menu
+ * @return @c true iff start menu is open
+ */
+bool tbsmenu_is_open(tbsmenu_t *tbsmenu)
+{
+	return ui_menu_is_open(tbsmenu->smenu);
 }
 
 /** Destroy task bar start menu.
@@ -351,13 +382,11 @@ static void tbsmenu_button_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	tbsmenu_t *tbsmenu = (tbsmenu_t *)arg;
 
-	if (!ui_menu_is_open(tbsmenu->smenu)) {
-		// XXX ev_pos_id is not set!!!
-		(void) ui_menu_open(tbsmenu->smenu, &tbsmenu->rect,
-		    tbsmenu->ev_pos_id);
+	if (!tbsmenu_is_open(tbsmenu)) {
+		tbsmenu_open(tbsmenu);
 	} else {
 		/* menu is open */
-		ui_menu_close(tbsmenu->smenu);
+		tbsmenu_close(tbsmenu);
 	}
 }
 

@@ -48,6 +48,9 @@
 extern errno_t tbsmenu_create(ui_window_t *, ui_fixed_t *, tbsmenu_t **);
 extern errno_t tbsmenu_load(tbsmenu_t *, const char *);
 extern void tbsmenu_set_rect(tbsmenu_t *, gfx_rect_t *);
+extern void tbsmenu_open(tbsmenu_t *);
+extern void tbsmenu_close(tbsmenu_t *);
+extern bool tbsmenu_is_open(tbsmenu_t *);
 extern void tbsmenu_destroy(tbsmenu_t *);
 extern errno_t tbsmenu_add(tbsmenu_t *, const char *, const char *,
     tbsmenu_entry_t **);

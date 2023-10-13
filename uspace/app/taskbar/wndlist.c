@@ -719,7 +719,7 @@ static void wndlist_button_clicked(ui_pbutton_t *pbutton, void *arg)
 	sysarg_t dev_id;
 
 	/* ID of device that clicked the button */
-	dev_id = entry->wndlist->ev_pos_id;
+	dev_id = entry->wndlist->ev_idev_id;
 
 	(void) wndmgt_activate_window(entry->wndlist->wndmgt,
 	    dev_id, entry->wnd_id);
