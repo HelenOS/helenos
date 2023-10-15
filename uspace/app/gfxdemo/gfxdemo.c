@@ -50,6 +50,7 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 #include <ui/wdecor.h>
+#include "gfxdemo.h"
 
 static void wnd_close_event(void *);
 static void wnd_kbd_event(void *, kbd_event_t *);
@@ -76,6 +77,7 @@ static gfx_typeface_t *tface;
 static gfx_font_t *font;
 static gfx_coord_t vpad;
 static console_ctrl_t *con = NULL;
+static ui_t *ui;
 
 /** Determine if we are running in text mode.
  *
@@ -99,6 +101,8 @@ static void demo_msleep(unsigned msec)
 	usec_t usec;
 	cons_event_t cevent;
 
+	if (ui != NULL)
+		ui_unlock(ui);
 	fibril_mutex_lock(&quit_lock);
 	if (!quit) {
 		if (con != NULL) {
@@ -119,6 +123,8 @@ static void demo_msleep(unsigned msec)
 		}
 	}
 	fibril_mutex_unlock(&quit_lock);
+	if (ui != NULL)
+		ui_lock(ui);
 }
 
 /** Clear screen.
@@ -1098,10 +1104,21 @@ static errno_t demo_console(void)
 	return EOK;
 }
 
+static errno_t demo_ui_fibril(void *arg)
+{
+	demo_ui_args_t *args = (demo_ui_args_t *)arg;
+	errno_t rc;
+
+	ui_lock(args->ui);
+	rc = demo_loop(args->gc, args->dims.x, args->dims.y);
+	ui_unlock(args->ui);
+	ui_quit(args->ui);
+	return rc;
+}
+
 /** Run demo on UI. */
 static errno_t demo_ui(const char *display_spec)
 {
-	ui_t *ui = NULL;
 	ui_wnd_params_t params;
 	ui_window_t *window = NULL;
 	gfx_context_t *gc;
@@ -1110,6 +1127,8 @@ static errno_t demo_ui(const char *display_spec)
 	gfx_coord2_t off;
 	gfx_rect_t ui_rect;
 	gfx_coord2_t dims;
+	demo_ui_args_t args;
+	fid_t fid;
 	errno_t rc;
 
 	rc = ui_create(display_spec, &ui);
@@ -1168,10 +1187,19 @@ static errno_t demo_ui(const char *display_spec)
 	if (!ui_is_fullscreen(ui))
 		task_retval(0);
 
-	rc = demo_loop(gc, dims.x, dims.y);
-	if (rc != EOK)
-		goto error;
+	args.gc = gc;
+	args.dims = dims;
+	args.ui = ui;
 
+	fid = fibril_create(demo_ui_fibril, (void *)&args);
+	if (fid == 0) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	fibril_add_ready(fid);
+
+	ui_run(ui);
 	ui_window_destroy(window);
 	ui_destroy(ui);
 
