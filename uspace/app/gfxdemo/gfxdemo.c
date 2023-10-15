@@ -1327,7 +1327,7 @@ int main(int argc, char *argv[])
 {
 	errno_t rc;
 	const char *display_svc = DISPLAY_DEFAULT;
-	const char *ui_display_spec = UI_DISPLAY_DEFAULT;
+	const char *ui_display_spec = UI_ANY_DEFAULT;
 	int i;
 
 	i = 1;
