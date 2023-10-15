@@ -1151,6 +1151,10 @@ static errno_t demo_ui(const char *display_spec)
 	ui_wnd_params_init(&params);
 	params.caption = "GFX Demo";
 
+	/* Do not decorate the window in fullscreen mode */
+	if (ui_is_fullscreen(ui))
+		params.style &= ~ui_wds_decorated;
+
 	/*
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
