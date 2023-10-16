@@ -54,11 +54,11 @@ static ui_menu_cb_t tbsmenu_smenu_cb = {
 	.close_req = tbsmenu_smenu_close_req,
 };
 
-static void tbsmenu_button_clicked(ui_pbutton_t *, void *);
+static void tbsmenu_button_down(ui_pbutton_t *, void *);
 
 /** Start button callbacks */
 static ui_pbutton_cb_t tbsmenu_button_cb = {
-	.clicked = tbsmenu_button_clicked
+	.down = tbsmenu_button_down
 };
 
 static void tbsmenu_smenu_entry_cb(ui_menu_entry_t *, void *);
@@ -373,12 +373,12 @@ size_t tbsmenu_count(tbsmenu_t *tbsmenu)
 	return list_count(&tbsmenu->entries);
 }
 
-/** Start button was clicked.
+/** Start button was depressed.
  *
  * @param pbutton Push button
  * @param arg Argument (tbsmenu_entry_t *)
  */
-static void tbsmenu_button_clicked(ui_pbutton_t *pbutton, void *arg)
+static void tbsmenu_button_down(ui_pbutton_t *pbutton, void *arg)
 {
 	tbsmenu_t *tbsmenu = (tbsmenu_t *)arg;
 
