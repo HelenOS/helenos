@@ -28,10 +28,10 @@
 
 deps = [ 'sif' ]
 src = files(
-	'src/startmenu.c',
+	'src/tbarcfg.c',
 )
 
 test_src = files(
 	'test/main.c',
-	'test/startmenu.c',
+	'test/tbarcfg.c',
 )

@@ -33,12 +33,12 @@
  */
 
 #include <gfx/coord.h>
-#include <startmenu/startmenu.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <str.h>
 #include <task.h>
+#include <tbarcfg/tbarcfg.h>
 #include <ui/fixed.h>
 #include <ui/menu.h>
 #include <ui/menuentry.h>
@@ -126,20 +126,20 @@ error:
 errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 {
 	tbsmenu_entry_t *tentry;
-	startmenu_t *smenu = NULL;
-	startmenu_entry_t *sme;
+	tbarcfg_t *tbcfg = NULL;
+	smenu_entry_t *sme;
 	const char *caption;
 	const char *cmd;
 	errno_t rc;
 
-	rc = startmenu_open(repopath, &smenu);
+	rc = tbarcfg_open(repopath, &tbcfg);
 	if (rc != EOK)
 		goto error;
 
-	sme = startmenu_first(smenu);
+	sme = tbarcfg_smenu_first(tbcfg);
 	while (sme != NULL) {
-		caption = startmenu_entry_get_caption(sme);
-		cmd = startmenu_entry_get_cmd(sme);
+		caption = smenu_entry_get_caption(sme);
+		cmd = smenu_entry_get_cmd(sme);
 
 		rc = tbsmenu_add(tbsmenu, caption, cmd, &tentry);
 		if (rc != EOK)
@@ -147,14 +147,14 @@ errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 
 		(void)tentry;
 
-		sme = startmenu_next(sme);
+		sme = tbarcfg_smenu_next(sme);
 	}
 
-	startmenu_close(smenu);
+	tbarcfg_close(tbcfg);
 	return EOK;
 error:
-	if (smenu != NULL)
-		startmenu_close(smenu);
+	if (tbcfg != NULL)
+		tbarcfg_close(tbcfg);
 	return rc;
 }
 

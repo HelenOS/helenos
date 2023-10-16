@@ -26,29 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libstartmenu
+/** @addtogroup libtbarcfg
  * @{
  */
 /**
- * @file Start menu
+ * @file Task bar configuration
  */
 
 #include <errno.h>
 #include <sif.h>
-#include <startmenu/startmenu.h>
+#include <tbarcfg/tbarcfg.h>
 #include <stdlib.h>
 #include <str.h>
-#include "../private/startmenu.h"
+#include "../private/tbarcfg.h"
 
-/** Open start menu.
+/** Open task bar configuration.
  *
  * @param repopath Pathname of the menu repository
- * @param rsmenu Place to store pointer to start menu
+ * @param rtbcfg Place to store pointer to task bar configuration
  * @return EOK on success or an error code
  */
-errno_t startmenu_open(const char *repopath, startmenu_t **rsmenu)
+errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 {
-	startmenu_t *smenu;
+	tbarcfg_t *tbcfg;
 	sif_sess_t *repo = NULL;
 	sif_node_t *rnode;
 	sif_node_t *nentries;
@@ -58,13 +58,13 @@ errno_t startmenu_open(const char *repopath, startmenu_t **rsmenu)
 	const char *cmd;
 	errno_t rc;
 
-	smenu = calloc(1, sizeof(startmenu_t));
-	if (smenu == NULL) {
+	tbcfg = calloc(1, sizeof(tbarcfg_t));
+	if (tbcfg == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
 
-	list_initialize(&smenu->entries);
+	list_initialize(&tbcfg->entries);
 
 	rc = sif_open(repopath, &repo);
 	if (rc != EOK)
@@ -98,45 +98,45 @@ errno_t startmenu_open(const char *repopath, startmenu_t **rsmenu)
 			goto error;
 		}
 
-		rc = startmenu_entry_create(smenu, caption, cmd);
+		rc = smenu_entry_create(tbcfg, caption, cmd);
 		if (rc != EOK)
 			goto error;
 
 		nentry = sif_node_next_child(nentry);
 	}
 
-	*rsmenu = smenu;
+	*rtbcfg = tbcfg;
 	return EOK;
 error:
 	if (repo != NULL)
 		sif_close(repo);
-	if (smenu != NULL)
-		free(smenu);
+	if (tbcfg != NULL)
+		free(tbcfg);
 	return rc;
 }
 
-/** Close start menu.
+/** Close task bar configuration.
  *
- * @param smenu Start menu
+ * @param tbcfg Start menu
  */
-void startmenu_close(startmenu_t *smenu)
+void tbarcfg_close(tbarcfg_t *tbcfg)
 {
 }
 
 /** Get first start menu entry.
  *
- * @param smenu Start menu
+ * @param tbcfg Task bar configuration
  * @return First entry or @c NULL if the menu is empty
  */
-startmenu_entry_t *startmenu_first(startmenu_t *smenu)
+smenu_entry_t *tbarcfg_smenu_first(tbarcfg_t *tbcfg)
 {
 	link_t *link;
 
-	link = list_first(&smenu->entries);
+	link = list_first(&tbcfg->entries);
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, startmenu_entry_t, lentries);
+	return list_get_instance(link, smenu_entry_t, lentries);
 }
 
 /** Get next start menu entry.
@@ -144,7 +144,7 @@ startmenu_entry_t *startmenu_first(startmenu_t *smenu)
  * @param cur Current entry
  * @return Next entry or @c NULL if @a cur is the last entry
  */
-startmenu_entry_t *startmenu_next(startmenu_entry_t *cur)
+smenu_entry_t *tbarcfg_smenu_next(smenu_entry_t *cur)
 {
 	link_t *link;
 
@@ -152,7 +152,7 @@ startmenu_entry_t *startmenu_next(startmenu_entry_t *cur)
 	if (link == NULL)
 		return NULL;
 
-	return list_get_instance(link, startmenu_entry_t, lentries);
+	return list_get_instance(link, smenu_entry_t, lentries);
 }
 
 /** Get start menu entry caption.
@@ -160,7 +160,7 @@ startmenu_entry_t *startmenu_next(startmenu_entry_t *cur)
  * @param entry Start menu entry
  * @return Caption (with accelerator markup)
  */
-const char *startmenu_entry_get_caption(startmenu_entry_t *entry)
+const char *smenu_entry_get_caption(smenu_entry_t *entry)
 {
 	return entry->caption;
 }
@@ -170,7 +170,7 @@ const char *startmenu_entry_get_caption(startmenu_entry_t *entry)
  * @param entr Start menu entry
  * @return Command to run
  */
-const char *startmenu_entry_get_cmd(startmenu_entry_t *entry)
+const char *smenu_entry_get_cmd(smenu_entry_t *entry)
 {
 	return entry->cmd;
 }
@@ -183,13 +183,13 @@ const char *startmenu_entry_get_cmd(startmenu_entry_t *entry)
  * @param caption Caption
  * @param cmd Command to run
  */
-errno_t startmenu_entry_create(startmenu_t *smenu, const char *caption,
+errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
     const char *cmd)
 {
-	startmenu_entry_t *entry;
+	smenu_entry_t *entry;
 	errno_t rc;
 
-	entry = calloc(1, sizeof(startmenu_entry_t));
+	entry = calloc(1, sizeof(smenu_entry_t));
 	if (entry == NULL) {
 		rc = ENOMEM;
 		goto error;

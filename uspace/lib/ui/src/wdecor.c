@@ -1111,7 +1111,7 @@ ui_evclaim_t ui_wdecor_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 
 	ui_wdecor_get_geom(wdecor, &geom);
 
-	if ((wdecor->style & ui_wds_titlebar ) != 0 &&
+	if ((wdecor->style & ui_wds_titlebar) != 0 &&
 	    (wdecor->style & ui_wds_sysmenu_hdl) != 0) {
 		if (event->type == POS_PRESS &&
 		    gfx_pix_inside_rect(&pos, &geom.sysmenu_hdl_rect)) {

@@ -200,10 +200,10 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	rc = tbsmenu_load(taskbar->tbsmenu, "/cfg/startmenu.sif");
+	rc = tbsmenu_load(taskbar->tbsmenu, "/cfg/taskbar.sif");
 	if (rc != EOK) {
 		printf("Error loading start menu from '%s'.\n",
-		    "/cfg/startmenu.sif");
+		    "/cfg/taskbar.sif");
 		goto error;
 	}
 

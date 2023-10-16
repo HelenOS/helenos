@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'startmenu', 'ui', 'wndmgt' ]
+deps = [ 'tbarcfg', 'ui', 'wndmgt' ]
 src = files(
 	'clock.c',
 	'main.c',
@@ -48,5 +48,5 @@ test_src = files(
 )
 
 if install_nonessential_data
-	installed_data += { 'name': 'startmenu.sif', 'dir': '/cfg' }
+	installed_data += { 'name': 'taskbar.sif', 'dir': '/cfg' }
 endif

@@ -26,21 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libstartmenu
+/** @addtogroup libtbarcfg
  * @{
  */
 /**
  * @file Start menu
  */
 
-#ifndef _STARTMENU_TYPES_STARTMENU_H
-#define _STARTMENU_TYPES_STARTMENU_H
+#ifndef _TBARCFG_TBARCFG_H
+#define _TBARCFG_TBARCFG_H
 
-struct startmenu;
-typedef struct startmenu startmenu_t;
+#include <errno.h>
+#include <types/tbarcfg/tbarcfg.h>
 
-struct startmenu_entry;
-typedef struct startmenu_entry startmenu_entry_t;
+extern errno_t tbarcfg_open(const char *, tbarcfg_t **);
+extern void tbarcfg_close(tbarcfg_t *);
+extern smenu_entry_t *tbarcfg_smenu_first(tbarcfg_t *);
+extern smenu_entry_t *tbarcfg_smenu_next(smenu_entry_t *);
+extern const char *smenu_entry_get_caption(smenu_entry_t *);
+extern const char *smenu_entry_get_cmd(smenu_entry_t *);
 
 #endif
 

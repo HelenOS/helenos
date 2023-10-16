@@ -26,31 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libstartmenu
+/** @addtogroup libtbarcfg
  * @{
  */
 /**
- * @file Start menu
+ * @file Task bar configuration
  *
  */
 
-#ifndef _STARTMENU_PRIVATE_STARTMENU_H
-#define _STARTMENU_PRIVATE_STARTMENU_H
+#ifndef _TBARCFG_PRIVATE_TBARCFG_H
+#define _TBARCFG_PRIVATE_TBARCFG_H
 
 #include <adt/list.h>
 #include <sif.h>
-#include <types/startmenu/startmenu.h>
+#include <types/tbarcfg/tbarcfg.h>
 
-/** Start menu */
-struct startmenu {
-	/** List of entries (startmenu_entry_t) */
+/** Task bar configuration */
+struct tbarcfg {
+	/** List of start menu entries (smenu_entry_t) */
 	list_t entries;
 };
 
 /** Start menu entry */
-struct startmenu_entry {
+struct smenu_entry {
 	/** Containing start menu */
-	struct startmenu *smenu;
+	struct tbarcfg *smenu;
 	/** Link to @c smenu->entries */
 	link_t lentries;
 	/** Entry caption (with accelerator markup) */
@@ -59,7 +59,7 @@ struct startmenu_entry {
 	char *cmd;
 };
 
-extern errno_t startmenu_entry_create(startmenu_t *, const char *,
+extern errno_t smenu_entry_create(tbarcfg_t *, const char *,
     const char *);
 
 #endif

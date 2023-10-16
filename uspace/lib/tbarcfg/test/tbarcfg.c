@@ -28,18 +28,18 @@
 
 #include <errno.h>
 #include <pcut/pcut.h>
-#include <startmenu/startmenu.h>
+#include <tbarcfg/tbarcfg.h>
 #include <stdio.h>
 
 PCUT_INIT;
 
-PCUT_TEST_SUITE(startmenu);
+PCUT_TEST_SUITE(tbarcfg);
 
-/** Opening and closing start menu */
+/** Opening and closing task bar configuration */
 PCUT_TEST(open_close)
 {
 	errno_t rc;
-	startmenu_t *smenu;
+	tbarcfg_t *tbcfg;
 	FILE *f;
 	int rv;
 
@@ -52,18 +52,18 @@ PCUT_TEST(open_close)
 	rv = fclose(f);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 
-	rc = startmenu_open("/tmp/test", &smenu);
+	rc = tbarcfg_open("/tmp/test", &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	startmenu_close(smenu);
+	tbarcfg_close(tbcfg);
 }
 
 /** Iterating over start menu entries */
 PCUT_TEST(first_next)
 {
 	errno_t rc;
-	startmenu_t *smenu;
-	startmenu_entry_t *e;
+	tbarcfg_t *tbcfg;
+	smenu_entry_t *e;
 	FILE *f;
 	int rv;
 
@@ -79,25 +79,25 @@ PCUT_TEST(first_next)
 	rv = fclose(f);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 
-	rc = startmenu_open("/tmp/test", &smenu);
+	rc = tbarcfg_open("/tmp/test", &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	e = startmenu_first(smenu);
+	e = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_NOT_NULL(e);
-	e = startmenu_next(e);
+	e = tbarcfg_smenu_next(e);
 	PCUT_ASSERT_NOT_NULL(e);
-	e = startmenu_next(e);
+	e = tbarcfg_smenu_next(e);
 	PCUT_ASSERT_NULL(e);
 
-	startmenu_close(smenu);
+	tbarcfg_close(tbcfg);
 }
 
 /** Getting menu entry properties */
 PCUT_TEST(get_caption_cmd)
 {
 	errno_t rc;
-	startmenu_t *smenu;
-	startmenu_entry_t *e;
+	tbarcfg_t *tbcfg;
+	smenu_entry_t *e;
 	const char *caption;
 	const char *cmd;
 	FILE *f;
@@ -114,18 +114,18 @@ PCUT_TEST(get_caption_cmd)
 	rv = fclose(f);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 
-	rc = startmenu_open("/tmp/test", &smenu);
+	rc = tbarcfg_open("/tmp/test", &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	e = startmenu_first(smenu);
+	e = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_NOT_NULL(e);
 
-	caption = startmenu_entry_get_caption(e);
+	caption = smenu_entry_get_caption(e);
 	PCUT_ASSERT_STR_EQUALS("A", caption);
-	cmd = startmenu_entry_get_cmd(e);
+	cmd = smenu_entry_get_cmd(e);
 	PCUT_ASSERT_STR_EQUALS("a", cmd);
 
-	startmenu_close(smenu);
+	tbarcfg_close(tbcfg);
 }
 
-PCUT_EXPORT(startmenu);
+PCUT_EXPORT(tbarcfg);

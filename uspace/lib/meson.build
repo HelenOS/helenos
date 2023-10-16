@@ -79,7 +79,7 @@ libs = [
 	'riff',
 	'scsi',
 	'sif',
-	'startmenu',
+	'tbarcfg',
 	'trackmod',
 	'untar',
 	'uri',

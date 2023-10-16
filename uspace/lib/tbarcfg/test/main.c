@@ -30,6 +30,6 @@
 
 PCUT_INIT;
 
-PCUT_IMPORT(startmenu);
+PCUT_IMPORT(tbarcfg);
 
 PCUT_MAIN();
