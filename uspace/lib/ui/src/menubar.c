@@ -562,10 +562,8 @@ ui_evclaim_t ui_menu_bar_pos_event(ui_menu_bar_t *mbar, pos_event_t *event)
 		    gfx_pix_inside_rect(&ppos, &rect)) {
 			mbar->active = true;
 
-			/* Open the menu, close if already open. */
-			if (mdd == mbar->selected)
-				ui_menu_bar_select(mbar, NULL, false, pos_id);
-			else
+			/* Open the menu, if not already open. */
+			if (mdd != mbar->selected)
 				ui_menu_bar_select(mbar, mdd, true, pos_id);
 
 			return ui_claimed;

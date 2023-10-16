@@ -514,14 +514,8 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
 
-	/* Click outside popup window */
-	if (event->type == POS_PRESS && wnd != seat->popup) {
-		/* Close popup window */
-		ds_seat_set_popup(seat, NULL);
-	}
-
 	/* Deliver event to popup window. */
-	if (seat->popup != NULL) {
+	if (seat->popup != NULL && event->type != POS_PRESS) {
 		rc = ds_window_post_pos_event(seat->popup, event);
 		if (rc != EOK)
 			return rc;
@@ -545,7 +539,7 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 		 * Only deliver event if we didn't already deliver it
 		 * to the same window above.
 		 */
-		if (wnd != seat->popup) {
+		if (wnd != seat->popup || event->type == POS_PRESS) {
 			rc = ds_window_post_pos_event(wnd, event);
 			if (rc != EOK)
 				return rc;
@@ -553,6 +547,12 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	} else {
 		/* Not over a window */
 		ds_seat_set_client_cursor(seat, seat->display->cursor[dcurs_arrow]);
+	}
+
+	/* Click outside popup window */
+	if (event->type == POS_PRESS && wnd != seat->popup) {
+		/* Close popup window */
+		ds_seat_set_popup(seat, NULL);
 	}
 
 	return EOK;
