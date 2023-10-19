@@ -107,7 +107,7 @@ fi
 
 echo "==== Configuring QEMU ===="
 
-./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,aarch64-softmmu,ppc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --enable-gtk --enable-vte --enable-kvm --enable-curses --enable-opengl --enable-pa --audio-drv-list=pa --prefix="$INSTALL_PREFIX" || exit 1
+./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,aarch64-softmmu,ppc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --enable-gtk --enable-vte --enable-kvm --enable-curses --enable-opengl --enable-slirp --enable-pa --audio-drv-list=pa --prefix="$INSTALL_PREFIX" || exit 1
 
 echo "==== Building QEMU ===="
 
