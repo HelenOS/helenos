@@ -37,6 +37,8 @@
 
 /** Window resize type */
 typedef enum {
+	display_wr_none = 0,
+
 	display_wr_top = 0x1,
 	display_wr_left = 0x2,
 	display_wr_bottom = 0x4,

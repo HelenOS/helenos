@@ -39,6 +39,7 @@
 #include <gfx/coord.h>
 #include <types/common.h>
 #include <types/ui/cursor.h>
+#include <types/display/wndresize.h>
 
 struct ui_wdecor;
 typedef struct ui_wdecor ui_wdecor_t;
@@ -66,21 +67,6 @@ typedef enum {
 	    ui_wds_minimize_btn | ui_wds_close_btn
 } ui_wdecor_style_t;
 
-/** Window resize type */
-typedef enum {
-	ui_wr_none = 0,
-
-	ui_wr_top = 0x1,
-	ui_wr_left = 0x2,
-	ui_wr_bottom = 0x4,
-	ui_wr_right = 0x8,
-
-	ui_wr_top_left = ui_wr_top | ui_wr_left,
-	ui_wr_bottom_left = ui_wr_bottom | ui_wr_left,
-	ui_wr_bottom_right = ui_wr_bottom | ui_wr_right,
-	ui_wr_top_right = ui_wr_top | ui_wr_right
-} ui_wdecor_rsztype_t;
-
 /** Window decoration callbacks */
 typedef struct ui_wdecor_cb {
 	void (*sysmenu_open)(ui_wdecor_t *, void *, sysarg_t);
@@ -92,7 +78,7 @@ typedef struct ui_wdecor_cb {
 	void (*unmaximize)(ui_wdecor_t *, void *);
 	void (*close)(ui_wdecor_t *, void *);
 	void (*move)(ui_wdecor_t *, void *, gfx_coord2_t *, sysarg_t);
-	void (*resize)(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
+	void (*resize)(ui_wdecor_t *, void *, display_wnd_rsztype_t,
 	    gfx_coord2_t *, sysarg_t);
 	void (*set_cursor)(ui_wdecor_t *, void *, ui_stock_cursor_t);
 } ui_wdecor_cb_t;

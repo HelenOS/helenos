@@ -649,7 +649,7 @@ void ui_wdecor_move(ui_wdecor_t *wdecor, gfx_coord2_t *pos, sysarg_t pos_id)
  * @param pos Position where the button was pressed
  * @param pos_id Positioning device ID
  */
-void ui_wdecor_resize(ui_wdecor_t *wdecor, ui_wdecor_rsztype_t rsztype,
+void ui_wdecor_resize(ui_wdecor_t *wdecor, display_wnd_rsztype_t rsztype,
     gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	if (wdecor->cb != NULL && wdecor->cb->resize != NULL)
@@ -911,7 +911,7 @@ void ui_wdecor_app_from_rect(ui_wdecor_style_t style, gfx_rect_t *rect,
  * @param pos Pointer position
  * @return Resize type
  */
-ui_wdecor_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *wdecor,
+display_wnd_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *wdecor,
     gfx_coord2_t *pos)
 {
 	bool eleft, eright;
@@ -922,15 +922,15 @@ ui_wdecor_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *wdecor,
 
 	/* Window not resizable? */
 	if ((wdecor->style & ui_wds_resizable) == 0)
-		return ui_wr_none;
+		return display_wr_none;
 
 	/* Window is maximized? */
 	if (wdecor->maximized)
-		return ui_wr_none;
+		return display_wr_none;
 
 	/* Position not inside window? */
 	if (!gfx_pix_inside_rect(pos, &wdecor->rect))
-		return ui_wr_none;
+		return display_wr_none;
 
 	/* Position is within edge width from the outside */
 	eleft = (pos->x < wdecor->rect.p0.x + wdecor_edge_w);
@@ -949,37 +949,37 @@ ui_wdecor_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *wdecor,
 
 	/* Top-left corner */
 	if (edge && cleft && ctop)
-		return ui_wr_top_left;
+		return display_wr_top_left;
 
 	/* Top-right corner */
 	if (edge && cright && ctop)
-		return ui_wr_top_right;
+		return display_wr_top_right;
 
 	/* Bottom-left corner */
 	if (edge && cleft && cbottom)
-		return ui_wr_bottom_left;
+		return display_wr_bottom_left;
 
 	/* Bottom-right corner */
 	if (edge && cright && cbottom)
-		return ui_wr_bottom_right;
+		return display_wr_bottom_right;
 
 	/* Left edge */
 	if (eleft)
-		return ui_wr_left;
+		return display_wr_left;
 
 	/* Right edge */
 	if (eright)
-		return ui_wr_right;
+		return display_wr_right;
 
 	/* Top edge */
 	if (etop)
-		return ui_wr_top;
+		return display_wr_top;
 
 	/* Bottom edge */
 	if (ebottom)
-		return ui_wr_bottom;
+		return display_wr_bottom;
 
-	return ui_wr_none;
+	return display_wr_none;
 }
 
 /** Get stock cursor to use for the specified window resize type.
@@ -989,26 +989,26 @@ ui_wdecor_rsztype_t ui_wdecor_get_rsztype(ui_wdecor_t *wdecor,
  * @param rsztype Resize type
  * @return Cursor to use for this resize type
  */
-ui_stock_cursor_t ui_wdecor_cursor_from_rsztype(ui_wdecor_rsztype_t rsztype)
+ui_stock_cursor_t ui_wdecor_cursor_from_rsztype(display_wnd_rsztype_t rsztype)
 {
 	switch (rsztype) {
-	case ui_wr_none:
+	case display_wr_none:
 		return ui_curs_arrow;
 
-	case ui_wr_top:
-	case ui_wr_bottom:
+	case display_wr_top:
+	case display_wr_bottom:
 		return ui_curs_size_ud;
 
-	case ui_wr_left:
-	case ui_wr_right:
+	case display_wr_left:
+	case display_wr_right:
 		return ui_curs_size_lr;
 
-	case ui_wr_top_left:
-	case ui_wr_bottom_right:
+	case display_wr_top_left:
+	case display_wr_bottom_right:
 		return ui_curs_size_uldr;
 
-	case ui_wr_top_right:
-	case ui_wr_bottom_left:
+	case display_wr_top_right:
+	case display_wr_bottom_left:
 		return ui_curs_size_urdl;
 
 	default:
@@ -1073,7 +1073,7 @@ void ui_wdecor_frame_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 {
 	gfx_coord2_t pos;
 	sysarg_t pos_id;
-	ui_wdecor_rsztype_t rsztype;
+	display_wnd_rsztype_t rsztype;
 	ui_stock_cursor_t cursor;
 
 	pos.x = event->hpos;
@@ -1088,7 +1088,7 @@ void ui_wdecor_frame_pos_event(ui_wdecor_t *wdecor, pos_event_t *event)
 	ui_wdecor_set_cursor(wdecor, cursor);
 
 	/* Press on window border? */
-	if (rsztype != ui_wr_none && event->type == POS_PRESS)
+	if (rsztype != display_wr_none && event->type == POS_PRESS)
 		ui_wdecor_resize(wdecor, rsztype, &pos, pos_id);
 }
 

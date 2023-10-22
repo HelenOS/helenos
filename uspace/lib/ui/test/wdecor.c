@@ -71,7 +71,7 @@ static void test_wdecor_maximize(ui_wdecor_t *, void *);
 static void test_wdecor_unmaximize(ui_wdecor_t *, void *);
 static void test_wdecor_close(ui_wdecor_t *, void *);
 static void test_wdecor_move(ui_wdecor_t *, void *, gfx_coord2_t *, sysarg_t);
-static void test_wdecor_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
+static void test_wdecor_resize(ui_wdecor_t *, void *, display_wnd_rsztype_t,
     gfx_coord2_t *, sysarg_t);
 static void test_wdecor_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
@@ -124,7 +124,7 @@ typedef struct {
 	sysarg_t idev_id;
 	char32_t accel;
 	bool resize;
-	ui_wdecor_rsztype_t rsztype;
+	display_wnd_rsztype_t rsztype;
 	bool set_cursor;
 	ui_stock_cursor_t cursor;
 } test_cb_resp_t;
@@ -583,14 +583,14 @@ PCUT_TEST(resize)
 	errno_t rc;
 	ui_wdecor_t *wdecor;
 	test_cb_resp_t resp;
-	ui_wdecor_rsztype_t rsztype;
+	display_wnd_rsztype_t rsztype;
 	gfx_coord2_t pos;
 	sysarg_t pos_id;
 
 	rc = ui_wdecor_create(NULL, "Hello", ui_wds_none, &wdecor);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rsztype = ui_wr_bottom;
+	rsztype = display_wr_bottom;
 	pos.x = 3;
 	pos.y = 4;
 	pos_id = 5;
@@ -604,7 +604,7 @@ PCUT_TEST(resize)
 
 	/* Resize callback with real callback set */
 	resp.resize = false;
-	resp.rsztype = ui_wr_none;
+	resp.rsztype = display_wr_none;
 	resp.pos.x = 0;
 	resp.pos.y = 0;
 	ui_wdecor_set_cb(wdecor, &test_wdecor_cb, &resp);
@@ -1360,7 +1360,7 @@ PCUT_TEST(get_rsztype)
 	ui_resource_t *resource = NULL;
 	ui_wdecor_t *wdecor;
 	gfx_rect_t rect;
-	ui_wdecor_rsztype_t rsztype;
+	display_wnd_rsztype_t rsztype;
 	gfx_coord2_t pos;
 	errno_t rc;
 
@@ -1386,67 +1386,67 @@ PCUT_TEST(get_rsztype)
 	pos.x = 0;
 	pos.y = -1;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_none, rsztype);
 
 	/* Middle of the window */
 	pos.x = 50;
 	pos.y = 100;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_none, rsztype);
 
 	/* Top-left corner, but not on edge */
 	pos.x = 20;
 	pos.y = 30;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_none, rsztype);
 
 	/* Top-left corner on top edge */
 	pos.x = 20;
 	pos.y = 20;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_top_left, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_top_left, rsztype);
 
 	/* Top-left corner on left edge */
 	pos.x = 10;
 	pos.y = 30;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_top_left, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_top_left, rsztype);
 
 	/* Top-right corner on top edge */
 	pos.x = 90;
 	pos.y = 20;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_top_right, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_top_right, rsztype);
 
 	/* Top-right corner on right edge */
 	pos.x = 99;
 	pos.y = 30;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_top_right, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_top_right, rsztype);
 
 	/* Top edge */
 	pos.x = 50;
 	pos.y = 20;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_top, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_top, rsztype);
 
 	/* Bottom edge */
 	pos.x = 50;
 	pos.y = 199;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_bottom, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_bottom, rsztype);
 
 	/* Left edge */
 	pos.x = 10;
 	pos.y = 100;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_left, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_left, rsztype);
 
 	/* Right edge */
 	pos.x = 99;
 	pos.y = 100;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_right, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_right, rsztype);
 
 	ui_wdecor_destroy(wdecor);
 
@@ -1465,7 +1465,7 @@ PCUT_TEST(get_rsztype)
 	pos.x = 10;
 	pos.y = 20;
 	rsztype = ui_wdecor_get_rsztype(wdecor, &pos);
-	PCUT_ASSERT_EQUALS(ui_wr_none, rsztype);
+	PCUT_ASSERT_EQUALS(display_wr_none, rsztype);
 
 	ui_wdecor_destroy(wdecor);
 	ui_resource_destroy(resource);
@@ -1478,23 +1478,23 @@ PCUT_TEST(get_rsztype)
 PCUT_TEST(cursor_from_rsztype)
 {
 	PCUT_ASSERT_EQUALS(ui_curs_arrow,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_none));
+	    ui_wdecor_cursor_from_rsztype(display_wr_none));
 	PCUT_ASSERT_EQUALS(ui_curs_size_ud,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_top));
+	    ui_wdecor_cursor_from_rsztype(display_wr_top));
 	PCUT_ASSERT_EQUALS(ui_curs_size_ud,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_bottom));
+	    ui_wdecor_cursor_from_rsztype(display_wr_bottom));
 	PCUT_ASSERT_EQUALS(ui_curs_size_lr,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_left));
+	    ui_wdecor_cursor_from_rsztype(display_wr_left));
 	PCUT_ASSERT_EQUALS(ui_curs_size_lr,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_right));
+	    ui_wdecor_cursor_from_rsztype(display_wr_right));
 	PCUT_ASSERT_EQUALS(ui_curs_size_uldr,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_top_left));
+	    ui_wdecor_cursor_from_rsztype(display_wr_top_left));
 	PCUT_ASSERT_EQUALS(ui_curs_size_uldr,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_bottom_right));
+	    ui_wdecor_cursor_from_rsztype(display_wr_bottom_right));
 	PCUT_ASSERT_EQUALS(ui_curs_size_urdl,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_top_right));
+	    ui_wdecor_cursor_from_rsztype(display_wr_top_right));
 	PCUT_ASSERT_EQUALS(ui_curs_size_urdl,
-	    ui_wdecor_cursor_from_rsztype(ui_wr_bottom_left));
+	    ui_wdecor_cursor_from_rsztype(display_wr_bottom_left));
 }
 
 /** Test ui_wdecor_frame_pos_event() */
@@ -1724,7 +1724,7 @@ static void test_wdecor_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos,
 }
 
 static void test_wdecor_resize(ui_wdecor_t *wdecor, void *arg,
-    ui_wdecor_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
+    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
 

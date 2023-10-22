@@ -74,10 +74,6 @@ display_stock_cursor_t display_cursor_from_wrsz(display_wnd_rsztype_t rsztype)
  */
 bool display_wndrsz_valid(display_wnd_rsztype_t rsztype)
 {
-	bool valid;
-
-	valid = false;
-
 	switch (rsztype) {
 	case display_wr_top:
 	case display_wr_bottom:
@@ -87,11 +83,13 @@ bool display_wndrsz_valid(display_wnd_rsztype_t rsztype)
 	case display_wr_bottom_right:
 	case display_wr_top_right:
 	case display_wr_bottom_left:
-		valid = true;
-		break;
+		return true;
+
+	case display_wr_none:
+		return false;
 	}
 
-	return valid;
+	return false;
 }
 
 /** @}

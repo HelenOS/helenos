@@ -85,7 +85,7 @@ static void wd_maximize(ui_wdecor_t *, void *);
 static void wd_unmaximize(ui_wdecor_t *, void *);
 static void wd_close(ui_wdecor_t *, void *);
 static void wd_move(ui_wdecor_t *, void *, gfx_coord2_t *, sysarg_t);
-static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
+static void wd_resize(ui_wdecor_t *, void *, display_wnd_rsztype_t,
     gfx_coord2_t *, sysarg_t);
 static void wd_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
@@ -1190,13 +1190,12 @@ static void wd_move(ui_wdecor_t *wdecor, void *arg, gfx_coord2_t *pos,
  * @param pos_id Positioning device ID
  */
 static void wd_resize(ui_wdecor_t *wdecor, void *arg,
-    ui_wdecor_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
+    display_wnd_rsztype_t rsztype, gfx_coord2_t *pos, sysarg_t pos_id)
 {
 	ui_window_t *window = (ui_window_t *) arg;
 
 	if (window->dwindow != NULL) {
-		(void) display_window_resize_req(window->dwindow,
-		    (display_wnd_rsztype_t) rsztype, // Same constants in the enums
+		(void) display_window_resize_req(window->dwindow, rsztype,
 		    pos, pos_id);
 	}
 }
