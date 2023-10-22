@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include <types/common.h>
 #include <types/ui/wdecor.h>
 
 struct ui_window;
@@ -94,6 +95,7 @@ typedef struct {
 
 /** Window callbacks */
 typedef struct ui_window_cb {
+	void (*sysmenu)(ui_window_t *, void *, sysarg_t);
 	void (*minimize)(ui_window_t *, void *);
 	void (*maximize)(ui_window_t *, void *);
 	void (*unmaximize)(ui_window_t *, void *);

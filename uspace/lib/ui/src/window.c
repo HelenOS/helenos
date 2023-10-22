@@ -46,6 +46,9 @@
 #include <memgfx/memgc.h>
 #include <stdlib.h>
 #include <ui/control.h>
+#include <ui/menubar.h>
+#include <ui/menu.h>
+#include <ui/menuentry.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/wdecor.h>
@@ -73,6 +76,10 @@ static display_wnd_cb_t dwnd_cb = {
 	.unfocus_event = dwnd_unfocus_event
 };
 
+static void wd_sysmenu_open(ui_wdecor_t *, void *, sysarg_t);
+static void wd_sysmenu_left(ui_wdecor_t *, void *, sysarg_t);
+static void wd_sysmenu_right(ui_wdecor_t *, void *, sysarg_t);
+static void wd_sysmenu_accel(ui_wdecor_t *, void *, char32_t, sysarg_t);
 static void wd_minimize(ui_wdecor_t *, void *);
 static void wd_maximize(ui_wdecor_t *, void *);
 static void wd_unmaximize(ui_wdecor_t *, void *);
@@ -83,6 +90,10 @@ static void wd_resize(ui_wdecor_t *, void *, ui_wdecor_rsztype_t,
 static void wd_set_cursor(ui_wdecor_t *, void *, ui_stock_cursor_t);
 
 static ui_wdecor_cb_t wdecor_cb = {
+	.sysmenu_open = wd_sysmenu_open,
+	.sysmenu_left = wd_sysmenu_left,
+	.sysmenu_right = wd_sysmenu_right,
+	.sysmenu_accel = wd_sysmenu_accel,
 	.minimize = wd_minimize,
 	.maximize = wd_maximize,
 	.unmaximize = wd_unmaximize,
@@ -91,6 +102,23 @@ static ui_wdecor_cb_t wdecor_cb = {
 	.resize = wd_resize,
 	.set_cursor = wd_set_cursor
 };
+
+static void wnd_sysmenu_left(ui_menu_t *, void *, sysarg_t);
+static void wnd_sysmenu_right(ui_menu_t *, void *, sysarg_t);
+static void wnd_sysmenu_close_req(ui_menu_t *, void *);
+static void wnd_sysmenu_press_accel(ui_menu_t *, void *, char32_t, sysarg_t);
+
+static ui_menu_cb_t wnd_sysmenu_cb = {
+	.left = wnd_sysmenu_left,
+	.right = wnd_sysmenu_right,
+	.close_req = wnd_sysmenu_close_req,
+	.press_accel = wnd_sysmenu_press_accel
+};
+
+static void wnd_sysmenu_erestore(ui_menu_entry_t *, void *);
+static void wnd_sysmenu_eminimize(ui_menu_entry_t *, void *);
+static void wnd_sysmenu_emaximize(ui_menu_entry_t *, void *);
+static void wnd_sysmenu_eclose(ui_menu_entry_t *, void *);
 
 static void ui_window_invalidate(void *, gfx_rect_t *);
 static void ui_window_update(void *);
@@ -149,6 +177,8 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
     ui_wnd_params_t *params, gfx_coord2_t *pos)
 {
 	gfx_coord2_t dims;
+	gfx_coord2_t below_pos;
+	gfx_rect_t below_rect;
 
 	assert(params->placement != ui_wnd_place_default ||
 	    ui_is_fullscreen(window->ui));
@@ -182,11 +212,98 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
 		pos->y = drect->p1.y - params->rect.p1.y;
 		break;
 	case ui_wnd_place_popup:
-		/* Place popup window below parent rectangle */
-		pos->x = params->prect.p0.x;
-		pos->y = params->prect.p1.y;
+		/* Compute rectangle when placed below */
+		below_pos.x = params->prect.p0.x;
+		below_pos.y = params->prect.p1.y;
+		gfx_rect_translate(&below_pos, &params->rect, &below_rect);
+
+		/* Does below_rect fit within the display? */
+		if (gfx_rect_is_inside(&below_rect, drect)) {
+			/* Place popup window below parent rectangle */
+			pos->x = params->prect.p0.x - params->rect.p0.x;
+			pos->y = params->prect.p1.y - params->rect.p0.y;
+		} else {
+			/* Place popup window above parent rectangle */
+			pos->x = params->prect.p0.x;
+			pos->y = params->prect.p0.y -
+			    (params->rect.p1.y - params->rect.p0.y);
+		}
 		break;
 	}
+}
+
+/** Create window's system menu.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+static errno_t ui_window_sysmenu_create(ui_window_t *window)
+{
+	errno_t rc;
+	ui_menu_entry_t *mrestore;
+	ui_menu_entry_t *mmin;
+	ui_menu_entry_t *mmax;
+	ui_menu_entry_t *msep;
+	ui_menu_entry_t *mclose;
+
+	rc = ui_menu_create(window, &window->sysmenu);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_set_cb(window->sysmenu, &wnd_sysmenu_cb, (void *)window);
+
+	rc = ui_menu_entry_create(window->sysmenu, "~R~estore",
+	    "", &mrestore);
+	if (rc != EOK)
+		goto error;
+
+	if (!window->wdecor->maximized)
+		ui_menu_entry_set_disabled(mrestore, true);
+
+	ui_menu_entry_set_cb(mrestore, wnd_sysmenu_erestore, (void *)window);
+
+	rc = ui_menu_entry_create(window->sysmenu, "Mi~n~imize",
+	    "", &mmin);
+	if (rc != EOK)
+		goto error;
+
+	if ((window->wdecor->style & ui_wds_minimize_btn) == 0)
+		ui_menu_entry_set_disabled(mmin, true);
+
+	ui_menu_entry_set_cb(mmin, wnd_sysmenu_eminimize, (void *)window);
+
+	rc = ui_menu_entry_create(window->sysmenu, "Ma~x~imize",
+	    "", &mmax);
+	if (rc != EOK)
+		goto error;
+
+	if ((window->wdecor->style & ui_wds_maximize_btn) == 0 ||
+	    window->wdecor->maximized)
+		ui_menu_entry_set_disabled(mmax, true);
+
+	ui_menu_entry_set_cb(mmax, wnd_sysmenu_emaximize, (void *)window);
+
+	rc = ui_menu_entry_sep_create(window->sysmenu, &msep);
+	if (rc != EOK)
+		goto error;
+
+	rc = ui_menu_entry_create(window->sysmenu, "~C~lose", "Alt-F4",
+	    &mclose);
+	if (rc != EOK)
+		goto error;
+
+	if ((window->wdecor->style & ui_wds_close_btn) == 0)
+		ui_menu_entry_set_disabled(mclose, true);
+
+	ui_menu_entry_set_cb(mclose, wnd_sysmenu_eclose, (void *)window);
+
+	window->sysmenu_restore = mrestore;
+	window->sysmenu_minimize = mmin;
+	window->sysmenu_maximize = mmax;
+
+	return EOK;
+error:
+	return rc;
 }
 
 /** Create new window.
@@ -380,6 +497,11 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	window->wdecor = wdecor;
 	window->cursor = ui_curs_arrow;
 	window->placement = params->placement;
+
+	rc = ui_window_sysmenu_create(window);
+	if (rc != EOK)
+		goto error;
+
 	*rwindow = window;
 
 	list_append(&window->lwindows, &ui->windows);
@@ -416,6 +538,7 @@ void ui_window_destroy(ui_window_t *window)
 
 	list_remove(&window->lwindows);
 	ui_control_destroy(window->control);
+	ui_menu_destroy(window->sysmenu);
 	ui_wdecor_destroy(window->wdecor);
 	ui_resource_destroy(window->res);
 	if (window->app_mgc != NULL)
@@ -928,6 +1051,72 @@ static void dwnd_unfocus_event(void *arg, unsigned nfocus)
 	ui_unlock(ui);
 }
 
+/** Window decoration requested opening of system menu.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param idev_id Input device ID
+ */
+static void wd_sysmenu_open(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	ui_window_send_sysmenu(window, idev_id);
+}
+
+/** Window decoration requested moving left from system menu handle.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param idev_id Input device ID
+ */
+static void wd_sysmenu_left(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	if (window->mbar != NULL) {
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(window->sysmenu);
+		ui_menu_bar_select_last(window->mbar, false, idev_id);
+	}
+}
+
+/** Window decoration requested moving right from system menu handle.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param idev_id Input device ID
+ */
+static void wd_sysmenu_right(ui_wdecor_t *wdecor, void *arg, sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	if (window->mbar != NULL) {
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(window->sysmenu);
+		ui_menu_bar_select_first(window->mbar, false, idev_id);
+	}
+}
+
+/** Window decoration detected accelerator press from system menu handle.
+ *
+ * @param wdecor Window decoration
+ * @param arg Argument (window)
+ * @param c Accelerator key
+ * @param idev_id Input device ID
+ */
+static void wd_sysmenu_accel(ui_wdecor_t *wdecor, void *arg, char32_t c,
+    sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *) arg;
+
+	if (window->mbar != NULL) {
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(window->sysmenu);
+		ui_menu_bar_press_accel(window->mbar, c, idev_id);
+	}
+}
+
 /** Window decoration requested window minimization.
  *
  * @param wdecor Window decoration
@@ -1070,6 +1259,19 @@ static void wd_set_cursor(ui_wdecor_t *wdecor, void *arg,
 	window->cursor = cursor;
 }
 
+/** Send window sysmenu event.
+ *
+ * @param window Window
+ * @parma idev_id Input device ID
+ */
+void ui_window_send_sysmenu(ui_window_t *window, sysarg_t idev_id)
+{
+	if (window->cb != NULL && window->cb->sysmenu != NULL)
+		window->cb->sysmenu(window, window->arg, idev_id);
+	else
+		ui_window_def_sysmenu(window, idev_id);
+}
+
 /** Send window minimize event.
  *
  * @param window Window
@@ -1176,6 +1378,33 @@ void ui_window_send_unfocus(ui_window_t *window, unsigned nfocus)
 		return ui_window_def_unfocus(window, nfocus);
 }
 
+/** Default window sysmenu routine.
+ *
+ * @param window Window
+ * @param idev_id Input device ID
+ * @return EOK on success or an error code
+ */
+errno_t ui_window_def_sysmenu(ui_window_t *window, sysarg_t idev_id)
+{
+	errno_t rc;
+	ui_wdecor_geom_t geom;
+
+	if (ui_menu_is_open(window->sysmenu)) {
+		ui_menu_close(window->sysmenu);
+	} else {
+		ui_wdecor_get_geom(window->wdecor, &geom);
+
+		rc = ui_menu_open(window->sysmenu, &geom.title_bar_rect,
+		    idev_id);
+		if (rc != EOK)
+			goto error;
+	}
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Default window minimize routine.
  *
  * @param window Window
@@ -1218,6 +1447,8 @@ errno_t ui_window_def_maximize(ui_window_t *window)
 	}
 
 	ui_wdecor_set_maximized(window->wdecor, true);
+	ui_menu_entry_set_disabled(window->sysmenu_restore, false);
+	ui_menu_entry_set_disabled(window->sysmenu_maximize, true);
 
 	rc = ui_window_size_change(window, &rect, ui_wsc_maximize);
 	if (rc != EOK) {
@@ -1240,6 +1471,8 @@ errno_t ui_window_def_unmaximize(ui_window_t *window)
 	errno_t rc;
 
 	ui_wdecor_set_maximized(window->wdecor, false);
+	ui_menu_entry_set_disabled(window->sysmenu_restore, true);
+	ui_menu_entry_set_disabled(window->sysmenu_maximize, false);
 
 	rc = ui_window_size_change(window, &window->normal_rect,
 	    ui_wsc_unmaximize);
@@ -1260,8 +1493,15 @@ errno_t ui_window_def_unmaximize(ui_window_t *window)
  */
 ui_evclaim_t ui_window_def_kbd(ui_window_t *window, kbd_event_t *kbd)
 {
+	ui_evclaim_t claim;
+
 	if (window->control != NULL)
-		return ui_control_kbd_event(window->control, kbd);
+		claim = ui_control_kbd_event(window->control, kbd);
+	else
+		claim = ui_unclaimed;
+
+	if (claim == ui_unclaimed)
+		return ui_wdecor_kbd_event(window->wdecor, kbd);
 
 	return ui_unclaimed;
 }
@@ -1316,6 +1556,117 @@ void ui_window_def_unfocus(ui_window_t *window, unsigned nfocus)
 {
 	if (window->control != NULL)
 		ui_control_unfocus(window->control, nfocus);
+}
+
+/** Handle system menu left event.
+ *
+ * @param sysmenu System menu
+ * @param arg Argument (ui_window_t *)
+ * @param idev_id Input device ID
+ */
+static void wnd_sysmenu_left(ui_menu_t *sysmenu, void *arg, sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	if (window->mbar != NULL) {
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(sysmenu);
+		ui_menu_bar_select_last(window->mbar, true, idev_id);
+	}
+}
+
+/** Handle system menu right event.
+ *
+ * @param sysmenu System menu
+ * @param arg Argument (ui_window_t *)
+ * @param idev_id Input device ID
+ */
+static void wnd_sysmenu_right(ui_menu_t *sysmenu, void *arg, sysarg_t idev_id)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	if (window->mbar != NULL) {
+		ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+		ui_menu_close(sysmenu);
+		ui_menu_bar_select_first(window->mbar, true, idev_id);
+	}
+}
+
+/** Handle system menu close request event.
+ *
+ * @param sysmenu System menu
+ * @param arg Argument (ui_window_t *)
+ * @param idev_id Input device ID
+ */
+static void wnd_sysmenu_close_req(ui_menu_t *sysmenu, void *arg)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	ui_wdecor_sysmenu_hdl_set_active(window->wdecor, false);
+	ui_menu_close(sysmenu);
+}
+
+/** Handle system menu Restore entry activation.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (ui_window_t *)
+ */
+static void wnd_sysmenu_erestore(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	ui_window_send_unmaximize(window);
+}
+
+/** Handle system menu Minimize entry activation.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (ui_window_t *)
+ */
+static void wnd_sysmenu_eminimize(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	ui_window_send_minimize(window);
+}
+
+/** Handle system menu Maximize entry activation.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (ui_window_t *)
+ */
+static void wnd_sysmenu_emaximize(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	ui_window_send_maximize(window);
+}
+
+/** Handle system menu Close entry activation.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (ui_window_t *)
+ */
+static void wnd_sysmenu_eclose(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_window_t *window = (ui_window_t *)arg;
+
+	ui_window_send_close(window);
+}
+
+/** Handle system menu press accelerator key event.
+ *
+ * @param sysmenu System menu
+ * @param arg Argument (ui_window_t *)
+ * @param idev_id Input device ID
+ */
+static void wnd_sysmenu_press_accel(ui_menu_t *sysmenu, void *arg,
+    char32_t c, sysarg_t idev_id)
+{
+	(void)sysmenu;
+	(void)arg;
+	(void)c;
+	(void)idev_id;
 }
 
 /** Window invalidate callback

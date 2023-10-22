@@ -196,6 +196,7 @@ static errno_t dispc_seat_delete(void *arg, sysarg_t seat_id)
 {
 	ds_cfgclient_t *cfgclient = (ds_cfgclient_t *)arg;
 	ds_seat_t *seat;
+	ds_seat_t *s;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispcfg_seat_delete()");
 
@@ -204,6 +205,13 @@ static errno_t dispc_seat_delete(void *arg, sysarg_t seat_id)
 	if (seat == NULL) {
 		ds_display_unlock(cfgclient->display);
 		return ENOENT;
+	}
+
+	/* Verify we are not deleting the last seat */
+	s = ds_display_first_seat(cfgclient->display);
+	if (s == seat && ds_display_next_seat(s) == NULL) {
+		ds_display_unlock(cfgclient->display);
+		return EBUSY;
 	}
 
 	ds_seat_destroy(seat);

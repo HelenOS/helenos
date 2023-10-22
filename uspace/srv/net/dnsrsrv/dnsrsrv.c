@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -56,6 +56,7 @@ static void dnsr_client_conn(ipc_call_t *, void *);
 
 static errno_t dnsr_init(void)
 {
+	loc_srv_t *srv;
 	errno_t rc;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dnsr_init()");
 
@@ -67,7 +68,7 @@ static errno_t dnsr_init(void)
 
 	async_set_fallback_port_handler(dnsr_client_conn, NULL);
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		transport_fini();
@@ -75,8 +76,9 @@ static errno_t dnsr_init(void)
 	}
 
 	service_id_t sid;
-	rc = loc_service_register(SERVICE_NAME_DNSR, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_DNSR, &sid);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		transport_fini();
 		return EEXIST;

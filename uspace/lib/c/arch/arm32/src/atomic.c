@@ -37,13 +37,17 @@
 
 volatile unsigned *ras_page;
 
-bool __atomic_compare_exchange_4(volatile void *mem, void *expected, unsigned desired, bool weak, int success, int failure)
+bool __atomic_compare_exchange_4(volatile void *mem0, void *expected0,
+    unsigned desired, bool weak, int success, int failure)
 {
+	volatile unsigned *mem = mem0;
+	unsigned *expected = expected0;
+
 	(void) success;
 	(void) failure;
 	(void) weak;
 
-	unsigned ov = *((unsigned *)expected);
+	unsigned ov = *expected;
 	unsigned ret;
 
 	/*
@@ -65,7 +69,7 @@ bool __atomic_compare_exchange_4(volatile void *mem, void *expected, unsigned de
 	    : [ret] "=&r" (ret),
 	      [rp0] "=m" (ras_page[0]),
 	      [rp1] "=m" (ras_page[1]),
-	      [addr] "+m" (*((unsigned *)mem))
+	      [addr] "+m" (*mem)
 	    : [ov] "r" (ov),
 	      [nv] "r" (desired)
 	    : "memory"
@@ -77,12 +81,15 @@ bool __atomic_compare_exchange_4(volatile void *mem, void *expected, unsigned de
 	if (ret == ov)
 		return true;
 
-	*((unsigned *)expected) = ret;
+	*expected = ret;
 	return false;
 }
 
-unsigned short __atomic_fetch_add_2(volatile void *mem, unsigned short val, int model)
+unsigned short __atomic_fetch_add_2(volatile void *mem0, unsigned short val,
+    int model)
 {
+	volatile unsigned short *mem = mem0;
+
 	(void) model;
 
 	unsigned short ret;
@@ -105,7 +112,7 @@ unsigned short __atomic_fetch_add_2(volatile void *mem, unsigned short val, int 
 	    : [ret] "=&r" (ret),
 	      [rp0] "=m" (ras_page[0]),
 	      [rp1] "=m" (ras_page[1]),
-	      [addr] "+m" (*((volatile unsigned short *)mem))
+	      [addr] "+m" (*mem)
 	    : [imm] "r" (val)
 	);
 
@@ -115,8 +122,10 @@ unsigned short __atomic_fetch_add_2(volatile void *mem, unsigned short val, int 
 	return ret - val;
 }
 
-unsigned __atomic_fetch_add_4(volatile void *mem, unsigned val, int model)
+unsigned __atomic_fetch_add_4(volatile void *mem0, unsigned val, int model)
 {
+	volatile unsigned *mem = mem0;
+
 	(void) model;
 
 	unsigned ret;
@@ -139,7 +148,7 @@ unsigned __atomic_fetch_add_4(volatile void *mem, unsigned val, int model)
 	    : [ret] "=&r" (ret),
 	      [rp0] "=m" (ras_page[0]),
 	      [rp1] "=m" (ras_page[1]),
-	      [addr] "+m" (*((volatile unsigned *)mem))
+	      [addr] "+m" (*mem)
 	    : [imm] "r" (val)
 	);
 

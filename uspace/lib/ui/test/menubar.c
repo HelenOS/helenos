@@ -31,11 +31,13 @@
 #include <pcut/pcut.h>
 #include <stdbool.h>
 #include <ui/control.h>
-#include <ui/menu.h>
 #include <ui/menubar.h>
+#include <ui/menudd.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "../private/menubar.h"
+#include "../private/wdecor.h"
+#include "../private/window.h"
 
 PCUT_INIT;
 
@@ -44,14 +46,29 @@ PCUT_TEST_SUITE(menubar);
 /** Create and destroy menu bar */
 PCUT_TEST(create_destroy)
 {
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	errno_t rc;
 
-	rc = ui_menu_bar_create(NULL, NULL, &mbar);
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
 	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** ui_menu_bar_destroy() can take NULL argument (no-op) */
@@ -63,11 +80,24 @@ PCUT_TEST(destroy_null)
 /** ui_menu_bar_ctl() returns control that has a working virtual destructor */
 PCUT_TEST(ctl)
 {
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_control_t *control;
 	errno_t rc;
 
-	rc = ui_menu_bar_create(NULL, NULL, &mbar);
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
@@ -75,6 +105,8 @@ PCUT_TEST(ctl)
 	PCUT_ASSERT_NOT_NULL(control);
 
 	ui_control_destroy(control);
+	ui_window_destroy(window);
+	ui_destroy(ui);
 }
 
 /** Set menu bar rectangle sets internal field */
@@ -181,7 +213,7 @@ PCUT_TEST(kbd_event)
 	rect.p1.y = 25;
 	ui_menu_bar_set_rect(mbar, &rect);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -205,6 +237,7 @@ PCUT_TEST(press_accel)
 	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
+	ui_menu_dd_t *mdd = NULL;
 	gfx_rect_t rect;
 	errno_t rc;
 
@@ -228,15 +261,16 @@ PCUT_TEST(press_accel)
 	rect.p1.y = 25;
 	ui_menu_bar_set_rect(mbar, &rect);
 
-	rc = ui_menu_create(mbar, "~T~est", &menu);
+	rc = ui_menu_dd_create(mbar, "~T~est", &mdd, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mdd);
 	PCUT_ASSERT_NOT_NULL(menu);
 
-	PCUT_ASSERT_FALSE(ui_menu_is_open(menu));
+	PCUT_ASSERT_FALSE(ui_menu_dd_is_open(mdd));
 
 	ui_menu_bar_press_accel(mbar, 't', 0);
 
-	PCUT_ASSERT_TRUE(ui_menu_is_open(menu));
+	PCUT_ASSERT_TRUE(ui_menu_dd_is_open(mdd));
 
 	ui_menu_bar_destroy(mbar);
 	ui_window_destroy(window);
@@ -251,6 +285,7 @@ PCUT_TEST(pos_event_select)
 	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
 	ui_menu_t *menu = NULL;
+	ui_menu_dd_t *mdd = NULL;
 	ui_evclaim_t claimed;
 	pos_event_t event;
 	gfx_rect_t rect;
@@ -276,7 +311,7 @@ PCUT_TEST(pos_event_select)
 	rect.p1.y = 25;
 	ui_menu_bar_set_rect(mbar, &rect);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", &mdd, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -287,8 +322,8 @@ PCUT_TEST(pos_event_select)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_EQUALS(ui_claimed, claimed);
 
-	/* Clicking the menu bar entry should select menu */
-	PCUT_ASSERT_EQUALS(menu, mbar->selected);
+	/* Clicking the menu bar entry should select menu drop-down */
+	PCUT_ASSERT_EQUALS(mdd, mbar->selected);
 
 	ui_menu_bar_destroy(mbar);
 	ui_window_destroy(window);
@@ -302,8 +337,8 @@ PCUT_TEST(select_different)
 	ui_window_t *window = NULL;
 	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
-	ui_menu_t *menu1 = NULL;
-	ui_menu_t *menu2 = NULL;
+	ui_menu_dd_t *mdd1 = NULL;
+	ui_menu_dd_t *mdd2 = NULL;
 	errno_t rc;
 
 	rc = ui_create_disp(NULL, &ui);
@@ -320,20 +355,105 @@ PCUT_TEST(select_different)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test 1", &menu1);
+	rc = ui_menu_dd_create(mbar, "Test 1", &mdd1, NULL);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(menu1);
+	PCUT_ASSERT_NOT_NULL(mdd1);
 
-	rc = ui_menu_create(mbar, "Test 2", &menu2);
+	rc = ui_menu_dd_create(mbar, "Test 2", &mdd2, NULL);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(menu2);
+	PCUT_ASSERT_NOT_NULL(mdd2);
 
-	ui_menu_bar_select(mbar, menu1, true, 0);
-	PCUT_ASSERT_EQUALS(menu1, mbar->selected);
+	ui_menu_bar_select(mbar, mdd1, true, 0);
+	PCUT_ASSERT_EQUALS(mdd1, mbar->selected);
 
 	/* Selecting different menu should select it */
-	ui_menu_bar_select(mbar, menu2, true, 0);
-	PCUT_ASSERT_EQUALS(menu2, mbar->selected);
+	ui_menu_bar_select(mbar, mdd2, true, 0);
+	PCUT_ASSERT_EQUALS(mdd2, mbar->selected);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_bar_select_first/last() selects first/last drop-down */
+PCUT_TEST(select_first_last)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_dd_t *mdd1 = NULL;
+	ui_menu_dd_t *mdd2 = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_dd_create(mbar, "Test 1", &mdd1, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mdd1);
+
+	rc = ui_menu_dd_create(mbar, "Test 2", &mdd2, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mdd2);
+
+	ui_menu_bar_select_first(mbar, true, 0);
+	PCUT_ASSERT_EQUALS(mdd1, mbar->selected);
+
+	ui_menu_bar_select_last(mbar, true, 0);
+	PCUT_ASSERT_EQUALS(mdd2, mbar->selected);
+
+	ui_menu_bar_destroy(mbar);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_menu_bar_select_sysmenu() activates system menu */
+PCUT_TEST(select_sysmenu)
+{
+	ui_t *ui = NULL;
+	ui_window_t *window = NULL;
+	ui_wnd_params_t params;
+	ui_menu_bar_t *mbar = NULL;
+	ui_menu_dd_t *mdd1 = NULL;
+	ui_menu_dd_t *mdd2 = NULL;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	rc = ui_menu_bar_create(ui, window, &mbar);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mbar);
+
+	rc = ui_menu_dd_create(mbar, "Test 1", &mdd1, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mdd1);
+
+	rc = ui_menu_dd_create(mbar, "Test 2", &mdd2, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(mdd2);
+
+	ui_menu_bar_select_sysmenu(mbar, false, 0);
+	PCUT_ASSERT_TRUE(window->wdecor->sysmenu_hdl_active);
 
 	ui_menu_bar_destroy(mbar);
 	ui_window_destroy(window);
@@ -347,7 +467,7 @@ PCUT_TEST(activate_deactivate)
 	ui_window_t *window = NULL;
 	ui_wnd_params_t params;
 	ui_menu_bar_t *mbar = NULL;
-	ui_menu_t *menu = NULL;
+	ui_menu_dd_t *mdd = NULL;
 	errno_t rc;
 
 	rc = ui_create_disp(NULL, &ui);
@@ -364,12 +484,12 @@ PCUT_TEST(activate_deactivate)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", &mdd, NULL);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-	PCUT_ASSERT_NOT_NULL(menu);
+	PCUT_ASSERT_NOT_NULL(mdd);
 
 	ui_menu_bar_activate(mbar);
-	PCUT_ASSERT_EQUALS(menu, mbar->selected);
+	PCUT_ASSERT_EQUALS(mdd, mbar->selected);
 
 	ui_menu_bar_deactivate(mbar);
 	PCUT_ASSERT_NULL(mbar->selected);

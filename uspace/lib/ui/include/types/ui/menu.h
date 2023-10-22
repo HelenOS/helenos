@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,8 +36,22 @@
 #ifndef _UI_TYPES_MENU_H
 #define _UI_TYPES_MENU_H
 
+#include <types/common.h>
+
 struct ui_menu;
 typedef struct ui_menu ui_menu_t;
+
+/** Menu callbacks */
+typedef struct ui_menu_cb {
+	/** Left arrow pressed */
+	void (*left)(ui_menu_t *, void *, sysarg_t);
+	/** Right arrow pressed */
+	void (*right)(ui_menu_t *, void *, sysarg_t);
+	/** Request menu closure */
+	void (*close_req)(ui_menu_t *, void *);
+	/** Accelerator key pressed */
+	void (*press_accel)(ui_menu_t *, void *, char32_t, sysarg_t);
+} ui_menu_cb_t;
 
 #endif
 

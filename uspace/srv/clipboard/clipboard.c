@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
@@ -184,18 +185,21 @@ static void clip_connection(ipc_call_t *icall, void *arg)
 int main(int argc, char *argv[])
 {
 	errno_t rc;
+	loc_srv_t *srv;
 
 	printf("%s: HelenOS clipboard service\n", NAME);
 	async_set_fallback_port_handler(clip_connection, NULL);
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Failed registering server: %s\n", NAME, str_error(rc));
 		return rc;
 	}
 
-	rc = loc_service_register(SERVICE_NAME_CLIPBOARD, &svc_id);
+	rc = loc_service_register(srv, SERVICE_NAME_CLIPBOARD, &svc_id);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
+
 		printf("%s: Failed registering service : %s\n", NAME, str_error(rc));
 		return rc;
 	}

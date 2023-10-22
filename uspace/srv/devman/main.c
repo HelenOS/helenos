@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -63,6 +64,7 @@
 
 driver_list_t drivers_list;
 dev_tree_t device_tree;
+loc_srv_t *devman_srv;
 
 static void devman_connection_device(ipc_call_t *icall, void *arg)
 {
@@ -279,6 +281,8 @@ static void devman_client_data_destroy(void *data)
 /** Initialize device manager internal structures. */
 static bool devman_init(void)
 {
+	errno_t rc;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_init - looking for available drivers.");
 
 	/* Initialize list of available drivers. */
@@ -304,7 +308,11 @@ static bool devman_init(void)
 	 * from client to the devman by location service will
 	 * not work.
 	 */
-	loc_server_register(NAME);
+	rc = loc_server_register(NAME, &devman_srv);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_FATAL, "Error registering devman server.");
+		return false;
+	}
 
 	return true;
 }

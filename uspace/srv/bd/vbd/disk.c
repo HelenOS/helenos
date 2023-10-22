@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,8 @@
 
 #include "disk.h"
 #include "types/vbd.h"
+
+loc_srv_t *vbds_srv;
 
 static fibril_mutex_t vbds_disks_lock;
 static list_t vbds_disks; /* of vbds_disk_t */
@@ -1121,7 +1123,7 @@ static errno_t vbds_part_svc_register(vbds_part_t *part)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loc_service_register('%s')",
 	    name);
-	rc = loc_service_register(name, &psid);
+	rc = loc_service_register(vbds_srv, name, &psid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering "
 		    "service %s: %s.", name, str_error(rc));
@@ -1130,14 +1132,14 @@ static errno_t vbds_part_svc_register(vbds_part_t *part)
 		return EIO;
 	}
 
-	rc = loc_service_add_to_cat(psid, part_cid);
+	rc = loc_service_add_to_cat(vbds_srv, psid, part_cid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failled adding partition "
 		    "service %s to partition category.", name);
 		free(name);
 		free(part);
 
-		rc = loc_service_unregister(psid);
+		rc = loc_service_unregister(vbds_srv, psid);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Error unregistering "
 			    "service. Rollback failed.");
@@ -1159,7 +1161,7 @@ static errno_t vbds_part_svc_unregister(vbds_part_t *part)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_svc_unregister("
 	    "disk->svc_name='%s', id=%zu)", part->disk->svc_name, part->svc_id);
 
-	rc = loc_service_unregister(part->svc_id);
+	rc = loc_service_unregister(vbds_srv, part->svc_id);
 	if (rc != EOK)
 		return EIO;
 

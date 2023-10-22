@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -135,6 +135,8 @@ static void corecfg_client_conn(ipc_call_t *icall, void *arg)
 
 int main(int argc, char *argv[])
 {
+	loc_srv_t *srv;
+
 	printf("%s: Task Monitoring Service\n", NAME);
 
 #ifdef CONFIG_WRITE_CORE_FILES
@@ -149,7 +151,7 @@ int main(int argc, char *argv[])
 
 	async_set_fallback_port_handler(corecfg_client_conn, NULL);
 
-	errno_t rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Failed registering server: %s.\n",
 		    NAME, str_error(rc));
@@ -157,8 +159,9 @@ int main(int argc, char *argv[])
 	}
 
 	service_id_t sid;
-	rc = loc_service_register(SERVICE_NAME_CORECFG, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_CORECFG, &sid);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		printf("%s: Failed registering service: %s.\n",
 		    NAME, str_error(rc));
 		return -1;

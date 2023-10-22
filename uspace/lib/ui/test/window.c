@@ -44,6 +44,7 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(window);
 
+static void test_window_sysmenu(ui_window_t *, void *, sysarg_t);
 static void test_window_minimize(ui_window_t *, void *);
 static void test_window_maximize(ui_window_t *, void *);
 static void test_window_unmaximize(ui_window_t *, void *);
@@ -55,6 +56,7 @@ static void test_window_pos(ui_window_t *, void *, pos_event_t *);
 static void test_window_unfocus(ui_window_t *, void *, unsigned);
 
 static ui_window_cb_t test_window_cb = {
+	.sysmenu = test_window_sysmenu,
 	.minimize = test_window_minimize,
 	.maximize = test_window_maximize,
 	.unmaximize = test_window_unmaximize,
@@ -81,6 +83,8 @@ static ui_control_ops_t test_ctl_ops = {
 
 typedef struct {
 	errno_t rc;
+	bool sysmenu;
+	sysarg_t sysmenu_idev_id;
 	bool minimize;
 	bool maximize;
 	bool unmaximize;
@@ -543,6 +547,44 @@ PCUT_TEST(def_unfocus)
 	ui_destroy(ui);
 }
 
+/** ui_window_send_sysmenu() calls sysmenu callback set via ui_window_set_cb() */
+PCUT_TEST(send_sysmenu)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	test_cb_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	/* Sysmenu callback with no callbacks set */
+	ui_window_send_sysmenu(window, 42);
+
+	/* Sysmenu callback with sysmenu callback not implemented */
+	ui_window_set_cb(window, &dummy_window_cb, NULL);
+	ui_window_send_sysmenu(window, 42);
+
+	/* Sysmenu callback with real callback set */
+	resp.sysmenu = false;
+	resp.sysmenu_idev_id = 0;
+	ui_window_set_cb(window, &test_window_cb, &resp);
+	ui_window_send_sysmenu(window, 42);
+	PCUT_ASSERT_TRUE(resp.sysmenu);
+	PCUT_ASSERT_INT_EQUALS(42, resp.sysmenu_idev_id);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_window_send_minimize() calls minimize callback set via ui_window_set_cb() */
 PCUT_TEST(send_minimize)
 {
@@ -891,6 +933,14 @@ PCUT_TEST(send_unfocus)
 
 	ui_window_destroy(window);
 	ui_destroy(ui);
+}
+
+static void test_window_sysmenu(ui_window_t *window, void *arg, sysarg_t idev_id)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->sysmenu = true;
+	resp->sysmenu_idev_id = idev_id;
 }
 
 static void test_window_minimize(ui_window_t *window, void *arg)

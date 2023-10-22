@@ -46,6 +46,7 @@
 #include <io/pos_event.h>
 #include <memgfx/memgc.h>
 #include <memgfx/xlategc.h>
+#include <types/common.h>
 #include <types/ui/cursor.h>
 #include <types/ui/window.h>
 
@@ -92,6 +93,16 @@ struct ui_window {
 	struct ui_resource *res;
 	/** Window decoration */
 	struct ui_wdecor *wdecor;
+	/** System menu */
+	struct ui_menu *sysmenu;
+	/** System menu restore entry */
+	struct ui_menu_entry *sysmenu_restore;
+	/** System menu minimize entry */
+	struct ui_menu_entry *sysmenu_minimize;
+	/** System menu maximize entry */
+	struct ui_menu_entry *sysmenu_maximize;
+	/** Menu bar */
+	struct ui_menu_bar *mbar;
 	/** Top-level control in the application area */
 	struct ui_control *control;
 	/** Current cursor */
@@ -111,6 +122,7 @@ typedef enum {
 } ui_wnd_sc_op_t;
 
 extern display_stock_cursor_t wnd_dcursor_from_cursor(ui_stock_cursor_t);
+extern void ui_window_send_sysmenu(ui_window_t *, sysarg_t);
 extern void ui_window_send_minimize(ui_window_t *);
 extern void ui_window_send_maximize(ui_window_t *);
 extern void ui_window_send_unmaximize(ui_window_t *);

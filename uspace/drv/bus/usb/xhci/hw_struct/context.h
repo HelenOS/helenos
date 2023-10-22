@@ -52,6 +52,7 @@ typedef struct xhci_endpoint_ctx {
 	xhci_qword_t data2;
 	xhci_dword_t data3;
 	xhci_dword_t reserved[3];
+} xhci_ep_ctx_t;
 
 #define XHCI_EP_COUNT 31
 
@@ -106,8 +107,6 @@ typedef struct xhci_endpoint_ctx {
 #define XHCI_EP_MAX_ESIT_PAYLOAD_LO(ctx) XHCI_DWORD_EXTRACT((ctx).data3, 31, 16)
 #define XHCI_EP_MAX_ESIT_PAYLOAD_HI(ctx) XHCI_DWORD_EXTRACT((ctx).data[0], 31, 24)
 
-} __attribute__((packed)) __attribute__((aligned(8))) xhci_ep_ctx_t;
-
 enum {
 	EP_STATE_DISABLED = 0,
 	EP_STATE_RUNNING = 1,
@@ -122,6 +121,7 @@ enum {
 typedef struct xhci_slot_ctx {
 	xhci_dword_t data [4];
 	xhci_dword_t reserved [4];
+} xhci_slot_ctx_t;
 
 #define XHCI_SLOT_ROUTE_STRING_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], (val & 0xFFFFF), 19, 0)
@@ -163,8 +163,6 @@ typedef struct xhci_slot_ctx {
 
 #define XHCI_SLOT_DEVICE_ADDRESS(ctx)   XHCI_DWORD_EXTRACT((ctx).data[3],  7,  0)
 #define XHCI_SLOT_STATE(ctx)            XHCI_DWORD_EXTRACT((ctx).data[3], 31, 27)
-
-} __attribute__((packed)) __attribute__((aligned(4))) xhci_slot_ctx_t;
 
 enum {
 	SLOT_STATE_DISABLED = 0,
@@ -212,6 +210,8 @@ static inline char *xhci_device_ctx_to_charptr(const xhci_device_ctx_t *ctx)
  */
 typedef struct xhci_stream_ctx {
 	uint64_t data [2];
+} xhci_stream_ctx_t;
+
 #define XHCI_STREAM_DCS(ctx)     XHCI_QWORD_EXTRACT((ctx).data[0],  0, 0)
 #define XHCI_STREAM_SCT(ctx)     XHCI_QWORD_EXTRACT((ctx).data[0],  3, 1)
 #define XHCI_STREAM_DEQ_PTR(ctx) (XHCI_QWORD_EXTRACT((ctx).data[0], 63, 4) << 4)
@@ -221,7 +221,6 @@ typedef struct xhci_stream_ctx {
 	xhci_qword_set_bits(&(ctx).data[0], val, 3, 1)
 #define XHCI_STREAM_DEQ_PTR_SET(ctx, val) \
 	xhci_qword_set_bits(&(ctx).data[0], (val >> 4), 63, 4)
-} __attribute__((packed)) __attribute__((aligned(8))) xhci_stream_ctx_t;
 
 /**
  * Input control context: section 6.2.5.1
@@ -233,6 +232,8 @@ typedef struct xhci_stream_ctx {
  */
 typedef struct xhci_input_ctrl_ctx {
 	uint32_t data [8];
+} __attribute__((packed)) xhci_input_ctrl_ctx_t;
+
 #define XHCI_INPUT_CTRL_CTX_DROP(ctx, idx) \
     XHCI_DWORD_EXTRACT((ctx).data[0], (idx), (idx))
 
@@ -251,7 +252,6 @@ typedef struct xhci_input_ctrl_ctx {
     XHCI_DWORD_EXTRACT((ctx).data[7], 15,  8)
 #define XHCI_INPUT_CTRL_CTX_ALTER_SETTING(ctx) \
     XHCI_DWORD_EXTRACT((ctx).data[7], 23, 16)
-} __attribute__((packed)) xhci_input_ctrl_ctx_t;
 
 /**
  * Input context: section 6.2.5
@@ -280,6 +280,6 @@ static inline char *xhci_input_ctx_to_charptr(const xhci_input_ctx_t *ctx)
 typedef struct xhci_port_bandwidth_ctx {
 	uint8_t reserved;
 	uint8_t ports [];
-} __attribute__((packed)) xhci_port_bandwidth_ctx_t;
+} xhci_port_bandwidth_ctx_t;
 
 #endif

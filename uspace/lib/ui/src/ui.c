@@ -337,7 +337,9 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 
 	switch (event->type) {
 	case CEV_KEY:
+		ui_lock(ui);
 		ui_window_send_kbd(awnd, &event->ev.key);
+		ui_unlock(ui);
 		break;
 	case CEV_POS:
 		pos = event->ev.pos;
@@ -347,8 +349,11 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 
 		claim = ui_wdecor_pos_event(awnd->wdecor, &pos);
 		/* Note: If event is claimed, awnd might not be valid anymore */
-		if (claim == ui_unclaimed)
+		if (claim == ui_unclaimed) {
+			ui_lock(ui);
 			ui_window_send_pos(awnd, &pos);
+			ui_unlock(ui);
+		}
 
 		break;
 	}
@@ -453,11 +458,22 @@ errno_t ui_paint(ui_t *ui)
  */
 errno_t ui_suspend(ui_t *ui)
 {
-	if (ui->cgc == NULL)
+	errno_t rc;
+
+	assert(!ui->suspended);
+
+	if (ui->cgc == NULL) {
+		ui->suspended = true;
 		return EOK;
+	}
 
 	(void) console_set_caption(ui->console, "");
-	return console_gc_suspend(ui->cgc);
+	rc = console_gc_suspend(ui->cgc);
+	if (rc != EOK)
+		return rc;
+
+	ui->suspended = true;
+	return EOK;
 }
 
 /** Resume suspended UI.
@@ -476,8 +492,12 @@ errno_t ui_resume(ui_t *ui)
 	sysarg_t row;
 	cons_event_t ev;
 
-	if (ui->cgc == NULL)
+	assert(ui->suspended);
+
+	if (ui->cgc == NULL) {
+		ui->suspended = false;
 		return EOK;
+	}
 
 	rc = console_get_pos(ui->console, &col, &row);
 	if (rc != EOK)
@@ -509,11 +529,27 @@ errno_t ui_resume(ui_t *ui)
 	if (rc != EOK)
 		return rc;
 
+	ui->suspended = false;
+
 	awnd = ui_window_get_active(ui);
 	if (awnd != NULL)
 		(void) console_set_caption(ui->console, awnd->wdecor->caption);
 
-	return gfx_cursor_set_visible(console_gc_get_ctx(ui->cgc), false);
+	rc = gfx_cursor_set_visible(console_gc_get_ctx(ui->cgc), false);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
+/** Determine if UI is suspended.
+ *
+ * @param ui UI
+ * @return @c true iff UI is suspended
+ */
+bool ui_is_suspended(ui_t *ui)
+{
+	return ui->suspended;
 }
 
 /** Lock UI.

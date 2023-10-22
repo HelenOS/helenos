@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@ typedef struct wndlist {
 	/** Containing window */
 	ui_window_t *window;
 
-	/** Layout to which we add window buttoons */
+	/** Layout to which we add window buttons */
 	ui_fixed_t *fixed;
 
 	/** Window list rectangle */
@@ -83,8 +83,8 @@ typedef struct wndlist {
 	/** Window management service */
 	wndmgt_t *wndmgt;
 
-	/** Position ID of last position event */
-	sysarg_t ev_pos_id;
+	/** Device ID of last input event */
+	sysarg_t ev_idev_id;
 } wndlist_t;
 
 #endif

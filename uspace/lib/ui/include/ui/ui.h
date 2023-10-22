@@ -56,6 +56,7 @@ extern bool ui_is_fullscreen(ui_t *);
 extern errno_t ui_get_rect(ui_t *, gfx_rect_t *);
 extern errno_t ui_suspend(ui_t *);
 extern errno_t ui_resume(ui_t *);
+extern bool ui_is_suspended(ui_t *);
 extern void ui_lock(ui_t *);
 extern void ui_unlock(ui_t *);
 extern ui_clickmatic_t *ui_get_clickmatic(ui_t *);

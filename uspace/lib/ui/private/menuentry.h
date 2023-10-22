@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,8 @@ struct ui_menu_entry {
 	link_t lentries;
 	/** Callbacks */
 	ui_menu_entry_cb_t cb;
+	/** This entry is disabled */
+	bool disabled;
 	/** This entry is a separator entry */
 	bool separator;
 	/** Menu entry is currently held down */

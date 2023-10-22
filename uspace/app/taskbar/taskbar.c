@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,20 +38,22 @@
 #include <stdlib.h>
 #include <str.h>
 #include <ui/fixed.h>
-#include <ui/label.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 #include <wndmgt.h>
 #include "clock.h"
 #include "taskbar.h"
+#include "tbsmenu.h"
 #include "wndlist.h"
 
 static void taskbar_wnd_close(ui_window_t *, void *);
+static void taskbar_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 static void taskbar_wnd_pos(ui_window_t *, void *, pos_event_t *);
 
 static ui_window_cb_t window_cb = {
 	.close = taskbar_wnd_close,
+	.kbd = taskbar_wnd_kbd,
 	.pos = taskbar_wnd_pos
 };
 
@@ -67,6 +69,33 @@ static void taskbar_wnd_close(ui_window_t *window, void *arg)
 	ui_quit(taskbar->ui);
 }
 
+/** Window received keyboard event.
+ *
+ * @param window Window
+ * @param arg Argument (taskbar)
+ * @param event Keyboard event
+ */
+static void taskbar_wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
+{
+	taskbar_t *taskbar = (taskbar_t *) arg;
+	ui_evclaim_t claim;
+
+	/* Remember ID of device that sent the last event */
+	taskbar->wndlist->ev_idev_id = event->kbd_id;
+	taskbar->tbsmenu->ev_idev_id = event->kbd_id;
+
+	claim = ui_window_def_kbd(window, event);
+	if (claim == ui_claimed)
+		return;
+
+	if (event->type == KEY_PRESS && (event->mods & KM_CTRL) == 0 &&
+	    (event->mods & KM_ALT) == 0 && (event->mods & KM_SHIFT) == 0 &&
+	    event->key == KC_ENTER) {
+		if (!tbsmenu_is_open(taskbar->tbsmenu))
+			tbsmenu_open(taskbar->tbsmenu);
+	}
+}
+
 /** Window received position event.
  *
  * @param window Window
@@ -78,7 +107,8 @@ static void taskbar_wnd_pos(ui_window_t *window, void *arg, pos_event_t *event)
 	taskbar_t *taskbar = (taskbar_t *) arg;
 
 	/* Remember ID of device that sent the last event */
-	taskbar->wndlist->ev_pos_id = event->pos_id;
+	taskbar->wndlist->ev_idev_id = event->pos_id;
+	taskbar->tbsmenu->ev_idev_id = event->pos_id;
 
 	ui_window_def_pos(window, event);
 }
@@ -97,7 +127,6 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	taskbar_t *taskbar = NULL;
 	gfx_rect_t scr_rect;
 	gfx_rect_t rect;
-	ui_resource_t *ui_res;
 	errno_t rc;
 
 	taskbar = calloc(1, sizeof(taskbar_t));
@@ -159,37 +188,38 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	ui_window_set_cb(taskbar->window, &window_cb, (void *)taskbar);
-	ui_res = ui_window_get_res(taskbar->window);
-
 	rc = ui_fixed_create(&taskbar->fixed);
 	if (rc != EOK) {
 		printf("Error creating fixed layout.\n");
 		goto error;
 	}
 
-	rc = ui_label_create(ui_res, "HelenOS", &taskbar->label);
+	rc = tbsmenu_create(taskbar->window, taskbar->fixed, &taskbar->tbsmenu);
 	if (rc != EOK) {
-		printf("Error creating label.\n");
+		printf("Error creating start menu.\n");
 		goto error;
 	}
 
-	ui_window_get_app_rect(taskbar->window, &rect);
+	rc = tbsmenu_load(taskbar->tbsmenu, "/cfg/taskbar.sif");
+	if (rc != EOK) {
+		printf("Error loading start menu from '%s'.\n",
+		    "/cfg/taskbar.sif");
+		goto error;
+	}
+
 	if (ui_is_textmode(taskbar->ui)) {
-		rect.p0.x += 1;
+		rect.p0.x = params.rect.p0.x + 1;
+		rect.p0.y = 0;
+		rect.p1.x = params.rect.p0.x + 9;
+		rect.p1.y = 1;
 	} else {
-		rect.p0.x += 10;
+		rect.p0.x = params.rect.p0.x + 5;
+		rect.p0.y = 4;
+		rect.p1.x = params.rect.p0.x + 84;
+		rect.p1.y = 32 - 4;
 	}
-	ui_label_set_rect(taskbar->label, &rect);
-	ui_label_set_halign(taskbar->label, gfx_halign_left);
-	ui_label_set_valign(taskbar->label, gfx_valign_center);
 
-	rc = ui_fixed_add(taskbar->fixed, ui_label_ctl(taskbar->label));
-	if (rc != EOK) {
-		printf("Error adding control to layout.\n");
-		ui_label_destroy(taskbar->label);
-		goto error;
-	}
+	tbsmenu_set_rect(taskbar->tbsmenu, &rect);
 
 	rc = wndlist_create(taskbar->window, taskbar->fixed, &taskbar->wndlist);
 	if (rc != EOK) {
@@ -198,7 +228,7 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 
 	if (ui_is_textmode(taskbar->ui)) {
-		rect.p0.x = params.rect.p0.x + 9;
+		rect.p0.x = params.rect.p0.x + 10;
 		rect.p0.y = 0;
 		rect.p1.x = params.rect.p1.x - 10;
 		rect.p1.y = 1;
@@ -210,8 +240,12 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 	wndlist_set_rect(taskbar->wndlist, &rect);
 
+	/*
+	 * We may not be able to open WM service if display server is not
+	 * running. That's okay, there simply are no windows to manage.
+	 */
 	rc = wndlist_open_wm(taskbar->wndlist, wndmgt_svc);
-	if (rc != EOK) {
+	if (rc != EOK && rc != ENOENT) {
 		printf("Error attaching window management service.\n");
 		goto error;
 	}
@@ -242,6 +276,7 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 
 	ui_window_add(taskbar->window, ui_fixed_ctl(taskbar->fixed));
+	ui_window_set_cb(taskbar->window, &window_cb, (void *)taskbar);
 
 	rc = ui_window_paint(taskbar->window);
 	if (rc != EOK) {
@@ -256,6 +291,8 @@ error:
 		taskbar_clock_destroy(taskbar->clock);
 	if (taskbar->wndlist != NULL)
 		wndlist_destroy(taskbar->wndlist);
+	if (taskbar->tbsmenu != NULL)
+		tbsmenu_destroy(taskbar->tbsmenu);
 	if (taskbar->window != NULL)
 		ui_window_destroy(taskbar->window);
 	if (taskbar->ui != NULL)
@@ -269,6 +306,8 @@ void taskbar_destroy(taskbar_t *taskbar)
 {
 	ui_fixed_remove(taskbar->fixed, taskbar_clock_ctl(taskbar->clock));
 	taskbar_clock_destroy(taskbar->clock);
+	wndlist_destroy(taskbar->wndlist);
+	tbsmenu_destroy(taskbar->tbsmenu);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);
 }

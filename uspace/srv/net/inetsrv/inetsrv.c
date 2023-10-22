@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,6 +85,8 @@ static void inet_default_conn(ipc_call_t *, void *);
 
 static errno_t inet_init(void)
 {
+	loc_srv_t *srv;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_init()");
 
 	port_id_t port;
@@ -103,15 +105,16 @@ static errno_t inet_init(void)
 	if (rc != EOK)
 		return rc;
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		return EEXIST;
 	}
 
 	service_id_t sid;
-	rc = loc_service_register(SERVICE_NAME_INET, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_INET, &sid);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		return EEXIST;
 	}

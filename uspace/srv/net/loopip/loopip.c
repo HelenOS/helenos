@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,9 +102,11 @@ static errno_t loopip_recv_fibril(void *arg)
 
 static errno_t loopip_init(void)
 {
+	loc_srv_t *srv;
+
 	async_set_fallback_port_handler(loopip_client_conn, NULL);
 
-	errno_t rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
@@ -118,8 +120,9 @@ static errno_t loopip_init(void)
 
 	const char *svc_name = "net/loopback";
 	service_id_t sid;
-	rc = loc_service_register(svc_name, &sid);
+	rc = loc_service_register(srv, svc_name, &sid);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service %s.",
 		    svc_name);
 		return rc;
@@ -128,20 +131,27 @@ static errno_t loopip_init(void)
 	category_id_t iplink_cat;
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
+		loc_service_unregister(srv, sid);
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
 		return rc;
 	}
 
-	rc = loc_service_add_to_cat(sid, iplink_cat);
+	rc = loc_service_add_to_cat(srv, sid, iplink_cat);
 	if (rc != EOK) {
+		loc_service_unregister(srv, sid);
+		loc_server_unregister(srv);
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.",
 		    svc_name);
 		return rc;
 	}
 
 	fid_t fid = fibril_create(loopip_recv_fibril, NULL);
-	if (fid == 0)
+	if (fid == 0) {
+		loc_service_unregister(srv, sid);
+		loc_server_unregister(srv);
 		return ENOMEM;
+	}
 
 	fibril_add_ready(fid);
 

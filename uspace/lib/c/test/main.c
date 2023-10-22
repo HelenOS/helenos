@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
@@ -41,6 +42,7 @@ PCUT_IMPORT(gsort);
 PCUT_IMPORT(ieee_double);
 PCUT_IMPORT(imath);
 PCUT_IMPORT(inttypes);
+PCUT_IMPORT(loc);
 PCUT_IMPORT(mem);
 PCUT_IMPORT(odict);
 PCUT_IMPORT(perf);

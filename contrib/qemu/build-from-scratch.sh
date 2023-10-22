@@ -41,6 +41,7 @@ OPENSPARC_URL="http://download.oracle.com/technetwork/systems/opensparc/${OPENSP
 
 ARCHIVE_PREFIX="./S10image"
 BINARIES="1up-hv.bin 1up-md.bin nvram1 openboot.bin q.bin reset.bin"
+INSTALL_PREFIX="$HOME/.local"
 
 echo "==== Downloading OpenSPARC archive ===="
 
@@ -76,8 +77,8 @@ echo "==== Extracting OpenSPARC binaries ===="
 
 echo "==== Installing OpenSPARC binaries ===="
 
-sudo install -d /usr/local/opensparc/image
-sudo install -m 0444 binaries/* /usr/local/opensparc/image
+install -d "$INSTALL_PREFIX/opensparc/image"
+install -m 0444 binaries/* "$INSTALL_PREFIX/opensparc/image"
 
 echo "==== Obtaining QEMU sources ===="
 
@@ -93,25 +94,25 @@ else
 		wget ${URL}.sig
 	fi
 
-	gpg --verify ${TARBALL}.sig ${TARBALL}
+	gpg --auto-key-retrieve --verify ${TARBALL}.sig ${TARBALL}
 	if [ $? -ne 0 ]; then
 		echo Unable to verify the signature
 		exit
 	fi
 
-	tar xvfj ${TARBALL}
+	echo "==== Decompressing QEMU sources ===="
+	tar xfj ${TARBALL}
 	cd ${SOURCEDIR}
 fi
 
 echo "==== Configuring QEMU ===="
 
-./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,aarch64-softmmu,ppc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --audio-drv-list=pa
+./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,aarch64-softmmu,ppc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --enable-gtk --enable-vte --enable-kvm --enable-curses --enable-opengl --enable-slirp --enable-pa --audio-drv-list=pa --prefix="$INSTALL_PREFIX" || exit 1
 
 echo "==== Building QEMU ===="
 
-make -j 4
+make -j`nproc` || exit 1
 
 echo "==== Installing QEMU ===="
 
-sudo make install
-
+make install

@@ -163,7 +163,7 @@ fi
 
 sed "s:@COMPPREFIX@:$compprefix:g" "$cross_def" > crossfile || exit 1
 
-meson "${SOURCE_DIR}" '.' --cross-file crossfile || exit 1
+meson setup "${SOURCE_DIR}" '.' --cross-file crossfile || exit 1
 
 echo
 echo "Configuration for platform $PLATFORM finished."

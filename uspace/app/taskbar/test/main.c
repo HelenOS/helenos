@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ PCUT_INIT;
 
 PCUT_IMPORT(clock);
 PCUT_IMPORT(taskbar);
+PCUT_IMPORT(tbsmenu);
 PCUT_IMPORT(wndlist);
 
 PCUT_MAIN();

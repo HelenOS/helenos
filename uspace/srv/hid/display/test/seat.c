@@ -211,12 +211,14 @@ PCUT_TEST(unfocus_wnd_three_windows)
 	rc = ds_window_create(client, &params, &w0);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	/* w0 is at the top, then w1, then w2 */
+
 	PCUT_ASSERT_EQUALS(w0, seat->focus);
 
 	ds_window_unfocus(w0);
 
-	/* The previous window, w2, should be focused now */
-	PCUT_ASSERT_EQUALS(w2, seat->focus);
+	/* The previous window, w1, should be focused now */
+	PCUT_ASSERT_EQUALS(w1, seat->focus);
 
 	ds_window_destroy(w0);
 	ds_window_destroy(w1);

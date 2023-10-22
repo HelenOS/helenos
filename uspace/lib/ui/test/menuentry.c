@@ -34,6 +34,7 @@
 #include <ui/control.h>
 #include <ui/menu.h>
 #include <ui/menubar.h>
+#include <ui/menudd.h>
 #include <ui/menuentry.h>
 #include <ui/ui.h>
 #include <ui/window.h>
@@ -74,7 +75,7 @@ PCUT_TEST(create_destroy)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -115,7 +116,7 @@ PCUT_TEST(create_sep_destroy)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -163,7 +164,7 @@ PCUT_TEST(set_cb)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -209,7 +210,7 @@ PCUT_TEST(first_next)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -262,7 +263,7 @@ PCUT_TEST(last_prev)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -317,7 +318,7 @@ PCUT_TEST(widths_height)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -367,7 +368,7 @@ PCUT_TEST(paint)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -418,7 +419,7 @@ PCUT_TEST(selectable)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -475,7 +476,7 @@ PCUT_TEST(press_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -538,7 +539,7 @@ PCUT_TEST(press_leave_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -606,7 +607,7 @@ PCUT_TEST(press_leave_enter_release)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -678,7 +679,7 @@ PCUT_TEST(activate)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -736,7 +737,7 @@ PCUT_TEST(pos_press_inside)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -796,7 +797,7 @@ PCUT_TEST(pos_press_outside)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -856,7 +857,7 @@ PCUT_TEST(pos_move_out)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 
@@ -919,7 +920,7 @@ PCUT_TEST(pos_move_in)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(mbar);
 
-	rc = ui_menu_create(mbar, "Test", &menu);
+	rc = ui_menu_dd_create(mbar, "Test", NULL, &menu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(menu);
 

@@ -737,7 +737,9 @@ void ui_list_entry_destroy(ui_list_entry_t *entry)
  */
 void ui_list_entry_delete(ui_list_entry_t *entry)
 {
-	/* Try to make sure entry does not disappear between cursor and page */
+	ui_list_t *list = entry->list;
+
+	/* Try to make sure entry does not disappear under cursor or page */
 	if (entry->list->cursor == entry)
 		ui_list_cursor_up(entry->list);
 	if (entry->list->cursor == entry)
@@ -748,6 +750,33 @@ void ui_list_entry_delete(ui_list_entry_t *entry)
 		ui_list_scroll_down(entry->list);
 
 	ui_list_entry_destroy(entry);
+
+	/*
+	 * But it could still happen if there are not enough entries.
+	 * In that case just move page and/or cursor to the first
+	 * entry.
+	 */
+	if (list->page == NULL) {
+		list->page = ui_list_first(list);
+		list->page_idx = 0;
+	} else {
+		/*
+		 * Entry index might have changed if earlier entry
+		 * was deleted.
+		 */
+		list->page_idx = ui_list_entry_get_idx(list->page);
+	}
+
+	if (list->cursor == NULL) {
+		list->cursor = ui_list_first(list);
+		list->cursor_idx = 0;
+	} else {
+		/*
+		 * Entry index might have changed if earlier entry
+		 * was deleted.
+		 */
+		list->cursor_idx = ui_list_entry_get_idx(list->cursor);
+	}
 }
 
 /** Get entry argument.

@@ -34,6 +34,7 @@
  */
 
 #include <adt/list.h>
+#include <ctype.h>
 #include <errno.h>
 #include <gfx/color.h>
 #include <gfx/context.h>
@@ -43,16 +44,15 @@
 #include <stdlib.h>
 #include <str.h>
 #include <uchar.h>
+#include <ui/ui.h>
 #include <ui/accel.h>
 #include <ui/control.h>
 #include <ui/paint.h>
 #include <ui/popup.h>
 #include <ui/menu.h>
-#include <ui/menubar.h>
 #include <ui/menuentry.h>
 #include <ui/resource.h>
 #include <ui/window.h>
-#include "../private/menubar.h"
 #include "../private/menu.h"
 #include "../private/resource.h"
 
@@ -77,13 +77,12 @@ static ui_popup_cb_t ui_menu_popup_cb = {
 
 /** Create new menu.
  *
+ * @param parent Parent window
  * @param mbar Menu bar
- * @param caption Caption
  * @param rmenu Place to store pointer to new menu
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t ui_menu_create(ui_menu_bar_t *mbar, const char *caption,
-    ui_menu_t **rmenu)
+errno_t ui_menu_create(ui_window_t *parent, ui_menu_t **rmenu)
 {
 	ui_menu_t *menu;
 
@@ -91,14 +90,7 @@ errno_t ui_menu_create(ui_menu_bar_t *mbar, const char *caption,
 	if (menu == NULL)
 		return ENOMEM;
 
-	menu->caption = str_dup(caption);
-	if (menu->caption == NULL) {
-		free(menu);
-		return ENOMEM;
-	}
-
-	menu->mbar = mbar;
-	list_append(&menu->lmenus, &mbar->menus);
+	menu->parent = parent;
 	list_initialize(&menu->entries);
 
 	*rmenu = menu;
@@ -123,83 +115,20 @@ void ui_menu_destroy(ui_menu_t *menu)
 		mentry = ui_menu_entry_first(menu);
 	}
 
-	list_remove(&menu->lmenus);
 	free(menu->caption);
 	free(menu);
 }
 
-/** Get first menu in menu bar.
- *
- * @param mbar Menu bar
- * @return First menu or @c NULL if there is none
- */
-ui_menu_t *ui_menu_first(ui_menu_bar_t *mbar)
-{
-	link_t *link;
-
-	link = list_first(&mbar->menus);
-	if (link == NULL)
-		return NULL;
-
-	return list_get_instance(link, ui_menu_t, lmenus);
-}
-
-/** Get next menu in menu bar.
- *
- * @param cur Current menu
- * @return Next menu or @c NULL if @a cur is the last one
- */
-ui_menu_t *ui_menu_next(ui_menu_t *cur)
-{
-	link_t *link;
-
-	link = list_next(&cur->lmenus, &cur->mbar->menus);
-	if (link == NULL)
-		return NULL;
-
-	return list_get_instance(link, ui_menu_t, lmenus);
-}
-
-/** Get last menu in menu bar.
- *
- * @param mbar Menu bar
- * @return Last menu or @c NULL if there is none
- */
-ui_menu_t *ui_menu_last(ui_menu_bar_t *mbar)
-{
-	link_t *link;
-
-	link = list_last(&mbar->menus);
-	if (link == NULL)
-		return NULL;
-
-	return list_get_instance(link, ui_menu_t, lmenus);
-}
-
-/** Get previous menu in menu bar.
- *
- * @param cur Current menu
- * @return Previous menu or @c NULL if @a cur is the fist one
- */
-ui_menu_t *ui_menu_prev(ui_menu_t *cur)
-{
-	link_t *link;
-
-	link = list_prev(&cur->lmenus, &cur->mbar->menus);
-	if (link == NULL)
-		return NULL;
-
-	return list_get_instance(link, ui_menu_t, lmenus);
-}
-
-/** Get menu caption.
+/** Set menu callbacks.
  *
  * @param menu Menu
- * @return Caption (owned by @a menu)
+ * @param cb Callbacks
+ * @param arg Callback argument
  */
-const char *ui_menu_caption(ui_menu_t *menu)
+void ui_menu_set_cb(ui_menu_t *menu, ui_menu_cb_t *cb, void *arg)
 {
-	return menu->caption;
+	menu->cb = cb;
+	menu->arg = arg;
 }
 
 /** Get menu geometry.
@@ -211,12 +140,12 @@ const char *ui_menu_caption(ui_menu_t *menu)
 void ui_menu_get_geom(ui_menu_t *menu, gfx_coord2_t *spos,
     ui_menu_geom_t *geom)
 {
-	ui_resource_t *res;
 	gfx_coord2_t edim;
 	gfx_coord_t frame_w;
 	gfx_coord_t frame_h;
+	ui_resource_t *res;
 
-	res = ui_window_get_res(menu->mbar->window);
+	res = ui_window_get_res(menu->parent);
 
 	if (res->textmode) {
 		frame_w = menu_frame_w_text;
@@ -238,31 +167,6 @@ void ui_menu_get_geom(ui_menu_t *menu, gfx_coord2_t *spos,
 	geom->entries_rect.p0.y = spos->y + frame_h;
 	geom->entries_rect.p1.x = geom->entries_rect.p0.x + edim.x;
 	geom->entries_rect.p1.y = geom->entries_rect.p0.x + edim.y;
-}
-
-/** Get menu rectangle.
- *
- * @param menu Menu
- * @param spos Starting position (top-left corner)
- * @param rect Place to store menu rectangle
- */
-void ui_menu_get_rect(ui_menu_t *menu, gfx_coord2_t *spos, gfx_rect_t *rect)
-{
-	ui_menu_geom_t geom;
-
-	ui_menu_get_geom(menu, spos, &geom);
-	*rect = geom.outer_rect;
-}
-
-/** Get menu accelerator character.
- *
- * @param menu Menu
- * @return Accelerator character (lowercase) or the null character if
- *         the menu has no accelerator.
- */
-char32_t ui_menu_get_accel(ui_menu_t *menu)
-{
-	return ui_accel_get(menu->caption);
 }
 
 /** Get UI resource from menu.
@@ -303,8 +207,8 @@ errno_t ui_menu_open(ui_menu_t *menu, gfx_rect_t *prect, sysarg_t idev_id)
 	params.place = *prect;
 	params.idev_id = idev_id;
 
-	rc = ui_popup_create(menu->mbar->ui, menu->mbar->window, &params,
-	    &popup);
+	rc = ui_popup_create(ui_window_get_ui(menu->parent), menu->parent,
+	    &params, &popup);
 	if (rc != EOK)
 		return rc;
 
@@ -502,7 +406,7 @@ ui_evclaim_t ui_menu_pos_event(ui_menu_t *menu, gfx_coord2_t *spos,
 	} else {
 		/* Press outside menu - close it */
 		if (event->type == POS_PRESS)
-			ui_menu_bar_deactivate(menu->mbar);
+			ui_menu_close_req(menu);
 	}
 
 	return ui_unclaimed;
@@ -523,7 +427,7 @@ ui_evclaim_t ui_menu_kbd_event(ui_menu_t *menu, kbd_event_t *event)
 
 	if (event->type == KEY_PRESS && (event->mods & KM_ALT) != 0 &&
 	    (event->mods & (KM_CTRL | KM_SHIFT)) == 0 && event->c != '\0')
-		ui_menu_bar_press_accel(menu->mbar, event->c, event->kbd_id);
+		ui_menu_press_accel(menu, event->c, event->kbd_id);
 
 	return ui_claimed;
 }
@@ -614,13 +518,13 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 
 	switch (event->key) {
 	case KC_ESCAPE:
-		ui_menu_bar_deactivate(menu->mbar);
+		ui_menu_close_req(menu);
 		break;
 	case KC_LEFT:
-		ui_menu_bar_left(menu->mbar, event->kbd_id);
+		ui_menu_left(menu, event->kbd_id);
 		break;
 	case KC_RIGHT:
-		ui_menu_bar_right(menu->mbar, event->kbd_id);
+		ui_menu_right(menu, event->kbd_id);
 		break;
 	case KC_UP:
 		ui_menu_up(menu);
@@ -629,7 +533,8 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 		ui_menu_down(menu);
 		break;
 	case KC_ENTER:
-		if (menu->selected != NULL)
+		if (menu->selected != NULL &&
+		    !ui_menu_entry_is_disabled(menu->selected))
 			ui_menu_entry_activate(menu->selected);
 		break;
 	default:
@@ -637,7 +542,8 @@ static void ui_menu_key_press_unmod(ui_menu_t *menu, kbd_event_t *event)
 			mentry = ui_menu_entry_first(menu);
 			while (mentry != NULL) {
 				c = ui_menu_entry_get_accel(mentry);
-				if (c == event->c && menu->selected != NULL) {
+				if (c == (char32_t)tolower(event->c) &&
+				    !ui_menu_entry_is_disabled(mentry)) {
 					ui_menu_entry_activate(mentry);
 					break;
 				}
@@ -657,8 +563,8 @@ static void ui_menu_popup_close(ui_popup_t *popup, void *arg)
 {
 	ui_menu_t *menu = (ui_menu_t *)arg;
 
-	/* Deactivate menu bar, close menu */
-	ui_menu_bar_deactivate(menu->mbar);
+	/* Forward close request to caller */
+	ui_menu_close_req(menu);
 }
 
 /** Handle keyboard event in menu popup window.
@@ -688,6 +594,50 @@ static void ui_menu_popup_pos(ui_popup_t *popup, void *arg, pos_event_t *event)
 	spos.x = 0;
 	spos.y = 0;
 	ui_menu_pos_event(menu, &spos, event);
+}
+
+/** Send menu left event.
+ *
+ * @param menu Menu
+ * @param idev_id Input device ID
+ */
+void ui_menu_left(ui_menu_t *menu, sysarg_t idev_id)
+{
+	if (menu->cb != NULL && menu->cb->left != NULL)
+		menu->cb->left(menu, menu->arg, idev_id);
+}
+
+/** Send menu right event.
+ *
+ * @param menu Menu
+ * @param idev_id Input device ID
+ */
+void ui_menu_right(ui_menu_t *menu, sysarg_t idev_id)
+{
+	if (menu->cb != NULL && menu->cb->right != NULL)
+		menu->cb->right(menu, menu->arg, idev_id);
+}
+
+/** Send menu close request event.
+ *
+ * @param menu Menu
+ */
+void ui_menu_close_req(ui_menu_t *menu)
+{
+	if (menu->cb != NULL && menu->cb->close_req != NULL)
+		menu->cb->close_req(menu, menu->arg);
+}
+
+/** Send menu accelerator key press event.
+ *
+ * @param menu Menu
+ * @param c Character
+ * @param kbd_id Keyboard ID
+ */
+void ui_menu_press_accel(ui_menu_t *menu, char32_t c, sysarg_t kbd_id)
+{
+	if (menu->cb != NULL && menu->cb->press_accel != NULL)
+		menu->cb->press_accel(menu, menu->arg, c, kbd_id);
 }
 
 /** @}

@@ -66,8 +66,17 @@ EXPORT_CONFIGS=" \
 ninja $EXPORT_LIBS $EXPORT_CONFIGS
 ninja devel-headers
 
+#
+# Meson may produce thin archives. These cannot be simply copied to another
+# location. Copy them using ar instead, converting them to regular,
+# non-thin archives in the process.
+#
 mkdir -p "$EXPORT_DIR/lib"
-cp -t "$EXPORT_DIR/lib" $EXPORT_LIBS
+for lpath in $EXPORT_LIBS; do
+	dest="$EXPORT_DIR/lib/$(basename $lpath)"
+	ar -t $lpath | xargs ar crs $dest
+done
+
 rm -rf "$EXPORT_DIR/include"
 cp -R dist/include "$EXPORT_DIR/include"
 cp -t "$EXPORT_DIR" $EXPORT_CONFIGS

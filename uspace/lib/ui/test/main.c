@@ -43,6 +43,7 @@ PCUT_IMPORT(label);
 PCUT_IMPORT(list);
 PCUT_IMPORT(menu);
 PCUT_IMPORT(menubar);
+PCUT_IMPORT(menudd);
 PCUT_IMPORT(menuentry);
 PCUT_IMPORT(msg_dialog);
 PCUT_IMPORT(paint);

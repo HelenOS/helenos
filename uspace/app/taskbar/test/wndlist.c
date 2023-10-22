@@ -138,16 +138,17 @@ PCUT_TEST(open_wm)
 	ui_window_t *window = NULL;
 	ui_fixed_t *fixed = NULL;
 	wndlist_t *wndlist;
+	loc_srv_t *srv;
 
 	/* Set up a test WM service */
 
 	async_set_fallback_port_handler(test_wndmgt_conn, NULL);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_wndmgt_server);
+	rc = loc_server_register(test_wndmgt_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_wndmgt_svc, &sid);
+	rc = loc_service_register(srv, test_wndmgt_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Create window list and connect it to our test service */
@@ -176,8 +177,9 @@ PCUT_TEST(open_wm)
 	ui_window_destroy(window);
 	ui_destroy(ui);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Test appending new entry */

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -467,6 +468,8 @@ static void usage(char *name)
 
 int main(int argc, char *argv[])
 {
+	loc_srv_t *srv;
+
 	if (argc < 2) {
 		usage(argv[0]);
 		return 1;
@@ -476,15 +479,17 @@ int main(int argc, char *argv[])
 
 	/* Register server */
 	async_set_fallback_port_handler(client_connection, NULL);
-	errno_t rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver\n", NAME);
 		return rc;
 	}
 
 	service_id_t service_id;
-	rc = loc_service_register(argv[1], &service_id);
+	rc = loc_service_register(srv, argv[1], &service_id);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
+
 		printf("%s: Unable to register service %s\n", NAME, argv[1]);
 		return rc;
 	}

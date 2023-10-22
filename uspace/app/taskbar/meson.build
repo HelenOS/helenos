@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022 Jiri Svoboda
+# Copyright (c) 2023 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,27 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ui', 'wndmgt' ]
+deps = [ 'tbarcfg', 'ui', 'wndmgt' ]
 src = files(
 	'clock.c',
 	'main.c',
 	'taskbar.c',
+	'tbsmenu.c',
 	'wndlist.c',
 )
 
 test_src = files(
 	'clock.c',
 	'taskbar.c',
+	'tbsmenu.c',
 	'wndlist.c',
 	'test/clock.c',
 	'test/main.c',
 	'test/taskbar.c',
+	'test/tbsmenu.c',
 	'test/wndlist.c',
 )
+
+if install_nonessential_data
+	installed_data += { 'name': 'taskbar.sif', 'dir': '/cfg' }
+endif

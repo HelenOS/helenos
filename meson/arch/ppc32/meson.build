@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Jiri Svoboda
+# Copyright (c) 2023 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -39,6 +39,9 @@ arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
 arch_uspace_link_args += ldflags_ignore_rwx_segments
 arch_boot_link_args = ldflags_ignore_rwx_segments
 
+rd_essential += [
+	'app/ofw'
+]
 
 rd_essential_drv += [
 	'drv/platform/mac',

@@ -41,8 +41,8 @@
 #include <gfx/coord.h>
 #include <stdbool.h>
 #include <types/common.h>
-#include <types/ui/menu.h>
 #include <types/ui/menubar.h>
+#include <types/ui/menudd.h>
 
 /** Actual structure of menu bar.
  *
@@ -59,17 +59,19 @@ struct ui_menu_bar {
 	gfx_rect_t rect;
 	/** Menu bar is active */
 	bool active;
-	/** Selected menu or @c NULL */
-	struct ui_menu *selected;
-	/** List of menus (ui_menu_t) */
-	list_t menus;
+	/** Selected menu drop-down or @c NULL */
+	struct ui_menu_dd *selected;
+	/** List of menu drop-downs (ui_menu_dd_t) */
+	list_t menudds;
 };
 
-extern void ui_menu_bar_select(ui_menu_bar_t *, ui_menu_t *, bool, sysarg_t);
+extern void ui_menu_bar_select(ui_menu_bar_t *, ui_menu_dd_t *, bool, sysarg_t);
+extern void ui_menu_bar_select_sysmenu(ui_menu_bar_t *, bool, sysarg_t);
 extern void ui_menu_bar_left(ui_menu_bar_t *, sysarg_t);
 extern void ui_menu_bar_right(ui_menu_bar_t *, sysarg_t);
 extern ui_evclaim_t ui_menu_bar_key_press_unmod(ui_menu_bar_t *, kbd_event_t *);
-extern void ui_menu_bar_entry_rect(ui_menu_bar_t *, ui_menu_t *, gfx_rect_t *);
+extern void ui_menu_bar_entry_rect(ui_menu_bar_t *, ui_menu_dd_t *,
+    gfx_rect_t *);
 
 #endif
 

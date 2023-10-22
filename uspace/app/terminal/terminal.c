@@ -1021,7 +1021,7 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	term->srvs.ops = &con_ops;
 	term->srvs.sarg = term;
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &term->srv);
 	if (rc != EOK) {
 		printf("Error registering server.\n");
 		rc = EIO;
@@ -1032,7 +1032,7 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	snprintf(vc, LOC_NAME_MAXLEN, "%s/%" PRIu64, NAMESPACE,
 	    task_get_id());
 
-	rc = loc_service_register(vc, &term->dsid);
+	rc = loc_service_register(term->srv, vc, &term->dsid);
 	if (rc != EOK) {
 		printf("Error registering service.\n");
 		rc = EIO;
@@ -1062,6 +1062,10 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	*rterm = term;
 	return EOK;
 error:
+	if (term->dsid != 0)
+		loc_service_unregister(term->srv, term->dsid);
+	if (term->srv != NULL)
+		loc_server_unregister(term->srv);
 	if (term->window != NULL)
 		ui_window_destroy(term->window);
 	if (term->ui != NULL)

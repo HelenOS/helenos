@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,8 @@ extern errno_t vbds_part_create(service_id_t, vbd_part_spec_t *, vbds_part_id_t 
 extern errno_t vbds_part_delete(vbds_part_id_t);
 extern errno_t vbds_suggest_ptype(service_id_t, label_pcnt_t, label_ptype_t *);
 extern void vbds_bd_conn(ipc_call_t *, void *);
+
+extern loc_srv_t *vbds_srv;
 
 #endif
 

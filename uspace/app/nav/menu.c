@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <ui/menu.h>
 #include <ui/menubar.h>
+#include <ui/menudd.h>
 #include <ui/menuentry.h>
 #include "menu.h"
 #include "nav.h"
@@ -71,7 +72,7 @@ errno_t nav_menu_create(ui_window_t *window, nav_menu_t **rmenu)
 	if (rc != EOK)
 		goto error;
 
-	rc = ui_menu_create(menu->menubar, "~F~ile", &mfile);
+	rc = ui_menu_dd_create(menu->menubar, "~F~ile", NULL, &mfile);
 	if (rc != EOK)
 		goto error;
 

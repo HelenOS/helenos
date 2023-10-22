@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,8 @@ extern errno_t ui_menu_entry_sep_create(ui_menu_t *, ui_menu_entry_t **);
 extern void ui_menu_entry_destroy(ui_menu_entry_t *);
 extern void ui_menu_entry_set_cb(ui_menu_entry_t *, ui_menu_entry_cb_t,
     void *);
+extern void ui_menu_entry_set_disabled(ui_menu_entry_t *, bool);
+extern bool ui_menu_entry_is_disabled(ui_menu_entry_t *);
 extern ui_menu_entry_t *ui_menu_entry_first(ui_menu_t *);
 extern ui_menu_entry_t *ui_menu_entry_last(ui_menu_t *);
 extern ui_menu_entry_t *ui_menu_entry_next(ui_menu_entry_t *);

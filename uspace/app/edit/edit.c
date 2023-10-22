@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
@@ -59,6 +59,7 @@
 #include <ui/label.h>
 #include <ui/menu.h>
 #include <ui/menubar.h>
+#include <ui/menudd.h>
 #include <ui/menuentry.h>
 #include <ui/promptdialog.h>
 #include <ui/resource.h>
@@ -429,7 +430,7 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
-	rc = ui_menu_create(edit->menubar, "~F~ile", &mfile);
+	rc = ui_menu_dd_create(edit->menubar, "~F~ile", NULL, &mfile);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -465,7 +466,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mexit, edit_file_exit, (void *) edit);
 
-	rc = ui_menu_create(edit->menubar, "~E~dit", &medit);
+	rc = ui_menu_dd_create(edit->menubar, "~E~dit", NULL, &medit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -517,7 +518,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mselall, edit_edit_select_all, (void *) edit);
 
-	rc = ui_menu_create(edit->menubar, "~S~earch", &msearch);
+	rc = ui_menu_dd_create(edit->menubar, "~S~earch", NULL, &msearch);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
