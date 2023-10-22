@@ -88,6 +88,9 @@ kernel_link_args = arch_kernel_link_args + [
 	'-Wl,--nmagic',
 	'-T', meson.current_build_dir() / '_link.ld',
 ]
+# The kernel is built as ELF but then copied as a blob of bytes and
+# the permissions are not relevant anyway (needed for binutils 2.39+).
+kernel_link_args += ldflags_ignore_rwx_segments
 
 if CONFIG_LTO
 	kernel_link_args += [ '-flto' ]
@@ -100,8 +103,21 @@ endif
 
 kernel_c_args = arch_kernel_c_args + kernel_defs + [
 	'-ffreestanding',
-	# TODO: remove this flag
-	cc.get_supported_arguments([ '-Wno-cast-function-type' ]),
+
+	cc.get_supported_arguments([
+		# TODO: remove this flag
+		'-Wno-cast-function-type',
+
+		# When accessing specific memory addresses that are below
+		# normal page size, the compiler may assume that we actually
+		# dereferenced NULL pointer and warns us about that.
+		# But in kernel we often need to access these addresses
+		# directly hence we need to ignore these warnings.
+		#
+		# TODO: might make more sense to disable this selectively
+		# in specific files (or better yet, for specific lines).
+		'--param=min-pagesize=0',
+	]),
 ]
 
 if CONFIG_LTO
