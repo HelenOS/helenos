@@ -86,7 +86,7 @@ namespace std::aux
 
         struct mutex
         {
-            static void init(mutex_type& mtx)
+            static constexpr void init(mutex_type& mtx)
             {
                 ::helenos::fibril_mutex_initialize(&mtx);
             }

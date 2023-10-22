@@ -182,7 +182,7 @@ _NO_TRACE static inline void link_initialize(link_t *link)
  * @param list Pointer to list_t structure.
  *
  */
-_NO_TRACE static inline void list_initialize(list_t *list)
+_NO_TRACE static inline __CONSTEXPR void list_initialize(list_t *list)
 {
 	list->head.prev = &list->head;
 	list->head.next = &list->head;
