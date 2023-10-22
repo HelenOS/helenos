@@ -29,6 +29,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <typeinfo>
 
 namespace __cxxabiv1
 {

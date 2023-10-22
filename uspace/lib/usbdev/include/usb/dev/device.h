@@ -90,7 +90,7 @@ usb_endpoint_mapping_t *usb_device_get_mapped_ep_desc(usb_device_t *,
 int usb_device_unmap_ep(usb_endpoint_mapping_t *);
 
 usb_address_t usb_device_get_address(const usb_device_t *);
-usb_speed_t usb_device_get_depth(const usb_device_t *);
+unsigned usb_device_get_depth(const usb_device_t *);
 usb_speed_t usb_device_get_speed(const usb_device_t *);
 int usb_device_get_iface_number(const usb_device_t *);
 devman_handle_t usb_device_get_devman_handle(const usb_device_t *);

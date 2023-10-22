@@ -59,7 +59,6 @@ extra_common_flags = [
 
 	'-Wall',
 	'-Wextra',
-	'-Werror-implicit-function-declaration',
 	'-Wwrite-strings',
 	'-Wunknown-pragmas',
 
@@ -91,6 +90,7 @@ endif
 
 extra_cflags = extra_common_flags + [
 	'-Wmissing-prototypes',
+	'-Werror-implicit-function-declaration',
 
 	'-Wno-missing-braces',
 	'-Wno-missing-field-initializers',

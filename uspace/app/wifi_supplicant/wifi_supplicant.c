@@ -74,17 +74,11 @@ static void print_syntax(void)
 	printf("\tdisconnect <index> - disconnect from network\n");
 }
 
-static char *nic_addr_format(nic_address_t *addr)
+static void nic_addr_format(nic_address_t *addr, char *out, size_t out_size)
 {
-	char *str;
-	int rc = asprintf(&str, "%02x:%02x:%02x:%02x:%02x:%02x",
+	snprintf(out, out_size, "%02x:%02x:%02x:%02x:%02x:%02x",
 	    addr->address[0], addr->address[1], addr->address[2],
 	    addr->address[3], addr->address[4], addr->address[5]);
-
-	if (rc < 0)
-		return NULL;
-
-	return str;
 }
 
 static errno_t get_wifi_list(service_id_t **wifis, size_t *count)
@@ -262,9 +256,11 @@ static errno_t wifi_scan(uint32_t index, bool now)
 
 	for (uint8_t i = 0; i < scan_results.length; i++) {
 		ieee80211_scan_result_t result = scan_results.results[i];
+		char mac_addr_hex[18];
+		nic_addr_format(&result.bssid, mac_addr_hex, 18);
 
 		printf("%16.16s %17s %4d %5s %5s %7s %7s\n",
-		    result.ssid, nic_addr_format(&result.bssid),
+		    result.ssid, mac_addr_hex,
 		    result.channel,
 		    enum_name(ieee80211_security_type_strs, result.security.type),
 		    enum_name(ieee80211_security_auth_strs, result.security.auth),
