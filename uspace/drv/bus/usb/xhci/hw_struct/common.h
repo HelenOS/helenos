@@ -52,12 +52,12 @@
 /**
  * 4 bytes, little-endian.
  */
-typedef ioport32_t xhci_dword_t __attribute__((aligned(4)));
+typedef ioport32_t xhci_dword_t;
 
 /**
  * 8 bytes, little-endian.
  */
-typedef volatile uint64_t xhci_qword_t __attribute__((aligned(8)));
+typedef volatile uint64_t xhci_qword_t;
 
 #define XHCI_DWORD_EXTRACT(field, hi, lo) \
 	(BIT_RANGE_EXTRACT(uint32_t, hi, lo, xhci2host(32, field)))
