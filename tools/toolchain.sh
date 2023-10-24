@@ -255,25 +255,19 @@ create_dir() {
 }
 
 check_dirs() {
-	OUTSIDE="$1"
-	BASE="$2"
-	ORIGINAL="$PWD"
-
-	cd "${BASE}"
-	check_error $? "Unable to change directory to ${BASE}."
+	cd "${BASEDIR}"
+	check_error $? "Unable to change directory to ${BASEDIR}."
 	ABS_BASE="$PWD"
-	cd "${ORIGINAL}"
-	check_error $? "Unable to change directory to ${ORIGINAL}."
 
-	if $SYSTEM_INSTALL && [ ! -d "${OUTSIDE}" ]; then
+	if $SYSTEM_INSTALL && [ ! -d "${CROSS_PREFIX}" ]; then
 		ring_bell
-		( set -x ; sudo -k mkdir -p "${OUTSIDE}" )
+		( set -x ; sudo -k mkdir -p "${CROSS_PREFIX}" )
 	else
-		mkdir -p "${OUTSIDE}"
+		mkdir -p "${CROSS_PREFIX}"
 	fi
 
-	cd "${OUTSIDE}"
-	check_error $? "Unable to change directory to ${OUTSIDE}."
+	cd "${CROSS_PREFIX}"
+	check_error $? "Unable to change directory to ${CROSS_PREFIX}."
 
 	while [ "${#PWD}" -gt "${#ABS_BASE}" ]; do
 		cd ..
@@ -286,8 +280,7 @@ check_dirs() {
 		exit 5
 	fi
 
-	cd "${ORIGINAL}"
-	check_error $? "Unable to change directory to ${ORIGINAL}."
+	cd "${BASEDIR}"
 }
 
 prepare() {
@@ -327,6 +320,8 @@ prepare() {
 	set_cross_prefix
 
 	DESTDIR_SPEC="DESTDIR=${INSTALL_DIR}"
+
+	check_dirs
 }
 
 set_target_from_platform() {
@@ -367,7 +362,6 @@ build_binutils() {
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
-	check_dirs "${CROSS_PREFIX}" "${WORKDIR}"
 
 	echo ">>> Processing binutils (${PLATFORM})"
 	mkdir -p "${BINUTILSDIR}"
@@ -406,7 +400,6 @@ build_gcc() {
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
-	check_dirs "${CROSS_PREFIX}" "${WORKDIR}"
 
 	echo ">>> Processing GCC (${PLATFORM})"
 	mkdir -p "${GCCDIR}"
@@ -481,7 +474,6 @@ build_gdb() {
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
-	check_dirs "${CROSS_PREFIX}" "${WORKDIR}"
 
 	echo ">>> Processing GDB (${PLATFORM})"
 	mkdir -p "${GDBDIR}"
