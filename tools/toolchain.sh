@@ -503,7 +503,7 @@ install_pkg() {
 		ring_bell
 		( set -x ; sudo -k cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"* )
 	else
-		cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"*
+		( set -x ; cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"* )
 	fi
 }
 
