@@ -30,15 +30,15 @@
 
 BINUTILS_GDB_GIT="https://github.com/HelenOS/binutils-gdb.git"
 
-BINUTILS_BRANCH="binutils-2_31_1-helenos"
-BINUTILS_VERSION="2.31.1"
+BINUTILS_BRANCH="binutils-2_41-helenos"
+BINUTILS_VERSION="2.41"
 
-GDB_BRANCH="gdb-8_2-helenos"
-GDB_VERSION="8.2"
+GDB_BRANCH="gdb-13.2-helenos"
+GDB_VERSION="13.2"
 
 GCC_GIT="https://github.com/HelenOS/gcc.git"
-GCC_BRANCH="8_2_0-helenos"
-GCC_VERSION="8.2.0"
+GCC_BRANCH="13_2_0-helenos"
+GCC_VERSION="13.2"
 
 BASEDIR="$PWD"
 SRCDIR="$(readlink -f $(dirname "$0"))"
