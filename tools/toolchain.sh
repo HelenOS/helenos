@@ -363,12 +363,12 @@ build_binutils() {
 	cleanup_dir "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
 
-	echo ">>> Processing binutils (${PLATFORM})"
+	echo ">>> Processing binutils (${TARGET})"
 	mkdir -p "${BINUTILSDIR}"
 	cd "${BINUTILSDIR}"
 	check_error $? "Change directory failed."
 
-	change_title "binutils: configure (${PLATFORM})"
+	change_title "binutils: configure (${TARGET})"
 	CFLAGS="-Wno-error -fcommon" "${BASEDIR}/downloads/binutils-${BINUTILS_VERSION}/configure" \
 		"--target=${TARGET}" \
 		"--prefix=${CROSS_PREFIX}" \
@@ -381,11 +381,11 @@ build_binutils() {
 		--with-sysroot
 	check_error $? "Error configuring binutils."
 
-	change_title "binutils: make (${PLATFORM})"
+	change_title "binutils: make (${TARGET})"
 	make all -j$JOBS
 	check_error $? "Error compiling binutils."
 
-	change_title "binutils: install (${PLATFORM})"
+	change_title "binutils: install (${TARGET})"
 	make install $DESTDIR_SPEC
 	check_error $? "Error installing binutils."
 }
@@ -401,14 +401,14 @@ build_gcc() {
 	cleanup_dir "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
 
-	echo ">>> Processing GCC (${PLATFORM})"
+	echo ">>> Processing GCC (${TARGET})"
 	mkdir -p "${GCCDIR}"
 	cd "${GCCDIR}"
 	check_error $? "Change directory failed."
 
 	BUILDPATH="${CROSS_PREFIX}/bin:${PATH}"
 
-	change_title "GCC: configure (${PLATFORM})"
+	change_title "GCC: configure (${TARGET})"
 	PATH="${BUILDPATH}" "${BASEDIR}/downloads/gcc-${GCC_VERSION}/configure" \
 		"--target=${TARGET}" \
 		"--prefix=${CROSS_PREFIX}" \
@@ -423,11 +423,11 @@ build_gcc() {
 		--without-headers  # TODO: Replace with proper sysroot so we can build more libs
 	check_error $? "Error configuring GCC."
 
-	change_title "GCC: make (${PLATFORM})"
+	change_title "GCC: make (${TARGET})"
 	PATH="${BUILDPATH}" make all-gcc -j$JOBS
 	check_error $? "Error compiling GCC."
 
-	change_title "GCC: install (${PLATFORM})"
+	change_title "GCC: install (${TARGET})"
 	PATH="${BUILDPATH}" make install-gcc $DESTDIR_SPEC
 	check_error $? "Error installing GCC."
 }
@@ -446,7 +446,7 @@ build_libgcc() {
 
 	BUILDPATH="${CROSS_PREFIX}/bin:${PATH}"
 
-	change_title "libgcc: make (${PLATFORM})"
+	change_title "libgcc: make (${TARGET})"
 
 	PATH="${BUILDPATH}" make all-target-libgcc -j$JOBS
 	check_error $? "Error compiling libgcc."
@@ -456,7 +456,7 @@ build_libgcc() {
 	#    PATH="${BUILDPATH}" make all-target-libstdc++-v3 -j$JOBS
 	#    check_error $? "Error compiling libstdc++."
 
-	change_title "libgcc: install (${PLATFORM})"
+	change_title "libgcc: install (${TARGET})"
 
 	PATH="${BUILDPATH}" make install-target-libgcc $DESTDIR_SPEC
 	#    PATH="${BUILDPATH}" make install-target-libatomic $DESTDIR_SPEC
@@ -475,12 +475,12 @@ build_gdb() {
 	cleanup_dir "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
 
-	echo ">>> Processing GDB (${PLATFORM})"
+	echo ">>> Processing GDB (${TARGET})"
 	mkdir -p "${GDBDIR}"
 	cd "${GDBDIR}"
 	check_error $? "Change directory failed."
 
-	change_title "GDB: configure (${PLATFORM})"
+	change_title "GDB: configure (${TARGET})"
 	CFLAGS="-fcommon" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
 		"--target=${TARGET}" \
 		"--prefix=${CROSS_PREFIX}" \
@@ -488,11 +488,11 @@ build_gdb() {
 		--enable-werror=no
 	check_error $? "Error configuring GDB."
 
-	change_title "GDB: make (${PLATFORM})"
+	change_title "GDB: make (${TARGET})"
 	make all-gdb -j$JOBS
 	check_error $? "Error compiling GDB."
 
-	change_title "GDB: install (${PLATFORM})"
+	change_title "GDB: install (${TARGET})"
 	make install-gdb $DESTDIR_SPEC
 	check_error $? "Error installing GDB."
 }
@@ -609,9 +609,7 @@ everything() {
 		echo ">>> Installing GCC"
 		install_pkg
 
-		for x in $PLATFORMS ; do
-			build_libgcc $x
-		done
+		$RUNNER build_libgcc
 	fi
 
 	if $BUILD_GDB ; then
