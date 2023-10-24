@@ -72,9 +72,10 @@ typedef struct {
 	bool myalloc;
 } testgc_bitmap_t;
 
+static const gfx_font_flags_t test_font_flags = gff_bold_italic;
+
 enum {
 	test_font_size = 9,
-	test_font_flags = gff_bold_italic,
 	test_font_ascent = 4,
 	test_font_descent = 3,
 	test_font_leading = 2,
@@ -117,7 +118,7 @@ PCUT_TEST(save_load)
 
 	gfx_font_props_init(&props);
 	props.size = test_font_size;
-	props.flags = (gfx_font_flags_t) test_font_flags;
+	props.flags = test_font_flags;
 
 	gfx_font_metrics_init(&metrics);
 	metrics.ascent = test_font_ascent;
