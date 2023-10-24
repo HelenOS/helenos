@@ -43,9 +43,20 @@ GCC_VERSION="8.2.0"
 BASEDIR="$PWD"
 SRCDIR="$(readlink -f $(dirname "$0"))"
 
+# If we install into a temporary directory and copy from there,
+# we don't have to trust the upstream makefiles respect the prefix for
+# all files, and we also have a ready-made package for distribution.
+INSTALL_DIR="${BASEDIR}/PKG"
+
 SYSTEM_INSTALL=false
-REAL_INSTALL=true
-USE_HELENOS_TARGET=true
+
+BUILD_GDB=false
+BUILD_BINUTILS=true
+BUILD_GCC=true
+
+if [ -z "$JOBS" ] ; then
+	JOBS="`nproc`"
+fi
 
 check_error() {
 	if [ "$1" -ne "0" ] ; then
@@ -60,7 +71,7 @@ show_usage() {
 	echo "HelenOS cross-compiler toolchain build script"
 	echo
 	echo "Syntax:"
-	echo " $0 [--system-wide] [--no-install] [--non-helenos-target] <platform>"
+	echo " $0 [--system-wide] [--with-gdb|--only-gdb] <platform>"
 	echo " $0 [--system-wide] --test-version [<platform>]"
 	echo
 	echo "Possible target platforms are:"
@@ -75,7 +86,6 @@ show_usage() {
 	echo " riscv64    RISC-V 64b"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
-	echo " essential  build only targets currently needed for HelenOS development"
 	echo " parallel   same as 'all', but all in parallel"
 	echo " 2-way      same as 'all', but 2-way parallel"
 	echo
@@ -91,13 +101,6 @@ show_usage() {
 	echo "     target installation directory. If the \$XDG_DATA_HOME environment"
 	echo "     variable is not set, then the default value of \$HOME/.local/share"
 	echo "     is assumed."
-	echo
-	echo "If the --no-install option is used, the toolchain still uses the"
-	echo "target installation directory as determined above, but the files"
-	echo "are actually copied into the PKG/ subdirectory during the installation"
-	echo "without affecting the actual target file system. This might be useful"
-	echo "when preparing a system-wide installation, but avoiding running this"
-	echo "script under the super user."
 	echo
 	echo "The --non-helenos-target option will build non-HelenOS-specific"
 	echo "toolchain (i.e. it will use *-linux-* triplet instead of *-helenos)."
@@ -176,6 +179,18 @@ change_title() {
 	printf "\e]0;$1\a"
 }
 
+ring_bell() {
+	printf '\a'
+	sleep 0.1
+	printf '\a'
+	sleep 0.1
+	printf '\a'
+	sleep 0.1
+	printf '\a'
+	sleep 0.1
+	printf '\a'
+}
+
 show_countdown() {
 	TM="$1"
 
@@ -250,7 +265,13 @@ check_dirs() {
 	cd "${ORIGINAL}"
 	check_error $? "Unable to change directory to ${ORIGINAL}."
 
-	mkdir -p "${OUTSIDE}"
+	if $SYSTEM_INSTALL && [ ! -d "${OUTSIDE}" ]; then
+		ring_bell
+		( set -x ; sudo -k mkdir -p "${OUTSIDE}" )
+	else
+		mkdir -p "${OUTSIDE}"
+	fi
+
 	cd "${OUTSIDE}"
 	check_error $? "Unable to change directory to ${OUTSIDE}."
 
@@ -279,20 +300,33 @@ prepare() {
 
 	change_title "Downloading sources"
 	echo ">>> Downloading sources"
-	git clone --depth 1 -b "$BINUTILS_BRANCH" "$BINUTILS_GDB_GIT" "binutils-$BINUTILS_VERSION"
-	git clone --depth 1 -b "$GDB_BRANCH" "$BINUTILS_GDB_GIT" "gdb-$GDB_VERSION"
-	git clone --depth 1 -b "$GCC_BRANCH" "$GCC_GIT" "gcc-$GCC_VERSION"
 
-	# If the directory already existed, pull upstream changes.
-	git -C "binutils-$BINUTILS_VERSION" pull
-	git -C "gdb-$GDB_VERSION" pull
-	git -C "gcc-$GCC_VERSION" pull
+	if $BUILD_BINUTILS ; then
+		git clone --depth 1 -b "$BINUTILS_BRANCH" "$BINUTILS_GDB_GIT" "binutils-$BINUTILS_VERSION"
+		# If the directory already existed, pull upstream changes.
+		git -C "binutils-$BINUTILS_VERSION" pull
+	fi
 
-	change_title "Downloading GCC prerequisites"
-	echo ">>> Downloading GCC prerequisites"
-	cd "gcc-${GCC_VERSION}"
-	./contrib/download_prerequisites
-	cd ..
+	if $BUILD_GCC ; then
+		git clone --depth 1 -b "$GCC_BRANCH" "$GCC_GIT" "gcc-$GCC_VERSION"
+		git -C "gcc-$GCC_VERSION" pull
+
+		change_title "Downloading GCC prerequisites"
+		echo ">>> Downloading GCC prerequisites"
+		cd "gcc-${GCC_VERSION}"
+		./contrib/download_prerequisites
+		cd ..
+	fi
+
+	if $BUILD_GDB ; then
+		git clone --depth 1 -b "$GDB_BRANCH" "$BINUTILS_GDB_GIT" "gdb-$GDB_VERSION"
+		git -C "gdb-$GDB_VERSION" pull
+	fi
+
+	# This sets the CROSS_PREFIX variable
+	set_cross_prefix
+
+	DESTDIR_SPEC="DESTDIR=${INSTALL_DIR}"
 }
 
 set_target_from_platform() {
@@ -320,66 +354,20 @@ set_target_from_platform() {
 			;;
 	esac
 
-	HELENOS_TARGET="${GNU_ARCH}-helenos"
-
-	case "$1" in
-		"arm32")
-			LINUX_TARGET="${GNU_ARCH}-linux-gnueabi"
-			;;
-		*)
-			LINUX_TARGET="${GNU_ARCH}-linux-gnu"
-			;;
-	esac
+	TARGET="${GNU_ARCH}-helenos"
 }
 
-build_target() {
-	PLATFORM="$1"
-
-	# This sets the *_TARGET variables
-	set_target_from_platform "$PLATFORM"
-	if $USE_HELENOS_TARGET ; then
-		TARGET="$HELENOS_TARGET"
-	else
-		TARGET="$LINUX_TARGET"
-	fi
+build_binutils() {
+	# This sets the TARGET variable
+	set_target_from_platform "$1"
 
 	WORKDIR="${BASEDIR}/${TARGET}"
-	INSTALL_DIR="${BASEDIR}/PKG"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
-	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
-	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
-
-	# This sets the CROSS_PREFIX variable
-	set_cross_prefix
-
-	if [ -z "$JOBS" ] ; then
-		JOBS="`nproc`"
-	fi
-
-	PREFIX="${CROSS_PREFIX}"
 
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
-	check_dirs "${PREFIX}" "${WORKDIR}"
-
-	if $USE_HELENOS_TARGET ; then
-		change_title "Creating build sysroot"
-		echo ">>> Creating build sysroot"
-		mkdir -p "${WORKDIR}/sysroot/include"
-		mkdir "${WORKDIR}/sysroot/lib"
-		ARCH="$PLATFORM"
-		if [ "$ARCH" = "mips32eb" ]; then
-			ARCH=mips32
-		fi
-
-		cp -r -L -t "${WORKDIR}/sysroot/include" \
-			${SRCDIR}/../abi/include/* \
-			${SRCDIR}/../uspace/lib/c/arch/${ARCH}/include/* \
-			${SRCDIR}/../uspace/lib/c/include/*
-		check_error $? "Failed to create build sysroot."
-	fi
-
+	check_dirs "${CROSS_PREFIX}" "${WORKDIR}"
 
 	echo ">>> Processing binutils (${PLATFORM})"
 	mkdir -p "${BINUTILSDIR}"
@@ -389,7 +377,7 @@ build_target() {
 	change_title "binutils: configure (${PLATFORM})"
 	CFLAGS="-Wno-error -fcommon" "${BASEDIR}/downloads/binutils-${BINUTILS_VERSION}/configure" \
 		"--target=${TARGET}" \
-		"--prefix=${PREFIX}" \
+		"--prefix=${CROSS_PREFIX}" \
 		"--program-prefix=${TARGET}-" \
 		--disable-nls \
 		--disable-werror \
@@ -404,25 +392,33 @@ build_target() {
 	check_error $? "Error compiling binutils."
 
 	change_title "binutils: install (${PLATFORM})"
-	make install "DESTDIR=${INSTALL_DIR}"
+	make install $DESTDIR_SPEC
 	check_error $? "Error installing binutils."
+}
 
+build_gcc() {
+	# This sets the TARGET variable
+	set_target_from_platform "$1"
+
+	WORKDIR="${BASEDIR}/${TARGET}"
+	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
+
+	echo ">>> Removing previous content"
+	cleanup_dir "${WORKDIR}"
+	mkdir -p "${WORKDIR}"
+	check_dirs "${CROSS_PREFIX}" "${WORKDIR}"
 
 	echo ">>> Processing GCC (${PLATFORM})"
 	mkdir -p "${GCCDIR}"
 	cd "${GCCDIR}"
 	check_error $? "Change directory failed."
 
-	if $USE_HELENOS_TARGET ; then
-		SYSROOT=--with-sysroot --with-build-sysroot="${WORKDIR}/sysroot"
-	else
-		SYSROOT=--without-headers
-	fi
+	BUILDPATH="${CROSS_PREFIX}/bin:${PATH}"
 
 	change_title "GCC: configure (${PLATFORM})"
-	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gcc-${GCC_VERSION}/configure" \
+	PATH="${BUILDPATH}" "${BASEDIR}/downloads/gcc-${GCC_VERSION}/configure" \
 		"--target=${TARGET}" \
-		"--prefix=${PREFIX}" \
+		"--prefix=${CROSS_PREFIX}" \
 		"--program-prefix=${TARGET}-" \
 		--with-gnu-as \
 		--with-gnu-ld \
@@ -431,32 +427,61 @@ build_target() {
 		--enable-lto \
 		--disable-shared \
 		--disable-werror \
-		$SYSROOT
+		--without-headers  # TODO: Replace with proper sysroot so we can build more libs
 	check_error $? "Error configuring GCC."
 
 	change_title "GCC: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gcc -j$JOBS
+	PATH="${BUILDPATH}" make all-gcc -j$JOBS
 	check_error $? "Error compiling GCC."
 
-	if $USE_HELENOS_TARGET ; then
-		PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libgcc -j$JOBS
-		check_error $? "Error compiling libgcc."
-		# TODO: libatomic and libstdc++ need some extra care
-		#    PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libatomic -j$JOBS
-		#    check_error $? "Error compiling libatomic."
-		#    PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libstdc++-v3 -j$JOBS
-		#    check_error $? "Error compiling libstdc++."
-	fi
-
 	change_title "GCC: install (${PLATFORM})"
-	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gcc "DESTDIR=${INSTALL_DIR}"
-	if $USE_HELENOS_TARGET ; then
-		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libgcc "DESTDIR=${INSTALL_DIR}"
-		#    PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libatomic "DESTDIR=${INSTALL_DIR}"
-		#    PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libstdc++-v3 "DESTDIR=${INSTALL_DIR}"
-	fi
+	PATH="${BUILDPATH}" make install-gcc $DESTDIR_SPEC
 	check_error $? "Error installing GCC."
+}
 
+build_libgcc() {
+	# This sets the TARGET variable
+	set_target_from_platform "$1"
+
+	WORKDIR="${BASEDIR}/${TARGET}"
+	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
+
+	# No removing previous content here, we need the previous GCC build
+
+	cd "${GCCDIR}"
+	check_error $? "Change directory failed."
+
+	BUILDPATH="${CROSS_PREFIX}/bin:${PATH}"
+
+	change_title "libgcc: make (${PLATFORM})"
+
+	PATH="${BUILDPATH}" make all-target-libgcc -j$JOBS
+	check_error $? "Error compiling libgcc."
+	# TODO: libatomic and libstdc++ need some extra care
+	#    PATH="${BUILDPATH}" make all-target-libatomic -j$JOBS
+	#    check_error $? "Error compiling libatomic."
+	#    PATH="${BUILDPATH}" make all-target-libstdc++-v3 -j$JOBS
+	#    check_error $? "Error compiling libstdc++."
+
+	change_title "libgcc: install (${PLATFORM})"
+
+	PATH="${BUILDPATH}" make install-target-libgcc $DESTDIR_SPEC
+	#    PATH="${BUILDPATH}" make install-target-libatomic $DESTDIR_SPEC
+	#    PATH="${BUILDPATH}" make install-target-libstdc++-v3 $DESTDIR_SPEC
+	check_error $? "Error installing libgcc."
+}
+
+build_gdb() {
+	# This sets the TARGET variable
+	set_target_from_platform "$1"
+
+	WORKDIR="${BASEDIR}/${TARGET}"
+	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
+
+	echo ">>> Removing previous content"
+	cleanup_dir "${WORKDIR}"
+	mkdir -p "${WORKDIR}"
+	check_dirs "${CROSS_PREFIX}" "${WORKDIR}"
 
 	echo ">>> Processing GDB (${PLATFORM})"
 	mkdir -p "${GDBDIR}"
@@ -464,41 +489,39 @@ build_target() {
 	check_error $? "Change directory failed."
 
 	change_title "GDB: configure (${PLATFORM})"
-	CFLAGS="-fcommon" PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
+	CFLAGS="-fcommon" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
 		"--target=${TARGET}" \
-		"--prefix=${PREFIX}" \
+		"--prefix=${CROSS_PREFIX}" \
 		"--program-prefix=${TARGET}-" \
 		--enable-werror=no
 	check_error $? "Error configuring GDB."
 
 	change_title "GDB: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gdb -j$JOBS
+	make all-gdb -j$JOBS
 	check_error $? "Error compiling GDB."
 
-	change_title "GDB: make (${PLATFORM})"
-	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gdb "DESTDIR=${INSTALL_DIR}"
+	change_title "GDB: install (${PLATFORM})"
+	make install-gdb $DESTDIR_SPEC
 	check_error $? "Error installing GDB."
+}
 
+install_pkg() {
+	echo ">>> Moving to the destination directory."
+	if $SYSTEM_INSTALL ; then
+		ring_bell
+		( set -x ; sudo -k cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"* )
+	else
+		cp -r -t "${CROSS_PREFIX}" "${INSTALL_DIR}${CROSS_PREFIX}/"*
+	fi
+}
+
+link_clang() {
 	# Symlink clang and lld to the install path.
 	CLANG="`which clang 2> /dev/null || echo "/usr/bin/clang"`"
 	LLD="`which ld.lld 2> /dev/null || echo "/usr/bin/ld.lld"`"
 
-	ln -s $CLANG "${INSTALL_DIR}/${PREFIX}/bin/${TARGET}-clang"
-	ln -s $LLD "${INSTALL_DIR}/${PREFIX}/bin/${TARGET}-ld.lld"
-
-	if $REAL_INSTALL ; then
-		echo ">>> Moving to the destination directory."
-		cp -r -t "${PREFIX}" "${INSTALL_DIR}/${PREFIX}/"*
-	fi
-
-	cd "${BASEDIR}"
-	check_error $? "Change directory failed."
-
-	echo ">>> Cleaning up"
-	cleanup_dir "${WORKDIR}"
-
-	echo
-	echo ">>> Cross-compiler for ${TARGET} installed."
+	ln -s $CLANG "${INSTALL_DIR}${CROSS_PREFIX}/bin/${TARGET}-clang"
+	ln -s $LLD "${INSTALL_DIR}${CROSS_PREFIX}/bin/${TARGET}-ld.lld"
 }
 
 while [ "$#" -gt 1 ] ; do
@@ -511,12 +534,14 @@ while [ "$#" -gt 1 ] ; do
 			test_version "$2"
 			exit
 			;;
-		--no-install)
-			REAL_INSTALL=false
+		--with-gdb)
+			BUILD_GDB=true
 			shift
 			;;
-		--non-helenos-target)
-			USE_HELENOS_TARGET=false
+		--only-gdb)
+			BUILD_GDB=true
+			BUILD_BINUTILS=false
+			BUILD_GCC=false
 			shift
 			;;
 		*)
@@ -529,75 +554,101 @@ if [ "$#" -lt "1" ] ; then
 	show_usage
 fi
 
+PLATFORMS="amd64 arm32 arm64 ia32 ia64 mips32 mips32eb ppc32 riscv64 sparc64"
+
+run_one() {
+	$1 $PLATFORM
+}
+
+run_all() {
+	for x in $PLATFORMS ; do
+		$1 $x
+	done
+}
+
+run_parallel() {
+	for x in $PLATFORMS ; do
+		$1 $x &
+	done
+	wait
+}
+
+run_2way() {
+	$1 amd64 &
+	$1 arm32 &
+	wait
+
+	$1 arm64 &
+	$1 ia32 &
+	wait
+
+	$1 ia64 &
+	$1 mips32 &
+	wait
+
+	$1 mips32eb &
+	$1 ppc32 &
+	wait
+
+	$1 riscv64 &
+	$1 sparc64 &
+	wait
+}
+
+everything() {
+	RUNNER="$1"
+
+	prepare
+
+	if $BUILD_BINUTILS ; then
+		$RUNNER build_binutils
+
+		if $BUILD_GCC ; then
+			# gcc/libgcc may fail to build correctly if binutils is not installed first
+			echo ">>> Installing binutils"
+			install_pkg
+		fi
+	fi
+
+	if $BUILD_GCC ; then
+		$RUNNER build_gcc
+
+		# libgcc may fail to build correctly if gcc is not installed first
+		echo ">>> Installing GCC"
+		install_pkg
+
+		for x in $PLATFORMS ; do
+			build_libgcc $x
+		done
+	fi
+
+	if $BUILD_GDB ; then
+		$RUNNER build_gdb
+	fi
+
+	echo ">>> Installing all files"
+	install_pkg
+
+	link_clang
+}
+
 case "$1" in
 	--test-version)
 		test_version
 		exit
 		;;
 	amd64|arm32|arm64|ia32|ia64|mips32|mips32eb|ppc32|riscv64|sparc64)
-		prepare
-		build_target "$1"
+		PLATFORM="$1"
+		everything run_one
 		;;
 	"all")
-		prepare
-		build_target "amd64"
-		build_target "arm32"
-		build_target "arm64"
-		build_target "ia32"
-		build_target "ia64"
-		build_target "mips32"
-		build_target "mips32eb"
-		build_target "ppc32"
-		build_target "riscv64"
-		build_target "sparc64"
-		;;
-	"essential")
-		prepare
-		build_target "amd64"
-		build_target "arm32"
-		build_target "arm64"
-		build_target "ia32"
-		build_target "ia64"
-		build_target "mips32"
-		build_target "mips32eb"
-		build_target "ppc32"
-		build_target "sparc64"
+		everything run_all
 		;;
 	"parallel")
-		prepare
-		build_target "amd64" &
-		build_target "arm32" &
-		build_target "arm64" &
-		build_target "ia32" &
-		build_target "ia64" &
-		build_target "mips32" &
-		build_target "mips32eb" &
-		build_target "ppc32" &
-		build_target "riscv64" &
-		build_target "sparc64" &
-		wait
+		everything run_parallel
 		;;
 	"2-way")
-		prepare
-		build_target "amd64" &
-		build_target "arm32" &
-		wait
-
-		build_target "arm64" &
-		build_target "ia32" &
-		wait
-
-		build_target "ia64" &
-		build_target "mips32" &
-		wait
-
-		build_target "mips32eb" &
-		build_target "ppc32" &
-		wait
-
-		build_target "riscv64" &
-		build_target "sparc64" &
-		wait
+		everything run_2way
 		;;
 	*)
 		show_usage
