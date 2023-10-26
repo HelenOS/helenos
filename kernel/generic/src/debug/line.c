@@ -653,12 +653,10 @@ static const uint8_t *find_line_program(uintptr_t addr)
 				}
 			}
 
-			/*
-			 * if (!lp.end_sequence) {
-			 * debug_line_program_skip_to_sequence_end(&lp);
-			 * assert(lp.truncated || lp.end_sequence);
-			 * }
-			 */
+			if (!lp.end_sequence) {
+				debug_line_program_skip_to_sequence_end(&lp);
+				assert(lp.truncated || lp.end_sequence);
+			}
 		}
 	}
 
@@ -721,7 +719,7 @@ bool debug_line_get_address_info(uintptr_t addr, int op_index, const char **file
 	int file = -1;
 
 	if (!get_info(&hdr, addr, op_index, &file, line, column)) {
-		printf("no info for 0x%zx: prog offset 0x%zx\n", addr, (void *) data - debug_line);
+		// printf("no info for 0x%zx: prog offset 0x%zx\n", addr, (void *) data - debug_line);
 		return false;
 	}
 
