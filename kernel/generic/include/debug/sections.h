@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2023 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic
- * @{
- */
-/** @file
- */
+#ifndef DEBUG_SECTIONS_H_
+#define DEBUG_SECTIONS_H_
 
-#ifndef KERN_SYMTAB_H_
-#define KERN_SYMTAB_H_
+#include <abi/elf.h>
+#include <stddef.h>
 
-#include <typedefs.h>
+extern const void *debug_aranges;
+extern size_t debug_aranges_size;
 
-extern void symtab_print_search(const char *);
-extern const char *symtab_hints_enum(const char *, const char **, void **);
-extern const char *symtab_fmt_name_lookup(uintptr_t);
-extern errno_t symtab_addr_lookup(const char *, uintptr_t *);
-extern const char *symtab_name_lookup(uintptr_t, uintptr_t *);
+extern const void *debug_info;
+extern size_t debug_info_size;
 
-#endif
+extern const void *debug_abbrev;
+extern size_t debug_abbrev_size;
 
-/** @}
- */
+extern const void *debug_line;
+extern size_t debug_line_size;
+
+extern const char *debug_str;
+extern size_t debug_str_size;
+
+extern const char *debug_line_str;
+extern size_t debug_line_str_size;
+
+extern const void *debug_rnglists;
+extern size_t debug_rnglists_size;
+
+extern const void *eh_frame_hdr;
+extern size_t eh_frame_hdr_size;
+
+extern const void *eh_frame;
+extern size_t eh_frame_size;
+
+extern const elf_symbol_t *symtab;
+extern size_t symtab_size;
+
+extern const char *strtab;
+extern size_t strtab_size;
+
+#endif /* DEBUG_SECTIONS_H_ */

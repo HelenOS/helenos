@@ -36,13 +36,12 @@
 #define KERN_DEBUG_H_
 
 #include <log.h>
-#include <symtab_lookup.h>
 #include <printf/verify.h>
 
 #define CALLER  ((uintptr_t) __builtin_return_address(0))
 
 /* An empty printf function to ensure syntactic correctness of disabled debug prints. */
-_HELENOS_PRINTF_ATTRIBUTE(1, 2)
+static inline void dummy_printf(const char *fmt, ...) _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 static inline void dummy_printf(const char *fmt, ...)
 {
 }

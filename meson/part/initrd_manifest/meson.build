@@ -28,6 +28,10 @@
 
 # Init binaries. These are actually baked into the bootloader.
 rd_init = [
+	# ELF file with DWARF debug sections for kernel.
+	# Kernel detects this entry by name.
+	'kernel.dbg',
+
 	# IMPORTANT: The order of entries is important for bootloader!
 	'srv/ns',
 	'srv/loader',

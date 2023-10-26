@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2023 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic
- * @{
- */
-/** @file
- */
+#ifndef DEBUG_REGISTER_H_
+#define DEBUG_REGISTER_H_
 
-#ifndef KERN_SYMTAB_LOOKUP_H_
-#define KERN_SYMTAB_LOOKUP_H_
+/** Accepts data of an ELF file containing debug sections. */
+void register_debug_data(const void *data, size_t data_size);
 
-#include <typedefs.h>
-
-#define MAX_SYMBOL_NAME  64
-
-struct symtab_entry {
-	uint64_t address_le;
-	char symbol_name[MAX_SYMBOL_NAME];
-};
-
-extern errno_t symtab_name_lookup(uintptr_t, const char **, uintptr_t *);
-extern const char *symtab_fmt_name_lookup(uintptr_t);
-extern errno_t symtab_addr_lookup(const char *, uintptr_t *);
-
-#ifdef CONFIG_SYMTAB
-
-/** Symtable linked together by build process
- *
- */
-extern struct symtab_entry symbol_table[];
-
-#endif /* CONFIG_SYMTAB */
-
-#endif
-
-/** @}
- */
+#endif /* DEBUG_REGISTER_H_ */

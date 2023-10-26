@@ -43,41 +43,78 @@
 #include <errno.h>
 #include <console/prompt.h>
 
-/** Get name of a symbol that seems most likely to correspond to address.
- *
- * @param addr   Address.
- * @param name   Place to store pointer to the symbol name.
- * @param offset Place to store offset from the symbol address.
- *
- * @return Zero on success or an error code, ENOENT if not found,
- *         ENOTSUP if symbol table not available.
- *
- */
-errno_t symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
-{
-#ifdef CONFIG_SYMTAB
-	size_t i;
+#include <abi/elf.h>
+#include <debug/sections.h>
 
-	for (i = 1; symbol_table[i].address_le; i++) {
-		if (addr < uint64_t_le2host(symbol_table[i].address_le))
+static inline size_t symtab_len()
+{
+	return symtab_size / sizeof(elf_symbol_t);
+}
+
+static inline const char *symtab_entry_name(int entry)
+{
+	size_t index = symtab[entry].st_name;
+
+	if (index >= strtab_size)
+		return NULL;
+
+	return strtab + index;
+}
+
+static inline size_t symtab_next(size_t i)
+{
+	for (; i < symtab_len(); i++) {
+		const char *name = symtab_entry_name(i);
+		int st_bind = elf_st_bind(symtab[i].st_info);
+		int st_type = elf_st_type(symtab[i].st_info);
+
+		if (st_bind == STB_LOCAL)
+			continue;
+
+		if (name == NULL || *name == '\0')
+			continue;
+
+		if (st_type == STT_FUNC || st_type == STT_OBJECT)
 			break;
 	}
 
-	if (addr >= uint64_t_le2host(symbol_table[i - 1].address_le)) {
-		*name = symbol_table[i - 1].symbol_name;
-		if (offset)
-			*offset = addr -
-			    uint64_t_le2host(symbol_table[i - 1].address_le);
-		return EOK;
+	return i;
+}
+
+const char *symtab_name_lookup(uintptr_t addr, uintptr_t *symbol_addr)
+{
+	if (symtab == NULL || strtab == NULL)
+		return NULL;
+
+	uintptr_t closest_symbol_addr = 0;
+	uintptr_t closest_symbol_name = 0;
+
+	for (size_t i = symtab_next(0); i < symtab_len(); i = symtab_next(i + 1)) {
+		if (symtab[i].st_value > addr)
+			continue;
+
+		if (symtab[i].st_value + symtab[i].st_size > addr) {
+			closest_symbol_addr = symtab[i].st_value;
+			closest_symbol_name = symtab[i].st_name;
+			break;
+		}
+
+		if (symtab[i].st_value > closest_symbol_addr) {
+			closest_symbol_addr = symtab[i].st_value;
+			closest_symbol_name = symtab[i].st_name;
+		}
 	}
 
-	*name = NULL;
-	return ENOENT;
+	if (closest_symbol_addr == 0)
+		return NULL;
 
-#else
-	*name = NULL;
-	return ENOTSUP;
-#endif
+	if (symbol_addr)
+		*symbol_addr = closest_symbol_addr;
+
+	if (closest_symbol_name >= strtab_size)
+		return NULL;
+
+	return strtab + closest_symbol_name;
 }
 
 /** Lookup symbol by address and format for display.
@@ -94,55 +131,11 @@ errno_t symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
  */
 const char *symtab_fmt_name_lookup(uintptr_t addr)
 {
-	const char *name;
-	errno_t rc = symtab_name_lookup(addr, &name, NULL);
-
-	switch (rc) {
-	case EOK:
-		return name;
-	case ENOENT:
-		return "unknown";
-	default:
-		return "N/A";
-	}
+	const char *name = symtab_name_lookup(addr, NULL);
+	if (name == NULL)
+		name = "<unknown>";
+	return name;
 }
-
-#ifdef CONFIG_SYMTAB
-
-/** Find symbols that match the parameter forward and print them.
- *
- * @param name     Search string
- * @param startpos Starting position, changes to found position
- *
- * @return Pointer to the part of string that should be completed or NULL.
- *
- */
-static const char *symtab_search_one(const char *name, size_t *startpos)
-{
-	size_t namelen = str_length(name);
-
-	size_t pos;
-	for (pos = *startpos; symbol_table[pos].address_le; pos++) {
-		const char *curname = symbol_table[pos].symbol_name;
-
-		/* Find a ':' in curname */
-		const char *colon = str_chr(curname, ':');
-		if (colon == NULL)
-			continue;
-
-		if (str_length(curname) < namelen)
-			continue;
-
-		if (str_lcmp(name, curname, namelen) == 0) {
-			*startpos = pos;
-			return (curname + str_lsize(curname, namelen));
-		}
-	}
-
-	return NULL;
-}
-
-#endif
 
 /** Return address that corresponds to the entry.
  *
@@ -151,90 +144,60 @@ static const char *symtab_search_one(const char *name, size_t *startpos)
  * @param name Name of the symbol
  * @param addr Place to store symbol address
  *
- * @return Zero on success, ENOENT - not found, EOVERFLOW - duplicate
- *         symbol, ENOTSUP - no symbol information available.
+ * @return Zero on success, ENOENT - not found
  *
  */
 errno_t symtab_addr_lookup(const char *name, uintptr_t *addr)
 {
-#ifdef CONFIG_SYMTAB
-	size_t found = 0;
-	size_t pos = 0;
-	const char *hint;
-
-	while ((hint = symtab_search_one(name, &pos))) {
-		if (str_length(hint) == 0) {
-			*addr = uint64_t_le2host(symbol_table[pos].address_le);
-			found++;
+	for (size_t i = symtab_next(0); i < symtab_len(); i = symtab_next(i + 1)) {
+		if (str_cmp(name, symtab_entry_name(i)) == 0) {
+			*addr = symtab[i].st_value;
+			return EOK;
 		}
-		pos++;
 	}
 
-	if (found > 1)
-		return EOVERFLOW;
-
-	if (found < 1)
-		return ENOENT;
-
-	return EOK;
-
-#else
-	return ENOTSUP;
-#endif
+	return ENOENT;
 }
 
 /** Find symbols that match parameter and print them */
 void symtab_print_search(const char *name)
 {
-#ifdef CONFIG_SYMTAB
-	size_t pos = 0;
-	while (symtab_search_one(name, &pos)) {
-		uintptr_t addr = uint64_t_le2host(symbol_table[pos].address_le);
-		char *realname = symbol_table[pos].symbol_name;
-		printf("%p: %s\n", (void *) addr, realname);
-		pos++;
+	if (symtab == NULL || strtab == NULL) {
+		printf("No symbol information available.\n");
+		return;
 	}
 
-#else
-	printf("No symbol information available.\n");
-#endif
+	size_t namelen = str_length(name);
+
+	for (size_t i = symtab_next(0); i < symtab_len(); i = symtab_next(i + 1)) {
+		const char *n = symtab_entry_name(i);
+
+		if (str_lcmp(name, n, namelen) == 0) {
+			printf("%p: %s\n", (void *) symtab[i].st_value, n);
+		}
+	}
 }
 
 /** Symtab completion enum, see kernel/generic/include/kconsole.h */
-const char *symtab_hints_enum(const char *input, const char **help,
-    void **ctx)
+const char *symtab_hints_enum(const char *input, const char **help, void **ctx)
 {
-#ifdef CONFIG_SYMTAB
+	if (symtab == NULL || strtab == NULL)
+		return NULL;
+
+	if (help)
+		*help = NULL;
+
 	size_t len = str_length(input);
-	struct symtab_entry **entry = (struct symtab_entry **)ctx;
-
-	if (*entry == NULL)
-		*entry = symbol_table;
-
-	for (; (*entry)->address_le; (*entry)++) {
-		const char *curname = (*entry)->symbol_name;
-
-		/* Find a ':' in curname */
-		const char *colon = str_chr(curname, ':');
-		if (colon == NULL)
-			continue;
-
-		if (str_length(curname) < len)
-			continue;
+	for (size_t i = symtab_next((size_t) *ctx); i < symtab_len(); i = symtab_next(i + 1)) {
+		const char *curname = symtab_entry_name(i);
 
 		if (str_lcmp(input, curname, len) == 0) {
-			(*entry)++;
-			if (help)
-				*help = NULL;
+			*ctx = (void *) (i + 1);
 			return (curname + str_lsize(curname, len));
 		}
 	}
 
 	return NULL;
-
-#else
-	return NULL;
-#endif
 }
 
 /** @}

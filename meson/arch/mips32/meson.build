@@ -60,10 +60,7 @@ arch_kernel_link_args = [ '-nostdlib' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 arch_boot_link_args = []
 
-
-kernel_as_prolog = '.module softfloat;'
 uspace_as_prolog = '.module softfloat;.abicalls;'
-
 
 if MACHINE == 'bmalta' or MACHINE == 'lmalta'
 	rd_essential_drv += [

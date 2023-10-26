@@ -105,7 +105,10 @@ void stack_trace_istate(istate_t *istate)
 static bool
 kernel_symbol_resolve(uintptr_t addr, const char **sp, uintptr_t *op)
 {
-	return (symtab_name_lookup(addr, sp, op) == 0);
+	uintptr_t symbol_addr = 0;
+	*sp = symtab_name_lookup(addr, &symbol_addr);
+	*op = addr - symbol_addr;
+	return symbol_addr != 0;
 }
 
 stack_trace_ops_t kst_ops = {

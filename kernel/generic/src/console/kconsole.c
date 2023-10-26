@@ -85,6 +85,8 @@
 SPINLOCK_INITIALIZE(cmd_lock);  /**< Lock protecting command list. */
 LIST_INITIALIZE(cmd_list);      /**< Command list. */
 
+#define MAX_SYMBOL_NAME 64
+
 static char32_t history[KCONSOLE_HISTORY][MAX_CMDLINE] = { };
 static size_t history_pos = 0;
 

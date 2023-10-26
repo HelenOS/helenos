@@ -72,6 +72,7 @@
 #include <sysinfo/sysinfo.h>
 #include <align.h>
 #include <stdlib.h>
+#include <debug/register.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -181,7 +182,7 @@ void kinit(void *arg)
 	 * Create user tasks, load RAM disk images.
 	 */
 	size_t i;
-	program_t programs[CONFIG_INIT_TASKS];
+	program_t programs[CONFIG_INIT_TASKS] = { };
 
 	// FIXME: do not propagate arguments through sysinfo
 	// but pass them directly to the tasks
@@ -236,6 +237,18 @@ void kinit(void *arg)
 		    init.tasks[i].size, PAGE_SIZE,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		assert(page);
+
+		if (str_cmp(name, "kernel.dbg") == 0) {
+			/*
+			 * Not an actual init task, but rather debug sections extracted
+			 * from the kernel ELF file and handed to us here so we can use
+			 * it for debugging.
+			 */
+
+			register_debug_data((void *) page, init.tasks[i].size);
+			programs[i].task = NULL;
+			continue;
+		}
 
 		if (str_cmp(name, "loader") == 0) {
 			/* Register image as the program loader */

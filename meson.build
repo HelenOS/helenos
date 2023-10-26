@@ -60,9 +60,6 @@ if not is_variable('atsign')
 endif
 
 ## Some architectures need a particular string at the beginning of assembly files.
-if not is_variable('kernel_as_prolog')
-	kernel_as_prolog = ''
-endif
 if not is_variable('uspace_as_prolog')
 	uspace_as_prolog = ''
 endif
