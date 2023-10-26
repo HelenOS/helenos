@@ -34,75 +34,75 @@
 #define CVAL(name, value) [value] = #name,
 
 static const char *const dw_ut_names[] = {
-	#include <debug/constants/dw_ut.h>
+#include <debug/constants/dw_ut.inc>
 };
 
 static const char *const dw_tag_names[] = {
-	#include <debug/constants/dw_tag.h>
+#include <debug/constants/dw_tag.inc>
 };
 
 static const char *const dw_at_names[] = {
-	#include <debug/constants/dw_at.h>
+#include <debug/constants/dw_at.inc>
 };
 
 static const char *const dw_form_names[] = {
-	#include <debug/constants/dw_form.h>
+#include <debug/constants/dw_form.inc>
 };
 
 static const char *const dw_op_names[] = {
-	#include <debug/constants/dw_op.h>
+#include <debug/constants/dw_op.inc>
 };
 
 static const char *const dw_lle_names[] = {
-	#include <debug/constants/dw_lle.h>
+#include <debug/constants/dw_lle.inc>
 };
 
 static const char *const dw_ate_names[] = {
-	#include <debug/constants/dw_ate.h>
+#include <debug/constants/dw_ate.inc>
 };
 
 static const char *const dw_ds_names[] = {
-	#include <debug/constants/dw_ds.h>
+#include <debug/constants/dw_ds.inc>
 };
 
 static const char *const dw_end_names[] = {
-	#include <debug/constants/dw_end.h>
+#include <debug/constants/dw_end.inc>
 };
 
 static const char *const dw_access_names[] = {
-	#include <debug/constants/dw_access.h>
+#include <debug/constants/dw_access.inc>
 };
 
 static const char *const dw_vis_names[] = {
-	#include <debug/constants/dw_vis.h>
+#include <debug/constants/dw_vis.inc>
 };
 
 static const char *const dw_virtuality_names[] = {
-	#include <debug/constants/dw_virtuality.h>
+#include <debug/constants/dw_virtuality.inc>
 };
 
 static const char *const dw_lang_names[] = {
-	#include <debug/constants/dw_lang.h>
+#include <debug/constants/dw_lang.inc>
 };
 
 static const char *const dw_id_names[] = {
-	#include <debug/constants/dw_id.h>
+#include <debug/constants/dw_id.inc>
 };
 
 static const char *const dw_cc_names[] = {
-	#include <debug/constants/dw_cc.h>
+#include <debug/constants/dw_cc.inc>
 };
 
 static const char *const dw_lns_names[] = {
-	#include <debug/constants/dw_lns.h>
+#include <debug/constants/dw_lns.inc>
 };
 
 static const char *const dw_lne_names[] = {
-	#include <debug/constants/dw_lne.h>
+#include <debug/constants/dw_lne.inc>
 };
 
 static const char *const dw_lnct_names[] = {
-	#include <debug/constants/dw_lnct.h>
+#include <debug/constants/dw_lnct.inc>
 };
 
 #undef CVAL

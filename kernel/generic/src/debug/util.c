@@ -32,7 +32,8 @@
 #include <debug/sections.h>
 #include <debug/names.h>
 
-/* These declarations cause global definitions for the functions to be emitted
+/*
+ * These declarations cause global definitions for the functions to be emitted
  * in this compilation unit, so if the compiler decides not to inline some of
  * them, only one external copy exists. See C99 inline rules.
  */
@@ -185,7 +186,7 @@ void print_formatted_list(const char *name,
 }
 
 void print_block(const uint8_t **const data,
-	    const uint8_t *data_end, unsigned bytes)
+    const uint8_t *data_end, unsigned bytes)
 {
 	while (bytes > 0 && *data < data_end) {
 		DEBUGF("%02x ", **data);
@@ -195,7 +196,7 @@ void print_block(const uint8_t **const data,
 }
 
 void print_formed_data(unsigned form, const uint8_t **const data,
-	    const uint8_t *data_end, unsigned width)
+    const uint8_t *data_end, unsigned width)
 {
 	size_t len;
 	uint64_t offset;
@@ -265,7 +266,7 @@ void print_formed_data(unsigned form, const uint8_t **const data,
 	case DW_FORM_data16:
 		uint64_t data1 = read_uint64(data, data_end);
 		uint64_t data2 = read_uint64(data, data_end);
-		DEBUGF("0x%016"PRIx64"%016"PRIx64, data2, data1);
+		DEBUGF("0x%016" PRIx64 "%016" PRIx64, data2, data1);
 		break;
 
 	case DW_FORM_block:

@@ -44,73 +44,73 @@ enum {
 #define CVAL(name, value) name = value,
 
 enum {
-#include "../debug/constants/dw_ut.h"
+#include "constants/dw_ut.inc"
 
 	DW_UT_lo_user = 0x80,
 	DW_UT_hi_user = 0xff,
 };
 
 enum {
-#include "../debug/constants/dw_tag.h"
+#include "constants/dw_tag.inc"
 
 	DW_TAG_lo_user = 0x4080,
 	DW_TAG_hi_user = 0xffff,
 };
 
 enum {
-#include "../debug/constants/dw_at.h"
+#include "constants/dw_at.inc"
 
 	DW_AT_lo_user = 0x2000,
 	DW_AT_hi_user = 0x3fff,
 };
 
 enum {
-#include "../debug/constants/dw_form.h"
+#include "constants/dw_form.inc"
 };
 
 enum {
-#include "../debug/constants/dw_op.h"
+#include "constants/dw_op.inc"
 
 	DW_OP_lo_user = 0xe0,
 	DW_OP_hi_user = 0xff,
 };
 
 enum {
-#include "../debug/constants/dw_lle.h"
+#include "constants/dw_lle.inc"
 };
 
 enum {
-#include "../debug/constants/dw_ate.h"
+#include "constants/dw_ate.inc"
 
 	DW_ATE_lo_user = 0x80,
 	DW_ATE_hi_user = 0xff,
 };
 
 enum {
-#include "../debug/constants/dw_ds.h"
+#include "constants/dw_ds.inc"
 };
 
 enum {
-#include "../debug/constants/dw_end.h"
+#include "constants/dw_end.inc"
 
 	DW_END_lo_user = 0x40,
 	DW_END_hi_user = 0xff,
 };
 
 enum {
-#include "../debug/constants/dw_access.h"
+#include "constants/dw_access.inc"
 };
 
 enum {
-#include "../debug/constants/dw_vis.h"
+#include "constants/dw_vis.inc"
 };
 
 enum {
-#include "../debug/constants/dw_virtuality.h"
+#include "constants/dw_virtuality.inc"
 };
 
 enum {
-#include "../debug/constants/dw_lang.h"
+#include "constants/dw_lang.inc"
 
 	DW_LANG_lo_user = 0x8000,
 	DW_LANG_hi_user = 0xffff,
@@ -121,29 +121,29 @@ enum {
 };
 
 enum {
-#include "../debug/constants/dw_id.h"
+#include "constants/dw_id.inc"
 };
 
 enum {
-#include "../debug/constants/dw_cc.h"
+#include "constants/dw_cc.inc"
 
 	DW_CC_lo_user = 0x40,
 	DW_CC_hi_user = 0xff,
 };
 
 enum {
-#include "../debug/constants/dw_lns.h"
+#include "constants/dw_lns.inc"
 };
 
 enum {
-#include "../debug/constants/dw_lne.h"
+#include "constants/dw_lne.inc"
 
 	DW_LNE_lo_user = 0x80,
 	DW_LNE_hi_user = 0xff,
 };
 
 enum {
-#include "../debug/constants/dw_lnct.h"
+#include "constants/dw_lnct.inc"
 
 	DW_LNCT_lo_user = 0x2000,
 	DW_LNCT_hi_user = 0x3fff,

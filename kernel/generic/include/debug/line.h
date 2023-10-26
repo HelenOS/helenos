@@ -91,7 +91,7 @@ struct debug_line_program {
 
 static inline struct debug_line_program debug_line_program_create(const uint8_t *program,
     const uint8_t *const program_end,
-	const struct debug_line_program_header *hdr)
+    const struct debug_line_program_header *hdr)
 {
 	return (struct debug_line_program) {
 		.hdr = hdr,

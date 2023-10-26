@@ -53,13 +53,21 @@ inline uint8_t read_byte(const uint8_t **data, const uint8_t *data_end)
 	}
 }
 
+/* Casting to these structures allows us to read unaligned integers safely. */
+struct u16 {
+	uint16_t val;
+} __attribute__((packed));
+
+struct u32 {
+	uint32_t val;
+} __attribute__((packed));
+
+struct u64 {
+	uint64_t val;
+} __attribute__((packed));
+
 inline uint16_t read_uint16(const uint8_t **data, const uint8_t *data_end)
 {
-	/* Casting to these structures allows us to read unaligned integers safely. */
-	struct u16 {
-		uint16_t val;
-	} __attribute__((packed));
-
 	if (*data + 2 > data_end) {
 		/* Safe exit path for malformed input. */
 		*data = data_end;
@@ -91,10 +99,6 @@ inline uint32_t read_uint24(const uint8_t **data, const uint8_t *data_end)
 
 inline uint32_t read_uint32(const uint8_t **data, const uint8_t *data_end)
 {
-	struct u32 {
-		uint32_t val;
-	} __attribute__((packed));
-
 	if (*data + 4 > data_end) {
 		/* Safe exit path for malformed input. */
 		*data = data_end;
@@ -108,10 +112,6 @@ inline uint32_t read_uint32(const uint8_t **data, const uint8_t *data_end)
 
 inline uint64_t read_uint64(const uint8_t **data, const uint8_t *data_end)
 {
-	struct u64 {
-		uint64_t val;
-	} __attribute__((packed));
-
 	if (*data + 8 > data_end) {
 		/* Safe exit path for malformed input. */
 		*data = data_end;

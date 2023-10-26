@@ -194,7 +194,7 @@ static void debug_line_program_advance(struct debug_line_program *lp)
 
 		case DW_LNS_advance_pc:
 			arg = read_uleb128(&program, program_end);
-			DEBUGF("%s(%"PRIu64")\n", opname, arg);
+			DEBUGF("%s(%" PRIu64 ")\n", opname, arg);
 			lp->op_advance += arg;
 			break;
 
@@ -266,7 +266,7 @@ static void debug_line_program_advance(struct debug_line_program *lp)
 
 			case DW_LNE_set_discriminator:
 				uint64_t arg = read_uleb128(&program, program_end);
-				DEBUGF("%s:%zu(%"PRIu64")\n", opname, length, arg);
+				DEBUGF("%s:%zu(%" PRIu64 ")\n", opname, length, arg);
 				break;
 
 			default:
@@ -368,17 +368,17 @@ static void debug_line_program_header_parse(const uint8_t *data, const uint8_t *
 		hdr->v5.directory_entry_format_end = data;
 
 		print_format("directory_entry_format",
-			hdr->v5.directory_entry_format, hdr->v5.directory_entry_format_end);
+		    hdr->v5.directory_entry_format, hdr->v5.directory_entry_format_end);
 
 		FIELD(v5.directories_count, PRIu64, read_uleb128(&data, data_end));
 
 		hdr->v5.directories = data;
 		skip_formatted_list(&data, data_end, hdr->v5.directories_count,
-			hdr->v5.directory_entry_format, hdr->v5.directory_entry_format_end, width);
+		    hdr->v5.directory_entry_format, hdr->v5.directory_entry_format_end, width);
 		hdr->v5.directories_end = data;
 
 		print_formatted_list("directories", hdr->v5.directories, hdr->v5.directories_end,
-			hdr->v5.directory_entry_format, hdr->v5.directory_entry_format_end, width);
+		    hdr->v5.directory_entry_format, hdr->v5.directory_entry_format_end, width);
 
 		FIELD(v5.file_name_entry_format_count, "u", read_byte(&data, data_end));
 
@@ -387,17 +387,17 @@ static void debug_line_program_header_parse(const uint8_t *data, const uint8_t *
 		hdr->v5.file_name_entry_format_end = data;
 
 		print_format("file_name_entry_format",
-			hdr->v5.file_name_entry_format, hdr->v5.file_name_entry_format_end);
+		    hdr->v5.file_name_entry_format, hdr->v5.file_name_entry_format_end);
 
 		FIELD(v5.file_names_count, PRIu64, read_uleb128(&data, data_end));
 
 		hdr->v5.file_names = data;
 		skip_formatted_list(&data, data_end, hdr->v5.file_names_count,
-			hdr->v5.file_name_entry_format, hdr->v5.file_name_entry_format_end, width);
+		    hdr->v5.file_name_entry_format, hdr->v5.file_name_entry_format_end, width);
 		hdr->v5.file_names_end = data;
 
 		print_formatted_list("file_names", hdr->v5.file_names, hdr->v5.file_names_end,
-			hdr->v5.file_name_entry_format, hdr->v5.file_name_entry_format_end, width);
+		    hdr->v5.file_name_entry_format, hdr->v5.file_name_entry_format_end, width);
 	}
 }
 
@@ -654,20 +654,21 @@ static const uint8_t *find_line_program(uintptr_t addr)
 			}
 
 			/*
-			if (!lp.end_sequence) {
-				debug_line_program_skip_to_sequence_end(&lp);
-				assert(lp.truncated || lp.end_sequence);
-			}
-			*/
+			 * if (!lp.end_sequence) {
+			 * debug_line_program_skip_to_sequence_end(&lp);
+			 * assert(lp.truncated || lp.end_sequence);
+			 * }
+			 */
 		}
 	}
 
 	return closest_prog;
 }
 
-static bool get_info(const struct debug_line_program_header *hdr, uintptr_t addr, int op_index, int *file, int *line, int *column) {
+static bool get_info(const struct debug_line_program_header *hdr, uintptr_t addr, int op_index, int *file, int *line, int *column)
+{
 	struct debug_line_program lp = debug_line_program_create(
-		hdr->header_end, hdr->unit_end, hdr);
+	    hdr->header_end, hdr->unit_end, hdr);
 
 	int last_file = 0;
 	int last_line = 0;
@@ -734,4 +735,3 @@ bool debug_line_get_address_info(uintptr_t addr, int op_index, const char **file
 
 	return true;
 }
-

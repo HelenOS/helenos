@@ -124,9 +124,9 @@ void stack_trace_istate(istate_t *istate)
 
 static bool
 resolve_kernel_address(uintptr_t addr, int op_index,
-		const char **symbol, uintptr_t *symbol_addr,
-		const char **filename, const char **dirname,
-		int *line, int *column)
+    const char **symbol, uintptr_t *symbol_addr,
+    const char **filename, const char **dirname,
+    int *line, int *column)
 {
 	*symbol_addr = 0;
 	*symbol = symtab_name_lookup(addr, symbol_addr);
