@@ -68,7 +68,8 @@ extra_common_flags = [
 
 	'-ffunction-sections',
 	'-fno-common',
-	'-fdebug-prefix-map=' + meson.source_root() + '=.',
+	'-fdebug-prefix-map=' + meson.source_root() + '/=',
+	'-fdebug-prefix-map=../../=',
 ]
 
 if cc.get_id() != 'clang'
@@ -85,7 +86,7 @@ if CONFIG_DEBUG
 endif
 
 if CONFIG_LINE_DEBUG
-	extra_common_flags += [ '-gdwarf-4', '-g3' ]
+	extra_common_flags += [ '-gdwarf-5', '-g3' ]
 endif
 
 extra_cflags = extra_common_flags + [

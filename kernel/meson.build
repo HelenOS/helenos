@@ -94,6 +94,8 @@ endif
 
 kernel_c_args = arch_kernel_c_args + kernel_defs + [
 	'-ffreestanding',
+	'-fdebug-prefix-map=../../kernel/=',
+	'-fdebug-prefix-map=../../../kernel/=',
 
 	cc.get_supported_arguments([
 		# TODO: remove this flag
@@ -110,6 +112,11 @@ kernel_c_args = arch_kernel_c_args + kernel_defs + [
 		'--param=min-pagesize=0',
 	]),
 ]
+
+if not CONFIG_LINE_DEBUG
+	# Keep the debug info needed to get file names for kernel stack traces.
+	kernel_c_args += [ '-gdwarf-5', '-g1', '-gno-statement-frontiers' ]
+endif
 
 if CONFIG_LTO
 	kernel_c_args += [ '-flto' ]

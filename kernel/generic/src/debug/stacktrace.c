@@ -38,25 +38,45 @@
 #include <symtab.h>
 #include <stdio.h>
 
+#include <debug/line.h>
+
 #define STACK_FRAMES_MAX  20
 
 void stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 {
 	int cnt = 0;
-	const char *symbol;
-	uintptr_t offset;
+
 	uintptr_t fp;
 	uintptr_t pc;
 
 	while ((cnt++ < STACK_FRAMES_MAX) &&
 	    (ops->stack_trace_context_validate(ctx))) {
+
+		const char *symbol = NULL;
+		uintptr_t symbol_addr = 0;
+		const char *file_name = NULL;
+		const char *dir_name = NULL;
+		int line = 0;
+		int column = 0;
+
 		if (ops->symbol_resolve &&
-		    ops->symbol_resolve(ctx->pc, &symbol, &offset)) {
-			if (offset)
-				printf("%p: %s()+%p\n", (void *) ctx->fp,
-				    symbol, (void *) offset);
-			else
-				printf("%p: %s()\n", (void *) ctx->fp, symbol);
+		    ops->symbol_resolve(ctx->pc, 0, &symbol, &symbol_addr, &file_name, &dir_name, &line, &column)) {
+
+			if (symbol == NULL)
+				symbol = "<unknown>";
+
+			if (file_name == NULL && line == 0) {
+				printf("%p: %24s()+%zu\n", (void *) ctx->fp, symbol, ctx->pc - symbol_addr);
+			} else {
+				if (file_name == NULL)
+					file_name = "<unknown>";
+				if (dir_name == NULL)
+					dir_name = "<unknown>";
+
+				printf("%p: %20s()+%zu\t %s/%s:%d:%d\n",
+				    (void *) ctx->fp, symbol, ctx->pc - symbol_addr,
+				    dir_name, file_name, line, column);
+			}
 		} else
 			printf("%p: %p()\n", (void *) ctx->fp, (void *) ctx->pc);
 
@@ -103,19 +123,22 @@ void stack_trace_istate(istate_t *istate)
 }
 
 static bool
-kernel_symbol_resolve(uintptr_t addr, const char **sp, uintptr_t *op)
+resolve_kernel_address(uintptr_t addr, int op_index,
+		const char **symbol, uintptr_t *symbol_addr,
+		const char **filename, const char **dirname,
+		int *line, int *column)
 {
-	uintptr_t symbol_addr = 0;
-	*sp = symtab_name_lookup(addr, &symbol_addr);
-	*op = addr - symbol_addr;
-	return symbol_addr != 0;
+	*symbol_addr = 0;
+	*symbol = symtab_name_lookup(addr, symbol_addr);
+
+	return debug_line_get_address_info(addr, op_index, filename, dirname, line, column) || *symbol_addr != 0;
 }
 
 stack_trace_ops_t kst_ops = {
 	.stack_trace_context_validate = kernel_stack_trace_context_validate,
 	.frame_pointer_prev = kernel_frame_pointer_prev,
 	.return_address_get = kernel_return_address_get,
-	.symbol_resolve = kernel_symbol_resolve
+	.symbol_resolve = resolve_kernel_address,
 };
 
 stack_trace_ops_t ust_ops = {
