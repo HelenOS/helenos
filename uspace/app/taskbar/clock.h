@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar clock
+ * @file Taskbar clock
  */
 
 #ifndef CLOCK_H

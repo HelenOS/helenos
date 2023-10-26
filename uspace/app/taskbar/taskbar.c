@@ -29,7 +29,7 @@
 /** @addtogroup taskbar
  * @{
  */
-/** @file Task Bar
+/** @file Taskbar
  */
 
 #include <gfx/coord.h>
@@ -113,11 +113,11 @@ static void taskbar_wnd_pos(ui_window_t *window, void *arg, pos_event_t *event)
 	ui_window_def_pos(window, event);
 }
 
-/** Create task bar.
+/** Create taskbar.
  *
  * @param display_spec Display specification
  * @param wndmgt_svc Window management service (or WNDMGT_DEFAULT)
- * @param rtaskbar Place to store pointer to new task bar
+ * @param rtaskbar Place to store pointer to new taskbar
  * @return @c EOK on success or an error coe
  */
 errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
@@ -156,7 +156,7 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	}
 
 	ui_wnd_params_init(&params);
-	params.caption = "Task Bar";
+	params.caption = "Taskbar";
 	params.placement = ui_wnd_place_bottom_left;
 
 	/* Window has no titlebar */
@@ -301,7 +301,7 @@ error:
 
 }
 
-/** Destroy task bar. */
+/** Destroy taskbar. */
 void taskbar_destroy(taskbar_t *taskbar)
 {
 	ui_fixed_remove(taskbar->fixed, taskbar_clock_ctl(taskbar->clock));

@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar clock
+ * @file Taskbar clock
  */
 
 #ifndef TYPES_CLOCK_H
@@ -40,7 +40,7 @@
 #include <gfx/coord.h>
 #include <ui/window.h>
 
-/** Task bar clock
+/** Taskbar clock
  *
  * This is a custom UI control.
  */

@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar window list
+ * @file Taskbar window list
  */
 
 #ifndef TYPES_WNDLIST_H
@@ -60,7 +60,7 @@ typedef struct {
 	gfx_rect_t rect;
 } wndlist_entry_t;
 
-/** Task bar window list */
+/** Taskbar window list */
 typedef struct wndlist {
 	/** Base control object */
 	struct ui_control *control;

@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar configuration
+ * @file Taskbar configuration
  */
 
 #include <errno.h>
@@ -40,10 +40,10 @@
 #include <str.h>
 #include "../private/tbarcfg.h"
 
-/** Open task bar configuration.
+/** Open taskbar configuration.
  *
  * @param repopath Pathname of the menu repository
- * @param rtbcfg Place to store pointer to task bar configuration
+ * @param rtbcfg Place to store pointer to taskbar configuration
  * @return EOK on success or an error code
  */
 errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
@@ -115,7 +115,7 @@ error:
 	return rc;
 }
 
-/** Close task bar configuration.
+/** Close taskbar configuration.
  *
  * @param tbcfg Start menu
  */
@@ -125,7 +125,7 @@ void tbarcfg_close(tbarcfg_t *tbcfg)
 
 /** Get first start menu entry.
  *
- * @param tbcfg Task bar configuration
+ * @param tbcfg Taskbar configuration
  * @return First entry or @c NULL if the menu is empty
  */
 smenu_entry_t *tbarcfg_smenu_first(tbarcfg_t *tbcfg)

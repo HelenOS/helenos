@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar start menu
+ * @file Taskbar start menu
  */
 
 #ifndef TBSMENU_H

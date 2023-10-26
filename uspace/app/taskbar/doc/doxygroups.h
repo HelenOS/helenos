@@ -1,4 +1,4 @@
 /** @addtogroup taskbar taskbar
- * @brief Task bar
+ * @brief Taskbar
  * @ingroup apps
  */

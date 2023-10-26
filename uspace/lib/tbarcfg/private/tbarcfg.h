@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar configuration
+ * @file Taskbar configuration
  *
  */
 
@@ -41,7 +41,7 @@
 #include <sif.h>
 #include <types/tbarcfg/tbarcfg.h>
 
-/** Task bar configuration */
+/** Taskbar configuration */
 struct tbarcfg {
 	/** List of start menu entries (smenu_entry_t) */
 	list_t entries;

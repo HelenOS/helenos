@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task Bar types
+ * @file Taskbar types
  */
 
 #ifndef TYPES_TASKBAR_H
@@ -45,7 +45,7 @@
 #include "tbsmenu.h"
 #include "wndlist.h"
 
-/** Task bar */
+/** Taskbar */
 typedef struct taskbar {
 	/** User interface */
 	ui_t *ui;

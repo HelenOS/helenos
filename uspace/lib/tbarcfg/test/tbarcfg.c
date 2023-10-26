@@ -35,7 +35,7 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(tbarcfg);
 
-/** Opening and closing task bar configuration */
+/** Opening and closing taskbar configuration */
 PCUT_TEST(open_close)
 {
 	errno_t rc;

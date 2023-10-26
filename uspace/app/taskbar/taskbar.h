@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task Bar
+ * @file Taskbar
  */
 
 #ifndef TASKBAR_H

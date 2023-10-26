@@ -29,7 +29,7 @@
 /** @addtogroup taskbar
  * @{
  */
-/** @file Task bar window list
+/** @file Taskbar window list
  */
 
 #include <gfx/coord.h>
@@ -79,7 +79,7 @@ enum {
 	wndlist_button_pad_text = 1
 };
 
-/** Create task bar window list.
+/** Create taskbar window list.
  *
  * @param window Containing window
  * @param fixed Fixed layout to which buttons will be added
@@ -175,7 +175,7 @@ error:
 	return rc;
 }
 
-/** Destroy task bar window list.
+/** Destroy taskbar window list.
  *
  * @param wndlist Window list
  */

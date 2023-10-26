@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar window list
+ * @file Taskbar window list
  */
 
 #ifndef WNDLIST_H

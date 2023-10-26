@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar start menu
+ * @file Taskbar start menu
  */
 
 #ifndef TYPES_TBSMENU_H
@@ -59,7 +59,7 @@ typedef struct {
 	char *cmd;
 } tbsmenu_entry_t;
 
-/** Task bar start menu */
+/** Taskbar start menu */
 typedef struct tbsmenu {
 	/** Containing window */
 	ui_window_t *window;

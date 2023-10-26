@@ -29,7 +29,7 @@
 /** @addtogroup taskbar
  * @{
  */
-/** @file Task bar start menu
+/** @file Taskbar start menu
  */
 
 #include <gfx/coord.h>
@@ -64,7 +64,7 @@ static ui_pbutton_cb_t tbsmenu_button_cb = {
 static void tbsmenu_smenu_entry_cb(ui_menu_entry_t *, void *);
 static errno_t tbsmenu_entry_start(tbsmenu_entry_t *);
 
-/** Create task bar start menu.
+/** Create taskbar start menu.
  *
  * @param window Containing window
  * @param fixed Fixed layout to which start button will be added
@@ -198,7 +198,7 @@ bool tbsmenu_is_open(tbsmenu_t *tbsmenu)
 	return ui_menu_is_open(tbsmenu->smenu);
 }
 
-/** Destroy task bar start menu.
+/** Destroy taskbar start menu.
  *
  * @param tbsmenu Start menu
  */

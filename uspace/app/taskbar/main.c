@@ -29,7 +29,7 @@
 /** @addtogroup taskbar
  * @{
  */
-/** @file Task Bar
+/** @file Taskbar
  */
 
 #include <stdio.h>
