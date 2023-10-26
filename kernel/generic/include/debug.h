@@ -37,8 +37,15 @@
 
 #include <log.h>
 #include <symtab_lookup.h>
+#include <printf/verify.h>
 
 #define CALLER  ((uintptr_t) __builtin_return_address(0))
+
+/* An empty printf function to ensure syntactic correctness of disabled debug prints. */
+_HELENOS_PRINTF_ATTRIBUTE(1, 2)
+static inline void dummy_printf(const char *fmt, ...)
+{
+}
 
 #ifdef CONFIG_LOG
 
@@ -52,14 +59,14 @@
 #define LOG(format, ...) \
 	do { \
 		log(LF_OTHER, LVL_DEBUG, \
-		    "%s() from %s at %s:%u: " format,__func__, \
+		    "%s() from %s at %s:%u: " format, __func__, \
 		    symtab_fmt_name_lookup(CALLER), __FILE__, __LINE__, \
 		    ##__VA_ARGS__); \
 	} while (0)
 
 #else /* CONFIG_LOG */
 
-#define LOG(format, ...)
+#define LOG(format, ...) dummy_printf(format, ##__VA_ARGS__)
 
 #endif /* CONFIG_LOG */
 
