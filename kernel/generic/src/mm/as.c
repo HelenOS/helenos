@@ -68,7 +68,7 @@
 #include <panic.h>
 #include <assert.h>
 #include <stdio.h>
-#include <mem.h>
+#include <memw.h>
 #include <macros.h>
 #include <bitops.h>
 #include <arch.h>

@@ -40,7 +40,7 @@
  */
 
 #include <gsort.h>
-#include <mem.h>
+#include <memw.h>
 #include <stdlib.h>
 
 /** Immediate buffer size.

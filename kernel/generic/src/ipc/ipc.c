@@ -53,7 +53,7 @@
 #include <mm/slab.h>
 #include <arch.h>
 #include <proc/task.h>
-#include <mem.h>
+#include <memw.h>
 #include <stdio.h>
 #include <console/console.h>
 #include <proc/thread.h>

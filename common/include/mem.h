@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +27,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_MEM_H_
-#define KERN_MEM_H_
+#ifndef _LIBC_MEM_H_
+#define _LIBC_MEM_H_
 
 #include <stddef.h>
-#include <stdint.h>
-#include <cc.h>
+#include <_bits/decls.h>
 
-#ifdef CONFIG_LTO
-#define DO_NOT_DISCARD ATTRIBUTE_USED
-#else
-#define DO_NOT_DISCARD
-#endif
+__C_DECLS_BEGIN;
 
+extern void *memset(void *, int, size_t)
+    __attribute__((nonnull(1)));
+extern void *memcpy(void *, const void *, size_t)
+    __attribute__((nonnull(1, 2)));
+extern void *memmove(void *, const void *, size_t)
+    __attribute__((nonnull(1, 2)));
+extern int memcmp(const void *, const void *, size_t)
+    __attribute__((nonnull(1, 2)));
+extern void *memchr(const void *, int, size_t)
+    __attribute__((nonnull(1)));
+
+__C_DECLS_END;
+
+#if !__STDC_HOSTED__
 #define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
 #define memcmp(s1, s2, cnt)    __builtin_memcmp((s1), (s2), (cnt))
-
-extern void memsetb(void *, size_t, uint8_t)
-    __attribute__((nonnull(1)));
-extern void memsetw(void *, size_t, uint16_t)
-    __attribute__((nonnull(1)));
-extern void *memmove(void *, const void *, size_t)
-    __attribute__((nonnull(1, 2))) DO_NOT_DISCARD;
+#define memmove(dst, src, cnt)  __builtin_memmove((dst), (src), (cnt))
+#define memchr(s, c, cnt)  __builtin_memchr((s), (c), (cnt))
+#endif
 
 #endif
 

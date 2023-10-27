@@ -77,6 +77,7 @@ if BUILD
 		'genarch/include',
 		'../abi/arch'/BARCH/'include',
 		'../abi/include',
+		'../common/include',
 	)
 
 	boot_defs = [

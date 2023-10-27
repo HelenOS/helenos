@@ -42,7 +42,7 @@
 #include <mm/page.h>
 #include <mm/km.h>
 #include <log.h>
-#include <mem.h>
+#include <memw.h>
 
 #define RSDP_SIGNATURE      "RSD PTR "
 #define RSDP_REVISION_OFFS  15

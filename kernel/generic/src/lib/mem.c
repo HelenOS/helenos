@@ -40,7 +40,7 @@
  * this type can be.
  */
 
-#include <mem.h>
+#include <memw.h>
 #include <typedefs.h>
 
 /** Fill block of memory.
@@ -74,51 +74,6 @@ void memsetw(void *dst, size_t cnt, uint16_t val)
 
 	for (i = 0; i < cnt; i++)
 		ptr[i] = val;
-}
-
-/** Move memory block with possible overlapping.
- *
- * Copy cnt bytes from src address to dst address. The source
- * and destination memory areas may overlap.
- *
- * @param dst Destination address to copy to.
- * @param src Source address to copy from.
- * @param cnt Number of bytes to copy.
- *
- * @return Destination address.
- *
- */
-void *memmove(void *dst, const void *src, size_t cnt)
-{
-	/* Nothing to do? */
-	if (src == dst)
-		return dst;
-
-	/* Non-overlapping? */
-	if ((dst >= src + cnt) || (src >= dst + cnt))
-		return memcpy(dst, src, cnt);
-
-	uint8_t *dp;
-	const uint8_t *sp;
-
-	/* Which direction? */
-	if (src > dst) {
-		/* Forwards. */
-		dp = dst;
-		sp = src;
-
-		while (cnt-- != 0)
-			*dp++ = *sp++;
-	} else {
-		/* Backwards. */
-		dp = dst + (cnt - 1);
-		sp = src + (cnt - 1);
-
-		while (cnt-- != 0)
-			*dp-- = *sp--;
-	}
-
-	return dst;
 }
 
 /** @}

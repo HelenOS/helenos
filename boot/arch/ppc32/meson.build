@@ -36,12 +36,12 @@ boot_src = files(
 	'src/main.c',
 	'src/ofw.c',
 
+	'../../../common/stdc/mem.c',
 	'../../genarch/src/ofw.c',
 	'../../genarch/src/ofw_tree.c',
 	'../../genarch/src/division.c',
 	'../../genarch/src/multiplication.c',
 	'../../generic/src/balloc.c',
-	'../../generic/src/memstr.c',
 	'../../generic/src/printf_core.c',
 	'../../generic/src/vprintf.c',
 	'../../generic/src/printf.c',

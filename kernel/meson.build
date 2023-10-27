@@ -47,6 +47,7 @@ kernel_include_dirs = include_directories(
 	'arch' / KARCH / 'include',
 	'..' / 'abi' / 'arch' / KARCH / 'include',
 	'..' / 'abi' / 'include',
+	'..' / 'common' / 'include',
 	'test',
 )
 

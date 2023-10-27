@@ -35,6 +35,8 @@ instrumentable_src = []
 
 
 generic_src += files(
+	'common/stdc/mem.c',
+
 	'src/adt/bitmap.c',
 	'src/adt/hash_table.c',
 	'src/adt/list.c',
@@ -72,7 +74,6 @@ generic_src += files(
 	'src/lib/gsort.c',
 	'src/lib/halt.c',
 	'src/lib/mem.c',
-	'src/lib/memfnc.c',
 	'src/lib/ra.c',
 	'src/lib/rd.c',
 	'src/lib/str.c',

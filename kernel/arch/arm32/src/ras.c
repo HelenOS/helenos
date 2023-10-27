@@ -43,7 +43,7 @@
 #include <interrupt.h>
 #include <arch/exception.h>
 #include <arch.h>
-#include <mem.h>
+#include <memw.h>
 #include <typedefs.h>
 
 uintptr_t *ras_page = NULL;

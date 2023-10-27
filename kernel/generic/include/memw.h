@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,32 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup kernel_generic
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_MEM_H_
-#define _LIBC_MEM_H_
+#ifndef KERN_MEM_H_
+#define KERN_MEM_H_
 
 #include <stddef.h>
-#include <_bits/decls.h>
+#include <stdint.h>
 
-__C_DECLS_BEGIN;
+#include <mem.h>
 
-extern void *memset(void *, int, size_t)
+extern void memsetb(void *, size_t, uint8_t)
     __attribute__((nonnull(1)));
-extern void *memcpy(void *, const void *, size_t)
-    __attribute__((nonnull(1, 2)));
-extern void *memmove(void *, const void *, size_t)
-    __attribute__((nonnull(1, 2)));
-extern int memcmp(const void *, const void *, size_t)
-    __attribute__((nonnull(1, 2)));
-extern void *memchr(const void *, int, size_t)
+extern void memsetw(void *, size_t, uint16_t)
     __attribute__((nonnull(1)));
-
-__C_DECLS_END;
 
 #endif
 

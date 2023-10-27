@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <typedefs.h>
 #include <arch/asm.h>
-#include <mem.h>
+#include <memw.h>
 #include <str.h>
 #include <console/chardev.h>
 #include <console/console.h>

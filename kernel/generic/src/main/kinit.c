@@ -60,7 +60,7 @@
 #include <mm/km.h>
 #include <stdio.h>
 #include <log.h>
-#include <mem.h>
+#include <memw.h>
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>

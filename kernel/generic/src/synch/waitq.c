@@ -58,7 +58,7 @@
 #include <context.h>
 #include <adt/list.h>
 #include <arch/cycle.h>
-#include <mem.h>
+#include <memw.h>
 
 /** Initialize wait queue
  *

@@ -41,6 +41,7 @@ incdirs = [
 	'arch' / UARCH / 'include',
 	root_path / 'abi' / 'arch' / UARCH / 'include',
 	root_path / 'abi' / 'include',
+	root_path / 'common' / 'include',
 ]
 
 includes += include_directories(incdirs, is_system: true)
@@ -59,6 +60,7 @@ endforeach
 src = [ arch_src ]
 
 src += files(
+	'common/stdc/mem.c',
 	'generic/libc.c',
 	'generic/as.c',
 	'generic/ddi.c',
@@ -84,7 +86,6 @@ src += files(
 	'generic/inttypes.c',
 	'generic/ipc_test.c',
 	'generic/loc.c',
-	'generic/mem.c',
 	'generic/str.c',
 	'generic/string.c',
 	'generic/str_error.c',

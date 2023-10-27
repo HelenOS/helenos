@@ -61,7 +61,7 @@
 #include <smp/ipi.h>
 #include <arch/faddr.h>
 #include <atomic.h>
-#include <mem.h>
+#include <memw.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <main/uinit.h>

@@ -39,7 +39,7 @@
 #include <interrupt.h>
 #include <macros.h>
 #include <str.h>
-#include <mem.h>
+#include <memw.h>
 #include <preemption.h>
 #include <userspace.h>
 #include <stdbool.h>

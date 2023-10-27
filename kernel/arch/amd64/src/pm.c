@@ -38,7 +38,7 @@
 #include <arch/asm.h>
 #include <mm/as.h>
 #include <mm/frame.h>
-#include <mem.h>
+#include <memw.h>
 #include <stdlib.h>
 
 /*

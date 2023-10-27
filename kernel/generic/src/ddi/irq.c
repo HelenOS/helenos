@@ -46,7 +46,7 @@
 #include <synch/spinlock.h>
 #include <console/console.h>
 #include <interrupt.h>
-#include <mem.h>
+#include <memw.h>
 #include <arch.h>
 
 slab_cache_t *irq_cache = NULL;

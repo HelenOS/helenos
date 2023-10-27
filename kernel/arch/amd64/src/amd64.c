@@ -36,7 +36,7 @@
 #include <arch/arch.h>
 #include <stdint.h>
 #include <errno.h>
-#include <mem.h>
+#include <memw.h>
 #include <interrupt.h>
 #include <console/console.h>
 #include <syscall/syscall.h>

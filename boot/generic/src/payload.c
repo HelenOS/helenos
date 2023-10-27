@@ -35,7 +35,7 @@
 #include <tar.h>
 #include <gzip.h>
 #include <stdbool.h>
-#include <memstr.h>
+#include <mem.h>
 #include <errno.h>
 #include <str.h>
 #include <halt.h>

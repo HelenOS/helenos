@@ -30,7 +30,7 @@
 #include <mm/slab.h>
 #include <proc/thread.h>
 #include <arch.h>
-#include <mem.h>
+#include <memw.h>
 
 #define VAL_COUNT  1024
 
