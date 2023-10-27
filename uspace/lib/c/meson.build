@@ -60,10 +60,14 @@ endforeach
 src = [ arch_src ]
 
 src += files(
+	'common/stdc/ctype.c',
 	'common/stdc/mem.c',
 	'common/stdc/bsearch.c',
 	'common/stdc/qsort.c',
 	'common/stdc/calloc.c',
+	'common/str.c',
+	'common/str_error.c',
+	'common/strtol.c',
 
 	'generic/libc.c',
 	'generic/as.c',
@@ -74,7 +78,6 @@ src += files(
 	'generic/config.c',
 	'generic/context.c',
 	'generic/corecfg.c',
-	'generic/ctype.c',
 	'generic/device/clock_dev.c',
 	'generic/device/hw_res.c',
 	'generic/device/hw_res_parsed.c',
@@ -90,10 +93,7 @@ src += files(
 	'generic/inttypes.c',
 	'generic/ipc_test.c',
 	'generic/loc.c',
-	'generic/str.c',
 	'generic/string.c',
-	'generic/str_error.c',
-	'generic/strtol.c',
 	'generic/l18n/langs.c',
 	'generic/pcb.c',
 	'generic/pio_trace.c',

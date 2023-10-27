@@ -38,6 +38,7 @@
 #define ELIMIT     -3   /* Limit exceeded. */
 #define EINVAL     -14  /* Invalid value. */
 #define EOVERFLOW  -16  /* The result does not fit its size. */
+#define EIO        -17
 
 typedef int errno_t;
 

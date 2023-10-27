@@ -55,7 +55,7 @@ boot_src = files(
 	'../../generic/src/payload.c',
 	'../../generic/src/printf.c',
 	'../../generic/src/printf_core.c',
-	'../../generic/src/str.c',
+	'../../../common/str.c',
 	'../../generic/src/tar.c',
 	'../../generic/src/version.c',
 	'../../generic/src/vprintf.c',

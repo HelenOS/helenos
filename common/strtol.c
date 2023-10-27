@@ -268,6 +268,10 @@ static inline uintmax_t _strtounsigned(const char *nptr, char **endptr, int base
  */
 long strtol(const char *nptr, char **endptr, int base)
 {
+#if !__STDC_HOSTED__
+	errno_t errno;
+#endif
+
 	return _strtosigned(nptr, endptr, base, LONG_MIN, LONG_MAX, &errno, false);
 }
 
@@ -286,26 +290,46 @@ long strtol(const char *nptr, char **endptr, int base)
  */
 unsigned long strtoul(const char *nptr, char **endptr, int base)
 {
+#if !__STDC_HOSTED__
+	errno_t errno;
+#endif
+
 	return _strtounsigned(nptr, endptr, base, ULONG_MAX, &errno, false);
 }
 
 long long strtoll(const char *nptr, char **endptr, int base)
 {
+#if !__STDC_HOSTED__
+	errno_t errno;
+#endif
+
 	return _strtosigned(nptr, endptr, base, LLONG_MIN, LLONG_MAX, &errno, false);
 }
 
 unsigned long long strtoull(const char *nptr, char **endptr, int base)
 {
+#if !__STDC_HOSTED__
+	errno_t errno;
+#endif
+
 	return _strtounsigned(nptr, endptr, base, ULLONG_MAX, &errno, false);
 }
 
 intmax_t strtoimax(const char *nptr, char **endptr, int base)
 {
+#if !__STDC_HOSTED__
+	errno_t errno;
+#endif
+
 	return _strtosigned(nptr, endptr, base, INTMAX_MIN, INTMAX_MAX, &errno, false);
 }
 
 uintmax_t strtoumax(const char *nptr, char **endptr, int base)
 {
+#if !__STDC_HOSTED__
+	errno_t errno;
+#endif
+
 	return _strtounsigned(nptr, endptr, base, UINTMAX_MAX, &errno, false);
 }
 

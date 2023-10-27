@@ -69,7 +69,7 @@ boot_src = files(
 	'../../generic/src/printf_core.c',
 	'../../generic/src/vprintf.c',
 	'../../generic/src/printf.c',
-	'../../generic/src/str.c',
+	'../../../common/str.c',
 	'../../generic/src/version.c',
 	'../../generic/src/inflate.c',
 	'../../generic/src/gzip.c',

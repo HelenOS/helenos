@@ -68,6 +68,7 @@
 #include <lib/rd.h>
 #include <ipc/ipc.h>
 #include <str.h>
+#include <str_error.h>
 #include <sysinfo/stats.h>
 #include <sysinfo/sysinfo.h>
 #include <align.h>

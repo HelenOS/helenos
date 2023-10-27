@@ -35,7 +35,12 @@ instrumentable_src = []
 
 
 generic_src += files(
+	'common/stdc/calloc.c',
+	'common/stdc/ctype.c',
 	'common/stdc/mem.c',
+	'common/str.c',
+	'common/str_error.c',
+	'common/strtol.c',
 
 	'src/adt/bitmap.c',
 	'src/adt/hash_table.c',
@@ -76,9 +81,6 @@ generic_src += files(
 	'src/lib/mem.c',
 	'src/lib/ra.c',
 	'src/lib/rd.c',
-	'src/lib/str.c',
-	'src/lib/strtol.c',
-	'src/lib/str_error.c',
 	'src/lib/ubsan.c',
 	'src/log/log.c',
 	'src/main/shutdown.c',
