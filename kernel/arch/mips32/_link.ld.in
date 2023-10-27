@@ -27,20 +27,22 @@ SECTIONS {
 
 	.text : {
 		ktext_start = .;
+		/* FIXME: for some reason, mixing .text with .text.* produces a crash on malta-be */
 		*(.text);
+		*(.text.*);
 		ktext_end = .;
 	}
 	.data : {
 		kdata_start = .;
-		*(.data);                       /* initialized data */
+		*(.data .data.*);                       /* initialized data */
 		*(.rodata .rodata.*);
 		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
 		*(.eh_frame_hdr .eh_frame_hdr.*);
-		*(.sdata);
+		*(.sdata .sdata.*);
 		*(.reginfo);
-		*(.sbss);
-		*(.scommon);
-		*(.bss);                        /* uninitialized static variables */
+		*(.sbss .sbss.*);
+		*(.scommon .scommon.*);
+		*(.bss .bss.*);                        /* uninitialized static variables */
 		*(COMMON);                      /* global variables */
 	}
 	_gp = . + 0x8000;

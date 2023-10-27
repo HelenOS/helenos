@@ -4,23 +4,20 @@ SECTIONS {
 	. = 0x08000000;
 	.text : {
 		loader_start = .;
-		*(BOOTSTRAP);
-		*(.text);
-		*(.text.*);
+		KEEP(*(BOOTSTRAP));
+		*(.text .text.*);
 	}
 	.data : {
-		*(.data);       /* initialized data */
-		*(.rodata);
-		*(.rodata.*);
-		*(.sdata);
-		*(.reginfo);
-		*(.sbss);
-		*(.scommon);
-		*(.bss);        /* uninitialized static variables */
+		*(.data .data.*);       /* initialized data */
+		*(.rodata .rodata.*);
+		*(.sdata .sdata.*);
+		*(.sbss .sbss.*);
+		*(.scommon .scommon.*);
+		*(.bss .bss.*);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
 		loader_end = .;
 		payload_start = .;
-		*(.payload);
+		KEEP(*(.payload));
 		payload_end = .;
 	}
 

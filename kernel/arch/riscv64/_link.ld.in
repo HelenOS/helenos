@@ -17,20 +17,19 @@ SECTIONS {
 
 	.image (PA2KA(BOOT_OFFSET) + SIZEOF_HEADERS) : AT (BOOT_OFFSET + SIZEOF_HEADERS) {
 		ktext_start = .;
-		*(K_TEXT_START);
-		*(.text);
+		KEEP(*(K_TEXT_START));
+		*(.text .text.*);
 		ktext_end = .;
 
 		kdata_start = .;
-		*(.data);                       /* initialized data */
+		*(.data .data.*);                       /* initialized data */
 		*(.rodata .rodata.*);
 		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
 		*(.eh_frame_hdr .eh_frame_hdr.*);
-		*(.sdata);
-		*(.reginfo);
-		*(.sbss);
-		*(.scommon);
-		*(.bss);                        /* uninitialized static variables */
+		*(.sdata .sdata.*);
+		*(.sbss .sbss.*);
+		*(.scommon .scommon.*);
+		*(.bss .bss.*);                        /* uninitialized static variables */
 		*(COMMON);                      /* global variables */
 		kdata_end = .;
 	}

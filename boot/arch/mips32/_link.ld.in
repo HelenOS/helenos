@@ -8,22 +8,21 @@ SECTIONS {
 #endif
 	.text : {
 		loader_start = .;
-		*(BOOTSTRAP);
-		*(.text);
+		KEEP(*(BOOTSTRAP));
+		*(.text .text.*);
 	}
 	.data : {
-		*(.data);       /* initialized data */
-		*(.rodata);
-		*(.rodata.*);
-		*(.sdata);
+		*(.data .data.*);       /* initialized data */
+		*(.rodata .rodata.*);
+		*(.sdata .sdata.*);
 		*(.reginfo);
-		*(.sbss);
-		*(.scommon);
-		*(.bss);        /* uninitialized static variables */
+		*(.sbss .sbss.*);
+		*(.scommon .scommon.*);
+		*(.bss .bss.*);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
 		loader_end = .;
 		payload_start = .;
-		*(.payload);
+		KEEP(*(.payload));
 		payload_end = .;
 	}
 

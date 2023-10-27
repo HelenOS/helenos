@@ -4,22 +4,20 @@ ENTRY(start)
 SECTIONS {
 	.boot 0x4400000: AT (0x4400000) {
 		loader_start = .;
-		*(BOOTSTRAP);
-		*(.text);
-		*(.text.*);
-		*(.sdata);
-		*(.sdata2);
-		*(.sbss);
-		*(.rodata);
-		*(.rodata.*);
+		KEEP(*(BOOTSTRAP));
+		*(.text .text.*);
+		*(.sdata .sdata.*);
+		*(.sdata2 .sdata2.*);
+		*(.sbss .sbss.*);
+		*(.rodata .rodata.*);
 		*(.data .data.*);       /* initialized data */
 		__gp = . ;
 		*(.got .got.*);
-		*(.bss);                /* uninitialized static variables */
+		*(.bss .bss.*);                /* uninitialized static variables */
 		*(COMMON);
 		loader_end = .;
 		payload_start = .;
-		*(.payload);
+		KEEP(*(.payload));
 		payload_end = .;
 	}
 

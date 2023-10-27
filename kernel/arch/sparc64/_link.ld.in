@@ -15,21 +15,21 @@ SECTIONS {
 
 	.image (VMA + SIZEOF_HEADERS): AT (LMA + SIZEOF_HEADERS) {
 		ktext_start = .;
-		*(K_TEXT_START)
+		KEEP(*(K_TEXT_START));
 		*(.text .text.*);
 		ktext_end = .;
 
 		kdata_start = .;
-		*(K_DATA_START)
+		KEEP(*(K_DATA_START));
 		*(.rodata .rodata.*);
 		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
 		*(.eh_frame_hdr .eh_frame_hdr.*);
-		*(.data);                   /* initialized data */
-		*(.sdata);
-		*(.sdata2);
-		*(.sbss);
+		*(.data .data.*);                   /* initialized data */
+		*(.sdata .sdata.*);
+		*(.sdata2 .sdata2.*);
+		*(.sbss .sbss.*);
 		. = ALIGN(8);
-		*(.bss);                    /* uninitialized static variables */
+		*(.bss .bss.*);                    /* uninitialized static variables */
 		*(COMMON);                  /* global variables */
 		kdata_end = .;
 	}

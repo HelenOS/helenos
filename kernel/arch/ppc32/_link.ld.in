@@ -21,25 +21,25 @@ SECTIONS {
 
 	.unmapped (SIZEOF_HEADERS): AT (SIZEOF_HEADERS) {
 		. = ALIGN(0x100);
-		*(K_UNMAPPED_TEXT_START);
+		KEEP(*(K_UNMAPPED_TEXT_START));
 	}
 
 	.mapped PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) {
 		ktext_start = .;
-		*(K_TEXT_START);
-		*(.text);
+		KEEP(*(K_TEXT_START));
+		*(.text .text.*);
 		ktext_end = .;
 
 		kdata_start = .;
-		*(K_DATA_START);
+		KEEP(*(K_DATA_START));
 		*(.rodata .rodata.*);
 		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
 		*(.eh_frame_hdr .eh_frame_hdr.*);
-		*(.data);       /* initialized data */
-		*(.sdata);
-		*(.sdata2);
-		*(.sbss);
-		*(.bss);        /* uninitialized static variables */
+		*(.data .data.*);       /* initialized data */
+		*(.sdata .sdata.*);
+		*(.sdata2 .sdata2.*);
+		*(.sbss .sbss.*);
+		*(.bss .bss.*);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
 		kdata_end = .;
 	}

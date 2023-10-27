@@ -16,9 +16,9 @@ SECTIONS {
 
 	.unmapped (BOOT_OFFSET + SIZEOF_HEADERS): AT (BOOT_OFFSET + SIZEOF_HEADERS) {
 		unmapped_start = .;
-		*(K_TEXT_START);
-		*(K_DATA_START);
-		*(K_INI_PTLS);
+		KEEP(*(K_TEXT_START));
+		KEEP(*(K_DATA_START));
+		KEEP(*(K_INI_PTLS));
 		unmapped_end = .;
 	}
 
@@ -28,14 +28,14 @@ SECTIONS {
 		ktext_end = .;
 
 		kdata_start = .;
-		*(.data);              /* initialized data */
+		*(.data .data.*);              /* initialized data */
 		*(.rodata .rodata.*);
-		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
+		*(.eh_frame .eh_frame.*);      /* stack unwinding data */
 		*(.eh_frame_hdr .eh_frame_hdr.*);
 		*(COMMON);      /* global variables */
 
 		/* bss can't be omitted from the ELF image. */
-		*(.bss);        /* uninitialized static variables */
+		*(.bss .bss.*);        /* uninitialized static variables */
 		kdata_end = .;
 	}
 

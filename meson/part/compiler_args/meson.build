@@ -67,6 +67,7 @@ extra_common_flags = [
 	'-pipe',
 
 	'-ffunction-sections',
+	'-fdata-sections',
 	'-fno-common',
 	'-fdebug-prefix-map=' + meson.source_root() + '/=',
 	'-fdebug-prefix-map=../../=',

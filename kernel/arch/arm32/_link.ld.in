@@ -27,24 +27,23 @@ SECTIONS {
 	. = . + SIZEOF_HEADERS;
 	.text : {
 		ktext_start = .;
-		*(.text);
+		*(.text .text.*);
 		ktext_end = .;
 	}
 	.data : {
 		kdata_start = .;
-		*(.data);                       /* initialized data */
-		*(.bss);                        /* uninitialized static variables */
+		*(.data .data.*);                       /* initialized data */
+		*(.bss .bss.*);                        /* uninitialized static variables */
 		*(COMMON);                      /* global variables */
 
 		*(.rodata .rodata.*);
 		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
 		*(.eh_frame_hdr .eh_frame_hdr.*);
-		*(.sdata);
-		*(.reginfo);
+		*(.sdata .sdata.*);
 	}
 	.sbss : {
-		*(.sbss);
-		*(.scommon);
+		*(.sbss .sbss.*);
+		*(.scommon .scommon.*);
 	}
 
 	kdata_end = .;
