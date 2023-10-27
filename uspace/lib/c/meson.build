@@ -61,6 +61,10 @@ src = [ arch_src ]
 
 src += files(
 	'common/stdc/mem.c',
+	'common/stdc/bsearch.c',
+	'common/stdc/qsort.c',
+	'common/stdc/calloc.c',
+
 	'generic/libc.c',
 	'generic/as.c',
 	'generic/ddi.c',
@@ -159,8 +163,6 @@ src += files(
 	'generic/arg_parse.c',
 	'generic/stats.c',
 	'generic/assert.c',
-	'generic/bsearch.c',
-	'generic/qsort.c',
 	'generic/ubsan.c',
 	'generic/uuid.c',
 )

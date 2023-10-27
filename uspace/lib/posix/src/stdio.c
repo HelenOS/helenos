@@ -54,7 +54,7 @@
 
 #include <io/printf_core.h>
 #include <str.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <adt/list.h>
 
 /**

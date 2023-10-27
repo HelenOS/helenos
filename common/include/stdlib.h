@@ -40,7 +40,6 @@
 #include <_bits/uchar.h>
 #include <_bits/decls.h>
 #include <bsearch.h>
-#include <malloc.h>
 #include <qsort.h>
 
 #define EXIT_SUCCESS 0
@@ -107,6 +106,23 @@ extern unsigned long long strtoull(const char *__restrict__, char **__restrict__
 extern div_t div(int, int);
 extern ldiv_t ldiv(long, long);
 extern lldiv_t lldiv(long long, long long);
+
+extern void *malloc(size_t size)
+    __attribute__((malloc));
+extern void *calloc(size_t nmemb, size_t size)
+    __attribute__((malloc));
+extern void *realloc(void *addr, size_t size)
+    __attribute__((warn_unused_result));
+extern void free(void *addr);
+
+#ifdef _HELENOS_SOURCE
+__HELENOS_DECLS_BEGIN;
+
+extern void *memalign(size_t align, size_t size)
+    __attribute__((malloc));
+
+__HELENOS_DECLS_END;
+#endif
 
 __C_DECLS_END;
 

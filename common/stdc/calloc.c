@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2009 Petr Tuma
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +27,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic_mm
- * @{
+#include <stdlib.h>
+
+#include <mem.h>
+
+/** Allocate memory by number of elements
+ *
+ * @param nmemb Number of members to allocate.
+ * @param size  Size of one member in bytes.
+ *
+ * @return Allocated memory or NULL.
+ *
  */
-/** @file
- */
+void *calloc(const size_t nmemb, const size_t size)
+{
+	// Check for overflow
+	if (SIZE_MAX / size < nmemb)
+		return NULL;
 
-#ifndef KERN_STDLIB_H_
-#define KERN_STDLIB_H_
+	void *block = malloc(nmemb * size);
+	if (block == NULL)
+		return NULL;
 
-#include <stddef.h>
-
-extern void *malloc(size_t)
-    __attribute__((malloc));
-extern void *realloc(void *, size_t)
-    __attribute__((warn_unused_result));
-extern void free(void *);
-
-#endif
-
-/** @}
- */
+	memset(block, 0, nmemb * size);
+	return block;
+}
