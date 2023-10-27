@@ -60,7 +60,7 @@
 #include <mm/km.h>
 #include <stdio.h>
 #include <log.h>
-#include <mem.h>
+#include <memw.h>
 #include <console/console.h>
 #include <interrupt.h>
 #include <console/kconsole.h>
@@ -68,6 +68,7 @@
 #include <lib/rd.h>
 #include <ipc/ipc.h>
 #include <str.h>
+#include <str_error.h>
 #include <sysinfo/stats.h>
 #include <sysinfo/sysinfo.h>
 #include <align.h>

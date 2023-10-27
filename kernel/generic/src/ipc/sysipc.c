@@ -35,7 +35,7 @@
 #include <arch.h>
 #include <assert.h>
 #include <errno.h>
-#include <mem.h>
+#include <memw.h>
 #include <ipc/ipc.h>
 #include <abi/ipc/methods.h>
 #include <ipc/sysipc.h>

@@ -53,7 +53,7 @@
 #include <arch.h>
 #include <align.h>
 #include <errno.h>
-#include <mem.h>
+#include <memw.h>
 #include <trace.h>
 #include <bitops.h>
 #include <arch/asm.h>

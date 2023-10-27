@@ -27,18 +27,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#include <str_error.h>
 
 #include <errno.h>
-#include <str_error.h>
-#include <stdio.h>
-#include <fibril.h>
+#include <stddef.h>
 
-#define NOERR_LEN  64
 
 /*
  * The arrays below are automatically generated from the same file that
@@ -68,8 +61,6 @@ static const char *err_desc[] = {
 #include <abi/errno.in>
 };
 
-static fibril_local char noerr[NOERR_LEN];
-
 /* Returns index corresponding to the given errno, or -1 if not found. */
 static int find_errno(errno_t e)
 {
@@ -97,8 +88,7 @@ const char *str_error_name(errno_t e)
 		return err_name[i];
 	}
 
-	snprintf(noerr, NOERR_LEN, "(%d)", (int)e);
-	return noerr;
+	return NULL;
 }
 
 const char *str_error(errno_t e)
@@ -109,9 +99,5 @@ const char *str_error(errno_t e)
 		return err_desc[i];
 	}
 
-	snprintf(noerr, NOERR_LEN, "Unknown error code (%d)", (int)e);
-	return noerr;
+	return NULL;
 }
-
-/** @}
- */

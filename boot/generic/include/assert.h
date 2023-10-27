@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2023 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic_mm
- * @{
- */
-/** @file
- */
+#ifndef BOOT_ASSERT_H_
+#define BOOT_ASSERT_H_
 
-#ifndef KERN_STDLIB_H_
-#define KERN_STDLIB_H_
+#define assert(expr) ((void) (expr))
 
-#include <stddef.h>
-
-extern void *malloc(size_t)
-    __attribute__((malloc));
-extern void *realloc(void *, size_t)
-    __attribute__((warn_unused_result));
-extern void free(void *);
-
-#endif
-
-/** @}
- */
+#endif /* BOOT_ASSERT_H_ */

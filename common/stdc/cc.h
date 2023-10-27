@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2013 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic
+/** @addtogroup libc
  * @{
  */
 /** @file
+ * Macros related to used compiler (such as GCC-specific attributes).
  */
 
-#ifndef KERN_MEM_H_
-#define KERN_MEM_H_
+#ifndef _LIBC_CC_H_
+#define _LIBC_CC_H_
 
-#include <stddef.h>
-#include <stdint.h>
-#include <cc.h>
+#ifndef __clang__
+#define ATTRIBUTE_OPTIMIZE(opt) \
+    __attribute__ ((optimize(opt)))
+#else
+#define ATTRIBUTE_OPTIMIZE(opt)
+#endif
+
+#define ATTRIBUTE_OPTIMIZE_NO_TLDP \
+    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns")
 
 #ifdef CONFIG_LTO
-#define DO_NOT_DISCARD ATTRIBUTE_USED
+#define DO_NOT_DISCARD __attribute__ ((used))
 #else
 #define DO_NOT_DISCARD
 #endif
-
-#define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
-#define memcmp(s1, s2, cnt)    __builtin_memcmp((s1), (s2), (cnt))
-
-extern void memsetb(void *, size_t, uint8_t)
-    __attribute__((nonnull(1)));
-extern void memsetw(void *, size_t, uint16_t)
-    __attribute__((nonnull(1)));
-extern void *memmove(void *, const void *, size_t)
-    __attribute__((nonnull(1, 2))) DO_NOT_DISCARD;
 
 #endif
 

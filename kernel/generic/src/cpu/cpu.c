@@ -44,7 +44,7 @@
 #include <typedefs.h>
 #include <config.h>
 #include <panic.h>
-#include <mem.h>
+#include <memw.h>
 #include <adt/list.h>
 #include <stdio.h>
 #include <sysinfo/sysinfo.h>

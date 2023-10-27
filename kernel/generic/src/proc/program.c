@@ -48,6 +48,7 @@
 #include <security/perm.h>
 #include <lib/elf_load.h>
 #include <str.h>
+#include <str_error.h>
 #include <log.h>
 #include <syscall/copy.h>
 #include <proc/program.h>

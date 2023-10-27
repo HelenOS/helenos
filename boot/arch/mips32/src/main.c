@@ -32,7 +32,7 @@
 #include <arch/types.h>
 #include <halt.h>
 #include <printf.h>
-#include <memstr.h>
+#include <mem.h>
 #include <version.h>
 #include <macros.h>
 #include <align.h>

@@ -45,7 +45,7 @@
 
 #include <stddef.h>
 
-#include <libc/mem.h>
+#include <common/mem.h>
 
 #define _REALLY_WANT_STRING_H
 #include <libc/string.h>

@@ -53,7 +53,7 @@
 #include <stdlib.h>
 #include <mm/as.h>
 #include <log.h>
-#include <mem.h>
+#include <memw.h>
 #include <genarch/drivers/i8259/i8259.h>
 #include <cpu.h>
 

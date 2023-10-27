@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
- * Copyright (c) 2017 CZ.NIC, z.s.p.o.
+ * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,74 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <str.h>
-
-/*
- * The arrays below are automatically generated from the same file that
- * errno.h constants are generated from. Triple-include of the same list
- * with redefinitions of __errno() macro are used to ensure that the
- * information cannot get out of synch. This is inpired by musl libc.
+/** @addtogroup kernel_generic
+ * @{
+ */
+/** @file
  */
 
-#undef __errno_entry
-#define __errno_entry(name, num, desc) name,
+#ifndef KERN_MEM_H_
+#define KERN_MEM_H_
 
-static const errno_t err_num[] = {
-#include <abi/errno.in>
-};
+#include <stddef.h>
+#include <stdint.h>
 
-#undef __errno_entry
-#define __errno_entry(name, num, desc) #name,
+#include <mem.h>
 
-static const char *err_name[] = {
-#include <abi/errno.in>
-};
+extern void memsetb(void *, size_t, uint8_t)
+    __attribute__((nonnull(1)));
+extern void memsetw(void *, size_t, uint16_t)
+    __attribute__((nonnull(1)));
 
-#undef __errno_entry
-#define __errno_entry(name, num, desc) "[" #name "] " desc,
+#endif
 
-static const char *err_desc[] = {
-#include <abi/errno.in>
-};
-
-/* Returns index corresponding to the given errno, or -1 if not found. */
-static int find_errno(errno_t e)
-{
-	/*
-	 * Just a dumb linear search.
-	 * There too few entries to warrant anything smarter.
-	 */
-
-	int len = sizeof(err_num) / sizeof(errno_t);
-
-	for (int i = 0; i < len; i++) {
-		if (err_num[i] == e) {
-			return i;
-		}
-	}
-
-	return -1;
-}
-
-const char *str_error_name(errno_t e)
-{
-	int i = find_errno(e);
-
-	if (i >= 0) {
-		return err_name[i];
-	}
-
-	return "(unknown)";
-}
-
-const char *str_error(errno_t e)
-{
-	int i = find_errno(e);
-
-	if (i >= 0) {
-		return err_desc[i];
-	}
-
-	return "Unknown error code";
-}
+/** @}
+ */

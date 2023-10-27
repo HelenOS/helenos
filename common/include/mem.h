@@ -54,6 +54,14 @@ extern void *memchr(const void *, int, size_t)
 
 __C_DECLS_END;
 
+#if !__STDC_HOSTED__
+#define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
+#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#define memcmp(s1, s2, cnt)    __builtin_memcmp((s1), (s2), (cnt))
+#define memmove(dst, src, cnt)  __builtin_memmove((dst), (src), (cnt))
+#define memchr(s, c, cnt)  __builtin_memchr((s), (c), (cnt))
+#endif
+
 #endif
 
 /** @}

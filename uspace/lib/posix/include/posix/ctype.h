@@ -36,7 +36,7 @@
 #ifndef POSIX_CTYPE_H_
 #define POSIX_CTYPE_H_
 
-#include <libc/ctype.h>
+#include <common/ctype.h>
 
 __C_DECLS_BEGIN;
 

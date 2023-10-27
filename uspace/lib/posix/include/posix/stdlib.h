@@ -36,7 +36,7 @@
 #ifndef POSIX_STDLIB_H_
 #define POSIX_STDLIB_H_
 
-#include <libc/stdlib.h>
+#include <common/stdlib.h>
 #include <sys/types.h>
 
 #include <stddef.h>

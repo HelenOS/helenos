@@ -31,7 +31,7 @@
 #include <proc/thread.h>
 #include <arch.h>
 #include <mm/frame.h>
-#include <mem.h>
+#include <memw.h>
 #include <synch/condvar.h>
 #include <synch/mutex.h>
 

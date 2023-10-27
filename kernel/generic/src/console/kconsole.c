@@ -598,7 +598,7 @@ _NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 	} else {
 		/* It's a number - convert it */
 		uint64_t value;
-		char *end;
+		const char *end;
 		errno_t rc = str_uint64_t(text, &end, 0, false, &value);
 		if (end != text + len)
 			rc = EINVAL;

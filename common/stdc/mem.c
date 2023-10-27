@@ -33,13 +33,21 @@
 /** @file
  */
 
-#include <mem.h>
+#include "../include/mem.h"
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "private/cc.h"
+#include "cc.h"
+
+#undef memset
+#undef memcpy
+#undef memcmp
+#undef memmove
+#undef memchr
 
 /** Fill memory block with a constant value. */
+DO_NOT_DISCARD
 ATTRIBUTE_OPTIMIZE_NO_TLDP
     void *memset(void *dest, int b, size_t n)
 {
@@ -98,7 +106,8 @@ struct along {
 	unsigned long n;
 } __attribute__((packed));
 
-static void *unaligned_memcpy(void *dst, const void *src, size_t n)
+ATTRIBUTE_OPTIMIZE_NO_TLDP
+    static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 {
 	size_t i, j;
 	struct along *adst = dst;
@@ -115,6 +124,7 @@ static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 }
 
 /** Copy memory block. */
+DO_NOT_DISCARD
 ATTRIBUTE_OPTIMIZE_NO_TLDP
     void *memcpy(void *dst, const void *src, size_t n)
 {
@@ -193,6 +203,8 @@ ATTRIBUTE_OPTIMIZE_NO_TLDP
 }
 
 /** Move memory block with possible overlapping. */
+DO_NOT_DISCARD
+ATTRIBUTE_OPTIMIZE_NO_TLDP
 void *memmove(void *dst, const void *src, size_t n)
 {
 	const uint8_t *sp;
@@ -238,7 +250,9 @@ void *memmove(void *dst, const void *src, size_t n)
  *	   difference of the first pair of different bytes.
  *
  */
-int memcmp(const void *s1, const void *s2, size_t len)
+DO_NOT_DISCARD
+ATTRIBUTE_OPTIMIZE_NO_TLDP
+    int memcmp(const void *s1, const void *s2, size_t len)
 {
 	uint8_t *u1 = (uint8_t *) s1;
 	uint8_t *u2 = (uint8_t *) s2;
@@ -263,6 +277,8 @@ int memcmp(const void *s1, const void *s2, size_t len)
  * @return Pointer to the first occurrence of @a c in the first @a n
  *         bytes of @a s or @c NULL if not found.
  */
+DO_NOT_DISCARD
+ATTRIBUTE_OPTIMIZE_NO_TLDP
 void *memchr(const void *s, int c, size_t n)
 {
 	uint8_t *u = (uint8_t *) s;

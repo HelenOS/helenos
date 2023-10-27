@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <io/printf_core.h>
+#include <printf_core.h>
 #include <stdio.h>
 
 /** Print formatted text.

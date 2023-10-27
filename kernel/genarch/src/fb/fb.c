@@ -44,7 +44,7 @@
 #include <stdlib.h>
 #include <align.h>
 #include <panic.h>
-#include <mem.h>
+#include <memw.h>
 #include <config.h>
 #include <bitops.h>
 #include <str.h>

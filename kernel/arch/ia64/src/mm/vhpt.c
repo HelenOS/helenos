@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <mem.h>
+#include <memw.h>
 #include <arch/barrier.h>
 #include <arch/mm/vhpt.h>
 #include <mm/frame.h>

@@ -40,7 +40,7 @@
 #include <arch/asm.h>
 #include <stdlib.h>
 #include <synch/spinlock.h>
-#include <mem.h>
+#include <memw.h>
 
 static irq_ownership_t cuda_claim(irq_t *irq);
 static void cuda_irq_handler(irq_t *irq);
