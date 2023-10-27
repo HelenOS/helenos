@@ -60,6 +60,12 @@ endforeach
 src = [ arch_src ]
 
 src += files(
+	'common/adt/checksum.c',
+	'common/adt/circ_buf.c',
+	'common/adt/list.c',
+	'common/adt/hash_table.c',
+	'common/adt/odict.c',
+	'common/adt/prodcons.c',
 	'common/stdc/ctype.c',
 	'common/stdc/mem.c',
 	'common/stdc/bsearch.c',
@@ -142,12 +148,6 @@ src += files(
 	'generic/async/ports.c',
 	'generic/loader.c',
 	'generic/getopt.c',
-	'generic/adt/checksum.c',
-	'generic/adt/circ_buf.c',
-	'generic/adt/list.c',
-	'generic/adt/hash_table.c',
-	'generic/adt/odict.c',
-	'generic/adt/prodcons.c',
 	'generic/time.c',
 	'generic/tmpfile.c',
 	'generic/stdio.c',

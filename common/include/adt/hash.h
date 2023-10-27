@@ -26,14 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic_adt
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
-#ifndef KERN_HASH_H_
-#define KERN_HASH_H_
+#ifndef _LIBC_ADT_HASH_H_
+#define _LIBC_ADT_HASH_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 /** Produces a uniform hash affecting all output bits from the skewed input. */
@@ -76,13 +77,10 @@ static inline uint64_t hash_mix64(uint64_t hash)
 /** Produces a uniform hash affecting all output bits from the skewed input. */
 static inline size_t hash_mix(size_t hash)
 {
-#ifdef __32_BITS__
-	return hash_mix32(hash);
-#elif defined(__64_BITS__)
-	return hash_mix64(hash);
-#else
-#error Unknown size_t size - cannot select proper hash mix function.
-#endif
+	if (sizeof(long) == 4)
+		return hash_mix32(hash);
+	else
+		return hash_mix64(hash);
 }
 
 /** Use to create a hash from multiple values.

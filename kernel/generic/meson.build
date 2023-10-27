@@ -35,6 +35,10 @@ instrumentable_src = []
 
 
 generic_src += files(
+	'common/adt/bitmap.c',
+	'common/adt/hash_table.c',
+	'common/adt/list.c',
+	'common/adt/odict.c',
 	'common/stdc/calloc.c',
 	'common/stdc/ctype.c',
 	'common/stdc/mem.c',
@@ -43,10 +47,6 @@ generic_src += files(
 	'common/str_error.c',
 	'common/strtol.c',
 
-	'src/adt/bitmap.c',
-	'src/adt/hash_table.c',
-	'src/adt/list.c',
-	'src/adt/odict.c',
 	'src/cap/cap.c',
 	'src/console/chardev.c',
 	'src/console/console.c',
