@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <str.h>
-#include <io/printf_core.h>
+#include <printf_core.h>
 
 static int asprintf_str_write(const char *str, size_t count, void *unused)
 {

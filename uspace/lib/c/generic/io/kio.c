@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <abi/kio.h>
 #include <io/kio.h>
-#include <io/printf_core.h>
+#include <printf_core.h>
 #include <macros.h>
 #include <libarch/config.h>
 

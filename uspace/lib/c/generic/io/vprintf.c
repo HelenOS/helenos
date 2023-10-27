@@ -34,7 +34,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <io/printf_core.h>
+#include <printf_core.h>
 #include <fibril_synch.h>
 #include <async.h>
 #include <str.h>

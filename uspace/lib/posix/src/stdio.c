@@ -52,7 +52,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <io/printf_core.h>
+#include <printf_core.h>
 #include <str.h>
 #include <stdlib.h>
 #include <adt/list.h>
