@@ -1,5 +1,0 @@
-CVAL(DW_LNCT_path, 0x1)
-CVAL(DW_LNCT_directory_index, 0x2)
-CVAL(DW_LNCT_timestamp, 0x3)
-CVAL(DW_LNCT_size, 0x4)
-CVAL(DW_LNCT_MD5, 0x5)

@@ -26,36 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DEBUG_DWARF_NAMES_H_
-#define DEBUG_DWARF_NAMES_H_
+#ifndef DEBUG_DWARF_TYPES_H_
+#define DEBUG_DWARF_TYPES_H_
 
-#include <debug/types.h>
+typedef unsigned dw_access_t;
+typedef unsigned dw_at_t;
+typedef unsigned dw_ate_t;
+typedef unsigned dw_cc_t;
+typedef unsigned dw_cfa_t;
+typedef unsigned dw_defaulted_t;
+typedef unsigned dw_ds_t;
+typedef unsigned dw_dsc_t;
+typedef unsigned dw_end_t;
+typedef unsigned dw_form_t;
+typedef unsigned dw_id_t;
+typedef unsigned dw_idx_t;
+typedef unsigned dw_idx_t;
+typedef unsigned dw_inl_t;
+typedef unsigned dw_lang_t;
+typedef unsigned dw_lle_t;
+typedef unsigned dw_lnct_t;
+typedef unsigned dw_lne_t;
+typedef unsigned dw_lns_t;
+typedef unsigned dw_macro_t;
+typedef unsigned dw_op_t;
+typedef unsigned dw_ord_t;
+typedef unsigned dw_rle_t;
+typedef unsigned dw_sect_t;
+typedef unsigned dw_tag_t;
+typedef unsigned dw_ut_t;
+typedef unsigned dw_virtuality_t;
+typedef unsigned dw_vis_t;
 
-extern const char *dw_access_name(dw_access_t);
-extern const char *dw_at_name(dw_at_t);
-extern const char *dw_ate_name(dw_ate_t);
-extern const char *dw_cc_name(dw_cc_t);
-extern const char *dw_cfa_name(dw_cfa_t);
-extern const char *dw_defaulted_name(dw_defaulted_t);
-extern const char *dw_ds_name(dw_ds_t);
-extern const char *dw_dsc_name(dw_dsc_t);
-extern const char *dw_end_name(dw_end_t);
-extern const char *dw_form_name(dw_form_t);
-extern const char *dw_id_name(dw_id_t);
-extern const char *dw_idx_name(dw_idx_t);
-extern const char *dw_inl_name(dw_inl_t);
-extern const char *dw_lang_name(dw_lang_t);
-extern const char *dw_lle_name(dw_lle_t);
-extern const char *dw_lnct_name(dw_lnct_t);
-extern const char *dw_lne_name(dw_lne_t);
-extern const char *dw_lns_name(dw_lns_t);
-extern const char *dw_macro_name(dw_macro_t);
-extern const char *dw_op_name(dw_op_t);
-extern const char *dw_ord_name(dw_ord_t);
-extern const char *dw_rle_name(dw_rle_t);
-extern const char *dw_tag_name(dw_tag_t);
-extern const char *dw_ut_name(dw_ut_t);
-extern const char *dw_virtuality_name(dw_virtuality_t);
-extern const char *dw_vis_name(dw_vis_t);
-
-#endif /* DEBUG_DWARF_NAMES_H_ */
+#endif /* DEBUG_DWARF_TYPES_H_ */

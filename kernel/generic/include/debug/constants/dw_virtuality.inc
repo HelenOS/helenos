@@ -1,3 +1,0 @@
-CVAL(DW_VIRTUALITY_none, 0x00)
-CVAL(DW_VIRTUALITY_virtual, 0x01)
-CVAL(DW_VIRTUALITY_pure_virtual, 0x02)

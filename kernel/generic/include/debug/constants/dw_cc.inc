@@ -1,5 +1,0 @@
-CVAL(DW_CC_normal, 0x01)
-CVAL(DW_CC_program, 0x02)
-CVAL(DW_CC_nocall, 0x03)
-CVAL(DW_CC_pass_by_reference, 0x04)
-CVAL(DW_CC_pass_by_value, 0x05)
