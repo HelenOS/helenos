@@ -30,22 +30,17 @@
  * @{
  */
 /**
- * @file Start menu configuration tab
+ * @file Start menu entry edit dialog
  */
 
-#ifndef STARTMENU_H
-#define STARTMENU_H
+#ifndef SMEEDIT_H
+#define SMEEDIT_H
 
-#include <tbarcfg/tbarcfg.h>
+#include "types/smeedit.h"
 #include "types/startmenu.h"
-#include "types/taskbar-cfg.h"
 
-extern errno_t startmenu_create(taskbar_cfg_t *, startmenu_t **);
-extern errno_t startmenu_populate(startmenu_t *, tbarcfg_t *);
-extern void startmenu_destroy(startmenu_t *);
-extern errno_t startmenu_insert(startmenu_t *, const char *, const char *,
-    startmenu_entry_t **);
-extern void startmenu_edit(startmenu_t *);
+extern errno_t smeedit_create(startmenu_t *, smeedit_t **);
+extern void smeedit_destroy(smeedit_t *);
 
 #endif
 

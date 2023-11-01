@@ -30,22 +30,39 @@
  * @{
  */
 /**
- * @file Start menu configuration tab
+ * @file Start menu entry edit dialog
  */
 
-#ifndef STARTMENU_H
-#define STARTMENU_H
+#ifndef TYPES_SMEEDIT_H
+#define TYPES_SMEEDIT_H
 
-#include <tbarcfg/tbarcfg.h>
-#include "types/startmenu.h"
-#include "types/taskbar-cfg.h"
+#include <ui/fixed.h>
+#include <ui/label.h>
+#include <ui/entry.h>
+#include <ui/pbutton.h>
+#include <ui/window.h>
 
-extern errno_t startmenu_create(taskbar_cfg_t *, startmenu_t **);
-extern errno_t startmenu_populate(startmenu_t *, tbarcfg_t *);
-extern void startmenu_destroy(startmenu_t *);
-extern errno_t startmenu_insert(startmenu_t *, const char *, const char *,
-    startmenu_entry_t **);
-extern void startmenu_edit(startmenu_t *);
+/** Start menu entry edit dialog */
+typedef struct smeedit {
+	/** Containing start menu configuration tab */
+	struct startmenu *startmenu;
+	/** Window */
+	ui_window_t *window;
+	/** Fixed layout */
+	ui_fixed_t *fixed;
+	/** 'Caption' label */
+	ui_label_t *lcaption;
+	/** Caption entry */
+	ui_entry_t *ecaption;
+	/** 'Command' label */
+	ui_label_t *lcmd;
+	/** Command entry */
+	ui_entry_t *ecmd;
+	/** OK buttion */
+	ui_pbutton_t *bok;
+	/** Cancel button */
+	ui_pbutton_t *bcancel;
+} smeedit_t;
 
 #endif
 

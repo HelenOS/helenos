@@ -45,12 +45,14 @@
 #include <ui/resource.h>
 #include <ui/tab.h>
 #include <ui/window.h>
+#include "smeedit.h"
 #include "startmenu.h"
 #include "taskbar-cfg.h"
 
 static void startmenu_entry_selected(ui_list_entry_t *, void *);
 static void startmenu_new_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_delete_entry_clicked(ui_pbutton_t *, void *);
+static void startmenu_edit_entry_clicked(ui_pbutton_t *, void *);
 
 /** Entry list callbacks */
 ui_list_cb_t startmenu_entry_list_cb = {
@@ -62,9 +64,14 @@ ui_pbutton_cb_t startmenu_new_entry_button_cb = {
 	.clicked = startmenu_new_entry_clicked
 };
 
-/** Remove seat button callbacks */
+/** Delete entry button callbacks */
 ui_pbutton_cb_t startmenu_delete_entry_button_cb = {
 	.clicked = startmenu_delete_entry_clicked
+};
+
+/** Edit entry button callbacks */
+ui_pbutton_cb_t startmenu_edit_entry_button_cb = {
+	.clicked = startmenu_edit_entry_clicked
 };
 
 /** Create start menu configuration tab
@@ -162,7 +169,7 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 	ui_list_set_cb(smenu->entries_list, &startmenu_entry_list_cb,
 	    (void *)smenu);
 
-	/* 'New Entry' button */
+	/* New entry button */
 
 	rc = ui_pbutton_create(ui_res, "New...", &smenu->new_entry);
 	if (rc != EOK) {
@@ -193,7 +200,7 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 	ui_pbutton_set_cb(smenu->new_entry, &startmenu_new_entry_button_cb,
 	    (void *)smenu);
 
-	/* 'Delete Entry' button */
+	/* Delete entry button */
 
 	rc = ui_pbutton_create(ui_res, "Delete", &smenu->delete_entry);
 	if (rc != EOK) {
@@ -223,6 +230,37 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 
 	ui_pbutton_set_cb(smenu->delete_entry,
 	    &startmenu_delete_entry_button_cb, (void *)smenu);
+
+	/* Edit entry button */
+
+	rc = ui_pbutton_create(ui_res, "Edit...", &smenu->edit_entry);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		goto error;
+	}
+
+	if (ui_resource_is_textmode(ui_res)) {
+		rect.p0.x = 58;
+		rect.p0.y = 9;
+		rect.p1.x = 68;
+		rect.p1.y = 10;
+	} else {
+		rect.p0.x = 370;
+		rect.p0.y = 140;
+		rect.p1.x = 450;
+		rect.p1.y = 165;
+	}
+
+	ui_pbutton_set_rect(smenu->edit_entry, &rect);
+
+	rc = ui_fixed_add(smenu->fixed, ui_pbutton_ctl(smenu->edit_entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
+	ui_pbutton_set_cb(smenu->edit_entry,
+	    &startmenu_edit_entry_button_cb, (void *)smenu);
 
 	ui_tab_add(smenu->tab, ui_fixed_ctl(smenu->fixed));
 
@@ -345,6 +383,22 @@ errno_t startmenu_insert(startmenu_t *smenu, const char *caption,
 	return EOK;
 }
 
+/** Edit selected menu entry.
+ *
+ * @param smenu Start menu
+ */
+void startmenu_edit(startmenu_t *smenu)
+{
+	smeedit_t *smee;
+	errno_t rc;
+
+	rc = smeedit_create(smenu, &smee);
+	if (rc != EOK)
+		return;
+
+	(void)smee;
+}
+
 /** Entry in entry list is selected.
  *
  * @param lentry UI list entry
@@ -356,10 +410,10 @@ static void startmenu_entry_selected(ui_list_entry_t *lentry, void *arg)
 	(void)arg;
 }
 
-/** New Entry' button clicked.
+/** New entry button clicked.
  *
  * @param pbutton Push button
- * @param arg Argument (dcfg_seats_entry_t *)
+ * @param arg Argument (startmenu_t *)
  */
 static void startmenu_new_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 {
@@ -367,15 +421,28 @@ static void startmenu_new_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 	(void)arg;
 }
 
-/** "Delete Entry' button clicked.
+/** Delete entry button clicked.
  *
  * @param pbutton Push button
- * @param arg Argument (dcfg_seats_entry_t *)
+ * @param arg Argument (startmenu_t *)
  */
 static void startmenu_delete_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	(void)pbutton;
 	(void)arg;
+}
+
+/** Edit entry button clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (startmenu_t *)
+ */
+static void startmenu_edit_entry_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	startmenu_t *smenu = (startmenu_t *)arg;
+
+	(void)pbutton;
+	startmenu_edit(smenu);
 }
 
 /** @}

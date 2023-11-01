@@ -30,6 +30,7 @@ deps = [ 'tbarcfg', 'ui' ]
 src = files(
 	'taskbar-cfg.c',
 	'main.c',
+	'smeedit.c',
 	'startmenu.c'
 )
 
