@@ -141,7 +141,7 @@ test_version() {
 
 	for PLATFORM in $PLATFORMS ; do
 		set_target_from_platform "$PLATFORM"
-		PREFIX="${CROSS_PREFIX}/bin/${HELENOS_TARGET}"
+		PREFIX="${CROSS_PREFIX}/bin/${TARGET}"
 
 		echo "== $PLATFORM =="
 		test_app_version "Binutils" "ld" "GNU ld (.*) \([.0-9]*\)" "$BINUTILS_VERSION"
