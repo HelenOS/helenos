@@ -28,43 +28,14 @@
 
 #include <debug/sections.h>
 #include <debug/register.h>
+#include <debug.h>
 
 #include <stdio.h>
 #include <str.h>
 
-const void *debug_aranges = NULL;
-size_t debug_aranges_size = 0;
+#define DEBUGF dummy_printf
 
-const void *debug_info = NULL;
-size_t debug_info_size = 0;
-
-const void *debug_abbrev = NULL;
-size_t debug_abbrev_size = 0;
-
-const void *debug_line = NULL;
-size_t debug_line_size = 0;
-
-const char *debug_str = NULL;
-size_t debug_str_size = 0;
-
-const char *debug_line_str = NULL;
-size_t debug_line_str_size = 0;
-
-const void *debug_rnglists = NULL;
-size_t debug_rnglists_size = 0;
-
-// TODO: get this from the program image
-const void *eh_frame_hdr = NULL;
-size_t eh_frame_hdr_size = 0;
-
-const void *eh_frame = NULL;
-size_t eh_frame_size = 0;
-
-const elf_symbol_t *symtab = NULL;
-size_t symtab_size = 0;
-
-const char *strtab = NULL;
-size_t strtab_size = 0;
+debug_sections_t kernel_sections;
 
 struct section_manifest {
 	const char *name;
@@ -72,29 +43,36 @@ struct section_manifest {
 	size_t *size_field;
 };
 
-#define section(name) { "." #name, (const void **)&name, &name##_size }
-
-static const struct section_manifest manifest[] = {
-	section(debug_aranges),
-	section(debug_info),
-	section(debug_abbrev),
-	section(debug_line),
-	section(debug_str),
-	section(debug_line_str),
-	section(debug_rnglists),
-	section(eh_frame_hdr),
-	section(eh_frame),
-	section(symtab),
-	section(strtab),
-};
-
-#undef section
-
-static const size_t manifest_len = sizeof(manifest) / sizeof(struct section_manifest);
-
-void register_debug_data(const void *data, size_t data_size)
+static void _check_string_section(const char *section, size_t *section_size)
 {
-	const void *data_end = data + data_size;
+	while (*section_size > 0 && section[*section_size - 1] != 0) {
+		(*section_size)--;
+	}
+}
+
+debug_sections_t get_debug_sections(const void *elf, size_t elf_size)
+{
+	debug_sections_t out = { };
+
+#define section(name) { "." #name, (const void **)&out.name, &out.name##_size }
+
+	const struct section_manifest manifest[] = {
+		section(debug_aranges),
+		section(debug_info),
+		section(debug_abbrev),
+		section(debug_line),
+		section(debug_str),
+		section(debug_line_str),
+		section(debug_rnglists),
+		section(eh_frame_hdr),
+		section(eh_frame),
+		section(symtab),
+		section(strtab),
+	};
+
+	const size_t manifest_len = sizeof(manifest) / sizeof(struct section_manifest);
+
+	const void *data_end = elf + elf_size;
 
 	/*
 	 * While this data is technically "trusted", insofar as it is provided
@@ -102,61 +80,59 @@ void register_debug_data(const void *data, size_t data_size)
 	 * misconfigured debug data doesn't crash the kernel.
 	 */
 
-	if (data_size < sizeof(elf_header_t)) {
+	if (elf_size < sizeof(elf_header_t)) {
 		printf("bad debug data: too short\n");
-		return;
+		return out;
 	}
 
-	if (((uintptr_t) data) % 8 != 0) {
+	if (((uintptr_t) elf) % 8 != 0) {
 		printf("bad debug data: unaligned input\n");
-		return;
+		return out;
 	}
 
-	const elf_header_t *hdr = data;
+	const elf_header_t *hdr = elf;
 
 	if (hdr->e_ident[0] != ELFMAG0 || hdr->e_ident[1] != ELFMAG1 ||
 	    hdr->e_ident[2] != ELFMAG2 || hdr->e_ident[3] != ELFMAG3) {
 		printf("bad debug data: wrong ELF magic bytes\n");
-		return;
+		return out;
 	}
 
 	if (hdr->e_shentsize != sizeof(elf_section_header_t)) {
 		printf("bad debug data: wrong e_shentsize\n");
-		return;
+		return out;
 	}
 
 	/* Get section header table. */
-	const elf_section_header_t *shdr = data + hdr->e_shoff;
+	const elf_section_header_t *shdr = elf + hdr->e_shoff;
 	size_t shdr_len = hdr->e_shnum;
 
 	if ((void *) &shdr[shdr_len] > data_end) {
 		printf("bad debug data: truncated section header table\n");
-		return;
+		return out;
 	}
 
 	if (hdr->e_shstrndx >= shdr_len) {
 		printf("bad debug data: string table index out of range\n");
-		return;
+		return out;
 	}
 
 	/* Get data on section name string table. */
 	const elf_section_header_t *shstr = &shdr[hdr->e_shstrndx];
-	const char *shstrtab = data + shstr->sh_offset;
+	const char *shstrtab = elf + shstr->sh_offset;
 	size_t shstrtab_size = shstr->sh_size;
 
 	if ((void *) shstrtab + shstrtab_size > data_end) {
 		printf("bad debug data: truncated string table\n");
-		return;
+		return out;
 	}
 
 	/* Check NUL-terminator. */
-	while (shstrtab_size > 0 && shstrtab[shstrtab_size - 1] != 0) {
-		shstrtab_size--;
-	}
+	_check_string_section(shstrtab, &shstrtab_size);
 
 	if (shstrtab_size == 0) {
 		printf("bad debug data: empty or non-null-terminated string table\n");
-		return;
+		return out;
 	}
 
 	/* List all present sections. */
@@ -166,23 +142,23 @@ void register_debug_data(const void *data, size_t data_size)
 
 		if (shdr[i].sh_name >= shstrtab_size) {
 			printf("bad debug data: string table index out of range\n");
-			return;
+			continue;
 		}
 
 		const char *name = shstrtab + shdr[i].sh_name;
 		size_t offset = shdr[i].sh_offset;
 		size_t size = shdr[i].sh_size;
 
-		printf("section '%s': offset %zd (%zd bytes)\n", name, offset, size);
+		DEBUGF("section '%s': offset %zd (%zd bytes)\n", name, offset, size);
 
-		if (data + offset + size > data_end) {
+		if (elf + offset + size > data_end) {
 			printf("bad debug data: truncated section %s\n", name);
 			continue;
 		}
 
 		for (size_t i = 0; i < manifest_len; i++) {
 			if (str_cmp(manifest[i].name, name) == 0) {
-				*manifest[i].address_field = data + offset;
+				*manifest[i].address_field = elf + offset;
 				*manifest[i].size_field = size;
 				break;
 			}
@@ -190,15 +166,14 @@ void register_debug_data(const void *data, size_t data_size)
 	}
 
 	/* Check NUL-terminator in .strtab, .debug_str and .debug_line_str */
-	while (strtab_size > 0 && strtab[strtab_size - 1] != 0) {
-		strtab_size--;
-	}
+	_check_string_section(out.strtab, &out.strtab_size);
+	_check_string_section(out.debug_str, &out.debug_str_size);
+	_check_string_section(out.debug_line_str, &out.debug_line_str_size);
 
-	while (debug_str_size > 0 && debug_str[debug_str_size - 1] != 0) {
-		debug_str_size--;
-	}
+	return out;
+}
 
-	while (debug_line_str_size > 0 && debug_str[debug_line_str_size - 1] != 0) {
-		debug_line_str_size--;
-	}
+void register_debug_data(const void *elf, size_t elf_size)
+{
+	kernel_sections = get_debug_sections(elf, elf_size);
 }

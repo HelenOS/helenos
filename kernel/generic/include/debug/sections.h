@@ -32,37 +32,43 @@
 #include <abi/elf.h>
 #include <stddef.h>
 
-extern const void *debug_aranges;
-extern size_t debug_aranges_size;
+typedef struct {
+	const void *debug_aranges;
+	size_t debug_aranges_size;
 
-extern const void *debug_info;
-extern size_t debug_info_size;
+	const void *debug_info;
+	size_t debug_info_size;
 
-extern const void *debug_abbrev;
-extern size_t debug_abbrev_size;
+	const void *debug_abbrev;
+	size_t debug_abbrev_size;
 
-extern const void *debug_line;
-extern size_t debug_line_size;
+	const void *debug_line;
+	size_t debug_line_size;
 
-extern const char *debug_str;
-extern size_t debug_str_size;
+	const char *debug_str;
+	size_t debug_str_size;
 
-extern const char *debug_line_str;
-extern size_t debug_line_str_size;
+	const char *debug_line_str;
+	size_t debug_line_str_size;
 
-extern const void *debug_rnglists;
-extern size_t debug_rnglists_size;
+	const void *debug_rnglists;
+	size_t debug_rnglists_size;
 
-extern const void *eh_frame_hdr;
-extern size_t eh_frame_hdr_size;
+	const void *eh_frame_hdr;
+	size_t eh_frame_hdr_size;
 
-extern const void *eh_frame;
-extern size_t eh_frame_size;
+	const void *eh_frame;
+	size_t eh_frame_size;
 
-extern const elf_symbol_t *symtab;
-extern size_t symtab_size;
+	const elf_symbol_t *symtab;
+	size_t symtab_size;
 
-extern const char *strtab;
-extern size_t strtab_size;
+	const char *strtab;
+	size_t strtab_size;
+} debug_sections_t;
+
+extern debug_sections_t kernel_sections;
+
+debug_sections_t get_debug_sections(const void *elf, size_t elf_size);
 
 #endif /* DEBUG_SECTIONS_H_ */

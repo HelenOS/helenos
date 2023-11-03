@@ -296,7 +296,7 @@ static void debug_line_program_advance(struct debug_line_program *lp)
 	lp->truncated = true;
 }
 
-static void debug_line_program_header_parse(const uint8_t *data, const uint8_t *data_end, struct debug_line_program_header *hdr)
+static void debug_line_program_header_parse(debug_sections_t *scs, const uint8_t *data, const uint8_t *data_end, struct debug_line_program_header *hdr)
 {
 	const uint8_t *unit_start = data;
 
@@ -377,7 +377,7 @@ static void debug_line_program_header_parse(const uint8_t *data, const uint8_t *
 		    hdr->v5.directory_entry_format, hdr->v5.directory_entry_format_end, width);
 		hdr->v5.directories_end = data;
 
-		print_formatted_list("directories", hdr->v5.directories, hdr->v5.directories_end,
+		print_formatted_list(scs, "directories", hdr->v5.directories, hdr->v5.directories_end,
 		    hdr->v5.directory_entry_format, hdr->v5.directory_entry_format_end, width);
 
 		FIELD(v5.file_name_entry_format_count, "u", read_byte(&data, data_end));
@@ -396,7 +396,7 @@ static void debug_line_program_header_parse(const uint8_t *data, const uint8_t *
 		    hdr->v5.file_name_entry_format, hdr->v5.file_name_entry_format_end, width);
 		hdr->v5.file_names_end = data;
 
-		print_formatted_list("file_names", hdr->v5.file_names, hdr->v5.file_names_end,
+		print_formatted_list(scs, "file_names", hdr->v5.file_names, hdr->v5.file_names_end,
 		    hdr->v5.file_name_entry_format, hdr->v5.file_name_entry_format_end, width);
 	}
 }
@@ -462,7 +462,7 @@ static const char *get_file_name_v3(struct debug_line_program_header *hdr, int f
 	return fn;
 }
 
-static const char *get_file_name_v5(struct debug_line_program_header *hdr, int file, int *dir)
+static const char *get_file_name_v5(debug_sections_t *scs, struct debug_line_program_header *hdr, int file, int *dir)
 {
 	// DWARF5 has dynamic layout for file information, which is why
 	// this is so horrible to decode. Enjoy.
@@ -492,8 +492,8 @@ static const char *get_file_name_v5(struct debug_line_program_header *hdr, int f
 
 				if (form == DW_FORM_line_strp) {
 					uint64_t offset = read_uint(&fns, fns_end, hdr->width);
-					if (offset < debug_line_str_size) {
-						filename = debug_line_str + offset;
+					if (offset < scs->debug_line_str_size) {
+						filename = scs->debug_line_str + offset;
 					}
 					continue;
 				}
@@ -526,14 +526,14 @@ static const char *get_file_name_v5(struct debug_line_program_header *hdr, int f
 	return filename;
 }
 
-static const char *get_file_name(struct debug_line_program_header *hdr, int file, int *dir)
+static const char *get_file_name(debug_sections_t *scs, struct debug_line_program_header *hdr, int file, int *dir)
 {
 	switch (hdr->version) {
 	case 3:
 	case 4:
 		return get_file_name_v3(hdr, file, dir);
 	case 5:
-		return get_file_name_v5(hdr, file, dir);
+		return get_file_name_v5(scs, hdr, file, dir);
 	default:
 		return NULL;
 	}
@@ -557,7 +557,7 @@ static const char *get_dir_name_v3(struct debug_line_program_header *hdr, int di
 		return NULL;
 }
 
-static const char *get_dir_name_v5(struct debug_line_program_header *hdr, int dir)
+static const char *get_dir_name_v5(debug_sections_t *scs, struct debug_line_program_header *hdr, int dir)
 {
 	// TODO: basically a copypaste of get_file_name(). Try to deduplicate it.
 
@@ -586,8 +586,8 @@ static const char *get_dir_name_v5(struct debug_line_program_header *hdr, int di
 
 				if (form == DW_FORM_line_strp) {
 					uint64_t offset = read_uint(&fns, fns_end, hdr->width);
-					if (offset < debug_line_str_size) {
-						filename = debug_line_str + offset;
+					if (offset < scs->debug_line_str_size) {
+						filename = scs->debug_line_str + offset;
 					}
 					continue;
 				}
@@ -603,20 +603,20 @@ static const char *get_dir_name_v5(struct debug_line_program_header *hdr, int di
 	return filename;
 }
 
-static const char *get_dir_name(struct debug_line_program_header *hdr, int dir)
+static const char *get_dir_name(debug_sections_t *scs, struct debug_line_program_header *hdr, int dir)
 {
 	switch (hdr->version) {
 	case 3:
 	case 4:
 		return get_dir_name_v3(hdr, dir);
 	case 5:
-		return get_dir_name_v5(hdr, dir);
+		return get_dir_name_v5(scs, hdr, dir);
 	default:
 		return NULL;
 	}
 }
 
-static const uint8_t *find_line_program(uintptr_t addr)
+static const uint8_t *find_line_program(debug_sections_t *scs, uintptr_t addr)
 {
 	// TODO: use .debug_aranges to find the data quickly
 	// This implementation just iterates through the entire .debug_line
@@ -624,15 +624,15 @@ static const uint8_t *find_line_program(uintptr_t addr)
 	uintptr_t closest_addr = 0;
 	const uint8_t *closest_prog = NULL;
 
-	const uint8_t *debug_line_ptr = debug_line;
-	const uint8_t *const debug_line_end = debug_line + debug_line_size;
+	const uint8_t *debug_line_ptr = scs->debug_line;
+	const uint8_t *const debug_line_end = scs->debug_line + scs->debug_line_size;
 
 	while (debug_line_ptr < debug_line_end) {
 		const uint8_t *prog = debug_line_ptr;
 
 		// Parse header
 		struct debug_line_program_header hdr = { };
-		debug_line_program_header_parse(prog, debug_line_end, &hdr);
+		debug_line_program_header_parse(scs, prog, debug_line_end, &hdr);
 		assert(hdr.unit_end > debug_line_ptr);
 		assert(hdr.unit_end <= debug_line_end);
 		debug_line_ptr = hdr.unit_end;
@@ -677,41 +677,45 @@ static bool get_info(const struct debug_line_program_header *hdr, uintptr_t addr
 
 		debug_line_program_advance(&lp);
 
-		if (!lp.truncated) {
-			// We check for the last address before addr, because addr
-			// is a return address and we want the call instruction.
-			if (lp.address >= addr && lp.op_advance >= op_index) {
-				if (!first) {
-					*file = last_file;
-					*line = last_line;
-					*column = last_column;
-					return true;
-				}
+		if (lp.truncated)
+			continue;
 
+		/*
+		 * Return previous entry when we pass the target address, because
+		 * the address may not be aligned perfectly on instruction boundary.
+		 */
+		if (lp.address > addr || (lp.address == addr && lp.op_advance > op_index)) {
+			if (first) {
 				// First address is already too large, skip to the next sequence.
 				debug_line_program_skip_to_sequence_end(&lp);
+				continue;
 			}
 
-			last_file = lp.file;
-			last_line = lp.line;
-			last_column = lp.column;
+			*file = last_file;
+			*line = last_line;
+			*column = last_column;
+			return true;
 		}
+
+		last_file = lp.file;
+		last_line = lp.line;
+		last_column = lp.column;
 	}
 
 	return false;
 }
 
-bool debug_line_get_address_info(uintptr_t addr, int op_index, const char **file_name, const char **dir_name, int *line, int *column)
+bool debug_line_get_address_info(debug_sections_t *scs, uintptr_t addr, int op_index, const char **file_name, const char **dir_name, int *line, int *column)
 {
-	const uint8_t *data = find_line_program(addr);
+	const uint8_t *data = find_line_program(scs, addr);
 	if (data == NULL) {
 		return false;
 	}
 
-	const uint8_t *const debug_line_end = debug_line + debug_line_size;
+	const uint8_t *const debug_line_end = scs->debug_line + scs->debug_line_size;
 
 	struct debug_line_program_header hdr = { };
-	debug_line_program_header_parse(data, debug_line_end, &hdr);
+	debug_line_program_header_parse(scs, data, debug_line_end, &hdr);
 	assert(hdr.unit_end > data);
 	assert(hdr.unit_end <= debug_line_end);
 
@@ -726,10 +730,10 @@ bool debug_line_get_address_info(uintptr_t addr, int op_index, const char **file
 	// printf("got info for 0x%zx: file %d, line %d, column %d\n", addr, file, *line, *column);
 
 	if (file >= 0)
-		*file_name = get_file_name(&hdr, file, &dir);
+		*file_name = get_file_name(scs, &hdr, file, &dir);
 
 	if (dir >= 0)
-		*dir_name = get_dir_name(&hdr, dir);
+		*dir_name = get_dir_name(scs, &hdr, dir);
 
 	return true;
 }

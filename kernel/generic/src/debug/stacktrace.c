@@ -59,8 +59,14 @@ void stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 		int line = 0;
 		int column = 0;
 
+		/*
+		 * If this isn't the first frame, move pc back by one byte to read the
+		 * position of the call instruction, not the return address.
+		 */
+		pc = cnt == 1 ? ctx->pc : ctx->pc - 1;
+
 		if (ops->symbol_resolve &&
-		    ops->symbol_resolve(ctx->pc, 0, &symbol, &symbol_addr, &file_name, &dir_name, &line, &column)) {
+		    ops->symbol_resolve(pc, 0, &symbol, &symbol_addr, &file_name, &dir_name, &line, &column)) {
 
 			if (symbol == NULL)
 				symbol = "<unknown>";
@@ -129,9 +135,26 @@ resolve_kernel_address(uintptr_t addr, int op_index,
     int *line, int *column)
 {
 	*symbol_addr = 0;
-	*symbol = symtab_name_lookup(addr, symbol_addr);
+	*symbol = symtab_name_lookup(addr, symbol_addr, &kernel_sections);
 
-	return debug_line_get_address_info(addr, op_index, filename, dirname, line, column) || *symbol_addr != 0;
+	return debug_line_get_address_info(&kernel_sections, addr, op_index, filename, dirname, line, column) || *symbol_addr != 0;
+}
+
+static bool
+resolve_uspace_address(uintptr_t addr, int op_index,
+    const char **symbol, uintptr_t *symbol_addr,
+    const char **filename, const char **dirname,
+    int *line, int *column)
+{
+	if (TASK->debug_sections == NULL)
+		return false;
+
+	debug_sections_t *scs = TASK->debug_sections;
+
+	*symbol_addr = 0;
+	*symbol = symtab_name_lookup(addr, symbol_addr, scs);
+
+	return debug_line_get_address_info(scs, addr, op_index, filename, dirname, line, column) || *symbol_addr != 0;
 }
 
 stack_trace_ops_t kst_ops = {
@@ -145,7 +168,7 @@ stack_trace_ops_t ust_ops = {
 	.stack_trace_context_validate = uspace_stack_trace_context_validate,
 	.frame_pointer_prev = uspace_frame_pointer_prev,
 	.return_address_get = uspace_return_address_get,
-	.symbol_resolve = NULL
+	.symbol_resolve = resolve_uspace_address,
 };
 
 /** @}

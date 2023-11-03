@@ -32,31 +32,6 @@
 #include <debug/sections.h>
 #include <debug/names.h>
 
-/*
- * These declarations cause global definitions for the functions to be emitted
- * in this compilation unit, so if the compiler decides not to inline some of
- * them, only one external copy exists. See C99 inline rules.
- */
-extern inline uint8_t read_byte(const uint8_t **, const uint8_t *);
-extern inline uint16_t read_uint16(const uint8_t **, const uint8_t *);
-extern inline uint32_t read_uint24(const uint8_t **, const uint8_t *);
-extern inline uint32_t read_uint32(const uint8_t **, const uint8_t *);
-extern inline uint64_t read_uint64(const uint8_t **, const uint8_t *);
-extern inline uint64_t read_uint(const uint8_t **, const uint8_t *, unsigned);
-extern inline uint64_t read_uleb128(const uint8_t **, const uint8_t *);
-extern inline int64_t read_sleb128(const uint8_t **, const uint8_t *);
-extern inline void skip_leb128(const uint8_t **, const uint8_t *);
-extern inline uint64_t read_initial_length(const uint8_t **, const uint8_t *, unsigned *);
-extern inline const char *read_string(const uint8_t **, const uint8_t *);
-extern inline void skip_string(const uint8_t **, const uint8_t *);
-extern inline void safe_increment(const uint8_t **, const uint8_t *, ptrdiff_t);
-
-extern inline void skip_format(const uint8_t **, const uint8_t *, unsigned);
-extern inline void skip_formatted_entry(const uint8_t **, const uint8_t *,
-    const uint8_t *, const uint8_t *, unsigned);
-extern inline void skip_formatted_list(const uint8_t **, const uint8_t *,
-    unsigned, const uint8_t *, const uint8_t *, unsigned);
-
 bool skip_data(unsigned form, const uint8_t **const data,
     const uint8_t *data_end, unsigned width)
 {
@@ -158,7 +133,7 @@ void print_format(const char *name, const uint8_t *format, const uint8_t *format
 	DEBUGF("\n");
 }
 
-void print_formatted_list(const char *name,
+void print_formatted_list(debug_sections_t *scs, const char *name,
     const uint8_t *data, const uint8_t *const data_end,
     const uint8_t *format, const uint8_t *format_end,
     unsigned width)
@@ -174,7 +149,7 @@ void print_formatted_list(const char *name,
 			uint64_t form = read_uleb128(&format_ptr, format_end);
 
 			DEBUGF("%s:%s:", dw_lnct_name(lnct), dw_form_name(form));
-			print_formed_data(form, &data, data_end, width);
+			print_formed_data(scs, form, &data, data_end, width);
 			DEBUGF("\n");
 		}
 
@@ -195,7 +170,7 @@ void print_block(const uint8_t **const data,
 	}
 }
 
-void print_formed_data(unsigned form, const uint8_t **const data,
+void print_formed_data(debug_sections_t *scs, unsigned form, const uint8_t **const data,
     const uint8_t *data_end, unsigned width)
 {
 	size_t len;
@@ -209,18 +184,18 @@ void print_formed_data(unsigned form, const uint8_t **const data,
 	case DW_FORM_strp:
 	case DW_FORM_strp_sup:
 		offset = read_uint(data, data_end, width);
-		if (offset >= debug_str_size)
+		if (offset >= scs->debug_str_size)
 			DEBUGF("<out of range>");
 		else
-			DEBUGF("\"%s\"", debug_str + offset);
+			DEBUGF("\"%s\"", scs->debug_str + offset);
 		break;
 
 	case DW_FORM_line_strp:
 		offset = read_uint(data, data_end, width);
-		if (offset >= debug_line_str_size)
+		if (offset >= scs->debug_line_str_size)
 			DEBUGF("<out of range>");
 		else
-			DEBUGF("\"%s\"", debug_line_str + offset);
+			DEBUGF("\"%s\"", scs->debug_line_str + offset);
 		break;
 
 	case DW_FORM_sec_offset:

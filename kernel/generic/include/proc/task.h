@@ -35,28 +35,29 @@
 #ifndef KERN_TASK_H_
 #define KERN_TASK_H_
 
-#include <cpu.h>
-#include <ipc/ipc.h>
-#include <ipc/event.h>
-#include <ipc/kbox.h>
-#include <synch/spinlock.h>
-#include <synch/mutex.h>
-#include <adt/list.h>
-#include <adt/odict.h>
-#include <security/perm.h>
-#include <arch/proc/task.h>
-#include <arch/proc/thread.h>
-#include <arch/context.h>
-#include <arch/fpu_context.h>
-#include <arch/cpu.h>
-#include <mm/tlb.h>
-#include <proc/scheduler.h>
-#include <udebug/udebug.h>
-#include <mm/as.h>
 #include <abi/proc/task.h>
 #include <abi/sysinfo.h>
+#include <adt/list.h>
+#include <adt/odict.h>
+#include <arch/context.h>
+#include <arch/cpu.h>
+#include <arch/fpu_context.h>
+#include <arch/proc/task.h>
+#include <arch/proc/thread.h>
 #include <arch.h>
 #include <cap/cap.h>
+#include <cpu.h>
+#include <debug/sections.h>
+#include <ipc/event.h>
+#include <ipc/ipc.h>
+#include <ipc/kbox.h>
+#include <mm/as.h>
+#include <mm/tlb.h>
+#include <proc/scheduler.h>
+#include <security/perm.h>
+#include <synch/mutex.h>
+#include <synch/spinlock.h>
+#include <udebug/udebug.h>
 
 #define TASK                 CURRENT->task
 
@@ -130,6 +131,8 @@ typedef struct task {
 	/** Accumulated accounting. */
 	uint64_t ucycles;
 	uint64_t kcycles;
+
+	debug_sections_t *debug_sections;
 } task_t;
 
 /** Synchronize access to @c tasks */

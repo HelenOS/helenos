@@ -267,7 +267,7 @@ void kinit(void *arg)
 			continue;
 		}
 
-		errno_t rc = program_create_from_image((void *) page, namebuf,
+		errno_t rc = program_create_from_image((void *) page, init.tasks[i].size, namebuf,
 		    &programs[i]);
 
 		if (rc == 0) {

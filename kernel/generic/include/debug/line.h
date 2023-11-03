@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <debug/sections.h>
 
 struct debug_line_program_header {
 	uint64_t unit_length;
@@ -102,6 +103,6 @@ static inline struct debug_line_program debug_line_program_create(const uint8_t 
 	};
 }
 
-extern bool debug_line_get_address_info(uintptr_t addr, int op_index, const char **file, const char **dir, int *line, int *col);
+extern bool debug_line_get_address_info(debug_sections_t *scs, uintptr_t addr, int op_index, const char **file, const char **dir, int *line, int *col);
 
 #endif /* DWARFS_LINE_H_ */

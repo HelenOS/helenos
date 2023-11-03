@@ -142,7 +142,7 @@ errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t
  * @return EOK on success or an error code.
  *
  */
-errno_t program_create_from_image(void *image_addr, char *name, program_t *prg)
+errno_t program_create_from_image(void *image_addr, size_t image_size, char *name, program_t *prg)
 {
 	as_t *as = as_create(0);
 	if (!as)
@@ -156,8 +156,16 @@ errno_t program_create_from_image(void *image_addr, char *name, program_t *prg)
 		return ENOTSUP;
 	}
 
-	return program_create(as, ((elf_header_t *) image_addr)->e_entry,
+	errno_t rc = program_create(as, ((elf_header_t *) image_addr)->e_entry,
 	    name, prg);
+
+	if (rc == EOK) {
+		prg->task->debug_sections = calloc(1, sizeof(debug_sections_t));
+		if (prg->task->debug_sections != NULL)
+			*prg->task->debug_sections = get_debug_sections(image_addr, image_size);
+	}
+
+	return rc;
 }
 
 /** Create a task from the program loader image.

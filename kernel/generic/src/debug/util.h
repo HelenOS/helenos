@@ -32,19 +32,20 @@
 #include <assert.h>
 #include <stdint.h>
 #include <debug/constants.h>
+#include <debug/sections.h>
 #include <debug.h>
 
 #define DEBUGF dummy_printf
 
 extern bool skip_data(unsigned, const uint8_t **const, const uint8_t *, unsigned);
 extern void print_format(const char *, const uint8_t *, const uint8_t *);
-extern void print_formatted_list(const char *, const uint8_t *, const uint8_t *,
-    const uint8_t *, const uint8_t *, unsigned);
+extern void print_formatted_list(debug_sections_t *, const char *,
+    const uint8_t *, const uint8_t *, const uint8_t *, const uint8_t *, unsigned);
 
 extern void print_block(const uint8_t **, const uint8_t *, unsigned);
-extern void print_formed_data(unsigned, const uint8_t **const, const uint8_t *, unsigned);
+extern void print_formed_data(debug_sections_t *scs, unsigned, const uint8_t **const, const uint8_t *, unsigned);
 
-inline uint8_t read_byte(const uint8_t **data, const uint8_t *data_end)
+static inline uint8_t read_byte(const uint8_t **data, const uint8_t *data_end)
 {
 	if (*data >= data_end) {
 		return 0;
@@ -66,7 +67,7 @@ struct u64 {
 	uint64_t val;
 } __attribute__((packed));
 
-inline uint16_t read_uint16(const uint8_t **data, const uint8_t *data_end)
+static inline uint16_t read_uint16(const uint8_t **data, const uint8_t *data_end)
 {
 	if (*data + 2 > data_end) {
 		/* Safe exit path for malformed input. */
@@ -79,7 +80,7 @@ inline uint16_t read_uint16(const uint8_t **data, const uint8_t *data_end)
 	return v;
 }
 
-inline uint32_t read_uint24(const uint8_t **data, const uint8_t *data_end)
+static inline uint32_t read_uint24(const uint8_t **data, const uint8_t *data_end)
 {
 	if (*data + 3 > data_end) {
 		/* Safe exit path for malformed input. */
@@ -97,7 +98,7 @@ inline uint32_t read_uint24(const uint8_t **data, const uint8_t *data_end)
 	return v;
 }
 
-inline uint32_t read_uint32(const uint8_t **data, const uint8_t *data_end)
+static inline uint32_t read_uint32(const uint8_t **data, const uint8_t *data_end)
 {
 	if (*data + 4 > data_end) {
 		/* Safe exit path for malformed input. */
@@ -110,7 +111,7 @@ inline uint32_t read_uint32(const uint8_t **data, const uint8_t *data_end)
 	return v;
 }
 
-inline uint64_t read_uint64(const uint8_t **data, const uint8_t *data_end)
+static inline uint64_t read_uint64(const uint8_t **data, const uint8_t *data_end)
 {
 	if (*data + 8 > data_end) {
 		/* Safe exit path for malformed input. */
@@ -123,7 +124,7 @@ inline uint64_t read_uint64(const uint8_t **data, const uint8_t *data_end)
 	return v;
 }
 
-inline uint64_t read_uint(const uint8_t **data, const uint8_t *data_end, unsigned bytes)
+static inline uint64_t read_uint(const uint8_t **data, const uint8_t *data_end, unsigned bytes)
 {
 	switch (bytes) {
 	case 1:
@@ -139,7 +140,7 @@ inline uint64_t read_uint(const uint8_t **data, const uint8_t *data_end, unsigne
 	}
 }
 
-inline uint64_t read_uleb128(const uint8_t **data, const uint8_t *data_end)
+static inline uint64_t read_uleb128(const uint8_t **data, const uint8_t *data_end)
 {
 	uint64_t result = 0;
 	unsigned shift = 0;
@@ -156,7 +157,7 @@ inline uint64_t read_uleb128(const uint8_t **data, const uint8_t *data_end)
 	return result;
 }
 
-inline int64_t read_sleb128(const uint8_t **data, const uint8_t *data_end)
+static inline int64_t read_sleb128(const uint8_t **data, const uint8_t *data_end)
 {
 	uint64_t result = 0;
 	unsigned shift = 0;
@@ -178,7 +179,7 @@ inline int64_t read_sleb128(const uint8_t **data, const uint8_t *data_end)
 	return (int64_t) result;
 }
 
-inline void skip_leb128(const uint8_t **data, const uint8_t *data_end)
+static inline void skip_leb128(const uint8_t **data, const uint8_t *data_end)
 {
 	while (*data < data_end) {
 		uint8_t byte = *((*data)++);
@@ -187,7 +188,7 @@ inline void skip_leb128(const uint8_t **data, const uint8_t *data_end)
 	}
 }
 
-inline uint64_t read_initial_length(const uint8_t **data, const uint8_t *data_end, unsigned *width)
+static inline uint64_t read_initial_length(const uint8_t **data, const uint8_t *data_end, unsigned *width)
 {
 	uint32_t initial = read_uint32(data, data_end);
 	if (initial == 0xffffffffu) {
@@ -199,7 +200,7 @@ inline uint64_t read_initial_length(const uint8_t **data, const uint8_t *data_en
 	}
 }
 
-inline const char *read_string(const uint8_t **data, const uint8_t *data_end)
+static inline const char *read_string(const uint8_t **data, const uint8_t *data_end)
 {
 	const char *start = (const char *) *data;
 
@@ -217,12 +218,12 @@ inline const char *read_string(const uint8_t **data, const uint8_t *data_end)
 	}
 }
 
-inline void skip_string(const uint8_t **data, const uint8_t *data_end)
+static inline void skip_string(const uint8_t **data, const uint8_t *data_end)
 {
 	(void) read_string(data, data_end);
 }
 
-inline void safe_increment(const uint8_t **data,
+static inline void safe_increment(const uint8_t **data,
     const uint8_t *data_end, ptrdiff_t increment)
 {
 	assert(data_end >= *data);
@@ -234,7 +235,7 @@ inline void safe_increment(const uint8_t **data,
 	}
 }
 
-inline void skip_format(const uint8_t **data, const uint8_t *const data_end,
+static inline void skip_format(const uint8_t **data, const uint8_t *const data_end,
     unsigned count)
 {
 	for (unsigned i = 0; i < count; i++) {
@@ -243,7 +244,7 @@ inline void skip_format(const uint8_t **data, const uint8_t *const data_end,
 	}
 }
 
-inline void skip_formatted_entry(const uint8_t **data, const uint8_t *const data_end,
+static inline void skip_formatted_entry(const uint8_t **data, const uint8_t *const data_end,
     const uint8_t *format, const uint8_t *format_end, unsigned width)
 {
 	while (format < format_end) {
@@ -255,7 +256,7 @@ inline void skip_formatted_entry(const uint8_t **data, const uint8_t *const data
 	}
 }
 
-inline void skip_formatted_list(const uint8_t **data, const uint8_t *const data_end,
+static inline void skip_formatted_list(const uint8_t **data, const uint8_t *const data_end,
     unsigned count,	const uint8_t *format, const uint8_t *format_end,
     unsigned width)
 {

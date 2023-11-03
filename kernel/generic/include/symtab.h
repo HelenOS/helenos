@@ -35,13 +35,15 @@
 #ifndef KERN_SYMTAB_H_
 #define KERN_SYMTAB_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
+#include <debug/sections.h>
 
 extern void symtab_print_search(const char *);
 extern const char *symtab_hints_enum(const char *, const char **, void **);
 extern const char *symtab_fmt_name_lookup(uintptr_t);
 extern errno_t symtab_addr_lookup(const char *, uintptr_t *);
-extern const char *symtab_name_lookup(uintptr_t, uintptr_t *);
+extern const char *symtab_name_lookup(uintptr_t, uintptr_t *, debug_sections_t *);
 
 #endif
 
