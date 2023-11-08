@@ -46,6 +46,8 @@
 typedef struct smeedit {
 	/** Containing start menu configuration tab */
 	struct startmenu *startmenu;
+	/** Start menu entry or @c NULL if creating a new entry */
+	struct startmenu_entry *smentry;
 	/** Window */
 	ui_window_t *window;
 	/** Fixed layout */

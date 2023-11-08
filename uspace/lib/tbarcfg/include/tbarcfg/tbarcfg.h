@@ -45,6 +45,9 @@ extern smenu_entry_t *tbarcfg_smenu_first(tbarcfg_t *);
 extern smenu_entry_t *tbarcfg_smenu_next(smenu_entry_t *);
 extern const char *smenu_entry_get_caption(smenu_entry_t *);
 extern const char *smenu_entry_get_cmd(smenu_entry_t *);
+extern errno_t smenu_entry_set_caption(smenu_entry_t *, const char *);
+extern errno_t smenu_entry_set_cmd(smenu_entry_t *, const char *);
+extern errno_t smenu_entry_save(smenu_entry_t *);
 
 #endif
 

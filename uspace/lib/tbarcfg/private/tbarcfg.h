@@ -43,6 +43,8 @@
 
 /** Taskbar configuration */
 struct tbarcfg {
+	/** Repository session */
+	sif_sess_t *repo;
 	/** List of start menu entries (smenu_entry_t) */
 	list_t entries;
 };
@@ -53,13 +55,15 @@ struct smenu_entry {
 	struct tbarcfg *smenu;
 	/** Link to @c smenu->entries */
 	link_t lentries;
+	/** SIF node (persistent storage) */
+	sif_node_t *nentry;
 	/** Entry caption (with accelerator markup) */
 	char *caption;
 	/** Command to run */
 	char *cmd;
 };
 
-extern errno_t smenu_entry_create(tbarcfg_t *, const char *,
+extern errno_t smenu_entry_create(tbarcfg_t *, sif_node_t *, const char *,
     const char *);
 
 #endif

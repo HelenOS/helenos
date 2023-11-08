@@ -291,16 +291,11 @@ errno_t startmenu_populate(startmenu_t *smenu, tbarcfg_t *tbarcfg)
 {
 	smenu_entry_t *entry;
 	startmenu_entry_t *smentry;
-	const char *caption;
-	const char *cmd;
 	errno_t rc;
 
 	entry = tbarcfg_smenu_first(tbarcfg);
 	while (entry != NULL) {
-		caption = smenu_entry_get_caption(entry);
-		cmd = smenu_entry_get_cmd(entry);
-
-		rc = startmenu_insert(smenu, caption, cmd, &smentry);
+		rc = startmenu_insert(smenu, entry, &smentry);
 		if (rc != EOK)
 			return rc;
 
@@ -322,8 +317,6 @@ void startmenu_destroy(startmenu_t *smenu)
 	lentry = ui_list_first(smenu->entries_list);
 	while (lentry != NULL) {
 		entry = (startmenu_entry_t *)ui_list_entry_get_arg(lentry);
-		free(entry->caption);
-		free(entry->cmd);
 		free(entry);
 		ui_list_entry_delete(lentry);
 		lentry = ui_list_first(smenu->entries_list);
@@ -337,50 +330,51 @@ void startmenu_destroy(startmenu_t *smenu)
 /** Insert new entry into entries list.
  *
  * @param smenu Start menu configuration tab
- * @param caption Entry caption
- * @param cmd Command to run
- * @param rentry Place to store pointer to new entry or NULL
+ * @param entry Backing entry
+ * @param rsmentry Place to store pointer to new entry or NULL
  * @return EOK on success or an error code
  */
-errno_t startmenu_insert(startmenu_t *smenu, const char *caption,
-    const char *cmd, startmenu_entry_t **rentry)
+errno_t startmenu_insert(startmenu_t *smenu, smenu_entry_t *entry,
+    startmenu_entry_t **rsmentry)
 {
-	startmenu_entry_t *entry;
+	startmenu_entry_t *smentry;
 	ui_list_entry_attr_t attr;
 	errno_t rc;
 
-	entry = calloc(1, sizeof(startmenu_entry_t));
-	if (entry == NULL)
+	smentry = calloc(1, sizeof(startmenu_entry_t));
+	if (smentry == NULL)
 		return ENOMEM;
 
-	entry->startmenu = smenu;
-	entry->caption = str_dup(caption);
-	if (entry->caption == NULL) {
-		free(entry);
-		return ENOMEM;
-	}
+	smentry->startmenu = smenu;
+	smentry->entry = entry;
 
-	entry->cmd = str_dup(cmd);
-	if (entry->caption == NULL) {
-		free(entry->caption);
-		free(entry);
-		return ENOMEM;
-	}
-
+	printf("startmenu_insert: smentry=%p entry=%p\n",
+	    smentry, entry);
 	ui_list_entry_attr_init(&attr);
-	attr.caption = caption;
-	attr.arg = (void *)entry;
-	rc = ui_list_entry_append(smenu->entries_list, &attr, &entry->lentry);
+	attr.caption = smenu_entry_get_caption(entry);
+	attr.arg = (void *)smentry;
+	rc = ui_list_entry_append(smenu->entries_list, &attr, &smentry->lentry);
 	if (rc != EOK) {
-		free(entry->caption);
-		free(entry->cmd);
-		free(entry);
+		free(smentry);
 		return rc;
 	}
 
-	if (rentry != NULL)
-		*rentry = entry;
+	if (rsmentry != NULL)
+		*rsmentry = smentry;
 	return EOK;
+}
+
+/** Get selected start menu entry.
+ *
+ * @param smenu Start menu
+ * @return Selected entry
+ */
+startmenu_entry_t *startmenu_get_selected(startmenu_t *smenu)
+{
+	ui_list_entry_t *entry;
+
+	entry = ui_list_get_cursor(smenu->entries_list);
+	return (startmenu_entry_t *)ui_list_entry_get_arg(entry);
 }
 
 /** Edit selected menu entry.
@@ -390,9 +384,13 @@ errno_t startmenu_insert(startmenu_t *smenu, const char *caption,
 void startmenu_edit(startmenu_t *smenu)
 {
 	smeedit_t *smee;
+	startmenu_entry_t *smentry;
 	errno_t rc;
 
-	rc = smeedit_create(smenu, &smee);
+	smentry = startmenu_get_selected(smenu);
+
+	printf("smeedit_create:entry=%p\n", smentry);
+	rc = smeedit_create(smenu, smentry, &smee);
 	if (rc != EOK)
 		return;
 

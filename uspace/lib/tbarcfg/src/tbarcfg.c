@@ -70,6 +70,8 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 	if (rc != EOK)
 		goto error;
 
+	tbcfg->repo = repo;
+
 	rnode = sif_get_root(repo);
 	nentries = sif_node_first_child(rnode);
 	ntype = sif_node_get_type(nentries);
@@ -98,7 +100,7 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 			goto error;
 		}
 
-		rc = smenu_entry_create(tbcfg, caption, cmd);
+		rc = smenu_entry_create(tbcfg, nentry, caption, cmd);
 		if (rc != EOK)
 			goto error;
 
@@ -121,6 +123,7 @@ error:
  */
 void tbarcfg_close(tbarcfg_t *tbcfg)
 {
+	(void)sif_close(tbcfg->repo);
 }
 
 /** Get first start menu entry.
@@ -175,16 +178,93 @@ const char *smenu_entry_get_cmd(smenu_entry_t *entry)
 	return entry->cmd;
 }
 
+/** Set start menu entry caption.
+ *
+ * Note: To make the change visible to others and persistent,
+ * you must call @c smenu_entry_save()
+ *
+ * @param entry Start menu entry
+ * @param caption New caption
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t smenu_entry_set_caption(smenu_entry_t *entry, const char *caption)
+{
+	char *dcap;
+
+	dcap = str_dup(caption);
+	if (dcap == NULL)
+		return ENOMEM;
+
+	free(entry->caption);
+	entry->caption = dcap;
+	return EOK;
+}
+
+/** Set start menu entry command.
+ *
+ * Note: To make the change visible to others and persistent,
+ * you must call @c smenu_entry_save()
+ *
+ * @param entry Start menu entry
+ * @param cmd New command
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t smenu_entry_set_cmd(smenu_entry_t *entry, const char *cmd)
+{
+	char *dcmd;
+
+	dcmd = str_dup(cmd);
+	if (dcmd == NULL)
+		return ENOMEM;
+
+	free(entry->cmd);
+	entry->cmd = dcmd;
+	return EOK;
+}
+
+/** Save any changes to start menu entry.
+ *
+ * @param entry Start menu entry
+ */
+errno_t smenu_entry_save(smenu_entry_t *entry)
+{
+	sif_trans_t *trans;
+	errno_t rc;
+
+	rc = sif_trans_begin(entry->smenu->repo, &trans);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_set_attr(trans, entry->nentry, "cmd", entry->cmd);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_set_attr(trans, entry->nentry, "caption", entry->caption);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_trans_end(trans);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	return rc;
+}
+
 /** Create a start menu entry and append it to the start menu (internal).
  *
  * This only creates the entry in memory, but does not update the repository.
  *
  * @param smenu Start menu
+ * @param nentry Backing SIF node
  * @param caption Caption
  * @param cmd Command to run
  */
-errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
-    const char *cmd)
+errno_t smenu_entry_create(tbarcfg_t *smenu, sif_node_t *nentry,
+    const char *caption, const char *cmd)
 {
 	smenu_entry_t *entry;
 	errno_t rc;
@@ -194,6 +274,8 @@ errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
 		rc = ENOMEM;
 		goto error;
 	}
+
+	entry->nentry = nentry;
 
 	entry->caption = str_dup(caption);
 	if (entry->caption == NULL) {

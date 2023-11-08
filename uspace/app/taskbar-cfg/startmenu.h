@@ -43,8 +43,9 @@
 extern errno_t startmenu_create(taskbar_cfg_t *, startmenu_t **);
 extern errno_t startmenu_populate(startmenu_t *, tbarcfg_t *);
 extern void startmenu_destroy(startmenu_t *);
-extern errno_t startmenu_insert(startmenu_t *, const char *, const char *,
+extern errno_t startmenu_insert(startmenu_t *, smenu_entry_t *,
     startmenu_entry_t **);
+extern startmenu_entry_t *startmenu_get_selected(startmenu_t *);
 extern void startmenu_edit(startmenu_t *);
 
 #endif

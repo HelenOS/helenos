@@ -36,6 +36,7 @@
 #ifndef TYPES_STARTMENU_H
 #define TYPES_STARTMENU_H
 
+#include <tbarcfg/tbarcfg.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/list.h>
@@ -63,15 +64,13 @@ typedef struct startmenu {
 } startmenu_t;
 
 /** Start menu entry */
-typedef struct {
+typedef struct startmenu_entry {
 	/** Containing start menu configuration tab */
 	struct startmenu *startmenu;
+	/** Backing entry */
+	smenu_entry_t *entry;
 	/** List entry */
 	ui_list_entry_t *lentry;
-	/** Caption */
-	char *caption;
-	/** Command */
-	char *cmd;
 } startmenu_entry_t;
 
 #endif

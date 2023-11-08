@@ -39,7 +39,7 @@
 #include "types/smeedit.h"
 #include "types/startmenu.h"
 
-extern errno_t smeedit_create(startmenu_t *, smeedit_t **);
+extern errno_t smeedit_create(startmenu_t *, startmenu_entry_t *, smeedit_t **);
 extern void smeedit_destroy(smeedit_t *);
 
 #endif

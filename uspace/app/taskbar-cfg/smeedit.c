@@ -47,6 +47,19 @@ static ui_window_cb_t window_cb = {
 	.close = wnd_close
 };
 
+static void smeedit_ok_clicked(ui_pbutton_t *, void *);
+static void smeedit_cancel_clicked(ui_pbutton_t *, void *);
+
+/** OK button callbacks */
+ui_pbutton_cb_t smeedit_ok_button_cb = {
+	.clicked = smeedit_ok_clicked
+};
+
+/** Cancel button callbacks */
+ui_pbutton_cb_t smeedit_cancel_button_cb = {
+	.clicked = smeedit_cancel_clicked
+};
+
 /** Window close button was clicked.
  *
  * @param window Window
@@ -63,10 +76,13 @@ static void wnd_close(ui_window_t *window, void *arg)
 /** Create start menu entry edit dialog.
  *
  * @param smenu Start menu
+ * @param smentry Start menu entry to edit or @c NULL if creating
+ *                a new entry
  * @param rsmee Place to store pointer to new start menu entry edit window
  * @return EOK on success or an error code
  */
-errno_t smeedit_create(startmenu_t *smenu, smeedit_t **rsmee)
+errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
+    smeedit_t **rsmee)
 {
 	ui_wnd_params_t params;
 	ui_t *ui;
@@ -74,15 +90,27 @@ errno_t smeedit_create(startmenu_t *smenu, smeedit_t **rsmee)
 	smeedit_t *smee = NULL;
 	gfx_rect_t rect;
 	ui_resource_t *res;
+	const char *cmd;
+	const char *caption;
 	errno_t rc;
 
 	ui = smenu->tbarcfg->ui;
+
+	if (smentry != NULL) {
+		cmd = smenu_entry_get_cmd(smentry->entry);
+		caption = smenu_entry_get_caption(smentry->entry);
+	} else {
+		cmd = "";
+		caption = "";
+	}
 
 	smee = calloc(1, sizeof(smeedit_t));
 	if (smee == NULL) {
 		printf("Out of memory.\n");
 		return ENOMEM;
 	}
+
+	smee->smentry = smentry;
 
 	ui_wnd_params_init(&params);
 	params.caption = "Edit Start Menu Entry";
@@ -144,7 +172,7 @@ errno_t smeedit_create(startmenu_t *smenu, smeedit_t **rsmee)
 
 	/* Command entry */
 
-	rc = ui_entry_create(window, "foo", &smee->ecmd);
+	rc = ui_entry_create(window, cmd, &smee->ecmd);
 	if (rc != EOK)
 		goto error;
 
@@ -198,7 +226,7 @@ errno_t smeedit_create(startmenu_t *smenu, smeedit_t **rsmee)
 
 	/* Caption entry */
 
-	rc = ui_entry_create(window, "bar", &smee->ecaption);
+	rc = ui_entry_create(window, caption, &smee->ecaption);
 	if (rc != EOK)
 		goto error;
 
@@ -242,6 +270,7 @@ errno_t smeedit_create(startmenu_t *smenu, smeedit_t **rsmee)
 		rect.p1.y = 180;
 	}
 
+	ui_pbutton_set_cb(smee->bok, &smeedit_ok_button_cb, (void *)smee);
 	ui_pbutton_set_rect(smee->bok, &rect);
 	ui_pbutton_set_default(smee->bok, true);
 
@@ -270,6 +299,8 @@ errno_t smeedit_create(startmenu_t *smenu, smeedit_t **rsmee)
 		rect.p1.y = 180;
 	}
 
+	ui_pbutton_set_cb(smee->bcancel, &smeedit_cancel_button_cb,
+	    (void *)smee);
 	ui_pbutton_set_rect(smee->bcancel, &rect);
 
 	rc = ui_fixed_add(smee->fixed, ui_pbutton_ctl(smee->bcancel));
@@ -300,6 +331,51 @@ error:
 void smeedit_destroy(smeedit_t *smee)
 {
 	ui_window_destroy(smee->window);
+}
+
+/** OK button clicked.
+ *
+ * @params bok OK button
+ * @params arg Argument (smeedit_t *)
+ */
+static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
+{
+	smeedit_t *smee;
+	const char *cmd;
+	const char *caption;
+	errno_t rc;
+
+	(void)bok;
+	smee = (smeedit_t *)arg;
+
+	cmd = ui_entry_get_text(smee->ecmd);
+	caption = ui_entry_get_text(smee->ecaption);
+
+	rc = smenu_entry_set_cmd(smee->smentry->entry, cmd);
+	if (rc != EOK)
+		return;
+
+	smenu_entry_set_caption(smee->smentry->entry, caption);
+	if (rc != EOK)
+		return;
+
+	(void)smenu_entry_save(smee->smentry->entry);
+
+	smeedit_destroy(smee);
+}
+
+/** Cancel button clicked.
+ *
+ * @params bok OK button
+ * @params arg Argument (smeedit_t *)
+ */
+static void smeedit_cancel_clicked(ui_pbutton_t *bcancel, void *arg)
+{
+	smeedit_t *smee;
+
+	(void)bcancel;
+	smee = (smeedit_t *)arg;
+	smeedit_destroy(smee);
 }
 
 /** @}
