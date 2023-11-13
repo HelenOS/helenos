@@ -78,7 +78,7 @@ def termemu_detect():
 	emus = ['gnome-terminal', 'xfce4-terminal', 'xterm']
 	for termemu in emus:
 		try:
-			subprocess.check_output('which ' + termemu, shell = True)
+			subprocess.check_output('which ' + termemu, shell = True, stderr = subprocess.STDOUT)
 			return termemu
 		except:
 			pass
