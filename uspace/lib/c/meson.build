@@ -65,7 +65,6 @@ src += files(
 	'common/adt/list.c',
 	'common/adt/hash_table.c',
 	'common/adt/odict.c',
-	'common/adt/prodcons.c',
 	'common/printf/printf_core.c',
 	'common/stdc/ctype.c',
 	'common/stdc/mem.c',
@@ -78,6 +77,7 @@ src += files(
 	'common/strtol.c',
 
 	'generic/libc.c',
+	'generic/adt/prodcons.c',
 	'generic/as.c',
 	'generic/ddi.c',
 	'generic/perm.c',
