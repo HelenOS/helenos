@@ -48,9 +48,6 @@ includes += include_directories(incdirs, is_system: true)
 
 allow_shared = true
 
-# FIXME: symlinks from uspace to kernel will break in future Meson version
-#        we should instead move the duplicated library parts into a shared location.
-
 uspace_lib_devel_install_script_text += 'mkdir -p "${DESTDIR}include/libc"'
 foreach idir : incdirs
 	_sdir = meson.current_source_dir() / idir
