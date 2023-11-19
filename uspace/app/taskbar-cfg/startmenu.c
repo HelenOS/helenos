@@ -397,6 +397,19 @@ void startmenu_edit(startmenu_t *smenu)
 	(void)smee;
 }
 
+/** Update start menu entry caption.
+ *
+ * When editing an entry the entry's label might change. We need
+ * to update the list entry caption to reflect that.
+ *
+ * @param entry Start menu entry
+ */
+errno_t startmenu_entry_update(startmenu_entry_t *entry)
+{
+	return ui_list_entry_set_caption(entry->lentry,
+	    smenu_entry_get_caption(entry->entry));
+}
+
 /** Entry in entry list is selected.
  *
  * @param lentry UI list entry

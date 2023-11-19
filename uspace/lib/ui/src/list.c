@@ -799,6 +799,28 @@ ui_list_t *ui_list_entry_get_list(ui_list_entry_t *entry)
 	return entry->list;
 }
 
+/** Change list entry caption.
+ *
+ * @param entry UI list entry
+ * @param caption New caption
+ *
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t ui_list_entry_set_caption(ui_list_entry_t *entry, const char *caption)
+{
+	char *dcaption;
+
+	dcaption = str_dup(caption);
+	if (dcaption == NULL)
+		return ENOMEM;
+
+	free(entry->caption);
+	entry->caption = dcaption;
+
+	(void)ui_list_entry_paint(entry, ui_list_entry_get_idx(entry));
+	return EOK;
+}
+
 /** Clear UI list entry list.
  *
  * @param list UI list

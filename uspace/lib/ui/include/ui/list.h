@@ -59,6 +59,7 @@ extern errno_t ui_list_entry_append(ui_list_t *,
 extern void ui_list_entry_delete(ui_list_entry_t *);
 extern void *ui_list_entry_get_arg(ui_list_entry_t *);
 extern ui_list_t *ui_list_entry_get_list(ui_list_entry_t *);
+extern errno_t ui_list_entry_set_caption(ui_list_entry_t *, const char *);
 extern size_t ui_list_entries_cnt(ui_list_t *);
 extern errno_t ui_list_sort(ui_list_t *);
 extern void ui_list_cursor_center(ui_list_t *, ui_list_entry_t *);

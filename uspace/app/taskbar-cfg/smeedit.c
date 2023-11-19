@@ -40,6 +40,7 @@
 #include <ui/window.h>
 #include "taskbar-cfg.h"
 #include "smeedit.h"
+#include "startmenu.h"
 
 static void wnd_close(ui_window_t *, void *);
 
@@ -110,6 +111,7 @@ errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
 		return ENOMEM;
 	}
 
+	smee->startmenu = smenu;
 	smee->smentry = smentry;
 
 	ui_wnd_params_init(&params);
@@ -360,7 +362,7 @@ static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
 		return;
 
 	(void)smenu_entry_save(smee->smentry->entry);
-
+	startmenu_entry_update(smee->smentry);
 	smeedit_destroy(smee);
 }
 
