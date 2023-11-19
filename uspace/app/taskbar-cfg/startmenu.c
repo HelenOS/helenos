@@ -348,8 +348,6 @@ errno_t startmenu_insert(startmenu_t *smenu, smenu_entry_t *entry,
 	smentry->startmenu = smenu;
 	smentry->entry = entry;
 
-	printf("startmenu_insert: smentry=%p entry=%p\n",
-	    smentry, entry);
 	ui_list_entry_attr_init(&attr);
 	attr.caption = smenu_entry_get_caption(entry);
 	attr.arg = (void *)smentry;
@@ -389,7 +387,6 @@ void startmenu_edit(startmenu_t *smenu)
 
 	smentry = startmenu_get_selected(smenu);
 
-	printf("smeedit_create:entry=%p\n", smentry);
 	rc = smeedit_create(smenu, smentry, &smee);
 	if (rc != EOK)
 		return;
