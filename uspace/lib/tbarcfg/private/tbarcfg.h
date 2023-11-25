@@ -63,8 +63,9 @@ struct smenu_entry {
 	char *cmd;
 };
 
-extern errno_t smenu_entry_create(tbarcfg_t *, sif_node_t *, const char *,
+extern errno_t smenu_entry_new(tbarcfg_t *, sif_node_t *, const char *,
     const char *);
+extern void smenu_entry_delete(smenu_entry_t *);
 
 #endif
 

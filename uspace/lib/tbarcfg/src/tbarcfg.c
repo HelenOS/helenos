@@ -100,7 +100,7 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 			goto error;
 		}
 
-		rc = smenu_entry_create(tbcfg, nentry, caption, cmd);
+		rc = smenu_entry_new(tbcfg, nentry, caption, cmd);
 		if (rc != EOK)
 			goto error;
 
@@ -123,7 +123,16 @@ error:
  */
 void tbarcfg_close(tbarcfg_t *tbcfg)
 {
+	smenu_entry_t *entry;
+
+	entry = tbarcfg_smenu_first(tbcfg);
+	while (entry != NULL) {
+		smenu_entry_delete(entry);
+		entry = tbarcfg_smenu_first(tbcfg);
+	}
+
 	(void)sif_close(tbcfg->repo);
+	free(tbcfg);
 }
 
 /** Get first start menu entry.
@@ -254,7 +263,7 @@ error:
 	return rc;
 }
 
-/** Create a start menu entry and append it to the start menu (internal).
+/** Allocate a start menu entry and append it to the start menu (internal).
  *
  * This only creates the entry in memory, but does not update the repository.
  *
@@ -263,7 +272,7 @@ error:
  * @param caption Caption
  * @param cmd Command to run
  */
-errno_t smenu_entry_create(tbarcfg_t *smenu, sif_node_t *nentry,
+errno_t smenu_entry_new(tbarcfg_t *smenu, sif_node_t *nentry,
     const char *caption, const char *cmd)
 {
 	smenu_entry_t *entry;
@@ -302,6 +311,21 @@ error:
 	}
 
 	return rc;
+}
+
+/** Delete start menu entry.
+ *
+ * This only deletes the entry from, but does not update the
+ * repository.
+ *
+ * @param entry Start menu entry
+ */
+void smenu_entry_delete(smenu_entry_t *entry)
+{
+	list_remove(&entry->lentries);
+	free(entry->caption);
+	free(entry->cmd);
+	free(entry);
 }
 
 /** @}
