@@ -40,6 +40,60 @@
 #include <str.h>
 #include "../private/tbarcfg.h"
 
+/** Create taskbar configuration.
+ *
+ * @param repopath Pathname of the new menu repository
+ * @param rtbcfg Place to store pointer to taskbar configuration
+ * @return EOK on success or an error code
+ */
+errno_t tbarcfg_create(const char *repopath, tbarcfg_t **rtbcfg)
+{
+	tbarcfg_t *tbcfg;
+	sif_sess_t *repo = NULL;
+	sif_node_t *rnode;
+	errno_t rc;
+	sif_trans_t *trans = NULL;
+
+	tbcfg = calloc(1, sizeof(tbarcfg_t));
+	if (tbcfg == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	list_initialize(&tbcfg->entries);
+
+	rc = sif_create(repopath, &repo);
+	if (rc != EOK)
+		goto error;
+
+	tbcfg->repo = repo;
+
+	rnode = sif_get_root(repo);
+
+	rc = sif_trans_begin(repo, &trans);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_append_child(trans, rnode, "entries", &tbcfg->nentries);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_trans_end(trans);
+	if (rc != EOK)
+		goto error;
+
+	*rtbcfg = tbcfg;
+	return EOK;
+error:
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	if (repo != NULL)
+		sif_close(repo);
+	if (tbcfg != NULL)
+		free(tbcfg);
+	return rc;
+}
+
 /** Open taskbar configuration.
  *
  * @param repopath Pathname of the menu repository
@@ -51,7 +105,6 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 	tbarcfg_t *tbcfg;
 	sif_sess_t *repo = NULL;
 	sif_node_t *rnode;
-	sif_node_t *nentries;
 	sif_node_t *nentry;
 	const char *ntype;
 	const char *caption;
@@ -73,14 +126,14 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 	tbcfg->repo = repo;
 
 	rnode = sif_get_root(repo);
-	nentries = sif_node_first_child(rnode);
-	ntype = sif_node_get_type(nentries);
+	tbcfg->nentries = sif_node_first_child(rnode);
+	ntype = sif_node_get_type(tbcfg->nentries);
 	if (str_cmp(ntype, "entries") != 0) {
 		rc = EIO;
 		goto error;
 	}
 
-	nentry = sif_node_first_child(nentries);
+	nentry = sif_node_first_child(tbcfg->nentries);
 	while (nentry != NULL) {
 		ntype = sif_node_get_type(nentry);
 		if (str_cmp(ntype, "entry") != 0) {
@@ -237,7 +290,7 @@ errno_t smenu_entry_set_cmd(smenu_entry_t *entry, const char *cmd)
  */
 errno_t smenu_entry_save(smenu_entry_t *entry)
 {
-	sif_trans_t *trans;
+	sif_trans_t *trans = NULL;
 	errno_t rc;
 
 	rc = sif_trans_begin(entry->smenu->repo, &trans);
@@ -326,6 +379,71 @@ void smenu_entry_delete(smenu_entry_t *entry)
 	free(entry->caption);
 	free(entry->cmd);
 	free(entry);
+}
+
+/** Create new start menu entry.
+ *
+ * @param smenu Start menu
+ * @param nentry Backing SIF node
+ * @param caption Caption
+ * @param cmd Command to run
+ */
+errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
+    const char *cmd)
+{
+	sif_node_t *nentry;
+	errno_t rc;
+	sif_trans_t *trans = NULL;
+
+	rc = sif_trans_begin(smenu->repo, &trans);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_append_child(trans, smenu->nentries, "entry",
+	    &nentry);
+	if (rc != EOK)
+		goto error;
+
+	rc = smenu_entry_new(smenu, nentry, caption, cmd);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_trans_end(trans);
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	return rc;
+}
+
+/** Destroy start menu entry..
+ *
+ * @param entry Start menu entry
+ * @return EOK on success or an error code
+ */
+errno_t smenu_entry_destroy(smenu_entry_t *entry)
+{
+	errno_t rc;
+	sif_trans_t *trans = NULL;
+
+	rc = sif_trans_begin(entry->smenu->repo, &trans);
+	if (rc != EOK)
+		goto error;
+
+	sif_node_destroy(trans, entry->nentry);
+
+	rc = sif_trans_end(trans);
+	if (rc != EOK)
+		goto error;
+
+	smenu_entry_delete(entry);
+error:
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	return rc;
 }
 
 /** @}

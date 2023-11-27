@@ -35,27 +35,29 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(tbarcfg);
 
-/** Opening and closing taskbar configuration */
-PCUT_TEST(open_close)
+/** Creating, opening and closing taskbar configuration */
+PCUT_TEST(create_open_close)
 {
 	errno_t rc;
 	tbarcfg_t *tbcfg;
-	FILE *f;
-	int rv;
+	char fname[L_tmpnam], *p;
 
-	f = fopen("/tmp/test", "wt");
-	PCUT_ASSERT_NOT_NULL(f);
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
 
-	rv = fputs("[sif](){[entries](){}}", f);
-	PCUT_ASSERT_TRUE(rv >= 0);
-
-	rv = fclose(f);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
-
-	rc = tbarcfg_open("/tmp/test", &tbcfg);
+	/* Create new repository */
+	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	tbarcfg_close(tbcfg);
+
+	/* Re-open the repository */
+
+	rc = tbarcfg_open(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	tbarcfg_close(tbcfg);
+	remove(fname);
 }
 
 /** Iterating over start menu entries */
@@ -63,23 +65,19 @@ PCUT_TEST(first_next)
 {
 	errno_t rc;
 	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
 	smenu_entry_t *e;
-	FILE *f;
-	int rv;
 
-	f = fopen("/tmp/test", "wt");
-	PCUT_ASSERT_NOT_NULL(f);
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
 
-	rv = fputs("[sif](){[entries](){"
-	    "[entry]([caption]=[A][cmd]=[a]){}"
-	    "[entry]([caption]=[B][cmd]=[b]){}"
-	    "}}", f);
-	PCUT_ASSERT_TRUE(rv >= 0);
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rv = fclose(f);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
+	rc = smenu_entry_create(tbcfg, "A", "a");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = tbarcfg_open("/tmp/test", &tbcfg);
+	rc = smenu_entry_create(tbcfg, "B", "b");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	e = tbarcfg_smenu_first(tbcfg);
@@ -90,6 +88,7 @@ PCUT_TEST(first_next)
 	PCUT_ASSERT_NULL(e);
 
 	tbarcfg_close(tbcfg);
+	remove(fname);
 }
 
 /** Getting menu entry properties */
@@ -97,24 +96,18 @@ PCUT_TEST(get_caption_cmd)
 {
 	errno_t rc;
 	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
 	smenu_entry_t *e;
 	const char *caption;
 	const char *cmd;
-	FILE *f;
-	int rv;
 
-	f = fopen("/tmp/test", "wt");
-	PCUT_ASSERT_NOT_NULL(f);
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
 
-	rv = fputs("[sif](){[entries](){"
-	    "[entry]([caption]=[A][cmd]=[a]){}"
-	    "}}", f);
-	PCUT_ASSERT_TRUE(rv >= 0);
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rv = fclose(f);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
-
-	rc = tbarcfg_open("/tmp/test", &tbcfg);
+	rc = smenu_entry_create(tbcfg, "A", "a");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	e = tbarcfg_smenu_first(tbcfg);
@@ -126,6 +119,100 @@ PCUT_TEST(get_caption_cmd)
 	PCUT_ASSERT_STR_EQUALS("a", cmd);
 
 	tbarcfg_close(tbcfg);
+	remove(fname);
+}
+
+/** Setting menu entry properties */
+PCUT_TEST(set_caption_cmd)
+{
+	errno_t rc;
+	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
+	smenu_entry_t *e;
+	const char *caption;
+	const char *cmd;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "A", "a");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	e = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NOT_NULL(e);
+
+	caption = smenu_entry_get_caption(e);
+	PCUT_ASSERT_STR_EQUALS("A", caption);
+	cmd = smenu_entry_get_cmd(e);
+	PCUT_ASSERT_STR_EQUALS("a", cmd);
+
+	/* Set properties */
+	rc = smenu_entry_set_caption(e, "B");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	rc = smenu_entry_set_cmd(e, "b");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_save(e);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Check that properties have been set */
+	caption = smenu_entry_get_caption(e);
+	PCUT_ASSERT_STR_EQUALS("B", caption);
+	cmd = smenu_entry_get_cmd(e);
+	PCUT_ASSERT_STR_EQUALS("b", cmd);
+
+	tbarcfg_close(tbcfg);
+
+	/* Re-open repository */
+
+	rc = tbarcfg_open(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	e = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NOT_NULL(e);
+
+	/* Check that new values of properties have persisted */
+	caption = smenu_entry_get_caption(e);
+	PCUT_ASSERT_STR_EQUALS("B", caption);
+	cmd = smenu_entry_get_cmd(e);
+	PCUT_ASSERT_STR_EQUALS("b", cmd);
+
+	tbarcfg_close(tbcfg);
+	remove(fname);
+}
+
+/** Create start menu entry */
+PCUT_TEST(entry_create)
+{
+	errno_t rc;
+	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
+	smenu_entry_t *e;
+	const char *caption;
+	const char *cmd;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "A", "a");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	e = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NOT_NULL(e);
+
+	caption = smenu_entry_get_caption(e);
+	PCUT_ASSERT_STR_EQUALS("A", caption);
+	cmd = smenu_entry_get_cmd(e);
+	PCUT_ASSERT_STR_EQUALS("a", cmd);
+
+	tbarcfg_close(tbcfg);
+	remove(fname);
 }
 
 PCUT_EXPORT(tbarcfg);

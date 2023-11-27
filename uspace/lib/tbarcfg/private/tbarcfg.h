@@ -47,6 +47,8 @@ struct tbarcfg {
 	sif_sess_t *repo;
 	/** List of start menu entries (smenu_entry_t) */
 	list_t entries;
+	/** Entries SIF node */
+	sif_node_t *nentries;
 };
 
 /** Start menu entry */
