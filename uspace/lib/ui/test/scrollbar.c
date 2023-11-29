@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -283,8 +283,8 @@ PCUT_TEST(get_geom)
 	ui_destroy(ui);
 }
 
-/** ui_scrollbar_through_length() gives correct scrollbar through length */
-PCUT_TEST(through_length)
+/** ui_scrollbar_trough_length() gives correct scrollbar trough length */
+PCUT_TEST(trough_length)
 {
 	ui_t *ui = NULL;
 	ui_window_t *window = NULL;
@@ -315,7 +315,7 @@ PCUT_TEST(through_length)
 	rect.p1.y = 120;
 	ui_scrollbar_set_rect(scrollbar, &rect);
 
-	length = ui_scrollbar_through_length(scrollbar);
+	length = ui_scrollbar_trough_length(scrollbar);
 
 	/* Total length minus buttons */
 	PCUT_ASSERT_INT_EQUALS(110 - 10 - 2 * 21, length);
@@ -619,8 +619,8 @@ PCUT_TEST(thumb_press_update_release)
 	ui_destroy(ui);
 }
 
-/** Press and release up through */
-PCUT_TEST(up_through_press_release)
+/** Press and release upper trough */
+PCUT_TEST(upper_trough_press_release)
 {
 	ui_t *ui = NULL;
 	ui_window_t *window = NULL;
@@ -653,10 +653,10 @@ PCUT_TEST(up_through_press_release)
 	resp.page_up = false;
 	ui_scrollbar_set_cb(scrollbar, &test_scrollbar_cb, &resp);
 
-	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+	PCUT_ASSERT_FALSE(scrollbar->upper_trough_held);
 
-	ui_scrollbar_up_through_press(scrollbar);
-	PCUT_ASSERT_TRUE(scrollbar->up_through_held);
+	ui_scrollbar_upper_trough_press(scrollbar);
+	PCUT_ASSERT_TRUE(scrollbar->upper_trough_held);
 	PCUT_ASSERT_TRUE(resp.page_up);
 
 	/* Position does not matter here */
@@ -664,15 +664,15 @@ PCUT_TEST(up_through_press_release)
 	pos.y = 22;
 
 	ui_scrollbar_release(scrollbar, &pos);
-	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+	PCUT_ASSERT_FALSE(scrollbar->upper_trough_held);
 
 	ui_scrollbar_destroy(scrollbar);
 	ui_window_destroy(window);
 	ui_destroy(ui);
 }
 
-/** Press and release down through */
-PCUT_TEST(down_through_press_release)
+/** Press and release lower trough */
+PCUT_TEST(lower_trough_press_release)
 {
 	ui_t *ui = NULL;
 	ui_window_t *window = NULL;
@@ -705,10 +705,10 @@ PCUT_TEST(down_through_press_release)
 	resp.page_down = false;
 	ui_scrollbar_set_cb(scrollbar, &test_scrollbar_cb, &resp);
 
-	PCUT_ASSERT_FALSE(scrollbar->down_through_held);
+	PCUT_ASSERT_FALSE(scrollbar->lower_trough_held);
 
-	ui_scrollbar_down_through_press(scrollbar);
-	PCUT_ASSERT_TRUE(scrollbar->down_through_held);
+	ui_scrollbar_lower_trough_press(scrollbar);
+	PCUT_ASSERT_TRUE(scrollbar->lower_trough_held);
 	PCUT_ASSERT_TRUE(resp.page_down);
 
 	/* Position does not matter here */
@@ -716,15 +716,15 @@ PCUT_TEST(down_through_press_release)
 	pos.y = 22;
 
 	ui_scrollbar_release(scrollbar, &pos);
-	PCUT_ASSERT_FALSE(scrollbar->down_through_held);
+	PCUT_ASSERT_FALSE(scrollbar->lower_trough_held);
 
 	ui_scrollbar_destroy(scrollbar);
 	ui_window_destroy(window);
 	ui_destroy(ui);
 }
 
-/** Updating state of throughs when cursor or thumb moves */
-PCUT_TEST(throughs_update)
+/** Updating state of troughs when cursor or thumb moves */
+PCUT_TEST(troughs_update)
 {
 	ui_t *ui = NULL;
 	ui_window_t *window = NULL;
@@ -753,13 +753,13 @@ PCUT_TEST(throughs_update)
 	rect.p1.y = 120;
 	ui_scrollbar_set_rect(scrollbar, &rect);
 
-	PCUT_ASSERT_FALSE(scrollbar->down_through_inside);
+	PCUT_ASSERT_FALSE(scrollbar->lower_trough_inside);
 
 	pos.x = 60;
 	pos.y = 22;
 
-	ui_scrollbar_throughs_update(scrollbar, &pos);
-	PCUT_ASSERT_TRUE(scrollbar->down_through_inside);
+	ui_scrollbar_troughs_update(scrollbar, &pos);
+	PCUT_ASSERT_TRUE(scrollbar->lower_trough_inside);
 
 	ui_scrollbar_destroy(scrollbar);
 	ui_window_destroy(window);
@@ -1081,8 +1081,8 @@ PCUT_TEST(pos_event_press_release_up_btn)
 	ui_destroy(ui);
 }
 
-/** ui_scrollbar_pos_event() detects up through press/release */
-PCUT_TEST(pos_event_press_release_up_through)
+/** ui_scrollbar_pos_event() detects upper trough press/release */
+PCUT_TEST(pos_event_press_release_upper_trough)
 {
 	ui_t *ui = NULL;
 	ui_window_t *window = NULL;
@@ -1106,7 +1106,7 @@ PCUT_TEST(pos_event_press_release_up_through)
 	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+	PCUT_ASSERT_FALSE(scrollbar->upper_trough_held);
 
 	rect.p0.x = 20;
 	rect.p0.y = 10;
@@ -1114,23 +1114,23 @@ PCUT_TEST(pos_event_press_release_up_through)
 	rect.p1.y = 30;
 	ui_scrollbar_set_rect(scrollbar, &rect);
 
-	/* Need to move thumb so that up through can be accessed */
+	/* Need to move thumb so that upper trough can be accessed */
 	ui_scrollbar_set_pos(scrollbar, 42);
 
-	/* Press inside up through is claimed and depresses it */
+	/* Press inside upper trough is claimed and depresses it */
 	event.type = POS_PRESS;
 	event.hpos = 50;
 	event.vpos = 20;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_TRUE(scrollbar->up_through_held);
+	PCUT_ASSERT_TRUE(scrollbar->upper_trough_held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
-	/* Release outside (or anywhere) is claimed and relases up through */
+	/* Release outside (or anywhere) is claimed and relases upper trough */
 	event.type = POS_RELEASE;
 	event.hpos = 41;
 	event.vpos = 32;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+	PCUT_ASSERT_FALSE(scrollbar->upper_trough_held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);
@@ -1138,8 +1138,8 @@ PCUT_TEST(pos_event_press_release_up_through)
 	ui_destroy(ui);
 }
 
-/** ui_scrollbar_pos_event() detects down through press/release */
-PCUT_TEST(pos_event_press_release_down_through)
+/** ui_scrollbar_pos_event() detects lower trough press/release */
+PCUT_TEST(pos_event_press_release_lower_trough)
 {
 	ui_t *ui = NULL;
 	ui_window_t *window = NULL;
@@ -1163,7 +1163,7 @@ PCUT_TEST(pos_event_press_release_down_through)
 	rc = ui_scrollbar_create(ui, window, ui_sbd_horiz, &scrollbar);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	PCUT_ASSERT_FALSE(scrollbar->up_through_held);
+	PCUT_ASSERT_FALSE(scrollbar->upper_trough_held);
 
 	rect.p0.x = 20;
 	rect.p0.y = 10;
@@ -1171,20 +1171,20 @@ PCUT_TEST(pos_event_press_release_down_through)
 	rect.p1.y = 30;
 	ui_scrollbar_set_rect(scrollbar, &rect);
 
-	/* Press inside down through is claimed and depresses it */
+	/* Press inside lower trough is claimed and depresses it */
 	event.type = POS_PRESS;
 	event.hpos = 70;
 	event.vpos = 20;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_TRUE(scrollbar->down_through_held);
+	PCUT_ASSERT_TRUE(scrollbar->lower_trough_held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
-	/* Release outside (or anywhere) is claimed and relases up through */
+	/* Release outside (or anywhere) is claimed and relases upper trough */
 	event.type = POS_RELEASE;
 	event.hpos = 41;
 	event.vpos = 32;
 	claim = ui_scrollbar_pos_event(scrollbar, &event);
-	PCUT_ASSERT_FALSE(scrollbar->down_through_held);
+	PCUT_ASSERT_FALSE(scrollbar->lower_trough_held);
 	PCUT_ASSERT_EQUALS(ui_claimed, claim);
 
 	ui_scrollbar_destroy(scrollbar);

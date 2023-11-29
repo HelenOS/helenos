@@ -287,7 +287,7 @@ static void scrollbar_page_up(ui_scrollbar_t *scrollbar, void *arg)
 
 	pos = ui_scrollbar_get_pos(scrollbar);
 	ui_scrollbar_set_pos(scrollbar, pos -
-	    ui_scrollbar_through_length(scrollbar) / 4);
+	    ui_scrollbar_trough_length(scrollbar) / 4);
 
 	pos = ui_scrollbar_get_pos(scrollbar);
 	scrollbar_moved(scrollbar, arg, pos);
@@ -304,7 +304,7 @@ static void scrollbar_page_down(ui_scrollbar_t *scrollbar, void *arg)
 
 	pos = ui_scrollbar_get_pos(scrollbar);
 	ui_scrollbar_set_pos(scrollbar, pos +
-	    ui_scrollbar_through_length(scrollbar) / 4);
+	    ui_scrollbar_trough_length(scrollbar) / 4);
 
 	pos = ui_scrollbar_get_pos(scrollbar);
 	scrollbar_moved(scrollbar, arg, pos);
@@ -1269,7 +1269,7 @@ static errno_t ui_demo(const char *display_spec)
 	ui_scrollbar_set_rect(demo.hscrollbar, &rect);
 
 	ui_scrollbar_set_thumb_length(demo.hscrollbar,
-	    ui_scrollbar_through_length(demo.hscrollbar) / 4);
+	    ui_scrollbar_trough_length(demo.hscrollbar) / 4);
 
 	rc = ui_fixed_add(demo.bfixed, ui_scrollbar_ctl(demo.hscrollbar));
 	if (rc != EOK) {
@@ -1301,7 +1301,7 @@ static errno_t ui_demo(const char *display_spec)
 	ui_scrollbar_set_rect(demo.vscrollbar, &rect);
 
 	ui_scrollbar_set_thumb_length(demo.vscrollbar,
-	    ui_scrollbar_through_length(demo.vscrollbar) / 4);
+	    ui_scrollbar_trough_length(demo.vscrollbar) / 4);
 
 	rc = ui_fixed_add(demo.bfixed, ui_scrollbar_ctl(demo.vscrollbar));
 	if (rc != EOK) {
