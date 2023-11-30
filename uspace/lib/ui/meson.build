@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'gfxfont', 'memgfx', 'display', 'congfx' ]
+deps = [ 'gfx', 'gfxfont', 'memgfx', 'display', 'congfx', 'clipboard' ]
 src = files(
 	'src/accel.c',
 	'src/checkbox.c',

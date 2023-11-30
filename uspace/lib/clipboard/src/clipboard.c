@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libclipboard
  * @{
  */
 /** @file

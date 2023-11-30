@@ -79,7 +79,6 @@ src += files(
 	'generic/ddi.c',
 	'generic/perm.c',
 	'generic/capa.c',
-	'generic/clipboard.c',
 	'generic/config.c',
 	'generic/context.c',
 	'generic/device/clock_dev.c',

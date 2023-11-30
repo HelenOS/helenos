@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef _LIBC_IPC_CLIPBOARD_H_
-#define _LIBC_IPC_CLIPBOARD_H_
+#ifndef _LIBCLIPBOARD_IPC_CLIPBOARD_H_
+#define _LIBCLIPBOARD_IPC_CLIPBOARD_H_
 
 #include <ipc/common.h>
 

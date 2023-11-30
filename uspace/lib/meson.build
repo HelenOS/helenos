@@ -55,6 +55,7 @@ libs = [
 	'device',
 
 	'block',
+	'clipboard',
 	'clui',
 	'codepage',
 	'compress',
