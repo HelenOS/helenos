@@ -95,7 +95,6 @@ src += files(
 	'generic/event.c',
 	'generic/errno.c',
 	'generic/inttypes.c',
-	'generic/ipc_test.c',
 	'generic/loc.c',
 	'generic/string.c',
 	'generic/l18n/langs.c',

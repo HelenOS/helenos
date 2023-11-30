@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libipctest
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IPC_TEST_H_
-#define _LIBC_IPC_TEST_H_
+#ifndef _LIBIPCTEST_IPC_IPC_TEST_H_
+#define _LIBIPCTEST_IPC_IPC_TEST_H_
 
-#include <async.h>
-#include <errno.h>
+#include <ipc/common.h>
 
-typedef struct {
-	async_sess_t *sess;
-} ipc_test_t;
-
-extern errno_t ipc_test_create(ipc_test_t **);
-extern void ipc_test_destroy(ipc_test_t *);
-extern errno_t ipc_test_ping(ipc_test_t *);
-extern errno_t ipc_test_get_ro_area_size(ipc_test_t *, size_t *);
-extern errno_t ipc_test_get_rw_area_size(ipc_test_t *, size_t *);
-extern errno_t ipc_test_share_in_ro(ipc_test_t *, size_t, const void **);
-extern errno_t ipc_test_share_in_rw(ipc_test_t *, size_t, void **);
+typedef enum {
+	IPC_TEST_PING = IPC_FIRST_USER_METHOD,
+	IPC_TEST_GET_RO_AREA_SIZE,
+	IPC_TEST_GET_RW_AREA_SIZE,
+	IPC_TEST_SHARE_IN_RO,
+	IPC_TEST_SHARE_IN_RW
+} ipc_test_request_t;
 
 #endif
 

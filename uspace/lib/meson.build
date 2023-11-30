@@ -67,6 +67,7 @@ libs = [
 	'fs',
 	'gfx',
 	'http',
+	'ipctest',
 	'label',
 	'math',
 	'minix',
