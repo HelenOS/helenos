@@ -36,6 +36,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <adt/prodcons.h>
+#include <io/console.h>
 #include <io/input.h>
 #include <ipc/vfs.h>
 #include <errno.h>

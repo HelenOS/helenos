@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'trackmod', 'hound', 'pcm' ]
+deps = [ 'trackmod', 'hound', 'pcm', 'console' ]
 src = files('modplay.c')
 
 if install_nonessential_data

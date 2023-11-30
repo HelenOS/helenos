@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'drv' ]
+deps = [ 'drv', 'console' ]
 src = files(
 	'layout/cz.c',
 	'layout/fr_azerty.c',

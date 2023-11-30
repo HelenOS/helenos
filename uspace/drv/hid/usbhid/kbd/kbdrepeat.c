@@ -35,8 +35,8 @@
  */
 
 #include <fibril_synch.h>
+#include <io/kbd_event.h>
 #include <io/keycode.h>
-#include <io/console.h>
 #include <errno.h>
 
 #include <usb/debug.h>

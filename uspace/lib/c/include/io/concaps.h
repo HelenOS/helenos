@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libconsole
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IO_CONCAPS_H_
-#define _LIBC_IO_CONCAPS_H_
+#ifndef _LIBCONSOLE_IO_CONCAPS_H_
+#define _LIBCONSOLE_IO_CONCAPS_H_
 
 typedef enum {
 	CONSOLE_CAP_NONE = 0,

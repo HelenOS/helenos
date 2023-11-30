@@ -52,6 +52,7 @@ libs = [
 
 	'inet',
 
+	'console',
 	'device',
 
 	'block',

@@ -38,7 +38,6 @@
 
 #include <ddi.h>
 #include <loc.h>
-#include <io/console.h>
 #include <vfs/vfs.h>
 #include <ipc/mouseev.h>
 #include <async.h>

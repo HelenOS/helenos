@@ -28,7 +28,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'block', 'codepage', 'drv', 'math', 'ipctest' ]
+deps = [ 'block', 'codepage', 'drv', 'math', 'ipctest', 'console' ]
 src = files(
 	'tester.c',
 	'util.c',

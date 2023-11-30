@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'clipboard' ]
+deps = [ 'clipboard', 'console' ]
 src = files(
 	'nchoice.c',
 	'tinput.c',

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,33 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libconsole
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IPC_CONSOLE_H_
-#define _LIBC_IPC_CONSOLE_H_
+#ifndef _LIBCONSOLE_IO_CONS_EVENT_H_
+#define _LIBCONSOLE_IO_CONS_EVENT_H_
 
-#include <ipc/vfs.h>
+#include <adt/list.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
 
 typedef enum {
-	CONSOLE_GET_SIZE = VFS_OUT_LAST,
-	CONSOLE_GET_COLOR_CAP,
-	CONSOLE_GET_EVENT,
-	CONSOLE_GET_POS,
-	CONSOLE_SET_POS,
-	CONSOLE_CLEAR,
-	CONSOLE_SET_STYLE,
-	CONSOLE_SET_COLOR,
-	CONSOLE_SET_RGB_COLOR,
-	CONSOLE_SET_CURSOR_VISIBILITY,
-	CONSOLE_SET_CAPTION,
-	CONSOLE_MAP,
-	CONSOLE_UNMAP,
-	CONSOLE_UPDATE
-} console_request_t;
+	/** Key event */
+	CEV_KEY,
+	/** Position event */
+	CEV_POS
+} cons_event_type_t;
+
+/** Console event structure. */
+typedef struct {
+	/** List handle */
+	link_t link;
+
+	/** Event type */
+	cons_event_type_t type;
+
+	union {
+		kbd_event_t key;
+		pos_event_t pos;
+	} ev;
+} cons_event_t;
 
 #endif
 

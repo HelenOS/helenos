@@ -114,8 +114,6 @@ src += files(
 	'generic/io/snprintf.c',
 	'generic/io/vprintf.c',
 	'generic/io/vsnprintf.c',
-	'generic/io/con_srv.c',
-	'generic/io/console.c',
 	'generic/io/table.c',
 	'generic/irq.c',
 	'generic/ieee_double.c',

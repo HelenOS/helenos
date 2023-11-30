@@ -40,7 +40,7 @@
 #include <stdio.h>
 
 #include <io/keycode.h>
-#include <io/console.h>
+#include <io/kbd_event.h>
 #include <abi/ipc/methods.h>
 #include <ipc/kbdev.h>
 #include <async.h>

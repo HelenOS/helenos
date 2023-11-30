@@ -33,7 +33,7 @@
 #include <async.h>
 #include <ddf/log.h>
 #include <errno.h>
-#include <io/console.h>
+#include <io/kbd_event.h>
 #include <ipc/adb.h>
 #include <ipc/kbdev.h>
 #include <loc.h>

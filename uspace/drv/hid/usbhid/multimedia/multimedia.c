@@ -50,7 +50,7 @@
 #include <str_error.h>
 
 #include <ipc/kbdev.h>
-#include <io/console.h>
+#include <io/kbd_event.h>
 
 #define NAME  "multimedia-keys"
 

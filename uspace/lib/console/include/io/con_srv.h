@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libconsole
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_CON_SRV_H_
-#define _LIBC_CON_SRV_H_
+#ifndef _LIBCONSOLE_IO_CON_SRV_H_
+#define _LIBCONSOLE_IO_CON_SRV_H_
 
 #include <adt/list.h>
 #include <async.h>

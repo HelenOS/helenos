@@ -37,7 +37,8 @@
 
 #include <ipc/output.h>
 #include <io/chargrid.h>
-#include <io/console.h>
+#include <io/concaps.h>
+#include <io/style.h>
 
 extern errno_t output_yield(async_sess_t *);
 extern errno_t output_claim(async_sess_t *);
