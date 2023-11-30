@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libconsole
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBCONSOLE_IO_CONCAPS_H_
-#define _LIBCONSOLE_IO_CONCAPS_H_
+#ifndef _LIBC_IO_CONCAPS_H_
+#define _LIBC_IO_CONCAPS_H_
 
 typedef enum {
 	CONSOLE_CAP_NONE = 0,

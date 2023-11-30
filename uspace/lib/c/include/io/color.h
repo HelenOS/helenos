@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libconsole
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBCONSOLE_IO_COLOR_H_
-#define _LIBCONSOLE_IO_COLOR_H_
+#ifndef _LIBC_IO_COLOR_H_
+#define _LIBC_IO_COLOR_H_
 
 typedef enum {
 	COLOR_BLACK   = 0,

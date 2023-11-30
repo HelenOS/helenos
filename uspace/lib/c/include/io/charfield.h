@@ -27,14 +27,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libconsole
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBCONSOLE_IO_CHARFIELD_H_
-#define _LIBCONSOLE_IO_CHARFIELD_H_
+#ifndef _LIBC_IO_CHARFIELD_H_
+#define _LIBC_IO_CHARFIELD_H_
 
 #include <stdbool.h>
 #include <uchar.h>
