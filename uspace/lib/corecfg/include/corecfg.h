@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcorecfg
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_CORECFG_H_
-#define _LIBC_CORECFG_H_
+#ifndef _LIBCORECFG_CORECFG_H_
+#define _LIBCORECFG_CORECFG_H_
 
 #include <errno.h>
 #include <stdbool.h>

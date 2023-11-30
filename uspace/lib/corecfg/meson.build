@@ -26,5 +26,4 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'corecfg' ]
-src = files('taskmon.c')
+src = files('src/corecfg.c')

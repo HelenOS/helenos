@@ -58,6 +58,7 @@ libs = [
 	'clui',
 	'codepage',
 	'compress',
+	'corecfg',
 	'cpp',
 	'crypto',
 	'dltest',
