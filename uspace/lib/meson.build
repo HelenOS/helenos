@@ -76,6 +76,7 @@ libs = [
 	'minix',
 	'nettl',
 	'ofw',
+	'output',
 	'pcm',
 	'pcut',
 	'pixconv',

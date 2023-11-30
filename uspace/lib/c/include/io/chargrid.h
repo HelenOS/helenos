@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libconsole
+/** @addtogroup libc
  * @{
  */
 /**
  * @file
  */
 
-#ifndef _LIBCONSOLE_IO_CHARGRID_H_
-#define _LIBCONSOLE_IO_CHARGRID_H_
+#ifndef _LIBC_IO_CHARGRID_H_
+#define _LIBC_IO_CHARGRID_H_
 
 #include <io/charfield.h>
 #include <types/common.h>

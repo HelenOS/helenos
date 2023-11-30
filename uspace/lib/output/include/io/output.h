@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Martin Decky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup liboutput
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IPC_OUTPUT_H_
-#define _LIBC_IPC_OUTPUT_H_
+#ifndef _LIBOUTPUT_IO_OUTPUT_H_
+#define _LIBOUTPUT_IO_OUTPUT_H_
 
-#include <ipc/common.h>
+#include <ipc/output.h>
+#include <io/chargrid.h>
+#include <io/concaps.h>
+#include <io/style.h>
 
-typedef sysarg_t frontbuf_handle_t;
+extern errno_t output_yield(async_sess_t *);
+extern errno_t output_claim(async_sess_t *);
+extern errno_t output_get_dimensions(async_sess_t *, sysarg_t *, sysarg_t *);
+extern errno_t output_get_caps(async_sess_t *, console_caps_t *);
 
-typedef enum {
-	OUTPUT_YIELD = IPC_FIRST_USER_METHOD,
-	OUTPUT_CLAIM,
-	OUTPUT_GET_DIMENSIONS,
-	OUTPUT_GET_CAPS,
+extern frontbuf_handle_t output_frontbuf_create(async_sess_t *, chargrid_t *);
 
-	OUTPUT_FRONTBUF_CREATE,
-	OUTPUT_FRONTBUF_DESTROY,
+extern errno_t output_cursor_update(async_sess_t *, frontbuf_handle_t);
+extern errno_t output_set_style(async_sess_t *, console_style_t);
 
-	OUTPUT_CURSOR_UPDATE,
-	OUTPUT_SET_STYLE,
-	OUTPUT_SET_COLOR,
-	OUTPUT_SET_RGB_COLOR,
-
-	OUTPUT_UPDATE,
-	OUTPUT_DAMAGE
-} output_request_t;
+extern errno_t output_update(async_sess_t *, frontbuf_handle_t);
+extern errno_t output_damage(async_sess_t *, frontbuf_handle_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t);
 
 #endif
 
-/**
- * @}
+/** @}
  */

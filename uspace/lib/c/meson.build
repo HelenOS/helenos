@@ -105,7 +105,6 @@ src += files(
 	'generic/io/input.c',
 	'generic/io/io.c',
 	'generic/io/chargrid.c',
-	'generic/io/output.c',
 	'generic/io/printf.c',
 	'generic/io/log.c',
 	'generic/io/logctl.c',
