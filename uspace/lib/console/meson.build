@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'input' ]
+deps = [ 'input', 'output' ]
 src = files(
 	'src/con_srv.c',
 	'src/console.c',

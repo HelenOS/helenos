@@ -27,5 +27,6 @@
 #
 
 src = files(
+	'src/chargrid.c',
 	'src/output.c',
 )

@@ -53,6 +53,7 @@ libs = [
 	'inet',
 
 	'input',
+	'output',
 	'console',
 	'device',
 
@@ -77,7 +78,6 @@ libs = [
 	'minix',
 	'nettl',
 	'ofw',
-	'output',
 	'pcm',
 	'pcut',
 	'pixconv',

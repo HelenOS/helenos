@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup liboutput
  * @{
  */
 /**
  * @file
  */
 
-#ifndef _LIBC_IO_CHARGRID_H_
-#define _LIBC_IO_CHARGRID_H_
+#ifndef _LIBOUTPUT_IO_CHARGRID_H_
+#define _LIBOUTPUT_IO_CHARGRID_H_
 
 #include <io/charfield.h>
 #include <types/common.h>

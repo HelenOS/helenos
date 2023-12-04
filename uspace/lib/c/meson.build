@@ -103,7 +103,6 @@ src += files(
 	'generic/imath.c',
 	'generic/io/asprintf.c',
 	'generic/io/io.c',
-	'generic/io/chargrid.c',
 	'generic/io/printf.c',
 	'generic/io/log.c',
 	'generic/io/logctl.c',

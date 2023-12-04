@@ -26,21 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup liboutput
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IO_CONCAPS_H_
-#define _LIBC_IO_CONCAPS_H_
+#ifndef _LIBOUTPUT_IO_COLOR_H_
+#define _LIBOUTPUT_IO_COLOR_H_
 
 typedef enum {
-	CONSOLE_CAP_NONE = 0,
-	CONSOLE_CAP_STYLE = 1,
-	CONSOLE_CAP_INDEXED = 2,
-	CONSOLE_CAP_RGB = 4
-} console_caps_t;
+	COLOR_BLACK   = 0,
+	COLOR_BLUE    = 1,
+	COLOR_GREEN   = 2,
+	COLOR_CYAN    = 3,
+	COLOR_RED     = 4,
+	COLOR_MAGENTA = 5,
+	COLOR_YELLOW  = 6,
+	COLOR_WHITE   = 7
+} console_color_t;
+
+typedef enum {
+	CATTR_NORMAL = 0,
+	CATTR_BRIGHT = 8,
+	CATTR_BLINK  = 16
+} console_color_attr_t;
 
 #endif
 
