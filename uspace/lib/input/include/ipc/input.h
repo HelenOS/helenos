@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libinput
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IPC_INPUT_H_
-#define _LIBC_IPC_INPUT_H_
+#ifndef _LIBINPUT_IPC_INPUT_H_
+#define _LIBINPUT_IPC_INPUT_H_
 
 #include <ipc/common.h>
 

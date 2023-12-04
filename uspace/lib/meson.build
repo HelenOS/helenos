@@ -70,6 +70,7 @@ libs = [
 	'fs',
 	'gfx',
 	'http',
+	'input',
 	'ipctest',
 	'label',
 	'math',
