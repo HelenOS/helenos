@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
- * Copyright (c) 2012 Petr Koupy
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinput
+ * @brief
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IO_POS_EVENT_H_
-#define _LIBC_IO_POS_EVENT_H_
+#ifndef _LIBINPUT_IPC_MOUSEEV_H_
+#define _LIBINPUT_IPC_MOUSEEV_H_
 
-#include <types/common.h>
+#include <ipc/common.h>
+#include <ipc/dev_iface.h>
 
 typedef enum {
-	/** Position update */
-	POS_UPDATE,
-	/** Button press */
-	POS_PRESS,
-	/** Button release */
-	POS_RELEASE,
-	/** Double click */
-	POS_DCLICK
-} pos_event_type_t;
+	MOUSEEV_YIELD = DEV_FIRST_CUSTOM_METHOD,
+	MOUSEEV_RECLAIM
+} mouseev_request_t;
 
-/** Positioning device event */
-typedef struct {
-	sysarg_t pos_id;
-	pos_event_type_t type;
-	sysarg_t btn_num;
-	sysarg_t hpos;
-	sysarg_t vpos;
-} pos_event_t;
+typedef enum {
+	MOUSEEV_MOVE_EVENT = IPC_FIRST_USER_METHOD,
+	MOUSEEV_ABS_MOVE_EVENT,
+	MOUSEEV_BUTTON_EVENT
+} mouseev_notif_t;
 
 #endif
 
-/** @}
+/**
+ * @}
  */

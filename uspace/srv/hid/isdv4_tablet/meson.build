@@ -26,5 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'drv' ]
+deps = [ 'drv', 'input' ]
 src = files('main.c', 'isdv4.c')

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinput
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IO_KEYCODE_H_
-#define _LIBC_IO_KEYCODE_H_
+#ifndef _LIBINPUT_IO_KEYCODE_H_
+#define _LIBINPUT_IO_KEYCODE_H_
 
 /** Keycode definitions.
  *

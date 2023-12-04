@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libinput
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IO_KBD_EVENT_H_
-#define _LIBC_IO_KBD_EVENT_H_
+#ifndef _LIBINPUT_IPC_KBDEV_H_
+#define _LIBINPUT_IPC_KBDEV_H_
 
-#include <adt/list.h>
-#include <inttypes.h>
-#include <io/keycode.h>
-#include <types/common.h>
+#include <ipc/common.h>
+#include <ipc/dev_iface.h>
 
 typedef enum {
-	KEY_PRESS,
-	KEY_RELEASE
-} kbd_event_type_t;
+	KBDEV_YIELD = DEV_FIRST_CUSTOM_METHOD,
+	KBDEV_RECLAIM,
+	KBDEV_SET_IND
+} kbdev_request_t;
 
-/** Console event structure. */
-typedef struct {
-	/** List handle */
-	link_t link;
-
-	/** Keyboard device ID */
-	sysarg_t kbd_id;
-
-	/** Press or release event. */
-	kbd_event_type_t type;
-
-	/** Keycode of the key that was pressed or released. */
-	keycode_t key;
-
-	/** Bitmask of modifiers held. */
-	keymod_t mods;
-
-	/** The character that was generated or '\0' for none. */
-	char32_t c;
-} kbd_event_t;
+typedef enum {
+	KBDEV_EVENT = IPC_FIRST_USER_METHOD
+} kbdev_notif_t;
 
 #endif
 
-/** @}
+/**
+ * @}
  */

@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'usbhid', 'usbdev', 'usb' ]
+deps = [ 'usbhid', 'usbdev', 'usb', 'input' ]
 includes += [ include_directories('.') ]
 src = files(
 	'main.c',

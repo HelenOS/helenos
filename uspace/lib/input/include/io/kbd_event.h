@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2022 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @brief
+/** @addtogroup libinput
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IPC_MOUSEEV_H_
-#define _LIBC_IPC_MOUSEEV_H_
+#ifndef _LIBINPUT_IO_KBD_EVENT_H_
+#define _LIBINPUT_IO_KBD_EVENT_H_
 
-#include <ipc/common.h>
-#include <ipc/dev_iface.h>
-
-typedef enum {
-	MOUSEEV_YIELD = DEV_FIRST_CUSTOM_METHOD,
-	MOUSEEV_RECLAIM
-} mouseev_request_t;
+#include <adt/list.h>
+#include <inttypes.h>
+#include <io/keycode.h>
+#include <types/common.h>
 
 typedef enum {
-	MOUSEEV_MOVE_EVENT = IPC_FIRST_USER_METHOD,
-	MOUSEEV_ABS_MOVE_EVENT,
-	MOUSEEV_BUTTON_EVENT
-} mouseev_notif_t;
+	KEY_PRESS,
+	KEY_RELEASE
+} kbd_event_type_t;
+
+/** Console event structure. */
+typedef struct {
+	/** List handle */
+	link_t link;
+
+	/** Keyboard device ID */
+	sysarg_t kbd_id;
+
+	/** Press or release event. */
+	kbd_event_type_t type;
+
+	/** Keycode of the key that was pressed or released. */
+	keycode_t key;
+
+	/** Bitmask of modifiers held. */
+	keymod_t mods;
+
+	/** The character that was generated or '\0' for none. */
+	char32_t c;
+} kbd_event_t;
 
 #endif
 
-/**
- * @}
+/** @}
  */

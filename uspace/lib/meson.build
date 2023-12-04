@@ -52,6 +52,7 @@ libs = [
 
 	'inet',
 
+	'input',
 	'console',
 	'device',
 
@@ -70,7 +71,6 @@ libs = [
 	'fs',
 	'gfx',
 	'http',
-	'input',
 	'ipctest',
 	'label',
 	'math',

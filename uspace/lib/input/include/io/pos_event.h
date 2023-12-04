@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +27,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libinput
  * @{
  */
 /** @file
  */
 
-#ifndef _LIBC_IPC_KBDEV_H_
-#define _LIBC_IPC_KBDEV_H_
+#ifndef _LIBINPUT_IO_POS_EVENT_H_
+#define _LIBINPUT_IO_POS_EVENT_H_
 
-#include <ipc/common.h>
-#include <ipc/dev_iface.h>
-
-typedef enum {
-	KBDEV_YIELD = DEV_FIRST_CUSTOM_METHOD,
-	KBDEV_RECLAIM,
-	KBDEV_SET_IND
-} kbdev_request_t;
+#include <types/common.h>
 
 typedef enum {
-	KBDEV_EVENT = IPC_FIRST_USER_METHOD
-} kbdev_notif_t;
+	/** Position update */
+	POS_UPDATE,
+	/** Button press */
+	POS_PRESS,
+	/** Button release */
+	POS_RELEASE,
+	/** Double click */
+	POS_DCLICK
+} pos_event_type_t;
+
+/** Positioning device event */
+typedef struct {
+	sysarg_t pos_id;
+	pos_event_type_t type;
+	sysarg_t btn_num;
+	sysarg_t hpos;
+	sysarg_t vpos;
+} pos_event_t;
 
 #endif
 
-/**
- * @}
+/** @}
  */
