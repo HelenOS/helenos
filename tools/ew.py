@@ -78,7 +78,7 @@ def termemu_detect():
 	emus = ['gnome-terminal', 'xfce4-terminal', 'xterm']
 	for termemu in emus:
 		try:
-			subprocess.check_output('which ' + termemu, shell = True)
+			subprocess.check_output('which ' + termemu, shell = True, stderr = subprocess.STDOUT)
 			return termemu
 		except:
 			pass
@@ -330,7 +330,7 @@ def ski_run(platform, machine, processor):
 
 def msim_run(platform, machine, processor):
 	hdisk_mk()
-	run_in_console('msim -c ' + TOOLS_DIR + '/conf/msim.conf', 'HelenOS/mips32 on msim')
+	run_in_console('msim -n -c ' + TOOLS_DIR + '/conf/msim.conf', 'HelenOS/mips32 on msim')
 
 def spike_run(platform, machine, processor):
 	run_in_console('spike -m1073741824:1073741824 image.boot', 'HelenOS/risvc64 on Spike')
