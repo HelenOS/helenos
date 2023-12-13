@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -217,6 +217,85 @@ errno_t ipc_test_share_in_rw(ipc_test_t *test, size_t size, void **rptr)
 	async_exchange_end(exch);
 	async_wait_for(req, NULL);
 	*rptr = dst;
+	return EOK;
+}
+
+/** Set server-side read/write buffer size.
+ *
+ * @param test IPC test service
+ * @param size Requested read/write buffer size
+ * @return EOK on success or an error code
+ */
+errno_t ipc_test_set_rw_buf_size(ipc_test_t *test, size_t size)
+{
+	async_exch_t *exch;
+	errno_t retval;
+
+	exch = async_exchange_begin(test->sess);
+	retval = async_req_1_0(exch, IPC_TEST_SET_RW_BUF_SIZE, size);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
+
+/** Test IPC read.
+ *
+ * @param test IPC test service
+ * @param dest Destination buffer
+ * @param size Number of bytes to read / size of destination buffer
+ * @return EOK on success or an error code
+ */
+errno_t ipc_test_read(ipc_test_t *test, void *dest, size_t size)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	aid_t req;
+	errno_t rc;
+
+	exch = async_exchange_begin(test->sess);
+	req = async_send_0(exch, IPC_TEST_READ, &answer);
+
+	rc = async_data_read_start(exch, dest, size);
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, NULL);
+	return EOK;
+}
+
+/** Test IPC write.
+ *
+ * @param test IPC test service
+ * @param data Source buffer
+ * @param size Number of bytes to write
+ * @return EOK on success or an error code
+ */
+errno_t ipc_test_write(ipc_test_t *test, const void *data, size_t size)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	aid_t req;
+	errno_t rc;
+
+	exch = async_exchange_begin(test->sess);
+	req = async_send_0(exch, IPC_TEST_WRITE, &answer);
+
+	rc = async_data_write_start(exch, data, size);
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, NULL);
 	return EOK;
 }
 

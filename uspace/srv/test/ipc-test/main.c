@@ -47,11 +47,16 @@
 #include <loc.h>
 #include <mem.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <task.h>
 
 #define NAME  "ipc-test"
 
 static service_id_t svc_id;
+
+enum {
+	max_rw_buf_size = 16384,
+};
 
 /** Object in read-only memory area that will be shared.
  *
@@ -66,6 +71,14 @@ static const char *ro_data = "Hello, world!";
  * by ELF backend.
  */
 static char rw_data[] = "Hello, world!";
+
+/** Buffer for reading/writing via read/write messages.
+ *
+ * It is allocated / size is set by IPC_TEST_SET_RW_BUF_SIZE
+ */
+static void *rw_buf;
+/** Read/write buffer size */
+size_t rw_buf_size;
 
 static void ipc_test_get_ro_area_size_srv(ipc_call_t *icall)
 {
@@ -181,6 +194,105 @@ static void ipc_test_share_in_rw_srv(ipc_call_t *icall)
 	async_answer_0(icall, EOK);
 }
 
+static void ipc_test_set_rw_buf_size_srv(ipc_call_t *icall)
+{
+	size_t size;
+	void *nbuf;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ipc_test_set_rw_buf_size_srv");
+
+	size = ipc_get_arg1(icall);
+
+	if (size == 0) {
+		async_answer_0(icall, ERANGE);
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Requested read/write buffer size is zero.");
+		return;
+	}
+
+	if (size > max_rw_buf_size) {
+		async_answer_0(icall, ERANGE);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Requested read/write buffer "
+		    "size > %u", max_rw_buf_size);
+		return;
+	}
+
+	nbuf = realloc(rw_buf, size);
+	if (nbuf == NULL) {
+		async_answer_0(icall, ENOMEM);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory.");
+		return;
+	}
+
+	rw_buf = nbuf;
+	rw_buf_size = size;
+	async_answer_0(icall, EOK);
+}
+
+static void ipc_test_read_srv(ipc_call_t *icall)
+{
+	ipc_call_t call;
+	errno_t rc;
+	size_t size;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ipc_test_read_srv");
+
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "data_read_receive failed");
+		return;
+	}
+
+	if (size > rw_buf_size) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Invalid read size.");
+		return;
+	}
+
+	rc = async_data_read_finalize(&call, rw_buf, size);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "data_read_finalize failed");
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	async_answer_0(icall, EOK);
+}
+
+static void ipc_test_write_srv(ipc_call_t *icall)
+{
+	ipc_call_t call;
+	errno_t rc;
+	size_t size;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ipc_test_write_srv");
+
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(icall, EREFUSED);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "data_write_receive failed");
+		return;
+	}
+
+	if (size > rw_buf_size) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Invalid write size.");
+		return;
+	}
+
+	rc = async_data_write_finalize(&call, rw_buf, size);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "data_write_finalize failed");
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	async_answer_0(icall, EOK);
+}
+
 static void ipc_test_connection(ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
@@ -210,6 +322,15 @@ static void ipc_test_connection(ipc_call_t *icall, void *arg)
 			break;
 		case IPC_TEST_SHARE_IN_RW:
 			ipc_test_share_in_rw_srv(&call);
+			break;
+		case IPC_TEST_SET_RW_BUF_SIZE:
+			ipc_test_set_rw_buf_size_srv(&call);
+			break;
+		case IPC_TEST_READ:
+			ipc_test_read_srv(&call);
+			break;
+		case IPC_TEST_WRITE:
+			ipc_test_write_srv(&call);
 			break;
 		default:
 			async_answer_0(&call, ENOTSUP);
