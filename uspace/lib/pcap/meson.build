@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 Jiří Zárevúcky
+# Copyright (c) 2023 Nataliia Korop
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,85 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-apps = [
-	'barber',
-	'bdsh',
-	'bithenge',
-	'blkdump',
-	'calculator',
-	'contacts',
-	'corecfg',
-	'cpptest',
-	'date',
-	'devctl',
-	'df',
-	'disp',
-	'dnscfg',
-	'dnsres',
-	'download',
-	'edit',
-	'fdisk',
-	'fontedit',
-	'getterm',
-	'gfxdemo',
-	'gunzip',
-	'hbench',
-	'hello',
-	'inet',
-	'init',
-	'kill',
-	'killall',
-	'kio',
-	'launcher',
-	'loc',
-	'logset',
-	'lprint',
-	'mixerctl',
-	'mkbd',
-	'mkexfat',
-	'mkext4',
-	'mkfat',
-	'mkmfs',
-	'modplay',
-	'nav',
-	'netecho',
-	'nic',
-	'nterm',
-	'pcapctl',
-	'pci',
-	'ping',
-	'pkg',
-	'redir',
-	'sbi',
-	'sportdmp',
-	'stats',
-	'sysinfo',
-	'sysinst',
-	'taskbar',
-	'taskdump',
-	'terminal',
-	'tester',
-	'testread',
-	'testrunner',
-	'testwrit',
-	'tetris',
-	'tmon',
-	'top',
-	'trace',
-	'uidemo',
-	'untar',
-	'usbinfo',
-	'viewer',
-	'vol',
-	'vuhid',
-	'wavplay',
-	'websrv',
-	'wifi_supplicant',
-]
-
-if CONFIG_BUILD_SHARED_LIBS
-	apps += [
-		'dltest',
-		'dltests',
-	]
-endif
+src = files(
+    'src/pcap.c',
+    'src/pcap_iface.c',
+    'src/pcapdump_iface.c',
+    'src/pcapctl_dump.c',
+)

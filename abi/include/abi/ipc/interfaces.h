@@ -200,6 +200,8 @@ typedef enum {
 	    FOURCC_COMPACT('w', 'm', 'g', 't') | IFACE_EXCHANGE_SERIALIZE,
 	INTERFACE_WNDMGT_CB =
 	    FOURCC_COMPACT('w', 'm', 'g', 't') | IFACE_EXCHANGE_SERIALIZE | IFACE_MOD_CALLBACK,
+	INTERFACE_PCAP_CONTROL =
+	    FOURCC_COMPACT('p', 'c', 't', 'l') | IFACE_EXCHANGE_SERIALIZE,
 } iface_t;
 
 #endif

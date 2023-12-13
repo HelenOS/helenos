@@ -71,6 +71,7 @@ libs = [
 	'math',
 	'minix',
 	'nettl',
+	'pcap',
 	'pcm',
 	'pcut',
 	'pixconv',
