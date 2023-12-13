@@ -42,4 +42,5 @@ src = files(
 	'malloc/malloc1.c',
 	'malloc/malloc2.c',
 	'synch/fibril_mutex.c',
+	'syscall/taskgetid.c'
 )

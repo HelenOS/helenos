@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2018 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,27 +29,46 @@
 /** @addtogroup hbench
  * @{
  */
-/**
- * @file
- */
 
-#include <stdlib.h>
-#include "hbench.h"
+#include <stdio.h>
+#include <errno.h>
+#include <str_error.h>
+#include <task.h>
+#include "../hbench.h"
 
-benchmark_t *benchmarks[] = {
-	&benchmark_dir_read,
-	&benchmark_fibril_mutex,
-	&benchmark_file_read,
-	&benchmark_malloc1,
-	&benchmark_malloc2,
-	&benchmark_ns_ping,
-	&benchmark_ping_pong,
-	&benchmark_read1k,
-	&benchmark_taskgetid,
-	&benchmark_write1k,
+static volatile task_id_t tid;
+
+static bool setup(bench_env_t *env, bench_run_t *run)
+{
+	return true;
+}
+
+static bool teardown(bench_env_t *env, bench_run_t *run)
+{
+	return true;
+}
+
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t niter)
+{
+	bench_run_start(run);
+
+	for (uint64_t count = 0; count < niter; count++) {
+		tid = task_get_id();
+		(void)tid;
+	}
+
+	bench_run_stop(run);
+
+	return true;
+}
+
+benchmark_t benchmark_taskgetid = {
+	.name = "taskgetid",
+	.desc = "task_get_id system call benchmark",
+	.entry = &runner,
+	.setup = &setup,
+	.teardown = &teardown
 };
-
-size_t benchmark_count = sizeof(benchmarks) / sizeof(benchmarks[0]);
 
 /** @}
  */

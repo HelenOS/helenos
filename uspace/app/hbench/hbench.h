@@ -139,6 +139,7 @@ extern benchmark_t benchmark_malloc2;
 extern benchmark_t benchmark_ns_ping;
 extern benchmark_t benchmark_ping_pong;
 extern benchmark_t benchmark_read1k;
+extern benchmark_t benchmark_taskgetid;
 extern benchmark_t benchmark_write1k;
 
 #endif
