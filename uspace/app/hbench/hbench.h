@@ -42,7 +42,7 @@
 #include <perf.h>
 
 #define DEFAULT_RUN_COUNT 10
-#define DEFAULT_MIN_RUN_DURATION_SEC 10
+#define DEFAULT_MIN_RUN_DURATION_MSEC 1000
 
 /** Single run information.
  *

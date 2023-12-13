@@ -96,7 +96,7 @@ errno_t bench_env_init(bench_env_t *env)
 	}
 
 	env->run_count = DEFAULT_RUN_COUNT;
-	env->minimal_run_duration_nanos = MSEC2NSEC(DEFAULT_MIN_RUN_DURATION_SEC);
+	env->minimal_run_duration_nanos = MSEC2NSEC(DEFAULT_MIN_RUN_DURATION_MSEC);
 
 	return EOK;
 }
