@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2023 Nataliia Korop
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,75 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup pcapctl
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
+/** @file pcapctl app
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#include <stdio.h>
+#include <str.h>
+#include <errno.h>
 
-#include <abi/fourcc.h>
+#include "pcapctl_dump.h"
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+#define NAME "pcapctl"
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPCFG  "hid/display"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_WNDMGT   "hid/display"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
-#define SERVICE_NAME_DUMPPCAP "dumppcap"
-#endif
+#define LOGGER(msg, ...) \
+     fprintf(stderr, \
+         "[PCAP %s:%d]: " msg "\n", \
+         __FILE__, __LINE__, \
+         ##__VA_ARGS__\
+     )
+
+pcapctl_sess_t sess;
+
+static void start_dumping(const char *name)
+{
+	pcapctl_dump_start(name, &sess);
+}
+
+static void stop_dumping(void)
+{
+	pcapctl_dump_stop(&sess);
+}
+
+static void usage(const char *progname)
+{
+	fprintf(stderr, "Usage:\n");
+	fprintf(stderr, "  %s start <outfile>: Packets will be written to <outfile>\n", progname);
+	fprintf(stderr, "  %s stop: Dumping stops\n", progname);
+
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc < 2) {
+		usage(argv[0]);
+		return 1;
+	} else {
+		errno_t rc = pcapctl_dump_init(&sess);
+		if (rc != EOK) {
+			fprintf(stderr, "Error initializing ...\n");
+			return 1;
+		}
+		if (str_cmp(argv[1], "start") == 0) {
+			if (argc != 3) {
+				usage(argv[0]);
+				return 1;
+			}
+			start_dumping(argv[2]);
+		} else if (str_cmp(argv[1], "stop") == 0) {
+			stop_dumping();
+			fprintf(stdout, "Dumping was stopped\n");
+			return EOK;
+		} else {
+			usage(argv[0]);
+			return 1;
+		}
+	}
+	return 0;
+}
 
 /** @}
  */

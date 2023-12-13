@@ -50,6 +50,8 @@
 #include <ops/nic.h>
 #include "e1k.h"
 
+#include "pcapdump_iface.h"
+#include "pcap_iface.h"
 #define NAME  "e1k"
 
 #define E1000_DEFAULT_INTERRUPT_INTERVAL_USEC  250
@@ -173,6 +175,10 @@ typedef struct {
 
 	/** Lock for EEPROM access */
 	fibril_mutex_t eeprom_lock;
+
+	/** Interface for dumping packets */
+	pcap_iface_t pcapdump;
+
 } e1000_t;
 
 /** Global mutex for work with shared irq structure */
@@ -1188,6 +1194,8 @@ static void e1000_receive_frames(nic_t *nic)
 		nic_frame_t *frame = nic_alloc_frame(nic, frame_size);
 		if (frame != NULL) {
 			memcpy(frame->data, e1000->rx_frame_virt[next_tail], frame_size);
+			pcapdump_packet(&e1000->pcapdump, frame->data, frame->size);
+
 			nic_received_frame(nic, frame);
 		} else {
 			ddf_msg(LVL_ERROR, "Memory allocation failed. Frame dropped.");
@@ -2201,6 +2209,15 @@ errno_t e1000_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_add_to_cat;
 
+	errno_t pcap_rc  = pcapdump_init(&e1000->pcapdump);
+
+	if (pcap_rc != EOK) {
+		printf("Failed creating pcapdump port\n");
+	}
+	rc = ddf_fun_add_to_category(fun, "pcap");
+	if (rc != EOK)
+		goto err_add_to_cat;
+
 	return EOK;
 
 err_add_to_cat:
@@ -2364,7 +2381,7 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 	}
 
 	memcpy(e1000->tx_frame_virt[tdt], data, size);
-
+	pcapdump_packet(&e1000->pcapdump, data, size);
 	tx_descriptor_addr->phys_addr = PTR_TO_U64(e1000->tx_frame_phys[tdt]);
 	tx_descriptor_addr->length = size;
 
