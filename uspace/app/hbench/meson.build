@@ -37,6 +37,8 @@ src = files(
 	'fs/fileread.c',
 	'ipc/ns_ping.c',
 	'ipc/ping_pong.c',
+	'ipc/read1k.c',
+	'ipc/write1k.c',
 	'malloc/malloc1.c',
 	'malloc/malloc2.c',
 	'synch/fibril_mutex.c',

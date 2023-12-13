@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2018 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,26 +29,74 @@
 /** @addtogroup hbench
  * @{
  */
-/**
- * @file
- */
 
-#include <stdlib.h>
-#include "hbench.h"
+#include <stdio.h>
+#include <ipc_test.h>
+#include <async.h>
+#include <errno.h>
+#include <str_error.h>
+#include "../hbench.h"
 
-benchmark_t *benchmarks[] = {
-	&benchmark_dir_read,
-	&benchmark_fibril_mutex,
-	&benchmark_file_read,
-	&benchmark_malloc1,
-	&benchmark_malloc2,
-	&benchmark_ns_ping,
-	&benchmark_ping_pong,
-	&benchmark_read1k,
-	&benchmark_write1k
+enum {
+	rw_buf_size = 1024
 };
 
-size_t benchmark_count = sizeof(benchmarks) / sizeof(benchmarks[0]);
+static ipc_test_t *test = NULL;
+static uint8_t rw_buf[rw_buf_size];
+
+static bool setup(bench_env_t *env, bench_run_t *run)
+{
+	errno_t rc;
+
+	rc = ipc_test_create(&test);
+	if (rc != EOK) {
+		return bench_run_fail(run,
+		    "failed contacting IPC test server (have you run /srv/test/ipc-test?): %s (%d)",
+		    str_error(rc), rc);
+	}
+
+	rc = ipc_test_set_rw_buf_size(test, rw_buf_size);
+	if (rc != EOK) {
+		return bench_run_fail(run,
+		    "failed setting read/write buffer size.");
+	}
+
+	return true;
+}
+
+static bool teardown(bench_env_t *env, bench_run_t *run)
+{
+	ipc_test_destroy(test);
+	return true;
+}
+
+static bool runner(bench_env_t *env, bench_run_t *run, uint64_t niter)
+{
+	errno_t rc;
+
+	bench_run_start(run);
+
+	for (uint64_t count = 0; count < niter; count++) {
+		rc = ipc_test_write(test, rw_buf, rw_buf_size);
+
+		if (rc != EOK) {
+			return bench_run_fail(run, "failed writing buffer: %s (%d)",
+			    str_error(rc), rc);
+		}
+	}
+
+	bench_run_stop(run);
+
+	return true;
+}
+
+benchmark_t benchmark_write1k = {
+	.name = "write1k",
+	.desc = "IPC write 1kB buffer benchmark",
+	.entry = &runner,
+	.setup = &setup,
+	.teardown = &teardown
+};
 
 /** @}
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
@@ -138,6 +138,8 @@ extern benchmark_t benchmark_malloc1;
 extern benchmark_t benchmark_malloc2;
 extern benchmark_t benchmark_ns_ping;
 extern benchmark_t benchmark_ping_pong;
+extern benchmark_t benchmark_read1k;
+extern benchmark_t benchmark_write1k;
 
 #endif
 
