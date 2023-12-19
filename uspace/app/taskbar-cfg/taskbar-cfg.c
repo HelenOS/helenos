@@ -170,8 +170,11 @@ errno_t taskbar_cfg_open(taskbar_cfg_t *tbcfg, const char *cfg_repo)
 
 	rc = tbarcfg_open(cfg_repo, &tbcfg->tbarcfg);
 	if (rc != EOK) {
-		printf("Error opening Taskbar configuration.\n");
-		goto error;
+		rc = tbarcfg_create(cfg_repo, &tbcfg->tbarcfg);
+		if (rc != EOK) {
+			printf("Error opening Taskbar configuration.\n");
+			goto error;
+		}
 	}
 
 	return EOK;
