@@ -204,7 +204,6 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	if (rc != EOK) {
 		printf("Error loading start menu from '%s'.\n",
 		    "/cfg/taskbar.sif");
-		goto error;
 	}
 
 	if (ui_is_textmode(taskbar->ui)) {
