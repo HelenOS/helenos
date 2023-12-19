@@ -404,6 +404,14 @@ errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
 	if (rc != EOK)
 		goto error;
 
+	rc = sif_node_set_attr(trans, nentry, "cmd", cmd);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_set_attr(trans, nentry, "caption", caption);
+	if (rc != EOK)
+		goto error;
+
 	rc = smenu_entry_new(smenu, nentry, caption, cmd);
 	if (rc != EOK)
 		goto error;

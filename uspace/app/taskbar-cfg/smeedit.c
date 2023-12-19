@@ -115,7 +115,8 @@ errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
 	smee->smentry = smentry;
 
 	ui_wnd_params_init(&params);
-	params.caption = "Edit Start Menu Entry";
+	params.caption = smentry != NULL ? "Edit Start Menu Entry"
+	    : "Create Start Menu Entry";
 	if (ui_is_textmode(ui)) {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
@@ -353,16 +354,28 @@ static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
 	cmd = ui_entry_get_text(smee->ecmd);
 	caption = ui_entry_get_text(smee->ecaption);
 
-	rc = smenu_entry_set_cmd(smee->smentry->entry, cmd);
-	if (rc != EOK)
-		return;
+	if (smee->smentry == NULL) {
+		/* Create new entry */
+		rc = smenu_entry_create(smee->startmenu->tbarcfg->tbarcfg,
+		    caption, cmd);
+		if (rc != EOK)
+			return;
+	} else {
+		/* Edit existing entry */
 
-	smenu_entry_set_caption(smee->smentry->entry, caption);
-	if (rc != EOK)
-		return;
 
-	(void)smenu_entry_save(smee->smentry->entry);
-	startmenu_entry_update(smee->smentry);
+		rc = smenu_entry_set_cmd(smee->smentry->entry, cmd);
+		if (rc != EOK)
+			return;
+
+		smenu_entry_set_caption(smee->smentry->entry, caption);
+		if (rc != EOK)
+			return;
+
+		(void)smenu_entry_save(smee->smentry->entry);
+		startmenu_entry_update(smee->smentry);
+	}
+
 	smeedit_destroy(smee);
 }
 

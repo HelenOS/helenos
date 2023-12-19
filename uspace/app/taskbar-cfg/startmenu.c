@@ -378,6 +378,22 @@ startmenu_entry_t *startmenu_get_selected(startmenu_t *smenu)
 	return (startmenu_entry_t *)ui_list_entry_get_arg(entry);
 }
 
+/** Create new menu entry.
+ *
+ * @param smenu Start menu
+ */
+void startmenu_new_entry(startmenu_t *smenu)
+{
+	smeedit_t *smee;
+	errno_t rc;
+
+	rc = smeedit_create(smenu, NULL, &smee);
+	if (rc != EOK)
+		return;
+
+	(void)smee;
+}
+
 /** Edit selected menu entry.
  *
  * @param smenu Start menu
@@ -430,8 +446,10 @@ static void startmenu_entry_selected(ui_list_entry_t *lentry, void *arg)
  */
 static void startmenu_new_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 {
+	startmenu_t *smenu = (startmenu_t *)arg;
+
 	(void)pbutton;
-	(void)arg;
+	startmenu_new_entry(smenu);
 }
 
 /** Delete entry button clicked.
