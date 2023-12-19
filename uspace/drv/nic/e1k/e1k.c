@@ -176,8 +176,6 @@ typedef struct {
 	/** Lock for EEPROM access */
 	fibril_mutex_t eeprom_lock;
 
-	/** Interface for dumping packets */
-	pcap_iface_t pcapdump;
 
 } e1000_t;
 
@@ -1194,7 +1192,7 @@ static void e1000_receive_frames(nic_t *nic)
 		nic_frame_t *frame = nic_alloc_frame(nic, frame_size);
 		if (frame != NULL) {
 			memcpy(frame->data, e1000->rx_frame_virt[next_tail], frame_size);
-			pcapdump_packet(&e1000->pcapdump, frame->data, frame->size);
+			pcapdump_packet(nic_get_pcap_iface(nic), frame->data, frame->size);
 
 			nic_received_frame(nic, frame);
 		} else {
@@ -2210,7 +2208,7 @@ errno_t e1000_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_add_to_cat;
 
-	errno_t pcap_rc  = pcapdump_init(&e1000->pcapdump);
+	errno_t pcap_rc  = pcapdump_init(nic_get_pcap_iface(nic));
 
 	if (pcap_rc != EOK) {
 		printf("Failed creating pcapdump port\n");
@@ -2382,7 +2380,7 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 	}
 
 	memcpy(e1000->tx_frame_virt[tdt], data, size);
-	pcapdump_packet(&e1000->pcapdump, data, size);
+	pcapdump_packet(nic_get_pcap_iface(nic), data, size);
 	tx_descriptor_addr->phys_addr = PTR_TO_U64(e1000->tx_frame_phys[tdt]);
 	tx_descriptor_addr->length = size;
 

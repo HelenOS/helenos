@@ -44,6 +44,8 @@
 #include <device/hw_res_parsed.h>
 #include <ops/nic.h>
 
+#include "pcap_iface.h"
+
 #define DEVICE_CATEGORY_NIC "nic"
 
 struct nic;
@@ -276,6 +278,9 @@ extern uint64_t nic_query_mcast_hash(nic_t *);
 /* Software period functions */
 extern void nic_sw_period_start(nic_t *);
 extern void nic_sw_period_stop(nic_t *);
+
+/* pcapdump interface */
+extern pcap_iface_t* nic_get_pcap_iface(nic_t *);
 
 #endif // __NIC_H__
 
