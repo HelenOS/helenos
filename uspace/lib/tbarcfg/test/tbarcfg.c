@@ -66,6 +66,7 @@ PCUT_TEST(first_next)
 	errno_t rc;
 	tbarcfg_t *tbcfg;
 	char fname[L_tmpnam], *p;
+	smenu_entry_t *e1 = NULL, *e2 = NULL;
 	smenu_entry_t *e;
 
 	p = tmpnam(fname);
@@ -74,14 +75,22 @@ PCUT_TEST(first_next)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a");
+	rc = smenu_entry_create(tbcfg, "A", "a", &e1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e1);
 
-	rc = smenu_entry_create(tbcfg, "B", "b");
+	rc = smenu_entry_create(tbcfg, "B", "b", &e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e2);
+
+	/* Create entry without getting a pointer to it */
+	rc = smenu_entry_create(tbcfg, "C", "c", NULL);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	e = tbarcfg_smenu_first(tbcfg);
-	PCUT_ASSERT_NOT_NULL(e);
+	PCUT_ASSERT_EQUALS(e1, e);
+	e = tbarcfg_smenu_next(e);
+	PCUT_ASSERT_EQUALS(e2, e);
 	e = tbarcfg_smenu_next(e);
 	PCUT_ASSERT_NOT_NULL(e);
 	e = tbarcfg_smenu_next(e);
@@ -107,11 +116,8 @@ PCUT_TEST(get_caption_cmd)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a");
+	rc = smenu_entry_create(tbcfg, "A", "a", &e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	e = tbarcfg_smenu_first(tbcfg);
-	PCUT_ASSERT_NOT_NULL(e);
 
 	caption = smenu_entry_get_caption(e);
 	PCUT_ASSERT_STR_EQUALS("A", caption);
@@ -138,11 +144,8 @@ PCUT_TEST(set_caption_cmd)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a");
+	rc = smenu_entry_create(tbcfg, "A", "a", &e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	e = tbarcfg_smenu_first(tbcfg);
-	PCUT_ASSERT_NOT_NULL(e);
 
 	caption = smenu_entry_get_caption(e);
 	PCUT_ASSERT_STR_EQUALS("A", caption);
@@ -200,10 +203,8 @@ PCUT_TEST(entry_create)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a");
+	rc = smenu_entry_create(tbcfg, "A", "a", &e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	e = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_NOT_NULL(e);
 
 	caption = smenu_entry_get_caption(e);
@@ -221,7 +222,7 @@ PCUT_TEST(entry_destroy)
 	errno_t rc;
 	tbarcfg_t *tbcfg;
 	char fname[L_tmpnam], *p;
-	smenu_entry_t *e;
+	smenu_entry_t *e, *f;
 
 	p = tmpnam(fname);
 	PCUT_ASSERT_NOT_NULL(p);
@@ -229,17 +230,17 @@ PCUT_TEST(entry_destroy)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a");
+	rc = smenu_entry_create(tbcfg, "A", "a", &e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	e = tbarcfg_smenu_first(tbcfg);
-	PCUT_ASSERT_NOT_NULL(e);
+	f = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_EQUALS(e, f);
 
 	rc = smenu_entry_destroy(e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	e = tbarcfg_smenu_first(tbcfg);
-	PCUT_ASSERT_NULL(e);
+	f = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NULL(f);
 
 	tbarcfg_close(tbcfg);
 	remove(fname);

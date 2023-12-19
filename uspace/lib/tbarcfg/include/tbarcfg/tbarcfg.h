@@ -50,7 +50,8 @@ extern const char *smenu_entry_get_cmd(smenu_entry_t *);
 extern errno_t smenu_entry_set_caption(smenu_entry_t *, const char *);
 extern errno_t smenu_entry_set_cmd(smenu_entry_t *, const char *);
 extern errno_t smenu_entry_save(smenu_entry_t *);
-extern errno_t smenu_entry_create(tbarcfg_t *, const char *, const char *);
+extern errno_t smenu_entry_create(tbarcfg_t *, const char *, const char *,
+    smenu_entry_t **);
 extern errno_t smenu_entry_destroy(smenu_entry_t *);
 
 #endif

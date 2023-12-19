@@ -66,7 +66,7 @@ struct smenu_entry {
 };
 
 extern errno_t smenu_entry_new(tbarcfg_t *, sif_node_t *, const char *,
-    const char *);
+    const char *, smenu_entry_t **);
 extern void smenu_entry_delete(smenu_entry_t *);
 
 #endif

@@ -49,6 +49,7 @@ extern startmenu_entry_t *startmenu_get_selected(startmenu_t *);
 extern void startmenu_new_entry(startmenu_t *);
 extern void startmenu_edit(startmenu_t *);
 extern errno_t startmenu_entry_update(startmenu_entry_t *);
+extern void startmenu_repaint(startmenu_t *);
 
 #endif
 

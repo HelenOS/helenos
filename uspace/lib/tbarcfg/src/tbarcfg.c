@@ -153,7 +153,7 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 			goto error;
 		}
 
-		rc = smenu_entry_new(tbcfg, nentry, caption, cmd);
+		rc = smenu_entry_new(tbcfg, nentry, caption, cmd, NULL);
 		if (rc != EOK)
 			goto error;
 
@@ -324,9 +324,10 @@ error:
  * @param nentry Backing SIF node
  * @param caption Caption
  * @param cmd Command to run
+ * @param rentry Place to store pointer to new entry or @c NULL
  */
 errno_t smenu_entry_new(tbarcfg_t *smenu, sif_node_t *nentry,
-    const char *caption, const char *cmd)
+    const char *caption, const char *cmd, smenu_entry_t **rentry)
 {
 	smenu_entry_t *entry;
 	errno_t rc;
@@ -353,6 +354,8 @@ errno_t smenu_entry_new(tbarcfg_t *smenu, sif_node_t *nentry,
 
 	entry->smenu = smenu;
 	list_append(&entry->lentries, &smenu->entries);
+	if (rentry != NULL)
+		*rentry = entry;
 	return EOK;
 error:
 	if (entry != NULL) {
@@ -387,11 +390,13 @@ void smenu_entry_delete(smenu_entry_t *entry)
  * @param nentry Backing SIF node
  * @param caption Caption
  * @param cmd Command to run
+ * @param rentry Place to store pointer to new entry or @c NULL
  */
 errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
-    const char *cmd)
+    const char *cmd, smenu_entry_t **rentry)
 {
 	sif_node_t *nentry;
+	smenu_entry_t *entry;
 	errno_t rc;
 	sif_trans_t *trans = NULL;
 
@@ -412,7 +417,7 @@ errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
 	if (rc != EOK)
 		goto error;
 
-	rc = smenu_entry_new(smenu, nentry, caption, cmd);
+	rc = smenu_entry_new(smenu, nentry, caption, cmd, &entry);
 	if (rc != EOK)
 		goto error;
 
@@ -420,6 +425,8 @@ errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
 	if (rc != EOK)
 		goto error;
 
+	if (rentry != NULL)
+		*rentry = entry;
 	return EOK;
 error:
 	if (trans != NULL)
