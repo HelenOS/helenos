@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'drv' ]
+deps = [ 'drv' , 'pcap' ]
 c_args = [ '-DLIBNIC_INTERNAL', ]
 src = files(
 	'src/nic_driver.c',
