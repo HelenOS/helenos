@@ -215,4 +215,34 @@ PCUT_TEST(entry_create)
 	remove(fname);
 }
 
+/** Destroy start menu entry */
+PCUT_TEST(entry_destroy)
+{
+	errno_t rc;
+	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
+	smenu_entry_t *e;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "A", "a");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	e = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NOT_NULL(e);
+
+	rc = smenu_entry_destroy(e);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	e = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NULL(e);
+
+	tbarcfg_close(tbcfg);
+	remove(fname);
+}
+
 PCUT_EXPORT(tbarcfg);

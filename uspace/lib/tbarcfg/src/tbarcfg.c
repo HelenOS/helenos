@@ -440,6 +440,7 @@ errno_t smenu_entry_destroy(smenu_entry_t *entry)
 		goto error;
 
 	smenu_entry_delete(entry);
+	return EOK;
 error:
 	if (trans != NULL)
 		sif_trans_abort(trans);

@@ -365,13 +365,16 @@ errno_t startmenu_insert(startmenu_t *smenu, smenu_entry_t *entry,
 /** Get selected start menu entry.
  *
  * @param smenu Start menu
- * @return Selected entry
+ * @return Selected entry or @c NULL if no entry is selected
  */
 startmenu_entry_t *startmenu_get_selected(startmenu_t *smenu)
 {
 	ui_list_entry_t *entry;
 
 	entry = ui_list_get_cursor(smenu->entries_list);
+	if (entry == NULL)
+		return NULL;
+
 	return (startmenu_entry_t *)ui_list_entry_get_arg(entry);
 }
 
@@ -386,6 +389,8 @@ void startmenu_edit(startmenu_t *smenu)
 	errno_t rc;
 
 	smentry = startmenu_get_selected(smenu);
+	if (smentry == NULL)
+		return;
 
 	rc = smeedit_create(smenu, smentry, &smee);
 	if (rc != EOK)
@@ -436,8 +441,23 @@ static void startmenu_new_entry_clicked(ui_pbutton_t *pbutton, void *arg)
  */
 static void startmenu_delete_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 {
+	startmenu_t *smenu = (startmenu_t *)arg;
+	startmenu_entry_t *smentry;
+	errno_t rc;
+
 	(void)pbutton;
-	(void)arg;
+
+	smentry = startmenu_get_selected(smenu);
+	if (smentry == NULL)
+		return;
+
+	rc = smenu_entry_destroy(smentry->entry);
+	if (rc != EOK)
+		return;
+
+	ui_list_entry_delete(smentry->lentry);
+	free(smentry);
+	(void) ui_control_paint(ui_list_ctl(smenu->entries_list));
 }
 
 /** Edit entry button clicked.
