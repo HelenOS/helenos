@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Jiri Svoboda
+# Copyright (c) 2023 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -27,17 +27,19 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# FIXME: enable --gc-sections
-
 _common_c_args = [ '-D__BE__', '-fno-omit-frame-pointer', '-m32', '-Wa,-a32', '-mcpu=powerpc' ]
 
-arch_kernel_c_args = _common_c_args + [ '-msoft-float', '-fno-function-sections' ]
+arch_kernel_c_args = _common_c_args + [ '-msoft-float' ]
 arch_uspace_c_args = _common_c_args + [ CONFIG_FPU ? '-mhard-float' : '-msoft-float' ]
 arch_boot_c_args = arch_kernel_c_args
-arch_kernel_link_args = [ '-nostdlib', '-Wl,-z,max-page-size=0x1000', '-Wl,--no-check-sections', '-Wl,--no-gc-sections' ]
+arch_kernel_link_args = [ '-nostdlib', '-Wl,-z,max-page-size=0x1000' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
-arch_boot_link_args = []
+arch_uspace_link_args += ldflags_ignore_rwx_segments
+arch_boot_link_args = ldflags_ignore_rwx_segments
 
+rd_essential += [
+	'app/ofw'
+]
 
 rd_essential_drv += [
 	'drv/platform/mac',

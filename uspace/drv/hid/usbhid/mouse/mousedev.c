@@ -45,7 +45,6 @@
 #include <stdbool.h>
 #include <str_error.h>
 #include <ipc/mouseev.h>
-#include <io/console.h>
 
 #include <ipc/kbdev.h>
 #include <io/keycode.h>

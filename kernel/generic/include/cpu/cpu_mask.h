@@ -36,7 +36,7 @@
 
 #include <cpu.h>
 #include <config.h>
-#include <lib/memfnc.h>
+#include <memw.h>
 
 /** Iterates over all cpu id's whose bit is included in the cpu mask.
  *

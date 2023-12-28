@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <errno.h>
-#include <memstr.h>
+#include <mem.h>
 #include <byteorder.h>
 #include <gzip.h>
 #include <inflate.h>

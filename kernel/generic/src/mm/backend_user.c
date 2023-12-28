@@ -49,6 +49,7 @@
 #include <errno.h>
 #include <log.h>
 #include <str.h>
+#include <str_error.h>
 
 static bool user_create(as_area_t *);
 static void user_destroy(as_area_t *);

@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2023 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -40,14 +41,12 @@ incdirs = [
 	'arch' / UARCH / 'include',
 	root_path / 'abi' / 'arch' / UARCH / 'include',
 	root_path / 'abi' / 'include',
+	root_path / 'common' / 'include',
 ]
 
 includes += include_directories(incdirs, is_system: true)
 
 allow_shared = true
-
-# FIXME: symlinks from uspace to kernel will break in future Meson version
-#        we should instead move the duplicated library parts into a shared location.
 
 uspace_lib_devel_install_script_text += 'mkdir -p "${DESTDIR}include/libc"'
 foreach idir : incdirs
@@ -58,16 +57,30 @@ endforeach
 src = [ arch_src ]
 
 src += files(
+	'common/adt/checksum.c',
+	'common/adt/circ_buf.c',
+	'common/adt/list.c',
+	'common/adt/hash_table.c',
+	'common/adt/odict.c',
+	'common/printf/printf_core.c',
+	'common/stdc/ctype.c',
+	'common/stdc/mem.c',
+	'common/stdc/bsearch.c',
+	'common/stdc/qsort.c',
+	'common/stdc/calloc.c',
+	'common/gsort.c',
+	'common/str.c',
+	'common/str_error.c',
+	'common/strtol.c',
+
 	'generic/libc.c',
+	'generic/adt/prodcons.c',
 	'generic/as.c',
 	'generic/ddi.c',
 	'generic/perm.c',
 	'generic/capa.c',
-	'generic/clipboard.c',
 	'generic/config.c',
 	'generic/context.c',
-	'generic/corecfg.c',
-	'generic/ctype.c',
 	'generic/device/clock_dev.c',
 	'generic/device/hw_res.c',
 	'generic/device/hw_res_parsed.c',
@@ -79,15 +92,9 @@ src += files(
 	'generic/elf/elf_mod.c',
 	'generic/event.c',
 	'generic/errno.c',
-	'generic/gsort.c',
 	'generic/inttypes.c',
-	'generic/ipc_test.c',
 	'generic/loc.c',
-	'generic/mem.c',
-	'generic/str.c',
 	'generic/string.c',
-	'generic/str_error.c',
-	'generic/strtol.c',
 	'generic/l18n/langs.c',
 	'generic/pcb.c',
 	'generic/pio_trace.c',
@@ -95,10 +102,7 @@ src += files(
 	'generic/task.c',
 	'generic/imath.c',
 	'generic/io/asprintf.c',
-	'generic/io/input.c',
 	'generic/io/io.c',
-	'generic/io/chargrid.c',
-	'generic/io/output.c',
 	'generic/io/printf.c',
 	'generic/io/log.c',
 	'generic/io/logctl.c',
@@ -107,9 +111,6 @@ src += files(
 	'generic/io/snprintf.c',
 	'generic/io/vprintf.c',
 	'generic/io/vsnprintf.c',
-	'generic/io/printf_core.c',
-	'generic/io/con_srv.c',
-	'generic/io/console.c',
 	'generic/io/table.c',
 	'generic/irq.c',
 	'generic/ieee_double.c',
@@ -136,12 +137,6 @@ src += files(
 	'generic/async/ports.c',
 	'generic/loader.c',
 	'generic/getopt.c',
-	'generic/adt/checksum.c',
-	'generic/adt/circ_buf.c',
-	'generic/adt/list.c',
-	'generic/adt/hash_table.c',
-	'generic/adt/odict.c',
-	'generic/adt/prodcons.c',
 	'generic/time.c',
 	'generic/tmpfile.c',
 	'generic/stdio.c',
@@ -157,8 +152,6 @@ src += files(
 	'generic/arg_parse.c',
 	'generic/stats.c',
 	'generic/assert.c',
-	'generic/bsearch.c',
-	'generic/qsort.c',
 	'generic/ubsan.c',
 	'generic/uuid.c',
 )
@@ -185,6 +178,7 @@ test_src = files(
 	'test/imath.c',
 	'test/inttypes.c',
 	'test/io/table.c',
+	'test/loc.c',
 	'test/main.c',
 	'test/mem.c',
 	'test/perf.c',

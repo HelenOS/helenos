@@ -45,6 +45,7 @@
 #include <vfs/vfs.h>
 #include <qsort.h>
 #include "../private/filelist.h"
+#include "../private/list.h"
 #include "../private/resource.h"
 
 static void ui_file_list_ctl_destroy(void *);
@@ -289,9 +290,9 @@ errno_t ui_file_list_entry_append(ui_file_list_t *flist, ui_file_list_entry_attr
  *
  * @param entry File list entry
  */
-void ui_file_list_entry_delete(ui_file_list_entry_t *entry)
+void ui_file_list_entry_destroy(ui_file_list_entry_t *entry)
 {
-	ui_list_entry_delete(entry->entry);
+	ui_list_entry_destroy(entry->entry);
 	free(entry->name);
 	free(entry);
 }
@@ -306,7 +307,7 @@ void ui_file_list_clear_entries(ui_file_list_t *flist)
 
 	entry = ui_file_list_first(flist);
 	while (entry != NULL) {
-		ui_file_list_entry_delete(entry);
+		ui_file_list_entry_destroy(entry);
 		entry = ui_file_list_first(flist);
 	}
 }

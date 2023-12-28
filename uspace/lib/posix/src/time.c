@@ -46,7 +46,7 @@
 #include <assert.h>
 
 #include <fibril.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <task.h>
 #include <stddef.h>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,7 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 #include <ui/wdecor.h>
+#include "gfxdemo.h"
 
 static void wnd_close_event(void *);
 static void wnd_kbd_event(void *, kbd_event_t *);
@@ -67,10 +68,16 @@ static ui_window_cb_t ui_window_cb = {
 	.kbd = uiwnd_kbd_event
 };
 
+static void demo_kbd_event(kbd_event_t *);
+
 static bool quit = false;
+static FIBRIL_MUTEX_INITIALIZE(quit_lock);
+static FIBRIL_CONDVAR_INITIALIZE(quit_cv);
 static gfx_typeface_t *tface;
 static gfx_font_t *font;
 static gfx_coord_t vpad;
+static console_ctrl_t *con = NULL;
+static ui_t *ui;
 
 /** Determine if we are running in text mode.
  *
@@ -82,6 +89,42 @@ static bool demo_is_text(gfx_coord_t w, gfx_coord_t h)
 {
 	// XXX Need a proper way to determine text mode
 	return w <= 80;
+}
+
+/** Sleep until timeout or quit request.
+ *
+ * @param msec Number of microseconds to sleep for
+ */
+static void demo_msleep(unsigned msec)
+{
+	errno_t rc;
+	usec_t usec;
+	cons_event_t cevent;
+
+	if (ui != NULL)
+		ui_unlock(ui);
+	fibril_mutex_lock(&quit_lock);
+	if (!quit) {
+		if (con != NULL) {
+			usec = (usec_t)msec * 1000;
+			while (usec > 0 && !quit) {
+				rc = console_get_event_timeout(con, &cevent, &usec);
+				if (rc == EOK) {
+					if (cevent.type == CEV_KEY) {
+						fibril_mutex_unlock(&quit_lock);
+						demo_kbd_event(&cevent.ev.key);
+						fibril_mutex_lock(&quit_lock);
+					}
+				}
+			}
+		} else {
+			(void) fibril_condvar_wait_timeout(&quit_cv, &quit_lock,
+			    (usec_t)msec * 1000);
+		}
+	}
+	fibril_mutex_unlock(&quit_lock);
+	if (ui != NULL)
+		ui_lock(ui);
 }
 
 /** Clear screen.
@@ -315,8 +358,7 @@ static errno_t demo_rects(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 		gfx_color_delete(color);
 
-		fibril_usleep(500 * 1000);
-
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -477,8 +519,8 @@ static errno_t demo_bitmap(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 			rc = gfx_bitmap_render(bitmap, &srect, &offs);
 			if (rc != EOK)
 				goto error;
-			fibril_usleep(250 * 1000);
 
+			demo_msleep(250);
 			if (quit)
 				goto out;
 		}
@@ -538,8 +580,7 @@ static errno_t demo_bitmap2(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 				goto error;
 		}
 
-		fibril_usleep(500 * 1000);
-
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -599,8 +640,7 @@ static errno_t demo_bitmap_kc(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 				goto error;
 		}
 
-		fibril_usleep(500 * 1000);
-
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -790,7 +830,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	}
 
 	for (i = 0; i < 10; i++) {
-		fibril_usleep(500 * 1000);
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -871,7 +911,7 @@ static errno_t demo_text_abbr(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	}
 
 	for (i = 0; i < 10; i++) {
-		fibril_usleep(500 * 1000);
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -968,8 +1008,7 @@ static errno_t demo_clip(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 				goto error;
 		}
 
-		fibril_usleep(500 * 1000);
-
+		demo_msleep(500);
 		if (quit)
 			break;
 	}
@@ -1035,24 +1074,26 @@ error:
 /** Run demo on console. */
 static errno_t demo_console(void)
 {
-	console_ctrl_t *con = NULL;
 	console_gc_t *cgc = NULL;
 	gfx_context_t *gc;
+	sysarg_t cols, rows;
 	errno_t rc;
 
-	printf("Init console..\n");
 	con = console_init(stdin, stdout);
 	if (con == NULL)
 		return EIO;
 
-	printf("Create console GC\n");
+	rc = console_get_size(con, &cols, &rows);
+	if (rc != EOK)
+		return rc;
+
 	rc = console_gc_create(con, stdout, &cgc);
 	if (rc != EOK)
 		return rc;
 
 	gc = console_gc_get_ctx(cgc);
 
-	rc = demo_loop(gc, 80, 25);
+	rc = demo_loop(gc, cols, rows);
 	if (rc != EOK)
 		return rc;
 
@@ -1063,23 +1104,42 @@ static errno_t demo_console(void)
 	return EOK;
 }
 
+static errno_t demo_ui_fibril(void *arg)
+{
+	demo_ui_args_t *args = (demo_ui_args_t *)arg;
+	errno_t rc;
+
+	ui_lock(args->ui);
+	rc = demo_loop(args->gc, args->dims.x, args->dims.y);
+	ui_unlock(args->ui);
+	ui_quit(args->ui);
+	return rc;
+}
+
 /** Run demo on UI. */
 static errno_t demo_ui(const char *display_spec)
 {
-	ui_t *ui = NULL;
 	ui_wnd_params_t params;
 	ui_window_t *window = NULL;
 	gfx_context_t *gc;
 	gfx_rect_t rect;
 	gfx_rect_t wrect;
 	gfx_coord2_t off;
+	gfx_rect_t ui_rect;
+	gfx_coord2_t dims;
+	demo_ui_args_t args;
+	fid_t fid;
 	errno_t rc;
-
-	printf("Init UI..\n");
 
 	rc = ui_create(display_spec, &ui);
 	if (rc != EOK) {
 		printf("Error initializing UI (%s)\n", display_spec);
+		goto error;
+	}
+
+	rc = ui_get_rect(ui, &ui_rect);
+	if (rc != EOK) {
+		printf("Error getting display size.\n");
 		goto error;
 	}
 
@@ -1091,6 +1151,10 @@ static errno_t demo_ui(const char *display_spec)
 	ui_wnd_params_init(&params);
 	params.caption = "GFX Demo";
 
+	/* Do not decorate the window in fullscreen mode */
+	if (ui_is_fullscreen(ui))
+		params.style &= ~ui_wds_decorated;
+
 	/*
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
@@ -1098,6 +1162,14 @@ static errno_t demo_ui(const char *display_spec)
 	ui_wdecor_rect_from_app(params.style, &rect, &wrect);
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &params.rect);
+
+	gfx_rect_dims(&ui_rect, &dims);
+
+	/* Make sure window is not larger than the entire screen */
+	if (params.rect.p1.x > dims.x)
+		params.rect.p1.x = dims.x;
+	if (params.rect.p1.y > dims.y)
+		params.rect.p1.y = dims.y;
 
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
@@ -1113,12 +1185,25 @@ static errno_t demo_ui(const char *display_spec)
 		goto error;
 	}
 
-	task_retval(0);
+	ui_window_get_app_rect(window, &rect);
+	gfx_rect_dims(&rect, &dims);
 
-	rc = demo_loop(gc, rect.p1.x, rect.p1.y);
-	if (rc != EOK)
+	if (!ui_is_fullscreen(ui))
+		task_retval(0);
+
+	args.gc = gc;
+	args.dims = dims;
+	args.ui = ui;
+
+	fid = fibril_create(demo_ui_fibril, (void *)&args);
+	if (fid == 0) {
+		rc = ENOMEM;
 		goto error;
+	}
 
+	fibril_add_ready(fid);
+
+	ui_run(ui);
 	ui_window_destroy(window);
 	ui_destroy(ui);
 
@@ -1139,8 +1224,6 @@ static errno_t demo_display(const char *display_svc)
 	display_wnd_params_t params;
 	display_window_t *window = NULL;
 	errno_t rc;
-
-	printf("Init display..\n");
 
 	rc = display_open(display_svc, &display);
 	if (rc != EOK) {
@@ -1183,30 +1266,56 @@ static errno_t demo_display(const char *display_svc)
 	return EOK;
 }
 
+static void demo_quit(void)
+{
+	fibril_mutex_lock(&quit_lock);
+	quit = true;
+	fibril_mutex_unlock(&quit_lock);
+	fibril_condvar_broadcast(&quit_cv);
+}
+
 static void wnd_close_event(void *arg)
 {
-	printf("Close event\n");
-	quit = true;
+	demo_quit();
+}
+
+static void demo_kbd_event(kbd_event_t *event)
+{
+	if (event->type == KEY_PRESS) {
+		/* Ctrl-Q */
+		if ((event->mods & KM_CTRL) != 0 &&
+		    (event->mods & KM_ALT) == 0 &&
+		    (event->mods & KM_SHIFT) == 0 &&
+		    event->key == KC_Q) {
+			demo_quit();
+		}
+
+		/* Escape */
+		if ((event->mods & KM_CTRL) == 0 &&
+		    (event->mods & KM_ALT) == 0 &&
+		    (event->mods & KM_SHIFT) == 0 &&
+		    event->key == KC_ESCAPE) {
+			demo_quit();
+		}
+	}
 }
 
 static void wnd_kbd_event(void *arg, kbd_event_t *event)
 {
-	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
-	if (event->type == KEY_PRESS)
-		quit = true;
+	(void)arg;
+	demo_kbd_event(event);
 }
 
 static void uiwnd_close_event(ui_window_t *window, void *arg)
 {
-	printf("Close event\n");
-	quit = true;
+	demo_quit();
 }
 
 static void uiwnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
 {
-	printf("Keyboard event type=%d key=%d\n", event->type, event->key);
-	if (event->type == KEY_PRESS)
-		quit = true;
+	(void)window;
+	(void)arg;
+	demo_kbd_event(event);
 }
 
 static void print_syntax(void)
@@ -1218,7 +1327,7 @@ int main(int argc, char *argv[])
 {
 	errno_t rc;
 	const char *display_svc = DISPLAY_DEFAULT;
-	const char *ui_display_spec = UI_DISPLAY_DEFAULT;
+	const char *ui_display_spec = UI_ANY_DEFAULT;
 	int i;
 
 	i = 1;

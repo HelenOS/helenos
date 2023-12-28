@@ -29,7 +29,7 @@
 /** @addtogroup libdispcfg
  * @{
  */
-/** @file
+/** @file Display configuration protocol types
  */
 
 #ifndef _LIBDISPCFG_TYPES_DISPCFG_H_
@@ -83,6 +83,14 @@ typedef struct {
 	/** Seat name */
 	char *name;
 } dispcfg_seat_info_t;
+
+/** Assigned device list */
+typedef struct {
+	/** Number of devices */
+	size_t ndevs;
+	/** ID for each device */
+	sysarg_t *devs;
+} dispcfg_dev_list_t;
 
 #endif
 

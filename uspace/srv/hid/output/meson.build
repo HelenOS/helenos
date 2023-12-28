@@ -27,7 +27,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'codepage', 'drv', 'fbfont', 'pixconv', 'ddev' ]
+deps = [ 'codepage', 'console', 'drv', 'fbfont', 'pixconv', 'ddev', 'output' ]
 src = files(
 	'ctl/serial.c',
 	'port/ega.c',

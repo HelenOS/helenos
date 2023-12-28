@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -117,11 +117,12 @@ static void chardev_test_connection(ipc_call_t *icall, void *arg)
 int main(int argc, char *argv[])
 {
 	errno_t rc;
+	loc_srv_t *srv;
 
 	printf("%s: Character device test service\n", NAME);
 	async_set_fallback_port_handler(chardev_test_connection, NULL);
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Failed registering server.: %s\n", NAME, str_error(rc));
 		return rc;
@@ -139,22 +140,25 @@ int main(int argc, char *argv[])
 	partialx_srvs.ops = &chardev_test_partialx_ops;
 	partialx_srvs.sarg = NULL;
 
-	rc = loc_service_register(SERVICE_NAME_CHARDEV_TEST_SMALLX, &smallx_svc_id);
+	rc = loc_service_register(srv, SERVICE_NAME_CHARDEV_TEST_SMALLX,
+	    &smallx_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
-		return rc;
+		goto error;
 	}
 
-	rc = loc_service_register(SERVICE_NAME_CHARDEV_TEST_LARGEX, &largex_svc_id);
+	rc = loc_service_register(srv, SERVICE_NAME_CHARDEV_TEST_LARGEX,
+	    &largex_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
-		return rc;
+		goto error;
 	}
 
-	rc = loc_service_register(SERVICE_NAME_CHARDEV_TEST_PARTIALX, &partialx_svc_id);
+	rc = loc_service_register(srv, SERVICE_NAME_CHARDEV_TEST_PARTIALX,
+	    &partialx_svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service.: %s\n", NAME, str_error(rc));
-		return rc;
+		goto error;
 	}
 
 	printf("%s: Accepting connections\n", NAME);
@@ -163,6 +167,15 @@ int main(int argc, char *argv[])
 
 	/* Not reached */
 	return 0;
+error:
+	if (smallx_svc_id != 0)
+		loc_service_unregister(srv, smallx_svc_id);
+	if (largex_svc_id != 0)
+		loc_service_unregister(srv, largex_svc_id);
+	if (partialx_svc_id != 0)
+		loc_service_unregister(srv, partialx_svc_id);
+	loc_server_unregister(srv);
+	return rc;
 }
 
 static errno_t smallx_open(chardev_srvs_t *srvs, chardev_srv_t *srv)

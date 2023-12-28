@@ -55,6 +55,7 @@ struct dispcfg_ops {
 	errno_t (*seat_delete)(void *, sysarg_t);
 	errno_t (*dev_assign)(void *, sysarg_t, sysarg_t);
 	errno_t (*dev_unassign)(void *, sysarg_t);
+	errno_t (*get_asgn_dev_list)(void *, sysarg_t, dispcfg_dev_list_t **);
 	errno_t (*get_event)(void *, dispcfg_ev_t *);
 };
 

@@ -27,7 +27,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-arch_uspace_c_args = [ '-D__LE__', '-fno-omit-frame-pointer' ]
+arch_uspace_c_args = [
+	'-D__LE__',
+	'-fno-omit-frame-pointer',
+	cc.get_supported_arguments(['-mno-outline-atomics']),
+]
 arch_kernel_c_args = arch_uspace_c_args + [ '-march=armv8-a+nofp+nosimd', '-mgeneral-regs-only' ]
 arch_kernel_link_args = [ '-nostdlib' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
@@ -42,8 +46,8 @@ arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 # N.B. The UEFI guarantees for AArch64 that during boot time the primary
 # processor is in the execution mode that has unaligned access enabled. The
 # -mstrict-align option is therefore not needed.
-arch_boot_c_args = arch_uspace_c_args + [ '-fpic', '-fvisibility=hidden', '-fno-function-sections' ]
-arch_boot_link_args = [ '-Wl,-shared', '-Wl,--no-gc-sections' ]
+arch_boot_c_args = arch_uspace_c_args + [ '-fpic', '-fvisibility=hidden' ]
+arch_boot_link_args = [ '-Wl,-shared' ] + ldflags_ignore_rwx_segments
 
 if MACHINE == 'virt'
 	rd_essential_drv += [

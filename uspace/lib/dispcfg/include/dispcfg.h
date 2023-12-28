@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libwndmgt
+/** @addtogroup libdispcfg
  * @{
  */
 /** @file
@@ -50,6 +50,9 @@ extern errno_t dispcfg_seat_create(dispcfg_t *, const char *, sysarg_t *);
 extern errno_t dispcfg_seat_delete(dispcfg_t *, sysarg_t);
 extern errno_t dispcfg_dev_assign(dispcfg_t *, sysarg_t, sysarg_t);
 extern errno_t dispcfg_dev_unassign(dispcfg_t *, sysarg_t);
+extern errno_t dispcfg_get_asgn_dev_list(dispcfg_t *, sysarg_t,
+    dispcfg_dev_list_t **);
+extern void dispcfg_free_dev_list(dispcfg_dev_list_t *);
 
 #endif
 

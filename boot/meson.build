@@ -77,6 +77,7 @@ if BUILD
 		'genarch/include',
 		'../abi/arch'/BARCH/'include',
 		'../abi/include',
+		'../common/include',
 	)
 
 	boot_defs = [
@@ -97,7 +98,6 @@ if BUILD
 		'-nostdlib',
 		'-Wl,--nmagic',
 		'-T', meson.current_build_dir()/'_link.ld',
-		'-Wl,--no-gc-sections',
 	]
 
 	if cc.get_id() == 'clang'

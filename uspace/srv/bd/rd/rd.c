@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2007 Michal Konopa
  * Copyright (c) 2007 Martin Jelen
  * Copyright (c) 2007 Peter Majer
@@ -92,6 +93,7 @@ static bd_ops_t rd_bd_ops = {
 };
 
 static bd_srvs_t bd_srvs;
+static loc_srv_t *srv;
 
 static void rd_client_conn(ipc_call_t *icall, void *arg)
 {
@@ -177,14 +179,14 @@ static bool rd_init(void)
 	bd_srvs.ops = &rd_bd_ops;
 
 	async_set_fallback_port_handler(rd_client_conn, NULL);
-	ret = loc_server_register(NAME);
+	ret = loc_server_register(NAME, &srv);
 	if (ret != EOK) {
 		printf("%s: Unable to register driver: %s\n", NAME, str_error(ret));
 		return false;
 	}
 
 	service_id_t service_id;
-	ret = loc_service_register("bd/initrd", &service_id);
+	ret = loc_service_register(srv, "bd/initrd", &service_id);
 	if (ret != EOK) {
 		printf("%s: Unable to register device service\n", NAME);
 		return false;

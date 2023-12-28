@@ -192,10 +192,8 @@ void main_bsp_separated_stack(void)
 
 	version_print();
 
-	LOG("\nconfig.base=%p config.kernel_size=%zu"
-	    "\nconfig.stack_base=%p config.stack_size=%zu",
-	    (void *) config.base, config.kernel_size,
-	    (void *) config.stack_base, config.stack_size);
+	LOG("\nconfig.base=%p config.kernel_size=%zu",
+	    (void *) config.base, config.kernel_size);
 
 #ifdef CONFIG_KCONSOLE
 	/*

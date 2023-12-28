@@ -60,6 +60,8 @@ struct ui {
 	gfx_rect_t rect;
 	/** Output owned by UI, clean up when destroying UI */
 	bool myoutput;
+	/** @c true iff UI is suspended */
+	bool suspended;
 	/** @c true if terminating */
 	bool quit;
 	/** Windows (in stacking order, ui_window_t) */

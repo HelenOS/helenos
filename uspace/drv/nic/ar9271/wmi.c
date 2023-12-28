@@ -229,6 +229,10 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	    sizeof(htc_frame_header_t);
 	size_t buffer_size = header_size + command_length;
 	void *buffer = malloc(buffer_size);
+	if (buffer == NULL) {
+		usb_log_error("Failed to allocate WMI message buffer (out of memory).\n");
+		return ENOMEM;
+	}
 
 	if (command_buffer != NULL)
 		memcpy(buffer + header_size, command_buffer, command_length);
@@ -240,16 +244,14 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	wmi_header->sequence_number =
 	    host2uint16_t_be(++htc_device->sequence_number);
 
-	/* Send message. */
+	/* Send message (buffer will not be needed afterwards regardless of result). */
 	errno_t rc = htc_send_control_message(htc_device, buffer, buffer_size,
 	    htc_device->endpoints.wmi_endpoint);
+	free(buffer);
 	if (rc != EOK) {
-		free(buffer);
 		usb_log_error("Failed to send WMI message. Error: %s\n", str_error_name(rc));
 		return rc;
 	}
-
-	free(buffer);
 
 	bool clean_resp_buffer = false;
 	size_t response_buffer_size =
@@ -266,7 +268,6 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 		rc = htc_read_control_message(htc_device, response_buffer,
 		    response_buffer_size, NULL);
 		if (rc != EOK) {
-			free(buffer);
 			usb_log_error("Failed to receive WMI message response. "
 			    "Error: %s\n", str_error_name(rc));
 			return rc;
@@ -274,7 +275,6 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 
 		if (response_buffer_size < sizeof(htc_frame_header_t) +
 		    sizeof(wmi_command_header_t)) {
-			free(buffer);
 			usb_log_error("Corrupted response received.\n");
 			return EINVAL;
 		}

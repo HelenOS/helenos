@@ -59,7 +59,6 @@ extra_common_flags = [
 
 	'-Wall',
 	'-Wextra',
-	'-Werror-implicit-function-declaration',
 	'-Wwrite-strings',
 	'-Wunknown-pragmas',
 
@@ -68,8 +67,10 @@ extra_common_flags = [
 	'-pipe',
 
 	'-ffunction-sections',
+	'-fdata-sections',
 	'-fno-common',
-	'-fdebug-prefix-map=' + meson.source_root() + '=.',
+	'-fdebug-prefix-map=' + meson.source_root() + '/=',
+	'-fdebug-prefix-map=../../=',
 ]
 
 if cc.get_id() != 'clang'
@@ -86,11 +87,12 @@ if CONFIG_DEBUG
 endif
 
 if CONFIG_LINE_DEBUG
-	extra_common_flags += [ '-gdwarf-4', '-g3' ]
+	extra_common_flags += [ '-gdwarf-5', '-g3' ]
 endif
 
 extra_cflags = extra_common_flags + [
 	'-Wmissing-prototypes',
+	'-Werror-implicit-function-declaration',
 
 	'-Wno-missing-braces',
 	'-Wno-missing-field-initializers',
@@ -109,6 +111,7 @@ endif
 
 extra_cppflags = extra_common_flags + [
 	'-fno-exceptions',
+	'-Wno-misleading-indentation',
 	'-frtti',
 ]
 
@@ -127,3 +130,16 @@ foreach lang : [ 'c', 'cpp' ]
 	add_project_arguments(extra_cflags, language : [ lang ])
 	add_project_link_arguments(extra_cflags, language : [ lang ])
 endforeach
+
+# This flag is needed at several places, hence we define it here.
+#
+# For backwards compatibility we try to detect --no-warn-rwx-segments.
+# However, the autodetection done by Meson also results in
+# "cannot find entry symbol _start; defaulting to 00000000004000b0"
+# thus the option is never supported alone. So when detecting we also
+# specify --entry=main so that the stub source provided by Meson is build
+# correctly.
+ldflags_ignore_rwx_segments = []
+if cc.has_link_argument('-Wl,--no-warn-rwx-segments,--entry=main')
+    ldflags_ignore_rwx_segments += ['-Wl,--no-warn-rwx-segments']
+endif

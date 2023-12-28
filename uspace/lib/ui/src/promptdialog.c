@@ -326,15 +326,15 @@ static void ui_prompt_dialog_wnd_kbd(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
 	ui_prompt_dialog_t *dialog = (ui_prompt_dialog_t *) arg;
-	const char *fname;
+	const char *text;
 
 	if (event->type == KEY_PRESS &&
 	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
 		if (event->key == KC_ENTER) {
 			/* Confirm */
 			if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-				fname = ui_entry_get_text(dialog->ename);
-				dialog->cb->bok(dialog, dialog->arg, fname);
+				text = ui_entry_get_text(dialog->ename);
+				dialog->cb->bok(dialog, dialog->arg, text);
 				return;
 			}
 		} else if (event->key == KC_ESCAPE) {
@@ -357,11 +357,11 @@ static void ui_prompt_dialog_wnd_kbd(ui_window_t *window, void *arg,
 static void ui_prompt_dialog_bok_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	ui_prompt_dialog_t *dialog = (ui_prompt_dialog_t *) arg;
-	const char *fname;
+	const char *text;
 
 	if (dialog->cb != NULL && dialog->cb->bok != NULL) {
-		fname = ui_entry_get_text(dialog->ename);
-		dialog->cb->bok(dialog, dialog->arg, fname);
+		text = ui_entry_get_text(dialog->ename);
+		dialog->cb->bok(dialog, dialog->arg, text);
 	}
 }
 

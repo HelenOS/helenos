@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <gfx/coord.h>
 #include <stdbool.h>
+#include <types/common.h>
 #include <types/ui/menu.h>
 #include <types/ui/resource.h>
 
@@ -48,10 +49,8 @@
  * This is private to libui.
  */
 struct ui_menu {
-	/** Containing menu bar */
-	struct ui_menu_bar *mbar;
-	/** Link to @c bar->menus */
-	link_t lmenus;
+	/** Parent window */
+	struct ui_window *parent;
 	/** Caption */
 	char *caption;
 	/** Popup window or @c NULL if menu is not currently open */
@@ -66,6 +65,10 @@ struct ui_menu {
 	gfx_coord_t total_h;
 	/** Menu entries (ui_menu_entry_t) */
 	list_t entries;
+	/** Callbacks */
+	struct ui_menu_cb *cb;
+	/** Callback argument */
+	void *arg;
 };
 
 /** Menu geometry.
@@ -85,6 +88,10 @@ extern errno_t ui_menu_paint_bg_gfx(ui_menu_t *, gfx_coord2_t *);
 extern errno_t ui_menu_paint_bg_text(ui_menu_t *, gfx_coord2_t *);
 extern void ui_menu_up(ui_menu_t *);
 extern void ui_menu_down(ui_menu_t *);
+extern void ui_menu_left(ui_menu_t *, sysarg_t);
+extern void ui_menu_right(ui_menu_t *, sysarg_t);
+extern void ui_menu_close_req(ui_menu_t *);
+extern void ui_menu_press_accel(ui_menu_t *, char32_t, sysarg_t);
 
 #endif
 

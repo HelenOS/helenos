@@ -50,9 +50,7 @@ arch_kernel_c_args = arch_uspace_c_args + [
 	'-mno-3dnow',
 ]
 
-
-# TODO: Enable --gc-sections.
-arch_kernel_link_args = [ '-nostdlib', '-Wl,--no-gc-sections' ]
+arch_kernel_link_args = [ '-nostdlib' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
 
 # Binaries to be included in a barebone build

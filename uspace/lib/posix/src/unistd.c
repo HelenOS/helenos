@@ -49,7 +49,7 @@
 #include <fibril.h>
 #include <task.h>
 #include <stats.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <vfs/vfs.h>
 
 #include <libarch/config.h>

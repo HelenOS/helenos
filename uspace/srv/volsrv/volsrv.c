@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,7 @@ static errno_t vol_init(void)
 	errno_t rc;
 	vol_volumes_t *volumes = NULL;
 	vol_parts_t *parts = NULL;
+	loc_srv_t *srv = NULL;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_init()");
 
@@ -78,14 +79,14 @@ static errno_t vol_init(void)
 
 	async_set_fallback_port_handler(vol_client_conn, parts);
 
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		rc = EEXIST;
 	}
 
 	service_id_t sid;
-	rc = loc_service_register(SERVICE_NAME_VOLSRV, &sid);
+	rc = loc_service_register(srv, SERVICE_NAME_VOLSRV, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		rc = EEXIST;
@@ -94,6 +95,8 @@ static errno_t vol_init(void)
 
 	return EOK;
 error:
+	if (srv != NULL)
+		loc_server_unregister(srv);
 	vol_volumes_destroy(volumes);
 	vol_parts_destroy(parts);
 	return rc;

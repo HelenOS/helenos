@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 Jiri Svoboda
+# Copyright (c) 2023 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'math' ]
+deps = [ 'math', 'ipctest' ]
 src = files(
 	'benchlist.c',
 	'csv.c',
@@ -37,7 +37,10 @@ src = files(
 	'fs/fileread.c',
 	'ipc/ns_ping.c',
 	'ipc/ping_pong.c',
+	'ipc/read1k.c',
+	'ipc/write1k.c',
 	'malloc/malloc1.c',
 	'malloc/malloc2.c',
 	'synch/fibril_mutex.c',
+	'syscall/taskgetid.c'
 )

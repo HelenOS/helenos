@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
@@ -183,6 +184,7 @@ int main(int argc, char **argv)
 	service_id_t svc_id;
 	serial_t *serial;
 	char *serial_port_name = NULL;
+	loc_srv_t *srv;
 
 	int arg = 1;
 	errno_t rc;
@@ -314,7 +316,7 @@ int main(int argc, char **argv)
 	fibril_add_ready(fibril);
 
 	async_set_fallback_port_handler(mouse_connection, NULL);
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
@@ -328,8 +330,9 @@ int main(int argc, char **argv)
 		return rc;
 	}
 
-	rc = loc_service_register(service_name, &service_id);
+	rc = loc_service_register(srv, service_name, &service_id);
 	if (rc != EOK) {
+		loc_server_unregister(srv);
 		printf(NAME ": Unable to register service %s.\n", service_name);
 		return rc;
 	}
@@ -339,7 +342,7 @@ int main(int argc, char **argv)
 	if (rc != EOK) {
 		printf(NAME ": Unable to get mouse category id.\n");
 	} else {
-		rc = loc_service_add_to_cat(service_id, mouse_category);
+		rc = loc_service_add_to_cat(srv, service_id, mouse_category);
 		if (rc != EOK) {
 			printf(NAME ": Unable to add device to mouse category.\n");
 		}

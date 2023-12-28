@@ -42,20 +42,15 @@
 #include <io/pos_event.h>
 #include <stdbool.h>
 #include <types/common.h>
+#include <types/ui/event.h>
 #include <types/ui/menu.h>
 #include <types/ui/menubar.h>
-#include <types/ui/event.h>
+#include <types/ui/window.h>
 #include <uchar.h>
 
-extern errno_t ui_menu_create(ui_menu_bar_t *, const char *, ui_menu_t **);
+extern errno_t ui_menu_create(ui_window_t *, ui_menu_t **);
 extern void ui_menu_destroy(ui_menu_t *);
-extern ui_menu_t *ui_menu_first(ui_menu_bar_t *);
-extern ui_menu_t *ui_menu_next(ui_menu_t *);
-extern ui_menu_t *ui_menu_last(ui_menu_bar_t *);
-extern ui_menu_t *ui_menu_prev(ui_menu_t *);
-extern const char *ui_menu_caption(ui_menu_t *);
-extern void ui_menu_get_rect(ui_menu_t *, gfx_coord2_t *, gfx_rect_t *);
-extern char32_t ui_menu_get_accel(ui_menu_t *);
+extern void ui_menu_set_cb(ui_menu_t *, ui_menu_cb_t *, void *);
 extern errno_t ui_menu_open(ui_menu_t *, gfx_rect_t *, sysarg_t);
 extern void ui_menu_close(ui_menu_t *);
 extern bool ui_menu_is_open(ui_menu_t *);

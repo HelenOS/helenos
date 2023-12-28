@@ -61,7 +61,7 @@
 #include <smp/ipi.h>
 #include <arch/faddr.h>
 #include <atomic.h>
-#include <mem.h>
+#include <memw.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <main/uinit.h>
@@ -230,7 +230,7 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
 {
 	irq_spinlock_lock(&thread->lock, true);
 	thread->cpu = cpu;
-	thread->wired = true;
+	thread->nomigrate++;
 	irq_spinlock_unlock(&thread->lock, true);
 }
 
@@ -258,21 +258,8 @@ void thread_ready(thread_t *thread)
 	int i = (thread->priority < RQ_COUNT - 1) ?
 	    ++thread->priority : thread->priority;
 
-	cpu_t *cpu;
-	if (thread->wired || thread->nomigrate || thread->fpu_context_engaged) {
-		/* Cannot ready to another CPU */
-		assert(thread->cpu != NULL);
-		cpu = thread->cpu;
-	} else if (thread->stolen) {
-		/* Ready to the stealing CPU */
-		cpu = CPU;
-	} else if (thread->cpu) {
-		/* Prefer the CPU on which the thread ran last */
-		assert(thread->cpu != NULL);
-		cpu = thread->cpu;
-	} else {
-		cpu = CPU;
-	}
+	/* Prefer the CPU on which the thread ran last */
+	cpu_t *cpu = thread->cpu ? thread->cpu : CPU;
 
 	thread->state = Ready;
 
@@ -347,7 +334,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	    ((flags & THREAD_FLAG_UNCOUNTED) == THREAD_FLAG_UNCOUNTED);
 	thread->priority = -1;          /* Start in rq[0] */
 	thread->cpu = NULL;
-	thread->wired = false;
 	thread->stolen = false;
 	thread->uspace =
 	    ((flags & THREAD_FLAG_USPACE) == THREAD_FLAG_USPACE);
@@ -368,7 +354,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->task = task;
 
 	thread->fpu_context_exists = false;
-	thread->fpu_context_engaged = false;
 
 	odlink_initialize(&thread->lthreads);
 
@@ -425,13 +410,28 @@ static void thread_destroy(void *obj)
 	irq_spinlock_unlock(&thread->task->lock, false);
 
 	assert((thread->state == Exiting) || (thread->state == Lingering));
-	assert(thread->cpu);
 
 	/* Clear cpu->fpu_owner if set to this thread. */
-	irq_spinlock_lock(&thread->cpu->lock, false);
-	if (thread->cpu->fpu_owner == thread)
-		thread->cpu->fpu_owner = NULL;
-	irq_spinlock_unlock(&thread->cpu->lock, false);
+#ifdef CONFIG_FPU_LAZY
+	if (thread->cpu) {
+		/*
+		 * We need to lock for this because the old CPU can concurrently try
+		 * to dump this thread's FPU state, in which case we need to wait for
+		 * it to finish. An atomic compare-and-swap wouldn't be enough.
+		 */
+		irq_spinlock_lock(&thread->cpu->fpu_lock, false);
+
+		thread_t *owner = atomic_load_explicit(&thread->cpu->fpu_owner,
+		    memory_order_relaxed);
+
+		if (owner == thread) {
+			atomic_store_explicit(&thread->cpu->fpu_owner, NULL,
+			    memory_order_relaxed);
+		}
+
+		irq_spinlock_unlock(&thread->cpu->fpu_lock, false);
+	}
+#endif
 
 	interrupts_restore(ipl);
 

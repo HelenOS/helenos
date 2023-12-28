@@ -60,6 +60,8 @@ extern void ui_menu_bar_press_accel(ui_menu_bar_t *, char32_t, sysarg_t);
 extern void ui_menu_bar_unfocus(ui_menu_bar_t *);
 extern void ui_menu_bar_activate(ui_menu_bar_t *);
 extern void ui_menu_bar_deactivate(ui_menu_bar_t *);
+extern void ui_menu_bar_select_first(ui_menu_bar_t *, bool, sysarg_t);
+extern void ui_menu_bar_select_last(ui_menu_bar_t *, bool, sysarg_t);
 
 #endif
 

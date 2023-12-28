@@ -37,8 +37,10 @@
 #include <arch/barrier.h>
 #include <arch/asm.h>
 
-unsigned __atomic_fetch_add_4(volatile unsigned *mem, unsigned val, int model)
+unsigned __atomic_fetch_add_4(volatile void *mem0, unsigned val, int model)
 {
+	volatile unsigned *mem = mem0;
+
 	/*
 	 * This implementation is for UP pre-ARMv6 systems where we do not have
 	 * the LDREX and STREX instructions.
@@ -50,8 +52,10 @@ unsigned __atomic_fetch_add_4(volatile unsigned *mem, unsigned val, int model)
 	return ret;
 }
 
-unsigned __atomic_fetch_sub_4(volatile unsigned *mem, unsigned val, int model)
+unsigned __atomic_fetch_sub_4(volatile void *mem0, unsigned val, int model)
 {
+	volatile unsigned *mem = mem0;
+
 	ipl_t ipl = interrupts_disable();
 	unsigned ret = *mem;
 	*mem -= val;
@@ -66,8 +70,11 @@ IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(cas_lock, "arm-cas-lock");
  * Sets \a *ptr to \a new_val if it is equal to \a expected. In any case,
  * returns the previous value of \a *ptr.
  */
-void *__sync_val_compare_and_swap_4(void **ptr, void *expected, void *new_val)
+unsigned __sync_val_compare_and_swap_4(volatile void *ptr0, unsigned expected,
+    unsigned new_val)
 {
+	volatile unsigned *ptr = ptr0;
+
 	/*
 	 * Using an interrupt disabling spinlock might still lead to deadlock
 	 * if CAS() is used in an exception handler. Eg. if a CAS() results
@@ -77,7 +84,7 @@ void *__sync_val_compare_and_swap_4(void **ptr, void *expected, void *new_val)
 	 */
 	irq_spinlock_lock(&cas_lock, true);
 
-	void *cur_val = *ptr;
+	unsigned cur_val = *ptr;
 
 	if (cur_val == expected) {
 		*ptr = new_val;
@@ -95,14 +102,17 @@ void __sync_synchronize(void)
 
 /* Naive implementations of the newer intrinsics. */
 
-_Bool __atomic_compare_exchange_4(void **mem, void **expected, void *desired, _Bool weak, int success, int failure)
+_Bool __atomic_compare_exchange_4(volatile void *mem, void *expected0,
+    unsigned desired, _Bool weak, int success, int failure)
 {
+	unsigned *expected = expected0;
+
 	(void) weak;
 	(void) success;
 	(void) failure;
 
-	void *old = *expected;
-	void *new = __sync_val_compare_and_swap_4(mem, old, desired);
+	unsigned old = *expected;
+	unsigned new = __sync_val_compare_and_swap_4(mem, old, desired);
 	if (old == new) {
 		return 1;
 	} else {
@@ -111,12 +121,14 @@ _Bool __atomic_compare_exchange_4(void **mem, void **expected, void *desired, _B
 	}
 }
 
-void *__atomic_exchange_4(void **mem, void *val, int model)
+unsigned __atomic_exchange_4(volatile void *mem0, unsigned val, int model)
 {
+	volatile unsigned *mem = mem0;
+
 	(void) model;
 
 	irq_spinlock_lock(&cas_lock, true);
-	void *old = *mem;
+	unsigned old = *mem;
 	*mem = val;
 	irq_spinlock_unlock(&cas_lock, true);
 

@@ -37,8 +37,12 @@
 
 volatile unsigned *ras_page;
 
-bool __atomic_compare_exchange_4(volatile unsigned *mem, unsigned *expected, unsigned desired, bool weak, int success, int failure)
+bool __atomic_compare_exchange_4(volatile void *mem0, void *expected0,
+    unsigned desired, bool weak, int success, int failure)
 {
+	volatile unsigned *mem = mem0;
+	unsigned *expected = expected0;
+
 	(void) success;
 	(void) failure;
 	(void) weak;
@@ -81,8 +85,11 @@ bool __atomic_compare_exchange_4(volatile unsigned *mem, unsigned *expected, uns
 	return false;
 }
 
-unsigned short __atomic_fetch_add_2(volatile unsigned short *mem, unsigned short val, int model)
+unsigned short __atomic_fetch_add_2(volatile void *mem0, unsigned short val,
+    int model)
 {
+	volatile unsigned short *mem = mem0;
+
 	(void) model;
 
 	unsigned short ret;
@@ -115,8 +122,10 @@ unsigned short __atomic_fetch_add_2(volatile unsigned short *mem, unsigned short
 	return ret - val;
 }
 
-unsigned __atomic_fetch_add_4(volatile unsigned *mem, unsigned val, int model)
+unsigned __atomic_fetch_add_4(volatile void *mem0, unsigned val, int model)
 {
+	volatile unsigned *mem = mem0;
+
 	(void) model;
 
 	unsigned ret;
@@ -149,7 +158,7 @@ unsigned __atomic_fetch_add_4(volatile unsigned *mem, unsigned val, int model)
 	return ret - val;
 }
 
-unsigned __atomic_fetch_sub_4(volatile unsigned *mem, unsigned val, int model)
+unsigned __atomic_fetch_sub_4(volatile void *mem, unsigned val, int model)
 {
 	return __atomic_fetch_add_4(mem, -val, model);
 }

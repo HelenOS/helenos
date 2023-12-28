@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -90,6 +90,7 @@ typedef struct {
 	sysarg_t urows;
 	charfield_t *ubuf;
 
+	loc_srv_t *srv;
 	service_id_t dsid;
 	con_srvs_t srvs;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@
 
 #include <ddi.h>
 #include <loc.h>
-#include <io/console.h>
 #include <vfs/vfs.h>
 #include <ipc/mouseev.h>
 #include <async.h>
@@ -80,24 +79,34 @@ static int lin_map_range(int, int, int, int, int);
 
 int main(int argc, char *argv[])
 {
+	loc_srv_t *srv;
+
 	printf("%s: S3C24xx touchscreen driver\n", NAME);
 
 	async_set_fallback_port_handler(s3c24xx_ts_connection, NULL);
-	errno_t rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
 
 	ts = malloc(sizeof(s3c24xx_ts_t));
-	if (ts == NULL)
+	if (ts == NULL) {
+		loc_server_unregister(srv);
 		return -1;
+	}
 
-	if (s3c24xx_ts_init(ts) != EOK)
+	if (s3c24xx_ts_init(ts) != EOK) {
+		free(ts);
+		loc_server_unregister(srv);
 		return -1;
+	}
 
-	rc = loc_service_register(NAMESPACE "/mouse", &ts->service_id);
+	rc = loc_service_register(srv, NAMESPACE "/mouse", &ts->service_id);
 	if (rc != EOK) {
+		// XXX s3c24xx_ts_fini();
+		free(ts);
+		loc_server_unregister(srv);
 		printf(NAME ": Unable to register device %s.\n",
 		    NAMESPACE "/mouse");
 		return -1;

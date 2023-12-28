@@ -49,7 +49,7 @@
 #include <mm/frame.h>
 #include <bitops.h>
 #include <macros.h>
-#include <mem.h>
+#include <memw.h>
 
 #endif /* CONFIG_TSB */
 

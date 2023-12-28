@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -36,6 +36,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <adt/prodcons.h>
+#include <io/console.h>
 #include <io/input.h>
 #include <ipc/vfs.h>
 #include <errno.h>
@@ -87,6 +88,8 @@ typedef struct {
 	frontbuf_handle_t fbid;  /**< Front buffer handle */
 	con_srvs_t srvs;         /**< Console service setup */
 } console_t;
+
+static loc_srv_t *console_srv;
 
 /** Input server proxy */
 static input_t *input;
@@ -901,7 +904,7 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 
 	/* Register server */
 	async_set_fallback_port_handler(client_connection, NULL);
-	rc = loc_server_register(NAME);
+	rc = loc_server_register(NAME, &console_srv);
 	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME,
 		    str_error(rc));
@@ -951,7 +954,8 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 			char vc[LOC_NAME_MAXLEN + 1];
 			snprintf(vc, LOC_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
 
-			if (loc_service_register(vc, &consoles[i].dsid) != EOK) {
+			if (loc_service_register(console_srv, vc,
+			    &consoles[i].dsid) != EOK) {
 				printf("%s: Unable to register device %s\n", NAME, vc);
 				return false;
 			}

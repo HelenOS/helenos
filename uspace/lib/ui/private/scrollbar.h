@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,21 +68,21 @@ struct ui_scrollbar {
 	struct ui_pbutton *down_btn;
 	/** Thumb is currently held down */
 	bool thumb_held;
-	/** Up through is currently held down */
-	bool up_through_held;
-	/** Pointer is inside up through */
-	bool up_through_inside;
-	/** Down through is currently held down */
-	bool down_through_held;
-	/** Pointer is inside down through */
-	bool down_through_inside;
+	/** Upper trough is currently held down */
+	bool upper_trough_held;
+	/** Pointer is inside upper trough */
+	bool upper_trough_inside;
+	/** Lower trough is currently held down */
+	bool lower_trough_held;
+	/** Pointer is inside lower trough */
+	bool lower_trough_inside;
 	/** Position where thumb was pressed */
 	gfx_coord2_t press_pos;
 	/** Last thumb position */
 	gfx_coord_t last_pos;
 	/** Thumb position */
 	gfx_coord_t pos;
-	/** Last cursor position (when through is held) */
+	/** Last cursor position (when trough is held) */
 	gfx_coord2_t last_curs_pos;
 };
 
@@ -93,14 +93,14 @@ struct ui_scrollbar {
 typedef struct {
 	/** Up button rectangle */
 	gfx_rect_t up_btn_rect;
-	/** Through rectangle */
-	gfx_rect_t through_rect;
-	/** Up through rectangle */
-	gfx_rect_t up_through_rect;
+	/** Trough rectangle */
+	gfx_rect_t trough_rect;
+	/** Upper trough rectangle */
+	gfx_rect_t upper_trough_rect;
 	/** Thumb rectangle */
 	gfx_rect_t thumb_rect;
-	/** Down through rectangle */
-	gfx_rect_t down_through_rect;
+	/** Lower trough rectangle */
+	gfx_rect_t lower_trough_rect;
 	/** Down button rectangle */
 	gfx_rect_t down_btn_rect;
 } ui_scrollbar_geom_t;

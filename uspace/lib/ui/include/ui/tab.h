@@ -42,6 +42,7 @@
 #include <io/pos_event.h>
 #include <stdbool.h>
 #include <types/common.h>
+#include <types/ui/control.h>
 #include <types/ui/tab.h>
 #include <types/ui/tabset.h>
 #include <types/ui/event.h>

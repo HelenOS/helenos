@@ -85,6 +85,8 @@
 SPINLOCK_INITIALIZE(cmd_lock);  /**< Lock protecting command list. */
 LIST_INITIALIZE(cmd_list);      /**< Command list. */
 
+#define MAX_SYMBOL_NAME 64
+
 static char32_t history[KCONSOLE_HISTORY][MAX_CMDLINE] = { };
 static size_t history_pos = 0;
 
@@ -596,7 +598,7 @@ _NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 	} else {
 		/* It's a number - convert it */
 		uint64_t value;
-		char *end;
+		const char *end;
 		errno_t rc = str_uint64_t(text, &end, 0, false, &value);
 		if (end != text + len)
 			rc = EINVAL;

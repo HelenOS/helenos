@@ -50,7 +50,7 @@
  * There is one structure like this for every processor.
  */
 typedef struct cpu {
-	IRQ_SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(tlb_lock);
 
 	tlb_shootdown_msg_t tlb_messages[TLB_MESSAGE_QUEUE_LEN];
 	size_t tlb_messages_count;
@@ -80,8 +80,8 @@ typedef struct cpu {
 	 */
 	bool idle;
 	uint64_t last_cycle;
-	uint64_t idle_cycles;
-	uint64_t busy_cycles;
+	atomic_time_stat_t idle_cycles;
+	atomic_time_stat_t busy_cycles;
 
 	/**
 	 * Processor ID assigned by kernel.
@@ -96,7 +96,11 @@ typedef struct cpu {
 
 	cpu_arch_t arch;
 
-	struct thread *fpu_owner;
+#ifdef CONFIG_FPU_LAZY
+	/* For synchronization between FPU trap and thread destructor. */
+	IRQ_SPINLOCK_DECLARE(fpu_lock);
+#endif
+	_Atomic(struct thread *) fpu_owner;
 
 	/**
 	 * Stack used by scheduler when there is no running thread.

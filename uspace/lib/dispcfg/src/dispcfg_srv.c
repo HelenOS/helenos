@@ -292,6 +292,79 @@ static void dispcfg_dev_unassign_srv(dispcfg_srv_t *srv, ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void dispcfg_get_asgn_dev_list_srv(dispcfg_srv_t *srv, ipc_call_t *icall)
+{
+	sysarg_t seat_id;
+	ipc_call_t call;
+	dispcfg_dev_list_t *list = NULL;
+	size_t size;
+	errno_t rc;
+
+	seat_id = ipc_get_arg1(icall);
+
+	if (srv->ops->get_asgn_dev_list == NULL) {
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = srv->ops->get_asgn_dev_list(srv->arg, seat_id, &list);
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	/* Send list size */
+
+	if (!async_data_read_receive(&call, &size)) {
+		dispcfg_free_dev_list(list);
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(list->ndevs)) {
+		dispcfg_free_dev_list(list);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_read_finalize(&call, &list->ndevs, size);
+	if (rc != EOK) {
+		dispcfg_free_dev_list(list);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	/* Send device list */
+
+	if (!async_data_read_receive(&call, &size)) {
+		dispcfg_free_dev_list(list);
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != list->ndevs * sizeof(sysarg_t)) {
+		dispcfg_free_dev_list(list);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	rc = async_data_read_finalize(&call, list->devs, size);
+	if (rc != EOK) {
+		dispcfg_free_dev_list(list);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	async_answer_0(icall, EOK);
+	dispcfg_free_dev_list(list);
+}
+
 static void dispcfg_get_event_srv(dispcfg_srv_t *srv, ipc_call_t *icall)
 {
 	dispcfg_ev_t event;
@@ -371,6 +444,9 @@ void dispcfg_conn(ipc_call_t *icall, dispcfg_srv_t *srv)
 			break;
 		case DISPCFG_DEV_UNASSIGN:
 			dispcfg_dev_unassign_srv(srv, &call);
+			break;
+		case DISPCFG_GET_ASGN_DEV_LIST:
+			dispcfg_get_asgn_dev_list_srv(srv, &call);
 			break;
 		case DISPCFG_GET_EVENT:
 			dispcfg_get_event_srv(srv, &call);

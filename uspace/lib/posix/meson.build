@@ -65,5 +65,4 @@ test_src = files(
 _sdir = meson.current_source_dir() / 'include' / 'posix'
 uspace_lib_devel_install_script_text += 'mkdir -p "${DESTDIR}include/libposix"'
 uspace_lib_devel_install_script_text += 'cp -R -L -T "@0@" "${DESTDIR}include/libposix"'.format(_sdir)
-
-# TODO: exports
+uspace_lib_devel_install_script_text += 'ln -s -r "${DESTDIR}include/libc" "${DESTDIR}/include/common"'

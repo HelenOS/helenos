@@ -44,9 +44,7 @@ if PROCESSOR == 'opteron'
 	arch_kernel_c_args += '-march=opteron'
 endif
 
-
-# TODO: Enable --gc-sections
-arch_kernel_link_args = [ '-Wl,-z,max-page-size=0x1000', '-nostdlib', '-Wl,--no-gc-sections' ]
+arch_kernel_link_args = [ '-Wl,-z,max-page-size=0x1000', '-nostdlib' ]
 arch_uspace_link_args = [ '-Wl,-z,max-page-size=0x1000', '-nostdlib', '-lgcc' ]
 
 # Binaries to be included in a barebone build

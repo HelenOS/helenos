@@ -26,5 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'usb', 'usbdev', 'usbhid', 'drv' ]
+deps = [ 'usb', 'usbdev', 'usbhid', 'drv', 'console' ]
 src = files('main.c')

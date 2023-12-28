@@ -43,7 +43,7 @@
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
 #include <typedefs.h>
-#include <mem.h>
+#include <memw.h>
 #include <arch.h>
 
 static pte_t *ptl0_create(unsigned int);

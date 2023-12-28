@@ -28,19 +28,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-VERSION=6.2.0
+VERSION=8.0.0
 BASENAME=qemu-${VERSION}
 BASENAME_MASTER=qemu-master
 TARBALL=${BASENAME}.tar.bz2
 SOURCEDIR=${BASENAME}
 URL=https://download.qemu.org/${TARBALL}
-REPO=git://git.qemu.org/qemu.git
+REPO=git@github.com:qemu/qemu.git
 
 OPENSPARC_TARBALL="OpenSPARCT1_Arch.1.5.tar.bz2"
 OPENSPARC_URL="http://download.oracle.com/technetwork/systems/opensparc/${OPENSPARC_TARBALL}"
 
 ARCHIVE_PREFIX="./S10image"
 BINARIES="1up-hv.bin 1up-md.bin nvram1 openboot.bin q.bin reset.bin"
+INSTALL_PREFIX="$HOME/.local"
 
 echo "==== Downloading OpenSPARC archive ===="
 
@@ -76,8 +77,8 @@ echo "==== Extracting OpenSPARC binaries ===="
 
 echo "==== Installing OpenSPARC binaries ===="
 
-sudo install -d /usr/local/opensparc/image
-sudo install -m 0444 binaries/* /usr/local/opensparc/image
+install -d "$INSTALL_PREFIX/opensparc/image"
+install -m 0444 binaries/* "$INSTALL_PREFIX/opensparc/image"
 
 echo "==== Obtaining QEMU sources ===="
 
@@ -93,25 +94,25 @@ else
 		wget ${URL}.sig
 	fi
 
-	gpg --verify ${TARBALL}.sig ${TARBALL}
+	gpg --auto-key-retrieve --verify ${TARBALL}.sig ${TARBALL}
 	if [ $? -ne 0 ]; then
 		echo Unable to verify the signature
 		exit
 	fi
 
-	tar xvfj ${TARBALL}
+	echo "==== Decompressing QEMU sources ===="
+	tar xfj ${TARBALL}
 	cd ${SOURCEDIR}
 fi
 
 echo "==== Configuring QEMU ===="
 
-./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,aarch64-softmmu,ppc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --audio-drv-list=pa
+./configure --target-list=i386-softmmu,x86_64-softmmu,arm-softmmu,aarch64-softmmu,ppc-softmmu,sparc64-softmmu,mips-softmmu,mipsel-softmmu --enable-gtk --enable-vte --enable-kvm --enable-curses --enable-opengl --enable-slirp --enable-pa --audio-drv-list=pa --prefix="$INSTALL_PREFIX" || exit 1
 
 echo "==== Building QEMU ===="
 
-make -j 4
+make -j`nproc` || exit 1
 
 echo "==== Installing QEMU ===="
 
-sudo make install
-
+make install

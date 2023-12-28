@@ -87,6 +87,7 @@ errno_t ds_seat_create(ds_display_t *display, const char *name,
 
 	seat->client_cursor = display->cursor[dcurs_arrow];
 	seat->wm_cursor = NULL;
+	seat->focus = ds_display_first_window(display);
 
 	*rseat = seat;
 	return EOK;
@@ -203,11 +204,11 @@ void ds_seat_unfocus_wnd(ds_seat_t *seat, ds_window_t *wnd)
 		return;
 
 	/* Find alternate window that is neither system nor minimized */
-	nwnd = ds_window_find_alt(wnd, ~(wndf_minimized | wndf_system));
+	nwnd = ds_window_find_prev(wnd, ~(wndf_minimized | wndf_system));
 
 	if (nwnd == NULL) {
 		/* Find alternate window that is not minimized */
-		nwnd = ds_window_find_alt(wnd, ~wndf_minimized);
+		nwnd = ds_window_find_prev(wnd, ~wndf_minimized);
 	}
 
 	ds_seat_set_focus(seat, nwnd);
@@ -222,8 +223,13 @@ void ds_seat_switch_focus(ds_seat_t *seat)
 {
 	ds_window_t *nwnd;
 
-	/* Find alternate window that is not a system window */
-	nwnd = ds_window_find_alt(seat->focus, ~wndf_system);
+	if (seat->focus != NULL) {
+		/* Find alternate window that is not a system window */
+		nwnd = ds_window_find_next(seat->focus, ~wndf_system);
+	} else {
+		/* Currently no focus. Focus topmost window. */
+		nwnd = ds_display_first_window(seat->display);
+	}
 
 	/* Only switch focus if there is another window */
 	if (nwnd != NULL)
@@ -508,14 +514,8 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 
 	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
 
-	/* Click outside popup window */
-	if (event->type == POS_PRESS && wnd != seat->popup) {
-		/* Close popup window */
-		ds_seat_set_popup(seat, NULL);
-	}
-
 	/* Deliver event to popup window. */
-	if (seat->popup != NULL) {
+	if (seat->popup != NULL && event->type != POS_PRESS) {
 		rc = ds_window_post_pos_event(seat->popup, event);
 		if (rc != EOK)
 			return rc;
@@ -539,7 +539,7 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 		 * Only deliver event if we didn't already deliver it
 		 * to the same window above.
 		 */
-		if (wnd != seat->popup) {
+		if (wnd != seat->popup || event->type == POS_PRESS) {
 			rc = ds_window_post_pos_event(wnd, event);
 			if (rc != EOK)
 				return rc;
@@ -547,6 +547,12 @@ errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 	} else {
 		/* Not over a window */
 		ds_seat_set_client_cursor(seat, seat->display->cursor[dcurs_arrow]);
+	}
+
+	/* Click outside popup window */
+	if (event->type == POS_PRESS && wnd != seat->popup) {
+		/* Close popup window */
+		ds_seat_set_popup(seat, NULL);
 	}
 
 	return EOK;

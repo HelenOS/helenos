@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ipcgfx', 'memgfx', 'display', 'ddev', 'dispcfg', 'wndmgt' ]
+deps = [ 'ipcgfx', 'memgfx', 'display', 'ddev', 'dispcfg', 'wndmgt', 'input' ]
 
 src = files(
 	'cfgclient.c',

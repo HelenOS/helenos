@@ -44,7 +44,7 @@
 #include <typedefs.h>
 #include <config.h>
 #include <panic.h>
-#include <mem.h>
+#include <memw.h>
 #include <adt/list.h>
 #include <stdio.h>
 #include <sysinfo/sysinfo.h>
@@ -83,7 +83,10 @@ void cpu_init(void)
 			cpus[i].stack = (uint8_t *) PA2KA(stack_phys);
 			cpus[i].id = i;
 
-			irq_spinlock_initialize(&cpus[i].lock, "cpus[].lock");
+#ifdef CONFIG_FPU_LAZY
+			irq_spinlock_initialize(&cpus[i].fpu_lock, "cpus[].fpu_lock");
+#endif
+			irq_spinlock_initialize(&cpus[i].tlb_lock, "cpus[].tlb_lock");
 
 			for (unsigned int j = 0; j < RQ_COUNT; j++) {
 				irq_spinlock_initialize(&cpus[i].rq[j].lock, "cpus[].rq[].lock");
@@ -102,8 +105,8 @@ void cpu_init(void)
 
 	CPU->idle = false;
 	CPU->last_cycle = get_cycle();
-	CPU->idle_cycles = 0;
-	CPU->busy_cycles = 0;
+	CPU->idle_cycles = ATOMIC_TIME_INITIALIZER();
+	CPU->busy_cycles = ATOMIC_TIME_INITIALIZER();
 
 	cpu_identify();
 	cpu_arch_init();

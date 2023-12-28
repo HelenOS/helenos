@@ -45,7 +45,7 @@
 #include <inflate.h>
 #include <kernel.h>
 #include <macros.h>
-#include <memstr.h>
+#include <mem.h>
 #include <payload.h>
 #include <printf.h>
 #include <putchar.h>

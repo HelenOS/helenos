@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2016 Martin Decky
  * All rights reserved.
  *
@@ -45,8 +45,9 @@
 #include <str.h>
 #include <ui/entry.h>
 #include <ui/fixed.h>
-#include <ui/menubar.h>
 #include <ui/menu.h>
+#include <ui/menubar.h>
+#include <ui/menudd.h>
 #include <ui/menuentry.h>
 #include <ui/pbutton.h>
 #include <ui/ui.h>
@@ -895,7 +896,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = ui_menu_create(calc.menubar, "~F~ile", &mfile);
+	rc = ui_menu_dd_create(calc.menubar, "~F~ile", NULL, &mfile);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -909,7 +910,7 @@ int main(int argc, char *argv[])
 
 	ui_menu_entry_set_cb(mexit, calc_file_exit, (void *) &calc);
 
-	rc = ui_menu_create(calc.menubar, "~E~dit", &medit);
+	rc = ui_menu_dd_create(calc.menubar, "~E~dit", NULL, &medit);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;

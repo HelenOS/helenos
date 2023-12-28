@@ -135,6 +135,7 @@ extern void ui_list_activate_req(ui_list_t *);
 extern void ui_list_selected(ui_list_entry_t *);
 extern int ui_list_entry_ptr_cmp(const void *, const void *);
 extern size_t ui_list_entry_get_idx(ui_list_entry_t *);
+extern void ui_list_entry_destroy(ui_list_entry_t *);
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,17 +53,17 @@ extern ui_control_t *ui_scrollbar_ctl(ui_scrollbar_t *);
 extern void ui_scrollbar_set_cb(ui_scrollbar_t *, ui_scrollbar_cb_t *, void *);
 extern void ui_scrollbar_set_rect(ui_scrollbar_t *, gfx_rect_t *);
 extern errno_t ui_scrollbar_paint(ui_scrollbar_t *);
-extern gfx_coord_t ui_scrollbar_through_length(ui_scrollbar_t *);
+extern gfx_coord_t ui_scrollbar_trough_length(ui_scrollbar_t *);
 extern gfx_coord_t ui_scrollbar_move_length(ui_scrollbar_t *);
 extern gfx_coord_t ui_scrollbar_get_pos(ui_scrollbar_t *);
 extern void ui_scrollbar_set_thumb_length(ui_scrollbar_t *, gfx_coord_t);
 extern void ui_scrollbar_set_pos(ui_scrollbar_t *, gfx_coord_t);
 extern void ui_scrollbar_thumb_press(ui_scrollbar_t *, gfx_coord2_t *);
-extern void ui_scrollbar_up_through_press(ui_scrollbar_t *);
-extern void ui_scrollbar_down_through_press(ui_scrollbar_t *);
+extern void ui_scrollbar_upper_trough_press(ui_scrollbar_t *);
+extern void ui_scrollbar_lower_trough_press(ui_scrollbar_t *);
 extern void ui_scrollbar_release(ui_scrollbar_t *, gfx_coord2_t *);
 extern void ui_scrollbar_update(ui_scrollbar_t *, gfx_coord2_t *);
-extern void ui_scrollbar_throughs_update(ui_scrollbar_t *, gfx_coord2_t *);
+extern void ui_scrollbar_troughs_update(ui_scrollbar_t *, gfx_coord2_t *);
 extern void ui_scrollbar_up(ui_scrollbar_t *);
 extern void ui_scrollbar_down(ui_scrollbar_t *);
 extern void ui_scrollbar_page_up(ui_scrollbar_t *);

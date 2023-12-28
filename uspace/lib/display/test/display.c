@@ -185,14 +185,15 @@ PCUT_TEST(open_close)
 	service_id_t sid;
 	display_t *disp = NULL;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -200,8 +201,9 @@ PCUT_TEST(open_close)
 	PCUT_ASSERT_NOT_NULL(disp);
 
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_create() with server returning error response works */
@@ -213,14 +215,15 @@ PCUT_TEST(window_create_failure)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -253,8 +256,9 @@ PCUT_TEST(window_create_failure)
 	PCUT_ASSERT_NULL(wnd);
 
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_create() and display_window_destroy() with success
@@ -269,14 +273,15 @@ PCUT_TEST(window_create_destroy_success)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -311,8 +316,9 @@ PCUT_TEST(window_create_destroy_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_create() with server returning error response works. */
@@ -324,14 +330,15 @@ PCUT_TEST(window_destroy_failure)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -364,8 +371,9 @@ PCUT_TEST(window_destroy_failure)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_destroy() can handle NULL argument */
@@ -385,14 +393,15 @@ PCUT_TEST(window_move_req_failure)
 	test_response_t resp;
 	gfx_coord2_t pos;
 	sysarg_t pos_id;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -428,8 +437,9 @@ PCUT_TEST(window_move_req_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_move_req() with server returning success response works. */
@@ -443,14 +453,15 @@ PCUT_TEST(window_move_req_success)
 	test_response_t resp;
 	gfx_coord2_t pos;
 	sysarg_t pos_id;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -486,8 +497,9 @@ PCUT_TEST(window_move_req_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_move() with server returning error response works. */
@@ -500,14 +512,15 @@ PCUT_TEST(window_move_failure)
 	display_window_t *wnd;
 	gfx_coord2_t dpos;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -540,8 +553,9 @@ PCUT_TEST(window_move_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_move() with server returning success response works. */
@@ -554,14 +568,15 @@ PCUT_TEST(window_move_success)
 	display_window_t *wnd;
 	gfx_coord2_t dpos;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -594,8 +609,9 @@ PCUT_TEST(window_move_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_get_pos() with server returning error response works. */
@@ -608,14 +624,15 @@ PCUT_TEST(window_get_pos_failure)
 	display_window_t *wnd;
 	gfx_coord2_t dpos;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -649,8 +666,9 @@ PCUT_TEST(window_get_pos_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_get_pos() with server returning success response works. */
@@ -663,14 +681,15 @@ PCUT_TEST(window_get_pos_success)
 	display_window_t *wnd;
 	gfx_coord2_t dpos;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -706,8 +725,9 @@ PCUT_TEST(window_get_pos_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_get_max_rect() with server returning error response works. */
@@ -720,14 +740,15 @@ PCUT_TEST(window_get_max_rect_failure)
 	display_window_t *wnd;
 	gfx_rect_t rect;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -765,8 +786,9 @@ PCUT_TEST(window_get_max_rect_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_get_max_rect() with server returning success response works. */
@@ -779,14 +801,15 @@ PCUT_TEST(window_get_max_rect_success)
 	display_window_t *wnd;
 	gfx_rect_t rect;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -828,8 +851,9 @@ PCUT_TEST(window_get_max_rect_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_resize_req() with server returning error response works. */
@@ -844,14 +868,15 @@ PCUT_TEST(window_resize_req_failure)
 	display_wnd_rsztype_t rsztype;
 	gfx_coord2_t pos;
 	sysarg_t pos_id;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -889,8 +914,9 @@ PCUT_TEST(window_resize_req_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_resize_req() with server returning success response works. */
@@ -905,14 +931,15 @@ PCUT_TEST(window_resize_req_success)
 	display_wnd_rsztype_t rsztype;
 	gfx_coord2_t pos;
 	sysarg_t pos_id;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -950,8 +977,9 @@ PCUT_TEST(window_resize_req_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_resize() with server returning error response works. */
@@ -965,14 +993,15 @@ PCUT_TEST(window_resize_failure)
 	gfx_coord2_t offs;
 	gfx_rect_t nrect;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1013,8 +1042,9 @@ PCUT_TEST(window_resize_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_resize() with server returning success response works. */
@@ -1028,14 +1058,15 @@ PCUT_TEST(window_resize_success)
 	gfx_coord2_t offs;
 	gfx_rect_t nrect;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1075,8 +1106,9 @@ PCUT_TEST(window_resize_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_minimize() with server returning error response works. */
@@ -1088,14 +1120,15 @@ PCUT_TEST(window_minimize_failure)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1123,8 +1156,9 @@ PCUT_TEST(window_minimize_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_minimize() with server returning success response works. */
@@ -1136,14 +1170,15 @@ PCUT_TEST(window_minimize_success)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1171,8 +1206,9 @@ PCUT_TEST(window_minimize_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_maximize() with server returning error response works. */
@@ -1184,14 +1220,15 @@ PCUT_TEST(window_maximize_failure)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1219,8 +1256,9 @@ PCUT_TEST(window_maximize_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_maximize() with server returning success response works. */
@@ -1232,14 +1270,15 @@ PCUT_TEST(window_maximize_success)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1267,8 +1306,9 @@ PCUT_TEST(window_maximize_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_set_cursor() with server returning error response works. */
@@ -1280,14 +1320,15 @@ PCUT_TEST(window_set_cursor_failure)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1317,8 +1358,9 @@ PCUT_TEST(window_set_cursor_failure)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_set_cursor() with server returning success response works. */
@@ -1330,14 +1372,15 @@ PCUT_TEST(window_set_cursor_success)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1367,8 +1410,9 @@ PCUT_TEST(window_set_cursor_success)
 
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_set_caption() with server returning error response works. */
@@ -1381,14 +1425,15 @@ PCUT_TEST(window_set_caption_failure)
 	display_window_t *wnd;
 	const char *caption;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1421,8 +1466,9 @@ PCUT_TEST(window_set_caption_failure)
 	//free(resp.set_caption_caption);
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_set_caption() with server returning success response works. */
@@ -1435,14 +1481,15 @@ PCUT_TEST(window_set_caption_success)
 	display_window_t *wnd;
 	const char *caption;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1475,8 +1522,9 @@ PCUT_TEST(window_set_caption_success)
 	//free(resp.set_caption_caption);
 	display_window_destroy(wnd);
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_get_gc with server returning failure */
@@ -1489,14 +1537,15 @@ PCUT_TEST(window_get_gc_failure)
 	display_window_t *wnd;
 	test_response_t resp;
 	gfx_context_t *gc;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1527,8 +1576,9 @@ PCUT_TEST(window_get_gc_failure)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_window_get_gc with server returning success */
@@ -1542,14 +1592,15 @@ PCUT_TEST(window_get_gc_success)
 	test_response_t resp;
 	gfx_context_t *gc;
 	gfx_color_t *color;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1588,8 +1639,9 @@ PCUT_TEST(window_get_gc_success)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Close event can be delivered from server to client callback function */
@@ -1601,14 +1653,15 @@ PCUT_TEST(close_event_deliver)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1653,8 +1706,9 @@ PCUT_TEST(close_event_deliver)
 
 	display_close(disp);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Focus event can be delivered from server to client callback function */
@@ -1666,14 +1720,15 @@ PCUT_TEST(focus_event_deliver)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1721,8 +1776,9 @@ PCUT_TEST(focus_event_deliver)
 
 	display_close(disp);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Keyboard event can be delivered from server to client callback function */
@@ -1734,14 +1790,15 @@ PCUT_TEST(kbd_event_deliver)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1798,8 +1855,9 @@ PCUT_TEST(kbd_event_deliver)
 
 	display_close(disp);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Position event can be delivered from server to client callback function */
@@ -1811,14 +1869,15 @@ PCUT_TEST(pos_event_deliver)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1875,8 +1934,9 @@ PCUT_TEST(pos_event_deliver)
 
 	display_close(disp);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Unfocus event can be delivered from server to client callback function */
@@ -1888,14 +1948,15 @@ PCUT_TEST(unfocus_event_deliver)
 	display_wnd_params_t params;
 	display_window_t *wnd;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1943,8 +2004,9 @@ PCUT_TEST(unfocus_event_deliver)
 
 	display_close(disp);
 
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_get_info() with server returning failure response works. */
@@ -1955,14 +2017,15 @@ PCUT_TEST(get_info_failure)
 	display_t *disp = NULL;
 	display_info_t info;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -1977,8 +2040,9 @@ PCUT_TEST(get_info_failure)
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** display_get_info() with server returning success response works. */
@@ -1989,14 +2053,15 @@ PCUT_TEST(get_info_success)
 	display_t *disp = NULL;
 	display_info_t info;
 	test_response_t resp;
+	loc_srv_t *srv;
 
 	async_set_fallback_port_handler(test_display_conn, &resp);
 
 	// FIXME This causes this test to be non-reentrant!
-	rc = loc_server_register(test_display_server);
+	rc = loc_server_register(test_display_server, &srv);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = loc_service_register(test_display_svc, &sid);
+	rc = loc_service_register(srv, test_display_svc, &sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	rc = display_open(test_display_svc, &disp);
@@ -2019,8 +2084,9 @@ PCUT_TEST(get_info_success)
 	PCUT_ASSERT_INT_EQUALS(resp.get_info_rect.p1.y, info.rect.p1.y);
 
 	display_close(disp);
-	rc = loc_service_unregister(sid);
+	rc = loc_service_unregister(srv, sid);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
 }
 
 /** Test display service connection.

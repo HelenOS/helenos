@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2012 Jan Vesely
  * All rights reserved.
  *
@@ -82,6 +83,9 @@ typedef union {
 
 /** Well defined service name */
 const char *HOUND_SERVICE = "audio/hound";
+
+/** Server object */
+static loc_srv_t *hound_srv;
 
 /**
  * Start a new audio session.
@@ -729,14 +733,25 @@ static void hound_server_write_data(void *stream)
  */
 errno_t hound_server_register(const char *name, service_id_t *id)
 {
+	errno_t rc;
+
 	if (!name || !id)
 		return EINVAL;
 
-	errno_t ret = loc_server_register(name);
-	if (ret != EOK)
-		return ret;
+	if (hound_srv != NULL)
+		return EBUSY;
 
-	return loc_service_register(HOUND_SERVICE, id);
+	rc = loc_server_register(name, &hound_srv);
+	if (rc != EOK)
+		return rc;
+
+	rc = loc_service_register(hound_srv, HOUND_SERVICE, id);
+	if (rc != EOK) {
+		loc_server_unregister(hound_srv);
+		return rc;
+	}
+
+	return EOK;
 }
 
 /**
@@ -745,7 +760,8 @@ errno_t hound_server_register(const char *name, service_id_t *id)
  */
 void hound_server_unregister(service_id_t id)
 {
-	loc_service_unregister(id);
+	loc_service_unregister(hound_srv, id);
+	loc_server_unregister(hound_srv);
 }
 
 /**

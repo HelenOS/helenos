@@ -68,7 +68,7 @@
 #include <panic.h>
 #include <assert.h>
 #include <stdio.h>
-#include <mem.h>
+#include <memw.h>
 #include <macros.h>
 #include <bitops.h>
 #include <arch.h>
@@ -1687,7 +1687,12 @@ retry:
 
 	spinlock_unlock(&asidlock);
 
+	if (AS)
+		as_release(AS);
+
 	AS = new_as;
+
+	as_hold(AS);
 }
 
 /** Compute flags for virtual address translation subsytem.

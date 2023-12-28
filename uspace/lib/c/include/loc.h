@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,17 +38,19 @@
 #include <ipc/loc.h>
 #include <async.h>
 #include <stdbool.h>
+#include <types/loc.h>
 
 typedef void (*loc_cat_change_cb_t)(void *);
 
-extern async_exch_t *loc_exchange_begin_blocking(iface_t);
-extern async_exch_t *loc_exchange_begin(iface_t);
+extern async_exch_t *loc_exchange_begin_blocking(void);
+extern async_exch_t *loc_exchange_begin(void);
 extern void loc_exchange_end(async_exch_t *);
 
-extern errno_t loc_server_register(const char *);
-extern errno_t loc_service_register(const char *, service_id_t *);
-extern errno_t loc_service_unregister(service_id_t);
-extern errno_t loc_service_add_to_cat(service_id_t, category_id_t);
+extern errno_t loc_server_register(const char *, loc_srv_t **);
+extern void loc_server_unregister(loc_srv_t *);
+extern errno_t loc_service_register(loc_srv_t *, const char *, service_id_t *);
+extern errno_t loc_service_unregister(loc_srv_t *, service_id_t);
+extern errno_t loc_service_add_to_cat(loc_srv_t *, service_id_t, category_id_t);
 
 extern errno_t loc_service_get_id(const char *, service_id_t *,
     unsigned int);

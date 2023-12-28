@@ -44,7 +44,7 @@
 struct ui_prompt_dialog {
 	/** Dialog window */
 	struct ui_window *window;
-	/** File name entry */
+	/** Text entry */
 	struct ui_entry *ename;
 	/** OK button */
 	struct ui_pbutton *bok;

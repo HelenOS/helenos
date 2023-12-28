@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
  *
  * Clickmatic is used to periodically generate events in particular cases
  * when a mouse button is held down, such as when holding the button or
- * through of a scrollbar.
+ * trough of a scrollbar.
  */
 
 #include <fibril_synch.h>

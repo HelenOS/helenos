@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx' ]
+deps = [ 'gfx', 'console' ]
 src = files(
 	'src/console.c',
 )

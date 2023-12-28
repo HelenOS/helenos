@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -701,6 +701,7 @@ static errno_t sif_export_string(const char *str, FILE *f)
 static errno_t sif_import_string(FILE *f, char **rstr)
 {
 	char *str;
+	char *nstr;
 	size_t str_size;
 	size_t sidx;
 	int c;
@@ -738,11 +739,13 @@ static errno_t sif_import_string(FILE *f, char **rstr)
 
 		if (sidx >= str_size) {
 			str_size *= 2;
-			str = realloc(str, str_size + 1);
-			if (str == NULL) {
+			nstr = realloc(str, str_size + 1);
+			if (nstr == NULL) {
 				rc = ENOMEM;
 				goto error;
 			}
+
+			str = nstr;
 		}
 
 		str[sidx++] = c;

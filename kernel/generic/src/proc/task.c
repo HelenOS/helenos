@@ -224,6 +224,8 @@ task_t *task_create(as_t *as, const char *name)
 
 	task->answerbox.active = true;
 
+	task->debug_sections = NULL;
+
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */
 	udebug_task_init(&task->udebug);

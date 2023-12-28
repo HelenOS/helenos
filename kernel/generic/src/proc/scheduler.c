@@ -69,12 +69,6 @@ static void scheduler_separated_stack(void);
 
 atomic_size_t nrdy;  /**< Number of ready threads in the system. */
 
-/** Carry out actions before new task runs. */
-static void before_task_runs(void)
-{
-	before_task_runs_arch();
-}
-
 /** Take actions before new thread runs.
  *
  * Perform actions that need to be
@@ -89,7 +83,14 @@ static void before_thread_runs(void)
 	before_thread_runs_arch();
 
 #ifdef CONFIG_FPU_LAZY
-	if (THREAD == CPU->fpu_owner)
+	/*
+	 * The only concurrent modification possible for fpu_owner here is
+	 * another thread changing it from itself to NULL in its destructor.
+	 */
+	thread_t *owner = atomic_load_explicit(&CPU->fpu_owner,
+	    memory_order_relaxed);
+
+	if (THREAD == owner)
 		fpu_enable();
 	else
 		fpu_disable();
@@ -134,20 +135,19 @@ static void after_thread_ran(void)
 void scheduler_fpu_lazy_request(void)
 {
 	fpu_enable();
-	irq_spinlock_lock(&CPU->lock, false);
+
+	/* We need this lock to ensure synchronization with thread destructor. */
+	irq_spinlock_lock(&CPU->fpu_lock, false);
 
 	/* Save old context */
-	if (CPU->fpu_owner != NULL) {
-		irq_spinlock_lock(&CPU->fpu_owner->lock, false);
-		fpu_context_save(&CPU->fpu_owner->fpu_context);
-
-		/* Don't prevent migration */
-		CPU->fpu_owner->fpu_context_engaged = false;
-		irq_spinlock_unlock(&CPU->fpu_owner->lock, false);
-		CPU->fpu_owner = NULL;
+	thread_t *owner = atomic_load_explicit(&CPU->fpu_owner, memory_order_relaxed);
+	if (owner != NULL) {
+		fpu_context_save(&owner->fpu_context);
+		atomic_store_explicit(&CPU->fpu_owner, NULL, memory_order_relaxed);
 	}
 
-	irq_spinlock_lock(&THREAD->lock, false);
+	irq_spinlock_unlock(&CPU->fpu_lock, false);
+
 	if (THREAD->fpu_context_exists) {
 		fpu_context_restore(&THREAD->fpu_context);
 	} else {
@@ -155,11 +155,7 @@ void scheduler_fpu_lazy_request(void)
 		THREAD->fpu_context_exists = true;
 	}
 
-	CPU->fpu_owner = THREAD;
-	THREAD->fpu_context_engaged = true;
-	irq_spinlock_unlock(&THREAD->lock, false);
-
-	irq_spinlock_unlock(&CPU->lock, false);
+	atomic_store_explicit(&CPU->fpu_owner, THREAD, memory_order_relaxed);
 }
 #endif /* CONFIG_FPU_LAZY */
 
@@ -181,37 +177,15 @@ void scheduler_init(void)
  * @return Thread to be scheduled.
  *
  */
-static thread_t *find_best_thread(void)
+static thread_t *try_find_thread(int *rq_index)
 {
+	assert(interrupts_disabled());
 	assert(CPU != NULL);
 
-loop:
-	if (atomic_load(&CPU->nrdy) == 0) {
-		/*
-		 * For there was nothing to run, the CPU goes to sleep
-		 * until a hardware interrupt or an IPI comes.
-		 * This improves energy saving and hyperthreading.
-		 */
-		irq_spinlock_lock(&CPU->lock, false);
-		CPU->idle = true;
-		irq_spinlock_unlock(&CPU->lock, false);
+	if (atomic_load(&CPU->nrdy) == 0)
+		return NULL;
 
-		/*
-		 * Go to sleep with interrupts enabled.
-		 * Ideally, this should be atomic, but this is not guaranteed on
-		 * all platforms yet, so it is possible we will go sleep when
-		 * a thread has just become available.
-		 */
-		cpu_interruptible_sleep();
-
-		/* Interrupts are disabled again. */
-		goto loop;
-	}
-
-	assert(!CPU->idle);
-
-	unsigned int i;
-	for (i = 0; i < RQ_COUNT; i++) {
+	for (int i = 0; i < RQ_COUNT; i++) {
 		irq_spinlock_lock(&(CPU->rq[i].lock), false);
 		if (CPU->rq[i].n == 0) {
 			/*
@@ -250,10 +224,71 @@ loop:
 		thread->stolen = false;
 		irq_spinlock_unlock(&thread->lock, false);
 
+		*rq_index = i;
 		return thread;
 	}
 
-	goto loop;
+	return NULL;
+}
+
+/** Get thread to be scheduled
+ *
+ * Get the optimal thread to be scheduled
+ * according to thread accounting and scheduler
+ * policy.
+ *
+ * @return Thread to be scheduled.
+ *
+ */
+static thread_t *find_best_thread(int *rq_index)
+{
+	assert(interrupts_disabled());
+	assert(CPU != NULL);
+
+	while (true) {
+		thread_t *thread = try_find_thread(rq_index);
+
+		if (thread != NULL)
+			return thread;
+
+		/*
+		 * For there was nothing to run, the CPU goes to sleep
+		 * until a hardware interrupt or an IPI comes.
+		 * This improves energy saving and hyperthreading.
+		 */
+		CPU->idle = true;
+
+		/*
+		 * Go to sleep with interrupts enabled.
+		 * Ideally, this should be atomic, but this is not guaranteed on
+		 * all platforms yet, so it is possible we will go sleep when
+		 * a thread has just become available.
+		 */
+		cpu_interruptible_sleep();
+	}
+}
+
+static void switch_task(task_t *task)
+{
+	/* If the task stays the same, a lot of work is avoided. */
+	if (TASK == task)
+		return;
+
+	as_t *old_as = AS;
+	as_t *new_as = task->as;
+
+	/* It is possible for two tasks to share one address space. */
+	if (old_as != new_as)
+		as_switch(old_as, new_as);
+
+	if (TASK)
+		task_release(TASK);
+
+	TASK = task;
+
+	task_hold(TASK);
+
+	before_task_runs_arch();
 }
 
 /** Prevent rq starvation
@@ -274,29 +309,34 @@ static void relink_rq(int start)
 
 	CPU->relink_deadline = CPU->current_clock_tick + NEEDS_RELINK_MAX;
 
+	/* Temporary cache for lists we are moving. */
 	list_t list;
 	list_initialize(&list);
 
-	irq_spinlock_lock(&CPU->lock, false);
+	size_t n = 0;
 
-	for (int i = start; i < RQ_COUNT - 1; i++) {
-		/* Remember and empty rq[i + 1] */
-
-		irq_spinlock_lock(&CPU->rq[i + 1].lock, false);
-		list_concat(&list, &CPU->rq[i + 1].rq);
-		size_t n = CPU->rq[i + 1].n;
-		CPU->rq[i + 1].n = 0;
-		irq_spinlock_unlock(&CPU->rq[i + 1].lock, false);
-
-		/* Append rq[i + 1] to rq[i] */
-
+	/* Move every list (except the one with highest priority) one level up. */
+	for (int i = RQ_COUNT - 1; i > start; i--) {
 		irq_spinlock_lock(&CPU->rq[i].lock, false);
-		list_concat(&CPU->rq[i].rq, &list);
-		CPU->rq[i].n += n;
+
+		/* Swap lists. */
+		list_swap(&CPU->rq[i].rq, &list);
+
+		/* Swap number of items. */
+		size_t tmpn = CPU->rq[i].n;
+		CPU->rq[i].n = n;
+		n = tmpn;
+
 		irq_spinlock_unlock(&CPU->rq[i].lock, false);
 	}
 
-	irq_spinlock_unlock(&CPU->lock, false);
+	/* Append the contents of rq[start + 1]  to rq[start]. */
+	if (n != 0) {
+		irq_spinlock_lock(&CPU->rq[start].lock, false);
+		list_concat(&CPU->rq[start].rq, &list);
+		CPU->rq[start].n += n;
+		irq_spinlock_unlock(&CPU->rq[start].lock, false);
+	}
 }
 
 void scheduler(void)
@@ -393,23 +433,9 @@ void scheduler_locked(ipl_t ipl)
  */
 void scheduler_separated_stack(void)
 {
-	task_t *old_task = TASK;
-	as_t *old_as = AS;
-
 	assert((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
 	assert(CPU != NULL);
 	assert(interrupts_disabled());
-
-	/*
-	 * Hold the current task and the address space to prevent their
-	 * possible destruction should thread_destroy() be called on this or any
-	 * other processor while the scheduler is still using them.
-	 */
-	if (old_task)
-		task_hold(old_task);
-
-	if (old_as)
-		as_hold(old_as);
 
 	if (THREAD) {
 		/* Must be run after the switch to scheduler stack */
@@ -453,42 +479,12 @@ void scheduler_separated_stack(void)
 		THREAD = NULL;
 	}
 
-	THREAD = find_best_thread();
+	int rq_index;
+	THREAD = find_best_thread(&rq_index);
 
-	irq_spinlock_lock(&THREAD->lock, false);
-	int priority = THREAD->priority;
-	irq_spinlock_unlock(&THREAD->lock, false);
+	relink_rq(rq_index);
 
-	relink_rq(priority);
-
-	/*
-	 * If both the old and the new task are the same,
-	 * lots of work is avoided.
-	 */
-	if (TASK != THREAD->task) {
-		as_t *new_as = THREAD->task->as;
-
-		/*
-		 * Note that it is possible for two tasks
-		 * to share one address space.
-		 */
-		if (old_as != new_as) {
-			/*
-			 * Both tasks and address spaces are different.
-			 * Replace the old one with the new one.
-			 */
-			as_switch(old_as, new_as);
-		}
-
-		TASK = THREAD->task;
-		before_task_runs();
-	}
-
-	if (old_task)
-		task_release(old_task);
-
-	if (old_as)
-		as_release(old_as);
+	switch_task(THREAD->task);
 
 	irq_spinlock_lock(&THREAD->lock, false);
 	THREAD->state = Running;
@@ -522,6 +518,79 @@ void scheduler_separated_stack(void)
 }
 
 #ifdef CONFIG_SMP
+
+static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
+{
+	runq_t *old_rq = &old_cpu->rq[i];
+	runq_t *new_rq = &CPU->rq[i];
+
+	ipl_t ipl = interrupts_disable();
+
+	irq_spinlock_lock(&old_rq->lock, false);
+
+	/*
+	 * If fpu_owner is any thread in the list, its store is seen here thanks to
+	 * the runqueue lock.
+	 */
+	thread_t *fpu_owner = atomic_load_explicit(&old_cpu->fpu_owner,
+	    memory_order_relaxed);
+
+	/* Search rq from the back */
+	list_foreach_rev(old_rq->rq, rq_link, thread_t, thread) {
+
+		irq_spinlock_lock(&thread->lock, false);
+
+		/*
+		 * Do not steal CPU-wired threads, threads
+		 * already stolen, threads for which migration
+		 * was temporarily disabled or threads whose
+		 * FPU context is still in the CPU.
+		 */
+		if (thread->stolen || thread->nomigrate ||
+		    thread == fpu_owner) {
+			irq_spinlock_unlock(&thread->lock, false);
+			continue;
+		}
+
+		thread->stolen = true;
+		thread->cpu = CPU;
+
+		irq_spinlock_unlock(&thread->lock, false);
+
+		/*
+		 * Ready thread on local CPU
+		 */
+
+#ifdef KCPULB_VERBOSE
+		log(LF_OTHER, LVL_DEBUG,
+		    "kcpulb%u: TID %" PRIu64 " -> cpu%u, "
+		    "nrdy=%ld, avg=%ld", CPU->id, thread->tid,
+		    CPU->id, atomic_load(&CPU->nrdy),
+		    atomic_load(&nrdy) / config.cpu_active);
+#endif
+
+		/* Remove thread from ready queue. */
+		old_rq->n--;
+		list_remove(&thread->rq_link);
+		irq_spinlock_unlock(&old_rq->lock, false);
+
+		/* Append thread to local queue. */
+		irq_spinlock_lock(&new_rq->lock, false);
+		list_append(&thread->rq_link, &new_rq->rq);
+		new_rq->n++;
+		irq_spinlock_unlock(&new_rq->lock, false);
+
+		atomic_dec(&old_cpu->nrdy);
+		atomic_inc(&CPU->nrdy);
+		interrupts_restore(ipl);
+		return thread;
+	}
+
+	irq_spinlock_unlock(&old_rq->lock, false);
+	interrupts_restore(ipl);
+	return NULL;
+}
+
 /** Load balancing thread
  *
  * SMP load balancing thread, supervising thread supplies
@@ -561,12 +630,11 @@ not_satisfied:
 	 * queues on all CPU's last.
 	 */
 	size_t acpu;
-	size_t acpu_bias = 0;
 	int rq;
 
 	for (rq = RQ_COUNT - 1; rq >= 0; rq--) {
 		for (acpu = 0; acpu < config.cpu_active; acpu++) {
-			cpu_t *cpu = &cpus[(acpu + acpu_bias) % config.cpu_active];
+			cpu_t *cpu = &cpus[acpu];
 
 			/*
 			 * Not interested in ourselves.
@@ -580,89 +648,8 @@ not_satisfied:
 			if (atomic_load(&cpu->nrdy) <= average)
 				continue;
 
-			irq_spinlock_lock(&(cpu->rq[rq].lock), true);
-			if (cpu->rq[rq].n == 0) {
-				irq_spinlock_unlock(&(cpu->rq[rq].lock), true);
-				continue;
-			}
-
-			thread_t *thread = NULL;
-
-			/* Search rq from the back */
-			link_t *link = list_last(&cpu->rq[rq].rq);
-
-			while (link != NULL) {
-				thread = (thread_t *) list_get_instance(link,
-				    thread_t, rq_link);
-
-				/*
-				 * Do not steal CPU-wired threads, threads
-				 * already stolen, threads for which migration
-				 * was temporarily disabled or threads whose
-				 * FPU context is still in the CPU.
-				 */
-				irq_spinlock_lock(&thread->lock, false);
-
-				if ((!thread->wired) && (!thread->stolen) &&
-				    (!thread->nomigrate) &&
-				    (!thread->fpu_context_engaged)) {
-					/*
-					 * Remove thread from ready queue.
-					 */
-					irq_spinlock_unlock(&thread->lock,
-					    false);
-
-					atomic_dec(&cpu->nrdy);
-					atomic_dec(&nrdy);
-
-					cpu->rq[rq].n--;
-					list_remove(&thread->rq_link);
-
-					break;
-				}
-
-				irq_spinlock_unlock(&thread->lock, false);
-
-				link = list_prev(link, &cpu->rq[rq].rq);
-				thread = NULL;
-			}
-
-			if (thread) {
-				/*
-				 * Ready thread on local CPU
-				 */
-
-				irq_spinlock_pass(&(cpu->rq[rq].lock),
-				    &thread->lock);
-
-#ifdef KCPULB_VERBOSE
-				log(LF_OTHER, LVL_DEBUG,
-				    "kcpulb%u: TID %" PRIu64 " -> cpu%u, "
-				    "nrdy=%ld, avg=%ld", CPU->id, thread->tid,
-				    CPU->id, atomic_load(&CPU->nrdy),
-				    atomic_load(&nrdy) / config.cpu_active);
-#endif
-
-				thread->stolen = true;
-				thread->state = Entering;
-
-				irq_spinlock_unlock(&thread->lock, true);
-				thread_ready(thread);
-
-				if (--count == 0)
-					goto satisfied;
-
-				/*
-				 * We are not satisfied yet, focus on another
-				 * CPU next time.
-				 *
-				 */
-				acpu_bias++;
-
-				continue;
-			} else
-				irq_spinlock_unlock(&(cpu->rq[rq].lock), true);
-
+			if (steal_thread_from(cpu, rq) && --count == 0)
+				goto satisfied;
 		}
 	}
 
@@ -698,8 +685,6 @@ void sched_print_list(void)
 		if (!cpus[cpu].active)
 			continue;
 
-		irq_spinlock_lock(&cpus[cpu].lock, true);
-
 		/* Technically a data race, but we don't really care in this case. */
 		int needs_relink = cpus[cpu].relink_deadline - cpus[cpu].current_clock_tick;
 
@@ -725,8 +710,6 @@ void sched_print_list(void)
 
 			irq_spinlock_unlock(&(cpus[cpu].rq[i].lock), false);
 		}
-
-		irq_spinlock_unlock(&cpus[cpu].lock, true);
 	}
 }
 

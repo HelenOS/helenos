@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2013 Martin Sucha
  * All rights reserved.
  *
@@ -442,6 +442,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 int main(int argc, char **argv)
 {
 	rfb_t rfb;
+	loc_srv_t *srv;
 
 	log_init(NAME);
 
@@ -481,7 +482,7 @@ int main(int argc, char **argv)
 
 	async_set_fallback_port_handler(client_connection, &rfb);
 
-	errno_t rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		printf("%s: Unable to register server.\n", NAME);
 		return rc;
@@ -496,7 +497,7 @@ int main(int argc, char **argv)
 
 	service_id_t service_id;
 
-	rc = loc_service_register(service_name, &service_id);
+	rc = loc_service_register(srv, service_name, &service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register service %s.\n", service_name);
 		return rc;
@@ -511,7 +512,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	rc = loc_service_add_to_cat(service_id, ddev_cid);
+	rc = loc_service_add_to_cat(srv, service_id, ddev_cid);
 	if (rc != EOK) {
 		fprintf(stderr, NAME ": Unable to add service to display device category.\n");
 		return 1;

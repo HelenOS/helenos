@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'ipcgfx' ]
+deps = [ 'gfx', 'ipcgfx', 'input' ]
 src = files(
 	'src/display.c',
 	'src/disp_srv.c',

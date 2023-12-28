@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
@@ -42,7 +42,7 @@
 #include <perf.h>
 
 #define DEFAULT_RUN_COUNT 10
-#define DEFAULT_MIN_RUN_DURATION_SEC 10
+#define DEFAULT_MIN_RUN_DURATION_MSEC 1000
 
 /** Single run information.
  *
@@ -138,6 +138,9 @@ extern benchmark_t benchmark_malloc1;
 extern benchmark_t benchmark_malloc2;
 extern benchmark_t benchmark_ns_ping;
 extern benchmark_t benchmark_ping_pong;
+extern benchmark_t benchmark_read1k;
+extern benchmark_t benchmark_taskgetid;
+extern benchmark_t benchmark_write1k;
 
 #endif
 

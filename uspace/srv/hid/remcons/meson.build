@@ -27,5 +27,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'inet' ]
+deps = [ 'inet', 'console' ]
 src = files('remcons.c', 'user.c')

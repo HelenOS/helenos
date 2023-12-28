@@ -33,7 +33,7 @@
 #include <align.h>
 #include <bitops.h>
 #include <mm/slab.h>
-#include <mem.h>
+#include <memw.h>
 #include <main/main.h> // malloc_init()
 #include <macros.h>
 

@@ -34,7 +34,7 @@
 #include <typedefs.h>
 #include <atomic.h>
 #include <proc/thread.h>
-#include <mem.h>
+#include <memw.h>
 #include <arch.h>
 
 #define MAX_FRAMES  256

@@ -55,6 +55,7 @@ static void print_syntax(void)
 	printf("  %s delete-seat <name>\n", NAME);
 	printf("  %s assign-dev <device> <seat>\n", NAME);
 	printf("  %s unassign-dev <device>\n", NAME);
+	printf("  %s list-dev <seat>\n", NAME);
 }
 
 /** Find seat by name.
@@ -392,6 +393,97 @@ static errno_t dev_unassign(const char *dcfg_svc, int argc, char *argv[])
 	return EOK;
 }
 
+/** List dev subcommand.
+ *
+ * @param dcfg_svc Display configuration service name
+ * @param argc Number of arguments
+ * @param argv Arguments
+ * @return EOK on success or an erro code
+ */
+static errno_t list_dev(const char *dcfg_svc, int argc, char *argv[])
+{
+	dispcfg_t *dispcfg;
+	char *seat_name;
+	sysarg_t seat_id;
+	dispcfg_dev_list_t *dev_list;
+	size_t i;
+	char *svc_name;
+	table_t *table = NULL;
+	errno_t rc;
+
+	if (argc < 1) {
+		printf(NAME ": Missing arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	if (argc > 1) {
+		printf(NAME ": Too many arguments.\n");
+		print_syntax();
+		return EINVAL;
+	}
+
+	seat_name = argv[0];
+
+	rc = dispcfg_open(dcfg_svc, NULL, NULL, &dispcfg);
+	if (rc != EOK) {
+		printf(NAME ": Failed connecting to display configuration "
+		    "service: %s.\n", str_error(rc));
+		return rc;
+	}
+
+	rc = seat_find_by_name(dispcfg, seat_name, &seat_id);
+	if (rc != EOK) {
+		printf(NAME ": Seat '%s' not found.\n", seat_name);
+		dispcfg_close(dispcfg);
+		return ENOENT;
+	}
+
+	rc = dispcfg_get_asgn_dev_list(dispcfg, seat_id, &dev_list);
+	if (rc != EOK) {
+		printf(NAME ": Failed getting seat list.\n");
+		dispcfg_close(dispcfg);
+		return rc;
+	}
+
+	rc = table_create(&table);
+	if (rc != EOK) {
+		printf("Memory allocation failed.\n");
+		dispcfg_free_dev_list(dev_list);
+		dispcfg_close(dispcfg);
+		return rc;
+	}
+
+	table_header_row(table);
+	table_printf(table, "Device Name\n");
+
+	for (i = 0; i < dev_list->ndevs; i++) {
+		rc = loc_service_get_name(dev_list->devs[i], &svc_name);
+		if (rc != EOK) {
+			printf("Failed getting name of service %zu\n",
+			    (size_t)dev_list->devs[i]);
+			continue;
+		}
+
+		table_printf(table, "%s\n", svc_name);
+		free(svc_name);
+	}
+
+	if (dev_list->ndevs != 0) {
+		rc = table_print_out(table, stdout);
+		if (rc != EOK) {
+			printf("Error printing table.\n");
+			table_destroy(table);
+			dispcfg_free_dev_list(dev_list);
+			dispcfg_close(dispcfg);
+			return rc;
+		}
+	}
+
+	dispcfg_close(dispcfg);
+	return EOK;
+}
+
 int main(int argc, char *argv[])
 {
 	const char *dispcfg_svc = DISPCFG_DEFAULT;
@@ -420,6 +512,10 @@ int main(int argc, char *argv[])
 			return 1;
 	} else if (str_cmp(argv[1], "unassign-dev") == 0) {
 		rc = dev_unassign(dispcfg_svc, argc - 2, argv + 2);
+		if (rc != EOK)
+			return 1;
+	} else if (str_cmp(argv[1], "list-dev") == 0) {
+		rc = list_dev(dispcfg_svc, argc - 2, argv + 2);
 		if (rc != EOK)
 			return 1;
 	} else {

@@ -68,8 +68,6 @@ extern void kio_flush(void);
 extern void kio_push_char(const char32_t);
 SPINLOCK_EXTERN(kio_lock);
 
-extern char32_t getc(indev_t *indev);
-extern size_t gets(indev_t *indev, char *buf, size_t buflen);
 extern sys_errno_t sys_kio(int cmd, uspace_addr_t buf, size_t size);
 
 extern void grab_console(void);

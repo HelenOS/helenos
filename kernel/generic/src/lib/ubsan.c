@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <panic.h>
-#include <mem.h>
+#include <memw.h>
 
 #define PRINTF(...) printf(__VA_ARGS__)
 #define ubsan_panic() panic("... aborting ...")

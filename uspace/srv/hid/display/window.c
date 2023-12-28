@@ -94,6 +94,8 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		goto error;
 	}
 
+	wnd->flags = params->flags;
+
 	ds_client_add_window(client, wnd);
 	ds_display_add_window(client->display, wnd);
 
@@ -133,7 +135,6 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 	wnd->min_size = params->min_size;
 	wnd->gc = mem_gc_get_ctx(wnd->mgc);
 	wnd->cursor = wnd->display->cursor[dcurs_arrow];
-	wnd->flags = params->flags;
 
 	if ((params->flags & wndf_setpos) != 0) {
 		/* Specific window position */
@@ -1091,7 +1092,46 @@ errno_t ds_window_set_caption(ds_window_t *wnd, const char *caption)
  *
  * @return Alternate window matching the criteria or @c NULL if there is none
  */
-ds_window_t *ds_window_find_alt(ds_window_t *wnd,
+ds_window_t *ds_window_find_prev(ds_window_t *wnd,
+    display_wnd_flags_t allowed_flags)
+{
+	ds_window_t *nwnd;
+
+	/* Try preceding windows in display order */
+	nwnd = ds_display_next_window(wnd);
+	while (nwnd != NULL && (nwnd->flags & ~allowed_flags) != 0) {
+		nwnd = ds_display_next_window(nwnd);
+	}
+
+	/* Do we already have a matching window? */
+	if (nwnd != NULL && (nwnd->flags & ~allowed_flags) == 0) {
+		return nwnd;
+	}
+
+	/* Try succeeding windows in display order */
+	nwnd = ds_display_first_window(wnd->display);
+	while (nwnd != NULL && nwnd != wnd &&
+	    (nwnd->flags & ~allowed_flags) != 0) {
+		nwnd = ds_display_next_window(nwnd);
+	}
+
+	if (nwnd == wnd)
+		return NULL;
+
+	return nwnd;
+}
+
+/** Find alternate window with the allowed flags.
+ *
+ * An alternate window is a *different* window that is preferably previous
+ * in the display order and only has the @a allowed flags.
+ *
+ * @param wnd Window
+ * @param allowed_flags Bitmask of flags that the window is allowed to have
+ *
+ * @return Alternate window matching the criteria or @c NULL if there is none
+ */
+ds_window_t *ds_window_find_next(ds_window_t *wnd,
     display_wnd_flags_t allowed_flags)
 {
 	ds_window_t *nwnd;

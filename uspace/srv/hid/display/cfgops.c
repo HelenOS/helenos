@@ -49,6 +49,7 @@ static errno_t dispc_seat_create(void *, const char *, sysarg_t *);
 static errno_t dispc_seat_delete(void *, sysarg_t);
 static errno_t dispc_dev_assign(void *, sysarg_t, sysarg_t);
 static errno_t dispc_dev_unassign(void *, sysarg_t);
+static errno_t dispc_get_asgn_dev_list(void *, sysarg_t, dispcfg_dev_list_t **);
 static errno_t dispc_get_event(void *, dispcfg_ev_t *);
 
 dispcfg_ops_t dispcfg_srv_ops = {
@@ -58,6 +59,7 @@ dispcfg_ops_t dispcfg_srv_ops = {
 	.seat_delete = dispc_seat_delete,
 	.dev_assign = dispc_dev_assign,
 	.dev_unassign = dispc_dev_unassign,
+	.get_asgn_dev_list = dispc_get_asgn_dev_list,
 	.get_event = dispc_get_event,
 };
 
@@ -194,6 +196,7 @@ static errno_t dispc_seat_delete(void *arg, sysarg_t seat_id)
 {
 	ds_cfgclient_t *cfgclient = (ds_cfgclient_t *)arg;
 	ds_seat_t *seat;
+	ds_seat_t *s;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispcfg_seat_delete()");
 
@@ -202,6 +205,13 @@ static errno_t dispc_seat_delete(void *arg, sysarg_t seat_id)
 	if (seat == NULL) {
 		ds_display_unlock(cfgclient->display);
 		return ENOENT;
+	}
+
+	/* Verify we are not deleting the last seat */
+	s = ds_display_first_seat(cfgclient->display);
+	if (s == seat && ds_display_next_seat(s) == NULL) {
+		ds_display_unlock(cfgclient->display);
+		return EBUSY;
 	}
 
 	ds_seat_destroy(seat);
@@ -277,6 +287,66 @@ static errno_t dispc_dev_unassign(void *arg, sysarg_t svc_id)
 
 	ds_idevcfg_destroy(idevcfg);
 	ds_display_unlock(cfgclient->display);
+	return EOK;
+}
+
+/** Get assigned device list.
+ *
+ * @param arg Argument (CFG client)
+ * @param seat_id Seat ID
+ * @param rlist Place to store pointer to new list
+ * @return EOK on success or an error code
+ */
+static errno_t dispc_get_asgn_dev_list(void *arg, sysarg_t seat_id,
+    dispcfg_dev_list_t **rlist)
+{
+	ds_cfgclient_t *cfgclient = (ds_cfgclient_t *)arg;
+	dispcfg_dev_list_t *list;
+	ds_seat_t *seat;
+	ds_idevcfg_t *idevcfg;
+	unsigned i;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "dispcfg_get_asgn_dev_list()");
+
+	list = calloc(1, sizeof(dispcfg_dev_list_t));
+	if (list == NULL)
+		return ENOMEM;
+
+	ds_display_lock(cfgclient->display);
+
+	seat = ds_display_find_seat(cfgclient->display, seat_id);
+	if (seat == NULL) {
+		ds_display_unlock(cfgclient->display);
+		free(list);
+		return ENOENT;
+	}
+
+	/* Count the number of devices */
+	list->ndevs = 0;
+	idevcfg = ds_seat_first_idevcfg(seat);
+	while (idevcfg != NULL) {
+		++list->ndevs;
+		idevcfg = ds_display_next_idevcfg(idevcfg);
+	}
+
+	/* Allocate array for device IDs */
+	list->devs = calloc(list->ndevs, sizeof(sysarg_t));
+	if (list->devs == NULL) {
+		ds_display_unlock(cfgclient->display);
+		free(list);
+		return ENOMEM;
+	}
+
+	/* Fill in device IDs */
+	i = 0;
+	idevcfg = ds_seat_first_idevcfg(seat);
+	while (idevcfg != NULL) {
+		list->devs[i++] = idevcfg->svc_id;
+		idevcfg = ds_display_next_idevcfg(idevcfg);
+	}
+
+	ds_display_unlock(cfgclient->display);
+	*rlist = list;
 	return EOK;
 }
 

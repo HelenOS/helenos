@@ -242,57 +242,6 @@ sysarg_t sys_debug_console(void)
 #endif
 }
 
-/** Get string from input character device.
- *
- * Read characters from input character device until first occurrence
- * of newline character.
- *
- * @param indev  Input character device.
- * @param buf    Buffer where to store string terminated by NULL.
- * @param buflen Size of the buffer.
- *
- * @return Number of characters read.
- *
- */
-size_t gets(indev_t *indev, char *buf, size_t buflen)
-{
-	size_t offset = 0;
-	size_t count = 0;
-	buf[offset] = 0;
-
-	char32_t ch;
-	while ((ch = indev_pop_character(indev)) != '\n') {
-		if (ch == '\b') {
-			if (count > 0) {
-				/* Space, backspace, space */
-				putuchar('\b');
-				putuchar(' ');
-				putuchar('\b');
-
-				count--;
-				offset = str_lsize(buf, count);
-				buf[offset] = 0;
-			}
-		}
-
-		if (chr_encode(ch, buf, &offset, buflen - 1) == EOK) {
-			putuchar(ch);
-			count++;
-			buf[offset] = 0;
-		}
-	}
-
-	return count;
-}
-
-/** Get character from input device & echo it to screen */
-char32_t getc(indev_t *indev)
-{
-	char32_t ch = indev_pop_character(indev);
-	putuchar(ch);
-	return ch;
-}
-
 void kio_update(void *event)
 {
 	if (!atomic_load(&kio_inited))

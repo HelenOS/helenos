@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'gfx', 'gfxfont', 'memgfx', 'display', 'congfx' ]
+deps = [ 'gfx', 'gfxfont', 'memgfx', 'display', 'congfx', 'clipboard' ]
 src = files(
 	'src/accel.c',
 	'src/checkbox.c',
@@ -42,6 +42,7 @@ src = files(
 	'src/list.c',
 	'src/menu.c',
 	'src/menubar.c',
+	'src/menudd.c',
 	'src/menuentry.c',
 	'src/msgdialog.c',
 	'src/paint.c',
@@ -51,6 +52,7 @@ src = files(
 	'src/rbutton.c',
 	'src/resource.c',
 	'src/scrollbar.c',
+	'src/selectdialog.c',
 	'src/slider.c',
 	'src/tab.c',
 	'src/tabset.c',
@@ -75,6 +77,7 @@ test_src = files(
 	'test/main.c',
 	'test/menu.c',
 	'test/menubar.c',
+	'test/menudd.c',
 	'test/menuentry.c',
 	'test/msgdialog.c',
 	'test/paint.c',
@@ -84,6 +87,7 @@ test_src = files(
 	'test/rbutton.c',
 	'test/resource.c',
 	'test/scrollbar.c',
+	'test/selectdialog.c',
 	'test/slider.c',
 	'test/tab.c',
 	'test/tabset.c',

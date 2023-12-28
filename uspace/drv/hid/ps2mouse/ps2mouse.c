@@ -39,7 +39,6 @@
 #include <ddf/log.h>
 #include <io/keycode.h>
 #include <io/chardev.h>
-#include <io/console.h>
 #include <ipc/mouseev.h>
 #include <abi/ipc/methods.h>
 

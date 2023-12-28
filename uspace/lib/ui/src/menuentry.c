@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -162,6 +162,26 @@ void ui_menu_entry_set_cb(ui_menu_entry_t *mentry, ui_menu_entry_cb_t cb,
 	mentry->arg = arg;
 }
 
+/** Set menu entry disabled flag.
+ *
+ * @param mentry Menu entry
+ * @param disabled @c true iff entry is to be disabled, @c false otherwise
+ */
+void ui_menu_entry_set_disabled(ui_menu_entry_t *mentry, bool disabled)
+{
+	mentry->disabled = disabled;
+}
+
+/** Get menu entry disabled flag.
+ *
+ * @param mentry Menu entry
+ * @return disabled @c true iff entry is disabled, @c false otherwise
+ */
+bool ui_menu_entry_is_disabled(ui_menu_entry_t *mentry)
+{
+	return mentry->disabled;
+}
+
 /** Get first menu entry in menu.
  *
  * @param menu Menu
@@ -240,10 +260,10 @@ void ui_menu_entry_column_widths(ui_menu_entry_t *mentry,
 	/*
 	 * This needs to work even if the menu is not open, so we cannot
 	 * use the menu's resource, which is only created after the menu
-	 * is open (and its window is created). Use the menu bar's
+	 * is open (and its window is created). Use the parent window's
 	 * resource instead.
 	 */
-	res = ui_window_get_res(mentry->menu->mbar->window);
+	res = ui_window_get_res(mentry->menu->parent);
 
 	*caption_w = ui_text_width(res->font, mentry->caption);
 	*shortcut_w = ui_text_width(res->font, mentry->shortcut);
@@ -266,10 +286,10 @@ gfx_coord_t ui_menu_entry_calc_width(ui_menu_t *menu, gfx_coord_t caption_w,
 	/*
 	 * This needs to work even if the menu is not open, so we cannot
 	 * use the menu's resource, which is only created after the menu
-	 * is open (and its window is created). Use the menu bar's
+	 * is open (and its window is created). Use the parent window's
 	 * resource instead.
 	 */
-	res = ui_window_get_res(menu->mbar->window);
+	res = ui_window_get_res(menu->parent);
 
 	if (res->textmode)
 		hpad = menu_entry_hpad_text;
@@ -305,10 +325,10 @@ gfx_coord_t ui_menu_entry_height(ui_menu_entry_t *mentry)
 	/*
 	 * This needs to work even if the menu is not open, so we cannot
 	 * use the menu's resource, which is only created after the menu
-	 * is open (and its window is created). Use the menu bar's
+	 * is open (and its window is created). Use the parent window's
 	 * resource instead.
 	 */
-	res = ui_window_get_res(mentry->menu->mbar->window);
+	res = ui_window_get_res(mentry->menu->parent);
 
 	if (res->textmode) {
 		vpad = menu_entry_vpad_text;
@@ -371,6 +391,10 @@ errno_t ui_menu_entry_paint(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 		fmt.color = res->wnd_sel_text_color;
 		fmt.hgl_color = res->wnd_sel_text_hgl_color;
 		bg_color = res->wnd_sel_text_bg_color;
+	} else if (mentry->disabled) {
+		fmt.color = res->wnd_dis_text_color;
+		fmt.hgl_color = res->wnd_dis_text_color;
+		bg_color = res->wnd_face_color;
 	} else {
 		fmt.color = res->wnd_text_color;
 		fmt.hgl_color = res->wnd_text_hgl_color;
@@ -444,7 +468,7 @@ void ui_menu_entry_press(ui_menu_entry_t *mentry, gfx_coord2_t *pos)
 	if (mentry->held)
 		return;
 
-	if (mentry->separator)
+	if (mentry->separator || mentry->disabled)
 		return;
 
 	mentry->inside = true;
@@ -473,8 +497,8 @@ void ui_menu_entry_release(ui_menu_entry_t *mentry)
  */
 void ui_menu_entry_activate(ui_menu_entry_t *mentry)
 {
-	/* Deactivate menu bar, close menu */
-	ui_menu_bar_deactivate(mentry->menu->mbar);
+	/* Close menu */
+	ui_menu_close_req(mentry->menu);
 
 	/* Call back */
 	ui_menu_entry_cb(mentry);

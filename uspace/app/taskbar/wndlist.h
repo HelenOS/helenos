@@ -30,7 +30,7 @@
  * @{
  */
 /**
- * @file Task bar window list
+ * @file Taskbar window list
  */
 
 #ifndef WNDLIST_H
@@ -62,6 +62,7 @@ extern wndlist_entry_t *wndlist_last(wndlist_t *);
 extern wndlist_entry_t *wndlist_next(wndlist_entry_t *);
 extern size_t wndlist_count(wndlist_t *);
 extern errno_t wndlist_repaint(wndlist_t *);
+extern errno_t wndlist_paint_entry(wndlist_entry_t *);
 extern errno_t wndlist_unpaint_entry(wndlist_entry_t *);
 
 #endif

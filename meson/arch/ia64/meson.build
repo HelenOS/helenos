@@ -35,9 +35,12 @@ endif
 
 arch_boot_c_args = [ '-D__LE__', '-fno-unwind-tables', '-mfixed-range=f32-f127', '-mno-pic', '-mno-sdata' ]
 
+# work around GCC bug 112604
+arch_uspace_c_args += ['-fno-unswitch-loops']
+
 arch_uspace_link_args = [ '-nostdlib', '-lgcc' ]
-arch_kernel_link_args = [ '-nostdlib', '-Wl,-EL' ]
-arch_boot_link_args = []
+arch_kernel_link_args = [ '-nostdlib', '-Wl,-EL', '-Wl,--no-warn-rwx-segments']
+arch_boot_link_args = ['-Wl,--no-warn-rwx-segments']
 
 
 if MACHINE == 'i460GX'

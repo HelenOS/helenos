@@ -152,7 +152,19 @@ typedef struct {
 extern void __fibril_synch_init(void);
 extern void __fibril_synch_fini(void);
 
-extern void fibril_mutex_initialize(fibril_mutex_t *);
+/** Initialize fibril mutex.
+ *
+ * Kept as in-line to allow constexpr marker for C++ library where this
+ * is used by C++ mutex type (list initialization are two assignments
+ * so it is actually reasonable to have this inlined).
+ */
+static inline __CONSTEXPR void fibril_mutex_initialize(fibril_mutex_t *fm)
+{
+	fm->oi.owned_by = NULL;
+	fm->counter = 1;
+	list_initialize(&fm->waiters);
+}
+
 extern void fibril_mutex_lock(fibril_mutex_t *);
 extern bool fibril_mutex_trylock(fibril_mutex_t *);
 extern void fibril_mutex_unlock(fibril_mutex_t *);

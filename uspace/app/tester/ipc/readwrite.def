@@ -1,0 +1,6 @@
+{
+	"readwrite",
+	"IPC read/write test",
+	&test_readwrite,
+	true
+},

@@ -41,16 +41,13 @@ subdir('generic')
 # Defines test_src
 subdir('test')
 
-## Cross-platform assembly to start a symtab.data section
-#
-symtab_section = '.section symtab.data, "a", ' + atsign + 'progbits;'
-
 kernel_include_dirs = include_directories(
 	'generic/include',
 	'genarch/include',
 	'arch' / KARCH / 'include',
 	'..' / 'abi' / 'arch' / KARCH / 'include',
 	'..' / 'abi' / 'include',
+	'..' / 'common' / 'include',
 	'test',
 )
 
@@ -88,21 +85,39 @@ kernel_link_args = arch_kernel_link_args + [
 	'-Wl,--nmagic',
 	'-T', meson.current_build_dir() / '_link.ld',
 ]
+# The kernel is built as ELF but then copied as a blob of bytes and
+# the permissions are not relevant anyway (needed for binutils 2.39+).
+kernel_link_args += ldflags_ignore_rwx_segments
 
 if CONFIG_LTO
 	kernel_link_args += [ '-flto' ]
 endif
 
-if CONFIG_STRIP_BINARIES
-	# TODO: do this after disassembling
-	kernel_link_args += [ '-s' ]
-endif
-
 kernel_c_args = arch_kernel_c_args + kernel_defs + [
 	'-ffreestanding',
-	# TODO: remove this flag
-	cc.get_supported_arguments([ '-Wno-cast-function-type' ]),
+	'-fdebug-prefix-map=../../kernel/=',
+	'-fdebug-prefix-map=../../../kernel/=',
+
+	cc.get_supported_arguments([
+		# TODO: remove this flag
+		'-Wno-cast-function-type',
+
+		# When accessing specific memory addresses that are below
+		# normal page size, the compiler may assume that we actually
+		# dereferenced NULL pointer and warns us about that.
+		# But in kernel we often need to access these addresses
+		# directly hence we need to ignore these warnings.
+		#
+		# TODO: might make more sense to disable this selectively
+		# in specific files (or better yet, for specific lines).
+		'--param=min-pagesize=0',
+	]),
 ]
+
+if not CONFIG_LINE_DEBUG
+	# Keep the debug info needed to get file names for kernel stack traces.
+	kernel_c_args += [ '-gdwarf-5', '-g1', '-gno-statement-frontiers' ]
+endif
 
 if CONFIG_LTO
 	kernel_c_args += [ '-flto' ]
@@ -132,80 +147,53 @@ noninstrumentables = static_library('noninstrumentables', arch_src, genarch_src,
 
 all_kernel_objects = [ instrumentables, noninstrumentables ]
 
-# We iterate the build several times to get symbol table right.
-# Three times is sufficient to get correct even symbols after symtab.
+kernel_name = 'kernel.elf'
+kernel_map_name = kernel_name + '.map'
+kernel_map_path = meson.current_build_dir() / kernel_map_name
 
-if CONFIG_SYMTAB
-	# Iterate build three times.
-	iterations = [ 1, 2, 3 ]
-
-	# Generates symbol table information as an object file.
-	genmap = find_program('tools/genmap.py')
-
-	# Symbol table dump needed for genmap.
-	kernel_syms = custom_target('kernel_syms.txt',
-		input: all_kernel_objects,
-		output: 'kernel_syms.txt',
-		command: [ objdump, '-t', '@INPUT@' ],
-		capture: true,
-	)
-else
-	# Build just once.
-	iterations = [ 1 ]
-endif
-
-# Empty symbol map for first iteration.
-kernel_map_S = custom_target('empty_map.S',
-	output: 'empty_map.S',
-	capture: true,
-	command: [ 'echo', kernel_as_prolog + symtab_section ],
+kernel_elf = executable(kernel_name,
+	include_directories: kernel_include_dirs,
+	implicit_include_directories: false,
+	c_args: kernel_c_args,
+	link_args: kernel_c_args + kernel_link_args + [
+		'-Wl,-Map,' + kernel_map_path,
+	],
+	link_depends: kernel_ldscript,
+	link_whole: all_kernel_objects,
+	pie: false,
 )
 
-foreach iter : iterations
-	is_last = (iter == iterations.length())
-	kernel_name = 'kernel.@0@.elf'.format(iter)
-	kernel_map_name = kernel_name + '.map'
-	kernel_map_path = meson.current_build_dir() / kernel_map_name
+kernel_dbg = custom_target('kernel.dbg',
+	output: 'kernel.dbg',
+	input: kernel_elf,
+	command: [
+		objcopy,
+		'--only-keep-debug',
+		'@INPUT@',
+		'@OUTPUT@',
+	],
+)
 
-	kernel_elf = executable(kernel_name, kernel_map_S,
-		include_directories: kernel_include_dirs,
-		implicit_include_directories: false,
-		c_args: kernel_c_args,
-		link_args: kernel_c_args + kernel_link_args + [
-			'-Wl,-Map,' + kernel_map_path,
-		],
-		link_depends: kernel_ldscript,
-		link_whole: all_kernel_objects,
-		pie: false,
-	)
+kernel_elf_stripped = custom_target(kernel_name + '.stripped',
+	output: kernel_name + '.stripped',
+	input: kernel_elf,
+	command: [
+		objcopy,
+		'--strip-unneeded',
+		'@INPUT@',
+		'@OUTPUT@',
+	],
+)
 
-	# Generate symbol table if this is not the final iteration.
-	if not is_last
+rd_init_binaries += [[ kernel_elf_stripped, 'boot/kernel.elf' ]]
+install_files += [[ 'boot', kernel_elf_stripped.full_path(), 'kernel.elf' ]]
+install_deps += [ kernel_elf_stripped ]
 
-		# TODO: Teach kernel to read its own ELF symbol table and get rid of this nonsense.
-		# Need to first make sure all architectures (even future ones with dumb bootloaders) can use ELF formatted kernel.
-
-		kernel_map_bin = custom_target(kernel_map_name + '.bin',
-			output: kernel_map_name + '.bin',
-			input: [ kernel_elf, kernel_syms ],
-			command: [ genmap, kernel_map_path, '@INPUT1@', '@OUTPUT@' ],
-		)
-
-		kernel_map_S_name = kernel_name + '.map.S'
-
-		kernel_map_S = custom_target(kernel_map_S_name,
-			input: kernel_map_bin,
-			output: kernel_map_S_name,
-			capture: true,
-			command: [ 'echo', kernel_as_prolog + symtab_section + ' .incbin "@INPUT@"' ],
-		)
-	endif
-endforeach
-
-rd_init_binaries += [[ kernel_elf, 'boot/kernel.elf' ]]
-
-install_files += [[ 'boot', kernel_elf.full_path(), 'kernel.elf' ]]
-install_deps += [ kernel_elf ]
+if CONFIG_SYMTAB
+	rd_init_binaries += [[ kernel_dbg, 'kernel.dbg' ]]
+	install_files += [[ 'boot', kernel_dbg.full_path(), 'kernel.dbg' ]]
+	install_deps += [ kernel_dbg ]
+endif
 
 kernel_disasm = custom_target('kernel.elf.disasm',
 	command: [ objdump, '-S', '@INPUT@' ],

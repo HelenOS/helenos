@@ -38,7 +38,7 @@
 #include <ddf/log.h>
 #include <io/keycode.h>
 #include <io/chardev.h>
-#include <io/console.h>
+#include <io/kbd_event.h>
 #include <ipc/kbdev.h>
 #include <abi/ipc/methods.h>
 #include "xtkbd.h"

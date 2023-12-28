@@ -122,11 +122,9 @@ static void clock_update_counters(uint64_t current_tick)
 
 static void cpu_update_accounting(void)
 {
-	irq_spinlock_lock(&CPU->lock, false);
 	uint64_t now = get_cycle();
-	CPU->busy_cycles += now - CPU->last_cycle;
+	atomic_time_increment(&CPU->busy_cycles, now - CPU->last_cycle);
 	CPU->last_cycle = now;
-	irq_spinlock_unlock(&CPU->lock, false);
 }
 
 /** Clock routine

@@ -29,7 +29,7 @@
 /** @addtogroup taskbar
  * @{
  */
-/** @file Task bar clock.
+/** @file Taskbar clock.
  *
  * Displays the current time in an inset frame.
  */
@@ -52,7 +52,7 @@ static ui_evclaim_t taskbar_clock_ctl_kbd_event(void *, kbd_event_t *);
 static ui_evclaim_t taskbar_clock_ctl_pos_event(void *, pos_event_t *);
 static void taskbar_clock_timer(void *);
 
-/** Task bar clock control ops */
+/** Taskbar clock control ops */
 static ui_control_ops_t taskbar_clock_ctl_ops = {
 	.destroy = taskbar_clock_ctl_destroy,
 	.paint = taskbar_clock_ctl_paint,
@@ -60,7 +60,7 @@ static ui_control_ops_t taskbar_clock_ctl_ops = {
 	.pos_event = taskbar_clock_ctl_pos_event
 };
 
-/** Create task bar clock.
+/** Create taskbar clock.
  *
  * @param window Containing window
  * @param rclock Place to store pointer to new clock
@@ -101,9 +101,9 @@ error:
 	return rc;
 }
 
-/** Destroy task bar clock.
+/** Destroy taskbar clock.
  *
- * @param clock Task bar clock
+ * @param clock Taskbar clock
  */
 void taskbar_clock_destroy(taskbar_clock_t *clock)
 {
@@ -148,9 +148,9 @@ static errno_t taskbar_clock_get_text(taskbar_clock_t *clock, char *buf,
 	return EOK;
 }
 
-/** Paint task bar clock.
+/** Paint taskbar clock.
  *
- * @param clock Task bar clock
+ * @param clock Taskbar clock
  */
 errno_t taskbar_clock_paint(taskbar_clock_t *clock)
 {
@@ -207,9 +207,9 @@ error:
 	return rc;
 }
 
-/** Handle task bar clock keyboard event.
+/** Handle taskbar clock keyboard event.
  *
- * @param clock Task bar clock
+ * @param clock Taskbar clock
  * @param event Keyboard event
  * @return ui_claimed iff event was claimed
  */
@@ -218,9 +218,9 @@ ui_evclaim_t taskbar_clock_kbd_event(taskbar_clock_t *clock, kbd_event_t *event)
 	return ui_unclaimed;
 }
 
-/** Handle task bar clock position event.
+/** Handle taskbar clock position event.
  *
- * @param clock Task bar clock
+ * @param clock Taskbar clock
  * @param event Position event
  * @return ui_claimed iff event was claimed
  */
@@ -236,9 +236,9 @@ ui_evclaim_t taskbar_clock_pos_event(taskbar_clock_t *clock, pos_event_t *event)
 	return ui_claimed;
 }
 
-/** Get base control for task bar clock.
+/** Get base control for taskbar clock.
  *
- * @param clock Task bar clock
+ * @param clock Taskbar clock
  * @return Base UI control
  */
 ui_control_t *taskbar_clock_ctl(taskbar_clock_t *clock)
@@ -246,9 +246,9 @@ ui_control_t *taskbar_clock_ctl(taskbar_clock_t *clock)
 	return clock->control;
 }
 
-/** Set task bar clock rectangle.
+/** Set taskbar clock rectangle.
  *
- * @param clock Task bar clock
+ * @param clock Taskbar clock
  * @param rect Rectangle
  */
 void taskbar_clock_set_rect(taskbar_clock_t *clock, gfx_rect_t *rect)
@@ -276,7 +276,7 @@ void taskbar_clock_ctl_destroy(void *arg)
 	taskbar_clock_destroy(clock);
 }
 
-/** Paint task bar clock control.
+/** Paint taskbar clock control.
  *
  * @param arg Argument (taskbar_clock_t *)
  * @return EOK on success or an error code
@@ -288,7 +288,7 @@ errno_t taskbar_clock_ctl_paint(void *arg)
 	return taskbar_clock_paint(clock);
 }
 
-/** Handle task bar clock control keyboard event.
+/** Handle taskbar clock control keyboard event.
  *
  * @param arg Argument (taskbar_clock_t *)
  * @param kbd_event Keyboard event
@@ -301,7 +301,7 @@ ui_evclaim_t taskbar_clock_ctl_kbd_event(void *arg, kbd_event_t *event)
 	return taskbar_clock_kbd_event(clock, event);
 }
 
-/** Handle task bar clock control position event.
+/** Handle taskbar clock control position event.
  *
  * @param arg Argument (taskbar_clock_t *)
  * @param pos_event Position event
@@ -321,9 +321,14 @@ ui_evclaim_t taskbar_clock_ctl_pos_event(void *arg, pos_event_t *event)
 static void taskbar_clock_timer(void *arg)
 {
 	taskbar_clock_t *clock = (taskbar_clock_t *) arg;
+	ui_t *ui;
+
+	ui = ui_window_get_ui(clock->window);
+	ui_lock(ui);
 
 	fibril_mutex_lock(&clock->lock);
-	(void) taskbar_clock_paint(clock);
+	if (!ui_is_suspended(ui_window_get_ui(clock->window)))
+		(void) taskbar_clock_paint(clock);
 
 	if (!clock->timer_cleanup) {
 		fibril_timer_set(clock->timer, 1000000, taskbar_clock_timer,
@@ -335,6 +340,7 @@ static void taskbar_clock_timer(void *arg)
 	}
 
 	fibril_mutex_unlock(&clock->lock);
+	ui_unlock(ui);
 }
 
 /** @}

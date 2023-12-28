@@ -118,6 +118,38 @@ PCUT_TEST(set_cb)
 	ui_destroy(ui);
 }
 
+/** ui_list_get_cb_arg() returns the callback argument */
+PCUT_TEST(get_cb_arg)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_list_t *list;
+	errno_t rc;
+	test_resp_t resp;
+	void *arg;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_list_create(window, true, &list);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_set_cb(list, &test_cb, &resp);
+	arg = ui_list_get_cb_arg(list);
+	PCUT_ASSERT_EQUALS((void *)&resp, arg);
+
+	ui_list_destroy(list);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_list_entry_height() gives the correct height */
 PCUT_TEST(entry_height)
 {
@@ -750,6 +782,66 @@ PCUT_TEST(get_cursor)
 	ui_destroy(ui);
 }
 
+/** ui_list_set_cursor() sets list cursor position */
+PCUT_TEST(set_cursor)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_list_t *list;
+	ui_list_entry_attr_t attr;
+	ui_list_entry_t *e1;
+	ui_list_entry_t *e2;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_list_create(window, true, &list);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_entry_attr_init(&attr);
+
+	/* Append entry and get pointer to it */
+	attr.caption = "a";
+	attr.arg = (void *)1;
+	rc = ui_list_entry_append(list, &attr, &e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e1);
+
+	/* Append entry and get pointer to it */
+	attr.caption = "b";
+	attr.arg = (void *)2;
+	rc = ui_list_entry_append(list, &attr, &e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e2);
+
+	/* Append entry */
+	attr.caption = "c";
+	attr.arg = (void *)3;
+	rc = ui_list_entry_append(list, &attr, NULL);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Cursor should be at the first entry */
+	PCUT_ASSERT_EQUALS(e1, list->cursor);
+	PCUT_ASSERT_INT_EQUALS(0, list->cursor_idx);
+
+	/* Set cursor to the second entry */
+	ui_list_set_cursor(list, e2);
+	PCUT_ASSERT_EQUALS(e2, list->cursor);
+	PCUT_ASSERT_INT_EQUALS(1, list->cursor_idx);
+
+	ui_list_destroy(list);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** ui_list_entry_attr_init() initializes entry attribute structure */
 PCUT_TEST(entry_attr_init)
 {
@@ -897,6 +989,92 @@ PCUT_TEST(entry_get_arg)
 
 	arg = ui_list_entry_get_arg(entry);
 	PCUT_ASSERT_EQUALS(attr.arg, arg);
+
+	ui_list_destroy(list);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_list_entry_get_list() returns the containing list */
+PCUT_TEST(entry_get_list)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_list_t *list;
+	ui_list_t *elist;
+	ui_list_entry_attr_t attr;
+	ui_list_entry_t *entry;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_list_create(window, true, &list);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_entry_attr_init(&attr);
+
+	/* Append entry and get pointer to it */
+	attr.caption = "a";
+	attr.arg = (void *)1;
+	entry = NULL;
+	rc = ui_list_entry_append(list, &attr, &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(entry);
+
+	/* Get the containing list */
+	elist = ui_list_entry_get_list(entry);
+	PCUT_ASSERT_EQUALS(list, elist);
+
+	ui_list_destroy(list);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_list_entry_set_caption() sets entry captino */
+PCUT_TEST(entry_set_caption)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_list_t *list;
+	ui_list_entry_attr_t attr;
+	ui_list_entry_t *entry;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_list_create(window, true, &list);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_entry_attr_init(&attr);
+
+	/* Append entry and get pointer to it */
+	attr.caption = "a";
+	attr.arg = (void *)1;
+	entry = NULL;
+	rc = ui_list_entry_append(list, &attr, &entry);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(entry);
+
+	/* Change caption */
+	rc = ui_list_entry_set_caption(entry, "b");
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_STR_EQUALS("b", entry->caption);
 
 	ui_list_destroy(list);
 	ui_window_destroy(window);

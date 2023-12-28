@@ -32,7 +32,7 @@
  */
 
 #include <errno.h>
-#include <io/console.h>
+#include <io/kbd_event.h>
 #include <io/keycode.h>
 
 #include "ctl.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2023 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -227,6 +227,8 @@ static int seq_defs[] = {
 	0,	KC_DOWN,	0x1b, 0x5b, 0x42, GSP_END,
 	0,	KC_RIGHT,	0x1b, 0x5b, 0x43, GSP_END,
 
+	/* Ctrl + key */
+
 	KM_CTRL, 	KC_Q,		0x11, GSP_END,
 	KM_CTRL, 	KC_W,		0x17, GSP_END,
 	KM_CTRL, 	KC_E,		0x05, GSP_END,
@@ -251,6 +253,64 @@ static int seq_defs[] = {
 	KM_CTRL,	KC_V,		0x16, GSP_END,
 	KM_CTRL,	KC_B,		0x02, GSP_END,
 	KM_CTRL,	KC_N,		0x0e, GSP_END,
+
+	/* Alt + key */
+
+	KM_ALT,	KC_BACKTICK,	0x1b, 0x60, GSP_END,
+
+	KM_ALT,	KC_1,		0x1b, 0x31, GSP_END,
+	KM_ALT,	KC_2,		0x1b, 0x32, GSP_END,
+	KM_ALT,	KC_3,		0x1b, 0x33, GSP_END,
+	KM_ALT,	KC_4,		0x1b, 0x34, GSP_END,
+	KM_ALT,	KC_5,		0x1b, 0x35, GSP_END,
+	KM_ALT,	KC_6,		0x1b, 0x36, GSP_END,
+	KM_ALT,	KC_7,		0x1b, 0x37, GSP_END,
+	KM_ALT,	KC_8,		0x1b, 0x38, GSP_END,
+	KM_ALT,	KC_9,		0x1b, 0x39, GSP_END,
+	KM_ALT,	KC_0,		0x1b, 0x30, GSP_END,
+
+	KM_ALT,	KC_MINUS,	0x1b, 0x2d, GSP_END,
+	KM_ALT,	KC_EQUALS,	0x1b, 0x3d, GSP_END,
+
+	KM_ALT,	KC_Q,		0x1b, 0x71, GSP_END,
+	KM_ALT,	KC_W,		0x1b, 0x77, GSP_END,
+	KM_ALT,	KC_E,		0x1b, 0x65, GSP_END,
+	KM_ALT,	KC_R,		0x1b, 0x72, GSP_END,
+	KM_ALT,	KC_T,		0x1b, 0x74, GSP_END,
+	KM_ALT,	KC_Y,		0x1b, 0x79, GSP_END,
+	KM_ALT,	KC_U,		0x1b, 0x75, GSP_END,
+	KM_ALT,	KC_I,		0x1b, 0x69, GSP_END,
+	KM_ALT,	KC_O,		0x1b, 0x6f, GSP_END,
+	KM_ALT,	KC_P,		0x1b, 0x70, GSP_END,
+
+	/* 0x1b, 0x5b is used by other keys/sequences */
+	KM_ALT,	KC_RBRACKET,	0x1b, 0x5d, GSP_END,
+
+	KM_ALT,	KC_A,		0x1b, 0x61, GSP_END,
+	KM_ALT,	KC_S,		0x1b, 0x73, GSP_END,
+	KM_ALT,	KC_D,		0x1b, 0x64, GSP_END,
+	KM_ALT,	KC_F,		0x1b, 0x66, GSP_END,
+	KM_ALT,	KC_G,		0x1b, 0x67, GSP_END,
+	KM_ALT,	KC_H,		0x1b, 0x68, GSP_END,
+	KM_ALT,	KC_J,		0x1b, 0x6a, GSP_END,
+	KM_ALT,	KC_K,		0x1b, 0x6b, GSP_END,
+	KM_ALT,	KC_L,		0x1b, 0x6c, GSP_END,
+
+	KM_ALT,	KC_SEMICOLON,	0x1b, 0x3b, GSP_END,
+	KM_ALT,	KC_QUOTE,	0x1b, 0x27, GSP_END,
+	KM_ALT,	KC_BACKSLASH,	0x1b, 0x5c, GSP_END,
+
+	KM_ALT,	KC_Z,		0x1b, 0x7a, GSP_END,
+	KM_ALT,	KC_X,		0x1b, 0x78, GSP_END,
+	KM_ALT,	KC_C,		0x1b, 0x63, GSP_END,
+	KM_ALT,	KC_V,		0x1b, 0x76, GSP_END,
+	KM_ALT,	KC_B,		0x1b, 0x62, GSP_END,
+	KM_ALT,	KC_N,		0x1b, 0x6e, GSP_END,
+	KM_ALT,	KC_M,		0x1b, 0x6d, GSP_END,
+
+	KM_ALT,	KC_COMMA,	0x1b, 0x2c, GSP_END,
+	KM_ALT,	KC_PERIOD,	0x1b, 0x2e, GSP_END,
+	KM_ALT,	KC_SLASH,	0x1b, 0x2f, GSP_END,
 
 	/*
 	 * Sequences specific to Gnome terminal

@@ -27,4 +27,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+deps = [ 'console', 'input', 'output' ]
 src = files('console.c')

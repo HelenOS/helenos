@@ -37,6 +37,7 @@
 #define _UI_TYPES_WDECOR_H
 
 #include <gfx/coord.h>
+#include <types/common.h>
 #include <types/ui/cursor.h>
 
 struct ui_wdecor;
@@ -50,16 +51,18 @@ typedef enum {
 	ui_wds_frame = 0x1,
 	/** Window has a title bar */
 	ui_wds_titlebar = 0x2,
+	/** Window has a system menu handle */
+	ui_wds_sysmenu_hdl = 0x4,
 	/** Window has a minimize button */
-	ui_wds_minimize_btn = 0x4,
+	ui_wds_minimize_btn = 0x8,
 	/** Window has a maximize button */
-	ui_wds_maximize_btn = 0x8,
+	ui_wds_maximize_btn = 0x10,
 	/** Window has a close button */
-	ui_wds_close_btn = 0x10,
+	ui_wds_close_btn = 0x20,
 	/** Window is resizable */
-	ui_wds_resizable = 0x20,
+	ui_wds_resizable = 0x40,
 	/** Window is decorated (default decoration) */
-	ui_wds_decorated = ui_wds_frame | ui_wds_titlebar |
+	ui_wds_decorated = ui_wds_frame | ui_wds_titlebar | ui_wds_sysmenu_hdl |
 	    ui_wds_minimize_btn | ui_wds_close_btn
 } ui_wdecor_style_t;
 
@@ -80,6 +83,10 @@ typedef enum {
 
 /** Window decoration callbacks */
 typedef struct ui_wdecor_cb {
+	void (*sysmenu_open)(ui_wdecor_t *, void *, sysarg_t);
+	void (*sysmenu_left)(ui_wdecor_t *, void *, sysarg_t);
+	void (*sysmenu_right)(ui_wdecor_t *, void *, sysarg_t);
+	void (*sysmenu_accel)(ui_wdecor_t *, void *, char32_t, sysarg_t);
 	void (*minimize)(ui_wdecor_t *, void *);
 	void (*maximize)(ui_wdecor_t *, void *);
 	void (*unmaximize)(ui_wdecor_t *, void *);

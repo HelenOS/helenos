@@ -57,6 +57,13 @@
 #include <str.h>
 #include <trace.h>
 
+/*
+ * If IVT_ITEMS is zero (e.g. for special/abs32le) we hide completely any
+ * access to the exception table array and panic if the function is called
+ * at all. It also silences (correct) compiler warnings about possible
+ * out-of-bound array access.
+ */
+
 exc_table_t exc_table[IVT_ITEMS];
 IRQ_SPINLOCK_INITIALIZE(exctbl_lock);
 
@@ -76,7 +83,6 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
 {
 #if (IVT_ITEMS > 0)
 	assert(n < IVT_ITEMS);
-#endif
 
 	irq_spinlock_lock(&exctbl_lock, true);
 
@@ -90,6 +96,9 @@ iroutine_t exc_register(unsigned int n, const char *name, bool hot,
 	irq_spinlock_unlock(&exctbl_lock, true);
 
 	return old;
+#else
+	panic("No space for any exception handler, cannot register.");
+#endif
 }
 
 /** Dispatch exception according to exception table
@@ -102,7 +111,6 @@ _NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 {
 #if (IVT_ITEMS > 0)
 	assert(n < IVT_ITEMS);
-#endif
 
 	/* Account user cycles */
 	if (THREAD) {
@@ -113,12 +121,10 @@ _NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 
 	/* Account CPU usage if it woke up from sleep */
 	if (CPU && CPU->idle) {
-		irq_spinlock_lock(&CPU->lock, false);
 		uint64_t now = get_cycle();
-		CPU->idle_cycles += now - CPU->last_cycle;
+		atomic_time_increment(&CPU->idle_cycles, now - CPU->last_cycle);
 		CPU->last_cycle = now;
 		CPU->idle = false;
-		irq_spinlock_unlock(&CPU->lock, false);
 	}
 
 	uint64_t begin_cycle = get_cycle();
@@ -153,6 +159,9 @@ _NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 		THREAD->last_cycle = end_cycle;
 		irq_spinlock_unlock(&THREAD->lock, false);
 	}
+#else
+	panic("No space for any exception handler, yet we want to handle some exception.");
+#endif
 }
 
 /** Default 'null' exception handler
