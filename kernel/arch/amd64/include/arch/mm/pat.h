@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2024 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,43 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic_mm
+/** @addtogroup kernel_amd64_mm
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_MM_H_
-#define KERN_MM_H_
+#ifndef KERN_amd64_MM_PAT_H_
+#define KERN_amd64_MM_PAT_H_
 
-#define PAGE_CACHEABLE_SHIFT		0
-#define PAGE_NOT_CACHEABLE_SHIFT	PAGE_CACHEABLE_SHIFT
-#define PAGE_PRESENT_SHIFT		1
-#define PAGE_NOT_PRESENT_SHIFT		PAGE_PRESENT_SHIFT
-#define PAGE_USER_SHIFT			2
-#define PAGE_KERNEL_SHIFT		PAGE_USER_SHIFT
-#define PAGE_READ_SHIFT			3
-#define PAGE_WRITE_SHIFT		4
-#define PAGE_EXEC_SHIFT			5
-#define PAGE_GLOBAL_SHIFT		6
-#define PAGE_WRITE_COMBINE_SHIFT  7
+#include <arch/asm.h>
+#include <arch/cpuid.h>
 
-#define PAGE_NOT_CACHEABLE		(0 << PAGE_CACHEABLE_SHIFT)
-#define PAGE_CACHEABLE			(1 << PAGE_CACHEABLE_SHIFT)
+#define MSR_IA32_PAT  0x00000277
 
-#define PAGE_PRESENT			(0 << PAGE_PRESENT_SHIFT)
-#define PAGE_NOT_PRESENT		(1 << PAGE_PRESENT_SHIFT)
+typedef enum {
+	PAT_TYPE_UNCACHEABLE = 0,
+	PAT_TYPE_WRITE_COMBINING = 1,
+	PAT_TYPE_WRITE_THROUGH = 4,
+	PAT_TYPE_WRITE_PROTECTED = 5,
+	PAT_TYPE_WRITE_BACK = 6,
+	PAT_TYPE_UNCACHED  = 7,
+} pat_type_t;
 
-#define PAGE_USER			(1 << PAGE_USER_SHIFT)
-#define PAGE_KERNEL			(0 << PAGE_USER_SHIFT)
+/**
+ * Assign caching type for a particular combination of PAT,
+ * PCD and PWT bits in PTE.
+ */
+static inline void pat_set_mapping(bool pat, bool pcd, bool pwt,
+    pat_type_t type)
+{
+	int index = pat << 2 | pcd << 1 | pwt;
+	int shift = index * 8;
 
-#define PAGE_READ			(1 << PAGE_READ_SHIFT)
-#define PAGE_WRITE			(1 << PAGE_WRITE_SHIFT)
-#define PAGE_EXEC			(1 << PAGE_EXEC_SHIFT)
+	uint64_t r = read_msr(MSR_IA32_PAT);
+	r &= ~(0xffull << shift);
+	r |= ((uint64_t) type) << shift;
+	write_msr(MSR_IA32_PAT, r);
+}
 
-#define PAGE_GLOBAL			(1 << PAGE_GLOBAL_SHIFT)
+static inline bool pat_supported(void)
+{
+	if (!has_cpuid())
+		return false;
 
-#define PAGE_WRITE_COMBINE  (1 << PAGE_WRITE_COMBINE_SHIFT)
+	cpu_info_t info;
+	cpuid(INTEL_CPUID_STANDARD, &info);
+
+	return (info.cpuid_edx & (1 << 16)) != 0;
+}
 
 #endif
 

@@ -59,6 +59,7 @@
 #include <arch/pm.h>
 #include <arch/vreg.h>
 #include <arch/kseg.h>
+#include <arch/mm/pat.h>
 #include <genarch/pic/pic_ops.h>
 
 #ifdef CONFIG_SMP
@@ -114,6 +115,10 @@ void amd64_pre_mm_init(void)
 	write_rflags(read_rflags() & ~(RFLAGS_IOPL | RFLAGS_NT));
 	/* Disable alignment check */
 	write_cr0(read_cr0() & ~CR0_AM);
+
+	/* Use PCD+PWT bit combination in PTE to mean write-combining mode. */
+	if (pat_supported())
+		pat_set_mapping(false, true, true, PAT_TYPE_WRITE_COMBINING);
 
 	if (config.cpu_active == 1) {
 		interrupt_init();

@@ -60,6 +60,7 @@
 #include <genarch/pic/pic_ops.h>
 #include <arch/pm.h>
 #include <arch/vreg.h>
+#include <arch/mm/pat.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -103,6 +104,10 @@ void ia32_pre_main(uint32_t signature, void *info)
 void ia32_pre_mm_init(void)
 {
 	pm_init();
+
+	/* Use PCD+PWT bit combination in PTE to mean write-combining mode. */
+	if (pat_supported())
+		pat_set_mapping(false, true, true, PAT_TYPE_WRITE_COMBINING);
 
 	if (config.cpu_active == 1) {
 		interrupt_init();
