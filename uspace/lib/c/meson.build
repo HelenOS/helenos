@@ -209,6 +209,7 @@ libstartfiles = static_library('startfiles', start_src,
 	c_args: arch_uspace_c_args + c_args,
 	pic: false,
 )
+exported_devel_files += ['staticlib', libstartfiles, 'libstartfiles.a']
 
 if CONFIG_DEVEL_FILES
 	install_files += [[ 'lib', libstartfiles.full_path(), 'libstartfiles.a' ]]
