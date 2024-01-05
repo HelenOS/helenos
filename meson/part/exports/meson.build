@@ -84,3 +84,13 @@ config_sh = custom_target('config.sh',
 	command: [ sed, 's:$(HELENOS_EXPORT_ROOT):${HELENOS_EXPORT_ROOT}:g', '@INPUT@' ],
 	capture: true,
 )
+
+run_target('export-dev',
+    command: [
+        sh,
+        meson.source_root() / 'meson' / 'part' / 'exports' / 'copy-export.sh',
+    ] + [
+        'config', config_mk, 'config.mk',
+        'config', config_sh, 'config.sh',
+    ] + exported_devel_files
+)

@@ -1,6 +1,7 @@
+#!/bin/sh
+
 #
-# Copyright (c) 2011 Petr Koupy
-# Copyright (c) 2011 Jiri Zarevucky
+# Copyright (c) 2024 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,45 +28,38 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-includes += include_directories('include/posix', 'include')
-c_args += [ '-fno-builtin', '-D_XOPEN_SOURCE' ]
+set -ue
 
-# TODO
+target_dir="${DESTDIR:-export-dev}"
 
-src = files(
-	'src/ctype.c',
-	'src/dlfcn.c',
-	'src/fcntl.c',
-	'src/fnmatch.c',
-	'src/locale.c',
-	'src/pthread/condvar.c',
-	'src/pthread/keys.c',
-	'src/pthread/mutex.c',
-	'src/pthread/threads.c',
-	'src/pwd.c',
-	'src/signal.c',
-	'src/stdio.c',
-	'src/stdlib.c',
-	'src/string.c',
-	'src/strings.c',
-	'src/sys/mman.c',
-	'src/sys/stat.c',
-	'src/sys/wait.c',
-	'src/time.c',
-	'src/unistd.c',
-)
+rm -rf "${target_dir:?}/lib"
+rm -rf "${target_dir}/include"
 
-test_src = files(
-	'test/main.c',
-	'test/stdio.c',
-	'test/stdlib.c',
-	'test/unistd.c',
-)
+mkdir -p "${target_dir}/lib"
+mkdir -p "${target_dir}/include"
 
-_sdir = meson.current_source_dir() / 'include' / 'posix'
-uspace_lib_devel_install_script_text += 'mkdir -p "${DESTDIR}include/libposix"'
-uspace_lib_devel_install_script_text += 'cp -R -L -T "@0@" "${DESTDIR}include/libposix"'.format(_sdir)
-uspace_lib_devel_install_script_text += 'ln -s -r "${DESTDIR}include/libc" "${DESTDIR}/include/common"'
 
-exported_devel_files += [ 'include', meson.current_source_dir() / 'include' / 'posix', 'libposix' ]
-exported_devel_files += [ 'includesymlink', 'libc', 'libposix' ]
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        staticlib)
+            ar -t "$2" | xargs ar crs "${target_dir}/lib/$3"
+            ;;
+        include)
+            mkdir -p "${target_dir}/include/$3"
+            cp -r -L -t "${target_dir}/include/$3" "$2"/*
+            ;;
+        includesymlink)
+            (
+                cd "${target_dir}/include/$3" && ln -s "../$2" .
+            )
+            ;;
+        config)
+            cp -L "$2" "${target_dir}/$3"
+            ;;
+        *)
+            echo "Unknown type $1, aborting." >&2
+            exit 1
+            ;;
+    esac
+    shift 3
+done

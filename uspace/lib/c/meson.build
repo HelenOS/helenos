@@ -52,6 +52,7 @@ uspace_lib_devel_install_script_text += 'mkdir -p "${DESTDIR}include/libc"'
 foreach idir : incdirs
 	_sdir = meson.current_source_dir() / idir
 	uspace_lib_devel_install_script_text += 'cp -R -L -T "@0@" "${DESTDIR}include/libc"'.format(_sdir)
+	exported_devel_files += ['include', _sdir, 'libc']
 endforeach
 
 src = [ arch_src ]
