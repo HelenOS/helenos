@@ -28,6 +28,6 @@
 
 deps = [ 'clipboard', 'console' ]
 src = files(
-	'nchoice.c',
-	'tinput.c',
+	'src/nchoice.c',
+	'src/tinput.c',
 )
