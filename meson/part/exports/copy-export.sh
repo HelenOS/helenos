@@ -53,6 +53,11 @@ while [ "$#" -gt 0 ]; do
                 cd "${target_dir}/include/$3" && ln -s "../$2" .
             )
             ;;
+        includenamedsymlink)
+            (
+                cd "${target_dir}/include/" && ln -s "$2" "$3"
+            )
+            ;;
         config)
             cp -L "$2" "${target_dir}/$3"
             ;;
