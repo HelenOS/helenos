@@ -71,6 +71,14 @@ rd_init_binaries = []
 # Installed files.
 install_files = []
 install_deps = []
+
+# Exported libraries and include files
+# Format: [ type, source_file, destination ]
+# See meson/part/exports/copy-export.sh for supported file types.
+exported_devel_files = [
+    [ 'includenamedsymlink', 'libc', 'common' ]
+]
+
 # Install script for headers.
 # TODO: Make a list of directories and turn into script later.
 uspace_lib_install_script_text = []

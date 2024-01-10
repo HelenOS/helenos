@@ -1,5 +1,7 @@
+#!/bin/sh
+
 #
-# Copyright (c) 2023 Jiri Svoboda
+# Copyright (c) 2024 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,8 +28,43 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'clipboard', 'console' ]
-src = files(
-	'src/nchoice.c',
-	'src/tinput.c',
-)
+set -ue
+
+target_dir="${DESTDIR:-export-dev}"
+
+rm -rf "${target_dir:?}/lib"
+rm -rf "${target_dir}/include"
+
+mkdir -p "${target_dir}/lib"
+mkdir -p "${target_dir}/include"
+
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        staticlib)
+            ar -t "$2" | xargs ar crs "${target_dir}/lib/$3"
+            ;;
+        include)
+            mkdir -p "${target_dir}/include/$3"
+            cp -r -L -t "${target_dir}/include/$3" "$2"/*
+            ;;
+        includesymlink)
+            (
+                cd "${target_dir}/include/$3" && ln -s "../$2" .
+            )
+            ;;
+        includenamedsymlink)
+            (
+                cd "${target_dir}/include/" && ln -s "$2" "$3"
+            )
+            ;;
+        config)
+            cp -L "$2" "${target_dir}/$3"
+            ;;
+        *)
+            echo "Unknown type $1, aborting." >&2
+            exit 1
+            ;;
+    esac
+    shift 3
+done
