@@ -43,7 +43,37 @@
 #include <adt/list.h>
 #include <arch.h>
 
-#define CPU                  CURRENT->cpu
+#define CPU                  (CURRENT->cpu)
+#define CPU_LOCAL            (&CPU->local)
+
+/**
+ * Contents of CPU_LOCAL. These are variables that are only ever accessed by
+ * the CPU they belong to, so they don't need any synchronization,
+ * just locally disabled interrupts.
+ */
+typedef struct cpu_local {
+	/**
+	 * When system clock loses a tick, it is
+	 * recorded here so that clock() can react.
+	 */
+	size_t missed_clock_ticks;
+
+	uint64_t current_clock_tick;
+	uint64_t preempt_deadline;  /* < when should the currently running thread be preempted */
+	uint64_t relink_deadline;
+
+	/**
+	 * Stack used by scheduler when there is no running thread.
+	 * This field is unchanged after initialization.
+	 */
+	uint8_t *stack;
+
+	/**
+	 * Processor cycle accounting.
+	 */
+	bool idle;
+	uint64_t last_cycle;
+} cpu_local_t;
 
 /** CPU structure.
  *
@@ -62,24 +92,8 @@ typedef struct cpu {
 	list_t timeout_active_list;
 
 	/**
-	 * When system clock loses a tick, it is
-	 * recorded here so that clock() can react.
-	 * This variable is CPU-local and can be
-	 * only accessed when interrupts are
-	 * disabled.
-	 */
-	size_t missed_clock_ticks;
-
-	/** Can only be accessed by the CPU represented by this structure when interrupts are disabled. */
-	uint64_t current_clock_tick;
-	uint64_t preempt_deadline;  /* < when should the currently running thread be preempted */
-	uint64_t relink_deadline;
-
-	/**
 	 * Processor cycle accounting.
 	 */
-	bool idle;
-	uint64_t last_cycle;
 	atomic_time_stat_t idle_cycles;
 	atomic_time_stat_t busy_cycles;
 
@@ -102,10 +116,7 @@ typedef struct cpu {
 #endif
 	_Atomic(struct thread *) fpu_owner;
 
-	/**
-	 * Stack used by scheduler when there is no running thread.
-	 */
-	uint8_t *stack;
+	cpu_local_t local;
 } cpu_t;
 
 extern cpu_t *cpus;

@@ -123,8 +123,8 @@ static void clock_update_counters(uint64_t current_tick)
 static void cpu_update_accounting(void)
 {
 	uint64_t now = get_cycle();
-	atomic_time_increment(&CPU->busy_cycles, now - CPU->last_cycle);
-	CPU->last_cycle = now;
+	atomic_time_increment(&CPU->busy_cycles, now - CPU_LOCAL->last_cycle);
+	CPU_LOCAL->last_cycle = now;
 }
 
 /** Clock routine
@@ -136,11 +136,11 @@ static void cpu_update_accounting(void)
  */
 void clock(void)
 {
-	size_t missed_clock_ticks = CPU->missed_clock_ticks;
-	CPU->missed_clock_ticks = 0;
+	size_t missed_clock_ticks = CPU_LOCAL->missed_clock_ticks;
+	CPU_LOCAL->missed_clock_ticks = 0;
 
-	CPU->current_clock_tick += missed_clock_ticks + 1;
-	uint64_t current_clock_tick = CPU->current_clock_tick;
+	CPU_LOCAL->current_clock_tick += missed_clock_ticks + 1;
+	uint64_t current_clock_tick = CPU_LOCAL->current_clock_tick;
 	clock_update_counters(current_clock_tick);
 
 	/* Account CPU usage */
@@ -185,7 +185,7 @@ void clock(void)
 	 */
 
 	if (THREAD) {
-		if (current_clock_tick >= CPU->preempt_deadline && PREEMPTION_ENABLED) {
+		if (current_clock_tick >= CPU_LOCAL->preempt_deadline && PREEMPTION_ENABLED) {
 			scheduler();
 #ifdef CONFIG_UDEBUG
 			/*

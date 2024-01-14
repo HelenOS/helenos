@@ -116,7 +116,7 @@ void tick_interrupt(unsigned int n, istate_t *istate)
 	drift = tick_counter_read() - CPU->arch.next_tick_cmpr;
 	while (drift > CPU->arch.clock_frequency / HZ) {
 		drift -= CPU->arch.clock_frequency / HZ;
-		CPU->missed_clock_ticks++;
+		CPU_LOCAL->missed_clock_ticks++;
 	}
 	CPU->arch.next_tick_cmpr = tick_counter_read() +
 	    (CPU->arch.clock_frequency / HZ) - drift;

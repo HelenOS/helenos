@@ -120,11 +120,11 @@ _NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 	}
 
 	/* Account CPU usage if it woke up from sleep */
-	if (CPU && CPU->idle) {
+	if (CPU && CPU_LOCAL->idle) {
 		uint64_t now = get_cycle();
-		atomic_time_increment(&CPU->idle_cycles, now - CPU->last_cycle);
-		CPU->last_cycle = now;
-		CPU->idle = false;
+		atomic_time_increment(&CPU->idle_cycles, now - CPU_LOCAL->last_cycle);
+		CPU_LOCAL->last_cycle = now;
+		CPU_LOCAL->idle = false;
 	}
 
 	uint64_t begin_cycle = get_cycle();

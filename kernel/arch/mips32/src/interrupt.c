@@ -120,7 +120,7 @@ static void timer_interrupt_handler(unsigned int intr)
 	unsigned long drift = cp0_count_read() - nextcount;
 	while (drift > cp0_compare_value) {
 		drift -= cp0_compare_value;
-		CPU->missed_clock_ticks++;
+		CPU_LOCAL->missed_clock_ticks++;
 	}
 
 	nextcount = cp0_count_read() + cp0_compare_value - drift;

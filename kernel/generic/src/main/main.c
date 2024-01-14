@@ -327,7 +327,7 @@ void main_ap(void)
 	calibrate_delay_loop();
 	ARCH_OP(post_cpu_init);
 
-	current_copy(CURRENT, (current_t *) CPU->stack);
+	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
 
 	/*
 	 * If we woke kmp up before we left the kernel stack, we could
@@ -337,7 +337,7 @@ void main_ap(void)
 	context_t ctx;
 	context_save(&ctx);
 	context_set(&ctx, FADDR(main_ap_separated_stack),
-	    (uintptr_t) CPU->stack, STACK_SIZE);
+	    (uintptr_t) CPU_LOCAL->stack, STACK_SIZE);
 	context_restore(&ctx);
 	/* not reached */
 }

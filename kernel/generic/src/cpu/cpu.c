@@ -80,7 +80,7 @@ void cpu_init(void)
 			if (!stack_phys)
 				panic("Cannot allocate CPU stack.");
 
-			cpus[i].stack = (uint8_t *) PA2KA(stack_phys);
+			cpus[i].local.stack = (uint8_t *) PA2KA(stack_phys);
 			cpus[i].id = i;
 
 #ifdef CONFIG_FPU_LAZY
@@ -103,8 +103,8 @@ void cpu_init(void)
 	CPU->active = true;
 	CPU->tlb_active = true;
 
-	CPU->idle = false;
-	CPU->last_cycle = get_cycle();
+	CPU_LOCAL->idle = false;
+	CPU_LOCAL->last_cycle = get_cycle();
 	CPU->idle_cycles = ATOMIC_TIME_INITIALIZER();
 	CPU->busy_cycles = ATOMIC_TIME_INITIALIZER();
 
