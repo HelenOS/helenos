@@ -685,12 +685,8 @@ void sched_print_list(void)
 		if (!cpus[cpu].active)
 			continue;
 
-		/* Technically a data race, but we don't really care in this case. */
-		int needs_relink = cpus[cpu].relink_deadline - cpus[cpu].current_clock_tick;
-
-		printf("cpu%u: address=%p, nrdy=%zu, needs_relink=%d\n",
-		    cpus[cpu].id, &cpus[cpu], atomic_load(&cpus[cpu].nrdy),
-		    needs_relink);
+		printf("cpu%u: address=%p, nrdy=%zu\n",
+		    cpus[cpu].id, &cpus[cpu], atomic_load(&cpus[cpu].nrdy));
 
 		unsigned int i;
 		for (i = 0; i < RQ_COUNT; i++) {
