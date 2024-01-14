@@ -25,11 +25,26 @@ SECTIONS {
 	. = KERNEL_LOAD_ADDRESS;
 	kernel_load_address = .;
 	. = . + SIZEOF_HEADERS;
+
 	.text : {
 		ktext_start = .;
 		*(.text .text.*);
 		ktext_end = .;
 	}
+
+	/* stack unwinding data */
+	.eh_frame_hdr : {
+		eh_frame_hdr_start = .;
+		*(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*);
+		eh_frame_hdr_end = .;
+	}
+
+	.eh_frame : {
+		eh_frame_start = .;
+		KEEP(*(.eh_frame .eh_frame.*));
+		eh_frame_end = .;
+	}
+
 	.data : {
 		kdata_start = .;
 		*(.data .data.*);                       /* initialized data */
@@ -37,16 +52,11 @@ SECTIONS {
 		*(COMMON);                      /* global variables */
 
 		*(.rodata .rodata.*);
-		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
-		*(.eh_frame_hdr .eh_frame_hdr.*);
 		*(.sdata .sdata.*);
-	}
-	.sbss : {
 		*(.sbss .sbss.*);
 		*(.scommon .scommon.*);
+		kdata_end = .;
 	}
-
-	kdata_end = .;
 
 	.comment 0 : { *(.comment); }
 	.debug_abbrev 0 : { *(.debug_abbrev); }

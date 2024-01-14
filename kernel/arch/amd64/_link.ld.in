@@ -22,20 +22,38 @@ SECTIONS {
 		unmapped_end = .;
 	}
 
-	.mapped (PA2KA(BOOT_OFFSET) + SIZEOF_HEADERS + SIZEOF(.unmapped)) : AT (BOOT_OFFSET + SIZEOF_HEADERS + SIZEOF(.unmapped)) {
+	.text (PA2KA(BOOT_OFFSET) + SIZEOF_HEADERS + SIZEOF(.unmapped)) : AT (BOOT_OFFSET + SIZEOF_HEADERS + SIZEOF(.unmapped)) {
 		ktext_start = .;
 		*(.text .text.*);
 		ktext_end = .;
+	}
 
+	/* stack unwinding data */
+	.eh_frame_hdr : {
+		eh_frame_hdr_start = .;
+		*(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*);
+		eh_frame_hdr_end = .;
+	}
+	.eh_frame : {
+		eh_frame_start = .;
+		KEEP(*(.eh_frame .eh_frame.*));
+		eh_frame_end = .;
+	}
+
+	.data : {
 		kdata_start = .;
-		*(.data .data.*);              /* initialized data */
-		*(.rodata .rodata.*);
-		*(.eh_frame .eh_frame.*);      /* stack unwinding data */
-		*(.eh_frame_hdr .eh_frame_hdr.*);
-		*(COMMON);      /* global variables */
+		*(.rodata .rodata.*);  /* read-only global variables */
+		*(.data .data.*);      /* non-zero initialized global variables */
 
-		/* bss can't be omitted from the ELF image. */
-		*(.bss .bss.*);        /* uninitialized static variables */
+		/*
+		 * When .bss is not physically present in the ELF file (MemSz > FileSz)
+		 * the kernel crashes during early boot. Not sure which part of the
+		 * boot process is to blame, for now just keep .bss packaged with .data
+		 * so that FileSz == MemSz.
+		 */
+
+		 *(.bss .bss.*);        /* uninitialized global variables */
+		*(COMMON);             /* non-`static` global variables without an extern declaration */
 		kdata_end = .;
 	}
 
