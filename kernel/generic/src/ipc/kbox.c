@@ -89,7 +89,6 @@ void ipc_kbox_cleanup(void)
 	if (have_kb_thread) {
 		LOG("Join kb.thread.");
 		thread_join(TASK->kb.thread);
-		thread_put(TASK->kb.thread);
 		LOG("...join done.");
 		TASK->kb.thread = NULL;
 	}

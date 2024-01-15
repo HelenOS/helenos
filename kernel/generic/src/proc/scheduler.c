@@ -448,6 +448,10 @@ void scheduler_enter(state_t new_state)
 	/* Update thread kernel accounting */
 	THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 
+	/*
+	 * On Sparc, this saves some extra userspace state that's not
+	 * covered by context_save()/context_restore().
+	 */
 	after_thread_ran_arch();
 
 	if (new_state == Sleeping) {

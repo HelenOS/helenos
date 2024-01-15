@@ -1005,7 +1005,6 @@ int cmd_mcall0(cmd_arg_t *argv)
 			thread_wire(thread, &cpus[i]);
 			thread_ready(thread_ref(thread));
 			thread_join(thread);
-			thread_put(thread);
 		} else
 			printf("Unable to create thread for cpu%u\n", i);
 	}

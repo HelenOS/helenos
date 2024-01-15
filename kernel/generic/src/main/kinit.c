@@ -123,7 +123,6 @@ void kinit(void *arg)
 		thread_wire(thread, &cpus[0]);
 		thread_ready(thread_ref(thread));
 		thread_join(thread);
-		thread_put(thread);
 
 		/*
 		 * For each CPU, create its load balancing thread.

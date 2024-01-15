@@ -684,7 +684,7 @@ errno_t thread_join(thread_t *thread)
 }
 
 /** Wait for another thread to exit.
- * This function does not destroy the thread. Reference counting handles that.
+ * After successful wait, the thread reference is destroyed.
  *
  * @param thread Thread to join on exit.
  * @param usec   Timeout in microseconds.
@@ -702,11 +702,15 @@ errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 	state_t state = thread->state;
 	irq_spinlock_unlock(&thread->lock, true);
 
-	if (state == Exiting) {
-		return EOK;
-	} else {
-		return _waitq_sleep_timeout(&thread->join_wq, usec, flags);
-	}
+	errno_t rc = EOK;
+
+	if (state != Exiting)
+		rc = _waitq_sleep_timeout(&thread->join_wq, usec, flags);
+
+	if (rc == EOK)
+		thread_put(thread);
+
+	return rc;
 }
 
 /** Thread usleep
