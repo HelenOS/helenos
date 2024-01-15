@@ -308,13 +308,7 @@ void scheduler_run(void)
 	assert(CPU != NULL);
 
 	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
-
-	context_t ctx;
-	context_save(&ctx);
-	context_set(&ctx, FADDR(scheduler_separated_stack),
-	    (uintptr_t) CPU_LOCAL->stack, STACK_SIZE);
-	context_restore(&ctx);
-
+	context_replace(scheduler_separated_stack, CPU_LOCAL->stack, STACK_SIZE);
 	unreachable();
 }
 
@@ -453,16 +447,6 @@ void scheduler_enter(state_t new_state)
 		THREAD->priority = -1;
 	}
 
-	if (!context_save(&THREAD->saved_context)) {
-		/*
-		 * This is the place where threads leave scheduler();
-		 */
-
-		irq_spinlock_unlock(&THREAD->lock, false);
-		interrupts_restore(ipl);
-		return;
-	}
-
 	/*
 	 * Through the 'CURRENT' structure, we keep track of THREAD, TASK, CPU, AS
 	 * and preemption counter. At this point CURRENT could be coming either
@@ -485,12 +469,16 @@ void scheduler_enter(state_t new_state)
 	 *
 	 */
 	context_t ctx;
-	context_save(&ctx);
-	context_set(&ctx, FADDR(scheduler_separated_stack),
-	    (uintptr_t) CPU_LOCAL->stack, STACK_SIZE);
-	context_restore(&ctx);
+	context_create(&ctx, scheduler_separated_stack,
+	    CPU_LOCAL->stack, STACK_SIZE);
 
-	/* Not reached */
+	/* Switch to scheduler context and store current thread's context. */
+	context_swap(&THREAD->saved_context, &ctx);
+
+	/* Returned from scheduler. */
+
+	irq_spinlock_unlock(&THREAD->lock, false);
+	interrupts_restore(ipl);
 }
 
 /** Scheduler stack switch wrapper

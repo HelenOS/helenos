@@ -79,7 +79,6 @@
 #include <synch/syswaitq.h>
 #include <arch/arch.h>
 #include <arch.h>
-#include <arch/faddr.h>
 #include <ipc/ipc.h>
 #include <macros.h>
 #include <smp/smp.h>
@@ -173,8 +172,7 @@ _NO_TRACE void main_bsp(void)
 	config.kernel_size =
 	    ALIGN_UP((uintptr_t) kdata_end - config.base, PAGE_SIZE);
 
-	context_save(&ctx);
-	context_set(&ctx, FADDR(main_bsp_separated_stack),
+	context_create(&ctx, main_bsp_separated_stack,
 	    bootstrap_stack, bootstrap_stack_size);
 	context_restore(&ctx);
 	/* not reached */
@@ -335,11 +333,7 @@ void main_ap(void)
 	 * collide with another CPU coming up. To prevent this, we
 	 * switch to this cpu's private stack prior to waking kmp up.
 	 */
-	context_t ctx;
-	context_save(&ctx);
-	context_set(&ctx, FADDR(main_ap_separated_stack),
-	    (uintptr_t) CPU_LOCAL->stack, STACK_SIZE);
-	context_restore(&ctx);
+	context_replace(main_ap_separated_stack, CPU_LOCAL->stack, STACK_SIZE);
 	/* not reached */
 }
 
