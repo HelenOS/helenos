@@ -91,10 +91,12 @@ const char *test_semaphore2(void)
 	for (i = 0; i < k; i++) {
 		thrd = thread_create(consumer, NULL, TASK,
 		    THREAD_FLAG_NONE, "consumer");
-		if (thrd)
-			thread_ready(thrd);
-		else
+		if (thrd) {
+			thread_start(thrd);
+			thread_detach(thrd);
+		} else {
 			TPRINTF("Error creating thread\n");
+		}
 	}
 
 	thread_usleep(20000);

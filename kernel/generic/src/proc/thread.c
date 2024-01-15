@@ -233,6 +233,16 @@ static void before_thread_is_ready(thread_t *thread)
 	assert(irq_spinlock_locked(&thread->lock));
 }
 
+/** Start a thread that wasn't started yet since it was created.
+ *
+ * @param thread A reference to the newly created thread.
+ */
+void thread_start(thread_t *thread)
+{
+	assert(thread->state == Entering);
+	thread_ready(thread_ref(thread));
+}
+
 /** Make thread ready
  *
  * Switch thread to the ready state. Consumes reference passed by the caller.
@@ -695,6 +705,8 @@ errno_t thread_join(thread_t *thread)
  */
 errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 {
+	assert(thread != NULL);
+
 	if (thread == THREAD)
 		return EINVAL;
 
@@ -711,6 +723,11 @@ errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 		thread_put(thread);
 
 	return rc;
+}
+
+void thread_detach(thread_t *thread)
+{
+	thread_put(thread);
 }
 
 /** Thread usleep

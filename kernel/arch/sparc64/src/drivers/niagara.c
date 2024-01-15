@@ -252,7 +252,7 @@ niagara_instance_t *niagarain_init(void)
 			indev_t *srln = srln_wire(srln_instance, sink);
 
 			instance->srlnin = srln;
-			thread_ready(instance->thread);
+			thread_start(instance->thread);
 		}
 	}
 

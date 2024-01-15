@@ -281,7 +281,8 @@ void main_bsp_separated_stack(void)
 	    THREAD_FLAG_UNCOUNTED, "kinit");
 	if (!kinit_thread)
 		panic("Cannot create kinit thread.");
-	thread_ready(kinit_thread);
+	thread_start(kinit_thread);
+	thread_detach(kinit_thread);
 
 	/*
 	 * This call to scheduler_run() will return to kinit,

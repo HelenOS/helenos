@@ -184,6 +184,7 @@ extern thread_t *thread_create(void (*)(void *), void *, task_t *,
     thread_flags_t, const char *);
 extern void thread_wire(thread_t *, cpu_t *);
 extern void thread_attach(thread_t *, task_t *);
+extern void thread_start(thread_t *);
 extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
 extern void thread_interrupt(thread_t *);
@@ -241,6 +242,7 @@ extern void thread_usleep(uint32_t);
 
 extern errno_t thread_join(thread_t *);
 extern errno_t thread_join_timeout(thread_t *, uint32_t, unsigned int);
+extern void thread_detach(thread_t *);
 
 extern void thread_yield(void);
 

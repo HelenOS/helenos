@@ -42,7 +42,6 @@
 #define THREAD_RUNS  1
 #define THREADS      8
 
-static atomic_size_t thread_cnt;
 static atomic_size_t thread_fail;
 
 static void falloc(void *arg)
@@ -55,7 +54,6 @@ static void falloc(void *arg)
 		TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 		    "Unable to allocate frames\n", THREAD->tid, CPU->id);
 		atomic_inc(&thread_fail);
-		atomic_dec(&thread_cnt);
 		return;
 	}
 
@@ -107,13 +105,13 @@ cleanup:
 
 	TPRINTF("Thread #%" PRIu64 " (cpu%u): Exiting\n",
 	    THREAD->tid, CPU->id);
-	atomic_dec(&thread_cnt);
 }
 
 const char *test_falloc2(void)
 {
-	atomic_store(&thread_cnt, THREADS);
 	atomic_store(&thread_fail, 0);
+
+	thread_t *threads[THREADS] = { };
 
 	for (unsigned int i = 0; i < THREADS; i++) {
 		thread_t *thrd = thread_create(falloc, NULL, TASK,
@@ -122,13 +120,15 @@ const char *test_falloc2(void)
 			TPRINTF("Could not create thread %u\n", i);
 			break;
 		}
-		thread_ready(thrd);
+		thread_start(thrd);
+		threads[i] = thrd;
 	}
 
-	while (atomic_load(&thread_cnt) > 0) {
-		TPRINTF("Threads left: %zu\n",
-		    atomic_load(&thread_cnt));
-		thread_sleep(1);
+	for (unsigned int i = 0; i < THREADS; i++) {
+		if (threads[i] != NULL)
+			thread_join(threads[i]);
+
+		TPRINTF("Threads left: %u\n", THREADS - i - 1);
 	}
 
 	if (atomic_load(&thread_fail) == 0)
