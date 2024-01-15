@@ -227,12 +227,6 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
 	irq_spinlock_unlock(&thread->lock, true);
 }
 
-/** Invoked right before thread_ready() readies the thread. thread is locked. */
-static void before_thread_is_ready(thread_t *thread)
-{
-	assert(irq_spinlock_locked(&thread->lock));
-}
-
 /** Start a thread that wasn't started yet since it was created.
  *
  * @param thread A reference to the newly created thread.
@@ -255,8 +249,6 @@ void thread_ready(thread_t *thread)
 	irq_spinlock_lock(&thread->lock, true);
 
 	assert(thread->state != Ready);
-
-	before_thread_is_ready(thread);
 
 	int i = (thread->priority < RQ_COUNT - 1) ?
 	    ++thread->priority : thread->priority;
