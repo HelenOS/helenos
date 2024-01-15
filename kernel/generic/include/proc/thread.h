@@ -112,7 +112,6 @@ typedef struct thread {
 	 * when the thread is scheduled.
 	 */
 	context_t saved_context;
-	ipl_t saved_ipl;
 
 	/**
 	 * True if this thread is executing copy_from_uspace().
@@ -189,6 +188,12 @@ extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
 extern void thread_interrupt(thread_t *);
 
+enum sleep_state {
+	SLEEP_INITIAL,
+	SLEEP_ASLEEP,
+	SLEEP_WOKE,
+};
+
 typedef enum {
 	THREAD_OK,
 	THREAD_TERMINATING,
@@ -236,6 +241,8 @@ extern void thread_usleep(uint32_t);
 
 extern errno_t thread_join(thread_t *);
 extern errno_t thread_join_timeout(thread_t *, uint32_t, unsigned int);
+
+extern void thread_yield(void);
 
 extern void thread_print_list(bool);
 extern thread_t *thread_find_by_id(thread_id_t);

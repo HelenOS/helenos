@@ -186,7 +186,7 @@ void clock(void)
 
 	if (THREAD) {
 		if (current_clock_tick >= CPU_LOCAL->preempt_deadline && PREEMPTION_ENABLED) {
-			scheduler();
+			thread_yield();
 #ifdef CONFIG_UDEBUG
 			/*
 			 * Give udebug chance to stop the thread

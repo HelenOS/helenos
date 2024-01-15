@@ -284,10 +284,10 @@ void main_bsp_separated_stack(void)
 	thread_ready(kinit_thread);
 
 	/*
-	 * This call to scheduler() will return to kinit,
+	 * This call to scheduler_run() will return to kinit,
 	 * starting the thread of kernel threads.
 	 */
-	scheduler();
+	scheduler_run();
 	/* not reached */
 }
 
@@ -355,7 +355,7 @@ void main_ap_separated_stack(void)
 	timeout_init();
 
 	semaphore_up(&ap_completion_semaphore);
-	scheduler();
+	scheduler_run();
 	/* not reached */
 }
 

@@ -40,6 +40,7 @@
 #include <time/clock.h>
 #include <atomic.h>
 #include <adt/list.h>
+#include <abi/proc/thread.h>
 
 #define RQ_COUNT          16
 #define NEEDS_RELINK_MAX  (HZ)
@@ -55,11 +56,12 @@ extern atomic_size_t nrdy;
 extern void scheduler_init(void);
 
 extern void scheduler_fpu_lazy_request(void);
-extern void scheduler(void);
-extern void scheduler_locked(ipl_t);
 extern void kcpulb(void *arg);
 
 extern void sched_print_list(void);
+
+extern void scheduler_run(void) __attribute__((noreturn));
+extern void scheduler_enter(state_t);
 
 /*
  * To be defined by architectures.

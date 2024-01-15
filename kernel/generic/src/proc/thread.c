@@ -81,12 +81,6 @@ const char *thread_states[] = {
 	"Lingering"
 };
 
-enum sleep_state {
-	SLEEP_INITIAL,
-	SLEEP_ASLEEP,
-	SLEEP_WOKE,
-};
-
 /** Lock protecting the @c threads ordered dictionary .
  *
  * For locking rules, see declaration thereof.
@@ -126,7 +120,6 @@ static void cushion(void)
 {
 	void (*f)(void *) = THREAD->thread_code;
 	void *arg = THREAD->thread_arg;
-	THREAD->last_cycle = get_cycle();
 
 	/* This is where each thread wakes up after its creation */
 	irq_spinlock_unlock(&THREAD->lock, false);
@@ -319,10 +312,6 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	    (uintptr_t) thread->kstack, STACK_SIZE);
 
 	current_initialize((current_t *) thread->kstack);
-
-	ipl_t ipl = interrupts_disable();
-	thread->saved_ipl = interrupts_read();
-	interrupts_restore(ipl);
 
 	str_cpy(thread->name, THREAD_NAME_BUFLEN, name);
 
@@ -524,13 +513,8 @@ void thread_exit(void)
 		}
 	}
 
-	irq_spinlock_lock(&THREAD->lock, true);
-	THREAD->state = Exiting;
-	irq_spinlock_unlock(&THREAD->lock, true);
-
-	scheduler();
-
-	panic("should never be reached");
+	scheduler_enter(Exiting);
+	unreachable();
 }
 
 /** Interrupts an existing thread so that it may exit as soon as possible.
@@ -578,36 +562,6 @@ thread_termination_state_t thread_wait_start(void)
 	return THREAD->interrupted ? THREAD_TERMINATING : THREAD_OK;
 }
 
-static void thread_wait_internal(void)
-{
-	assert(THREAD != NULL);
-
-	ipl_t ipl = interrupts_disable();
-
-	if (atomic_load(&haltstate))
-		halt();
-
-	/*
-	 * Lock here to prevent a race between entering the scheduler and another
-	 * thread rescheduling this thread.
-	 */
-	irq_spinlock_lock(&THREAD->lock, false);
-
-	int expected = SLEEP_INITIAL;
-
-	/* Only set SLEEP_ASLEEP in sleep pad if it's still in initial state */
-	if (atomic_compare_exchange_strong_explicit(&THREAD->sleep_state, &expected,
-	    SLEEP_ASLEEP, memory_order_acq_rel, memory_order_acquire)) {
-		THREAD->state = Sleeping;
-		scheduler_locked(ipl);
-	} else {
-		assert(expected == SLEEP_WOKE);
-		/* Return immediately. */
-		irq_spinlock_unlock(&THREAD->lock, false);
-		interrupts_restore(ipl);
-	}
-}
-
 static void thread_wait_timeout_callback(void *arg)
 {
 	thread_wakeup(arg);
@@ -648,18 +602,18 @@ thread_wait_result_t thread_wait_finish(deadline_t deadline)
 
 	timeout_t timeout;
 
-	if (deadline != DEADLINE_NEVER) {
-		/* Extra check to avoid setting up a deadline if we don't need to. */
-		if (atomic_load_explicit(&THREAD->sleep_state, memory_order_acquire) !=
-		    SLEEP_INITIAL)
-			return THREAD_WAIT_SUCCESS;
+	/* Extra check to avoid going to scheduler if we don't need to. */
+	if (atomic_load_explicit(&THREAD->sleep_state, memory_order_acquire) !=
+	    SLEEP_INITIAL)
+		return THREAD_WAIT_SUCCESS;
 
+	if (deadline != DEADLINE_NEVER) {
 		timeout_initialize(&timeout);
 		timeout_register_deadline(&timeout, deadline,
 		    thread_wait_timeout_callback, THREAD);
 	}
 
-	thread_wait_internal();
+	scheduler_enter(Sleeping);
 
 	if (deadline != DEADLINE_NEVER && !timeout_unregister(&timeout)) {
 		return THREAD_WAIT_TIMEOUT;
@@ -673,7 +627,7 @@ void thread_wakeup(thread_t *thread)
 	assert(thread != NULL);
 
 	int state = atomic_exchange_explicit(&thread->sleep_state, SLEEP_WOKE,
-	    memory_order_release);
+	    memory_order_acq_rel);
 
 	if (state == SLEEP_ASLEEP) {
 		/*
@@ -769,6 +723,13 @@ void thread_usleep(uint32_t usec)
 	waitq_initialize(&wq);
 
 	(void) waitq_sleep_timeout(&wq, usec);
+}
+
+/** Allow other threads to run. */
+void thread_yield(void)
+{
+	assert(THREAD != NULL);
+	scheduler_enter(Running);
 }
 
 static void thread_print(thread_t *thread, bool additional)
