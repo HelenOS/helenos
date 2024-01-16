@@ -448,12 +448,6 @@ void scheduler_enter(state_t new_state)
 	/* Update thread kernel accounting */
 	THREAD->kcycles += get_cycle() - THREAD->last_cycle;
 
-	/*
-	 * On Sparc, this saves some extra userspace state that's not
-	 * covered by context_save()/context_restore().
-	 */
-	after_thread_ran_arch();
-
 	if (new_state == Sleeping) {
 		/* Prefer the thread after it's woken up. */
 		THREAD->priority = -1;
@@ -516,6 +510,12 @@ void scheduler_separated_stack(void)
 		halt();
 
 	if (THREAD) {
+		/*
+		 * On Sparc, this saves some extra userspace state that's not
+		 * covered by context_save()/context_restore().
+		 */
+		after_thread_ran_arch();
+
 		state_t state = THREAD->state;
 		irq_spinlock_unlock(&THREAD->lock, false);
 
