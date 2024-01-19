@@ -94,7 +94,6 @@ generic_src += files(
 	'src/mm/km.c',
 	'src/mm/malloc.c',
 	'src/mm/reserve.c',
-	'src/preempt/preemption.c',
 	'src/printf/printf.c',
 	'src/printf/snprintf.c',
 	'src/printf/vprintf.c',
