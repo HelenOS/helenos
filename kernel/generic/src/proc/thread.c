@@ -197,7 +197,7 @@ void thread_init(void)
 void thread_wire(thread_t *thread, cpu_t *cpu)
 {
 	irq_spinlock_lock(&thread->lock, true);
-	thread->cpu = cpu;
+	atomic_set_unordered(&thread->cpu, cpu);
 	thread->nomigrate++;
 	irq_spinlock_unlock(&thread->lock, true);
 }
@@ -262,7 +262,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->uncounted =
 	    ((flags & THREAD_FLAG_UNCOUNTED) == THREAD_FLAG_UNCOUNTED);
 	thread->priority = -1;          /* Start in rq[0] */
-	thread->cpu = NULL;
+	atomic_init(&thread->cpu, NULL);
 	thread->stolen = false;
 	thread->uspace =
 	    ((flags & THREAD_FLAG_USPACE) == THREAD_FLAG_USPACE);
@@ -342,23 +342,19 @@ static void thread_destroy(void *obj)
 
 	/* Clear cpu->fpu_owner if set to this thread. */
 #ifdef CONFIG_FPU_LAZY
-	if (thread->cpu) {
+	cpu_t *cpu = atomic_get_unordered(&thread->cpu);
+	if (cpu) {
 		/*
 		 * We need to lock for this because the old CPU can concurrently try
 		 * to dump this thread's FPU state, in which case we need to wait for
 		 * it to finish. An atomic compare-and-swap wouldn't be enough.
 		 */
-		irq_spinlock_lock(&thread->cpu->fpu_lock, false);
+		irq_spinlock_lock(&cpu->fpu_lock, false);
 
-		thread_t *owner = atomic_load_explicit(&thread->cpu->fpu_owner,
-		    memory_order_relaxed);
+		if (atomic_get_unordered(&cpu->fpu_owner) == thread)
+			atomic_set_unordered(&cpu->fpu_owner, NULL);
 
-		if (owner == thread) {
-			atomic_store_explicit(&thread->cpu->fpu_owner, NULL,
-			    memory_order_relaxed);
-		}
-
-		irq_spinlock_unlock(&thread->cpu->fpu_lock, false);
+		irq_spinlock_unlock(&cpu->fpu_lock, false);
 	}
 #endif
 
@@ -706,8 +702,9 @@ static void thread_print(thread_t *thread, bool additional)
 		    thread->task, thread->task->container);
 
 	if (additional) {
-		if (thread->cpu)
-			printf("%-5u", thread->cpu->id);
+		cpu_t *cpu = atomic_get_unordered(&thread->cpu);
+		if (cpu)
+			printf("%-5u", cpu->id);
 		else
 			printf("none ");
 

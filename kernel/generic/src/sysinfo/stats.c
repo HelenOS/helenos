@@ -307,9 +307,11 @@ static void produce_stats_thread(thread_t *thread, stats_thread_t *stats_thread)
 	stats_thread->ucycles = thread->ucycles;
 	stats_thread->kcycles = thread->kcycles;
 
-	if (thread->cpu != NULL) {
+	cpu_t *cpu = atomic_get_unordered(&thread->cpu);
+
+	if (cpu != NULL) {
 		stats_thread->on_cpu = true;
-		stats_thread->cpu = thread->cpu->id;
+		stats_thread->cpu = cpu->id;
 	} else
 		stats_thread->on_cpu = false;
 }

@@ -310,7 +310,7 @@ static void prepare_to_run_thread(int rq_index)
 	switch_task(THREAD->task);
 
 	irq_spinlock_lock(&THREAD->lock, false);
-	assert(THREAD->cpu == CPU);
+	assert(atomic_get_unordered(&THREAD->cpu) == CPU);
 
 	THREAD->state = Running;
 	THREAD->priority = rq_index;  /* Correct rq index */
@@ -386,7 +386,7 @@ static void thread_requeue_preempted(thread_t *thread)
 	irq_spinlock_lock(&thread->lock, false);
 
 	assert(thread->state == Running);
-	assert(thread->cpu == CPU);
+	assert(atomic_get_unordered(&thread->cpu) == CPU);
 
 	int i = (thread->priority < RQ_COUNT - 1) ?
 	    ++thread->priority : thread->priority;
@@ -410,10 +410,12 @@ void thread_requeue_sleeping(thread_t *thread)
 	thread->state = Ready;
 
 	/* Prefer the CPU on which the thread ran last */
-	if (!thread->cpu)
-		thread->cpu = CPU;
+	cpu_t *cpu = atomic_get_unordered(&thread->cpu);
 
-	cpu_t *cpu = thread->cpu;
+	if (!cpu) {
+		cpu = CPU;
+		atomic_set_unordered(&thread->cpu, CPU);
+	}
 
 	irq_spinlock_unlock(&thread->lock, false);
 
@@ -655,7 +657,7 @@ static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
 		}
 
 		thread->stolen = true;
-		thread->cpu = CPU;
+		atomic_set_unordered(&thread->cpu, CPU);
 
 		irq_spinlock_unlock(&thread->lock, false);
 

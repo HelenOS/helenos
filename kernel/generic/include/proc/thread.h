@@ -137,7 +137,7 @@ typedef struct thread {
 	state_t state;
 
 	/** Thread CPU. */
-	cpu_t *cpu;
+	_Atomic(cpu_t *) cpu;
 	/** Containing task. */
 	task_t *task;
 	/** Thread was migrated to another CPU and has not run yet. */
