@@ -192,7 +192,11 @@ typedef struct thread {
 	/** Thread was migrated to another CPU and has not run yet. */
 	bool stolen;
 
-	/** Thread state. */
+	/**
+	 * Thread state (state_t).
+	 * This is atomic because we read it via some commands for debug output,
+	 * otherwise it could just be a regular local.
+	 */
 	atomic_int_fast32_t state;
 
 	/** Thread CPU. */

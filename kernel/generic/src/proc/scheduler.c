@@ -382,6 +382,7 @@ static void add_to_rq(thread_t *thread, cpu_t *cpu, int i)
  */
 static void thread_requeue_preempted(thread_t *thread)
 {
+	assert(interrupts_disabled());
 	assert(atomic_get_unordered(&thread->state) == Running);
 	assert(atomic_get_unordered(&thread->cpu) == CPU);
 
@@ -419,14 +420,14 @@ void thread_requeue_sleeping(thread_t *thread)
 	interrupts_restore(ipl);
 }
 
-static void cleanup_after_thread(thread_t *thread, state_t out_state)
+static void cleanup_after_thread(thread_t *thread)
 {
 	assert(CURRENT->mutex_locks == 0);
 	assert(interrupts_disabled());
 
 	int expected;
 
-	switch (out_state) {
+	switch (atomic_get_unordered(&thread->state)) {
 	case Running:
 		thread_requeue_preempted(thread);
 		break;
@@ -461,7 +462,7 @@ static void cleanup_after_thread(thread_t *thread, state_t out_state)
 		 * Entering state is unexpected.
 		 */
 		panic("tid%" PRIu64 ": unexpected state %s.",
-		    thread->tid, thread_states[out_state]);
+		    thread->tid, thread_states[atomic_get_unordered(&thread->state)]);
 		break;
 	}
 }
@@ -501,8 +502,6 @@ void scheduler_enter(state_t new_state)
 	 */
 	after_thread_ran_arch();
 
-	CPU_LOCAL->exiting_state = new_state;
-
 	if (new_thread) {
 		thread_t *old_thread = THREAD;
 		CPU_LOCAL->prev_thread = old_thread;
@@ -526,7 +525,7 @@ void scheduler_enter(state_t new_state)
 
 	/* Check if we need to clean up after another thread. */
 	if (CPU_LOCAL->prev_thread) {
-		cleanup_after_thread(CPU_LOCAL->prev_thread, CPU_LOCAL->exiting_state);
+		cleanup_after_thread(CPU_LOCAL->prev_thread);
 		CPU_LOCAL->prev_thread = NULL;
 	}
 
@@ -572,7 +571,7 @@ void scheduler_run(void)
 		assert(CURRENT->mutex_locks == 0);
 		assert(interrupts_disabled());
 
-		cleanup_after_thread(THREAD, CPU_LOCAL->exiting_state);
+		cleanup_after_thread(THREAD);
 
 		/*
 		 * Necessary because we're allowing interrupts in find_best_thread(),
@@ -600,7 +599,7 @@ void thread_main_func(void)
 
 	/* Check if we need to clean up after another thread. */
 	if (CPU_LOCAL->prev_thread) {
-		cleanup_after_thread(CPU_LOCAL->prev_thread, CPU_LOCAL->exiting_state);
+		cleanup_after_thread(CPU_LOCAL->prev_thread);
 		CPU_LOCAL->prev_thread = NULL;
 	}
 
