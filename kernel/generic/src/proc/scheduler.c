@@ -313,7 +313,7 @@ static void prepare_to_run_thread(int rq_index)
 	assert(atomic_get_unordered(&THREAD->cpu) == CPU);
 
 	THREAD->state = Running;
-	THREAD->priority = rq_index;  /* Correct rq index */
+	atomic_set_unordered(&THREAD->priority, rq_index);  /* Correct rq index */
 
 	/*
 	 * Clear the stolen flag so that it can be migrated
@@ -324,7 +324,7 @@ static void prepare_to_run_thread(int rq_index)
 #ifdef SCHEDULER_VERBOSE
 	log(LF_OTHER, LVL_DEBUG,
 	    "cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64
-	    ", nrdy=%zu)", CPU->id, THREAD->tid, THREAD->priority,
+	    ", nrdy=%zu)", CPU->id, THREAD->tid, rq_index,
 	    THREAD->ticks, atomic_load(&CPU->nrdy));
 #endif
 
@@ -388,14 +388,18 @@ static void thread_requeue_preempted(thread_t *thread)
 	assert(thread->state == Running);
 	assert(atomic_get_unordered(&thread->cpu) == CPU);
 
-	int i = (thread->priority < RQ_COUNT - 1) ?
-	    ++thread->priority : thread->priority;
+	int prio = atomic_get_unordered(&thread->priority);
+
+	if (prio < RQ_COUNT - 1) {
+		prio++;
+		atomic_set_unordered(&thread->priority, prio);
+	}
 
 	thread->state = Ready;
 
 	irq_spinlock_unlock(&thread->lock, false);
 
-	add_to_rq(thread, CPU, i);
+	add_to_rq(thread, CPU, prio);
 }
 
 void thread_requeue_sleeping(thread_t *thread)
@@ -406,7 +410,7 @@ void thread_requeue_sleeping(thread_t *thread)
 
 	assert(thread->state == Sleeping || thread->state == Entering);
 
-	thread->priority = 0;
+	atomic_set_unordered(&thread->priority, 0);
 	thread->state = Ready;
 
 	/* Prefer the CPU on which the thread ran last */

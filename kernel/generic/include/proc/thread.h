@@ -154,7 +154,7 @@ typedef struct thread {
 	bool uncounted;
 
 	/** Thread's priority. Implemented as index to CPU->rq */
-	int priority;
+	atomic_int_fast32_t priority;
 	/** Thread ID. */
 	thread_id_t tid;
 
