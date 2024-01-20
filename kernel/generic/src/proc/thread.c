@@ -208,7 +208,7 @@ void thread_wire(thread_t *thread, cpu_t *cpu)
  */
 void thread_start(thread_t *thread)
 {
-	assert(thread->state == Entering);
+	assert(atomic_get_unordered(&thread->state) == Entering);
 	thread_requeue_sleeping(thread_ref(thread));
 }
 
@@ -268,7 +268,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	    ((flags & THREAD_FLAG_USPACE) == THREAD_FLAG_USPACE);
 
 	thread->nomigrate = 0;
-	thread->state = Entering;
+	atomic_init(&thread->state, Entering);
 
 	atomic_init(&thread->sleep_queue, NULL);
 
@@ -338,7 +338,7 @@ static void thread_destroy(void *obj)
 
 	irq_spinlock_unlock(&thread->task->lock, false);
 
-	assert((thread->state == Exiting) || (thread->state == Lingering));
+	assert((atomic_get_unordered(&thread->state) == Exiting) || (atomic_get_unordered(&thread->state) == Lingering));
 
 	/* Clear cpu->fpu_owner if set to this thread. */
 #ifdef CONFIG_FPU_LAZY
@@ -636,9 +636,7 @@ errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 	if (thread == THREAD)
 		return EINVAL;
 
-	irq_spinlock_lock(&thread->lock, true);
-	state_t state = thread->state;
-	irq_spinlock_unlock(&thread->lock, true);
+	state_t state = atomic_get_unordered(&thread->state);
 
 	errno_t rc = EOK;
 
@@ -686,6 +684,8 @@ static void thread_print(thread_t *thread, bool additional)
 	order_suffix(thread->ucycles, &ucycles, &usuffix);
 	order_suffix(thread->kcycles, &kcycles, &ksuffix);
 
+	state_t state = atomic_get_unordered(&thread->state);
+
 	char *name;
 	if (str_cmp(thread->name, "uinit") == 0)
 		name = thread->task->name;
@@ -698,7 +698,7 @@ static void thread_print(thread_t *thread, bool additional)
 		    ucycles, usuffix, kcycles, ksuffix);
 	else
 		printf("%-8" PRIu64 " %-14s %p %-8s %p %-5" PRIu32 "\n",
-		    thread->tid, name, thread, thread_states[thread->state],
+		    thread->tid, name, thread, thread_states[state],
 		    thread->task, thread->task->container);
 
 	if (additional) {
@@ -708,7 +708,7 @@ static void thread_print(thread_t *thread, bool additional)
 		else
 			printf("none ");
 
-		if (thread->state == Sleeping) {
+		if (state == Sleeping) {
 			printf(" %p", thread->sleep_queue);
 		}
 
@@ -913,7 +913,7 @@ void thread_stack_trace(thread_id_t thread_id)
 	if (istate != NULL) {
 		printf("Scheduling thread stack trace.\n");
 		thread->btrace = true;
-		if (thread->state == Sleeping)
+		if (atomic_get_unordered(&thread->state) == Sleeping)
 			sleeping = true;
 	} else
 		printf("Thread interrupt state not available.\n");

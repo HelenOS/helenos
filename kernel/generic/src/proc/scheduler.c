@@ -312,7 +312,7 @@ static void prepare_to_run_thread(int rq_index)
 	irq_spinlock_lock(&THREAD->lock, false);
 	assert(atomic_get_unordered(&THREAD->cpu) == CPU);
 
-	THREAD->state = Running;
+	atomic_set_unordered(&THREAD->state, Running);
 	atomic_set_unordered(&THREAD->priority, rq_index);  /* Correct rq index */
 
 	/*
@@ -385,7 +385,7 @@ static void thread_requeue_preempted(thread_t *thread)
 {
 	irq_spinlock_lock(&thread->lock, false);
 
-	assert(thread->state == Running);
+	assert(atomic_get_unordered(&thread->state) == Running);
 	assert(atomic_get_unordered(&thread->cpu) == CPU);
 
 	int prio = atomic_get_unordered(&thread->priority);
@@ -395,7 +395,7 @@ static void thread_requeue_preempted(thread_t *thread)
 		atomic_set_unordered(&thread->priority, prio);
 	}
 
-	thread->state = Ready;
+	atomic_set_unordered(&thread->state, Ready);
 
 	irq_spinlock_unlock(&thread->lock, false);
 
@@ -408,10 +408,10 @@ void thread_requeue_sleeping(thread_t *thread)
 
 	irq_spinlock_lock(&thread->lock, false);
 
-	assert(thread->state == Sleeping || thread->state == Entering);
+	assert(atomic_get_unordered(&thread->state) == Sleeping || atomic_get_unordered(&thread->state) == Entering);
 
 	atomic_set_unordered(&thread->priority, 0);
-	thread->state = Ready;
+	atomic_set_unordered(&thread->state, Ready);
 
 	/* Prefer the CPU on which the thread ran last */
 	cpu_t *cpu = atomic_get_unordered(&thread->cpu);
@@ -470,7 +470,7 @@ static void cleanup_after_thread(thread_t *thread, state_t out_state)
 		 * Entering state is unexpected.
 		 */
 		panic("tid%" PRIu64 ": unexpected state %s.",
-		    thread->tid, thread_states[thread->state]);
+		    thread->tid, thread_states[out_state]);
 		break;
 	}
 }
@@ -500,7 +500,8 @@ void scheduler_enter(state_t new_state)
 	}
 
 	irq_spinlock_lock(&THREAD->lock, false);
-	THREAD->state = new_state;
+
+	atomic_set_unordered(&THREAD->state, new_state);
 
 	/* Update thread kernel accounting */
 	THREAD->kcycles += get_cycle() - THREAD->last_cycle;
@@ -808,7 +809,7 @@ void sched_print_list(void)
 			list_foreach(cpus[cpu].rq[i].rq, rq_link, thread_t,
 			    thread) {
 				printf("%" PRIu64 "(%s) ", thread->tid,
-				    thread_states[thread->state]);
+				    thread_states[atomic_get_unordered(&thread->state)]);
 			}
 			printf("\n");
 

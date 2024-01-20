@@ -134,7 +134,7 @@ typedef struct thread {
 	unsigned int nomigrate;
 
 	/** Thread state. */
-	state_t state;
+	atomic_int_fast32_t state;
 
 	/** Thread CPU. */
 	_Atomic(cpu_t *) cpu;
