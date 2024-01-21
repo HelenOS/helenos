@@ -89,35 +89,11 @@ static errno_t _thread_op_begin(thread_t *thread, bool being_go)
 		return ENOENT;
 	}
 
-	irq_spinlock_lock(&thread->lock, true);
-
 	/* Verify that 'thread' is a userspace thread. */
 	if (!thread->uspace) {
-		/* It's not, deny its existence */
-		irq_spinlock_unlock(&thread->lock, true);
 		mutex_unlock(&TASK->udebug.lock);
 		return ENOENT;
 	}
-
-	/* Verify debugging state. */
-	if (thread->udebug.active != true) {
-		/* Not in debugging session or undesired GO state */
-		irq_spinlock_unlock(&thread->lock, true);
-		mutex_unlock(&TASK->udebug.lock);
-		return ENOENT;
-	}
-
-	/* Now verify that the thread belongs to the current task. */
-	if (thread->task != TASK) {
-		/* No such thread belonging this task */
-		irq_spinlock_unlock(&thread->lock, true);
-		mutex_unlock(&TASK->udebug.lock);
-		return ENOENT;
-	}
-
-	irq_spinlock_unlock(&thread->lock, true);
-
-	/* Only mutex TASK->udebug.lock left. */
 
 	/*
 	 * Now we need to grab the thread's debug lock for synchronization
@@ -125,6 +101,22 @@ static errno_t _thread_op_begin(thread_t *thread, bool being_go)
 	 *
 	 */
 	mutex_lock(&thread->udebug.lock);
+
+	/* Verify debugging state. */
+	if (thread->udebug.active != true) {
+		/* Not in debugging session or undesired GO state */
+		mutex_unlock(&thread->udebug.lock);
+		mutex_unlock(&TASK->udebug.lock);
+		return ENOENT;
+	}
+
+	/* Now verify that the thread belongs to the current task. */
+	if (thread->task != TASK) {
+		/* No such thread belonging this task */
+		mutex_unlock(&thread->udebug.lock);
+		mutex_unlock(&TASK->udebug.lock);
+		return ENOENT;
+	}
 
 	/* The big task mutex is no longer needed. */
 	mutex_unlock(&TASK->udebug.lock);
@@ -387,9 +379,7 @@ errno_t udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 
 	/* FIXME: make sure the thread isn't past debug shutdown... */
 	list_foreach(TASK->threads, th_link, thread_t, thread) {
-		irq_spinlock_lock(&thread->lock, false);
 		bool uspace = thread->uspace;
-		irq_spinlock_unlock(&thread->lock, false);
 
 		/* Not interested in kernel threads. */
 		if (!uspace)

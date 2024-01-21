@@ -73,6 +73,10 @@ typedef struct cpu_local {
 	 */
 	bool idle;
 	uint64_t last_cycle;
+
+	context_t scheduler_context;
+
+	struct thread *prev_thread;
 } cpu_local_t;
 
 /** CPU structure.

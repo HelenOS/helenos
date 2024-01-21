@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2023 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +50,6 @@
 #include <time/timeout.h>
 #include <time/delay.h>
 #include <arch/asm.h>
-#include <arch/faddr.h>
 #include <arch/cycle.h>
 #include <atomic.h>
 #include <synch/spinlock.h>
@@ -64,8 +64,6 @@
 #include <stdio.h>
 #include <log.h>
 #include <stacktrace.h>
-
-static void scheduler_separated_stack(void);
 
 atomic_size_t nrdy;  /**< Number of ready threads in the system. */
 
@@ -226,6 +224,8 @@ static void switch_task(task_t *task)
  */
 static void relink_rq(int start)
 {
+	assert(interrupts_disabled());
+
 	if (CPU_LOCAL->current_clock_tick < CPU_LOCAL->relink_deadline)
 		return;
 
@@ -301,17 +301,6 @@ static void fpu_restore(void)
 #endif
 }
 
-void scheduler_run(void)
-{
-	assert(interrupts_disabled());
-	assert(THREAD == NULL);
-	assert(CPU != NULL);
-
-	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
-	context_replace(scheduler_separated_stack, CPU_LOCAL->stack, STACK_SIZE);
-	unreachable();
-}
-
 /** Things to do before we switch to THREAD context.
  */
 static void prepare_to_run_thread(int rq_index)
@@ -320,10 +309,10 @@ static void prepare_to_run_thread(int rq_index)
 
 	switch_task(THREAD->task);
 
-	irq_spinlock_lock(&THREAD->lock, false);
-	THREAD->state = Running;
-	THREAD->cpu = CPU;
-	THREAD->priority = rq_index;  /* Correct rq index */
+	assert(atomic_get_unordered(&THREAD->cpu) == CPU);
+
+	atomic_set_unordered(&THREAD->state, Running);
+	atomic_set_unordered(&THREAD->priority, rq_index);  /* Correct rq index */
 
 	/*
 	 * Clear the stolen flag so that it can be migrated
@@ -334,7 +323,7 @@ static void prepare_to_run_thread(int rq_index)
 #ifdef SCHEDULER_VERBOSE
 	log(LF_OTHER, LVL_DEBUG,
 	    "cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64
-	    ", nrdy=%zu)", CPU->id, THREAD->tid, THREAD->priority,
+	    ", nrdy=%zu)", CPU->id, THREAD->tid, rq_index,
 	    THREAD->ticks, atomic_load(&CPU->nrdy));
 #endif
 
@@ -349,14 +338,16 @@ static void prepare_to_run_thread(int rq_index)
 	before_thread_runs_arch();
 
 #ifdef CONFIG_UDEBUG
-	if (THREAD->btrace) {
+	if (atomic_get_unordered(&THREAD->btrace)) {
 		istate_t *istate = THREAD->udebug.uspace_state;
 		if (istate != NULL) {
 			printf("Thread %" PRIu64 " stack trace:\n", THREAD->tid);
 			stack_trace_istate(istate);
+		} else {
+			printf("Thread %" PRIu64 " interrupt state not available\n", THREAD->tid);
 		}
 
-		THREAD->btrace = false;
+		atomic_set_unordered(&THREAD->btrace, false);
 	}
 #endif
 
@@ -373,16 +364,72 @@ static void prepare_to_run_thread(int rq_index)
 	THREAD->last_cycle = get_cycle();
 }
 
-static void cleanup_after_thread(thread_t *thread, state_t out_state)
+static void add_to_rq(thread_t *thread, cpu_t *cpu, int i)
+{
+	/* Add to the appropriate runqueue. */
+	runq_t *rq = &cpu->rq[i];
+
+	irq_spinlock_lock(&rq->lock, false);
+	list_append(&thread->rq_link, &rq->rq);
+	rq->n++;
+	irq_spinlock_unlock(&rq->lock, false);
+
+	atomic_inc(&nrdy);
+	atomic_inc(&cpu->nrdy);
+}
+
+/** Requeue a thread that was just preempted on this CPU.
+ */
+static void thread_requeue_preempted(thread_t *thread)
+{
+	assert(interrupts_disabled());
+	assert(atomic_get_unordered(&thread->state) == Running);
+	assert(atomic_get_unordered(&thread->cpu) == CPU);
+
+	int prio = atomic_get_unordered(&thread->priority);
+
+	if (prio < RQ_COUNT - 1) {
+		prio++;
+		atomic_set_unordered(&thread->priority, prio);
+	}
+
+	atomic_set_unordered(&thread->state, Ready);
+
+	add_to_rq(thread, CPU, prio);
+}
+
+void thread_requeue_sleeping(thread_t *thread)
+{
+	ipl_t ipl = interrupts_disable();
+
+	assert(atomic_get_unordered(&thread->state) == Sleeping || atomic_get_unordered(&thread->state) == Entering);
+
+	atomic_set_unordered(&thread->priority, 0);
+	atomic_set_unordered(&thread->state, Ready);
+
+	/* Prefer the CPU on which the thread ran last */
+	cpu_t *cpu = atomic_get_unordered(&thread->cpu);
+
+	if (!cpu) {
+		cpu = CPU;
+		atomic_set_unordered(&thread->cpu, CPU);
+	}
+
+	add_to_rq(thread, cpu, 0);
+
+	interrupts_restore(ipl);
+}
+
+static void cleanup_after_thread(thread_t *thread)
 {
 	assert(CURRENT->mutex_locks == 0);
 	assert(interrupts_disabled());
 
 	int expected;
 
-	switch (out_state) {
+	switch (atomic_get_unordered(&thread->state)) {
 	case Running:
-		thread_ready(thread);
+		thread_requeue_preempted(thread);
 		break;
 
 	case Exiting:
@@ -406,7 +453,7 @@ static void cleanup_after_thread(thread_t *thread, state_t out_state)
 
 			assert(expected == SLEEP_WOKE);
 			/* The thread has already been woken up, requeue immediately. */
-			thread_ready(thread);
+			thread_requeue_sleeping(thread);
 		}
 		break;
 
@@ -415,18 +462,12 @@ static void cleanup_after_thread(thread_t *thread, state_t out_state)
 		 * Entering state is unexpected.
 		 */
 		panic("tid%" PRIu64 ": unexpected state %s.",
-		    thread->tid, thread_states[thread->state]);
+		    thread->tid, thread_states[atomic_get_unordered(&thread->state)]);
 		break;
 	}
 }
 
-/** The scheduler
- *
- * The thread scheduling procedure.
- * Passes control directly to
- * scheduler_separated_stack().
- *
- */
+/** Switch to scheduler context to let other threads run. */
 void scheduler_enter(state_t new_state)
 {
 	ipl_t ipl = interrupts_disable();
@@ -434,96 +475,139 @@ void scheduler_enter(state_t new_state)
 	assert(CPU != NULL);
 	assert(THREAD != NULL);
 
-	fpu_cleanup();
-
-	irq_spinlock_lock(&THREAD->lock, false);
-	THREAD->state = new_state;
-
-	/* Update thread kernel accounting */
-	THREAD->kcycles += get_cycle() - THREAD->last_cycle;
-
-	if (new_state == Sleeping) {
-		/* Prefer the thread after it's woken up. */
-		THREAD->priority = -1;
-	}
-
-	/*
-	 * Through the 'CURRENT' structure, we keep track of THREAD, TASK, CPU, AS
-	 * and preemption counter. At this point CURRENT could be coming either
-	 * from THREAD's or CPU's stack.
-	 *
-	 */
-	current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
-
-	/*
-	 * We may not keep the old stack.
-	 * Reason: If we kept the old stack and got blocked, for instance, in
-	 * find_best_thread(), the old thread could get rescheduled by another
-	 * CPU and overwrite the part of its own stack that was also used by
-	 * the scheduler on this CPU.
-	 *
-	 * Moreover, we have to bypass the compiler-generated POP sequence
-	 * which is fooled by SP being set to the very top of the stack.
-	 * Therefore the scheduler() function continues in
-	 * scheduler_separated_stack().
-	 *
-	 */
-	context_t ctx;
-	context_create(&ctx, scheduler_separated_stack,
-	    CPU_LOCAL->stack, STACK_SIZE);
-
-	/* Switch to scheduler context and store current thread's context. */
-	context_swap(&THREAD->saved_context, &ctx);
-
-	/* Returned from scheduler. */
-
-	irq_spinlock_unlock(&THREAD->lock, false);
-	interrupts_restore(ipl);
-}
-
-/** Scheduler stack switch wrapper
- *
- * Second part of the scheduler() function
- * using new stack. Handling the actual context
- * switch to a new thread.
- *
- */
-void scheduler_separated_stack(void)
-{
-	assert((!THREAD) || (irq_spinlock_locked(&THREAD->lock)));
-	assert(CPU != NULL);
-	assert(interrupts_disabled());
-
 	if (atomic_load(&haltstate))
 		halt();
 
-	if (THREAD) {
+	/* Check if we have a thread to switch to. */
+
+	int rq_index;
+	thread_t *new_thread = try_find_thread(&rq_index);
+
+	if (new_thread == NULL && new_state == Running) {
+		/* No other thread to run, but we still have work to do here. */
+		interrupts_restore(ipl);
+		return;
+	}
+
+	atomic_set_unordered(&THREAD->state, new_state);
+
+	/* Update thread kernel accounting */
+	atomic_time_increment(&THREAD->kcycles, get_cycle() - THREAD->last_cycle);
+
+	fpu_cleanup();
+
+	/*
+	 * On Sparc, this saves some extra userspace state that's not
+	 * covered by context_save()/context_restore().
+	 */
+	after_thread_ran_arch();
+
+	if (new_thread) {
+		thread_t *old_thread = THREAD;
+		CPU_LOCAL->prev_thread = old_thread;
+		THREAD = new_thread;
+		/* No waiting necessary, we can switch to the new thread directly. */
+		prepare_to_run_thread(rq_index);
+
+		current_copy(CURRENT, (current_t *) new_thread->kstack);
+		context_swap(&old_thread->saved_context, &new_thread->saved_context);
+	} else {
 		/*
-		 * On Sparc, this saves some extra userspace state that's not
-		 * covered by context_save()/context_restore().
+		 * A new thread isn't immediately available, switch to a separate
+		 * stack to sleep or do other idle stuff.
 		 */
-		after_thread_ran_arch();
+		current_copy(CURRENT, (current_t *) CPU_LOCAL->stack);
+		context_swap(&THREAD->saved_context, &CPU_LOCAL->scheduler_context);
+	}
 
-		state_t state = THREAD->state;
-		irq_spinlock_unlock(&THREAD->lock, false);
+	assert(CURRENT->mutex_locks == 0);
+	assert(interrupts_disabled());
 
-		cleanup_after_thread(THREAD, state);
+	/* Check if we need to clean up after another thread. */
+	if (CPU_LOCAL->prev_thread) {
+		cleanup_after_thread(CPU_LOCAL->prev_thread);
+		CPU_LOCAL->prev_thread = NULL;
+	}
 
+	interrupts_restore(ipl);
+}
+
+/** Enter main scheduler loop. Never returns.
+ *
+ * This function switches to a runnable thread as soon as one is available,
+ * after which it is only switched back to if a thread is stopping and there is
+ * no other thread to run in its place. We need a separate context for that
+ * because we're going to block the CPU, which means we need another context
+ * to clean up after the previous thread.
+ */
+void scheduler_run(void)
+{
+	assert(interrupts_disabled());
+
+	assert(CPU != NULL);
+	assert(TASK == NULL);
+	assert(THREAD == NULL);
+	assert(interrupts_disabled());
+
+	while (!atomic_load(&haltstate)) {
+		assert(CURRENT->mutex_locks == 0);
+
+		int rq_index;
+		THREAD = find_best_thread(&rq_index);
+		prepare_to_run_thread(rq_index);
+
+		/*
+		 * Copy the knowledge of CPU, TASK, THREAD and preemption counter to
+		 * thread's stack.
+		 */
+		current_copy(CURRENT, (current_t *) THREAD->kstack);
+
+		/* Switch to thread context. */
+		context_swap(&CPU_LOCAL->scheduler_context, &THREAD->saved_context);
+
+		/* Back from another thread. */
+		assert(CPU != NULL);
+		assert(THREAD != NULL);
+		assert(CURRENT->mutex_locks == 0);
+		assert(interrupts_disabled());
+
+		cleanup_after_thread(THREAD);
+
+		/*
+		 * Necessary because we're allowing interrupts in find_best_thread(),
+		 * so we need to avoid other code referencing the thread we left.
+		 */
 		THREAD = NULL;
 	}
 
-	int rq_index;
-	THREAD = find_best_thread(&rq_index);
+	halt();
+}
 
-	prepare_to_run_thread(rq_index);
+/** Thread wrapper.
+ *
+ * This wrapper is provided to ensure that a starting thread properly handles
+ * everything it needs to do when first scheduled, and when it exits.
+ */
+void thread_main_func(void)
+{
+	assert(interrupts_disabled());
 
-	/*
-	 * Copy the knowledge of CPU, TASK, THREAD and preemption counter to
-	 * thread's stack.
-	 */
-	current_copy(CURRENT, (current_t *) THREAD->kstack);
+	void (*f)(void *) = THREAD->thread_code;
+	void *arg = THREAD->thread_arg;
 
-	context_restore(&THREAD->saved_context);
+	/* This is where each thread wakes up after its creation */
+
+	/* Check if we need to clean up after another thread. */
+	if (CPU_LOCAL->prev_thread) {
+		cleanup_after_thread(CPU_LOCAL->prev_thread);
+		CPU_LOCAL->prev_thread = NULL;
+	}
+
+	interrupts_enable();
+
+	f(arg);
+
+	thread_exit();
 
 	/* Not reached */
 }
@@ -549,24 +633,18 @@ static thread_t *steal_thread_from(cpu_t *old_cpu, int i)
 	/* Search rq from the back */
 	list_foreach_rev(old_rq->rq, rq_link, thread_t, thread) {
 
-		irq_spinlock_lock(&thread->lock, false);
-
 		/*
 		 * Do not steal CPU-wired threads, threads
 		 * already stolen, threads for which migration
 		 * was temporarily disabled or threads whose
 		 * FPU context is still in the CPU.
 		 */
-		if (thread->stolen || thread->nomigrate ||
-		    thread == fpu_owner) {
-			irq_spinlock_unlock(&thread->lock, false);
+		if (thread->stolen || thread->nomigrate || thread == fpu_owner) {
 			continue;
 		}
 
 		thread->stolen = true;
-		thread->cpu = CPU;
-
-		irq_spinlock_unlock(&thread->lock, false);
+		atomic_set_unordered(&thread->cpu, CPU);
 
 		/*
 		 * Ready thread on local CPU
@@ -711,7 +789,7 @@ void sched_print_list(void)
 			list_foreach(cpus[cpu].rq[i].rq, rq_link, thread_t,
 			    thread) {
 				printf("%" PRIu64 "(%s) ", thread->tid,
-				    thread_states[thread->state]);
+				    thread_states[atomic_get_unordered(&thread->state)]);
 			}
 			printf("\n");
 

@@ -505,8 +505,6 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 
 	/* Current values of threads */
 	list_foreach(task->threads, th_link, thread_t, thread) {
-		irq_spinlock_lock(&thread->lock, false);
-
 		/* Process only counted threads */
 		if (!thread->uncounted) {
 			if (thread == THREAD) {
@@ -514,11 +512,9 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 				thread_update_accounting(false);
 			}
 
-			uret += thread->ucycles;
-			kret += thread->kcycles;
+			uret += atomic_time_read(&thread->ucycles);
+			kret += atomic_time_read(&thread->kcycles);
 		}
-
-		irq_spinlock_unlock(&thread->lock, false);
 	}
 
 	*ucycles = uret;

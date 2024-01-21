@@ -122,6 +122,7 @@ static void clock_update_counters(uint64_t current_tick)
 
 static void cpu_update_accounting(void)
 {
+	// FIXME: get_cycle() is unimplemented on several platforms
 	uint64_t now = get_cycle();
 	atomic_time_increment(&CPU->busy_cycles, now - CPU_LOCAL->last_cycle);
 	CPU_LOCAL->last_cycle = now;
