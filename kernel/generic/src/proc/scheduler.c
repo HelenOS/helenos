@@ -339,7 +339,7 @@ static void prepare_to_run_thread(int rq_index)
 	before_thread_runs_arch();
 
 #ifdef CONFIG_UDEBUG
-	if (THREAD->btrace) {
+	if (atomic_get_unordered(&THREAD->btrace)) {
 		istate_t *istate = THREAD->udebug.uspace_state;
 		if (istate != NULL) {
 			printf("Thread %" PRIu64 " stack trace:\n", THREAD->tid);
@@ -348,7 +348,7 @@ static void prepare_to_run_thread(int rq_index)
 			printf("Thread %" PRIu64 " interrupt state not available\n", THREAD->tid);
 		}
 
-		THREAD->btrace = false;
+		atomic_set_unordered(&THREAD->btrace, false);
 	}
 #endif
 

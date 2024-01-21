@@ -288,7 +288,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 
 #ifdef CONFIG_UDEBUG
 	/* Initialize debugging stuff */
-	thread->btrace = false;
+	atomic_init(&thread->btrace, false);
 	udebug_thread_initialize(&thread->udebug);
 #endif
 
@@ -907,9 +907,7 @@ void thread_stack_trace(thread_id_t thread_id)
 	 */
 
 	printf("Scheduling thread stack trace.\n");
-	irq_spinlock_lock(&thread->lock, true);
-	thread->btrace = true;
-	irq_spinlock_unlock(&thread->lock, true);
+	atomic_set_unordered(&thread->btrace, true);
 
 	thread_wakeup(thread);
 	thread_put(thread);
