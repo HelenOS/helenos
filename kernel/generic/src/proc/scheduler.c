@@ -485,8 +485,6 @@ void scheduler_enter(state_t new_state)
 	assert(CPU != NULL);
 	assert(THREAD != NULL);
 
-	fpu_cleanup();
-
 	if (atomic_load(&haltstate))
 		halt();
 
@@ -507,6 +505,8 @@ void scheduler_enter(state_t new_state)
 
 	/* Update thread kernel accounting */
 	atomic_time_increment(&THREAD->kcycles, get_cycle() - THREAD->last_cycle);
+
+	fpu_cleanup();
 
 	/*
 	 * On Sparc, this saves some extra userspace state that's not
