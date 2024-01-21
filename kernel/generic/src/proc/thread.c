@@ -261,7 +261,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->kcycles = ATOMIC_TIME_INITIALIZER();
 	thread->uncounted =
 	    ((flags & THREAD_FLAG_UNCOUNTED) == THREAD_FLAG_UNCOUNTED);
-	atomic_init(&thread->priority, -1);          /* Start in rq[0] */
+	atomic_init(&thread->priority, 0);
 	atomic_init(&thread->cpu, NULL);
 	thread->stolen = false;
 	thread->uspace =
