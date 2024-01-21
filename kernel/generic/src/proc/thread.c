@@ -636,12 +636,7 @@ errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 	if (thread == THREAD)
 		return EINVAL;
 
-	state_t state = atomic_get_unordered(&thread->state);
-
-	errno_t rc = EOK;
-
-	if (state != Exiting)
-		rc = _waitq_sleep_timeout(&thread->join_wq, usec, flags);
+	errno_t rc = _waitq_sleep_timeout(&thread->join_wq, usec, flags);
 
 	if (rc == EOK)
 		thread_put(thread);
