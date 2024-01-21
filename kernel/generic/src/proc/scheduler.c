@@ -344,6 +344,8 @@ static void prepare_to_run_thread(int rq_index)
 		if (istate != NULL) {
 			printf("Thread %" PRIu64 " stack trace:\n", THREAD->tid);
 			stack_trace_istate(istate);
+		} else {
+			printf("Thread %" PRIu64 " interrupt state not available\n", THREAD->tid);
 		}
 
 		THREAD->btrace = false;

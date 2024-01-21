@@ -906,23 +906,12 @@ void thread_stack_trace(thread_id_t thread_id)
 	 * is probably justifiable.
 	 */
 
+	printf("Scheduling thread stack trace.\n");
 	irq_spinlock_lock(&thread->lock, true);
-
-	bool sleeping = false;
-	istate_t *istate = thread->udebug.uspace_state;
-	if (istate != NULL) {
-		printf("Scheduling thread stack trace.\n");
-		thread->btrace = true;
-		if (atomic_get_unordered(&thread->state) == Sleeping)
-			sleeping = true;
-	} else
-		printf("Thread interrupt state not available.\n");
-
+	thread->btrace = true;
 	irq_spinlock_unlock(&thread->lock, true);
 
-	if (sleeping)
-		thread_wakeup(thread);
-
+	thread_wakeup(thread);
 	thread_put(thread);
 }
 
