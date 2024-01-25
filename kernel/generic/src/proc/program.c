@@ -98,7 +98,7 @@ errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t
 	    &anon_backend, NULL, &virt, bound);
 	if (!area) {
 		free(kernel_uarg);
-		task_destroy(prg->task);
+		task_release(prg->task);
 		prg->task = NULL;
 		return ENOMEM;
 	}
@@ -118,7 +118,7 @@ errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t
 	if (!prg->main_thread) {
 		free(kernel_uarg);
 		as_area_destroy(as, virt);
-		task_destroy(prg->task);
+		task_release(prg->task);
 		prg->task = NULL;
 		return ELIMIT;
 	}

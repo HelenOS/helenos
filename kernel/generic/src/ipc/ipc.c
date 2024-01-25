@@ -966,14 +966,9 @@ static bool print_task_phone_cb(cap_t *cap, void *arg)
  */
 void ipc_print_task(task_id_t taskid)
 {
-	irq_spinlock_lock(&tasks_lock, true);
 	task_t *task = task_find_by_id(taskid);
-	if (!task) {
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (!task)
 		return;
-	}
-	task_hold(task);
-	irq_spinlock_unlock(&tasks_lock, true);
 
 	printf("[phone cap] [calls] [state\n");
 

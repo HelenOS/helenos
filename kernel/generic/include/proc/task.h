@@ -87,7 +87,7 @@ typedef struct task {
 	container_id_t container;
 
 	/** Number of references (i.e. threads). */
-	atomic_size_t refcount;
+	atomic_refcount_t refcount;
 	/** Number of threads that haven't exited yet. */
 	// TODO: remove
 	atomic_size_t lifecount;
@@ -143,7 +143,6 @@ extern odict_t tasks;
 extern void task_init(void);
 extern void task_done(void);
 extern task_t *task_create(as_t *, const char *);
-extern void task_destroy(task_t *);
 extern void task_hold(task_t *);
 extern void task_release(task_t *);
 extern task_t *task_find_by_id(task_id_t);

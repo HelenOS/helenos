@@ -88,20 +88,21 @@ static errno_t perm_grant(task_id_t taskid, perm_t perms)
 	if (!(perm_get(TASK) & PERM_PERM))
 		return EPERM;
 
-	irq_spinlock_lock(&tasks_lock, true);
 	task_t *task = task_find_by_id(taskid);
-
-	if ((!task) || (!container_check(CONTAINER, task->container))) {
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (!task)
 		return ENOENT;
+
+	errno_t rc = ENOENT;
+
+	irq_spinlock_lock(&task->lock, true);
+	if (container_check(CONTAINER, task->container)) {
+		task->perms |= perms;
+		rc = EOK;
 	}
+	irq_spinlock_unlock(&task->lock, true);
 
-	irq_spinlock_lock(&task->lock, false);
-	task->perms |= perms;
-	irq_spinlock_unlock(&task->lock, false);
-
-	irq_spinlock_unlock(&tasks_lock, true);
-	return EOK;
+	task_release(task);
+	return rc;
 }
 
 /** Revoke permissions from a task.
@@ -117,32 +118,31 @@ static errno_t perm_grant(task_id_t taskid, perm_t perms)
  */
 static errno_t perm_revoke(task_id_t taskid, perm_t perms)
 {
-	irq_spinlock_lock(&tasks_lock, true);
-
 	task_t *task = task_find_by_id(taskid);
-	if ((!task) || (!container_check(CONTAINER, task->container))) {
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (!task)
 		return ENOENT;
-	}
 
 	/*
 	 * Revoking permissions is different from granting them in that
 	 * a task can revoke permissions from itself even if it
 	 * doesn't have PERM_PERM.
 	 */
-	irq_spinlock_lock(&TASK->lock, false);
-
-	if ((!(TASK->perms & PERM_PERM)) || (task != TASK)) {
-		irq_spinlock_unlock(&TASK->lock, false);
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (task != TASK && !(perm_get(TASK) & PERM_PERM)) {
+		task_release(task);
 		return EPERM;
 	}
 
-	task->perms &= ~perms;
-	irq_spinlock_unlock(&TASK->lock, false);
+	errno_t rc = ENOENT;
 
-	irq_spinlock_unlock(&tasks_lock, true);
-	return EOK;
+	irq_spinlock_lock(&task->lock, true);
+	if (container_check(CONTAINER, task->container)) {
+		task->perms &= ~perms;
+		rc = EOK;
+	}
+	irq_spinlock_unlock(&task->lock, true);
+
+	task_release(task);
+	return rc;
 }
 
 #ifdef __32_BITS__

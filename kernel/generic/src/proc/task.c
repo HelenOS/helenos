@@ -157,7 +157,6 @@ errno_t tsk_constructor(void *obj, unsigned int kmflags)
 	if (rc != EOK)
 		return rc;
 
-	atomic_store(&task->refcount, 0);
 	atomic_store(&task->lifecount, 0);
 
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
@@ -200,6 +199,8 @@ task_t *task_create(as_t *as, const char *name)
 	task_t *task = (task_t *) slab_alloc(task_cache, FRAME_ATOMIC);
 	if (!task)
 		return NULL;
+
+	refcount_init(&task->refcount);
 
 	task_create_arch(task);
 
@@ -267,7 +268,7 @@ task_t *task_create(as_t *as, const char *name)
  * @param task Task to be destroyed.
  *
  */
-void task_destroy(task_t *task)
+static void task_destroy(task_t *task)
 {
 	/*
 	 * Remove the task from the task odict.
@@ -298,7 +299,7 @@ void task_destroy(task_t *task)
  */
 void task_hold(task_t *task)
 {
-	atomic_inc(&task->refcount);
+	refcount_up(&task->refcount);
 }
 
 /** Release a reference to a task.
@@ -310,7 +311,7 @@ void task_hold(task_t *task)
  */
 void task_release(task_t *task)
 {
-	if ((atomic_predec(&task->refcount)) == 0)
+	if (refcount_down(&task->refcount))
 		task_destroy(task);
 }
 
@@ -415,24 +416,34 @@ sys_errno_t sys_task_kill(uspace_ptr_task_id_t uspace_taskid)
 
 /** Find task structure corresponding to task ID.
  *
- * The tasks_lock must be already held by the caller of this function and
- * interrupts must be disabled.
- *
  * @param id Task ID.
  *
- * @return Task structure address or NULL if there is no such task ID.
+ * @return Task reference or NULL if there is no such task ID.
  *
  */
 task_t *task_find_by_id(task_id_t id)
 {
-	assert(interrupts_disabled());
-	assert(irq_spinlock_locked(&tasks_lock));
+	task_t *task = NULL;
+
+	irq_spinlock_lock(&tasks_lock, true);
 
 	odlink_t *odlink = odict_find_eq(&tasks, &id, NULL);
-	if (odlink != NULL)
-		return odict_get_instance(odlink, task_t, ltasks);
+	if (odlink != NULL) {
+		task = odict_get_instance(odlink, task_t, ltasks);
 
-	return NULL;
+		/*
+		 * The directory of tasks can't hold a reference, since that would
+		 * prevent task from ever being destroyed. That means we have to
+		 * check for the case where the task is already being destroyed, but
+		 * not yet removed from the directory.
+		 */
+		if (!refcount_try_up(&task->refcount))
+			task = NULL;
+	}
+
+	irq_spinlock_unlock(&tasks_lock, true);
+
+	return task;
 }
 
 /** Get count of tasks.
@@ -523,7 +534,7 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 
 static void task_kill_internal(task_t *task)
 {
-	irq_spinlock_lock(&task->lock, false);
+	irq_spinlock_lock(&task->lock, true);
 
 	/*
 	 * Interrupt all threads.
@@ -533,7 +544,7 @@ static void task_kill_internal(task_t *task)
 		thread_interrupt(thread);
 	}
 
-	irq_spinlock_unlock(&task->lock, false);
+	irq_spinlock_unlock(&task->lock, true);
 }
 
 /** Kill task.
@@ -551,17 +562,12 @@ errno_t task_kill(task_id_t id)
 	if (id == 1)
 		return EPERM;
 
-	irq_spinlock_lock(&tasks_lock, true);
-
 	task_t *task = task_find_by_id(id);
-	if (!task) {
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (!task)
 		return ENOENT;
-	}
 
 	task_kill_internal(task);
-	irq_spinlock_unlock(&tasks_lock, true);
-
+	task_release(task);
 	return EOK;
 }
 
@@ -591,10 +597,7 @@ void task_kill_self(bool notify)
 		}
 	}
 
-	irq_spinlock_lock(&tasks_lock, true);
 	task_kill_internal(TASK);
-	irq_spinlock_unlock(&tasks_lock, true);
-
 	thread_exit();
 }
 
@@ -623,7 +626,7 @@ static void task_print(task_t *task, bool additional)
 #ifdef __32_BITS__
 	if (additional)
 		printf("%-8" PRIu64 " %9zu", task->taskid,
-		    atomic_load(&task->refcount));
+		    atomic_load(&task->lifecount));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %10p %10p"
 		    " %9" PRIu64 "%c %9" PRIu64 "%c\n", task->taskid,
@@ -635,7 +638,7 @@ static void task_print(task_t *task, bool additional)
 	if (additional)
 		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c "
 		    "%9zu\n", task->taskid, ucycles, usuffix, kcycles,
-		    ksuffix, atomic_load(&task->refcount));
+		    ksuffix, atomic_load(&task->lifecount));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %18p %18p\n",
 		    task->taskid, task->name, task->container, task, task->as);

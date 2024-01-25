@@ -335,25 +335,21 @@ _NO_TRACE static errno_t iospace_enable(task_id_t id, uintptr_t ioaddr, size_t s
 	if (!(perms & PERM_IO_MANAGER))
 		return EPERM;
 
-	irq_spinlock_lock(&tasks_lock, true);
-
 	task_t *task = task_find_by_id(id);
 
-	if ((!task) || (!container_check(CONTAINER, task->container))) {
-		/*
-		 * There is no task with the specified ID
-		 * or the task belongs to a different security
-		 * context.
-		 */
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (!task)
 		return ENOENT;
-	}
 
-	/* Lock the task and release the lock protecting tasks dictionary. */
-	irq_spinlock_exchange(&tasks_lock, &task->lock);
-	errno_t rc = ddi_iospace_enable_arch(task, ioaddr, size);
+	errno_t rc = ENOENT;
+
+	irq_spinlock_lock(&task->lock, true);
+
+	/* Check that the task belongs to the correct security context. */
+	if (container_check(CONTAINER, task->container))
+		rc = ddi_iospace_enable_arch(task, ioaddr, size);
+
 	irq_spinlock_unlock(&task->lock, true);
-
+	task_release(task);
 	return rc;
 }
 
@@ -376,25 +372,21 @@ _NO_TRACE static errno_t iospace_disable(task_id_t id, uintptr_t ioaddr, size_t 
 	if (!(perms & PERM_IO_MANAGER))
 		return EPERM;
 
-	irq_spinlock_lock(&tasks_lock, true);
-
 	task_t *task = task_find_by_id(id);
 
-	if ((!task) || (!container_check(CONTAINER, task->container))) {
-		/*
-		 * There is no task with the specified ID
-		 * or the task belongs to a different security
-		 * context.
-		 */
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (!task)
 		return ENOENT;
-	}
 
-	/* Lock the task and release the lock protecting tasks dictionary. */
-	irq_spinlock_exchange(&tasks_lock, &task->lock);
-	errno_t rc = ddi_iospace_disable_arch(task, ioaddr, size);
+	errno_t rc = ENOENT;
+
+	irq_spinlock_lock(&task->lock, true);
+
+	/* Check that the task belongs to the correct security context. */
+	if (container_check(CONTAINER, task->container))
+		rc = ddi_iospace_disable_arch(task, ioaddr, size);
+
 	irq_spinlock_unlock(&task->lock, true);
-
+	task_release(task);
 	return rc;
 }
 

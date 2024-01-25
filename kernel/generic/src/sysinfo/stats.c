@@ -220,7 +220,7 @@ static void produce_stats_task(task_t *task, stats_task_t *stats_task)
 	str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
 	stats_task->virtmem = get_task_virtmem(task->as);
 	stats_task->resmem = get_task_resmem(task->as);
-	stats_task->threads = atomic_load(&task->refcount);
+	stats_task->threads = atomic_load(&task->lifecount);
 	task_get_accounting(task, &(stats_task->ucycles),
 	    &(stats_task->kcycles));
 	stats_task->ipc_info = task->ipc_info;
@@ -510,52 +510,40 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run,
     void *data)
 {
 	/* Initially no return value */
-	sysinfo_return_t ret;
-	ret.tag = SYSINFO_VAL_UNDEFINED;
+	sysinfo_return_t ret = {
+		.tag = SYSINFO_VAL_UNDEFINED,
+	};
 
 	/* Parse the task ID */
 	task_id_t task_id;
 	if (str_uint64_t(name, NULL, 0, true, &task_id) != EOK)
 		return ret;
 
-	/* Messing with task structures, avoid deadlock */
-	irq_spinlock_lock(&tasks_lock, true);
-
 	task_t *task = task_find_by_id(task_id);
-	if (task == NULL) {
-		/* No task with this ID */
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (!task)
 		return ret;
-	}
 
 	if (dry_run) {
 		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
 		ret.data.data = NULL;
 		ret.data.size = sizeof(stats_task_t);
-
-		irq_spinlock_unlock(&tasks_lock, true);
 	} else {
 		/* Allocate stats_task_t structure */
-		stats_task_t *stats_task =
-		    (stats_task_t *) malloc(sizeof(stats_task_t));
-		if (stats_task == NULL) {
-			irq_spinlock_unlock(&tasks_lock, true);
-			return ret;
+		stats_task_t *stats_task = malloc(sizeof(stats_task_t));
+
+		if (stats_task != NULL) {
+			/* Correct return value */
+			ret.tag = SYSINFO_VAL_FUNCTION_DATA;
+			ret.data.data = stats_task;
+			ret.data.size = sizeof(stats_task_t);
+
+			irq_spinlock_lock(&task->lock, true);
+			produce_stats_task(task, stats_task);
+			irq_spinlock_unlock(&task->lock, true);
 		}
-
-		/* Correct return value */
-		ret.tag = SYSINFO_VAL_FUNCTION_DATA;
-		ret.data.data = (void *) stats_task;
-		ret.data.size = sizeof(stats_task_t);
-
-		/* Hand-over-hand locking */
-		irq_spinlock_exchange(&tasks_lock, &task->lock);
-
-		produce_stats_task(task, stats_task);
-
-		irq_spinlock_unlock(&task->lock, true);
 	}
 
+	task_release(task);
 	return ret;
 }
 
