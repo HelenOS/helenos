@@ -251,6 +251,8 @@ sys_errno_t sys_program_spawn_loader(uspace_ptr_char uspace_name, size_t name_le
 	perm_set(prg.task, perm_get(TASK));
 	program_ready(&prg);
 
+	task_release(prg.task);
+
 	return EOK;
 }
 
