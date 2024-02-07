@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,6 +100,7 @@ error:
  * @param rtbcfg Place to store pointer to taskbar configuration
  * @return EOK on success or an error code
  */
+#include <stdio.h>
 errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 {
 	tbarcfg_t *tbcfg;
@@ -109,6 +110,7 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 	const char *ntype;
 	const char *caption;
 	const char *cmd;
+	const char *terminal = NULL;
 	errno_t rc;
 
 	tbcfg = calloc(1, sizeof(tbarcfg_t));
@@ -153,7 +155,14 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 			goto error;
 		}
 
-		rc = smenu_entry_new(tbcfg, nentry, caption, cmd, NULL);
+		terminal = sif_node_get_attr(nentry, "terminal");
+		if (terminal == NULL)
+			terminal = "n";
+
+		printf("terminal=%s\n", terminal);
+
+		rc = smenu_entry_new(tbcfg, nentry, caption, cmd,
+		    str_cmp(terminal, "y") == 0, NULL);
 		if (rc != EOK)
 			goto error;
 
@@ -232,12 +241,22 @@ const char *smenu_entry_get_caption(smenu_entry_t *entry)
 
 /** Get start menu entry command.
  *
- * @param entr Start menu entry
+ * @param entry Start menu entry
  * @return Command to run
  */
 const char *smenu_entry_get_cmd(smenu_entry_t *entry)
 {
 	return entry->cmd;
+}
+
+/** Get start menu start in terminal flag.
+ *
+ * @param entry Start menu entry
+ * @return Start in terminal flag
+ */
+bool smenu_entry_get_terminal(smenu_entry_t *entry)
+{
+	return entry->terminal;
 }
 
 /** Set start menu entry caption.
@@ -284,6 +303,19 @@ errno_t smenu_entry_set_cmd(smenu_entry_t *entry, const char *cmd)
 	return EOK;
 }
 
+/** Set start menu entry start in terminal flag.
+ *
+ * Note: To make the change visible to others and persistent,
+ * you must call @c smenu_entry_save()
+ *
+ * @param entry Start menu entry
+ * @param terminal Start in terminal flag
+ */
+void smenu_entry_set_terminal(smenu_entry_t *entry, bool terminal)
+{
+	entry->terminal = terminal;
+}
+
 /** Save any changes to start menu entry.
  *
  * @param entry Start menu entry
@@ -302,6 +334,11 @@ errno_t smenu_entry_save(smenu_entry_t *entry)
 		goto error;
 
 	rc = sif_node_set_attr(trans, entry->nentry, "caption", entry->caption);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_set_attr(trans, entry->nentry, "terminal",
+	    entry->terminal ? "y" : "n");
 	if (rc != EOK)
 		goto error;
 
@@ -324,10 +361,11 @@ error:
  * @param nentry Backing SIF node
  * @param caption Caption
  * @param cmd Command to run
+ * @param terminal Start in terminal
  * @param rentry Place to store pointer to new entry or @c NULL
  */
 errno_t smenu_entry_new(tbarcfg_t *smenu, sif_node_t *nentry,
-    const char *caption, const char *cmd, smenu_entry_t **rentry)
+    const char *caption, const char *cmd, bool terminal, smenu_entry_t **rentry)
 {
 	smenu_entry_t *entry;
 	errno_t rc;
@@ -351,6 +389,8 @@ errno_t smenu_entry_new(tbarcfg_t *smenu, sif_node_t *nentry,
 		rc = ENOMEM;
 		goto error;
 	}
+
+	entry->terminal = terminal;
 
 	entry->smenu = smenu;
 	list_append(&entry->lentries, &smenu->entries);
@@ -390,10 +430,11 @@ void smenu_entry_delete(smenu_entry_t *entry)
  * @param nentry Backing SIF node
  * @param caption Caption
  * @param cmd Command to run
+ * @param terminal Start in terminal
  * @param rentry Place to store pointer to new entry or @c NULL
  */
 errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
-    const char *cmd, smenu_entry_t **rentry)
+    const char *cmd, bool terminal, smenu_entry_t **rentry)
 {
 	sif_node_t *nentry;
 	smenu_entry_t *entry;
@@ -417,7 +458,12 @@ errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
 	if (rc != EOK)
 		goto error;
 
-	rc = smenu_entry_new(smenu, nentry, caption, cmd, &entry);
+	rc = sif_node_set_attr(trans, nentry, "terminal", terminal ? "y" : "n");
+	if (rc != EOK)
+		goto error;
+
+	rc = smenu_entry_new(smenu, nentry, caption, cmd, terminal ? "y" : "n",
+	    &entry);
 	if (rc != EOK)
 		goto error;
 

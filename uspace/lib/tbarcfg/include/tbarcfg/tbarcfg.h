@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <sif.h>
+#include <stdbool.h>
 #include <types/tbarcfg/tbarcfg.h>
 
 extern errno_t tbarcfg_create(const char *, tbarcfg_t **);
@@ -47,11 +48,13 @@ extern smenu_entry_t *tbarcfg_smenu_first(tbarcfg_t *);
 extern smenu_entry_t *tbarcfg_smenu_next(smenu_entry_t *);
 extern const char *smenu_entry_get_caption(smenu_entry_t *);
 extern const char *smenu_entry_get_cmd(smenu_entry_t *);
+extern bool smenu_entry_get_terminal(smenu_entry_t *);
 extern errno_t smenu_entry_set_caption(smenu_entry_t *, const char *);
 extern errno_t smenu_entry_set_cmd(smenu_entry_t *, const char *);
+extern void smenu_entry_set_terminal(smenu_entry_t *, bool);
 extern errno_t smenu_entry_save(smenu_entry_t *);
 extern errno_t smenu_entry_create(tbarcfg_t *, const char *, const char *,
-    smenu_entry_t **);
+    bool, smenu_entry_t **);
 extern errno_t smenu_entry_destroy(smenu_entry_t *);
 
 #endif

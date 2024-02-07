@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@
 #include <ui/menuentry.h>
 #include <ui/window.h>
 
-/** Taskbar window list entry */
+/** Taskbar start menu entry */
 typedef struct {
 	/** Containing start menu */
 	struct tbsmenu *tbsmenu;
@@ -57,6 +57,8 @@ typedef struct {
 	char *caption;
 	/** Command to run */
 	char *cmd;
+	/** Start in terminal */
+	bool terminal;
 } tbsmenu_entry_t;
 
 /** Taskbar start menu */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,16 +75,16 @@ PCUT_TEST(first_next)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a", &e1);
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e1);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(e1);
 
-	rc = smenu_entry_create(tbcfg, "B", "b", &e2);
+	rc = smenu_entry_create(tbcfg, "B", "b", false, &e2);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(e2);
 
 	/* Create entry without getting a pointer to it */
-	rc = smenu_entry_create(tbcfg, "C", "c", NULL);
+	rc = smenu_entry_create(tbcfg, "C", "c", false, NULL);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	e = tbarcfg_smenu_first(tbcfg);
@@ -101,7 +101,7 @@ PCUT_TEST(first_next)
 }
 
 /** Getting menu entry properties */
-PCUT_TEST(get_caption_cmd)
+PCUT_TEST(get_caption_cmd_term)
 {
 	errno_t rc;
 	tbarcfg_t *tbcfg;
@@ -109,6 +109,7 @@ PCUT_TEST(get_caption_cmd)
 	smenu_entry_t *e;
 	const char *caption;
 	const char *cmd;
+	bool terminal;
 
 	p = tmpnam(fname);
 	PCUT_ASSERT_NOT_NULL(p);
@@ -116,20 +117,22 @@ PCUT_TEST(get_caption_cmd)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a", &e);
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	caption = smenu_entry_get_caption(e);
 	PCUT_ASSERT_STR_EQUALS("A", caption);
 	cmd = smenu_entry_get_cmd(e);
 	PCUT_ASSERT_STR_EQUALS("a", cmd);
+	terminal = smenu_entry_get_terminal(e);
+	PCUT_ASSERT_FALSE(terminal);
 
 	tbarcfg_close(tbcfg);
 	remove(fname);
 }
 
 /** Setting menu entry properties */
-PCUT_TEST(set_caption_cmd)
+PCUT_TEST(set_caption_cmd_term)
 {
 	errno_t rc;
 	tbarcfg_t *tbcfg;
@@ -137,6 +140,7 @@ PCUT_TEST(set_caption_cmd)
 	smenu_entry_t *e;
 	const char *caption;
 	const char *cmd;
+	bool terminal;
 
 	p = tmpnam(fname);
 	PCUT_ASSERT_NOT_NULL(p);
@@ -144,19 +148,22 @@ PCUT_TEST(set_caption_cmd)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a", &e);
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	caption = smenu_entry_get_caption(e);
 	PCUT_ASSERT_STR_EQUALS("A", caption);
 	cmd = smenu_entry_get_cmd(e);
 	PCUT_ASSERT_STR_EQUALS("a", cmd);
+	terminal = smenu_entry_get_terminal(e);
+	PCUT_ASSERT_FALSE(terminal);
 
 	/* Set properties */
 	rc = smenu_entry_set_caption(e, "B");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	rc = smenu_entry_set_cmd(e, "b");
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	smenu_entry_set_terminal(e, true);
 
 	rc = smenu_entry_save(e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -166,6 +173,8 @@ PCUT_TEST(set_caption_cmd)
 	PCUT_ASSERT_STR_EQUALS("B", caption);
 	cmd = smenu_entry_get_cmd(e);
 	PCUT_ASSERT_STR_EQUALS("b", cmd);
+	terminal = smenu_entry_get_terminal(e);
+	PCUT_ASSERT_TRUE(terminal);
 
 	tbarcfg_close(tbcfg);
 
@@ -196,6 +205,7 @@ PCUT_TEST(entry_create)
 	smenu_entry_t *e;
 	const char *caption;
 	const char *cmd;
+	bool terminal;
 
 	p = tmpnam(fname);
 	PCUT_ASSERT_NOT_NULL(p);
@@ -203,7 +213,7 @@ PCUT_TEST(entry_create)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a", &e);
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(e);
 
@@ -211,6 +221,23 @@ PCUT_TEST(entry_create)
 	PCUT_ASSERT_STR_EQUALS("A", caption);
 	cmd = smenu_entry_get_cmd(e);
 	PCUT_ASSERT_STR_EQUALS("a", cmd);
+	terminal = smenu_entry_get_terminal(e);
+	PCUT_ASSERT_FALSE(terminal);
+
+	smenu_entry_destroy(e);
+
+	rc = smenu_entry_create(tbcfg, "B", "b", true, &e);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e);
+
+	caption = smenu_entry_get_caption(e);
+	PCUT_ASSERT_STR_EQUALS("B", caption);
+	cmd = smenu_entry_get_cmd(e);
+	PCUT_ASSERT_STR_EQUALS("b", cmd);
+	terminal = smenu_entry_get_terminal(e);
+	PCUT_ASSERT_TRUE(terminal);
+
+	smenu_entry_destroy(e);
 
 	tbarcfg_close(tbcfg);
 	remove(fname);
@@ -230,7 +257,7 @@ PCUT_TEST(entry_destroy)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = smenu_entry_create(tbcfg, "A", "a", &e);
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	f = tbarcfg_smenu_first(tbcfg);

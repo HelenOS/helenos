@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -138,14 +138,34 @@ void ui_checkbox_set_cb(ui_checkbox_t *checkbox, ui_checkbox_cb_t *cb, void *arg
 	checkbox->arg = arg;
 }
 
-/** Set button rectangle.
+/** Set check box rectangle.
  *
- * @param checkbox Button
- * @param rect New button rectangle
+ * @param checkbox Check box
+ * @param rect New check box rectangle
  */
 void ui_checkbox_set_rect(ui_checkbox_t *checkbox, gfx_rect_t *rect)
 {
 	checkbox->rect = *rect;
+}
+
+/** Return if check box is checked.
+ *
+ * @param checkbox Check box
+ * @return @c true iff check box is checked
+ */
+bool ui_checkbox_get_checked(ui_checkbox_t *checkbox)
+{
+	return checkbox->checked;
+}
+
+/** Set check box checked state.
+ *
+ * @param checkbox Check box
+ * @param checked @c true iff checkbox should be checked
+ */
+void ui_checkbox_set_checked(ui_checkbox_t *checkbox, bool checked)
+{
+	checkbox->checked = checked;
 }
 
 /** Paint check box in graphics mode.

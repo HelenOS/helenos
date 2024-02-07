@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,8 @@ extern void ui_checkbox_destroy(ui_checkbox_t *);
 extern ui_control_t *ui_checkbox_ctl(ui_checkbox_t *);
 extern void ui_checkbox_set_cb(ui_checkbox_t *, ui_checkbox_cb_t *, void *);
 extern void ui_checkbox_set_rect(ui_checkbox_t *, gfx_rect_t *);
+extern bool ui_checkbox_get_checked(ui_checkbox_t *);
+extern void ui_checkbox_set_checked(ui_checkbox_t *, bool);
 extern errno_t ui_checkbox_paint(ui_checkbox_t *);
 extern void ui_checkbox_press(ui_checkbox_t *);
 extern void ui_checkbox_release(ui_checkbox_t *);
