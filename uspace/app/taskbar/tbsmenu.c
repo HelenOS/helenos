@@ -545,8 +545,13 @@ error:
 	if (targv != NULL)
 		free(targv);
 	tbsmenu_cmd_fini(&cmd);
-	if (suspended)
-		(void) ui_resume(ui);
+	if (suspended) {
+		rc = ui_resume(ui);
+		if (rc != EOK) {
+			printf("Failed to resume UI.\n");
+			exit(1);
+		}
+	}
 	(void) ui_paint(ui);
 	return rc;
 }
