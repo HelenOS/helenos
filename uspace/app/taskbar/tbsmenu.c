@@ -509,11 +509,6 @@ static errno_t tbsmenu_entry_start(tbsmenu_entry_t *entry)
 		targv[1] = "-c";
 
 		for (i = 0; i <= cnt; i++) {
-			if (cmd.argv[i] != NULL)
-				printf(" - '%s'\n", cmd.argv[i]);
-			else
-				printf(" - NULL\n");
-
 			targv[2 + i] = cmd.argv[i];
 		}
 
