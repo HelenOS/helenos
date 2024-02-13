@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -897,6 +897,168 @@ PCUT_TEST(entry_append)
 	PCUT_ASSERT_EQUALS(attr.arg, entry->arg);
 
 	PCUT_ASSERT_INT_EQUALS(2, list_count(&list->entries));
+
+	ui_list_destroy(list);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_list_entry_move_up() moves entry up */
+PCUT_TEST(entry_move_up)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_list_t *list;
+	ui_list_entry_attr_t attr;
+	ui_list_entry_t *e1, *e2, *e3;
+	ui_list_entry_t *e;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_list_create(window, true, &list);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_entry_attr_init(&attr);
+
+	/* Create entries */
+
+	attr.caption = "a";
+	attr.arg = (void *)1;
+	rc = ui_list_entry_append(list, &attr, &e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.caption = "b";
+	attr.arg = (void *)2;
+	rc = ui_list_entry_append(list, &attr, &e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.caption = "c";
+	attr.arg = (void *)3;
+	rc = ui_list_entry_append(list, &attr, &e3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	e = ui_list_first(list);
+	PCUT_ASSERT_EQUALS(e1, e);
+
+	/* Moving first entry up should have no effect */
+	ui_list_entry_move_up(e1);
+
+	e = ui_list_first(list);
+	PCUT_ASSERT_EQUALS(e1, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_EQUALS(e2, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_EQUALS(e3, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_NULL(e);
+
+	/* Move second entry up */
+	ui_list_entry_move_up(e2);
+
+	e = ui_list_first(list);
+	PCUT_ASSERT_EQUALS(e2, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_EQUALS(e1, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_EQUALS(e3, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_NULL(e);
+
+	ui_list_destroy(list);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** ui_list_entry_move_down() moves entry down */
+PCUT_TEST(entry_move_down)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	ui_list_t *list;
+	ui_list_entry_attr_t attr;
+	ui_list_entry_t *e1, *e2, *e3;
+	ui_list_entry_t *e;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = ui_list_create(window, true, &list);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_list_entry_attr_init(&attr);
+
+	/* Create entries */
+
+	attr.caption = "a";
+	attr.arg = (void *)1;
+	rc = ui_list_entry_append(list, &attr, &e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.caption = "b";
+	attr.arg = (void *)2;
+	rc = ui_list_entry_append(list, &attr, &e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	attr.caption = "c";
+	attr.arg = (void *)3;
+	rc = ui_list_entry_append(list, &attr, &e3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	e = ui_list_first(list);
+	PCUT_ASSERT_EQUALS(e1, e);
+
+	/* Moving last entry down should have no effect */
+	ui_list_entry_move_down(e3);
+
+	e = ui_list_first(list);
+	PCUT_ASSERT_EQUALS(e1, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_EQUALS(e2, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_EQUALS(e3, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_NULL(e);
+
+	/* Move second-to-last entry down */
+	ui_list_entry_move_down(e2);
+
+	e = ui_list_first(list);
+	PCUT_ASSERT_EQUALS(e1, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_EQUALS(e3, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_EQUALS(e2, e);
+
+	e = ui_list_next(e);
+	PCUT_ASSERT_NULL(e);
 
 	ui_list_destroy(list);
 	ui_window_destroy(window);

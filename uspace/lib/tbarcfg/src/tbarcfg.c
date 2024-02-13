@@ -100,7 +100,6 @@ error:
  * @param rtbcfg Place to store pointer to taskbar configuration
  * @return EOK on success or an error code
  */
-#include <stdio.h>
 errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 {
 	tbarcfg_t *tbcfg;
@@ -158,8 +157,6 @@ errno_t tbarcfg_open(const char *repopath, tbarcfg_t **rtbcfg)
 		terminal = sif_node_get_attr(nentry, "terminal");
 		if (terminal == NULL)
 			terminal = "n";
-
-		printf("terminal=%s\n", terminal);
 
 		rc = smenu_entry_new(tbcfg, nentry, caption, cmd,
 		    str_cmp(terminal, "y") == 0, NULL);
@@ -223,6 +220,38 @@ smenu_entry_t *tbarcfg_smenu_next(smenu_entry_t *cur)
 	link_t *link;
 
 	link = list_next(&cur->lentries, &cur->smenu->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, smenu_entry_t, lentries);
+}
+
+/** Get last start menu entry.
+ *
+ * @param tbcfg Taskbar configuration
+ * @return Previous entry or @c NULL if the menu is empty
+ */
+smenu_entry_t *tbarcfg_smenu_last(tbarcfg_t *tbcfg)
+{
+	link_t *link;
+
+	link = list_last(&tbcfg->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, smenu_entry_t, lentries);
+}
+
+/** Get previous start menu entry.
+ *
+ * @param cur Current entry
+ * @return Previous entry or @c NULL if @a cur is the last entry
+ */
+smenu_entry_t *tbarcfg_smenu_prev(smenu_entry_t *cur)
+{
+	link_t *link;
+
+	link = list_prev(&cur->lentries, &cur->smenu->entries);
 	if (link == NULL)
 		return NULL;
 
@@ -316,6 +345,33 @@ void smenu_entry_set_terminal(smenu_entry_t *entry, bool terminal)
 	entry->terminal = terminal;
 }
 
+/** Save start menu entry using transaction.
+ *
+ * @param entry Start menu entry
+ * @param trans Transaction
+ */
+static errno_t smenu_entry_save_trans(smenu_entry_t *entry, sif_trans_t *trans)
+{
+	errno_t rc;
+
+	rc = sif_node_set_attr(trans, entry->nentry, "cmd", entry->cmd);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_set_attr(trans, entry->nentry, "caption", entry->caption);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_set_attr(trans, entry->nentry, "terminal",
+	    entry->terminal ? "y" : "n");
+	if (rc != EOK)
+		goto error;
+
+	return EOK;
+error:
+	return rc;
+}
+
 /** Save any changes to start menu entry.
  *
  * @param entry Start menu entry
@@ -329,16 +385,7 @@ errno_t smenu_entry_save(smenu_entry_t *entry)
 	if (rc != EOK)
 		goto error;
 
-	rc = sif_node_set_attr(trans, entry->nentry, "cmd", entry->cmd);
-	if (rc != EOK)
-		goto error;
-
-	rc = sif_node_set_attr(trans, entry->nentry, "caption", entry->caption);
-	if (rc != EOK)
-		goto error;
-
-	rc = sif_node_set_attr(trans, entry->nentry, "terminal",
-	    entry->terminal ? "y" : "n");
+	rc = smenu_entry_save_trans(entry, trans);
 	if (rc != EOK)
 		goto error;
 
@@ -462,8 +509,7 @@ errno_t smenu_entry_create(tbarcfg_t *smenu, const char *caption,
 	if (rc != EOK)
 		goto error;
 
-	rc = smenu_entry_new(smenu, nentry, caption, cmd, terminal ? "y" : "n",
-	    &entry);
+	rc = smenu_entry_new(smenu, nentry, caption, cmd, terminal, &entry);
 	if (rc != EOK)
 		goto error;
 
@@ -480,7 +526,7 @@ error:
 	return rc;
 }
 
-/** Destroy start menu entry..
+/** Destroy start menu entry.
  *
  * @param entry Start menu entry
  * @return EOK on success or an error code
@@ -503,6 +549,116 @@ errno_t smenu_entry_destroy(smenu_entry_t *entry)
 	smenu_entry_delete(entry);
 	return EOK;
 error:
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	return rc;
+}
+
+/** Move start menu entry up.
+ *
+ * @param entry Start menu entry
+ * @return EOK on success or an error code
+ */
+errno_t smenu_entry_move_up(smenu_entry_t *entry)
+{
+	errno_t rc;
+	sif_trans_t *trans = NULL;
+	sif_node_t *nnode = NULL;
+	sif_node_t *old_node;
+	smenu_entry_t *prev;
+
+	rc = sif_trans_begin(entry->smenu->repo, &trans);
+	if (rc != EOK)
+		goto error;
+
+	prev = tbarcfg_smenu_prev(entry);
+	if (prev == NULL) {
+		/* Entry is already at first position, nothing to do. */
+		return EOK;
+	}
+
+	rc = sif_node_insert_before(trans, prev->nentry, "entry", &nnode);
+	if (rc != EOK)
+		goto error;
+
+	old_node = entry->nentry;
+	entry->nentry = nnode;
+
+	rc = smenu_entry_save_trans(entry, trans);
+	if (rc != EOK) {
+		entry->nentry = old_node;
+		goto error;
+	}
+
+	sif_node_destroy(trans, old_node);
+
+	rc = sif_trans_end(trans);
+	if (rc != EOK) {
+		entry->nentry = old_node;
+		goto error;
+	}
+
+	list_remove(&entry->lentries);
+	list_insert_before(&entry->lentries, &prev->lentries);
+	return EOK;
+error:
+	if (nnode != NULL)
+		sif_node_destroy(trans, nnode);
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	return rc;
+}
+
+/** Move start menu entry down.
+ *
+ * @param entry Start menu entry
+ * @return EOK on success or an error code
+ */
+errno_t smenu_entry_move_down(smenu_entry_t *entry)
+{
+	errno_t rc;
+	sif_trans_t *trans = NULL;
+	sif_node_t *nnode = NULL;
+	sif_node_t *old_node;
+	smenu_entry_t *next;
+
+	rc = sif_trans_begin(entry->smenu->repo, &trans);
+	if (rc != EOK)
+		goto error;
+
+	next = tbarcfg_smenu_next(entry);
+	if (next == NULL) {
+		/* Entry is already at last position, nothing to do. */
+		return EOK;
+	}
+
+	rc = sif_node_insert_after(trans, next->nentry, "entry", &nnode);
+	if (rc != EOK)
+		goto error;
+
+	old_node = entry->nentry;
+	entry->nentry = nnode;
+
+	rc = smenu_entry_save_trans(entry, trans);
+	if (rc != EOK) {
+		entry->nentry = old_node;
+		goto error;
+	}
+
+	sif_node_destroy(trans, old_node);
+
+	rc = sif_trans_end(trans);
+	if (rc != EOK) {
+		entry->nentry = old_node;
+		goto error;
+	}
+
+	list_remove(&entry->lentries);
+	list_insert_after(&entry->lentries, &next->lentries);
+	return EOK;
+error:
+	if (nnode != NULL)
+		sif_node_destroy(trans, nnode);
 	if (trans != NULL)
 		sif_trans_abort(trans);
 	return rc;

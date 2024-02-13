@@ -46,6 +46,8 @@ extern errno_t tbarcfg_open(const char *, tbarcfg_t **);
 extern void tbarcfg_close(tbarcfg_t *);
 extern smenu_entry_t *tbarcfg_smenu_first(tbarcfg_t *);
 extern smenu_entry_t *tbarcfg_smenu_next(smenu_entry_t *);
+extern smenu_entry_t *tbarcfg_smenu_last(tbarcfg_t *);
+extern smenu_entry_t *tbarcfg_smenu_prev(smenu_entry_t *);
 extern const char *smenu_entry_get_caption(smenu_entry_t *);
 extern const char *smenu_entry_get_cmd(smenu_entry_t *);
 extern bool smenu_entry_get_terminal(smenu_entry_t *);
@@ -56,6 +58,8 @@ extern errno_t smenu_entry_save(smenu_entry_t *);
 extern errno_t smenu_entry_create(tbarcfg_t *, const char *, const char *,
     bool, smenu_entry_t **);
 extern errno_t smenu_entry_destroy(smenu_entry_t *);
+extern errno_t smenu_entry_move_up(smenu_entry_t *);
+extern errno_t smenu_entry_move_down(smenu_entry_t *);
 
 #endif
 

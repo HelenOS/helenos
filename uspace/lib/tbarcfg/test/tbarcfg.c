@@ -100,6 +100,40 @@ PCUT_TEST(first_next)
 	remove(fname);
 }
 
+/** Iterating over start menu entries backwards */
+PCUT_TEST(last_prev)
+{
+	errno_t rc;
+	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
+	smenu_entry_t *e1 = NULL, *e2 = NULL;
+	smenu_entry_t *e;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e1);
+
+	rc = smenu_entry_create(tbcfg, "B", "b", false, &e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e2);
+
+	e = tbarcfg_smenu_last(tbcfg);
+	PCUT_ASSERT_EQUALS(e2, e);
+	e = tbarcfg_smenu_prev(e);
+	PCUT_ASSERT_EQUALS(e1, e);
+	e = tbarcfg_smenu_prev(e);
+	PCUT_ASSERT_NULL(e);
+
+	tbarcfg_close(tbcfg);
+	remove(fname);
+}
+
 /** Getting menu entry properties */
 PCUT_TEST(get_caption_cmd_term)
 {
@@ -268,6 +302,198 @@ PCUT_TEST(entry_destroy)
 
 	f = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_NULL(f);
+
+	tbarcfg_close(tbcfg);
+	remove(fname);
+}
+
+/** Move start menu entry up */
+PCUT_TEST(entry_move_up)
+{
+	errno_t rc;
+	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
+	smenu_entry_t *e1, *e2, *e3;
+	smenu_entry_t *f;
+	const char *caption;
+	const char *cmd;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "B", "b", false, &e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "C", "c", false, &e3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	f = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_EQUALS(e1, f);
+
+	/* Moving the first entry up should have no effect */
+
+	rc = smenu_entry_move_up(e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	f = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_EQUALS(e1, f);
+
+	/* Moving the second entry up should move it to first position */
+
+	rc = smenu_entry_move_up(e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	f = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_EQUALS(e2, f);
+
+	/* Moving the last entry up should move it to second position */
+
+	rc = smenu_entry_move_up(e3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	f = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_EQUALS(e2, f);
+
+	f = tbarcfg_smenu_next(f);
+	PCUT_ASSERT_EQUALS(e3, f);
+
+	f = tbarcfg_smenu_next(f);
+	PCUT_ASSERT_EQUALS(e1, f);
+
+	tbarcfg_close(tbcfg);
+
+	/* Re-open repository */
+
+	rc = tbarcfg_open(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Check that new order of entries persisted */
+
+	f = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NOT_NULL(f);
+
+	caption = smenu_entry_get_caption(f);
+	PCUT_ASSERT_STR_EQUALS("B", caption);
+	cmd = smenu_entry_get_cmd(f);
+	PCUT_ASSERT_STR_EQUALS("b", cmd);
+
+	f = tbarcfg_smenu_next(f);
+	PCUT_ASSERT_NOT_NULL(f);
+
+	caption = smenu_entry_get_caption(f);
+	PCUT_ASSERT_STR_EQUALS("C", caption);
+	cmd = smenu_entry_get_cmd(f);
+	PCUT_ASSERT_STR_EQUALS("c", cmd);
+
+	f = tbarcfg_smenu_next(f);
+	PCUT_ASSERT_NOT_NULL(f);
+
+	caption = smenu_entry_get_caption(f);
+	PCUT_ASSERT_STR_EQUALS("A", caption);
+	cmd = smenu_entry_get_cmd(f);
+	PCUT_ASSERT_STR_EQUALS("a", cmd);
+
+	tbarcfg_close(tbcfg);
+	remove(fname);
+}
+
+/** Move start menu entry down */
+PCUT_TEST(entry_move_down)
+{
+	errno_t rc;
+	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
+	smenu_entry_t *e1, *e2, *e3;
+	smenu_entry_t *f;
+	const char *caption;
+	const char *cmd;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "B", "b", false, &e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "C", "c", false, &e3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	f = tbarcfg_smenu_last(tbcfg);
+	PCUT_ASSERT_EQUALS(e3, f);
+
+	/* Moving the last entry down should have no effect */
+
+	rc = smenu_entry_move_down(e3);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	f = tbarcfg_smenu_last(tbcfg);
+	PCUT_ASSERT_EQUALS(e3, f);
+
+	/* Moving the second entry down should move it to last position */
+
+	rc = smenu_entry_move_down(e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	f = tbarcfg_smenu_last(tbcfg);
+	PCUT_ASSERT_EQUALS(e2, f);
+
+	/* Moving the first entry down should move it to second position */
+
+	rc = smenu_entry_move_down(e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	f = tbarcfg_smenu_last(tbcfg);
+	PCUT_ASSERT_EQUALS(e2, f);
+
+	f = tbarcfg_smenu_prev(f);
+	PCUT_ASSERT_EQUALS(e1, f);
+
+	f = tbarcfg_smenu_prev(f);
+	PCUT_ASSERT_EQUALS(e3, f);
+
+	tbarcfg_close(tbcfg);
+
+	/* Re-open repository */
+
+	rc = tbarcfg_open(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Check that new order of entries persisted */
+
+	f = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NOT_NULL(f);
+
+	caption = smenu_entry_get_caption(f);
+	PCUT_ASSERT_STR_EQUALS("C", caption);
+	cmd = smenu_entry_get_cmd(f);
+	PCUT_ASSERT_STR_EQUALS("c", cmd);
+
+	f = tbarcfg_smenu_next(f);
+	PCUT_ASSERT_NOT_NULL(f);
+
+	caption = smenu_entry_get_caption(f);
+	PCUT_ASSERT_STR_EQUALS("A", caption);
+	cmd = smenu_entry_get_cmd(f);
+	PCUT_ASSERT_STR_EQUALS("a", cmd);
+
+	f = tbarcfg_smenu_next(f);
+	PCUT_ASSERT_NOT_NULL(f);
+
+	caption = smenu_entry_get_caption(f);
+	PCUT_ASSERT_STR_EQUALS("B", caption);
+	cmd = smenu_entry_get_cmd(f);
+	PCUT_ASSERT_STR_EQUALS("b", cmd);
 
 	tbarcfg_close(tbcfg);
 	remove(fname);

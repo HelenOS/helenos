@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,8 @@ static void startmenu_entry_selected(ui_list_entry_t *, void *);
 static void startmenu_new_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_delete_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_edit_entry_clicked(ui_pbutton_t *, void *);
+static void startmenu_up_entry_clicked(ui_pbutton_t *, void *);
+static void startmenu_down_entry_clicked(ui_pbutton_t *, void *);
 
 /** Entry list callbacks */
 ui_list_cb_t startmenu_entry_list_cb = {
@@ -72,6 +74,16 @@ ui_pbutton_cb_t startmenu_delete_entry_button_cb = {
 /** Edit entry button callbacks */
 ui_pbutton_cb_t startmenu_edit_entry_button_cb = {
 	.clicked = startmenu_edit_entry_clicked
+};
+
+/** Move entry up button callbacks */
+ui_pbutton_cb_t startmenu_up_entry_button_cb = {
+	.clicked = startmenu_up_entry_clicked
+};
+
+/** Move entry down button callbacks */
+ui_pbutton_cb_t startmenu_down_entry_button_cb = {
+	.clicked = startmenu_down_entry_clicked
 };
 
 /** Create start menu configuration tab
@@ -150,12 +162,12 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 		rect.p0.x = 4;
 		rect.p0.y = 5;
 		rect.p1.x = 56;
-		rect.p1.y = 10;
+		rect.p1.y = 20;
 	} else {
 		rect.p0.x = 20;
 		rect.p0.y = 80;
 		rect.p1.x = 360;
-		rect.p1.y = 180;
+		rect.p1.y = 330;
 	}
 
 	ui_list_set_rect(smenu->entries_list, &rect);
@@ -262,11 +274,77 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 	ui_pbutton_set_cb(smenu->edit_entry,
 	    &startmenu_edit_entry_button_cb, (void *)smenu);
 
+	/* Move entry up button */
+
+	rc = ui_pbutton_create(ui_res, "Up", &smenu->up_entry);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		goto error;
+	}
+
+	if (ui_resource_is_textmode(ui_res)) {
+		rect.p0.x = 58;
+		rect.p0.y = 12;
+		rect.p1.x = 68;
+		rect.p1.y = 13;
+	} else {
+		rect.p0.x = 370;
+		rect.p0.y = 190;
+		rect.p1.x = 450;
+		rect.p1.y = 215;
+	}
+
+	ui_pbutton_set_rect(smenu->up_entry, &rect);
+
+	rc = ui_fixed_add(smenu->fixed, ui_pbutton_ctl(smenu->up_entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
+	ui_pbutton_set_cb(smenu->up_entry,
+	    &startmenu_up_entry_button_cb, (void *)smenu);
+
+	/* Move entry down button */
+
+	rc = ui_pbutton_create(ui_res, "Down", &smenu->down_entry);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		goto error;
+	}
+
+	if (ui_resource_is_textmode(ui_res)) {
+		rect.p0.x = 58;
+		rect.p0.y = 14;
+		rect.p1.x = 68;
+		rect.p1.y = 15;
+	} else {
+		rect.p0.x = 370;
+		rect.p0.y = 220;
+		rect.p1.x = 450;
+		rect.p1.y = 245;
+	}
+
+	ui_pbutton_set_rect(smenu->down_entry, &rect);
+
+	rc = ui_fixed_add(smenu->fixed, ui_pbutton_ctl(smenu->down_entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
+	ui_pbutton_set_cb(smenu->down_entry,
+	    &startmenu_down_entry_button_cb, (void *)smenu);
+
 	ui_tab_add(smenu->tab, ui_fixed_ctl(smenu->fixed));
 
 	*rsmenu = smenu;
 	return EOK;
 error:
+	if (smenu->down_entry != NULL)
+		ui_pbutton_destroy(smenu->down_entry);
+	if (smenu->up_entry != NULL)
+		ui_pbutton_destroy(smenu->up_entry);
 	if (smenu->delete_entry != NULL)
 		ui_pbutton_destroy(smenu->delete_entry);
 	if (smenu->new_entry != NULL)
@@ -487,7 +565,7 @@ static void startmenu_delete_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 
 	ui_list_entry_delete(smentry->lentry);
 	free(smentry);
-	(void) ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
 }
 
 /** Edit entry button clicked.
@@ -501,6 +579,58 @@ static void startmenu_edit_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 
 	(void)pbutton;
 	startmenu_edit(smenu);
+}
+
+/** Up entry button clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (startmenu_t *)
+ */
+static void startmenu_up_entry_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	startmenu_t *smenu = (startmenu_t *)arg;
+	startmenu_entry_t *smentry;
+	errno_t rc;
+
+	(void)pbutton;
+
+	smentry = startmenu_get_selected(smenu);
+	if (smentry == NULL)
+		return;
+
+	rc = smenu_entry_move_up(smentry->entry);
+	if (rc != EOK)
+		return;
+
+	ui_list_entry_move_up(smentry->lentry);
+
+	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+}
+
+/** Down entry button clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (startmenu_t *)
+ */
+static void startmenu_down_entry_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	startmenu_t *smenu = (startmenu_t *)arg;
+	startmenu_entry_t *smentry;
+	errno_t rc;
+
+	(void)pbutton;
+
+	smentry = startmenu_get_selected(smenu);
+	if (smentry == NULL)
+		return;
+
+	rc = smenu_entry_move_up(smentry->entry);
+	if (rc != EOK)
+		return;
+
+	ui_list_entry_move_down(smentry->lentry);
+
+	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
 }
 
 /** @}

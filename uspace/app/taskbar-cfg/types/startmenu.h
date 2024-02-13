@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,10 @@ typedef struct startmenu {
 	ui_pbutton_t *delete_entry;
 	/** Edit entry button */
 	ui_pbutton_t *edit_entry;
+	/** Move entry up button */
+	ui_pbutton_t *up_entry;
+	/** Move entry down button */
+	ui_pbutton_t *down_entry;
 } startmenu_t;
 
 /** Start menu entry */
