@@ -51,9 +51,10 @@
  */
 void pcap_set_time(pcap_packet_header_t *header, bool nano) // maybe without bool nano as nano is in pcapng
 {
-	time_t sec = time(NULL);
-	header->seconds_stamp = (uint32_t)sec;
-	header->magic_stamp = nano ? header->seconds_stamp / 1000000000 : header->seconds_stamp / 1000000;
+	struct timespec ts;
+	getrealtime(&ts);
+	header->seconds_stamp = (uint32_t)ts.tv_sec;
+	header->magic_stamp = (uint32_t)ts.tv_nsec / 1000;
 }
 
 /** Add pcap file header to the new .pcap file.

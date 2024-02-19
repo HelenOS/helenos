@@ -176,7 +176,6 @@ typedef struct {
 	/** Lock for EEPROM access */
 	fibril_mutex_t eeprom_lock;
 
-
 } e1000_t;
 
 /** Global mutex for work with shared irq structure */

@@ -76,7 +76,7 @@ errno_t pcap_init(const char *name)
 
 void pcap_add_packet(const void *data, size_t size)
 {
-	if (&pcap_writer.data == NULL)
+	if (pcap_writer.data == NULL)
 		return;
 	pcap_writer_add_packet(&pcap_writer, data, size);
 }
