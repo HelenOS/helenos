@@ -128,6 +128,7 @@ errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 	tbsmenu_entry_t *tentry;
 	tbarcfg_t *tbcfg = NULL;
 	smenu_entry_t *sme;
+	bool separator;
 	const char *caption;
 	const char *cmd;
 	bool terminal;
@@ -139,13 +140,21 @@ errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 
 	sme = tbarcfg_smenu_first(tbcfg);
 	while (sme != NULL) {
-		caption = smenu_entry_get_caption(sme);
-		cmd = smenu_entry_get_cmd(sme);
-		terminal = smenu_entry_get_terminal(sme);
+		separator = smenu_entry_get_separator(sme);
+		if (separator == false) {
+			caption = smenu_entry_get_caption(sme);
+			cmd = smenu_entry_get_cmd(sme);
+			terminal = smenu_entry_get_terminal(sme);
 
-		rc = tbsmenu_add(tbsmenu, caption, cmd, terminal, &tentry);
-		if (rc != EOK)
-			goto error;
+			rc = tbsmenu_add(tbsmenu, caption, cmd, terminal,
+			    &tentry);
+			if (rc != EOK)
+				goto error;
+		} else {
+			rc = tbsmenu_add_sep(tbsmenu, &tentry);
+			if (rc != EOK)
+				goto error;
+		}
 
 		(void)tentry;
 
@@ -271,6 +280,37 @@ error:
 		free(entry->caption);
 	if (entry->cmd != NULL)
 		free(entry->cmd);
+	free(entry);
+	return rc;
+}
+
+/** Add separator entry to start menu.
+ *
+ * @param tbsmenu Start menu
+ * @param entry Start menu entry
+ * @return @c EOK on success or an error code
+ */
+errno_t tbsmenu_add_sep(tbsmenu_t *tbsmenu, tbsmenu_entry_t **rentry)
+{
+	errno_t rc;
+	tbsmenu_entry_t *entry;
+
+	entry = calloc(1, sizeof(tbsmenu_entry_t));
+	if (entry == NULL)
+		return ENOMEM;
+
+	rc = ui_menu_entry_sep_create(tbsmenu->smenu, &entry->mentry);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(entry->mentry, tbsmenu_smenu_entry_cb,
+	    (void *)entry);
+
+	entry->tbsmenu = tbsmenu;
+	list_append(&entry->lentries, &tbsmenu->entries);
+	*rentry = entry;
+	return EOK;
+error:
 	free(entry);
 	return rc;
 }

@@ -134,6 +134,60 @@ PCUT_TEST(last_prev)
 	remove(fname);
 }
 
+/** Separator entry */
+PCUT_TEST(separator)
+{
+	errno_t rc;
+	tbarcfg_t *tbcfg;
+	char fname[L_tmpnam], *p;
+	const char *caption;
+	const char *cmd;
+	smenu_entry_t *e1 = NULL, *e2 = NULL;
+	smenu_entry_t *e;
+
+	p = tmpnam(fname);
+	PCUT_ASSERT_NOT_NULL(p);
+
+	rc = tbarcfg_create(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = smenu_entry_create(tbcfg, "A", "a", false, &e1);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e1);
+
+	rc = smenu_entry_sep_create(tbcfg, &e2);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(e2);
+
+	PCUT_ASSERT_FALSE(smenu_entry_get_separator(e1));
+	PCUT_ASSERT_TRUE(smenu_entry_get_separator(e2));
+
+	tbarcfg_close(tbcfg);
+
+	/* Re-open repository */
+
+	rc = tbarcfg_open(fname, &tbcfg);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	e = tbarcfg_smenu_first(tbcfg);
+	PCUT_ASSERT_NOT_NULL(e);
+
+	/* Check that new values of properties have persisted */
+	PCUT_ASSERT_FALSE(smenu_entry_get_separator(e));
+	caption = smenu_entry_get_caption(e);
+	PCUT_ASSERT_STR_EQUALS("A", caption);
+	cmd = smenu_entry_get_cmd(e);
+	PCUT_ASSERT_STR_EQUALS("a", cmd);
+
+	e = tbarcfg_smenu_next(e);
+
+	/* Check that entry is still a separator */
+	PCUT_ASSERT_TRUE(smenu_entry_get_separator(e));
+
+	tbarcfg_close(tbcfg);
+	remove(fname);
+}
+
 /** Getting menu entry properties */
 PCUT_TEST(get_caption_cmd_term)
 {

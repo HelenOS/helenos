@@ -53,6 +53,7 @@ static void startmenu_entry_selected(ui_list_entry_t *, void *);
 static void startmenu_new_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_delete_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_edit_entry_clicked(ui_pbutton_t *, void *);
+static void startmenu_sep_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_up_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_down_entry_clicked(ui_pbutton_t *, void *);
 
@@ -74,6 +75,11 @@ ui_pbutton_cb_t startmenu_delete_entry_button_cb = {
 /** Edit entry button callbacks */
 ui_pbutton_cb_t startmenu_edit_entry_button_cb = {
 	.clicked = startmenu_edit_entry_clicked
+};
+
+/** Separator entry button callbacks */
+ui_pbutton_cb_t startmenu_sep_entry_button_cb = {
+	.clicked = startmenu_sep_entry_clicked
 };
 
 /** Move entry up button callbacks */
@@ -274,6 +280,37 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 	ui_pbutton_set_cb(smenu->edit_entry,
 	    &startmenu_edit_entry_button_cb, (void *)smenu);
 
+	/* Separator entry button */
+
+	rc = ui_pbutton_create(ui_res, "Separator", &smenu->sep_entry);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		goto error;
+	}
+
+	if (ui_resource_is_textmode(ui_res)) {
+		rect.p0.x = 58;
+		rect.p0.y = 11;
+		rect.p1.x = 68;
+		rect.p1.y = 12;
+	} else {
+		rect.p0.x = 370;
+		rect.p0.y = 170;
+		rect.p1.x = 450;
+		rect.p1.y = 195;
+	}
+
+	ui_pbutton_set_rect(smenu->sep_entry, &rect);
+
+	rc = ui_fixed_add(smenu->fixed, ui_pbutton_ctl(smenu->sep_entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
+	ui_pbutton_set_cb(smenu->sep_entry,
+	    &startmenu_sep_entry_button_cb, (void *)smenu);
+
 	/* Move entry up button */
 
 	rc = ui_pbutton_create(ui_res, "Up", &smenu->up_entry);
@@ -284,14 +321,14 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 
 	if (ui_resource_is_textmode(ui_res)) {
 		rect.p0.x = 58;
-		rect.p0.y = 12;
+		rect.p0.y = 13;
 		rect.p1.x = 68;
-		rect.p1.y = 13;
+		rect.p1.y = 14;
 	} else {
 		rect.p0.x = 370;
-		rect.p0.y = 190;
+		rect.p0.y = 220;
 		rect.p1.x = 450;
-		rect.p1.y = 215;
+		rect.p1.y = 245;
 	}
 
 	ui_pbutton_set_rect(smenu->up_entry, &rect);
@@ -315,14 +352,14 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 
 	if (ui_resource_is_textmode(ui_res)) {
 		rect.p0.x = 58;
-		rect.p0.y = 14;
+		rect.p0.y = 15;
 		rect.p1.x = 68;
-		rect.p1.y = 15;
+		rect.p1.y = 16;
 	} else {
 		rect.p0.x = 370;
-		rect.p0.y = 220;
+		rect.p0.y = 250;
 		rect.p1.x = 450;
-		rect.p1.y = 245;
+		rect.p1.y = 275;
 	}
 
 	ui_pbutton_set_rect(smenu->down_entry, &rect);
@@ -417,6 +454,7 @@ errno_t startmenu_insert(startmenu_t *smenu, smenu_entry_t *entry,
 {
 	startmenu_entry_t *smentry;
 	ui_list_entry_attr_t attr;
+	bool separator;
 	errno_t rc;
 
 	smentry = calloc(1, sizeof(startmenu_entry_t));
@@ -427,8 +465,14 @@ errno_t startmenu_insert(startmenu_t *smenu, smenu_entry_t *entry,
 	smentry->entry = entry;
 
 	ui_list_entry_attr_init(&attr);
-	attr.caption = smenu_entry_get_caption(entry);
+	separator = smenu_entry_get_separator(entry);
+	if (separator)
+		attr.caption = "-- Separator --";
+	else
+		attr.caption = smenu_entry_get_caption(entry);
+
 	attr.arg = (void *)smentry;
+
 	rc = ui_list_entry_append(smenu->entries_list, &attr, &smentry->lentry);
 	if (rc != EOK) {
 		free(smentry);
@@ -472,6 +516,24 @@ void startmenu_new_entry(startmenu_t *smenu)
 	(void)smee;
 }
 
+/** Create new separator menu entry.
+ *
+ * @param smenu Start menu
+ */
+void startmenu_sep_entry(startmenu_t *smenu)
+{
+	startmenu_entry_t *smentry = NULL;
+	smenu_entry_t *entry;
+	errno_t rc;
+
+	rc = smenu_entry_sep_create(smenu->tbarcfg->tbarcfg, &entry);
+	if (rc != EOK)
+		return;
+
+	(void)startmenu_insert(smenu, entry, &smentry);
+	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+}
+
 /** Edit selected menu entry.
  *
  * @param smenu Start menu
@@ -484,6 +546,10 @@ void startmenu_edit(startmenu_t *smenu)
 
 	smentry = startmenu_get_selected(smenu);
 	if (smentry == NULL)
+		return;
+
+	/* Do not edit separator entries */
+	if (smenu_entry_get_separator(smentry->entry))
 		return;
 
 	rc = smeedit_create(smenu, smentry, &smee);
@@ -579,6 +645,19 @@ static void startmenu_edit_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 
 	(void)pbutton;
 	startmenu_edit(smenu);
+}
+
+/** Separator entry button clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (startmenu_t *)
+ */
+static void startmenu_sep_entry_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	startmenu_t *smenu = (startmenu_t *)arg;
+
+	(void)pbutton;
+	startmenu_sep_entry(smenu);
 }
 
 /** Up entry button clicked.

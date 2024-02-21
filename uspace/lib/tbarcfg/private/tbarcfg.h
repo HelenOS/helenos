@@ -60,6 +60,8 @@ struct smenu_entry {
 	link_t lentries;
 	/** SIF node (persistent storage) */
 	sif_node_t *nentry;
+	/** Is this a separator entry */
+	bool separator;
 	/** Entry caption (with accelerator markup) */
 	char *caption;
 	/** Command to run */
@@ -70,6 +72,7 @@ struct smenu_entry {
 
 extern errno_t smenu_entry_new(tbarcfg_t *, sif_node_t *, const char *,
     const char *, bool, smenu_entry_t **);
+extern errno_t smenu_entry_sep_new(tbarcfg_t *, sif_node_t *, smenu_entry_t **);
 extern void smenu_entry_delete(smenu_entry_t *);
 
 #endif

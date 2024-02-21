@@ -61,6 +61,8 @@ typedef struct startmenu {
 	ui_pbutton_t *delete_entry;
 	/** Edit entry button */
 	ui_pbutton_t *edit_entry;
+	/** Separator entry button */
+	ui_pbutton_t *sep_entry;
 	/** Move entry up button */
 	ui_pbutton_t *up_entry;
 	/** Move entry down button */
