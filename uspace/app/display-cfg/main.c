@@ -77,12 +77,19 @@ int main(int argc, char *argv[])
 		return 1;
 
 	rc = display_cfg_open(dcfg, DISPCFG_DEFAULT);
-	if (rc != EOK)
+	if (rc != EOK) {
+		display_cfg_destroy(dcfg);
+		printf("Error opening display configuration service '%s'.\n",
+		    DISPCFG_DEFAULT);
 		return 1;
+	}
 
 	rc = display_cfg_populate(dcfg);
-	if (rc != EOK)
+	if (rc != EOK) {
+		display_cfg_destroy(dcfg);
+		printf("Error reading display configuration.\n");
 		return 1;
+	}
 
 	ui_run(dcfg->ui);
 	display_cfg_destroy(dcfg);
