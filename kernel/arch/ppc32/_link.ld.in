@@ -24,17 +24,30 @@ SECTIONS {
 		KEEP(*(K_UNMAPPED_TEXT_START));
 	}
 
-	.mapped PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) {
+	.text PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) {
 		ktext_start = .;
 		KEEP(*(K_TEXT_START));
 		*(.text .text.*);
 		ktext_end = .;
+	}
 
+	/* stack unwinding data */
+	.eh_frame_hdr : {
+		eh_frame_hdr_start = .;
+		*(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*);
+		eh_frame_hdr_end = .;
+	}
+
+	.eh_frame : {
+		eh_frame_start = .;
+		KEEP(*(.eh_frame .eh_frame.*));
+		eh_frame_end = .;
+	}
+
+	.data : {
 		kdata_start = .;
 		KEEP(*(K_DATA_START));
 		*(.rodata .rodata.*);
-		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
-		*(.eh_frame_hdr .eh_frame_hdr.*);
 		*(.data .data.*);       /* initialized data */
 		*(.sdata .sdata.*);
 		*(.sdata2 .sdata2.*);

@@ -37,7 +37,6 @@
 #define THREADS  5
 
 static atomic_bool finish;
-static atomic_size_t threads_finished;
 
 static void threadtest(void *data)
 {
@@ -45,35 +44,36 @@ static void threadtest(void *data)
 		TPRINTF("%" PRIu64 " ", THREAD->tid);
 		thread_usleep(100000);
 	}
-	atomic_inc(&threads_finished);
 }
 
 const char *test_thread1(void)
 {
-	unsigned int i;
-	size_t total = 0;
-
 	atomic_store(&finish, true);
-	atomic_store(&threads_finished, 0);
 
-	for (i = 0; i < THREADS; i++) {
-		thread_t *t;
-		if (!(t = thread_create(threadtest, NULL, TASK,
-		    THREAD_FLAG_NONE, "threadtest"))) {
+	thread_t *threads[THREADS] = { };
+
+	for (int i = 0; i < THREADS; i++) {
+		threads[i] = thread_create(threadtest, NULL,
+		    TASK, THREAD_FLAG_NONE, "threadtest");
+
+		if (threads[i]) {
+			thread_start(threads[i]);
+		} else {
 			TPRINTF("Could not create thread %d\n", i);
 			break;
 		}
-		thread_ready(t);
-		total++;
 	}
 
 	TPRINTF("Running threads for 10 seconds...\n");
 	thread_sleep(10);
 
 	atomic_store(&finish, false);
-	while (atomic_load(&threads_finished) < total) {
-		TPRINTF("Threads left: %zu\n", total - atomic_load(&threads_finished));
-		thread_sleep(1);
+
+	for (int i = 0; i < THREADS; i++) {
+		if (threads[i] != NULL)
+			thread_join(threads[i]);
+
+		TPRINTF("Threads left: %d\n", THREADS - i - 1);
 	}
 
 	return NULL;

@@ -15,17 +15,30 @@ ENTRY(kernel_image_start)
 SECTIONS {
 	kernel_load_address = PA2KA(BOOT_OFFSET);
 
-	.image (PA2KA(BOOT_OFFSET) + SIZEOF_HEADERS) : AT (BOOT_OFFSET + SIZEOF_HEADERS) {
+	.text (PA2KA(BOOT_OFFSET) + SIZEOF_HEADERS) : AT (BOOT_OFFSET + SIZEOF_HEADERS) {
 		ktext_start = .;
 		KEEP(*(K_TEXT_START));
 		*(.text .text.*);
 		ktext_end = .;
+	}
 
+	/* stack unwinding data */
+	.eh_frame_hdr : {
+		eh_frame_hdr_start = .;
+		*(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*);
+		eh_frame_hdr_end = .;
+	}
+
+	.eh_frame : {
+		eh_frame_start = .;
+		KEEP(*(.eh_frame .eh_frame.*));
+		eh_frame_end = .;
+	}
+
+	.data : {
 		kdata_start = .;
 		*(.data .data.*);                       /* initialized data */
 		*(.rodata .rodata.*);
-		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
-		*(.eh_frame_hdr .eh_frame_hdr.*);
 		*(.sdata .sdata.*);
 		*(.sbss .sbss.*);
 		*(.scommon .scommon.*);

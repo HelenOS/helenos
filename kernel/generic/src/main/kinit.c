@@ -121,9 +121,8 @@ void kinit(void *arg)
 			panic("Unable to create kmp thread.");
 
 		thread_wire(thread, &cpus[0]);
-		thread_ready(thread_ref(thread));
+		thread_start(thread);
 		thread_join(thread);
-		thread_put(thread);
 
 		/*
 		 * For each CPU, create its load balancing thread.
@@ -135,7 +134,8 @@ void kinit(void *arg)
 			    THREAD_FLAG_UNCOUNTED, "kcpulb");
 			if (thread != NULL) {
 				thread_wire(thread, &cpus[i]);
-				thread_ready(thread);
+				thread_start(thread);
+				thread_detach(thread);
 			} else
 				log(LF_OTHER, LVL_ERROR,
 				    "Unable to create kcpulb thread for cpu%u", i);
@@ -151,10 +151,12 @@ void kinit(void *arg)
 	/* Start thread computing system load */
 	thread = thread_create(kload, NULL, TASK, THREAD_FLAG_NONE,
 	    "kload");
-	if (thread != NULL)
-		thread_ready(thread);
-	else
+	if (thread != NULL) {
+		thread_start(thread);
+		thread_detach(thread);
+	} else {
 		log(LF_OTHER, LVL_ERROR, "Unable to create kload thread");
+	}
 
 #ifdef CONFIG_KCONSOLE
 	if (stdin) {
@@ -163,11 +165,13 @@ void kinit(void *arg)
 		 */
 		thread = thread_create(kconsole_thread, NULL, TASK,
 		    THREAD_FLAG_NONE, "kconsole");
-		if (thread != NULL)
-			thread_ready(thread);
-		else
+		if (thread != NULL) {
+			thread_start(thread);
+			thread_detach(thread);
+		} else {
 			log(LF_OTHER, LVL_ERROR,
 			    "Unable to create kconsole thread");
+		}
 	}
 #endif /* CONFIG_KCONSOLE */
 
@@ -308,8 +312,10 @@ void kinit(void *arg)
 	 * Run user tasks.
 	 */
 	for (i = 0; i < init.cnt; i++) {
-		if (programs[i].task != NULL)
+		if (programs[i].task != NULL) {
 			program_ready(&programs[i]);
+			task_release(programs[i].task);
+		}
 	}
 
 #ifdef CONFIG_KCONSOLE

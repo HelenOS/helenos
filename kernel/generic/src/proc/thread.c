@@ -59,7 +59,6 @@
 #include <config.h>
 #include <arch/interrupt.h>
 #include <smp/ipi.h>
-#include <arch/faddr.h>
 #include <atomic.h>
 #include <memw.h>
 #include <stdio.h>
@@ -79,12 +78,6 @@ const char *thread_states[] = {
 	"Entering",
 	"Exiting",
 	"Lingering"
-};
-
-enum sleep_state {
-	SLEEP_INITIAL,
-	SLEEP_ASLEEP,
-	SLEEP_WOKE,
 };
 
 /** Lock protecting the @c threads ordered dictionary .
@@ -114,31 +107,6 @@ static slab_cache_t *thread_cache;
 static void *threads_getkey(odlink_t *);
 static int threads_cmp(void *, void *);
 
-/** Thread wrapper.
- *
- * This wrapper is provided to ensure that every thread makes a call to
- * thread_exit() when its implementing function returns.
- *
- * interrupts_disable() is assumed.
- *
- */
-static void cushion(void)
-{
-	void (*f)(void *) = THREAD->thread_code;
-	void *arg = THREAD->thread_arg;
-	THREAD->last_cycle = get_cycle();
-
-	/* This is where each thread wakes up after its creation */
-	irq_spinlock_unlock(&THREAD->lock, false);
-	interrupts_enable();
-
-	f(arg);
-
-	thread_exit();
-
-	/* Not reached */
-}
-
 /** Initialization and allocation for thread_t structure
  *
  */
@@ -146,7 +114,6 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 {
 	thread_t *thread = (thread_t *) obj;
 
-	irq_spinlock_initialize(&thread->lock, "thread_t_lock");
 	link_initialize(&thread->rq_link);
 	link_initialize(&thread->wq_link);
 	link_initialize(&thread->th_link);
@@ -228,54 +195,20 @@ void thread_init(void)
  */
 void thread_wire(thread_t *thread, cpu_t *cpu)
 {
-	irq_spinlock_lock(&thread->lock, true);
-	thread->cpu = cpu;
+	ipl_t ipl = interrupts_disable();
+	atomic_set_unordered(&thread->cpu, cpu);
 	thread->nomigrate++;
-	irq_spinlock_unlock(&thread->lock, true);
+	interrupts_restore(ipl);
 }
 
-/** Invoked right before thread_ready() readies the thread. thread is locked. */
-static void before_thread_is_ready(thread_t *thread)
-{
-	assert(irq_spinlock_locked(&thread->lock));
-}
-
-/** Make thread ready
+/** Start a thread that wasn't started yet since it was created.
  *
- * Switch thread to the ready state. Consumes reference passed by the caller.
- *
- * @param thread Thread to make ready.
- *
+ * @param thread A reference to the newly created thread.
  */
-void thread_ready(thread_t *thread)
+void thread_start(thread_t *thread)
 {
-	irq_spinlock_lock(&thread->lock, true);
-
-	assert(thread->state != Ready);
-
-	before_thread_is_ready(thread);
-
-	int i = (thread->priority < RQ_COUNT - 1) ?
-	    ++thread->priority : thread->priority;
-
-	/* Prefer the CPU on which the thread ran last */
-	cpu_t *cpu = thread->cpu ? thread->cpu : CPU;
-
-	thread->state = Ready;
-
-	irq_spinlock_pass(&thread->lock, &(cpu->rq[i].lock));
-
-	/*
-	 * Append thread to respective ready queue
-	 * on respective processor.
-	 */
-
-	list_append(&thread->rq_link, &cpu->rq[i].rq);
-	cpu->rq[i].n++;
-	irq_spinlock_unlock(&(cpu->rq[i].lock), true);
-
-	atomic_inc(&nrdy);
-	atomic_inc(&cpu->nrdy);
+	assert(atomic_get_unordered(&thread->state) == Entering);
+	thread_requeue_sleeping(thread_ref(thread));
 }
 
 /** Create new thread
@@ -314,32 +247,27 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->tid = ++last_tid;
 	irq_spinlock_unlock(&tidlock, true);
 
-	memset(&thread->saved_context, 0, sizeof(thread->saved_context));
-	context_set(&thread->saved_context, FADDR(cushion),
-	    (uintptr_t) thread->kstack, STACK_SIZE);
+	context_create(&thread->saved_context, thread_main_func,
+	    thread->kstack, STACK_SIZE);
 
 	current_initialize((current_t *) thread->kstack);
-
-	ipl_t ipl = interrupts_disable();
-	thread->saved_ipl = interrupts_read();
-	interrupts_restore(ipl);
 
 	str_cpy(thread->name, THREAD_NAME_BUFLEN, name);
 
 	thread->thread_code = func;
 	thread->thread_arg = arg;
-	thread->ucycles = 0;
-	thread->kcycles = 0;
+	thread->ucycles = ATOMIC_TIME_INITIALIZER();
+	thread->kcycles = ATOMIC_TIME_INITIALIZER();
 	thread->uncounted =
 	    ((flags & THREAD_FLAG_UNCOUNTED) == THREAD_FLAG_UNCOUNTED);
-	thread->priority = -1;          /* Start in rq[0] */
-	thread->cpu = NULL;
+	atomic_init(&thread->priority, 0);
+	atomic_init(&thread->cpu, NULL);
 	thread->stolen = false;
 	thread->uspace =
 	    ((flags & THREAD_FLAG_USPACE) == THREAD_FLAG_USPACE);
 
 	thread->nomigrate = 0;
-	thread->state = Entering;
+	atomic_init(&thread->state, Entering);
 
 	atomic_init(&thread->sleep_queue, NULL);
 
@@ -359,7 +287,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 
 #ifdef CONFIG_UDEBUG
 	/* Initialize debugging stuff */
-	thread->btrace = false;
+	atomic_init(&thread->btrace, false);
 	udebug_thread_initialize(&thread->udebug);
 #endif
 
@@ -403,33 +331,29 @@ static void thread_destroy(void *obj)
 	 */
 
 	if (!thread->uncounted) {
-		thread->task->ucycles += thread->ucycles;
-		thread->task->kcycles += thread->kcycles;
+		thread->task->ucycles += atomic_time_read(&thread->ucycles);
+		thread->task->kcycles += atomic_time_read(&thread->kcycles);
 	}
 
 	irq_spinlock_unlock(&thread->task->lock, false);
 
-	assert((thread->state == Exiting) || (thread->state == Lingering));
+	assert((atomic_get_unordered(&thread->state) == Exiting) || (atomic_get_unordered(&thread->state) == Lingering));
 
 	/* Clear cpu->fpu_owner if set to this thread. */
 #ifdef CONFIG_FPU_LAZY
-	if (thread->cpu) {
+	cpu_t *cpu = atomic_get_unordered(&thread->cpu);
+	if (cpu) {
 		/*
 		 * We need to lock for this because the old CPU can concurrently try
 		 * to dump this thread's FPU state, in which case we need to wait for
 		 * it to finish. An atomic compare-and-swap wouldn't be enough.
 		 */
-		irq_spinlock_lock(&thread->cpu->fpu_lock, false);
+		irq_spinlock_lock(&cpu->fpu_lock, false);
 
-		thread_t *owner = atomic_load_explicit(&thread->cpu->fpu_owner,
-		    memory_order_relaxed);
+		if (atomic_get_unordered(&cpu->fpu_owner) == thread)
+			atomic_set_unordered(&cpu->fpu_owner, NULL);
 
-		if (owner == thread) {
-			atomic_store_explicit(&thread->cpu->fpu_owner, NULL,
-			    memory_order_relaxed);
-		}
-
-		irq_spinlock_unlock(&thread->cpu->fpu_lock, false);
+		irq_spinlock_unlock(&cpu->fpu_lock, false);
 	}
 #endif
 
@@ -524,13 +448,8 @@ void thread_exit(void)
 		}
 	}
 
-	irq_spinlock_lock(&THREAD->lock, true);
-	THREAD->state = Exiting;
-	irq_spinlock_unlock(&THREAD->lock, true);
-
-	scheduler();
-
-	panic("should never be reached");
+	scheduler_enter(Exiting);
+	unreachable();
 }
 
 /** Interrupts an existing thread so that it may exit as soon as possible.
@@ -578,36 +497,6 @@ thread_termination_state_t thread_wait_start(void)
 	return THREAD->interrupted ? THREAD_TERMINATING : THREAD_OK;
 }
 
-static void thread_wait_internal(void)
-{
-	assert(THREAD != NULL);
-
-	ipl_t ipl = interrupts_disable();
-
-	if (atomic_load(&haltstate))
-		halt();
-
-	/*
-	 * Lock here to prevent a race between entering the scheduler and another
-	 * thread rescheduling this thread.
-	 */
-	irq_spinlock_lock(&THREAD->lock, false);
-
-	int expected = SLEEP_INITIAL;
-
-	/* Only set SLEEP_ASLEEP in sleep pad if it's still in initial state */
-	if (atomic_compare_exchange_strong_explicit(&THREAD->sleep_state, &expected,
-	    SLEEP_ASLEEP, memory_order_acq_rel, memory_order_acquire)) {
-		THREAD->state = Sleeping;
-		scheduler_locked(ipl);
-	} else {
-		assert(expected == SLEEP_WOKE);
-		/* Return immediately. */
-		irq_spinlock_unlock(&THREAD->lock, false);
-		interrupts_restore(ipl);
-	}
-}
-
 static void thread_wait_timeout_callback(void *arg)
 {
 	thread_wakeup(arg);
@@ -648,18 +537,18 @@ thread_wait_result_t thread_wait_finish(deadline_t deadline)
 
 	timeout_t timeout;
 
-	if (deadline != DEADLINE_NEVER) {
-		/* Extra check to avoid setting up a deadline if we don't need to. */
-		if (atomic_load_explicit(&THREAD->sleep_state, memory_order_acquire) !=
-		    SLEEP_INITIAL)
-			return THREAD_WAIT_SUCCESS;
+	/* Extra check to avoid going to scheduler if we don't need to. */
+	if (atomic_load_explicit(&THREAD->sleep_state, memory_order_acquire) !=
+	    SLEEP_INITIAL)
+		return THREAD_WAIT_SUCCESS;
 
+	if (deadline != DEADLINE_NEVER) {
 		timeout_initialize(&timeout);
 		timeout_register_deadline(&timeout, deadline,
 		    thread_wait_timeout_callback, THREAD);
 	}
 
-	thread_wait_internal();
+	scheduler_enter(Sleeping);
 
 	if (deadline != DEADLINE_NEVER && !timeout_unregister(&timeout)) {
 		return THREAD_WAIT_TIMEOUT;
@@ -673,7 +562,7 @@ void thread_wakeup(thread_t *thread)
 	assert(thread != NULL);
 
 	int state = atomic_exchange_explicit(&thread->sleep_state, SLEEP_WOKE,
-	    memory_order_release);
+	    memory_order_acq_rel);
 
 	if (state == SLEEP_ASLEEP) {
 		/*
@@ -681,26 +570,33 @@ void thread_wakeup(thread_t *thread)
 		 * The reference consumed here is the reference implicitly passed to
 		 * the waking thread by the sleeper in thread_wait_finish().
 		 */
-		thread_ready(thread);
+		thread_requeue_sleeping(thread);
 	}
 }
 
 /** Prevent the current thread from being migrated to another processor. */
 void thread_migration_disable(void)
 {
-	assert(THREAD);
+	ipl_t ipl = interrupts_disable();
 
+	assert(THREAD);
 	THREAD->nomigrate++;
+
+	interrupts_restore(ipl);
 }
 
 /** Allow the current thread to be migrated to another processor. */
 void thread_migration_enable(void)
 {
+	ipl_t ipl = interrupts_disable();
+
 	assert(THREAD);
 	assert(THREAD->nomigrate > 0);
 
 	if (THREAD->nomigrate > 0)
 		THREAD->nomigrate--;
+
+	interrupts_restore(ipl);
 }
 
 /** Thread sleep
@@ -730,7 +626,7 @@ errno_t thread_join(thread_t *thread)
 }
 
 /** Wait for another thread to exit.
- * This function does not destroy the thread. Reference counting handles that.
+ * After successful wait, the thread reference is destroyed.
  *
  * @param thread Thread to join on exit.
  * @param usec   Timeout in microseconds.
@@ -741,18 +637,22 @@ errno_t thread_join(thread_t *thread)
  */
 errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 {
+	assert(thread != NULL);
+
 	if (thread == THREAD)
 		return EINVAL;
 
-	irq_spinlock_lock(&thread->lock, true);
-	state_t state = thread->state;
-	irq_spinlock_unlock(&thread->lock, true);
+	errno_t rc = _waitq_sleep_timeout(&thread->join_wq, usec, flags);
 
-	if (state == Exiting) {
-		return EOK;
-	} else {
-		return _waitq_sleep_timeout(&thread->join_wq, usec, flags);
-	}
+	if (rc == EOK)
+		thread_put(thread);
+
+	return rc;
+}
+
+void thread_detach(thread_t *thread)
+{
+	thread_put(thread);
 }
 
 /** Thread usleep
@@ -771,12 +671,21 @@ void thread_usleep(uint32_t usec)
 	(void) waitq_sleep_timeout(&wq, usec);
 }
 
+/** Allow other threads to run. */
+void thread_yield(void)
+{
+	assert(THREAD != NULL);
+	scheduler_enter(Running);
+}
+
 static void thread_print(thread_t *thread, bool additional)
 {
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
-	order_suffix(thread->ucycles, &ucycles, &usuffix);
-	order_suffix(thread->kcycles, &kcycles, &ksuffix);
+	order_suffix(atomic_time_read(&thread->ucycles), &ucycles, &usuffix);
+	order_suffix(atomic_time_read(&thread->kcycles), &kcycles, &ksuffix);
+
+	state_t state = atomic_get_unordered(&thread->state);
 
 	char *name;
 	if (str_cmp(thread->name, "uinit") == 0)
@@ -790,16 +699,17 @@ static void thread_print(thread_t *thread, bool additional)
 		    ucycles, usuffix, kcycles, ksuffix);
 	else
 		printf("%-8" PRIu64 " %-14s %p %-8s %p %-5" PRIu32 "\n",
-		    thread->tid, name, thread, thread_states[thread->state],
+		    thread->tid, name, thread, thread_states[state],
 		    thread->task, thread->task->container);
 
 	if (additional) {
-		if (thread->cpu)
-			printf("%-5u", thread->cpu->id);
+		cpu_t *cpu = atomic_get_unordered(&thread->cpu);
+		if (cpu)
+			printf("%-5u", cpu->id);
 		else
 			printf("none ");
 
-		if (thread->state == Sleeping) {
+		if (state == Sleeping) {
 			printf(" %p", thread->sleep_queue);
 		}
 
@@ -878,15 +788,14 @@ thread_t *thread_try_get(thread_t *thread)
  */
 void thread_update_accounting(bool user)
 {
+	assert(interrupts_disabled());
+
 	uint64_t time = get_cycle();
 
-	assert(interrupts_disabled());
-	assert(irq_spinlock_locked(&THREAD->lock));
-
 	if (user)
-		THREAD->ucycles += time - THREAD->last_cycle;
+		atomic_time_increment(&THREAD->ucycles, time - THREAD->last_cycle);
 	else
-		THREAD->kcycles += time - THREAD->last_cycle;
+		atomic_time_increment(&THREAD->kcycles, time - THREAD->last_cycle);
 
 	THREAD->last_cycle = time;
 }
@@ -997,23 +906,10 @@ void thread_stack_trace(thread_id_t thread_id)
 	 * is probably justifiable.
 	 */
 
-	irq_spinlock_lock(&thread->lock, true);
+	printf("Scheduling thread stack trace.\n");
+	atomic_set_unordered(&thread->btrace, true);
 
-	bool sleeping = false;
-	istate_t *istate = thread->udebug.uspace_state;
-	if (istate != NULL) {
-		printf("Scheduling thread stack trace.\n");
-		thread->btrace = true;
-		if (thread->state == Sleeping)
-			sleeping = true;
-	} else
-		printf("Thread interrupt state not available.\n");
-
-	irq_spinlock_unlock(&thread->lock, true);
-
-	if (sleeping)
-		thread_wakeup(thread);
-
+	thread_wakeup(thread);
 	thread_put(thread);
 }
 
@@ -1114,7 +1010,8 @@ sys_errno_t sys_thread_create(uspace_ptr_uspace_arg_t uspace_uarg, uspace_ptr_ch
 #else
 		thread_attach(thread, TASK);
 #endif
-		thread_ready(thread);
+		thread_start(thread);
+		thread_put(thread);
 
 		return 0;
 	} else

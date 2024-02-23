@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 #include <gfx/coord.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ui/checkbox.h>
 #include <ui/fixed.h>
 #include <ui/resource.h>
 #include <ui/window.h>
@@ -93,6 +94,7 @@ errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
 	ui_resource_t *res;
 	const char *cmd;
 	const char *caption;
+	bool terminal;
 	errno_t rc;
 
 	ui = smenu->tbarcfg->ui;
@@ -100,9 +102,11 @@ errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
 	if (smentry != NULL) {
 		cmd = smenu_entry_get_cmd(smentry->entry);
 		caption = smenu_entry_get_caption(smentry->entry);
+		terminal = smenu_entry_get_terminal(smentry->entry);
 	} else {
 		cmd = "";
 		caption = "";
+		terminal = false;
 	}
 
 	smee = calloc(1, sizeof(smeedit_t));
@@ -115,18 +119,18 @@ errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
 	smee->smentry = smentry;
 
 	ui_wnd_params_init(&params);
-	params.caption = smentry != NULL ? "Edit Start Menu Entry"
-	    : "Create Start Menu Entry";
+	params.caption = smentry != NULL ? "Edit Start Menu Entry" :
+	    "Create Start Menu Entry";
 	if (ui_is_textmode(ui)) {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 50;
-		params.rect.p1.y = 12;
+		params.rect.p1.y = 13;
 	} else {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
 		params.rect.p1.x = 370;
-		params.rect.p1.y = 200;
+		params.rect.p1.y = 230;
 	}
 
 	rc = ui_window_create(ui, &params, &window);
@@ -254,6 +258,34 @@ errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
 		goto error;
 	}
 
+	/* Start in terminal checkbox */
+
+	rc = ui_checkbox_create(res, "Start in terminal", &smee->cbterminal);
+	if (rc != EOK)
+		goto error;
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 3;
+		rect.p0.y = 8;
+		rect.p1.x = 6;
+		rect.p1.y = 9;
+	} else {
+		rect.p0.x = 10;
+		rect.p0.y = 155;
+		rect.p1.x = 360;
+		rect.p1.y = 170;
+	}
+
+	ui_checkbox_set_rect(smee->cbterminal, &rect);
+	ui_checkbox_set_checked(smee->cbterminal, terminal);
+
+	rc = ui_fixed_add(smee->fixed, ui_checkbox_ctl(smee->cbterminal));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
 	/* OK button */
 
 	rc = ui_pbutton_create(res, "OK", &smee->bok);
@@ -263,14 +295,14 @@ errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 23;
-		rect.p0.y = 9;
+		rect.p0.y = 10;
 		rect.p1.x = 35;
-		rect.p1.y = 10;
+		rect.p1.y = 11;
 	} else {
 		rect.p0.x = 190;
-		rect.p0.y = 155;
+		rect.p0.y = 190;
 		rect.p1.x = 270;
-		rect.p1.y = 180;
+		rect.p1.y = 215;
 	}
 
 	ui_pbutton_set_cb(smee->bok, &smeedit_ok_button_cb, (void *)smee);
@@ -292,14 +324,14 @@ errno_t smeedit_create(startmenu_t *smenu, startmenu_entry_t *smentry,
 	/* FIXME: Auto layout */
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 36;
-		rect.p0.y = 9;
+		rect.p0.y = 10;
 		rect.p1.x = 48;
-		rect.p1.y = 10;
+		rect.p1.y = 11;
 	} else {
 		rect.p0.x = 280;
-		rect.p0.y = 155;
+		rect.p0.y = 190;
 		rect.p1.x = 360;
-		rect.p1.y = 180;
+		rect.p1.y = 215;
 	}
 
 	ui_pbutton_set_cb(smee->bcancel, &smeedit_cancel_button_cb,
@@ -344,8 +376,11 @@ void smeedit_destroy(smeedit_t *smee)
 static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
 {
 	smeedit_t *smee;
+	smenu_entry_t *entry;
+	startmenu_entry_t *smentry;
 	const char *cmd;
 	const char *caption;
+	bool terminal;
 	errno_t rc;
 
 	(void)bok;
@@ -353,22 +388,31 @@ static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
 
 	cmd = ui_entry_get_text(smee->ecmd);
 	caption = ui_entry_get_text(smee->ecaption);
+	terminal = ui_checkbox_get_checked(smee->cbterminal);
 
 	if (smee->smentry == NULL) {
 		/* Create new entry */
 		rc = smenu_entry_create(smee->startmenu->tbarcfg->tbarcfg,
-		    caption, cmd);
+		    caption, cmd, terminal, &entry);
 		if (rc != EOK)
 			return;
+
+		rc = startmenu_insert(smee->startmenu, entry, &smentry);
+		if (rc != EOK)
+			return;
+
+		startmenu_repaint(smee->startmenu);
 	} else {
 		/* Edit existing entry */
-
-
 		rc = smenu_entry_set_cmd(smee->smentry->entry, cmd);
 		if (rc != EOK)
 			return;
 
 		smenu_entry_set_caption(smee->smentry->entry, caption);
+		if (rc != EOK)
+			return;
+
+		smenu_entry_set_terminal(smee->smentry->entry, terminal);
 		if (rc != EOK)
 			return;
 

@@ -88,18 +88,22 @@ const char *test_semaphore1(void)
 			for (k = 0; k < i; k++) {
 				thrd = thread_create(consumer, NULL, TASK,
 				    THREAD_FLAG_NONE, "consumer");
-				if (thrd)
-					thread_ready(thrd);
-				else
+				if (thrd) {
+					thread_start(thrd);
+					thread_detach(thrd);
+				} else {
 					TPRINTF("could not create consumer %d\n", i);
+				}
 			}
 			for (k = 0; k < (4 - i); k++) {
 				thrd = thread_create(producer, NULL, TASK,
 				    THREAD_FLAG_NONE, "producer");
-				if (thrd)
-					thread_ready(thrd);
-				else
+				if (thrd) {
+					thread_start(thrd);
+					thread_detach(thrd);
+				} else {
 					TPRINTF("could not create producer %d\n", i);
+				}
 			}
 		}
 

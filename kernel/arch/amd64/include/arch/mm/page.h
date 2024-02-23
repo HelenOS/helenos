@@ -191,7 +191,7 @@ typedef struct {
 	unsigned int page_cache_disable : 1;
 	unsigned int accessed : 1;
 	unsigned int dirty : 1;
-	unsigned int unused : 1;
+	unsigned int pat : 1;
 	unsigned int global : 1;
 	unsigned int soft_valid : 1;  /**< Valid content even if present bit is cleared. */
 	unsigned int avl : 2;
@@ -210,7 +210,8 @@ _NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	    1 << PAGE_READ_SHIFT |
 	    p->writeable << PAGE_WRITE_SHIFT |
 	    (!p->no_execute) << PAGE_EXEC_SHIFT |
-	    p->global << PAGE_GLOBAL_SHIFT);
+	    p->global << PAGE_GLOBAL_SHIFT |
+	    p->page_write_through << PAGE_WRITE_COMBINE_SHIFT);
 }
 
 _NO_TRACE static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
@@ -224,12 +225,21 @@ _NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 
-	p->page_cache_disable = !(flags & PAGE_CACHEABLE);
 	p->present = !(flags & PAGE_NOT_PRESENT);
 	p->uaccessible = (flags & PAGE_USER) != 0;
 	p->writeable = (flags & PAGE_WRITE) != 0;
 	p->no_execute = (flags & PAGE_EXEC) == 0;
 	p->global = (flags & PAGE_GLOBAL) != 0;
+
+	if (flags & PAGE_WRITE_COMBINE) {
+		/* We have mapped PCD+PWT bits to write-combine mode via PAT MSR. */
+		/* (If PAT is unsupported, it will default to uncached.) */
+		p->page_cache_disable = 1;
+		p->page_write_through = 1;
+	} else {
+		p->page_cache_disable = !(flags & PAGE_CACHEABLE);
+		p->page_write_through = 0;
+	}
 
 	/*
 	 * Ensure that there is at least one bit set even if the present bit is cleared.

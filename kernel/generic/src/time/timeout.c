@@ -76,7 +76,7 @@ deadline_t timeout_deadline_in_usec(uint32_t usec)
 	if (usec == 0)
 		return 0;
 
-	return CPU->current_clock_tick + us2ticks(usec);
+	return CPU_LOCAL->current_clock_tick + us2ticks(usec);
 }
 
 static void timeout_register_deadline_locked(timeout_t *timeout, deadline_t deadline,

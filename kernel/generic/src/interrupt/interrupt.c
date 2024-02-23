@@ -113,18 +113,15 @@ _NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 	assert(n < IVT_ITEMS);
 
 	/* Account user cycles */
-	if (THREAD) {
-		irq_spinlock_lock(&THREAD->lock, false);
+	if (THREAD)
 		thread_update_accounting(true);
-		irq_spinlock_unlock(&THREAD->lock, false);
-	}
 
 	/* Account CPU usage if it woke up from sleep */
-	if (CPU && CPU->idle) {
+	if (CPU && CPU_LOCAL->idle) {
 		uint64_t now = get_cycle();
-		atomic_time_increment(&CPU->idle_cycles, now - CPU->last_cycle);
-		CPU->last_cycle = now;
-		CPU->idle = false;
+		atomic_time_increment(&CPU->idle_cycles, now - CPU_LOCAL->last_cycle);
+		CPU_LOCAL->last_cycle = now;
+		CPU_LOCAL->idle = false;
 	}
 
 	uint64_t begin_cycle = get_cycle();
@@ -154,11 +151,8 @@ _NO_TRACE void exc_dispatch(unsigned int n, istate_t *istate)
 	irq_spinlock_unlock(&exctbl_lock, false);
 
 	/* Do not charge THREAD for exception cycles */
-	if (THREAD) {
-		irq_spinlock_lock(&THREAD->lock, false);
+	if (THREAD)
 		THREAD->last_cycle = end_cycle;
-		irq_spinlock_unlock(&THREAD->lock, false);
-	}
 #else
 	panic("No space for any exception handler, yet we want to handle some exception.");
 #endif

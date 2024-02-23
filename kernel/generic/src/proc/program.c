@@ -98,7 +98,7 @@ errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t
 	    &anon_backend, NULL, &virt, bound);
 	if (!area) {
 		free(kernel_uarg);
-		task_destroy(prg->task);
+		task_release(prg->task);
 		prg->task = NULL;
 		return ENOMEM;
 	}
@@ -118,7 +118,7 @@ errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t
 	if (!prg->main_thread) {
 		free(kernel_uarg);
 		as_area_destroy(as, virt);
-		task_destroy(prg->task);
+		task_release(prg->task);
 		prg->task = NULL;
 		return ELIMIT;
 	}
@@ -211,7 +211,8 @@ errno_t program_create_loader(program_t *prg, char *name)
  */
 void program_ready(program_t *prg)
 {
-	thread_ready(prg->main_thread);
+	thread_start(prg->main_thread);
+	thread_detach(prg->main_thread);
 	prg->main_thread = NULL;
 }
 
@@ -249,6 +250,8 @@ sys_errno_t sys_program_spawn_loader(uspace_ptr_char uspace_name, size_t name_le
 	// FIXME: control the permissions
 	perm_set(prg.task, perm_get(TASK));
 	program_ready(&prg);
+
+	task_release(prg.task);
 
 	return EOK;
 }

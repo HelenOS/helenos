@@ -121,7 +121,7 @@ void it_interrupt(irq_t *irq)
 
 		itm += IT_DELTA;
 		if (itm - itc < 0)
-			CPU->missed_clock_ticks++;
+			CPU_LOCAL->missed_clock_ticks++;
 		else
 			break;
 	}

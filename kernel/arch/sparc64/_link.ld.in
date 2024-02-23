@@ -13,17 +13,30 @@ ENTRY(kernel_image_start)
 SECTIONS {
 	kernel_load_address = VMA;
 
-	.image (VMA + SIZEOF_HEADERS): AT (LMA + SIZEOF_HEADERS) {
+	.text (VMA + SIZEOF_HEADERS): AT (LMA + SIZEOF_HEADERS) {
 		ktext_start = .;
 		KEEP(*(K_TEXT_START));
 		*(.text .text.*);
 		ktext_end = .;
+	}
 
+	/* stack unwinding data */
+	.eh_frame_hdr : {
+		eh_frame_hdr_start = .;
+		*(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*);
+		eh_frame_hdr_end = .;
+	}
+
+	.eh_frame : {
+		eh_frame_start = .;
+		KEEP(*(.eh_frame .eh_frame.*));
+		eh_frame_end = .;
+	}
+
+	.data : {
 		kdata_start = .;
 		KEEP(*(K_DATA_START));
 		*(.rodata .rodata.*);
-		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
-		*(.eh_frame_hdr .eh_frame_hdr.*);
 		*(.data .data.*);                   /* initialized data */
 		*(.sdata .sdata.*);
 		*(.sdata2 .sdata2.*);

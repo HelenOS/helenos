@@ -89,7 +89,6 @@ void ipc_kbox_cleanup(void)
 	if (have_kb_thread) {
 		LOG("Join kb.thread.");
 		thread_join(TASK->kb.thread);
-		thread_put(TASK->kb.thread);
 		LOG("...join done.");
 		TASK->kb.thread = NULL;
 	}
@@ -200,39 +199,21 @@ static void kbox_thread_proc(void *arg)
 
 /** Connect phone to a task kernel-box specified by id.
  *
- * Note that this is not completely atomic. For optimisation reasons, the task
- * might start cleaning up kbox after the phone has been connected and before
- * a kbox thread has been created. This must be taken into account in the
- * cleanup code.
- *
  * @param[out] out_phone  Phone capability handle on success.
  * @return Error code.
  *
  */
 errno_t ipc_connect_kbox(task_id_t taskid, cap_phone_handle_t *out_phone)
 {
-	irq_spinlock_lock(&tasks_lock, true);
-
 	task_t *task = task_find_by_id(taskid);
-	if (task == NULL) {
-		irq_spinlock_unlock(&tasks_lock, true);
+	if (!task)
 		return ENOENT;
-	}
-
-	atomic_inc(&task->refcount);
-
-	irq_spinlock_unlock(&tasks_lock, true);
 
 	mutex_lock(&task->kb.cleanup_lock);
 
-	if (atomic_predec(&task->refcount) == 0) {
-		mutex_unlock(&task->kb.cleanup_lock);
-		task_destroy(task);
-		return ENOENT;
-	}
-
 	if (task->kb.finished) {
 		mutex_unlock(&task->kb.cleanup_lock);
+		task_release(task);
 		return EINVAL;
 	}
 
@@ -243,11 +224,12 @@ errno_t ipc_connect_kbox(task_id_t taskid, cap_phone_handle_t *out_phone)
 
 		if (!kb_thread) {
 			mutex_unlock(&task->kb.cleanup_lock);
+			task_release(task);
 			return ENOMEM;
 		}
 
-		task->kb.thread = thread_ref(kb_thread);
-		thread_ready(kb_thread);
+		task->kb.thread = kb_thread;
+		thread_start(kb_thread);
 	}
 
 	/* Allocate a new phone. */
@@ -255,6 +237,7 @@ errno_t ipc_connect_kbox(task_id_t taskid, cap_phone_handle_t *out_phone)
 	errno_t rc = phone_alloc(TASK, true, &phone_handle, NULL);
 	if (rc != EOK) {
 		mutex_unlock(&task->kb.cleanup_lock);
+		task_release(task);
 		return rc;
 	}
 
@@ -265,6 +248,7 @@ errno_t ipc_connect_kbox(task_id_t taskid, cap_phone_handle_t *out_phone)
 	(void) ipc_phone_connect(phone_obj->phone, &task->kb.box);
 
 	mutex_unlock(&task->kb.cleanup_lock);
+	task_release(task);
 	*out_phone = phone_handle;
 	return EOK;
 }

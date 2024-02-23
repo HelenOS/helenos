@@ -39,6 +39,16 @@
 #include <typedefs.h>
 #include <stdatomic.h>
 
+/*
+ * Shorthand for relaxed atomic read/write, something that's needed to formally
+ * avoid undefined behavior in cases where we need to read a variable in
+ * different threads and we don't particularly care about ordering
+ * (e.g. statistic printouts). This is most likely translated into the same
+ * assembly instructions as regular read/writes.
+ */
+#define atomic_set_unordered(var, val) atomic_store_explicit((var), (val), memory_order_relaxed)
+#define atomic_get_unordered(var) atomic_load_explicit((var), memory_order_relaxed)
+
 #define atomic_predec(val) \
 	(atomic_fetch_sub((val), 1) - 1)
 

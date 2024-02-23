@@ -126,7 +126,6 @@ static void totalmemtest(void)
 }
 
 static slab_cache_t *thr_cache;
-static semaphore_t thr_sem;
 static condvar_t thread_starter;
 static mutex_t starter_mutex;
 
@@ -187,8 +186,6 @@ static void slabtest(void *priv)
 
 	if (!test_quiet)
 		slab_print_list();
-
-	semaphore_up(&thr_sem);
 }
 
 static void multitest(int size)
@@ -197,8 +194,6 @@ static void multitest(int size)
 	 * Start 8 threads that just allocate as much as possible,
 	 * then release everything, then again allocate, then release
 	 */
-	thread_t *t;
-	int i;
 
 	TPRINTF("Running stress test with size %d\n", size);
 
@@ -206,18 +201,26 @@ static void multitest(int size)
 	mutex_initialize(&starter_mutex, MUTEX_PASSIVE);
 
 	thr_cache = slab_cache_create("thread_cache", size, 0, NULL, NULL, 0);
-	semaphore_initialize(&thr_sem, 0);
-	for (i = 0; i < THREADS; i++) {
-		if (!(t = thread_create(slabtest, NULL, TASK, THREAD_FLAG_NONE, "slabtest"))) {
+
+	thread_t *threads[THREADS] = { };
+
+	for (int i = 0; i < THREADS; i++) {
+		threads[i] = thread_create(slabtest, NULL,
+		    TASK, THREAD_FLAG_NONE, "slabtest");
+		if (threads[i]) {
+			thread_start(threads[i]);
+		} else {
 			TPRINTF("Could not create thread %d\n", i);
-		} else
-			thread_ready(t);
+		}
 	}
+
 	thread_sleep(1);
 	condvar_broadcast(&thread_starter);
 
-	for (i = 0; i < THREADS; i++)
-		semaphore_down(&thr_sem);
+	for (int i = 0; i < THREADS; i++) {
+		if (threads[i] != NULL)
+			thread_join(threads[i]);
+	}
 
 	slab_cache_destroy(thr_cache);
 	TPRINTF("Stress test complete.\n");

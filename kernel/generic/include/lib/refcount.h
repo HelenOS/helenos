@@ -48,9 +48,13 @@ typedef struct atomic_refcount {
 	volatile atomic_int __cnt;
 } atomic_refcount_t;
 
+#define REFCOUNT_INITIALIZER() { \
+	.__cnt = ATOMIC_VAR_INIT(0), \
+}
+
 static inline void refcount_init(atomic_refcount_t *rc)
 {
-	atomic_store_explicit(&rc->__cnt, 0, memory_order_relaxed);
+	atomic_init(&rc->__cnt, 0);
 }
 
 /**

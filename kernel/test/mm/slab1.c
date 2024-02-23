@@ -120,7 +120,6 @@ static void testsimple(void)
 
 static void *thr_data[THREADS][THR_MEM_COUNT];
 static slab_cache_t *thr_cache;
-static semaphore_t thr_sem;
 
 static void slabtest(void *data)
 {
@@ -141,28 +140,29 @@ static void slabtest(void *data)
 	}
 
 	TPRINTF("Thread #%" PRIu64 " finished\n", THREAD->tid);
-
-	semaphore_up(&thr_sem);
 }
 
 static void testthreads(void)
 {
-	thread_t *t;
-	int i;
-
 	thr_cache = slab_cache_create("thread_cache", THR_MEM_SIZE, 0, NULL, NULL,
 	    SLAB_CACHE_NOMAGAZINE);
 
-	semaphore_initialize(&thr_sem, 0);
-	for (i = 0; i < THREADS; i++) {
-		if (!(t = thread_create(slabtest, (void *) (sysarg_t) i, TASK, THREAD_FLAG_NONE, "slabtest"))) {
+	thread_t *threads[THREADS] = { };
+
+	for (int i = 0; i < THREADS; i++) {
+		threads[i] = thread_create(slabtest, (void *) (sysarg_t) i,
+		    TASK, THREAD_FLAG_NONE, "slabtest");
+		if (threads[i]) {
+			thread_start(threads[i]);
+		} else {
 			TPRINTF("Could not create thread %d\n", i);
-		} else
-			thread_ready(t);
+		}
 	}
 
-	for (i = 0; i < THREADS; i++)
-		semaphore_down(&thr_sem);
+	for (int i = 0; i < THREADS; i++) {
+		if (threads[i] != NULL)
+			thread_join(threads[i]);
+	}
 
 	slab_cache_destroy(thr_cache);
 

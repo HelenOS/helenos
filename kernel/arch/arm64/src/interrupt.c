@@ -136,7 +136,7 @@ static void timer_irq_handler(irq_t *irq)
 	uint64_t drift = cntvct - cntv_cval;
 	while (drift > timer_increment) {
 		drift -= timer_increment;
-		CPU->missed_clock_ticks++;
+		CPU_LOCAL->missed_clock_ticks++;
 	}
 	CNTV_CVAL_EL0_write(cntvct + timer_increment - drift);
 

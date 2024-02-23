@@ -35,8 +35,10 @@
 #ifndef KERN_CONTEXT_H_
 #define KERN_CONTEXT_H_
 
+#include <panic.h>
 #include <trace.h>
 #include <arch/context.h>
+#include <arch/faddr.h>
 
 #define context_set_generic(ctx, _pc, stack, size) \
 	do { \
@@ -46,37 +48,6 @@
 
 extern int context_save_arch(context_t *ctx) __attribute__((returns_twice));
 extern void context_restore_arch(context_t *ctx) __attribute__((noreturn));
-
-/** Save register context.
- *
- * Save the current register context (including stack pointer) to a context
- * structure. A subsequent call to context_restore() will return to the same
- * address as the corresponding call to context_save().
- *
- * Note that context_save_arch() must reuse the stack frame of the function
- * which called context_save(). We guarantee this by:
- *
- *   a) implementing context_save_arch() in assembly so that it does not create
- *      its own stack frame, and by
- *   b) defining context_save() as a macro because the inline keyword is just a
- *      hint for the compiler, not a real constraint; the application of a macro
- *      will definitely not create a stack frame either.
- *
- * To imagine what could happen if there were some extra stack frames created
- * either by context_save() or context_save_arch(), we need to realize that the
- * sp saved in the contex_t structure points to the current stack frame as it
- * existed when context_save_arch() was executing. After the return from
- * context_save_arch() and context_save(), any extra stack frames created by
- * these functions will be destroyed and their contents sooner or later
- * overwritten by functions called next. Any attempt to restore to a context
- * saved like that would therefore lead to a disaster.
- *
- * @param ctx Context structure.
- *
- * @return context_save() returns 1, context_restore() returns 0.
- *
- */
-#define context_save(ctx)  context_save_arch(ctx)
 
 /** Restore register context.
  *
@@ -90,9 +61,39 @@ extern void context_restore_arch(context_t *ctx) __attribute__((noreturn));
  * @param ctx Context structure.
  *
  */
-_NO_TRACE static inline void context_restore(context_t *ctx)
+_NO_TRACE __attribute__((noreturn))
+    static inline void context_restore(context_t *ctx)
 {
 	context_restore_arch(ctx);
+}
+
+/**
+ * Saves current context to the variable pointed to by `self`,
+ * and restores the context denoted by `other`.
+ *
+ * When the `self` context is later restored by another call to
+ * `context_swap()`, the control flow behaves as if the earlier call to
+ * `context_swap()` just returned.
+ */
+_NO_TRACE static inline void context_swap(context_t *self, context_t *other)
+{
+	if (context_save_arch(self))
+		context_restore_arch(other);
+}
+
+_NO_TRACE static inline void context_create(context_t *context,
+    void (*fn)(void), void *stack_base, size_t stack_size)
+{
+	*context = (context_t) { 0 };
+	context_set(context, FADDR(fn), stack_base, stack_size);
+}
+
+__attribute__((noreturn)) static inline void context_replace(void (*fn)(void),
+    void *stack_base, size_t stack_size)
+{
+	context_t ctx;
+	context_create(&ctx, fn, stack_base, stack_size);
+	context_restore(&ctx);
 }
 
 #endif

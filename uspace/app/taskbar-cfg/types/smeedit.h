@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #ifndef TYPES_SMEEDIT_H
 #define TYPES_SMEEDIT_H
 
+#include <ui/checkbox.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/entry.h>
@@ -60,7 +61,9 @@ typedef struct smeedit {
 	ui_label_t *lcmd;
 	/** Command entry */
 	ui_entry_t *ecmd;
-	/** OK buttion */
+	/** Start in terminal checkbox */
+	ui_checkbox_t *cbterminal;
+	/** OK button */
 	ui_pbutton_t *bok;
 	/** Cancel button */
 	ui_pbutton_t *bcancel;

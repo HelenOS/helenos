@@ -52,6 +52,7 @@ uspace_lib_devel_install_script_text += 'mkdir -p "${DESTDIR}include/libc"'
 foreach idir : incdirs
 	_sdir = meson.current_source_dir() / idir
 	uspace_lib_devel_install_script_text += 'cp -R -L -T "@0@" "${DESTDIR}include/libc"'.format(_sdir)
+	exported_devel_files += ['include', _sdir, 'libc']
 endforeach
 
 src = [ arch_src ]
@@ -208,6 +209,7 @@ libstartfiles = static_library('startfiles', start_src,
 	c_args: arch_uspace_c_args + c_args,
 	pic: false,
 )
+exported_devel_files += ['staticlib', libstartfiles, 'libstartfiles.a']
 
 if CONFIG_DEVEL_FILES
 	install_files += [[ 'lib', libstartfiles.full_path(), 'libstartfiles.a' ]]

@@ -32,12 +32,24 @@ SECTIONS {
 		*(.text.*);
 		ktext_end = .;
 	}
+
+	/* stack unwinding data */
+	.eh_frame_hdr : {
+		eh_frame_hdr_start = .;
+		*(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*);
+		eh_frame_hdr_end = .;
+	}
+
+	.eh_frame : {
+		eh_frame_start = .;
+		KEEP(*(.eh_frame .eh_frame.*));
+		eh_frame_end = .;
+	}
+
 	.data : {
 		kdata_start = .;
 		*(.data .data.*);                       /* initialized data */
 		*(.rodata .rodata.*);
-		*(.eh_frame .eh_frame.*);       /* stack unwinding data */
-		*(.eh_frame_hdr .eh_frame_hdr.*);
 		*(.sdata .sdata.*);
 		*(.reginfo);
 		*(.sbss .sbss.*);
@@ -45,6 +57,7 @@ SECTIONS {
 		*(.bss .bss.*);                        /* uninitialized static variables */
 		*(COMMON);                      /* global variables */
 	}
+
 	_gp = . + 0x8000;
 	.lit8 : { *(.lit8) }
 	.lit4 : { *(.lit4) }

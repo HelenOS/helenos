@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2024 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic
+/** @addtogroup kernel_amd64_mm
  * @{
  */
-
-/**
- * @file preemption.c
- * @brief Preemption control.
+/** @file
  */
 
-#include <preemption.h>
+#ifndef KERN_amd64_MM_PAT_H_
+#define KERN_amd64_MM_PAT_H_
+
+#include <arch/asm.h>
+#include <arch/cpuid.h>
+
+#define MSR_IA32_PAT  0x00000277
+
+typedef enum {
+	PAT_TYPE_UNCACHEABLE = 0,
+	PAT_TYPE_WRITE_COMBINING = 1,
+	PAT_TYPE_WRITE_THROUGH = 4,
+	PAT_TYPE_WRITE_PROTECTED = 5,
+	PAT_TYPE_WRITE_BACK = 6,
+	PAT_TYPE_UNCACHED  = 7,
+} pat_type_t;
+
+/**
+ * Assign caching type for a particular combination of PAT,
+ * PCD and PWT bits in PTE.
+ */
+static inline void pat_set_mapping(bool pat, bool pcd, bool pwt,
+    pat_type_t type)
+{
+	int index = pat << 2 | pcd << 1 | pwt;
+	int shift = index * 8;
+
+	uint64_t r = read_msr(MSR_IA32_PAT);
+	r &= ~(0xffull << shift);
+	r |= ((uint64_t) type) << shift;
+	write_msr(MSR_IA32_PAT, r);
+}
+
+static inline bool pat_supported(void)
+{
+	if (!has_cpuid())
+		return false;
+
+	cpu_info_t info;
+	cpuid(INTEL_CPUID_STANDARD, &info);
+
+	return (info.cpuid_edx & (1 << 16)) != 0;
+}
+
+#endif
 
 /** @}
  */

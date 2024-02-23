@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -146,6 +146,40 @@ PCUT_TEST(set_rect)
 	PCUT_ASSERT_INT_EQUALS(rect.p0.y, checkbox->rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(rect.p1.x, checkbox->rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(rect.p1.y, checkbox->rect.p1.y);
+
+	ui_checkbox_destroy(checkbox);
+}
+
+/** Get check box checked returns internal field */
+PCUT_TEST(get_checked)
+{
+	ui_checkbox_t *checkbox;
+	errno_t rc;
+
+	rc = ui_checkbox_create(NULL, "Hello", &checkbox);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	checkbox->checked = false;
+	PCUT_ASSERT_FALSE(ui_checkbox_get_checked(checkbox));
+	checkbox->checked = true;
+	PCUT_ASSERT_TRUE(ui_checkbox_get_checked(checkbox));
+
+	ui_checkbox_destroy(checkbox);
+}
+
+/** Set check box checked sets internal field */
+PCUT_TEST(set_checked)
+{
+	ui_checkbox_t *checkbox;
+	errno_t rc;
+
+	rc = ui_checkbox_create(NULL, "Hello", &checkbox);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_checkbox_set_checked(checkbox, true);
+	PCUT_ASSERT_TRUE(checkbox->checked);
+	ui_checkbox_set_checked(checkbox, false);
+	PCUT_ASSERT_FALSE(checkbox->checked);
 
 	ui_checkbox_destroy(checkbox);
 }

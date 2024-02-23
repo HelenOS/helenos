@@ -257,7 +257,7 @@ void skiin_wire(ski_instance_t *instance, indev_t *srlnin)
 	assert(srlnin);
 
 	instance->srlnin = srlnin;
-	thread_ready(instance->thread);
+	thread_start(instance->thread);
 
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);

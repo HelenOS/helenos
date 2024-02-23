@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -708,6 +708,84 @@ errno_t ui_list_entry_append(ui_list_t *list, ui_list_entry_attr_t *attr,
 	if (rentry != NULL)
 		*rentry = entry;
 	return EOK;
+}
+
+/** Move UI list entry one position up.
+ *
+ * @parm entry UI list entry
+ */
+void ui_list_entry_move_up(ui_list_entry_t *entry)
+{
+	ui_list_t *list = entry->list;
+	ui_list_entry_t *prev;
+
+	prev = ui_list_prev(entry);
+	if (prev == NULL) {
+		/* Entry is already on first position, nothing to do. */
+		return;
+	}
+
+	list_remove(&entry->lentries);
+	list_insert_before(&entry->lentries, &prev->lentries);
+
+	/* Make sure page stays on the same position/idx as it was before */
+	if (list->page == entry) {
+		list->page = prev;
+	} else if (list->page == prev) {
+		list->page = entry;
+	}
+
+	/*
+	 * Return cursor to the same position/idx as it was before,
+	 * but then move it using ui_list_cursor_move() to the new
+	 * position (this ensures scrolling when needed).
+	 */
+	if (list->cursor == entry) {
+		list->cursor = prev;
+		ui_list_cursor_move(list, entry, list->cursor_idx - 1);
+	} else if (list->cursor == prev) {
+		list->cursor = entry;
+		ui_list_cursor_move(list, prev, list->cursor_idx + 1);
+	}
+}
+
+/** Move UI list entry one position down.
+ *
+ * @parm entry UI list entry
+ */
+void ui_list_entry_move_down(ui_list_entry_t *entry)
+{
+	ui_list_t *list = entry->list;
+	ui_list_entry_t *next;
+
+	next = ui_list_next(entry);
+	if (next == NULL) {
+		/* Entry is already on last position, nothing to do. */
+		return;
+	}
+
+	list_remove(&entry->lentries);
+	list_insert_after(&entry->lentries, &next->lentries);
+
+	/* Make sure page stays on the same position/idx as it was before */
+	if (list->page == entry) {
+		list->page = next;
+	} else if (list->page == next) {
+		list->page = entry;
+	}
+
+	/*
+	 * Return cursor to the same position/idx as it was before,
+	 * but then move it using ui_list_cursor_move() to the new
+	 * position (this ensures scrolling when needed).
+	 */
+	if (list->cursor == entry) {
+		list->cursor = next;
+		ui_list_cursor_move(list, entry, list->cursor_idx + 1);
+	} else if (list->cursor == next) {
+		list->cursor = entry;
+		ui_list_cursor_move(list, next, list->cursor_idx - 1);
+	}
 }
 
 /** Destroy UI list entry.

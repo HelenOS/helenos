@@ -140,9 +140,9 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
     sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
 {
 	/* Do userpace accounting */
-	irq_spinlock_lock(&THREAD->lock, true);
+	ipl_t ipl = interrupts_disable();
 	thread_update_accounting(true);
-	irq_spinlock_unlock(&THREAD->lock, true);
+	interrupts_restore(ipl);
 
 #ifdef CONFIG_UDEBUG
 	/*
@@ -190,9 +190,9 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 #endif
 
 	/* Do kernel accounting */
-	irq_spinlock_lock(&THREAD->lock, true);
+	ipl = interrupts_disable();
 	thread_update_accounting(false);
-	irq_spinlock_unlock(&THREAD->lock, true);
+	interrupts_restore(ipl);
 
 	return rc;
 }

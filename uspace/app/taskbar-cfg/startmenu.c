@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,9 @@ static void startmenu_entry_selected(ui_list_entry_t *, void *);
 static void startmenu_new_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_delete_entry_clicked(ui_pbutton_t *, void *);
 static void startmenu_edit_entry_clicked(ui_pbutton_t *, void *);
+static void startmenu_sep_entry_clicked(ui_pbutton_t *, void *);
+static void startmenu_up_entry_clicked(ui_pbutton_t *, void *);
+static void startmenu_down_entry_clicked(ui_pbutton_t *, void *);
 
 /** Entry list callbacks */
 ui_list_cb_t startmenu_entry_list_cb = {
@@ -72,6 +75,21 @@ ui_pbutton_cb_t startmenu_delete_entry_button_cb = {
 /** Edit entry button callbacks */
 ui_pbutton_cb_t startmenu_edit_entry_button_cb = {
 	.clicked = startmenu_edit_entry_clicked
+};
+
+/** Separator entry button callbacks */
+ui_pbutton_cb_t startmenu_sep_entry_button_cb = {
+	.clicked = startmenu_sep_entry_clicked
+};
+
+/** Move entry up button callbacks */
+ui_pbutton_cb_t startmenu_up_entry_button_cb = {
+	.clicked = startmenu_up_entry_clicked
+};
+
+/** Move entry down button callbacks */
+ui_pbutton_cb_t startmenu_down_entry_button_cb = {
+	.clicked = startmenu_down_entry_clicked
 };
 
 /** Create start menu configuration tab
@@ -150,12 +168,12 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 		rect.p0.x = 4;
 		rect.p0.y = 5;
 		rect.p1.x = 56;
-		rect.p1.y = 10;
+		rect.p1.y = 20;
 	} else {
 		rect.p0.x = 20;
 		rect.p0.y = 80;
 		rect.p1.x = 360;
-		rect.p1.y = 180;
+		rect.p1.y = 330;
 	}
 
 	ui_list_set_rect(smenu->entries_list, &rect);
@@ -262,11 +280,108 @@ errno_t startmenu_create(taskbar_cfg_t *tbcfg, startmenu_t **rsmenu)
 	ui_pbutton_set_cb(smenu->edit_entry,
 	    &startmenu_edit_entry_button_cb, (void *)smenu);
 
+	/* Separator entry button */
+
+	rc = ui_pbutton_create(ui_res, "Separator", &smenu->sep_entry);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		goto error;
+	}
+
+	if (ui_resource_is_textmode(ui_res)) {
+		rect.p0.x = 58;
+		rect.p0.y = 11;
+		rect.p1.x = 68;
+		rect.p1.y = 12;
+	} else {
+		rect.p0.x = 370;
+		rect.p0.y = 170;
+		rect.p1.x = 450;
+		rect.p1.y = 195;
+	}
+
+	ui_pbutton_set_rect(smenu->sep_entry, &rect);
+
+	rc = ui_fixed_add(smenu->fixed, ui_pbutton_ctl(smenu->sep_entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
+	ui_pbutton_set_cb(smenu->sep_entry,
+	    &startmenu_sep_entry_button_cb, (void *)smenu);
+
+	/* Move entry up button */
+
+	rc = ui_pbutton_create(ui_res, "Up", &smenu->up_entry);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		goto error;
+	}
+
+	if (ui_resource_is_textmode(ui_res)) {
+		rect.p0.x = 58;
+		rect.p0.y = 13;
+		rect.p1.x = 68;
+		rect.p1.y = 14;
+	} else {
+		rect.p0.x = 370;
+		rect.p0.y = 220;
+		rect.p1.x = 450;
+		rect.p1.y = 245;
+	}
+
+	ui_pbutton_set_rect(smenu->up_entry, &rect);
+
+	rc = ui_fixed_add(smenu->fixed, ui_pbutton_ctl(smenu->up_entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
+	ui_pbutton_set_cb(smenu->up_entry,
+	    &startmenu_up_entry_button_cb, (void *)smenu);
+
+	/* Move entry down button */
+
+	rc = ui_pbutton_create(ui_res, "Down", &smenu->down_entry);
+	if (rc != EOK) {
+		printf("Error creating button.\n");
+		goto error;
+	}
+
+	if (ui_resource_is_textmode(ui_res)) {
+		rect.p0.x = 58;
+		rect.p0.y = 15;
+		rect.p1.x = 68;
+		rect.p1.y = 16;
+	} else {
+		rect.p0.x = 370;
+		rect.p0.y = 250;
+		rect.p1.x = 450;
+		rect.p1.y = 275;
+	}
+
+	ui_pbutton_set_rect(smenu->down_entry, &rect);
+
+	rc = ui_fixed_add(smenu->fixed, ui_pbutton_ctl(smenu->down_entry));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		goto error;
+	}
+
+	ui_pbutton_set_cb(smenu->down_entry,
+	    &startmenu_down_entry_button_cb, (void *)smenu);
+
 	ui_tab_add(smenu->tab, ui_fixed_ctl(smenu->fixed));
 
 	*rsmenu = smenu;
 	return EOK;
 error:
+	if (smenu->down_entry != NULL)
+		ui_pbutton_destroy(smenu->down_entry);
+	if (smenu->up_entry != NULL)
+		ui_pbutton_destroy(smenu->up_entry);
 	if (smenu->delete_entry != NULL)
 		ui_pbutton_destroy(smenu->delete_entry);
 	if (smenu->new_entry != NULL)
@@ -339,6 +454,7 @@ errno_t startmenu_insert(startmenu_t *smenu, smenu_entry_t *entry,
 {
 	startmenu_entry_t *smentry;
 	ui_list_entry_attr_t attr;
+	bool separator;
 	errno_t rc;
 
 	smentry = calloc(1, sizeof(startmenu_entry_t));
@@ -349,8 +465,14 @@ errno_t startmenu_insert(startmenu_t *smenu, smenu_entry_t *entry,
 	smentry->entry = entry;
 
 	ui_list_entry_attr_init(&attr);
-	attr.caption = smenu_entry_get_caption(entry);
+	separator = smenu_entry_get_separator(entry);
+	if (separator)
+		attr.caption = "-- Separator --";
+	else
+		attr.caption = smenu_entry_get_caption(entry);
+
 	attr.arg = (void *)smentry;
+
 	rc = ui_list_entry_append(smenu->entries_list, &attr, &smentry->lentry);
 	if (rc != EOK) {
 		free(smentry);
@@ -394,6 +516,24 @@ void startmenu_new_entry(startmenu_t *smenu)
 	(void)smee;
 }
 
+/** Create new separator menu entry.
+ *
+ * @param smenu Start menu
+ */
+void startmenu_sep_entry(startmenu_t *smenu)
+{
+	startmenu_entry_t *smentry = NULL;
+	smenu_entry_t *entry;
+	errno_t rc;
+
+	rc = smenu_entry_sep_create(smenu->tbarcfg->tbarcfg, &entry);
+	if (rc != EOK)
+		return;
+
+	(void)startmenu_insert(smenu, entry, &smentry);
+	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+}
+
 /** Edit selected menu entry.
  *
  * @param smenu Start menu
@@ -406,6 +546,10 @@ void startmenu_edit(startmenu_t *smenu)
 
 	smentry = startmenu_get_selected(smenu);
 	if (smentry == NULL)
+		return;
+
+	/* Do not edit separator entries */
+	if (smenu_entry_get_separator(smentry->entry))
 		return;
 
 	rc = smeedit_create(smenu, smentry, &smee);
@@ -426,6 +570,18 @@ errno_t startmenu_entry_update(startmenu_entry_t *entry)
 {
 	return ui_list_entry_set_caption(entry->lentry,
 	    smenu_entry_get_caption(entry->entry));
+}
+
+/** Repaint start menu entry list.
+ *
+ * When editing an entry the entry's label might change. We need
+ * to update the list entry caption to reflect that.
+ *
+ * @param smenu Start menu
+ */
+void startmenu_repaint(startmenu_t *smenu)
+{
+	(void) ui_control_paint(ui_list_ctl(smenu->entries_list));
 }
 
 /** Entry in entry list is selected.
@@ -475,7 +631,7 @@ static void startmenu_delete_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 
 	ui_list_entry_delete(smentry->lentry);
 	free(smentry);
-	(void) ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
 }
 
 /** Edit entry button clicked.
@@ -489,6 +645,71 @@ static void startmenu_edit_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 
 	(void)pbutton;
 	startmenu_edit(smenu);
+}
+
+/** Separator entry button clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (startmenu_t *)
+ */
+static void startmenu_sep_entry_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	startmenu_t *smenu = (startmenu_t *)arg;
+
+	(void)pbutton;
+	startmenu_sep_entry(smenu);
+}
+
+/** Up entry button clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (startmenu_t *)
+ */
+static void startmenu_up_entry_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	startmenu_t *smenu = (startmenu_t *)arg;
+	startmenu_entry_t *smentry;
+	errno_t rc;
+
+	(void)pbutton;
+
+	smentry = startmenu_get_selected(smenu);
+	if (smentry == NULL)
+		return;
+
+	rc = smenu_entry_move_up(smentry->entry);
+	if (rc != EOK)
+		return;
+
+	ui_list_entry_move_up(smentry->lentry);
+
+	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+}
+
+/** Down entry button clicked.
+ *
+ * @param pbutton Push button
+ * @param arg Argument (startmenu_t *)
+ */
+static void startmenu_down_entry_clicked(ui_pbutton_t *pbutton, void *arg)
+{
+	startmenu_t *smenu = (startmenu_t *)arg;
+	startmenu_entry_t *smentry;
+	errno_t rc;
+
+	(void)pbutton;
+
+	smentry = startmenu_get_selected(smenu);
+	if (smentry == NULL)
+		return;
+
+	rc = smenu_entry_move_up(smentry->entry);
+	if (rc != EOK)
+		return;
+
+	ui_list_entry_move_down(smentry->lentry);
+
+	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
 }
 
 /** @}

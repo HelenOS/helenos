@@ -94,25 +94,75 @@ typedef struct thread {
 	/** Waitq for thread_join_timeout(). */
 	waitq_t join_wq;
 
-	/** Lock protecting thread structure.
-	 *
-	 * Protects the whole thread structure except fields listed above.
-	 */
-	IRQ_SPINLOCK_DECLARE(lock);
+	/** Thread accounting. */
+	atomic_time_stat_t ucycles;
+	atomic_time_stat_t kcycles;
 
-	char name[THREAD_NAME_BUFLEN];
+	/** Architecture-specific data. */
+	thread_arch_t arch;
+
+#ifdef CONFIG_UDEBUG
+	/**
+	 * If true, the scheduler will print a stack trace
+	 * to the kernel console upon scheduling this thread.
+	 */
+	atomic_int_fast8_t btrace;
+
+	/** Debugging stuff */
+	udebug_thread_t udebug;
+#endif /* CONFIG_UDEBUG */
+
+	/*
+	 * Immutable fields.
+	 *
+	 * These fields are only modified during initialization, and are not
+	 * changed at any time between initialization and destruction.
+	 * Can be accessed without synchronization in most places.
+	 */
+
+	/** Thread ID. */
+	thread_id_t tid;
 
 	/** Function implementing the thread. */
 	void (*thread_code)(void *);
 	/** Argument passed to thread_code() function. */
 	void *thread_arg;
 
+	char name[THREAD_NAME_BUFLEN];
+
+	/** Thread is executed in user space. */
+	bool uspace;
+
+	/** Thread doesn't affect accumulated accounting. */
+	bool uncounted;
+
+	/** Containing task. */
+	task_t *task;
+
+	/** Thread's kernel stack. */
+	uint8_t *kstack;
+
+	/*
+	 * Local fields.
+	 *
+	 * These fields can be safely accessed from code that _controls execution_
+	 * of this thread. Code controls execution of a thread if either:
+	 *  - it runs in the context of said thread AND interrupts are disabled
+	 *    (interrupts can and will access these fields)
+	 *  - the thread is not running, and the code accessing it can legally
+	 *    add/remove the thread to/from a runqueue, i.e., either:
+	 *    - it is allowed to enqueue thread in a new runqueue
+	 *    - it holds the lock to the runqueue containing the thread
+	 *
+	 */
+
 	/**
 	 * From here, the stored context is restored
 	 * when the thread is scheduled.
 	 */
 	context_t saved_context;
-	ipl_t saved_ipl;
+
+	// TODO: we only need one of the two bools below
 
 	/**
 	 * True if this thread is executing copy_from_uspace().
@@ -126,6 +176,11 @@ typedef struct thread {
 	 */
 	bool in_copy_to_uspace;
 
+	/*
+	 * FPU context is a special case. If lazy FPU switching is disabled,
+	 * it acts as a regular local field. However, if lazy switching is enabled,
+	 * the context is synchronized via CPU->fpu_lock
+	 */
 #ifdef CONFIG_FPU
 	fpu_context_t fpu_context;
 #endif
@@ -134,47 +189,24 @@ typedef struct thread {
 	/* The thread will not be migrated if nomigrate is non-zero. */
 	unsigned int nomigrate;
 
-	/** Thread state. */
-	state_t state;
-
-	/** Thread CPU. */
-	cpu_t *cpu;
-	/** Containing task. */
-	task_t *task;
 	/** Thread was migrated to another CPU and has not run yet. */
 	bool stolen;
-	/** Thread is executed in user space. */
-	bool uspace;
 
-	/** Thread accounting. */
-	uint64_t ucycles;
-	uint64_t kcycles;
-	/** Last sampled cycle. */
-	uint64_t last_cycle;
-	/** Thread doesn't affect accumulated accounting. */
-	bool uncounted;
+	/**
+	 * Thread state (state_t).
+	 * This is atomic because we read it via some commands for debug output,
+	 * otherwise it could just be a regular local.
+	 */
+	atomic_int_fast32_t state;
+
+	/** Thread CPU. */
+	_Atomic(cpu_t *) cpu;
 
 	/** Thread's priority. Implemented as index to CPU->rq */
-	int priority;
-	/** Thread ID. */
-	thread_id_t tid;
+	atomic_int_fast32_t priority;
 
-	/** Architecture-specific data. */
-	thread_arch_t arch;
-
-	/** Thread's kernel stack. */
-	uint8_t *kstack;
-
-#ifdef CONFIG_UDEBUG
-	/**
-	 * If true, the scheduler will print a stack trace
-	 * to the kernel console upon scheduling this thread.
-	 */
-	bool btrace;
-
-	/** Debugging stuff */
-	udebug_thread_t udebug;
-#endif /* CONFIG_UDEBUG */
+	/** Last sampled cycle. */
+	uint64_t last_cycle;
 } thread_t;
 
 IRQ_SPINLOCK_EXTERN(threads_lock);
@@ -185,9 +217,16 @@ extern thread_t *thread_create(void (*)(void *), void *, task_t *,
     thread_flags_t, const char *);
 extern void thread_wire(thread_t *, cpu_t *);
 extern void thread_attach(thread_t *, task_t *);
-extern void thread_ready(thread_t *);
+extern void thread_start(thread_t *);
+extern void thread_requeue_sleeping(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
 extern void thread_interrupt(thread_t *);
+
+enum sleep_state {
+	SLEEP_INITIAL,
+	SLEEP_ASLEEP,
+	SLEEP_WOKE,
+};
 
 typedef enum {
 	THREAD_OK,
@@ -236,6 +275,9 @@ extern void thread_usleep(uint32_t);
 
 extern errno_t thread_join(thread_t *);
 extern errno_t thread_join_timeout(thread_t *, uint32_t, unsigned int);
+extern void thread_detach(thread_t *);
+
+extern void thread_yield(void);
 
 extern void thread_print_list(bool);
 extern thread_t *thread_find_by_id(thread_id_t);

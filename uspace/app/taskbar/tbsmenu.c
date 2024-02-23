@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -128,8 +128,10 @@ errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 	tbsmenu_entry_t *tentry;
 	tbarcfg_t *tbcfg = NULL;
 	smenu_entry_t *sme;
+	bool separator;
 	const char *caption;
 	const char *cmd;
+	bool terminal;
 	errno_t rc;
 
 	rc = tbarcfg_open(repopath, &tbcfg);
@@ -138,12 +140,21 @@ errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 
 	sme = tbarcfg_smenu_first(tbcfg);
 	while (sme != NULL) {
-		caption = smenu_entry_get_caption(sme);
-		cmd = smenu_entry_get_cmd(sme);
+		separator = smenu_entry_get_separator(sme);
+		if (separator == false) {
+			caption = smenu_entry_get_caption(sme);
+			cmd = smenu_entry_get_cmd(sme);
+			terminal = smenu_entry_get_terminal(sme);
 
-		rc = tbsmenu_add(tbsmenu, caption, cmd, &tentry);
-		if (rc != EOK)
-			goto error;
+			rc = tbsmenu_add(tbsmenu, caption, cmd, terminal,
+			    &tentry);
+			if (rc != EOK)
+				goto error;
+		} else {
+			rc = tbsmenu_add_sep(tbsmenu, &tentry);
+			if (rc != EOK)
+				goto error;
+		}
 
 		(void)tentry;
 
@@ -225,11 +236,12 @@ void tbsmenu_destroy(tbsmenu_t *tbsmenu)
  * @param tbsmenu Start menu
  * @param caption Caption
  * @param cmd Command to run
+ * @param terminal Start in terminal
  * @param entry Start menu entry
  * @return @c EOK on success or an error code
  */
 errno_t tbsmenu_add(tbsmenu_t *tbsmenu, const char *caption,
-    const char *cmd, tbsmenu_entry_t **rentry)
+    const char *cmd, bool terminal, tbsmenu_entry_t **rentry)
 {
 	errno_t rc;
 	tbsmenu_entry_t *entry;
@@ -250,6 +262,8 @@ errno_t tbsmenu_add(tbsmenu_t *tbsmenu, const char *caption,
 		goto error;
 	}
 
+	entry->terminal = terminal;
+
 	rc = ui_menu_entry_create(tbsmenu->smenu, caption, "", &entry->mentry);
 	if (rc != EOK)
 		goto error;
@@ -266,6 +280,37 @@ error:
 		free(entry->caption);
 	if (entry->cmd != NULL)
 		free(entry->cmd);
+	free(entry);
+	return rc;
+}
+
+/** Add separator entry to start menu.
+ *
+ * @param tbsmenu Start menu
+ * @param entry Start menu entry
+ * @return @c EOK on success or an error code
+ */
+errno_t tbsmenu_add_sep(tbsmenu_t *tbsmenu, tbsmenu_entry_t **rentry)
+{
+	errno_t rc;
+	tbsmenu_entry_t *entry;
+
+	entry = calloc(1, sizeof(tbsmenu_entry_t));
+	if (entry == NULL)
+		return ENOMEM;
+
+	rc = ui_menu_entry_sep_create(tbsmenu->smenu, &entry->mentry);
+	if (rc != EOK)
+		goto error;
+
+	ui_menu_entry_set_cb(entry->mentry, tbsmenu_smenu_entry_cb,
+	    (void *)entry);
+
+	entry->tbsmenu = tbsmenu;
+	list_append(&entry->lentries, &tbsmenu->entries);
+	*rentry = entry;
+	return EOK;
+error:
 	free(entry);
 	return rc;
 }
@@ -437,6 +482,8 @@ static errno_t tbsmenu_cmd_split(const char *str, tbsmenu_cmd_t *cmd)
 		arg = str_tok(next, " ", &next);
 	}
 
+	cmd->argv[cnt] = NULL;
+
 	return EOK;
 }
 
@@ -464,6 +511,10 @@ static errno_t tbsmenu_entry_start(tbsmenu_entry_t *entry)
 	tbsmenu_cmd_t cmd;
 	int retval;
 	bool suspended;
+	int i;
+	int cnt;
+	char **cp;
+	const char **targv = NULL;
 	errno_t rc;
 	ui_t *ui;
 
@@ -481,10 +532,38 @@ static errno_t tbsmenu_entry_start(tbsmenu_entry_t *entry)
 
 	suspended = true;
 
-	rc = task_spawnv(&id, &wait, cmd.argv[0], (const char *const *)
-	    cmd.argv);
-	if (rc != EOK)
-		goto error;
+	/* Don't start in terminal if not running in a window */
+	if (entry->terminal && !ui_is_fullscreen(ui)) {
+		cnt = 0;
+		cp = cmd.argv;
+		while (*cp != NULL) {
+			++cnt;
+			++cp;
+		}
+
+		targv = calloc(cnt + 3, sizeof(char **));
+		if (targv == NULL)
+			goto error;
+
+		targv[0] = "/app/terminal";
+		targv[1] = "-c";
+
+		for (i = 0; i <= cnt; i++) {
+			targv[2 + i] = cmd.argv[i];
+		}
+
+		rc = task_spawnv(&id, &wait, targv[0], targv);
+		if (rc != EOK)
+			goto error;
+
+		free(targv);
+		targv = NULL;
+	} else {
+		rc = task_spawnv(&id, &wait, cmd.argv[0], (const char *const *)
+		    cmd.argv);
+		if (rc != EOK)
+			goto error;
+	}
 
 	rc = task_wait(&wait, &texit, &retval);
 	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL))
@@ -498,9 +577,16 @@ static errno_t tbsmenu_entry_start(tbsmenu_entry_t *entry)
 	(void) ui_paint(ui);
 	return EOK;
 error:
+	if (targv != NULL)
+		free(targv);
 	tbsmenu_cmd_fini(&cmd);
-	if (suspended)
-		(void) ui_resume(ui);
+	if (suspended) {
+		rc = ui_resume(ui);
+		if (rc != EOK) {
+			printf("Failed to resume UI.\n");
+			exit(1);
+		}
+	}
 	(void) ui_paint(ui);
 	return rc;
 }

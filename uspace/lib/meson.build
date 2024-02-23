@@ -180,11 +180,13 @@ foreach l : libs
 		incdir = join_paths(l, 'include')
 		if run_command('[', '-d', incdir, ']').returncode() == 0
 			includes += include_directories(incdir)
+			_sdir = meson.current_source_dir() / l / 'include'
 
 			if installed_libs.contains(l)
-				_sdir = meson.current_source_dir() / l / 'include'
 				uspace_lib_devel_install_script_text += 'cp -R -L -T "@0@" "${DESTDIR}include/lib@1@"'.format(_sdir, l)
 			endif
+
+			exported_devel_files += ['include', _sdir, 'lib' + l]
 		else
 			includes += include_directories(l)
 
@@ -293,6 +295,8 @@ foreach l : libs
 			install_files += [[ 'lib', _static_lib.full_path(), 'lib' + l + '.a' ]]
 			install_deps += [ _static_lib ]
 		endif
+
+		exported_devel_files += ['staticlib', _static_lib, 'lib' + l + '.a']
 
 		_static_dep = declare_dependency(
 			link_with: _static_lib,

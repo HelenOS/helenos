@@ -228,6 +228,16 @@ static cmd_info_t bench_info = {
 	.argv = bench_argv
 };
 
+/* Data and methods for 'printbench' command. */
+static int cmd_printbench(cmd_arg_t *argv);
+
+static cmd_info_t printbench_info = {
+	.name = "printbench",
+	.description = "Run a printing benchmark.",
+	.func = cmd_printbench,
+	.argc = 0,
+};
+
 #endif /* CONFIG_TEST */
 
 /* Data and methods for 'description' command. */
@@ -612,6 +622,7 @@ static cmd_info_t *basic_commands[] = {
 #ifdef CONFIG_TEST
 	&test_info,
 	&bench_info,
+	&printbench_info,
 #endif
 #ifdef CONFIG_UDEBUG
 	&btrace_info,
@@ -992,9 +1003,8 @@ int cmd_mcall0(cmd_arg_t *argv)
 		    (void *) argv, TASK, THREAD_FLAG_NONE, "call0"))) {
 			printf("cpu%u: ", i);
 			thread_wire(thread, &cpus[i]);
-			thread_ready(thread_ref(thread));
+			thread_start(thread);
 			thread_join(thread);
-			thread_put(thread);
 		} else
 			printf("Unable to create thread for cpu%u\n", i);
 	}
@@ -1579,6 +1589,60 @@ int cmd_bench(cmd_arg_t *argv)
 	}
 
 	return 1;
+}
+
+int cmd_printbench(cmd_arg_t *argv)
+{
+	int cnt = 20;
+
+	uint64_t *data = malloc(sizeof(uint64_t) * cnt);
+	if (data == NULL) {
+		printf("Error allocating memory for statistics\n");
+		return false;
+	}
+
+	for (int i = 0; i < cnt; i++) {
+		/*
+		 * Update and read thread accounting
+		 * for benchmarking
+		 */
+		irq_spinlock_lock(&TASK->lock, true);
+		uint64_t ucycles0, kcycles0;
+		task_get_accounting(TASK, &ucycles0, &kcycles0);
+		irq_spinlock_unlock(&TASK->lock, true);
+
+		/* Execute the test */
+		for (int j = 0; j < 20; j++) {
+			printf("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ěščřžýáíéú!@#$%%^&*(){}+\n");
+			printf("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ěščřžýáíéú!@#$%%^&*(){}+abcdefghijklmnopqrstuvwxyz\n");
+			printf("0123456789ěščřžýáíéú!@#$%%^&*(){}+abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
+		}
+
+		/* Update and read thread accounting */
+		irq_spinlock_lock(&TASK->lock, true);
+		uint64_t ucycles1, kcycles1;
+		task_get_accounting(TASK, &ucycles1, &kcycles1);
+		irq_spinlock_unlock(&TASK->lock, true);
+
+		data[i] = ucycles1 - ucycles0 + kcycles1 - kcycles0;
+	}
+
+	printf("\n");
+
+	uint64_t cycles;
+	char suffix;
+	uint64_t sum = 0;
+
+	for (int i = 0; i < cnt; i++) {
+		sum += data[i];
+	}
+
+	order_suffix(sum / (uint64_t) cnt, &cycles, &suffix);
+	printf("Average\t\t%" PRIu64 "%c\n", cycles, suffix);
+
+	free(data);
+
+	return true;
 }
 
 #endif

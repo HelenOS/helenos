@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 
 #include <adt/list.h>
 #include <sif.h>
+#include <stdbool.h>
 #include <types/tbarcfg/tbarcfg.h>
 
 /** Taskbar configuration */
@@ -59,14 +60,19 @@ struct smenu_entry {
 	link_t lentries;
 	/** SIF node (persistent storage) */
 	sif_node_t *nentry;
+	/** Is this a separator entry */
+	bool separator;
 	/** Entry caption (with accelerator markup) */
 	char *caption;
 	/** Command to run */
 	char *cmd;
+	/** Start in terminal */
+	bool terminal;
 };
 
 extern errno_t smenu_entry_new(tbarcfg_t *, sif_node_t *, const char *,
-    const char *);
+    const char *, bool, smenu_entry_t **);
+extern errno_t smenu_entry_sep_new(tbarcfg_t *, sif_node_t *, smenu_entry_t **);
 extern void smenu_entry_delete(smenu_entry_t *);
 
 #endif

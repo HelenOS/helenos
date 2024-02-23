@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,8 +52,9 @@ extern void tbsmenu_open(tbsmenu_t *);
 extern void tbsmenu_close(tbsmenu_t *);
 extern bool tbsmenu_is_open(tbsmenu_t *);
 extern void tbsmenu_destroy(tbsmenu_t *);
-extern errno_t tbsmenu_add(tbsmenu_t *, const char *, const char *,
+extern errno_t tbsmenu_add(tbsmenu_t *, const char *, const char *, bool,
     tbsmenu_entry_t **);
+extern errno_t tbsmenu_add_sep(tbsmenu_t *, tbsmenu_entry_t **);
 extern void tbsmenu_remove(tbsmenu_t *, tbsmenu_entry_t *, bool);
 extern tbsmenu_entry_t *tbsmenu_first(tbsmenu_t *);
 extern tbsmenu_entry_t *tbsmenu_last(tbsmenu_t *);
