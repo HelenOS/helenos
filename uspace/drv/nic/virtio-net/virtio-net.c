@@ -42,7 +42,8 @@
 #include <nic.h>
 
 #include <virtio-pci.h>
-
+#include "pcapdump_iface.h"
+#include "pcap_iface.h"
 #define NAME	"virtio-net"
 
 #define VIRTIO_NET_NUM_QUEUES	3
@@ -91,6 +92,7 @@ static void virtio_net_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 		nic_frame_t *frame = nic_alloc_frame(nic, len - sizeof(*hdr));
 		if (frame) {
 			memcpy(frame->data, &hdr[1], len - sizeof(*hdr));
+			pcapdump_packet(nic_get_pcap_iface(nic), frame->data, frame->size);
 			nic_received_frame(nic, frame);
 		} else {
 			ddf_msg(LVL_WARN,
@@ -350,7 +352,7 @@ static void virtio_net_send(nic_t *nic, void *data, size_t size)
 
 	/* Copy packet data into the buffer just past the header */
 	memcpy(&hdr[1], data, size);
-
+	pcapdump_packet(nic_get_pcap_iface(nic), data, size);
 	/*
 	 * Set the descriptor, put it into the virtqueue and notify the device
 	 */
@@ -429,6 +431,15 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 
 	ddf_msg(LVL_NOTE, "The %s device has been successfully initialized.",
 	    ddf_dev_get_name(dev));
+
+	errno_t pcap_rc  = pcapdump_init(nic_get_pcap_iface(nic));
+
+	if (pcap_rc != EOK) {
+		printf("Failed creating pcapdump port\n");
+	}
+	rc = ddf_fun_add_to_category(fun, "pcap");
+	if (rc != EOK)
+		goto unbind;
 
 	return EOK;
 
