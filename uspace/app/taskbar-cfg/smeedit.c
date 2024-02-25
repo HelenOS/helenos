@@ -402,6 +402,7 @@ static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
 			return;
 
 		startmenu_repaint(smee->startmenu);
+		(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 	} else {
 		/* Edit existing entry */
 		rc = smenu_entry_set_cmd(smee->smentry->entry, cmd);
@@ -418,6 +419,7 @@ static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
 
 		(void)smenu_entry_save(smee->smentry->entry);
 		startmenu_entry_update(smee->smentry);
+		(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 	}
 
 	smeedit_destroy(smee);

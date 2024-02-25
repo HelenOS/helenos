@@ -134,6 +134,20 @@ errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 	bool terminal;
 	errno_t rc;
 
+	if (tbsmenu->repopath != NULL)
+		free(tbsmenu->repopath);
+
+	tbsmenu->repopath = str_dup(repopath);
+	if (tbsmenu->repopath == NULL)
+		return ENOMEM;
+
+	/* Remove existing entries */
+	tentry = tbsmenu_first(tbsmenu);
+	while (tentry != NULL) {
+		tbsmenu_remove(tbsmenu, tentry, false);
+		tentry = tbsmenu_first(tbsmenu);
+	}
+
 	rc = tbarcfg_open(repopath, &tbcfg);
 	if (rc != EOK)
 		goto error;
@@ -169,6 +183,18 @@ error:
 	return rc;
 }
 
+/** Reload start menu from repository (or schedule reload).
+ *
+ * @param tbsmenu Start menu
+ */
+void tbsmenu_reload(tbsmenu_t *tbsmenu)
+{
+	if (!tbsmenu_is_open(tbsmenu))
+		(void) tbsmenu_load(tbsmenu, tbsmenu->repopath);
+	else
+		tbsmenu->needs_reload = true;
+}
+
 /** Set start menu rectangle.
  *
  * @param tbsmenu Start menu
@@ -197,6 +223,9 @@ void tbsmenu_open(tbsmenu_t *tbsmenu)
 void tbsmenu_close(tbsmenu_t *tbsmenu)
 {
 	ui_menu_close(tbsmenu->smenu);
+
+	if (tbsmenu->needs_reload)
+		(void) tbsmenu_load(tbsmenu, tbsmenu->repopath);
 }
 
 /** Determine if taskbar start menu is open.

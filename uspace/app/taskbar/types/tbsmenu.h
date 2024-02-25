@@ -39,6 +39,7 @@
 #include <adt/list.h>
 #include <gfx/coord.h>
 #include <stdbool.h>
+#include <tbarcfg/tbarcfg.h>
 #include <ui/pbutton.h>
 #include <ui/fixed.h>
 #include <ui/menu.h>
@@ -83,6 +84,12 @@ typedef struct tbsmenu {
 
 	/** Device ID of last input event */
 	sysarg_t ev_idev_id;
+
+	/** Repository path name */
+	char *repopath;
+
+	/** Need to reload menu when possible */
+	bool needs_reload;
 } tbsmenu_t;
 
 /** Command split into individual parts */

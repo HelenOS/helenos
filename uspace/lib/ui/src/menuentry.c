@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -144,7 +144,22 @@ void ui_menu_entry_destroy(ui_menu_entry_t *mentry)
 	if (mentry == NULL)
 		return;
 
+	mentry->menu->total_h -= ui_menu_entry_height(mentry);
+	/* NOTE: max_caption_w/max_shortcut_w not updated (speed) */
+
 	list_remove(&mentry->lentries);
+
+	/*
+	 * If we emptied the menu, reset accumulated dims so they
+	 * can be correctly calculated when (if) the menu is
+	 * re-populated.
+	 */
+	if (list_empty(&mentry->menu->entries)) {
+		mentry->menu->total_h = 0;
+		mentry->menu->max_caption_w = 0;
+		mentry->menu->max_shortcut_w = 0;
+	}
+
 	free(mentry->caption);
 	free(mentry);
 }

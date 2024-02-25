@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,8 @@ typedef struct taskbar {
 	wndlist_t *wndlist;
 	/** Clock */
 	taskbar_clock_t *clock;
+	/** Configuration change listener */
+	tbarcfg_listener_t *lst;
 } taskbar_t;
 
 #endif

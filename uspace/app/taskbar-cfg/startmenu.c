@@ -514,6 +514,7 @@ void startmenu_new_entry(startmenu_t *smenu)
 		return;
 
 	(void)smee;
+	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
 /** Create new separator menu entry.
@@ -532,6 +533,7 @@ void startmenu_sep_entry(startmenu_t *smenu)
 
 	(void)startmenu_insert(smenu, entry, &smentry);
 	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
 /** Edit selected menu entry.
@@ -632,6 +634,7 @@ static void startmenu_delete_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 	ui_list_entry_delete(smentry->lentry);
 	free(smentry);
 	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
 /** Edit entry button clicked.
@@ -684,6 +687,7 @@ static void startmenu_up_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 	ui_list_entry_move_up(smentry->lentry);
 
 	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
 /** Down entry button clicked.
@@ -710,6 +714,7 @@ static void startmenu_down_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 	ui_list_entry_move_down(smentry->lentry);
 
 	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
 /** @}

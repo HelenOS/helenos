@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,9 @@ typedef struct tbarcfg tbarcfg_t;
 
 struct smenu_entry;
 typedef struct smenu_entry smenu_entry_t;
+
+struct tbarcfg_listener;
+typedef struct tbarcfg_listener tbarcfg_listener_t;
 
 #endif
 
