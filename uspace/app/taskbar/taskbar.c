@@ -130,13 +130,28 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	taskbar_t *taskbar = NULL;
 	gfx_rect_t scr_rect;
 	gfx_rect_t rect;
+	char *dspec = NULL;
+	char *qmark;
 	errno_t rc;
 
 	taskbar = calloc(1, sizeof(taskbar_t));
 	if (taskbar == NULL) {
+		printf("Out of memory.\n");
 		rc = ENOMEM;
 		goto error;
 	}
+
+	dspec = str_dup(display_spec);
+	if (dspec == NULL) {
+		printf("Out of memory.\n");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	/* Remove additional arguments */
+	qmark = str_chr(dspec, '?');
+	if (qmark != NULL)
+		*qmark = '\0';
 
 	rc = ui_create(display_spec, &taskbar->ui);
 	if (rc != EOK) {
@@ -197,7 +212,8 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	rc = tbsmenu_create(taskbar->window, taskbar->fixed, &taskbar->tbsmenu);
+	rc = tbsmenu_create(taskbar->window, taskbar->fixed, dspec,
+	    &taskbar->tbsmenu);
 	if (rc != EOK) {
 		printf("Error creating start menu.\n");
 		goto error;
@@ -292,9 +308,12 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
+	free(dspec);
 	*rtaskbar = taskbar;
 	return EOK;
 error:
+	if (dspec != NULL)
+		free(dspec);
 	if (taskbar->lst != NULL)
 		tbarcfg_listener_destroy(taskbar->lst);
 	if (taskbar->clock != NULL)
@@ -307,6 +326,7 @@ error:
 		ui_window_destroy(taskbar->window);
 	if (taskbar->ui != NULL)
 		ui_destroy(taskbar->ui);
+	free(taskbar);
 	return rc;
 
 }

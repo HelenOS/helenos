@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,7 @@ extern void ui_popup_add(ui_popup_t *, ui_control_t *);
 extern void ui_popup_remove(ui_popup_t *, ui_control_t *);
 extern ui_resource_t *ui_popup_get_res(ui_popup_t *);
 extern gfx_context_t *ui_popup_get_gc(ui_popup_t *);
+extern sysarg_t ui_popup_get_idev_id(ui_popup_t *);
 
 #endif
 

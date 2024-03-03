@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,8 @@ struct ui_popup {
 	struct ui_window *window;
 	/** Placement rectangle */
 	gfx_rect_t place;
+	/** ID of device that sent input event */
+	sysarg_t idev_id;
 };
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -189,6 +189,16 @@ gfx_context_t *ui_popup_get_gc(ui_popup_t *popup)
 	return ui_window_get_gc(popup->window);
 }
 
+/** Get ID of device that sent the last position event.
+ *
+ * @param popup Popup window
+ * @return Input device ID
+ */
+sysarg_t ui_popup_get_idev_id(ui_popup_t *popup)
+{
+	return popup->idev_id;
+}
+
 /** Handle close event in popup window.
  *
  * @param window Window
@@ -213,6 +223,9 @@ static void ui_popup_window_kbd(ui_window_t *window, void *arg,
 {
 	ui_popup_t *popup = (ui_popup_t *)arg;
 
+	/* Remember ID of device that sent the last event */
+	popup->idev_id = event->kbd_id;
+
 	if (popup->cb != NULL && popup->cb->kbd != NULL)
 		popup->cb->kbd(popup, popup->arg, event);
 }
@@ -227,6 +240,9 @@ static void ui_popup_window_pos(ui_window_t *window, void *arg,
     pos_event_t *event)
 {
 	ui_popup_t *popup = (ui_popup_t *)arg;
+
+	/* Remember ID of device that sent the last event */
+	popup->idev_id = event->pos_id;
 
 	if (popup->cb != NULL && popup->cb->pos != NULL)
 		popup->cb->pos(popup, popup->arg, event);

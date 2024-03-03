@@ -45,7 +45,8 @@
 #include <wndmgt.h>
 #include "types/tbsmenu.h"
 
-extern errno_t tbsmenu_create(ui_window_t *, ui_fixed_t *, tbsmenu_t **);
+extern errno_t tbsmenu_create(ui_window_t *, ui_fixed_t *, const char *,
+    tbsmenu_t **);
 extern errno_t tbsmenu_load(tbsmenu_t *, const char *);
 extern void tbsmenu_reload(tbsmenu_t *);
 extern void tbsmenu_set_rect(tbsmenu_t *, gfx_rect_t *);

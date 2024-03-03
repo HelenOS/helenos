@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -69,6 +69,8 @@ struct ui_menu {
 	struct ui_menu_cb *cb;
 	/** Callback argument */
 	void *arg;
+	/** ID of device that activated entry */
+	sysarg_t idev_id;
 };
 
 /** Menu geometry.
