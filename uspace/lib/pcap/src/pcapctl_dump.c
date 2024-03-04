@@ -50,10 +50,8 @@ static void pcapctl_dump_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-errno_t pcapctl_dump_init(pcapctl_sess_t *sess)
-{
+static errno_t pcapctl_cat_has_drv(const char *drv_name, service_id_t* svc) {
 	errno_t rc;
-	char *svc_name;
 	category_id_t pcap_cat;
 	size_t count;
 	service_id_t *pcap_svcs = NULL;
@@ -69,25 +67,68 @@ errno_t pcapctl_dump_init(pcapctl_sess_t *sess)
 		printf("Error resolving list of pcap services.\n");
 		return rc;
 	}
+
+	for (unsigned i = 0; i < count; ++i) {
+		char *name = NULL;
+		loc_service_get_name(pcap_svcs[i], &name);
+		if (!str_cmp(drv_name, name)) {
+			*svc =  pcap_svcs[i];
+			return EOK;
+		}
+	}
+	free(pcap_svcs);
+	return 1;
+}
+
+extern errno_t pcapctl_list(void) {
+
+	errno_t rc;
+	category_id_t pcap_cat;
+	size_t count;
+	service_id_t *pcap_svcs = NULL;
+
+	rc = loc_category_get_id("pcap", &pcap_cat, 0);
+	if (rc != EOK) {
+		printf("Error resolving category 'pcap'.\n");
+		return rc;
+	}
+
+	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
+	if (rc != EOK) {
+		printf("Error resolving list of pcap services.\n");
+		return rc;
+	}
+
 	assert((count > 0) && "TODO: not implemented when no services are available\n");
 
-	rc = loc_service_get_name(pcap_svcs[0], &svc_name); // Note: for now [0], because only one driver is in pcap_svcs and there is no need to find particular
-	if (rc != EOK) {
-		printf("Error getting service name.\n");
-		goto error;
-	}
-	printf("Using device: %s\n", svc_name);
+	fprintf(stdout, "Drivers:\n");
+	for (unsigned i = 0; i < count; ++i) {
+		char *name = NULL;
+		loc_service_get_name(pcap_svcs[i], &name);
 
-	async_sess_t *new_session = loc_service_connect(pcap_svcs[0], INTERFACE_PCAP_CONTROL, 0);
+		fprintf(stdout, "driver: %s\n", name);
+	}
+	return EOK;
+}
+
+errno_t pcapctl_dump_init(pcapctl_sess_t *sess, const char *drv_name)
+{
+	errno_t rc;
+	service_id_t svc;
+	rc  = pcapctl_cat_has_drv(drv_name, &svc);
+	if (rc != EOK) {
+		fprintf(stderr, "No such driver was found.\n");
+		return 1;
+	}
+	async_sess_t *new_session = loc_service_connect(svc, INTERFACE_PCAP_CONTROL, 0);
 	if (new_session == NULL) {
-		printf("Error connecting to service.\n");
+		fprintf(stderr, "Error connecting to service.\n");
 		rc =  EREFUSED;
 		goto error;
 	}
 	sess->sess = new_session;
 	rc = EOK;
 error:
-	free(pcap_svcs);
 	return rc;
 }
 
