@@ -49,21 +49,38 @@
 
 pcapctl_sess_t sess;
 
-static void start_dumping(const char *name)
+static errno_t start_dumping(const char *drv_name, const char *name)
 {
+	errno_t rc = pcapctl_dump_init(&sess, drv_name);
+	if (rc != EOK) {
+		//fprintf(stderr, "Error initializing ...\n");
+		return 1;
+	}
 	pcapctl_dump_start(name, &sess);
+	return EOK;
 }
 
-static void stop_dumping(void)
+/** Session might */
+static errno_t stop_dumping(const char *drv_name)
 {
+	errno_t rc = pcapctl_dump_init(&sess, drv_name);
+	if (rc != EOK) {
+		fprintf(stderr, "Error initializing ...\n");
+		return 1;
+	}
 	pcapctl_dump_stop(&sess);
+	return EOK;
+}
+
+static void list_devs(void) {
+	pcapctl_list();
 }
 
 static void usage(const char *progname)
 {
 	fprintf(stderr, "Usage:\n");
-	fprintf(stderr, "  %s start <outfile>: Packets will be written to <outfile>\n", progname);
-	fprintf(stderr, "  %s stop: Dumping stops\n", progname);
+	fprintf(stderr, "  %s start <device> <outfile>: Packets dumped from <device> will be written to <outfile>\n", progname);
+	fprintf(stderr, "  %s stop <device>: Dumping from <device> stops\n", progname);
 
 }
 
@@ -73,19 +90,24 @@ int main(int argc, char *argv[])
 		usage(argv[0]);
 		return 1;
 	} else {
-		errno_t rc = pcapctl_dump_init(&sess);
-		if (rc != EOK) {
-			fprintf(stderr, "Error initializing ...\n");
-			return 1;
-		}
-		if (str_cmp(argv[1], "start") == 0) {
+		if (str_cmp(argv[1], "--help") == 0 || str_cmp(argv[1], "-h") == 0) {
+			usage(argv[0]);
+			return 0;
+		} else if (str_cmp(argv[1], "list") == 0) {
+			list_devs();
+			return 0;
+		} else if (str_cmp(argv[1], "start") == 0) {
+			if (argc != 4) {
+				usage(argv[0]);
+				return 1;
+			}
+			start_dumping(argv[2], argv[3]);
+		} else if (str_cmp(argv[1], "stop") == 0) {
 			if (argc != 3) {
 				usage(argv[0]);
 				return 1;
 			}
-			start_dumping(argv[2]);
-		} else if (str_cmp(argv[1], "stop") == 0) {
-			stop_dumping();
+			stop_dumping(argv[2]);
 			fprintf(stdout, "Dumping was stopped\n");
 			return EOK;
 		} else {

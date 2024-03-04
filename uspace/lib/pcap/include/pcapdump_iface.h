@@ -43,7 +43,8 @@
 
 typedef enum {
 	PCAP_CONTROL_SET_START = IPC_FIRST_USER_METHOD,
-	PCAP_CONTROL_SET_STOP
+	PCAP_CONTROL_SET_STOP,
+	PCAP_CONTROL_GET_NAME
 } pcap_request_t;
 
 extern errno_t pcapdump_init(pcap_iface_t *);
