@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup launcher
+/** @addtogroup aboutos
  * @{
  */
 /**
- * @file Launcher
+ * @file About HelenOS
  */
 
-#ifndef LAUNCHER_H
-#define LAUNCHER_H
+#ifndef ABOUTOS_H
+#define ABOUTOS_H
 
-#include <display.h>
-#include <types/common.h>
 #include <ui/fixed.h>
 #include <ui/image.h>
 #include <ui/label.h>
@@ -45,25 +43,19 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 
-/** Launcher */
+/** About HelenOS */
 typedef struct {
 	ui_t *ui;
 	ui_window_t *window;
 	ui_fixed_t *fixed;
 
 	ui_image_t *image;
-	ui_label_t *label;
+	ui_label_t *lrelease;
+	ui_label_t *lcopy;
+	ui_label_t *larch;
 
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_pbutton_t *pb3;
-	ui_pbutton_t *pb4;
-	ui_pbutton_t *pb5;
-	ui_pbutton_t *pb6;
-
-	/** ID of device that sent last position event */
-	sysarg_t ev_pos_id;
-} launcher_t;
+	ui_pbutton_t *pbok;
+} aboutos_t;
 
 #endif
 

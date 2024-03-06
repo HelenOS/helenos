@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -109,7 +109,7 @@ static ui_window_cb_t window_cb = {
 /** Window close button was clicked.
  *
  * @param window Window
- * @param arg Argument (launcher)
+ * @param arg Argument (barber)
  */
 static void wnd_close(ui_window_t *window, void *arg)
 {

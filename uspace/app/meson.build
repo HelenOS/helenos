@@ -27,6 +27,7 @@
 #
 
 apps = [
+	'aboutos',
 	'barber',
 	'bdsh',
 	'bithenge',
@@ -56,7 +57,6 @@ apps = [
 	'kill',
 	'killall',
 	'kio',
-	'launcher',
 	'loc',
 	'logset',
 	'lprint',
