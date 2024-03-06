@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -95,7 +95,7 @@ static void console_gc_pix_to_charfield(pixel_t clr, charfield_t *ch)
 		ch->ch = 0;
 		ch->flags = CHAR_FLAG_DIRTY;
 		ch->attrs.type = CHAR_ATTR_RGB;
-		ch->attrs.val.rgb.fgcolor = clr ^ 0xffffff;
+		ch->attrs.val.rgb.fgcolor = clr;
 		ch->attrs.val.rgb.bgcolor = clr;
 	} else {
 		/* EGA attributes (with text) */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -89,8 +89,13 @@ static uint8_t attrs_attr(char_attrs_t attrs)
 
 		break;
 	case CHAR_ATTR_RGB:
-		attr = (attrs.val.rgb.bgcolor < attrs.val.rgb.fgcolor) ?
-		    ega.style_inverted : ega.style_normal;
+		attr = 
+		    ((RED(attrs.val.rgb.fgcolor) >= 0x80) ? 0x40 : 0) |
+		    ((GREEN(attrs.val.rgb.fgcolor) >= 0x80) ? 0x20 : 0) |
+		    ((BLUE(attrs.val.rgb.fgcolor) >= 0x80) ? 0x10 : 0) |
+		    ((RED(attrs.val.rgb.bgcolor) >= 0x80) ? 0x04 : 0) |
+		    ((GREEN(attrs.val.rgb.bgcolor) >= 0x80) ? 0x02 : 0) |
+		    ((BLUE(attrs.val.rgb.bgcolor) >= 0x80) ? 0x01 : 0);
 		break;
 	}
 
