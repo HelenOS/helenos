@@ -224,7 +224,7 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 
 	/* Than we take the higher bits from the LSB */
 	const unsigned bit_offset = item->offset % 8;
-	const int lsb_bits = min(bits, 8);
+	const int lsb_bits = min((unsigned)bits, 8 - bit_offset);
 
 	value |= (*data >> bit_offset) & BIT_RRANGE(uint8_t, lsb_bits);
 	bits -= lsb_bits;
