@@ -707,7 +707,7 @@ static void startmenu_down_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 	if (smentry == NULL)
 		return;
 
-	rc = smenu_entry_move_up(smentry->entry);
+	rc = smenu_entry_move_down(smentry->entry);
 	if (rc != EOK)
 		return;
 
