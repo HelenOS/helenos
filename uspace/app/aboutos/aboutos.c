@@ -55,8 +55,6 @@
 
 #define NAME  "aboutos"
 
-static const char *display_spec = UI_DISPLAY_DEFAULT;
-
 static void aboutos_wnd_close(ui_window_t *, void *);
 static void aboutos_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
@@ -139,8 +137,7 @@ int main(int argc, char *argv[])
 	gfx_rect_t logo_rect;
 	gfx_rect_t rect;
 	gfx_coord2_t off;
-	const char *dspec = UI_DISPLAY_DEFAULT;
-	char *qmark;
+	const char *dspec = UI_ANY_DEFAULT;
 	errno_t rc;
 
 	i = 1;
@@ -161,20 +158,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	display_spec = str_dup(dspec);
-	if (display_spec == NULL) {
-		printf("Out of memory.\n");
-		return 1;
-	}
-
-	/* Remove additional arguments */
-	qmark = str_chr(display_spec, '?');
-	if (qmark != NULL)
-		*qmark = '\0';
-
 	rc = ui_create(dspec, &ui);
 	if (rc != EOK) {
-		printf("Error creating UI on display %s.\n", display_spec);
+		printf("Error creating UI on display %s.\n", dspec);
 		return rc;
 	}
 
