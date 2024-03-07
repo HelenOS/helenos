@@ -55,7 +55,7 @@ static size_t imgs_count;
 static size_t imgs_current = 0;
 static char **imgs;
 
-static ui_window_t *window;
+static ui_window_t *window = NULL;
 static gfx_bitmap_t *bitmap = NULL;
 static ui_image_t *image = NULL;
 static gfx_context_t *window_gc;
@@ -89,10 +89,11 @@ static void wnd_close(ui_window_t *window, void *arg)
 static void wnd_kbd_event(ui_window_t *window, void *arg,
     kbd_event_t *event)
 {
+	viewer_t *viewer = (viewer_t *)arg;
 	bool update = false;
 
 	if ((event->type == KEY_PRESS) && (event->c == 'q'))
-		exit(0);
+		ui_quit(viewer->ui);
 
 	if ((event->type == KEY_PRESS) && (event->key == KC_PAGE_DOWN)) {
 		if (imgs_current == imgs_count - 1)
@@ -215,7 +216,7 @@ static void print_syntax(void)
 
 int main(int argc, char *argv[])
 {
-	const char *display_spec = UI_DISPLAY_DEFAULT;
+	const char *display_spec = UI_ANY_DEFAULT;
 	gfx_bitmap_t *lbitmap;
 	gfx_rect_t lrect;
 	bool fullscreen = false;
@@ -276,6 +277,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (ui_is_fullscreen(ui))
+		fullscreen = true;
+
 	viewer.ui = ui;
 
 	/*
@@ -297,7 +301,7 @@ int main(int argc, char *argv[])
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
-		return 1;
+		goto error;
 	}
 
 	window_gc = ui_window_get_gc(window);
@@ -306,7 +310,7 @@ int main(int argc, char *argv[])
 
 	if (!img_load(window_gc, imgs[imgs_current], &lbitmap, &lrect)) {
 		printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
-		return 1;
+		goto error;
 	}
 
 	/*
@@ -321,24 +325,32 @@ int main(int argc, char *argv[])
 		rc = ui_window_resize(window, &rect);
 		if (rc != EOK) {
 			printf("Error resizing window.\n");
-			return 1;
+			goto error;
 		}
 	}
 
 	if (!img_setup(window_gc, lbitmap, &lrect)) {
 		printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
-		return 1;
+		goto error;
 	}
 
 	rc = ui_window_paint(window);
 	if (rc != EOK) {
 		printf("Error painting window.\n");
-		return 1;
+		goto error;
 	}
 
 	ui_run(ui);
 
+	ui_window_destroy(window);
+	ui_destroy(ui);
+
 	return 0;
+error:
+	if (window != NULL)
+		ui_window_destroy(window);
+	ui_destroy(ui);
+	return 1;
 }
 
 /** @}
