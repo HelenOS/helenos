@@ -90,7 +90,7 @@ static void console_gc_pix_to_charfield(pixel_t clr, charfield_t *ch)
 {
 	uint8_t attr;
 
-	if ((clr >> 24) == 0) {
+	if ((clr >> 24) == 0xff) {
 		/* RGB (no text) */
 		ch->ch = 0;
 		ch->flags = CHAR_FLAG_DIRTY;

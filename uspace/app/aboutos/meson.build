@@ -34,7 +34,7 @@ _images = files('gfx/helenos.tga')
 _images_zip = custom_target('aboutos_images.zip',
 	input : _images,
 	output : [ 'images.zip' ],
-	command : [ mkarray, '@OUTDIR@', 'images', 'image', uspace_as_prolog, '.data', '@INPUT@' ],
+	command : [ mkarray, '@OUTDIR@', 'images', 'image', 'image', uspace_as_prolog, '.data', '@INPUT@' ],
 )
 _imgs_s = custom_target('aboutos_images.s',
 	input : _images_zip,

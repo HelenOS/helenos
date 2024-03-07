@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,6 +63,7 @@ errno_t gfx_color_new_rgb_i16(uint16_t r, uint16_t g, uint16_t b,
 	color->r = r;
 	color->g = g;
 	color->b = b;
+	color->attr = 0xff;
 
 	*rcolor = color;
 	return EOK;

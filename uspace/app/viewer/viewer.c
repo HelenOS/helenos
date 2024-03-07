@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
 	 */
-	ui_wdecor_rect_from_app(params.style, &lrect, &wrect);
+	ui_wdecor_rect_from_app(ui, params.style, &lrect, &wrect);
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &rect);
 

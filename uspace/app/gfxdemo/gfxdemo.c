@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1159,7 +1159,7 @@ static errno_t demo_ui(const char *display_spec)
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
 	 */
-	ui_wdecor_rect_from_app(params.style, &rect, &wrect);
+	ui_wdecor_rect_from_app(ui, params.style, &rect, &wrect);
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &params.rect);
 
