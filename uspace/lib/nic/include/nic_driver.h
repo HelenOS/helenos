@@ -45,11 +45,11 @@
 #include <fibril_synch.h>
 #include <nic/nic.h>
 #include <async.h>
+#include <pcapdump_iface.h>
 
 #include "nic.h"
 #include "nic_rx_control.h"
 #include "nic_wol_virtues.h"
-#include "pcap/include/pcapdump_iface.h"
 
 struct sw_poll_info {
 	fid_t fibril;

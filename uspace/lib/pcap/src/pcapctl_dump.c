@@ -50,7 +50,7 @@ static void pcapctl_dump_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-static errno_t pcapctl_cat_has_drv(const char *drv_name, service_id_t* svc) {
+static errno_t pcapctl_cat_get_svc(const char *drv_name, service_id_t* svc) {
 	errno_t rc;
 	category_id_t pcap_cat;
 	size_t count;
@@ -89,36 +89,39 @@ extern errno_t pcapctl_list(void) {
 
 	rc = loc_category_get_id("pcap", &pcap_cat, 0);
 	if (rc != EOK) {
-		printf("Error resolving category 'pcap'.\n");
+		printf("Error resolving category pcap.\n");
 		return rc;
 	}
 
 	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
 	if (rc != EOK) {
 		printf("Error resolving list of pcap services.\n");
+		free(pcap_svcs);
 		return rc;
 	}
 
-	assert((count > 0) && "TODO: not implemented when no services are available\n");
-
-	fprintf(stdout, "Drivers:\n");
+	fprintf(stdout, "Services:\n");
 	for (unsigned i = 0; i < count; ++i) {
 		char *name = NULL;
 		loc_service_get_name(pcap_svcs[i], &name);
-
-		fprintf(stdout, "driver: %s\n", name);
+		fprintf(stdout, "service: %s\n", name);
 	}
+	free(pcap_svcs);
 	return EOK;
 }
 
-errno_t pcapctl_dump_init(pcapctl_sess_t *sess, const char *drv_name)
+
+errno_t pcapctl_dump_open(const char *svcname, pcapctl_sess_t **rsess)
 {
 	errno_t rc;
 	service_id_t svc;
-	rc  = pcapctl_cat_has_drv(drv_name, &svc);
+	pcapctl_sess_t *sess = calloc(1, sizeof(pcapctl_sess_t));
+	if (sess == NULL)
+		return ENOMEM;
+
+	rc  = pcapctl_cat_get_svc(svcname, &svc);
 	if (rc != EOK) {
-		fprintf(stderr, "No such driver was found.\n");
-		return 1;
+		goto error;
 	}
 	async_sess_t *new_session = loc_service_connect(svc, INTERFACE_PCAP_CONTROL, 0);
 	if (new_session == NULL) {
@@ -126,10 +129,19 @@ errno_t pcapctl_dump_init(pcapctl_sess_t *sess, const char *drv_name)
 		rc =  EREFUSED;
 		goto error;
 	}
+
 	sess->sess = new_session;
-	rc = EOK;
+	*rsess = sess;
+	return EOK;
 error:
+	pcapctl_dump_close(sess);
 	return rc;
+}
+
+errno_t pcapctl_dump_close(pcapctl_sess_t *sess)
+{
+	free(sess);
+	return EOK;
 }
 
 /** Starting a new session for pcapctl

@@ -649,8 +649,8 @@ nic_t *nic_create_and_bind(ddf_dev_t *device)
 		return NULL;
 
 	nic_data->dev = device;
-	errno_t pcap_rc  = pcapdump_init(nic_get_pcap_iface(nic_data));
 
+	errno_t pcap_rc  = pcapdump_init(nic_get_pcap_iface(nic_data));
 	if (pcap_rc != EOK) {
 		printf("Failed creating pcapdump port\n");
 	}

@@ -40,28 +40,29 @@
 
 #define NAME "pcapctl"
 
-pcapctl_sess_t sess;
+pcapctl_sess_t* sess;
 
-static errno_t start_dumping(const char *drv_name, const char *name)
+static errno_t start_dumping(const char *svc_name, const char *name)
 {
-	errno_t rc = pcapctl_dump_init(&sess, drv_name);
+	errno_t rc = pcapctl_dump_open(svc_name, &sess);
 	if (rc != EOK) {
-		//fprintf(stderr, "Error initializing ...\n");
 		return 1;
 	}
-	pcapctl_dump_start(name, &sess);
+	pcapctl_dump_start(name, sess);
+	pcapctl_dump_close(sess);
 	return EOK;
 }
 
 /** Session might */
-static errno_t stop_dumping(const char *drv_name)
+static errno_t stop_dumping(const char *svc_name)
 {
-	errno_t rc = pcapctl_dump_init(&sess, drv_name);
+	errno_t rc = pcapctl_dump_open(svc_name, &sess);
 	if (rc != EOK) {
-		fprintf(stderr, "Error initializing ...\n");
 		return 1;
 	}
-	pcapctl_dump_stop(&sess);
+
+	pcapctl_dump_stop(sess);
+	pcapctl_dump_close(sess);
 	return EOK;
 }
 
@@ -72,9 +73,9 @@ static void list_devs(void) {
 static void usage(const char *progname)
 {
 	fprintf(stderr, "Usage:\n");
+	fprintf(stderr, "  %s list: List of devices\n", progname);
 	fprintf(stderr, "  %s start <device> <outfile>: Packets dumped from <device> will be written to <outfile>\n", progname);
 	fprintf(stderr, "  %s stop <device>: Dumping from <device> stops\n", progname);
-
 }
 
 int main(int argc, char *argv[])
