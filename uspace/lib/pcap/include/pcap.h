@@ -63,7 +63,7 @@ typedef struct {
 	uint32_t reserved2;
 	uint32_t snaplen;
 	uint32_t additional; /** The LinkType and additional information field is in the form */
-} __attribute__((packed, aligned(4))) pcap_file_header_t;
+} pcap_file_header_t;
 
 typedef struct pcap_packet_header {
 	uint32_t seconds_stamp;
