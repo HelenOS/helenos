@@ -35,13 +35,6 @@
  * @brief Headers and functions for .pcap file and packets to be dumped
  */
 
-#define LOGGER(msg, ...) \
-     fprintf(stderr, \
-         "[PCAP %s:%d]: " msg "\n", \
-         __FILE__, __LINE__, \
-         ##__VA_ARGS__\
-     )
-
 #include "pcap.h"
 
 /** Set time in seconds and microseconds for the packet header .
@@ -107,7 +100,6 @@ errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filename)
 	writer->data = fopen(filename, "a");
 	if (writer->data == NULL) {
 		rc = EINVAL;
-		LOGGER("Failed to create %s: %s.", filename, str_error(rc));
 		return rc;
 	}
 	pcap_writer_add_header(writer);

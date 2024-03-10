@@ -40,13 +40,6 @@
 
 #define NAME "pcapctl"
 
-#define LOGGER(msg, ...) \
-     fprintf(stderr, \
-         "[PCAP %s:%d]: " msg "\n", \
-         __FILE__, __LINE__, \
-         ##__VA_ARGS__\
-     )
-
 pcapctl_sess_t sess;
 
 static errno_t start_dumping(const char *drv_name, const char *name)
