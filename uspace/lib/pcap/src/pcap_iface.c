@@ -81,7 +81,7 @@ void pcap_add_packet(const void *data, size_t size)
 	pcap_writer_add_packet(&pcap_writer, data, size);
 }
 
-void pcap_close_file()
+void pcap_close_file(void)
 {
 	pcap_writer.ops->close(&pcap_writer);
 	pcap_writer.data = NULL;
