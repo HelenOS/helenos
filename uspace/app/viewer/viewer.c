@@ -49,22 +49,22 @@
 
 typedef struct {
 	ui_t *ui;
+
+	size_t imgs_count;
+	size_t imgs_current;
+	char **imgs;
+
+	ui_window_t *window;
+	gfx_bitmap_t *bitmap;
+	ui_image_t *image;
+	gfx_context_t *window_gc;
+
+	gfx_rect_t img_rect;
 } viewer_t;
 
-static size_t imgs_count;
-static size_t imgs_current = 0;
-static char **imgs;
-
-static ui_window_t *window = NULL;
-static gfx_bitmap_t *bitmap = NULL;
-static ui_image_t *image = NULL;
-static gfx_context_t *window_gc;
-
-static gfx_rect_t img_rect;
-
-static bool img_load(gfx_context_t *gc, const char *, gfx_bitmap_t **,
+static bool viewer_img_load(viewer_t *, const char *, gfx_bitmap_t **,
     gfx_rect_t *);
-static bool img_setup(gfx_context_t *, gfx_bitmap_t *, gfx_rect_t *);
+static bool viewer_img_setup(viewer_t *, gfx_bitmap_t *, gfx_rect_t *);
 
 static void wnd_close(ui_window_t *, void *);
 static void wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
@@ -96,19 +96,19 @@ static void wnd_kbd_event(ui_window_t *window, void *arg,
 		ui_quit(viewer->ui);
 
 	if ((event->type == KEY_PRESS) && (event->key == KC_PAGE_DOWN)) {
-		if (imgs_current == imgs_count - 1)
-			imgs_current = 0;
+		if (viewer->imgs_current == viewer->imgs_count - 1)
+			viewer->imgs_current = 0;
 		else
-			imgs_current++;
+			viewer->imgs_current++;
 
 		update = true;
 	}
 
 	if ((event->type == KEY_PRESS) && (event->key == KC_PAGE_UP)) {
-		if (imgs_current == 0)
-			imgs_current = imgs_count - 1;
+		if (viewer->imgs_current == 0)
+			viewer->imgs_current = viewer->imgs_count - 1;
 		else
-			imgs_current--;
+			viewer->imgs_current--;
 
 		update = true;
 	}
@@ -117,18 +117,21 @@ static void wnd_kbd_event(ui_window_t *window, void *arg,
 		gfx_bitmap_t *lbitmap;
 		gfx_rect_t lrect;
 
-		if (!img_load(window_gc, imgs[imgs_current], &lbitmap, &lrect)) {
-			printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
+		if (!viewer_img_load(viewer, viewer->imgs[viewer->imgs_current],
+		    &lbitmap, &lrect)) {
+			printf("Cannot load image \"%s\".\n",
+			    viewer->imgs[viewer->imgs_current]);
 			exit(4);
 		}
-		if (!img_setup(window_gc, lbitmap, &lrect)) {
-			printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
+		if (!viewer_img_setup(viewer, lbitmap, &lrect)) {
+			printf("Cannot setup image \"%s\".\n",
+			    viewer->imgs[viewer->imgs_current]);
 			exit(6);
 		}
 	}
 }
 
-static bool img_load(gfx_context_t *gc, const char *fname,
+static bool viewer_img_load(viewer_t *viewer, const char *fname,
     gfx_bitmap_t **rbitmap, gfx_rect_t *rect)
 {
 	int fd;
@@ -159,7 +162,7 @@ static bool img_load(gfx_context_t *gc, const char *fname,
 
 	vfs_put(fd);
 
-	rc = decode_tga(gc, tga, stat.size, rbitmap, rect);
+	rc = decode_tga(viewer->window_gc, tga, stat.size, rbitmap, rect);
 	if (rc != EOK) {
 		free(tga);
 		return false;
@@ -167,43 +170,44 @@ static bool img_load(gfx_context_t *gc, const char *fname,
 
 	free(tga);
 
-	img_rect = *rect;
+	viewer->img_rect = *rect;
 	return true;
 }
 
-static bool img_setup(gfx_context_t *gc, gfx_bitmap_t *bmp, gfx_rect_t *rect)
+static bool viewer_img_setup(viewer_t *viewer, gfx_bitmap_t *bmp,
+    gfx_rect_t *rect)
 {
 	gfx_rect_t arect;
 	gfx_rect_t irect;
 	ui_resource_t *ui_res;
 	errno_t rc;
 
-	ui_res = ui_window_get_res(window);
+	ui_res = ui_window_get_res(viewer->window);
 
-	ui_window_get_app_rect(window, &arect);
+	ui_window_get_app_rect(viewer->window, &arect);
 
 	/* Center image on application area */
 	gfx_rect_ctr_on_rect(rect, &arect, &irect);
 
-	if (image != NULL) {
-		ui_image_set_bmp(image, bmp, rect);
-		(void) ui_image_paint(image);
-		ui_image_set_rect(image, &irect);
+	if (viewer->image != NULL) {
+		ui_image_set_bmp(viewer->image, bmp, rect);
+		(void) ui_image_paint(viewer->image);
+		ui_image_set_rect(viewer->image, &irect);
 	} else {
-		rc = ui_image_create(ui_res, bmp, rect, &image);
+		rc = ui_image_create(ui_res, bmp, rect, &viewer->image);
 		if (rc != EOK) {
 			gfx_bitmap_destroy(bmp);
 			return false;
 		}
 
-		ui_image_set_rect(image, &irect);
-		ui_window_add(window, ui_image_ctl(image));
+		ui_image_set_rect(viewer->image, &irect);
+		ui_window_add(viewer->window, ui_image_ctl(viewer->image));
 	}
 
-	if (bitmap != NULL)
-		gfx_bitmap_destroy(bitmap);
+	if (viewer->bitmap != NULL)
+		gfx_bitmap_destroy(viewer->bitmap);
 
-	bitmap = bmp;
+	viewer->bitmap = bmp;
 	return true;
 }
 
@@ -223,11 +227,18 @@ int main(int argc, char *argv[])
 	gfx_rect_t rect;
 	gfx_rect_t wrect;
 	gfx_coord2_t off;
-	ui_t *ui;
+	ui_t *ui = NULL;
 	ui_wnd_params_t params;
-	viewer_t viewer;
+	viewer_t *viewer;
 	errno_t rc;
 	int i;
+	unsigned u;
+
+	viewer = calloc(1, sizeof(viewer_t));
+	if (viewer == NULL) {
+		printf("Out of memory.\n");
+		goto error;
+	}
 
 	i = 1;
 	while (i < argc && argv[i][0] == '-') {
@@ -236,7 +247,7 @@ int main(int argc, char *argv[])
 			if (i >= argc) {
 				printf("Argument missing.\n");
 				print_syntax();
-				return 1;
+				goto error;
 			}
 
 			display_spec = argv[i++];
@@ -246,41 +257,41 @@ int main(int argc, char *argv[])
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
-			return 1;
+			goto error;
 		}
 	}
 
 	if (i >= argc) {
 		printf("No image files specified.\n");
 		print_syntax();
-		return 1;
+		goto error;
 	}
 
-	imgs_count = argc - i;
-	imgs = calloc(imgs_count, sizeof(char *));
-	if (imgs == NULL) {
+	viewer->imgs_count = argc - i;
+	viewer->imgs = calloc(viewer->imgs_count, sizeof(char *));
+	if (viewer->imgs == NULL) {
 		printf("Out of memory.\n");
-		return 1;
+		goto error;
 	}
 
 	for (int j = 0; j < argc - i; j++) {
-		imgs[j] = str_dup(argv[i + j]);
-		if (imgs[j] == NULL) {
+		viewer->imgs[j] = str_dup(argv[i + j]);
+		if (viewer->imgs[j] == NULL) {
 			printf("Out of memory.\n");
-			return 3;
+			goto error;
 		}
 	}
 
 	rc = ui_create(display_spec, &ui);
 	if (rc != EOK) {
 		printf("Error creating UI on display %s.\n", display_spec);
-		return 1;
+		goto error;
 	}
 
 	if (ui_is_fullscreen(ui))
 		fullscreen = true;
 
-	viewer.ui = ui;
+	viewer->ui = ui;
 
 	/*
 	 * We don't know the image size yet, so create tiny window and resize
@@ -298,18 +309,20 @@ int main(int argc, char *argv[])
 		params.placement = ui_wnd_place_full_screen;
 	}
 
-	rc = ui_window_create(ui, &params, &window);
+	rc = ui_window_create(ui, &params, &viewer->window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		goto error;
 	}
 
-	window_gc = ui_window_get_gc(window);
+	viewer->window_gc = ui_window_get_gc(viewer->window);
 
-	ui_window_set_cb(window, &window_cb, (void *) &viewer);
+	ui_window_set_cb(viewer->window, &window_cb, (void *)viewer);
 
-	if (!img_load(window_gc, imgs[imgs_current], &lbitmap, &lrect)) {
-		printf("Cannot load image \"%s\".\n", imgs[imgs_current]);
+	if (!viewer_img_load(viewer, viewer->imgs[viewer->imgs_current],
+	    &lbitmap, &lrect)) {
+		printf("Cannot load image \"%s\".\n",
+		    viewer->imgs[viewer->imgs_current]);
 		goto error;
 	}
 
@@ -322,19 +335,20 @@ int main(int argc, char *argv[])
 	gfx_rect_rtranslate(&off, &wrect, &rect);
 
 	if (!fullscreen) {
-		rc = ui_window_resize(window, &rect);
+		rc = ui_window_resize(viewer->window, &rect);
 		if (rc != EOK) {
 			printf("Error resizing window.\n");
 			goto error;
 		}
 	}
 
-	if (!img_setup(window_gc, lbitmap, &lrect)) {
-		printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
+	if (!viewer_img_setup(viewer, lbitmap, &lrect)) {
+		printf("Cannot setup image \"%s\".\n",
+		    viewer->imgs[viewer->imgs_current]);
 		goto error;
 	}
 
-	rc = ui_window_paint(window);
+	rc = ui_window_paint(viewer->window);
 	if (rc != EOK) {
 		printf("Error painting window.\n");
 		goto error;
@@ -342,14 +356,25 @@ int main(int argc, char *argv[])
 
 	ui_run(ui);
 
-	ui_window_destroy(window);
+	ui_window_destroy(viewer->window);
 	ui_destroy(ui);
+	free(viewer);
 
 	return 0;
 error:
-	if (window != NULL)
-		ui_window_destroy(window);
-	ui_destroy(ui);
+	if (viewer != NULL && viewer->imgs != NULL) {
+		for (u = 0; u < viewer->imgs_count; u++) {
+			if (viewer->imgs[i] != NULL)
+				free(viewer->imgs[i]);
+		}
+		free(viewer->imgs);
+	}
+	if (viewer != NULL && viewer->window != NULL)
+		ui_window_destroy(viewer->window);
+	if (ui != NULL)
+		ui_destroy(ui);
+	if (viewer != NULL)
+		free(viewer);
 	return 1;
 }
 
