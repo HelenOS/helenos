@@ -54,6 +54,7 @@ typedef struct {
 	size_t imgs_current;
 	char **imgs;
 
+	bool fullscreen;
 	ui_window_t *window;
 	gfx_bitmap_t *bitmap;
 	ui_image_t *image;
@@ -65,6 +66,7 @@ typedef struct {
 static bool viewer_img_load(viewer_t *, const char *, gfx_bitmap_t **,
     gfx_rect_t *);
 static bool viewer_img_setup(viewer_t *, gfx_bitmap_t *, gfx_rect_t *);
+static void viewer_window_destroy(viewer_t *);
 
 static void wnd_close(ui_window_t *, void *);
 static void wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
@@ -218,17 +220,94 @@ static void print_syntax(void)
 	printf("\t-f                Full-screen mode\n");
 }
 
+static errno_t viewer_window_create(viewer_t *viewer)
+{
+	ui_wnd_params_t params;
+	gfx_bitmap_t *lbitmap;
+	gfx_rect_t lrect;
+	gfx_rect_t wrect;
+	gfx_coord2_t off;
+	gfx_rect_t rect;
+	errno_t rc;
+
+	/*
+	 * We don't know the image size yet, so create tiny window and resize
+	 * later.
+	 */
+	ui_wnd_params_init(&params);
+	params.caption = "Viewer";
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 1;
+	params.rect.p1.y = 1;
+
+	if (viewer->fullscreen) {
+		params.style &= ~ui_wds_decorated;
+		params.placement = ui_wnd_place_full_screen;
+	}
+
+	rc = ui_window_create(viewer->ui, &params, &viewer->window);
+	if (rc != EOK) {
+		printf("Error creating window.\n");
+		goto error;
+	}
+
+	viewer->window_gc = ui_window_get_gc(viewer->window);
+
+	ui_window_set_cb(viewer->window, &window_cb, (void *)viewer);
+
+	if (!viewer_img_load(viewer, viewer->imgs[viewer->imgs_current],
+	    &lbitmap, &lrect)) {
+		printf("Cannot load image \"%s\".\n",
+		    viewer->imgs[viewer->imgs_current]);
+		goto error;
+	}
+
+	/*
+	 * Compute window rectangle such that application area corresponds
+	 * to rect
+	 */
+	ui_wdecor_rect_from_app(viewer->ui, params.style, &lrect, &wrect);
+	off = wrect.p0;
+	gfx_rect_rtranslate(&off, &wrect, &rect);
+
+	if (!viewer->fullscreen) {
+		rc = ui_window_resize(viewer->window, &rect);
+		if (rc != EOK) {
+			printf("Error resizing window.\n");
+			goto error;
+		}
+	}
+
+	if (!viewer_img_setup(viewer, lbitmap, &lrect)) {
+		printf("Cannot setup image \"%s\".\n",
+		    viewer->imgs[viewer->imgs_current]);
+		goto error;
+	}
+
+	rc = ui_window_paint(viewer->window);
+	if (rc != EOK) {
+		printf("Error painting window.\n");
+		goto error;
+	}
+
+	return EOK;
+error:
+	viewer_window_destroy(viewer);
+	return rc;
+}
+
+static void viewer_window_destroy(viewer_t *viewer)
+{
+	if (viewer->window != NULL)
+		ui_window_destroy(viewer->window);
+	viewer->window = NULL;
+}
+
 int main(int argc, char *argv[])
 {
 	const char *display_spec = UI_ANY_DEFAULT;
-	gfx_bitmap_t *lbitmap;
-	gfx_rect_t lrect;
-	bool fullscreen = false;
-	gfx_rect_t rect;
-	gfx_rect_t wrect;
-	gfx_coord2_t off;
 	ui_t *ui = NULL;
-	ui_wnd_params_t params;
 	viewer_t *viewer;
 	errno_t rc;
 	int i;
@@ -253,7 +332,7 @@ int main(int argc, char *argv[])
 			display_spec = argv[i++];
 		} else if (str_cmp(argv[i], "-f") == 0) {
 			++i;
-			fullscreen = true;
+			viewer->fullscreen = true;
 		} else {
 			printf("Invalid option '%s'.\n", argv[i]);
 			print_syntax();
@@ -289,70 +368,13 @@ int main(int argc, char *argv[])
 	}
 
 	if (ui_is_fullscreen(ui))
-		fullscreen = true;
+		viewer->fullscreen = true;
 
 	viewer->ui = ui;
 
-	/*
-	 * We don't know the image size yet, so create tiny window and resize
-	 * later.
-	 */
-	ui_wnd_params_init(&params);
-	params.caption = "Viewer";
-	params.rect.p0.x = 0;
-	params.rect.p0.y = 0;
-	params.rect.p1.x = 1;
-	params.rect.p1.y = 1;
-
-	if (fullscreen) {
-		params.style &= ~ui_wds_decorated;
-		params.placement = ui_wnd_place_full_screen;
-	}
-
-	rc = ui_window_create(ui, &params, &viewer->window);
-	if (rc != EOK) {
-		printf("Error creating window.\n");
+	rc = viewer_window_create(viewer);
+	if (rc != EOK)
 		goto error;
-	}
-
-	viewer->window_gc = ui_window_get_gc(viewer->window);
-
-	ui_window_set_cb(viewer->window, &window_cb, (void *)viewer);
-
-	if (!viewer_img_load(viewer, viewer->imgs[viewer->imgs_current],
-	    &lbitmap, &lrect)) {
-		printf("Cannot load image \"%s\".\n",
-		    viewer->imgs[viewer->imgs_current]);
-		goto error;
-	}
-
-	/*
-	 * Compute window rectangle such that application area corresponds
-	 * to rect
-	 */
-	ui_wdecor_rect_from_app(ui, params.style, &lrect, &wrect);
-	off = wrect.p0;
-	gfx_rect_rtranslate(&off, &wrect, &rect);
-
-	if (!fullscreen) {
-		rc = ui_window_resize(viewer->window, &rect);
-		if (rc != EOK) {
-			printf("Error resizing window.\n");
-			goto error;
-		}
-	}
-
-	if (!viewer_img_setup(viewer, lbitmap, &lrect)) {
-		printf("Cannot setup image \"%s\".\n",
-		    viewer->imgs[viewer->imgs_current]);
-		goto error;
-	}
-
-	rc = ui_window_paint(viewer->window);
-	if (rc != EOK) {
-		printf("Error painting window.\n");
-		goto error;
-	}
 
 	ui_run(ui);
 
@@ -369,8 +391,8 @@ error:
 		}
 		free(viewer->imgs);
 	}
-	if (viewer != NULL && viewer->window != NULL)
-		ui_window_destroy(viewer->window);
+	if (viewer != NULL)
+		viewer_window_destroy(viewer);
 	if (ui != NULL)
 		ui_destroy(ui);
 	if (viewer != NULL)
