@@ -101,16 +101,19 @@ static void wnd_close(ui_window_t *window, void *arg)
 	ui_quit(viewer->ui);
 }
 
-static void wnd_kbd_event(ui_window_t *window, void *arg,
-    kbd_event_t *event)
+/** Viewer unmodified key press.
+ *
+ * @param viewer Viewer
+ * @param event Keyboard event
+ */
+static void viewer_kbd_event_unmod(viewer_t *viewer, kbd_event_t *event)
 {
-	viewer_t *viewer = (viewer_t *)arg;
 	bool update = false;
 
-	if ((event->type == KEY_PRESS) && (event->c == 'q'))
+	if (event->key == KC_Q || event->key == KC_ESCAPE)
 		ui_quit(viewer->ui);
 
-	if ((event->type == KEY_PRESS) && (event->key == KC_PAGE_DOWN)) {
+	if (event->key == KC_PAGE_DOWN) {
 		if (viewer->imgs_current == viewer->imgs_count - 1)
 			viewer->imgs_current = 0;
 		else
@@ -119,7 +122,7 @@ static void wnd_kbd_event(ui_window_t *window, void *arg,
 		update = true;
 	}
 
-	if ((event->type == KEY_PRESS) && (event->key == KC_PAGE_UP)) {
+	if (event->key == KC_PAGE_UP) {
 		if (viewer->imgs_current == 0)
 			viewer->imgs_current = viewer->imgs_count - 1;
 		else
@@ -144,6 +147,39 @@ static void wnd_kbd_event(ui_window_t *window, void *arg,
 			exit(6);
 		}
 	}
+}
+
+/** Viewer ctrl-key key press.
+ *
+ * @param viewer Viewer
+ * @param event Keyboard event
+ */
+static void viewer_kbd_event_ctrl(viewer_t *viewer, kbd_event_t *event)
+{
+	if (event->key == KC_Q)
+		ui_quit(viewer->ui);
+}
+
+/** Viewer window keyboard event.
+ *
+ * @param window UI window
+ * @param arg Argument (viewer_t *)
+ * @param event Keyboard event
+ */
+static void wnd_kbd_event(ui_window_t *window, void *arg,
+    kbd_event_t *event)
+{
+	viewer_t *viewer = (viewer_t *)arg;
+
+	if (event->type != KEY_PRESS)
+		return;
+
+	if ((event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
+		viewer_kbd_event_unmod(viewer, event);
+
+	if ((event->mods & KM_CTRL) != 0 &&
+	    (event->mods & (KM_ALT | KM_SHIFT)) == 0)
+		viewer_kbd_event_ctrl(viewer, event);
 }
 
 /** File dialog OK button press.
