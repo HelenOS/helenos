@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <ui/filedialog.h>
 #include <ui/image.h>
 #include <ui/ui.h>
 #include <ui/wdecor.h>
@@ -59,6 +60,7 @@ typedef struct {
 	gfx_bitmap_t *bitmap;
 	ui_image_t *image;
 	gfx_context_t *window_gc;
+	ui_file_dialog_t *dialog;
 
 	gfx_rect_t img_rect;
 } viewer_t;
@@ -66,6 +68,7 @@ typedef struct {
 static bool viewer_img_load(viewer_t *, const char *, gfx_bitmap_t **,
     gfx_rect_t *);
 static bool viewer_img_setup(viewer_t *, gfx_bitmap_t *, gfx_rect_t *);
+static errno_t viewer_window_create(viewer_t *);
 static void viewer_window_destroy(viewer_t *);
 
 static void wnd_close(ui_window_t *, void *);
@@ -74,6 +77,16 @@ static void wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
 static ui_window_cb_t window_cb = {
 	.close = wnd_close,
 	.kbd = wnd_kbd_event
+};
+
+static void file_dialog_bok(ui_file_dialog_t *, void *, const char *);
+static void file_dialog_bcancel(ui_file_dialog_t *, void *);
+static void file_dialog_close(ui_file_dialog_t *, void *);
+
+static ui_file_dialog_cb_t file_dialog_cb = {
+	.bok = file_dialog_bok,
+	.bcancel = file_dialog_bcancel,
+	.close = file_dialog_close
 };
 
 /** Window close request
@@ -131,6 +144,67 @@ static void wnd_kbd_event(ui_window_t *window, void *arg,
 			exit(6);
 		}
 	}
+}
+
+/** File dialog OK button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (viewer_t *)
+ * @param fname File name
+ */
+static void file_dialog_bok(ui_file_dialog_t *dialog, void *arg,
+    const char *fname)
+{
+	viewer_t *viewer = (viewer_t *) arg;
+	errno_t rc;
+
+	viewer->imgs_count = 1;
+	viewer->imgs = calloc(viewer->imgs_count, sizeof(char *));
+	if (viewer->imgs == NULL) {
+		printf("Out of memory.\n");
+		ui_quit(viewer->ui);
+		return;
+	}
+
+	viewer->imgs[0] = str_dup(fname);
+	if (viewer->imgs[0] == NULL) {
+		printf("Out of memory.\n");
+		ui_quit(viewer->ui);
+		return;
+	}
+
+	rc = viewer_window_create(viewer);
+	if (rc != EOK)
+		ui_quit(viewer->ui);
+
+	ui_file_dialog_destroy(dialog);
+	viewer->dialog = NULL;
+}
+
+/** File dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (viewer_t *)
+ */
+static void file_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
+{
+	viewer_t *viewer = (viewer_t *) arg;
+
+	ui_file_dialog_destroy(dialog);
+	ui_quit(viewer->ui);
+}
+
+/** File dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (viewer_t *)
+ */
+static void file_dialog_close(ui_file_dialog_t *dialog, void *arg)
+{
+	viewer_t *viewer = (viewer_t *) arg;
+
+	ui_file_dialog_destroy(dialog);
+	ui_quit(viewer->ui);
 }
 
 static bool viewer_img_load(viewer_t *viewer, const char *fname,
@@ -294,6 +368,7 @@ static errno_t viewer_window_create(viewer_t *viewer)
 	return EOK;
 error:
 	viewer_window_destroy(viewer);
+	ui_quit(viewer->ui);
 	return rc;
 }
 
@@ -312,6 +387,7 @@ int main(int argc, char *argv[])
 	errno_t rc;
 	int i;
 	unsigned u;
+	ui_file_dialog_params_t fdparams;
 
 	viewer = calloc(1, sizeof(viewer_t));
 	if (viewer == NULL) {
@@ -340,24 +416,21 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (i >= argc) {
-		printf("No image files specified.\n");
-		print_syntax();
-		goto error;
-	}
-
-	viewer->imgs_count = argc - i;
-	viewer->imgs = calloc(viewer->imgs_count, sizeof(char *));
-	if (viewer->imgs == NULL) {
-		printf("Out of memory.\n");
-		goto error;
-	}
-
-	for (int j = 0; j < argc - i; j++) {
-		viewer->imgs[j] = str_dup(argv[i + j]);
-		if (viewer->imgs[j] == NULL) {
+	/* Images specified? */
+	if (i < argc) {
+		viewer->imgs_count = argc - i;
+		viewer->imgs = calloc(viewer->imgs_count, sizeof(char *));
+		if (viewer->imgs == NULL) {
 			printf("Out of memory.\n");
 			goto error;
+		}
+
+		for (int j = 0; j < argc - i; j++) {
+			viewer->imgs[j] = str_dup(argv[i + j]);
+			if (viewer->imgs[j] == NULL) {
+				printf("Out of memory.\n");
+				goto error;
+			}
 		}
 	}
 
@@ -372,9 +445,26 @@ int main(int argc, char *argv[])
 
 	viewer->ui = ui;
 
-	rc = viewer_window_create(viewer);
-	if (rc != EOK)
-		goto error;
+	if (viewer->imgs != NULL) {
+		/* We have images, create viewer window. */
+		rc = viewer_window_create(viewer);
+		if (rc != EOK)
+			goto error;
+	} else {
+		/* No images specified, browse for one. */
+		ui_file_dialog_params_init(&fdparams);
+		fdparams.caption = "Open Image";
+
+		rc = ui_file_dialog_create(viewer->ui, &fdparams,
+		    &viewer->dialog);
+		if (rc != EOK) {
+			printf("Error creating file dialog.\n");
+			goto error;
+		}
+
+		ui_file_dialog_set_cb(viewer->dialog, &file_dialog_cb,
+		    (void *)viewer);
+	}
 
 	ui_run(ui);
 
@@ -384,6 +474,8 @@ int main(int argc, char *argv[])
 
 	return 0;
 error:
+	if (viewer != NULL && viewer->dialog != NULL)
+		ui_file_dialog_destroy(viewer->dialog);
 	if (viewer != NULL && viewer->imgs != NULL) {
 		for (u = 0; u < viewer->imgs_count; u++) {
 			if (viewer->imgs[i] != NULL)
