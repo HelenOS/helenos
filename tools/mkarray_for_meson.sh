@@ -41,13 +41,14 @@ _arg1="$2"
 _arg2="$3"
 _arg3="$4"
 _arg4="$5"
+_arg5="$6"
 _inputs=""
 
-shift 5
+shift 6
 
 for file in "$@"; do
 	_inputs="$_inputs $PWD/${file}"
 done
 
 cd $_outdir
-$TOOLS_DIR/mkarray.py "$_arg1" "$_arg2" "$_arg3" "$_arg4" $_inputs > /dev/null
+$TOOLS_DIR/mkarray.py "$_arg1" "$_arg2" "$_arg3" "$_arg4" "$_arg5" $_inputs > /dev/null
