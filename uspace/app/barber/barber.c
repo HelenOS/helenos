@@ -101,10 +101,13 @@ static void led_timer_callback(void *);
 static void frame_timer_callback(void *);
 
 static void wnd_close(ui_window_t *, void *);
+static void wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
 
 static ui_window_cb_t window_cb = {
-	.close = wnd_close
+	.close = wnd_close,
+	.kbd = wnd_kbd_event
 };
+
 
 /** Window close button was clicked.
  *
@@ -116,6 +119,51 @@ static void wnd_close(ui_window_t *window, void *arg)
 	barber_t *barber = (barber_t *) arg;
 
 	ui_quit(barber->ui);
+}
+
+/** Barber unmodified key press.
+ *
+ * @param barber Barber
+ * @param event Keyboard event
+ */
+static void barber_kbd_event_unmod(barber_t *barber, kbd_event_t *event)
+{
+	if (event->key == KC_ESCAPE)
+		ui_quit(barber->ui);
+}
+
+/** Barber ctrl-key key press.
+ *
+ * @param barber Barber
+ * @param event Keyboard event
+ */
+static void barber_kbd_event_ctrl(barber_t *barber, kbd_event_t *event)
+{
+	if (event->key == KC_Q)
+		ui_quit(barber->ui);
+}
+
+/** Barber window keyboard event.
+ *
+ * @param window UI window
+ * @param arg Argument (barber_t *)
+ * @param event Keyboard event
+ */
+static void wnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
+{
+	barber_t *barber = (barber_t *)arg;
+
+	if (event->type != KEY_PRESS)
+		return;
+
+	if ((event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
+		barber_kbd_event_unmod(barber, event);
+
+	if ((event->mods & KM_CTRL) != 0 &&
+	    (event->mods & (KM_ALT | KM_SHIFT)) == 0)
+		barber_kbd_event_ctrl(barber, event);
+
+	ui_window_def_kbd(window, event);
 }
 
 static bool decode_frames(gfx_context_t *gc, image_t *img)

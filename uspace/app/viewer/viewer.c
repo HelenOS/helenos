@@ -180,6 +180,8 @@ static void wnd_kbd_event(ui_window_t *window, void *arg,
 	if ((event->mods & KM_CTRL) != 0 &&
 	    (event->mods & (KM_ALT | KM_SHIFT)) == 0)
 		viewer_kbd_event_ctrl(viewer, event);
+
+	ui_window_def_kbd(window, event);
 }
 
 /** File dialog OK button press.
