@@ -37,10 +37,27 @@
 #include <async.h>
 #include <str.h>
 #include <stdlib.h>
-
+#include <stdio.h>
+#include <ctype.h>
 #include "pcapctl_dump.h"
 #include "pcapdump_iface.h"
 
+//static service_id_t *pcap_svcs = NULL; ??
+
+static errno_t str2num(const char* str, size_t* number) {
+	size_t num = 0;
+	if (*str == 0)
+		return ELIMIT;
+	if (!isdigit(*str))
+		return EINVAL;
+	while (isdigit(*str)) {
+		num = num * 10 + ((*str) - '0');
+		str++;
+	}
+
+	*number = num;
+	return EOK;
+}
 /** Finish an async exchange on the pcapctl session
  *
  * @param exch  Exchange to be finished
@@ -104,20 +121,74 @@ extern errno_t pcapctl_list(void) {
 	for (unsigned i = 0; i < count; ++i) {
 		char *name = NULL;
 		loc_service_get_name(pcap_svcs[i], &name);
-		fprintf(stdout, "service: %s\n", name);
+		fprintf(stdout, "%d. %s\n", i, name);
 	}
 	free(pcap_svcs);
 	return EOK;
 }
 
 
-errno_t pcapctl_dump_open(const char *svcname, pcapctl_sess_t **rsess)
+static errno_t pcapctl_get_name_from_number(const char* svcnum, const char** svcname) {
+
+	errno_t rc;
+	category_id_t pcap_cat;
+	size_t count;
+	service_id_t *pcap_svcs = NULL;
+
+	rc = loc_category_get_id("pcap", &pcap_cat, 0);
+	if (rc != EOK) {
+		printf("Error resolving category pcap.\n");
+		return rc;
+	}
+	size_t num;
+	rc = str2num(svcnum, &num);
+	if (rc != EOK) {
+		printf("Error converting char* to size_t.\n");
+		free(pcap_svcs);
+		return rc;
+	}
+
+	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
+	if (rc != EOK) {
+		printf("Error resolving list of pcap services.\n");
+		free(pcap_svcs);
+		return rc;
+	}
+
+	if (num >= count) {
+		printf("Error finding device: no device with such number\n");
+		free(pcap_svcs);
+		return EINVAL;
+	}
+	char *name = NULL;
+	rc = loc_service_get_name(pcap_svcs[num], &name);
+	if (rc != EOK) {
+		printf("Error resolving name");
+	}
+
+	*svcname = name;
+	printf("%s\n", *svcname);
+	return EOK;
+}
+
+/**
+ *
+ */
+errno_t pcapctl_dump_open(const char *svcnum, pcapctl_sess_t **rsess)
 {
 	errno_t rc;
 	service_id_t svc;
 	pcapctl_sess_t *sess = calloc(1, sizeof(pcapctl_sess_t));
 	if (sess == NULL)
 		return ENOMEM;
+
+
+	const char* svcname;
+
+	rc = pcapctl_get_name_from_number(svcnum, &svcname);
+	if (rc != EOK) {
+		return rc;
+	}
 
 	rc  = pcapctl_cat_get_svc(svcname, &svc);
 	if (rc != EOK) {
@@ -129,7 +200,6 @@ errno_t pcapctl_dump_open(const char *svcname, pcapctl_sess_t **rsess)
 		rc =  EREFUSED;
 		goto error;
 	}
-
 	sess->sess = new_session;
 	*rsess = sess;
 	return EOK;
@@ -138,6 +208,9 @@ error:
 	return rc;
 }
 
+/**
+ *
+ */
 errno_t pcapctl_dump_close(pcapctl_sess_t *sess)
 {
 	free(sess);
