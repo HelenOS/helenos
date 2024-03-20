@@ -39,12 +39,13 @@
 #include "pcapctl_dump.h"
 
 #define NAME "pcapctl"
+#define DEFAULT_DEV_NUM 0
 
 //pcapctl_sess_t* sess = NULL;
 
 static errno_t start_dumping(const char *svc_name, const char *name)
 {
-	pcapctl_sess_t* sess = NULL;
+	pcapctl_sess_t *sess = NULL;
 	errno_t rc = pcapctl_dump_open(svc_name, &sess);
 	if (rc != EOK) {
 		return 1;
@@ -58,7 +59,7 @@ static errno_t start_dumping(const char *svc_name, const char *name)
 /** Session might */
 static errno_t stop_dumping(const char *svc_name)
 {
-	pcapctl_sess_t* sess = NULL;
+	pcapctl_sess_t *sess = NULL;
 	errno_t rc = pcapctl_dump_open(svc_name, &sess);
 	if (rc != EOK) {
 		return 1;
@@ -68,23 +69,24 @@ static errno_t stop_dumping(const char *svc_name)
 	return EOK;
 }
 
-static void list_devs(void) {
+static void list_devs(void)
+{
 	pcapctl_list();
 }
 
 static void usage(void)
 {
 	printf("Usage:\n"
-		NAME " list \n"
-		"\tList of devices\n"
-		NAME " start --device= | -d <device number from list> <outfile>\n"
-		"\tPackets dumped from device will be written to <outfile>\n"
-		NAME " stop --device= | -d <device>\n"
-		"\tDumping from <device> stops\n"
-		NAME " start <outfile>\n"
-		"\tPackets dumped from the 1st device from the list will be written to <outfile>\n"
-		NAME " --help | -h\n"
-		"\tShow this application help.\n");
+	    NAME " list \n"
+	    "\tList of devices\n"
+	    NAME " start --device= | -d <device number from list> <outfile>\n"
+	    "\tPackets dumped from device will be written to <outfile>\n"
+	    NAME " stop --device= | -d <device>\n"
+	    "\tDumping from <device> stops\n"
+	    NAME " start <outfile>\n"
+	    "\tPackets dumped from the 1st device from the list will be written to <outfile>\n"
+	    NAME " --help | -h\n"
+	    "\tShow this application help.\n");
 }
 
 int main(int argc, char *argv[])
@@ -93,35 +95,33 @@ int main(int argc, char *argv[])
 		usage();
 		return 1;
 	} else {
-		/** help*/
+		/** help */
 		if (str_cmp(argv[1], "--help") == 0 || str_cmp(argv[1], "-h") == 0) {
 			usage();
 			return 0;
-		/** list*/
+			/** list */
 		} else if (str_cmp(argv[1], "list") == 0) {
 			list_devs();
 			return 0;
-		/** start with/out devnum */
+			/** start with/out devnum */
 		} else if (str_cmp(argv[1], "start") == 0) {
 			if (argc == 3) {
 				start_dumping((char *)"0", argv[2]);
 				return 0;
-			}
-			else if (argc == 4) {
+			} else if (argc == 4) {
 				start_dumping(argv[2], argv[3]);
 				return 0;
 			} else {
 				usage();
 				return 1;
 			}
-		/** Stop with/out devnum */
+			/** Stop with/out devnum */
 		} else if (str_cmp(argv[1], "stop") == 0) {
 			if (argc == 2) {
 				stop_dumping((char *)"0");
 				fprintf(stdout, "Dumping was stopped\n");
 				return 0;
-			}
-			else if (argc == 3) {
+			} else if (argc == 3) {
 
 				stop_dumping(argv[2]);
 				fprintf(stdout, "Dumping was stopped\n");
