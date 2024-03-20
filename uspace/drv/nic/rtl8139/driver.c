@@ -41,6 +41,7 @@
 #include <pci_dev_iface.h>
 #include <stdio.h>
 #include <str.h>
+#include <pcapdump_iface.h>
 
 #include "defs.h"
 #include "driver.h"
@@ -1307,6 +1308,12 @@ errno_t rtl8139_dev_add(ddf_dev_t *dev)
 	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding function to category");
+		goto err_fun_bind;
+	}
+
+	rc = ddf_fun_add_to_category(fun, "pcap");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function to category pcap");
 		goto err_fun_bind;
 	}
 

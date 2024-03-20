@@ -454,6 +454,13 @@ static errno_t ne2k_dev_add(ddf_dev_t *dev)
 		ddf_fun_destroy(fun);
 		return rc;
 	}
+	rc = ddf_fun_add_to_category(fun, "pcap");
+	if (rc != EOK) {
+		//ddf_msg(LVL_ERROR, "Failed adding function to category pcap");
+		ddf_fun_unbind(fun);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
 
 	return EOK;
 }

@@ -54,7 +54,6 @@ extern errno_t pcapctl_dump_start(const char *, pcapctl_sess_t *);
 extern errno_t pcapctl_dump_stop(pcapctl_sess_t *);
 extern errno_t pcapctl_list(void);
 
-
 #endif
 
 /** @}

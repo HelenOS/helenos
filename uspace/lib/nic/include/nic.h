@@ -281,6 +281,8 @@ extern void nic_sw_period_stop(nic_t *);
 /* pcapdump interface */
 extern pcap_iface_t *nic_get_pcap_iface(nic_t *);
 
+extern errno_t nic_fun_add_to_cats(ddf_fun_t *fun);
+
 #endif // __NIC_H__
 
 /** @}

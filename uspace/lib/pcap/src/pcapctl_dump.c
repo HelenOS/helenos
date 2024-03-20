@@ -44,7 +44,8 @@
 
 //static service_id_t *pcap_svcs = NULL; ??
 
-static errno_t str2num(const char* str, size_t* number) {
+static errno_t str2num(const char *str, size_t *number)
+{
 	size_t num = 0;
 	if (*str == 0)
 		return ELIMIT;
@@ -67,7 +68,8 @@ static void pcapctl_dump_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-static errno_t pcapctl_cat_get_svc(const char *drv_name, service_id_t* svc) {
+static errno_t pcapctl_cat_get_svc(const char *drv_name, service_id_t *svc)
+{
 	errno_t rc;
 	category_id_t pcap_cat;
 	size_t count;
@@ -97,8 +99,8 @@ static errno_t pcapctl_cat_get_svc(const char *drv_name, service_id_t* svc) {
 	return 1;
 }
 
-extern errno_t pcapctl_list(void) {
-
+errno_t pcapctl_list(void)
+{
 	errno_t rc;
 	category_id_t pcap_cat;
 	size_t count;
@@ -117,7 +119,7 @@ extern errno_t pcapctl_list(void) {
 		return rc;
 	}
 
-	fprintf(stdout, "Services:\n");
+	fprintf(stdout, "Devices:\n");
 	for (unsigned i = 0; i < count; ++i) {
 		char *name = NULL;
 		loc_service_get_name(pcap_svcs[i], &name);
@@ -127,9 +129,8 @@ extern errno_t pcapctl_list(void) {
 	return EOK;
 }
 
-
-static errno_t pcapctl_get_name_from_number(const char* svcnum, const char** svcname) {
-
+static errno_t pcapctl_get_name_from_number(const char *svcnum, const char **svcname)
+{
 	errno_t rc;
 	category_id_t pcap_cat;
 	size_t count;
@@ -182,8 +183,7 @@ errno_t pcapctl_dump_open(const char *svcnum, pcapctl_sess_t **rsess)
 	if (sess == NULL)
 		return ENOMEM;
 
-
-	const char* svcname;
+	const char *svcname;
 
 	rc = pcapctl_get_name_from_number(svcnum, &svcname);
 	if (rc != EOK) {
