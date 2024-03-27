@@ -108,7 +108,6 @@ static ui_window_cb_t window_cb = {
 	.kbd = wnd_kbd_event
 };
 
-
 /** Window close button was clicked.
  *
  * @param window Window

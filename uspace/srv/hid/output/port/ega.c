@@ -89,7 +89,7 @@ static uint8_t attrs_attr(char_attrs_t attrs)
 
 		break;
 	case CHAR_ATTR_RGB:
-		attr = 
+		attr =
 		    ((RED(attrs.val.rgb.fgcolor) >= 0x80) ? 0x40 : 0) |
 		    ((GREEN(attrs.val.rgb.fgcolor) >= 0x80) ? 0x20 : 0) |
 		    ((BLUE(attrs.val.rgb.fgcolor) >= 0x80) ? 0x10 : 0) |
