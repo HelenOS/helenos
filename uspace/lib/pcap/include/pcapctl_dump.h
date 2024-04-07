@@ -48,11 +48,12 @@ typedef struct {
 	async_sess_t *sess;
 } pcapctl_sess_t;
 
-extern errno_t pcapctl_dump_open(const char *svcname, pcapctl_sess_t **rsess);
+extern errno_t pcapctl_dump_open(int *, pcapctl_sess_t **rsess);
 extern errno_t pcapctl_dump_close(pcapctl_sess_t *sess);
 extern errno_t pcapctl_dump_start(const char *, pcapctl_sess_t *);
 extern errno_t pcapctl_dump_stop(pcapctl_sess_t *);
 extern errno_t pcapctl_list(void);
+extern errno_t pcapctl_is_valid_device(int *);
 
 #endif
 

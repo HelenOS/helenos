@@ -35,18 +35,18 @@
 #include <stdio.h>
 #include <str.h>
 #include <errno.h>
+#include <arg_parse.h>
+#include <getopt.h>
 
 #include "pcapctl_dump.h"
 
 #define NAME "pcapctl"
 #define DEFAULT_DEV_NUM 0
 
-//pcapctl_sess_t* sess = NULL;
-
-static errno_t start_dumping(const char *svc_name, const char *name)
+static errno_t start_dumping(int *dev_number, const char *name)
 {
 	pcapctl_sess_t *sess = NULL;
-	errno_t rc = pcapctl_dump_open(svc_name, &sess);
+	errno_t rc = pcapctl_dump_open(dev_number, &sess);
 	if (rc != EOK) {
 		return 1;
 	}
@@ -56,11 +56,10 @@ static errno_t start_dumping(const char *svc_name, const char *name)
 	return EOK;
 }
 
-/** Session might */
-static errno_t stop_dumping(const char *svc_name)
+static errno_t stop_dumping(int *dev_number)
 {
 	pcapctl_sess_t *sess = NULL;
-	errno_t rc = pcapctl_dump_open(svc_name, &sess);
+	errno_t rc = pcapctl_dump_open(dev_number, &sess);
 	if (rc != EOK) {
 		return 1;
 	}
@@ -74,12 +73,25 @@ static void list_devs(void)
 	pcapctl_list();
 }
 
+/**
+ * Array of supported commandline options
+ */
+static const struct option opts[] = {
+	{ "device", required_argument, 0, 'd' },
+	{ "list", no_argument, 0, 'l' },
+	{ "help", no_argument, 0, 'h' },
+	{ "outfile", required_argument, 0, 'f' },
+	{ "start", no_argument, 0, 'r' },
+	{ "stop", no_argument, 0, 't' },
+	{ 0, 0, 0, 0 }
+};
+
 static void usage(void)
 {
 	printf("Usage:\n"
-	    NAME " list \n"
+	    NAME " --list | -l \n"
 	    "\tList of devices\n"
-	    NAME " start --device= | -d <device number from list> <outfile>\n"
+	    NAME " start --device= | -d <device number from list> --outfile | -f <outfile>\n"
 	    "\tPackets dumped from device will be written to <outfile>\n"
 	    NAME " stop --device= | -d <device>\n"
 	    "\tDumping from <device> stops\n"
@@ -91,48 +103,55 @@ static void usage(void)
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2) {
+	bool start = false;
+	bool stop = false;
+	int dev_number = DEFAULT_DEV_NUM;
+	const char *output_file_name;
+	int idx = 0;
+	int ret = 0;
+	if (argc == 1) {
 		usage();
-		return 1;
-	} else {
-		/** help */
-		if (str_cmp(argv[1], "--help") == 0 || str_cmp(argv[1], "-h") == 0) {
-			usage();
-			return 0;
-			/** list */
-		} else if (str_cmp(argv[1], "list") == 0) {
+		return 0;
+	}
+	while (ret != -1) {
+		ret = getopt_long(argc, argv, "d:lhf:rt", opts, &idx);
+		switch (ret) {
+		case 'd':
+			char *rest;
+			long result = strtol(optarg, &rest, 10);
+			dev_number = (int)result;
+			errno_t rc = pcapctl_is_valid_device(&dev_number);
+			if (rc != EOK) {
+				printf("Device with index %d not found\n", dev_number);
+				return 1;
+			}
+			break;
+		case 'l':
 			list_devs();
 			return 0;
-			/** start with/out devnum */
-		} else if (str_cmp(argv[1], "start") == 0) {
-			if (argc == 3) {
-				start_dumping((char *)"0", argv[2]);
-				return 0;
-			} else if (argc == 4) {
-				start_dumping(argv[2], argv[3]);
-				return 0;
-			} else {
-				usage();
-				return 1;
-			}
-			/** Stop with/out devnum */
-		} else if (str_cmp(argv[1], "stop") == 0) {
-			if (argc == 2) {
-				stop_dumping((char *)"0");
-				fprintf(stdout, "Dumping was stopped\n");
-				return 0;
-			} else if (argc == 3) {
-
-				stop_dumping(argv[2]);
-				fprintf(stdout, "Dumping was stopped\n");
-			} else {
-				usage();
-				return 1;
-			}
-		} else {
+		case 'h':
 			usage();
-			return 1;
+			return 0;
+		case 'f':
+			output_file_name = optarg;
+			break;
+		case 'r':
+			start = true;
+			break;
+		case 't':
+			stop = true;
+			break;
 		}
+	}
+
+	printf("%s: HelenOS Packet Dumping utility: device - %d\n", NAME, dev_number);
+
+	if (start) {
+		// start with dev number and optional..name
+		start_dumping(&dev_number, output_file_name);
+	} else if (stop) {
+		//stop with dev number
+		stop_dumping(&dev_number);
 	}
 	return 0;
 }
