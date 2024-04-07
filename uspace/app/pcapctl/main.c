@@ -91,12 +91,12 @@ static void usage(void)
 	printf("Usage:\n"
 	    NAME " --list | -l \n"
 	    "\tList of devices\n"
-	    NAME " start --device= | -d <device number from list> --outfile | -f <outfile>\n"
+	    NAME " --start | -r --device= | -d <device number from list> --outfile= | -f <outfile>\n"
 	    "\tPackets dumped from device will be written to <outfile>\n"
-	    NAME " stop --device= | -d <device>\n"
+	    NAME " --stop | -t --device= | -d <device>\n"
 	    "\tDumping from <device> stops\n"
-	    NAME " start <outfile>\n"
-	    "\tPackets dumped from the 1st device from the list will be written to <outfile>\n"
+	    NAME " --start | -s --outfile= | -f <outfile>\n"
+	    "\tPackets dumped from the 0. device from the list will be written to <outfile>\n"
 	    NAME " --help | -h\n"
 	    "\tShow this application help.\n");
 }
