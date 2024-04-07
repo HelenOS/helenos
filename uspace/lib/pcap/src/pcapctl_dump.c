@@ -42,23 +42,6 @@
 #include "pcapctl_dump.h"
 #include "pcapdump_iface.h"
 
-//static service_id_t *pcap_svcs = NULL; ??
-
-static errno_t str2num(const char *str, size_t *number)
-{
-	size_t num = 0;
-	if (*str == 0)
-		return ELIMIT;
-	if (!isdigit(*str))
-		return EINVAL;
-	while (isdigit(*str)) {
-		num = num * 10 + ((*str) - '0');
-		str++;
-	}
-
-	*number = num;
-	return EOK;
-}
 /** Finish an async exchange on the pcapctl session
  *
  * @param exch  Exchange to be finished
@@ -68,7 +51,7 @@ static void pcapctl_dump_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-static errno_t pcapctl_cat_get_svc(const char *drv_name, service_id_t *svc)
+static errno_t pcapctl_cat_get_svc(int *index, service_id_t *svc)
 {
 	errno_t rc;
 	category_id_t pcap_cat;
@@ -84,21 +67,46 @@ static errno_t pcapctl_cat_get_svc(const char *drv_name, service_id_t *svc)
 	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
 	if (rc != EOK) {
 		printf("Error resolving list of pcap services.\n");
+		free(pcap_svcs);
+		return rc;
+	}
+	if (*index < (int)count) {
+		*svc =  pcap_svcs[*index];
+		free(pcap_svcs);
+		return EOK;
+	}
+
+	return ENOENT;
+}
+
+errno_t pcapctl_is_valid_device(int *index)
+{
+	errno_t rc;
+	category_id_t pcap_cat;
+	size_t count;
+	service_id_t *pcap_svcs = NULL;
+
+	rc = loc_category_get_id("pcap", &pcap_cat, 0);
+	if (rc != EOK) {
+		printf("Error resolving category pcap.\n");
 		return rc;
 	}
 
-	for (unsigned i = 0; i < count; ++i) {
-		char *name = NULL;
-		loc_service_get_name(pcap_svcs[i], &name);
-		if (!str_cmp(drv_name, name)) {
-			*svc =  pcap_svcs[i];
-			return EOK;
-		}
+	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
+	if (rc != EOK) {
+		printf("Error resolving list of pcap services.\n");
+		free(pcap_svcs);
+		return rc;
 	}
-	free(pcap_svcs);
-	return 1;
+	if (*index + 1 > (int)count || *index < 0) {
+		return EINVAL;
+	}
+	return EOK;
 }
 
+/**
+ *
+ */
 errno_t pcapctl_list(void)
 {
 	errno_t rc;
@@ -129,53 +137,10 @@ errno_t pcapctl_list(void)
 	return EOK;
 }
 
-static errno_t pcapctl_get_name_from_number(const char *svcnum, const char **svcname)
-{
-	errno_t rc;
-	category_id_t pcap_cat;
-	size_t count;
-	service_id_t *pcap_svcs = NULL;
-
-	rc = loc_category_get_id("pcap", &pcap_cat, 0);
-	if (rc != EOK) {
-		printf("Error resolving category pcap.\n");
-		return rc;
-	}
-	size_t num;
-	rc = str2num(svcnum, &num);
-	if (rc != EOK) {
-		printf("Error converting char* to size_t.\n");
-		free(pcap_svcs);
-		return rc;
-	}
-
-	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
-	if (rc != EOK) {
-		printf("Error resolving list of pcap services.\n");
-		free(pcap_svcs);
-		return rc;
-	}
-
-	if (num >= count) {
-		printf("Error finding device: no device with such number\n");
-		free(pcap_svcs);
-		return EINVAL;
-	}
-	char *name = NULL;
-	rc = loc_service_get_name(pcap_svcs[num], &name);
-	if (rc != EOK) {
-		printf("Error resolving name");
-	}
-
-	*svcname = name;
-	printf("%s\n", *svcname);
-	return EOK;
-}
-
 /**
  *
  */
-errno_t pcapctl_dump_open(const char *svcnum, pcapctl_sess_t **rsess)
+errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
 {
 	errno_t rc;
 	service_id_t svc;
@@ -183,17 +148,12 @@ errno_t pcapctl_dump_open(const char *svcnum, pcapctl_sess_t **rsess)
 	if (sess == NULL)
 		return ENOMEM;
 
-	const char *svcname;
-
-	rc = pcapctl_get_name_from_number(svcnum, &svcname);
+	rc  = pcapctl_cat_get_svc(index, &svc);
 	if (rc != EOK) {
-		return rc;
-	}
-
-	rc  = pcapctl_cat_get_svc(svcname, &svc);
-	if (rc != EOK) {
+		printf("Error finding the device with index: %d\n", *index);
 		goto error;
 	}
+
 	async_sess_t *new_session = loc_service_connect(svc, INTERFACE_PCAP_CONTROL, 0);
 	if (new_session == NULL) {
 		fprintf(stderr, "Error connecting to service.\n");
