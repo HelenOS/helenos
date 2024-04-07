@@ -67,7 +67,7 @@ rd_drv = rd_essential_drv
 
 if CONFIG_FB
 	rd_essential += [
-		'app/launcher',
+		'app/taskbar',
 		'app/terminal',
 
 		'srv/hid/display',

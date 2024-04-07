@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -392,7 +392,7 @@ static errno_t bitmap_tartan(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 	for (i = 0; i < w; i++) {
 		for (j = 0; j < h; j++) {
 			pixelmap_put_pixel(&pixelmap, i, j,
-			    PIXEL(0, (i % 30) < 3 ? 255 : 0,
+			    PIXEL(255, (i % 30) < 3 ? 255 : 0,
 			    (j % 30) < 3 ? 255 : 0, i / 2));
 		}
 	}
@@ -428,7 +428,7 @@ static errno_t bitmap_moire(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 		for (j = 0; j < h; j++) {
 			k = i * i + j * j;
 			pixelmap_put_pixel(&pixelmap, i, j,
-			    PIXEL(0, k, k, k));
+			    PIXEL(255, k, k, k));
 		}
 	}
 
@@ -463,8 +463,8 @@ static errno_t bitmap_circle(gfx_bitmap_t *bitmap, gfx_coord_t w, gfx_coord_t h)
 		for (j = 0; j < h; j++) {
 			k = i * i + j * j;
 			pixelmap_put_pixel(&pixelmap, i, j,
-			    k < w * w / 2 ? PIXEL(0, 0, 255, 0) :
-			    PIXEL(0, 255, 0, 255));
+			    k < w * w / 2 ? PIXEL(255, 0, 255, 0) :
+			    PIXEL(255, 255, 0, 255));
 		}
 	}
 
@@ -620,7 +620,7 @@ static errno_t demo_bitmap_kc(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	params.rect.p1.x = 40;
 	params.rect.p1.y = 40;
 	params.flags = bmpf_color_key;
-	params.key_color = PIXEL(0, 255, 0, 255);
+	params.key_color = PIXEL(255, 255, 0, 255);
 
 	rc = gfx_bitmap_create(gc, &params, NULL, &bitmap);
 	if (rc != EOK)
@@ -1159,7 +1159,7 @@ static errno_t demo_ui(const char *display_spec)
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
 	 */
-	ui_wdecor_rect_from_app(params.style, &rect, &wrect);
+	ui_wdecor_rect_from_app(ui, params.style, &rect, &wrect);
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &params.rect);
 

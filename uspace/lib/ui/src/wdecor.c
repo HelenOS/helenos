@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@
 #include <str.h>
 #include <ui/paint.h>
 #include <ui/pbutton.h>
+#include <ui/ui.h>
 #include <ui/wdecor.h>
 #include "../private/resource.h"
 #include "../private/wdecor.h"
@@ -93,6 +94,10 @@ enum {
 	wdecor_edge_w = 4,
 	/** Window resizing edge height */
 	wdecor_edge_h = 4,
+	/** Window resizing edge witdth */
+	wdecor_edge_w_text = 1,
+	/** Window resizing edge height */
+	wdecor_edge_h_text = 1,
 	/** Title bar height */
 	wdecor_tbar_h = 22,
 	/** Window width */
@@ -859,24 +864,36 @@ void ui_wdecor_get_geom(ui_wdecor_t *wdecor, ui_wdecor_geom_t *geom)
  * window decoration, since we need it in order to create the window
  * and its decoration.
  *
+ * @param ui UI
  * @param style Decoration style
  * @param app Application area rectangle
  * @param rect Place to store (outer) window decoration rectangle
  */
-void ui_wdecor_rect_from_app(ui_wdecor_style_t style, gfx_rect_t *app,
-    gfx_rect_t *rect)
+void ui_wdecor_rect_from_app(ui_t *ui, ui_wdecor_style_t style,
+    gfx_rect_t *app, gfx_rect_t *rect)
 {
+	bool textmode;
+	gfx_coord_t edge_w, edge_h;
 	*rect = *app;
 
-	if ((style & ui_wds_frame) != 0) {
-		rect->p0.x -= wdecor_edge_w;
-		rect->p0.y -= wdecor_edge_h;
-		rect->p1.x += wdecor_edge_w;
-		rect->p1.y += wdecor_edge_h;
+	textmode = ui_is_textmode(ui);
+	if (textmode) {
+		edge_w = wdecor_edge_w_text;
+		edge_h = wdecor_edge_h_text;
+	} else {
+		edge_w = wdecor_edge_w;
+		edge_h = wdecor_edge_h;
 	}
 
-	if ((style & ui_wds_titlebar) != 0)
-		rect->p0.y -= 22;
+	if ((style & ui_wds_frame) != 0) {
+		rect->p0.x -= edge_w;
+		rect->p0.y -= edge_h;
+		rect->p1.x += edge_w;
+		rect->p1.y += edge_h;
+	}
+
+	if ((style & ui_wds_titlebar) != 0 && !textmode)
+		rect->p0.y -= wdecor_tbar_h;
 }
 
 /** Application area rectangle from window rectangle.

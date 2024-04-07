@@ -33,12 +33,19 @@
  * @file Taskbar configuration
  */
 
+#include <async.h>
 #include <errno.h>
 #include <sif.h>
+#include <ipc/tbarcfg.h>
+#include <loc.h>
+#include <task.h>
 #include <tbarcfg/tbarcfg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include "../private/tbarcfg.h"
+
+static void tbarcfg_notify_conn(ipc_call_t *, void *);
 
 /** Create taskbar configuration.
  *
@@ -781,6 +788,178 @@ error:
 	if (trans != NULL)
 		sif_trans_abort(trans);
 	return rc;
+}
+
+/** Create taskbar configuration listener.
+ *
+ * Listens for taskbar configuration change notifications.
+ *
+ * @param nchan Notification channel (TBARCFG_NOTIFY_DEFAULT)
+ * @param rlst Place to store pointer to new listener
+ * @return EOK on success or an error code
+ */
+errno_t tbarcfg_listener_create(const char *nchan, void (*cb)(void *),
+    void *arg, tbarcfg_listener_t **rlst)
+{
+	tbarcfg_listener_t *lst;
+	service_id_t svcid = 0;
+	loc_srv_t *srv = NULL;
+	task_id_t taskid;
+	char *svcname = NULL;
+	category_id_t catid;
+	port_id_t port;
+	int rv;
+	errno_t rc;
+
+	lst = calloc(1, sizeof(tbarcfg_listener_t));
+	if (lst == NULL)
+		return ENOMEM;
+
+	lst->cb = cb;
+	lst->arg = arg;
+
+	rc = async_create_port(INTERFACE_TBARCFG_NOTIFY,
+	    tbarcfg_notify_conn, (void *)lst, &port);
+	if (rc != EOK)
+		goto error;
+
+	rc = loc_server_register("tbarcfg-listener", &srv);
+	if (rc != EOK)
+		goto error;
+
+	taskid = task_get_id();
+
+	rv = asprintf(&svcname, "tbarcfg/%u", (unsigned)taskid);
+	if (rv < 0) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = loc_service_register(srv, svcname, &svcid);
+	if (rc != EOK)
+		goto error;
+
+	rc = loc_category_get_id(nchan, &catid, 0);
+	if (rc != EOK)
+		goto error;
+
+	rc = loc_service_add_to_cat(srv, svcid, catid);
+	if (rc != EOK)
+		goto error;
+
+	*rlst = lst;
+	return EOK;
+error:
+	if (svcid != 0)
+		loc_service_unregister(srv, svcid);
+	if (srv != NULL)
+		loc_server_unregister(srv);
+	if (svcname != NULL)
+		free(svcname);
+	return rc;
+}
+
+/** Destroy taskbar configuration listener.
+ *
+ * @param lst Listener
+ */
+void tbarcfg_listener_destroy(tbarcfg_listener_t *lst)
+{
+	free(lst);
+}
+
+/** Send taskbar configuration notification to a particular service ID.
+ *
+ * @param svcid Service ID
+ * @return EOK on success or an error code
+ */
+static errno_t tbarcfg_notify_svc(service_id_t svcid)
+{
+	async_sess_t *sess;
+	async_exch_t *exch;
+	errno_t rc;
+
+	sess = loc_service_connect(svcid, INTERFACE_TBARCFG_NOTIFY, 0);
+	if (sess == NULL)
+		return EIO;
+
+	exch = async_exchange_begin(sess);
+	rc = async_req_0_0(exch, TBARCFG_NOTIFY_NOTIFY);
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_hangup(sess);
+		return rc;
+	}
+
+	async_exchange_end(exch);
+	async_hangup(sess);
+	return EOK;
+}
+
+/** Send taskbar configuration change notification.
+ *
+ * @param nchan Notification channel (TBARCFG_NOTIFY_DEFAULT)
+ */
+errno_t tbarcfg_notify(const char *nchan)
+{
+	errno_t rc;
+	category_id_t catid;
+	service_id_t *svcs = NULL;
+	size_t count, i;
+
+	rc = loc_category_get_id(nchan, &catid, 0);
+	if (rc != EOK)
+		return rc;
+
+	rc = loc_category_get_svcs(catid, &svcs, &count);
+	if (rc != EOK)
+		return rc;
+
+	for (i = 0; i < count; i++) {
+		rc = tbarcfg_notify_svc(svcs[i]);
+		if (rc != EOK)
+			goto error;
+	}
+
+	free(svcs);
+	return EOK;
+error:
+	free(svcs);
+	return rc;
+}
+
+/** Taskbar configuration connection handler.
+ *
+ * @param icall Initial call
+ * @param arg Argument (tbarcfg_listener_t *)
+ */
+static void tbarcfg_notify_conn(ipc_call_t *icall, void *arg)
+{
+	tbarcfg_listener_t *lst = (tbarcfg_listener_t *)arg;
+
+	/* Accept the connection */
+	async_accept_0(icall);
+
+	while (true) {
+		ipc_call_t call;
+		async_get_call(&call);
+		sysarg_t method = ipc_get_imethod(&call);
+
+		if (!method) {
+			/* The other side has hung up */
+			async_answer_0(&call, EOK);
+			return;
+		}
+
+		switch (method) {
+		case TBARCFG_NOTIFY_NOTIFY:
+			lst->cb(lst->arg);
+			async_answer_0(&call, EOK);
+			break;
+		default:
+			async_answer_0(&call, EINVAL);
+		}
+	}
 }
 
 /** @}

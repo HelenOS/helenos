@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -577,6 +577,7 @@ static void ui_menu_popup_kbd(ui_popup_t *popup, void *arg, kbd_event_t *event)
 {
 	ui_menu_t *menu = (ui_menu_t *)arg;
 
+	menu->idev_id = ui_popup_get_idev_id(menu->popup);
 	ui_menu_kbd_event(menu, event);
 }
 
@@ -590,6 +591,8 @@ static void ui_menu_popup_pos(ui_popup_t *popup, void *arg, pos_event_t *event)
 {
 	ui_menu_t *menu = (ui_menu_t *)arg;
 	gfx_coord2_t spos;
+
+	menu->idev_id = ui_popup_get_idev_id(menu->popup);
 
 	spos.x = 0;
 	spos.y = 0;
@@ -638,6 +641,16 @@ void ui_menu_press_accel(ui_menu_t *menu, char32_t c, sysarg_t kbd_id)
 {
 	if (menu->cb != NULL && menu->cb->press_accel != NULL)
 		menu->cb->press_accel(menu, menu->arg, c, kbd_id);
+}
+
+/** Get ID of last device that input event.
+ *
+ * @param menu Menu
+ * @return Input device ID
+ */
+sysarg_t ui_menu_get_idev_id(ui_menu_t *menu)
+{
+	return menu->idev_id;
 }
 
 /** @}

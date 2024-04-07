@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,9 +47,12 @@
 #include "tbsmenu.h"
 #include "wndlist.h"
 
+#define TASKBAR_CONFIG_FILE "/cfg/taskbar.sif"
+
 static void taskbar_wnd_close(ui_window_t *, void *);
 static void taskbar_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 static void taskbar_wnd_pos(ui_window_t *, void *, pos_event_t *);
+static void taskbar_notif_cb(void *);
 
 static ui_window_cb_t window_cb = {
 	.close = taskbar_wnd_close,
@@ -127,13 +130,28 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 	taskbar_t *taskbar = NULL;
 	gfx_rect_t scr_rect;
 	gfx_rect_t rect;
+	char *dspec = NULL;
+	char *qmark;
 	errno_t rc;
 
 	taskbar = calloc(1, sizeof(taskbar_t));
 	if (taskbar == NULL) {
+		printf("Out of memory.\n");
 		rc = ENOMEM;
 		goto error;
 	}
+
+	dspec = str_dup(display_spec);
+	if (dspec == NULL) {
+		printf("Out of memory.\n");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	/* Remove additional arguments */
+	qmark = str_chr(dspec, '?');
+	if (qmark != NULL)
+		*qmark = '\0';
 
 	rc = ui_create(display_spec, &taskbar->ui);
 	if (rc != EOK) {
@@ -194,16 +212,23 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
-	rc = tbsmenu_create(taskbar->window, taskbar->fixed, &taskbar->tbsmenu);
+	rc = tbsmenu_create(taskbar->window, taskbar->fixed, dspec,
+	    &taskbar->tbsmenu);
 	if (rc != EOK) {
 		printf("Error creating start menu.\n");
 		goto error;
 	}
 
-	rc = tbsmenu_load(taskbar->tbsmenu, "/cfg/taskbar.sif");
+	rc = tbsmenu_load(taskbar->tbsmenu, TASKBAR_CONFIG_FILE);
 	if (rc != EOK) {
 		printf("Error loading start menu from '%s'.\n",
-		    "/cfg/taskbar.sif");
+		    TASKBAR_CONFIG_FILE);
+	}
+
+	rc = tbarcfg_listener_create(TBARCFG_NOTIFY_DEFAULT,
+	    taskbar_notif_cb, (void *)taskbar, &taskbar->lst);
+	if (rc != EOK) {
+		printf("Error listening for configuration changes.\n");
 	}
 
 	if (ui_is_textmode(taskbar->ui)) {
@@ -283,9 +308,14 @@ errno_t taskbar_create(const char *display_spec, const char *wndmgt_svc,
 		goto error;
 	}
 
+	free(dspec);
 	*rtaskbar = taskbar;
 	return EOK;
 error:
+	if (dspec != NULL)
+		free(dspec);
+	if (taskbar->lst != NULL)
+		tbarcfg_listener_destroy(taskbar->lst);
 	if (taskbar->clock != NULL)
 		taskbar_clock_destroy(taskbar->clock);
 	if (taskbar->wndlist != NULL)
@@ -296,6 +326,7 @@ error:
 		ui_window_destroy(taskbar->window);
 	if (taskbar->ui != NULL)
 		ui_destroy(taskbar->ui);
+	free(taskbar);
 	return rc;
 
 }
@@ -303,12 +334,29 @@ error:
 /** Destroy taskbar. */
 void taskbar_destroy(taskbar_t *taskbar)
 {
+	if (taskbar->lst != NULL)
+		tbarcfg_listener_destroy(taskbar->lst);
 	ui_fixed_remove(taskbar->fixed, taskbar_clock_ctl(taskbar->clock));
 	taskbar_clock_destroy(taskbar->clock);
 	wndlist_destroy(taskbar->wndlist);
 	tbsmenu_destroy(taskbar->tbsmenu);
 	ui_window_destroy(taskbar->window);
 	ui_destroy(taskbar->ui);
+}
+
+/** Configuration change notification callback.
+ *
+ * Called when configuration changed.
+ *
+ * @param arg Argument (taskbar_t *)
+ */
+static void taskbar_notif_cb(void *arg)
+{
+	taskbar_t *taskbar = (taskbar_t *)arg;
+
+	ui_lock(taskbar->ui);
+	tbsmenu_reload(taskbar->tbsmenu);
+	ui_unlock(taskbar->ui);
 }
 
 /** @}

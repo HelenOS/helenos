@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2007 Josef Cejka
- * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1351,6 +1351,9 @@ static bool loc_init(void)
 	categ_dir_add_cat(&cdir, cat);
 
 	cat = category_new("clock");
+	categ_dir_add_cat(&cdir, cat);
+
+	cat = category_new("tbarcfg-notif");
 	categ_dir_add_cat(&cdir, cat);
 
 	cat = category_new("test3");

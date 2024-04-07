@@ -92,7 +92,7 @@ def main():
 
     config = args.parse_args()
 
-    export_dir = os.getenv('EXPORT_DIR', get_build_root())
+    export_dir = os.getenv('EXPORT_DIR', get_build_root() + '/export')
 
     result = []
     for package in config.packages:

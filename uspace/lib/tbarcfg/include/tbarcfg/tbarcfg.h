@@ -41,6 +41,8 @@
 #include <stdbool.h>
 #include <types/tbarcfg/tbarcfg.h>
 
+#define TBARCFG_NOTIFY_DEFAULT "tbarcfg-notif"
+
 extern errno_t tbarcfg_create(const char *, tbarcfg_t **);
 extern errno_t tbarcfg_open(const char *, tbarcfg_t **);
 extern void tbarcfg_close(tbarcfg_t *);
@@ -62,6 +64,10 @@ extern errno_t smenu_entry_sep_create(tbarcfg_t *, smenu_entry_t **);
 extern errno_t smenu_entry_destroy(smenu_entry_t *);
 extern errno_t smenu_entry_move_up(smenu_entry_t *);
 extern errno_t smenu_entry_move_down(smenu_entry_t *);
+extern errno_t tbarcfg_listener_create(const char *, void (*)(void *),
+    void *, tbarcfg_listener_t **);
+extern void tbarcfg_listener_destroy(tbarcfg_listener_t *);
+extern errno_t tbarcfg_notify(const char *);
 
 #endif
 

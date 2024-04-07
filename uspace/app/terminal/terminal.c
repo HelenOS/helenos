@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -973,21 +973,21 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	if ((flags & tf_topleft) != 0)
 		wparams.placement = ui_wnd_place_top_left;
 
-	/*
-	 * Compute window rectangle such that application area corresponds
-	 * to rect
-	 */
-	ui_wdecor_rect_from_app(wparams.style, &rect, &wrect);
-	off = wrect.p0;
-	gfx_rect_rtranslate(&off, &wrect, &wparams.rect);
-
-	term->off = off;
-
 	rc = ui_create(display_spec, &term->ui);
 	if (rc != EOK) {
 		printf("Error creating UI on %s.\n", display_spec);
 		goto error;
 	}
+
+	/*
+	 * Compute window rectangle such that application area corresponds
+	 * to rect
+	 */
+	ui_wdecor_rect_from_app(term->ui, wparams.style, &rect, &wrect);
+	off = wrect.p0;
+	gfx_rect_rtranslate(&off, &wrect, &wparams.rect);
+
+	term->off = off;
 
 	rc = ui_window_create(term->ui, &wparams, &term->window);
 	if (rc != EOK) {
