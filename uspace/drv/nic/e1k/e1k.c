@@ -2201,18 +2201,10 @@ errno_t e1000_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_fun_bind;
 
-	// rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
-	// if (rc != EOK)
-	// 	goto err_add_to_cat;
-
-	// rc = ddf_fun_add_to_category(fun, "pcap");
-	// if (rc != EOK) {
-	// 	ddf_msg(LVL_ERROR, "Failed adding function to category pcap");
-	// 	goto err_add_to_cat;
-	// }
 	rc = nic_fun_add_to_cats(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding function to categories");
+		ddf_fun_unbind(fun);
 		return rc;
 	}
 	return EOK;
