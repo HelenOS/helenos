@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -49,6 +49,7 @@
 #include <ui/window.h>
 #include <ui/image.h>
 #include "images.h"
+#include "images_tiny.h"
 
 #define NAME  "barber"
 
@@ -59,9 +60,6 @@
 
 #define MIN_LOAD  (LOAD_UNIT / 4)
 #define MAX_LOAD  (LOAD_UNIT / 3)
-
-#define FRAME_WIDTH   59
-#define FRAME_HEIGHT  192
 
 #define LED_PERIOD  1000000
 #define LED_COLORS  7
@@ -96,20 +94,24 @@ static gfx_bitmap_t *frame_bmp[FRAMES];
 
 static unsigned int frame = 0;
 static unsigned int fps = MIN_FPS;
+static gfx_coord_t frame_width;
+static gfx_coord_t frame_height;
 
 static void led_timer_callback(void *);
 static void frame_timer_callback(void *);
 
 static void wnd_close(ui_window_t *, void *);
+static void wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
 
 static ui_window_cb_t window_cb = {
-	.close = wnd_close
+	.close = wnd_close,
+	.kbd = wnd_kbd_event
 };
 
 /** Window close button was clicked.
  *
  * @param window Window
- * @param arg Argument (launcher)
+ * @param arg Argument (barber)
  */
 static void wnd_close(ui_window_t *window, void *arg)
 {
@@ -118,20 +120,65 @@ static void wnd_close(ui_window_t *window, void *arg)
 	ui_quit(barber->ui);
 }
 
-static bool decode_frames(gfx_context_t *gc)
+/** Barber unmodified key press.
+ *
+ * @param barber Barber
+ * @param event Keyboard event
+ */
+static void barber_kbd_event_unmod(barber_t *barber, kbd_event_t *event)
+{
+	if (event->key == KC_ESCAPE)
+		ui_quit(barber->ui);
+}
+
+/** Barber ctrl-key key press.
+ *
+ * @param barber Barber
+ * @param event Keyboard event
+ */
+static void barber_kbd_event_ctrl(barber_t *barber, kbd_event_t *event)
+{
+	if (event->key == KC_Q)
+		ui_quit(barber->ui);
+}
+
+/** Barber window keyboard event.
+ *
+ * @param window UI window
+ * @param arg Argument (barber_t *)
+ * @param event Keyboard event
+ */
+static void wnd_kbd_event(ui_window_t *window, void *arg, kbd_event_t *event)
+{
+	barber_t *barber = (barber_t *)arg;
+
+	if (event->type != KEY_PRESS)
+		return;
+
+	if ((event->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
+		barber_kbd_event_unmod(barber, event);
+
+	if ((event->mods & KM_CTRL) != 0 &&
+	    (event->mods & (KM_ALT | KM_SHIFT)) == 0)
+		barber_kbd_event_ctrl(barber, event);
+
+	ui_window_def_kbd(window, event);
+}
+
+static bool decode_frames(gfx_context_t *gc, image_t *img)
 {
 	gfx_rect_t rect;
 	errno_t rc;
 
 	for (unsigned int i = 0; i < FRAMES; i++) {
-		rc = decode_tga_gz(gc, images[i].addr, images[i].size,
+		rc = decode_tga_gz(gc, img[i].addr, img[i].size,
 		    &frame_bmp[i], &rect);
 		if (rc != EOK) {
 			printf("Unable to decode frame %u.\n", i);
 			return false;
 		}
 
-		(void) rect;
+		(void)rect;
 	}
 
 	return true;
@@ -237,8 +284,8 @@ static void frame_timer_callback(void *data)
 
 	rect.p0.x = 0;
 	rect.p0.y = 0;
-	rect.p1.x = FRAME_WIDTH;
-	rect.p1.y = FRAME_HEIGHT;
+	rect.p1.x = frame_width;
+	rect.p1.y = frame_height;
 
 	ui_image_set_bmp(frame_img, frame_bmp[frame], &rect);
 	(void) ui_image_paint(frame_img);
@@ -298,7 +345,7 @@ static void print_syntax(void)
 
 int main(int argc, char *argv[])
 {
-	const char *display_spec = UI_DISPLAY_DEFAULT;
+	const char *display_spec = UI_ANY_DEFAULT;
 	barber_t barber;
 	ui_t *ui;
 	ui_wnd_params_t params;
@@ -309,6 +356,7 @@ int main(int argc, char *argv[])
 	gfx_rect_t app_rect;
 	gfx_context_t *gc;
 	gfx_coord2_t off;
+	image_t *img;
 	int i;
 
 	i = 1;
@@ -354,10 +402,18 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (ui_is_textmode(ui)) {
+		frame_width = 10;
+		frame_height = 16;
+	} else {
+		frame_width = 59;
+		frame_height = 192;
+	}
+
 	rect.p0.x = 0;
 	rect.p0.y = 0;
-	rect.p1.x = FRAME_WIDTH;
-	rect.p1.y = FRAME_HEIGHT;
+	rect.p1.x = frame_width;
+	rect.p1.y = frame_height;
 
 	ui_wnd_params_init(&params);
 	params.caption = "Barber Pole";
@@ -366,7 +422,7 @@ int main(int argc, char *argv[])
 	 * Compute window rectangle such that application area corresponds
 	 * to rect
 	 */
-	ui_wdecor_rect_from_app(params.style, &rect, &wrect);
+	ui_wdecor_rect_from_app(ui, params.style, &rect, &wrect);
 	off = wrect.p0;
 	gfx_rect_rtranslate(&off, &wrect, &params.rect);
 
@@ -383,7 +439,9 @@ int main(int argc, char *argv[])
 	ui_window_get_app_rect(window, &app_rect);
 	ui_window_set_cb(window, &window_cb, (void *) &barber);
 
-	if (!decode_frames(gc))
+	img = ui_is_textmode(ui) ? image_tinys : images;
+
+	if (!decode_frames(gc, img))
 		return 1;
 
 	rc = ui_image_create(ui_res, frame_bmp[frame], &rect,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
 #include <stdbool.h>
 #include <ui/pbutton.h>
 #include <ui/resource.h>
+#include <ui/ui.h>
 #include <ui/wdecor.h>
 #include "../private/wdecor.h"
 
@@ -1321,35 +1322,41 @@ PCUT_TEST(get_geom_decorated)
 /** ui_wdecor_rect_from_app() correctly converts application to window rect */
 PCUT_TEST(rect_from_app)
 {
+	errno_t rc;
+	ui_t *ui = NULL;
 	gfx_rect_t arect;
 	gfx_rect_t rect;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	arect.p0.x = 14;
 	arect.p0.y = 46;
 	arect.p1.x = 96;
 	arect.p1.y = 196;
 
-	ui_wdecor_rect_from_app(ui_wds_none, &arect, &rect);
+	ui_wdecor_rect_from_app(ui, ui_wds_none, &arect, &rect);
 
 	PCUT_ASSERT_INT_EQUALS(14, rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(46, rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(96, rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(196, rect.p1.y);
 
-	ui_wdecor_rect_from_app(ui_wds_frame, &arect, &rect);
+	ui_wdecor_rect_from_app(ui, ui_wds_frame, &arect, &rect);
 
 	PCUT_ASSERT_INT_EQUALS(10, rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(42, rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(100, rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(200, rect.p1.y);
 
-	ui_wdecor_rect_from_app(ui_wds_decorated, &arect, &rect);
+	ui_wdecor_rect_from_app(ui, ui_wds_decorated, &arect, &rect);
 
 	PCUT_ASSERT_INT_EQUALS(10, rect.p0.x);
 	PCUT_ASSERT_INT_EQUALS(20, rect.p0.y);
 	PCUT_ASSERT_INT_EQUALS(100, rect.p1.x);
 	PCUT_ASSERT_INT_EQUALS(200, rect.p1.y);
 
+	ui_destroy(ui);
 }
 
 /** Test ui_wdecor_get_rsztype() */

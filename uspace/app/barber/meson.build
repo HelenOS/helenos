@@ -61,6 +61,39 @@ _images = files(
 	'gfx/frame30.tga.gz',
 )
 
+_images_tiny = files(
+	'gfx-tiny/frame01t.tga.gz',
+	'gfx-tiny/frame02t.tga.gz',
+	'gfx-tiny/frame03t.tga.gz',
+	'gfx-tiny/frame04t.tga.gz',
+	'gfx-tiny/frame05t.tga.gz',
+	'gfx-tiny/frame06t.tga.gz',
+	'gfx-tiny/frame07t.tga.gz',
+	'gfx-tiny/frame08t.tga.gz',
+	'gfx-tiny/frame09t.tga.gz',
+	'gfx-tiny/frame10t.tga.gz',
+	'gfx-tiny/frame11t.tga.gz',
+	'gfx-tiny/frame12t.tga.gz',
+	'gfx-tiny/frame13t.tga.gz',
+	'gfx-tiny/frame14t.tga.gz',
+	'gfx-tiny/frame15t.tga.gz',
+	'gfx-tiny/frame16t.tga.gz',
+	'gfx-tiny/frame17t.tga.gz',
+	'gfx-tiny/frame18t.tga.gz',
+	'gfx-tiny/frame19t.tga.gz',
+	'gfx-tiny/frame20t.tga.gz',
+	'gfx-tiny/frame21t.tga.gz',
+	'gfx-tiny/frame22t.tga.gz',
+	'gfx-tiny/frame23t.tga.gz',
+	'gfx-tiny/frame24t.tga.gz',
+	'gfx-tiny/frame25t.tga.gz',
+	'gfx-tiny/frame26t.tga.gz',
+	'gfx-tiny/frame27t.tga.gz',
+	'gfx-tiny/frame28t.tga.gz',
+	'gfx-tiny/frame29t.tga.gz',
+	'gfx-tiny/frame30t.tga.gz',
+)
+
 _tarball = custom_target('barber_images.tar',
 	input: _images,
 	output: 'barber_images.tar',
@@ -69,10 +102,12 @@ _tarball = custom_target('barber_images.tar',
 
 # TODO
 
+# Normal images
+
 _images_zip = custom_target('barber_images.zip',
 	input : _images,
 	output : [ 'images.zip' ],
-	command : [ mkarray, '@OUTDIR@', 'images', 'image', uspace_as_prolog, '.data', '@INPUT@' ],
+	command : [ mkarray, '@OUTDIR@', 'images', 'image', 'image', uspace_as_prolog, '.data', '@INPUT@' ],
 )
 _imgs_s = custom_target('barber_images.s',
 	input : _images_zip,
@@ -93,4 +128,31 @@ _imgs_desc_c = custom_target('barber_images_desc.c',
 	capture : true,
 )
 
-src = [ files('barber.c'), _imgs_s, _imgs_h, _imgs_desc_c ]
+# Tiny images
+
+_images_tiny_zip = custom_target('barber_images_tiny.zip',
+	input : _images_tiny,
+	output : [ 'images_tiny.zip' ],
+	command : [ mkarray, '@OUTDIR@', 'images_tiny', 'image', 'image_tiny', uspace_as_prolog, '.data', '@INPUT@' ],
+)
+_imgs_tiny_s = custom_target('barber_images_tiny.s',
+	input : _images_tiny_zip,
+	output : [ 'images_tiny.s' ],
+	command : [ unzip, '-p', '@INPUT@', 'images_tiny.s' ],
+	capture : true,
+)
+_imgs_tiny_h = custom_target('barber_images_tiny.h',
+	input : _images_tiny_zip,
+	output : [ 'images_tiny.h' ],
+	command : [ unzip, '-p', '@INPUT@', 'images_tiny.h' ],
+	capture : true,
+)
+_imgs_tiny_desc_c = custom_target('barber_images_tiny_desc.c',
+	input : _images_tiny_zip,
+	output : [ 'images_tiny_desc.c' ],
+	command : [ unzip, '-p', '@INPUT@', 'images_tiny_desc.c' ],
+	capture : true,
+)
+
+src = [ files('barber.c'), _imgs_s, _imgs_h, _imgs_desc_c,
+    _imgs_tiny_s, _imgs_tiny_h, _imgs_tiny_desc_c ]

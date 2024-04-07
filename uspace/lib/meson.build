@@ -32,7 +32,10 @@ always_static = not CONFIG_BUILD_SHARED_LIBS
 installed_libs = [
 	'c',
 	'math',
+	'console',
 	'display',
+	'input',
+	'output',
 	'pixconv',
 	'posix',
 	'clui',

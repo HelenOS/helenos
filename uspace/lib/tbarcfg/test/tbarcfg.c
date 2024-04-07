@@ -29,11 +29,18 @@
 #include <errno.h>
 #include <pcut/pcut.h>
 #include <tbarcfg/tbarcfg.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 PCUT_INIT;
 
 PCUT_TEST_SUITE(tbarcfg);
+
+typedef struct {
+	bool notified;
+} tbarcfg_test_resp_t;
+
+static void test_cb(void *);
 
 /** Creating, opening and closing taskbar configuration */
 PCUT_TEST(create_open_close)
@@ -551,6 +558,35 @@ PCUT_TEST(entry_move_down)
 
 	tbarcfg_close(tbcfg);
 	remove(fname);
+}
+
+/** Notifications can be delivered from tbarcfg_notify() to a listener. */
+PCUT_TEST(notify)
+{
+	errno_t rc;
+	tbarcfg_listener_t *lst;
+	tbarcfg_test_resp_t test_resp;
+
+	test_resp.notified = false;
+
+	printf("create listener resp=%p\n", (void *)&test_resp);
+	rc = tbarcfg_listener_create(TBARCFG_NOTIFY_DEFAULT,
+	    test_cb, &test_resp, &lst);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	PCUT_ASSERT_TRUE(test_resp.notified);
+	tbarcfg_listener_destroy(lst);
+}
+
+static void test_cb(void *arg)
+{
+	tbarcfg_test_resp_t *resp = (tbarcfg_test_resp_t *)arg;
+
+	printf("test_cb: executing resp=%p\n", (void *)resp);
+	resp->notified = true;
 }
 
 PCUT_EXPORT(tbarcfg);

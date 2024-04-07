@@ -63,16 +63,18 @@ static ui_pbutton_cb_t tbsmenu_button_cb = {
 
 static void tbsmenu_smenu_entry_cb(ui_menu_entry_t *, void *);
 static errno_t tbsmenu_entry_start(tbsmenu_entry_t *);
+static void tbsmenu_cmd_fini(tbsmenu_cmd_t *);
 
 /** Create taskbar start menu.
  *
  * @param window Containing window
  * @param fixed Fixed layout to which start button will be added
+ * @param dspec Display specification (for passing to applications)
  * @param rtbsmenu Place to store pointer to new start menu
  * @return @c EOK on success or an error code
  */
 errno_t tbsmenu_create(ui_window_t *window, ui_fixed_t *fixed,
-    tbsmenu_t **rtbsmenu)
+    const char *dspec, tbsmenu_t **rtbsmenu)
 {
 	ui_resource_t *res = ui_window_get_res(window);
 	tbsmenu_t *tbsmenu = NULL;
@@ -80,6 +82,12 @@ errno_t tbsmenu_create(ui_window_t *window, ui_fixed_t *fixed,
 
 	tbsmenu = calloc(1, sizeof(tbsmenu_t));
 	if (tbsmenu == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	tbsmenu->display_spec = str_dup(dspec);
+	if (tbsmenu->display_spec == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
@@ -110,6 +118,8 @@ errno_t tbsmenu_create(ui_window_t *window, ui_fixed_t *fixed,
 	*rtbsmenu = tbsmenu;
 	return EOK;
 error:
+	if (tbsmenu != NULL && tbsmenu->display_spec != NULL)
+		free(tbsmenu->display_spec);
 	if (tbsmenu != NULL)
 		ui_pbutton_destroy(tbsmenu->sbutton);
 	if (tbsmenu != NULL)
@@ -133,6 +143,20 @@ errno_t tbsmenu_load(tbsmenu_t *tbsmenu, const char *repopath)
 	const char *cmd;
 	bool terminal;
 	errno_t rc;
+
+	if (tbsmenu->repopath != NULL)
+		free(tbsmenu->repopath);
+
+	tbsmenu->repopath = str_dup(repopath);
+	if (tbsmenu->repopath == NULL)
+		return ENOMEM;
+
+	/* Remove existing entries */
+	tentry = tbsmenu_first(tbsmenu);
+	while (tentry != NULL) {
+		tbsmenu_remove(tbsmenu, tentry, false);
+		tentry = tbsmenu_first(tbsmenu);
+	}
 
 	rc = tbarcfg_open(repopath, &tbcfg);
 	if (rc != EOK)
@@ -169,6 +193,18 @@ error:
 	return rc;
 }
 
+/** Reload start menu from repository (or schedule reload).
+ *
+ * @param tbsmenu Start menu
+ */
+void tbsmenu_reload(tbsmenu_t *tbsmenu)
+{
+	if (!tbsmenu_is_open(tbsmenu))
+		(void) tbsmenu_load(tbsmenu, tbsmenu->repopath);
+	else
+		tbsmenu->needs_reload = true;
+}
+
 /** Set start menu rectangle.
  *
  * @param tbsmenu Start menu
@@ -197,6 +233,9 @@ void tbsmenu_open(tbsmenu_t *tbsmenu)
 void tbsmenu_close(tbsmenu_t *tbsmenu)
 {
 	ui_menu_close(tbsmenu->smenu);
+
+	if (tbsmenu->needs_reload)
+		(void) tbsmenu_load(tbsmenu, tbsmenu->repopath);
 }
 
 /** Determine if taskbar start menu is open.
@@ -446,39 +485,46 @@ static void tbsmenu_button_down(ui_pbutton_t *pbutton, void *arg)
  */
 static errno_t tbsmenu_cmd_split(const char *str, tbsmenu_cmd_t *cmd)
 {
+	char *buf;
 	char *arg;
 	char *next;
 	size_t cnt;
 
-	cmd->buf = str_dup(str);
-	if (cmd->buf == NULL)
+	buf = str_dup(str);
+	if (buf == NULL)
 		return ENOMEM;
 
 	/* Count the entries */
 	cnt = 0;
-	arg = str_tok(cmd->buf, " ", &next);
+	arg = str_tok(buf, " ", &next);
 	while (arg != NULL) {
 		++cnt;
 		arg = str_tok(next, " ", &next);
 	}
 
 	/* Need to copy again as buf was mangled */
-	free(cmd->buf);
-	cmd->buf = str_dup(str);
-	if (cmd->buf == NULL)
+	free(buf);
+	buf = str_dup(str);
+	if (buf == NULL)
 		return ENOMEM;
 
 	cmd->argv = calloc(cnt + 1, sizeof(char *));
 	if (cmd->argv == NULL) {
-		free(cmd->buf);
+		free(buf);
 		return ENOMEM;
 	}
 
-	/* Fill in pointers */
+	/* Copy individual arguments */
 	cnt = 0;
-	arg = str_tok(cmd->buf, " ", &next);
+	arg = str_tok(buf, " ", &next);
 	while (arg != NULL) {
-		cmd->argv[cnt++] = arg;
+		cmd->argv[cnt] = str_dup(arg);
+		if (cmd->argv[cnt] == NULL) {
+			tbsmenu_cmd_fini(cmd);
+			return ENOMEM;
+		}
+		++cnt;
+
 		arg = str_tok(next, " ", &next);
 	}
 
@@ -493,8 +539,47 @@ static errno_t tbsmenu_cmd_split(const char *str, tbsmenu_cmd_t *cmd)
  */
 static void tbsmenu_cmd_fini(tbsmenu_cmd_t *cmd)
 {
+	char **cp;
+
+	/* Free all pointers in NULL-terminated list */
+	cp = cmd->argv;
+	while (*cp != NULL) {
+		free(*cp);
+		++cp;
+	}
+
+	/* Free the array of pointers */
 	free(cmd->argv);
-	free(cmd->buf);
+}
+
+/** Free command structure.
+ *
+ * @param cmd Command
+ * @param entry Start menu entry
+ * @param dspec Display specification
+ * @return EOK on success or an error code
+ */
+static errno_t tbsmenu_cmd_subst(tbsmenu_cmd_t *cmd, tbsmenu_entry_t *entry,
+    const char *dspec)
+{
+	char **cp;
+
+	(void)entry;
+
+	/* Walk NULL-terminated list of arguments */
+	cp = cmd->argv;
+	while (*cp != NULL) {
+		if (str_cmp(*cp, "%d") == 0) {
+			/* Display specification */
+			free(*cp);
+			*cp = str_dup(dspec);
+			if (*cp == NULL)
+				return ENOMEM;
+		}
+		++cp;
+	}
+
+	return EOK;
 }
 
 /** Execute start menu entry.
@@ -515,15 +600,33 @@ static errno_t tbsmenu_entry_start(tbsmenu_entry_t *entry)
 	int cnt;
 	char **cp;
 	const char **targv = NULL;
+	char *dspec = NULL;
+	sysarg_t idev_id;
+	int rv;
 	errno_t rc;
 	ui_t *ui;
 
 	ui = ui_window_get_ui(entry->tbsmenu->window);
 	suspended = false;
 
+	idev_id = ui_menu_get_idev_id(entry->tbsmenu->smenu);
+
+	rv = asprintf(&dspec, "%s?idev=%zu",
+	    entry->tbsmenu->display_spec, (size_t)idev_id);
+	if (rv < 0)
+		return ENOMEM;
+
+	/* Split command string into individual arguments */
 	rc = tbsmenu_cmd_split(entry->cmd, &cmd);
-	if (rc != EOK)
+	if (rc != EOK) {
+		free(dspec);
 		return rc;
+	}
+
+	/* Substitute metacharacters in command */
+	rc = tbsmenu_cmd_subst(&cmd, entry, dspec);
+	if (rc != EOK)
+		goto error;
 
 	/* Free up and clean console for the child task. */
 	rc = ui_suspend(ui);
@@ -541,15 +644,17 @@ static errno_t tbsmenu_entry_start(tbsmenu_entry_t *entry)
 			++cp;
 		}
 
-		targv = calloc(cnt + 3, sizeof(char **));
+		targv = calloc(cnt + 5, sizeof(char **));
 		if (targv == NULL)
 			goto error;
 
 		targv[0] = "/app/terminal";
-		targv[1] = "-c";
+		targv[1] = "-d";
+		targv[2] = dspec;
+		targv[3] = "-c";
 
 		for (i = 0; i <= cnt; i++) {
-			targv[2 + i] = cmd.argv[i];
+			targv[4 + i] = cmd.argv[i];
 		}
 
 		rc = task_spawnv(&id, &wait, targv[0], targv);
@@ -577,6 +682,7 @@ static errno_t tbsmenu_entry_start(tbsmenu_entry_t *entry)
 	(void) ui_paint(ui);
 	return EOK;
 error:
+	free(dspec);
 	if (targv != NULL)
 		free(targv);
 	tbsmenu_cmd_fini(&cmd);

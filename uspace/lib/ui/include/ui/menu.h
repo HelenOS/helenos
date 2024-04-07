@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,7 @@ extern errno_t ui_menu_paint(ui_menu_t *, gfx_coord2_t *);
 extern ui_evclaim_t ui_menu_kbd_event(ui_menu_t *, kbd_event_t *);
 extern ui_evclaim_t ui_menu_pos_event(ui_menu_t *, gfx_coord2_t *,
     pos_event_t *);
+extern sysarg_t ui_menu_get_idev_id(ui_menu_t *);
 
 #endif
 

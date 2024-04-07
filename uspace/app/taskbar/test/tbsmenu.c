@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ PCUT_TEST(create_destroy)
 	rc = ui_fixed_create(&fixed);
 	ui_window_add(window, ui_fixed_ctl(fixed));
 
-	rc = tbsmenu_create(window, fixed, &tbsmenu);
+	rc = tbsmenu_create(window, fixed, UI_DISPLAY_DEFAULT, &tbsmenu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	tbsmenu_destroy(tbsmenu);
@@ -91,7 +91,7 @@ PCUT_TEST(open_close_is_open)
 	rc = ui_fixed_create(&fixed);
 	ui_window_add(window, ui_fixed_ctl(fixed));
 
-	rc = tbsmenu_create(window, fixed, &tbsmenu);
+	rc = tbsmenu_create(window, fixed, UI_DISPLAY_DEFAULT, &tbsmenu);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	PCUT_ASSERT_FALSE(tbsmenu_is_open(tbsmenu));

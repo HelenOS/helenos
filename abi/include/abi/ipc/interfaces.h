@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -200,6 +200,8 @@ typedef enum {
 	    FOURCC_COMPACT('w', 'm', 'g', 't') | IFACE_EXCHANGE_SERIALIZE,
 	INTERFACE_WNDMGT_CB =
 	    FOURCC_COMPACT('w', 'm', 'g', 't') | IFACE_EXCHANGE_SERIALIZE | IFACE_MOD_CALLBACK,
+	INTERFACE_TBARCFG_NOTIFY =
+	    FOURCC_COMPACT('t', 'b', 'c', 'f') | IFACE_EXCHANGE_SERIALIZE,
 	INTERFACE_PCAP_CONTROL =
 	    FOURCC_COMPACT('p', 'c', 't', 'l') | IFACE_EXCHANGE_SERIALIZE,
 } iface_t;

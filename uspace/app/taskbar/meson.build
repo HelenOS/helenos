@@ -47,6 +47,4 @@ test_src = files(
 	'test/wndlist.c',
 )
 
-if install_nonessential_data
-	installed_data += { 'name': 'taskbar.sif', 'dir': '/cfg' }
-endif
+installed_data += { 'name': 'taskbar.sif', 'dir': '/cfg' }

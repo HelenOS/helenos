@@ -70,6 +70,14 @@ struct smenu_entry {
 	bool terminal;
 };
 
+/** Taskbar configuration listener */
+typedef struct tbarcfg_listener {
+	/** Notification callback */
+	void (*cb)(void *);
+	/** Callback argument */
+	void *arg;
+} tbarcfg_listener_t;
+
 extern errno_t smenu_entry_new(tbarcfg_t *, sif_node_t *, const char *,
     const char *, bool, smenu_entry_t **);
 extern errno_t smenu_entry_sep_new(tbarcfg_t *, sif_node_t *, smenu_entry_t **);
