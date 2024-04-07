@@ -1305,16 +1305,12 @@ errno_t rtl8139_dev_add(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Failed binding device function");
 		goto err_fun_create;
 	}
-	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
-	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding function to category");
-		goto err_fun_bind;
-	}
 
-	rc = ddf_fun_add_to_category(fun, "pcap");
+	rc = nic_fun_add_to_cats(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding function to category pcap");
-		goto err_fun_bind;
+		ddf_msg(LVL_ERROR, "Failed adding function to categories");
+		ddf_fun_unbind(fun);
+		return rc;
 	}
 
 	ddf_msg(LVL_NOTE, "The %s device has been successfully initialized.",
@@ -1322,8 +1318,8 @@ errno_t rtl8139_dev_add(ddf_dev_t *dev)
 
 	return EOK;
 
-err_fun_bind:
-	ddf_fun_unbind(fun);
+	// err_fun_bind:
+	// ddf_fun_unbind(fun);
 err_fun_create:
 	ddf_fun_destroy(fun);
 err_srv:
