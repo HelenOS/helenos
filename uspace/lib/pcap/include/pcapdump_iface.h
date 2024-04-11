@@ -50,6 +50,7 @@ typedef enum {
 extern errno_t pcapdump_init(pcap_iface_t *);
 extern void pcapdump_packet(pcap_iface_t *, const void *, size_t);
 
+extern void pcapdump_conn(ipc_call_t *, void *);
 #endif
 
 /** @}

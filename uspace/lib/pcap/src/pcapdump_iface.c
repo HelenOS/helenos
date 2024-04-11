@@ -82,10 +82,10 @@ static void pcapdump_stop_srv(ipc_call_t *icall, pcap_iface_t *iface)
 	async_answer_0(icall, EOK);
 }
 
-static void pcapdump_conn(ipc_call_t *icall, void *arg)
+void pcapdump_conn(ipc_call_t *icall, void *arg)
 {
 	pcap_iface_t *iface = (pcap_iface_t *)arg;
-
+	printf("pcapdump_conn\n");
 	assert((iface != NULL) && "pcapdump requires pcap interface\n");
 
 	/* Accept connection */
