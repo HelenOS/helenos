@@ -51,33 +51,33 @@ static void pcapctl_dump_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-static errno_t pcapctl_cat_get_svc(int *index, service_id_t *svc)
-{
-	errno_t rc;
-	category_id_t pcap_cat;
-	size_t count;
-	service_id_t *pcap_svcs = NULL;
+// static errno_t pcapctl_cat_get_svc(int *index, service_id_t *svc)
+// {
+// 	errno_t rc;
+// 	category_id_t pcap_cat;
+// 	size_t count;
+// 	service_id_t *pcap_svcs = NULL;
 
-	rc = loc_category_get_id("pcap", &pcap_cat, 0);
-	if (rc != EOK) {
-		printf("Error resolving category 'pcap'.\n");
-		return rc;
-	}
+// 	rc = loc_category_get_id("pcap", &pcap_cat, 0);
+// 	if (rc != EOK) {
+// 		printf("Error resolving category 'pcap'.\n");
+// 		return rc;
+// 	}
 
-	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
-	if (rc != EOK) {
-		printf("Error resolving list of pcap services.\n");
-		free(pcap_svcs);
-		return rc;
-	}
-	if (*index < (int)count) {
-		*svc =  pcap_svcs[*index];
-		free(pcap_svcs);
-		return EOK;
-	}
+// 	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
+// 	if (rc != EOK) {
+// 		printf("Error resolving list of pcap services.\n");
+// 		free(pcap_svcs);
+// 		return rc;
+// 	}
+// 	if (*index < (int)count) {
+// 		*svc =  pcap_svcs[*index];
+// 		free(pcap_svcs);
+// 		return EOK;
+// 	}
 
-	return ENOENT;
-}
+// 	return ENOENT;
+// }
 
 errno_t pcapctl_is_valid_device(int *index)
 {
@@ -148,24 +148,15 @@ errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
 	if (sess == NULL)
 		return ENOMEM;
 
-	printf("number: %d\n", *index);
-	if (*index == -1) {
+	// rc  = pcapctl_cat_get_svc(index, &svc);
+	// if (rc != EOK) {
+	// 	printf("Error finding the device with index: %d\n", *index);
+	// 	goto error;
+	// }
 
-		rc = loc_service_get_id("net/eth1", &svc, 0);
-		if (rc != EOK)
-		{
-			fprintf(stderr, "Error getting service id.\n");
-			return ENOENT;
-		}
-	}
-	else {
-		rc  = pcapctl_cat_get_svc(index, &svc);
-		if (rc != EOK) {
-			printf("Error finding the device with index: %d\n", *index);
-			goto error;
-		}
-	}
-
+	rc = loc_service_get_id("net/inet", &svc, 0);
+	if (rc != EOK)
+		return ENOENT;
 
 	async_sess_t *new_session = loc_service_connect(svc, INTERFACE_PCAP_CONTROL, 0);
 	if (new_session == NULL) {
@@ -173,7 +164,7 @@ errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
 		rc =  EREFUSED;
 		goto error;
 	}
-
+	printf("got new session\n");
 	sess->sess = new_session;
 	*rsess = sess;
 	return EOK;
@@ -199,6 +190,7 @@ errno_t pcapctl_dump_close(pcapctl_sess_t *sess)
  */
 errno_t pcapctl_dump_start(const char *name, pcapctl_sess_t *sess)
 {
+	printf("pcapctl_dump_start\n");
 	errno_t rc;
 	async_exch_t *exch = async_exchange_begin(sess->sess);
 

@@ -48,6 +48,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <task.h>
+#include <pcapdump_iface.h>
 #include "addrobj.h"
 #include "icmp.h"
 #include "icmp_std.h"
@@ -62,6 +63,8 @@
 
 #define NAME "inetsrv"
 
+/** Interface for dumping packets */
+pcap_iface_t pcapdump;
 
 static inet_naddr_t solicited_node_mask = {
 	.version = ip_v6,
@@ -117,7 +120,11 @@ static errno_t inet_init(void)
 	    inetping_conn, NULL, &port);
 	if (rc != EOK)
 		return rc;
-
+	rc = async_create_port(INTERFACE_PCAP_CONTROL,
+	    pcapdump_conn, &pcapdump, &port);
+	if (rc != EOK) {
+		return rc;
+	}
 	rc = loc_server_register(NAME, &srv);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
@@ -202,7 +209,8 @@ errno_t inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
 		return inet_link_send_dgram(ilink, dgram->src.addr,
 		    dgram->dest.addr, dgram, proto, ttl, df);
 	}
-
+	printf("SENDING: packet size is - %d\n", dgram->size);
+	pcapdump_packet(&pcapdump, dgram->data, dgram->size);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dgram to be routed");
 
 	/* Route packet using source/destination addresses */
@@ -540,6 +548,8 @@ errno_t inet_recv_packet(inet_packet_t *packet)
 			dgram.tos = packet->tos;
 			dgram.data = packet->data;
 			dgram.size = packet->size;
+			printf("RECEIVING: packet size is - %d\n", packet->size);
+			pcapdump_packet(&pcapdump, packet->data, packet->size);
 			return inet_recv_dgram_local(&dgram, packet->proto);
 		} else {
 			/* It is a fragment, queue it for reassembly */
@@ -560,11 +570,17 @@ int main(int argc, char *argv[])
 		printf(NAME ": Failed to initialize logging.\n");
 		return 1;
 	}
+	rc = pcap_iface_init(&pcapdump);
 
+	if (rc != EOK) {
+		printf("Failed creating pcap interface: %s", str_error(rc));
+		return rc;
+	}
 	rc = inet_init();
 	if (rc != EOK)
 		return 1;
 
+	printf(NAME ": Initialized dump iface from inetsrv.\n");
 	printf(NAME ": Accepting connections.\n");
 
 	task_retval(0);

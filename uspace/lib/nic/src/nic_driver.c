@@ -522,7 +522,7 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 	 * Note: this function must not lock main lock, because loopback driver
 	 * 		 calls it inside send_frame handler (with locked main lock)
 	 */
-	pcapdump_packet(nic_get_pcap_iface(nic_data), frame->data, frame->size);
+	//pcapdump_packet(nic_get_pcap_iface(nic_data), frame->data, frame->size);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_frame_type_t frame_type;
 	bool check = nic_rxc_check(&nic_data->rx_control, frame->data,
@@ -650,10 +650,10 @@ nic_t *nic_create_and_bind(ddf_dev_t *device)
 
 	nic_data->dev = device;
 
-	errno_t pcap_rc  = pcapdump_init(nic_get_pcap_iface(nic_data));
-	if (pcap_rc != EOK) {
-		printf("Failed creating pcapdump port\n");
-	}
+	// errno_t pcap_rc  = pcapdump_init(nic_get_pcap_iface(nic_data));
+	// if (pcap_rc != EOK) {
+	// 	printf("Failed creating pcapdump port\n");
+	// }
 
 	return nic_data;
 }
