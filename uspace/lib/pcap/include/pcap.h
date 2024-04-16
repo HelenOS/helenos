@@ -52,6 +52,7 @@
 #define PCAP_SNAP_LEN 0x00040000
 
 #define PCAP_LINKTYPE_ETHERNET 1    /* IEEE 802.3 Ethernet*/
+#define PCAP_LINKTYPE_IP_RAW 101
 
 /** Header of the .pcap file
  */

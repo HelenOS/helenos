@@ -47,6 +47,13 @@ typedef struct pcap_iface {
 
 extern void pcap_close_file(void);
 extern errno_t pcap_iface_init(pcap_iface_t *);
+//init to file
+//init to serial
+//add packet, dostane strukturu, data, velikost ... to to this pcap_iface_t
+// v ramci init jeste linktype prg
+//set snaplen taky lze pridavat prg
+//create kam posila 
+// init
 extern errno_t pcap_init(const char *);
 extern void pcap_add_packet(const void *data, size_t size);
 
