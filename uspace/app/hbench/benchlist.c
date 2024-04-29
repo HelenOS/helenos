@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2018 Vojtech Horky
  * All rights reserved.
  *
@@ -41,6 +41,8 @@ benchmark_t *benchmarks[] = {
 	&benchmark_dir_read,
 	&benchmark_fibril_mutex,
 	&benchmark_file_read,
+	&benchmark_rand_read,
+	&benchmark_seq_read,
 	&benchmark_malloc1,
 	&benchmark_malloc2,
 	&benchmark_ns_ping,
