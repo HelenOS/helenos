@@ -72,7 +72,7 @@ static bool runner(bench_env_t *env, bench_run_t *run, uint64_t size)
 		goto error;
 	}
 
-	rc = block_init(svcid, 2048);
+	rc = block_init(svcid);
 	if (rc != EOK) {
 		bench_run_fail(run, "failed opening block device '%s'",
 		    disk);

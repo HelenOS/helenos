@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
- * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -149,7 +149,7 @@ devname:
 		return 2;
 	}
 
-	rc = block_init(service_id, 2048);
+	rc = block_init(service_id);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;

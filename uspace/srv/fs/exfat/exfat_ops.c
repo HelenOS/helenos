@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
@@ -1019,7 +1020,7 @@ static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
 	exfat_bs_t *bs;
 
 	/* initialize libblock */
-	rc = block_init(service_id, BS_SIZE);
+	rc = block_init(service_id);
 	if (rc != EOK)
 		return rc;
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2012 Julia Medvedeva
  * All rights reserved.
@@ -322,7 +323,7 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 		instance->sector_size = 2048;
 
 	/* initialize block cache */
-	errno_t rc = block_init(service_id, MAX_SIZE);
+	errno_t rc = block_init(service_id);
 	if (rc != EOK) {
 		free(instance);
 		return rc;

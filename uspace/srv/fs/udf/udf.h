@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2012 Julia Medvedeva
  * All rights reserved.
@@ -50,8 +51,6 @@
 	((node) ? (fs_node_t *) ((node)->fs_node) : NULL)
 
 #define BS_BLOCK     0
-#define MIN_SIZE     512
-#define MAX_SIZE     8192
 #define DEFAULT_VOL  0
 
 #define NODE_DIR   0

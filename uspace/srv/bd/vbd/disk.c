@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -498,7 +498,7 @@ errno_t vbds_disk_add(service_id_t sid)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "block_init(%zu)", sid);
-	rc = block_init(sid, 2048);
+	rc = block_init(sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed opening block device %s.",
 		    disk->svc_name);

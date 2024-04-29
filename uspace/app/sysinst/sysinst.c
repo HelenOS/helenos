@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -360,7 +360,7 @@ static errno_t sysinst_copy_boot_blocks(const char *devp)
 		return rc;
 
 	printf("sysinst_copy_boot_blocks: block_init.\n");
-	rc = block_init(sid, 512);
+	rc = block_init(sid);
 	if (rc != EOK)
 		return rc;
 

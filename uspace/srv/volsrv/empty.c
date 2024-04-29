@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@ errno_t volsrv_part_is_empty(service_id_t sid, bool *rempty)
 	errno_t rc;
 	label_bd_t lbd;
 
-	rc = block_init(sid, 2048);
+	rc = block_init(sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error opening "
 		    "block device service %zu", sid);
@@ -82,7 +82,7 @@ errno_t volsrv_part_empty(service_id_t sid)
 	errno_t rc;
 	label_bd_t lbd;
 
-	rc = block_init(sid, 2048);
+	rc = block_init(sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error opening "
 		    "block device service %zu", sid);

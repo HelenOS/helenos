@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
@@ -82,7 +82,7 @@ static errno_t ext4_filesystem_init(ext4_filesystem_t *fs, service_id_t service_
 	fs->device = service_id;
 
 	/* Initialize block library (4096 is size of communication channel) */
-	rc = block_init(fs->device, 4096);
+	rc = block_init(fs->device);
 	if (rc != EOK)
 		goto err;
 
@@ -264,7 +264,7 @@ errno_t ext4_filesystem_create(ext4_cfg_t *cfg, service_id_t service_id)
 	uint32_t idx;
 
 	/* Initialize block library (4096 is size of communication channel) */
-	rc = block_init(service_id, 4096);
+	rc = block_init(service_id);
 	if (rc != EOK)
 		goto err;
 

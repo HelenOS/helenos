@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2018 Martin Decky
  * All rights reserved.
  *
@@ -58,7 +59,7 @@ static int bd_tar_open(tar_file_t *tar)
 	if (ret != EOK)
 		return ret;
 
-	ret = block_init(state->sid, 4096);
+	ret = block_init(state->sid);
 	if (ret != EOK)
 		return ret;
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2008 Martin Decky
  * Copyright (c) 2011 Martin Sucha
@@ -98,7 +99,7 @@ enum cache_mode {
 	CACHE_MODE_WB
 };
 
-extern errno_t block_init(service_id_t, size_t);
+extern errno_t block_init(service_id_t);
 extern void block_fini(service_id_t);
 
 extern errno_t block_bb_read(service_id_t, aoff64_t);
