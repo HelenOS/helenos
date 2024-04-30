@@ -105,8 +105,6 @@ static bool runner(bench_env_t *env, bench_run_t *run, uint64_t size)
 		goto error;
 	}
 
-	printf("NOTE Block size=%zu nb=%u\n", block_size, nb);
-
 	bench_run_start(run);
 	for (i = 0; i < size; i++) {
 		/* Generate pseudo-random block address */
