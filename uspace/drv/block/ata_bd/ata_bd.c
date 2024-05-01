@@ -114,6 +114,7 @@ static errno_t ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
 static errno_t ata_pcmd_read_toc(disk_t *disk, uint8_t ses,
     void *obuf, size_t obuf_size);
 static void disk_print_summary(disk_t *d);
+static size_t ata_disk_maxnb(disk_t *d);
 static errno_t coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
 static void coord_sc_program(ata_ctrl_t *ctrl, const block_coord_t *bc,
     uint16_t scnt);
@@ -513,25 +514,30 @@ static errno_t ata_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     void *buf, size_t size)
 {
 	disk_t *disk = bd_srv_disk(bd);
+	size_t maxnb;
+	size_t nb;
 	errno_t rc;
 
 	if (size < cnt * disk->block_size)
 		return EINVAL;
 
+	/* Maximum number of blocks to transfer at the same time */
+	maxnb = ata_disk_maxnb(disk);
 	while (cnt > 0) {
+		nb = min(maxnb, cnt);
 		if (disk->dev_type == ata_reg_dev) {
-			rc = ata_rcmd_read(disk, ba, 1, buf);
+			rc = ata_rcmd_read(disk, ba, nb, buf);
 		} else {
-			rc = ata_pcmd_read_12(disk, ba, 1, buf,
+			rc = ata_pcmd_read_12(disk, ba, nb, buf,
 			    disk->block_size);
 		}
 
 		if (rc != EOK)
 			return rc;
 
-		++ba;
-		--cnt;
-		buf += disk->block_size;
+		ba += nb;
+		cnt -= nb;
+		buf += disk->block_size * nb;
 	}
 
 	return EOK;
@@ -550,6 +556,8 @@ static errno_t ata_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	disk_t *disk = bd_srv_disk(bd);
+	size_t maxnb;
+	size_t nb;
 	errno_t rc;
 
 	if (disk->dev_type != ata_reg_dev)
@@ -558,14 +566,17 @@ static errno_t ata_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	if (size < cnt * disk->block_size)
 		return EINVAL;
 
+	/* Maximum number of blocks to transfer at the same time */
+	maxnb = ata_disk_maxnb(disk);
 	while (cnt > 0) {
-		rc = ata_rcmd_write(disk, ba, 1, buf);
+		nb = min(maxnb, cnt);
+		rc = ata_rcmd_write(disk, ba, nb, buf);
 		if (rc != EOK)
 			return rc;
 
-		++ba;
-		--cnt;
-		buf += disk->block_size;
+		ba += nb;
+		cnt -= nb;
+		buf += disk->block_size * nb;
 	}
 
 	return EOK;
@@ -608,25 +619,33 @@ static errno_t ata_pio_data_in(disk_t *disk, void *obuf, size_t obuf_size,
 	ata_ctrl_t *ctrl = disk->ctrl;
 	uint16_t data;
 	size_t i;
+	size_t bidx;
 	uint8_t status;
 
-	/* XXX Support multiple blocks */
-	assert(nblocks == 1);
+	assert(nblocks > 0);
 	assert(blk_size % 2 == 0);
 
-	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
-		return EIO;
+	bidx = 0;
+	while (nblocks > 0) {
+		if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
+			return EIO;
 
-	if ((status & SR_DRQ) != 0) {
+		if ((status & SR_DRQ) == 0) {
+			break;
+		}
+
 		/* Read data from the device buffer. */
-
 		for (i = 0; i < blk_size / 2; i++) {
 			data = pio_read_16(&ctrl->cmd->data_port);
-			((uint16_t *) obuf)[i] = data;
+			((uint16_t *) obuf)[bidx++] = data;
 		}
+
+		--nblocks;
 	}
 
 	if ((status & SR_ERR) != 0)
+		return EIO;
+	if (nblocks > 0)
 		return EIO;
 
 	return EOK;
@@ -638,24 +657,32 @@ static errno_t ata_pio_data_out(disk_t *disk, const void *buf, size_t buf_size,
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	size_t i;
+	size_t bidx;
 	uint8_t status;
 
-	/* XXX Support multiple blocks */
-	assert(nblocks == 1);
+	assert(nblocks > 0);
 	assert(blk_size % 2 == 0);
 
-	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
-		return EIO;
+	bidx = 0;
+	while (nblocks > 0) {
+		if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
+			return EIO;
 
-	if ((status & SR_DRQ) != 0) {
+		if ((status & SR_DRQ) == 0)
+			break;
+
 		/* Write data to the device buffer. */
-
 		for (i = 0; i < blk_size / 2; i++) {
-			pio_write_16(&ctrl->cmd->data_port, ((uint16_t *) buf)[i]);
+			pio_write_16(&ctrl->cmd->data_port,
+			    ((uint16_t *) buf)[bidx++]);
 		}
+
+		--nblocks;
 	}
 
 	if (status & SR_ERR)
+		return EIO;
+	if (nblocks > 0)
 		return EIO;
 
 	return EOK;
@@ -780,6 +807,8 @@ static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	uint8_t status;
 	uint8_t drv_head;
 	size_t data_size;
+	size_t remain;
+	size_t bidx;
 	uint16_t val;
 
 	fibril_mutex_lock(&ctrl->lock);
@@ -815,31 +844,35 @@ static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	for (i = 0; i < (cpkt_size + 1) / 2; i++)
 		pio_write_16(&ctrl->cmd->data_port, ((uint16_t *) cpkt)[i]);
 
-	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&ctrl->lock);
-		return EIO;
-	}
+	bidx = 0;
+	remain = obuf_size;
+	while (remain > 0) {
+		if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+			fibril_mutex_unlock(&ctrl->lock);
+			return EIO;
+		}
 
-	if ((status & SR_DRQ) == 0) {
-		fibril_mutex_unlock(&ctrl->lock);
-		return EIO;
-	}
+		if ((status & SR_DRQ) == 0)
+			break;
 
-	/* Read byte count. */
-	data_size = (uint16_t) pio_read_8(&ctrl->cmd->cylinder_low) +
-	    ((uint16_t) pio_read_8(&ctrl->cmd->cylinder_high) << 8);
+		/* Read byte count. */
+		data_size = (uint16_t) pio_read_8(&ctrl->cmd->cylinder_low) +
+		    ((uint16_t) pio_read_8(&ctrl->cmd->cylinder_high) << 8);
 
-	/* Check whether data fits into output buffer. */
-	if (data_size > obuf_size) {
-		/* Output buffer is too small to store data. */
-		fibril_mutex_unlock(&ctrl->lock);
-		return EIO;
-	}
+		/* Check whether data fits into output buffer. */
+		if (data_size > obuf_size) {
+			/* Output buffer is too small to store data. */
+			fibril_mutex_unlock(&ctrl->lock);
+			return EIO;
+		}
 
-	/* Read data from the device buffer. */
-	for (i = 0; i < (data_size + 1) / 2; i++) {
-		val = pio_read_16(&ctrl->cmd->data_port);
-		((uint16_t *) obuf)[i] = val;
+		/* Read data from the device buffer. */
+		for (i = 0; i < (data_size + 1) / 2; i++) {
+			val = pio_read_16(&ctrl->cmd->data_port);
+			((uint16_t *) obuf)[bidx++] = val;
+		}
+
+		remain -= data_size;
 	}
 
 	fibril_mutex_unlock(&ctrl->lock);
@@ -848,7 +881,7 @@ static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 		return EIO;
 
 	if (rcvd_size != NULL)
-		*rcvd_size = data_size;
+		*rcvd_size = obuf_size - remain;
 	return EOK;
 }
 
@@ -1039,7 +1072,7 @@ static errno_t ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 	}
 
 	/* Program block coordinates into the device. */
-	coord_sc_program(ctrl, &bc, 1);
+	coord_sc_program(ctrl, &bc, blk_cnt);
 
 	pio_write_8(&ctrl->cmd->command, disk->amode == am_lba48 ?
 	    CMD_READ_SECTORS_EXT : CMD_READ_SECTORS);
@@ -1099,7 +1132,7 @@ static errno_t ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
 	}
 
 	/* Program block coordinates into the device. */
-	coord_sc_program(ctrl, &bc, 1);
+	coord_sc_program(ctrl, &bc, cnt);
 
 	pio_write_8(&ctrl->cmd->command, disk->amode == am_lba48 ?
 	    CMD_WRITE_SECTORS_EXT : CMD_WRITE_SECTORS);
@@ -1149,6 +1182,39 @@ static errno_t ata_rcmd_flush_cache(disk_t *disk)
 
 	fibril_mutex_unlock(&ctrl->lock);
 	return rc;
+}
+
+/** Get the maximum number of blocks to be transferred in one I/O
+ *
+ * @param d Disk
+ * @return Maximum number of blocks
+ */
+static size_t ata_disk_maxnb(disk_t *d)
+{
+	size_t maxnb;
+
+	maxnb = 0;
+
+	if (d->dev_type == ata_pkt_dev) {
+		/* Could be more depending on SCSI command support */
+		maxnb = 0x100;
+	} else {
+		switch (d->amode) {
+		case am_chs:
+		case am_lba28:
+			maxnb = 0x100;
+			break;
+		case am_lba48:
+			maxnb = 0x10000;
+			break;
+		}
+	}
+
+	/*
+	 * If using DMA, this needs to be further restricted not to
+	 * exceed DMA buffer size.
+	 */
+	return maxnb;
 }
 
 /** Calculate block coordinates.
