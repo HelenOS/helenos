@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,7 @@ static driver_t ata_driver = {
 	.driver_ops = &driver_ops
 };
 
-static errno_t ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
+static errno_t ata_get_res(ddf_dev_t *dev, ata_hwres_t *ata_res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
@@ -85,6 +85,8 @@ static errno_t ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
 		goto error;
 	}
 
+	/* I/O ranges */
+
 	addr_range_t *cmd_rng = &hw_res.io_ranges.ranges[0];
 	addr_range_t *ctl_rng = &hw_res.io_ranges.ranges[1];
 	ata_res->cmd = RNGABS(*cmd_rng);
@@ -98,6 +100,13 @@ static errno_t ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
 	if (RNGSZ(*cmd_rng) < sizeof(ata_cmd_t)) {
 		rc = EINVAL;
 		goto error;
+	}
+
+	/* IRQ */
+	if (hw_res.irqs.count > 0) {
+		ata_res->irq = hw_res.irqs.irqs[0];
+	} else {
+		ata_res->irq = -1;
 	}
 
 	return EOK;
@@ -114,7 +123,7 @@ error:
 static errno_t ata_dev_add(ddf_dev_t *dev)
 {
 	ata_ctrl_t *ctrl;
-	ata_base_t res;
+	ata_hwres_t res;
 	errno_t rc;
 
 	rc = ata_get_res(dev, &res);

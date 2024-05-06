@@ -54,18 +54,10 @@ ata-c1:
 	match 100 isa/ata_bd
 	io_range 0x1f0 8
 	io_range 0x3f0 8
+	irq 14
 
 ata-c2:
 	match 100 isa/ata_bd
 	io_range 0x170 8
 	io_range 0x370 8
-
-ata-c3:
-	match 100 isa/ata_bd
-	io_range 0x1e8 8
-	io_range 0x3e8 8
-
-ata-c4:
-	match 100 isa/ata_bd
-	io_range 0x168 8
-	io_range 0x368 8
+	irq 15

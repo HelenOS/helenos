@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include <bd_srv.h>
 #include <ddf/driver.h>
 #include <fibril_synch.h>
+#include <stdbool.h>
 #include <str.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -46,11 +47,12 @@
 
 #define NAME "ata_bd"
 
-/** Base addresses for ATA I/O blocks. */
+/** ATA hardware resources */
 typedef struct {
 	uintptr_t cmd;	/**< Command block base address. */
 	uintptr_t ctl;	/**< Control block base address. */
-} ata_base_t;
+	int irq;	/**< IRQ */
+} ata_hwres_t;
 
 /** Timeout definitions. Unit is 10 ms. */
 enum ata_timeout {
@@ -139,11 +141,24 @@ typedef struct ata_ctrl {
 	ata_cmd_t *cmd;
 	/** Control registers */
 	ata_ctl_t *ctl;
+	/** IRQ (-1 if not used) */
+	int irq;
+	/** IRQ handle */
+	cap_irq_handle_t ihandle;
 
 	/** Per-disk state. */
 	disk_t disk[MAX_DISKS];
 
+	/** Synchronize controller access */
 	fibril_mutex_t lock;
+	/** Synchronize access to irq_fired/irq_status */
+	fibril_mutex_t irq_lock;
+	/** Signalled by IRQ handler */
+	fibril_condvar_t irq_cv;
+	/** Set to true when interrupt occurs */
+	bool irq_fired;
+	/** Value of status register read by interrupt handler */
+	uint8_t irq_status;
 } ata_ctrl_t;
 
 typedef struct ata_fun {
@@ -152,7 +167,7 @@ typedef struct ata_fun {
 	bd_srvs_t bds;
 } ata_fun_t;
 
-extern errno_t ata_ctrl_init(ata_ctrl_t *, ata_base_t *);
+extern errno_t ata_ctrl_init(ata_ctrl_t *, ata_hwres_t *);
 extern errno_t ata_ctrl_remove(ata_ctrl_t *);
 extern errno_t ata_ctrl_gone(ata_ctrl_t *);
 

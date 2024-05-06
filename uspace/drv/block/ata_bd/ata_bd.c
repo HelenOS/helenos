@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@
  */
 
 #include <ddi.h>
+#include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <async.h>
 #include <as.h>
@@ -72,9 +73,6 @@
 
 #define NAME       "ata_bd"
 
-/** Number of defined legacy controller base addresses. */
-#define LEGACY_CTLS 4
-
 /**
  * Size of data returned from Identify Device or Identify Packet Device
  * command.
@@ -83,6 +81,8 @@ static const size_t identify_data_size = 512;
 
 static errno_t ata_bd_init_io(ata_ctrl_t *ctrl);
 static void ata_bd_fini_io(ata_ctrl_t *ctrl);
+static errno_t ata_bd_init_irq(ata_ctrl_t *ctrl);
+static void ata_bd_fini_irq(ata_ctrl_t *ctrl);
 
 static errno_t ata_bd_open(bd_srvs_t *, bd_srv_t *);
 static errno_t ata_bd_close(bd_srv_t *);
@@ -120,6 +120,8 @@ static void coord_sc_program(ata_ctrl_t *ctrl, const block_coord_t *bc,
     uint16_t scnt);
 static errno_t wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
     uint8_t *pstatus, unsigned timeout);
+static errno_t wait_irq(ata_ctrl_t *ctrl, uint8_t *pstatus, unsigned timeout);
+static void ata_irq_handler(ipc_call_t *call, ddf_dev_t *dev);
 
 bd_ops_t ata_bd_ops = {
 	.open = ata_bd_open,
@@ -130,6 +132,25 @@ bd_ops_t ata_bd_ops = {
 	.get_block_size = ata_bd_get_block_size,
 	.get_num_blocks = ata_bd_get_num_blocks,
 	.sync_cache = ata_bd_sync_cache
+};
+
+static const irq_pio_range_t ata_irq_ranges[] = {
+	{
+		.base = 0,
+		.size = sizeof(ata_cmd_t)
+	}
+};
+
+/** ATA interrupt pseudo code. */
+static const irq_cmd_t ata_irq_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = NULL,  /* will be patched in run-time */
+		.dstarg = 1
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
 };
 
 static disk_t *bd_srv_disk(bd_srv_t *bd)
@@ -143,17 +164,21 @@ static int disk_dev_idx(disk_t *disk)
 }
 
 /** Initialize ATA controller. */
-errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_base_t *res)
+errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_hwres_t *res)
 {
 	int i;
 	errno_t rc;
 	int n_disks;
+	bool irq_inited = false;
 
 	ddf_msg(LVL_DEBUG, "ata_ctrl_init()");
 
 	fibril_mutex_initialize(&ctrl->lock);
+	fibril_mutex_initialize(&ctrl->irq_lock);
+	fibril_condvar_initialize(&ctrl->irq_cv);
 	ctrl->cmd_physical = res->cmd;
 	ctrl->ctl_physical = res->ctl;
+	ctrl->irq = res->irq;
 
 	ddf_msg(LVL_NOTE, "I/O address %p/%p", (void *) ctrl->cmd_physical,
 	    (void *) ctrl->ctl_physical);
@@ -161,6 +186,12 @@ errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_base_t *res)
 	rc = ata_bd_init_io(ctrl);
 	if (rc != EOK)
 		return rc;
+
+	rc = ata_bd_init_irq(ctrl);
+	if (rc != EOK)
+		return rc;
+
+	irq_inited = true;
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		ddf_msg(LVL_DEBUG, "Identify drive %d...", i);
@@ -204,6 +235,8 @@ error:
 			    "disk %d.", i);
 		}
 	}
+	if (irq_inited)
+		ata_bd_fini_irq(ctrl);
 	ata_bd_fini_io(ctrl);
 	return rc;
 }
@@ -227,6 +260,7 @@ errno_t ata_ctrl_remove(ata_ctrl_t *ctrl)
 		}
 	}
 
+	ata_bd_fini_irq(ctrl);
 	ata_bd_fini_io(ctrl);
 	fibril_mutex_unlock(&ctrl->lock);
 
@@ -328,7 +362,6 @@ static errno_t ata_bd_init_io(ata_ctrl_t *ctrl)
 	}
 
 	ctrl->ctl = vaddr;
-
 	return EOK;
 }
 
@@ -337,6 +370,80 @@ static void ata_bd_fini_io(ata_ctrl_t *ctrl)
 {
 	(void) ctrl;
 	/* XXX TODO */
+}
+
+/** Initialize IRQ. */
+static errno_t ata_bd_init_irq(ata_ctrl_t *ctrl)
+{
+	irq_code_t irq_code;
+	async_sess_t *parent_sess;
+	irq_pio_range_t *ranges;
+	irq_cmd_t *cmds;
+	errno_t rc;
+
+	if (ctrl->irq < 0)
+		return EOK;
+
+	ranges = malloc(sizeof(ata_irq_ranges));
+	if (ranges == NULL)
+		return ENOMEM;
+
+	cmds = malloc(sizeof(ata_irq_cmds));
+	if (cmds == NULL) {
+		free(cmds);
+		return ENOMEM;
+	}
+
+	memcpy(ranges, &ata_irq_ranges, sizeof(ata_irq_ranges));
+	ranges[0].base = ctrl->cmd_physical;
+	memcpy(cmds, &ata_irq_cmds, sizeof(ata_irq_cmds));
+	cmds[0].addr = &ctrl->cmd->status;
+
+	irq_code.rangecount = sizeof(ata_irq_ranges) / sizeof(irq_pio_range_t);
+	irq_code.ranges = ranges;
+	irq_code.cmdcount = sizeof(ata_irq_cmds) / sizeof(irq_cmd_t);
+	irq_code.cmds = cmds;
+
+	ddf_msg(LVL_NOTE, "IRQ %d", ctrl->irq);
+	rc = register_interrupt_handler(ctrl->dev, ctrl->irq, ata_irq_handler,
+	    &irq_code, &ctrl->ihandle);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error registering IRQ.");
+		goto error;
+	}
+
+	parent_sess = ddf_dev_parent_sess_get(ctrl->dev);
+
+	rc = hw_res_enable_interrupt(parent_sess, ctrl->irq);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error enabling IRQ.");
+		(void) unregister_interrupt_handler(ctrl->dev,
+		    ctrl->ihandle);
+		goto error;
+	}
+
+	free(ranges);
+	free(cmds);
+	return EOK;
+error:
+	free(ranges);
+	free(cmds);
+	return rc;
+}
+
+/** Clean up IRQ. */
+static void ata_bd_fini_irq(ata_ctrl_t *ctrl)
+{
+	errno_t rc;
+	async_sess_t *parent_sess;
+
+	parent_sess = ddf_dev_parent_sess_get(ctrl->dev);
+
+	rc = hw_res_disable_interrupt(parent_sess, ctrl->irq);
+	if (rc != EOK)
+		ddf_msg(LVL_ERROR, "Error disabling IRQ.");
+
+	(void) unregister_interrupt_handler(ctrl->dev, ctrl->ihandle);
 }
 
 /** Initialize a disk.
@@ -518,8 +625,10 @@ static errno_t ata_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	size_t nb;
 	errno_t rc;
 
-	if (size < cnt * disk->block_size)
-		return EINVAL;
+	if (size < cnt * disk->block_size) {
+		rc = EINVAL;
+		goto error;
+	}
 
 	/* Maximum number of blocks to transfer at the same time */
 	maxnb = ata_disk_maxnb(disk);
@@ -533,7 +642,7 @@ static errno_t ata_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 		}
 
 		if (rc != EOK)
-			return rc;
+			goto error;
 
 		ba += nb;
 		cnt -= nb;
@@ -541,6 +650,9 @@ static errno_t ata_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	}
 
 	return EOK;
+error:
+	ddf_msg(LVL_DEBUG, "ata_bd_read_blocks: rc=%d", rc);
+	return rc;
 }
 
 /** Read TOC from device. */
@@ -621,16 +733,25 @@ static errno_t ata_pio_data_in(disk_t *disk, void *obuf, size_t obuf_size,
 	size_t i;
 	size_t bidx;
 	uint8_t status;
+	errno_t rc;
 
 	assert(nblocks > 0);
 	assert(blk_size % 2 == 0);
 
 	bidx = 0;
 	while (nblocks > 0) {
-		if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
+		if (ctrl->irq >= 0)
+			rc = wait_irq(ctrl, &status, TIMEOUT_BSY);
+		else
+			rc = wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY);
+
+		if (rc != EOK) {
+			ddf_msg(LVL_DEBUG, "wait_irq/wait_status failed");
 			return EIO;
+		}
 
 		if ((status & SR_DRQ) == 0) {
+			ddf_msg(LVL_DEBUG, "DRQ == 0");
 			break;
 		}
 
@@ -643,10 +764,14 @@ static errno_t ata_pio_data_in(disk_t *disk, void *obuf, size_t obuf_size,
 		--nblocks;
 	}
 
-	if ((status & SR_ERR) != 0)
+	if ((status & SR_ERR) != 0) {
+		ddf_msg(LVL_DEBUG, "status & SR_ERR != 0");
 		return EIO;
-	if (nblocks > 0)
+	}
+	if (nblocks > 0) {
+		ddf_msg(LVL_DEBUG, "remaining nblocks = %zu", nblocks);
 		return EIO;
+	}
 
 	return EOK;
 }
@@ -659,23 +784,34 @@ static errno_t ata_pio_data_out(disk_t *disk, const void *buf, size_t buf_size,
 	size_t i;
 	size_t bidx;
 	uint8_t status;
+	errno_t rc;
 
 	assert(nblocks > 0);
 	assert(blk_size % 2 == 0);
 
+	rc = wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY);
+	if (rc != EOK)
+		return EIO;
+
 	bidx = 0;
 	while (nblocks > 0) {
-		if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
-			return EIO;
-
-		if ((status & SR_DRQ) == 0)
+		if ((status & SR_DRQ) == 0) {
+			ddf_msg(LVL_DEBUG, "pio_data_out: unexpected DRQ=0");
 			break;
+		}
 
 		/* Write data to the device buffer. */
 		for (i = 0; i < blk_size / 2; i++) {
 			pio_write_16(&ctrl->cmd->data_port,
 			    ((uint16_t *) buf)[bidx++]);
 		}
+
+		if (ctrl->irq >= 0)
+			rc = wait_irq(ctrl, &status, TIMEOUT_BSY);
+		else
+			rc = wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY);
+		if (rc != EOK)
+			return EIO;
 
 		--nblocks;
 	}
@@ -693,8 +829,14 @@ static errno_t ata_pio_nondata(disk_t *disk)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	uint8_t status;
+	errno_t rc;
 
-	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
+	if (ctrl->irq >= 0)
+		rc = wait_irq(ctrl, &status, TIMEOUT_BSY);
+	else
+		rc = wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY);
+
+	if (rc != EOK)
 		return EIO;
 
 	if (status & SR_ERR)
@@ -737,22 +879,16 @@ static errno_t ata_identify_dev(disk_t *disk, void *buf)
 
 	pio_write_8(&ctrl->cmd->command, CMD_IDENTIFY_DRIVE);
 
-	if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
-		return ETIMEOUT;
-
-	/*
-	 * If ERR is set, this may be a packet device, so return EIO to cause
-	 * the caller to check for one.
-	 */
-	if ((status & SR_ERR) != 0)
-		return EIO;
-
 	/*
 	 * For probing purposes we need to wait for some status bit to become
 	 * active - otherwise we could be fooled just by receiving all zeroes.
 	 */
-	if (wait_status(ctrl, SR_DRQ, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
-		return ETIMEOUT;
+	if (wait_status(ctrl, SR_DRQ, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK) {
+		if ((status & SR_ERR) == 0) {
+			/* Probably no device at all */
+			return ETIMEOUT;
+		}
+	}
 
 	return ata_pio_data_in(disk, buf, identify_data_size,
 	    identify_data_size, 1);
@@ -810,6 +946,7 @@ static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	size_t remain;
 	size_t bidx;
 	uint16_t val;
+	errno_t rc;
 
 	fibril_mutex_lock(&ctrl->lock);
 
@@ -847,7 +984,12 @@ static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 	bidx = 0;
 	remain = obuf_size;
 	while (remain > 0) {
-		if (wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+		if (ctrl->irq >= 0)
+			rc = wait_irq(ctrl, &status, TIMEOUT_BSY);
+		else
+			rc = wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY);
+
+		if (rc != EOK) {
 			fibril_mutex_unlock(&ctrl->lock);
 			return EIO;
 		}
@@ -874,6 +1016,11 @@ static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 
 		remain -= data_size;
 	}
+
+	if (ctrl->irq >= 0)
+		rc = wait_irq(ctrl, &status, TIMEOUT_BSY);
+	else
+		rc = wait_status(ctrl, 0, ~SR_BSY, &status, TIMEOUT_BSY);
 
 	fibril_mutex_unlock(&ctrl->lock);
 
@@ -1046,8 +1193,10 @@ static errno_t ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 	memset(&bc, 0, sizeof(bc));
 
 	/* Compute block coordinates. */
-	if (coord_calc(disk, ba, &bc) != EOK)
+	if (coord_calc(disk, ba, &bc) != EOK) {
+		ddf_msg(LVL_NOTE, "ata_rcmd_read() -> coord_calc failed");
 		return EINVAL;
+	}
 
 	/* New value for Drive/Head register */
 	drv_head =
@@ -1061,6 +1210,7 @@ static errno_t ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 
 	if (wait_status(ctrl, 0, ~SR_BSY, NULL, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&ctrl->lock);
+		ddf_msg(LVL_NOTE, "ata_rcmd_read() -> wait_status failed");
 		return EIO;
 	}
 
@@ -1068,6 +1218,7 @@ static errno_t ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 
 	if (wait_status(ctrl, SR_DRDY, ~SR_BSY, NULL, TIMEOUT_DRDY) != EOK) {
 		fibril_mutex_unlock(&ctrl->lock);
+		ddf_msg(LVL_NOTE, "ata_rcmd_read() -> wait_status 2 failed");
 		return EIO;
 	}
 
@@ -1082,6 +1233,8 @@ static errno_t ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
 
 	fibril_mutex_unlock(&ctrl->lock);
 
+	if (rc != EOK)
+		ddf_msg(LVL_NOTE, "ata_rcmd_read() -> pio_data_in->%d", rc);
 	return rc;
 }
 
@@ -1352,6 +1505,49 @@ static errno_t wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
 		return EIO;
 
 	return EOK;
+}
+
+/** Wait for IRQ and return status.
+ *
+ * @param ctrl		Controller
+ * @param pstatus	Pointer where to store last read status or NULL.
+ * @param timeout	Timeout in 10ms units.
+ *
+ * @return		EOK on success, EIO on timeout.
+ */
+static errno_t wait_irq(ata_ctrl_t *ctrl, uint8_t *pstatus, unsigned timeout)
+{
+	fibril_mutex_lock(&ctrl->irq_lock);
+	while (!ctrl->irq_fired)
+		fibril_condvar_wait(&ctrl->irq_cv, &ctrl->irq_lock);
+
+	ctrl->irq_fired = false;
+	*pstatus = ctrl->irq_status;
+	fibril_mutex_unlock(&ctrl->irq_lock);
+	return EOK;
+}
+
+/** Interrupt handler.
+ *
+ * @param call Call data
+ * @param dev Device that caused the interrupt
+ */
+static void ata_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
+{
+	ata_ctrl_t *ctrl = (ata_ctrl_t *)ddf_dev_data_get(dev);
+	uint8_t status;
+	async_sess_t *parent_sess;
+
+	status = ipc_get_arg1(call);
+
+	fibril_mutex_lock(&ctrl->irq_lock);
+	ctrl->irq_fired = true;
+	ctrl->irq_status = status;
+	fibril_mutex_unlock(&ctrl->irq_lock);
+	fibril_condvar_broadcast(&ctrl->irq_cv);
+
+	parent_sess = ddf_dev_parent_sess_get(dev);
+	hw_res_clear_interrupt(parent_sess, ctrl->irq);
 }
 
 /**
