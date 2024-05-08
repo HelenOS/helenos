@@ -58,7 +58,7 @@ void pcap_set_time(pcap_packet_header_t *header, bool nano) // maybe without boo
 void pcap_writer_add_header(pcap_writer_t *writer)
 {
 	pcap_file_header_t file_header = { PCAP_MAGIC_MICRO, PCAP_MAJOR_VERSION, PCAP_MINOR_VERSION,
-		0x00000000, 0x00000000, (uint32_t)PCAP_SNAP_LEN, (uint32_t)PCAP_LINKTYPE_IP_RAW };
+		0x00000000, 0x00000000, (uint32_t)PCAP_SNAP_LEN, (uint32_t)PCAP_LINKTYPE_ETHERNET };
 	writer->ops->write_buffer(writer, &file_header, sizeof(file_header));
 }
 

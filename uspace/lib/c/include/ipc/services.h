@@ -66,7 +66,6 @@ typedef enum {
 #define SERVICE_NAME_TCP      "net/tcp"
 #define SERVICE_NAME_VBD      "vbd"
 #define SERVICE_NAME_VOLSRV   "volsrv"
-#define SERVICE_NAME_DUMPPCAP "dumppcap"
 #endif
 
 /** @}

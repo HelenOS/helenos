@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 {
 	bool start = false;
 	bool stop = false;
-	int dev_number = DEFAULT_DEV_NUM;
+	int dev_number = -1;
 	const char *output_file_name;
 	int idx = 0;
 	int ret = 0;

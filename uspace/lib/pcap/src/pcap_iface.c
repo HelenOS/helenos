@@ -94,7 +94,6 @@ void pcap_close_file(void)
  */
 errno_t pcap_iface_init(pcap_iface_t *iface)
 {
-
 	iface->to_dump = false;
 	iface->add_packet = pcap_add_packet;
 	iface->init = pcap_init;

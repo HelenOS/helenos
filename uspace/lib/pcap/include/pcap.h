@@ -51,8 +51,10 @@
 #define PCAP_MINOR_VERSION 0x0004
 #define PCAP_SNAP_LEN 0x00040000
 
-#define PCAP_LINKTYPE_ETHERNET 1    /* IEEE 802.3 Ethernet*/
-#define PCAP_LINKTYPE_IP_RAW 101
+#define PCAP_LINKTYPE_ETHERNET 1    /* IEEE 802.3 Ethernet */
+#define PCAP_LINKTYPE_IP_RAW 101	/* Raw IP packet */
+#define WIRESHARK_EX 0xc
+#define WIRESHARK_SNAPLEN 0xffff
 
 /** Header of the .pcap file
  */
