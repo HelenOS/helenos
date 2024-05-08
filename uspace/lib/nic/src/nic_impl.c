@@ -851,10 +851,10 @@ errno_t nic_fun_add_to_cats(ddf_fun_t *fun)
 		return rc;
 		return rc;
 
-	// rc = ddf_fun_add_to_category(fun, "pcap");
-	// if (rc != EOK) {
-	// 	return rc;
-	// }
+	rc = ddf_fun_add_to_category(fun, "pcap");
+	if (rc != EOK) {
+		return rc;
+	}
 	return EOK;
 }
 
