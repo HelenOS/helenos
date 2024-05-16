@@ -44,8 +44,6 @@
 #include <stddef.h>
 #include "ata_hw.h"
 
-#define NAME "ata_bd"
-
 struct ata_device;
 
 /** ATA channel creation parameters */

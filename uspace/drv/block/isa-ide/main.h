@@ -26,20 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ata_bd
+/** @addtogroup isa-ide
  * @{
  */
-/** @file ATA driver main module
+/** @file ISA IDE driver main module
  */
 
-#ifndef __ATA_MAIN_H__
-#define __ATA_MAIN_H__
+#ifndef MAIN_H
+#define MAIN_H
 
-#include "ata_bd.h"
+#include "isa-ide.h"
 
-extern errno_t ata_fun_create(ata_ctrl_t *, unsigned, void *);
-extern errno_t ata_fun_remove(ata_ctrl_t *, unsigned);
-extern errno_t ata_fun_unbind(ata_ctrl_t *, unsigned);
+extern errno_t isa_ide_fun_create(isa_ide_ctrl_t *, unsigned, void *);
+extern errno_t isa_ide_fun_remove(isa_ide_ctrl_t *, unsigned);
+extern errno_t isa_ide_fun_unbind(isa_ide_ctrl_t *, unsigned);
 
 #endif
 

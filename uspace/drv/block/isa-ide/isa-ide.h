@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ata_bd
+/** @addtogroup isa-ide
  * @{
  */
-/** @file ATA driver definitions.
+/** @file ISA IDE driver definitions.
  */
 
-#ifndef __ATA_BD_H__
-#define __ATA_BD_H__
+#ifndef ISA_IDE_H
+#define ISA_IDE_H
 
 #include <ata/ata.h>
 #include <ata/ata_hw.h>
@@ -42,17 +42,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define NAME "ata_bd"
+#define NAME "isa-ide"
 
-/** ATA hardware resources */
+/** ISA IDE hardware resources */
 typedef struct {
 	uintptr_t cmd;	/**< Command block base address. */
 	uintptr_t ctl;	/**< Control block base address. */
 	int irq;	/**< IRQ */
-} ata_hwres_t;
+} isa_ide_hwres_t;
 
-/** ATA controller */
-typedef struct ata_ctrl {
+/** ISA IDE controller */
+typedef struct isa_ide_ctrl {
 	/** DDF device */
 	ddf_dev_t *dev;
 	/** I/O base address of the command registers */
@@ -76,17 +76,17 @@ typedef struct ata_ctrl {
 
 	/** Libata ATA channel */
 	ata_channel_t *channel;
-	struct ata_fun *fun[2];
-} ata_ctrl_t;
+	struct isa_ide_fun *fun[2];
+} isa_ide_ctrl_t;
 
-typedef struct ata_fun {
+typedef struct isa_ide_fun {
 	ddf_fun_t *fun;
 	void *charg;
-} ata_fun_t;
+} isa_ide_fun_t;
 
-extern errno_t ata_ctrl_init(ata_ctrl_t *, ata_hwres_t *);
-extern errno_t ata_ctrl_remove(ata_ctrl_t *);
-extern errno_t ata_ctrl_gone(ata_ctrl_t *);
+extern errno_t isa_ide_ctrl_init(isa_ide_ctrl_t *, isa_ide_hwres_t *);
+extern errno_t isa_ide_ctrl_remove(isa_ide_ctrl_t *);
+extern errno_t isa_ide_ctrl_gone(isa_ide_ctrl_t *);
 
 #endif
 

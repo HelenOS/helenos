@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ata_bd
+/** @addtogroup isa-ide
  * @{
  */
 
@@ -41,31 +41,31 @@
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
 
-#include "ata_bd.h"
+#include "isa-ide.h"
 #include "main.h"
 
-static errno_t ata_dev_add(ddf_dev_t *dev);
-static errno_t ata_dev_remove(ddf_dev_t *dev);
-static errno_t ata_dev_gone(ddf_dev_t *dev);
-static errno_t ata_fun_online(ddf_fun_t *fun);
-static errno_t ata_fun_offline(ddf_fun_t *fun);
+static errno_t isa_ide_dev_add(ddf_dev_t *dev);
+static errno_t isa_ide_dev_remove(ddf_dev_t *dev);
+static errno_t isa_ide_dev_gone(ddf_dev_t *dev);
+static errno_t isa_ide_fun_online(ddf_fun_t *fun);
+static errno_t isa_ide_fun_offline(ddf_fun_t *fun);
 
-static void ata_bd_connection(ipc_call_t *, void *);
+static void isa_ide_connection(ipc_call_t *, void *);
 
 static driver_ops_t driver_ops = {
-	.dev_add = &ata_dev_add,
-	.dev_remove = &ata_dev_remove,
-	.dev_gone = &ata_dev_gone,
-	.fun_online = &ata_fun_online,
-	.fun_offline = &ata_fun_offline
+	.dev_add = &isa_ide_dev_add,
+	.dev_remove = &isa_ide_dev_remove,
+	.dev_gone = &isa_ide_dev_gone,
+	.fun_online = &isa_ide_fun_online,
+	.fun_offline = &isa_ide_fun_offline
 };
 
-static driver_t ata_driver = {
+static driver_t isa_ide_driver = {
 	.name = NAME,
 	.driver_ops = &driver_ops
 };
 
-static errno_t ata_get_res(ddf_dev_t *dev, ata_hwres_t *ata_res)
+static errno_t ata_get_res(ddf_dev_t *dev, isa_ide_hwres_t *ata_res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
@@ -120,10 +120,10 @@ error:
  * @param  dev New device
  * @return     EOK on success or an error code.
  */
-static errno_t ata_dev_add(ddf_dev_t *dev)
+static errno_t isa_ide_dev_add(ddf_dev_t *dev)
 {
-	ata_ctrl_t *ctrl;
-	ata_hwres_t res;
+	isa_ide_ctrl_t *ctrl;
+	isa_ide_hwres_t res;
 	errno_t rc;
 
 	rc = ata_get_res(dev, &res);
@@ -132,7 +132,7 @@ static errno_t ata_dev_add(ddf_dev_t *dev)
 		return EINVAL;
 	}
 
-	ctrl = ddf_dev_data_alloc(dev, sizeof(ata_ctrl_t));
+	ctrl = ddf_dev_data_alloc(dev, sizeof(isa_ide_ctrl_t));
 	if (ctrl == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
 		rc = ENOMEM;
@@ -141,7 +141,7 @@ static errno_t ata_dev_add(ddf_dev_t *dev)
 
 	ctrl->dev = dev;
 
-	rc = ata_ctrl_init(ctrl, &res);
+	rc = isa_ide_ctrl_init(ctrl, &res);
 	if (rc == ENOENT)
 		goto error;
 
@@ -156,7 +156,7 @@ error:
 	return rc;
 }
 
-static char *ata_fun_name(unsigned idx)
+static char *isa_ide_fun_name(unsigned idx)
 {
 	char *fun_name;
 
@@ -166,15 +166,15 @@ static char *ata_fun_name(unsigned idx)
 	return fun_name;
 }
 
-errno_t ata_fun_create(ata_ctrl_t *ctrl, unsigned idx, void *charg)
+errno_t isa_ide_fun_create(isa_ide_ctrl_t *ctrl, unsigned idx, void *charg)
 {
 	errno_t rc;
 	char *fun_name = NULL;
 	ddf_fun_t *fun = NULL;
-	ata_fun_t *afun = NULL;
+	isa_ide_fun_t *ifun = NULL;
 	bool bound = false;
 
-	fun_name = ata_fun_name(idx);
+	fun_name = isa_ide_fun_name(idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
@@ -189,18 +189,18 @@ errno_t ata_fun_create(ata_ctrl_t *ctrl, unsigned idx, void *charg)
 	}
 
 	/* Allocate soft state */
-	afun = ddf_fun_data_alloc(fun, sizeof(ata_fun_t));
-	if (afun == NULL) {
+	ifun = ddf_fun_data_alloc(fun, sizeof(isa_ide_fun_t));
+	if (ifun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating softstate.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	afun->fun = fun;
-	afun->charg = charg;
+	ifun->fun = fun;
+	ifun->charg = charg;
 
 	/* Set up a connection handler. */
-	ddf_fun_set_conn_handler(fun, ata_bd_connection);
+	ddf_fun_set_conn_handler(fun, isa_ide_connection);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -231,33 +231,33 @@ error:
 	return rc;
 }
 
-errno_t ata_fun_remove(ata_ctrl_t *ctrl, unsigned idx)
+errno_t isa_ide_fun_remove(isa_ide_ctrl_t *ctrl, unsigned idx)
 {
 	errno_t rc;
 	char *fun_name;
-	ata_fun_t *afun = ctrl->fun[idx];
+	isa_ide_fun_t *ifun = ctrl->fun[idx];
 
-	fun_name = ata_fun_name(idx);
+	fun_name = isa_ide_fun_name(idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	ddf_msg(LVL_DEBUG, "ata_fun_remove(%p, '%s')", afun, fun_name);
-	rc = ddf_fun_offline(afun->fun);
+	ddf_msg(LVL_DEBUG, "isa_ide_fun_remove(%p, '%s')", ifun, fun_name);
+	rc = ddf_fun_offline(ifun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error offlining function '%s'.", fun_name);
 		goto error;
 	}
 
-	rc = ddf_fun_unbind(afun->fun);
+	rc = ddf_fun_unbind(ifun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", fun_name);
 		goto error;
 	}
 
-	ddf_fun_destroy(afun->fun);
+	ddf_fun_destroy(ifun->fun);
 	free(fun_name);
 	return EOK;
 error:
@@ -266,27 +266,27 @@ error:
 	return rc;
 }
 
-errno_t ata_fun_unbind(ata_ctrl_t *ctrl, unsigned idx)
+errno_t isa_ide_fun_unbind(isa_ide_ctrl_t *ctrl, unsigned idx)
 {
 	errno_t rc;
 	char *fun_name;
-	ata_fun_t *afun = ctrl->fun[idx];
+	isa_ide_fun_t *ifun = ctrl->fun[idx];
 
-	fun_name = ata_fun_name(idx);
+	fun_name = isa_ide_fun_name(idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	ddf_msg(LVL_DEBUG, "ata_fun_unbind(%p, '%s')", afun, fun_name);
-	rc = ddf_fun_unbind(afun->fun);
+	ddf_msg(LVL_DEBUG, "isa_ide_fun_unbind(%p, '%s')", ifun, fun_name);
+	rc = ddf_fun_unbind(ifun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", fun_name);
 		goto error;
 	}
 
-	ddf_fun_destroy(afun->fun);
+	ddf_fun_destroy(ifun->fun);
 	free(fun_name);
 	return EOK;
 error:
@@ -295,49 +295,49 @@ error:
 	return rc;
 }
 
-static errno_t ata_dev_remove(ddf_dev_t *dev)
+static errno_t isa_ide_dev_remove(ddf_dev_t *dev)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)ddf_dev_data_get(dev);
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
 
-	ddf_msg(LVL_DEBUG, "ata_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "isa_ide_dev_remove(%p)", dev);
 
-	return ata_ctrl_remove(ctrl);
+	return isa_ide_ctrl_remove(ctrl);
 }
 
-static errno_t ata_dev_gone(ddf_dev_t *dev)
+static errno_t isa_ide_dev_gone(ddf_dev_t *dev)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)ddf_dev_data_get(dev);
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
 
-	ddf_msg(LVL_DEBUG, "ata_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "isa_ide_dev_gone(%p)", dev);
 
-	return ata_ctrl_gone(ctrl);
+	return isa_ide_ctrl_gone(ctrl);
 }
 
-static errno_t ata_fun_online(ddf_fun_t *fun)
+static errno_t isa_ide_fun_online(ddf_fun_t *fun)
 {
-	ddf_msg(LVL_DEBUG, "ata_fun_online()");
+	ddf_msg(LVL_DEBUG, "isa_ide_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static errno_t ata_fun_offline(ddf_fun_t *fun)
+static errno_t isa_ide_fun_offline(ddf_fun_t *fun)
 {
-	ddf_msg(LVL_DEBUG, "ata_fun_offline()");
+	ddf_msg(LVL_DEBUG, "isa_ide_fun_offline()");
 	return ddf_fun_offline(fun);
 }
 
-static void ata_bd_connection(ipc_call_t *icall, void *arg)
+static void isa_ide_connection(ipc_call_t *icall, void *arg)
 {
-	ata_fun_t *afun;
+	isa_ide_fun_t *ifun;
 
-	afun = (ata_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
-	ata_connection(icall, afun->charg);
+	ifun = (isa_ide_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
+	ata_connection(icall, ifun->charg);
 }
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS ATA(PI) device driver\n");
+	printf(NAME ": HelenOS ISA IDE device driver\n");
 	ddf_log_init(NAME);
-	return ddf_driver_main(&ata_driver);
+	return ddf_driver_main(&isa_ide_driver);
 }
 
 /**

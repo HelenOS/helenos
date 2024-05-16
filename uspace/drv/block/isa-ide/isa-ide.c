@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ata_bd
+/** @addtogroup isa-ide
  * @{
  */
 
 /**
  * @file
- * @brief ISA ATA driver
+ * @brief ISA IDE driver
  *
  * The driver services a single IDE channel.
  */
@@ -51,41 +51,39 @@
 #include <inttypes.h>
 #include <errno.h>
 
-#include "ata_bd.h"
+#include "isa-ide.h"
 #include "main.h"
 
-#define NAME       "ata_bd"
+static errno_t isa_ide_init_io(isa_ide_ctrl_t *ctrl);
+static void isa_ide_fini_io(isa_ide_ctrl_t *ctrl);
+static errno_t isa_ide_init_irq(isa_ide_ctrl_t *ctrl);
+static void isa_ide_fini_irq(isa_ide_ctrl_t *ctrl);
+static void isa_ide_irq_handler(ipc_call_t *call, ddf_dev_t *dev);
 
-static errno_t ata_bd_init_io(ata_ctrl_t *ctrl);
-static void ata_bd_fini_io(ata_ctrl_t *ctrl);
-static errno_t ata_bd_init_irq(ata_ctrl_t *ctrl);
-static void ata_bd_fini_irq(ata_ctrl_t *ctrl);
-static void ata_irq_handler(ipc_call_t *call, ddf_dev_t *dev);
+static void isa_ide_write_data_16(void *, uint16_t *, size_t);
+static void isa_ide_read_data_16(void *, uint16_t *, size_t);
+static void isa_ide_write_cmd_8(void *, uint16_t, uint8_t);
+static uint8_t isa_ide_read_cmd_8(void *, uint16_t);
+static void isa_ide_write_ctl_8(void *, uint16_t, uint8_t);
+static uint8_t isa_ide_read_ctl_8(void *, uint16_t);
+static errno_t isa_ide_irq_enable(void *);
+static errno_t isa_ide_irq_disable(void *);
+static errno_t isa_ide_add_device(void *, unsigned, void *);
+static errno_t isa_ide_remove_device(void *, unsigned);
+static void isa_ide_msg_debug(void *, char *);
+static void isa_ide_msg_note(void *, char *);
+static void isa_ide_msg_warn(void *, char *);
+static void isa_ide_msg_error(void *, char *);
 
-static void ata_write_data_16(void *, uint16_t *, size_t);
-static void ata_read_data_16(void *, uint16_t *, size_t);
-static void ata_write_cmd_8(void *, uint16_t, uint8_t);
-static uint8_t ata_read_cmd_8(void *, uint16_t);
-static void ata_write_ctl_8(void *, uint16_t, uint8_t);
-static uint8_t ata_read_ctl_8(void *, uint16_t);
-static errno_t ata_irq_enable(void *);
-static errno_t ata_irq_disable(void *);
-static errno_t ata_add_device(void *, unsigned, void *);
-static errno_t ata_remove_device(void *, unsigned);
-static void ata_msg_debug(void *, char *);
-static void ata_msg_note(void *, char *);
-static void ata_msg_warn(void *, char *);
-static void ata_msg_error(void *, char *);
-
-static const irq_pio_range_t ata_irq_ranges[] = {
+static const irq_pio_range_t isa_ide_irq_ranges[] = {
 	{
 		.base = 0,
 		.size = sizeof(ata_cmd_t)
 	}
 };
 
-/** ATA interrupt pseudo code. */
-static const irq_cmd_t ata_irq_cmds[] = {
+/** IDE interrupt pseudo code. */
+static const irq_cmd_t isa_ide_irq_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
 		.addr = NULL,  /* will be patched in run-time */
@@ -96,14 +94,14 @@ static const irq_cmd_t ata_irq_cmds[] = {
 	}
 };
 
-/** Initialize ATA controller. */
-errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_hwres_t *res)
+/** Initialize ISA IDE controller. */
+errno_t isa_ide_ctrl_init(isa_ide_ctrl_t *ctrl, isa_ide_hwres_t *res)
 {
 	errno_t rc;
 	bool irq_inited = false;
 	ata_params_t params;
 
-	ddf_msg(LVL_DEBUG, "ata_ctrl_init()");
+	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init()");
 
 	fibril_mutex_initialize(&ctrl->lock);
 	ctrl->cmd_physical = res->cmd;
@@ -114,12 +112,12 @@ errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_hwres_t *res)
 	    (void *) ctrl->ctl_physical);
 
 	ddf_msg(LVL_DEBUG, "Init I/O");
-	rc = ata_bd_init_io(ctrl);
+	rc = isa_ide_init_io(ctrl);
 	if (rc != EOK)
 		return rc;
 
 	ddf_msg(LVL_DEBUG, "Init IRQ");
-	rc = ata_bd_init_irq(ctrl);
+	rc = isa_ide_init_irq(ctrl);
 	if (rc != EOK) {
 		ddf_msg(LVL_NOTE, "init IRQ failed");
 		return rc;
@@ -127,24 +125,24 @@ errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_hwres_t *res)
 
 	irq_inited = true;
 
-	ddf_msg(LVL_DEBUG, "ata_ctrl_init(): Initialize ATA channel");
+	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init(): Initialize IDE channel");
 
 	params.arg = (void *)ctrl;
 	params.have_irq = (ctrl->irq >= 0) ? true : false;
-	params.write_data_16 = ata_write_data_16;
-	params.read_data_16 = ata_read_data_16;
-	params.write_cmd_8 = ata_write_cmd_8;
-	params.read_cmd_8 = ata_read_cmd_8;
-	params.write_ctl_8 = ata_write_ctl_8;
-	params.read_ctl_8 = ata_read_ctl_8;
-	params.irq_enable = ata_irq_enable;
-	params.irq_disable = ata_irq_disable;
-	params.add_device = ata_add_device;
-	params.remove_device = ata_remove_device;
-	params.msg_debug = ata_msg_debug;
-	params.msg_note = ata_msg_note;
-	params.msg_warn = ata_msg_warn;
-	params.msg_error = ata_msg_error;
+	params.write_data_16 = isa_ide_write_data_16;
+	params.read_data_16 = isa_ide_read_data_16;
+	params.write_cmd_8 = isa_ide_write_cmd_8;
+	params.read_cmd_8 = isa_ide_read_cmd_8;
+	params.write_ctl_8 = isa_ide_write_ctl_8;
+	params.read_ctl_8 = isa_ide_read_ctl_8;
+	params.irq_enable = isa_ide_irq_enable;
+	params.irq_disable = isa_ide_irq_disable;
+	params.add_device = isa_ide_add_device;
+	params.remove_device = isa_ide_remove_device;
+	params.msg_debug = isa_ide_msg_debug;
+	params.msg_note = isa_ide_msg_note;
+	params.msg_warn = isa_ide_msg_warn;
+	params.msg_error = isa_ide_msg_error;
 
 	rc = ata_channel_create(&params, &ctrl->channel);
 	if (rc != EOK)
@@ -154,21 +152,21 @@ errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_hwres_t *res)
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_DEBUG, "ata_ctrl_init: DONE");
+	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init: DONE");
 	return EOK;
 error:
 	if (irq_inited)
-		ata_bd_fini_irq(ctrl);
-	ata_bd_fini_io(ctrl);
+		isa_ide_fini_irq(ctrl);
+	isa_ide_fini_io(ctrl);
 	return rc;
 }
 
-/** Remove ATA controller. */
-errno_t ata_ctrl_remove(ata_ctrl_t *ctrl)
+/** Remove ISA IDE controller. */
+errno_t isa_ide_ctrl_remove(isa_ide_ctrl_t *ctrl)
 {
 	errno_t rc;
 
-	ddf_msg(LVL_DEBUG, ": ata_ctrl_remove()");
+	ddf_msg(LVL_DEBUG, ": isa_ide_ctrl_remove()");
 
 	fibril_mutex_lock(&ctrl->lock);
 
@@ -178,19 +176,19 @@ errno_t ata_ctrl_remove(ata_ctrl_t *ctrl)
 		return rc;
 	}
 
-	ata_bd_fini_irq(ctrl);
-	ata_bd_fini_io(ctrl);
+	isa_ide_fini_irq(ctrl);
+	isa_ide_fini_io(ctrl);
 	fibril_mutex_unlock(&ctrl->lock);
 
 	return EOK;
 }
 
-/** Surprise removal of ATA controller. */
-errno_t ata_ctrl_gone(ata_ctrl_t *ctrl)
+/** Surprise removal of ISA IDE controller. */
+errno_t isa_ide_ctrl_gone(isa_ide_ctrl_t *ctrl)
 {
 	errno_t rc;
 
-	ddf_msg(LVL_DEBUG, "ata_ctrl_gone()");
+	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_gone()");
 
 	fibril_mutex_lock(&ctrl->lock);
 
@@ -200,14 +198,14 @@ errno_t ata_ctrl_gone(ata_ctrl_t *ctrl)
 		return rc;
 	}
 
-	ata_bd_fini_io(ctrl);
+	isa_ide_fini_io(ctrl);
 	fibril_mutex_unlock(&ctrl->lock);
 
 	return EOK;
 }
 
 /** Enable device I/O. */
-static errno_t ata_bd_init_io(ata_ctrl_t *ctrl)
+static errno_t isa_ide_init_io(isa_ide_ctrl_t *ctrl)
 {
 	errno_t rc;
 	void *vaddr;
@@ -231,14 +229,14 @@ static errno_t ata_bd_init_io(ata_ctrl_t *ctrl)
 }
 
 /** Clean up device I/O. */
-static void ata_bd_fini_io(ata_ctrl_t *ctrl)
+static void isa_ide_fini_io(isa_ide_ctrl_t *ctrl)
 {
 	(void) ctrl;
 	/* XXX TODO */
 }
 
 /** Initialize IRQ. */
-static errno_t ata_bd_init_irq(ata_ctrl_t *ctrl)
+static errno_t isa_ide_init_irq(isa_ide_ctrl_t *ctrl)
 {
 	irq_code_t irq_code;
 	irq_pio_range_t *ranges;
@@ -248,28 +246,28 @@ static errno_t ata_bd_init_irq(ata_ctrl_t *ctrl)
 	if (ctrl->irq < 0)
 		return EOK;
 
-	ranges = malloc(sizeof(ata_irq_ranges));
+	ranges = malloc(sizeof(isa_ide_irq_ranges));
 	if (ranges == NULL)
 		return ENOMEM;
 
-	cmds = malloc(sizeof(ata_irq_cmds));
+	cmds = malloc(sizeof(isa_ide_irq_cmds));
 	if (cmds == NULL) {
 		free(cmds);
 		return ENOMEM;
 	}
 
-	memcpy(ranges, &ata_irq_ranges, sizeof(ata_irq_ranges));
+	memcpy(ranges, &isa_ide_irq_ranges, sizeof(isa_ide_irq_ranges));
 	ranges[0].base = ctrl->cmd_physical;
-	memcpy(cmds, &ata_irq_cmds, sizeof(ata_irq_cmds));
+	memcpy(cmds, &isa_ide_irq_cmds, sizeof(isa_ide_irq_cmds));
 	cmds[0].addr = &ctrl->cmd->status;
 
-	irq_code.rangecount = sizeof(ata_irq_ranges) / sizeof(irq_pio_range_t);
+	irq_code.rangecount = sizeof(isa_ide_irq_ranges) / sizeof(irq_pio_range_t);
 	irq_code.ranges = ranges;
-	irq_code.cmdcount = sizeof(ata_irq_cmds) / sizeof(irq_cmd_t);
+	irq_code.cmdcount = sizeof(isa_ide_irq_cmds) / sizeof(irq_cmd_t);
 	irq_code.cmds = cmds;
 
 	ddf_msg(LVL_NOTE, "IRQ %d", ctrl->irq);
-	rc = register_interrupt_handler(ctrl->dev, ctrl->irq, ata_irq_handler,
+	rc = register_interrupt_handler(ctrl->dev, ctrl->irq, isa_ide_irq_handler,
 	    &irq_code, &ctrl->ihandle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error registering IRQ.");
@@ -287,7 +285,7 @@ error:
 }
 
 /** Clean up IRQ. */
-static void ata_bd_fini_irq(ata_ctrl_t *ctrl)
+static void isa_ide_fini_irq(isa_ide_ctrl_t *ctrl)
 {
 	errno_t rc;
 	async_sess_t *parent_sess;
@@ -306,9 +304,9 @@ static void ata_bd_fini_irq(ata_ctrl_t *ctrl)
  * @param call Call data
  * @param dev Device that caused the interrupt
  */
-static void ata_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
+static void isa_ide_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)ddf_dev_data_get(dev);
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
 	uint8_t status;
 	async_sess_t *parent_sess;
 
@@ -321,13 +319,13 @@ static void ata_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 
 /** Write the data register callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param data Data
  * @param nwords Number of words to write
  */
-static void ata_write_data_16(void *arg, uint16_t *data, size_t nwords)
+static void isa_ide_write_data_16(void *arg, uint16_t *data, size_t nwords)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
 	size_t i;
 
 	for (i = 0; i < nwords; i++)
@@ -336,13 +334,13 @@ static void ata_write_data_16(void *arg, uint16_t *data, size_t nwords)
 
 /** Read the data register callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param buf Destination buffer
  * @param nwords Number of words to read
  */
-static void ata_read_data_16(void *arg, uint16_t *buf, size_t nwords)
+static void isa_ide_read_data_16(void *arg, uint16_t *buf, size_t nwords)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
 	size_t i;
 
 	for (i = 0; i < nwords; i++)
@@ -351,64 +349,64 @@ static void ata_read_data_16(void *arg, uint16_t *buf, size_t nwords)
 
 /** Write command register callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param off Register offset
  * @param value Value to write to command register
  */
-static void ata_write_cmd_8(void *arg, uint16_t off, uint8_t value)
+static void isa_ide_write_cmd_8(void *arg, uint16_t off, uint8_t value)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
 
 	pio_write_8(((ioport8_t *)ctrl->cmd) + off, value);
 }
 
 /** Read command register callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param off Register offset
  * @return value Value read from command register
  */
-static uint8_t ata_read_cmd_8(void *arg, uint16_t off)
+static uint8_t isa_ide_read_cmd_8(void *arg, uint16_t off)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
 
 	return pio_read_8(((ioport8_t *)ctrl->cmd) + off);
 }
 
 /** Write control register callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param off Register offset
  * @param value Value to write to control register
  */
-static void ata_write_ctl_8(void *arg, uint16_t off, uint8_t value)
+static void isa_ide_write_ctl_8(void *arg, uint16_t off, uint8_t value)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
 
 	pio_write_8(((ioport8_t *)ctrl->ctl) + off, value);
 }
 
 /** Read control register callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param off Register offset
  * @return value Value read from control register
  */
-static uint8_t ata_read_ctl_8(void *arg, uint16_t off)
+static uint8_t isa_ide_read_ctl_8(void *arg, uint16_t off)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
 
 	return pio_read_8(((ioport8_t *)ctrl->ctl) + off);
 }
 
 /** Enable IRQ callback handler
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @return EOK on success or an error code
  */
-static errno_t ata_irq_enable(void *arg)
+static errno_t isa_ide_irq_enable(void *arg)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
 	async_sess_t *parent_sess;
 	errno_t rc;
 
@@ -429,12 +427,12 @@ static errno_t ata_irq_enable(void *arg)
 
 /** Disable IRQ callback handler
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @return EOK on success or an error code
  */
-static errno_t ata_irq_disable(void *arg)
+static errno_t isa_ide_irq_disable(void *arg)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
 	async_sess_t *parent_sess;
 	errno_t rc;
 
@@ -455,35 +453,35 @@ static errno_t ata_irq_disable(void *arg)
 
 /** Add ATA device callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param idx Device index
  * $param charg Connection handler argument
  * @return EOK on success or an error code
  */
-static errno_t ata_add_device(void *arg, unsigned idx, void *charg)
+static errno_t isa_ide_add_device(void *arg, unsigned idx, void *charg)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
-	return ata_fun_create(ctrl, idx, charg);
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	return isa_ide_fun_create(ctrl, idx, charg);
 }
 
 /** Remove ATA device callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param idx Device index
  * @return EOK on success or an error code
  */
-static errno_t ata_remove_device(void *arg, unsigned idx)
+static errno_t isa_ide_remove_device(void *arg, unsigned idx)
 {
-	ata_ctrl_t *ctrl = (ata_ctrl_t *)arg;
-	return ata_fun_remove(ctrl, idx);
+	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	return isa_ide_fun_remove(ctrl, idx);
 }
 
 /** Debug message callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param msg Message
  */
-static void ata_msg_debug(void *arg, char *msg)
+static void isa_ide_msg_debug(void *arg, char *msg)
 {
 	(void)arg;
 	ddf_msg(LVL_DEBUG, "%s", msg);
@@ -491,10 +489,10 @@ static void ata_msg_debug(void *arg, char *msg)
 
 /** Notice message callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param msg Message
  */
-static void ata_msg_note(void *arg, char *msg)
+static void isa_ide_msg_note(void *arg, char *msg)
 {
 	(void)arg;
 	ddf_msg(LVL_NOTE, "%s", msg);
@@ -502,10 +500,10 @@ static void ata_msg_note(void *arg, char *msg)
 
 /** Warning message callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param msg Message
  */
-static void ata_msg_warn(void *arg, char *msg)
+static void isa_ide_msg_warn(void *arg, char *msg)
 {
 	(void)arg;
 	ddf_msg(LVL_WARN, "%s", msg);
@@ -513,10 +511,10 @@ static void ata_msg_warn(void *arg, char *msg)
 
 /** Error message callback handler.
  *
- * @param arg Argument (ata_ctrl_t *)
+ * @param arg Argument (isa_ide_ctrl_t *)
  * @param msg Message
  */
-static void ata_msg_error(void *arg, char *msg)
+static void isa_ide_msg_error(void *arg, char *msg)
 {
 	(void)arg;
 	ddf_msg(LVL_ERROR, "%s", msg);
