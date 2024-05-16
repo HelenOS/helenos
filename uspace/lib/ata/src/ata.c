@@ -445,12 +445,18 @@ cleanup:
 /** Initialize IRQ. */
 static errno_t ata_bd_init_irq(ata_channel_t *chan)
 {
+	if (!chan->params.have_irq)
+		return EOK;
+
 	return chan->params.irq_enable(chan->params.arg);
 }
 
 /** Clean up IRQ. */
 static void ata_bd_fini_irq(ata_channel_t *chan)
 {
+	if (!chan->params.have_irq)
+		return;
+
 	(void)chan->params.irq_disable(chan->params.arg);
 }
 

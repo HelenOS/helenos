@@ -37,9 +37,9 @@
 
 #include "isa-ide.h"
 
-extern errno_t isa_ide_fun_create(isa_ide_ctrl_t *, unsigned, void *);
-extern errno_t isa_ide_fun_remove(isa_ide_ctrl_t *, unsigned);
-extern errno_t isa_ide_fun_unbind(isa_ide_ctrl_t *, unsigned);
+extern errno_t isa_ide_fun_create(isa_ide_channel_t *, unsigned, void *);
+extern errno_t isa_ide_fun_remove(isa_ide_channel_t *, unsigned);
+extern errno_t isa_ide_fun_unbind(isa_ide_channel_t *, unsigned);
 
 #endif
 

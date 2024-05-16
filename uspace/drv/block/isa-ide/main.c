@@ -80,33 +80,53 @@ static errno_t ata_get_res(ddf_dev_t *dev, isa_ide_hwres_t *ata_res)
 	if (rc != EOK)
 		return rc;
 
-	if (hw_res.io_ranges.count != 2) {
+	if (hw_res.io_ranges.count != 4) {
 		rc = EINVAL;
 		goto error;
 	}
 
 	/* I/O ranges */
 
-	addr_range_t *cmd_rng = &hw_res.io_ranges.ranges[0];
-	addr_range_t *ctl_rng = &hw_res.io_ranges.ranges[1];
-	ata_res->cmd = RNGABS(*cmd_rng);
-	ata_res->ctl = RNGABS(*ctl_rng);
+	addr_range_t *cmd1_rng = &hw_res.io_ranges.ranges[0];
+	addr_range_t *ctl1_rng = &hw_res.io_ranges.ranges[1];
+	addr_range_t *cmd2_rng = &hw_res.io_ranges.ranges[2];
+	addr_range_t *ctl2_rng = &hw_res.io_ranges.ranges[3];
+	ata_res->cmd1 = RNGABS(*cmd1_rng);
+	ata_res->ctl1 = RNGABS(*ctl1_rng);
+	ata_res->cmd2 = RNGABS(*cmd2_rng);
+	ata_res->ctl2 = RNGABS(*ctl2_rng);
 
-	if (RNGSZ(*ctl_rng) < sizeof(ata_ctl_t)) {
+	if (RNGSZ(*ctl1_rng) < sizeof(ata_ctl_t)) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	if (RNGSZ(*cmd_rng) < sizeof(ata_cmd_t)) {
+	if (RNGSZ(*cmd1_rng) < sizeof(ata_cmd_t)) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	if (RNGSZ(*ctl2_rng) < sizeof(ata_ctl_t)) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	if (RNGSZ(*cmd2_rng) < sizeof(ata_cmd_t)) {
 		rc = EINVAL;
 		goto error;
 	}
 
 	/* IRQ */
 	if (hw_res.irqs.count > 0) {
-		ata_res->irq = hw_res.irqs.irqs[0];
+		ata_res->irq1 = hw_res.irqs.irqs[0];
 	} else {
-		ata_res->irq = -1;
+		ata_res->irq1 = -1;
+	}
+
+	if (hw_res.irqs.count > 1) {
+		ata_res->irq2 = hw_res.irqs.irqs[1];
+	} else {
+		ata_res->irq2 = -1;
 	}
 
 	return EOK;
@@ -141,7 +161,11 @@ static errno_t isa_ide_dev_add(ddf_dev_t *dev)
 
 	ctrl->dev = dev;
 
-	rc = isa_ide_ctrl_init(ctrl, &res);
+	rc = isa_ide_channel_init(ctrl, &ctrl->channel[0], 0, &res);
+	if (rc == ENOENT)
+		goto error;
+
+	rc = isa_ide_channel_init(ctrl, &ctrl->channel[1], 1, &res);
 	if (rc == ENOENT)
 		goto error;
 
@@ -156,17 +180,17 @@ error:
 	return rc;
 }
 
-static char *isa_ide_fun_name(unsigned idx)
+static char *isa_ide_fun_name(isa_ide_channel_t *chan, unsigned idx)
 {
 	char *fun_name;
 
-	if (asprintf(&fun_name, "d%u", idx) < 0)
+	if (asprintf(&fun_name, "c%ud%u", chan->chan_id, idx) < 0)
 		return NULL;
 
 	return fun_name;
 }
 
-errno_t isa_ide_fun_create(isa_ide_ctrl_t *ctrl, unsigned idx, void *charg)
+errno_t isa_ide_fun_create(isa_ide_channel_t *chan, unsigned idx, void *charg)
 {
 	errno_t rc;
 	char *fun_name = NULL;
@@ -174,14 +198,14 @@ errno_t isa_ide_fun_create(isa_ide_ctrl_t *ctrl, unsigned idx, void *charg)
 	isa_ide_fun_t *ifun = NULL;
 	bool bound = false;
 
-	fun_name = isa_ide_fun_name(idx);
+	fun_name = isa_ide_fun_name(chan, idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	fun = ddf_fun_create(ctrl->dev, fun_exposed, fun_name);
+	fun = ddf_fun_create(chan->ctrl->dev, fun_exposed, fun_name);
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating DDF function.");
 		rc = ENOMEM;
@@ -231,13 +255,13 @@ error:
 	return rc;
 }
 
-errno_t isa_ide_fun_remove(isa_ide_ctrl_t *ctrl, unsigned idx)
+errno_t isa_ide_fun_remove(isa_ide_channel_t *chan, unsigned idx)
 {
 	errno_t rc;
 	char *fun_name;
-	isa_ide_fun_t *ifun = ctrl->fun[idx];
+	isa_ide_fun_t *ifun = chan->fun[idx];
 
-	fun_name = isa_ide_fun_name(idx);
+	fun_name = isa_ide_fun_name(chan, idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
@@ -266,13 +290,13 @@ error:
 	return rc;
 }
 
-errno_t isa_ide_fun_unbind(isa_ide_ctrl_t *ctrl, unsigned idx)
+errno_t isa_ide_fun_unbind(isa_ide_channel_t *chan, unsigned idx)
 {
 	errno_t rc;
 	char *fun_name;
-	isa_ide_fun_t *ifun = ctrl->fun[idx];
+	isa_ide_fun_t *ifun = chan->fun[idx];
 
-	fun_name = isa_ide_fun_name(idx);
+	fun_name = isa_ide_fun_name(chan, idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
@@ -298,19 +322,37 @@ error:
 static errno_t isa_ide_dev_remove(ddf_dev_t *dev)
 {
 	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "isa_ide_dev_remove(%p)", dev);
 
-	return isa_ide_ctrl_remove(ctrl);
+	rc = isa_ide_channel_fini(&ctrl->channel[0]);
+	if (rc != EOK)
+		return rc;
+
+	rc = isa_ide_channel_fini(&ctrl->channel[1]);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 static errno_t isa_ide_dev_gone(ddf_dev_t *dev)
 {
 	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "isa_ide_dev_gone(%p)", dev);
 
-	return isa_ide_ctrl_gone(ctrl);
+	rc = isa_ide_channel_fini(&ctrl->channel[0]);
+	if (rc != EOK)
+		return rc;
+
+	rc = isa_ide_channel_fini(&ctrl->channel[1]);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 static errno_t isa_ide_fun_online(ddf_fun_t *fun)

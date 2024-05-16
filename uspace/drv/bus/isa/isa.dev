@@ -50,14 +50,11 @@ cmos-rtc:
 	match 100 isa/cmos-rtc
 	io_range 70 2
 
-ata-c1:
+ide1:
 	match 100 isa/ide
 	io_range 0x1f0 8
 	io_range 0x3f0 8
-	irq 14
-
-ata-c2:
-	match 100 isa/ide
 	io_range 0x170 8
 	io_range 0x370 8
+	irq 14
 	irq 15

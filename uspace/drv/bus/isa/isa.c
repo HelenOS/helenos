@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
@@ -71,7 +71,7 @@
 #define ISA_CHILD_FUN_CONF_PATH "/drv/isa/isa.dev"
 #define EBUS_CHILD_FUN_CONF_PATH "/drv/isa/ebus.dev"
 
-#define ISA_MAX_HW_RES 5
+#define ISA_MAX_HW_RES 6
 
 typedef struct {
 	fibril_mutex_t mutex;

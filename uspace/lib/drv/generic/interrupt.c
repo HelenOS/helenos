@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -47,6 +48,15 @@ errno_t register_interrupt_handler(ddf_dev_t *dev, int irq,
 {
 	return async_irq_subscribe(irq, (async_notification_handler_t) handler,
 	    dev, irq_code, handle);
+}
+
+errno_t register_interrupt_handler_arg(ddf_dev_t *dev, int irq,
+    interrupt_handler_t *handler, void *arg, const irq_code_t *irq_code,
+    cap_irq_handle_t *handle)
+{
+	(void)dev;
+	return async_irq_subscribe(irq, (async_notification_handler_t) handler,
+	    arg, irq_code, handle);
 }
 
 errno_t unregister_interrupt_handler(ddf_dev_t *dev, cap_irq_handle_t handle)

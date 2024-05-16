@@ -54,11 +54,11 @@
 #include "isa-ide.h"
 #include "main.h"
 
-static errno_t isa_ide_init_io(isa_ide_ctrl_t *ctrl);
-static void isa_ide_fini_io(isa_ide_ctrl_t *ctrl);
-static errno_t isa_ide_init_irq(isa_ide_ctrl_t *ctrl);
-static void isa_ide_fini_irq(isa_ide_ctrl_t *ctrl);
-static void isa_ide_irq_handler(ipc_call_t *call, ddf_dev_t *dev);
+static errno_t isa_ide_init_io(isa_ide_channel_t *);
+static void isa_ide_fini_io(isa_ide_channel_t *);
+static errno_t isa_ide_init_irq(isa_ide_channel_t *);
+static void isa_ide_fini_irq(isa_ide_channel_t *);
+static void isa_ide_irq_handler(ipc_call_t *, ddf_dev_t *);
 
 static void isa_ide_write_data_16(void *, uint16_t *, size_t);
 static void isa_ide_read_data_16(void *, uint16_t *, size_t);
@@ -94,8 +94,9 @@ static const irq_cmd_t isa_ide_irq_cmds[] = {
 	}
 };
 
-/** Initialize ISA IDE controller. */
-errno_t isa_ide_ctrl_init(isa_ide_ctrl_t *ctrl, isa_ide_hwres_t *res)
+/** Initialize ISA IDE channel. */
+errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
+    unsigned chan_id, isa_ide_hwres_t *res)
 {
 	errno_t rc;
 	bool irq_inited = false;
@@ -103,21 +104,29 @@ errno_t isa_ide_ctrl_init(isa_ide_ctrl_t *ctrl, isa_ide_hwres_t *res)
 
 	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init()");
 
-	fibril_mutex_initialize(&ctrl->lock);
-	ctrl->cmd_physical = res->cmd;
-	ctrl->ctl_physical = res->ctl;
-	ctrl->irq = res->irq;
+	chan->ctrl = ctrl;
+	chan->chan_id = chan_id;
+	fibril_mutex_initialize(&chan->lock);
+	if (chan_id == 0) {
+		chan->cmd_physical = res->cmd1;
+		chan->ctl_physical = res->ctl1;
+		chan->irq = res->irq1;
+	} else {
+		chan->cmd_physical = res->cmd2;
+		chan->ctl_physical = res->ctl2;
+		chan->irq = res->irq2;
+	}
 
-	ddf_msg(LVL_NOTE, "I/O address %p/%p", (void *) ctrl->cmd_physical,
-	    (void *) ctrl->ctl_physical);
+	ddf_msg(LVL_NOTE, "I/O address %p/%p", (void *) chan->cmd_physical,
+	    (void *) chan->ctl_physical);
 
 	ddf_msg(LVL_DEBUG, "Init I/O");
-	rc = isa_ide_init_io(ctrl);
+	rc = isa_ide_init_io(chan);
 	if (rc != EOK)
 		return rc;
 
 	ddf_msg(LVL_DEBUG, "Init IRQ");
-	rc = isa_ide_init_irq(ctrl);
+	rc = isa_ide_init_irq(chan);
 	if (rc != EOK) {
 		ddf_msg(LVL_NOTE, "init IRQ failed");
 		return rc;
@@ -127,8 +136,8 @@ errno_t isa_ide_ctrl_init(isa_ide_ctrl_t *ctrl, isa_ide_hwres_t *res)
 
 	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init(): Initialize IDE channel");
 
-	params.arg = (void *)ctrl;
-	params.have_irq = (ctrl->irq >= 0) ? true : false;
+	params.arg = (void *)chan;
+	params.have_irq = (chan->irq >= 0) ? true : false;
 	params.write_data_16 = isa_ide_write_data_16;
 	params.read_data_16 = isa_ide_read_data_16;
 	params.write_cmd_8 = isa_ide_write_cmd_8;
@@ -144,11 +153,11 @@ errno_t isa_ide_ctrl_init(isa_ide_ctrl_t *ctrl, isa_ide_hwres_t *res)
 	params.msg_warn = isa_ide_msg_warn;
 	params.msg_error = isa_ide_msg_error;
 
-	rc = ata_channel_create(&params, &ctrl->channel);
+	rc = ata_channel_create(&params, &chan->channel);
 	if (rc != EOK)
 		goto error;
 
-	rc = ata_channel_initialize(ctrl->channel);
+	rc = ata_channel_initialize(chan->channel);
 	if (rc != EOK)
 		goto error;
 
@@ -156,94 +165,73 @@ errno_t isa_ide_ctrl_init(isa_ide_ctrl_t *ctrl, isa_ide_hwres_t *res)
 	return EOK;
 error:
 	if (irq_inited)
-		isa_ide_fini_irq(ctrl);
-	isa_ide_fini_io(ctrl);
+		isa_ide_fini_irq(chan);
+	isa_ide_fini_io(chan);
 	return rc;
 }
 
-/** Remove ISA IDE controller. */
-errno_t isa_ide_ctrl_remove(isa_ide_ctrl_t *ctrl)
+/** Finalize ISA IDE channel. */
+errno_t isa_ide_channel_fini(isa_ide_channel_t *chan)
 {
 	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, ": isa_ide_ctrl_remove()");
 
-	fibril_mutex_lock(&ctrl->lock);
+	fibril_mutex_lock(&chan->lock);
 
-	rc = ata_channel_destroy(ctrl->channel);
+	rc = ata_channel_destroy(chan->channel);
 	if (rc != EOK) {
-		fibril_mutex_unlock(&ctrl->lock);
+		fibril_mutex_unlock(&chan->lock);
 		return rc;
 	}
 
-	isa_ide_fini_irq(ctrl);
-	isa_ide_fini_io(ctrl);
-	fibril_mutex_unlock(&ctrl->lock);
-
-	return EOK;
-}
-
-/** Surprise removal of ISA IDE controller. */
-errno_t isa_ide_ctrl_gone(isa_ide_ctrl_t *ctrl)
-{
-	errno_t rc;
-
-	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_gone()");
-
-	fibril_mutex_lock(&ctrl->lock);
-
-	rc = ata_channel_destroy(ctrl->channel);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&ctrl->lock);
-		return rc;
-	}
-
-	isa_ide_fini_io(ctrl);
-	fibril_mutex_unlock(&ctrl->lock);
+	isa_ide_fini_irq(chan);
+	isa_ide_fini_io(chan);
+	fibril_mutex_unlock(&chan->lock);
 
 	return EOK;
 }
 
 /** Enable device I/O. */
-static errno_t isa_ide_init_io(isa_ide_ctrl_t *ctrl)
+static errno_t isa_ide_init_io(isa_ide_channel_t *chan)
 {
 	errno_t rc;
 	void *vaddr;
 
-	rc = pio_enable((void *) ctrl->cmd_physical, sizeof(ata_cmd_t), &vaddr);
+	rc = pio_enable((void *) chan->cmd_physical, sizeof(ata_cmd_t), &vaddr);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot initialize device I/O space.");
 		return rc;
 	}
 
-	ctrl->cmd = vaddr;
+	chan->cmd = vaddr;
 
-	rc = pio_enable((void *) ctrl->ctl_physical, sizeof(ata_ctl_t), &vaddr);
+	rc = pio_enable((void *) chan->ctl_physical, sizeof(ata_ctl_t), &vaddr);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot initialize device I/O space.");
 		return rc;
 	}
 
-	ctrl->ctl = vaddr;
+	chan->ctl = vaddr;
 	return EOK;
 }
 
 /** Clean up device I/O. */
-static void isa_ide_fini_io(isa_ide_ctrl_t *ctrl)
+static void isa_ide_fini_io(isa_ide_channel_t *chan)
 {
-	(void) ctrl;
+	(void) chan;
 	/* XXX TODO */
 }
 
 /** Initialize IRQ. */
-static errno_t isa_ide_init_irq(isa_ide_ctrl_t *ctrl)
+static errno_t isa_ide_init_irq(isa_ide_channel_t *chan)
 {
 	irq_code_t irq_code;
 	irq_pio_range_t *ranges;
 	irq_cmd_t *cmds;
 	errno_t rc;
 
-	if (ctrl->irq < 0)
+	if (chan->irq < 0)
 		return EOK;
 
 	ranges = malloc(sizeof(isa_ide_irq_ranges));
@@ -257,18 +245,18 @@ static errno_t isa_ide_init_irq(isa_ide_ctrl_t *ctrl)
 	}
 
 	memcpy(ranges, &isa_ide_irq_ranges, sizeof(isa_ide_irq_ranges));
-	ranges[0].base = ctrl->cmd_physical;
+	ranges[0].base = chan->cmd_physical;
 	memcpy(cmds, &isa_ide_irq_cmds, sizeof(isa_ide_irq_cmds));
-	cmds[0].addr = &ctrl->cmd->status;
+	cmds[0].addr = &chan->cmd->status;
 
 	irq_code.rangecount = sizeof(isa_ide_irq_ranges) / sizeof(irq_pio_range_t);
 	irq_code.ranges = ranges;
 	irq_code.cmdcount = sizeof(isa_ide_irq_cmds) / sizeof(irq_cmd_t);
 	irq_code.cmds = cmds;
 
-	ddf_msg(LVL_NOTE, "IRQ %d", ctrl->irq);
-	rc = register_interrupt_handler(ctrl->dev, ctrl->irq, isa_ide_irq_handler,
-	    &irq_code, &ctrl->ihandle);
+	ddf_msg(LVL_NOTE, "IRQ %d", chan->irq);
+	rc = register_interrupt_handler_arg(chan->ctrl->dev, chan->irq,
+	    isa_ide_irq_handler, (void *)chan, &irq_code, &chan->ihandle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error registering IRQ.");
 		goto error;
@@ -285,18 +273,18 @@ error:
 }
 
 /** Clean up IRQ. */
-static void isa_ide_fini_irq(isa_ide_ctrl_t *ctrl)
+static void isa_ide_fini_irq(isa_ide_channel_t *chan)
 {
 	errno_t rc;
 	async_sess_t *parent_sess;
 
-	parent_sess = ddf_dev_parent_sess_get(ctrl->dev);
+	parent_sess = ddf_dev_parent_sess_get(chan->ctrl->dev);
 
-	rc = hw_res_disable_interrupt(parent_sess, ctrl->irq);
+	rc = hw_res_disable_interrupt(parent_sess, chan->irq);
 	if (rc != EOK)
 		ddf_msg(LVL_ERROR, "Error disabling IRQ.");
 
-	(void) unregister_interrupt_handler(ctrl->dev, ctrl->ihandle);
+	(void) unregister_interrupt_handler(chan->ctrl->dev, chan->ihandle);
 }
 
 /** Interrupt handler.
@@ -304,121 +292,120 @@ static void isa_ide_fini_irq(isa_ide_ctrl_t *ctrl)
  * @param call Call data
  * @param dev Device that caused the interrupt
  */
-static void isa_ide_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
+static void isa_ide_irq_handler(ipc_call_t *call, ddf_dev_t *xdev)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)(void *)xdev; // XXX
 	uint8_t status;
 	async_sess_t *parent_sess;
 
 	status = ipc_get_arg1(call);
-	ata_channel_irq(ctrl->channel, status);
+	ata_channel_irq(chan->channel, status);
 
-	parent_sess = ddf_dev_parent_sess_get(dev);
-	hw_res_clear_interrupt(parent_sess, ctrl->irq);
+	parent_sess = ddf_dev_parent_sess_get(chan->ctrl->dev);
+	hw_res_clear_interrupt(parent_sess, chan->irq);
 }
 
 /** Write the data register callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param data Data
  * @param nwords Number of words to write
  */
 static void isa_ide_write_data_16(void *arg, uint16_t *data, size_t nwords)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 	size_t i;
 
 	for (i = 0; i < nwords; i++)
-		pio_write_16(&ctrl->cmd->data_port, data[i]);
+		pio_write_16(&chan->cmd->data_port, data[i]);
 }
 
 /** Read the data register callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param buf Destination buffer
  * @param nwords Number of words to read
  */
 static void isa_ide_read_data_16(void *arg, uint16_t *buf, size_t nwords)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 	size_t i;
 
 	for (i = 0; i < nwords; i++)
-		buf[i] = pio_read_16(&ctrl->cmd->data_port);
+		buf[i] = pio_read_16(&chan->cmd->data_port);
 }
 
 /** Write command register callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param off Register offset
  * @param value Value to write to command register
  */
 static void isa_ide_write_cmd_8(void *arg, uint16_t off, uint8_t value)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 
-	pio_write_8(((ioport8_t *)ctrl->cmd) + off, value);
+	pio_write_8(((ioport8_t *)chan->cmd) + off, value);
 }
 
 /** Read command register callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param off Register offset
  * @return value Value read from command register
  */
 static uint8_t isa_ide_read_cmd_8(void *arg, uint16_t off)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 
-	return pio_read_8(((ioport8_t *)ctrl->cmd) + off);
+	return pio_read_8(((ioport8_t *)chan->cmd) + off);
 }
 
 /** Write control register callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param off Register offset
  * @param value Value to write to control register
  */
 static void isa_ide_write_ctl_8(void *arg, uint16_t off, uint8_t value)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 
-	pio_write_8(((ioport8_t *)ctrl->ctl) + off, value);
+	pio_write_8(((ioport8_t *)chan->ctl) + off, value);
 }
 
 /** Read control register callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param off Register offset
  * @return value Value read from control register
  */
 static uint8_t isa_ide_read_ctl_8(void *arg, uint16_t off)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 
-	return pio_read_8(((ioport8_t *)ctrl->ctl) + off);
+	return pio_read_8(((ioport8_t *)chan->ctl) + off);
 }
 
 /** Enable IRQ callback handler
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @return EOK on success or an error code
  */
 static errno_t isa_ide_irq_enable(void *arg)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 	async_sess_t *parent_sess;
 	errno_t rc;
 
-	ddf_msg(LVL_DEBUG, "Enable IRQ");
+	ddf_msg(LVL_DEBUG, "Enable IRQ %d for channel %u",
+	    chan->irq, chan->chan_id);
 
-	parent_sess = ddf_dev_parent_sess_get(ctrl->dev);
+	parent_sess = ddf_dev_parent_sess_get(chan->ctrl->dev);
 
-	rc = hw_res_enable_interrupt(parent_sess, ctrl->irq);
+	rc = hw_res_enable_interrupt(parent_sess, chan->irq);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error enabling IRQ.");
-		(void) unregister_interrupt_handler(ctrl->dev,
-		    ctrl->ihandle);
 		return rc;
 	}
 
@@ -427,24 +414,22 @@ static errno_t isa_ide_irq_enable(void *arg)
 
 /** Disable IRQ callback handler
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @return EOK on success or an error code
  */
 static errno_t isa_ide_irq_disable(void *arg)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 	async_sess_t *parent_sess;
 	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "Disable IRQ");
 
-	parent_sess = ddf_dev_parent_sess_get(ctrl->dev);
+	parent_sess = ddf_dev_parent_sess_get(chan->ctrl->dev);
 
-	rc = hw_res_disable_interrupt(parent_sess, ctrl->irq);
+	rc = hw_res_disable_interrupt(parent_sess, chan->irq);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Error enabling IRQ.");
-		(void) unregister_interrupt_handler(ctrl->dev,
-		    ctrl->ihandle);
+		ddf_msg(LVL_ERROR, "Error disabling IRQ.");
 		return rc;
 	}
 
@@ -453,32 +438,32 @@ static errno_t isa_ide_irq_disable(void *arg)
 
 /** Add ATA device callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param idx Device index
  * $param charg Connection handler argument
  * @return EOK on success or an error code
  */
 static errno_t isa_ide_add_device(void *arg, unsigned idx, void *charg)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
-	return isa_ide_fun_create(ctrl, idx, charg);
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	return isa_ide_fun_create(chan, idx, charg);
 }
 
 /** Remove ATA device callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param idx Device index
  * @return EOK on success or an error code
  */
 static errno_t isa_ide_remove_device(void *arg, unsigned idx)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)arg;
-	return isa_ide_fun_remove(ctrl, idx);
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	return isa_ide_fun_remove(chan, idx);
 }
 
 /** Debug message callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param msg Message
  */
 static void isa_ide_msg_debug(void *arg, char *msg)
@@ -489,7 +474,7 @@ static void isa_ide_msg_debug(void *arg, char *msg)
 
 /** Notice message callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param msg Message
  */
 static void isa_ide_msg_note(void *arg, char *msg)
@@ -500,7 +485,7 @@ static void isa_ide_msg_note(void *arg, char *msg)
 
 /** Warning message callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param msg Message
  */
 static void isa_ide_msg_warn(void *arg, char *msg)
@@ -511,7 +496,7 @@ static void isa_ide_msg_warn(void *arg, char *msg)
 
 /** Error message callback handler.
  *
- * @param arg Argument (isa_ide_ctrl_t *)
+ * @param arg Argument (isa_ide_channel_t *)
  * @param msg Message
  */
 static void isa_ide_msg_error(void *arg, char *msg)

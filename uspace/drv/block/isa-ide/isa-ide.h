@@ -46,15 +46,18 @@
 
 /** ISA IDE hardware resources */
 typedef struct {
-	uintptr_t cmd;	/**< Command block base address. */
-	uintptr_t ctl;	/**< Control block base address. */
-	int irq;	/**< IRQ */
+	uintptr_t cmd1;	/**< Primary channel command block base address. */
+	uintptr_t ctl1;	/**< Primary channel control block base address. */
+	uintptr_t cmd2;	/**< Secondary channel command block base address. */
+	uintptr_t ctl2;	/**< Secondary channel control block base address. */
+	int irq1;	/**< Primary channel IRQ */
+	int irq2;	/**< Secondary channel IRQ */
 } isa_ide_hwres_t;
 
-/** ISA IDE controller */
-typedef struct isa_ide_ctrl {
-	/** DDF device */
-	ddf_dev_t *dev;
+/** ISA IDE channel */
+typedef struct isa_ide_channel {
+	/** Parent controller */
+	struct isa_ide_ctrl *ctrl;
 	/** I/O base address of the command registers */
 	uintptr_t cmd_physical;
 	/** I/O base address of the control registers */
@@ -77,16 +80,29 @@ typedef struct isa_ide_ctrl {
 	/** Libata ATA channel */
 	ata_channel_t *channel;
 	struct isa_ide_fun *fun[2];
+
+	/** Channel ID */
+	unsigned chan_id;
+} isa_ide_channel_t;
+
+/** ISA IDE controller */
+typedef struct isa_ide_ctrl {
+	/** DDF device */
+	ddf_dev_t *dev;
+
+	/** Primary and secondary channel */
+	isa_ide_channel_t channel[2];
 } isa_ide_ctrl_t;
 
+/** ISA IDE function */
 typedef struct isa_ide_fun {
 	ddf_fun_t *fun;
 	void *charg;
 } isa_ide_fun_t;
 
-extern errno_t isa_ide_ctrl_init(isa_ide_ctrl_t *, isa_ide_hwres_t *);
-extern errno_t isa_ide_ctrl_remove(isa_ide_ctrl_t *);
-extern errno_t isa_ide_ctrl_gone(isa_ide_ctrl_t *);
+extern errno_t isa_ide_channel_init(isa_ide_ctrl_t *, isa_ide_channel_t *,
+    unsigned, isa_ide_hwres_t *);
+extern errno_t isa_ide_channel_fini(isa_ide_channel_t *);
 
 #endif
 
