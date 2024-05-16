@@ -156,26 +156,25 @@ error:
 	return rc;
 }
 
-static char *ata_fun_name(disk_t *disk)
+static char *ata_fun_name(unsigned idx)
 {
 	char *fun_name;
 
-	if (asprintf(&fun_name, "d%u", disk->disk_id) < 0)
+	if (asprintf(&fun_name, "d%u", idx) < 0)
 		return NULL;
 
 	return fun_name;
 }
 
-errno_t ata_fun_create(disk_t *disk)
+errno_t ata_fun_create(ata_ctrl_t *ctrl, unsigned idx, void *charg)
 {
-	ata_ctrl_t *ctrl = disk->ctrl;
 	errno_t rc;
 	char *fun_name = NULL;
 	ddf_fun_t *fun = NULL;
 	ata_fun_t *afun = NULL;
 	bool bound = false;
 
-	fun_name = ata_fun_name(disk);
+	fun_name = ata_fun_name(idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
@@ -198,11 +197,7 @@ errno_t ata_fun_create(disk_t *disk)
 	}
 
 	afun->fun = fun;
-	afun->disk = disk;
-
-	bd_srvs_init(&afun->bds);
-	afun->bds.ops = &ata_bd_ops;
-	afun->bds.sarg = disk;
+	afun->charg = charg;
 
 	/* Set up a connection handler. */
 	ddf_fun_set_conn_handler(fun, ata_bd_connection);
@@ -224,7 +219,6 @@ errno_t ata_fun_create(disk_t *disk)
 	}
 
 	free(fun_name);
-	disk->afun = afun;
 	return EOK;
 error:
 	if (bound)
@@ -237,36 +231,33 @@ error:
 	return rc;
 }
 
-errno_t ata_fun_remove(disk_t *disk)
+errno_t ata_fun_remove(ata_ctrl_t *ctrl, unsigned idx)
 {
 	errno_t rc;
 	char *fun_name;
+	ata_fun_t *afun = ctrl->fun[idx];
 
-	if (disk->afun == NULL)
-		return EOK;
-
-	fun_name = ata_fun_name(disk);
+	fun_name = ata_fun_name(idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	ddf_msg(LVL_DEBUG, "ata_fun_remove(%p, '%s')", disk, fun_name);
-	rc = ddf_fun_offline(disk->afun->fun);
+	ddf_msg(LVL_DEBUG, "ata_fun_remove(%p, '%s')", afun, fun_name);
+	rc = ddf_fun_offline(afun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error offlining function '%s'.", fun_name);
 		goto error;
 	}
 
-	rc = ddf_fun_unbind(disk->afun->fun);
+	rc = ddf_fun_unbind(afun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", fun_name);
 		goto error;
 	}
 
-	ddf_fun_destroy(disk->afun->fun);
-	disk->afun = NULL;
+	ddf_fun_destroy(afun->fun);
 	free(fun_name);
 	return EOK;
 error:
@@ -275,30 +266,27 @@ error:
 	return rc;
 }
 
-errno_t ata_fun_unbind(disk_t *disk)
+errno_t ata_fun_unbind(ata_ctrl_t *ctrl, unsigned idx)
 {
 	errno_t rc;
 	char *fun_name;
+	ata_fun_t *afun = ctrl->fun[idx];
 
-	if (disk->afun == NULL)
-		return EOK;
-
-	fun_name = ata_fun_name(disk);
+	fun_name = ata_fun_name(idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	ddf_msg(LVL_DEBUG, "ata_fun_unbind(%p, '%s')", disk, fun_name);
-	rc = ddf_fun_unbind(disk->afun->fun);
+	ddf_msg(LVL_DEBUG, "ata_fun_unbind(%p, '%s')", afun, fun_name);
+	rc = ddf_fun_unbind(afun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", fun_name);
 		goto error;
 	}
 
-	ddf_fun_destroy(disk->afun->fun);
-	disk->afun = NULL;
+	ddf_fun_destroy(afun->fun);
 	free(fun_name);
 	return EOK;
 error:
@@ -337,13 +325,12 @@ static errno_t ata_fun_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-/** Block device connection handler */
 static void ata_bd_connection(ipc_call_t *icall, void *arg)
 {
 	ata_fun_t *afun;
 
 	afun = (ata_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
-	bd_conn(icall, &afun->bds);
+	ata_connection(icall, afun->charg);
 }
 
 int main(int argc, char *argv[])

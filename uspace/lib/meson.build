@@ -110,6 +110,7 @@ libs = [
 	'usbvirt',
 	'virtio',
 
+	'ata',
 	'ieee80211',
 	'ddev',
 	'dispcfg',

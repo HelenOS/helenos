@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,9 +37,9 @@
 
 #include "ata_bd.h"
 
-extern errno_t ata_fun_create(disk_t *);
-extern errno_t ata_fun_remove(disk_t *);
-extern errno_t ata_fun_unbind(disk_t *);
+extern errno_t ata_fun_create(ata_ctrl_t *, unsigned, void *);
+extern errno_t ata_fun_remove(ata_ctrl_t *, unsigned);
+extern errno_t ata_fun_unbind(ata_ctrl_t *, unsigned);
 
 #endif
 

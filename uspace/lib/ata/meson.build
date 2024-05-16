@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013 Jiri Svoboda
+# Copyright (c) 2024 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,5 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'ata', 'scsi' ]
-src = files('ata_bd.c', 'main.c')
+deps = [ 'device', 'scsi' ]
+src = files(
+	'src/ata.c'
+)

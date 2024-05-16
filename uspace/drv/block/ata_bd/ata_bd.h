@@ -35,15 +35,12 @@
 #ifndef __ATA_BD_H__
 #define __ATA_BD_H__
 
-#include <async.h>
-#include <bd_srv.h>
+#include <ata/ata.h>
+#include <ata/ata_hw.h>
 #include <ddf/driver.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
-#include <str.h>
 #include <stdint.h>
-#include <stddef.h>
-#include "ata_hw.h"
 
 #define NAME "ata_bd"
 
@@ -53,80 +50,6 @@ typedef struct {
 	uintptr_t ctl;	/**< Control block base address. */
 	int irq;	/**< IRQ */
 } ata_hwres_t;
-
-/** Timeout definitions. Unit is 10 ms. */
-enum ata_timeout {
-	TIMEOUT_PROBE	=  100, /*  1 s */
-	TIMEOUT_BSY	=  100, /*  1 s */
-	TIMEOUT_DRDY	= 1000  /* 10 s */
-};
-
-enum ata_dev_type {
-	ata_reg_dev,	/* Register device (no packet feature set support) */
-	ata_pkt_dev	/* Packet device (supports packet feature set). */
-};
-
-/** Register device block addressing mode. */
-enum rd_addr_mode {
-	am_chs,		/**< CHS block addressing */
-	am_lba28,	/**< LBA-28 block addressing */
-	am_lba48	/**< LBA-48 block addressing */
-};
-
-/** Block coordinates */
-typedef struct {
-	enum rd_addr_mode amode;
-
-	union {
-		/** CHS coordinates */
-		struct {
-			uint8_t sector;
-			uint8_t cyl_lo;
-			uint8_t cyl_hi;
-		};
-		/** LBA coordinates */
-		struct {
-			uint8_t c0;
-			uint8_t c1;
-			uint8_t c2;
-			uint8_t c3;
-			uint8_t c4;
-			uint8_t c5;
-		};
-	};
-
-	/** Lower 4 bits for device/head register */
-	uint8_t h;
-} block_coord_t;
-
-/** ATA device state structure. */
-typedef struct {
-	bool present;
-	struct ata_ctrl *ctrl;
-	struct ata_fun *afun;
-
-	/** Device type */
-	enum ata_dev_type dev_type;
-
-	/** Addressing mode to use (if register device) */
-	enum rd_addr_mode amode;
-
-	/*
-	 * Geometry. Only valid if operating in CHS mode.
-	 */
-	struct {
-		unsigned heads;
-		unsigned cylinders;
-		unsigned sectors;
-	} geom;
-
-	uint64_t blocks;
-	size_t block_size;
-
-	char model[STR_BOUNDS(40) + 1];
-
-	int disk_id;
-} disk_t;
 
 /** ATA controller */
 typedef struct ata_ctrl {
@@ -146,32 +69,24 @@ typedef struct ata_ctrl {
 	/** IRQ handle */
 	cap_irq_handle_t ihandle;
 
-	/** Per-disk state. */
-	disk_t disk[MAX_DISKS];
-
 	/** Synchronize controller access */
 	fibril_mutex_t lock;
-	/** Synchronize access to irq_fired/irq_status */
-	fibril_mutex_t irq_lock;
-	/** Signalled by IRQ handler */
-	fibril_condvar_t irq_cv;
-	/** Set to true when interrupt occurs */
-	bool irq_fired;
 	/** Value of status register read by interrupt handler */
 	uint8_t irq_status;
+
+	/** Libata ATA channel */
+	ata_channel_t *channel;
+	struct ata_fun *fun[2];
 } ata_ctrl_t;
 
 typedef struct ata_fun {
 	ddf_fun_t *fun;
-	disk_t *disk;
-	bd_srvs_t bds;
+	void *charg;
 } ata_fun_t;
 
 extern errno_t ata_ctrl_init(ata_ctrl_t *, ata_hwres_t *);
 extern errno_t ata_ctrl_remove(ata_ctrl_t *);
 extern errno_t ata_ctrl_gone(ata_ctrl_t *);
-
-extern bd_ops_t ata_bd_ops;
 
 #endif
 

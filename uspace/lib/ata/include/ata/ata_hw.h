@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ata_bd
+/** @addtogroup libata
  * @{
  */
 /** @file ATA hardware protocol (registers, data structures).
  */
 
-#ifndef __ATA_HW_H__
-#define __ATA_HW_H__
+#ifndef LIBATA_ATA_HW_H
+#define LIBATA_ATA_HW_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 enum {
@@ -47,7 +48,7 @@ enum {
 };
 
 enum {
-	MAX_DISKS	= 2
+	MAX_DEVICES	= 2
 };
 
 /** ATA Command Register Block. */
@@ -95,6 +96,14 @@ typedef union {
 		uint8_t pad2;
 	};
 } ata_ctl_t;
+
+#define REG_SECTOR_COUNT offsetof(ata_cmd_t, sector_count)
+#define REG_SECTOR_NUMBER offsetof(ata_cmd_t, sector_number)
+#define REG_CYLINDER_LOW offsetof(ata_cmd_t, cylinder_low)
+#define REG_CYLINDER_HIGH offsetof(ata_cmd_t, cylinder_high)
+#define REG_DRIVE_HEAD offsetof(ata_cmd_t, drive_head)
+#define REG_STATUS offsetof(ata_cmd_t, status)
+#define REG_COMMAND offsetof(ata_cmd_t, command)
 
 enum devctl_bits {
 	DCR_SRST	= 0x04, /**< Software Reset */
