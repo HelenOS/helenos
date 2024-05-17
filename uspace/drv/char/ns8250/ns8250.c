@@ -782,12 +782,12 @@ static void ns8250_read_from_device(ns8250_t *ns)
  * status register changes, so the interrupt is handled by reading the incoming
  * data and reading the line status register.
  *
- * @param dev The serial port device.
- *
+ * @pram icall IRQ event notificatoin
+ * @param arg Argument (ns8250_t *)
  */
-static inline void ns8250_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
+static inline void ns8250_interrupt_handler(ipc_call_t *icall, void *arg)
 {
-	ns8250_t *ns = dev_ns8250(dev);
+	ns8250_t *ns = (ns8250_t *)arg;
 	uint8_t iir = pio_read_8(&ns->regs->iid);
 	if ((iir & NS8250_IID_CAUSE_MASK) == NS8250_IID_CAUSE_RXSTATUS) {
 		uint8_t lsr = pio_read_8(&ns->regs->lsr);
@@ -808,7 +808,7 @@ static inline errno_t ns8250_register_interrupt_handler(ns8250_t *ns,
     cap_irq_handle_t *ihandle)
 {
 	return register_interrupt_handler(ns->dev, ns->irq,
-	    ns8250_interrupt_handler, NULL, ihandle);
+	    ns8250_interrupt_handler, (void *)ns, NULL, ihandle);
 }
 
 /** Unregister the interrupt handler for the device.

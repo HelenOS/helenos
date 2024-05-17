@@ -63,7 +63,7 @@ static errno_t ddisk_fun_offline(ddf_fun_t *);
 
 static void ddisk_bd_connection(ipc_call_t *, void *);
 
-static void ddisk_irq_handler(ipc_call_t *, ddf_dev_t *);
+static void ddisk_irq_handler(ipc_call_t *, void *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = ddisk_dev_add,
@@ -175,12 +175,17 @@ irq_code_t ddisk_irq_code = {
 	.cmds = ddisk_irq_commands,
 };
 
-void ddisk_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
+/** Ddisk IRQ handler.
+ *
+ * @param icall IRQ event notification
+ * @param arg Argument (ddisk_t *)
+ */
+void ddisk_irq_handler(ipc_call_t *icall, void *arg)
 {
 	ddf_msg(LVL_DEBUG, "ddisk_irq_handler(), status=%" PRIx32,
 	    (uint32_t) ipc_get_arg1(icall));
 
-	ddisk_t *ddisk = (ddisk_t *) ddf_dev_data_get(dev);
+	ddisk_t *ddisk = (ddisk_t *)arg;
 
 	fibril_mutex_lock(&ddisk->lock);
 	fibril_condvar_broadcast(&ddisk->io_cv);
@@ -511,7 +516,7 @@ static errno_t ddisk_dev_add(ddf_dev_t *dev)
 	ddisk_irq_commands[0].addr = (void *) &res_phys->status;
 	ddisk_irq_commands[3].addr = (void *) &res_phys->command;
 	rc = register_interrupt_handler(dev, ddisk->ddisk_res.irq,
-	    ddisk_irq_handler, &ddisk_irq_code, &ddisk->irq_cap);
+	    ddisk_irq_handler, (void *)ddisk, &ddisk_irq_code, &ddisk->irq_cap);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
 		goto error;

@@ -142,9 +142,14 @@ static pl050_t *pl050_from_fun(ddf_fun_t *fun)
 	return (pl050_t *)ddf_dev_data_get(ddf_fun_get_dev(fun));
 }
 
-static void pl050_interrupt(ipc_call_t *call, ddf_dev_t *dev)
+/** PL050 interrupt handler
+ *
+ * @param call IRQ event notification
+ * @param arg Argument (pl050_t *)
+ */
+static void pl050_interrupt(ipc_call_t *call, void *arg)
 {
-	pl050_t *pl050 = (pl050_t *)ddf_dev_data_get(dev);
+	pl050_t *pl050 = (pl050_t *)arg;
 	size_t nidx;
 
 	fibril_mutex_lock(&pl050->buf_lock);
@@ -219,7 +224,8 @@ static errno_t pl050_init(pl050_t *pl050)
 
 	cap_irq_handle_t ihandle;
 	rc = register_interrupt_handler(pl050->dev,
-	    res.irqs.irqs[0], pl050_interrupt, &pl050_irq_code, &ihandle);
+	    res.irqs.irqs[0], pl050_interrupt, (void *)pl050, &pl050_irq_code,
+	    &ihandle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%s)",
 		    str_error_name(rc));

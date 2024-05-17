@@ -58,7 +58,7 @@ static errno_t isa_ide_init_io(isa_ide_channel_t *);
 static void isa_ide_fini_io(isa_ide_channel_t *);
 static errno_t isa_ide_init_irq(isa_ide_channel_t *);
 static void isa_ide_fini_irq(isa_ide_channel_t *);
-static void isa_ide_irq_handler(ipc_call_t *, ddf_dev_t *);
+static void isa_ide_irq_handler(ipc_call_t *, void *);
 
 static void isa_ide_write_data_16(void *, uint16_t *, size_t);
 static void isa_ide_read_data_16(void *, uint16_t *, size_t);
@@ -255,7 +255,7 @@ static errno_t isa_ide_init_irq(isa_ide_channel_t *chan)
 	irq_code.cmds = cmds;
 
 	ddf_msg(LVL_NOTE, "IRQ %d", chan->irq);
-	rc = register_interrupt_handler_arg(chan->ctrl->dev, chan->irq,
+	rc = register_interrupt_handler(chan->ctrl->dev, chan->irq,
 	    isa_ide_irq_handler, (void *)chan, &irq_code, &chan->ihandle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error registering IRQ.");
@@ -290,11 +290,11 @@ static void isa_ide_fini_irq(isa_ide_channel_t *chan)
 /** Interrupt handler.
  *
  * @param call Call data
- * @param dev Device that caused the interrupt
+ * @param arg Argument (isa_ide_channel_t *)
  */
-static void isa_ide_irq_handler(ipc_call_t *call, ddf_dev_t *xdev)
+static void isa_ide_irq_handler(ipc_call_t *call, void *arg)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)(void *)xdev; // XXX
+	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
 	uint8_t status;
 	async_sess_t *parent_sess;
 

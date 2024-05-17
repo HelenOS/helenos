@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
@@ -81,6 +81,8 @@ typedef struct {
 
 /** i8042 Controller. */
 typedef struct i8042 {
+	/** DDF device */
+	ddf_dev_t *dev;
 	/** I/O registers. */
 	i8042_regs_t *regs;
 	/** Keyboard port */
