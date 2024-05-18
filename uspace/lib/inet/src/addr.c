@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
@@ -378,8 +378,11 @@ static errno_t inet_addr_parse_v6(const char *str, inet_addr_t *raddr, int *pref
 				wildcard_pos = i;
 				wildcard_size = 16 - i;
 				cur = gend + 2;
+				continue;
 			}
 		}
+
+		cur = gend + 1;
 	}
 
 	/* Number of explicitly specified groups */
