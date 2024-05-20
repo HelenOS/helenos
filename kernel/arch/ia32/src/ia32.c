@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2001-2004 Jakub Jermar
- * Copyright (c) 2009 Jiri Svoboda
  * Copyright (c) 2009 Martin Decky
  * All rights reserved.
  *
@@ -105,9 +105,11 @@ void ia32_pre_mm_init(void)
 {
 	pm_init();
 
+#ifndef PROCESSOR_i486
 	/* Use PCD+PWT bit combination in PTE to mean write-combining mode. */
 	if (pat_supported())
 		pat_set_mapping(false, true, true, PAT_TYPE_WRITE_COMBINING);
+#endif
 
 	if (config.cpu_active == 1) {
 		interrupt_init();
