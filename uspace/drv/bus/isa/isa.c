@@ -75,6 +75,7 @@
 
 typedef struct {
 	fibril_mutex_t mutex;
+	bool pci_isa_bridge;
 	uint16_t pci_vendor_id;
 	uint16_t pci_device_id;
 	uint8_t pci_class;
@@ -91,6 +92,7 @@ typedef struct isa_fun {
 	hw_resource_t resources[ISA_MAX_HW_RES];
 	hw_resource_list_t hw_resources;
 	link_t bus_link;
+	isa_bus_t *bus;
 } isa_fun_t;
 
 /** Obtain soft-state from device node */
@@ -203,6 +205,20 @@ static errno_t isa_fun_remain_dma(ddf_fun_t *fnode,
 	return EINVAL;
 }
 
+static errno_t isa_fun_get_flags(ddf_fun_t *fnode, hw_res_flags_t *rflags)
+{
+	isa_fun_t *fun = isa_fun(fnode);
+	hw_res_flags_t flags;
+
+	flags = 0;
+	if (fun->bus->pci_isa_bridge)
+		flags |= hwf_isa_bridge;
+
+	ddf_msg(LVL_NOTE, "isa_fun_get_flags: returning 0x%x", flags);
+	*rflags = flags;
+	return EOK;
+}
+
 static hw_res_ops_t isa_fun_hw_res_ops = {
 	.get_resource_list = isa_fun_get_resources,
 	.enable_interrupt = isa_fun_enable_interrupt,
@@ -210,6 +226,7 @@ static hw_res_ops_t isa_fun_hw_res_ops = {
 	.clear_interrupt = isa_fun_clear_interrupt,
 	.dma_channel_setup = isa_fun_setup_dma,
 	.dma_channel_remain = isa_fun_remain_dma,
+	.get_flags = isa_fun_get_flags
 };
 
 static pio_window_t *isa_fun_get_pio_window(ddf_fun_t *fnode)
@@ -263,6 +280,7 @@ static isa_fun_t *isa_fun_create(isa_bus_t *isa, const char *name)
 
 	fibril_mutex_initialize(&fun->mutex);
 	fun->hw_resources.resources = fun->resources;
+	fun->bus = isa;
 
 	fun->fnode = fnode;
 	return fun;
@@ -742,10 +760,14 @@ static errno_t isa_dev_add(ddf_dev_t *dev)
 	rc = isa_read_pci_cfg(isa, sess);
 	if (rc != EOK) {
 		ddf_msg(LVL_NOTE, "Cannot read PCI config. Assuming ISA classic.");
+		isa->pci_isa_bridge = false;
 		isa->pci_vendor_id = 0;
 		isa->pci_device_id = 0;
 		isa->pci_class = BASE_CLASS_BRIDGE;
 		isa->pci_subclass = SUB_CLASS_BRIDGE_ISA;
+	} else {
+		ddf_msg(LVL_NOTE, "ISA Bridge");
+		isa->pci_isa_bridge = true;
 	}
 
 	rc = pio_window_get(sess, &isa->pio_win);

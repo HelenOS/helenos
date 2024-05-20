@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -156,6 +157,30 @@ errno_t hw_res_dma_channel_remain(async_sess_t *sess, unsigned channel, size_t *
 
 	if (ret == EOK)
 		*rem = remain;
+
+	return ret;
+}
+
+/** Get bus flags.
+ *
+ * @param sess HW res session
+ * @param rflags Place to store the flags
+ *
+ * @return Error code.
+ *
+ */
+errno_t hw_res_get_flags(async_sess_t *sess, hw_res_flags_t *rflags)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	sysarg_t flags;
+	const errno_t ret = async_req_1_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    HW_RES_GET_FLAGS, &flags);
+
+	async_exchange_end(exch);
+
+	if (ret == EOK)
+		*rflags = flags;
 
 	return ret;
 }

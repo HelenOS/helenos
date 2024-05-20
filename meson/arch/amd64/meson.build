@@ -76,6 +76,7 @@ rd_drv += [
 	'drv/audio/sb16',
 	'drv/block/ahci',
 	'drv/block/isa-ide',
+	'drv/block/pci-ide',
 	'drv/block/usbmast',
 	'drv/block/virtio-blk',
 	'drv/bus/isa',

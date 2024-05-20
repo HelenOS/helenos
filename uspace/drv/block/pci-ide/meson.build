@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 Jiří Zárevúcky
+# Copyright (c) 2024 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,73 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-drvs = [
-	'audio/hdaudio',
-	'audio/sb16',
-	'root/root',
-	'root/virt',
-	'block/ahci',
-	'block/ddisk',
-	'block/isa-ide',
-	'block/pci-ide',
-	'block/usbmast',
-	'block/virtio-blk',
-	'bus/adb/cuda_adb',
-	'bus/isa',
-	'bus/pci/pciintel',
-	'bus/usb/ehci',
-	'bus/usb/ohci',
-	'bus/usb/uhci',
-	'bus/usb/usbdiag',
-	'bus/usb/usbflbk',
-	'bus/usb/usbhub',
-	'bus/usb/usbmid',
-	'bus/usb/vhc',
-	'bus/usb/xhci',
-	'char/i8042',
-	'char/msim-con',
-	'char/ns8250',
-	'char/pc-lpt',
-	'char/pl011',
-	'char/pl050',
-	'char/ski-con',
-	'char/sun4v-con',
-	'fb/amdm37x_dispc',
-	'fb/kfb',
-	'hid/adb-kbd',
-	'hid/adb-mouse',
-	'hid/atkbd',
-	'hid/ps2mouse',
-	'hid/usbhid',
-	'hid/xtkbd',
-	'intctl/apic',
-	'intctl/gicv2',
-	'intctl/i8259',
-	'intctl/icp-ic',
-	'intctl/obio',
-	'nic/ne2k',
-	'nic/e1k',
-	'nic/rtl8139',
-	'nic/rtl8169',
-	'nic/ar9271',
-	'nic/virtio-net',
-	'platform/amdm37x',
-	'platform/arm64virt',
-	'platform/hikey960',
-	'platform/icp',
-	'platform/mac',
-	'platform/malta',
-	'platform/msim',
-	'platform/pc',
-	'platform/ski',
-	'platform/sun4v',
-	'test/test1',
-	'test/test2',
-	'test/test3',
-	'time/cmos-rtc',
-]
-
-# sun4u driver won't compile on 32-bit targets
-if UARCH == 'sparc64'
-	drvs += 'platform/sun4u'
-endif
+deps = [ 'ata', 'scsi' ]
+src = files('pci-ide.c', 'main.c')

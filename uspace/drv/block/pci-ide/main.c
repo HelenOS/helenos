@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup isa-ide
+/** @addtogroup pci-ide
  * @{
  */
 
@@ -41,95 +41,65 @@
 #include <ddf/log.h>
 #include <device/hw_res_parsed.h>
 
-#include "isa-ide.h"
+#include "pci-ide.h"
+#include "pci-ide_hw.h"
 #include "main.h"
 
-static errno_t isa_ide_dev_add(ddf_dev_t *dev);
-static errno_t isa_ide_dev_remove(ddf_dev_t *dev);
-static errno_t isa_ide_dev_gone(ddf_dev_t *dev);
-static errno_t isa_ide_fun_online(ddf_fun_t *fun);
-static errno_t isa_ide_fun_offline(ddf_fun_t *fun);
+static errno_t pci_ide_dev_add(ddf_dev_t *dev);
+static errno_t pci_ide_dev_remove(ddf_dev_t *dev);
+static errno_t pci_ide_dev_gone(ddf_dev_t *dev);
+static errno_t pci_ide_fun_online(ddf_fun_t *fun);
+static errno_t pci_ide_fun_offline(ddf_fun_t *fun);
 
-static void isa_ide_connection(ipc_call_t *, void *);
+static void pci_ide_connection(ipc_call_t *, void *);
 
 static driver_ops_t driver_ops = {
-	.dev_add = &isa_ide_dev_add,
-	.dev_remove = &isa_ide_dev_remove,
-	.dev_gone = &isa_ide_dev_gone,
-	.fun_online = &isa_ide_fun_online,
-	.fun_offline = &isa_ide_fun_offline
+	.dev_add = &pci_ide_dev_add,
+	.dev_remove = &pci_ide_dev_remove,
+	.dev_gone = &pci_ide_dev_gone,
+	.fun_online = &pci_ide_fun_online,
+	.fun_offline = &pci_ide_fun_offline
 };
 
-static driver_t isa_ide_driver = {
+static driver_t pci_ide_driver = {
 	.name = NAME,
 	.driver_ops = &driver_ops
 };
 
-static errno_t isa_ide_get_res(ddf_dev_t *dev, isa_ide_hwres_t *res)
+static errno_t pci_ide_get_res(ddf_dev_t *dev, pci_ide_hwres_t *res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
-	hw_res_flags_t flags;
 	errno_t rc;
 
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
 		return ENOMEM;
 
-	rc = hw_res_get_flags(parent_sess, &flags);
-	if (rc != EOK)
-		return rc;
-
-	/*
-	 * Prevent attaching to the legacy ISA IDE register block
-	 * on a system with PCI not to conflict with PCI IDE.
-	 *
-	 * XXX This is a simplification. If we had a PCI-based system without
-	 * PCI-IDE or with PCI-IDE disabled and would still like to use
-	 * an ISA IDE controller, this would prevent us from doing so.
-	 */
-	if (flags & hwf_isa_bridge) {
-		ddf_msg(LVL_NOTE, "Will not attach to PCI/ISA bridge.");
-		return EIO;
-	}
-
 	hw_res_list_parsed_init(&hw_res);
 	rc = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
 	if (rc != EOK)
 		return rc;
 
-	if (hw_res.io_ranges.count != 4) {
+	if (hw_res.io_ranges.count != 1) {
 		rc = EINVAL;
 		goto error;
 	}
 
-	/* I/O ranges */
+	/* Legacty ISA I/O ranges are fixed */
 
-	addr_range_t *cmd1_rng = &hw_res.io_ranges.ranges[0];
-	addr_range_t *ctl1_rng = &hw_res.io_ranges.ranges[1];
-	addr_range_t *cmd2_rng = &hw_res.io_ranges.ranges[2];
-	addr_range_t *ctl2_rng = &hw_res.io_ranges.ranges[3];
-	res->cmd1 = RNGABS(*cmd1_rng);
-	res->ctl1 = RNGABS(*ctl1_rng);
-	res->cmd2 = RNGABS(*cmd2_rng);
-	res->ctl2 = RNGABS(*ctl2_rng);
+	res->cmd1 = pci_ide_ata_cmd_p;
+	res->ctl1 = pci_ide_ata_ctl_p;
+	res->cmd2 = pci_ide_ata_cmd_s;
+	res->ctl2 = pci_ide_ata_ctl_s;
 
-	if (RNGSZ(*ctl1_rng) < sizeof(ata_ctl_t)) {
-		rc = EINVAL;
-		goto error;
-	}
+	/* PCI I/O range */
+	addr_range_t *bmregs_rng = &hw_res.io_ranges.ranges[0];
+	res->bmregs = RNGABS(*bmregs_rng);
 
-	if (RNGSZ(*cmd1_rng) < sizeof(ata_cmd_t)) {
-		rc = EINVAL;
-		goto error;
-	}
+	ddf_msg(LVL_NOTE, "sizes: %zu", RNGSZ(*bmregs_rng));
 
-	if (RNGSZ(*ctl2_rng) < sizeof(ata_ctl_t)) {
-		rc = EINVAL;
-		goto error;
-	}
-
-	if (RNGSZ(*cmd2_rng) < sizeof(ata_cmd_t)) {
+	if (RNGSZ(*bmregs_rng) < sizeof(pci_ide_regs_t)) {
 		rc = EINVAL;
 		goto error;
 	}
@@ -158,19 +128,19 @@ error:
  * @param  dev New device
  * @return     EOK on success or an error code.
  */
-static errno_t isa_ide_dev_add(ddf_dev_t *dev)
+static errno_t pci_ide_dev_add(ddf_dev_t *dev)
 {
-	isa_ide_ctrl_t *ctrl;
-	isa_ide_hwres_t res;
+	pci_ide_ctrl_t *ctrl;
+	pci_ide_hwres_t res;
 	errno_t rc;
 
-	rc = isa_ide_get_res(dev, &res);
+	rc = pci_ide_get_res(dev, &res);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Invalid HW resource configuration.");
 		return EINVAL;
 	}
 
-	ctrl = ddf_dev_data_alloc(dev, sizeof(isa_ide_ctrl_t));
+	ctrl = ddf_dev_data_alloc(dev, sizeof(pci_ide_ctrl_t));
 	if (ctrl == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
 		rc = ENOMEM;
@@ -179,11 +149,11 @@ static errno_t isa_ide_dev_add(ddf_dev_t *dev)
 
 	ctrl->dev = dev;
 
-	rc = isa_ide_channel_init(ctrl, &ctrl->channel[0], 0, &res);
+	rc = pci_ide_channel_init(ctrl, &ctrl->channel[0], 0, &res);
 	if (rc == ENOENT)
 		goto error;
 
-	rc = isa_ide_channel_init(ctrl, &ctrl->channel[1], 1, &res);
+	rc = pci_ide_channel_init(ctrl, &ctrl->channel[1], 1, &res);
 	if (rc == ENOENT)
 		goto error;
 
@@ -198,7 +168,7 @@ error:
 	return rc;
 }
 
-static char *isa_ide_fun_name(isa_ide_channel_t *chan, unsigned idx)
+static char *pci_ide_fun_name(pci_ide_channel_t *chan, unsigned idx)
 {
 	char *fun_name;
 
@@ -208,15 +178,15 @@ static char *isa_ide_fun_name(isa_ide_channel_t *chan, unsigned idx)
 	return fun_name;
 }
 
-errno_t isa_ide_fun_create(isa_ide_channel_t *chan, unsigned idx, void *charg)
+errno_t pci_ide_fun_create(pci_ide_channel_t *chan, unsigned idx, void *charg)
 {
 	errno_t rc;
 	char *fun_name = NULL;
 	ddf_fun_t *fun = NULL;
-	isa_ide_fun_t *ifun = NULL;
+	pci_ide_fun_t *ifun = NULL;
 	bool bound = false;
 
-	fun_name = isa_ide_fun_name(chan, idx);
+	fun_name = pci_ide_fun_name(chan, idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
@@ -231,7 +201,7 @@ errno_t isa_ide_fun_create(isa_ide_channel_t *chan, unsigned idx, void *charg)
 	}
 
 	/* Allocate soft state */
-	ifun = ddf_fun_data_alloc(fun, sizeof(isa_ide_fun_t));
+	ifun = ddf_fun_data_alloc(fun, sizeof(pci_ide_fun_t));
 	if (ifun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating softstate.");
 		rc = ENOMEM;
@@ -242,7 +212,7 @@ errno_t isa_ide_fun_create(isa_ide_channel_t *chan, unsigned idx, void *charg)
 	ifun->charg = charg;
 
 	/* Set up a connection handler. */
-	ddf_fun_set_conn_handler(fun, isa_ide_connection);
+	ddf_fun_set_conn_handler(fun, pci_ide_connection);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -273,20 +243,20 @@ error:
 	return rc;
 }
 
-errno_t isa_ide_fun_remove(isa_ide_channel_t *chan, unsigned idx)
+errno_t pci_ide_fun_remove(pci_ide_channel_t *chan, unsigned idx)
 {
 	errno_t rc;
 	char *fun_name;
-	isa_ide_fun_t *ifun = chan->fun[idx];
+	pci_ide_fun_t *ifun = chan->fun[idx];
 
-	fun_name = isa_ide_fun_name(chan, idx);
+	fun_name = pci_ide_fun_name(chan, idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	ddf_msg(LVL_DEBUG, "isa_ide_fun_remove(%p, '%s')", ifun, fun_name);
+	ddf_msg(LVL_DEBUG, "pci_ide_fun_remove(%p, '%s')", ifun, fun_name);
 	rc = ddf_fun_offline(ifun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error offlining function '%s'.", fun_name);
@@ -308,20 +278,20 @@ error:
 	return rc;
 }
 
-errno_t isa_ide_fun_unbind(isa_ide_channel_t *chan, unsigned idx)
+errno_t pci_ide_fun_unbind(pci_ide_channel_t *chan, unsigned idx)
 {
 	errno_t rc;
 	char *fun_name;
-	isa_ide_fun_t *ifun = chan->fun[idx];
+	pci_ide_fun_t *ifun = chan->fun[idx];
 
-	fun_name = isa_ide_fun_name(chan, idx);
+	fun_name = pci_ide_fun_name(chan, idx);
 	if (fun_name == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	ddf_msg(LVL_DEBUG, "isa_ide_fun_unbind(%p, '%s')", ifun, fun_name);
+	ddf_msg(LVL_DEBUG, "pci_ide_fun_unbind(%p, '%s')", ifun, fun_name);
 	rc = ddf_fun_unbind(ifun->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed unbinding function '%s'.", fun_name);
@@ -337,67 +307,67 @@ error:
 	return rc;
 }
 
-static errno_t isa_ide_dev_remove(ddf_dev_t *dev)
+static errno_t pci_ide_dev_remove(ddf_dev_t *dev)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
+	pci_ide_ctrl_t *ctrl = (pci_ide_ctrl_t *)ddf_dev_data_get(dev);
 	errno_t rc;
 
-	ddf_msg(LVL_DEBUG, "isa_ide_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "pci_ide_dev_remove(%p)", dev);
 
-	rc = isa_ide_channel_fini(&ctrl->channel[0]);
+	rc = pci_ide_channel_fini(&ctrl->channel[0]);
 	if (rc != EOK)
 		return rc;
 
-	rc = isa_ide_channel_fini(&ctrl->channel[1]);
+	rc = pci_ide_channel_fini(&ctrl->channel[1]);
 	if (rc != EOK)
 		return rc;
 
 	return EOK;
 }
 
-static errno_t isa_ide_dev_gone(ddf_dev_t *dev)
+static errno_t pci_ide_dev_gone(ddf_dev_t *dev)
 {
-	isa_ide_ctrl_t *ctrl = (isa_ide_ctrl_t *)ddf_dev_data_get(dev);
+	pci_ide_ctrl_t *ctrl = (pci_ide_ctrl_t *)ddf_dev_data_get(dev);
 	errno_t rc;
 
-	ddf_msg(LVL_DEBUG, "isa_ide_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "pci_ide_dev_gone(%p)", dev);
 
-	rc = isa_ide_channel_fini(&ctrl->channel[0]);
+	rc = pci_ide_channel_fini(&ctrl->channel[0]);
 	if (rc != EOK)
 		return rc;
 
-	rc = isa_ide_channel_fini(&ctrl->channel[1]);
+	rc = pci_ide_channel_fini(&ctrl->channel[1]);
 	if (rc != EOK)
 		return rc;
 
 	return EOK;
 }
 
-static errno_t isa_ide_fun_online(ddf_fun_t *fun)
+static errno_t pci_ide_fun_online(ddf_fun_t *fun)
 {
-	ddf_msg(LVL_DEBUG, "isa_ide_fun_online()");
+	ddf_msg(LVL_DEBUG, "pci_ide_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static errno_t isa_ide_fun_offline(ddf_fun_t *fun)
+static errno_t pci_ide_fun_offline(ddf_fun_t *fun)
 {
-	ddf_msg(LVL_DEBUG, "isa_ide_fun_offline()");
+	ddf_msg(LVL_DEBUG, "pci_ide_fun_offline()");
 	return ddf_fun_offline(fun);
 }
 
-static void isa_ide_connection(ipc_call_t *icall, void *arg)
+static void pci_ide_connection(ipc_call_t *icall, void *arg)
 {
-	isa_ide_fun_t *ifun;
+	pci_ide_fun_t *ifun;
 
-	ifun = (isa_ide_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
+	ifun = (pci_ide_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
 	ata_connection(icall, ifun->charg);
 }
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS ISA IDE device driver\n");
+	printf(NAME ": HelenOS PCI IDE device driver\n");
 	ddf_log_init(NAME);
-	return ddf_driver_main(&isa_ide_driver);
+	return ddf_driver_main(&pci_ide_driver);
 }
 
 /**

@@ -1,7 +1,5 @@
 /*
  * Copyright (c) 2024 Jiri Svoboda
- * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,32 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup pci-ide
  * @{
  */
-/** @file
+/** @file PCI IDE driver main module
  */
 
-#ifndef LIBDRV_OPS_HW_RES_H_
-#define LIBDRV_OPS_HW_RES_H_
+#ifndef MAIN_H
+#define MAIN_H
 
-#include <device/hw_res.h>
-#include <stddef.h>
-#include <stdint.h>
-#include "../ddf/driver.h"
+#include "pci-ide.h"
 
-typedef struct {
-	hw_resource_list_t *(*get_resource_list)(ddf_fun_t *);
-	errno_t (*enable_interrupt)(ddf_fun_t *, int);
-	errno_t (*disable_interrupt)(ddf_fun_t *, int);
-	errno_t (*clear_interrupt)(ddf_fun_t *, int);
-	errno_t (*dma_channel_setup)(ddf_fun_t *, unsigned, uint32_t, uint32_t, uint8_t);
-	errno_t (*dma_channel_remain)(ddf_fun_t *, unsigned, size_t *);
-	errno_t (*get_flags)(ddf_fun_t *, hw_res_flags_t *);
-} hw_res_ops_t;
+extern errno_t pci_ide_fun_create(pci_ide_channel_t *, unsigned, void *);
+extern errno_t pci_ide_fun_remove(pci_ide_channel_t *, unsigned);
+extern errno_t pci_ide_fun_unbind(pci_ide_channel_t *, unsigned);
 
 #endif
 
-/**
- * @}
+/** @}
  */

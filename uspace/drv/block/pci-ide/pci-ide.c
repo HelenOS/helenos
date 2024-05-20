@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup isa-ide
+/** @addtogroup pci-ide
  * @{
  */
 
 /**
  * @file
- * @brief ISA IDE driver
+ * @brief PCI IDE driver
  */
 
 #include <ddi.h>
@@ -49,31 +49,31 @@
 #include <inttypes.h>
 #include <errno.h>
 
-#include "isa-ide.h"
+#include "pci-ide.h"
 #include "main.h"
 
-static errno_t isa_ide_init_io(isa_ide_channel_t *);
-static void isa_ide_fini_io(isa_ide_channel_t *);
-static errno_t isa_ide_init_irq(isa_ide_channel_t *);
-static void isa_ide_fini_irq(isa_ide_channel_t *);
-static void isa_ide_irq_handler(ipc_call_t *, void *);
+static errno_t pci_ide_init_io(pci_ide_channel_t *);
+static void pci_ide_fini_io(pci_ide_channel_t *);
+static errno_t pci_ide_init_irq(pci_ide_channel_t *);
+static void pci_ide_fini_irq(pci_ide_channel_t *);
+static void pci_ide_irq_handler(ipc_call_t *, void *);
 
-static void isa_ide_write_data_16(void *, uint16_t *, size_t);
-static void isa_ide_read_data_16(void *, uint16_t *, size_t);
-static void isa_ide_write_cmd_8(void *, uint16_t, uint8_t);
-static uint8_t isa_ide_read_cmd_8(void *, uint16_t);
-static void isa_ide_write_ctl_8(void *, uint16_t, uint8_t);
-static uint8_t isa_ide_read_ctl_8(void *, uint16_t);
-static errno_t isa_ide_irq_enable(void *);
-static errno_t isa_ide_irq_disable(void *);
-static errno_t isa_ide_add_device(void *, unsigned, void *);
-static errno_t isa_ide_remove_device(void *, unsigned);
-static void isa_ide_msg_debug(void *, char *);
-static void isa_ide_msg_note(void *, char *);
-static void isa_ide_msg_warn(void *, char *);
-static void isa_ide_msg_error(void *, char *);
+static void pci_ide_write_data_16(void *, uint16_t *, size_t);
+static void pci_ide_read_data_16(void *, uint16_t *, size_t);
+static void pci_ide_write_cmd_8(void *, uint16_t, uint8_t);
+static uint8_t pci_ide_read_cmd_8(void *, uint16_t);
+static void pci_ide_write_ctl_8(void *, uint16_t, uint8_t);
+static uint8_t pci_ide_read_ctl_8(void *, uint16_t);
+static errno_t pci_ide_irq_enable(void *);
+static errno_t pci_ide_irq_disable(void *);
+static errno_t pci_ide_add_device(void *, unsigned, void *);
+static errno_t pci_ide_remove_device(void *, unsigned);
+static void pci_ide_msg_debug(void *, char *);
+static void pci_ide_msg_note(void *, char *);
+static void pci_ide_msg_warn(void *, char *);
+static void pci_ide_msg_error(void *, char *);
 
-static const irq_pio_range_t isa_ide_irq_ranges[] = {
+static const irq_pio_range_t pci_ide_irq_ranges[] = {
 	{
 		.base = 0,
 		.size = sizeof(ata_cmd_t)
@@ -81,7 +81,7 @@ static const irq_pio_range_t isa_ide_irq_ranges[] = {
 };
 
 /** IDE interrupt pseudo code. */
-static const irq_cmd_t isa_ide_irq_cmds[] = {
+static const irq_cmd_t pci_ide_irq_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
 		.addr = NULL,  /* will be patched in run-time */
@@ -92,15 +92,15 @@ static const irq_cmd_t isa_ide_irq_cmds[] = {
 	}
 };
 
-/** Initialize ISA IDE channel. */
-errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
-    unsigned chan_id, isa_ide_hwres_t *res)
+/** Initialize PCI IDE channel. */
+errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
+    unsigned chan_id, pci_ide_hwres_t *res)
 {
 	errno_t rc;
 	bool irq_inited = false;
 	ata_params_t params;
 
-	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init()");
+	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init()");
 
 	chan->ctrl = ctrl;
 	chan->chan_id = chan_id;
@@ -119,12 +119,12 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 	    (void *) chan->ctl_physical);
 
 	ddf_msg(LVL_DEBUG, "Init I/O");
-	rc = isa_ide_init_io(chan);
+	rc = pci_ide_init_io(chan);
 	if (rc != EOK)
 		return rc;
 
 	ddf_msg(LVL_DEBUG, "Init IRQ");
-	rc = isa_ide_init_irq(chan);
+	rc = pci_ide_init_irq(chan);
 	if (rc != EOK) {
 		ddf_msg(LVL_NOTE, "init IRQ failed");
 		return rc;
@@ -132,24 +132,24 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 
 	irq_inited = true;
 
-	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init(): Initialize IDE channel");
+	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init(): Initialize IDE channel");
 
 	params.arg = (void *)chan;
 	params.have_irq = (chan->irq >= 0) ? true : false;
-	params.write_data_16 = isa_ide_write_data_16;
-	params.read_data_16 = isa_ide_read_data_16;
-	params.write_cmd_8 = isa_ide_write_cmd_8;
-	params.read_cmd_8 = isa_ide_read_cmd_8;
-	params.write_ctl_8 = isa_ide_write_ctl_8;
-	params.read_ctl_8 = isa_ide_read_ctl_8;
-	params.irq_enable = isa_ide_irq_enable;
-	params.irq_disable = isa_ide_irq_disable;
-	params.add_device = isa_ide_add_device;
-	params.remove_device = isa_ide_remove_device;
-	params.msg_debug = isa_ide_msg_debug;
-	params.msg_note = isa_ide_msg_note;
-	params.msg_warn = isa_ide_msg_warn;
-	params.msg_error = isa_ide_msg_error;
+	params.write_data_16 = pci_ide_write_data_16;
+	params.read_data_16 = pci_ide_read_data_16;
+	params.write_cmd_8 = pci_ide_write_cmd_8;
+	params.read_cmd_8 = pci_ide_read_cmd_8;
+	params.write_ctl_8 = pci_ide_write_ctl_8;
+	params.read_ctl_8 = pci_ide_read_ctl_8;
+	params.irq_enable = pci_ide_irq_enable;
+	params.irq_disable = pci_ide_irq_disable;
+	params.add_device = pci_ide_add_device;
+	params.remove_device = pci_ide_remove_device;
+	params.msg_debug = pci_ide_msg_debug;
+	params.msg_note = pci_ide_msg_note;
+	params.msg_warn = pci_ide_msg_warn;
+	params.msg_error = pci_ide_msg_error;
 
 	rc = ata_channel_create(&params, &chan->channel);
 	if (rc != EOK)
@@ -159,21 +159,21 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init: DONE");
+	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init: DONE");
 	return EOK;
 error:
 	if (irq_inited)
-		isa_ide_fini_irq(chan);
-	isa_ide_fini_io(chan);
+		pci_ide_fini_irq(chan);
+	pci_ide_fini_io(chan);
 	return rc;
 }
 
-/** Finalize ISA IDE channel. */
-errno_t isa_ide_channel_fini(isa_ide_channel_t *chan)
+/** Finalize PCI IDE channel. */
+errno_t pci_ide_channel_fini(pci_ide_channel_t *chan)
 {
 	errno_t rc;
 
-	ddf_msg(LVL_DEBUG, ": isa_ide_ctrl_remove()");
+	ddf_msg(LVL_DEBUG, ": pci_ide_ctrl_remove()");
 
 	fibril_mutex_lock(&chan->lock);
 
@@ -183,15 +183,15 @@ errno_t isa_ide_channel_fini(isa_ide_channel_t *chan)
 		return rc;
 	}
 
-	isa_ide_fini_irq(chan);
-	isa_ide_fini_io(chan);
+	pci_ide_fini_irq(chan);
+	pci_ide_fini_io(chan);
 	fibril_mutex_unlock(&chan->lock);
 
 	return EOK;
 }
 
 /** Enable device I/O. */
-static errno_t isa_ide_init_io(isa_ide_channel_t *chan)
+static errno_t pci_ide_init_io(pci_ide_channel_t *chan)
 {
 	errno_t rc;
 	void *vaddr;
@@ -215,14 +215,14 @@ static errno_t isa_ide_init_io(isa_ide_channel_t *chan)
 }
 
 /** Clean up device I/O. */
-static void isa_ide_fini_io(isa_ide_channel_t *chan)
+static void pci_ide_fini_io(pci_ide_channel_t *chan)
 {
 	(void) chan;
 	/* XXX TODO */
 }
 
 /** Initialize IRQ. */
-static errno_t isa_ide_init_irq(isa_ide_channel_t *chan)
+static errno_t pci_ide_init_irq(pci_ide_channel_t *chan)
 {
 	irq_code_t irq_code;
 	irq_pio_range_t *ranges;
@@ -232,29 +232,29 @@ static errno_t isa_ide_init_irq(isa_ide_channel_t *chan)
 	if (chan->irq < 0)
 		return EOK;
 
-	ranges = malloc(sizeof(isa_ide_irq_ranges));
+	ranges = malloc(sizeof(pci_ide_irq_ranges));
 	if (ranges == NULL)
 		return ENOMEM;
 
-	cmds = malloc(sizeof(isa_ide_irq_cmds));
+	cmds = malloc(sizeof(pci_ide_irq_cmds));
 	if (cmds == NULL) {
 		free(cmds);
 		return ENOMEM;
 	}
 
-	memcpy(ranges, &isa_ide_irq_ranges, sizeof(isa_ide_irq_ranges));
+	memcpy(ranges, &pci_ide_irq_ranges, sizeof(pci_ide_irq_ranges));
 	ranges[0].base = chan->cmd_physical;
-	memcpy(cmds, &isa_ide_irq_cmds, sizeof(isa_ide_irq_cmds));
+	memcpy(cmds, &pci_ide_irq_cmds, sizeof(pci_ide_irq_cmds));
 	cmds[0].addr = &chan->cmd->status;
 
-	irq_code.rangecount = sizeof(isa_ide_irq_ranges) / sizeof(irq_pio_range_t);
+	irq_code.rangecount = sizeof(pci_ide_irq_ranges) / sizeof(irq_pio_range_t);
 	irq_code.ranges = ranges;
-	irq_code.cmdcount = sizeof(isa_ide_irq_cmds) / sizeof(irq_cmd_t);
+	irq_code.cmdcount = sizeof(pci_ide_irq_cmds) / sizeof(irq_cmd_t);
 	irq_code.cmds = cmds;
 
 	ddf_msg(LVL_NOTE, "IRQ %d", chan->irq);
 	rc = register_interrupt_handler(chan->ctrl->dev, chan->irq,
-	    isa_ide_irq_handler, (void *)chan, &irq_code, &chan->ihandle);
+	    pci_ide_irq_handler, (void *)chan, &irq_code, &chan->ihandle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error registering IRQ.");
 		goto error;
@@ -271,7 +271,7 @@ error:
 }
 
 /** Clean up IRQ. */
-static void isa_ide_fini_irq(isa_ide_channel_t *chan)
+static void pci_ide_fini_irq(pci_ide_channel_t *chan)
 {
 	errno_t rc;
 	async_sess_t *parent_sess;
@@ -288,11 +288,11 @@ static void isa_ide_fini_irq(isa_ide_channel_t *chan)
 /** Interrupt handler.
  *
  * @param call Call data
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  */
-static void isa_ide_irq_handler(ipc_call_t *call, void *arg)
+static void pci_ide_irq_handler(ipc_call_t *call, void *arg)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 	uint8_t status;
 	async_sess_t *parent_sess;
 
@@ -305,13 +305,13 @@ static void isa_ide_irq_handler(ipc_call_t *call, void *arg)
 
 /** Write the data register callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param data Data
  * @param nwords Number of words to write
  */
-static void isa_ide_write_data_16(void *arg, uint16_t *data, size_t nwords)
+static void pci_ide_write_data_16(void *arg, uint16_t *data, size_t nwords)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 	size_t i;
 
 	for (i = 0; i < nwords; i++)
@@ -320,13 +320,13 @@ static void isa_ide_write_data_16(void *arg, uint16_t *data, size_t nwords)
 
 /** Read the data register callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param buf Destination buffer
  * @param nwords Number of words to read
  */
-static void isa_ide_read_data_16(void *arg, uint16_t *buf, size_t nwords)
+static void pci_ide_read_data_16(void *arg, uint16_t *buf, size_t nwords)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 	size_t i;
 
 	for (i = 0; i < nwords; i++)
@@ -335,64 +335,64 @@ static void isa_ide_read_data_16(void *arg, uint16_t *buf, size_t nwords)
 
 /** Write command register callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param off Register offset
  * @param value Value to write to command register
  */
-static void isa_ide_write_cmd_8(void *arg, uint16_t off, uint8_t value)
+static void pci_ide_write_cmd_8(void *arg, uint16_t off, uint8_t value)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 
 	pio_write_8(((ioport8_t *)chan->cmd) + off, value);
 }
 
 /** Read command register callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param off Register offset
  * @return value Value read from command register
  */
-static uint8_t isa_ide_read_cmd_8(void *arg, uint16_t off)
+static uint8_t pci_ide_read_cmd_8(void *arg, uint16_t off)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 
 	return pio_read_8(((ioport8_t *)chan->cmd) + off);
 }
 
 /** Write control register callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param off Register offset
  * @param value Value to write to control register
  */
-static void isa_ide_write_ctl_8(void *arg, uint16_t off, uint8_t value)
+static void pci_ide_write_ctl_8(void *arg, uint16_t off, uint8_t value)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 
 	pio_write_8(((ioport8_t *)chan->ctl) + off, value);
 }
 
 /** Read control register callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param off Register offset
  * @return value Value read from control register
  */
-static uint8_t isa_ide_read_ctl_8(void *arg, uint16_t off)
+static uint8_t pci_ide_read_ctl_8(void *arg, uint16_t off)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 
 	return pio_read_8(((ioport8_t *)chan->ctl) + off);
 }
 
 /** Enable IRQ callback handler
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @return EOK on success or an error code
  */
-static errno_t isa_ide_irq_enable(void *arg)
+static errno_t pci_ide_irq_enable(void *arg)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 	async_sess_t *parent_sess;
 	errno_t rc;
 
@@ -412,12 +412,12 @@ static errno_t isa_ide_irq_enable(void *arg)
 
 /** Disable IRQ callback handler
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @return EOK on success or an error code
  */
-static errno_t isa_ide_irq_disable(void *arg)
+static errno_t pci_ide_irq_disable(void *arg)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
 	async_sess_t *parent_sess;
 	errno_t rc;
 
@@ -436,35 +436,35 @@ static errno_t isa_ide_irq_disable(void *arg)
 
 /** Add ATA device callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param idx Device index
  * $param charg Connection handler argument
  * @return EOK on success or an error code
  */
-static errno_t isa_ide_add_device(void *arg, unsigned idx, void *charg)
+static errno_t pci_ide_add_device(void *arg, unsigned idx, void *charg)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
-	return isa_ide_fun_create(chan, idx, charg);
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
+	return pci_ide_fun_create(chan, idx, charg);
 }
 
 /** Remove ATA device callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param idx Device index
  * @return EOK on success or an error code
  */
-static errno_t isa_ide_remove_device(void *arg, unsigned idx)
+static errno_t pci_ide_remove_device(void *arg, unsigned idx)
 {
-	isa_ide_channel_t *chan = (isa_ide_channel_t *)arg;
-	return isa_ide_fun_remove(chan, idx);
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
+	return pci_ide_fun_remove(chan, idx);
 }
 
 /** Debug message callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param msg Message
  */
-static void isa_ide_msg_debug(void *arg, char *msg)
+static void pci_ide_msg_debug(void *arg, char *msg)
 {
 	(void)arg;
 	ddf_msg(LVL_DEBUG, "%s", msg);
@@ -472,10 +472,10 @@ static void isa_ide_msg_debug(void *arg, char *msg)
 
 /** Notice message callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param msg Message
  */
-static void isa_ide_msg_note(void *arg, char *msg)
+static void pci_ide_msg_note(void *arg, char *msg)
 {
 	(void)arg;
 	ddf_msg(LVL_NOTE, "%s", msg);
@@ -483,10 +483,10 @@ static void isa_ide_msg_note(void *arg, char *msg)
 
 /** Warning message callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param msg Message
  */
-static void isa_ide_msg_warn(void *arg, char *msg)
+static void pci_ide_msg_warn(void *arg, char *msg)
 {
 	(void)arg;
 	ddf_msg(LVL_WARN, "%s", msg);
@@ -494,10 +494,10 @@ static void isa_ide_msg_warn(void *arg, char *msg)
 
 /** Error message callback handler.
  *
- * @param arg Argument (isa_ide_channel_t *)
+ * @param arg Argument (pci_ide_channel_t *)
  * @param msg Message
  */
-static void isa_ide_msg_error(void *arg, char *msg)
+static void pci_ide_msg_error(void *arg, char *msg)
 {
 	(void)arg;
 	ddf_msg(LVL_ERROR, "%s", msg);
