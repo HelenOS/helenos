@@ -87,7 +87,8 @@ static const char *default_devs[] = {
 
 static const char *sys_dirs[] = {
 	"/cfg",
-	"/data"
+	"/data",
+	NULL
 };
 
 /** Check the if the destination device exists.
