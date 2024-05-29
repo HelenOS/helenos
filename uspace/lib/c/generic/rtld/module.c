@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -342,11 +342,23 @@ module_t *module_by_id(rtld_t *rtld, unsigned long id)
 void modules_process_relocs(rtld_t *rtld, module_t *start)
 {
 	list_foreach(rtld->modules, modules_link, module_t, m) {
-		/* Skip rtld module, since it has already been processed */
-		if (m != &rtld->rtld) {
+		/*
+		 * Skip rtld module, since it has already been processed.
+		 * Skip start / main program -- leave it for later
+		 */
+		if (m != &rtld->rtld && m != start) {
 			module_process_relocs(m);
 		}
 	}
+
+	/*
+	 * Now that shared libraries have been processed and their variables
+	 * are thus initialized, we can process the main program,
+	 * which may contain COPY relocations that copy value from shared
+	 * library variables to instances of those variables defined
+	 * in the main program.
+	 */
+	module_process_relocs(start);
 }
 
 void modules_process_tls(rtld_t *rtld)
