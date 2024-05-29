@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023 Jiri Svoboda
+# Copyright (c) 2024 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -82,6 +82,7 @@ src += files(
 	'generic/capa.c',
 	'generic/config.c',
 	'generic/context.c',
+	'generic/dbgcon.c',
 	'generic/device/clock_dev.c',
 	'generic/device/hw_res.c',
 	'generic/device/hw_res_parsed.c',

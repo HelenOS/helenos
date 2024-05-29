@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2006 Jakub Vana
  * All rights reserved.
@@ -35,6 +35,7 @@
  */
 
 #include <as.h>
+#include <dbgcon.h>
 #include <libc.h>
 #include <async.h>
 #include <errno.h>
@@ -76,7 +77,7 @@ void console_done(console_ctrl_t *ctrl)
 
 bool console_kcon(void)
 {
-	return __SYSCALL0(SYS_DEBUG_CONSOLE);
+	return dbgcon_enable();
 }
 
 void console_flush(console_ctrl_t *ctrl)
