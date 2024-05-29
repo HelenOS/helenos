@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,8 @@ static int private_uvar;
 
 /** Public initialized variable */
 int dl_public_var = dl_public_var_val;
+/** Public variable initialized with the address of a symbol */
+int *dl_public_ptr_var = &dl_public_var;
 /** Public uninitialized variable */
 int dl_public_uvar;
 

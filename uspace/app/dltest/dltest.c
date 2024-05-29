@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -570,6 +570,31 @@ static bool test_dlfcn_read_public_fib_uvar(void)
 
 #ifdef DLTEST_LINKED
 
+/** Test if we can read the correct value of a public pointer variable.
+ *
+ * dl_public_ptr_var is initialized in libdltest to point to dl_public_var.
+ * This is done using a relocation. The main program (unless compiled with
+ * PIC or PIE) will contain a copy of dl_public_ptr_var. This needs
+ * to be copied using a COPY relocation. The relocations in the main
+ * program need to be processed after the relocations in the shared
+ * libraries (so that we copy the correct value).
+ */
+static bool test_public_ptr_var(void)
+{
+	int *ptr;
+
+	printf("Read dl_public_ptr_var directly...\n");
+	ptr = dl_public_ptr_var;
+
+	if (ptr != &dl_public_var) {
+		printf("FAILED\n");
+		return false;
+	}
+
+	printf("Passed\n");
+	return true;
+}
+
 /** Test directly calling function that returns a constant */
 static bool test_lnk_dl_get_constant(void)
 {
@@ -919,6 +944,7 @@ static int test_dlfcn(void)
 		return 1;
 
 #ifndef STATIC_EXE
+
 	if (!test_dlfcn_dl_get_private_fib_var())
 		return 1;
 
@@ -973,6 +999,9 @@ static int test_lnk(void)
 		return 1;
 
 	if (!test_lnk_read_public_uvar())
+		return 1;
+
+	if (!test_public_ptr_var())
 		return 1;
 
 	if (!test_lnk_dl_get_private_fib_var())
