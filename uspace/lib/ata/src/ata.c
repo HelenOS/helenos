@@ -1036,6 +1036,15 @@ static errno_t ata_packet_pio_data_in(ata_device_t *device, void *obuf,
 	return EOK;
 }
 
+/** Transfer data using DMA during PACKET command.
+ *
+ * @param device Device
+ * @param buf Buffer
+ * @param buf_size Buffer size
+ * @param dir DMA direction
+ *
+ * @return EOK on success or an error code
+ */
 static errno_t ata_packet_dma(ata_device_t *device, void *buf, size_t buf_size,
     ata_dma_dir_t dir)
 {
