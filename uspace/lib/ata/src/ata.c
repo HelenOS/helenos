@@ -877,13 +877,13 @@ static errno_t ata_dma_proto(ata_device_t *device, uint8_t cmd, void *buf,
 	else
 		rc = wait_status(chan, 0, ~SR_BSY, &status, TIMEOUT_BSY);
 
+	/* Tear down DMA channel */
+	ata_dma_chan_teardown(device);
+
 	if (rc != EOK) {
 		ata_msg_debug(chan, "wait_irq/wait_status failed");
 		return EIO;
 	}
-
-	/* Tear down DMA channel */
-	ata_dma_chan_teardown(device);
 
 	if ((status & SR_ERR) != 0) {
 		ata_msg_debug(chan, "status & SR_ERR != 0");
@@ -972,58 +972,22 @@ static errno_t ata_identify_pkt_dev(ata_device_t *device, void *buf)
 	    identify_data_size, 1);
 }
 
-/** Issue packet command (i. e. write a command packet to the device).
+/** Read data using PIO during a PACKET command.
  *
- * Only data-in commands are supported (e.g. inquiry, read).
- *
- * @param device	Device
- * @param obuf		Buffer for storing data read from device
- * @param obuf_size	Size of obuf in bytes
- * @param rcvd_size	Place to store number of bytes read or @c NULL
- *
- * @return EOK on success, EIO on error.
+ * @param device Device
+ * @param obuf Output buffer
+ * @param obuf_size Output buffer size
+ * @param rcvd_size Place to store number of bytes actually transferred
+ *                  or @c NULL
  */
-static errno_t ata_cmd_packet(ata_device_t *device, const void *cpkt, size_t cpkt_size,
-    void *obuf, size_t obuf_size, size_t *rcvd_size)
+static errno_t ata_packet_pio_data_in(ata_device_t *device, void *obuf,
+    size_t obuf_size, size_t *rcvd_size)
 {
 	ata_channel_t *chan = device->chan;
-	uint8_t status;
-	uint8_t drv_head;
 	size_t data_size;
 	size_t remain;
+	uint8_t status;
 	errno_t rc;
-
-	fibril_mutex_lock(&chan->lock);
-
-	/* New value for Drive/Head register */
-	drv_head =
-	    ((disk_dev_idx(device) != 0) ? DHR_DRV : 0);
-
-	if (wait_status(chan, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK) {
-		fibril_mutex_unlock(&chan->lock);
-		return EIO;
-	}
-
-	ata_write_cmd_8(chan, REG_DRIVE_HEAD, drv_head);
-
-	if (wait_status(chan, 0, ~(SR_BSY | SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&chan->lock);
-		return EIO;
-	}
-
-	/* Byte count <- max. number of bytes we can read in one transfer. */
-	ata_write_cmd_8(chan, REG_CYLINDER_LOW, 0xfe);
-	ata_write_cmd_8(chan, REG_CYLINDER_HIGH, 0xff);
-
-	ata_write_cmd_8(chan, REG_COMMAND, CMD_PACKET);
-
-	if (wait_status(chan, SR_DRQ, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
-		fibril_mutex_unlock(&chan->lock);
-		return EIO;
-	}
-
-	/* Write command packet. */
-	ata_write_data_16(chan, ((uint16_t *) cpkt), (cpkt_size + 1) / 2);
 
 	remain = obuf_size;
 	while (remain > 0) {
@@ -1063,13 +1027,118 @@ static errno_t ata_cmd_packet(ata_device_t *device, const void *cpkt, size_t cpk
 	else
 		rc = wait_status(chan, 0, ~SR_BSY, &status, TIMEOUT_BSY);
 
-	fibril_mutex_unlock(&chan->lock);
-
 	if (status & SR_ERR)
 		return EIO;
 
 	if (rcvd_size != NULL)
 		*rcvd_size = obuf_size - remain;
+
+	return EOK;
+}
+
+static errno_t ata_packet_dma(ata_device_t *device, void *buf, size_t buf_size,
+    ata_dma_dir_t dir)
+{
+	ata_channel_t *chan = device->chan;
+	uint8_t status;
+	errno_t rc;
+
+	if (chan->params.have_irq)
+		rc = wait_irq(chan, &status, TIMEOUT_BSY);
+	else
+		rc = wait_status(chan, 0, ~SR_BSY, &status, TIMEOUT_BSY);
+
+	if (rc != EOK) {
+		ata_msg_debug(chan, "wait_irq/wait_status failed");
+		return EIO;
+	}
+
+	if ((status & SR_ERR) != 0) {
+		ata_msg_debug(chan, "status & SR_ERR != 0");
+		return EIO;
+	}
+
+	return EOK;
+}
+
+/** Issue packet command (i. e. write a command packet to the device).
+ *
+ * Only data-in commands are supported (e.g. inquiry, read).
+ *
+ * @param device	Device
+ * @param obuf		Buffer for storing data read from device
+ * @param obuf_size	Size of obuf in bytes
+ * @param rcvd_size	Place to store number of bytes read or @c NULL
+ *
+ * @return EOK on success, EIO on error.
+ */
+static errno_t ata_cmd_packet(ata_device_t *device, const void *cpkt, size_t cpkt_size,
+    void *obuf, size_t obuf_size, size_t *rcvd_size)
+{
+	ata_channel_t *chan = device->chan;
+	uint8_t status;
+	uint8_t drv_head;
+	errno_t rc;
+
+	fibril_mutex_lock(&chan->lock);
+
+	/* New value for Drive/Head register */
+	drv_head =
+	    ((disk_dev_idx(device) != 0) ? DHR_DRV : 0);
+
+	if (wait_status(chan, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK) {
+		fibril_mutex_unlock(&chan->lock);
+		return EIO;
+	}
+
+	ata_write_cmd_8(chan, REG_DRIVE_HEAD, drv_head);
+
+	if (wait_status(chan, 0, ~(SR_BSY | SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
+		fibril_mutex_unlock(&chan->lock);
+		return EIO;
+	}
+
+	if (chan->params.use_dma) {
+		/* Set up DMA channel */
+		ata_dma_chan_setup(device, obuf, obuf_size, ata_dma_read);
+		ata_write_cmd_8(chan, REG_FEATURES, 0x01); // XXX
+	} else {
+		/*
+		 * Byte count <- max. number of bytes we can read in one
+		 * PIO transfer.
+		 */
+		ata_write_cmd_8(chan, REG_CYLINDER_LOW, 0xfe);
+		ata_write_cmd_8(chan, REG_CYLINDER_HIGH, 0xff);
+	}
+
+	ata_write_cmd_8(chan, REG_COMMAND, CMD_PACKET);
+
+	if (wait_status(chan, SR_DRQ, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+		if (chan->params.use_dma)
+			ata_dma_chan_teardown(device);
+		fibril_mutex_unlock(&chan->lock);
+		return EIO;
+	}
+
+	/* Write command packet. */
+	ata_write_data_16(chan, ((uint16_t *) cpkt), (cpkt_size + 1) / 2);
+
+	if (chan->params.use_dma) {
+		/* Read data using DMA */
+		rc = ata_packet_dma(device, obuf, obuf_size, ata_dma_read);
+		if (rc == EOK && rcvd_size != NULL)
+			*rcvd_size = obuf_size;
+		ata_dma_chan_teardown(device);
+	} else {
+		/* Read data using PIO */
+		rc = ata_packet_pio_data_in(device, obuf, obuf_size, rcvd_size);
+	}
+
+	fibril_mutex_unlock(&chan->lock);
+
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
 }
 

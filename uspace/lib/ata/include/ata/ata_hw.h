@@ -104,6 +104,7 @@ typedef union {
 #define REG_DRIVE_HEAD offsetof(ata_cmd_t, drive_head)
 #define REG_STATUS offsetof(ata_cmd_t, status)
 #define REG_COMMAND offsetof(ata_cmd_t, command)
+#define REG_FEATURES offsetof(ata_cmd_t, features)
 
 enum devctl_bits {
 	DCR_SRST	= 0x04, /**< Software Reset */
