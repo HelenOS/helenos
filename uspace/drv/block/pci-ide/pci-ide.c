@@ -225,6 +225,7 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	params.arg = (void *)chan;
 	params.have_irq = (chan->irq >= 0) ? true : false;
 	params.use_dma = true;
+	params.max_dma_xfer = chan->dma_buf_size;
 	params.write_data_16 = pci_ide_write_data_16;
 	params.read_data_16 = pci_ide_read_data_16;
 	params.write_cmd_8 = pci_ide_write_cmd_8;

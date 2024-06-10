@@ -62,6 +62,8 @@ typedef struct {
 	bool have_irq;
 	/** Use DMA transfers */
 	bool use_dma;
+	/** Maximum number of bytes that we can DMA in one I/O operation */
+	size_t max_dma_xfer;
 	/** Read 16 bits from the data port */
 	void (*write_data_16)(void *, uint16_t *, size_t);
 	/** Write 16 bits to the data port */

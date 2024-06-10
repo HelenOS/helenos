@@ -1418,6 +1418,7 @@ static errno_t ata_rcmd_flush_cache(ata_device_t *device)
 static size_t ata_disk_maxnb(ata_device_t *d)
 {
 	size_t maxnb;
+	size_t dma_maxnb;
 
 	maxnb = 0;
 
@@ -1440,6 +1441,10 @@ static size_t ata_disk_maxnb(ata_device_t *d)
 	 * If using DMA, this needs to be further restricted not to
 	 * exceed DMA buffer size.
 	 */
+	dma_maxnb = d->chan->params.max_dma_xfer / d->block_size;
+	if (dma_maxnb < maxnb)
+		maxnb = dma_maxnb;
+
 	return maxnb;
 }
 
