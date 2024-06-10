@@ -97,6 +97,20 @@ enum {
 	pci_ide_ata_ctl_s = 0x0374
 };
 
+enum {
+	pci_ide_prd_eot = 0x8000
+};
+
+/** PIIX physical region descriptor */
+typedef struct {
+	/** Physical base address */
+	uint32_t pba;
+	/** Byte count */
+	uint16_t bcnt;
+	/** EOT / reserved */
+	uint16_t eot_res;
+} pci_ide_prd_t;
+
 #endif
 
 /** @}

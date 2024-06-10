@@ -117,6 +117,8 @@ static void coord_sc_program(ata_channel_t *, const block_coord_t *, uint16_t);
 static errno_t wait_status(ata_channel_t *, unsigned, unsigned, uint8_t *,
     unsigned);
 static errno_t wait_irq(ata_channel_t *, uint8_t *, unsigned);
+static void ata_dma_chan_setup(ata_device_t *, void *, size_t, ata_dma_dir_t);
+static void ata_dma_chan_teardown(ata_device_t *);
 
 static bd_ops_t ata_bd_ops = {
 	.open = ata_bd_open,
@@ -848,6 +850,49 @@ static errno_t ata_pio_nondata(ata_device_t *device)
 	return EOK;
 }
 
+/** DMA command protocol.
+ *
+ * @param device ATA device
+ * @param cmd Command code
+ * @param buf Data buffer
+ * @param buf_size Data buffer size in bytes
+ * @param dir DMA direction
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t ata_dma_proto(ata_device_t *device, uint8_t cmd, void *buf,
+    size_t buf_size, ata_dma_dir_t dir)
+{
+	ata_channel_t *chan = device->chan;
+	uint8_t status;
+	errno_t rc;
+
+	/* Set up DMA channel */
+	ata_dma_chan_setup(device, buf, buf_size, dir);
+
+	ata_write_cmd_8(chan, REG_COMMAND, cmd);
+
+	if (chan->params.have_irq)
+		rc = wait_irq(chan, &status, TIMEOUT_BSY);
+	else
+		rc = wait_status(chan, 0, ~SR_BSY, &status, TIMEOUT_BSY);
+
+	if (rc != EOK) {
+		ata_msg_debug(chan, "wait_irq/wait_status failed");
+		return EIO;
+	}
+
+	/* Tear down DMA channel */
+	ata_dma_chan_teardown(device);
+
+	if ((status & SR_ERR) != 0) {
+		ata_msg_debug(chan, "status & SR_ERR != 0");
+		return EIO;
+	}
+
+	return EOK;
+}
+
 /** Issue IDENTIFY DEVICE command.
  *
  * Reads @c identify data into the provided buffer. This is used to detect
@@ -1183,6 +1228,7 @@ static errno_t ata_rcmd_read(ata_device_t *device, uint64_t ba, size_t blk_cnt,
 	ata_channel_t *chan = device->chan;
 	uint8_t drv_head;
 	block_coord_t bc;
+	uint8_t cmd;
 	errno_t rc;
 
 	/* Silence warning. */
@@ -1221,16 +1267,30 @@ static errno_t ata_rcmd_read(ata_device_t *device, uint64_t ba, size_t blk_cnt,
 	/* Program block coordinates into the device. */
 	coord_sc_program(chan, &bc, blk_cnt);
 
-	ata_write_cmd_8(chan, REG_COMMAND, device->amode == am_lba48 ?
-	    CMD_READ_SECTORS_EXT : CMD_READ_SECTORS);
+	if (chan->params.use_dma) {
+		cmd = (device->amode == am_lba48) ? CMD_READ_DMA_EXT :
+		    CMD_READ_DMA;
 
-	rc = ata_pio_data_in(device, buf, blk_cnt * device->block_size,
-	    device->block_size, blk_cnt);
+		rc = ata_dma_proto(device, cmd, buf,
+		    blk_cnt * device->block_size, ata_dma_read);
+		if (rc != EOK) {
+			ata_msg_note(chan, "ata_rcmd_read() -> dma_proto->%d",
+			    rc);
+		}
+	} else {
+		ata_write_cmd_8(chan, REG_COMMAND, device->amode == am_lba48 ?
+		    CMD_READ_SECTORS_EXT : CMD_READ_SECTORS);
+
+		rc = ata_pio_data_in(device, buf, blk_cnt * device->block_size,
+		    device->block_size, blk_cnt);
+		if (rc != EOK) {
+			ata_msg_note(chan, "ata_rcmd_read() -> pio_data_in->%d",
+			    rc);
+		}
+	}
 
 	fibril_mutex_unlock(&chan->lock);
 
-	if (rc != EOK)
-		ata_msg_note(chan, "ata_rcmd_read() -> pio_data_in->%d", rc);
 	return rc;
 }
 
@@ -1249,6 +1309,7 @@ static errno_t ata_rcmd_write(ata_device_t *device, uint64_t ba, size_t cnt,
 	ata_channel_t *chan = device->chan;
 	uint8_t drv_head;
 	block_coord_t bc;
+	uint8_t cmd;
 	errno_t rc;
 
 	/* Silence warning. */
@@ -1283,11 +1344,27 @@ static errno_t ata_rcmd_write(ata_device_t *device, uint64_t ba, size_t cnt,
 	/* Program block coordinates into the device. */
 	coord_sc_program(chan, &bc, cnt);
 
-	ata_write_cmd_8(chan, REG_COMMAND, device->amode == am_lba48 ?
-	    CMD_WRITE_SECTORS_EXT : CMD_WRITE_SECTORS);
+	if (chan->params.use_dma) {
+		cmd = (device->amode == am_lba48) ? CMD_WRITE_DMA_EXT :
+		    CMD_WRITE_DMA;
 
-	rc = ata_pio_data_out(device, buf, cnt * device->block_size,
-	    device->block_size, cnt);
+		rc = ata_dma_proto(device, cmd, (void *)buf,
+		    cnt * device->block_size, ata_dma_write);
+		if (rc != EOK) {
+			ata_msg_note(chan, "ata_rcmd_write() -> dma_proto->%d",
+			    rc);
+		}
+	} else {
+		ata_write_cmd_8(chan, REG_COMMAND, device->amode == am_lba48 ?
+		    CMD_WRITE_SECTORS_EXT : CMD_WRITE_SECTORS);
+
+		rc = ata_pio_data_out(device, buf, cnt * device->block_size,
+		    device->block_size, cnt);
+		if (rc != EOK) {
+			ata_msg_note(chan,
+			    "ata_rcmd_read() -> pio_data_out->%d", rc);
+		}
+	}
 
 	fibril_mutex_unlock(&chan->lock);
 	return rc;
@@ -1519,6 +1596,29 @@ static errno_t wait_irq(ata_channel_t *chan, uint8_t *pstatus, unsigned timeout)
 	*pstatus = chan->irq_status;
 	fibril_mutex_unlock(&chan->irq_lock);
 	return EOK;
+}
+
+/** Set up DMA channel.
+ *
+ * @param device ATA device
+ * @param buf Data buffer
+ * @param buf_size Data buffer size in bytes
+ * @param dir DMA direction
+ */
+static void ata_dma_chan_setup(ata_device_t *device, void *buf,
+    size_t buf_size, ata_dma_dir_t dir)
+{
+	device->chan->params.dma_chan_setup(device->chan->params.arg,
+	    buf, buf_size, dir);
+}
+
+/** Tear down DMA channel.
+ *
+ * @param device ATA device
+ */
+static void ata_dma_chan_teardown(ata_device_t *device)
+{
+	device->chan->params.dma_chan_teardown(device->chan->params.arg);
 }
 
 /** Interrupt handler.

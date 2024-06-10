@@ -46,12 +46,22 @@
 
 struct ata_device;
 
+/** ATA DMA direction */
+typedef enum {
+	/** DMA read */
+	ata_dma_read,
+	/** DMA write */
+	ata_dma_write
+} ata_dma_dir_t;
+
 /** ATA channel creation parameters */
 typedef struct {
 	/** Argument to callback functions */
 	void *arg;
 	/** IRQ is available */
 	bool have_irq;
+	/** Use DMA transfers */
+	bool use_dma;
 	/** Read 16 bits from the data port */
 	void (*write_data_16)(void *, uint16_t *, size_t);
 	/** Write 16 bits to the data port */
@@ -68,6 +78,10 @@ typedef struct {
 	errno_t (*irq_enable)(void *);
 	/** Disable interrupts */
 	errno_t (*irq_disable)(void *);
+	/** Set up DMA channel */
+	void (*dma_chan_setup)(void *, void *, size_t, ata_dma_dir_t);
+	/** Set up DMA channel */
+	void (*dma_chan_teardown)(void *);
 	/** Add new device */
 	errno_t (*add_device)(void *, unsigned, void *);
 	/** Remove device */

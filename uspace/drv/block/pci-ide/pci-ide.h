@@ -41,6 +41,7 @@
 #include <fibril_synch.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "pci-ide_hw.h"
 
 #define NAME "pci-ide"
 
@@ -78,6 +79,23 @@ typedef struct pci_ide_channel {
 	/** Value of status register read by interrupt handler */
 	uint8_t irq_status;
 
+	/** Physical region descriptor table */
+	pci_ide_prd_t *prdt;
+	/** Physical region descriptor table physical address */
+	uintptr_t prdt_pa;
+	/** DMA buffer */
+	void *dma_buf;
+	/** DMA buffer physical address */
+	uintptr_t dma_buf_pa;
+	/** DMA buffer size */
+	size_t dma_buf_size;
+	/** Current DMA transfer direction */
+	ata_dma_dir_t cur_dir;
+	/** Current data buffer */
+	void *cur_buf;
+	/** Current data buffer size */
+	size_t cur_buf_size;
+
 	/** Libata ATA channel */
 	ata_channel_t *channel;
 	struct pci_ide_fun *fun[2];
@@ -91,6 +109,10 @@ typedef struct pci_ide_ctrl {
 	/** DDF device */
 	ddf_dev_t *dev;
 
+	/** I/O base address of bus master IDE registers */
+	uintptr_t bmregs_physical;
+	/** Bus master IDE registers */
+	pci_ide_regs_t *bmregs;
 	/** Primary and secondary channel */
 	pci_ide_channel_t channel[2];
 } pci_ide_ctrl_t;
@@ -101,6 +123,8 @@ typedef struct pci_ide_fun {
 	void *charg;
 } pci_ide_fun_t;
 
+extern errno_t pci_ide_ctrl_init(pci_ide_ctrl_t *, pci_ide_hwres_t *);
+extern errno_t pci_ide_ctrl_fini(pci_ide_ctrl_t *);
 extern errno_t pci_ide_channel_init(pci_ide_ctrl_t *, pci_ide_channel_t *,
     unsigned, pci_ide_hwres_t *);
 extern errno_t pci_ide_channel_fini(pci_ide_channel_t *);

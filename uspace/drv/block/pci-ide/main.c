@@ -149,6 +149,10 @@ static errno_t pci_ide_dev_add(ddf_dev_t *dev)
 
 	ctrl->dev = dev;
 
+	rc = pci_ide_ctrl_init(ctrl, &res);
+	if (rc != EOK)
+		goto error;
+
 	rc = pci_ide_channel_init(ctrl, &ctrl->channel[0], 0, &res);
 	if (rc == ENOENT)
 		goto error;
@@ -331,6 +335,10 @@ static errno_t pci_ide_dev_gone(ddf_dev_t *dev)
 	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "pci_ide_dev_gone(%p)", dev);
+
+	rc = pci_ide_ctrl_fini(ctrl);
+	if (rc != EOK)
+		return rc;
 
 	rc = pci_ide_channel_fini(&ctrl->channel[0]);
 	if (rc != EOK)

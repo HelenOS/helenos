@@ -35,6 +35,7 @@
  * @brief PCI IDE driver
  */
 
+#include <assert.h>
 #include <ddi.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
@@ -66,6 +67,8 @@ static void pci_ide_write_ctl_8(void *, uint16_t, uint8_t);
 static uint8_t pci_ide_read_ctl_8(void *, uint16_t);
 static errno_t pci_ide_irq_enable(void *);
 static errno_t pci_ide_irq_disable(void *);
+static void pci_ide_dma_chan_setup(void *, void *, size_t, ata_dma_dir_t);
+static void pci_ide_dma_chan_teardown(void *);
 static errno_t pci_ide_add_device(void *, unsigned, void *);
 static errno_t pci_ide_remove_device(void *, unsigned);
 static void pci_ide_msg_debug(void *, char *);
@@ -92,6 +95,50 @@ static const irq_cmd_t pci_ide_irq_cmds[] = {
 	}
 };
 
+/** Initialize PCI IDE controller.
+ *
+ * @param ctrl PCI IDE controller
+ * @param res Hardware resources
+ *
+ * @return EOK on success or an error code
+ */
+errno_t pci_ide_ctrl_init(pci_ide_ctrl_t *ctrl, pci_ide_hwres_t *res)
+{
+	errno_t rc;
+	void *vaddr;
+
+	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init()");
+	ctrl->bmregs_physical = res->bmregs;
+
+	ddf_msg(LVL_NOTE, "Bus master IDE regs I/O address: 0x%lx",
+	    ctrl->bmregs_physical);
+
+	rc = pio_enable((void *)ctrl->bmregs_physical, sizeof(pci_ide_regs_t),
+	    &vaddr);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Cannot initialize device I/O space.");
+		return rc;
+	}
+
+	ctrl->bmregs = vaddr;
+
+	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init: DONE");
+	return EOK;
+}
+
+/** Finalize PCI IDE controller.
+ *
+ * @param ctrl PCI IDE controller
+ * @return EOK on success or an error code
+ */
+errno_t pci_ide_ctrl_fini(pci_ide_ctrl_t *ctrl)
+{
+	ddf_msg(LVL_DEBUG, ": pci_ide_ctrl_fini()");
+
+	// XXX TODO
+	return EOK;
+}
+
 /** Initialize PCI IDE channel. */
 errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
     unsigned chan_id, pci_ide_hwres_t *res)
@@ -99,8 +146,9 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	errno_t rc;
 	bool irq_inited = false;
 	ata_params_t params;
+	void *buffer;
 
-	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init()");
+	ddf_msg(LVL_DEBUG, "pci_ide_channel_init()");
 
 	chan->ctrl = ctrl;
 	chan->chan_id = chan_id;
@@ -115,6 +163,8 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 		chan->irq = res->irq2;
 	}
 
+	chan->dma_buf_size = 8192;
+
 	ddf_msg(LVL_NOTE, "I/O address %p/%p", (void *) chan->cmd_physical,
 	    (void *) chan->ctl_physical);
 
@@ -127,15 +177,54 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	rc = pci_ide_init_irq(chan);
 	if (rc != EOK) {
 		ddf_msg(LVL_NOTE, "init IRQ failed");
-		return rc;
+		goto error;
 	}
 
 	irq_inited = true;
 
-	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init(): Initialize IDE channel");
+	ddf_msg(LVL_DEBUG, "Allocate PRD table");
+
+	buffer = AS_AREA_ANY;
+	rc = dmamem_map_anonymous(sizeof (pci_ide_prd_t), DMAMEM_4GiB | 0xffff,
+	    AS_AREA_WRITE | AS_AREA_READ, 0, &chan->prdt_pa, &buffer);
+	if (rc != EOK) {
+		ddf_msg(LVL_NOTE, "Failed allocating PRD table.");
+		goto error;
+	}
+
+	chan->prdt = (pci_ide_prd_t *)buffer;
+
+	ddf_msg(LVL_DEBUG, "Allocate DMA buffer");
+
+	buffer = AS_AREA_ANY;
+	rc = dmamem_map_anonymous(chan->dma_buf_size, DMAMEM_4GiB | 0xffff,
+	    AS_AREA_WRITE | AS_AREA_READ, 0, &chan->dma_buf_pa, &buffer);
+	if (rc != EOK) {
+		ddf_msg(LVL_NOTE, "Failed allocating PRD table.");
+		goto error;
+	}
+
+	chan->dma_buf = buffer;
+
+	/* Populate PRD with information on our single DMA buffer */
+	chan->prdt->pba = host2uint32_t_le(chan->dma_buf_pa);
+	chan->prdt->bcnt = host2uint16_t_le(chan->dma_buf_size);
+	chan->prdt->eot_res = host2uint16_t_le(pci_ide_prd_eot);
+
+	/* Program PRD table pointer register */
+	if (chan_id == 0) {
+		pio_write_32(&chan->ctrl->bmregs->bmidtpp,
+		    (uint32_t)chan->prdt_pa);
+	} else {
+		pio_write_32(&chan->ctrl->bmregs->bmidtps,
+		    (uint32_t)chan->prdt_pa);
+	}
+
+	ddf_msg(LVL_DEBUG, "pci_ide_channel_init(): Initialize IDE channel");
 
 	params.arg = (void *)chan;
 	params.have_irq = (chan->irq >= 0) ? true : false;
+	params.use_dma = true;
 	params.write_data_16 = pci_ide_write_data_16;
 	params.read_data_16 = pci_ide_read_data_16;
 	params.write_cmd_8 = pci_ide_write_cmd_8;
@@ -144,6 +233,8 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	params.read_ctl_8 = pci_ide_read_ctl_8;
 	params.irq_enable = pci_ide_irq_enable;
 	params.irq_disable = pci_ide_irq_disable;
+	params.dma_chan_setup = pci_ide_dma_chan_setup;
+	params.dma_chan_teardown = pci_ide_dma_chan_teardown;
 	params.add_device = pci_ide_add_device;
 	params.remove_device = pci_ide_remove_device;
 	params.msg_debug = pci_ide_msg_debug;
@@ -159,7 +250,7 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init: DONE");
+	ddf_msg(LVL_DEBUG, "pci_ide_channel_init: DONE");
 	return EOK;
 error:
 	if (irq_inited)
@@ -173,7 +264,7 @@ errno_t pci_ide_channel_fini(pci_ide_channel_t *chan)
 {
 	errno_t rc;
 
-	ddf_msg(LVL_DEBUG, ": pci_ide_ctrl_remove()");
+	ddf_msg(LVL_DEBUG, ": pci_ide_channel_fini()");
 
 	fibril_mutex_lock(&chan->lock);
 
@@ -211,6 +302,15 @@ static errno_t pci_ide_init_io(pci_ide_channel_t *chan)
 	}
 
 	chan->ctl = vaddr;
+
+	rc = pio_enable((void *) chan->cmd_physical, sizeof(ata_cmd_t), &vaddr);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Cannot initialize device I/O space.");
+		return rc;
+	}
+
+	chan->cmd = vaddr;
+
 	return EOK;
 }
 
@@ -432,6 +532,67 @@ static errno_t pci_ide_irq_disable(void *arg)
 	}
 
 	return EOK;
+}
+
+/** Set up DMA channel callback handler
+ *
+ * @param arg Argument (pci_ide_channel_t *)
+ * @param buf Buffer
+ * @param buf_size Buffer size
+ * @param dir DMA transfer direction
+ */
+static void pci_ide_dma_chan_setup(void *arg, void *buf, size_t buf_size,
+    ata_dma_dir_t dir)
+{
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
+	uint8_t *bmicx;
+	uint8_t val;
+
+	/* Needed later in teardown */
+	chan->cur_dir = dir;
+	chan->cur_buf = buf;
+	chan->cur_buf_size = buf_size;
+
+	if (dir == ata_dma_write) {
+		assert(buf_size < chan->dma_buf_size);
+		memcpy(chan->dma_buf, buf, buf_size);
+	}
+
+	/* Primary or secondary channel control register */
+	bmicx = (chan->chan_id == 0) ? &chan->ctrl->bmregs->bmicp :
+	    &chan->ctrl->bmregs->bmics;
+
+	/* Set read / write */
+	val = (dir == ata_dma_write) ? bmicx_rwcon : 0;
+	pio_write_8(bmicx, val);
+
+	/* Start bus master DMA engine */
+	val = val | bmicx_ssbm;
+	pio_write_8(bmicx, val);
+}
+
+/** Tear down DMA channel callback handler
+ *
+ * @param arg Argument (pci_ide_channel_t *)
+ */
+static void pci_ide_dma_chan_teardown(void *arg)
+{
+	pci_ide_channel_t *chan = (pci_ide_channel_t *)arg;
+	uint8_t *bmicx;
+	uint8_t val;
+
+	/* Primary or secondary channel control register */
+	bmicx = (chan->chan_id == 0) ? &chan->ctrl->bmregs->bmicp :
+	    &chan->ctrl->bmregs->bmics;
+
+	/* Stop bus master DMA engine clear SSBM but keep RWCON the same */
+	val = (chan->cur_dir == ata_dma_write) ? bmicx_rwcon : 0;
+	pio_write_8(bmicx, val);
+
+	if (chan->cur_dir == ata_dma_read) {
+		assert(chan->cur_buf_size < chan->dma_buf_size);
+		memcpy(chan->cur_buf, chan->dma_buf, chan->cur_buf_size);
+	}
 }
 
 /** Add ATA device callback handler.
