@@ -604,7 +604,7 @@ static void pci_ide_dma_chan_setup(void *arg, void *buf, size_t buf_size,
 	chan->cur_buf_size = buf_size;
 
 	if (dir == ata_dma_write) {
-		assert(buf_size < chan->dma_buf_size);
+		assert(buf_size <= chan->dma_buf_size);
 		memcpy(chan->dma_buf, buf, buf_size);
 	}
 
@@ -640,7 +640,7 @@ static void pci_ide_dma_chan_teardown(void *arg)
 	pio_write_8(bmicx, val);
 
 	if (chan->cur_dir == ata_dma_read) {
-		assert(chan->cur_buf_size < chan->dma_buf_size);
+		assert(chan->cur_buf_size <= chan->dma_buf_size);
 		memcpy(chan->cur_buf, chan->dma_buf, chan->cur_buf_size);
 	}
 }
