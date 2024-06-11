@@ -80,19 +80,58 @@ static const irq_pio_range_t pci_ide_irq_ranges[] = {
 	{
 		.base = 0,
 		.size = sizeof(ata_cmd_t)
+	},
+	{
+		.base = 0,
+		.size = sizeof(pci_ide_regs_t)
 	}
 };
 
 /** IDE interrupt pseudo code. */
 static const irq_cmd_t pci_ide_irq_cmds[] = {
+	/* [0] Read BMISX */
 	{
 		.cmd = CMD_PIO_READ_8,
 		.addr = NULL,  /* will be patched in run-time */
 		.dstarg = 1
 	},
+	/* [1] Test BMISX.IDEINTS */
+	{
+		.cmd = CMD_AND,
+		.value = bmisx_ideints,
+		.srcarg = 1,
+		.dstarg = 2
+	},
+	/* [2] if (BMISX.IDEINTS != 0) { */
+	{
+		.cmd = CMD_PREDICATE,
+		.srcarg = 2,
+		.value = 3
+	},
+	/*
+	 * [3] Clear BMISX.IDEINTS by writing 1 to it. This clears bits 6,5,
+	 * but that should not matter.
+	 */
+	{
+		.cmd = CMD_PIO_WRITE_8,
+		.addr = NULL,  /* will be patched in run-time */
+		.value = bmisx_ideints
+	},
+	/* [4] Read IDE status register */
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = NULL,  /* will be patched in run-time */
+		.dstarg = 1
+	},
+	/* [5] Accept */
 	{
 		.cmd = CMD_ACCEPT
+	},
+	/* [6] } else { Decline */
+	{
+		.cmd = CMD_DECLINE
 	}
+	/* } */
 };
 
 /** Initialize PCI IDE controller.
@@ -328,6 +367,7 @@ static errno_t pci_ide_init_irq(pci_ide_channel_t *chan)
 	irq_code_t irq_code;
 	irq_pio_range_t *ranges;
 	irq_cmd_t *cmds;
+	uint8_t *bmisx;
 	errno_t rc;
 
 	if (chan->irq < 0)
@@ -343,10 +383,19 @@ static errno_t pci_ide_init_irq(pci_ide_channel_t *chan)
 		return ENOMEM;
 	}
 
+	/* Bus master IDE status register (primary or secondary) */
+	bmisx = chan->chan_id == 0 ?
+	    &chan->ctrl->bmregs->bmisp :
+	    &chan->ctrl->bmregs->bmiss;
+
 	memcpy(ranges, &pci_ide_irq_ranges, sizeof(pci_ide_irq_ranges));
 	ranges[0].base = chan->cmd_physical;
+	ranges[1].base = chan->ctrl->bmregs_physical;
+
 	memcpy(cmds, &pci_ide_irq_cmds, sizeof(pci_ide_irq_cmds));
-	cmds[0].addr = &chan->cmd->status;
+	cmds[0].addr = bmisx;
+	cmds[3].addr = bmisx;
+	cmds[4].addr = &chan->cmd->status;
 
 	irq_code.rangecount = sizeof(pci_ide_irq_ranges) / sizeof(irq_pio_range_t);
 	irq_code.ranges = ranges;
