@@ -37,13 +37,17 @@
 
 #include <stdint.h>
 
-enum {
-	uuid_bytes = 16
-};
+#define _UUID_NODE_LEN 6
 
 /** Universally Unique Identifier */
+
 typedef struct {
-	uint8_t b[uuid_bytes];
+	uint32_t time_low;
+	uint16_t time_mid;
+	uint16_t time_hi_and_version;
+	uint8_t clock_seq_hi_and_reserved;
+	uint8_t clock_seq_low;
+	uint8_t node[_UUID_NODE_LEN];
 } uuid_t;
 
 #endif

@@ -40,6 +40,15 @@
 #include <str.h>
 #include <stdio.h>
 
+static void encode16_be(uint8_t *, uint16_t);
+static void encode16_le(uint8_t *, uint16_t);
+static void encode32_be(uint8_t *, uint32_t);
+static void encode32_le(uint8_t *, uint32_t);
+static uint16_t decode16_be(uint8_t *);
+static uint16_t decode16_le(uint8_t *);
+static uint32_t decode32_be(uint8_t *);
+static uint32_t decode32_le(uint8_t *);
+
 /** Generate UUID.
  *
  * @param uuid Place to store generated UUID
@@ -55,8 +64,38 @@ errno_t uuid_generate(uuid_t *uuid)
 	if (rc != EOK)
 		return EIO;
 
-	for (i = 0; i < uuid_bytes; i++) {
-		rc = rndgen_uint8(rndgen, &uuid->b[i]);
+	rc = rndgen_uint32(rndgen, &uuid->time_low);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = rndgen_uint16(rndgen, &uuid->time_mid);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = rndgen_uint16(rndgen, &uuid->time_hi_and_version);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = rndgen_uint8(rndgen, &uuid->clock_seq_hi_and_reserved);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = rndgen_uint8(rndgen, &uuid->clock_seq_low);
+	if (rc != EOK) {
+		rc = EIO;
+		goto error;
+	}
+
+	for (i = 0; i < _UUID_NODE_LEN; i++) {
+		rc = rndgen_uint8(rndgen, &uuid->node[i]);
 		if (rc != EOK) {
 			rc = EIO;
 			goto error;
@@ -64,13 +103,14 @@ errno_t uuid_generate(uuid_t *uuid)
 	}
 
 	/* Version 4 UUID from random or pseudo-random numbers */
-	uuid->b[6] = (uuid->b[6] & 0x0f) | 0x40;
-	uuid->b[8] = (uuid->b[8] & 0x3f) | 0x80;
+	uuid->time_hi_and_version = (uuid->time_hi_and_version & 0x0fff) | 0x4000;
+	uuid->clock_seq_hi_and_reserved = (uuid->clock_seq_hi_and_reserved & 0x3f) | 0x80;
 
 error:
 	rndgen_destroy(rndgen);
 	return rc;
 }
+
 
 /** Encode UUID into binary form per RFC 4122.
  *
@@ -81,8 +121,14 @@ void uuid_encode(uuid_t *uuid, uint8_t *buf)
 {
 	int i;
 
-	for (i = 0; i < uuid_bytes; i++)
-		buf[i] = uuid->b[i];
+	encode32_be(buf, uuid->time_low);
+	encode16_be(buf + 4, uuid->time_mid);
+	encode16_be(buf + 6, uuid->time_hi_and_version);
+	buf[8] = uuid->clock_seq_hi_and_reserved;
+	buf[9] = uuid->clock_seq_low;
+
+	for (i = 0; i < _UUID_NODE_LEN; i++)
+		buf[10 + i] = uuid->node[i];
 }
 
 /** Decode UUID from binary form per RFC 4122.
@@ -94,8 +140,52 @@ void uuid_decode(uint8_t *buf, uuid_t *uuid)
 {
 	int i;
 
-	for (i = 0; i < uuid_bytes; i++)
-		uuid->b[i] = buf[i];
+	uuid->time_low = decode32_be(buf);
+	uuid->time_mid = decode16_be(buf + 4);
+	uuid->time_hi_and_version = decode16_be(buf + 6);
+	uuid->clock_seq_hi_and_reserved = buf[8];
+	uuid->clock_seq_low = buf[9];
+
+	for (i = 0; i < _UUID_NODE_LEN; i++)
+		uuid->node[i] = buf[10 + i];
+}
+
+/** Encode UUID into little-endian (GPT) binary form.
+ *
+ * @param uuid UUID
+ * @param buf 16-byte destination buffer
+ */
+void uuid_encode_le(uuid_t *uuid, uint8_t *buf)
+{
+	int i;
+
+	encode32_le(buf, uuid->time_low);
+	encode16_le(buf + 4, uuid->time_mid);
+	encode16_le(buf + 6, uuid->time_hi_and_version);
+	buf[8] = uuid->clock_seq_hi_and_reserved;
+	buf[9] = uuid->clock_seq_low;
+
+	for (i = 0; i < _UUID_NODE_LEN; i++)
+		buf[10 + i] = uuid->node[i];
+}
+
+/** Decode UUID from little-endian (GPT) binary form.
+ *
+ * @param buf 16-byte source buffer
+ * @param uuid Place to store UUID
+ */
+void uuid_decode_le(uint8_t *buf, uuid_t *uuid)
+{
+	int i;
+
+	uuid->time_low = decode32_le(buf);
+	uuid->time_mid = decode16_le(buf + 4);
+	uuid->time_hi_and_version = decode16_le(buf + 6);
+	uuid->clock_seq_hi_and_reserved = buf[8];
+	uuid->clock_seq_low = buf[9];
+
+	for (i = 0; i < _UUID_NODE_LEN; i++)
+		uuid->node[i] = buf[10 + i];
 }
 
 /** Parse string UUID.
@@ -141,22 +231,18 @@ errno_t uuid_parse(const char *str, uuid_t *uuid, const char **endptr)
 	if (rc != EOK || eptr != str + 36)
 		return EINVAL;
 
-	uuid->b[0] = time_low >> 24;
-	uuid->b[1] = (time_low >> 16) & 0xff;
-	uuid->b[2] = (time_low >> 8) & 0xff;
-	uuid->b[3] = time_low & 0xff;
+	uuid->time_low = time_low;
 
-	uuid->b[4] = time_mid >> 8;
-	uuid->b[5] = time_mid & 0xff;
+	uuid->time_mid = time_mid;
 
-	uuid->b[6] = time_ver >> 8;
-	uuid->b[7] = time_ver & 0xff;
+	uuid->time_hi_and_version = time_ver;
 
-	uuid->b[8] = clock >> 8;
-	uuid->b[9] = clock & 0xff;
+	uuid->clock_seq_hi_and_reserved = clock >> 8;
 
-	for (i = 0; i < 6; i++)
-		uuid->b[10 + i] = (node >> 8 * (5 - i)) & 0xff;
+	uuid->clock_seq_low = clock & 0xff;
+
+	for (i = 0; i < _UUID_NODE_LEN; i++)
+		uuid->node[i] = (node >> 8 * (5 - i)) & 0xff;
 
 	if (endptr != NULL) {
 		*endptr = str + 36;
@@ -182,11 +268,14 @@ errno_t uuid_format(uuid_t *uuid, char **rstr, bool uppercase)
 	if (str == NULL)
 		return ENOMEM;
 
-	const char *format = "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x";
+	const char *format = "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x";
 	if (uppercase)
-		format = "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X";
+		format = "%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X";
 
-	int ret = snprintf(str, size, format, uuid->b[0], uuid->b[1], uuid->b[2], uuid->b[3], uuid->b[4], uuid->b[5], uuid->b[6], uuid->b[7], uuid->b[8], uuid->b[9], uuid->b[10], uuid->b[11], uuid->b[12], uuid->b[13], uuid->b[14], uuid->b[15]);
+	int ret = snprintf(str, size, format, uuid->time_low, uuid->time_mid,
+	    uuid->time_hi_and_version, uuid->clock_seq_hi_and_reserved,
+	    uuid->clock_seq_low, uuid->node[0], uuid->node[1], uuid->node[2],
+	    uuid->node[3], uuid->node[4], uuid->node[5]);
 
 	if (ret != 36) {
 		free(str);
@@ -195,6 +284,54 @@ errno_t uuid_format(uuid_t *uuid, char **rstr, bool uppercase)
 
 	*rstr = str;
 	return EOK;
+}
+
+static void encode16_be(uint8_t *buf, uint16_t value)
+{
+	buf[0] = (value >> 8) & 0xff;
+	buf[1] = value & 0xff;
+}
+
+static void encode16_le(uint8_t *buf, uint16_t value)
+{
+	buf[0] = value & 0xff;
+	buf[1] = (value >> 8) & 0xff;
+}
+
+static void encode32_be(uint8_t *buf, uint32_t value)
+{
+	buf[0] = (value >> 24) & 0xff;
+	buf[1] = (value >> 16) & 0xff;
+	buf[2] = (value >> 8) & 0xff;
+	buf[3] = value & 0xff;
+}
+
+static void encode32_le(uint8_t *buf, uint32_t value)
+{
+	buf[0] = value & 0xff;
+	buf[1] = (value >> 8) & 0xff;
+	buf[2] = (value >> 16) & 0xff;
+	buf[3] = (value >> 24) & 0xff;
+}
+
+static uint16_t decode16_be(uint8_t *buf)
+{
+	return ((buf[0] << 8) | buf[1]);
+}
+
+static uint16_t decode16_le(uint8_t *buf)
+{
+	return ((buf[1] << 8) | buf[0]);
+}
+
+static uint32_t decode32_be(uint8_t *buf)
+{
+	return ((buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3]);
+}
+
+static uint32_t decode32_le(uint8_t *buf)
+{
+	return ((buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0]);
 }
 
 /** @}
