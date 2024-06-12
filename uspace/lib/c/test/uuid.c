@@ -49,12 +49,12 @@ static const char *uuids[] = {
 
 static bool uuid_valid(uuid_t uuid)
 {
-	if (!(uuid.b[6] & 0x40)) {
+	if (!((uuid.time_hi_and_version & 0xf000) & 0x4000)) {
 		return false;
 	}
 
-	int f = (uuid.b[8] & 0x80) || (uuid.b[8] & 0x90);
-	f = f || (uuid.b[8] & 0xA0) || (uuid.b[8] & 0xB0);
+	int f = (uuid.clock_seq_hi_and_reserved & 0x80) || (uuid.clock_seq_hi_and_reserved & 0x90);
+	f = f || (uuid.clock_seq_hi_and_reserved & 0xA0) || (uuid.clock_seq_hi_and_reserved & 0xB0);
 	if (!f) {
 		return false;
 	}
