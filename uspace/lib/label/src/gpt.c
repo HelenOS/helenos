@@ -442,7 +442,7 @@ static errno_t gpt_create(label_bd_t *bd, label_t **rlabel)
 		gpt_hdr->alternate_lba = host2uint64_t_le(hdr_ba[1 - i]);
 		gpt_hdr->first_usable_lba = host2uint64_t_le(ba_min);
 		gpt_hdr->last_usable_lba = host2uint64_t_le(ba_max);
-		uuid_encode(&disk_uuid, gpt_hdr->disk_guid);
+		uuid_encode_le(&disk_uuid, gpt_hdr->disk_guid);
 		gpt_hdr->entry_lba = host2uint64_t_le(ptba[i]);
 		gpt_hdr->num_entries = host2uint32_t_le(num_entries);
 		gpt_hdr->entry_size = host2uint32_t_le(esize);
@@ -811,8 +811,8 @@ static errno_t gpt_part_to_pte(label_part_t *part, gpt_entry_t *pte)
 		return EINVAL;
 
 	memset(pte, 0, sizeof(gpt_entry_t));
-	uuid_encode(&part->ptype.t.uuid, pte->part_type);
-	uuid_encode(&part->part_uuid, pte->part_id);
+	uuid_encode_le(&part->ptype.t.uuid, pte->part_type);
+	uuid_encode_le(&part->part_uuid, pte->part_id);
 	pte->start_lba = host2uint64_t_le(part->block0);
 	pte->end_lba = host2uint64_t_le(eblock);
 	//pte->attributes
@@ -848,8 +848,8 @@ static errno_t gpt_pte_to_part(label_t *label, gpt_entry_t *pte, int index)
 	part->block0 = b0;
 	part->nblocks = b1 - b0 + 1;
 	part->ptype.fmt = lptf_uuid;
-	uuid_decode(pte->part_type, &part->ptype.t.uuid);
-	uuid_decode(pte->part_id, &part->part_uuid);
+	uuid_decode_le(pte->part_type, &part->ptype.t.uuid);
+	uuid_decode_le(pte->part_id, &part->part_uuid);
 
 	part->label = label;
 	list_append(&part->lparts, &label->parts);
