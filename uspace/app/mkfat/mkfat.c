@@ -65,7 +65,8 @@ enum {
 	default_sectors_per_cluster	= 4,
 	default_fat_count		= 2,
 	default_reserved_clusters	= 2,
-	default_media_descriptor	= 0xF8 /**< fixed disk */
+	default_media_descriptor	= 0xF8 /**< fixed disk */,
+	fat32_root_cluster		= 2
 };
 
 /** Configurable file-system parameters */
@@ -312,7 +313,7 @@ static errno_t fat_params_compute(struct fat_cfg *cfg)
 
 	cfg->reserved_sectors = 1 + cfg->addt_res_sectors;
 
-	/* Only correct for FAT12/16 (FAT32 has root dir stored in clusters */
+	/* Only correct for FAT12/16 (FAT32 has root dir stored in clusters) */
 	rd_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
 	    cfg->sector_size);
 	non_data_sectors_lb_16 = cfg->reserved_sectors + rd_sectors;
@@ -433,6 +434,11 @@ static errno_t fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_
 		}
 	}
 
+	if (cfg->fat_type == FAT32) {
+		/* Root dir is stored in cluster fat32_root_cluster */
+		addr += fat32_root_cluster * cfg->sectors_per_cluster;
+	}
+
 	/* Root directory */
 	printf("Writing root directory.\n");
 	memset(buffer, 0, cfg->sector_size);
@@ -528,7 +534,7 @@ static errno_t fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 		bs->fat32.pdn = 0x80;
 		bs->fat32.ebs = 0x29;
 		bs->fat32.id = host2uint32_t_be(vsn);
-		bs->fat32.root_cluster = 2;
+		bs->fat32.root_cluster = fat32_root_cluster;
 
 		(void) fat_label_encode(&bs->fat32.label, bs_label);
 		memcpy(bs->fat32.type, "FAT32   ", 8);
