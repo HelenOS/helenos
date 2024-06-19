@@ -178,6 +178,10 @@ errno_t ata_channel_initialize(ata_channel_t *chan)
 	errno_t rc;
 	int n_disks;
 	bool irq_inited = false;
+	bool dev_added[MAX_DEVICES];
+
+	for (i = 0; i < MAX_DEVICES; i++)
+		dev_added[i] = false;
 
 	ata_msg_debug(chan, "ata_channel_initialize()");
 
@@ -211,6 +215,7 @@ errno_t ata_channel_initialize(ata_channel_t *chan)
 			ata_msg_error(chan, "Unable to add device %d.", i);
 			goto error;
 		}
+		dev_added[i] = true;
 		++n_disks;
 	}
 
@@ -223,8 +228,12 @@ errno_t ata_channel_initialize(ata_channel_t *chan)
 	return EOK;
 error:
 	for (i = 0; i < MAX_DEVICES; i++) {
-		if (ata_device_add(&chan->device[i]) != EOK) {
-			ata_msg_error(chan, "Unable to remove device %d.", i);
+		if (dev_added[i]) {
+			rc = ata_device_remove(&chan->device[i]);
+			if (rc != EOK) {
+				ata_msg_error(chan,
+				    "Unable to remove device %d.", i);
+			}
 		}
 	}
 	if (irq_inited)
