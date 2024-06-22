@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,14 @@
 
 struct ui_menu_bar;
 typedef struct ui_menu_bar ui_menu_bar_t;
+
+/** Menu bar callbacks */
+typedef struct ui_menu_bar_cb {
+	/** Activated */
+	void (*activate)(ui_menu_bar_t *, void *);
+	/** Deactivated */
+	void (*deactivate)(ui_menu_bar_t *, void *);
+} ui_menu_bar_cb_t;
 
 #endif
 

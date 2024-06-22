@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
@@ -237,11 +237,23 @@ static errno_t edit_ui_create(edit_t *);
 static void edit_ui_destroy(edit_t *);
 
 static void edit_wnd_close(ui_window_t *, void *);
+static void edit_wnd_focus(ui_window_t *, void *, unsigned);
 static void edit_wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
+static void edit_wnd_unfocus(ui_window_t *, void *, unsigned);
 
 static ui_window_cb_t edit_window_cb = {
 	.close = edit_wnd_close,
-	.kbd = edit_wnd_kbd_event
+	.focus = edit_wnd_focus,
+	.kbd = edit_wnd_kbd_event,
+	.unfocus = edit_wnd_unfocus
+};
+
+static void edit_menubar_activate(ui_menu_bar_t *, void *);
+static void edit_menubar_deactivate(ui_menu_bar_t *, void *);
+
+static ui_menu_bar_cb_t edit_menubar_cb = {
+	.activate = edit_menubar_activate,
+	.deactivate = edit_menubar_deactivate
 };
 
 static void edit_file_save(ui_menu_entry_t *, void *);
@@ -429,6 +441,8 @@ static errno_t edit_ui_create(edit_t *edit)
 		printf("Error creating menu bar.\n");
 		return rc;
 	}
+
+	ui_menu_bar_set_cb(edit->menubar, &edit_menubar_cb, (void *) edit);
 
 	rc = ui_menu_dd_create(edit->menubar, "~F~ile", NULL, &mfile);
 	if (rc != EOK) {
@@ -2220,6 +2234,21 @@ static void edit_wnd_close(ui_window_t *window, void *arg)
 	ui_quit(edit->ui);
 }
 
+/** Window focus event
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ * @param focus Focus number
+ */
+static void edit_wnd_focus(ui_window_t *window, void *arg, unsigned focus)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	pane_caret_display(&pane);
+	cursor_setvis(true);
+}
+
 /** Window keyboard event
  *
  * @param window Window
@@ -2239,6 +2268,47 @@ static void edit_wnd_kbd_event(ui_window_t *window, void *arg,
 		(void) pane_update(&pane);
 		(void) gfx_update(ui_window_get_gc(window));
 	}
+}
+
+/** Window unfocus event
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ * @param focus Focus number
+ */
+static void edit_wnd_unfocus(ui_window_t *window, void *arg, unsigned focus)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	(void)edit;
+	cursor_setvis(false);
+}
+
+/** Menu bar activate event
+ *
+ * @param mbar Menu bar
+ * @param arg Argument (edit_t *)
+ */
+static void edit_menubar_activate(ui_menu_bar_t *mbar, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	cursor_setvis(false);
+}
+
+/** Menu bar deactivate event
+ *
+ * @param mbar Menu bar
+ * @param arg Argument (edit_t *)
+ */
+static void edit_menubar_deactivate(ui_menu_bar_t *mbar, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	pane_caret_display(&pane);
+	cursor_setvis(true);
 }
 
 /** File / Save menu entry selected.
@@ -2406,15 +2476,11 @@ static void save_as_dialog_bok(ui_file_dialog_t *dialog, void *arg,
     const char *fname)
 {
 	edit_t *edit = (edit_t *)arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 	char *cname;
 	errno_t rc;
 
+	(void)edit;
 	ui_file_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 
 	cname = str_dup(fname);
 	if (cname == NULL) {
@@ -2440,13 +2506,9 @@ static void save_as_dialog_bok(ui_file_dialog_t *dialog, void *arg,
 static void save_as_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *)arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_file_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Save As dialog close request.
@@ -2457,13 +2519,9 @@ static void save_as_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
 static void save_as_dialog_close(ui_file_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *)arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_file_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Go To Line dialog OK button press.
@@ -2476,7 +2534,6 @@ static void go_to_line_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
     const char *text)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 	char *endptr;
 	int line;
 
@@ -2488,10 +2545,8 @@ static void go_to_line_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 	}
 
 	caret_move_absolute(line, pane.ideal_column, dir_before, false);
-	// TODO Smarter cursor management
+	(void)edit;
 	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
-	(void) gfx_update(gc);
 }
 
 /** Go To Line dialog cancel button press.
@@ -2502,13 +2557,9 @@ static void go_to_line_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Go To Line dialog close request.
@@ -2519,13 +2570,9 @@ static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 static void go_to_line_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Search dialog OK button press.
@@ -2538,10 +2585,10 @@ static void search_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
     const char *text)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 	char *pattern;
 	bool reverse;
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
 
 	/* Abort if search phrase is empty */
@@ -2558,10 +2605,7 @@ static void search_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 
 	search(pattern, reverse);
 
-	// TODO Smarter cursor management
 	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
-	(void) gfx_update(gc);
 }
 
 /** Search dialog cancel button press.
@@ -2572,13 +2616,9 @@ static void search_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 static void search_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Search dialog close request.
@@ -2589,13 +2629,9 @@ static void search_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 static void search_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** @}

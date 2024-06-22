@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,6 +63,10 @@ struct ui_menu_bar {
 	struct ui_menu_dd *selected;
 	/** List of menu drop-downs (ui_menu_dd_t) */
 	list_t menudds;
+	/** Callbacks */
+	struct ui_menu_bar_cb *cb;
+	/** Callback argument */
+	void *arg;
 };
 
 extern void ui_menu_bar_select(ui_menu_bar_t *, ui_menu_dd_t *, bool, sysarg_t);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -317,6 +317,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
     ui_window_t **rwindow)
 {
 	ui_window_t *window;
+	ui_window_t *pwindow = NULL;
 	display_info_t info;
 	gfx_coord2_t scr_dims;
 	display_wnd_params_t dparams;
@@ -504,7 +505,17 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	*rwindow = window;
 
+	if (ui_is_fullscreen(ui))
+		pwindow = ui_window_get_active(ui);
+
 	list_append(&window->lwindows, &ui->windows);
+
+	if (ui_is_fullscreen(ui)) {
+		/* Send unfocus event to previously active window */
+		if (pwindow != NULL)
+			ui_window_send_unfocus(pwindow, 0);
+	}
+
 	return EOK;
 error:
 	if (wdecor != NULL)
@@ -530,6 +541,7 @@ error:
 void ui_window_destroy(ui_window_t *window)
 {
 	ui_t *ui;
+	ui_window_t *nwindow;
 
 	if (window == NULL)
 		return;
@@ -557,6 +569,10 @@ void ui_window_destroy(ui_window_t *window)
 	/* Need to repaint if windows are emulated */
 	if (ui_is_fullscreen(ui)) {
 		ui_paint(ui);
+		/* Send focus event to newly active window */
+		nwindow = ui_window_get_active(ui);
+		if (nwindow != NULL)
+			ui_window_send_focus(nwindow, 0);
 	}
 
 	if (ui->console != NULL &&
