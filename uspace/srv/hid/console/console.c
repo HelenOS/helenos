@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -365,9 +365,15 @@ static errno_t input_ev_key(input_t *input, unsigned kbd_id,
     kbd_event_type_t type, keycode_t key, keymod_t mods, char32_t c)
 {
 	cons_event_t event;
+	bool alt;
+	bool shift;
 
+	alt = (mods & KM_ALT) != 0 && (mods & (KM_CTRL | KM_SHIFT)) == 0;
+	shift = (mods & KM_SHIFT) != 0 && (mods & (KM_CTRL | KM_ALT)) == 0;
+
+	/* Switch console on Alt+Fn or Shift+Fn */
 	if ((key >= KC_F1) && (key <= KC_F1 + CONSOLE_COUNT) &&
-	    ((mods & KM_CTRL) == 0)) {
+	    (alt || shift)) {
 		cons_switch(key - KC_F1);
 	} else {
 		/* Got key press/release event */
