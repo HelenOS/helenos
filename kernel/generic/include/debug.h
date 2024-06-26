@@ -37,6 +37,7 @@
 
 #include <log.h>
 #include <printf/verify.h>
+#include <symtab.h>
 
 #define CALLER  ((uintptr_t) __builtin_return_address(0))
 
