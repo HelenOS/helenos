@@ -26,5 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'nic' ]
+deps = [ 'nic' , 'pcap' ]
 src = files('e1k.c')
