@@ -231,7 +231,6 @@ errno_t wndlist_append(wndlist_t *wndlist, sysarg_t wnd_id,
 	list_append(&entry->lentries, &wndlist->entries);
 
 	entry->visible = false;
-	entry->maximized = true;
 
 	ui_pbutton_set_light(entry->button, active);
 
@@ -717,21 +716,26 @@ errno_t wndlist_repaint(wndlist_t *wndlist)
 static void wndlist_button_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	wndlist_entry_t *entry = (wndlist_entry_t *)arg;
+	wndmgt_window_info_t *winfo = NULL;
 	sysarg_t dev_id;
+	errno_t rc;
+	bool minimized = false;
 
 	/* ID of device that clicked the button */
 	dev_id = entry->wndlist->ev_idev_id;
 
-	if (!entry->maximized) {
+	rc = wndmgt_get_window_info(entry->wndlist->wndmgt,
+	    entry->wnd_id, &winfo);
+	if (rc == EOK) {
+		minimized = (winfo->flags & wndf_minimized) == 0;
+	}
+
+	if (!minimized) {
 		(void) wndmgt_activate_window(entry->wndlist->wndmgt,
 	        dev_id, entry->wnd_id);
-
-		entry->maximized = true;
 	} else {
 		(void) wndmgt_deactivate_window(entry->wndlist->wndmgt,
 	        dev_id, entry->wnd_id);
-
-		entry->maximized = false;
 	}
 }
 

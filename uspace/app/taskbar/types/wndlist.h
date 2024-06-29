@@ -58,8 +58,6 @@ typedef struct {
 	ui_pbutton_t *button;
 	/** Window button rectangle */
 	gfx_rect_t rect;
-	/** Window maximized **/
-	bool maximized;
 } wndlist_entry_t;
 
 /** Taskbar window list */
