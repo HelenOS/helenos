@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -509,48 +509,44 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
  */
 errno_t ds_seat_post_pos_event(ds_seat_t *seat, pos_event_t *event)
 {
-	ds_window_t *wnd;
+	ds_window_t *pwindow;
+	ds_window_t *cwindow;
 	errno_t rc;
 
-	wnd = ds_display_window_by_pos(seat->display, &seat->pntpos);
+	/* Window under pointer */
+	pwindow = ds_display_window_by_pos(seat->display, &seat->pntpos);
 
-	/* Deliver event to popup window. */
-	if (seat->popup != NULL && event->type != POS_PRESS) {
-		rc = ds_window_post_pos_event(seat->popup, event);
+	/* Current window: popup or focused */
+	cwindow = seat->popup;
+	if (cwindow == NULL)
+		cwindow = seat->focus;
+
+	/*
+	 * Deliver move and release event to current window if different
+	 * from pwindow
+	 */
+	if (event->type != POS_PRESS && cwindow != NULL &&
+	    cwindow != pwindow) {
+		rc = ds_window_post_pos_event(cwindow, event);
 		if (rc != EOK)
 			return rc;
 	}
 
-	if (seat->focus != wnd && seat->focus != NULL) {
-		rc = ds_window_post_pos_event(seat->focus, event);
-		if (rc != EOK)
-			return rc;
-
-		/* Only deliver release events to the focused window */
-		if (event->type == POS_RELEASE)
-			return EOK;
-	}
-
-	if (wnd != NULL) {
+	if (pwindow != NULL) {
 		/* Moving over a window */
-		ds_seat_set_client_cursor(seat, wnd->cursor);
+		ds_seat_set_client_cursor(seat, pwindow->cursor);
 
-		/*
-		 * Only deliver event if we didn't already deliver it
-		 * to the same window above.
-		 */
-		if (wnd != seat->popup || event->type == POS_PRESS) {
-			rc = ds_window_post_pos_event(wnd, event);
-			if (rc != EOK)
-				return rc;
-		}
+		rc = ds_window_post_pos_event(pwindow, event);
+		if (rc != EOK)
+			return rc;
 	} else {
 		/* Not over a window */
-		ds_seat_set_client_cursor(seat, seat->display->cursor[dcurs_arrow]);
+		ds_seat_set_client_cursor(seat,
+		    seat->display->cursor[dcurs_arrow]);
 	}
 
 	/* Click outside popup window */
-	if (event->type == POS_PRESS && wnd != seat->popup) {
+	if (event->type == POS_PRESS && pwindow != seat->popup) {
 		/* Close popup window */
 		ds_seat_set_popup(seat, NULL);
 	}
