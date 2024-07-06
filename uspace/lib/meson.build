@@ -80,6 +80,7 @@ libs = [
 	'math',
 	'minix',
 	'nettl',
+	'pcap',
 	'ofw',
 	'pcm',
 	'pcut',
