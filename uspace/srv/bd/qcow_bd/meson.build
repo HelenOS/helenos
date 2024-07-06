@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 Jiří Zárevúcky
+# Copyright (c) 2021 Erik Kučák
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-srvs = [
-	'audio/hound',
-	'bd/file_bd',
-	'bd/qcow_bd',
-	'bd/rd',
-	'bd/sata_bd',
-	'bd/vbd',
-	'clipboard',
-	'devman',
-	'fs/cdfs',
-	'fs/exfat',
-	'fs/ext4fs',
-	'fs/fat',
-	'fs/locfs',
-	'fs/mfs',
-	'fs/tmpfs',
-	'fs/udf',
-	'hid/console',
-	'hid/display',
-	'hid/input',
-	'hid/isdv4_tablet',
-	'hid/output',
-	'hid/remcons',
-	'hid/rfb',
-	'hid/s3c24xx_ts',
-	'hw/char/s3c24xx_uart',
-	'klog',
-	'loader',
-	'locsrv',
-	'logger',
-	'net/dhcp',
-	'net/dnsrsrv',
-	'net/ethip',
-	'net/inetsrv',
-	'net/loopip',
-	'net/nconfsrv',
-	'net/slip',
-	'net/tcp',
-	'net/udp',
-	'ns',
-	'taskmon',
-	'test/chardev-test',
-	'test/ipc-test',
-	'vfs',
-	'volsrv',
-]
+deps = [ 'device' ]
+src = files('qcow_bd.c')
