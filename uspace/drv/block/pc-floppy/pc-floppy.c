@@ -784,6 +784,78 @@ static errno_t pc_fdc_drive_read_data(pc_fdc_drive_t *drive,
 	return EOK;
 }
 
+/** Perform Write Data command.
+ *
+ * @param drive Floppy drive
+ * @param cyl Cylinder
+ * @param head Head
+ * @param sec Sector
+ * @param buf Source buffer
+ * @param buf_size Source buffer size
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t pc_fdc_drive_write_data(pc_fdc_drive_t *drive,
+    uint8_t cyl, uint8_t head, uint8_t sec, const void *buf, size_t buf_size)
+{
+	pc_fdc_t *fdc = drive->fdc;
+	pc_fdc_cmd_data_t cmd;
+	pc_fdc_cmd_status_t status;
+	async_sess_t *sess;
+	size_t csize;
+	errno_t rc;
+
+	ddf_msg(LVL_NOTE, "pc_fdc_drive_write_data");
+
+	/* Copy data from source buffer to DMA buffer */
+	csize = min(fdc->dma_buf_size, buf_size);
+	memcpy(fdc->dma_buf, buf, csize);
+
+	sess = ddf_dev_parent_sess_get(fdc->dev);
+	ddf_msg(LVL_NOTE, "hw_res_dma_channel_setup(sess=%p, chan=%d "
+	    "pa=%lu size=%zu", sess, fdc->dma, fdc->dma_buf_pa,
+	    fdc->dma_buf_size);
+	rc = hw_res_dma_channel_setup(sess, fdc->dma, fdc->dma_buf_pa,
+	    fdc->dma_buf_size, DMA_MODE_WRITE | DMA_MODE_AUTO |
+	    DMA_MODE_ON_DEMAND);
+	ddf_msg(LVL_NOTE, "hw_res_dma_channel_setup->%d", rc);
+
+	cmd.flags_cc = fcf_mf | fcc_write_data;
+	cmd.hd_us = (head & 1) << 2 | 0x00 /* drive 0 */;
+	cmd.cyl = cyl;
+	cmd.head = head;
+	cmd.rec = sec;
+	cmd.number = 2; /* 512 bytes */
+	cmd.eot = sec;
+	cmd.gpl = 0x1b;
+	cmd.dtl = 0xff;
+
+	ddf_msg(LVL_NOTE, "write data: send");
+	rc = pc_fdc_send(fdc, &cmd, sizeof(cmd));
+	if (rc != EOK) {
+		ddf_msg(LVL_WARN, "Failed sending Write Data command.");
+		return rc;
+	}
+
+	ddf_msg(LVL_NOTE, "write data: get");
+	rc = pc_fdc_get(fdc, &status, sizeof(status));
+	if (rc != EOK) {
+		ddf_msg(LVL_WARN, "Failed getting status for Write Data");
+		return rc;
+	}
+
+	ddf_msg(LVL_NOTE, "write data: DONE");
+	ddf_msg(LVL_NOTE, "st0=0x%x st1=0x%x st2=0x%x cyl=%u head=%u rec=%u "
+	    "number=%u", status.st0, status.st1, status.st2,
+	    status.cyl, status.head, status.rec, status.number);
+
+	/* Check for success status */
+	if ((status.st0 & fsr0_ic_mask) != 0)
+		return EIO;
+
+	return EOK;
+}
+
 /** Perform Sense Interrupt Status command.
  *
  * @param fdc Floppy controller
@@ -924,7 +996,6 @@ static errno_t pc_fdc_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 		goto error;
 	}
 
-	/* Maximum number of blocks to transfer at the same time */
 	while (cnt > 0) {
 		pc_fdc_drive_ba_to_chs(drive, ba, &cyl, &head, &sec);
 
@@ -972,7 +1043,35 @@ static errno_t pc_fdc_bd_read_toc(bd_srv_t *bd, uint8_t session, void *buf, size
 static errno_t pc_fdc_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
-	return ENOTSUP;
+	pc_fdc_drive_t *drive = bd_srv_drive(bd);
+	uint8_t cyl, head, sec;
+	errno_t rc;
+
+	ddf_msg(LVL_NOTE, "pc_fdc_bd_write_blocks");
+
+	if (size < cnt * drive->sec_size) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	while (cnt > 0) {
+		pc_fdc_drive_ba_to_chs(drive, ba, &cyl, &head, &sec);
+
+		/* Write one block */
+		rc = pc_fdc_drive_write_data(drive, cyl, head, sec, buf,
+		    drive->sec_size);
+		if (rc != EOK)
+			goto error;
+
+		++ba;
+		--cnt;
+		buf += drive->sec_size;
+	}
+
+	return EOK;
+error:
+	ddf_msg(LVL_NOTE, "pc_fdc_bd_write_blocks: rc=%d", rc);
+	return rc;
 }
 
 /** Get device block size. */
