@@ -185,7 +185,7 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	errno_t rc;
 	bool irq_inited = false;
 	ata_params_t params;
-	void *buffer;
+	void *buffer = NULL;
 
 	ddf_msg(LVL_DEBUG, "pci_ide_channel_init()");
 
@@ -293,6 +293,8 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	ddf_msg(LVL_DEBUG, "pci_ide_channel_init: DONE");
 	return EOK;
 error:
+	if (buffer != NULL)
+		dmamem_unmap_anonymous(buffer);
 	if (irq_inited)
 		pci_ide_fini_irq(chan);
 	pci_ide_fini_io(chan);
@@ -314,6 +316,7 @@ errno_t pci_ide_channel_fini(pci_ide_channel_t *chan)
 		return rc;
 	}
 
+	dmamem_unmap_anonymous(chan->dma_buf);
 	pci_ide_fini_irq(chan);
 	pci_ide_fini_io(chan);
 	fibril_mutex_unlock(&chan->lock);

@@ -50,6 +50,12 @@ cmos-rtc:
 	match 100 isa/cmos-rtc
 	io_range 70 2
 
+fdc:
+	match 100 isa/fdc
+	io_range 0x3f0 8
+	irq 6
+	dma 2
+
 ide1:
 	match 100 isa/ide
 	io_range 0x1f0 8
