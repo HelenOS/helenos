@@ -111,7 +111,6 @@ error:
 	return rc;
 }
 
-
 /** Encode UUID into binary form per RFC 4122.
  *
  * @param uuid UUID
