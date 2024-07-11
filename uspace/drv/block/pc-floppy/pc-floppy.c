@@ -164,7 +164,7 @@ errno_t pc_fdc_create(ddf_dev_t *dev, pc_fdc_hwres_t *res, pc_fdc_t **rfdc)
 	ddf_msg(LVL_DEBUG, "Init IRQ");
 	rc = pc_fdc_init_irq(fdc);
 	if (rc != EOK) {
-		ddf_msg(LVL_NOTE, "Init IRQ failed");
+		ddf_msg(LVL_ERROR, "Init IRQ failed");
 		return rc;
 	}
 
@@ -178,23 +178,23 @@ errno_t pc_fdc_create(ddf_dev_t *dev, pc_fdc_hwres_t *res, pc_fdc_t **rfdc)
 	rc = dmamem_map_anonymous(fdc->dma_buf_size, DMAMEM_1MiB | 0xffff,
 	    AS_AREA_WRITE | AS_AREA_READ, 0, &fdc->dma_buf_pa, &buffer);
 	if (rc != EOK) {
-		ddf_msg(LVL_NOTE, "Failed allocating PRD table.");
+		ddf_msg(LVL_ERROR, "Failed allocating PRD table.");
 		goto error;
 	}
 
 	fdc->dma_buf = buffer;
 
-	ddf_msg(LVL_NOTE, "pc_fdc_ctrl_init: reset controller...");
+	ddf_msg(LVL_DEBUG, "pc_fdc_ctrl_init: reset controller...");
 	(void)pc_fdc_reset(fdc);
-	ddf_msg(LVL_NOTE, "pc_fdc_ctrl_init: read_ID..");
+	ddf_msg(LVL_DEBUG, "pc_fdc_ctrl_init: read_ID..");
 
-	ddf_msg(LVL_NOTE, "pc_fdc_ctrl_init: MSR=0x%x",
+	ddf_msg(LVL_DEBUG, "pc_fdc_ctrl_init: MSR=0x%x",
 	    pio_read_8(&fdc->regs->msr));
-	ddf_msg(LVL_NOTE, "pc_fdc_ctrl_init: DIR=0x%x",
+	ddf_msg(LVL_DEBUG, "pc_fdc_ctrl_init: DIR=0x%x",
 	    pio_read_8(&fdc->regs->dir));
-	ddf_msg(LVL_NOTE, "pc_fdc_ctrl_init: SRA=0x%x",
+	ddf_msg(LVL_DEBUG, "pc_fdc_ctrl_init: SRA=0x%x",
 	    pio_read_8(&fdc->regs->sra));
-	ddf_msg(LVL_NOTE, "pc_fdc_ctrl_init: SRB=0x%x",
+	ddf_msg(LVL_DEBUG, "pc_fdc_ctrl_init: SRB=0x%x",
 	    pio_read_8(&fdc->regs->srb));
 
 	rc = pc_fdc_sense_int_sts(fdc);
@@ -212,11 +212,11 @@ errno_t pc_fdc_create(ddf_dev_t *dev, pc_fdc_hwres_t *res, pc_fdc_t **rfdc)
 
 	/* Read ID MFM, D0, H0 */
 	rc = pc_fdc_read_id(fdc, true, 0, 0);
-	ddf_msg(LVL_NOTE, "pc_fdc_ctrl_init: read_ID -> %d", rc);
+	ddf_msg(LVL_DEBUG, "pc_fdc_ctrl_init: read_ID -> %d", rc);
 
 	rc = pc_fdc_drive_create(fdc, 0, &fdc->drive[0]);
 	if (rc != EOK) {
-		ddf_msg(LVL_NOTE, "pc_fdc_ctrl_init: pc_fdc_drive_create "
+		ddf_msg(LVL_ERROR, "pc_fdc_ctrl_init: pc_fdc_drive_create "
 		    "failed");
 		goto error;
 	}
@@ -453,12 +453,14 @@ static errno_t pc_fdc_drive_create(pc_fdc_t *fdc, unsigned idx,
 
 	bound = true;
 
+#if 0
 	rc = ddf_fun_add_to_category(fun, "partition");
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding function %s to "
 		    "category 'partition': %s", fun_name, str_error(rc));
 		goto error;
 	}
+#endif
 
 	free(fun_name);
 	*rdrive = drive;
@@ -496,7 +498,7 @@ static errno_t pc_fdc_send_byte(pc_fdc_t *fdc, uint8_t byte)
 	stopwatch_start(&sw);
 
 	status = pio_read_8(&fdc->regs->msr);
-	ddf_msg(LVL_NOTE, "pc_fdc_send_byte: status=0x%x", status);
+	ddf_msg(LVL_DEBUG, "pc_fdc_send_byte: status=0x%x", status);
 	do {
 		cnt = msr_read_cycles;
 		while (cnt > 0) {
@@ -512,10 +514,10 @@ static errno_t pc_fdc_send_byte(pc_fdc_t *fdc, uint8_t byte)
 
 		stopwatch_stop(&sw);
 		nsec = stopwatch_get_nanos(&sw);
-		ddf_msg(LVL_NOTE, "nsec=%lld", nsec);
+		ddf_msg(LVL_DEBUG, "nsec=%lld", nsec);
 	} while (nsec < 1000 * msr_max_wait_usec);
 
-	ddf_msg(LVL_NOTE, "pc_fdc_send_byte: FAILED (status=0x%x)", status);
+	ddf_msg(LVL_ERROR, "pc_fdc_send_byte: FAILED (status=0x%x)", status);
 	return EIO;
 }
 
@@ -540,7 +542,7 @@ static errno_t pc_fdc_send(pc_fdc_t *fdc, const void *data, size_t nbytes)
 	}
 
 	status = pio_read_8(&fdc->regs->msr);
-	ddf_msg(LVL_NOTE, "pc_fdc_send: final status=0x%x", status);
+	ddf_msg(LVL_DEBUG, "pc_fdc_send: final status=0x%x", status);
 	return EOK;
 }
 
@@ -566,7 +568,7 @@ static errno_t pc_fdc_get_byte(pc_fdc_t *fdc, uint8_t *byte)
 	stopwatch_start(&sw);
 
 	status = pio_read_8(&fdc->regs->msr);
-	ddf_msg(LVL_NOTE, "pc_fdc_get_byte: status=0x%x", status);
+	ddf_msg(LVL_DEBUG, "pc_fdc_get_byte: status=0x%x", status);
 	do {
 		cnt = msr_read_cycles;
 		while (cnt > 0) {
@@ -584,7 +586,7 @@ static errno_t pc_fdc_get_byte(pc_fdc_t *fdc, uint8_t *byte)
 		nsec = stopwatch_get_nanos(&sw);
 	} while (nsec / 1000 < 1000 * msr_max_wait_usec);
 
-	ddf_msg(LVL_NOTE, "pc_fdc_get_byte: FAILED (status=0x%x)", status);
+	ddf_msg(LVL_ERROR, "pc_fdc_get_byte: FAILED (status=0x%x)", status);
 	return EIO;
 }
 
@@ -605,15 +607,15 @@ static errno_t pc_fdc_get(pc_fdc_t *fdc, void *buf, size_t bsize)
 	for (i = 0; i < bsize; i++) {
 		rc = pc_fdc_get_byte(fdc, &((uint8_t *)buf)[i]);
 		if (rc != EOK) {
-			ddf_msg(LVL_NOTE, "pc_fdc_get: abort after "
+			ddf_msg(LVL_ERROR, "pc_fdc_get: abort after "
 			    "reading %zu bytes", i);
 			return rc;
 		}
 	}
 
-	ddf_msg(LVL_NOTE, "pc_fdc_get: successfully read %zu bytes", i);
+	ddf_msg(LVL_DEBUG, "pc_fdc_get: successfully read %zu bytes", i);
 	status = pio_read_8(&fdc->regs->msr);
-	ddf_msg(LVL_NOTE, "pc_fdc_get: final status=0x%x", status);
+	ddf_msg(LVL_DEBUG, "pc_fdc_get: final status=0x%x", status);
 	return EOK;
 }
 
@@ -631,21 +633,21 @@ static errno_t pc_fdc_reset(pc_fdc_t *fdc)
 
 	/* Clear DOR reset in case it was set (i.e., nreset := 1) */
 	dor = pio_read_8(&fdc->regs->dor);
-	ddf_msg(LVL_NOTE, "pc_fdc_reset: old DOR=0x%x, DOR := 0x%x", dor,
+	ddf_msg(LVL_DEBUG, "pc_fdc_reset: old DOR=0x%x, DOR := 0x%x", dor,
 	    dor & ~fdor_nreset);
 	pio_write_8(&fdc->regs->dor, dor & ~fdor_nreset);
 
 	dor = pio_read_8(&fdc->regs->dor);
-	ddf_msg(LVL_NOTE, "pc_fdc_reset: read DOR: value= 0x%x", dor);
+	ddf_msg(LVL_DEBUG, "pc_fdc_reset: read DOR: value= 0x%x", dor);
 
 	fibril_usleep(4);
 
-	ddf_msg(LVL_NOTE, "pc_fdc_reset: old DOR=0x%x, DOR := 0x%x", dor,
+	ddf_msg(LVL_DEBUG, "pc_fdc_reset: old DOR=0x%x, DOR := 0x%x", dor,
 	    dor | fdor_nreset | fdor_ndmagate);
 	pio_write_8(&fdc->regs->dor, dor | fdor_nreset | fdor_ndmagate);
 
 	dor = pio_read_8(&fdc->regs->dor);
-	ddf_msg(LVL_NOTE, "pc_fdc_reset: read DOR: value= 0x%x", dor);
+	ddf_msg(LVL_DEBUG, "pc_fdc_reset: read DOR: value= 0x%x", dor);
 
 	return EOK;
 }
@@ -668,15 +670,15 @@ static errno_t pc_fdc_read_id(pc_fdc_t *fdc, bool mfm, uint8_t drive,
 	errno_t rc;
 
 	dor = pio_read_8(&fdc->regs->dor);
-	ddf_msg(LVL_NOTE, "pc_fdc_read_id: read DOR: value= 0x%x", dor);
+	ddf_msg(LVL_DEBUG, "pc_fdc_read_id: read DOR: value= 0x%x", dor);
 
 	dor |= fdor_me0; /* turn drive 0 motor on */
 	dor = (dor & ~0x03) | 0x00; /* select drive 0 */
 	pio_write_8(&fdc->regs->dor, dor);
-	ddf_msg(LVL_NOTE, "pc_fdc_read_id: DOR := 0x%x", dor);
+	ddf_msg(LVL_DEBUG, "pc_fdc_read_id: DOR := 0x%x", dor);
 
 	dor = pio_read_8(&fdc->regs->dor);
-	ddf_msg(LVL_NOTE, "pc_fdc_read_id: read DOR: value= 0x%x", dor);
+	ddf_msg(LVL_DEBUG, "pc_fdc_read_id: read DOR: value= 0x%x", dor);
 
 	/* 500 ms to let drive spin up */
 	fibril_usleep(500 * 1000);
@@ -684,22 +686,22 @@ static errno_t pc_fdc_read_id(pc_fdc_t *fdc, bool mfm, uint8_t drive,
 	cmd.flags_cc = fcf_mf | fcc_read_id;
 	cmd.hd_us = 0x00;
 
-	ddf_msg(LVL_NOTE, "read ID: send");
+	ddf_msg(LVL_DEBUG, "read ID: send");
 	rc = pc_fdc_send(fdc, &cmd, sizeof(cmd));
 	if (rc != EOK) {
 		ddf_msg(LVL_WARN, "Failed sending READ ID command.");
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "read ID: get");
+	ddf_msg(LVL_DEBUG, "read ID: get");
 	rc = pc_fdc_get(fdc, &status, sizeof(status));
 	if (rc != EOK) {
 		ddf_msg(LVL_WARN, "Failed getting status for READ ID");
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "read ID: DONE");
-	ddf_msg(LVL_NOTE, "st0=0x%x st1=0x%x st2=0x%x cyl=%u head=%u rec=%u "
+	ddf_msg(LVL_DEBUG, "read ID: DONE");
+	ddf_msg(LVL_DEBUG, "st0=0x%x st1=0x%x st2=0x%x cyl=%u head=%u rec=%u "
 	    "number=%u", status.st0, status.st1, status.st2,
 	    status.cyl, status.head, status.rec, status.number);
 
@@ -731,18 +733,18 @@ static errno_t pc_fdc_drive_read_data(pc_fdc_drive_t *drive,
 	size_t csize;
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "pc_fdc_drive_read_data");
+	ddf_msg(LVL_DEBUG, "pc_fdc_drive_read_data");
 
 	memset(fdc->dma_buf, 0, fdc->dma_buf_size);
 
 	sess = ddf_dev_parent_sess_get(fdc->dev);
-	ddf_msg(LVL_NOTE, "hw_res_dma_channel_setup(sess=%p, chan=%d "
+	ddf_msg(LVL_DEBUG, "hw_res_dma_channel_setup(sess=%p, chan=%d "
 	    "pa=%lu size=%zu", sess, fdc->dma, fdc->dma_buf_pa,
 	    fdc->dma_buf_size);
 	rc = hw_res_dma_channel_setup(sess, fdc->dma, fdc->dma_buf_pa,
 	    fdc->dma_buf_size, DMA_MODE_READ | DMA_MODE_AUTO |
 	    DMA_MODE_ON_DEMAND);
-	ddf_msg(LVL_NOTE, "hw_res_dma_channel_setup->%d", rc);
+	ddf_msg(LVL_DEBUG, "hw_res_dma_channel_setup->%d", rc);
 
 	cmd.flags_cc = fcf_mf | fcc_read_data;
 	cmd.hd_us = (head & 1) << 2 | 0x00 /* drive 0 */;
@@ -754,22 +756,22 @@ static errno_t pc_fdc_drive_read_data(pc_fdc_drive_t *drive,
 	cmd.gpl = 0x1b;
 	cmd.dtl = 0xff;
 
-	ddf_msg(LVL_NOTE, "read data: send");
+	ddf_msg(LVL_DEBUG, "read data: send");
 	rc = pc_fdc_send(fdc, &cmd, sizeof(cmd));
 	if (rc != EOK) {
 		ddf_msg(LVL_WARN, "Failed sending Read Data command.");
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "read data: get");
+	ddf_msg(LVL_DEBUG, "read data: get");
 	rc = pc_fdc_get(fdc, &status, sizeof(status));
 	if (rc != EOK) {
 		ddf_msg(LVL_WARN, "Failed getting status for Read Data");
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "read data: DONE");
-	ddf_msg(LVL_NOTE, "st0=0x%x st1=0x%x st2=0x%x cyl=%u head=%u rec=%u "
+	ddf_msg(LVL_DEBUG, "read data: DONE");
+	ddf_msg(LVL_DEBUG, "st0=0x%x st1=0x%x st2=0x%x cyl=%u head=%u rec=%u "
 	    "number=%u", status.st0, status.st1, status.st2,
 	    status.cyl, status.head, status.rec, status.number);
 
@@ -805,20 +807,20 @@ static errno_t pc_fdc_drive_write_data(pc_fdc_drive_t *drive,
 	size_t csize;
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "pc_fdc_drive_write_data");
+	ddf_msg(LVL_DEBUG, "pc_fdc_drive_write_data");
 
 	/* Copy data from source buffer to DMA buffer */
 	csize = min(fdc->dma_buf_size, buf_size);
 	memcpy(fdc->dma_buf, buf, csize);
 
 	sess = ddf_dev_parent_sess_get(fdc->dev);
-	ddf_msg(LVL_NOTE, "hw_res_dma_channel_setup(sess=%p, chan=%d "
+	ddf_msg(LVL_DEBUG, "hw_res_dma_channel_setup(sess=%p, chan=%d "
 	    "pa=%lu size=%zu", sess, fdc->dma, fdc->dma_buf_pa,
 	    fdc->dma_buf_size);
 	rc = hw_res_dma_channel_setup(sess, fdc->dma, fdc->dma_buf_pa,
 	    fdc->dma_buf_size, DMA_MODE_WRITE | DMA_MODE_AUTO |
 	    DMA_MODE_ON_DEMAND);
-	ddf_msg(LVL_NOTE, "hw_res_dma_channel_setup->%d", rc);
+	ddf_msg(LVL_DEBUG, "hw_res_dma_channel_setup->%d", rc);
 
 	cmd.flags_cc = fcf_mf | fcc_write_data;
 	cmd.hd_us = (head & 1) << 2 | 0x00 /* drive 0 */;
@@ -830,22 +832,22 @@ static errno_t pc_fdc_drive_write_data(pc_fdc_drive_t *drive,
 	cmd.gpl = 0x1b;
 	cmd.dtl = 0xff;
 
-	ddf_msg(LVL_NOTE, "write data: send");
+	ddf_msg(LVL_DEBUG, "write data: send");
 	rc = pc_fdc_send(fdc, &cmd, sizeof(cmd));
 	if (rc != EOK) {
 		ddf_msg(LVL_WARN, "Failed sending Write Data command.");
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "write data: get");
+	ddf_msg(LVL_DEBUG, "write data: get");
 	rc = pc_fdc_get(fdc, &status, sizeof(status));
 	if (rc != EOK) {
 		ddf_msg(LVL_WARN, "Failed getting status for Write Data");
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "write data: DONE");
-	ddf_msg(LVL_NOTE, "st0=0x%x st1=0x%x st2=0x%x cyl=%u head=%u rec=%u "
+	ddf_msg(LVL_DEBUG, "write data: DONE");
+	ddf_msg(LVL_DEBUG, "st0=0x%x st1=0x%x st2=0x%x cyl=%u head=%u rec=%u "
 	    "number=%u", status.st0, status.st1, status.st2,
 	    status.cyl, status.head, status.rec, status.number);
 
@@ -873,7 +875,7 @@ static errno_t pc_fdc_sense_int_sts(pc_fdc_t *fdc)
 
 	cmd.cc = fcc_sense_int_sts;
 
-	ddf_msg(LVL_NOTE, "Sense Interrupt Status: send");
+	ddf_msg(LVL_DEBUG, "Sense Interrupt Status: send");
 	rc = pc_fdc_send(fdc, &cmd, sizeof(cmd));
 	if (rc != EOK) {
 		ddf_msg(LVL_WARN, "Failed sending Sense Interrupt Status "
@@ -881,7 +883,7 @@ static errno_t pc_fdc_sense_int_sts(pc_fdc_t *fdc)
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "Sense Interrupt Status: get");
+	ddf_msg(LVL_DEBUG, "Sense Interrupt Status: get");
 	rc = pc_fdc_get(fdc, &status, sizeof(status));
 	if (rc != EOK) {
 		ddf_msg(LVL_WARN, "Failed getting status for Sense Interrupt "
@@ -889,8 +891,8 @@ static errno_t pc_fdc_sense_int_sts(pc_fdc_t *fdc)
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "Sense Interrupt Status: DONE");
-	ddf_msg(LVL_NOTE, "st0=0x%x pcn=0x%x", status.st0, status.pcn);
+	ddf_msg(LVL_DEBUG, "Sense Interrupt Status: DONE");
+	ddf_msg(LVL_DEBUG, "st0=0x%x pcn=0x%x", status.st0, status.pcn);
 
 	return EOK;
 }
@@ -915,7 +917,7 @@ static void pc_fdc_irq_handler(ipc_call_t *call, void *arg)
 	c = ipc_get_arg4(call);
 	h = ipc_get_arg5(call);
 	n = ipc_get_imethod(call);
-	ddf_msg(LVL_NOTE, "pc_fdc_irq_handler st0=%x st1=%x st2=%x c=%u h=%u n=%u",
+	ddf_msg(LVL_DEBUG, "pc_fdc_irq_handler st0=%x st1=%x st2=%x c=%u h=%u n=%u",
 	    st0, st1, st2, c, h, n);
 
 	parent_sess = ddf_dev_parent_sess_get(fdc->dev);
@@ -989,7 +991,7 @@ static errno_t pc_fdc_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	uint8_t cyl, head, sec;
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "pc_fdc_bd_read_blocks");
+	ddf_msg(LVL_DEBUG, "pc_fdc_bd_read_blocks");
 
 	if (size < cnt * drive->sec_size) {
 		rc = EINVAL;
@@ -1012,7 +1014,7 @@ static errno_t pc_fdc_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 
 	return EOK;
 error:
-	ddf_msg(LVL_NOTE, "pc_fdc_bd_read_blocks: rc=%d", rc);
+	ddf_msg(LVL_ERROR, "pc_fdc_bd_read_blocks: rc=%d", rc);
 	return rc;
 }
 
@@ -1047,7 +1049,7 @@ static errno_t pc_fdc_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	uint8_t cyl, head, sec;
 	errno_t rc;
 
-	ddf_msg(LVL_NOTE, "pc_fdc_bd_write_blocks");
+	ddf_msg(LVL_DEBUG, "pc_fdc_bd_write_blocks");
 
 	if (size < cnt * drive->sec_size) {
 		rc = EINVAL;
@@ -1070,7 +1072,7 @@ static errno_t pc_fdc_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 
 	return EOK;
 error:
-	ddf_msg(LVL_NOTE, "pc_fdc_bd_write_blocks: rc=%d", rc);
+	ddf_msg(LVL_ERROR, "pc_fdc_bd_write_blocks: rc=%d", rc);
 	return rc;
 }
 

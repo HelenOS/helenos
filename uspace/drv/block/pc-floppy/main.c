@@ -104,12 +104,9 @@ static errno_t pc_fdc_get_res(ddf_dev_t *dev, pc_fdc_hwres_t *res)
 	}
 
 	/* IRQ */
-	ddf_msg(LVL_NOTE, "irqs count=%zu", hw_res.irqs.count);
 	if (hw_res.irqs.count > 0) {
-		ddf_msg(LVL_NOTE, "set IRQ=%u", hw_res.irqs.irqs[0]);
 		res->irq = hw_res.irqs.irqs[0];
 	} else {
-		ddf_msg(LVL_NOTE, "set IRQ=-1");
 		res->irq = -1;
 	}
 
