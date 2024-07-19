@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -90,6 +90,7 @@ typedef struct {
 } tag_t;
 
 extern errno_t sheet_create(sheet_t **);
+extern void sheet_destroy(sheet_t *);
 extern errno_t sheet_insert(sheet_t *, spt_t *, enum dir_spec, char *);
 extern errno_t sheet_delete(sheet_t *, spt_t *, spt_t *);
 extern void sheet_copy_out(sheet_t *, spt_t const *, spt_t const *, char *,
