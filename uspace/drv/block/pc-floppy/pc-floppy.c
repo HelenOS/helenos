@@ -739,7 +739,7 @@ static errno_t pc_fdc_drive_read_data(pc_fdc_drive_t *drive,
 
 	sess = ddf_dev_parent_sess_get(fdc->dev);
 	ddf_msg(LVL_DEBUG, "hw_res_dma_channel_setup(sess=%p, chan=%d "
-	    "pa=%lu size=%zu", sess, fdc->dma, fdc->dma_buf_pa,
+	    "pa=%" PRIuPTR " size=%zu", sess, fdc->dma, fdc->dma_buf_pa,
 	    fdc->dma_buf_size);
 	rc = hw_res_dma_channel_setup(sess, fdc->dma, fdc->dma_buf_pa,
 	    fdc->dma_buf_size, DMA_MODE_READ | DMA_MODE_AUTO |
@@ -815,7 +815,7 @@ static errno_t pc_fdc_drive_write_data(pc_fdc_drive_t *drive,
 
 	sess = ddf_dev_parent_sess_get(fdc->dev);
 	ddf_msg(LVL_DEBUG, "hw_res_dma_channel_setup(sess=%p, chan=%d "
-	    "pa=%lu size=%zu", sess, fdc->dma, fdc->dma_buf_pa,
+	    "pa=%" PRIuPTR " size=%zu", sess, fdc->dma, fdc->dma_buf_pa,
 	    fdc->dma_buf_size);
 	rc = hw_res_dma_channel_setup(sess, fdc->dma, fdc->dma_buf_pa,
 	    fdc->dma_buf_size, DMA_MODE_WRITE | DMA_MODE_AUTO |

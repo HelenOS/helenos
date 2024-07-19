@@ -149,7 +149,7 @@ errno_t pci_ide_ctrl_init(pci_ide_ctrl_t *ctrl, pci_ide_hwres_t *res)
 	ddf_msg(LVL_DEBUG, "pci_ide_ctrl_init()");
 	ctrl->bmregs_physical = res->bmregs;
 
-	ddf_msg(LVL_NOTE, "Bus master IDE regs I/O address: 0x%lx",
+	ddf_msg(LVL_NOTE, "Bus master IDE regs I/O address: 0x%" PRIxPTR,
 	    ctrl->bmregs_physical);
 
 	rc = pio_enable((void *)ctrl->bmregs_physical, sizeof(pci_ide_regs_t),
