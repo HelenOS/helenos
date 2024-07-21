@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -635,9 +635,10 @@ errno_t vol_part_eject_part(vol_part_t *part)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_part()");
 
 	if (part->cur_mp == NULL) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Attempt to mount unmounted "
-		    "partition.");
-		return EINVAL;
+		/* Partition is not mounted, nothing to do. */
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Partition not mounted, "
+		    "nothing to do.");
+		goto done;
 	}
 
 	rc = vfs_unmount_path(part->cur_mp);
@@ -658,7 +659,7 @@ errno_t vol_part_eject_part(vol_part_t *part)
 	free(part->cur_mp);
 	part->cur_mp = NULL;
 	part->cur_mp_auto = false;
-
+done:
 	return EOK;
 }
 
