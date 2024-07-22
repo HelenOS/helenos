@@ -162,6 +162,10 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init: DONE");
 	return EOK;
 error:
+	if (chan->channel != NULL) {
+		(void) ata_channel_destroy(chan->channel);
+		chan->channel = NULL;
+	}
 	if (irq_inited)
 		isa_ide_fini_irq(chan);
 	isa_ide_fini_io(chan);

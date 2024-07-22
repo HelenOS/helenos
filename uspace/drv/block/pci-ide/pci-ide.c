@@ -293,6 +293,10 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	ddf_msg(LVL_DEBUG, "pci_ide_channel_init: DONE");
 	return EOK;
 error:
+	if (chan->channel != NULL) {
+		(void) ata_channel_destroy(chan->channel);
+		chan->channel = NULL;
+	}
 	if (buffer != NULL)
 		dmamem_unmap_anonymous(buffer);
 	if (irq_inited)

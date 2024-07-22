@@ -30,3 +30,8 @@ deps = [ 'device', 'scsi' ]
 src = files(
 	'src/ata.c'
 )
+
+test_src = files(
+	'test/ata.c',
+	'test/main.c'
+)

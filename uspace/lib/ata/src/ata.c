@@ -150,6 +150,7 @@ static int disk_dev_idx(ata_device_t *device)
 errno_t ata_channel_create(ata_params_t *params, ata_channel_t **rchan)
 {
 	ata_channel_t *chan;
+	int i;
 
 	chan = calloc(1, sizeof(ata_channel_t));
 	if (chan == NULL)
@@ -161,6 +162,9 @@ errno_t ata_channel_create(ata_params_t *params, ata_channel_t **rchan)
 	fibril_mutex_initialize(&chan->lock);
 	fibril_mutex_initialize(&chan->irq_lock);
 	fibril_condvar_initialize(&chan->irq_cv);
+
+	for (i = 0; i < MAX_DEVICES; i++)
+		chan->device[i].chan = chan;
 
 	*rchan = chan;
 	return EOK;
@@ -492,7 +496,6 @@ static errno_t ata_device_init(ata_channel_t *chan, ata_device_t *d,
 	errno_t rc;
 	unsigned i;
 
-	d->chan = chan;
 	d->device_id = device_id;
 	d->present = false;
 
