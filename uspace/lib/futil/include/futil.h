@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sysinst
+/** @addtogroup futil
  * @{
  */
 /**
@@ -37,7 +37,6 @@
 #ifndef FUTIL_H
 #define FUTIL_H
 
-#include <ipc/loc.h>
 #include <stddef.h>
 
 extern errno_t futil_copy_file(const char *, const char *);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sysinst
+/** @addtogroup futil
  * @{
  */
-/** @file File manipulation utility functions for installer
+/** @file File manipulation utility functions
  */
 
 #include <dirent.h>

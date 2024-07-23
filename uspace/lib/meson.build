@@ -73,6 +73,7 @@ libs = [
 	'fdisk',
 	'fmtutil',
 	'fs',
+	'futil',
 	'gfx',
 	'http',
 	'ipctest',

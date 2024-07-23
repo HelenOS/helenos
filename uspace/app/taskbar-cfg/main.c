@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 	if (rc != EOK)
 		return 1;
 
-	rc = taskbar_cfg_open(tbcfg, "/cfg/taskbar.sif");
+	rc = taskbar_cfg_open(tbcfg, "/w/cfg/taskbar.sif");
 	if (rc != EOK)
 		return 1;
 

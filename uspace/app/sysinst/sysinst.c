@@ -40,6 +40,7 @@
 #include <capa.h>
 #include <errno.h>
 #include <fdisk.h>
+#include <futil.h>
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +49,6 @@
 #include <vfs/vfs.h>
 #include <vol.h>
 
-#include "futil.h"
 #include "grub.h"
 #include "rdimg.h"
 #include "volume.h"
@@ -78,6 +78,9 @@
 
 #define BOOT_FILES_SRC CD_MOUNT_POINT
 #define BOOT_BLOCK_IDX 0 /* MBR */
+
+#define CFG_FILES_SRC "/cfg"
+#define CFG_FILES_DEST MOUNT_POINT "/cfg"
 
 static const char *default_devs[] = {
 	DEFAULT_DEV_0,
@@ -225,6 +228,11 @@ static errno_t sysinst_setup_sysvol(void)
 
 	free(path);
 	path = NULL;
+
+	/* Copy initial configuration files */
+	rc = futil_rcopy_contents(CFG_FILES_SRC, CFG_FILES_DEST);
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 error:
