@@ -580,6 +580,7 @@ errno_t vbds_disk_remove(service_id_t sid)
 	label_close(disk->label);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "block_fini(%zu)", sid);
 	block_fini(sid);
+	free(disk->svc_name);
 	free(disk);
 	return EOK;
 }
