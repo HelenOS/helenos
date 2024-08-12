@@ -259,14 +259,14 @@ errno_t ata_channel_destroy(ata_channel_t *chan)
 		rc = ata_device_remove(&chan->device[i]);
 		if (rc != EOK) {
 			ata_msg_error(chan, "Unable to remove device %d.", i);
-			return rc;
+			break;
 		}
 	}
 
 	ata_bd_fini_irq(chan);
 	fibril_mutex_unlock(&chan->lock);
 
-	return EOK;
+	return rc;
 }
 
 /** Add ATA device.
