@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,7 @@
 #include <errno.h>
 #include <fibril_synch.h>
 #include <io/log.h>
+#include <sif.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <str.h>
@@ -59,6 +60,7 @@ static void vol_volume_add_locked(vol_volumes_t *, vol_volume_t *);
 static errno_t vol_volume_lookup_ref_locked(vol_volumes_t *, const char *,
     vol_volume_t **);
 static errno_t vol_volumes_load(sif_node_t *, vol_volumes_t *);
+static errno_t vol_volumes_save(vol_volumes_t *, sif_node_t *);
 
 /** Allocate new volume structure.
  *
@@ -112,9 +114,9 @@ errno_t vol_volumes_create(const char *cfg_path,
     vol_volumes_t **rvolumes)
 {
 	vol_volumes_t *volumes;
-	sif_sess_t *repo = NULL;
-	sif_trans_t *trans = NULL;
+	sif_doc_t *doc = NULL;
 	sif_node_t *node;
+	sif_node_t *nvolumes;
 	const char *ntype;
 	errno_t rc;
 
@@ -122,39 +124,41 @@ errno_t vol_volumes_create(const char *cfg_path,
 	if (volumes == NULL)
 		return ENOMEM;
 
+	volumes->cfg_path = str_dup(cfg_path);
+	if (volumes->cfg_path == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
 	fibril_mutex_initialize(&volumes->lock);
 	list_initialize(&volumes->volumes);
 	volumes->next_id = 1;
 
 	/* Try opening existing repository */
-	rc = sif_open(cfg_path, &repo);
+	rc = sif_load(cfg_path, &doc);
 	if (rc != EOK) {
 		/* Failed to open existing, create new repository */
-		rc = sif_create(cfg_path, &repo);
-		if (rc != EOK)
-			goto error;
-
-		rc = sif_trans_begin(repo, &trans);
+		rc = sif_new(&doc);
 		if (rc != EOK)
 			goto error;
 
 		/* Create 'volumes' node. */
-		rc = sif_node_append_child(trans, sif_get_root(repo),
-		    "volumes", &volumes->nvolumes);
+		rc = sif_node_append_child(sif_get_root(doc), "volumes",
+		    &nvolumes);
 		if (rc != EOK)
 			goto error;
 
-		rc = sif_trans_end(trans);
+		rc = sif_save(doc, cfg_path);
 		if (rc != EOK)
 			goto error;
 
-		trans = NULL;
+		sif_delete(doc);
 	} else {
 		/*
-		 * Opened existing repo. Find 'volumes' node, should be
-		 * the first child of the root node.
+		 * Loaded existing configuration. Find 'volumes' node, should
+		 * be the first child of the root node.
 		 */
-		node = sif_node_first_child(sif_get_root(repo));
+		node = sif_node_first_child(sif_get_root(doc));
 
 		/* Verify it's the correct node type */
 		ntype = sif_node_get_type(node);
@@ -166,20 +170,50 @@ errno_t vol_volumes_create(const char *cfg_path,
 		rc = vol_volumes_load(node, volumes);
 		if (rc != EOK)
 			goto error;
+
+		sif_delete(doc);
 	}
 
-	volumes->repo = repo;
 	*rvolumes = volumes;
-
 	return EOK;
 error:
-	if (trans != NULL)
-		sif_trans_abort(trans);
-	if (repo != NULL)
-		(void) sif_close(repo);
+	if (doc != NULL)
+		(void) sif_delete(doc);
+	if (volumes != NULL && volumes->cfg_path != NULL)
+		free(volumes->cfg_path);
 	if (volumes != NULL)
 		free(volumes);
 
+	return rc;
+}
+
+/** Sync volume configuration to config file.
+ *
+ * @param volumes List of volumes
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t vol_volumes_sync(vol_volumes_t *volumes)
+{
+	sif_doc_t *doc = NULL;
+	errno_t rc;
+
+	rc = sif_new(&doc);
+	if (rc != EOK)
+		goto error;
+
+	rc = vol_volumes_save(volumes, sif_get_root(doc));
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_save(doc, volumes->cfg_path);
+	if (rc != EOK)
+		goto error;
+
+	sif_delete(doc);
+	return EOK;
+error:
+	if (doc != NULL)
+		(void) sif_delete(doc);
 	return rc;
 }
 
@@ -205,7 +239,7 @@ void vol_volumes_destroy(vol_volumes_t *volumes)
 		link = list_first(&volumes->volumes);
 	}
 
-	(void) sif_close(volumes->repo);
+	free(volumes->cfg_path);
 	free(volumes);
 }
 
@@ -382,96 +416,38 @@ errno_t vol_volume_set_mountp(vol_volume_t *volume, const char *mountp)
 {
 	char *mp;
 	char *old_mp;
-	errno_t rc;
-	sif_trans_t *trans = NULL;
-	sif_node_t *nvolume;
+	bool was_persist;
 
 	mp = str_dup(mountp);
 	if (mp == NULL)
 		return ENOMEM;
 
+	was_persist = vol_volume_is_persist(volume);
+
 	old_mp = volume->mountp;
 	volume->mountp = mp;
 
 	if (vol_volume_is_persist(volume)) {
-		/* Volume is now persistent */
-		if (volume->nvolume == NULL) {
-			/* Prevent volume from being freed */
+		if (!was_persist) {
+			/*
+			 * Volume is now persistent. Prevent it from being
+			 * freed.
+			 */
 			refcount_up(&volume->refcnt);
-
-			/* Create volume node */
-			rc = sif_trans_begin(volume->volumes->repo, &trans);
-			if (rc != EOK)
-				goto error;
-
-			rc = sif_node_append_child(trans,
-			    volume->volumes->nvolumes, "volume", &nvolume);
-			if (rc != EOK)
-				goto error;
-
-			rc = sif_node_set_attr(trans, nvolume, "label",
-			    volume->label);
-			if (rc != EOK)
-				goto error;
-
-			rc = sif_node_set_attr(trans, nvolume, "mountp",
-			    volume->mountp);
-			if (rc != EOK)
-				goto error;
-
-			rc = sif_trans_end(trans);
-			if (rc != EOK)
-				goto error;
-
-			trans = NULL;
-			volume->nvolume = nvolume;
-		} else {
-			/* Allow volume to be freed */
-			vol_volume_del_ref(volume);
-
-			/* Update volume node */
-			rc = sif_trans_begin(volume->volumes->repo, &trans);
-			if (rc != EOK)
-				goto error;
-
-			rc = sif_node_set_attr(trans, volume->nvolume,
-			    "mountp", volume->mountp);
-			if (rc != EOK)
-				goto error;
-
-			rc = sif_trans_end(trans);
-			if (rc != EOK)
-				goto error;
-
-			trans = NULL;
 		}
 	} else {
-		/* Volume is now non-persistent */
-		if (volume->nvolume != NULL) {
-			/* Delete volume node */
-			rc = sif_trans_begin(volume->volumes->repo, &trans);
-			if (rc != EOK)
-				goto error;
-
-			sif_node_destroy(trans, volume->nvolume);
-
-			rc = sif_trans_end(trans);
-			if (rc != EOK)
-				goto error;
-
-			volume->nvolume = NULL;
+		if (was_persist) {
+			/*
+			 * Volume is now non-persistent
+			 * Allow volume to be freed.
+			 */
+			vol_volume_del_ref(volume);
 		}
 	}
 
+	vol_volumes_sync(volume->volumes);
 	free(old_mp);
 	return EOK;
-error:
-	free(mp);
-	volume->mountp = old_mp;
-
-	if (trans != NULL)
-		sif_trans_abort(trans);
-	return rc;
 }
 
 /** Get list of volume IDs.
@@ -520,7 +496,7 @@ errno_t vol_get_ids(vol_volumes_t *volumes, volume_id_t *id_buf,
 	return EOK;
 }
 
-/** Load volumes from SIF repository.
+/** Load volumes from SIF document.
  *
  * @param nvolumes Volumes node
  * @param volumes Volumes object
@@ -534,8 +510,6 @@ static errno_t vol_volumes_load(sif_node_t *nvolumes, vol_volumes_t *volumes)
 	const char *label;
 	const char *mountp;
 	errno_t rc;
-
-	volumes->nvolumes = nvolumes;
 
 	nvolume = sif_node_first_child(nvolumes);
 	while (nvolume != NULL) {
@@ -564,7 +538,6 @@ static errno_t vol_volumes_load(sif_node_t *nvolumes, vol_volumes_t *volumes)
 		volume->label = str_dup(label);
 		volume->mountp = str_dup(mountp);
 
-		volume->nvolume = nvolume;
 		fibril_mutex_lock(&volumes->lock);
 		vol_volume_add_locked(volumes, volume);
 		fibril_mutex_unlock(&volumes->lock);
@@ -575,6 +548,52 @@ static errno_t vol_volumes_load(sif_node_t *nvolumes, vol_volumes_t *volumes)
 error:
 	if (volume != NULL)
 		vol_volume_delete(volume);
+	return rc;
+}
+
+/** Save volumes to SIF document.
+ *
+ * @param volumes List of volumes
+ * @param rnode Configuration root node
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t vol_volumes_save(vol_volumes_t *volumes, sif_node_t *rnode)
+{
+	sif_node_t *nvolumes;
+	sif_node_t *node;
+	link_t *link;
+	vol_volume_t *volume;
+	errno_t rc;
+
+	/* Create 'volumes' node. */
+	rc = sif_node_append_child(rnode, "volumes", &nvolumes);
+	if (rc != EOK)
+		goto error;
+
+	link = list_first(&volumes->volumes);
+	while (link != NULL) {
+		volume = list_get_instance(link, vol_volume_t, lvolumes);
+
+		if (vol_volume_is_persist(volume)) {
+			/* Create 'volume' node. */
+			rc = sif_node_append_child(rnode, "volume", &node);
+			if (rc != EOK)
+				goto error;
+
+			rc = sif_node_set_attr(node, "label", volume->label);
+			if (rc != EOK)
+				goto error;
+
+			rc = sif_node_set_attr(node, "mountp", volume->mountp);
+			if (rc != EOK)
+				goto error;
+		}
+
+		link = list_next(&volume->lvolumes, &volumes->volumes);
+	}
+
+	return EOK;
+error:
 	return rc;
 }
 

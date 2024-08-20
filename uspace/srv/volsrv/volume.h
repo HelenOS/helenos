@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@
 #include "types/volume.h"
 
 extern errno_t vol_volumes_create(const char *, vol_volumes_t **);
+extern errno_t vol_volumes_sync(vol_volumes_t *);
 extern void vol_volumes_destroy(vol_volumes_t *);
 extern errno_t vol_volume_lookup_ref(vol_volumes_t *, const char *,
     vol_volume_t **);

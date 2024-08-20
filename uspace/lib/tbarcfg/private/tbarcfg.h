@@ -38,18 +38,15 @@
 #define _TBARCFG_PRIVATE_TBARCFG_H
 
 #include <adt/list.h>
-#include <sif.h>
 #include <stdbool.h>
 #include <types/tbarcfg/tbarcfg.h>
 
 /** Taskbar configuration */
 struct tbarcfg {
-	/** Repository session */
-	sif_sess_t *repo;
+	/** Configuration file path */
+	char *cfgpath;
 	/** List of start menu entries (smenu_entry_t) */
 	list_t entries;
-	/** Entries SIF node */
-	sif_node_t *nentries;
 };
 
 /** Start menu entry */
@@ -58,8 +55,6 @@ struct smenu_entry {
 	struct tbarcfg *smenu;
 	/** Link to @c smenu->entries */
 	link_t lentries;
-	/** SIF node (persistent storage) */
-	sif_node_t *nentry;
 	/** Is this a separator entry */
 	bool separator;
 	/** Entry caption (with accelerator markup) */
@@ -77,11 +72,6 @@ typedef struct tbarcfg_listener {
 	/** Callback argument */
 	void *arg;
 } tbarcfg_listener_t;
-
-extern errno_t smenu_entry_new(tbarcfg_t *, sif_node_t *, const char *,
-    const char *, bool, smenu_entry_t **);
-extern errno_t smenu_entry_sep_new(tbarcfg_t *, sif_node_t *, smenu_entry_t **);
-extern void smenu_entry_delete(smenu_entry_t *);
 
 #endif
 

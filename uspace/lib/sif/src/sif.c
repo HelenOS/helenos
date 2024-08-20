@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,31 +32,14 @@
  * @file Structured Information Format
  *
  * Structured Information Format (SIF) is an API that allows an application
- * to maintain data in a persistent repository in a format that
- *
- *  - is structured (and hence extensible)
- *  - allows atomic (transactional) updates
- *  - allows efficient updates
+ * to maintain data in a persistent repository in a format that is
+ * structured (and hence extensible).
  *
  * SIF is meant to be used as the basis for the storage backend used to
  * maintain application or configuration data. SIF is *not* a (relational)
  * database (not even close). The structure of a SIF repository is quite
  * similar to an XML document that contains just tags with attributes
  * (but no text).
- *
- * SIF can thus naturally express ordered lists (unlike a relational database).
- * When contrasted to a (relational) database, SIF is much more primitive.
- *
- * In particular, SIF
- *
- *  - does not run on a separate server
- *  - des not handle concurrency
- *  - does not have a notion of types or data validation
- *  - does not understand relations
- *  - does not implement any kind of search/queries
- *  - does not deal with data sets large enough not to fit in primary memory
- *
- * any kind of structure data validation is left up to the application.
  */
 
 #include <adt/list.h>
@@ -171,30 +154,21 @@ static void sif_attr_delete(sif_attr_t *attr)
 	free(attr);
 }
 
-/** Create and open a SIF repository.
+/** Create SIF document.
  *
- * @param fname File name
- * @param rsess Place to store pointer to new session.
+ * @param rdoc Place to store pointer to new document.
  *
  * @return EOK on success or error code
  */
-errno_t sif_create(const char *fname, sif_sess_t **rsess)
+errno_t sif_new(sif_doc_t **rdoc)
 {
-	sif_sess_t *sess;
+	sif_doc_t *doc;
 	sif_node_t *root = NULL;
-	sif_trans_t *trans = NULL;
 	errno_t rc;
-	FILE *f;
 
-	sess = calloc(1, sizeof(sif_sess_t));
-	if (sess == NULL)
+	doc = calloc(1, sizeof(sif_doc_t));
+	if (doc == NULL)
 		return ENOMEM;
-
-	sess->fname = str_dup(fname);
-	if (sess->fname == NULL) {
-		rc = ENOMEM;
-		goto error;
-	}
 
 	root = sif_node_new(NULL);
 	if (root == NULL) {
@@ -208,56 +182,36 @@ errno_t sif_create(const char *fname, sif_sess_t **rsess)
 		goto error;
 	}
 
-	f = fopen(fname, "wx");
-	if (f == NULL) {
-		rc = EIO;
-		goto error;
-	}
+	doc->root = root;
 
-	sess->f = f;
-	sess->root = root;
-
-	/* Run a dummy trasaction to marshall initial repo state to file */
-	rc = sif_trans_begin(sess, &trans);
-	if (rc != EOK)
-		goto error;
-
-	rc = sif_trans_end(trans);
-	if (rc != EOK)
-		goto error;
-
-	*rsess = sess;
+	*rdoc = doc;
 	return EOK;
 error:
-	if (trans != NULL)
-		sif_trans_abort(trans);
 	sif_node_delete(root);
-	if (sess->fname != NULL)
-		free(sess->fname);
-	free(sess);
+	free(doc);
 	return rc;
 }
 
-/** Open an existing SIF repository.
+/** Load SIF document.
  *
  * @param fname File name
- * @param rsess Place to store pointer to new session.
+ * @param rdoc Place to store pointer to new document.
  *
  * @return EOK on success or error code
  */
-errno_t sif_open(const char *fname, sif_sess_t **rsess)
+errno_t sif_load(const char *fname, sif_doc_t **rdoc)
 {
-	sif_sess_t *sess;
+	sif_doc_t *doc;
 	sif_node_t *root = NULL;
 	errno_t rc;
 	FILE *f;
 
-	sess = calloc(1, sizeof(sif_sess_t));
-	if (sess == NULL)
+	doc = calloc(1, sizeof(sif_doc_t));
+	if (doc == NULL)
 		return ENOMEM;
 
-	sess->fname = str_dup(fname);
-	if (sess->fname == NULL) {
+	doc->fname = str_dup(fname);
+	if (doc->fname == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
@@ -277,47 +231,33 @@ errno_t sif_open(const char *fname, sif_sess_t **rsess)
 		goto error;
 	}
 
-	sess->root = root;
-
-	sess->f = f;
-	sess->root = root;
-	*rsess = sess;
+	doc->root = root;
+	*rdoc = doc;
 	return EOK;
 error:
 	sif_node_delete(root);
-	if (sess->fname != NULL)
-		free(sess->fname);
-	free(sess);
+	free(doc);
 	return rc;
 }
 
-/** Close SIF session.
+/** Delete SIF document.
  *
- * @param sess SIF session
+ * @param doc SIF document
  * @return EOK on success or error code
  */
-errno_t sif_close(sif_sess_t *sess)
+void sif_delete(sif_doc_t *doc)
 {
-	sif_node_delete(sess->root);
-
-	if (fclose(sess->f) < 0) {
-		free(sess);
-		return EIO;
-	}
-
-	if (sess->fname != NULL)
-		free(sess->fname);
-	free(sess);
-	return EOK;
+	sif_node_delete(doc->root);
+	free(doc);
 }
 
 /** Return root node.
  *
- * @param sess SIF session
+ * @param doc SIF document
  */
-sif_node_t *sif_get_root(sif_sess_t *sess)
+sif_node_t *sif_get_root(sif_doc_t *doc)
 {
-	return sess->root;
+	return doc->root;
 }
 
 /** Get first child of a node.
@@ -382,63 +322,42 @@ const char *sif_node_get_attr(sif_node_t *node, const char *aname)
 	return attr->avalue;
 }
 
-/** Begin SIF transaction.
- *
- * @param trans Transaction
+/** Save SIF document to file.
+ * *
+ * @param doc SIF document
+ * @param fname File name
  * @return EOK on success or error code
  */
-errno_t sif_trans_begin(sif_sess_t *sess, sif_trans_t **rtrans)
+errno_t sif_save(sif_doc_t *doc, const char *fname)
 {
-	sif_trans_t *trans;
-
-	trans = calloc(1, sizeof(sif_trans_t));
-	if (trans == NULL)
-		return ENOMEM;
-
-	trans->sess = sess;
-	*rtrans = trans;
-	return EOK;
-}
-
-/** Commit SIF transaction.
- *
- * Commit and free the transaction. If an error is returned, that means
- * the transaction has not been freed (and sif_trans_abort() must be used).
- *
- * @param trans Transaction
- * @return EOK on success or error code
- */
-errno_t sif_trans_end(sif_trans_t *trans)
-{
+	FILE *f = NULL;
 	errno_t rc;
 
-	(void) fclose(trans->sess->f);
+	f = fopen(fname, "w");
+	if (f == NULL) {
+		rc = EIO;
+		goto error;
+	}
 
-	trans->sess->f = fopen(trans->sess->fname, "w");
-	if (trans->sess->f == NULL)
-		return EIO;
-
-	rc = sif_export_node(trans->sess->root, trans->sess->f);
+	rc = sif_export_node(doc->root, f);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	if (fputc('\n', trans->sess->f) == EOF)
-		return EIO;
+	if (fputc('\n', f) == EOF) {
+		rc = EIO;
+		goto error;
+	}
 
-	if (fflush(trans->sess->f) == EOF)
-		return EIO;
+	if (fflush(f) == EOF) {
+		rc = EIO;
+		goto error;
+	}
 
-	free(trans);
 	return EOK;
-}
-
-/** Abort SIF transaction.
- *
- * @param trans Transaction
- */
-void sif_trans_abort(sif_trans_t *trans)
-{
-	free(trans);
+error:
+	if (f != NULL)
+		fclose(f);
+	return rc;
 }
 
 /** Prepend new child.
@@ -446,15 +365,14 @@ void sif_trans_abort(sif_trans_t *trans)
  * Create a new child and prepend it at the beginning of children list of
  * @a parent.
  *
- * @param trans Transaction
  * @param parent Parent node
  * @param ctype Child type
  * @param rchild Place to store pointer to new child
  *
  * @return EOK on success or ENOMEM if out of memory
  */
-errno_t sif_node_prepend_child(sif_trans_t *trans, sif_node_t *parent,
-    const char *ctype, sif_node_t **rchild)
+errno_t sif_node_prepend_child(sif_node_t *parent, const char *ctype,
+    sif_node_t **rchild)
 {
 	sif_node_t *child;
 
@@ -478,15 +396,14 @@ errno_t sif_node_prepend_child(sif_trans_t *trans, sif_node_t *parent,
  *
  * Create a new child and append it at the end of children list of @a parent.
  *
- * @param trans Transaction
  * @param parent Parent node
  * @param ctype Child type
  * @param rchild Place to store pointer to new child
  *
  * @return EOK on success or ENOMEM if out of memory
  */
-errno_t sif_node_append_child(sif_trans_t *trans, sif_node_t *parent,
-    const char *ctype, sif_node_t **rchild)
+errno_t sif_node_append_child(sif_node_t *parent, const char *ctype,
+    sif_node_t **rchild)
 {
 	sif_node_t *child;
 
@@ -510,15 +427,14 @@ errno_t sif_node_append_child(sif_trans_t *trans, sif_node_t *parent,
  *
  * Create a new child and insert it before an existing child.
  *
- * @param trans Transaction
  * @param sibling Sibling before which to insert
  * @param ctype Child type
  * @param rchild Place to store pointer to new child
  *
  * @return EOK on success or ENOMEM if out of memory
  */
-errno_t sif_node_insert_before(sif_trans_t *trans, sif_node_t *sibling,
-    const char *ctype, sif_node_t **rchild)
+errno_t sif_node_insert_before(sif_node_t *sibling, const char *ctype,
+    sif_node_t **rchild)
 {
 	sif_node_t *child;
 
@@ -542,15 +458,14 @@ errno_t sif_node_insert_before(sif_trans_t *trans, sif_node_t *sibling,
  *
  * Create a new child and insert it after an existing child.
  *
- * @param trans Transaction
  * @param sibling Sibling after which to insert
  * @param ctype Child type
  * @param rchild Place to store pointer to new child
  *
  * @return EOK on success or ENOMEM if out of memory
  */
-errno_t sif_node_insert_after(sif_trans_t *trans, sif_node_t *sibling,
-    const char *ctype, sif_node_t **rchild)
+errno_t sif_node_insert_after(sif_node_t *sibling, const char *ctype,
+    sif_node_t **rchild)
 {
 	sif_node_t *child;
 
@@ -572,13 +487,9 @@ errno_t sif_node_insert_after(sif_trans_t *trans, sif_node_t *sibling,
 
 /** Destroy SIF node.
  *
- * This function does not return an error, but the transaction may still
- * fail to complete.
- *
- * @param trans Transaction
  * @param node Node to destroy
  */
-void sif_node_destroy(sif_trans_t *trans, sif_node_t *node)
+void sif_node_destroy(sif_node_t *node)
 {
 	list_remove(&node->lparent);
 	sif_node_delete(node);
@@ -586,15 +497,14 @@ void sif_node_destroy(sif_trans_t *trans, sif_node_t *node)
 
 /** Set node attribute.
  *
- * @param trans Transaction
  * @param node SIF node
  * @param aname Attribute name
  * @param value Attribute value
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t sif_node_set_attr(sif_trans_t *trans, sif_node_t *node,
-    const char *aname, const char *avalue)
+errno_t sif_node_set_attr(sif_node_t *node, const char *aname,
+    const char *avalue)
 {
 	odlink_t *link;
 	sif_attr_t *attr;
@@ -635,15 +545,10 @@ errno_t sif_node_set_attr(sif_trans_t *trans, sif_node_t *node,
 
 /** Unset node attribute.
  *
- * This function does not return an error, but the transaction may still
- * fail to complete.
- *
- * @param trans Transaction
  * @param node Node
  * @param aname Attribute name
  */
-void sif_node_unset_attr(sif_trans_t *trans, sif_node_t *node,
-    const char *aname)
+void sif_node_unset_attr(sif_node_t *node, const char *aname)
 {
 	odlink_t *link;
 	sif_attr_t *attr;

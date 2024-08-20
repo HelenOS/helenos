@@ -56,6 +56,7 @@ PCUT_TEST(create_open_close)
 	rc = tbarcfg_create(fname, &tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
+	tbarcfg_sync(tbcfg);
 	tbarcfg_close(tbcfg);
 
 	/* Re-open the repository */
@@ -169,6 +170,7 @@ PCUT_TEST(separator)
 	PCUT_ASSERT_FALSE(smenu_entry_get_separator(e1));
 	PCUT_ASSERT_TRUE(smenu_entry_get_separator(e2));
 
+	tbarcfg_sync(tbcfg);
 	tbarcfg_close(tbcfg);
 
 	/* Re-open repository */
@@ -260,7 +262,7 @@ PCUT_TEST(set_caption_cmd_term)
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	smenu_entry_set_terminal(e, true);
 
-	rc = smenu_entry_save(e);
+	rc = tbarcfg_sync(tbcfg);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	/* Check that properties have been set */
@@ -271,6 +273,7 @@ PCUT_TEST(set_caption_cmd_term)
 	terminal = smenu_entry_get_terminal(e);
 	PCUT_ASSERT_TRUE(terminal);
 
+	tbarcfg_sync(tbcfg);
 	tbarcfg_close(tbcfg);
 
 	/* Re-open repository */
@@ -358,8 +361,7 @@ PCUT_TEST(entry_destroy)
 	f = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_EQUALS(e, f);
 
-	rc = smenu_entry_destroy(e);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	smenu_entry_destroy(e);
 
 	f = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_NULL(f);
@@ -399,24 +401,21 @@ PCUT_TEST(entry_move_up)
 
 	/* Moving the first entry up should have no effect */
 
-	rc = smenu_entry_move_up(e1);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	smenu_entry_move_up(e1);
 
 	f = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_EQUALS(e1, f);
 
 	/* Moving the second entry up should move it to first position */
 
-	rc = smenu_entry_move_up(e2);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	smenu_entry_move_up(e2);
 
 	f = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_EQUALS(e2, f);
 
 	/* Moving the last entry up should move it to second position */
 
-	rc = smenu_entry_move_up(e3);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	smenu_entry_move_up(e3);
 
 	f = tbarcfg_smenu_first(tbcfg);
 	PCUT_ASSERT_EQUALS(e2, f);
@@ -427,6 +426,7 @@ PCUT_TEST(entry_move_up)
 	f = tbarcfg_smenu_next(f);
 	PCUT_ASSERT_EQUALS(e1, f);
 
+	tbarcfg_sync(tbcfg);
 	tbarcfg_close(tbcfg);
 
 	/* Re-open repository */
@@ -495,24 +495,21 @@ PCUT_TEST(entry_move_down)
 
 	/* Moving the last entry down should have no effect */
 
-	rc = smenu_entry_move_down(e3);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	smenu_entry_move_down(e3);
 
 	f = tbarcfg_smenu_last(tbcfg);
 	PCUT_ASSERT_EQUALS(e3, f);
 
 	/* Moving the second entry down should move it to last position */
 
-	rc = smenu_entry_move_down(e2);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	smenu_entry_move_down(e2);
 
 	f = tbarcfg_smenu_last(tbcfg);
 	PCUT_ASSERT_EQUALS(e2, f);
 
 	/* Moving the first entry down should move it to second position */
 
-	rc = smenu_entry_move_down(e1);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	smenu_entry_move_down(e1);
 
 	f = tbarcfg_smenu_last(tbcfg);
 	PCUT_ASSERT_EQUALS(e2, f);
@@ -523,6 +520,7 @@ PCUT_TEST(entry_move_down)
 	f = tbarcfg_smenu_prev(f);
 	PCUT_ASSERT_EQUALS(e3, f);
 
+	tbarcfg_sync(tbcfg);
 	tbarcfg_close(tbcfg);
 
 	/* Re-open repository */
