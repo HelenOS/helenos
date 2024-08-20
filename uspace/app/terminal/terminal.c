@@ -214,15 +214,15 @@ static void term_update_region(terminal_t *term, sysarg_t x, sysarg_t y,
 }
 
 static void term_update_char(terminal_t *term, pixelmap_t *pixelmap,
-    sysarg_t sx, sysarg_t sy, sysarg_t col, sysarg_t row)
+    sysarg_t col, sysarg_t row)
 {
 	charfield_t *field =
 	    chargrid_charfield_at(term->backbuf, col, row);
 
 	bool inverted = chargrid_cursor_at(term->backbuf, col, row);
 
-	sysarg_t bx = sx + (col * FONT_WIDTH);
-	sysarg_t by = sy + (row * FONT_SCANLINES);
+	sysarg_t bx = col * FONT_WIDTH;
+	sysarg_t by = row * FONT_SCANLINES;
 
 	pixel_t bgcolor = 0;
 	pixel_t fgcolor = 0;
@@ -250,8 +250,7 @@ static void term_update_char(terminal_t *term, pixelmap_t *pixelmap,
 	term_update_region(term, bx, by, FONT_WIDTH, FONT_SCANLINES);
 }
 
-static bool term_update_scroll(terminal_t *term, pixelmap_t *pixelmap,
-    sysarg_t sx, sysarg_t sy)
+static bool term_update_scroll(terminal_t *term, pixelmap_t *pixelmap)
 {
 	sysarg_t top_row = chargrid_get_top_row(term->frontbuf);
 
@@ -282,7 +281,7 @@ static bool term_update_scroll(terminal_t *term, pixelmap_t *pixelmap,
 			front_field->flags &= ~CHAR_FLAG_DIRTY;
 
 			if (update) {
-				term_update_char(term, pixelmap, sx, sy, col, row);
+				term_update_char(term, pixelmap, col, row);
 			}
 		}
 	}
@@ -290,8 +289,7 @@ static bool term_update_scroll(terminal_t *term, pixelmap_t *pixelmap,
 	return true;
 }
 
-static bool term_update_cursor(terminal_t *term, pixelmap_t *pixelmap,
-    sysarg_t sx, sysarg_t sy)
+static bool term_update_cursor(terminal_t *term, pixelmap_t *pixelmap)
 {
 	bool update = false;
 
@@ -312,14 +310,14 @@ static bool term_update_cursor(terminal_t *term, pixelmap_t *pixelmap,
 	if (front_visibility != back_visibility) {
 		chargrid_set_cursor_visibility(term->backbuf,
 		    front_visibility);
-		term_update_char(term, pixelmap, sx, sy, back_col, back_row);
+		term_update_char(term, pixelmap, back_col, back_row);
 		update = true;
 	}
 
 	if ((front_col != back_col) || (front_row != back_row)) {
 		chargrid_set_cursor(term->backbuf, front_col, front_row);
-		term_update_char(term, pixelmap, sx, sy, back_col, back_row);
-		term_update_char(term, pixelmap, sx, sy, front_col, front_row);
+		term_update_char(term, pixelmap, back_col, back_row);
+		term_update_char(term, pixelmap, front_col, front_row);
 		update = true;
 	}
 
@@ -344,10 +342,8 @@ static void term_update(terminal_t *term)
 	pixelmap.data = alloc.pixels;
 
 	bool update = false;
-	sysarg_t sx = 0;
-	sysarg_t sy = 0;
 
-	if (term_update_scroll(term, &pixelmap, sx, sy)) {
+	if (term_update_scroll(term, &pixelmap)) {
 		update = true;
 	} else {
 		for (sysarg_t y = 0; y < term->rows; y++) {
@@ -375,14 +371,14 @@ static void term_update(terminal_t *term)
 				}
 
 				if (cupdate) {
-					term_update_char(term, &pixelmap, sx, sy, x, y);
+					term_update_char(term, &pixelmap, x, y);
 					update = true;
 				}
 			}
 		}
 	}
 
-	if (term_update_cursor(term, &pixelmap, sx, sy))
+	if (term_update_cursor(term, &pixelmap))
 		update = true;
 
 	if (update) {
@@ -417,10 +413,7 @@ static void term_repaint(terminal_t *term)
 	pixelmap.height = term->h;
 	pixelmap.data = alloc.pixels;
 
-	sysarg_t sx = 0;
-	sysarg_t sy = 0;
-
-	if (!term_update_scroll(term, &pixelmap, sx, sy)) {
+	if (!term_update_scroll(term, &pixelmap)) {
 		for (sysarg_t y = 0; y < term->rows; y++) {
 			for (sysarg_t x = 0; x < term->cols; x++) {
 				charfield_t *front_field =
@@ -432,12 +425,12 @@ static void term_repaint(terminal_t *term)
 				back_field->attrs = front_field->attrs;
 				front_field->flags &= ~CHAR_FLAG_DIRTY;
 
-				term_update_char(term, &pixelmap, sx, sy, x, y);
+				term_update_char(term, &pixelmap, x, y);
 			}
 		}
 	}
 
-	term_update_cursor(term, &pixelmap, sx, sy);
+	term_update_cursor(term, &pixelmap);
 
 	fibril_mutex_unlock(&term->mtx);
 }
