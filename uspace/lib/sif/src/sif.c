@@ -227,7 +227,7 @@ errno_t sif_load(const char *fname, sif_doc_t **rdoc)
 	sif_node_t *root = NULL;
 	errno_t rc;
 	bool endtag;
-	FILE *f;
+	FILE *f = NULL;
 
 	doc = calloc(1, sizeof(sif_doc_t));
 	if (doc == NULL)
@@ -254,12 +254,15 @@ errno_t sif_load(const char *fname, sif_doc_t **rdoc)
 		goto error;
 	}
 
+	fclose(f);
 	doc->root = root;
 	*rdoc = doc;
 	return EOK;
 error:
 	sif_node_delete(root);
 	free(doc);
+	if (f != NULL)
+		fclose(f);
 	return rc;
 }
 
@@ -371,6 +374,7 @@ errno_t sif_save(sif_doc_t *doc, const char *fname)
 		goto error;
 	}
 
+	fclose(f);
 	return EOK;
 error:
 	if (f != NULL)

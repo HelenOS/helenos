@@ -308,6 +308,12 @@ static errno_t sysinst_customize_initrd(void)
 		goto error;
 	}
 
+	rc = vol_volumes_sync(volumes);
+	if (rc != EOK) {
+		printf("Error saving volume confiuration.\n");
+		goto error;
+	}
+
 	printf("Configuring volume server: delete reference\n");
 	vol_volume_del_ref(volume);
 	volume = NULL;

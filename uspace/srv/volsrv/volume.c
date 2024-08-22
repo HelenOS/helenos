@@ -576,7 +576,7 @@ errno_t vol_volumes_save(vol_volumes_t *volumes, sif_node_t *rnode)
 
 		if (vol_volume_is_persist(volume)) {
 			/* Create 'volume' node. */
-			rc = sif_node_append_child(rnode, "volume", &node);
+			rc = sif_node_append_child(nvolumes, "volume", &node);
 			if (rc != EOK)
 				goto error;
 
