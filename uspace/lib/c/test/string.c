@@ -34,6 +34,7 @@
 #ifndef __clang__
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#pragma GCC diagnostic ignored "-Wstringop-overread"
 #endif
 
 PCUT_INIT;
