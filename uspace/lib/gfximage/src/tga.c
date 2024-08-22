@@ -154,7 +154,17 @@ static bool decode_tga_header(void *data, size_t size, tga_t *tga)
 	tga->img_alpha_bpp = head->img_descr & 0x0f;
 	tga->img_alpha_dir = (head->img_descr & 0xf0) >> 4;
 	tga->img_data = tga->cmap_data + tga->cmap_length;
-	tga->img_length = ALIGN_UP(tga->width * tga->height * tga->img_bpp, 8) >> 3;
+
+	uint64_t length = (uint64_t) tga->width * tga->height * tga->img_bpp;
+	if (length & 0x7)
+		length += 8;
+	length >>= 3;
+
+	if (length > SIZE_MAX - sizeof(tga_header_t) - tga->id_length -
+	    tga->cmap_length)
+		return false;
+
+	tga->img_length = length;
 
 	if (size < sizeof(tga_header_t) + tga->id_length +
 	    tga->cmap_length + tga->img_length)
