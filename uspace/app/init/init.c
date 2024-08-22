@@ -79,7 +79,8 @@
 
 static const char *sys_dirs[] = {
 	"/w/cfg",
-	"/w/data"
+	"/w/data",
+	NULL,
 };
 
 /** Print banner */
