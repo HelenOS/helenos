@@ -115,7 +115,7 @@ static errno_t pkg_install(int argc, char *argv[])
 
 	pkg_name = argv[2];
 
-	ret = asprintf(&src_uri, "http://ci.helenos.org/latest/" STRING(UARCH)
+	ret = asprintf(&src_uri, "http://ci-ipv4.helenos.org/latest/" STRING(UARCH)
 	    "/%s-for-helenos-" STRING(UARCH) ".tar.gz",
 	    pkg_name);
 	if (ret < 0) {
