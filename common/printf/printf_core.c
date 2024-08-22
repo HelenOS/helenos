@@ -503,7 +503,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch (base) {
 		case 2:
-			/* Binary formating is not standard, but usefull */
+			/* Binary formating is not standard, but useful */
 			if (printf_putchar('0', ps) == 1)
 				counter++;
 			if (flags & __PRINTF_FLAG_BIGCHARS) {
