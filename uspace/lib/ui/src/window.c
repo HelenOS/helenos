@@ -1046,7 +1046,7 @@ static void dwnd_resize_event(void *arg, gfx_rect_t *rect)
 
 	ui_lock(ui);
 	(void) ui_window_resize(window, rect);
-	(void) ui_window_paint(window);
+	ui_window_send_resize(window);
 	ui_unlock(ui);
 }
 
@@ -1394,6 +1394,18 @@ void ui_window_send_unfocus(ui_window_t *window, unsigned nfocus)
 		return ui_window_def_unfocus(window, nfocus);
 }
 
+/** Send window resize event.
+ *
+ * @param window Window
+ */
+void ui_window_send_resize(ui_window_t *window)
+{
+	if (window->cb != NULL && window->cb->resize != NULL)
+		window->cb->resize(window, window->arg);
+	else
+		return ui_window_def_resize(window);
+}
+
 /** Default window sysmenu routine.
  *
  * @param window Window
@@ -1572,6 +1584,16 @@ void ui_window_def_unfocus(ui_window_t *window, unsigned nfocus)
 {
 	if (window->control != NULL)
 		ui_control_unfocus(window->control, nfocus);
+}
+
+/** Default window resize routine.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+void ui_window_def_resize(ui_window_t *window)
+{
+	ui_window_paint(window);
 }
 
 /** Handle system menu left event.
