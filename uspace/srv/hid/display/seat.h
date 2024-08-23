@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <gfx/coord.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
+#include <sif.h>
 #include "types/display/display.h"
 #include "types/display/seat.h"
 #include "types/display/ptd_event.h"
@@ -47,6 +48,8 @@
 
 extern errno_t ds_seat_create(ds_display_t *, const char *, ds_seat_t **);
 extern void ds_seat_destroy(ds_seat_t *);
+extern errno_t ds_seat_load(ds_display_t *, sif_node_t *, ds_seat_t **);
+extern errno_t ds_seat_save(ds_seat_t *, sif_node_t *);
 extern void ds_seat_set_focus(ds_seat_t *, ds_window_t *);
 extern void ds_seat_set_popup(ds_seat_t *, ds_window_t *);
 extern void ds_seat_evac_wnd_refs(ds_seat_t *, ds_window_t *);

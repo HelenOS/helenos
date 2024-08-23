@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <dispcfg_srv.h>
 #include "display.h"
 #include "idevcfg.h"
+#include "main.h"
 #include "seat.h"
 #include "cfgclient.h"
 
@@ -180,6 +181,7 @@ static errno_t dispc_seat_create(void *arg, const char *name,
 	}
 
 	(void) ds_display_paint(cfgclient->display, NULL);
+	(void) ds_display_save_cfg(cfgclient->display, cfg_file_path);
 	ds_display_unlock(cfgclient->display);
 
 	*rseat_id = seat->id;
@@ -217,7 +219,9 @@ static errno_t dispc_seat_delete(void *arg, sysarg_t seat_id)
 	ds_seat_destroy(seat);
 
 	(void) ds_display_paint(cfgclient->display, NULL);
+	(void) ds_display_save_cfg(cfgclient->display, cfg_file_path);
 	ds_display_unlock(cfgclient->display);
+
 	return EOK;
 }
 
@@ -253,6 +257,7 @@ static errno_t dispc_dev_assign(void *arg, sysarg_t svc_id, sysarg_t seat_id)
 
 	(void)idevcfg;
 
+	(void) ds_display_save_cfg(cfgclient->display, cfg_file_path);
 	ds_display_unlock(cfgclient->display);
 	return EOK;
 }
@@ -286,6 +291,7 @@ static errno_t dispc_dev_unassign(void *arg, sysarg_t svc_id)
 	}
 
 	ds_idevcfg_destroy(idevcfg);
+	(void) ds_display_save_cfg(cfgclient->display, cfg_file_path);
 	ds_display_unlock(cfgclient->display);
 	return EOK;
 }

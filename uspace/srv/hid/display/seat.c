@@ -37,6 +37,8 @@
 #include <errno.h>
 #include <gfx/color.h>
 #include <gfx/render.h>
+#include <sif.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include "client.h"
@@ -116,6 +118,77 @@ void ds_seat_destroy(ds_seat_t *seat)
 
 	free(seat->name);
 	free(seat);
+}
+
+/** Load seat from SIF node.
+ *
+ * @param display Display
+ * @param snode Seat node from which to load the seat
+ * @param rseat Place to store pointer to the newly loaded seat
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_seat_load(ds_display_t *display, sif_node_t *snode,
+    ds_seat_t **rseat)
+{
+	const char *sid;
+	const char *name;
+	char *endptr;
+	unsigned long id;
+	errno_t rc;
+
+	sid = sif_node_get_attr(snode, "id");
+	if (sid == NULL)
+		return EIO;
+
+	name = sif_node_get_attr(snode, "name");
+	if (name == NULL)
+		return EIO;
+
+	id = strtoul(sid, &endptr, 10);
+	if (*endptr != '\0')
+		return EIO;
+
+	rc = ds_seat_create(display, name, rseat);
+	if (rc != EOK)
+		return EIO;
+
+	(*rseat)->id = id;
+	return EOK;
+}
+
+/** Save seat to SIF node.
+ *
+ * @param seat Seat
+ * @param snode Seat node into which the seat should be saved
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_seat_save(ds_seat_t *seat, sif_node_t *snode)
+{
+	char *sid;
+	errno_t rc;
+	int rv;
+
+	rv = asprintf(&sid, "%lu", (unsigned long)seat->id);
+	if (rv < 0) {
+		rc = ENOMEM;
+		return rc;
+	}
+
+	rc = sif_node_set_attr(snode, "id", sid);
+	if (rc != EOK) {
+		free(sid);
+		return rc;
+	}
+
+	free(sid);
+
+	rc = sif_node_set_attr(snode, "name", seat->name);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
 }
 
 /** Set seat focus to a window.

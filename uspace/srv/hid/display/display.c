@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,11 +40,13 @@
 #include <io/log.h>
 #include <memgfx/memgc.h>
 #include <stdlib.h>
+#include <str.h>
 #include "client.h"
 #include "clonegc.h"
 #include "cursimg.h"
 #include "cursor.h"
 #include "display.h"
+#include "idevcfg.h"
 #include "seat.h"
 #include "window.h"
 #include "wmclient.h"
@@ -99,6 +101,7 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_flags_t flags,
 	list_initialize(&disp->wmclients);
 	list_initialize(&disp->cfgclients);
 	disp->next_wnd_id = 1;
+	disp->next_seat_id = 1;
 	list_initialize(&disp->ddevs);
 	list_initialize(&disp->idevcfgs);
 	list_initialize(&disp->seats);
@@ -136,6 +139,189 @@ void ds_display_destroy(ds_display_t *disp)
 
 	gfx_color_delete(disp->bg_color);
 	free(disp);
+}
+
+/** Load display configuration from SIF file.
+ *
+ * @param display Display
+ * @param cfgpath Configuration file path
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_display_load_cfg(ds_display_t *display, const char *cfgpath)
+{
+	sif_doc_t *doc = NULL;
+	sif_node_t *rnode;
+	sif_node_t *ndisplay;
+	sif_node_t *nseats;
+	sif_node_t *nseat;
+	ds_seat_t *seat;
+	sif_node_t *nidevcfgs;
+	sif_node_t *nidevcfg;
+	const char *ntype;
+	ds_idevcfg_t *idevcfg;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: load '%s'", cfgpath);
+	rc = sif_load(cfgpath, &doc);
+	if (rc != EOK)
+		goto error;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: get root");
+	rnode = sif_get_root(doc);
+	ndisplay = sif_node_first_child(rnode);
+	ntype = sif_node_get_type(ndisplay);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check display node");
+	if (str_cmp(ntype, "display") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	nseats = sif_node_first_child(ndisplay);
+	ntype = sif_node_get_type(nseats);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check seats node");
+	if (str_cmp(ntype, "seats") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	/* Load individual seats */
+	nseat = sif_node_first_child(nseats);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: walk seat nodes");
+	while (nseat != NULL) {
+		ntype = sif_node_get_type(nseat);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check seat node");
+		if (str_cmp(ntype, "seat") != 0) {
+			rc = EIO;
+			goto error;
+		}
+
+		log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: load seat");
+		rc = ds_seat_load(display, nseat, &seat);
+		if (rc != EOK)
+			goto error;
+
+		(void)seat;
+		nseat = sif_node_next_child(nseat);
+	}
+
+	nidevcfgs = sif_node_next_child(nseats);
+	ntype = sif_node_get_type(nidevcfgs);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check idevcfgs node");
+	if (str_cmp(ntype, "idevcfgs") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	/* Load individual input device configuration entries */
+	nidevcfg = sif_node_first_child(nidevcfgs);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: walk idevcfg nodes");
+	while (nidevcfg != NULL) {
+		ntype = sif_node_get_type(nidevcfg);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check idevcfg node");
+		if (str_cmp(ntype, "idevcfg") != 0) {
+			rc = EIO;
+			goto error;
+		}
+
+		log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: load idevcfg");
+		rc = ds_idevcfg_load(display, nidevcfg, &idevcfg);
+		if (rc != EOK)
+			goto error;
+
+		(void)idevcfg;
+		nidevcfg = sif_node_next_child(nidevcfg);
+	}
+
+	sif_delete(doc);
+	return EOK;
+error:
+	if (doc != NULL)
+		sif_delete(doc);
+
+	seat = ds_display_first_seat(display);
+	while (seat != NULL) {
+		ds_seat_destroy(seat);
+		seat = ds_display_first_seat(display);
+	}
+	return rc;
+}
+
+/** Save seat to SIF node.
+ *
+ * @param display Display
+ * @param cfgpath Configuration file path
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_display_save_cfg(ds_display_t *display, const char *cfgpath)
+{
+	sif_doc_t *doc = NULL;
+	sif_node_t *rnode;
+	sif_node_t *ndisplay;
+	sif_node_t *nseats;
+	sif_node_t *nseat;
+	ds_seat_t *seat;
+	sif_node_t *nidevcfgs;
+	sif_node_t *nidevcfg;
+	ds_idevcfg_t *idevcfg;
+	errno_t rc;
+
+	rc = sif_new(&doc);
+	if (rc != EOK)
+		goto error;
+
+	rnode = sif_get_root(doc);
+	rc = sif_node_append_child(rnode, "display", &ndisplay);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_append_child(ndisplay, "seats", &nseats);
+	if (rc != EOK)
+		goto error;
+
+	/* Save individual seats */
+	seat = ds_display_first_seat(display);
+	while (seat != NULL) {
+		rc = sif_node_append_child(nseats, "seat", &nseat);
+		if (rc != EOK)
+			goto error;
+
+		rc = ds_seat_save(seat, nseat);
+		if (rc != EOK)
+			goto error;
+
+		seat = ds_display_next_seat(seat);
+	}
+
+	rc = sif_node_append_child(ndisplay, "idevcfgs", &nidevcfgs);
+	if (rc != EOK)
+		goto error;
+
+	/* Save individual input device configuration entries */
+	idevcfg = ds_display_first_idevcfg(display);
+	while (idevcfg != NULL) {
+		rc = sif_node_append_child(nidevcfgs, "idevcfg", &nidevcfg);
+		if (rc != EOK)
+			goto error;
+
+		rc = ds_idevcfg_save(idevcfg, nidevcfg);
+		if (rc != EOK)
+			goto error;
+
+		idevcfg = ds_display_next_idevcfg(idevcfg);
+	}
+
+	rc = sif_save(doc, cfgpath);
+	if (rc != EOK)
+		goto error;
+
+	sif_delete(doc);
+	return EOK;
+error:
+	if (doc != NULL)
+		sif_delete(doc);
+	return rc;
 }
 
 /** Lock display.

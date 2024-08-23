@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <loc.h>
+#include <sif.h>
 #include "types/display/display.h"
 #include "types/display/idevcfg.h"
 #include "types/display/seat.h"
@@ -45,6 +46,8 @@
 extern errno_t ds_idevcfg_create(ds_display_t *, service_id_t, ds_seat_t *,
     ds_idevcfg_t **);
 extern void ds_idevcfg_destroy(ds_idevcfg_t *);
+extern errno_t ds_idevcfg_load(ds_display_t *, sif_node_t *, ds_idevcfg_t **);
+extern errno_t ds_idevcfg_save(ds_idevcfg_t *, sif_node_t *);
 
 #endif
 

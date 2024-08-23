@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,8 @@
 extern errno_t ds_display_create(gfx_context_t *, ds_display_flags_t,
     ds_display_t **);
 extern void ds_display_destroy(ds_display_t *);
+errno_t ds_display_load_cfg(ds_display_t *, const char *);
+errno_t ds_display_save_cfg(ds_display_t *, const char *);
 extern void ds_display_lock(ds_display_t *);
 extern void ds_display_unlock(ds_display_t *);
 extern void ds_display_get_info(ds_display_t *, display_info_t *);

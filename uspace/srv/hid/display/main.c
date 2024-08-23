@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,8 @@
 #include "window.h"
 #include "wmclient.h"
 #include "wmops.h"
+
+const char *cfg_file_path = "/w/cfg/display.sif";
 
 static void display_client_conn(ipc_call_t *, void *);
 static void display_client_ev_pending(void *);
@@ -136,9 +138,16 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK)
 		goto error;
 
-	rc = ds_seat_create(disp, "Alice", &seat);
-	if (rc != EOK)
-		goto error;
+	rc = ds_display_load_cfg(disp, cfg_file_path);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE,
+		    "Starting with fresh configuration.");
+
+		/* Create first seat */
+		rc = ds_seat_create(disp, "Alice", &seat);
+		if (rc != EOK)
+			goto error;
+	}
 
 	rc = ds_output_create(&output);
 	if (rc != EOK)

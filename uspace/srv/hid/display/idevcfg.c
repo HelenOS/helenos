@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <io/log.h>
 #include <loc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "display.h"
 #include "idevcfg.h"
@@ -77,6 +78,97 @@ void ds_idevcfg_destroy(ds_idevcfg_t *idevcfg)
 	ds_display_remove_idevcfg(idevcfg);
 	ds_seat_remove_idevcfg(idevcfg);
 	free(idevcfg);
+}
+
+/** Load input device configuration entry from SIF node.
+ *
+ * @param display Display
+ * @param enode Entry node from which the entry should be loaded
+ * @param ridevcfg Place to store pointer to the newly loaded input device
+ *                 configuration entry
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_idevcfg_load(ds_display_t *display, sif_node_t *enode,
+    ds_idevcfg_t **ridevcfg)
+{
+	const char *svc_name;
+	const char *sseat_id;
+	char *endptr;
+	unsigned long svc_id;
+	unsigned long seat_id;
+	ds_seat_t *seat;
+	ds_idevcfg_t *idevcfg;
+	errno_t rc;
+
+	svc_name = sif_node_get_attr(enode, "svc-name");
+	if (svc_name == NULL)
+		return EIO;
+
+	sseat_id = sif_node_get_attr(enode, "seat-id");
+	if (sseat_id == NULL)
+		return EIO;
+
+	rc = loc_service_get_id(svc_name, &svc_id, 0);
+	if (rc != EOK)
+		return rc;
+
+	seat_id = strtoul(sseat_id, &endptr, 10);
+	if (*endptr != '\0')
+		return EIO;
+
+	seat = ds_display_find_seat(display, seat_id);
+	if (seat == NULL)
+		return EIO;
+
+	rc = ds_idevcfg_create(display, svc_id, seat, &idevcfg);
+	if (rc != EOK)
+		return rc;
+
+	(void)idevcfg;
+	return EOK;
+}
+
+/** Save input device configuration entry to SIF node.
+ *
+ * @param idevcfg Input device configuration entry
+ * @param enode Entry node to which the entry should be saved
+ *
+ * @return EOK on success or an error code
+ */
+errno_t ds_idevcfg_save(ds_idevcfg_t *idevcfg, sif_node_t *enode)
+{
+	char *svc_name;
+	char *sseat_id;
+	errno_t rc;
+	int rv;
+
+	rc = loc_service_get_name(idevcfg->svc_id, &svc_name);
+	if (rc != EOK)
+		return rc;
+
+	rc = sif_node_set_attr(enode, "svc-name", svc_name);
+	if (rc != EOK) {
+		free(svc_name);
+		return rc;
+	}
+
+	free(svc_name);
+
+	rv = asprintf(&sseat_id, "%lu", (unsigned long)idevcfg->seat->id);
+	if (rv < 0) {
+		rc = ENOMEM;
+		return rc;
+	}
+
+	rc = sif_node_set_attr(enode, "seat-id", sseat_id);
+	if (rc != EOK) {
+		free(sseat_id);
+		return rc;
+	}
+
+	free(sseat_id);
+	return EOK;
 }
 
 /** @}
