@@ -487,7 +487,6 @@ int main(int argc, char *argv[])
 
 	srv_start("/srv/klog");
 	srv_start("/srv/fs/locfs");
-	srv_start("/srv/taskmon");
 
 	if (!mount_locfs()) {
 		printf("%s: Exiting\n", NAME);
@@ -502,6 +501,10 @@ int main(int argc, char *argv[])
 
 	srv_start("/srv/bd/vbd");
 	srv_start("/srv/volsrv");
+
+	init_sysvol();
+
+	srv_start("/srv/taskmon");
 
 	srv_start("/srv/net/loopip");
 	srv_start("/srv/net/ethip");
@@ -518,8 +521,6 @@ int main(int argc, char *argv[])
 	srv_start("/srv/hid/input", HID_INPUT);
 	srv_start("/srv/hid/output", HID_OUTPUT);
 	srv_start("/srv/audio/hound");
-
-	init_sysvol();
 
 #ifdef CONFIG_WINSYS
 	if (!config_key_exists("console")) {

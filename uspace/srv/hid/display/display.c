@@ -236,7 +236,7 @@ error:
 	return rc;
 }
 
-/** Save seat to SIF node.
+/** Save display configuration to SIF file.
  *
  * @param display Display
  * @param cfgpath Configuration file path
