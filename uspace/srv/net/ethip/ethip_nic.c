@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -233,6 +233,7 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_call_t *call)
 {
 	uint8_t *addr;
 	size_t size;
+	eth_addr_str_t saddr;
 	errno_t rc;
 
 	rc = async_data_write_accept((void **) &addr, false, 0, 0, 0, &size);
@@ -241,11 +242,11 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_call_t *call)
 		return;
 	}
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_changed(): "
-	    "new addr=%02x:%02x:%02x:%02x:%02x:%02x",
-	    addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+	eth_addr_decode(addr, &nic->mac_addr);
+	eth_addr_format(&nic->mac_addr, &saddr);
 
-	memcpy(&nic->mac_addr, addr, sizeof(nic->mac_addr));
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_changed(): "
+	    "new addr=%s", saddr.str);
 
 	rc = iplink_ev_change_addr(&nic->iplink, &nic->mac_addr);
 	if (rc != EOK) {
