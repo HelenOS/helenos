@@ -162,16 +162,13 @@ errno_t ds_display_load_cfg(ds_display_t *display, const char *cfgpath)
 	ds_idevcfg_t *idevcfg;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: load '%s'", cfgpath);
 	rc = sif_load(cfgpath, &doc);
 	if (rc != EOK)
 		goto error;
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: get root");
 	rnode = sif_get_root(doc);
 	ndisplay = sif_node_first_child(rnode);
 	ntype = sif_node_get_type(ndisplay);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check display node");
 	if (str_cmp(ntype, "display") != 0) {
 		rc = EIO;
 		goto error;
@@ -179,7 +176,6 @@ errno_t ds_display_load_cfg(ds_display_t *display, const char *cfgpath)
 
 	nseats = sif_node_first_child(ndisplay);
 	ntype = sif_node_get_type(nseats);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check seats node");
 	if (str_cmp(ntype, "seats") != 0) {
 		rc = EIO;
 		goto error;
@@ -187,16 +183,13 @@ errno_t ds_display_load_cfg(ds_display_t *display, const char *cfgpath)
 
 	/* Load individual seats */
 	nseat = sif_node_first_child(nseats);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: walk seat nodes");
 	while (nseat != NULL) {
 		ntype = sif_node_get_type(nseat);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check seat node");
 		if (str_cmp(ntype, "seat") != 0) {
 			rc = EIO;
 			goto error;
 		}
 
-		log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: load seat");
 		rc = ds_seat_load(display, nseat, &seat);
 		if (rc != EOK)
 			goto error;
@@ -207,7 +200,6 @@ errno_t ds_display_load_cfg(ds_display_t *display, const char *cfgpath)
 
 	nidevcfgs = sif_node_next_child(nseats);
 	ntype = sif_node_get_type(nidevcfgs);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check idevcfgs node");
 	if (str_cmp(ntype, "idevcfgs") != 0) {
 		rc = EIO;
 		goto error;
@@ -215,16 +207,13 @@ errno_t ds_display_load_cfg(ds_display_t *display, const char *cfgpath)
 
 	/* Load individual input device configuration entries */
 	nidevcfg = sif_node_first_child(nidevcfgs);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: walk idevcfg nodes");
 	while (nidevcfg != NULL) {
 		ntype = sif_node_get_type(nidevcfg);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: check idevcfg node");
 		if (str_cmp(ntype, "idevcfg") != 0) {
 			rc = EIO;
 			goto error;
 		}
 
-		log_msg(LOG_DEFAULT, LVL_NOTE, "ds_display_load_cfg: load idevcfg");
 		rc = ds_idevcfg_load(display, nidevcfg, &idevcfg);
 		if (rc != EOK)
 			goto error;
