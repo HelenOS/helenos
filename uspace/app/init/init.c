@@ -500,6 +500,7 @@ int main(int argc, char *argv[])
 	srv_start("/srv/hid/s3c24xx_ts");
 
 	srv_start("/srv/bd/vbd");
+	srv_start("/srv/bd/hr");
 	srv_start("/srv/volsrv");
 
 	init_sysvol();
