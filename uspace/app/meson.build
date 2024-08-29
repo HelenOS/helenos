@@ -51,6 +51,7 @@ apps = [
 	'gunzip',
 	'hbench',
 	'hello',
+	'hrctl',
 	'inet',
 	'init',
 	'kill',

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2024 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,46 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libdevice
  * @{
  */
 /**
- * @file  services.h
- * @brief List of all known services and their codes.
+ * @file
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#ifndef LIBDEVICE_HR_H
+#define LIBDEVICE_HR_H
 
-#include <abi/fourcc.h>
+#include <async.h>
+#include <errno.h>
+#include <loc.h>
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+typedef struct hr {
+	async_sess_t *sess;
+} hr_t;
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPCFG  "hid/display"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_WNDMGT   "hid/display"
-#define SERVICE_NAME_HR       "hr"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
+typedef enum hr_level {
+	hr_l_0 = 0,
+	hr_l_1 = 1,
+	hr_l_5 = 5,
+	hr_l_linear = 254,
+	hr_l_empty = 255
+} hr_level_t;
+
+typedef struct hr_config {
+	char *name;
+	service_id_t *devs;
+	size_t dev_no;
+	hr_level_t level;
+} hr_config_t;
+
+extern errno_t hr_sess_init(hr_t **);
+extern void hr_sess_destroy(hr_t *);
+
+extern errno_t hr_create(hr_t *, hr_config_t *);
 
 #endif
 

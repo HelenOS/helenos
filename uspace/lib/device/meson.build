@@ -31,6 +31,7 @@ src = files(
 	'src/bd_srv.c',
 	'src/devman.c',
 	'src/device/led_dev.c',
+	'src/hr.c',
 	'src/io/chardev.c',
 	'src/io/chardev_srv.c',
 	'src/io/label.c',

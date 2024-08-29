@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2024 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,46 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup hr
  * @{
  */
 /**
- * @file  services.h
- * @brief List of all known services and their codes.
+ * @file
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#ifndef _HR_VAR_H
+#define _HR_VAR_H
 
-#include <abi/fourcc.h>
+#define NAME "hr"
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+typedef struct hr_volume hr_volume_t;
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPCFG  "hid/display"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_WNDMGT   "hid/display"
-#define SERVICE_NAME_HR       "hr"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
+typedef struct hr_ops {
+	errno_t (*create)(hr_volume_t *);
+} hr_ops_t;
+
+typedef struct hr_volume {
+	hr_ops_t hr_ops;
+	bd_srvs_t hr_bds;
+	link_t lvolumes;
+	char *devname;
+	service_id_t *devs;
+	service_id_t svc_id;
+	size_t dev_no;
+	hr_level_t level;
+} hr_volume_t;
+
+extern errno_t hr_init_devs(hr_volume_t *);
+extern void hr_fini_devs(hr_volume_t *);
+
+extern errno_t hr_raid1_create(hr_volume_t *);
 
 #endif
 
