@@ -200,7 +200,7 @@ static hr_volume_t *hr_get_volume(service_id_t svc_id)
 		}
 	}
 
-	fibril_mutex_lock(&hr_volumes_lock);
+	fibril_mutex_unlock(&hr_volumes_lock);
 	return NULL;
 }
 
