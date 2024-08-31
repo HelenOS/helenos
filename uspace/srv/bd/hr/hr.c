@@ -105,6 +105,9 @@ static void hr_create_srv(ipc_call_t *icall)
 	case hr_l_1:
 		new_volume->hr_ops.create = hr_raid1_create;
 		break;
+	case hr_l_0:
+		new_volume->hr_ops.create = hr_raid0_create;
+		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_NOTE,
 		    "level %d not implemented yet\n", new_volume->level);
