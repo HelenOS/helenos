@@ -35,7 +35,6 @@
 
 #include <async.h>
 #include <bd_srv.h>
-#include <block.h>
 #include <errno.h>
 #include <hr.h>
 #include <io/log.h>
@@ -57,38 +56,6 @@ static fibril_mutex_t hr_volumes_lock;
 static list_t hr_volumes;
 
 static service_id_t ctl_sid;
-
-errno_t hr_init_devs(hr_volume_t *vol)
-{
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_init_devs()");
-
-	errno_t rc;
-	size_t i;
-
-	for (i = 0; i < vol->dev_no; i++) {
-		rc = block_init(vol->devs[i]);
-		log_msg(LOG_DEFAULT, LVL_DEBUG,
-		    "hr_init_devs(): initing (%" PRIun ")", vol->devs[i]);
-		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "hr_init_devs(): initing (%" PRIun ") failed, aborting",
-			    vol->devs[i]);
-			break;
-		}
-	}
-
-	return rc;
-}
-
-void hr_fini_devs(hr_volume_t *vol)
-{
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_fini_devs()");
-
-	size_t i;
-
-	for (i = 0; i < vol->dev_no; i++)
-		block_fini(vol->devs[i]);
-}
 
 static void hr_create_srv(ipc_call_t *icall)
 {
@@ -210,7 +177,7 @@ static void hr_client_conn(ipc_call_t *icall, void *arg)
 
 	hr_volume_t *vol;
 
-	sysarg_t svc_id = ipc_get_arg2(icall);
+	service_id_t svc_id = ipc_get_arg2(icall);
 
 	if (svc_id == ctl_sid) {
 		hr_ctl_conn(icall, arg);

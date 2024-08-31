@@ -33,37 +33,16 @@
  * @file
  */
 
-#ifndef _HR_VAR_H
-#define _HR_VAR_H
+#ifndef _HR_UTIL_H
+#define _HR_UTIL_H
 
-#include <bd_srv.h>
 #include <errno.h>
-#include <hr.h>
 
-#define NAME "hr"
-
-typedef struct hr_volume hr_volume_t;
-
-typedef struct hr_ops {
-	errno_t (*create)(hr_volume_t *);
-} hr_ops_t;
-
-typedef struct hr_volume {
-	hr_ops_t hr_ops;
-	bd_srvs_t hr_bds;
-	link_t lvolumes;
-	char *devname;
-	service_id_t *devs;
-	service_id_t svc_id;
-	size_t dev_no;
-	hr_level_t level;
-} hr_volume_t;
+#include "var.h"
 
 extern errno_t hr_init_devs(hr_volume_t *);
 extern void hr_fini_devs(hr_volume_t *);
-
-extern errno_t hr_raid0_create(hr_volume_t *);
-extern errno_t hr_raid1_create(hr_volume_t *);
+extern errno_t hr_register_volume(hr_volume_t *);
 
 #endif
 

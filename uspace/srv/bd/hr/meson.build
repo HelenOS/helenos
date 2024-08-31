@@ -27,4 +27,4 @@
 #
 
 deps = [ 'block', 'device' ]
-src = files('hr.c', 'raid1.c')
+src = files('hr.c', 'raid1.c', 'util.c')

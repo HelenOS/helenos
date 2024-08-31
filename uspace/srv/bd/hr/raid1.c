@@ -48,6 +48,7 @@
 #include <str_error.h>
 
 #include "var.h"
+#include "util.h"
 
 extern fibril_mutex_t big_lock;
 extern loc_srv_t *hr_srv;
@@ -159,48 +160,22 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	assert(new_volume->level == hr_l_1);
 
 	errno_t rc;
-	service_id_t new_id;
-	category_id_t cat_id;
 
 	rc = hr_init_devs(new_volume);
 	if (rc != EOK)
-		goto end;
+		return rc;
 
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid1_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
 
-	rc = loc_service_register(hr_srv, new_volume->devname, &new_id);
+	rc = hr_register_volume(new_volume);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "unable to register device \"%s\": %s\n",
-		    new_volume->devname, str_error(rc));
-
-		goto error;
+		hr_fini_devs(new_volume);
+		return rc;
 	}
-
-	rc = loc_category_get_id("raid", &cat_id, IPC_FLAG_BLOCKING);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "failed resolving category \"raid\": %s\n", str_error(rc));
-		goto error;
-	}
-
-	rc = loc_service_add_to_cat(hr_srv, new_id, cat_id);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "failed adding \"%s\" to category \"raid\": %s\n",
-		    new_volume->devname, str_error(rc));
-		goto error;
-	}
-
-	new_volume->svc_id = new_id;
 
 	return EOK;
-error:
-	hr_fini_devs(new_volume);
-end:
-	return rc;
 }
 
 /** @}
