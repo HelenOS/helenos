@@ -54,6 +54,8 @@ typedef struct hr_volume {
 	link_t lvolumes;
 	char *devname;
 	service_id_t *devs;
+	uint64_t nblocks;
+	size_t bsize;
 	service_id_t svc_id;
 	size_t dev_no;
 	hr_level_t level;

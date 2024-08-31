@@ -33,7 +33,6 @@
  * @file
  */
 
-#include <async.h>
 #include <bd_srv.h>
 #include <block.h>
 #include <errno.h>
@@ -145,37 +144,77 @@ static errno_t hr_raid1_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 
-	return block_get_bsize(vol->devs[0], rsize);
+	*rsize = vol->bsize;
+	return EOK;
 }
 
 static errno_t hr_raid1_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 
-	return block_get_nblocks(vol->devs[0], rnb);
+	*rnb = vol->nblocks;
+	return EOK;
 }
 
 errno_t hr_raid1_create(hr_volume_t *new_volume)
 {
 	assert(new_volume->level == hr_l_1);
 
+	if (new_volume->dev_no < 2) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "RAID 1 array needs at least 2 devices");
+		return EINVAL;
+	}
+
 	errno_t rc;
+	size_t i, bsize, last_bsize;
+	uint64_t nblocks, last_nblocks;
+	uint64_t total_blocks = 0;
 
 	rc = hr_init_devs(new_volume);
 	if (rc != EOK)
 		return rc;
 
+	for (i = 0; i < new_volume->dev_no; i++) {
+		rc = block_get_nblocks(new_volume->devs[i], &nblocks);
+		if (rc != EOK)
+			goto error;
+		if (i != 0 && nblocks != last_nblocks) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "number of blocks differs");
+			rc = EINVAL;
+			goto error;
+		}
+		total_blocks += nblocks;
+		last_nblocks = nblocks;
+	}
+
+	for (i = 0; i < new_volume->dev_no; i++) {
+		rc = block_get_bsize(new_volume->devs[i], &bsize);
+		if (rc != EOK)
+			goto error;
+		if (i != 0 && bsize != last_bsize) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "block sizes differ");
+			rc = EINVAL;
+			goto error;
+		}
+		last_bsize = bsize;
+	}
+
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid1_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
+	new_volume->nblocks = total_blocks / new_volume->dev_no;
+	new_volume->bsize = bsize;
 
 	rc = hr_register_volume(new_volume);
-	if (rc != EOK) {
-		hr_fini_devs(new_volume);
-		return rc;
-	}
+	if (rc != EOK)
+		goto error;
 
 	return EOK;
+error:
+	hr_fini_devs(new_volume);
+	return rc;
 }
 
 /** @}
