@@ -67,12 +67,14 @@ static const char usage_str[] =
     "  -L                      linear concatenation\n"
     "\n"
     "Example usage:\n"
-    "  hrctl --create /hr0 -0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
+    "  hrctl --create hr0 -0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
     "    - creates new mirroring RAID device named /hr0 consisting\n"
     "      of 2 drives\n"
-    "  hrctl --assemble /hr0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
+    "  hrctl --assemble hr0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
     "    - assembles RAID device named /hr0 consisting of 2 drives,\n"
-    "      that were previously in an array\n";
+    "      that were previously in an array\n"
+    "Limitations:\n"
+    "  - device name must be less than 32 characters in size\n";
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -96,11 +98,13 @@ static errno_t fill_config_devs(int argc, char **argv, int optind,
 	size_t i;
 
 	for (i = 0; i < cfg->dev_no; i++) {
-		rc = loc_service_get_id(argv[optind++], &cfg->devs[i], 0);
+		rc = loc_service_get_id(argv[optind], &cfg->devs[i], 0);
 		if (rc != EOK) {
-			printf("hrctl: error resolving device \"%s\"\n", argv[i]);
+			printf("hrctl: error resolving device \"%s\"\n", argv[optind]);
 			return EINVAL;
 		}
+
+		optind++;
 	}
 
 	return EOK;
@@ -146,7 +150,7 @@ static errno_t load_config(const char *path, hr_config_t *cfg)
 		rc = EIO;
 		goto error;
 	}
-	str_cpy(cfg->devname, 32, devname);
+	str_cpy(cfg->devname, sizeof(cfg->devname), devname);
 
 	level_str = sif_node_get_attr(narray, "level");
 	if (level_str == NULL) {
@@ -235,11 +239,11 @@ int main(int argc, char **argv)
 				return 1;
 			return 0;
 		case 'a':
-			if (str_size(optarg) > 31) {
-				printf("hrctl: device name longer than 31 bytes\n");
+			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
+				printf("hrctl: device name too long\n");
 				return 1;
 			}
-			str_cpy(cfg->devname, 32, optarg);
+			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
 			assemble = true;
 			break;
 		case 'C':
@@ -252,11 +256,11 @@ int main(int argc, char **argv)
 			create = true;
 			goto skip;
 		case 'c':
-			if (str_size(optarg) > 31) {
-				printf("hrctl: device name longer than 31 bytes\n");
+			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
+				printf("hrctl: device name too long\n");
 				return 1;
 			}
-			str_cpy(cfg->devname, 32, optarg);
+			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
 			create = true;
 			break;
 		case 'l':
