@@ -89,8 +89,6 @@ static void hr_create_srv(ipc_call_t *icall)
 
 	hr_config->dev_no = size / sizeof(service_id_t);
 
-	fibril_mutex_initialize(&big_lock);
-
 	hr_volume_t *new_volume = calloc(1, sizeof(hr_volume_t));
 	if (new_volume == NULL) {
 		rc = ENOMEM;
@@ -204,6 +202,8 @@ int main(int argc, char **argv)
 		printf("%s: failed to initialize logging\n", NAME);
 		return 1;
 	}
+
+	fibril_mutex_initialize(&big_lock);
 
 	fibril_mutex_initialize(&hr_volumes_lock);
 	list_initialize(&hr_volumes);
