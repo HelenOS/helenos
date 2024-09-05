@@ -38,6 +38,8 @@
 #include <hr.h>
 #include <io/log.h>
 #include <loc.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <str_error.h>
 
 #include "var.h"
@@ -82,8 +84,12 @@ errno_t hr_register_volume(hr_volume_t *new_volume)
 	errno_t rc;
 	service_id_t new_id;
 	category_id_t cat_id;
+	char *fullname = NULL;
 
-	rc = loc_service_register(hr_srv, new_volume->devname, &new_id);
+	if (asprintf(&fullname, "devices/%s", new_volume->devname) < 0)
+		return ENOMEM;
+
+	rc = loc_service_register(hr_srv, fullname, &new_id);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "unable to register device \"%s\": %s\n",
@@ -109,6 +115,7 @@ errno_t hr_register_volume(hr_volume_t *new_volume)
 	new_volume->svc_id = new_id;
 
 error:
+	free(fullname);
 	return rc;
 }
 
