@@ -36,28 +36,35 @@
 #include <errno.h>
 #include <getopt.h>
 #include <hr.h>
+#include <sif.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <str.h>
 #include <str_error.h>
 
+#define HRCTL_SAMPLE_CONFIG_PATH "/cfg/sample_hr_config.sif"
+
 static void usage(void);
+static errno_t fill_config_devs(int, char **, int, hr_config_t *);
+static errno_t load_config(const char *, hr_config_t *);
 
 static const char usage_str[] =
     "Usage: hrctl [OPTION]... -n <dev_no> <devices>...\n"
     "\n"
     "Options:\n"
-    "  -h, --help           display this help and exit\n"
-    "  -s, --status         display status of active arrays\n"
-    "  -a, --assemble=NAME  assemble an existing array\n"
-    "  -c, --create=NAME    create new array\n"
-    "  -n                   non-zero number of devices\n"
-    "  -l, --level=LEVEL    set the RAID level,\n"
-    "                       valid values: 0, 1, 5, linear\n"
-    "  -0                   striping\n"
-    "  -1                   mirroring\n"
-    "  -5                   distributed parity\n"
-    "  -L                   linear concatenation\n"
+    "  -h, --help              display this help and exit\n"
+    "  -C, --config-file=path  create an array from file,\n"
+    "                          sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
+    "  -s, --status            display status of active arrays\n"
+    "  -a, --assemble=NAME     assemble an existing array\n"
+    "  -c, --create=NAME       create new array\n"
+    "  -n                      non-zero number of devices\n"
+    "  -l, --level=LEVEL       set the RAID level,\n"
+    "                          valid values: 0, 1, 5, linear\n"
+    "  -0                      striping\n"
+    "  -1                      mirroring\n"
+    "  -5                      distributed parity\n"
+    "  -L                      linear concatenation\n"
     "\n"
     "Example usage:\n"
     "  hrctl --create /hr0 -0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
@@ -73,6 +80,7 @@ static struct option const long_options[] = {
 	{ "assemble", required_argument, 0, 'a' },
 	{ "create", required_argument, 0, 'c' },
 	{ "level", required_argument, 0, 'l' },
+	{ "config-file", required_argument, 0, 'C' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -96,6 +104,97 @@ static errno_t fill_config_devs(int argc, char **argv, int optind,
 	}
 
 	return EOK;
+}
+
+static errno_t load_config(const char *path, hr_config_t *cfg)
+{
+	errno_t rc;
+	size_t i;
+	sif_doc_t *doc = NULL;
+	sif_node_t *narrays;
+	sif_node_t *rnode;
+	sif_node_t *narray;
+	sif_node_t *nextent;
+	const char *ntype;
+	const char *devname;
+	const char *level_str;
+	const char *dev_no_str;
+	const char *extent_devname;
+
+	rc = sif_load(path, &doc);
+	if (rc != EOK)
+		goto error;
+
+	rnode = sif_get_root(doc);
+
+	narrays = sif_node_first_child(rnode);
+	ntype = sif_node_get_type(narrays);
+	if (str_cmp(ntype, "arrays") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	narray = sif_node_first_child(narrays);
+	ntype = sif_node_get_type(narray);
+	if (str_cmp(ntype, "array") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	devname = sif_node_get_attr(narray, "devname");
+	if (devname == NULL) {
+		rc = EIO;
+		goto error;
+	}
+	str_cpy(cfg->devname, 32, devname);
+
+	level_str = sif_node_get_attr(narray, "level");
+	if (level_str == NULL) {
+		rc = EIO;
+		goto error;
+	}
+	cfg->level = strtol(level_str, NULL, 10);
+
+	dev_no_str = sif_node_get_attr(narray, "n");
+	if (dev_no_str == NULL) {
+		rc = EIO;
+		goto error;
+	}
+	cfg->dev_no = strtol(dev_no_str, NULL, 10);
+
+	nextent = sif_node_first_child(narray);
+	for (i = 0; i < cfg->dev_no; i++) {
+		if (nextent == NULL) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		ntype = sif_node_get_type(nextent);
+		if (str_cmp(ntype, "extent") != 0) {
+			rc = EIO;
+			goto error;
+		}
+
+		extent_devname = sif_node_get_attr(nextent, "devname");
+		if (extent_devname == NULL) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = loc_service_get_id(extent_devname, &cfg->devs[i], 0);
+		if (rc != EOK) {
+			printf("hrctl: error resolving device \"%s\"\n",
+			    extent_devname);
+			return EINVAL;
+		}
+
+		nextent = sif_node_next_child(nextent);
+	}
+
+error:
+	if (doc != NULL)
+		sif_delete(doc);
+	return rc;
 }
 
 int main(int argc, char **argv)
@@ -124,7 +223,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsc:a:l:015Ln:",
+		c = getopt_long(argc, argv, "hsC:c:a:l:015Ln:",
 		    long_options, NULL);
 		switch (c) {
 		case 'h':
@@ -132,7 +231,7 @@ int main(int argc, char **argv)
 			return 0;
 		case 's':
 			printf("hrctl: status not implemented yet\n");
-			return 0;
+			return 1;
 		case 'a':
 			if (str_size(optarg) > 31) {
 				printf("hrctl: device name longer than 31 bytes\n");
@@ -141,6 +240,15 @@ int main(int argc, char **argv)
 			str_cpy(cfg->devname, 32, optarg);
 			assemble = true;
 			break;
+		case 'C':
+			/* only support 1 array inside config for now XXX */
+			rc = load_config(optarg, cfg);
+			if (rc != EOK) {
+				printf("hrctl: failed to load config\n");
+				return 1;
+			}
+			create = true;
+			goto skip;
 		case 'c':
 			if (str_size(optarg) > 31) {
 				printf("hrctl: device name longer than 31 bytes\n");
@@ -192,6 +300,7 @@ int main(int argc, char **argv)
 		}
 	}
 
+skip:
 	if ((create && assemble) ||
 	    (!create && !assemble) ||
 	    (create && cfg->level == hr_l_empty) ||

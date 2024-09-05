@@ -26,5 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'device' ]
+deps = [ 'device', 'sif' ]
 src = files('hrctl.c')
+
+installed_data += { 'name': 'sample_hr_config.sif', 'dir': '/cfg' }

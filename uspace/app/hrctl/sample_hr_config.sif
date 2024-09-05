@@ -1,0 +1,9 @@
+<sif>
+<arrays>
+<array devname="hr0" level="1" n="3">
+<extent devname="devices/\hw\sys\00:01.1\c0d0"></extent>
+<extent devname="devices/\hw\sys\00:01.1\c0d1"></extent>
+<extent devname="devices/\hw\sys\00:01.1\c1d1"></extent>
+</array>
+</arrays>
+</sif>
