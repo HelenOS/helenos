@@ -230,8 +230,10 @@ int main(int argc, char **argv)
 			usage();
 			return 0;
 		case 's':
-			printf("hrctl: status not implemented yet\n");
-			return 1;
+			rc = hr_print_status();
+			if (rc != EOK)
+				return 1;
+			return 0;
 		case 'a':
 			if (str_size(optarg) > 31) {
 				printf("hrctl: device name longer than 31 bytes\n");

@@ -62,10 +62,20 @@ typedef struct hr_config {
 	hr_level_t level;
 } hr_config_t;
 
+typedef struct hr_vol_info {
+	service_id_t extents[HR_MAXDEVS];
+	size_t extent_no;
+	service_id_t svc_id;
+	hr_level_t level;
+	uint64_t nblocks;
+	size_t bsize;
+} hr_vol_info_t;
+
 extern errno_t hr_sess_init(hr_t **);
 extern void hr_sess_destroy(hr_t *);
 
 extern errno_t hr_create(hr_t *, hr_config_t *);
+extern errno_t hr_print_status(void);
 
 #endif
 

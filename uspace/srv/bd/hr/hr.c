@@ -135,6 +135,67 @@ end:
 	async_answer_0(icall, rc);
 }
 
+static void hr_print_status_srv(ipc_call_t *icall)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_status_srv()");
+
+	errno_t rc;
+	size_t vol_cnt = 0;
+	hr_vol_info_t info;
+	ipc_call_t call;
+	size_t size;
+
+	fibril_mutex_lock(&hr_volumes_lock);
+
+	vol_cnt = list_count(&hr_volumes);
+
+	if (!async_data_read_receive(&call, &size)) {
+		rc = EREFUSED;
+		goto error;
+	}
+
+	if (size != sizeof(size_t)) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = async_data_read_finalize(&call, &vol_cnt, size);
+	if (rc != EOK)
+		goto error;
+
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
+		memcpy(info.extents, volume->devs,
+		    sizeof(service_id_t) * HR_MAXDEVS);
+		info.svc_id = volume->svc_id;
+		info.extent_no = volume->dev_no;
+		info.level = volume->level;
+		info.nblocks = volume->nblocks;
+		info.bsize = volume->bsize;
+
+		if (!async_data_read_receive(&call, &size)) {
+			rc = EREFUSED;
+			goto error;
+		}
+
+		if (size != sizeof(hr_vol_info_t)) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		rc = async_data_read_finalize(&call, &info, size);
+		if (rc != EOK)
+			goto error;
+	}
+
+	fibril_mutex_unlock(&hr_volumes_lock);
+	async_answer_0(icall, EOK);
+	return;
+error:
+	fibril_mutex_unlock(&hr_volumes_lock);
+	async_answer_0(&call, rc);
+	async_answer_0(icall, rc);
+}
+
 static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_ctl_conn()");
@@ -154,6 +215,9 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 		switch (method) {
 		case HR_CREATE:
 			hr_create_srv(&call);
+			break;
+		case HR_STATUS:
+			hr_print_status_srv(&call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

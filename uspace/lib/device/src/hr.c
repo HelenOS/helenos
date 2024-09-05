@@ -113,5 +113,96 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
 	return EOK;
 }
 
+static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
+{
+	errno_t rc;
+	size_t i;
+	char *devname;
+
+	printf("--- vol %zu ---\n", index);
+
+	printf("svc_id: %lu\n", vol_info->svc_id);
+
+	rc = loc_service_get_name(vol_info->svc_id, &devname);
+	if (rc != EOK)
+		return rc;
+	printf("devname: %s\n", devname);
+
+	printf("level: %d\n", vol_info->level);
+	printf("nblocks: %lu\n", vol_info->nblocks);
+	printf("bsize: %zu\n", vol_info->bsize);
+
+	printf("extents: [index] [devname]\n");
+	for (i = 0; i < vol_info->extent_no; i++) {
+		rc = loc_service_get_name(vol_info->extents[i], &devname);
+		if (rc != EOK)
+			return rc;
+		printf("          %zu       %s\n", i, devname);
+	}
+	return EOK;
+}
+
+errno_t hr_print_status(void)
+{
+	hr_t *hr;
+	errno_t rc, retval;
+	async_exch_t *exch;
+	aid_t req;
+	size_t size, i;
+	hr_vol_info_t *vols;
+
+	rc = hr_sess_init(&hr);
+	if (rc != EOK)
+		return rc;
+
+	exch = async_exchange_begin(hr->sess);
+	if (exch == NULL)
+		return EINVAL;
+
+	req = async_send_0(exch, HR_STATUS, NULL);
+
+	rc = async_data_read_start(exch, &size, sizeof(size_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	vols = calloc(size, sizeof(hr_vol_info_t));
+	if (vols == NULL) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return ENOMEM;
+	}
+
+	for (i = 0; i < size; i++) {
+		rc = async_data_read_start(exch, &vols[i],
+		    sizeof(hr_vol_info_t));
+		if (rc != EOK) {
+			async_exchange_end(exch);
+			async_forget(req);
+			goto error;
+		}
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, &retval);
+	if (retval != EOK) {
+		rc = retval;
+		goto error;
+	}
+
+	for (i = 0; i < size; i++) {
+		rc = print_vol_info(i, &vols[i]);
+		if (rc != EOK)
+			goto error;
+	}
+
+error:
+	if (vols != NULL)
+		free(vols);
+	return rc;
+}
+
 /** @}
  */
