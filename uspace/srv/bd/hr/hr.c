@@ -45,6 +45,7 @@
 #include <task.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 #include <str_error.h>
 
 #include "var.h"
@@ -63,43 +64,47 @@ static void hr_create_srv(ipc_call_t *icall)
 
 	errno_t rc;
 	size_t size;
-	hr_config_t *hr_config;
+	hr_config_t *cfg;
+	hr_volume_t *new_volume;
+	ipc_call_t call;
 
-	hr_config = calloc(1, sizeof(hr_config_t));
-	if (hr_config == NULL) {
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
+		return;
+	}
+
+	if (size != sizeof(hr_config_t)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
+		return;
+	}
+
+	cfg = calloc(1, sizeof(hr_config_t));
+	if (cfg == NULL) {
+		async_answer_0(&call, ENOMEM);
 		async_answer_0(icall, ENOMEM);
 		return;
 	}
 
-	hr_config->level = ipc_get_arg1(icall);
-
-	rc = async_data_write_accept((void **) &hr_config->name, true, 0, 0, 0,
-	    NULL);
+	rc = async_data_write_finalize(&call, cfg, size);
 	if (rc != EOK) {
-		async_answer_0(icall, EREFUSED);
-		return;
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 	}
 
-	rc = async_data_write_accept((void **) &hr_config->devs, false,
-	    sizeof(service_id_t), 0, 0, &size);
-	if (rc != EOK) {
-		async_answer_0(icall, EREFUSED);
-		return;
-	}
-
-	hr_config->dev_no = size / sizeof(service_id_t);
-
-	hr_volume_t *new_volume = calloc(1, sizeof(hr_volume_t));
+	new_volume = calloc(1, sizeof(hr_volume_t));
 	if (new_volume == NULL) {
 		rc = ENOMEM;
 		goto end;
 	}
-	new_volume->devname = hr_config->name;
-	new_volume->level = hr_config->level;
-	new_volume->dev_no = hr_config->dev_no;
-	new_volume->devs = hr_config->devs;
 
-	switch (hr_config->level) {
+	str_cpy(new_volume->devname, 32, cfg->devname);
+	memcpy(new_volume->devs, cfg->devs, sizeof(service_id_t) * HR_MAXDEVS);
+	new_volume->level = cfg->level;
+	new_volume->dev_no = cfg->dev_no;
+
+	switch (new_volume->level) {
 	case hr_l_1:
 		new_volume->hr_ops.create = hr_raid1_create;
 		break;
@@ -114,8 +119,9 @@ static void hr_create_srv(ipc_call_t *icall)
 	}
 
 	rc = new_volume->hr_ops.create(new_volume);
-	if (rc != EOK)
+	if (rc != EOK) {
 		goto end;
+	}
 
 	fibril_mutex_lock(&hr_volumes_lock);
 	list_append(&new_volume->lvolumes, &hr_volumes);
@@ -125,7 +131,7 @@ static void hr_create_srv(ipc_call_t *icall)
 	    new_volume->devname, new_volume->svc_id);
 
 end:
-	free(hr_config);
+	free(cfg);
 	async_answer_0(icall, rc);
 }
 

@@ -40,6 +40,9 @@
 #include <errno.h>
 #include <loc.h>
 
+/* for now */
+#define HR_MAXDEVS 4
+
 typedef struct hr {
 	async_sess_t *sess;
 } hr_t;
@@ -53,8 +56,8 @@ typedef enum hr_level {
 } hr_level_t;
 
 typedef struct hr_config {
-	char *name;
-	service_id_t *devs;
+	char devname[32];
+	service_id_t devs[HR_MAXDEVS];
 	size_t dev_no;
 	hr_level_t level;
 } hr_config_t;

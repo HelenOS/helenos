@@ -81,28 +81,19 @@ static void usage(void)
 	printf("%s", usage_str);
 }
 
-static errno_t get_dev_svc_ids(int argc, char **argv, int optind, int dev_no,
-    service_id_t **rdevs)
+static errno_t fill_config_devs(int argc, char **argv, int optind,
+    hr_config_t *cfg)
 {
 	errno_t rc;
-	int i;
-	size_t k;
-	service_id_t *devs;
+	size_t i;
 
-	devs = calloc(dev_no, sizeof(service_id_t));
-	if (devs == NULL)
-		return ENOMEM;
-
-	for (i = optind, k = 0; i < argc; i++, k++) {
-		rc = loc_service_get_id(argv[i], &devs[k], 0);
+	for (i = 0; i < cfg->dev_no; i++) {
+		rc = loc_service_get_id(argv[optind++], &cfg->devs[i], 0);
 		if (rc != EOK) {
 			printf("hrctl: error resolving device \"%s\"\n", argv[i]);
-			free(devs);
 			return EINVAL;
 		}
 	}
-
-	*rdevs = devs;
 
 	return EOK;
 }
@@ -110,17 +101,18 @@ static errno_t get_dev_svc_ids(int argc, char **argv, int optind, int dev_no,
 int main(int argc, char **argv)
 {
 	errno_t rc;
-	int retval, c, dev_no;
+	int retval, c;
 	bool create, assemble;
-	char *name = NULL;
-	service_id_t *devs = NULL;
 	hr_t *hr;
-	hr_config_t hr_config;
-	hr_level_t level;
+	hr_config_t *cfg;
+
+	cfg = calloc(1, sizeof(hr_config_t));
+	if (cfg == NULL)
+		return 1;
 
 	retval = 0;
-	level = hr_l_empty;
-	dev_no = 0;
+	cfg->level = hr_l_empty;
+	cfg->dev_no = 0;
 	create = assemble = false;
 
 	if (argc < 2) {
@@ -142,46 +134,58 @@ int main(int argc, char **argv)
 			printf("hrctl: status not implemented yet\n");
 			return 0;
 		case 'a':
-			name = optarg;
+			if (str_size(optarg) > 31) {
+				printf("hrctl: device name longer than 31 bytes\n");
+				return 1;
+			}
+			str_cpy(cfg->devname, 32, optarg);
 			assemble = true;
 			break;
 		case 'c':
-			name = optarg;
+			if (str_size(optarg) > 31) {
+				printf("hrctl: device name longer than 31 bytes\n");
+				return 1;
+			}
+			str_cpy(cfg->devname, 32, optarg);
 			create = true;
 			break;
 		case 'l':
-			if (level != hr_l_empty)
+			if (cfg->level != hr_l_empty)
 				goto bad;
 			if (str_cmp(optarg, "linear") == 0)
-				level = hr_l_linear;
+				cfg->level = hr_l_linear;
 			else
-				level = strtol(optarg, NULL, 10);
+				cfg->level = strtol(optarg, NULL, 10);
 			break;
 		case '0':
-			if (level != hr_l_empty)
+			if (cfg->level != hr_l_empty)
 				goto bad;
-			level = hr_l_0;
+			cfg->level = hr_l_0;
 			break;
 		case '1':
-			if (level != hr_l_empty)
+			if (cfg->level != hr_l_empty)
 				goto bad;
-			level = hr_l_1;
+			cfg->level = hr_l_1;
 			break;
 		case '5':
-			if (level != hr_l_empty)
+			if (cfg->level != hr_l_empty)
 				goto bad;
-			level = hr_l_5;
+			cfg->level = hr_l_5;
 			break;
 		case 'L':
-			if (level != hr_l_empty)
+			if (cfg->level != hr_l_empty)
 				goto bad;
-			level = hr_l_linear;
+			cfg->level = hr_l_linear;
 			break;
 		case 'n':
-			dev_no = strtol(optarg, NULL, 10);
-			if (dev_no + optind != argc)
+			cfg->dev_no = strtol(optarg, NULL, 10);
+			if ((int) cfg->dev_no + optind != argc)
 				goto bad;
-			rc = get_dev_svc_ids(argc, argv, optind, dev_no, &devs);
+			if (cfg->dev_no > HR_MAXDEVS) {
+				printf("hrctl: too many devices\n");
+				return 1;
+			}
+			rc = fill_config_devs(argc, argv, optind, cfg);
 			if (rc != EOK)
 				return 1;
 			break;
@@ -190,17 +194,11 @@ int main(int argc, char **argv)
 
 	if ((create && assemble) ||
 	    (!create && !assemble) ||
-	    (create && level == hr_l_empty) ||
-	    (assemble && level != hr_l_empty) ||
-	    (dev_no == 0)) {
-		free(devs);
+	    (create && cfg->level == hr_l_empty) ||
+	    (assemble && cfg->level != hr_l_empty) ||
+	    (cfg->dev_no == 0)) {
 		goto bad;
 	}
-
-	hr_config.level = level;
-	hr_config.dev_no = dev_no;
-	hr_config.name = name;
-	hr_config.devs = devs;
 
 	rc = hr_sess_init(&hr);
 	if (rc != EOK) {
@@ -210,17 +208,18 @@ int main(int argc, char **argv)
 	}
 
 	if (create) {
-		rc = hr_create(hr, &hr_config);
+		rc = hr_create(hr, cfg);
 		printf("hrctl: hr_create() rc: %s\n", str_error(rc));
 	} else if (assemble) {
 		printf("hrctl: assemble not implemented yet\n");
 	}
 
 end:
-	free(devs);
+	free(cfg);
 	hr_sess_destroy(hr);
 	return retval;
 bad:
+	free(cfg);
 	printf("hrctl: bad usage, try hrctl --help\n");
 	return 1;
 }

@@ -93,22 +93,12 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
 	aid_t req;
 
 	exch = async_exchange_begin(hr->sess);
-	if (exch == NULL) {
+	if (exch == NULL)
 		return EINVAL;
-	}
 
-	req = async_send_1(exch, HR_CREATE, hr_config->level, NULL);
+	req = async_send_0(exch, HR_CREATE, NULL);
 
-	rc = async_data_write_start(exch, hr_config->name,
-	    str_size(hr_config->name));
-	if (rc != EOK) {
-		async_exchange_end(exch);
-		async_forget(req);
-		return rc;
-	}
-
-	rc = async_data_write_start(exch, hr_config->devs,
-	    sizeof(service_id_t) * hr_config->dev_no);
+	rc = async_data_write_start(exch, hr_config, sizeof(hr_config_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
