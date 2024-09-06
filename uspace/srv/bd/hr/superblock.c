@@ -146,6 +146,14 @@ errno_t hr_get_vol_from_meta(hr_config_t *cfg, hr_volume_t *new_volume)
 	new_volume->data_offset = uint32_t_le2host(metadata->data_offset);
 	new_volume->strip_size = uint32_t_le2host(metadata->strip_size);
 
+	if (new_volume->dev_no != cfg->dev_no) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "number of divices in array differ: specified %zu, metadata states %zu",
+		    cfg->dev_no, new_volume->dev_no);
+		rc = EINVAL;
+		goto end;
+	}
+
 	if (str_cmp(metadata->devname, new_volume->devname) != 0) {
 		log_msg(LOG_DEFAULT, LVL_NOTE,
 		    "devname on metadata (%s) and config (%s) differ, using config",
@@ -153,7 +161,7 @@ errno_t hr_get_vol_from_meta(hr_config_t *cfg, hr_volume_t *new_volume)
 	}
 end:
 	free(metadata);
-	return EOK;
+	return rc;
 }
 
 static errno_t read_metadata(service_id_t dev, hr_metadata_t *metadata)
