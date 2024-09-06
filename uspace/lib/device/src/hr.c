@@ -113,6 +113,33 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
 	return EOK;
 }
 
+errno_t hr_assemble(hr_t *hr, hr_config_t *hr_config)
+{
+	errno_t rc, retval;
+	async_exch_t *exch;
+	aid_t req;
+
+	exch = async_exchange_begin(hr->sess);
+	if (exch == NULL)
+		return EINVAL;
+
+	req = async_send_0(exch, HR_ASSEMBLE, NULL);
+
+	rc = async_data_write_start(exch, hr_config, sizeof(hr_config_t));
+	if (rc != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return rc;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, &retval);
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
+
 static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 {
 	errno_t rc;

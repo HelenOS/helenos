@@ -52,19 +52,20 @@ static const char usage_str[] =
     "Usage: hrctl [OPTION]... -n <dev_no> <devices>...\n"
     "\n"
     "Options:\n"
-    "  -h, --help              display this help and exit\n"
-    "  -C, --config-file=path  create an array from file,\n"
-    "                          sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
-    "  -s, --status            display status of active arrays\n"
-    "  -a, --assemble=NAME     assemble an existing array\n"
-    "  -c, --create=NAME       create new array\n"
-    "  -n                      non-zero number of devices\n"
-    "  -l, --level=LEVEL       set the RAID level,\n"
-    "                          valid values: 0, 1, 5, linear\n"
-    "  -0                      striping\n"
-    "  -1                      mirroring\n"
-    "  -5                      distributed parity\n"
-    "  -L                      linear concatenation\n"
+    "  -h, --help                display this help and exit\n"
+    "  -C, --create-file=path    create an array from file,\n"
+    "                            sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
+    "  -A, --assemble-file=path  create an array from file\n"
+    "  -s, --status              display status of active arrays\n"
+    "  -c, --create=NAME         create new array\n"
+    "  -a, --assemble=NAME       assemble an existing array\n"
+    "  -n                        non-zero number of devices\n"
+    "  -l, --level=LEVEL         set the RAID level,\n"
+    "                            valid values: 0, 1, 5, linear\n"
+    "  -0                        striping\n"
+    "  -1                        mirroring\n"
+    "  -5                        distributed parity\n"
+    "  -L                        linear concatenation\n"
     "\n"
     "Example usage:\n"
     "  hrctl --create hr0 -0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
@@ -82,7 +83,8 @@ static struct option const long_options[] = {
 	{ "assemble", required_argument, 0, 'a' },
 	{ "create", required_argument, 0, 'c' },
 	{ "level", required_argument, 0, 'l' },
-	{ "config-file", required_argument, 0, 'C' },
+	{ "create-file", required_argument, 0, 'C' },
+	{ "assemble-file", required_argument, 0, 'A' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -153,11 +155,12 @@ static errno_t load_config(const char *path, hr_config_t *cfg)
 	str_cpy(cfg->devname, sizeof(cfg->devname), devname);
 
 	level_str = sif_node_get_attr(narray, "level");
-	if (level_str == NULL) {
-		rc = EIO;
-		goto error;
-	}
-	cfg->level = strtol(level_str, NULL, 10);
+	if (level_str == NULL)
+		cfg->level = hr_l_empty;
+	else if (str_cmp(level_str, "linear") == 0)
+		cfg->level = hr_l_linear;
+	else
+		cfg->level = strtol(level_str, NULL, 10);
 
 	dev_no_str = sif_node_get_attr(narray, "n");
 	if (dev_no_str == NULL) {
@@ -227,7 +230,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:a:l:015Ln:",
+		c = getopt_long(argc, argv, "hsC:c:A:a:l:015Ln:",
 		    long_options, NULL);
 		switch (c) {
 		case 'h':
@@ -238,14 +241,6 @@ int main(int argc, char **argv)
 			if (rc != EOK)
 				return 1;
 			return 0;
-		case 'a':
-			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
-				printf("hrctl: device name too long\n");
-				return 1;
-			}
-			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
-			assemble = true;
-			break;
 		case 'C':
 			/* only support 1 array inside config for now XXX */
 			rc = load_config(optarg, cfg);
@@ -262,6 +257,22 @@ int main(int argc, char **argv)
 			}
 			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
 			create = true;
+			break;
+		case 'A':
+			rc = load_config(optarg, cfg);
+			if (rc != EOK) {
+				printf("hrctl: failed to load config\n");
+				return 1;
+			}
+			assemble = true;
+			goto skip;
+		case 'a':
+			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
+				printf("hrctl: device name too long\n");
+				return 1;
+			}
+			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
+			assemble = true;
 			break;
 		case 'l':
 			if (cfg->level != hr_l_empty)
@@ -295,10 +306,6 @@ int main(int argc, char **argv)
 			cfg->dev_no = strtol(optarg, NULL, 10);
 			if ((int) cfg->dev_no + optind != argc)
 				goto bad;
-			if (cfg->dev_no > HR_MAXDEVS) {
-				printf("hrctl: too many devices\n");
-				return 1;
-			}
 			rc = fill_config_devs(argc, argv, optind, cfg);
 			if (rc != EOK)
 				return 1;
@@ -307,12 +314,22 @@ int main(int argc, char **argv)
 	}
 
 skip:
-	if ((create && assemble) ||
-	    (!create && !assemble) ||
-	    (create && cfg->level == hr_l_empty) ||
-	    (assemble && cfg->level != hr_l_empty) ||
-	    (cfg->dev_no == 0)) {
+	if ((create && assemble) || (!create && !assemble))
 		goto bad;
+
+	if (create && cfg->level == hr_l_empty) {
+		printf("hrctl: invalid level, exiting\n");
+		return 1;
+	}
+
+	if (cfg->dev_no > HR_MAXDEVS) {
+		printf("hrctl: too many devices, exiting\n");
+		return 1;
+	}
+
+	if (cfg->dev_no == 0) {
+		printf("hrctl: invalid number of devices, exiting\n");
+		return 1;
 	}
 
 	rc = hr_sess_init(&hr);
@@ -326,7 +343,8 @@ skip:
 		rc = hr_create(hr, cfg);
 		printf("hrctl: hr_create() rc: %s\n", str_error(rc));
 	} else if (assemble) {
-		printf("hrctl: assemble not implemented yet\n");
+		rc = hr_assemble(hr, cfg);
+		printf("hrctl: hr_assemble() rc: %s\n", str_error(rc));
 	}
 
 end:

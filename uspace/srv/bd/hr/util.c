@@ -42,8 +42,8 @@
 #include <stdio.h>
 #include <str_error.h>
 
-#include "var.h"
 #include "util.h"
+#include "var.h"
 
 extern loc_srv_t *hr_srv;
 
@@ -81,6 +81,8 @@ void hr_fini_devs(hr_volume_t *vol)
 
 errno_t hr_register_volume(hr_volume_t *new_volume)
 {
+	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_register_volume()");
+
 	errno_t rc;
 	service_id_t new_id;
 	category_id_t cat_id;
@@ -117,6 +119,65 @@ errno_t hr_register_volume(hr_volume_t *new_volume)
 error:
 	free(fullname);
 	return rc;
+}
+
+errno_t hr_check_devs(hr_volume_t *vol)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_check_devs()");
+
+	errno_t rc;
+	size_t i, bsize, last_bsize;
+	uint64_t nblocks, last_nblocks;
+	uint64_t total_blocks = 0;
+
+	for (i = 0; i < vol->dev_no; i++) {
+		rc = block_get_nblocks(vol->devs[i], &nblocks);
+		if (rc != EOK)
+			goto error;
+		if (i != 0 && nblocks != last_nblocks) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "number of blocks differs");
+			rc = EINVAL;
+			goto error;
+		}
+		total_blocks += nblocks;
+		last_nblocks = nblocks;
+	}
+
+	for (i = 0; i < vol->dev_no; i++) {
+		rc = block_get_bsize(vol->devs[i], &bsize);
+		if (rc != EOK)
+			goto error;
+		if (i != 0 && bsize != last_bsize) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "block sizes differ");
+			rc = EINVAL;
+			goto error;
+		}
+		last_bsize = bsize;
+	}
+
+	if (vol->level == hr_l_1) {
+		vol->nblocks = total_blocks / vol->dev_no;
+	} else if (vol->level == hr_l_0) {
+		vol->nblocks = total_blocks;
+	} else {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "unkown level, ok when assembling");
+		vol->nblocks = 0;
+	}
+
+	vol->bsize = bsize;
+
+error:
+	return rc;
+}
+
+errno_t hr_calc_ba(hr_volume_t *vol, size_t cnt, uint64_t *ba)
+{
+	if (*ba + cnt > vol->data_blkno)
+		return ERANGE;
+
+	*ba = *ba + vol->data_offset;
+	return EOK;
 }
 
 /** @}

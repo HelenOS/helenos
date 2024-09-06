@@ -46,8 +46,8 @@
 #include <stdlib.h>
 #include <str_error.h>
 
-#include "var.h"
 #include "util.h"
+#include "var.h"
 
 extern fibril_mutex_t big_lock;
 extern loc_srv_t *hr_srv;
@@ -84,7 +84,7 @@ static errno_t hr_raid1_bd_close(bd_srv_t *bd)
 	return EOK;
 }
 
-static errno_t hr_raid1_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t size)
+static errno_t hr_raid1_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 {
 	fibril_mutex_lock(&big_lock);
 	hr_volume_t *vol = bd->srvs->sarg;
@@ -92,8 +92,14 @@ static errno_t hr_raid1_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t size)
 	errno_t rc;
 	size_t i;
 
+	rc = hr_calc_ba(vol, cnt, &ba);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&big_lock);
+		return rc;
+	}
+
 	for (i = 0; i < vol->dev_no; i++) {
-		rc = block_sync_cache(vol->devs[i], ba, size);
+		rc = block_sync_cache(vol->devs[i], ba, cnt);
 		if (rc != EOK)
 			break;
 	}
@@ -110,6 +116,12 @@ static errno_t hr_raid1_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 
 	errno_t rc;
 	size_t i;
+
+	rc = hr_calc_ba(vol, cnt, &ba);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&big_lock);
+		return rc;
+	}
 
 	for (i = 0; i < vol->dev_no; i++) {
 		rc = block_read_direct(vol->devs[i], ba, cnt, buf);
@@ -129,6 +141,12 @@ static errno_t hr_raid1_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 
 	errno_t rc;
 	size_t i;
+
+	rc = hr_calc_ba(vol, cnt, &ba);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&big_lock);
+		return rc;
+	}
 
 	for (i = 0; i < vol->dev_no; i++) {
 		rc = block_write_direct(vol->devs[i], ba, cnt, data);
@@ -152,12 +170,14 @@ static errno_t hr_raid1_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 
-	*rnb = vol->nblocks;
+	*rnb = vol->data_blkno;
 	return EOK;
 }
 
 errno_t hr_raid1_create(hr_volume_t *new_volume)
 {
+	errno_t rc;
+
 	assert(new_volume->level == hr_l_1);
 
 	if (new_volume->dev_no < 2) {
@@ -166,55 +186,15 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 		return EINVAL;
 	}
 
-	errno_t rc;
-	size_t i, bsize, last_bsize;
-	uint64_t nblocks, last_nblocks;
-	uint64_t total_blocks = 0;
-
-	rc = hr_init_devs(new_volume);
-	if (rc != EOK)
-		return rc;
-
-	for (i = 0; i < new_volume->dev_no; i++) {
-		rc = block_get_nblocks(new_volume->devs[i], &nblocks);
-		if (rc != EOK)
-			goto error;
-		if (i != 0 && nblocks != last_nblocks) {
-			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "number of blocks differs");
-			rc = EINVAL;
-			goto error;
-		}
-		total_blocks += nblocks;
-		last_nblocks = nblocks;
-	}
-
-	for (i = 0; i < new_volume->dev_no; i++) {
-		rc = block_get_bsize(new_volume->devs[i], &bsize);
-		if (rc != EOK)
-			goto error;
-		if (i != 0 && bsize != last_bsize) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "block sizes differ");
-			rc = EINVAL;
-			goto error;
-		}
-		last_bsize = bsize;
-	}
-
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid1_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
-	new_volume->nblocks = total_blocks / new_volume->dev_no;
-	new_volume->bsize = bsize;
 
 	rc = hr_register_volume(new_volume);
 	if (rc != EOK)
-		goto error;
+		return rc;
 
 	return EOK;
-error:
-	hr_fini_devs(new_volume);
-	return rc;
 }
 
 /** @}

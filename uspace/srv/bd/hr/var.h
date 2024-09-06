@@ -42,6 +42,8 @@
 
 #define NAME "hr"
 
+#define HR_STRIP_SIZE DATA_XFER_LIMIT
+
 typedef struct hr_volume hr_volume_t;
 
 typedef struct hr_ops {
@@ -55,8 +57,10 @@ typedef struct hr_volume {
 	char devname[32];
 	service_id_t devs[HR_MAXDEVS];
 	uint64_t nblocks;
-	size_t bsize;
+	uint64_t data_blkno;
+	uint32_t data_offset;
 	service_id_t svc_id;
+	size_t bsize;
 	size_t dev_no;
 	hr_level_t level;
 } hr_volume_t;

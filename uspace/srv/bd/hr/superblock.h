@@ -33,18 +33,30 @@
  * @file
  */
 
-#ifndef _HR_UTIL_H
-#define _HR_UTIL_H
-
-#include <errno.h>
+#ifndef _HR_SUPERBLOCK_H
+#define _HR_SUPERBLOCK_H
 
 #include "var.h"
 
-extern errno_t hr_init_devs(hr_volume_t *);
-extern void hr_fini_devs(hr_volume_t *);
-extern errno_t hr_register_volume(hr_volume_t *);
-extern errno_t hr_check_devs(hr_volume_t *vol);
-errno_t hr_calc_ba(hr_volume_t *vol, size_t cnt, uint64_t *ba);
+#define HR_MAGIC 0x4420492041205248LLU
+
+typedef struct hr_metadata {
+	uint64_t magic;
+	uint32_t extent_no;
+	uint32_t level;
+	uint64_t nblocks;	/* all blocks */
+	uint64_t data_blkno;	/* usable blocks */
+	uint32_t data_offset;	/* block where data starts */
+	uint32_t index;		/* index of disk in array */
+	uint8_t uuid[16];
+	char devname[32];
+} hr_metadata_t;
+
+#define HR_META_SIZE 1	/* in blocks */
+#define HR_META_OFF 8	/* in blocks */
+
+extern errno_t hr_write_meta_to_vol(hr_volume_t *);
+extern errno_t hr_get_vol_from_meta(hr_config_t *, hr_volume_t *);
 
 #endif
 
