@@ -44,7 +44,8 @@ extern errno_t hr_init_devs(hr_volume_t *);
 extern void hr_fini_devs(hr_volume_t *);
 extern errno_t hr_register_volume(hr_volume_t *);
 extern errno_t hr_check_devs(hr_volume_t *vol);
-errno_t hr_calc_ba(hr_volume_t *vol, size_t cnt, uint64_t *ba);
+errno_t hr_check_ba_range(hr_volume_t *vol, size_t cnt, uint64_t ba);
+void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba);
 
 #endif
 

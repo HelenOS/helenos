@@ -50,6 +50,7 @@ typedef struct hr {
 typedef enum hr_level {
 	hr_l_0 = 0,
 	hr_l_1 = 1,
+	hr_l_4 = 4,
 	hr_l_5 = 5,
 	hr_l_linear = 254,
 	hr_l_empty = 255

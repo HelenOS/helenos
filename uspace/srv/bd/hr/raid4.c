@@ -53,58 +53,103 @@
 extern fibril_mutex_t big_lock;
 extern loc_srv_t *hr_srv;
 
-static errno_t hr_raid0_bd_open(bd_srvs_t *, bd_srv_t *);
-static errno_t hr_raid0_bd_close(bd_srv_t *);
-static errno_t hr_raid0_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *,
+static errno_t hr_raid4_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t hr_raid4_bd_close(bd_srv_t *);
+static errno_t hr_raid4_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *,
     size_t);
-static errno_t hr_raid0_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
-static errno_t hr_raid0_bd_write_blocks(bd_srv_t *, aoff64_t, size_t,
+static errno_t hr_raid4_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
+static errno_t hr_raid4_bd_write_blocks(bd_srv_t *, aoff64_t, size_t,
     const void *, size_t);
-static errno_t hr_raid0_bd_get_block_size(bd_srv_t *, size_t *);
-static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t hr_raid4_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t hr_raid4_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
-static bd_ops_t hr_raid0_bd_ops = {
-	.open = hr_raid0_bd_open,
-	.close = hr_raid0_bd_close,
-	.sync_cache = hr_raid0_bd_sync_cache,
-	.read_blocks = hr_raid0_bd_read_blocks,
-	.write_blocks = hr_raid0_bd_write_blocks,
-	.get_block_size = hr_raid0_bd_get_block_size,
-	.get_num_blocks = hr_raid0_bd_get_num_blocks
+static bd_ops_t hr_raid4_bd_ops = {
+	.open = hr_raid4_bd_open,
+	.close = hr_raid4_bd_close,
+	.sync_cache = hr_raid4_bd_sync_cache,
+	.read_blocks = hr_raid4_bd_read_blocks,
+	.write_blocks = hr_raid4_bd_write_blocks,
+	.get_block_size = hr_raid4_bd_get_block_size,
+	.get_num_blocks = hr_raid4_bd_get_num_blocks
 };
 
-static void raid0_geometry(uint64_t x, hr_volume_t *vol, size_t *extent,
+static void xor(void *dst, const void *src, size_t size)
+{
+	size_t i;
+	uint64_t *d = dst;
+	const uint64_t *s = src;
+
+	for (i = 0; i < size / sizeof(uint64_t); ++i)
+		*d++ ^= *s++;
+}
+
+static errno_t write_parity(hr_volume_t *vol, uint64_t extent, uint64_t block,
+    const void *data)
+{
+	errno_t rc;
+	size_t i;
+	void *xorbuf;
+	void *buf;
+
+	xorbuf = calloc(1, vol->bsize);
+	if (xorbuf == NULL)
+		return ENOMEM;
+
+	buf = malloc(vol->bsize);
+	if (buf == NULL)
+		return ENOMEM;
+
+	for (i = 1; i < vol->dev_no; i++) {
+		if (i == extent) {
+			xor(xorbuf, data, vol->bsize);
+		} else {
+			rc = block_read_direct(vol->devs[i], block, 1, buf);
+			if (rc != EOK)
+				goto end;
+			xor(xorbuf, buf, vol->bsize);
+		}
+	}
+
+	rc = block_write_direct(vol->devs[0], block, 1, xorbuf);
+
+end:
+	free(xorbuf);
+	free(buf);
+	return EOK;
+}
+
+static void raid4_geometry(uint64_t x, hr_volume_t *vol, size_t *extent,
     uint64_t *phys_block)
 {
 	uint64_t N = vol->dev_no; /* extents */
 	uint64_t L = vol->strip_size / vol->bsize; /* size of strip in blocks */
 
-	uint64_t i = (x / L) % N; /* extent */
-	uint64_t j = (x / L) / N; /* stripe */
+	uint64_t i = ((x / L) % (N - 1)) + 1; /* extent */
+	uint64_t j = (x / L) / (N - 1); /* stripe */
 	uint64_t k = x % L; /* strip offset */
 
 	*extent = i;
 	*phys_block = j * L + k;
 }
 
-static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+static errno_t hr_raid4_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_bd_open()");
 	return EOK;
 }
 
-static errno_t hr_raid0_bd_close(bd_srv_t *bd)
+static errno_t hr_raid4_bd_close(bd_srv_t *bd)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_bd_close()");
 	return EOK;
 }
 
-static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
+static errno_t hr_raid4_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
 	uint64_t phys_block;
-	size_t extent, left;
+	size_t extent;
 
 	rc = hr_check_ba_range(vol, cnt, ba);
 	if (rc != EOK)
@@ -112,9 +157,9 @@ static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 
 	fibril_mutex_lock(&big_lock);
 
-	left = cnt;
+	size_t left = cnt;
 	while (left != 0) {
-		raid0_geometry(ba, vol, &extent, &phys_block);
+		raid4_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
 		rc = block_sync_cache(vol->devs[extent], phys_block, 1);
 		if (rc != EOK)
@@ -127,13 +172,13 @@ static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 	return rc;
 }
 
-static errno_t hr_raid0_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+static errno_t hr_raid4_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     void *buf, size_t size)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
 	uint64_t phys_block;
-	size_t extent, left;
+	size_t extent;
 
 	if (size < cnt * vol->bsize)
 		return EINVAL;
@@ -144,9 +189,9 @@ static errno_t hr_raid0_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 
 	fibril_mutex_lock(&big_lock);
 
-	left = cnt;
+	size_t left = cnt;
 	while (left != 0) {
-		raid0_geometry(ba, vol, &extent, &phys_block);
+		raid4_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
 		rc = block_read_direct(vol->devs[extent], phys_block, 1, buf);
 		buf = buf + vol->bsize;
@@ -160,13 +205,14 @@ static errno_t hr_raid0_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	return rc;
 }
 
-static errno_t hr_raid0_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+
+static errno_t hr_raid4_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *data, size_t size)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
 	uint64_t phys_block;
-	size_t extent, left;
+	size_t extent;
 
 	if (size < cnt * vol->bsize)
 		return EINVAL;
@@ -177,14 +223,17 @@ static errno_t hr_raid0_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 
 	fibril_mutex_lock(&big_lock);
 
-	left = cnt;
+	size_t left = cnt;
 	while (left != 0) {
-		raid0_geometry(ba, vol, &extent, &phys_block);
+		raid4_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
 		rc = block_write_direct(vol->devs[extent], phys_block, 1, data);
-		data = data + vol->bsize;
 		if (rc != EOK)
 			break;
+		rc = write_parity(vol, extent, phys_block, data);
+		if (rc != EOK)
+			break;
+		data = data + vol->bsize;
 		left--;
 		ba++;
 	}
@@ -193,7 +242,7 @@ static errno_t hr_raid0_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	return rc;
 }
 
-static errno_t hr_raid0_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+static errno_t hr_raid4_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 
@@ -201,7 +250,7 @@ static errno_t hr_raid0_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 	return EOK;
 }
 
-static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+static errno_t hr_raid4_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 
@@ -209,20 +258,20 @@ static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-errno_t hr_raid0_create(hr_volume_t *new_volume)
+errno_t hr_raid4_create(hr_volume_t *new_volume)
 {
 	errno_t rc;
 
-	assert(new_volume->level == hr_l_0);
+	assert(new_volume->level == hr_l_4);
 
-	if (new_volume->dev_no < 2) {
+	if (new_volume->dev_no < 3) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "RAID 0 array needs at least 2 devices");
+		    "RAID 4 array needs at least 3 devices");
 		return EINVAL;
 	}
 
 	bd_srvs_init(&new_volume->hr_bds);
-	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
+	new_volume->hr_bds.ops = &hr_raid4_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
 
 	rc = hr_register_volume(new_volume);

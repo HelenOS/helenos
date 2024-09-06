@@ -158,7 +158,7 @@ errno_t hr_check_devs(hr_volume_t *vol)
 
 	if (vol->level == hr_l_1) {
 		vol->nblocks = total_blocks / vol->dev_no;
-	} else if (vol->level == hr_l_0) {
+	} else if (vol->level == hr_l_0 || vol->level == hr_l_4) {
 		vol->nblocks = total_blocks;
 	} else {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "unkown level, ok when assembling");
@@ -171,13 +171,16 @@ error:
 	return rc;
 }
 
-errno_t hr_calc_ba(hr_volume_t *vol, size_t cnt, uint64_t *ba)
+errno_t hr_check_ba_range(hr_volume_t *vol, size_t cnt, uint64_t ba)
 {
-	if (*ba + cnt > vol->data_blkno)
+	if (ba + cnt > vol->data_blkno)
 		return ERANGE;
-
-	*ba = *ba + vol->data_offset;
 	return EOK;
+}
+
+void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba)
+{
+	*ba = *ba + vol->data_offset;
 }
 
 /** @}

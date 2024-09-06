@@ -77,6 +77,8 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 		data_blkno = vol->nblocks - data_offset;
 	} else if (vol->level == hr_l_0) {
 		data_blkno = vol->nblocks - (data_offset * vol->dev_no);
+	} else if (vol->level == hr_l_4) {
+		data_blkno = vol->nblocks - (data_offset * vol->dev_no) - (vol->nblocks / vol->dev_no);
 	} else {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "level %d not implemented yet", vol->level);

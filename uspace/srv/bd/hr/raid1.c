@@ -86,17 +86,18 @@ static errno_t hr_raid1_bd_close(bd_srv_t *bd)
 
 static errno_t hr_raid1_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 {
-	fibril_mutex_lock(&big_lock);
 	hr_volume_t *vol = bd->srvs->sarg;
 
 	errno_t rc;
 	size_t i;
 
-	rc = hr_calc_ba(vol, cnt, &ba);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&big_lock);
+	rc = hr_check_ba_range(vol, cnt, ba);
+	if (rc != EOK)
 		return rc;
-	}
+
+	hr_add_ba_offset(vol, &ba);
+
+	fibril_mutex_lock(&big_lock);
 
 	for (i = 0; i < vol->dev_no; i++) {
 		rc = block_sync_cache(vol->devs[i], ba, cnt);
@@ -111,17 +112,18 @@ static errno_t hr_raid1_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 static errno_t hr_raid1_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     void *buf, size_t size)
 {
-	fibril_mutex_lock(&big_lock);
 	hr_volume_t *vol = bd->srvs->sarg;
 
 	errno_t rc;
 	size_t i;
 
-	rc = hr_calc_ba(vol, cnt, &ba);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&big_lock);
+	rc = hr_check_ba_range(vol, cnt, ba);
+	if (rc != EOK)
 		return rc;
-	}
+
+	hr_add_ba_offset(vol, &ba);
+
+	fibril_mutex_lock(&big_lock);
 
 	for (i = 0; i < vol->dev_no; i++) {
 		rc = block_read_direct(vol->devs[i], ba, cnt, buf);
@@ -136,17 +138,18 @@ static errno_t hr_raid1_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 static errno_t hr_raid1_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *data, size_t size)
 {
-	fibril_mutex_lock(&big_lock);
 	hr_volume_t *vol = bd->srvs->sarg;
 
 	errno_t rc;
 	size_t i;
 
-	rc = hr_calc_ba(vol, cnt, &ba);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&big_lock);
+	rc = hr_check_ba_range(vol, cnt, ba);
+	if (rc != EOK)
 		return rc;
-	}
+
+	hr_add_ba_offset(vol, &ba);
+
+	fibril_mutex_lock(&big_lock);
 
 	for (i = 0; i < vol->dev_no; i++) {
 		rc = block_write_direct(vol->devs[i], ba, cnt, data);

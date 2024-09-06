@@ -71,6 +71,7 @@ extern void hr_fini_devs(hr_volume_t *);
 
 extern errno_t hr_raid0_create(hr_volume_t *);
 extern errno_t hr_raid1_create(hr_volume_t *);
+extern errno_t hr_raid4_create(hr_volume_t *);
 
 #endif
 

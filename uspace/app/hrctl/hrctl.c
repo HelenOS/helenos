@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:A:a:l:015Ln:T:",
+		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:T:",
 		    long_options, NULL);
 		switch (c) {
 		case 'h':
@@ -298,6 +298,11 @@ int main(int argc, char **argv)
 			if (cfg->level != hr_l_empty)
 				goto bad;
 			cfg->level = hr_l_1;
+			break;
+		case '4':
+			if (cfg->level != hr_l_empty)
+				goto bad;
+			cfg->level = hr_l_4;
 			break;
 		case '5':
 			if (cfg->level != hr_l_empty)
