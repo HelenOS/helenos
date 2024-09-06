@@ -169,7 +169,6 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	printf("size in blocks: %lu\n", vol_info->nblocks);
 	printf("block size: %zu\n", vol_info->bsize);
 
-
 	printf("extents: [index] [devname]\n");
 	for (i = 0; i < vol_info->extent_no; i++) {
 		rc = loc_service_get_name(vol_info->extents[i], &devname);
