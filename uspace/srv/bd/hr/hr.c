@@ -60,6 +60,43 @@ static list_t hr_volumes;
 
 static service_id_t ctl_sid;
 
+static hr_volume_t *hr_get_volume(service_id_t svc_id)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "hr_get_volume(): (%" PRIun ")",
+	    svc_id);
+
+	fibril_mutex_lock(&hr_volumes_lock);
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
+		if (volume->svc_id == svc_id) {
+			fibril_mutex_unlock(&hr_volumes_lock);
+			return volume;
+		}
+	}
+
+	fibril_mutex_unlock(&hr_volumes_lock);
+	return NULL;
+}
+
+static errno_t hr_remove_volume(service_id_t svc_id)
+{
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "hr_remove_volume(): (%" PRIun ")",
+	    svc_id);
+
+	fibril_mutex_lock(&hr_volumes_lock);
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
+		if (volume->svc_id == svc_id) {
+			hr_fini_devs(volume);
+			list_remove(&volume->lvolumes);
+			free(volume);
+			fibril_mutex_unlock(&hr_volumes_lock);
+			return EOK;
+		}
+	}
+
+	fibril_mutex_unlock(&hr_volumes_lock);
+	return ENOENT;
+}
+
 static void hr_create_srv(ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_create_srv()");
@@ -261,6 +298,33 @@ error:
 	async_answer_0(icall, rc);
 }
 
+static void hr_stop_srv(ipc_call_t *icall)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_stop_srv()");
+
+	errno_t rc;
+	service_id_t svc_id;
+	hr_volume_t *vol;
+
+	svc_id = ipc_get_arg1(icall);
+
+	vol = hr_get_volume(svc_id);
+	if (vol == NULL) {
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	rc = hr_remove_volume(svc_id);
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	rc = loc_service_unregister(hr_srv, svc_id);
+
+	async_answer_0(icall, rc);
+}
+
 static void hr_print_status_srv(ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_status_srv()");
@@ -344,33 +408,19 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 		case HR_CREATE:
 			hr_create_srv(&call);
 			break;
-		case HR_STATUS:
-			hr_print_status_srv(&call);
-			break;
 		case HR_ASSEMBLE:
 			hr_assemble_srv(&call);
+			break;
+		case HR_STOP:
+			hr_stop_srv(&call);
+			break;
+		case HR_STATUS:
+			hr_print_status_srv(&call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);
 		}
 	}
-}
-
-static hr_volume_t *hr_get_volume(service_id_t svc_id)
-{
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "hr_get_volume(): (%" PRIun ")",
-	    svc_id);
-
-	fibril_mutex_lock(&hr_volumes_lock);
-	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
-		if (volume->svc_id == svc_id) {
-			fibril_mutex_unlock(&hr_volumes_lock);
-			return volume;
-		}
-	}
-
-	fibril_mutex_unlock(&hr_volumes_lock);
-	return NULL;
 }
 
 static void hr_client_conn(ipc_call_t *icall, void *arg)

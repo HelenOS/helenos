@@ -179,6 +179,36 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	return EOK;
 }
 
+errno_t hr_stop(const char *devname)
+{
+	hr_t *hr;
+	errno_t rc;
+	async_exch_t *exch;
+	service_id_t svc_id;
+
+	rc = loc_service_get_id(devname, &svc_id, 0);
+	if (rc != EOK)
+		return rc;
+
+	rc = hr_sess_init(&hr);
+	if (rc != EOK)
+		return rc;
+
+	exch = async_exchange_begin(hr->sess);
+	if (exch == NULL) {
+		rc = EINVAL;
+		goto error;
+	}
+	rc = async_req_1_0(exch, HR_STOP, svc_id);
+	async_exchange_end(exch);
+
+	if (rc != EOK)
+		goto error;
+error:
+	hr_sess_destroy(hr);
+	return rc;
+}
+
 errno_t hr_print_status(void)
 {
 	hr_t *hr;
@@ -186,18 +216,19 @@ errno_t hr_print_status(void)
 	async_exch_t *exch;
 	aid_t req;
 	size_t size, i;
-	hr_vol_info_t *vols;
+	hr_vol_info_t *vols = NULL;
 
 	rc = hr_sess_init(&hr);
 	if (rc != EOK)
 		return rc;
 
 	exch = async_exchange_begin(hr->sess);
-	if (exch == NULL)
-		return EINVAL;
+	if (exch == NULL) {
+		rc = EINVAL;
+		goto error;
+	}
 
 	req = async_send_0(exch, HR_STATUS, NULL);
-
 	rc = async_data_read_start(exch, &size, sizeof(size_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -229,6 +260,11 @@ errno_t hr_print_status(void)
 		goto error;
 	}
 
+	if (size == 0) {
+		printf("no active arrays\n");
+		goto error;
+	}
+
 	for (i = 0; i < size; i++) {
 		rc = print_vol_info(i, &vols[i]);
 		if (rc != EOK)
@@ -236,6 +272,7 @@ errno_t hr_print_status(void)
 	}
 
 error:
+	hr_sess_destroy(hr);
 	if (vols != NULL)
 		free(vols);
 	return rc;

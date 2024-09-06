@@ -77,6 +77,7 @@ extern void hr_sess_destroy(hr_t *);
 
 extern errno_t hr_create(hr_t *, hr_config_t *);
 extern errno_t hr_assemble(hr_t *, hr_config_t *);
+extern errno_t hr_stop(const char *);
 extern errno_t hr_print_status(void);
 
 #endif

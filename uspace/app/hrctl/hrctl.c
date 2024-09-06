@@ -85,6 +85,7 @@ static struct option const long_options[] = {
 	{ "level", required_argument, 0, 'l' },
 	{ "create-file", required_argument, 0, 'C' },
 	{ "assemble-file", required_argument, 0, 'A' },
+	{ "stop", required_argument, 0, 'T' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -230,7 +231,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:A:a:l:015Ln:",
+		c = getopt_long(argc, argv, "hsC:c:A:a:l:015Ln:T:",
 		    long_options, NULL);
 		switch (c) {
 		case 'h':
@@ -274,6 +275,12 @@ int main(int argc, char **argv)
 			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
 			assemble = true;
 			break;
+		case 'T':
+			rc = hr_stop(optarg);
+			free(cfg);
+			if (rc != EOK)
+				return 1;
+			return 0;
 		case 'l':
 			if (cfg->level != hr_l_empty)
 				goto bad;
