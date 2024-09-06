@@ -68,6 +68,7 @@ typedef struct hr_vol_info {
 	service_id_t svc_id;
 	hr_level_t level;
 	uint64_t nblocks;
+	uint32_t strip_size;
 	size_t bsize;
 } hr_vol_info_t;
 

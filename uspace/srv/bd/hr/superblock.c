@@ -89,6 +89,7 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 	metadata->nblocks = host2uint64_t_le(vol->nblocks);
 	metadata->data_blkno = host2uint64_t_le(data_blkno);
 	metadata->data_offset = host2uint32_t_le(data_offset);
+	metadata->strip_size = host2uint32_t_le(vol->strip_size);
 	for (i = 0; i < vol->dev_no; i++) {
 		metadata->index = host2uint32_t_le(i);
 
@@ -143,6 +144,7 @@ errno_t hr_get_vol_from_meta(hr_config_t *cfg, hr_volume_t *new_volume)
 	new_volume->nblocks = uint64_t_le2host(metadata->nblocks);
 	new_volume->data_blkno = uint64_t_le2host(metadata->data_blkno);
 	new_volume->data_offset = uint32_t_le2host(metadata->data_offset);
+	new_volume->strip_size = uint32_t_le2host(metadata->strip_size);
 
 	if (str_cmp(metadata->devname, new_volume->devname) != 0) {
 		log_msg(LOG_DEFAULT, LVL_NOTE,

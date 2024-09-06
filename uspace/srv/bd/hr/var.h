@@ -59,6 +59,7 @@ typedef struct hr_volume {
 	uint64_t nblocks;
 	uint64_t data_blkno;
 	uint32_t data_offset;
+	uint32_t strip_size;
 	service_id_t svc_id;
 	size_t bsize;
 	size_t dev_no;

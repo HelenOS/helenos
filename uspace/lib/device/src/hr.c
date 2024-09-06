@@ -156,8 +156,19 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	printf("devname: %s\n", devname);
 
 	printf("level: %d\n", vol_info->level);
-	printf("nblocks: %lu\n", vol_info->nblocks);
-	printf("bsize: %zu\n", vol_info->bsize);
+	if (vol_info->level == hr_l_0) {
+		if (vol_info->strip_size / 1024 < 1)
+			printf("strip size in bytes: %u\n",
+			    vol_info->strip_size);
+		else
+			printf("strip size: %uK\n",
+			    vol_info->strip_size / 1024);
+	}
+	printf("size in bytes: %luMiB\n",
+	    vol_info->nblocks * vol_info->bsize / 1024 / 1024);
+	printf("size in blocks: %lu\n", vol_info->nblocks);
+	printf("block size: %zu\n", vol_info->bsize);
+
 
 	printf("extents: [index] [devname]\n");
 	for (i = 0; i < vol_info->extent_no; i++) {

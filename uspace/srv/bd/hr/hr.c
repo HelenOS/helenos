@@ -60,7 +60,6 @@ static list_t hr_volumes;
 
 static service_id_t ctl_sid;
 
-
 static void hr_create_srv(ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_create_srv()");
@@ -120,16 +119,14 @@ static void hr_create_srv(ipc_call_t *icall)
 	if (rc != EOK)
 		goto error;
 
-	rc = hr_write_meta_to_vol(new_volume);
-	if (rc != EOK)
-		goto error;
-
 	switch (new_volume->level) {
 	case hr_l_1:
 		new_volume->hr_ops.create = hr_raid1_create;
+		new_volume->strip_size = 0;
 		break;
 	case hr_l_0:
 		new_volume->hr_ops.create = hr_raid0_create;
+		new_volume->strip_size = HR_STRIP_SIZE;
 		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_ERROR,
@@ -137,6 +134,10 @@ static void hr_create_srv(ipc_call_t *icall)
 		rc = EINVAL;
 		goto error;
 	}
+
+	rc = hr_write_meta_to_vol(new_volume);
+	if (rc != EOK)
+		goto error;
 
 	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)
@@ -296,6 +297,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 		info.level = volume->level;
 		/* print usable number of blocks */
 		info.nblocks = volume->data_blkno;
+		info.strip_size = volume->strip_size;
 		info.bsize = volume->bsize;
 
 		if (!async_data_read_receive(&call, &size)) {

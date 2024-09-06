@@ -48,6 +48,8 @@ typedef struct hr_metadata {
 	uint64_t data_blkno;	/* usable blocks */
 	uint32_t data_offset;	/* block where data starts */
 	uint32_t index;		/* index of disk in array */
+	uint32_t strip_size;
+	uint32_t status;	/* yet unused */
 	uint8_t uuid[16];
 	char devname[32];
 } hr_metadata_t;

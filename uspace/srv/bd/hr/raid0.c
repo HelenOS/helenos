@@ -77,7 +77,7 @@ static void raid0_geometry(uint64_t x, hr_volume_t *vol, size_t *extent,
     uint64_t *phys_block)
 {
 	uint64_t N = vol->dev_no; /* extents */
-	uint64_t L = HR_STRIP_SIZE / vol->bsize; /* size of strip in blocks */
+	uint64_t L = vol->strip_size / vol->bsize; /* size of strip in blocks */
 
 	uint64_t i = (x / L) % N; /* extent */
 	uint64_t j = (x / L) / N; /* stripe */
