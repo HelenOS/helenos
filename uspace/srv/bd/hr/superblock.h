@@ -38,6 +38,9 @@
 
 #include "var.h"
 
+#define HR_META_SIZE 1	/* in blocks */
+#define HR_META_OFF 7	/* in blocks */
+
 #define HR_MAGIC 0x4420492041205248LLU
 
 typedef struct hr_metadata {
@@ -53,9 +56,6 @@ typedef struct hr_metadata {
 	uint8_t uuid[16];
 	char devname[32];
 } hr_metadata_t;
-
-#define HR_META_SIZE 1	/* in blocks */
-#define HR_META_OFF 8	/* in blocks */
 
 extern errno_t hr_write_meta_to_vol(hr_volume_t *);
 extern errno_t hr_get_vol_from_meta(hr_config_t *, hr_volume_t *);
