@@ -51,6 +51,7 @@
 #include "part.h"
 #include "types/part.h"
 #include "volume.h"
+#include "volsrv.h"
 
 static errno_t vol_part_add_locked(vol_parts_t *, service_id_t);
 static void vol_part_remove_locked(vol_part_t *);
@@ -401,6 +402,18 @@ static errno_t vol_part_mount(vol_part_t *part)
 
 	part->cur_mp = mp;
 	part->cur_mp_auto = mp_auto;
+
+	if (str_cmp(mp, "/w") == 0) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Mounted system volume - "
+		    "loading additional configuration.");
+		rc = vol_volumes_merge_to(part->parts->volumes,
+		    vol_cfg_file);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error loading "
+			    "additional configuration.");
+			return rc;
+		}
+	}
 
 	return rc;
 }

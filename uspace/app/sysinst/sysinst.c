@@ -278,7 +278,7 @@ static errno_t sysinst_customize_initrd(void)
 		goto error;
 	}
 
-	rv = asprintf(&path, "%s%s", rdpath, "/cfg/volsrv.sif");
+	rv = asprintf(&path, "%s%s", rdpath, "/cfg/initvol.sif");
 	if (rv < 0) {
 		rc = ENOMEM;
 		goto error;

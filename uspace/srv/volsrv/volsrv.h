@@ -30,29 +30,13 @@
  * @{
  */
 /**
- * @file
- * @brief
+ * @file Volume service
  */
 
-#ifndef VOLUME_H_
-#define VOLUME_H_
+#ifndef VOLSRV_H
+#define VOLSRV_H
 
-#include "types/vol.h"
-#include "types/volume.h"
-
-extern errno_t vol_volumes_create(const char *, vol_volumes_t **);
-extern errno_t vol_volumes_merge_to(vol_volumes_t *, const char *);
-extern errno_t vol_volumes_sync(vol_volumes_t *);
-extern void vol_volumes_destroy(vol_volumes_t *);
-extern errno_t vol_volume_lookup_ref(vol_volumes_t *, const char *,
-    vol_volume_t **);
-extern errno_t vol_volume_find_by_id_ref(vol_volumes_t *, volume_id_t,
-    vol_volume_t **);
-extern void vol_volume_del_ref(vol_volume_t *);
-extern errno_t vol_volume_set_mountp(vol_volume_t *, const char *);
-extern errno_t vol_get_ids(vol_volumes_t *, volume_id_t *, size_t,
-    size_t *);
-extern errno_t vol_volume_get_info(vol_volume_t *, vol_info_t *);
+extern const char *vol_cfg_file;
 
 #endif
 
