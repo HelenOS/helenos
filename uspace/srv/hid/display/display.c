@@ -214,8 +214,12 @@ errno_t ds_display_load_cfg(ds_display_t *display, const char *cfgpath)
 			goto error;
 		}
 
+		/*
+		 * Load device configuration entry. If the device
+		 * is not currently connected (ENOENT), skip it.
+		 */
 		rc = ds_idevcfg_load(display, nidevcfg, &idevcfg);
-		if (rc != EOK)
+		if (rc != EOK && rc != ENOENT)
 			goto error;
 
 		(void)idevcfg;
