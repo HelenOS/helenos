@@ -37,6 +37,7 @@
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <as.h>
 #include <align.h>
 #include <macros.h>
@@ -724,12 +725,15 @@ static void *heap_grow_and_alloc(size_t size, size_t align)
  * @return Address of the allocated block or NULL on not enough memory.
  *
  */
-static void *malloc_internal(const size_t size, const size_t align)
+static void *malloc_internal(size_t size, size_t align)
 {
 	malloc_assert(first_heap_area != NULL);
 
+	if (size == 0)
+		size = 1;
+
 	if (align == 0)
-		return NULL;
+		align = BASE_ALIGN;
 
 	size_t falign = lcm(align, BASE_ALIGN);
 
@@ -820,11 +824,11 @@ void *memalign(const size_t align, const size_t size)
  * @return Reallocated memory or NULL.
  *
  */
-void *realloc(void *const addr, const size_t size)
+void *realloc(void *const addr, size_t size)
 {
 	if (size == 0) {
-		free(addr);
-		return NULL;
+		fprintf(stderr, "realloc() called with size 0\n");
+		size = 1;
 	}
 
 	if (addr == NULL)
@@ -927,6 +931,25 @@ void *realloc(void *const addr, const size_t size)
 	}
 
 	return ptr;
+}
+
+/** Reallocate memory for an array
+ *
+ * Same as realloc(ptr, nelem * elsize), except the multiplication is checked
+ * for numerical overflow. Borrowed from POSIX 2024.
+ *
+ * @param ptr
+ * @param nelem
+ * @param elsize
+ *
+ * @return Reallocated memory or NULL.
+ */
+void *reallocarray(void *ptr, size_t nelem, size_t elsize)
+{
+	if (nelem > SIZE_MAX / elsize)
+		return NULL;
+
+	return realloc(ptr, nelem * elsize);
 }
 
 /** Free a memory block
