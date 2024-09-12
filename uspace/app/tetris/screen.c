@@ -78,6 +78,7 @@ static const struct shape *lastshape;
 
 static usec_t timeleft = 0;
 
+bool size_changed;
 console_ctrl_t *console;
 
 /*
@@ -216,7 +217,7 @@ void stop(const char *why)
 		scr_end();
 
 	fprintf(stderr, "aborting: %s", why);
-	abort();
+	exit(1);
 }
 
 /*
@@ -408,6 +409,9 @@ int tgetchar(void)
 		}
 		if (rc != EOK)
 			exit(1);
+
+		if (event.type == CEV_RESIZE)
+			size_changed = true;
 
 		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
 			c = event.ev.key.c;

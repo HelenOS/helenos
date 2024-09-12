@@ -90,6 +90,7 @@ libs = [
 	'scsi',
 	'sif',
 	'tbarcfg',
+	'termui',
 	'trackmod',
 	'untar',
 	'uri',

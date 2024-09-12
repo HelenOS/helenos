@@ -39,7 +39,6 @@
 #include <as.h>
 #include <errno.h>
 #include <fbfont/font-8x16.h>
-#include <io/chargrid.h>
 #include <fibril.h>
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
@@ -48,11 +47,13 @@
 #include <io/concaps.h>
 #include <io/console.h>
 #include <io/pixelmap.h>
-#include <task.h>
+#include <macros.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 #include <str.h>
+#include <task.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/wdecor.h>
@@ -70,7 +71,33 @@
 #define TERM_CAPS \
 	(CONSOLE_CAP_STYLE | CONSOLE_CAP_INDEXED | CONSOLE_CAP_RGB)
 
+#define SCROLLBACK_MAX_LINES 1000
+#define MIN_WINDOW_COLS 8
+#define MIN_WINDOW_ROWS 4
+
 static LIST_INITIALIZE(terms);
+
+#define COLOR_BRIGHT 8
+
+static const pixel_t _basic_colors[16] = {
+	[COLOR_BLACK]       = PIXEL(255, 0, 0, 0),
+	[COLOR_RED]         = PIXEL(255, 170, 0, 0),
+	[COLOR_GREEN]       = PIXEL(255, 0, 170, 0),
+	[COLOR_YELLOW]      = PIXEL(255, 170, 85, 0),
+	[COLOR_BLUE]        = PIXEL(255, 0, 0, 170),
+	[COLOR_MAGENTA]     = PIXEL(255, 170, 0, 170),
+	[COLOR_CYAN]        = PIXEL(255, 0, 170, 170),
+	[COLOR_WHITE]       = PIXEL(255, 170, 170, 170),
+
+	[COLOR_BLACK   | COLOR_BRIGHT] = PIXEL(255, 85, 85, 85),
+	[COLOR_RED     | COLOR_BRIGHT] = PIXEL(255, 255, 85, 85),
+	[COLOR_GREEN   | COLOR_BRIGHT] = PIXEL(255, 85, 255, 85),
+	[COLOR_YELLOW  | COLOR_BRIGHT] = PIXEL(255, 255, 255, 85),
+	[COLOR_BLUE    | COLOR_BRIGHT] = PIXEL(255, 85, 85, 255),
+	[COLOR_MAGENTA | COLOR_BRIGHT] = PIXEL(255, 255, 85, 255),
+	[COLOR_CYAN    | COLOR_BRIGHT] = PIXEL(255, 85, 255, 255),
+	[COLOR_WHITE   | COLOR_BRIGHT] = PIXEL(255, 255, 255, 255),
+};
 
 static errno_t term_open(con_srvs_t *, con_srv_t *);
 static errno_t term_close(con_srv_t *);
@@ -118,16 +145,22 @@ static con_ops_t con_ops = {
 
 static void terminal_close_event(ui_window_t *, void *);
 static void terminal_focus_event(ui_window_t *, void *, unsigned);
+static void terminal_resize_event(ui_window_t *, void *);
 static void terminal_kbd_event(ui_window_t *, void *, kbd_event_t *);
 static void terminal_pos_event(ui_window_t *, void *, pos_event_t *);
 static void terminal_unfocus_event(ui_window_t *, void *, unsigned);
+static void terminal_maximize_event(ui_window_t *, void *);
+static void terminal_unmaximize_event(ui_window_t *, void *);
 
 static ui_window_cb_t terminal_window_cb = {
 	.close = terminal_close_event,
 	.focus = terminal_focus_event,
+	.resize = terminal_resize_event,
 	.kbd = terminal_kbd_event,
 	.pos = terminal_pos_event,
-	.unfocus = terminal_unfocus_event
+	.unfocus = terminal_unfocus_event,
+	.maximize = terminal_maximize_event,
+	.unmaximize = terminal_unmaximize_event,
 };
 
 static errno_t terminal_wait_fibril(void *);
@@ -143,59 +176,68 @@ static errno_t getterm(task_wait_t *wait, const char *svc, const char *app)
 	    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
 }
 
-static pixel_t color_table[16] = {
-	[COLOR_BLACK]       = PIXEL(255, 0, 0, 0),
-	[COLOR_BLUE]        = PIXEL(255, 0, 0, 170),
-	[COLOR_GREEN]       = PIXEL(255, 0, 170, 0),
-	[COLOR_CYAN]        = PIXEL(255, 0, 170, 170),
-	[COLOR_RED]         = PIXEL(255, 170, 0, 0),
-	[COLOR_MAGENTA]     = PIXEL(255, 170, 0, 170),
-	[COLOR_YELLOW]      = PIXEL(255, 170, 85, 0),
-	[COLOR_WHITE]       = PIXEL(255, 170, 170, 170),
-
-	[COLOR_BLACK + 8]   = PIXEL(255, 85, 85, 85),
-	[COLOR_BLUE + 8]    = PIXEL(255, 85, 85, 255),
-	[COLOR_GREEN + 8]   = PIXEL(255, 85, 255, 85),
-	[COLOR_CYAN + 8]    = PIXEL(255, 85, 255, 255),
-	[COLOR_RED + 8]     = PIXEL(255, 255, 85, 85),
-	[COLOR_MAGENTA + 8] = PIXEL(255, 255, 85, 255),
-	[COLOR_YELLOW + 8]  = PIXEL(255, 255, 255, 85),
-	[COLOR_WHITE + 8]   = PIXEL(255, 255, 255, 255),
-};
-
-static inline void attrs_rgb(char_attrs_t attrs, pixel_t *bgcolor, pixel_t *fgcolor)
+static pixel_t termui_color_to_pixel(termui_color_t c)
 {
-	switch (attrs.type) {
+	uint8_t r, g, b;
+	termui_color_to_rgb(c, &r, &g, &b);
+	return PIXEL(255, r, g, b);
+}
+
+static termui_color_t termui_color_from_pixel(pixel_t pixel)
+{
+	return termui_color_from_rgb(RED(pixel), GREEN(pixel), BLUE(pixel));
+}
+
+static termui_cell_t charfield_to_termui_cell(terminal_t *term, const charfield_t *cf)
+{
+	termui_cell_t cell = { };
+
+	cell.glyph_idx = fb_font_glyph(cf->ch, NULL);
+
+	switch (cf->attrs.type) {
 	case CHAR_ATTR_STYLE:
-		switch (attrs.val.style) {
+		switch (cf->attrs.val.style) {
 		case STYLE_NORMAL:
-			*bgcolor = color_table[COLOR_WHITE + 8];
-			*fgcolor = color_table[COLOR_BLACK];
+			cell.bgcolor = term->default_bgcolor;
+			cell.fgcolor = term->default_fgcolor;
 			break;
 		case STYLE_EMPHASIS:
-			*bgcolor = color_table[COLOR_WHITE + 8];
-			*fgcolor = color_table[COLOR_RED + 8];
+			cell.bgcolor = term->emphasis_bgcolor;
+			cell.fgcolor = term->emphasis_fgcolor;
 			break;
 		case STYLE_INVERTED:
-			*bgcolor = color_table[COLOR_BLACK];
-			*fgcolor = color_table[COLOR_WHITE + 8];
+			cell.bgcolor = term->default_bgcolor;
+			cell.fgcolor = term->default_fgcolor;
+			cell.inverted = 1;
 			break;
 		case STYLE_SELECTED:
-			*bgcolor = color_table[COLOR_RED + 8];
-			*fgcolor = color_table[COLOR_WHITE + 8];
+			cell.bgcolor = term->selection_bgcolor;
+			cell.fgcolor = term->selection_fgcolor;
 			break;
 		}
 		break;
+
 	case CHAR_ATTR_INDEX:
-		*bgcolor = color_table[(attrs.val.index.bgcolor & 7)];
-		*fgcolor = color_table[(attrs.val.index.fgcolor & 7) |
-		    ((attrs.val.index.attr & CATTR_BRIGHT) ? 8 : 0)];
+		char_attr_index_t index = cf->attrs.val.index;
+
+		int bright = (index.attr & CATTR_BRIGHT) ? COLOR_BRIGHT : 0;
+		pixel_t bgcolor = _basic_colors[index.bgcolor | bright];
+		pixel_t fgcolor = _basic_colors[index.fgcolor | bright];
+		cell.bgcolor = termui_color_from_pixel(bgcolor);
+		cell.fgcolor = termui_color_from_pixel(fgcolor);
+
+		if (index.attr & CATTR_BLINK)
+			cell.blink = 1;
+
 		break;
+
 	case CHAR_ATTR_RGB:
-		*bgcolor = 0xff000000 | attrs.val.rgb.bgcolor;
-		*fgcolor = 0xff000000 | attrs.val.rgb.fgcolor;
+		cell.bgcolor = termui_color_from_pixel(cf->attrs.val.rgb.bgcolor);
+		cell.fgcolor = termui_color_from_pixel(cf->attrs.val.rgb.fgcolor);
 		break;
 	}
+
+	return cell;
 }
 
 static void term_update_region(terminal_t *term, sysarg_t x, sysarg_t y,
@@ -213,29 +255,35 @@ static void term_update_region(terminal_t *term, sysarg_t x, sysarg_t y,
 	term->update = nupdate;
 }
 
-static void term_update_char(terminal_t *term, pixelmap_t *pixelmap,
-    sysarg_t col, sysarg_t row)
+static void term_draw_cell(terminal_t *term, pixelmap_t *pixelmap, int col, int row, const termui_cell_t *cell)
 {
-	charfield_t *field =
-	    chargrid_charfield_at(term->backbuf, col, row);
+	termui_color_t bg = cell->bgcolor;
+	if (bg == TERMUI_COLOR_DEFAULT)
+		bg = term->default_bgcolor;
 
-	bool inverted = chargrid_cursor_at(term->backbuf, col, row);
+	termui_color_t fg = cell->fgcolor;
+	if (fg == TERMUI_COLOR_DEFAULT)
+		fg = term->default_fgcolor;
 
-	sysarg_t bx = col * FONT_WIDTH;
-	sysarg_t by = row * FONT_SCANLINES;
+	pixel_t bgcolor = termui_color_to_pixel(bg);
+	pixel_t fgcolor = termui_color_to_pixel(fg);
 
-	pixel_t bgcolor = 0;
-	pixel_t fgcolor = 0;
+	int bx = col * FONT_WIDTH;
+	int by = row * FONT_SCANLINES;
 
-	if (inverted)
-		attrs_rgb(field->attrs, &fgcolor, &bgcolor);
-	else
-		attrs_rgb(field->attrs, &bgcolor, &fgcolor);
+	// TODO: support bold/italic/underline/strike/blink styling
 
-	// FIXME: Glyph type should be actually uint32_t
-	//        for full UTF-32 coverage.
+	if (cell->inverted ^ cell->cursor) {
+		pixel_t tmp = bgcolor;
+		bgcolor = fgcolor;
+		fgcolor = tmp;
+	}
 
-	uint16_t glyph = fb_font_glyph(field->ch, NULL);
+	uint32_t glyph = cell->glyph_idx;
+	assert(glyph < FONT_GLYPHS);
+
+	if (glyph == 0)
+		glyph = fb_font_glyph(U' ', NULL);
 
 	for (unsigned int y = 0; y < FONT_SCANLINES; y++) {
 		pixel_t *dst = pixelmap_pixel_at(pixelmap, bx, by + y);
@@ -247,192 +295,74 @@ static void term_update_char(terminal_t *term, pixelmap_t *pixelmap,
 			*dst++ = (fb_font[glyph][y] & (1 << count)) ? fgcolor : bgcolor;
 		}
 	}
+
 	term_update_region(term, bx, by, FONT_WIDTH, FONT_SCANLINES);
 }
 
-static bool term_update_scroll(terminal_t *term, pixelmap_t *pixelmap)
+static void term_render(terminal_t *term)
 {
-	sysarg_t top_row = chargrid_get_top_row(term->frontbuf);
+	gfx_coord2_t pos = { .x = 4, .y = 26 };
+	(void) gfx_bitmap_render(term->bmp, &term->update, &pos);
 
-	if (term->top_row == top_row) {
-		return false;
-	}
-
-	term->top_row = top_row;
-
-	for (sysarg_t row = 0; row < term->rows; row++) {
-		for (sysarg_t col = 0; col < term->cols; col++) {
-			charfield_t *front_field =
-			    chargrid_charfield_at(term->frontbuf, col, row);
-			charfield_t *back_field =
-			    chargrid_charfield_at(term->backbuf, col, row);
-			bool update = false;
-
-			if (front_field->ch != back_field->ch) {
-				back_field->ch = front_field->ch;
-				update = true;
-			}
-
-			if (!attrs_same(front_field->attrs, back_field->attrs)) {
-				back_field->attrs = front_field->attrs;
-				update = true;
-			}
-
-			front_field->flags &= ~CHAR_FLAG_DIRTY;
-
-			if (update) {
-				term_update_char(term, pixelmap, col, row);
-			}
-		}
-	}
-
-	return true;
+	term->update.p0.x = 0;
+	term->update.p0.y = 0;
+	term->update.p1.x = 0;
+	term->update.p1.y = 0;
 }
 
-static bool term_update_cursor(terminal_t *term, pixelmap_t *pixelmap)
+static void termui_refresh_cb(void *userdata)
 {
-	bool update = false;
+	terminal_t *term = userdata;
 
-	sysarg_t front_col;
-	sysarg_t front_row;
-	chargrid_get_cursor(term->frontbuf, &front_col, &front_row);
-
-	sysarg_t back_col;
-	sysarg_t back_row;
-	chargrid_get_cursor(term->backbuf, &back_col, &back_row);
-
-	bool front_visibility =
-	    chargrid_get_cursor_visibility(term->frontbuf) &&
-	    term->is_focused;
-	bool back_visibility =
-	    chargrid_get_cursor_visibility(term->backbuf);
-
-	if (front_visibility != back_visibility) {
-		chargrid_set_cursor_visibility(term->backbuf,
-		    front_visibility);
-		term_update_char(term, pixelmap, back_col, back_row);
-		update = true;
-	}
-
-	if ((front_col != back_col) || (front_row != back_row)) {
-		chargrid_set_cursor(term->backbuf, front_col, front_row);
-		term_update_char(term, pixelmap, back_col, back_row);
-		term_update_char(term, pixelmap, front_col, front_row);
-		update = true;
-	}
-
-	return update;
+	termui_force_viewport_update(term->termui, 0, termui_get_rows(term->termui));
 }
 
-static void term_update(terminal_t *term)
+static void termui_scroll_cb(void *userdata, int delta)
 {
-	pixelmap_t pixelmap;
+	(void) delta;
+
+	// Until we have support for hardware accelerated scrolling, just redraw everything.
+	termui_refresh_cb(userdata);
+}
+
+static pixelmap_t term_get_pixelmap(terminal_t *term)
+{
+	pixelmap_t pixelmap = { };
 	gfx_bitmap_alloc_t alloc;
-	gfx_coord2_t pos;
-	errno_t rc;
 
-	rc = gfx_bitmap_get_alloc(term->bmp, &alloc);
-	if (rc != EOK) {
-		return;
-	}
-
-	fibril_mutex_lock(&term->mtx);
-	pixelmap.width = term->w;
-	pixelmap.height = term->h;
-	pixelmap.data = alloc.pixels;
-
-	bool update = false;
-
-	if (term_update_scroll(term, &pixelmap)) {
-		update = true;
-	} else {
-		for (sysarg_t y = 0; y < term->rows; y++) {
-			for (sysarg_t x = 0; x < term->cols; x++) {
-				charfield_t *front_field =
-				    chargrid_charfield_at(term->frontbuf, x, y);
-				charfield_t *back_field =
-				    chargrid_charfield_at(term->backbuf, x, y);
-				bool cupdate = false;
-
-				if ((front_field->flags & CHAR_FLAG_DIRTY) ==
-				    CHAR_FLAG_DIRTY) {
-					if (front_field->ch != back_field->ch) {
-						back_field->ch = front_field->ch;
-						cupdate = true;
-					}
-
-					if (!attrs_same(front_field->attrs,
-					    back_field->attrs)) {
-						back_field->attrs = front_field->attrs;
-						cupdate = true;
-					}
-
-					front_field->flags &= ~CHAR_FLAG_DIRTY;
-				}
-
-				if (cupdate) {
-					term_update_char(term, &pixelmap, x, y);
-					update = true;
-				}
-			}
-		}
-	}
-
-	if (term_update_cursor(term, &pixelmap))
-		update = true;
-
-	if (update) {
-		pos.x = 4;
-		pos.y = 26;
-		(void) gfx_bitmap_render(term->bmp, &term->update, &pos);
-
-		term->update.p0.x = 0;
-		term->update.p0.y = 0;
-		term->update.p1.x = 0;
-		term->update.p1.y = 0;
-	}
-
-	fibril_mutex_unlock(&term->mtx);
-}
-
-static void term_repaint(terminal_t *term)
-{
-	pixelmap_t pixelmap;
-	gfx_bitmap_alloc_t alloc;
-	errno_t rc;
-
-	rc = gfx_bitmap_get_alloc(term->bmp, &alloc);
-	if (rc != EOK) {
-		printf("Error getting bitmap allocation info.\n");
-		return;
-	}
-
-	fibril_mutex_lock(&term->mtx);
+	errno_t rc = gfx_bitmap_get_alloc(term->bmp, &alloc);
+	if (rc != EOK)
+		return pixelmap;
 
 	pixelmap.width = term->w;
 	pixelmap.height = term->h;
 	pixelmap.data = alloc.pixels;
+	return pixelmap;
+}
 
-	if (!term_update_scroll(term, &pixelmap)) {
-		for (sysarg_t y = 0; y < term->rows; y++) {
-			for (sysarg_t x = 0; x < term->cols; x++) {
-				charfield_t *front_field =
-				    chargrid_charfield_at(term->frontbuf, x, y);
-				charfield_t *back_field =
-				    chargrid_charfield_at(term->backbuf, x, y);
+static void term_clear_bitmap(terminal_t *term, pixel_t color)
+{
+	pixelmap_t pixelmap = term_get_pixelmap(term);
+	if (pixelmap.data == NULL)
+		return;
 
-				back_field->ch = front_field->ch;
-				back_field->attrs = front_field->attrs;
-				front_field->flags &= ~CHAR_FLAG_DIRTY;
+	sysarg_t pixels = pixelmap.height * pixelmap.width;
+	for (sysarg_t i = 0; i < pixels; i++)
+		pixelmap.data[i] = color;
 
-				term_update_char(term, &pixelmap, x, y);
-			}
-		}
-	}
+	term_update_region(term, 0, 0, pixelmap.width, pixelmap.height);
+}
 
-	term_update_cursor(term, &pixelmap);
+static void termui_update_cb(void *userdata, int col, int row, const termui_cell_t *cell, int len)
+{
+	terminal_t *term = userdata;
 
-	fibril_mutex_unlock(&term->mtx);
+	pixelmap_t pixelmap = term_get_pixelmap(term);
+	if (pixelmap.data == NULL)
+		return;
+
+	for (int i = 0; i < len; i++)
+		term_draw_cell(term, &pixelmap, col + i, row, &cell[i]);
 }
 
 static errno_t term_open(con_srvs_t *srvs, con_srv_t *srv)
@@ -496,42 +426,44 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 
 static void term_write_char(terminal_t *term, wchar_t ch)
 {
-	sysarg_t updated = 0;
-
-	fibril_mutex_lock(&term->mtx);
-
 	switch (ch) {
-	case '\n':
-		updated = chargrid_newline(term->frontbuf);
+	case L'\n':
+		termui_put_crlf(term->termui);
 		break;
-	case '\r':
+	case L'\r':
+		termui_put_cr(term->termui);
 		break;
-	case '\t':
-		updated = chargrid_tabstop(term->frontbuf, 8);
+	case L'\t':
+		termui_put_tab(term->termui);
 		break;
-	case '\b':
-		updated = chargrid_backspace(term->frontbuf);
+	case L'\b':
+		termui_put_backspace(term->termui);
 		break;
 	default:
-		updated = chargrid_putuchar(term->frontbuf, ch, true);
+		// TODO: For some languages, we might need support for combining
+		//       characters. Currently, we assume every unicode code point is
+		//       an individual printed character, which is not always the case.
+		termui_put_glyph(term->termui, fb_font_glyph(ch, NULL), 1);
+		break;
 	}
-
-	fibril_mutex_unlock(&term->mtx);
-
-	if (updated > 1)
-		term_update(term);
 }
 
 static errno_t term_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	terminal_t *term = srv_to_terminal(srv);
 
+	fibril_mutex_lock(&term->mtx);
+
 	size_t off = 0;
 	while (off < size)
 		term_write_char(term, str_decode(data, &off, size));
 
+	fibril_mutex_unlock(&term->mtx);
+
+	term_render(term);
 	gfx_update(term->gc);
 	*nwritten = size;
+
 	return EOK;
 }
 
@@ -539,7 +471,7 @@ static void term_sync(con_srv_t *srv)
 {
 	terminal_t *term = srv_to_terminal(srv);
 
-	term_update(term);
+	term_render(term);
 	gfx_update(term->gc);
 }
 
@@ -548,10 +480,10 @@ static void term_clear(con_srv_t *srv)
 	terminal_t *term = srv_to_terminal(srv);
 
 	fibril_mutex_lock(&term->mtx);
-	chargrid_clear(term->frontbuf);
+	termui_clear_screen(term->termui);
 	fibril_mutex_unlock(&term->mtx);
 
-	term_update(term);
+	term_render(term);
 	gfx_update(term->gc);
 }
 
@@ -560,10 +492,10 @@ static void term_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 	terminal_t *term = srv_to_terminal(srv);
 
 	fibril_mutex_lock(&term->mtx);
-	chargrid_set_cursor(term->frontbuf, col, row);
+	termui_set_pos(term->termui, col, row);
 	fibril_mutex_unlock(&term->mtx);
 
-	term_update(term);
+	term_render(term);
 	gfx_update(term->gc);
 }
 
@@ -572,8 +504,12 @@ static errno_t term_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 	terminal_t *term = srv_to_terminal(srv);
 
 	fibril_mutex_lock(&term->mtx);
-	chargrid_get_cursor(term->frontbuf, col, row);
+	int irow, icol;
+	termui_get_pos(term->termui, &icol, &irow);
 	fibril_mutex_unlock(&term->mtx);
+
+	*col = icol;
+	*row = irow;
 
 	return EOK;
 }
@@ -583,8 +519,8 @@ static errno_t term_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 	terminal_t *term = srv_to_terminal(srv);
 
 	fibril_mutex_lock(&term->mtx);
-	*cols = term->cols;
-	*rows = term->rows;
+	*cols = termui_get_cols(term->termui);
+	*rows = termui_get_rows(term->termui);
 	fibril_mutex_unlock(&term->mtx);
 
 	return EOK;
@@ -602,8 +538,30 @@ static void term_set_style(con_srv_t *srv, console_style_t style)
 {
 	terminal_t *term = srv_to_terminal(srv);
 
+	termui_cell_t cellstyle = { };
+
+	switch (style) {
+	case STYLE_NORMAL:
+		cellstyle.bgcolor = term->default_bgcolor;
+		cellstyle.fgcolor = term->default_fgcolor;
+		break;
+	case STYLE_EMPHASIS:
+		cellstyle.bgcolor = term->emphasis_bgcolor;
+		cellstyle.fgcolor = term->emphasis_fgcolor;
+		break;
+	case STYLE_INVERTED:
+		cellstyle.bgcolor = term->default_bgcolor;
+		cellstyle.fgcolor = term->default_fgcolor;
+		cellstyle.inverted = 1;
+		break;
+	case STYLE_SELECTED:
+		cellstyle.bgcolor = term->selection_bgcolor;
+		cellstyle.fgcolor = term->selection_fgcolor;
+		break;
+	}
+
 	fibril_mutex_lock(&term->mtx);
-	chargrid_set_style(term->frontbuf, style);
+	termui_set_style(term->termui, cellstyle);
 	fibril_mutex_unlock(&term->mtx);
 }
 
@@ -612,8 +570,17 @@ static void term_set_color(con_srv_t *srv, console_color_t bgcolor,
 {
 	terminal_t *term = srv_to_terminal(srv);
 
+	int bright = (attr & CATTR_BRIGHT) ? COLOR_BRIGHT : 0;
+
+	termui_cell_t cellstyle = { };
+	cellstyle.bgcolor = termui_color_from_pixel(_basic_colors[bgcolor | bright]);
+	cellstyle.fgcolor = termui_color_from_pixel(_basic_colors[fgcolor | bright]);
+
+	if (attr & CATTR_BLINK)
+		cellstyle.blink = 1;
+
 	fibril_mutex_lock(&term->mtx);
-	chargrid_set_color(term->frontbuf, bgcolor, fgcolor, attr);
+	termui_set_style(term->termui, cellstyle);
 	fibril_mutex_unlock(&term->mtx);
 }
 
@@ -621,9 +588,13 @@ static void term_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
     pixel_t fgcolor)
 {
 	terminal_t *term = srv_to_terminal(srv);
+	termui_cell_t cellstyle = {
+		.bgcolor = termui_color_from_pixel(bgcolor),
+		.fgcolor = termui_color_from_pixel(fgcolor),
+	};
 
 	fibril_mutex_lock(&term->mtx);
-	chargrid_set_rgb_color(term->frontbuf, bgcolor, fgcolor);
+	termui_set_style(term->termui, cellstyle);
 	fibril_mutex_unlock(&term->mtx);
 }
 
@@ -632,10 +603,10 @@ static void term_set_cursor_visibility(con_srv_t *srv, bool visible)
 	terminal_t *term = srv_to_terminal(srv);
 
 	fibril_mutex_lock(&term->mtx);
-	chargrid_set_cursor_visibility(term->frontbuf, visible);
+	termui_set_cursor_visibility(term->termui, visible);
 	fibril_mutex_unlock(&term->mtx);
 
-	term_update(term);
+	term_render(term);
 	gfx_update(term->gc);
 }
 
@@ -654,7 +625,7 @@ static errno_t term_set_caption(con_srv_t *srv, const char *caption)
 	ui_window_set_caption(term->window, cap);
 	fibril_mutex_unlock(&term->mtx);
 
-	term_update(term);
+	term_render(term);
 	gfx_update(term->gc);
 	return EOK;
 }
@@ -702,6 +673,10 @@ static errno_t term_map(con_srv_t *srv, sysarg_t cols, sysarg_t rows,
 	term->ucols = cols;
 	term->urows = rows;
 	term->ubuf = buf;
+
+	/* Scroll back to active screen. */
+	termui_history_scroll(term->termui, INT_MAX);
+
 	fibril_mutex_unlock(&term->mtx);
 
 	*rbuf = buf;
@@ -722,10 +697,16 @@ static void term_unmap(con_srv_t *srv)
 	buf = term->ubuf;
 	term->ubuf = NULL;
 
-	if (buf != NULL)
-		as_area_destroy(buf);
+	termui_wipe_screen(term->termui, 0);
 
 	fibril_mutex_unlock(&term->mtx);
+
+	/* Update terminal */
+	term_render(term);
+	gfx_update(term->gc);
+
+	if (buf != NULL)
+		as_area_destroy(buf);
 }
 
 /** Update area of terminal from shared buffer.
@@ -740,8 +721,6 @@ static void term_buf_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
     sysarg_t c1, sysarg_t r1)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	charfield_t *ch;
-	sysarg_t col, row;
 
 	fibril_mutex_lock(&term->mtx);
 
@@ -751,54 +730,91 @@ static void term_buf_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
 	}
 
 	/* Make sure we have meaningful coordinates, within bounds */
+	c1 = min(c1, term->ucols);
+	c1 = min(c1, (sysarg_t) termui_get_cols(term->termui));
+	r1 = min(r1, term->urows);
+	r1 = min(r1, (sysarg_t) termui_get_rows(term->termui));
 
-	if (c1 > term->ucols)
-		c1 = term->ucols;
-	if (c1 > term->cols)
-		c1 = term->cols;
-	if (c0 >= c1) {
-		fibril_mutex_unlock(&term->mtx);
-		return;
-	}
-	if (r1 > term->urows)
-		r1 = term->urows;
-	if (r1 > term->rows)
-		r1 = term->rows;
-	if (r0 >= r1) {
+	if (c0 >= c1 || r0 >= r1) {
 		fibril_mutex_unlock(&term->mtx);
 		return;
 	}
 
 	/* Update front buffer from user buffer */
 
-	for (row = r0; row < r1; row++) {
-		for (col = c0; col < c1; col++) {
-			ch = chargrid_charfield_at(term->frontbuf, col, row);
-			*ch = term->ubuf[row * term->ucols + col];
+	for (sysarg_t row = r0; row < r1; row++) {
+		termui_cell_t *cells = termui_get_active_row(term->termui, row);
+
+		for (sysarg_t col = c0; col < c1; col++) {
+			cells[col] = charfield_to_termui_cell(term, &term->ubuf[row * term->ucols + col]);
 		}
+
+		termui_update_cb(term, c0, row, &cells[c0], c1 - c0);
 	}
 
 	fibril_mutex_unlock(&term->mtx);
 
 	/* Update terminal */
-	term_update(term);
+	term_render(term);
 	gfx_update(term->gc);
 }
 
-static void deinit_terminal(terminal_t *term)
+static errno_t terminal_window_resize(terminal_t *term)
 {
-	list_remove(&term->link);
+	gfx_rect_t rect;
+	ui_window_get_app_rect(term->window, &rect);
 
-	if (term->frontbuf)
-		chargrid_destroy(term->frontbuf);
+	int width = rect.p1.x - rect.p0.x;
+	int height = rect.p1.y - rect.p0.y;
 
-	if (term->backbuf)
-		chargrid_destroy(term->backbuf);
+	if (!term->gc)
+		term->gc = ui_window_get_gc(term->window);
+	else
+		assert(term->gc == ui_window_get_gc(term->window));
+
+	if (!term->ui_res)
+		term->ui_res = ui_window_get_res(term->window);
+	else
+		assert(term->ui_res == ui_window_get_res(term->window));
+
+	gfx_bitmap_t *new_bmp;
+	gfx_bitmap_params_t params;
+	gfx_bitmap_params_init(&params);
+	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = width;
+	params.rect.p1.y = height;
+
+	errno_t rc = gfx_bitmap_create(term->gc, &params, NULL, &new_bmp);
+	if (rc != EOK) {
+		fprintf(stderr, "Error allocating new screen bitmap: %s\n", str_error(rc));
+		return rc;
+	}
+
+	if (term->bmp) {
+		rc = gfx_bitmap_destroy(term->bmp);
+		if (rc != EOK)
+			fprintf(stderr, "Error deallocating old screen bitmap: %s\n", str_error(rc));
+	}
+
+	term->bmp = new_bmp;
+	term->w = width;
+	term->h = height;
+
+	term_clear_bitmap(term, termui_color_to_pixel(term->default_bgcolor));
+
+	return EOK;
 }
 
 void terminal_destroy(terminal_t *term)
 {
-	deinit_terminal(term);
+	list_remove(&term->link);
+
+	termui_destroy(term->termui);
+
+	if (term->ubuf)
+		as_area_destroy(term->ubuf);
+
 	free(term);
 }
 
@@ -832,8 +848,46 @@ static void terminal_focus_event(ui_window_t *window, void *arg,
 
 	(void)nfocus;
 	term->is_focused = true;
-	term_update(term);
+	term_render(term);
 	gfx_update(term->gc);
+}
+
+static void terminal_resize_handler(ui_window_t *window, void *arg)
+{
+	terminal_t *term = (terminal_t *) arg;
+
+	fibril_mutex_lock(&term->mtx);
+
+	errno_t rc = terminal_window_resize(term);
+	if (rc == EOK) {
+		(void) termui_resize(term->termui, term->w / FONT_WIDTH, term->h / FONT_SCANLINES, SCROLLBACK_MAX_LINES);
+		termui_refresh_cb(term);
+		term_render(term);
+		gfx_update(term->gc);
+
+		cons_event_t event = { .type = CEV_RESIZE };
+		terminal_queue_cons_event(term, &event);
+	}
+
+	fibril_mutex_unlock(&term->mtx);
+}
+
+static void terminal_resize_event(ui_window_t *window, void *arg)
+{
+	ui_window_def_resize(window);
+	terminal_resize_handler(window, arg);
+}
+
+static void terminal_maximize_event(ui_window_t *window, void *arg)
+{
+	ui_window_def_maximize(window);
+	terminal_resize_handler(window, arg);
+}
+
+static void terminal_unmaximize_event(ui_window_t *window, void *arg)
+{
+	ui_window_def_unmaximize(window);
+	terminal_resize_handler(window, arg);
 }
 
 /** Handle window keyboard event */
@@ -846,7 +900,23 @@ static void terminal_kbd_event(ui_window_t *window, void *arg,
 	event.type = CEV_KEY;
 	event.ev.key = *kbd_event;
 
-	terminal_queue_cons_event(term, &event);
+	const int PAGE_ROWS = (termui_get_rows(term->termui) * 2) / 3;
+
+	fibril_mutex_lock(&term->mtx);
+
+	if (!term->ubuf && kbd_event->type == KEY_PRESS &&
+	    (kbd_event->key == KC_PAGE_UP || kbd_event->key == KC_PAGE_DOWN)) {
+
+		termui_history_scroll(term->termui,
+		    (kbd_event->key == KC_PAGE_UP) ? -PAGE_ROWS : PAGE_ROWS);
+
+		term_render(term);
+		gfx_update(term->gc);
+	} else {
+		terminal_queue_cons_event(term, &event);
+	}
+
+	fibril_mutex_unlock(&term->mtx);
 }
 
 /** Handle window position event */
@@ -855,20 +925,39 @@ static void terminal_pos_event(ui_window_t *window, void *arg, pos_event_t *even
 	cons_event_t cevent;
 	terminal_t *term = (terminal_t *) arg;
 
+	switch (event->type) {
+	case POS_UPDATE:
+		return;
+
+	case POS_PRESS:
+	case POS_RELEASE:
+	case POS_DCLICK:
+	}
+
+	/* Ignore mouse events when we're in scrollback mode. */
+	if (termui_scrollback_is_active(term->termui))
+		return;
+
 	sysarg_t sx = -term->off.x;
 	sysarg_t sy = -term->off.y;
 
-	if (event->type == POS_PRESS || event->type == POS_RELEASE ||
-	    event->type == POS_DCLICK) {
-		cevent.type = CEV_POS;
-		cevent.ev.pos.type = event->type;
-		cevent.ev.pos.pos_id = event->pos_id;
-		cevent.ev.pos.btn_num = event->btn_num;
+	if (event->hpos < sx || event->vpos < sy)
+		return;
 
-		cevent.ev.pos.hpos = (event->hpos - sx) / FONT_WIDTH;
-		cevent.ev.pos.vpos = (event->vpos - sy) / FONT_SCANLINES;
+	cevent.type = CEV_POS;
+	cevent.ev.pos.type = event->type;
+	cevent.ev.pos.pos_id = event->pos_id;
+	cevent.ev.pos.btn_num = event->btn_num;
+
+	cevent.ev.pos.hpos = (event->hpos - sx) / FONT_WIDTH;
+	cevent.ev.pos.vpos = (event->vpos - sy) / FONT_SCANLINES;
+
+	/* Filter out events outside the terminal area. */
+	int cols = termui_get_cols(term->termui);
+	int rows = termui_get_rows(term->termui);
+
+	if (cevent.ev.pos.hpos < (sysarg_t) cols && cevent.ev.pos.vpos < (sysarg_t) rows)
 		terminal_queue_cons_event(term, &cevent);
-	}
 }
 
 /** Handle window unfocus event. */
@@ -879,7 +968,7 @@ static void terminal_unfocus_event(ui_window_t *window, void *arg,
 
 	if (nfocus == 0) {
 		term->is_focused = false;
-		term_update(term);
+		term_render(term);
 		gfx_update(term->gc);
 	}
 }
@@ -901,24 +990,60 @@ static void term_connection(ipc_call_t *icall, void *arg)
 	}
 
 	if (!atomic_flag_test_and_set(&term->refcnt))
-		chargrid_set_cursor_visibility(term->frontbuf, true);
+		termui_set_cursor_visibility(term->termui, true);
 
 	con_conn(icall, &term->srvs);
+}
+
+static errno_t term_init_window(terminal_t *term, const char *display_spec,
+    gfx_coord_t width, gfx_coord_t height,
+    gfx_coord_t min_width, gfx_coord_t min_height,
+    terminal_flags_t flags)
+{
+	gfx_rect_t min_rect = { { 0, 0 }, { min_width, min_height } };
+
+	ui_wnd_params_t wparams;
+	ui_wnd_params_init(&wparams);
+	wparams.caption = "Terminal";
+	wparams.style |= ui_wds_maximize_btn | ui_wds_resizable;
+	if ((flags & tf_topleft) != 0)
+		wparams.placement = ui_wnd_place_top_left;
+
+	errno_t rc = ui_create(display_spec, &term->ui);
+	if (rc != EOK) {
+		printf("Error creating UI on %s.\n", display_spec);
+		return rc;
+	}
+
+	/* Compute wrect such that application area corresponds to rect. */
+	gfx_rect_t wrect;
+	ui_wdecor_rect_from_app(term->ui, wparams.style, &min_rect, &wrect);
+	gfx_rect_rtranslate(&wrect.p0, &wrect, &wparams.rect);
+
+	rc = ui_window_create(term->ui, &wparams, &term->window);
+	if (rc != EOK)
+		return rc;
+
+	gfx_rect_t rect = { { 0, 0 }, { width, height } };
+	ui_wdecor_rect_from_app(term->ui, wparams.style, &rect, &rect);
+	term->off = rect.p0;
+	gfx_rect_rtranslate(&term->off, &rect, &wrect);
+
+	ui_window_resize(term->window, &wrect);
+	ui_window_set_cb(term->window, &terminal_window_cb, (void *) term);
+
+	return terminal_window_resize(term);
 }
 
 errno_t terminal_create(const char *display_spec, sysarg_t width,
     sysarg_t height, terminal_flags_t flags, const char *command,
     terminal_t **rterm)
 {
-	terminal_t *term;
-	gfx_bitmap_params_t params;
-	ui_wnd_params_t wparams;
-	gfx_rect_t rect;
-	gfx_coord2_t off;
-	gfx_rect_t wrect;
+	printf("terminal_create(%zu, %zu)\n", width, height);
+
 	errno_t rc;
 
-	term = calloc(1, sizeof(terminal_t));
+	terminal_t *term = calloc(1, sizeof(terminal_t));
 	if (term == NULL) {
 		printf("Out of memory.\n");
 		return ENOMEM;
@@ -931,83 +1056,33 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	prodcons_initialize(&term->input_pc);
 	term->char_remains_len = 0;
 
-	term->w = width;
-	term->h = height;
+	term->default_bgcolor = termui_color_from_pixel(_basic_colors[COLOR_WHITE | COLOR_BRIGHT]);
+	term->default_fgcolor = termui_color_from_pixel(_basic_colors[COLOR_BLACK]);
 
-	term->cols = width / FONT_WIDTH;
-	term->rows = height / FONT_SCANLINES;
+	term->emphasis_bgcolor = termui_color_from_pixel(_basic_colors[COLOR_WHITE | COLOR_BRIGHT]);
+	term->emphasis_fgcolor = termui_color_from_pixel(_basic_colors[COLOR_RED | COLOR_BRIGHT]);
 
-	term->frontbuf = NULL;
-	term->backbuf = NULL;
+	term->selection_bgcolor = termui_color_from_pixel(_basic_colors[COLOR_RED | COLOR_BRIGHT]);
+	term->selection_fgcolor = termui_color_from_pixel(_basic_colors[COLOR_WHITE | COLOR_BRIGHT]);
 
-	term->frontbuf = chargrid_create(term->cols, term->rows,
-	    CHARGRID_FLAG_NONE);
-	if (!term->frontbuf) {
-		printf("Error creating front buffer.\n");
+	term->termui = termui_create(width / FONT_WIDTH, height / FONT_SCANLINES,
+	    SCROLLBACK_MAX_LINES);
+	if (!term->termui) {
+		printf("Error creating terminal UI.\n");
 		rc = ENOMEM;
 		goto error;
 	}
 
-	term->backbuf = chargrid_create(term->cols, term->rows,
-	    CHARGRID_FLAG_NONE);
-	if (!term->backbuf) {
-		printf("Error creating back buffer.\n");
-		rc = ENOMEM;
-		goto error;
-	}
+	termui_set_refresh_cb(term->termui, termui_refresh_cb, term);
+	termui_set_scroll_cb(term->termui, termui_scroll_cb, term);
+	termui_set_update_cb(term->termui, termui_update_cb, term);
 
-	rect.p0.x = 0;
-	rect.p0.y = 0;
-	rect.p1.x = width;
-	rect.p1.y = height;
-
-	ui_wnd_params_init(&wparams);
-	wparams.caption = "Terminal";
-	if ((flags & tf_topleft) != 0)
-		wparams.placement = ui_wnd_place_top_left;
-
-	rc = ui_create(display_spec, &term->ui);
+	rc = term_init_window(term, display_spec, width, height,
+	    MIN_WINDOW_COLS * FONT_WIDTH, MIN_WINDOW_ROWS * FONT_SCANLINES, flags);
 	if (rc != EOK) {
-		printf("Error creating UI on %s.\n", display_spec);
+		printf("Error creating window (%s).\n", str_error(rc));
 		goto error;
 	}
-
-	/*
-	 * Compute window rectangle such that application area corresponds
-	 * to rect
-	 */
-	ui_wdecor_rect_from_app(term->ui, wparams.style, &rect, &wrect);
-	off = wrect.p0;
-	gfx_rect_rtranslate(&off, &wrect, &wparams.rect);
-
-	term->off = off;
-
-	rc = ui_window_create(term->ui, &wparams, &term->window);
-	if (rc != EOK) {
-		printf("Error creating window.\n");
-		goto error;
-	}
-
-	term->gc = ui_window_get_gc(term->window);
-	term->ui_res = ui_window_get_res(term->window);
-
-	ui_window_set_cb(term->window, &terminal_window_cb, (void *) term);
-
-	gfx_bitmap_params_init(&params);
-	params.rect.p0.x = 0;
-	params.rect.p0.y = 0;
-	params.rect.p1.x = width;
-	params.rect.p1.y = height;
-
-	rc = gfx_bitmap_create(term->gc, &params, NULL, &term->bmp);
-	if (rc != EOK) {
-		printf("Error allocating screen bitmap.\n");
-		goto error;
-	}
-
-	chargrid_clear(term->frontbuf);
-	chargrid_clear(term->backbuf);
-	term->top_row = 0;
 
 	async_set_fallback_port_handler(term_connection, NULL);
 	con_srvs_init(&term->srvs);
@@ -1045,12 +1120,7 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 
 	term->is_focused = true;
 
-	term->update.p0.x = 0;
-	term->update.p0.y = 0;
-	term->update.p1.x = 0;
-	term->update.p1.y = 0;
-
-	term_repaint(term);
+	termui_refresh_cb(term);
 
 	*rterm = term;
 	return EOK;
@@ -1063,10 +1133,8 @@ error:
 		ui_window_destroy(term->window);
 	if (term->ui != NULL)
 		ui_destroy(term->ui);
-	if (term->frontbuf != NULL)
-		chargrid_destroy(term->frontbuf);
-	if (term->backbuf != NULL)
-		chargrid_destroy(term->backbuf);
+	if (term->termui != NULL)
+		termui_destroy(term->termui);
 	free(term);
 	return rc;
 }

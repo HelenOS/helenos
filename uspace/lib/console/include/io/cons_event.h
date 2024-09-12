@@ -43,7 +43,9 @@ typedef enum {
 	/** Key event */
 	CEV_KEY,
 	/** Position event */
-	CEV_POS
+	CEV_POS,
+	/** Resize event */
+	CEV_RESIZE,
 } cons_event_type_t;
 
 /** Console event structure. */

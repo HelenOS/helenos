@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 Jiri Svoboda
+# Copyright (c) 2024 Jiří Zárevúcky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,8 +26,4 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'fbfont', 'display', 'ui', 'termui' ]
-src = files(
-	'main.c',
-	'terminal.c',
-)
+src = files('src/termui.c', 'src/history.c')

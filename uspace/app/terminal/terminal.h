@@ -44,12 +44,12 @@
 #include <gfx/bitmap.h>
 #include <gfx/context.h>
 #include <gfx/coord.h>
-#include <io/chargrid.h>
 #include <io/con_srv.h>
 #include <loc.h>
 #include <stdatomic.h>
 #include <str.h>
 #include <task.h>
+#include <termui.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 
@@ -80,11 +80,14 @@ typedef struct {
 	char char_remains[UTF8_CHAR_BUFFER_SIZE];
 	size_t char_remains_len;
 
-	sysarg_t cols;
-	sysarg_t rows;
-	chargrid_t *frontbuf;
-	chargrid_t *backbuf;
-	sysarg_t top_row;
+	termui_t *termui;
+
+	termui_color_t default_bgcolor;
+	termui_color_t default_fgcolor;
+	termui_color_t emphasis_bgcolor;
+	termui_color_t emphasis_fgcolor;
+	termui_color_t selection_bgcolor;
+	termui_color_t selection_fgcolor;
 
 	sysarg_t ucols;
 	sysarg_t urows;

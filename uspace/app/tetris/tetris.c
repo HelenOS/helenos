@@ -329,6 +329,12 @@ int main(int argc, char *argv[])
 		scr_msg(key_msg, 1);
 
 		while (true) {
+			if (size_changed) {
+				size_changed = false;
+				scr_set();
+				scr_msg(key_msg, 1);
+			}
+
 			place(curshape, pos, 1);
 			scr_update();
 			place(curshape, pos, 0);

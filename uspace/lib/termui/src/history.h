@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2024 Jiří Zárevúcky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** Attributations
- *
- * screen.h 8.1 (Berkeley) 5/31/93
- * NetBSD: screen.h,v 1.2 1995/04/22 07:42:42 cgd
- * OpenBSD: screen.h,v 1.5 2003/06/03 03:01:41 millert
- *
- * Based upon BSD Tetris
- *
- * Copyright (c) 1992, 1993
- *      The Regents of the University of California.
- *      Distributed under BSD license.
- *
- * This code is derived from software contributed to Berkeley by
- * Chris Torek and Darren F. Provine.
- *
- */
-
-/** @addtogroup tetris
- * @{
- */
-/** @file
- */
-
-/*
- * putpad() is for padded strings with count = 1.
- */
-#define putpad(s)  tputs(s, 1, put)
-
-#include <types/common.h>
-#include <io/console.h>
-#include <async.h>
+#include <termui.h>
 #include <stdbool.h>
 
-typedef struct {
-	sysarg_t ws_row;
-	sysarg_t ws_col;
-} winsize_t;
+#define INTERNAL __attribute__((visibility("internal")))
 
-extern console_ctrl_t *console;
-extern winsize_t winsize;
-extern bool size_changed;
+static bool _cell_is_empty(const termui_cell_t cell)
+{
+	return cell.glyph_idx == 0 && cell.bgcolor == 0 && cell.fgcolor == 0 &&
+	    cell.padding == 0;
+}
 
-extern void moveto(sysarg_t r, sysarg_t c);
-extern void clear_screen(void);
+struct cell_buffer {
+	termui_cell_t *buf;
 
-extern int put(int);
-extern void scr_clear(void);
-extern void scr_end(void);
-extern void scr_init(void);
-extern void scr_msg(char *, bool);
-extern void scr_set(void);
-extern void scr_update(void);
+	size_t head_offset;
+	size_t head_top;
 
-extern void tsleep(void);
-extern int tgetchar(void);
-extern int twait(void);
+	/* Tail offset is implicitly zero. */
+	size_t tail_top;
 
-/** @}
- */
+	size_t buf_len;
+	size_t max_len;
+};
+
+struct history_line {
+	size_t idx;
+	size_t len;
+};
+
+struct line_buffer {
+	struct history_line *buf;
+
+	size_t head;
+	size_t tail;
+
+	size_t buf_len;
+	size_t max_len;
+};
+
+struct history {
+	size_t viewport_top;
+	size_t row_delta;
+
+	size_t cols;
+
+	struct cell_buffer cells;
+	struct line_buffer lines;
+
+	bool append;
+};
+
+INTERNAL bool _scrollback_active(const struct history *history);
+INTERNAL void _history_append_row(struct history *history, const termui_cell_t *b, bool last);
+INTERNAL int _history_viewport_rows(const struct history *history, size_t max);
+INTERNAL int _history_iter_rows(const struct history *history, int row, int count, termui_update_cb_t cb, void *udata);
+INTERNAL int _history_scroll(struct history *history, int delta);
+INTERNAL const termui_cell_t *_history_reflow(struct history *history, size_t new_cols, size_t *recouped);

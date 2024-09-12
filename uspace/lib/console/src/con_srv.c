@@ -52,18 +52,22 @@ static errno_t console_ev_encode(cons_event_t *event, ipc_call_t *icall)
 		ipc_set_arg3(icall, event->ev.key.key);
 		ipc_set_arg4(icall, event->ev.key.mods);
 		ipc_set_arg5(icall, event->ev.key.c);
-		break;
+		return EOK;
 	case CEV_POS:
 		ipc_set_arg2(icall, (event->ev.pos.pos_id << 16) | (event->ev.pos.type & 0xffff));
 		ipc_set_arg3(icall, event->ev.pos.btn_num);
 		ipc_set_arg4(icall, event->ev.pos.hpos);
 		ipc_set_arg5(icall, event->ev.pos.vpos);
-		break;
-	default:
-		return EIO;
+		return EOK;
+	case CEV_RESIZE:
+		ipc_set_arg2(icall, 0);
+		ipc_set_arg3(icall, 0);
+		ipc_set_arg4(icall, 0);
+		ipc_set_arg5(icall, 0);
+		return EOK;
 	}
 
-	return EOK;
+	return EIO;
 }
 
 static void con_read_srv(con_srv_t *srv, ipc_call_t *icall)
