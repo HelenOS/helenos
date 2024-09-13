@@ -221,7 +221,7 @@ static termui_cell_t charfield_to_termui_cell(terminal_t *term, const charfield_
 		char_attr_index_t index = cf->attrs.val.index;
 
 		int bright = (index.attr & CATTR_BRIGHT) ? COLOR_BRIGHT : 0;
-		pixel_t bgcolor = _basic_colors[index.bgcolor | bright];
+		pixel_t bgcolor = _basic_colors[index.bgcolor];
 		pixel_t fgcolor = _basic_colors[index.fgcolor | bright];
 		cell.bgcolor = termui_color_from_pixel(bgcolor);
 		cell.fgcolor = termui_color_from_pixel(fgcolor);
@@ -573,7 +573,7 @@ static void term_set_color(con_srv_t *srv, console_color_t bgcolor,
 	int bright = (attr & CATTR_BRIGHT) ? COLOR_BRIGHT : 0;
 
 	termui_cell_t cellstyle = { };
-	cellstyle.bgcolor = termui_color_from_pixel(_basic_colors[bgcolor | bright]);
+	cellstyle.bgcolor = termui_color_from_pixel(_basic_colors[bgcolor]);
 	cellstyle.fgcolor = termui_color_from_pixel(_basic_colors[fgcolor | bright]);
 
 	if (attr & CATTR_BLINK)
