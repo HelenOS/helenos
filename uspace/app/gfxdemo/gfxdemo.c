@@ -77,18 +77,16 @@ static gfx_typeface_t *tface;
 static gfx_font_t *font;
 static gfx_coord_t vpad;
 static console_ctrl_t *con = NULL;
+static bool textmode;
 static ui_t *ui;
 
 /** Determine if we are running in text mode.
  *
- * @param w Screen width
- * @param h Screen height
  * @return @c true iff we are running in text mode
  */
-static bool demo_is_text(gfx_coord_t w, gfx_coord_t h)
+static bool demo_is_text(void)
 {
-	// XXX Need a proper way to determine text mode
-	return w <= 80;
+	return textmode;
 }
 
 /** Sleep until timeout or quit request.
@@ -180,7 +178,7 @@ static errno_t demo_font_init(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 		return EOK;
 
 	/* XXX Crude way of detecting text mode */
-	if (w < 256) {
+	if (demo_is_text()) {
 		/* Create dummy font for text mode */
 		rc = gfx_typeface_create(gc, &tface);
 		if (rc != EOK) {
@@ -269,7 +267,7 @@ static errno_t demo_begin(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h,
 		return rc;
 
 	if (font != NULL) {
-		if (demo_is_text(w, h)) {
+		if (demo_is_text()) {
 			rc = gfx_color_new_ega(0x1e, &color);
 			if (rc != EOK)
 				goto error;
@@ -718,7 +716,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 	gfx_color_delete(color);
 
-	if (demo_is_text(w, h)) {
+	if (demo_is_text()) {
 		rc = gfx_color_new_ega(0x1f, &color);
 		if (rc != EOK)
 			goto error;
@@ -806,7 +804,7 @@ static errno_t demo_text(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 	fmt.font = font;
 
 	for (i = 0; i < 8; i++) {
-		if (demo_is_text(w, h)) {
+		if (demo_is_text()) {
 			rc = gfx_color_new_ega(i != 0 ? i : 0x10, &color);
 			if (rc != EOK)
 				goto error;
@@ -883,7 +881,7 @@ static errno_t demo_text_abbr(gfx_context_t *gc, gfx_coord_t w, gfx_coord_t h)
 
 		gfx_color_delete(color);
 
-		if (demo_is_text(w, h)) {
+		if (demo_is_text()) {
 			rc = gfx_color_new_ega(0x1f, &color);
 			if (rc != EOK)
 				goto error;
@@ -1093,6 +1091,9 @@ static errno_t demo_console(void)
 
 	gc = console_gc_get_ctx(cgc);
 
+	/* Currently console is always text. */
+	textmode = true;
+
 	rc = demo_loop(gc, cols, rows);
 	if (rc != EOK)
 		return rc;
@@ -1191,6 +1192,8 @@ static errno_t demo_ui(const char *display_spec)
 	if (!ui_is_fullscreen(ui))
 		task_retval(0);
 
+	textmode = ui_is_textmode(ui);
+
 	args.gc = gc;
 	args.dims = dims;
 	args.ui = ui;
@@ -1251,6 +1254,9 @@ static errno_t demo_display(const char *display_svc)
 	}
 
 	task_retval(0);
+
+	/* FIXME Assuming display service is not text mode. */
+	textmode = false;
 
 	rc = demo_loop(gc, 400, 300);
 	if (rc != EOK)
