@@ -1294,7 +1294,7 @@ void ui_window_send_sysmenu(ui_window_t *window, sysarg_t idev_id)
  */
 void ui_window_send_minimize(ui_window_t *window)
 {
-	if (window->cb != NULL && window->cb->maximize != NULL)
+	if (window->cb != NULL && window->cb->minimize != NULL)
 		window->cb->minimize(window, window->arg);
 	else
 		ui_window_def_minimize(window);
