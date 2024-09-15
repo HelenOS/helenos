@@ -12,7 +12,6 @@
 #include <memw.h>
 
 #define PRINTF(...) printf(__VA_ARGS__)
-#define ubsan_panic() panic("... aborting ...")
 
 struct source_location {
 	const char *file_name;
@@ -113,6 +112,13 @@ void __ubsan_handle_nonnull_return_v1(struct nonnull_return_data *data,
 void __ubsan_handle_pointer_overflow(struct pointer_overflow_data *data,
     unsigned long base, unsigned long result);
 void __ubsan_handle_builtin_unreachable(struct unreachable_data *data);
+
+/* A real function for potential breakpoint location. */
+__attribute__((noinline))
+    static void ubsan_panic(void)
+{
+	panic("... aborting ...");
+}
 
 static void print_loc(const char *func, struct source_location *loc)
 {
