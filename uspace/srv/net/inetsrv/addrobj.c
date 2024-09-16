@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,8 @@
 #include <inet/eth_addr.h>
 #include <io/log.h>
 #include <ipc/loc.h>
+#include <sif.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include "addrobj.h"
@@ -210,6 +212,29 @@ inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t id)
 	return NULL;
 }
 
+/** Count number of non-temporary address objects configured for link.
+ *
+ * @param ilink Inet link
+ * @return Number of address objects configured for this link
+ */
+unsigned inet_addrobj_cnt_by_link(inet_link_t *ilink)
+{
+	unsigned cnt;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_cnt_by_link()");
+
+	fibril_mutex_lock(&addr_list_lock);
+
+	cnt = 0;
+	list_foreach(addr_list, addr_list, inet_addrobj_t, naddr) {
+		if (naddr->ilink == ilink && naddr->temp == false)
+			++cnt;
+	}
+
+	fibril_mutex_unlock(&addr_list_lock);
+	return cnt;
+}
+
 /** Send datagram from address object */
 errno_t inet_addrobj_send_dgram(inet_addrobj_t *addr, inet_addr_t *ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
@@ -279,6 +304,208 @@ errno_t inet_addrobj_get_id_list(sysarg_t **rid_list, size_t *rcount)
 	*rcount = count;
 
 	return EOK;
+}
+
+/** Load address object from SIF node.
+ *
+ * @param anode SIF node to load address object from
+ * @return EOK on success or an error code
+ */
+static errno_t inet_addrobj_load(sif_node_t *anode)
+{
+	errno_t rc;
+	const char *sid;
+	const char *snaddr;
+	const char *slink;
+	const char *name;
+	char *endptr;
+	int id;
+	inet_naddr_t naddr;
+	inet_addrobj_t *addr;
+	inet_link_t *link;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_load()");
+
+	sid = sif_node_get_attr(anode, "id");
+	if (sid == NULL)
+		return EIO;
+
+	snaddr = sif_node_get_attr(anode, "naddr");
+	if (snaddr == NULL)
+		return EIO;
+
+	slink = sif_node_get_attr(anode, "link");
+	if (slink == NULL)
+		return EIO;
+
+	name = sif_node_get_attr(anode, "name");
+	if (name == NULL)
+		return EIO;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_addrobj_load(): id='%s' "
+	    "naddr='%s' link='%s' name='%s'", sid, snaddr, slink, name);
+
+	id = strtoul(sid, &endptr, 10);
+	if (*endptr != '\0')
+		return EIO;
+
+	rc = inet_naddr_parse(snaddr, &naddr, NULL);
+	if (rc != EOK)
+		return EIO;
+
+	link = inet_link_get_by_svc_name(slink);
+	if (link == NULL) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Link '%s' not found",
+		    slink);
+		return EIO;
+	}
+
+	addr = inet_addrobj_new();
+	if (addr == NULL)
+		return ENOMEM;
+
+	addr->id = id;
+	addr->naddr = naddr;
+	addr->ilink = link;
+	addr->name = str_dup(name);
+
+	if (addr->name == NULL) {
+		inet_addrobj_delete(addr);
+		return ENOMEM;
+	}
+
+	inet_addrobj_add(addr);
+	return EOK;
+}
+
+/** Load address objects from SIF node.
+ *
+ * @param naddrs SIF node to load address objects from
+ * @return EOK on success or an error code
+ */
+errno_t inet_addrobjs_load(sif_node_t *naddrs)
+{
+	sif_node_t *naddr;
+	const char *ntype;
+	errno_t rc;
+
+	naddr = sif_node_first_child(naddrs);
+	while (naddr != NULL) {
+		ntype = sif_node_get_type(naddr);
+		if (str_cmp(ntype, "address") != 0) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = inet_addrobj_load(naddr);
+		if (rc != EOK)
+			goto error;
+
+		naddr = sif_node_next_child(naddr);
+	}
+
+	return EOK;
+error:
+	return rc;
+
+}
+
+/** Save address object to SIF node.
+ *
+ * @param addr Address object
+ * @param naddr SIF node to save addres to
+ * @return EOK on success or an error code
+ */
+static errno_t inet_addrobj_save(inet_addrobj_t *addr, sif_node_t *naddr)
+{
+	char *str = NULL;
+	errno_t rc;
+	int rv;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_save(%p, %p)",
+	    addr, naddr);
+
+	/* id */
+
+	rv = asprintf(&str, "%lu", addr->id);
+	if (rv < 0) {
+		str = NULL;
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = sif_node_set_attr(naddr, "id", str);
+	if (rc != EOK)
+		goto error;
+
+	free(str);
+	str = NULL;
+
+	/* dest */
+
+	rc = inet_naddr_format(&addr->naddr, &str);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_set_attr(naddr, "naddr", str);
+	if (rc != EOK)
+		goto error;
+
+	free(str);
+	str = NULL;
+
+	/* link */
+
+	rc = sif_node_set_attr(naddr, "link", addr->ilink->svc_name);
+	if (rc != EOK)
+		goto error;
+
+	/* name */
+
+	rc = sif_node_set_attr(naddr, "name", addr->name);
+	if (rc != EOK)
+		goto error;
+
+	free(str);
+
+	return rc;
+error:
+	if (str != NULL)
+		free(str);
+	return rc;
+}
+
+/** Save address objects to SIF node.
+ *
+ * @param cnode SIF node to save address objects to
+ * @return EOK on success or an error code
+ */
+errno_t inet_addrobjs_save(sif_node_t *cnode)
+{
+	sif_node_t *naddr;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobjs_save()");
+
+	fibril_mutex_lock(&addr_list_lock);
+
+	list_foreach(addr_list, addr_list, inet_addrobj_t, addr) {
+		if (addr->temp == false) {
+			rc = sif_node_append_child(cnode, "address", &naddr);
+			if (rc != EOK)
+				goto error;
+
+			rc = inet_addrobj_save(addr, naddr);
+			if (rc != EOK)
+				goto error;
+		}
+	}
+
+	fibril_mutex_unlock(&addr_list_lock);
+	return EOK;
+error:
+	fibril_mutex_unlock(&addr_list_lock);
+	return rc;
 }
 
 /** @}

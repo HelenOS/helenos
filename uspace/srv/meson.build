@@ -60,7 +60,6 @@ srvs = [
 	'net/ethip',
 	'net/inetsrv',
 	'net/loopip',
-	'net/nconfsrv',
 	'net/slip',
 	'net/tcp',
 	'net/udp',

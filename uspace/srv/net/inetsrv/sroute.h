@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #ifndef INET_SROUTE_H_
 #define INET_SROUTE_H_
 
+#include <sif.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "inetsrv.h"
@@ -51,6 +52,8 @@ extern inet_sroute_t *inet_sroute_get_by_id(sysarg_t);
 extern errno_t inet_sroute_send_dgram(inet_sroute_t *, inet_addr_t *,
     inet_dgram_t *, uint8_t, uint8_t, int);
 extern errno_t inet_sroute_get_id_list(sysarg_t **, size_t *);
+extern errno_t inet_sroutes_load(sif_node_t *);
+extern errno_t inet_sroutes_save(sif_node_t *);
 
 #endif
 

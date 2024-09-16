@@ -508,12 +508,11 @@ int main(int argc, char *argv[])
 
 	srv_start("/srv/net/loopip");
 	srv_start("/srv/net/ethip");
+	srv_start("/srv/net/dhcp");
 	srv_start("/srv/net/inetsrv");
 	srv_start("/srv/net/tcp");
 	srv_start("/srv/net/udp");
 	srv_start("/srv/net/dnsrsrv");
-	srv_start("/srv/net/dhcp");
-	srv_start("/srv/net/nconfsrv");
 
 	srv_start("/srv/clipboard");
 	srv_start("/srv/hid/remcons");
