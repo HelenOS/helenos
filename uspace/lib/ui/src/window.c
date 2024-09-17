@@ -342,8 +342,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	display_wnd_params_init(&dparams);
 	dparams.rect = params->rect;
 	dparams.caption = params->caption;
-	/* Only allow making the window larger */
-	gfx_rect_dims(&params->rect, &dparams.min_size);
+	dparams.min_size = params->min_size;
 
 	/*
 	 * If idev_id is not specified, use the UI default (probably

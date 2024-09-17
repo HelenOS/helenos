@@ -79,6 +79,8 @@ typedef enum {
 typedef struct {
 	/** Window rectangle */
 	gfx_rect_t rect;
+	/** Minimum size to which window can be resized */
+	gfx_coord2_t min_size;
 	/** Window caption */
 	const char *caption;
 	/** Window decoration style */

@@ -1001,6 +1001,8 @@ static errno_t term_init_window(terminal_t *term, const char *display_spec,
     terminal_flags_t flags)
 {
 	gfx_rect_t min_rect = { { 0, 0 }, { min_width, min_height } };
+	gfx_rect_t wmin_rect;
+	gfx_rect_t wrect;
 
 	ui_wnd_params_t wparams;
 	ui_wnd_params_init(&wparams);
@@ -1016,22 +1018,20 @@ static errno_t term_init_window(terminal_t *term, const char *display_spec,
 	}
 
 	/* Compute wrect such that application area corresponds to rect. */
-	gfx_rect_t wrect;
 	ui_wdecor_rect_from_app(term->ui, wparams.style, &min_rect, &wrect);
-	gfx_rect_rtranslate(&wrect.p0, &wrect, &wparams.rect);
+	gfx_rect_rtranslate(&wrect.p0, &wrect, &wmin_rect);
+	wparams.min_size = wmin_rect.p1;
+
+	gfx_rect_t rect = { { 0, 0 }, { width, height } };
+	ui_wdecor_rect_from_app(term->ui, wparams.style, &rect, &rect);
+	term->off = rect.p0;
+	gfx_rect_rtranslate(&term->off, &rect, &wparams.rect);
 
 	rc = ui_window_create(term->ui, &wparams, &term->window);
 	if (rc != EOK)
 		return rc;
 
-	gfx_rect_t rect = { { 0, 0 }, { width, height } };
-	ui_wdecor_rect_from_app(term->ui, wparams.style, &rect, &rect);
-	term->off = rect.p0;
-	gfx_rect_rtranslate(&term->off, &rect, &wrect);
-
-	ui_window_resize(term->window, &wrect);
 	ui_window_set_cb(term->window, &terminal_window_cb, (void *) term);
-
 	return terminal_window_resize(term);
 }
 
