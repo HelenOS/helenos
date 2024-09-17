@@ -1039,8 +1039,6 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
     sysarg_t height, terminal_flags_t flags, const char *command,
     terminal_t **rterm)
 {
-	printf("terminal_create(%zu, %zu)\n", width, height);
-
 	errno_t rc;
 
 	terminal_t *term = calloc(1, sizeof(terminal_t));

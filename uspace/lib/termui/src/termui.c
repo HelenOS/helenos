@@ -509,7 +509,6 @@ void termui_force_viewport_update(const termui_t *termui, int first_row, int row
 	assert(sb_rows <= first_row);
 
 	for (int row = first_row; row < first_row + rows; row++) {
-		//printf("Iterating active screen row %d as viewport row %d\n", row-sb_rows, row);
 		termui->update_cb(termui->update_udata, 0, row, &_screen_cell(termui, 0, row - sb_rows), termui->cols);
 	}
 }
@@ -521,8 +520,6 @@ bool termui_scrollback_is_active(const termui_t *termui)
 
 termui_t *termui_create(int cols, int rows, size_t history_lines)
 {
-	printf("termui_create(%d, %d, %zu)\n", cols, rows, history_lines);
-
 	/* Prevent numerical overflows. */
 	if (cols < 2 || rows < 1 || INT_MAX / cols < rows)
 		return NULL;
@@ -574,7 +571,6 @@ void termui_destroy(termui_t *termui)
  */
 void termui_history_scroll(termui_t *termui, int delta)
 {
-	//printf("Termui scroll %d\n", delta);
 	int scrolled = _history_scroll(&termui->history, delta);
 
 	if (scrolled != 0 && termui->scroll_cb)

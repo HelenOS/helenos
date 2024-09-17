@@ -603,8 +603,6 @@ int _history_viewport_rows(const struct history *history, size_t max)
 		_line_idx_inc(&history->lines, &current);
 	}
 
-	//printf("Counted at least %d viewport rows.\n", rows);
-
 	return (rows > max) ? max : rows;
 }
 
@@ -646,8 +644,6 @@ int _history_iter_rows(const struct history *history, int row, int count, termui
 {
 	assert(history->row_delta <= SIZE_MAX - row);
 
-	//printf("Iterating history rows: %d..%d\n", row, row + count);
-
 	size_t current_line = history->viewport_top;
 	size_t delta = history->row_delta + (size_t) row;
 	/* Get to the first row to be returned. */
@@ -677,12 +673,9 @@ int _history_iter_rows(const struct history *history, int row, int count, termui
 		assert(line_offset < line.len);
 		delta = 0;
 
-		//printf("Line %zu, %zu rows\n", current_line, _history_line_rows(history, current_line));
-
 		/* Callback for each full row. */
 		while (count > 0 && line_offset + history->cols <= line.len) {
 			assert(line.idx + line_offset <= history->cells.buf_len - history->cols);
-			//printf("Iterating row %d in line %zu\n", row, current_line);
 			cb(udata, 0, row, &cells[line_offset], history->cols);
 
 			line_offset += history->cols;
@@ -691,7 +684,6 @@ int _history_iter_rows(const struct history *history, int row, int count, termui
 		}
 
 		if (count > 0 && line_offset < line.len) {
-			//printf("Iterating last row %d of line %zu\n", row, current_line);
 			/* Callback for the last (incomplete) row. */
 
 			cb(udata, 0, row, &cells[line_offset], line.len - line_offset);
@@ -700,7 +692,6 @@ int _history_iter_rows(const struct history *history, int row, int count, termui
 			assert(col < history->cols);
 
 			/* Callbacks for the blank section in the last row. */
-			//printf("Updating %zu blank cells.\n", history->cols - col);
 			_update_blank(col, row, history->cols - col, cb, udata);
 
 			row++;
