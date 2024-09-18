@@ -427,7 +427,7 @@ static errno_t inet_addrobj_save(inet_addrobj_t *addr, sif_node_t *naddr)
 
 	/* id */
 
-	rv = asprintf(&str, "%lu", addr->id);
+	rv = asprintf(&str, "%zu", addr->id);
 	if (rv < 0) {
 		str = NULL;
 		rc = ENOMEM;

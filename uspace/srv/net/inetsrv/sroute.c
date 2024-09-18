@@ -323,7 +323,7 @@ static errno_t inet_sroute_save(inet_sroute_t *sroute, sif_node_t *nroute)
 
 	/* id */
 
-	rv = asprintf(&str, "%lu", sroute->id);
+	rv = asprintf(&str, "%zu", sroute->id);
 	if (rv < 0) {
 		str = NULL;
 		rc = ENOMEM;
