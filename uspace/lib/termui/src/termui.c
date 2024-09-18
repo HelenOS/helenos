@@ -457,6 +457,7 @@ void termui_wipe_screen(termui_t *termui, int first_row)
 		for (int col = 0; col < termui->cols; col++)
 			_screen_cell(termui, col, row) = termui->default_cell;
 
+		_overflow_flag(termui, row) = false;
 		_update_active_cells(termui, 0, row, termui->cols);
 	}
 
