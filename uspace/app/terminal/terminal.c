@@ -301,8 +301,7 @@ static void term_draw_cell(terminal_t *term, pixelmap_t *pixelmap, int col, int 
 
 static void term_render(terminal_t *term)
 {
-	gfx_coord2_t pos = { .x = 4, .y = 26 };
-	(void) gfx_bitmap_render(term->bmp, &term->update, &pos);
+	(void) gfx_bitmap_render(term->bmp, &term->update, &term->off);
 
 	term->update.p0.x = 0;
 	term->update.p0.y = 0;
@@ -815,6 +814,7 @@ void terminal_destroy(terminal_t *term)
 	if (term->ubuf)
 		as_area_destroy(term->ubuf);
 
+	ui_destroy(term->ui);
 	free(term);
 }
 
@@ -938,8 +938,8 @@ static void terminal_pos_event(ui_window_t *window, void *arg, pos_event_t *even
 	if (termui_scrollback_is_active(term->termui))
 		return;
 
-	sysarg_t sx = -term->off.x;
-	sysarg_t sy = -term->off.y;
+	sysarg_t sx = term->off.x;
+	sysarg_t sy = term->off.y;
 
 	if (event->hpos < sx || event->vpos < sy)
 		return;
@@ -1004,17 +1004,23 @@ static errno_t term_init_window(terminal_t *term, const char *display_spec,
 	gfx_rect_t wmin_rect;
 	gfx_rect_t wrect;
 
-	ui_wnd_params_t wparams;
-	ui_wnd_params_init(&wparams);
-	wparams.caption = "Terminal";
-	wparams.style |= ui_wds_maximize_btn | ui_wds_resizable;
-	if ((flags & tf_topleft) != 0)
-		wparams.placement = ui_wnd_place_top_left;
-
 	errno_t rc = ui_create(display_spec, &term->ui);
 	if (rc != EOK) {
 		printf("Error creating UI on %s.\n", display_spec);
 		return rc;
+	}
+
+	ui_wnd_params_t wparams;
+	ui_wnd_params_init(&wparams);
+	wparams.caption = "Terminal";
+	wparams.style |= ui_wds_maximize_btn | ui_wds_resizable;
+
+	if ((flags & tf_topleft) != 0)
+		wparams.placement = ui_wnd_place_top_left;
+
+	if (ui_is_fullscreen(term->ui)) {
+		wparams.placement = ui_wnd_place_full_screen;
+		wparams.style &= ~ui_wds_decorated;
 	}
 
 	/* Compute wrect such that application area corresponds to rect. */
@@ -1024,8 +1030,15 @@ static errno_t term_init_window(terminal_t *term, const char *display_spec,
 
 	gfx_rect_t rect = { { 0, 0 }, { width, height } };
 	ui_wdecor_rect_from_app(term->ui, wparams.style, &rect, &rect);
-	term->off = rect.p0;
-	gfx_rect_rtranslate(&term->off, &rect, &wparams.rect);
+	term->off.x = -rect.p0.x;
+	term->off.y = -rect.p0.y;
+	printf("off=%d,%d\n", term->off.x, term->off.y);
+	gfx_rect_translate(&term->off, &rect, &wparams.rect);
+	printf("wparams.rect=%d,%d,%d,%d\n",
+	    wparams.rect.p0.x,
+	    wparams.rect.p1.x,
+	    wparams.rect.p0.y,
+	    wparams.rect.p1.y);
 
 	rc = ui_window_create(term->ui, &wparams, &term->window);
 	if (rc != EOK)
@@ -1063,8 +1076,15 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	term->selection_bgcolor = termui_color_from_pixel(_basic_colors[COLOR_RED | COLOR_BRIGHT]);
 	term->selection_fgcolor = termui_color_from_pixel(_basic_colors[COLOR_WHITE | COLOR_BRIGHT]);
 
-	term->termui = termui_create(width / FONT_WIDTH, height / FONT_SCANLINES,
-	    SCROLLBACK_MAX_LINES);
+	rc = term_init_window(term, display_spec, width, height,
+	    MIN_WINDOW_COLS * FONT_WIDTH, MIN_WINDOW_ROWS * FONT_SCANLINES, flags);
+	if (rc != EOK) {
+		printf("Error creating window (%s).\n", str_error(rc));
+		goto error;
+	}
+
+	term->termui = termui_create(term->w / FONT_WIDTH,
+	    term->h / FONT_SCANLINES, SCROLLBACK_MAX_LINES);
 	if (!term->termui) {
 		printf("Error creating terminal UI.\n");
 		rc = ENOMEM;
@@ -1074,13 +1094,6 @@ errno_t terminal_create(const char *display_spec, sysarg_t width,
 	termui_set_refresh_cb(term->termui, termui_refresh_cb, term);
 	termui_set_scroll_cb(term->termui, termui_scroll_cb, term);
 	termui_set_update_cb(term->termui, termui_update_cb, term);
-
-	rc = term_init_window(term, display_spec, width, height,
-	    MIN_WINDOW_COLS * FONT_WIDTH, MIN_WINDOW_ROWS * FONT_SCANLINES, flags);
-	if (rc != EOK) {
-		printf("Error creating window (%s).\n", str_error(rc));
-		goto error;
-	}
 
 	async_set_fallback_port_handler(term_connection, NULL);
 	con_srvs_init(&term->srvs);

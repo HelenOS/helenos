@@ -189,7 +189,8 @@ static void _advance_line(termui_t *termui)
 			termui->scroll_cb(termui->scroll_udata, 1);
 	}
 
-	termui->row++;
+	if (termui->rows > 1)
+		termui->row++;
 
 	if (termui->row >= termui->used_rows)
 		termui->used_rows = termui->row + 1;
