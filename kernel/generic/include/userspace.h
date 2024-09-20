@@ -38,8 +38,10 @@
 #include <proc/thread.h>
 #include <typedefs.h>
 
+extern uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size);
+
 /** Switch to user-space (CPU user priviledge level) */
-extern void userspace(uspace_arg_t *uarg) __attribute__((noreturn));
+extern void userspace(sysarg_t pc, sysarg_t sp) __attribute__((noreturn));
 
 #endif
 

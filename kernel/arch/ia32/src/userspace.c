@@ -37,17 +37,21 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <arch.h>
-#include <abi/proc/uarg.h>
 #include <mm/as.h>
 #include <arch/cpu.h>
 #include <arch/asm.h>
+
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return stack_base + stack_size;
+}
 
 /** Enter userspace
  *
  * Change CPU protection level to 3, enter userspace.
  *
  */
-void userspace(uspace_arg_t *kernel_uarg)
+void userspace(uintptr_t pc, uintptr_t sp)
 {
 	uint32_t eflags = read_eflags();
 
@@ -60,7 +64,6 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    "pushl %[eflags]\n"
 	    "pushl %[utext_des]\n"
 	    "pushl %[entry]\n"
-	    "movl %[uarg], %%eax\n"
 
 	    /* %edi is defined to hold pcb_ptr - set it to 0 */
 	    "xorl %%edi, %%edi\n"
@@ -69,12 +72,10 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    :
 	    : [eflags_mask] "i" (~EFLAGS_NT),
 	      [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
-	      [stack_top] "r" (kernel_uarg->uspace_stack +
-	      kernel_uarg->uspace_stack_size),
+	      [stack_top] "r" (sp),
 	      [eflags] "r" ((eflags & ~(EFLAGS_NT)) | EFLAGS_IF),
 	      [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
-	      [entry] "r" (kernel_uarg->uspace_entry),
-	      [uarg] "r" (kernel_uarg->uspace_uarg),
+	      [entry] "r" (pc),
 	      [vreg_des] "r" (GDT_SELECTOR(VREG_DES))
 	    : "eax");
 

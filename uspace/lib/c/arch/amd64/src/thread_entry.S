@@ -34,6 +34,10 @@
 #
 #
 SYMBOL_BEGIN(__thread_entry)
+	# Pop libc thread entry function and argument
+	popq %rax
+	popq %rdi
+
 	#
 	# Create the first stack frame.
 	#
@@ -41,9 +45,5 @@ SYMBOL_BEGIN(__thread_entry)
 	pushq $0
 	movq %rsp, %rbp
 
-	#
-	# RAX contains address of uarg
-	#
-	movq %rax, %rdi
-	call FUNCTION_REF(__thread_main)
+	call *%rax
 SYMBOL_END(__thread_entry)

@@ -34,11 +34,12 @@
 #
 #
 SYMBOL(__thread_entry)
-	#
+	# Load entry function and argument from stack.
+	ldp x1, x0, [sp], #16
+
 	# Create the first stack frame.
-	#
 	mov x29, #0
 	stp x29, x30, [sp, #-16]!
 	mov x29, sp
 
-	b __thread_main
+	br x1

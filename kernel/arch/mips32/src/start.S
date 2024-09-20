@@ -338,9 +338,8 @@ cache_error_handler:
 
 FUNCTION_BEGIN(userspace_asm)
 	move $sp, $a0
-	move $v0, $a1
-	move $t9, $a2      /* set up correct entry into PIC code */
-	xor $a0, $a0, $a0  /* $a0 is defined to hold pcb_ptr */
-	                   /* set it to 0 */
+	xor $a0, $a0, $a0  /* $a0 is defined to hold pcb_ptr, set it to 0 */
+	xor $fp, $fp, $fp  // FIXME: wipe all userspace-accessible registers
+	xor $ra, $ra, $ra
 	eret
 FUNCTION_END(userspace_asm)

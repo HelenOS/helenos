@@ -48,6 +48,7 @@ rd_essential = [
 	'app/bdsh',
 	'app/getterm',
 	'app/kio',
+	'app/tester',
 
 	'srv/devman',
 	'srv/fs/locfs',

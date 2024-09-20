@@ -76,14 +76,12 @@ FUNCTION_BEGIN(__syscall_fast)
 	pushl %edi
 	pushl %ebp
 	mov %esp, %ebp
-	lea ra, %edi
 	movl 20(%esp), %edx	# First argument.
 	movl 24(%esp), %ecx	# Second argument.
 	movl 28(%esp), %ebx	# Third argument.
 	movl 32(%esp), %esi	# Fourth argument.
 	movl 44(%esp), %eax	# Syscall number.
-	sysenter
-ra:
+	call 1f
 	movw %cs, %cx
 	addw $8, %cx
 	movw %cx, %ds
@@ -94,4 +92,9 @@ ra:
 	popl %esi
 	popl %ebx
 	ret
+
+	/* Trampoline for entering kernel */
+1:
+	pop %edi
+	sysenter
 FUNCTION_END(__syscall_fast)

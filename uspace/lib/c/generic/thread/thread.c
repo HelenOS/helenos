@@ -36,7 +36,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <libarch/faddr.h>
-#include <abi/proc/uarg.h>
 #include <fibril.h>
 #include <stack.h>
 #include <str.h>
@@ -53,19 +52,19 @@
  * to call the thread's implementing function and perform cleanup
  * and exit when thread returns back.
  *
- * @param uarg Pointer to userspace argument structure.
+ * @param arg Fibril pointer.
  *
  */
-void __thread_main(uspace_arg_t *uarg)
+static void __thread_main(void *arg)
 {
-	assert(!__tcb_is_set());
+	fibril_t *fibril = arg;
 
-	fibril_t *fibril = uarg->uspace_thread_arg;
+	assert(!__tcb_is_set());
 	assert(fibril);
 
 	__tcb_set(fibril->tcb);
 
-	uarg->uspace_thread_function(fibril->arg);
+	fibril->func(fibril->arg);
 	/*
 	 * XXX: we cannot free the userspace stack while running on it
 	 *
@@ -89,18 +88,14 @@ void __thread_main(uspace_arg_t *uarg)
  *
  * @return Zero on success or a code from @ref errno.h on failure.
  */
-errno_t thread_create(void (*function)(void *), void *arg, const char *name,
-    thread_id_t *tid)
+errno_t thread_create(errno_t (*func)(void *), void *arg, const char *name)
 {
-	uspace_arg_t *uarg = calloc(1, sizeof(uspace_arg_t));
-	if (!uarg)
+	fibril_t *fibril = fibril_alloc();
+	if (!fibril)
 		return ENOMEM;
 
-	fibril_t *fibril = fibril_alloc();
-	if (!fibril) {
-		free(uarg);
-		return ENOMEM;
-	}
+	fibril->func = func;
+	fibril->arg = arg;
 
 	size_t stack_size = stack_size_get();
 	void *stack = as_area_create(AS_AREA_ANY, stack_size,
@@ -108,20 +103,15 @@ errno_t thread_create(void (*function)(void *), void *arg, const char *name,
 	    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
 	if (stack == AS_MAP_FAILED) {
 		fibril_teardown(fibril);
-		free(uarg);
 		return ENOMEM;
 	}
 
-	fibril->arg = arg;
-	uarg->uspace_entry = (void *) FADDR(__thread_entry);
-	uarg->uspace_stack = stack;
-	uarg->uspace_stack_size = stack_size;
-	uarg->uspace_thread_function = function;
-	uarg->uspace_thread_arg = fibril;
-	uarg->uspace_uarg = uarg;
+	uintptr_t sp = arch_thread_prepare(stack, stack_size, __thread_main,
+	    fibril);
 
-	errno_t rc = (errno_t) __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,
-	    (sysarg_t) name, (sysarg_t) str_size(name), (sysarg_t) tid);
+	errno_t rc = (errno_t) __SYSCALL4(SYS_THREAD_CREATE,
+	    (sysarg_t) FADDR(__thread_entry), sp,
+	    (sysarg_t) name, (sysarg_t) str_size(name));
 
 	if (rc != EOK) {
 		/*
@@ -129,7 +119,6 @@ errno_t thread_create(void (*function)(void *), void *arg, const char *name,
 		 * Free up the allocated data.
 		 */
 		as_area_destroy(stack);
-		free(uarg);
 	}
 
 	return rc;
@@ -147,16 +136,6 @@ void thread_exit(int status)
 	/* Unreachable */
 	while (true)
 		;
-}
-
-/** Detach thread.
- *
- * Currently not implemented.
- *
- * @param thread TID.
- */
-void thread_detach(thread_id_t thread)
-{
 }
 
 /** Get current thread ID.

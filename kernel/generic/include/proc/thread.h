@@ -44,7 +44,6 @@
 #include <mm/slab.h>
 #include <arch/cpu.h>
 #include <mm/tlb.h>
-#include <abi/proc/uarg.h>
 #include <udebug/udebug.h>
 #include <abi/proc/thread.h>
 #include <abi/sysinfo.h>

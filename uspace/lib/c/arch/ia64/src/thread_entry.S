@@ -36,18 +36,20 @@
 SYMBOL_BEGIN(__thread_entry)
 	alloc loc0 = ar.pfs, 0, 1, 1, 0
 
-#ifndef CONFIG_RTLD
-	# XXX This does not work in a shared library
-	movl gp = __gp
-#endif
+	add r8 = -8, sp ;;
+	# Entry function argument
+	ld8 out0 = [r8], -8 ;;
 
-	#
-	# r8 contains address of uarg structure.
-	#
+	# Entry function descriptor
+	ld8 r8 = [r8] ;;
+	# Entry function address
+	ld8 r9 = [r8], 8 ;;
+	# Entry function global pointer
+	ld8 gp = [r8] ;;
 
-	mov out0 = r8 ;;
-	# XXX br.call.sptk.many b0 = FUNCTION_REF(__thread_main)
-	br.call.sptk.many b0 = __thread_main
+	mov b1 = r9 ;;
+
+	br.call.sptk.many b0 = b1 ;;
 
 	#
 	# Not reached.
