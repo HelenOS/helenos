@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -39,6 +39,7 @@
 #include <task.h>
 #include <ipc/output.h>
 #include <config.h>
+#include <vt/vt100.h>
 #include "port/ega.h"
 #include "port/chardev.h"
 #include "port/ddev.h"

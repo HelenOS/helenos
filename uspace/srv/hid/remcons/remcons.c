@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -50,8 +50,10 @@
 #include <io/console.h>
 #include <inttypes.h>
 #include <str.h>
+#include <vt/vt100.h>
 #include "telnet.h"
 #include "user.h"
+#include "remcons.h"
 
 #define APP_GETTERM  "/app/getterm"
 #define APP_SHELL "/app/bdsh"
@@ -73,6 +75,7 @@ static const size_t telnet_force_character_mode_command_count =
 
 static errno_t remcons_open(con_srvs_t *, con_srv_t *);
 static errno_t remcons_close(con_srv_t *);
+static errno_t remcons_read(con_srv_t *, void *, size_t, size_t *);
 static errno_t remcons_write(con_srv_t *, void *, size_t, size_t *);
 static void remcons_sync(con_srv_t *);
 static void remcons_clear(con_srv_t *);
@@ -80,12 +83,19 @@ static void remcons_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
 static errno_t remcons_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
 static errno_t remcons_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
 static errno_t remcons_get_color_cap(con_srv_t *, console_caps_t *);
+static void remcons_set_style(con_srv_t *, console_style_t);
+static void remcons_set_color(con_srv_t *, console_color_t,
+    console_color_t, console_color_attr_t);
+static void remcons_set_color(con_srv_t *, console_color_t,
+    console_color_t, console_color_attr_t);
+static void remcons_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
+static void remcons_cursor_visibility(con_srv_t *, bool);
 static errno_t remcons_get_event(con_srv_t *, cons_event_t *);
 
 static con_ops_t con_ops = {
 	.open = remcons_open,
 	.close = remcons_close,
-	.read = NULL,
+	.read = remcons_read,
 	.write = remcons_write,
 	.sync = remcons_sync,
 	.clear = remcons_clear,
@@ -93,10 +103,10 @@ static con_ops_t con_ops = {
 	.get_pos = remcons_get_pos,
 	.get_size = remcons_get_size,
 	.get_color_cap = remcons_get_color_cap,
-	.set_style = NULL,
-	.set_color = NULL,
-	.set_rgb_color = NULL,
-	.set_cursor_visibility = NULL,
+	.set_style = remcons_set_style,
+	.set_color = remcons_set_color,
+	.set_rgb_color = remcons_set_rgb_color,
+	.set_cursor_visibility = remcons_cursor_visibility,
 	.get_event = remcons_get_event
 };
 
@@ -114,7 +124,14 @@ static loc_srv_t *remcons_srv;
 
 static telnet_user_t *srv_to_user(con_srv_t *srv)
 {
-	return srv->srvs->sarg;
+	remcons_t *remcons = (remcons_t *)srv->srvs->sarg;
+	return remcons->user;
+}
+
+static remcons_t *srv_to_remcons(con_srv_t *srv)
+{
+	remcons_t *remcons = (remcons_t *)srv->srvs->sarg;
+	return remcons;
 }
 
 static errno_t remcons_open(con_srvs_t *srvs, con_srv_t *srv)
@@ -140,6 +157,19 @@ static errno_t remcons_close(con_srv_t *srv)
 	return EOK;
 }
 
+static errno_t remcons_read(con_srv_t *srv, void *data, size_t size,
+    size_t *nread)
+{
+	telnet_user_t *user = srv_to_user(srv);
+	errno_t rc;
+
+	rc = telnet_user_recv(user, data, size, nread);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 static errno_t remcons_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	telnet_user_t *user = srv_to_user(srv);
@@ -160,14 +190,28 @@ static void remcons_sync(con_srv_t *srv)
 
 static void remcons_clear(con_srv_t *srv)
 {
-	(void) srv;
+	remcons_t *remcons = srv_to_remcons(srv);
+
+	if (remcons->enable_ctl) {
+		vt100_cls(remcons->vt);
+		vt100_set_pos(remcons->vt, 0, 0);
+		remcons->user->cursor_x = 0;
+		remcons->user->cursor_y = 0;
+	}
 }
 
 static void remcons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 {
+	remcons_t *remcons = srv_to_remcons(srv);
 	telnet_user_t *user = srv_to_user(srv);
 
-	telnet_user_update_cursor_x(user, col);
+	if (remcons->enable_ctl) {
+		vt100_set_pos(remcons->vt, col, row);
+		remcons->user->cursor_x = col;
+		remcons->user->cursor_y = row;
+	} else {
+		telnet_user_update_cursor_x(user, col);
+	}
 }
 
 static errno_t remcons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
@@ -175,27 +219,85 @@ static errno_t remcons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 	telnet_user_t *user = srv_to_user(srv);
 
 	*col = user->cursor_x;
-	*row = 0;
+	*row = user->cursor_y;
 
 	return EOK;
 }
 
 static errno_t remcons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 {
-	(void) srv;
+	remcons_t *remcons = srv_to_remcons(srv);
 
-	*cols = 100;
-	*rows = 1;
+	if (remcons->enable_ctl) {
+		*cols = 80;
+		*rows = 25;
+	} else {
+		*cols = 100;
+		*rows = 1;
+	}
 
 	return EOK;
 }
 
 static errno_t remcons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
 {
-	(void) srv;
-	*ccaps = CONSOLE_CAP_NONE;
+	remcons_t *remcons = srv_to_remcons(srv);
+
+	if (remcons->enable_ctl)
+		*ccaps = CONSOLE_CAP_INDEXED | CONSOLE_CAP_RGB;
+	else
+		*ccaps = 0;
 
 	return EOK;
+}
+
+static void remcons_set_style(con_srv_t *srv, console_style_t style)
+{
+	remcons_t *remcons = srv_to_remcons(srv);
+	char_attrs_t attrs;
+
+	if (remcons->enable_ctl) {
+		attrs.type = CHAR_ATTR_STYLE;
+		attrs.val.style = style;
+		vt100_set_attr(remcons->vt, attrs);
+	}
+}
+
+static void remcons_set_color(con_srv_t *srv, console_color_t bgcolor,
+    console_color_t fgcolor, console_color_attr_t flags)
+{
+	remcons_t *remcons = srv_to_remcons(srv);
+	char_attrs_t attrs;
+
+	if (remcons->enable_ctl) {
+		attrs.type = CHAR_ATTR_INDEX;
+		attrs.val.index.bgcolor = bgcolor;
+		attrs.val.index.fgcolor = fgcolor;
+		attrs.val.index.attr = flags;
+		vt100_set_attr(remcons->vt, attrs);
+	}
+}
+
+static void remcons_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
+    pixel_t fgcolor)
+{
+	remcons_t *remcons = srv_to_remcons(srv);
+	char_attrs_t attrs;
+
+	if (remcons->enable_ctl) {
+		attrs.type = CHAR_ATTR_RGB;
+		attrs.val.rgb.bgcolor = bgcolor;
+		attrs.val.rgb.fgcolor = fgcolor;
+		vt100_set_attr(remcons->vt, attrs);
+	}
+}
+
+static void remcons_cursor_visibility(con_srv_t *srv, bool visible)
+{
+	remcons_t *remcons = srv_to_remcons(srv);
+
+	if (remcons->enable_ctl)
+		vt100_cursor_visibility(remcons->vt, visible);
 }
 
 static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
@@ -286,6 +388,36 @@ static bool user_can_be_destroyed_no_lock(telnet_user_t *user)
 	    (user->locsrv_connection_count == 0);
 }
 
+static void remcons_vt_putchar(void *arg, char32_t c)
+{
+	remcons_t *remcons = (remcons_t *)arg;
+	char buf[STR_BOUNDS(1)];
+	size_t off;
+	errno_t rc;
+
+	(void)arg;
+
+	off = 0;
+	rc = chr_encode(c, buf, &off, sizeof(buf));
+	if (rc != EOK)
+		return;
+
+	(void)telnet_user_send_data(remcons->user, buf, off);
+}
+
+static void remcons_vt_cputs(void *arg, const char *str)
+{
+	remcons_t *remcons = (remcons_t *)arg;
+
+	(void)telnet_user_send_data(remcons->user, str, str_size(str));
+}
+
+static void remcons_vt_flush(void *arg)
+{
+	remcons_t *remcons = (remcons_t *)arg;
+	(void)remcons;
+}
+
 /** Handle network connection.
  *
  * @param lst  Listener
@@ -293,12 +425,37 @@ static bool user_can_be_destroyed_no_lock(telnet_user_t *user)
  */
 static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 {
+	char_attrs_t attrs;
+	remcons_t *remcons = calloc(1, sizeof(remcons_t));
+	assert(remcons != NULL); // XXX
 	telnet_user_t *user = telnet_user_create(conn);
 	assert(user);
 
+	remcons->enable_ctl = true;
+	remcons->user = user;
+
+	if (remcons->enable_ctl) {
+		user->rows = 25;
+	} else {
+		user->rows = 1;
+	}
+
+	remcons->vt = vt100_state_create((void *)remcons, 80, 25,
+	    remcons_vt_putchar, remcons_vt_cputs, remcons_vt_flush);
+	assert(remcons->vt != NULL); // XXX
+	remcons->vt->enable_rgb = true;
+
+	if (remcons->enable_ctl) {
+		attrs.type = CHAR_ATTR_STYLE;
+		attrs.val.style = STYLE_NORMAL;
+		vt100_set_sgr(remcons->vt, attrs);
+		vt100_cls(remcons->vt);
+		vt100_set_pos(remcons->vt, 0, 0);
+	}
+
 	con_srvs_init(&user->srvs);
 	user->srvs.ops = &con_ops;
-	user->srvs.sarg = user;
+	user->srvs.sarg = remcons;
 	user->srvs.abort_timeout = 1000;
 
 	telnet_user_add(user);

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -35,8 +36,18 @@
 #ifndef REMCONS_H_
 #define REMCONS_H_
 
+#include <stdbool.h>
+#include <vt/vt100.h>
+#include "user.h"
+
 #define NAME       "remcons"
 #define NAMESPACE  "term"
+
+typedef struct {
+	telnet_user_t *user;
+	vt100_state_t *vt;
+	bool enable_ctl;
+} remcons_t;
 
 #endif
 

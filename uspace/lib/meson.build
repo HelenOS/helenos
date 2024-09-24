@@ -120,6 +120,7 @@ libs = [
 	'wndmgt',
 
 	'ui',
+	'vt',
 ]
 
 # Generated list of include directory paths

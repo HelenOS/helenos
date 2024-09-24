@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2008 Martin Decky
  * All rights reserved.
@@ -36,8 +37,8 @@
 
 #include <errno.h>
 #include <io/chargrid.h>
+#include <vt/vt100.h>
 #include "../output.h"
-#include "../proto/vt100.h"
 #include "serial.h"
 
 #define SERIAL_COLS  80
@@ -83,7 +84,7 @@ static void serial_get_dimensions(outdev_t *dev, sysarg_t *cols,
 
 static console_caps_t serial_get_caps(outdev_t *dev)
 {
-	return (CONSOLE_CAP_STYLE | CONSOLE_CAP_INDEXED);
+	return (CONSOLE_CAP_STYLE | CONSOLE_CAP_INDEXED | CONSOLE_CAP_RGB);
 }
 
 static void serial_cursor_update(outdev_t *dev, sysarg_t prev_col,
@@ -124,11 +125,19 @@ static outdev_ops_t serial_ops = {
 errno_t serial_init(vt100_putuchar_t putuchar_fn,
     vt100_control_puts_t control_puts_fn, vt100_flush_t flush_fn)
 {
+	char_attrs_t attrs;
 	vt100_state_t *state =
-	    vt100_state_create(SERIAL_COLS, SERIAL_ROWS, putuchar_fn,
+	    vt100_state_create(NULL, SERIAL_COLS, SERIAL_ROWS, putuchar_fn,
 	    control_puts_fn, flush_fn);
 	if (state == NULL)
 		return ENOMEM;
+	state->enable_rgb = true;
+
+	vt100_cursor_visibility(state, false);
+	attrs.type = CHAR_ATTR_STYLE;
+	attrs.val.style = STYLE_NORMAL;
+	vt100_set_attr(state, attrs);
+	vt100_cls(state);
 
 	outdev_t *dev = outdev_register(&serial_ops, state);
 	if (dev == NULL) {

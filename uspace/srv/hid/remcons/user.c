@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -36,6 +37,7 @@
 #include <stdlib.h>
 #include <adt/prodcons.h>
 #include <errno.h>
+#include <mem.h>
 #include <str_error.h>
 #include <loc.h>
 #include <io/keycode.h>
@@ -47,6 +49,7 @@
 #include <io/console.h>
 #include <inttypes.h>
 #include <assert.h>
+#include "remcons.h"
 #include "user.h"
 #include "telnet.h"
 
@@ -89,6 +92,7 @@ telnet_user_t *telnet_user_create(tcp_conn_t *conn)
 	user->locsrv_connection_count = 0;
 
 	user->cursor_x = 0;
+	user->cursor_y = 0;
 
 	return user;
 }
@@ -181,34 +185,64 @@ bool telnet_user_is_zombie(telnet_user_t *user)
 	return zombie;
 }
 
+static errno_t telnet_user_fill_recv_buf(telnet_user_t *user)
+{
+	errno_t rc;
+	size_t recv_length;
+
+	rc = tcp_conn_recv_wait(user->conn, user->socket_buffer,
+	    BUFFER_SIZE, &recv_length);
+	if (rc != EOK)
+		return rc;
+
+	if (recv_length == 0) {
+		user->socket_closed = true;
+		user->srvs.aborted = true;
+		return ENOENT;
+	}
+
+	user->socket_buffer_len = recv_length;
+	user->socket_buffer_pos = 0;
+
+	return EOK;
+}
+
 /** Receive next byte from a socket (use buffering.
  * We need to return the value via extra argument because the read byte
  * might be negative.
  */
 static errno_t telnet_user_recv_next_byte_no_lock(telnet_user_t *user, char *byte)
 {
+	errno_t rc;
+
 	/* No more buffered data? */
 	if (user->socket_buffer_len <= user->socket_buffer_pos) {
-		errno_t rc;
-		size_t recv_length;
-
-		rc = tcp_conn_recv_wait(user->conn, user->socket_buffer,
-		    BUFFER_SIZE, &recv_length);
+		rc = telnet_user_fill_recv_buf(user);
 		if (rc != EOK)
 			return rc;
-
-		if (recv_length == 0) {
-			user->socket_closed = true;
-			user->srvs.aborted = true;
-			return ENOENT;
-		}
-
-		user->socket_buffer_len = recv_length;
-		user->socket_buffer_pos = 0;
 	}
 
 	*byte = user->socket_buffer[user->socket_buffer_pos++];
+	return EOK;
+}
 
+errno_t telnet_user_recv(telnet_user_t *user, void *data, size_t size,
+    size_t *nread)
+{
+	errno_t rc;
+	size_t nb;
+
+	/* No more buffered data? */
+	if (user->socket_buffer_len <= user->socket_buffer_pos) {
+		rc = telnet_user_fill_recv_buf(user);
+		if (rc != EOK)
+			return rc;
+	}
+
+	nb = user->socket_buffer_len - user->socket_buffer_pos;
+	memcpy(data, user->socket_buffer + user->socket_buffer_pos, nb);
+	user->socket_buffer_pos += nb;
+	*nread = nb;
 	return EOK;
 }
 
@@ -282,12 +316,14 @@ errno_t telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *ev
 
 		/* Skip zeros, bail-out on error. */
 		while (next_byte == 0) {
+			fibril_mutex_unlock(&user->guard);
+
 			errno_t rc = telnet_user_recv_next_byte_no_lock(user, &next_byte);
-			if (rc != EOK) {
-				fibril_mutex_unlock(&user->guard);
+			if (rc != EOK)
 				return rc;
-			}
+
 			uint8_t byte = (uint8_t) next_byte;
+			fibril_mutex_lock(&user->guard);
 
 			/* Skip telnet commands. */
 			if (inside_telnet_command) {
@@ -338,7 +374,8 @@ errno_t telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *ev
  * @param data Data buffer (not zero terminated).
  * @param size Size of @p data buffer in bytes.
  */
-static errno_t telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data, size_t size)
+static errno_t telnet_user_send_data_no_lock(telnet_user_t *user,
+    const char *data, size_t size)
 {
 	uint8_t *converted = malloc(3 * size + 1);
 	assert(converted);
@@ -350,6 +387,8 @@ static errno_t telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data,
 			converted[converted_size++] = 13;
 			converted[converted_size++] = 10;
 			user->cursor_x = 0;
+			if (user->cursor_y < user->rows - 1)
+				++user->cursor_y;
 		} else {
 			converted[converted_size++] = data[i];
 			if (data[i] == '\b') {
@@ -372,7 +411,8 @@ static errno_t telnet_user_send_data_no_lock(telnet_user_t *user, uint8_t *data,
  * @param data Data buffer (not zero terminated).
  * @param size Size of @p data buffer in bytes.
  */
-errno_t telnet_user_send_data(telnet_user_t *user, uint8_t *data, size_t size)
+errno_t telnet_user_send_data(telnet_user_t *user, const char *data,
+    size_t size)
 {
 	fibril_mutex_lock(&user->guard);
 
@@ -394,7 +434,7 @@ void telnet_user_update_cursor_x(telnet_user_t *user, int new_x)
 {
 	fibril_mutex_lock(&user->guard);
 	if (user->cursor_x - 1 == new_x) {
-		uint8_t data = '\b';
+		char data = '\b';
 		/* Ignore errors. */
 		telnet_user_send_data_no_lock(user, &data, 1);
 	}

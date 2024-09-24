@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -27,52 +27,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup output
+/** @addtogroup libvt
  * @{
  */
 
-#include <inttypes.h>
 #include <errno.h>
-#include <stddef.h>
+#include <io/color.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <io/color.h>
-#include <types/common.h>
-#include "vt100.h"
+#include <vt/vt100.h>
 
-/** Buffer size when creating actual VT100 commands.
- *
- * This is absurdly large but since we accept numbers via sysarg_t,
- * we make it big enough for the largest value to be on the safe side
- * (and to silence compiler too).
- *
- * TODO: find out if VT100 has some hard limits or perhaps simply cut-out
- * values larger than 16 bits or something.
- */
-#define MAX_CONTROL 64
-
-typedef enum {
-	CI_BLACK   = 0,
-	CI_RED     = 1,
-	CI_GREEN   = 2,
-	CI_BROWN   = 3,
-	CI_BLUE    = 4,
-	CI_MAGENTA = 5,
-	CI_CYAN    = 6,
-	CI_WHITE   = 7
-} sgr_color_index_t;
-
-typedef enum {
-	SGR_RESET       = 0,
-	SGR_BOLD        = 1,
-	SGR_UNDERLINE   = 4,
-	SGR_BLINK       = 5,
-	SGR_REVERSE     = 7,
-	SGR_FGCOLOR     = 30,
-	SGR_BGCOLOR     = 40
-} sgr_command_t;
-
-static sgr_color_index_t color_map[] = {
+sgr_color_index_t color_map[] = {
 	[COLOR_BLACK]   = CI_BLACK,
 	[COLOR_BLUE]    = CI_BLUE,
 	[COLOR_GREEN]   = CI_GREEN,
@@ -83,26 +48,44 @@ static sgr_color_index_t color_map[] = {
 	[COLOR_WHITE]   = CI_WHITE
 };
 
+void vt100_cls(vt100_state_t *state)
+{
+	state->control_puts(state->arg, "\033[2J");
+}
+
 /** ECMA-48 Set Graphics Rendition. */
 static void vt100_sgr(vt100_state_t *state, unsigned int mode)
 {
 	char control[MAX_CONTROL];
 
 	snprintf(control, MAX_CONTROL, "\033[%um", mode);
-	state->control_puts(control);
+	state->control_puts(state->arg, control);
 }
 
-static void vt100_set_pos(vt100_state_t *state, sysarg_t col, sysarg_t row)
+/** Set Graphics Rendition with 5 arguments. */
+static void vt100_sgr5(vt100_state_t *state, unsigned a1, unsigned a2,
+    unsigned a3, unsigned a4, unsigned a5)
+{
+	char control[MAX_CONTROL];
+
+	snprintf(control, MAX_CONTROL, "\033[%u;%u;%u;%u;%um",
+	    a1, a2, a3, a4, a5);
+	state->control_puts(state->arg, control);
+}
+
+void vt100_set_pos(vt100_state_t *state, sysarg_t col, sysarg_t row)
 {
 	char control[MAX_CONTROL];
 
 	snprintf(control, MAX_CONTROL, "\033[%" PRIun ";%" PRIun "f",
 	    row + 1, col + 1);
-	state->control_puts(control);
+	state->control_puts(state->arg, control);
 }
 
-static void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
+void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
 {
+	unsigned color;
+
 	switch (attrs.type) {
 	case CHAR_ATTR_STYLE:
 		switch (attrs.val.style) {
@@ -139,16 +122,31 @@ static void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
 
 		break;
 	case CHAR_ATTR_RGB:
-		vt100_sgr(state, SGR_RESET);
-
-		if (attrs.val.rgb.bgcolor <= attrs.val.rgb.fgcolor)
-			vt100_sgr(state, SGR_REVERSE);
-
+		if (state->enable_rgb == true) {
+			vt100_sgr5(state, 48, 2, RED(attrs.val.rgb.bgcolor),
+			    GREEN(attrs.val.rgb.bgcolor),
+			    BLUE(attrs.val.rgb.bgcolor));
+			vt100_sgr5(state, 38, 2, RED(attrs.val.rgb.fgcolor),
+			    GREEN(attrs.val.rgb.fgcolor),
+			    BLUE(attrs.val.rgb.fgcolor));
+		} else {
+			vt100_sgr(state, SGR_RESET);
+			color =
+			    ((RED(attrs.val.rgb.fgcolor) >= 0x80) ? COLOR_RED : 0) |
+			    ((GREEN(attrs.val.rgb.fgcolor) >= 0x80) ? COLOR_GREEN : 0) |
+			    ((BLUE(attrs.val.rgb.fgcolor) >= 0x80) ? COLOR_BLUE : 0);
+			vt100_sgr(state, SGR_FGCOLOR + color_map[color]);
+			color =
+			    ((RED(attrs.val.rgb.bgcolor) >= 0x80) ? COLOR_RED : 0) |
+			    ((GREEN(attrs.val.rgb.bgcolor) >= 0x80) ? COLOR_GREEN : 0) |
+			    ((BLUE(attrs.val.rgb.bgcolor) >= 0x80) ? COLOR_BLUE : 0);
+			vt100_sgr(state, SGR_BGCOLOR + color_map[color]);
+		}
 		break;
 	}
 }
 
-vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
+vt100_state_t *vt100_state_create(void *arg, sysarg_t cols, sysarg_t rows,
     vt100_putuchar_t putuchar_fn, vt100_control_puts_t control_puts_fn,
     vt100_flush_t flush_fn)
 {
@@ -156,6 +154,7 @@ vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
 	if (state == NULL)
 		return NULL;
 
+	state->arg = arg;
 	state->putuchar = putuchar_fn;
 	state->control_puts = control_puts_fn;
 	state->flush = flush_fn;
@@ -168,13 +167,6 @@ vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
 
 	state->cur_attrs.type = CHAR_ATTR_STYLE;
 	state->cur_attrs.val.style = STYLE_NORMAL;
-
-	/* Initialize graphic rendition attributes */
-	vt100_sgr(state, SGR_RESET);
-	vt100_sgr(state, SGR_FGCOLOR + CI_BLACK);
-	vt100_sgr(state, SGR_BGCOLOR + CI_WHITE);
-	state->control_puts("\033[2J");
-	state->control_puts("\033[?25l");
 
 	return state;
 }
@@ -224,14 +216,14 @@ void vt100_set_attr(vt100_state_t *state, char_attrs_t attrs)
 void vt100_cursor_visibility(vt100_state_t *state, bool visible)
 {
 	if (visible)
-		state->control_puts("\033[?25h");
+		state->control_puts(state->arg, "\033[?25h");
 	else
-		state->control_puts("\033[?25l");
+		state->control_puts(state->arg, "\033[?25l");
 }
 
 void vt100_putuchar(vt100_state_t *state, char32_t ch)
 {
-	state->putuchar(ch == 0 ? ' ' : ch);
+	state->putuchar(state->arg, ch == 0 ? ' ' : ch);
 	state->cur_col++;
 
 	if (state->cur_col >= state->cols) {
@@ -242,7 +234,7 @@ void vt100_putuchar(vt100_state_t *state, char32_t ch)
 
 void vt100_flush(vt100_state_t *state)
 {
-	state->flush();
+	state->flush(state->arg);
 }
 
 /** @}
