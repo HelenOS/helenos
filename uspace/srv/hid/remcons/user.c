@@ -72,7 +72,8 @@ telnet_user_t *telnet_user_create(tcp_conn_t *conn)
 
 	user->id = ++telnet_user_id_counter;
 
-	int rc = asprintf(&user->service_name, "%s/telnet%d", NAMESPACE, user->id);
+	int rc = asprintf(&user->service_name, "%s/telnet%u.%d", NAMESPACE,
+	    (unsigned)task_get_id(), user->id);
 	if (rc < 0) {
 		free(user);
 		return NULL;

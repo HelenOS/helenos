@@ -58,6 +58,8 @@
 #define APP_GETTERM  "/app/getterm"
 #define APP_SHELL "/app/bdsh"
 
+#define DEF_PORT 2223
+
 /** Telnet commands to force character mode
  * (redundant to be on the safe side).
  * See
@@ -121,6 +123,8 @@ static tcp_cb_t conn_cb = {
 };
 
 static loc_srv_t *remcons_srv;
+static bool no_ctl;
+static bool no_rgb;
 
 static telnet_user_t *srv_to_user(con_srv_t *srv)
 {
@@ -431,7 +435,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	telnet_user_t *user = telnet_user_create(conn);
 	assert(user);
 
-	remcons->enable_ctl = true;
+	remcons->enable_ctl = !no_ctl;
 	remcons->user = user;
 
 	if (remcons->enable_ctl) {
@@ -443,7 +447,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	remcons->vt = vt100_state_create((void *)remcons, 80, 25,
 	    remcons_vt_putchar, remcons_vt_cputs, remcons_vt_flush);
 	assert(remcons->vt != NULL); // XXX
-	remcons->vt->enable_rgb = true;
+	remcons->vt->enable_rgb = !no_rgb;
 
 	if (remcons->enable_ctl) {
 		attrs.type = CHAR_ATTR_STYLE;
@@ -503,12 +507,62 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	telnet_user_destroy(user);
 }
 
+static void print_syntax(void)
+{
+	fprintf(stderr, "syntax: remcons [<options>]\n");
+	fprintf(stderr, "\t--no-ctl      Disable all terminal control sequences\n");
+	fprintf(stderr, "\t--no-rgb      Disable RGB colors\n");
+	fprintf(stderr, "\t--port <port> Listening port (default: %u)\n",
+	    DEF_PORT);
+}
+
 int main(int argc, char *argv[])
 {
 	errno_t rc;
 	tcp_listener_t *lst;
 	tcp_t *tcp;
 	inet_ep_t ep;
+	uint16_t port;
+	int i;
+
+	port = DEF_PORT;
+
+	i = 1;
+	while (i < argc) {
+		if (argv[i][0] == '-') {
+			if (str_cmp(argv[i], "--no-ctl") == 0) {
+				no_ctl = true;
+			} else if (str_cmp(argv[i], "--no-rgb") == 0) {
+				no_rgb = true;
+			} else if (str_cmp(argv[i], "--port") == 0) {
+				++i;
+				if (i >= argc) {
+					fprintf(stderr, "Option argument "
+					    "missing.\n");
+					print_syntax();
+					return EINVAL;
+				}
+				rc = str_uint16_t(argv[i], NULL, 10, true, &port);
+				if (rc != EOK) {
+					fprintf(stderr, "Invalid port number "
+					    "'%s'.\n", argv[i]);
+					print_syntax();
+					return EINVAL;
+				}
+			} else {
+				fprintf(stderr, "Unknown option '%s'.\n",
+				    argv[i]);
+				print_syntax();
+				return EINVAL;
+			}
+		} else {
+			fprintf(stderr, "Unexpected argument.\n");
+			print_syntax();
+			return EINVAL;
+		}
+
+		++i;
+	}
 
 	async_set_fallback_port_handler(client_connection, NULL);
 	rc = loc_server_register(NAME, &remcons_srv);
@@ -524,7 +578,7 @@ int main(int argc, char *argv[])
 	}
 
 	inet_ep_init(&ep);
-	ep.port = 2223;
+	ep.port = port;
 
 	rc = tcp_listener_create(tcp, &ep, &listen_cb, NULL, &conn_cb, NULL,
 	    &lst);
