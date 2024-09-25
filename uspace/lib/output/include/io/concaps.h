@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,9 +37,10 @@
 
 typedef enum {
 	CONSOLE_CAP_NONE = 0,
-	CONSOLE_CAP_STYLE = 1,
-	CONSOLE_CAP_INDEXED = 2,
-	CONSOLE_CAP_RGB = 4
+	CONSOLE_CAP_CURSORCTL = 1,
+	CONSOLE_CAP_STYLE = 2,
+	CONSOLE_CAP_INDEXED = 4,
+	CONSOLE_CAP_RGB = 8
 } console_caps_t;
 
 #endif

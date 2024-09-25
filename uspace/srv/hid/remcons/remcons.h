@@ -47,6 +47,7 @@ typedef struct {
 	telnet_user_t *user;
 	vt100_state_t *vt;
 	bool enable_ctl;
+	bool enable_rgb;
 } remcons_t;
 
 #endif

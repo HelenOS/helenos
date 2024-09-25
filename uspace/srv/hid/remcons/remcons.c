@@ -247,10 +247,15 @@ static errno_t remcons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
 {
 	remcons_t *remcons = srv_to_remcons(srv);
 
-	if (remcons->enable_ctl)
-		*ccaps = CONSOLE_CAP_INDEXED | CONSOLE_CAP_RGB;
-	else
-		*ccaps = 0;
+	*ccaps = 0;
+
+	if (remcons->enable_ctl) {
+		*ccaps |= CONSOLE_CAP_CURSORCTL | CONSOLE_CAP_STYLE |
+		    CONSOLE_CAP_INDEXED;
+	}
+
+	if (remcons->enable_rgb)
+		*ccaps |= CONSOLE_CAP_RGB;
 
 	return EOK;
 }
@@ -436,6 +441,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	assert(user);
 
 	remcons->enable_ctl = !no_ctl;
+	remcons->enable_rgb = !no_ctl && !no_rgb;
 	remcons->user = user;
 
 	if (remcons->enable_ctl) {
@@ -447,7 +453,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	remcons->vt = vt100_state_create((void *)remcons, 80, 25,
 	    remcons_vt_putchar, remcons_vt_cputs, remcons_vt_flush);
 	assert(remcons->vt != NULL); // XXX
-	remcons->vt->enable_rgb = !no_rgb;
+	remcons->vt->enable_rgb = remcons->enable_rgb;
 
 	if (remcons->enable_ctl) {
 		attrs.type = CHAR_ATTR_STYLE;
