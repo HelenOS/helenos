@@ -33,6 +33,7 @@
 /** @file
  */
 
+#include <as.h>
 #include <async.h>
 #include <errno.h>
 #include <io/con_srv.h>
@@ -93,6 +94,10 @@ static void remcons_set_color(con_srv_t *, console_color_t,
 static void remcons_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void remcons_cursor_visibility(con_srv_t *, bool);
 static errno_t remcons_get_event(con_srv_t *, cons_event_t *);
+static errno_t remcons_map(con_srv_t *, sysarg_t, sysarg_t, charfield_t **);
+static void remcons_unmap(con_srv_t *);
+static void remcons_update(con_srv_t *, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
 
 static con_ops_t con_ops = {
 	.open = remcons_open,
@@ -109,7 +114,10 @@ static con_ops_t con_ops = {
 	.set_color = remcons_set_color,
 	.set_rgb_color = remcons_set_rgb_color,
 	.set_cursor_visibility = remcons_cursor_visibility,
-	.get_event = remcons_get_event
+	.get_event = remcons_get_event,
+	.map = remcons_map,
+	.unmap = remcons_unmap,
+	.update = remcons_update
 };
 
 static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn);
@@ -176,10 +184,14 @@ static errno_t remcons_read(con_srv_t *srv, void *data, size_t size,
 
 static errno_t remcons_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
-	telnet_user_t *user = srv_to_user(srv);
+	remcons_t *remcons = srv_to_remcons(srv);
 	errno_t rc;
 
-	rc = telnet_user_send_data(user, data, size);
+	rc = telnet_user_send_data(remcons->user, data, size);
+	if (rc != EOK)
+		return rc;
+
+	rc = telnet_user_flush(remcons->user);
 	if (rc != EOK)
 		return rc;
 
@@ -213,6 +225,7 @@ static void remcons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 		vt100_set_pos(remcons->vt, col, row);
 		remcons->user->cursor_x = col;
 		remcons->user->cursor_y = row;
+		(void)telnet_user_flush(remcons->user);
 	} else {
 		telnet_user_update_cursor_x(user, col);
 	}
@@ -305,8 +318,15 @@ static void remcons_cursor_visibility(con_srv_t *srv, bool visible)
 {
 	remcons_t *remcons = srv_to_remcons(srv);
 
-	if (remcons->enable_ctl)
+	if (remcons->enable_ctl) {
+		if (!remcons->curs_visible && visible) {
+			vt100_set_pos(remcons->vt, remcons->user->cursor_x,
+			    remcons->user->cursor_y);
+		}
 		vt100_cursor_visibility(remcons->vt, visible);
+	}
+
+	remcons->curs_visible = visible;
 }
 
 static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
@@ -326,6 +346,99 @@ static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 	event->ev.key = kevent;
 
 	return EOK;
+}
+
+static errno_t remcons_map(con_srv_t *srv, sysarg_t cols, sysarg_t rows,
+    charfield_t **rbuf)
+{
+	remcons_t *remcons = srv_to_remcons(srv);
+	void *buf;
+
+	if (!remcons->enable_ctl)
+		return ENOTSUP;
+
+	if (remcons->ubuf != NULL)
+		return EBUSY;
+
+	buf = as_area_create(AS_AREA_ANY, cols * rows * sizeof(charfield_t),
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
+	if (buf == AS_MAP_FAILED)
+		return ENOMEM;
+
+	remcons->ucols = cols;
+	remcons->urows = rows;
+	remcons->ubuf = buf;
+
+	*rbuf = buf;
+	return EOK;
+
+}
+
+static void remcons_unmap(con_srv_t *srv)
+{
+	remcons_t *remcons = srv_to_remcons(srv);
+	void *buf;
+
+	buf = remcons->ubuf;
+	remcons->ubuf = NULL;
+
+	if (buf != NULL)
+		as_area_destroy(buf);
+}
+
+static void remcons_update(con_srv_t *srv, sysarg_t c0, sysarg_t r0,
+    sysarg_t c1, sysarg_t r1)
+{
+	remcons_t *remcons = srv_to_remcons(srv);
+	charfield_t *ch;
+	sysarg_t col, row;
+	sysarg_t old_x, old_y;
+
+	if (remcons->ubuf == NULL)
+		return;
+
+	/* Make sure we have meaningful coordinates, within bounds */
+
+	if (c1 > remcons->ucols)
+		c1 = remcons->ucols;
+	if (c1 > remcons->user->cols)
+		c1 = remcons->user->cols;
+	if (c0 >= c1)
+		return;
+
+	if (r1 > remcons->urows)
+		r1 = remcons->urows;
+	if (r1 > remcons->user->rows)
+		r1 = remcons->user->rows;
+	if (r0 >= r1)
+		return;
+
+	/* Update screen from user buffer */
+
+	old_x = remcons->user->cursor_x;
+	old_y = remcons->user->cursor_y;
+
+	if (remcons->curs_visible)
+		vt100_cursor_visibility(remcons->vt, false);
+
+	for (row = r0; row < r1; row++) {
+		for (col = c0; col < c1; col++) {
+			vt100_set_pos(remcons->vt, col, row);
+			ch = &remcons->ubuf[row * remcons->ucols + col];
+			vt100_set_attr(remcons->vt, ch->attrs);
+			vt100_putuchar(remcons->vt, ch->ch);
+		}
+	}
+
+	if (remcons->curs_visible) {
+		old_x = remcons->user->cursor_x = old_x;
+		remcons->user->cursor_y = old_y;
+		vt100_set_pos(remcons->vt, old_x, old_y);
+		vt100_cursor_visibility(remcons->vt, true);
+	}
+
+	/* Flush data */
+	(void)telnet_user_flush(remcons->user);
 }
 
 /** Callback when client connects to a telnet terminal. */
@@ -424,7 +537,7 @@ static void remcons_vt_cputs(void *arg, const char *str)
 static void remcons_vt_flush(void *arg)
 {
 	remcons_t *remcons = (remcons_t *)arg;
-	(void)remcons;
+	(void)telnet_user_flush(remcons->user);
 }
 
 /** Handle network connection.
@@ -445,10 +558,14 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	remcons->user = user;
 
 	if (remcons->enable_ctl) {
+		user->cols = 80;
 		user->rows = 25;
 	} else {
+		user->cols = 100;
 		user->rows = 1;
 	}
+
+	remcons->curs_visible = true;
 
 	remcons->vt = vt100_state_create((void *)remcons, 80, 25,
 	    remcons_vt_putchar, remcons_vt_cputs, remcons_vt_flush);

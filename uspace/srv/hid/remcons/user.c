@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <adt/prodcons.h>
 #include <errno.h>
+#include <macros.h>
 #include <mem.h>
 #include <str_error.h>
 #include <loc.h>
@@ -85,6 +86,7 @@ telnet_user_t *telnet_user_create(tcp_conn_t *conn)
 	link_initialize(&user->link);
 	user->socket_buffer_len = 0;
 	user->socket_buffer_pos = 0;
+	user->send_buf_used = 0;
 
 	fibril_condvar_initialize(&user->refcount_cv);
 	fibril_mutex_initialize(&user->guard);
@@ -369,6 +371,36 @@ errno_t telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *ev
 	return EOK;
 }
 
+static errno_t telnet_user_send_raw(telnet_user_t *user,
+    const void *data, size_t size)
+{
+	size_t remain;
+	size_t now;
+	errno_t rc;
+
+	remain = sizeof(user->send_buf) - user->send_buf_used;
+	while (size > 0) {
+		if (remain == 0) {
+			rc = tcp_conn_send(user->conn, user->send_buf,
+			    sizeof(user->send_buf));
+			if (rc != EOK)
+				return rc;
+
+			user->send_buf_used = 0;
+			remain = sizeof(user->send_buf);
+		}
+
+		now = min(remain, size);
+		memcpy(user->send_buf + user->send_buf_used, data, now);
+		user->send_buf_used += now;
+		remain -= now;
+		data += now;
+		size -= now;
+	}
+
+	return EOK;
+}
+
 /** Send data (convert them first) to the socket, no locking.
  *
  * @param user Telnet user.
@@ -388,7 +420,7 @@ static errno_t telnet_user_send_data_no_lock(telnet_user_t *user,
 			converted[converted_size++] = 13;
 			converted[converted_size++] = 10;
 			user->cursor_x = 0;
-			if (user->cursor_y < user->rows - 1)
+			if (user->cursor_y < (int)user->rows - 1)
 				++user->cursor_y;
 		} else {
 			converted[converted_size++] = data[i];
@@ -400,7 +432,7 @@ static errno_t telnet_user_send_data_no_lock(telnet_user_t *user,
 		}
 	}
 
-	errno_t rc = tcp_conn_send(user->conn, converted, converted_size);
+	errno_t rc = telnet_user_send_raw(user, converted, converted_size);
 	free(converted);
 
 	return rc;
@@ -422,6 +454,23 @@ errno_t telnet_user_send_data(telnet_user_t *user, const char *data,
 	fibril_mutex_unlock(&user->guard);
 
 	return rc;
+}
+
+errno_t telnet_user_flush(telnet_user_t *user)
+{
+	errno_t rc;
+
+	fibril_mutex_lock(&user->guard);
+	rc = tcp_conn_send(user->conn, user->send_buf, user->send_buf_used);
+
+	if (rc != EOK) {
+		fibril_mutex_unlock(&user->guard);
+		return rc;
+	}
+
+	user->send_buf_used = 0;
+	fibril_mutex_unlock(&user->guard);
+	return EOK;
 }
 
 /** Update cursor X position.

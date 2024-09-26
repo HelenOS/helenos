@@ -43,11 +43,16 @@
 #define NAME       "remcons"
 #define NAMESPACE  "term"
 
+/** Remote console */
 typedef struct {
-	telnet_user_t *user;
-	vt100_state_t *vt;
-	bool enable_ctl;
-	bool enable_rgb;
+	telnet_user_t *user;	/**< telnet user */
+	vt100_state_t *vt;	/**< virtual terminal driver */
+	bool enable_ctl;	/**< enable escape control sequences */
+	bool enable_rgb;	/**< enable RGB color setting */
+	sysarg_t ucols;		/**< number of columns in user buffer */
+	sysarg_t urows;		/**< number of rows in user buffer */
+	charfield_t *ubuf;	/**< user buffer */
+	bool curs_visible;	/**< cursor is visible */
 } remcons_t;
 
 #endif
