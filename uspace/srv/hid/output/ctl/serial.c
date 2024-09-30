@@ -44,6 +44,20 @@
 #define SERIAL_COLS  80
 #define SERIAL_ROWS  24
 
+static serial_putuchar_t serial_putuchar_fn;
+static serial_control_puts_t serial_control_puts_fn;
+static serial_flush_t serial_flush_fn;
+
+static void serial_vt_putuchar(void *, char32_t);
+static void serial_vt_control_puts(void *, const char *);
+static void serial_vt_flush(void *);
+
+static vt100_cb_t serial_vt_cb = {
+	.putuchar = serial_vt_putuchar,
+	.control_puts = serial_vt_control_puts,
+	.flush = serial_vt_flush
+};
+
 /** Draw the character at the specified position.
  *
  * @param state VT100 protocol state.
@@ -123,13 +137,17 @@ static outdev_ops_t serial_ops = {
 	.flush = serial_flush
 };
 
-errno_t serial_init(vt100_putuchar_t putuchar_fn,
-    vt100_control_puts_t control_puts_fn, vt100_flush_t flush_fn)
+errno_t serial_init(serial_putuchar_t putuchar_fn,
+    serial_control_puts_t control_puts_fn, serial_flush_t flush_fn)
 {
 	char_attrs_t attrs;
-	vt100_t *vt100 =
-	    vt100_create(NULL, SERIAL_COLS, SERIAL_ROWS, putuchar_fn,
-	    control_puts_fn, flush_fn);
+	vt100_t *vt100;
+
+	serial_putuchar_fn = putuchar_fn;
+	serial_control_puts_fn = control_puts_fn;
+	serial_flush_fn = flush_fn;
+
+	vt100 = vt100_create(NULL, SERIAL_COLS, SERIAL_ROWS, &serial_vt_cb);
 	if (vt100 == NULL)
 		return ENOMEM;
 	vt100->enable_rgb = true;
@@ -147,6 +165,24 @@ errno_t serial_init(vt100_putuchar_t putuchar_fn,
 	}
 
 	return EOK;
+}
+
+static void serial_vt_putuchar(void *arg, char32_t c)
+{
+	(void)arg;
+	serial_putuchar_fn(c);
+}
+
+static void serial_vt_control_puts(void *arg, const char *str)
+{
+	(void)arg;
+	serial_control_puts_fn(str);
+}
+
+static void serial_vt_flush(void *arg)
+{
+	(void)arg;
+	serial_flush_fn();
 }
 
 /** @}

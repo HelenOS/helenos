@@ -50,7 +50,7 @@ sgr_color_index_t color_map[] = {
 
 void vt100_cls(vt100_t *state)
 {
-	state->control_puts(state->arg, "\033[2J");
+	state->cb->control_puts(state->arg, "\033[2J");
 }
 
 /** ECMA-48 Set Graphics Rendition. */
@@ -59,7 +59,7 @@ static void vt100_sgr(vt100_t *state, unsigned int mode)
 	char control[MAX_CONTROL];
 
 	snprintf(control, MAX_CONTROL, "\033[%um", mode);
-	state->control_puts(state->arg, control);
+	state->cb->control_puts(state->arg, control);
 }
 
 /** Set Graphics Rendition with 5 arguments. */
@@ -70,7 +70,7 @@ static void vt100_sgr5(vt100_t *state, unsigned a1, unsigned a2,
 
 	snprintf(control, MAX_CONTROL, "\033[%u;%u;%u;%u;%um",
 	    a1, a2, a3, a4, a5);
-	state->control_puts(state->arg, control);
+	state->cb->control_puts(state->arg, control);
 }
 
 void vt100_set_pos(vt100_t *state, sysarg_t col, sysarg_t row)
@@ -79,7 +79,7 @@ void vt100_set_pos(vt100_t *state, sysarg_t col, sysarg_t row)
 
 	snprintf(control, MAX_CONTROL, "\033[%" PRIun ";%" PRIun "f",
 	    row + 1, col + 1);
-	state->control_puts(state->arg, control);
+	state->cb->control_puts(state->arg, control);
 }
 
 void vt100_set_sgr(vt100_t *state, char_attrs_t attrs)
@@ -146,18 +146,14 @@ void vt100_set_sgr(vt100_t *state, char_attrs_t attrs)
 	}
 }
 
-vt100_t *vt100_create(void *arg, sysarg_t cols, sysarg_t rows,
-    vt100_putuchar_t putuchar_fn, vt100_control_puts_t control_puts_fn,
-    vt100_flush_t flush_fn)
+vt100_t *vt100_create(void *arg, sysarg_t cols, sysarg_t rows, vt100_cb_t *cb)
 {
 	vt100_t *state = malloc(sizeof(vt100_t));
 	if (state == NULL)
 		return NULL;
 
+	state->cb = cb;
 	state->arg = arg;
-	state->putuchar = putuchar_fn;
-	state->control_puts = control_puts_fn;
-	state->flush = flush_fn;
 
 	state->cols = cols;
 	state->rows = rows;
@@ -216,14 +212,14 @@ void vt100_set_attr(vt100_t *state, char_attrs_t attrs)
 void vt100_cursor_visibility(vt100_t *state, bool visible)
 {
 	if (visible)
-		state->control_puts(state->arg, "\033[?25h");
+		state->cb->control_puts(state->arg, "\033[?25h");
 	else
-		state->control_puts(state->arg, "\033[?25l");
+		state->cb->control_puts(state->arg, "\033[?25l");
 }
 
 void vt100_putuchar(vt100_t *state, char32_t ch)
 {
-	state->putuchar(state->arg, ch == 0 ? ' ' : ch);
+	state->cb->putuchar(state->arg, ch == 0 ? ' ' : ch);
 	state->cur_col++;
 
 	if (state->cur_col >= state->cols) {
@@ -234,7 +230,7 @@ void vt100_putuchar(vt100_t *state, char32_t ch)
 
 void vt100_flush(vt100_t *state)
 {
-	state->flush(state->arg);
+	state->cb->flush(state->arg);
 }
 
 /** @}

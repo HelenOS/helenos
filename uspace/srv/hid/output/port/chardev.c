@@ -64,11 +64,9 @@ static FIBRIL_MUTEX_INITIALIZE(discovery_lock);
 static bool discovery_finished;
 static FIBRIL_CONDVAR_INITIALIZE(discovery_cv);
 
-static void chardev_flush(void *arg)
+static void chardev_flush(void)
 {
 	size_t nwr;
-
-	(void)arg;
 
 	if (chardev_bused == 0)
 		return;
@@ -82,18 +80,16 @@ static void chardev_flush(void *arg)
 static void chardev_putchar(char ch)
 {
 	if (chardev_bused == chardev_buf_size)
-		chardev_flush(NULL);
+		chardev_flush();
 	chardev_buf[chardev_bused++] = (uint8_t) ch;
 }
 
-static void chardev_putuchar(void *arg, char32_t ch)
+static void chardev_putuchar(char32_t ch)
 {
 	char buf[STR_BOUNDS(1)];
 	size_t off;
 	size_t i;
 	errno_t rc;
-
-	(void)arg;
 
 	off = 0;
 	rc = chr_encode(ch, buf, &off, sizeof(buf));
@@ -104,13 +100,13 @@ static void chardev_putuchar(void *arg, char32_t ch)
 		chardev_putchar(buf[i]);
 }
 
-static void chardev_control_puts(void *arg, const char *str)
+static void chardev_control_puts(const char *str)
 {
 	const char *p;
 
 	p = str;
 	while (*p != '\0')
-		chardev_putuchar(arg, *p++);
+		chardev_putuchar(*p++);
 }
 
 static bool find_output_dev(service_id_t *svcid)

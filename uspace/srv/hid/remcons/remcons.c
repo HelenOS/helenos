@@ -120,6 +120,16 @@ static con_ops_t con_ops = {
 	.update = remcons_update
 };
 
+static void remcons_vt_putchar(void *, char32_t);
+static void remcons_vt_cputs(void *, const char *);
+static void remcons_vt_flush(void *);
+
+static vt100_cb_t remcons_vt_cb = {
+	.putuchar = remcons_vt_putchar,
+	.control_puts = remcons_vt_cputs,
+	.flush = remcons_vt_flush
+};
+
 static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn);
 
 static tcp_listen_cb_t listen_cb = {
@@ -567,8 +577,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 
 	remcons->curs_visible = true;
 
-	remcons->vt = vt100_create((void *)remcons, 80, 25,
-	    remcons_vt_putchar, remcons_vt_cputs, remcons_vt_flush);
+	remcons->vt = vt100_create((void *)remcons, 80, 25, &remcons_vt_cb);
 	assert(remcons->vt != NULL); // XXX
 	remcons->vt->enable_rgb = remcons->enable_rgb;
 

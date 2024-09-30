@@ -70,30 +70,39 @@ typedef enum {
 	SGR_BGCOLOR     = 40
 } sgr_command_t;
 
-typedef void (*vt100_putuchar_t)(void *, char32_t ch);
-typedef void (*vt100_control_puts_t)(void *, const char *str);
-typedef void (*vt100_flush_t)(void *);
-
 typedef struct {
+	void (*putuchar)(void *, char32_t);
+	void (*control_puts)(void *, const char *);
+	void (*flush)(void *);
+} vt100_cb_t;
+
+/** VT100 instance */
+typedef struct {
+	/** Number of columns */
 	sysarg_t cols;
+	/** Number of rows */
 	sysarg_t rows;
 
+	/** Current column */
 	sysarg_t cur_col;
+	/** Current row */
 	sysarg_t cur_row;
+	/** Current attributes */
 	char_attrs_t cur_attrs;
 
+	/** Enable RGB color */
 	bool enable_rgb;
 
+	/** Callback functions */
+	vt100_cb_t *cb;
+	/** Argument to callback functions */
 	void *arg;
-	vt100_putuchar_t putuchar;
-	vt100_control_puts_t control_puts;
-	vt100_flush_t flush;
 } vt100_t;
 
 extern sgr_color_index_t color_map[];
 
 extern vt100_t *vt100_create(void *, sysarg_t, sysarg_t,
-    vt100_putuchar_t, vt100_control_puts_t, vt100_flush_t);
+    vt100_cb_t *);
 extern void vt100_destroy(vt100_t *);
 
 extern errno_t vt100_yield(vt100_t *);
