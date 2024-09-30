@@ -48,13 +48,13 @@ sgr_color_index_t color_map[] = {
 	[COLOR_WHITE]   = CI_WHITE
 };
 
-void vt100_cls(vt100_state_t *state)
+void vt100_cls(vt100_t *state)
 {
 	state->control_puts(state->arg, "\033[2J");
 }
 
 /** ECMA-48 Set Graphics Rendition. */
-static void vt100_sgr(vt100_state_t *state, unsigned int mode)
+static void vt100_sgr(vt100_t *state, unsigned int mode)
 {
 	char control[MAX_CONTROL];
 
@@ -63,7 +63,7 @@ static void vt100_sgr(vt100_state_t *state, unsigned int mode)
 }
 
 /** Set Graphics Rendition with 5 arguments. */
-static void vt100_sgr5(vt100_state_t *state, unsigned a1, unsigned a2,
+static void vt100_sgr5(vt100_t *state, unsigned a1, unsigned a2,
     unsigned a3, unsigned a4, unsigned a5)
 {
 	char control[MAX_CONTROL];
@@ -73,7 +73,7 @@ static void vt100_sgr5(vt100_state_t *state, unsigned a1, unsigned a2,
 	state->control_puts(state->arg, control);
 }
 
-void vt100_set_pos(vt100_state_t *state, sysarg_t col, sysarg_t row)
+void vt100_set_pos(vt100_t *state, sysarg_t col, sysarg_t row)
 {
 	char control[MAX_CONTROL];
 
@@ -82,7 +82,7 @@ void vt100_set_pos(vt100_state_t *state, sysarg_t col, sysarg_t row)
 	state->control_puts(state->arg, control);
 }
 
-void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
+void vt100_set_sgr(vt100_t *state, char_attrs_t attrs)
 {
 	unsigned color;
 
@@ -146,11 +146,11 @@ void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
 	}
 }
 
-vt100_state_t *vt100_state_create(void *arg, sysarg_t cols, sysarg_t rows,
+vt100_t *vt100_create(void *arg, sysarg_t cols, sysarg_t rows,
     vt100_putuchar_t putuchar_fn, vt100_control_puts_t control_puts_fn,
     vt100_flush_t flush_fn)
 {
-	vt100_state_t *state = malloc(sizeof(vt100_state_t));
+	vt100_t *state = malloc(sizeof(vt100_t));
 	if (state == NULL)
 		return NULL;
 
@@ -171,29 +171,29 @@ vt100_state_t *vt100_state_create(void *arg, sysarg_t cols, sysarg_t rows,
 	return state;
 }
 
-void vt100_state_destroy(vt100_state_t *state)
+void vt100_destroy(vt100_t *state)
 {
 	free(state);
 }
 
-void vt100_get_dimensions(vt100_state_t *state, sysarg_t *cols,
+void vt100_get_dimensions(vt100_t *state, sysarg_t *cols,
     sysarg_t *rows)
 {
 	*cols = state->cols;
 	*rows = state->rows;
 }
 
-errno_t vt100_yield(vt100_state_t *state)
+errno_t vt100_yield(vt100_t *state)
 {
 	return EOK;
 }
 
-errno_t vt100_claim(vt100_state_t *state)
+errno_t vt100_claim(vt100_t *state)
 {
 	return EOK;
 }
 
-void vt100_goto(vt100_state_t *state, sysarg_t col, sysarg_t row)
+void vt100_goto(vt100_t *state, sysarg_t col, sysarg_t row)
 {
 	if ((col >= state->cols) || (row >= state->rows))
 		return;
@@ -205,7 +205,7 @@ void vt100_goto(vt100_state_t *state, sysarg_t col, sysarg_t row)
 	}
 }
 
-void vt100_set_attr(vt100_state_t *state, char_attrs_t attrs)
+void vt100_set_attr(vt100_t *state, char_attrs_t attrs)
 {
 	if (!attrs_same(state->cur_attrs, attrs)) {
 		vt100_set_sgr(state, attrs);
@@ -213,7 +213,7 @@ void vt100_set_attr(vt100_state_t *state, char_attrs_t attrs)
 	}
 }
 
-void vt100_cursor_visibility(vt100_state_t *state, bool visible)
+void vt100_cursor_visibility(vt100_t *state, bool visible)
 {
 	if (visible)
 		state->control_puts(state->arg, "\033[?25h");
@@ -221,7 +221,7 @@ void vt100_cursor_visibility(vt100_state_t *state, bool visible)
 		state->control_puts(state->arg, "\033[?25l");
 }
 
-void vt100_putuchar(vt100_state_t *state, char32_t ch)
+void vt100_putuchar(vt100_t *state, char32_t ch)
 {
 	state->putuchar(state->arg, ch == 0 ? ' ' : ch);
 	state->cur_col++;
@@ -232,7 +232,7 @@ void vt100_putuchar(vt100_state_t *state, char32_t ch)
 	}
 }
 
-void vt100_flush(vt100_state_t *state)
+void vt100_flush(vt100_t *state)
 {
 	state->flush(state->arg);
 }

@@ -52,7 +52,7 @@
  * @param row   Vertical screen position.
  *
  */
-static void draw_char(vt100_state_t *state, charfield_t *field,
+static void draw_char(vt100_t *state, charfield_t *field,
     sysarg_t col, sysarg_t row)
 {
 	vt100_goto(state, col, row);
@@ -62,14 +62,14 @@ static void draw_char(vt100_state_t *state, charfield_t *field,
 
 static errno_t serial_yield(outdev_t *dev)
 {
-	vt100_state_t *state = (vt100_state_t *) dev->data;
+	vt100_t *state = (vt100_t *) dev->data;
 
 	return vt100_yield(state);
 }
 
 static errno_t serial_claim(outdev_t *dev)
 {
-	vt100_state_t *state = (vt100_state_t *) dev->data;
+	vt100_t *state = (vt100_t *) dev->data;
 
 	return vt100_claim(state);
 }
@@ -77,7 +77,7 @@ static errno_t serial_claim(outdev_t *dev)
 static void serial_get_dimensions(outdev_t *dev, sysarg_t *cols,
     sysarg_t *rows)
 {
-	vt100_state_t *state = (vt100_state_t *) dev->data;
+	vt100_t *state = (vt100_t *) dev->data;
 
 	vt100_get_dimensions(state, cols, rows);
 }
@@ -91,7 +91,7 @@ static console_caps_t serial_get_caps(outdev_t *dev)
 static void serial_cursor_update(outdev_t *dev, sysarg_t prev_col,
     sysarg_t prev_row, sysarg_t col, sysarg_t row, bool visible)
 {
-	vt100_state_t *state = (vt100_state_t *) dev->data;
+	vt100_t *state = (vt100_t *) dev->data;
 
 	vt100_goto(state, col, row);
 	vt100_cursor_visibility(state, visible);
@@ -99,7 +99,7 @@ static void serial_cursor_update(outdev_t *dev, sysarg_t prev_col,
 
 static void serial_char_update(outdev_t *dev, sysarg_t col, sysarg_t row)
 {
-	vt100_state_t *state = (vt100_state_t *) dev->data;
+	vt100_t *state = (vt100_t *) dev->data;
 	charfield_t *field =
 	    chargrid_charfield_at(dev->backbuf, col, row);
 
@@ -108,7 +108,7 @@ static void serial_char_update(outdev_t *dev, sysarg_t col, sysarg_t row)
 
 static void serial_flush(outdev_t *dev)
 {
-	vt100_state_t *state = (vt100_state_t *) dev->data;
+	vt100_t *state = (vt100_t *) dev->data;
 
 	vt100_flush(state);
 }
@@ -127,22 +127,22 @@ errno_t serial_init(vt100_putuchar_t putuchar_fn,
     vt100_control_puts_t control_puts_fn, vt100_flush_t flush_fn)
 {
 	char_attrs_t attrs;
-	vt100_state_t *state =
-	    vt100_state_create(NULL, SERIAL_COLS, SERIAL_ROWS, putuchar_fn,
+	vt100_t *vt100 =
+	    vt100_create(NULL, SERIAL_COLS, SERIAL_ROWS, putuchar_fn,
 	    control_puts_fn, flush_fn);
-	if (state == NULL)
+	if (vt100 == NULL)
 		return ENOMEM;
-	state->enable_rgb = true;
+	vt100->enable_rgb = true;
 
-	vt100_cursor_visibility(state, false);
+	vt100_cursor_visibility(vt100, false);
 	attrs.type = CHAR_ATTR_STYLE;
 	attrs.val.style = STYLE_NORMAL;
-	vt100_set_attr(state, attrs);
-	vt100_cls(state);
+	vt100_set_attr(vt100, attrs);
+	vt100_cls(vt100);
 
-	outdev_t *dev = outdev_register(&serial_ops, state);
+	outdev_t *dev = outdev_register(&serial_ops, vt100);
 	if (dev == NULL) {
-		vt100_state_destroy(state);
+		vt100_destroy(vt100);
 		return ENOMEM;
 	}
 

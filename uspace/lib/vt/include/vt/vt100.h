@@ -88,26 +88,26 @@ typedef struct {
 	vt100_putuchar_t putuchar;
 	vt100_control_puts_t control_puts;
 	vt100_flush_t flush;
-} vt100_state_t;
+} vt100_t;
 
 extern sgr_color_index_t color_map[];
 
-extern vt100_state_t *vt100_state_create(void *, sysarg_t, sysarg_t,
+extern vt100_t *vt100_create(void *, sysarg_t, sysarg_t,
     vt100_putuchar_t, vt100_control_puts_t, vt100_flush_t);
-extern void vt100_state_destroy(vt100_state_t *);
+extern void vt100_destroy(vt100_t *);
 
-extern errno_t vt100_yield(vt100_state_t *);
-extern errno_t vt100_claim(vt100_state_t *);
-extern void vt100_get_dimensions(vt100_state_t *, sysarg_t *, sysarg_t *);
+extern errno_t vt100_yield(vt100_t *);
+extern errno_t vt100_claim(vt100_t *);
+extern void vt100_get_dimensions(vt100_t *, sysarg_t *, sysarg_t *);
 
-extern void vt100_cls(vt100_state_t *);
-extern void vt100_set_pos(vt100_state_t *, sysarg_t, sysarg_t);
-extern void vt100_goto(vt100_state_t *, sysarg_t, sysarg_t);
-extern void vt100_set_sgr(vt100_state_t *, char_attrs_t);
-extern void vt100_set_attr(vt100_state_t *, char_attrs_t);
-extern void vt100_cursor_visibility(vt100_state_t *, bool);
-extern void vt100_putuchar(vt100_state_t *, char32_t);
-extern void vt100_flush(vt100_state_t *);
+extern void vt100_cls(vt100_t *);
+extern void vt100_set_pos(vt100_t *, sysarg_t, sysarg_t);
+extern void vt100_goto(vt100_t *, sysarg_t, sysarg_t);
+extern void vt100_set_sgr(vt100_t *, char_attrs_t);
+extern void vt100_set_attr(vt100_t *, char_attrs_t);
+extern void vt100_cursor_visibility(vt100_t *, bool);
+extern void vt100_putuchar(vt100_t *, char32_t);
+extern void vt100_flush(vt100_t *);
 
 #endif
 

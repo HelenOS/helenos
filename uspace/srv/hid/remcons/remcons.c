@@ -567,7 +567,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 
 	remcons->curs_visible = true;
 
-	remcons->vt = vt100_state_create((void *)remcons, 80, 25,
+	remcons->vt = vt100_create((void *)remcons, 80, 25,
 	    remcons_vt_putchar, remcons_vt_cputs, remcons_vt_flush);
 	assert(remcons->vt != NULL); // XXX
 	remcons->vt->enable_rgb = remcons->enable_rgb;

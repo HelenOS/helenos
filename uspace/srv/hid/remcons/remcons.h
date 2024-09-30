@@ -46,7 +46,7 @@
 /** Remote console */
 typedef struct {
 	telnet_user_t *user;	/**< telnet user */
-	vt100_state_t *vt;	/**< virtual terminal driver */
+	vt100_t *vt;		/**< virtual terminal driver */
 	bool enable_ctl;	/**< enable escape control sequences */
 	bool enable_rgb;	/**< enable RGB color setting */
 	sysarg_t ucols;		/**< number of columns in user buffer */
