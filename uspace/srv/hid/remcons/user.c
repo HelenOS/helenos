@@ -214,7 +214,7 @@ static errno_t telnet_user_fill_recv_buf(telnet_user_t *user)
  * We need to return the value via extra argument because the read byte
  * might be negative.
  */
-static errno_t telnet_user_recv_next_byte_no_lock(telnet_user_t *user, char *byte)
+static errno_t telnet_user_recv_next_byte_locked(telnet_user_t *user, char *byte)
 {
 	errno_t rc;
 
@@ -321,7 +321,7 @@ errno_t telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *ev
 		while (next_byte == 0) {
 			fibril_mutex_unlock(&user->guard);
 
-			errno_t rc = telnet_user_recv_next_byte_no_lock(user, &next_byte);
+			errno_t rc = telnet_user_recv_next_byte_locked(user, &next_byte);
 			if (rc != EOK)
 				return rc;
 
@@ -371,7 +371,7 @@ errno_t telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *ev
 	return EOK;
 }
 
-static errno_t telnet_user_send_raw(telnet_user_t *user,
+static errno_t telnet_user_send_raw_locked(telnet_user_t *user,
     const void *data, size_t size)
 {
 	size_t remain;
@@ -407,7 +407,7 @@ static errno_t telnet_user_send_raw(telnet_user_t *user,
  * @param data Data buffer (not zero terminated).
  * @param size Size of @p data buffer in bytes.
  */
-static errno_t telnet_user_send_data_no_lock(telnet_user_t *user,
+static errno_t telnet_user_send_data_locked(telnet_user_t *user,
     const char *data, size_t size)
 {
 	uint8_t *converted = malloc(3 * size + 1);
@@ -432,7 +432,8 @@ static errno_t telnet_user_send_data_no_lock(telnet_user_t *user,
 		}
 	}
 
-	errno_t rc = telnet_user_send_raw(user, converted, converted_size);
+	errno_t rc = telnet_user_send_raw_locked(user, converted,
+	    converted_size);
 	free(converted);
 
 	return rc;
@@ -449,7 +450,25 @@ errno_t telnet_user_send_data(telnet_user_t *user, const char *data,
 {
 	fibril_mutex_lock(&user->guard);
 
-	errno_t rc = telnet_user_send_data_no_lock(user, data, size);
+	errno_t rc = telnet_user_send_data_locked(user, data, size);
+
+	fibril_mutex_unlock(&user->guard);
+
+	return rc;
+}
+
+/** Send raw non-printable data to the socket.
+ *
+ * @param user Telnet user.
+ * @param data Data buffer (not zero terminated).
+ * @param size Size of @p data buffer in bytes.
+ */
+errno_t telnet_user_send_raw(telnet_user_t *user, const char *data,
+    size_t size)
+{
+	fibril_mutex_lock(&user->guard);
+
+	errno_t rc = telnet_user_send_raw_locked(user, data, size);
 
 	fibril_mutex_unlock(&user->guard);
 
@@ -486,7 +505,7 @@ void telnet_user_update_cursor_x(telnet_user_t *user, int new_x)
 	if (user->cursor_x - 1 == new_x) {
 		char data = '\b';
 		/* Ignore errors. */
-		telnet_user_send_data_no_lock(user, &data, 1);
+		telnet_user_send_data_locked(user, &data, 1);
 	}
 	user->cursor_x = new_x;
 	fibril_mutex_unlock(&user->guard);

@@ -97,6 +97,7 @@ extern bool telnet_user_is_zombie(telnet_user_t *);
 extern void telnet_user_notify_client_disconnected(telnet_user_t *);
 extern errno_t telnet_user_get_next_keyboard_event(telnet_user_t *, kbd_event_t *);
 extern errno_t telnet_user_send_data(telnet_user_t *, const char *, size_t);
+extern errno_t telnet_user_send_raw(telnet_user_t *, const char *, size_t);
 extern errno_t telnet_user_flush(telnet_user_t *);
 extern errno_t telnet_user_recv(telnet_user_t *, void *, size_t, size_t *);
 extern void telnet_user_update_cursor_x(telnet_user_t *, int);

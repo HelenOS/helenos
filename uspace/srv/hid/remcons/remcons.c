@@ -531,7 +531,7 @@ static void remcons_vt_cputs(void *arg, const char *str)
 {
 	remcons_t *remcons = (remcons_t *)arg;
 
-	(void)telnet_user_send_data(remcons->user, str, str_size(str));
+	(void)telnet_user_send_raw(remcons->user, str, str_size(str));
 }
 
 static void remcons_vt_flush(void *arg)
