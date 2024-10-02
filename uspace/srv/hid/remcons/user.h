@@ -36,7 +36,6 @@
 #ifndef TELNET_USER_H_
 #define TELNET_USER_H_
 
-#include <adt/prodcons.h>
 #include <fibril_synch.h>
 #include <inet/tcp.h>
 #include <inttypes.h>
@@ -61,8 +60,6 @@ typedef struct {
 	/** Console service setup */
 	con_srvs_t srvs;
 
-	/** Producer-consumer of kbd_event_t. */
-	prodcons_t in_events;
 	link_t link;
 	char socket_buffer[BUFFER_SIZE];
 	size_t socket_buffer_len;

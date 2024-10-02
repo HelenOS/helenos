@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'output' ]
+deps = [ 'input', 'output' ]
 src = files(
 	'src/vt100.c'
 )

@@ -33,6 +33,7 @@
 /** @file
  */
 
+#include <adt/prodcons.h>
 #include <as.h>
 #include <async.h>
 #include <errno.h>
@@ -123,11 +124,13 @@ static con_ops_t con_ops = {
 static void remcons_vt_putchar(void *, char32_t);
 static void remcons_vt_cputs(void *, const char *);
 static void remcons_vt_flush(void *);
+static void remcons_vt_key(void *, keymod_t, keycode_t, char);
 
 static vt100_cb_t remcons_vt_cb = {
 	.putuchar = remcons_vt_putchar,
 	.control_puts = remcons_vt_cputs,
-	.flush = remcons_vt_flush
+	.flush = remcons_vt_flush,
+	.key = remcons_vt_key
 };
 
 static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn);
@@ -339,21 +342,50 @@ static void remcons_cursor_visibility(con_srv_t *srv, bool visible)
 	remcons->curs_visible = visible;
 }
 
+/** Creates new keyboard event from given char.
+ *
+ * @param type Event type (press / release).
+ * @param c Pressed character.
+ */
+static kbd_event_t *new_kbd_event(kbd_event_type_t type, keymod_t mods,
+    keycode_t key, char c)
+{
+	kbd_event_t *event = malloc(sizeof(kbd_event_t));
+	assert(event);
+
+	link_initialize(&event->link);
+	event->type = type;
+	event->mods = mods;
+	event->key = key;
+	event->c = c;
+
+	return event;
+}
+
 static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 {
+	remcons_t *remcons = srv_to_remcons(srv);
 	telnet_user_t *user = srv_to_user(srv);
-	kbd_event_t kevent;
-	errno_t rc;
+	size_t nread;
 
-	rc = telnet_user_get_next_keyboard_event(user, &kevent);
-	if (rc != EOK) {
-		/* XXX What? */
-		memset(event, 0, sizeof(*event));
-		return EOK;
+	while (list_empty(&remcons->in_events.list)) {
+		char next_byte = 0;
+
+		errno_t rc = telnet_user_recv(user, &next_byte, 1,
+		    &nread);
+		if (rc != EOK)
+			return rc;
+
+		vt100_rcvd_char(remcons->vt, next_byte);
 	}
 
+	link_t *link = prodcons_consume(&remcons->in_events);
+	kbd_event_t *tmp = list_get_instance(link, kbd_event_t, link);
+
 	event->type = CEV_KEY;
-	event->ev.key = kevent;
+	event->ev.key = *tmp;
+
+	free(tmp);
 
 	return EOK;
 }
@@ -550,6 +582,18 @@ static void remcons_vt_flush(void *arg)
 	(void)telnet_user_flush(remcons->user);
 }
 
+static void remcons_vt_key(void *arg, keymod_t mods, keycode_t key, char c)
+{
+	remcons_t *remcons = (remcons_t *)arg;
+
+	kbd_event_t *down = new_kbd_event(KEY_PRESS, mods, key, c);
+	kbd_event_t *up = new_kbd_event(KEY_RELEASE, mods, key, c);
+	assert(down);
+	assert(up);
+	prodcons_produce(&remcons->in_events, &down->link);
+	prodcons_produce(&remcons->in_events, &up->link);
+}
+
 /** Handle network connection.
  *
  * @param lst  Listener
@@ -566,6 +610,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	remcons->enable_ctl = !no_ctl;
 	remcons->enable_rgb = !no_ctl && !no_rgb;
 	remcons->user = user;
+	prodcons_initialize(&remcons->in_events);
 
 	if (remcons->enable_ctl) {
 		user->cols = 80;

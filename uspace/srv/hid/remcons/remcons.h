@@ -36,6 +36,7 @@
 #ifndef REMCONS_H_
 #define REMCONS_H_
 
+#include <adt/prodcons.h>
 #include <stdbool.h>
 #include <vt/vt100.h>
 #include "user.h"
@@ -53,6 +54,9 @@ typedef struct {
 	sysarg_t urows;		/**< number of rows in user buffer */
 	charfield_t *ubuf;	/**< user buffer */
 	bool curs_visible;	/**< cursor is visible */
+
+	/** Producer-consumer of kbd_event_t. */
+	prodcons_t in_events;
 } remcons_t;
 
 #endif

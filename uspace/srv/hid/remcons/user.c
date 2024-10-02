@@ -82,7 +82,6 @@ telnet_user_t *telnet_user_create(tcp_conn_t *conn)
 
 	user->conn = conn;
 	user->service_id = (service_id_t) -1;
-	prodcons_initialize(&user->in_events);
 	link_initialize(&user->link);
 	user->socket_buffer_len = 0;
 	user->socket_buffer_pos = 0;
@@ -210,9 +209,11 @@ static errno_t telnet_user_fill_recv_buf(telnet_user_t *user)
 	return EOK;
 }
 
-/** Receive next byte from a socket (use buffering.
- * We need to return the value via extra argument because the read byte
- * might be negative.
+/** Receive next byte from a socket (use buffering).
+ *
+ * @param user Telnet user
+ * @param byte Place to store the received byte
+ * @return EOK on success or an error code
  */
 static errno_t telnet_user_recv_next_byte_locked(telnet_user_t *user, char *byte)
 {
@@ -229,59 +230,14 @@ static errno_t telnet_user_recv_next_byte_locked(telnet_user_t *user, char *byte
 	return EOK;
 }
 
-errno_t telnet_user_recv(telnet_user_t *user, void *data, size_t size,
-    size_t *nread)
-{
-	errno_t rc;
-	size_t nb;
-
-	/* No more buffered data? */
-	if (user->socket_buffer_len <= user->socket_buffer_pos) {
-		rc = telnet_user_fill_recv_buf(user);
-		if (rc != EOK)
-			return rc;
-	}
-
-	nb = user->socket_buffer_len - user->socket_buffer_pos;
-	memcpy(data, user->socket_buffer + user->socket_buffer_pos, nb);
-	user->socket_buffer_pos += nb;
-	*nread = nb;
-	return EOK;
-}
-
-/** Creates new keyboard event from given char.
+/** Determine if a received byte is available without waiting.
  *
- * @param type Event type (press / release).
- * @param c Pressed character.
+ * @param user Telnet user
+ * @return @c true iff a byte is currently available
  */
-static kbd_event_t *new_kbd_event(kbd_event_type_t type, char32_t c)
+static bool telnet_user_byte_avail(telnet_user_t *user)
 {
-	kbd_event_t *event = malloc(sizeof(kbd_event_t));
-	assert(event);
-
-	link_initialize(&event->link);
-	event->type = type;
-	event->c = c;
-	event->mods = 0;
-
-	switch (c) {
-	case '\n':
-		event->key = KC_ENTER;
-		break;
-	case '\t':
-		event->key = KC_TAB;
-		break;
-	case '\b':
-	case 127: /* This is what Linux telnet sends. */
-		event->key = KC_BACKSPACE;
-		event->c = '\b';
-		break;
-	default:
-		event->key = KC_A;
-		break;
-	}
-
-	return event;
+	return user->socket_buffer_len > user->socket_buffer_pos;
 }
 
 /** Process telnet command (currently only print to screen).
@@ -302,31 +258,38 @@ static void process_telnet_command(telnet_user_t *user,
 	}
 }
 
-/** Get next keyboard event.
+/** Receive data from telnet connection.
  *
  * @param user Telnet user.
- * @param event Where to store the keyboard event.
- * @return Error code.
+ * @param buf Destination buffer
+ * @param size Buffer size
+ * @param nread Place to store number of bytes read (>0 on success)
+ * @return EOK on success or an error code
  */
-errno_t telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *event)
+errno_t telnet_user_recv(telnet_user_t *user, void *buf, size_t size,
+    size_t *nread)
 {
+	uint8_t *bp = (uint8_t *)buf;
 	fibril_mutex_lock(&user->guard);
-	if (list_empty(&user->in_events.list)) {
+
+	assert(size > 0);
+	*nread = 0;
+
+	do {
 		char next_byte = 0;
 		bool inside_telnet_command = false;
 
 		telnet_cmd_t telnet_option_code = 0;
 
 		/* Skip zeros, bail-out on error. */
-		while (next_byte == 0) {
-			fibril_mutex_unlock(&user->guard);
-
-			errno_t rc = telnet_user_recv_next_byte_locked(user, &next_byte);
-			if (rc != EOK)
+		do {
+			errno_t rc = telnet_user_recv_next_byte_locked(user,
+			    &next_byte);
+			if (rc != EOK) {
+				fibril_mutex_unlock(&user->guard);
 				return rc;
-
+			}
 			uint8_t byte = (uint8_t) next_byte;
-			fibril_mutex_lock(&user->guard);
 
 			/* Skip telnet commands. */
 			if (inside_telnet_command) {
@@ -344,30 +307,21 @@ errno_t telnet_user_get_next_keyboard_event(telnet_user_t *user, kbd_event_t *ev
 				inside_telnet_command = true;
 				next_byte = 0;
 			}
-		}
+		} while (next_byte == 0 && telnet_user_byte_avail(user));
 
 		/* CR-LF conversions. */
 		if (next_byte == 13) {
 			next_byte = 10;
 		}
 
-		kbd_event_t *down = new_kbd_event(KEY_PRESS, next_byte);
-		kbd_event_t *up = new_kbd_event(KEY_RELEASE, next_byte);
-		assert(down);
-		assert(up);
-		prodcons_produce(&user->in_events, &down->link);
-		prodcons_produce(&user->in_events, &up->link);
-	}
-
-	link_t *link = prodcons_consume(&user->in_events);
-	kbd_event_t *tmp = list_get_instance(link, kbd_event_t, link);
+		if (next_byte != 0) {
+			*bp++ = next_byte;
+			++*nread;
+			--size;
+		}
+	} while (size > 0 && (telnet_user_byte_avail(user) || *nread == 0));
 
 	fibril_mutex_unlock(&user->guard);
-
-	*event = *tmp;
-
-	free(tmp);
-
 	return EOK;
 }
 

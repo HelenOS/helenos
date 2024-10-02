@@ -35,6 +35,7 @@
 #define LIBVT_VT100_H_
 
 #include <io/charfield.h>
+#include <io/keycode.h>
 #include <ipc/common.h>
 #include <uchar.h>
 
@@ -74,7 +75,50 @@ typedef struct {
 	void (*putuchar)(void *, char32_t);
 	void (*control_puts)(void *, const char *);
 	void (*flush)(void *);
+	void (*key)(void *, keymod_t, keycode_t, char);
 } vt100_cb_t;
+
+/** VT100 decoding state */
+typedef enum {
+	/** Base state */
+	vts_base,
+	/** Prefix 1b */
+	vts_1b,
+	/** Prefix 1b 4f */
+	vts_1b4f,
+	/** Prefix 1b 5b */
+	vts_1b5b,
+	/** Prefix 1b 5b 31 */
+	vts_1b5b31,
+	/** Prefix 1b 5b 31 35 */
+	vts_1b5b3135,
+	/** Prefix 1b 5b 31 37 */
+	vts_1b5b3137,
+	/** Prefix 1b 5b 31 38 */
+	vts_1b5b3138,
+	/** Prefix 1b 5b 31 39 */
+	vts_1b5b3139,
+	/** Prefix 1b 5b 32 */
+	vts_1b5b32,
+	/** Prefix 1b 5b 32 30 */
+	vts_1b5b3230,
+	/** Prefix 1b 5b 32 31 */
+	vts_1b5b3231,
+	/** Prefix 1b 5b 32 33 */
+	vts_1b5b3233,
+	/** Prefix 1b 5b 32 34 */
+	vts_1b5b3234,
+	/** Prefix 1b 5b 32 35 */
+	vts_1b5b3235,
+	/** Prefix 1b 5b 32 38 */
+	vts_1b5b3238,
+	/** Prefix 1b 5b 35 */
+	vts_1b5b35,
+	/** Prefix 1b 5b 33 */
+	vts_1b5b33,
+	/** Prefix 1b 5b 36 */
+	vts_1b5b36
+} vt100_state_t;
 
 /** VT100 instance */
 typedef struct {
@@ -97,6 +141,9 @@ typedef struct {
 	vt100_cb_t *cb;
 	/** Argument to callback functions */
 	void *arg;
+
+	/** Input decoding state */
+	vt100_state_t state;
 } vt100_t;
 
 extern sgr_color_index_t color_map[];
@@ -117,6 +164,8 @@ extern void vt100_set_attr(vt100_t *, char_attrs_t);
 extern void vt100_cursor_visibility(vt100_t *, bool);
 extern void vt100_putuchar(vt100_t *, char32_t);
 extern void vt100_flush(vt100_t *);
+
+extern void vt100_rcvd_char(vt100_t *, char);
 
 #endif
 
