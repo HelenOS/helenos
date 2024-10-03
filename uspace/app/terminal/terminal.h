@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Petr Koupy
  * All rights reserved.
  *
@@ -45,6 +45,7 @@
 #include <gfx/context.h>
 #include <gfx/coord.h>
 #include <io/con_srv.h>
+#include <io/cons_event.h>
 #include <loc.h>
 #include <stdatomic.h>
 #include <str.h>
@@ -100,6 +101,14 @@ typedef struct {
 	task_wait_t wait;
 	fid_t wfid;
 } terminal_t;
+
+/** Terminal event */
+typedef struct {
+	/** Link to list of events */
+	link_t link;
+	/** Console event */
+	cons_event_t ev;
+} terminal_event_t;
 
 extern errno_t terminal_create(const char *, sysarg_t, sysarg_t,
     terminal_flags_t, const char *, terminal_t **);

@@ -402,7 +402,9 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 		/* Still not enough? Then get another key from the queue. */
 		if (pos < size) {
 			link_t *link = prodcons_consume(&term->input_pc);
-			cons_event_t *event = list_get_instance(link, cons_event_t, link);
+			terminal_event_t *qevent = list_get_instance(link,
+			    terminal_event_t, link);
+			cons_event_t *event = &qevent->ev;
 
 			/* Accept key presses of printable chars only. */
 			if (event->type == CEV_KEY && event->ev.key.type == KEY_PRESS &&
@@ -416,7 +418,7 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 				term->char_remains_len = str_size(term->char_remains);
 			}
 
-			free(event);
+			free(qevent);
 		}
 	}
 
@@ -634,9 +636,9 @@ static errno_t term_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	link_t *link = prodcons_consume(&term->input_pc);
-	cons_event_t *ev = list_get_instance(link, cons_event_t, link);
+	terminal_event_t *ev = list_get_instance(link, terminal_event_t, link);
 
-	*event = *ev;
+	*event = ev->ev;
 	free(ev);
 	return EOK;
 }
@@ -822,12 +824,12 @@ void terminal_destroy(terminal_t *term)
 static void terminal_queue_cons_event(terminal_t *term, cons_event_t *ev)
 {
 	/* Got key press/release event */
-	cons_event_t *event =
-	    (cons_event_t *) malloc(sizeof(cons_event_t));
+	terminal_event_t *event =
+	    (terminal_event_t *) malloc(sizeof(terminal_event_t));
 	if (event == NULL)
 		return;
 
-	*event = *ev;
+	event->ev = *ev;
 	link_initialize(&event->link);
 
 	prodcons_produce(&term->input_pc, &event->link);

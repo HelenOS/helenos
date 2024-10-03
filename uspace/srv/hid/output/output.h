@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -33,6 +34,7 @@
 #ifndef OUTPUT_OUTPUT_H_
 #define OUTPUT_OUTPUT_H_
 
+#include <adt/list.h>
 #include <stdbool.h>
 #include <loc.h>
 #include <io/console.h>
