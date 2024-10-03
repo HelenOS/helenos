@@ -98,6 +98,12 @@ typedef enum {
 	vts_1b5b3138,
 	/** Prefix 1b 5b 31 39 */
 	vts_1b5b3139,
+	/** Prefix 1b 5b 31 3b */
+	vts_1b5b313b,
+	/** Prefix 1b 5b 31 3b 32 */
+	vts_1b5b313b32,
+	/** Prefix 1b 5b 31 3b 33 */
+	vts_1b5b313b33,
 	/** Prefix 1b 5b 32 */
 	vts_1b5b32,
 	/** Prefix 1b 5b 32 30 */

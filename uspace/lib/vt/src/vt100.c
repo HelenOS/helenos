@@ -602,6 +602,9 @@ static void vt100_rcvd_1b5b31(vt100_t *vt, char c)
 	case 0x39:
 		vt->state = vts_1b5b3139;
 		break;
+	case 0x3b:
+		vt->state = vts_1b5b313b;
+		break;
 	default:
 		vt->state = vts_base;
 		break;
@@ -669,6 +672,90 @@ static void vt100_rcvd_1b5b3139(vt100_t *vt, char c)
 	switch (c) {
 	case 0x7e:
 		vt100_key(vt, 0, KC_F8, 0);
+		break;
+	default:
+		vt->state = vts_base;
+		break;
+	}
+}
+
+/** Process input character with prefix 1b 5b 31 3b.
+ *
+ * @param vt VT instance
+ * @param c Input character
+ */
+static void vt100_rcvd_1b5b313b(vt100_t *vt, char c)
+{
+	switch (c) {
+	case 0x32:
+		vt->state = vts_1b5b313b32;
+		break;
+	case 0x33:
+		vt->state = vts_1b5b313b33;
+		break;
+	default:
+		vt->state = vts_base;
+		break;
+	}
+}
+
+/** Process input character with prefix 1b 5b 31 3b 32.
+ *
+ * @param vt VT instance
+ * @param c Input character
+ */
+static void vt100_rcvd_1b5b313b32(vt100_t *vt, char c)
+{
+	switch (c) {
+	case 0x41:
+		vt100_key(vt, KM_SHIFT, KC_UP, 0);
+		break;
+	case 0x44:
+		vt100_key(vt, KM_SHIFT, KC_LEFT, 0);
+		break;
+	case 0x42:
+		vt100_key(vt, KM_SHIFT, KC_DOWN, 0);
+		break;
+	case 0x43:
+		vt100_key(vt, KM_SHIFT, KC_RIGHT, 0);
+		break;
+	case 0x48:
+		vt100_key(vt, KM_SHIFT, KC_HOME, 0);
+		break;
+	case 0x46:
+		vt100_key(vt, KM_SHIFT, KC_END, 0);
+		break;
+	default:
+		vt->state = vts_base;
+		break;
+	}
+}
+
+/** Process input character with prefix 1b 5b 31 3b 33.
+ *
+ * @param vt VT instance
+ * @param c Input character
+ */
+static void vt100_rcvd_1b5b313b33(vt100_t *vt, char c)
+{
+	switch (c) {
+	case 0x41:
+		vt100_key(vt, KM_ALT, KC_UP, 0);
+		break;
+	case 0x44:
+		vt100_key(vt, KM_ALT, KC_LEFT, 0);
+		break;
+	case 0x42:
+		vt100_key(vt, KM_ALT, KC_DOWN, 0);
+		break;
+	case 0x43:
+		vt100_key(vt, KM_ALT, KC_RIGHT, 0);
+		break;
+	case 0x48:
+		vt100_key(vt, KM_ALT, KC_HOME, 0);
+		break;
+	case 0x46:
+		vt100_key(vt, KM_ALT, KC_END, 0);
 		break;
 	default:
 		vt->state = vts_base;
@@ -1308,6 +1395,15 @@ void vt100_rcvd_char(vt100_t *vt, char c)
 		break;
 	case vts_1b5b3139:
 		vt100_rcvd_1b5b3139(vt, c);
+		break;
+	case vts_1b5b313b:
+		vt100_rcvd_1b5b313b(vt, c);
+		break;
+	case vts_1b5b313b32:
+		vt100_rcvd_1b5b313b32(vt, c);
+		break;
+	case vts_1b5b313b33:
+		vt100_rcvd_1b5b313b33(vt, c);
 		break;
 	case vts_1b5b32:
 		vt100_rcvd_1b5b32(vt, c);
