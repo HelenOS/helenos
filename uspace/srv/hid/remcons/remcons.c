@@ -347,17 +347,17 @@ static void remcons_cursor_visibility(con_srv_t *srv, bool visible)
  * @param type Event type (press / release).
  * @param c Pressed character.
  */
-static kbd_event_t *new_kbd_event(kbd_event_type_t type, keymod_t mods,
+static remcons_event_t *new_kbd_event(kbd_event_type_t type, keymod_t mods,
     keycode_t key, char c)
 {
-	kbd_event_t *event = malloc(sizeof(kbd_event_t));
+	remcons_event_t *event = malloc(sizeof(remcons_event_t));
 	assert(event);
 
 	link_initialize(&event->link);
-	event->type = type;
-	event->mods = mods;
-	event->key = key;
-	event->c = c;
+	event->kbd.type = type;
+	event->kbd.mods = mods;
+	event->kbd.key = key;
+	event->kbd.c = c;
 
 	return event;
 }
@@ -380,10 +380,10 @@ static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 	}
 
 	link_t *link = prodcons_consume(&remcons->in_events);
-	kbd_event_t *tmp = list_get_instance(link, kbd_event_t, link);
+	remcons_event_t *tmp = list_get_instance(link, remcons_event_t, link);
 
 	event->type = CEV_KEY;
-	event->ev.key = *tmp;
+	event->ev.key = tmp->kbd;
 
 	free(tmp);
 
@@ -586,8 +586,8 @@ static void remcons_vt_key(void *arg, keymod_t mods, keycode_t key, char c)
 {
 	remcons_t *remcons = (remcons_t *)arg;
 
-	kbd_event_t *down = new_kbd_event(KEY_PRESS, mods, key, c);
-	kbd_event_t *up = new_kbd_event(KEY_RELEASE, mods, key, c);
+	remcons_event_t *down = new_kbd_event(KEY_PRESS, mods, key, c);
+	remcons_event_t *up = new_kbd_event(KEY_RELEASE, mods, key, c);
 	assert(down);
 	assert(up);
 	prodcons_produce(&remcons->in_events, &down->link);

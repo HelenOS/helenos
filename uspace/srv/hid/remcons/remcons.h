@@ -37,6 +37,7 @@
 #define REMCONS_H_
 
 #include <adt/prodcons.h>
+#include <io/kbd_event.h>
 #include <stdbool.h>
 #include <vt/vt100.h>
 #include "user.h"
@@ -55,9 +56,15 @@ typedef struct {
 	charfield_t *ubuf;	/**< user buffer */
 	bool curs_visible;	/**< cursor is visible */
 
-	/** Producer-consumer of kbd_event_t. */
+	/** Producer-consumer of remcons_event_t. */
 	prodcons_t in_events;
 } remcons_t;
+
+/** Remote console event */
+typedef struct {
+	link_t link;		/**< link to list of events */
+	kbd_event_t kbd;	/**< keyboard event */
+} remcons_event_t;
 
 #endif
 
