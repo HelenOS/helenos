@@ -33,7 +33,7 @@
 /** @file
  */
 
-#include <adt/prodcons.h>
+#include <adt/list.h>
 #include <as.h>
 #include <async.h>
 #include <errno.h>
@@ -368,7 +368,7 @@ static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 	telnet_user_t *user = srv_to_user(srv);
 	size_t nread;
 
-	while (list_empty(&remcons->in_events.list)) {
+	while (list_empty(&remcons->in_events)) {
 		char next_byte = 0;
 
 		errno_t rc = telnet_user_recv(user, &next_byte, 1,
@@ -379,7 +379,9 @@ static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 		vt100_rcvd_char(remcons->vt, next_byte);
 	}
 
-	link_t *link = prodcons_consume(&remcons->in_events);
+	link_t *link = list_first(&remcons->in_events);
+	list_remove(link);
+
 	remcons_event_t *tmp = list_get_instance(link, remcons_event_t, link);
 
 	event->type = CEV_KEY;
@@ -590,8 +592,8 @@ static void remcons_vt_key(void *arg, keymod_t mods, keycode_t key, char c)
 	remcons_event_t *up = new_kbd_event(KEY_RELEASE, mods, key, c);
 	assert(down);
 	assert(up);
-	prodcons_produce(&remcons->in_events, &down->link);
-	prodcons_produce(&remcons->in_events, &up->link);
+	list_append(&down->link, &remcons->in_events);
+	list_append(&up->link, &remcons->in_events);
 }
 
 /** Handle network connection.
@@ -610,7 +612,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	remcons->enable_ctl = !no_ctl;
 	remcons->enable_rgb = !no_ctl && !no_rgb;
 	remcons->user = user;
-	prodcons_initialize(&remcons->in_events);
+	list_initialize(&remcons->in_events);
 
 	if (remcons->enable_ctl) {
 		user->cols = 80;
