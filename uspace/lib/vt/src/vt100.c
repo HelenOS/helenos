@@ -360,152 +360,152 @@ static void vt100_rcvd_1b(vt100_t *vt, char c)
 		vt100_key(vt, 0, KC_ESCAPE, c);
 		break;
 	case 0x60:
-		vt100_key(vt, KM_ALT, KC_BACKTICK, 0);
+		vt100_key(vt, KM_ALT, KC_BACKTICK, c);
 		break;
 
 	case 0x31:
-		vt100_key(vt, KM_ALT, KC_1, 0);
+		vt100_key(vt, KM_ALT, KC_1, c);
 		break;
 	case 0x32:
-		vt100_key(vt, KM_ALT, KC_2, 0);
+		vt100_key(vt, KM_ALT, KC_2, c);
 		break;
 	case 0x33:
-		vt100_key(vt, KM_ALT, KC_3, 0);
+		vt100_key(vt, KM_ALT, KC_3, c);
 		break;
 	case 0x34:
-		vt100_key(vt, KM_ALT, KC_4, 0);
+		vt100_key(vt, KM_ALT, KC_4, c);
 		break;
 	case 0x35:
-		vt100_key(vt, KM_ALT, KC_5, 0);
+		vt100_key(vt, KM_ALT, KC_5, c);
 		break;
 	case 0x36:
-		vt100_key(vt, KM_ALT, KC_6, 0);
+		vt100_key(vt, KM_ALT, KC_6, c);
 		break;
 	case 0x37:
-		vt100_key(vt, KM_ALT, KC_7, 0);
+		vt100_key(vt, KM_ALT, KC_7, c);
 		break;
 	case 0x38:
-		vt100_key(vt, KM_ALT, KC_8, 0);
+		vt100_key(vt, KM_ALT, KC_8, c);
 		break;
 	case 0x39:
-		vt100_key(vt, KM_ALT, KC_9, 0);
+		vt100_key(vt, KM_ALT, KC_9, c);
 		break;
 	case 0x30:
-		vt100_key(vt, KM_ALT, KC_0, 0);
+		vt100_key(vt, KM_ALT, KC_0, c);
 		break;
 
 	case 0x2d:
-		vt100_key(vt, KM_ALT, KC_MINUS, 0);
+		vt100_key(vt, KM_ALT, KC_MINUS, c);
 		break;
 	case 0x3d:
-		vt100_key(vt, KM_ALT, KC_EQUALS, 0);
+		vt100_key(vt, KM_ALT, KC_EQUALS, c);
 		break;
 
 	case 0x71:
-		vt100_key(vt, KM_ALT, KC_Q, 0);
+		vt100_key(vt, KM_ALT, KC_Q, c);
 		break;
 	case 0x77:
-		vt100_key(vt, KM_ALT, KC_W, 0);
+		vt100_key(vt, KM_ALT, KC_W, c);
 		break;
 	case 0x65:
-		vt100_key(vt, KM_ALT, KC_E, 0);
+		vt100_key(vt, KM_ALT, KC_E, c);
 		break;
 	case 0x72:
-		vt100_key(vt, KM_ALT, KC_R, 0);
+		vt100_key(vt, KM_ALT, KC_R, c);
 		break;
 	case 0x74:
-		vt100_key(vt, KM_ALT, KC_T, 0);
+		vt100_key(vt, KM_ALT, KC_T, c);
 		break;
 	case 0x79:
-		vt100_key(vt, KM_ALT, KC_Y, 0);
+		vt100_key(vt, KM_ALT, KC_Y, c);
 		break;
 	case 0x75:
-		vt100_key(vt, KM_ALT, KC_U, 0);
+		vt100_key(vt, KM_ALT, KC_U, c);
 		break;
 	case 0x69:
-		vt100_key(vt, KM_ALT, KC_I, 0);
+		vt100_key(vt, KM_ALT, KC_I, c);
 		break;
 	case 0x6f:
-		vt100_key(vt, KM_ALT, KC_O, 0);
+		vt100_key(vt, KM_ALT, KC_O, c);
 		break;
 	case 0x70:
-		vt100_key(vt, KM_ALT, KC_P, 0);
+		vt100_key(vt, KM_ALT, KC_P, c);
 		break;
 
 		/* 0x1b, 0x5b is used by other keys/sequences */
 
 	case 0x5d:
-		vt100_key(vt, KM_ALT, KC_RBRACKET, 0);
+		vt100_key(vt, KM_ALT, KC_RBRACKET, c);
 		break;
 
 	case 0x61:
-		vt100_key(vt, KM_ALT, KC_A, 0);
+		vt100_key(vt, KM_ALT, KC_A, c);
 		break;
 	case 0x73:
-		vt100_key(vt, KM_ALT, KC_S, 0);
+		vt100_key(vt, KM_ALT, KC_S, c);
 		break;
 	case 0x64:
-		vt100_key(vt, KM_ALT, KC_D, 0);
+		vt100_key(vt, KM_ALT, KC_D, c);
 		break;
 	case 0x66:
-		vt100_key(vt, KM_ALT, KC_F, 0);
+		vt100_key(vt, KM_ALT, KC_F, c);
 		break;
 	case 0x67:
-		vt100_key(vt, KM_ALT, KC_G, 0);
+		vt100_key(vt, KM_ALT, KC_G, c);
 		break;
 	case 0x68:
-		vt100_key(vt, KM_ALT, KC_H, 0);
+		vt100_key(vt, KM_ALT, KC_H, c);
 		break;
 	case 0x6a:
-		vt100_key(vt, KM_ALT, KC_J, 0);
+		vt100_key(vt, KM_ALT, KC_J, c);
 		break;
 	case 0x6b:
-		vt100_key(vt, KM_ALT, KC_K, 0);
+		vt100_key(vt, KM_ALT, KC_K, c);
 		break;
 	case 0x6c:
-		vt100_key(vt, KM_ALT, KC_L, 0);
+		vt100_key(vt, KM_ALT, KC_L, c);
 		break;
 
 	case 0x3b:
-		vt100_key(vt, KM_ALT, KC_SEMICOLON, 0);
+		vt100_key(vt, KM_ALT, KC_SEMICOLON, c);
 		break;
 	case 0x27:
-		vt100_key(vt, KM_ALT, KC_QUOTE, 0);
+		vt100_key(vt, KM_ALT, KC_QUOTE, c);
 		break;
 	case 0x5c:
-		vt100_key(vt, KM_ALT, KC_BACKSLASH, 0);
+		vt100_key(vt, KM_ALT, KC_BACKSLASH, c);
 		break;
 
 	case 0x7a:
-		vt100_key(vt, KM_ALT, KC_Z, 0);
+		vt100_key(vt, KM_ALT, KC_Z, c);
 		break;
 	case 0x78:
-		vt100_key(vt, KM_ALT, KC_X, 0);
+		vt100_key(vt, KM_ALT, KC_X, c);
 		break;
 	case 0x63:
-		vt100_key(vt, KM_ALT, KC_C, 0);
+		vt100_key(vt, KM_ALT, KC_C, c);
 		break;
 	case 0x76:
-		vt100_key(vt, KM_ALT, KC_V, 0);
+		vt100_key(vt, KM_ALT, KC_V, c);
 		break;
 	case 0x62:
-		vt100_key(vt, KM_ALT, KC_B, 0);
+		vt100_key(vt, KM_ALT, KC_B, c);
 		break;
 	case 0x6e:
-		vt100_key(vt, KM_ALT, KC_N, 0);
+		vt100_key(vt, KM_ALT, KC_N, c);
 		break;
 	case 0x6d:
-		vt100_key(vt, KM_ALT, KC_M, 0);
+		vt100_key(vt, KM_ALT, KC_M, c);
 		break;
 
 	case 0x2c:
-		vt100_key(vt, KM_ALT, KC_COMMA, 0);
+		vt100_key(vt, KM_ALT, KC_COMMA, c);
 		break;
 	case 0x2e:
-		vt100_key(vt, KM_ALT, KC_PERIOD, 0);
+		vt100_key(vt, KM_ALT, KC_PERIOD, c);
 		break;
 	case 0x2f:
-		vt100_key(vt, KM_ALT, KC_SLASH, 0);
+		vt100_key(vt, KM_ALT, KC_SLASH, c);
 		break;
 
 	case 0x4f:
