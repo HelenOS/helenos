@@ -143,6 +143,12 @@ static tcp_cb_t conn_cb = {
 	.connected = NULL
 };
 
+static void remcons_telnet_ws_update(void *, unsigned, unsigned);
+
+static telnet_cb_t remcons_telnet_cb = {
+	.ws_update = remcons_telnet_ws_update
+};
+
 static loc_srv_t *remcons_srv;
 static bool no_ctl;
 static bool no_rgb;
@@ -259,8 +265,8 @@ static errno_t remcons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 	remcons_t *remcons = srv_to_remcons(srv);
 
 	if (remcons->enable_ctl) {
-		*cols = 80;
-		*rows = 25;
+		*cols = remcons->vt->cols;
+		*rows = remcons->vt->rows;
 	} else {
 		*cols = 100;
 		*rows = 1;
@@ -351,13 +357,33 @@ static remcons_event_t *new_kbd_event(kbd_event_type_t type, keymod_t mods,
     keycode_t key, char c)
 {
 	remcons_event_t *event = malloc(sizeof(remcons_event_t));
-	assert(event);
+	if (event == NULL) {
+		fprintf(stderr, "Out of memory.\n");
+		return NULL;
+	}
 
 	link_initialize(&event->link);
-	event->kbd.type = type;
-	event->kbd.mods = mods;
-	event->kbd.key = key;
-	event->kbd.c = c;
+	event->cev.type = CEV_KEY;
+	event->cev.ev.key.type = type;
+	event->cev.ev.key.mods = mods;
+	event->cev.ev.key.key = key;
+	event->cev.ev.key.c = c;
+
+	return event;
+}
+
+/** Creates new console resize event.
+ */
+static remcons_event_t *new_resize_event(void)
+{
+	remcons_event_t *event = malloc(sizeof(remcons_event_t));
+	if (event == NULL) {
+		fprintf(stderr, "Out of memory.\n");
+		return NULL;
+	}
+
+	link_initialize(&event->link);
+	event->cev.type = CEV_RESIZE;
 
 	return event;
 }
@@ -384,9 +410,7 @@ static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 
 	remcons_event_t *tmp = list_get_instance(link, remcons_event_t, link);
 
-	event->type = CEV_KEY;
-	event->ev.key = tmp->kbd;
-
+	*event = tmp->cev;
 	free(tmp);
 
 	return EOK;
@@ -589,11 +613,37 @@ static void remcons_vt_key(void *arg, keymod_t mods, keycode_t key, char c)
 	remcons_t *remcons = (remcons_t *)arg;
 
 	remcons_event_t *down = new_kbd_event(KEY_PRESS, mods, key, c);
+	if (down == NULL)
+		return;
+
 	remcons_event_t *up = new_kbd_event(KEY_RELEASE, mods, key, c);
-	assert(down);
-	assert(up);
+	if (up == NULL) {
+		free(down);
+		return;
+	}
+
 	list_append(&down->link, &remcons->in_events);
 	list_append(&up->link, &remcons->in_events);
+}
+
+/** Window size update callback.
+ *
+ * @param arg Argument (remcons_t *)
+ * @param cols New number of columns
+ * @param rows New number of rows
+ */
+static void remcons_telnet_ws_update(void *arg, unsigned cols, unsigned rows)
+{
+	remcons_t *remcons = (remcons_t *)arg;
+
+	vt100_resize(remcons->vt, cols, rows);
+	telnet_user_resize(remcons->user, cols, rows);
+
+	remcons_event_t *resize = new_resize_event();
+	if (resize == NULL)
+		return;
+
+	list_append(&resize->link, &remcons->in_events);
 }
 
 /** Handle network connection.
@@ -604,10 +654,21 @@ static void remcons_vt_key(void *arg, keymod_t mods, keycode_t key, char c)
 static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 {
 	char_attrs_t attrs;
-	remcons_t *remcons = calloc(1, sizeof(remcons_t));
-	assert(remcons != NULL); // XXX
-	telnet_user_t *user = telnet_user_create(conn);
-	assert(user);
+	remcons_t *remcons = NULL;
+	telnet_user_t *user = NULL;
+
+	remcons = calloc(1, sizeof(remcons_t));
+	if (remcons == NULL) {
+		fprintf(stderr, "Out of memory.\n");
+		goto error;
+	}
+
+	user = telnet_user_create(conn, &remcons_telnet_cb,
+	    (void *)remcons);
+	if (user == NULL) {
+		fprintf(stderr, "Out of memory.\n");
+		goto error;
+	}
 
 	remcons->enable_ctl = !no_ctl;
 	remcons->enable_rgb = !no_ctl && !no_rgb;
@@ -625,7 +686,11 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	remcons->curs_visible = true;
 
 	remcons->vt = vt100_create((void *)remcons, 80, 25, &remcons_vt_cb);
-	assert(remcons->vt != NULL); // XXX
+	if (remcons->vt == NULL) {
+		fprintf(stderr, "Error creating VT100 driver instance.\n");
+		goto error;
+	}
+
 	remcons->vt->enable_rgb = remcons->enable_rgb;
 
 	if (remcons->enable_ctl) {
@@ -648,14 +713,17 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	if (rc != EOK) {
 		telnet_user_error(user, "Unable to register %s with loc: %s.",
 		    user->service_name, str_error(rc));
-		return;
+		goto error;
 	}
 
 	telnet_user_log(user, "Service %s registerd with id %" PRIun ".",
 	    user->service_name, user->service_id);
 
 	fid_t spawn_fibril = fibril_create(spawn_task_fibril, user);
-	assert(spawn_fibril);
+	if (spawn_fibril == 0) {
+		fprintf(stderr, "Failed creating fibril.\n");
+		goto error;
+	}
 	fibril_add_ready(spawn_fibril);
 
 	/* Wait for all clients to exit. */
@@ -684,6 +752,16 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 
 	telnet_user_log(user, "Destroying...");
 	telnet_user_destroy(user);
+	return;
+error:
+	if (user != NULL && user->service_id != 0)
+		loc_service_unregister(remcons_srv, user->service_id);
+	if (user != NULL)
+		free(user);
+	if (remcons != NULL && remcons->vt != NULL)
+		vt100_destroy(remcons->vt);
+	if (remcons != NULL)
+		free(remcons);
 }
 
 static void print_syntax(void)

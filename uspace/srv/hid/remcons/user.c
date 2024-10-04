@@ -57,12 +57,18 @@
 static FIBRIL_MUTEX_INITIALIZE(users_guard);
 static LIST_INITIALIZE(users);
 
+static errno_t telnet_user_send_raw_locked(telnet_user_t *, const void *,
+    size_t);
+static errno_t telnet_user_flush_locked(telnet_user_t *);
+
 /** Create new telnet user.
  *
  * @param conn Incoming connection.
+ * @param cb Callback functions
+ * @param arg Argument to callback functions
  * @return New telnet user or NULL when out of memory.
  */
-telnet_user_t *telnet_user_create(tcp_conn_t *conn)
+telnet_user_t *telnet_user_create(tcp_conn_t *conn, telnet_cb_t *cb, void *arg)
 {
 	static int telnet_user_id_counter = 0;
 
@@ -71,6 +77,8 @@ telnet_user_t *telnet_user_create(tcp_conn_t *conn)
 		return NULL;
 	}
 
+	user->cb = cb;
+	user->arg = arg;
 	user->id = ++telnet_user_id_counter;
 
 	int rc = asprintf(&user->service_name, "%s/telnet%u.%d", NAMESPACE,
@@ -215,7 +223,8 @@ static errno_t telnet_user_fill_recv_buf(telnet_user_t *user)
  * @param byte Place to store the received byte
  * @return EOK on success or an error code
  */
-static errno_t telnet_user_recv_next_byte_locked(telnet_user_t *user, char *byte)
+static errno_t telnet_user_recv_next_byte_locked(telnet_user_t *user,
+    uint8_t *byte)
 {
 	errno_t rc;
 
@@ -226,7 +235,7 @@ static errno_t telnet_user_recv_next_byte_locked(telnet_user_t *user, char *byte
 			return rc;
 	}
 
-	*byte = user->socket_buffer[user->socket_buffer_pos++];
+	*byte = (uint8_t)user->socket_buffer[user->socket_buffer_pos++];
 	return EOK;
 }
 
@@ -240,7 +249,119 @@ static bool telnet_user_byte_avail(telnet_user_t *user)
 	return user->socket_buffer_len > user->socket_buffer_pos;
 }
 
-/** Process telnet command (currently only print to screen).
+static errno_t telnet_user_send_opt(telnet_user_t *user, telnet_cmd_t cmd,
+    telnet_cmd_t opt)
+{
+	uint8_t cmdb[3];
+
+	cmdb[0] = TELNET_IAC;
+	cmdb[1] = cmd;
+	cmdb[2] = opt;
+
+	return telnet_user_send_raw_locked(user, (char *)cmdb, sizeof(cmdb));
+}
+
+/** Process telnet WILL NAWS command.
+ *
+ * @param user Telnet user structure.
+ * @param cmd Telnet command.
+ */
+static void process_telnet_will_naws(telnet_user_t *user)
+{
+	telnet_user_log(user, "WILL NAWS");
+	/* Send DO NAWS */
+	(void) telnet_user_send_opt(user, TELNET_DO, TELNET_NAWS);
+	(void) telnet_user_flush_locked(user);
+}
+
+/** Process telnet SB NAWS command.
+ *
+ * @param user Telnet user structure.
+ * @param cmd Telnet command.
+ */
+static void process_telnet_sb_naws(telnet_user_t *user)
+{
+	uint8_t chi, clo;
+	uint8_t rhi, rlo;
+	uint16_t cols;
+	uint16_t rows;
+	uint8_t iac;
+	uint8_t se;
+	errno_t rc;
+
+	telnet_user_log(user, "SB NAWS...");
+
+	rc = telnet_user_recv_next_byte_locked(user, &chi);
+	if (rc != EOK)
+		return;
+	rc = telnet_user_recv_next_byte_locked(user, &clo);
+	if (rc != EOK)
+		return;
+
+	rc = telnet_user_recv_next_byte_locked(user, &rhi);
+	if (rc != EOK)
+		return;
+	rc = telnet_user_recv_next_byte_locked(user, &rlo);
+	if (rc != EOK)
+		return;
+
+	rc = telnet_user_recv_next_byte_locked(user, &iac);
+	if (rc != EOK)
+		return;
+	rc = telnet_user_recv_next_byte_locked(user, &se);
+	if (rc != EOK)
+		return;
+
+	cols = (chi << 8) | clo;
+	rows = (rhi << 8) | rlo;
+
+	telnet_user_log(user, "cols=%u rows=%u\n", cols, rows);
+
+	if (cols < 1 || rows < 1) {
+		telnet_user_log(user, "Ignoring invalid window size update.");
+		return;
+	}
+
+	user->cb->ws_update(user->arg, cols, rows);
+}
+
+/** Process telnet WILL command.
+ *
+ * @param user Telnet user structure.
+ * @param opt Option code.
+ */
+static void process_telnet_will(telnet_user_t *user, telnet_cmd_t opt)
+{
+	telnet_user_log(user, "WILL");
+	switch (opt) {
+	case TELNET_NAWS:
+		process_telnet_will_naws(user);
+		return;
+	}
+
+	telnet_user_log(user, "Ignoring telnet command %u %u %u.",
+	    TELNET_IAC, TELNET_WILL, opt);
+}
+
+/** Process telnet SB command.
+ *
+ * @param user Telnet user structure.
+ * @param opt Option code.
+ */
+static void process_telnet_sb(telnet_user_t *user, telnet_cmd_t opt)
+{
+	telnet_user_log(user, "SB");
+	switch (opt) {
+	case TELNET_NAWS:
+		process_telnet_sb_naws(user);
+		return;
+	}
+
+	telnet_user_log(user, "Ignoring telnet command %u %u %u.",
+	    TELNET_IAC, TELNET_SB, opt);
+}
+
+/** Process telnet command.
  *
  * @param user Telnet user structure.
  * @param option_code Command option code.
@@ -249,6 +370,15 @@ static bool telnet_user_byte_avail(telnet_user_t *user)
 static void process_telnet_command(telnet_user_t *user,
     telnet_cmd_t option_code, telnet_cmd_t cmd)
 {
+	switch (option_code) {
+	case TELNET_SB:
+		process_telnet_sb(user, cmd);
+		return;
+	case TELNET_WILL:
+		process_telnet_will(user, cmd);
+		return;
+	}
+
 	if (option_code != 0) {
 		telnet_user_log(user, "Ignoring telnet command %u %u %u.",
 		    TELNET_IAC, option_code, cmd);
@@ -276,7 +406,7 @@ errno_t telnet_user_recv(telnet_user_t *user, void *buf, size_t size,
 	*nread = 0;
 
 	do {
-		char next_byte = 0;
+		uint8_t next_byte = 0;
 		bool inside_telnet_command = false;
 
 		telnet_cmd_t telnet_option_code = 0;
@@ -289,13 +419,14 @@ errno_t telnet_user_recv(telnet_user_t *user, void *buf, size_t size,
 				fibril_mutex_unlock(&user->guard);
 				return rc;
 			}
-			uint8_t byte = (uint8_t) next_byte;
+			uint8_t byte = next_byte;
 
 			/* Skip telnet commands. */
 			if (inside_telnet_command) {
 				inside_telnet_command = false;
 				next_byte = 0;
-				if (TELNET_IS_OPTION_CODE(byte)) {
+				if (TELNET_IS_OPTION_CODE(byte) ||
+				    byte == TELNET_SB) {
 					telnet_option_code = byte;
 					inside_telnet_command = true;
 				} else {
@@ -429,21 +560,26 @@ errno_t telnet_user_send_raw(telnet_user_t *user, const char *data,
 	return rc;
 }
 
+static errno_t telnet_user_flush_locked(telnet_user_t *user)
+{
+	errno_t rc;
+
+	rc = tcp_conn_send(user->conn, user->send_buf, user->send_buf_used);
+	if (rc != EOK)
+		return rc;
+
+	user->send_buf_used = 0;
+	return EOK;
+}
+
 errno_t telnet_user_flush(telnet_user_t *user)
 {
 	errno_t rc;
 
 	fibril_mutex_lock(&user->guard);
-	rc = tcp_conn_send(user->conn, user->send_buf, user->send_buf_used);
-
-	if (rc != EOK) {
-		fibril_mutex_unlock(&user->guard);
-		return rc;
-	}
-
-	user->send_buf_used = 0;
+	rc = telnet_user_flush_locked(user);
 	fibril_mutex_unlock(&user->guard);
-	return EOK;
+	return rc;
 }
 
 /** Update cursor X position.
@@ -464,6 +600,22 @@ void telnet_user_update_cursor_x(telnet_user_t *user, int new_x)
 	user->cursor_x = new_x;
 	fibril_mutex_unlock(&user->guard);
 
+}
+
+/** Resize telnet session.
+ *
+ * @param user Telnet user
+ * @param cols New number of columns
+ * @param rows New number of rows
+ */
+void telnet_user_resize(telnet_user_t *user, unsigned cols, unsigned rows)
+{
+	user->cols = cols;
+	user->rows = rows;
+	if ((unsigned)user->cursor_x > cols - 1)
+		user->cursor_x = cols - 1;
+	if ((unsigned)user->cursor_y > rows - 1)
+		user->cursor_y = rows - 1;
 }
 
 /**

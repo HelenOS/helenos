@@ -44,10 +44,19 @@
 #define BUFFER_SIZE 32
 #define SEND_BUF_SIZE 512
 
+/** Telnet callbacks */
+typedef struct {
+	void (*ws_update)(void *, unsigned, unsigned);
+} telnet_cb_t;
+
 /** Representation of a connected (human) user. */
 typedef struct {
 	/** Mutex guarding the whole structure. */
 	fibril_mutex_t guard;
+	/** Callback functions */
+	telnet_cb_t *cb;
+	/** Argument to callback functions */
+	void *arg;
 
 	/** Internal id, used for creating locfs entries. */
 	int id;
@@ -86,7 +95,7 @@ typedef struct {
 	unsigned rows;
 } telnet_user_t;
 
-extern telnet_user_t *telnet_user_create(tcp_conn_t *);
+extern telnet_user_t *telnet_user_create(tcp_conn_t *, telnet_cb_t *, void *);
 extern void telnet_user_add(telnet_user_t *);
 extern void telnet_user_destroy(telnet_user_t *);
 extern telnet_user_t *telnet_user_get_for_client_connection(service_id_t);
@@ -98,6 +107,7 @@ extern errno_t telnet_user_send_raw(telnet_user_t *, const char *, size_t);
 extern errno_t telnet_user_flush(telnet_user_t *);
 extern errno_t telnet_user_recv(telnet_user_t *, void *, size_t, size_t *);
 extern void telnet_user_update_cursor_x(telnet_user_t *, int);
+extern void telnet_user_resize(telnet_user_t *, unsigned, unsigned);
 
 /** Print informational message about connected user. */
 #ifdef CONFIG_DEBUG

@@ -205,6 +205,23 @@ vt100_t *vt100_create(void *arg, sysarg_t cols, sysarg_t rows, vt100_cb_t *cb)
 	return vt;
 }
 
+/** Resize VT instance.
+ *
+ * @param vt VT instance
+ * @param cols New number of columns
+ * @param rows New number of rows
+ */
+void vt100_resize(vt100_t *vt, sysarg_t cols, sysarg_t rows)
+{
+	vt->cols = cols;
+	vt->rows = rows;
+
+	if (vt->cur_col > cols - 1)
+		vt->cur_col = cols - 1;
+	if (vt->cur_row > rows - 1)
+		vt->cur_row = rows - 1;
+}
+
 /** Destroy VT instance.
  *
  * @param vt VT instance

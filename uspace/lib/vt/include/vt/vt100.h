@@ -156,6 +156,7 @@ extern sgr_color_index_t color_map[];
 
 extern vt100_t *vt100_create(void *, sysarg_t, sysarg_t,
     vt100_cb_t *);
+extern void vt100_resize(vt100_t *, sysarg_t, sysarg_t);
 extern void vt100_destroy(vt100_t *);
 
 extern errno_t vt100_yield(vt100_t *);

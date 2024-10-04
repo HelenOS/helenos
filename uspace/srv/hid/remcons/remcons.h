@@ -37,7 +37,7 @@
 #define REMCONS_H_
 
 #include <adt/list.h>
-#include <io/kbd_event.h>
+#include <io/cons_event.h>
 #include <stdbool.h>
 #include <vt/vt100.h>
 #include "user.h"
@@ -63,7 +63,7 @@ typedef struct {
 /** Remote console event */
 typedef struct {
 	link_t link;		/**< link to list of events */
-	kbd_event_t kbd;	/**< keyboard event */
+	cons_event_t cev;	/**< console event */
 } remcons_event_t;
 
 #endif
