@@ -166,6 +166,10 @@ static void hr_create_srv(ipc_call_t *icall)
 		new_volume->hr_ops.create = hr_raid4_create;
 		new_volume->hr_ops.init = hr_raid4_init;
 		break;
+	case hr_l_5:
+		new_volume->hr_ops.create = hr_raid5_create;
+		new_volume->hr_ops.init = hr_raid5_init;
+		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "level %d not implemented yet", new_volume->level);
@@ -280,6 +284,9 @@ static void hr_assemble_srv(ipc_call_t *icall)
 		break;
 	case hr_l_4:
 		new_volume->hr_ops.create = hr_raid4_create;
+		break;
+	case hr_l_5:
+		new_volume->hr_ops.create = hr_raid5_create;
 		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_ERROR,
