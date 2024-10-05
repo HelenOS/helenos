@@ -121,7 +121,7 @@ error:
 	return rc;
 }
 
-errno_t hr_check_devs(hr_volume_t *vol)
+errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_check_devs()");
 
@@ -156,17 +156,10 @@ errno_t hr_check_devs(hr_volume_t *vol)
 		last_bsize = bsize;
 	}
 
-	if (vol->level == hr_l_1) {
-		vol->nblocks = total_blocks / vol->dev_no;
-	} else if (vol->level == hr_l_0 || vol->level == hr_l_4) {
-		vol->nblocks = total_blocks;
-	} else {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "unkown level, ok when assembling");
-		vol->nblocks = 0;
-	}
-
-	vol->bsize = bsize;
-
+	if (rblkno != NULL)
+		*rblkno = total_blocks;
+	if (rbsize != NULL)
+		*rbsize = bsize;
 error:
 	return rc;
 }

@@ -40,6 +40,7 @@
 
 #define HR_META_SIZE 1	/* in blocks */
 #define HR_META_OFF 7	/* in blocks */
+#define HR_DATA_OFF (HR_META_SIZE + HR_META_OFF)
 
 #define HR_MAGIC 0x4420492041205248LLU
 

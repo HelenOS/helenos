@@ -48,6 +48,7 @@ typedef struct hr_volume hr_volume_t;
 
 typedef struct hr_ops {
 	errno_t (*create)(hr_volume_t *);
+	errno_t (*init)(hr_volume_t *);
 } hr_ops_t;
 
 typedef struct hr_volume {
@@ -58,7 +59,7 @@ typedef struct hr_volume {
 	hr_extent_t extents[HR_MAXDEVS];
 	uint64_t nblocks;
 	uint64_t data_blkno;
-	uint32_t data_offset;
+	uint32_t data_offset; /* in blocks */
 	uint32_t strip_size;
 	service_id_t svc_id;
 	size_t bsize;
@@ -72,6 +73,10 @@ extern void hr_fini_devs(hr_volume_t *);
 extern errno_t hr_raid0_create(hr_volume_t *);
 extern errno_t hr_raid1_create(hr_volume_t *);
 extern errno_t hr_raid4_create(hr_volume_t *);
+
+extern errno_t hr_raid0_init(hr_volume_t *);
+extern errno_t hr_raid1_init(hr_volume_t *);
+extern errno_t hr_raid4_init(hr_volume_t *);
 
 #endif
 

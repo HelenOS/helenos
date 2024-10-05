@@ -56,8 +56,8 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_write_meta_to_vol()");
 
 	errno_t rc;
-	size_t i, data_offset;
-	uint64_t data_blkno;
+	size_t i;
+	size_t meta_blkno; /* blocks needed to write metadata */
 	hr_metadata_t *metadata;
 	uuid_t uuid;
 
@@ -65,32 +65,28 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 	if (metadata == NULL)
 		return ENOMEM;
 
-	if (vol->nblocks <= HR_META_OFF + HR_META_SIZE) {
+	meta_blkno = (HR_META_OFF + HR_META_SIZE);
+	if (vol->level != hr_l_1)
+		meta_blkno *= vol->dev_no;
+
+	if (vol->nblocks < meta_blkno) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "not enough blocks");
+		    "not enough blocks to write metadata");
 		rc = EINVAL;
 		goto error;
-	}
-
-	data_offset = HR_META_OFF + HR_META_SIZE;
-	if (vol->level == hr_l_1) {
-		data_blkno = vol->nblocks - data_offset;
-	} else if (vol->level == hr_l_0) {
-		data_blkno = vol->nblocks - (data_offset * vol->dev_no);
-	} else if (vol->level == hr_l_4) {
-		data_blkno = vol->nblocks - (data_offset * vol->dev_no) - (vol->nblocks / vol->dev_no);
-	} else {
+	} else if (vol->nblocks == meta_blkno) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "level %d not implemented yet", vol->level);
-		return EINVAL;
+		    "there would be zero data blocks after writing metadata, aborting");
+		rc = EINVAL;
+		goto error;
 	}
 
 	metadata->magic = host2uint64_t_le(HR_MAGIC);
 	metadata->extent_no = host2uint32_t_le(vol->dev_no);
 	metadata->level = host2uint32_t_le(vol->level);
 	metadata->nblocks = host2uint64_t_le(vol->nblocks);
-	metadata->data_blkno = host2uint64_t_le(data_blkno);
-	metadata->data_offset = host2uint32_t_le(data_offset);
+	metadata->data_blkno = host2uint64_t_le(vol->data_blkno);
+	metadata->data_offset = host2uint32_t_le(vol->data_offset);
 	metadata->strip_size = host2uint32_t_le(vol->strip_size);
 	for (i = 0; i < vol->dev_no; i++) {
 		metadata->index = host2uint32_t_le(i);
@@ -102,16 +98,11 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 
 		str_cpy(metadata->devname, 32, vol->devname);
 
-		rc = block_write_direct(vol->extents[i].svc_id, HR_META_OFF, HR_META_SIZE,
-		    metadata);
+		rc = block_write_direct(vol->extents[i].svc_id, HR_META_OFF,
+		    HR_META_SIZE, metadata);
 		if (rc != EOK)
 			goto error;
 	}
-
-	/* fill in new members */
-	vol->data_offset = data_offset;
-	vol->data_blkno = data_blkno;
-
 error:
 	free(metadata);
 	return rc;

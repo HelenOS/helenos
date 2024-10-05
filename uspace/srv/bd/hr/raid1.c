@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <str_error.h>
 
+#include "superblock.h"
 #include "util.h"
 #include "var.h"
 
@@ -196,6 +197,27 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	rc = hr_register_volume(new_volume);
 	if (rc != EOK)
 		return rc;
+
+	return EOK;
+}
+
+errno_t hr_raid1_init(hr_volume_t *vol)
+{
+	errno_t rc;
+	size_t bsize;
+	uint64_t total_blkno;
+
+	assert(vol->level == hr_l_1);
+
+	rc = hr_check_devs(vol, &total_blkno, &bsize);
+	if (rc != EOK)
+		return rc;
+
+	vol->nblocks = total_blkno / vol->dev_no;
+	vol->bsize = bsize;
+	vol->data_offset = HR_DATA_OFF;
+	vol->data_blkno = vol->nblocks - vol->data_offset;
+	vol->strip_size = 0;
 
 	return EOK;
 }

@@ -153,22 +153,18 @@ static void hr_create_srv(ipc_call_t *icall)
 		return;
 	}
 
-	rc = hr_check_devs(new_volume);
-	if (rc != EOK)
-		goto error;
-
 	switch (new_volume->level) {
 	case hr_l_1:
 		new_volume->hr_ops.create = hr_raid1_create;
-		new_volume->strip_size = 0;
+		new_volume->hr_ops.init = hr_raid1_init;
 		break;
 	case hr_l_0:
 		new_volume->hr_ops.create = hr_raid0_create;
-		new_volume->strip_size = HR_STRIP_SIZE;
+		new_volume->hr_ops.init = hr_raid0_init;
 		break;
 	case hr_l_4:
 		new_volume->hr_ops.create = hr_raid4_create;
-		new_volume->strip_size = HR_STRIP_SIZE;
+		new_volume->hr_ops.init = hr_raid4_init;
 		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_ERROR,
@@ -176,6 +172,10 @@ static void hr_create_srv(ipc_call_t *icall)
 		rc = EINVAL;
 		goto error;
 	}
+
+	new_volume->hr_ops.init(new_volume);
+	if (rc != EOK)
+		goto error;
 
 	rc = hr_write_meta_to_vol(new_volume);
 	if (rc != EOK)
@@ -262,7 +262,8 @@ static void hr_assemble_srv(ipc_call_t *icall)
 		return;
 	}
 
-	rc = hr_check_devs(new_volume);
+	/* just bsize needed for reading metadata later */
+	rc = hr_check_devs(new_volume, NULL, &new_volume->bsize);
 	if (rc != EOK)
 		goto error;
 
