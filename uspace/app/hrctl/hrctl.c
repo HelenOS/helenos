@@ -57,6 +57,7 @@ static const char usage_str[] =
     "                            sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
     "  -A, --assemble-file=path  create an array from file\n"
     "  -s, --status              display status of active arrays\n"
+    "  -T, --stop                stop an active array\n"
     "  -c, --create=NAME         create new array\n"
     "  -a, --assemble=NAME       assemble an existing array\n"
     "  -n                        non-zero number of devices\n"
