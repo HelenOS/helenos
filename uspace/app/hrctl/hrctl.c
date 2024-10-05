@@ -279,8 +279,12 @@ int main(int argc, char **argv)
 		case 'T':
 			rc = hr_stop(optarg);
 			free(cfg);
-			if (rc != EOK)
+			if (rc != EOK) {
+				if (rc == ENOENT)
+					printf("hrctl: service named \"%s\" does not exist\n",
+					    optarg);
 				return 1;
+			}
 			return 0;
 		case 'l':
 			if (cfg->level != hr_l_empty)
