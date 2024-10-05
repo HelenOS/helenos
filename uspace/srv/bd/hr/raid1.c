@@ -100,7 +100,7 @@ static errno_t hr_raid1_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 	fibril_mutex_lock(&big_lock);
 
 	for (i = 0; i < vol->dev_no; i++) {
-		rc = block_sync_cache(vol->devs[i], ba, cnt);
+		rc = block_sync_cache(vol->extents[i].svc_id, ba, cnt);
 		if (rc != EOK)
 			break;
 	}
@@ -126,7 +126,7 @@ static errno_t hr_raid1_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	fibril_mutex_lock(&big_lock);
 
 	for (i = 0; i < vol->dev_no; i++) {
-		rc = block_read_direct(vol->devs[i], ba, cnt, buf);
+		rc = block_read_direct(vol->extents[i].svc_id, ba, cnt, buf);
 		if (rc != EOK)
 			break;
 	}
@@ -152,7 +152,7 @@ static errno_t hr_raid1_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	fibril_mutex_lock(&big_lock);
 
 	for (i = 0; i < vol->dev_no; i++) {
-		rc = block_write_direct(vol->devs[i], ba, cnt, data);
+		rc = block_write_direct(vol->extents[i].svc_id, ba, cnt, data);
 		if (rc != EOK)
 			break;
 	}

@@ -102,7 +102,7 @@ static void hr_create_srv(ipc_call_t *icall)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_create_srv()");
 
 	errno_t rc;
-	size_t size;
+	size_t i, size;
 	hr_config_t *cfg;
 	hr_volume_t *new_volume;
 	ipc_call_t call;
@@ -141,7 +141,8 @@ static void hr_create_srv(ipc_call_t *icall)
 	}
 
 	str_cpy(new_volume->devname, 32, cfg->devname);
-	memcpy(new_volume->devs, cfg->devs, sizeof(service_id_t) * HR_MAXDEVS);
+	for (i = 0; i < cfg->dev_no; i++)
+		new_volume->extents[i].svc_id = cfg->devs[i];
 	new_volume->level = cfg->level;
 	new_volume->dev_no = cfg->dev_no;
 
@@ -205,7 +206,7 @@ static void hr_assemble_srv(ipc_call_t *icall)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_assemble_srv()");
 
 	errno_t rc;
-	size_t size;
+	size_t i, size;
 	hr_config_t *cfg;
 	hr_volume_t *new_volume;
 	ipc_call_t call;
@@ -244,7 +245,8 @@ static void hr_assemble_srv(ipc_call_t *icall)
 	}
 
 	str_cpy(new_volume->devname, 32, cfg->devname);
-	memcpy(new_volume->devs, cfg->devs, sizeof(service_id_t) * HR_MAXDEVS);
+	for (i = 0; i < cfg->dev_no; i++)
+		new_volume->extents[i].svc_id = cfg->devs[i];
 	new_volume->dev_no = cfg->dev_no;
 
 	if (cfg->level != hr_l_empty)
@@ -361,8 +363,8 @@ static void hr_print_status_srv(ipc_call_t *icall)
 		goto error;
 
 	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
-		memcpy(info.extents, volume->devs,
-		    sizeof(service_id_t) * HR_MAXDEVS);
+		memcpy(info.extents, volume->extents,
+		    sizeof(hr_extent_t) * HR_MAXDEVS);
 		info.svc_id = volume->svc_id;
 		info.extent_no = volume->dev_no;
 		info.level = volume->level;

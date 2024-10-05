@@ -145,6 +145,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	errno_t rc;
 	size_t i;
 	char *devname;
+	hr_extent_t *ext;
 
 	printf("--- vol %zu ---\n", index);
 
@@ -169,12 +170,21 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	printf("size in blocks: %lu\n", vol_info->nblocks);
 	printf("block size: %zu\n", vol_info->bsize);
 
-	printf("extents: [index] [devname]\n");
+	if (vol_info->level == hr_l_4)
+		printf("extents: [P] [status] [index] [devname]\n");
+	else
+		printf("extents: [status] [index] [devname]\n");
 	for (i = 0; i < vol_info->extent_no; i++) {
-		rc = loc_service_get_name(vol_info->extents[i], &devname);
+		ext = &vol_info->extents[i];
+		rc = loc_service_get_name(ext->svc_id, &devname);
 		if (rc != EOK)
 			return rc;
-		printf("          %zu       %s\n", i, devname);
+		if (i == 0 && vol_info->level == hr_l_4)
+			printf("          P   %d        %zu       %s\n", ext->status, i, devname);
+		else if (vol_info->level == hr_l_4)
+			printf("              %d        %zu       %s\n", ext->status, i, devname);
+		else
+			printf("          %d        %zu       %s\n", ext->status, i, devname);
 	}
 	return EOK;
 }

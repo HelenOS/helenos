@@ -55,13 +55,13 @@ errno_t hr_init_devs(hr_volume_t *vol)
 	size_t i;
 
 	for (i = 0; i < vol->dev_no; i++) {
-		rc = block_init(vol->devs[i]);
+		rc = block_init(vol->extents[i].svc_id);
 		log_msg(LOG_DEFAULT, LVL_DEBUG,
-		    "hr_init_devs(): initing (%" PRIun ")", vol->devs[i]);
+		    "hr_init_devs(): initing (%" PRIun ")", vol->extents[i].svc_id);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
 			    "hr_init_devs(): initing (%" PRIun ") failed, aborting",
-			    vol->devs[i]);
+			    vol->extents[i].svc_id);
 			break;
 		}
 	}
@@ -76,7 +76,7 @@ void hr_fini_devs(hr_volume_t *vol)
 	size_t i;
 
 	for (i = 0; i < vol->dev_no; i++)
-		block_fini(vol->devs[i]);
+		block_fini(vol->extents[i].svc_id);
 }
 
 errno_t hr_register_volume(hr_volume_t *new_volume)
@@ -131,7 +131,7 @@ errno_t hr_check_devs(hr_volume_t *vol)
 	uint64_t total_blocks = 0;
 
 	for (i = 0; i < vol->dev_no; i++) {
-		rc = block_get_nblocks(vol->devs[i], &nblocks);
+		rc = block_get_nblocks(vol->extents[i].svc_id, &nblocks);
 		if (rc != EOK)
 			goto error;
 		if (i != 0 && nblocks != last_nblocks) {
@@ -145,7 +145,7 @@ errno_t hr_check_devs(hr_volume_t *vol)
 	}
 
 	for (i = 0; i < vol->dev_no; i++) {
-		rc = block_get_bsize(vol->devs[i], &bsize);
+		rc = block_get_bsize(vol->extents[i].svc_id, &bsize);
 		if (rc != EOK)
 			goto error;
 		if (i != 0 && bsize != last_bsize) {

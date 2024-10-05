@@ -63,8 +63,13 @@ typedef struct hr_config {
 	hr_level_t level;
 } hr_config_t;
 
+typedef struct hr_extent {
+	service_id_t svc_id;
+	int status;
+} hr_extent_t;
+
 typedef struct hr_vol_info {
-	service_id_t extents[HR_MAXDEVS];
+	hr_extent_t extents[HR_MAXDEVS];
 	size_t extent_no;
 	service_id_t svc_id;
 	hr_level_t level;

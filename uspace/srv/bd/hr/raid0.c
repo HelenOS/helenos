@@ -116,7 +116,7 @@ static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 	while (left != 0) {
 		raid0_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
-		rc = block_sync_cache(vol->devs[extent], phys_block, 1);
+		rc = block_sync_cache(vol->extents[extent].svc_id, phys_block, 1);
 		if (rc != EOK)
 			break;
 		left--;
@@ -148,7 +148,7 @@ static errno_t hr_raid0_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	while (left != 0) {
 		raid0_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
-		rc = block_read_direct(vol->devs[extent], phys_block, 1, buf);
+		rc = block_read_direct(vol->extents[extent].svc_id, phys_block, 1, buf);
 		buf = buf + vol->bsize;
 		if (rc != EOK)
 			break;
@@ -181,7 +181,7 @@ static errno_t hr_raid0_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	while (left != 0) {
 		raid0_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
-		rc = block_write_direct(vol->devs[extent], phys_block, 1, data);
+		rc = block_write_direct(vol->extents[extent].svc_id, phys_block, 1, data);
 		data = data + vol->bsize;
 		if (rc != EOK)
 			break;

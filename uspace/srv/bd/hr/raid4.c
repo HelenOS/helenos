@@ -103,14 +103,14 @@ static errno_t write_parity(hr_volume_t *vol, uint64_t extent, uint64_t block,
 		if (i == extent) {
 			xor(xorbuf, data, vol->bsize);
 		} else {
-			rc = block_read_direct(vol->devs[i], block, 1, buf);
+			rc = block_read_direct(vol->extents[i].svc_id, block, 1, buf);
 			if (rc != EOK)
 				goto end;
 			xor(xorbuf, buf, vol->bsize);
 		}
 	}
 
-	rc = block_write_direct(vol->devs[0], block, 1, xorbuf);
+	rc = block_write_direct(vol->extents[0].svc_id, block, 1, xorbuf);
 
 end:
 	free(xorbuf);
@@ -161,7 +161,7 @@ static errno_t hr_raid4_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 	while (left != 0) {
 		raid4_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
-		rc = block_sync_cache(vol->devs[extent], phys_block, 1);
+		rc = block_sync_cache(vol->extents[extent].svc_id, phys_block, 1);
 		if (rc != EOK)
 			break;
 		left--;
@@ -193,7 +193,7 @@ static errno_t hr_raid4_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	while (left != 0) {
 		raid4_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
-		rc = block_read_direct(vol->devs[extent], phys_block, 1, buf);
+		rc = block_read_direct(vol->extents[extent].svc_id, phys_block, 1, buf);
 		buf = buf + vol->bsize;
 		if (rc != EOK)
 			break;
@@ -204,7 +204,6 @@ static errno_t hr_raid4_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	fibril_mutex_unlock(&big_lock);
 	return rc;
 }
-
 
 static errno_t hr_raid4_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *data, size_t size)
@@ -227,7 +226,7 @@ static errno_t hr_raid4_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	while (left != 0) {
 		raid4_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
-		rc = block_write_direct(vol->devs[extent], phys_block, 1, data);
+		rc = block_write_direct(vol->extents[extent].svc_id, phys_block, 1, data);
 		if (rc != EOK)
 			break;
 		rc = write_parity(vol, extent, phys_block, data);

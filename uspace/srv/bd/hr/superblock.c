@@ -102,7 +102,7 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 
 		str_cpy(metadata->devname, 32, vol->devname);
 
-		rc = block_write_direct(vol->devs[i], HR_META_OFF, HR_META_SIZE,
+		rc = block_write_direct(vol->extents[i].svc_id, HR_META_OFF, HR_META_SIZE,
 		    metadata);
 		if (rc != EOK)
 			goto error;
@@ -133,7 +133,7 @@ errno_t hr_get_vol_from_meta(hr_config_t *cfg, hr_volume_t *new_volume)
 	if (rc != EOK)
 		goto end;
 
-	/* TODO: sort new_volume->devs according to metadata extent index */
+	/* TODO: sort new_volume->extents according to metadata extent index */
 
 	if (uint64_t_le2host(metadata->magic) != HR_MAGIC) {
 		printf("invalid magic\n");
