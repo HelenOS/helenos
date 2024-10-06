@@ -491,7 +491,8 @@ errno_t ds_seat_post_ptd_event(ds_seat_t *seat, ptd_event_t *event)
 
 	/* Focus window on button press */
 	if (event->type == PTD_PRESS && event->btn_num == 1) {
-		if (wnd != NULL && (wnd->flags & wndf_popup) == 0) {
+		if (wnd != NULL && (wnd->flags & wndf_popup) == 0 &&
+		    (wnd->flags & wndf_nofocus) == 0) {
 			ds_seat_set_focus(seat, wnd);
 		}
 	}

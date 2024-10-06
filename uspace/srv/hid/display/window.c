@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -152,10 +152,12 @@ errno_t ds_window_create(ds_client_t *client, display_wnd_params_t *params,
 		seat = ds_display_default_seat(wnd->display);
 
 	/* Is this a popup window? */
-	if ((params->flags & wndf_popup) != 0)
+	if ((params->flags & wndf_popup) != 0) {
 		ds_seat_set_popup(seat, wnd);
-	else
-		ds_seat_set_focus(seat, wnd);
+	} else {
+		if ((params->flags & wndf_nofocus) == 0)
+			ds_seat_set_focus(seat, wnd);
+	}
 
 	/* Is this window a panel? */
 	if ((params->flags & wndf_avoid) != 0)

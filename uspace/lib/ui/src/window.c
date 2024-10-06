@@ -188,7 +188,9 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
 
 	switch (params->placement) {
 	case ui_wnd_place_default:
-		assert(ui_is_fullscreen(window->ui));
+	case ui_wnd_place_center:
+		assert(params->placement != ui_wnd_place_default ||
+		    ui_is_fullscreen(window->ui));
 		/* Center window */
 		gfx_rect_dims(&params->rect, &dims);
 		pos->x = (drect->p0.x + drect->p1.x) / 2 - dims.x / 2;
@@ -356,6 +358,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	if ((params->flags & ui_wndf_popup) != 0)
 		dparams.flags |= wndf_popup;
+	if ((params->flags & ui_wndf_nofocus) != 0)
+		dparams.flags |= wndf_nofocus;
 	if ((params->flags & ui_wndf_topmost) != 0)
 		dparams.flags |= wndf_topmost;
 	if ((params->flags & ui_wndf_system) != 0)

@@ -104,7 +104,8 @@ static errno_t choose_action(void)
 		goto error;
 	}
 
-	rc = nchoice_set_prompt(nchoice, "Select action");
+	rc = nchoice_set_prompt(nchoice, "Do you want to shut the system down? "
+	    "Select action:");
 	if (rc != EOK) {
 		printf(NAME ": Out of memory.\n");
 		goto error;
@@ -193,7 +194,7 @@ int main(int argc, char **argv)
 	}
 
 	fibril_mutex_lock(&shutdown.lock);
-	printf("System is shutting down...\n");
+	printf("The system is shutting down...\n");
 	while (!shutdown.stopped)
 		fibril_condvar_wait(&shutdown.cv, &shutdown.lock);
 

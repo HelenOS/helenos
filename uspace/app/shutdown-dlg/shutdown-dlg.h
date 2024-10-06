@@ -30,24 +30,34 @@
  * @{
  */
 /**
- * @file Hello world (in UI)
+ * @file Shutdown dialog
  */
 
-#ifndef HELLO_H
-#define HELLO_H
+#ifndef SHUTDOWN_DLG_H
+#define SHUTDOWN_DLG_H
 
+#include <gfx/color.h>
+#include <system.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/ui.h>
 #include <ui/window.h>
 
-/** Hello world UI application */
+/** Shutdown progress window. */
 typedef struct {
-	ui_t *ui;
 	ui_window_t *window;
 	ui_fixed_t *fixed;
 	ui_label_t *label;
-} hello_t;
+} shutdown_progress_t;
+
+/** Shutdown dialog. */
+typedef struct {
+	ui_t *ui;
+	ui_window_t *bgwindow;
+	gfx_color_t *bg_color;
+	shutdown_progress_t *progress;
+	system_t *system;
+} shutdown_dlg_t;
 
 #endif
 

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 Jiří Zárevúcky
+# Copyright (c) 2024 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,88 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-apps = [
-	'aboutos',
-	'barber',
-	'bdsh',
-	'bithenge',
-	'blkdump',
-	'calculator',
-	'corecfg',
-	'cpptest',
-	'date',
-	'devctl',
-	'df',
-	'disp',
-	'display-cfg',
-	'dnscfg',
-	'dnsres',
-	'download',
-	'edit',
-	'fdisk',
-	'fontedit',
-	'getterm',
-	'gfxdemo',
-	'gunzip',
-	'hbench',
-	'hello',
-	'inet',
-	'init',
-	'kill',
-	'killall',
-	'kio',
-	'loc',
-	'logset',
-	'lprint',
-	'mixerctl',
-	'mkbd',
-	'mkexfat',
-	'mkext4',
-	'mkfat',
-	'mkmfs',
-	'modplay',
-	'nav',
-	'netecho',
-	'nic',
-	'nterm',
-	'ofw',
-	'pci',
-	'ping',
-	'pkg',
-	'redir',
-	'sbi',
-	'shutdown',
-	'shutdown-dlg',
-	'sportdmp',
-	'stats',
-	'sysinfo',
-	'sysinst',
-	'taskbar',
-	'taskbar-cfg',
-	'taskdump',
-	'terminal',
-	'tester',
-	'testread',
-	'testrunner',
-	'testwrit',
-	'tetris',
-	'tmon',
-	'top',
-	'trace',
-	'uidemo',
-	'untar',
-	'usbinfo',
-	'viewer',
-	'vol',
-	'vuhid',
-	'wavplay',
-	'websrv',
-	'wifi_supplicant',
-]
-
-if CONFIG_BUILD_SHARED_LIBS
-	apps += [
-		'dltest',
-		'dltests',
-	]
-endif
+deps = [ 'system', 'ui' ]
+src = files(
+	'shutdown-dlg.c',
+)
