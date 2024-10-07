@@ -539,17 +539,17 @@ static errno_t spawn_task_fibril(void *arg)
 		telnet_user_error(user, "Spawning `%s %s /loc --msg -- %s' "
 		    "failed: %s.", APP_GETTERM, user->service_name, APP_SHELL,
 		    str_error(rc));
-		fibril_mutex_lock(&user->guard);
+		fibril_mutex_lock(&user->recv_lock);
 		user->task_finished = true;
 		user->srvs.aborted = true;
 		fibril_condvar_signal(&user->refcount_cv);
-		fibril_mutex_unlock(&user->guard);
+		fibril_mutex_unlock(&user->recv_lock);
 		return EOK;
 	}
 
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->recv_lock);
 	user->task_id = task;
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->recv_lock);
 
 	task_exit_t task_exit;
 	int task_retval;
@@ -559,11 +559,11 @@ static errno_t spawn_task_fibril(void *arg)
 	    task_retval);
 
 	/* Announce destruction. */
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->recv_lock);
 	user->task_finished = true;
 	user->srvs.aborted = true;
 	fibril_condvar_signal(&user->refcount_cv);
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->recv_lock);
 
 	return EOK;
 }
@@ -727,7 +727,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	fibril_add_ready(spawn_fibril);
 
 	/* Wait for all clients to exit. */
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->recv_lock);
 	while (!user_can_be_destroyed_no_lock(user)) {
 		if (user->task_finished) {
 			user->conn = NULL;
@@ -739,9 +739,9 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 				task_kill(user->task_id);
 			}
 		}
-		fibril_condvar_wait_timeout(&user->refcount_cv, &user->guard, 1000);
+		fibril_condvar_wait_timeout(&user->refcount_cv, &user->recv_lock, 1000);
 	}
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->recv_lock);
 
 	rc = loc_service_unregister(remcons_srv, user->service_id);
 	if (rc != EOK) {

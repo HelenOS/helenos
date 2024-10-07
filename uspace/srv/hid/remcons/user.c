@@ -96,7 +96,8 @@ telnet_user_t *telnet_user_create(tcp_conn_t *conn, telnet_cb_t *cb, void *arg)
 	user->send_buf_used = 0;
 
 	fibril_condvar_initialize(&user->refcount_cv);
-	fibril_mutex_initialize(&user->guard);
+	fibril_mutex_initialize(&user->send_lock);
+	fibril_mutex_initialize(&user->recv_lock);
 	user->task_finished = false;
 	user->socket_closed = false;
 	user->locsrv_connection_count = 0;
@@ -150,7 +151,7 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 	}
 
 	telnet_user_t *tmp = user;
-	fibril_mutex_lock(&tmp->guard);
+	fibril_mutex_lock(&tmp->recv_lock);
 	user->locsrv_connection_count++;
 
 	/*
@@ -162,7 +163,7 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
 		user->locsrv_connection_count--;
 	}
 
-	fibril_mutex_unlock(&tmp->guard);
+	fibril_mutex_unlock(&tmp->recv_lock);
 
 	fibril_mutex_unlock(&users_guard);
 
@@ -175,11 +176,11 @@ telnet_user_t *telnet_user_get_for_client_connection(service_id_t id)
  */
 void telnet_user_notify_client_disconnected(telnet_user_t *user)
 {
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->recv_lock);
 	assert(user->locsrv_connection_count > 0);
 	user->locsrv_connection_count--;
 	fibril_condvar_signal(&user->refcount_cv);
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->recv_lock);
 }
 
 /** Tell whether the launched task already exited and socket is already closed.
@@ -188,9 +189,9 @@ void telnet_user_notify_client_disconnected(telnet_user_t *user)
  */
 bool telnet_user_is_zombie(telnet_user_t *user)
 {
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->recv_lock);
 	bool zombie = user->socket_closed || user->task_finished;
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->recv_lock);
 
 	return zombie;
 }
@@ -400,7 +401,7 @@ errno_t telnet_user_recv(telnet_user_t *user, void *buf, size_t size,
     size_t *nread)
 {
 	uint8_t *bp = (uint8_t *)buf;
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->recv_lock);
 
 	assert(size > 0);
 	*nread = 0;
@@ -416,7 +417,7 @@ errno_t telnet_user_recv(telnet_user_t *user, void *buf, size_t size,
 			errno_t rc = telnet_user_recv_next_byte_locked(user,
 			    &next_byte);
 			if (rc != EOK) {
-				fibril_mutex_unlock(&user->guard);
+				fibril_mutex_unlock(&user->recv_lock);
 				return rc;
 			}
 			uint8_t byte = next_byte;
@@ -452,7 +453,7 @@ errno_t telnet_user_recv(telnet_user_t *user, void *buf, size_t size,
 		}
 	} while (size > 0 && (telnet_user_byte_avail(user) || *nread == 0));
 
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->recv_lock);
 	return EOK;
 }
 
@@ -533,11 +534,11 @@ static errno_t telnet_user_send_data_locked(telnet_user_t *user,
 errno_t telnet_user_send_data(telnet_user_t *user, const char *data,
     size_t size)
 {
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->send_lock);
 
 	errno_t rc = telnet_user_send_data_locked(user, data, size);
 
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->send_lock);
 
 	return rc;
 }
@@ -551,11 +552,11 @@ errno_t telnet_user_send_data(telnet_user_t *user, const char *data,
 errno_t telnet_user_send_raw(telnet_user_t *user, const char *data,
     size_t size)
 {
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->send_lock);
 
 	errno_t rc = telnet_user_send_raw_locked(user, data, size);
 
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->send_lock);
 
 	return rc;
 }
@@ -576,9 +577,9 @@ errno_t telnet_user_flush(telnet_user_t *user)
 {
 	errno_t rc;
 
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->send_lock);
 	rc = telnet_user_flush_locked(user);
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->send_lock);
 	return rc;
 }
 
@@ -591,14 +592,14 @@ errno_t telnet_user_flush(telnet_user_t *user)
  */
 void telnet_user_update_cursor_x(telnet_user_t *user, int new_x)
 {
-	fibril_mutex_lock(&user->guard);
+	fibril_mutex_lock(&user->send_lock);
 	if (user->cursor_x - 1 == new_x) {
 		char data = '\b';
 		/* Ignore errors. */
 		telnet_user_send_data_locked(user, &data, 1);
 	}
 	user->cursor_x = new_x;
-	fibril_mutex_unlock(&user->guard);
+	fibril_mutex_unlock(&user->send_lock);
 
 }
 

@@ -51,8 +51,10 @@ typedef struct {
 
 /** Representation of a connected (human) user. */
 typedef struct {
-	/** Mutex guarding the whole structure. */
-	fibril_mutex_t guard;
+	/** Synchronize send operations */
+	fibril_mutex_t send_lock;
+	/** Synchronize receive operations */
+	fibril_mutex_t recv_lock;
 	/** Callback functions */
 	telnet_cb_t *cb;
 	/** Argument to callback functions */
