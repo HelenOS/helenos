@@ -31,6 +31,7 @@
  * @{
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <io/color.h>
 #include <io/keycode.h>
@@ -308,6 +309,26 @@ void vt100_cursor_visibility(vt100_t *vt, bool visible)
 		vt->cb->control_puts(vt->arg, "\033[?25l");
 }
 
+/** Set mouse button press/release reporting.
+ *
+ * @param vt VT instance
+ * @param @c true to enable button press/release reporting
+ */
+void vt100_set_button_reporting(vt100_t *vt, bool enable)
+{
+	if (enable) {
+		/* Enable button tracking */
+		vt->cb->control_puts(vt->arg, "\033[?1000h");
+		/* Enable SGR encoding of mouse reports */
+		vt->cb->control_puts(vt->arg, "\033[?1006h");
+	} else {
+		/* Disable button tracking */
+		vt->cb->control_puts(vt->arg, "\033[?1000l");
+		/* Disable SGR encoding of mouse reports */
+		vt->cb->control_puts(vt->arg, "\033[?1006l");
+	}
+}
+
 /** Print Unicode character.
  *
  * @param vt VT instance
@@ -346,6 +367,29 @@ static void vt100_key(vt100_t *vt, keymod_t mods, keycode_t key, char c)
 {
 	vt->cb->key(vt->arg, mods, key, c);
 	vt->state = vts_base;
+}
+
+/** Generate position event callback.
+ * *
+ * @param vt VT instance
+ * @param ev Position event
+ */
+static void vt100_pos_event(vt100_t *vt, pos_event_t *ev)
+{
+	vt->cb->pos_event(vt->arg, ev);
+}
+
+/** Clear number decoder state.
+ *
+ * @param vt VT instance
+ */
+static void vt100_clear_innum(vt100_t *vt)
+{
+	unsigned i;
+
+	vt->inncnt = 0;
+	for (i = 0; i < INNUM_MAX; i++)
+		vt->innum[i] = 0;
 }
 
 /** Process input character with prefix 1b.
@@ -574,6 +618,9 @@ static void vt100_rcvd_1b5b(vt100_t *vt, char c)
 		break;
 	case 0x36:
 		vt->state = vts_1b5b36;
+		break;
+	case 0x3c:
+		vt->state = vts_1b5b3c;
 		break;
 	case 0x41:
 		vt100_key(vt, 0, KC_UP, 0);
@@ -965,6 +1012,61 @@ static void vt100_rcvd_1b5b36(vt100_t *vt, char c)
 	default:
 		vt->state = vts_base;
 		break;
+	}
+}
+
+/** Process input character with prefix 1b 5b 3c - mouse report.
+ *
+ * @param vt VT instance
+ * @param c Input character
+ */
+static void vt100_rcvd_1b5b3c(vt100_t *vt, char c)
+{
+	pos_event_t ev;
+
+	if (isdigit(c)) {
+		/* Decode next base-10 digit */
+		vt->innum[vt->inncnt] = vt->innum[vt->inncnt] * 10 + (c - '0');
+	} else if (c == ';') {
+		/* Move to next parameter */
+		if (vt->inncnt >= INNUM_MAX - 1) {
+			vt->state = vts_base;
+			vt100_clear_innum(vt);
+			return;
+		}
+		++vt->inncnt;
+	} else {
+		switch (c) {
+		case 'M':
+		case 'm':
+			/* Button press / release */
+			ev.pos_id = 0;
+			ev.type = (c == 'M') ? POS_PRESS : POS_RELEASE;
+
+			/*
+			 * VT reports button 0 = left button,
+			 * 1 = middle, 2 = right.
+			 * pos_event needs 1 = left, 2 = right, 3 = middle,...
+			 * so right and middle need to be reversed.
+			 */
+			switch (vt->innum[0]) {
+			case 1:
+				ev.btn_num = 3;
+				break;
+			case 2:
+				ev.btn_num = 2;
+				break;
+			default:
+				ev.btn_num = 1 + vt->innum[0];
+				break;
+			}
+			ev.hpos = vt->innum[1] - 1;
+			ev.vpos = vt->innum[2] - 1;
+			vt100_pos_event(vt, &ev);
+			break;
+		}
+		vt100_clear_innum(vt);
+		vt->state = vts_base;
 	}
 }
 
@@ -1451,6 +1553,9 @@ void vt100_rcvd_char(vt100_t *vt, char c)
 		break;
 	case vts_1b5b36:
 		vt100_rcvd_1b5b36(vt, c);
+		break;
+	case vts_1b5b3c:
+		vt100_rcvd_1b5b3c(vt, c);
 		break;
 	}
 }

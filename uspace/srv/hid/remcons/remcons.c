@@ -125,12 +125,14 @@ static void remcons_vt_putchar(void *, char32_t);
 static void remcons_vt_cputs(void *, const char *);
 static void remcons_vt_flush(void *);
 static void remcons_vt_key(void *, keymod_t, keycode_t, char);
+static void remcons_vt_pos_event(void *, pos_event_t *);
 
 static vt100_cb_t remcons_vt_cb = {
 	.putuchar = remcons_vt_putchar,
 	.control_puts = remcons_vt_cputs,
 	.flush = remcons_vt_flush,
-	.key = remcons_vt_key
+	.key = remcons_vt_key,
+	.pos_event = remcons_vt_pos_event
 };
 
 static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn);
@@ -368,6 +370,26 @@ static remcons_event_t *new_kbd_event(kbd_event_type_t type, keymod_t mods,
 	event->cev.ev.key.mods = mods;
 	event->cev.ev.key.key = key;
 	event->cev.ev.key.c = c;
+
+	return event;
+}
+
+/** Creates new position event.
+ *
+ * @param ev Position event.
+ * @param c Pressed character.
+ */
+static remcons_event_t *new_pos_event(pos_event_t *ev)
+{
+	remcons_event_t *event = malloc(sizeof(remcons_event_t));
+	if (event == NULL) {
+		fprintf(stderr, "Out of memory.\n");
+		return NULL;
+	}
+
+	link_initialize(&event->link);
+	event->cev.type = CEV_POS;
+	event->cev.ev.pos = *ev;
 
 	return event;
 }
@@ -626,6 +648,17 @@ static void remcons_vt_key(void *arg, keymod_t mods, keycode_t key, char c)
 	list_append(&up->link, &remcons->in_events);
 }
 
+static void remcons_vt_pos_event(void *arg, pos_event_t *ev)
+{
+	remcons_t *remcons = (remcons_t *)arg;
+
+	remcons_event_t *cev = new_pos_event(ev);
+	if (cev == NULL)
+		return;
+
+	list_append(&cev->link, &remcons->in_events);
+}
+
 /** Window size update callback.
  *
  * @param arg Argument (remcons_t *)
@@ -699,6 +732,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 		vt100_set_sgr(remcons->vt, attrs);
 		vt100_cls(remcons->vt);
 		vt100_set_pos(remcons->vt, 0, 0);
+		vt100_set_button_reporting(remcons->vt, true);
 	}
 
 	con_srvs_init(&user->srvs);

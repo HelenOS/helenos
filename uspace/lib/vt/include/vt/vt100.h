@@ -36,6 +36,7 @@
 
 #include <io/charfield.h>
 #include <io/keycode.h>
+#include <io/pos_event.h>
 #include <ipc/common.h>
 #include <uchar.h>
 
@@ -76,6 +77,7 @@ typedef struct {
 	void (*control_puts)(void *, const char *);
 	void (*flush)(void *);
 	void (*key)(void *, keymod_t, keycode_t, char);
+	void (*pos_event)(void *, pos_event_t *);
 } vt100_cb_t;
 
 /** VT100 decoding state */
@@ -123,8 +125,14 @@ typedef enum {
 	/** Prefix 1b 5b 33 */
 	vts_1b5b33,
 	/** Prefix 1b 5b 36 */
-	vts_1b5b36
+	vts_1b5b36,
+	/** Prefix 1b 5b 3c - mouse report */
+	vts_1b5b3c
 } vt100_state_t;
+
+enum {
+	INNUM_MAX = 3
+};
 
 /** VT100 instance */
 typedef struct {
@@ -150,6 +158,10 @@ typedef struct {
 
 	/** Input decoding state */
 	vt100_state_t state;
+	/** Decoded numeric parameters */
+	uint16_t innum[INNUM_MAX];
+	/** Index of current numeric parameter */
+	unsigned inncnt;
 } vt100_t;
 
 extern sgr_color_index_t color_map[];
@@ -169,6 +181,7 @@ extern void vt100_goto(vt100_t *, sysarg_t, sysarg_t);
 extern void vt100_set_sgr(vt100_t *, char_attrs_t);
 extern void vt100_set_attr(vt100_t *, char_attrs_t);
 extern void vt100_cursor_visibility(vt100_t *, bool);
+extern void vt100_set_button_reporting(vt100_t *, bool);
 extern void vt100_putuchar(vt100_t *, char32_t);
 extern void vt100_flush(vt100_t *);
 
