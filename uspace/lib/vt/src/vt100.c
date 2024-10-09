@@ -200,8 +200,8 @@ vt100_t *vt100_create(void *arg, sysarg_t cols, sysarg_t rows, vt100_cb_t *cb)
 	vt->cur_col = (sysarg_t) -1;
 	vt->cur_row = (sysarg_t) -1;
 
-	vt->cur_attrs.type = CHAR_ATTR_STYLE;
-	vt->cur_attrs.val.style = STYLE_NORMAL;
+	vt->cur_attrs.type = -1;
+	vt->cur_attrs.val.style = -1;
 
 	return vt;
 }
