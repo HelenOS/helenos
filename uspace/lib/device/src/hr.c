@@ -86,7 +86,7 @@ void hr_sess_destroy(hr_t *hr)
 	free(hr);
 }
 
-errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
+errno_t hr_create(hr_t *hr, hr_config_t *hr_config, bool assemble)
 {
 	errno_t rc, retval;
 	async_exch_t *exch;
@@ -96,34 +96,7 @@ errno_t hr_create(hr_t *hr, hr_config_t *hr_config)
 	if (exch == NULL)
 		return EINVAL;
 
-	req = async_send_0(exch, HR_CREATE, NULL);
-
-	rc = async_data_write_start(exch, hr_config, sizeof(hr_config_t));
-	if (rc != EOK) {
-		async_exchange_end(exch);
-		async_forget(req);
-		return rc;
-	}
-
-	async_exchange_end(exch);
-	async_wait_for(req, &retval);
-	if (retval != EOK)
-		return retval;
-
-	return EOK;
-}
-
-errno_t hr_assemble(hr_t *hr, hr_config_t *hr_config)
-{
-	errno_t rc, retval;
-	async_exch_t *exch;
-	aid_t req;
-
-	exch = async_exchange_begin(hr->sess);
-	if (exch == NULL)
-		return EINVAL;
-
-	req = async_send_0(exch, HR_ASSEMBLE, NULL);
+	req = async_send_0(exch, assemble ? HR_ASSEMBLE : HR_CREATE, NULL);
 
 	rc = async_data_write_start(exch, hr_config, sizeof(hr_config_t));
 	if (rc != EOK) {

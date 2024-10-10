@@ -97,7 +97,7 @@ static errno_t hr_remove_volume(service_id_t svc_id)
 	return ENOENT;
 }
 
-static void hr_create_srv(ipc_call_t *icall)
+static void hr_create_srv(ipc_call_t *icall, bool assemble)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_create_srv()");
 
@@ -146,11 +146,29 @@ static void hr_create_srv(ipc_call_t *icall)
 	new_volume->level = cfg->level;
 	new_volume->dev_no = cfg->dev_no;
 
+	if (assemble) {
+		if (cfg->level != hr_l_empty)
+			log_msg(LOG_DEFAULT, LVL_WARN,
+			    "level manually set when assembling, ingoring");
+		new_volume->level = hr_l_empty;
+	}
+
 	rc = hr_init_devs(new_volume);
 	if (rc != EOK) {
 		free(cfg);
 		async_answer_0(icall, rc);
 		return;
+	}
+
+	if (assemble) {
+		/* just bsize needed for reading metadata later */
+		rc = hr_check_devs(new_volume, NULL, &new_volume->bsize);
+		if (rc != EOK)
+			goto error;
+
+		rc = hr_get_vol_from_meta(cfg, new_volume);
+		if (rc != EOK)
+			goto error;
 	}
 
 	switch (new_volume->level) {
@@ -177,122 +195,14 @@ static void hr_create_srv(ipc_call_t *icall)
 		goto error;
 	}
 
-	new_volume->hr_ops.init(new_volume);
-	if (rc != EOK)
-		goto error;
+	if (!assemble) {
+		new_volume->hr_ops.init(new_volume);
+		if (rc != EOK)
+			goto error;
 
-	rc = hr_write_meta_to_vol(new_volume);
-	if (rc != EOK)
-		goto error;
-
-	rc = new_volume->hr_ops.create(new_volume);
-	if (rc != EOK)
-		goto error;
-
-	fibril_mutex_lock(&hr_volumes_lock);
-	list_append(&new_volume->lvolumes, &hr_volumes);
-	fibril_mutex_unlock(&hr_volumes_lock);
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "created volume \"%s\" (%" PRIun ")",
-	    new_volume->devname, new_volume->svc_id);
-
-	free(cfg);
-	async_answer_0(icall, rc);
-	return;
-error:
-	free(cfg);
-	hr_fini_devs(new_volume);
-	async_answer_0(icall, rc);
-}
-
-static void hr_assemble_srv(ipc_call_t *icall)
-{
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_assemble_srv()");
-
-	errno_t rc;
-	size_t i, size;
-	hr_config_t *cfg;
-	hr_volume_t *new_volume;
-	ipc_call_t call;
-
-	if (!async_data_write_receive(&call, &size)) {
-		async_answer_0(&call, EREFUSED);
-		async_answer_0(icall, EREFUSED);
-		return;
-	}
-
-	if (size != sizeof(hr_config_t)) {
-		async_answer_0(&call, EINVAL);
-		async_answer_0(icall, EINVAL);
-		return;
-	}
-
-	cfg = calloc(1, sizeof(hr_config_t));
-	if (cfg == NULL) {
-		async_answer_0(&call, ENOMEM);
-		async_answer_0(icall, ENOMEM);
-		return;
-	}
-
-	rc = async_data_write_finalize(&call, cfg, size);
-	if (rc != EOK) {
-		async_answer_0(&call, rc);
-		async_answer_0(icall, rc);
-		return;
-	}
-
-	new_volume = calloc(1, sizeof(hr_volume_t));
-	if (new_volume == NULL) {
-		free(cfg);
-		async_answer_0(icall, ENOMEM);
-		return;
-	}
-
-	str_cpy(new_volume->devname, 32, cfg->devname);
-	for (i = 0; i < cfg->dev_no; i++)
-		new_volume->extents[i].svc_id = cfg->devs[i];
-	new_volume->dev_no = cfg->dev_no;
-
-	if (cfg->level != hr_l_empty)
-		log_msg(LOG_DEFAULT, LVL_WARN,
-		    "level manually set when assembling, ingoring");
-
-	new_volume->level = hr_l_empty;
-
-	rc = hr_init_devs(new_volume);
-	if (rc != EOK) {
-		free(cfg);
-		async_answer_0(icall, rc);
-		return;
-	}
-
-	/* just bsize needed for reading metadata later */
-	rc = hr_check_devs(new_volume, NULL, &new_volume->bsize);
-	if (rc != EOK)
-		goto error;
-
-	rc = hr_get_vol_from_meta(cfg, new_volume);
-	if (rc != EOK)
-		goto error;
-
-	switch (new_volume->level) {
-	case hr_l_1:
-		new_volume->hr_ops.create = hr_raid1_create;
-		break;
-	case hr_l_0:
-		new_volume->hr_ops.create = hr_raid0_create;
-		break;
-	case hr_l_4:
-		new_volume->hr_ops.create = hr_raid4_create;
-		break;
-	case hr_l_5:
-		new_volume->hr_ops.create = hr_raid5_create;
-		break;
-	default:
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "level %d not implemented yet", new_volume->level);
-		rc = EINVAL;
-		goto error;
+		rc = hr_write_meta_to_vol(new_volume);
+		if (rc != EOK)
+			goto error;
 	}
 
 	rc = new_volume->hr_ops.create(new_volume);
@@ -303,8 +213,15 @@ static void hr_assemble_srv(ipc_call_t *icall)
 	list_append(&new_volume->lvolumes, &hr_volumes);
 	fibril_mutex_unlock(&hr_volumes_lock);
 
-	log_msg(LOG_DEFAULT, LVL_NOTE, "assembled volume \"%s\" (%" PRIun ")",
-	    new_volume->devname, new_volume->svc_id);
+	if (assemble) {
+		log_msg(LOG_DEFAULT, LVL_NOTE,
+		    "assembled volume \"%s\" (%" PRIun ")",
+		    new_volume->devname, new_volume->svc_id);
+	} else {
+		log_msg(LOG_DEFAULT, LVL_NOTE,
+		    "created volume \"%s\" (%" PRIun ")",
+		    new_volume->devname, new_volume->svc_id);
+	}
 
 	free(cfg);
 	async_answer_0(icall, rc);
@@ -423,10 +340,10 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 
 		switch (method) {
 		case HR_CREATE:
-			hr_create_srv(&call);
+			hr_create_srv(&call, false);
 			break;
 		case HR_ASSEMBLE:
-			hr_assemble_srv(&call);
+			hr_create_srv(&call, true);
 			break;
 		case HR_STOP:
 			hr_stop_srv(&call);

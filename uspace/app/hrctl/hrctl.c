@@ -358,10 +358,10 @@ skip:
 	}
 
 	if (create) {
-		rc = hr_create(hr, cfg);
+		rc = hr_create(hr, cfg, false);
 		printf("hrctl: hr_create() rc: %s\n", str_error(rc));
 	} else if (assemble) {
-		rc = hr_assemble(hr, cfg);
+		rc = hr_create(hr, cfg, true);
 		printf("hrctl: hr_assemble() rc: %s\n", str_error(rc));
 	}
 
