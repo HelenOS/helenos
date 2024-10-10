@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2023 Nataliia Korop
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libpcap
  * @{
  */
-/**
- * @file  services.h
- * @brief List of all known services and their codes.
+/** @file pcap interface
  */
 
-#ifndef _LIBC_SERVICES_H_
-#define _LIBC_SERVICES_H_
+#ifndef PCAP_IFACE_H_
+#define PCAP_IFACE_H_
 
-#include <abi/fourcc.h>
+#include <errno.h>
+#include "pcap.h"
 
-typedef enum {
-	SERVICE_NONE       = 0,
-	SERVICE_LOADER     = FOURCC('l', 'o', 'a', 'd'),
-	SERVICE_VFS        = FOURCC('v', 'f', 's', ' '),
-	SERVICE_LOC        = FOURCC('l', 'o', 'c', ' '),
-	SERVICE_LOGGER     = FOURCC('l', 'o', 'g', 'g'),
-	SERVICE_DEVMAN     = FOURCC('d', 'e', 'v', 'n'),
-} service_t;
+typedef struct pcap_iface {
+	bool to_dump;
+	errno_t (*init)(const char *);
+	void (*add_packet)(const void *data, size_t size);
+	void (*fini)(void);
+} pcap_iface_t;
 
-#define SERVICE_NAME_CHARDEV_TEST_SMALLX "chardev-test/smallx"
-#define SERVICE_NAME_CHARDEV_TEST_LARGEX "chardev-test/largex"
-#define SERVICE_NAME_CHARDEV_TEST_PARTIALX "chardev-test/partialx"
-#define SERVICE_NAME_CLIPBOARD "clipboard"
-#define SERVICE_NAME_CORECFG  "corecfg"
-#define SERVICE_NAME_DISPCFG  "hid/display"
-#define SERVICE_NAME_DISPLAY  "hid/display"
-#define SERVICE_NAME_WNDMGT   "hid/display"
-#define SERVICE_NAME_DHCP     "net/dhcp"
-#define SERVICE_NAME_DNSR     "net/dnsr"
-#define SERVICE_NAME_INET     "net/inet"
-#define SERVICE_NAME_IPC_TEST "ipc-test"
-#define SERVICE_NAME_NETCONF  "net/netconf"
-#define SERVICE_NAME_UDP      "net/udp"
-#define SERVICE_NAME_TCP      "net/tcp"
-#define SERVICE_NAME_VBD      "vbd"
-#define SERVICE_NAME_VOLSRV   "volsrv"
-#define SERVICE_NAME_DUMPPCAP "dumppcap"
+extern void pcap_close_file(void);
+extern errno_t pcap_iface_init(pcap_iface_t *);
+extern errno_t pcap_init(const char *);
+extern void pcap_add_packet(const void *data, size_t size);
+
 #endif
-
 /** @}
  */

@@ -86,8 +86,6 @@ extern void nic_default_handler_impl(ddf_fun_t *dev_fun, ipc_call_t *call);
 extern errno_t nic_open_impl(ddf_fun_t *fun);
 extern void nic_close_impl(ddf_fun_t *fun);
 
-extern void nic_device_added_impl(ddf_dev_t *dev);
-
 #endif
 
 /** @}

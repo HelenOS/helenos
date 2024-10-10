@@ -45,6 +45,7 @@
 #include <fibril_synch.h>
 #include <nic/nic.h>
 #include <async.h>
+#include <pcapdump_iface.h>
 
 #include "nic.h"
 #include "nic_rx_control.h"
@@ -194,6 +195,10 @@ struct nic {
 	 * The implementation is optional.
 	 */
 	poll_request_handler on_poll_request;
+
+	/** Interface for dumping packets */
+	pcap_iface_t pcapdump;
+
 	/** Data specific for particular driver */
 	void *specific;
 };
