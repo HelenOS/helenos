@@ -102,6 +102,9 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 		    HR_META_SIZE, metadata);
 		if (rc != EOK)
 			goto error;
+
+		/* rndgen */
+		fibril_usleep(1000);
 	}
 error:
 	free(metadata);
