@@ -203,6 +203,9 @@ vt100_t *vt100_create(void *arg, sysarg_t cols, sysarg_t rows, vt100_cb_t *cb)
 	vt->cur_attrs.type = -1;
 	vt->cur_attrs.val.style = -1;
 
+	vt->state = vts_base;
+	vt->inncnt = 0;
+
 	return vt;
 }
 
