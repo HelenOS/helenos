@@ -43,6 +43,7 @@
 #define HR_DATA_OFF (HR_META_SIZE + HR_META_OFF)
 
 #define HR_MAGIC 0x4420492041205248LLU
+#define HR_UUID_LEN 16
 
 typedef struct hr_metadata {
 	uint64_t magic;
@@ -54,8 +55,8 @@ typedef struct hr_metadata {
 	uint32_t index;		/* index of disk in array */
 	uint32_t strip_size;
 	uint32_t status;	/* yet unused */
-	uint8_t uuid[16];
-	char devname[32];
+	uint8_t uuid[HR_UUID_LEN];
+	char devname[HR_DEVNAME_LEN];
 } hr_metadata_t;
 
 extern errno_t hr_write_meta_to_vol(hr_volume_t *);

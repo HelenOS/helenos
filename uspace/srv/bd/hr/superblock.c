@@ -96,7 +96,7 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 			goto error;
 		uuid_encode(&uuid, metadata->uuid);
 
-		str_cpy(metadata->devname, 32, vol->devname);
+		str_cpy(metadata->devname, HR_DEVNAME_LEN, vol->devname);
 
 		rc = block_write_direct(vol->extents[i].svc_id, HR_META_OFF,
 		    HR_META_SIZE, metadata);

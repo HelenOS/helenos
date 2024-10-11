@@ -140,7 +140,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		return;
 	}
 
-	str_cpy(new_volume->devname, 32, cfg->devname);
+	str_cpy(new_volume->devname, HR_DEVNAME_LEN, cfg->devname);
 	for (i = 0; i < cfg->dev_no; i++)
 		new_volume->extents[i].svc_id = cfg->devs[i];
 	new_volume->level = cfg->level;
