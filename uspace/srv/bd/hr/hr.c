@@ -53,7 +53,6 @@
 #include "var.h"
 
 loc_srv_t *hr_srv;
-fibril_mutex_t big_lock; /* for now */
 
 static fibril_mutex_t hr_volumes_lock;
 static list_t hr_volumes;
@@ -204,6 +203,8 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		if (rc != EOK)
 			goto error;
 	}
+
+	fibril_mutex_initialize(&new_volume->lock);
 
 	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)
@@ -387,8 +388,6 @@ int main(int argc, char **argv)
 		printf("%s: failed to initialize logging\n", NAME);
 		return 1;
 	}
-
-	fibril_mutex_initialize(&big_lock);
 
 	fibril_mutex_initialize(&hr_volumes_lock);
 	list_initialize(&hr_volumes);

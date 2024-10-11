@@ -55,6 +55,7 @@ typedef struct hr_volume {
 	hr_ops_t hr_ops;
 	bd_srvs_t hr_bds;
 	link_t lvolumes;
+	fibril_mutex_t lock;
 	char devname[HR_DEVNAME_LEN];
 	hr_extent_t extents[HR_MAXDEVS];
 	uint64_t nblocks;

@@ -51,7 +51,6 @@
 #include "util.h"
 #include "var.h"
 
-extern fibril_mutex_t big_lock;
 extern loc_srv_t *hr_srv;
 
 static errno_t hr_raid5_bd_open(bd_srvs_t *, bd_srv_t *);
@@ -168,7 +167,7 @@ static errno_t hr_raid5_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 	if (rc != EOK)
 		return rc;
 
-	fibril_mutex_lock(&big_lock);
+	fibril_mutex_lock(&vol->lock);
 
 	size_t left = cnt;
 	while (left != 0) {
@@ -181,7 +180,7 @@ static errno_t hr_raid5_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 		ba++;
 	}
 
-	fibril_mutex_unlock(&big_lock);
+	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }
 
@@ -200,7 +199,7 @@ static errno_t hr_raid5_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	if (rc != EOK)
 		return rc;
 
-	fibril_mutex_lock(&big_lock);
+	fibril_mutex_lock(&vol->lock);
 
 	size_t left = cnt;
 	while (left != 0) {
@@ -214,7 +213,7 @@ static errno_t hr_raid5_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 		ba++;
 	}
 
-	fibril_mutex_unlock(&big_lock);
+	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }
 
@@ -233,7 +232,7 @@ static errno_t hr_raid5_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	if (rc != EOK)
 		return rc;
 
-	fibril_mutex_lock(&big_lock);
+	fibril_mutex_lock(&vol->lock);
 
 	size_t left = cnt;
 	while (left != 0) {
@@ -250,7 +249,7 @@ static errno_t hr_raid5_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 		ba++;
 	}
 
-	fibril_mutex_unlock(&big_lock);
+	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }
 
