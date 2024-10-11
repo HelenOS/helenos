@@ -465,7 +465,7 @@ errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 			}
 		}
 
-		if (!received)
+		if (!received || srv->srvs->aborted)
 			break;
 
 		sysarg_t method = ipc_get_imethod(&call);

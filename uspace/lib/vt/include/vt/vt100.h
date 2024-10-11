@@ -178,6 +178,7 @@ extern void vt100_get_dimensions(vt100_t *, sysarg_t *, sysarg_t *);
 extern void vt100_cls(vt100_t *);
 extern void vt100_set_pos(vt100_t *, sysarg_t, sysarg_t);
 extern void vt100_goto(vt100_t *, sysarg_t, sysarg_t);
+extern void vt100_sgr(vt100_t *, unsigned int);
 extern void vt100_set_sgr(vt100_t *, char_attrs_t);
 extern void vt100_set_attr(vt100_t *, char_attrs_t);
 extern void vt100_cursor_visibility(vt100_t *, bool);

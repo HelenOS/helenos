@@ -738,7 +738,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	con_srvs_init(&user->srvs);
 	user->srvs.ops = &con_ops;
 	user->srvs.sarg = remcons;
-	user->srvs.abort_timeout = 1000;
+	user->srvs.abort_timeout = 1000000;
 
 	telnet_user_add(user);
 
@@ -764,16 +764,15 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	fibril_mutex_lock(&user->recv_lock);
 	while (!user_can_be_destroyed_no_lock(user)) {
 		if (user->task_finished) {
-			user->conn = NULL;
 			user->socket_closed = true;
 			user->srvs.aborted = true;
-			continue;
 		} else if (user->socket_closed) {
 			if (user->task_id != 0) {
 				task_kill(user->task_id);
 			}
 		}
-		fibril_condvar_wait_timeout(&user->refcount_cv, &user->recv_lock, 1000);
+		fibril_condvar_wait_timeout(&user->refcount_cv,
+		    &user->recv_lock, 1000000);
 	}
 	fibril_mutex_unlock(&user->recv_lock);
 
@@ -785,7 +784,25 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 	}
 
 	telnet_user_log(user, "Destroying...");
+
+	if (remcons->enable_ctl) {
+		/* Disable mouse tracking */
+		vt100_set_button_reporting(remcons->vt, false);
+
+		/* Reset all character attributes and clear screen */
+		vt100_sgr(remcons->vt, 0);
+		vt100_cls(remcons->vt);
+		vt100_set_pos(remcons->vt, 0, 0);
+
+		telnet_user_flush(user);
+	}
+
+	tcp_conn_send_fin(user->conn);
+	user->conn = NULL;
+
 	telnet_user_destroy(user);
+	vt100_destroy(remcons->vt);
+	free(remcons);
 	return;
 error:
 	if (user != NULL && user->service_id != 0)

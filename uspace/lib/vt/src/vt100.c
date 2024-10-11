@@ -65,7 +65,7 @@ void vt100_cls(vt100_t *vt)
  * @param vt VT instance
  * @param mode SGR mode number
  */
-static void vt100_sgr(vt100_t *vt, unsigned int mode)
+void vt100_sgr(vt100_t *vt, unsigned int mode)
 {
 	char control[MAX_CONTROL];
 
