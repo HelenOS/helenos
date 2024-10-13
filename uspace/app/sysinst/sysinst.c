@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <capa.h>
 #include <errno.h>
 #include <fdisk.h>
+#include <futil.h>
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +49,6 @@
 #include <vfs/vfs.h>
 #include <vol.h>
 
-#include "futil.h"
 #include "grub.h"
 #include "rdimg.h"
 #include "volume.h"
@@ -61,7 +61,8 @@
  * and modifying tools/grub/load.cfg, supplying the device to boot from
  * in Grub notation).
  */
-#define DEFAULT_DEV "devices/\\hw\\sys\\00:01.0\\ata-c1\\d0"
+#define DEFAULT_DEV_0 "devices/\\hw\\sys\\00:01.1\\c0d0"
+#define DEFAULT_DEV_1 "devices/\\hw\\sys\\00:01.0\\ata1\\c0d0"
 //#define DEFAULT_DEV "devices/\\hw\\pci0\\00:01.2\\uhci_rh\\usb01_a1\\mass-storage0\\l0"
 /** Volume label for the new file system */
 #define INST_VOL_LABEL "HelenOS"
@@ -78,10 +79,39 @@
 #define BOOT_FILES_SRC CD_MOUNT_POINT
 #define BOOT_BLOCK_IDX 0 /* MBR */
 
+#define CFG_FILES_SRC "/cfg"
+#define CFG_FILES_DEST MOUNT_POINT "/cfg"
+
+static const char *default_devs[] = {
+	DEFAULT_DEV_0,
+	DEFAULT_DEV_1,
+	NULL
+};
+
 static const char *sys_dirs[] = {
 	"/cfg",
-	"/data"
+	"/data",
+	NULL
 };
+
+/** Check the if the destination device exists.
+ *
+ * @param dev Disk device
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t sysinst_check_dev(const char *dev)
+{
+	service_id_t sid;
+	errno_t rc;
+
+	rc = loc_service_get_id(dev, &sid, 0);
+	if (rc != EOK)
+		return rc;
+
+	(void)sid;
+	return EOK;
+}
 
 /** Label the destination device.
  *
@@ -199,6 +229,11 @@ static errno_t sysinst_setup_sysvol(void)
 	free(path);
 	path = NULL;
 
+	/* Copy initial configuration files */
+	rc = futil_rcopy_contents(CFG_FILES_SRC, CFG_FILES_DEST);
+	if (rc != EOK)
+		return rc;
+
 	return EOK;
 error:
 	if (path != NULL)
@@ -243,7 +278,7 @@ static errno_t sysinst_customize_initrd(void)
 		goto error;
 	}
 
-	rv = asprintf(&path, "%s%s", rdpath, "/cfg/volsrv.sif");
+	rv = asprintf(&path, "%s%s", rdpath, "/cfg/initvol.sif");
 	if (rv < 0) {
 		rc = ENOMEM;
 		goto error;
@@ -270,6 +305,12 @@ static errno_t sysinst_customize_initrd(void)
 	if (rc != EOK) {
 		printf("Error creating system partition configuration.\n");
 		rc = EIO;
+		goto error;
+	}
+
+	rc = vol_volumes_sync(volumes);
+	if (rc != EOK) {
+		printf("Error saving volume confiuration.\n");
 		goto error;
 	}
 
@@ -360,7 +401,7 @@ static errno_t sysinst_copy_boot_blocks(const char *devp)
 		return rc;
 
 	printf("sysinst_copy_boot_blocks: block_init.\n");
-	rc = block_init(sid, 512);
+	rc = block_init(sid);
 	if (rc != EOK)
 		return rc;
 
@@ -489,8 +530,22 @@ static errno_t sysinst_install(const char *dev)
 
 int main(int argc, char *argv[])
 {
-	const char *dev = DEFAULT_DEV;
-	return sysinst_install(dev);
+	unsigned i;
+	errno_t rc;
+
+	i = 0;
+	while (default_devs[i] != NULL) {
+		rc = sysinst_check_dev(default_devs[i]);
+		if (rc == EOK)
+			break;
+	}
+
+	if (default_devs[i] == NULL) {
+		printf("Cannot determine installation device.\n");
+		return 1;
+	}
+
+	return sysinst_install(default_devs[i]);
 }
 
 /** @}

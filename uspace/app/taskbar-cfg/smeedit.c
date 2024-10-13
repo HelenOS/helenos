@@ -402,6 +402,7 @@ static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
 			return;
 
 		startmenu_repaint(smee->startmenu);
+		(void)tbarcfg_sync(smee->startmenu->tbarcfg->tbarcfg);
 		(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 	} else {
 		/* Edit existing entry */
@@ -417,8 +418,9 @@ static void smeedit_ok_clicked(ui_pbutton_t *bok, void *arg)
 		if (rc != EOK)
 			return;
 
-		(void)smenu_entry_save(smee->smentry->entry);
+		(void)tbarcfg_sync(smee->startmenu->tbarcfg->tbarcfg);
 		startmenu_entry_update(smee->smentry);
+		(void)tbarcfg_sync(smee->startmenu->tbarcfg->tbarcfg);
 		(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 	}
 

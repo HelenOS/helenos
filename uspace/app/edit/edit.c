@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Martin Sucha
  * All rights reserved.
  *
@@ -176,9 +176,12 @@ static void key_handle_movement(unsigned int key, bool shift);
 
 static void pos_handle(pos_event_t *ev);
 
+static errno_t file_new(void);
+static void file_open(void);
+static errno_t file_open_file(const char *fname);
 static errno_t file_save(char const *fname);
 static void file_save_as(void);
-static errno_t file_insert(char *fname);
+static errno_t file_insert(const char *fname);
 static errno_t file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
 static char *range_get_str(spt_t const *spos, spt_t const *epos);
@@ -237,13 +240,27 @@ static errno_t edit_ui_create(edit_t *);
 static void edit_ui_destroy(edit_t *);
 
 static void edit_wnd_close(ui_window_t *, void *);
+static void edit_wnd_focus(ui_window_t *, void *, unsigned);
 static void edit_wnd_kbd_event(ui_window_t *, void *, kbd_event_t *);
+static void edit_wnd_unfocus(ui_window_t *, void *, unsigned);
 
 static ui_window_cb_t edit_window_cb = {
 	.close = edit_wnd_close,
-	.kbd = edit_wnd_kbd_event
+	.focus = edit_wnd_focus,
+	.kbd = edit_wnd_kbd_event,
+	.unfocus = edit_wnd_unfocus
 };
 
+static void edit_menubar_activate(ui_menu_bar_t *, void *);
+static void edit_menubar_deactivate(ui_menu_bar_t *, void *);
+
+static ui_menu_bar_cb_t edit_menubar_cb = {
+	.activate = edit_menubar_activate,
+	.deactivate = edit_menubar_deactivate
+};
+
+static void edit_file_new(ui_menu_entry_t *, void *);
+static void edit_file_open(ui_menu_entry_t *, void *);
 static void edit_file_save(ui_menu_entry_t *, void *);
 static void edit_file_save_as(ui_menu_entry_t *, void *);
 static void edit_file_exit(ui_menu_entry_t *, void *);
@@ -266,6 +283,16 @@ ui_control_ops_t pane_ctl_ops = {
 	.destroy = pane_ctl_destroy,
 	.paint = pane_ctl_paint,
 	.pos_event = pane_ctl_pos_event
+};
+
+static void open_dialog_bok(ui_file_dialog_t *, void *, const char *);
+static void open_dialog_bcancel(ui_file_dialog_t *, void *);
+static void open_dialog_close(ui_file_dialog_t *, void *);
+
+static ui_file_dialog_cb_t open_dialog_cb = {
+	.bok = open_dialog_bok,
+	.bcancel = open_dialog_bcancel,
+	.close = open_dialog_close
 };
 
 static void save_as_dialog_bok(ui_file_dialog_t *, void *, const char *);
@@ -300,51 +327,29 @@ static ui_prompt_dialog_cb_t search_dialog_cb = {
 
 int main(int argc, char *argv[])
 {
-	bool new_file;
 	errno_t rc;
 
 	pane.sh_row = 1;
 	pane.sh_column = 1;
-
-	/* Start with an empty sheet. */
-	rc = sheet_create(&doc.sh);
-	if (rc != EOK) {
-		printf("Out of memory.\n");
-		return -1;
-	}
-
-	/* Place caret at the beginning of file. */
-	spt_t sof;
-	pt_get_sof(&sof);
-	sheet_place_tag(doc.sh, &sof, &pane.caret_pos);
-	pane.ideal_column = 1;
-
-	if (argc == 2) {
-		doc.file_name = str_dup(argv[1]);
-	} else if (argc > 1) {
-		printf("Invalid arguments.\n");
-		return -2;
-	} else {
-		doc.file_name = NULL;
-	}
-
-	new_file = false;
-
-	if (doc.file_name == NULL || file_insert(doc.file_name) != EOK)
-		new_file = true;
-
-	/* Place selection start tag. */
-	sheet_place_tag(doc.sh, &sof, &pane.sel_start);
-
-	/* Move to beginning of file. */
-	pt_get_sof(&sof);
 
 	/* Create UI */
 	rc = edit_ui_create(&edit);
 	if (rc != EOK)
 		return 1;
 
-	caret_move(sof, true, true);
+	if (argc == 2) {
+		doc.file_name = str_dup(argv[1]);
+		rc = file_open_file(argv[1]);
+		if (rc != EOK) {
+			status_display("File not found. Starting empty file.");
+			rc = file_new();
+		}
+	} else if (argc > 1) {
+		printf("Invalid arguments.\n");
+		return -2;
+	} else {
+		rc = file_new();
+	}
 
 	/* Initial display */
 	rc = ui_window_paint(edit.window);
@@ -352,12 +357,6 @@ int main(int argc, char *argv[])
 		printf("Error painting window.\n");
 		return rc;
 	}
-
-	pane_status_display(&pane);
-	if (new_file && doc.file_name != NULL)
-		status_display("File not found. Starting empty file.");
-	pane_caret_display(&pane);
-	cursor_setvis(true);
 
 	ui_run(edit.ui);
 
@@ -377,6 +376,8 @@ static errno_t edit_ui_create(edit_t *edit)
 	ui_fixed_t *fixed = NULL;
 	ui_menu_t *mfile = NULL;
 	ui_menu_t *medit = NULL;
+	ui_menu_entry_t *mnew = NULL;
+	ui_menu_entry_t *mopen = NULL;
 	ui_menu_entry_t *msave = NULL;
 	ui_menu_entry_t *msaveas = NULL;
 	ui_menu_entry_t *mfsep = NULL;
@@ -430,11 +431,29 @@ static errno_t edit_ui_create(edit_t *edit)
 		return rc;
 	}
 
+	ui_menu_bar_set_cb(edit->menubar, &edit_menubar_cb, (void *) edit);
+
 	rc = ui_menu_dd_create(edit->menubar, "~F~ile", NULL, &mfile);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
 	}
+
+	rc = ui_menu_entry_create(mfile, "~N~ew", "Ctrl-N", &mnew);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mnew, edit_file_new, (void *) edit);
+
+	rc = ui_menu_entry_create(mfile, "~O~pen", "Ctrl-O", &mopen);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mopen, edit_file_open, (void *) edit);
 
 	rc = ui_menu_entry_create(mfile, "~S~ave", "Ctrl-S", &msave);
 	if (rc != EOK) {
@@ -540,7 +559,7 @@ static errno_t edit_ui_create(edit_t *edit)
 
 	ui_menu_entry_set_cb(mfindr, edit_search_reverse_find, (void *) edit);
 
-	rc = ui_menu_entry_create(msearch, "Find ~N~ext", "Ctrl-N", &mfindn);
+	rc = ui_menu_entry_create(msearch, "Find ~N~ext", "Ctrl-R", &mfindn);
 	if (rc != EOK) {
 		printf("Error creating menu.\n");
 		return rc;
@@ -726,6 +745,12 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 	case KC_Q:
 		ui_quit(edit.ui);
 		break;
+	case KC_N:
+		file_new();
+		break;
+	case KC_O:
+		file_open();
+		break;
 	case KC_S:
 		if (doc.file_name != NULL)
 			file_save(doc.file_name);
@@ -759,7 +784,7 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 	case KC_F:
 		search_prompt(false);
 		break;
-	case KC_N:
+	case KC_R:
 		search_repeat();
 		break;
 	case KC_HOME:
@@ -898,6 +923,122 @@ static void key_handle_movement(unsigned int key, bool select)
 	}
 }
 
+/** Create new document. */
+static errno_t file_new(void)
+{
+	errno_t rc;
+	sheet_t *sh;
+
+	/* Create empty sheet. */
+	rc = sheet_create(&sh);
+	if (rc != EOK) {
+		printf("Out of memory.\n");
+		return ENOMEM;
+	}
+
+	if (doc.sh != NULL)
+		sheet_destroy(doc.sh);
+
+	doc.sh = sh;
+
+	/* Place caret at the beginning of file. */
+	spt_t sof;
+	pt_get_sof(&sof);
+	sheet_place_tag(doc.sh, &sof, &pane.caret_pos);
+	pane.ideal_column = 1;
+
+	doc.file_name = NULL;
+
+	/* Place selection start tag. */
+	sheet_place_tag(doc.sh, &sof, &pane.sel_start);
+
+	/* Move to beginning of file. */
+	pt_get_sof(&sof);
+
+	caret_move(sof, true, true);
+
+	pane_status_display(&pane);
+	pane_caret_display(&pane);
+	pane_text_display(&pane);
+	cursor_setvis(true);
+
+	return EOK;
+}
+
+/** Open Open File dialog. */
+static void file_open(void)
+{
+	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
+	ui_file_dialog_params_t fdparams;
+	ui_file_dialog_t *dialog;
+	errno_t rc;
+
+	ui_file_dialog_params_init(&fdparams);
+	fdparams.caption = "Open File";
+	fdparams.ifname = old_fname;
+
+	rc = ui_file_dialog_create(edit.ui, &fdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating message dialog.\n");
+		return;
+	}
+
+	ui_file_dialog_set_cb(dialog, &open_dialog_cb, &edit);
+}
+
+/** Open exising document. */
+static errno_t file_open_file(const char *fname)
+{
+	errno_t rc;
+	sheet_t *sh;
+	char *fn;
+
+	/* Create empty sheet. */
+	rc = sheet_create(&sh);
+	if (rc != EOK) {
+		printf("Out of memory.\n");
+		return ENOMEM;
+	}
+
+	fn = str_dup(fname);
+	if (fn == NULL) {
+		sheet_destroy(sh);
+		return ENOMEM;
+	}
+
+	if (doc.sh != NULL)
+		sheet_destroy(doc.sh);
+
+	doc.sh = sh;
+
+	/* Place caret at the beginning of file. */
+	spt_t sof;
+	pt_get_sof(&sof);
+	sheet_place_tag(doc.sh, &sof, &pane.caret_pos);
+	pane.ideal_column = 1;
+
+	rc = file_insert(fname);
+	if (rc != EOK)
+		return rc;
+
+	doc.file_name = fn;
+
+	/* Place selection start tag. */
+	sheet_place_tag(doc.sh, &sof, &pane.sel_start);
+
+	/* Move to beginning of file. */
+	pt_get_sof(&sof);
+
+	caret_move(sof, true, true);
+
+	pane_status_display(&pane);
+	pane_caret_display(&pane);
+	pane_text_display(&pane);
+	cursor_setvis(true);
+
+	return EOK;
+}
+
 /** Save the document. */
 static errno_t file_save(char const *fname)
 {
@@ -951,7 +1092,7 @@ static void file_save_as(void)
  * Reads in the contents of a file and inserts them at the current position
  * of the caret.
  */
-static errno_t file_insert(char *fname)
+static errno_t file_insert(const char *fname)
 {
 	FILE *f;
 	char32_t c;
@@ -2220,6 +2361,21 @@ static void edit_wnd_close(ui_window_t *window, void *arg)
 	ui_quit(edit->ui);
 }
 
+/** Window focus event
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ * @param focus Focus number
+ */
+static void edit_wnd_focus(ui_window_t *window, void *arg, unsigned focus)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	pane_caret_display(&pane);
+	cursor_setvis(true);
+}
+
 /** Window keyboard event
  *
  * @param window Window
@@ -2239,6 +2395,74 @@ static void edit_wnd_kbd_event(ui_window_t *window, void *arg,
 		(void) pane_update(&pane);
 		(void) gfx_update(ui_window_get_gc(window));
 	}
+}
+
+/** Window unfocus event
+ *
+ * @param window Window
+ * @param arg Argument (edit_t *)
+ * @param focus Focus number
+ */
+static void edit_wnd_unfocus(ui_window_t *window, void *arg, unsigned focus)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	(void)edit;
+	cursor_setvis(false);
+}
+
+/** Menu bar activate event
+ *
+ * @param mbar Menu bar
+ * @param arg Argument (edit_t *)
+ */
+static void edit_menubar_activate(ui_menu_bar_t *mbar, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	cursor_setvis(false);
+}
+
+/** Menu bar deactivate event
+ *
+ * @param mbar Menu bar
+ * @param arg Argument (edit_t *)
+ */
+static void edit_menubar_deactivate(ui_menu_bar_t *mbar, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	pane_caret_display(&pane);
+	cursor_setvis(true);
+}
+
+/** File / New menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_file_new(ui_menu_entry_t *mentry, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	(void)edit;
+	file_new();
+	(void) gfx_update(ui_window_get_gc(edit->window));
+}
+
+/** File / Open menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (edit_t *)
+ */
+static void edit_file_open(ui_menu_entry_t *mentry, void *arg)
+{
+	edit_t *edit = (edit_t *) arg;
+
+	(void)edit;
+	file_open();
 }
 
 /** File / Save menu entry selected.
@@ -2396,6 +2620,65 @@ static void edit_search_go_to_line(ui_menu_entry_t *mentry, void *arg)
 	caret_go_to_line_ask();
 }
 
+/** Open File dialog OK button press.
+ *
+ * @param dialog Open File dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param fname File name
+ */
+static void open_dialog_bok(ui_file_dialog_t *dialog, void *arg,
+    const char *fname)
+{
+	edit_t *edit = (edit_t *)arg;
+	char *cname;
+	errno_t rc;
+
+	(void)edit;
+	ui_file_dialog_destroy(dialog);
+
+	cname = str_dup(fname);
+	if (cname == NULL) {
+		printf("Out of memory.\n");
+		return;
+	}
+
+	rc = file_open_file(fname);
+	if (rc != EOK)
+		return;
+
+	if (doc.file_name != NULL)
+		free(doc.file_name);
+	doc.file_name = cname;
+
+	(void) gfx_update(ui_window_get_gc(edit->window));
+}
+
+/** Open File dialog cancel button press.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void open_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	ui_file_dialog_destroy(dialog);
+}
+
+/** Open File dialog close request.
+ *
+ * @param dialog File dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void open_dialog_close(ui_file_dialog_t *dialog, void *arg)
+{
+	edit_t *edit = (edit_t *)arg;
+
+	(void)edit;
+	ui_file_dialog_destroy(dialog);
+}
+
 /** Save As dialog OK button press.
  *
  * @param dialog Save As dialog
@@ -2406,15 +2689,11 @@ static void save_as_dialog_bok(ui_file_dialog_t *dialog, void *arg,
     const char *fname)
 {
 	edit_t *edit = (edit_t *)arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 	char *cname;
 	errno_t rc;
 
+	(void)edit;
 	ui_file_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 
 	cname = str_dup(fname);
 	if (cname == NULL) {
@@ -2440,13 +2719,9 @@ static void save_as_dialog_bok(ui_file_dialog_t *dialog, void *arg,
 static void save_as_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *)arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_file_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Save As dialog close request.
@@ -2457,13 +2732,9 @@ static void save_as_dialog_bcancel(ui_file_dialog_t *dialog, void *arg)
 static void save_as_dialog_close(ui_file_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *)arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_file_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Go To Line dialog OK button press.
@@ -2476,7 +2747,6 @@ static void go_to_line_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
     const char *text)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 	char *endptr;
 	int line;
 
@@ -2488,10 +2758,8 @@ static void go_to_line_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 	}
 
 	caret_move_absolute(line, pane.ideal_column, dir_before, false);
-	// TODO Smarter cursor management
+	(void)edit;
 	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
-	(void) gfx_update(gc);
 }
 
 /** Go To Line dialog cancel button press.
@@ -2502,13 +2770,9 @@ static void go_to_line_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Go To Line dialog close request.
@@ -2519,13 +2783,9 @@ static void go_to_line_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 static void go_to_line_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Search dialog OK button press.
@@ -2538,10 +2798,10 @@ static void search_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
     const char *text)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 	char *pattern;
 	bool reverse;
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
 
 	/* Abort if search phrase is empty */
@@ -2558,10 +2818,7 @@ static void search_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 
 	search(pattern, reverse);
 
-	// TODO Smarter cursor management
 	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
-	(void) gfx_update(gc);
 }
 
 /** Search dialog cancel button press.
@@ -2572,13 +2829,9 @@ static void search_dialog_bok(ui_prompt_dialog_t *dialog, void *arg,
 static void search_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** Search dialog close request.
@@ -2589,13 +2842,9 @@ static void search_dialog_bcancel(ui_prompt_dialog_t *dialog, void *arg)
 static void search_dialog_close(ui_prompt_dialog_t *dialog, void *arg)
 {
 	edit_t *edit = (edit_t *) arg;
-	gfx_context_t *gc = ui_window_get_gc(edit->window);
 
+	(void)edit;
 	ui_prompt_dialog_destroy(dialog);
-	// TODO Smarter cursor management
-	pane.rflags |= REDRAW_CARET;
-	(void) pane_update(&pane);
-	gfx_cursor_set_visible(gc, true);
 }
 
 /** @}

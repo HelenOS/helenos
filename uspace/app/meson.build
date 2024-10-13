@@ -33,7 +33,6 @@ apps = [
 	'bithenge',
 	'blkdump',
 	'calculator',
-	'contacts',
 	'corecfg',
 	'cpptest',
 	'date',

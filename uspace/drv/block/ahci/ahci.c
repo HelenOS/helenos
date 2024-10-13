@@ -161,12 +161,6 @@ static sata_dev_t *fun_sata_dev(ddf_fun_t *fun)
 	return ddf_fun_data_get(fun);
 }
 
-/** Get AHCI structure from DDF device. */
-static ahci_dev_t *dev_ahci_dev(ddf_dev_t *dev)
-{
-	return ddf_dev_data_get(dev);
-}
-
 /** Get SATA device name.
  *
  * @param fun                  Device function handling the call.
@@ -890,12 +884,11 @@ static irq_cmd_t ahci_cmds[] = {
 /** AHCI interrupt handler.
  *
  * @param icall The IPC call structure.
- * @param dev   DDF device structure.
- *
+ * @param arg   Argument (ahci_dev_t *)
  */
-static void ahci_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
+static void ahci_interrupt(ipc_call_t *icall, void *arg)
 {
-	ahci_dev_t *ahci = dev_ahci_dev(dev);
+	ahci_dev_t *ahci = (ahci_dev_t *)arg;
 	unsigned int port = ipc_get_arg1(icall);
 	ahci_port_is_t pxis = ipc_get_arg2(icall);
 
@@ -1185,7 +1178,8 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 
 	cap_irq_handle_t irq_cap;
 	errno_t rc = register_interrupt_handler(dev,
-	    hw_res_parsed.irqs.irqs[0], ahci_interrupt, &ct, &irq_cap);
+	    hw_res_parsed.irqs.irqs[0], ahci_interrupt, (void *)ahci, &ct,
+	    &irq_cap);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler.");
 		goto error_register_interrupt_handler;

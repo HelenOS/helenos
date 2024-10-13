@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@ static void test_window_kbd(ui_window_t *, void *, kbd_event_t *);
 static errno_t test_window_paint(ui_window_t *, void *);
 static void test_window_pos(ui_window_t *, void *, pos_event_t *);
 static void test_window_unfocus(ui_window_t *, void *, unsigned);
+static void test_window_resize(ui_window_t *, void *);
 
 static ui_window_cb_t test_window_cb = {
 	.sysmenu = test_window_sysmenu,
@@ -65,7 +66,8 @@ static ui_window_cb_t test_window_cb = {
 	.kbd = test_window_kbd,
 	.paint = test_window_paint,
 	.pos = test_window_pos,
-	.unfocus = test_window_unfocus
+	.unfocus = test_window_unfocus,
+	.resize = test_window_resize
 };
 
 static ui_window_cb_t dummy_window_cb = {
@@ -98,6 +100,7 @@ typedef struct {
 	pos_event_t pos_event;
 	bool unfocus;
 	unsigned unfocus_nfocus;
+	bool resize;
 } test_cb_resp_t;
 
 typedef struct {
@@ -935,6 +938,42 @@ PCUT_TEST(send_unfocus)
 	ui_destroy(ui);
 }
 
+/** ui_window_send_resize() calls resize callback set via ui_window_set_cb() */
+PCUT_TEST(send_resize)
+{
+	errno_t rc;
+	ui_t *ui = NULL;
+	ui_wnd_params_t params;
+	ui_window_t *window = NULL;
+	test_cb_resp_t resp;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Hello";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(window);
+
+	/* Resize callback with no callbacks set */
+	ui_window_send_resize(window);
+
+	/* Resize callback with resize callback not implemented */
+	ui_window_set_cb(window, &dummy_window_cb, NULL);
+	ui_window_send_resize(window);
+
+	/* Resize callback with real callback set */
+	resp.close = false;
+	ui_window_set_cb(window, &test_window_cb, &resp);
+	ui_window_send_resize(window);
+	PCUT_ASSERT_TRUE(resp.resize);
+
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 static void test_window_sysmenu(ui_window_t *window, void *arg, sysarg_t idev_id)
 {
 	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
@@ -1011,6 +1050,13 @@ static void test_window_unfocus(ui_window_t *window, void *arg, unsigned nfocus)
 
 	resp->unfocus = true;
 	resp->unfocus_nfocus = nfocus;
+}
+
+static void test_window_resize(ui_window_t *window, void *arg)
+{
+	test_cb_resp_t *resp = (test_cb_resp_t *) arg;
+
+	resp->resize = true;
 }
 
 static errno_t test_ctl_paint(void *arg)

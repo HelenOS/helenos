@@ -40,7 +40,7 @@
 void welcome_msg_print(void)
 {
 	printf("Welcome to HelenOS!\n");
-	printf("http://www.helenos.org/\n\n");
+	printf("https://www.helenos.org/\n\n");
 	printf("Type 'help' [Enter] to see a few survival tips.\n\n");
 }
 

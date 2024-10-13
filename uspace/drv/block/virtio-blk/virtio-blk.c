@@ -72,9 +72,14 @@ static driver_t virtio_blk_driver = {
 	.driver_ops = &virtio_blk_driver_ops
 };
 
-static void virtio_blk_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
+/** VirtIO block IRQ handler.
+ *
+ * @param icall IRQ event notification
+ * @param arg Argument (virtio_blk_t *)
+ */
+static void virtio_blk_irq_handler(ipc_call_t *icall, void *arg)
 {
-	virtio_blk_t *virtio_blk = (virtio_blk_t *) ddf_dev_data_get(dev);
+	virtio_blk_t *virtio_blk = (virtio_blk_t *)arg;
 	virtio_dev_t *vdev = &virtio_blk->virtio_dev;
 
 	uint16_t descno;
@@ -144,7 +149,8 @@ static errno_t virtio_blk_register_interrupt(ddf_dev_t *dev)
 	};
 
 	return register_interrupt_handler(dev, virtio_blk->irq,
-	    virtio_blk_irq_handler, &irq_code, &virtio_blk->irq_handle);
+	    virtio_blk_irq_handler, (void *)virtio_blk, &irq_code,
+	    &virtio_blk->irq_handle);
 }
 
 static errno_t virtio_blk_bd_open(bd_srvs_t *bds, bd_srv_t *bd)

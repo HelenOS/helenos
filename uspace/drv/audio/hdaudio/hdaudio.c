@@ -57,7 +57,7 @@ static errno_t hda_dev_gone(ddf_dev_t *dev);
 static errno_t hda_fun_online(ddf_fun_t *fun);
 static errno_t hda_fun_offline(ddf_fun_t *fun);
 
-static void hdaudio_interrupt(ipc_call_t *, ddf_dev_t *);
+static void hdaudio_interrupt(ipc_call_t *, void *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &hda_dev_add,
@@ -265,7 +265,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 
 	cap_irq_handle_t irq_cap;
 	rc = register_interrupt_handler(dev, res.irqs.irqs[0],
-	    hdaudio_interrupt, &irq_code, &irq_cap);
+	    hdaudio_interrupt, (void *)hda, &irq_code, &irq_cap);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed registering interrupt handler: %s",
 		    str_error_name(rc));
@@ -376,9 +376,14 @@ static errno_t hda_fun_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-static void hdaudio_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
+/** HD Audio interrupt handler.
+ *
+ * @param icall IRQ event notification
+ * @param arg Argument (hda_t *)
+ */
+static void hdaudio_interrupt(ipc_call_t *icall, void *arg)
 {
-	hda_t *hda = (hda_t *)ddf_dev_data_get(dev);
+	hda_t *hda = (hda_t *)arg;
 
 	if (0)
 		ddf_msg(LVL_NOTE, "## interrupt ##");

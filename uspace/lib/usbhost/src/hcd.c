@@ -94,11 +94,13 @@ int hc_driver_main(const hc_driver_t *driver)
  * have different IRQ handlers, disallowing us to optimize the lookup here.
  * TODO: Make the bus mechanism less flexible in irq handling and remove the
  * lookup.
+ *
+ * @param call Interrupt notification
+ * @param arg Argument (hc_device_t *)
  */
-static void irq_handler(ipc_call_t *call, ddf_dev_t *dev)
+static void irq_handler(ipc_call_t *call, void *arg)
 {
-	assert(dev);
-	hc_device_t *hcd = dev_to_hcd(dev);
+	hc_device_t *hcd = (hc_device_t *)arg;
 
 	const uint32_t status = ipc_get_arg1(call);
 	hcd->bus->ops->interrupt(hcd->bus, status);
@@ -177,7 +179,7 @@ static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd,
 	/* Register handler to avoid interrupt lockup */
 	cap_irq_handle_t ihandle;
 	ret = register_interrupt_handler(hcd->ddf_dev, irq, irq_handler,
-	    &irq_code, &ihandle);
+	    (void *)hcd, &irq_code, &ihandle);
 	irq_code_clean(&irq_code);
 	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.",

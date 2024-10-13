@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,7 @@
 #include "part.h"
 #include "types/part.h"
 #include "volume.h"
+#include "volsrv.h"
 
 static errno_t vol_part_add_locked(vol_parts_t *, service_id_t);
 static void vol_part_remove_locked(vol_part_t *);
@@ -402,6 +403,18 @@ static errno_t vol_part_mount(vol_part_t *part)
 	part->cur_mp = mp;
 	part->cur_mp_auto = mp_auto;
 
+	if (str_cmp(mp, "/w") == 0) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Mounted system volume - "
+		    "loading additional configuration.");
+		rc = vol_volumes_merge_to(part->parts->volumes,
+		    vol_cfg_file);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error loading "
+			    "additional configuration.");
+			return rc;
+		}
+	}
+
 	return rc;
 }
 
@@ -635,9 +648,10 @@ errno_t vol_part_eject_part(vol_part_t *part)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_part()");
 
 	if (part->cur_mp == NULL) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Attempt to mount unmounted "
-		    "partition.");
-		return EINVAL;
+		/* Partition is not mounted, nothing to do. */
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Partition not mounted, "
+		    "nothing to do.");
+		goto done;
 	}
 
 	rc = vfs_unmount_path(part->cur_mp);
@@ -658,7 +672,7 @@ errno_t vol_part_eject_part(vol_part_t *part)
 	free(part->cur_mp);
 	part->cur_mp = NULL;
 	part->cur_mp_auto = false;
-
+done:
 	return EOK;
 }
 

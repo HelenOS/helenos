@@ -217,8 +217,13 @@ void ia64_post_smp_init(void)
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, LEGACYIO_USER_BASE);
 }
 
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return ALIGN_DOWN(stack_base + stack_size / 2, STACK_ALIGNMENT);
+}
+
 /** Enter userspace and never return. */
-void userspace(uspace_arg_t *kernel_uarg)
+void userspace(uintptr_t pc, uintptr_t sp)
 {
 	psr_t psr;
 	rsc_t rsc;
@@ -240,16 +245,12 @@ void userspace(uspace_arg_t *kernel_uarg)
 	 * Switch to userspace.
 	 *
 	 * When calculating stack addresses, mind the stack split between the
-	 * memory stack and the RSE stack. Each occuppies
-	 * uspace_stack_size / 2 bytes.
+	 * memory stack and the RSE stack.
+	 * Memory stack occupies area under sp, while RSE stack occupies area above.
 	 */
-	switch_to_userspace(kernel_uarg->uspace_entry,
-	    kernel_uarg->uspace_stack +
-	    kernel_uarg->uspace_stack_size / 2 -
-	    ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
-	    kernel_uarg->uspace_stack +
-	    kernel_uarg->uspace_stack_size / 2,
-	    kernel_uarg->uspace_uarg, psr.value, rsc.value);
+	switch_to_userspace(pc,
+	    sp, sp + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT),
+	    0, psr.value, rsc.value);
 
 	while (true)
 		;

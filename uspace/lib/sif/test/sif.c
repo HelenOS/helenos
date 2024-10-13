@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,34 +35,21 @@
 PCUT_INIT;
 
 PCUT_TEST_SUITE(sif);
-
-/** Test sif_create. */
+#if 0
+/** Test sif_new and sif_delete. */
 PCUT_TEST(sif_create)
 {
-	sif_sess_t *sess;
+	sif_doc_t *doc;
 	errno_t rc;
-	int rv;
-	char *fname;
-	char *p;
 
-	fname = calloc(L_tmpnam, 1);
-	PCUT_ASSERT_NOT_NULL(fname);
-
-	p = tmpnam(fname);
-	PCUT_ASSERT_TRUE(p == fname);
-
-	rc = sif_create(fname, &sess);
+	rc = sif_new(&doc);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
-	rc = sif_close(sess);
-	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
-
-	rv = remove(fname);
-	PCUT_ASSERT_INT_EQUALS(0, rv);
+	sif_delete(doc);
 }
 
-/** Test sif_open. */
-PCUT_TEST(sif_open)
+/** Test sif_load. */
+PCUT_TEST(sif_load)
 {
 	sif_sess_t *sess;
 	errno_t rc;
@@ -600,5 +587,5 @@ PCUT_TEST(sif_persist)
 	rv = remove(fname);
 	PCUT_ASSERT_INT_EQUALS(0, rv);
 }
-
+#endif
 PCUT_EXPORT(sif);

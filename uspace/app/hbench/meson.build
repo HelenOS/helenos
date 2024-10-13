@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023 Jiri Svoboda
+# Copyright (c) 2024 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'math', 'ipctest' ]
+deps = [ 'block', 'math', 'ipctest' ]
 src = files(
 	'benchlist.c',
 	'csv.c',
 	'env.c',
 	'main.c',
 	'utils.c',
+	'disk/randread.c',
+	'disk/seqread.c',
 	'fs/dirread.c',
 	'fs/fileread.c',
 	'ipc/ns_ping.c',

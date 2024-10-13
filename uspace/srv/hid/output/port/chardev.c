@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2016 Jakub Jermar
- * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

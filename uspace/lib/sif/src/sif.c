@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,36 +32,21 @@
  * @file Structured Information Format
  *
  * Structured Information Format (SIF) is an API that allows an application
- * to maintain data in a persistent repository in a format that
- *
- *  - is structured (and hence extensible)
- *  - allows atomic (transactional) updates
- *  - allows efficient updates
+ * to maintain data in a persistent repository in a format that is
+ * structured (and hence extensible).
  *
  * SIF is meant to be used as the basis for the storage backend used to
  * maintain application or configuration data. SIF is *not* a (relational)
  * database (not even close). The structure of a SIF repository is quite
  * similar to an XML document that contains just tags with attributes
  * (but no text).
- *
- * SIF can thus naturally express ordered lists (unlike a relational database).
- * When contrasted to a (relational) database, SIF is much more primitive.
- *
- * In particular, SIF
- *
- *  - does not run on a separate server
- *  - des not handle concurrency
- *  - does not have a notion of types or data validation
- *  - does not understand relations
- *  - does not implement any kind of search/queries
- *  - does not deal with data sets large enough not to fit in primary memory
- *
- * any kind of structure data validation is left up to the application.
  */
 
 #include <adt/list.h>
 #include <adt/odict.h>
+#include <ctype.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -69,12 +54,32 @@
 #include "../private/sif.h"
 
 static errno_t sif_export_node(sif_node_t *, FILE *);
-static errno_t sif_import_node(sif_node_t *, FILE *, sif_node_t **);
+static errno_t sif_import_node(sif_node_t *, FILE *, sif_node_t **, bool *);
 static sif_attr_t *sif_node_first_attr(sif_node_t *);
 static sif_attr_t *sif_node_next_attr(sif_attr_t *);
 static void sif_attr_delete(sif_attr_t *);
 static void *sif_attr_getkey(odlink_t *);
 static int sif_attr_cmp(void *, void *);
+
+/** Determine if character can start a name.
+ *
+ * @param c Character
+ * @return @c true iff the character can start a name
+ */
+static bool sif_is_name_start_char(char c)
+{
+	return isalpha(c) || c == '_';
+}
+
+/** Determine if character can continue a name.
+ *
+ * @param c Character
+ * @return @c true iff the character can continue a name
+ */
+static bool sif_is_name_char(char c)
+{
+	return isalnum(c) || c == '-' || c == '.';
+}
 
 /** Create new SIF node.
  *
@@ -171,30 +176,21 @@ static void sif_attr_delete(sif_attr_t *attr)
 	free(attr);
 }
 
-/** Create and open a SIF repository.
+/** Create SIF document.
  *
- * @param fname File name
- * @param rsess Place to store pointer to new session.
+ * @param rdoc Place to store pointer to new document.
  *
  * @return EOK on success or error code
  */
-errno_t sif_create(const char *fname, sif_sess_t **rsess)
+errno_t sif_new(sif_doc_t **rdoc)
 {
-	sif_sess_t *sess;
+	sif_doc_t *doc;
 	sif_node_t *root = NULL;
-	sif_trans_t *trans = NULL;
 	errno_t rc;
-	FILE *f;
 
-	sess = calloc(1, sizeof(sif_sess_t));
-	if (sess == NULL)
+	doc = calloc(1, sizeof(sif_doc_t));
+	if (doc == NULL)
 		return ENOMEM;
-
-	sess->fname = str_dup(fname);
-	if (sess->fname == NULL) {
-		rc = ENOMEM;
-		goto error;
-	}
 
 	root = sif_node_new(NULL);
 	if (root == NULL) {
@@ -208,56 +204,37 @@ errno_t sif_create(const char *fname, sif_sess_t **rsess)
 		goto error;
 	}
 
-	f = fopen(fname, "wx");
-	if (f == NULL) {
-		rc = EIO;
-		goto error;
-	}
+	doc->root = root;
 
-	sess->f = f;
-	sess->root = root;
-
-	/* Run a dummy trasaction to marshall initial repo state to file */
-	rc = sif_trans_begin(sess, &trans);
-	if (rc != EOK)
-		goto error;
-
-	rc = sif_trans_end(trans);
-	if (rc != EOK)
-		goto error;
-
-	*rsess = sess;
+	*rdoc = doc;
 	return EOK;
 error:
-	if (trans != NULL)
-		sif_trans_abort(trans);
 	sif_node_delete(root);
-	if (sess->fname != NULL)
-		free(sess->fname);
-	free(sess);
+	free(doc);
 	return rc;
 }
 
-/** Open an existing SIF repository.
+/** Load SIF document.
  *
  * @param fname File name
- * @param rsess Place to store pointer to new session.
+ * @param rdoc Place to store pointer to new document.
  *
  * @return EOK on success or error code
  */
-errno_t sif_open(const char *fname, sif_sess_t **rsess)
+errno_t sif_load(const char *fname, sif_doc_t **rdoc)
 {
-	sif_sess_t *sess;
+	sif_doc_t *doc;
 	sif_node_t *root = NULL;
 	errno_t rc;
-	FILE *f;
+	bool endtag;
+	FILE *f = NULL;
 
-	sess = calloc(1, sizeof(sif_sess_t));
-	if (sess == NULL)
+	doc = calloc(1, sizeof(sif_doc_t));
+	if (doc == NULL)
 		return ENOMEM;
 
-	sess->fname = str_dup(fname);
-	if (sess->fname == NULL) {
+	doc->fname = str_dup(fname);
+	if (doc->fname == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
@@ -268,8 +245,8 @@ errno_t sif_open(const char *fname, sif_sess_t **rsess)
 		goto error;
 	}
 
-	rc = sif_import_node(NULL, f, &root);
-	if (rc != EOK)
+	rc = sif_import_node(NULL, f, &root, &endtag);
+	if (rc != EOK || endtag == true)
 		goto error;
 
 	if (str_cmp(root->ntype, "sif") != 0) {
@@ -277,47 +254,36 @@ errno_t sif_open(const char *fname, sif_sess_t **rsess)
 		goto error;
 	}
 
-	sess->root = root;
-
-	sess->f = f;
-	sess->root = root;
-	*rsess = sess;
+	fclose(f);
+	doc->root = root;
+	*rdoc = doc;
 	return EOK;
 error:
 	sif_node_delete(root);
-	if (sess->fname != NULL)
-		free(sess->fname);
-	free(sess);
+	free(doc);
+	if (f != NULL)
+		fclose(f);
 	return rc;
 }
 
-/** Close SIF session.
+/** Delete SIF document.
  *
- * @param sess SIF session
+ * @param doc SIF document
  * @return EOK on success or error code
  */
-errno_t sif_close(sif_sess_t *sess)
+void sif_delete(sif_doc_t *doc)
 {
-	sif_node_delete(sess->root);
-
-	if (fclose(sess->f) < 0) {
-		free(sess);
-		return EIO;
-	}
-
-	if (sess->fname != NULL)
-		free(sess->fname);
-	free(sess);
-	return EOK;
+	sif_node_delete(doc->root);
+	free(doc);
 }
 
 /** Return root node.
  *
- * @param sess SIF session
+ * @param doc SIF document
  */
-sif_node_t *sif_get_root(sif_sess_t *sess)
+sif_node_t *sif_get_root(sif_doc_t *doc)
 {
-	return sess->root;
+	return doc->root;
 }
 
 /** Get first child of a node.
@@ -382,63 +348,38 @@ const char *sif_node_get_attr(sif_node_t *node, const char *aname)
 	return attr->avalue;
 }
 
-/** Begin SIF transaction.
- *
- * @param trans Transaction
+/** Save SIF document to file.
+ * *
+ * @param doc SIF document
+ * @param fname File name
  * @return EOK on success or error code
  */
-errno_t sif_trans_begin(sif_sess_t *sess, sif_trans_t **rtrans)
+errno_t sif_save(sif_doc_t *doc, const char *fname)
 {
-	sif_trans_t *trans;
-
-	trans = calloc(1, sizeof(sif_trans_t));
-	if (trans == NULL)
-		return ENOMEM;
-
-	trans->sess = sess;
-	*rtrans = trans;
-	return EOK;
-}
-
-/** Commit SIF transaction.
- *
- * Commit and free the transaction. If an error is returned, that means
- * the transaction has not been freed (and sif_trans_abort() must be used).
- *
- * @param trans Transaction
- * @return EOK on success or error code
- */
-errno_t sif_trans_end(sif_trans_t *trans)
-{
+	FILE *f = NULL;
 	errno_t rc;
 
-	(void) fclose(trans->sess->f);
+	f = fopen(fname, "w");
+	if (f == NULL) {
+		rc = EIO;
+		goto error;
+	}
 
-	trans->sess->f = fopen(trans->sess->fname, "w");
-	if (trans->sess->f == NULL)
-		return EIO;
-
-	rc = sif_export_node(trans->sess->root, trans->sess->f);
+	rc = sif_export_node(doc->root, f);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	if (fputc('\n', trans->sess->f) == EOF)
-		return EIO;
+	if (fflush(f) == EOF) {
+		rc = EIO;
+		goto error;
+	}
 
-	if (fflush(trans->sess->f) == EOF)
-		return EIO;
-
-	free(trans);
+	fclose(f);
 	return EOK;
-}
-
-/** Abort SIF transaction.
- *
- * @param trans Transaction
- */
-void sif_trans_abort(sif_trans_t *trans)
-{
-	free(trans);
+error:
+	if (f != NULL)
+		fclose(f);
+	return rc;
 }
 
 /** Prepend new child.
@@ -446,15 +387,14 @@ void sif_trans_abort(sif_trans_t *trans)
  * Create a new child and prepend it at the beginning of children list of
  * @a parent.
  *
- * @param trans Transaction
  * @param parent Parent node
  * @param ctype Child type
  * @param rchild Place to store pointer to new child
  *
  * @return EOK on success or ENOMEM if out of memory
  */
-errno_t sif_node_prepend_child(sif_trans_t *trans, sif_node_t *parent,
-    const char *ctype, sif_node_t **rchild)
+errno_t sif_node_prepend_child(sif_node_t *parent, const char *ctype,
+    sif_node_t **rchild)
 {
 	sif_node_t *child;
 
@@ -478,15 +418,14 @@ errno_t sif_node_prepend_child(sif_trans_t *trans, sif_node_t *parent,
  *
  * Create a new child and append it at the end of children list of @a parent.
  *
- * @param trans Transaction
  * @param parent Parent node
  * @param ctype Child type
  * @param rchild Place to store pointer to new child
  *
  * @return EOK on success or ENOMEM if out of memory
  */
-errno_t sif_node_append_child(sif_trans_t *trans, sif_node_t *parent,
-    const char *ctype, sif_node_t **rchild)
+errno_t sif_node_append_child(sif_node_t *parent, const char *ctype,
+    sif_node_t **rchild)
 {
 	sif_node_t *child;
 
@@ -510,15 +449,14 @@ errno_t sif_node_append_child(sif_trans_t *trans, sif_node_t *parent,
  *
  * Create a new child and insert it before an existing child.
  *
- * @param trans Transaction
  * @param sibling Sibling before which to insert
  * @param ctype Child type
  * @param rchild Place to store pointer to new child
  *
  * @return EOK on success or ENOMEM if out of memory
  */
-errno_t sif_node_insert_before(sif_trans_t *trans, sif_node_t *sibling,
-    const char *ctype, sif_node_t **rchild)
+errno_t sif_node_insert_before(sif_node_t *sibling, const char *ctype,
+    sif_node_t **rchild)
 {
 	sif_node_t *child;
 
@@ -542,15 +480,14 @@ errno_t sif_node_insert_before(sif_trans_t *trans, sif_node_t *sibling,
  *
  * Create a new child and insert it after an existing child.
  *
- * @param trans Transaction
  * @param sibling Sibling after which to insert
  * @param ctype Child type
  * @param rchild Place to store pointer to new child
  *
  * @return EOK on success or ENOMEM if out of memory
  */
-errno_t sif_node_insert_after(sif_trans_t *trans, sif_node_t *sibling,
-    const char *ctype, sif_node_t **rchild)
+errno_t sif_node_insert_after(sif_node_t *sibling, const char *ctype,
+    sif_node_t **rchild)
 {
 	sif_node_t *child;
 
@@ -572,13 +509,9 @@ errno_t sif_node_insert_after(sif_trans_t *trans, sif_node_t *sibling,
 
 /** Destroy SIF node.
  *
- * This function does not return an error, but the transaction may still
- * fail to complete.
- *
- * @param trans Transaction
  * @param node Node to destroy
  */
-void sif_node_destroy(sif_trans_t *trans, sif_node_t *node)
+void sif_node_destroy(sif_node_t *node)
 {
 	list_remove(&node->lparent);
 	sif_node_delete(node);
@@ -586,15 +519,14 @@ void sif_node_destroy(sif_trans_t *trans, sif_node_t *node)
 
 /** Set node attribute.
  *
- * @param trans Transaction
  * @param node SIF node
  * @param aname Attribute name
  * @param value Attribute value
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t sif_node_set_attr(sif_trans_t *trans, sif_node_t *node,
-    const char *aname, const char *avalue)
+errno_t sif_node_set_attr(sif_node_t *node, const char *aname,
+    const char *avalue)
 {
 	odlink_t *link;
 	sif_attr_t *attr;
@@ -635,15 +567,10 @@ errno_t sif_node_set_attr(sif_trans_t *trans, sif_node_t *node,
 
 /** Unset node attribute.
  *
- * This function does not return an error, but the transaction may still
- * fail to complete.
- *
- * @param trans Transaction
  * @param node Node
  * @param aname Attribute name
  */
-void sif_node_unset_attr(sif_trans_t *trans, sif_node_t *node,
-    const char *aname)
+void sif_node_unset_attr(sif_node_t *node, const char *aname)
 {
 	odlink_t *link;
 	sif_attr_t *attr;
@@ -657,9 +584,25 @@ void sif_node_unset_attr(sif_trans_t *trans, sif_node_t *node,
 	sif_attr_delete(attr);
 }
 
+/** Export node name to file.
+ *
+ * Export node name to file.
+ *
+ * @param str String
+ * @param f File
+ * @return EOK on success, EIO on I/O error
+ */
+static errno_t sif_export_name(const char *str, FILE *f)
+{
+	if (fputs(str, f) == EOF)
+		return EIO;
+
+	return EOK;
+}
+
 /** Export string to file.
  *
- * Export string to file (the string is bracketed and escaped).
+ * Export string to file (the string is double-quoted and escaped).
  *
  * @param str String
  * @param f File
@@ -669,30 +612,114 @@ static errno_t sif_export_string(const char *str, FILE *f)
 {
 	const char *cp;
 
-	if (fputc('[', f) == EOF)
+	if (fputc('"', f) == EOF)
 		return EIO;
 
 	cp = str;
 	while (*cp != '\0') {
-		if (*cp == ']' || *cp == '\\') {
-			if (fputc('\\', f) == EOF)
+		if (*cp == '<') {
+			if (fputs("&lt;", f) == EOF)
+				return EIO;
+		} else if (*cp == '"') {
+			if (fputs("&quot;", f) == EOF)
+				return EIO;
+		} else {
+			if (fputc(*cp, f) == EOF)
 				return EIO;
 		}
-		if (fputc(*cp, f) == EOF)
-			return EIO;
+
 		++cp;
 	}
 
-	if (fputc(']', f) == EOF)
+	if (fputc('"', f) == EOF)
 		return EIO;
 
 	return EOK;
 }
 
+/** Read characters from file, make sure they match the specified sequence.
+ *
+ * @param f File
+ * @param chars Expected sequence of characters to be read
+ *
+ * @return EOK on success, EIO on I/O error or mismatch
+ */
+static errno_t sif_get_verify_chars(FILE *f, const char *chars)
+{
+	const char *cp;
+	char c;
+
+	cp = chars;
+	while (*cp != '\0') {
+		c = fgetc(f);
+		if (c != *cp)
+			return EIO;
+		++cp;
+	}
+
+	return EOK;
+}
+
+/** Import name from file.
+ * *
+ * @param f File
+ * @param rstr Place to store pointer to newly allocated string
+ * @return EOK on success, EIO on I/O error
+ */
+static errno_t sif_import_name(FILE *f, char **rstr)
+{
+	char *str;
+	char *nstr;
+	size_t str_size;
+	size_t sidx;
+	int c;
+	errno_t rc;
+
+	str_size = 1;
+	sidx = 0;
+	str = malloc(str_size + 1);
+	if (str == NULL)
+		return ENOMEM;
+
+	c = fgetc(f);
+	if (!sif_is_name_start_char(c)) {
+		rc = EIO;
+		goto error;
+	}
+
+	while (true) {
+		if (sidx >= str_size) {
+			str_size *= 2;
+			nstr = realloc(str, str_size + 1);
+			if (nstr == NULL) {
+				rc = ENOMEM;
+				goto error;
+			}
+
+			str = nstr;
+		}
+
+		str[sidx++] = c;
+
+		c = fgetc(f);
+		if (!sif_is_name_char(c))
+			break;
+	}
+
+	ungetc(c, f);
+
+	str[sidx] = '\0';
+	*rstr = str;
+	return EOK;
+error:
+	free(str);
+	return rc;
+}
+
 /** Import string from file.
  *
  * Import string from file (the string in the file must be
- * properly bracketed and escaped).
+ * properly quoted and escaped).
  *
  * @param f File
  * @param rstr Place to store pointer to newly allocated string
@@ -714,7 +741,7 @@ static errno_t sif_import_string(FILE *f, char **rstr)
 		return ENOMEM;
 
 	c = fgetc(f);
-	if (c != '[') {
+	if (c != '"') {
 		rc = EIO;
 		goto error;
 	}
@@ -726,12 +753,25 @@ static errno_t sif_import_string(FILE *f, char **rstr)
 			goto error;
 		}
 
-		if (c == ']')
+		if (c == '"')
 			break;
 
-		if (c == '\\') {
+		if (c == '&') {
 			c = fgetc(f);
 			if (c == EOF) {
+				rc = EIO;
+				goto error;
+			}
+
+			if (c == 'q') {
+				rc = sif_get_verify_chars(f, "uot;");
+				if (rc != EOK)
+					goto error;
+			} else if (c == 'l') {
+				rc = sif_get_verify_chars(f, "t;");
+				if (rc != EOK)
+					goto error;
+			} else {
 				rc = EIO;
 				goto error;
 			}
@@ -774,7 +814,7 @@ static errno_t sif_import_attr(sif_node_t *node, FILE *f, sif_attr_t **rattr)
 	sif_attr_t *attr;
 	int c;
 
-	rc = sif_import_string(f, &aname);
+	rc = sif_import_name(f, &aname);
 	if (rc != EOK)
 		goto error;
 
@@ -817,7 +857,7 @@ static errno_t sif_export_attr(sif_attr_t *attr, FILE *f)
 {
 	errno_t rc;
 
-	rc = sif_export_string(attr->aname, f);
+	rc = sif_export_name(attr->aname, f);
 	if (rc != EOK)
 		return rc;
 
@@ -843,17 +883,20 @@ static errno_t sif_export_node(sif_node_t *node, FILE *f)
 	sif_attr_t *attr;
 	sif_node_t *child;
 
-	rc = sif_export_string(node->ntype, f);
+	if (fputc('<', f) == EOF)
+		return EIO;
+
+	rc = sif_export_name(node->ntype, f);
 	if (rc != EOK)
 		return rc;
 
 	/* Attributes */
 
-	if (fputc('(', f) == EOF)
-		return EIO;
-
 	attr = sif_node_first_attr(node);
 	while (attr != NULL) {
+		if (fputc(' ', f) == EOF)
+			return EIO;
+
 		rc = sif_export_attr(attr, f);
 		if (rc != EOK)
 			return rc;
@@ -861,13 +904,10 @@ static errno_t sif_export_node(sif_node_t *node, FILE *f)
 		attr = sif_node_next_attr(attr);
 	}
 
-	if (fputc(')', f) == EOF)
+	if (fputs(">\n", f) == EOF)
 		return EIO;
 
 	/* Child nodes */
-
-	if (fputc('{', f) == EOF)
-		return EIO;
 
 	child = sif_node_first_child(node);
 	while (child != NULL) {
@@ -878,7 +918,14 @@ static errno_t sif_export_node(sif_node_t *node, FILE *f)
 		child = sif_node_next_child(child);
 	}
 
-	if (fputc('}', f) == EOF)
+	if (fputs("</", f) == EOF)
+		return EIO;
+
+	rc = sif_export_name(node->ntype, f);
+	if (rc != EOK)
+		return rc;
+
+	if (fputs(">\n", f) == EOF)
 		return EIO;
 
 	return EOK;
@@ -889,14 +936,18 @@ static errno_t sif_export_node(sif_node_t *node, FILE *f)
  * @param parent Parent node
  * @param f File
  * @param rnode Place to store pointer to imported node
+ * @param rendtag Place to store @c true iff end tag is encountered
  * @return EOK on success, EIO on I/O error
  */
-static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
+static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode,
+    bool *rendtag)
 {
 	errno_t rc;
 	sif_node_t *node = NULL;
 	sif_node_t *child;
 	sif_attr_t *attr = NULL;
+	bool endtag;
+	bool cendtag;
 	char *ntype;
 	int c;
 
@@ -904,7 +955,24 @@ static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
 	if (node == NULL)
 		return ENOMEM;
 
-	rc = sif_import_string(f, &ntype);
+	c = fgetc(f);
+	while (isspace(c))
+		c = fgetc(f);
+
+	if (c != '<') {
+		rc = EIO;
+		goto error;
+	}
+
+	c = fgetc(f);
+	if (c == '/') {
+		endtag = true;
+	} else {
+		endtag = false;
+		ungetc(c, f);
+	}
+
+	rc = sif_import_name(f, &ntype);
 	if (rc != EOK)
 		goto error;
 
@@ -913,18 +981,20 @@ static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
 	/* Attributes */
 
 	c = fgetc(f);
-	if (c != '(') {
-		rc = EIO;
-		goto error;
-	}
-
-	c = fgetc(f);
 	if (c == EOF) {
 		rc = EIO;
 		goto error;
 	}
 
-	while (c != ')') {
+	while (c != '>') {
+		/* End tags cannot have attributes */
+		if (endtag) {
+			rc = EIO;
+			goto error;
+		}
+
+		while (isspace(c))
+			c = fgetc(f);
 		ungetc(c, f);
 
 		rc = sif_import_attr(node, f, &attr);
@@ -942,35 +1012,23 @@ static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
 
 	/* Child nodes */
 
-	c = fgetc(f);
-	if (c != '{') {
-		rc = EIO;
-		goto error;
-	}
+	if (!endtag) {
+		while (true) {
+			rc = sif_import_node(node, f, &child, &cendtag);
+			if (rc != EOK)
+				goto error;
 
-	c = fgetc(f);
-	if (c == EOF) {
-		rc = EIO;
-		goto error;
-	}
+			if (cendtag) {
+				sif_node_delete(child);
+				break;
+			}
 
-	while (c != '}') {
-		ungetc(c, f);
-
-		rc = sif_import_node(node, f, &child);
-		if (rc != EOK)
-			goto error;
-
-		list_append(&child->lparent, &node->children);
-
-		c = fgetc(f);
-		if (c == EOF) {
-			rc = EIO;
-			goto error;
+			list_append(&child->lparent, &node->children);
 		}
 	}
 
 	*rnode = node;
+	*rendtag = endtag;
 	return EOK;
 error:
 	sif_node_delete(node);

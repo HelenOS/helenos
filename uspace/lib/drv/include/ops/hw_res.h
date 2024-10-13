@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
@@ -48,6 +49,7 @@ typedef struct {
 	errno_t (*clear_interrupt)(ddf_fun_t *, int);
 	errno_t (*dma_channel_setup)(ddf_fun_t *, unsigned, uint32_t, uint32_t, uint8_t);
 	errno_t (*dma_channel_remain)(ddf_fun_t *, unsigned, size_t *);
+	errno_t (*get_flags)(ddf_fun_t *, hw_res_flags_t *);
 } hw_res_ops_t;
 
 #endif

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -55,6 +56,7 @@ typedef enum {
 	HW_RES_CLEAR_INTERRUPT,
 	HW_RES_DMA_CHANNEL_SETUP,
 	HW_RES_DMA_CHANNEL_REMAIN,
+	HW_RES_GET_FLAGS
 } hw_res_method_t;
 
 /** HW resource types */
@@ -115,6 +117,11 @@ static inline void hw_res_clean_resource_list(hw_resource_list_t *hw_res)
 	hw_res->count = 0;
 }
 
+typedef enum {
+	/** This is an PCI/ISA bridge, not 'classic' ISA bus */
+	hwf_isa_bridge = 0x1
+} hw_res_flags_t;
+
 extern errno_t hw_res_get_resource_list(async_sess_t *, hw_resource_list_t *);
 extern errno_t hw_res_enable_interrupt(async_sess_t *, int);
 extern errno_t hw_res_disable_interrupt(async_sess_t *, int);
@@ -123,6 +130,7 @@ extern errno_t hw_res_clear_interrupt(async_sess_t *, int);
 extern errno_t hw_res_dma_channel_setup(async_sess_t *, unsigned int, uint32_t,
     uint32_t, uint8_t);
 extern errno_t hw_res_dma_channel_remain(async_sess_t *, unsigned, size_t *);
+extern errno_t hw_res_get_flags(async_sess_t *, hw_res_flags_t *);
 
 #endif
 

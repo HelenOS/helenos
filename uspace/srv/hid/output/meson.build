@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2024 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -27,12 +28,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'codepage', 'console', 'drv', 'fbfont', 'pixconv', 'ddev', 'output' ]
+deps = [ 'codepage', 'console', 'drv', 'fbfont', 'pixconv', 'ddev', 'output',
+    'vt' ]
 src = files(
 	'ctl/serial.c',
 	'port/ega.c',
 	'port/chardev.c',
 	'port/ddev.c',
-	'proto/vt100.c',
 	'output.c',
 )

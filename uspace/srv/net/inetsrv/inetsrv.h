@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@
 #include <inet/eth_addr.h>
 #include <inet/iplink.h>
 #include <ipc/loc.h>
+#include <sif.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <types/inet.h>
@@ -113,23 +114,41 @@ typedef struct {
 	bool mac_valid;
 } inet_link_t;
 
+/** Link information needed for autoconfiguration */
 typedef struct {
+	service_id_t svc_id;
+	char *svc_name;
+} inet_link_cfg_info_t;
+
+/** Address object */
+typedef struct {
+	/** Link to list of addresses */
 	link_t addr_list;
+	/** Address object ID */
 	sysarg_t id;
+	/** Network address */
 	inet_naddr_t naddr;
+	/** Underlying IP link */
 	inet_link_t *ilink;
+	/** Address name */
 	char *name;
+	/** Temporary object */
+	bool temp;
 } inet_addrobj_t;
 
 /** Static route configuration */
 typedef struct {
 	link_t sroute_list;
+	/** ID */
 	sysarg_t id;
 	/** Destination network */
 	inet_naddr_t dest;
 	/** Router via which to route packets */
 	inet_addr_t router;
+	/** Route name */
 	char *name;
+	/** Temporary route */
+	bool temp;
 } inet_sroute_t;
 
 typedef enum {
@@ -150,6 +169,14 @@ typedef struct {
 	/** Local destination address */
 	inet_addr_t ldest;
 } inet_dir_t;
+
+/** Internet server configuration */
+typedef struct {
+	/** Configuration file path */
+	char *cfg_path;
+} inet_cfg_t;
+
+extern inet_cfg_t *cfg;
 
 extern errno_t inet_ev_recv(inet_client_t *, inet_dgram_t *);
 extern errno_t inet_recv_packet(inet_packet_t *);

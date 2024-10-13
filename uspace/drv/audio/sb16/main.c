@@ -75,9 +75,14 @@ int main(int argc, char *argv[])
 	return ddf_driver_main(&sb_driver);
 }
 
-static void irq_handler(ipc_call_t *call, ddf_dev_t *dev)
+/** SB16 IRQ handler.
+ *
+ * @param call IRQ event notification
+ * @param arg Argument (sb16_t *)
+ */
+static void irq_handler(ipc_call_t *call, void *arg)
 {
-	sb16_t *sb16_dev = ddf_dev_data_get(dev);
+	sb16_t *sb16_dev = (sb16_t *)arg;
 	sb16_interrupt(sb16_dev);
 }
 
@@ -123,7 +128,7 @@ static errno_t sb_add_device(ddf_dev_t *device)
 	};
 
 	rc = register_interrupt_handler(device, irq, irq_handler,
-	    &irq_code, &irq_cap);
+	    (void *)soft_state, &irq_code, &irq_cap);
 	if (rc != EOK) {
 		ddf_log_error("Failed to register irq handler: %s.",
 		    str_error(rc));

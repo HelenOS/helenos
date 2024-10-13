@@ -37,7 +37,7 @@
 # too).
 #
 # [1] https://travis-ci.org/
-# [2] http://www.helenos.org/wiki/CI
+# [2] https://www.helenos.org/wiki/CI
 #
 
 H_ARCH_CONFIG_CROSS_TARGET=2

@@ -35,10 +35,14 @@
 #include <userspace.h>
 #include <stdbool.h>
 #include <arch.h>
-#include <abi/proc/uarg.h>
 #include <mm/as.h>
 
-void userspace(uspace_arg_t *kernel_uarg)
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return stack_base + stack_size;
+}
+
+void userspace(uintptr_t pc, uintptr_t sp)
 {
 	/*
 	 * On real hardware this switches the CPU to user

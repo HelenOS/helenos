@@ -59,19 +59,12 @@ void uinit(void *arg)
 	udebug_stoppable_end();
 #endif
 
-	uspace_arg_t *uarg = arg;
-	uspace_arg_t local_uarg;
-
-	local_uarg.uspace_entry = uarg->uspace_entry;
-	local_uarg.uspace_stack = uarg->uspace_stack;
-	local_uarg.uspace_stack_size = uarg->uspace_stack_size;
-	local_uarg.uspace_uarg = uarg->uspace_uarg;
-	local_uarg.uspace_thread_function = USPACE_NULL;
-	local_uarg.uspace_thread_arg = USPACE_NULL;
-
+	uinit_arg_t *uarg = arg;
+	sysarg_t pc = uarg->pc;
+	sysarg_t sp = uarg->sp;
 	free(uarg);
 
-	userspace(&local_uarg);
+	userspace(pc, sp);
 }
 
 /** @}

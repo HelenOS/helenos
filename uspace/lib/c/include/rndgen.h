@@ -46,6 +46,7 @@ typedef struct {
 extern errno_t rndgen_create(rndgen_t **);
 extern void rndgen_destroy(rndgen_t *);
 extern errno_t rndgen_uint8(rndgen_t *, uint8_t *);
+extern errno_t rndgen_uint16(rndgen_t *, uint16_t *);
 extern errno_t rndgen_uint32(rndgen_t *, uint32_t *);
 
 #endif

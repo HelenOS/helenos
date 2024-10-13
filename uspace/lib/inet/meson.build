@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Jiri Svoboda
+# Copyright (c) 2024 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ src = files(
 )
 
 test_src = files(
+	'test/addr.c',
 	'test/eth_addr.c',
 	'test/main.c',
 )

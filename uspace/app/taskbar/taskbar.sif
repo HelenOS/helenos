@@ -1,1 +1,40 @@
-[sif](){[entries](){[entry]([caption]=[~N~avigator][cmd]=[/app/nav][terminal]=[y]){}[entry]([caption]=[Text ~E~ditor][cmd]=[/app/edit][terminal]=[y]){}[entry]([caption]=[Co~m~mand Line][cmd]=[/app/bdsh][terminal]=[y]){}[entry]([caption]=[~C~alculator][cmd]=[/app/calculator -d %d][terminal]=[n]){}[entry]([caption]=[~I~mage Viewer][cmd]=[/app/viewer -d %d][terminal]=[n]){}[entry]([separator]=[y]){}[entry]([caption]=[~U~I Demo][cmd]=[/app/uidemo -d %d][terminal]=[n]){}[entry]([caption]=[~G~FX Demo][cmd]=[/app/gfxdemo -d %d ui][terminal]=[n]){}[entry]([caption]=[~B~arber Pole][cmd]=[/app/barber -d %d][terminal]=[n]){}[entry]([caption]=[~T~etris][cmd]=[/app/tetris][terminal]=[y]){}[entry]([separator]=[y]){}[entry]([caption]=[~D~isplay Configuration][cmd]=[/app/display-cfg -d %d][terminal]=[n]){}[entry]([caption]=[Ta~s~kbar Configuration][cmd]=[/app/taskbar-cfg -d %d][terminal]=[n]){}[entry]([separator]=[y]){}[entry]([caption]=[Tas~k~ Monitor (top)][cmd]=[/app/top][terminal]=[y]){}[entry]([caption]=[~F~disk Disk Editor][cmd]=[/app/fdisk][terminal]=[y]){}[entry]([separator]=[y]){}[entry]([caption]=[~A~bout HelenOS][cmd]=[/app/aboutos -d %d][terminal]=[n]){}}}
+<sif>
+<entries>
+<entry caption="~N~avigator" cmd="/app/nav" terminal="y">
+</entry>
+<entry caption="Text ~E~ditor" cmd="/app/edit" terminal="y">
+</entry>
+<entry caption="Co~m~mand Line" cmd="/app/bdsh" terminal="y">
+</entry>
+<entry caption="~C~alculator" cmd="/app/calculator -d %d" terminal="n">
+</entry>
+<entry caption="~I~mage Viewer" cmd="/app/viewer -d %d" terminal="n">
+</entry>
+<entry separator="y">
+</entry>
+<entry caption="~U~I Demo" cmd="/app/uidemo -d %d" terminal="n">
+</entry>
+<entry caption="~G~FX Demo" cmd="/app/gfxdemo -d %d ui" terminal="n">
+</entry>
+<entry caption="~B~arber Pole" cmd="/app/barber -d %d" terminal="n">
+</entry>
+<entry caption="~T~etris" cmd="/app/tetris" terminal="y">
+</entry>
+<entry separator="y">
+</entry>
+<entry caption="~D~isplay Configuration" cmd="/app/display-cfg -d %d" terminal="n">
+</entry>
+<entry caption="Ta~s~kbar Configuration" cmd="/app/taskbar-cfg -d %d" terminal="n">
+</entry>
+<entry separator="y">
+</entry>
+<entry caption="Tas~k~ Monitor (top)" cmd="/app/top" terminal="y">
+</entry>
+<entry caption="~F~disk Disk Editor" cmd="/app/fdisk" terminal="y">
+</entry>
+<entry separator="y">
+</entry>
+<entry caption="~A~bout HelenOS" cmd="/app/aboutos -d %d" terminal="n">
+</entry>
+</entries>
+</sif>

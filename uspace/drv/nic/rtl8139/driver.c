@@ -819,16 +819,13 @@ static void rtl8139_interrupt_impl(nic_t *nic_data, uint16_t isr)
 /** Handle device interrupt
  *
  * @param icall  The IPC call structure
- * @param dev    The rtl8139 device
+ * @param arg    Argument (nic_t *)
  *
  */
-static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
+static void rtl8139_interrupt_handler(ipc_call_t *icall, void *arg)
 {
-	assert(dev);
-	assert(icall);
-
 	uint16_t isr = (uint16_t) ipc_get_arg2(icall);
-	nic_t *nic_data = nic_get_from_ddf_dev(dev);
+	nic_t *nic_data = (nic_t *)arg;
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 
 	rtl8139_interrupt_impl(nic_data, isr);
@@ -861,7 +858,8 @@ inline static errno_t rtl8139_register_int_handler(nic_t *nic_data,
 	rtl8139_irq_code.cmds[2].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[3].addr = rtl8139->io_addr + IMR;
 	errno_t rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
-	    rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code, handle);
+	    rtl8139->irq, rtl8139_interrupt_handler, (void *)nic_data,
+	    &rtl8139_irq_code, handle);
 
 	RTL8139_IRQ_STRUCT_UNLOCK();
 

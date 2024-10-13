@@ -9,7 +9,7 @@ via message passing. A failure or crash of one component does not
 directly harm others. HelenOS is therefore flexible, modular,
 extensible, fault tolerant and easy to understand.
 
-![screenshot](http://www.helenos.org/raw-attachment/wiki/Screenshots/gui-14.1-aio.png "Screenshot")
+![screenshot](https://www.helenos.org/raw-attachment/wiki/Screenshots/gui-14.1-aio.png "Screenshot")
 
 HelenOS aims to be compatible with the C11 and C++14 standards, but does not
 aspire to be a clone of any existing operating system and trades compatibility
@@ -18,10 +18,10 @@ to order specifically for HelenOS so that its essential parts can stay free of
 adaptation layers, glue code, franken-components and the maintenance burden
 incurred by them.
 
-* [Website](http://helenos.org)
-* [Wiki](http://helenos.org/wiki)
-* [Tickets](http://www.helenos.org/report/1)
-* [How to contribute](http://www.helenos.org/wiki/HowToContribute)
+* [Website](https://helenos.org)
+* [Wiki](https://helenos.org/wiki)
+* [Tickets](https://www.helenos.org/report/1)
+* [How to contribute](https://www.helenos.org/wiki/HowToContribute)
 
 ## Portability
 
@@ -125,14 +125,14 @@ $ ./tools/ew.py
 ```
 
 For additional information about running HelenOS, see
-[UsersGuide/RunningInQEMU](http://www.helenos.org/wiki/UsersGuide/RunningInQEMU) or
-[UsersGuide/RunningInVirtualBox](http://www.helenos.org/wiki/UsersGuide/RunningInVirtualBox) or
+[UsersGuide/RunningInQEMU](https://www.helenos.org/wiki/UsersGuide/RunningInQEMU) or
+[UsersGuide/RunningInVirtualBox](https://www.helenos.org/wiki/UsersGuide/RunningInVirtualBox) or
 see the files in tools/conf.
 
 ## Contributing
 
 There is a whole section of our wiki devoted to
-[how to contribute to HelenOS](http://www.helenos.org/wiki/HowToContribute).
+[how to contribute to HelenOS](https://www.helenos.org/wiki/HowToContribute).
 But to highlight the most important points, you should subscribe to
 our mailing list and if you have an idea for contributing, discuss it
 with us first so that we can agree upon the design.

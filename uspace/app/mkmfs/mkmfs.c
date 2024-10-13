@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
@@ -210,7 +211,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	rc = block_init(service_id, 2048);
+	rc = block_init(service_id);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;

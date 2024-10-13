@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * All rights reserved.
  *
@@ -35,7 +36,18 @@
 #ifndef CONSOLE_CONSOLE_H__
 #define CONSOLE_CONSOLE_H__
 
+#include <adt/prodcons.h>
+#include <io/cons_event.h>
+
 #define CONSOLE_COUNT   11
+
+/** Console event queue entry */
+typedef struct {
+	/** Link to list of events */
+	link_t link;
+	/** Console event */
+	cons_event_t ev;
+} cons_qevent_t;
 
 #endif
 

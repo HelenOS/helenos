@@ -356,6 +356,11 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 		}
 
 		break;
+	case CEV_RESIZE:
+		ui_lock(ui);
+		ui_window_send_resize(awnd);
+		ui_unlock(ui);
+		break;
 	}
 }
 

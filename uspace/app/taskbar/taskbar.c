@@ -47,7 +47,7 @@
 #include "tbsmenu.h"
 #include "wndlist.h"
 
-#define TASKBAR_CONFIG_FILE "/cfg/taskbar.sif"
+#define TASKBAR_CONFIG_FILE "/w/cfg/taskbar.sif"
 
 static void taskbar_wnd_close(ui_window_t *, void *);
 static void taskbar_wnd_kbd(ui_window_t *, void *, kbd_event_t *);

@@ -112,52 +112,47 @@ static void tinput_display_prompt(tinput_t *ti)
 
 static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 {
-	char32_t *dbuf = malloc((INPUT_MAX_SIZE + 1) * sizeof(char32_t));
-	if (!dbuf)
-		return;
-
+	char32_t stash;
 	size_t sa;
 	size_t sb;
 	tinput_sel_get_bounds(ti, &sa, &sb);
+	assert(sa <= sb);
 
 	tinput_console_set_lpos(ti, ti->text_coord + start);
 	console_set_style(ti->console, STYLE_NORMAL);
 
-	size_t p = start;
-	if (p < sa) {
-		memcpy(dbuf, ti->buffer + p, (sa - p) * sizeof(char32_t));
-		dbuf[sa - p] = '\0';
-		printf("%ls", dbuf);
-		p = sa;
+	sa = max(start, sa);
+	sb = max(start, sb);
+
+	if (start < sa) {
+		stash = ti->buffer[sa];
+		ti->buffer[sa] = L'\0';
+		printf("%ls", &ti->buffer[start]);
+		ti->buffer[sa] = stash;
 	}
 
-	if (p < sb) {
+	if (sa < sb) {
 		console_flush(ti->console);
 		console_set_style(ti->console, STYLE_SELECTED);
 
-		memcpy(dbuf, ti->buffer + p,
-		    (sb - p) * sizeof(char32_t));
-		dbuf[sb - p] = '\0';
-		printf("%ls", dbuf);
-		p = sb;
+		stash = ti->buffer[sb];
+		ti->buffer[sb] = L'\0';
+		printf("%ls", &ti->buffer[sa]);
+		ti->buffer[sb] = stash;
+
+		console_flush(ti->console);
+		console_set_style(ti->console, STYLE_NORMAL);
 	}
 
-	console_flush(ti->console);
-	console_set_style(ti->console, STYLE_NORMAL);
-
-	if (p < ti->nc) {
-		memcpy(dbuf, ti->buffer + p,
-		    (ti->nc - p) * sizeof(char32_t));
-		dbuf[ti->nc - p] = '\0';
-		printf("%ls", dbuf);
+	if (sb < ti->nc) {
+		ti->buffer[ti->nc] = L'\0';
+		printf("%ls", &ti->buffer[sb]);
 	}
 
-	for (p = 0; p < pad; p++)
+	for (; pad > 0; pad--)
 		putuchar(' ');
 
 	console_flush(ti->console);
-
-	free(dbuf);
 }
 
 static char *tinput_get_str(tinput_t *ti)
@@ -217,7 +212,7 @@ static errno_t tinput_display(tinput_t *ti)
 	ti->text_coord = ti->prompt_coord;
 	tinput_display_prompt(ti);
 
-	/* The screen might have scrolled after priting the prompt */
+	/* The screen might have scrolled after printing the prompt */
 	tinput_update_origin_coord(ti, ti->prompt_coord + str_width(ti->prompt));
 
 	ti->text_coord = ti->prompt_coord + str_length(ti->prompt);
@@ -236,15 +231,10 @@ static void tinput_insert_char(tinput_t *ti, char32_t c)
 	if (ti->nc == INPUT_MAX_SIZE)
 		return;
 
-	unsigned new_width = LIN_TO_COL(ti, ti->text_coord) + ti->nc + 1;
-	if (new_width % ti->con_cols == 0) {
-		/* Advancing to new line. */
-		sysarg_t new_height = (new_width / ti->con_cols) + 1;
-		if (new_height >= ti->con_rows) {
-			/* Disallow text longer than 1 page for now. */
-			return;
-		}
-	}
+	/* Disallow text longer than 1 page for now. */
+	unsigned prompt_len = ti->text_coord - ti->prompt_coord;
+	if (prompt_len + ti->nc + 1 >= ti->con_cols * ti->con_rows)
+		return;
 
 	size_t i;
 	for (i = ti->nc; i > ti->pos; i--)
@@ -880,6 +870,73 @@ static void tinput_pos(tinput_t *ti, pos_event_t *ev)
 	}
 }
 
+static errno_t tinput_resize(tinput_t *ti)
+{
+	assert(ti->prompt_coord % ti->con_cols == 0);
+
+	errno_t rc = console_get_size(ti->console, &ti->con_cols, &ti->con_rows);
+	if (rc != EOK)
+		return rc;
+
+	sysarg_t col, row;
+	rc = console_get_pos(ti->console, &col, &row);
+	if (rc != EOK)
+		return rc;
+
+	assert(ti->prompt_coord <= ti->text_coord);
+	unsigned prompt_len = ti->text_coord - ti->prompt_coord;
+
+	size_t new_caret_coord = row * ti->con_cols + col;
+
+	if (prompt_len <= new_caret_coord && ti->pos <= new_caret_coord - prompt_len) {
+		ti->text_coord = new_caret_coord - ti->pos;
+		ti->prompt_coord = ti->text_coord - prompt_len;
+
+		unsigned prompt_col = ti->prompt_coord % ti->con_cols;
+		if (prompt_col != 0) {
+			/*
+			 * Prompt doesn't seem to start at column 0, which means
+			 * the console didn't reflow the line like we expected it to.
+			 * Change offsets a bit to recover.
+			 */
+			fprintf(stderr, "Unexpected prompt position after resize.\n");
+			ti->prompt_coord -= prompt_col;
+			ti->text_coord -= prompt_col;
+
+			console_cursor_visibility(ti->console, false);
+			tinput_display_prompt(ti);
+			tinput_display_tail(ti, 0, prompt_col);
+			tinput_position_caret(ti);
+			console_cursor_visibility(ti->console, true);
+		}
+
+		assert(ti->prompt_coord % ti->con_cols == 0);
+	} else {
+		/*
+		 * Overflown screen.
+		 * We will just trim the buffer and rewrite everything.
+		 */
+		console_clear(ti->console);
+
+		ti->nc = min(ti->nc, ti->con_cols * ti->con_rows - prompt_len - 1);
+		ti->pos = min(ti->pos, ti->nc);
+		ti->sel_start = min(ti->sel_start, ti->nc);
+
+		ti->prompt_coord = 0;
+		ti->text_coord = prompt_len;
+
+		console_cursor_visibility(ti->console, false);
+		tinput_display_prompt(ti);
+		tinput_display_tail(ti, 0, 0);
+		tinput_position_caret(ti);
+		console_cursor_visibility(ti->console, true);
+	}
+
+	assert(ti->nc + ti->text_coord < ti->con_cols * ti->con_rows);
+
+	return EOK;
+}
+
 /** Read in one line of input with initial text provided.
  *
  * @param ti   Text input
@@ -925,6 +982,9 @@ errno_t tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
 			break;
 		case CEV_POS:
 			tinput_pos(ti, &ev.ev.pos);
+			break;
+		case CEV_RESIZE:
+			tinput_resize(ti);
 			break;
 		}
 	}

@@ -175,6 +175,12 @@ PCUT_TEST(double_to_fixed_str_small)
 	PCUT_ASSERT_INT_EQUALS(4, ret);
 	PCUT_ASSERT_INT_EQUALS(-3, dec);
 	PCUT_ASSERT_STR_EQUALS("1100", buf);
+
+	d = extract_ieee_double(768.0);
+	ret = double_to_fixed_str(d, -1, 3, buf, size, &dec);
+	PCUT_ASSERT_INT_EQUALS(4, ret);
+	PCUT_ASSERT_INT_EQUALS(-3, dec);
+	PCUT_ASSERT_STR_EQUALS("768", buf);
 }
 
 PCUT_TEST(double_to_fixed_str_large)

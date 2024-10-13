@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Jiri Svoboda
+# Copyright (c) 2024 Jiri Svoboda
 # Copyright (c) 2012 Vojtech Horky
 # All rights reserved.
 #
@@ -27,5 +27,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'inet', 'console' ]
+deps = [ 'inet', 'console', 'vt' ]
 src = files('remcons.c', 'user.c')

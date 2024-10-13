@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
@@ -282,7 +283,7 @@ static errno_t mfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	errno_t rc;
 
 	/* Initialize libblock */
-	rc = block_init(service_id, 4096);
+	rc = block_init(service_id);
 	if (rc != EOK)
 		return rc;
 
@@ -309,7 +310,7 @@ mfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 		cmode = CACHE_MODE_WB;
 
 	/* Initialize libblock */
-	rc = block_init(service_id, 4096);
+	rc = block_init(service_id);
 	if (rc != EOK)
 		return rc;
 

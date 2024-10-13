@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
@@ -46,6 +47,7 @@ static void remote_hw_res_disable_interrupt(ddf_fun_t *, void *, ipc_call_t *);
 static void remote_hw_res_clear_interrupt(ddf_fun_t *, void *, ipc_call_t *);
 static void remote_hw_res_dma_channel_setup(ddf_fun_t *, void *, ipc_call_t *);
 static void remote_hw_res_dma_channel_remain(ddf_fun_t *, void *, ipc_call_t *);
+static void remote_hw_res_get_flags(ddf_fun_t *, void *, ipc_call_t *);
 
 static const remote_iface_func_ptr_t remote_hw_res_iface_ops [] = {
 	[HW_RES_GET_RESOURCE_LIST] = &remote_hw_res_get_resource_list,
@@ -54,6 +56,7 @@ static const remote_iface_func_ptr_t remote_hw_res_iface_ops [] = {
 	[HW_RES_CLEAR_INTERRUPT] = &remote_hw_res_clear_interrupt,
 	[HW_RES_DMA_CHANNEL_SETUP] = &remote_hw_res_dma_channel_setup,
 	[HW_RES_DMA_CHANNEL_REMAIN] = &remote_hw_res_dma_channel_remain,
+	[HW_RES_GET_FLAGS] = &remote_hw_res_get_flags
 };
 
 const remote_iface_t remote_hw_res_iface = {
@@ -168,6 +171,21 @@ static void remote_hw_res_dma_channel_remain(ddf_fun_t *fun, void *ops,
 	size_t remain = 0;
 	const errno_t ret = hw_res_ops->dma_channel_remain(fun, channel, &remain);
 	async_answer_1(call, ret, remain);
+}
+
+static void remote_hw_res_get_flags(ddf_fun_t *fun, void *ops,
+    ipc_call_t *call)
+{
+	hw_res_ops_t *hw_res_ops = ops;
+
+	if (hw_res_ops->get_flags == NULL) {
+		async_answer_0(call, ENOTSUP);
+		return;
+	}
+
+	hw_res_flags_t flags = 0;
+	const errno_t ret = hw_res_ops->get_flags(fun, &flags);
+	async_answer_1(call, ret, flags);
 }
 
 /**

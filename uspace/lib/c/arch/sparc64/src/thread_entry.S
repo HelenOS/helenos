@@ -34,6 +34,8 @@
 #
 #
 SYMBOL(__thread_entry)
+	add %sp, 0x7ff, %g1
+
 	#
 	# Create the first stack frame.
 	#
@@ -42,10 +44,13 @@ SYMBOL(__thread_entry)
 	add %g0, -0x7ff, %fp
 
 	#
-	# Propagate the input arguments to the new window.
+	# Load libc entry point address and argument from stack
 	#
+	ldn [%g1 - 8], %o0
+	ldn [%g1 - 16], %g1
 
-	call __thread_main		! %o0 contains address of uarg
-	mov %i0, %o0
+	jmpl %g1, %r0
+	# Wipe link register
+	xor %o7, %o7, %o7
 
 	! not reached

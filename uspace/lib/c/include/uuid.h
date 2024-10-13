@@ -42,6 +42,8 @@
 extern errno_t uuid_generate(uuid_t *);
 extern void uuid_encode(uuid_t *, uint8_t *);
 extern void uuid_decode(uint8_t *, uuid_t *);
+extern void uuid_encode_le(uuid_t *, uint8_t *);
+extern void uuid_decode_le(uint8_t *, uuid_t *);
 extern errno_t uuid_parse(const char *, uuid_t *, const char **);
 extern errno_t uuid_format(uuid_t *, char **, bool);
 

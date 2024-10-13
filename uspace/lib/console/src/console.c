@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2006 Jakub Vana
  * All rights reserved.
@@ -35,6 +35,7 @@
  */
 
 #include <as.h>
+#include <dbgcon.h>
 #include <libc.h>
 #include <async.h>
 #include <errno.h>
@@ -76,7 +77,7 @@ void console_done(console_ctrl_t *ctrl)
 
 bool console_kcon(void)
 {
-	return __SYSCALL0(SYS_DEBUG_CONSOLE);
+	return dbgcon_enable();
 }
 
 void console_flush(console_ctrl_t *ctrl)
@@ -191,19 +192,19 @@ static errno_t console_ev_decode(ipc_call_t *call, cons_event_t *event)
 		event->ev.key.key = ipc_get_arg3(call);
 		event->ev.key.mods = ipc_get_arg4(call);
 		event->ev.key.c = ipc_get_arg5(call);
-		break;
+		return EOK;
 	case CEV_POS:
 		event->ev.pos.pos_id = ipc_get_arg2(call) >> 16;
 		event->ev.pos.type = ipc_get_arg2(call) & 0xffff;
 		event->ev.pos.btn_num = ipc_get_arg3(call);
 		event->ev.pos.hpos = ipc_get_arg4(call);
 		event->ev.pos.vpos = ipc_get_arg5(call);
-		break;
-	default:
-		return EIO;
+		return EOK;
+	case CEV_RESIZE:
+		return EOK;
 	}
 
-	return EOK;
+	return EIO;
 }
 
 /** Get console event.

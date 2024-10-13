@@ -60,7 +60,7 @@ static void syntax_print(void)
 	fprintf(stderr, "  Without -o, data will be written to stdout, so you may want\n");
 	fprintf(stderr, "  to redirect the output, e.g.\n");
 	fprintf(stderr, "\n");
-	fprintf(stderr, "    download http://helenos.org/ | to helenos.html\n\n");
+	fprintf(stderr, "    download http://test-ipv4.helenos.org/ | to test.html\n\n");
 }
 
 int main(int argc, char *argv[])

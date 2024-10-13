@@ -73,7 +73,7 @@ static errno_t rtl8169_defective_set_mode(ddf_fun_t *fun, uint32_t mode);
 static errno_t rtl8169_on_activated(nic_t *nic_data);
 static errno_t rtl8169_on_stopped(nic_t *nic_data);
 static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size);
-static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev);
+static void rtl8169_irq_handler(ipc_call_t *icall, void *);
 static inline errno_t rtl8169_register_int_handler(nic_t *nic_data,
     cap_irq_handle_t *handle);
 static inline void rtl8169_get_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr);
@@ -371,7 +371,8 @@ inline static errno_t rtl8169_register_int_handler(nic_t *nic_data,
 	rtl8169_irq_code.cmds[2].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[3].addr = rtl8169->regs + IMR;
 	errno_t rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
-	    rtl8169->irq, rtl8169_irq_handler, &rtl8169_irq_code, handle);
+	    rtl8169->irq, rtl8169_irq_handler, (void *)rtl8169,
+	    &rtl8169_irq_code, handle);
 
 	return rc;
 }
@@ -1033,14 +1034,15 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 
 }
 
-static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
+/** RTL8169 IRQ handler.
+ *
+ * @param icall IRQ event notification
+ * @param arg Argument (rtl8169_t *)
+ */
+static void rtl8169_irq_handler(ipc_call_t *icall, void *arg)
 {
-	assert(dev);
-	assert(icall);
-
 	uint16_t isr = (uint16_t) ipc_get_arg2(icall) & INT_KNOWN;
-	nic_t *nic_data = nic_get_from_ddf_dev(dev);
-	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
+	rtl8169_t *rtl8169 = (rtl8169_t *)arg;
 
 	ddf_msg(LVL_DEBUG, "rtl8169_irq_handler(): isr=0x%04x", isr);
 	pio_write_16(rtl8169->regs + IMR, 0xffff);
@@ -1050,13 +1052,13 @@ static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 
 		/* Packet underrun or link change */
 		if (isr & INT_PUN) {
-			rtl8169_link_change(dev);
+			rtl8169_link_change(rtl8169->dev);
 			pio_write_16(rtl8169->regs + ISR, INT_PUN);
 		}
 
 		/* Transmit notification */
 		if (isr & (INT_TER | INT_TOK | INT_TDU)) {
-			rtl8169_transmit_done(dev);
+			rtl8169_transmit_done(rtl8169->dev);
 			pio_write_16(rtl8169->regs + ISR, (INT_TER | INT_TOK | INT_TDU));
 		}
 
@@ -1072,7 +1074,7 @@ static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 		}
 
 		if (isr & (INT_RER | INT_ROK)) {
-			rtl8169_receive_done(dev);
+			rtl8169_receive_done(rtl8169->dev);
 			pio_write_16(rtl8169->regs + ISR, (INT_RER | INT_ROK));
 		}
 

@@ -91,6 +91,32 @@ errno_t rndgen_uint8(rndgen_t *rndgen, uint8_t *rb)
 	return EOK;
 }
 
+/** Generate random 16-bit integer.
+ *
+ * @param rndgen Random number generator
+ * @param rw Place to store random 16-bit integer
+ * @return EOK on success or error code
+ */
+errno_t rndgen_uint16(rndgen_t *rndgen, uint16_t *rw)
+{
+	int i;
+	uint8_t b;
+	uint16_t w;
+	errno_t rc;
+
+	w = 0;
+	for (i = 0; i < 2; i++) {
+		rc = rndgen_uint8(rndgen, &b);
+		if (rc != EOK)
+			return rc;
+
+		w = (w << 8) | b;
+	}
+
+	*rw = w;
+	return EOK;
+}
+
 /** Generate random 32-bit integer.
  *
  * @param rndgen Random number generator

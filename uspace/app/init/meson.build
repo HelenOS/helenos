@@ -27,6 +27,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'untar', 'block' ]
+deps = [ 'block', 'futil', 'untar' ]
 link_args += '-static'
 src = files('init.c', 'untar.c')

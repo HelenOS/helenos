@@ -943,10 +943,14 @@ static int threads_cmp(void *a, void *b)
 }
 
 /** Process syscall to create new thread.
+ * The started thread will have initial pc and sp set to the exact values passed
+ * to the syscall. The kernel will not touch any stack data below the stack
+ * pointer, but some architectures may require some space to be available
+ * for use above it. See userspace() in kernel, and <libarch/thread.h> in libc.
  *
  */
-sys_errno_t sys_thread_create(uspace_ptr_uspace_arg_t uspace_uarg, uspace_ptr_char uspace_name,
-    size_t name_len, uspace_ptr_thread_id_t uspace_thread_id)
+sys_errno_t sys_thread_create(sysarg_t pc, sysarg_t sp,
+    uspace_ptr_char uspace_name, size_t name_len)
 {
 	if (name_len > THREAD_NAME_BUFLEN - 1)
 		name_len = THREAD_NAME_BUFLEN - 1;
@@ -962,62 +966,38 @@ sys_errno_t sys_thread_create(uspace_ptr_uspace_arg_t uspace_uarg, uspace_ptr_ch
 	 * In case of failure, kernel_uarg will be deallocated in this function.
 	 * In case of success, kernel_uarg will be freed in uinit().
 	 */
-	uspace_arg_t *kernel_uarg =
-	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t));
+	uinit_arg_t *kernel_uarg = malloc(sizeof(uinit_arg_t));
 	if (!kernel_uarg)
 		return (sys_errno_t) ENOMEM;
 
-	rc = copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
-	if (rc != EOK) {
-		free(kernel_uarg);
-		return (sys_errno_t) rc;
-	}
+	kernel_uarg->pc = pc;
+	kernel_uarg->sp = sp;
+
+	// TODO: fix some unnecessary inconsistencies between architectures
 
 	thread_t *thread = thread_create(uinit, kernel_uarg, TASK,
 	    THREAD_FLAG_USPACE | THREAD_FLAG_NOATTACH, namebuf);
-	if (thread) {
-		if (uspace_thread_id) {
-			rc = copy_to_uspace(uspace_thread_id, &thread->tid,
-			    sizeof(thread->tid));
-			if (rc != EOK) {
-				/*
-				 * We have encountered a failure, but the thread
-				 * has already been created. We need to undo its
-				 * creation now.
-				 */
-
-				/*
-				 * The new thread structure is initialized, but
-				 * is still not visible to the system.
-				 * We can safely deallocate it.
-				 */
-				slab_free(thread_cache, thread);
-				free(kernel_uarg);
-
-				return (sys_errno_t) rc;
-			}
-		}
+	if (!thread) {
+		free(kernel_uarg);
+		return (sys_errno_t) ENOMEM;
+	}
 
 #ifdef CONFIG_UDEBUG
-		/*
-		 * Generate udebug THREAD_B event and attach the thread.
-		 * This must be done atomically (with the debug locks held),
-		 * otherwise we would either miss some thread or receive
-		 * THREAD_B events for threads that already existed
-		 * and could be detected with THREAD_READ before.
-		 */
-		udebug_thread_b_event_attach(thread, TASK);
+	/*
+	 * Generate udebug THREAD_B event and attach the thread.
+	 * This must be done atomically (with the debug locks held),
+	 * otherwise we would either miss some thread or receive
+	 * THREAD_B events for threads that already existed
+	 * and could be detected with THREAD_READ before.
+	 */
+	udebug_thread_b_event_attach(thread, TASK);
 #else
-		thread_attach(thread, TASK);
+	thread_attach(thread, TASK);
 #endif
-		thread_start(thread);
-		thread_put(thread);
+	thread_start(thread);
+	thread_put(thread);
 
-		return 0;
-	} else
-		free(kernel_uarg);
-
-	return (sys_errno_t) ENOMEM;
+	return (sys_errno_t) EOK;
 }
 
 /** Process syscall to terminate thread.

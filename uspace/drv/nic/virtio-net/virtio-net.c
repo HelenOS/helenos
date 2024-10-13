@@ -70,9 +70,14 @@ static driver_t virtio_net_driver = {
 	.driver_ops = &virtio_net_driver_ops
 };
 
-static void virtio_net_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
+/** VirtIO net IRQ handler.
+ *
+ * @param icall IRQ event notification
+ * @param arg Argument (nic_t *)
+ */
+static void virtio_net_irq_handler(ipc_call_t *icall, void *arg)
 {
-	nic_t *nic = ddf_dev_data_get(dev);
+	nic_t *nic = (nic_t *)arg;
 	virtio_net_t *virtio_net = nic_get_specific(nic);
 	virtio_dev_t *vdev = &virtio_net->virtio_dev;
 
@@ -164,7 +169,8 @@ static errno_t virtio_net_register_interrupt(ddf_dev_t *dev)
 	};
 
 	return register_interrupt_handler(dev, virtio_net->irq,
-	    virtio_net_irq_handler, &irq_code, &virtio_net->irq_handle);
+	    virtio_net_irq_handler, (void *)nic, &irq_code,
+	    &virtio_net->irq_handle);
 }
 
 static errno_t virtio_net_initialize(ddf_dev_t *dev)

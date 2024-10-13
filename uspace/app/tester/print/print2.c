@@ -61,5 +61,9 @@ const char *test_print2(void)
 	TPRINTF("Expected output: [-12] [12] [c] [-12] [14]\n");
 	TPRINTF("Real output:     [%td] [%tu] [%tx] [%ti] [%to]\n\n", d, neg_d, neg_d, d, neg_d);
 
+	TPRINTF("Testing printf(\"%%lf\", 768.0):\n");
+	TPRINTF("Expected output: [768.000000]\n");
+	TPRINTF("Real output:     [%lf]\n", 768.0);
+
 	return NULL;
 }

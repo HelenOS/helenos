@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -78,6 +79,7 @@ static const struct shape *lastshape;
 
 static usec_t timeleft = 0;
 
+bool size_changed;
 console_ctrl_t *console;
 
 /*
@@ -141,7 +143,7 @@ void scr_init(void)
 {
 	console_cursor_visibility(console, 0);
 	resume_normal();
-	scr_clear();
+	scr_set();
 }
 
 void moveto(sysarg_t r, sysarg_t c)
@@ -168,6 +170,10 @@ static void get_display_color_sup(bool *rgb, bool *color)
 		return;
 	}
 
+	if ((ccap & CONSOLE_CAP_CURSORCTL) == 0) {
+		stop("Your screen does not support cursor control.\n");
+		return;
+	}
 	*rgb = ((ccap & CONSOLE_CAP_RGB) == CONSOLE_CAP_RGB);
 	*color = ((ccap & CONSOLE_CAP_INDEXED) == CONSOLE_CAP_INDEXED);
 }
@@ -193,7 +199,7 @@ void scr_set(void)
 		char smallscr[55];
 
 		snprintf(smallscr, sizeof(smallscr),
-		    "the screen is too small (must be at least %dx%d)",
+		    "the screen is too small (must be at least %dx%d)\n",
 		    MINROWS, MINCOLS);
 		stop(smallscr);
 	}
@@ -216,7 +222,7 @@ void stop(const char *why)
 		scr_end();
 
 	fprintf(stderr, "aborting: %s", why);
-	abort();
+	exit(1);
 }
 
 /*
@@ -408,6 +414,9 @@ int tgetchar(void)
 		}
 		if (rc != EOK)
 			exit(1);
+
+		if (event.type == CEV_RESIZE)
+			size_changed = true;
 
 		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
 			c = event.ev.key.c;

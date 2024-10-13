@@ -32,7 +32,6 @@
 #include <adt/list.h>
 #include <context.h>
 #include <tls.h>
-#include <abi/proc/uarg.h>
 #include <fibril.h>
 #include <ipc/common.h>
 
@@ -49,7 +48,6 @@ struct fibril {
 	link_t all_link;
 	context_t ctx;
 
-	uspace_arg_t uarg;
 	link_t link;
 	void *stack;
 	size_t stack_size;

@@ -46,6 +46,7 @@
 #include <device/pio_window.h>
 #include <task.h>
 
+#define DMAMEM_1MiB   ((uintptr_t) UINT64_C(0xfffffffffff00000))
 #define DMAMEM_16MiB  ((uintptr_t) UINT64_C(0xffffffffff000000))
 #define DMAMEM_4GiB   ((uintptr_t) UINT64_C(0xffffffff00000000))
 

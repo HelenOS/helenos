@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 
 #include <errno.h>
 #include <fibril_synch.h>
+#include <inet/dhcp.h>
 #include <inet/eth_addr.h>
 #include <inet/iplink.h>
 #include <io/log.h>
@@ -163,13 +164,20 @@ static void inet_link_delete(inet_link_t *ilink)
 	free(ilink);
 }
 
-errno_t inet_link_open(service_id_t sid)
+/** Open new IP link while inet_links_lock is held.
+ *
+ * @param sid IP link service ID
+ * @return EOK on success or an error code
+ */
+static errno_t inet_link_open_locked(service_id_t sid)
 {
 	inet_link_t *ilink;
 	inet_addr_t iaddr;
 	errno_t rc;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_link_open()");
+	assert(fibril_mutex_is_locked(&inet_links_lock));
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_link_open_locked()");
 	ilink = inet_link_new();
 	if (ilink == NULL)
 		return ENOMEM;
@@ -212,10 +220,7 @@ errno_t inet_link_open(service_id_t sid)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Opened IP link '%s'", ilink->svc_name);
 
-	fibril_mutex_lock(&inet_links_lock);
-
 	if (inet_link_get_by_id_locked(sid) != NULL) {
-		fibril_mutex_unlock(&inet_links_lock);
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Link %zu already open",
 		    sid);
 		rc = EEXIST;
@@ -223,7 +228,6 @@ errno_t inet_link_open(service_id_t sid)
 	}
 
 	list_append(&ilink->link_list, &inet_links);
-	fibril_mutex_unlock(&inet_links_lock);
 
 	inet_addrobj_t *addr = NULL;
 
@@ -238,6 +242,7 @@ errno_t inet_link_open(service_id_t sid)
 	if (addr != NULL) {
 		addr->ilink = ilink;
 		addr->name = str_dup("v4a");
+		addr->temp = true;
 
 		rc = inet_addrobj_add(addr);
 		if (rc == EOK) {
@@ -274,6 +279,7 @@ errno_t inet_link_open(service_id_t sid)
 	if (addr6 != NULL) {
 		addr6->ilink = ilink;
 		addr6->name = str_dup("v6a");
+		addr6->temp = true;
 
 		rc = inet_addrobj_add(addr6);
 		if (rc == EOK) {
@@ -299,6 +305,22 @@ error:
 		iplink_close(ilink->iplink);
 
 	inet_link_delete(ilink);
+	return rc;
+}
+
+/** Open new IP link..
+ *
+ * @param sid IP link service ID
+ * @return EOK on success or an error code
+ */
+errno_t inet_link_open(service_id_t sid)
+{
+	errno_t rc;
+
+	fibril_mutex_lock(&inet_links_lock);
+	rc = inet_link_open_locked(sid);
+	fibril_mutex_unlock(&inet_links_lock);
+
 	return rc;
 }
 
@@ -475,6 +497,39 @@ inet_link_t *inet_link_get_by_id(sysarg_t link_id)
 	return ilink;
 }
 
+/** Find link by service name while inet_links_lock is held.
+ *
+ * @param svc_name Service name
+ * @return Link or @c NULL if not found
+ */
+static inet_link_t *inet_link_get_by_svc_name_locked(const char *svc_name)
+{
+	assert(fibril_mutex_is_locked(&inet_links_lock));
+
+	list_foreach(inet_links, link_list, inet_link_t, ilink) {
+		if (str_cmp(ilink->svc_name, svc_name) == 0)
+			return ilink;
+	}
+
+	return NULL;
+}
+
+/** Find link by service name.
+ *
+ * @param svc_name Service name
+ * @return Link or @c NULL if not found
+ */
+inet_link_t *inet_link_get_by_svc_name(const char *svc_name)
+{
+	inet_link_t *ilink;
+
+	fibril_mutex_lock(&inet_links_lock);
+	ilink = inet_link_get_by_svc_name_locked(svc_name);
+	fibril_mutex_unlock(&inet_links_lock);
+
+	return ilink;
+}
+
 /** Get IDs of all links. */
 errno_t inet_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
 {
@@ -501,6 +556,214 @@ errno_t inet_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
 	*rcount = count;
 
 	return EOK;
+}
+
+/** Check for new IP links.
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t inet_link_check_new(void)
+{
+	bool already_known;
+	category_id_t iplink_cat;
+	service_id_t *svcs;
+	inet_link_cfg_info_t info;
+	size_t count, i;
+	errno_t rc;
+
+	fibril_mutex_lock(&inet_links_lock);
+
+	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category "
+		    "'iplink'.");
+		fibril_mutex_unlock(&inet_links_lock);
+		return ENOENT;
+	}
+
+	rc = loc_category_get_svcs(iplink_cat, &svcs, &count);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting list of IP "
+		    "links.");
+		fibril_mutex_unlock(&inet_links_lock);
+		return EIO;
+	}
+
+	for (i = 0; i < count; i++) {
+		already_known = false;
+
+		list_foreach(inet_links, link_list, inet_link_t, ilink) {
+			if (ilink->svc_id == svcs[i]) {
+				already_known = true;
+				break;
+			}
+		}
+
+		if (!already_known) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Found IP link '%lu'",
+			    (unsigned long) svcs[i]);
+			rc = inet_link_open_locked(svcs[i]);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not "
+				    "add IP link.");
+			}
+		} else {
+			/* Clear so it won't be autoconfigured below */
+			svcs[i] = 0;
+		}
+	}
+
+	fibril_mutex_unlock(&inet_links_lock);
+
+	/*
+	 * Auto-configure new links. Note that newly discovered links
+	 * cannot have any configured address objects, because we only
+	 * retain configuration for present links.
+	 */
+	for (i = 0; i < count; i++) {
+		if (svcs[i] != 0) {
+			info.svc_id = svcs[i];
+			rc = loc_service_get_name(info.svc_id, &info.svc_name);
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_ERROR, "Failed "
+				    "getting service name.");
+				return rc;
+			}
+
+			inet_link_autoconf_link(&info);
+			free(info.svc_name);
+			info.svc_name = NULL;
+		}
+	}
+
+	return EOK;
+}
+
+/** IP link category change callback.
+ *
+ * @param arg Not used
+ */
+static void inet_link_cat_change_cb(void *arg)
+{
+	(void) inet_link_check_new();
+}
+
+/** Start IP link discovery.
+ *
+ * @return EOK on success or an error code
+ */
+errno_t inet_link_discovery_start(void)
+{
+	errno_t rc;
+
+	rc = loc_register_cat_change_cb(inet_link_cat_change_cb, NULL);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback "
+		    "for IP link discovery: %s.", str_error(rc));
+		return rc;
+	}
+
+	return inet_link_check_new();
+}
+
+/** Start DHCP autoconfiguration on IP link.
+ *
+ * @param info Link information
+ */
+void inet_link_autoconf_link(inet_link_cfg_info_t *info)
+{
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_link_autoconf_link");
+
+	if (str_lcmp(info->svc_name, "net/eth", str_length("net/eth")) == 0) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "inet_link_autoconf_link : dhcp link add for link '%s' (%u)",
+		    info->svc_name, (unsigned)info->svc_id);
+		rc = dhcp_link_add(info->svc_id);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "inet_link_autoconf_link : dhcp link add for link '%s' (%u) DONE",
+		    info->svc_name, (unsigned)info->svc_id);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_WARN, "Failed configuring "
+			    "DHCP on  link '%s'.\n", info->svc_name);
+		}
+	}
+}
+
+/** Start DHCP autoconfiguration on IP links. */
+errno_t inet_link_autoconf(void)
+{
+	inet_link_cfg_info_t *link_info;
+	size_t link_cnt;
+	size_t acnt;
+	size_t i;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_link_autoconf : initialize DHCP");
+	rc = dhcp_init();
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed initializing DHCP "
+		    "service.");
+		return rc;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_link_autoconf : initialize DHCP done");
+
+	fibril_mutex_lock(&inet_links_lock);
+	link_cnt = list_count(&inet_links);
+
+	link_info = calloc(link_cnt, sizeof(inet_link_cfg_info_t));
+	if (link_info == NULL) {
+		fibril_mutex_unlock(&inet_links_lock);
+		return ENOMEM;
+	}
+
+	i = 0;
+	list_foreach(inet_links, link_list, inet_link_t, ilink) {
+		assert(i < link_cnt);
+
+		acnt = inet_addrobj_cnt_by_link(ilink);
+		if (acnt != 0) {
+			/*
+			 * No autoconfiguration if link has configured
+			 * addresses.
+			 */
+			continue;
+		}
+
+		link_info[i].svc_id = ilink->svc_id;
+		link_info[i].svc_name = str_dup(ilink->svc_name);
+		if (link_info[i].svc_name == NULL) {
+			fibril_mutex_unlock(&inet_links_lock);
+			goto error;
+		}
+
+		++i;
+	}
+
+	fibril_mutex_unlock(&inet_links_lock);
+
+	/* Update link_cnt to include only links slated for autoconfig. */
+	link_cnt = i;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_link_autoconf : autoconf links...");
+
+	for (i = 0; i < link_cnt; i++)
+		inet_link_autoconf_link(&link_info[i]);
+
+	for (i = 0; i < link_cnt; i++) {
+		if (link_info[i].svc_name != NULL)
+			free(link_info[i].svc_name);
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_link_autoconf : autoconf links done");
+	return EOK;
+error:
+	for (i = 0; i < link_cnt; i++) {
+		if (link_info[i].svc_name != NULL)
+			free(link_info[i].svc_name);
+	}
+	free(link_info);
+	return ENOMEM;
 }
 
 /** @}

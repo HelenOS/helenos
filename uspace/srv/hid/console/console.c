@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -333,12 +333,12 @@ static void pointer_undraw(void)
 static void console_queue_cons_event(console_t *cons, cons_event_t *ev)
 {
 	/* Got key press/release event */
-	cons_event_t *event =
-	    (cons_event_t *) malloc(sizeof(cons_event_t));
+	cons_qevent_t *event =
+	    (cons_qevent_t *) malloc(sizeof(cons_qevent_t));
 	if (event == NULL)
 		return;
 
-	*event = *ev;
+	event->ev = *ev;
 	link_initialize(&event->link);
 
 	prodcons_produce(&cons->input_pc, &event->link);
@@ -365,9 +365,15 @@ static errno_t input_ev_key(input_t *input, unsigned kbd_id,
     kbd_event_type_t type, keycode_t key, keymod_t mods, char32_t c)
 {
 	cons_event_t event;
+	bool alt;
+	bool shift;
 
+	alt = (mods & KM_ALT) != 0 && (mods & (KM_CTRL | KM_SHIFT)) == 0;
+	shift = (mods & KM_SHIFT) != 0 && (mods & (KM_CTRL | KM_ALT)) == 0;
+
+	/* Switch console on Alt+Fn or Shift+Fn */
 	if ((key >= KC_F1) && (key <= KC_F1 + CONSOLE_COUNT) &&
-	    ((mods & KM_CTRL) == 0)) {
+	    (alt || shift)) {
 		cons_switch(key - KC_F1);
 	} else {
 		/* Got key press/release event */
@@ -549,8 +555,9 @@ static errno_t cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 		/* Still not enough? Then get another key from the queue. */
 		if (pos < size) {
 			link_t *link = prodcons_consume(&cons->input_pc);
-			cons_event_t *event = list_get_instance(link,
-			    cons_event_t, link);
+			cons_qevent_t *qevent = list_get_instance(link,
+			    cons_qevent_t, link);
+			cons_event_t *event = &qevent->ev;
 
 			/* Accept key presses of printable chars only. */
 			if (event->type == CEV_KEY && event->ev.key.type == KEY_PRESS &&
@@ -560,7 +567,7 @@ static errno_t cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 				cons->char_remains_len = str_size(cons->char_remains);
 			}
 
-			free(event);
+			free(qevent);
 		}
 	}
 
@@ -696,10 +703,10 @@ static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	console_t *cons = srv_to_console(srv);
 	link_t *link = prodcons_consume(&cons->input_pc);
-	cons_event_t *cevent = list_get_instance(link, cons_event_t, link);
+	cons_qevent_t *qevent = list_get_instance(link, cons_qevent_t, link);
 
-	*event = *cevent;
-	free(cevent);
+	*event = qevent->ev;
+	free(qevent);
 	return EOK;
 }
 

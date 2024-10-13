@@ -740,6 +740,9 @@ static errno_t ui_demo(const char *display_spec)
 		params.rect.p1.y = 410;
 	}
 
+	/* Only allow making the window larger */
+	gfx_rect_dims(&params.rect, &params.min_size);
+
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");

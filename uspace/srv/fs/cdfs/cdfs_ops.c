@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -1092,7 +1093,7 @@ static errno_t cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	char *vol_ident;
 
 	/* Initialize the block layer */
-	errno_t rc = block_init(service_id, BLOCK_SIZE);
+	errno_t rc = block_init(service_id);
 	if (rc != EOK)
 		return rc;
 
@@ -1149,7 +1150,7 @@ static errno_t cdfs_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size)
 {
 	/* Initialize the block layer */
-	errno_t rc = block_init(service_id, BLOCK_SIZE);
+	errno_t rc = block_init(service_id);
 	if (rc != EOK)
 		return rc;
 

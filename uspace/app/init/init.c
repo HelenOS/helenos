@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
@@ -34,6 +35,7 @@
  */
 
 #include <fibril.h>
+#include <futil.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <vfs/vfs.h>
@@ -77,7 +79,8 @@
 
 static const char *sys_dirs[] = {
 	"/w/cfg",
-	"/w/data"
+	"/w/data",
+	NULL,
 };
 
 /** Print banner */
@@ -350,7 +353,11 @@ static errno_t init_sysvol(void)
 	vol_t *vol = NULL;
 	vol_info_t vinfo;
 	volume_id_t *volume_ids = NULL;
+	service_id_t *part_ids = NULL;
+	vol_part_info_t pinfo;
 	size_t nvols;
+	size_t nparts;
+	bool sv_mounted;
 	size_t i;
 	errno_t rc;
 	bool found_cfg;
@@ -384,8 +391,8 @@ static errno_t init_sysvol(void)
 		}
 	}
 
-	vol_destroy(vol);
 	free(volume_ids);
+	volume_ids = NULL;
 
 	if (!found_cfg) {
 		/* Prepare directory structure for live image mode */
@@ -396,20 +403,63 @@ static errno_t init_sysvol(void)
 			if (rc != EOK) {
 				printf("%s: Error creating directory '%s'.\n",
 				    NAME, *cp);
-				return rc;
+				goto error;
 			}
 
 			++cp;
 		}
+
+		/* Copy initial configuration files */
+		rc = futil_rcopy_contents("/cfg", "/w/cfg");
+		if (rc != EOK)
+			goto error;
 	} else {
 		printf("%s: System volume is configured.\n", NAME);
+
+		/* Wait until system volume is mounted */
+		sv_mounted = false;
+
+		while (true) {
+			rc = vol_get_parts(vol, &part_ids, &nparts);
+			if (rc != EOK) {
+				printf("Error getting list of volumes.\n");
+				goto error;
+			}
+
+			for (i = 0; i < nparts; i++) {
+				rc = vol_part_info(vol, part_ids[i], &pinfo);
+				if (rc != EOK) {
+					printf("Error getting partition "
+					    "information.\n");
+					rc = EIO;
+					goto error;
+				}
+
+				if (str_cmp(pinfo.cur_mp, "/w") == 0) {
+					sv_mounted = true;
+					break;
+				}
+			}
+
+			if (sv_mounted)
+				break;
+
+			free(part_ids);
+			part_ids = NULL;
+
+			fibril_sleep(1);
+			printf("Sleeping(1) for system volume.\n");
+		}
 	}
 
+	vol_destroy(vol);
 	return EOK;
 error:
 	vol_destroy(vol);
 	if (volume_ids != NULL)
 		free(volume_ids);
+	if (part_ids != NULL)
+		free(part_ids);
 
 	return rc;
 }
@@ -437,7 +487,6 @@ int main(int argc, char *argv[])
 
 	srv_start("/srv/klog");
 	srv_start("/srv/fs/locfs");
-	srv_start("/srv/taskmon");
 
 	if (!mount_locfs()) {
 		printf("%s: Exiting\n", NAME);
@@ -453,14 +502,17 @@ int main(int argc, char *argv[])
 	srv_start("/srv/bd/vbd");
 	srv_start("/srv/volsrv");
 
+	init_sysvol();
+
+	srv_start("/srv/taskmon");
+
 	srv_start("/srv/net/loopip");
 	srv_start("/srv/net/ethip");
+	srv_start("/srv/net/dhcp");
 	srv_start("/srv/net/inetsrv");
 	srv_start("/srv/net/tcp");
 	srv_start("/srv/net/udp");
 	srv_start("/srv/net/dnsrsrv");
-	srv_start("/srv/net/dhcp");
-	srv_start("/srv/net/nconfsrv");
 
 	srv_start("/srv/clipboard");
 	srv_start("/srv/hid/remcons");
@@ -468,8 +520,6 @@ int main(int argc, char *argv[])
 	srv_start("/srv/hid/input", HID_INPUT);
 	srv_start("/srv/hid/output", HID_OUTPUT);
 	srv_start("/srv/audio/hound");
-
-	init_sysvol();
 
 #ifdef CONFIG_WINSYS
 	if (!config_key_exists("console")) {

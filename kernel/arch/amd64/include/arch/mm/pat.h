@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2024 Jiří Zárevúcky
  * All rights reserved.
  *
@@ -49,6 +50,7 @@ typedef enum {
 	PAT_TYPE_UNCACHED  = 7,
 } pat_type_t;
 
+#ifndef PROCESSOR_i486
 /**
  * Assign caching type for a particular combination of PAT,
  * PCD and PWT bits in PTE.
@@ -64,6 +66,7 @@ static inline void pat_set_mapping(bool pat, bool pcd, bool pwt,
 	r |= ((uint64_t) type) << shift;
 	write_msr(MSR_IA32_PAT, r);
 }
+#endif
 
 static inline bool pat_supported(void)
 {

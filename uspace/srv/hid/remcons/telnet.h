@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -43,6 +44,8 @@ typedef uint8_t telnet_cmd_t;
  * Telnet commands.
  */
 
+#define TELNET_SE 240
+#define TELNET_SB 250
 #define TELNET_IAC 255
 
 #define TELNET_WILL 251
@@ -54,6 +57,7 @@ typedef uint8_t telnet_cmd_t;
 
 #define TELNET_ECHO 1
 #define TELNET_SUPPRESS_GO_AHEAD 3
+#define TELNET_NAWS 31
 #define TELNET_LINEMODE 34
 
 #endif

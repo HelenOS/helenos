@@ -38,15 +38,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <arch.h>
-#include <abi/proc/uarg.h>
 #include <mm/as.h>
+
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return stack_base + stack_size;
+}
 
 /** Enter userspace
  *
  * Change CPU protection level to 3, enter userspace.
  *
  */
-void userspace(uspace_arg_t *kernel_uarg)
+void userspace(uintptr_t pc, uintptr_t sp)
 {
 	uint64_t rflags = read_rflags();
 
@@ -59,19 +63,15 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    "pushq %[rflags]\n"
 	    "pushq %[utext_des]\n"
 	    "pushq %[entry]\n"
-	    "movq %[uarg], %%rax\n"
 
 	    /* %rdi is defined to hold pcb_ptr - set it to 0 */
 	    "xorq %%rdi, %%rdi\n"
 	    "iretq\n"
 	    :: [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
-	      [stack_top] "r" (kernel_uarg->uspace_stack +
-	      kernel_uarg->uspace_stack_size),
+	      [stack_top] "r" (sp),
 	      [rflags] "r" (rflags),
 	      [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
-	      [entry] "r" (kernel_uarg->uspace_entry),
-	      [uarg] "r" (kernel_uarg->uspace_uarg)
-	    : "rax"
+	      [entry] "r" (pc)
 	);
 
 	unreachable();

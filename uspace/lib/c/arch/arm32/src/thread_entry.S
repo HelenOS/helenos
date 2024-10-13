@@ -34,6 +34,9 @@
 #
 #
 SYMBOL(__thread_entry)
+	# Pop libc entry function and its argument.
+	pop { r0, r4 }
+
 	#
 	# Create the first stack frame.
 	#
@@ -42,4 +45,4 @@ SYMBOL(__thread_entry)
 	push {fp, ip, lr, pc}
 	sub fp, ip, #4
 
-	b __thread_main
+	bx r4

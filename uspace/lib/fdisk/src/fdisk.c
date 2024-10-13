@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -809,9 +809,18 @@ error:
 	return rc;
 }
 
+/** Destroy partition.
+ *
+ * @param part Partition
+ * @return EOK on success or error code
+ */
 errno_t fdisk_part_destroy(fdisk_part_t *part)
 {
 	errno_t rc;
+
+	rc = vol_part_eject(part->dev->fdisk->vol, part->svc_id);
+	if (rc != EOK)
+		return EIO;
 
 	rc = vbd_part_delete(part->dev->fdisk->vbd, part->part_id);
 	if (rc != EOK)

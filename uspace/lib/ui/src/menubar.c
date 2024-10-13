@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,8 @@ static void ui_menu_bar_ctl_destroy(void *);
 static errno_t ui_menu_bar_ctl_paint(void *);
 static ui_evclaim_t ui_menu_bar_ctl_kbd_event(void *, kbd_event_t *);
 static ui_evclaim_t ui_menu_bar_ctl_pos_event(void *, pos_event_t *);
+static void ui_menu_bar_activate_ev(ui_menu_bar_t *);
+static void ui_menu_bar_deactivate_ev(ui_menu_bar_t *);
 
 /** Menu bar control ops */
 ui_control_ops_t ui_menu_bar_ops = {
@@ -130,6 +132,18 @@ void ui_menu_bar_destroy(ui_menu_bar_t *mbar)
 
 	ui_control_delete(mbar->control);
 	free(mbar);
+}
+
+/** Set menu bar callbacks.
+ *
+ * @param mbar Menu bar
+ * @param cb Callbacks
+ * @param arg Callback argument
+ */
+void ui_menu_bar_set_cb(ui_menu_bar_t *mbar, ui_menu_bar_cb_t *cb, void *arg)
+{
+	mbar->cb = cb;
+	mbar->arg = arg;
 }
 
 /** Get base control from menu bar.
@@ -287,8 +301,12 @@ void ui_menu_bar_select(ui_menu_bar_t *mbar, ui_menu_dd_t *mdd, bool openup,
 			(void) ui_menu_dd_open(mbar->selected, &rect, idev_id);
 		}
 
+		if (!mbar->active)
+			ui_menu_bar_activate_ev(mbar);
 		mbar->active = true;
 	} else {
+		if (mbar->active)
+			ui_menu_bar_deactivate_ev(mbar);
 		mbar->active = false;
 	}
 }
@@ -639,6 +657,7 @@ void ui_menu_bar_activate(ui_menu_bar_t *mbar)
 		mbar->selected = ui_menu_dd_first(mbar);
 
 	(void) ui_menu_bar_paint(mbar);
+	ui_menu_bar_activate_ev(mbar);
 }
 
 /** Deactivate menu bar.
@@ -648,6 +667,7 @@ void ui_menu_bar_activate(ui_menu_bar_t *mbar)
 void ui_menu_bar_deactivate(ui_menu_bar_t *mbar)
 {
 	ui_menu_bar_select(mbar, NULL, false, 0);
+	ui_menu_bar_deactivate_ev(mbar);
 }
 
 /** Destroy menu bar control.
@@ -697,6 +717,26 @@ ui_evclaim_t ui_menu_bar_ctl_pos_event(void *arg, pos_event_t *event)
 	ui_menu_bar_t *mbar = (ui_menu_bar_t *) arg;
 
 	return ui_menu_bar_pos_event(mbar, event);
+}
+
+/** Send menu bar activate event.
+ *
+ * @param mbar Menu bar
+ */
+static void ui_menu_bar_activate_ev(ui_menu_bar_t *mbar)
+{
+	if (mbar->cb != NULL && mbar->cb->activate != NULL)
+		mbar->cb->activate(mbar, mbar->arg);
+}
+
+/** Send menu bar deactivate event.
+ *
+ * @param mbar Menu bar
+ */
+static void ui_menu_bar_deactivate_ev(ui_menu_bar_t *mbar)
+{
+	if (mbar->cb != NULL && mbar->cb->deactivate != NULL)
+		mbar->cb->deactivate(mbar, mbar->arg);
 }
 
 /** @}

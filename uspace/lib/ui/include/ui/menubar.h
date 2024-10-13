@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,7 @@
 extern errno_t ui_menu_bar_create(ui_t *, ui_window_t *,
     ui_menu_bar_t **);
 extern void ui_menu_bar_destroy(ui_menu_bar_t *);
+extern void ui_menu_bar_set_cb(ui_menu_bar_t *, ui_menu_bar_cb_t *, void *);
 extern ui_control_t *ui_menu_bar_ctl(ui_menu_bar_t *);
 extern void ui_menu_bar_set_rect(ui_menu_bar_t *, gfx_rect_t *);
 extern errno_t ui_menu_bar_paint(ui_menu_bar_t *);

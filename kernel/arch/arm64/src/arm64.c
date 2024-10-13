@@ -145,22 +145,26 @@ void asm_delay_loop(uint32_t usec)
 		;
 }
 
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return stack_base + stack_size;
+}
+
 /** Change processor mode.
  *
  * @param kernel_uarg Userspace settings (entry point, stack, ...).
  */
-void userspace(uspace_arg_t *kernel_uarg)
+void userspace(uintptr_t pc, uintptr_t sp)
 {
 	/* Prepare return to EL0. */
 	SPSR_EL1_write((SPSR_EL1_read() & ~SPSR_MODE_MASK) |
 	    SPSR_MODE_ARM64_EL0T);
 
 	/* Set program entry. */
-	ELR_EL1_write(kernel_uarg->uspace_entry);
+	ELR_EL1_write(pc);
 
 	/* Set user stack. */
-	SP_EL0_write(kernel_uarg->uspace_stack +
-	    kernel_uarg->uspace_stack_size);
+	SP_EL0_write(sp);
 
 	/* Clear Thread ID register. */
 	TPIDR_EL0_write(0);
@@ -169,12 +173,10 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    /*
 	     * Reset the kernel stack to its base value.
 	     *
-	     * Clear all general-purpose registers,
-	     * except x0 that holds an argument for
-	     * the user space.
+	     * Clear all general-purpose registers.
 	     */
 	    "mov sp, %[kstack]\n"
-	    "mov x0, %[uspace_uarg]\n"
+	    "mov x0, #0\n"
 	    "mov x1, #0\n"
 	    "mov x2, #0\n"
 	    "mov x3, #0\n"
@@ -206,8 +208,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    "mov x29, #0\n"
 	    "mov x30, #0\n"
 	    "eret\n"
-	    :: [uspace_uarg] "r" (kernel_uarg->uspace_uarg),
-	      [kstack] "r" (((uint64_t) (THREAD->kstack)) +
+	    :: [kstack] "r" (((uint64_t) (THREAD->kstack)) +
 	      MEM_STACK_SIZE - SP_DELTA)
 	);
 

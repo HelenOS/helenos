@@ -40,6 +40,11 @@ SYMBOL_BEGIN(__thread_entry)
 	mov %dx, %fs
 	# Do not set %gs, it contains descriptor that can see TLS
 
+	# Pop libc thread main function.
+	popl %eax
+	# Pop argument.
+	popl %ebx
+
 	#
 	# Create the first stack frame.
 	#
@@ -47,11 +52,8 @@ SYMBOL_BEGIN(__thread_entry)
 	pushl $0
 	mov %esp, %ebp
 
-	#
-	# EAX contains address of uarg.
-	#
-	pushl %eax
-	call __thread_main
+	pushl %ebx
+	call *%eax
 
 	#
 	# Not reached.

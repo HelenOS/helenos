@@ -73,6 +73,7 @@ libs = [
 	'fdisk',
 	'fmtutil',
 	'fs',
+	'futil',
 	'gfx',
 	'http',
 	'ipctest',
@@ -90,6 +91,7 @@ libs = [
 	'scsi',
 	'sif',
 	'tbarcfg',
+	'termui',
 	'trackmod',
 	'untar',
 	'uri',
@@ -111,6 +113,7 @@ libs = [
 	'usbvirt',
 	'virtio',
 
+	'ata',
 	'ieee80211',
 	'ddev',
 	'dispcfg',
@@ -118,6 +121,7 @@ libs = [
 	'wndmgt',
 
 	'ui',
+	'vt',
 ]
 
 # Generated list of include directory paths

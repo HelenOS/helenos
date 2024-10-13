@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,6 +66,7 @@ extern int *dl_get_public_fib_uvar_addr(void);
 
 extern int dl_public_var;
 extern int dl_public_uvar;
+extern int *dl_public_ptr_var;
 extern fibril_local int dl_public_fib_var;
 extern fibril_local int dl_public_fib_uvar;
 

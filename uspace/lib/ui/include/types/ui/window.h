@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,6 +79,8 @@ typedef enum {
 typedef struct {
 	/** Window rectangle */
 	gfx_rect_t rect;
+	/** Minimum size to which window can be resized */
+	gfx_coord2_t min_size;
 	/** Window caption */
 	const char *caption;
 	/** Window decoration style */
@@ -99,6 +101,7 @@ typedef struct ui_window_cb {
 	void (*minimize)(ui_window_t *, void *);
 	void (*maximize)(ui_window_t *, void *);
 	void (*unmaximize)(ui_window_t *, void *);
+	void (*resize)(ui_window_t *, void *);
 	void (*close)(ui_window_t *, void *);
 	void (*focus)(ui_window_t *, void *, unsigned);
 	void (*kbd)(ui_window_t *, void *, kbd_event_t *);

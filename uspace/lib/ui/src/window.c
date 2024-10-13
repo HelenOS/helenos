@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -317,6 +317,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
     ui_window_t **rwindow)
 {
 	ui_window_t *window;
+	ui_window_t *pwindow = NULL;
 	display_info_t info;
 	gfx_coord2_t scr_dims;
 	display_wnd_params_t dparams;
@@ -341,8 +342,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	display_wnd_params_init(&dparams);
 	dparams.rect = params->rect;
 	dparams.caption = params->caption;
-	/* Only allow making the window larger */
-	gfx_rect_dims(&params->rect, &dparams.min_size);
+	dparams.min_size = params->min_size;
 
 	/*
 	 * If idev_id is not specified, use the UI default (probably
@@ -504,7 +504,17 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	*rwindow = window;
 
+	if (ui_is_fullscreen(ui))
+		pwindow = ui_window_get_active(ui);
+
 	list_append(&window->lwindows, &ui->windows);
+
+	if (ui_is_fullscreen(ui)) {
+		/* Send unfocus event to previously active window */
+		if (pwindow != NULL)
+			ui_window_send_unfocus(pwindow, 0);
+	}
+
 	return EOK;
 error:
 	if (wdecor != NULL)
@@ -530,6 +540,7 @@ error:
 void ui_window_destroy(ui_window_t *window)
 {
 	ui_t *ui;
+	ui_window_t *nwindow;
 
 	if (window == NULL)
 		return;
@@ -557,6 +568,10 @@ void ui_window_destroy(ui_window_t *window)
 	/* Need to repaint if windows are emulated */
 	if (ui_is_fullscreen(ui)) {
 		ui_paint(ui);
+		/* Send focus event to newly active window */
+		nwindow = ui_window_get_active(ui);
+		if (nwindow != NULL)
+			ui_window_send_focus(nwindow, 0);
 	}
 
 	if (ui->console != NULL &&
@@ -1030,7 +1045,7 @@ static void dwnd_resize_event(void *arg, gfx_rect_t *rect)
 
 	ui_lock(ui);
 	(void) ui_window_resize(window, rect);
-	(void) ui_window_paint(window);
+	ui_window_send_resize(window);
 	ui_unlock(ui);
 }
 
@@ -1278,7 +1293,7 @@ void ui_window_send_sysmenu(ui_window_t *window, sysarg_t idev_id)
  */
 void ui_window_send_minimize(ui_window_t *window)
 {
-	if (window->cb != NULL && window->cb->maximize != NULL)
+	if (window->cb != NULL && window->cb->minimize != NULL)
 		window->cb->minimize(window, window->arg);
 	else
 		ui_window_def_minimize(window);
@@ -1376,6 +1391,18 @@ void ui_window_send_unfocus(ui_window_t *window, unsigned nfocus)
 		window->cb->unfocus(window, window->arg, nfocus);
 	else
 		return ui_window_def_unfocus(window, nfocus);
+}
+
+/** Send window resize event.
+ *
+ * @param window Window
+ */
+void ui_window_send_resize(ui_window_t *window)
+{
+	if (window->cb != NULL && window->cb->resize != NULL)
+		window->cb->resize(window, window->arg);
+	else
+		return ui_window_def_resize(window);
 }
 
 /** Default window sysmenu routine.
@@ -1556,6 +1583,16 @@ void ui_window_def_unfocus(ui_window_t *window, unsigned nfocus)
 {
 	if (window->control != NULL)
 		ui_control_unfocus(window->control, nfocus);
+}
+
+/** Default window resize routine.
+ *
+ * @param window Window
+ * @return EOK on success or an error code
+ */
+void ui_window_def_resize(ui_window_t *window)
+{
+	ui_window_paint(window);
 }
 
 /** Handle system menu left event.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
 
 PCUT_INIT;
 
+PCUT_IMPORT(addr);
 PCUT_IMPORT(eth_addr);
 
 PCUT_MAIN();

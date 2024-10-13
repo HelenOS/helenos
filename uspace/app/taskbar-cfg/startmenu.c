@@ -514,6 +514,7 @@ void startmenu_new_entry(startmenu_t *smenu)
 		return;
 
 	(void)smee;
+	(void)tbarcfg_sync(smenu->tbarcfg->tbarcfg);
 	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
@@ -533,6 +534,7 @@ void startmenu_sep_entry(startmenu_t *smenu)
 
 	(void)startmenu_insert(smenu, entry, &smentry);
 	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)tbarcfg_sync(smenu->tbarcfg->tbarcfg);
 	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
@@ -619,7 +621,6 @@ static void startmenu_delete_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	startmenu_t *smenu = (startmenu_t *)arg;
 	startmenu_entry_t *smentry;
-	errno_t rc;
 
 	(void)pbutton;
 
@@ -627,13 +628,12 @@ static void startmenu_delete_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 	if (smentry == NULL)
 		return;
 
-	rc = smenu_entry_destroy(smentry->entry);
-	if (rc != EOK)
-		return;
-
+	smenu_entry_destroy(smentry->entry);
 	ui_list_entry_delete(smentry->lentry);
 	free(smentry);
+
 	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)tbarcfg_sync(smenu->tbarcfg->tbarcfg);
 	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
@@ -672,7 +672,6 @@ static void startmenu_up_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	startmenu_t *smenu = (startmenu_t *)arg;
 	startmenu_entry_t *smentry;
-	errno_t rc;
 
 	(void)pbutton;
 
@@ -680,13 +679,11 @@ static void startmenu_up_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 	if (smentry == NULL)
 		return;
 
-	rc = smenu_entry_move_up(smentry->entry);
-	if (rc != EOK)
-		return;
-
+	smenu_entry_move_up(smentry->entry);
 	ui_list_entry_move_up(smentry->lentry);
 
 	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)tbarcfg_sync(smenu->tbarcfg->tbarcfg);
 	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 
@@ -699,7 +696,6 @@ static void startmenu_down_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	startmenu_t *smenu = (startmenu_t *)arg;
 	startmenu_entry_t *smentry;
-	errno_t rc;
 
 	(void)pbutton;
 
@@ -707,13 +703,11 @@ static void startmenu_down_entry_clicked(ui_pbutton_t *pbutton, void *arg)
 	if (smentry == NULL)
 		return;
 
-	rc = smenu_entry_move_down(smentry->entry);
-	if (rc != EOK)
-		return;
-
+	smenu_entry_move_down(smentry->entry);
 	ui_list_entry_move_down(smentry->lentry);
 
 	(void)ui_control_paint(ui_list_ctl(smenu->entries_list));
+	(void)tbarcfg_sync(smenu->tbarcfg->tbarcfg);
 	(void)tbarcfg_notify(TBARCFG_NOTIFY_DEFAULT);
 }
 

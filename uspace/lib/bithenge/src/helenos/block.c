@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Sean Bartell
  * All rights reserved.
  *
@@ -102,7 +103,7 @@ errno_t bithenge_new_block_blob(bithenge_node_t **out, service_id_t service_id)
 
 	// Initialize libblock
 	errno_t rc;
-	rc = block_init(service_id, 2048);
+	rc = block_init(service_id);
 	if (rc != EOK)
 		return rc;
 

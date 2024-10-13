@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2019 Vojtech Horky
  * All rights reserved.
  *
@@ -134,6 +134,8 @@ extern size_t benchmark_count;
 extern benchmark_t benchmark_dir_read;
 extern benchmark_t benchmark_fibril_mutex;
 extern benchmark_t benchmark_file_read;
+extern benchmark_t benchmark_rand_read;
+extern benchmark_t benchmark_seq_read;
 extern benchmark_t benchmark_malloc1;
 extern benchmark_t benchmark_malloc2;
 extern benchmark_t benchmark_ns_ping;

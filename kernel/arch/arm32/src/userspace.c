@@ -60,43 +60,25 @@ typedef struct {
 	uint32_t pc;
 } ustate_t;
 
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return stack_base + stack_size;
+}
+
 /** Change processor mode
  *
  * @param kernel_uarg Userspace settings (entry point, stack, ...).
  *
  */
-void userspace(uspace_arg_t *kernel_uarg)
+void userspace(uintptr_t pc, uintptr_t sp)
 {
-	volatile ustate_t ustate;
-
-	/* set first parameter */
-	ustate.r0 = kernel_uarg->uspace_uarg;
-
-	/* %r1 is defined to hold pcb_ptr - set it to 0 */
-	ustate.r1 = 0;
+	volatile ustate_t ustate = { };
 
 	/* pass the RAS page address in %r2 */
 	ustate.r2 = (uintptr_t) ras_page;
 
-	/* clear other registers */
-	ustate.r3 = 0;
-	ustate.r4 = 0;
-	ustate.r5 = 0;
-	ustate.r6 = 0;
-	ustate.r7 = 0;
-	ustate.r8 = 0;
-	ustate.r9 = 0;
-	ustate.r10 = 0;
-	ustate.r11 = 0;
-	ustate.r12 = 0;
-	ustate.lr = 0;
-
-	/* set user stack */
-	ustate.sp = kernel_uarg->uspace_stack +
-	    kernel_uarg->uspace_stack_size;
-
-	/* set where uspace execution starts */
-	ustate.pc = kernel_uarg->uspace_entry;
+	ustate.sp = sp;
+	ustate.pc = pc;
 
 	/* status register in user mode */
 	ipl_t user_mode = current_status_reg_read() &

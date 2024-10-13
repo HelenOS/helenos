@@ -121,7 +121,7 @@ static irq_cmd_t ne2k_cmds_prototype[] = {
 	}
 };
 
-static void ne2k_interrupt_handler(ipc_call_t *, ddf_dev_t *);
+static void ne2k_interrupt_handler(ipc_call_t *, void *);
 
 static errno_t ne2k_register_interrupt(nic_t *nic_data,
     cap_irq_handle_t *handle)
@@ -161,7 +161,8 @@ static errno_t ne2k_register_interrupt(nic_t *nic_data,
 	}
 
 	return register_interrupt_handler(nic_get_ddf_dev(nic_data),
-	    ne2k->irq, ne2k_interrupt_handler, &ne2k->code, handle);
+	    ne2k->irq, ne2k_interrupt_handler, (void *)nic_data, &ne2k->code,
+	    handle);
 }
 
 static ddf_dev_ops_t ne2k_dev_ops;
@@ -237,9 +238,14 @@ failed:
 	return rc;
 }
 
-void ne2k_interrupt_handler(ipc_call_t *call, ddf_dev_t *dev)
+/** NE2K interrupt handler
+ *
+ * @param call IRQ event notification
+ * @param arg Argument (nic_t *)
+ */
+void ne2k_interrupt_handler(ipc_call_t *call, void *arg)
 {
-	nic_t *nic_data = DRIVER_DATA(dev);
+	nic_t *nic_data = (nic_t *)arg;
 	ne2k_interrupt(nic_data, IRQ_GET_ISR(*call), IRQ_GET_TSR(*call));
 }
 

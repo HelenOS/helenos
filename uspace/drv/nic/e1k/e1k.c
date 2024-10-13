@@ -1246,14 +1246,13 @@ static void e1000_interrupt_handler_impl(nic_t *nic, uint32_t icr)
 /** Handle device interrupt
  *
  * @param icall IPC call structure
- * @param dev   E1000 device
+ * @param arg   Argument (nic_t *)
  *
  */
-static void e1000_interrupt_handler(ipc_call_t *icall,
-    ddf_dev_t *dev)
+static void e1000_interrupt_handler(ipc_call_t *icall, void *arg)
 {
 	uint32_t icr = (uint32_t) ipc_get_arg2(icall);
-	nic_t *nic = NIC_DATA_DEV(dev);
+	nic_t *nic = (nic_t *)arg;
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 
 	e1000_interrupt_handler_impl(nic, icr);
@@ -1285,7 +1284,7 @@ inline static errno_t e1000_register_int_handler(nic_t *nic,
 	e1000_irq_code.cmds[3].addr = e1000->reg_base_phys + E1000_IMC;
 
 	errno_t rc = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
-	    e1000_interrupt_handler, &e1000_irq_code, handle);
+	    e1000_interrupt_handler, (void *)nic, &e1000_irq_code, handle);
 
 	fibril_mutex_unlock(&irq_reg_mutex);
 	return rc;

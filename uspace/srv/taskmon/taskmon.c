@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,20 +34,26 @@
  * @file
  */
 
-#include <stdio.h>
 #include <async.h>
+#include <errno.h>
+#include <macros.h>
 #include <ipc/services.h>
-#include <task.h>
 #include <ipc/corecfg.h>
 #include <loc.h>
-#include <macros.h>
-#include <errno.h>
+#include <sif.h>
+#include <stdio.h>
+#include <str.h>
 #include <str_error.h>
+#include <task.h>
 
 #define NAME  "taskmon"
 
+static const char *taskmon_cfg_path = "/w/cfg/taskmon.sif";
+
 static bool write_core_files;
 
+static errno_t taskmon_load_cfg(const char *);
+static errno_t taskmon_save_cfg(const char *);
 static void corecfg_client_conn(ipc_call_t *, void *);
 
 static void fault_event(ipc_call_t *call, void *arg)
@@ -102,6 +108,7 @@ static void corecfg_set_enable_srv(ipc_call_t *icall)
 {
 	write_core_files = ipc_get_arg1(icall);
 	async_answer_0(icall, EOK);
+	(void) taskmon_save_cfg(taskmon_cfg_path);
 }
 
 static void corecfg_client_conn(ipc_call_t *icall, void *arg)
@@ -133,6 +140,95 @@ static void corecfg_client_conn(ipc_call_t *icall, void *arg)
 	}
 }
 
+/** Load task monitor configuration from SIF file.
+ *
+ * @param cfgpath Configuration file path
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t taskmon_load_cfg(const char *cfgpath)
+{
+	sif_doc_t *doc = NULL;
+	sif_node_t *rnode;
+	sif_node_t *ncorefiles;
+	const char *ntype;
+	const char *swrite;
+	errno_t rc;
+
+	rc = sif_load(cfgpath, &doc);
+	if (rc != EOK)
+		goto error;
+
+	rnode = sif_get_root(doc);
+	ncorefiles = sif_node_first_child(rnode);
+	ntype = sif_node_get_type(ncorefiles);
+	if (str_cmp(ntype, "corefiles") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	swrite = sif_node_get_attr(ncorefiles, "write");
+	if (swrite == NULL) {
+		rc = EIO;
+		goto error;
+	}
+
+	if (str_cmp(swrite, "y") == 0) {
+		write_core_files = true;
+	} else if (str_cmp(swrite, "n") == 0) {
+		write_core_files = false;
+	} else {
+		rc = EIO;
+		goto error;
+	}
+
+	sif_delete(doc);
+	return EOK;
+error:
+	if (doc != NULL)
+		sif_delete(doc);
+	return rc;
+}
+
+/** Save task monitor configuration to SIF file.
+ *
+ * @param cfgpath Configuration file path
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t taskmon_save_cfg(const char *cfgpath)
+{
+	sif_doc_t *doc = NULL;
+	sif_node_t *rnode;
+	sif_node_t *ncorefiles;
+	errno_t rc;
+
+	rc = sif_new(&doc);
+	if (rc != EOK)
+		goto error;
+
+	rnode = sif_get_root(doc);
+	rc = sif_node_append_child(rnode, "corefiles", &ncorefiles);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_node_set_attr(ncorefiles, "write",
+	    write_core_files ? "y" : "n");
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_save(doc, cfgpath);
+	if (rc != EOK)
+		goto error;
+
+	sif_delete(doc);
+	return EOK;
+error:
+	if (doc != NULL)
+		sif_delete(doc);
+	return rc;
+}
+
 int main(int argc, char *argv[])
 {
 	loc_srv_t *srv;
@@ -144,6 +240,8 @@ int main(int argc, char *argv[])
 #else
 	write_core_files = false;
 #endif
+	(void) taskmon_load_cfg(taskmon_cfg_path);
+
 	if (async_event_subscribe(EVENT_FAULT, fault_event, NULL) != EOK) {
 		printf("%s: Error registering fault notifications.\n", NAME);
 		return -1;

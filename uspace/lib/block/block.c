@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2008 Martin Decky
  * Copyright (c) 2011 Martin Sucha
@@ -144,7 +145,7 @@ static void devcon_remove(devcon_t *devcon)
 	fibril_mutex_unlock(&dcl_lock);
 }
 
-errno_t block_init(service_id_t service_id, size_t comm_size)
+errno_t block_init(service_id_t service_id)
 {
 	bd_t *bd;
 

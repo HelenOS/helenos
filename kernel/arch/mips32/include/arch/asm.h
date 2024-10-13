@@ -80,7 +80,7 @@ _NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 
 extern void cpu_halt(void) __attribute__((noreturn));
 extern void asm_delay_loop(uint32_t);
-extern void userspace_asm(uintptr_t, uintptr_t, uintptr_t);
+extern void userspace_asm(uintptr_t, uintptr_t);
 
 extern ipl_t interrupts_disable(void);
 extern ipl_t interrupts_enable(void);

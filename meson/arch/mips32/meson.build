@@ -66,7 +66,7 @@ if MACHINE == 'bmalta' or MACHINE == 'lmalta'
 	rd_essential_drv += [
 		'drv/platform/malta',
 		'drv/intctl/i8259',
-		'drv/block/ata_bd',
+		'drv/block/isa-ide',
 		'drv/bus/pci/pciintel',
 		'drv/bus/isa',
 		'drv/char/i8042',

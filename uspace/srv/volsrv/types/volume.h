@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,6 @@
 #include <adt/list.h>
 #include <refcount.h>
 #include <fibril_synch.h>
-#include <sif.h>
 
 /** Volume */
 typedef struct vol_volume {
@@ -56,8 +55,6 @@ typedef struct vol_volume {
 	char *label;
 	/** Mount point */
 	char *mountp;
-	/** SIF node for this volume */
-	sif_node_t *nvolume;
 } vol_volume_t;
 
 /** Volumes */
@@ -66,12 +63,10 @@ typedef struct vol_volumes {
 	fibril_mutex_t lock;
 	/** Volumes (list of vol_volume_t) */
 	list_t volumes;
-	/** Cconfiguration repo session */
-	sif_sess_t *repo;
-	/** Volumes SIF node */
-	sif_node_t *nvolumes;
 	/** Next ID */
 	sysarg_t next_id;
+	/** Configuration file path */
+	char *cfg_path;
 } vol_volumes_t;
 
 #endif

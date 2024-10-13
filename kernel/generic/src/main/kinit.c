@@ -295,10 +295,7 @@ void kinit(void *arg)
 				task_hold(programs[i].task);
 			}
 
-		} else if (i == init.cnt - 1) {
-			/*
-			 * Assume the last task is the RAM disk.
-			 */
+		} else if (str_cmp(name, "initrd.img") == 0) {
 			init_rd((void *) init.tasks[i].paddr, init.tasks[i].size);
 		} else {
 			log(LF_OTHER, LVL_ERROR,

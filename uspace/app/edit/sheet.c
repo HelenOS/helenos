@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -87,6 +87,13 @@ errno_t sheet_create(sheet_t **rsh)
 
 	*rsh = sh;
 	return EOK;
+}
+
+/** Destroy sheet. */
+void sheet_destroy(sheet_t *sh)
+{
+	free(sh->data);
+	free(sh);
 }
 
 /** Insert text into sheet.

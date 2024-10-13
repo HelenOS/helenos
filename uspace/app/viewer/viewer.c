@@ -516,8 +516,8 @@ error:
 		ui_file_dialog_destroy(viewer->dialog);
 	if (viewer != NULL && viewer->imgs != NULL) {
 		for (u = 0; u < viewer->imgs_count; u++) {
-			if (viewer->imgs[i] != NULL)
-				free(viewer->imgs[i]);
+			if (viewer->imgs[u] != NULL)
+				free(viewer->imgs[u]);
 		}
 		free(viewer->imgs);
 	}
