@@ -97,6 +97,7 @@ void pcap_writer_add_packet(pcap_writer_t *writer, const void *captured_packet, 
 errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filename)
 {
 	errno_t rc;
+	printf("File: %s\n", filename);
 	writer->data = fopen(filename, "a");
 	if (writer->data == NULL) {
 		rc = EINVAL;

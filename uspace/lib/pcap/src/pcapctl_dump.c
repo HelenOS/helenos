@@ -205,7 +205,7 @@ errno_t pcapctl_dump_start(const char *name, pcapctl_sess_t *sess)
 	size_t size = str_size(name);
 	aid_t req = async_send_0(exch, PCAP_CONTROL_SET_START, NULL);
 
-	rc = async_data_write_start(exch, (void *) name, size);
+	rc = async_data_write_start(exch, (const void *) name, size);
 
 	pcapctl_dump_exchange_end(exch);
 
