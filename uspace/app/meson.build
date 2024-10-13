@@ -70,6 +70,7 @@ apps = [
 	'netecho',
 	'nic',
 	'nterm',
+	'pcapctl',
 	'ofw',
 	'pci',
 	'ping',
