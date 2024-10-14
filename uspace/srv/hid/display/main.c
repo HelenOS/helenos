@@ -53,6 +53,7 @@
 #include "client.h"
 #include "display.h"
 #include "dsops.h"
+#include "ievent.h"
 #include "input.h"
 #include "main.h"
 #include "output.h"
@@ -158,6 +159,10 @@ static errno_t display_srv_init(ds_output_t **routput)
 	if (rc != EOK)
 		goto error;
 
+	rc = ds_ievent_init(disp);
+	if (rc != EOK)
+		goto error;
+
 	rc = ds_input_open(disp);
 	if (rc != EOK)
 		goto error;
@@ -210,6 +215,7 @@ error:
 	if (disp->input != NULL)
 		ds_input_close(disp);
 #endif
+	ds_ievent_fini(disp);
 	if (output != NULL)
 		ds_output_destroy(output);
 	if (gc != NULL)

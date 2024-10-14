@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include <loc.h>
 #include <str_error.h>
 #include "display.h"
+#include "ievent.h"
 #include "input.h"
 #include "main.h"
 
@@ -86,7 +87,7 @@ static errno_t ds_input_ev_key(input_t *input, unsigned kbd_id,
 	event.c = c;
 
 	ds_display_lock(disp);
-	rc = ds_display_post_kbd_event(disp, &event);
+	rc = ds_ievent_post_kbd(disp, &event);
 	ds_display_unlock(disp);
 	return rc;
 }
@@ -103,7 +104,7 @@ static errno_t ds_input_ev_move(input_t *input, unsigned pos_id, int dx, int dy)
 	event.dmove.y = dy;
 
 	ds_display_lock(disp);
-	rc = ds_display_post_ptd_event(disp, &event);
+	rc = ds_ievent_post_ptd(disp, &event);
 	ds_display_unlock(disp);
 	return rc;
 }
@@ -125,7 +126,7 @@ static errno_t ds_input_ev_abs_move(input_t *input, unsigned pos_id, unsigned x,
 	event.abounds.p1.y = max_y + 1;
 
 	ds_display_lock(disp);
-	rc = ds_display_post_ptd_event(disp, &event);
+	rc = ds_ievent_post_ptd(disp, &event);
 	ds_display_unlock(disp);
 	return rc;
 }
@@ -144,7 +145,7 @@ static errno_t ds_input_ev_button(input_t *input, unsigned pos_id, int bnum,
 	event.dmove.y = 0;
 
 	ds_display_lock(disp);
-	rc = ds_display_post_ptd_event(disp, &event);
+	rc = ds_ievent_post_ptd(disp, &event);
 	ds_display_unlock(disp);
 	return rc;
 }
@@ -162,7 +163,7 @@ static errno_t ds_input_ev_dclick(input_t *input, unsigned pos_id, int bnum)
 	event.dmove.y = 0;
 
 	ds_display_lock(disp);
-	rc = ds_display_post_ptd_event(disp, &event);
+	rc = ds_ievent_post_ptd(disp, &event);
 	ds_display_unlock(disp);
 	return rc;
 }

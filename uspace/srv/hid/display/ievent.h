@@ -26,18 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup display
+ * @{
+ */
+/** @file Input event queue
+ */
 
-PCUT_INIT;
+#ifndef IEVENT_H
+#define IEVENT_H
 
-PCUT_IMPORT(cfgclient);
-PCUT_IMPORT(client);
-PCUT_IMPORT(clonegc);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(display);
-PCUT_IMPORT(ievent);
-PCUT_IMPORT(seat);
-PCUT_IMPORT(window);
-PCUT_IMPORT(wmclient);
+#include <errno.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
+#include "types/display/display.h"
+#include "types/display/ievent.h"
 
-PCUT_MAIN();
+extern errno_t ds_ievent_post_kbd(ds_display_t *, kbd_event_t *);
+extern errno_t ds_ievent_post_ptd(ds_display_t *, ptd_event_t *);
+extern errno_t ds_ievent_init(ds_display_t *);
+extern void ds_ievent_fini(ds_display_t *);
+
+#endif
+
+/** @}
+ */

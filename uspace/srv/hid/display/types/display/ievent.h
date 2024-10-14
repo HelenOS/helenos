@@ -26,18 +26,46 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
+/** @addtogroup display
+ * @{
+ */
+/**
+ * @file Display server input event types
+ */
 
-PCUT_INIT;
+#ifndef TYPES_DISPLAY_IEVENT_H
+#define TYPES_DISPLAY_IEVENT_H
 
-PCUT_IMPORT(cfgclient);
-PCUT_IMPORT(client);
-PCUT_IMPORT(clonegc);
-PCUT_IMPORT(cursor);
-PCUT_IMPORT(display);
-PCUT_IMPORT(ievent);
-PCUT_IMPORT(seat);
-PCUT_IMPORT(window);
-PCUT_IMPORT(wmclient);
+#include <adt/list.h>
+#include <io/kbd_event.h>
+#include "ptd_event.h"
 
-PCUT_MAIN();
+/** Display server input event type */
+typedef enum {
+	/** Keyboard event */
+	det_kbd,
+	/** Pointing device event */
+	det_ptd
+} ds_ievent_type_t;
+
+/** Display server input event */
+typedef struct ds_ievent {
+	/** Parent display */
+	struct ds_display *display;
+	/** Link to display->ievents */
+	link_t lievents;
+	/** Input event type */
+	ds_ievent_type_t etype;
+	/** Event data */
+	union {
+		/** Keyboard event */
+		kbd_event_t kbd;
+		/** Pointing device ievent */
+		ptd_event_t ptd;
+	} ev;
+} ds_ievent_t;
+
+#endif
+
+/** @}
+ */
