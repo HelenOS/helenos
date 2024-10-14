@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2024 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -64,6 +65,7 @@ srvs = [
 	'net/tcp',
 	'net/udp',
 	'ns',
+	'system',
 	'taskmon',
 	'test/chardev-test',
 	'test/ipc-test',

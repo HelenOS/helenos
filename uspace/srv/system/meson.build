@@ -1,7 +1,5 @@
 #
 # Copyright (c) 2024 Jiri Svoboda
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,6 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'block', 'untar' ]
-link_args += '-static'
-src = files('init.c', 'untar.c')
+deps = [ 'device', 'futil' ]
+src = files('system.c')
