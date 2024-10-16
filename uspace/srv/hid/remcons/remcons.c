@@ -94,6 +94,7 @@ static void remcons_set_color(con_srv_t *, console_color_t,
     console_color_t, console_color_attr_t);
 static void remcons_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void remcons_cursor_visibility(con_srv_t *, bool);
+static errno_t remcons_set_caption(con_srv_t *, const char *);
 static errno_t remcons_get_event(con_srv_t *, cons_event_t *);
 static errno_t remcons_map(con_srv_t *, sysarg_t, sysarg_t, charfield_t **);
 static void remcons_unmap(con_srv_t *);
@@ -115,6 +116,7 @@ static con_ops_t con_ops = {
 	.set_color = remcons_set_color,
 	.set_rgb_color = remcons_set_rgb_color,
 	.set_cursor_visibility = remcons_cursor_visibility,
+	.set_caption = remcons_set_caption,
 	.get_event = remcons_get_event,
 	.map = remcons_map,
 	.unmap = remcons_unmap,
@@ -348,6 +350,17 @@ static void remcons_cursor_visibility(con_srv_t *srv, bool visible)
 	}
 
 	remcons->curs_visible = visible;
+}
+
+static errno_t remcons_set_caption(con_srv_t *srv, const char *caption)
+{
+	remcons_t *remcons = srv_to_remcons(srv);
+
+	if (remcons->enable_ctl) {
+		vt100_set_title(remcons->vt, caption);
+	}
+
+	return EOK;
 }
 
 /** Creates new keyboard event from given char.

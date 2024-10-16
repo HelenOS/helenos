@@ -183,6 +183,7 @@ extern void vt100_set_sgr(vt100_t *, char_attrs_t);
 extern void vt100_set_attr(vt100_t *, char_attrs_t);
 extern void vt100_cursor_visibility(vt100_t *, bool);
 extern void vt100_set_button_reporting(vt100_t *, bool);
+extern void vt100_set_title(vt100_t *, const char *);
 extern void vt100_putuchar(vt100_t *, char32_t);
 extern void vt100_flush(vt100_t *);
 

@@ -332,6 +332,18 @@ void vt100_set_button_reporting(vt100_t *vt, bool enable)
 	}
 }
 
+/** Set terminal title.
+ *
+ * @param vt VT instance
+ * @param title Terminal title
+ */
+void vt100_set_title(vt100_t *vt, const char *title)
+{
+	vt->cb->control_puts(vt->arg, "\033]0;");
+	vt->cb->control_puts(vt->arg, title);
+	vt->cb->control_puts(vt->arg, "\a");
+}
+
 /** Print Unicode character.
  *
  * @param vt VT instance
