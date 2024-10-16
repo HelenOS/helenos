@@ -276,10 +276,8 @@ errno_t hr_raid4_create(hr_volume_t *new_volume)
 	new_volume->hr_bds.sarg = new_volume;
 
 	rc = hr_register_volume(new_volume);
-	if (rc != EOK)
-		return rc;
 
-	return EOK;
+	return rc;
 }
 
 errno_t hr_raid4_init(hr_volume_t *vol)
