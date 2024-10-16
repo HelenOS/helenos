@@ -96,8 +96,10 @@ static errno_t write_parity(hr_volume_t *vol, uint64_t extent, uint64_t block,
 		return ENOMEM;
 
 	buf = malloc(vol->bsize);
-	if (buf == NULL)
+	if (buf == NULL) {
+		free(xorbuf);
 		return ENOMEM;
+	}
 
 	for (i = 1; i < vol->dev_no; i++) {
 		if (i == extent) {
