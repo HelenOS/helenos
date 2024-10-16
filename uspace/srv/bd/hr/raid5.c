@@ -120,7 +120,7 @@ static errno_t write_parity(hr_volume_t *vol, uint64_t p_extent,
 end:
 	free(xorbuf);
 	free(buf);
-	return EOK;
+	return rc;
 }
 
 static void raid5_geometry(uint64_t x, hr_volume_t *vol, size_t *extent,
