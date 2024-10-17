@@ -89,6 +89,7 @@ libs = [
 	'riff',
 	'scsi',
 	'sif',
+	'system',
 	'tbarcfg',
 	'termui',
 	'trackmod',
