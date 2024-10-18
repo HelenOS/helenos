@@ -130,7 +130,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	printf("devname: %s\n", devname);
 
 	printf("level: %d\n", vol_info->level);
-	if (vol_info->level == hr_l_0 || vol_info->level == hr_l_4) {
+	if (vol_info->level == HR_LVL_0 || vol_info->level == HR_LVL_4) {
 		if (vol_info->strip_size / 1024 < 1)
 			printf("strip size in bytes: %u\n",
 			    vol_info->strip_size);
@@ -143,7 +143,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	printf("size in blocks: %lu\n", vol_info->nblocks);
 	printf("block size: %zu\n", vol_info->bsize);
 
-	if (vol_info->level == hr_l_4)
+	if (vol_info->level == HR_LVL_4)
 		printf("extents: [P] [status] [index] [devname]\n");
 	else
 		printf("extents: [status] [index] [devname]\n");
@@ -152,9 +152,9 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 		rc = loc_service_get_name(ext->svc_id, &devname);
 		if (rc != EOK)
 			return rc;
-		if (i == 0 && vol_info->level == hr_l_4)
+		if (i == 0 && vol_info->level == HR_LVL_4)
 			printf("          P   %d        %zu       %s\n", ext->status, i, devname);
-		else if (vol_info->level == hr_l_4)
+		else if (vol_info->level == HR_LVL_4)
 			printf("              %d        %zu       %s\n", ext->status, i, devname);
 		else
 			printf("          %d        %zu       %s\n", ext->status, i, devname);

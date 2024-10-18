@@ -66,7 +66,7 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 		return ENOMEM;
 
 	meta_blkno = (HR_META_OFF + HR_META_SIZE);
-	if (vol->level != hr_l_1)
+	if (vol->level != HR_LVL_1)
 		meta_blkno *= vol->dev_no;
 
 	if (vol->nblocks < meta_blkno) {

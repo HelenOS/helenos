@@ -146,10 +146,10 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	new_volume->dev_no = cfg->dev_no;
 
 	if (assemble) {
-		if (cfg->level != hr_l_empty)
+		if (cfg->level != HR_LVL_UNKNOWN)
 			log_msg(LOG_DEFAULT, LVL_WARN,
 			    "level manually set when assembling, ingoring");
-		new_volume->level = hr_l_empty;
+		new_volume->level = HR_LVL_UNKNOWN;
 	}
 
 	rc = hr_init_devs(new_volume);
@@ -171,19 +171,19 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	}
 
 	switch (new_volume->level) {
-	case hr_l_1:
+	case HR_LVL_1:
 		new_volume->hr_ops.create = hr_raid1_create;
 		new_volume->hr_ops.init = hr_raid1_init;
 		break;
-	case hr_l_0:
+	case HR_LVL_0:
 		new_volume->hr_ops.create = hr_raid0_create;
 		new_volume->hr_ops.init = hr_raid0_init;
 		break;
-	case hr_l_4:
+	case HR_LVL_4:
 		new_volume->hr_ops.create = hr_raid4_create;
 		new_volume->hr_ops.init = hr_raid4_init;
 		break;
-	case hr_l_5:
+	case HR_LVL_5:
 		new_volume->hr_ops.create = hr_raid5_create;
 		new_volume->hr_ops.init = hr_raid5_init;
 		break;

@@ -45,18 +45,17 @@
 
 #define HR_DEVNAME_LEN 32
 
+typedef enum hr_level {
+	HR_LVL_0	= 0x00, /* striping, no redundancy */
+	HR_LVL_1	= 0x01, /* n-way mirroring */
+	HR_LVL_4	= 0x04, /* dedicated parity */
+	HR_LVL_5	= 0x05, /* distributed parity */
+	HR_LVL_UNKNOWN	= 0xFF
+} hr_level_t;
+
 typedef struct hr {
 	async_sess_t *sess;
 } hr_t;
-
-typedef enum hr_level {
-	hr_l_0 = 0,
-	hr_l_1 = 1,
-	hr_l_4 = 4,
-	hr_l_5 = 5,
-	hr_l_linear = 254,
-	hr_l_empty = 255
-} hr_level_t;
 
 typedef struct hr_config {
 	char devname[HR_DEVNAME_LEN];

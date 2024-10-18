@@ -263,7 +263,7 @@ errno_t hr_raid4_create(hr_volume_t *new_volume)
 {
 	errno_t rc;
 
-	assert(new_volume->level == hr_l_4);
+	assert(new_volume->level == HR_LVL_4);
 
 	if (new_volume->dev_no < 3) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
@@ -286,7 +286,7 @@ errno_t hr_raid4_init(hr_volume_t *vol)
 	size_t bsize;
 	uint64_t total_blkno;
 
-	assert(vol->level == hr_l_4);
+	assert(vol->level == HR_LVL_4);
 
 	rc = hr_check_devs(vol, &total_blkno, &bsize);
 	if (rc != EOK)

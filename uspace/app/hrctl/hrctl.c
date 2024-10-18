@@ -158,7 +158,7 @@ static errno_t load_config(const char *path, hr_config_t *cfg)
 
 	level_str = sif_node_get_attr(narray, "level");
 	if (level_str == NULL)
-		cfg->level = hr_l_empty;
+		cfg->level = HR_LVL_UNKNOWN;
 	else
 		cfg->level = strtol(level_str, NULL, 10);
 
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 		return 1;
 
 	retval = 0;
-	cfg->level = hr_l_empty;
+	cfg->level = HR_LVL_UNKNOWN;
 	cfg->dev_no = 0;
 	create = assemble = false;
 
@@ -285,29 +285,29 @@ int main(int argc, char **argv)
 			}
 			return 0;
 		case 'l':
-			if (cfg->level != hr_l_empty)
+			if (cfg->level != HR_LVL_UNKNOWN)
 				goto bad;
 			cfg->level = strtol(optarg, NULL, 10);
 			break;
 		case '0':
-			if (cfg->level != hr_l_empty)
+			if (cfg->level != HR_LVL_UNKNOWN)
 				goto bad;
-			cfg->level = hr_l_0;
+			cfg->level = HR_LVL_0;
 			break;
 		case '1':
-			if (cfg->level != hr_l_empty)
+			if (cfg->level != HR_LVL_UNKNOWN)
 				goto bad;
-			cfg->level = hr_l_1;
+			cfg->level = HR_LVL_1;
 			break;
 		case '4':
-			if (cfg->level != hr_l_empty)
+			if (cfg->level != HR_LVL_UNKNOWN)
 				goto bad;
-			cfg->level = hr_l_4;
+			cfg->level = HR_LVL_4;
 			break;
 		case '5':
-			if (cfg->level != hr_l_empty)
+			if (cfg->level != HR_LVL_UNKNOWN)
 				goto bad;
-			cfg->level = hr_l_5;
+			cfg->level = HR_LVL_5;
 			break;
 		case 'n':
 			cfg->dev_no = strtol(optarg, NULL, 10);
@@ -324,7 +324,7 @@ skip:
 	if ((create && assemble) || (!create && !assemble))
 		goto bad;
 
-	if (create && cfg->level == hr_l_empty) {
+	if (create && cfg->level == HR_LVL_UNKNOWN) {
 		printf("hrctl: invalid level, exiting\n");
 		return 1;
 	}
