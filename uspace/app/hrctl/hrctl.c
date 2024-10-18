@@ -53,21 +53,20 @@ static const char usage_str[] =
     "\n"
     "Options:\n"
     "  -h, --help                display this help and exit\n"
-    "  -C, --create-file=path    create an array from file,\n"
+    "  -C, --create-file=PATH    create an array from file,\n"
     "                            sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
-    "  -A, --assemble-file=path  create an array from file\n"
+    "  -A, --assemble-file=PATH  create an array from file\n"
     "  -s, --status              display status of active arrays\n"
     "  -T, --stop                stop an active array\n"
     "  -c, --create=NAME         create new array\n"
     "  -a, --assemble=NAME       assemble an existing array\n"
     "  -n                        non-zero number of devices\n"
     "  -l, --level=LEVEL         set the RAID level,\n"
-    "                            valid values: 0, 1, 4, 5, linear\n"
+    "                            valid values: 0, 1, 4, 5\n"
     "  -0                        striping\n"
     "  -1                        mirroring\n"
     "  -4                        parity on one extent\n"
     "  -5                        distributed parity\n"
-    "  -L                        linear concatenation\n"
     "\n"
     "Example usage:\n"
     "  hrctl --create hr0 -0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
@@ -160,8 +159,6 @@ static errno_t load_config(const char *path, hr_config_t *cfg)
 	level_str = sif_node_get_attr(narray, "level");
 	if (level_str == NULL)
 		cfg->level = hr_l_empty;
-	else if (str_cmp(level_str, "linear") == 0)
-		cfg->level = hr_l_linear;
 	else
 		cfg->level = strtol(level_str, NULL, 10);
 
@@ -290,10 +287,7 @@ int main(int argc, char **argv)
 		case 'l':
 			if (cfg->level != hr_l_empty)
 				goto bad;
-			if (str_cmp(optarg, "linear") == 0)
-				cfg->level = hr_l_linear;
-			else
-				cfg->level = strtol(optarg, NULL, 10);
+			cfg->level = strtol(optarg, NULL, 10);
 			break;
 		case '0':
 			if (cfg->level != hr_l_empty)
@@ -314,11 +308,6 @@ int main(int argc, char **argv)
 			if (cfg->level != hr_l_empty)
 				goto bad;
 			cfg->level = hr_l_5;
-			break;
-		case 'L':
-			if (cfg->level != hr_l_empty)
-				goto bad;
-			cfg->level = hr_l_linear;
 			break;
 		case 'n':
 			cfg->dev_no = strtol(optarg, NULL, 10);
