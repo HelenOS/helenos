@@ -26,5 +26,5 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'device', 'futil' ]
+deps = [ 'device', 'futil', 'system' ]
 src = files('system.c')

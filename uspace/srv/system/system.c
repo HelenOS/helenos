@@ -36,6 +36,7 @@
 
 #include <fibril.h>
 #include <futil.h>
+#include <io/log.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <vfs/vfs.h>
@@ -51,6 +52,8 @@
 #include <io/logctl.h>
 #include <vfs/vfs.h>
 #include <vol.h>
+#include <system.h>
+#include <system_srv.h>
 #include "system.h"
 
 #define BANNER_LEFT   "######> "
@@ -77,6 +80,13 @@ static const char *sys_dirs[] = {
 	"/w/cfg",
 	"/w/data",
 	NULL,
+};
+
+static void system_srv_conn(ipc_call_t *, void *);
+static errno_t system_srv_shutdown(void *);
+
+system_ops_t system_srv_ops = {
+	.shutdown = system_srv_shutdown
 };
 
 /** Print banner */
@@ -419,11 +429,13 @@ error:
 	return rc;
 }
 
-int main(int argc, char *argv[])
+/** Perform sytem startup tasks.
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t system_startup(void)
 {
 	errno_t rc;
-
-	info_print();
 
 	/* Make sure file systems are running. */
 	if (str_cmp(STRING(RDFMT), "tmpfs") != 0)
@@ -440,7 +452,7 @@ int main(int argc, char *argv[])
 
 	if (!mount_locfs()) {
 		printf("%s: Exiting\n", NAME);
-		return 2;
+		return EIO;
 	}
 
 	mount_tmpfs();
@@ -489,6 +501,160 @@ int main(int argc, char *argv[])
 		getterm("term/vc4", "/app/bdsh", false);
 		getterm("term/vc5", "/app/bdsh", false);
 	}
+
+	return EOK;
+}
+
+/** Perform sytem shutdown tasks.
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t system_sys_shutdown(void)
+{
+	vol_t *vol = NULL;
+	service_id_t *part_ids = NULL;
+	size_t nparts;
+	size_t i;
+	errno_t rc;
+
+	/* Eject all volumes. */
+
+	rc = vol_create(&vol);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting volume "
+		    "service.");
+		goto error;
+	}
+
+	rc = vol_get_parts(vol, &part_ids, &nparts);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error getting volume list.");
+		goto error;
+	}
+
+	for (i = 0; i < nparts; i++) {
+		rc = vol_part_eject(vol, part_ids[i]);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error ejecting "
+			    "volume %zu", (size_t)part_ids[i]);
+			goto error;
+		}
+	}
+
+	free(part_ids);
+	vol_destroy(vol);
+	return EOK;
+error:
+	if (part_ids != NULL)
+		free(part_ids);
+	if (vol != NULL)
+		vol_destroy(vol);
+	return rc;
+}
+
+/** Initialize system control service. */
+static errno_t system_srv_init(sys_srv_t *syssrv)
+{
+	port_id_t port;
+	loc_srv_t *srv = NULL;
+	service_id_t sid = 0;
+	errno_t rc;
+
+	(void)system;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "system_srv_init()");
+
+	rc = async_create_port(INTERFACE_SYSTEM, system_srv_conn, syssrv,
+	    &port);
+	if (rc != EOK)
+		goto error;
+
+	rc = loc_server_register(NAME, &srv);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed registering server: %s.", str_error(rc));
+		rc = EEXIST;
+		goto error;
+	}
+
+	rc = loc_service_register(srv, SYSTEM_DEFAULT, &sid);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed registering service: %s.", str_error(rc));
+		rc = EEXIST;
+		goto error;
+	}
+
+	return EOK;
+error:
+	if (sid != 0)
+		loc_service_unregister(srv, sid);
+	if (srv != NULL)
+		loc_server_unregister(srv);
+	// XXX destroy port
+	return rc;
+}
+
+/** Handle connection to system server. */
+static void system_srv_conn(ipc_call_t *icall, void *arg)
+{
+	sys_srv_t *syssrv = (sys_srv_t *)arg;
+
+	/* Set up protocol structure */
+	system_srv_initialize(&syssrv->srv);
+	syssrv->srv.ops = &system_srv_ops;
+	syssrv->srv.arg = syssrv;
+
+	/* Handle connection */
+	system_conn(icall, &syssrv->srv);
+}
+
+/** System shutdown request.
+ *
+ * @param arg Argument (sys_srv_t *)
+ */
+static errno_t system_srv_shutdown(void *arg)
+{
+	sys_srv_t *syssrv = (sys_srv_t *)arg;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_shutdown");
+
+	rc = system_sys_shutdown();
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_shutdown failed");
+		system_srv_shutdown_failed(&syssrv->srv);
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_shutdown complete");
+	system_srv_shutdown_complete(&syssrv->srv);
+	return EOK;
+}
+
+int main(int argc, char *argv[])
+{
+	errno_t rc;
+	sys_srv_t srv;
+
+	info_print();
+
+	if (log_init(NAME) != EOK) {
+		printf(NAME ": Failed to initialize logging.\n");
+		return 1;
+	}
+
+	/* Perform startup tasks. */
+	rc = system_startup();
+	if (rc != EOK)
+		return 1;
+
+	rc = system_srv_init(&srv);
+	if (rc != EOK)
+		return 1;
+
+	printf(NAME ": Accepting connections.\n");
+	task_retval(0);
+	async_manager();
 
 	return 0;
 }

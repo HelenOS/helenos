@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2024 Jiri Svoboda
- * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,23 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup system
+/** @addtogroup shutdown
  * @{
  */
 /**
- * @file
+ * @file Shut the system down
  */
 
-#ifndef SYSTEM_H
-#define SYSTEM_H
+#ifndef SHUTDOWN_H
+#define SHUTDOWN_H
 
-#include <system_srv.h>
+#include <fibril_synch.h>
+#include <stdbool.h>
 
-#define NAME  "system"
+/** Shutdown action */
+typedef enum {
+	sd_poweroff = 1,
+	sd_cancel
+} sd_action_t;
 
+/** Shutdown state */
 typedef struct {
-	system_srv_t srv;
-} sys_srv_t;
+	fibril_mutex_t lock;
+	fibril_condvar_t cv;
+	bool stopped;
+	bool failed;
+} shutdown_t;
 
 #endif
 
