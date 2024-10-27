@@ -99,12 +99,17 @@ static errno_t hr_raid0_bd_close(bd_srv_t *bd)
 	return EOK;
 }
 
-static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
+static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
+    size_t cnt, void *data_read, const void *data_write, size_t size)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
 	uint64_t phys_block;
 	size_t extent, left;
+
+	if (type == HR_BD_READ || type == HR_BD_WRITE)
+		if (size < cnt * vol->bsize)
+			return EINVAL;
 
 	rc = hr_check_ba_range(vol, cnt, ba);
 	if (rc != EOK)
@@ -116,81 +121,52 @@ static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 	while (left != 0) {
 		raid0_geometry(ba, vol, &extent, &phys_block);
 		hr_add_ba_offset(vol, &phys_block);
-		rc = block_sync_cache(vol->extents[extent].svc_id, phys_block, 1);
-		if (rc != EOK)
+		switch (type) {
+		case HR_BD_SYNC:
+			rc = block_sync_cache(vol->extents[extent].svc_id,
+			    phys_block, 1);
 			break;
+		case HR_BD_READ:
+			rc = block_read_direct(vol->extents[extent].svc_id,
+			    phys_block, 1, data_read);
+			data_read = data_read + vol->bsize;
+			break;
+		case HR_BD_WRITE:
+			rc = block_write_direct(vol->extents[extent].svc_id,
+			    phys_block, 1, data_write);
+			data_write = data_write + vol->bsize;
+			break;
+		default:
+			rc = EINVAL;
+		}
+
+		if (rc != EOK)
+			goto error;
+
 		left--;
 		ba++;
 	}
 
+error:
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
+}
+
+static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
+{
+	return hr_raid0_bd_op(HR_BD_SYNC, bd, ba, cnt, NULL, NULL, 0);
 }
 
 static errno_t hr_raid0_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     void *buf, size_t size)
 {
-	hr_volume_t *vol = bd->srvs->sarg;
-	errno_t rc;
-	uint64_t phys_block;
-	size_t extent, left;
-
-	if (size < cnt * vol->bsize)
-		return EINVAL;
-
-	rc = hr_check_ba_range(vol, cnt, ba);
-	if (rc != EOK)
-		return rc;
-
-	fibril_mutex_lock(&vol->lock);
-
-	left = cnt;
-	while (left != 0) {
-		raid0_geometry(ba, vol, &extent, &phys_block);
-		hr_add_ba_offset(vol, &phys_block);
-		rc = block_read_direct(vol->extents[extent].svc_id, phys_block, 1, buf);
-		buf = buf + vol->bsize;
-		if (rc != EOK)
-			break;
-		left--;
-		ba++;
-	}
-
-	fibril_mutex_unlock(&vol->lock);
-	return rc;
+	return hr_raid0_bd_op(HR_BD_READ, bd, ba, cnt, buf, NULL, size);
 }
 
 static errno_t hr_raid0_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *data, size_t size)
 {
-	hr_volume_t *vol = bd->srvs->sarg;
-	errno_t rc;
-	uint64_t phys_block;
-	size_t extent, left;
-
-	if (size < cnt * vol->bsize)
-		return EINVAL;
-
-	rc = hr_check_ba_range(vol, cnt, ba);
-	if (rc != EOK)
-		return rc;
-
-	fibril_mutex_lock(&vol->lock);
-
-	left = cnt;
-	while (left != 0) {
-		raid0_geometry(ba, vol, &extent, &phys_block);
-		hr_add_ba_offset(vol, &phys_block);
-		rc = block_write_direct(vol->extents[extent].svc_id, phys_block, 1, data);
-		data = data + vol->bsize;
-		if (rc != EOK)
-			break;
-		left--;
-		ba++;
-	}
-
-	fibril_mutex_unlock(&vol->lock);
-	return rc;
+	return hr_raid0_bd_op(HR_BD_WRITE, bd, ba, cnt, NULL, data, size);
 }
 
 static errno_t hr_raid0_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
