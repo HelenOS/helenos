@@ -274,6 +274,8 @@ const char *hr_get_vol_status_msg(hr_vol_status_t status)
 		return "ONLINE";
 	case HR_VOL_FAULTY:
 		return "FAULTY";
+	case HR_VOL_WEAKENED:
+		return "WEAKENED";
 	default:
 		return "UNKNOWN";
 	}

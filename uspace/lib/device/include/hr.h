@@ -55,7 +55,8 @@ typedef enum hr_level {
 
 typedef enum hr_vol_status {
 	HR_VOL_ONLINE,	/* OK, OPTIMAL */
-	HR_VOL_FAULTY
+	HR_VOL_FAULTY,
+	HR_VOL_WEAKENED	/* used for partial, but usable mirror */
 } hr_vol_status_t;
 
 typedef enum hr_ext_status {
