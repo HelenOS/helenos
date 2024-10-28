@@ -111,6 +111,16 @@ error:
 	return rc;
 }
 
+static errno_t validate_meta(hr_metadata_t *md)
+{
+	if (uint64_t_le2host(md->magic) != HR_MAGIC) {
+		printf("invalid magic\n");
+		return EINVAL;
+	}
+	return EOK;
+}
+
+
 errno_t hr_get_vol_from_meta(hr_config_t *cfg, hr_volume_t *new_volume)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_get_vol_from_meta()");
@@ -122,18 +132,25 @@ errno_t hr_get_vol_from_meta(hr_config_t *cfg, hr_volume_t *new_volume)
 	if (metadata == NULL)
 		return ENOMEM;
 
-	/* for now assume metadata are in sync across extents */
-	rc = read_metadata(cfg->devs[0], metadata);
-	if (rc != EOK)
-		goto end;
-
-	/* TODO: sort new_volume->extents according to metadata extent index */
-
-	if (uint64_t_le2host(metadata->magic) != HR_MAGIC) {
-		printf("invalid magic\n");
-		rc = EINVAL;
-		goto end;
+	uint32_t md_order[HR_MAXDEVS] = { 0 };
+	for (size_t i = 0; i < cfg->dev_no; i++) {
+		rc = read_metadata(cfg->devs[i], metadata);
+		if (rc != EOK)
+			goto end;
+		rc = validate_meta(metadata);
+		if (rc != EOK)
+			goto end;
+		md_order[i] = uint32_t_le2host(metadata->index);
 	}
+
+	for (size_t i = 0; i < cfg->dev_no; i++)
+		for (size_t j = 0; j < cfg->dev_no; j++)
+			if (i == md_order[j])
+				new_volume->extents[i].svc_id = cfg->devs[j];
+
+	/*
+	 * still assume metadata are in sync across extents
+	 */
 
 	new_volume->level = uint32_t_le2host(metadata->level);
 	new_volume->dev_no = uint32_t_le2host(metadata->extent_no);
