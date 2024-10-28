@@ -150,20 +150,13 @@ errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
 
 	printf("number: %d\n", *index);
 	if (*index == -1) {
-
-		rc = loc_service_get_id("net/eth1", &svc, 0);
-		if (rc != EOK)
-		{
-			fprintf(stderr, "Error getting service id.\n");
-			return ENOENT;
-		}
+		*index = 0;
 	}
-	else {
-		rc  = pcapctl_cat_get_svc(index, &svc);
-		if (rc != EOK) {
-			printf("Error finding the device with index: %d\n", *index);
-			goto error;
-		}
+
+	rc  = pcapctl_cat_get_svc(index, &svc);
+	if (rc != EOK) {
+		printf("Error finding the device with index: %d\n", *index);
+		goto error;
 	}
 
 
@@ -205,7 +198,7 @@ errno_t pcapctl_dump_start(const char *name, pcapctl_sess_t *sess)
 	size_t size = str_size(name);
 	aid_t req = async_send_0(exch, PCAP_CONTROL_SET_START, NULL);
 
-	rc = async_data_write_start(exch, (const void *) name, size);
+	rc = async_data_write_start(exch, (const void *)name, size);
 
 	pcapctl_dump_exchange_end(exch);
 

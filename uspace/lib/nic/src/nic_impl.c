@@ -849,7 +849,6 @@ errno_t nic_fun_add_to_cats(ddf_fun_t *fun)
 	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
 	if (rc != EOK)
 		return rc;
-		return rc;
 
 	rc = ddf_fun_add_to_category(fun, "pcap");
 	if (rc != EOK) {

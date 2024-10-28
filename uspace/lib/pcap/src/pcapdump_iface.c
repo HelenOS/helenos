@@ -37,56 +37,44 @@
 
 #include <async.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <fibril_synch.h>
+#include <str.h>
 
 #include "pcapdump_iface.h"
 
-FIBRIL_MUTEX_INITIALIZE(to_dump_mutex);
-
-static void pcapdump_start_srv(ipc_call_t *icall, pcap_iface_t *iface)
+static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 {
 	char *data;
 	size_t size;
-	errno_t rc = async_data_write_accept((void **) &data, false, 0, 0, 0, &size);
+	errno_t rc = async_data_write_accept((void **) &data, true, 0, 0, 0, &size);
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
 		return;
 	}
 
-	/** When try to start when already started, close current and starts new */
-	if (iface->to_dump == true) {
-		iface->fini();
+	assert(str_length(data) == size && "Data were damaged during transmission.\n");
+
+	rc = pcap_dumper_start(dumper, (const char *)data);
+	free(data);
+	if (rc != EOK)
+	{
+		//TODO what?
 	}
-	iface->init((const char *)data);
-
-	fibril_mutex_lock(&to_dump_mutex);
-	iface->to_dump = true;
-	fibril_mutex_unlock(&to_dump_mutex);
-
-	async_answer_0(icall, rc);
+	async_answer_0(icall, EOK);
 }
 
-static void pcapdump_stop_srv(ipc_call_t *icall, pcap_iface_t *iface)
+static void pcapdump_stop_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 {
-	/** If want to stop, when already stopped, do nothing */
-	if (iface->to_dump == false) {
-		async_answer_0(icall, EOK);
-		return;
-	}
-
-	fibril_mutex_lock(&to_dump_mutex);
-	iface->to_dump = false;
-	fibril_mutex_unlock(&to_dump_mutex);
-
-	iface->fini();
+	pcap_dumper_stop(dumper);
 	async_answer_0(icall, EOK);
 }
 
 void pcapdump_conn(ipc_call_t *icall, void *arg)
 {
-	pcap_iface_t *iface = (pcap_iface_t *)arg;
-	printf("pcapdump_conn\n");
-	assert((iface != NULL) && "pcapdump requires pcap interface\n");
+	pcap_dumper_t *dumper = (pcap_dumper_t *)arg;
+
+	assert((dumper != NULL) && "pcapdump requires pcap dumper\n");
 
 	/* Accept connection */
 	async_accept_0(icall);
@@ -102,10 +90,10 @@ void pcapdump_conn(ipc_call_t *icall, void *arg)
 		}
 		switch (method) {
 		case PCAP_CONTROL_SET_START:
-			pcapdump_start_srv(&call, iface);
+			pcapdump_start_srv(&call, dumper);
 			break;
 		case PCAP_CONTROL_SET_STOP:
-			pcapdump_stop_srv(&call, iface);
+			pcapdump_stop_srv(&call, dumper);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);
@@ -114,12 +102,12 @@ void pcapdump_conn(ipc_call_t *icall, void *arg)
 	}
 }
 
-errno_t pcapdump_init(pcap_iface_t *iface)
+errno_t pcapdump_init(pcap_dumper_t *dumper)
 {
 	port_id_t port;
 	errno_t rc;
 
-	rc = pcap_iface_init(iface);
+	rc = pcap_dumper_init(dumper);
 
 	if (rc != EOK) {
 		printf("Failed creating pcap interface: %s", str_error(rc));
@@ -127,7 +115,7 @@ errno_t pcapdump_init(pcap_iface_t *iface)
 	}
 
 	rc = async_create_port(INTERFACE_PCAP_CONTROL,
-	    pcapdump_conn, iface, &port);
+	    pcapdump_conn, dumper, &port);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -138,23 +126,19 @@ errno_t pcapdump_init(pcap_iface_t *iface)
  *
  * Called every time, the packet is sent/recieved by the device
  *
- * @param iface Dumping interface
+ * @param dumper Dumping interface
  * @param data The packet
  * @param size Size of the packet
  *
  */
-void pcapdump_packet(pcap_iface_t *iface, const void *data, size_t size)
+void pcapdump_packet(pcap_dumper_t *dumper, const void *data, size_t size)
 {
 
-	if (iface == NULL) {
+	if (dumper == NULL) {
 		return;
 	}
 
-	if (!iface->to_dump) {
-		return;
-	}
-
-	iface->add_packet(data, size);
+	pcap_dumper_add_packet(dumper, data, size);
 }
 
 /** @}

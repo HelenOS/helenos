@@ -1140,7 +1140,7 @@ void nic_sw_period_stop(nic_t *nic_data)
 	nic_data->sw_poll_info.running = 0;
 }
 
-pcap_iface_t *nic_get_pcap_iface(nic_t *nic_data)
+pcap_dumper_t *nic_get_pcap_iface(nic_t *nic_data)
 {
 	return &nic_data->pcapdump;
 }

@@ -2208,8 +2208,6 @@ errno_t e1000_dev_add(ddf_dev_t *dev)
 	}
 	return EOK;
 
-	// err_add_to_cat:
-	// ddf_fun_unbind(fun);
 err_fun_bind:
 err_rx_structure:
 	e1000_uninitialize_rx_structure(nic);

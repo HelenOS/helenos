@@ -54,7 +54,6 @@
 
 #define NAME "ethip"
 /** Interface for dumping packets */
-pcap_iface_t pcapdump;
 
 static errno_t ethip_open(iplink_srv_t *srv);
 static errno_t ethip_close(iplink_srv_t *srv);
@@ -92,11 +91,6 @@ static errno_t ethip_init(void)
 		return rc;
 	}
 
-	rc = pcapdump_init(&pcapdump);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed initializing dumping interface.");
-		return rc;
-	}
 
 	rc = ethip_nic_discovery_start();
 	if (rc != EOK)
@@ -205,7 +199,6 @@ static errno_t ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	rc = eth_pdu_encode(&frame, &data, &size);
 	if (rc != EOK)
 		return rc;
-	pcapdump_packet(&pcapdump, data, size);
 	rc = ethip_nic_send(nic, data, size);
 	free(data);
 
@@ -250,7 +243,6 @@ errno_t ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - eth_pdu_decode failed");
 		return rc;
 	}
-	pcapdump_packet(&pcapdump, data, size);
 
 	iplink_recv_sdu_t sdu;
 

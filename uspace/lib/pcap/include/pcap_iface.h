@@ -36,26 +36,25 @@
 #define PCAP_IFACE_H_
 
 #include <errno.h>
+#include <fibril_synch.h>
 #include "pcap.h"
 
-typedef struct pcap_iface {
+typedef struct pcap_dumper {
+	fibril_mutex_t mutex;
 	bool to_dump;
-	errno_t (*init)(const char *);
-	void (*add_packet)(const void *data, size_t size);
-	void (*fini)(void);
-} pcap_iface_t;
+	pcap_writer_t writer;
+} pcap_dumper_t;
 
-extern void pcap_close_file(void);
-extern errno_t pcap_iface_init(pcap_iface_t *);
-//init to file
-//init to serial
-//add packet, dostane strukturu, data, velikost ... to to this pcap_iface_t
+
+extern void pcap_dumper_stop(struct pcap_dumper *);
+
+extern errno_t pcap_dumper_init(pcap_dumper_t *);
+
 // v ramci init jeste linktype prg
 //set snaplen taky lze pridavat prg
-//create kam posila 
-// init
-extern errno_t pcap_init(const char *);
-extern void pcap_add_packet(const void *data, size_t size);
+
+extern errno_t pcap_dumper_start(struct pcap_dumper *, const char *);
+extern void pcap_dumper_add_packet(struct pcap_dumper *, const void *data, size_t size);
 
 #endif
 /** @}

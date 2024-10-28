@@ -53,6 +53,7 @@
 
 #define PCAP_LINKTYPE_ETHERNET 1    /* IEEE 802.3 Ethernet */
 #define PCAP_LINKTYPE_IP_RAW 101	/* Raw IP packet */
+#define PCAP_LINKTYPE_IEEE802_11_RADIO 127
 #define WIRESHARK_EX 0xc
 #define WIRESHARK_SNAPLEN 0xffff
 
@@ -98,7 +99,7 @@ extern void pcap_writer_add_header(pcap_writer_t *);
 extern void pcap_writer_add_packet(
     pcap_writer_t *writer, const void *captured_packet, size_t size);
 
-extern void pcap_set_time(pcap_packet_header_t *header, bool nano);
+extern void pcap_set_time(pcap_packet_header_t *header);
 
 #endif
 
