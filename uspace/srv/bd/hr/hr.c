@@ -127,6 +127,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 
 	rc = async_data_write_finalize(&call, cfg, size);
 	if (rc != EOK) {
+		free(cfg);
 		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
 		return;
@@ -155,6 +156,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	rc = hr_init_devs(new_volume);
 	if (rc != EOK) {
 		free(cfg);
+		free(new_volume);
 		async_answer_0(icall, rc);
 		return;
 	}
@@ -230,6 +232,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 error:
 	free(cfg);
 	hr_fini_devs(new_volume);
+	free(new_volume);
 	async_answer_0(icall, rc);
 }
 
