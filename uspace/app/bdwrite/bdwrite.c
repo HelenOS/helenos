@@ -117,9 +117,7 @@ int main(int argc, char **argv)
 		uint64_t blks_to_write = min(to_alloc / bsize, left);
 		uint8_t *ptr = buf;
 		for (size_t i = 0; i < blks_to_write; i++) {
-			/*
-			memset(ptr, (i + 1) % 0x100, bsize);
-			*/
+			/* memset(ptr, (i + 1) % 0x100, bsize); */
 			memset(ptr, 'A' + (i % 26), bsize);
 			ptr = (uint8_t *)((uintptr_t) ptr + bsize);
 		}
