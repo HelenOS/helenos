@@ -89,7 +89,7 @@ static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
 	for (size_t i = 0; i < vol->dev_no; i++) {
 		if (vol->extents[i].status != HR_EXT_ONLINE) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "RAID 0 needs all disks to be ONLINE, marking "
+			    "RAID 0 needs all extents to be ONLINE, marking "
 			    "\"%s\" (%lu) as FAULTY",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_FAULTY;
