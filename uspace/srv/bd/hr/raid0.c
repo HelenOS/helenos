@@ -73,6 +73,34 @@ static bd_ops_t hr_raid0_bd_ops = {
 	.get_num_blocks = hr_raid0_bd_get_num_blocks
 };
 
+static errno_t hr_raid0_check_vol_status(hr_volume_t *vol)
+{
+	if (vol->status == HR_VOL_ONLINE)
+		return EOK;
+	return EINVAL;
+}
+
+/*
+ * Update vol->status and return EOK if volume
+ * is usable
+ */
+static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
+{
+	for (size_t i = 0; i < vol->dev_no; i++) {
+		if (vol->extents[i].status != HR_EXT_ONLINE) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "RAID 0 needs all disks to be ONLINE, marking "
+			    "\"%s\" (%lu) as FAULTY",
+			    vol->devname, vol->svc_id);
+			vol->status = HR_VOL_FAULTY;
+			return EINVAL;
+		}
+	}
+
+	vol->status = HR_VOL_ONLINE;
+	return EOK;
+}
+
 static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_bd_open()");
@@ -109,6 +137,12 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 	fibril_mutex_lock(&vol->lock);
 
+	rc = hr_raid0_check_vol_status(vol);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&vol->lock);
+		return EIO;
+	}
+
 	left = cnt;
 	while (left != 0) {
 		phys_block = ext_stripe * strip_size + strip_off;
@@ -134,8 +168,16 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		default:
 			rc = EINVAL;
 		}
-		if (rc != EOK)
+
+		if (rc == ENOENT) {
+			hr_update_ext_status(vol, extent, HR_EXT_MISSING);
+			rc = EIO;
 			goto error;
+		} else if (rc != EOK) {
+			hr_update_ext_status(vol, extent, HR_EXT_FAILED);
+			rc = EIO;
+			goto error;
+		}
 
 		left -= cnt;
 		strip_off = 0;
@@ -147,6 +189,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 error:
+	(void) hr_raid0_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }
@@ -195,6 +238,10 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 		    "RAID 0 array needs at least 2 devices");
 		return EINVAL;
 	}
+
+	rc = hr_raid0_update_vol_status(new_volume);
+	if (rc != EOK)
+		return rc;
 
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
