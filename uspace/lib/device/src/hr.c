@@ -168,7 +168,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	return EOK;
 }
 
-errno_t hr_stop(const char *devname)
+errno_t hr_stop(const char *devname, long extent)
 {
 	hr_t *hr;
 	errno_t rc;
@@ -188,7 +188,7 @@ errno_t hr_stop(const char *devname)
 		rc = EINVAL;
 		goto error;
 	}
-	rc = async_req_1_0(exch, HR_STOP, svc_id);
+	rc = async_req_2_0(exch, HR_STOP, svc_id, extent);
 	async_exchange_end(exch);
 
 	if (rc != EOK)

@@ -254,11 +254,13 @@ static void hr_stop_srv(ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_stop_srv()");
 
-	errno_t rc;
+	errno_t rc = EOK;
 	service_id_t svc_id;
+	long fail_extent;
 	hr_volume_t *vol;
 
 	svc_id = ipc_get_arg1(icall);
+	fail_extent = (long) ipc_get_arg2(icall);
 
 	vol = hr_get_volume(svc_id);
 	if (vol == NULL) {
@@ -266,14 +268,19 @@ static void hr_stop_srv(ipc_call_t *icall)
 		return;
 	}
 
-	rc = hr_remove_volume(svc_id);
-	if (rc != EOK) {
-		async_answer_0(icall, rc);
-		return;
+	if (fail_extent == -1) {
+		rc = hr_remove_volume(svc_id);
+		if (rc != EOK) {
+			async_answer_0(icall, rc);
+			return;
+		}
+		rc = loc_service_unregister(hr_srv, svc_id);
+	} else {
+		/* fibril safe for now */
+		fibril_mutex_lock(&vol->lock);
+		hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
+		fibril_mutex_unlock(&vol->lock);
 	}
-
-	rc = loc_service_unregister(hr_srv, svc_id);
-
 	async_answer_0(icall, rc);
 }
 

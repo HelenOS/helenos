@@ -96,7 +96,7 @@ extern errno_t hr_sess_init(hr_t **);
 extern void hr_sess_destroy(hr_t *);
 
 extern errno_t hr_create(hr_t *, hr_config_t *, bool);
-extern errno_t hr_stop(const char *);
+extern errno_t hr_stop(const char *, long);
 extern errno_t hr_print_status(void);
 
 extern const char *hr_get_vol_status_msg(hr_vol_status_t);

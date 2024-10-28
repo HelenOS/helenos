@@ -58,6 +58,7 @@ static const char usage_str[] =
     "  -A, --assemble-file=PATH  create an array from file\n"
     "  -s, --status              display status of active arrays\n"
     "  -T, --stop                stop an active array\n"
+    "  -F, --fail-extent         fail an extent, use with -T and set it before\n"
     "  -c, --create=NAME         create new array\n"
     "  -a, --assemble=NAME       assemble an existing array\n"
     "  -n                        non-zero number of devices\n"
@@ -87,6 +88,7 @@ static struct option const long_options[] = {
 	{ "create-file", required_argument, 0, 'C' },
 	{ "assemble-file", required_argument, 0, 'A' },
 	{ "stop", required_argument, 0, 'T' },
+	{ "fail-extent", required_argument, 0, 'F' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -219,6 +221,7 @@ int main(int argc, char **argv)
 	errno_t rc;
 	int retval, c;
 	bool create, assemble;
+	long fail_extent = -1;
 	hr_t *hr;
 	hr_config_t *cfg;
 
@@ -240,7 +243,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:T:",
+		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:T:F:",
 		    long_options, NULL);
 		switch (c) {
 		case 'h':
@@ -285,7 +288,7 @@ int main(int argc, char **argv)
 			assemble = true;
 			break;
 		case 'T':
-			rc = hr_stop(optarg);
+			rc = hr_stop(optarg, fail_extent);
 			free(cfg);
 			if (rc != EOK) {
 				if (rc == ENOENT)
@@ -294,6 +297,9 @@ int main(int argc, char **argv)
 				return 1;
 			}
 			return 0;
+		case 'F':
+			fail_extent = strtol(optarg, NULL, 10);
+			break;
 		case 'l':
 			if (cfg->level != HR_LVL_UNKNOWN)
 				goto bad;
