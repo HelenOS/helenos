@@ -167,7 +167,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		if (rc != EOK)
 			goto error;
 
-		rc = hr_get_vol_from_meta(cfg, new_volume);
+		rc = hr_fill_vol_from_meta(new_volume);
 		if (rc != EOK)
 			goto error;
 	}

@@ -121,20 +121,25 @@ static errno_t validate_meta(hr_metadata_t *md)
 }
 
 
-errno_t hr_get_vol_from_meta(hr_config_t *cfg, hr_volume_t *new_volume)
+errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_get_vol_from_meta()");
 
 	errno_t rc;
 	hr_metadata_t *metadata;
 
-	metadata = calloc(1, HR_META_SIZE * new_volume->bsize);
+	metadata = calloc(1, HR_META_SIZE * vol->bsize);
 	if (metadata == NULL)
 		return ENOMEM;
 
+	service_id_t cfg_svc_id_order[HR_MAXDEVS] = { 0 };
+	for (size_t i = 0; i < vol->dev_no; i++)
+		cfg_svc_id_order[i] = vol->extents[i].svc_id;
+
+
 	uint32_t md_order[HR_MAXDEVS] = { 0 };
-	for (size_t i = 0; i < cfg->dev_no; i++) {
-		rc = read_metadata(cfg->devs[i], metadata);
+	for (size_t i = 0; i < vol->dev_no; i++) {
+		rc = read_metadata(cfg_svc_id_order[i], metadata);
 		if (rc != EOK)
 			goto end;
 		rc = validate_meta(metadata);
@@ -143,34 +148,33 @@ errno_t hr_get_vol_from_meta(hr_config_t *cfg, hr_volume_t *new_volume)
 		md_order[i] = uint32_t_le2host(metadata->index);
 	}
 
-	for (size_t i = 0; i < cfg->dev_no; i++)
-		for (size_t j = 0; j < cfg->dev_no; j++)
+	for (size_t i = 0; i < vol->dev_no; i++)
+		for (size_t j = 0; j < vol->dev_no; j++)
 			if (i == md_order[j])
-				new_volume->extents[i].svc_id = cfg->devs[j];
+				vol->extents[i].svc_id = cfg_svc_id_order[j];
 
 	/*
 	 * still assume metadata are in sync across extents
 	 */
 
-	new_volume->level = uint32_t_le2host(metadata->level);
-	new_volume->dev_no = uint32_t_le2host(metadata->extent_no);
-	new_volume->nblocks = uint64_t_le2host(metadata->nblocks);
-	new_volume->data_blkno = uint64_t_le2host(metadata->data_blkno);
-	new_volume->data_offset = uint32_t_le2host(metadata->data_offset);
-	new_volume->strip_size = uint32_t_le2host(metadata->strip_size);
-
-	if (new_volume->dev_no != cfg->dev_no) {
+	if (vol->dev_no != uint32_t_le2host(metadata->extent_no)) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "number of divices in array differ: specified %zu, metadata states %zu",
-		    cfg->dev_no, new_volume->dev_no);
+		    "number of divices in array differ: specified %zu, metadata states %u",
+		    vol->dev_no, uint32_t_le2host(metadata->extent_no));
 		rc = EINVAL;
 		goto end;
 	}
 
-	if (str_cmp(metadata->devname, new_volume->devname) != 0) {
+	vol->level = uint32_t_le2host(metadata->level);
+	vol->nblocks = uint64_t_le2host(metadata->nblocks);
+	vol->data_blkno = uint64_t_le2host(metadata->data_blkno);
+	vol->data_offset = uint32_t_le2host(metadata->data_offset);
+	vol->strip_size = uint32_t_le2host(metadata->strip_size);
+
+	if (str_cmp(metadata->devname, vol->devname) != 0) {
 		log_msg(LOG_DEFAULT, LVL_NOTE,
 		    "devname on metadata (%s) and config (%s) differ, using config",
-		    metadata->devname, new_volume->devname);
+		    metadata->devname, vol->devname);
 	}
 end:
 	free(metadata);
