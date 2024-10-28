@@ -159,7 +159,6 @@ errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
 		goto error;
 	}
 
-
 	async_sess_t *new_session = loc_service_connect(svc, INTERFACE_PCAP_CONTROL, 0);
 	if (new_session == NULL) {
 		fprintf(stderr, "Error connecting to service.\n");

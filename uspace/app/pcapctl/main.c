@@ -116,52 +116,41 @@ int main(int argc, char *argv[])
 	while (ret != -1) {
 		ret = getopt_long(argc, argv, "d:lhf:rt", opts, &idx);
 		switch (ret) {
-			case 'd':
-			{
-				char *rest;
-				long result = strtol(optarg, &rest, 10);
-				dev_number = (int)result;
-				errno_t rc = pcapctl_is_valid_device(&dev_number);
-				if (rc != EOK) {
-					printf("Device with index %d not found\n", dev_number);
-					return 1;
-				}
-				break;
+		case 'd':
+			char *rest;
+			long result = strtol(optarg, &rest, 10);
+			dev_number = (int)result;
+			errno_t rc = pcapctl_is_valid_device(&dev_number);
+			if (rc != EOK) {
+				printf("Device with index %d not found\n", dev_number);
+				return 1;
 			}
-			case 'l':
-			{
-				list_devs();
-				return 0;
-			}
-			case 'h':
-			{
-				usage();
-				return 0;
-			}
-			case 'f':
-			{
-				output_file_name = optarg;
-				break;
-			}
-			case 'r':
-			{
-				start = true;
-				break;
-			}
-			case 't':
-			{	stop = true;
-				break;
-			}
+			break;
+		case 'l':
+			list_devs();
+			return 0;
+		case 'h':
+			usage();
+			return 0;
+		case 'f':
+			output_file_name = optarg;
+			break;
+		case 'r':
+			start = true;
+			break;
+		case 't':
+			stop = true;
+			break;
 		}
 	}
 
 	printf("%s: HelenOS Packet Dumping utility: device - %d.\n", NAME, dev_number);
 
 	if (start) {
-		/* start with dev number and name*/
+		/* start with dev number and name */
 		start_dumping(&dev_number, output_file_name);
 	} else if (stop) {
-		/* stop with dev number*/
+		/* stop with dev number */
 		stop_dumping(&dev_number);
 	}
 	return 0;

@@ -91,7 +91,6 @@ static errno_t ethip_init(void)
 		return rc;
 	}
 
-
 	rc = ethip_nic_discovery_start();
 	if (rc != EOK)
 		return rc;

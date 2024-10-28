@@ -57,8 +57,7 @@ static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 
 	rc = pcap_dumper_start(dumper, (const char *)data);
 	free(data);
-	if (rc != EOK)
-	{
+	if (rc != EOK) {
 		//TODO what?
 	}
 	async_answer_0(icall, EOK);
@@ -133,11 +132,9 @@ errno_t pcapdump_init(pcap_dumper_t *dumper)
  */
 void pcapdump_packet(pcap_dumper_t *dumper, const void *data, size_t size)
 {
-
 	if (dumper == NULL) {
 		return;
 	}
-
 	pcap_dumper_add_packet(dumper, data, size);
 }
 

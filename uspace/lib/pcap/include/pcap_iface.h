@@ -45,9 +45,7 @@ typedef struct pcap_dumper {
 	pcap_writer_t writer;
 } pcap_dumper_t;
 
-
 extern void pcap_dumper_stop(struct pcap_dumper *);
-
 extern errno_t pcap_dumper_init(pcap_dumper_t *);
 
 // v ramci init jeste linktype prg

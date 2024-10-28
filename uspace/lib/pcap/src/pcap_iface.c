@@ -84,7 +84,6 @@ static pcap_writer_ops_t file_ops = {
 // 	fclose((FILE *)writer->data);
 // }
 
-
 // static pcap_writer_ops_t short_file_ops = {
 // 	.write_u32 = &pcap_short_file_w32,
 // 	.write_u16 = &pcap_short_file_w16,
@@ -98,17 +97,13 @@ errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
 	fibril_mutex_lock(&dumper->mutex);
 
 	/** When try to start when already started, close current and starts new */
-	if (dumper->to_dump == true)
-	{
+	if (dumper->to_dump == true) {
 		pcap_dumper_stop(dumper);
 	}
 	errno_t rc = pcap_writer_to_file_init(&dumper->writer, name);
-	if (rc == EOK)
-	{
+	if (rc == EOK) {
 		dumper->to_dump = true;
-	}
-	else
-	{
+	} else {
 		printf("Failed creating pcap dumper: %s", str_error(rc));
 	}
 	fibril_mutex_unlock(&dumper->mutex);
@@ -120,8 +115,7 @@ void pcap_dumper_add_packet(struct pcap_dumper *dumper, const void *data, size_t
 {
 	fibril_mutex_lock(&dumper->mutex);
 
-	if (dumper->writer.data == NULL || !dumper->to_dump)
-	{
+	if (dumper->writer.data == NULL || !dumper->to_dump) {
 		fibril_mutex_unlock(&dumper->mutex);
 		return;
 	}

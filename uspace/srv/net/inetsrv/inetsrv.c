@@ -62,7 +62,6 @@
 
 #define NAME "inetsrv"
 
-
 static inet_naddr_t solicited_node_mask = {
 	.version = ip_v6,
 	.addr6 = { 0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0 },
