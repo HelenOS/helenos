@@ -133,6 +133,20 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		return;
 	}
 
+	/*
+	 * If there was a missing device provided
+	 * for creation of a new array, abort
+	 */
+	if (!assemble) {
+		for (i = 0; i < cfg->dev_no; i++) {
+			if (cfg->devs[i] == 0) {
+				free(cfg);
+				async_answer_0(icall, EINVAL);
+				return;
+			}
+		}
+	}
+
 	new_volume = calloc(1, sizeof(hr_volume_t));
 	if (new_volume == NULL) {
 		free(cfg);
@@ -301,6 +315,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 		info.nblocks = volume->data_blkno;
 		info.strip_size = volume->strip_size;
 		info.bsize = volume->bsize;
+		info.status = volume->status;
 
 		if (!async_data_read_receive(&call, &size)) {
 			rc = EREFUSED;

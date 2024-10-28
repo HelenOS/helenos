@@ -66,6 +66,7 @@ typedef struct hr_volume {
 	size_t bsize;
 	size_t dev_no;
 	hr_level_t level;
+	hr_vol_status_t status;
 } hr_volume_t;
 
 typedef enum {

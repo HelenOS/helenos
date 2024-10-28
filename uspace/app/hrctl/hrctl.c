@@ -103,8 +103,13 @@ static errno_t fill_config_devs(int argc, char **argv, int optind,
 
 	for (i = 0; i < cfg->dev_no; i++) {
 		rc = loc_service_get_id(argv[optind], &cfg->devs[i], 0);
-		if (rc != EOK) {
-			printf("hrctl: error resolving device \"%s\"\n", argv[optind]);
+		if (rc == ENOENT) {
+			printf("hrctl: no device \"%s\", marking as missing\n",
+			    argv[optind]);
+			cfg->devs[i] = 0;
+		} else if (rc != EOK) {
+			printf("hrctl: error resolving device \"%s\", aborting\n",
+			    argv[optind]);
 			return EINVAL;
 		}
 
@@ -189,8 +194,13 @@ static errno_t load_config(const char *path, hr_config_t *cfg)
 		}
 
 		rc = loc_service_get_id(extent_devname, &cfg->devs[i], 0);
-		if (rc != EOK) {
-			printf("hrctl: error resolving device \"%s\"\n",
+		if (rc == ENOENT) {
+			printf("hrctl: no device \"%s\", marking as missing\n",
+			    extent_devname);
+			cfg->devs[i] = 0;
+			rc = EOK;
+		} else if (rc != EOK) {
+			printf("hrctl: error resolving device \"%s\", aborting\n",
 			    extent_devname);
 			return EINVAL;
 		}

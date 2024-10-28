@@ -55,9 +55,15 @@ errno_t hr_init_devs(hr_volume_t *vol)
 	size_t i;
 
 	for (i = 0; i < vol->dev_no; i++) {
+		if (vol->extents[i].svc_id == 0) {
+			vol->extents[i].status = HR_EXT_MISSING;
+			continue;
+		}
 		rc = block_init(vol->extents[i].svc_id);
+		vol->extents[i].status = HR_EXT_ONLINE;
 		log_msg(LOG_DEFAULT, LVL_DEBUG,
-		    "hr_init_devs(): initing (%" PRIun ")", vol->extents[i].svc_id);
+		    "hr_init_devs(): initing (%" PRIun ")",
+		    vol->extents[i].svc_id);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
 			    "hr_init_devs(): initing (%" PRIun ") failed, aborting",
@@ -76,7 +82,8 @@ void hr_fini_devs(hr_volume_t *vol)
 	size_t i;
 
 	for (i = 0; i < vol->dev_no; i++)
-		block_fini(vol->extents[i].svc_id);
+		if (vol->extents[i].status != HR_EXT_MISSING)
+			block_fini(vol->extents[i].svc_id);
 }
 
 errno_t hr_register_volume(hr_volume_t *new_volume)
@@ -126,15 +133,19 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_check_devs()");
 
 	errno_t rc;
-	size_t i, bsize, last_bsize;
-	uint64_t nblocks, last_nblocks;
+	size_t i, bsize;
+	uint64_t nblocks;
+	size_t last_bsize = 0;
+	uint64_t last_nblocks = 0;
 	uint64_t total_blocks = 0;
 
 	for (i = 0; i < vol->dev_no; i++) {
+		if (vol->extents[i].status == HR_EXT_MISSING)
+			continue;
 		rc = block_get_nblocks(vol->extents[i].svc_id, &nblocks);
 		if (rc != EOK)
 			goto error;
-		if (i != 0 && nblocks != last_nblocks) {
+		if (last_nblocks != 0 && nblocks != last_nblocks) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
 			    "number of blocks differs");
 			rc = EINVAL;
@@ -145,10 +156,12 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 	}
 
 	for (i = 0; i < vol->dev_no; i++) {
+		if (vol->extents[i].status == HR_EXT_MISSING)
+			continue;
 		rc = block_get_bsize(vol->extents[i].svc_id, &bsize);
 		if (rc != EOK)
 			goto error;
-		if (i != 0 && bsize != last_bsize) {
+		if (last_bsize != 0 && bsize != last_bsize) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "block sizes differ");
 			rc = EINVAL;
 			goto error;
@@ -174,6 +187,14 @@ errno_t hr_check_ba_range(hr_volume_t *vol, size_t cnt, uint64_t ba)
 void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba)
 {
 	*ba = *ba + vol->data_offset;
+}
+
+void hr_update_ext_status(hr_volume_t *vol, uint64_t extent, hr_ext_status_t s)
+{
+	log_msg(LOG_DEFAULT, LVL_WARN,
+	    "vol %s, changing extent: %lu, to status: %s",
+	    vol->devname, extent, hr_get_ext_status_msg(s));
+	vol->extents[extent].status = s;
 }
 
 /** @}

@@ -53,6 +53,17 @@ typedef enum hr_level {
 	HR_LVL_UNKNOWN	= 0xFF
 } hr_level_t;
 
+typedef enum hr_vol_status {
+	HR_VOL_ONLINE,	/* OK, OPTIMAL */
+	HR_VOL_FAULTY
+} hr_vol_status_t;
+
+typedef enum hr_ext_status {
+	HR_EXT_ONLINE,	/* OK */
+	HR_EXT_MISSING,
+	HR_EXT_FAILED
+} hr_ext_status_t;
+
 typedef struct hr {
 	async_sess_t *sess;
 } hr_t;
@@ -66,7 +77,7 @@ typedef struct hr_config {
 
 typedef struct hr_extent {
 	service_id_t svc_id;
-	int status;
+	hr_ext_status_t status;
 } hr_extent_t;
 
 typedef struct hr_vol_info {
@@ -77,6 +88,7 @@ typedef struct hr_vol_info {
 	uint64_t nblocks;
 	uint32_t strip_size;
 	size_t bsize;
+	hr_vol_status_t status;
 } hr_vol_info_t;
 
 extern errno_t hr_sess_init(hr_t **);
@@ -85,6 +97,9 @@ extern void hr_sess_destroy(hr_t *);
 extern errno_t hr_create(hr_t *, hr_config_t *, bool);
 extern errno_t hr_stop(const char *);
 extern errno_t hr_print_status(void);
+
+extern const char *hr_get_vol_status_msg(hr_vol_status_t);
+extern const char *hr_get_ext_status_msg(hr_ext_status_t);
 
 #endif
 

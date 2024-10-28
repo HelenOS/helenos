@@ -120,7 +120,6 @@ static errno_t validate_meta(hr_metadata_t *md)
 	return EOK;
 }
 
-
 errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_get_vol_from_meta()");
@@ -133,12 +132,18 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 		return ENOMEM;
 
 	service_id_t cfg_svc_id_order[HR_MAXDEVS] = { 0 };
-	for (size_t i = 0; i < vol->dev_no; i++)
-		cfg_svc_id_order[i] = vol->extents[i].svc_id;
-
-
-	uint32_t md_order[HR_MAXDEVS] = { 0 };
 	for (size_t i = 0; i < vol->dev_no; i++) {
+		cfg_svc_id_order[i] = vol->extents[i].svc_id;
+		vol->extents[i].svc_id = 0;
+		vol->extents[i].status = HR_EXT_MISSING;
+	}
+
+	int32_t md_order[HR_MAXDEVS] = { 0 };
+	for (size_t i = 0; i < vol->dev_no; i++) {
+		if (cfg_svc_id_order[i] == 0) {
+			md_order[i] = -1;
+			continue;
+		}
 		rc = read_metadata(cfg_svc_id_order[i], metadata);
 		if (rc != EOK)
 			goto end;
@@ -148,10 +153,14 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 		md_order[i] = uint32_t_le2host(metadata->index);
 	}
 
-	for (size_t i = 0; i < vol->dev_no; i++)
-		for (size_t j = 0; j < vol->dev_no; j++)
-			if (i == md_order[j])
+	for (size_t i = 0; i < vol->dev_no; i++) {
+		for (size_t j = 0; j < vol->dev_no; j++) {
+			if (i == (uint32_t) md_order[j]) {
 				vol->extents[i].svc_id = cfg_svc_id_order[j];
+				vol->extents[i].status = HR_EXT_ONLINE;
+			}
+		}
+	}
 
 	/*
 	 * still assume metadata are in sync across extents

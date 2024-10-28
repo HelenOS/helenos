@@ -129,6 +129,8 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 		return rc;
 	printf("devname: %s\n", devname);
 
+	printf("status: %s\n", hr_get_vol_status_msg(vol_info->status));
+
 	printf("level: %d\n", vol_info->level);
 	if (vol_info->level == HR_LVL_0 || vol_info->level == HR_LVL_4) {
 		if (vol_info->strip_size / 1024 < 1)
@@ -149,15 +151,19 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 		printf("extents: [status] [index] [devname]\n");
 	for (i = 0; i < vol_info->extent_no; i++) {
 		ext = &vol_info->extents[i];
-		rc = loc_service_get_name(ext->svc_id, &devname);
-		if (rc != EOK)
-			return rc;
+		if (ext->status == HR_EXT_MISSING) {
+			devname = (char *) "MISSING-devname";
+		} else {
+			rc = loc_service_get_name(ext->svc_id, &devname);
+			if (rc != EOK)
+				return rc;
+		}
 		if (i == 0 && vol_info->level == HR_LVL_4)
-			printf("          P   %d        %zu       %s\n", ext->status, i, devname);
+			printf("          P   %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
 		else if (vol_info->level == HR_LVL_4)
-			printf("              %d        %zu       %s\n", ext->status, i, devname);
+			printf("              %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
 		else
-			printf("          %d        %zu       %s\n", ext->status, i, devname);
+			printf("          %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
 	}
 	return EOK;
 }
@@ -259,6 +265,32 @@ error:
 	if (vols != NULL)
 		free(vols);
 	return rc;
+}
+
+const char *hr_get_vol_status_msg(hr_vol_status_t status)
+{
+	switch (status) {
+	case HR_VOL_ONLINE:
+		return "ONLINE";
+	case HR_VOL_FAULTY:
+		return "FAULTY";
+	default:
+		return "UNKNOWN";
+	}
+}
+
+const char *hr_get_ext_status_msg(hr_ext_status_t status)
+{
+	switch (status) {
+	case HR_EXT_ONLINE:
+		return "ONLINE";
+	case HR_EXT_MISSING:
+		return "MISSING";
+	case HR_EXT_FAILED:
+		return "FAILED";
+	default:
+		return "UNKNOWN";
+	}
 }
 
 /** @}
