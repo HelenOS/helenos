@@ -73,20 +73,6 @@ static bd_ops_t hr_raid0_bd_ops = {
 	.get_num_blocks = hr_raid0_bd_get_num_blocks
 };
 
-static void raid0_geometry(uint64_t x, hr_volume_t *vol, size_t *extent,
-    uint64_t *phys_block)
-{
-	uint64_t N = vol->dev_no; /* extents */
-	uint64_t L = vol->strip_size / vol->bsize; /* size of strip in blocks */
-
-	uint64_t i = (x / L) % N; /* extent */
-	uint64_t j = (x / L) / N; /* stripe */
-	uint64_t k = x % L; /* strip offset */
-
-	*extent = i;
-	*phys_block = j * L + k;
-}
-
 static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_bd_open()");
@@ -105,7 +91,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
 	uint64_t phys_block;
-	size_t extent, left;
+	size_t left;
 
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
 		if (size < cnt * vol->bsize)
@@ -115,36 +101,49 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	if (rc != EOK)
 		return rc;
 
+	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
+	uint64_t stripe = ba / strip_size; /* stripe number */
+	uint64_t extent = stripe % vol->dev_no;
+	uint64_t ext_stripe = stripe / vol->dev_no; /* stripe level */
+	uint64_t strip_off = ba % strip_size; /* strip offset */
+
 	fibril_mutex_lock(&vol->lock);
 
 	left = cnt;
 	while (left != 0) {
-		raid0_geometry(ba, vol, &extent, &phys_block);
+		phys_block = ext_stripe * strip_size + strip_off;
+		cnt = min(left, strip_size - strip_off);
 		hr_add_ba_offset(vol, &phys_block);
 		switch (type) {
 		case HR_BD_SYNC:
 			rc = block_sync_cache(vol->extents[extent].svc_id,
-			    phys_block, 1);
+			    phys_block, cnt);
 			break;
 		case HR_BD_READ:
 			rc = block_read_direct(vol->extents[extent].svc_id,
-			    phys_block, 1, data_read);
-			data_read = data_read + vol->bsize;
+			    phys_block, cnt, data_read);
+			data_read = (void *) ((uintptr_t) data_read +
+			    (vol->bsize * cnt));
 			break;
 		case HR_BD_WRITE:
 			rc = block_write_direct(vol->extents[extent].svc_id,
-			    phys_block, 1, data_write);
-			data_write = data_write + vol->bsize;
+			    phys_block, cnt, data_write);
+			data_write = (void *) ((uintptr_t) data_write +
+			    (vol->bsize * cnt));
 			break;
 		default:
 			rc = EINVAL;
 		}
-
 		if (rc != EOK)
 			goto error;
 
-		left--;
-		ba++;
+		left -= cnt;
+		strip_off = 0;
+		extent++;
+		if (extent >= vol->dev_no) {
+			ext_stripe++;
+			extent = 0;
+		}
 	}
 
 error:

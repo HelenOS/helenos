@@ -42,6 +42,7 @@
 #include <ipc/hr.h>
 #include <ipc/services.h>
 #include <loc.h>
+#include <mem.h>
 #include <task.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,14 +85,14 @@ static void xor(void *dst, const void *src, size_t size)
 }
 
 static errno_t write_parity(hr_volume_t *vol, uint64_t p_extent,
-    uint64_t extent, uint64_t block, const void *data)
+    uint64_t extent, uint64_t block, const void *data, size_t cnt)
 {
 	errno_t rc;
-	size_t i;
+	size_t i, j;
 	void *xorbuf;
 	void *buf;
 
-	xorbuf = calloc(1, vol->bsize);
+	xorbuf = malloc(vol->bsize);
 	if (xorbuf == NULL)
 		return ENOMEM;
 
@@ -101,51 +102,35 @@ static errno_t write_parity(hr_volume_t *vol, uint64_t p_extent,
 		return ENOMEM;
 	}
 
-	for (i = 0; i < vol->dev_no; i++) {
-		if (i == p_extent)
-			continue;
+	for (j = 0; j < cnt; j++) {
+		memset(xorbuf, 0, vol->bsize);
+		for (i = 0; i < vol->dev_no; i++) {
+			if (i == p_extent)
+				continue;
 
-		if (i == extent) {
-			xor(xorbuf, data, vol->bsize);
-		} else {
-			rc = block_read_direct(vol->extents[i].svc_id, block, 1,
-			    buf);
-			if (rc != EOK)
-				goto end;
-			xor(xorbuf, buf, vol->bsize);
+			if (i == extent) {
+				xor(xorbuf, data, vol->bsize);
+			} else {
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    block, 1, buf);
+				if (rc != EOK)
+					goto end;
+				xor(xorbuf, buf, vol->bsize);
+			}
 		}
-	}
 
-	rc = block_write_direct(vol->extents[p_extent].svc_id, block, 1,
-	    xorbuf);
+		rc = block_write_direct(vol->extents[p_extent].svc_id, block, 1,
+		    xorbuf);
+		if (rc != EOK)
+			goto end;
+		data = (void *) ((uintptr_t) data + vol->bsize);
+		block++;
+	}
 
 end:
 	free(xorbuf);
 	free(buf);
 	return rc;
-}
-
-static void raid5_geometry(uint64_t x, hr_volume_t *vol, size_t *extent,
-    uint64_t *phys_block, uint64_t *p_extent)
-{
-	uint64_t N = vol->dev_no; /* extents */
-	uint64_t L = vol->strip_size / vol->bsize; /* size of strip in blocks */
-
-	uint64_t p = ((x / L) / (N - 1)) % N;
-
-	uint64_t i; /* extent */
-	if (((x / L) % (N - 1)) < p)
-		i = (x / L) % (N - 1);
-	else
-		i = ((x / L) % (N - 1)) + 1;
-
-	uint64_t j = (x / L) / (N - 1); /* stripe */
-	uint64_t k = x % L; /* strip offset */
-
-	*extent = i;
-	*phys_block = j * L + k;
-	if (p_extent != NULL)
-		*p_extent = p;
 }
 
 static errno_t hr_raid5_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -165,8 +150,8 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
-	uint64_t phys_block, p_extent;
-	size_t extent, left;
+	uint64_t phys_block;
+	size_t left;
 
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
 		if (size < cnt * vol->bsize)
@@ -176,37 +161,46 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	if (rc != EOK)
 		return rc;
 
+	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
+	uint64_t stripe = (ba / strip_size); /* stripe number */
+	uint64_t p_extent = (stripe / (vol->dev_no - 1)) % vol->dev_no; /* parity extent */
+	uint64_t extent;
+	if ((stripe % (vol->dev_no - 1)) < p_extent)
+		extent = (stripe % (vol->dev_no - 1));
+	else
+		extent = ((stripe % (vol->dev_no - 1)) + 1);
+	uint64_t ext_stripe = stripe / (vol->dev_no - 1); /* stripe level */
+	uint64_t strip_off = ba % strip_size; /* strip offset */
+
 	fibril_mutex_lock(&vol->lock);
 
 	left = cnt;
 	while (left != 0) {
+		phys_block = ext_stripe * strip_size + strip_off;
+		cnt = min(left, strip_size - strip_off);
+		hr_add_ba_offset(vol, &phys_block);
 		switch (type) {
 		case HR_BD_SYNC:
-			raid5_geometry(ba, vol, &extent, &phys_block, NULL);
-			hr_add_ba_offset(vol, &phys_block);
 			rc = block_sync_cache(vol->extents[extent].svc_id,
-			    phys_block, 1);
+			    phys_block, cnt);
 			break;
 		case HR_BD_READ:
-			raid5_geometry(ba, vol, &extent, &phys_block, NULL);
-			hr_add_ba_offset(vol, &phys_block);
 			rc = block_read_direct(vol->extents[extent].svc_id,
-			    phys_block, 1, data_read);
-			data_read = data_read + vol->bsize;
+			    phys_block, cnt, data_read);
+			data_read = (void *) ((uintptr_t) data_read +
+			    (vol->bsize * cnt));
 			break;
 		case HR_BD_WRITE:
-			raid5_geometry(ba, vol, &extent, &phys_block,
-			    &p_extent);
-			hr_add_ba_offset(vol, &phys_block);
 			rc = block_write_direct(vol->extents[extent].svc_id,
-			    phys_block, 1, data_write);
+			    phys_block, cnt, data_write);
 			if (rc != EOK)
 				goto error;
 			rc = write_parity(vol, p_extent, extent, phys_block,
-			    data_write);
+			    data_write, cnt);
 			if (rc != EOK)
 				goto error;
-			data_write = data_write + vol->bsize;
+			data_write = (void *) ((uintptr_t) data_write +
+			    (vol->bsize * cnt));
 			break;
 		default:
 			rc = EINVAL;
@@ -215,8 +209,17 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		if (rc != EOK)
 			goto error;
 
-		left--;
-		ba++;
+		left -= cnt;
+		strip_off = 0;
+		if (extent + 1 >= vol->dev_no ||
+		    (extent + 1 == p_extent && p_extent + 1 >= vol->dev_no))
+			ext_stripe++;
+		stripe++;
+		p_extent = (stripe / (vol->dev_no - 1)) % vol->dev_no; /* parity extent */
+		if ((stripe % (vol->dev_no - 1)) < p_extent)
+			extent = (stripe % (vol->dev_no - 1));
+		else
+			extent = ((stripe % (vol->dev_no - 1)) + 1);
 	}
 
 error:
