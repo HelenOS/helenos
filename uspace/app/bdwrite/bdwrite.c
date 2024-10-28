@@ -39,6 +39,7 @@
 #include <mem.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <abi/ipc/ipc.h>
 
 static void usage(void);
 
@@ -105,21 +106,31 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	uint8_t *buf = calloc(1, bsize);
-	for (size_t i = 0; i < blkcnt; i++) {
-		memset(buf, (i + 1) % 0x100, bsize);
-		rc = block_write_direct(dev, i + off, 1, buf);
+	uint64_t to_alloc = min(DATA_XFER_LIMIT, bsize * blkcnt);
+	uint8_t *buf = calloc(to_alloc / bsize, bsize);
+	if (buf == NULL) {
+		rc = ENOMEM;
+		goto end;
+	}
+	uint64_t left = blkcnt;
+	while (left > 0) {
+		uint64_t blks_to_write = min(to_alloc / bsize, left);
+		uint8_t *ptr = buf;
+		for (size_t i = 0; i < blks_to_write; i++) {
+			memset(ptr, (i + 1) % 0x100, bsize);
+			ptr = (uint8_t *)((uintptr_t) ptr + bsize);
+		}
+		rc = block_write_direct(dev, off, blks_to_write, buf);
 		if (rc != EOK) {
 			printf("bdwrite: error writing to \"%s\"\n", name);
-			free(buf);
-			block_fini(dev);
-			return 1;
+			goto end;
 		}
+		left -= blks_to_write;
 	}
-
+end:
 	free(buf);
 	block_fini(dev);
-	return 0;
+	return rc;
 bad:
 	usage();
 	return 0;
