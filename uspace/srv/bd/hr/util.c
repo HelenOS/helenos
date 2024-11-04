@@ -169,6 +169,12 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 		last_bsize = bsize;
 	}
 
+	if ((bsize % 512) != 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "block size not multiple of 512");
+		return EINVAL;
+	}
+
 	if (rblkno != NULL)
 		*rblkno = total_blocks;
 	if (rbsize != NULL)
