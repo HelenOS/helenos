@@ -121,6 +121,13 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	uint64_t phys_block;
 	size_t left;
 
+	/* propagate sync */
+	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
+		hr_sync_all_extents(vol);
+		rc = hr_raid0_update_vol_status(vol);
+		return rc;
+	}
+
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
 		if (size < cnt * vol->bsize)
 			return EINVAL;
