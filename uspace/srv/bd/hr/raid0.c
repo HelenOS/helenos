@@ -159,6 +159,9 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		case HR_BD_SYNC:
 			rc = block_sync_cache(vol->extents[extent].svc_id,
 			    phys_block, cnt);
+			/* allow unsupported sync */
+			if (rc == ENOTSUP)
+				rc = EOK;
 			break;
 		case HR_BD_READ:
 			rc = block_read_direct(vol->extents[extent].svc_id,

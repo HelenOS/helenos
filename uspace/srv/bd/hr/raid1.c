@@ -176,7 +176,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 			if (vol->extents[i].status != HR_EXT_ONLINE)
 				continue;
 			rc = block_sync_cache(vol->extents[i].svc_id, ba, cnt);
-			if (rc != EOK)
+			if (rc != EOK && rc != ENOTSUP)
 				handle_extent_error(vol, i, rc);
 			else
 				successful++;
