@@ -203,5 +203,31 @@ void hr_update_ext_status(hr_volume_t *vol, uint64_t extent, hr_ext_status_t s)
 	vol->extents[extent].status = s;
 }
 
+/*
+ * Do a whole sync (ba = 0, cnt = 0) across all extents,
+ * and update extent status. *For now*, the caller has to
+ * update volume status after the syncs.
+ *
+ * TODO: add update_vol_status fcn ptr for each raid
+ */
+void hr_sync_all_extents(hr_volume_t *vol)
+{
+	errno_t rc;
+
+	fibril_mutex_lock(&vol->lock);
+	for (size_t i = 0; i < vol->dev_no; i++) {
+		if (vol->extents[i].status != HR_EXT_ONLINE)
+			continue;
+		rc = block_sync_cache(vol->extents[i].svc_id, 0, 0);
+		if (rc != EOK && rc != ENOTSUP) {
+			if (rc == ENOENT)
+				hr_update_ext_status(vol, i, HR_EXT_MISSING);
+			else if (rc != EOK)
+				hr_update_ext_status(vol, i, HR_EXT_FAILED);
+		}
+	}
+	fibril_mutex_unlock(&vol->lock);
+}
+
 /** @}
  */
