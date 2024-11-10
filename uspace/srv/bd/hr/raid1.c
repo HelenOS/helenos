@@ -75,7 +75,7 @@ static bd_ops_t hr_raid1_bd_ops = {
 static errno_t hr_raid1_check_vol_status(hr_volume_t *vol)
 {
 	if (vol->status == HR_VOL_ONLINE ||
-	    vol->status == HR_VOL_WEAKENED)
+	    vol->status == HR_VOL_DEGRADED)
 		return EOK;
 	return EINVAL;
 }
@@ -102,12 +102,12 @@ static errno_t hr_raid1_update_vol_status(hr_volume_t *vol)
 		}
 		return EINVAL;
 	} else if (healthy < vol->dev_no) {
-		if (old_state != HR_VOL_WEAKENED) {
+		if (old_state != HR_VOL_DEGRADED) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
 			    "RAID 1 array \"%s\" (%lu) has some inactive "
-			    "extents, marking as WEAKENED",
+			    "extents, marking as DEGRADED",
 			    vol->devname, vol->svc_id);
-			vol->status = HR_VOL_WEAKENED;
+			vol->status = HR_VOL_DEGRADED;
 		}
 		return EOK;
 	} else {
@@ -120,7 +120,6 @@ static errno_t hr_raid1_update_vol_status(hr_volume_t *vol)
 		}
 		return EOK;
 	}
-
 }
 
 static errno_t hr_raid1_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
