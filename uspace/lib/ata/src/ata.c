@@ -265,6 +265,7 @@ errno_t ata_channel_destroy(ata_channel_t *chan)
 
 	ata_bd_fini_irq(chan);
 	fibril_mutex_unlock(&chan->lock);
+	free(chan);
 
 	return rc;
 }
