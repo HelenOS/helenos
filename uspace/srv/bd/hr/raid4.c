@@ -86,7 +86,8 @@ static errno_t hr_raid4_vol_usable(hr_volume_t *vol)
 }
 
 /*
- * Return first bad extent
+ * Returns (-1) if all extents are online,
+ * else returns index of first bad one.
  */
 static ssize_t hr_raid4_get_bad_ext(hr_volume_t *vol)
 {
@@ -149,38 +150,36 @@ static errno_t hr_raid4_read_degraded(hr_volume_t *vol, uint64_t bad,
     uint64_t block, void *data, size_t cnt)
 {
 	errno_t rc;
-	size_t i, j;
+	size_t i;
 	void *xorbuf;
 	void *buf;
+	uint64_t len = vol->bsize * cnt;
 
-	xorbuf = malloc(vol->bsize);
+	xorbuf = malloc(len);
 	if (xorbuf == NULL)
 		return ENOMEM;
 
-	buf = malloc(vol->bsize);
+	buf = malloc(len);
 	if (buf == NULL) {
 		free(xorbuf);
 		return ENOMEM;
 	}
 
-	/* read all other extents in stripe */
-	for (j = 0; j < cnt; j++) {
-		memset(xorbuf, 0, vol->bsize);
-		for (i = 0; i < vol->dev_no; i++) {
-			if (i == bad) {
-				continue;
-			} else {
-				rc = block_read_direct(vol->extents[i].svc_id,
-				    block, 1, buf);
-				if (rc != EOK)
-					goto end;
-				xor(xorbuf, buf, vol->bsize);
-			}
+	/* read all other extents in the stripe */
+	memset(xorbuf, 0, len);
+	for (i = 0; i < vol->dev_no; i++) {
+		if (i == bad) {
+			continue;
+		} else {
+			rc = block_read_direct(vol->extents[i].svc_id, block,
+			    cnt, buf);
+			if (rc != EOK)
+				goto end;
+			xor(xorbuf, buf, len);
 		}
-		memcpy(data, xorbuf, vol->bsize);
-		data = (void *) ((uintptr_t) data + vol->bsize);
-		block++;
 	}
+
+	memcpy(data, xorbuf, len);
 end:
 	free(xorbuf);
 	free(buf);
@@ -191,9 +190,10 @@ static errno_t hr_raid4_write(hr_volume_t *vol, uint64_t extent, aoff64_t ba,
     const void *data, size_t cnt)
 {
 	errno_t rc;
-	size_t i, j;
+	size_t i;
 	void *xorbuf;
 	void *buf;
+	uint64_t len = vol->bsize * cnt;
 
 	ssize_t bad = hr_raid4_get_bad_ext(vol);
 	if (bad < 1) {
@@ -211,11 +211,11 @@ static errno_t hr_raid4_write(hr_volume_t *vol, uint64_t extent, aoff64_t ba,
 		return rc;
 	}
 
-	xorbuf = malloc(vol->bsize);
+	xorbuf = malloc(len);
 	if (xorbuf == NULL)
 		return ENOMEM;
 
-	buf = malloc(vol->bsize);
+	buf = malloc(len);
 	if (buf == NULL) {
 		free(xorbuf);
 		return ENOMEM;
@@ -227,57 +227,49 @@ static errno_t hr_raid4_write(hr_volume_t *vol, uint64_t extent, aoff64_t ba,
 		 *
 		 * write new parity
 		 */
-		for (j = 0; j < cnt; j++) {
-			memset(xorbuf, 0, vol->bsize);
-			for (i = 1; i < vol->dev_no; i++) {
-				if (i == (size_t) bad) {
-					continue;
-				} else {
-					rc = block_read_direct(vol->extents[i].svc_id,
-					    ba, 1, buf);
-					if (rc != EOK)
-						goto end;
-					xor(xorbuf, buf, vol->bsize);
-				}
+		memset(xorbuf, 0, len);
+		for (i = 1; i < vol->dev_no; i++) {
+			if (i == (size_t) bad) {
+				continue;
+			} else {
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    ba, cnt, buf);
+				if (rc != EOK)
+					goto end;
+				xor(xorbuf, buf, len);
 			}
-			xor(xorbuf, data, vol->bsize);
-			rc = block_write_direct(vol->extents[0].svc_id, ba, 1,
-			    xorbuf);
-			if (rc != EOK)
-				goto end;
-			data = (void *) ((uintptr_t) data + vol->bsize);
-			ba++;
 		}
+		xor(xorbuf, data, len);
+		rc = block_write_direct(vol->extents[0].svc_id, ba, cnt,
+		    xorbuf);
+		if (rc != EOK)
+			goto end;
 	} else {
 		/*
 		 * new parity = xor original data and old parity and new data
 		 *
 		 * write parity, new data
 		 */
-		for (j = 0; j < cnt; j++) {
-			rc = block_read_direct(vol->extents[extent].svc_id, ba,
-			    1, xorbuf);
-			if (rc != EOK)
-				goto end;
-			rc = block_read_direct(vol->extents[0].svc_id, ba, 1,
-			    buf);
-			if (rc != EOK)
-				goto end;
-			xor(xorbuf, buf, vol->bsize);
+		rc = block_read_direct(vol->extents[extent].svc_id, ba, cnt,
+		    xorbuf);
+		if (rc != EOK)
+			goto end;
+		rc = block_read_direct(vol->extents[0].svc_id, ba, cnt, buf);
+		if (rc != EOK)
+			goto end;
 
-			xor(xorbuf, data, vol->bsize);
+		xor(xorbuf, buf, len);
 
-			rc = block_write_direct(vol->extents[0].svc_id, ba, 1,
-			    xorbuf);
-			if (rc != EOK)
-				goto end;
-			rc = block_write_direct(vol->extents[extent].svc_id,
-			    ba, 1, data);
-			if (rc != EOK)
-				goto end;
-			data = (void *) ((uintptr_t) data + vol->bsize);
-			ba++;
-		}
+		xor(xorbuf, data, len);
+
+		rc = block_write_direct(vol->extents[0].svc_id, ba, cnt,
+		    xorbuf);
+		if (rc != EOK)
+			goto end;
+		rc = block_write_direct(vol->extents[extent].svc_id, ba, cnt,
+		    data);
+		if (rc != EOK)
+			goto end;
 	}
 end:
 	free(xorbuf);
@@ -289,40 +281,40 @@ static errno_t hr_raid4_write_parity(hr_volume_t *vol, uint64_t extent,
     uint64_t block, const void *data, size_t cnt)
 {
 	errno_t rc;
-	size_t i, j;
+	size_t i;
 	void *xorbuf;
 	void *buf;
+	uint64_t len = vol->bsize * cnt;
 
-	xorbuf = malloc(vol->bsize);
+	xorbuf = malloc(len);
 	if (xorbuf == NULL)
 		return ENOMEM;
 
-	buf = malloc(vol->bsize);
+	buf = malloc(len);
 	if (buf == NULL) {
 		free(xorbuf);
 		return ENOMEM;
 	}
 
-	for (j = 0; j < cnt; j++) {
-		memset(xorbuf, 0, vol->bsize);
-		for (i = 1; i < vol->dev_no; i++) {
-			if (i == extent) {
-				xor(xorbuf, data, vol->bsize);
-			} else {
-				rc = block_read_direct(vol->extents[i].svc_id,
-				    block, 1, buf);
-				if (rc != EOK)
-					goto end;
-				xor(xorbuf, buf, vol->bsize);
-			}
+	/*
+	 * parity = read and xor all other data extents, xor in new data
+	 *
+	 * XXX: subtract method
+	 */
+	memset(xorbuf, 0, len);
+	for (i = 1; i < vol->dev_no; i++) {
+		if (i == extent) {
+			xor(xorbuf, data, vol->bsize);
+		} else {
+			rc = block_read_direct(vol->extents[i].svc_id, block,
+			    cnt, buf);
+			if (rc != EOK)
+				goto end;
+			xor(xorbuf, buf, len);
 		}
-		rc = block_write_direct(vol->extents[0].svc_id, block, 1,
-		    xorbuf);
-		if (rc != EOK)
-			goto end;
-		data = (void *) ((uintptr_t) data + vol->bsize);
-		block++;
 	}
+
+	rc = block_write_direct(vol->extents[0].svc_id, block, cnt, xorbuf);
 end:
 	free(xorbuf);
 	free(buf);
