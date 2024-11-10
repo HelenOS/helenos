@@ -52,7 +52,7 @@ void pcap_set_time(pcap_packet_header_t *header)
 
 /** Add pcap file header to the new .pcap file.
  *
- * @param writer
+ * @param writer writer that has destination buffer and ops to write to destination buffer.
  *
  */
 void pcap_writer_add_header(pcap_writer_t *writer)

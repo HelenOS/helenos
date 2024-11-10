@@ -35,13 +35,14 @@
 
 #include <errno.h>
 #include <str.h>
+#include <io/log.h>
 #include "pcap_dumper.h"
 
 /** Initialize writing to .pcap file.
  *
- * @param writer    Interface for working with .pcap file
- * @param filename  Name of the file for dumping packets
- * @return          EOK on success or an error code
+ * @param writer    Interface for working with .pcap file.
+ * @param filename  Name of the file for dumping packets.
+ * @return          EOK on success or an error code.
  *
  */
 static errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filename)
@@ -125,12 +126,12 @@ errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
 	if (dumper->to_dump) {
 		pcap_dumper_stop(dumper);
 	}
+
 	errno_t rc = dumper->writer.ops->open(&dumper->writer, name);
 	if (rc == EOK) {
 		dumper->to_dump = true;
-	} else {
-		printf("Failed creating pcap dumper: %s", str_error(rc));
 	}
+
 	fibril_mutex_unlock(&dumper->mutex);
 	return rc;
 }
@@ -187,6 +188,12 @@ errno_t pcap_dumper_init(pcap_dumper_t *dumper)
 	fibril_mutex_initialize(&dumper->mutex);
 	dumper->to_dump = false;
 	dumper->writer.ops = NULL;
+
+	errno_t rc = log_init("pcap");
+	if (rc != EOK) {
+		printf("pcap : Failed to initialize log.\n");
+		return 1;
+	}
 	return EOK;
 }
 

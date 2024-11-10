@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <fibril_synch.h>
 #include <str.h>
+#include <io/log.h>
 
 #include "pcapdump_srv.h"
 
@@ -58,7 +59,7 @@ static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 	rc = pcap_dumper_start(dumper, (const char *)data);
 	free(data);
 	if (rc != EOK) {
-		//TODO what?
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Starting the dumping was not successful.\n");
 	}
 	async_answer_0(icall, EOK);
 }
@@ -84,10 +85,12 @@ static void pcapdump_set_ops_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 	rc = pcap_dumper_set_ops(dumper, (const char *)data);
 	free(data);
 	if (rc != EOK) {
-		//TODO what?
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Setting ops for dumper was not successful.\n");
 	}
-	async_answer_0(icall, EOK);
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Setting ops for dumper was successful.\n");
+
+	async_answer_0(icall, EOK);
 }
 
 void pcapdump_conn(ipc_call_t *icall, void *arg)
@@ -133,13 +136,13 @@ errno_t pcapdump_init(pcap_dumper_t *dumper)
 	rc = pcap_dumper_init(dumper);
 
 	if (rc != EOK) {
-		printf("Failed creating pcap interface: %s", str_error(rc));
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Failed creating pcap interface: %s", str_error(rc));
 		return rc;
 	}
 
-	rc = async_create_port(INTERFACE_PCAP_CONTROL,
-	    pcapdump_conn, dumper, &port);
+	rc = async_create_port(INTERFACE_PCAP_CONTROL, pcapdump_conn, dumper, &port);
 	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Failed creating port: %s", str_error(rc));
 		return rc;
 	}
 	return EOK;

@@ -57,8 +57,7 @@
 #define WIRESHARK_EX 0xc
 #define WIRESHARK_SNAPLEN 0xffff
 
-/** Header of the .pcap file
- */
+/** Header of the .pcap file. */
 typedef struct {
 	uint32_t magic_number;
 	uint16_t major_v;
@@ -69,6 +68,7 @@ typedef struct {
 	uint32_t additional; /** The LinkType and additional information field is in the form */
 } pcap_file_header_t;
 
+/** Header of the packet to be dumped to .pcap file. */
 typedef struct pcap_packet_header {
 	uint32_t seconds_stamp;
 	uint32_t magic_stamp;
@@ -78,23 +78,22 @@ typedef struct pcap_packet_header {
 
 typedef struct pcap_writer pcap_writer_t;
 
+/** Operations for dumper. */
 typedef struct {
 	errno_t (*open)(struct pcap_writer *, const char *);
 	size_t (*write_u32)(struct pcap_writer *, uint32_t);
 	size_t (*write_u16)(struct pcap_writer *, uint16_t);
 	size_t (*write_buffer)(struct pcap_writer *, const void *, size_t);
 	void (*close)(struct pcap_writer *);
-
 } pcap_writer_ops_t;
 
-/** Interface for working with .pcap file
- */
+/** Interface for working with .pcap file. */
 typedef struct pcap_writer {
 	void *data;
 	pcap_writer_ops_t *ops;
 } pcap_writer_t;
 
-extern void pcap_writer_add_header(pcap_writer_t *);
+extern void pcap_writer_add_header(pcap_writer_t *writer);
 extern void pcap_writer_add_packet(pcap_writer_t *writer, const void *captured_packet, size_t size);
 extern void pcap_set_time(pcap_packet_header_t *header);
 
