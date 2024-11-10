@@ -37,6 +37,27 @@
 #include <str.h>
 #include "pcap_dumper.h"
 
+/** Initialize writing to .pcap file.
+ *
+ * @param writer    Interface for working with .pcap file
+ * @param filename  Name of the file for dumping packets
+ * @return          EOK on success or an error code
+ *
+ */
+static errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filename)
+{
+	errno_t rc;
+	writer->data = fopen(filename, "a");
+	if (writer->data == NULL) {
+		rc = EINVAL;
+		return rc;
+	}
+	pcap_writer_add_header(writer);
+
+	rc = EOK;
+	return rc;
+}
+
 static size_t pcap_file_w32(pcap_writer_t *writer, uint32_t data)
 {
 	return fwrite(&data, 1, 4, (FILE *)writer->data);
@@ -60,7 +81,7 @@ static void pcap_file_close(pcap_writer_t *writer)
 }
 
 static pcap_writer_ops_t file_ops = {
-
+	.open = &pcap_writer_to_file_init,
 	.write_u32 = &pcap_file_w32,
 	.write_u16 = &pcap_file_w16,
 	.write_buffer = &pcap_file_wbuffer,
@@ -79,7 +100,7 @@ static size_t pcap_short_file_w16(pcap_writer_t *writer, uint16_t data)
 
 static size_t pcap_short_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
 {
-	return fwrite(data, 1, size<60?size:60, (FILE *)writer->data);
+	return fwrite(data, 1, size < 60 ? size : 60, (FILE *)writer->data);
 }
 
 static void pcap_short_file_close(pcap_writer_t *writer)
@@ -88,6 +109,7 @@ static void pcap_short_file_close(pcap_writer_t *writer)
 }
 
 static pcap_writer_ops_t short_file_ops = {
+	.open = &pcap_writer_to_file_init,
 	.write_u32 = &pcap_short_file_w32,
 	.write_u16 = &pcap_short_file_w16,
 	.write_buffer = &pcap_short_file_wbuffer,
@@ -103,7 +125,7 @@ errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
 	if (dumper->to_dump) {
 		pcap_dumper_stop(dumper);
 	}
-	errno_t rc = pcap_writer_to_file_init(&dumper->writer, name);
+	errno_t rc = dumper->writer.ops->open(&dumper->writer, name);
 	if (rc == EOK) {
 		dumper->to_dump = true;
 	} else {
@@ -117,22 +139,16 @@ errno_t pcap_dumper_set_ops(struct pcap_dumper *dumper, const char *name)
 {
 	fibril_mutex_lock(&dumper->mutex);
 	errno_t rc = EOK;
-	if (!str_cmp(name, "short_file"))
-	{
+	if (!str_cmp(name, "short_file")) {
 		dumper->writer.ops = &short_file_ops;
-	}
-	else if (!str_cmp(name, "full_file"))
-	{
+	} else if (!str_cmp(name, "full_file")) {
 		dumper->writer.ops = &file_ops;
-	}
-	else
-	{
+	} else {
 		rc = EINVAL;
 	}
 	fibril_mutex_unlock(&dumper->mutex);
 	return rc;
 }
-
 
 void pcap_dumper_add_packet(struct pcap_dumper *dumper, const void *data, size_t size)
 {

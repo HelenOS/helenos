@@ -86,26 +86,5 @@ void pcap_writer_add_packet(pcap_writer_t *writer, const void *captured_packet, 
 
 }
 
-/** Initialize writing to .pcap file.
- *
- * @param writer    Interface for working with .pcap file
- * @param filename  Name of the file for dumping packets
- * @return          EOK on success or an error code
- *
- */
-errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filename)
-{
-	errno_t rc;
-	writer->data = fopen(filename, "a");
-	if (writer->data == NULL) {
-		rc = EINVAL;
-		return rc;
-	}
-	pcap_writer_add_header(writer);
-
-	rc = EOK;
-	return rc;
-}
-
 /** @}
  */

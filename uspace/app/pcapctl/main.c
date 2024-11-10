@@ -52,8 +52,7 @@ static errno_t start_dumping(int *dev_number, const char *name)
 	}
 
 	rc = pcapctl_dump_start(name, sess);
-	if (rc != EOK)
-	{
+	if (rc != EOK) {
 		printf("Starting the dumping was not successful.\n");
 	}
 	pcapctl_dump_close(sess);
@@ -68,8 +67,7 @@ static errno_t stop_dumping(int *dev_number)
 		return 1;
 	}
 	rc = pcapctl_dump_stop(sess);
-	if (rc != EOK)
-	{
+	if (rc != EOK) {
 		printf("Stoping the dumping was not successful.\n");
 	}
 	pcapctl_dump_close(sess);
@@ -80,14 +78,12 @@ static errno_t set_dumper_ops(int *dev_number, const char *name)
 {
 	pcapctl_sess_t *sess = NULL;
 	errno_t rc = pcapctl_dump_open(dev_number, &sess);
-	if (rc != EOK)
-	{
+	if (rc != EOK) {
 		return rc;
 	}
 
 	rc = pcapctl_dump_set_ops(name, sess);
-	if (rc != EOK)
-	{
+	if (rc != EOK) {
 		printf("Setting dumper ops was not successful.\n");
 	}
 	pcapctl_dump_close(sess);
@@ -185,9 +181,7 @@ int main(int argc, char *argv[])
 	} else if (stop) {
 		/* stop with dev number */
 		stop_dumping(&dev_number);
-	}
-	else if (set_ops)
-	{
+	} else if (set_ops) {
 		set_dumper_ops(&dev_number, ops_name);
 	}
 	return 0;
