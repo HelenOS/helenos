@@ -43,7 +43,7 @@
 #include <ddf/driver.h>
 #include <device/hw_res_parsed.h>
 #include <ops/nic.h>
-#include <pcap_iface.h>
+#include <pcap_dumper.h>
 
 #define DEVICE_CATEGORY_NIC "nic"
 

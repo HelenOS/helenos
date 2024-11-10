@@ -71,8 +71,7 @@ void pcap_writer_add_header(pcap_writer_t *writer)
  */
 void pcap_writer_add_packet(pcap_writer_t *writer, const void *captured_packet, size_t size)
 {
-	if (!writer->data)
-		return;
+
 	pcap_packet_header_t pcap_packet;
 	pcap_set_time(&pcap_packet);
 	pcap_packet.original_length = size;

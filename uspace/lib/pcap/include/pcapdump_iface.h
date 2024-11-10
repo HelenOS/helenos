@@ -39,12 +39,13 @@
 #define _PCAPDUMP_IFACE_H_
 
 #include <errno.h>
-#include "pcap_iface.h"
+#include "pcap_dumper.h"
 
 typedef enum {
 	PCAP_CONTROL_SET_START = IPC_FIRST_USER_METHOD,
 	PCAP_CONTROL_SET_STOP,
-	PCAP_CONTROL_GET_NAME
+	PCAP_CONTROL_GET_NAME,
+	PCAP_CONTROL_SET_OPS,
 } pcap_request_t;
 
 extern errno_t pcapdump_init(pcap_dumper_t *);

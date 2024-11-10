@@ -28,7 +28,7 @@
 
 src = files(
     'src/pcap.c',
-    'src/pcap_iface.c',
+    'src/pcap_dumper.c',
     'src/pcapdump_iface.c',
     'src/pcapctl_dump.c',
 )

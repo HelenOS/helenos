@@ -69,6 +69,27 @@ static void pcapdump_stop_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 	async_answer_0(icall, EOK);
 }
 
+static void pcapdump_set_ops_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
+{
+	char *data;
+	size_t size;
+	errno_t rc = async_data_write_accept((void **) &data, true, 0, 0, 0, &size);
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	assert(str_length(data) == size && "Data were damaged during transmission.\n");
+
+	rc = pcap_dumper_set_ops(dumper, (const char *)data);
+	free(data);
+	if (rc != EOK) {
+		//TODO what?
+	}
+	async_answer_0(icall, EOK);
+
+}
+
 void pcapdump_conn(ipc_call_t *icall, void *arg)
 {
 	pcap_dumper_t *dumper = (pcap_dumper_t *)arg;
@@ -93,6 +114,9 @@ void pcapdump_conn(ipc_call_t *icall, void *arg)
 			break;
 		case PCAP_CONTROL_SET_STOP:
 			pcapdump_stop_srv(&call, dumper);
+			break;
+		case PCAP_CONTROL_SET_OPS:
+			pcapdump_set_ops_srv(&call, dumper);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

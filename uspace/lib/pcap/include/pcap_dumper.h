@@ -47,10 +47,7 @@ typedef struct pcap_dumper {
 
 extern void pcap_dumper_stop(struct pcap_dumper *);
 extern errno_t pcap_dumper_init(pcap_dumper_t *);
-
-// v ramci init jeste linktype prg
-//set snaplen taky lze pridavat prg
-
+extern errno_t pcap_dumper_set_ops(struct pcap_dumper *, const char *);
 extern errno_t pcap_dumper_start(struct pcap_dumper *, const char *);
 extern void pcap_dumper_add_packet(struct pcap_dumper *, const void *data, size_t size);
 

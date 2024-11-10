@@ -561,7 +561,7 @@ void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 		}
 		fibril_rwlock_write_unlock(&nic_data->stats_lock);
 	}
-	pcapdump_packet(nic_get_pcap_iface(nic_data), frame->data, frame->size);
+	//pcapdump_packet(nic_get_pcap_iface(nic_data), frame->data, frame->size);
 	nic_release_frame(nic_data, frame);
 }
 

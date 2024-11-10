@@ -34,7 +34,8 @@
  */
 
 #include <errno.h>
-#include "pcap_iface.h"
+#include <str.h>
+#include "pcap_dumper.h"
 
 static size_t pcap_file_w32(pcap_writer_t *writer, uint32_t data)
 {
@@ -48,12 +49,14 @@ static size_t pcap_file_w16(pcap_writer_t *writer, uint16_t data)
 
 static size_t pcap_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
 {
+	assert(writer->data);
 	return fwrite(data, 1, size, (FILE *)writer->data);
 }
 
 static void pcap_file_close(pcap_writer_t *writer)
 {
 	fclose((FILE *)writer->data);
+	writer->data = NULL;
 }
 
 static pcap_writer_ops_t file_ops = {
@@ -64,40 +67,40 @@ static pcap_writer_ops_t file_ops = {
 	.close = &pcap_file_close
 };
 
-// static size_t pcap_short_file_w32(pcap_writer_t *writer, uint32_t data)
-// {
-// 	return fwrite(&data, 1, 4, (FILE *)writer->data);
-// }
+static size_t pcap_short_file_w32(pcap_writer_t *writer, uint32_t data)
+{
+	return fwrite(&data, 1, 4, (FILE *)writer->data);
+}
 
-// static size_t pcap_short_file_w16(pcap_writer_t *writer, uint16_t data)
-// {
-// 	return fwrite(&data, 1, 2, (FILE *)writer->data);
-// }
+static size_t pcap_short_file_w16(pcap_writer_t *writer, uint16_t data)
+{
+	return fwrite(&data, 1, 2, (FILE *)writer->data);
+}
 
-// static size_t pcap_short_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
-// {
-// 	return fwrite(data, 1, size<60?size:60, (FILE *)writer->data);
-// }
+static size_t pcap_short_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
+{
+	return fwrite(data, 1, size<60?size:60, (FILE *)writer->data);
+}
 
-// static void pcap_short_file_close(pcap_writer_t *writer)
-// {
-// 	fclose((FILE *)writer->data);
-// }
+static void pcap_short_file_close(pcap_writer_t *writer)
+{
+	fclose((FILE *)writer->data);
+}
 
-// static pcap_writer_ops_t short_file_ops = {
-// 	.write_u32 = &pcap_short_file_w32,
-// 	.write_u16 = &pcap_short_file_w16,
-// 	.write_buffer = &pcap_short_file_wbuffer,
-// 	.close = &pcap_short_file_close
+static pcap_writer_ops_t short_file_ops = {
+	.write_u32 = &pcap_short_file_w32,
+	.write_u16 = &pcap_short_file_w16,
+	.write_buffer = &pcap_short_file_wbuffer,
+	.close = &pcap_short_file_close
 
-// };
+};
 
 errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
 {
 	fibril_mutex_lock(&dumper->mutex);
 
 	/** When try to start when already started, close current and starts new */
-	if (dumper->to_dump == true) {
+	if (dumper->to_dump) {
 		pcap_dumper_stop(dumper);
 	}
 	errno_t rc = pcap_writer_to_file_init(&dumper->writer, name);
@@ -110,32 +113,51 @@ errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
 	return rc;
 }
 
-//udelat globalni
+errno_t pcap_dumper_set_ops(struct pcap_dumper *dumper, const char *name)
+{
+	fibril_mutex_lock(&dumper->mutex);
+	errno_t rc = EOK;
+	if (!str_cmp(name, "short_file"))
+	{
+		dumper->writer.ops = &short_file_ops;
+	}
+	else if (!str_cmp(name, "full_file"))
+	{
+		dumper->writer.ops = &file_ops;
+	}
+	else
+	{
+		rc = EINVAL;
+	}
+	fibril_mutex_unlock(&dumper->mutex);
+	return rc;
+}
+
+
 void pcap_dumper_add_packet(struct pcap_dumper *dumper, const void *data, size_t size)
 {
 	fibril_mutex_lock(&dumper->mutex);
 
-	if (dumper->writer.data == NULL || !dumper->to_dump) {
+	if (!dumper->to_dump) {
 		fibril_mutex_unlock(&dumper->mutex);
 		return;
 	}
+
 	pcap_writer_add_packet(&dumper->writer, data, size);
 	fibril_mutex_unlock(&dumper->mutex);
 }
 
-//udelt globalni
 void pcap_dumper_stop(struct pcap_dumper *dumper)
 {
 	fibril_mutex_lock(&dumper->mutex);
 
 	/** If want to stop, when already stopped, do nothing */
-	if (dumper->to_dump == false) {
+	if (!dumper->to_dump) {
 		fibril_mutex_unlock(&dumper->mutex);
 		return;
 	}
 	dumper->to_dump = false;
 	dumper->writer.ops->close(&dumper->writer);
-	dumper->writer.data = NULL;
 	fibril_mutex_unlock(&dumper->mutex);
 }
 
@@ -148,7 +170,7 @@ errno_t pcap_dumper_init(pcap_dumper_t *dumper)
 {
 	fibril_mutex_initialize(&dumper->mutex);
 	dumper->to_dump = false;
-	dumper->writer.ops = &file_ops;
+	dumper->writer.ops = NULL;
 	return EOK;
 }
 

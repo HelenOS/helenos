@@ -51,7 +51,11 @@ static errno_t start_dumping(int *dev_number, const char *name)
 		return 1;
 	}
 
-	pcapctl_dump_start(name, sess);
+	rc = pcapctl_dump_start(name, sess);
+	if (rc != EOK)
+	{
+		printf("Starting the dumping was not successful.\n");
+	}
 	pcapctl_dump_close(sess);
 	return EOK;
 }
@@ -63,7 +67,29 @@ static errno_t stop_dumping(int *dev_number)
 	if (rc != EOK) {
 		return 1;
 	}
-	pcapctl_dump_stop(sess);
+	rc = pcapctl_dump_stop(sess);
+	if (rc != EOK)
+	{
+		printf("Stoping the dumping was not successful.\n");
+	}
+	pcapctl_dump_close(sess);
+	return EOK;
+}
+
+static errno_t set_dumper_ops(int *dev_number, const char *name)
+{
+	pcapctl_sess_t *sess = NULL;
+	errno_t rc = pcapctl_dump_open(dev_number, &sess);
+	if (rc != EOK)
+	{
+		return rc;
+	}
+
+	rc = pcapctl_dump_set_ops(name, sess);
+	if (rc != EOK)
+	{
+		printf("Setting dumper ops was not successful.\n");
+	}
 	pcapctl_dump_close(sess);
 	return EOK;
 }
@@ -83,6 +109,7 @@ static const struct option opts[] = {
 	{ "outfile", required_argument, 0, 'f' },
 	{ "start", no_argument, 0, 'r' },
 	{ "stop", no_argument, 0, 't' },
+	{ "ops", required_argument, 0, 'o' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -105,8 +132,10 @@ int main(int argc, char *argv[])
 {
 	bool start = false;
 	bool stop = false;
+	bool set_ops = false;
 	int dev_number = -1;
 	const char *output_file_name = "";
+	const char *ops_name = "";
 	int idx = 0;
 	int ret = 0;
 	if (argc == 1) {
@@ -141,6 +170,10 @@ int main(int argc, char *argv[])
 		case 't':
 			stop = true;
 			break;
+		case 'o':
+			set_ops = true;
+			ops_name = optarg;
+			break;
 		}
 	}
 
@@ -152,6 +185,10 @@ int main(int argc, char *argv[])
 	} else if (stop) {
 		/* stop with dev number */
 		stop_dumping(&dev_number);
+	}
+	else if (set_ops)
+	{
+		set_dumper_ops(&dev_number, ops_name);
 	}
 	return 0;
 }

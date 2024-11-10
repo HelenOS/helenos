@@ -197,7 +197,7 @@ errno_t pcapctl_dump_start(const char *name, pcapctl_sess_t *sess)
 	size_t size = str_size(name);
 	aid_t req = async_send_0(exch, PCAP_CONTROL_SET_START, NULL);
 
-	rc = async_data_write_start(exch, (const void *)name, size);
+	rc = async_data_write_start(exch, name, size);
 
 	pcapctl_dump_exchange_end(exch);
 
@@ -224,6 +224,28 @@ errno_t pcapctl_dump_stop(pcapctl_sess_t *sess)
 
 	pcapctl_dump_exchange_end(exch);
 	return rc;
+}
+
+errno_t pcapctl_dump_set_ops(const char *ops_name, pcapctl_sess_t *sess)
+{
+	errno_t rc;
+	async_exch_t *exch = async_exchange_begin(sess->sess);
+
+	size_t size = str_size(ops_name);
+	aid_t req = async_send_0(exch, PCAP_CONTROL_SET_OPS, NULL);
+
+	rc = async_data_write_start(exch, ops_name, size);
+
+	pcapctl_dump_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	errno_t retval;
+	async_wait_for(req, &retval);
+	return retval;
 }
 
 /** @}
