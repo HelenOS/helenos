@@ -45,7 +45,7 @@
 #include <fibril_synch.h>
 #include <nic/nic.h>
 #include <async.h>
-#include <pcapdump_iface.h>
+#include <pcapdump_srv.h>
 
 #include "nic.h"
 #include "nic_rx_control.h"

@@ -41,7 +41,7 @@
 #include <fibril_synch.h>
 #include <str.h>
 
-#include "pcapdump_iface.h"
+#include "pcapdump_srv.h"
 
 static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 {

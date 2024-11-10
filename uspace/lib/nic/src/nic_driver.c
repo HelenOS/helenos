@@ -46,7 +46,7 @@
 #include <ddf/interrupt.h>
 #include <ops/nic.h>
 #include <errno.h>
-#include <pcapdump_iface.h>
+#include <pcapdump_srv.h>
 
 #include "nic_driver.h"
 #include "nic_ev.h"

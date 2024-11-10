@@ -41,7 +41,6 @@
 #include <pci_dev_iface.h>
 #include <stdio.h>
 #include <str.h>
-#include <pcapdump_iface.h>
 
 #include "defs.h"
 #include "driver.h"

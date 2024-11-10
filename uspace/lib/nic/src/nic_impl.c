@@ -39,7 +39,7 @@
 #include <str_error.h>
 #include <ipc/services.h>
 #include <ns.h>
-#include <pcapdump_iface.h>
+#include <pcapdump_srv.h>
 #include "nic_driver.h"
 #include "nic_ev.h"
 #include "nic_impl.h"

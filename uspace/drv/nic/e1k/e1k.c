@@ -48,7 +48,6 @@
 #include <pci_dev_iface.h>
 #include <nic.h>
 #include <ops/nic.h>
-#include <pcapdump_iface.h>
 #include "e1k.h"
 
 #define NAME  "e1k"

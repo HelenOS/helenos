@@ -39,8 +39,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-#include "pcapctl_dump.h"
-#include "pcapdump_iface.h"
+#include "pcapdump_client.h"
+#include "pcapdump_srv.h"
 
 /** Finish an async exchange on the pcapctl session
  *

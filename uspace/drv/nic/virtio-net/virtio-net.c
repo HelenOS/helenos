@@ -42,7 +42,6 @@
 #include <nic.h>
 
 #include <virtio-pci.h>
-#include <pcapdump_iface.h>
 
 #define NAME	"virtio-net"
 

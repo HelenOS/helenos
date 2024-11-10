@@ -38,7 +38,7 @@
 #include <arg_parse.h>
 #include <getopt.h>
 
-#include "pcapctl_dump.h"
+#include "pcapdump_client.h"
 
 #define NAME "pcapctl"
 #define DEFAULT_DEV_NUM 0
