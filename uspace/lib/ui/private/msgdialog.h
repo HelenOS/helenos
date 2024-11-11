@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,10 @@
 #ifndef _UI_PRIVATE_MSGDIALOG_H
 #define _UI_PRIVATE_MSGDIALOG_H
 
+#include <types/ui/msgdialog.h>
+#include <ui/pbutton.h>
+#include <ui/window.h>
+
 /** Actual structure of message dialog.
  *
  * This is private to libui.
@@ -44,8 +48,8 @@
 struct ui_msg_dialog {
 	/** Dialog window */
 	struct ui_window *window;
-	/** OK button */
-	struct ui_pbutton *bok;
+	/** Buttons */
+	struct ui_pbutton *btn[ui_msg_dialog_maxbtn];
 	/** Message dialog callbacks */
 	struct ui_msg_dialog_cb *cb;
 	/** Callback argument */

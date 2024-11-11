@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,12 +44,27 @@
 struct ui_msg_dialog;
 typedef struct ui_msg_dialog ui_msg_dialog_t;
 
+enum {
+	/** Maximum number of buttons in message dialog. */
+	ui_msg_dialog_maxbtn = 2
+};
+
+/** Which choices the user can select from. */
+typedef enum {
+	/** OK (the default) */
+	umdc_ok,
+	/** OK, Cancel */
+	umdc_ok_cancel
+} ui_msg_dialog_choice_t;
+
 /** Message dialog parameters */
 typedef struct {
 	/** Window caption */
 	const char *caption;
 	/** Message text */
 	const char *text;
+	/** The choice that the user is given */
+	ui_msg_dialog_choice_t choice;
 } ui_msg_dialog_params_t;
 
 /** Message dialog callback */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,6 +91,7 @@ PCUT_TEST(button_cb)
 	ui_t *ui = NULL;
 	ui_msg_dialog_params_t params;
 	ui_msg_dialog_t *dialog = NULL;
+	unsigned i;
 	test_cb_resp_t resp;
 
 	rc = ui_create_disp(NULL, &ui);
@@ -99,25 +100,28 @@ PCUT_TEST(button_cb)
 	ui_msg_dialog_params_init(&params);
 	params.caption = "Message";
 	params.text = "Hello";
+	params.choice = umdc_ok_cancel;
 
 	rc = ui_msg_dialog_create(ui, &params, &dialog);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 	PCUT_ASSERT_NOT_NULL(dialog);
 
 	/* Button callback with no callbacks set */
-	ui_pbutton_clicked(dialog->bok);
+	ui_pbutton_clicked(dialog->btn[0]);
 
 	/* Button callback with callback not implemented */
 	ui_msg_dialog_set_cb(dialog, &dummy_msg_dialog_cb, NULL);
-	ui_pbutton_clicked(dialog->bok);
+	ui_pbutton_clicked(dialog->btn[0]);
 
-	/* Button callback with real callback set */
-	resp.button = false;
-	resp.bnum = 123;
-	ui_msg_dialog_set_cb(dialog, &test_msg_dialog_cb, &resp);
-	ui_pbutton_clicked(dialog->bok);
-	PCUT_ASSERT_TRUE(resp.button);
-	PCUT_ASSERT_INT_EQUALS(0, resp.bnum);
+	for (i = 0; i < 2; i++) {
+		/* Button callback with real callback set */
+		resp.button = false;
+		resp.bnum = 123;
+		ui_msg_dialog_set_cb(dialog, &test_msg_dialog_cb, &resp);
+		ui_pbutton_clicked(dialog->btn[i]);
+		PCUT_ASSERT_TRUE(resp.button);
+		PCUT_ASSERT_INT_EQUALS(i, resp.bnum);
+	}
 
 	ui_msg_dialog_destroy(dialog);
 	ui_destroy(ui);

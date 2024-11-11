@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,11 @@ ui_pbutton_cb_t ui_msg_dialog_btn_cb = {
 	.clicked = ui_msg_dialog_btn_clicked
 };
 
+static const char *ui_msg_dialog_captions[][ui_msg_dialog_maxbtn + 1] = {
+	[umdc_ok] = { "OK", NULL },
+	[umdc_ok_cancel] = { "OK", "Cancel", NULL }
+};
+
 /** Initialize message dialog parameters structure.
  *
  * Message dialog parameters structure must always be initialized using
@@ -85,9 +90,15 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	ui_wnd_params_t wparams;
 	ui_fixed_t *fixed = NULL;
 	ui_label_t *label = NULL;
-	ui_pbutton_t *bok = NULL;
+	ui_pbutton_t *btn[ui_msg_dialog_maxbtn];
+	const char **cp;
+	unsigned i, nb;
 	gfx_rect_t rect;
+	gfx_coord_t bw, bpad, btnsw, bp0x;
 	ui_resource_t *ui_res;
+
+	for (i = 0; i < ui_msg_dialog_maxbtn; i++)
+		btn[i] = NULL;
 
 	dialog = calloc(1, sizeof(ui_msg_dialog_t));
 	if (dialog == NULL) {
@@ -102,12 +113,12 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	if (ui_is_textmode(ui)) {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
-		wparams.rect.p1.x = 40;
+		wparams.rect.p1.x = 60;
 		wparams.rect.p1.y = 7;
 	} else {
 		wparams.rect.p0.x = 0;
 		wparams.rect.p0.y = 0;
-		wparams.rect.p1.x = 200;
+		wparams.rect.p1.x = 400;
 		wparams.rect.p1.y = 110;
 	}
 
@@ -131,12 +142,12 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	if (ui_is_textmode(ui)) {
 		rect.p0.x = 3;
 		rect.p0.y = 2;
-		rect.p1.x = 17;
+		rect.p1.x = 57;
 		rect.p1.y = 3;
 	} else {
 		rect.p0.x = 10;
 		rect.p0.y = 35;
-		rect.p1.x = 190;
+		rect.p1.x = 390;
 		rect.p1.y = 50;
 	}
 
@@ -149,35 +160,60 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 
 	label = NULL;
 
-	rc = ui_pbutton_create(ui_res, "OK", &bok);
-	if (rc != EOK)
-		goto error;
+	i = 0;
+	assert(params->choice == umdc_ok || params->choice == umdc_ok_cancel);
+	cp = ui_msg_dialog_captions[params->choice];
 
-	ui_pbutton_set_cb(bok, &ui_msg_dialog_btn_cb, dialog);
+	while (*cp != NULL) {
+		rc = ui_pbutton_create(ui_res, *cp, &btn[i]);
+		if (rc != EOK)
+			goto error;
 
-	/* FIXME: Auto layout */
-	if (ui_is_textmode(ui)) {
-		rect.p0.x = 8;
-		rect.p0.y = 4;
-		rect.p1.x = 12;
-		rect.p1.y = 5;
-	} else {
-		rect.p0.x = 55;
-		rect.p0.y = 60;
-		rect.p1.x = 145;
-		rect.p1.y = 88;
+		ui_pbutton_set_cb(btn[i], &ui_msg_dialog_btn_cb, dialog);
+		++cp;
+		++i;
 	}
 
-	ui_pbutton_set_rect(bok, &rect);
+	nb = i;
 
-	ui_pbutton_set_default(bok, true);
+	if (ui_is_textmode(ui)) {
+		bw = 12;
+		bpad = 2;
+	} else {
+		bw = 90;
+		bpad = 10;
+	}
 
-	rc = ui_fixed_add(fixed, ui_pbutton_ctl(bok));
-	if (rc != EOK)
-		goto error;
+	btnsw = (nb - 1) * (bw + bpad) + bw;
+	bp0x = (wparams.rect.p0.x + wparams.rect.p1.x - btnsw) / 2;
 
-	dialog->bok = bok;
-	bok = NULL;
+	for (i = 0; i < nb; i++) {
+		/* FIXME: Auto layout */
+		if (ui_is_textmode(ui)) {
+			rect.p0.x = bp0x + i * (bw + bpad);
+			rect.p0.y = 4;
+			rect.p1.x = bp0x + bw + i * (bw + bpad);
+			rect.p1.y = 5;
+		} else {
+			rect.p0.x = bp0x + i * (bw + bpad);
+			rect.p0.y = 60;
+			rect.p1.x = bp0x + bw + i * (bw + bpad);
+			rect.p1.y = 88;
+		}
+
+		ui_pbutton_set_rect(btn[i], &rect);
+
+		rc = ui_fixed_add(fixed, ui_pbutton_ctl(btn[i]));
+		if (rc != EOK)
+			goto error;
+	}
+
+	ui_pbutton_set_default(btn[0], true);
+
+	for (i = 0; i < ui_msg_dialog_maxbtn; i++) {
+		dialog->btn[i] = btn[i];
+		btn[i] = NULL;
+	}
 
 	ui_window_add(window, ui_fixed_ctl(fixed));
 	fixed = NULL;
@@ -190,8 +226,10 @@ errno_t ui_msg_dialog_create(ui_t *ui, ui_msg_dialog_params_t *params,
 	*rdialog = dialog;
 	return EOK;
 error:
-	if (bok != NULL)
-		ui_pbutton_destroy(bok);
+	for (i = 0; i < ui_msg_dialog_maxbtn; i++) {
+		if (btn[i] != NULL)
+			ui_pbutton_destroy(btn[i]);
+	}
 	if (label != NULL)
 		ui_label_destroy(label);
 	if (fixed != NULL)
@@ -250,9 +288,14 @@ static void ui_msg_dialog_wnd_close(ui_window_t *window, void *arg)
 static void ui_msg_dialog_btn_clicked(ui_pbutton_t *pbutton, void *arg)
 {
 	ui_msg_dialog_t *dialog = (ui_msg_dialog_t *) arg;
+	unsigned i;
 
-	if (dialog->cb != NULL && dialog->cb->button != NULL)
-		dialog->cb->button(dialog, dialog->arg, 0);
+	if (dialog->cb != NULL && dialog->cb->button != NULL) {
+		for (i = 0; i < ui_msg_dialog_maxbtn; i++) {
+			if (dialog->btn[i] == pbutton)
+				dialog->cb->button(dialog, dialog->arg, i);
+		}
+	}
 }
 
 /** @}
