@@ -46,9 +46,11 @@
 #include "../private/msgdialog.h"
 
 static void ui_msg_dialog_wnd_close(ui_window_t *, void *);
+static void ui_msg_dialog_wnd_kbd(ui_window_t *, void *, kbd_event_t *);
 
 ui_window_cb_t ui_msg_dialog_wnd_cb = {
-	.close = ui_msg_dialog_wnd_close
+	.close = ui_msg_dialog_wnd_close,
+	.kbd = ui_msg_dialog_wnd_kbd
 };
 
 static void ui_msg_dialog_btn_clicked(ui_pbutton_t *, void *);
@@ -278,6 +280,41 @@ static void ui_msg_dialog_wnd_close(ui_window_t *window, void *arg)
 
 	if (dialog->cb != NULL && dialog->cb->close != NULL)
 		dialog->cb->close(dialog, dialog->arg);
+}
+
+/** Message dialog window keyboard event handler.
+ *
+ * @param window Window
+ * @param arg Argument (ui_msg_dialog_t *)
+ * @param event Keyboard event
+ */
+static void ui_msg_dialog_wnd_kbd(ui_window_t *window, void *arg,
+    kbd_event_t *event)
+{
+	ui_msg_dialog_t *dialog = (ui_msg_dialog_t *) arg;
+	ui_evclaim_t claim;
+
+	claim = ui_window_def_kbd(window, event);
+	if (claim == ui_claimed)
+		return;
+
+	if (event->type == KEY_PRESS &&
+	    (event->mods & (KM_CTRL | KM_SHIFT | KM_ALT)) == 0) {
+		if (event->key == KC_ENTER) {
+			/* OK / default button */
+			if (dialog->cb != NULL && dialog->cb->button != NULL) {
+				dialog->cb->button(dialog, dialog->arg, 0);
+				return;
+			}
+		} else if (event->key == KC_ESCAPE) {
+			/* Cancel */
+			if (dialog->cb != NULL && dialog->cb->close != NULL) {
+				dialog->cb->close(dialog, dialog->arg);
+				return;
+			}
+		}
+	}
+
 }
 
 /** Message dialog button click handler.
