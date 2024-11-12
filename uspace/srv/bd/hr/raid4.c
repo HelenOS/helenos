@@ -410,6 +410,9 @@ static errno_t hr_raid4_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 			goto error;
 		}
 
+		if (rc == ENOMEM)
+			goto error;
+
 		if (rc == ENOENT)
 			hr_update_ext_status(vol, extent, HR_EXT_MISSING);
 		else if (rc != EOK)
