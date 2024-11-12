@@ -114,12 +114,14 @@ static errno_t hr_raid0_bd_close(bd_srv_t *bd)
 }
 
 static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
-    size_t cnt, void *data_read, const void *data_write, size_t size)
+    size_t cnt, void *dst, const void *src, size_t size)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
-	uint64_t phys_block;
+	uint64_t phys_block, len;
 	size_t left;
+	const uint8_t *data_write = src;
+	uint8_t *data_read = dst;
 
 	/* propagate sync */
 	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
@@ -154,6 +156,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	while (left != 0) {
 		phys_block = ext_stripe * strip_size + strip_off;
 		cnt = min(left, strip_size - strip_off);
+		len = vol->bsize * cnt;
 		hr_add_ba_offset(vol, &phys_block);
 		switch (type) {
 		case HR_BD_SYNC:
@@ -166,14 +169,12 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		case HR_BD_READ:
 			rc = block_read_direct(vol->extents[extent].svc_id,
 			    phys_block, cnt, data_read);
-			data_read = (void *) ((uintptr_t) data_read +
-			    (vol->bsize * cnt));
+			data_read += len;
 			break;
 		case HR_BD_WRITE:
 			rc = block_write_direct(vol->extents[extent].svc_id,
 			    phys_block, cnt, data_write);
-			data_write = (void *) ((uintptr_t) data_write +
-			    (vol->bsize * cnt));
+			data_write += len;
 			break;
 		default:
 			rc = EINVAL;
