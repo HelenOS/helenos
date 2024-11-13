@@ -64,6 +64,9 @@ static errno_t hr_raid5_bd_write_blocks(bd_srv_t *, aoff64_t, size_t,
 static errno_t hr_raid5_bd_get_block_size(bd_srv_t *, size_t *);
 static errno_t hr_raid5_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
+static errno_t hr_raid5_write_parity(hr_volume_t *, uint64_t, uint64_t,
+    uint64_t, const void *, size_t);
+
 static bd_ops_t hr_raid5_bd_ops = {
 	.open = hr_raid5_bd_open,
 	.close = hr_raid5_bd_close,
@@ -73,6 +76,65 @@ static bd_ops_t hr_raid5_bd_ops = {
 	.get_block_size = hr_raid5_bd_get_block_size,
 	.get_num_blocks = hr_raid5_bd_get_num_blocks
 };
+
+static errno_t hr_raid5_vol_usable(hr_volume_t *vol)
+{
+	if (vol->status == HR_VOL_ONLINE ||
+	    vol->status == HR_VOL_DEGRADED)
+		return EOK;
+	return EINVAL;
+}
+
+/*
+ * Returns (-1) if all extents are online,
+ * else returns index of first bad one.
+ */
+static ssize_t hr_raid5_get_bad_ext(hr_volume_t *vol)
+{
+	for (size_t i = 0; i < vol->dev_no; i++)
+		if (vol->extents[i].status != HR_EXT_ONLINE)
+			return i;
+	return -1;
+}
+
+static errno_t hr_raid5_update_vol_status(hr_volume_t *vol)
+{
+	hr_vol_status_t old_state = vol->status;
+	size_t bad = 0;
+	for (size_t i = 0; i < vol->dev_no; i++)
+		if (vol->extents[i].status != HR_EXT_ONLINE)
+			bad++;
+
+	switch (bad) {
+	case 0:
+		if (old_state != HR_VOL_ONLINE) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "RAID 5 has all extents online, "
+			    "marking \"%s\" (%lu) as ONLINE",
+			    vol->devname, vol->svc_id);
+			vol->status = HR_VOL_ONLINE;
+		}
+		return EOK;
+	case 1:
+		if (old_state != HR_VOL_DEGRADED) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "RAID 5 array \"%s\" (%lu) has 1 extent inactive, "
+			    "marking as DEGRADED",
+			    vol->devname, vol->svc_id);
+			vol->status = HR_VOL_DEGRADED;
+		}
+		return EOK;
+	default:
+		if (old_state != HR_VOL_FAULTY) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "RAID 5 array \"%s\" (%lu) has more than one 1 "
+			    "extent inactive, marking as FAULTY",
+			    vol->devname, vol->svc_id);
+			vol->status = HR_VOL_FAULTY;
+		}
+		return EINVAL;
+	}
+}
 
 static void xor(void *dst, const void *src, size_t size)
 {
@@ -84,49 +146,175 @@ static void xor(void *dst, const void *src, size_t size)
 		*d++ ^= *s++;
 }
 
-static errno_t write_parity(hr_volume_t *vol, uint64_t p_extent,
-    uint64_t extent, uint64_t block, const void *data, size_t cnt)
+static errno_t hr_raid5_read_degraded(hr_volume_t *vol, uint64_t bad,
+    uint64_t block, void *data, size_t cnt)
 {
 	errno_t rc;
-	size_t i, j;
+	size_t i;
 	void *xorbuf;
 	void *buf;
+	uint64_t len = vol->bsize * cnt;
 
-	xorbuf = malloc(vol->bsize);
+	xorbuf = malloc(len);
 	if (xorbuf == NULL)
 		return ENOMEM;
 
-	buf = malloc(vol->bsize);
+	buf = malloc(len);
 	if (buf == NULL) {
 		free(xorbuf);
 		return ENOMEM;
 	}
 
-	for (j = 0; j < cnt; j++) {
-		memset(xorbuf, 0, vol->bsize);
-		for (i = 0; i < vol->dev_no; i++) {
-			if (i == p_extent)
-				continue;
+	/* read all other extents in the stripe */
+	memset(xorbuf, 0, len);
+	for (i = 0; i < vol->dev_no; i++) {
+		if (i == bad) {
+			continue;
+		} else {
+			rc = block_read_direct(vol->extents[i].svc_id, block,
+			    cnt, buf);
+			if (rc != EOK)
+				goto end;
+			xor(xorbuf, buf, len);
+		}
+	}
 
-			if (i == extent) {
-				xor(xorbuf, data, vol->bsize);
+	memcpy(data, xorbuf, len);
+end:
+	free(xorbuf);
+	free(buf);
+	return rc;
+}
+
+static errno_t hr_raid5_write(hr_volume_t *vol, uint64_t p_extent,
+    uint64_t extent, aoff64_t ba, const void *data, size_t cnt)
+{
+	errno_t rc;
+	size_t i;
+	void *xorbuf;
+	void *buf;
+	uint64_t len = vol->bsize * cnt;
+
+	ssize_t bad = hr_raid5_get_bad_ext(vol);
+	if (bad == -1 || (size_t)bad == p_extent) {
+		rc = block_write_direct(vol->extents[extent].svc_id, ba, cnt,
+		    data);
+		if (rc != EOK)
+			return rc;
+		/*
+		 * DEGRADED parity - skip parity write
+		 */
+		if ((size_t)bad == p_extent)
+			return EOK;
+
+		rc = hr_raid5_write_parity(vol, p_extent, extent, ba, data,
+		    cnt);
+		return rc;
+	}
+
+	xorbuf = malloc(len);
+	if (xorbuf == NULL)
+		return ENOMEM;
+
+	buf = malloc(len);
+	if (buf == NULL) {
+		free(xorbuf);
+		return ENOMEM;
+	}
+
+	if (extent == (size_t) bad) {
+		/*
+		 * new parity = read other and xor in new data
+		 *
+		 * write new parity
+		 */
+		memset(xorbuf, 0, len);
+		for (i = 1; i < vol->dev_no; i++) {
+			if (i == (size_t) bad) {
+				continue;
 			} else {
 				rc = block_read_direct(vol->extents[i].svc_id,
-				    block, 1, buf);
+				    ba, cnt, buf);
 				if (rc != EOK)
 					goto end;
-				xor(xorbuf, buf, vol->bsize);
+				xor(xorbuf, buf, len);
 			}
 		}
-
-		rc = block_write_direct(vol->extents[p_extent].svc_id, block, 1,
+		xor(xorbuf, data, len);
+		rc = block_write_direct(vol->extents[p_extent].svc_id, ba, cnt,
 		    xorbuf);
 		if (rc != EOK)
 			goto end;
-		data = (void *) ((uintptr_t) data + vol->bsize);
-		block++;
+	} else {
+		/*
+		 * new parity = xor original data and old parity and new data
+		 *
+		 * write parity, new data
+		 */
+		rc = block_read_direct(vol->extents[extent].svc_id, ba, cnt,
+		    xorbuf);
+		if (rc != EOK)
+			goto end;
+		rc = block_read_direct(vol->extents[p_extent].svc_id, ba, cnt,
+		    buf);
+		if (rc != EOK)
+			goto end;
+
+		xor(xorbuf, buf, len);
+
+		xor(xorbuf, data, len);
+
+		rc = block_write_direct(vol->extents[p_extent].svc_id, ba, cnt,
+		    xorbuf);
+		if (rc != EOK)
+			goto end;
+		rc = block_write_direct(vol->extents[extent].svc_id, ba, cnt,
+		    data);
+		if (rc != EOK)
+			goto end;
+	}
+end:
+	free(xorbuf);
+	free(buf);
+	return rc;
+}
+
+static errno_t hr_raid5_write_parity(hr_volume_t *vol, uint64_t p_extent,
+    uint64_t extent, uint64_t block, const void *data, size_t cnt)
+{
+	errno_t rc;
+	size_t i;
+	void *xorbuf;
+	void *buf;
+	uint64_t len = vol->bsize * cnt;
+
+	xorbuf = malloc(len);
+	if (xorbuf == NULL)
+		return ENOMEM;
+
+	buf = malloc(len);
+	if (buf == NULL) {
+		free(xorbuf);
+		return ENOMEM;
 	}
 
+	memset(xorbuf, 0, len);
+	for (i = 0; i < vol->dev_no; i++) {
+		if (i == p_extent)
+			continue;
+		if (i == extent) {
+			xor(xorbuf, data, vol->bsize);
+		} else {
+			rc = block_read_direct(vol->extents[i].svc_id,
+			    block, cnt, buf);
+			if (rc != EOK)
+				goto end;
+			xor(xorbuf, buf, vol->bsize);
+		}
+	}
+
+	rc = block_write_direct(vol->extents[p_extent].svc_id, block, cnt,
+	    xorbuf);
 end:
 	free(xorbuf);
 	free(buf);
@@ -146,12 +334,21 @@ static errno_t hr_raid5_bd_close(bd_srv_t *bd)
 }
 
 static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
-    size_t cnt, void *data_read, const void *data_write, size_t size)
+    size_t cnt, void *dst, const void *src, size_t size)
 {
 	hr_volume_t *vol = bd->srvs->sarg;
 	errno_t rc;
-	uint64_t phys_block;
+	uint64_t phys_block, len;
 	size_t left;
+	const uint8_t *data_write = src;
+	uint8_t *data_read = dst;
+
+	/* propagate sync */
+	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
+		hr_sync_all_extents(vol);
+		rc = hr_raid5_update_vol_status(vol);
+		return rc;
+	}
 
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
 		if (size < cnt * vol->bsize)
@@ -174,40 +371,78 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 	fibril_mutex_lock(&vol->lock);
 
+	rc = hr_raid5_vol_usable(vol);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&vol->lock);
+		return EIO;
+	}
+
 	left = cnt;
 	while (left != 0) {
 		phys_block = ext_stripe * strip_size + strip_off;
 		cnt = min(left, strip_size - strip_off);
+		len = vol->bsize * cnt;
 		hr_add_ba_offset(vol, &phys_block);
 		switch (type) {
 		case HR_BD_SYNC:
+			if (vol->extents[extent].status != HR_EXT_ONLINE)
+				break;
 			rc = block_sync_cache(vol->extents[extent].svc_id,
 			    phys_block, cnt);
+			/* allow unsupported sync */
+			if (rc == ENOTSUP)
+				rc = EOK;
 			break;
 		case HR_BD_READ:
-			rc = block_read_direct(vol->extents[extent].svc_id,
-			    phys_block, cnt, data_read);
-			data_read = (void *) ((uintptr_t) data_read +
-			    (vol->bsize * cnt));
+		retry_read:
+			ssize_t bad = hr_raid5_get_bad_ext(vol);
+			if (bad > 0 && extent == (size_t) bad) {
+				rc = hr_raid5_read_degraded(vol, bad,
+				    phys_block, data_read, cnt);
+			} else {
+				rc = block_read_direct(vol->extents[extent].svc_id,
+				    phys_block, cnt, data_read);
+			}
+			data_read += len;
 			break;
 		case HR_BD_WRITE:
-			rc = block_write_direct(vol->extents[extent].svc_id,
-			    phys_block, cnt, data_write);
-			if (rc != EOK)
-				goto error;
-			rc = write_parity(vol, p_extent, extent, phys_block,
+		retry_write:
+			rc = hr_raid5_write(vol, p_extent, extent, phys_block,
 			    data_write, cnt);
-			if (rc != EOK)
-				goto error;
-			data_write = (void *) ((uintptr_t) data_write +
-			    (vol->bsize * cnt));
+			data_write += len;
 			break;
 		default:
 			rc = EINVAL;
+			goto error;
 		}
 
-		if (rc != EOK)
+		if (rc == ENOMEM)
 			goto error;
+
+		if (rc == ENOENT)
+			hr_update_ext_status(vol, extent, HR_EXT_MISSING);
+		else if (rc != EOK)
+			hr_update_ext_status(vol, extent, HR_EXT_FAILED);
+
+		if (rc != EOK) {
+			rc = hr_raid5_update_vol_status(vol);
+			if (rc == EOK) {
+				/*
+				 * State changed from ONLINE -> DEGRADED,
+				 * rewind and retry
+				 */
+				if (type == HR_BD_WRITE) {
+					data_write -= len;
+					goto retry_write;
+				} else if (type == HR_BD_WRITE) {
+					data_read -= len;
+					goto retry_read;
+				}
+			} else {
+				rc = EIO;
+				goto error;
+			}
+		}
 
 		left -= cnt;
 		strip_off = 0;
@@ -223,6 +458,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 error:
+	(void) hr_raid5_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }
@@ -271,6 +507,10 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 		    "RAID 5 array needs at least 3 devices");
 		return EINVAL;
 	}
+
+	rc = hr_raid5_update_vol_status(new_volume);
+	if (rc != EOK)
+		return rc;
 
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid5_bd_ops;
