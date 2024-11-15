@@ -64,10 +64,10 @@ static hr_volume_t *hr_get_volume(service_id_t svc_id)
 	DPRINTF("hr_get_volume(): (%" PRIun ")\n", svc_id);
 
 	fibril_mutex_lock(&hr_volumes_lock);
-	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
-		if (volume->svc_id == svc_id) {
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
+		if (vol->svc_id == svc_id) {
 			fibril_mutex_unlock(&hr_volumes_lock);
-			return volume;
+			return vol;
 		}
 	}
 
@@ -80,11 +80,11 @@ static errno_t hr_remove_volume(service_id_t svc_id)
 	DPRINTF("hr_remove_volume(): (%" PRIun ")\n", svc_id);
 
 	fibril_mutex_lock(&hr_volumes_lock);
-	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
-		if (volume->svc_id == svc_id) {
-			hr_fini_devs(volume);
-			list_remove(&volume->lvolumes);
-			free(volume);
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
+		if (vol->svc_id == svc_id) {
+			hr_fini_devs(vol);
+			list_remove(&vol->lvolumes);
+			free(vol);
 			fibril_mutex_unlock(&hr_volumes_lock);
 			return EOK;
 		}
@@ -309,17 +309,17 @@ static void hr_print_status_srv(ipc_call_t *icall)
 	if (rc != EOK)
 		goto error;
 
-	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
-		memcpy(info.extents, volume->extents,
+	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
+		memcpy(info.extents, vol->extents,
 		    sizeof(hr_extent_t) * HR_MAXDEVS);
-		info.svc_id = volume->svc_id;
-		info.extent_no = volume->dev_no;
-		info.level = volume->level;
+		info.svc_id = vol->svc_id;
+		info.extent_no = vol->dev_no;
+		info.level = vol->level;
 		/* print usable number of blocks */
-		info.nblocks = volume->data_blkno;
-		info.strip_size = volume->strip_size;
-		info.bsize = volume->bsize;
-		info.status = volume->status;
+		info.nblocks = vol->data_blkno;
+		info.strip_size = vol->strip_size;
+		info.bsize = vol->bsize;
+		info.status = vol->status;
 
 		if (!async_data_read_receive(&call, &size)) {
 			rc = EREFUSED;
