@@ -57,7 +57,7 @@ static const char usage_str[] =
     "                            sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
     "  -A, --assemble-file=PATH  create an array from file\n"
     "  -s, --status              display status of active arrays\n"
-    "  -T, --stop                stop an active array\n"
+    "  -D, --destroy             destroy/disassemble an active array\n"
     "  -F, --fail-extent         fail an extent, use with -T and set it before\n"
     "  -c, --create=NAME         create new array\n"
     "  -a, --assemble=NAME       assemble an existing array\n"
@@ -87,7 +87,7 @@ static struct option const long_options[] = {
 	{ "level", required_argument, 0, 'l' },
 	{ "create-file", required_argument, 0, 'C' },
 	{ "assemble-file", required_argument, 0, 'A' },
-	{ "stop", required_argument, 0, 'T' },
+	{ "destroy", required_argument, 0, 'D' },
 	{ "fail-extent", required_argument, 0, 'F' },
 	{ 0, 0, 0, 0 }
 };
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:T:F:",
+		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:D:F:",
 		    long_options, NULL);
 		switch (c) {
 		case 'h':
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
 			assemble = true;
 			break;
-		case 'T':
+		case 'D':
 			rc = hr_stop(optarg, fail_extent);
 			free(cfg);
 			if (rc != EOK) {
