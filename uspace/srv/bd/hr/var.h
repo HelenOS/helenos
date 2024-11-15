@@ -57,7 +57,7 @@ typedef struct hr_volume {
 	link_t lvolumes;
 	fibril_mutex_t lock;
 	char devname[HR_DEVNAME_LEN];
-	hr_extent_t extents[HR_MAXDEVS];
+	hr_extent_t extents[HR_MAX_EXTENTS];
 	uint64_t nblocks;
 	uint64_t data_blkno;
 	uint32_t data_offset; /* in blocks */

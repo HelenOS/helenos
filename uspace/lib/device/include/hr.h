@@ -41,7 +41,7 @@
 #include <loc.h>
 
 /* for now */
-#define HR_MAXDEVS 4
+#define HR_MAX_EXTENTS 4
 
 #define HR_DEVNAME_LEN 32
 
@@ -71,7 +71,7 @@ typedef struct hr {
 
 typedef struct hr_config {
 	char devname[HR_DEVNAME_LEN];
-	service_id_t devs[HR_MAXDEVS];
+	service_id_t devs[HR_MAX_EXTENTS];
 	size_t dev_no;
 	hr_level_t level;
 } hr_config_t;
@@ -82,7 +82,7 @@ typedef struct hr_extent {
 } hr_extent_t;
 
 typedef struct hr_vol_info {
-	hr_extent_t extents[HR_MAXDEVS];
+	hr_extent_t extents[HR_MAX_EXTENTS];
 	size_t extent_no;
 	service_id_t svc_id;
 	hr_level_t level;

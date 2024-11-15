@@ -356,7 +356,7 @@ skip:
 		goto bad;
 	}
 
-	if (cfg->dev_no > HR_MAXDEVS) {
+	if (cfg->dev_no > HR_MAX_EXTENTS) {
 		printf("hrctl: too many devices, exiting\n");
 		goto bad;
 	}

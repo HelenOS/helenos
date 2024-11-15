@@ -130,11 +130,11 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 	if (metadata == NULL)
 		return ENOMEM;
 
-	service_id_t cfg_svc_id_order[HR_MAXDEVS] = { 0 };
+	service_id_t cfg_svc_id_order[HR_MAX_EXTENTS] = { 0 };
 	for (size_t i = 0; i < vol->dev_no; i++)
 		cfg_svc_id_order[i] = vol->extents[i].svc_id;
 
-	int32_t md_order[HR_MAXDEVS] = { 0 };
+	int32_t md_order[HR_MAX_EXTENTS] = { 0 };
 	for (size_t i = 0; i < vol->dev_no; i++) {
 		if (cfg_svc_id_order[i] == 0) {
 			md_order[i] = -1;

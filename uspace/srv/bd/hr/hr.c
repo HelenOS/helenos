@@ -311,7 +311,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 
 	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
 		memcpy(info.extents, vol->extents,
-		    sizeof(hr_extent_t) * HR_MAXDEVS);
+		    sizeof(hr_extent_t) * HR_MAX_EXTENTS);
 		info.svc_id = vol->svc_id;
 		info.extent_no = vol->dev_no;
 		info.level = vol->level;
