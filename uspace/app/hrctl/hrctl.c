@@ -251,8 +251,10 @@ int main(int argc, char **argv)
 		switch (c) {
 		case 'h':
 			usage();
+			free(cfg);
 			return 0;
 		case 's':
+			free(cfg);
 			rc = hr_print_status();
 			if (rc != EOK)
 				return 1;
@@ -262,6 +264,7 @@ int main(int argc, char **argv)
 			rc = load_config(optarg, cfg);
 			if (rc != EOK) {
 				printf("hrctl: failed to load config\n");
+				free(cfg);
 				return 1;
 			}
 			create = true;
@@ -269,6 +272,7 @@ int main(int argc, char **argv)
 		case 'c':
 			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
 				printf("hrctl: device name too long\n");
+				free(cfg);
 				return 1;
 			}
 			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
@@ -278,6 +282,7 @@ int main(int argc, char **argv)
 			rc = load_config(optarg, cfg);
 			if (rc != EOK) {
 				printf("hrctl: failed to load config\n");
+				free(cfg);
 				return 1;
 			}
 			assemble = true;
@@ -285,6 +290,7 @@ int main(int argc, char **argv)
 		case 'a':
 			if (str_size(optarg) > sizeof(cfg->devname) - 1) {
 				printf("hrctl: device name too long\n");
+				free(cfg);
 				return 1;
 			}
 			str_cpy(cfg->devname, sizeof(cfg->devname), optarg);
@@ -333,8 +339,10 @@ int main(int argc, char **argv)
 			if ((int) cfg->dev_no + optind != argc)
 				goto bad;
 			rc = fill_config_devs(argc, argv, optind, cfg);
-			if (rc != EOK)
+			if (rc != EOK) {
+				free(cfg);
 				return 1;
+			}
 			break;
 		}
 	}
@@ -345,17 +353,17 @@ skip:
 
 	if (create && cfg->level == HR_LVL_UNKNOWN) {
 		printf("hrctl: invalid level, exiting\n");
-		return 1;
+		goto bad;
 	}
 
 	if (cfg->dev_no > HR_MAXDEVS) {
 		printf("hrctl: too many devices, exiting\n");
-		return 1;
+		goto bad;
 	}
 
 	if (cfg->dev_no == 0) {
 		printf("hrctl: invalid number of devices, exiting\n");
-		return 1;
+		goto bad;
 	}
 
 	rc = hr_sess_init(&hr);
