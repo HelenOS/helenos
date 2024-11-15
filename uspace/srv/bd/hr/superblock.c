@@ -53,7 +53,7 @@ static errno_t read_metadata(service_id_t, hr_metadata_t *);
 
 errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 {
-	DPRINTF("hr_write_meta_to_vol()\n");
+	HR_DEBUG("hr_write_meta_to_vol()\n");
 
 	errno_t rc;
 	size_t i;
@@ -70,11 +70,11 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 		meta_blkno *= vol->dev_no;
 
 	if (vol->nblocks < meta_blkno) {
-		ERR_PRINTF("not enough blocks to write metadat\n");
+		HR_ERROR("not enough blocks to write metadat\n");
 		rc = EINVAL;
 		goto error;
 	} else if (vol->nblocks == meta_blkno) {
-		ERR_PRINTF("there would be zero data blocks after writing "
+		HR_ERROR("there would be zero data blocks after writing "
 		    "metadata, aborting");
 		rc = EINVAL;
 		goto error;
@@ -113,7 +113,7 @@ error:
 static errno_t validate_meta(hr_metadata_t *md)
 {
 	if (uint64_t_le2host(md->magic) != HR_MAGIC) {
-		ERR_PRINTF("invalid magic\n");
+		HR_ERROR("invalid magic\n");
 		return EINVAL;
 	}
 	return EOK;
@@ -121,7 +121,7 @@ static errno_t validate_meta(hr_metadata_t *md)
 
 errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 {
-	DPRINTF("hr_get_vol_from_meta()\n");
+	HR_DEBUG("hr_get_vol_from_meta()\n");
 
 	errno_t rc;
 	hr_metadata_t *metadata;
@@ -169,7 +169,7 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 	 */
 
 	if (vol->dev_no != uint32_t_le2host(metadata->extent_no)) {
-		ERR_PRINTF("number of divices in array differ: specified %zu, "
+		HR_ERROR("number of divices in array differ: specified %zu, "
 		    "metadata states %u",
 		    vol->dev_no, uint32_t_le2host(metadata->extent_no));
 		rc = EINVAL;
@@ -183,8 +183,7 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 	vol->strip_size = uint32_t_le2host(metadata->strip_size);
 
 	if (str_cmp(metadata->devname, vol->devname) != 0) {
-		log_msg(LOG_DEFAULT, LVL_WARN,
-		    "devname on metadata (%s) and config (%s) differ, "
+		HR_WARN("devname on metadata (%s) and config (%s) differ, "
 		    "using config", metadata->devname, vol->devname);
 	}
 end:

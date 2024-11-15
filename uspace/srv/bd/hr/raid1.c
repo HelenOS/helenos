@@ -86,7 +86,7 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	assert(new_volume->level == HR_LVL_1);
 
 	if (new_volume->dev_no < 2) {
-		ERR_PRINTF("RAID 1 array needs at least 2 devices\n");
+		HR_ERROR("RAID 1 array needs at least 2 devices\n");
 		return EINVAL;
 	}
 
@@ -126,13 +126,13 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 
 static errno_t hr_raid1_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
-	DPRINTF("hr_bd_open()\n");
+	HR_DEBUG("hr_bd_open()\n");
 	return EOK;
 }
 
 static errno_t hr_raid1_bd_close(bd_srv_t *bd)
 {
-	DPRINTF("hr_bd_close()\n");
+	HR_DEBUG("hr_bd_close()\n");
 	return EOK;
 }
 
@@ -191,7 +191,7 @@ static errno_t hr_raid1_update_vol_status(hr_volume_t *vol)
 
 	if (healthy == 0) {
 		if (old_state != HR_VOL_FAULTY) {
-			ERR_PRINTF("RAID 1 needs at least 1 extent to be"
+			HR_WARN("RAID 1 needs at least 1 extent to be"
 			    "ONLINE, marking \"%s\" (%lu) volume as FAULTY",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_FAULTY;
@@ -199,7 +199,7 @@ static errno_t hr_raid1_update_vol_status(hr_volume_t *vol)
 		return EINVAL;
 	} else if (healthy < vol->dev_no) {
 		if (old_state != HR_VOL_DEGRADED) {
-			ERR_PRINTF("RAID 1 array \"%s\" (%lu) has some "
+			HR_WARN("RAID 1 array \"%s\" (%lu) has some "
 			    "inactive extent(s), marking volume as DEGRADED",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_DEGRADED;
@@ -207,7 +207,7 @@ static errno_t hr_raid1_update_vol_status(hr_volume_t *vol)
 		return EOK;
 	} else {
 		if (old_state != HR_VOL_ONLINE) {
-			DPRINTF("RAID 1 array \"%s\" (%lu) has all extents "
+			HR_WARN("RAID 1 array \"%s\" (%lu) has all extents "
 			    "active, marking volume as ONLINE",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_ONLINE;

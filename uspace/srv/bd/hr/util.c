@@ -49,7 +49,7 @@ extern loc_srv_t *hr_srv;
 
 errno_t hr_init_devs(hr_volume_t *vol)
 {
-	DPRINTF("hr_init_devs()\n");
+	HR_DEBUG("hr_init_devs()\n");
 
 	errno_t rc;
 	size_t i;
@@ -62,13 +62,13 @@ errno_t hr_init_devs(hr_volume_t *vol)
 			continue;
 		}
 
-		DPRINTF("hr_init_devs(): block_init() on (%lu)\n",
+		HR_DEBUG("hr_init_devs(): block_init() on (%lu)\n",
 		    extent->svc_id);
 		rc = block_init(extent->svc_id);
 		extent->status = HR_EXT_ONLINE;
 
 		if (rc != EOK) {
-			ERR_PRINTF("hr_init_devs(): initing (%lu) failed, "
+			HR_ERROR("hr_init_devs(): initing (%lu) failed, "
 			    "aborting\n", extent->svc_id);
 			break;
 		}
@@ -79,13 +79,13 @@ errno_t hr_init_devs(hr_volume_t *vol)
 
 void hr_fini_devs(hr_volume_t *vol)
 {
-	DPRINTF("hr_fini_devs()\n");
+	HR_DEBUG("hr_fini_devs()\n");
 
 	size_t i;
 
 	for (i = 0; i < vol->dev_no; i++) {
 		if (vol->extents[i].status != HR_EXT_MISSING) {
-			DPRINTF("hr_fini_devs(): block_fini() on (%lu)\n",
+			HR_DEBUG("hr_fini_devs(): block_fini() on (%lu)\n",
 			    vol->extents[i].svc_id);
 			block_fini(vol->extents[i].svc_id);
 		}
@@ -94,7 +94,7 @@ void hr_fini_devs(hr_volume_t *vol)
 
 errno_t hr_register_volume(hr_volume_t *vol)
 {
-	DPRINTF("hr_register_volume()\n");
+	HR_DEBUG("hr_register_volume()\n");
 
 	errno_t rc;
 	service_id_t new_id;
@@ -107,21 +107,21 @@ errno_t hr_register_volume(hr_volume_t *vol)
 
 	rc = loc_service_register(hr_srv, fullname, &new_id);
 	if (rc != EOK) {
-		ERR_PRINTF("unable to register device \"%s\": %s\n",
+		HR_ERROR("unable to register device \"%s\": %s\n",
 		    fullname, str_error(rc));
 		goto error;
 	}
 
 	rc = loc_category_get_id("raid", &cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		ERR_PRINTF("failed resolving category \"raid\": %s\n",
+		HR_ERROR("failed resolving category \"raid\": %s\n",
 		    str_error(rc));
 		goto error;
 	}
 
 	rc = loc_service_add_to_cat(hr_srv, new_id, cat_id);
 	if (rc != EOK) {
-		ERR_PRINTF("failed adding \"%s\" to category \"raid\": %s\n",
+		HR_ERROR("failed adding \"%s\" to category \"raid\": %s\n",
 		    fullname, str_error(rc));
 		goto error;
 	}
@@ -135,7 +135,7 @@ error:
 
 errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 {
-	DPRINTF("hr_check_devs()\n");
+	HR_DEBUG("hr_check_devs()\n");
 
 	errno_t rc;
 	size_t i, bsize;
@@ -153,7 +153,7 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 		if (rc != EOK)
 			goto error;
 		if (last_nblocks != 0 && nblocks != last_nblocks) {
-			ERR_PRINTF("number of blocks differs\n");
+			HR_ERROR("number of blocks differs\n");
 			rc = EINVAL;
 			goto error;
 		}
@@ -170,7 +170,7 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 		if (rc != EOK)
 			goto error;
 		if (last_bsize != 0 && bsize != last_bsize) {
-			ERR_PRINTF("block sizes differ\n");
+			HR_ERROR("block sizes differ\n");
 			rc = EINVAL;
 			goto error;
 		}
@@ -179,7 +179,7 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 	}
 
 	if ((bsize % 512) != 0) {
-		ERR_PRINTF("block size not multiple of 512\n");
+		HR_ERROR("block size not multiple of 512\n");
 		return EINVAL;
 	}
 
@@ -205,8 +205,7 @@ void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba)
 
 void hr_update_ext_status(hr_volume_t *vol, uint64_t extent, hr_ext_status_t s)
 {
-	log_msg(LOG_DEFAULT, LVL_WARN,
-	    "vol %s, changing extent: %lu, to status: %s",
+	HR_WARN("vol %s, changing extent: %lu, to status: %s",
 	    vol->devname, extent, hr_get_ext_status_msg(s));
 	vol->extents[extent].status = s;
 }
