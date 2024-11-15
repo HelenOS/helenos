@@ -53,6 +53,12 @@
 
 extern loc_srv_t *hr_srv;
 
+static errno_t hr_raid0_check_vol_status(hr_volume_t *);
+static errno_t hr_raid0_update_vol_status(hr_volume_t *);
+static errno_t hr_raid0_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
+    void *, const void *, size_t);
+
+/* bdops */
 static errno_t hr_raid0_bd_open(bd_srvs_t *, bd_srv_t *);
 static errno_t hr_raid0_bd_close(bd_srv_t *);
 static errno_t hr_raid0_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *,
@@ -72,6 +78,96 @@ static bd_ops_t hr_raid0_bd_ops = {
 	.get_block_size = hr_raid0_bd_get_block_size,
 	.get_num_blocks = hr_raid0_bd_get_num_blocks
 };
+
+errno_t hr_raid0_create(hr_volume_t *new_volume)
+{
+	errno_t rc;
+
+	assert(new_volume->level == HR_LVL_0);
+
+	if (new_volume->dev_no < 2) {
+		ERR_PRINTF("RAID 0 array needs at least 2 devices");
+		return EINVAL;
+	}
+
+	rc = hr_raid0_update_vol_status(new_volume);
+	if (rc != EOK)
+		return rc;
+
+	bd_srvs_init(&new_volume->hr_bds);
+	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
+	new_volume->hr_bds.sarg = new_volume;
+
+	rc = hr_register_volume(new_volume);
+
+	return rc;
+}
+
+errno_t hr_raid0_init(hr_volume_t *vol)
+{
+	errno_t rc;
+	size_t bsize;
+	uint64_t total_blkno;
+
+	assert(vol->level == HR_LVL_0);
+
+	rc = hr_check_devs(vol, &total_blkno, &bsize);
+	if (rc != EOK)
+		return rc;
+
+	vol->nblocks = total_blkno;
+	vol->bsize = bsize;
+	vol->data_offset = HR_DATA_OFF;
+	vol->data_blkno = vol->nblocks - (vol->data_offset * vol->dev_no);
+	vol->strip_size = HR_STRIP_SIZE;
+
+	return EOK;
+}
+
+static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+{
+	DPRINTF("hr_bd_open()\n");
+	return EOK;
+}
+
+static errno_t hr_raid0_bd_close(bd_srv_t *bd)
+{
+	DPRINTF("hr_bd_close()\n");
+	return EOK;
+}
+
+static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
+{
+	return hr_raid0_bd_op(HR_BD_SYNC, bd, ba, cnt, NULL, NULL, 0);
+}
+
+static errno_t hr_raid0_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    void *buf, size_t size)
+{
+	return hr_raid0_bd_op(HR_BD_READ, bd, ba, cnt, buf, NULL, size);
+}
+
+static errno_t hr_raid0_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    const void *data, size_t size)
+{
+	return hr_raid0_bd_op(HR_BD_WRITE, bd, ba, cnt, NULL, data, size);
+}
+
+static errno_t hr_raid0_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+{
+	hr_volume_t *vol = bd->srvs->sarg;
+
+	*rsize = vol->bsize;
+	return EOK;
+}
+
+static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+{
+	hr_volume_t *vol = bd->srvs->sarg;
+
+	*rnb = vol->data_blkno;
+	return EOK;
+}
 
 static errno_t hr_raid0_check_vol_status(hr_volume_t *vol)
 {
@@ -97,18 +193,6 @@ static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
 	}
 
 	vol->status = HR_VOL_ONLINE;
-	return EOK;
-}
-
-static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
-{
-	DPRINTF("hr_bd_open()\n");
-	return EOK;
-}
-
-static errno_t hr_raid0_bd_close(bd_srv_t *bd)
-{
-	DPRINTF("hr_bd_close()\n");
 	return EOK;
 }
 
@@ -202,84 +286,6 @@ error:
 	(void) hr_raid0_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
-}
-
-static errno_t hr_raid0_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
-{
-	return hr_raid0_bd_op(HR_BD_SYNC, bd, ba, cnt, NULL, NULL, 0);
-}
-
-static errno_t hr_raid0_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
-    void *buf, size_t size)
-{
-	return hr_raid0_bd_op(HR_BD_READ, bd, ba, cnt, buf, NULL, size);
-}
-
-static errno_t hr_raid0_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
-    const void *data, size_t size)
-{
-	return hr_raid0_bd_op(HR_BD_WRITE, bd, ba, cnt, NULL, data, size);
-}
-
-static errno_t hr_raid0_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
-{
-	hr_volume_t *vol = bd->srvs->sarg;
-
-	*rsize = vol->bsize;
-	return EOK;
-}
-
-static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
-{
-	hr_volume_t *vol = bd->srvs->sarg;
-
-	*rnb = vol->data_blkno;
-	return EOK;
-}
-
-errno_t hr_raid0_create(hr_volume_t *new_volume)
-{
-	errno_t rc;
-
-	assert(new_volume->level == HR_LVL_0);
-
-	if (new_volume->dev_no < 2) {
-		ERR_PRINTF("RAID 0 array needs at least 2 devices");
-		return EINVAL;
-	}
-
-	rc = hr_raid0_update_vol_status(new_volume);
-	if (rc != EOK)
-		return rc;
-
-	bd_srvs_init(&new_volume->hr_bds);
-	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
-	new_volume->hr_bds.sarg = new_volume;
-
-	rc = hr_register_volume(new_volume);
-
-	return rc;
-}
-
-errno_t hr_raid0_init(hr_volume_t *vol)
-{
-	errno_t rc;
-	size_t bsize;
-	uint64_t total_blkno;
-
-	assert(vol->level == HR_LVL_0);
-
-	rc = hr_check_devs(vol, &total_blkno, &bsize);
-	if (rc != EOK)
-		return rc;
-
-	vol->nblocks = total_blkno;
-	vol->bsize = bsize;
-	vol->data_offset = HR_DATA_OFF;
-	vol->data_blkno = vol->nblocks - (vol->data_offset * vol->dev_no);
-	vol->strip_size = HR_STRIP_SIZE;
-
-	return EOK;
 }
 
 /** @}
