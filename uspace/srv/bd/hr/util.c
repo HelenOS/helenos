@@ -49,25 +49,27 @@ extern loc_srv_t *hr_srv;
 
 errno_t hr_init_devs(hr_volume_t *vol)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_init_devs()");
+	DPRINTF("hr_init_devs()\n");
 
 	errno_t rc;
 	size_t i;
+	hr_extent_t *extent;
 
 	for (i = 0; i < vol->dev_no; i++) {
-		if (vol->extents[i].svc_id == 0) {
-			vol->extents[i].status = HR_EXT_MISSING;
+		extent = &vol->extents[i];
+		if (extent->svc_id == 0) {
+			extent->status = HR_EXT_MISSING;
 			continue;
 		}
-		rc = block_init(vol->extents[i].svc_id);
-		vol->extents[i].status = HR_EXT_ONLINE;
-		log_msg(LOG_DEFAULT, LVL_DEBUG,
-		    "hr_init_devs(): initing (%" PRIun ")",
-		    vol->extents[i].svc_id);
+
+		DPRINTF("hr_init_devs(): block_init() on (%lu)\n",
+		    extent->svc_id);
+		rc = block_init(extent->svc_id);
+		extent->status = HR_EXT_ONLINE;
+
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "hr_init_devs(): initing (%" PRIun ") failed, aborting",
-			    vol->extents[i].svc_id);
+			ERR_PRINTF("hr_init_devs(): initing (%lu) failed, "
+			    "aborting\n", extent->svc_id);
 			break;
 		}
 	}
@@ -77,51 +79,54 @@ errno_t hr_init_devs(hr_volume_t *vol)
 
 void hr_fini_devs(hr_volume_t *vol)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_fini_devs()");
+	DPRINTF("hr_fini_devs()\n");
 
 	size_t i;
 
-	for (i = 0; i < vol->dev_no; i++)
-		if (vol->extents[i].status != HR_EXT_MISSING)
+	for (i = 0; i < vol->dev_no; i++) {
+		if (vol->extents[i].status != HR_EXT_MISSING) {
+			DPRINTF("hr_fini_devs(): block_fini() on (%lu)\n",
+			    vol->extents[i].svc_id);
 			block_fini(vol->extents[i].svc_id);
+		}
+	}
 }
 
-errno_t hr_register_volume(hr_volume_t *new_volume)
+errno_t hr_register_volume(hr_volume_t *vol)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_register_volume()");
+	DPRINTF("hr_register_volume()\n");
 
 	errno_t rc;
 	service_id_t new_id;
 	category_id_t cat_id;
 	char *fullname = NULL;
+	char *devname = vol->devname;
 
-	if (asprintf(&fullname, "devices/%s", new_volume->devname) < 0)
+	if (asprintf(&fullname, "devices/%s", devname) < 0)
 		return ENOMEM;
 
 	rc = loc_service_register(hr_srv, fullname, &new_id);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "unable to register device \"%s\": %s\n",
-		    new_volume->devname, str_error(rc));
+		ERR_PRINTF("unable to register device \"%s\": %s\n",
+		    fullname, str_error(rc));
 		goto error;
 	}
 
 	rc = loc_category_get_id("raid", &cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "failed resolving category \"raid\": %s\n", str_error(rc));
+		ERR_PRINTF("failed resolving category \"raid\": %s\n",
+		    str_error(rc));
 		goto error;
 	}
 
 	rc = loc_service_add_to_cat(hr_srv, new_id, cat_id);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "failed adding \"%s\" to category \"raid\": %s\n",
-		    new_volume->devname, str_error(rc));
+		ERR_PRINTF("failed adding \"%s\" to category \"raid\": %s\n",
+		    fullname, str_error(rc));
 		goto error;
 	}
 
-	new_volume->svc_id = new_id;
+	vol->svc_id = new_id;
 
 error:
 	free(fullname);
@@ -130,7 +135,7 @@ error:
 
 errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_check_devs()");
+	DPRINTF("hr_check_devs()\n");
 
 	errno_t rc;
 	size_t i, bsize;
@@ -138,40 +143,43 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 	size_t last_bsize = 0;
 	uint64_t last_nblocks = 0;
 	uint64_t total_blocks = 0;
+	hr_extent_t *extent;
 
 	for (i = 0; i < vol->dev_no; i++) {
-		if (vol->extents[i].status == HR_EXT_MISSING)
+		extent = &vol->extents[i];
+		if (extent->status == HR_EXT_MISSING)
 			continue;
-		rc = block_get_nblocks(vol->extents[i].svc_id, &nblocks);
+		rc = block_get_nblocks(extent->svc_id, &nblocks);
 		if (rc != EOK)
 			goto error;
 		if (last_nblocks != 0 && nblocks != last_nblocks) {
-			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "number of blocks differs");
+			ERR_PRINTF("number of blocks differs\n");
 			rc = EINVAL;
 			goto error;
 		}
+
 		total_blocks += nblocks;
 		last_nblocks = nblocks;
 	}
 
 	for (i = 0; i < vol->dev_no; i++) {
-		if (vol->extents[i].status == HR_EXT_MISSING)
+		extent = &vol->extents[i];
+		if (extent->status == HR_EXT_MISSING)
 			continue;
-		rc = block_get_bsize(vol->extents[i].svc_id, &bsize);
+		rc = block_get_bsize(extent->svc_id, &bsize);
 		if (rc != EOK)
 			goto error;
 		if (last_bsize != 0 && bsize != last_bsize) {
-			log_msg(LOG_DEFAULT, LVL_ERROR, "block sizes differ");
+			ERR_PRINTF("block sizes differ\n");
 			rc = EINVAL;
 			goto error;
 		}
+
 		last_bsize = bsize;
 	}
 
 	if ((bsize % 512) != 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "block size not multiple of 512");
+		ERR_PRINTF("block size not multiple of 512\n");
 		return EINVAL;
 	}
 

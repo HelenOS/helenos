@@ -88,9 +88,8 @@ static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
 {
 	for (size_t i = 0; i < vol->dev_no; i++) {
 		if (vol->extents[i].status != HR_EXT_ONLINE) {
-			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "RAID 0 needs all extents to be ONLINE, marking "
-			    "\"%s\" (%lu) as FAULTY",
+			ERR_PRINTF("RAID 0 needs all extents to be ONLINE, "
+			    "marking \"%s\" (%lu) as FAULTY",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_FAULTY;
 			return EINVAL;
@@ -103,13 +102,13 @@ static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
 
 static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_bd_open()");
+	DPRINTF("hr_bd_open()\n");
 	return EOK;
 }
 
 static errno_t hr_raid0_bd_close(bd_srv_t *bd)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_bd_close()");
+	DPRINTF("hr_bd_close()\n");
 	return EOK;
 }
 
@@ -245,8 +244,7 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 	assert(new_volume->level == HR_LVL_0);
 
 	if (new_volume->dev_no < 2) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "RAID 0 array needs at least 2 devices");
+		ERR_PRINTF("RAID 0 array needs at least 2 devices");
 		return EINVAL;
 	}
 

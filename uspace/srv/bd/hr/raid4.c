@@ -108,8 +108,7 @@ static errno_t hr_raid4_update_vol_status(hr_volume_t *vol)
 	switch (bad) {
 	case 0:
 		if (old_state != HR_VOL_ONLINE) {
-			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "RAID 4 has all extents online, "
+			DPRINTF("RAID 4 has all extents online, "
 			    "marking \"%s\" (%lu) as ONLINE",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_ONLINE;
@@ -117,18 +116,16 @@ static errno_t hr_raid4_update_vol_status(hr_volume_t *vol)
 		return EOK;
 	case 1:
 		if (old_state != HR_VOL_DEGRADED) {
-			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "RAID 4 array \"%s\" (%lu) has 1 extent inactive, "
-			    "marking as DEGRADED",
+			ERR_PRINTF("RAID 4 array \"%s\" (%lu) has 1 extent "
+			    "inactive, marking as DEGRADED",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_DEGRADED;
 		}
 		return EOK;
 	default:
 		if (old_state != HR_VOL_FAULTY) {
-			log_msg(LOG_DEFAULT, LVL_ERROR,
-			    "RAID 4 array \"%s\" (%lu) has more than one 1 "
-			    "extent inactive, marking as FAULTY",
+			ERR_PRINTF("RAID 4 array \"%s\" (%lu) has more "
+			    "than one 1 extent inactive, marking as FAULTY",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_FAULTY;
 		}
@@ -323,13 +320,13 @@ end:
 
 static errno_t hr_raid4_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_bd_open()");
+	DPRINTF("hr_bd_open()\n");
 	return EOK;
 }
 
 static errno_t hr_raid4_bd_close(bd_srv_t *bd)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_bd_close()");
+	DPRINTF("hr_bd_close()\n");
 	return EOK;
 }
 
@@ -494,8 +491,7 @@ errno_t hr_raid4_create(hr_volume_t *new_volume)
 	assert(new_volume->level == HR_LVL_4);
 
 	if (new_volume->dev_no < 3) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "RAID 4 array needs at least 3 devices");
+		ERR_PRINTF("RAID 4 array needs at least 3 devices");
 		return EINVAL;
 	}
 

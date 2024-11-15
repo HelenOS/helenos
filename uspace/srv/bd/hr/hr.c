@@ -61,8 +61,7 @@ static service_id_t ctl_sid;
 
 static hr_volume_t *hr_get_volume(service_id_t svc_id)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "hr_get_volume(): (%" PRIun ")",
-	    svc_id);
+	DPRINTF("hr_get_volume(): (%" PRIun ")\n", svc_id);
 
 	fibril_mutex_lock(&hr_volumes_lock);
 	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
@@ -78,8 +77,7 @@ static hr_volume_t *hr_get_volume(service_id_t svc_id)
 
 static errno_t hr_remove_volume(service_id_t svc_id)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "hr_remove_volume(): (%" PRIun ")",
-	    svc_id);
+	DPRINTF("hr_remove_volume(): (%" PRIun ")\n", svc_id);
 
 	fibril_mutex_lock(&hr_volumes_lock);
 	list_foreach(hr_volumes, lvolumes, hr_volume_t, volume) {
@@ -98,7 +96,7 @@ static errno_t hr_remove_volume(service_id_t svc_id)
 
 static void hr_create_srv(ipc_call_t *icall, bool assemble)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_create_srv()");
+	DPRINTF("hr_create_srv()\n");
 
 	errno_t rc;
 	size_t i, size;
@@ -140,6 +138,8 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	if (!assemble) {
 		for (i = 0; i < cfg->dev_no; i++) {
 			if (cfg->devs[i] == 0) {
+				ERR_PRINTF("missing device provided for array "
+				    "creation, aborting");
 				free(cfg);
 				async_answer_0(icall, EINVAL);
 				return;
@@ -204,8 +204,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		new_volume->hr_ops.init = hr_raid5_init;
 		break;
 	default:
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "level %d not implemented yet", new_volume->level);
+		ERR_PRINTF("unkown level: %d, aborting\n", new_volume->level);
 		rc = EINVAL;
 		goto error;
 	}
@@ -231,12 +230,10 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	fibril_mutex_unlock(&hr_volumes_lock);
 
 	if (assemble) {
-		log_msg(LOG_DEFAULT, LVL_NOTE,
-		    "assembled volume \"%s\" (%" PRIun ")",
+		DPRINTF("assembled volume \"%s\" (%" PRIun ")\n",
 		    new_volume->devname, new_volume->svc_id);
 	} else {
-		log_msg(LOG_DEFAULT, LVL_NOTE,
-		    "created volume \"%s\" (%" PRIun ")",
+		DPRINTF("created volume \"%s\" (%" PRIun ")\n",
 		    new_volume->devname, new_volume->svc_id);
 	}
 
@@ -252,7 +249,7 @@ error:
 
 static void hr_stop_srv(ipc_call_t *icall)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_stop_srv()");
+	DPRINTF("hr_stop_srv()\n");
 
 	errno_t rc = EOK;
 	service_id_t svc_id;
@@ -286,7 +283,7 @@ static void hr_stop_srv(ipc_call_t *icall)
 
 static void hr_print_status_srv(ipc_call_t *icall)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_status_srv()");
+	DPRINTF("hr_status_srv()\n");
 
 	errno_t rc;
 	size_t vol_cnt = 0;
@@ -350,7 +347,7 @@ error:
 
 static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_ctl_conn()");
+	DPRINTF("hr_ctl_conn()\n");
 
 	async_accept_0(icall);
 
@@ -385,7 +382,7 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 
 static void hr_client_conn(ipc_call_t *icall, void *arg)
 {
-	log_msg(LOG_DEFAULT, LVL_NOTE, "hr_client_conn()");
+	DPRINTF("hr_client_conn()\n");
 
 	hr_volume_t *vol;
 
@@ -394,7 +391,7 @@ static void hr_client_conn(ipc_call_t *icall, void *arg)
 	if (svc_id == ctl_sid) {
 		hr_ctl_conn(icall, arg);
 	} else {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "bd_conn()");
+		DPRINTF("bd_conn()\n");
 		vol = hr_get_volume(svc_id);
 		if (vol == NULL)
 			async_answer_0(icall, EINVAL);
@@ -421,15 +418,13 @@ int main(int argc, char **argv)
 
 	rc = loc_server_register(NAME, &hr_srv);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "failed registering server: %s", str_error(rc));
+		ERR_PRINTF("failed registering server: %s", str_error(rc));
 		return EEXIST;
 	}
 
 	rc = loc_service_register(hr_srv, SERVICE_NAME_HR, &ctl_sid);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "failed registering service: %s", str_error(rc));
+		ERR_PRINTF("failed registering service: %s", str_error(rc));
 		return EEXIST;
 	}
 
