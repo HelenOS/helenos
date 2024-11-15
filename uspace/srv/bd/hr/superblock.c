@@ -132,11 +132,8 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 		return ENOMEM;
 
 	service_id_t cfg_svc_id_order[HR_MAXDEVS] = { 0 };
-	for (size_t i = 0; i < vol->dev_no; i++) {
+	for (size_t i = 0; i < vol->dev_no; i++)
 		cfg_svc_id_order[i] = vol->extents[i].svc_id;
-		vol->extents[i].svc_id = 0;
-		vol->extents[i].status = HR_EXT_MISSING;
-	}
 
 	int32_t md_order[HR_MAXDEVS] = { 0 };
 	for (size_t i = 0; i < vol->dev_no; i++) {
@@ -153,6 +150,12 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 		md_order[i] = uint32_t_le2host(metadata->index);
 	}
 
+	for (size_t i = 0; i < vol->dev_no; i++) {
+		vol->extents[i].svc_id = 0;
+		vol->extents[i].status = HR_EXT_MISSING;
+	}
+
+	/* sort */
 	for (size_t i = 0; i < vol->dev_no; i++) {
 		for (size_t j = 0; j < vol->dev_no; j++) {
 			if (i == (uint32_t) md_order[j]) {
