@@ -40,6 +40,12 @@
 
 #include "var.h"
 
+#define DPRINTF(format, ...) \
+    log_msg(LOG_DEFAULT, LVL_DEBUG, format, ##__VA_ARGS__)
+
+#define ERR_PRINTF(format, ...) \
+    log_msg(LOG_DEFAULT, LVL_ERROR, format, ##__VA_ARGS__)
+
 extern errno_t hr_init_devs(hr_volume_t *);
 extern void hr_fini_devs(hr_volume_t *);
 extern errno_t hr_register_volume(hr_volume_t *);
