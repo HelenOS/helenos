@@ -189,18 +189,22 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	case HR_LVL_1:
 		new_volume->hr_ops.create = hr_raid1_create;
 		new_volume->hr_ops.init = hr_raid1_init;
+		new_volume->hr_ops.status_event = hr_raid1_status_event;
 		break;
 	case HR_LVL_0:
 		new_volume->hr_ops.create = hr_raid0_create;
 		new_volume->hr_ops.init = hr_raid0_init;
+		new_volume->hr_ops.status_event = hr_raid0_status_event;
 		break;
 	case HR_LVL_4:
 		new_volume->hr_ops.create = hr_raid4_create;
 		new_volume->hr_ops.init = hr_raid4_init;
+		new_volume->hr_ops.status_event = hr_raid4_status_event;
 		break;
 	case HR_LVL_5:
 		new_volume->hr_ops.create = hr_raid5_create;
 		new_volume->hr_ops.init = hr_raid5_init;
+		new_volume->hr_ops.status_event = hr_raid5_status_event;
 		break;
 	default:
 		HR_ERROR("unkown level: %d, aborting\n", new_volume->level);
@@ -276,6 +280,8 @@ static void hr_stop_srv(ipc_call_t *icall)
 		fibril_mutex_lock(&vol->lock);
 		hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
 		fibril_mutex_unlock(&vol->lock);
+
+		vol->hr_ops.status_event(vol);
 	}
 	async_answer_0(icall, rc);
 }

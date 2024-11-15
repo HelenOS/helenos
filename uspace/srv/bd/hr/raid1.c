@@ -124,6 +124,13 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 	return EOK;
 }
 
+void hr_raid1_status_event(hr_volume_t *vol)
+{
+	fibril_mutex_lock(&vol->lock);
+	(void) hr_raid1_update_vol_status(vol);
+	fibril_mutex_unlock(&vol->lock);
+}
+
 static errno_t hr_raid1_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	HR_DEBUG("hr_bd_open()\n");

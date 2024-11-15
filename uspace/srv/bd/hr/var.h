@@ -49,6 +49,7 @@ typedef struct hr_volume hr_volume_t;
 typedef struct hr_ops {
 	errno_t (*create)(hr_volume_t *);
 	errno_t (*init)(hr_volume_t *);
+	void	(*status_event)(hr_volume_t *);
 } hr_ops_t;
 
 typedef struct hr_volume {
@@ -87,6 +88,11 @@ extern errno_t hr_raid0_init(hr_volume_t *);
 extern errno_t hr_raid1_init(hr_volume_t *);
 extern errno_t hr_raid4_init(hr_volume_t *);
 extern errno_t hr_raid5_init(hr_volume_t *);
+
+extern void hr_raid0_status_event(hr_volume_t *);
+extern void hr_raid1_status_event(hr_volume_t *);
+extern void hr_raid4_status_event(hr_volume_t *);
+extern void hr_raid5_status_event(hr_volume_t *);
 
 #endif
 
