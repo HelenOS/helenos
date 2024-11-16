@@ -50,11 +50,13 @@ typedef struct {
 
 extern errno_t pcapctl_dump_open(int *, pcapctl_sess_t **);
 extern errno_t pcapctl_dump_close(pcapctl_sess_t *);
-extern errno_t pcapctl_dump_start(const char *, pcapctl_sess_t *);
-extern errno_t pcapctl_dump_set_ops(const char *, pcapctl_sess_t *);
+extern errno_t pcapctl_dump_start(const char *, int *, pcapctl_sess_t *);
+// extern errno_t pcapctl_dump_set_ops(const char *, pcapctl_sess_t *);
 extern errno_t pcapctl_dump_stop(pcapctl_sess_t *);
 extern errno_t pcapctl_list(void);
 extern errno_t pcapctl_is_valid_device(int *);
+extern errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t* sess);
+
 
 #endif
 

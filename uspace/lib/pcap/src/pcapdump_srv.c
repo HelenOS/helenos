@@ -43,11 +43,13 @@
 #include <io/log.h>
 
 #include "pcapdump_srv.h"
+#include "pcapdump_ipc.h"
 
 static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 {
 	char *data;
 	size_t size;
+	int ops_index = (int)ipc_get_arg1(icall);
 	errno_t rc = async_data_write_accept((void **) &data, true, 0, 0, 0, &size);
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
@@ -55,6 +57,15 @@ static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 	}
 
 	assert(str_length(data) == size && "Data were damaged during transmission.\n");
+
+	rc = pcap_dumper_set_ops(dumper, ops_index);
+	if (rc != EOK)
+	{
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Setting ops for dumper was not successful.\n");
+		free(data);
+		async_answer_0(icall, EOK);
+		return;
+	}
 
 	rc = pcap_dumper_start(dumper, (const char *)data);
 	free(data);
@@ -70,27 +81,14 @@ static void pcapdump_stop_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 	async_answer_0(icall, EOK);
 }
 
-static void pcapdump_set_ops_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
+
+static void pcapdump_get_ops_num_srv(ipc_call_t *icall)
 {
-	char *data;
-	size_t size;
-	errno_t rc = async_data_write_accept((void **) &data, true, 0, 0, 0, &size);
-	if (rc != EOK) {
-		async_answer_0(icall, rc);
-		return;
-	}
+	size_t count = pcap_dumper_get_ops_number();
 
-	assert(str_length(data) == size && "Data were damaged during transmission.\n");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Getting number of ops.\n");
 
-	rc = pcap_dumper_set_ops(dumper, (const char *)data);
-	free(data);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Setting ops for dumper was not successful.\n");
-	}
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Setting ops for dumper was successful.\n");
-
-	async_answer_0(icall, EOK);
+	async_answer_1(icall, EOK, count);
 }
 
 void pcapdump_conn(ipc_call_t *icall, void *arg)
@@ -118,8 +116,8 @@ void pcapdump_conn(ipc_call_t *icall, void *arg)
 		case PCAP_CONTROL_SET_STOP:
 			pcapdump_stop_srv(&call, dumper);
 			break;
-		case PCAP_CONTROL_SET_OPS:
-			pcapdump_set_ops_srv(&call, dumper);
+		case PCAP_CONTROL_GET_OPS_NUM:
+			pcapdump_get_ops_num_srv(&call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

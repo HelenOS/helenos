@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Nataliia Korop
+ * Copyright (c) 2024 Nataliia Korop
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libpcap
+/**
+ * @addtogroup libpcap
  * @{
  */
-/** @file pcap interface
+/**
+ * @file IPC requests defined for pcap category.
+ *
  */
 
-#ifndef PCAP_IFACE_H_
-#define PCAP_IFACE_H_
+#ifndef _PCAPDUMP_IPC_H_
+#define _PCAPDUMP_IPC_H_
 
-#include <errno.h>
-#include <fibril_synch.h>
-#include "pcap.h"
+#include <ipc/common.h>
 
-typedef struct pcap_dumper {
-	fibril_mutex_t mutex;
-	bool to_dump;
-	pcap_writer_t writer;
-} pcap_dumper_t;
-
-extern void pcap_dumper_stop(struct pcap_dumper *);
-extern errno_t pcap_dumper_init(pcap_dumper_t *); ///tahle
-extern int pcap_dumper_get_ops_number(void);
-extern errno_t pcap_dumper_set_ops(struct pcap_dumper *, int);
-extern errno_t pcap_dumper_start(struct pcap_dumper *, const char *);
-extern void pcap_dumper_add_packet(struct pcap_dumper *, const void *data, size_t size);
+typedef enum {
+	PCAP_CONTROL_SET_START = IPC_FIRST_USER_METHOD,
+	PCAP_CONTROL_SET_STOP,
+	PCAP_CONTROL_GET_OPS_NUM,
+} pcap_request_t;
 
 #endif
+
 /** @}
  */

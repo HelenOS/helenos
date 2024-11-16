@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "pcapdump_client.h"
-#include "pcapdump_srv.h"
+#include "pcapdump_ipc.h"
 
 /** Finish an async exchange on the pcapctl session
  *
@@ -104,6 +104,30 @@ errno_t pcapctl_is_valid_device(int *index)
 	return EOK;
 }
 
+
+errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t* sess)
+{
+	async_exch_t *exch = async_exchange_begin(sess->sess);
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, PCAP_CONTROL_GET_OPS_NUM, &answer);
+
+	async_exchange_end(exch);
+
+	errno_t retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK) {
+		return retval;
+	}
+
+	int ops_count = (int)ipc_get_arg1(&answer);
+	if (*index + 1 > ops_count || *index < 0)
+	{
+		return EINVAL;
+	}
+	return EOK;
+}
+
 /**
  *
  */
@@ -148,7 +172,6 @@ errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
 	if (sess == NULL)
 		return ENOMEM;
 
-	printf("number: %d\n", *index);
 	if (*index == -1) {
 		*index = 0;
 	}
@@ -189,13 +212,13 @@ errno_t pcapctl_dump_close(pcapctl_sess_t *sess)
  * @param sess session to start
  * @return EOK on success or an error code
  */
-errno_t pcapctl_dump_start(const char *name, pcapctl_sess_t *sess)
+errno_t pcapctl_dump_start(const char *name, int *ops_index, pcapctl_sess_t *sess)
 {
 	errno_t rc;
 	async_exch_t *exch = async_exchange_begin(sess->sess);
 
 	size_t size = str_size(name);
-	aid_t req = async_send_0(exch, PCAP_CONTROL_SET_START, NULL);
+	aid_t req = async_send_1(exch, PCAP_CONTROL_SET_START, *ops_index, NULL);
 
 	rc = async_data_write_start(exch, name, size);
 
@@ -226,27 +249,6 @@ errno_t pcapctl_dump_stop(pcapctl_sess_t *sess)
 	return rc;
 }
 
-errno_t pcapctl_dump_set_ops(const char *ops_name, pcapctl_sess_t *sess)
-{
-	errno_t rc;
-	async_exch_t *exch = async_exchange_begin(sess->sess);
-
-	size_t size = str_size(ops_name);
-	aid_t req = async_send_0(exch, PCAP_CONTROL_SET_OPS, NULL);
-
-	rc = async_data_write_start(exch, ops_name, size);
-
-	pcapctl_dump_exchange_end(exch);
-
-	if (rc != EOK) {
-		async_forget(req);
-		return rc;
-	}
-
-	errno_t retval;
-	async_wait_for(req, &retval);
-	return retval;
-}
 
 /** @}
  */

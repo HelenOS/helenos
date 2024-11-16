@@ -38,6 +38,9 @@
 #include <io/log.h>
 #include "pcap_dumper.h"
 
+#define SHORT_OPS_BYTE_COUNT 60
+#define NAME "pcap"
+
 /** Initialize writing to .pcap file.
  *
  * @param writer    Interface for working with .pcap file.
@@ -47,16 +50,23 @@
  */
 static errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filename)
 {
-	errno_t rc;
 	writer->data = fopen(filename, "a");
 	if (writer->data == NULL) {
-		rc = EINVAL;
-		return rc;
+		return EINVAL;
 	}
 	pcap_writer_add_header(writer);
 
-	rc = EOK;
-	return rc;
+	return EOK;
+}
+
+static errno_t pcap_writer_to_file_init_append(pcap_writer_t *writer, const char *filename)
+{
+	writer->data = fopen(filename, "a");
+	if (writer->data == NULL) {
+		return EINVAL;
+	}
+
+	return EOK;
 }
 
 static size_t pcap_file_w32(pcap_writer_t *writer, uint32_t data)
@@ -81,7 +91,7 @@ static void pcap_file_close(pcap_writer_t *writer)
 	writer->data = NULL;
 }
 
-static pcap_writer_ops_t file_ops = {
+static const pcap_writer_ops_t file_ops = {
 	.open = &pcap_writer_to_file_init,
 	.write_u32 = &pcap_file_w32,
 	.write_u16 = &pcap_file_w16,
@@ -89,34 +99,34 @@ static pcap_writer_ops_t file_ops = {
 	.close = &pcap_file_close
 };
 
-static size_t pcap_short_file_w32(pcap_writer_t *writer, uint32_t data)
-{
-	return fwrite(&data, 1, 4, (FILE *)writer->data);
-}
-
-static size_t pcap_short_file_w16(pcap_writer_t *writer, uint16_t data)
-{
-	return fwrite(&data, 1, 2, (FILE *)writer->data);
-}
-
 static size_t pcap_short_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
 {
-	return fwrite(data, 1, size < 60 ? size : 60, (FILE *)writer->data);
+	return fwrite(data, 1, size < 60 ? size : 60, (FILE *)writer->data); //define
 }
 
-static void pcap_short_file_close(pcap_writer_t *writer)
-{
-	fclose((FILE *)writer->data);
-}
-
-static pcap_writer_ops_t short_file_ops = {
+static const pcap_writer_ops_t short_file_ops = {
 	.open = &pcap_writer_to_file_init,
-	.write_u32 = &pcap_short_file_w32,
-	.write_u16 = &pcap_short_file_w16,
+	.write_u32 = &pcap_file_w32,
+	.write_u16 = &pcap_file_w16,
 	.write_buffer = &pcap_short_file_wbuffer,
-	.close = &pcap_short_file_close
+	.close = &pcap_file_close
 
 };
+
+static const pcap_writer_ops_t append_file_ops = {
+	.open = &pcap_writer_to_file_init_append,
+	.write_u32 = &pcap_file_w32,
+	.write_u16 = &pcap_file_w16,
+	.write_buffer = &pcap_file_wbuffer,
+	.close = &pcap_file_close
+};
+
+static pcap_writer_ops_t ops[3] = {file_ops, short_file_ops, append_file_ops};
+
+int pcap_dumper_get_ops_number(void)
+{
+	return (int)(sizeof(ops) / sizeof(pcap_writer_ops_t));
+}
 
 errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
 {
@@ -136,17 +146,11 @@ errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
 	return rc;
 }
 
-errno_t pcap_dumper_set_ops(struct pcap_dumper *dumper, const char *name)
+errno_t pcap_dumper_set_ops(struct pcap_dumper *dumper, int index)
 {
 	fibril_mutex_lock(&dumper->mutex);
 	errno_t rc = EOK;
-	if (!str_cmp(name, "short_file")) {
-		dumper->writer.ops = &short_file_ops;
-	} else if (!str_cmp(name, "full_file")) {
-		dumper->writer.ops = &file_ops;
-	} else {
-		rc = EINVAL;
-	}
+	dumper->writer.ops = &ops[index];
 	fibril_mutex_unlock(&dumper->mutex);
 	return rc;
 }
@@ -189,9 +193,9 @@ errno_t pcap_dumper_init(pcap_dumper_t *dumper)
 	dumper->to_dump = false;
 	dumper->writer.ops = NULL;
 
-	errno_t rc = log_init("pcap");
+	errno_t rc = log_init(NAME);
 	if (rc != EOK) {
-		printf("pcap : Failed to initialize log.\n");
+		printf("%s : Failed to initialize log.\n", NAME);
 		return 1;
 	}
 	return EOK;

@@ -42,8 +42,9 @@
 
 #define NAME "pcapctl"
 #define DEFAULT_DEV_NUM 0
+#define DECIMAL_SYSTEM 10
 
-static errno_t start_dumping(int *dev_number, const char *name)
+static errno_t start_dumping(int *dev_number, const char *name, int *ops_index)
 {
 	pcapctl_sess_t *sess = NULL;
 	errno_t rc = pcapctl_dump_open(dev_number, &sess);
@@ -51,7 +52,15 @@ static errno_t start_dumping(int *dev_number, const char *name)
 		return 1;
 	}
 
-	rc = pcapctl_dump_start(name, sess);
+	rc = pcapctl_is_valid_ops_number(ops_index, sess);
+	if (rc != EOK)
+	{
+		printf("Wrong number of ops: %d.\n", *ops_index);
+		pcapctl_dump_close(sess);
+		return rc;
+	}
+
+	rc = pcapctl_dump_start(name, ops_index, sess);
 	if (rc != EOK) {
 		printf("Starting the dumping was not successful.\n");
 	}
@@ -69,22 +78,6 @@ static errno_t stop_dumping(int *dev_number)
 	rc = pcapctl_dump_stop(sess);
 	if (rc != EOK) {
 		printf("Stoping the dumping was not successful.\n");
-	}
-	pcapctl_dump_close(sess);
-	return EOK;
-}
-
-static errno_t set_dumper_ops(int *dev_number, const char *name)
-{
-	pcapctl_sess_t *sess = NULL;
-	errno_t rc = pcapctl_dump_open(dev_number, &sess);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = pcapctl_dump_set_ops(name, sess);
-	if (rc != EOK) {
-		printf("Setting dumper ops was not successful.\n");
 	}
 	pcapctl_dump_close(sess);
 	return EOK;
@@ -128,10 +121,9 @@ int main(int argc, char *argv[])
 {
 	bool start = false;
 	bool stop = false;
-	bool set_ops = false;
 	int dev_number = -1;
+	int ops_number = -1;
 	const char *output_file_name = "";
-	const char *ops_name = "";
 	int idx = 0;
 	int ret = 0;
 	if (argc == 1) {
@@ -143,8 +135,8 @@ int main(int argc, char *argv[])
 		switch (ret) {
 		case 'd':
 			char *rest;
-			long result = strtol(optarg, &rest, 10);
-			dev_number = (int)result;
+			long dev_result = strtol(optarg, &rest, DECIMAL_SYSTEM);
+			dev_number = (int)dev_result;
 			errno_t rc = pcapctl_is_valid_device(&dev_number);
 			if (rc != EOK) {
 				printf("Device with index %d not found\n", dev_number);
@@ -167,8 +159,9 @@ int main(int argc, char *argv[])
 			stop = true;
 			break;
 		case 'o':
-			set_ops = true;
-			ops_name = optarg;
+			char* ops_inval;
+			long ops_result = strtol(optarg, &ops_inval, DECIMAL_SYSTEM);
+			ops_number = (int)ops_result;
 			break;
 		}
 	}
@@ -177,12 +170,10 @@ int main(int argc, char *argv[])
 
 	if (start) {
 		/* start with dev number and name */
-		start_dumping(&dev_number, output_file_name);
+		start_dumping(&dev_number, output_file_name, &ops_number);
 	} else if (stop) {
 		/* stop with dev number */
 		stop_dumping(&dev_number);
-	} else if (set_ops) {
-		set_dumper_ops(&dev_number, ops_name);
 	}
 	return 0;
 }
