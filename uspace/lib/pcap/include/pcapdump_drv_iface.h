@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Nataliia Korop
+ * Copyright (c) 2024 Nataliia Korop
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,12 +35,15 @@
  *
  */
 
-#ifndef _PCAPDUMP_IFACE_H_
-#define _PCAPDUMP_IFACE_H_
+#ifndef _PCAPDUMP_DRV_IFACE_H_
+#define _PCAPDUMP_DRV_IFACE_H_
 
 #include <errno.h>
+#include "pcap_dumper.h"
 
-extern void pcapdump_conn(ipc_call_t *, void *);
+extern errno_t pcapdump_init(pcap_dumper_t *);
+extern void pcapdump_packet(pcap_dumper_t *, const void *, size_t);
+
 #endif
 
 /** @}

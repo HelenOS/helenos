@@ -42,6 +42,7 @@
 #include <str.h>
 #include <io/log.h>
 
+#include "pcap_dumper.h"
 #include "pcapdump_srv.h"
 #include "pcapdump_ipc.h"
 
@@ -126,42 +127,7 @@ void pcapdump_conn(ipc_call_t *icall, void *arg)
 	}
 }
 
-errno_t pcapdump_init(pcap_dumper_t *dumper)
-{
-	port_id_t port;
-	errno_t rc;
 
-	rc = pcap_dumper_init(dumper);
-
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Failed creating pcap interface: %s", str_error(rc));
-		return rc;
-	}
-
-	rc = async_create_port(INTERFACE_PCAP_CONTROL, pcapdump_conn, dumper, &port);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Failed creating port: %s", str_error(rc));
-		return rc;
-	}
-	return EOK;
-}
-
-/** Dumping function for driver
- *
- * Called every time, the packet is sent/recieved by the device
- *
- * @param dumper Dumping interface
- * @param data The packet
- * @param size Size of the packet
- *
- */
-void pcapdump_packet(pcap_dumper_t *dumper, const void *data, size_t size)
-{
-	if (dumper == NULL) {
-		return;
-	}
-	pcap_dumper_add_packet(dumper, data, size);
-}
 
 /** @}
  */

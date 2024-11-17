@@ -55,10 +55,15 @@ void pcap_set_time(pcap_packet_header_t *header)
  * @param writer writer that has destination buffer and ops to write to destination buffer.
  *
  */
-void pcap_writer_add_header(pcap_writer_t *writer)
+void pcap_writer_add_header(pcap_writer_t *writer, uint32_t linktype, bool nano)
 {
-	pcap_file_header_t file_header = { PCAP_MAGIC_NANO, PCAP_MAJOR_VERSION, PCAP_MINOR_VERSION,
-		0x00000000, 0x00000000, (uint32_t)PCAP_SNAP_LEN, (uint32_t)PCAP_LINKTYPE_ETHERNET };
+	uint32_t magic_version = PCAP_MAGIC_MICRO;
+	if (nano)
+	{
+		magic_version = PCAP_MAGIC_NANO;
+	}
+	pcap_file_header_t file_header = { magic_version, PCAP_MAJOR_VERSION, PCAP_MINOR_VERSION,
+		0x00000000, 0x00000000, (uint32_t)PCAP_SNAP_LEN, linktype };
 	writer->ops->write_buffer(writer, &file_header, sizeof(file_header));
 }
 

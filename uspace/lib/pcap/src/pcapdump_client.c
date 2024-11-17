@@ -60,13 +60,13 @@ static errno_t pcapctl_cat_get_svc(int *index, service_id_t *svc)
 
 	rc = loc_category_get_id("pcap", &pcap_cat, 0);
 	if (rc != EOK) {
-		printf("Error resolving category 'pcap'.\n");
+		fprintf(stderr, "Error resolving category 'pcap'.\n");
 		return rc;
 	}
 
 	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
 	if (rc != EOK) {
-		printf("Error resolving list of pcap services.\n");
+		fprintf(stderr, "Error resolving list of pcap services.\n");
 		free(pcap_svcs);
 		return rc;
 	}
@@ -88,13 +88,13 @@ errno_t pcapctl_is_valid_device(int *index)
 
 	rc = loc_category_get_id("pcap", &pcap_cat, 0);
 	if (rc != EOK) {
-		printf("Error resolving category pcap.\n");
+		fprintf(stderr, "Error resolving category pcap.\n");
 		return rc;
 	}
 
 	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
 	if (rc != EOK) {
-		printf("Error resolving list of pcap services.\n");
+		fprintf(stderr, "Error resolving list of pcap services.\n");
 		free(pcap_svcs);
 		return rc;
 	}
@@ -140,13 +140,13 @@ errno_t pcapctl_list(void)
 
 	rc = loc_category_get_id("pcap", &pcap_cat, 0);
 	if (rc != EOK) {
-		printf("Error resolving category pcap.\n");
+		fprintf(stderr, "Error resolving category pcap.\n");
 		return rc;
 	}
 
 	rc = loc_category_get_svcs(pcap_cat, &pcap_svcs, &count);
 	if (rc != EOK) {
-		printf("Error resolving list of pcap services.\n");
+		fprintf(stderr, "Error resolving list of pcap services.\n");
 		free(pcap_svcs);
 		return rc;
 	}
@@ -178,7 +178,7 @@ errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
 
 	rc  = pcapctl_cat_get_svc(index, &svc);
 	if (rc != EOK) {
-		printf("Error finding the device with index: %d\n", *index);
+		fprintf(stderr, "Error finding the device with index: %d\n", *index);
 		goto error;
 	}
 

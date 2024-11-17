@@ -31,17 +31,73 @@
  * @{
  */
 /**
- * @file
+ * @file Functions that are called inside driver that can dump packets/
  *
  */
 
-#ifndef _PCAPDUMP_IFACE_H_
-#define _PCAPDUMP_IFACE_H_
-
+#include <async.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <fibril_synch.h>
+#include <str.h>
+#include <io/log.h>
 
-extern void pcapdump_conn(ipc_call_t *, void *);
-#endif
+#include "pcapdump_srv.h"
+#include "pcapdump_drv_iface.h"
 
-/** @}
+#define NAME "pcap"
+
+/** Initialize interface for dumping packets
+ *
+ * @param dumper Device dumping interface
+ *
  */
+static errno_t pcapdump_drv_dumper_init(pcap_dumper_t *dumper)
+{
+	fibril_mutex_initialize(&dumper->mutex);
+	dumper->to_dump = false;
+	dumper->writer.ops = NULL;
+
+	errno_t rc = log_init(NAME);
+	if (rc != EOK) {
+		printf("%s : Failed to initialize log.\n", NAME);
+		return 1;
+	}
+	return EOK;
+}
+
+errno_t pcapdump_init(pcap_dumper_t *dumper)
+{
+	port_id_t port;
+	errno_t rc;
+
+	rc = pcapdump_drv_dumper_init(dumper);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Failed initializing pcap dumper: %s", str_error(rc));
+		return rc;
+	}
+
+	rc = async_create_port(INTERFACE_PCAP_CONTROL, pcapdump_conn, dumper, &port);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Failed creating port for pcap dumper: %s", str_error(rc));
+		return rc;
+	}
+	return EOK;
+}
+
+/** Dumping function for driver
+ *
+ * Called every time, the packet is sent/recieved by the device
+ *
+ * @param dumper Dumping interface
+ * @param data The packet
+ * @param size Size of the packet
+ *
+ */
+void pcapdump_packet(pcap_dumper_t *dumper, const void *data, size_t size)
+{
+	if (dumper == NULL) {
+		return;
+	}
+	pcap_dumper_add_packet(dumper, data, size);
+}

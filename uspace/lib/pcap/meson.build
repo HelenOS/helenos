@@ -31,4 +31,5 @@ src = files(
     'src/pcap_dumper.c',
     'src/pcapdump_srv.c',
     'src/pcapdump_client.c',
+    'src/pcapdump_drv_iface.c',
 )

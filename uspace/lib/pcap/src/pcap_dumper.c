@@ -39,7 +39,6 @@
 #include "pcap_dumper.h"
 
 #define SHORT_OPS_BYTE_COUNT 60
-#define NAME "pcap"
 
 /** Initialize writing to .pcap file.
  *
@@ -54,7 +53,7 @@ static errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filen
 	if (writer->data == NULL) {
 		return EINVAL;
 	}
-	pcap_writer_add_header(writer);
+	pcap_writer_add_header(writer, (uint32_t)PCAP_LINKTYPE_ETHERNET, false);
 
 	return EOK;
 }
@@ -65,6 +64,17 @@ static errno_t pcap_writer_to_file_init_append(pcap_writer_t *writer, const char
 	if (writer->data == NULL) {
 		return EINVAL;
 	}
+
+	return EOK;
+}
+
+static errno_t pcap_writer_to_file_usb_init(pcap_writer_t *writer, const char *filename)
+{
+	writer->data = fopen(filename, "a");
+	if (writer->data == NULL) {
+		return EINVAL;
+	}
+	pcap_writer_add_header(writer, (uint32_t)PCAP_LINKTYPE_USB_LINUX_MMAPPED, false);
 
 	return EOK;
 }
@@ -121,14 +131,22 @@ static const pcap_writer_ops_t append_file_ops = {
 	.close = &pcap_file_close
 };
 
-static pcap_writer_ops_t ops[3] = {file_ops, short_file_ops, append_file_ops};
+static const pcap_writer_ops_t usb_file_ops = {
+	.open = &pcap_writer_to_file_usb_init,
+	.write_u32 = &pcap_file_w32,
+	.write_u16 = &pcap_file_w16,
+	.write_buffer = &pcap_file_wbuffer,
+	.close = &pcap_file_close
+};
+
+static pcap_writer_ops_t ops[4] = {file_ops, short_file_ops, append_file_ops, usb_file_ops};
 
 int pcap_dumper_get_ops_number(void)
 {
 	return (int)(sizeof(ops) / sizeof(pcap_writer_ops_t));
 }
 
-errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
+errno_t pcap_dumper_start(pcap_dumper_t *dumper, const char *name)
 {
 	fibril_mutex_lock(&dumper->mutex);
 
@@ -146,7 +164,7 @@ errno_t pcap_dumper_start(struct pcap_dumper *dumper, const char *name)
 	return rc;
 }
 
-errno_t pcap_dumper_set_ops(struct pcap_dumper *dumper, int index)
+errno_t pcap_dumper_set_ops(pcap_dumper_t *dumper, int index)
 {
 	fibril_mutex_lock(&dumper->mutex);
 	errno_t rc = EOK;
@@ -155,7 +173,7 @@ errno_t pcap_dumper_set_ops(struct pcap_dumper *dumper, int index)
 	return rc;
 }
 
-void pcap_dumper_add_packet(struct pcap_dumper *dumper, const void *data, size_t size)
+void pcap_dumper_add_packet(pcap_dumper_t *dumper, const void *data, size_t size)
 {
 	fibril_mutex_lock(&dumper->mutex);
 
@@ -168,7 +186,7 @@ void pcap_dumper_add_packet(struct pcap_dumper *dumper, const void *data, size_t
 	fibril_mutex_unlock(&dumper->mutex);
 }
 
-void pcap_dumper_stop(struct pcap_dumper *dumper)
+void pcap_dumper_stop(pcap_dumper_t *dumper)
 {
 	fibril_mutex_lock(&dumper->mutex);
 
@@ -182,24 +200,7 @@ void pcap_dumper_stop(struct pcap_dumper *dumper)
 	fibril_mutex_unlock(&dumper->mutex);
 }
 
-/** Initialize interface for dumping packets
- *
- * @param dumper Device dumping interface
- *
- */
-errno_t pcap_dumper_init(pcap_dumper_t *dumper)
-{
-	fibril_mutex_initialize(&dumper->mutex);
-	dumper->to_dump = false;
-	dumper->writer.ops = NULL;
 
-	errno_t rc = log_init(NAME);
-	if (rc != EOK) {
-		printf("%s : Failed to initialize log.\n", NAME);
-		return 1;
-	}
-	return EOK;
-}
 
 /** @}
  */
