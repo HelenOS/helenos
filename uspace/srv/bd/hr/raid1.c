@@ -320,10 +320,12 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 				continue;
 			rc = block_read_direct(vol->extents[i].svc_id, ba, cnt,
 			    data_read);
-			if (rc != EOK)
+			if (rc != EOK) {
 				handle_extent_error(vol, i, rc);
-			else
+			} else {
 				successful++;
+				break;
+			}
 		}
 		break;
 	case HR_BD_WRITE:
