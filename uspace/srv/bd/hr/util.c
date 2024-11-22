@@ -236,5 +236,16 @@ void hr_sync_all_extents(hr_volume_t *vol)
 	fibril_mutex_unlock(&vol->lock);
 }
 
+size_t hr_count_extents(hr_volume_t *vol, hr_ext_status_t status)
+{
+	size_t count = 0;
+	for (size_t i = 0; i < vol->dev_no; i++) {
+		if (vol->extents[i].status == status)
+			count++;
+	}
+
+	return count;
+}
+
 /** @}
  */
