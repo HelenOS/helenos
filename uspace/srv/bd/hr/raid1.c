@@ -54,7 +54,7 @@ extern loc_srv_t *hr_srv;
 
 static errno_t hr_raid1_check_vol_status(hr_volume_t *);
 static errno_t hr_raid1_update_vol_status(hr_volume_t *);
-static void handle_extent_error(hr_volume_t *, size_t, errno_t);
+static void hr_raid1_handle_extent_error(hr_volume_t *, size_t, errno_t);
 static errno_t hr_raid1_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
 static errno_t hr_raid1_rebuild(void *);
@@ -267,7 +267,7 @@ static errno_t hr_raid1_update_vol_status(hr_volume_t *vol)
 	}
 }
 
-static void handle_extent_error(hr_volume_t *vol, size_t extent,
+static void hr_raid1_handle_extent_error(hr_volume_t *vol, size_t extent,
     errno_t rc)
 {
 	if (rc == ENOENT)
@@ -309,7 +309,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 				continue;
 			rc = block_sync_cache(vol->extents[i].svc_id, ba, cnt);
 			if (rc != EOK && rc != ENOTSUP)
-				handle_extent_error(vol, i, rc);
+				hr_raid1_handle_extent_error(vol, i, rc);
 			else
 				successful++;
 		}
@@ -321,7 +321,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 			rc = block_read_direct(vol->extents[i].svc_id, ba, cnt,
 			    data_read);
 			if (rc != EOK) {
-				handle_extent_error(vol, i, rc);
+				hr_raid1_handle_extent_error(vol, i, rc);
 			} else {
 				successful++;
 				break;
@@ -344,7 +344,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 			rc = block_write_direct(vol->extents[i].svc_id, ba, cnt,
 			    data_write);
 			if (rc != EOK)
-				handle_extent_error(vol, i, rc);
+				hr_raid1_handle_extent_error(vol, i, rc);
 			else
 				successful++;
 		}
@@ -433,7 +433,6 @@ static errno_t hr_raid1_rebuild(void *arg)
 	buf = malloc(max_blks * vol->bsize);
 
 	hr_extent_t *ext;
-	size_t rebuild_ext_idx = bad;
 
 	size_t cnt;
 	uint64_t ba = 0;
@@ -447,7 +446,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 				rc = block_read_direct(ext->svc_id, ba, cnt,
 				    buf);
 				if (rc != EOK) {
-					handle_extent_error(vol, i, rc);
+					hr_raid1_handle_extent_error(vol, i, rc);
 					if (i + 1 < vol->dev_no) {
 						/* still might have one ONLINE */
 						continue;
@@ -464,9 +463,10 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 		rc = block_write_direct(hotspare->svc_id, ba, cnt, buf);
 		if (rc != EOK) {
-			handle_extent_error(vol, rebuild_ext_idx, rc);
-			HR_ERROR("rebuild on \"%s\" (%lu), extent number %lu\n",
-			    vol->devname, vol->svc_id, rebuild_ext_idx);
+			hr_raid1_handle_extent_error(vol, bad, rc);
+			HR_ERROR("rebuild on \"%s\" (%lu), failed due to "
+			    "the rebuilt extent number %lu failing\n",
+			    vol->devname, vol->svc_id, bad);
 			goto end;
 
 		}
@@ -478,7 +478,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 	HR_DEBUG("hr_raid1_rebuild(): rebuild finished on \"%s\" (%lu), "
 	    "extent number %lu\n", vol->devname, vol->svc_id, hotspare_idx);
 
-	hr_update_ext_status(vol, hotspare_idx, HR_EXT_ONLINE);
+	hr_update_ext_status(vol, bad, HR_EXT_ONLINE);
 	/*
 	 * For now write metadata at the end, because
 	 * we don't sync metada accross extents yet.
