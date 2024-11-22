@@ -107,19 +107,19 @@ int main(int argc, char **argv)
 	}
 
 	uint64_t to_alloc = min(DATA_XFER_LIMIT, bsize * blkcnt);
-	uint8_t *buf = calloc(to_alloc / bsize, bsize);
+	uint8_t *buf = malloc(to_alloc);
 	if (buf == NULL) {
 		rc = ENOMEM;
 		goto end;
 	}
 	uint64_t left = blkcnt;
-	while (left > 0) {
+	while (left != 0) {
 		uint64_t blks_to_write = min(to_alloc / bsize, left);
 		uint8_t *ptr = buf;
 		for (size_t i = 0; i < blks_to_write; i++) {
 			/* memset(ptr, (i + 1) % 0x100, bsize); */
 			memset(ptr, 'A' + (i % 26), bsize);
-			ptr = (uint8_t *)((uintptr_t) ptr + bsize);
+			ptr += bsize;
 		}
 		rc = block_write_direct(dev, off, blks_to_write, buf);
 		if (rc != EOK) {
@@ -127,6 +127,7 @@ int main(int argc, char **argv)
 			goto end;
 		}
 		left -= blks_to_write;
+		off += blks_to_write;
 	}
 end:
 	free(buf);
