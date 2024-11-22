@@ -409,13 +409,13 @@ static errno_t hr_raid5_write_parity(hr_volume_t *vol, uint64_t p_extent,
 		if (i == p_extent)
 			continue;
 		if (i == extent) {
-			xor(xorbuf, data, vol->bsize);
+			xor(xorbuf, data, len);
 		} else {
 			rc = block_read_direct(vol->extents[i].svc_id,
 			    block, cnt, buf);
 			if (rc != EOK)
 				goto end;
-			xor(xorbuf, buf, vol->bsize);
+			xor(xorbuf, buf, len);
 		}
 	}
 

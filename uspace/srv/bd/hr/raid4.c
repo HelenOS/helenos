@@ -469,7 +469,7 @@ static errno_t hr_raid4_write_parity(hr_volume_t *vol, uint64_t extent,
 	memset(xorbuf, 0, len);
 	for (i = 1; i < vol->dev_no; i++) {
 		if (i == extent) {
-			xor(xorbuf, data, vol->bsize);
+			xor(xorbuf, data, len);
 		} else {
 			rc = block_read_direct(vol->extents[i].svc_id, block,
 			    cnt, buf);
