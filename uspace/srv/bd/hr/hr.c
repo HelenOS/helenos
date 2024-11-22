@@ -207,6 +207,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		new_volume->hr_ops.create = hr_raid5_create;
 		new_volume->hr_ops.init = hr_raid5_init;
 		new_volume->hr_ops.status_event = hr_raid5_status_event;
+		new_volume->hr_ops.add_hotspare = hr_raid5_add_hotspare;
 		break;
 	default:
 		HR_ERROR("unkown level: %d, aborting\n", new_volume->level);

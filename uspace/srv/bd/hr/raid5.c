@@ -57,6 +57,7 @@ extern loc_srv_t *hr_srv;
 static errno_t hr_raid5_vol_usable(hr_volume_t *);
 static ssize_t hr_raid5_get_bad_ext(hr_volume_t *);
 static errno_t hr_raid5_update_vol_status(hr_volume_t *);
+static void hr_raid5_handle_extent_error(hr_volume_t *, size_t, errno_t);
 static void xor(void *, const void *, size_t);
 static errno_t hr_raid5_read_degraded(hr_volume_t *, uint64_t, uint64_t,
     void *, size_t);
@@ -66,6 +67,7 @@ static errno_t hr_raid5_write_parity(hr_volume_t *, uint64_t, uint64_t,
     uint64_t, const void *, size_t);
 static errno_t hr_raid5_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
+static errno_t hr_raid5_rebuild(void *);
 
 /* bdops */
 static errno_t hr_raid5_bd_open(bd_srvs_t *, bd_srv_t *);
@@ -139,6 +141,41 @@ void hr_raid5_status_event(hr_volume_t *vol)
 	fibril_mutex_lock(&vol->lock);
 	(void) hr_raid5_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
+}
+
+errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
+{
+	HR_DEBUG("hr_raid5_add_hotspare()\n");
+
+	fibril_mutex_lock(&vol->lock);
+
+	if (vol->hotspare_no >= HR_MAX_HOTSPARES) {
+		HR_ERROR("hr_raid5_add_hotspare(): cannot add more hotspares "
+		    "to \"%s\"\n", vol->devname);
+		fibril_mutex_unlock(&vol->lock);
+		return ELIMIT;
+	}
+
+	vol->hotspares[vol->hotspare_no].svc_id = hotspare;
+	vol->hotspares[vol->hotspare_no].status = HR_EXT_HOTSPARE;
+	vol->hotspare_no++;
+
+	/*
+	 * If the volume is degraded, start rebuild right away.
+	 */
+	if (vol->status == HR_VOL_DEGRADED) {
+		HR_DEBUG("hr_raid5_add_hotspare(): volume in DEGRADED state, "
+		    "spawning new rebuild fibril\n");
+		fid_t fib = fibril_create(hr_raid5_rebuild, vol);
+		if (fib == 0)
+			return EINVAL;
+		fibril_start(fib);
+		fibril_detach(fib);
+	}
+
+	fibril_mutex_unlock(&vol->lock);
+
+	return EOK;
 }
 
 static errno_t hr_raid5_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -224,11 +261,21 @@ static errno_t hr_raid5_update_vol_status(hr_volume_t *vol)
 		}
 		return EOK;
 	case 1:
-		if (old_state != HR_VOL_DEGRADED) {
+		if (old_state != HR_VOL_DEGRADED &&
+		    old_state != HR_VOL_REBUILD) {
 			HR_WARN("RAID 5 array \"%s\" (%lu) has 1 extent "
 			    "inactive, marking as DEGRADED",
 			    vol->devname, vol->svc_id);
 			vol->status = HR_VOL_DEGRADED;
+			if (vol->hotspare_no > 0) {
+				fid_t fib = fibril_create(hr_raid5_rebuild,
+				    vol);
+				if (fib == 0) {
+					return EINVAL;
+				}
+				fibril_start(fib);
+				fibril_detach(fib);
+			}
 		}
 		return EOK;
 	default:
@@ -240,6 +287,15 @@ static errno_t hr_raid5_update_vol_status(hr_volume_t *vol)
 		}
 		return EINVAL;
 	}
+}
+
+static void hr_raid5_handle_extent_error(hr_volume_t *vol, size_t extent,
+    errno_t rc)
+{
+	if (rc == ENOENT)
+		hr_update_ext_status(vol, extent, HR_EXT_MISSING);
+	else if (rc != EOK)
+		hr_update_ext_status(vol, extent, HR_EXT_FAILED);
 }
 
 static void xor(void *dst, const void *src, size_t size)
@@ -513,10 +569,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		if (rc == ENOMEM)
 			goto error;
 
-		if (rc == ENOENT)
-			hr_update_ext_status(vol, extent, HR_EXT_MISSING);
-		else if (rc != EOK)
-			hr_update_ext_status(vol, extent, HR_EXT_FAILED);
+		hr_raid5_handle_extent_error(vol, extent, rc);
 
 		if (rc != EOK) {
 			rc = hr_raid5_update_vol_status(vol);
@@ -554,6 +607,139 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 error:
 	(void) hr_raid5_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
+	return rc;
+}
+
+static errno_t hr_raid5_rebuild(void *arg)
+{
+	HR_DEBUG("hr_raid5_rebuild()\n");
+
+	hr_volume_t *vol = arg;
+	errno_t rc = EOK;
+	void *buf = NULL, *xorbuf = NULL;
+
+	fibril_mutex_lock(&vol->lock);
+
+	if (vol->hotspare_no == 0) {
+		HR_WARN("hr_raid5_rebuild(): no free hotspares on \"%s\", "
+		    "aborting rebuild\n", vol->devname);
+		/* retval isn't checked for now */
+		goto end;
+	}
+
+	size_t bad = vol->dev_no;
+	for (size_t i = 0; i < vol->dev_no; i++) {
+		if (vol->extents[i].status == HR_EXT_FAILED) {
+			bad = i;
+			break;
+		}
+	}
+
+	if (bad == vol->dev_no) {
+		HR_WARN("hr_raid5_rebuild(): no bad extent on \"%s\", "
+		    "aborting rebuild\n", vol->devname);
+		/* retval isn't checked for now */
+		goto end;
+	}
+
+	block_fini(vol->extents[bad].svc_id);
+
+	size_t hotspare_idx = vol->hotspare_no - 1;
+
+	vol->extents[bad].svc_id = vol->hotspares[hotspare_idx].svc_id;
+	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
+
+	vol->hotspares[hotspare_idx].svc_id = 0;
+	vol->hotspares[hotspare_idx].status = HR_EXT_MISSING;
+	vol->hotspare_no--;
+
+	HR_WARN("hr_raid5_rebuild(): changing volume \"%s\" (%lu) state "
+	    "from %s to %s\n", vol->devname, vol->svc_id,
+	    hr_get_vol_status_msg(vol->status),
+	    hr_get_vol_status_msg(HR_VOL_REBUILD));
+	vol->status = HR_VOL_REBUILD;
+
+	hr_extent_t *hotspare = &vol->extents[bad];
+
+	HR_DEBUG("hr_raid5_rebuild(): initing (%lu)\n", hotspare->svc_id);
+
+	rc = block_init(hotspare->svc_id);
+	if (rc != EOK) {
+		HR_ERROR("hr_raid5_rebuild(): initing (%lu) failed, "
+		    "aborting rebuild\n", hotspare->svc_id);
+		goto end;
+	}
+
+	uint64_t max_blks = DATA_XFER_LIMIT / vol->bsize;
+	uint64_t left = vol->data_blkno / (vol->dev_no - 1);
+	buf = malloc(max_blks * vol->bsize);
+	xorbuf = malloc(max_blks * vol->bsize);
+
+	uint64_t ba = 0, cnt;
+	hr_add_ba_offset(vol, &ba);
+	while (left != 0) {
+		cnt = min(left, max_blks);
+
+		/*
+		 * Almost the same as read_degraded,
+		 * but we don't want to allocate new
+		 * xorbuf each blk rebuild batch.
+		 */
+		bool first = true;
+		for (size_t i = 0; i < vol->dev_no; i++) {
+			if (i == bad)
+				continue;
+			rc = block_read_direct(vol->extents[i].svc_id, ba, cnt,
+			    buf);
+			if (rc != EOK) {
+				hr_raid5_handle_extent_error(vol, i, rc);
+				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
+				    "to a failed ONLINE extent, number %lu\n",
+				    vol->devname, vol->svc_id, i);
+				goto end;
+			}
+
+			if (first)
+				memcpy(xorbuf, buf, cnt * vol->bsize);
+			else
+				xor(xorbuf, buf, cnt * vol->bsize);
+
+			first = false;
+		}
+
+		rc = block_write_direct(hotspare->svc_id, ba, cnt, xorbuf);
+		if (rc != EOK) {
+			hr_raid5_handle_extent_error(vol, bad, rc);
+			HR_ERROR("rebuild on \"%s\" (%lu), failed due to "
+			    "the rebuilt extent number %lu failing\n",
+			    vol->devname, vol->svc_id, bad);
+			goto end;
+		}
+
+		ba += cnt;
+		left -= cnt;
+	}
+
+	HR_DEBUG("hr_raid5_rebuild(): rebuild finished on \"%s\" (%lu), "
+	    "extent number %lu\n", vol->devname, vol->svc_id, hotspare_idx);
+
+	hr_update_ext_status(vol, bad, HR_EXT_ONLINE);
+	/*
+	 * For now write metadata at the end, because
+	 * we don't sync metada accross extents yet.
+	 */
+	hr_write_meta_to_ext(vol, bad);
+end:
+	(void) hr_raid5_update_vol_status(vol);
+
+	fibril_mutex_unlock(&vol->lock);
+
+	if (buf != NULL)
+		free(buf);
+
+	if (xorbuf != NULL)
+		free(xorbuf);
+
 	return rc;
 }
 

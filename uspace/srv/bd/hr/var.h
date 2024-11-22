@@ -106,6 +106,7 @@ extern void hr_raid5_status_event(hr_volume_t *);
 
 extern errno_t hr_raid1_add_hotspare(hr_volume_t *, service_id_t);
 extern errno_t hr_raid4_add_hotspare(hr_volume_t *, service_id_t);
+extern errno_t hr_raid5_add_hotspare(hr_volume_t *, service_id_t);
 
 #endif
 
