@@ -60,6 +60,7 @@ typedef struct hr_metadata {
 } hr_metadata_t;
 
 extern errno_t hr_write_meta_to_vol(hr_volume_t *);
+extern errno_t hr_write_meta_to_ext(hr_volume_t *, size_t);
 extern errno_t hr_fill_vol_from_meta(hr_volume_t *);
 
 #endif

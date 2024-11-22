@@ -50,6 +50,7 @@
 #include "var.h"
 
 static errno_t read_metadata(service_id_t, hr_metadata_t *);
+static errno_t hr_fill_meta_from_vol(hr_volume_t *, hr_metadata_t *);
 
 errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 {
@@ -57,7 +58,6 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 
 	errno_t rc;
 	size_t i;
-	size_t meta_blkno; /* blocks needed to write metadata */
 	hr_metadata_t *metadata;
 	uuid_t uuid;
 
@@ -65,28 +65,10 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 	if (metadata == NULL)
 		return ENOMEM;
 
-	meta_blkno = (HR_META_OFF + HR_META_SIZE);
-	if (vol->level != HR_LVL_1)
-		meta_blkno *= vol->dev_no;
-
-	if (vol->nblocks < meta_blkno) {
-		HR_ERROR("not enough blocks to write metadat\n");
-		rc = EINVAL;
+	rc = hr_fill_meta_from_vol(vol, metadata);
+	if (rc != EOK)
 		goto error;
-	} else if (vol->nblocks == meta_blkno) {
-		HR_ERROR("there would be zero data blocks after writing "
-		    "metadata, aborting");
-		rc = EINVAL;
-		goto error;
-	}
 
-	metadata->magic = host2uint64_t_le(HR_MAGIC);
-	metadata->extent_no = host2uint32_t_le(vol->dev_no);
-	metadata->level = host2uint32_t_le(vol->level);
-	metadata->nblocks = host2uint64_t_le(vol->nblocks);
-	metadata->data_blkno = host2uint64_t_le(vol->data_blkno);
-	metadata->data_offset = host2uint32_t_le(vol->data_offset);
-	metadata->strip_size = host2uint32_t_le(vol->strip_size);
 	for (i = 0; i < vol->dev_no; i++) {
 		metadata->index = host2uint32_t_le(i);
 
@@ -94,8 +76,6 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 		if (rc != EOK)
 			goto error;
 		uuid_encode(&uuid, metadata->uuid);
-
-		str_cpy(metadata->devname, HR_DEVNAME_LEN, vol->devname);
 
 		rc = block_write_direct(vol->extents[i].svc_id, HR_META_OFF,
 		    HR_META_SIZE, metadata);
@@ -108,6 +88,80 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 error:
 	free(metadata);
 	return rc;
+}
+
+errno_t hr_write_meta_to_ext(hr_volume_t *vol, size_t ext)
+{
+	HR_DEBUG("hr_write_meta_to_vol()\n");
+
+	errno_t rc;
+	hr_metadata_t *metadata;
+	uuid_t uuid;
+
+	metadata = calloc(1, HR_META_SIZE * vol->bsize);
+	if (metadata == NULL)
+		return ENOMEM;
+
+	rc = hr_fill_meta_from_vol(vol, metadata);
+	if (rc != EOK)
+		goto error;
+
+	metadata->index = host2uint32_t_le(ext);
+
+	rc = uuid_generate(&uuid);
+	if (rc != EOK)
+		goto error;
+	uuid_encode(&uuid, metadata->uuid);
+
+	rc = block_write_direct(vol->extents[ext].svc_id, HR_META_OFF,
+	    HR_META_SIZE, metadata);
+	if (rc != EOK)
+		goto error;
+
+error:
+	free(metadata);
+	return rc;
+}
+
+/*
+ * Fill metadata members from
+ * specified volume.
+ *
+ * Does not fill extent index and UUID.
+ */
+static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
+{
+	HR_DEBUG("hr_fill_meta_from_vol()\n");
+
+	size_t meta_blkno; /* blocks needed to write metadata */
+
+	meta_blkno = (HR_META_OFF + HR_META_SIZE);
+	if (vol->level != HR_LVL_1)
+		meta_blkno *= vol->dev_no;
+
+	if (vol->nblocks < meta_blkno) {
+		HR_ERROR("hr_fill_meta_from_vol(): volume \"%s\" does not "
+		    " have enough space to store metada, aborting\n",
+		    vol->devname);
+		return EINVAL;
+	} else if (vol->nblocks == meta_blkno) {
+		HR_ERROR("hr_fill_meta_from_vol(): volume \"%s\" would have "
+		    "zero data blocks after writing metadata, aborting\n",
+		    vol->devname);
+		return EINVAL;
+	}
+
+	metadata->magic = host2uint64_t_le(HR_MAGIC);
+	metadata->extent_no = host2uint32_t_le(vol->dev_no);
+	metadata->level = host2uint32_t_le(vol->level);
+	metadata->nblocks = host2uint64_t_le(vol->nblocks);
+	metadata->data_blkno = host2uint64_t_le(vol->data_blkno);
+	metadata->data_offset = host2uint32_t_le(vol->data_offset);
+	metadata->strip_size = host2uint32_t_le(vol->strip_size);
+
+	str_cpy(metadata->devname, HR_DEVNAME_LEN, vol->devname);
+
+	return EOK;
 }
 
 static errno_t validate_meta(hr_metadata_t *md)
