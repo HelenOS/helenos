@@ -330,7 +330,16 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		break;
 	case HR_BD_WRITE:
 		for (i = 0; i < vol->dev_no; i++) {
-			if (vol->extents[i].status != HR_EXT_ONLINE)
+			if (vol->extents[i].status != HR_EXT_ONLINE ||
+			    (vol->extents[i].status == HR_EXT_REBUILD &&
+			    ba >= vol->rebuild_blk))
+				/*
+				 * When the extent is being rebuilt,
+				 * we only write to the part that is already
+				 * rebuilt. If ba is more than vol->rebuild_blk,
+				 * the write is going to be replicated later
+				 * in the rebuild. TODO: test
+				 */
 				continue;
 			rc = block_write_direct(vol->extents[i].svc_id, ba, cnt,
 			    data_write);
@@ -394,6 +403,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	size_t hotspare_idx = vol->hotspare_no - 1;
 
+	vol->rebuild_blk = 0;
 	vol->extents[bad].svc_id = vol->hotspares[hotspare_idx].svc_id;
 	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
 
@@ -429,6 +439,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 	uint64_t ba = 0;
 	hr_add_ba_offset(vol, &ba);
 	while (left != 0) {
+		vol->rebuild_blk = ba;
 		cnt = min(max_blks, left);
 		for (size_t i = 0; i < vol->dev_no; i++) {
 			ext = &vol->extents[i];
