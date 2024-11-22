@@ -41,6 +41,7 @@ typedef enum {
 	HR_CREATE = IPC_FIRST_USER_METHOD,
 	HR_ASSEMBLE,
 	HR_STOP,
+	HR_ADD_HOTSPARE,
 	HR_STATUS
 } hr_request_t;
 

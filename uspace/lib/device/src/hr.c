@@ -165,6 +165,24 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 		else
 			printf("          %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
 	}
+
+	if (vol_info->hotspare_no == 0)
+		return EOK;
+
+	printf("hotspares: [status] [index] [devname]\n");
+	for (i = 0; i < vol_info->hotspare_no; i++) {
+		ext = &vol_info->hotspares[i];
+		if (ext->status == HR_EXT_MISSING) {
+			devname = (char *) "MISSING-devname";
+		} else {
+			rc = loc_service_get_name(ext->svc_id, &devname);
+			if (rc != EOK)
+				return rc;
+		}
+		printf("            %s   %zu     %s\n",
+		    hr_get_ext_status_msg(ext->status), i, devname);
+	}
+
 	return EOK;
 }
 
@@ -193,6 +211,29 @@ errno_t hr_stop(const char *devname, long extent)
 
 	if (rc != EOK)
 		goto error;
+error:
+	hr_sess_destroy(hr);
+	return rc;
+}
+
+errno_t hr_add_hotspare(service_id_t vol_svc_id, service_id_t hs_svc_id)
+{
+	hr_t *hr;
+	errno_t rc;
+	async_exch_t *exch;
+
+	rc = hr_sess_init(&hr);
+	if (rc != EOK)
+		return rc;
+
+	exch = async_exchange_begin(hr->sess);
+	if (exch == NULL) {
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = async_req_2_0(exch, HR_ADD_HOTSPARE, vol_svc_id, hs_svc_id);
+	async_exchange_end(exch);
 error:
 	hr_sess_destroy(hr);
 	return rc;
@@ -276,6 +317,8 @@ const char *hr_get_vol_status_msg(hr_vol_status_t status)
 		return "FAULTY";
 	case HR_VOL_DEGRADED:
 		return "DEGRADED";
+	case HR_VOL_REBUILD:
+		return "REBUILD";
 	default:
 		return "UNKNOWN";
 	}
@@ -290,6 +333,10 @@ const char *hr_get_ext_status_msg(hr_ext_status_t status)
 		return "MISSING";
 	case HR_EXT_FAILED:
 		return "FAILED";
+	case HR_EXT_REBUILD:
+		return "REBUILD";
+	case HR_EXT_HOTSPARE:
+		return "HOTSPARE";
 	default:
 		return "UNKNOWN";
 	}

@@ -68,6 +68,7 @@ static const char usage_str[] =
     "  -1                        mirroring\n"
     "  -4                        parity on one extent\n"
     "  -5                        distributed parity\n"
+    "  -H, --hotspare=DEV        add hotspare extent\n"
     "\n"
     "When specifying name for creation or assembly, the device name\n"
     "is automatically prepended with \"devices/\" prefix.\n"
@@ -79,6 +80,8 @@ static const char usage_str[] =
     "  hrctl --assemble hr0 -n 2 devices/\\hw\\0 devices/\\hw\\1\n"
     "    - assembles RAID device named /hr0 consisting of 2 drives,\n"
     "      that were previously in an array\n"
+    "  hrctl devices/hr0 --hotspare=devices/disk10\n"
+    "    - adds \"devices/disk10\" as hotspare extent\n"
     "Limitations:\n"
     "  - device name must be less than 32 characters in size\n";
 
@@ -92,6 +95,7 @@ static struct option const long_options[] = {
 	{ "assemble-file", required_argument, 0, 'A' },
 	{ "destroy", required_argument, 0, 'D' },
 	{ "fail-extent", required_argument, 0, 'F' },
+	{ "hotspare", required_argument, 0, 'H' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -246,7 +250,7 @@ int main(int argc, char **argv)
 	optind = 0;
 
 	while (c != -1) {
-		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:D:F:",
+		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:D:F:H:",
 		    long_options, NULL);
 		switch (c) {
 		case 'h':
@@ -344,6 +348,37 @@ int main(int argc, char **argv)
 				return 1;
 			}
 			break;
+		case 'H':
+			if (optind != 3 && argc != 4)
+				goto bad;
+
+			service_id_t hotspare;
+			service_id_t vol_svc_id;
+
+			rc = loc_service_get_id(argv[1], &vol_svc_id, 0);
+			if (rc != EOK) {
+				printf("hrctl: error resolving volume \"%s\", "
+				    "aborting extent addition\n", argv[1]);
+				goto bad;
+			}
+
+			rc = loc_service_get_id(optarg, &hotspare, 0);
+			if (rc != EOK) {
+				printf("hrctl: error resolving device \"%s\", "
+				    "aborting extent addition\n", optarg);
+				goto bad;
+			}
+
+			rc = hr_add_hotspare(vol_svc_id, hotspare);
+			if (rc != EOK)
+				printf("hrctl: hr_add_hotspare() rc: %s\n",
+				    str_error(rc));
+
+			free(cfg);
+			if (rc != EOK)
+				return 1;
+			else
+				return 0;
 		}
 	}
 

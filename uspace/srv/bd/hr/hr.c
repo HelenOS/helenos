@@ -190,6 +190,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		new_volume->hr_ops.create = hr_raid1_create;
 		new_volume->hr_ops.init = hr_raid1_init;
 		new_volume->hr_ops.status_event = hr_raid1_status_event;
+		new_volume->hr_ops.add_hotspare = hr_raid1_add_hotspare;
 		break;
 	case HR_LVL_0:
 		new_volume->hr_ops.create = hr_raid0_create;
@@ -286,6 +287,36 @@ static void hr_stop_srv(ipc_call_t *icall)
 	async_answer_0(icall, rc);
 }
 
+static void hr_add_hotspare_srv(ipc_call_t *icall)
+{
+	HR_DEBUG("hr_add_hotspare()\n");
+
+	errno_t rc = EOK;
+	service_id_t vol_svc_id;
+	service_id_t hotspare;
+	hr_volume_t *vol;
+
+	vol_svc_id = ipc_get_arg1(icall);
+	hotspare = ipc_get_arg2(icall);
+
+	vol = hr_get_volume(vol_svc_id);
+	if (vol == NULL) {
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	if (vol->hr_ops.add_hotspare == NULL) {
+		HR_DEBUG("hr_add_hotspare(): not supported on RAID level %d\n",
+		    vol->level);
+		async_answer_0(icall, ENOTSUP);
+		return;
+	}
+
+	rc = vol->hr_ops.add_hotspare(vol, hotspare);
+
+	async_answer_0(icall, rc);
+}
+
 static void hr_print_status_srv(ipc_call_t *icall)
 {
 	HR_DEBUG("hr_status_srv()\n");
@@ -317,8 +348,11 @@ static void hr_print_status_srv(ipc_call_t *icall)
 	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
 		memcpy(info.extents, vol->extents,
 		    sizeof(hr_extent_t) * HR_MAX_EXTENTS);
+		memcpy(info.hotspares, vol->hotspares,
+		    sizeof(hr_extent_t) * HR_MAX_HOTSPARES);
 		info.svc_id = vol->svc_id;
 		info.extent_no = vol->dev_no;
+		info.hotspare_no = vol->hotspare_no;
 		info.level = vol->level;
 		/* print usable number of blocks */
 		info.nblocks = vol->data_blkno;
@@ -375,6 +409,9 @@ static void hr_ctl_conn(ipc_call_t *icall, void *arg)
 			break;
 		case HR_STOP:
 			hr_stop_srv(&call);
+			break;
+		case HR_ADD_HOTSPARE:
+			hr_add_hotspare_srv(&call);
 			break;
 		case HR_STATUS:
 			hr_print_status_srv(&call);

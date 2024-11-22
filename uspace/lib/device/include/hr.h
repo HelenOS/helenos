@@ -42,6 +42,7 @@
 
 /* for now */
 #define HR_MAX_EXTENTS 4
+#define HR_MAX_HOTSPARES HR_MAX_EXTENTS
 
 #define HR_DEVNAME_LEN 32
 
@@ -56,13 +57,16 @@ typedef enum hr_level {
 typedef enum hr_vol_status {
 	HR_VOL_ONLINE,	/* OK, OPTIMAL */
 	HR_VOL_FAULTY,
-	HR_VOL_DEGRADED /* also used for partial, but usable mirror */
+	HR_VOL_DEGRADED, /* also used for partial, but usable mirror */
+	HR_VOL_REBUILD
 } hr_vol_status_t;
 
 typedef enum hr_ext_status {
 	HR_EXT_ONLINE,	/* OK */
 	HR_EXT_MISSING,
-	HR_EXT_FAILED
+	HR_EXT_FAILED,
+	HR_EXT_REBUILD,
+	HR_EXT_HOTSPARE
 } hr_ext_status_t;
 
 typedef struct hr {
@@ -83,7 +87,9 @@ typedef struct hr_extent {
 
 typedef struct hr_vol_info {
 	hr_extent_t extents[HR_MAX_EXTENTS];
+	hr_extent_t hotspares[HR_MAX_HOTSPARES];
 	size_t extent_no;
+	size_t hotspare_no;
 	service_id_t svc_id;
 	hr_level_t level;
 	uint64_t nblocks;
@@ -97,6 +103,7 @@ extern void hr_sess_destroy(hr_t *);
 
 extern errno_t hr_create(hr_t *, hr_config_t *, bool);
 extern errno_t hr_stop(const char *, long);
+extern errno_t hr_add_hotspare(service_id_t, service_id_t);
 extern errno_t hr_print_status(void);
 
 extern const char *hr_get_vol_status_msg(hr_vol_status_t);

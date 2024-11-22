@@ -50,24 +50,32 @@ typedef struct hr_ops {
 	errno_t (*create)(hr_volume_t *);
 	errno_t (*init)(hr_volume_t *);
 	void	(*status_event)(hr_volume_t *);
+	errno_t	(*add_hotspare)(hr_volume_t *, service_id_t);
 } hr_ops_t;
 
 typedef struct hr_volume {
 	hr_ops_t hr_ops;
 	bd_srvs_t hr_bds;
+
 	link_t lvolumes;
 	fibril_mutex_t lock;
-	char devname[HR_DEVNAME_LEN];
+
+	size_t dev_no;
 	hr_extent_t extents[HR_MAX_EXTENTS];
+
+	size_t hotspare_no;
+	hr_extent_t hotspares[HR_MAX_EXTENTS];
+
+	size_t bsize;
 	uint64_t nblocks;
 	uint64_t data_blkno;
 	uint32_t data_offset; /* in blocks */
 	uint32_t strip_size;
+
 	service_id_t svc_id;
-	size_t bsize;
-	size_t dev_no;
-	hr_level_t level;
 	hr_vol_status_t status;
+	hr_level_t level;
+	char devname[HR_DEVNAME_LEN];
 } hr_volume_t;
 
 typedef enum {
@@ -93,6 +101,8 @@ extern void hr_raid0_status_event(hr_volume_t *);
 extern void hr_raid1_status_event(hr_volume_t *);
 extern void hr_raid4_status_event(hr_volume_t *);
 extern void hr_raid5_status_event(hr_volume_t *);
+
+extern errno_t hr_raid1_add_hotspare(hr_volume_t *, service_id_t);
 
 #endif
 
