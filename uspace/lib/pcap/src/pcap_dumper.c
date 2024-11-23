@@ -101,6 +101,11 @@ static void pcap_file_close(pcap_writer_t *writer)
 	writer->data = NULL;
 }
 
+static size_t pcap_short_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
+{
+	return fwrite(data, 1, size < SHORT_OPS_BYTE_COUNT ? size : SHORT_OPS_BYTE_COUNT, (FILE *)writer->data);
+}
+
 static const pcap_writer_ops_t file_ops = {
 	.open = &pcap_writer_to_file_init,
 	.write_u32 = &pcap_file_w32,
@@ -108,11 +113,6 @@ static const pcap_writer_ops_t file_ops = {
 	.write_buffer = &pcap_file_wbuffer,
 	.close = &pcap_file_close
 };
-
-static size_t pcap_short_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
-{
-	return fwrite(data, 1, size < 60 ? size : 60, (FILE *)writer->data); //define
-}
 
 static const pcap_writer_ops_t short_file_ops = {
 	.open = &pcap_writer_to_file_init,

@@ -196,8 +196,8 @@ struct nic {
 	 */
 	poll_request_handler on_poll_request;
 
-	/** Interface for dumping packets */
-	pcap_dumper_t pcapdump;
+	/** Packets dumper. */
+	pcap_dumper_t dumper;
 
 	/** Data specific for particular driver */
 	void *specific;

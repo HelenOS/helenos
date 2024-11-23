@@ -1142,7 +1142,7 @@ void nic_sw_period_stop(nic_t *nic_data)
 
 pcap_dumper_t *nic_get_pcap_dumper(nic_t *nic_data)
 {
-	return &nic_data->pcapdump;
+	return &nic_data->dumper;
 }
 
 /** @}
