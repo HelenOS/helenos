@@ -37,11 +37,13 @@
 #include <errno.h>
 #include <arg_parse.h>
 #include <getopt.h>
+#include <vfs/vfs.h>
 
 #include "pcapdump_client.h"
 
 #define NAME "pcapctl"
 #define DEFAULT_DEV_NUM 0
+#define DEFAULT_OPS_NUM 0
 #define DECIMAL_SYSTEM 10
 
 static errno_t start_dumping(int *dev_number, const char *name, int *ops_index)
@@ -95,12 +97,23 @@ static const struct option opts[] = {
 	{ "device", required_argument, 0, 'd' },
 	{ "list", no_argument, 0, 'l' },
 	{ "help", no_argument, 0, 'h' },
-	{ "outfile", required_argument, 0, 'f' },
+	{ "outfile", required_argument, 0, 'o' },
 	{ "start", no_argument, 0, 'r' },
 	{ "stop", no_argument, 0, 't' },
-	{ "ops", required_argument, 0, 'o' },
+	{ "ops", required_argument, 0, 'p' },
+	{ "force", no_argument, 0, 'f'},
 	{ 0, 0, 0, 0 }
 };
+
+static bool file_exists(const char *path)
+{
+	vfs_stat_t stats;
+
+    if (vfs_stat_path(path, &stats) != EOK)
+        return false;
+
+    return true;
+}
 
 static void usage(void)
 {
@@ -121,8 +134,9 @@ int main(int argc, char *argv[])
 {
 	bool start = false;
 	bool stop = false;
-	int dev_number = -1;
-	int ops_number = -1;
+	int dev_number = DEFAULT_DEV_NUM;
+	int ops_number = DEFAULT_OPS_NUM;
+	bool forced = false;
 	const char *output_file_name = "";
 	int idx = 0;
 	int ret = 0;
@@ -131,7 +145,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	while (ret != -1) {
-		ret = getopt_long(argc, argv, "d:lhf:rt", opts, &idx);
+		ret = getopt_long(argc, argv, "d:lho:rtp:f", opts, &idx);
 		switch (ret) {
 		case 'd':
 			char *rest;
@@ -149,7 +163,7 @@ int main(int argc, char *argv[])
 		case 'h':
 			usage();
 			return 0;
-		case 'f':
+		case 'o':
 			output_file_name = optarg;
 			break;
 		case 'r':
@@ -158,10 +172,13 @@ int main(int argc, char *argv[])
 		case 't':
 			stop = true;
 			break;
-		case 'o':
+		case 'p':
 			char* ops_inval;
 			long ops_result = strtol(optarg, &ops_inval, DECIMAL_SYSTEM);
 			ops_number = (int)ops_result;
+			break;
+		case 'f':
+			forced = true;
 			break;
 		}
 	}
@@ -169,11 +186,20 @@ int main(int argc, char *argv[])
 	printf("%s: HelenOS Packet Dumping utility: device - %d.\n", NAME, dev_number);
 
 	if (start) {
+
+		if (file_exists(output_file_name) && !forced)
+		{
+			printf("File %s already exists. If you want to write to it, then use flag --force.\n", output_file_name);
+			return 0;
+		}
+
 		/* start with dev number and name */
 		start_dumping(&dev_number, output_file_name, &ops_number);
 	} else if (stop) {
 		/* stop with dev number */
 		stop_dumping(&dev_number);
+	} else {
+		usage();
 	}
 	return 0;
 }
