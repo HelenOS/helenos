@@ -328,10 +328,18 @@ static errno_t hr_raid5_read_degraded(hr_volume_t *vol, uint64_t bad,
 	}
 
 	/* read all other extents in the stripe */
-	memset(xorbuf, 0, len);
+	bool first = true;
 	for (i = 0; i < vol->dev_no; i++) {
-		if (i == bad) {
+		if (i == bad)
 			continue;
+
+		if (first) {
+			rc = block_read_direct(vol->extents[i].svc_id, block,
+			    cnt, xorbuf);
+			if (rc != EOK)
+				goto end;
+
+			first = false;
 		} else {
 			rc = block_read_direct(vol->extents[i].svc_id, block,
 			    cnt, buf);
@@ -390,10 +398,17 @@ static errno_t hr_raid5_write(hr_volume_t *vol, uint64_t p_extent,
 		 *
 		 * write new parity
 		 */
-		memset(xorbuf, 0, len);
+		bool first = true;
 		for (i = 1; i < vol->dev_no; i++) {
 			if (i == (size_t)bad)
 				continue;
+			if (first) {
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    ba, cnt, xorbuf);
+				if (rc != EOK)
+					goto end;
+
+				first = false;
 			} else {
 				rc = block_read_direct(vol->extents[i].svc_id,
 				    ba, cnt, buf);
@@ -460,18 +475,33 @@ static errno_t hr_raid5_write_parity(hr_volume_t *vol, uint64_t p_extent,
 		return ENOMEM;
 	}
 
-	memset(xorbuf, 0, len);
+	bool first = true;
 	for (i = 0; i < vol->dev_no; i++) {
 		if (i == p_extent)
 			continue;
-		if (i == extent) {
-			xor(xorbuf, data, len);
+
+		if (first) {
+			if (i == extent) {
+				memcpy(xorbuf, data, len);
+			} else {
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    block, cnt, xorbuf);
+				if (rc != EOK)
+					goto end;
+			}
+
+			first = false;
 		} else {
-			rc = block_read_direct(vol->extents[i].svc_id,
-			    block, cnt, buf);
-			if (rc != EOK)
-				goto end;
-			xor(xorbuf, buf, len);
+			if (i == extent) {
+				xor(xorbuf, data, len);
+			} else {
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    block, cnt, buf);
+				if (rc != EOK)
+					goto end;
+
+				xor(xorbuf, buf, len);
+			}
 		}
 	}
 
@@ -689,8 +719,12 @@ static errno_t hr_raid5_rebuild(void *arg)
 		for (size_t i = 0; i < vol->dev_no; i++) {
 			if (i == bad)
 				continue;
-			rc = block_read_direct(vol->extents[i].svc_id, ba, cnt,
-			    buf);
+			if (first)
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    ba, cnt, xorbuf);
+			else
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    ba, cnt, buf);
 			if (rc != EOK) {
 				hr_raid5_handle_extent_error(vol, i, rc);
 				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
@@ -699,12 +733,10 @@ static errno_t hr_raid5_rebuild(void *arg)
 				goto end;
 			}
 
-			if (first)
-				memcpy(xorbuf, buf, cnt * vol->bsize);
-			else
+			if (!first)
 				xor(xorbuf, buf, cnt * vol->bsize);
-
-			first = false;
+			else
+				first = false;
 		}
 
 		rc = block_write_direct(hotspare->svc_id, ba, cnt, xorbuf);

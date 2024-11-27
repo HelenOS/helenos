@@ -331,15 +331,24 @@ static errno_t hr_raid4_read_degraded(hr_volume_t *vol, uint64_t bad,
 	}
 
 	/* read all other extents in the stripe */
-	memset(xorbuf, 0, len);
+	bool first = true;
 	for (i = 0; i < vol->dev_no; i++) {
-		if (i == bad) {
+		if (i == bad)
 			continue;
+
+		if (first) {
+			rc = block_read_direct(vol->extents[i].svc_id, block,
+			    cnt, xorbuf);
+			if (rc != EOK)
+				goto end;
+
+			first = false;
 		} else {
 			rc = block_read_direct(vol->extents[i].svc_id, block,
 			    cnt, buf);
 			if (rc != EOK)
 				goto end;
+
 			xor(xorbuf, buf, len);
 		}
 	}
@@ -392,15 +401,24 @@ static errno_t hr_raid4_write(hr_volume_t *vol, uint64_t extent, aoff64_t ba,
 		 *
 		 * write new parity
 		 */
-		memset(xorbuf, 0, len);
+		bool first = true;
 		for (i = 1; i < vol->dev_no; i++) {
 			if (i == (size_t)bad)
 				continue;
+
+			if (first) {
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    ba, cnt, xorbuf);
+				if (rc != EOK)
+					goto end;
+
+				first = false;
 			} else {
 				rc = block_read_direct(vol->extents[i].svc_id,
 				    ba, cnt, buf);
 				if (rc != EOK)
 					goto end;
+
 				xor(xorbuf, buf, len);
 			}
 		}
@@ -466,16 +484,30 @@ static errno_t hr_raid4_write_parity(hr_volume_t *vol, uint64_t extent,
 	 *
 	 * XXX: subtract method
 	 */
-	memset(xorbuf, 0, len);
+	bool first = true;
 	for (i = 1; i < vol->dev_no; i++) {
-		if (i == extent) {
-			xor(xorbuf, data, len);
+		if (first) {
+			if (i == extent) {
+				memcpy(xorbuf, data, len);
+			} else {
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    block, cnt, xorbuf);
+				if (rc != EOK)
+					goto end;
+			}
+
+			first = false;
 		} else {
-			rc = block_read_direct(vol->extents[i].svc_id, block,
-			    cnt, buf);
-			if (rc != EOK)
-				goto end;
-			xor(xorbuf, buf, len);
+			if (i == extent) {
+				xor(xorbuf, data, len);
+			} else {
+				rc = block_read_direct(vol->extents[i].svc_id,
+				    block, cnt, buf);
+				if (rc != EOK)
+					goto end;
+
+				xor(xorbuf, buf, len);
+			}
 		}
 	}
 
