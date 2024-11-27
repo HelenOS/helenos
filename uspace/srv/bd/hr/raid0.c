@@ -127,7 +127,7 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 void hr_raid0_status_event(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->lock);
-	(void) hr_raid0_update_vol_status(vol);
+	(void)hr_raid0_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 }
 
@@ -290,7 +290,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 error:
-	(void) hr_raid0_update_vol_status(vol);
+	(void)hr_raid0_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }

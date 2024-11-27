@@ -340,7 +340,7 @@ int main(int argc, char **argv)
 			break;
 		case 'n':
 			cfg->dev_no = strtol(optarg, NULL, 10);
-			if ((int) cfg->dev_no + optind != argc)
+			if ((int)cfg->dev_no + optind != argc)
 				goto bad;
 			rc = fill_config_devs(argc, argv, optind, cfg);
 			if (rc != EOK) {

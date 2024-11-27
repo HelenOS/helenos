@@ -211,7 +211,7 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 	/* sort */
 	for (size_t i = 0; i < vol->dev_no; i++) {
 		for (size_t j = 0; j < vol->dev_no; j++) {
-			if (i == (uint32_t) md_order[j]) {
+			if (i == (uint32_t)md_order[j]) {
 				vol->extents[i].svc_id = cfg_svc_id_order[j];
 				vol->extents[i].status = HR_EXT_ONLINE;
 			}

@@ -128,7 +128,7 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 void hr_raid1_status_event(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->lock);
-	(void) hr_raid1_update_vol_status(vol);
+	(void)hr_raid1_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 }
 
@@ -358,7 +358,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	else
 		rc = EIO;
 
-	(void) hr_raid1_update_vol_status(vol);
+	(void)hr_raid1_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }
@@ -485,7 +485,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 	 */
 	hr_write_meta_to_ext(vol, bad);
 end:
-	(void) hr_raid1_update_vol_status(vol);
+	(void)hr_raid1_update_vol_status(vol);
 
 	fibril_mutex_unlock(&vol->lock);
 

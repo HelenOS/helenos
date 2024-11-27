@@ -142,7 +142,7 @@ errno_t hr_raid4_init(hr_volume_t *vol)
 void hr_raid4_status_event(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->lock);
-	(void) hr_raid4_update_vol_status(vol);
+	(void)hr_raid4_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 }
 
@@ -386,7 +386,7 @@ static errno_t hr_raid4_write(hr_volume_t *vol, uint64_t extent, aoff64_t ba,
 		return ENOMEM;
 	}
 
-	if (extent == (size_t) bad) {
+	if (extent == (size_t)bad) {
 		/*
 		 * new parity = read other and xor in new data
 		 *
@@ -394,7 +394,7 @@ static errno_t hr_raid4_write(hr_volume_t *vol, uint64_t extent, aoff64_t ba,
 		 */
 		memset(xorbuf, 0, len);
 		for (i = 1; i < vol->dev_no; i++) {
-			if (i == (size_t) bad) {
+			if (i == (size_t)bad)
 				continue;
 			} else {
 				rc = block_read_direct(vol->extents[i].svc_id,
@@ -544,7 +544,7 @@ static errno_t hr_raid4_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		case HR_BD_READ:
 		retry_read:
 			ssize_t bad = hr_raid4_get_bad_ext(vol);
-			if (bad > 0 && extent == (size_t) bad) {
+			if (bad > 0 && extent == (size_t)bad) {
 				rc = hr_raid4_read_degraded(vol, bad,
 				    phys_block, data_read, cnt);
 			} else {
@@ -599,7 +599,7 @@ static errno_t hr_raid4_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 error:
-	(void) hr_raid4_update_vol_status(vol);
+	(void)hr_raid4_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }
@@ -724,7 +724,7 @@ static errno_t hr_raid4_rebuild(void *arg)
 	 */
 	hr_write_meta_to_ext(vol, bad);
 end:
-	(void) hr_raid4_update_vol_status(vol);
+	(void)hr_raid4_update_vol_status(vol);
 
 	fibril_mutex_unlock(&vol->lock);
 
