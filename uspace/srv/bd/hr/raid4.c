@@ -229,7 +229,8 @@ static errno_t hr_raid4_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 static errno_t hr_raid4_vol_usable(hr_volume_t *vol)
 {
 	if (vol->status == HR_VOL_ONLINE ||
-	    vol->status == HR_VOL_DEGRADED)
+	    vol->status == HR_VOL_DEGRADED ||
+	    vol->status == HR_VOL_REBUILD)
 		return EOK;
 	return EINVAL;
 }
@@ -744,6 +745,13 @@ static errno_t hr_raid4_rebuild(void *arg)
 
 		ba += cnt;
 		left -= cnt;
+
+		/*
+		 * Let other IO requests be served
+		 * during rebuild.
+		 */
+		fibril_mutex_unlock(&vol->lock);
+		fibril_mutex_lock(&vol->lock);
 	}
 
 	HR_DEBUG("hr_raid4_rebuild(): rebuild finished on \"%s\" (%lu), "

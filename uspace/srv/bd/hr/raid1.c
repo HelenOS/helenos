@@ -473,6 +473,13 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 		ba += cnt;
 		left -= cnt;
+
+		/*
+		 * Let other IO requests be served
+		 * during rebuild.
+		 */
+		fibril_mutex_unlock(&vol->lock);
+		fibril_mutex_lock(&vol->lock);
 	}
 
 	HR_DEBUG("hr_raid1_rebuild(): rebuild finished on \"%s\" (%lu), "
