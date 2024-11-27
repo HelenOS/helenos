@@ -158,7 +158,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	for (i = 0; i < cfg->dev_no; i++)
 		new_volume->extents[i].svc_id = cfg->devs[i];
 	new_volume->level = cfg->level;
-	new_volume->dev_no = cfg->dev_no;
+	new_volume->extent_no = cfg->dev_no;
 
 	if (assemble) {
 		if (cfg->level != HR_LVL_UNKNOWN)
@@ -353,7 +353,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 		memcpy(info.hotspares, vol->hotspares,
 		    sizeof(hr_extent_t) * HR_MAX_HOTSPARES);
 		info.svc_id = vol->svc_id;
-		info.extent_no = vol->dev_no;
+		info.extent_no = vol->extent_no;
 		info.hotspare_no = vol->hotspare_no;
 		info.level = vol->level;
 		/* print usable number of blocks */

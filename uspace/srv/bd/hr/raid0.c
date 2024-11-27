@@ -85,7 +85,7 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 
 	assert(new_volume->level == HR_LVL_0);
 
-	if (new_volume->dev_no < 2) {
+	if (new_volume->extent_no < 2) {
 		HR_ERROR("RAID 0 array needs at least 2 devices\n");
 		return EINVAL;
 	}
@@ -118,7 +118,7 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 	vol->nblocks = total_blkno;
 	vol->bsize = bsize;
 	vol->data_offset = HR_DATA_OFF;
-	vol->data_blkno = vol->nblocks - (vol->data_offset * vol->dev_no);
+	vol->data_blkno = vol->nblocks - (vol->data_offset * vol->extent_no);
 	vol->strip_size = HR_STRIP_SIZE;
 
 	return EOK;
@@ -189,7 +189,7 @@ static errno_t hr_raid0_check_vol_status(hr_volume_t *vol)
  */
 static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
 {
-	for (size_t i = 0; i < vol->dev_no; i++) {
+	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status != HR_EXT_ONLINE) {
 			HR_WARN("RAID 0 needs all extents to be ONLINE, "
 			    "marking \"%s\" (%lu) as FAULTY",
@@ -230,8 +230,8 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
 	uint64_t stripe = ba / strip_size; /* stripe number */
-	uint64_t extent = stripe % vol->dev_no;
-	uint64_t ext_stripe = stripe / vol->dev_no; /* stripe level */
+	uint64_t extent = stripe % vol->extent_no;
+	uint64_t ext_stripe = stripe / vol->extent_no; /* stripe level */
 	uint64_t strip_off = ba % strip_size; /* strip offset */
 
 	fibril_mutex_lock(&vol->lock);
@@ -283,7 +283,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		left -= cnt;
 		strip_off = 0;
 		extent++;
-		if (extent >= vol->dev_no) {
+		if (extent >= vol->extent_no) {
 			ext_stripe++;
 			extent = 0;
 		}

@@ -60,7 +60,7 @@ typedef struct hr_volume {
 	link_t lvolumes;
 	fibril_mutex_t lock;
 
-	size_t dev_no;
+	size_t extent_no;
 	hr_extent_t extents[HR_MAX_EXTENTS];
 
 	size_t hotspare_no;

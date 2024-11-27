@@ -55,7 +55,7 @@ errno_t hr_init_devs(hr_volume_t *vol)
 	size_t i;
 	hr_extent_t *extent;
 
-	for (i = 0; i < vol->dev_no; i++) {
+	for (i = 0; i < vol->extent_no; i++) {
 		extent = &vol->extents[i];
 		if (extent->svc_id == 0) {
 			extent->status = HR_EXT_MISSING;
@@ -83,7 +83,7 @@ void hr_fini_devs(hr_volume_t *vol)
 
 	size_t i;
 
-	for (i = 0; i < vol->dev_no; i++) {
+	for (i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status != HR_EXT_MISSING) {
 			HR_DEBUG("hr_fini_devs(): block_fini() on (%lu)\n",
 			    vol->extents[i].svc_id);
@@ -145,7 +145,7 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 	uint64_t total_blocks = 0;
 	hr_extent_t *extent;
 
-	for (i = 0; i < vol->dev_no; i++) {
+	for (i = 0; i < vol->extent_no; i++) {
 		extent = &vol->extents[i];
 		if (extent->status == HR_EXT_MISSING)
 			continue;
@@ -162,7 +162,7 @@ errno_t hr_check_devs(hr_volume_t *vol, uint64_t *rblkno, size_t *rbsize)
 		last_nblocks = nblocks;
 	}
 
-	for (i = 0; i < vol->dev_no; i++) {
+	for (i = 0; i < vol->extent_no; i++) {
 		extent = &vol->extents[i];
 		if (extent->status == HR_EXT_MISSING)
 			continue;
@@ -222,7 +222,7 @@ void hr_sync_all_extents(hr_volume_t *vol)
 	errno_t rc;
 
 	fibril_mutex_lock(&vol->lock);
-	for (size_t i = 0; i < vol->dev_no; i++) {
+	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status != HR_EXT_ONLINE)
 			continue;
 		rc = block_sync_cache(vol->extents[i].svc_id, 0, 0);
@@ -239,7 +239,7 @@ void hr_sync_all_extents(hr_volume_t *vol)
 size_t hr_count_extents(hr_volume_t *vol, hr_ext_status_t status)
 {
 	size_t count = 0;
-	for (size_t i = 0; i < vol->dev_no; i++) {
+	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status == status)
 			count++;
 	}

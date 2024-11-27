@@ -99,7 +99,7 @@ errno_t hr_raid4_create(hr_volume_t *new_volume)
 
 	assert(new_volume->level == HR_LVL_4);
 
-	if (new_volume->dev_no < 3) {
+	if (new_volume->extent_no < 3) {
 		HR_ERROR("RAID 4 array needs at least 3 devices\n");
 		return EINVAL;
 	}
@@ -132,8 +132,8 @@ errno_t hr_raid4_init(hr_volume_t *vol)
 	vol->nblocks = total_blkno;
 	vol->bsize = bsize;
 	vol->data_offset = HR_DATA_OFF;
-	vol->data_blkno = vol->nblocks - (vol->data_offset * vol->dev_no) -
-	    (vol->nblocks / vol->dev_no);
+	vol->data_blkno = vol->nblocks - (vol->data_offset * vol->extent_no) -
+	    (vol->nblocks / vol->extent_no);
 	vol->strip_size = HR_STRIP_SIZE;
 
 	return EOK;
@@ -241,7 +241,7 @@ static errno_t hr_raid4_vol_usable(hr_volume_t *vol)
  */
 static ssize_t hr_raid4_get_bad_ext(hr_volume_t *vol)
 {
-	for (size_t i = 0; i < vol->dev_no; i++)
+	for (size_t i = 0; i < vol->extent_no; i++)
 		if (vol->extents[i].status != HR_EXT_ONLINE)
 			return i;
 	return -1;
@@ -251,7 +251,7 @@ static errno_t hr_raid4_update_vol_status(hr_volume_t *vol)
 {
 	hr_vol_status_t old_state = vol->status;
 	size_t bad = 0;
-	for (size_t i = 0; i < vol->dev_no; i++)
+	for (size_t i = 0; i < vol->extent_no; i++)
 		if (vol->extents[i].status != HR_EXT_ONLINE)
 			bad++;
 
@@ -333,7 +333,7 @@ static errno_t hr_raid4_read_degraded(hr_volume_t *vol, uint64_t bad,
 
 	/* read all other extents in the stripe */
 	bool first = true;
-	for (i = 0; i < vol->dev_no; i++) {
+	for (i = 0; i < vol->extent_no; i++) {
 		if (i == bad)
 			continue;
 
@@ -403,7 +403,7 @@ static errno_t hr_raid4_write(hr_volume_t *vol, uint64_t extent, aoff64_t ba,
 		 * write new parity
 		 */
 		bool first = true;
-		for (i = 1; i < vol->dev_no; i++) {
+		for (i = 1; i < vol->extent_no; i++) {
 			if (i == (size_t)bad)
 				continue;
 
@@ -486,7 +486,7 @@ static errno_t hr_raid4_write_parity(hr_volume_t *vol, uint64_t extent,
 	 * XXX: subtract method
 	 */
 	bool first = true;
-	for (i = 1; i < vol->dev_no; i++) {
+	for (i = 1; i < vol->extent_no; i++) {
 		if (first) {
 			if (i == extent) {
 				memcpy(xorbuf, data, len);
@@ -546,8 +546,8 @@ static errno_t hr_raid4_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
 	uint64_t stripe = (ba / strip_size); /* stripe number */
-	uint64_t extent = (stripe % (vol->dev_no - 1)) + 1;
-	uint64_t ext_stripe = stripe / (vol->dev_no - 1); /* stripe level */
+	uint64_t extent = (stripe % (vol->extent_no - 1)) + 1;
+	uint64_t ext_stripe = stripe / (vol->extent_no - 1); /* stripe level */
 	uint64_t strip_off = ba % strip_size; /* strip offset */
 
 	fibril_mutex_lock(&vol->lock);
@@ -625,7 +625,7 @@ static errno_t hr_raid4_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		left -= cnt;
 		strip_off = 0;
 		extent++;
-		if (extent >= vol->dev_no) {
+		if (extent >= vol->extent_no) {
 			ext_stripe++;
 			extent = 1;
 		}
@@ -654,15 +654,15 @@ static errno_t hr_raid4_rebuild(void *arg)
 		goto end;
 	}
 
-	size_t bad = vol->dev_no;
-	for (size_t i = 0; i < vol->dev_no; i++) {
+	size_t bad = vol->extent_no;
+	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status == HR_EXT_FAILED) {
 			bad = i;
 			break;
 		}
 	}
 
-	if (bad == vol->dev_no) {
+	if (bad == vol->extent_no) {
 		HR_WARN("hr_raid4_rebuild(): no bad extent on \"%s\", "
 		    "aborting rebuild\n", vol->devname);
 		/* retval isn't checked for now */
@@ -698,7 +698,7 @@ static errno_t hr_raid4_rebuild(void *arg)
 	}
 
 	uint64_t max_blks = DATA_XFER_LIMIT / vol->bsize;
-	uint64_t left = vol->data_blkno / (vol->dev_no - 1);
+	uint64_t left = vol->data_blkno / (vol->extent_no - 1);
 	buf = malloc(max_blks * vol->bsize);
 	xorbuf = malloc(max_blks * vol->bsize);
 
@@ -713,7 +713,7 @@ static errno_t hr_raid4_rebuild(void *arg)
 		 * xorbuf each blk rebuild batch.
 		 */
 		bool first = true;
-		for (size_t i = 0; i < vol->dev_no; i++) {
+		for (size_t i = 0; i < vol->extent_no; i++) {
 			if (i == bad)
 				continue;
 			rc = block_read_direct(vol->extents[i].svc_id, ba, cnt,

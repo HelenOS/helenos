@@ -69,7 +69,7 @@ errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 	if (rc != EOK)
 		goto error;
 
-	for (i = 0; i < vol->dev_no; i++) {
+	for (i = 0; i < vol->extent_no; i++) {
 		metadata->index = host2uint32_t_le(i);
 
 		rc = uuid_generate(&uuid);
@@ -137,7 +137,7 @@ static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
 
 	meta_blkno = (HR_META_OFF + HR_META_SIZE);
 	if (vol->level != HR_LVL_1)
-		meta_blkno *= vol->dev_no;
+		meta_blkno *= vol->extent_no;
 
 	if (vol->nblocks < meta_blkno) {
 		HR_ERROR("hr_fill_meta_from_vol(): volume \"%s\" does not "
@@ -152,7 +152,7 @@ static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
 	}
 
 	metadata->magic = host2uint64_t_le(HR_MAGIC);
-	metadata->extent_no = host2uint32_t_le(vol->dev_no);
+	metadata->extent_no = host2uint32_t_le(vol->extent_no);
 	metadata->level = host2uint32_t_le(vol->level);
 	metadata->nblocks = host2uint64_t_le(vol->nblocks);
 	metadata->data_blkno = host2uint64_t_le(vol->data_blkno);
@@ -185,11 +185,11 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 		return ENOMEM;
 
 	service_id_t cfg_svc_id_order[HR_MAX_EXTENTS] = { 0 };
-	for (size_t i = 0; i < vol->dev_no; i++)
+	for (size_t i = 0; i < vol->extent_no; i++)
 		cfg_svc_id_order[i] = vol->extents[i].svc_id;
 
 	int32_t md_order[HR_MAX_EXTENTS] = { 0 };
-	for (size_t i = 0; i < vol->dev_no; i++) {
+	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (cfg_svc_id_order[i] == 0) {
 			md_order[i] = -1;
 			continue;
@@ -203,14 +203,14 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 		md_order[i] = uint32_t_le2host(metadata->index);
 	}
 
-	for (size_t i = 0; i < vol->dev_no; i++) {
+	for (size_t i = 0; i < vol->extent_no; i++) {
 		vol->extents[i].svc_id = 0;
 		vol->extents[i].status = HR_EXT_MISSING;
 	}
 
 	/* sort */
-	for (size_t i = 0; i < vol->dev_no; i++) {
-		for (size_t j = 0; j < vol->dev_no; j++) {
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		for (size_t j = 0; j < vol->extent_no; j++) {
 			if (i == (uint32_t)md_order[j]) {
 				vol->extents[i].svc_id = cfg_svc_id_order[j];
 				vol->extents[i].status = HR_EXT_ONLINE;
@@ -222,10 +222,10 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 	 * still assume metadata are in sync across extents
 	 */
 
-	if (vol->dev_no != uint32_t_le2host(metadata->extent_no)) {
+	if (vol->extent_no != uint32_t_le2host(metadata->extent_no)) {
 		HR_ERROR("number of divices in array differ: specified %zu, "
 		    "metadata states %u",
-		    vol->dev_no, uint32_t_le2host(metadata->extent_no));
+		    vol->extent_no, uint32_t_le2host(metadata->extent_no));
 		rc = EINVAL;
 		goto end;
 	}

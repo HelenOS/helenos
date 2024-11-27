@@ -86,7 +86,7 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 
 	assert(new_volume->level == HR_LVL_1);
 
-	if (new_volume->dev_no < 2) {
+	if (new_volume->extent_no < 2) {
 		HR_ERROR("RAID 1 array needs at least 2 devices\n");
 		return EINVAL;
 	}
@@ -116,7 +116,7 @@ errno_t hr_raid1_init(hr_volume_t *vol)
 	if (rc != EOK)
 		return rc;
 
-	vol->nblocks = total_blkno / vol->dev_no;
+	vol->nblocks = total_blkno / vol->extent_no;
 	vol->bsize = bsize;
 	vol->data_offset = HR_DATA_OFF;
 	vol->data_blkno = vol->nblocks - vol->data_offset;
@@ -238,7 +238,7 @@ static errno_t hr_raid1_update_vol_status(hr_volume_t *vol)
 			vol->status = HR_VOL_FAULTY;
 		}
 		return EINVAL;
-	} else if (healthy < vol->dev_no) {
+	} else if (healthy < vol->extent_no) {
 		if (old_state != HR_VOL_DEGRADED &&
 		    old_state != HR_VOL_REBUILD) {
 			HR_WARN("RAID 1 array \"%s\" (%lu) has some "
@@ -304,7 +304,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	size_t successful = 0;
 	switch (type) {
 	case HR_BD_SYNC:
-		for (i = 0; i < vol->dev_no; i++) {
+		for (i = 0; i < vol->extent_no; i++) {
 			if (vol->extents[i].status != HR_EXT_ONLINE)
 				continue;
 			rc = block_sync_cache(vol->extents[i].svc_id, ba, cnt);
@@ -315,7 +315,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		}
 		break;
 	case HR_BD_READ:
-		for (i = 0; i < vol->dev_no; i++) {
+		for (i = 0; i < vol->extent_no; i++) {
 			if (vol->extents[i].status != HR_EXT_ONLINE)
 				continue;
 			rc = block_read_direct(vol->extents[i].svc_id, ba, cnt,
@@ -329,7 +329,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		}
 		break;
 	case HR_BD_WRITE:
-		for (i = 0; i < vol->dev_no; i++) {
+		for (i = 0; i < vol->extent_no; i++) {
 			if (vol->extents[i].status != HR_EXT_ONLINE ||
 			    (vol->extents[i].status == HR_EXT_REBUILD &&
 			    ba >= vol->rebuild_blk))
@@ -384,15 +384,15 @@ static errno_t hr_raid1_rebuild(void *arg)
 		goto end;
 	}
 
-	size_t bad = vol->dev_no;
-	for (size_t i = 0; i < vol->dev_no; i++) {
+	size_t bad = vol->extent_no;
+	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status == HR_EXT_FAILED) {
 			bad = i;
 			break;
 		}
 	}
 
-	if (bad == vol->dev_no) {
+	if (bad == vol->extent_no) {
 		HR_WARN("hr_raid1_rebuild(): no bad extent on \"%s\", "
 		    "aborting rebuild\n", vol->devname);
 		/* retval isn't checked for now */
@@ -440,14 +440,14 @@ static errno_t hr_raid1_rebuild(void *arg)
 	while (left != 0) {
 		vol->rebuild_blk = ba;
 		cnt = min(max_blks, left);
-		for (size_t i = 0; i < vol->dev_no; i++) {
+		for (size_t i = 0; i < vol->extent_no; i++) {
 			ext = &vol->extents[i];
 			if (ext->status == HR_EXT_ONLINE) {
 				rc = block_read_direct(ext->svc_id, ba, cnt,
 				    buf);
 				if (rc != EOK) {
 					hr_raid1_handle_extent_error(vol, i, rc);
-					if (i + 1 < vol->dev_no) {
+					if (i + 1 < vol->extent_no) {
 						/* still might have one ONLINE */
 						continue;
 					} else {
