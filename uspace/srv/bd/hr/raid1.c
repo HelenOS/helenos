@@ -146,7 +146,8 @@ errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	}
 
 	vol->hotspares[vol->hotspare_no].svc_id = hotspare;
-	vol->hotspares[vol->hotspare_no].status = HR_EXT_HOTSPARE;
+	hr_update_hotspare_status(vol, vol->hotspare_no, HR_EXT_HOTSPARE);
+
 	vol->hotspare_no++;
 
 	/*
@@ -157,7 +158,7 @@ errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 		    "spawning new rebuild fibril\n");
 		fid_t fib = fibril_create(hr_raid1_rebuild, vol);
 		if (fib == 0)
-			return EINVAL;
+			return ENOMEM;
 		fibril_start(fib);
 		fibril_detach(fib);
 	}
@@ -218,7 +219,7 @@ static errno_t hr_raid1_check_vol_status(hr_volume_t *vol)
 	    vol->status == HR_VOL_DEGRADED ||
 	    vol->status == HR_VOL_REBUILD)
 		return EOK;
-	return EINVAL;
+	return EIO;
 }
 
 /*
@@ -231,38 +232,28 @@ static errno_t hr_raid1_update_vol_status(hr_volume_t *vol)
 	size_t healthy = hr_count_extents(vol, HR_EXT_ONLINE);
 
 	if (healthy == 0) {
-		if (old_state != HR_VOL_FAULTY) {
-			HR_WARN("RAID 1 needs at least 1 extent to be"
-			    "ONLINE, marking \"%s\" (%lu) volume as FAULTY",
-			    vol->devname, vol->svc_id);
-			vol->status = HR_VOL_FAULTY;
-		}
-		return EINVAL;
+		if (old_state != HR_VOL_FAULTY)
+			hr_update_vol_status(vol, HR_VOL_FAULTY);
+		return EIO;
 	} else if (healthy < vol->extent_no) {
 		if (old_state != HR_VOL_DEGRADED &&
 		    old_state != HR_VOL_REBUILD) {
-			HR_WARN("RAID 1 array \"%s\" (%lu) has some "
-			    "unusable extent(s), marking volume as DEGRADED",
-			    vol->devname, vol->svc_id);
-			vol->status = HR_VOL_DEGRADED;
+
+			hr_update_vol_status(vol, HR_VOL_DEGRADED);
+
 			if (vol->hotspare_no > 0) {
 				fid_t fib = fibril_create(hr_raid1_rebuild,
 				    vol);
-				if (fib == 0) {
-					return EINVAL;
-				}
+				if (fib == 0)
+					return ENOMEM;
 				fibril_start(fib);
 				fibril_detach(fib);
 			}
 		}
 		return EOK;
 	} else {
-		if (old_state != HR_VOL_ONLINE) {
-			HR_WARN("RAID 1 array \"%s\" (%lu) has all extents "
-			    "active, marking volume as ONLINE",
-			    vol->devname, vol->svc_id);
-			vol->status = HR_VOL_ONLINE;
-		}
+		if (old_state != HR_VOL_ONLINE)
+			hr_update_vol_status(vol, HR_VOL_ONLINE);
 		return EOK;
 	}
 }
@@ -296,10 +287,8 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	fibril_mutex_lock(&vol->lock);
 
 	rc = hr_raid1_check_vol_status(vol);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&vol->lock);
-		return EIO;
-	}
+	if (rc != EOK)
+		goto end;
 
 	size_t successful = 0;
 	switch (type) {
@@ -351,6 +340,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		break;
 	default:
 		rc = EINVAL;
+		goto end;
 	}
 
 	if (successful > 0)
@@ -358,6 +348,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	else
 		rc = EIO;
 
+end:
 	(void)hr_raid1_update_vol_status(vol);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
@@ -399,34 +390,42 @@ static errno_t hr_raid1_rebuild(void *arg)
 		goto end;
 	}
 
-	block_fini(vol->extents[bad].svc_id);
-
 	size_t hotspare_idx = vol->hotspare_no - 1;
 
-	vol->rebuild_blk = 0;
-	vol->extents[bad].svc_id = vol->hotspares[hotspare_idx].svc_id;
-	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
-
-	vol->hotspares[hotspare_idx].svc_id = 0;
-	vol->hotspares[hotspare_idx].status = HR_EXT_MISSING;
-	vol->hotspare_no--;
-
-	HR_WARN("hr_raid1_rebuild(): changing volume \"%s\" (%lu) state "
-	    "from %s to %s\n", vol->devname, vol->svc_id,
-	    hr_get_vol_status_msg(vol->status),
-	    hr_get_vol_status_msg(HR_VOL_REBUILD));
-	vol->status = HR_VOL_REBUILD;
-
-	hr_extent_t *hotspare = &vol->extents[bad];
-
-	HR_DEBUG("hr_raid1_rebuild(): initing (%lu)\n", hotspare->svc_id);
-
-	rc = block_init(hotspare->svc_id);
-	if (rc != EOK) {
-		HR_ERROR("hr_raid1_rebuild(): initing (%lu) failed, "
-		    "aborting rebuild\n", hotspare->svc_id);
+	hr_ext_status_t hs_state = vol->hotspares[hotspare_idx].status;
+	if (hs_state != HR_EXT_HOTSPARE) {
+		HR_ERROR("hr_raid1_rebuild(): invalid hotspare state \"%s\", "
+		    "aborting rebuild\n", hr_get_ext_status_msg(hs_state));
+		rc = EINVAL;
 		goto end;
 	}
+
+	HR_DEBUG("hr_raid1_rebuild(): swapping in hotspare\n");
+
+	block_fini(vol->extents[bad].svc_id);
+
+	vol->extents[bad].svc_id = vol->hotspares[hotspare_idx].svc_id;
+	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
+
+	vol->hotspares[hotspare_idx].svc_id = 0;
+	hr_update_hotspare_status(vol, hotspare_idx, HR_EXT_MISSING);
+
+	vol->hotspare_no--;
+
+	hr_extent_t *rebuild_ext = &vol->extents[bad];
+
+	rc = block_init(rebuild_ext->svc_id);
+	if (rc != EOK) {
+		HR_ERROR("hr_raid1_rebuild(): initing (%lu) failed, "
+		    "aborting rebuild\n", rebuild_ext->svc_id);
+		goto end;
+	}
+
+	HR_DEBUG("hr_raid1_rebuild(): starting rebuild on (%lu)\n",
+	    rebuild_ext->svc_id);
+
+	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
+	hr_update_vol_status(vol, HR_VOL_REBUILD);
 
 	size_t left = vol->data_blkno;
 	size_t max_blks = DATA_XFER_LIMIT / vol->bsize;
@@ -434,9 +433,12 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	hr_extent_t *ext;
 
+	vol->rebuild_blk = 0;
+
 	size_t cnt;
 	uint64_t ba = 0;
 	hr_add_ba_offset(vol, &ba);
+
 	while (left != 0) {
 		vol->rebuild_blk = ba;
 		cnt = min(max_blks, left);
@@ -461,7 +463,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 			}
 		}
 
-		rc = block_write_direct(hotspare->svc_id, ba, cnt, buf);
+		rc = block_write_direct(rebuild_ext->svc_id, ba, cnt, buf);
 		if (rc != EOK) {
 			hr_raid1_handle_extent_error(vol, bad, rc);
 			HR_ERROR("rebuild on \"%s\" (%lu), failed due to "

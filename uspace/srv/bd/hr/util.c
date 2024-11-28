@@ -203,11 +203,29 @@ void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba)
 	*ba = *ba + vol->data_offset;
 }
 
-void hr_update_ext_status(hr_volume_t *vol, uint64_t extent, hr_ext_status_t s)
+void hr_update_ext_status(hr_volume_t *vol, size_t extent, hr_ext_status_t s)
 {
-	HR_WARN("vol %s, changing extent: %lu, to status: %s",
-	    vol->devname, extent, hr_get_ext_status_msg(s));
+	hr_ext_status_t old = vol->extents[extent].status;
+	HR_WARN("\"%s\": changing state of extent %lu: %s -> %s\n",
+	    vol->devname, extent, hr_get_ext_status_msg(old),
+	    hr_get_ext_status_msg(s));
 	vol->extents[extent].status = s;
+}
+
+void hr_update_hotspare_status(hr_volume_t *vol, size_t hs, hr_ext_status_t s)
+{
+	hr_ext_status_t old = vol->hotspares[hs].status;
+	HR_WARN("\"%s\": changing state of hotspare %lu: %s -> %s\n",
+	    vol->devname, hs, hr_get_ext_status_msg(old),
+	    hr_get_ext_status_msg(s));
+	vol->hotspares[hs].status = s;
+}
+
+void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t s)
+{
+	HR_WARN("\"%s\": changing state: %s -> %s\n", vol->devname,
+	    hr_get_vol_status_msg(vol->status), hr_get_vol_status_msg(s));
+	vol->status = s;
 }
 
 /*

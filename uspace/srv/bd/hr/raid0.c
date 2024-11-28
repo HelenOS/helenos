@@ -180,7 +180,7 @@ static errno_t hr_raid0_check_vol_status(hr_volume_t *vol)
 {
 	if (vol->status == HR_VOL_ONLINE)
 		return EOK;
-	return EINVAL;
+	return EIO;
 }
 
 /*
@@ -189,17 +189,19 @@ static errno_t hr_raid0_check_vol_status(hr_volume_t *vol)
  */
 static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
 {
+	hr_vol_status_t old_state = vol->status;
+
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status != HR_EXT_ONLINE) {
-			HR_WARN("RAID 0 needs all extents to be ONLINE, "
-			    "marking \"%s\" (%lu) as FAULTY",
-			    vol->devname, vol->svc_id);
-			vol->status = HR_VOL_FAULTY;
-			return EINVAL;
+			if (old_state != HR_VOL_FAULTY)
+				hr_update_vol_status(vol, HR_VOL_FAULTY);
+			return EIO;
 		}
 	}
 
-	vol->status = HR_VOL_ONLINE;
+	if (old_state != HR_VOL_ONLINE)
+		hr_update_vol_status(vol, HR_VOL_ONLINE);
+
 	return EOK;
 }
 
@@ -243,6 +245,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 	left = cnt;
+
 	while (left != 0) {
 		phys_block = ext_stripe * strip_size + strip_off;
 		cnt = min(left, strip_size - strip_off);

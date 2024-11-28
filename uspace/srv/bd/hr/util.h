@@ -55,7 +55,9 @@ extern errno_t hr_register_volume(hr_volume_t *);
 extern errno_t hr_check_devs(hr_volume_t *, uint64_t *, size_t *);
 extern errno_t hr_check_ba_range(hr_volume_t *, size_t, uint64_t);
 extern void hr_add_ba_offset(hr_volume_t *, uint64_t *);
-extern void hr_update_ext_status(hr_volume_t *, uint64_t, hr_ext_status_t);
+extern void hr_update_ext_status(hr_volume_t *, size_t, hr_ext_status_t);
+extern void hr_update_hotspare_status(hr_volume_t *, size_t, hr_ext_status_t);
+extern void hr_update_vol_status(hr_volume_t *, hr_vol_status_t);
 extern void hr_sync_all_extents(hr_volume_t *);
 extern size_t hr_count_extents(hr_volume_t *, hr_ext_status_t);
 
