@@ -263,6 +263,9 @@ def qemu_run(platform, machine, processor):
 	suffix, options = platform_to_qemu_options(platform, machine, processor)
 	cmd = 'qemu-' + suffix
 
+	if cpus:
+        cmd += ' -smp cpus=' + cpus + ' '
+
 	cmdline = cmd
 	if 'qemu_path' in overrides.keys():
 		cmdline = overrides['qemu_path'] + cmd
@@ -442,8 +445,9 @@ emulators = {
 
 def usage():
 	print("%s - emulator wrapper for running HelenOS\n" % os.path.basename(sys.argv[0]))
-	print("%s [-d] [-h] [-net e1k|rtl8139|ne2k|virtio-net] [-hdd ata|virtio-blk] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb] [-noxhci] [-notablet]\n" %
+	print("%s [$] [-d] [-h] [-net e1k|rtl8139|ne2k|virtio-net] [-hdd ata|virtio-blk] [-nohdd] [-nokvm] [-nonet] [-nosnd] [-nousb] [-noxhci] [-notablet]\n" %
 	    os.path.basename(sys.argv[0]))
+	print("$\t to run multiple($) cpus")
 	print("-d\tDry run: do not run the emulation, just print the command line.")
 	print("-h\tPrint the usage information and exit.")
 	print("-nohdd\tDisable hard disk, if applicable.")
@@ -465,6 +469,8 @@ def run():
 	expect_nic = False
 	expect_hdd = False
 	expect_qemu = False
+	global cpus
+    cpus = ''
 
 	for i in range(1, len(sys.argv)):
 
@@ -505,6 +511,8 @@ def run():
 		elif sys.argv[i] == '-h':
 			usage()
 			exit()
+		elif sys.argv[i].isdigit():
+            cpus = sys.argv[i]
 		elif sys.argv[i] == '-d':
 			overrides['dryrun'] = True
 		elif sys.argv[i] == '-net' and i < len(sys.argv) - 1:
