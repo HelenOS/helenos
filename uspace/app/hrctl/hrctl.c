@@ -253,10 +253,6 @@ int main(int argc, char **argv)
 		c = getopt_long(argc, argv, "hsC:c:A:a:l:0145Ln:D:F:H:",
 		    long_options, NULL);
 		switch (c) {
-		case 'h':
-			usage();
-			free(cfg);
-			return 0;
 		case 's':
 			free(cfg);
 			rc = hr_print_status();
@@ -379,6 +375,11 @@ int main(int argc, char **argv)
 				return 1;
 			else
 				return 0;
+		case 'h':
+		default:
+			usage();
+			free(cfg);
+			return 0;
 		}
 	}
 
