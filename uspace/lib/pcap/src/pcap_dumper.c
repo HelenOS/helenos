@@ -38,7 +38,7 @@
 #include <io/log.h>
 #include "pcap_dumper.h"
 
-#define SHORT_OPS_BYTE_COUNT 60
+#define SHORT_OPS_BYTE_COUNT 0x3C
 
 /** Initialize writing to .pcap file.
  *
@@ -49,6 +49,13 @@
  */
 static errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filename)
 {
+	/** For overwriting file if already exists. */
+	writer->data = fopen(filename, "w");
+	if (writer->data == NULL) {
+		return EINVAL;
+	}
+	fclose(writer->data);
+
 	writer->data = fopen(filename, "a");
 	if (writer->data == NULL) {
 		return EINVAL;
@@ -70,6 +77,13 @@ static errno_t pcap_writer_to_file_init_append(pcap_writer_t *writer, const char
 
 static errno_t pcap_writer_to_file_usb_init(pcap_writer_t *writer, const char *filename)
 {
+	/** For overwriting file if already exists. */
+	writer->data = fopen(filename, "w");
+	if (writer->data == NULL) {
+		return EINVAL;
+	}
+	fclose(writer->data);
+
 	writer->data = fopen(filename, "a");
 	if (writer->data == NULL) {
 		return EINVAL;
@@ -139,7 +153,7 @@ static const pcap_writer_ops_t usb_file_ops = {
 	.close = &pcap_file_close
 };
 
-static pcap_writer_ops_t ops[4] = {file_ops, short_file_ops, append_file_ops, usb_file_ops};
+static pcap_writer_ops_t ops[4] = { file_ops, short_file_ops, append_file_ops, usb_file_ops };
 
 int pcap_dumper_get_ops_number(void)
 {
@@ -149,11 +163,6 @@ int pcap_dumper_get_ops_number(void)
 errno_t pcap_dumper_start(pcap_dumper_t *dumper, const char *name)
 {
 	fibril_mutex_lock(&dumper->mutex);
-
-	/** When try to start when already started, close current and starts new */
-	if (dumper->to_dump) {
-		pcap_dumper_stop(dumper);
-	}
 
 	errno_t rc = dumper->writer.ops->open(&dumper->writer, name);
 	if (rc == EOK) {
@@ -199,8 +208,6 @@ void pcap_dumper_stop(pcap_dumper_t *dumper)
 	dumper->writer.ops->close(&dumper->writer);
 	fibril_mutex_unlock(&dumper->mutex);
 }
-
-
 
 /** @}
  */

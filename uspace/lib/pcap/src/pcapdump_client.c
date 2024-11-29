@@ -104,8 +104,7 @@ errno_t pcapctl_is_valid_device(int *index)
 	return EOK;
 }
 
-
-errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t* sess)
+errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess->sess);
 	ipc_call_t answer;
@@ -121,8 +120,7 @@ errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t* sess)
 	}
 
 	int ops_count = (int)ipc_get_arg1(&answer);
-	if (*index + 1 > ops_count || *index < 0)
-	{
+	if (*index + 1 > ops_count || *index < 0) {
 		return EINVAL;
 	}
 	return EOK;
@@ -248,7 +246,6 @@ errno_t pcapctl_dump_stop(pcapctl_sess_t *sess)
 	pcapctl_dump_exchange_end(exch);
 	return rc;
 }
-
 
 /** @}
  */

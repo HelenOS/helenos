@@ -59,9 +59,16 @@ static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 
 	assert(str_length(data) == size && "Data were damaged during transmission.\n");
 
+	// Deadlock solution when trying to start dump while dumping (to the same device)
+	if (dumper->to_dump) {
+		free(data);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Trying to start dumping while dumping.\n");
+		async_answer_0(icall, EBUSY);
+		return;
+	}
+
 	rc = pcap_dumper_set_ops(dumper, ops_index);
-	if (rc != EOK)
-	{
+	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Setting ops for dumper was not successful.\n");
 		free(data);
 		async_answer_0(icall, EOK);
@@ -81,7 +88,6 @@ static void pcapdump_stop_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 	pcap_dumper_stop(dumper);
 	async_answer_0(icall, EOK);
 }
-
 
 static void pcapdump_get_ops_num_srv(ipc_call_t *icall)
 {
@@ -126,8 +132,6 @@ void pcapdump_conn(ipc_call_t *icall, void *arg)
 		}
 	}
 }
-
-
 
 /** @}
  */

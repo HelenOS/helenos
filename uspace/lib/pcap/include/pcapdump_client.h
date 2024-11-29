@@ -55,8 +55,7 @@ extern errno_t pcapctl_dump_start(const char *, int *, pcapctl_sess_t *);
 extern errno_t pcapctl_dump_stop(pcapctl_sess_t *);
 extern errno_t pcapctl_list(void);
 extern errno_t pcapctl_is_valid_device(int *);
-extern errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t* sess);
-
+extern errno_t pcapctl_is_valid_ops_number(int *, pcapctl_sess_t *);
 
 #endif
 

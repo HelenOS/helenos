@@ -45,10 +45,10 @@ typedef struct pcap_dumper {
 	pcap_writer_t writer;
 } pcap_dumper_t;
 
+extern errno_t pcap_dumper_start(pcap_dumper_t *, const char *);
 extern void pcap_dumper_stop(pcap_dumper_t *);
 extern int pcap_dumper_get_ops_number(void);
 extern errno_t pcap_dumper_set_ops(pcap_dumper_t *, int);
-extern errno_t pcap_dumper_start(pcap_dumper_t *, const char *);
 extern void pcap_dumper_add_packet(pcap_dumper_t *, const void *data, size_t size);
 
 #endif

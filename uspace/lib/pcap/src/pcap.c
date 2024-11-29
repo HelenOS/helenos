@@ -58,8 +58,7 @@ void pcap_set_time(pcap_packet_header_t *header)
 void pcap_writer_add_header(pcap_writer_t *writer, uint32_t linktype, bool nano)
 {
 	uint32_t magic_version = PCAP_MAGIC_MICRO;
-	if (nano)
-	{
+	if (nano) {
 		magic_version = PCAP_MAGIC_NANO;
 	}
 	pcap_file_header_t file_header = { magic_version, PCAP_MAJOR_VERSION, PCAP_MINOR_VERSION,
