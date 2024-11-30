@@ -29,7 +29,7 @@
 /** @addtogroup pcapctl
  * @{
  */
-/** @file pcapctl app
+/** @file pcapctl command-line utility.
  */
 
 #include <stdio.h>
@@ -41,15 +41,22 @@
 
 #include "pcapdump_client.h"
 
-#define NAME "pcapctl"
-#define DEFAULT_DEV_NUM 0
-#define DECIMAL_SYSTEM 10
+#define NAME 				"pcapctl"
+#define DEFAULT_DEV_NUM 	0
+#define DECIMAL_SYSTEM 		10
 
-#define DEFAULT_FILE_OPS 0
-#define SHORT_FILE_OPS 1
-#define APPEND_FILE_OPS 2
-#define USB_FILE_OPS 3
+/* Default writer operations for dumper, must be consistent with array defined in /uspace/lib/pcap/pcap_dumper.c */
+#define DEFAULT_FILE_OPS 	0
+#define SHORT_FILE_OPS 		1
+#define APPEND_FILE_OPS 	2
+#define USB_FILE_OPS 		3
 
+/** Create async session and send start request.
+ *  @param dev_number index of the device that can dump packets.
+ *  @param name of the output buffer.
+ *  @param ops_index index of the writer operations for the dumper.
+ *  @return EOK if all parameters are valid and start request was sent successfully, error code otherwise.
+ */
 static errno_t start_dumping(int *dev_number, const char *name, int *ops_index)
 {
 	pcapctl_sess_t *sess = NULL;
@@ -76,6 +83,10 @@ static errno_t start_dumping(int *dev_number, const char *name, int *ops_index)
 	return EOK;
 }
 
+/** Create async session and send stop dumping request.
+ *  @param dev_numbe index of the device on which the dumping will be stopped.
+ *  @return EOK if request was sent successfully, error code otherwise.
+ */
 static errno_t stop_dumping(int *dev_number)
 {
 	pcapctl_sess_t *sess = NULL;
@@ -91,6 +102,7 @@ static errno_t stop_dumping(int *dev_number)
 	return EOK;
 }
 
+/** Print devices that can dump packets. */
 static void list_devs(void)
 {
 	pcapctl_list();
@@ -100,8 +112,8 @@ static void list_devs(void)
  * Array of supported commandline options
  */
 static const struct option opts[] = {
-	{ "append", required_argument, 0, 'A' }, // file as argument and ops 0 if not exist and 2 if exists
-	{ "new", required_argument, 0, 'N' }, // file name as argument
+	{ "append", required_argument, 0, 'A' }, /* file as argument and ops 0 if not exist and 2 if exists */
+	{ "new", required_argument, 0, 'N' }, /* file name as argument */
 	{ "truncated", required_argument, 0, 'T' }, // truncated ops
 	{ "usb", required_argument, 0, 'U' }, //??
 	{ "device", required_argument, 0, 'd' },
@@ -115,6 +127,10 @@ static const struct option opts[] = {
 	{ 0, 0, 0, 0 }
 };
 
+/** Check if the file exists.
+ *  @param path of the file to check.
+ *  @return true if exists, false otherwise.
+ */
 static bool file_exists(const char *path)
 {
 	vfs_stat_t stats;
@@ -127,7 +143,8 @@ static bool file_exists(const char *path)
 
 static void usage(void)
 {
-	printf("Usage:\n"
+	printf("HelenOS Packet Dumping utility.\n"
+	    "Usage:\n"
 	    NAME " --list | -l \n"
 	    "\tList of devices\n"
 	    NAME " --start | -r --device= | -d <device number from list> --outfile= | -o <outfile> --ops= | p <ops index>\n"
@@ -217,8 +234,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("%s: HelenOS Packet Dumping utility: device - %d, ops - %d.\n", NAME, dev_number, ops_number);
-
 	if (start) {
 
 		if (file_exists(output_file_name) && !forced && ops_number != 2) {
@@ -226,10 +241,13 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 
+		printf("Sarting dumping on device - %d, ops - %d.\n", dev_number, ops_number);
+
 		/* start with dev number and name */
 		start_dumping(&dev_number, output_file_name, &ops_number);
 	} else if (stop) {
 		/* stop with dev number */
+		printf("Stopping dumping on device - %d, ops - %d.\n", dev_number, ops_number);
 		stop_dumping(&dev_number);
 	} else {
 		usage();

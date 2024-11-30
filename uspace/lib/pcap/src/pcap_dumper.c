@@ -29,8 +29,7 @@
 /** @addtogroup libpcap
  * @{
  */
-/** @file
- *  @brief pcap inteface: Dumping interface for the device which packets we want to dump
+/** @file Pcap dumper. Structure is a part of every device that is in category PCAP and can dump packets.
  */
 
 #include <errno.h>
@@ -42,9 +41,9 @@
 
 /** Initialize writing to .pcap file.
  *
- * @param writer    Interface for working with .pcap file.
+ * @param writer    Interface for writing data.
  * @param filename  Name of the file for dumping packets.
- * @return          EOK on success or an error code.
+ * @return          EOK on success, otherwise an error code.
  *
  */
 static errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filename)
@@ -65,6 +64,11 @@ static errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filen
 	return EOK;
 }
 
+/** Open file for appending to the end of it.
+ *  @param writer 	Interface for writing data.
+ *  @param filename Path to the file.
+ *  @return 		EOK on success, error code otherwise.
+ */
 static errno_t pcap_writer_to_file_init_append(pcap_writer_t *writer, const char *filename)
 {
 	writer->data = fopen(filename, "a");
@@ -75,6 +79,11 @@ static errno_t pcap_writer_to_file_init_append(pcap_writer_t *writer, const char
 	return EOK;
 }
 
+/** Initialize file for dumping usb packets.
+ *  @param writer 	Interface for writing data.
+ *  @param filename Path to the file.
+ *  @return 		EOK on success, error code otherwise.
+ */
 static errno_t pcap_writer_to_file_usb_init(pcap_writer_t *writer, const char *filename)
 {
 	/** For overwriting file if already exists. */
@@ -93,33 +102,59 @@ static errno_t pcap_writer_to_file_usb_init(pcap_writer_t *writer, const char *f
 	return EOK;
 }
 
+/** Write 4B to the file.
+ *  @param writer 	Interface for writing data.
+ *  @param data 	Bytes to write.
+ *  @return 		Size of successfully witten data.
+ */
 static size_t pcap_file_w32(pcap_writer_t *writer, uint32_t data)
 {
 	return fwrite(&data, 1, 4, (FILE *)writer->data);
 }
 
+/** Write 2B to the file.
+ *  @param writer 	Interface for writing data.
+ *  @param data 	Bytes to write.
+ *  @return 		Size of successfully witten data.
+ */
 static size_t pcap_file_w16(pcap_writer_t *writer, uint16_t data)
 {
 	return fwrite(&data, 1, 2, (FILE *)writer->data);
 }
 
+/** Write block of bytes to the file.
+ *  @param writer 	Interface for writing data.
+ *  @param data 	Bytes to write.
+ *  @param size		Size of block of bytes.
+ *  @return 		Size of successfully witten data.
+ */
 static size_t pcap_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
 {
 	assert(writer->data);
 	return fwrite(data, 1, size, (FILE *)writer->data);
 }
 
+/** Close file for writing.
+ *  @param writer 	Interaface for writing data.
+ */
 static void pcap_file_close(pcap_writer_t *writer)
 {
 	fclose((FILE *)writer->data);
 	writer->data = NULL;
 }
 
+/** Write <= 60B of block of bytes.
+ *  @param writer 	Interface for writing data.
+ *  @param data 	Bytes to write.
+ *  @param size		Size of block of bytes.
+ *  @return 		Size of successfully witten data.
+ */
 static size_t pcap_short_file_wbuffer(pcap_writer_t *writer, const void *data, size_t size)
 {
 	return fwrite(data, 1, size < SHORT_OPS_BYTE_COUNT ? size : SHORT_OPS_BYTE_COUNT, (FILE *)writer->data);
 }
 
+/** Standard writer operations for writing data to a newly created file. */
 static const pcap_writer_ops_t file_ops = {
 	.open = &pcap_writer_to_file_init,
 	.write_u32 = &pcap_file_w32,
@@ -128,6 +163,7 @@ static const pcap_writer_ops_t file_ops = {
 	.close = &pcap_file_close
 };
 
+/** Truncated writer operations. Only first 60 bytes of the packet are written. */
 static const pcap_writer_ops_t short_file_ops = {
 	.open = &pcap_writer_to_file_init,
 	.write_u32 = &pcap_file_w32,
@@ -137,6 +173,7 @@ static const pcap_writer_ops_t short_file_ops = {
 
 };
 
+/** Append writer operations. Instead of creating new file open existing file and append packets. */
 static const pcap_writer_ops_t append_file_ops = {
 	.open = &pcap_writer_to_file_init_append,
 	.write_u32 = &pcap_file_w32,
@@ -145,6 +182,7 @@ static const pcap_writer_ops_t append_file_ops = {
 	.close = &pcap_file_close
 };
 
+/** USB writer operations. Writing USB packets to the file. */
 static const pcap_writer_ops_t usb_file_ops = {
 	.open = &pcap_writer_to_file_usb_init,
 	.write_u32 = &pcap_file_w32,
@@ -153,13 +191,20 @@ static const pcap_writer_ops_t usb_file_ops = {
 	.close = &pcap_file_close
 };
 
+/** Default array of operations. Must be consistens with constants in /uspace/app/pcapctl/main.c */
 static pcap_writer_ops_t ops[4] = { file_ops, short_file_ops, append_file_ops, usb_file_ops };
 
+/** Get number of writer operations in @ref ops */
 int pcap_dumper_get_ops_number(void)
 {
 	return (int)(sizeof(ops) / sizeof(pcap_writer_ops_t));
 }
 
+/** Open destination buffer for writing and set flag for dumping.
+ *  @param dumper	Structure responsible for dumping packets. Part of the driver.
+ *  @param name		Name of the destination buffer to dump packets to.
+ *  @return 		EOK if successful, erro code otherwise.
+ */
 errno_t pcap_dumper_start(pcap_dumper_t *dumper, const char *name)
 {
 	fibril_mutex_lock(&dumper->mutex);
@@ -173,6 +218,11 @@ errno_t pcap_dumper_start(pcap_dumper_t *dumper, const char *name)
 	return rc;
 }
 
+/** Set writer options for the writer.
+ *  @param dumper 	Structure responsible for dumping packets. Part of the driver.
+ *  @param index	Index of the writer operations from array @ref ops.
+ *  @return 		EOK if successful, erro code otherwise.
+ */
 errno_t pcap_dumper_set_ops(pcap_dumper_t *dumper, int index)
 {
 	fibril_mutex_lock(&dumper->mutex);
@@ -182,6 +232,11 @@ errno_t pcap_dumper_set_ops(pcap_dumper_t *dumper, int index)
 	return rc;
 }
 
+/** Write packet to destination buffer.
+ *  @param dumper	Structure responsible for dumping packets. Part of the driver.
+ *  @param data		Packet data to write.
+ *  @param size		Size of the packet.
+ */
 void pcap_dumper_add_packet(pcap_dumper_t *dumper, const void *data, size_t size)
 {
 	fibril_mutex_lock(&dumper->mutex);
@@ -195,6 +250,9 @@ void pcap_dumper_add_packet(pcap_dumper_t *dumper, const void *data, size_t size
 	fibril_mutex_unlock(&dumper->mutex);
 }
 
+/** Close destination buffer for writing and unset flag for dumping.
+ *  @param dumper	Structure responsible for dumping packets. Part of the driver.
+ */
 void pcap_dumper_stop(pcap_dumper_t *dumper)
 {
 	fibril_mutex_lock(&dumper->mutex);

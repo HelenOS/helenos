@@ -32,7 +32,7 @@
  */
 /**
  * @file
- * @brief Headers and functions for .pcap file and packets to be dumped
+ * @brief Headers and functions for PCAP format and packets to be dumped.
  */
 
 #ifndef PCAP_H_
@@ -45,18 +45,16 @@
 #include <stdbool.h>
 #include <errno.h>
 
-#define PCAP_MAGIC_MICRO 0xA1B2C3D4
-#define PCAP_MAGIC_NANO 0xA1B23C4D
-#define PCAP_MAJOR_VERSION 0x0002
-#define PCAP_MINOR_VERSION 0x0004
-#define PCAP_SNAP_LEN 0x00040000
+#define PCAP_MAGIC_MICRO 0xA1B2C3D4 /** Sets time in seconds and microseconds in packet records. */
+#define PCAP_MAGIC_NANO 0xA1B23C4D /** Sets time in seconds and nanoseconds in packet records. */
+#define PCAP_MAJOR_VERSION 0x0002  /** Major version of the PCAP format. */
+#define PCAP_MINOR_VERSION 0x0004  /** Miner version of the PCAP format. */
+#define PCAP_SNAP_LEN 0x00040000  /** Maximum number of bytes that can be captured for one packet record. */
 
 #define PCAP_LINKTYPE_ETHERNET 1    /* IEEE 802.3 Ethernet */
 #define PCAP_LINKTYPE_IP_RAW 101	/* Raw IP packet */
 #define PCAP_LINKTYPE_IEEE802_11_RADIO 127
 #define PCAP_LINKTYPE_USB_LINUX_MMAPPED 220
-#define WIRESHARK_EX 0xc
-#define WIRESHARK_SNAPLEN 0xffff
 
 /** Header of the .pcap file. */
 typedef struct {
@@ -79,7 +77,7 @@ typedef struct pcap_packet_header {
 
 typedef struct pcap_writer pcap_writer_t;
 
-/** Operations for dumper. */
+/** Writing operations for destination buffer. */
 typedef struct {
 	errno_t (*open)(pcap_writer_t *, const char *);
 	size_t (*write_u32)(pcap_writer_t *, uint32_t);
@@ -88,9 +86,11 @@ typedef struct {
 	void (*close)(pcap_writer_t *);
 } pcap_writer_ops_t;
 
-/** Interface for working with .pcap file. */
+/** Structure for writing data to the destination buffer. */
 struct pcap_writer {
+	/** Writing buffer. */
 	void *data;
+	/** Writing operations for working with the buffer. */
 	pcap_writer_ops_t *ops;
 };
 

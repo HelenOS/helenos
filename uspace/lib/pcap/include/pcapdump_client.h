@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file
+ * @file Client side of the IPC communication for pcapctl.
  *
  */
 
@@ -44,6 +44,7 @@
 #include <loc.h>
 #include <fibril_synch.h>
 
+/** IPC session structure for pcapctl utility. */
 typedef struct {
 	async_sess_t *sess;
 } pcapctl_sess_t;

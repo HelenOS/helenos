@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file
+ * @file Server side of the IPC communication for dumping packets framework.
  *
  */
 

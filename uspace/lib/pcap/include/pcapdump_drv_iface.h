@@ -31,7 +31,7 @@
  * @{
  */
 /**
- * @file
+ * @file Driver interface. Functions that are used in drivers that can dump packets.
  *
  */
 

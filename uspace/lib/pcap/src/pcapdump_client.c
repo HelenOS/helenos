@@ -29,8 +29,7 @@
 /** @addtogroup libpcap
  * @{
  */
-/** @file
- * @brief Client side of the pcapctl. Functions are called from the app pcapctl
+/** @file Client side of the pcapctl. Functions are called from the app pcapctl.
  */
 
 #include <errno.h>
@@ -51,6 +50,11 @@ static void pcapctl_dump_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
+/** Get service based on the index of the device.
+ *  @param index of the device.
+ *  @param svc placeholder for service ide.
+ *  @return EOK if successful, error code otherwise.
+ */
 static errno_t pcapctl_cat_get_svc(int *index, service_id_t *svc)
 {
 	errno_t rc;
@@ -79,6 +83,10 @@ static errno_t pcapctl_cat_get_svc(int *index, service_id_t *svc)
 	return ENOENT;
 }
 
+/** Check if the index is an index of valid device.
+ *  @param index to check.
+ *  @return EOK if device is valid, error code otherwise.
+ */
 errno_t pcapctl_is_valid_device(int *index)
 {
 	errno_t rc;
@@ -104,6 +112,10 @@ errno_t pcapctl_is_valid_device(int *index)
 	return EOK;
 }
 
+/** Check if the index is an index of valid writer operations.
+ * @param index to check.
+ * @param sess 	pcapctl session for IPC communictaion.
+ */
 errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess->sess);
@@ -126,9 +138,7 @@ errno_t pcapctl_is_valid_ops_number(int *index, pcapctl_sess_t *sess)
 	return EOK;
 }
 
-/**
- *
- */
+/** Get all devices that can dump packets. */
 errno_t pcapctl_list(void)
 {
 	errno_t rc;
@@ -159,8 +169,10 @@ errno_t pcapctl_list(void)
 	return EOK;
 }
 
-/**
- *
+/** Start pcapctl IPC session.
+ *  @param index 	index of the device which can dump packets.
+ *  @param rsess 	placeholder for the session.
+ *  @return			EOK if successful, error code otherwise.
  */
 errno_t pcapctl_dump_open(int *index, pcapctl_sess_t **rsess)
 {
@@ -195,8 +207,9 @@ error:
 	return rc;
 }
 
-/**
- *
+/** Close pcapctl IPC session.
+ *  @param sess Session to close.
+ *  @return EOK if successful, error code otherwise.
  */
 errno_t pcapctl_dump_close(pcapctl_sess_t *sess)
 {
@@ -204,11 +217,11 @@ errno_t pcapctl_dump_close(pcapctl_sess_t *sess)
 	return EOK;
 }
 
-/** Starting a new session for pcapctl
+/** Send start request via IPC to start dumping.
  *
- * @param name Name of the file to dump packets to
- * @param sess session to start
- * @return EOK on success or an error code
+ * @param name 	Name of the destination buffer to dump packets to.
+ * @param sess 	Session that is used for communication.
+ * @return 		EOK on success or an error code.
  */
 errno_t pcapctl_dump_start(const char *name, int *ops_index, pcapctl_sess_t *sess)
 {
@@ -232,10 +245,10 @@ errno_t pcapctl_dump_start(const char *name, int *ops_index, pcapctl_sess_t *ses
 	return retval;
 }
 
-/** Finish current session for pcapctl
+/** Send stop request via IPC to start dumping.
  *
- * @param sess Session to finish
- * @return EOK on success or an error code
+ * @param sess 	Session that is used for communication.
+ * @return 		EOK on success or an error code.
  */
 errno_t pcapctl_dump_stop(pcapctl_sess_t *sess)
 {

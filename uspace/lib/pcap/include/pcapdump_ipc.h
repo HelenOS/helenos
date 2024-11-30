@@ -40,6 +40,7 @@
 
 #include <ipc/common.h>
 
+/** IPC requests for INTERFACE_PCAP_CONTROL interface. */
 typedef enum {
 	PCAP_CONTROL_SET_START = IPC_FIRST_USER_METHOD,
 	PCAP_CONTROL_SET_STOP,

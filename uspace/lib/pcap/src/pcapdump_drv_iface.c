@@ -47,10 +47,9 @@
 
 #define NAME "pcap"
 
-/** Initialize interface for dumping packets
- *
- * @param dumper Device dumping interface
- *
+/** Initialize interface for dumping packets.
+ * @param dumper 	Device dumping interface.
+ * @return 			EOK if successful, error code otherwise.
  */
 static errno_t pcapdump_drv_dumper_init(pcap_dumper_t *dumper)
 {
@@ -66,6 +65,10 @@ static errno_t pcapdump_drv_dumper_init(pcap_dumper_t *dumper)
 	return EOK;
 }
 
+/** Initialize driver dumping functionality.
+ *  @param dumper 	Dumping interface of the driver.
+ * 	@return 		EOK if successful, error code otherwise.
+ */
 errno_t pcapdump_init(pcap_dumper_t *dumper)
 {
 	port_id_t port;
@@ -85,13 +88,13 @@ errno_t pcapdump_init(pcap_dumper_t *dumper)
 	return EOK;
 }
 
-/** Dumping function for driver
+/** Dumping function for driver.
  *
- * Called every time, the packet is sent/recieved by the device
+ * Called every time, the packet is sent/recieved by the device.
  *
- * @param dumper Dumping interface
- * @param data The packet
- * @param size Size of the packet
+ * @param dumper 	Dumping interface.
+ * @param data 		The packet
+ * @param size 		Size of the packet.
  *
  */
 void pcapdump_packet(pcap_dumper_t *dumper, const void *data, size_t size)

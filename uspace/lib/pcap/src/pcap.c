@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Nataliia Korop
+ * Copyright (c) 2024 Nataliia Korop
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,8 +52,9 @@ void pcap_set_time(pcap_packet_header_t *header)
 
 /** Add pcap file header to the new .pcap file.
  *
- * @param writer writer that has destination buffer and ops to write to destination buffer.
- *
+ * @param writer 	Writer that has destination buffer and ops to write to destination buffer.
+ * @param linktype 	Linktype for the file header.
+ * @param nano 		True for nanoseconds, false for microseconds in timestamp.
  */
 void pcap_writer_add_header(pcap_writer_t *writer, uint32_t linktype, bool nano)
 {
@@ -68,9 +69,9 @@ void pcap_writer_add_header(pcap_writer_t *writer, uint32_t linktype, bool nano)
 
 /** Add packet to the .pcap file.
  *
- * @param writer
- * @param captured_packet Packet to be dumped
- * @param size Size of the captured packet
+ * @param writer 			Writer that has destination buffer and ops to write to destination buffer.
+ * @param captured_packet 	Packet to be dumped
+ * @param size 				Size of the captured packet
  *
  */
 void pcap_writer_add_packet(pcap_writer_t *writer, const void *captured_packet, size_t size)

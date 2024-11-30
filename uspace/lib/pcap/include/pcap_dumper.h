@@ -29,7 +29,7 @@
 /** @addtogroup libpcap
  * @{
  */
-/** @file pcap interface
+/** @file Pcap dumper. Structure is a part of every device that is in category PCAP and can dump packets.
  */
 
 #ifndef PCAP_IFACE_H_
@@ -39,9 +39,12 @@
 #include <fibril_synch.h>
 #include "pcap.h"
 
+/** Packet dumper structure that is responsible for dumping packets. */
 typedef struct pcap_dumper {
 	fibril_mutex_t mutex;
+	/** Flag that indicates, whether the packet should be dumped or ignored. */
 	bool to_dump;
+	/** Writer structure that is responsible for writing data to the destination buffer. */
 	pcap_writer_t writer;
 } pcap_dumper_t;
 
@@ -52,5 +55,6 @@ extern errno_t pcap_dumper_set_ops(pcap_dumper_t *, int);
 extern void pcap_dumper_add_packet(pcap_dumper_t *, const void *data, size_t size);
 
 #endif
+
 /** @}
  */

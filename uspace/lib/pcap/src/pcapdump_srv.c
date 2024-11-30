@@ -46,6 +46,10 @@
 #include "pcapdump_srv.h"
 #include "pcapdump_ipc.h"
 
+/** Start dumping.
+ * 	@param icall 	IPC call with request to start.
+ *  @param dumper 	Dumping interface of the driver.
+ */
 static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 {
 	char *data;
@@ -83,12 +87,19 @@ static void pcapdump_start_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 	async_answer_0(icall, EOK);
 }
 
+/** Stop dumping
+ * 	@param icall 	IPC call with request to stop.
+ *  @param dumper 	Dumping interface of the driver.
+ */
 static void pcapdump_stop_srv(ipc_call_t *icall, pcap_dumper_t *dumper)
 {
 	pcap_dumper_stop(dumper);
 	async_answer_0(icall, EOK);
 }
 
+/** Get number of accessibke writer operations.
+ * 	@param icall 	IPC call with request to get number of accessible writer operations.
+ */
 static void pcapdump_get_ops_num_srv(ipc_call_t *icall)
 {
 	size_t count = pcap_dumper_get_ops_number();
@@ -98,6 +109,10 @@ static void pcapdump_get_ops_num_srv(ipc_call_t *icall)
 	async_answer_1(icall, EOK, count);
 }
 
+/** Callback connection function. Accepts requests and processes them.
+ * 	@param icall 	IPC call with request.
+ *  @param arg	 	Dumping interface of the driver.
+ */
 void pcapdump_conn(ipc_call_t *icall, void *arg)
 {
 	pcap_dumper_t *dumper = (pcap_dumper_t *)arg;
