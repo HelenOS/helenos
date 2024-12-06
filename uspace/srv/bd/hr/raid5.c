@@ -94,7 +94,7 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 {
 	errno_t rc;
 
-	assert(new_volume->level == HR_LVL_5);
+	assert(new_volume->level == HR_LVL_5 || new_volume->level == HR_LVL_4);
 
 	if (new_volume->extent_no < 3) {
 		HR_ERROR("RAID 5 array needs at least 3 devices\n");
@@ -120,7 +120,7 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 	size_t bsize;
 	uint64_t total_blkno;
 
-	assert(vol->level == HR_LVL_5);
+	assert(vol->level == HR_LVL_5 || vol->level == HR_LVL_4);
 
 	rc = hr_check_devs(vol, &total_blkno, &bsize);
 	if (rc != EOK)
@@ -530,14 +530,45 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	if (rc != EOK)
 		return rc;
 
+	uint8_t RLQ = vol->RLQ;
+	hr_level_t level = vol->level;
+
 	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
 	uint64_t stripe = (ba / strip_size); /* stripe number */
-	uint64_t p_extent = (stripe / (vol->extent_no - 1)) % vol->extent_no; /* parity extent */
+
+	/* parity extent */
+	uint64_t p_extent;
+	if (level == HR_LVL_4 && RLQ == HR_RLQ_RAID4_0) {
+		p_extent = 0;
+	} else if (level == HR_LVL_4 && RLQ == HR_RLQ_RAID4_N) {
+		p_extent = vol->extent_no - 1;
+	} else if (level == HR_LVL_5 && RLQ == HR_RLQ_RAID5_0R) {
+		p_extent = (stripe / (vol->extent_no - 1)) % vol->extent_no;
+	} else if (level == HR_LVL_5 &&
+	    (RLQ == HR_RLQ_RAID5_NR || RLQ == HR_RLQ_RAID5_NC)) {
+		p_extent = (vol->extent_no - 1) -
+		    (stripe / (vol->extent_no - 1)) % vol->extent_no;
+	} else {
+		return EINVAL;
+	}
+
 	uint64_t extent;
-	if ((stripe % (vol->extent_no - 1)) < p_extent)
-		extent = (stripe % (vol->extent_no - 1));
-	else
-		extent = ((stripe % (vol->extent_no - 1)) + 1);
+	if (level == HR_LVL_4 && RLQ == HR_RLQ_RAID4_0) {
+		extent = (stripe % (vol->extent_no - 1)) + 1;
+	} else if (level == HR_LVL_4 && RLQ == HR_RLQ_RAID4_N) {
+		extent = stripe % (vol->extent_no - 1);
+	} else if (level == HR_LVL_5 &&
+	    (RLQ == HR_RLQ_RAID5_0R || RLQ == HR_RLQ_RAID5_NR)) {
+		if ((stripe % (vol->extent_no - 1)) < p_extent)
+			extent = stripe % (vol->extent_no - 1);
+		else
+			extent = (stripe % (vol->extent_no - 1)) + 1;
+	} else if (level == HR_LVL_5 && RLQ == HR_RLQ_RAID5_NC) {
+		extent = ((stripe % (vol->extent_no - 1)) + p_extent + 1) % vol->extent_no;
+	} else {
+		return EINVAL;
+	}
+
 	uint64_t ext_stripe = stripe / (vol->extent_no - 1); /* stripe level */
 	uint64_t strip_off = ba % strip_size; /* strip offset */
 
@@ -616,15 +647,31 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 		left -= cnt;
 		strip_off = 0;
-		if (extent + 1 >= vol->extent_no ||
-		    (extent + 1 == p_extent && p_extent + 1 >= vol->extent_no))
-			ext_stripe++;
 		stripe++;
-		p_extent = (stripe / (vol->extent_no - 1)) % vol->extent_no; /* parity extent */
-		if ((stripe % (vol->extent_no - 1)) < p_extent)
-			extent = (stripe % (vol->extent_no - 1));
-		else
-			extent = ((stripe % (vol->extent_no - 1)) + 1);
+
+		ext_stripe = stripe / (vol->extent_no - 1); /* stripe level */
+
+		if (level == HR_LVL_5 && RLQ == HR_RLQ_RAID5_0R) {
+			p_extent = (stripe / (vol->extent_no - 1)) % vol->extent_no;
+		} else if (level == HR_LVL_5 &&
+		    (RLQ == HR_RLQ_RAID5_NR || RLQ == HR_RLQ_RAID5_NC)) {
+			p_extent = (vol->extent_no - 1) -
+			    (stripe / (vol->extent_no - 1)) % vol->extent_no;
+		}
+
+		if (level == HR_LVL_4 && RLQ == HR_RLQ_RAID4_0) {
+			extent = (stripe % (vol->extent_no - 1)) + 1;
+		} else if (level == HR_LVL_4 && RLQ == HR_RLQ_RAID4_N) {
+			extent = stripe % (vol->extent_no - 1);
+		} else if (level == HR_LVL_5 &&
+		    (RLQ == HR_RLQ_RAID5_0R || RLQ == HR_RLQ_RAID5_NR)) {
+			if ((stripe % (vol->extent_no - 1)) < p_extent)
+				extent = stripe % (vol->extent_no - 1);
+			else
+				extent = (stripe % (vol->extent_no - 1)) + 1;
+		} else if (level == HR_LVL_5 && RLQ == HR_RLQ_RAID5_NC) {
+			extent = ((stripe % (vol->extent_no - 1)) + p_extent + 1) % vol->extent_no;
+		}
 	}
 
 error:

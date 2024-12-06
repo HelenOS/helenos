@@ -152,13 +152,17 @@ static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
 	}
 
 	metadata->magic = host2uint64_t_le(HR_MAGIC);
+	metadata->version = host2uint32_t_le(~(0U)); /* unused */
 	metadata->extent_no = host2uint32_t_le(vol->extent_no);
+	/* index filled separately for each extent */
 	metadata->level = host2uint32_t_le(vol->level);
+	metadata->layout = host2uint32_t_le(vol->RLQ);
+	metadata->strip_size = host2uint32_t_le(vol->strip_size);
 	metadata->nblocks = host2uint64_t_le(vol->nblocks);
 	metadata->data_blkno = host2uint64_t_le(vol->data_blkno);
-	metadata->data_offset = host2uint32_t_le(vol->data_offset);
-	metadata->strip_size = host2uint32_t_le(vol->strip_size);
-
+	metadata->data_offset = host2uint64_t_le(vol->data_offset);
+	metadata->counter = host2uint64_t_le(~(0UL)); /* unused */
+	/* UUID generated separately for each extent */
 	str_cpy(metadata->devname, HR_DEVNAME_LEN, vol->devname);
 
 	return EOK;
@@ -230,11 +234,14 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 		goto end;
 	}
 
+	/* TODO: handle version */
 	vol->level = uint32_t_le2host(metadata->level);
+	vol->RLQ = (uint8_t)uint32_t_le2host(metadata->layout);
+	vol->strip_size = uint32_t_le2host(metadata->strip_size);
 	vol->nblocks = uint64_t_le2host(metadata->nblocks);
 	vol->data_blkno = uint64_t_le2host(metadata->data_blkno);
-	vol->data_offset = uint32_t_le2host(metadata->data_offset);
-	vol->strip_size = uint32_t_le2host(metadata->strip_size);
+	vol->data_offset = uint64_t_le2host(metadata->data_offset);
+	vol->counter = uint64_t_le2host(0x00); /* unused */
 
 	if (str_cmp(metadata->devname, vol->devname) != 0) {
 		HR_WARN("devname on metadata (%s) and config (%s) differ, "
