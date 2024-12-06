@@ -187,27 +187,31 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 
 	switch (new_volume->level) {
 	case HR_LVL_1:
-		new_volume->RLQ = 0x00; /* XXX: yet unused */
+		if (!assemble)
+			new_volume->RLQ = 0x00; /* XXX: yet unused */
 		new_volume->hr_ops.create = hr_raid1_create;
 		new_volume->hr_ops.init = hr_raid1_init;
 		new_volume->hr_ops.status_event = hr_raid1_status_event;
 		new_volume->hr_ops.add_hotspare = hr_raid1_add_hotspare;
 		break;
 	case HR_LVL_0:
-		new_volume->RLQ = 0x00;
+		if (!assemble)
+			new_volume->RLQ = 0x00;
 		new_volume->hr_ops.create = hr_raid0_create;
 		new_volume->hr_ops.init = hr_raid0_init;
 		new_volume->hr_ops.status_event = hr_raid0_status_event;
 		break;
 	case HR_LVL_4:
-		new_volume->RLQ = HR_RLQ_RAID4_N;
+		if (!assemble)
+			new_volume->RLQ = HR_RLQ_RAID4_N;
 		new_volume->hr_ops.create = hr_raid5_create;
 		new_volume->hr_ops.init = hr_raid5_init;
 		new_volume->hr_ops.status_event = hr_raid5_status_event;
 		new_volume->hr_ops.add_hotspare = hr_raid5_add_hotspare;
 		break;
 	case HR_LVL_5:
-		new_volume->RLQ = HR_RLQ_RAID5_NR;
+		if (!assemble)
+			new_volume->RLQ = HR_RLQ_RAID5_NR;
 		new_volume->hr_ops.create = hr_raid5_create;
 		new_volume->hr_ops.init = hr_raid5_init;
 		new_volume->hr_ops.status_event = hr_raid5_status_event;
