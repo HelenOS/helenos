@@ -200,10 +200,11 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		new_volume->hr_ops.status_event = hr_raid0_status_event;
 		break;
 	case HR_LVL_4:
-		new_volume->hr_ops.create = hr_raid4_create;
-		new_volume->hr_ops.init = hr_raid4_init;
-		new_volume->hr_ops.status_event = hr_raid4_status_event;
-		new_volume->hr_ops.add_hotspare = hr_raid4_add_hotspare;
+		new_volume->RLQ = HR_RLQ_RAID4_N;
+		new_volume->hr_ops.create = hr_raid5_create;
+		new_volume->hr_ops.init = hr_raid5_init;
+		new_volume->hr_ops.status_event = hr_raid5_status_event;
+		new_volume->hr_ops.add_hotspare = hr_raid5_add_hotspare;
 		break;
 	case HR_LVL_5:
 		new_volume->RLQ = HR_RLQ_RAID5_NR;
