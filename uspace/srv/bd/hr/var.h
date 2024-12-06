@@ -79,17 +79,6 @@ typedef struct hr_volume {
 	service_id_t svc_id;
 	hr_vol_status_t status;
 	hr_level_t level;
-	/*
-	 * SNIA
-	 * Common RAID Disk Data Format
-	 * Specification
-	 * Version 2.0 Revision 19
-	 */
-#define HR_RLQ_RAID4_0	0x00 /* RAID-4 Non-Rotating Parity 0 */
-#define HR_RLQ_RAID4_N	0x01 /* RAID-4 Non-Rotating Parity N */
-#define HR_RLQ_RAID5_0R	0x00 /* RAID-5 Rotating Parity 0 with Data Restart */
-#define HR_RLQ_RAID5_NR	0x02 /* RAID-5 Rotating Parity N with Data Restart */
-#define HR_RLQ_RAID5_NC	0x03 /* RAID-5 Rotating Parity N with Data Continuation */
 	uint8_t RLQ; /* RAID Level Qualifier */
 	char devname[HR_DEVNAME_LEN];
 } hr_volume_t;

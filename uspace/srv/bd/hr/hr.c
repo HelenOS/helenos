@@ -365,6 +365,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 		info.strip_size = vol->strip_size;
 		info.bsize = vol->bsize;
 		info.status = vol->status;
+		info.RLQ = vol->RLQ;
 
 		if (!async_data_read_receive(&call, &size)) {
 			rc = EREFUSED;

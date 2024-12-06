@@ -132,6 +132,10 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	printf("status: %s\n", hr_get_vol_status_msg(vol_info->status));
 
 	printf("level: %d\n", vol_info->level);
+	if (vol_info->level == HR_LVL_4 || vol_info->level == HR_LVL_5) {
+		printf("layout: %s\n",
+		    hr_get_layout_str(vol_info->level, vol_info->RLQ));
+	}
 	if (vol_info->level == HR_LVL_0 || vol_info->level == HR_LVL_4) {
 		if (vol_info->strip_size / 1024 < 1)
 			printf("strip size in bytes: %u\n",
@@ -158,12 +162,16 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 			if (rc != EOK)
 				return rc;
 		}
-		if (i == 0 && vol_info->level == HR_LVL_4)
-			printf("          P   %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
-		else if (vol_info->level == HR_LVL_4)
-			printf("              %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
-		else
+		if (vol_info->level == HR_LVL_4) {
+			if ((i == 0 && vol_info->RLQ == HR_RLQ_RAID4_0) ||
+			    (i == vol_info->extent_no - 1 &&
+			    vol_info->RLQ == HR_RLQ_RAID4_N))
+				printf("          P   %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
+			else
+				printf("              %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
+		} else {
 			printf("          %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
+		}
 	}
 
 	if (vol_info->hotspare_no == 0)
@@ -339,6 +347,34 @@ const char *hr_get_ext_status_msg(hr_ext_status_t status)
 		return "HOTSPARE";
 	default:
 		return "UNKNOWN";
+	}
+}
+
+const char *hr_get_layout_str(hr_level_t level, uint8_t RLQ)
+{
+	switch (level) {
+	case HR_LVL_4:
+		switch (RLQ) {
+		case HR_RLQ_RAID4_0:
+			return "RAID-4 Non-Rotating Parity 0";
+		case HR_RLQ_RAID4_N:
+			return "RAID-4 Non-Rotating Parity N";
+		default:
+			return "RAID-4 INVALID";
+		}
+	case HR_LVL_5:
+		switch (RLQ) {
+		case HR_RLQ_RAID5_0R:
+			return "RAID-5 Rotating Parity 0 with Data Restart";
+		case HR_RLQ_RAID5_NR:
+			return "RAID-5 Rotating Parity N with Data Restart";
+		case HR_RLQ_RAID5_NC:
+			return "RAID-5 Rotating Parity N with Data Continuation";
+		default:
+			return "RAID-5 INVALID";
+		}
+	default:
+		return "INVALID";
 	}
 }
 

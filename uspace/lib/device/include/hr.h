@@ -54,6 +54,18 @@ typedef enum hr_level {
 	HR_LVL_UNKNOWN	= 0xFF
 } hr_level_t;
 
+/*
+ * SNIA
+ * Common RAID Disk Data Format
+ * Specification
+ * Version 2.0 Revision 19
+ */
+#define HR_RLQ_RAID4_0	0x00 /* RAID-4 Non-Rotating Parity 0 */
+#define HR_RLQ_RAID4_N	0x01 /* RAID-4 Non-Rotating Parity N */
+#define HR_RLQ_RAID5_0R	0x00 /* RAID-5 Rotating Parity 0 with Data Restart */
+#define HR_RLQ_RAID5_NR	0x02 /* RAID-5 Rotating Parity N with Data Restart */
+#define HR_RLQ_RAID5_NC	0x03 /* RAID-5 Rotating Parity N with Data Continuation */
+
 typedef enum hr_vol_status {
 	HR_VOL_ONLINE,	/* OK, OPTIMAL */
 	HR_VOL_FAULTY,
@@ -96,6 +108,7 @@ typedef struct hr_vol_info {
 	uint32_t strip_size;
 	size_t bsize;
 	hr_vol_status_t status;
+	uint8_t RLQ;
 } hr_vol_info_t;
 
 extern errno_t hr_sess_init(hr_t **);
@@ -108,6 +121,7 @@ extern errno_t hr_print_status(void);
 
 extern const char *hr_get_vol_status_msg(hr_vol_status_t);
 extern const char *hr_get_ext_status_msg(hr_ext_status_t);
+extern const char *hr_get_layout_str(hr_level_t, uint8_t);
 
 #endif
 
