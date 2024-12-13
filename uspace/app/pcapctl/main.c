@@ -75,7 +75,7 @@ static errno_t start_dumping(int *dev_number, const char *name, int *ops_index)
 	rc = pcapctl_dump_start(name, ops_index, sess);
 	if (rc != EOK) {
 		if (rc == EBUSY) {
-			printf("Dumping for device %d is in process, stop to start dumping to file %s.\n", *dev_number, name);
+			printf("Dumping for device %d is in progress, stop to start dumping to file %s.\n", *dev_number, name);
 		}
 		printf("Starting the dumping was not successful.\n");
 	}
@@ -187,19 +187,23 @@ int main(int argc, char *argv[])
 			}
 			break;
 		case 'A':
+			start = true;
 			output_file_name = optarg;
 			if (file_exists(output_file_name)) {
 				ops_number = APPEND_FILE_OPS;
 			}
 			break;
 		case 'N':
+			start = true;
 			output_file_name = optarg;
 			break;
 		case 'T':
+			start = true;
 			output_file_name = optarg;
 			ops_number = SHORT_FILE_OPS;
 			break;
 		case 'U':
+			start = true;
 			output_file_name = optarg;
 			ops_number = USB_FILE_OPS;
 			break;
@@ -237,17 +241,17 @@ int main(int argc, char *argv[])
 	if (start) {
 
 		if (file_exists(output_file_name) && !forced && ops_number != 2) {
-			printf("File %s already exists. If you want to overwrite to it, then use flag --force.\n", output_file_name);
+			printf("File %s already exists. If you want to overwrite it, then use flag --force.\n", output_file_name);
 			return 0;
 		}
 
-		printf("Sarting dumping on device - %d, ops - %d.\n", dev_number, ops_number);
+		printf("Start dumping on device - %d, ops - %d.\n", dev_number, ops_number);
 
 		/* start with dev number and name */
 		start_dumping(&dev_number, output_file_name, &ops_number);
 	} else if (stop) {
 		/* stop with dev number */
-		printf("Stopping dumping on device - %d, ops - %d.\n", dev_number, ops_number);
+		printf("Stop dumping on device - %d.\n", dev_number);
 		stop_dumping(&dev_number);
 	} else {
 		usage();
