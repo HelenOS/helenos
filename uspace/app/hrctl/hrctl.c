@@ -57,8 +57,9 @@ static const char usage_str[] =
     "                            sample file at: " HRCTL_SAMPLE_CONFIG_PATH "\n"
     "  -A, --assemble-file=PATH  create an array from file\n"
     "  -s, --status              display status of active arrays\n"
+    "  -H, --hotspare=DEV        add hotspare extent\n"
     "  -D, --destroy             destroy/disassemble an active array\n"
-    "  -F, --fail-extent         fail an extent, use with -T and set it before\n"
+    "  -F, --fail-extent         fail an extent, use with -D and set it before\n"
     "  -c, --create=NAME         create new array\n"
     "  -a, --assemble=NAME       assemble an existing array\n"
     "  -n                        non-zero number of devices\n"
@@ -68,7 +69,6 @@ static const char usage_str[] =
     "  -1                        mirroring\n"
     "  -4                        parity on one extent\n"
     "  -5                        distributed parity\n"
-    "  -H, --hotspare=DEV        add hotspare extent\n"
     "\n"
     "When specifying name for creation or assembly, the device name\n"
     "is automatically prepended with \"devices/\" prefix.\n"
@@ -82,6 +82,8 @@ static const char usage_str[] =
     "      that were previously in an array\n"
     "  hrctl devices/hr0 --hotspare=devices/disk10\n"
     "    - adds \"devices/disk10\" as hotspare extent\n"
+    "  hrctl -F 0 -D devices/hr0\n"
+    "    - marks first extent as FAILED\n"
     "Limitations:\n"
     "  - device name must be less than 32 characters in size\n";
 
