@@ -391,8 +391,10 @@ static errno_t hr_raid5_write(hr_volume_t *vol, uint64_t p_extent,
 		 * write new parity
 		 */
 		bool first = true;
-		for (i = 1; i < vol->extent_no; i++) {
+		for (i = 0; i < vol->extent_no; i++) {
 			if (i == (size_t)bad)
+				continue;
+			if (i == p_extent)
 				continue;
 			if (first) {
 				rc = block_read_direct(vol->extents[i].svc_id,
@@ -600,7 +602,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		case HR_BD_READ:
 		retry_read:
 			ssize_t bad = hr_raid5_get_bad_ext(vol);
-			if (bad > 0 && extent == (size_t)bad) {
+			if (bad > -1 && extent == (size_t)bad) {
 				rc = hr_raid5_read_degraded(vol, bad,
 				    phys_block, data_read, cnt);
 			} else {
