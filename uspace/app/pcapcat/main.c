@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -83,9 +84,9 @@ static void eth_parse(const char *file_path)
             return;
         }
         printf("0x%x: %d, %d\n", hdr.magic_stamp, hdr.captured_length, hdr.original_length);
-
-        fread(NULL, 1, (size_t)hdr.captured_length, f);
-        printf("After\n");
+        void *data = malloc(hdr.captured_length);
+        fread(data, 1, (size_t)hdr.captured_length, f);
+        free(data);
         read_bytes = fread(&hdr, 1, sizeof(pcap_packet_header_t), f);
     }
 
