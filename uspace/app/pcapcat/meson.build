@@ -26,4 +26,4 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 deps = ['pcap']
-src = files('main.c')
+src = files('main.c', 'eth_parser.c')
