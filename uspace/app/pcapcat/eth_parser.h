@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <str.h>
 #include <io/log.h>
+#include <pcap.h>
 
 extern void eth_parse_packets(FILE *, int, bool);
 extern void eth_parse_header(pcap_file_header_t *);
