@@ -36,8 +36,10 @@
 #ifndef _HR_VAR_H
 #define _HR_VAR_H
 
+#include <adt/list.h>
 #include <bd_srv.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <hr.h>
 
 #define NAME "hr"
@@ -59,6 +61,9 @@ typedef struct hr_volume {
 
 	link_t lvolumes;
 	fibril_mutex_t lock;
+
+	list_t range_lock_list;
+	fibril_mutex_t range_lock_list_lock;
 
 	size_t extent_no;
 	hr_extent_t extents[HR_MAX_EXTENTS];
@@ -88,6 +93,16 @@ typedef enum {
 	HR_BD_READ,
 	HR_BD_WRITE
 } hr_bd_op_type_t;
+
+typedef struct hr_range_lock {
+	fibril_mutex_t lock;
+	link_t link;
+	hr_volume_t *vol;
+	uint64_t off;
+	uint64_t len;
+	size_t pending; /* protected by vol->range_lock_list_lock */
+	bool ignore; /* protected by vol->range_lock_list_lock */
+} hr_range_lock_t;
 
 extern errno_t hr_init_devs(hr_volume_t *);
 extern void hr_fini_devs(hr_volume_t *);

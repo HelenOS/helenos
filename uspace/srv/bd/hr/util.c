@@ -33,8 +33,10 @@
  * @file
  */
 
+#include <adt/list.h>
 #include <block.h>
 #include <errno.h>
+#include <fibril_synch.h>
 #include <hr.h>
 #include <io/log.h>
 #include <loc.h>
@@ -44,6 +46,12 @@
 
 #include "util.h"
 #include "var.h"
+
+#define HR_RL_LIST_LOCK(vol) (fibril_mutex_lock(&vol->range_lock_list_lock))
+#define HR_RL_LIST_UNLOCK(vol) \
+    (fibril_mutex_unlock(&vol->range_lock_list_lock))
+
+static bool hr_range_lock_overlap(hr_range_lock_t *, hr_range_lock_t *);
 
 extern loc_srv_t *hr_srv;
 
@@ -127,7 +135,6 @@ errno_t hr_register_volume(hr_volume_t *vol)
 	}
 
 	vol->svc_id = new_id;
-
 error:
 	free(fullname);
 	return rc;
@@ -257,12 +264,102 @@ void hr_sync_all_extents(hr_volume_t *vol)
 size_t hr_count_extents(hr_volume_t *vol, hr_ext_status_t status)
 {
 	size_t count = 0;
-	for (size_t i = 0; i < vol->extent_no; i++) {
+	for (size_t i = 0; i < vol->extent_no; i++)
 		if (vol->extents[i].status == status)
 			count++;
-	}
 
 	return count;
+}
+
+hr_range_lock_t *hr_range_lock_acquire(hr_volume_t *vol, uint64_t ba,
+    uint64_t cnt)
+{
+	hr_range_lock_t *rl = malloc(sizeof(hr_range_lock_t));
+	if (rl == NULL)
+		return NULL;
+
+	rl->vol = vol;
+	rl->off = ba;
+	rl->len = cnt;
+
+	rl->pending = 1;
+	rl->ignore = false;
+
+	link_initialize(&rl->link);
+	fibril_mutex_initialize(&rl->lock);
+
+	fibril_mutex_lock(&rl->lock);
+
+again:
+	HR_RL_LIST_LOCK(vol);
+	list_foreach(vol->range_lock_list, link, hr_range_lock_t, rlp) {
+		if (rlp->ignore)
+			continue;
+		if (hr_range_lock_overlap(rlp, rl)) {
+			rlp->pending++;
+
+			HR_RL_LIST_UNLOCK(vol);
+
+			fibril_mutex_lock(&rlp->lock);
+
+			HR_RL_LIST_LOCK(vol);
+
+			rlp->pending--;
+
+			/*
+			 * when ignore is set, after HR_RL_LIST_UNLOCK(),
+			 * noone new is going to be able to start sleeping
+			 * on the ignored range lock, only already waiting
+			 * IOs will come through here
+			 */
+			rlp->ignore = true;
+
+			fibril_mutex_unlock(&rlp->lock);
+
+			if (rlp->pending == 0) {
+				list_remove(&rlp->link);
+				free(rlp);
+			}
+
+			HR_RL_LIST_UNLOCK(vol);
+			goto again;
+		}
+	}
+
+	list_append(&rl->link, &vol->range_lock_list);
+
+	HR_RL_LIST_UNLOCK(vol);
+	return rl;
+}
+
+void hr_range_lock_release(hr_range_lock_t *rl)
+{
+	HR_RL_LIST_LOCK(rl->vol);
+
+	rl->pending--;
+
+	fibril_mutex_unlock(&rl->lock);
+
+	if (rl->pending == 0) {
+		list_remove(&rl->link);
+		free(rl);
+	}
+
+	HR_RL_LIST_UNLOCK(rl->vol);
+}
+
+static bool hr_range_lock_overlap(hr_range_lock_t *rl1, hr_range_lock_t *rl2)
+{
+	uint64_t rl1_start = rl1->off;
+	uint64_t rl1_end = rl1->off + rl1->len - 1;
+	uint64_t rl2_start = rl2->off;
+	uint64_t rl2_end = rl2->off + rl2->len - 1;
+
+	/* one ends before the other starts */
+	if (rl1_end < rl2_start || rl2_end < rl1_start)
+		return false;
+
+	return true;
 }
 
 /** @}
