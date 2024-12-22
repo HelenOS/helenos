@@ -235,6 +235,9 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 
 	fibril_mutex_initialize(&new_volume->lock);
 
+	list_initialize(&new_volume->range_lock_list);
+	fibril_mutex_initialize(&new_volume->range_lock_list_lock);
+
 	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)
 		goto error;
