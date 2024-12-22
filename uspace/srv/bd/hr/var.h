@@ -69,7 +69,7 @@ typedef struct hr_volume {
 	hr_extent_t extents[HR_MAX_EXTENTS];
 
 	size_t hotspare_no;
-	hr_extent_t hotspares[HR_MAX_EXTENTS];
+	hr_extent_t hotspares[HR_MAX_HOTSPARES];
 
 	size_t bsize;
 	uint64_t nblocks;
