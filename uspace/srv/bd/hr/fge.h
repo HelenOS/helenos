@@ -32,11 +32,6 @@
  */
 /**
  * @file
- * @brief Fibril group executor
- *
- * Fibril pool with pre-allocated storage allowing
- * execution of groups consisting of multiple work
- * units.
  */
 
 #ifndef _HR_FGE_H

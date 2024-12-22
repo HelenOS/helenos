@@ -40,6 +40,7 @@
  */
 
 #include <adt/bitmap.h>
+#include <adt/circ_buf.h>
 #include <assert.h>
 #include <errno.h>
 #include <fibril_synch.h>
@@ -59,8 +60,8 @@ typedef struct wu_queue wu_queue_t;
 static void *hr_fpool_make_storage(hr_fpool_t *, ssize_t *);
 static errno_t fge_fibril(void *);
 static errno_t wu_queue_init(wu_queue_t *, size_t);
-static void wu_queue_push(wu_queue_t *, fge_fibril_data_t);
-static fge_fibril_data_t wu_queue_pop(wu_queue_t *);
+static void wu_queue_push(wu_queue_t *, fge_fibril_data_t *);
+static void wu_queue_pop(wu_queue_t *, fge_fibril_data_t *);
 static ssize_t hr_fpool_get_free_slot(hr_fpool_t *);
 
 typedef struct fge_fibril_data {
@@ -75,10 +76,7 @@ typedef struct wu_queue {
 	fibril_condvar_t not_empty;
 	fibril_condvar_t not_full;
 	fge_fibril_data_t *fexecs;
-	size_t capacity;
-	size_t size;
-	size_t front;
-	size_t back;
+	circ_buf_t cbuf;
 } wu_queue_t;
 
 struct hr_fpool {
@@ -311,7 +309,7 @@ void hr_fgroup_submit(hr_fgroup_t *group, hr_wu_t wu, void *arg)
 	group->submitted++;
 	fibril_mutex_unlock(&group->lock);
 
-	wu_queue_push(&group->pool->queue, executor);
+	wu_queue_push(&group->pool->queue, &executor);
 }
 
 static void hr_fpool_group_epilogue(hr_fpool_t *pool)
@@ -365,17 +363,17 @@ static errno_t fge_fibril(void *arg)
 		fge_fibril_data_t executor;
 		fibril_mutex_lock(&pool->lock);
 
-		while (pool->queue.size == 0 && !pool->stop) {
+		while (circ_buf_nused(&pool->queue.cbuf) == 0 && !pool->stop) {
 			fibril_condvar_wait(&pool->queue.not_empty,
 			    &pool->lock);
 		}
 
-		if (pool->stop && pool->queue.size == 0) {
+		if (pool->stop && circ_buf_nused(&pool->queue.cbuf) == 0) {
 			fibril_mutex_unlock(&pool->lock);
 			break;
 		}
 
-		executor = wu_queue_pop(&pool->queue);
+		wu_queue_pop(&pool->queue, &executor);
 
 		fibril_mutex_unlock(&pool->lock);
 
@@ -409,16 +407,15 @@ static errno_t fge_fibril(void *arg)
 	return EOK;
 }
 
-static errno_t wu_queue_init(wu_queue_t *queue, size_t capacity)
+static errno_t wu_queue_init(wu_queue_t *queue, size_t nmemb)
 {
-	queue->fexecs = malloc(sizeof(fge_fibril_data_t) * capacity);
+	queue->fexecs = malloc(sizeof(fge_fibril_data_t) * nmemb);
 	if (queue->fexecs == NULL)
 		return ENOMEM;
 
-	queue->capacity = capacity;
-	queue->size = 0;
-	queue->front = 0;
-	queue->back = 0;
+	circ_buf_init(&queue->cbuf, queue->fexecs, nmemb,
+	    sizeof(fge_fibril_data_t));
+
 	fibril_mutex_initialize(&queue->lock);
 	fibril_condvar_initialize(&queue->not_empty);
 	fibril_condvar_initialize(&queue->not_full);
@@ -426,37 +423,28 @@ static errno_t wu_queue_init(wu_queue_t *queue, size_t capacity)
 	return EOK;
 }
 
-static void wu_queue_push(wu_queue_t *queue, fge_fibril_data_t executor)
+static void wu_queue_push(wu_queue_t *queue, fge_fibril_data_t *executor)
 {
 	fibril_mutex_lock(&queue->lock);
 
-	while (queue->size == queue->capacity)
+	while (circ_buf_push(&queue->cbuf, executor) == EAGAIN)
 		fibril_condvar_wait(&queue->not_full, &queue->lock);
-
-	queue->fexecs[queue->back] = executor;
-	queue->back = (queue->back + 1) % queue->capacity;
-	queue->size++;
 
 	fibril_condvar_signal(&queue->not_empty);
 
 	fibril_mutex_unlock(&queue->lock);
 }
 
-static fge_fibril_data_t wu_queue_pop(wu_queue_t *queue)
+static void wu_queue_pop(wu_queue_t *queue, fge_fibril_data_t *executor)
 {
 	fibril_mutex_lock(&queue->lock);
 
-	while (queue->size == 0)
+	while (circ_buf_pop(&queue->cbuf, executor) == EAGAIN)
 		fibril_condvar_wait(&queue->not_empty, &queue->lock);
-
-	fge_fibril_data_t wu = queue->fexecs[queue->front];
-	queue->front = (queue->front + 1) % queue->capacity;
-	queue->size--;
 
 	fibril_condvar_signal(&queue->not_full);
 
 	fibril_mutex_unlock(&queue->lock);
-	return wu;
 }
 
 static ssize_t hr_fpool_get_free_slot(hr_fpool_t *pool)
