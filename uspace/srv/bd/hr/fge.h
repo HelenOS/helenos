@@ -57,7 +57,7 @@ extern void hr_fpool_destroy(hr_fpool_t *);
 extern hr_fgroup_t *hr_fgroup_create(hr_fpool_t *, size_t);
 extern void *hr_fgroup_alloc(hr_fgroup_t *);
 extern void hr_fgroup_submit(hr_fgroup_t *, hr_wu_t, void *);
-extern errno_t hr_fgroup_wait(hr_fgroup_t *, size_t *);
+extern errno_t hr_fgroup_wait(hr_fgroup_t *, size_t *, size_t *);
 
 #endif
 

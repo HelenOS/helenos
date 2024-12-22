@@ -325,7 +325,7 @@ static void hr_fpool_group_epilogue(hr_fpool_t *pool)
 	fibril_mutex_unlock(&pool->lock);
 }
 
-errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rfailed)
+errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 {
 	fibril_mutex_lock(&group->lock);
 	while (true) {
@@ -336,9 +336,10 @@ errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rfailed)
 		fibril_condvar_wait(&group->all_done, &group->lock);
 	}
 
-	if (rfailed) {
+	if (rokay)
+		*rokay = group->finished_okay;
+	if (rfailed)
 		*rfailed = group->finished_fail;
-	}
 
 	errno_t rc = EOK;
 	if (group->finished_okay != group->wus_started)
