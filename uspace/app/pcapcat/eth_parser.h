@@ -26,6 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup pcapcat
+ * @{
+ */
+/** @file Functions for parsing PCAP file of LinkType 1 (LINKTYPE_ETHERNET).
+ */
 
 #include <stdint.h>
 #include <stdio.h>
@@ -34,8 +39,10 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <str.h>
-#include <io/log.h>
 #include <pcap.h>
 
-extern void eth_parse_packets(FILE *, int, bool);
+extern void eth_parse_frames(FILE *, int, bool);
 extern void eth_parse_header(pcap_file_header_t *);
+
+/** @}
+ */

@@ -44,7 +44,7 @@
 #define NAME "pcapcat"
 
 static const linktype_parser_t eth_parser = {
-    .parse_packets = &eth_parse_packets,
+    .parse_packets = &eth_parse_frames,
     .parse_file_header = &eth_parse_header,
     .linktype = PCAP_LINKTYPE_ETHERNET
 };

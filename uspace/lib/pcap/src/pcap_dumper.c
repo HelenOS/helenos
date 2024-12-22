@@ -59,7 +59,7 @@ static errno_t pcap_writer_to_file_init(pcap_writer_t *writer, const char *filen
 	if (writer->data == NULL) {
 		return EINVAL;
 	}
-	pcap_writer_add_header(writer, (uint32_t)PCAP_LINKTYPE_ETHERNET, false);
+	pcap_writer_add_header(writer, (uint32_t)PCAP_LINKTYPE_ETHERNET);
 
 	return EOK;
 }
@@ -97,7 +97,7 @@ static errno_t pcap_writer_to_file_usb_init(pcap_writer_t *writer, const char *f
 	if (writer->data == NULL) {
 		return EINVAL;
 	}
-	pcap_writer_add_header(writer, (uint32_t)PCAP_LINKTYPE_USB_LINUX_MMAPPED, false);
+	pcap_writer_add_header(writer, (uint32_t)PCAP_LINKTYPE_USB_LINUX_MMAPPED);
 
 	return EOK;
 }

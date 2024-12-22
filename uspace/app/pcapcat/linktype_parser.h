@@ -26,19 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <stdbool.h>
-#include <errno.h>
-#include <str.h>
-#include <io/log.h>
-#include <pcap.h>
+/** @addtogroup pcapcat
+ * @{
+ */
+/** @file Structure for parsing PCAP file.
+ */
 
+#include <stdlib.h>
+#include <stdbool.h>
+#include <str.h>
+#include <pcap.h>
 
 typedef struct {
     uint32_t linktype;
     void (*parse_file_header)(pcap_file_header_t *);
     void (*parse_packets)(FILE *, int, bool);
 } linktype_parser_t;
+
+/** @}
+ */

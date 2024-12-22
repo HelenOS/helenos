@@ -47,22 +47,17 @@ void pcap_set_time(pcap_packet_header_t *header)
 	struct timespec ts;
 	getrealtime(&ts);
 	header->seconds_stamp = (uint32_t)ts.tv_sec;
-	header->magic_stamp = (uint32_t)ts.tv_nsec;
+	header->magic_stamp = (uint32_t)ts.tv_sec / 1000;
 }
 
 /** Add pcap file header to the new .pcap file.
  *
  * @param writer 	Writer that has destination buffer and ops to write to destination buffer.
  * @param linktype 	Linktype for the file header.
- * @param nano 		True for nanoseconds, false for microseconds in timestamp.
  */
-void pcap_writer_add_header(pcap_writer_t *writer, uint32_t linktype, bool nano)
+void pcap_writer_add_header(pcap_writer_t *writer, uint32_t linktype)
 {
-	uint32_t magic_version = PCAP_MAGIC_MICRO;
-	if (nano) {
-		magic_version = PCAP_MAGIC_NANO;
-	}
-	pcap_file_header_t file_header = { magic_version, PCAP_MAJOR_VERSION, PCAP_MINOR_VERSION,
+	pcap_file_header_t file_header = { (uint32_t)PCAP_MAGIC_MICRO, PCAP_MAJOR_VERSION, PCAP_MINOR_VERSION,
 		0x00000000, 0x00000000, (uint32_t)PCAP_SNAP_LEN, linktype };
 	writer->ops->write_buffer(writer, &file_header, sizeof(file_header));
 }

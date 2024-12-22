@@ -94,7 +94,7 @@ struct pcap_writer {
 	pcap_writer_ops_t *ops;
 };
 
-extern void pcap_writer_add_header(pcap_writer_t *writer, uint32_t linktype, bool nano);
+extern void pcap_writer_add_header(pcap_writer_t *writer, uint32_t linktype);
 extern void pcap_writer_add_packet(pcap_writer_t *writer, const void *captured_packet, size_t size);
 extern void pcap_set_time(pcap_packet_header_t *header);
 

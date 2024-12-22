@@ -1,4 +1,4 @@
 /** @addtogroup pcapctl pcapctl
- * @brief Dump network packets
+ * @brief Command-line utility for dumping packets.
  * @ingroup apps
  */
