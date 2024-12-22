@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic_adt
+/** @addtogroup libc
  * @{
  */
 /**
@@ -42,7 +42,6 @@
 #include <align.h>
 #include <assert.h>
 #include <macros.h>
-#include <typedefs.h>
 
 #define ALL_ONES    0xff
 #define ALL_ZEROES  0x00
