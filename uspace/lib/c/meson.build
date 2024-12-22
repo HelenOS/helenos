@@ -58,6 +58,7 @@ endforeach
 src = [ arch_src ]
 
 src += files(
+	'common/adt/bitmap.c',
 	'common/adt/checksum.c',
 	'common/adt/circ_buf.c',
 	'common/adt/list.c',
