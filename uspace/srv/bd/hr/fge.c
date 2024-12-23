@@ -58,6 +58,7 @@ struct wu_queue;
 typedef struct wu_queue wu_queue_t;
 
 static void *hr_fpool_make_storage(hr_fpool_t *, ssize_t *);
+static void hr_fpool_group_epilogue(hr_fpool_t *);
 static errno_t fge_fibril(void *);
 static errno_t wu_queue_init(wu_queue_t *, size_t);
 static void wu_queue_push(wu_queue_t *, fge_fibril_data_t *);
@@ -182,22 +183,6 @@ void hr_fpool_destroy(hr_fpool_t *pool)
 	free(pool);
 }
 
-static void *hr_fpool_make_storage(hr_fpool_t *pool, ssize_t *rmemslot)
-{
-	fibril_mutex_lock(&pool->lock);
-	ssize_t memslot = hr_fpool_get_free_slot(pool);
-	assert(memslot != -1);
-
-	bitmap_set(&pool->bitmap, memslot, 1);
-
-	fibril_mutex_unlock(&pool->lock);
-
-	if (rmemslot)
-		*rmemslot = memslot;
-
-	return pool->wu_storage + pool->wu_size * memslot;
-}
-
 hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 {
 	hr_fgroup_t *result = malloc(sizeof(hr_fgroup_t));
@@ -224,10 +209,10 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 		 */
 		size_t taking = parent->wu_storage_free_count;
 		result->own_mem = malloc(parent->wu_size * (wu_cnt - taking));
-		result->reserved_cnt = taking;
-		parent->wu_storage_free_count = 0;
 		if (result->own_mem == NULL)
 			goto bad;
+		result->reserved_cnt = taking;
+		parent->wu_storage_free_count = 0;
 	}
 
 	if (result->reserved_cnt > 0) {
@@ -312,17 +297,6 @@ void hr_fgroup_submit(hr_fgroup_t *group, hr_wu_t wu, void *arg)
 	wu_queue_push(&group->pool->queue, &executor);
 }
 
-static void hr_fpool_group_epilogue(hr_fpool_t *pool)
-{
-	fibril_mutex_lock(&pool->lock);
-
-	pool->active_groups--;
-	if (pool->active_groups == 0)
-		fibril_condvar_signal(&pool->all_wus_done);
-
-	fibril_mutex_unlock(&pool->lock);
-}
-
 errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 {
 	fibril_mutex_lock(&group->lock);
@@ -354,6 +328,33 @@ errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 	free(group);
 
 	return rc;
+}
+
+static void *hr_fpool_make_storage(hr_fpool_t *pool, ssize_t *rmemslot)
+{
+	fibril_mutex_lock(&pool->lock);
+	ssize_t memslot = hr_fpool_get_free_slot(pool);
+	assert(memslot != -1);
+
+	bitmap_set(&pool->bitmap, memslot, 1);
+
+	fibril_mutex_unlock(&pool->lock);
+
+	if (rmemslot)
+		*rmemslot = memslot;
+
+	return pool->wu_storage + pool->wu_size * memslot;
+}
+
+static void hr_fpool_group_epilogue(hr_fpool_t *pool)
+{
+	fibril_mutex_lock(&pool->lock);
+
+	pool->active_groups--;
+	if (pool->active_groups == 0)
+		fibril_condvar_signal(&pool->all_wus_done);
+
+	fibril_mutex_unlock(&pool->lock);
 }
 
 static errno_t fge_fibril(void *arg)
