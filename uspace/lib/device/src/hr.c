@@ -133,7 +133,7 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 	printf("level: %d\n", vol_info->level);
 	if (vol_info->level == HR_LVL_4 || vol_info->level == HR_LVL_5) {
 		printf("layout: %s\n",
-		    hr_get_layout_str(vol_info->level, vol_info->RLQ));
+		    hr_get_layout_str(vol_info->level, vol_info->layout));
 	}
 	if (vol_info->level == HR_LVL_0 || vol_info->level == HR_LVL_4) {
 		if (vol_info->strip_size / 1024 < 1)
@@ -162,9 +162,9 @@ static errno_t print_vol_info(size_t index, hr_vol_info_t *vol_info)
 				return rc;
 		}
 		if (vol_info->level == HR_LVL_4) {
-			if ((i == 0 && vol_info->RLQ == HR_RLQ_RAID4_0) ||
+			if ((i == 0 && vol_info->layout == HR_RLQ_RAID4_0) ||
 			    (i == vol_info->extent_no - 1 &&
-			    vol_info->RLQ == HR_RLQ_RAID4_N))
+			    vol_info->layout == HR_RLQ_RAID4_N))
 				printf("          P   %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
 			else
 				printf("              %s    %zu       %s\n", hr_get_ext_status_msg(ext->status), i, devname);
@@ -349,11 +349,11 @@ const char *hr_get_ext_status_msg(hr_ext_status_t status)
 	}
 }
 
-const char *hr_get_layout_str(hr_level_t level, uint8_t RLQ)
+const char *hr_get_layout_str(hr_level_t level, uint8_t layout)
 {
 	switch (level) {
 	case HR_LVL_4:
-		switch (RLQ) {
+		switch (layout) {
 		case HR_RLQ_RAID4_0:
 			return "RAID-4 Non-Rotating Parity 0";
 		case HR_RLQ_RAID4_N:
@@ -362,7 +362,7 @@ const char *hr_get_layout_str(hr_level_t level, uint8_t RLQ)
 			return "RAID-4 INVALID";
 		}
 	case HR_LVL_5:
-		switch (RLQ) {
+		switch (layout) {
 		case HR_RLQ_RAID5_0R:
 			return "RAID-5 Rotating Parity 0 with Data Restart";
 		case HR_RLQ_RAID5_NR:

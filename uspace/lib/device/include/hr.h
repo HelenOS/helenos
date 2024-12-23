@@ -108,7 +108,7 @@ typedef struct hr_vol_info {
 	uint32_t strip_size;
 	size_t bsize;
 	hr_vol_status_t status;
-	uint8_t RLQ;
+	uint8_t layout;
 } hr_vol_info_t;
 
 extern errno_t hr_sess_init(hr_t **);

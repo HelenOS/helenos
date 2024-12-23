@@ -156,7 +156,7 @@ static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
 	metadata->extent_no = host2uint32_t_le(vol->extent_no);
 	/* index filled separately for each extent */
 	metadata->level = host2uint32_t_le(vol->level);
-	metadata->layout = host2uint32_t_le(vol->RLQ);
+	metadata->layout = host2uint32_t_le(vol->layout);
 	metadata->strip_size = host2uint32_t_le(vol->strip_size);
 	metadata->nblocks = host2uint64_t_le(vol->nblocks);
 	metadata->data_blkno = host2uint64_t_le(vol->data_blkno);
@@ -236,7 +236,7 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 
 	/* TODO: handle version */
 	vol->level = uint32_t_le2host(metadata->level);
-	vol->RLQ = (uint8_t)uint32_t_le2host(metadata->layout);
+	vol->layout = (uint8_t)uint32_t_le2host(metadata->layout);
 	vol->strip_size = uint32_t_le2host(metadata->strip_size);
 	vol->nblocks = uint64_t_le2host(metadata->nblocks);
 	vol->data_blkno = uint64_t_le2host(metadata->data_blkno);

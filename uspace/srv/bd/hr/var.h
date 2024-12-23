@@ -84,7 +84,7 @@ typedef struct hr_volume {
 	service_id_t svc_id;
 	hr_vol_status_t status;
 	hr_level_t level;
-	uint8_t RLQ; /* RAID Level Qualifier */
+	uint8_t layout; /* RAID Level Qualifier */
 	char devname[HR_DEVNAME_LEN];
 } hr_volume_t;
 

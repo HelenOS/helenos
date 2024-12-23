@@ -188,7 +188,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	switch (new_volume->level) {
 	case HR_LVL_1:
 		if (!assemble)
-			new_volume->RLQ = 0x00; /* XXX: yet unused */
+			new_volume->layout = 0x00; /* XXX: yet unused */
 		new_volume->hr_ops.create = hr_raid1_create;
 		new_volume->hr_ops.init = hr_raid1_init;
 		new_volume->hr_ops.status_event = hr_raid1_status_event;
@@ -196,14 +196,14 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		break;
 	case HR_LVL_0:
 		if (!assemble)
-			new_volume->RLQ = 0x00;
+			new_volume->layout = 0x00;
 		new_volume->hr_ops.create = hr_raid0_create;
 		new_volume->hr_ops.init = hr_raid0_init;
 		new_volume->hr_ops.status_event = hr_raid0_status_event;
 		break;
 	case HR_LVL_4:
 		if (!assemble)
-			new_volume->RLQ = HR_RLQ_RAID4_N;
+			new_volume->layout = HR_RLQ_RAID4_N;
 		new_volume->hr_ops.create = hr_raid5_create;
 		new_volume->hr_ops.init = hr_raid5_init;
 		new_volume->hr_ops.status_event = hr_raid5_status_event;
@@ -211,7 +211,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		break;
 	case HR_LVL_5:
 		if (!assemble)
-			new_volume->RLQ = HR_RLQ_RAID5_NR;
+			new_volume->layout = HR_RLQ_RAID5_NR;
 		new_volume->hr_ops.create = hr_raid5_create;
 		new_volume->hr_ops.init = hr_raid5_init;
 		new_volume->hr_ops.status_event = hr_raid5_status_event;
@@ -372,7 +372,7 @@ static void hr_print_status_srv(ipc_call_t *icall)
 		info.strip_size = vol->strip_size;
 		info.bsize = vol->bsize;
 		info.status = vol->status;
-		info.RLQ = vol->RLQ;
+		info.layout = vol->layout;
 
 		if (!async_data_read_receive(&call, &size)) {
 			rc = EREFUSED;
