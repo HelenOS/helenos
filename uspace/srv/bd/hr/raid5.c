@@ -566,7 +566,9 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		else
 			extent = (stripe % (vol->extent_no - 1)) + 1;
 	} else if (level == HR_LVL_5 && layout == HR_RLQ_RAID5_NC) {
-		extent = ((stripe % (vol->extent_no - 1)) + p_extent + 1) % vol->extent_no;
+		extent =
+		    ((stripe % (vol->extent_no - 1)) + p_extent + 1) %
+		    vol->extent_no;
 	} else {
 		return EINVAL;
 	}
@@ -654,7 +656,8 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		ext_stripe = stripe / (vol->extent_no - 1); /* stripe level */
 
 		if (level == HR_LVL_5 && layout == HR_RLQ_RAID5_0R) {
-			p_extent = (stripe / (vol->extent_no - 1)) % vol->extent_no;
+			p_extent =
+			    (stripe / (vol->extent_no - 1)) % vol->extent_no;
 		} else if (level == HR_LVL_5 &&
 		    (layout == HR_RLQ_RAID5_NR || layout == HR_RLQ_RAID5_NC)) {
 			p_extent = (vol->extent_no - 1) -
@@ -672,7 +675,9 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 			else
 				extent = (stripe % (vol->extent_no - 1)) + 1;
 		} else if (level == HR_LVL_5 && layout == HR_RLQ_RAID5_NC) {
-			extent = ((stripe % (vol->extent_no - 1)) + p_extent + 1) % vol->extent_no;
+			extent =
+			    ((stripe % (vol->extent_no - 1)) + p_extent + 1) %
+			    vol->extent_no;
 		}
 	}
 
