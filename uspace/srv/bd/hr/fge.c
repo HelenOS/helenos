@@ -240,7 +240,6 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 	return result;
 
 bad:
-	fibril_mutex_lock(&parent->lock);
 	parent->wu_storage_free_count += result->reserved_cnt;
 	fibril_mutex_unlock(&parent->lock);
 
