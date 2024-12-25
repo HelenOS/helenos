@@ -154,13 +154,13 @@ hr_fpool_t *hr_fpool_create(size_t fibril_cnt, size_t max_wus,
 
 	return result;
 bad:
-	if (result->queue.fexecs)
+	if (result->queue.fexecs != NULL)
 		free(result->queue.fexecs);
-	if (bitmap_data)
+	if (bitmap_data != NULL)
 		free(bitmap_data);
-	if (result->wu_storage)
+	if (result->wu_storage != NULL)
 		free(result->wu_storage);
-	if (result->fibrils)
+	if (result->fibrils != NULL)
 		free(result->fibrils);
 	free(result);
 
@@ -244,9 +244,9 @@ bad:
 	parent->wu_storage_free_count += result->reserved_cnt;
 	fibril_mutex_unlock(&parent->lock);
 
-	if (result->memslots)
+	if (result->memslots != NULL)
 		free(result->memslots);
-	if (result->own_mem)
+	if (result->own_mem != NULL)
 		free(result->own_mem);
 	free(result);
 
@@ -321,9 +321,9 @@ errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 
 	hr_fpool_group_epilogue(group->pool);
 
-	if (group->memslots)
+	if (group->memslots != NULL)
 		free(group->memslots);
-	if (group->own_mem)
+	if (group->own_mem != NULL)
 		free(group->own_mem);
 	free(group);
 
