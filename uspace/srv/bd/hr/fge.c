@@ -115,6 +115,8 @@ struct hr_fgroup {
 hr_fpool_t *hr_fpool_create(size_t fibril_cnt, size_t max_wus,
     size_t wu_storage_size)
 {
+	assert(max_wus > 0 && wu_storage_size > 0);
+
 	void *bitmap_data = NULL;
 
 	hr_fpool_t *result = calloc(1, sizeof(hr_fpool_t));
