@@ -105,9 +105,8 @@ struct hr_fgroup {
 	void *own_mem;
 	size_t own_used;
 	errno_t final_errno;
-	atomic_size_t finished_okay;
-	atomic_size_t finished_fail;
-	atomic_size_t wus_started;
+	size_t finished_okay;
+	size_t finished_fail;
 	fibril_mutex_t lock;
 	fibril_condvar_t all_done;
 };
@@ -234,7 +233,6 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 	result->final_errno = EOK;
 	result->finished_okay = 0;
 	result->finished_fail = 0;
-	result->wus_started = 0;
 
 	fibril_mutex_initialize(&result->lock);
 	fibril_condvar_initialize(&result->all_done);
@@ -280,7 +278,7 @@ void *hr_fgroup_alloc(hr_fgroup_t *group)
 void hr_fgroup_submit(hr_fgroup_t *group, hr_wu_t wu, void *arg)
 {
 	fibril_mutex_lock(&group->lock);
-	assert(group->submitted + 1 <= group->wu_cnt);
+	assert(group->submitted < group->wu_cnt);
 
 	fge_fibril_data_t executor;
 	executor.wu = wu;
@@ -300,10 +298,12 @@ void hr_fgroup_submit(hr_fgroup_t *group, hr_wu_t wu, void *arg)
 
 errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 {
+	assert(group->submitted == group->wu_cnt);
+
 	fibril_mutex_lock(&group->lock);
 	while (true) {
 		size_t finished = group->finished_fail + group->finished_okay;
-		if (group->wus_started != 0 && group->wus_started == finished)
+		if (group->wu_cnt == finished)
 			break;
 
 		fibril_condvar_wait(&group->all_done, &group->lock);
@@ -315,7 +315,7 @@ errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 		*rfailed = group->finished_fail;
 
 	errno_t rc = EOK;
-	if (group->finished_okay != group->wus_started)
+	if (group->finished_okay != group->wu_cnt)
 		rc = EIO;
 
 	fibril_mutex_unlock(&group->lock);
@@ -381,17 +381,17 @@ static errno_t fge_fibril(void *arg)
 
 		hr_fgroup_t *group = executor.group;
 
-		atomic_fetch_add_explicit(&group->wus_started, 1,
-		    memory_order_relaxed);
-
 		errno_t rc = executor.wu(executor.arg);
 
-		if (rc == EOK)
-			atomic_fetch_add_explicit(&group->finished_okay, 1,
-			    memory_order_relaxed);
-		else
-			atomic_fetch_add_explicit(&group->finished_fail, 1,
-			    memory_order_relaxed);
+		if (rc == EOK) {
+			fibril_mutex_lock(&group->lock);
+			group->finished_okay++;
+			fibril_mutex_unlock(&group->lock);
+		} else {
+			fibril_mutex_lock(&group->lock);
+			group->finished_fail++;
+			fibril_mutex_unlock(&group->lock);
+		}
 
 		fibril_mutex_lock(&pool->lock);
 		if (executor.memslot > -1) {
@@ -399,9 +399,10 @@ static errno_t fge_fibril(void *arg)
 			pool->wu_storage_free_count++;
 		}
 
-		size_t group_total_done = group->finished_fail +
-		    group->finished_okay;
-		if (group->wus_started == group_total_done)
+		fibril_mutex_lock(&group->lock);
+		size_t finished = group->finished_fail + group->finished_okay;
+		fibril_mutex_unlock(&group->lock);
+		if (finished == group->wu_cnt)
 			fibril_condvar_signal(&group->all_done);
 
 		fibril_mutex_unlock(&pool->lock);
