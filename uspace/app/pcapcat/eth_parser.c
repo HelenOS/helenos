@@ -68,6 +68,22 @@
 #define PRINT_MAC(msg, mac, spaces) printf("%s %s: %02x:%02x:%02x:%02x:%02x:%02x%s", msg, MAC_TEXT, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], spaces)
 #define BIG_END_16(buffer, idx) buffer[idx] << BYTE_SIZE | buffer[idx + 1]
 
+/** Offsets of interesting fields in packet. */
+
+#define ARP_SENDER_MAC      22
+#define ARP_SENDER_IP       28
+#define ARP_TARGET_MAC      32
+#define ARP_TARGET_IP       38
+
+#define TCP_SRC_PORT        34
+#define TCP_DST_PORT        36
+
+#define IP_HEADER_LEN       14
+#define IP_TOTAL_LEN        16
+#define IP_PROTOCOL         23
+#define IP_SRC_ADDR         26
+#define IP_DST_ADDR         30
+
 /** Read count bytes from char buffer.
  *  @param buffer       of bytes to read from.
  *  @param start_idx    index of the first byte to read.
@@ -87,11 +103,7 @@ static void read_from_buffer(unsigned char *buffer, size_t start_idx, size_t cou
  */
 static void parse_arp(unsigned char *buffer, size_t size)
 {
-    size_t sender_mac_offset = 22;
-    size_t sender_ip_offset = 28;
-    size_t target_mac_offset = 32;
-    size_t target_ip_offset = 38;
-    if (size < target_ip_offset + IPV4_ADDR_SIZE) {
+    if (size < ARP_TARGET_IP + IPV4_ADDR_SIZE) {
         printf("%s %s", ARP_TEXT, MALFORMED_PACKET);
         return;
     }
@@ -101,10 +113,10 @@ static void parse_arp(unsigned char *buffer, size_t size)
     uint8_t target_mac[ETH_ADDR_SIZE];
     uint8_t target_ip[IPV4_ADDR_SIZE];
 
-    read_from_buffer(buffer, sender_mac_offset, ETH_ADDR_SIZE, sender_mac);
-    read_from_buffer(buffer, sender_ip_offset, IPV4_ADDR_SIZE, sender_ip);
-    read_from_buffer(buffer, target_mac_offset, ETH_ADDR_SIZE, target_mac);
-    read_from_buffer(buffer, target_ip_offset, IPV4_ADDR_SIZE, target_ip);
+    read_from_buffer(buffer, ARP_SENDER_MAC, ETH_ADDR_SIZE, sender_mac);
+    read_from_buffer(buffer, ARP_SENDER_IP, IPV4_ADDR_SIZE, sender_ip);
+    read_from_buffer(buffer, ARP_TARGET_MAC, ETH_ADDR_SIZE, target_mac);
+    read_from_buffer(buffer, ARP_TARGET_IP, IPV4_ADDR_SIZE, target_ip);
 
     PRINT_MAC("Sender", sender_mac, ", ");
     PRINT_IP("Sender", sender_ip, "  ");
@@ -118,16 +130,13 @@ static void parse_arp(unsigned char *buffer, size_t size)
  */
 static void parse_tcp(unsigned char *buffer, size_t size)
 {
-    size_t src_port_offset = 34;
-    size_t dst_port_offset = 36;
-
-    if (size < dst_port_offset + TCP_PORT_SIZE) {
+    if (size < TCP_DST_PORT + TCP_PORT_SIZE) {
         printf("%s %s\n", TCP_TEXT, MALFORMED_PACKET);
         return;
     }
 
-    uint16_t src_port = BIG_END_16(buffer, src_port_offset);
-    uint16_t dst_port = BIG_END_16(buffer, dst_port_offset);
+    uint16_t src_port = BIG_END_16(buffer, TCP_SRC_PORT);
+    uint16_t dst_port = BIG_END_16(buffer, TCP_DST_PORT);
     printf("      [%s] source port: %d, destination port: %d\n", TCP_TEXT, src_port, dst_port);
 }
 
@@ -145,24 +154,18 @@ static void parse_ip(unsigned char *buffer, size_t size, bool verbose)
     uint8_t src_ip[IPV4_ADDR_SIZE];
     uint8_t dst_ip[IPV4_ADDR_SIZE];
 
-    size_t hdr_length_offset = 14;
-    size_t total_len_offset = 16;
-    size_t protocol_offset = 23;
-    size_t src_ip_offset = 26;
-    size_t dst_ip_offset = 30;
-
-    if (size < dst_ip_offset + IPV4_ADDR_SIZE) {
+    if (size < IP_DST_ADDR + IPV4_ADDR_SIZE) {
         printf("%s %s", IP_TEXT, MALFORMED_PACKET);
         return;
     }
 
-    header_length = (buffer[hdr_length_offset] & LOWER_4_BITS) * HDR_SIZE_COEF;
-    total_length = BIG_END_16(buffer, total_len_offset);
+    header_length = (buffer[IP_HEADER_LEN] & LOWER_4_BITS) * HDR_SIZE_COEF;
+    total_length = BIG_END_16(buffer, IP_TOTAL_LEN);
     payload_length = total_length - header_length;
-    ip_protocol = buffer[protocol_offset];
+    ip_protocol = buffer[IP_PROTOCOL];
 
-    read_from_buffer(buffer, src_ip_offset, IPV4_ADDR_SIZE, src_ip);
-    read_from_buffer(buffer, dst_ip_offset, IPV4_ADDR_SIZE, dst_ip);
+    read_from_buffer(buffer, IP_SRC_ADDR, IPV4_ADDR_SIZE, src_ip);
+    read_from_buffer(buffer, IP_DST_ADDR, IPV4_ADDR_SIZE, dst_ip);
 
     printf("%s header: %dB, payload: %dB, protocol: 0x%x, ", IP_TEXT, header_length, payload_length, ip_protocol);
     PRINT_IP("Source", src_ip, ", ");
@@ -249,8 +252,6 @@ void eth_parse_frames(FILE *pcap_file, int count, bool verbose_flag)
         memset(&hdr, 0, sizeof(pcap_packet_header_t));
         read_bytes = fread(&hdr, 1, sizeof(pcap_packet_header_t), pcap_file);
     }
-
-    fclose(pcap_file);
 }
 
 /** @}

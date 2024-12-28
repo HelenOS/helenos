@@ -85,6 +85,8 @@ static int parse_file(const char *file_path, int packet_count, bool verbose_flag
 
     parsers[parser_index].parse_file_header(&hdr);
     parsers[parser_index].parse_packets(f, packet_count, verbose_flag);
+
+    fclose(f);
     return 0;
 }
 

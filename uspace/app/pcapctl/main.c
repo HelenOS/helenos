@@ -114,8 +114,8 @@ static void list_devs(void)
 static const struct option opts[] = {
 	{ "append", required_argument, 0, 'A' }, /* file as argument and ops 0 if not exist and 2 if exists */
 	{ "new", required_argument, 0, 'N' }, /* file name as argument */
-	{ "truncated", required_argument, 0, 'T' }, // truncated ops
-	{ "usb", required_argument, 0, 'U' }, //??
+	{ "truncated", required_argument, 0, 'T' }, /* file as an argument with device 0 and dump truncated packets (for debugging purposes) */
+	{ "usb", required_argument, 0, 'U' }, /* todo: dump usb packets (not fully implemnted)*/
 	{ "device", required_argument, 0, 'd' },
 	{ "list", no_argument, 0, 'l' },
 	{ "help", no_argument, 0, 'h' },
@@ -147,6 +147,12 @@ static void usage(void)
 	    "Usage:\n"
 	    NAME " --list | -l \n"
 	    "\tList of devices\n"
+		NAME " --new= | -N <outfile>\n"
+		"\tStart dumping with ops - 0, on device - 0\n"
+		NAME " --append= | -A <outfile>\n"
+		"\tContinue dumping on device - 0 to already existing file\n"
+		NAME " --truncated= | -T <outfile>\n"
+		"\tStart dumping truncated packets to file on device - 0\n"
 	    NAME " --start | -r --device= | -d <device number from list> --outfile= | -o <outfile> --ops= | p <ops index>\n"
 	    "\tPackets dumped from device will be written to <outfile>\n"
 	    NAME " --stop | -t --device= | -d <device number from list>\n"

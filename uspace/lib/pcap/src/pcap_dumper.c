@@ -226,10 +226,9 @@ errno_t pcap_dumper_start(pcap_dumper_t *dumper, const char *name)
 errno_t pcap_dumper_set_ops(pcap_dumper_t *dumper, int index)
 {
 	fibril_mutex_lock(&dumper->mutex);
-	errno_t rc = EOK;
 	dumper->writer.ops = &ops[index];
 	fibril_mutex_unlock(&dumper->mutex);
-	return rc;
+	return EOK;
 }
 
 /** Write packet to destination buffer.
