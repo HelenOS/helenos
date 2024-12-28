@@ -186,6 +186,8 @@ void hr_fpool_destroy(hr_fpool_t *pool)
 
 hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 {
+	assert(wu_cnt > 0);
+
 	hr_fgroup_t *result = malloc(sizeof(hr_fgroup_t));
 	if (result == NULL)
 		return NULL;
