@@ -51,6 +51,7 @@
 
 static errno_t read_metadata(service_id_t, hr_metadata_t *);
 static errno_t hr_fill_meta_from_vol(hr_volume_t *, hr_metadata_t *);
+static errno_t validate_meta(hr_metadata_t *);
 
 errno_t hr_write_meta_to_vol(hr_volume_t *vol)
 {
@@ -133,9 +134,8 @@ static errno_t hr_fill_meta_from_vol(hr_volume_t *vol, hr_metadata_t *metadata)
 {
 	HR_DEBUG("hr_fill_meta_from_vol()\n");
 
-	size_t meta_blkno; /* blocks needed to write metadata */
+	size_t meta_blkno = HR_META_OFF + HR_META_SIZE;
 
-	meta_blkno = (HR_META_OFF + HR_META_SIZE);
 	if (vol->level != HR_LVL_1)
 		meta_blkno *= vol->extent_no;
 
@@ -188,23 +188,24 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 	if (metadata == NULL)
 		return ENOMEM;
 
-	service_id_t cfg_svc_id_order[HR_MAX_EXTENTS] = { 0 };
+	service_id_t assembly_svc_id_order[HR_MAX_EXTENTS] = { 0 };
 	for (size_t i = 0; i < vol->extent_no; i++)
-		cfg_svc_id_order[i] = vol->extents[i].svc_id;
+		assembly_svc_id_order[i] = vol->extents[i].svc_id;
 
-	int32_t md_order[HR_MAX_EXTENTS] = { 0 };
+	size_t md_order_indices[HR_MAX_EXTENTS] = { 0 };
 	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (cfg_svc_id_order[i] == 0) {
-			md_order[i] = -1;
+		if (assembly_svc_id_order[i] == 0) {
+			/* set invalid index */
+			md_order_indices[i] = vol->extent_no;
 			continue;
 		}
-		rc = read_metadata(cfg_svc_id_order[i], metadata);
+		rc = read_metadata(assembly_svc_id_order[i], metadata);
 		if (rc != EOK)
 			goto end;
 		rc = validate_meta(metadata);
 		if (rc != EOK)
 			goto end;
-		md_order[i] = uint32_t_le2host(metadata->index);
+		md_order_indices[i] = uint32_t_le2host(metadata->index);
 	}
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
@@ -215,8 +216,9 @@ errno_t hr_fill_vol_from_meta(hr_volume_t *vol)
 	/* sort */
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		for (size_t j = 0; j < vol->extent_no; j++) {
-			if (i == (uint32_t)md_order[j]) {
-				vol->extents[i].svc_id = cfg_svc_id_order[j];
+			if (i == md_order_indices[j]) {
+				vol->extents[i].svc_id =
+				    assembly_svc_id_order[j];
 				vol->extents[i].status = HR_EXT_ONLINE;
 			}
 		}
@@ -255,18 +257,13 @@ end:
 static errno_t read_metadata(service_id_t dev, hr_metadata_t *metadata)
 {
 	errno_t rc;
-	size_t bsize;
 	uint64_t nblocks;
-
-	rc = block_get_bsize(dev, &bsize);
-	if (rc != EOK)
-		return rc;
 
 	rc = block_get_nblocks(dev, &nblocks);
 	if (rc != EOK)
 		return rc;
 
-	if (nblocks < (HR_META_SIZE + HR_META_OFF) * bsize)
+	if (nblocks < HR_META_SIZE + HR_META_OFF)
 		return EINVAL;
 
 	rc = block_read_direct(dev, HR_META_OFF, HR_META_SIZE, metadata);
