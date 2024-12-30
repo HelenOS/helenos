@@ -46,8 +46,12 @@
 errno_t hr_sess_init(hr_t **rhr)
 {
 	errno_t rc;
+	hr_t *hr = NULL;
 
-	hr_t *hr = calloc(1, sizeof(hr_t));
+	if (rhr == NULL)
+		return EINVAL;
+
+	hr = calloc(1, sizeof(hr_t));
 	if (hr == NULL) {
 		rc = ENOMEM;
 		goto error;
@@ -56,10 +60,8 @@ errno_t hr_sess_init(hr_t **rhr)
 	service_id_t hr_svcid;
 
 	rc = loc_service_get_id(SERVICE_NAME_HR, &hr_svcid, 0);
-	if (rc != EOK) {
-		rc = EIO;
+	if (rc != EOK)
 		goto error;
-	}
 
 	hr->sess = loc_service_connect(hr_svcid, INTERFACE_HR, 0);
 	if (hr->sess == NULL) {
@@ -72,7 +74,7 @@ errno_t hr_sess_init(hr_t **rhr)
 error:
 	if (hr != NULL)
 		free(hr);
-	*rhr = NULL;
+
 	return rc;
 }
 
