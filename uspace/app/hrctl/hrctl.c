@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 	int retval, c;
 	bool create, assemble;
 	long fail_extent = -1;
-	hr_t *hr;
+	hr_t *hr = NULL;
 	hr_config_t *cfg;
 
 	cfg = calloc(1, sizeof(hr_config_t));
