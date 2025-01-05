@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,13 +47,13 @@
 #include <stdlib.h>
 #include <str_error.h>
 
+#include "io.h"
 #include "superblock.h"
 #include "util.h"
 #include "var.h"
 
 extern loc_srv_t *hr_srv;
 
-static errno_t hr_raid0_check_vol_status(hr_volume_t *);
 static errno_t hr_raid0_update_vol_status(hr_volume_t *);
 static errno_t hr_raid0_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
@@ -94,6 +94,8 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 	if (rc != EOK)
 		return rc;
 
+	hr_update_vol_status(new_volume, HR_VOL_ONLINE);
+
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
@@ -126,9 +128,7 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 
 void hr_raid0_status_event(hr_volume_t *vol)
 {
-	fibril_mutex_lock(&vol->lock);
 	(void)hr_raid0_update_vol_status(vol);
-	fibril_mutex_unlock(&vol->lock);
 }
 
 static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -176,33 +176,48 @@ static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-static errno_t hr_raid0_check_vol_status(hr_volume_t *vol)
-{
-	if (vol->status == HR_VOL_ONLINE)
-		return EOK;
-	return EIO;
-}
-
 /*
  * Update vol->status and return EOK if volume
  * is usable
  */
 static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
 {
+	fibril_rwlock_read_lock(&vol->states_lock);
 	hr_vol_status_t old_state = vol->status;
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status != HR_EXT_ONLINE) {
+			fibril_rwlock_read_unlock(&vol->states_lock);
+			fibril_rwlock_write_lock(&vol->states_lock);
 			if (old_state != HR_VOL_FAULTY)
 				hr_update_vol_status(vol, HR_VOL_FAULTY);
+			fibril_rwlock_write_unlock(&vol->states_lock);
 			return EIO;
 		}
 	}
-
-	if (old_state != HR_VOL_ONLINE)
-		hr_update_vol_status(vol, HR_VOL_ONLINE);
+	fibril_rwlock_read_unlock(&vol->states_lock);
 
 	return EOK;
+}
+
+static void raid0_state_callback(hr_volume_t *vol, size_t extent, errno_t rc)
+{
+	if (rc == EOK)
+		return;
+
+	fibril_rwlock_write_lock(&vol->states_lock);
+
+	switch (rc) {
+	case ENOENT:
+		hr_update_ext_status(vol, extent, HR_EXT_MISSING);
+		break;
+	default:
+		hr_update_ext_status(vol, extent, HR_EXT_FAILED);
+	}
+
+	hr_update_vol_status(vol, HR_VOL_FAULTY);
+
+	fibril_rwlock_write_unlock(&vol->states_lock);
 }
 
 static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
@@ -215,11 +230,34 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	const uint8_t *data_write = src;
 	uint8_t *data_read = dst;
 
+	fibril_rwlock_read_lock(&vol->states_lock);
+	if (vol->status != HR_VOL_ONLINE) {
+		fibril_rwlock_read_unlock(&vol->states_lock);
+		return EIO;
+	}
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
 	/* propagate sync */
 	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
-		hr_sync_all_extents(vol);
-		rc = hr_raid0_update_vol_status(vol);
-		return rc;
+		hr_fgroup_t *group = hr_fgroup_create(vol->fge, vol->extent_no);
+
+		for (size_t i = 0; i < vol->extent_no; i++) {
+			hr_io_t *io = hr_fgroup_alloc(group);
+			io->extent = i;
+			io->ba = ba;
+			io->cnt = cnt;
+			io->type = type;
+			io->vol = vol;
+			io->state_callback = raid0_state_callback;
+
+			hr_fgroup_submit(group, hr_io_worker, io);
+		}
+
+		size_t bad;
+		(void)hr_fgroup_wait(group, NULL, &bad);
+		if (bad > 0)
+			return EIO;
+		return EOK;
 	}
 
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
@@ -231,71 +269,57 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		return rc;
 
 	uint64_t strip_size = vol->strip_size / vol->bsize; /* in blocks */
-	uint64_t stripe = ba / strip_size; /* stripe number */
-	uint64_t extent = stripe % vol->extent_no;
-	uint64_t ext_stripe = stripe / vol->extent_no; /* stripe level */
-	uint64_t strip_off = ba % strip_size; /* strip offset */
-
-	fibril_mutex_lock(&vol->lock);
-
-	rc = hr_raid0_check_vol_status(vol);
-	if (rc != EOK) {
-		fibril_mutex_unlock(&vol->lock);
-		return EIO;
-	}
+	uint64_t strip_no = ba / strip_size;
+	uint64_t extent = strip_no % vol->extent_no;
+	uint64_t stripe = strip_no / vol->extent_no;
+	uint64_t strip_off = ba % strip_size;
 
 	left = cnt;
 
+	/* calculate how many strips does the IO span */
+	size_t end_strip_no = (ba + cnt - 1) / strip_size;
+	size_t span = end_strip_no - strip_no + 1;
+
+	hr_fgroup_t *group = hr_fgroup_create(vol->fge, span);
+
 	while (left != 0) {
-		phys_block = ext_stripe * strip_size + strip_off;
+		phys_block = stripe * strip_size + strip_off;
 		cnt = min(left, strip_size - strip_off);
 		len = vol->bsize * cnt;
 		hr_add_ba_offset(vol, &phys_block);
-		switch (type) {
-		case HR_BD_SYNC:
-			rc = block_sync_cache(vol->extents[extent].svc_id,
-			    phys_block, cnt);
-			/* allow unsupported sync */
-			if (rc == ENOTSUP)
-				rc = EOK;
-			break;
-		case HR_BD_READ:
-			rc = block_read_direct(vol->extents[extent].svc_id,
-			    phys_block, cnt, data_read);
-			data_read += len;
-			break;
-		case HR_BD_WRITE:
-			rc = block_write_direct(vol->extents[extent].svc_id,
-			    phys_block, cnt, data_write);
-			data_write += len;
-			break;
-		default:
-			rc = EINVAL;
-		}
 
-		if (rc == ENOENT) {
-			hr_update_ext_status(vol, extent, HR_EXT_MISSING);
-			rc = EIO;
-			goto error;
-		} else if (rc != EOK) {
-			hr_update_ext_status(vol, extent, HR_EXT_FAILED);
-			rc = EIO;
-			goto error;
-		}
+		hr_io_t *io = hr_fgroup_alloc(group);
+		io->extent = extent;
+		io->data_write = data_write;
+		io->data_read = data_read;
+		io->ba = ba;
+		io->cnt = cnt;
+		io->type = type;
+		io->vol = vol;
+		io->state_callback = raid0_state_callback;
+
+		hr_fgroup_submit(group, hr_io_worker, io);
+
+		if (type == HR_BD_READ)
+			data_read += len;
+		else if (type == HR_BD_WRITE)
+			data_write += len;
 
 		left -= cnt;
 		strip_off = 0;
 		extent++;
 		if (extent >= vol->extent_no) {
-			ext_stripe++;
+			stripe++;
 			extent = 0;
 		}
 	}
 
-error:
-	(void)hr_raid0_update_vol_status(vol);
-	fibril_mutex_unlock(&vol->lock);
-	return rc;
+	size_t bad;
+	(void)hr_fgroup_wait(group, NULL, &bad);
+	if (bad > 0)
+		return EIO;
+
+	return EOK;
 }
 
 /** @}

@@ -33,37 +33,23 @@
  * @file
  */
 
-#ifndef _HR_UTIL_H
-#define _HR_UTIL_H
-
-#include <errno.h>
-#include <io/log.h>
+#ifndef _HR_IO_H
+#define _HR_IO_H
 
 #include "var.h"
 
-#define HR_DEBUG(format, ...) \
-    log_msg(LOG_DEFAULT, LVL_DEBUG, format, ##__VA_ARGS__)
+typedef struct hr_io {
+	hr_bd_op_type_t type;
+	uint64_t ba;
+	uint64_t cnt;
+	size_t extent;
+	void *data_read;
+	const void *data_write;
+	hr_volume_t *vol;
+	void (*state_callback)(hr_volume_t *, size_t, errno_t);
+} hr_io_t;
 
-#define HR_WARN(format, ...) \
-    log_msg(LOG_DEFAULT, LVL_WARN, format, ##__VA_ARGS__)
-
-#define HR_ERROR(format, ...) \
-    log_msg(LOG_DEFAULT, LVL_ERROR, format, ##__VA_ARGS__)
-
-extern errno_t hr_init_devs(hr_volume_t *);
-extern void hr_fini_devs(hr_volume_t *);
-extern errno_t hr_register_volume(hr_volume_t *);
-extern errno_t hr_check_devs(hr_volume_t *, uint64_t *, size_t *);
-extern errno_t hr_check_ba_range(hr_volume_t *, size_t, uint64_t);
-extern void hr_add_ba_offset(hr_volume_t *, uint64_t *);
-extern void hr_update_ext_status(hr_volume_t *, size_t, hr_ext_status_t);
-extern void hr_update_hotspare_status(hr_volume_t *, size_t, hr_ext_status_t);
-extern void hr_update_vol_status(hr_volume_t *, hr_vol_status_t);
-extern void hr_sync_all_extents(hr_volume_t *);
-extern size_t hr_count_extents(hr_volume_t *, hr_ext_status_t);
-extern hr_range_lock_t *hr_range_lock_acquire(hr_volume_t *, uint64_t,
-    uint64_t);
-extern void hr_range_lock_release(hr_range_lock_t *rl);
+errno_t hr_io_worker(void *);
 
 #endif
 

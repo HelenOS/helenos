@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,8 @@
 #include <fibril_synch.h>
 #include <hr.h>
 
+#include "fge.h"
+
 #define NAME "hr"
 
 #define HR_STRIP_SIZE DATA_XFER_LIMIT
@@ -59,33 +61,48 @@ typedef struct hr_volume {
 	hr_ops_t hr_ops;
 	bd_srvs_t hr_bds;
 
-	link_t lvolumes;
+	link_t lvolumes; /* protected by static hr_volumes_lock in hr.c */
+
+	/*
+	 * XXX: will be gone after all paralelization, but still used
+	 * in yet-unparallelized levels
+	 */
 	fibril_mutex_t lock;
 
 	list_t range_lock_list;
 	fibril_mutex_t range_lock_list_lock;
 
+	hr_fpool_t *fge;
+
+	/* after assembly, these are invariant */
 	size_t extent_no;
-	hr_extent_t extents[HR_MAX_EXTENTS];
-
-	size_t hotspare_no;
-	hr_extent_t hotspares[HR_MAX_HOTSPARES];
-
 	size_t bsize;
 	uint64_t nblocks;
 	uint64_t data_blkno;
 	uint64_t data_offset; /* in blocks */
 	uint32_t strip_size;
-
-	uint64_t rebuild_blk;
-
-	uint64_t counter; /* metadata syncing */
-
-	service_id_t svc_id;
-	hr_vol_status_t status;
 	hr_level_t level;
 	uint8_t layout; /* RAID Level Qualifier */
+	service_id_t svc_id;
 	char devname[HR_DEVNAME_LEN];
+
+	hr_extent_t extents[HR_MAX_EXTENTS];
+	size_t hotspare_no;
+	hr_extent_t hotspares[HR_MAX_HOTSPARES];
+
+	/* protects ordering (hr_extent_t.svc_id, hotspares) */
+	fibril_rwlock_t extents_lock;
+
+	/* protects states (hr_extent_t.status, hr_vol_status_t.status) */
+	fibril_rwlock_t states_lock;
+
+	/* for halting IO requests when a REBUILD start waits */
+	bool halt_please;
+	fibril_mutex_t halt_lock;
+
+	uint64_t rebuild_blk;
+	uint64_t counter; /* metadata syncing */
+	hr_vol_status_t status;
 } hr_volume_t;
 
 typedef enum {

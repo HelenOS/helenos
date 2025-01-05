@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,8 @@
 #include <str.h>
 #include <str_error.h>
 
+#include "fge.h"
+#include "io.h"
 #include "superblock.h"
 #include "util.h"
 #include "var.h"
@@ -82,6 +84,7 @@ static errno_t hr_remove_volume(service_id_t svc_id)
 	fibril_mutex_lock(&hr_volumes_lock);
 	list_foreach(hr_volumes, lvolumes, hr_volume_t, vol) {
 		if (vol->svc_id == svc_id) {
+			hr_fpool_destroy(vol->fge);
 			hr_fini_devs(vol);
 			list_remove(&vol->lvolumes);
 			free(vol);
@@ -153,6 +156,15 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 		async_answer_0(icall, ENOMEM);
 		return;
 	}
+
+	hr_fpool_t *fge = hr_fpool_create(16, 32, sizeof(hr_io_t));
+	if (fge == NULL) {
+		free(new_volume);
+		free(cfg);
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+	new_volume->fge = fge;
 
 	str_cpy(new_volume->devname, HR_DEVNAME_LEN, cfg->devname);
 	for (i = 0; i < cfg->dev_no; i++)
@@ -233,7 +245,13 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 			goto error;
 	}
 
-	fibril_mutex_initialize(&new_volume->lock);
+	fibril_mutex_initialize(&new_volume->lock); /* XXX: will remove this */
+
+	fibril_mutex_initialize(&new_volume->halt_lock);
+	new_volume->halt_please = false;
+
+	fibril_rwlock_initialize(&new_volume->extents_lock);
+	fibril_rwlock_initialize(&new_volume->states_lock);
 
 	list_initialize(&new_volume->range_lock_list);
 	fibril_mutex_initialize(&new_volume->range_lock_list_lock);
@@ -259,6 +277,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	return;
 error:
 	free(cfg);
+	free(fge);
 	hr_fini_devs(new_volume);
 	free(new_volume);
 	async_answer_0(icall, rc);

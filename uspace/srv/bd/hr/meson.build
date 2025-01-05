@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 Miroslav Cimerman
+# Copyright (c) 2025 Miroslav Cimerman
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ deps = [ 'block', 'device' ]
 src = files(
             'fge.c',
             'hr.c',
+            'io.c',
             'raid0.c',
             'raid1.c',
             'raid5.c',
