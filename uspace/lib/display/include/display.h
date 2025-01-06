@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,8 @@
 
 extern errno_t display_open(const char *, display_t **);
 extern void display_close(display_t *);
+extern void display_lock(display_t *);
+extern void display_unlock(display_t *);
 extern errno_t display_get_info(display_t *, display_info_t *);
 
 extern errno_t display_window_create(display_t *, display_wnd_params_t *,

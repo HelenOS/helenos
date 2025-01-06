@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -135,6 +135,28 @@ void display_close(display_t *display)
 	fibril_mutex_unlock(&display->lock);
 
 	free(display);
+}
+
+/*
+ * Lock display.
+ *
+ * While display is locked, display event handlers will not be called.
+ *
+ * @param display Display
+ */
+void display_lock(display_t *display)
+{
+	fibril_mutex_lock(&display->lock);
+}
+
+/*
+ * Unlock display.
+ *
+ * @param display Display
+ */
+void display_unlock(display_t *display)
+{
+	fibril_mutex_unlock(&display->lock);
 }
 
 /** Initialize window parameters structure.
@@ -699,15 +721,13 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 	display_window_t *window = NULL;
 	display_wnd_ev_t event;
 
-	while (true) {
-		fibril_mutex_lock(&display->lock);
+	display_lock(display);
 
+	while (true) {
 		if (display->sess != NULL)
 			rc = display_get_event(display, &window, &event);
 		else
 			rc = ENOENT;
-
-		fibril_mutex_unlock(&display->lock);
 
 		if (rc != EOK)
 			break;
@@ -751,6 +771,7 @@ static void display_ev_pending(display_t *display, ipc_call_t *icall)
 		}
 	}
 
+	display_unlock(display);
 	async_answer_0(icall, EOK);
 }
 
