@@ -158,15 +158,16 @@ void asm_delay_loop(const uint32_t usec)
 		;
 }
 
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return ALIGN_DOWN(stack_base + stack_size - STACK_WINDOW_SAVE_AREA_SIZE - STACK_ARG_SAVE_AREA_SIZE, 16) - STACK_BIAS;
+}
+
 /** Switch to userspace. */
-void userspace(uspace_arg_t *kernel_uarg)
+void userspace(uintptr_t pc, uintptr_t sp)
 {
 	(void) interrupts_disable();
-	switch_to_userspace(kernel_uarg->uspace_entry,
-	    kernel_uarg->uspace_stack +
-	    kernel_uarg->uspace_stack_size -
-	    (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
-	    kernel_uarg->uspace_uarg);
+	switch_to_userspace(pc, sp, 0);
 
 	/* Not reached */
 	while (true)

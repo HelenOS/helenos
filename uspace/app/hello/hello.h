@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,6 @@
 #ifndef HELLO_H
 #define HELLO_H
 
-#include <display.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
 #include <ui/ui.h>

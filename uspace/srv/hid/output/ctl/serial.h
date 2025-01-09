@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2008 Martin Decky
  * All rights reserved.
@@ -34,9 +35,14 @@
 #ifndef OUTPUT_CTL_SERIAL_H_
 #define OUTPUT_CTL_SERIAL_H_
 
-#include "../proto/vt100.h"
+#include <vt/vt100.h>
 
-extern errno_t serial_init(vt100_putuchar_t, vt100_control_puts_t, vt100_flush_t);
+typedef void (*serial_putuchar_t)(char32_t);
+typedef void (*serial_control_puts_t)(const char *);
+typedef void (*serial_flush_t)(void);
+
+extern errno_t serial_init(serial_putuchar_t, serial_control_puts_t,
+    serial_flush_t);
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,8 @@
 
 #define NAME  "volsrv"
 
-const char *vol_cfg_file = "/cfg/volsrv.sif";
+const char *vol_icfg_file = "/cfg/initvol.sif";
+const char *vol_cfg_file = "/w/cfg/volsrv.sif";
 
 static void vol_client_conn(ipc_call_t *, void *);
 
@@ -65,7 +66,7 @@ static errno_t vol_init(void)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_init()");
 
-	rc = vol_volumes_create(vol_cfg_file, &volumes);
+	rc = vol_volumes_create(vol_icfg_file, &volumes);
 	if (rc != EOK)
 		goto error;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #ifndef INET_ADDROBJ_H_
 #define INET_ADDROBJ_H_
 
+#include <sif.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "inetsrv.h"
@@ -55,9 +56,12 @@ extern void inet_addrobj_remove(inet_addrobj_t *);
 extern inet_addrobj_t *inet_addrobj_find(inet_addr_t *, inet_addrobj_find_t);
 extern inet_addrobj_t *inet_addrobj_find_by_name(const char *, inet_link_t *);
 extern inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t);
+extern unsigned inet_addrobj_cnt_by_link(inet_link_t *);
 extern errno_t inet_addrobj_send_dgram(inet_addrobj_t *, inet_addr_t *,
     inet_dgram_t *, uint8_t, uint8_t, int);
 extern errno_t inet_addrobj_get_id_list(sysarg_t **, size_t *);
+extern errno_t inet_addrobjs_load(sif_node_t *);
+extern errno_t inet_addrobjs_save(sif_node_t *);
 
 #endif
 

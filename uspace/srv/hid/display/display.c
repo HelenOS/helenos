@@ -104,6 +104,8 @@ errno_t ds_display_create(gfx_context_t *gc, ds_display_flags_t flags,
 	disp->next_seat_id = 1;
 	list_initialize(&disp->ddevs);
 	list_initialize(&disp->idevcfgs);
+	list_initialize(&disp->ievents);
+	fibril_condvar_initialize(&disp->ievent_cv);
 	list_initialize(&disp->seats);
 	list_initialize(&disp->windows);
 	disp->flags = flags;
@@ -128,6 +130,7 @@ void ds_display_destroy(ds_display_t *disp)
 	assert(list_empty(&disp->seats));
 	assert(list_empty(&disp->ddevs));
 	assert(list_empty(&disp->idevcfgs));
+	assert(list_empty(&disp->ievents));
 	assert(list_empty(&disp->seats));
 	assert(list_empty(&disp->windows));
 
@@ -214,8 +217,12 @@ errno_t ds_display_load_cfg(ds_display_t *display, const char *cfgpath)
 			goto error;
 		}
 
+		/*
+		 * Load device configuration entry. If the device
+		 * is not currently connected (ENOENT), skip it.
+		 */
 		rc = ds_idevcfg_load(display, nidevcfg, &idevcfg);
-		if (rc != EOK)
+		if (rc != EOK && rc != ENOENT)
 			goto error;
 
 		(void)idevcfg;

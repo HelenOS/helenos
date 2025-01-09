@@ -95,7 +95,7 @@ errno_t ds_idevcfg_load(ds_display_t *display, sif_node_t *enode,
 	const char *svc_name;
 	const char *sseat_id;
 	char *endptr;
-	unsigned long svc_id;
+	service_id_t svc_id;
 	unsigned long seat_id;
 	ds_seat_t *seat;
 	ds_idevcfg_t *idevcfg;

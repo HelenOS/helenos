@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -35,8 +36,35 @@
 #ifndef REMCONS_H_
 #define REMCONS_H_
 
+#include <adt/list.h>
+#include <io/cons_event.h>
+#include <stdbool.h>
+#include <vt/vt100.h>
+#include "user.h"
+
 #define NAME       "remcons"
 #define NAMESPACE  "term"
+
+/** Remote console */
+typedef struct {
+	telnet_user_t *user;	/**< telnet user */
+	vt100_t *vt;		/**< virtual terminal driver */
+	bool enable_ctl;	/**< enable escape control sequences */
+	bool enable_rgb;	/**< enable RGB color setting */
+	sysarg_t ucols;		/**< number of columns in user buffer */
+	sysarg_t urows;		/**< number of rows in user buffer */
+	charfield_t *ubuf;	/**< user buffer */
+	bool curs_visible;	/**< cursor is visible */
+
+	/** List of remcons_event_t. */
+	list_t in_events;
+} remcons_t;
+
+/** Remote console event */
+typedef struct {
+	link_t link;		/**< link to list of events */
+	cons_event_t cev;	/**< console event */
+} remcons_event_t;
 
 #endif
 

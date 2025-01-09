@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,18 +41,20 @@
 typedef enum {
 	/** Popup window (capture events, no focus) */
 	wndf_popup = 0x1,
+	/** Window does not receive focus */
+	wndf_nofocus = 0x2,
 	/** Topmost window */
-	wndf_topmost = 0x2,
+	wndf_topmost = 0x4,
 	/** Set specific initial window position */
-	wndf_setpos = 0x4,
+	wndf_setpos = 0x8,
 	/** Window is minimized */
-	wndf_minimized = 0x8,
+	wndf_minimized = 0x10,
 	/** Window is maximized */
-	wndf_maximized = 0x10,
+	wndf_maximized = 0x20,
 	/** Special system window */
-	wndf_system = 0x20,
+	wndf_system = 0x40,
 	/** Maximized windows should avoid this window */
-	wndf_avoid = 0x40
+	wndf_avoid = 0x80
 } display_wnd_flags_t;
 
 /** Parameters for a new window.

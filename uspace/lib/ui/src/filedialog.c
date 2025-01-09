@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -395,7 +395,7 @@ static void ui_file_dialog_wnd_close(ui_window_t *window, void *arg)
 /** File dialog window keyboard event handler.
  *
  * @param window Window
- * @param arg Argument (ui_prompt_dialog_t *)
+ * @param arg Argument (ui_file_dialog_t *)
  * @param event Keyboard event
  */
 static void ui_file_dialog_wnd_kbd(ui_window_t *window, void *arg,
@@ -426,7 +426,6 @@ static void ui_file_dialog_wnd_kbd(ui_window_t *window, void *arg,
 			}
 		}
 	}
-
 }
 
 static void ui_file_dialog_flist_activate_req(ui_file_list_t *flist, void *arg)

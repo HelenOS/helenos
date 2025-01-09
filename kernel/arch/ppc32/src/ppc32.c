@@ -48,7 +48,6 @@
 #include <mm/page.h>
 #include <mm/km.h>
 #include <time/clock.h>
-#include <abi/proc/uarg.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <ddi/irq.h>
@@ -289,13 +288,14 @@ void calibrate_delay_loop(void)
 {
 }
 
-void userspace(uspace_arg_t *kernel_uarg)
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
 {
-	userspace_asm(kernel_uarg->uspace_uarg,
-	    kernel_uarg->uspace_stack +
-	    kernel_uarg->uspace_stack_size - SP_DELTA,
-	    kernel_uarg->uspace_entry);
+	return stack_base + stack_size - SP_DELTA;
+}
 
+void userspace(uintptr_t pc, uintptr_t sp)
+{
+	userspace_asm(0, sp, pc);
 	unreachable();
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abi_generic
+/** @addtogroup display
  * @{
  */
-/** @file
+/** @file Input event queue
  */
 
-#ifndef _ABI_PROC_UARG_H_
-#define _ABI_PROC_UARG_H_
+#ifndef IEVENT_H
+#define IEVENT_H
 
-#include <stddef.h>
-#include <_bits/native.h>
+#include <errno.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
+#include "types/display/display.h"
+#include "types/display/ievent.h"
 
-typedef void uspace_thread_function_t(void *);
-
-/** Structure passed to uinit kernel thread as argument. */
-typedef struct uspace_arg {
-	uspace_addr_t uspace_entry;
-	uspace_addr_t uspace_stack;
-	size_t uspace_stack_size;
-
-	uspace_ptr_uspace_thread_function_t uspace_thread_function;
-	uspace_addr_t uspace_thread_arg;
-
-	uspace_ptr_struct_uspace_arg uspace_uarg;
-} uspace_arg_t;
+extern errno_t ds_ievent_post_kbd(ds_display_t *, kbd_event_t *);
+extern errno_t ds_ievent_post_ptd(ds_display_t *, ptd_event_t *);
+extern errno_t ds_ievent_init(ds_display_t *);
+extern void ds_ievent_fini(ds_display_t *);
 
 #endif
 

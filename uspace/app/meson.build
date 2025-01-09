@@ -78,6 +78,8 @@ apps = [
 	'pkg',
 	'redir',
 	'sbi',
+	'shutdown',
+	'shutdown-dlg',
 	'sportdmp',
 	'stats',
 	'sysinfo',

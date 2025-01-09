@@ -57,6 +57,8 @@ typedef enum {
 	ui_wnd_place_bottom_left,
 	/** Place window to the bottom-right corner of the screen */
 	ui_wnd_place_bottom_right,
+	/** Place window to the center of the screen */
+	ui_wnd_place_center,
 	/** Place window accross the entire screen */
 	ui_wnd_place_full_screen,
 	/** Place window as a popup window adjacent to rectangle */
@@ -67,18 +69,22 @@ typedef enum {
 typedef enum {
 	/** Popup window */
 	ui_wndf_popup = 0x1,
+	/** Window does not receive focus */
+	ui_wndf_nofocus = 0x2,
 	/** Topmost window */
-	ui_wndf_topmost = 0x2,
+	ui_wndf_topmost = 0x4,
 	/** Special system window */
-	ui_wndf_system = 0x4,
+	ui_wndf_system = 0x8,
 	/** Maximized windows should avoid this window */
-	ui_wndf_avoid = 0x8
+	ui_wndf_avoid = 0x10
 } ui_wnd_flags_t;
 
 /** Window parameters */
 typedef struct {
 	/** Window rectangle */
 	gfx_rect_t rect;
+	/** Minimum size to which window can be resized */
+	gfx_coord2_t min_size;
 	/** Window caption */
 	const char *caption;
 	/** Window decoration style */

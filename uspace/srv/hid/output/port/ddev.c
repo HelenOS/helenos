@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2008 Martin Decky
  * Copyright (c) 2006 Jakub Vana
  * Copyright (c) 2006 Ondrej Palkovsky
@@ -197,7 +197,8 @@ static void output_ddev_get_dimensions(outdev_t *dev, sysarg_t *cols, sysarg_t *
 
 static console_caps_t output_ddev_get_caps(outdev_t *dev)
 {
-	return (CONSOLE_CAP_STYLE | CONSOLE_CAP_INDEXED | CONSOLE_CAP_RGB);
+	return (CONSOLE_CAP_CURSORCTL | CONSOLE_CAP_STYLE |
+	    CONSOLE_CAP_INDEXED | CONSOLE_CAP_RGB);
 }
 
 static void output_ddev_char_update(outdev_t *dev, sysarg_t col, sysarg_t row)

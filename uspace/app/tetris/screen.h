@@ -66,6 +66,7 @@ typedef struct {
 
 extern console_ctrl_t *console;
 extern winsize_t winsize;
+extern bool size_changed;
 
 extern void moveto(sysarg_t r, sysarg_t c);
 extern void clear_screen(void);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@
 #ifndef _LIBINPUT_IO_KBD_EVENT_H_
 #define _LIBINPUT_IO_KBD_EVENT_H_
 
-#include <adt/list.h>
 #include <inttypes.h>
 #include <io/keycode.h>
 #include <types/common.h>
@@ -47,9 +46,6 @@ typedef enum {
 
 /** Console event structure. */
 typedef struct {
-	/** List handle */
-	link_t link;
-
 	/** Keyboard device ID */
 	sysarg_t kbd_id;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -188,7 +188,9 @@ static void ui_window_place(ui_window_t *window, gfx_rect_t *drect,
 
 	switch (params->placement) {
 	case ui_wnd_place_default:
-		assert(ui_is_fullscreen(window->ui));
+	case ui_wnd_place_center:
+		assert(params->placement != ui_wnd_place_default ||
+		    ui_is_fullscreen(window->ui));
 		/* Center window */
 		gfx_rect_dims(&params->rect, &dims);
 		pos->x = (drect->p0.x + drect->p1.x) / 2 - dims.x / 2;
@@ -342,8 +344,7 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 	display_wnd_params_init(&dparams);
 	dparams.rect = params->rect;
 	dparams.caption = params->caption;
-	/* Only allow making the window larger */
-	gfx_rect_dims(&params->rect, &dparams.min_size);
+	dparams.min_size = params->min_size;
 
 	/*
 	 * If idev_id is not specified, use the UI default (probably
@@ -357,6 +358,8 @@ errno_t ui_window_create(ui_t *ui, ui_wnd_params_t *params,
 
 	if ((params->flags & ui_wndf_popup) != 0)
 		dparams.flags |= wndf_popup;
+	if ((params->flags & ui_wndf_nofocus) != 0)
+		dparams.flags |= wndf_nofocus;
 	if ((params->flags & ui_wndf_topmost) != 0)
 		dparams.flags |= wndf_topmost;
 	if ((params->flags & ui_wndf_system) != 0)
@@ -974,9 +977,9 @@ static void dwnd_close_event(void *arg)
 	ui_window_t *window = (ui_window_t *) arg;
 	ui_t *ui = window->ui;
 
-	ui_lock(ui);
+	fibril_mutex_lock(&ui->lock);
 	ui_window_send_close(window);
-	ui_unlock(ui);
+	fibril_mutex_unlock(&ui->lock);
 }
 
 /** Handle window focus event. */
@@ -985,7 +988,7 @@ static void dwnd_focus_event(void *arg, unsigned nfocus)
 	ui_window_t *window = (ui_window_t *) arg;
 	ui_t *ui = window->ui;
 
-	ui_lock(ui);
+	fibril_mutex_lock(&ui->lock);
 	(void)nfocus;
 
 	if (window->wdecor != NULL) {
@@ -994,7 +997,7 @@ static void dwnd_focus_event(void *arg, unsigned nfocus)
 	}
 
 	ui_window_send_focus(window, nfocus);
-	ui_unlock(ui);
+	fibril_mutex_unlock(&ui->lock);
 }
 
 /** Handle window keyboard event */
@@ -1003,9 +1006,9 @@ static void dwnd_kbd_event(void *arg, kbd_event_t *kbd_event)
 	ui_window_t *window = (ui_window_t *) arg;
 	ui_t *ui = window->ui;
 
-	ui_lock(ui);
+	fibril_mutex_lock(&ui->lock);
 	ui_window_send_kbd(window, kbd_event);
-	ui_unlock(ui);
+	fibril_mutex_unlock(&ui->lock);
 }
 
 /** Handle window position event */
@@ -1019,16 +1022,16 @@ static void dwnd_pos_event(void *arg, pos_event_t *event)
 	if (window->wdecor == NULL)
 		return;
 
-	ui_lock(ui);
+	fibril_mutex_lock(&ui->lock);
 
 	claim = ui_wdecor_pos_event(window->wdecor, event);
 	if (claim == ui_claimed) {
-		ui_unlock(ui);
+		fibril_mutex_unlock(&ui->lock);
 		return;
 	}
 
 	ui_window_send_pos(window, event);
-	ui_unlock(ui);
+	fibril_mutex_unlock(&ui->lock);
 }
 
 /** Handle window resize event */
@@ -1044,10 +1047,10 @@ static void dwnd_resize_event(void *arg, gfx_rect_t *rect)
 	if ((window->wdecor->style & ui_wds_resizable) == 0)
 		return;
 
-	ui_lock(ui);
+	fibril_mutex_lock(&ui->lock);
 	(void) ui_window_resize(window, rect);
 	ui_window_send_resize(window);
-	ui_unlock(ui);
+	fibril_mutex_unlock(&ui->lock);
 }
 
 /** Handle window unfocus event. */
@@ -1056,7 +1059,7 @@ static void dwnd_unfocus_event(void *arg, unsigned nfocus)
 	ui_window_t *window = (ui_window_t *) arg;
 	ui_t *ui = window->ui;
 
-	ui_lock(ui);
+	fibril_mutex_lock(&ui->lock);
 
 	if (window->wdecor != NULL && nfocus == 0) {
 		ui_wdecor_set_active(window->wdecor, false);
@@ -1064,7 +1067,7 @@ static void dwnd_unfocus_event(void *arg, unsigned nfocus)
 	}
 
 	ui_window_send_unfocus(window, nfocus);
-	ui_unlock(ui);
+	fibril_mutex_unlock(&ui->lock);
 }
 
 /** Window decoration requested opening of system menu.
@@ -1294,7 +1297,7 @@ void ui_window_send_sysmenu(ui_window_t *window, sysarg_t idev_id)
  */
 void ui_window_send_minimize(ui_window_t *window)
 {
-	if (window->cb != NULL && window->cb->maximize != NULL)
+	if (window->cb != NULL && window->cb->minimize != NULL)
 		window->cb->minimize(window, window->arg);
 	else
 		ui_window_def_minimize(window);

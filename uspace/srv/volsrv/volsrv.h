@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup inetsrv
+/** @addtogroup volsrv
  * @{
  */
 /**
- * @file
- * @brief
+ * @file Volume service
  */
 
-#ifndef INETSRV_H_
-#define INETSRV_H_
+#ifndef VOLSRV_H
+#define VOLSRV_H
 
-#include <adt/list.h>
-#include <ipc/loc.h>
-
-typedef struct {
-	link_t link_list;
-	service_id_t svc_id;
-	char *svc_name;
-} ncs_link_t;
+extern const char *vol_cfg_file;
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #define TYPES_DISPLAY_DISPLAY_H
 
 #include <adt/list.h>
+#include <fibril.h>
 #include <fibril_synch.h>
 #include <gfx/color.h>
 #include <gfx/coord.h>
@@ -91,6 +92,18 @@ typedef struct ds_display {
 
 	/** Input device configuration entries (of ds_idevcfg_t) */
 	list_t idevcfgs;
+
+	/** Queue of input events */
+	list_t ievents;
+
+	/** Input event processing fibril ID */
+	fid_t ievent_fid;
+	/** Input event condition variable */
+	fibril_condvar_t ievent_cv;
+	/** Signal input event fibril to quit */
+	bool ievent_quit;
+	/** Input event fibril terminated */
+	bool ievent_done;
 
 	/** Background color */
 	gfx_color_t *bg_color;

@@ -35,6 +35,20 @@
 #ifndef _LIBC_ia64_THREAD_H_
 #define _LIBC_ia64_THREAD_H_
 
+#include <align.h>
+
+static inline uintptr_t arch_thread_prepare(void *stack, size_t stack_size,
+    void (*main)(void *), void *arg)
+{
+	uintptr_t *sp = (uintptr_t *) (ALIGN_DOWN((uintptr_t) stack + stack_size / 2, 16));
+
+	/* Store data under stack pointer */
+	sp[-1] = (uintptr_t) arg;
+	sp[-2] = (uintptr_t) main;
+
+	return (uintptr_t) sp;
+}
+
 #endif
 
 /** @}

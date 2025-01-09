@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,12 @@
 
 #ifndef _UI_TYPES_TESTCTL_H
 #define _UI_TYPES_TESTCTL_H
+
+#include <errno.h>
+#include <io/kbd_event.h>
+#include <io/pos_event.h>
+#include <stdbool.h>
+#include <types/ui/event.h>
 
 struct ui_test_ctl;
 typedef struct ui_test_ctl ui_test_ctl_t;

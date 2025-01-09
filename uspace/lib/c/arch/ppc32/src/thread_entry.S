@@ -34,12 +34,13 @@
 #
 #
 SYMBOL(__thread_entry)
-	#
-	# Create the first stack frame.
-	#
-	li %r4, 0
-	stw %r4, 0(%r1)
-	stwu %r1, -16(%r1)
+	# Load function and argument.
+	lwz %r3, -4(%r1)
+	lwz %r4, -8(%r1)
 
-	b __thread_main
+	# Clear LR
+	li %r0, 0
+	mtlr %r0
 
+	mtctr %r4
+	bctr

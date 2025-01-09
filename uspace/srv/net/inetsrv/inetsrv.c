@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,19 +78,31 @@ static inet_addr_t multicast_all_nodes = {
 	.addr6 = { 0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01 }
 };
 
+static const char *inet_cfg_path = "/w/cfg/inetsrv.sif";
+
 static FIBRIL_MUTEX_INITIALIZE(client_list_lock);
 static LIST_INITIALIZE(client_list);
+inet_cfg_t *cfg;
 
 static void inet_default_conn(ipc_call_t *, void *);
 
 static errno_t inet_init(void)
 {
+	port_id_t port;
+	errno_t rc;
 	loc_srv_t *srv;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_init()");
 
-	port_id_t port;
-	errno_t rc = async_create_port(INTERFACE_INET,
+	rc = inet_link_discovery_start();
+	if (rc != EOK)
+		return rc;
+
+	rc = inet_cfg_open(inet_cfg_path, &cfg);
+	if (rc != EOK)
+		return rc;
+
+	rc = async_create_port(INTERFACE_INET,
 	    inet_default_conn, NULL, &port);
 	if (rc != EOK)
 		return rc;
@@ -555,7 +567,10 @@ int main(int argc, char *argv[])
 		return 1;
 
 	printf(NAME ": Accepting connections.\n");
+
 	task_retval(0);
+
+	(void)inet_link_autoconf();
 	async_manager();
 
 	/* Not reached */

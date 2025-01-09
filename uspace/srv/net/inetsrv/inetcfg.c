@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,20 +91,63 @@ static errno_t inetcfg_addr_create_static(char *name, inet_naddr_t *naddr,
 		return rc;
 	}
 
+	rc = inet_cfg_sync(cfg);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error saving configuration.");
+		return rc;
+	}
+
 	return EOK;
 }
 
 static errno_t inetcfg_addr_delete(sysarg_t addr_id)
 {
 	inet_addrobj_t *addr;
+	inet_link_cfg_info_t info;
+	unsigned acnt;
+	inet_link_t *ilink;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inetcfg_addr_delete()");
 
 	addr = inet_addrobj_get_by_id(addr_id);
 	if (addr == NULL)
 		return ENOENT;
 
+	info.svc_id = addr->ilink->svc_id;
+	info.svc_name = str_dup(addr->ilink->svc_name);
+	if (info.svc_name == NULL)
+		return ENOMEM;
+
 	inet_addrobj_remove(addr);
 	inet_addrobj_delete(addr);
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inetcfg_addr_delete(): sync");
+
+	rc = inet_cfg_sync(cfg);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error saving configuration.");
+		free(info.svc_name);
+		return rc;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inetcfg_addr_delete(): get link by ID");
+
+	ilink = inet_link_get_by_id(info.svc_id);
+	if (ilink == NULL) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error finding link.");
+		return ENOENT;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inetcfg_addr_delete(): check addrobj count");
+
+	/* If there are no configured addresses left, autoconfigure link */
+	acnt = inet_addrobj_cnt_by_link(ilink);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inetcfg_addr_delete(): acnt=%u", acnt);
+	if (acnt == 0)
+		inet_link_autoconf_link(&info);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inetcfg_addr_delete(): DONE");
 	return EOK;
 }
 
@@ -192,6 +235,7 @@ static errno_t inetcfg_link_remove(sysarg_t link_id)
 static errno_t inetcfg_sroute_create(char *name, inet_naddr_t *dest,
     inet_addr_t *router, sysarg_t *sroute_id)
 {
+	errno_t rc;
 	inet_sroute_t *sroute;
 
 	sroute = inet_sroute_new();
@@ -206,11 +250,19 @@ static errno_t inetcfg_sroute_create(char *name, inet_naddr_t *dest,
 	inet_sroute_add(sroute);
 
 	*sroute_id = sroute->id;
+
+	rc = inet_cfg_sync(cfg);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error saving configuration.");
+		return rc;
+	}
+
 	return EOK;
 }
 
 static errno_t inetcfg_sroute_delete(sysarg_t sroute_id)
 {
+	errno_t rc;
 	inet_sroute_t *sroute;
 
 	sroute = inet_sroute_get_by_id(sroute_id);
@@ -219,6 +271,12 @@ static errno_t inetcfg_sroute_delete(sysarg_t sroute_id)
 
 	inet_sroute_remove(sroute);
 	inet_sroute_delete(sroute);
+
+	rc = inet_cfg_sync(cfg);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error saving configuration.");
+		return rc;
+	}
 
 	return EOK;
 }
@@ -802,6 +860,145 @@ void inet_cfg_conn(ipc_call_t *icall, void *arg)
 			async_answer_0(&call, EINVAL);
 		}
 	}
+}
+
+static errno_t inet_cfg_load(const char *cfg_path)
+{
+	sif_doc_t *doc = NULL;
+	sif_node_t *rnode;
+	sif_node_t *naddrs;
+	sif_node_t *nroutes;
+	const char *ntype;
+	errno_t rc;
+
+	rc = sif_load(cfg_path, &doc);
+	if (rc != EOK)
+		goto error;
+
+	rnode = sif_get_root(doc);
+	naddrs = sif_node_first_child(rnode);
+	ntype = sif_node_get_type(naddrs);
+	if (str_cmp(ntype, "addresses") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = inet_addrobjs_load(naddrs);
+	if (rc != EOK)
+		goto error;
+
+	nroutes = sif_node_next_child(naddrs);
+	ntype = sif_node_get_type(nroutes);
+	if (str_cmp(ntype, "static-routes") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = inet_sroutes_load(nroutes);
+	if (rc != EOK)
+		goto error;
+
+	sif_delete(doc);
+	return EOK;
+error:
+	if (doc != NULL)
+		sif_delete(doc);
+	return rc;
+
+}
+
+static errno_t inet_cfg_save(const char *cfg_path)
+{
+	sif_doc_t *doc = NULL;
+	sif_node_t *rnode;
+	sif_node_t *nsroutes;
+	sif_node_t *naddrobjs;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_cfg_save(%s)", cfg_path);
+
+	rc = sif_new(&doc);
+	if (rc != EOK)
+		goto error;
+
+	rnode = sif_get_root(doc);
+
+	/* Address objects */
+
+	rc = sif_node_append_child(rnode, "addresses", &naddrobjs);
+	if (rc != EOK)
+		goto error;
+
+	rc = inet_addrobjs_save(naddrobjs);
+	if (rc != EOK)
+		goto error;
+
+	/* Static routes */
+
+	rc = sif_node_append_child(rnode, "static-routes", &nsroutes);
+	if (rc != EOK)
+		goto error;
+
+	rc = inet_sroutes_save(nsroutes);
+	if (rc != EOK)
+		goto error;
+
+	/* Save */
+
+	rc = sif_save(doc, cfg_path);
+	if (rc != EOK)
+		goto error;
+
+	sif_delete(doc);
+	return EOK;
+error:
+	if (doc != NULL)
+		sif_delete(doc);
+	return rc;
+}
+
+/** Open internet server configuration.
+ *
+ * @param cfg_path Configuration file path
+ * @param rcfg Place to store pointer to configuration object
+ * @return EOK on success or an error code
+ */
+errno_t inet_cfg_open(const char *cfg_path, inet_cfg_t **rcfg)
+{
+	inet_cfg_t *cfg;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_cfg_open(%s)", cfg_path);
+
+	rc = inet_cfg_load(cfg_path);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "inet_cfg_open(%s) :"
+		    "could not load configuration.", cfg_path);
+	}
+
+	cfg = calloc(1, sizeof(inet_cfg_t));
+	if (cfg == NULL)
+		return ENOMEM;
+
+	cfg->cfg_path = str_dup(cfg_path);
+	if (cfg->cfg_path == NULL) {
+		free(cfg);
+		return ENOMEM;
+	}
+
+	*rcfg = cfg;
+	return EOK;
+}
+
+errno_t inet_cfg_sync(inet_cfg_t *cfg)
+{
+	log_msg(LOG_DEFAULT, LVL_NOTE, "inet_cfg_sync(cfg=%p)", cfg);
+	return inet_cfg_save(cfg->cfg_path);
+}
+
+void inet_cfg_close(inet_cfg_t *cfg)
+{
+	free(cfg);
 }
 
 /** @}

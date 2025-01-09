@@ -34,7 +34,6 @@ arch_uspace_c_args = _common_c_args + [ CONFIG_FPU ? '-mhard-float' : '-msoft-fl
 arch_boot_c_args = arch_kernel_c_args
 arch_kernel_link_args = [ '-nostdlib', '-Wl,-z,max-page-size=0x1000' ]
 arch_uspace_link_args = [ '-nostdlib', '-lgcc', '-Wl,-z,max-page-size=0x1000' ]
-arch_uspace_link_args += ldflags_ignore_rwx_segments
 arch_boot_link_args = ldflags_ignore_rwx_segments
 
 rd_essential += [

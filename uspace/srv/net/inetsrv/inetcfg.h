@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,13 @@
 #ifndef INETCFG_H_
 #define INETCFG_H_
 
+#include <errno.h>
+#include "inetsrv.h"
+
 extern void inet_cfg_conn(ipc_call_t *, void *);
+extern errno_t inet_cfg_open(const char *, inet_cfg_t **);
+extern errno_t inet_cfg_sync(inet_cfg_t *);
+extern void inet_cfg_close(inet_cfg_t *);
 
 #endif
 

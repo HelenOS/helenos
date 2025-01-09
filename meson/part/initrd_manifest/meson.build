@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2024 Jiri Svoboda
 # Copyright (c) 2019 Jiří Zárevúcky
 # All rights reserved.
 #
@@ -48,6 +49,7 @@ rd_essential = [
 	'app/bdsh',
 	'app/getterm',
 	'app/kio',
+	'app/tester',
 
 	'srv/devman',
 	'srv/fs/locfs',
@@ -55,6 +57,7 @@ rd_essential = [
 	'srv/hid/input',
 	'srv/hid/output',
 	'srv/klog',
+	'srv/system',
 ]
 
 rd_essential_drv = [

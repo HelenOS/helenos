@@ -210,6 +210,9 @@ void free(void *obj)
 
 void *realloc(void *old_obj, size_t new_size)
 {
+	if (new_size == 0)
+		new_size = 1;
+
 	if (!old_obj)
 		return malloc(new_size);
 

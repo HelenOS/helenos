@@ -38,19 +38,26 @@
 #ifndef KERN_ALIGN_H_
 #define KERN_ALIGN_H_
 
+#ifdef __ASSEMBLER__
+#define ALIGN_DOWN(s, a)  ((s) & ~((a) - 1))
+#define ALIGN_UP(s, a)    (((s) + ((a) - 1)) & ~((a) - 1))
+#else
+
 /** Align to the nearest lower address.
  *
  * @param s Address or size to be aligned.
  * @param a Size of alignment, must be a power of 2.
  */
-#define ALIGN_DOWN(s, a)  ((s) & ~((a) - 1))
+#define ALIGN_DOWN(s, a)  ((s) & ~((typeof(s))(a) - 1))
 
 /** Align to the nearest higher address.
  *
  * @param s Address or size to be aligned.
  * @param a Size of alignment, must be a power of 2.
  */
-#define ALIGN_UP(s, a)  (((s) + ((a) - 1)) & ~((a) - 1))
+#define ALIGN_UP(s, a)  (((s) + ((a) - 1)) & ~((typeof(s))(a) - 1))
+
+#endif
 
 /** Check alignment.
  *

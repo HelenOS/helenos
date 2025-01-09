@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@
 #ifndef _LIBCONSOLE_IO_CONS_EVENT_H_
 #define _LIBCONSOLE_IO_CONS_EVENT_H_
 
-#include <adt/list.h>
 #include <io/kbd_event.h>
 #include <io/pos_event.h>
 
@@ -43,14 +42,13 @@ typedef enum {
 	/** Key event */
 	CEV_KEY,
 	/** Position event */
-	CEV_POS
+	CEV_POS,
+	/** Resize event */
+	CEV_RESIZE,
 } cons_event_type_t;
 
 /** Console event structure. */
 typedef struct {
-	/** List handle */
-	link_t link;
-
 	/** Event type */
 	cons_event_type_t type;
 

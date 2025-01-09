@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ PCUT_IMPORT(client);
 PCUT_IMPORT(clonegc);
 PCUT_IMPORT(cursor);
 PCUT_IMPORT(display);
+PCUT_IMPORT(ievent);
 PCUT_IMPORT(seat);
 PCUT_IMPORT(window);
 PCUT_IMPORT(wmclient);

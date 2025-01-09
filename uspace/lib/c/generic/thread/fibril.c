@@ -780,9 +780,10 @@ void fibril_yield(void)
 		_fibril_switch_to(SWITCH_FROM_YIELD, f, false);
 }
 
-static void _runner_fn(void *arg)
+static errno_t _runner_fn(void *arg)
 {
 	_helper_fibril_fn(arg);
+	return EOK;
 }
 
 /**
@@ -807,11 +808,9 @@ int fibril_test_spawn_runners(int n)
 	errno_t rc;
 
 	for (int i = 0; i < n; i++) {
-		thread_id_t tid;
-		rc = thread_create(_runner_fn, NULL, "fibril runner", &tid);
+		rc = thread_create(_runner_fn, NULL, "fibril runner");
 		if (rc != EOK)
 			return i;
-		thread_detach(tid);
 	}
 
 	return n;

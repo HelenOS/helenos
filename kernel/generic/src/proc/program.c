@@ -52,6 +52,7 @@
 #include <log.h>
 #include <syscall/copy.h>
 #include <proc/program.h>
+#include <userspace.h>
 
 /**
  * Points to the binary image used as the program loader. All non-initial
@@ -71,8 +72,7 @@ void *program_loader = NULL;
  */
 errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t *prg)
 {
-	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
-	    malloc(sizeof(uspace_arg_t));
+	uinit_arg_t *kernel_uarg = malloc(sizeof(uinit_arg_t));
 	if (!kernel_uarg)
 		return ENOMEM;
 
@@ -103,12 +103,8 @@ errno_t program_create(as_t *as, uspace_addr_t entry_addr, char *name, program_t
 		return ENOMEM;
 	}
 
-	kernel_uarg->uspace_entry = entry_addr;
-	kernel_uarg->uspace_stack = virt;
-	kernel_uarg->uspace_stack_size = STACK_SIZE_USER;
-	kernel_uarg->uspace_thread_function = USPACE_NULL;
-	kernel_uarg->uspace_thread_arg = USPACE_NULL;
-	kernel_uarg->uspace_uarg = USPACE_NULL;
+	kernel_uarg->pc = entry_addr;
+	kernel_uarg->sp = arch_get_initial_sp(virt, STACK_SIZE_USER);
 
 	/*
 	 * Create the main thread.

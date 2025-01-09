@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,6 @@
 #include <errno.h>
 #include <str_error.h>
 #include <io/log.h>
-#include <inet/inetcfg.h>
 #include <ipc/dhcp.h>
 #include <ipc/services.h>
 #include <loc.h>
@@ -59,12 +58,6 @@ static errno_t dhcp_init(void)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_init()");
 
 	dhcpsrv_links_init();
-
-	rc = inetcfg_init();
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting inet configuration service.\n");
-		return EIO;
-	}
 
 	async_set_fallback_port_handler(dhcp_client_conn, NULL);
 

@@ -187,6 +187,64 @@ error:
 	return rc;
 }
 
+/** Merge list of volumes into new file.
+ *
+ * @param volumes List of volumes
+ * @param cfg_path Path to file containing configuration repository in SIF
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t vol_volumes_merge_to(vol_volumes_t *volumes, const char *cfg_path)
+{
+	sif_doc_t *doc = NULL;
+	sif_node_t *node;
+	const char *ntype;
+	char *dcfg_path;
+	errno_t rc;
+
+	dcfg_path = str_dup(cfg_path);
+	if (dcfg_path == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	free(volumes->cfg_path);
+	volumes->cfg_path = dcfg_path;
+
+	/* Try opening existing repository */
+	rc = sif_load(cfg_path, &doc);
+	if (rc != EOK) {
+		/* Failed to open existing, create new repository */
+		rc = vol_volumes_sync(volumes);
+		if (rc != EOK)
+			goto error;
+	} else {
+		/*
+		 * Loaded existing configuration. Find 'volumes' node, should
+		 * be the first child of the root node.
+		 */
+		node = sif_node_first_child(sif_get_root(doc));
+
+		/* Verify it's the correct node type */
+		ntype = sif_node_get_type(node);
+		if (str_cmp(ntype, "volumes") != 0) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = vol_volumes_load(node, volumes);
+		if (rc != EOK)
+			goto error;
+
+		sif_delete(doc);
+	}
+
+	return EOK;
+error:
+	if (doc != NULL)
+		(void) sif_delete(doc);
+	return rc;
+}
+
 /** Sync volume configuration to config file.
  *
  * @param volumes List of volumes

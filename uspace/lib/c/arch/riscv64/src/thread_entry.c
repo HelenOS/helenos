@@ -34,7 +34,9 @@
 
 void __thread_entry(void)
 {
-	__thread_main((void *) 0);
+	// TODO
+	while (true)
+		;
 }
 
 /** @}

@@ -142,7 +142,8 @@ static void ega_get_dimensions(outdev_t *dev, sysarg_t *cols, sysarg_t *rows)
 
 static console_caps_t ega_get_caps(outdev_t *dev)
 {
-	return (CONSOLE_CAP_STYLE | CONSOLE_CAP_INDEXED);
+	return (CONSOLE_CAP_CURSORCTL | CONSOLE_CAP_STYLE |
+	    CONSOLE_CAP_INDEXED);
 }
 
 static void ega_cursor_update(outdev_t *dev, sysarg_t prev_col,

@@ -32,10 +32,14 @@
 /** @file
  */
 
-#include <abi/proc/uarg.h>
 #include <userspace.h>
 
-void userspace(uspace_arg_t *kernel_uarg)
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return stack_base + stack_size;
+}
+
+void userspace(uintptr_t pc, uintptr_t sp)
 {
 	// FIXME
 	while (true)

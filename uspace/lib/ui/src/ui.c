@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -356,6 +356,11 @@ static void ui_cons_event_process(ui_t *ui, cons_event_t *event)
 		}
 
 		break;
+	case CEV_RESIZE:
+		ui_lock(ui);
+		ui_window_send_resize(awnd);
+		ui_unlock(ui);
+		break;
 	}
 }
 
@@ -562,6 +567,8 @@ bool ui_is_suspended(ui_t *ui)
  */
 void ui_lock(ui_t *ui)
 {
+	if (ui->display != NULL)
+		display_lock(ui->display);
 	fibril_mutex_lock(&ui->lock);
 }
 
@@ -576,6 +583,8 @@ void ui_lock(ui_t *ui)
 void ui_unlock(ui_t *ui)
 {
 	fibril_mutex_unlock(&ui->lock);
+	if (ui->display != NULL)
+		display_unlock(ui->display);
 }
 
 /** Terminate user interface.

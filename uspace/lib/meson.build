@@ -89,7 +89,9 @@ libs = [
 	'riff',
 	'scsi',
 	'sif',
+	'system',
 	'tbarcfg',
+	'termui',
 	'trackmod',
 	'untar',
 	'uri',
@@ -119,6 +121,7 @@ libs = [
 	'wndmgt',
 
 	'ui',
+	'vt',
 ]
 
 # Generated list of include directory paths

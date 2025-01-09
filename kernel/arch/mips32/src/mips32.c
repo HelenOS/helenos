@@ -162,16 +162,18 @@ void calibrate_delay_loop(void)
 {
 }
 
-void userspace(uspace_arg_t *kernel_uarg)
+uintptr_t arch_get_initial_sp(uintptr_t stack_base, uintptr_t stack_size)
+{
+	return stack_base + stack_size;
+}
+
+void userspace(uintptr_t pc, uintptr_t sp)
 {
 	/* EXL = 1, UM = 1, IE = 1 */
 	cp0_status_write(cp0_status_read() | (cp0_status_exl_exception_bit |
 	    cp0_status_um_bit | cp0_status_ie_enabled_bit));
-	cp0_epc_write(kernel_uarg->uspace_entry);
-	userspace_asm(kernel_uarg->uspace_stack +
-	    kernel_uarg->uspace_stack_size,
-	    kernel_uarg->uspace_uarg,
-	    kernel_uarg->uspace_entry);
+	cp0_epc_write(pc);
+	userspace_asm(sp, pc);
 
 	while (true)
 		;

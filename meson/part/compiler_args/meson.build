@@ -41,6 +41,7 @@ add_project_link_arguments(
 	'-Wl,--gc-sections',
 	'-Wl,--warn-common',
 	'-Wl,--fatal-warnings',
+	'-Wl,-z,text',
 	language : [ 'c', 'cpp' ],
 )
 
@@ -56,6 +57,7 @@ extra_common_flags = [
 	'-D_HELENOS_SOURCE',
 
 	'-Wa,--fatal-warnings',
+	'-Wl,-z,text',
 
 	'-Wall',
 	'-Wextra',

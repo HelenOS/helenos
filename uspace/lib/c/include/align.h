@@ -40,14 +40,14 @@
  * @param s		Address or size to be aligned.
  * @param a		Size of alignment, must be power of 2.
  */
-#define ALIGN_DOWN(s, a)	((s) & ~((a) - 1))
+#define ALIGN_DOWN(s, a)	((s) & ~((typeof(s))(a) - 1))
 
 /** Align to the nearest higher address which is a power of two.
  *
  * @param s		Address or size to be aligned.
  * @param a		Size of alignment, must be power of 2.
  */
-#define ALIGN_UP(s, a)		((long)((s) + ((a) - 1)) & ~((long) (a) - 1))
+#define ALIGN_UP(s, a)		((((s) + ((a) - 1)) & ~((typeof(s))(a) - 1)))
 
 /** Round up to the nearest higher boundary.
  *

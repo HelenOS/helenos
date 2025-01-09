@@ -22,11 +22,6 @@
  *     @ingroup net
  */
 
-/**    @addtogroup nconfsrv nconfsrv
- *     @brief Network configuration service
- *     @ingroup net
- */
-
 /**    @addtogroup loopip loopip
  *     @brief Loopback IP link provider
  *     @ingroup net

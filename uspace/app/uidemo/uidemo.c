@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -107,6 +107,7 @@ static ui_scrollbar_cb_t scrollbar_cb = {
 
 static void uidemo_file_load(ui_menu_entry_t *, void *);
 static void uidemo_file_message(ui_menu_entry_t *, void *);
+static void uidemo_file_confirmation(ui_menu_entry_t *, void *);
 static void uidemo_file_exit(ui_menu_entry_t *, void *);
 static void uidemo_edit_modify(ui_menu_entry_t *, void *);
 static void uidemo_edit_insert_character(ui_menu_entry_t *, void *);
@@ -339,7 +340,7 @@ static void scrollbar_moved(ui_scrollbar_t *scrollbar, void *arg,
 	free(str);
 }
 
-/** Display a message window.
+/** Display a message window with OK button.
  *
  * @param demo UI demo
  * @param caption Window caption
@@ -404,6 +405,32 @@ static void uidemo_file_message(ui_menu_entry_t *mentry, void *arg)
 	ui_msg_dialog_params_init(&mdparams);
 	mdparams.caption = "Message For You";
 	mdparams.text = "Hello, world!";
+
+	rc = ui_msg_dialog_create(demo->ui, &mdparams, &dialog);
+	if (rc != EOK) {
+		printf("Error creating message dialog.\n");
+		return;
+	}
+
+	ui_msg_dialog_set_cb(dialog, &msg_dialog_cb, &demo);
+}
+
+/** File / Confirmation menu entry selected.
+ *
+ * @param mentry Menu entry
+ * @param arg Argument (demo)
+ */
+static void uidemo_file_confirmation(ui_menu_entry_t *mentry, void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+	ui_msg_dialog_params_t mdparams;
+	ui_msg_dialog_t *dialog;
+	errno_t rc;
+
+	ui_msg_dialog_params_init(&mdparams);
+	mdparams.caption = "Confirmation";
+	mdparams.text = "This will not actually do anything. Proceed?";
+	mdparams.choice = umdc_ok_cancel;
 
 	rc = ui_msg_dialog_create(demo->ui, &mdparams, &dialog);
 	if (rc != EOK) {
@@ -740,6 +767,9 @@ static errno_t ui_demo(const char *display_spec)
 		params.rect.p1.y = 410;
 	}
 
+	/* Only allow making the window larger */
+	gfx_rect_dims(&params.rect, &params.min_size);
+
 	rc = ui_window_create(ui, &params, &window);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
@@ -777,6 +807,14 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	ui_menu_entry_set_cb(mmsg, uidemo_file_message, (void *) &demo);
+
+	rc = ui_menu_entry_create(demo.mfile, "~C~onfirmation", "", &mmsg);
+	if (rc != EOK) {
+		printf("Error creating menu.\n");
+		return rc;
+	}
+
+	ui_menu_entry_set_cb(mmsg, uidemo_file_confirmation, (void *) &demo);
 
 	rc = ui_menu_entry_create(demo.mfile, "~L~oad", "", &mload);
 	if (rc != EOK) {

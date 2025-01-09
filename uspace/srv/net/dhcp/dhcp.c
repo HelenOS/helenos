@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -69,6 +69,8 @@ static uint8_t msgbuf[MAX_MSG_SIZE];
 
 /** List of registered links (of dhcp_link_t) */
 static list_t dhcp_links;
+
+bool inetcfg_inited = false;
 
 static void dhcpsrv_discover_timeout(void *);
 static void dhcpsrv_request_timeout(void *);
@@ -466,6 +468,17 @@ errno_t dhcpsrv_link_add(service_id_t link_id)
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
+
+	if (!inetcfg_inited) {
+		rc = inetcfg_init();
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting "
+			    "inet configuration service.\n");
+			return EIO;
+		}
+
+		inetcfg_inited = true;
+	}
 
 	if (dhcpsrv_link_find(link_id) != NULL) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Link %zu already added",

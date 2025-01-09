@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -35,19 +36,29 @@
 #ifndef TELNET_USER_H_
 #define TELNET_USER_H_
 
-#include <adt/prodcons.h>
 #include <fibril_synch.h>
 #include <inet/tcp.h>
 #include <inttypes.h>
 #include <io/con_srv.h>
-#include "remcons.h"
 
 #define BUFFER_SIZE 32
+#define SEND_BUF_SIZE 512
+
+/** Telnet callbacks */
+typedef struct {
+	void (*ws_update)(void *, unsigned, unsigned);
+} telnet_cb_t;
 
 /** Representation of a connected (human) user. */
 typedef struct {
-	/** Mutex guarding the whole structure. */
-	fibril_mutex_t guard;
+	/** Synchronize send operations */
+	fibril_mutex_t send_lock;
+	/** Synchronize receive operations */
+	fibril_mutex_t recv_lock;
+	/** Callback functions */
+	telnet_cb_t *cb;
+	/** Argument to callback functions */
+	void *arg;
 
 	/** Internal id, used for creating locfs entries. */
 	int id;
@@ -60,12 +71,12 @@ typedef struct {
 	/** Console service setup */
 	con_srvs_t srvs;
 
-	/** Producer-consumer of kbd_event_t. */
-	prodcons_t in_events;
 	link_t link;
 	char socket_buffer[BUFFER_SIZE];
 	size_t socket_buffer_len;
 	size_t socket_buffer_pos;
+	char send_buf[SEND_BUF_SIZE];
+	size_t send_buf_used;
 
 	/** Task id of the launched application. */
 	task_id_t task_id;
@@ -78,17 +89,27 @@ typedef struct {
 
 	/** X position of the cursor. */
 	int cursor_x;
+	/** Y position of the cursor. */
+	int cursor_y;
+	/** Total number of columns */
+	unsigned cols;
+	/** Total number of rows */
+	unsigned rows;
 } telnet_user_t;
 
-extern telnet_user_t *telnet_user_create(tcp_conn_t *);
+extern telnet_user_t *telnet_user_create(tcp_conn_t *, telnet_cb_t *, void *);
 extern void telnet_user_add(telnet_user_t *);
 extern void telnet_user_destroy(telnet_user_t *);
 extern telnet_user_t *telnet_user_get_for_client_connection(service_id_t);
 extern bool telnet_user_is_zombie(telnet_user_t *);
 extern void telnet_user_notify_client_disconnected(telnet_user_t *);
 extern errno_t telnet_user_get_next_keyboard_event(telnet_user_t *, kbd_event_t *);
-extern errno_t telnet_user_send_data(telnet_user_t *, uint8_t *, size_t);
+extern errno_t telnet_user_send_data(telnet_user_t *, const char *, size_t);
+extern errno_t telnet_user_send_raw(telnet_user_t *, const char *, size_t);
+extern errno_t telnet_user_flush(telnet_user_t *);
+extern errno_t telnet_user_recv(telnet_user_t *, void *, size_t, size_t *);
 extern void telnet_user_update_cursor_x(telnet_user_t *, int);
+extern void telnet_user_resize(telnet_user_t *, unsigned, unsigned);
 
 /** Print informational message about connected user. */
 #ifdef CONFIG_DEBUG

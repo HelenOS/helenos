@@ -1,4 +1,5 @@
 #
+# Copyright (c) 2024 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -27,6 +28,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'block', 'futil', 'untar' ]
+deps = [ 'block', 'untar' ]
 link_args += '-static'
 src = files('init.c', 'untar.c')

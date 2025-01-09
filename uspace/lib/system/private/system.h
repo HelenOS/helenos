@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2024 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup nconfsrv
+/** @addtogroup libsystem
  * @{
  */
-/**
- * @file
- * @brief
+/** @file System control service interface
  */
 
-#ifndef NCONFSRV_IPLINK_H_
-#define NCONFSRV_IPLINK_H_
+#ifndef _LIBSYSTEM_PRIVATE_SYSTEM_H_
+#define _LIBSYSTEM_PRIVATE_SYSTEM_H_
 
-#include <stddef.h>
-#include "nconfsrv.h"
+#include <fibril_synch.h>
+#include <stdbool.h>
 
-extern errno_t ncs_link_discovery_start(void);
-extern ncs_link_t *ncs_link_get_by_id(sysarg_t);
-extern errno_t ncs_link_get_id_list(sysarg_t **, size_t *);
+/** System control service session */
+struct system {
+	/** Session with system control service */
+	async_sess_t *sess;
+	/** Callbacks */
+	system_cb_t *cb;
+	/** Argument to callback functions */
+	void *cb_arg;
+	/** Synchronize access to system object */
+	fibril_mutex_t lock;
+	/** @c true if callback handler terminated */
+	bool cb_done;
+	/** Signalled when cb_done or ev_pending is changed */
+	fibril_condvar_t cv;
+};
 
 #endif
 

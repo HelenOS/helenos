@@ -121,6 +121,9 @@ __HELENOS_DECLS_BEGIN;
 extern void *memalign(size_t align, size_t size)
     __attribute__((malloc));
 
+extern void *reallocarray(void *ptr, size_t nelem, size_t elsize)
+    __attribute__((warn_unused_result));
+
 __HELENOS_DECLS_END;
 #endif
 

@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kernel_generic_adt
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_BITMAP_H_
-#define KERN_BITMAP_H_
+#ifndef _LIBC_BITMAP_H_
+#define _LIBC_BITMAP_H_
 
 #include <stddef.h>
 #include <stdbool.h>

@@ -35,6 +35,13 @@
 #ifndef KERN_UINIT_H_
 #define KERN_UINIT_H_
 
+#include <stdint.h>
+
+typedef struct {
+	uintptr_t pc;
+	uintptr_t sp;
+} uinit_arg_t;
+
 extern void uinit(void *arg);
 
 #endif

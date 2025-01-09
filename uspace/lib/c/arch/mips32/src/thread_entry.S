@@ -39,26 +39,13 @@
 #
 #
 SYMBOL(__thread_entry)
-	.ent __thread_entry
-	.frame $sp, ABI_STACK_FRAME, $ra
-	.cpload $t9
+	# All registers should be zero, including $fp and $ra.
+	# Instead of setting up a stack frame here, we leave it for __thread_main.
 
-	#
-	# v0 contains address of uarg.
-	#
-	add $a0, $v0, 0
+	# Function argument.
+	lw $a0, -4($sp)
+	# Function pointer.
+	lw $t0, -8($sp)
 
-	# Allocate the stack frame.
-	addiu $sp, -ABI_STACK_FRAME
-
-	# Allow PIC code
-	.cprestore 16
-
-	jal __thread_main
+	j $t0
 	nop
-
-	#
-	# Not reached.
-	#
-	addiu $sp, ABI_STACK_FRAME
-	.end __thread_entry
