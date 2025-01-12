@@ -72,7 +72,13 @@ errno_t hr_io_worker(void *arg)
 		return EINVAL;
 	}
 
-	if (rc != EOK)
+	/*
+	 * We don't have to invalidate extents who got ENOMEM
+	 * on READ/SYNC. But when we get ENOMEM on a WRITE, we have
+	 * to invalidate it, because there could have been
+	 * other writes, there is no way to rollback.
+	 */
+	if (rc != EOK && (rc != ENOMEM || io->type == HR_BD_WRITE))
 		io->state_callback(io->vol, io->extent, rc);
 
 	HR_DEBUG("WORKER rc: %s\n", str_error(rc));
