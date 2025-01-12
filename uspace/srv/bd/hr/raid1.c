@@ -102,6 +102,8 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	new_volume->hr_bds.ops = &hr_raid1_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
 
+	/* force volume state update */
+	atomic_store(&new_volume->state_changed, true);
 	hr_raid1_update_vol_status(new_volume);
 	if (new_volume->status == HR_VOL_FAULTY)
 		return EINVAL;
@@ -274,12 +276,17 @@ static void process_deferred_invalidations(hr_volume_t *vol)
 
 static void hr_raid1_update_vol_status(hr_volume_t *vol)
 {
-	fibril_mutex_lock(&vol->deferred_list_lock);
+	bool exp = true;
 
-	if (list_count(&vol->deferred_invalidations_list) > 0)
+	if (!atomic_compare_exchange_strong(&vol->state_changed, &exp, false))
+		return;
+
+	if (atomic_compare_exchange_strong(&vol->pending_invalidation, &exp,
+	    false)) {
+		fibril_mutex_lock(&vol->deferred_list_lock);
 		process_deferred_invalidations(vol);
-
-	fibril_mutex_unlock(&vol->deferred_list_lock);
+		fibril_mutex_unlock(&vol->deferred_list_lock);
+	}
 
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_read_lock(&vol->states_lock);
@@ -343,7 +350,7 @@ static void hr_raid1_ext_state_callback(hr_volume_t *vol, size_t extent,
 			if (di->svc_id == invalid_svc_id) {
 				assert(vol->extents[extent].status ==
 				    HR_EXT_INVALID);
-				goto done;
+				goto deferring_end;
 			}
 		}
 
@@ -357,7 +364,10 @@ static void hr_raid1_ext_state_callback(hr_volume_t *vol, size_t extent,
 
 		list_append(&vol->deferred_inval[i].link,
 		    &vol->deferred_invalidations_list);
-	done:
+
+		atomic_store(&vol->pending_invalidation, true);
+	deferring_end:
+
 		fibril_mutex_unlock(&vol->deferred_list_lock);
 		break;
 	case ENOENT:
@@ -366,6 +376,8 @@ static void hr_raid1_ext_state_callback(hr_volume_t *vol, size_t extent,
 	default:
 		hr_update_ext_status(vol, extent, HR_EXT_FAILED);
 	}
+
+	atomic_store(&vol->state_changed, true);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 }

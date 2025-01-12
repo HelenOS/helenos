@@ -263,6 +263,8 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	list_initialize(&new_volume->deferred_invalidations_list);
 
 	atomic_init(&new_volume->rebuild_blk, 0);
+	atomic_init(&new_volume->state_changed, false);
+	atomic_init(&new_volume->pending_invalidation, false);
 
 	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)
@@ -319,7 +321,11 @@ static void hr_stop_srv(ipc_call_t *icall)
 	} else {
 		fibril_rwlock_write_lock(&vol->states_lock);
 		fibril_rwlock_read_lock(&vol->extents_lock);
+
+		/* TODO: maybe expose extent state callbacks */
 		hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
+		atomic_store(&vol->state_changed, true);
+
 		fibril_rwlock_read_unlock(&vol->extents_lock);
 		fibril_rwlock_write_unlock(&vol->states_lock);
 
