@@ -54,7 +54,7 @@
 
 extern loc_srv_t *hr_srv;
 
-static errno_t hr_raid0_update_vol_status(hr_volume_t *);
+static void hr_raid0_update_vol_status(hr_volume_t *);
 static errno_t hr_raid0_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
 
@@ -90,11 +90,9 @@ errno_t hr_raid0_create(hr_volume_t *new_volume)
 		return EINVAL;
 	}
 
-	rc = hr_raid0_update_vol_status(new_volume);
-	if (rc != EOK)
-		return rc;
-
-	hr_update_vol_status(new_volume, HR_VOL_ONLINE);
+	hr_raid0_update_vol_status(new_volume);
+	if (new_volume->status != HR_VOL_ONLINE)
+		return EINVAL;
 
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid0_bd_ops;
@@ -128,7 +126,7 @@ errno_t hr_raid0_init(hr_volume_t *vol)
 
 void hr_raid0_status_event(hr_volume_t *vol)
 {
-	(void)hr_raid0_update_vol_status(vol);
+	hr_raid0_update_vol_status(vol);
 }
 
 static errno_t hr_raid0_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
@@ -176,28 +174,31 @@ static errno_t hr_raid0_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-/*
- * Update vol->status and return EOK if volume
- * is usable
- */
-static errno_t hr_raid0_update_vol_status(hr_volume_t *vol)
+static void hr_raid0_update_vol_status(hr_volume_t *vol)
 {
 	fibril_rwlock_read_lock(&vol->states_lock);
+
 	hr_vol_status_t old_state = vol->status;
 
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		if (vol->extents[i].status != HR_EXT_ONLINE) {
 			fibril_rwlock_read_unlock(&vol->states_lock);
-			fibril_rwlock_write_lock(&vol->states_lock);
-			if (old_state != HR_VOL_FAULTY)
+
+			if (old_state != HR_VOL_FAULTY) {
+				fibril_rwlock_write_lock(&vol->states_lock);
 				hr_update_vol_status(vol, HR_VOL_FAULTY);
-			fibril_rwlock_write_unlock(&vol->states_lock);
-			return EIO;
+				fibril_rwlock_write_unlock(&vol->states_lock);
+			}
+			return;
 		}
 	}
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
-	return EOK;
+	if (old_state != HR_VOL_ONLINE) {
+		fibril_rwlock_write_lock(&vol->states_lock);
+		hr_update_vol_status(vol, HR_VOL_ONLINE);
+		fibril_rwlock_write_unlock(&vol->states_lock);
+	}
 }
 
 static void raid0_state_callback(hr_volume_t *vol, size_t extent, errno_t rc)
