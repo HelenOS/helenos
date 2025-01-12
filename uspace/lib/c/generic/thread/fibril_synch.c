@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
@@ -111,11 +112,14 @@ typedef struct {
 
 #define AWAITER_INIT { .fid = fibril_get_id() }
 
-static void print_deadlock(fibril_owner_info_t *oi)
+/** Print deadlock message nad blocking chain.
+ *
+ * @param oi Owner info for the resource being acquired
+ * @param f Fibril that is trying to acquire the resource
+ */
+static void print_deadlock(fibril_owner_info_t *oi, fibril_t *f)
 {
 	// FIXME: Print to stderr.
-
-	fibril_t *f = (fibril_t *) fibril_get_id();
 
 	if (deadlocked) {
 		kio_printf("Deadlock detected while printing deadlock. Aborting.\n");
@@ -142,20 +146,33 @@ static void print_deadlock(fibril_owner_info_t *oi)
 	}
 }
 
-static void check_fibril_for_deadlock(fibril_owner_info_t *oi, fibril_t *fib)
+/** Check whether fibril trying to acquire a resource will cause deadlock.
+ *
+ * @param wanted_oi Owner info for the primitive that the fibril wants
+ * @param fib Fibril that wants to aquire the primitive
+ */
+static void check_fibril_for_deadlock(fibril_owner_info_t *wanted_oi,
+    fibril_t *fib)
 {
+	fibril_owner_info_t *oi;
+
 	futex_assert_is_locked(&fibril_synch_futex);
 
+	oi = wanted_oi;
 	while (oi && oi->owned_by) {
 		if (oi->owned_by == fib) {
 			futex_unlock(&fibril_synch_futex);
-			print_deadlock(oi);
+			print_deadlock(wanted_oi, fib);
 			abort();
 		}
 		oi = oi->owned_by->waits_for;
 	}
 }
 
+/** Check whether trying to acquire a resource will cause deadlock.
+ *
+ * @param oi Owner info for the primitive that the current fibril wants
+ */
 static void check_for_deadlock(fibril_owner_info_t *oi)
 {
 	check_fibril_for_deadlock(oi, fibril_self());
