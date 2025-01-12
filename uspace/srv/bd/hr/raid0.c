@@ -239,7 +239,8 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 	/* propagate sync */
 	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
-		hr_fgroup_t *group = hr_fgroup_create(vol->fge, vol->extent_no);
+		hr_fgroup_t *group = hr_fgroup_create(vol->fge,
+		    vol->extent_no);
 
 		for (size_t i = 0; i < vol->extent_no; i++) {
 			hr_io_t *io = hr_fgroup_alloc(group);
@@ -254,9 +255,13 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		}
 
 		size_t bad;
-		(void)hr_fgroup_wait(group, NULL, &bad);
+		rc = hr_fgroup_wait(group, NULL, &bad);
+		if (rc == ENOMEM)
+			return ENOMEM;
+
 		if (bad > 0)
 			return EIO;
+
 		return EOK;
 	}
 
@@ -315,7 +320,10 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	}
 
 	size_t bad;
-	(void)hr_fgroup_wait(group, NULL, &bad);
+	rc = hr_fgroup_wait(group, NULL, &bad);
+	if (rc == ENOMEM && type == HR_BD_READ)
+		return ENOMEM;
+
 	if (bad > 0)
 		return EIO;
 
