@@ -320,6 +320,8 @@ error:
 const char *hr_get_vol_status_msg(hr_vol_status_t status)
 {
 	switch (status) {
+	case HR_VOL_INVALID:
+		return "INVALID";
 	case HR_VOL_ONLINE:
 		return "ONLINE";
 	case HR_VOL_FAULTY:
@@ -336,6 +338,8 @@ const char *hr_get_vol_status_msg(hr_vol_status_t status)
 const char *hr_get_ext_status_msg(hr_ext_status_t status)
 {
 	switch (status) {
+	case HR_EXT_INVALID:
+		return "INVALID";
 	case HR_EXT_ONLINE:
 		return "ONLINE";
 	case HR_EXT_MISSING:

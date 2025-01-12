@@ -67,13 +67,15 @@ typedef enum hr_level {
 #define HR_RLQ_RAID5_NC	0x03 /* RAID-5 Rotating Parity N with Data Continuation */
 
 typedef enum hr_vol_status {
-	HR_VOL_ONLINE,	/* OK, OPTIMAL */
+	HR_VOL_INVALID,
+	HR_VOL_ONLINE,	/* OPTIMAL */
 	HR_VOL_FAULTY,
 	HR_VOL_DEGRADED, /* also used for partial, but usable mirror */
 	HR_VOL_REBUILD
 } hr_vol_status_t;
 
 typedef enum hr_ext_status {
+	HR_EXT_INVALID,
 	HR_EXT_ONLINE,	/* OK */
 	HR_EXT_MISSING,
 	HR_EXT_FAILED,
