@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -92,7 +92,7 @@ void hr_fini_devs(hr_volume_t *vol)
 	size_t i;
 
 	for (i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status != HR_EXT_MISSING) {
+		if (vol->extents[i].svc_id != 0) {
 			HR_DEBUG("hr_fini_devs(): block_fini() on (%lu)\n",
 			    vol->extents[i].svc_id);
 			block_fini(vol->extents[i].svc_id);
@@ -212,6 +212,11 @@ void hr_add_ba_offset(hr_volume_t *vol, uint64_t *ba)
 
 void hr_update_ext_status(hr_volume_t *vol, size_t extent, hr_ext_status_t s)
 {
+	if (vol->level != HR_LVL_0)
+		assert(fibril_rwlock_is_locked(&vol->extents_lock));
+
+	assert(fibril_rwlock_is_write_locked(&vol->states_lock));
+
 	assert(extent < vol->extent_no);
 
 	hr_ext_status_t old = vol->extents[extent].status;
@@ -223,6 +228,8 @@ void hr_update_ext_status(hr_volume_t *vol, size_t extent, hr_ext_status_t s)
 
 void hr_update_hotspare_status(hr_volume_t *vol, size_t hs, hr_ext_status_t s)
 {
+	assert(fibril_mutex_is_locked(&vol->hotspare_lock));
+
 	assert(hs < vol->hotspare_no);
 
 	hr_ext_status_t old = vol->hotspares[hs].status;
@@ -234,6 +241,8 @@ void hr_update_hotspare_status(hr_volume_t *vol, size_t hs, hr_ext_status_t s)
 
 void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t s)
 {
+	assert(fibril_rwlock_is_write_locked(&vol->states_lock));
+
 	HR_WARN("\"%s\": changing volume state: %s -> %s\n", vol->devname,
 	    hr_get_vol_status_msg(vol->status), hr_get_vol_status_msg(s));
 	vol->status = s;
@@ -255,7 +264,9 @@ void hr_sync_all_extents(hr_volume_t *vol)
 		if (vol->extents[i].status != HR_EXT_ONLINE)
 			continue;
 		rc = block_sync_cache(vol->extents[i].svc_id, 0, 0);
-		if (rc != EOK && rc != ENOTSUP) {
+		if (rc == ENOMEM || rc == ENOTSUP)
+			continue;
+		if (rc != EOK) {
 			if (rc == ENOENT)
 				hr_update_ext_status(vol, i, HR_EXT_MISSING);
 			else if (rc != EOK)
@@ -267,6 +278,10 @@ void hr_sync_all_extents(hr_volume_t *vol)
 
 size_t hr_count_extents(hr_volume_t *vol, hr_ext_status_t status)
 {
+	if (vol->level != HR_LVL_0)
+		assert(fibril_rwlock_is_locked(&vol->extents_lock));
+	assert(fibril_rwlock_is_locked(&vol->states_lock));
+
 	size_t count = 0;
 	for (size_t i = 0; i < vol->extent_no; i++)
 		if (vol->extents[i].status == status)
@@ -338,6 +353,9 @@ again:
 
 void hr_range_lock_release(hr_range_lock_t *rl)
 {
+	if (rl == NULL)
+		return;
+
 	HR_RL_LIST_LOCK(rl->vol);
 
 	rl->pending--;
