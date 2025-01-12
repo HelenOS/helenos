@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Miroslav Cimerman
+ * Copyright (c) 2025 Miroslav Cimerman
  * Copyright (c) 2024 Vojtech Horky
  * All rights reserved.
  *
@@ -316,9 +316,7 @@ errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 	if (rfailed)
 		*rfailed = group->finished_fail;
 
-	errno_t rc = EOK;
-	if (group->finished_okay != group->wu_cnt)
-		rc = EIO;
+	errno_t rc = group->final_errno;
 
 	fibril_mutex_unlock(&group->lock);
 
@@ -392,6 +390,8 @@ static errno_t fge_fibril(void *arg)
 		} else {
 			fibril_mutex_lock(&group->lock);
 			group->finished_fail++;
+			if (rc == ENOMEM)
+				group->final_errno = ENOMEM;
 			fibril_mutex_unlock(&group->lock);
 		}
 
