@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2007 Martin Decky
  * All rights reserved.
@@ -48,6 +49,7 @@ int test_argc;
 char **test_argv;
 
 test_t tests[] = {
+#include "thread/deadlock.def"
 #include "thread/thread1.def"
 #include "thread/setjmp1.def"
 #include "print/print1.def"

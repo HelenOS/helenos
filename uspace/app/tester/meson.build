@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023 Jiri Svoboda
+# Copyright (c) 2025 Jiri Svoboda
 # Copyright (c) 2005 Martin Decky
 # Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
@@ -32,6 +32,7 @@ deps = [ 'block', 'codepage', 'drv', 'math', 'ipctest', 'console' ]
 src = files(
 	'tester.c',
 	'util.c',
+	'thread/deadlock.c',
 	'thread/thread1.c',
 	'thread/setjmp1.c',
 	'print/print1.c',
