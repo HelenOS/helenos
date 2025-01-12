@@ -292,7 +292,7 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		io->extent = extent;
 		io->data_write = data_write;
 		io->data_read = data_read;
-		io->ba = ba;
+		io->ba = phys_block;
 		io->cnt = cnt;
 		io->type = type;
 		io->vol = vol;
