@@ -239,13 +239,38 @@ void hr_update_hotspare_status(hr_volume_t *vol, size_t hs, hr_ext_status_t s)
 	vol->hotspares[hs].status = s;
 }
 
-void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t s)
+void hr_update_vol_status(hr_volume_t *vol, hr_vol_status_t new)
 {
 	assert(fibril_rwlock_is_write_locked(&vol->states_lock));
 
 	HR_WARN("\"%s\": changing volume state: %s -> %s\n", vol->devname,
-	    hr_get_vol_status_msg(vol->status), hr_get_vol_status_msg(s));
-	vol->status = s;
+	    hr_get_vol_status_msg(vol->status), hr_get_vol_status_msg(new));
+	vol->status = new;
+}
+
+void hr_update_ext_svc_id(hr_volume_t *vol, size_t extent, service_id_t new)
+{
+	if (vol->level != HR_LVL_0)
+		assert(fibril_rwlock_is_write_locked(&vol->extents_lock));
+
+	assert(extent < vol->extent_no);
+
+	service_id_t old = vol->extents[extent].svc_id;
+	HR_WARN("\"%s\": changing extent no. %lu svc_id: (%lu) -> (%lu)\n",
+	    vol->devname, extent, old, new);
+	vol->extents[extent].svc_id = new;
+}
+
+void hr_update_hotspare_svc_id(hr_volume_t *vol, size_t hs, service_id_t new)
+{
+	assert(fibril_mutex_is_locked(&vol->hotspare_lock));
+
+	assert(hs < vol->hotspare_no);
+
+	service_id_t old = vol->hotspares[hs].svc_id;
+	HR_WARN("\"%s\": changing hotspare no. %lu svc_id: (%lu) -> (%lu)\n",
+	    vol->devname, hs, old, new);
+	vol->hotspares[hs].svc_id = new;
 }
 
 /*
