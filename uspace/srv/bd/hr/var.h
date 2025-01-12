@@ -58,6 +58,12 @@ typedef struct hr_ops {
 	errno_t	(*add_hotspare)(hr_volume_t *, service_id_t);
 } hr_ops_t;
 
+typedef struct hr_deferred_invalidation {
+	link_t link;
+	size_t index;
+	service_id_t svc_id;
+} hr_deferred_invalidation_t;
+
 typedef struct hr_volume {
 	hr_ops_t hr_ops;
 	bd_srvs_t hr_bds;
@@ -88,7 +94,7 @@ typedef struct hr_volume {
 	char devname[HR_DEVNAME_LEN];
 
 	size_t hotspare_no;
-	hr_extent_t hotspares[HR_MAX_HOTSPARES];
+	hr_extent_t hotspares[HR_MAX_HOTSPARES + HR_MAX_EXTENTS];
 
 	/* protects hotspares (hotspares.{svc_id,status}, hotspare_no) */
 	fibril_mutex_t hotspare_lock;
@@ -102,6 +108,17 @@ typedef struct hr_volume {
 	/* for halting IO requests when a REBUILD start waits */
 	bool halt_please;
 	fibril_mutex_t halt_lock;
+
+	/*
+	 * For deferring invalidations of extents. Used when
+	 * an extent has to be invalidated (got ENOMEM on a WRITE),
+	 * but workers - therefore state callbacks cannot lock
+	 * extents for writing (they are readers), so invalidations
+	 * are harvested later when we are able to.
+	 */
+	fibril_mutex_t deferred_list_lock;
+	list_t deferred_invalidations_list;
+	hr_deferred_invalidation_t deferred_inval[HR_MAX_EXTENTS];
 
 	_Atomic uint64_t rebuild_blk;
 	uint64_t counter; /* metadata syncing */

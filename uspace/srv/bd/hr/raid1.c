@@ -55,6 +55,7 @@
 
 extern loc_srv_t *hr_srv;
 
+static void process_deferred_invalidations(hr_volume_t *);
 static void hr_raid1_update_vol_status(hr_volume_t *);
 static void hr_raid1_ext_state_callback(hr_volume_t *, size_t, errno_t);
 static size_t hr_raid1_count_good_extents(hr_volume_t *, uint64_t, size_t,
@@ -224,8 +225,62 @@ static errno_t hr_raid1_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
+static void process_deferred_invalidations(hr_volume_t *vol)
+{
+	HR_DEBUG("hr_raid1_update_vol_status(): deferred invalidations\n");
+
+	fibril_mutex_lock(&vol->halt_lock);
+	vol->halt_please = true;
+	fibril_rwlock_write_lock(&vol->extents_lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
+	fibril_mutex_lock(&vol->hotspare_lock);
+
+	list_foreach(vol->deferred_invalidations_list, link,
+	    hr_deferred_invalidation_t, di) {
+		assert(vol->extents[di->index].status == HR_EXT_INVALID);
+
+		HR_DEBUG("moving invalidated extent no. %lu to hotspares\n",
+		    di->index);
+
+		block_fini(di->svc_id);
+
+		size_t hs_idx = vol->hotspare_no;
+
+		vol->hotspare_no++;
+
+		vol->hotspares[hs_idx].svc_id = di->svc_id;
+		hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
+
+		vol->extents[di->index].svc_id = 0;
+		hr_update_ext_status(vol, di->index, HR_EXT_MISSING);
+
+		assert(vol->hotspare_no < HR_MAX_HOTSPARES + HR_MAX_EXTENTS);
+	}
+
+	for (size_t i = 0; i < HR_MAX_EXTENTS; i++) {
+		hr_deferred_invalidation_t *di = &vol->deferred_inval[i];
+		if (di->svc_id != 0) {
+			list_remove(&di->link);
+			di->svc_id = 0;
+		}
+	}
+
+	fibril_mutex_unlock(&vol->hotspare_lock);
+	fibril_rwlock_write_unlock(&vol->states_lock);
+	fibril_rwlock_write_unlock(&vol->extents_lock);
+	vol->halt_please = false;
+	fibril_mutex_unlock(&vol->halt_lock);
+}
+
 static void hr_raid1_update_vol_status(hr_volume_t *vol)
 {
+	fibril_mutex_lock(&vol->deferred_list_lock);
+
+	if (list_count(&vol->deferred_invalidations_list) > 0)
+		process_deferred_invalidations(vol);
+
+	fibril_mutex_unlock(&vol->deferred_list_lock);
+
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_read_lock(&vol->states_lock);
 
@@ -278,6 +333,33 @@ static void hr_raid1_ext_state_callback(hr_volume_t *vol, size_t extent,
 	fibril_rwlock_write_lock(&vol->states_lock);
 
 	switch (rc) {
+	case ENOMEM:
+		fibril_mutex_lock(&vol->deferred_list_lock);
+
+		service_id_t invalid_svc_id = vol->extents[extent].svc_id;
+
+		list_foreach(vol->deferred_invalidations_list, link,
+		    hr_deferred_invalidation_t, di) {
+			if (di->svc_id == invalid_svc_id) {
+				assert(vol->extents[extent].status ==
+				    HR_EXT_INVALID);
+				goto done;
+			}
+		}
+
+		assert(vol->extents[extent].svc_id != HR_EXT_INVALID);
+
+		hr_update_ext_status(vol, extent, HR_EXT_INVALID);
+
+		size_t i = list_count(&vol->deferred_invalidations_list);
+		vol->deferred_inval[i].svc_id = invalid_svc_id;
+		vol->deferred_inval[i].index = extent;
+
+		list_append(&vol->deferred_inval[i].link,
+		    &vol->deferred_invalidations_list);
+	done:
+		fibril_mutex_unlock(&vol->deferred_list_lock);
+		break;
 	case ENOENT:
 		hr_update_ext_status(vol, extent, HR_EXT_MISSING);
 		break;

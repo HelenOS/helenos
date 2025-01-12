@@ -259,6 +259,9 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	list_initialize(&new_volume->range_lock_list);
 	fibril_mutex_initialize(&new_volume->range_lock_list_lock);
 
+	fibril_mutex_initialize(&new_volume->deferred_list_lock);
+	list_initialize(&new_volume->deferred_invalidations_list);
+
 	atomic_init(&new_volume->rebuild_blk, 0);
 
 	rc = new_volume->hr_ops.create(new_volume);
