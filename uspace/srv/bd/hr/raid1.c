@@ -55,16 +55,18 @@
 
 extern loc_srv_t *hr_srv;
 
-static void process_deferred_invalidations(hr_volume_t *);
 static void hr_raid1_update_vol_status(hr_volume_t *);
 static void hr_raid1_ext_state_callback(hr_volume_t *, size_t, errno_t);
 static size_t hr_raid1_count_good_extents(hr_volume_t *, uint64_t, size_t,
     uint64_t);
 static errno_t hr_raid1_bd_op(hr_bd_op_type_t, bd_srv_t *, aoff64_t, size_t,
     void *, const void *, size_t);
-static errno_t swap_hs(hr_volume_t *, size_t, size_t);
-static errno_t init_rebuild(hr_volume_t *, size_t *);
 static errno_t hr_raid1_rebuild(void *);
+static errno_t init_rebuild(hr_volume_t *, size_t *);
+static errno_t swap_hs(hr_volume_t *, size_t, size_t);
+static errno_t hr_raid1_restore_blocks(hr_volume_t *, size_t, uint64_t, size_t,
+    void *);
+static void hr_process_deferred_invalidations(hr_volume_t *);
 
 /* bdops */
 static errno_t hr_raid1_bd_open(bd_srvs_t *, bd_srv_t *);
@@ -215,53 +217,6 @@ static errno_t hr_raid1_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-static void process_deferred_invalidations(hr_volume_t *vol)
-{
-	HR_DEBUG("hr_raid1_update_vol_status(): deferred invalidations\n");
-
-	fibril_mutex_lock(&vol->halt_lock);
-	vol->halt_please = true;
-	fibril_rwlock_write_lock(&vol->extents_lock);
-	fibril_rwlock_write_lock(&vol->states_lock);
-	fibril_mutex_lock(&vol->hotspare_lock);
-
-	list_foreach(vol->deferred_invalidations_list, link,
-	    hr_deferred_invalidation_t, di) {
-		assert(vol->extents[di->index].status == HR_EXT_INVALID);
-
-		HR_DEBUG("moving invalidated extent no. %lu to hotspares\n",
-		    di->index);
-
-		block_fini(di->svc_id);
-
-		size_t hs_idx = vol->hotspare_no;
-
-		vol->hotspare_no++;
-
-		hr_update_hotspare_svc_id(vol, hs_idx, di->svc_id);
-		hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
-
-		hr_update_ext_svc_id(vol, di->index, 0);
-		hr_update_ext_status(vol, di->index, HR_EXT_MISSING);
-
-		assert(vol->hotspare_no < HR_MAX_HOTSPARES + HR_MAX_EXTENTS);
-	}
-
-	for (size_t i = 0; i < HR_MAX_EXTENTS; i++) {
-		hr_deferred_invalidation_t *di = &vol->deferred_inval[i];
-		if (di->svc_id != 0) {
-			list_remove(&di->link);
-			di->svc_id = 0;
-		}
-	}
-
-	fibril_mutex_unlock(&vol->hotspare_lock);
-	fibril_rwlock_write_unlock(&vol->states_lock);
-	fibril_rwlock_write_unlock(&vol->extents_lock);
-	vol->halt_please = false;
-	fibril_mutex_unlock(&vol->halt_lock);
-}
-
 static void hr_raid1_update_vol_status(hr_volume_t *vol)
 {
 	bool exp = true;
@@ -272,7 +227,7 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 	if (atomic_compare_exchange_strong(&vol->pending_invalidation, &exp,
 	    false)) {
 		fibril_mutex_lock(&vol->deferred_list_lock);
-		process_deferred_invalidations(vol);
+		hr_process_deferred_invalidations(vol);
 		fibril_mutex_unlock(&vol->deferred_list_lock);
 	}
 
@@ -549,173 +504,6 @@ end:
 	return rc;
 }
 
-static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
-{
-	HR_DEBUG("hr_raid1_rebuild(): swapping in hotspare\n");
-
-	service_id_t faulty_svc_id = vol->extents[bad].svc_id;
-	service_id_t hs_svc_id = vol->hotspares[hs].svc_id;
-
-	errno_t rc = block_init(hs_svc_id);
-	if (rc != EOK) {
-		HR_ERROR("hr_raid1_rebuild(): initing hotspare (%lu) failed\n",
-		    hs_svc_id);
-		return rc;
-	}
-
-	hr_update_ext_svc_id(vol, bad, hs_svc_id);
-	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
-
-	hr_update_hotspare_svc_id(vol, hs, 0);
-	hr_update_hotspare_status(vol, hs, HR_EXT_INVALID);
-
-	vol->hotspare_no--;
-
-	if (faulty_svc_id != 0)
-		block_fini(faulty_svc_id);
-
-	return EOK;
-}
-
-static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
-{
-	errno_t rc = EOK;
-
-	fibril_mutex_lock(&vol->halt_lock);
-	vol->halt_please = true;
-	fibril_rwlock_write_lock(&vol->extents_lock);
-	fibril_rwlock_write_lock(&vol->states_lock);
-	fibril_mutex_lock(&vol->hotspare_lock);
-
-	if (vol->hotspare_no == 0) {
-		HR_WARN("hr_raid1_rebuild(): no free hotspares on \"%s\", "
-		    "aborting rebuild\n", vol->devname);
-		rc = EINVAL;
-		goto error;
-	}
-
-	size_t bad = vol->extent_no;
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		if (vol->extents[i].status != HR_EXT_ONLINE) {
-			bad = i;
-			break;
-		}
-	}
-
-	if (bad == vol->extent_no) {
-		HR_WARN("hr_raid1_rebuild(): no bad extent on \"%s\", "
-		    "aborting rebuild\n", vol->devname);
-		rc = EINVAL;
-		goto error;
-	}
-
-	size_t hotspare_idx = vol->hotspare_no - 1;
-
-	hr_ext_status_t hs_state = vol->hotspares[hotspare_idx].status;
-	if (hs_state != HR_EXT_HOTSPARE) {
-		HR_ERROR("hr_raid1_rebuild(): invalid hotspare state \"%s\", "
-		    "aborting rebuild\n", hr_get_ext_status_msg(hs_state));
-		rc = EINVAL;
-		goto error;
-	}
-
-	rc = swap_hs(vol, bad, hotspare_idx);
-	if (rc != EOK) {
-		HR_ERROR("hr_raid1_rebuild(): swapping hotspare failed, "
-		    "aborting rebuild\n");
-		goto error;
-	}
-
-	hr_extent_t *rebuild_ext = &vol->extents[bad];
-
-	HR_DEBUG("hr_raid1_rebuild(): starting REBUILD on extent no. %lu (%lu)"
-	    "\n", bad, rebuild_ext->svc_id);
-
-	atomic_store_explicit(&vol->rebuild_blk, 0, memory_order_relaxed);
-
-	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
-	hr_update_vol_status(vol, HR_VOL_REBUILD);
-
-	*rebuild_idx = bad;
-error:
-	fibril_mutex_unlock(&vol->hotspare_lock);
-	fibril_rwlock_write_unlock(&vol->states_lock);
-	fibril_rwlock_write_unlock(&vol->extents_lock);
-	vol->halt_please = false;
-	fibril_mutex_unlock(&vol->halt_lock);
-
-	return rc;
-}
-
-static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
-    uint64_t ba, size_t cnt, void *buf)
-{
-	HR_DEBUG("REBUILD restoring blocks (ba: %lu, cnt: %lu)\n", ba, cnt);
-
-	assert(fibril_rwlock_is_locked(&vol->extents_lock));
-
-	errno_t rc = ENOENT;
-	hr_extent_t *ext, *rebuild_ext = &vol->extents[rebuild_idx];
-
-	for (size_t i = 0; i < vol->extent_no; i++) {
-		fibril_rwlock_read_lock(&vol->states_lock);
-
-		ext = &vol->extents[i];
-		if (ext->status != HR_EXT_ONLINE)
-			continue;
-
-		fibril_rwlock_read_unlock(&vol->states_lock);
-
-		rc = block_read_direct(ext->svc_id, ba, cnt, buf);
-		if (rc == EOK)
-			break;
-
-		if (rc != ENOMEM)
-			hr_raid1_ext_state_callback(vol, i, rc);
-
-		if (i + 1 >= vol->extent_no) {
-			if (rc != ENOMEM) {
-				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
-				    "to too many failed extents\n",
-				    vol->devname, vol->svc_id);
-			}
-
-			/* for now we have to invalidate the rebuild extent */
-			if (rc == ENOMEM) {
-				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
-				    "to too many failed reads, because of not "
-				    "enough memory\n",
-				    vol->devname, vol->svc_id);
-				hr_raid1_ext_state_callback(vol, rebuild_idx,
-				    ENOMEM);
-			}
-
-			return rc;
-		}
-	}
-
-	rc = block_write_direct(rebuild_ext->svc_id, ba, cnt, buf);
-	if (rc != EOK) {
-		/*
-		 * Here we dont handle ENOMEM, because maybe in the
-		 * future, there is going to be M_WAITOK, or we are
-		 * going to wait for more memory, so that we don't
-		 * have to invalidate it...
-		 *
-		 * XXX: for now we do
-		 */
-		hr_raid1_ext_state_callback(vol, rebuild_idx, rc);
-
-		HR_ERROR("rebuild on \"%s\" (%lu), failed due to "
-		    "the rebuilt extent no. %lu WRITE (rc: %s)\n",
-		    vol->devname, vol->svc_id, rebuild_idx, str_error(rc));
-
-		return rc;
-	}
-
-	return EOK;
-}
-
 /*
  * Put the last HOTSPARE extent in place
  * of first that != ONLINE, and start the rebuild.
@@ -820,6 +608,221 @@ end:
 		free(buf);
 
 	return rc;
+}
+
+static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
+{
+	errno_t rc = EOK;
+
+	fibril_mutex_lock(&vol->halt_lock);
+	vol->halt_please = true;
+	fibril_rwlock_write_lock(&vol->extents_lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
+	fibril_mutex_lock(&vol->hotspare_lock);
+
+	if (vol->hotspare_no == 0) {
+		HR_WARN("hr_raid1_rebuild(): no free hotspares on \"%s\", "
+		    "aborting rebuild\n", vol->devname);
+		rc = EINVAL;
+		goto error;
+	}
+
+	size_t bad = vol->extent_no;
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		if (vol->extents[i].status != HR_EXT_ONLINE) {
+			bad = i;
+			break;
+		}
+	}
+
+	if (bad == vol->extent_no) {
+		HR_WARN("hr_raid1_rebuild(): no bad extent on \"%s\", "
+		    "aborting rebuild\n", vol->devname);
+		rc = EINVAL;
+		goto error;
+	}
+
+	size_t hotspare_idx = vol->hotspare_no - 1;
+
+	hr_ext_status_t hs_state = vol->hotspares[hotspare_idx].status;
+	if (hs_state != HR_EXT_HOTSPARE) {
+		HR_ERROR("hr_raid1_rebuild(): invalid hotspare state \"%s\", "
+		    "aborting rebuild\n", hr_get_ext_status_msg(hs_state));
+		rc = EINVAL;
+		goto error;
+	}
+
+	rc = swap_hs(vol, bad, hotspare_idx);
+	if (rc != EOK) {
+		HR_ERROR("hr_raid1_rebuild(): swapping hotspare failed, "
+		    "aborting rebuild\n");
+		goto error;
+	}
+
+	hr_extent_t *rebuild_ext = &vol->extents[bad];
+
+	HR_DEBUG("hr_raid1_rebuild(): starting REBUILD on extent no. %lu (%lu)"
+	    "\n", bad, rebuild_ext->svc_id);
+
+	atomic_store_explicit(&vol->rebuild_blk, 0, memory_order_relaxed);
+
+	hr_update_ext_status(vol, bad, HR_EXT_REBUILD);
+	hr_update_vol_status(vol, HR_VOL_REBUILD);
+
+	*rebuild_idx = bad;
+error:
+	fibril_mutex_unlock(&vol->hotspare_lock);
+	fibril_rwlock_write_unlock(&vol->states_lock);
+	fibril_rwlock_write_unlock(&vol->extents_lock);
+	vol->halt_please = false;
+	fibril_mutex_unlock(&vol->halt_lock);
+
+	return rc;
+}
+
+static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
+{
+	HR_DEBUG("hr_raid1_rebuild(): swapping in hotspare\n");
+
+	service_id_t faulty_svc_id = vol->extents[bad].svc_id;
+	service_id_t hs_svc_id = vol->hotspares[hs].svc_id;
+
+	/* TODO: if rc != EOK, try next hotspare */
+	errno_t rc = block_init(hs_svc_id);
+	if (rc != EOK) {
+		HR_ERROR("hr_raid1_rebuild(): initing hotspare (%lu) failed\n",
+		    hs_svc_id);
+		return rc;
+	}
+
+	hr_update_ext_svc_id(vol, bad, hs_svc_id);
+	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
+
+	hr_update_hotspare_svc_id(vol, hs, 0);
+	hr_update_hotspare_status(vol, hs, HR_EXT_INVALID);
+
+	vol->hotspare_no--;
+
+	if (faulty_svc_id != 0)
+		block_fini(faulty_svc_id);
+
+	return EOK;
+}
+
+static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
+    uint64_t ba, size_t cnt, void *buf)
+{
+	HR_DEBUG("REBUILD restoring blocks (ba: %lu, cnt: %lu)\n", ba, cnt);
+
+	assert(fibril_rwlock_is_locked(&vol->extents_lock));
+
+	errno_t rc = ENOENT;
+	hr_extent_t *ext, *rebuild_ext = &vol->extents[rebuild_idx];
+
+	for (size_t i = 0; i < vol->extent_no; i++) {
+		fibril_rwlock_read_lock(&vol->states_lock);
+
+		ext = &vol->extents[i];
+		if (ext->status != HR_EXT_ONLINE)
+			continue;
+
+		fibril_rwlock_read_unlock(&vol->states_lock);
+
+		rc = block_read_direct(ext->svc_id, ba, cnt, buf);
+		if (rc == EOK)
+			break;
+
+		if (rc != ENOMEM)
+			hr_raid1_ext_state_callback(vol, i, rc);
+
+		if (i + 1 >= vol->extent_no) {
+			if (rc != ENOMEM) {
+				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
+				    "to too many failed extents\n",
+				    vol->devname, vol->svc_id);
+			}
+
+			/* for now we have to invalidate the rebuild extent */
+			if (rc == ENOMEM) {
+				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
+				    "to too many failed reads, because of not "
+				    "enough memory\n",
+				    vol->devname, vol->svc_id);
+				hr_raid1_ext_state_callback(vol, rebuild_idx,
+				    ENOMEM);
+			}
+
+			return rc;
+		}
+	}
+
+	rc = block_write_direct(rebuild_ext->svc_id, ba, cnt, buf);
+	if (rc != EOK) {
+		/*
+		 * Here we dont handle ENOMEM, because maybe in the
+		 * future, there is going to be M_WAITOK, or we are
+		 * going to wait for more memory, so that we don't
+		 * have to invalidate it...
+		 *
+		 * XXX: for now we do
+		 */
+		hr_raid1_ext_state_callback(vol, rebuild_idx, rc);
+
+		HR_ERROR("rebuild on \"%s\" (%lu), failed due to "
+		    "the rebuilt extent no. %lu WRITE (rc: %s)\n",
+		    vol->devname, vol->svc_id, rebuild_idx, str_error(rc));
+
+		return rc;
+	}
+
+	return EOK;
+}
+
+static void hr_process_deferred_invalidations(hr_volume_t *vol)
+{
+	HR_DEBUG("hr_raid1_update_vol_status(): deferred invalidations\n");
+
+	fibril_mutex_lock(&vol->halt_lock);
+	vol->halt_please = true;
+	fibril_rwlock_write_lock(&vol->extents_lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
+	fibril_mutex_lock(&vol->hotspare_lock);
+
+	list_foreach(vol->deferred_invalidations_list, link,
+	    hr_deferred_invalidation_t, di) {
+		assert(vol->extents[di->index].status == HR_EXT_INVALID);
+
+		HR_DEBUG("moving invalidated extent no. %lu to hotspares\n",
+		    di->index);
+
+		block_fini(di->svc_id);
+
+		size_t hs_idx = vol->hotspare_no;
+
+		vol->hotspare_no++;
+
+		hr_update_hotspare_svc_id(vol, hs_idx, di->svc_id);
+		hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
+
+		hr_update_ext_svc_id(vol, di->index, 0);
+		hr_update_ext_status(vol, di->index, HR_EXT_MISSING);
+
+		assert(vol->hotspare_no < HR_MAX_HOTSPARES + HR_MAX_EXTENTS);
+	}
+
+	for (size_t i = 0; i < HR_MAX_EXTENTS; i++) {
+		hr_deferred_invalidation_t *di = &vol->deferred_inval[i];
+		if (di->svc_id != 0) {
+			list_remove(&di->link);
+			di->svc_id = 0;
+		}
+	}
+
+	fibril_mutex_unlock(&vol->hotspare_lock);
+	fibril_rwlock_write_unlock(&vol->states_lock);
+	fibril_rwlock_write_unlock(&vol->extents_lock);
+	vol->halt_please = false;
+	fibril_mutex_unlock(&vol->halt_lock);
 }
 
 /** @}
