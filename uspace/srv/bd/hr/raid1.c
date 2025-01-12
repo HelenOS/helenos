@@ -674,9 +674,21 @@ static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
 			hr_raid1_ext_state_callback(vol, i, rc);
 
 		if (i + 1 >= vol->extent_no) {
-			HR_ERROR("rebuild on \"%s\" (%lu), failed due to "
-			    "too many failed extents\n",
-			    vol->devname, vol->svc_id);
+			if (rc != ENOMEM) {
+				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
+				    "to too many failed extents\n",
+				    vol->devname, vol->svc_id);
+			}
+
+			/* for now we have to invalidate the rebuild extent */
+			if (rc == ENOMEM) {
+				HR_ERROR("rebuild on \"%s\" (%lu), failed due "
+				    "to too many failed reads, because of not "
+				    "enough memory\n",
+				    vol->devname, vol->svc_id);
+				hr_raid1_ext_state_callback(vol, rebuild_idx,
+				    ENOMEM);
+			}
 
 			return rc;
 		}
@@ -684,8 +696,15 @@ static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
 
 	rc = block_write_direct(rebuild_ext->svc_id, ba, cnt, buf);
 	if (rc != EOK) {
-		if (rc != ENOMEM)
-			hr_raid1_ext_state_callback(vol, rebuild_idx, rc);
+		/*
+		 * Here we dont handle ENOMEM, because maybe in the
+		 * future, there is going to be M_WAITOK, or we are
+		 * going to wait for more memory, so that we don't
+		 * have to invalidate it...
+		 *
+		 * XXX: for now we do
+		 */
+		hr_raid1_ext_state_callback(vol, rebuild_idx, rc);
 
 		HR_ERROR("rebuild on \"%s\" (%lu), failed due to "
 		    "the rebuilt extent no. %lu WRITE (rc: %s)\n",
@@ -760,7 +779,17 @@ static errno_t hr_raid1_rebuild(void *arg)
 	    "extent no. %lu\n", vol->devname, vol->svc_id, rebuild_idx);
 
 	fibril_rwlock_write_lock(&vol->states_lock);
+
 	hr_update_ext_status(vol, rebuild_idx, HR_EXT_ONLINE);
+	/*
+	 * We can be optimistic here, if some extents are
+	 * still INVALID, FAULTY or MISSING, the update vol
+	 * function will pick them up, and set the volume
+	 * state accordingly.
+	 */
+	hr_update_vol_status(vol, HR_VOL_ONLINE);
+	atomic_store(&vol->state_changed, true);
+
 	fibril_rwlock_write_unlock(&vol->states_lock);
 
 	/*
@@ -770,8 +799,16 @@ static errno_t hr_raid1_rebuild(void *arg)
 	hr_write_meta_to_ext(vol, rebuild_idx);
 end:
 	if (rc != EOK) {
+		/*
+		 * We can fail either because:
+		 * - the rebuild extent failing or invalidation
+		 * - there is are no ONLINE extents (vol is FAULTY)
+		 * - we got ENOMEM on all READs (we also invalidate the
+		 *   rebuild extent here, for now)
+		 */
 		fibril_rwlock_write_lock(&vol->states_lock);
 		hr_update_vol_status(vol, HR_VOL_DEGRADED);
+		atomic_store(&vol->state_changed, true);
 		fibril_rwlock_write_unlock(&vol->states_lock);
 	}
 
