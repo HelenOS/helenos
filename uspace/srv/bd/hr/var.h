@@ -48,6 +48,7 @@
 
 #define HR_STRIP_SIZE DATA_XFER_LIMIT
 
+struct hr_volume;
 typedef struct hr_volume hr_volume_t;
 
 typedef struct hr_ops {
@@ -86,21 +87,23 @@ typedef struct hr_volume {
 	service_id_t svc_id;
 	char devname[HR_DEVNAME_LEN];
 
-	hr_extent_t extents[HR_MAX_EXTENTS];
 	size_t hotspare_no;
 	hr_extent_t hotspares[HR_MAX_HOTSPARES];
 
-	/* protects ordering (hr_extent_t.svc_id, hotspares) */
-	fibril_rwlock_t extents_lock;
+	/* protects hotspares (hotspares.{svc_id,status}, hotspare_no) */
+	fibril_mutex_t hotspare_lock;
 
-	/* protects states (hr_extent_t.status, hr_vol_status_t.status) */
+	hr_extent_t extents[HR_MAX_EXTENTS];
+	/* protects extents ordering (extents.svc_id) */
+	fibril_rwlock_t extents_lock;
+	/* protects states (extents.status, hr_volume_t.status) */
 	fibril_rwlock_t states_lock;
 
 	/* for halting IO requests when a REBUILD start waits */
 	bool halt_please;
 	fibril_mutex_t halt_lock;
 
-	uint64_t rebuild_blk;
+	_Atomic uint64_t rebuild_blk;
 	uint64_t counter; /* metadata syncing */
 	hr_vol_status_t status;
 } hr_volume_t;

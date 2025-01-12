@@ -43,6 +43,7 @@
 #include <ipc/services.h>
 #include <loc.h>
 #include <task.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -253,8 +254,12 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	fibril_rwlock_initialize(&new_volume->extents_lock);
 	fibril_rwlock_initialize(&new_volume->states_lock);
 
+	fibril_mutex_initialize(&new_volume->hotspare_lock);
+
 	list_initialize(&new_volume->range_lock_list);
 	fibril_mutex_initialize(&new_volume->range_lock_list_lock);
+
+	atomic_init(&new_volume->rebuild_blk, 0);
 
 	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)
@@ -309,10 +314,11 @@ static void hr_stop_srv(ipc_call_t *icall)
 		}
 		rc = loc_service_unregister(hr_srv, svc_id);
 	} else {
-		/* fibril safe for now */
-		fibril_mutex_lock(&vol->lock);
+		fibril_rwlock_write_lock(&vol->states_lock);
+		fibril_rwlock_read_lock(&vol->extents_lock);
 		hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
-		fibril_mutex_unlock(&vol->lock);
+		fibril_rwlock_read_unlock(&vol->extents_lock);
+		fibril_rwlock_write_unlock(&vol->states_lock);
 
 		vol->hr_ops.status_event(vol);
 	}
