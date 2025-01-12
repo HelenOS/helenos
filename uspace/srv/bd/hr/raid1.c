@@ -161,23 +161,11 @@ errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	hr_update_hotspare_svc_id(vol, hs_idx, hotspare);
 	hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
 
-	/*
-	 * If the volume is degraded, start rebuild right away.
-	 */
-	if (vol->status == HR_VOL_DEGRADED) {
-		HR_DEBUG("hr_raid1_add_hotspare(): volume in DEGRADED state, "
-		    "spawning new rebuild fibril\n");
-		fid_t fib = fibril_create(hr_raid1_rebuild, vol);
-		if (fib == 0) {
-			rc = ENOMEM;
-			goto error;
-		}
-		fibril_start(fib);
-		fibril_detach(fib);
-	}
-
+	atomic_store(&vol->state_changed, true);
 error:
 	fibril_mutex_unlock(&vol->hotspare_lock);
+
+	hr_raid1_update_vol_status(vol);
 
 	return rc;
 }
@@ -304,13 +292,14 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 			fibril_rwlock_write_unlock(&vol->states_lock);
 		}
 	} else if (healthy < vol->extent_no) {
-		if (old_state != HR_VOL_REBUILD) {
-			if (old_state != HR_VOL_DEGRADED) {
-				fibril_rwlock_write_lock(&vol->states_lock);
-				hr_update_vol_status(vol, HR_VOL_DEGRADED);
-				fibril_rwlock_write_unlock(&vol->states_lock);
-			}
+		if (old_state != HR_VOL_REBUILD &&
+		    old_state != HR_VOL_DEGRADED) {
+			fibril_rwlock_write_lock(&vol->states_lock);
+			hr_update_vol_status(vol, HR_VOL_DEGRADED);
+			fibril_rwlock_write_unlock(&vol->states_lock);
+		}
 
+		if (old_state != HR_VOL_REBUILD) {
 			if (vol->hotspare_no > 0) {
 				fid_t fib = fibril_create(hr_raid1_rebuild,
 				    vol);
