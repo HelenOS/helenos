@@ -156,7 +156,7 @@ errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 
 	vol->hotspare_no++;
 
-	vol->hotspares[hs_idx].svc_id = hotspare;
+	hr_update_hotspare_svc_id(vol, hs_idx, hotspare);
 	hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
 
 	/*
@@ -248,10 +248,10 @@ static void process_deferred_invalidations(hr_volume_t *vol)
 
 		vol->hotspare_no++;
 
-		vol->hotspares[hs_idx].svc_id = di->svc_id;
+		hr_update_hotspare_svc_id(vol, hs_idx, di->svc_id);
 		hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
 
-		vol->extents[di->index].svc_id = 0;
+		hr_update_ext_svc_id(vol, di->index, 0);
 		hr_update_ext_status(vol, di->index, HR_EXT_MISSING);
 
 		assert(vol->hotspare_no < HR_MAX_HOTSPARES + HR_MAX_EXTENTS);
@@ -562,10 +562,10 @@ static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
 		return rc;
 	}
 
-	vol->extents[bad].svc_id = hs_svc_id;
+	hr_update_ext_svc_id(vol, bad, hs_svc_id);
 	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
 
-	vol->hotspares[hs].svc_id = 0;
+	hr_update_hotspare_svc_id(vol, hs, 0);
 	hr_update_hotspare_status(vol, hs, HR_EXT_INVALID);
 
 	vol->hotspare_no--;
