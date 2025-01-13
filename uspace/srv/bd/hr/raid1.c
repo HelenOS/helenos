@@ -66,7 +66,6 @@ static errno_t init_rebuild(hr_volume_t *, size_t *);
 static errno_t swap_hs(hr_volume_t *, size_t, size_t);
 static errno_t hr_raid1_restore_blocks(hr_volume_t *, size_t, uint64_t, size_t,
     void *);
-static void hr_process_deferred_invalidations(hr_volume_t *);
 
 /* bdops */
 static errno_t hr_raid1_bd_open(bd_srvs_t *, bd_srv_t *);
@@ -107,7 +106,11 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	/* force volume state update */
 	atomic_store(&new_volume->state_changed, true);
 	hr_raid1_update_vol_status(new_volume);
-	if (new_volume->status == HR_VOL_FAULTY)
+
+	fibril_rwlock_read_lock(&new_volume->states_lock);
+	hr_vol_status_t state = new_volume->status;
+	fibril_rwlock_read_unlock(&new_volume->states_lock);
+	if (state == HR_VOL_FAULTY || state == HR_VOL_INVALID)
 		return EINVAL;
 
 	rc = hr_register_volume(new_volume);
@@ -358,7 +361,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	hr_vol_status_t vol_state = vol->status;
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
-	if (vol_state == HR_VOL_FAULTY)
+	if (vol_state == HR_VOL_FAULTY || vol_state == HR_VOL_INVALID)
 		return EIO;
 
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
@@ -776,53 +779,6 @@ static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
 	}
 
 	return EOK;
-}
-
-static void hr_process_deferred_invalidations(hr_volume_t *vol)
-{
-	HR_DEBUG("hr_raid1_update_vol_status(): deferred invalidations\n");
-
-	fibril_mutex_lock(&vol->halt_lock);
-	vol->halt_please = true;
-	fibril_rwlock_write_lock(&vol->extents_lock);
-	fibril_rwlock_write_lock(&vol->states_lock);
-	fibril_mutex_lock(&vol->hotspare_lock);
-
-	list_foreach(vol->deferred_invalidations_list, link,
-	    hr_deferred_invalidation_t, di) {
-		assert(vol->extents[di->index].status == HR_EXT_INVALID);
-
-		HR_DEBUG("moving invalidated extent no. %lu to hotspares\n",
-		    di->index);
-
-		block_fini(di->svc_id);
-
-		size_t hs_idx = vol->hotspare_no;
-
-		vol->hotspare_no++;
-
-		hr_update_hotspare_svc_id(vol, hs_idx, di->svc_id);
-		hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
-
-		hr_update_ext_svc_id(vol, di->index, 0);
-		hr_update_ext_status(vol, di->index, HR_EXT_MISSING);
-
-		assert(vol->hotspare_no < HR_MAX_HOTSPARES + HR_MAX_EXTENTS);
-	}
-
-	for (size_t i = 0; i < HR_MAX_EXTENTS; i++) {
-		hr_deferred_invalidation_t *di = &vol->deferred_inval[i];
-		if (di->svc_id != 0) {
-			list_remove(&di->link);
-			di->svc_id = 0;
-		}
-	}
-
-	fibril_mutex_unlock(&vol->hotspare_lock);
-	fibril_rwlock_write_unlock(&vol->states_lock);
-	fibril_rwlock_write_unlock(&vol->extents_lock);
-	vol->halt_please = false;
-	fibril_mutex_unlock(&vol->halt_lock);
 }
 
 /** @}
