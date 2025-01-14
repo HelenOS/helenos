@@ -300,9 +300,9 @@ void hr_fgroup_submit(hr_fgroup_t *group, hr_wu_t wu, void *arg)
 
 errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 {
+	fibril_mutex_lock(&group->lock);
 	assert(group->submitted == group->wu_cnt);
 
-	fibril_mutex_lock(&group->lock);
 	while (true) {
 		size_t finished = group->finished_fail + group->finished_okay;
 		if (group->wu_cnt == finished)
