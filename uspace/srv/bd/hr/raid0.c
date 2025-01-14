@@ -242,6 +242,8 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	if (type == HR_BD_SYNC && ba == 0 && cnt == 0) {
 		hr_fgroup_t *group = hr_fgroup_create(vol->fge,
 		    vol->extent_no);
+		if (group == NULL)
+			return ENOMEM;
 
 		for (size_t i = 0; i < vol->extent_no; i++) {
 			hr_io_t *io = hr_fgroup_alloc(group);
@@ -287,6 +289,8 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	size_t span = end_strip_no - strip_no + 1;
 
 	hr_fgroup_t *group = hr_fgroup_create(vol->fge, span);
+	if (group == NULL)
+		return ENOMEM;
 
 	while (left != 0) {
 		phys_block = stripe * strip_size + strip_off;
