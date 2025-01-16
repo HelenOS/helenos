@@ -57,27 +57,11 @@ kobject_ops_t waitq_kobject_ops = {
 	.destroy = waitq_destroy
 };
 
-static bool waitq_cap_cleanup_cb(cap_t *cap, void *arg)
-{
-	kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
-	    KOBJECT_TYPE_WAITQ);
-	kobject_put(kobj);
-	cap_free(cap->task, cap->handle);
-	return true;
-}
-
 /** Initialize the user waitq subsystem */
 void sys_waitq_init(void)
 {
 	waitq_cache = slab_cache_create("waitq_t", sizeof(waitq_t), 0, NULL,
 	    NULL, 0);
-}
-
-/** Clean-up all waitq capabilities held by the exiting task */
-void sys_waitq_task_cleanup(void)
-{
-	caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_WAITQ,
-	    waitq_cap_cleanup_cb, NULL);
 }
 
 /** Create a waitq for the current task
