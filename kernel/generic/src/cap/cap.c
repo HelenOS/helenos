@@ -425,7 +425,7 @@ void kobject_free(kobject_t *kobj)
  */
 void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw)
 {
-	atomic_store(&kobj->refcnt, 1);
+	refcount_init(&kobj->refcnt);
 
 	mutex_initialize(&kobj->caps_list_lock, MUTEX_PASSIVE);
 	list_initialize(&kobj->caps_list);
@@ -454,7 +454,7 @@ kobject_get(struct task *task, cap_handle_t handle, kobject_type_t type)
 	if (cap) {
 		if (cap->kobject->type == type) {
 			kobj = cap->kobject;
-			atomic_inc(&kobj->refcnt);
+			refcount_up(&kobj->refcnt);
 		}
 	}
 	mutex_unlock(&task->cap_info->lock);
@@ -468,7 +468,7 @@ kobject_get(struct task *task, cap_handle_t handle, kobject_type_t type)
  */
 void kobject_add_ref(kobject_t *kobj)
 {
-	atomic_inc(&kobj->refcnt);
+	refcount_up(&kobj->refcnt);
 }
 
 /** Drop reference to kernel object
@@ -480,7 +480,7 @@ void kobject_add_ref(kobject_t *kobj)
  */
 void kobject_put(kobject_t *kobj)
 {
-	if (atomic_postdec(&kobj->refcnt) == 1) {
+	if (refcount_down(&kobj->refcnt)) {
 		KOBJECT_OP(kobj)->destroy(kobj->raw);
 		kobject_free(kobj);
 	}

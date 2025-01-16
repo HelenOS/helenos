@@ -36,13 +36,14 @@
 #define KERN_CAP_H_
 
 #include <abi/cap.h>
-#include <typedefs.h>
-#include <adt/list.h>
-#include <adt/hash.h>
 #include <adt/hash_table.h>
-#include <lib/ra.h>
-#include <synch/mutex.h>
+#include <adt/hash.h>
+#include <adt/list.h>
 #include <atomic.h>
+#include <lib/ra.h>
+#include <lib/refcount.h>
+#include <synch/mutex.h>
+#include <typedefs.h>
 
 typedef enum {
 	CAP_STATE_FREE,
@@ -79,7 +80,7 @@ extern kobject_ops_t *kobject_ops[];
  */
 typedef struct kobject {
 	kobject_type_t type;
-	atomic_size_t refcnt;
+	atomic_refcount_t refcnt;
 
 	/** Mutex protecting caps_list */
 	mutex_t caps_list_lock;
