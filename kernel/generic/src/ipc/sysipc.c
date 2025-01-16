@@ -198,7 +198,7 @@ errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			irq_spinlock_lock(&phone->callee->lock, true);
 			list_remove(&phone->link);
 			/* Drop callee->connected_phones reference */
-			kobject_put(phone->kobject);
+			kobject_put(&phone->kobject);
 			phone->state = IPC_PHONE_SLAMMED;
 			phone->label = 0;
 			irq_spinlock_unlock(&phone->callee->lock, true);
@@ -272,31 +272,32 @@ static int process_request(answerbox_t *box, call_t *call)
 errno_t
 ipc_req_internal(cap_phone_handle_t handle, ipc_data_t *data, sysarg_t priv)
 {
-	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
-	if (!kobj->phone)
+	phone_t *phone = phone_from_kobject(
+	    kobject_get(TASK, handle, KOBJECT_TYPE_PHONE));
+	if (!phone)
 		return ENOENT;
 
 	call_t *call = ipc_call_alloc();
 	if (!call) {
-		kobject_put(kobj);
+		kobject_put(&phone->kobject);
 		return ENOMEM;
 	}
 
 	call->priv = priv;
 	memcpy(call->data.args, data->args, sizeof(data->args));
 
-	errno_t rc = request_preprocess(call, kobj->phone);
+	errno_t rc = request_preprocess(call, phone);
 	if (!rc) {
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_begin();
 #endif
 
-		kobject_add_ref(call->kobject);
-		rc = ipc_call_sync(kobj->phone, call);
+		kobject_add_ref(&call->kobject);
+		rc = ipc_call_sync(phone, call);
 		spinlock_lock(&call->forget_lock);
 		bool forgotten = call->forget;
 		spinlock_unlock(&call->forget_lock);
-		kobject_put(call->kobject);
+		kobject_put(&call->kobject);
 
 #ifdef CONFIG_UDEBUG
 		udebug_stoppable_end();
@@ -311,7 +312,7 @@ ipc_req_internal(cap_phone_handle_t handle, ipc_data_t *data, sysarg_t priv)
 				 * its owners and are responsible for its
 				 * deallocation.
 				 */
-				kobject_put(call->kobject);
+				kobject_put(&call->kobject);
 			} else {
 				/*
 				 * The call was forgotten and it changed hands.
@@ -319,7 +320,7 @@ ipc_req_internal(cap_phone_handle_t handle, ipc_data_t *data, sysarg_t priv)
 				 */
 				assert(rc == EINTR);
 			}
-			kobject_put(kobj);
+			kobject_put(&phone->kobject);
 			return rc;
 		}
 
@@ -328,8 +329,8 @@ ipc_req_internal(cap_phone_handle_t handle, ipc_data_t *data, sysarg_t priv)
 		ipc_set_retval(&call->data, rc);
 
 	memcpy(data->args, call->data.args, sizeof(data->args));
-	kobject_put(call->kobject);
-	kobject_put(kobj);
+	kobject_put(&call->kobject);
+	kobject_put(&phone->kobject);
 
 	return EOK;
 }
@@ -369,18 +370,20 @@ static int check_call_limit(phone_t *phone)
 sys_errno_t sys_ipc_call_async_fast(cap_phone_handle_t handle, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t label)
 {
-	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
-	if (!kobj)
+	phone_t *phone = phone_from_kobject(
+	    kobject_get(TASK, handle, KOBJECT_TYPE_PHONE));
+
+	if (!phone)
 		return ENOENT;
 
-	if (check_call_limit(kobj->phone)) {
-		kobject_put(kobj);
+	if (check_call_limit(phone)) {
+		kobject_put(&phone->kobject);
 		return ELIMIT;
 	}
 
 	call_t *call = ipc_call_alloc();
 	if (!call) {
-		kobject_put(kobj);
+		kobject_put(&phone->kobject);
 		return ENOMEM;
 	}
 
@@ -398,14 +401,14 @@ sys_errno_t sys_ipc_call_async_fast(cap_phone_handle_t handle, sysarg_t imethod,
 	/* Set the user-defined label */
 	call->data.answer_label = label;
 
-	errno_t res = request_preprocess(call, kobj->phone);
+	errno_t res = request_preprocess(call, phone);
 
 	if (!res)
-		ipc_call(kobj->phone, call);
+		ipc_call(phone, call);
 	else
-		ipc_backsend_err(kobj->phone, call, res);
+		ipc_backsend_err(phone, call, res);
 
-	kobject_put(kobj);
+	kobject_put(&phone->kobject);
 	return EOK;
 }
 
@@ -421,40 +424,41 @@ sys_errno_t sys_ipc_call_async_fast(cap_phone_handle_t handle, sysarg_t imethod,
 sys_errno_t sys_ipc_call_async_slow(cap_phone_handle_t handle, uspace_ptr_ipc_data_t data,
     sysarg_t label)
 {
-	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
-	if (!kobj)
+	phone_t *phone = phone_from_kobject(
+	    kobject_get(TASK, handle, KOBJECT_TYPE_PHONE));
+	if (!phone)
 		return ENOENT;
 
-	if (check_call_limit(kobj->phone)) {
-		kobject_put(kobj);
+	if (check_call_limit(phone)) {
+		kobject_put(&phone->kobject);
 		return ELIMIT;
 	}
 
 	call_t *call = ipc_call_alloc();
 	if (!call) {
-		kobject_put(kobj);
+		kobject_put(&phone->kobject);
 		return ENOMEM;
 	}
 
 	errno_t rc = copy_from_uspace(&call->data.args, data + offsetof(ipc_data_t, args),
 	    sizeof(call->data.args));
 	if (rc != EOK) {
-		kobject_put(call->kobject);
-		kobject_put(kobj);
+		kobject_put(&call->kobject);
+		kobject_put(&phone->kobject);
 		return (sys_errno_t) rc;
 	}
 
 	/* Set the user-defined label */
 	call->data.answer_label = label;
 
-	errno_t res = request_preprocess(call, kobj->phone);
+	errno_t res = request_preprocess(call, phone);
 
 	if (!res)
-		ipc_call(kobj->phone, call);
+		ipc_call(phone, call);
 	else
-		ipc_backsend_err(kobj->phone, call, res);
+		ipc_backsend_err(phone, call, res);
 
-	kobject_put(kobj);
+	kobject_put(&phone->kobject);
 	return EOK;
 }
 
@@ -488,7 +492,7 @@ static sys_errno_t sys_ipc_forward_common(cap_call_handle_t chandle,
 	if (!ckobj)
 		return ENOENT;
 
-	call_t *call = ckobj->call;
+	call_t *call = call_from_kobject(ckobj);
 
 	ipc_data_t old;
 	bool need_old = answer_need_old(call);
@@ -550,7 +554,7 @@ static sys_errno_t sys_ipc_forward_common(cap_call_handle_t chandle,
 		}
 	}
 
-	rc = ipc_forward(call, pkobj->phone, &TASK->answerbox, mode);
+	rc = ipc_forward(call, phone_from_kobject(pkobj), &TASK->answerbox, mode);
 	if (rc != EOK) {
 		after_forward = true;
 		goto error;
@@ -658,7 +662,7 @@ sys_errno_t sys_ipc_answer_fast(cap_call_handle_t chandle, sysarg_t retval,
 	if (!kobj)
 		return ENOENT;
 
-	call_t *call = kobj->call;
+	call_t *call = call_from_kobject(kobj);
 	assert(!(call->flags & IPC_CALL_ANSWERED));
 
 	ipc_data_t saved_data;
@@ -705,7 +709,7 @@ sys_errno_t sys_ipc_answer_slow(cap_call_handle_t chandle, uspace_ptr_ipc_data_t
 	if (!kobj)
 		return ENOENT;
 
-	call_t *call = kobj->call;
+	call_t *call = call_from_kobject(kobj);
 	assert(!(call->flags & IPC_CALL_ANSWERED));
 
 	ipc_data_t saved_data;
@@ -750,7 +754,7 @@ sys_errno_t sys_ipc_hangup(cap_phone_handle_t handle)
 	if (!kobj)
 		return ENOENT;
 
-	errno_t rc = ipc_phone_hangup(kobj->phone);
+	errno_t rc = ipc_phone_hangup(phone_from_kobject(kobj));
 	kobject_put(kobj);
 	cap_free(TASK, handle);
 	return rc;
@@ -796,7 +800,7 @@ restart:
 		call->data.cap_handle = CAP_NIL;
 
 		STRUCT_TO_USPACE(calldata, &call->data);
-		kobject_put(call->kobject);
+		kobject_put(&call->kobject);
 
 		return EOK;
 	}
@@ -805,14 +809,14 @@ restart:
 		process_answer(call);
 
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
-			kobject_put(call->kobject);
+			kobject_put(&call->kobject);
 			goto restart;
 		}
 
 		call->data.cap_handle = CAP_NIL;
 
 		STRUCT_TO_USPACE(calldata, &call->data);
-		kobject_put(call->kobject);
+		kobject_put(&call->kobject);
 
 		return EOK;
 	}
@@ -835,8 +839,8 @@ restart:
 	if (rc != EOK)
 		goto error;
 
-	kobject_add_ref(call->kobject);
-	cap_publish(TASK, handle, call->kobject);
+	kobject_add_ref(&call->kobject);
+	cap_publish(TASK, handle, &call->kobject);
 	return EOK;
 
 error:

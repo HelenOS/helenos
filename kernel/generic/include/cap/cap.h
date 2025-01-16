@@ -59,15 +59,10 @@ typedef enum {
 	KOBJECT_TYPE_MAX
 } kobject_type_t;
 
-struct task;
-
-struct call;
-struct irq;
-struct phone;
-struct waitq;
+struct kobject;
 
 typedef struct kobject_ops {
-	void (*destroy)(void *);
+	void (*destroy)(struct kobject *);
 } kobject_ops_t;
 
 extern kobject_ops_t *kobject_ops[];
@@ -76,7 +71,7 @@ extern kobject_ops_t *kobject_ops[];
 
 /*
  * Everything in kobject_t except for the atomic reference count, the capability
- * list and its lock is imutable.
+ * list and its lock is immutable.
  */
 typedef struct kobject {
 	kobject_type_t type;
@@ -86,14 +81,6 @@ typedef struct kobject {
 	mutex_t caps_list_lock;
 	/** List of published capabilities associated with the kobject */
 	list_t caps_list;
-
-	union {
-		void *raw;
-		struct call *call;
-		struct irq *irq;
-		struct phone *phone;
-		struct waitq *waitq;
-	};
 } kobject_t;
 
 /*
@@ -140,9 +127,7 @@ extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
 extern void cap_revoke(kobject_t *);
 extern void cap_free(struct task *, cap_handle_t);
 
-extern kobject_t *kobject_alloc(unsigned int);
-extern void kobject_free(kobject_t *);
-extern void kobject_initialize(kobject_t *, kobject_type_t, void *);
+extern void kobject_initialize(kobject_t *, kobject_type_t);
 extern kobject_t *kobject_get(struct task *, cap_handle_t, kobject_type_t);
 extern void kobject_add_ref(kobject_t *);
 extern void kobject_put(kobject_t *);

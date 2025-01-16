@@ -250,9 +250,9 @@ task_t *task_create(as_t *as, const char *name)
 			return NULL;
 		}
 
-		kobject_t *phone_obj = kobject_get(task, phone_handle,
-		    KOBJECT_TYPE_PHONE);
-		(void) ipc_phone_connect(phone_obj->phone, ipc_box_0);
+		phone_t *phone = phone_from_kobject(
+		    kobject_get(task, phone_handle, KOBJECT_TYPE_PHONE));
+		(void) ipc_phone_connect(phone, ipc_box_0);
 	}
 
 	irq_spinlock_lock(&tasks_lock, true);

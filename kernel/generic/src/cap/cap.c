@@ -96,7 +96,6 @@
 #define CAPS_SIZE	(CAPS_LAST - CAPS_START + 1)
 
 static slab_cache_t *cap_cache;
-static slab_cache_t *kobject_cache;
 
 kobject_ops_t *kobject_ops[KOBJECT_TYPE_MAX] = {
 	[KOBJECT_TYPE_CALL] = &call_kobject_ops,
@@ -155,8 +154,6 @@ void caps_init(void)
 {
 	cap_cache = slab_cache_create("cap_t", sizeof(cap_t), 0, NULL,
 	    NULL, 0);
-	kobject_cache = slab_cache_create("kobject_t", sizeof(kobject_t), 0,
-	    NULL, NULL, 0);
 }
 
 /** Allocate the capability info structure
@@ -462,23 +459,12 @@ void cap_free(task_t *task, cap_handle_t handle)
 	mutex_unlock(&task->cap_info->lock);
 }
 
-kobject_t *kobject_alloc(unsigned int flags)
-{
-	return slab_alloc(kobject_cache, flags);
-}
-
-void kobject_free(kobject_t *kobj)
-{
-	slab_free(kobject_cache, kobj);
-}
-
 /** Initialize kernel object
  *
  * @param kobj  Kernel object to initialize.
  * @param type  Type of the kernel object.
- * @param raw   Raw pointer to the encapsulated object.
  */
-void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw)
+void kobject_initialize(kobject_t *kobj, kobject_type_t type)
 {
 	refcount_init(&kobj->refcnt);
 
@@ -486,7 +472,6 @@ void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw)
 	list_initialize(&kobj->caps_list);
 
 	kobj->type = type;
-	kobj->raw = raw;
 }
 
 /** Get new reference to kernel object from capability
@@ -536,8 +521,7 @@ void kobject_add_ref(kobject_t *kobj)
 void kobject_put(kobject_t *kobj)
 {
 	if (refcount_down(&kobj->refcnt)) {
-		KOBJECT_OP(kobj)->destroy(kobj->raw);
-		kobject_free(kobj);
+		KOBJECT_OP(kobj)->destroy(kobj);
 	}
 }
 

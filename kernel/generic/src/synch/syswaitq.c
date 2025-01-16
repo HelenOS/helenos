@@ -47,21 +47,26 @@
 
 static slab_cache_t *waitq_cache;
 
-static void waitq_destroy(void *arg)
+typedef struct {
+	kobject_t kobject;
+	waitq_t waitq;
+} waitq_kobject_t;
+
+static void waitq_destroy(kobject_t *arg)
 {
-	waitq_t *wq = (waitq_t *) arg;
+	waitq_kobject_t *wq = (waitq_kobject_t *) arg;
 	slab_free(waitq_cache, wq);
 }
 
 kobject_ops_t waitq_kobject_ops = {
-	.destroy = waitq_destroy
+	.destroy = waitq_destroy,
 };
 
 /** Initialize the user waitq subsystem */
 void sys_waitq_init(void)
 {
-	waitq_cache = slab_cache_create("waitq_t", sizeof(waitq_t), 0, NULL,
-	    NULL, 0);
+	waitq_cache = slab_cache_create("syswaitq_t", sizeof(waitq_kobject_t),
+	    0, NULL, NULL, 0);
 }
 
 /** Create a waitq for the current task
@@ -73,35 +78,28 @@ void sys_waitq_init(void)
  */
 sys_errno_t sys_waitq_create(uspace_ptr_cap_waitq_handle_t whandle)
 {
-	waitq_t *wq = slab_alloc(waitq_cache, FRAME_ATOMIC);
-	if (!wq)
+	waitq_kobject_t *kobj = slab_alloc(waitq_cache, FRAME_ATOMIC);
+	if (!kobj)
 		return (sys_errno_t) ENOMEM;
-	waitq_initialize(wq);
 
-	kobject_t *kobj = kobject_alloc(0);
-	if (!kobj) {
-		slab_free(waitq_cache, wq);
-		return (sys_errno_t) ENOMEM;
-	}
-	kobject_initialize(kobj, KOBJECT_TYPE_WAITQ, wq);
+	kobject_initialize(&kobj->kobject, KOBJECT_TYPE_WAITQ);
+	waitq_initialize(&kobj->waitq);
 
 	cap_handle_t handle;
 	errno_t rc = cap_alloc(TASK, &handle);
 	if (rc != EOK) {
-		slab_free(waitq_cache, wq);
-		kobject_free(kobj);
+		slab_free(waitq_cache, kobj);
 		return (sys_errno_t) rc;
 	}
 
 	rc = copy_to_uspace(whandle, &handle, sizeof(handle));
 	if (rc != EOK) {
 		cap_free(TASK, handle);
-		kobject_free(kobj);
-		slab_free(waitq_cache, wq);
+		slab_free(waitq_cache, kobj);
 		return (sys_errno_t) rc;
 	}
 
-	cap_publish(TASK, handle, kobj);
+	cap_publish(TASK, handle, &kobj->kobject);
 
 	return (sys_errno_t) EOK;
 }
@@ -134,7 +132,8 @@ sys_errno_t sys_waitq_destroy(cap_waitq_handle_t whandle)
 sys_errno_t sys_waitq_sleep(cap_waitq_handle_t whandle, uint32_t timeout,
     unsigned int flags)
 {
-	kobject_t *kobj = kobject_get(TASK, whandle, KOBJECT_TYPE_WAITQ);
+	waitq_kobject_t *kobj =
+	    (waitq_kobject_t *) kobject_get(TASK, whandle, KOBJECT_TYPE_WAITQ);
 	if (!kobj)
 		return (sys_errno_t) ENOENT;
 
@@ -142,14 +141,14 @@ sys_errno_t sys_waitq_sleep(cap_waitq_handle_t whandle, uint32_t timeout,
 	udebug_stoppable_begin();
 #endif
 
-	errno_t rc = _waitq_sleep_timeout(kobj->waitq, timeout,
+	errno_t rc = _waitq_sleep_timeout(&kobj->waitq, timeout,
 	    SYNCH_FLAGS_INTERRUPTIBLE | flags);
 
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
 
-	kobject_put(kobj);
+	kobject_put(&kobj->kobject);
 
 	return (sys_errno_t) rc;
 }
@@ -162,13 +161,14 @@ sys_errno_t sys_waitq_sleep(cap_waitq_handle_t whandle, uint32_t timeout,
  */
 sys_errno_t sys_waitq_wakeup(cap_waitq_handle_t whandle)
 {
-	kobject_t *kobj = kobject_get(TASK, whandle, KOBJECT_TYPE_WAITQ);
+	waitq_kobject_t *kobj =
+	    (waitq_kobject_t *) kobject_get(TASK, whandle, KOBJECT_TYPE_WAITQ);
 	if (!kobj)
 		return (sys_errno_t) ENOENT;
 
-	waitq_wake_one(kobj->waitq);
+	waitq_wake_one(&kobj->waitq);
 
-	kobject_put(kobj);
+	kobject_put(&kobj->kobject);
 	return (sys_errno_t) EOK;
 }
 
