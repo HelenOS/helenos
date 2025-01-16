@@ -200,6 +200,11 @@ task_t *task_create(as_t *as, const char *name)
 	if (!task)
 		return NULL;
 
+	if (caps_task_init(task) != EOK) {
+		slab_free(task_cache, task);
+		return NULL;
+	}
+
 	refcount_init(&task->refcount);
 
 	task_create_arch(task);
@@ -211,8 +216,6 @@ task_t *task_create(as_t *as, const char *name)
 	task->perms = 0;
 	task->ucycles = 0;
 	task->kcycles = 0;
-
-	caps_task_init(task);
 
 	task->ipc_info.call_sent = 0;
 	task->ipc_info.call_received = 0;
@@ -286,6 +289,8 @@ static void task_destroy(task_t *task)
 	 * Drop our reference to the address space.
 	 */
 	as_release(task->as);
+
+	caps_task_clear(task);
 
 	slab_free(task_cache, task);
 }
