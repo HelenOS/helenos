@@ -73,6 +73,9 @@ extern void fibril_detach(fid_t fid);
 extern void fibril_start(fid_t);
 extern __noreturn void fibril_exit(long);
 
+/** Add a function to be called after fibril exits, just before it is destroyed */
+extern errno_t fibril_add_exit_hook(void (*)(void));
+
 __HELENOS_DECLS_END;
 
 #endif

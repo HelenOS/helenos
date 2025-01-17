@@ -69,7 +69,14 @@ struct fibril {
 	int rmutex_locks;
 	fibril_owner_info_t *waits_for;
 	fibril_event_t *sleep_event;
+
+	list_t exit_hooks;
 };
+
+typedef struct {
+	link_t link;
+	void (*func)(void);
+} fibril_hook_t;
 
 extern fibril_t *fibril_alloc(void);
 extern void fibril_setup(fibril_t *);

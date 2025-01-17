@@ -197,6 +197,10 @@ void fibril_teardown(fibril_t *fibril)
 
 	if (fibril->is_freeable) {
 		tls_free(fibril->tcb);
+		list_foreach_safe(fibril->exit_hooks, cur, _next) {
+			fibril_hook_t *hook = list_get_instance(cur, fibril_hook_t, link);
+			free(hook);
+		}
 		free(fibril);
 	}
 }
@@ -561,6 +565,8 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 	fibril->func = func;
 	fibril->arg = arg;
 
+	list_initialize(&fibril->exit_hooks);
+
 	context_create_t sctx = {
 		.fn = _fibril_main,
 		.stack_base = fibril->stack,
@@ -854,6 +860,10 @@ _Noreturn void fibril_exit(long retval)
 	// TODO: implement fibril_join() and remember retval
 	(void) retval;
 
+	list_foreach(fibril_self()->exit_hooks, link, fibril_hook_t, hook) {
+		hook->func();
+	}
+
 	fibril_t *f = _ready_list_pop_nonblocking(false);
 	if (!f)
 		f = fibril_self()->thread_ctx;
@@ -915,6 +925,17 @@ void fibril_ipc_poke(void)
 	DPRINTF("Poking.\n");
 	/* Wakeup one thread sleeping in SYS_IPC_WAIT. */
 	ipc_poke();
+}
+
+errno_t fibril_add_exit_hook(void (*hook)(void))
+{
+	fibril_hook_t *h = malloc(sizeof(fibril_hook_t));
+	if (!h)
+		return ENOMEM;
+
+	h->func = hook;
+	list_append(&h->link, &fibril_self()->exit_hooks);
+	return EOK;
 }
 
 errno_t fibril_ipc_wait(ipc_call_t *call, const struct timespec *expires)
