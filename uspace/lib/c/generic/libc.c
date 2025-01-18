@@ -171,6 +171,9 @@ void __libc_fini(void)
 
 void __libc_exit(int status)
 {
+	// TODO: some teardown of the main fibril?
+	// namely, fibril_exit_hooks would like to run even on the main fibril
+
 	/*
 	 * GCC extension __attribute__((destructor)),
 	 * C++ destructors are added to __cxa_finalize call

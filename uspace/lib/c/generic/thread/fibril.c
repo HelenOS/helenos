@@ -184,6 +184,7 @@ fibril_t *fibril_alloc(void)
  */
 void fibril_setup(fibril_t *f)
 {
+	list_initialize(&f->exit_hooks);
 	futex_lock(&fibril_futex);
 	list_append(&f->all_link, &fibril_list);
 	futex_unlock(&fibril_futex);
@@ -565,8 +566,6 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 	fibril->func = func;
 	fibril->arg = arg;
 
-	list_initialize(&fibril->exit_hooks);
-
 	context_create_t sctx = {
 		.fn = _fibril_main,
 		.stack_base = fibril->stack,
@@ -932,6 +931,8 @@ errno_t fibril_add_exit_hook(void (*hook)(void))
 	fibril_hook_t *h = malloc(sizeof(fibril_hook_t));
 	if (!h)
 		return ENOMEM;
+
+	DPRINTF("adding exit hook: function %p (fibril_hook_t structure at %p)\n", hook, h);
 
 	h->func = hook;
 	list_append(&h->link, &fibril_self()->exit_hooks);
