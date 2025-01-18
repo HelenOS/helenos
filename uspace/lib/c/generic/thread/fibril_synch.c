@@ -262,7 +262,7 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 
 	futex_lock(&fibril_synch_futex);
 
-	if (!frw->writers) {
+	if (!frw->writers && list_empty(&frw->waiters)) {
 		/* Consider the first reader the owner. */
 		if (frw->readers++ == 0)
 			frw->oi.owned_by = f;
