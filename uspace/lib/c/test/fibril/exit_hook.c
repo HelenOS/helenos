@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2025 Matej Volf
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,36 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
+#include <fibril.h>
 #include <pcut/pcut.h>
 
 PCUT_INIT;
 
-PCUT_IMPORT(capa);
-PCUT_IMPORT(casting);
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(double_to_str);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(fibril_exit_hook);
-PCUT_IMPORT(getopt);
-PCUT_IMPORT(gsort);
-PCUT_IMPORT(ieee_double);
-PCUT_IMPORT(imath);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(loc);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(perf);
-PCUT_IMPORT(perm);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(strtol);
-PCUT_IMPORT(table);
-PCUT_IMPORT(uuid);
+PCUT_TEST_SUITE(fibril_exit_hook);
 
-PCUT_MAIN();
+static int value;
+
+static void exit_hook(void) {
+    value = 5;
+}
+
+static errno_t fibril_basic(void* _arg) {
+    fibril_add_exit_hook(exit_hook);
+    return EOK;
+}
+
+PCUT_TEST(exit_hook_basic) {
+    value = 0;
+    fid_t other = fibril_create(fibril_basic, NULL);
+    fibril_start(other);
+
+    fibril_yield();
+
+    PCUT_ASSERT_INT_EQUALS(5, value);
+}
+
+/*
+static errno_t fibril_to_be_killed(void* _arg) {
+    fibril_add_exit_hook(exit_hook);
+
+    while (true)
+        firbil_yield();
+
+    assert(0 && "unreachable");
+}
+
+PCUT_TEST(exit_hook_kill) {
+    value = 0;
+    fid_t other = fibril_create(fibril_to_be_killed, NULL);
+    fibril_start(other);
+
+    fibril_yield();
+
+    fibril_kill(other); // anything like this doesn't exist yet
+
+    PCUT_ASSERT_INT_EQUALS(5, value);
+}
+*/
+
+
+PCUT_EXPORT(fibril_exit_hook);
