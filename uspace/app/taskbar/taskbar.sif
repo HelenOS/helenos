@@ -24,7 +24,7 @@
 </entry>
 <entry caption="~D~isplay Configuration" cmd="/app/display-cfg -d %d" terminal="n">
 </entry>
-<entry caption="Ta~s~kbar Configuration" cmd="/app/taskbar-cfg -d %d" terminal="n">
+<entry caption="Taskba~r~ Configuration" cmd="/app/taskbar-cfg -d %d" terminal="n">
 </entry>
 <entry separator="y">
 </entry>
@@ -35,6 +35,8 @@
 <entry separator="y">
 </entry>
 <entry caption="~A~bout HelenOS" cmd="/app/aboutos -d %d" terminal="n">
+</entry>
+<entry caption="~S~hut Down..." cmd="/app/shutdown-dlg -d %d" terminal="n">
 </entry>
 </entries>
 </sif>
