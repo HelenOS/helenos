@@ -295,7 +295,7 @@ static errno_t shutdown_progress_create(shutdown_dlg_t *sddlg,
 	if (ui_is_textmode(sddlg->ui)) {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
-		params.rect.p1.x = 24;
+		params.rect.p1.x = 64;
 		params.rect.p1.y = 5;
 	} else {
 		params.rect.p0.x = 0;
@@ -433,17 +433,10 @@ static errno_t shutdown_dlg(const char *display_spec)
 	params.style &= ~ui_wds_decorated;
 	params.placement = ui_wnd_place_full_screen;
 	params.flags |= ui_wndf_topmost | ui_wndf_nofocus;
-	if (ui_is_textmode(sddlg.ui)) {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 24;
-		params.rect.p1.y = 5;
-	} else {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 300;
-		params.rect.p1.y = 60;
-	}
+/*	params.rect.p0.x = 0;
+	params.rect.p0.y = 0;
+	params.rect.p1.x = 1;
+	params.rect.p1.y = 1;*/
 
 	rc = ui_window_create(sddlg.ui, &params, &sddlg.bgwindow);
 	if (rc != EOK) {
@@ -453,10 +446,18 @@ static errno_t shutdown_dlg(const char *display_spec)
 
 	ui_window_set_cb(sddlg.bgwindow, &bg_window_cb, (void *)&sddlg);
 
-	rc = gfx_color_new_rgb_i16(0x8000, 0xc800, 0xffff, &sddlg.bg_color);
-	if (rc != EOK) {
-		printf("Error allocating color.\n");
-		goto error;
+	if (ui_is_textmode(sddlg.ui)) {
+		rc = gfx_color_new_ega(0x17, &sddlg.bg_color);
+		if (rc != EOK) {
+			printf("Error allocating color.\n");
+			goto error;
+		}
+	} else {
+		rc = gfx_color_new_rgb_i16(0x8000, 0xc800, 0xffff, &sddlg.bg_color);
+		if (rc != EOK) {
+			printf("Error allocating color.\n");
+			goto error;
+		}
 	}
 
 	rc = ui_window_paint(sddlg.bgwindow);
