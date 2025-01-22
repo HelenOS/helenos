@@ -301,11 +301,11 @@ void hr_fgroup_submit(hr_fgroup_t *group, hr_wu_t wu, void *arg)
 errno_t hr_fgroup_wait(hr_fgroup_t *group, size_t *rokay, size_t *rfailed)
 {
 	fibril_mutex_lock(&group->lock);
-	assert(group->submitted == group->wu_cnt);
+	assert(group->submitted <= group->wu_cnt);
 
 	while (true) {
 		size_t finished = group->finished_fail + group->finished_okay;
-		if (group->wu_cnt == finished)
+		if (finished == group->submitted)
 			break;
 
 		fibril_condvar_wait(&group->all_done, &group->lock);
@@ -403,9 +403,9 @@ static errno_t fge_fibril(void *arg)
 
 		fibril_mutex_lock(&group->lock);
 		size_t finished = group->finished_fail + group->finished_okay;
-		fibril_mutex_unlock(&group->lock);
-		if (finished == group->wu_cnt)
+		if (finished == group->submitted)
 			fibril_condvar_signal(&group->all_done);
+		fibril_mutex_unlock(&group->lock);
 
 		fibril_mutex_unlock(&pool->lock);
 	}
