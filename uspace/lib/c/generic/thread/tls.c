@@ -84,6 +84,10 @@ void *tls_get(void)
 
 static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 {
+	/*
+	 * See also rtld/module.c -> modules_process_tls(), where we have less
+	 * messy code for the dynamic-linking version of this.
+	 */
 	assert(!elf_get_phdr(elf, PT_DYNAMIC));
 #ifdef CONFIG_RTLD
 	assert(runtime_env == NULL);
@@ -126,6 +130,18 @@ static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 		return tcb;
 
 	uintptr_t bias = elf_get_bias(elf);
+
+	/*
+	 * FIXME: I couldn't convince myself this is correct, but I couldn't
+	 * find a case where it breaks either: if the actual alloc_size is
+	 * bigger than the requested size (tls->p_memsz), the alignment padding
+	 * will be placed at the beginning (because TLS is (at least sometimes?)
+	 * indexed with negative offsets from the TCB pointer).
+	 *
+	 * Now we will copy the initialization data to a position at the start of
+	 * the allocation, so if the padding has nonzero size, if think the initialization
+	 * data is now incorrectly offset by its size?
+	 */
 
 	/* Copy thread local data from the initialization image. */
 	memcpy(data, (void *)(tls->p_vaddr + bias), tls->p_filesz);
