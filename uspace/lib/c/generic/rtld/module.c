@@ -402,7 +402,11 @@ void modules_process_tls(rtld_t *rtld)
 	 */
 	rtld->tls_size = ALIGN_UP(rtld->tls_size, rtld->tls_align);
 
-	/* Space for the TCB. */
+	/* Space for the TCB.
+	 * Later, the TLS zero offset is equal to the pointer to tcb_t, so
+	 * adding the sizeof(tcb_t) block AFTER we calculated the alignment
+	 * of the remainder above is correct.
+	 */
 	rtld->tls_size += sizeof(tcb_t);
 #endif
 }
