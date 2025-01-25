@@ -103,6 +103,13 @@ static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 	 */
 	assert(tls_align <= PAGE_SIZE);
 
+	/*
+	 * FIXME: the calculation of alloc_size shouldn't include the alignment
+	 * of tcb_t (at least in Variant II)
+	 * See https://github.com/HelenOS/helenos/pull/240/files/4ef27ebf98a0656e09889b7d00efdec03343f1aa#r1929592924
+	 * (you will also need to fix _tcb_data_offset)
+	 */
+
 #ifdef CONFIG_TLS_VARIANT_1
 	size_t alloc_size =
 	    ALIGN_UP(sizeof(tcb_t), tls_align) + tls_size;
@@ -130,26 +137,6 @@ static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 		return tcb;
 
 	uintptr_t bias = elf_get_bias(elf);
-
-	/*
-	 * FIXME: I couldn't convince myself this is correct, but I couldn't
-	 * find a case where it breaks either: if the actual alloc_size is
-	 * bigger than the requested size (tls->p_memsz), the alignment padding
-	 * will be placed at the beginning (because TLS is (at least sometimes?)
-	 * indexed with negative offsets from the TCB pointer).
-	 *
-	 * Now we will copy the initialization data to a position at the start of
-	 * the allocation, so if the padding has nonzero size, if think the initialization
-	 * data is now incorrectly offset by its size?
-	 *
-	 * Maybe a diagram helps explaining this?
-	 * |    allocation   |     |
-	 * | paddding | data | tcb |
-	 *   ^
-	 *   +--- we will copy the initialization data here
-	 *              ^
-	 *              +--- but the data should be actually here?
-	 */
 
 	/* Copy thread local data from the initialization image. */
 	memcpy(data, (void *)(tls->p_vaddr + bias), tls->p_filesz);
