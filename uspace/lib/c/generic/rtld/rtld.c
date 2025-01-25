@@ -44,7 +44,7 @@
 rtld_t *runtime_env;
 static rtld_t rt_env_static;
 
-/** Initialize the runtime linker for use in a statically-linked executable. */
+/** Initialize a minimal runtime linker environment for use in executables loaded directly by kernel. */
 errno_t rtld_init_static(void)
 {
 	errno_t rc;
@@ -64,7 +64,7 @@ errno_t rtld_init_static(void)
 	return EOK;
 }
 
-/** Initialize and process a dynamically linked executable.
+/** Initialize and process an executable, static or dynamic.
  *
  * @param p_info Program info
  * @return EOK on success or non-zero error code
@@ -74,7 +74,7 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	rtld_t *env;
 	module_t *prog;
 
-	DPRINTF("Load dynamically linked program.\n");
+	DPRINTF("Load program with rtld.\n");
 
 	/* Allocate new RTLD environment to pass to the loaded program */
 	env = calloc(1, sizeof(rtld_t));
@@ -94,8 +94,12 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 * program and insert it into the module graph.
 	 */
 
-	DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
-	dynamic_parse(p_info->dynamic, 0, &prog->dyn);
+	if (p_info->dynamic) {
+		DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
+		dynamic_parse(p_info->dynamic, 0, &prog->dyn);
+	} else {
+		DPRINTF("Program is statically linked\n");
+	}
 	prog->bias = 0;
 	prog->dyn.soname = "[program]";
 	prog->rtld = env;
@@ -123,10 +127,14 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 * Now we can continue with loading all other modules.
 	 */
 
-	DPRINTF("Load all program dependencies\n");
-	errno_t rc = module_load_deps(prog, 0);
-	if (rc != EOK) {
-		return rc;
+	if (p_info->dynamic) {
+		DPRINTF("Load all program dependencies\n");
+		errno_t rc = module_load_deps(prog, 0);
+		if (rc != EOK) {
+			free(prog);
+			free(env);
+			return rc;
+		}
 	}
 
 	/* Compute static TLS size */

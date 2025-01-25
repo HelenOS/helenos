@@ -73,7 +73,7 @@ static ptrdiff_t _tcb_data_offset(void)
 #endif
 }
 
-/** Get address of static TLS block */
+/** Get address of static TLS block - only when RTLD is not initialized  */
 void *tls_get(void)
 {
 #ifdef CONFIG_RTLD
