@@ -141,6 +141,14 @@ static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 	 * Now we will copy the initialization data to a position at the start of
 	 * the allocation, so if the padding has nonzero size, if think the initialization
 	 * data is now incorrectly offset by its size?
+	 *
+	 * Maybe a diagram helps explaining this?
+	 * |    allocation   |     |
+	 * | paddding | data | tcb |
+	 *   ^
+	 *   +--- we will copy the initialization data here
+	 *              ^
+	 *              +--- but the data should be actually here?
 	 */
 
 	/* Copy thread local data from the initialization image. */
