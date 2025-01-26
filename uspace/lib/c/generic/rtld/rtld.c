@@ -42,29 +42,33 @@
 #include <str.h>
 
 rtld_t *runtime_env;
-static rtld_t rt_env_static;
 
-/** Initialize a minimal runtime linker environment for use in executables loaded directly by kernel. */
-errno_t rtld_init_static(void)
+/** Initialize the runtime linker for use in a statically-linked executable. */
+errno_t rtld_init_static(elf_finfo_t *finfo, rtld_t **rre)
 {
+	rtld_t *env;
 	errno_t rc;
 
-	runtime_env = &rt_env_static;
-	list_initialize(&runtime_env->modules);
-	list_initialize(&runtime_env->imodules);
-	runtime_env->program = NULL;
-	runtime_env->next_id = 1;
+	env = calloc(1, sizeof(rtld_t));
+	if (env == NULL)
+		return ENOMEM;
 
-	rc = module_create_static_exec(runtime_env, NULL);
+	list_initialize(&env->modules);
+	list_initialize(&env->imodules);
+	env->program = NULL;
+	env->next_id = 1;
+
+	rc = module_create_static_exec(finfo->base, env);
 	if (rc != EOK)
 		return rc;
 
-	modules_process_tls(runtime_env);
+	modules_process_tls(env);
 
+	*rre = env;
 	return EOK;
 }
 
-/** Initialize and process an executable, static or dynamic.
+/** Initialize and process a dynamically linked executable.
  *
  * @param p_info Program info
  * @return EOK on success or non-zero error code
@@ -74,7 +78,7 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	rtld_t *env;
 	module_t *prog;
 
-	DPRINTF("Load program with rtld.\n");
+	DPRINTF("Load dynamically linked program.\n");
 
 	/* Allocate new RTLD environment to pass to the loaded program */
 	env = calloc(1, sizeof(rtld_t));
@@ -94,12 +98,8 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 * program and insert it into the module graph.
 	 */
 
-	if (p_info->dynamic) {
-		DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
-		dynamic_parse(p_info->dynamic, 0, &prog->dyn);
-	} else {
-		DPRINTF("Program is statically linked\n");
-	}
+	DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
+	dynamic_parse(p_info->dynamic, 0, &prog->dyn);
 	prog->bias = 0;
 	prog->dyn.soname = "[program]";
 	prog->rtld = env;
@@ -127,14 +127,12 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 * Now we can continue with loading all other modules.
 	 */
 
-	if (p_info->dynamic) {
-		DPRINTF("Load all program dependencies\n");
-		errno_t rc = module_load_deps(prog, 0);
-		if (rc != EOK) {
-			free(prog);
-			free(env);
-			return rc;
-		}
+	DPRINTF("Load all program dependencies\n");
+	errno_t rc = module_load_deps(prog, 0);
+	if (rc != EOK) {
+		free(prog);
+		free(env);
+		return rc;
 	}
 
 	/* Compute static TLS size */

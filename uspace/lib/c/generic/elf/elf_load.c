@@ -56,17 +56,33 @@
  */
 errno_t elf_load(int file, elf_info_t *info)
 {
+#ifdef CONFIG_RTLD
+	rtld_t *env;
+#endif
 	errno_t rc = EOK;
+	elf_finfo_t *finfo = &info->finfo;
 
-	rc = elf_load_file(file, 0, &info->finfo);
+	rc = elf_load_file(file, 0, finfo);
 	if (rc != EOK) {
 		DPRINTF("Failed to load executable '%s'.\n", file_name);
 		return rc;
 	}
 
+	if (info->finfo.dynamic == NULL) {
+		/* Statically linked program */
+		DPRINTF("Binary is statically linked.\n");
+		info->env = NULL;
 #ifdef CONFIG_RTLD
-	rtld_t *env;
-	rc = rtld_prog_process(&info->finfo, &env);
+		rc = rtld_init_static(finfo, &env);
+		info->env = env;
+#endif
+		return EOK;
+	}
+
+	DPRINTF("Binary is dynamically linked.\n");
+#ifdef CONFIG_RTLD
+	DPRINTF("- prog dynamic: %p\n", finfo->dynamic);
+	rc = rtld_prog_process(finfo, &env);
 	info->env = env;
 #else
 	rc = ENOTSUP;

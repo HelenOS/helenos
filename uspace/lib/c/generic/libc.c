@@ -98,10 +98,10 @@ void __libc_main(void *pcb_ptr)
 	if (__pcb == NULL) {
 		/*
 		 * A binary loaded by kernel, not the loader.
-		 * Init some rudimentary rtld runtime environment.
+		 * Noop - code loaded by kernel doesn't need RTLD.
 		 */
-		errno_t rtld_init_result = rtld_init_static();
-		assert(rtld_init_result == EOK);
+		// errno_t rtld_init_result = rtld_init_static();
+		// assert(rtld_init_result == EOK);
 	} else {
 		assert(__pcb->rtld_runtime != NULL);
 		runtime_env = (rtld_t *) __pcb->rtld_runtime;

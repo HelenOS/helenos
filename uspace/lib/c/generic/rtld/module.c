@@ -60,7 +60,7 @@
  * @param rmodule Place to store pointer to new module or @c NULL
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t module_create_static_exec(rtld_t *rtld, module_t **rmodule)
+errno_t module_create_static_exec(const void *elf, rtld_t *rtld)
 {
 	module_t *module;
 
@@ -78,10 +78,10 @@ errno_t module_create_static_exec(rtld_t *rtld, module_t **rmodule)
 	module->local = true;
 
 	const elf_segment_header_t *tls =
-	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
+	    elf_get_phdr(elf, PT_TLS);
 
 	if (tls) {
-		uintptr_t bias = elf_get_bias(__progsymbols.elfstart);
+		uintptr_t bias = elf_get_bias(elf);
 		module->tdata = (void *) (tls->p_vaddr + bias);
 		module->tdata_size = tls->p_filesz;
 		module->tbss_size = tls->p_memsz - tls->p_filesz;
@@ -94,9 +94,6 @@ errno_t module_create_static_exec(rtld_t *rtld, module_t **rmodule)
 	}
 
 	list_append(&module->modules_link, &rtld->modules);
-
-	if (rmodule != NULL)
-		*rmodule = module;
 	return EOK;
 }
 
