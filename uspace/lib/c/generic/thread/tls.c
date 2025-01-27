@@ -58,10 +58,10 @@
 #error Unknown TLS variant.
 #endif
 
-static ptrdiff_t _tcb_data_offset(void)
+static ptrdiff_t _tcb_data_offset(const void* elf)
 {
 	const elf_segment_header_t *tls =
-	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
+	    elf_get_phdr(elf, PT_TLS);
 
 	size_t tls_align = tls ? tls->p_align : 1;
 
@@ -79,11 +79,15 @@ void *tls_get(void)
 #ifdef CONFIG_RTLD
 	assert(runtime_env == NULL);
 #endif
-	return (uint8_t *)__tcb_get() + _tcb_data_offset();
+	return (uint8_t *)__tcb_get() + _tcb_data_offset(__progsymbols.elfstart);
 }
 
 static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 {
+	/*
+	 * See also rtld/module.c -> modules_process_tls(), where we have less
+	 * messy code for the dynamic-linking version of this.
+	 */
 	assert(!elf_get_phdr(elf, PT_DYNAMIC));
 #ifdef CONFIG_RTLD
 	assert(runtime_env == NULL);
@@ -99,6 +103,13 @@ static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 	 */
 	assert(tls_align <= PAGE_SIZE);
 
+	/*
+	 * FIXME: the calculation of alloc_size shouldn't include the alignment
+	 * of tcb_t (at least in Variant II)
+	 * See https://github.com/HelenOS/helenos/pull/240/files/4ef27ebf98a0656e09889b7d00efdec03343f1aa#r1929592924
+	 * (you will also need to fix _tcb_data_offset)
+	 */
+
 #ifdef CONFIG_TLS_VARIANT_1
 	size_t alloc_size =
 	    ALIGN_UP(sizeof(tcb_t), tls_align) + tls_size;
@@ -113,11 +124,11 @@ static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
 
 #ifdef CONFIG_TLS_VARIANT_1
 	tcb_t *tcb = area;
-	uint8_t *data = (uint8_t *)tcb + _tcb_data_offset();
+	uint8_t *data = (uint8_t *)tcb + _tcb_data_offset(elf);
 	memset(tcb, 0, sizeof(*tcb));
 #else
 	uint8_t *data = area;
-	tcb_t *tcb = (tcb_t *) (data - _tcb_data_offset());
+	tcb_t *tcb = (tcb_t *) (data - _tcb_data_offset(elf));
 	memset(tcb, 0, sizeof(tcb_t));
 	tcb->self = tcb;
 #endif
