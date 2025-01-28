@@ -58,7 +58,7 @@
 #error Unknown TLS variant.
 #endif
 
-static ptrdiff_t _tcb_data_offset(const void* elf)
+static ptrdiff_t _tcb_data_offset(const void *elf)
 {
 	const elf_segment_header_t *tls =
 	    elf_get_phdr(elf, PT_TLS);

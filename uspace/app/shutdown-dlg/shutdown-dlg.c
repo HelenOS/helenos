@@ -433,10 +433,12 @@ static errno_t shutdown_dlg(const char *display_spec)
 	params.style &= ~ui_wds_decorated;
 	params.placement = ui_wnd_place_full_screen;
 	params.flags |= ui_wndf_topmost | ui_wndf_nofocus;
-/*	params.rect.p0.x = 0;
-	params.rect.p0.y = 0;
-	params.rect.p1.x = 1;
-	params.rect.p1.y = 1;*/
+	/*
+	 * params.rect.p0.x = 0;
+	 * params.rect.p0.y = 0;
+	 * params.rect.p1.x = 1;
+	 * params.rect.p1.y = 1;
+	 */
 
 	rc = ui_window_create(sddlg.ui, &params, &sddlg.bgwindow);
 	if (rc != EOK) {
