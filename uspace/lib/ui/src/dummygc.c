@@ -180,9 +180,10 @@ static errno_t dummygc_bitmap_create(void *arg, gfx_bitmap_params_t *params,
 		tbm->alloc.pitch = (params->rect.p1.x - params->rect.p0.x) *
 		    sizeof(uint32_t);
 		tbm->alloc.off0 = 0;
-		tbm->alloc.pixels = calloc(sizeof(uint32_t),
+		tbm->alloc.pixels = calloc(
 		    (params->rect.p1.x - params->rect.p0.x) *
-		    (params->rect.p1.y - params->rect.p0.y));
+		    (params->rect.p1.y - params->rect.p0.y),
+		    sizeof(uint32_t));
 		tbm->myalloc = true;
 		if (tbm->alloc.pixels == NULL) {
 			free(tbm);

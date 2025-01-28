@@ -292,7 +292,7 @@ errno_t gfx_glyph_bmp_clear(gfx_glyph_bmp_t *bmp)
 	int *npixels;
 
 	/* Allocate new pixel array */
-	npixels = calloc(sizeof(int), 1);
+	npixels = calloc(1, sizeof(int));
 	if (npixels == NULL)
 		return ENOMEM;
 
@@ -331,8 +331,8 @@ static errno_t gfx_glyph_bmp_extend(gfx_glyph_bmp_t *bmp, gfx_coord2_t *pos)
 	gfx_rect_envelope(&bmp->rect, &prect, &nrect);
 
 	/* Allocate new pixel array */
-	npixels = calloc(sizeof(int), (nrect.p1.x - nrect.p0.x) *
-	    (nrect.p1.y - nrect.p0.y));
+	npixels = calloc((nrect.p1.x - nrect.p0.x) *
+	    (nrect.p1.y - nrect.p0.y), sizeof(int));
 	if (npixels == NULL)
 		return ENOMEM;
 
