@@ -1230,17 +1230,15 @@ errno_t ext4_superblock_write_direct(service_id_t service_id, ext4_superblock_t 
 
 	/* Preserve physical block data */
 	rc = block_read_direct(service_id, first_block, 1, tmp_sb);
-	if (rc != EOK) {
-		free(tmp_sb);
-		return rc;
+	if (rc == EOK) {
+		/* Write the superblock */
+		void *sb_pos = tmp_sb + EXT4_SUPERBLOCK_OFFSET % phys_block_size;
+		memcpy(sb_pos, sb, EXT4_SUPERBLOCK_SIZE);
+
+		/* Write physical block to device */
+		rc = block_write_direct(service_id, first_block, 1, tmp_sb);
 	}
 
-	/* Write the superblock */
-	void *sb_pos = tmp_sb + EXT4_SUPERBLOCK_OFFSET % phys_block_size;
-	memcpy(sb_pos, sb, EXT4_SUPERBLOCK_SIZE);
-
-	/* Write physical block to device */
-	rc = block_write_direct(service_id, first_block, 1, tmp_sb);
 	free(tmp_sb);
 	return rc;
 }
