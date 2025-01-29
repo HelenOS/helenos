@@ -1214,15 +1214,33 @@ errno_t ext4_superblock_write_direct(service_id_t service_id, ext4_superblock_t 
 	/* Compute address of the first block */
 	uint64_t first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
 
-	/* Compute number of block to write */
-	size_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
+	if (phys_block_size <= EXT4_SUPERBLOCK_SIZE) {
+		/* Superblock is a multiple of physical block sizes */
+		size_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
+		return block_write_direct(service_id, first_block, block_count, sb);
+	}
 
-	/* Check alignment */
-	if (EXT4_SUPERBLOCK_SIZE % phys_block_size)
-		block_count++;
+	/*
+	 * Superblock fills only a part of the physical block,
+	 * but we can only overwrite an entire physical block.
+	 */
+	void *tmp_sb = malloc(phys_block_size);
+	if (tmp_sb == NULL)
+		return ENOMEM;
 
-	/* Write data */
-	return block_write_direct(service_id, first_block, block_count, sb);
+	/* Preserve physical block data */
+	rc = block_read_direct(service_id, first_block, 1, tmp_sb);
+	if (rc == EOK) {
+		/* Write the superblock */
+		void *sb_pos = tmp_sb + EXT4_SUPERBLOCK_OFFSET % phys_block_size;
+		memcpy(sb_pos, sb, EXT4_SUPERBLOCK_SIZE);
+
+		/* Write physical block to device */
+		rc = block_write_direct(service_id, first_block, 1, tmp_sb);
+	}
+
+	free(tmp_sb);
+	return rc;
 }
 
 /** Release the memory allocated for the superblock structure
