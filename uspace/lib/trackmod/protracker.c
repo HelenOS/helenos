@@ -145,7 +145,7 @@ static errno_t protracker_load_patterns(FILE *f, trackmod_module_t *module)
 	uint32_t *buf = NULL;
 
 	cells = module->channels * protracker_pattern_rows;
-	buf = calloc(sizeof(uint32_t), cells);
+	buf = calloc(cells, sizeof(uint32_t));
 
 	if (buf == NULL) {
 		rc = ENOMEM;
@@ -155,7 +155,7 @@ static errno_t protracker_load_patterns(FILE *f, trackmod_module_t *module)
 	for (i = 0; i < module->patterns; i++) {
 		module->pattern[i].rows = protracker_pattern_rows;
 		module->pattern[i].channels = module->channels;
-		module->pattern[i].data = calloc(sizeof(trackmod_cell_t), cells);
+		module->pattern[i].data = calloc(cells, sizeof(trackmod_cell_t));
 		if (module->pattern[i].data == NULL) {
 			rc = ENOMEM;
 			goto error;
@@ -325,7 +325,7 @@ errno_t trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 	module->channels = channels;
 
 	module->instrs = samples;
-	module->instr = calloc(sizeof(trackmod_instr_t), samples);
+	module->instr = calloc(samples, sizeof(trackmod_instr_t));
 	if (module->instr == NULL) {
 		printf("Out of memory.\n");
 		rc = ENOMEM;
@@ -333,7 +333,7 @@ errno_t trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 	}
 
 	module->patterns = patterns;
-	module->pattern = calloc(sizeof(trackmod_pattern_t), patterns);
+	module->pattern = calloc(patterns, sizeof(trackmod_pattern_t));
 	if (module->pattern == NULL) {
 		printf("Out of memory.\n");
 		rc = ENOMEM;
@@ -342,7 +342,7 @@ errno_t trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 
 	/* Order list */
 	module->ord_list_len = order_list->order_list_len;
-	module->ord_list = calloc(sizeof(size_t), module->ord_list_len);
+	module->ord_list = calloc(module->ord_list_len, sizeof(size_t));
 	if (module->ord_list == NULL) {
 		printf("Out of memory.\n");
 		rc = ENOMEM;

@@ -85,6 +85,113 @@ bool __atomic_compare_exchange_4(volatile void *mem0, void *expected0,
 	return false;
 }
 
+unsigned char __atomic_exchange_1(volatile void *mem0, unsigned char val,
+    int model)
+{
+	volatile unsigned char *mem = mem0;
+
+	(void) model;
+
+	unsigned ret;
+
+	/*
+	 * The following instructions between labels 1 and 2 constitute a
+	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * the kernel will restart it.
+	 */
+	asm volatile (
+	    "1:\n"
+	    "	adr %[ret], 1b\n"
+	    "	str %[ret], %[rp0]\n"
+	    "	adr %[ret], 2f\n"
+	    "	str %[ret], %[rp1]\n"
+	    "	ldrb %[ret], %[addr]\n"
+	    "	strb %[imm], %[addr]\n"
+	    "2:\n"
+	    : [ret] "=&r" (ret),
+	      [rp0] "=m" (ras_page[0]),
+	      [rp1] "=m" (ras_page[1]),
+	      [addr] "+m" (*mem)
+	    : [imm] "r" (val)
+	);
+
+	ras_page[0] = 0;
+	ras_page[1] = 0xffffffff;
+
+	return ret;
+}
+
+unsigned short __atomic_exchange_2(volatile void *mem0, unsigned short val,
+    int model)
+{
+	volatile unsigned short *mem = mem0;
+
+	(void) model;
+
+	unsigned ret;
+
+	/*
+	 * The following instructions between labels 1 and 2 constitute a
+	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * the kernel will restart it.
+	 */
+	asm volatile (
+	    "1:\n"
+	    "	adr %[ret], 1b\n"
+	    "	str %[ret], %[rp0]\n"
+	    "	adr %[ret], 2f\n"
+	    "	str %[ret], %[rp1]\n"
+	    "	ldrh %[ret], %[addr]\n"
+	    "	strh %[imm], %[addr]\n"
+	    "2:\n"
+	    : [ret] "=&r" (ret),
+	      [rp0] "=m" (ras_page[0]),
+	      [rp1] "=m" (ras_page[1]),
+	      [addr] "+m" (*mem)
+	    : [imm] "r" (val)
+	);
+
+	ras_page[0] = 0;
+	ras_page[1] = 0xffffffff;
+
+	return ret;
+}
+
+unsigned __atomic_exchange_4(volatile void *mem0, unsigned val, int model)
+{
+	volatile unsigned *mem = mem0;
+
+	(void) model;
+
+	unsigned ret;
+
+	/*
+	 * The following instructions between labels 1 and 2 constitute a
+	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * the kernel will restart it.
+	 */
+	asm volatile (
+	    "1:\n"
+	    "	adr %[ret], 1b\n"
+	    "	str %[ret], %[rp0]\n"
+	    "	adr %[ret], 2f\n"
+	    "	str %[ret], %[rp1]\n"
+	    "	ldr %[ret], %[addr]\n"
+	    "	str %[imm], %[addr]\n"
+	    "2:\n"
+	    : [ret] "=&r" (ret),
+	      [rp0] "=m" (ras_page[0]),
+	      [rp1] "=m" (ras_page[1]),
+	      [addr] "+m" (*mem)
+	    : [imm] "r" (val)
+	);
+
+	ras_page[0] = 0;
+	ras_page[1] = 0xffffffff;
+
+	return ret;
+}
+
 unsigned short __atomic_fetch_add_2(volatile void *mem0, unsigned short val,
     int model)
 {
@@ -161,6 +268,14 @@ unsigned __atomic_fetch_add_4(volatile void *mem0, unsigned val, int model)
 unsigned __atomic_fetch_sub_4(volatile void *mem, unsigned val, int model)
 {
 	return __atomic_fetch_add_4(mem, -val, model);
+}
+
+bool __atomic_test_and_set(volatile void *ptr, int memorder)
+{
+	volatile unsigned char *b = ptr;
+
+	unsigned char orig = __atomic_exchange_n(b, (unsigned char) true, memorder);
+	return orig != 0;
 }
 
 void __sync_synchronize(void)

@@ -402,7 +402,7 @@ namespace std
 
                 delete[] parray_;
                 parray_size_ = rhs.parray_size_;
-                parray_ = new long[parray_size_];
+                parray_ = new void *[parray_size_];
 
                 for (size_t i = 0; i < parray_size_; ++i)
                     parray_[i] = rhs.parray_[i];
