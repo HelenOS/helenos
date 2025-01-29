@@ -1205,8 +1205,6 @@ errno_t ext4_superblock_read_direct(service_id_t service_id, ext4_superblock_t *
  */
 errno_t ext4_superblock_write_direct(service_id_t service_id, ext4_superblock_t *sb)
 {
-	void *tmp_sb = sb;
-
 	/* Load physical block size from block device */
 	size_t phys_block_size;
 	errno_t rc = block_get_bsize(service_id, &phys_block_size);
@@ -1216,33 +1214,34 @@ errno_t ext4_superblock_write_direct(service_id_t service_id, ext4_superblock_t 
 	/* Compute address of the first block */
 	uint64_t first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
 
-	/* Compute number of block to write */
-	size_t block_count;
 	if (phys_block_size <= EXT4_SUPERBLOCK_SIZE) {
-		block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
-		/* Check alignment */
-		if (EXT4_SUPERBLOCK_SIZE % phys_block_size)
-			block_count++;
-	} else {
-		block_count = 1;
-		tmp_sb = malloc(phys_block_size);
-		if (tmp_sb == NULL)
-			return ENOMEM;
-		/* Preserve block data */
-		rc = block_read_direct(service_id, first_block, 1, tmp_sb);
-		if (rc != EOK) {
-			free(tmp_sb);
-			return rc;
-		}
-		void *sb_pos = (uint8_t *)tmp_sb + EXT4_SUPERBLOCK_OFFSET;
-		memcpy(sb_pos, sb, EXT4_SUPERBLOCK_SIZE);
+		/* Superblock is a multiple of physical block sizes */
+		size_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
+		return block_write_direct(service_id, first_block, block_count, sb);
 	}
 
-	/* Write data */
-	rc = block_write_direct(service_id, first_block, block_count, tmp_sb);
+	/*
+	 * Superblock fills only a part of the physical block,
+	 * but we can only overwrite an entire physical block.
+	 */
+	void *tmp_sb = malloc(phys_block_size);
+	if (tmp_sb == NULL)
+		return ENOMEM;
 
-	if (phys_block_size > EXT4_SUPERBLOCK_SIZE)
+	/* Preserve physical block data */
+	rc = block_read_direct(service_id, first_block, 1, tmp_sb);
+	if (rc != EOK) {
 		free(tmp_sb);
+		return rc;
+	}
+
+	/* Write the superblock */
+	void *sb_pos = tmp_sb + EXT4_SUPERBLOCK_OFFSET % phys_block_size;
+	memcpy(sb_pos, sb, EXT4_SUPERBLOCK_SIZE);
+
+	/* Write physical block to device */
+	rc = block_write_direct(service_id, first_block, 1, tmp_sb);
+	free(tmp_sb);
 	return rc;
 }
 
