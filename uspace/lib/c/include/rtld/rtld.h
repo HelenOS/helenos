@@ -44,7 +44,6 @@
 
 extern rtld_t *runtime_env;
 
-extern errno_t rtld_init_static(elf_finfo_t *, rtld_t **);
 extern errno_t rtld_prog_process(elf_finfo_t *, rtld_t **);
 extern tcb_t *rtld_tls_make(rtld_t *);
 extern unsigned long rtld_get_next_id(rtld_t *);

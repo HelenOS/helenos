@@ -43,32 +43,7 @@
 
 rtld_t *runtime_env;
 
-/** Initialize the runtime linker for use in a statically-linked executable. */
-errno_t rtld_init_static(elf_finfo_t *finfo, rtld_t **rre)
-{
-	rtld_t *env;
-	errno_t rc;
-
-	env = calloc(1, sizeof(rtld_t));
-	if (env == NULL)
-		return ENOMEM;
-
-	list_initialize(&env->modules);
-	list_initialize(&env->imodules);
-	env->program = NULL;
-	env->next_id = 1;
-
-	rc = module_create_static_exec(finfo->base, env);
-	if (rc != EOK)
-		return rc;
-
-	modules_process_tls(env);
-
-	*rre = env;
-	return EOK;
-}
-
-/** Initialize and process a dynamically linked executable.
+/** Initialize and process an executable.
  *
  * @param p_info Program info
  * @return EOK on success or non-zero error code
@@ -76,63 +51,40 @@ errno_t rtld_init_static(elf_finfo_t *finfo, rtld_t **rre)
 errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 {
 	rtld_t *env;
-	module_t *prog;
-
-	DPRINTF("Load dynamically linked program.\n");
+	bool is_dynamic = p_info->dynamic != NULL;
+	DPRINTF("rtld_prog_process\n");
 
 	/* Allocate new RTLD environment to pass to the loaded program */
 	env = calloc(1, sizeof(rtld_t));
 	if (env == NULL)
 		return ENOMEM;
 
-	env->next_id = 1;
-
-	prog = calloc(1, sizeof(module_t));
-	if (prog == NULL) {
-		free(env);
-		return ENOMEM;
-	}
-
-	/*
-	 * First we need to process dynamic sections of the executable
-	 * program and insert it into the module graph.
-	 */
-
-	DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
-	dynamic_parse(p_info->dynamic, 0, &prog->dyn);
-	prog->bias = 0;
-	prog->dyn.soname = "[program]";
-	prog->rtld = env;
-	prog->id = rtld_get_next_id(env);
-	prog->exec = true;
-	prog->local = false;
-
-	prog->tdata = p_info->tls.tdata;
-	prog->tdata_size = p_info->tls.tdata_size;
-	prog->tbss_size = p_info->tls.tbss_size;
-	prog->tls_align = p_info->tls.tls_align;
-
-	DPRINTF("prog tdata at %p size %zu, tbss size %zu\n",
-	    prog->tdata, prog->tdata_size, prog->tbss_size);
-
-	/* Initialize list of loaded modules */
 	list_initialize(&env->modules);
 	list_initialize(&env->imodules);
-	list_append(&prog->modules_link, &env->modules);
+	env->next_id = 1;
+
+	module_t *module;
+	errno_t rc = module_create_entrypoint(p_info, env, &module);
+	if (rc != EOK) {
+		free(env);
+		return rc;
+	}
 
 	/* Pointer to program module. Used as root of the module graph. */
-	env->program = prog;
+	env->program = module;
 
 	/*
 	 * Now we can continue with loading all other modules.
 	 */
 
-	DPRINTF("Load all program dependencies\n");
-	errno_t rc = module_load_deps(prog, 0);
-	if (rc != EOK) {
-		free(prog);
-		free(env);
-		return rc;
+	if (is_dynamic) {
+		DPRINTF("Load all program dependencies\n");
+		rc = module_load_deps(module, 0);
+		if (rc != EOK) {
+			free(module);
+			free(env);
+			return rc;
+		}
 	}
 
 	/* Compute static TLS size */
@@ -142,11 +94,14 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 	 * Now relocate/link all modules together.
 	 */
 
-	/* Process relocations in all modules */
-	DPRINTF("Relocate all modules\n");
-	modules_process_relocs(env, prog);
+	if (is_dynamic) {
+		/* Process relocations in all modules */
+		DPRINTF("Relocate all modules\n");
+		modules_process_relocs(env, module);
+	}
 
-	*rre = env;
+	if (rre != NULL)
+		*rre = env;
 	return EOK;
 }
 

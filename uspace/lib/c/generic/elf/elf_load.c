@@ -68,26 +68,24 @@ errno_t elf_load(int file, elf_info_t *info)
 		return rc;
 	}
 
-	if (info->finfo.dynamic == NULL) {
-		/* Statically linked program */
-		DPRINTF("Binary is statically linked.\n");
-		info->env = NULL;
-#ifdef CONFIG_RTLD
-		rc = rtld_init_static(finfo, &env);
-		info->env = env;
-#endif
-		return EOK;
-	}
-
-	DPRINTF("Binary is dynamically linked.\n");
 #ifdef CONFIG_RTLD
 	DPRINTF("- prog dynamic: %p\n", finfo->dynamic);
 	rc = rtld_prog_process(finfo, &env);
+	if (rc != EOK) {
+		DPRINTF("Failed to process executable '%s'.\n", file_name);
+		return rc;
+	}
 	info->env = env;
+	return EOK;
 #else
-	rc = ENOTSUP;
+	if (info->finfo.dynamic == NULL) {
+		info->env = NULL;
+		return EOK;
+	}
+
+	DPRINTF("Error: trying to run a dynamically-linked executable with CONFIG_RTLD disabled.\n");
+	return ENOTSUP;
 #endif
-	return rc;
 }
 
 /** Set ELF-related PCB entries.
