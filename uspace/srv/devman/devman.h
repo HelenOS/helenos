@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -104,6 +104,7 @@ typedef struct driver_list {
 /** Device state */
 typedef enum {
 	DEVICE_NOT_INITIALIZED = 0,
+	DEVICE_ATTACHING,
 	DEVICE_USABLE,
 	DEVICE_NOT_PRESENT,
 	DEVICE_INVALID,
@@ -128,6 +129,10 @@ struct dev_node {
 	driver_t *drv;
 	/** The state of the device. */
 	device_state_t state;
+	/** Protect device state field */
+	fibril_mutex_t state_lock;
+	/** Signalled when device state changes */
+	fibril_condvar_t state_cv;
 	/** Link to list of devices owned by driver (driver_t.devices) */
 	link_t driver_devices;
 

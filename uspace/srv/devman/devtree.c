@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -311,6 +312,18 @@ void remove_fun_node(dev_tree_t *tree, fun_node_t *fun)
 
 	fun->dev = NULL;
 	fun->state = FUN_REMOVED;
+}
+
+/** Wait for device tree to stabilize.
+ *
+ * Blocks until the entire device tree had a chance to finish attaching
+ * all devices.
+ *
+ * @param tree Device tree
+ */
+void dev_tree_wait_stable(dev_tree_t *tree)
+{
+	dev_wait_stable(tree->root_node->child);
 }
 
 /** @}

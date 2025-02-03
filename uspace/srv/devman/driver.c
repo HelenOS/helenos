@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -283,7 +283,10 @@ void attach_driver(dev_tree_t *tree, dev_node_t *dev, driver_t *drv)
 
 	dev->drv = drv;
 	dev->passed_to_driver = false;
-	dev->state = DEVICE_NOT_INITIALIZED;
+	fibril_mutex_lock(&dev->state_lock);
+	dev->state = DEVICE_ATTACHING;
+	fibril_mutex_unlock(&dev->state_lock);
+	fibril_condvar_broadcast(&dev->state_cv);
 	list_append(&dev->driver_devices, &drv->devices);
 
 	fibril_rwlock_write_unlock(&tree->rwlock);
@@ -630,6 +633,9 @@ again:
  */
 void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 {
+	link_t *link;
+	fun_node_t *fun;
+
 	/*
 	 * We do not expect to have driver's mutex locked as we do not
 	 * access any structures that would affect driver_t.
@@ -664,6 +670,35 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 		async_wait_for(req, &rc);
 	}
 
+	if (rc == EOK) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Device was added. Wait for "
+		    "child functions' devices to stabilize.");
+		fibril_rwlock_read_lock(&tree->rwlock);
+		link = list_first(&dev->functions);
+		while (link != NULL) {
+			fun = list_get_instance(link, fun_node_t,
+			    dev_functions);
+
+			if (fun->child != NULL) {
+				log_msg(LOG_DEFAULT, LVL_DEBUG2, "Wait for "
+				    "child device %p.", (void *)fun->child);
+				fun_add_ref(fun);
+				fibril_rwlock_read_unlock(&tree->rwlock);
+				dev_wait_stable(fun->child);
+				fibril_rwlock_read_lock(&tree->rwlock);
+				fun_del_ref(fun);
+			}
+
+			link = list_next(link, &dev->functions);
+		}
+
+		fibril_rwlock_read_unlock(&tree->rwlock);
+		log_msg(LOG_DEFAULT, LVL_DEBUG,
+		    "Finished waiting for children.");
+	}
+
+	fibril_mutex_lock(&dev->state_lock);
+
 	switch (rc) {
 	case EOK:
 		dev->state = DEVICE_USABLE;
@@ -675,6 +710,9 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 		dev->state = DEVICE_INVALID;
 		break;
 	}
+
+	fibril_mutex_unlock(&dev->state_lock);
+	fibril_condvar_broadcast(&dev->state_cv);
 
 	dev->passed_to_driver = true;
 }

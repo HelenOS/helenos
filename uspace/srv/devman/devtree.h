@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ extern bool insert_dev_node(dev_tree_t *, dev_node_t *, fun_node_t *);
 extern void remove_dev_node(dev_tree_t *, dev_node_t *);
 extern bool insert_fun_node(dev_tree_t *, fun_node_t *, char *, dev_node_t *);
 extern void remove_fun_node(dev_tree_t *, fun_node_t *);
+extern void dev_tree_wait_stable(dev_tree_t *);
 
 #endif
 
