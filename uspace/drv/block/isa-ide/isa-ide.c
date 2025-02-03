@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,6 +102,8 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 
 	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init()");
 
+	memset(&params, 0, sizeof(params));
+
 	chan->ctrl = ctrl;
 	chan->chan_id = chan_id;
 	fibril_mutex_initialize(&chan->lock);
@@ -135,6 +137,7 @@ errno_t isa_ide_channel_init(isa_ide_ctrl_t *ctrl, isa_ide_channel_t *chan,
 	ddf_msg(LVL_DEBUG, "isa_ide_ctrl_init(): Initialize IDE channel");
 
 	params.arg = (void *)chan;
+	params.use_dma = false;
 	params.have_irq = (chan->irq >= 0) ? true : false;
 	params.write_data_16 = isa_ide_write_data_16;
 	params.read_data_16 = isa_ide_read_data_16;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1533,9 +1533,11 @@ static size_t ata_disk_maxnb(ata_device_t *d)
 	 * If using DMA, this needs to be further restricted not to
 	 * exceed DMA buffer size.
 	 */
-	dma_maxnb = d->chan->params.max_dma_xfer / d->block_size;
-	if (dma_maxnb < maxnb)
-		maxnb = dma_maxnb;
+	if (d->chan->params.use_dma) {
+		dma_maxnb = d->chan->params.max_dma_xfer / d->block_size;
+		if (dma_maxnb < maxnb)
+			maxnb = dma_maxnb;
+	}
 
 	return maxnb;
 }
