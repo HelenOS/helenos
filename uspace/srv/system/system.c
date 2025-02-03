@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
@@ -381,40 +381,39 @@ static errno_t init_sysvol(void)
 	} else {
 		printf("%s: System volume is configured.\n", NAME);
 
-		/* Wait until system volume is mounted */
+		/* Verify that system volume is mounted */
 		sv_mounted = false;
 
-		while (true) {
-			rc = vol_get_parts(vol, &part_ids, &nparts);
+		rc = vol_get_parts(vol, &part_ids, &nparts);
+		if (rc != EOK) {
+			printf("Error getting list of volumes.\n");
+			goto error;
+		}
+
+		for (i = 0; i < nparts; i++) {
+			rc = vol_part_info(vol, part_ids[i], &pinfo);
 			if (rc != EOK) {
-				printf("Error getting list of volumes.\n");
+				printf("Error getting partition "
+				    "information.\n");
+				rc = EIO;
 				goto error;
 			}
 
-			for (i = 0; i < nparts; i++) {
-				rc = vol_part_info(vol, part_ids[i], &pinfo);
-				if (rc != EOK) {
-					printf("Error getting partition "
-					    "information.\n");
-					rc = EIO;
-					goto error;
-				}
-
-				if (str_cmp(pinfo.cur_mp, "/w") == 0) {
-					sv_mounted = true;
-					break;
-				}
-			}
-
-			if (sv_mounted)
+			if (str_cmp(pinfo.cur_mp, "/w") == 0) {
+				sv_mounted = true;
 				break;
-
-			free(part_ids);
-			part_ids = NULL;
-
-			fibril_sleep(1);
-			printf("Sleeping(1) for system volume.\n");
+			}
 		}
+
+		if (sv_mounted == false) {
+			printf("System volume not found.\n");
+			rc = EIO;
+			goto error;
+		}
+
+		free(part_ids);
+		part_ids = NULL;
+
 	}
 
 	vol_destroy(vol);
