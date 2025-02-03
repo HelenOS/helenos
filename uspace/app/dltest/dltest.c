@@ -943,7 +943,7 @@ static int test_dlfcn(void)
 	if (!test_dlfcn_read_public_uvar())
 		return 1;
 
-#ifndef STATIC_EXE
+#ifndef STATIC_EXE // FIXME: this define is not set anywhere
 
 	if (!test_dlfcn_dl_get_private_fib_var())
 		return 1;
