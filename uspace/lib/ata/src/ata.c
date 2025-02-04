@@ -256,6 +256,9 @@ errno_t ata_channel_destroy(ata_channel_t *chan)
 	fibril_mutex_lock(&chan->lock);
 
 	for (i = 0; i < MAX_DEVICES; i++) {
+		if (chan->device[i].present == false)
+			continue;
+
 		rc = ata_device_remove(&chan->device[i]);
 		if (rc != EOK) {
 			ata_msg_error(chan, "Unable to remove device %d.", i);
