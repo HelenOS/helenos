@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2007 Josef Cejka
- * Copyright (c) 2013 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -337,6 +337,18 @@ errno_t devman_drv_fun_offline(devman_handle_t funh)
 		return ENOMEM;
 
 	errno_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_OFFLINE, funh);
+
+	devman_exchange_end(exch);
+	return retval;
+}
+
+errno_t devman_drv_fun_wait_stable(devman_handle_t funh)
+{
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
+	if (exch == NULL)
+		return ENOMEM;
+
+	errno_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_WAIT_STABLE, funh);
 
 	devman_exchange_end(exch);
 	return retval;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -132,6 +132,7 @@ static errno_t pci_ide_dev_add(ddf_dev_t *dev)
 {
 	pci_ide_ctrl_t *ctrl;
 	pci_ide_hwres_t res;
+	async_sess_t *parent_sess;
 	errno_t rc;
 
 	rc = pci_ide_get_res(dev, &res);
@@ -163,6 +164,20 @@ static errno_t pci_ide_dev_add(ddf_dev_t *dev)
 
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed initializing ATA controller.");
+		rc = EIO;
+		goto error;
+	}
+
+	parent_sess = ddf_dev_parent_sess_get(dev);
+	if (parent_sess == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	/* Claim legacy I/O range to prevent ISA IDE from attaching there. */
+	rc = hw_res_claim_legacy_io(parent_sess, hwc_isa_ide);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed claiming legacy I/O range.");
 		rc = EIO;
 		goto error;
 	}

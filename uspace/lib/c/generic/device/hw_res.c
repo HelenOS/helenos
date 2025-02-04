@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -161,26 +161,46 @@ errno_t hw_res_dma_channel_remain(async_sess_t *sess, unsigned channel, size_t *
 	return ret;
 }
 
-/** Get bus flags.
+/** Query legacy IO claims.
  *
  * @param sess HW res session
- * @param rflags Place to store the flags
+ * @param rclaims Place to store the claims
  *
  * @return Error code.
  *
  */
-errno_t hw_res_get_flags(async_sess_t *sess, hw_res_flags_t *rflags)
+errno_t hw_res_query_legacy_io(async_sess_t *sess, hw_res_claims_t *rclaims)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
-	sysarg_t flags;
+	sysarg_t claims;
 	const errno_t ret = async_req_1_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
-	    HW_RES_GET_FLAGS, &flags);
+	    HW_RES_QUERY_LEGACY_IO, &claims);
 
 	async_exchange_end(exch);
 
 	if (ret == EOK)
-		*rflags = flags;
+		*rclaims = claims;
+
+	return ret;
+}
+
+/** Claim legacy IO devices.
+ *
+ * @param sess HW res session
+ * @param claims Claims
+ *
+ * @return Error code.
+ *
+ */
+errno_t hw_res_claim_legacy_io(async_sess_t *sess, hw_res_claims_t claims)
+{
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	const errno_t ret = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    HW_RES_CLAIM_LEGACY_IO, claims);
+
+	async_exchange_end(exch);
 
 	return ret;
 }

@@ -1,7 +1,5 @@
 /*
  * Copyright (c) 2025 Jiri Svoboda
- * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,33 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup pci-ide
  * @{
  */
-/** @file
+/** @file ISA IDE hardware protocol
  */
 
-#ifndef LIBDRV_OPS_HW_RES_H_
-#define LIBDRV_OPS_HW_RES_H_
+#ifndef ISA_IDE_HW_H
+#define ISA_IDE_HW_H
 
-#include <device/hw_res.h>
-#include <stddef.h>
-#include <stdint.h>
-#include "../ddf/driver.h"
-
-typedef struct {
-	hw_resource_list_t *(*get_resource_list)(ddf_fun_t *);
-	errno_t (*enable_interrupt)(ddf_fun_t *, int);
-	errno_t (*disable_interrupt)(ddf_fun_t *, int);
-	errno_t (*clear_interrupt)(ddf_fun_t *, int);
-	errno_t (*dma_channel_setup)(ddf_fun_t *, unsigned, uint32_t, uint32_t, uint8_t);
-	errno_t (*dma_channel_remain)(ddf_fun_t *, unsigned, size_t *);
-	errno_t (*query_legacy_io)(ddf_fun_t *, hw_res_claims_t *);
-	errno_t (*claim_legacy_io)(ddf_fun_t *, hw_res_claims_t);
-} hw_res_ops_t;
+/*
+ * PCI IDE needs to use ATA ports at fixed legacy ISA addresses.
+ * We need to know what those addresses are so that, if we are
+ * asked to attach to those *and* we know that PCI IDE is attached
+ * to legacy IDE ranges, we should not attach.
+ */
+enum {
+	leg_ide_ata_cmd_p = 0x01f0,
+	leg_ide_ata_ctl_p = 0x03f4,
+	leg_ide_ata_cmd_s = 0x0170,
+	leg_ide_ata_ctl_s = 0x0374
+};
 
 #endif
 
-/**
- * @}
+/** @}
  */

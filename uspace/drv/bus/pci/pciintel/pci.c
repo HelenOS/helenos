@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -142,6 +142,78 @@ static errno_t pciintel_clear_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_clear_interrupt(irq);
 }
 
+/** Handle legacy IO availability query from function.
+ *
+ * @param fnode Function performing the query
+ * @param rclaims Place to store the legacy IO claims bitmask
+ * @return EOK on success or an error code
+ */
+static errno_t pciintel_query_legacy_io(ddf_fun_t *fnode,
+    hw_res_claims_t *rclaims)
+{
+	pci_fun_t *fun = pci_fun(fnode);
+	pci_bus_t *bus = fun->busptr;
+	pci_fun_t *f;
+	hw_res_claims_t claims;
+
+	/*
+	 * We need to wait for enumeration to complete so that we give
+	 * the PCI IDE driver a chance to claim the legacy ISA IDE
+	 * ranges.
+	 */
+	ddf_msg(LVL_DEBUG, "pciintel_query_legacy_io");
+
+	fun->querying = true;
+
+	fibril_mutex_lock(&bus->enum_done_lock);
+	while (!bus->enum_done)
+		fibril_condvar_wait(&bus->enum_done_cv, &bus->enum_done_lock);
+	fibril_mutex_unlock(&bus->enum_done_lock);
+
+	ddf_msg(LVL_DEBUG, "Wait for PCI devices to stabilize");
+
+	f = pci_fun_first(bus);
+	while (f != NULL) {
+		if (!f->querying)
+			ddf_fun_wait_stable(f->fnode);
+		f = pci_fun_next(f);
+	}
+
+	/* Devices are stable. Now we can determine if ISA IDE was claimed. */
+
+	claims = 0;
+
+	ddf_msg(LVL_DEBUG, "PCI devices stabilized, leg_ide_claimed=%d\n",
+	    (int)bus->leg_ide_claimed);
+	if (bus->leg_ide_claimed != false) {
+		ddf_msg(LVL_NOTE, "Legacy IDE I/O ports claimed by PCI driver.");
+		claims |= hwc_isa_ide;
+	}
+
+	fun->querying = false;
+	*rclaims = claims;
+	return EOK;
+}
+
+/** Handle legacy IO claim from function.
+ *
+ * @param fnode Function claiming the legacy I/O ports
+ * @param claims Bitmask of claimed I/O
+ * @return EOK on success or an error code
+ */
+static errno_t pciintel_claim_legacy_io(ddf_fun_t *fnode,
+    hw_res_claims_t claims)
+{
+	pci_fun_t *fun = pci_fun(fnode);
+	pci_bus_t *bus = fun->busptr;
+
+	ddf_msg(LVL_DEBUG, "pciintel_claim_legacy_io() claims=%x", claims);
+	if ((claims & hwc_isa_ide) != 0)
+		bus->leg_ide_claimed = true;
+
+	return EOK;
+}
+
 static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)
 {
 	pci_fun_t *fun = pci_fun(fnode);
@@ -210,6 +282,8 @@ static hw_res_ops_t pciintel_hw_res_ops = {
 	.enable_interrupt = &pciintel_enable_interrupt,
 	.disable_interrupt = &pciintel_disable_interrupt,
 	.clear_interrupt = &pciintel_clear_interrupt,
+	.query_legacy_io = &pciintel_query_legacy_io,
+	.claim_legacy_io = &pciintel_claim_legacy_io
 };
 
 static pio_window_ops_t pciintel_pio_window_ops = {
@@ -754,6 +828,8 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 
 	list_initialize(&bus->funs);
 	fibril_mutex_initialize(&bus->conf_mutex);
+	fibril_mutex_initialize(&bus->enum_done_lock);
+	fibril_condvar_initialize(&bus->enum_done_cv);
 
 	bus->dnode = dnode;
 
@@ -862,8 +938,14 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 
 	hw_res_clean_resource_list(&hw_resources);
 
-	return EOK;
+	ddf_msg(LVL_DEBUG, "Bus enumeration done.");
 
+	fibril_mutex_lock(&bus->enum_done_lock);
+	bus->enum_done = true;
+	fibril_mutex_unlock(&bus->enum_done_lock);
+	fibril_condvar_broadcast(&bus->enum_done_cv);
+
+	return EOK;
 fail:
 	if (got_res)
 		hw_res_clean_resource_list(&hw_resources);

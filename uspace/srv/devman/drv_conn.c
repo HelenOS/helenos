@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -455,6 +455,41 @@ static void devman_drv_fun_offline(ipc_call_t *icall, driver_t *drv)
 	async_answer_0(icall, EOK);
 }
 
+/** Wait for function to become stable.
+ *
+ */
+static void devman_drv_fun_wait_stable(ipc_call_t *icall, driver_t *drv)
+{
+	fun_node_t *fun;
+	dev_node_t *dev;
+
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+
+	fun = find_fun_node(&device_tree, ipc_get_arg1(icall));
+	if (fun == NULL) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	if (fun->child == NULL) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		fun_del_ref(fun);
+		async_answer_0(icall, EOK);
+		return;
+	}
+
+	dev = fun->child;
+	dev_add_ref(dev);
+
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+
+	dev_wait_stable(dev);
+	dev_del_ref(dev);
+
+	async_answer_0(icall, EOK);
+}
+
 /** Remove function. */
 static void devman_remove_function(ipc_call_t *call)
 {
@@ -640,6 +675,9 @@ void devman_connection_driver(ipc_call_t *icall, void *arg)
 			break;
 		case DEVMAN_DRV_FUN_OFFLINE:
 			devman_drv_fun_offline(&call, driver);
+			break;
+		case DEVMAN_DRV_FUN_WAIT_STABLE:
+			devman_drv_fun_wait_stable(&call, driver);
 			break;
 		case DEVMAN_REMOVE_FUNCTION:
 			devman_remove_function(&call);

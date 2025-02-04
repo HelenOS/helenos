@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -51,6 +51,7 @@ extern errno_t devman_add_function(const char *, fun_type_t, match_id_list_t *,
 extern errno_t devman_remove_function(devman_handle_t);
 extern errno_t devman_drv_fun_online(devman_handle_t);
 extern errno_t devman_drv_fun_offline(devman_handle_t);
+extern errno_t devman_drv_fun_wait_stable(devman_handle_t);
 
 extern async_sess_t *devman_device_connect(devman_handle_t, unsigned int);
 extern async_sess_t *devman_parent_device_connect(devman_handle_t,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,16 +72,11 @@ static errno_t pc_fdc_get_res(ddf_dev_t *dev, pc_fdc_hwres_t *res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
-	hw_res_flags_t flags;
 	errno_t rc;
 
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
 		return ENOMEM;
-
-	rc = hw_res_get_flags(parent_sess, &flags);
-	if (rc != EOK)
-		return rc;
 
 	hw_res_list_parsed_init(&hw_res);
 	rc = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
