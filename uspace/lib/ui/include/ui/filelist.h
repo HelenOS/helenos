@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,8 @@ extern errno_t ui_file_list_activate(ui_file_list_t *);
 extern void ui_file_list_deactivate(ui_file_list_t *);
 extern errno_t ui_file_list_open(ui_file_list_t *, ui_file_list_entry_t *);
 extern ui_file_list_entry_t *ui_file_list_get_cursor(ui_file_list_t *);
+extern void ui_file_list_entry_get_attr(ui_file_list_entry_t *,
+    ui_file_list_entry_attr_t *);
 
 #endif
 

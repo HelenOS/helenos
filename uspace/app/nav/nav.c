@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <task.h>
 #include <ui/fixed.h>
 #include <ui/filelist.h>
 #include <ui/resource.h>
@@ -46,6 +47,8 @@
 #include "menu.h"
 #include "nav.h"
 #include "panel.h"
+
+#define EDITOR_CMD "/app/edit"
 
 static void wnd_close(ui_window_t *, void *);
 static void wnd_kbd(ui_window_t *, void *, kbd_event_t *);
@@ -56,10 +59,12 @@ static ui_window_cb_t window_cb = {
 };
 
 static void navigator_file_open(void *);
+static void navigator_file_edit(void *);
 static void navigator_file_exit(void *);
 
 static nav_menu_cb_t navigator_menu_cb = {
 	.file_open = navigator_file_open,
+	.file_edit = navigator_file_edit,
 	.file_exit = navigator_file_exit
 };
 
@@ -96,6 +101,9 @@ static void wnd_kbd(ui_window_t *window, void *arg, kbd_event_t *event)
 	    ((event->mods & KM_SHIFT) == 0) &&
 	    (event->mods & KM_CTRL) != 0) {
 		switch (event->key) {
+		case KC_E:
+			navigator_file_edit((void *)navigator);
+			break;
 		case KC_Q:
 			ui_quit(navigator->ui);
 			break;
@@ -315,6 +323,62 @@ static void navigator_file_open(void *arg)
 
 	panel = navigator_get_active_panel(navigator);
 	ui_file_list_open(panel->flist, ui_file_list_get_cursor(panel->flist));
+}
+
+/** Open file in text editor.
+ *
+ * @param panel Panel
+ * @param fname File name
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t navigator_edit_file(navigator_t *navigator, const char *fname)
+{
+	task_id_t id;
+	task_wait_t wait;
+	task_exit_t texit;
+	int retval;
+	errno_t rc;
+
+	/* Free up and clean console for the child task. */
+	rc = ui_suspend(navigator->ui);
+	if (rc != EOK)
+		return rc;
+
+	rc = task_spawnl(&id, &wait, EDITOR_CMD, EDITOR_CMD, fname, NULL);
+	if (rc != EOK)
+		goto error;
+
+	rc = task_wait(&wait, &texit, &retval);
+	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL))
+		goto error;
+
+	/* Resume UI operation */
+	rc = ui_resume(navigator->ui);
+	if (rc != EOK)
+		return rc;
+
+	(void) ui_paint(navigator->ui);
+	return EOK;
+error:
+	(void) ui_resume(navigator->ui);
+	(void) ui_paint(navigator->ui);
+	return rc;
+}
+
+/** File / Edit menu entry selected */
+static void navigator_file_edit(void *arg)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+	ui_file_list_entry_t *entry;
+	ui_file_list_entry_attr_t attr;
+	panel_t *panel;
+
+	panel = navigator_get_active_panel(navigator);
+	entry = ui_file_list_get_cursor(panel->flist);
+	ui_file_list_entry_get_attr(entry, &attr);
+
+	(void)navigator_edit_file(navigator, attr.name);
 }
 
 /** File / Exit menu entry selected */

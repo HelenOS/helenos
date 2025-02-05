@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,14 +36,27 @@
 #ifndef _UI_TYPES_FILELIST_H
 #define _UI_TYPES_FILELIST_H
 
+#include <loc.h>
+#include <stdbool.h>
+#include <stdint.h>
+
 struct ui_file_list;
 typedef struct ui_file_list ui_file_list_t;
 
 struct ui_file_list_entry;
 typedef struct ui_file_list_entry ui_file_list_entry_t;
 
-struct ui_file_list_entry_attr;
-typedef struct ui_file_list_entry_attr ui_file_list_entry_attr_t;
+/** File list entry attributes */
+typedef struct ui_file_list_entry_attr {
+	/** File name */
+	const char *name;
+	/** File size */
+	uint64_t size;
+	/** @c true iff entry is a directory */
+	bool isdir;
+	/** Service number for service special entries */
+	service_id_t svc;
+} ui_file_list_entry_attr_t;
 
 /** File list callbacks */
 typedef struct ui_file_list_cb {

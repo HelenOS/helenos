@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,17 +36,20 @@ PCUT_INIT;
 PCUT_TEST_SUITE(menu);
 
 static void test_menu_file_open(void *);
+static void test_menu_file_edit(void *);
 static void test_menu_file_exit(void *);
 
 static nav_menu_cb_t dummy_cb;
 static nav_menu_cb_t test_cb = {
 	.file_open = test_menu_file_open,
+	.file_edit = test_menu_file_edit,
 	.file_exit = test_menu_file_exit
 };
 
 /** Test response */
 typedef struct {
 	bool file_open;
+	bool file_edit;
 	bool file_exit;
 } test_resp_t;
 
@@ -147,12 +150,100 @@ PCUT_TEST(file_open)
 	ui_destroy(ui);
 }
 
+/** File / Edit callback */
+PCUT_TEST(file_edit)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	nav_menu_t *menu;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = nav_menu_create(window, &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Call back with no callbacks set */
+	nav_menu_file_edit(NULL, menu);
+
+	/* Call back with dummy callbacks set */
+	nav_menu_set_cb(menu, &dummy_cb, &resp);
+	nav_menu_file_edit(NULL, menu);
+
+	/* Call back with test callbacks set */
+	resp.file_edit = false;
+	nav_menu_set_cb(menu, &test_cb, &resp);
+	nav_menu_file_edit(NULL, menu);
+	PCUT_ASSERT_TRUE(resp.file_edit);
+
+	nav_menu_destroy(menu);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
+/** File / Exit callback */
+PCUT_TEST(file_exit)
+{
+	ui_t *ui;
+	ui_window_t *window;
+	ui_wnd_params_t params;
+	nav_menu_t *menu;
+	test_resp_t resp;
+	errno_t rc;
+
+	rc = ui_create_disp(NULL, &ui);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	ui_wnd_params_init(&params);
+	params.caption = "Test";
+
+	rc = ui_window_create(ui, &params, &window);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = nav_menu_create(window, &menu);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	/* Call back with no callbacks set */
+	nav_menu_file_exit(NULL, menu);
+
+	/* Call back with dummy callbacks set */
+	nav_menu_set_cb(menu, &dummy_cb, &resp);
+	nav_menu_file_exit(NULL, menu);
+
+	/* Call back with test callbacks set */
+	resp.file_exit = false;
+	nav_menu_set_cb(menu, &test_cb, &resp);
+	nav_menu_file_exit(NULL, menu);
+	PCUT_ASSERT_TRUE(resp.file_exit);
+
+	nav_menu_destroy(menu);
+	ui_window_destroy(window);
+	ui_destroy(ui);
+}
+
 /** Testing File / Open callback */
 static void test_menu_file_open(void *arg)
 {
 	test_resp_t *resp = (test_resp_t *)arg;
 
 	resp->file_open = true;
+}
+
+/** Testing File / Edit callback */
+static void test_menu_file_edit(void *arg)
+{
+	test_resp_t *resp = (test_resp_t *)arg;
+
+	resp->file_edit = true;
 }
 
 /** Testing File / Exit callback */

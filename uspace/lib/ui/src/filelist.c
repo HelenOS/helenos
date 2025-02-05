@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -532,6 +532,20 @@ ui_file_list_entry_t *ui_file_list_get_cursor(ui_file_list_t *flist)
 		return NULL;
 
 	return (ui_file_list_entry_t *)ui_list_entry_get_arg(entry);
+}
+
+/** Get file list entry attributes.
+ *
+ * @param entry File list entry
+ * @return Current cursor
+ */
+void ui_file_list_entry_get_attr(ui_file_list_entry_t *entry,
+    ui_file_list_entry_attr_t *attr)
+{
+	attr->name = entry->name;
+	attr->size = entry->size;
+	attr->isdir = entry->isdir;
+	attr->svc = entry->svc;
 }
 
 /** Open file list entry.
