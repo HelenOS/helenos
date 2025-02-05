@@ -64,7 +64,7 @@ errno_t elf_load(int file, elf_info_t *info)
 
 	rc = elf_load_file(file, 0, finfo);
 	if (rc != EOK) {
-		DPRINTF("Failed to load executable '%s'.\n", file_name);
+		DPRINTF("Failed to load executable.\n");
 		return rc;
 	}
 
@@ -72,7 +72,7 @@ errno_t elf_load(int file, elf_info_t *info)
 	DPRINTF("- prog dynamic: %p\n", finfo->dynamic);
 	rc = rtld_prog_process(finfo, &env);
 	if (rc != EOK) {
-		DPRINTF("Failed to process executable '%s'.\n", file_name);
+		DPRINTF("Failed to process executable.\n");
 		return rc;
 	}
 	info->env = env;
