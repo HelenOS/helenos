@@ -69,9 +69,11 @@ static nav_menu_cb_t navigator_menu_cb = {
 };
 
 static void navigator_panel_activate_req(void *, panel_t *);
+static void navigator_panel_file_open(void *, panel_t *, const char *);
 
 static panel_cb_t navigator_panel_cb = {
-	.activate_req = navigator_panel_activate_req
+	.activate_req = navigator_panel_activate_req,
+	.file_open = navigator_panel_file_open
 };
 
 /** Window close button was clicked.
@@ -327,7 +329,7 @@ static void navigator_file_open(void *arg)
 
 /** Open file in text editor.
  *
- * @param panel Panel
+ * @param navigator Navigator
  * @param fname File name
  *
  * @return EOK on success or an error code
@@ -366,6 +368,69 @@ error:
 	return rc;
 }
 
+/** Execute file entry.
+ *
+ * @param navigator Navigator
+ * @param fname File name
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t navigator_exec_file(navigator_t *navigator, const char *fname)
+{
+	task_id_t id;
+	task_wait_t wait;
+	task_exit_t texit;
+	int retval;
+	errno_t rc;
+
+	/* Free up and clean console for the child task. */
+	rc = ui_suspend(navigator->ui);
+	if (rc != EOK)
+		return rc;
+
+	rc = task_spawnl(&id, &wait, fname, fname, NULL);
+	if (rc != EOK)
+		goto error;
+
+	rc = task_wait(&wait, &texit, &retval);
+	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL))
+		goto error;
+
+	/* Resume UI operation */
+	rc = ui_resume(navigator->ui);
+	if (rc != EOK)
+		return rc;
+
+	(void) ui_paint(navigator->ui);
+	return EOK;
+error:
+	(void) ui_resume(navigator->ui);
+	(void) ui_paint(navigator->ui);
+	return rc;
+}
+
+/** Open panel file entry.
+ *
+ * Perform Open action on a file entry (based on extension).
+ *
+ * @param navigator Navigator
+ * @param fname File name
+ *
+ * @return EOK on success or an error code
+ */
+static errno_t navigator_open_file(navigator_t *navigator, const char *fname)
+{
+	const char *ext;
+
+	ext = str_rchr(fname, '.');
+	if (ext != NULL) {
+		if (str_casecmp(ext, ".txt") == 0)
+			return navigator_edit_file(navigator, fname);
+	}
+
+	return navigator_exec_file(navigator, fname);
+}
+
 /** File / Edit menu entry selected */
 static void navigator_file_edit(void *arg)
 {
@@ -400,6 +465,20 @@ void navigator_panel_activate_req(void *arg, panel_t *panel)
 
 	if (!panel_is_active(panel))
 		navigator_switch_panel(navigator);
+}
+
+/** Panel callback requesting file open.
+ *
+ * @param arg Argument (navigator_t *)
+ * @param panel Panel
+ * @param fname File name
+ */
+void navigator_panel_file_open(void *arg, panel_t *panel, const char *fname)
+{
+	navigator_t *navigator = (navigator_t *)arg;
+
+	(void)panel;
+	navigator_open_file(navigator, fname);
 }
 
 /** @}

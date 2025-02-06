@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -376,52 +376,6 @@ void panel_activate_req(panel_t *panel)
 		panel->cb->activate_req(panel->cb_arg, panel);
 }
 
-/** Open panel file entry.
- *
- * Perform Open action on a file entry (i.e. try running it).
- *
- * @param panel Panel
- * @param fname File name
- *
- * @return EOK on success or an error code
- */
-static errno_t panel_open_file(panel_t *panel, const char *fname)
-{
-	task_id_t id;
-	task_wait_t wait;
-	task_exit_t texit;
-	int retval;
-	errno_t rc;
-	ui_t *ui;
-
-	ui = ui_window_get_ui(panel->window);
-
-	/* Free up and clean console for the child task. */
-	rc = ui_suspend(ui);
-	if (rc != EOK)
-		return rc;
-
-	rc = task_spawnl(&id, &wait, fname, fname, NULL);
-	if (rc != EOK)
-		goto error;
-
-	rc = task_wait(&wait, &texit, &retval);
-	if ((rc != EOK) || (texit != TASK_EXIT_NORMAL))
-		goto error;
-
-	/* Resume UI operation */
-	rc = ui_resume(ui);
-	if (rc != EOK)
-		return rc;
-
-	(void) ui_paint(ui_window_get_ui(panel->window));
-	return EOK;
-error:
-	(void) ui_resume(ui);
-	(void) ui_paint(ui_window_get_ui(panel->window));
-	return rc;
-}
-
 /** File list in panel requests activation.
  *
  * @param flist File list
@@ -445,7 +399,8 @@ static void panel_flist_selected(ui_file_list_t *flist, void *arg,
 {
 	panel_t *panel = (panel_t *)arg;
 
-	(void) panel_open_file(panel, fname);
+	if (panel->cb != NULL && panel->cb->file_open != NULL)
+		panel->cb->file_open(panel->cb_arg, panel, fname);
 }
 
 /** @}
