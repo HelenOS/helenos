@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2012 Vojtech Horky
  * All rights reserved.
  *
@@ -54,7 +55,7 @@ static errno_t create_dest(const char *name, logger_dest_t **dest)
 	logger_dest_t *result = malloc(sizeof(logger_dest_t));
 	if (result == NULL)
 		return ENOMEM;
-	if (asprintf(&result->filename, "/log/%s", name) < 0) {
+	if (asprintf(&result->filename, "/log/%s.txt", name) < 0) {
 		free(result);
 		return ENOMEM;
 	}
