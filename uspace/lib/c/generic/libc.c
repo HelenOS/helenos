@@ -95,11 +95,14 @@ void __libc_main(void *pcb_ptr)
 	__malloc_init();
 
 #ifdef CONFIG_RTLD
-	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
-		runtime_env = (rtld_t *) __pcb->rtld_runtime;
+	if (__pcb == NULL) {
+		/*
+		 * A binary loaded by kernel, not the loader.
+		 * Noop - code loaded by kernel doesn't need RTLD.
+		 */
 	} else {
-		if (rtld_init_static() != EOK)
-			abort();
+		assert(__pcb->rtld_runtime != NULL);
+		runtime_env = (rtld_t *) __pcb->rtld_runtime;
 	}
 #endif
 
