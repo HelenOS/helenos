@@ -72,7 +72,8 @@ static bool verify_mapping(void *area, int page_count, errno_t expected_rc,
 	int i;
 	for (i = 0; i < page_count; i++) {
 		void *page_start = ((char *) area) + PAGE_SIZE * i;
-		errno_t rc = as_get_physical_mapping(page_start, NULL);
+		uintptr_t phys_dummy;
+		errno_t rc = as_get_physical_mapping(page_start, &phys_dummy);
 		if (rc != expected_rc) {
 			TPRINTF("as_get_physical_mapping() = %s != %s\n",
 			    str_error_name(rc), str_error_name(expected_rc));
