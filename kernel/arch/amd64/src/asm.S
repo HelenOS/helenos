@@ -72,7 +72,7 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 	rep movsb               /* copy the rest byte by byte */
 
 	0:
-		ret                 /* return MEMCPY_SRC, success */
+		ret                 /* return MEMCPY_DST, success */
 FUNCTION_END(memcpy_from_uspace)
 FUNCTION_END(memcpy_to_uspace)
 
