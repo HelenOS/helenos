@@ -511,9 +511,11 @@ install_pkg() {
 link_clang() {
 	# Symlink clang and lld to the install path.
 	CLANG="`which clang 2> /dev/null || echo "/usr/bin/clang"`"
+	CLANGPP="`which clang++ 2> /dev/null || echo "/usr/bin/clang++"`"
 	LLD="`which ld.lld 2> /dev/null || echo "/usr/bin/ld.lld"`"
 
 	ln -s $CLANG "${INSTALL_DIR}${CROSS_PREFIX}/bin/${TARGET}-clang"
+	ln -s $CLANGPP "${INSTALL_DIR}${CROSS_PREFIX}/bin/${TARGET}-clang++"
 	ln -s $LLD "${INSTALL_DIR}${CROSS_PREFIX}/bin/${TARGET}-ld.lld"
 }
 
