@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -474,7 +474,7 @@ static errno_t sysinst_eject_dev(service_id_t part_id)
 		goto out;
 	}
 
-	rc = vol_part_eject(vol, part_id);
+	rc = vol_part_eject(vol, part_id, vef_physical);
 	if (rc != EOK) {
 		printf("Error ejecting volume.\n");
 		goto out;

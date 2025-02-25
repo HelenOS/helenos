@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ extern void vol_destroy(vol_t *);
 extern errno_t vol_get_parts(vol_t *, service_id_t **, size_t *);
 extern errno_t vol_part_add(vol_t *, service_id_t);
 extern errno_t vol_part_info(vol_t *, service_id_t, vol_part_info_t *);
-extern errno_t vol_part_eject(vol_t *, service_id_t);
+extern errno_t vol_part_eject(vol_t *, service_id_t, vol_eject_flags_t);
 extern errno_t vol_part_empty(vol_t *, service_id_t);
 extern errno_t vol_part_insert(vol_t *, service_id_t);
 extern errno_t vol_part_insert_by_path(vol_t *, const char *);

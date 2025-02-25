@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,8 @@ enum scsi_cmd_sbc {
 
 	SCSI_CMD_READ_CAPACITY_10	= 0x25,
 	SCSI_CMD_READ_CAPACITY_16	= 0x9e,
+
+	SCSI_CMD_START_STOP_UNIT	= 0x1b,
 
 	SCSI_CMD_SYNC_CACHE_10		= 0x35,
 	SCSI_CMD_SYNC_CACHE_16		= 0x91,
@@ -212,6 +214,32 @@ typedef struct {
 	/** Control */
 	uint8_t control;
 } __attribute__((packed)) scsi_cdb_write_16_t;
+
+/** SCSI Start Stop Unit command */
+typedef struct {
+	/** Operation code (SCSI_CMD_START_STOP_UNIT) */
+	uint8_t op_code;
+	/** Immediate */
+	uint8_t immed;
+	/** Reserved */
+	uint8_t reserved_2;
+	/** Reserved */
+	uint8_t reserved_3;
+	/** Power Conditions | Reserved | LoEj | Start */
+	uint8_t flags;
+	/** Control */
+	uint8_t control;
+} __attribute__((packed)) scsi_cdb_start_stop_unit_t;
+
+/** Constants for values in sccsi_cdb_start_stop_unit_t.flags */
+enum scsi_start_stop_flags {
+	ssf_pc_no_change = 0x00,
+	ssf_pc_idle = 0x10,
+	ssf_pc_standby = 0x20,
+	ssf_pc_sleep = 0x50,
+	ssf_loej = 0x02,
+	ssf_start = 0x01
+};
 
 #endif
 

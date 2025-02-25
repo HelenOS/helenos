@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
  */
 
 #include <adt/list.h>
+#include <bd.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <io/log.h>
@@ -641,7 +642,40 @@ void vol_part_del_ref(vol_part_t *part)
 		vol_part_delete(part);
 }
 
-errno_t vol_part_eject_part(vol_part_t *part)
+static errno_t vol_part_eject_device(service_id_t svcid)
+{
+	async_sess_t *sess;
+	errno_t rc;
+	bd_t *bd;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_device(%zu)",
+	    (size_t)svcid);
+
+	sess = loc_service_connect(svcid, INTERFACE_BLOCK, 0);
+	if (sess == NULL)
+		return EIO;
+
+	rc = bd_open(sess, &bd);
+	if (rc != EOK) {
+		async_hangup(sess);
+		return EIO;
+	}
+
+	rc = bd_eject(bd);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN, "vol_part_eject_device(): "
+		    "eject fail");
+		bd_close(bd);
+		async_hangup(sess);
+		return EIO;
+	}
+
+	bd_close(bd);
+	async_hangup(sess);
+	return EOK;
+}
+
+errno_t vol_part_eject_part(vol_part_t *part, vol_eject_flags_t flags)
 {
 	int rc;
 
@@ -666,6 +700,14 @@ errno_t vol_part_eject_part(vol_part_t *part)
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed deleting "
 			    "mount directory %s.", part->cur_mp);
+		}
+	}
+
+	if ((flags & vef_physical) != 0) {
+		rc = vol_part_eject_device(part->svc_id);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed physically "
+			    "ejecting device %s.", part->svc_name);
 		}
 	}
 
@@ -818,7 +860,7 @@ errno_t vol_part_set_mountp_part(vol_part_t *part, const char *mountp)
 	errno_t rc;
 
 	if (part->cur_mp != NULL) {
-		rc = vol_part_eject_part(part);
+		rc = vol_part_eject_part(part, vef_none);
 		if (rc != EOK)
 			return rc;
 	}

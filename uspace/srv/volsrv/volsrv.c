@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -204,11 +204,15 @@ error:
 static void vol_part_eject_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
+	vol_eject_flags_t flags;
 	vol_part_t *part;
 	errno_t rc;
 
 	sid = ipc_get_arg1(icall);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_srv(%zu)", sid);
+	flags = ipc_get_arg2(icall);
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_srv(%zu, %x)",
+	    sid, flags);
 
 	rc = vol_part_find_by_id_ref(parts, sid, &part);
 	if (rc != EOK) {
@@ -216,7 +220,7 @@ static void vol_part_eject_srv(vol_parts_t *parts, ipc_call_t *icall)
 		return;
 	}
 
-	rc = vol_part_eject_part(part);
+	rc = vol_part_eject_part(part, flags);
 	if (rc != EOK) {
 		async_answer_0(icall, EIO);
 		goto error;

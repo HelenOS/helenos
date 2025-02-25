@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <io/table.h>
 #include <loc.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -106,7 +107,7 @@ out:
 	return rc;
 }
 
-static errno_t vol_cmd_eject(const char *volspec)
+static errno_t vol_cmd_eject(const char *volspec, bool physical)
 {
 	vol_t *vol = NULL;
 	service_id_t part_id;
@@ -124,7 +125,8 @@ static errno_t vol_cmd_eject(const char *volspec)
 		goto out;
 	}
 
-	rc = vol_part_eject(vol, part_id);
+	rc = vol_part_eject(vol, part_id, physical ? vef_physical :
+	    vef_none);
 	if (rc != EOK) {
 		printf("Error ejecting volume.\n");
 		goto out;
@@ -322,12 +324,13 @@ out:
 static void print_syntax(void)
 {
 	printf("Syntax:\n");
-	printf("  %s                List present volumes\n", NAME);
-	printf("  %s -c             List volume configuration entries\n", NAME);
-	printf("  %s -h             Print help\n", NAME);
-	printf("  %s eject <mp>     Eject volume mounted in a directory\n", NAME);
-	printf("  %s insert <svc>   Insert volume based on service identifier\n", NAME);
-	printf("  %s insert -p <mp> Insert volume based on filesystem path\n", NAME);
+	printf("  %s                 List present volumes\n", NAME);
+	printf("  %s -c              List volume configuration entries\n", NAME);
+	printf("  %s -h              Print help\n", NAME);
+	printf("  %s eject [-s] <mp> Eject volume mounted in a directory\n", NAME);
+	printf("                     -s to eject physically\n");
+	printf("  %s insert <svc>    Insert volume based on service identifier\n", NAME);
+	printf("  %s insert -p <mp>  Insert volume based on filesystem path\n", NAME);
 }
 
 int main(int argc, char *argv[])
@@ -335,6 +338,7 @@ int main(int argc, char *argv[])
 	char *cmd;
 	char *volspec;
 	vol_cmd_t vcmd;
+	bool physical = false;
 	int i;
 	errno_t rc = EINVAL;
 
@@ -350,6 +354,11 @@ int main(int argc, char *argv[])
 			vcmd = vcmd_cfglist;
 		} else if (str_cmp(cmd, "eject") == 0) {
 			vcmd = vcmd_eject;
+			if (str_cmp(argv[i], "-s") == 0) {
+				physical = true;
+				++i;
+			}
+
 			if (argc <= i) {
 				printf("Parameter missing.\n");
 				goto syntax_error;
@@ -381,7 +390,7 @@ int main(int argc, char *argv[])
 
 	switch (vcmd) {
 	case vcmd_eject:
-		rc = vol_cmd_eject(volspec);
+		rc = vol_cmd_eject(volspec, physical);
 		break;
 	case vcmd_insert:
 		rc = vol_cmd_insert(volspec);

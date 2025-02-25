@@ -532,7 +532,7 @@ static errno_t system_sys_shutdown(void)
 	}
 
 	for (i = 0; i < nparts; i++) {
-		rc = vol_part_eject(vol, part_ids[i]);
+		rc = vol_part_eject(vol, part_ids[i], vef_none);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Error ejecting "
 			    "volume %zu", (size_t)part_ids[i]);

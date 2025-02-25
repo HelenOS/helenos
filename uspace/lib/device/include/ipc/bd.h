@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,8 @@ typedef enum {
 	BD_READ_BLOCKS,
 	BD_SYNC_CACHE,
 	BD_WRITE_BLOCKS,
-	BD_READ_TOC
+	BD_READ_TOC,
+	BD_EJECT
 } bd_request_t;
 
 #endif

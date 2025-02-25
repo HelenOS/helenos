@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -252,15 +252,16 @@ errno_t vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
  *
  * @param vol Volume service
  * @param sid Service ID of the partition
+ * @param flags Ejection flags
  * @return EOK on success or an error code
  */
-errno_t vol_part_eject(vol_t *vol, service_id_t sid)
+errno_t vol_part_eject(vol_t *vol, service_id_t sid, vol_eject_flags_t flags)
 {
 	async_exch_t *exch;
 	errno_t retval;
 
 	exch = async_exchange_begin(vol->sess);
-	retval = async_req_1_0(exch, VOL_PART_EJECT, sid);
+	retval = async_req_2_0(exch, VOL_PART_EJECT, sid, flags);
 	async_exchange_end(exch);
 
 	if (retval != EOK)

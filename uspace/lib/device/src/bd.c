@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -193,6 +193,16 @@ errno_t bd_get_num_blocks(bd_t *bd, aoff64_t *rnb)
 
 	*rnb = (aoff64_t) MERGE_LOUP32(nb_l, nb_h);
 	return EOK;
+}
+
+errno_t bd_eject(bd_t *bd)
+{
+	async_exch_t *exch = async_exchange_begin(bd->sess);
+
+	errno_t rc = async_req_0_0(exch, BD_EJECT);
+	async_exchange_end(exch);
+
+	return rc;
 }
 
 static void bd_cb_conn(ipc_call_t *icall, void *arg)
