@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2006 Martin Decky
  * All rights reserved.
  *
@@ -35,12 +36,14 @@
 #ifndef KERN_MAIN_H_
 #define KERN_MAIN_H_
 
+#include <proc/task.h>
 #include <typedefs.h>
 
 /* Address of the start of the kernel image. */
 extern uint8_t kernel_load_address[];
 /* Address of the end of kernel. */
 extern uint8_t kdata_end[];
+extern task_t *kernel_task;
 
 extern void main_bsp(void);
 extern void main_ap(void);

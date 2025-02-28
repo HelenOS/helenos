@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@
 /** Shutdown action */
 typedef enum {
 	sd_poweroff = 1,
+	sd_restart,
 	sd_cancel
 } sd_action_t;
 

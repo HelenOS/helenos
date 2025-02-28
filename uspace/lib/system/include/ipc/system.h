@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,8 @@ typedef enum {
 
 typedef enum {
 	SYSTEM_CALLBACK_CREATE = IPC_FIRST_USER_METHOD,
-	SYSTEM_SHUTDOWN
+	SYSTEM_POWEROFF,
+	SYSTEM_RESTART
 } system_request_t;
 
 #endif

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
@@ -59,6 +60,7 @@
 #include <mm/km.h>
 #include <arch/mm/tlb.h>
 #include <mm/frame.h>
+#include <main/shutdown.h>
 #include <main/version.h>
 #include <mm/slab.h>
 #include <proc/scheduler.h>

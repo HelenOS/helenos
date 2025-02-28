@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
@@ -43,6 +44,7 @@
  */
 typedef enum {
 	SYS_KIO = 0,
+	SYS_REBOOT,
 
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,

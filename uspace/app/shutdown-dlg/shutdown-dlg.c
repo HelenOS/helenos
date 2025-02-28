@@ -399,7 +399,7 @@ static errno_t shutdown_start(shutdown_dlg_t *sddlg)
 		goto error;
 	}
 
-	rc = system_shutdown(sddlg->system);
+	rc = system_poweroff(sddlg->system);
 	if (rc != EOK) {
 		printf("Failed requesting system shutdown.\n");
 		goto error;

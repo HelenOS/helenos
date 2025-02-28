@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,13 +45,15 @@ static const char *test_system_svc = "test/system";
 
 void test_system_conn(ipc_call_t *, void *);
 
-static errno_t test_shutdown(void *);
+static errno_t test_poweroff(void *);
+static errno_t test_restart(void *);
 
 static void test_sys_shutdown_complete(void *);
 static void test_sys_shutdown_failed(void *);
 
 static system_ops_t test_system_srv_ops = {
-	.shutdown = test_shutdown
+	.poweroff = test_poweroff,
+	.restart = test_restart
 };
 
 system_cb_t test_system_cb = {
@@ -65,7 +67,8 @@ system_cb_t test_system_cb = {
 typedef struct {
 	errno_t rc;
 
-	bool shutdown_called;
+	bool poweroff_called;
+	bool restart_called;
 	bool shutdown_complete_called;
 	bool shutdown_failed_called;
 
@@ -102,8 +105,8 @@ PCUT_TEST(open_close)
 	loc_server_unregister(srv);
 }
 
-/** system_shutdown() with server returning error response works */
-PCUT_TEST(shutdown_failure)
+/** system_poweroff() with server returning error response works */
+PCUT_TEST(poweroff_failure)
 {
 	errno_t rc;
 	service_id_t sid;
@@ -125,10 +128,10 @@ PCUT_TEST(shutdown_failure)
 	PCUT_ASSERT_NOT_NULL(system);
 
 	resp.rc = ENOMEM;
-	resp.shutdown_called = false;
+	resp.poweroff_called = false;
 
-	rc = system_shutdown(system);
-	PCUT_ASSERT_TRUE(resp.shutdown_called);
+	rc = system_poweroff(system);
+	PCUT_ASSERT_TRUE(resp.poweroff_called);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	system_close(system);
@@ -137,8 +140,8 @@ PCUT_TEST(shutdown_failure)
 	loc_server_unregister(srv);
 }
 
-/** system_shutdown() with server returning success response works */
-PCUT_TEST(shutdown_success)
+/** system_poweroff() with server returning success response works */
+PCUT_TEST(poweroff_success)
 {
 	errno_t rc;
 	service_id_t sid;
@@ -160,10 +163,80 @@ PCUT_TEST(shutdown_success)
 	PCUT_ASSERT_NOT_NULL(system);
 
 	resp.rc = EOK;
-	resp.shutdown_called = false;
+	resp.poweroff_called = false;
 
-	rc = system_shutdown(system);
-	PCUT_ASSERT_TRUE(resp.shutdown_called);
+	rc = system_poweroff(system);
+	PCUT_ASSERT_TRUE(resp.poweroff_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	system_close(system);
+	rc = loc_service_unregister(srv, sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
+}
+
+/** system_restart() with server returning error response works */
+PCUT_TEST(restart_failure)
+{
+	errno_t rc;
+	service_id_t sid;
+	system_t *system = NULL;
+	test_response_t resp;
+	loc_srv_t *srv;
+
+	async_set_fallback_port_handler(test_system_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_system_server, &srv);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(srv, test_system_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = system_open(test_system_svc, NULL, NULL, &system);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(system);
+
+	resp.rc = ENOMEM;
+	resp.restart_called = false;
+
+	rc = system_restart(system);
+	PCUT_ASSERT_TRUE(resp.restart_called);
+	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
+
+	system_close(system);
+	rc = loc_service_unregister(srv, sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	loc_server_unregister(srv);
+}
+
+/** system_restart() with server returning success response works */
+PCUT_TEST(restart_success)
+{
+	errno_t rc;
+	service_id_t sid;
+	system_t *system = NULL;
+	test_response_t resp;
+	loc_srv_t *srv;
+
+	async_set_fallback_port_handler(test_system_conn, &resp);
+
+	// FIXME This causes this test to be non-reentrant!
+	rc = loc_server_register(test_system_server, &srv);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = loc_service_register(srv, test_system_svc, &sid);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+
+	rc = system_open(test_system_svc, NULL, NULL, &system);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
+	PCUT_ASSERT_NOT_NULL(system);
+
+	resp.rc = EOK;
+	resp.restart_called = false;
+
+	rc = system_restart(system);
+	PCUT_ASSERT_TRUE(resp.restart_called);
 	PCUT_ASSERT_ERRNO_VAL(resp.rc, rc);
 
 	system_close(system);
@@ -278,15 +351,27 @@ void test_system_conn(ipc_call_t *icall, void *arg)
 	resp->srv = NULL;
 }
 
-/** Test system shutdown.
+/** Test system poweroff.
  *
  * @param arg Argument (test_response_t *)
  */
-static errno_t test_shutdown(void *arg)
+static errno_t test_poweroff(void *arg)
 {
 	test_response_t *resp = (test_response_t *)arg;
 
-	resp->shutdown_called = true;
+	resp->poweroff_called = true;
+	return resp->rc;
+}
+
+/** Test system restart.
+ *
+ * @param arg Argument (test_response_t *)
+ */
+static errno_t test_restart(void *arg)
+{
+	test_response_t *resp = (test_response_t *)arg;
+
+	resp->restart_called = true;
 	return resp->rc;
 }
 

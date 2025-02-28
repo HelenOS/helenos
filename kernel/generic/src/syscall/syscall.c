@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2005 Martin Decky
  * All rights reserved.
  *
@@ -39,6 +40,7 @@
 #include <proc/thread.h>
 #include <proc/task.h>
 #include <proc/program.h>
+#include <main/shutdown.h>
 #include <mm/as.h>
 #include <mm/page.h>
 #include <arch.h>
@@ -58,6 +60,7 @@
 static syshandler_t syscall_table[] = {
 	/* System management syscalls. */
 	[SYS_KIO] = (syshandler_t) sys_kio,
+	[SYS_REBOOT] = (syshandler_t) sys_reboot,
 
 	/* Thread and task related syscalls. */
 	[SYS_THREAD_CREATE] = (syshandler_t) sys_thread_create,

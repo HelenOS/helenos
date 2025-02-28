@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -140,7 +140,7 @@ static errno_t system_callback_create(system_t *system)
 	return retval;
 }
 
-/** Shut the system down.
+/** Shut down and power the system off.
  *
  * This function is asynchronous. It returns immediately with success
  * if the system started shutting down. Once shutdown is completed,
@@ -150,10 +150,29 @@ static errno_t system_callback_create(system_t *system)
  * @param system System control service
  * @return EOK on succes or an error code
  */
-errno_t system_shutdown(system_t *system)
+errno_t system_poweroff(system_t *system)
 {
 	async_exch_t *exch = async_exchange_begin(system->sess);
-	errno_t rc = async_req_0_0(exch, SYSTEM_SHUTDOWN);
+	errno_t rc = async_req_0_0(exch, SYSTEM_POWEROFF);
+	async_exchange_end(exch);
+
+	return rc;
+}
+
+/** Shut down and restart the system.
+ *
+ * This function is asynchronous. It returns immediately with success
+ * if the system started shutting down. Once shutdown is completed,
+ * the @c shutdown_complete callback is executed. If the shutdown fails,
+ * the @c shutdown_fail callback is executed.
+ *
+ * @param system System control service
+ * @return EOK on succes or an error code
+ */
+errno_t system_restart(system_t *system)
+{
+	async_exch_t *exch = async_exchange_begin(system->sess);
+	errno_t rc = async_req_0_0(exch, SYSTEM_RESTART);
 	async_exchange_end(exch);
 
 	return rc;

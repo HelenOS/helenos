@@ -26,38 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libsystem
+/** @addtogroup libc
  * @{
  */
-/** @file System control protocol server stub
+/** @file
  */
 
-#ifndef _LIBSYSTEM_SYSTEM_SRV_H_
-#define _LIBSYSTEM_SYSTEM_SRV_H_
+#include <libc.h>
+#include <shutdown.h>
 
-#include <async.h>
-#include <errno.h>
-
-typedef struct system_ops system_ops_t;
-
-/** System server structure (per client session) */
-typedef struct {
-	async_sess_t *client_sess;
-	system_ops_t *ops;
-	void *arg;
-} system_srv_t;
-
-struct system_ops {
-	errno_t (*poweroff)(void *);
-	errno_t (*restart)(void *);
-};
-
-extern void system_conn(ipc_call_t *, system_srv_t *);
-extern void system_srv_initialize(system_srv_t *);
-extern void system_srv_shutdown_complete(system_srv_t *);
-extern void system_srv_shutdown_failed(system_srv_t *);
-
-#endif
+/** Reboot the system. */
+void sys_reboot(void)
+{
+	(void) __SYSCALL0(SYS_REBOOT);
+}
 
 /** @}
  */

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
@@ -141,7 +142,7 @@ IRQ_SPINLOCK_EXTERN(tasks_lock);
 extern odict_t tasks;
 
 extern void task_init(void);
-extern void task_done(void);
+extern void task_done(task_t *);
 extern task_t *task_create(as_t *, const char *);
 extern void task_hold(task_t *);
 extern void task_release(task_t *);
