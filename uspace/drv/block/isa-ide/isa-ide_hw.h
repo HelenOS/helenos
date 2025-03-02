@@ -26,26 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdevice
+/** @addtogroup pci-ide
  * @{
  */
-/** @file
+/** @file ISA IDE hardware protocol
  */
 
-#ifndef LIBDEVICE_IPC_BD_H
-#define LIBDEVICE_IPC_BD_H
+#ifndef ISA_IDE_HW_H
+#define ISA_IDE_HW_H
 
-#include <ipc/common.h>
-
-typedef enum {
-	BD_GET_BLOCK_SIZE = IPC_FIRST_USER_METHOD,
-	BD_GET_NUM_BLOCKS,
-	BD_READ_BLOCKS,
-	BD_SYNC_CACHE,
-	BD_WRITE_BLOCKS,
-	BD_READ_TOC,
-	BD_EJECT
-} bd_request_t;
+/*
+ * PCI IDE needs to use ATA ports at fixed legacy ISA addresses.
+ * We need to know what those addresses are so that, if we are
+ * asked to attach to those *and* we know that PCI IDE is attached
+ * to legacy IDE ranges, we should not attach.
+ */
+enum {
+	leg_ide_ata_cmd_p = 0x01f0,
+	leg_ide_ata_ctl_p = 0x03f4,
+	leg_ide_ata_cmd_s = 0x0170,
+	leg_ide_ata_ctl_s = 0x0374
+};
 
 #endif
 

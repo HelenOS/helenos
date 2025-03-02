@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <system.h>
 #include <ui/fixed.h>
 #include <ui/label.h>
+#include <ui/msgdialog.h>
 #include <ui/resource.h>
 #include <ui/ui.h>
 #include <ui/window.h>
@@ -47,6 +48,10 @@
 
 static void wnd_close(ui_window_t *, void *);
 static errno_t bg_wnd_paint(ui_window_t *, void *);
+static void shutdown_progress_destroy(shutdown_progress_t *);
+static errno_t shutdown_confirm_msg_create(shutdown_dlg_t *);
+static errno_t shutdown_failed_msg_create(shutdown_dlg_t *);
+static errno_t shutdown_start(shutdown_dlg_t *);
 
 static ui_window_cb_t bg_window_cb = {
 	.close = wnd_close,
@@ -63,6 +68,22 @@ static void sd_shutdown_failed(void *);
 static system_cb_t sd_system_cb = {
 	.shutdown_complete = sd_shutdown_complete,
 	.shutdown_failed = sd_shutdown_failed
+};
+
+static void shutdown_confirm_msg_button(ui_msg_dialog_t *, void *, unsigned);
+static void shutdown_confirm_msg_close(ui_msg_dialog_t *, void *);
+
+static ui_msg_dialog_cb_t shutdown_confirm_msg_cb = {
+	.button = shutdown_confirm_msg_button,
+	.close = shutdown_confirm_msg_close
+};
+
+static void shutdown_failed_msg_button(ui_msg_dialog_t *, void *, unsigned);
+static void shutdown_failed_msg_close(ui_msg_dialog_t *, void *);
+
+static ui_msg_dialog_cb_t shutdown_failed_msg_cb = {
+	.button = shutdown_failed_msg_button,
+	.close = shutdown_failed_msg_close
 };
 
 /** System shutdown complete.
@@ -89,8 +110,11 @@ static void sd_shutdown_failed(void *arg)
 	shutdown_dlg_t *sddlg = (shutdown_dlg_t *)arg;
 
 	ui_lock(sddlg->ui);
-	(void)ui_label_set_text(sddlg->progress->label, "Shutdown failed.");
-	(void)ui_window_paint(sddlg->progress->window);
+	shutdown_progress_destroy(sddlg->progress);
+	sddlg->progress = NULL;
+	ui_window_destroy(sddlg->bgwindow);
+	sddlg->bgwindow = NULL;
+	(void)shutdown_failed_msg_create(sddlg);
 	ui_unlock(sddlg->ui);
 }
 
@@ -136,6 +160,116 @@ static errno_t bg_wnd_paint(ui_window_t *window, void *arg)
 	return EOK;
 }
 
+/** Create shutdown confirmation dialog.
+ *
+ * @param sddlg Shutdown dialog
+ * @return EOK on success or an error code
+ */
+static errno_t shutdown_confirm_msg_create(shutdown_dlg_t *sddlg)
+{
+	ui_msg_dialog_params_t params;
+	ui_msg_dialog_t *dialog;
+	errno_t rc;
+
+	ui_msg_dialog_params_init(&params);
+	params.caption = "Shutdown";
+	params.text = "Do you want to shut the system down?";
+	params.choice = umdc_ok_cancel;
+	params.flags |= umdf_topmost | umdf_center;
+
+	rc = ui_msg_dialog_create(sddlg->ui, &params, &dialog);
+	if (rc != EOK)
+		return rc;
+
+	ui_msg_dialog_set_cb(dialog, &shutdown_confirm_msg_cb, sddlg);
+
+	return EOK;
+}
+
+/** Create 'shutdown failed' message dialog.
+ *
+ * @param sddlg Shutdown dialog
+ * @return EOK on success or an error code
+ */
+static errno_t shutdown_failed_msg_create(shutdown_dlg_t *sddlg)
+{
+	ui_msg_dialog_params_t params;
+	ui_msg_dialog_t *dialog;
+	errno_t rc;
+
+	ui_msg_dialog_params_init(&params);
+	params.caption = "Shutdown failed";
+	params.text = "The system failed to shut down properly.";
+
+	rc = ui_msg_dialog_create(sddlg->ui, &params, &dialog);
+	if (rc != EOK)
+		return rc;
+
+	ui_msg_dialog_set_cb(dialog, &shutdown_failed_msg_cb, sddlg);
+
+	return EOK;
+}
+
+/** Shutdown confirm message dialog button press.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param bnum Button number
+ */
+static void shutdown_confirm_msg_button(ui_msg_dialog_t *dialog,
+    void *arg, unsigned bnum)
+{
+	shutdown_dlg_t *sddlg = (shutdown_dlg_t *) arg;
+
+	ui_msg_dialog_destroy(dialog);
+
+	if (bnum == 0)
+		shutdown_start(sddlg);
+	else
+		ui_quit(sddlg->ui);
+}
+
+/** Shutdown confirm message dialog close request.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void shutdown_confirm_msg_close(ui_msg_dialog_t *dialog, void *arg)
+{
+	shutdown_dlg_t *sddlg = (shutdown_dlg_t *) arg;
+
+	ui_msg_dialog_destroy(dialog);
+	ui_quit(sddlg->ui);
+}
+
+/** Shutdown faield message dialog button press.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (ui_demo_t *)
+ * @param bnum Button number
+ */
+static void shutdown_failed_msg_button(ui_msg_dialog_t *dialog,
+    void *arg, unsigned bnum)
+{
+	shutdown_dlg_t *sddlg = (shutdown_dlg_t *) arg;
+
+	ui_msg_dialog_destroy(dialog);
+	ui_quit(sddlg->ui);
+}
+
+/** Shutdown failed message dialog close request.
+ *
+ * @param dialog Message dialog
+ * @param arg Argument (ui_demo_t *)
+ */
+static void shutdown_failed_msg_close(ui_msg_dialog_t *dialog, void *arg)
+{
+	shutdown_dlg_t *sddlg = (shutdown_dlg_t *) arg;
+
+	ui_msg_dialog_destroy(dialog);
+	ui_quit(sddlg->ui);
+}
+
 /** Create shutdown progress window.
  *
  * @param sddlg Shutdown dialog
@@ -161,7 +295,7 @@ static errno_t shutdown_progress_create(shutdown_dlg_t *sddlg,
 	if (ui_is_textmode(sddlg->ui)) {
 		params.rect.p0.x = 0;
 		params.rect.p0.y = 0;
-		params.rect.p1.x = 24;
+		params.rect.p1.x = 64;
 		params.rect.p1.y = 5;
 	} else {
 		params.rect.p0.x = 0;
@@ -244,17 +378,44 @@ error:
  */
 static void shutdown_progress_destroy(shutdown_progress_t *progress)
 {
+	if (progress == NULL)
+		return;
+
 	ui_window_destroy(progress->window);
 	free(progress);
+}
+
+static errno_t shutdown_start(shutdown_dlg_t *sddlg)
+{
+	errno_t rc;
+
+	rc = shutdown_progress_create(sddlg, &sddlg->progress);
+	if (rc != EOK)
+		return rc;
+
+	rc = system_open(SYSTEM_DEFAULT, &sd_system_cb, sddlg, &sddlg->system);
+	if (rc != EOK) {
+		printf("Failed opening system control service.\n");
+		goto error;
+	}
+
+	rc = system_shutdown(sddlg->system);
+	if (rc != EOK) {
+		printf("Failed requesting system shutdown.\n");
+		goto error;
+	}
+
+	return EOK;
+error:
+	return rc;
 }
 
 /** Run shutdown dialog on display. */
 static errno_t shutdown_dlg(const char *display_spec)
 {
 	ui_t *ui = NULL;
-	ui_wnd_params_t params;
-	ui_window_t *window = NULL;
 	shutdown_dlg_t sddlg;
+	ui_wnd_params_t params;
 	errno_t rc;
 
 	memset((void *) &sddlg, 0, sizeof(sddlg));
@@ -265,67 +426,57 @@ static errno_t shutdown_dlg(const char *display_spec)
 		goto error;
 	}
 
+	sddlg.ui = ui;
+
 	ui_wnd_params_init(&params);
 	params.caption = "Shut down background";
 	params.style &= ~ui_wds_decorated;
 	params.placement = ui_wnd_place_full_screen;
 	params.flags |= ui_wndf_topmost | ui_wndf_nofocus;
-	if (ui_is_textmode(ui)) {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 24;
-		params.rect.p1.y = 5;
-	} else {
-		params.rect.p0.x = 0;
-		params.rect.p0.y = 0;
-		params.rect.p1.x = 300;
-		params.rect.p1.y = 60;
-	}
+	/*
+	 * params.rect.p0.x = 0;
+	 * params.rect.p0.y = 0;
+	 * params.rect.p1.x = 1;
+	 * params.rect.p1.y = 1;
+	 */
 
-	sddlg.ui = ui;
-
-	rc = ui_window_create(ui, &params, &window);
+	rc = ui_window_create(sddlg.ui, &params, &sddlg.bgwindow);
 	if (rc != EOK) {
 		printf("Error creating window.\n");
 		goto error;
 	}
 
-	ui_window_set_cb(window, &bg_window_cb, (void *) &sddlg);
-	sddlg.bgwindow = window;
+	ui_window_set_cb(sddlg.bgwindow, &bg_window_cb, (void *)&sddlg);
 
-	rc = gfx_color_new_rgb_i16(0x8000, 0xc800, 0xffff, &sddlg.bg_color);
-	if (rc != EOK) {
-		printf("Error allocating color.\n");
-		goto error;
+	if (ui_is_textmode(sddlg.ui)) {
+		rc = gfx_color_new_ega(0x17, &sddlg.bg_color);
+		if (rc != EOK) {
+			printf("Error allocating color.\n");
+			goto error;
+		}
+	} else {
+		rc = gfx_color_new_rgb_i16(0x8000, 0xc800, 0xffff, &sddlg.bg_color);
+		if (rc != EOK) {
+			printf("Error allocating color.\n");
+			goto error;
+		}
 	}
 
-	rc = ui_window_paint(window);
+	rc = ui_window_paint(sddlg.bgwindow);
 	if (rc != EOK) {
 		printf("Error painting window.\n");
 		goto error;
 	}
 
-	rc = shutdown_progress_create(&sddlg, &sddlg.progress);
-	if (rc != EOK)
-		return rc;
-
-	rc = system_open(SYSTEM_DEFAULT, &sd_system_cb, &sddlg, &sddlg.system);
-	if (rc != EOK) {
-		printf("Failed opening system control service.\n");
-		goto error;
-	}
-
-	rc = system_shutdown(sddlg.system);
-	if (rc != EOK) {
-		printf("Failed requesting system shutdown.\n");
-		goto error;
-	}
+	(void)shutdown_confirm_msg_create(&sddlg);
 
 	ui_run(ui);
 
 	shutdown_progress_destroy(sddlg.progress);
-	ui_window_destroy(window);
-	system_close(sddlg.system);
+	if (sddlg.bgwindow != NULL)
+		ui_window_destroy(sddlg.bgwindow);
+	if (sddlg.system != NULL)
+		system_close(sddlg.system);
 	gfx_color_delete(sddlg.bg_color);
 	ui_destroy(ui);
 
@@ -335,8 +486,8 @@ error:
 		system_close(sddlg.system);
 	if (sddlg.bg_color != NULL)
 		gfx_color_delete(sddlg.bg_color);
-	if (window != NULL)
-		ui_window_destroy(window);
+	if (sddlg.bgwindow != NULL)
+		ui_window_destroy(sddlg.bgwindow);
 	if (ui != NULL)
 		ui_destroy(ui);
 	return rc;

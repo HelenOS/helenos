@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,14 @@ typedef enum {
 	VOL_GET_VOLUMES,
 	VOL_INFO
 } vol_request_t;
+
+/** Volume eject flags */
+typedef enum {
+	/** No flags */
+	vef_none = 0x0,
+	/** Physically eject medium */
+	vef_physical = 0x1
+} vol_eject_flags_t;
 
 #endif
 

@@ -84,8 +84,8 @@ void write_satp(uintptr_t ptl0)
 	    SATP_MODE_SV48;
 
 	asm volatile (
-	    "csrw sptbr, %[satp]\n"
-	    :: [satp] "r" (satp)
+	    "csrw satp, %[satpv]\n"
+	    :: [satpv] "r" (satp)
 	);
 }
 

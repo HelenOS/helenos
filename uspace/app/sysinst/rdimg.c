@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -190,7 +190,7 @@ errno_t rd_img_close(rd_img_t *img)
 	}
 
 	printf("rd_img_close: eject RAM disk volume\n");
-	rc = vol_part_eject(vol, rd_svcid);
+	rc = vol_part_eject(vol, rd_svcid, vef_none);
 	if (rc != EOK) {
 		printf("Error ejecting RAM disk volume.\n");
 		rc = EIO;

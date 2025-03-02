@@ -30,15 +30,15 @@
 
 BINUTILS_GDB_GIT="https://github.com/HelenOS/binutils-gdb.git"
 
-BINUTILS_BRANCH="binutils-2_41-helenos"
-BINUTILS_VERSION="2.41"
+BINUTILS_BRANCH="binutils-2_43-helenos"
+BINUTILS_VERSION="2.43"
 
 GDB_BRANCH="gdb-13.2-helenos"
 GDB_VERSION="13.2"
 
 GCC_GIT="https://github.com/HelenOS/gcc.git"
-GCC_BRANCH="13_2_0-helenos"
-GCC_VERSION="13.2"
+GCC_BRANCH="14_2_0-helenos"
+GCC_VERSION="14.2"
 
 BASEDIR="$PWD"
 SRCDIR="$(readlink -f $(dirname "$0"))"
@@ -418,6 +418,7 @@ build_gcc() {
 		--disable-nls \
 		--enable-languages=c,c++,go \
 		--enable-lto \
+		--enable-obsolete \
 		--disable-shared \
 		--disable-werror \
 		--without-headers  # TODO: Replace with proper sysroot so we can build more libs
@@ -510,9 +511,11 @@ install_pkg() {
 link_clang() {
 	# Symlink clang and lld to the install path.
 	CLANG="`which clang 2> /dev/null || echo "/usr/bin/clang"`"
+	CLANGPP="`which clang++ 2> /dev/null || echo "/usr/bin/clang++"`"
 	LLD="`which ld.lld 2> /dev/null || echo "/usr/bin/ld.lld"`"
 
 	ln -s $CLANG "${INSTALL_DIR}${CROSS_PREFIX}/bin/${TARGET}-clang"
+	ln -s $CLANGPP "${INSTALL_DIR}${CROSS_PREFIX}/bin/${TARGET}-clang++"
 	ln -s $LLD "${INSTALL_DIR}${CROSS_PREFIX}/bin/${TARGET}-ld.lld"
 }
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -146,6 +147,7 @@ typedef enum {
 	DEVMAN_ADD_DEVICE_TO_CATEGORY,
 	DEVMAN_DRV_FUN_ONLINE,
 	DEVMAN_DRV_FUN_OFFLINE,
+	DEVMAN_DRV_FUN_WAIT_STABLE,
 	DEVMAN_REMOVE_FUNCTION
 } driver_to_devman_t;
 

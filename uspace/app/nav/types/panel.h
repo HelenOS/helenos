@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,6 +79,8 @@ typedef struct panel {
 typedef struct panel_cb {
 	/** Request panel activation */
 	void (*activate_req)(void *, panel_t *);
+	/** Open file */
+	void (*file_open)(void *, panel_t *, const char *);
 } panel_cb_t;
 
 #endif

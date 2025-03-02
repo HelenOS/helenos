@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -132,6 +132,7 @@ extern errno_t ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
 extern void ddf_fun_set_ops(ddf_fun_t *, const ddf_dev_ops_t *);
 extern void ddf_fun_set_conn_handler(ddf_fun_t *, async_port_handler_t);
 extern errno_t ddf_fun_add_to_category(ddf_fun_t *, const char *);
+extern errno_t ddf_fun_wait_stable(ddf_fun_t *);
 
 #endif
 

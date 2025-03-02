@@ -368,7 +368,7 @@ errno_t vfs_get_fstypes(vfs_fstypes_t *fstypes)
 		return ENOMEM;
 	}
 
-	fstypes->fstypes = calloc(sizeof(char *), count);
+	fstypes->fstypes = calloc(count, sizeof(char *));
 	if (fstypes->fstypes == NULL) {
 		free(fstypes->buf);
 		fstypes->buf = NULL;

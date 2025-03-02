@@ -65,7 +65,7 @@ static errno_t trackmod_xm_load_order_list(xm_hdr_t *xm_hdr, trackmod_module_t *
 		goto error;
 	}
 
-	module->ord_list = calloc(sizeof(size_t), module->ord_list_len);
+	module->ord_list = calloc(module->ord_list_len, sizeof(size_t));
 	if (module->ord_list == NULL) {
 		printf("Out of memory.\n");
 		rc = ENOMEM;
@@ -175,7 +175,7 @@ static errno_t trackmod_xm_load_patterns(FILE *f, trackmod_module_t *module)
 	errno_t rc;
 	int ret;
 
-	module->pattern = calloc(sizeof(trackmod_pattern_t), module->patterns);
+	module->pattern = calloc(module->patterns, sizeof(trackmod_pattern_t));
 	if (module->pattern == NULL) {
 		rc = ENOMEM;
 		goto error;
@@ -207,8 +207,8 @@ static errno_t trackmod_xm_load_patterns(FILE *f, trackmod_module_t *module)
 
 		module->pattern[i].rows = rows;
 		module->pattern[i].channels = module->channels;
-		module->pattern[i].data = calloc(sizeof(trackmod_cell_t),
-		    rows * module->channels);
+		module->pattern[i].data = calloc(rows * module->channels,
+		    sizeof(trackmod_cell_t));
 
 		if (module->pattern[i].data == NULL) {
 			rc = ENOMEM;

@@ -26,28 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdevice
- * @{
- */
-/** @file
- */
+#include <errno.h>
+#include <fibril.h>
+#include <fibril_synch.h>
+//#include <stdio.h>
+//#include <stddef.h>
+#include "../tester.h"
 
-#ifndef LIBDEVICE_IPC_BD_H
-#define LIBDEVICE_IPC_BD_H
+static fibril_mutex_t fm1, fm2;
 
-#include <ipc/common.h>
+static errno_t fibril_fn(void *data)
+{
+	TPRINTF("F2: Lock M2\n");
+	fibril_mutex_lock(&fm2);
+	fibril_sleep(1);
+	TPRINTF("F2: Lock M1\n");
+	fibril_mutex_lock(&fm1);
+	TPRINTF("F2: Unlock M1, M2\n");
+	fibril_mutex_unlock(&fm1);
+	fibril_mutex_unlock(&fm2);
+	return EOK;
+}
 
-typedef enum {
-	BD_GET_BLOCK_SIZE = IPC_FIRST_USER_METHOD,
-	BD_GET_NUM_BLOCKS,
-	BD_READ_BLOCKS,
-	BD_SYNC_CACHE,
-	BD_WRITE_BLOCKS,
-	BD_READ_TOC,
-	BD_EJECT
-} bd_request_t;
+const char *test_deadlock(void)
+{
+	fid_t fid;
 
-#endif
+	fibril_mutex_initialize(&fm1);
+	fibril_mutex_initialize(&fm2);
 
-/** @}
- */
+	TPRINTF("Creating fibril\n");
+	fid = fibril_create(fibril_fn, NULL);
+	if (fid == 0) {
+		TPRINTF("\nCould not create fibril.\n");
+		goto error;
+	}
+
+	fibril_add_ready(fid);
+
+	TPRINTF("F1: Lock M1\n");
+	fibril_mutex_lock(&fm1);
+	fibril_sleep(1);
+	TPRINTF("F1: Lock M2\n");
+	fibril_mutex_lock(&fm2);
+
+	TPRINTF("F1: Unlock M2, M1\n");
+	fibril_mutex_unlock(&fm2);
+	fibril_mutex_unlock(&fm1);
+
+	return NULL;
+error:
+	return "Test failed";
+}

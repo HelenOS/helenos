@@ -109,6 +109,7 @@ fi
 
 PLATFORM=`sed -n '/^PLATFORM\b/p' Makefile.config | sed 's:[^=]*= ::'`
 MACHINE=`sed -n '/^MACHINE\b/p' Makefile.config | sed 's:[^=]*= ::'`
+COMPILER=`sed -n '/^COMPILER\b/p' Makefile.config | sed 's:[^=]*= ::'`
 
 cross_target="$PLATFORM"
 if [ "$PLATFORM" = 'abs32le' ]; then
@@ -118,10 +119,18 @@ if [ "$MACHINE" = 'bmalta' ]; then
 	cross_target='mips32eb'
 fi
 
+if [ "$COMPILER" = 'clang' ]; then
+    cross_target="${cross_target}_clang"
+fi
+
 cross_def="${SOURCE_DIR}/meson/cross/${cross_target}"
 cc_arch=`sed -n "s:cc_arch = '\(.*\)':\1:p" "$cross_def"`
 
-compname="$cc_arch-helenos-gcc"
+if [ "$COMPILER" = 'clang' ]; then
+    compname="$cc_arch-helenos-clang"
+else
+    compname="$cc_arch-helenos-gcc"
+fi
 unset compprefix
 
 if which "$compname" >/dev/null 2>/dev/null; then

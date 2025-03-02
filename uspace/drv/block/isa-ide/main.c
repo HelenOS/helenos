@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@
 #include <device/hw_res_parsed.h>
 
 #include "isa-ide.h"
+#include "isa-ide_hw.h"
 #include "main.h"
 
 static errno_t isa_ide_dev_add(ddf_dev_t *dev);
@@ -69,34 +70,25 @@ static errno_t isa_ide_get_res(ddf_dev_t *dev, isa_ide_hwres_t *res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
-	hw_res_flags_t flags;
+	hw_res_claims_t claims;
 	errno_t rc;
 
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
 		return ENOMEM;
 
-	rc = hw_res_get_flags(parent_sess, &flags);
-	if (rc != EOK)
+	rc = hw_res_query_legacy_io(parent_sess, &claims);
+	if (rc != EOK) {
+		ddf_msg(LVL_NOTE, "Error getting HW resource flags.");
 		return rc;
-
-	/*
-	 * Prevent attaching to the legacy ISA IDE register block
-	 * on a system with PCI not to conflict with PCI IDE.
-	 *
-	 * XXX This is a simplification. If we had a PCI-based system without
-	 * PCI-IDE or with PCI-IDE disabled and would still like to use
-	 * an ISA IDE controller, this would prevent us from doing so.
-	 */
-	if (flags & hwf_isa_bridge) {
-		ddf_msg(LVL_NOTE, "Will not attach to PCI/ISA bridge.");
-		return EIO;
 	}
 
 	hw_res_list_parsed_init(&hw_res);
 	rc = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		ddf_msg(LVL_NOTE, "Error getting HW resource list.");
 		return rc;
+	}
 
 	if (hw_res.io_ranges.count != 4) {
 		rc = EINVAL;
@@ -147,6 +139,18 @@ static errno_t isa_ide_get_res(ddf_dev_t *dev, isa_ide_hwres_t *res)
 		res->irq2 = -1;
 	}
 
+	/*
+	 * Only attach to legacy ISA IDE register block if it
+	 * is not claimed by PCI IDE driver.
+	 */
+	if (res->cmd1 == leg_ide_ata_cmd_p &&
+	    res->cmd2 == leg_ide_ata_cmd_s &&
+	    (claims & hwc_isa_ide) != 0) {
+		ddf_msg(LVL_NOTE, "Will not attach to ISA legacy ports "
+		    "since they are already handled by PCI.");
+		return EBUSY;
+	}
+
 	return EOK;
 error:
 	hw_res_list_parsed_clean(&hw_res);
@@ -166,7 +170,8 @@ static errno_t isa_ide_dev_add(ddf_dev_t *dev)
 
 	rc = isa_ide_get_res(dev, &res);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Invalid HW resource configuration.");
+		if (rc == EINVAL)
+			ddf_msg(LVL_ERROR, "Invalid HW resource configuration.");
 		return EINVAL;
 	}
 

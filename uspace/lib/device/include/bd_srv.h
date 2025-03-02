@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,7 @@ struct bd_ops {
 	errno_t (*write_blocks)(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
 	errno_t (*get_block_size)(bd_srv_t *, size_t *);
 	errno_t (*get_num_blocks)(bd_srv_t *, aoff64_t *);
+	errno_t (*eject)(bd_srv_t *);
 };
 
 extern void bd_srvs_init(bd_srvs_t *);

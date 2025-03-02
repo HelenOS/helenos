@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
@@ -205,17 +205,46 @@ static errno_t isa_fun_remain_dma(ddf_fun_t *fnode,
 	return EINVAL;
 }
 
-static errno_t isa_fun_get_flags(ddf_fun_t *fnode, hw_res_flags_t *rflags)
+/** Handle legacy IO availability query from function.
+ *
+ * @param fnode Function performing the query
+ * @param rclaims Place to store the legacy IO claims bitmask
+ * @return EOK on success or an error code
+ */
+static errno_t isa_fun_query_legacy_io(ddf_fun_t *fnode,
+    hw_res_claims_t *rclaims)
 {
 	isa_fun_t *fun = isa_fun(fnode);
-	hw_res_flags_t flags;
+	hw_res_claims_t claims;
+	async_sess_t *sess;
+	errno_t rc;
 
-	flags = 0;
-	if (fun->bus->pci_isa_bridge)
-		flags |= hwf_isa_bridge;
+	ddf_msg(LVL_DEBUG, "isa_fun_query_legacy_io()");
 
-	ddf_msg(LVL_NOTE, "isa_fun_get_flags: returning 0x%x", flags);
-	*rflags = flags;
+	sess = ddf_dev_parent_sess_get(fun->bus->dev);
+	if (sess == NULL) {
+		ddf_msg(LVL_ERROR, "isa_dev_add failed to connect to the "
+		    "parent driver.");
+		return ENOENT;
+	}
+
+	if (!fun->bus->pci_isa_bridge) {
+		ddf_msg(LVL_NOTE, "isa_fun_query_legacy_io: classic ISA - "
+		    "legacy IDE range is available");
+		/* Classic ISA, we can be sure IDE is unclaimed by PCI */
+		claims = 0;
+	} else {
+		ddf_msg(LVL_NOTE, "isa_fun_query_legacy_io: ISA bridge - "
+		    "determine legacy IDE availability from PCI bus driver");
+		rc = hw_res_query_legacy_io(sess, &claims);
+		if (rc != EOK) {
+			ddf_msg(LVL_NOTE, "Error querying legacy IO claims.");
+			return rc;
+		}
+	}
+
+	ddf_msg(LVL_DEBUG, "isa_fun_query_legacy_io: returning 0x%x", claims);
+	*rclaims = claims;
 	return EOK;
 }
 
@@ -226,7 +255,7 @@ static hw_res_ops_t isa_fun_hw_res_ops = {
 	.clear_interrupt = isa_fun_clear_interrupt,
 	.dma_channel_setup = isa_fun_setup_dma,
 	.dma_channel_remain = isa_fun_remain_dma,
-	.get_flags = isa_fun_get_flags
+	.query_legacy_io = isa_fun_query_legacy_io
 };
 
 static pio_window_t *isa_fun_get_pio_window(ddf_fun_t *fnode)

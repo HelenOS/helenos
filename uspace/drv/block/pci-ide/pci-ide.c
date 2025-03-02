@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -188,6 +188,8 @@ errno_t pci_ide_channel_init(pci_ide_ctrl_t *ctrl, pci_ide_channel_t *chan,
 	void *buffer = NULL;
 
 	ddf_msg(LVL_DEBUG, "pci_ide_channel_init()");
+
+	memset(&params, 0, sizeof(params));
 
 	chan->ctrl = ctrl;
 	chan->chan_id = chan_id;

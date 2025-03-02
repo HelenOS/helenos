@@ -1,0 +1,6 @@
+{
+	"deadlock",
+	"Fibril deadlock detection test",
+	&test_deadlock,
+	false
+},

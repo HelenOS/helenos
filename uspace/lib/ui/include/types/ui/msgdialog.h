@@ -57,6 +57,14 @@ typedef enum {
 	umdc_ok_cancel
 } ui_msg_dialog_choice_t;
 
+/** Message dialog flags */
+typedef enum {
+	/** Topmost window */
+	umdf_topmost = 0x1,
+	/** Place to the center of the screen */
+	umdf_center = 0x2
+} ui_msg_dialog_flags_t;
+
 /** Message dialog parameters */
 typedef struct {
 	/** Window caption */
@@ -65,6 +73,8 @@ typedef struct {
 	const char *text;
 	/** The choice that the user is given */
 	ui_msg_dialog_choice_t choice;
+	/** Flags */
+	ui_msg_dialog_flags_t flags;
 } ui_msg_dialog_params_t;
 
 /** Message dialog callback */

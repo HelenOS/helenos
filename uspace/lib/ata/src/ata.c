@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -95,6 +95,7 @@ static errno_t ata_bd_write_blocks(bd_srv_t *, uint64_t, size_t, const void *,
     size_t);
 static errno_t ata_bd_get_block_size(bd_srv_t *, size_t *);
 static errno_t ata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t ata_bd_eject(bd_srv_t *);
 static errno_t ata_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
 
 static errno_t ata_rcmd_read(ata_device_t *, uint64_t, size_t, void *);
@@ -104,12 +105,14 @@ static errno_t ata_rcmd_flush_cache(ata_device_t *);
 static errno_t ata_device_init(ata_channel_t *, ata_device_t *, int);
 static errno_t ata_identify_dev(ata_device_t *, void *);
 static errno_t ata_identify_pkt_dev(ata_device_t *, void *);
-static errno_t ata_cmd_packet(ata_device_t *, const void *, size_t, void *,
+static errno_t ata_cmd_packet_nondata(ata_device_t *, const void *, size_t);
+static errno_t ata_cmd_packet_din(ata_device_t *, const void *, size_t, void *,
     size_t, size_t *);
 static errno_t ata_pcmd_inquiry(ata_device_t *, void *, size_t, size_t *);
 static errno_t ata_pcmd_read_12(ata_device_t *, uint64_t, size_t, void *, size_t);
 static errno_t ata_pcmd_read_capacity(ata_device_t *, uint64_t *, size_t *);
 static errno_t ata_pcmd_read_toc(ata_device_t *, uint8_t, void *, size_t);
+static errno_t ata_pcmd_start_stop_unit(ata_device_t *, uint8_t);
 static void disk_print_summary(ata_device_t *);
 static size_t ata_disk_maxnb(ata_device_t *);
 static errno_t coord_calc(ata_device_t *, uint64_t, block_coord_t *);
@@ -128,7 +131,8 @@ static bd_ops_t ata_bd_ops = {
 	.write_blocks = ata_bd_write_blocks,
 	.get_block_size = ata_bd_get_block_size,
 	.get_num_blocks = ata_bd_get_num_blocks,
-	.sync_cache = ata_bd_sync_cache
+	.sync_cache = ata_bd_sync_cache,
+	.eject = ata_bd_eject
 };
 
 static ata_device_t *bd_srv_device(bd_srv_t *bd)
@@ -256,15 +260,20 @@ errno_t ata_channel_destroy(ata_channel_t *chan)
 	fibril_mutex_lock(&chan->lock);
 
 	for (i = 0; i < MAX_DEVICES; i++) {
+		if (chan->device[i].present == false)
+			continue;
+
 		rc = ata_device_remove(&chan->device[i]);
 		if (rc != EOK) {
 			ata_msg_error(chan, "Unable to remove device %d.", i);
-			break;
+			fibril_mutex_unlock(&chan->lock);
+			return rc;
 		}
 	}
 
 	ata_bd_fini_irq(chan);
 	fibril_mutex_unlock(&chan->lock);
+	free(chan);
 
 	return rc;
 }
@@ -752,6 +761,16 @@ static errno_t ata_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
 	return ata_rcmd_flush_cache(device);
 }
 
+/** Eject medium. */
+static errno_t ata_bd_eject(bd_srv_t *bd)
+{
+	ata_device_t *device = bd_srv_device(bd);
+
+	ata_msg_debug(device->chan, "ata_bd_eject()");
+	return ata_pcmd_start_stop_unit(device, ssf_pc_no_change |
+	    ssf_loej);
+}
+
 /** PIO data-in command protocol. */
 static errno_t ata_pio_data_in(ata_device_t *device, void *obuf, size_t obuf_size,
     size_t blk_size, size_t nblocks)
@@ -1082,19 +1101,76 @@ static errno_t ata_packet_dma(ata_device_t *device, void *buf, size_t buf_size,
 	return EOK;
 }
 
-/** Issue packet command (i. e. write a command packet to the device).
- *
- * Only data-in commands are supported (e.g. inquiry, read).
+/** Issue packet command (i. e. write a command packet to the device)
+ * with no data transfer.
  *
  * @param device	Device
+ * @param cpkt		Command packet
+ * @param cpkt_size	Command packet size in bytes
+ *
+ * @return EOK on success, EIO on error.
+ */
+static errno_t ata_cmd_packet_nondata(ata_device_t *device, const void *cpkt,
+    size_t cpkt_size)
+{
+	ata_channel_t *chan = device->chan;
+	uint8_t status;
+	uint8_t drv_head;
+	errno_t rc;
+
+	ata_msg_debug(chan, "ata_cmd_packet_nondata()");
+
+	fibril_mutex_lock(&chan->lock);
+
+	/* New value for Drive/Head register */
+	drv_head =
+	    ((disk_dev_idx(device) != 0) ? DHR_DRV : 0);
+
+	if (wait_status(chan, 0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK) {
+		fibril_mutex_unlock(&chan->lock);
+		return EIO;
+	}
+
+	ata_write_cmd_8(chan, REG_DRIVE_HEAD, drv_head);
+
+	if (wait_status(chan, 0, ~(SR_BSY | SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
+		fibril_mutex_unlock(&chan->lock);
+		return EIO;
+	}
+
+	ata_write_cmd_8(chan, REG_COMMAND, CMD_PACKET);
+
+	if (wait_status(chan, SR_DRQ, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+		if (chan->params.use_dma)
+			ata_dma_chan_teardown(device);
+		fibril_mutex_unlock(&chan->lock);
+		return EIO;
+	}
+
+	/* Write command packet. */
+	ata_write_data_16(chan, ((uint16_t *) cpkt), (cpkt_size + 1) / 2);
+
+	rc = ata_pio_nondata(device);
+
+	fibril_mutex_unlock(&chan->lock);
+
+	return rc;
+}
+
+/** Issue packet command (i. e. write a command packet to the device)
+ * performing data-in transfer.
+ *
+ * @param device	Device
+ * @param cpkt		Command packet
+ * @param cpkt_size	Command packet size in bytes
  * @param obuf		Buffer for storing data read from device
  * @param obuf_size	Size of obuf in bytes
  * @param rcvd_size	Place to store number of bytes read or @c NULL
  *
  * @return EOK on success, EIO on error.
  */
-static errno_t ata_cmd_packet(ata_device_t *device, const void *cpkt, size_t cpkt_size,
-    void *obuf, size_t obuf_size, size_t *rcvd_size)
+static errno_t ata_cmd_packet_din(ata_device_t *device, const void *cpkt,
+    size_t cpkt_size, void *obuf, size_t obuf_size, size_t *rcvd_size)
 {
 	ata_channel_t *chan = device->chan;
 	uint8_t status;
@@ -1189,7 +1265,8 @@ static errno_t ata_pcmd_inquiry(ata_device_t *device, void *obuf, size_t obuf_si
 	/* Allocation length */
 	cp->alloc_len = host2uint16_t_be(min(obuf_size, 0xff));
 
-	rc = ata_cmd_packet(device, cpb, sizeof(cpb), obuf, obuf_size, rcvd_size);
+	rc = ata_cmd_packet_din(device, cpb, sizeof(cpb), obuf, obuf_size,
+	    rcvd_size);
 	if (rc != EOK)
 		return rc;
 
@@ -1215,7 +1292,8 @@ static errno_t ata_pcmd_read_capacity(ata_device_t *device, uint64_t *nblocks,
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_READ_CAPACITY_10;
 
-	rc = ata_cmd_packet(device, &cdb, sizeof(cdb), &data, sizeof(data), &rsize);
+	rc = ata_cmd_packet_din(device, &cdb, sizeof(cdb), &data, sizeof(data),
+	    &rsize);
 	if (rc != EOK)
 		return rc;
 
@@ -1256,7 +1334,7 @@ static errno_t ata_pcmd_read_12(ata_device_t *device, uint64_t ba, size_t cnt,
 	cp.lba = host2uint32_t_be(ba);
 	cp.xfer_len = host2uint32_t_be(cnt);
 
-	rc = ata_cmd_packet(device, &cp, sizeof(cp), obuf, obuf_size, NULL);
+	rc = ata_cmd_packet_din(device, &cp, sizeof(cp), obuf, obuf_size, NULL);
 	if (rc != EOK)
 		return rc;
 
@@ -1296,9 +1374,45 @@ static errno_t ata_pcmd_read_toc(ata_device_t *device, uint8_t session,
 	cp->alloc_len = host2uint16_t_be(obuf_size);
 	cp->control = 0x40; /* 0x01 = multi-session mode (shifted to MSB) */
 
-	rc = ata_cmd_packet(device, cpb, sizeof(cpb), obuf, obuf_size, NULL);
+	rc = ata_cmd_packet_din(device, cpb, sizeof(cpb), obuf, obuf_size,
+	    NULL);
 	if (rc != EOK)
 		return rc;
+
+	return EOK;
+}
+
+/** Issue Start Stop Unit command.
+ *
+ * @param device	Device
+ * @param flags		Flags field of Start Stop Unit command (ssf_*)
+ * @return EOK on success, EIO on error.
+ */
+static errno_t ata_pcmd_start_stop_unit(ata_device_t *device, uint8_t flags)
+{
+	uint8_t cpb[12];
+	scsi_cdb_start_stop_unit_t *cp = (scsi_cdb_start_stop_unit_t *)cpb;
+	errno_t rc;
+
+	ata_msg_debug(device->chan, "ata_pcmd_start_stop_unit(device, 0x%x)",
+	    flags);
+
+	memset(cpb, 0, sizeof(cpb));
+
+	/*
+	 * For SFF 8020 compliance the command must be padded to 12 bytes.
+	 */
+	cp->op_code = SCSI_CMD_START_STOP_UNIT;
+	cp->immed = 0;
+	cp->flags = flags;
+	cp->control = 0;
+
+	rc = ata_cmd_packet_nondata(device, cpb, sizeof(cpb));
+	if (rc != EOK)
+		return rc;
+
+	ata_msg_debug(device->chan, "ata_pcmd_start_stop_unit(): "
+	    "ata_cmd_packet_nondata -> %d", rc);
 
 	return EOK;
 }
@@ -1531,9 +1645,11 @@ static size_t ata_disk_maxnb(ata_device_t *d)
 	 * If using DMA, this needs to be further restricted not to
 	 * exceed DMA buffer size.
 	 */
-	dma_maxnb = d->chan->params.max_dma_xfer / d->block_size;
-	if (dma_maxnb < maxnb)
-		maxnb = dma_maxnb;
+	if (d->chan->params.use_dma) {
+		dma_maxnb = d->chan->params.max_dma_xfer / d->block_size;
+		if (dma_maxnb < maxnb)
+			maxnb = dma_maxnb;
+	}
 
 	return maxnb;
 }

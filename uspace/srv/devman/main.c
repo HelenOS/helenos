@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -368,6 +368,9 @@ int main(int argc, char *argv[])
 	}
 
 	printf("%s: Accepting connections.\n", NAME);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Wait for device tree to stabilize.");
+	dev_tree_wait_stable(&device_tree);
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Device tree stable.");
 	task_retval(0);
 	async_manager();
 

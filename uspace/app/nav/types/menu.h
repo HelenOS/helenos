@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,8 @@
 typedef struct nav_menu_cb {
 	/** File / Open */
 	void (*file_open)(void *);
+	/** File / Edit */
+	void (*file_edit)(void *);
 	/** File / Exit */
 	void (*file_exit)(void *);
 } nav_menu_cb_t;

@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <ddi.h>
 #include <ddf/driver.h>
 #include <fibril_synch.h>
+#include <stdbool.h>
 
 #define PCI_MAX_HW_RES 10
 
@@ -53,6 +54,14 @@ typedef struct pciintel_bus {
 	fibril_mutex_t conf_mutex;
 	/** List of functions (of pci_fun_t) */
 	list_t funs;
+	/** Enumeration is done */
+	bool enum_done;
+	/** Synchronize enum_done */
+	fibril_mutex_t enum_done_lock;
+	/** Signal change to enum_done */
+	fibril_condvar_t enum_done_cv;
+	/** @c true iff legacy IDE range is claimed by PCI IDE driver */
+	bool leg_ide_claimed;
 } pci_bus_t;
 
 typedef struct pci_fun_data {
@@ -71,6 +80,7 @@ typedef struct pci_fun_data {
 	uint8_t subclass_code;
 	uint8_t prog_if;
 	uint8_t revision;
+	bool querying;
 	hw_resource_list_t hw_resources;
 	hw_resource_t resources[PCI_MAX_HW_RES];
 	pio_window_t pio_window;

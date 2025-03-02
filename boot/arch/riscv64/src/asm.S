@@ -107,7 +107,7 @@ FUNCTION_BEGIN(jump_to_kernel)
 	li t1, SATP_MODE_SV48
 	or t0, t0, t1
 
-	csrw sptbr, t0
+	csrw satp, t0
 
 	/* Jump to supervisor mode */
 	csrr t0, mstatus

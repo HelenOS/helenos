@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@
  */
 
 #include <adt/list.h>
+#include <bd.h>
 #include <bd_srv.h>
 #include <block.h>
 #include <errno.h>
@@ -70,6 +71,7 @@ static errno_t vbds_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *,
     size_t);
 static errno_t vbds_bd_get_block_size(bd_srv_t *, size_t *);
 static errno_t vbds_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t vbds_bd_eject(bd_srv_t *);
 
 static errno_t vbds_bsa_translate(vbds_part_t *, aoff64_t, size_t, aoff64_t *);
 
@@ -92,7 +94,8 @@ static bd_ops_t vbds_bd_ops = {
 	.sync_cache = vbds_bd_sync_cache,
 	.write_blocks = vbds_bd_write_blocks,
 	.get_block_size = vbds_bd_get_block_size,
-	.get_num_blocks = vbds_bd_get_num_blocks
+	.get_num_blocks = vbds_bd_get_num_blocks,
+	.eject = vbds_bd_eject
 };
 
 /** Provide disk access to liblabel */
@@ -1069,6 +1072,43 @@ static errno_t vbds_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	fibril_rwlock_read_unlock(&part->lock);
 
 	return EOK;
+}
+
+static errno_t vbds_bd_eject(bd_srv_t *bd)
+{
+	vbds_part_t *part = bd_srv_part(bd);
+	async_sess_t *sess;
+	bd_t *bdc;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_eject()");
+
+	fibril_rwlock_read_lock(&part->lock);
+
+	sess = loc_service_connect(part->disk->svc_id, INTERFACE_BLOCK, 0);
+	if (sess == NULL) {
+		log_msg(LOG_DEFAULT, LVL_WARN,
+		    "vbds_bd_eject() - failed connect");
+		fibril_rwlock_read_unlock(&part->lock);
+		return EIO;
+	}
+
+	rc = bd_open(sess, &bdc);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_WARN,
+		    "vbds_bd_eject() - failed open");
+		async_hangup(sess);
+		fibril_rwlock_read_unlock(&part->lock);
+		return EIO;
+	}
+
+	rc = bd_eject(bdc);
+
+	bd_close(bdc);
+	async_hangup(sess);
+
+	fibril_rwlock_read_unlock(&part->lock);
+	return rc;
 }
 
 void vbds_bd_conn(ipc_call_t *icall, void *arg)

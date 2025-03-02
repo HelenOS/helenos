@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -968,6 +968,16 @@ errno_t ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 	assert(fun->ftype == fun_exposed);
 
 	return devman_add_device_to_category(fun->handle, cat_name);
+}
+
+/** Wait for function to enter stable state.
+ *
+ * @param fun Function
+ * @return EOK on success or an error code
+ */
+errno_t ddf_fun_wait_stable(ddf_fun_t *fun)
+{
+	return devman_drv_fun_wait_stable(fun->handle);
 }
 
 errno_t ddf_driver_main(const driver_t *drv)

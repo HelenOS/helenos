@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2007 Martin Decky
  * All rights reserved.
  *
@@ -78,6 +79,7 @@ typedef struct {
 	bool safe;
 } test_t;
 
+extern const char *test_deadlock(void);
 extern const char *test_thread1(void);
 extern const char *test_setjmp1(void);
 extern const char *test_print1(void);

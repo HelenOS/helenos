@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,7 @@ extern errno_t bd_write_blocks(bd_t *, aoff64_t, size_t, const void *, size_t);
 extern errno_t bd_sync_cache(bd_t *, aoff64_t, size_t);
 extern errno_t bd_get_block_size(bd_t *, size_t *);
 extern errno_t bd_get_num_blocks(bd_t *, aoff64_t *);
+extern errno_t bd_eject(bd_t *);
 
 #endif
 

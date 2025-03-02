@@ -54,44 +54,51 @@
 
 #include "../private/libc.h"
 
-/** Create module for static executable.
+/** Create the "entrypoint" module, of the program executable
  *
+ * @param p_info Program ELF file info
  * @param rtld Run-time dynamic linker
  * @param rmodule Place to store pointer to new module or @c NULL
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t module_create_static_exec(rtld_t *rtld, module_t **rmodule)
+errno_t module_create_entrypoint(elf_finfo_t *p_info, rtld_t *rtld, module_t **rmodule)
 {
 	module_t *module;
+	bool is_dynamic = p_info->dynamic != NULL;
+	DPRINTF("module_create_entrypoint\n");
 
 	module = calloc(1, sizeof(module_t));
-	if (module == NULL) {
-		DPRINTF("malloc failed\n");
+	if (module == NULL)
 		return ENOMEM;
+
+	uintptr_t bias = elf_get_bias(p_info->base);
+
+	/*
+	 * First we need to process dynamic sections of the executable
+	 * program and insert it into the module graph.
+	 */
+	if (is_dynamic) {
+		DPRINTF("Parse program .dynamic section at %p\n", p_info->dynamic);
+		dynamic_parse(p_info->dynamic, bias, &module->dyn);
+	} else {
+		DPRINTF("Executable is not dynamically linked\n");
 	}
 
+	module->bias = bias;
 	module->id = rtld_get_next_id(rtld);
 	module->dyn.soname = "[program]";
 
 	module->rtld = rtld;
 	module->exec = true;
-	module->local = true;
+	module->local = !is_dynamic;
 
-	const elf_segment_header_t *tls =
-	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
+	module->tdata = p_info->tls.tdata;
+	module->tdata_size = p_info->tls.tdata_size;
+	module->tbss_size = p_info->tls.tbss_size;
+	module->tls_align = p_info->tls.tls_align;
 
-	if (tls) {
-		uintptr_t bias = elf_get_bias(__progsymbols.elfstart);
-		module->tdata = (void *) (tls->p_vaddr + bias);
-		module->tdata_size = tls->p_filesz;
-		module->tbss_size = tls->p_memsz - tls->p_filesz;
-		module->tls_align = tls->p_align;
-	} else {
-		module->tdata = NULL;
-		module->tdata_size = 0;
-		module->tbss_size = 0;
-		module->tls_align = 1;
-	}
+	DPRINTF("prog tdata at %p size %zu, tbss size %zu\n",
+	module->tdata, module->tdata_size, module->tbss_size);
 
 	list_append(&module->modules_link, &rtld->modules);
 
@@ -397,12 +404,15 @@ void modules_process_tls(rtld_t *rtld)
 	 * We are in negative offsets. In order for the alignments to
 	 * be correct, "zero" offset (i.e. the total size) must be aligned
 	 * to the strictest alignment present.
-	 * Note that the padding is actually in front of the TLS data,
-	 * not after it.
 	 */
 	rtld->tls_size = ALIGN_UP(rtld->tls_size, rtld->tls_align);
 
-	/* Space for the TCB. */
+	/*
+	 * Space for the TCB.
+	 * Later, the TLS zero offset is equal to the pointer to tcb_t, so
+	 * adding the sizeof(tcb_t) block AFTER we calculated the alignment
+	 * of the remainder above is correct.
+	 */
 	rtld->tls_size += sizeof(tcb_t);
 #endif
 }

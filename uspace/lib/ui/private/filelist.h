@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,18 +42,6 @@
 #include <ui/window.h>
 #include <stdint.h>
 #include <types/ui/filelist.h>
-
-/** File list entry attributes */
-struct ui_file_list_entry_attr {
-	/** File name */
-	const char *name;
-	/** File size */
-	uint64_t size;
-	/** @c true iff entry is a directory */
-	bool isdir;
-	/** Service number for service special entries */
-	service_id_t svc;
-};
 
 /** File list entry */
 struct ui_file_list_entry {

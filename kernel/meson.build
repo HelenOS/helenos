@@ -116,7 +116,7 @@ kernel_c_args = arch_kernel_c_args + kernel_defs + [
 
 if not CONFIG_LINE_DEBUG
 	# Keep the debug info needed to get file names for kernel stack traces.
-	kernel_c_args += [ '-gdwarf-5', '-g1', '-gno-statement-frontiers' ]
+	kernel_c_args += cc.get_supported_arguments([ '-gdwarf-5', '-g1', '-gno-statement-frontiers' ])
 endif
 
 if CONFIG_LTO

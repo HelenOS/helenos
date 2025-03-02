@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -205,6 +205,19 @@ static void bd_get_num_blocks_srv(bd_srv_t *srv, ipc_call_t *call)
 	async_answer_2(call, rc, LOWER32(num_blocks), UPPER32(num_blocks));
 }
 
+static void bd_eject_srv(bd_srv_t *srv, ipc_call_t *call)
+{
+	errno_t rc;
+
+	if (srv->srvs->ops->eject == NULL) {
+		async_answer_0(call, ENOTSUP);
+		return;
+	}
+
+	rc = srv->srvs->ops->eject(srv);
+	async_answer_0(call, rc);
+}
+
 static bd_srv_t *bd_srv_create(bd_srvs_t *srvs)
 {
 	bd_srv_t *srv;
@@ -274,6 +287,9 @@ errno_t bd_conn(ipc_call_t *icall, bd_srvs_t *srvs)
 			break;
 		case BD_GET_NUM_BLOCKS:
 			bd_get_num_blocks_srv(srv, &call);
+			break;
+		case BD_EJECT:
+			bd_eject_srv(srv, &call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

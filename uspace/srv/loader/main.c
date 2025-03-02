@@ -299,11 +299,8 @@ static int ldr_load(ipc_call_t *req)
 	DPRINTF("Loaded.\n");
 
 #ifdef CONFIG_RTLD
-	if (prog_info.env) {
-		pcb.tcb = rtld_tls_make(prog_info.env);
-	} else {
-		pcb.tcb = tls_make(prog_info.finfo.base);
-	}
+	assert(prog_info.env != NULL);
+	pcb.tcb = rtld_tls_make(prog_info.env);
 #else
 	pcb.tcb = tls_make(prog_info.finfo.base);
 #endif

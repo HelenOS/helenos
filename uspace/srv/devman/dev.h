@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ extern dev_node_t *create_dev_node(void);
 extern void delete_dev_node(dev_node_t *node);
 extern void dev_add_ref(dev_node_t *);
 extern void dev_del_ref(dev_node_t *);
+extern void dev_wait_stable(dev_node_t *);
 
 extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);

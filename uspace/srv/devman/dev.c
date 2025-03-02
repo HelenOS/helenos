@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -49,6 +50,8 @@ dev_node_t *create_dev_node(void)
 
 	refcount_init(&dev->refcnt);
 	list_initialize(&dev->functions);
+	fibril_mutex_initialize(&dev->state_lock);
+	fibril_condvar_initialize(&dev->state_cv);
 	link_initialize(&dev->driver_devices);
 
 	return dev;
@@ -86,6 +89,18 @@ void dev_del_ref(dev_node_t *dev)
 {
 	if (refcount_down(&dev->refcnt))
 		delete_dev_node(dev);
+}
+
+/** Wait until the device node enters stable state.
+ *
+ * @param dev Device node
+ */
+void dev_wait_stable(dev_node_t *dev)
+{
+	fibril_mutex_lock(&dev->state_lock);
+	while (dev->state == DEVICE_ATTACHING)
+		fibril_condvar_wait(&dev->state_cv, &dev->state_lock);
+	fibril_mutex_unlock(&dev->state_lock);
 }
 
 /** Find the device node structure of the device witch has the specified handle.

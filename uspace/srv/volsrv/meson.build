@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015 Jiri Svoboda
+# Copyright (c) 2025 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-deps = [ 'block', 'label', 'sif' ]
+deps = [ 'block', 'device', 'label', 'sif' ]
 
 src = files(
 	'empty.c',

@@ -220,7 +220,7 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 		goto fail;
 	}
 
-	vdev->queues = calloc(sizeof(virtq_t), num_queues);
+	vdev->queues = calloc(num_queues, sizeof(virtq_t));
 	if (!vdev->queues) {
 		rc = ENOMEM;
 		goto fail;
