@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2013 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,7 @@ extern bool start_driver(driver_t *);
 extern errno_t stop_driver(driver_t *);
 extern void add_device(driver_t *, dev_node_t *, dev_tree_t *);
 extern errno_t driver_dev_remove(dev_tree_t *, dev_node_t *);
+extern errno_t driver_dev_quiesce(dev_tree_t *, dev_node_t *);
 extern errno_t driver_dev_gone(dev_tree_t *, dev_node_t *);
 extern errno_t driver_fun_online(dev_tree_t *, fun_node_t *);
 extern errno_t driver_fun_offline(dev_tree_t *, fun_node_t *);

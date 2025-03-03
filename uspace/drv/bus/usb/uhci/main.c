@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Vojtech Horky, Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek
  * All rights reserved.
@@ -60,6 +61,7 @@ static const hc_driver_t uhci_driver = {
 	.start = hc_start,
 	.setup_root_hub = hc_setup_roothub,
 	.hc_gone = hc_gone,
+	.hc_quiesce = hc_quiesce
 };
 
 /** Call the PCI driver with a request to clear legacy support register

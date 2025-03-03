@@ -85,7 +85,7 @@ struct ddf_fun;
 
 /** Generic device driver operations */
 typedef struct driver_ops {
-	/** Callback method for passing a new device to the device driver */
+	/** Ask driver to add a new device */
 	errno_t (*dev_add)(ddf_dev_t *);
 
 	/** Ask driver to remove a device */
@@ -93,6 +93,9 @@ typedef struct driver_ops {
 
 	/** Inform driver a device disappeared */
 	errno_t (*dev_gone)(ddf_dev_t *);
+
+	/** Ask driver to quiesce device (disable interrupts and DMA) */
+	errno_t (*dev_quiesce)(ddf_dev_t *);
 
 	/** Ask driver to online a specific function */
 	errno_t (*fun_online)(ddf_fun_t *);
@@ -128,6 +131,7 @@ extern errno_t ddf_fun_bind(ddf_fun_t *);
 extern errno_t ddf_fun_unbind(ddf_fun_t *);
 extern errno_t ddf_fun_online(ddf_fun_t *);
 extern errno_t ddf_fun_offline(ddf_fun_t *);
+extern errno_t ddf_fun_quiesce(ddf_fun_t *);
 extern errno_t ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
 extern void ddf_fun_set_ops(ddf_fun_t *, const ddf_dev_ops_t *);
 extern void ddf_fun_set_conn_handler(ddf_fun_t *, async_port_handler_t);

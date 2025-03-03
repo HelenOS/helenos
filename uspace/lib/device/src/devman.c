@@ -342,6 +342,18 @@ errno_t devman_drv_fun_offline(devman_handle_t funh)
 	return retval;
 }
 
+errno_t devman_drv_fun_quiesce(devman_handle_t funh)
+{
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
+	if (exch == NULL)
+		return ENOMEM;
+
+	errno_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_QUIESCE, funh);
+
+	devman_exchange_end(exch);
+	return retval;
+}
+
 errno_t devman_drv_fun_wait_stable(devman_handle_t funh)
 {
 	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
@@ -505,6 +517,18 @@ errno_t devman_fun_offline(devman_handle_t funh)
 	return retval;
 }
 
+errno_t devman_fun_quiesce(devman_handle_t funh)
+{
+	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
+	if (exch == NULL)
+		return ENOMEM;
+
+	errno_t retval = async_req_1_0(exch, DEVMAN_FUN_QUIESCE, funh);
+
+	devman_exchange_end(exch);
+	return retval;
+}
+
 static errno_t devman_get_handles_once(sysarg_t method, sysarg_t arg1,
     devman_handle_t *handle_buf, size_t buf_size, size_t *act_size)
 {
@@ -629,6 +653,19 @@ errno_t devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
 
 	devman_exchange_end(exch);
 	return retval;
+}
+
+errno_t devman_quiesce_devices(const char *path)
+{
+	devman_handle_t funh;
+	errno_t rc;
+
+	funh = 0;
+	rc = devman_fun_get_handle(path, &funh, 0);
+	if (rc != EOK)
+		return rc;
+
+	return devman_fun_quiesce(funh);
 }
 
 errno_t devman_get_drivers(devman_handle_t **drvs,

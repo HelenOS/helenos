@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -57,6 +58,7 @@
 int hc_dev_add(ddf_dev_t *);
 int hc_dev_remove(ddf_dev_t *);
 int hc_dev_gone(ddf_dev_t *);
+int hc_dev_quiesce(ddf_dev_t *);
 int hc_fun_online(ddf_fun_t *);
 int hc_fun_offline(ddf_fun_t *);
 
@@ -64,6 +66,7 @@ static driver_ops_t hc_driver_ops = {
 	.dev_add = hc_dev_add,
 	.dev_remove = hc_dev_remove,
 	.dev_gone = hc_dev_gone,
+	.dev_quiesce = hc_dev_quiesce,
 	.fun_online = hc_fun_online,
 	.fun_offline = hc_fun_offline,
 };
@@ -353,6 +356,17 @@ errno_t hc_dev_gone(ddf_dev_t *dev)
 		err = hc_driver->hc_gone(hcd);
 
 	hcd_ddf_clean_hc(hcd);
+
+	return err;
+}
+
+errno_t hc_dev_quiesce(ddf_dev_t *dev)
+{
+	errno_t err = ENOTSUP;
+	hc_device_t *hcd = dev_to_hcd(dev);
+
+	if (hc_driver->hc_quiesce)
+		err = hc_driver->hc_quiesce(hcd);
 
 	return err;
 }

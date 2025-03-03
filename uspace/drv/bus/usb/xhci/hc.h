@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2018 Ondrej Hlavaty, Jan Hrach, Jaroslav Jindrak, Petr Manek
  * All rights reserved.
  *
@@ -118,6 +119,7 @@ extern errno_t hc_claim(xhci_hc_t *, ddf_dev_t *);
 extern errno_t hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *, int *);
 extern errno_t hc_start(xhci_hc_t *);
 extern void hc_fini(xhci_hc_t *);
+extern errno_t hc_quiesce(xhci_hc_t *);
 
 extern void hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
 extern void hc_ring_ep_doorbell(xhci_endpoint_t *, uint32_t);

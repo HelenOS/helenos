@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Zdenek Bouska
  * All rights reserved.
  *
@@ -219,10 +220,12 @@ static nic_iface_t e1000_nic_iface = {
 static ddf_dev_ops_t e1000_dev_ops;
 
 static errno_t e1000_dev_add(ddf_dev_t *);
+static errno_t e1000_dev_quiesce(ddf_dev_t *);
 
 /** Basic driver operations for E1000 driver */
 static driver_ops_t e1000_driver_ops = {
-	.dev_add = e1000_dev_add
+	.dev_add = e1000_dev_add,
+	.dev_quiesce = e1000_dev_quiesce
 };
 
 /** Driver structure for E1000 driver */
@@ -2219,6 +2222,26 @@ err_pio:
 	// TODO: e1000_pio_disable(dev);
 err_destroy:
 	e1000_dev_cleanup(dev);
+	return rc;
+}
+
+/** Quiesce E1000 device.
+ *
+ * @param dev E1000 device.
+ *
+ */
+errno_t e1000_dev_quiesce(ddf_dev_t *dev)
+{
+	nic_t *nic = ddf_dev_data_get(dev);
+	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
+	errno_t rc;
+
+	ddf_msg(LVL_DEBUG, "e1000_dev_quiesce()");
+
+	e1000_disable_interrupts(e1000);
+	rc = e1000_reset(nic);
+	if (rc != EOK)
+		ddf_msg(LVL_ERROR, "e1000_dev_quiesce failed");
 	return rc;
 }
 

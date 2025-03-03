@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek
  * All rights reserved.
@@ -264,6 +265,29 @@ int hc_gone(hc_device_t *instance)
 	assert(instance);
 	//TODO Implement
 	return ENOTSUP;
+}
+
+/** Quiesce host controller.
+ *
+ * @param[in] instance Host controller structure to use.
+ */
+int hc_quiesce(hc_device_t *hcd)
+{
+	hc_t *instance = hcd_to_hc(hcd);
+	uhci_regs_t *registers = instance->registers;
+
+	/* Reset everything, who knows what touched it before us */
+	pio_write_16(&registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
+	fibril_usleep(50000); /* 50ms according to USB spec(root hub reset) */
+	pio_write_16(&registers->usbcmd, 0);
+
+	/* Reset hc, all states and counters. Hope that hw is not broken */
+	pio_write_16(&registers->usbcmd, UHCI_CMD_HCRESET);
+	do {
+		fibril_usleep(10);
+	} while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
+
+	return EOK;
 }
 
 /** Initialize UHCI hc hw resources.

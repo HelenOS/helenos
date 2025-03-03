@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <devman.h>
 #include <fibril.h>
 #include <futil.h>
 #include <io/log.h>
@@ -521,6 +522,8 @@ static errno_t system_sys_shutdown(void)
 
 	/* Eject all volumes. */
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Ejecting volumes.");
+
 	rc = vol_create(&vol);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error contacting volume "
@@ -544,7 +547,21 @@ static errno_t system_sys_shutdown(void)
 	}
 
 	free(part_ids);
+	part_ids = NULL;
 	vol_destroy(vol);
+	vol = NULL;
+
+	/* Quiesce the device tree. */
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Quiescing devices.");
+
+	rc = devman_quiesce_devices("/hw");
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed to quiesce device tree.");
+		goto error;
+	}
+
 	return EOK;
 error:
 	if (part_ids != NULL)

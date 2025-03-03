@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek
  * All rights reserved.
  *
@@ -93,6 +94,13 @@ static errno_t hcd_hc_gone(hc_device_t *hcd)
 	return EOK;
 }
 
+static errno_t hcd_hc_quiesce(hc_device_t *hcd)
+{
+	xhci_hc_t *hc = hcd_to_hc(hcd);
+	hc_quiesce(hc);
+	return EOK;
+}
+
 static const hc_driver_t xhci_driver = {
 	.name = NAME,
 	.hc_device_size = sizeof(xhci_hc_t),
@@ -102,6 +110,7 @@ static const hc_driver_t xhci_driver = {
 	.claim = hcd_claim,
 	.start = hcd_start,
 	.hc_gone = hcd_hc_gone,
+	.hc_quiesce = hcd_hc_quiesce
 };
 
 /** Initializes global driver structures (NONE).

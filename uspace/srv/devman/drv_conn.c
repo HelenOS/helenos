@@ -455,6 +455,44 @@ static void devman_drv_fun_offline(ipc_call_t *icall, driver_t *drv)
 	async_answer_0(icall, EOK);
 }
 
+/** Quiesce function by driver request.
+ *
+ */
+static void devman_drv_fun_quiesce(ipc_call_t *icall, driver_t *drv)
+{
+	fun_node_t *fun;
+	errno_t rc;
+
+	fun = find_fun_node(&device_tree, ipc_get_arg1(icall));
+	if (fun == NULL) {
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	fun_busy_lock(fun);
+
+	fibril_rwlock_write_lock(&device_tree.rwlock);
+	if (fun->dev == NULL || fun->dev->drv != drv) {
+		fun_busy_unlock(fun);
+		fun_del_ref(fun);
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+	fibril_rwlock_write_unlock(&device_tree.rwlock);
+
+	rc = fun_quiesce(fun);
+	if (rc != EOK) {
+		fun_busy_unlock(fun);
+		fun_del_ref(fun);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	fun_busy_unlock(fun);
+	fun_del_ref(fun);
+	async_answer_0(icall, EOK);
+}
+
 /** Wait for function to become stable.
  *
  */
@@ -675,6 +713,9 @@ void devman_connection_driver(ipc_call_t *icall, void *arg)
 			break;
 		case DEVMAN_DRV_FUN_OFFLINE:
 			devman_drv_fun_offline(&call, driver);
+			break;
+		case DEVMAN_DRV_FUN_QUIESCE:
+			devman_drv_fun_quiesce(&call, driver);
 			break;
 		case DEVMAN_DRV_FUN_WAIT_STABLE:
 			devman_drv_fun_wait_stable(&call, driver);

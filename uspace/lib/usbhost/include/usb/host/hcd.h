@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -100,6 +101,9 @@ typedef struct hc_driver {
 
 	/** HC is gone. */
 	int (*hc_gone)(hc_device_t *);
+
+	/** Quiesce HC. */
+	int (*hc_quiesce)(hc_device_t *);
 } hc_driver_t;
 
 /* Drivers should call this before leaving hc_add */

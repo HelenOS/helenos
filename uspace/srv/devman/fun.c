@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -424,6 +425,63 @@ errno_t fun_offline(fun_node_t *fun)
 	fun->state = FUN_OFF_LINE;
 	fibril_rwlock_write_unlock(&device_tree.rwlock);
 
+	return EOK;
+}
+
+errno_t fun_quiesce(fun_node_t *fun)
+{
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "fun_quiesce(%s)", fun->pathname);
+	fibril_rwlock_read_lock(&device_tree.rwlock);
+
+	if (fun->state == FUN_OFF_LINE) {
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Function %s is off line.",
+		    fun->pathname);
+		return EOK;
+	}
+
+	if (fun->ftype != fun_inner) {
+		/* Nothing to do */
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Nothing to do for external "
+		    "function %s\n", fun->pathname);
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		return EOK;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "Quiescing inner function %s.",
+	    fun->pathname);
+
+	if (fun->child == NULL) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Function %s child is NULL.",
+		    fun->pathname);
+		fibril_rwlock_read_unlock(&device_tree.rwlock);
+		return EOK;
+	}
+
+	dev_node_t *dev = fun->child;
+	device_state_t dev_state;
+
+	dev_add_ref(dev);
+	dev_state = dev->state;
+
+	fibril_rwlock_read_unlock(&device_tree.rwlock);
+
+	/* If device is owned by driver, ask driver to quiesce it. */
+	if (dev_state == DEVICE_USABLE) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Call driver_dev_quiesce() "
+		    "for %s.", fun->pathname);
+		rc = driver_dev_quiesce(&device_tree, dev);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR,
+			    "driver_dev_quiesce() -> %d", (int)rc);
+			dev_del_ref(dev);
+			return ENOTSUP;
+		}
+	}
+
+	dev_del_ref(dev);
 	return EOK;
 }
 
