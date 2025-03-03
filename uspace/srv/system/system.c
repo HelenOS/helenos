@@ -547,20 +547,7 @@ static errno_t system_sys_shutdown(void)
 	}
 
 	free(part_ids);
-	part_ids = NULL;
 	vol_destroy(vol);
-	vol = NULL;
-
-	/* Quiesce the device tree. */
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Quiescing devices.");
-
-	rc = devman_quiesce_devices("/hw");
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Failed to quiesce device tree.");
-		goto error;
-	}
 
 	return EOK;
 error:
@@ -665,6 +652,17 @@ static errno_t system_srv_restart(void *arg)
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "system_srv_restart failed");
 		system_srv_shutdown_failed(&syssrv->srv);
+	}
+
+	/* Quiesce the device tree. */
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Quiescing devices.");
+
+	rc = devman_quiesce_devices("/hw");
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR,
+		    "Failed to quiesce device tree.");
+		return rc;
 	}
 
 	sys_reboot();
