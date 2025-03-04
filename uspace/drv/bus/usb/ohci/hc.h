@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -96,6 +97,7 @@ extern errno_t hc_gain_control(hc_device_t *);
 extern errno_t hc_start(hc_device_t *);
 extern errno_t hc_setup_roothub(hc_device_t *);
 extern errno_t hc_gone(hc_device_t *);
+extern errno_t hc_quiesce(hc_device_t *);
 
 extern void hc_enqueue_endpoint(hc_t *, const endpoint_t *);
 extern void hc_dequeue_endpoint(hc_t *, const endpoint_t *);

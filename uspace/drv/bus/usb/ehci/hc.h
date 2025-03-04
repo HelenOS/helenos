@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
@@ -106,6 +107,7 @@ extern errno_t hc_setup_roothub(hc_device_t *);
 extern errno_t hc_gen_irq_code(irq_code_t *, hc_device_t *,
     const hw_res_list_parsed_t *, int *);
 extern errno_t hc_gone(hc_device_t *);
+extern errno_t hc_quiesce(hc_device_t *);
 
 /** Runtime operations */
 extern void ehci_hc_interrupt(bus_t *, uint32_t);
