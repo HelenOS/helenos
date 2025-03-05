@@ -198,10 +198,6 @@ void fibril_teardown(fibril_t *fibril)
 
 	if (fibril->is_freeable) {
 		tls_free(fibril->tcb);
-		list_foreach_safe(fibril->exit_hooks, cur, _next) {
-			fibril_hook_t *hook = list_get_instance(cur, fibril_hook_t, link);
-			free(hook);
-		}
 		free(fibril);
 	}
 }
@@ -849,6 +845,16 @@ void fibril_detach(fid_t f)
 	//       limited lifetime should call this function.
 }
 
+void fibril_run_exit_hooks(fibril_t *f)
+{
+	list_foreach_safe(f->exit_hooks, cur, _next) {
+		fibril_hook_t *hook = list_get_instance(cur, fibril_hook_t, link);
+		list_remove(cur);
+		hook->func();
+		free(hook);
+	}
+}
+
 /**
  * Exit a fibril. Never returns.
  *
@@ -859,9 +865,7 @@ _Noreturn void fibril_exit(long retval)
 	// TODO: implement fibril_join() and remember retval
 	(void) retval;
 
-	list_foreach(fibril_self()->exit_hooks, link, fibril_hook_t, hook) {
-		hook->func();
-	}
+	fibril_run_exit_hooks(fibril_self());
 
 	fibril_t *f = _ready_list_pop_nonblocking(false);
 	if (!f)

@@ -80,6 +80,7 @@ void __libc_main(void *pcb_ptr)
 
 		main_fibril.tcb = tls_make_initial(__progsymbols.elfstart);
 	}
+	main_fibril.is_freeable = false;
 
 	assert(main_fibril.tcb);
 
@@ -171,8 +172,7 @@ void __libc_fini(void)
 
 void __libc_exit(int status)
 {
-	// TODO: some teardown of the main fibril?
-	// namely, fibril_exit_hooks would like to run even on the main fibril
+	fibril_run_exit_hooks(&main_fibril);
 
 	/*
 	 * GCC extension __attribute__((destructor)),

@@ -93,6 +93,8 @@ extern void fibril_notify(fibril_event_t *);
 extern errno_t fibril_ipc_wait(ipc_call_t *, const struct timespec *);
 extern void fibril_ipc_poke(void);
 
+extern void fibril_run_exit_hooks(fibril_t *);
+
 /**
  * "Restricted" fibril mutex.
  *

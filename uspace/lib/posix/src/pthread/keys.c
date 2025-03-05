@@ -103,10 +103,10 @@ int pthread_setspecific(pthread_key_t key, const void *data)
 int pthread_key_delete(pthread_key_t key)
 {
 	/*
-	 * FIXME: this can cause a data race with another fibrill
-	 * running on_fibril_exit. The obvious solution is to add
-	 * a rwlock on the destructors array, which will be needed
-	 * anyway if we want to support unlimited number of keys.
+	 * FIXME: this can cause a data race if another fibrill concurrently
+	 * runs on_fibril_exit. The obvious solution is to add a rwlock on
+	 * the destructors array, which will be needed anyway if we want to
+	 * support unlimited number of keys.
 	 */
 	destructors[key] = NULL;
 	key_data[key] = NULL;

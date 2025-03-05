@@ -354,7 +354,6 @@ static __attribute__((noreturn)) void ldr_run(ipc_call_t *req)
 
 	DPRINTF("Jump to entry point at %p\n", pcb.entry);
 
-	// mvolfik is very confused: why is __libc_fini called BEFORE jumping to entrypoint??
 	__libc_fini();
 	__tcb_reset();
 	entry_point_jmp(prog_info.finfo.entry, &pcb);
