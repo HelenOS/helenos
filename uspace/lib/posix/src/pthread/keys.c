@@ -57,7 +57,8 @@ static fibril_local void *key_data[PTHREAD_KEYS_MAX];
 void *pthread_getspecific(pthread_key_t key)
 {
 	// initialization is done in setspecific -> if not initialized, nothing was set yet
-	if (!fibril_initialized) return NULL;
+	if (!fibril_initialized)
+		return NULL;
 
 	assert(key < PTHREAD_KEYS_MAX);
 	assert(key < next_key);
@@ -66,8 +67,10 @@ void *pthread_getspecific(pthread_key_t key)
 	return key_data[key];
 }
 
-static void pthread_key_on_fibril_exit(void) {
-	if (!fibril_initialized) return;
+static void pthread_key_on_fibril_exit(void)
+{
+	if (!fibril_initialized)
+		return;
 
 	for (unsigned i = 0; i < PTHREAD_KEYS_MAX; i++) {
 		/*
@@ -77,7 +80,7 @@ static void pthread_key_on_fibril_exit(void) {
 		 * is NULL, and the destructor is not checked at all.
 		 */
 		if (key_data[i] != NULL && destructors[i] != NULL)
-				destructors[i](key_data[i]);
+			destructors[i](key_data[i]);
 	}
 }
 
@@ -86,7 +89,9 @@ int pthread_setspecific(pthread_key_t key, const void *data)
 	if (!fibril_initialized) {
 		DPRINTF("initializing pthread keys\n");
 		errno_t res = fibril_add_exit_hook(pthread_key_on_fibril_exit);
-		if (res != EOK) return res;
+		if (res != EOK)
+			return res;
+
 		for (unsigned i = 0; i < PTHREAD_KEYS_MAX; i++) {
 			key_data[i] = NULL;
 		}

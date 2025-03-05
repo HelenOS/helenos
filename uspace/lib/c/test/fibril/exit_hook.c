@@ -35,47 +35,49 @@ PCUT_TEST_SUITE(fibril_exit_hook);
 
 static int value;
 
-static void exit_hook(void) {
-    value = 5;
+static void exit_hook(void)
+{
+	value = 5;
 }
 
-static errno_t fibril_basic(void* _arg) {
-    fibril_add_exit_hook(exit_hook);
-    return EOK;
+static errno_t fibril_basic(void *_arg)
+{
+	fibril_add_exit_hook(exit_hook);
+	return EOK;
 }
 
-PCUT_TEST(exit_hook_basic) {
-    value = 0;
-    fid_t other = fibril_create(fibril_basic, NULL);
-    fibril_start(other);
+PCUT_TEST(exit_hook_basic)
+{
+	value = 0;
+	fid_t other = fibril_create(fibril_basic, NULL);
+	fibril_start(other);
 
-    fibril_yield();
+	fibril_yield();
 
-    PCUT_ASSERT_INT_EQUALS(5, value);
+	PCUT_ASSERT_INT_EQUALS(5, value);
 }
 
 /*
-static errno_t fibril_to_be_killed(void* _arg) {
-    fibril_add_exit_hook(exit_hook);
-
-    while (true)
-        firbil_yield();
-
-    assert(0 && "unreachable");
-}
-
-PCUT_TEST(exit_hook_kill) {
-    value = 0;
-    fid_t other = fibril_create(fibril_to_be_killed, NULL);
-    fibril_start(other);
-
-    fibril_yield();
-
-    fibril_kill(other); // anything like this doesn't exist yet
-
-    PCUT_ASSERT_INT_EQUALS(5, value);
-}
-*/
-
+ * static errno_t fibril_to_be_killed(void* _arg) {
+ *     fibril_add_exit_hook(exit_hook);
+ *
+ *     while (true)
+ *         firbil_yield();
+ *
+ *     assert(0 && "unreachable");
+ * }
+ *
+ * PCUT_TEST(exit_hook_kill) {
+ *     value = 0;
+ *     fid_t other = fibril_create(fibril_to_be_killed, NULL);
+ *     fibril_start(other);
+ *
+ *     fibril_yield();
+ *
+ *     fibril_kill(other); // anything like this doesn't exist yet
+ *
+ *     PCUT_ASSERT_INT_EQUALS(5, value);
+ * }
+ */
 
 PCUT_EXPORT(fibril_exit_hook);
