@@ -345,7 +345,7 @@ int main(int argc, char **argv)
 				free(cfg);
 				return 1;
 			}
-			break;
+			goto skip;
 		case 'H':
 			if (optind != 3 && argc != 4)
 				goto bad;
