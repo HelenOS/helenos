@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -96,6 +96,7 @@ typedef struct pc_fdc_drive {
 } pc_fdc_drive_t;
 
 extern errno_t pc_fdc_create(ddf_dev_t *, pc_fdc_hwres_t *, pc_fdc_t **);
+extern void pc_fdc_quiesce(pc_fdc_t *);
 extern errno_t pc_fdc_destroy(pc_fdc_t *);
 
 #endif

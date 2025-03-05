@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -103,6 +103,7 @@ typedef struct isa_ide_fun {
 extern errno_t isa_ide_channel_init(isa_ide_ctrl_t *, isa_ide_channel_t *,
     unsigned, isa_ide_hwres_t *);
 extern errno_t isa_ide_channel_fini(isa_ide_channel_t *);
+extern void isa_ide_channel_quiesce(isa_ide_channel_t *);
 
 #endif
 

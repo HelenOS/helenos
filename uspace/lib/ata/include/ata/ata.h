@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -200,6 +200,7 @@ typedef struct ata_channel {
 extern errno_t ata_channel_create(ata_params_t *, ata_channel_t **);
 extern errno_t ata_channel_initialize(ata_channel_t *);
 extern errno_t ata_channel_destroy(ata_channel_t *);
+extern void ata_channel_quiesce(ata_channel_t *);
 extern void ata_channel_irq(ata_channel_t *, uint8_t);
 extern void ata_connection(ipc_call_t *, ata_device_t *);
 

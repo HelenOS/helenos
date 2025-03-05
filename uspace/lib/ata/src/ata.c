@@ -83,6 +83,7 @@ static void ata_read_data_16(ata_channel_t *, uint16_t *, size_t);
 static void ata_write_data_16(ata_channel_t *, uint16_t *, size_t);
 static uint8_t ata_read_cmd_8(ata_channel_t *, uint16_t);
 static void ata_write_cmd_8(ata_channel_t *, uint16_t, uint8_t);
+static void ata_write_ctl_8(ata_channel_t *, uint16_t, uint8_t);
 
 static errno_t ata_bd_init_irq(ata_channel_t *);
 static void ata_bd_fini_irq(ata_channel_t *);
@@ -278,6 +279,16 @@ errno_t ata_channel_destroy(ata_channel_t *chan)
 	return rc;
 }
 
+/** Quiesce ATA channel. */
+void ata_channel_quiesce(ata_channel_t *chan)
+{
+	ata_msg_debug(chan, ": ata_channel_quiesce()");
+
+	fibril_mutex_lock(&chan->lock);
+	ata_write_ctl_8(chan, REG_DEVCTL, DCR_SRST | DCR_nIEN);
+	fibril_mutex_unlock(&chan->lock);
+}
+
 /** Add ATA device.
  *
  * @param d Device
@@ -347,6 +358,17 @@ static uint8_t ata_read_cmd_8(ata_channel_t *chan, uint16_t port)
 static void ata_write_cmd_8(ata_channel_t *chan, uint16_t port, uint8_t value)
 {
 	return chan->params.write_cmd_8(chan->params.arg, port, value);
+}
+
+/** Write 8 bits to 8-bit control port.
+ *
+ * @param chan ATA channel
+ * @param port Port number
+ * @param value Register value
+ */
+static void ata_write_ctl_8(ata_channel_t *chan, uint16_t port, uint8_t value)
+{
+	return chan->params.write_ctl_8(chan->params.arg, port, value);
 }
 
 /** Log a notice message.
