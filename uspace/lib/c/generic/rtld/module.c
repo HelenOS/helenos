@@ -98,7 +98,7 @@ errno_t module_create_entrypoint(elf_finfo_t *p_info, rtld_t *rtld, module_t **r
 	module->tls_align = p_info->tls.tls_align;
 
 	DPRINTF("prog tdata at %p size %zu, tbss size %zu\n",
-	module->tdata, module->tdata_size, module->tbss_size);
+	    module->tdata, module->tdata_size, module->tbss_size);
 
 	list_append(&module->modules_link, &rtld->modules);
 
