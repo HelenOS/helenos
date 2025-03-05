@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,17 +54,19 @@
 static errno_t hda_dev_add(ddf_dev_t *dev);
 static errno_t hda_dev_remove(ddf_dev_t *dev);
 static errno_t hda_dev_gone(ddf_dev_t *dev);
+static errno_t hda_dev_quiesce(ddf_dev_t *dev);
 static errno_t hda_fun_online(ddf_fun_t *fun);
 static errno_t hda_fun_offline(ddf_fun_t *fun);
 
 static void hdaudio_interrupt(ipc_call_t *, void *);
 
 static driver_ops_t driver_ops = {
-	.dev_add = &hda_dev_add,
-	.dev_remove = &hda_dev_remove,
-	.dev_gone = &hda_dev_gone,
-	.fun_online = &hda_fun_online,
-	.fun_offline = &hda_fun_offline
+	.dev_add = hda_dev_add,
+	.dev_remove = hda_dev_remove,
+	.dev_gone = hda_dev_gone,
+	.dev_quiesce = hda_dev_quiesce,
+	.fun_online = hda_fun_online,
+	.fun_offline = hda_fun_offline
 };
 
 static driver_t hda_driver = {
@@ -361,6 +363,16 @@ static errno_t hda_dev_gone(ddf_dev_t *dev)
 			return rc;
 	}
 
+	return EOK;
+}
+
+static errno_t hda_dev_quiesce(ddf_dev_t *dev)
+{
+	hda_t *hda = (hda_t *)ddf_dev_data_get(dev);
+
+	ddf_msg(LVL_DEBUG, "hda_dev_quiesce(%p)", dev);
+
+	hda_ctl_quiesce(hda->ctl);
 	return EOK;
 }
 

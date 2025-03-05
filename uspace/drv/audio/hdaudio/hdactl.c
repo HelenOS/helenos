@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -625,6 +625,16 @@ void hda_ctl_fini(hda_ctl_t *ctl)
 	hda_rirb_fini(ctl->hda);
 	hda_corb_fini(ctl->hda);
 	free(ctl);
+}
+
+void hda_ctl_quiesce(hda_ctl_t *ctl)
+{
+	uint32_t gctl;
+
+	ddf_msg(LVL_DEBUG, "hda_ctl_quiesce(): Resetting controller.");
+	gctl = hda_reg32_read(&ctl->hda->regs->gctl);
+	hda_reg32_write(&ctl->hda->regs->gctl,
+	    gctl & ~BIT_V(uint32_t, gctl_crst));
 }
 
 errno_t hda_cmd(hda_t *hda, uint32_t verb, uint32_t *resp)

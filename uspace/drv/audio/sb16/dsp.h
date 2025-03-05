@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -50,6 +51,7 @@ typedef enum {
 	DSP_CAPTURE_TERMINATE,
 	DSP_READY,
 	DSP_NO_BUFFER,
+	DSP_QUIESCED
 } dsp_state_t;
 
 typedef struct sb_dsp {
@@ -77,6 +79,7 @@ typedef struct sb_dsp {
 
 errno_t sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
     int dma8, int dma16);
+void sb_dsp_quiesce(sb_dsp_t *dsp);
 void sb_dsp_interrupt(sb_dsp_t *dsp);
 unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap);
 errno_t sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *size);

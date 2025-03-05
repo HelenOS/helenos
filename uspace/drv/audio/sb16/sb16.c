@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -188,6 +189,12 @@ errno_t sb16_init_mpu(sb16_t *sb, addr_range_t *regs)
 {
 	sb->mpu_regs = NULL;
 	return ENOTSUP;
+}
+
+errno_t sb16_quiesce(sb16_t *sb)
+{
+	sb_dsp_quiesce(&sb->dsp);
+	return EOK;
 }
 
 void sb16_interrupt(sb16_t *sb)

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
@@ -47,12 +48,14 @@
 #define NAME "sb16"
 
 static errno_t sb_add_device(ddf_dev_t *device);
+static errno_t sb_dev_quiesce(ddf_dev_t *device);
 static errno_t sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
     addr_range_t **pp_mpu_regs, int *irq, int *dma8, int *dma16);
 static errno_t sb_enable_interrupt(ddf_dev_t *device, int irq);
 
 static driver_ops_t sb_driver_ops = {
 	.dev_add = sb_add_device,
+	.dev_quiesce = sb_dev_quiesce
 };
 
 static driver_t sb_driver = {
@@ -175,6 +178,18 @@ error:
 	if (handler_regd)
 		unregister_interrupt_handler(device, irq_cap);
 	return rc;
+}
+
+/** Initialize new SB16 driver instance.
+ *
+ * @param[in] device DDF instance of the device to initialize.
+ * @return Error code.
+ */
+static errno_t sb_dev_quiesce(ddf_dev_t *device)
+{
+	sb16_t *soft_state = (sb16_t *)ddf_dev_data_get(device);
+
+	return sb16_quiesce(soft_state);
 }
 
 static errno_t sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
