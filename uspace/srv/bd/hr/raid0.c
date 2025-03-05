@@ -310,12 +310,15 @@ static errno_t hr_raid0_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 		hr_fgroup_submit(group, hr_io_worker, io);
 
+		left -= cnt;
+		if (left == 0)
+			break;
+
 		if (type == HR_BD_READ)
 			data_read += len;
 		else if (type == HR_BD_WRITE)
 			data_write += len;
 
-		left -= cnt;
 		strip_off = 0;
 		extent++;
 		if (extent >= vol->extent_no) {
