@@ -27,76 +27,58 @@
  */
 
 #include <fibril.h>
+#include <posix/pthread.h>
 #include <pcut/pcut.h>
 
 PCUT_INIT;
 
-PCUT_TEST_SUITE(fibril_exit_hook);
+PCUT_TEST_SUITE(pthread_keys);
 
-static int value;
+pthread_key_t key;
+int destructors_executed;
 
-static void exit_hook(void)
+static void destructor(void *_data)
 {
-	value = 5;
+	destructors_executed++;
 }
 
-static errno_t fibril_basic(void *_arg)
+static errno_t simple_fibril(void *_arg)
 {
-	fibril_add_exit_hook(exit_hook);
+	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x0d9e));
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x0d9e, pthread_getspecific(key));
+
+	for (int i = 0; i < 10; i++) {
+		fibril_yield();
+	}
+
 	return EOK;
 }
 
-PCUT_TEST(exit_hook_basic)
+PCUT_TEST(pthread_keys_basic)
 {
-	value = 0;
-	fid_t other = fibril_create(fibril_basic, NULL);
+	destructors_executed = 0;
+	PCUT_ASSERT_INT_EQUALS(0, pthread_key_create(&key, destructor));
+	PCUT_ASSERT_PTR_EQUALS(NULL, pthread_getspecific(key));
+
+	PCUT_ASSERT_INT_EQUALS(0, pthread_setspecific(key, (void *) 0x42));
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+
+	fid_t other = fibril_create(simple_fibril, NULL);
 	fibril_start(other);
 
-	fibril_yield();
+	for (int i = 0; i < 5; i++) {
+		fibril_yield();
+	}
 
-	PCUT_ASSERT_INT_EQUALS(5, value);
+	PCUT_ASSERT_INT_EQUALS(0, destructors_executed);
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
+
+	for (int i = 0; i < 10; i++) {
+		fibril_yield();
+	}
+
+	PCUT_ASSERT_INT_EQUALS(1, destructors_executed);
+	PCUT_ASSERT_PTR_EQUALS((void *) 0x42, pthread_getspecific(key));
 }
 
-static errno_t fibril_explicit_exit(void *_arg)
-{
-	fibril_add_exit_hook(exit_hook);
-	fibril_exit(ETIMEOUT);
-}
-
-PCUT_TEST(exit_hook_explicit_exit)
-{
-	value = 0;
-	fid_t other = fibril_create(fibril_explicit_exit, NULL);
-	fibril_start(other);
-
-	fibril_yield();
-
-	PCUT_ASSERT_INT_EQUALS(5, value);
-}
-
-#ifdef FIBRIL_KILL_HAS_BEEN_IMPLEMENTED
-static errno_t fibril_to_be_killed(void *_arg)
-{
-	fibril_add_exit_hook(exit_hook);
-
-	while (true)
-		firbil_yield();
-
-	assert(0 && "unreachable");
-}
-
-PCUT_TEST(exit_hook_kill)
-{
-	value = 0;
-	fid_t other = fibril_create(fibril_to_be_killed, NULL);
-	fibril_start(other);
-
-	fibril_yield();
-
-	fibril_kill(other); // anything like this doesn't exist yet
-
-	PCUT_ASSERT_INT_EQUALS(5, value);
-}
-#endif // FIBRIL_KILL_HAS_BEEN_IMPLEMENTED
-
-PCUT_EXPORT(fibril_exit_hook);
+PCUT_EXPORT(pthread_keys);
