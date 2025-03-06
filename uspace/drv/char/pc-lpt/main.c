@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@
 static errno_t pc_lpt_dev_add(ddf_dev_t *dev);
 static errno_t pc_lpt_dev_remove(ddf_dev_t *dev);
 static errno_t pc_lpt_dev_gone(ddf_dev_t *dev);
+static errno_t pc_lpt_dev_quiesce(ddf_dev_t *dev);
 static errno_t pc_lpt_fun_online(ddf_fun_t *fun);
 static errno_t pc_lpt_fun_offline(ddf_fun_t *fun);
 
@@ -52,6 +53,7 @@ static driver_ops_t driver_ops = {
 	.dev_add = pc_lpt_dev_add,
 	.dev_remove = pc_lpt_dev_remove,
 	.dev_gone = pc_lpt_dev_gone,
+	.dev_quiesce = pc_lpt_dev_quiesce,
 	.fun_online = pc_lpt_fun_online,
 	.fun_offline = pc_lpt_fun_offline
 };
@@ -137,6 +139,16 @@ static errno_t pc_lpt_dev_gone(ddf_dev_t *dev)
 	ddf_msg(LVL_DEBUG, "pc_lpt_dev_gone(%p)", dev);
 
 	return pc_lpt_gone(pc_lpt);
+}
+
+static errno_t pc_lpt_dev_quiesce(ddf_dev_t *dev)
+{
+	pc_lpt_t *pc_lpt = (pc_lpt_t *)ddf_dev_data_get(dev);
+
+	ddf_msg(LVL_DEBUG, "pc_lpt_dev_quiesce(%p)", dev);
+
+	pc_lpt_quiesce(pc_lpt);
+	return EOK;
 }
 
 static errno_t pc_lpt_fun_online(ddf_fun_t *fun)

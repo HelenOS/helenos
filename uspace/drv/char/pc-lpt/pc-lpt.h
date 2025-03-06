@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,6 +73,7 @@ typedef struct {
 extern errno_t pc_lpt_add(pc_lpt_t *, pc_lpt_res_t *);
 extern errno_t pc_lpt_remove(pc_lpt_t *);
 extern errno_t pc_lpt_gone(pc_lpt_t *);
+extern void pc_lpt_quiesce(pc_lpt_t *);
 
 #endif
 

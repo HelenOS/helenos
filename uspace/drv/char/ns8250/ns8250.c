@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2010 Lenka Trochtova
- * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -326,12 +326,14 @@ static chardev_ops_t ns8250_chardev_ops = {
 static void ns8250_char_conn(ipc_call_t *, void *);
 
 static errno_t ns8250_dev_add(ddf_dev_t *dev);
+static errno_t ns8250_dev_quiesce(ddf_dev_t *dev);
 static errno_t ns8250_dev_remove(ddf_dev_t *dev);
 
 /** The serial port device driver's standard operations. */
 static driver_ops_t ns8250_ops = {
 	.dev_add = &ns8250_dev_add,
-	.dev_remove = &ns8250_dev_remove
+	.dev_remove = &ns8250_dev_remove,
+	.dev_quiesce = &ns8250_dev_quiesce
 };
 
 /** The serial port device driver structure. */
@@ -962,6 +964,14 @@ static errno_t ns8250_dev_remove(ddf_dev_t *dev)
 	ns8250_port_cleanup(ns);
 	ns8250_unregister_interrupt_handler(ns);
 	ns8250_dev_cleanup(ns);
+	return EOK;
+}
+
+static errno_t ns8250_dev_quiesce(ddf_dev_t *dev)
+{
+	ns8250_t *ns = dev_ns8250(dev);
+
+	ns8250_port_interrupts_disable(ns->regs);
 	return EOK;
 }
 
