@@ -257,7 +257,7 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 	fibril_mutex_initialize(&new_volume->range_lock_list_lock);
 
 	atomic_init(&new_volume->rebuild_blk, 0);
-	atomic_init(&new_volume->state_changed, false);
+	atomic_init(&new_volume->state_dirty, false);
 
 	rc = new_volume->hr_ops.create(new_volume);
 	if (rc != EOK)

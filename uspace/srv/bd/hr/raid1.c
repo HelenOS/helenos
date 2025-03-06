@@ -224,7 +224,8 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 {
 	bool exp = true;
 
-	if (!atomic_compare_exchange_strong(&vol->state_changed, &exp, false))
+	/* TODO: could also wrap this */
+	if (!atomic_compare_exchange_strong(&vol->state_dirty, &exp, false))
 		return;
 
 	fibril_rwlock_read_lock(&vol->extents_lock);

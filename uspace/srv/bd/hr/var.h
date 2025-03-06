@@ -105,7 +105,7 @@ typedef struct hr_volume {
 	/* protects states (extents.status, hr_volume_t.status) */
 	fibril_rwlock_t states_lock;
 
-	_Atomic bool state_changed;
+	_Atomic bool state_dirty;
 	_Atomic uint64_t rebuild_blk;
 	uint64_t counter; /* metadata syncing */
 	hr_vol_status_t status;

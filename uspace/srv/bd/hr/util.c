@@ -412,7 +412,7 @@ static bool hr_range_lock_overlap(hr_range_lock_t *rl1, hr_range_lock_t *rl2)
 
 void hr_mark_vol_state_dirty(hr_volume_t *vol)
 {
-	atomic_store(&vol->state_changed, true);
+	atomic_store(&vol->state_dirty, true);
 }
 
 /** @}
