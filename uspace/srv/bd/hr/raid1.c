@@ -532,18 +532,15 @@ static errno_t hr_raid1_rebuild(void *arg)
 	uint64_t ba = 0;
 	hr_add_ba_offset(vol, &ba);
 
+	/*
+	 * XXX: this is useless here after simplified DI, because
+	 * rebuild cannot be triggered while ongoing rebuild
+	 */
 	fibril_rwlock_read_lock(&vol->extents_lock);
 
 	hr_range_lock_t *rl = NULL;
 
 	while (left != 0) {
-		if (vol->halt_please) {
-			fibril_rwlock_read_unlock(&vol->extents_lock);
-			fibril_mutex_lock(&vol->halt_lock);
-			fibril_mutex_unlock(&vol->halt_lock);
-			fibril_rwlock_read_lock(&vol->extents_lock);
-		}
-
 		cnt = min(max_blks, left);
 
 		rl = hr_range_lock_acquire(vol, ba, cnt);
@@ -572,6 +569,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 	fibril_rwlock_write_lock(&vol->states_lock);
 
 	hr_update_ext_status(vol, rebuild_idx, HR_EXT_ONLINE);
+
 	/*
 	 * We can be optimistic here, if some extents are
 	 * still INVALID, FAULTY or MISSING, the update vol
@@ -722,13 +720,20 @@ static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
 	errno_t rc = ENOENT;
 	hr_extent_t *ext, *rebuild_ext = &vol->extents[rebuild_idx];
 
+	fibril_rwlock_read_lock(&vol->states_lock);
+	hr_ext_status_t rebuild_ext_status = rebuild_ext->status;
+	fibril_rwlock_read_unlock(&vol->states_lock);
+
+	if (rebuild_ext_status != HR_EXT_REBUILD)
+		return EINVAL;
+
 	for (size_t i = 0; i < vol->extent_no; i++) {
 		fibril_rwlock_read_lock(&vol->states_lock);
-
 		ext = &vol->extents[i];
-		if (ext->status != HR_EXT_ONLINE)
+		if (ext->status != HR_EXT_ONLINE) {
+			fibril_rwlock_read_unlock(&vol->states_lock);
 			continue;
-
+		}
 		fibril_rwlock_read_unlock(&vol->states_lock);
 
 		rc = block_read_direct(ext->svc_id, ba, cnt, buf);
