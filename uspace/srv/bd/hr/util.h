@@ -65,7 +65,8 @@ extern void hr_sync_all_extents(hr_volume_t *);
 extern size_t hr_count_extents(hr_volume_t *, hr_ext_status_t);
 extern hr_range_lock_t *hr_range_lock_acquire(hr_volume_t *, uint64_t,
     uint64_t);
-extern void hr_range_lock_release(hr_range_lock_t *rl);
+extern void hr_range_lock_release(hr_range_lock_t *);
+extern void hr_mark_vol_state_dirty(hr_volume_t *);
 
 #endif
 

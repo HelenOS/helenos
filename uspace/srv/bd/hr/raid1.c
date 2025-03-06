@@ -104,7 +104,7 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	new_volume->hr_bds.sarg = new_volume;
 
 	/* force volume state update */
-	atomic_store(&new_volume->state_changed, true);
+	hr_mark_vol_state_dirty(new_volume);
 	hr_raid1_update_vol_status(new_volume);
 
 	fibril_rwlock_read_lock(&new_volume->states_lock);
@@ -166,7 +166,7 @@ errno_t hr_raid1_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	hr_update_hotspare_svc_id(vol, hs_idx, hotspare);
 	hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
 
-	atomic_store(&vol->state_changed, true);
+	hr_mark_vol_state_dirty(vol);
 error:
 	fibril_mutex_unlock(&vol->hotspare_lock);
 
@@ -290,7 +290,7 @@ static void hr_raid1_ext_state_callback(hr_volume_t *vol, size_t extent,
 		hr_update_ext_status(vol, extent, HR_EXT_FAILED);
 	}
 
-	atomic_store(&vol->state_changed, true);
+	hr_mark_vol_state_dirty(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 }
@@ -541,7 +541,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 	 * state accordingly.
 	 */
 	hr_update_vol_status(vol, HR_VOL_ONLINE);
-	atomic_store(&vol->state_changed, true);
+	hr_mark_vol_state_dirty(vol);
 
 	fibril_rwlock_write_unlock(&vol->states_lock);
 
@@ -561,7 +561,7 @@ end:
 		 */
 		fibril_rwlock_write_lock(&vol->states_lock);
 		hr_update_vol_status(vol, HR_VOL_DEGRADED);
-		atomic_store(&vol->state_changed, true);
+		hr_mark_vol_state_dirty(vol);
 		fibril_rwlock_write_unlock(&vol->states_lock);
 	}
 

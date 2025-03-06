@@ -40,6 +40,7 @@
 #include <hr.h>
 #include <io/log.h>
 #include <loc.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <str_error.h>
@@ -407,6 +408,11 @@ static bool hr_range_lock_overlap(hr_range_lock_t *rl1, hr_range_lock_t *rl2)
 		return false;
 
 	return true;
+}
+
+void hr_mark_vol_state_dirty(hr_volume_t *vol)
+{
+	atomic_store(&vol->state_changed, true);
 }
 
 /** @}

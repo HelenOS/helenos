@@ -317,7 +317,7 @@ static void hr_stop_srv(ipc_call_t *icall)
 
 		/* TODO: maybe expose extent state callbacks */
 		hr_update_ext_status(vol, fail_extent, HR_EXT_FAILED);
-		atomic_store(&vol->state_changed, true);
+		hr_mark_vol_state_dirty(vol);
 
 		fibril_rwlock_read_unlock(&vol->extents_lock);
 		fibril_rwlock_write_unlock(&vol->states_lock);
