@@ -114,6 +114,7 @@ struct hr_fgroup {
 hr_fpool_t *hr_fpool_create(size_t fibril_cnt, size_t max_wus,
     size_t wu_storage_size)
 {
+	/* TODO: allow wu_storage_size to be 0 (we want to save mem) */
 	assert(max_wus > 0 && wu_storage_size > 0);
 
 	void *bitmap_data = NULL;
@@ -188,6 +189,13 @@ hr_fgroup_t *hr_fgroup_create(hr_fpool_t *parent, size_t wu_cnt)
 {
 	assert(wu_cnt > 0);
 
+	/*
+	 * XXX: we can also get rid of this malloc() call,
+	 * somewhat...
+	 *
+	 * Have some fgroups also pre-allocated for maximum
+	 * pre-allocation power :-)
+	 */
 	hr_fgroup_t *result = malloc(sizeof(hr_fgroup_t));
 	if (result == NULL)
 		return NULL;
