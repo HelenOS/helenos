@@ -227,13 +227,6 @@ static void hr_raid1_update_vol_status(hr_volume_t *vol)
 	if (!atomic_compare_exchange_strong(&vol->state_changed, &exp, false))
 		return;
 
-	if (atomic_compare_exchange_strong(&vol->pending_invalidation, &exp,
-	    false)) {
-		fibril_mutex_lock(&vol->deferred_list_lock);
-		hr_process_deferred_invalidations(vol);
-		fibril_mutex_unlock(&vol->deferred_list_lock);
-	}
-
 	fibril_rwlock_read_lock(&vol->extents_lock);
 	fibril_rwlock_read_lock(&vol->states_lock);
 
@@ -288,34 +281,7 @@ static void hr_raid1_ext_state_callback(hr_volume_t *vol, size_t extent,
 
 	switch (rc) {
 	case ENOMEM:
-		fibril_mutex_lock(&vol->deferred_list_lock);
-
-		service_id_t invalid_svc_id = vol->extents[extent].svc_id;
-
-		list_foreach(vol->deferred_invalidations_list, link,
-		    hr_deferred_invalidation_t, di) {
-			if (di->svc_id == invalid_svc_id) {
-				assert(vol->extents[extent].status ==
-				    HR_EXT_INVALID);
-				goto deferring_end;
-			}
-		}
-
-		assert(vol->extents[extent].svc_id != HR_EXT_INVALID);
-
 		hr_update_ext_status(vol, extent, HR_EXT_INVALID);
-
-		size_t i = list_count(&vol->deferred_invalidations_list);
-		vol->deferred_inval[i].svc_id = invalid_svc_id;
-		vol->deferred_inval[i].index = extent;
-
-		list_append(&vol->deferred_inval[i].link,
-		    &vol->deferred_invalidations_list);
-
-		atomic_store(&vol->pending_invalidation, true);
-	deferring_end:
-
-		fibril_mutex_unlock(&vol->deferred_list_lock);
 		break;
 	case ENOENT:
 		hr_update_ext_status(vol, extent, HR_EXT_MISSING);

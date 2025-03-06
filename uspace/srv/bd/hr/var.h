@@ -109,18 +109,6 @@ typedef struct hr_volume {
 	bool halt_please;
 	fibril_mutex_t halt_lock;
 
-	/*
-	 * For deferring invalidations of extents. Used when
-	 * an extent has to be invalidated (got ENOMEM on a WRITE),
-	 * but workers - therefore state callbacks cannot lock
-	 * extents for writing (they are readers), so invalidations
-	 * are harvested later when we are able to.
-	 */
-	_Atomic bool pending_invalidation;
-	fibril_mutex_t deferred_list_lock;
-	list_t deferred_invalidations_list;
-	hr_deferred_invalidation_t deferred_inval[HR_MAX_EXTENTS];
-
 	_Atomic bool state_changed;
 	_Atomic uint64_t rebuild_blk;
 	uint64_t counter; /* metadata syncing */

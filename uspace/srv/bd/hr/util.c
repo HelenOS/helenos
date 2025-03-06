@@ -409,52 +409,5 @@ static bool hr_range_lock_overlap(hr_range_lock_t *rl1, hr_range_lock_t *rl2)
 	return true;
 }
 
-void hr_process_deferred_invalidations(hr_volume_t *vol)
-{
-	HR_DEBUG("hr_raid1_update_vol_status(): deferred invalidations\n");
-
-	fibril_mutex_lock(&vol->halt_lock);
-	vol->halt_please = true;
-	fibril_rwlock_write_lock(&vol->extents_lock);
-	fibril_rwlock_write_lock(&vol->states_lock);
-	fibril_mutex_lock(&vol->hotspare_lock);
-
-	list_foreach(vol->deferred_invalidations_list, link,
-	    hr_deferred_invalidation_t, di) {
-		assert(vol->extents[di->index].status == HR_EXT_INVALID);
-
-		HR_DEBUG("moving invalidated extent no. %lu to hotspares\n",
-		    di->index);
-
-		block_fini(di->svc_id);
-
-		size_t hs_idx = vol->hotspare_no;
-
-		vol->hotspare_no++;
-
-		hr_update_hotspare_svc_id(vol, hs_idx, di->svc_id);
-		hr_update_hotspare_status(vol, hs_idx, HR_EXT_HOTSPARE);
-
-		hr_update_ext_svc_id(vol, di->index, 0);
-		hr_update_ext_status(vol, di->index, HR_EXT_MISSING);
-
-		assert(vol->hotspare_no < HR_MAX_HOTSPARES + HR_MAX_EXTENTS);
-	}
-
-	for (size_t i = 0; i < HR_MAX_EXTENTS; i++) {
-		hr_deferred_invalidation_t *di = &vol->deferred_inval[i];
-		if (di->svc_id != 0) {
-			list_remove(&di->link);
-			di->svc_id = 0;
-		}
-	}
-
-	fibril_mutex_unlock(&vol->hotspare_lock);
-	fibril_rwlock_write_unlock(&vol->states_lock);
-	fibril_rwlock_write_unlock(&vol->extents_lock);
-	vol->halt_please = false;
-	fibril_mutex_unlock(&vol->halt_lock);
-}
-
 /** @}
  */
