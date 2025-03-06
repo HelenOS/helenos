@@ -105,10 +105,6 @@ typedef struct hr_volume {
 	/* protects states (extents.status, hr_volume_t.status) */
 	fibril_rwlock_t states_lock;
 
-	/* for halting IO requests when a REBUILD start waits */
-	bool halt_please;
-	fibril_mutex_t halt_lock;
-
 	_Atomic bool state_changed;
 	_Atomic uint64_t rebuild_blk;
 	uint64_t counter; /* metadata syncing */

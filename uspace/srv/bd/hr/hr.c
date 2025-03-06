@@ -248,9 +248,6 @@ static void hr_create_srv(ipc_call_t *icall, bool assemble)
 
 	fibril_mutex_initialize(&new_volume->lock); /* XXX: will remove this */
 
-	fibril_mutex_initialize(&new_volume->halt_lock);
-	new_volume->halt_please = false;
-
 	fibril_rwlock_initialize(&new_volume->extents_lock);
 	fibril_rwlock_initialize(&new_volume->states_lock);
 

@@ -343,17 +343,6 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 		hr_add_ba_offset(vol, &ba);
 
 	/*
-	 * this is to allow adding hotspare or start a rebuild on
-	 * very busy array, because of how rwlocks are implemented
-	 * in HelenOS (no writer priority, so if there are multiple
-	 * continuos readers, writer will never own the lock)
-	 */
-	if (vol->halt_please) {
-		fibril_mutex_lock(&vol->halt_lock);
-		fibril_mutex_unlock(&vol->halt_lock);
-	}
-
-	/*
 	 * extent order has to be locked for the whole IO duration,
 	 * so that workers have consistent targets
 	 */
@@ -590,8 +579,6 @@ static errno_t init_rebuild(hr_volume_t *vol, size_t *rebuild_idx)
 {
 	errno_t rc = EOK;
 
-	fibril_mutex_lock(&vol->halt_lock);
-	vol->halt_please = true;
 	fibril_rwlock_write_lock(&vol->extents_lock);
 	fibril_rwlock_write_lock(&vol->states_lock);
 	fibril_mutex_lock(&vol->hotspare_lock);
@@ -650,8 +637,6 @@ error:
 	fibril_mutex_unlock(&vol->hotspare_lock);
 	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_rwlock_write_unlock(&vol->extents_lock);
-	vol->halt_please = false;
-	fibril_mutex_unlock(&vol->halt_lock);
 
 	return rc;
 }
