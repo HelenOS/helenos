@@ -1271,7 +1271,7 @@ static void e1000_interrupt_handler(ipc_call_t *icall, void *arg)
  * @return An error code otherwise
  *
  */
-inline static errno_t e1000_register_int_handler(nic_t *nic,
+static errno_t e1000_register_int_handler(nic_t *nic,
     cap_irq_handle_t *handle)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
@@ -1920,7 +1920,7 @@ static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
  * @param data E1000 device data structure
  *
  */
-inline static void e1000_delete_dev_data(ddf_dev_t *dev)
+static void e1000_delete_dev_data(ddf_dev_t *dev)
 {
 	assert(dev);
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -102,7 +103,7 @@ void td_set_next(td_t *, const td_t *);
  * @param instance TD structure.
  * @return true if the TD was accessed and processed by hw, false otherwise.
  */
-inline static bool td_is_finished(const td_t *instance)
+static inline bool td_is_finished(const td_t *instance)
 {
 	assert(instance);
 	const int cc = (OHCI_MEM32_RD(instance->status) >> TD_STATUS_CC_SHIFT) &

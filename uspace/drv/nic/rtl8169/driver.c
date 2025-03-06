@@ -364,7 +364,7 @@ failed:
 
 }
 
-inline static errno_t rtl8169_register_int_handler(nic_t *nic_data,
+static errno_t rtl8169_register_int_handler(nic_t *nic_data,
     cap_irq_handle_t *handle)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
@@ -782,7 +782,7 @@ static errno_t rtl8169_on_stopped(nic_t *nic_data)
 	return EOK;
 }
 
-inline static void rtl8169_reset(rtl8169_t *rtl8169)
+static void rtl8169_reset(rtl8169_t *rtl8169)
 {
 	pio_write_8(rtl8169->regs + CR, CR_RST);
 	memory_barrier();
@@ -827,7 +827,7 @@ static void rtl8169_link_change(ddf_dev_t *dev)
  *  @param mcast_mode   Current multicast mode
  *  @param was_promisc  Sign if the promiscuous mode was active before disabling
  */
-inline static void rtl8169_rcx_promics_rem(nic_t *nic_data,
+static void rtl8169_rcx_promics_rem(nic_t *nic_data,
     nic_multicast_mode_t mcast_mode, uint8_t was_promisc)
 {
 	assert(nic_data);

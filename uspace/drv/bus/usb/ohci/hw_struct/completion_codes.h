@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -53,7 +54,7 @@ enum {
 	CC_NOACCESS2 = 0xf,
 };
 
-inline static errno_t cc_to_rc(unsigned int cc)
+static inline errno_t cc_to_rc(unsigned int cc)
 {
 	switch (cc) {
 	case CC_NOERROR:

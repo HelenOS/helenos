@@ -74,7 +74,7 @@ FIBRIL_MUTEX_INITIALIZE(irq_reg_lock);
  * @param rtl8139 RTL8139 private data
  *
  */
-inline static void rtl8139_lock_all(rtl8139_t *rtl8139)
+static void rtl8139_lock_all(rtl8139_t *rtl8139)
 {
 	assert(rtl8139);
 	fibril_mutex_lock(&rtl8139->tx_lock);
@@ -86,7 +86,7 @@ inline static void rtl8139_lock_all(rtl8139_t *rtl8139)
  * @param rtl8139 RTL8139 private data
  *
  */
-inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
+static void rtl8139_unlock_all(rtl8139_t *rtl8139)
 {
 	assert(rtl8139);
 	fibril_mutex_unlock(&rtl8139->rx_lock);
@@ -127,7 +127,7 @@ inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
  *
  *  @param rtl8139  The card private structure
  */
-inline static void rtl8139_hw_int_set(rtl8139_t *rtl8139)
+static void rtl8139_hw_int_set(rtl8139_t *rtl8139)
 {
 	pio_write_16(rtl8139->io_port + IMR, rtl8139->int_mask);
 }
@@ -138,7 +138,7 @@ inline static void rtl8139_hw_int_set(rtl8139_t *rtl8139)
  *
  *  @return Nonzero if empty, zero otherwise
  */
-inline static int rtl8139_hw_buffer_empty(rtl8139_t *rtl8139)
+static int rtl8139_hw_buffer_empty(rtl8139_t *rtl8139)
 {
 	return pio_read_16(rtl8139->io_port + CR) & CR_BUFE;
 }
@@ -166,7 +166,7 @@ static void rtl8139_hw_update_rcr(rtl8139_t *rtl8139)
  *  @param rtl8139  The rtl8139 private data
  *  @param mask     The mask to set
  */
-inline static void rtl8139_hw_set_mcast_mask(rtl8139_t *rtl8139,
+static void rtl8139_hw_set_mcast_mask(rtl8139_t *rtl8139,
     uint64_t mask)
 {
 	pio_write_32(rtl8139->io_port + MAR0, (uint32_t) mask);
@@ -180,7 +180,7 @@ inline static void rtl8139_hw_set_mcast_mask(rtl8139_t *rtl8139,
  *  @param rtl8139  rtl8139 card data
  *  @param bit_val  If bit_val is zero pmen is set to 0, otherwise pmen is set to 1
  */
-inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
+static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
 {
 	uint8_t config1 = pio_read_8(rtl8139->io_port + CONFIG1);
 	uint8_t config1_new;
@@ -222,7 +222,7 @@ inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
  *
  *  @return EOK if succeed, error code otherwise
  */
-inline static void rtl8139_hw_get_addr(rtl8139_t *rtl8139,
+static void rtl8139_hw_get_addr(rtl8139_t *rtl8139,
     nic_address_t *addr)
 {
 	assert(rtl8139);
@@ -261,7 +261,7 @@ static void rtl8139_hw_set_addr(rtl8139_t *rtl8139, const nic_address_t *addr)
  *   @param reg_offset  Register offset in the device IO space
  *   @param bits_add    The value to or
  */
-inline static void rtl8139_hw_reg_add_8(rtl8139_t *rtl8139, size_t reg_offset,
+static void rtl8139_hw_reg_add_8(rtl8139_t *rtl8139, size_t reg_offset,
     uint8_t bits_add)
 {
 	uint8_t value = pio_read_8(rtl8139->io_port + reg_offset);
@@ -275,7 +275,7 @@ inline static void rtl8139_hw_reg_add_8(rtl8139_t *rtl8139, size_t reg_offset,
  *   @param reg_offset  Register offset in the device IO space
  *   @param bits_add    The mask of bits to remove
  */
-inline static void rtl8139_hw_reg_rem_8(rtl8139_t *rtl8139, size_t reg_offset,
+static void rtl8139_hw_reg_rem_8(rtl8139_t *rtl8139, size_t reg_offset,
     uint8_t bits_add)
 {
 	uint8_t value = pio_read_8(rtl8139->io_port + reg_offset);
@@ -1793,7 +1793,7 @@ static errno_t rtl8139_autoneg_restart(ddf_fun_t *fun)
  *  @param mcast_mode   Current multicast mode
  *  @param was_promisc  Sign if the promiscuous mode was active before disabling
  */
-inline static void rtl8139_rcx_promics_rem(nic_t *nic_data,
+static void rtl8139_rcx_promics_rem(nic_t *nic_data,
     nic_multicast_mode_t mcast_mode, uint8_t was_promisc)
 {
 	assert(nic_data);
