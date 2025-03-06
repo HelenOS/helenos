@@ -101,15 +101,21 @@ errno_t hr_raid5_create(hr_volume_t *new_volume)
 		return EINVAL;
 	}
 
+	fibril_rwlock_write_lock(&new_volume->states_lock);
+
 	rc = hr_raid5_update_vol_status(new_volume);
-	if (rc != EOK)
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&new_volume->states_lock);
 		return rc;
+	}
 
 	bd_srvs_init(&new_volume->hr_bds);
 	new_volume->hr_bds.ops = &hr_raid5_bd_ops;
 	new_volume->hr_bds.sarg = new_volume;
 
 	rc = hr_register_volume(new_volume);
+
+	fibril_rwlock_write_unlock(&new_volume->states_lock);
 
 	return rc;
 }
@@ -139,7 +145,9 @@ errno_t hr_raid5_init(hr_volume_t *vol)
 void hr_raid5_status_event(hr_volume_t *vol)
 {
 	fibril_mutex_lock(&vol->lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
 	(void)hr_raid5_update_vol_status(vol);
+	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_mutex_unlock(&vol->lock);
 }
 
@@ -148,6 +156,7 @@ errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	HR_DEBUG("hr_raid5_add_hotspare()\n");
 
 	fibril_mutex_lock(&vol->lock);
+	fibril_mutex_lock(&vol->hotspare_lock);
 
 	if (vol->hotspare_no >= HR_MAX_HOTSPARES) {
 		HR_ERROR("hr_raid5_add_hotspare(): cannot add more hotspares "
@@ -157,9 +166,10 @@ errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 	}
 
 	vol->hotspares[vol->hotspare_no].svc_id = hotspare;
-	hr_update_hotspare_status(vol, vol->hotspare_no, HR_EXT_HOTSPARE);
 
 	vol->hotspare_no++;
+
+	hr_update_hotspare_status(vol, vol->hotspare_no - 1, HR_EXT_HOTSPARE);
 
 	/*
 	 * If the volume is degraded, start rebuild right away.
@@ -168,12 +178,16 @@ errno_t hr_raid5_add_hotspare(hr_volume_t *vol, service_id_t hotspare)
 		HR_DEBUG("hr_raid5_add_hotspare(): volume in DEGRADED state, "
 		    "spawning new rebuild fibril\n");
 		fid_t fib = fibril_create(hr_raid5_rebuild, vol);
-		if (fib == 0)
+		if (fib == 0) {
+			fibril_mutex_unlock(&vol->hotspare_lock);
+			fibril_mutex_unlock(&vol->lock);
 			return ENOMEM;
+		}
 		fibril_start(fib);
 		fibril_detach(fib);
 	}
 
+	fibril_mutex_unlock(&vol->hotspare_lock);
 	fibril_mutex_unlock(&vol->lock);
 
 	return EOK;
@@ -586,6 +600,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 	left = cnt;
 
+	fibril_rwlock_write_lock(&vol->states_lock);
 	while (left != 0) {
 		phys_block = ext_stripe * strip_size + strip_off;
 		cnt = min(left, strip_size - strip_off);
@@ -683,6 +698,7 @@ static errno_t hr_raid5_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 
 error:
 	(void)hr_raid5_update_vol_status(vol);
+	fibril_rwlock_write_unlock(&vol->states_lock);
 	fibril_mutex_unlock(&vol->lock);
 	return rc;
 }
@@ -696,6 +712,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 	void *buf = NULL, *xorbuf = NULL;
 
 	fibril_mutex_lock(&vol->lock);
+	fibril_rwlock_read_lock(&vol->extents_lock);
+	fibril_rwlock_write_lock(&vol->states_lock);
 
 	if (vol->hotspare_no == 0) {
 		HR_WARN("hr_raid5_rebuild(): no free hotspares on \"%s\", "
@@ -737,7 +755,9 @@ static errno_t hr_raid5_rebuild(void *arg)
 	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
 
 	vol->hotspares[hotspare_idx].svc_id = 0;
+	fibril_mutex_lock(&vol->hotspare_lock);
 	hr_update_hotspare_status(vol, hotspare_idx, HR_EXT_MISSING);
+	fibril_mutex_unlock(&vol->hotspare_lock);
 
 	vol->hotspare_no--;
 
@@ -812,8 +832,10 @@ static errno_t hr_raid5_rebuild(void *arg)
 		 * Let other IO requests be served
 		 * during rebuild.
 		 */
+		fibril_rwlock_write_unlock(&vol->states_lock);
 		fibril_mutex_unlock(&vol->lock);
 		fibril_mutex_lock(&vol->lock);
+		fibril_rwlock_write_lock(&vol->states_lock);
 	}
 
 	HR_DEBUG("hr_raid5_rebuild(): rebuild finished on \"%s\" (%lu), "
@@ -828,6 +850,8 @@ static errno_t hr_raid5_rebuild(void *arg)
 end:
 	(void)hr_raid5_update_vol_status(vol);
 
+	fibril_rwlock_write_unlock(&vol->states_lock);
+	fibril_rwlock_read_unlock(&vol->extents_lock);
 	fibril_mutex_unlock(&vol->lock);
 
 	if (buf != NULL)
