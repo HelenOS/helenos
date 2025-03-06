@@ -540,6 +540,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 	hr_range_lock_t *rl = NULL;
 
+	unsigned int percent, old_percent = 100;
 	while (left != 0) {
 		cnt = min(max_blks, left);
 
@@ -554,6 +555,13 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 		rc = hr_raid1_restore_blocks(vol, rebuild_idx, ba, cnt, buf);
 
+		percent = ((ba + cnt) * 100) / vol->data_blkno;
+		if (percent != old_percent) {
+			if (percent % 5 == 0)
+				HR_DEBUG("\"%s\" REBUILD progress: %u%%\n",
+				    vol->devname, percent);
+		}
+
 		hr_range_lock_release(rl);
 
 		if (rc != EOK)
@@ -561,6 +569,7 @@ static errno_t hr_raid1_rebuild(void *arg)
 
 		ba += cnt;
 		left -= cnt;
+		old_percent = percent;
 	}
 
 	HR_DEBUG("hr_raid1_rebuild(): rebuild finished on \"%s\" (%lu), "
@@ -713,8 +722,6 @@ static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
 static errno_t hr_raid1_restore_blocks(hr_volume_t *vol, size_t rebuild_idx,
     uint64_t ba, size_t cnt, void *buf)
 {
-	HR_DEBUG("REBUILD restoring blocks (ba: %lu, cnt: %lu)\n", ba, cnt);
-
 	assert(fibril_rwlock_is_locked(&vol->extents_lock));
 
 	errno_t rc = ENOENT;
