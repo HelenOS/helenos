@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2014 Agnieszka Tabaka
  * All rights reserved.
  *
@@ -163,10 +164,12 @@ irq_code_t rtl8169_irq_code = {
 static ddf_dev_ops_t rtl8169_dev_ops;
 
 static errno_t rtl8169_dev_add(ddf_dev_t *dev);
+static errno_t rtl8169_dev_quiesce(ddf_dev_t *dev);
 
 /** Basic driver operations for RTL8169 driver */
 static driver_ops_t rtl8169_driver_ops = {
 	.dev_add = &rtl8169_dev_add,
+	.dev_quiesce = &rtl8169_dev_quiesce
 };
 
 /** Driver structure for RTL8169 driver */
@@ -479,6 +482,24 @@ err_pio:
 err_destroy:
 	rtl8169_dev_cleanup(dev);
 	return rc;
+
+	return EOK;
+}
+
+static errno_t rtl8169_dev_quiesce(ddf_dev_t *dev)
+{
+	nic_t *nic;
+	rtl8169_t *rtl8169;
+
+	ddf_msg(LVL_NOTE, "RTL8169_dev_quiesce %s (handle = %zu)",
+	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
+
+	nic = nic_get_from_ddf_dev(dev);
+	rtl8169 = nic_get_specific(nic);
+
+	/* Reset card */
+	pio_write_8(rtl8169->regs + CONFIG0, 0);
+	rtl8169_reset(rtl8169);
 
 	return EOK;
 }

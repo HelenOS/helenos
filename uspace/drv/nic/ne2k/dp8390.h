@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2009 Lukas Mejdrech
  * Copyright (c) 2011 Martin Decky
  * Copyright (c) 2011 Radim Vansa
@@ -266,6 +267,7 @@ typedef struct {
 
 extern errno_t ne2k_probe(ne2k_t *);
 extern errno_t ne2k_up(ne2k_t *);
+extern void ne2k_quiesce(ne2k_t *);
 extern void ne2k_down(ne2k_t *);
 extern void ne2k_send(nic_t *, void *, size_t);
 extern void ne2k_interrupt(nic_t *, uint8_t, uint8_t);

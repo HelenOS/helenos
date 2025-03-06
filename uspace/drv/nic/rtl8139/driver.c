@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jiri Michalec
  * All rights reserved.
  *
@@ -337,10 +338,12 @@ static nic_iface_t rtl8139_nic_iface = {
 static ddf_dev_ops_t rtl8139_dev_ops;
 
 static errno_t rtl8139_dev_add(ddf_dev_t *dev);
+static errno_t rtl8139_dev_quiesce(ddf_dev_t *dev);
 
 /** Basic driver operations for RTL8139 driver */
 static driver_ops_t rtl8139_driver_ops = {
 	.dev_add = &rtl8139_dev_add,
+	.dev_quiesce = &rtl8139_dev_quiesce
 };
 
 /** Driver structure for RTL8139 driver */
@@ -431,7 +434,7 @@ err_size:
  *
  *  @param io_base  The address of the i/o port mapping start
  */
-inline static void rtl8139_hw_soft_reset(void *io_base)
+static void rtl8139_hw_soft_reset(void *io_base)
 {
 	pio_write_8(io_base + CR, CR_RST);
 	memory_barrier();
@@ -844,7 +847,7 @@ static void rtl8139_interrupt_handler(ipc_call_t *icall, void *arg)
  *
  *  @return An error code otherwise.
  */
-inline static errno_t rtl8139_register_int_handler(nic_t *nic_data,
+static errno_t rtl8139_register_int_handler(nic_t *nic_data,
     cap_irq_handle_t *handle)
 {
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
@@ -871,7 +874,7 @@ inline static errno_t rtl8139_register_int_handler(nic_t *nic_data,
  *
  * @param rtl8139  The card private data
  */
-inline static void rtl8139_card_up(rtl8139_t *rtl8139)
+static void rtl8139_card_up(rtl8139_t *rtl8139)
 {
 	void *io_base = rtl8139->io_port;
 	size_t i;
@@ -1246,6 +1249,11 @@ static void rtl8139_data_init(rtl8139_t *rtl8139)
 	}
 }
 
+static void rtl8139_quiesce(rtl8139_t *rtl8139)
+{
+	rtl8139_hw_soft_reset(rtl8139->io_port);
+}
+
 /** The add_device callback of RTL8139 callback
  *
  * Probe and initialize the newly added device.
@@ -1327,6 +1335,26 @@ err_pio:
 err_destroy:
 	rtl8139_dev_cleanup(dev);
 	return rc;
+}
+
+/** Quiesce RTL8139.
+ *
+ * @param dev RTL8139 device.
+ * @return EOK on sucess, or an error code.
+ */
+errno_t rtl8139_dev_quiesce(ddf_dev_t *dev)
+{
+	nic_t *nic;
+	rtl8139_t *rtl8139;
+
+	ddf_msg(LVL_NOTE, "RTL8139_dev_quiesce %s (handle = %zu)",
+	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
+
+	nic = nic_get_from_ddf_dev(dev);
+	rtl8139 = nic_get_specific(nic);
+
+	rtl8139_quiesce(rtl8139);
+	return EOK;
 }
 
 /** Set card MAC address
