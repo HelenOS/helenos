@@ -83,6 +83,9 @@ errno_t hr_init_devs(hr_volume_t *vol)
 		}
 	}
 
+	for (i = 0; i < HR_MAX_HOTSPARES; i++)
+		vol->hotspares[i].status = HR_EXT_MISSING;
+
 	return rc;
 }
 
