@@ -1,7 +1,7 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2001-2004 Jakub Jermar
  * Copyright (c) 2006 Josef Cejka
- * Copyright (c) 2021 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -343,6 +343,19 @@ error:
 		ddf_fun_destroy(dev->aux->fun);
 
 	return rc;
+}
+
+/** Quiesce i8042.
+ *
+ * @param dev i8042 instance.
+ */
+void i8042_quiesce(i8042_t *dev)
+{
+	/* Disable port interrupts. */
+	wait_ready(dev);
+	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
+	wait_ready(dev);
+	pio_write_8(&dev->regs->data, i8042_KBD_TRANSLATE);
 }
 
 /** Write data to i8042 port.

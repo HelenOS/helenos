@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2006 Josef Cejka
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
@@ -94,6 +94,7 @@ typedef struct i8042 {
 } i8042_t;
 
 extern errno_t i8042_init(i8042_t *, addr_range_t *, int, int, ddf_dev_t *);
+extern void i8042_quiesce(i8042_t *);
 
 #endif
 

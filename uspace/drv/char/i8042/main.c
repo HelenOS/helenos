@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
@@ -134,9 +135,28 @@ static errno_t i8042_dev_add(ddf_dev_t *device)
 	return EOK;
 }
 
+/** Initialize a new ddf driver instance of i8042 driver
+ *
+ * @param[in] device DDF instance of the device to initialize.
+ *
+ * @return Error code.
+ *
+ */
+static errno_t i8042_dev_quiesce(ddf_dev_t *device)
+{
+	i8042_t *i8042;
+
+	ddf_msg(LVL_DEBUG, "i8042_dev_quiesce()");
+
+	i8042 = (i8042_t *)ddf_dev_data_get(device);
+	i8042_quiesce(i8042);
+	return EOK;
+}
+
 /** DDF driver operations. */
 static driver_ops_t i8042_driver_ops = {
 	.dev_add = i8042_dev_add,
+	.dev_quiesce = i8042_dev_quiesce
 };
 
 /** DDF driver. */
