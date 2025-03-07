@@ -110,7 +110,7 @@ errno_t hr_raid1_create(hr_volume_t *new_volume)
 	fibril_rwlock_read_lock(&new_volume->states_lock);
 	hr_vol_status_t state = new_volume->status;
 	fibril_rwlock_read_unlock(&new_volume->states_lock);
-	if (state == HR_VOL_FAULTY || state == HR_VOL_INVALID)
+	if (state == HR_VOL_FAULTY || state == HR_VOL_NONE)
 		return EINVAL;
 
 	rc = hr_register_volume(new_volume);
@@ -328,7 +328,7 @@ static errno_t hr_raid1_bd_op(hr_bd_op_type_t type, bd_srv_t *bd, aoff64_t ba,
 	hr_vol_status_t vol_state = vol->status;
 	fibril_rwlock_read_unlock(&vol->states_lock);
 
-	if (vol_state == HR_VOL_FAULTY || vol_state == HR_VOL_INVALID)
+	if (vol_state == HR_VOL_FAULTY || vol_state == HR_VOL_NONE)
 		return EIO;
 
 	if (type == HR_BD_READ || type == HR_BD_WRITE)
@@ -661,7 +661,7 @@ static errno_t swap_hs(hr_volume_t *vol, size_t bad, size_t hs)
 	hr_update_ext_status(vol, bad, HR_EXT_HOTSPARE);
 
 	hr_update_hotspare_svc_id(vol, hs, 0);
-	hr_update_hotspare_status(vol, hs, HR_EXT_INVALID);
+	hr_update_hotspare_status(vol, hs, HR_EXT_MISSING);
 
 	vol->hotspare_no--;
 

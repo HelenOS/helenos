@@ -320,8 +320,8 @@ error:
 const char *hr_get_vol_status_msg(hr_vol_status_t status)
 {
 	switch (status) {
-	case HR_VOL_INVALID:
-		return "INVALID";
+	case HR_VOL_NONE:
+		return "NONE/UNKNOWN";
 	case HR_VOL_ONLINE:
 		return "ONLINE";
 	case HR_VOL_FAULTY:
@@ -331,13 +331,15 @@ const char *hr_get_vol_status_msg(hr_vol_status_t status)
 	case HR_VOL_REBUILD:
 		return "REBUILD";
 	default:
-		return "UNKNOWN";
+		return "Invalid state value";
 	}
 }
 
 const char *hr_get_ext_status_msg(hr_ext_status_t status)
 {
 	switch (status) {
+	case HR_EXT_NONE:
+		return "NONE/UNKNOWN";
 	case HR_EXT_INVALID:
 		return "INVALID";
 	case HR_EXT_ONLINE:
@@ -351,7 +353,7 @@ const char *hr_get_ext_status_msg(hr_ext_status_t status)
 	case HR_EXT_HOTSPARE:
 		return "HOTSPARE";
 	default:
-		return "UNKNOWN";
+		return "Invalid state value";
 	}
 }
 
@@ -365,7 +367,7 @@ const char *hr_get_layout_str(hr_level_t level, uint8_t layout)
 		case HR_RLQ_RAID4_N:
 			return "RAID-4 Non-Rotating Parity N";
 		default:
-			return "RAID-4 INVALID";
+			return "Invalid RAID 4 layout";
 		}
 	case HR_LVL_5:
 		switch (layout) {
@@ -376,10 +378,10 @@ const char *hr_get_layout_str(hr_level_t level, uint8_t layout)
 		case HR_RLQ_RAID5_NC:
 			return "RAID-5 Rotating Parity N with Data Continuation";
 		default:
-			return "RAID-5 INVALID";
+			return "Invalid RAID 5 layout";
 		}
 	default:
-		return "INVALID";
+		return "Invalid RAID level";
 	}
 }
 
